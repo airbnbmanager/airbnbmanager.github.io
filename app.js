@@ -547,7 +547,13 @@ async function renderManageBookings() {
 }
 
 async function renderAddBooking() {
-  const { data: rooms } = await sb.from('rooms').select('room_id, room_no').order('room_no');
+  const { data: rooms } = await sb.from('rooms')
+    .select('room_id, room_no, room_type, rent_per_night, bookable')
+    .order('room_no');
+
+  // Cache for JS calculations
+  window.BOOKING_ROOMS_CACHE = rooms || [];
+
   const content = `
     <div class="card">
       <h1>➕ Add New Booking</h1>
@@ -557,15 +563,25 @@ async function renderAddBooking() {
       <input id="guestName" placeholder="Guest Name" />
       <input id="guestPhone" placeholder="Phone Number" />
       <input id="guestId" placeholder="ID Proof (Aadhar/PAN)" />
-      <select id="roomId">
+
+      <select id="roomId" onchange="onBookingRoomChange()">
         <option value="">Select Room</option>
         ${(rooms||[]).map(r => `<option value="${r.room_id}">${r.room_no}</option>`).join('')}
       </select>
-      <input id="checkIn" type="date" />
-      <input id="checkOut" type="date" />
-      <input id="guests" type="number" placeholder="Number of Guests" />
-      <input id="totalAmount" type="number" placeholder="Total Amount (₹)" />
-      <input id="advancePaid" type="number" placeholder="Advance Paid (₹)" />
+      <div id="roomInfo" class="sub" style="margin-top:-6px;"></div>
+
+      <input id="checkIn" type="date" onchange="onBookingRoomChange()" />
+      <input id="checkOut" type="date" onchange="onBookingRoomChange()" />
+      <div id="nightsInfo" class="sub" style="margin-top:-6px;"></div>
+
+      <input id="guests" type="number" placeholder="Number of Guests" value="1" />
+
+      <input id="totalAmount" type="number" placeholder="Total Amount (₹)" oninput="onBookingAmountChange()" />
+      <div id="suggestedInfo" class="sub" style="margin-top:-6px;"></div>
+
+      <input id="advancePaid" type="number" placeholder="Advance Paid (₹)" value="0" oninput="onBookingAmountChange()" />
+      <div id="balanceInfo" class="sub" style="margin-top:-6px; font-weight:600;"></div>
+
       <select id="paymentStatus">
         <option value="Unpaid">Unpaid</option>
         <option value="Partial">Partial</option>
@@ -576,6 +592,78 @@ async function renderAddBooking() {
       <div id="addBookingErr"></div>
     </div>`;
   renderShell(content, 'bookings');
+}
+
+// Auto-calculate nights + suggested amount when room/dates change
+function onBookingRoomChange() {
+  const roomId   = document.getElementById('roomId').value;
+  const checkIn  = document.getElementById('checkIn').value;
+  const checkOut = document.getElementById('checkOut').value;
+  const room     = (window.BOOKING_ROOMS_CACHE || []).find(r => r.room_id === roomId);
+
+  const roomInfoEl = document.getElementById('roomInfo');
+  if (room) {
+    const bookableTxt = room.bookable
+      ? '<span style="color:#256029;">✅ Bookable</span>'
+      : '<span style="color:#c00000;">⚠️ NOT Bookable (out of service)</span>';
+    roomInfoEl.innerHTML = `Type: <strong>${room.room_type||'-'}</strong> · Rent: <strong>₹${room.rent_per_night||0}/night</strong> · ${bookableTxt}`;
+  } else {
+    roomInfoEl.innerHTML = '';
+  }
+
+  const nightsInfoEl = document.getElementById('nightsInfo');
+  let nights = 0;
+  if (checkIn && checkOut) {
+    const d1 = new Date(checkIn);
+    const d2 = new Date(checkOut);
+    nights = Math.round((d2 - d1) / (1000 * 60 * 60 * 24));
+    if (nights > 0) {
+      nightsInfoEl.innerHTML = `🌙 <strong>${nights} night(s)</strong>`;
+    } else {
+      nightsInfoEl.innerHTML = `<span style="color:#c00000;">Check-out check-in ke baad ka hona chahiye</span>`;
+      nights = 0;
+    }
+  } else {
+    nightsInfoEl.innerHTML = '';
+  }
+
+  // Auto-fill suggested amount into Total Amount field
+  const suggestedEl = document.getElementById('suggestedInfo');
+  if (room && nights > 0) {
+    const suggested = room.rent_per_night * nights;
+    suggestedEl.innerHTML = `💡 Suggested Amount: ₹${suggested.toLocaleString("en-IN")} (${room.rent_per_night} × ${nights} nights)`;
+    const totalEl = document.getElementById('totalAmount');
+    if (!totalEl.value || totalEl.dataset.autofilled === 'true') {
+      totalEl.value = suggested;
+      totalEl.dataset.autofilled = 'true';
+    }
+  } else {
+    suggestedEl.innerHTML = '';
+  }
+
+  onBookingAmountChange();
+}
+
+// Auto-calculate balance due
+function onBookingAmountChange() {
+  const total   = parseFloat(document.getElementById('totalAmount').value) || 0;
+  const advance = parseFloat(document.getElementById('advancePaid').value) || 0;
+  const balance = total - advance;
+  const balanceEl = document.getElementById('balanceInfo');
+
+  if (total > 0) {
+    balanceEl.innerHTML = balance > 0
+      ? `<span class="warn">Balance Due: ₹${balance.toLocaleString("en-IN")}</span>`
+      : `<span style="color:#256029;">✅ Fully Paid</span>`;
+  } else {
+    balanceEl.innerHTML = '';
+  }
+
+  // Mark total field as manually edited if user types
+  document.getElementById('totalAmount').oninput = function() {
+    this.dataset.autofilled = 'false';
+    onBookingAmountChange();
+  };
 }
 
 async function saveNewBooking() {
@@ -620,7 +708,12 @@ async function editBooking(bookingId) {
     .from('guest_register').select('*').eq('booking_id', bookingId).single();
   if (error || !booking) { alert('Booking not found'); return; }
 
-  const { data: rooms } = await sb.from('rooms').select('room_id, room_no').order('room_no');
+  const { data: rooms } = await sb.from('rooms')
+    .select('room_id, room_no, room_type, rent_per_night, bookable')
+    .order('room_no');
+
+  window.BOOKING_ROOMS_CACHE = rooms || [];
+
   const content = `
     <div class="card">
       <h1>✏️ Edit Booking</h1>
@@ -630,16 +723,26 @@ async function editBooking(bookingId) {
       <input id="guestName" value="${booking.guest_name||''}" placeholder="Guest Name" />
       <input id="guestPhone" value="${booking.phone||''}" placeholder="Phone" />
       <input id="guestId" value="${booking.id_proof||''}" placeholder="ID Proof" />
-      <select id="roomId">
+
+      <select id="roomId" onchange="onBookingRoomChange()">
         ${(rooms||[]).map(r => `
           <option value="${r.room_id}" ${r.room_id===booking.room_id?'selected':''}>
             ${r.room_no}</option>`).join('')}
       </select>
-      <input id="checkIn" type="date" value="${booking.check_in||''}" />
-      <input id="checkOut" type="date" value="${booking.check_out||''}" />
+      <div id="roomInfo" class="sub" style="margin-top:-6px;"></div>
+
+      <input id="checkIn" type="date" value="${booking.check_in||''}" onchange="onBookingRoomChange()" />
+      <input id="checkOut" type="date" value="${booking.check_out||''}" onchange="onBookingRoomChange()" />
+      <div id="nightsInfo" class="sub" style="margin-top:-6px;"></div>
+
       <input id="guests" type="number" value="${booking.guests||1}" />
-      <input id="totalAmount" type="number" value="${booking.total_amount||0}" />
-      <input id="advancePaid" type="number" value="${booking.advance_paid||0}" />
+
+      <input id="totalAmount" type="number" value="${booking.total_amount||0}" oninput="onBookingAmountChange()" data-autofilled="false" />
+      <div id="suggestedInfo" class="sub" style="margin-top:-6px;"></div>
+
+      <input id="advancePaid" type="number" value="${booking.advance_paid||0}" oninput="onBookingAmountChange()" />
+      <div id="balanceInfo" class="sub" style="margin-top:-6px; font-weight:600;"></div>
+
       <select id="paymentStatus">
         <option value="Unpaid"  ${booking.payment_status==='Unpaid' ?'selected':''}>Unpaid</option>
         <option value="Partial" ${booking.payment_status==='Partial'?'selected':''}>Partial</option>
@@ -650,6 +753,9 @@ async function editBooking(bookingId) {
       <div id="editBookingErr"></div>
     </div>`;
   renderShell(content, 'bookings');
+
+  // Trigger calculation on load
+  setTimeout(() => { onBookingRoomChange(); }, 100);
 }
 
 async function updateBooking(bookingId) {
@@ -1199,8 +1305,10 @@ async function renderSalaryTracker() {
 }
 
 async function renderAddSalary() {
-  const { data: employees } = await sb
-    .from('employees').select('emp_id, name').eq('status','Active').order('name');
+  const { data: employees } = await sb.from('employees')
+    .select('emp_id, name, monthly_salary').eq('status','Active').order('name');
+  window.SALARY_EMP_CACHE = employees || [];
+
   const currentMonth = new Date().toISOString().slice(0, 7);
 
   const content = `
@@ -1209,14 +1317,18 @@ async function renderAddSalary() {
       <button class="secondary" onclick="renderSalaryTracker()">← Back</button>
     </div>
     <div class="card">
-      <select id="salEmpId">
+      <select id="salEmpId" onchange="onSalaryEmpChange()">
         <option value="">Select Employee</option>
         ${(employees||[]).map(e =>
           `<option value="${e.emp_id}">${e.name}</option>`).join('')}
       </select>
+      <div id="salEmpInfo" class="sub" style="margin-top:-6px;"></div>
+
       <input id="salMonth" type="month" value="${currentMonth}" />
       <input id="salDue" type="number" placeholder="Salary Due (₹)" />
-      <input id="salPaid" type="number" placeholder="Salary Paid (₹)" />
+      <input id="salPaid" type="number" placeholder="Salary Paid (₹)" oninput="onSalaryAmountChange()" />
+      <div id="salPendingInfo" class="sub" style="margin-top:-6px; font-weight:600;"></div>
+
       <input id="salPayDate" type="date" />
       <input id="salPayMode" placeholder="Payment Mode (Cash/UPI/Bank)" />
       <textarea id="salNotes" placeholder="Notes"></textarea>
@@ -1224,6 +1336,37 @@ async function renderAddSalary() {
       <div id="addSalErr"></div>
     </div>`;
   renderShell(content, 'salary');
+}
+
+// Auto-fill Salary Due from Employees Master
+function onSalaryEmpChange() {
+  const empId = document.getElementById('salEmpId').value;
+  const emp   = (window.SALARY_EMP_CACHE || []).find(e => e.emp_id === empId);
+  const infoEl = document.getElementById('salEmpInfo');
+  const dueEl  = document.getElementById('salDue');
+
+  if (emp) {
+    infoEl.innerHTML = `💡 Suggested Salary Due (from Master): ₹${(emp.monthly_salary||0).toLocaleString("en-IN")}`;
+    dueEl.value = emp.monthly_salary || 0;
+  } else {
+    infoEl.innerHTML = '';
+  }
+  onSalaryAmountChange();
+}
+
+function onSalaryAmountChange() {
+  const due  = parseFloat(document.getElementById('salDue').value) || 0;
+  const paid = parseFloat(document.getElementById('salPaid').value) || 0;
+  const pending = due - paid;
+  const el = document.getElementById('salPendingInfo');
+
+  if (due > 0) {
+    el.innerHTML = pending > 0
+      ? `<span class="warn">Pending: ₹${pending.toLocaleString("en-IN")}</span>`
+      : `<span style="color:#256029;">✅ Fully Paid</span>`;
+  } else {
+    el.innerHTML = '';
+  }
 }
 
 async function saveNewSalary() {
@@ -1255,7 +1398,7 @@ async function saveNewSalary() {
 
 async function editSalary(id) {
   const { data: salary, error } = await sb
-    .from('salary_tracker').select('*, employees(name)').eq('id', id).single();
+    .from('salary_tracker').select('*, employees(name, monthly_salary)').eq('id', id).single();
   if (error || !salary) { alert('Record not found'); return; }
 
   const content = `
@@ -1267,7 +1410,8 @@ async function editSalary(id) {
       <div class="sub"><strong>Employee:</strong> ${salary.employees?.name || salary.emp_id}</div>
       <input id="salMonth" type="month" value="${salary.month||''}" />
       <input id="salDue" type="number" value="${salary.salary_due||0}" />
-      <input id="salPaid" type="number" value="${salary.salary_paid||0}" />
+      <input id="salPaid" type="number" value="${salary.salary_paid||0}" oninput="onSalaryAmountChange()" />
+      <div id="salPendingInfo" class="sub" style="margin-top:-6px; font-weight:600;"></div>
       <input id="salPayDate" type="date" value="${salary.payment_date||''}" />
       <input id="salPayMode" value="${salary.payment_mode||''}" placeholder="Payment Mode" />
       <textarea id="salNotes">${salary.notes||''}</textarea>
@@ -1275,6 +1419,7 @@ async function editSalary(id) {
       <div id="editSalErr"></div>
     </div>`;
   renderShell(content, 'salary');
+  setTimeout(() => { onSalaryAmountChange(); }, 100);
 }
 
 async function updateSalary(id) {
