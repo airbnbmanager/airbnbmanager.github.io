@@ -1,10 +1,10 @@
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 const appEl = document.getElementById("app");
 
 async function init() {
   try {
-    const { data: { session } } = await supabase.auth.getSession();
+    const { data: { session } } = await sb.auth.getSession();
     if (!session) {
       renderLogin();
     } else {
@@ -47,7 +47,7 @@ function renderLogin() {
   document.getElementById("loginBtn").onclick = async () => {
     const email = document.getElementById("email").value.trim();
     const password = document.getElementById("password").value;
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    const { data, error } = await sb.auth.signInWithPassword({ email, password });
     if (error) {
       document.getElementById("err").textContent = error.message;
       return;
@@ -92,7 +92,7 @@ function logoutBar() {
 
 function bindLogout() {
   document.getElementById("logoutLink").onclick = async () => {
-    await supabase.auth.signOut();
+    await sb.auth.signOut();
     renderLogin();
   };
 }
@@ -100,14 +100,14 @@ function bindLogout() {
 // ---------------- OWNER DASHBOARD ----------------
 async function renderOwnerDashboard() {
   const [rooms, flats, employees, salary, advance, guests, attendance, tasks] = await Promise.all([
-    supabase.from("rooms").select("room_id, bookable"),
-    supabase.from("flats_status").select("status, cleaning_status"),
-    supabase.from("employees").select("emp_id"),
-    supabase.from("salary_tracker").select("salary_due, salary_paid"),
-    supabase.from("advance_tracker").select("advance_amount, repaid_amount"),
-    supabase.from("guest_register").select("total_amount, advance_paid"),
-    supabase.from("attendance_log").select("status, att_date"),
-    supabase.from("employee_tasks").select("status"),
+    sb.from("rooms").select("room_id, bookable"),
+    sb.from("flats_status").select("status, cleaning_status"),
+    sb.from("employees").select("emp_id"),
+    sb.from("salary_tracker").select("salary_due, salary_paid"),
+    sb.from("advance_tracker").select("advance_amount, repaid_amount"),
+    sb.from("guest_register").select("total_amount, advance_paid"),
+    sb.from("attendance_log").select("status, att_date"),
+    sb.from("employee_tasks").select("status"),
   ]);
 
   const totalRooms = rooms.data?.length || 0;
@@ -174,11 +174,11 @@ async function renderEmployeeView(empId) {
   }
 
   const [emp, salary, advance, tasks, attendance] = await Promise.all([
-    supabase.from("employees").select("*").eq("emp_id", empId).single(),
-    supabase.from("salary_tracker").select("salary_due, salary_paid").eq("emp_id", empId),
-    supabase.from("advance_tracker").select("advance_amount, repaid_amount").eq("emp_id", empId),
-    supabase.from("employee_tasks").select("task_description, status").eq("emp_id", empId).eq("status", "Pending"),
-    supabase.from("attendance_log").select("status, att_date").eq("emp_id", empId),
+    sb.from("employees").select("*").eq("emp_id", empId).single(),
+    sb.from("salary_tracker").select("salary_due, salary_paid").eq("emp_id", empId),
+    sb.from("advance_tracker").select("advance_amount, repaid_amount").eq("emp_id", empId),
+    sb.from("employee_tasks").select("task_description, status").eq("emp_id", empId).eq("status", "Pending"),
+    sb.from("attendance_log").select("status, att_date").eq("emp_id", empId),
   ]);
 
   const pendingSalary = (salary.data || []).reduce((s, r) => s + ((r.salary_due || 0) - (r.salary_paid || 0)), 0);
