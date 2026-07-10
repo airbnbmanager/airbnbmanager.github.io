@@ -1,3 +1,11 @@
+/**
+ * ===================================
+ * Project: Airbnb Manager
+ * Developer: Praveen Singh
+ * Description: Room, Booking, Employee & Salary Management System
+ * ===================================
+ */
+
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 const appEl = document.getElementById("app");
 
@@ -66,6 +74,9 @@ function renderLogin() {
         <input id="password" type="password" placeholder="Password" />
         <button id="loginBtn">Login</button>
         <div id="err"></div>
+        <div style="margin-top:24px; padding-top:16px; border-top:1px solid #eee; font-size:12px; color:#999;">
+          Developed by <strong style="color:#666;">Praveen Singh</strong>
+        </div>
       </div>
     </div>`;
 
@@ -113,6 +124,9 @@ function renderShell(content, activePage = 'dashboard') {
           <a href="#" data-page="advance"      class="${activePage === 'advance'      ? 'active' : ''}">💵 Advance Tracker</a>
         </nav>
         <div class="logout-link" id="logoutBtn">🚪 Logout</div>
+        <div style="text-align:center; padding:14px 8px; font-size:11px; color:rgba(255,255,255,0.5); border-top:1px solid rgba(255,255,255,0.1); margin-top:8px;">
+          ⚡ Developed by<br><strong style="color:rgba(255,255,255,0.8); font-size:12px;">Praveen Singh</strong>
+        </div>
       </aside>
       <main class="main-content" id="mainContent">
         ${content}
