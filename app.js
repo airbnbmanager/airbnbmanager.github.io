@@ -3,12 +3,28 @@ const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 const appEl = document.getElementById("app");
 
 async function init() {
-  const { data: { session } } = await supabase.auth.getSession();
-  if (!session) {
-    renderLogin();
-  } else {
-    renderLoading();
-    await routeByRole(session.user.id);
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      renderLogin();
+    } else {
+      renderLoading();
+      await routeByRole(session.user.id);
+    }
+  } catch (err) {
+    appEl.innerHTML = `
+      <div class="wrap">
+        <div class="card">
+          <h1>⚠️ Setup abhi baaki hai</h1>
+          <div class="sub">
+            config.js mein Supabase URL/key abhi placeholder hain, ya galat hain.
+            README.md ke Step 1-2 follow karo: Supabase project banao, schema.sql
+            run karo, phir Project Settings → API se URL aur anon key copy karke
+            config.js mein daalo.
+          </div>
+          <div class="error">${err.message || err}</div>
+        </div>
+      </div>`;
   }
 }
 
@@ -42,23 +58,31 @@ function renderLogin() {
 }
 
 async function routeByRole(userId) {
-  const { data: profile, error } = await supabase
-    .from("profiles")
-    .select("role, emp_id")
-    .eq("user_id", userId)
-    .single();
+  try {
+    const { data: profile, error } = await supabase
+      .from("profiles")
+      .select("role, emp_id")
+      .eq("user_id", userId)
+      .single();
 
-  if (error || !profile) {
+    if (error || !profile) {
+      appEl.innerHTML = `<div class="wrap"><div class="card">
+        Profile nahi mila. Owner se contact karo (Supabase 'profiles' table mein entry chahiye).
+        <div class="error">${error ? error.message : ""}</div>
+        </div></div>`;
+      return;
+    }
+
+    if (profile.role === "owner") {
+      await renderOwnerDashboard();
+    } else {
+      await renderEmployeeView(profile.emp_id);
+    }
+  } catch (err) {
     appEl.innerHTML = `<div class="wrap"><div class="card">
-      Profile nahi mila. Owner se contact karo (Supabase 'profiles' table mein entry chahiye).
+      <h1>⚠️ Kuch galat hua</h1>
+      <div class="error">${err.message || err}</div>
       </div></div>`;
-    return;
-  }
-
-  if (profile.role === "owner") {
-    await renderOwnerDashboard();
-  } else {
-    await renderEmployeeView(profile.emp_id);
   }
 }
 
