@@ -59,7 +59,7 @@ function renderLogin() {
 
 async function routeByRole(userId) {
   try {
-    const { data: profile, error } = await supabase
+    const { data: profile, error } = await sb
       .from("profiles")
       .select("role, emp_id")
       .eq("user_id", userId)
