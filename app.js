@@ -7,7 +7,7 @@
 
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 const appEl = document.getElementById("app");
-const BRAND = "The Unique Haven Homes Pvt Ltd";
+const BRAND = "UNIQUE HAVEN HOME STAY PVT LTD";
 
 let SESSION = {
   userId: null, role: null, empId: null, investorId: null,
@@ -102,7 +102,7 @@ function renderShell(content, activePage = 'dashboard') {
   ];
   if (isOwner) {
     navItems.push(['store', '📦 Manage Store']);
-    navItems.push(['investors', '🧑‍💼 Investors']);
+    navItems.push(['investors', '🧑‍💼 Sub-Owners']);
   }
 
   appEl.innerHTML = `
@@ -116,9 +116,9 @@ function renderShell(content, activePage = 'dashboard') {
           ${navItems.map(([key,label]) => `
             <a href="#" data-page="${key}" class="${activePage===key?'active':''}">${label}</a>`).join('')}
         </nav>
-        <div class="logout-link" id="logoutBtn">🚪 Logout</div>
-        <div style="text-align:center;padding:14px 8px;font-size:11px;color:rgba(255,255,255,0.5);border-top:1px solid rgba(255,255,255,0.1);margin-top:8px;">
-          ⚡ Developed by<br><strong style="color:rgba(255,255,255,0.8);font-size:12px;">Praveen Singh</strong>
+        <div class="sidebar-footer">
+          <div class="logout-link" id="logoutBtn">🚪 Logout</div>
+          <div class="sidebar-credit">⚡ Developed by<br><strong style="color:rgba(255,255,255,0.75);">Praveen Singh</strong></div>
         </div>
       </aside>
       <main class="main-content" id="mainContent">${content}</main>
@@ -291,27 +291,27 @@ async function renderReports() {
   new Chart(document.getElementById('chartRevenue'), {
     type: 'bar',
     data: { labels: months, datasets: [
-      { label:'Online (Airbnb)', data: monthlyOnline, backgroundColor:'#1f4e78' },
-      { label:'Offline', data: monthlyOffline, backgroundColor:'#8ab4d8' },
+      { label:'Online (Airbnb)', data: monthlyOnline, backgroundColor:'#E2725B' },
+      { label:'Offline', data: monthlyOffline, backgroundColor:'#F0B79A' },
     ]},
     options: { responsive:true, scales:{ x:{stacked:true}, y:{stacked:true} } }
   });
 
   new Chart(document.getElementById('chartBookings'), {
     type: 'doughnut',
-    data: { labels:['Online (Airbnb)','Offline'], datasets:[{ data:[onlineCount, offlineCount], backgroundColor:['#1f4e78','#8ab4d8'] }] },
+    data: { labels:['Online (Airbnb)','Offline'], datasets:[{ data:[onlineCount, offlineCount], backgroundColor:['#E2725B','#F0B79A'] }] },
     options: { responsive:true }
   });
 
   new Chart(document.getElementById('chartOccupancy'), {
     type: 'pie',
-    data: { labels:['Free','Booked','Blocked/Maintenance'], datasets:[{ data:[free,booked,blocked], backgroundColor:['#C6EFCE','#D9E9FF','#FFC7CE'] }] },
+    data: { labels:['Free','Booked','Blocked/Maintenance'], datasets:[{ data:[free,booked,blocked], backgroundColor:['#DCEFDC','#E1EEF0','#FBE0DD'] }] },
     options: { responsive:true }
   });
 
   new Chart(document.getElementById('chartAttendance'), {
     type: 'bar',
-    data: { labels: empNames, datasets:[{ label:'Attendance %', data: attPct, backgroundColor:'#1f4e78' }] },
+    data: { labels: empNames, datasets:[{ label:'Attendance %', data: attPct, backgroundColor:'#E2725B' }] },
     options: { responsive:true, indexAxis:'y', scales:{ x:{ max:100 } } }
   });
 }
@@ -1447,27 +1447,27 @@ async function renderManageInvestors() {
   window.INVESTOR_ROOMS_CACHE = rooms.data || [];
 
   renderShell(`
-    <div class="card"><h1>🧑‍💼 Investors</h1><div class="sub">${investors.data?.length||0} investors linked</div>
-      <button onclick="renderAddInvestor()">➕ Add Investor</button>
-      <button class="secondary" onclick="renderLinkProperty()">🔗 Link Property to Investor</button></div>
-    <div class="card"><h2 style="font-size:15px;margin-bottom:10px;">Investor → Property Mapping</h2><div style="overflow-x:auto;"><table>
-      <thead><tr><th>Investor</th><th>Property</th></tr></thead>
+    <div class="card"><h1>🧑‍💼 Sub-Owners</h1><div class="sub">${investors.data?.length||0} sub-owners linked</div>
+      <button onclick="renderAddInvestor()">➕ Add Sub-Owner</button>
+      <button class="secondary" onclick="renderLinkProperty()">🔗 Link Property to Sub-Owner</button></div>
+    <div class="card"><h2 style="font-size:15px;margin-bottom:10px;">Sub-Owner → Property Mapping</h2><div style="overflow-x:auto;"><table>
+      <thead><tr><th>Sub-Owner</th><th>Property</th></tr></thead>
       <tbody>${(links.data||[]).map(l => `<tr><td>${l.investors?.name||l.investor_id}</td><td>${l.rooms?.property_name||''} — ${l.rooms?.unit_no||l.room_id}</td></tr>`).join('')}</tbody>
     </table></div></div>
-    <div class="card"><h2 style="font-size:15px;margin-bottom:10px;">All Investors</h2><div style="overflow-x:auto;"><table>
-      <thead><tr><th>Name</th><th>Phone</th><th>Investor ID (use for their login profile)</th></tr></thead>
+    <div class="card"><h2 style="font-size:15px;margin-bottom:10px;">All Sub-Owners</h2><div style="overflow-x:auto;"><table>
+      <thead><tr><th>Name</th><th>Phone</th><th>Sub-Owner ID (use for their login profile)</th></tr></thead>
       <tbody>${(investors.data||[]).map(i => `<tr><td>${i.name}</td><td>${i.phone||'-'}</td><td><code>${i.investor_id}</code></td></tr>`).join('')}</tbody>
     </table></div></div>`, 'investors');
 }
 
 async function renderAddInvestor() {
   renderShell(`
-    <div class="card"><h1>➕ Add Investor</h1><button class="secondary" onclick="renderManageInvestors()">← Back</button></div>
+    <div class="card"><h1>➕ Add Sub-Owner</h1><button class="secondary" onclick="renderManageInvestors()">← Back</button></div>
     <div class="card">
-      <input id="invName" placeholder="Investor Name" />
+      <input id="invName" placeholder="Sub-Owner Name" />
       <input id="invPhone" placeholder="Phone Number" />
       <textarea id="invNotes" placeholder="Notes"></textarea>
-      <button onclick="saveInvestor()">💾 Save Investor</button>
+      <button onclick="saveInvestor()">💾 Save Sub-Owner</button>
       <div id="invErr"></div>
     </div>`, 'investors');
 }
@@ -1480,19 +1480,19 @@ async function saveInvestor() {
   const investorId = 'INV' + Date.now();
   const { error } = await sb.from('investors').insert({ investor_id: investorId, name, phone: phone||null, notes: notes||null });
   if (error) { document.getElementById('invErr').innerHTML = `<div class="error">${error.message}</div>`; return; }
-  renderShell(`<div class="card"><h1>✅ Investor Added</h1>
-    <div class="sub">Investor ID: <code>${investorId}</code></div>
+  renderShell(`<div class="card"><h1>✅ Sub-Owner Added</h1>
+    <div class="sub">Sub-Owner ID: <code>${investorId}</code></div>
     <div class="sub">Ab Authentication mein iska login banao, aur profiles table mein role='investor', investor_id='${investorId}' set karo.</div>
-    <button onclick="renderManageInvestors()">← Investors pe wapas jao</button></div>`, 'investors');
+    <button onclick="renderManageInvestors()">← Sub-Owners pe wapas jao</button></div>`, 'investors');
 }
 
 async function renderLinkProperty() {
   const { data: investors } = await sb.from('investors').select('investor_id, name').order('name');
   const rooms = window.INVESTOR_ROOMS_CACHE || [];
   renderShell(`
-    <div class="card"><h1>🔗 Link Property to Investor</h1><button class="secondary" onclick="renderManageInvestors()">← Back</button></div>
+    <div class="card"><h1>🔗 Link Property to Sub-Owner</h1><button class="secondary" onclick="renderManageInvestors()">← Back</button></div>
     <div class="card">
-      <select id="linkInvestor"><option value="">Select Investor</option>
+      <select id="linkInvestor"><option value="">Select Sub-Owner</option>
         ${(investors||[]).map(i => `<option value="${i.investor_id}">${i.name}</option>`).join('')}</select>
       <select id="linkRoom"><option value="">Select Property</option>
         ${rooms.map(r => `<option value="${r.room_id}">${r.property_name||''} — ${r.unit_no}</option>`).join('')}</select>
@@ -1510,48 +1510,70 @@ async function saveLink() {
   renderManageInvestors();
 }
 
-// ============ INVESTOR VIEW (no sidebar, simple, read-only) ============
-async function renderInvestorView() {
-  if (!SESSION.investorId) { showError('Aapka investor profile link nahi hai. Owner se contact karo.'); return; }
+// ============ SUB-OWNER VIEW (formerly "Investor" — no sidebar, simple, read-only) ============
+function filterBookingsByRange(bookings, range) {
+  if (range === 'All') return bookings;
+  const now = new Date();
+  let start;
+  if (range === 'Today') { start = new Date(now.getFullYear(), now.getMonth(), now.getDate()); }
+  else if (range === 'Week') { start = new Date(now); start.setDate(now.getDate() - 7); }
+  else if (range === 'Month') { start = new Date(now.getFullYear(), now.getMonth(), 1); }
+  else { return bookings; }
+  return bookings.filter(b => b.check_in && new Date(b.check_in) >= start);
+}
+
+async function renderInvestorView(range = 'Month') {
+  if (!SESSION.investorId) { showError('Aapka profile kisi property se link nahi hai. Owner se contact karo.'); return; }
 
   const { data: links } = await sb.from('investor_properties').select('room_id, rooms(unit_no, property_name, nickname)').eq('investor_id', SESSION.investorId);
   const roomIds = (links||[]).map(l => l.room_id);
 
-  const { data: bookings } = roomIds.length
+  const { data: allBookings } = roomIds.length
     ? await sb.from('guest_register').select('*, rooms(unit_no, property_name)').in('room_id', roomIds).order('check_in', { ascending:false })
     : { data: [] };
 
-  const paidMap = await getPaidMap((bookings||[]).map(b=>b.booking_id));
-  const totalRevenue = (bookings||[]).reduce((s,b)=>s+(paidMap[b.booking_id]||0),0);
+  const bookings = filterBookingsByRange(allBookings||[], range);
+  const paidMap = await getPaidMap(bookings.map(b=>b.booking_id));
+  const totalRevenue = bookings.reduce((s,b)=>s+(paidMap[b.booking_id]||0),0);
 
   appEl.innerHTML = `
     <div class="wrap" style="max-width:700px;">
       <div class="card">
         <h1>🏡 ${BRAND}</h1>
-        <div class="sub">👋 ${SESSION.displayName} — Investor Dashboard</div>
+        <div class="sub">👋 ${SESSION.displayName} — Sub-Owner Dashboard</div>
         <button onclick="logout()" class="secondary">🚪 Logout</button>
       </div>
       <div class="card">
+        <label style="font-size:13px;color:#445;">Period</label>
+        <select id="subOwnerRange">
+          <option value="Today" ${range==='Today'?'selected':''}>Aaj (Daily)</option>
+          <option value="Week" ${range==='Week'?'selected':''}>Pichle 7 din (Weekly)</option>
+          <option value="Month" ${range==='Month'?'selected':''}>Is mahine (Monthly)</option>
+          <option value="All" ${range==='All'?'selected':''}>Sab (All Time)</option>
+        </select>
+      </div>
+      <div class="card">
         <div class="metric-row"><span class="metric-label">Aapki Properties</span><span class="metric-value">${(links||[]).length}</span></div>
-        <div class="metric-row"><span class="metric-label">Total Bookings</span><span class="metric-value">${(bookings||[]).length}</span></div>
-        <div class="metric-row"><span class="metric-label">Total Revenue Received (₹)</span><span class="metric-value">${totalRevenue.toLocaleString("en-IN")}</span></div>
+        <div class="metric-row"><span class="metric-label">Bookings (${range})</span><span class="metric-value">${bookings.length}</span></div>
+        <div class="metric-row"><span class="metric-label">Revenue Received (${range}) (₹)</span><span class="metric-value">${totalRevenue.toLocaleString("en-IN")}</span></div>
       </div>
       <div class="card">
         <h2 style="font-size:15px;margin-bottom:10px;">Aapki Properties</h2>
         ${(links||[]).map(l => `<div class="metric-row"><span class="metric-label">${l.rooms?.property_name||''} — ${l.rooms?.unit_no}</span><span class="metric-value">${l.rooms?.nickname||''}</span></div>`).join('') || '<div class="sub">Koi property link nahi hai</div>'}
       </div>
       <div class="card">
-        <h2 style="font-size:15px;margin-bottom:10px;">Booking History</h2>
+        <h2 style="font-size:15px;margin-bottom:10px;">Booking History (${range})</h2>
         <div style="overflow-x:auto;"><table>
           <thead><tr><th>Guest</th><th>Property</th><th>Mode</th><th>Check-in</th><th>Check-out</th><th>Received (₹)</th></tr></thead>
-          <tbody>${(bookings||[]).map(b => `
+          <tbody>${bookings.map(b => `
             <tr><td>${b.guest_name||'-'}</td><td>${b.rooms?.unit_no||'-'}</td>
               <td><span class="badge ${b.booking_mode==='Online-Airbnb'?'blue':'yellow'}">${b.booking_mode||'Offline'}</span></td>
               <td>${b.check_in||'-'}</td><td>${b.check_out||'-'}</td>
-              <td>₹${(paidMap[b.booking_id]||0).toLocaleString("en-IN")}</td></tr>`).join('') || '<tr><td colspan="6" class="sub">Koi booking nahi mili</td></tr>'}</tbody>
+              <td>₹${(paidMap[b.booking_id]||0).toLocaleString("en-IN")}</td></tr>`).join('') || '<tr><td colspan="6" class="sub">Is period mein koi booking nahi mili</td></tr>'}</tbody>
         </table></div>
       </div>
     </div>`;
+  document.getElementById('subOwnerRange').onchange = (e) => renderInvestorView(e.target.value);
 }
 
 // ============ EMPLOYEE VIEW ============
