@@ -25,7 +25,7 @@ create table employees (
   assigned_rooms text,
   joining_date date,
   monthly_salary numeric,
-  status text default 'Active',    -- Active / Inactive
+  status text default 'Active',    -- Active / Inactivea
   notes text
 );
 

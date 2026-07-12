@@ -22,10 +22,10 @@ body {
 }
 
 .sidebar h2 {
-  font-size: 18px;
-  padding: 0 20px 20px;
+  font-size: 16px;
+  padding: 0 20px 14px;
   border-bottom: 1px solid rgba(255,255,255,0.1);
-  margin-bottom: 10px;
+  margin-bottom: 6px;
 }
 
 .sidebar nav a {
@@ -45,7 +45,7 @@ body {
 
 .sidebar .logout-link {
   position: absolute;
-  bottom: 20px;
+  bottom: 56px;
   left: 20px;
   right: 20px;
   padding: 12px;
@@ -60,6 +60,7 @@ body {
   margin-left: 240px;
   flex: 1;
   padding: 30px;
+  max-width: 1100px;
 }
 
 /* Mobile: No sidebar, stack vertically */
@@ -71,10 +72,11 @@ body {
   }
   .main-content {
     margin-left: 0;
+    padding: 16px;
   }
 }
 
-/* Login Page (no sidebar) */
+/* Login / Employee / Investor Page (no sidebar) */
 .wrap {
   max-width: 480px;
   margin: 0 auto;
@@ -89,16 +91,16 @@ body {
   box-shadow: 0 2px 8px rgba(0,0,0,0.08);
 }
 
-h1 { 
-  font-size: 24px; 
-  color: #1f4e78; 
-  margin-bottom: 8px; 
+h1 {
+  font-size: 22px;
+  color: #1f4e78;
+  margin-bottom: 8px;
 }
 
-.sub { 
-  font-size: 13px; 
-  color: #667; 
-  margin-bottom: 20px; 
+.sub {
+  font-size: 13px;
+  color: #667;
+  margin-bottom: 12px;
 }
 
 /* Dashboard Metrics */
@@ -112,20 +114,9 @@ h1 {
 
 .metric-row:last-child { border-bottom: none; }
 
-.metric-label { 
-  font-size: 14px; 
-  color: #445; 
-}
-
-.metric-value { 
-  font-size: 18px; 
-  font-weight: 700; 
-  color: #1f4e78; 
-}
-
-.metric-value.warn { 
-  color: #c00000; 
-}
+.metric-label { font-size: 14px; color: #445; }
+.metric-value { font-size: 18px; font-weight: 700; color: #1f4e78; }
+.metric-value.warn { color: #c00000; }
 
 /* Forms */
 input, select, textarea {
@@ -138,10 +129,7 @@ input, select, textarea {
   font-family: inherit;
 }
 
-textarea {
-  min-height: 80px;
-  resize: vertical;
-}
+textarea { min-height: 80px; resize: vertical; }
 
 button {
   background: #1f4e78;
@@ -152,83 +140,39 @@ button {
   font-size: 15px;
   font-weight: 600;
   cursor: pointer;
-  margin-top: 10px;
+  margin: 6px 6px 6px 0;
   transition: opacity 0.2s;
 }
 
-button:hover {
-  opacity: 0.9;
-}
-
-button:active {
-  opacity: 0.8;
-}
-
-button.secondary {
-  background: #6c757d;
-}
-
-button.danger {
-  background: #c00000;
-}
+button:hover { opacity: 0.9; }
+button:active { opacity: 0.8; }
+button.secondary { background: #6c757d; }
+button.danger { background: #c00000; }
 
 /* Table */
 table {
   width: 100%;
   border-collapse: collapse;
-  margin-top: 16px;
+  margin-top: 12px;
   background: #fff;
   border-radius: 8px;
   overflow: hidden;
 }
 
-th, td {
-  padding: 12px;
-  text-align: left;
-  border-bottom: 1px solid #eef1f4;
-}
+th, td { padding: 12px; text-align: left; border-bottom: 1px solid #eef1f4; }
+th { background: #f8f9fa; font-weight: 600; font-size: 12px; color: #445; text-transform: uppercase; white-space: nowrap; }
+td { font-size: 13px; color: #1f2d3d; }
+tr:last-child td { border-bottom: none; }
 
-th {
-  background: #f8f9fa;
-  font-weight: 600;
-  font-size: 13px;
-  color: #445;
-  text-transform: uppercase;
-}
-
-td {
-  font-size: 14px;
-  color: #1f2d3d;
-}
-
-tr:last-child td {
-  border-bottom: none;
-}
-
-.table-actions {
-  display: flex;
-  gap: 8px;
-}
-
-.btn-sm {
-  padding: 6px 12px;
-  font-size: 13px;
-  margin: 0;
-}
+.table-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+.btn-sm { padding: 6px 10px; font-size: 12px; margin: 0; }
 
 /* Badges */
-.badge {
-  display: inline-block;
-  padding: 4px 12px;
-  border-radius: 20px;
-  font-size: 12px;
-  font-weight: 600;
-}
-
-.badge.green { background: #C6EFCE; color: #256029; }
-.badge.red { background: #FFC7CE; color: #9c1c1c; }
+.badge { display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+.badge.green  { background: #C6EFCE; color: #256029; }
+.badge.red    { background: #FFC7CE; color: #9c1c1c; }
 .badge.yellow { background: #FFEB9C; color: #7a5c00; }
-.badge.blue { background: #D9E9FF; color: #1f4e78; }
+.badge.blue   { background: #D9E9FF; color: #1f4e78; }
 
 /* Error */
 .error {
@@ -241,9 +185,11 @@ tr:last-child td {
 }
 
 /* Loading */
-.loading {
-  text-align: center;
-  padding: 40px;
-  font-size: 16px;
-  color: #667;
+.loading { text-align: center; padding: 40px; font-size: 16px; color: #667; }
+
+code {
+  background: #f0f2f5;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 12px;
 }
