@@ -60,7 +60,8 @@ function renderLogin() {
   appEl.innerHTML = `
     <div class="wrap">
       <div class="card" style="text-align:center;">
-        <h1>🏡 ${BRAND}</h1>
+        <img src="assets/logo.png" alt="Logo" style="width:90px;height:90px;object-fit:contain;margin-bottom:10px;border-radius:12px;" />
+        <h1>${BRAND}</h1>
         <div class="sub">Login karo apne credentials se</div>
         <input id="email" type="email" placeholder="Email" />
         <input id="password" type="password" placeholder="Password" />
@@ -108,7 +109,7 @@ function renderShell(content, activePage = 'dashboard') {
   appEl.innerHTML = `
     <div class="app-container">
       <aside class="sidebar">
-        <h2>🏡 ${BRAND}</h2>
+        <h2><img src="assets/logo.png" alt="" style="width:28px;height:28px;object-fit:contain;vertical-align:middle;border-radius:6px;margin-right:8px;" />${BRAND}</h2>
         <div class="sub" style="padding:0 20px 12px;color:rgba(255,255,255,0.7);">
           👋 ${SESSION.displayName} <span class="badge blue">${SESSION.role}</span>
         </div>
@@ -1539,7 +1540,8 @@ async function renderInvestorView(range = 'Month') {
   appEl.innerHTML = `
     <div class="wrap" style="max-width:700px;">
       <div class="card">
-        <h1>🏡 ${BRAND}</h1>
+        <img src="assets/logo.png" alt="Logo" style="width:56px;height:56px;object-fit:contain;margin-bottom:8px;border-radius:10px;" />
+        <h1>${BRAND}</h1>
         <div class="sub">👋 ${SESSION.displayName} — Sub-Owner Dashboard</div>
         <button onclick="logout()" class="secondary">🚪 Logout</button>
       </div>
@@ -1600,7 +1602,9 @@ async function renderEmployeeView() {
 
   appEl.innerHTML = `
     <div class="wrap">
-      <div class="card"><h1>🏡 ${BRAND}</h1><div class="sub">👋 ${SESSION.displayName} — Employee Dashboard</div>
+      <div class="card">
+        <img src="assets/logo.png" alt="Logo" style="width:56px;height:56px;object-fit:contain;margin-bottom:8px;border-radius:10px;" />
+        <h1>${BRAND}</h1><div class="sub">👋 ${SESSION.displayName} — Employee Dashboard</div>
         <button onclick="logout()" class="secondary">🚪 Logout</button></div>
       <div class="card">
         <div class="metric-row"><span class="metric-label">Name</span><span class="metric-value">${emp.data?.name||'-'}</span></div>
