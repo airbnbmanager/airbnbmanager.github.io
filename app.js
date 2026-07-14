@@ -7,7 +7,7 @@
 
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 const appEl = document.getElementById("app");
-const BRAND = "UNIQUE HAVEN HOME STAY PVT LTD";
+const BRAND = "The UNIQUE HAVEN HOME STAY PVT LTD";
 
 let SESSION = {
   userId: null, role: null, empId: null, investorId: null,
@@ -103,6 +103,7 @@ function renderShell(content, activePage = 'dashboard') {
   ];
   if (isOwner) {
     navItems.push(['store', '📦 Manage Store']);
+    navItems.push(['expenses', '🧾 Expenses & Profit']);
     navItems.push(['investors', '🧑‍💼 Sub-Owners']);
   }
 
@@ -145,6 +146,7 @@ function navigate(page) {
     case 'salary':      renderSalaryTracker(); break;
     case 'advance':     renderAdvanceTracker(); break;
     case 'store':       renderManageStore(); break;
+    case 'expenses':    renderExpenses(); break;
     case 'investors':   renderManageInvestors(); break;
     default:            renderDashboard();
   }
@@ -163,75 +165,155 @@ async function getPaidMap(bookingIds) {
 async function renderDashboard() {
   renderShell(`<div class="loading">Loading dashboard...</div>`, 'dashboard');
 
-  const [rooms, flats, employees, salary, advance, guests, attendance, tasks] = await Promise.all([
-    sb.from("rooms").select("room_id, bookable"),
-    sb.from("flats_status").select("status, cleaning_status"),
-    sb.from("employees").select("emp_id"),
+  const [rooms, flats, salary, advance, guests, expenses] = await Promise.all([
+    sb.from("rooms").select("room_id, unit_no, nickname, property_name, bookable").order('room_id'),
+    sb.from("flats_status").select("room_id, status, cleaning_status"),
     sb.from("salary_tracker").select("salary_due, salary_paid"),
     sb.from("advance_tracker").select("advance_amount, repaid_amount"),
-    sb.from("guest_register").select("booking_id, total_amount, booking_mode"),
-    sb.from("attendance_log").select("status, att_date"),
-    sb.from("employee_tasks").select("status"),
+    sb.from("guest_register").select("*, rooms(unit_no, nickname)"),
+    sb.from("expenses").select("amount, month"),
   ]);
 
-  const filter = SESSION.bookingFilter || 'All';
-  const guestRows = (guests.data || []).filter(g => filter === 'All' || g.booking_mode === filter);
-  const paidMap = await getPaidMap(guestRows.map(g => g.booking_id));
-  const guestBalance = guestRows.reduce((s,g) => s + ((g.total_amount||0) - (paidMap[g.booking_id]||0)), 0);
-  const totalRevenue = guestRows.reduce((s,g) => s + (paidMap[g.booking_id]||0), 0);
+  const calFilter = SESSION.calendarFilter || 'All';
+  const today = new Date();
+  const todayStr = today.toISOString().slice(0,10);
+  const monthLabel = today.toLocaleString('en-IN', { month: 'short', year: 'numeric' }).replace(' ', '-');
 
-  const totalRooms  = rooms.data?.length || 0;
-  const notBookable = rooms.data?.filter(r => r.bookable === false).length || 0;
-  const free        = flats.data?.filter(f => f.status === "Free").length || 0;
-  const booked      = flats.data?.filter(f => f.status === "Booked").length || 0;
-  const dirty       = flats.data?.filter(f => f.cleaning_status === "Dirty").length || 0;
-  const totalEmp    = employees.data?.length || 0;
+  // ---- Today's check-ins / check-outs ----
+  const checkinsToday = (guests.data||[]).filter(g => g.check_in === todayStr);
+  const checkoutsToday = (guests.data||[]).filter(g => g.check_out === todayStr);
 
-  const pendingSalary  = (salary.data||[]).reduce((s,r)=>s+((r.salary_due||0)-(r.salary_paid||0)),0);
+  // ---- Occupancy ----
+  const free = flats.data?.filter(f => f.status === "Free") || [];
+  const booked = flats.data?.filter(f => f.status === "Booked") || [];
+  const dirty = flats.data?.filter(f => f.cleaning_status === "Dirty") || [];
+  const notBookable = rooms.data?.filter(r => r.bookable === false) || [];
+
+  // ---- Income / Expense / Profit (this month) ----
+  const paidMap = await getPaidMap((guests.data||[]).map(g=>g.booking_id));
+  const monthIncome = (guests.data||[])
+    .filter(g => g.check_in?.startsWith(today.toISOString().slice(0,7)))
+    .reduce((s,g)=>s+(paidMap[g.booking_id]||0),0);
+  const monthExpenses = (expenses.data||[]).filter(e => e.month === monthLabel).reduce((s,e)=>s+(e.amount||0),0);
+  const profit = monthIncome - monthExpenses;
+
+  const pendingSalary = (salary.data||[]).reduce((s,r)=>s+((r.salary_due||0)-(r.salary_paid||0)),0);
   const pendingAdvance = (advance.data||[]).reduce((s,r)=>s+((r.advance_amount||0)-(r.repaid_amount||0)),0);
 
-  const today        = new Date().toISOString().slice(0,10);
-  const presentToday  = (attendance.data||[]).filter(a=>a.att_date===today&&a.status==="Present").length;
-  const absentToday   = (attendance.data||[]).filter(a=>a.att_date===today&&a.status==="Absent").length;
-  const pendingTasks  = (tasks.data||[]).filter(t=>t.status==="Pending").length;
-
-  const metrics = [
-    ["Total Rooms", totalRooms, false],
-    ["Rooms Not Bookable", notBookable, notBookable>0],
-    ["Rooms Free Now", free, false],
-    ["Rooms Booked Now", booked, false],
-    ["Rooms Dirty", dirty, dirty>0],
-    ["Total Employees", totalEmp, false],
-    [`Revenue Received (${filter}) (₹)`, totalRevenue.toLocaleString("en-IN"), false],
-    [`Guest Balance Due (${filter}) (₹)`, guestBalance.toLocaleString("en-IN"), guestBalance>0],
-    ["Pending Salary (₹)", pendingSalary.toLocaleString("en-IN"), pendingSalary>0],
-    ["Advance Outstanding (₹)", pendingAdvance.toLocaleString("en-IN"), pendingAdvance>0],
-    ["Present Today", presentToday, false],
-    ["Absent Today", absentToday, absentToday>0],
-    ["Pending Tasks", pendingTasks, pendingTasks>0],
-  ];
+  const nameFor = (r) => `${r.rooms?.unit_no||r.room_id}${r.rooms?.nickname?' ('+r.rooms.nickname+')':''}`;
 
   const content = `
     <div class="card">
       <h1>📊 Dashboard</h1>
       <div class="sub">Live data — ${BRAND}</div>
-      <label style="font-size:13px;color:#445;">Booking Filter</label>
-      <select id="bookingFilterSel">
-        <option value="All" ${filter==='All'?'selected':''}>Sab (Online + Offline)</option>
-        <option value="Online-Airbnb" ${filter==='Online-Airbnb'?'selected':''}>Online (Airbnb)</option>
-        <option value="Offline" ${filter==='Offline'?'selected':''}>Offline (Direct)</option>
-      </select>
     </div>
+
     <div class="card">
-      ${metrics.map(([label,val,warn]) => `
-        <div class="metric-row"><span class="metric-label">${label}</span>
-        <span class="metric-value ${warn?'warn':''}">${val}</span></div>`).join("")}
+      <h2 style="font-size:15px;margin-bottom:10px;">🗓️ Booking Calendar</h2>
+      <div style="margin-bottom:10px;">
+        <button class="btn-sm ${calFilter==='All'?'':'secondary'}" onclick="setCalendarFilter('All')">Sab</button>
+        <button class="btn-sm ${calFilter==='Online-Airbnb'?'':'secondary'}" onclick="setCalendarFilter('Online-Airbnb')">Online</button>
+        <button class="btn-sm ${calFilter==='Offline'?'':'secondary'}" onclick="setCalendarFilter('Offline')">Offline</button>
+      </div>
+      <div id="calendarArea"></div>
+    </div>
+
+    <div class="card">
+      <h2 style="font-size:15px;margin-bottom:10px;">📥 Aaj Check-in (${checkinsToday.length})</h2>
+      ${checkinsToday.length ? checkinsToday.map(g => `
+        <div class="metric-row"><span class="metric-label">${g.guest_name} — ${nameFor(g)}</span><span class="badge blue">Check-in</span></div>`).join('')
+        : '<div class="sub">Aaj koi check-in nahi</div>'}
+      <h2 style="font-size:15px;margin:16px 0 10px;">📤 Aaj Check-out (${checkoutsToday.length})</h2>
+      ${checkoutsToday.length ? checkoutsToday.map(g => `
+        <div class="metric-row"><span class="metric-label">${g.guest_name} — ${nameFor(g)}</span><span class="badge yellow">Check-out</span></div>`).join('')
+        : '<div class="sub">Aaj koi check-out nahi</div>'}
+    </div>
+
+    <div class="card">
+      <h2 style="font-size:15px;margin-bottom:10px;">🏠 Occupancy</h2>
+      <div class="metric-row" style="cursor:pointer;" onclick="toggleDrilldown('freeList')"><span class="metric-label">Free Rooms (click to see)</span><span class="metric-value">${free.length}</span></div>
+      <div id="freeList" style="display:none;padding:8px 0;">${free.map(f=>`<div class="sub">• ${f.room_id}</div>`).join('') || '<div class="sub">-</div>'}</div>
+      <div class="metric-row" style="cursor:pointer;" onclick="toggleDrilldown('bookedList')"><span class="metric-label">Booked Rooms (click to see)</span><span class="metric-value">${booked.length}</span></div>
+      <div id="bookedList" style="display:none;padding:8px 0;">${booked.map(f=>{
+        const g = (guests.data||[]).find(x => x.room_id===f.room_id && x.check_in<=todayStr && x.check_out>=todayStr);
+        return `<div class="sub">• ${f.room_id}${g?' — '+g.guest_name:''}</div>`;
+      }).join('') || '<div class="sub">-</div>'}</div>
+      <div class="metric-row"><span class="metric-label">Dirty / Need Cleaning</span><span class="metric-value ${dirty.length>0?'warn':''}">${dirty.length}</span></div>
+      <div class="metric-row"><span class="metric-label">Not Bookable</span><span class="metric-value ${notBookable.length>0?'warn':''}">${notBookable.length}</span></div>
+    </div>
+
+    <div class="card">
+      <h2 style="font-size:15px;margin-bottom:10px;">💰 This Month (${monthLabel})</h2>
+      <div class="metric-row"><span class="metric-label">Total Income</span><span class="metric-value">₹${monthIncome.toLocaleString("en-IN")}</span></div>
+      <div class="metric-row"><span class="metric-label">Total Expenses</span><span class="metric-value warn">₹${monthExpenses.toLocaleString("en-IN")}</span></div>
+      <div class="metric-row"><span class="metric-label">Profit</span><span class="metric-value" style="color:${profit>=0?'#2E7D32':'#C0392B'};">₹${profit.toLocaleString("en-IN")}</span></div>
+      <div class="metric-row"><span class="metric-label">Pending Salary</span><span class="metric-value ${pendingSalary>0?'warn':''}">₹${pendingSalary.toLocaleString("en-IN")}</span></div>
+      <div class="metric-row"><span class="metric-label">Advance Outstanding</span><span class="metric-value ${pendingAdvance>0?'warn':''}">₹${pendingAdvance.toLocaleString("en-IN")}</span></div>
     </div>`;
 
   renderShell(content, 'dashboard');
-  document.getElementById('bookingFilterSel').onchange = (e) => {
-    SESSION.bookingFilter = e.target.value; renderDashboard();
-  };
+  renderCalendarGrid(rooms.data || [], guests.data || [], calFilter);
+}
+
+function toggleDrilldown(id) {
+  const el = document.getElementById(id);
+  el.style.display = el.style.display === 'none' ? 'block' : 'none';
+}
+
+function setCalendarFilter(mode) {
+  SESSION.calendarFilter = mode;
+  renderDashboard();
+}
+
+// simple 14-day occupancy grid: rows = rooms, columns = dates
+function renderCalendarGrid(rooms, bookings, filter) {
+  const area = document.getElementById('calendarArea');
+  if (!area) return;
+
+  const days = [];
+  const start = new Date();
+  start.setDate(start.getDate() - 1);
+  for (let i = 0; i < 14; i++) {
+    const d = new Date(start);
+    d.setDate(start.getDate() + i);
+    days.push(d);
+  }
+  const fmt = (d) => d.toISOString().slice(0,10);
+  const label = (d) => d.toLocaleDateString('en-IN', { day:'2-digit', month:'short' });
+
+  const filtered = bookings.filter(b => filter === 'All' || b.booking_mode === filter);
+
+  let html = `<div style="overflow-x:auto;"><table style="min-width:900px;"><thead><tr>
+    <th style="position:sticky;left:0;background:#FBF3EF;">Property</th>
+    ${days.map(d => `<th>${label(d)}</th>`).join('')}
+  </tr></thead><tbody>`;
+
+  rooms.forEach(r => {
+    html += `<tr><td style="position:sticky;left:0;background:#fff;font-weight:600;">${r.unit_no}<br><small style="color:#8A7F76;">${r.nickname||''}</small></td>`;
+    days.forEach(d => {
+      const dateStr = fmt(d);
+      const booking = filtered.find(b => b.room_id === r.room_id && b.check_in && b.check_out && dateStr >= b.check_in && dateStr < b.check_out);
+      if (booking) {
+        const color = booking.booking_mode === 'Online-Airbnb' ? '#E1EEF0' : '#FBEAC8';
+        html += `<td style="background:${color};cursor:pointer;font-size:11px;padding:6px;" onclick="showBookingQuickInfo('${booking.booking_id}')">${(booking.guest_name||'').split(' ')[0]}</td>`;
+      } else {
+        html += `<td style="background:#DCEFDC;"></td>`;
+      }
+    });
+    html += `</tr>`;
+  });
+  html += `</tbody></table></div>
+    <div class="sub" style="margin-top:8px;">
+      <span style="background:#DCEFDC;padding:2px 8px;border-radius:4px;">Free</span>
+      <span style="background:#E1EEF0;padding:2px 8px;border-radius:4px;margin-left:6px;">Online</span>
+      <span style="background:#FBEAC8;padding:2px 8px;border-radius:4px;margin-left:6px;">Offline</span>
+      — cell pe click karke booking details dekho
+    </div>`;
+  area.innerHTML = html;
+}
+
+function showBookingQuickInfo(bookingId) {
+  editBooking(bookingId);
 }
 
 // ============ REPORTS (charts) ============
@@ -576,6 +658,7 @@ async function renderManageBookings() {
                 <td class="table-actions">
                   <button class="btn-sm" onclick="editBooking('${b.booking_id}')">✏️ Edit</button>
                   <button class="btn-sm" onclick="recordPayment('${b.booking_id}')">➕ Payment</button>
+                  ${balance > 0 ? `<button class="btn-sm" onclick="markFullyPaid('${b.booking_id}')">✅ Mark Paid</button>` : ''}
                   <button class="btn-sm danger" onclick="deleteBooking('${b.booking_id}','${b.guest_name}')">🗑️</button>
                 </td>` : ''}
             </tr>`;}).join("")}
@@ -597,14 +680,6 @@ async function renderAddBooking() {
     <div class="card">
       <input id="guestName" placeholder="Guest Name" />
       <input id="guestPhone" placeholder="Phone Number" />
-      <select id="idProofType">
-        <option value="">ID Proof Type</option>
-        <option value="Aadhar">Aadhar</option><option value="PAN">PAN</option>
-        <option value="DL">Driving License</option><option value="Passport">Passport</option>
-      </select>
-      <input id="guestIdNo" placeholder="ID Proof Number" />
-      <label style="font-size:13px;color:#445;">ID Proof Photo (optional)</label>
-      <input id="idPhoto" type="file" accept="image/*" />
 
       <select id="roomId" onchange="onBookingRoomChange()">
         <option value="">Select Property</option>
@@ -628,14 +703,31 @@ async function renderAddBooking() {
 
       <input id="guests" type="number" placeholder="Number of Guests" value="1" />
 
-      <input id="totalAmount" type="number" placeholder="Total Amount We Receive (₹)" oninput="onBookingAmountChange()" />
+      <input id="totalAmount" type="number" placeholder="Total Amount — kitne mein book hua (₹)" oninput="onBookingAmountChange()" />
       <div id="suggestedInfo" class="sub" style="margin-top:-6px;"></div>
 
-      <input id="initialPayment" type="number" placeholder="Initial Payment Received Now (₹, optional)" value="0" />
-      <input id="paymentMode" placeholder="Payment Mode (Cash/UPI/Bank/Airbnb Payout)" />
+      <input id="advanceAmount" type="number" placeholder="Advance Amount (₹, jitna abhi mila)" value="0" oninput="onBookingAmountChange()" />
+      <div id="balanceInfo" class="sub" style="margin-top:-6px;font-weight:600;"></div>
+      <select id="advancePaymentMode">
+        <option value="">Advance Payment Mode (agar advance mila hai)</option>
+        <option value="Cash">Cash</option><option value="UPI">UPI</option>
+        <option value="Bank">Bank</option><option value="Airbnb Payout">Airbnb Payout</option>
+      </select>
+
+      <details style="margin:10px 0;">
+        <summary style="cursor:pointer;color:#8A7F76;font-size:13px;">+ ID Proof details (optional)</summary>
+        <select id="idProofType" style="margin-top:8px;">
+          <option value="">ID Proof Type</option>
+          <option value="Aadhar">Aadhar</option><option value="PAN">PAN</option>
+          <option value="DL">Driving License</option><option value="Passport">Passport</option>
+        </select>
+        <input id="guestIdNo" placeholder="ID Proof Number" />
+        <label style="font-size:13px;color:#8A7F76;">ID Proof Photo</label>
+        <input id="idPhoto" type="file" accept="image/*" />
+      </details>
 
       <textarea id="bookingNotes" placeholder="Notes (optional)"></textarea>
-      <button onclick="saveNewBooking()">💾 Save Booking</button>
+      <button id="saveBookingBtn" onclick="saveNewBooking()">💾 Save Booking</button>
       <div id="addBookingErr"></div>
     </div>`, 'bookings');
 }
@@ -655,7 +747,7 @@ function onBookingRoomChange() {
   const roomInfoEl = document.getElementById('roomInfo');
   if (room) {
     const bookableTxt = room.bookable ? '<span style="color:#256029;">✅ Bookable</span>' : '<span style="color:#c00000;">⚠️ NOT Bookable (out of service)</span>';
-    roomInfoEl.innerHTML = `Rent: <strong>₹${room.rent_per_night||0}/night</strong> · ${bookableTxt}`;
+    roomInfoEl.innerHTML = `Rent (reference): <strong>₹${room.rent_per_night||0}/night</strong> · ${bookableTxt}`;
   } else { roomInfoEl.innerHTML = ''; }
 
   const nightsInfoEl = document.getElementById('nightsInfo');
@@ -668,11 +760,7 @@ function onBookingRoomChange() {
   const suggestedEl = document.getElementById('suggestedInfo');
   if (room && nights > 0 && document.getElementById('bookingMode').value !== 'Online-Airbnb') {
     const suggested = room.rent_per_night * nights;
-    suggestedEl.innerHTML = `💡 Suggested Amount: ₹${suggested.toLocaleString("en-IN")} (${room.rent_per_night} × ${nights} nights)`;
-    const totalEl = document.getElementById('totalAmount');
-    if (!totalEl.value || totalEl.dataset.autofilled === 'true') {
-      totalEl.value = suggested; totalEl.dataset.autofilled = 'true';
-    }
+    suggestedEl.innerHTML = `💡 Reference (rent × nights): ₹${suggested.toLocaleString("en-IN")} — Total Amount manually daalo (negotiated price)`;
   } else { suggestedEl.innerHTML = ''; }
 
   onBookingAmountChange();
@@ -680,18 +768,24 @@ function onBookingRoomChange() {
 
 function onBookingAmountChange() {
   const mode = document.getElementById('bookingMode')?.value;
+  const totalEl = document.getElementById('totalAmount');
   if (mode === 'Online-Airbnb') {
     const gross = parseFloat(document.getElementById('grossAmount')?.value) || 0;
     const fee = parseFloat(document.getElementById('platformFee')?.value) || 0;
-    const net = gross - fee;
-    const totalEl = document.getElementById('totalAmount');
-    totalEl.value = net;
+    totalEl.value = gross - fee;
     totalEl.readOnly = true;
-  } else {
-    const totalEl = document.getElementById('totalAmount');
-    if (totalEl) totalEl.readOnly = false;
+  } else if (totalEl) {
+    totalEl.readOnly = false;
   }
-  document.getElementById('totalAmount').oninput = function() { this.dataset.autofilled='false'; };
+  const total = parseFloat(totalEl?.value) || 0;
+  const advance = parseFloat(document.getElementById('advanceAmount')?.value) || 0;
+  const balance = total - advance;
+  const balanceEl = document.getElementById('balanceInfo');
+  if (balanceEl) {
+    balanceEl.innerHTML = total > 0
+      ? (balance > 0 ? `<span class="warn">Balance Due: ₹${balance.toLocaleString("en-IN")}</span>` : `<span style="color:#256029;">✅ Fully Paid</span>`)
+      : '';
+  }
 }
 
 async function uploadIdPhotoIfAny(bookingId) {
@@ -705,6 +799,12 @@ async function uploadIdPhotoIfAny(bookingId) {
 }
 
 async function saveNewBooking() {
+  const saveBtn = document.getElementById('saveBookingBtn');
+  // duplicate-submit guard — disable immediately so double-click can't create 2 bookings
+  if (saveBtn.disabled) return;
+  saveBtn.disabled = true;
+  saveBtn.textContent = 'Saving...';
+
   const guestName = document.getElementById('guestName').value.trim();
   const guestPhone = document.getElementById('guestPhone').value.trim();
   const idProofType = document.getElementById('idProofType').value;
@@ -717,12 +817,13 @@ async function saveNewBooking() {
   const checkOut = document.getElementById('checkOut').value;
   const guests = parseInt(document.getElementById('guests').value) || 1;
   const totalAmount = parseFloat(document.getElementById('totalAmount').value) || 0;
-  const initialPayment = parseFloat(document.getElementById('initialPayment').value) || 0;
-  const paymentMode = document.getElementById('paymentMode').value.trim();
+  const advanceAmount = parseFloat(document.getElementById('advanceAmount').value) || 0;
+  const advancePaymentMode = document.getElementById('advancePaymentMode').value;
   const notes = document.getElementById('bookingNotes').value.trim();
 
   if (!guestName || !roomId) {
     document.getElementById('addBookingErr').innerHTML = '<div class="error">Guest name aur property required hai</div>';
+    saveBtn.disabled = false; saveBtn.textContent = '💾 Save Booking';
     return;
   }
 
@@ -734,15 +835,19 @@ async function saveNewBooking() {
     id_proof_type: idProofType||null, id_proof_no: guestIdNo||null, id_proof_photo_path: photoPath,
     room_id: roomId, booking_mode: bookingMode, gross_amount: grossAmount, platform_fee: platformFee,
     check_in: checkIn||null, check_out: checkOut||null, guests, total_amount: totalAmount,
-    payment_status: initialPayment >= totalAmount && totalAmount>0 ? 'Paid' : (initialPayment>0 ? 'Partial' : 'Unpaid'),
+    payment_status: advanceAmount >= totalAmount && totalAmount>0 ? 'Paid' : (advanceAmount>0 ? 'Partial' : 'Unpaid'),
     notes: notes||null
   });
 
-  if (error) { document.getElementById('addBookingErr').innerHTML = `<div class="error">${error.message}</div>`; return; }
+  if (error) {
+    document.getElementById('addBookingErr').innerHTML = `<div class="error">${error.message}</div>`;
+    saveBtn.disabled = false; saveBtn.textContent = '💾 Save Booking';
+    return;
+  }
 
-  if (initialPayment > 0) {
+  if (advanceAmount > 0) {
     await sb.from('payment_history').insert({
-      booking_id: bookingId, amount: initialPayment, payment_mode: paymentMode||null, notes: 'Initial payment at booking'
+      booking_id: bookingId, amount: advanceAmount, payment_mode: advancePaymentMode||null, notes: 'Advance at booking'
     });
   }
 
@@ -810,6 +915,7 @@ async function editBooking(bookingId) {
       ${(payments||[]).length ? `<table style="margin-top:12px;"><thead><tr><th>Date/Time</th><th>Amount</th><th>Mode</th><th>Notes</th></tr></thead>
         <tbody>${payments.map(p => `<tr><td>${new Date(p.paid_at).toLocaleString('en-IN')}</td><td>₹${(p.amount||0).toLocaleString("en-IN")}</td><td>${p.payment_mode||'-'}</td><td>${p.notes||'-'}</td></tr>`).join('')}</tbody></table>` : `<div class="sub">Koi payment record nahi hai abhi.</div>`}
       <button onclick="recordPayment('${bookingId}')">➕ Naya Payment Add Karo</button>
+      ${balance > 0 ? `<button onclick="markFullyPaid('${bookingId}')">✅ Mark Fully Paid</button>` : ''}
     </div>`, 'bookings');
 }
 
@@ -854,9 +960,25 @@ async function recordPayment(bookingId) {
   const amount = prompt('Kitna payment mila? (₹)');
   if (!amount || isNaN(parseFloat(amount))) return;
   const mode = prompt('Payment mode? (Cash/UPI/Bank/Airbnb Payout)') || null;
-  const { error } = await sb.from('payment_history').insert({
-    booking_id: bookingId, amount: parseFloat(amount), payment_mode: mode
-  });
+  await savePaymentAndRefresh(bookingId, parseFloat(amount), mode);
+}
+
+// "Mark Paid" — auto-calculates the remaining balance, only asks payment mode
+async function markFullyPaid(bookingId) {
+  const { data: booking } = await sb.from('guest_register').select('total_amount').eq('booking_id', bookingId).single();
+  const { data: payments } = await sb.from('payment_history').select('amount').eq('booking_id', bookingId);
+  const totalPaid = (payments||[]).reduce((s,p)=>s+(p.amount||0),0);
+  const balance = (booking?.total_amount||0) - totalPaid;
+
+  if (balance <= 0) { alert('Ye booking already fully paid hai.'); return; }
+
+  const mode = prompt(`Balance ₹${balance.toLocaleString("en-IN")} — Payment Mode? (Cash/UPI/Bank/Airbnb Payout)`);
+  if (!mode) return; // cancelled
+  await savePaymentAndRefresh(bookingId, balance, mode);
+}
+
+async function savePaymentAndRefresh(bookingId, amount, mode) {
+  const { error } = await sb.from('payment_history').insert({ booking_id: bookingId, amount, payment_mode: mode });
   if (error) { alert('Error: ' + error.message); return; }
 
   const { data: booking } = await sb.from('guest_register').select('total_amount').eq('booking_id', bookingId).single();
@@ -865,7 +987,9 @@ async function recordPayment(bookingId) {
   const status = totalPaid >= (booking?.total_amount||0) && booking?.total_amount>0 ? 'Paid' : (totalPaid>0 ? 'Partial' : 'Unpaid');
   await sb.from('guest_register').update({ payment_status: status }).eq('booking_id', bookingId);
 
-  editBooking(bookingId);
+  // refresh whichever view is currently open
+  if (document.getElementById('editBookingErr')) editBooking(bookingId);
+  else renderManageBookings();
 }
 
 // ============ MANAGE EMPLOYEES ============
@@ -1435,6 +1559,127 @@ async function saveStockTxn() {
   const { error } = await sb.from('stock_transactions').insert({ item_id: itemId, room_id: roomId, txn_type: txnType, quantity: qty, cost, txn_date: date||null, notes: notes||null });
   if (error) { document.getElementById('txnErr').innerHTML = `<div class="error">${error.message}</div>`; return; }
   renderManageStore();
+}
+
+// ============ EXPENSES & PROFIT (owner only) ============
+async function renderExpenses() {
+  renderShell(`<div class="loading">Loading expenses...</div>`, 'expenses');
+  const currentMonth = new Date().toISOString().slice(0,7);
+  const monthLabel = new Date().toLocaleString('en-IN', { month: 'short', year: 'numeric' }).replace(' ', '-');
+
+  const [categories, expenses, guests] = await Promise.all([
+    sb.from('expense_categories').select('*').order('category_name'),
+    sb.from('expenses').select('*, expense_categories(category_name)').order('entry_date', { ascending:false }),
+    sb.from('guest_register').select('booking_id, check_in, total_amount'),
+  ]);
+
+  const paidMap = await getPaidMap((guests.data||[]).map(g=>g.booking_id));
+  const monthIncome = (guests.data||[])
+    .filter(g => g.check_in?.startsWith(currentMonth))
+    .reduce((s,g)=>s+(paidMap[g.booking_id]||0),0);
+  const monthExpenses = (expenses.data||[])
+    .filter(e => e.month === monthLabel)
+    .reduce((s,e)=>s+(e.amount||0),0);
+  const profit = monthIncome - monthExpenses;
+
+  renderShell(`
+    <div class="card"><h1>🧾 Expenses & Profit</h1><div class="sub">Current month: <strong>${monthLabel}</strong></div>
+      <button onclick="renderAddExpenseCategory()">➕ Add Expense Category</button>
+      <button class="secondary" onclick="renderAddExpenseEntry()">🧾 Log This Month's Expense</button></div>
+
+    <div class="card">
+      <div class="metric-row"><span class="metric-label">Total Income (${monthLabel})</span><span class="metric-value">₹${monthIncome.toLocaleString("en-IN")}</span></div>
+      <div class="metric-row"><span class="metric-label">Total Expenses (${monthLabel})</span><span class="metric-value warn">₹${monthExpenses.toLocaleString("en-IN")}</span></div>
+      <div class="metric-row"><span class="metric-label">Profit (${monthLabel})</span><span class="metric-value" style="color:${profit>=0?'#2E7D32':'#C0392B'};">₹${profit.toLocaleString("en-IN")}</span></div>
+    </div>
+
+    <div class="card"><h2 style="font-size:15px;margin-bottom:10px;">Expense Categories (recurring, roughly same every month)</h2>
+      <div style="overflow-x:auto;"><table>
+        <thead><tr><th>Category</th><th>Default Monthly Amount</th><th>Notes</th></tr></thead>
+        <tbody>${(categories.data||[]).map(c => `
+          <tr><td><strong>${c.category_name}</strong></td><td>₹${(c.default_monthly_amount||0).toLocaleString("en-IN")}</td><td>${c.notes||'-'}</td></tr>`).join('') || '<tr><td colspan="3" class="sub">Koi category nahi hai — pehle "Add Expense Category" karo</td></tr>'}</tbody>
+      </table></div>
+    </div>
+
+    <div class="card"><h2 style="font-size:15px;margin-bottom:10px;">All Expense Entries</h2>
+      <div style="overflow-x:auto;"><table>
+        <thead><tr><th>Month</th><th>Category</th><th>Amount</th><th>Date</th><th>Notes</th></tr></thead>
+        <tbody>${(expenses.data||[]).map(e => `
+          <tr><td>${e.month||'-'}</td><td>${e.expense_categories?.category_name||'-'}</td>
+            <td>₹${(e.amount||0).toLocaleString("en-IN")}</td><td>${e.entry_date||'-'}</td><td>${e.notes||'-'}</td></tr>`).join('') || '<tr><td colspan="5" class="sub">Koi entry nahi hai abhi</td></tr>'}</tbody>
+      </table></div>
+    </div>`, 'expenses');
+}
+
+async function renderAddExpenseCategory() {
+  renderShell(`
+    <div class="card"><h1>➕ Add Expense Category</h1><button class="secondary" onclick="renderExpenses()">← Back</button></div>
+    <div class="card">
+      <input id="catName" placeholder="Category Name (e.g. Staff Quarters Rent, Electricity)" />
+      <input id="catDefault" type="number" placeholder="Default Monthly Amount (₹) — roughly same every month" />
+      <textarea id="catNotes" placeholder="Notes"></textarea>
+      <button onclick="saveExpenseCategory()">💾 Save Category</button>
+      <div id="catErr"></div>
+    </div>`, 'expenses');
+}
+
+async function saveExpenseCategory() {
+  const name = document.getElementById('catName').value.trim();
+  const defaultAmt = parseFloat(document.getElementById('catDefault').value) || null;
+  const notes = document.getElementById('catNotes').value.trim();
+  if (!name) { document.getElementById('catErr').innerHTML = '<div class="error">Category name required</div>'; return; }
+  const categoryId = 'EXP' + Date.now();
+  const { error } = await sb.from('expense_categories').insert({ category_id: categoryId, category_name: name, default_monthly_amount: defaultAmt, notes: notes||null });
+  if (error) { document.getElementById('catErr').innerHTML = `<div class="error">${error.message}</div>`; return; }
+  renderExpenses();
+}
+
+async function renderAddExpenseEntry() {
+  const { data: categories } = await sb.from('expense_categories').select('*').order('category_name');
+  const now = new Date();
+  const monthLabel = now.toLocaleString('en-IN', { month: 'short', year: 'numeric' }).replace(' ', '-');
+  const today = now.toISOString().slice(0,10);
+  window.EXPENSE_CAT_CACHE = categories || [];
+
+  renderShell(`
+    <div class="card"><h1>🧾 Log This Month's Expense</h1><button class="secondary" onclick="renderExpenses()">← Back</button></div>
+    <div class="card">
+      <select id="expCategory" onchange="onExpenseCategoryChange()"><option value="">Select Category</option>
+        ${(categories||[]).map(c => `<option value="${c.category_id}">${c.category_name}</option>`).join('')}</select>
+      <div id="expCatInfo" class="sub" style="margin-top:-6px;"></div>
+      <input id="expMonth" value="${monthLabel}" placeholder="Month (e.g. Jul-2026)" />
+      <input id="expAmount" type="number" placeholder="Amount (₹)" />
+      <input id="expDate" type="date" value="${today}" />
+      <textarea id="expNotes" placeholder="Notes"></textarea>
+      <button onclick="saveExpenseEntry()">💾 Save Expense</button>
+      <div id="expErr"></div>
+    </div>`, 'expenses');
+}
+
+function onExpenseCategoryChange() {
+  const catId = document.getElementById('expCategory').value;
+  const cat = (window.EXPENSE_CAT_CACHE||[]).find(c => c.category_id === catId);
+  const infoEl = document.getElementById('expCatInfo');
+  const amtEl = document.getElementById('expAmount');
+  if (cat && cat.default_monthly_amount) {
+    infoEl.innerHTML = `💡 Suggested (default): ₹${cat.default_monthly_amount.toLocaleString("en-IN")}`;
+    amtEl.value = cat.default_monthly_amount;
+  } else { infoEl.innerHTML = ''; }
+}
+
+async function saveExpenseEntry() {
+  const categoryId = document.getElementById('expCategory').value;
+  const month = document.getElementById('expMonth').value.trim();
+  const amount = parseFloat(document.getElementById('expAmount').value) || 0;
+  const date = document.getElementById('expDate').value;
+  const notes = document.getElementById('expNotes').value.trim();
+  if (!categoryId || !month || amount <= 0) {
+    document.getElementById('expErr').innerHTML = '<div class="error">Category, month aur valid amount required hai</div>';
+    return;
+  }
+  const { error } = await sb.from('expenses').insert({ category_id: categoryId, month, amount, entry_date: date||null, notes: notes||null });
+  if (error) { document.getElementById('expErr').innerHTML = `<div class="error">${error.message}</div>`; return; }
+  renderExpenses();
 }
 
 // ============ INVESTORS (owner only) ============
