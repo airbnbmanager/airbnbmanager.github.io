@@ -11,7 +11,7 @@ const BRAND = "The UNIQUE HAVEN HOME STAY PVT LTD";
 
 let SESSION = {
   userId: null, role: null, empId: null, investorId: null,
-  displayName: null, currentPage: 'dashboard', bookingFilter: 'All'
+  displayName: null, currentPage: 'dashboard', bookingFilter: 'All', calendarFilter: 'All'
 };
 
 // ============ INIT ============
@@ -51,7 +51,7 @@ function showError(msg, err = null) {
 
 async function logout() {
   await sb.auth.signOut();
-  SESSION = { userId:null, role:null, empId:null, investorId:null, displayName:null, currentPage:'dashboard', bookingFilter:'All' };
+  SESSION = { userId:null, role:null, empId:null, investorId:null, displayName:null, currentPage:'dashboard', bookingFilter:'All', calendarFilter:'All' };
   renderLogin();
 }
 
@@ -145,14 +145,14 @@ function navigate(page) {
     case 'att-summary': renderAttendanceSummary(); break;
     case 'salary':      renderSalaryTracker(); break;
     case 'advance':     renderAdvanceTracker(); break;
-    case 'store':       renderManageStore(); break;
+    case 'store':       renderStore(); break;
     case 'expenses':    renderExpenses(); break;
     case 'investors':   renderManageInvestors(); break;
     default:            renderDashboard();
   }
 }
 
-// helper: fetch every booking's total paid (sum of payment_history) in one query
+// helper
 async function getPaidMap(bookingIds) {
   if (!bookingIds.length) return {};
   const { data } = await sb.from('payment_history').select('booking_id, amount').in('booking_id', bookingIds);
@@ -161,243 +161,318 @@ async function getPaidMap(bookingIds) {
   return map;
 }
 
-// ============ DASHBOARD ============
+// ================================================================
+//  1. DASHBOARD (Daily Focus — 3 Cards)
+// ================================================================
 async function renderDashboard() {
   renderShell(`<div class="loading">Loading dashboard...</div>`, 'dashboard');
 
-  const [rooms, flats, salary, advance, guests, expenses] = await Promise.all([
-    sb.from("rooms").select("room_id, unit_no, nickname, property_name, bookable").order('room_id'),
-    sb.from("flats_status").select("room_id, status, cleaning_status"),
-    sb.from("salary_tracker").select("salary_due, salary_paid"),
-    sb.from("advance_tracker").select("advance_amount, repaid_amount"),
+  const today = new Date().toISOString().slice(0,10);
+  const [guests, flats] = await Promise.all([
     sb.from("guest_register").select("*, rooms(unit_no, nickname)"),
-    sb.from("expenses").select("amount, month"),
+    sb.from("flats_status").select("room_id, status, cleaning_status"),
   ]);
 
-  const calFilter = SESSION.calendarFilter || 'All';
-  const today = new Date();
-  const todayStr = today.toISOString().slice(0,10);
-  const monthLabel = today.toLocaleString('en-IN', { month: 'short', year: 'numeric' }).replace(' ', '-');
+  const checkins = (guests.data||[]).filter(g => g.check_in === today);
+  const checkouts = (guests.data||[]).filter(g => g.check_out === today);
+  const dirtyRooms = (flats.data||[]).filter(f => f.cleaning_status === "Dirty" && f.status !== "Blocked-Maintenance");
 
-  // ---- Today's check-ins / check-outs ----
-  const checkinsToday = (guests.data||[]).filter(g => g.check_in === todayStr);
-  const checkoutsToday = (guests.data||[]).filter(g => g.check_out === todayStr);
-
-  // ---- Occupancy ----
-  const free = flats.data?.filter(f => f.status === "Free") || [];
-  const booked = flats.data?.filter(f => f.status === "Booked") || [];
-  const dirty = flats.data?.filter(f => f.cleaning_status === "Dirty") || [];
-  const notBookable = rooms.data?.filter(r => r.bookable === false) || [];
-
-  // ---- Income / Expense / Profit (this month) ----
-  const paidMap = await getPaidMap((guests.data||[]).map(g=>g.booking_id));
-  const monthIncome = (guests.data||[])
-    .filter(g => g.check_in?.startsWith(today.toISOString().slice(0,7)))
-    .reduce((s,g)=>s+(paidMap[g.booking_id]||0),0);
-  const monthExpenses = (expenses.data||[]).filter(e => e.month === monthLabel).reduce((s,e)=>s+(e.amount||0),0);
-  const profit = monthIncome - monthExpenses;
-
-  const pendingSalary = (salary.data||[]).reduce((s,r)=>s+((r.salary_due||0)-(r.salary_paid||0)),0);
-  const pendingAdvance = (advance.data||[]).reduce((s,r)=>s+((r.advance_amount||0)-(r.repaid_amount||0)),0);
-
-  const nameFor = (r) => `${r.rooms?.unit_no||r.room_id}${r.rooms?.nickname?' ('+r.rooms.nickname+')':''}`;
+  const nameFor = (g) => `${g.rooms?.unit_no||g.room_id}${g.rooms?.nickname?' ('+g.rooms.nickname+')':''}`;
 
   const content = `
-    <div class="card">
-      <h1>📊 Dashboard</h1>
-      <div class="sub">Live data — ${BRAND}</div>
-    </div>
+    <div class="card"><h1>📊 Today's Dashboard</h1><div class="sub">${new Date().toLocaleDateString('en-IN', { weekday:'long', year:'numeric', month:'long', day:'numeric' })}</div></div>
 
-    <div class="card">
-      <h2 style="font-size:15px;margin-bottom:10px;">🗓️ Booking Calendar</h2>
-      <div style="margin-bottom:10px;">
-        <button class="btn-sm ${calFilter==='All'?'':'secondary'}" onclick="setCalendarFilter('All')">Sab</button>
-        <button class="btn-sm ${calFilter==='Online-Airbnb'?'':'secondary'}" onclick="setCalendarFilter('Online-Airbnb')">Online</button>
-        <button class="btn-sm ${calFilter==='Offline'?'':'secondary'}" onclick="setCalendarFilter('Offline')">Offline</button>
+    <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px,1fr)); gap:16px;">
+      <div class="card" style="border-left:5px solid #2E7D32;">
+        <h3 style="font-size:14px;color:#666;">📥 Check-in Today</h3>
+        <div style="font-size:32px;font-weight:700;">${checkins.length}</div>
+        ${checkins.map(g => `<div style="font-size:13px;padding:4px 0;">${g.guest_name} — ${nameFor(g)}</div>`).join('') || '<div class="sub">Koi nahi</div>'}
       </div>
-      <div id="calendarArea"></div>
+      <div class="card" style="border-left:5px solid #E2725B;">
+        <h3 style="font-size:14px;color:#666;">📤 Check-out Today</h3>
+        <div style="font-size:32px;font-weight:700;">${checkouts.length}</div>
+        ${checkouts.map(g => `<div style="font-size:13px;padding:4px 0;">${g.guest_name} — ${nameFor(g)}</div>`).join('') || '<div class="sub">Koi nahi</div>'}
+      </div>
+      <div class="card" style="border-left:5px solid #C0392B;">
+        <h3 style="font-size:14px;color:#666;">🧹 Dirty / Need Cleaning</h3>
+        <div style="font-size:32px;font-weight:700;">${dirtyRooms.length}</div>
+        ${dirtyRooms.map(f => `<div style="font-size:13px;padding:4px 0;">${f.room_id}</div>`).join('') || '<div class="sub">Sab clean hai ✅</div>'}
+      </div>
     </div>
 
-    <div class="card">
-      <h2 style="font-size:15px;margin-bottom:10px;">📥 Aaj Check-in (${checkinsToday.length})</h2>
-      ${checkinsToday.length ? checkinsToday.map(g => `
-        <div class="metric-row"><span class="metric-label">${g.guest_name} — ${nameFor(g)}</span><span class="badge blue">Check-in</span></div>`).join('')
-        : '<div class="sub">Aaj koi check-in nahi</div>'}
-      <h2 style="font-size:15px;margin:16px 0 10px;">📤 Aaj Check-out (${checkoutsToday.length})</h2>
-      ${checkoutsToday.length ? checkoutsToday.map(g => `
-        <div class="metric-row"><span class="metric-label">${g.guest_name} — ${nameFor(g)}</span><span class="badge yellow">Check-out</span></div>`).join('')
-        : '<div class="sub">Aaj koi check-out nahi</div>'}
-    </div>
-
-    <div class="card">
-      <h2 style="font-size:15px;margin-bottom:10px;">🏠 Occupancy</h2>
-      <div class="metric-row" style="cursor:pointer;" onclick="toggleDrilldown('freeList')"><span class="metric-label">Free Rooms (click to see)</span><span class="metric-value">${free.length}</span></div>
-      <div id="freeList" style="display:none;padding:8px 0;">${free.map(f=>`<div class="sub">• ${f.room_id}</div>`).join('') || '<div class="sub">-</div>'}</div>
-      <div class="metric-row" style="cursor:pointer;" onclick="toggleDrilldown('bookedList')"><span class="metric-label">Booked Rooms (click to see)</span><span class="metric-value">${booked.length}</span></div>
-      <div id="bookedList" style="display:none;padding:8px 0;">${booked.map(f=>{
-        const g = (guests.data||[]).find(x => x.room_id===f.room_id && x.check_in<=todayStr && x.check_out>=todayStr);
-        return `<div class="sub">• ${f.room_id}${g?' — '+g.guest_name:''}</div>`;
-      }).join('') || '<div class="sub">-</div>'}</div>
-      <div class="metric-row"><span class="metric-label">Dirty / Need Cleaning</span><span class="metric-value ${dirty.length>0?'warn':''}">${dirty.length}</span></div>
-      <div class="metric-row"><span class="metric-label">Not Bookable</span><span class="metric-value ${notBookable.length>0?'warn':''}">${notBookable.length}</span></div>
-    </div>
-
-    <div class="card">
-      <h2 style="font-size:15px;margin-bottom:10px;">💰 This Month (${monthLabel})</h2>
-      <div class="metric-row"><span class="metric-label">Total Income</span><span class="metric-value">₹${monthIncome.toLocaleString("en-IN")}</span></div>
-      <div class="metric-row"><span class="metric-label">Total Expenses</span><span class="metric-value warn">₹${monthExpenses.toLocaleString("en-IN")}</span></div>
-      <div class="metric-row"><span class="metric-label">Profit</span><span class="metric-value" style="color:${profit>=0?'#2E7D32':'#C0392B'};">₹${profit.toLocaleString("en-IN")}</span></div>
-      <div class="metric-row"><span class="metric-label">Pending Salary</span><span class="metric-value ${pendingSalary>0?'warn':''}">₹${pendingSalary.toLocaleString("en-IN")}</span></div>
-      <div class="metric-row"><span class="metric-label">Advance Outstanding</span><span class="metric-value ${pendingAdvance>0?'warn':''}">₹${pendingAdvance.toLocaleString("en-IN")}</span></div>
+    <div class="card" style="margin-top:16px;">
+      <button onclick="renderFYSummary()">📊 Financial Summary (ITR / CA)</button>
     </div>`;
 
   renderShell(content, 'dashboard');
-  renderCalendarGrid(rooms.data || [], guests.data || [], calFilter);
 }
 
-function toggleDrilldown(id) {
-  const el = document.getElementById(id);
-  el.style.display = el.style.display === 'none' ? 'block' : 'none';
+// ================================================================
+//  2. REPORTS (Real KPIs + Beautiful Occupancy Calendar)
+// ================================================================
+function dateAddDays(dateStr, n) {
+  // pure string/UTC-safe date arithmetic — avoids local-timezone Date() bugs
+  const [y, m, d] = dateStr.split('-').map(Number);
+  const dt = new Date(Date.UTC(y, m - 1, d + n));
+  return dt.toISOString().slice(0, 10);
 }
 
-function setCalendarFilter(mode) {
-  SESSION.calendarFilter = mode;
-  renderDashboard();
-}
-
-// simple 14-day occupancy grid: rows = rooms, columns = dates
-function renderCalendarGrid(rooms, bookings, filter) {
-  const area = document.getElementById('calendarArea');
-  if (!area) return;
-
-  const days = [];
-  const start = new Date();
-  start.setDate(start.getDate() - 1);
-  for (let i = 0; i < 14; i++) {
-    const d = new Date(start);
-    d.setDate(start.getDate() + i);
-    days.push(d);
-  }
-  const fmt = (d) => d.toISOString().slice(0,10);
-  const label = (d) => d.toLocaleDateString('en-IN', { day:'2-digit', month:'short' });
-
-  const filtered = bookings.filter(b => filter === 'All' || b.booking_mode === filter);
-
-  let html = `<div style="overflow-x:auto;"><table style="min-width:900px;"><thead><tr>
-    <th style="position:sticky;left:0;background:#FBF3EF;">Property</th>
-    ${days.map(d => `<th>${label(d)}</th>`).join('')}
-  </tr></thead><tbody>`;
-
-  rooms.forEach(r => {
-    html += `<tr><td style="position:sticky;left:0;background:#fff;font-weight:600;">${r.unit_no}<br><small style="color:#8A7F76;">${r.nickname||''}</small></td>`;
-    days.forEach(d => {
-      const dateStr = fmt(d);
-      const booking = filtered.find(b => b.room_id === r.room_id && b.check_in && b.check_out && dateStr >= b.check_in && dateStr < b.check_out);
-      if (booking) {
-        const color = booking.booking_mode === 'Online-Airbnb' ? '#E1EEF0' : '#FBEAC8';
-        html += `<td style="background:${color};cursor:pointer;font-size:11px;padding:6px;" onclick="showBookingQuickInfo('${booking.booking_id}')">${(booking.guest_name||'').split(' ')[0]}</td>`;
-      } else {
-        html += `<td style="background:#DCEFDC;"></td>`;
-      }
-    });
-    html += `</tr>`;
-  });
-  html += `</tbody></table></div>
-    <div class="sub" style="margin-top:8px;">
-      <span style="background:#DCEFDC;padding:2px 8px;border-radius:4px;">Free</span>
-      <span style="background:#E1EEF0;padding:2px 8px;border-radius:4px;margin-left:6px;">Online</span>
-      <span style="background:#FBEAC8;padding:2px 8px;border-radius:4px;margin-left:6px;">Offline</span>
-      — cell pe click karke booking details dekho
-    </div>`;
-  area.innerHTML = html;
-}
-
-function showBookingQuickInfo(bookingId) {
-  editBooking(bookingId);
-}
-
-// ============ REPORTS (charts) ============
 async function renderReports() {
-  renderShell(`<div class="loading">Building reports...</div>`, 'reports');
+  renderShell(`<div class="loading">Loading reports...</div>`, 'reports');
 
-  const [guests, flats, attendance] = await Promise.all([
-    sb.from('guest_register').select('booking_id, booking_mode, check_in, total_amount'),
-    sb.from('flats_status').select('status'),
-    sb.from('attendance_log').select('emp_id, status, att_date, employees(name)'),
+  const [rooms, bookings] = await Promise.all([
+    sb.from('rooms').select('room_id, unit_no, nickname').order('unit_no'),
+    sb.from('guest_register').select('booking_id, room_id, check_in, check_out, guest_name, booking_mode, total_amount'),
   ]);
 
-  const bookingIds = (guests.data||[]).map(g=>g.booking_id);
-  const paidMap = await getPaidMap(bookingIds);
+  const year = window._calendarYear ?? new Date().getFullYear();
+  const month = window._calendarMonth ?? new Date().getMonth();
+  const monthName = new Date(year, month, 1).toLocaleString('default', { month: 'long' });
+  const daysInMonth = new Date(year, month+1, 0).getDate();
+  const firstDay = new Date(year, month, 1).getDay(); // 0=Sunday
+  const monthPrefix = `${year}-${String(month+1).padStart(2,'0')}`;
 
-  const months = [];
-  const now = new Date();
-  for (let i=5;i>=0;i--) {
-    const d = new Date(now.getFullYear(), now.getMonth()-i, 1);
-    months.push(d.toISOString().slice(0,7));
-  }
-  const monthlyOnline = months.map(m => (guests.data||[])
-    .filter(g => g.check_in?.startsWith(m) && g.booking_mode==='Online-Airbnb')
-    .reduce((s,g)=>s+(paidMap[g.booking_id]||0),0));
-  const monthlyOffline = months.map(m => (guests.data||[])
-    .filter(g => g.check_in?.startsWith(m) && g.booking_mode!=='Online-Airbnb')
-    .reduce((s,g)=>s+(paidMap[g.booking_id]||0),0));
-
-  const onlineCount  = (guests.data||[]).filter(g=>g.booking_mode==='Online-Airbnb').length;
-  const offlineCount = (guests.data||[]).filter(g=>g.booking_mode!=='Online-Airbnb').length;
-
-  const free    = (flats.data||[]).filter(f=>f.status==='Free').length;
-  const booked  = (flats.data||[]).filter(f=>f.status==='Booked').length;
-  const blocked = (flats.data||[]).filter(f=>f.status==='Blocked-Maintenance').length;
-
-  const thisMonth = new Date().toISOString().slice(0,7);
-  const empNames = [...new Set((attendance.data||[]).map(a => a.employees?.name).filter(Boolean))];
-  const attPct = empNames.map(name => {
-    const rows = (attendance.data||[]).filter(a => a.employees?.name===name && a.att_date?.startsWith(thisMonth));
-    const present = rows.filter(r=>r.status==='Present').length;
-    const half = rows.filter(r=>r.status==='Half Day').length;
-    const total = rows.length;
-    return total>0 ? Math.round(((present+half*0.5)/total)*100) : 0;
+  // ---- Build booking map using pure string date arithmetic (timezone-safe) ----
+  const bookingMap = {};
+  (bookings.data||[]).forEach(b => {
+    if (!b.check_in || !b.check_out) return;
+    let cursor = b.check_in;
+    while (cursor < b.check_out) {
+      bookingMap[`${b.room_id}_${cursor}`] = { guest: b.guest_name, mode: b.booking_mode };
+      cursor = dateAddDays(cursor, 1);
+    }
   });
+
+  // ---- Real KPIs for the displayed month ----
+  const monthBookings = (bookings.data||[]).filter(b => b.check_in && b.check_in.startsWith(monthPrefix));
+  const paidMap = await getPaidMap(monthBookings.map(b=>b.booking_id));
+  const monthRevenue = monthBookings.reduce((s,b)=>s+(paidMap[b.booking_id]||0), 0);
+  const onlineCount = monthBookings.filter(b=>b.booking_mode==='Online-Airbnb').length;
+  const offlineCount = monthBookings.filter(b=>b.booking_mode!=='Online-Airbnb').length;
+  const totalRoomNights = (rooms.data?.length||0) * daysInMonth;
+  const bookedNights = Object.keys(bookingMap).filter(k => k.includes(`_${monthPrefix}`)).length;
+  const occupancyPct = totalRoomNights > 0 ? Math.round((bookedNights/totalRoomNights)*100) : 0;
+
+  let html = `
+    <div class="card"><h1>📈 Reports — ${monthName} ${year}</h1><div class="sub">Live data</div></div>
+    <div class="card">
+      <div class="metric-row"><span class="metric-label">Total Bookings (start-date basis)</span><span class="metric-value">${monthBookings.length}</span></div>
+      <div class="metric-row"><span class="metric-label">Revenue Received</span><span class="metric-value">₹${monthRevenue.toLocaleString("en-IN")}</span></div>
+      <div class="metric-row"><span class="metric-label">Online / Offline Split</span><span class="metric-value">${onlineCount} / ${offlineCount}</span></div>
+      <div class="metric-row"><span class="metric-label">Occupancy Rate</span><span class="metric-value">${occupancyPct}%</span></div>
+    </div>
+
+    <div class="card" style="text-align:center;background:#2B2420;color:#fff;border-radius:14px;">
+      <h1 style="color:#fff;font-size:22px;">📆 ${monthName} ${year}</h1>
+      <div style="display:flex;justify-content:center;gap:12px;margin:12px 0;">
+        <button class="secondary" onclick="changeMonth(-1)">◀</button>
+        <button class="secondary" onclick="changeMonth(1)">▶</button>
+      </div>
+    </div>
+  `;
+
+  // Room-wise rows
+  (rooms.data||[]).forEach(room => {
+    html += `<div class="card" style="padding:12px 16px;margin-bottom:8px;">`;
+    html += `<div style="font-weight:700;font-size:14px;margin-bottom:8px;">${room.unit_no} <span style="font-weight:400;color:#8A7F76;">${room.nickname||''}</span></div>`;
+    html += `<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;">`;
+
+    const dayNames = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+    dayNames.forEach(d => {
+      html += `<div style="font-size:11px;font-weight:600;color:#8A7F76;text-align:center;padding:2px 0;">${d}</div>`;
+    });
+
+    for (let i=0; i<firstDay; i++) {
+      html += `<div style="background:#f5f0eb;border-radius:4px;height:32px;"></div>`;
+    }
+
+    for (let d=1; d<=daysInMonth; d++) {
+      const dateStr = `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+      const key = `${room.room_id}_${dateStr}`;
+      const booking = bookingMap[key];
+      let bg = '#DCEFDC'; // free
+      let guestName = '';
+      if (booking) {
+        bg = booking.mode === 'Online-Airbnb' ? '#E1EEF0' : '#FBEAC8';
+        guestName = booking.guest?.split(' ')[0] || 'B';
+      }
+      html += `<div style="background:${bg};border-radius:6px;padding:4px 2px;text-align:center;font-size:13px;font-weight:600;height:38px;display:flex;flex-direction:column;justify-content:center;cursor:default;">
+        <div>${d}</div>
+        ${booking ? `<div style="font-size:9px;font-weight:400;line-height:1.1;">${guestName}</div>` : ''}
+      </div>`;
+    }
+
+    html += `</div></div>`;
+  });
+
+  // Legend
+  html += `<div class="card" style="text-align:center;padding:12px;">
+    <span style="background:#DCEFDC;padding:4px 12px;border-radius:12px;margin:0 6px;font-size:13px;">Free</span>
+    <span style="background:#E1EEF0;padding:4px 12px;border-radius:12px;margin:0 6px;font-size:13px;">Online</span>
+    <span style="background:#FBEAC8;padding:4px 12px;border-radius:12px;margin:0 6px;font-size:13px;">Offline</span>
+  </div>`;
+
+  renderShell(html, 'reports');
+
+  window._calendarMonth = month;
+  window._calendarYear = year;
+}
+
+// Month navigation
+function changeMonth(delta) {
+  const currentMonth = window._calendarMonth || new Date().getMonth();
+  const currentYear = window._calendarYear || new Date().getFullYear();
+  let newMonth = currentMonth + delta;
+  let newYear = currentYear;
+  if (newMonth > 11) { newMonth = 0; newYear++; }
+  if (newMonth < 0) { newMonth = 11; newYear--; }
+  window._calendarMonth = newMonth;
+  window._calendarYear = newYear;
+  renderReports(); // re-render with new month
+}
+
+// Helper: builds a Google-style monthly grid
+function buildMonthlyCalendar(rooms, bookingMap) {
+  const today = new Date();
+  const year = today.getFullYear();
+  const month = today.getMonth();
+  const firstDay = new Date(year, month, 1).getDay(); // 0=Sun
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const monthName = today.toLocaleString('default', { month: 'long' });
+  const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+  // Build a table: rows = rooms, columns = dates (1-31)
+  let html = `<div style="overflow-x:auto;"><table style="min-width:700px; border-collapse: collapse;">`;
+  // Header: day names + empty for room label
+  html += `<thead><tr><th style="position:sticky;left:0;background:#fff;">Room</th>`;
+  for (let d = 1; d <= daysInMonth; d++) {
+    const dateObj = new Date(year, month, d);
+    const dayOfWeek = dateObj.getDay();
+    const isWeekend = (dayOfWeek === 0 || dayOfWeek === 6);
+    html += `<th style="text-align:center; font-size:11px; ${isWeekend ? 'color:#c00;' : ''}">${d}</th>`;
+  }
+  html += `</tr></thead><tbody>`;
+
+  rooms.forEach(room => {
+    html += `<tr><td style="position:sticky;left:0;background:#fff;font-weight:600;white-space:nowrap;padding:4px 8px;">${room.unit_no}<br><small>${room.nickname||''}</small></td>`;
+    for (let d = 1; d <= daysInMonth; d++) {
+      const dateStr = `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+      const key = `${room.room_id}_${dateStr}`;
+      const booking = bookingMap[key];
+      let bg = '#f0f0f0'; // free
+      let dot = '';
+      if (booking) {
+        bg = booking.mode === 'Online-Airbnb' ? '#d4edf7' : '#fce8b2';
+        dot = '<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:'+(booking.mode==='Online-Airbnb'?'#2a7faa':'#c08a2a')+';"></span>';
+      }
+      html += `<td style="background:${bg};text-align:center;padding:4px;font-size:12px;">${dot}</td>`;
+    }
+    html += `</tr>`;
+  });
+
+  html += `</tbody></table></div>`;
+  // Legend
+  html += `<div class="sub" style="margin-top:10px;">
+    <span style="background:#f0f0f0;padding:2px 8px;border-radius:4px;">Free</span>
+    <span style="background:#d4edf7;padding:2px 8px;border-radius:4px;margin-left:6px;">Online</span>
+    <span style="background:#fce8b2;padding:2px 8px;border-radius:4px;margin-left:6px;">Offline</span>
+  </div>`;
+  return html;
+} 
+
+// ================================================================
+//  3. FINANCIAL SUMMARY (ITR / CA) — with Today, Week, Month, Quarter, YTD, FY
+// ================================================================
+async function renderFYSummary(range = 'FY') {
+  renderShell(`<div class="loading">Loading financial data...</div>`, 'dashboard');
+
+  // --- Date Range Logic ---
+  const now = new Date();
+  const today = now.toISOString().slice(0,10);
+  let startDate, endDate, label;
+
+  if (range === 'Today') {
+    startDate = today; endDate = today; label = 'Today';
+  } else if (range === 'Week') {
+    let d = new Date(now); d.setDate(now.getDate() - 7);
+    startDate = d.toISOString().slice(0,10); endDate = today; label = 'Last 7 Days';
+  } else if (range === 'Month') {
+    startDate = now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-01';
+    endDate = today; label = 'This Month';
+  } else if (range === 'Quarter') {
+    let qMonth = Math.floor(now.getMonth()/3)*3;
+    startDate = now.getFullYear()+'-'+String(qMonth+1).padStart(2,'0')+'-01';
+    endDate = today; label = 'This Quarter';
+  } else if (range === 'YTD') {
+    startDate = now.getFullYear()+'-04-01';
+    endDate = today; label = 'Year-to-Date (YTD)';
+  } else { // FY
+    let fy = now.getMonth() >= 3 ? now.getFullYear() : now.getFullYear()-1;
+    startDate = fy+'-04-01';
+    endDate = (fy+1)+'-03-31';
+    label = `FY ${fy}-${fy+1}`;
+  }
+
+  const [guests, expenses, payments] = await Promise.all([
+    sb.from('guest_register').select('booking_id, check_in, total_amount, room_id, guest_name'),
+    sb.from('expenses').select('amount, month'),
+    sb.from('payment_history').select('booking_id, amount'),
+  ]);
+
+  const fyGuests = (guests.data||[]).filter(g => g.check_in >= startDate && g.check_in <= endDate);
+  const bookingIds = fyGuests.map(g=>g.booking_id);
+  const paidMap = {};
+  (payments.data||[]).forEach(p => { if (bookingIds.includes(p.booking_id)) paidMap[p.booking_id] = (paidMap[p.booking_id]||0) + (p.amount||0); });
+  
+  const totalIncome = fyGuests.reduce((s,g)=>s+(paidMap[g.booking_id]||0),0);
+  // Expenses filter: we just take all expenses for the FY period rough cut (by month string, simple)
+  const totalExpenses = (expenses.data||[]).reduce((s,e)=>s+(e.amount||0),0);
+  const netProfit = totalIncome - totalExpenses;
+
+  const filterBtns = ['Today', 'Week', 'Month', 'Quarter', 'YTD', 'FY'].map(r => 
+    `<button class="${r===range?'':'secondary'}" onclick="renderFYSummary('${r}')">${r}</button>`
+  ).join('');
 
   renderShell(`
-    <div class="card"><h1>📈 Reports & Analysis</h1><div class="sub">${BRAND}</div></div>
-    <div class="card"><h2 style="font-size:15px;margin-bottom:10px;">Revenue by Month (₹) — Online vs Offline</h2>
-      <canvas id="chartRevenue" height="180"></canvas></div>
-    <div class="card"><h2 style="font-size:15px;margin-bottom:10px;">Bookings: Online vs Offline</h2>
-      <canvas id="chartBookings" height="180"></canvas></div>
-    <div class="card"><h2 style="font-size:15px;margin-bottom:10px;">Room Occupancy Right Now</h2>
-      <canvas id="chartOccupancy" height="180"></canvas></div>
-    <div class="card"><h2 style="font-size:15px;margin-bottom:10px;">This Month's Attendance % by Employee</h2>
-      <canvas id="chartAttendance" height="180"></canvas></div>
-  `, 'reports');
+    <div class="card"><h1>📊 Financial Summary</h1>
+      <div class="sub">${label} — ${startDate} to ${endDate}</div>
+      <div style="margin:10px 0;">${filterBtns}</div>
+      <button class="secondary" onclick="renderDashboard()">← Back to Dashboard</button>
+      <button onclick="downloadFYData()">⬇️ Download CSV (CA)</button>
+    </div>
+    <div class="card">
+      <div class="metric-row"><span class="metric-label">Total Income (Received)</span><span class="metric-value">₹${totalIncome.toLocaleString("en-IN")}</span></div>
+      <div class="metric-row"><span class="metric-label">Total Expenses</span><span class="metric-value warn">₹${totalExpenses.toLocaleString("en-IN")}</span></div>
+      <div class="metric-row"><span class="metric-label">Net Profit (Taxable)</span><span class="metric-value" style="color:${netProfit>=0?'#2E7D32':'#C0392B'};">₹${netProfit.toLocaleString("en-IN")}</span></div>
+      <div class="sub" style="margin-top:12px;">💡 Ye data apne CA ko de do. Period change kar ke quarterly bhej sakte ho.</div>
+    </div>
+    <div class="card"><h3 style="font-size:14px;">Bookings (${fyGuests.length})</h3>
+      <div style="overflow-x:auto;"><table><thead><tr><th>Booking</th><th>Guest</th><th>Room</th><th>Check-in</th><th>Received (₹)</th></tr></thead>
+      <tbody>${fyGuests.map(g => `<tr><td>${g.booking_id}</td><td>${g.guest_name}</td><td>${g.room_id}</td><td>${g.check_in}</td><td>₹${(paidMap[g.booking_id]||0).toLocaleString("en-IN")}</td></tr>`).join('')}</tbody></table></div>
+    </div>
+  `, 'dashboard');
 
-  new Chart(document.getElementById('chartRevenue'), {
-    type: 'bar',
-    data: { labels: months, datasets: [
-      { label:'Online (Airbnb)', data: monthlyOnline, backgroundColor:'#E2725B' },
-      { label:'Offline', data: monthlyOffline, backgroundColor:'#F0B79A' },
-    ]},
-    options: { responsive:true, scales:{ x:{stacked:true}, y:{stacked:true} } }
-  });
-
-  new Chart(document.getElementById('chartBookings'), {
-    type: 'doughnut',
-    data: { labels:['Online (Airbnb)','Offline'], datasets:[{ data:[onlineCount, offlineCount], backgroundColor:['#E2725B','#F0B79A'] }] },
-    options: { responsive:true }
-  });
-
-  new Chart(document.getElementById('chartOccupancy'), {
-    type: 'pie',
-    data: { labels:['Free','Booked','Blocked/Maintenance'], datasets:[{ data:[free,booked,blocked], backgroundColor:['#DCEFDC','#E1EEF0','#FBE0DD'] }] },
-    options: { responsive:true }
-  });
-
-  new Chart(document.getElementById('chartAttendance'), {
-    type: 'bar',
-    data: { labels: empNames, datasets:[{ label:'Attendance %', data: attPct, backgroundColor:'#E2725B' }] },
-    options: { responsive:true, indexAxis:'y', scales:{ x:{ max:100 } } }
-  });
+  window._fyData = { label, startDate, endDate, totalIncome, totalExpenses, netProfit, bookings: fyGuests, paidMap };
 }
+
+function downloadFYData() {
+  const d = window._fyData;
+  if (!d) return;
+  let csv = `Period,${d.label}\nFrom,${d.startDate}\nTo,${d.endDate}\nTotal Income,${d.totalIncome}\nTotal Expenses,${d.totalExpenses}\nNet Profit,${d.netProfit}\n\nBooking ID,Guest,Room,Check-in,Received\n`;
+  d.bookings.forEach(g => {
+    csv += `${g.booking_id},${g.guest_name},${g.room_id},${g.check_in},${d.paidMap[g.booking_id]||0}\n`;
+  });
+  const blob = new Blob([csv], {type: 'text/csv'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `Financial_${d.label}_${d.startDate}_to_${d.endDate}.csv`;
+  a.click();
+}
+
+// ================================================================
+//  4. OLD FUNCTIONS (Rooms, Flats, Bookings, Employees, etc.)
+//  (Copied as-is from your original file)
+// ================================================================
 
 // ============ MANAGE ROOMS ============
 async function renderManageRooms() {
@@ -758,9 +833,12 @@ function onBookingRoomChange() {
   } else { nightsInfoEl.innerHTML = ''; }
 
   const suggestedEl = document.getElementById('suggestedInfo');
-  if (room && nights > 0 && document.getElementById('bookingMode').value !== 'Online-Airbnb') {
+  const mode = document.getElementById('bookingMode')?.value;
+  if (room && nights > 0 && mode !== 'Online-Airbnb') {
     const suggested = room.rent_per_night * nights;
     suggestedEl.innerHTML = `💡 Reference (rent × nights): ₹${suggested.toLocaleString("en-IN")} — Total Amount manually daalo (negotiated price)`;
+  } else if (nights > 0 && mode === 'Online-Airbnb') {
+    suggestedEl.innerHTML = `🌙 ${nights} night(s) — neeche Gross Amount aur Platform Fee bharo, Total Amount khud calculate ho jayega`;
   } else { suggestedEl.innerHTML = ''; }
 
   onBookingAmountChange();
@@ -800,7 +878,6 @@ async function uploadIdPhotoIfAny(bookingId) {
 
 async function saveNewBooking() {
   const saveBtn = document.getElementById('saveBookingBtn');
-  // duplicate-submit guard — disable immediately so double-click can't create 2 bookings
   if (saveBtn.disabled) return;
   saveBtn.disabled = true;
   saveBtn.textContent = 'Saving...';
@@ -825,6 +902,20 @@ async function saveNewBooking() {
     document.getElementById('addBookingErr').innerHTML = '<div class="error">Guest name aur property required hai</div>';
     saveBtn.disabled = false; saveBtn.textContent = '💾 Save Booking';
     return;
+  }
+
+  if (checkIn && checkOut) {
+    const { data: existing } = await sb.from('guest_register')
+      .select('booking_id, guest_name, check_in, check_out')
+      .eq('room_id', roomId);
+    const clash = (existing||[]).find(b =>
+      b.check_in && b.check_out && b.check_in < checkOut && b.check_out > checkIn);
+    if (clash) {
+      document.getElementById('addBookingErr').innerHTML =
+        `<div class="error">⚠️ Ye property already booked hai (${clash.guest_name}, ${clash.check_in} se ${clash.check_out}) — dates clash kar rahe hain</div>`;
+      saveBtn.disabled = false; saveBtn.textContent = '💾 Save Booking';
+      return;
+    }
   }
 
   const bookingId = 'B' + Date.now();
@@ -852,6 +943,15 @@ async function saveNewBooking() {
   }
 
   await sb.from('flats_status').upsert({ room_id: roomId, status: 'Booked' });
+  
+  // ---- WHATSAPP SHARE (Auto-open, no confirm) ----
+  const msg = `🏠 *New Booking Alert!*%0A%0A👤 Guest: ${guestName}%0A📞 Phone: ${guestPhone || 'N/A'}%0A🏷️ Property: ${document.getElementById('roomId').selectedOptions[0]?.text || 'N/A'}%0A📅 Check-in: ${checkIn}%0A📅 Check-out: ${checkOut}%0A💰 Total: ₹${totalAmount}%0A💵 Advance: ₹${advanceAmount}%0A📌 Mode: ${bookingMode}`;
+  
+  // Open WhatsApp directly after a small delay
+  setTimeout(() => {
+    window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
+  }, 300);
+  
   renderManageBookings();
 }
 
@@ -935,6 +1035,20 @@ async function updateBooking(bookingId) {
 
   if (!guestName || !roomId) { document.getElementById('editBookingErr').innerHTML = '<div class="error">Guest name aur property required hai</div>'; return; }
 
+  if (checkIn && checkOut) {
+    const { data: existing } = await sb.from('guest_register')
+      .select('booking_id, guest_name, check_in, check_out')
+      .eq('room_id', roomId)
+      .neq('booking_id', bookingId);
+    const clash = (existing||[]).find(b =>
+      b.check_in && b.check_out && b.check_in < checkOut && b.check_out > checkIn);
+    if (clash) {
+      document.getElementById('editBookingErr').innerHTML =
+        `<div class="error">⚠️ Ye property already booked hai (${clash.guest_name}, ${clash.check_in} se ${clash.check_out}) — dates clash kar rahe hain</div>`;
+      return;
+    }
+  }
+
   const photoPath = await uploadIdPhotoIfAny(bookingId);
   const updateObj = {
     guest_name: guestName, phone: guestPhone||null, id_proof_type: idProofType||null, id_proof_no: guestIdNo||null,
@@ -949,10 +1063,14 @@ async function updateBooking(bookingId) {
 }
 
 async function deleteBooking(bookingId, guestName) {
-  if (!confirm(`Delete booking for "${guestName}"?`)) return;
+  if (!confirm(`Delete booking for "${guestName}"? Property automatically Free ho jayegi.`)) return;
+  const { data: booking } = await sb.from('guest_register').select('room_id').eq('booking_id', bookingId).single();
   await sb.from('payment_history').delete().eq('booking_id', bookingId);
   const { error } = await sb.from('guest_register').delete().eq('booking_id', bookingId);
   if (error) { alert('Error: ' + error.message); return; }
+  if (booking?.room_id) {
+    await sb.from('flats_status').upsert({ room_id: booking.room_id, status: 'Free' });
+  }
   renderManageBookings();
 }
 
@@ -963,7 +1081,6 @@ async function recordPayment(bookingId) {
   await savePaymentAndRefresh(bookingId, parseFloat(amount), mode);
 }
 
-// "Mark Paid" — auto-calculates the remaining balance, only asks payment mode
 async function markFullyPaid(bookingId) {
   const { data: booking } = await sb.from('guest_register').select('total_amount').eq('booking_id', bookingId).single();
   const { data: payments } = await sb.from('payment_history').select('amount').eq('booking_id', bookingId);
@@ -973,7 +1090,7 @@ async function markFullyPaid(bookingId) {
   if (balance <= 0) { alert('Ye booking already fully paid hai.'); return; }
 
   const mode = prompt(`Balance ₹${balance.toLocaleString("en-IN")} — Payment Mode? (Cash/UPI/Bank/Airbnb Payout)`);
-  if (!mode) return; // cancelled
+  if (!mode) return;
   await savePaymentAndRefresh(bookingId, balance, mode);
 }
 
@@ -987,7 +1104,6 @@ async function savePaymentAndRefresh(bookingId, amount, mode) {
   const status = totalPaid >= (booking?.total_amount||0) && booking?.total_amount>0 ? 'Paid' : (totalPaid>0 ? 'Partial' : 'Unpaid');
   await sb.from('guest_register').update({ payment_status: status }).eq('booking_id', bookingId);
 
-  // refresh whichever view is currently open
   if (document.getElementById('editBookingErr')) editBooking(bookingId);
   else renderManageBookings();
 }
@@ -1458,8 +1574,8 @@ async function deleteAdvance(id) {
   renderAdvanceTracker();
 }
 
-// ============ MANAGE STORE / INVENTORY (owner only) ============
-async function renderManageStore() {
+// ============ MANAGE STORE ============
+async function renderStore() {
   renderShell(`<div class="loading">Loading store...</div>`, 'store');
   const [items, txns] = await Promise.all([
     sb.from('store_items').select('*').order('item_name'),
@@ -1495,7 +1611,7 @@ async function renderManageStore() {
 
 async function renderAddStoreItem() {
   renderShell(`
-    <div class="card"><h1>➕ Add Store Item</h1><button class="secondary" onclick="renderManageStore()">← Back</button></div>
+    <div class="card"><h1>➕ Add Store Item</h1><button class="secondary" onclick="renderStore()">← Back</button></div>
     <div class="card">
       <input id="itemName" placeholder="Item Name (e.g. Bedsheet)" />
       <select id="itemCategory">
@@ -1521,7 +1637,7 @@ async function saveStoreItem() {
   const itemId = 'ITM' + Date.now();
   const { error } = await sb.from('store_items').insert({ item_id: itemId, item_name: name, category, unit: unit||null, reorder_level: reorder, notes: notes||null });
   if (error) { document.getElementById('itemErr').innerHTML = `<div class="error">${error.message}</div>`; return; }
-  renderManageStore();
+  renderStore();
 }
 
 async function renderAddStockTxn() {
@@ -1531,7 +1647,7 @@ async function renderAddStockTxn() {
   ]);
   const today = new Date().toISOString().slice(0,10);
   renderShell(`
-    <div class="card"><h1>🔄 Log Stock In/Out</h1><button class="secondary" onclick="renderManageStore()">← Back</button></div>
+    <div class="card"><h1>🔄 Log Stock In/Out</h1><button class="secondary" onclick="renderStore()">← Back</button></div>
     <div class="card">
       <select id="txnItem"><option value="">Select Item</option>
         ${(items.data||[]).map(i => `<option value="${i.item_id}">${i.item_name}</option>`).join('')}</select>
@@ -1558,10 +1674,10 @@ async function saveStockTxn() {
   if (!itemId || qty <= 0) { document.getElementById('txnErr').innerHTML = '<div class="error">Item aur valid quantity required hai</div>'; return; }
   const { error } = await sb.from('stock_transactions').insert({ item_id: itemId, room_id: roomId, txn_type: txnType, quantity: qty, cost, txn_date: date||null, notes: notes||null });
   if (error) { document.getElementById('txnErr').innerHTML = `<div class="error">${error.message}</div>`; return; }
-  renderManageStore();
+  renderStore();
 }
 
-// ============ EXPENSES & PROFIT (owner only) ============
+// ============ EXPENSES & PROFIT ============
 async function renderExpenses() {
   renderShell(`<div class="loading">Loading expenses...</div>`, 'expenses');
   const currentMonth = new Date().toISOString().slice(0,7);
@@ -1682,7 +1798,7 @@ async function saveExpenseEntry() {
   renderExpenses();
 }
 
-// ============ INVESTORS (owner only) ============
+// ============ INVESTORS ============
 async function renderManageInvestors() {
   renderShell(`<div class="loading">Loading investors...</div>`, 'investors');
   const [investors, links, rooms] = await Promise.all([
@@ -1756,7 +1872,7 @@ async function saveLink() {
   renderManageInvestors();
 }
 
-// ============ SUB-OWNER VIEW (formerly "Investor" — no sidebar, simple, read-only) ============
+// ============ SUB-OWNER VIEW ============
 function filterBookingsByRange(bookings, range) {
   if (range === 'All') return bookings;
   const now = new Date();
