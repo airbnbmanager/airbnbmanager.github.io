@@ -95,15 +95,16 @@ function renderShell(content, activePage = 'dashboard') {
 
   const isOwner = SESSION.role === 'owner';
   const nav = isOwner ? [
-    ['dashboard','📊 Dashboard'],['reports','📈 Reports'],['rooms','🏠 Rooms'],
+    ['dashboard','🏠 Home'],['reports','📈 Reports'],['rooms','🏠 Rooms'],
     ['flats','🛏️ Flats'],['bookings','📅 Bookings'],['employees','👥 Employees'],
     ['tasks','🧰 Tasks'],['attendance','📋 Attendance'],['att-summary','📅 Summary'],
     ['salary','💰 Salary'],['advance','💵 Advance'],['store','📦 Store'],
     ['expenses','🧾 Expenses'],['property-report','🏘️ Property Report'],['investors','🧑‍💼 Sub-Owners'],
   ] : [
-    ['dashboard','📊 Dashboard'],['reports','📈 Reports'],['flats','🛏️ Flats'],
+    ['dashboard','🏠 Home'],['reports','📈 Reports'],['flats','🛏️ Flats'],
     ['bookings','📅 Bookings'],['att-summary','📅 Summary'],['salary','💰 Salary'],
-    ['advance','💵 Advance'],
+    ['advance','💵 Advance'],['expenses','🧾 Expenses'],
+    ['property-report','🏘️ Property Report'],['investors','🧑‍💼 Sub-Owners'],
   ];
 
   appEl.innerHTML = `
