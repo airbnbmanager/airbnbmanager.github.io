@@ -1649,19 +1649,31 @@ async function renderManageInvestors() {
   const [{data:invs},{data:links},{data:rooms}] = await Promise.all([
     sb.from('investors').select('*').order('name'),
     sb.from('investor_properties').select('*, investors(name), rooms(unit_no,property_name,nickname)'),
-    sb.from('rooms').select('room_id,unit_no,property_name').order('room_id')
+    sb.from('rooms').select('room_id,unit_no,property_name,nickname').order('room_id')
   ]);
   window._invRooms=rooms||[];
   renderShell(`
     <div class="card"><h1>🧑‍💼 Sub-Owners</h1><div class="sub">${(invs||[]).length} investors</div>
-      <div class="btn-row"><button onclick="renderAddInv()">➕ Add</button><button class="secondary" onclick="renderLinkProp()">🔗 Link Property</button></div></div>
+      <div class="btn-row">
+        <button onclick="renderAddInv()">➕ Add</button>
+        <button class="secondary" onclick="renderLinkProp()">🔗 Link Property</button>
+      </div></div>
     <div class="card"><div class="section-title">Mapping</div><div class="table-wrap"><table>
-      <thead><tr><th>Investor</th><th>Property</th><th>Share %</th></tr></thead>
-      <tbody>${(links||[]).map(l=>`<tr><td>${l.investors?.name||l.investor_id}</td><td>${l.rooms?.nickname||l.rooms?.unit_no||l.room_id}</td><td>—</td></tr>`).join('')}</tbody>
+      <thead><tr><th>Investor</th><th>Property</th><th>Share %</th><th>Report</th></tr></thead>
+      <tbody>${(links||[]).map(l=>`<tr>
+        <td>${l.investors?.name||l.investor_id}</td>
+        <td>${l.rooms?.nickname||l.rooms?.unit_no||l.room_id}</td>
+        <td>${l.investors?.revenue_share_pct||70}%</td>
+        <td><button class="btn-sm" onclick="renderInvestorReport('${l.investor_id}','${l.room_id}')">📊 Report</button></td>
+      </tr>`).join('')}</tbody>
     </table></div></div>
     <div class="card"><div class="section-title">All Investors</div><div class="table-wrap"><table>
-      <thead><tr><th>Name</th><th>Phone</th><th>ID</th></tr></thead>
-      <tbody>${(invs||[]).map(i=>`<tr><td>${i.name}</td><td>${i.phone||'-'}</td><td><code>${i.investor_id}</code></td></tr>`).join('')}</tbody>
+      <thead><tr><th>Name</th><th>Phone</th><th>Share</th><th>ID</th></tr></thead>
+      <tbody>${(invs||[]).map(i=>`<tr>
+        <td><strong>${i.name}</strong></td><td>${i.phone||'-'}</td>
+        <td>${i.revenue_share_pct||70}%</td>
+        <td><code>${i.investor_id}</code></td>
+      </tr>`).join('')}</tbody>
     </table></div></div>`, 'investors');
 }
 
@@ -1781,6 +1793,324 @@ async function renderEmployeeView() {
         (tasks||[]).map(t=>`<div class="metric-row"><span class="metric-label">${t.task_description}</span><span class="badge red">Pending</span></div>`).join('')}
     </div>
   </div>`;
+}
+
+// ============ INVESTOR MONTHLY REPORT ============
+async function renderInvestorReport(investorId, roomId, month) {
+  renderShell(`<div class="loading">Generating report...</div>`, 'investors');
+
+  // Default to current month
+  const now = new Date();
+  const selMonth = month || `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+  const monthLabel = new Date(selMonth+'-01').toLocaleString('en-IN',{month:'long',year:'numeric'});
+  const monthStart = selMonth + '-01';
+  const monthEnd = new Date(parseInt(selMonth.split('-')[0]), parseInt(selMonth.split('-')[1]), 0).toISOString().slice(0,10);
+
+  // Fetch all data
+  const [{data:inv},{data:room},{data:bookings},{data:defaults},{data:expenses},{data:payments}] = await Promise.all([
+    sb.from('investors').select('*').eq('investor_id',investorId).single(),
+    sb.from('rooms').select('*').eq('room_id',roomId).single(),
+    sb.from('guest_register').select('*').eq('room_id',roomId).gte('check_in',monthStart).lte('check_in',monthEnd),
+    sb.from('property_default_expenses').select('*').eq('room_id',roomId).order('expense_name'),
+    sb.from('expenses').select('*, expense_categories(category_name)').eq('room_id',roomId),
+    sb.from('payment_history').select('booking_id, amount'),
+  ]);
+
+  const share = inv?.revenue_share_pct || 70;
+  const companyShare = 100 - share;
+
+  // Revenue calculation
+  const bkIds = (bookings||[]).map(b=>b.booking_id);
+  const paidMap = {};
+  (payments||[]).forEach(p => {
+    if(bkIds.includes(p.booking_id)) paidMap[p.booking_id] = (paidMap[p.booking_id]||0)+(p.amount||0);
+  });
+
+  const onlineBks = (bookings||[]).filter(b=>b.booking_mode==='Online-Airbnb');
+  const offlineBks = (bookings||[]).filter(b=>b.booking_mode!=='Online-Airbnb');
+
+  const calcNights = (b) => b.check_in&&b.check_out ? Math.max(Math.round((new Date(b.check_out)-new Date(b.check_in))/864e5),0) : 0;
+
+  const onlineNights = onlineBks.reduce((s,b)=>s+calcNights(b),0);
+  const offlineNights = offlineBks.reduce((s,b)=>s+calcNights(b),0);
+  const onlineRev = onlineBks.reduce((s,b)=>s+(paidMap[b.booking_id]||0),0);
+  const offlineRev = offlineBks.reduce((s,b)=>s+(paidMap[b.booking_id]||0),0);
+  const totalRev = onlineRev + offlineRev;
+  const totalNights = onlineNights + offlineNights;
+
+  // Expenses — check if monthly expenses already logged
+  const expMonth = new Date(selMonth+'-01').toLocaleString('en-IN',{month:'short',year:'numeric'}).replace(' ','-');
+  const monthExpenses = (expenses||[]).filter(e=>e.month===expMonth);
+  const totalExp = monthExpenses.reduce((s,e)=>s+(e.amount||0),0);
+
+  // If no expenses logged, use defaults
+  const useDefaults = monthExpenses.length === 0;
+  const defaultTotal = (defaults||[]).reduce((s,d)=>s+(d.default_amount||0),0);
+  const effectiveExp = useDefaults ? defaultTotal : totalExp;
+
+  // Profit & split
+  const operatingProfit = totalRev - effectiveExp;
+  const investorAmount = Math.round(operatingProfit * share / 100);
+  const companyAmount = operatingProfit - investorAmount;
+
+  // Month selector — last 12 months
+  const months = [];
+  for (let i=0; i<12; i++) {
+    const d = new Date(now.getFullYear(), now.getMonth()-i, 1);
+    const val = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+    const lbl = d.toLocaleString('en-IN',{month:'short',year:'numeric'});
+    months.push({val,lbl});
+  }
+
+  renderShell(`
+    <div class="card">
+      <h1>📊 Monthly Investor Report</h1>
+      <button class="secondary btn-sm" onclick="renderManageInvestors()">← Back</button>
+    </div>
+
+    <!-- Month Selector -->
+    <div class="card">
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Month</label>
+          <select id="rptMonth" onchange="renderInvestorReport('${investorId}','${roomId}',this.value)">
+            ${months.map(m=>`<option value="${m.val}" ${m.val===selMonth?'selected':''}>${m.lbl}</option>`).join('')}
+          </select>
+        </div>
+        <div class="form-group" style="justify-content:flex-end;">
+          <button class="btn-sm" onclick="window.print()">🖨️ Print / PDF</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Report Header -->
+    <div class="card" style="background:var(--dark);color:#fff;text-align:center;">
+      <div style="font-size:11px;text-transform:uppercase;letter-spacing:1px;color:rgba(255,255,255,0.6);">Monthly Investor Earnings Report</div>
+      <h1 style="color:#fff;margin:6px 0;">${BRAND}</h1>
+      <div style="font-size:13px;color:rgba(255,255,255,0.8);">${monthLabel}</div>
+    </div>
+
+    <!-- Property & Investor Info -->
+    <div class="card">
+      <div class="section-title">Property Overview</div>
+      <div class="metric-row"><span class="metric-label">Property Name</span><span style="font-weight:600;">${room?.nickname||room?.unit_no||'-'}</span></div>
+      <div class="metric-row"><span class="metric-label">Airbnb Listing</span><span style="font-size:12px;">${room?.property_name||'-'}</span></div>
+      <div class="metric-row"><span class="metric-label">Location</span><span>${room?.address||'Lucknow'}</span></div>
+      <div class="metric-row"><span class="metric-label">Property Owner</span><span style="font-weight:600;">${inv?.name||'-'}</span></div>
+      <div class="metric-row"><span class="metric-label">Revenue Share</span><span><span class="badge blue">${share}% Investor</span> / <span class="badge yellow">${companyShare}% Company</span></span></div>
+      <div class="metric-row"><span class="metric-label">Report Period</span><span>${monthLabel}</span></div>
+      <div class="metric-row"><span class="metric-label">Report Date</span><span>${new Date().toLocaleDateString('en-IN')}</span></div>
+    </div>
+
+    <!-- Key Financial Metrics -->
+    <div class="card">
+      <div class="section-title">💰 Key Financial Metrics</div>
+      <div class="metric-row"><span class="metric-label">Total Gross Revenue</span><span class="metric-value">₹${totalRev.toLocaleString('en-IN')}</span></div>
+      <div class="metric-row"><span class="metric-label">Total Operating Expenses</span><span class="metric-value warn">₹${effectiveExp.toLocaleString('en-IN')}</span></div>
+      <div class="metric-row"><span class="metric-label">Operating Profit</span><span class="metric-value" style="color:${operatingProfit>=0?'var(--green)':'var(--red)'};">₹${operatingProfit.toLocaleString('en-IN')}</span></div>
+      <div class="metric-row"><span class="metric-label">Investor Share (${share}%)</span><span class="metric-value" style="color:var(--green);">₹${investorAmount.toLocaleString('en-IN')}</span></div>
+      <div class="metric-row"><span class="metric-label">${BRAND} Share (${companyShare}%)</span><span class="metric-value">₹${companyAmount.toLocaleString('en-IN')}</span></div>
+    </div>
+
+    <!-- Revenue Breakdown -->
+    <div class="card">
+      <div class="section-title">📊 Revenue Breakdown</div>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Source</th><th>Nights</th><th>Revenue</th><th>%</th></tr></thead>
+        <tbody>
+          <tr><td>Online (Airbnb)</td><td>${onlineNights}</td><td>₹${onlineRev.toLocaleString('en-IN')}</td><td>${totalRev>0?Math.round(onlineRev/totalRev*100):0}%</td></tr>
+          <tr><td>Offline (Direct)</td><td>${offlineNights}</td><td>₹${offlineRev.toLocaleString('en-IN')}</td><td>${totalRev>0?Math.round(offlineRev/totalRev*100):0}%</td></tr>
+          <tr style="font-weight:700;background:#fafafa;"><td>Total</td><td>${totalNights}</td><td>₹${totalRev.toLocaleString('en-IN')}</td><td>100%</td></tr>
+        </tbody>
+      </table></div>
+    </div>
+
+    <!-- Booking Details -->
+    <div class="card">
+      <div class="section-title">📅 Booking Details</div>
+
+      ${onlineBks.length ? `
+        <div style="font-size:13px;font-weight:600;margin:8px 0 4px;">Online Bookings (Airbnb)</div>
+        <div class="table-wrap"><table>
+          <thead><tr><th>Guest</th><th>In</th><th>Out</th><th>Nights</th><th>Revenue</th></tr></thead>
+          <tbody>${onlineBks.map(b=>`<tr>
+            <td>${b.guest_name||'-'}</td><td>${b.check_in||'-'}</td><td>${b.check_out||'-'}</td>
+            <td>${calcNights(b)}</td><td>₹${(paidMap[b.booking_id]||0).toLocaleString('en-IN')}</td>
+          </tr>`).join('')}
+            <tr style="font-weight:600;background:#fafafa;"><td colspan="3">Total Online</td><td>${onlineNights}</td><td>₹${onlineRev.toLocaleString('en-IN')}</td></tr>
+          </tbody>
+        </table></div>` : '<div class="sub">No online bookings this month</div>'}
+
+      ${offlineBks.length ? `
+        <div style="font-size:13px;font-weight:600;margin:12px 0 4px;">Offline / Direct Bookings</div>
+        <div class="table-wrap"><table>
+          <thead><tr><th>Guest</th><th>In</th><th>Out</th><th>Nights</th><th>Revenue</th></tr></thead>
+          <tbody>${offlineBks.map(b=>`<tr>
+            <td>${b.guest_name||'-'}</td><td>${b.check_in||'-'}</td><td>${b.check_out||'-'}</td>
+            <td>${calcNights(b)}</td><td>₹${(paidMap[b.booking_id]||0).toLocaleString('en-IN')}</td>
+          </tr>`).join('')}
+            <tr style="font-weight:600;background:#fafafa;"><td colspan="3">Total Offline</td><td>${offlineNights}</td><td>₹${offlineRev.toLocaleString('en-IN')}</td></tr>
+          </tbody>
+        </table></div>` : '<div class="sub">No offline bookings this month</div>'}
+    </div>
+
+    <!-- Expense Summary -->
+    <div class="card">
+      <div class="section-title">🧾 Expense Summary (${monthLabel})</div>
+
+      ${useDefaults ? `<div class="success-msg" style="margin-bottom:10px;">
+        ℹ️ Is mahine ke expenses abhi log nahi hue — default amounts dikha raha hun.
+        <button class="btn-sm" style="margin-left:8px;" onclick="renderExpAutoFill('${investorId}','${roomId}','${selMonth}')">📝 Log This Month's Expenses</button>
+      </div>` : ''}
+
+      <div class="table-wrap"><table>
+        <thead><tr><th>Category</th><th>Amount</th><th>Type</th></tr></thead>
+        <tbody>
+          ${useDefaults ?
+            (defaults||[]).map(d=>`<tr>
+              <td>${d.expense_name}</td>
+              <td>₹${(d.default_amount||0).toLocaleString('en-IN')}</td>
+              <td><span class="badge ${d.is_fixed?'green':'yellow'}">${d.is_fixed?'Fixed':'Variable'}</span></td>
+            </tr>`).join('')
+          :
+            monthExpenses.map(e=>`<tr>
+              <td>${e.expense_categories?.category_name||'-'}</td>
+              <td>₹${(e.amount||0).toLocaleString('en-IN')}</td>
+              <td>—</td>
+            </tr>`).join('')
+          }
+          <tr style="font-weight:700;background:#fafafa;">
+            <td>Total Operating Expenses</td>
+            <td>₹${effectiveExp.toLocaleString('en-IN')}</td>
+            <td></td>
+          </tr>
+        </tbody>
+      </table></div>
+    </div>
+
+    <!-- Profit Distribution -->
+    <div class="card" style="background:linear-gradient(135deg,#1a1a1a,#2d2d2d);color:#fff;">
+      <div style="font-size:12px;text-transform:uppercase;letter-spacing:0.5px;color:rgba(255,255,255,0.6);margin-bottom:10px;">Profit Distribution — ${monthLabel}</div>
+      <div class="metric-row" style="border-color:rgba(255,255,255,0.15);">
+        <span class="metric-label" style="color:rgba(255,255,255,0.8);">Operating Profit</span>
+        <span class="metric-value" style="color:#fff;">₹${operatingProfit.toLocaleString('en-IN')}</span>
+      </div>
+      <div class="metric-row" style="border-color:rgba(255,255,255,0.15);">
+        <span class="metric-label" style="color:rgba(255,255,255,0.8);">🏠 ${inv?.name||'Investor'} (${share}%)</span>
+        <span class="metric-value" style="color:#4ade80;">₹${investorAmount.toLocaleString('en-IN')}</span>
+      </div>
+      <div class="metric-row" style="border:none;">
+        <span class="metric-label" style="color:rgba(255,255,255,0.8);">🏢 ${BRAND} (${companyShare}%)</span>
+        <span class="metric-value" style="color:#60a5fa;">₹${companyAmount.toLocaleString('en-IN')}</span>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="card" style="text-align:center;">
+      <div style="font-size:12px;color:var(--muted);margin-bottom:8px;">
+        Prepared By: <strong>${SESSION.displayName||'Management'}</strong><br>
+        Operator: <strong>${BRAND}</strong><br>
+        Date: ${new Date().toLocaleDateString('en-IN')}
+      </div>
+      <div class="btn-row" style="justify-content:center;">
+        <button class="btn-sm" onclick="window.print()">🖨️ Print / Save PDF</button>
+        <button class="btn-sm secondary" onclick="downloadInvestorCSV('${investorId}','${roomId}','${selMonth}')">⬇️ CSV</button>
+        <button class="btn-sm outline" onclick="renderManageInvestors()">← Back</button>
+      </div>
+    </div>
+  `, 'investors');
+}
+
+// ============ EXPENSE AUTO-FILL FROM DEFAULTS ============
+async function renderExpAutoFill(investorId, roomId, month) {
+  renderShell(`<div class="loading">Loading defaults...</div>`, 'investors');
+
+  const {data:defaults} = await sb.from('property_default_expenses').select('*').eq('room_id',roomId).order('expense_name');
+  const {data:room} = await sb.from('rooms').select('nickname').eq('room_id',roomId).single();
+  const monthLabel = new Date(month+'-01').toLocaleString('en-IN',{month:'short',year:'numeric'}).replace(' ','-');
+
+  let rows = '';
+  (defaults||[]).forEach((d,i) => {
+    rows += `<tr>
+      <td>${d.expense_name}</td>
+      <td><input type="number" id="expAmt${i}" value="${d.default_amount||0}" style="width:100px;padding:6px;margin:0;" /></td>
+      <td><span class="badge ${d.is_fixed?'green':'yellow'}">${d.is_fixed?'Fixed':'Variable'}</span></td>
+    </tr>`;
+  });
+
+  renderShell(`
+    <div class="card">
+      <h1>📝 Log Monthly Expenses</h1>
+      <div class="sub">${room?.nickname||roomId} — ${monthLabel}</div>
+      <button class="secondary btn-sm" onclick="renderInvestorReport('${investorId}','${roomId}','${month}')">← Back to Report</button>
+    </div>
+    <div class="card">
+      <div class="section-title">Edit amounts (variable expenses change monthly)</div>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Expense</th><th>Amount ₹</th><th>Type</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table></div>
+      <button onclick="saveExpAutoFill('${investorId}','${roomId}','${month}','${monthLabel}')" style="width:100%;margin-top:12px;padding:14px;">
+        💾 Save All Expenses for ${monthLabel}
+      </button>
+      <div id="expFillErr"></div>
+    </div>
+  `, 'investors');
+}
+
+async function saveExpAutoFill(investorId, roomId, month, monthLabel) {
+  const {data:defaults} = await sb.from('property_default_expenses').select('*').eq('room_id',roomId).order('expense_name');
+
+  // We need expense categories — create if not exist, or use existing
+  for (let i=0; i<(defaults||[]).length; i++) {
+    const d = defaults[i];
+    const amt = parseFloat(document.getElementById(`expAmt${i}`)?.value) || 0;
+    if (amt <= 0) continue;
+
+    // Find or create category
+    let catId;
+    const {data:existing} = await sb.from('expense_categories').select('category_id').eq('category_name',d.expense_name).single();
+    if (existing) {
+      catId = existing.category_id;
+    } else {
+      catId = 'EXP'+Date.now()+i;
+      await sb.from('expense_categories').insert({category_id:catId, category_name:d.expense_name, default_monthly_amount:d.default_amount});
+    }
+
+    // Insert expense entry
+    await sb.from('expenses').insert({
+      category_id: catId,
+      room_id: roomId,
+      month: monthLabel,
+      amount: amt,
+      entry_date: new Date().toISOString().slice(0,10),
+      notes: `Auto-filled for ${month}`
+    });
+  }
+
+  renderInvestorReport(investorId, roomId, month);
+}
+
+// ============ INVESTOR REPORT CSV DOWNLOAD ============
+function downloadInvestorCSV(investorId, roomId, month) {
+  // Simple CSV from what's on screen
+  const tables = document.querySelectorAll('table');
+  let csv = `Investor Monthly Report\nProperty: ${roomId}\nMonth: ${month}\n\n`;
+
+  tables.forEach(table => {
+    const rows = table.querySelectorAll('tr');
+    rows.forEach(row => {
+      const cells = row.querySelectorAll('th, td');
+      const line = Array.from(cells).map(c => c.textContent.trim().replace(/,/g,' ')).join(',');
+      csv += line + '\n';
+    });
+    csv += '\n';
+  });
+
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([csv],{type:'text/csv'}));
+  a.download = `Investor_Report_${roomId}_${month}.csv`;
+  a.click();
 }
 
 // ============ START ============

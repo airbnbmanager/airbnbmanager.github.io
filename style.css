@@ -346,3 +346,17 @@ code { background: #F0F0F0; padding: 2px 6px; border-radius: 4px; font-size: 12p
   h1 { font-size: 15px; }
   body { font-size: 13px; }
 }
+
+
+/* ─── PRINT STYLES ─── */
+@media print {
+  .sidebar, .sidebar-footer, .btn-row, button,
+  .filter-bar, .form-group, select, .modal-overlay { display: none !important; }
+  .app-container { display: block; }
+  .main-content { margin-left: 0 !important; padding: 10px !important; max-width: 100% !important; }
+  .card { break-inside: avoid; border: 1px solid #ddd; box-shadow: none; margin-bottom: 8px; }
+  body { background: #fff; font-size: 12px; }
+  .metric-value { font-size: 14px; }
+  table { font-size: 11px; }
+  th, td { padding: 6px 8px; }
+}
