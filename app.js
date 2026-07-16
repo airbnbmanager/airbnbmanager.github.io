@@ -2008,7 +2008,7 @@ async function renderInvestorReport(investorId, roomId, month) {
     <!-- Footer -->
     <div class="card" style="text-align:center;">
       <div style="font-size:12px;color:var(--muted);margin-bottom:8px;">
-        Prepared By: <strong>${SESSION.displayName||'Management'}</strong><br>
+                Prepared By: <strong>NISHA KHAN</strong><br>
         Operator: <strong>${BRAND}</strong><br>
         Date: ${new Date().toLocaleDateString('en-IN')}
       </div>
