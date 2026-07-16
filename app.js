@@ -20,8 +20,9 @@ let SESSION = {
 async function init() {
   try {
     const { data: { session } } = await sb.auth.getSession();
-    if (!session) renderLogin();
-    else await loadProfile(session.user.id);
+    if (!session) { renderLogin(); return; }
+    await autoCheckout(); // Auto-free expired rooms
+    await loadProfile(session.user.id);
   } catch (err) { showError("Setup incomplete. config.js check karo.", err); }
 }
 
@@ -666,7 +667,7 @@ async function renderManageBookings() {
         const ids=(b.id_proof_photo_paths||b.id_proof_photo_path||'').split(',').filter(Boolean);
         return `<tr>
           <td><strong>${b.guest_name||'-'}</strong><br><small>${b.phone||''}</small></td>
-          <td>${b.rooms?.property_name||'-'}<br><small>${b.rooms?.unit_no||''} · ${b.rooms?.nickname||''}</small></td>
+                    <td><strong>${b.rooms?.nickname||'-'}</strong><br><small>${b.rooms?.property_name||''}</small><br><small style="color:var(--muted);">${b.rooms?.unit_no||b.room_id}</small></td>
           <td><span class="badge ${b.booking_mode==='Online-Airbnb'?'blue':'yellow'}">${b.booking_mode==='Online-Airbnb'?'Online':'Offline'}</span></td>
           <td><small>${b.booked_by||'-'}</small></td>
           <td>${ids.length?ids.map((p,i)=>`<button class="btn-sm outline" style="margin:1px;" onclick="dlIdPhoto('${p}')">📎G${i+1}</button>`).join(''):'—'}</td>
@@ -1725,36 +1726,279 @@ function filterByRange(bks, range) {
 
 async function renderInvestorView(range='Month') {
   if(!SESSION.investorId){showError('No property linked. Contact owner.');return;}
-  const {data:links} = await sb.from('investor_properties').select('room_id, rooms(unit_no,property_name,nickname)').eq('investor_id',SESSION.investorId);
+
+  const {data:inv} = await sb.from('investors').select('*').eq('investor_id',SESSION.investorId).single();
+  const {data:links} = await sb.from('investor_properties')
+    .select('room_id, rooms(unit_no, property_name, nickname, checkin_manager)')
+    .eq('investor_id', SESSION.investorId);
   const rids = (links||[]).map(l=>l.room_id);
-  const {data:allBk} = rids.length ? await sb.from('guest_register').select('*, rooms(unit_no,property_name)').in('room_id',rids).order('check_in',{ascending:false}) : {data:[]};
-  const bks = filterByRange(allBk||[],range);
+
+  const {data:allBk} = rids.length
+    ? await sb.from('guest_register').select('*, rooms(unit_no, property_name, nickname)')
+        .in('room_id', rids).order('check_in',{ascending:false})
+    : {data:[]};
+
+  const bks = filterByRange(allBk||[], range);
   const pm = await getPaidMap(bks.map(b=>b.booking_id));
   const rev = bks.reduce((s,b)=>s+(pm[b.booking_id]||0),0);
 
-  appEl.innerHTML = `<div class="wrap" style="max-width:600px;">
-    <div class="card" style="text-align:center;">
-      <img src="assets/logo.png" alt="" style="width:48px;height:48px;object-fit:contain;border-radius:10px;margin-bottom:6px;" />
-      <h1>${BRAND}</h1><div class="sub">👋 ${SESSION.displayName}</div>
-      <button class="danger btn-sm" onclick="logout()">🚪 Logout</button>
-    </div>
-    <div class="card"><div class="form-group"><label>Period</label><select id="invRange">
-      <option value="Today" ${range==='Today'?'selected':''}>Today</option>
-      <option value="Week" ${range==='Week'?'selected':''}>Week</option>
-      <option value="Month" ${range==='Month'?'selected':''}>Month</option>
-      <option value="All" ${range==='All'?'selected':''}>All</option>
-    </select></div></div>
-    <div class="card">
-      <div class="metric-row"><span class="metric-label">Properties</span><span class="metric-value">${(links||[]).length}</span></div>
-      <div class="metric-row"><span class="metric-label">Bookings</span><span class="metric-value">${bks.length}</span></div>
-      <div class="metric-row"><span class="metric-label">Revenue</span><span class="metric-value">₹${rev.toLocaleString('en-IN')}</span></div>
-    </div>
-    <div class="card"><div class="section-title">Bookings</div><div class="table-wrap"><table>
-      <thead><tr><th>Guest</th><th>Property</th><th>In</th><th>Out</th><th>₹</th></tr></thead>
-      <tbody>${bks.map(b=>`<tr><td>${b.guest_name||'-'}</td><td>${b.rooms?.unit_no||'-'}</td><td>${b.check_in||'-'}</td><td>${b.check_out||'-'}</td><td>₹${(pm[b.booking_id]||0).toLocaleString('en-IN')}</td></tr>`).join('')||'<tr><td colspan="5" class="sub">No bookings</td></tr>'}</tbody>
-    </table></div></div>
-  </div>`;
-  document.getElementById('invRange').onchange=e=>renderInvestorView(e.target.value);
+  const share = inv?.revenue_share_pct || 70;
+  const onBks = bks.filter(b=>b.booking_mode==='Online-Airbnb');
+  const offBks = bks.filter(b=>b.booking_mode!=='Online-Airbnb');
+  const onRev = onBks.reduce((s,b)=>s+(pm[b.booking_id]||0),0);
+  const offRev = offBks.reduce((s,b)=>s+(pm[b.booking_id]||0),0);
+
+  // Month selector
+  const now = new Date();
+  const months = [];
+  for(let i=0;i<6;i++){
+    const d=new Date(now.getFullYear(),now.getMonth()-i,1);
+    months.push({val:`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`,
+      lbl:d.toLocaleString('en-IN',{month:'short',year:'numeric'})});
+  }
+
+  appEl.innerHTML = `
+    <div class="wrap" style="max-width:650px;">
+
+      <!-- Header -->
+      <div class="card" style="text-align:center;">
+        <img src="assets/logo.png" alt="" style="width:52px;height:52px;object-fit:contain;border-radius:12px;margin-bottom:6px;" />
+        <h1>${BRAND}</h1>
+        <div class="sub">👋 ${SESSION.displayName || inv?.name || 'Investor'}</div>
+        <div style="margin-top:8px;">
+          <button class="danger btn-sm" onclick="logout()">🚪 Logout</button>
+        </div>
+      </div>
+
+      <!-- Period Filter -->
+      <div class="card">
+        <div class="form-group">
+          <label>📅 Period</label>
+          <select id="invRange">
+            <option value="Today" ${range==='Today'?'selected':''}>Today</option>
+            <option value="Week" ${range==='Week'?'selected':''}>Last 7 Days</option>
+            <option value="Month" ${range==='Month'?'selected':''}>This Month</option>
+            <option value="All" ${range==='All'?'selected':''}>All Time</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Quick Stats -->
+      <div class="stat-grid" style="grid-template-columns:repeat(3,1fr);">
+        <div class="stat-card" style="border-left:4px solid var(--green);">
+          <div class="stat-num">${(links||[]).length}</div>
+          <div class="stat-label">Properties</div>
+        </div>
+        <div class="stat-card" style="border-left:4px solid var(--primary);">
+          <div class="stat-num">${bks.length}</div>
+          <div class="stat-label">Bookings</div>
+        </div>
+        <div class="stat-card" style="border-left:4px solid #60a5fa;">
+          <div class="stat-num">₹${rev>999?Math.round(rev/1000)+'K':rev}</div>
+          <div class="stat-label">Revenue</div>
+        </div>
+      </div>
+
+      <!-- Revenue Split -->
+      <div class="card">
+        <div class="section-title">💰 Revenue Summary (${range})</div>
+        <div class="metric-row"><span class="metric-label">Total Revenue</span><span class="metric-value">₹${rev.toLocaleString('en-IN')}</span></div>
+        <div class="metric-row"><span class="metric-label">Online (Airbnb)</span><span class="metric-value">₹${onRev.toLocaleString('en-IN')}</span></div>
+        <div class="metric-row"><span class="metric-label">Offline (Direct)</span><span class="metric-value">₹${offRev.toLocaleString('en-IN')}</span></div>
+        <div class="metric-row"><span class="metric-label">Your Share (${share}%)</span><span class="metric-value" style="color:var(--green);">₹${Math.round(rev*share/100).toLocaleString('en-IN')}</span></div>
+      </div>
+
+      <!-- My Properties -->
+      <div class="card">
+        <div class="section-title">🏠 My Properties</div>
+        ${(links||[]).map(l=>`
+          <div class="metric-row">
+            <span class="metric-label">
+              <strong>${l.rooms?.nickname||l.rooms?.unit_no||'-'}</strong><br>
+              <small style="color:var(--muted);">${l.rooms?.property_name||''}</small>
+            </span>
+            <span style="font-size:12px;color:var(--muted);">
+              ${l.rooms?.checkin_manager ? '👨‍💼 '+l.rooms.checkin_manager : ''}
+            </span>
+          </div>
+        `).join('')||'<div class="sub">No properties linked</div>'}
+      </div>
+
+      <!-- Booking History -->
+      <div class="card">
+        <div class="section-title">📅 Booking History (${range})</div>
+        <div class="table-wrap"><table>
+          <thead><tr><th>Guest</th><th>Property</th><th>Mode</th><th>In</th><th>Out</th><th>Revenue</th></tr></thead>
+          <tbody>${bks.map(b=>`<tr>
+            <td>${b.guest_name||'-'}</td>
+            <td><small>${b.rooms?.nickname||b.rooms?.unit_no||'-'}</small></td>
+            <td><span class="badge ${b.booking_mode==='Online-Airbnb'?'blue':'yellow'}">${b.booking_mode==='Online-Airbnb'?'Online':'Offline'}</span></td>
+            <td>${b.check_in||'-'}</td>
+            <td>${b.check_out||'-'}</td>
+            <td>₹${(pm[b.booking_id]||0).toLocaleString('en-IN')}</td>
+          </tr>`).join('')||'<tr><td colspan="6" class="sub">No bookings in this period</td></tr>'}</tbody>
+        </table></div>
+      </div>
+
+      <!-- Monthly Reports -->
+      <div class="card">
+        <div class="section-title">📊 Monthly Reports</div>
+        <div class="sub">Select property and month to view detailed report</div>
+        ${(links||[]).map(l=>`
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);">
+            <span style="font-weight:600;font-size:13px;">${l.rooms?.nickname||l.rooms?.unit_no||'-'}</span>
+            <select onchange="if(this.value)renderInvMonthReport('${SESSION.investorId}','${l.room_id}',this.value)" style="width:auto;padding:6px 8px;font-size:12px;margin:0;">
+              <option value="">View Report →</option>
+              ${months.map(m=>`<option value="${m.val}">${m.lbl}</option>`).join('')}
+            </select>
+          </div>
+        `).join('')}
+      </div>
+
+      <!-- Footer -->
+      <div class="card" style="text-align:center;">
+        <div style="font-size:11px;color:var(--muted);">
+          ${BRAND}<br>
+          <small>Investor Dashboard — View Only</small>
+        </div>
+        <button class="danger btn-sm" onclick="logout()" style="margin-top:8px;">🚪 Logout</button>
+      </div>
+
+    </div>`;
+
+  document.getElementById('invRange').onchange = e => renderInvestorView(e.target.value);
+}
+
+// ============ INVESTOR MONTHLY REPORT (Read-Only for Investor) ============
+async function renderInvMonthReport(investorId, roomId, month) {
+  // Reuse the main report but in investor wrap (no sidebar)
+  const now = new Date();
+  const selMonth = month;
+  const monthStart = selMonth+'-01';
+  const monthEnd = new Date(parseInt(selMonth.split('-')[0]),parseInt(selMonth.split('-')[1]),0).toISOString().slice(0,10);
+  const monthLabel = new Date(selMonth+'-01').toLocaleString('en-IN',{month:'long',year:'numeric'});
+
+  const [{data:inv},{data:room},{data:bookings},{data:defaults},{data:expenses},{data:payments}] = await Promise.all([
+    sb.from('investors').select('*').eq('investor_id',investorId).single(),
+    sb.from('rooms').select('*').eq('room_id',roomId).single(),
+    sb.from('guest_register').select('*').eq('room_id',roomId).gte('check_in',monthStart).lte('check_in',monthEnd),
+    sb.from('property_default_expenses').select('*').eq('room_id',roomId).order('expense_name'),
+    sb.from('expenses').select('*, expense_categories(category_name)').eq('room_id',roomId),
+    sb.from('payment_history').select('booking_id, amount'),
+  ]);
+
+  const share = inv?.revenue_share_pct||70;
+  const companyShare = 100-share;
+  const bkIds = (bookings||[]).map(b=>b.booking_id);
+  const paidMap = {};
+  (payments||[]).forEach(p=>{if(bkIds.includes(p.booking_id))paidMap[p.booking_id]=(paidMap[p.booking_id]||0)+(p.amount||0);});
+
+  const calcN = b => b.check_in&&b.check_out?Math.max(Math.round((new Date(b.check_out)-new Date(b.check_in))/864e5),0):0;
+  const onBks=(bookings||[]).filter(b=>b.booking_mode==='Online-Airbnb');
+  const offBks=(bookings||[]).filter(b=>b.booking_mode!=='Online-Airbnb');
+  const onRev=onBks.reduce((s,b)=>s+(paidMap[b.booking_id]||0),0);
+  const offRev=offBks.reduce((s,b)=>s+(paidMap[b.booking_id]||0),0);
+  const totalRev=onRev+offRev;
+  const onN=onBks.reduce((s,b)=>s+calcN(b),0);
+  const offN=offBks.reduce((s,b)=>s+calcN(b),0);
+
+  const expMonth=new Date(selMonth+'-01').toLocaleString('en-IN',{month:'short',year:'numeric'}).replace(' ','-');
+  const mExp=(expenses||[]).filter(e=>e.month===expMonth);
+  const useDefaults=mExp.length===0;
+  const effectiveExp=useDefaults?(defaults||[]).reduce((s,d)=>s+(d.default_amount||0),0):mExp.reduce((s,e)=>s+(e.amount||0),0);
+  const profit=totalRev-effectiveExp;
+  const invAmt=Math.round(profit*share/100);
+  const coAmt=profit-invAmt;
+
+  appEl.innerHTML = `
+    <div class="wrap" style="max-width:650px;">
+      <div class="card">
+        <button class="secondary btn-sm" onclick="renderInvestorView()">← Back to Dashboard</button>
+      </div>
+
+      <div class="card" style="background:var(--dark);color:#fff;text-align:center;">
+        <div style="font-size:10px;text-transform:uppercase;letter-spacing:1px;color:rgba(255,255,255,0.5);">Monthly Investor Report</div>
+        <h1 style="color:#fff;margin:4px 0;">${BRAND}</h1>
+        <div style="font-size:13px;color:rgba(255,255,255,0.7);">${monthLabel}</div>
+      </div>
+
+      <div class="card">
+        <div class="section-title">Property</div>
+        <div class="metric-row"><span class="metric-label">Property</span><span style="font-weight:600;">${room?.nickname||'-'}</span></div>
+        <div class="metric-row"><span class="metric-label">Listing</span><span style="font-size:12px;">${room?.property_name||'-'}</span></div>
+        <div class="metric-row"><span class="metric-label">Owner</span><span style="font-weight:600;">${inv?.name||'-'}</span></div>
+        <div class="metric-row"><span class="metric-label">Share</span><span>${share}% / ${companyShare}%</span></div>
+      </div>
+
+      <div class="card">
+        <div class="section-title">💰 Financial Summary</div>
+        <div class="metric-row"><span class="metric-label">Revenue</span><span class="metric-value">₹${totalRev.toLocaleString('en-IN')}</span></div>
+        <div class="metric-row"><span class="metric-label">Expenses</span><span class="metric-value warn">₹${effectiveExp.toLocaleString('en-IN')}</span></div>
+        <div class="metric-row"><span class="metric-label">Profit</span><span class="metric-value" style="color:${profit>=0?'var(--green)':'var(--red)'};">₹${profit.toLocaleString('en-IN')}</span></div>
+      </div>
+
+      <div class="card" style="background:linear-gradient(135deg,#1a1a1a,#2d2d2d);color:#fff;">
+        <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.5px;color:rgba(255,255,255,0.5);margin-bottom:8px;">Your Earnings</div>
+        <div class="metric-row" style="border-color:rgba(255,255,255,0.15);">
+          <span style="color:rgba(255,255,255,0.8);">🏠 ${inv?.name||'Investor'} (${share}%)</span>
+          <span class="metric-value" style="color:#4ade80;">₹${invAmt.toLocaleString('en-IN')}</span>
+        </div>
+        <div class="metric-row" style="border:none;">
+          <span style="color:rgba(255,255,255,0.8);">🏢 Company (${companyShare}%)</span>
+          <span class="metric-value" style="color:#60a5fa;">₹${coAmt.toLocaleString('en-IN')}</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="section-title">📊 Revenue Split</div>
+        <div class="table-wrap"><table>
+          <thead><tr><th>Source</th><th>Nights</th><th>Revenue</th></tr></thead>
+          <tbody>
+            <tr><td>Online</td><td>${onN}</td><td>₹${onRev.toLocaleString('en-IN')}</td></tr>
+            <tr><td>Offline</td><td>${offN}</td><td>₹${offRev.toLocaleString('en-IN')}</td></tr>
+            <tr style="font-weight:700;"><td>Total</td><td>${onN+offN}</td><td>₹${totalRev.toLocaleString('en-IN')}</td></tr>
+          </tbody>
+        </table></div>
+      </div>
+
+      <div class="card">
+        <div class="section-title">📅 Bookings</div>
+        <div class="table-wrap"><table>
+          <thead><tr><th>Guest</th><th>Mode</th><th>In</th><th>Out</th><th>Nights</th><th>₹</th></tr></thead>
+          <tbody>${(bookings||[]).map(b=>`<tr>
+            <td>${b.guest_name||'-'}</td>
+            <td><span class="badge ${b.booking_mode==='Online-Airbnb'?'blue':'yellow'}">${b.booking_mode==='Online-Airbnb'?'On':'Off'}</span></td>
+            <td>${b.check_in||'-'}</td><td>${b.check_out||'-'}</td>
+            <td>${calcN(b)}</td><td>₹${(paidMap[b.booking_id]||0).toLocaleString('en-IN')}</td>
+          </tr>`).join('')||'<tr><td colspan="6" class="sub">No bookings</td></tr>'}</tbody>
+        </table></div>
+      </div>
+
+      <div class="card">
+        <div class="section-title">🧾 Expenses</div>
+        ${useDefaults?'<div class="sub">Default amounts (not yet finalized)</div>':''}
+        <div class="table-wrap"><table>
+          <thead><tr><th>Category</th><th>Amount</th></tr></thead>
+          <tbody>
+            ${useDefaults?
+              (defaults||[]).map(d=>`<tr><td>${d.expense_name}</td><td>₹${(d.default_amount||0).toLocaleString('en-IN')}</td></tr>`).join('')
+              :mExp.map(e=>`<tr><td>${e.expense_categories?.category_name||'-'}</td><td>₹${(e.amount||0).toLocaleString('en-IN')}</td></tr>`).join('')}
+            <tr style="font-weight:700;"><td>Total</td><td>₹${effectiveExp.toLocaleString('en-IN')}</td></tr>
+          </tbody>
+        </table></div>
+      </div>
+
+      <div class="card" style="text-align:center;">
+        <div style="font-size:11px;color:var(--muted);">
+          Prepared By: <strong>NISHA KHAN</strong><br>
+          ${BRAND} · ${new Date().toLocaleDateString('en-IN')}
+        </div>
+        <div class="btn-row" style="justify-content:center;margin-top:8px;">
+          <button class="btn-sm" onclick="window.print()">🖨️ Print</button>
+          <button class="btn-sm secondary" onclick="renderInvestorView()">← Back</button>
+        </div>
+      </div>
+    </div>`;
 }
 
 // ============ EMPLOYEE VIEW ============
@@ -2111,6 +2355,30 @@ function downloadInvestorCSV(investorId, roomId, month) {
   a.href = URL.createObjectURL(new Blob([csv],{type:'text/csv'}));
   a.download = `Investor_Report_${roomId}_${month}.csv`;
   a.click();
+}
+
+// ============ AUTO CHECKOUT — Free rooms where checkout <= today ============
+async function autoCheckout() {
+  const today = new Date().toISOString().slice(0,10);
+  const {data:expired} = await sb.from('guest_register')
+    .select('room_id, booking_id, check_out')
+    .lte('check_out', today);
+
+  if (!expired || !expired.length) return;
+
+  const roomIds = [...new Set(expired.map(b=>b.room_id).filter(Boolean))];
+
+  for (const rid of roomIds) {
+    // Check if any FUTURE booking exists for this room
+    const {data:future} = await sb.from('guest_register')
+      .select('booking_id')
+      .eq('room_id', rid)
+      .gt('check_out', today);
+
+    if (!future || future.length === 0) {
+      await sb.from('flats_status').update({status:'Free'}).eq('room_id', rid);
+    }
+  }
 }
 
 // ============ START ============
