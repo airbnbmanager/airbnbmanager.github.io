@@ -678,7 +678,9 @@ async function renderManageBookings() {
   const {data:all,error} = await sb.from("guest_register")
     .select("*, rooms(unit_no, nickname, property_name)").order("check_in",{ascending:false});
   if (error) { renderShell(`<div class="error">${error.message}</div>`,'bookings'); return; }
-  const {data:rooms} = await sb.from('rooms').select('room_id, unit_no, nickname').order('unit_no');
+    const {data:rooms} = await sb.from('rooms').select('room_id, unit_no, nickname, property_name').order('unit_no');
+  const roomMap = {};
+  (rooms || []).forEach(r => { roomMap[r.room_id] = r; });
 
   const overlaps = findOverlappingBookings(all || []);
 
@@ -719,7 +721,7 @@ async function renderManageBookings() {
         </div>
       </div>
     ` : ''}
-    
+
     <div class="card">
       <div class="section-title">🔍 Filters</div>
       <div class="filter-bar">
@@ -748,7 +750,17 @@ async function renderManageBookings() {
         const ids=(b.id_proof_photo_paths||b.id_proof_photo_path||'').split(',').filter(Boolean);
         return `<tr>
           <td><strong>${b.guest_name||'-'}</strong><br><small>${b.phone||''}</small></td>
-                    <td><strong>${b.rooms?.nickname||'-'}</strong><br><small>${b.rooms?.property_name||''}</small><br><small style="color:var(--muted);">${b.rooms?.unit_no||b.room_id}</small></td>
+                      <td>
+            <strong>${b.rooms?.nickname||'-'}</strong><br>
+            <small>${b.rooms?.property_name||''}</small><br>
+            <small style="color:var(--muted);">${b.rooms?.unit_no||b.room_id}</small>
+            ${b.booking_mode==='Online-Airbnb' && b.source_room_id && b.source_room_id !== b.room_id ? `
+              <br><small style="color:#2563eb;">Source Listing: ${roomMap[b.source_room_id]?.nickname || b.source_room_id}</small>
+            ` : ''}
+            ${b.parent_booking_id ? `
+              <br><small style="color:#8A7F76;">Extension of: ${b.parent_booking_id}</small>
+            ` : ''}
+          </td>
           <td><span class="badge ${b.booking_mode==='Online-Airbnb'?'blue':'yellow'}">${b.booking_mode==='Online-Airbnb'?'Online':'Offline'}</span></td>
           <td><small>${b.booked_by||'-'}</small></td>
           <td>${ids.length?ids.map((p,i)=>`<button class="btn-sm outline" style="margin:1px;" onclick="dlIdPhoto('${p}')">📎G${i+1}</button>`).join(''):'—'}</td>
@@ -757,8 +769,9 @@ async function renderManageBookings() {
           <td>₹${pd.toLocaleString('en-IN')}</td>
           <td><span class="${bal>0?'metric-value warn':''}">₹${bal.toLocaleString('en-IN')}</span></td>
           ${canM?`<td class="table-actions">
-            <button class="btn-sm" onclick="editBooking('${b.booking_id}')" title="Edit">✏️ Edit</button>
+             <button class="btn-sm" onclick="editBooking('${b.booking_id}')" title="Edit">✏️ Edit</button>
             <button class="btn-sm secondary" onclick="recordPayment('${b.booking_id}')" title="Payment">💰 Pay</button>
+            <button class="btn-sm outline" onclick="createOfflineExtension('${b.booking_id}')" title="Offline Extension">➕ Ext</button>
             ${bal>0?`<button class="btn-sm" onclick="markFullyPaid('${b.booking_id}')" title="Mark Paid">✅ Paid</button>`:''}
             ${canD?`<button class="btn-sm danger" onclick="delBooking('${b.booking_id}','${(b.guest_name||'').replace(/'/g,"\\'")}','${b.room_id}')" title="Delete">🗑️ Del</button>`:''}
           </td>`:''}</tr>`;}).join('')}</tbody>
@@ -785,9 +798,36 @@ async function dlIdPhoto(path) {
   else alert('Photo load failed');
 }
 
+async function createOfflineExtension(parentBookingId) {
+  const { data: b } = await sb.from('guest_register').select('*').eq('booking_id', parentBookingId).single();
+  if (!b) { alert('Parent booking not found'); return; }
+
+  window._bookingPrefill = {
+    guestName: b.guest_name || '',
+    guestPhone: b.phone || '',
+    roomId: b.room_id || '',
+    sourceRoomId: b.source_room_id || b.room_id || '',
+    bookingMode: 'Offline',
+    checkIn: b.check_out || '',
+    checkOut: '',
+    guests: b.guests || 1,
+    totalAmount: '',
+    advanceAmt: 0,
+    advMode: '',
+    idType: b.id_proof_type || 'Aadhar',
+    idNo: b.id_proof_no || '',
+    bkNotes: `Extension after Airbnb stay (${parentBookingId})`,
+    parentBookingId: parentBookingId,
+    stayGroupId: b.stay_group_id || b.booking_id
+  };
+
+  renderAddBooking();
+}
+
 // ============ ADD BOOKING (Mobile-first, Camera+Gallery, 8 Guests) ============
 async function renderAddBooking() {
-   const {data:rooms} = await sb.from('rooms')
+  const pre = window._bookingPrefill || {};
+  const {data:rooms} = await sb.from('rooms')
     .select('room_id, unit_no, nickname, property_name, rent_per_night, bookable, checkin_manager').order('room_id');
   window._roomsCache = rooms||[];
 
@@ -796,7 +836,7 @@ async function renderAddBooking() {
     idSlots += `
       <div class="id-card" id="idSlot${i}" style="display:${i===1?'block':'none'};">
         <div class="id-card-title">👤 Guest ${i}${i===1?' (Primary)':''}</div>
-        <input type="text" class="id-slot-name" id="gN${i}" placeholder="Guest ${i} naam" />
+        <input type="text" class="id-slot-name" id="gN${i}" placeholder="Guest ${i} naam" value="${i===1?(pre.guestName||''):''}" />
         <div class="id-card-btns">
           <button type="button" class="outline" onclick="document.getElementById('gCam${i}').click()">📷 Camera</button>
           <button type="button" class="outline" onclick="document.getElementById('gGal${i}').click()">🖼️ Gallery</button>
@@ -810,55 +850,79 @@ async function renderAddBooking() {
   renderShell(`
     <div class="card">
       <h1>➕ New Booking</h1>
-      <button class="secondary btn-sm" onclick="renderManageBookings()">← Back</button>
+      <button class="secondary btn-sm" onclick="window._bookingPrefill=null;renderManageBookings()">← Back</button>
     </div>
+
     <div class="card">
+      <input type="hidden" id="parentBookingId" value="${pre.parentBookingId || ''}" />
+      <input type="hidden" id="stayGroupId" value="${pre.stayGroupId || ''}" />
+
+      ${pre.parentBookingId ? `
+        <div class="success-msg" style="margin-bottom:10px;">
+          Linked as extension of booking <strong>${pre.parentBookingId}</strong>
+        </div>
+      ` : ''}
+
       <div class="form-grid">
-        <div class="form-group"><label>Guest Name *</label><input id="guestName" placeholder="Primary guest" /></div>
-        <div class="form-group"><label>Phone</label><input id="guestPhone" type="tel" placeholder="Mobile" /></div>
+        <div class="form-group"><label>Guest Name *</label><input id="guestName" placeholder="Primary guest" value="${pre.guestName||''}" /></div>
+        <div class="form-group"><label>Phone</label><input id="guestPhone" type="tel" placeholder="Mobile" value="${pre.guestPhone||''}" /></div>
       </div>
+
       <div class="form-grid">
-        <div class="form-group"><label>Property *</label>
+        <div class="form-group">
+          <label>Actual Stay Property *</label>
           <select id="roomId" onchange="onRoomChg()">
             <option value="">Select</option>
-            ${(rooms||[]).map(r=>`<option value="${r.room_id}">${r.nickname||r.unit_no} — ${(r.property_name||'').substring(0,30)}</option>`).join('')}
+            ${(rooms||[]).map(r=>`<option value="${r.room_id}" ${pre.roomId===r.room_id?'selected':''}>${r.nickname||r.unit_no} — ${(r.property_name||'').substring(0,30)}</option>`).join('')}
           </select>
           <div id="roomInfo" style="font-size:11px;color:var(--muted);margin-top:2px;"></div>
         </div>
-        <div class="form-group"><label>Mode</label>
+
+        <div class="form-group">
+          <label>Mode</label>
           <select id="bookingMode" onchange="onModeChg()">
-            <option value="Offline">Offline (Direct)</option>
-            <option value="Online-Airbnb">Online (Airbnb)</option>
+            <option value="Offline" ${(pre.bookingMode||'Offline')==='Offline'?'selected':''}>Offline (Direct)</option>
+            <option value="Online-Airbnb" ${(pre.bookingMode||'')==='Online-Airbnb'?'selected':''}>Online (Airbnb)</option>
           </select>
         </div>
       </div>
 
       <div id="onlineBox" style="display:none;background:#f0f7ff;padding:12px;border-radius:8px;margin:6px 0;">
-        <div class="section-title">🌐 Airbnb Payout Details</div>
-        <div class="sub">Jo bank mein aaya — net payout amount neeche Total Amount mein daalo</div>
+        <div class="section-title">🌐 Airbnb Source Listing</div>
+        <div class="sub">Airbnb booking originally kis listing pe aayi thi?</div>
+        <div class="form-group">
+          <label>Source / Original Airbnb Listing</label>
+          <select id="sourceRoomId">
+            <option value="">Select Original Listing</option>
+            ${(rooms||[]).map(r=>`<option value="${r.room_id}" ${((pre.sourceRoomId||pre.roomId||'')===r.room_id)?'selected':''}>${r.nickname||r.unit_no} — ${(r.property_name||'').substring(0,30)}</option>`).join('')}
+          </select>
+        </div>
+        <div class="sub">Agar same property hai to actual stay property hi select rahe.</div>
       </div>
 
       <div class="form-grid">
-        <div class="form-group"><label>Check-in</label><input id="checkIn" type="date" onchange="onRoomChg()" /></div>
-        <div class="form-group"><label>Check-out</label><input id="checkOut" type="date" onchange="onRoomChg()" /></div>
+        <div class="form-group"><label>Check-in</label><input id="checkIn" type="date" onchange="onRoomChg()" value="${pre.checkIn||''}" /></div>
+        <div class="form-group"><label>Check-out</label><input id="checkOut" type="date" onchange="onRoomChg()" value="${pre.checkOut||''}" /></div>
       </div>
       <div id="nightsInfo" style="font-size:12px;color:var(--muted);margin-bottom:6px;"></div>
 
       <div class="form-grid">
-        <div class="form-group"><label>Guests</label><input id="guests" type="number" value="1" min="1" max="8" onchange="showIdSlots()" oninput="showIdSlots()" /></div>
-        <div class="form-group"><label>Total Amount ₹ * (net jo mila)</label>
-          <input id="totalAmount" type="number" placeholder="Actually kitna mila" oninput="onAmtChg()" />
+        <div class="form-group"><label>Guests</label><input id="guests" type="number" value="${pre.guests||1}" min="1" max="8" onchange="showIdSlots()" oninput="showIdSlots()" /></div>
+        <div class="form-group"><label>Total Amount ₹ * (net received for this segment)</label>
+          <input id="totalAmount" type="number" placeholder="Actually kitna mila" oninput="onAmtChg()" value="${pre.totalAmount||''}" />
           <div id="sugInfo" style="font-size:11px;color:var(--muted);"></div>
         </div>
       </div>
 
       <div class="form-grid">
-        <div class="form-group"><label>Advance ₹</label><input id="advanceAmt" type="number" value="0" oninput="onAmtChg()" /></div>
+        <div class="form-group"><label>Advance ₹</label><input id="advanceAmt" type="number" value="${pre.advanceAmt||0}" oninput="onAmtChg()" /></div>
         <div class="form-group"><label>Advance Mode</label>
           <select id="advMode">
-            <option value="">--</option><option value="Cash">Cash</option>
-            <option value="UPI">UPI</option><option value="Bank">Bank</option>
-            <option value="Airbnb Payout">Airbnb Payout</option>
+            <option value="">--</option>
+            <option value="Cash" ${pre.advMode==='Cash'?'selected':''}>Cash</option>
+            <option value="UPI" ${pre.advMode==='UPI'?'selected':''}>UPI</option>
+            <option value="Bank" ${pre.advMode==='Bank'?'selected':''}>Bank</option>
+            <option value="Airbnb Payout" ${pre.advMode==='Airbnb Payout'?'selected':''}>Airbnb Payout</option>
           </select>
         </div>
       </div>
@@ -868,19 +932,29 @@ async function renderAddBooking() {
         <div class="section-title">🪪 ID Proof</div>
         <div class="form-grid">
           <div class="form-group"><label>ID Type</label>
-            <select id="idType"><option value="Aadhar" selected>Aadhar</option><option value="PAN">PAN</option><option value="DL">DL</option><option value="Passport">Passport</option></select>
+            <select id="idType">
+              <option value="Aadhar" ${(pre.idType||'Aadhar')==='Aadhar'?'selected':''}>Aadhar</option>
+              <option value="PAN" ${pre.idType==='PAN'?'selected':''}>PAN</option>
+              <option value="DL" ${pre.idType==='DL'?'selected':''}>DL</option>
+              <option value="Passport" ${pre.idType==='Passport'?'selected':''}>Passport</option>
+            </select>
           </div>
-          <div class="form-group"><label>ID Number</label><input id="idNo" placeholder="e.g. 1234 5678 9012" /></div>
+          <div class="form-group"><label>ID Number</label><input id="idNo" placeholder="e.g. 1234 5678 9012" value="${pre.idNo||''}" /></div>
         </div>
         <div class="id-grid" id="idGrid">${idSlots}</div>
-        <div style="font-size:11px;color:var(--muted);margin-top:6px;">📸 Camera se direct photo lo ya Gallery se select karo. Auto-compressed.</div>
       </div>
 
-      <div class="form-group" style="margin-top:10px;"><label>Notes</label><textarea id="bkNotes" placeholder="Special requests..."></textarea></div>
+      <div class="form-group" style="margin-top:10px;">
+        <label>Notes</label>
+        <textarea id="bkNotes" placeholder="Special notes...">${pre.bkNotes||''}</textarea>
+      </div>
 
       <button id="saveBtn" onclick="saveBooking()" style="width:100%;padding:14px;font-size:15px;margin-top:10px;">💾 Save Booking</button>
       <div id="addBkErr"></div>
     </div>`, 'bookings');
+
+  onModeChg();
+  onRoomChg();
   showIdSlots();
 }
 
@@ -901,7 +975,15 @@ function onIdPick(i, src) {
 
 function onModeChg() {
   const m = document.getElementById('bookingMode').value;
-  document.getElementById('onlineBox').style.display = m==='Online-Airbnb'?'block':'none';
+  const onlineBox = document.getElementById('onlineBox');
+  if (onlineBox) onlineBox.style.display = m==='Online-Airbnb'?'block':'none';
+
+  // default source listing = actual stay property
+  if (m === 'Online-Airbnb') {
+    const roomId = document.getElementById('roomId')?.value;
+    const src = document.getElementById('sourceRoomId');
+    if (src && !src.value && roomId) src.value = roomId;
+  }
   onAmtChg();
 }
 
@@ -909,21 +991,41 @@ function onRoomChg() {
   const rid = document.getElementById('roomId').value;
   const ci = document.getElementById('checkIn').value;
   const co = document.getElementById('checkOut').value;
-  const room = (window._roomsCache||[]).find(r=>r.room_id===rid);
+  const room = (window._roomsCache || []).find(r => r.room_id === rid);
+
   const rInfo = document.getElementById('roomInfo');
-  if (room) rInfo.innerHTML = `₹${room.rent_per_night||0}/night · ${room.bookable?'✅ Bookable':'⚠️ Not Bookable'}`;
-  else rInfo.innerHTML = '';
+  if (room) {
+    rInfo.innerHTML = `₹${room.rent_per_night || 0}/night · ${room.bookable ? '✅ Bookable' : '⚠️ Not Bookable'}`;
+  } else {
+    rInfo.innerHTML = '';
+  }
+
+  // NEW: agar Online-Airbnb hai aur source listing blank hai,
+  // to sourceRoomId ko actual room ke same set kar do
+  const mode = document.getElementById('bookingMode')?.value;
+  const src = document.getElementById('sourceRoomId');
+  if (mode === 'Online-Airbnb' && src && !src.value && rid) {
+    src.value = rid;
+  }
 
   const nInfo = document.getElementById('nightsInfo');
   let nights = 0;
-  if (ci&&co) {
-    nights = Math.round((new Date(co)-new Date(ci))/864e5);
-    nInfo.innerHTML = nights>0?`🌙 <strong>${nights} night(s)</strong>`:`<span style="color:var(--red);">Check-out must be after check-in</span>`;
-  } else nInfo.innerHTML = '';
+  if (ci && co) {
+    nights = Math.round((new Date(co) - new Date(ci)) / 864e5);
+    nInfo.innerHTML = nights > 0
+      ? `🌙 <strong>${nights} night(s)</strong>`
+      : `<span style="color:var(--red);">Check-out must be after check-in</span>`;
+  } else {
+    nInfo.innerHTML = '';
+  }
 
   const sInfo = document.getElementById('sugInfo');
-  if (room&&nights>0) sInfo.innerHTML = `💡 Ref: ₹${(room.rent_per_night*nights).toLocaleString('en-IN')}`;
-  else sInfo.innerHTML = '';
+  if (room && nights > 0) {
+    sInfo.innerHTML = `💡 Ref: ₹${(room.rent_per_night * nights).toLocaleString('en-IN')}`;
+  } else {
+    sInfo.innerHTML = '';
+  }
+
   onAmtChg();
 }
 
@@ -965,8 +1067,11 @@ async function saveBooking() {
   try {
     const gn=document.getElementById('guestName').value.trim();
     const ph=document.getElementById('guestPhone').value.trim();
-    const rid=document.getElementById('roomId').value;
+    const rid=document.getElementById('roomId').value; // actual stay room
     const mode=document.getElementById('bookingMode').value;
+    const sourceRoomId = mode==='Online-Airbnb'
+      ? (document.getElementById('sourceRoomId')?.value || rid)
+      : null;
     const ci=document.getElementById('checkIn').value;
     const co=document.getElementById('checkOut').value;
     const gs=parseInt(document.getElementById('guests').value)||1;
@@ -975,41 +1080,93 @@ async function saveBooking() {
     const advMode=document.getElementById('advMode').value;
     const idType=document.getElementById('idType').value;
     const idNo=document.getElementById('idNo').value.trim();
-    const notes=document.getElementById('bkNotes').value.trim();
+    const parentBookingId=document.getElementById('parentBookingId')?.value || null;
+    const stayGroupId=document.getElementById('stayGroupId')?.value || null;
+    let notes=document.getElementById('bkNotes').value.trim();
 
-    if (!gn||!rid) { document.getElementById('addBkErr').innerHTML='<div class="error">Guest name & property required</div>'; btn.disabled=false; btn.textContent='💾 Save Booking'; return; }
+    if (!gn||!rid) {
+      document.getElementById('addBkErr').innerHTML='<div class="error">Guest name & actual stay property required</div>';
+      btn.disabled=false; btn.textContent='💾 Save Booking'; return;
+    }
+
+    if (mode === 'Online-Airbnb' && !sourceRoomId) {
+      document.getElementById('addBkErr').innerHTML='<div class="error">Source Airbnb listing required</div>';
+      btn.disabled=false; btn.textContent='💾 Save Booking'; return;
+    }
 
     if (ci&&co) {
-      const {data:ex} = await sb.from('guest_register').select('booking_id,guest_name,check_in,check_out').eq('room_id',rid);
-      const clash = (ex||[]).find(b=>b.check_in&&b.check_out&&b.check_in<co&&b.check_out>ci);
-      if (clash) { document.getElementById('addBkErr').innerHTML=`<div class="error">⚠️ Clash: ${clash.guest_name} (${clash.check_in} → ${clash.check_out})</div>`; btn.disabled=false; btn.textContent='💾 Save Booking'; return; }
+      const {data:ex} = await sb.from('guest_register')
+        .select('booking_id,guest_name,check_in,check_out')
+        .eq('room_id',rid);
+
+      const clash = (ex||[]).find(b =>
+        b.check_in && b.check_out &&
+        b.check_in < co && b.check_out > ci
+      );
+
+      if (clash) {
+        document.getElementById('addBkErr').innerHTML=
+          `<div class="error">⚠️ Actual stay property already occupied: ${clash.guest_name} (${clash.check_in} → ${clash.check_out})</div>`;
+        btn.disabled=false; btn.textContent='💾 Save Booking'; return;
+      }
     }
 
     const bkId = 'B'+Date.now();
+    const finalStayGroupId = stayGroupId || bkId;
     const photos = await uploadIdPhotos(bkId);
 
+    // Auto note builder
+    const noteParts = [];
+    if (notes) noteParts.push(notes);
+    if (mode==='Online-Airbnb' && sourceRoomId && sourceRoomId !== rid) {
+      noteParts.push(`Airbnb booked on ${sourceRoomId}, shifted to ${rid}`);
+    }
+    if (parentBookingId) {
+      noteParts.push(`Extension after previous stay (${parentBookingId})`);
+    }
+    const finalNotes = noteParts.join(' | ');
+
     const {error} = await sb.from('guest_register').insert({
-      booking_id:bkId, guest_name:gn, phone:ph||null,
-      id_proof_type:idType||null, id_proof_no:idNo||null,
+      booking_id:bkId,
+      guest_name:gn,
+      phone:ph||null,
+      id_proof_type:idType||null,
+      id_proof_no:idNo||null,
       id_proof_photo_path:photos?photos.split(',')[0]:null,
       id_proof_photo_paths:photos,
-      room_id:rid, booking_mode:mode,
-      check_in:ci||null, check_out:co||null, guests:gs,
+      room_id:rid,                    // actual stay room
+      source_room_id:sourceRoomId,    // original Airbnb listing
+      parent_booking_id:parentBookingId,
+      stay_group_id:finalStayGroupId,
+      booking_mode:mode,
+      check_in:ci||null,
+      check_out:co||null,
+      guests:gs,
       total_amount:tot,
       payment_status:adv>=tot&&tot>0?'Paid':(adv>0?'Partial':'Unpaid'),
-      notes:notes||null,
+      notes:finalNotes||null,
       booked_by: SESSION.displayName || SESSION.role
     });
 
-    if (error) { document.getElementById('addBkErr').innerHTML=`<div class="error">${error.message}</div>`; btn.disabled=false; btn.textContent='💾 Save Booking'; return; }
+    if (error) {
+      document.getElementById('addBkErr').innerHTML=`<div class="error">${error.message}</div>`;
+      btn.disabled=false; btn.textContent='💾 Save Booking'; return;
+    }
 
-    if (adv>0) await sb.from('payment_history').insert({booking_id:bkId,amount:adv,payment_mode:advMode||null,notes:'Advance'});
+    if (adv>0) {
+      await sb.from('payment_history').insert({
+        booking_id:bkId,
+        amount:adv,
+        payment_mode:advMode||null,
+        notes: parentBookingId ? `Extension / advance linked to ${parentBookingId}` : 'Advance'
+      });
+    }
+
     await sb.from('flats_status').upsert({room_id:rid,status:'Booked'});
 
-    // WhatsApp with checkin manager
+    // WhatsApp
     const propTxt = document.getElementById('roomId').selectedOptions[0]?.text||'';
-    const selRoom = (window._roomsCache||[]).find(r=>r.room_id===rid);
-    const {data:roomFull} = await sb.from('rooms').select('checkin_manager').eq('room_id',rid).single();
+    const roomFull = (window._roomsCache||[]).find(r=>r.room_id===rid);
     const mgr = roomFull?.checkin_manager || 'Not Assigned';
     const bal = tot - adv;
     const msg = [
@@ -1017,7 +1174,9 @@ async function saveBooking() {
       ``,
       `👤 Guest: ${gn}`,
       `📞 Phone: ${ph||'N/A'}`,
-      `🏡 Property: ${propTxt}`,
+      `🏡 Actual Stay: ${propTxt}`,
+      ...(mode==='Online-Airbnb' && sourceRoomId && sourceRoomId !== rid ? [`🌐 Airbnb Source Listing: ${sourceRoomId}`] : []),
+      ...(parentBookingId ? [`🔁 Extension Of: ${parentBookingId}`] : []),
       `👨‍💼 Check-in Manager: ${mgr}`,
       `📅 Check-in: ${ci||'N/A'}`,
       `📅 Check-out: ${co||'N/A'}`,
@@ -1032,6 +1191,7 @@ async function saveBooking() {
     ].join('\n');
     setTimeout(()=>window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`,'_blank'),400);
 
+    window._bookingPrefill = null;
     renderManageBookings();
   } catch(err) {
     document.getElementById('addBkErr').innerHTML=`<div class="error">Error: ${err.message||err}</div>`;
@@ -1055,6 +1215,7 @@ async function editBooking(bkId) {
         <div class="form-group"><label>Guest Name</label><input id="guestName" value="${b.guest_name||''}" /></div>
         <div class="form-group"><label>Phone</label><input id="guestPhone" value="${b.phone||''}" /></div>
       </div>
+
       <div class="form-grid">
         <div class="form-group"><label>ID Type</label><select id="idType">
           <option value="Aadhar" ${b.id_proof_type==='Aadhar'?'selected':''}>Aadhar</option>
@@ -1064,30 +1225,56 @@ async function editBooking(bkId) {
         </select></div>
         <div class="form-group"><label>ID Number</label><input id="idNo" value="${b.id_proof_no||''}" /></div>
       </div>
+
       <div class="form-group"><label>Replace ID Photo</label><input id="idPhoto" type="file" accept="image/*" /></div>
-      <div class="form-group"><label>Property</label><select id="roomId">${(rooms||[]).map(r=>`<option value="${r.room_id}" ${r.room_id===b.room_id?'selected':''}>${r.nickname||r.unit_no} — ${r.property_name||''}</option>`).join('')}</select></div>
+
       <div class="form-grid">
-        <div class="form-group"><label>Mode</label><select id="bookingMode">
-          <option value="Offline" ${b.booking_mode!=='Online-Airbnb'?'selected':''}>Offline</option>
-          <option value="Online-Airbnb" ${b.booking_mode==='Online-Airbnb'?'selected':''}>Online</option>
-        </select></div>
-        <div class="form-group"><label>Status</label><select id="paySt">
-          <option value="Unpaid" ${b.payment_status==='Unpaid'?'selected':''}>Unpaid</option>
-          <option value="Partial" ${b.payment_status==='Partial'?'selected':''}>Partial</option>
-          <option value="Paid" ${b.payment_status==='Paid'?'selected':''}>Paid</option>
-        </select></div>
+        <div class="form-group">
+          <label>Actual Stay Property</label>
+          <select id="roomId">${(rooms||[]).map(r=>`<option value="${r.room_id}" ${r.room_id===b.room_id?'selected':''}>${r.nickname||r.unit_no} — ${r.property_name||''}</option>`).join('')}</select>
+        </div>
+        <div class="form-group">
+          <label>Mode</label>
+          <select id="bookingMode" onchange="toggleEditSourceBox()">
+            <option value="Offline" ${b.booking_mode!=='Online-Airbnb'?'selected':''}>Offline</option>
+            <option value="Online-Airbnb" ${b.booking_mode==='Online-Airbnb'?'selected':''}>Online</option>
+          </select>
+        </div>
       </div>
+
+      <div id="editSourceBox" style="display:${b.booking_mode==='Online-Airbnb'?'block':'none'};background:#f0f7ff;padding:12px;border-radius:8px;margin:6px 0;">
+        <div class="form-group">
+          <label>Source / Original Airbnb Listing</label>
+          <select id="sourceRoomId">
+            <option value="">Select Original Listing</option>
+            ${(rooms||[]).map(r=>`<option value="${r.room_id}" ${(b.source_room_id||b.room_id)===r.room_id?'selected':''}>${r.nickname||r.unit_no} — ${r.property_name||''}</option>`).join('')}
+          </select>
+        </div>
+      </div>
+
+      ${b.parent_booking_id ? `<div class="sub">Extension of: <code>${b.parent_booking_id}</code></div>` : ''}
+      ${b.stay_group_id ? `<div class="sub">Stay Group: <code>${b.stay_group_id}</code></div>` : ''}
+
       <div class="form-grid">
         <div class="form-group"><label>Check-in</label><input id="checkIn" type="date" value="${b.check_in||''}" /></div>
         <div class="form-group"><label>Check-out</label><input id="checkOut" type="date" value="${b.check_out||''}" /></div>
       </div>
+
       <div class="form-grid">
         <div class="form-group"><label>Guests</label><input id="guests" type="number" value="${b.guests||1}" /></div>
         <div class="form-group"><label>Total ₹</label><input id="totalAmount" type="number" value="${b.total_amount||0}" /></div>
       </div>
+
+      <div class="form-group"><label>Status</label><select id="paySt">
+        <option value="Unpaid" ${b.payment_status==='Unpaid'?'selected':''}>Unpaid</option>
+        <option value="Partial" ${b.payment_status==='Partial'?'selected':''}>Partial</option>
+        <option value="Paid" ${b.payment_status==='Paid'?'selected':''}>Paid</option>
+      </select></div>
+
       <div class="form-group"><label>Notes</label><textarea id="bkNotes">${b.notes||''}</textarea></div>
-      <button onclick="updateBooking('${bkId}')">💾 Update</button><div id="editBkErr"></div>
+      <button onclick="updateBooking('${bkId}','${b.parent_booking_id||''}','${b.stay_group_id||b.booking_id}')">💾 Update</button><div id="editBkErr"></div>
     </div>
+
     <div class="card">
       <div class="section-title">💳 Payments</div>
       <div class="metric-row"><span class="metric-label">Total</span><span class="metric-value">₹${(b.total_amount||0).toLocaleString('en-IN')}</span></div>
@@ -1096,20 +1283,28 @@ async function editBooking(bkId) {
       ${(pays||[]).length?`<div class="table-wrap" style="margin-top:8px;"><table><thead><tr><th>Date</th><th>Amount</th><th>Mode</th><th>Notes</th></tr></thead><tbody>${pays.map(p=>`<tr><td>${new Date(p.paid_at).toLocaleString('en-IN')}</td><td>₹${(p.amount||0).toLocaleString('en-IN')}</td><td>${p.payment_mode||'-'}</td><td>${p.notes||'-'}</td></tr>`).join('')}</tbody></table></div>`:'<div class="sub">No payments yet</div>'}
       <div class="btn-row" style="margin-top:8px;">
         <button class="btn-sm" onclick="recordPayment('${bkId}')">➕ Add Payment</button>
+        <button class="btn-sm outline" onclick="createOfflineExtension('${bkId}')">➕ Create Offline Extension</button>
         ${bal>0?`<button class="btn-sm secondary" onclick="markFullyPaid('${bkId}')">✅ Mark Paid</button>`:''}
       </div>
     </div>`, 'bookings');
 }
 
-async function updateBooking(bkId) {
+async function updateBooking(bkId, parentBookingId = '', stayGroupId = '') {
   const gn=document.getElementById('guestName').value.trim();
   const rid=document.getElementById('roomId').value;
   if (!gn||!rid) { document.getElementById('editBkErr').innerHTML='<div class="error">Name & property required</div>'; return; }
 
+  const mode = document.getElementById('bookingMode').value;
+  const sourceRoomId = mode==='Online-Airbnb'
+    ? (document.getElementById('sourceRoomId')?.value || rid)
+    : null;
+
   const ci=document.getElementById('checkIn').value;
   const co=document.getElementById('checkOut').value;
   if (ci&&co) {
-    const {data:ex} = await sb.from('guest_register').select('booking_id,guest_name,check_in,check_out').eq('room_id',rid).neq('booking_id',bkId);
+    const {data:ex} = await sb.from('guest_register')
+      .select('booking_id,guest_name,check_in,check_out')
+      .eq('room_id',rid).neq('booking_id',bkId);
     const clash = (ex||[]).find(b=>b.check_in&&b.check_out&&b.check_in<co&&b.check_out>ci);
     if (clash) { document.getElementById('editBkErr').innerHTML=`<div class="error">Clash: ${clash.guest_name}</div>`; return; }
   }
@@ -1126,11 +1321,17 @@ async function updateBooking(bkId) {
   }
 
   const obj = {
-    guest_name:gn, phone:document.getElementById('guestPhone').value.trim()||null,
+    guest_name:gn,
+    phone:document.getElementById('guestPhone').value.trim()||null,
     id_proof_type:document.getElementById('idType').value||null,
     id_proof_no:document.getElementById('idNo').value.trim()||null,
-    room_id:rid, booking_mode:document.getElementById('bookingMode').value,
-    check_in:ci||null, check_out:co||null,
+    room_id:rid,
+    source_room_id:sourceRoomId,
+    parent_booking_id:parentBookingId || null,
+    stay_group_id:stayGroupId || bkId,
+    booking_mode:mode,
+    check_in:ci||null,
+    check_out:co||null,
     guests:parseInt(document.getElementById('guests').value)||1,
     total_amount:parseFloat(document.getElementById('totalAmount').value)||0,
     payment_status:document.getElementById('paySt').value,
@@ -2498,6 +2699,13 @@ async function autoCheckout() {
       }).eq('room_id', roomId);
     }
   }
+}
+
+
+function toggleEditSourceBox() {
+  const mode = document.getElementById('bookingMode')?.value;
+  const box = document.getElementById('editSourceBox');
+  if (box) box.style.display = mode === 'Online-Airbnb' ? 'block' : 'none';
 }
 
 // ============ START ============
