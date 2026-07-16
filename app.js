@@ -2708,5 +2708,71 @@ function toggleEditSourceBox() {
   if (box) box.style.display = mode === 'Online-Airbnb' ? 'block' : 'none';
 }
 
+function renderSOPPage() {
+  renderShell(`
+    <div class="card">
+      <h1>📘 Booking SOP</h1>
+      <div class="sub">Only 3 people can create / edit bookings: Praveen, Firoz, Shahanshah</div>
+    </div>
+
+    <div class="card">
+      <div class="section-title">👥 Authorized People</div>
+      <div class="metric-row"><span class="metric-label">1. Praveen</span><span class="badge green">Owner</span></div>
+      <div class="metric-row"><span class="metric-label">2. Firoz</span><span class="badge blue">Manager</span></div>
+      <div class="metric-row"><span class="metric-label">3. Shahanshah</span><span class="badge yellow">Viewer/Owner</span></div>
+    </div>
+
+    <div class="card">
+      <div class="section-title">✅ Golden Rules</div>
+      <div style="font-size:13px;line-height:1.7;">
+        <p><strong>1.</strong> Handwritten register = final truth</p>
+        <p><strong>2.</strong> Actual stay room hi app me save hoga</p>
+        <p><strong>3.</strong> Online booking shift hui ho to source listing alag save hogi</p>
+        <p><strong>4.</strong> Online → Offline extension = new booking</p>
+        <p><strong>5.</strong> Same stay me room shift hua to note zaroor likho</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="section-title">🌐 Online Booking SOP</div>
+      <div style="font-size:13px;line-height:1.7;">
+        <p><strong>Normal:</strong> Actual Stay = same room, Source Listing = same room</p>
+        <p><strong>Shifted:</strong> Actual Stay = shifted room, Source Listing = original Airbnb room</p>
+        <p><strong>Notes Example:</strong><br><code>Airbnb booked on GOM-101, shifted to GOM-102</code></p>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="section-title">🔁 Offline Extension SOP</div>
+      <div style="font-size:13px;line-height:1.7;">
+        <p>Extension ko same booking me mat ghusao.</p>
+        <p>Existing booking ke action me <strong>➕ Ext</strong> button use karo.</p>
+        <p><strong>Notes Example:</strong><br><code>Extension after Airbnb stay (BOOKING_ID)</code></p>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="section-title">🧹 Daily Routine</div>
+      <div style="font-size:13px;line-height:1.7;">
+        <p>1. Register me likho</p>
+        <p>2. Same day app me save karo</p>
+        <p>3. Guest actual room verify karo</p>
+        <p>4. Shift / extension / source listing note karo</p>
+        <p>5. Overlap warning aaye to ignore mat karo</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="section-title">❌ What NOT to Do</div>
+      <div style="font-size:13px;line-height:1.7;">
+        <p>• Same room pe 2 active bookings mat rakho</p>
+        <p>• Online aur offline same booking me mix mat karo</p>
+        <p>• Fake guest name mat likho</p>
+        <p>• Source listing ko actual stay room mat samjho</p>
+      </div>
+    </div>
+  `, 'sop');
+}
+
 // ============ START ============
 init();
