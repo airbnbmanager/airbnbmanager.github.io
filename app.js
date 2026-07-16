@@ -705,8 +705,8 @@ async function dlIdPhoto(path) {
 
 // ============ ADD BOOKING (Mobile-first, Camera+Gallery, 8 Guests) ============
 async function renderAddBooking() {
-  const {data:rooms} = await sb.from('rooms')
-    .select('room_id, unit_no, nickname, property_name, rent_per_night, bookable').order('room_id');
+   const {data:rooms} = await sb.from('rooms')
+    .select('room_id, unit_no, nickname, property_name, rent_per_night, bookable, checkin_manager').order('room_id');
   window._roomsCache = rooms||[];
 
   let idSlots = '';
@@ -924,9 +924,30 @@ async function saveBooking() {
     if (adv>0) await sb.from('payment_history').insert({booking_id:bkId,amount:adv,payment_mode:advMode||null,notes:'Advance'});
     await sb.from('flats_status').upsert({room_id:rid,status:'Booked'});
 
-    // WhatsApp
+    // WhatsApp with checkin manager
     const propTxt = document.getElementById('roomId').selectedOptions[0]?.text||'';
-    const msg = [`🏠 *Booking Confirmed!*`,'',`👤 ${gn}`,`📞 ${ph||'N/A'}`,`🏡 ${propTxt}`,`📅 ${ci||'N/A'} → ${co||'N/A'}`,`💰 Total: ₹${tot.toLocaleString('en-IN')}`,`💵 Advance: ₹${adv.toLocaleString('en-IN')}`,`💳 Balance: ₹${(tot-adv).toLocaleString('en-IN')}`,`🔖 ${mode}`,'',`— ${BRAND}`].join('\n');
+    const selRoom = (window._roomsCache||[]).find(r=>r.room_id===rid);
+    const {data:roomFull} = await sb.from('rooms').select('checkin_manager').eq('room_id',rid).single();
+    const mgr = roomFull?.checkin_manager || 'Not Assigned';
+    const bal = tot - adv;
+    const msg = [
+      `🏠 *Booking Confirmed!*`,
+      ``,
+      `👤 Guest: ${gn}`,
+      `📞 Phone: ${ph||'N/A'}`,
+      `🏡 Property: ${propTxt}`,
+      `👨‍💼 Check-in Manager: ${mgr}`,
+      `📅 Check-in: ${ci||'N/A'}`,
+      `📅 Check-out: ${co||'N/A'}`,
+      `🛏️ Guests: ${gs}`,
+      `💰 Total: ₹${tot.toLocaleString('en-IN')}`,
+      `💵 Advance: ₹${adv.toLocaleString('en-IN')}`,
+      `💳 Balance: ₹${bal.toLocaleString('en-IN')}`,
+      `🔖 Mode: ${mode}`,
+      `🧾 Booked By: ${SESSION.displayName||SESSION.role}`,
+      ``,
+      `— ${BRAND}`
+    ].join('\n');
     setTimeout(()=>window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`,'_blank'),400);
 
     renderManageBookings();
