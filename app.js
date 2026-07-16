@@ -37,8 +37,8 @@ async function loadProfile(userId) {
   SESSION.investorId = p.investor_id;
   SESSION.displayName = p.display_name || p.role;
 
-  if (p.role === 'employee') renderEmployeeView();
-  else if (p.role === 'investor') renderInvestorView();
+   if (p.role === 'employee') renderEmployeeView();
+  else if (p.role === 'investor' || (p.role === 'viewer' && p.investor_id)) renderInvestorView();
   else if (p.role === 'ca') renderFYSummary();
   else renderDashboard();
 }
@@ -91,6 +91,8 @@ function renderLogin() {
 
 // ============ SHELL ============
 function renderShell(content, activePage = 'dashboard') {
+  // Investor with investor_id = no sidebar, read-only
+  if (SESSION.investorId) { appEl.innerHTML = content; return; }
   const show = ['owner','viewer','manager'].includes(SESSION.role);
   if (!show) { appEl.innerHTML = content; return; }
 
@@ -1727,6 +1729,8 @@ function filterByRange(bks, range) {
 async function renderInvestorView(range='Month') {
   if(!SESSION.investorId){showError('No property linked. Contact owner.');return;}
 
+  appEl.innerHTML = `<div class="wrap" style="max-width:650px;"><div class="loading">Loading your dashboard...</div></div>`;
+
   const {data:inv} = await sb.from('investors').select('*').eq('investor_id',SESSION.investorId).single();
   const {data:links} = await sb.from('investor_properties')
     .select('room_id, rooms(unit_no, property_name, nickname, checkin_manager)')
@@ -1734,7 +1738,7 @@ async function renderInvestorView(range='Month') {
   const rids = (links||[]).map(l=>l.room_id);
 
   const {data:allBk} = rids.length
-    ? await sb.from('guest_register').select('*, rooms(unit_no, property_name, nickname)')
+    ? await sb.from('guest_register').select('booking_id, guest_name, phone, room_id, booking_mode, check_in, check_out, total_amount, rooms(unit_no, nickname)')
         .in('room_id', rids).order('check_in',{ascending:false})
     : {data:[]};
 
@@ -1743,18 +1747,18 @@ async function renderInvestorView(range='Month') {
   const rev = bks.reduce((s,b)=>s+(pm[b.booking_id]||0),0);
 
   const share = inv?.revenue_share_pct || 70;
-  const onBks = bks.filter(b=>b.booking_mode==='Online-Airbnb');
-  const offBks = bks.filter(b=>b.booking_mode!=='Online-Airbnb');
-  const onRev = onBks.reduce((s,b)=>s+(pm[b.booking_id]||0),0);
-  const offRev = offBks.reduce((s,b)=>s+(pm[b.booking_id]||0),0);
+  const onRev = bks.filter(b=>b.booking_mode==='Online-Airbnb').reduce((s,b)=>s+(pm[b.booking_id]||0),0);
+  const offRev = bks.filter(b=>b.booking_mode!=='Online-Airbnb').reduce((s,b)=>s+(pm[b.booking_id]||0),0);
 
-  // Month selector
+  // Month options for report
   const now = new Date();
   const months = [];
-  for(let i=0;i<6;i++){
+  for(let i=0;i<12;i++){
     const d=new Date(now.getFullYear(),now.getMonth()-i,1);
-    months.push({val:`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`,
-      lbl:d.toLocaleString('en-IN',{month:'short',year:'numeric'})});
+    months.push({
+      val:`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`,
+      lbl:d.toLocaleString('en-IN',{month:'short',year:'numeric'})
+    });
   }
 
   appEl.innerHTML = `
@@ -1765,7 +1769,8 @@ async function renderInvestorView(range='Month') {
         <img src="assets/logo.png" alt="" style="width:52px;height:52px;object-fit:contain;border-radius:12px;margin-bottom:6px;" />
         <h1>${BRAND}</h1>
         <div class="sub">👋 ${SESSION.displayName || inv?.name || 'Investor'}</div>
-        <div style="margin-top:8px;">
+        <div class="badge blue" style="margin:4px 0;">Investor · View Only</div>
+        <div style="margin-top:10px;">
           <button class="danger btn-sm" onclick="logout()">🚪 Logout</button>
         </div>
       </div>
@@ -1799,7 +1804,7 @@ async function renderInvestorView(range='Month') {
         </div>
       </div>
 
-      <!-- Revenue Split -->
+      <!-- Revenue Summary -->
       <div class="card">
         <div class="section-title">💰 Revenue Summary (${range})</div>
         <div class="metric-row"><span class="metric-label">Total Revenue</span><span class="metric-value">₹${rev.toLocaleString('en-IN')}</span></div>
@@ -1808,23 +1813,19 @@ async function renderInvestorView(range='Month') {
         <div class="metric-row"><span class="metric-label">Your Share (${share}%)</span><span class="metric-value" style="color:var(--green);">₹${Math.round(rev*share/100).toLocaleString('en-IN')}</span></div>
       </div>
 
-      <!-- My Properties -->
+      <!-- My Properties (Read Only) -->
       <div class="card">
         <div class="section-title">🏠 My Properties</div>
         ${(links||[]).map(l=>`
-          <div class="metric-row">
-            <span class="metric-label">
-              <strong>${l.rooms?.nickname||l.rooms?.unit_no||'-'}</strong><br>
-              <small style="color:var(--muted);">${l.rooms?.property_name||''}</small>
-            </span>
-            <span style="font-size:12px;color:var(--muted);">
-              ${l.rooms?.checkin_manager ? '👨‍💼 '+l.rooms.checkin_manager : ''}
-            </span>
+          <div style="padding:10px 0;border-bottom:1px solid var(--border);">
+            <div style="font-weight:600;font-size:14px;">${l.rooms?.nickname||l.rooms?.unit_no||'-'}</div>
+            <div style="font-size:12px;color:var(--muted);">${l.rooms?.property_name||''}</div>
+            ${l.rooms?.checkin_manager ? `<div style="font-size:12px;color:var(--muted);">👨‍💼 Manager: ${l.rooms.checkin_manager}</div>` : ''}
           </div>
-        `).join('')||'<div class="sub">No properties linked</div>'}
+        `).join('')||'<div class="sub">No properties assigned</div>'}
       </div>
 
-      <!-- Booking History -->
+      <!-- Booking History (Read Only — no edit/delete buttons) -->
       <div class="card">
         <div class="section-title">📅 Booking History (${range})</div>
         <div class="table-wrap"><table>
@@ -1840,14 +1841,14 @@ async function renderInvestorView(range='Month') {
         </table></div>
       </div>
 
-      <!-- Monthly Reports -->
+      <!-- Monthly Reports (Read Only) -->
       <div class="card">
         <div class="section-title">📊 Monthly Reports</div>
-        <div class="sub">Select property and month to view detailed report</div>
+        <div class="sub">Select property & month to view detailed report</div>
         ${(links||[]).map(l=>`
-          <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);">
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border);">
             <span style="font-weight:600;font-size:13px;">${l.rooms?.nickname||l.rooms?.unit_no||'-'}</span>
-            <select onchange="if(this.value)renderInvMonthReport('${SESSION.investorId}','${l.room_id}',this.value)" style="width:auto;padding:6px 8px;font-size:12px;margin:0;">
+            <select onchange="if(this.value)renderInvMonthReport('${SESSION.investorId}','${l.room_id}',this.value)" style="width:auto;padding:6px 10px;font-size:12px;margin:0;">
               <option value="">View Report →</option>
               ${months.map(m=>`<option value="${m.val}">${m.lbl}</option>`).join('')}
             </select>
@@ -1859,7 +1860,7 @@ async function renderInvestorView(range='Month') {
       <div class="card" style="text-align:center;">
         <div style="font-size:11px;color:var(--muted);">
           ${BRAND}<br>
-          <small>Investor Dashboard — View Only</small>
+          <small>Investor Dashboard — View Only · No modifications allowed</small>
         </div>
         <button class="danger btn-sm" onclick="logout()" style="margin-top:8px;">🚪 Logout</button>
       </div>
