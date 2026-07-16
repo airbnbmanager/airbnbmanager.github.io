@@ -12,56 +12,48 @@ const BRAND = "The UNIQUE HAVEN HOME STAY";
 let SESSION = {
   userId: null, role: null, empId: null, investorId: null,
   displayName: null, currentPage: 'dashboard',
-  bookingFilter: 'All', calendarFilter: 'All',
-  bookingPropFilter: '', bookingDateFilter: '',
-  bookingDateFrom: '', bookingDateTo: ''
+  bookingFilter: 'All', bookingPropFilter: '',
+  bookingDateFilter: '', bookingDateFrom: '', bookingDateTo: ''
 };
 
 // ============ INIT ============
 async function init() {
   try {
     const { data: { session } } = await sb.auth.getSession();
-    if (!session) { renderLogin(); }
-    else { await loadProfile(session.user.id); }
-  } catch (err) {
-    showError("Setup abhi incomplete hai. config.js check karo.", err);
-  }
+    if (!session) renderLogin();
+    else await loadProfile(session.user.id);
+  } catch (err) { showError("Setup incomplete. config.js check karo.", err); }
 }
 
 async function loadProfile(userId) {
-  const { data: profile, error } = await sb
-    .from("profiles").select("role, emp_id, investor_id, display_name")
+  const { data: p, error } = await sb.from("profiles")
+    .select("role, emp_id, investor_id, display_name")
     .eq("user_id", userId).single();
-
-  if (error || !profile) { showError("Profile nahi mila. Owner se contact karo."); return; }
-
+  if (error || !p) { showError("Profile nahi mila. Owner se contact karo."); return; }
   SESSION.userId = userId;
-  SESSION.role = profile.role;
-  SESSION.empId = profile.emp_id;
-  SESSION.investorId = profile.investor_id;
-  SESSION.displayName = profile.display_name || profile.role;
+  SESSION.role = p.role;
+  SESSION.empId = p.emp_id;
+  SESSION.investorId = p.investor_id;
+  SESSION.displayName = p.display_name || p.role;
 
-  if (profile.role === 'employee') renderEmployeeView();
-  else if (profile.role === 'investor') renderInvestorView();
-  else if (profile.role === 'ca') renderFYSummary();
+  if (p.role === 'employee') renderEmployeeView();
+  else if (p.role === 'investor') renderInvestorView();
+  else if (p.role === 'ca') renderFYSummary();
   else renderDashboard();
 }
 
 function showError(msg, err = null) {
   appEl.innerHTML = `<div class="wrap"><div class="card">
-    <h1>⚠️ Error</h1><div class="error">${msg}${err ? '<br><br>' + err.message : ''}</div>
+    <h1>⚠️ Error</h1>
+    <div class="error">${msg}${err ? '<br>' + err.message : ''}</div>
   </div></div>`;
 }
 
 async function logout() {
   await sb.auth.signOut();
-  SESSION = {
-    userId: null, role: null, empId: null, investorId: null,
-    displayName: null, currentPage: 'dashboard',
-    bookingFilter: 'All', calendarFilter: 'All',
-    bookingPropFilter: '', bookingDateFilter: '',
-    bookingDateFrom: '', bookingDateTo: ''
-  };
+  SESSION = { userId:null, role:null, empId:null, investorId:null,
+    displayName:null, currentPage:'dashboard', bookingFilter:'All',
+    bookingPropFilter:'', bookingDateFilter:'', bookingDateFrom:'', bookingDateTo:'' };
   renderLogin();
 }
 
@@ -70,19 +62,18 @@ function renderLogin() {
   appEl.innerHTML = `
     <div class="wrap">
       <div class="card" style="text-align:center;">
-        <img src="assets/logo.png" alt="Logo" style="width:90px;height:90px;object-fit:contain;margin-bottom:10px;border-radius:12px;" />
+        <img src="assets/logo.png" alt="Logo" style="width:80px;height:80px;object-fit:contain;margin-bottom:8px;border-radius:14px;" />
         <h1>${BRAND}</h1>
         <div class="sub">Login karo apne credentials se</div>
-        <input id="email" type="email" placeholder="Email" autocomplete="email" />
-        <input id="password" type="password" placeholder="Password" autocomplete="current-password" />
-        <button id="loginBtn">Login</button>
+        <input id="email" type="email" placeholder="Email" autocomplete="email" style="margin-top:12px;" />
+        <input id="password" type="password" placeholder="Password" autocomplete="current-password" style="margin-top:8px;" />
+        <button id="loginBtn" style="width:100%;margin-top:12px;padding:12px;">Login</button>
         <div id="err"></div>
-        <div style="margin-top:24px;padding-top:16px;border-top:1px solid #eee;font-size:12px;color:#999;">
+        <div style="margin-top:20px;padding-top:12px;border-top:1px solid var(--border);font-size:11px;color:#999;">
           Developed by <strong style="color:#666;">Praveen Singh</strong>
         </div>
       </div>
     </div>`;
-
   document.getElementById("loginBtn").onclick = async () => {
     const btn = document.getElementById("loginBtn");
     btn.disabled = true; btn.textContent = 'Logging in...';
@@ -91,2761 +82,1684 @@ function renderLogin() {
     const { data, error } = await sb.auth.signInWithPassword({ email, password });
     if (error) {
       document.getElementById("err").innerHTML = `<div class="error">${error.message}</div>`;
-      btn.disabled = false; btn.textContent = 'Login';
-      return;
+      btn.disabled = false; btn.textContent = 'Login'; return;
     }
     await loadProfile(data.user.id);
   };
 }
 
-// ============ SHELL (sidebar) ============
+// ============ SHELL ============
 function renderShell(content, activePage = 'dashboard') {
-  const showSidebar = ['owner', 'viewer', 'manager'].includes(SESSION.role);
-  if (!showSidebar) { appEl.innerHTML = content; return; }
+  const show = ['owner','viewer','manager'].includes(SESSION.role);
+  if (!show) { appEl.innerHTML = content; return; }
 
   const isOwner = SESSION.role === 'owner';
-
-  let navItems;
-  if (isOwner) {
-    navItems = [
-      ['dashboard', '📊 Dashboard'],
-      ['reports', '📈 Reports'],
-      ['rooms', '🏠 Manage Rooms'],
-      ['flats', '🛏️ Flats Status'],
-      ['bookings', '📅 Manage Bookings'],
-      ['employees', '👥 Manage Employees'],
-      ['tasks', '🧰 Employee Tasks'],
-      ['attendance', '📋 Attendance'],
-      ['att-summary', '📅 Monthly Summary'],
-      ['salary', '💰 Salary Tracker'],
-      ['advance', '💵 Advance Tracker'],
-      ['store', '📦 Manage Store'],
-      ['expenses', '🧾 Expenses & Profit'],
-      ['property-report', '🏘️ Property Profit Report'],
-      ['investors', '🧑‍💼 Sub-Owners'],
-    ];
-  } else {
-    navItems = [
-      ['dashboard', '📊 Dashboard'],
-      ['reports', '📈 Reports'],
-      ['flats', '🛏️ Flats Status'],
-      ['bookings', '📅 Manage Bookings'],
-      ['att-summary', '📅 Monthly Summary'],
-      ['salary', '💰 Salary Tracker'],
-      ['advance', '💵 Advance Tracker'],
-    ];
-  }
+  const nav = isOwner ? [
+    ['dashboard','📊 Dashboard'],['reports','📈 Reports'],['rooms','🏠 Rooms'],
+    ['flats','🛏️ Flats'],['bookings','📅 Bookings'],['employees','👥 Employees'],
+    ['tasks','🧰 Tasks'],['attendance','📋 Attendance'],['att-summary','📅 Summary'],
+    ['salary','💰 Salary'],['advance','💵 Advance'],['store','📦 Store'],
+    ['expenses','🧾 Expenses'],['property-report','🏘️ Property Report'],['investors','🧑‍💼 Sub-Owners'],
+  ] : [
+    ['dashboard','📊 Dashboard'],['reports','📈 Reports'],['flats','🛏️ Flats'],
+    ['bookings','📅 Bookings'],['att-summary','📅 Summary'],['salary','💰 Salary'],
+    ['advance','💵 Advance'],
+  ];
 
   appEl.innerHTML = `
     <div class="app-container">
       <aside class="sidebar">
         <h2>
-          <img src="assets/logo.png" alt="" style="width:28px;height:28px;object-fit:contain;vertical-align:middle;border-radius:6px;margin-right:8px;" />
+          <img src="assets/logo.png" alt="" style="width:24px;height:24px;object-fit:contain;border-radius:6px;" />
           ${BRAND}
         </h2>
-        <div class="sub" style="padding:0 20px 12px;color:rgba(255,255,255,0.7);">
-          👋 ${SESSION.displayName} <span class="badge blue">${SESSION.role}</span>
-        </div>
-        <nav>
-          ${navItems.map(([key, label]) => `
-            <a href="#" data-page="${key}" class="${activePage === key ? 'active' : ''}">${label}</a>`).join('')}
-        </nav>
+        <nav>${nav.map(([k,l])=>`<a href="#" data-page="${k}" class="${activePage===k?'active':''}">${l}</a>`).join('')}</nav>
         <div class="sidebar-footer">
           <div class="logout-link" id="logoutBtn">🚪 Logout</div>
-          <div class="sidebar-credit">⚡ Developed by<br><strong style="color:rgba(255,255,255,0.75);">Praveen Singh</strong></div>
+          <div class="sidebar-credit">by Praveen Singh</div>
         </div>
       </aside>
       <main class="main-content" id="mainContent">${content}</main>
     </div>`;
 
-  document.querySelectorAll('.sidebar nav a').forEach(link => {
-    link.onclick = (e) => {
-      e.preventDefault();
-      SESSION.currentPage = e.target.dataset.page;
-      navigate(e.target.dataset.page);
-    };
+  document.querySelectorAll('.sidebar nav a').forEach(a => {
+    a.onclick = e => { e.preventDefault(); navigate(a.dataset.page); };
   });
   document.getElementById('logoutBtn').onclick = logout;
 }
 
 function navigate(page) {
-  switch (page) {
-    case 'dashboard':       renderDashboard(); break;
-    case 'reports':         renderReports(); break;
-    case 'rooms':           renderManageRooms(); break;
-    case 'flats':           renderFlatsStatus(); break;
-    case 'bookings':        renderManageBookings(); break;
-    case 'employees':       renderManageEmployees(); break;
-    case 'tasks':           renderEmployeeTasks(); break;
-    case 'attendance':      renderAttendance(); break;
-    case 'att-summary':     renderAttendanceSummary(); break;
-    case 'salary':          renderSalaryTracker(); break;
-    case 'advance':         renderAdvanceTracker(); break;
-    case 'store':           renderStore(); break;
-    case 'expenses':        renderExpenses(); break;
-    case 'property-report': renderPropertyReport(); break;
-    case 'investors':       renderManageInvestors(); break;
-    default:                renderDashboard();
-  }
-}
-
-// helper
-async function getPaidMap(bookingIds) {
-  if (!bookingIds.length) return {};
-  const { data } = await sb.from('payment_history').select('booking_id, amount').in('booking_id', bookingIds);
-  const map = {};
-  (data || []).forEach(p => { map[p.booking_id] = (map[p.booking_id] || 0) + (p.amount || 0); });
-  return map;
-}
-
-// ================================================================
-//  1. DASHBOARD
-// ================================================================
-async function renderDashboard() {
-  renderShell(`<div class="loading">Loading dashboard...</div>`, 'dashboard');
-
-  const today = new Date().toISOString().slice(0, 10);
-  const [guests, flats] = await Promise.all([
-    sb.from("guest_register").select("*, rooms(unit_no, nickname)"),
-    sb.from("flats_status").select("room_id, status, cleaning_status"),
-  ]);
-
-  const checkins = (guests.data || []).filter(g => g.check_in === today);
-  const checkouts = (guests.data || []).filter(g => g.check_out === today);
-  const dirtyRooms = (flats.data || []).filter(f => f.cleaning_status === "Dirty" && f.status !== "Blocked-Maintenance");
-
-  const nameFor = (g) => `${g.rooms?.unit_no || g.room_id}${g.rooms?.nickname ? ' (' + g.rooms.nickname + ')' : ''}`;
-
-  const content = `
-    <div class="card">
-      <h1>📊 Today's Dashboard</h1>
-      <div class="sub">${new Date().toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</div>
-    </div>
-    <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px,1fr)); gap:16px;">
-      <div class="card" style="border-left:5px solid #2E7D32;">
-        <h3 style="font-size:14px;color:#666;">📥 Check-in Today</h3>
-        <div style="font-size:32px;font-weight:700;">${checkins.length}</div>
-        ${checkins.map(g => `<div style="font-size:13px;padding:4px 0;">${g.guest_name} — ${nameFor(g)}</div>`).join('') || '<div class="sub">Koi nahi</div>'}
-      </div>
-      <div class="card" style="border-left:5px solid #E2725B;">
-        <h3 style="font-size:14px;color:#666;">📤 Check-out Today</h3>
-        <div style="font-size:32px;font-weight:700;">${checkouts.length}</div>
-        ${checkouts.map(g => `<div style="font-size:13px;padding:4px 0;">${g.guest_name} — ${nameFor(g)}</div>`).join('') || '<div class="sub">Koi nahi</div>'}
-      </div>
-      <div class="card" style="border-left:5px solid #C0392B;">
-        <h3 style="font-size:14px;color:#666;">🧹 Dirty / Need Cleaning</h3>
-        <div style="font-size:32px;font-weight:700;">${dirtyRooms.length}</div>
-        ${dirtyRooms.map(f => `<div style="font-size:13px;padding:4px 0;">${f.room_id}</div>`).join('') || '<div class="sub">Sab clean hai ✅</div>'}
-      </div>
-    </div>
-    <div class="card" style="margin-top:16px;">
-      <button onclick="renderFYSummary()">📊 Financial Summary (ITR / CA)</button>
-    </div>`;
-
-  renderShell(content, 'dashboard');
-}
-
-// ================================================================
-//  2. REPORTS
-// ================================================================
-function dateAddDays(dateStr, n) {
-  const [y, m, d] = dateStr.split('-').map(Number);
-  const dt = new Date(Date.UTC(y, m - 1, d + n));
-  return dt.toISOString().slice(0, 10);
-}
-
-async function renderReports() {
-  renderShell(`<div class="loading">Loading reports...</div>`, 'reports');
-
-  const [rooms, bookings] = await Promise.all([
-    sb.from('rooms').select('room_id, unit_no, nickname').order('unit_no'),
-    sb.from('guest_register').select('booking_id, room_id, check_in, check_out, guest_name, booking_mode, total_amount'),
-  ]);
-
-  const year = window._calendarYear ?? new Date().getFullYear();
-  const month = window._calendarMonth ?? new Date().getMonth();
-  const monthName = new Date(year, month, 1).toLocaleString('default', { month: 'long' });
-  const daysInMonth = new Date(year, month + 1, 0).getDate();
-  const firstDay = new Date(year, month, 1).getDay();
-  const monthPrefix = `${year}-${String(month + 1).padStart(2, '0')}`;
-
-  const bookingMap = {};
-  (bookings.data || []).forEach(b => {
-    if (!b.check_in || !b.check_out) return;
-    let cursor = b.check_in;
-    while (cursor < b.check_out) {
-      bookingMap[`${b.room_id}_${cursor}`] = { guest: b.guest_name, mode: b.booking_mode };
-      cursor = dateAddDays(cursor, 1);
-    }
-  });
-
-  const monthBookings = (bookings.data || []).filter(b => b.check_in && b.check_in.startsWith(monthPrefix));
-  const paidMap = await getPaidMap(monthBookings.map(b => b.booking_id));
-  const monthRevenue = monthBookings.reduce((s, b) => s + (paidMap[b.booking_id] || 0), 0);
-  const onlineCount = monthBookings.filter(b => b.booking_mode === 'Online-Airbnb').length;
-  const offlineCount = monthBookings.filter(b => b.booking_mode !== 'Online-Airbnb').length;
-  const totalRoomNights = (rooms.data?.length || 0) * daysInMonth;
-  const bookedNights = Object.keys(bookingMap).filter(k => k.includes(`_${monthPrefix}`)).length;
-  const occupancyPct = totalRoomNights > 0 ? Math.round((bookedNights / totalRoomNights) * 100) : 0;
-
-  let html = `
-    <div class="card">
-      <h1>📈 Reports — ${monthName} ${year}</h1>
-      <div class="sub">Live data</div>
-    </div>
-    <div class="card">
-      <div class="metric-row"><span class="metric-label">Total Bookings (start-date basis)</span><span class="metric-value">${monthBookings.length}</span></div>
-      <div class="metric-row"><span class="metric-label">Revenue Received</span><span class="metric-value">₹${monthRevenue.toLocaleString("en-IN")}</span></div>
-      <div class="metric-row"><span class="metric-label">Online / Offline Split</span><span class="metric-value">${onlineCount} / ${offlineCount}</span></div>
-      <div class="metric-row"><span class="metric-label">Occupancy Rate</span><span class="metric-value">${occupancyPct}%</span></div>
-    </div>
-    <div class="card" style="text-align:center;background:#2B2420;color:#fff;border-radius:14px;">
-      <h1 style="color:#fff;font-size:22px;">📆 ${monthName} ${year}</h1>
-      <div style="display:flex;justify-content:center;gap:12px;margin:12px 0;">
-        <button class="secondary" onclick="changeMonth(-1)">◀ Prev</button>
-        <button class="secondary" onclick="changeMonth(1)">Next ▶</button>
-      </div>
-    </div>`;
-
-  (rooms.data || []).forEach(room => {
-    html += `<div class="card" style="padding:12px 16px;margin-bottom:8px;">`;
-    html += `<div style="font-weight:700;font-size:14px;margin-bottom:8px;">${room.unit_no} <span style="font-weight:400;color:#8A7F76;">${room.nickname || ''}</span></div>`;
-    html += `<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;">`;
-
-    const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-    dayNames.forEach(d => {
-      html += `<div style="font-size:11px;font-weight:600;color:#8A7F76;text-align:center;padding:2px 0;">${d}</div>`;
-    });
-
-    for (let i = 0; i < firstDay; i++) {
-      html += `<div style="background:#f5f0eb;border-radius:4px;height:32px;"></div>`;
-    }
-
-    const todayStr = new Date().toISOString().slice(0, 10);
-    for (let d = 1; d <= daysInMonth; d++) {
-      const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-      const key = `${room.room_id}_${dateStr}`;
-      const booking = bookingMap[key];
-      const isToday = dateStr === todayStr;
-      let bg = '#DCEFDC';
-      let guestName = '';
-      if (booking) {
-        bg = booking.mode === 'Online-Airbnb' ? '#E1EEF0' : '#FBEAC8';
-        guestName = booking.guest?.split(' ')[0] || 'B';
-      }
-      const todayStyle = isToday
-        ? 'border:3px solid #E2725B;box-shadow:0 0 0 3px rgba(226,114,91,0.3);position:relative;z-index:2;'
-        : '';
-      const clickHandler = booking
-        ? `onclick="showCalendarBookingDetail('${room.room_id}','${dateStr}')"`
-        : '';
-      const cursor = booking ? 'cursor:pointer;' : 'cursor:default;';
-      html += `<div style="background:${bg};border-radius:6px;padding:4px 2px;text-align:center;font-size:13px;font-weight:${isToday ? 800 : 600};height:38px;display:flex;flex-direction:column;justify-content:center;${cursor}${todayStyle}" ${clickHandler} title="${isToday ? 'Today' : ''}${booking ? ' — ' + (booking.guest || 'Booked') : ''}">
-        <div style="${isToday ? 'color:#E2725B;' : ''}">${d}${isToday ? ' ●' : ''}</div>
-        ${booking ? `<div style="font-size:9.5px;font-weight:700;line-height:1.1;color:#2B2420;">${guestName}</div>` : ''}
-      </div>`;
-    }
-
-    html += `</div></div>`;
-  });
-
-  html += `<div class="card" style="text-align:center;padding:12px;">
-    <span style="background:#DCEFDC;padding:4px 12px;border-radius:12px;margin:0 6px;font-size:13px;">Free</span>
-    <span style="background:#E1EEF0;padding:4px 12px;border-radius:12px;margin:0 6px;font-size:13px;">Online</span>
-    <span style="background:#FBEAC8;padding:4px 12px;border-radius:12px;margin:0 6px;font-size:13px;">Offline</span>
-  </div>`;
-
-  renderShell(html, 'reports');
-  window._calendarMonth = month;
-  window._calendarYear = year;
-}
-
-function changeMonth(delta) {
-  const currentMonth = window._calendarMonth ?? new Date().getMonth();
-  const currentYear = window._calendarYear ?? new Date().getFullYear();
-  let newMonth = currentMonth + delta;
-  let newYear = currentYear;
-  if (newMonth > 11) { newMonth = 0; newYear++; }
-  if (newMonth < 0) { newMonth = 11; newYear--; }
-  window._calendarMonth = newMonth;
-  window._calendarYear = newYear;
-  renderReports();
-}
-
-// ================================================================
-//  3. FINANCIAL SUMMARY (CA View)
-// ================================================================
-async function renderFYSummary(range = 'FY') {
-  const isCA = SESSION.role === 'ca';
-
-  // CA ke liye alag page — sidebar nahi, direct appEl
-  if (isCA) {
-    appEl.innerHTML = `<div class="ca-page"><div class="loading">Loading...</div></div>`;
-  } else {
-    renderShell(`<div class="loading">Loading financial data...</div>`, 'dashboard');
-  }
-
-  const now = new Date();
-  const today = now.toISOString().slice(0, 10);
-  let startDate, endDate, label;
-
-  if (range === 'Today') {
-    startDate = today; endDate = today; label = 'Today';
-  } else if (range === 'Week') {
-    let d = new Date(now); d.setDate(now.getDate() - 7);
-    startDate = d.toISOString().slice(0, 10); endDate = today; label = 'Last 7 Days';
-  } else if (range === 'Month') {
-    startDate = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-01';
-    endDate = today; label = 'This Month';
-  } else if (range === 'Quarter') {
-    let qMonth = Math.floor(now.getMonth() / 3) * 3;
-    startDate = now.getFullYear() + '-' + String(qMonth + 1).padStart(2, '0') + '-01';
-    endDate = today; label = 'This Quarter';
-  } else if (range === 'YTD') {
-    startDate = now.getFullYear() + '-04-01';
-    endDate = today; label = 'Year-to-Date (YTD)';
-  } else {
-    let fy = now.getMonth() >= 3 ? now.getFullYear() : now.getFullYear() - 1;
-    startDate = fy + '-04-01';
-    endDate = (fy + 1) + '-03-31';
-    label = `FY ${fy}-${fy + 1}`;
-  }
-
-  const [guests, expenses, payments] = await Promise.all([
-    sb.from('guest_register').select('booking_id, check_in, total_amount, room_id, guest_name'),
-    sb.from('expenses').select('amount, month'),
-    sb.from('payment_history').select('booking_id, amount'),
-  ]);
-
-  const fyGuests = (guests.data || []).filter(g => g.check_in >= startDate && g.check_in <= endDate);
-  const bookingIds = fyGuests.map(g => g.booking_id);
-  const paidMap = {};
-  (payments.data || []).forEach(p => {
-    if (bookingIds.includes(p.booking_id))
-      paidMap[p.booking_id] = (paidMap[p.booking_id] || 0) + (p.amount || 0);
-  });
-
-  const totalIncome = fyGuests.reduce((s, g) => s + (paidMap[g.booking_id] || 0), 0);
-  const totalExpenses = (expenses.data || []).reduce((s, e) => s + (e.amount || 0), 0);
-  const netProfit = totalIncome - totalExpenses;
-
-  const filterBtns = ['Today', 'Week', 'Month', 'Quarter', 'YTD', 'FY'].map(r =>
-    `<button class="${r === range ? '' : 'secondary'}" style="margin:3px;" onclick="renderFYSummary('${r}')">${r}</button>`
-  ).join('');
-
-  const bookingTable = `
-    <div style="overflow-x:auto;">
-    <table>
-      <thead><tr><th>Booking</th><th>Guest</th><th>Room</th><th>Check-in</th><th>Received ₹</th></tr></thead>
-      <tbody>${fyGuests.map(g => `<tr>
-        <td>${g.booking_id}</td>
-        <td>${g.guest_name}</td>
-        <td>${g.room_id}</td>
-        <td>${g.check_in}</td>
-        <td>₹${(paidMap[g.booking_id] || 0).toLocaleString('en-IN')}</td>
-      </tr>`).join('')}</tbody>
-    </table></div>`;
-
-  window._fyData = { label, startDate, endDate, totalIncome, totalExpenses, netProfit, bookings: fyGuests, paidMap };
-
-  if (isCA) {
-    // ── CA VIEW — standalone page, NO sidebar ──────────────────
-    appEl.innerHTML = `
-      <div class="ca-page">
-
-        <!-- HEADER with LOGOUT -->
-        <div class="ca-header">
-          <img src="assets/logo.png" alt="Logo"
-            style="width:52px;height:52px;object-fit:contain;margin-bottom:8px;border-radius:10px;" />
-          <h1>${BRAND}</h1>
-          <div class="sub">👋 ${SESSION.displayName} — CA / Accountant View</div>
-          <br/>
-          <button class="ca-logout-btn" onclick="logout()">🚪 Logout</button>
-        </div>
-
-        <!-- FILTER CARD -->
-        <div class="card">
-          <div style="font-size:14px;font-weight:700;margin-bottom:8px;">📊 Financial Summary</div>
-          <div class="sub">${label} — ${startDate} to ${endDate}</div>
-          <div style="margin:8px 0;display:flex;flex-wrap:wrap;gap:4px;">${filterBtns}</div>
-          <button onclick="downloadFYData()">⬇️ Download CSV</button>
-        </div>
-
-        <!-- METRICS -->
-        <div class="card">
-          <div class="metric-row">
-            <span class="metric-label">Total Income (Received)</span>
-            <span class="metric-value">₹${totalIncome.toLocaleString('en-IN')}</span>
-          </div>
-          <div class="metric-row">
-            <span class="metric-label">Total Expenses</span>
-            <span class="metric-value warn">₹${totalExpenses.toLocaleString('en-IN')}</span>
-          </div>
-          <div class="metric-row">
-            <span class="metric-label">Net Profit (Taxable)</span>
-            <span class="metric-value" style="color:${netProfit >= 0 ? '#2E7D32' : '#C0392B'};">
-              ₹${netProfit.toLocaleString('en-IN')}
-            </span>
-          </div>
-          <div class="sub" style="margin-top:10px;">
-            💡 Period change karke quarterly report download kar sakte ho.
-          </div>
-        </div>
-
-        <!-- BOOKINGS TABLE -->
-        <div class="card">
-          <div style="font-size:14px;font-weight:700;margin-bottom:8px;">
-            Bookings (${fyGuests.length})
-          </div>
-          ${bookingTable}
-        </div>
-
-        <!-- BOTTOM LOGOUT -->
-        <div class="card" style="text-align:center;">
-          <button class="ca-logout-btn" onclick="logout()">🚪 Logout — Sign Out</button>
-        </div>
-
-      </div>`;
-
-  } else {
-    // ── OWNER / MANAGER VIEW — with sidebar ───────────────────
-    renderShell(`
-      <div class="card">
-        <h1>📊 Financial Summary</h1>
-        <div class="sub">${label} — ${startDate} to ${endDate}</div>
-        <div style="margin:8px 0;display:flex;flex-wrap:wrap;gap:4px;">${filterBtns}</div>
-        <button class="secondary" onclick="renderDashboard()">← Back</button>
-        <button onclick="downloadFYData()">⬇️ Download CSV</button>
-      </div>
-      <div class="card">
-        <div class="metric-row">
-          <span class="metric-label">Total Income (Received)</span>
-          <span class="metric-value">₹${totalIncome.toLocaleString('en-IN')}</span>
-        </div>
-        <div class="metric-row">
-          <span class="metric-label">Total Expenses</span>
-          <span class="metric-value warn">₹${totalExpenses.toLocaleString('en-IN')}</span>
-        </div>
-        <div class="metric-row">
-          <span class="metric-label">Net Profit (Taxable)</span>
-          <span class="metric-value" style="color:${netProfit >= 0 ? '#2E7D32' : '#C0392B'};">
-            ₹${netProfit.toLocaleString('en-IN')}
-          </span>
-        </div>
-        <div class="sub" style="margin-top:10px;">
-          💡 Period change karke quarterly bhej sakte ho.
-        </div>
-      </div>
-      <div class="card">
-        <div style="font-size:14px;font-weight:700;margin-bottom:8px;">
-          Bookings (${fyGuests.length})
-        </div>
-        ${bookingTable}
-      </div>`, 'dashboard');
-  }
-}
-
-function downloadFYData() {
-  const d = window._fyData;
-  if (!d) return;
-  let csv = `Period,${d.label}\nFrom,${d.startDate}\nTo,${d.endDate}\nTotal Income,${d.totalIncome}\nTotal Expenses,${d.totalExpenses}\nNet Profit,${d.netProfit}\n\nBooking ID,Guest,Room,Check-in,Received\n`;
-  d.bookings.forEach(g => {
-    csv += `${g.booking_id},${g.guest_name},${g.room_id},${g.check_in},${d.paidMap[g.booking_id] || 0}\n`;
-  });
-  const blob = new Blob([csv], { type: 'text/csv' });
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = `Financial_${d.label}_${d.startDate}_to_${d.endDate}.csv`;
-  a.click();
-}
-
-// ================================================================
-//  4. MANAGE ROOMS
-// ================================================================
-async function renderManageRooms() {
-  renderShell(`<div class="loading">Loading rooms...</div>`, 'rooms');
-  const { data: rooms, error } = await sb.from("rooms").select("*").order("room_id");
-  if (error) { renderShell(`<div class="error">Error: ${error.message}</div>`, 'rooms'); return; }
-
-  const isOwner = SESSION.role === 'owner';
-  const content = `
-    <div class="card">
-      <h1>🏠 Manage Rooms</h1>
-      <div class="sub">${rooms.length} properties total</div>
-      ${isOwner ? `<button onclick="renderAddRoom()">➕ Add New Property</button>` : ''}
-    </div>
-    <div class="card">
-      <div style="overflow-x:auto;">
-        <table>
-          <thead><tr>
-            <th>Flat ID</th><th>Property</th><th>Unit</th><th>Floor</th><th>Nickname</th>
-            <th>Rent/Night</th><th>Max Guests</th><th>Mode</th><th>Bookable</th>
-            ${isOwner ? '<th>Actions</th>' : ''}
-          </tr></thead>
-          <tbody>
-            ${rooms.map(r => `
-              <tr>
-                <td><strong>${r.room_id}</strong></td>
-                <td>${r.property_name || '-'}</td>
-                <td>${r.unit_type || '-'} · ${r.unit_no || '-'}</td>
-                <td>${r.floor || '-'}</td>
-                <td>${r.nickname || '-'}</td>
-                <td>₹${r.rent_per_night || 0}</td>
-                <td>${r.max_guests || '-'}</td>
-                <td><span class="badge ${r.mode === 'On' ? 'green' : 'yellow'}">${r.mode || 'On'}</span></td>
-                <td><span class="badge ${r.bookable ? 'green' : 'red'}">${r.bookable ? 'Yes' : 'No'}</span></td>
-                ${isOwner ? `
-                  <td class="table-actions">
-                    <button class="btn-sm" onclick="editRoom('${r.room_id}')">✏️ Edit</button>
-                    <button class="btn-sm danger" onclick="deleteRoom('${r.room_id}','${r.unit_no}')">🗑️ Delete</button>
-                  </td>` : ''}
-              </tr>`).join("")}
-          </tbody>
-        </table>
-      </div>
-    </div>`;
-  renderShell(content, 'rooms');
-}
-
-function roomFormFields(r = {}) {
-  return `
-    <input id="roomId" value="${r.room_id || ''}" placeholder="Flat ID (e.g. GOM-601)" ${r.room_id ? 'readonly' : ''} />
-    <input id="propertyName" value="${r.property_name || ''}" placeholder="Property/Building Name" />
-    <input id="address" value="${r.address || ''}" placeholder="Address" />
-    <select id="unitType">
-      <option value="Flat" ${r.unit_type === 'Flat' ? 'selected' : ''}>Flat</option>
-      <option value="Villa" ${r.unit_type === 'Villa' ? 'selected' : ''}>Villa</option>
-    </select>
-    <input id="unitNo" value="${r.unit_no || ''}" placeholder="Unit No (e.g. FLAT101)" />
-    <input id="floor" value="${r.floor || ''}" placeholder="Floor (e.g. 1st, 2nd, ALL)" />
-    <input id="nickname" value="${r.nickname || ''}" placeholder="Nickname (e.g. Red Rose)" />
-    <input id="rent" type="number" value="${r.rent_per_night || ''}" placeholder="Rent per Night (₹)" />
-    <input id="maxGuests" type="number" value="${r.max_guests || ''}" placeholder="Max Guests" />
-    <select id="mode">
-      <option value="On" ${r.mode !== 'Off' ? 'selected' : ''}>On (Listed)</option>
-      <option value="Off" ${r.mode === 'Off' ? 'selected' : ''}>Off (Not listed)</option>
-    </select>
-    <label style="display:flex;align-items:center;gap:8px;margin:12px 0;">
-      <input type="checkbox" id="bookable" ${r.bookable !== false ? 'checked' : ''} style="width:auto;" />
-      <span>Bookable</span>
-    </label>
-    <textarea id="notes" placeholder="Notes">${r.notes || ''}</textarea>`;
-}
-
-async function renderAddRoom() {
-  renderShell(`
-    <div class="card">
-      <h1>➕ Add New Property</h1>
-      <button class="secondary" onclick="renderManageRooms()">← Back</button>
-    </div>
-    <div class="card">${roomFormFields()}
-      <button onclick="saveNewRoom()">💾 Save Property</button>
-      <div id="addErr"></div>
-    </div>`, 'rooms');
-}
-
-function collectRoomForm() {
-  return {
-    room_id: document.getElementById('roomId').value.trim(),
-    property_name: document.getElementById('propertyName').value.trim() || null,
-    address: document.getElementById('address').value.trim() || null,
-    unit_type: document.getElementById('unitType').value,
-    unit_no: document.getElementById('unitNo').value.trim(),
-    floor: document.getElementById('floor').value.trim() || null,
-    nickname: document.getElementById('nickname').value.trim() || null,
-    rent_per_night: parseFloat(document.getElementById('rent').value) || null,
-    max_guests: parseInt(document.getElementById('maxGuests').value) || null,
-    mode: document.getElementById('mode').value,
-    bookable: document.getElementById('bookable').checked,
-    notes: document.getElementById('notes').value.trim() || null,
+  SESSION.currentPage = page;
+  const map = {
+    dashboard:renderDashboard, reports:renderReports, rooms:renderManageRooms,
+    flats:renderFlatsStatus, bookings:renderManageBookings, employees:renderManageEmployees,
+    tasks:renderEmployeeTasks, attendance:renderAttendance, 'att-summary':renderAttendanceSummary,
+    salary:renderSalaryTracker, advance:renderAdvanceTracker, store:renderStore,
+    expenses:renderExpenses, 'property-report':renderPropertyReport, investors:renderManageInvestors,
   };
+  (map[page] || renderDashboard)();
 }
 
-async function saveNewRoom() {
-  const obj = collectRoomForm();
-  if (!obj.room_id || !obj.unit_no) {
-    document.getElementById('addErr').innerHTML = '<div class="error">Flat ID aur Unit No required hai</div>';
-    return;
-  }
-  const { error } = await sb.from('rooms').insert(obj);
-  if (error) { document.getElementById('addErr').innerHTML = `<div class="error">${error.message}</div>`; return; }
-  await sb.from('flats_status').insert({ room_id: obj.room_id, status: 'Free', cleaning_status: 'Clean' });
-  renderManageRooms();
+// ============ HELPERS ============
+async function getPaidMap(ids) {
+  if (!ids.length) return {};
+  const { data } = await sb.from('payment_history').select('booking_id, amount').in('booking_id', ids);
+  const m = {};
+  (data||[]).forEach(p => { m[p.booking_id] = (m[p.booking_id]||0) + (p.amount||0); });
+  return m;
 }
 
-async function editRoom(roomId) {
-  const { data: room, error } = await sb.from('rooms').select('*').eq('room_id', roomId).single();
-  if (error || !room) { alert('Room not found'); return; }
-  renderShell(`
-    <div class="card">
-      <h1>✏️ Edit Property</h1>
-      <button class="secondary" onclick="renderManageRooms()">← Back</button>
-    </div>
-    <div class="card">${roomFormFields(room)}
-      <button onclick="updateRoom('${roomId}')">💾 Update Property</button>
-      <div id="editErr"></div>
-    </div>`, 'rooms');
+function dateAdd(s, n) {
+  const [y,m,d] = s.split('-').map(Number);
+  return new Date(Date.UTC(y, m-1, d+n)).toISOString().slice(0,10);
 }
 
-async function updateRoom(roomId) {
-  const obj = collectRoomForm();
-  delete obj.room_id;
-  if (!obj.unit_no) { document.getElementById('editErr').innerHTML = '<div class="error">Unit No required</div>'; return; }
-  const { error } = await sb.from('rooms').update(obj).eq('room_id', roomId);
-  if (error) { document.getElementById('editErr').innerHTML = `<div class="error">${error.message}</div>`; return; }
-  renderManageRooms();
-}
-
-async function deleteRoom(roomId, unitNo) {
-  if (!confirm(`Delete property "${unitNo}"? This cannot be undone.`)) return;
-  await sb.from('flats_status').delete().eq('room_id', roomId);
-  const { error } = await sb.from('rooms').delete().eq('room_id', roomId);
-  if (error) { alert('Error: ' + error.message); return; }
-  renderManageRooms();
-}
-
-// ================================================================
-//  5. FLATS STATUS
-// ================================================================
-async function renderFlatsStatus() {
-  renderShell(`<div class="loading">Loading flats status...</div>`, 'flats');
-  const { data: flats, error } = await sb.from('flats_status')
-    .select('*, rooms(unit_no, nickname, property_name)').order('room_id');
-  if (error) { renderShell(`<div class="error">Error: ${error.message}</div>`, 'flats'); return; }
-
-  const isOwner = ['owner', 'viewer', 'manager'].includes(SESSION.role);
-  const content = `
-    <div class="card"><h1>🛏️ Flats Status (Live)</h1><div class="sub">${flats.length} flats total</div></div>
-    <div class="card"><div style="overflow-x:auto;">
-      <table>
-        <thead><tr>
-          <th>Property</th><th>Unit</th><th>Nickname</th><th>Status</th>
-          <th>Cleaning</th><th>Issue</th><th>Last Cleaned</th>
-          ${isOwner ? '<th>Actions</th>' : ''}
-        </tr></thead>
-        <tbody>
-          ${flats.map(f => `
-            <tr>
-              <td>${f.rooms?.property_name || '-'}</td>
-              <td><strong>${f.rooms?.unit_no || f.room_id}</strong></td>
-              <td>${f.rooms?.nickname || '-'}</td>
-              <td><span class="badge ${f.status === 'Free' ? 'green' : f.status === 'Booked' ? 'blue' : 'red'}">${f.status || 'Free'}</span></td>
-              <td><span class="badge ${f.cleaning_status === 'Clean' ? 'green' : f.cleaning_status === 'In Progress' ? 'yellow' : 'red'}">${f.cleaning_status || 'Clean'}</span></td>
-              <td>${f.issue || '-'}</td>
-              <td>${f.last_cleaned || '-'}</td>
-              ${isOwner ? `<td><button class="btn-sm" onclick="editFlatStatus('${f.room_id}')">✏️ Edit</button></td>` : ''}
-            </tr>`).join('')}
-        </tbody>
-      </table>
-    </div></div>`;
-  renderShell(content, 'flats');
-}
-
-async function editFlatStatus(roomId) {
-  const { data: flat, error } = await sb.from('flats_status')
-    .select('*, rooms(unit_no, nickname)').eq('room_id', roomId).single();
-  if (error || !flat) { alert('Flat not found'); return; }
-  const today = new Date().toISOString().slice(0, 10);
-  renderShell(`
-    <div class="card">
-      <h1>✏️ Update Flat Status</h1>
-      <div class="sub"><strong>${flat.rooms?.unit_no || roomId}</strong> (${flat.rooms?.nickname || '-'})</div>
-      <button class="secondary" onclick="renderFlatsStatus()">← Back</button>
-    </div>
-    <div class="card">
-      <label style="font-size:13px;color:#445;">Room Status</label>
-      <select id="flatStatus">
-        <option value="Free" ${flat.status === 'Free' ? 'selected' : ''}>Free</option>
-        <option value="Booked" ${flat.status === 'Booked' ? 'selected' : ''}>Booked</option>
-        <option value="Blocked-Maintenance" ${flat.status === 'Blocked-Maintenance' ? 'selected' : ''}>Blocked-Maintenance</option>
-      </select>
-      <label style="font-size:13px;color:#445;">Cleaning Status</label>
-      <select id="cleaningStatus">
-        <option value="Clean" ${flat.cleaning_status === 'Clean' ? 'selected' : ''}>Clean</option>
-        <option value="Dirty" ${flat.cleaning_status === 'Dirty' ? 'selected' : ''}>Dirty</option>
-        <option value="In Progress" ${flat.cleaning_status === 'In Progress' ? 'selected' : ''}>In Progress</option>
-      </select>
-      <input id="flatIssue" value="${flat.issue || ''}" placeholder="Current Issue / Maintenance" />
-      <input id="lastCleaned" type="date" value="${flat.last_cleaned || today}" />
-      <textarea id="flatNotes">${flat.notes || ''}</textarea>
-      <button onclick="updateFlatStatus('${roomId}')">💾 Update Status</button>
-      <div id="flatErr"></div>
-    </div>`, 'flats');
-}
-
-async function updateFlatStatus(roomId) {
-  const status = document.getElementById('flatStatus').value;
-  const cleaning = document.getElementById('cleaningStatus').value;
-  const issue = document.getElementById('flatIssue').value.trim();
-  const cleaned = document.getElementById('lastCleaned').value;
-  const notes = document.getElementById('flatNotes').value.trim();
-  const { error } = await sb.from('flats_status').update({
-    status, cleaning_status: cleaning, issue: issue || null,
-    last_cleaned: cleaned || null, notes: notes || null
-  }).eq('room_id', roomId);
-  if (error) { document.getElementById('flatErr').innerHTML = `<div class="error">${error.message}</div>`; return; }
-  renderFlatsStatus();
-}
-
-// ================================================================
-//  FIX #5 + #7: MANAGE BOOKINGS — ID Column + Filters
-// ================================================================
-async function renderManageBookings() {
-  renderShell(`<div class="loading">Loading bookings...</div>`, 'bookings');
-  const { data: allBookings, error } = await sb.from("guest_register")
-    .select("*, rooms(unit_no, nickname, property_name)").order("check_in", { ascending: false });
-  if (error) { renderShell(`<div class="error">Error: ${error.message}</div>`, 'bookings'); return; }
-
-  // Get all rooms for property filter
-  const { data: rooms } = await sb.from('rooms').select('room_id, unit_no, property_name, nickname').order('unit_no');
-
-  // Read filter state
-  const modeFilter = SESSION.bookingFilter || 'All';
-  const propFilter = SESSION.bookingPropFilter || '';
-  const dateFilter = SESSION.bookingDateFilter || '';
-  const dateFrom = SESSION.bookingDateFrom || '';
-  const dateTo = SESSION.bookingDateTo || '';
-
-  // Apply filters
-  let filtered = allBookings || [];
-  if (modeFilter !== 'All') filtered = filtered.filter(b => b.booking_mode === modeFilter);
-  if (propFilter) filtered = filtered.filter(b => b.room_id === propFilter);
-  if (dateFilter) filtered = filtered.filter(b => b.check_in === dateFilter);
-  if (dateFrom) filtered = filtered.filter(b => b.check_in >= dateFrom);
-  if (dateTo) filtered = filtered.filter(b => b.check_in <= dateTo);
-
-  const paidMap = await getPaidMap(filtered.map(b => b.booking_id));
-  const canManage = ['owner', 'viewer', 'manager'].includes(SESSION.role);
-  const canDelete = SESSION.role === 'owner';
-
-  const content = `
-    <div class="card">
-      <h1>📅 Manage Bookings</h1>
-      <div class="sub">${filtered.length} bookings found</div>
-      ${canManage ? `<button onclick="renderAddBooking()">➕ Add New Booking</button>` : ''}
-    </div>
-
-    <!-- FIX #7: FILTER BAR -->
-    <div class="card">
-      <div style="font-size:13px;font-weight:700;margin-bottom:8px;">🔍 Filters</div>
-      <div class="filter-bar">
-        <div>
-          <label>Mode</label>
-          <select id="bkFilterMode">
-            <option value="All" ${modeFilter === 'All' ? 'selected' : ''}>Sab</option>
-            <option value="Online-Airbnb" ${modeFilter === 'Online-Airbnb' ? 'selected' : ''}>Online</option>
-            <option value="Offline" ${modeFilter === 'Offline' ? 'selected' : ''}>Offline</option>
-          </select>
-        </div>
-        <div>
-          <label>Property</label>
-          <select id="bkFilterProp">
-            <option value="">All Properties</option>
-            ${(rooms || []).map(r => `<option value="${r.room_id}" ${propFilter === r.room_id ? 'selected' : ''}>${r.unit_no} (${r.nickname || r.property_name || ''})</option>`).join('')}
-          </select>
-        </div>
-        <div>
-          <label>Specific Date</label>
-          <input type="date" id="bkFilterDate" value="${dateFilter}" />
-        </div>
-        <div>
-          <label>From Date</label>
-          <input type="date" id="bkFilterFrom" value="${dateFrom}" />
-        </div>
-        <div>
-          <label>To Date</label>
-          <input type="date" id="bkFilterTo" value="${dateTo}" />
-        </div>
-        <div>
-          <button class="btn-sm" onclick="applyBookingFilters()">🔍 Filter</button>
-          <button class="btn-sm secondary" onclick="clearBookingFilters()">✕ Clear</button>
-        </div>
-      </div>
-    </div>
-
-    <div class="card"><div style="overflow-x:auto;">
-      <table>
-        <thead><tr>
-          <th>Guest</th><th>Property</th><th>Mode</th><th>Booked By</th>
-          <th>ID Photos</th>
-          <th>Check-in</th><th>Check-out</th>
-          <th>Total</th><th>Paid</th><th>Balance</th>
-          ${canManage ? '<th>Actions</th>' : ''}
-        </tr></thead>
-        <tbody>
-          ${filtered.map(b => {
-            const paid = paidMap[b.booking_id] || 0;
-            const balance = (b.total_amount || 0) - paid;
-            const idPaths = b.id_proof_photo_paths || b.id_proof_photo_path || '';
-            const idArr = idPaths ? idPaths.split(',').filter(Boolean) : [];
-            // Property display order: Property Name first, then Unit, then Nickname
-            const propLine1 = b.rooms?.property_name || '-';
-            const propLine2 = `${b.rooms?.unit_no || b.room_id}${b.rooms?.nickname ? ' · ' + b.rooms.nickname : ''}`;
-            return `
-            <tr>
-              <td><strong>${b.guest_name || '-'}</strong><br><small>${b.phone || ''}</small></td>
-              <td>${propLine1}<br><small>${propLine2}</small></td>
-              <td><span class="badge ${b.booking_mode === 'Online-Airbnb' ? 'blue' : 'yellow'}">${b.booking_mode || 'Offline'}</span></td>
-              <td><small>${b.booked_by || '-'}</small></td>
-              <td>
-                ${idArr.length > 0
-                  ? idArr.map((p, idx) => `<button class="btn-sm" style="margin:2px;" onclick="downloadIdPhoto('${p}')" title="Download Guest ${idx + 1} ID">📎 G${idx + 1}</button>`).join('')
-                  : '-'}
-              </td>
-              <td>${b.check_in || '-'}</td>
-              <td>${b.check_out || '-'}</td>
-              <td>₹${(b.total_amount || 0).toLocaleString("en-IN")}</td>
-              <td>₹${paid.toLocaleString("en-IN")}</td>
-              <td><span class="${balance > 0 ? 'warn' : ''}">₹${balance.toLocaleString("en-IN")}</span></td>
-              ${canManage ? `
-                <td class="table-actions">
-                  <button class="btn-sm" onclick="editBooking('${b.booking_id}')" title="Edit Booking">✏️ Edit</button>
-                  <button class="btn-sm" onclick="recordPayment('${b.booking_id}')" title="Record Payment">💰 Pay</button>
-                  ${balance > 0 ? `<button class="btn-sm" onclick="markFullyPaid('${b.booking_id}')" title="Mark Fully Paid">✅ Paid</button>` : ''}
-                  ${canDelete ? `<button class="btn-sm danger" onclick="deleteBooking('${b.booking_id}','${(b.guest_name || '').replace(/'/g, "\\'")}','${b.room_id}')" title="Delete Booking">🗑️ Del</button>` : ''}
-                </td>` : ''}
-            </tr>`;
-          }).join("")}
-        </tbody>
-      </table>
-    </div></div>`;
-
-  renderShell(content, 'bookings');
-}
-
-// FIX #7: Filter logic
-function applyBookingFilters() {
-  SESSION.bookingFilter = document.getElementById('bkFilterMode').value;
-  SESSION.bookingPropFilter = document.getElementById('bkFilterProp').value;
-  SESSION.bookingDateFilter = document.getElementById('bkFilterDate').value;
-  SESSION.bookingDateFrom = document.getElementById('bkFilterFrom').value;
-  SESSION.bookingDateTo = document.getElementById('bkFilterTo').value;
-  renderManageBookings();
-}
-
-function clearBookingFilters() {
-  SESSION.bookingFilter = 'All';
-  SESSION.bookingPropFilter = '';
-  SESSION.bookingDateFilter = '';
-  SESSION.bookingDateFrom = '';
-  SESSION.bookingDateTo = '';
-  renderManageBookings();
-}
-
-// FIX #5: Individual ID photo download
-async function downloadIdPhoto(path) {
-  const { data, error } = await sb.storage.from('id-proofs').createSignedUrl(path, 300);
-  if (error || !data?.signedUrl) { alert('Photo load nahi ho payi'); return; }
-  // Download as file
-  const a = document.createElement('a');
-  a.href = data.signedUrl;
-  a.target = '_blank';
-  a.download = path.split('/').pop() || 'id_proof.jpg';
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-}
-
-// ================================================================
-//  FIX #4: ADD BOOKING FORM — 8 Guest ID Slots
-// ================================================================
-async function renderAddBooking() {
-  const { data: rooms } = await sb.from('rooms')
-    .select('room_id, unit_no, nickname, property_name, rent_per_night, bookable').order('room_id');
-  window.BOOKING_ROOMS_CACHE = rooms || [];
-
-  // 8 guest ID slots
-  let idSlotsHtml = '';
-  for (let i = 1; i <= 8; i++) {
-    idSlotsHtml += `
-      <div class="id-slot" id="idSlot${i}" style="display:${i === 1 ? 'block' : 'none'};">
-        <label>👤 Guest ${i}${i === 1 ? ' (Primary)' : ' (Optional)'}</label>
-        <input type="text" class="id-slot-name" id="guestIdName${i}"
-          placeholder="Guest ${i} ka naam" />
-
-        <div style="display:flex;flex-direction:column;gap:6px;margin-top:4px;">
-          <label style="font-size:11px;color:#666;font-weight:500;margin:0;">📷 Camera se photo lo:</label>
-          <input type="file" class="id-slot-file" id="guestIdCamera${i}"
-            accept="image/*" capture="environment"
-            onchange="onIdFileChange(${i},'camera')" />
-
-          <label style="font-size:11px;color:#666;font-weight:500;margin:0;">🖼️ Gallery se select karo:</label>
-          <input type="file" class="id-slot-file" id="guestIdGallery${i}"
-            accept="image/*"
-            onchange="onIdFileChange(${i},'gallery')" />
-        </div>
-
-        <div class="file-status" id="idStatus${i}"></div>
-      </div>`;
-  }
-
-  renderShell(`
-    <div class="card">
-      <h1>➕ Add New Booking</h1>
-      <button class="secondary" onclick="renderManageBookings()">← Back</button>
-    </div>
-
-    <div class="card">
-
-      <!-- Row 1: Guest Name + Phone -->
-      <div class="form-grid-2">
-        <div>
-          <label style="font-size:13px;font-weight:600;color:#445;">Guest Name *</label>
-          <input id="guestName" placeholder="Primary guest ka naam" />
-        </div>
-        <div>
-          <label style="font-size:13px;font-weight:600;color:#445;">Phone Number</label>
-          <input id="guestPhone" type="tel" placeholder="Mobile number" />
-        </div>
-      </div>
-
-      <!-- Row 2: Property + Mode -->
-      <div class="form-grid-2">
-        <div>
-          <label style="font-size:13px;font-weight:600;color:#445;">Property *</label>
-          <select id="roomId" onchange="onBookingRoomChange()">
-            <option value="">Select Property</option>
-            ${(rooms || []).map(r =>
-              `<option value="${r.room_id}">${r.property_name || ''} — ${r.unit_no} (${r.nickname || ''})</option>`
-            ).join('')}
-          </select>
-          <div id="roomInfo" style="font-size:12px;color:#8A7F76;margin-top:2px;"></div>
-        </div>
-        <div>
-          <label style="font-size:13px;font-weight:600;color:#445;">Booking Mode</label>
-          <select id="bookingMode" onchange="onBookingModeChange()">
-            <option value="Offline">Offline (Direct)</option>
-            <option value="Online-Airbnb">Online (Airbnb)</option>
-          </select>
-        </div>
-      </div>
-
-      <!-- Airbnb fields -->
-      <div id="onlineFields" style="display:none;background:#f0f7ff;padding:12px;border-radius:8px;margin:4px 0;">
-        <div style="font-size:13px;font-weight:600;color:#2E7080;margin-bottom:8px;">🌐 Airbnb Details</div>
-        <div class="form-grid-2">
-          <div>
-            <label style="font-size:12px;color:#445;">Gross Amount ₹ (guest ne pay kiya)</label>
-            <input id="grossAmount" type="number" placeholder="e.g. 5000" oninput="onBookingAmountChange()" />
-          </div>
-          <div>
-            <label style="font-size:12px;color:#445;">Airbnb Commission/Fee ₹</label>
-            <input id="platformFee" type="number" placeholder="e.g. 600" oninput="onBookingAmountChange()" />
-          </div>
-        </div>
-      </div>
-
-      <!-- Row 3: Check-in + Check-out -->
-      <div class="form-grid-2">
-        <div>
-          <label style="font-size:13px;font-weight:600;color:#445;">Check-in Date</label>
-          <input id="checkIn" type="date" onchange="onBookingRoomChange()" />
-        </div>
-        <div>
-          <label style="font-size:13px;font-weight:600;color:#445;">Check-out Date</label>
-          <input id="checkOut" type="date" onchange="onBookingRoomChange()" />
-        </div>
-      </div>
-      <div id="nightsInfo" style="font-size:12px;color:#8A7F76;margin-top:-2px;margin-bottom:4px;"></div>
-
-      <!-- Row 4: Guests + Total Amount -->
-      <div class="form-grid-2">
-        <div>
-          <label style="font-size:13px;font-weight:600;color:#445;">Number of Guests</label>
-          <input id="guests" type="number" value="1" min="1" max="8"
-            onchange="updateIdSlotVisibility()" oninput="updateIdSlotVisibility()" />
-        </div>
-        <div>
-          <label style="font-size:13px;font-weight:600;color:#445;">Total Amount ₹ *</label>
-          <input id="totalAmount" type="number" placeholder="Kitne mein book hua"
-            oninput="onBookingAmountChange()" />
-          <div id="suggestedInfo" style="font-size:11px;color:#8A7F76;"></div>
-        </div>
-      </div>
-
-      <!-- Row 5: Advance + Mode -->
-      <div class="form-grid-2">
-        <div>
-          <label style="font-size:13px;font-weight:600;color:#445;">Advance Amount ₹</label>
-          <input id="advanceAmount" type="number" placeholder="Abhi mila advance"
-            value="0" oninput="onBookingAmountChange()" />
-        </div>
-        <div>
-          <label style="font-size:13px;font-weight:600;color:#445;">Advance Payment Mode</label>
-          <select id="advancePaymentMode">
-            <option value="">-- Select --</option>
-            <option value="Cash">Cash</option>
-            <option value="UPI">UPI</option>
-            <option value="Bank">Bank Transfer</option>
-            <option value="Airbnb Payout">Airbnb Payout</option>
-          </select>
-        </div>
-      </div>
-      <div id="balanceInfo" style="font-size:13px;font-weight:600;margin:2px 0 8px;"></div>
-
-      <!-- ID PROOF SECTION -->
-      <div style="background:#faf6f2;border:1px solid #efe7e0;border-radius:10px;padding:14px;margin-top:8px;">
-        <div style="font-size:14px;font-weight:700;color:#2B2420;margin-bottom:4px;">🪪 ID Proof</div>
-        <div style="font-size:12px;color:#8A7F76;margin-bottom:10px;">
-          Har guest ki ID alag upload karo. Camera ya Gallery — dono se ho sakta hai.
-        </div>
-
-        <!-- Primary ID Type + Number -->
-        <div class="form-grid-2">
-          <div>
-            <label style="font-size:12px;color:#445;font-weight:600;">Primary Guest ID Type</label>
-            <select id="idProofType">
-              <option value="Aadhar" selected>Aadhar ✅</option>
-              <option value="PAN">PAN</option>
-              <option value="DL">Driving License</option>
-              <option value="Passport">Passport</option>
-            </select>
-          </div>
-          <div>
-            <label style="font-size:12px;color:#445;font-weight:600;">Primary Guest ID Number</label>
-            <input id="guestIdNo" placeholder="e.g. 1234 5678 9012" />
-          </div>
-        </div>
-
-        <!-- 8 Guest Slots -->
-        <div class="id-upload-grid" id="idUploadGrid">
-          ${idSlotsHtml}
-        </div>
-        <div style="font-size:11px;color:#8A7F76;margin-top:6px;">
-          💡 Guests ki count badhao toh zyada slots dikhenge. Photos auto-compress hoti hain.
-        </div>
-      </div>
-
-      <!-- Notes -->
-      <div style="margin-top:10px;">
-        <label style="font-size:13px;font-weight:600;color:#445;">Notes (Optional)</label>
-        <textarea id="bookingNotes" placeholder="Koi special request ya note..."></textarea>
-      </div>
-
-      <button id="saveBookingBtn" onclick="saveNewBooking()"
-        style="width:100%;margin-top:12px;padding:15px;font-size:15px;">
-        💾 Save Booking
-      </button>
-      <div id="addBookingErr"></div>
-    </div>`, 'bookings');
-
-  updateIdSlotVisibility();
-}
-
-// Slots show/hide based on guest count
-function updateIdSlotVisibility() {
-  const count = Math.min(parseInt(document.getElementById('guests')?.value) || 1, 8);
-  for (let i = 1; i <= 8; i++) {
-    const slot = document.getElementById(`idSlot${i}`);
-    if (slot) slot.style.display = i <= count ? 'block' : 'none';
-  }
-}
-
-// File selected feedback
-function onIdFileChange(guestNum, source) {
-  const inputId = source === 'camera' ? `guestIdCamera${guestNum}` : `guestIdGallery${guestNum}`;
-  const fileInput = document.getElementById(inputId);
-  const statusEl = document.getElementById(`idStatus${guestNum}`);
-  const slotEl = document.getElementById(`idSlot${guestNum}`);
-  if (fileInput && fileInput.files && fileInput.files[0]) {
-    const fname = fileInput.files[0].name;
-    statusEl.textContent = `✅ ${source === 'camera' ? 'Camera' : 'Gallery'}: ${fname.substring(0, 22)}`;
-    slotEl.classList.add('has-file');
-  }
-}
-
-// Show/hide ID slots based on guest count
-function updateIdSlotVisibility() {
-  const count = Math.min(parseInt(document.getElementById('guests')?.value) || 1, 8);
-  for (let i = 1; i <= 8; i++) {
-    const slot = document.getElementById(`idSlot${i}`);
-    if (slot) slot.style.display = i <= count ? 'block' : 'none';
-  }
-}
-
-// File change feedback
-function onIdFileChange(guestNum) {
-  const fileInput = document.getElementById(`guestIdFile${guestNum}`);
-  const statusEl = document.getElementById(`idStatus${guestNum}`);
-  const slotEl = document.getElementById(`idSlot${guestNum}`);
-  if (fileInput && fileInput.files && fileInput.files[0]) {
-    const name = fileInput.files[0].name;
-    statusEl.textContent = `✅ ${name.substring(0, 25)}`;
-    slotEl.classList.add('has-file');
-  } else {
-    statusEl.textContent = '';
-    slotEl.classList.remove('has-file');
-  }
-}
-
-function updatePhotoPreview() {
-  const preview = document.getElementById('photoPreview');
-  if (!preview) return;
-  const cameraFiles = Array.from(document.getElementById('idPhotoCamera')?.files || []);
-  const galleryFiles = Array.from(document.getElementById('idPhotoGallery')?.files || []);
-  const allFiles = [...cameraFiles, ...galleryFiles].slice(0, 8);
-  preview.innerHTML = allFiles.length
-    ? allFiles.map((f, i) => `<div style="background:#f5f0eb;border-radius:6px;padding:4px 8px;font-size:11px;color:#2B2420;">📄 ${f.name.substring(0,20)}${i === 7 ? ' (max)' : ''}</div>`).join('')
-    : '';
-}
-
-function onBookingModeChange() {
-  const mode = document.getElementById('bookingMode').value;
-  document.getElementById('onlineFields').style.display = mode === 'Online-Airbnb' ? 'block' : 'none';
-  onBookingAmountChange();
-}
-
-function onBookingRoomChange() {
-  const roomId = document.getElementById('roomId').value;
-  const checkIn = document.getElementById('checkIn').value;
-  const checkOut = document.getElementById('checkOut').value;
-  const room = (window.BOOKING_ROOMS_CACHE || []).find(r => r.room_id === roomId);
-
-  const roomInfoEl = document.getElementById('roomInfo');
-  if (room) {
-    const bookableTxt = room.bookable
-      ? '<span style="color:#256029;">✅ Bookable</span>'
-      : '<span style="color:#c00000;">⚠️ NOT Bookable</span>';
-    roomInfoEl.innerHTML = `Rent: <strong>₹${room.rent_per_night || 0}/night</strong> · ${bookableTxt}`;
-  } else { roomInfoEl.innerHTML = ''; }
-
-  const nightsInfoEl = document.getElementById('nightsInfo');
-  let nights = 0;
-  if (checkIn && checkOut) {
-    nights = Math.round((new Date(checkOut) - new Date(checkIn)) / 86400000);
-    nightsInfoEl.innerHTML = nights > 0
-      ? `🌙 <strong>${nights} night(s)</strong>`
-      : `<span style="color:#c00000;">Check-out check-in ke baad ka hona chahiye</span>`;
-  } else { nightsInfoEl.innerHTML = ''; }
-
-  const suggestedEl = document.getElementById('suggestedInfo');
-  const mode = document.getElementById('bookingMode')?.value;
-  if (room && nights > 0 && mode !== 'Online-Airbnb') {
-    const suggested = room.rent_per_night * nights;
-    suggestedEl.innerHTML = `💡 Reference: ₹${suggested.toLocaleString("en-IN")} (${nights} nights × ₹${room.rent_per_night})`;
-  } else { suggestedEl.innerHTML = ''; }
-
-  onBookingAmountChange();
-}
-
-function onBookingAmountChange() {
-  const mode = document.getElementById('bookingMode')?.value;
-  const totalEl = document.getElementById('totalAmount');
-  if (mode === 'Online-Airbnb' && totalEl) {
-    const gross = parseFloat(document.getElementById('grossAmount')?.value) || 0;
-    const fee = parseFloat(document.getElementById('platformFee')?.value) || 0;
-    totalEl.value = gross - fee > 0 ? gross - fee : '';
-    totalEl.readOnly = true;
-    totalEl.style.background = '#f0f7ff';
-  } else if (totalEl) {
-    totalEl.readOnly = false;
-    totalEl.style.background = '';
-  }
-  const total = parseFloat(totalEl?.value) || 0;
-  const advance = parseFloat(document.getElementById('advanceAmount')?.value) || 0;
-  const balance = total - advance;
-  const balanceEl = document.getElementById('balanceInfo');
-  if (balanceEl) {
-    if (total > 0) {
-      balanceEl.innerHTML = balance > 0
-        ? `<span style="color:#C0392B;">💳 Balance Due: ₹${balance.toLocaleString('en-IN')}</span>`
-        : `<span style="color:#2E7D32;">✅ Fully Paid</span>`;
-    } else {
-      balanceEl.innerHTML = '';
-    }
-  }
-}
-
-// Image compression
-function compressImage(file, maxDim = 1280, quality = 0.7) {
-  return new Promise((resolve) => {
+function compressImage(file, maxDim=800, quality=0.5) {
+  return new Promise(resolve => {
     const img = new Image();
     const reader = new FileReader();
-    reader.onload = (e) => { img.src = e.target.result; };
+    reader.onload = e => { img.src = e.target.result; };
     img.onload = () => {
-      let { width, height } = img;
+      let {width,height} = img;
       if (width > maxDim || height > maxDim) {
-        if (width > height) { height = Math.round(height * (maxDim / width)); width = maxDim; }
-        else { width = Math.round(width * (maxDim / height)); height = maxDim; }
+        if (width>height) { height = Math.round(height*(maxDim/width)); width = maxDim; }
+        else { width = Math.round(width*(maxDim/height)); height = maxDim; }
       }
-      const canvas = document.createElement('canvas');
-      canvas.width = width; canvas.height = height;
-      canvas.getContext('2d').drawImage(img, 0, 0, width, height);
-      canvas.toBlob((blob) => resolve(blob || file), 'image/jpeg', quality);
+      const c = document.createElement('canvas');
+      c.width = width; c.height = height;
+      c.getContext('2d').drawImage(img, 0, 0, width, height);
+      c.toBlob(blob => resolve(blob || file), 'image/jpeg', quality);
     };
     img.onerror = () => resolve(file);
     reader.readAsDataURL(file);
   });
 }
 
-// Upload from 8 individual guest slots
-async function uploadMultipleIdPhotos(bookingId) {
-  const guestCount = Math.min(parseInt(document.getElementById('guests')?.value) || 1, 8);
-  const paths = [];
+// ============ DASHBOARD ============
+async function renderDashboard() {
+  renderShell(`<div class="loading">Loading...</div>`, 'dashboard');
+  const today = new Date().toISOString().slice(0,10);
+  const [g, f] = await Promise.all([
+    sb.from("guest_register").select("*, rooms(unit_no, nickname)"),
+    sb.from("flats_status").select("room_id, status, cleaning_status"),
+  ]);
+  const ci = (g.data||[]).filter(x => x.check_in === today);
+  const co = (g.data||[]).filter(x => x.check_out === today);
+  const dirty = (f.data||[]).filter(x => x.cleaning_status==="Dirty" && x.status!=="Blocked-Maintenance");
+  const nm = g2 => `${g2.rooms?.unit_no||g2.room_id}${g2.rooms?.nickname?' ('+g2.rooms.nickname+')':''}`;
 
-  for (let i = 1; i <= guestCount; i++) {
-    // Camera ya Gallery — jo bhi selected hai woh use karo
-    const cameraInput = document.getElementById(`guestIdCamera${i}`);
-    const galleryInput = document.getElementById(`guestIdGallery${i}`);
-
-    // Camera ko priority — agar camera se liya toh woh, warna gallery
-    const file = (cameraInput?.files?.[0]) || (galleryInput?.files?.[0]) || null;
-    if (!file) continue;
-
-    const guestName = document.getElementById(`guestIdName${i}`)?.value?.trim() || `Guest${i}`;
-    const safeName = guestName.replace(/[^a-zA-Z0-9]/g, '_').substring(0, 20);
-    const compressed = await compressImage(file);
-    const path = `${bookingId}/${Date.now()}_${safeName}_g${i}.jpg`;
-
-    const { error } = await sb.storage
-      .from('id-proofs')
-      .upload(path, compressed, { contentType: 'image/jpeg' });
-
-    if (!error) paths.push(path);
-  }
-
-  return paths.length ? paths.join(',') : null;
+  renderShell(`
+    <div class="card">
+      <h1>📊 Dashboard</h1>
+      <div class="sub">${new Date().toLocaleDateString('en-IN',{weekday:'long',year:'numeric',month:'long',day:'numeric'})}</div>
+    </div>
+    <div class="stat-grid">
+      <div class="stat-card" style="border-left:4px solid var(--green);">
+        <div class="stat-num">${ci.length}</div>
+        <div class="stat-label">📥 Check-in Today</div>
+        ${ci.map(x=>`<div style="font-size:12px;margin-top:4px;">${x.guest_name} — ${nm(x)}</div>`).join('')||'<div class="sub" style="margin:4px 0 0;">Koi nahi</div>'}
+      </div>
+      <div class="stat-card" style="border-left:4px solid var(--primary);">
+        <div class="stat-num">${co.length}</div>
+        <div class="stat-label">📤 Check-out Today</div>
+        ${co.map(x=>`<div style="font-size:12px;margin-top:4px;">${x.guest_name} — ${nm(x)}</div>`).join('')||'<div class="sub" style="margin:4px 0 0;">Koi nahi</div>'}
+      </div>
+      <div class="stat-card" style="border-left:4px solid var(--red);">
+        <div class="stat-num">${dirty.length}</div>
+        <div class="stat-label">🧹 Need Cleaning</div>
+        ${dirty.map(x=>`<div style="font-size:12px;margin-top:4px;">${x.room_id}</div>`).join('')||'<div class="sub" style="margin:4px 0 0;">Sab clean ✅</div>'}
+      </div>
+    </div>
+    <div class="card"><button onclick="renderFYSummary()">📊 Financial Summary (CA/ITR)</button></div>
+  `, 'dashboard');
 }
-async function uploadIdPhotoIfAny(bookingId) {
-  const fileInput = document.getElementById('idPhoto');
-  if (!fileInput || !fileInput.files || !fileInput.files[0]) return null;
-  const file = fileInput.files[0];
-  const compressed = await compressImage(file);
-  const path = `${bookingId}/${Date.now()}_${file.name.replace(/\.[^.]+$/, '')}.jpg`;
-  const { error } = await sb.storage.from('id-proofs').upload(path, compressed, { contentType: 'image/jpeg' });
-  if (error) { console.error('Photo upload failed:', error.message); return null; }
-  return path;
-}
 
-async function saveNewBooking() {
-  const saveBtn = document.getElementById('saveBookingBtn');
-  if (saveBtn.disabled) return;
-  saveBtn.disabled = true;
-  saveBtn.textContent = '⏳ Saving...';
+// ============ REPORTS (Calendar) ============
+async function renderReports() {
+  renderShell(`<div class="loading">Loading...</div>`, 'reports');
+  const [rooms, bookings] = await Promise.all([
+    sb.from('rooms').select('room_id, unit_no, nickname').order('unit_no'),
+    sb.from('guest_register').select('booking_id, room_id, check_in, check_out, guest_name, booking_mode, total_amount'),
+  ]);
+  const yr = window._calY ?? new Date().getFullYear();
+  const mo = window._calM ?? new Date().getMonth();
+  const mName = new Date(yr,mo,1).toLocaleString('default',{month:'long'});
+  const dim = new Date(yr,mo+1,0).getDate();
+  const fd = new Date(yr,mo,1).getDay();
+  const mp = `${yr}-${String(mo+1).padStart(2,'0')}`;
 
-  const guestName = document.getElementById('guestName').value.trim();
-  const guestPhone = document.getElementById('guestPhone').value.trim();
-  const idProofType = document.getElementById('idProofType').value;
-  const guestIdNo = document.getElementById('guestIdNo').value.trim();
-  const roomId = document.getElementById('roomId').value;
-  const bookingMode = document.getElementById('bookingMode').value;
-  const grossAmount = bookingMode === 'Online-Airbnb' ? (parseFloat(document.getElementById('grossAmount').value) || 0) : null;
-  const platformFee = bookingMode === 'Online-Airbnb' ? (parseFloat(document.getElementById('platformFee').value) || 0) : 0;
-  const checkIn = document.getElementById('checkIn').value;
-  const checkOut = document.getElementById('checkOut').value;
-  const guests = parseInt(document.getElementById('guests').value) || 1;
-  const totalAmount = parseFloat(document.getElementById('totalAmount').value) || 0;
-  const advanceAmount = parseFloat(document.getElementById('advanceAmount').value) || 0;
-  const advancePaymentMode = document.getElementById('advancePaymentMode').value;
-  const notes = document.getElementById('bookingNotes').value.trim();
-
-  if (!guestName || !roomId) {
-    document.getElementById('addBookingErr').innerHTML = '<div class="error">Guest name aur property required hai</div>';
-    saveBtn.disabled = false; saveBtn.textContent = '💾 Save Booking';
-    return;
-  }
-
-  // Clash check
-  if (checkIn && checkOut) {
-    const { data: existing } = await sb.from('guest_register')
-      .select('booking_id, guest_name, check_in, check_out').eq('room_id', roomId);
-    const clash = (existing || []).find(b =>
-      b.check_in && b.check_out && b.check_in < checkOut && b.check_out > checkIn);
-    if (clash) {
-      document.getElementById('addBookingErr').innerHTML =
-        `<div class="error">⚠️ Property already booked hai! (${clash.guest_name}, ${clash.check_in} → ${clash.check_out})</div>`;
-      saveBtn.disabled = false; saveBtn.textContent = '💾 Save Booking';
-      return;
-    }
-  }
-
-  const bookingId = 'B' + Date.now();
-  const photoPathsCombined = await uploadMultipleIdPhotos(bookingId);
-  const firstPhotoPath = photoPathsCombined ? photoPathsCombined.split(',')[0] : null;
-
-  const { error } = await sb.from('guest_register').insert({
-    booking_id: bookingId, guest_name: guestName, phone: guestPhone || null,
-    id_proof_type: idProofType || null, id_proof_no: guestIdNo || null,
-    id_proof_photo_path: firstPhotoPath, id_proof_photo_paths: photoPathsCombined,
-    room_id: roomId, booking_mode: bookingMode, gross_amount: grossAmount, platform_fee: platformFee,
-    check_in: checkIn || null, check_out: checkOut || null, guests,
-    total_amount: totalAmount,
-    payment_status: advanceAmount >= totalAmount && totalAmount > 0 ? 'Paid' : (advanceAmount > 0 ? 'Partial' : 'Unpaid'),
-    notes: notes || null, booked_by: SESSION.displayName || SESSION.role
+  const bMap = {};
+  (bookings.data||[]).forEach(b => {
+    if (!b.check_in||!b.check_out) return;
+    let c = b.check_in;
+    while (c < b.check_out) { bMap[`${b.room_id}_${c}`] = {guest:b.guest_name,mode:b.booking_mode}; c = dateAdd(c,1); }
   });
 
-  if (error) {
-    document.getElementById('addBookingErr').innerHTML = `<div class="error">${error.message}</div>`;
-    saveBtn.disabled = false; saveBtn.textContent = '💾 Save Booking';
-    return;
+  const mb = (bookings.data||[]).filter(b=>b.check_in?.startsWith(mp));
+  const pm = await getPaidMap(mb.map(b=>b.booking_id));
+  const rev = mb.reduce((s,b)=>s+(pm[b.booking_id]||0),0);
+  const on = mb.filter(b=>b.booking_mode==='Online-Airbnb').length;
+  const off = mb.length - on;
+  const trn = (rooms.data?.length||0)*dim;
+  const bn = Object.keys(bMap).filter(k=>k.includes(`_${mp}`)).length;
+  const occ = trn>0?Math.round(bn/trn*100):0;
+
+  let html = `
+    <div class="card">
+      <h1>📈 Reports — ${mName} ${yr}</h1>
+      <div class="sub">Live data from bookings</div>
+    </div>
+    <div class="card">
+      <div class="metric-row"><span class="metric-label">Bookings</span><span class="metric-value">${mb.length}</span></div>
+      <div class="metric-row"><span class="metric-label">Revenue</span><span class="metric-value">₹${rev.toLocaleString('en-IN')}</span></div>
+      <div class="metric-row"><span class="metric-label">Online / Offline</span><span class="metric-value">${on} / ${off}</span></div>
+      <div class="metric-row"><span class="metric-label">Occupancy</span><span class="metric-value">${occ}%</span></div>
+    </div>
+    <div class="card" style="text-align:center;background:var(--dark);color:#fff;">
+      <h2 style="color:#fff;">📆 ${mName} ${yr}</h2>
+      <div class="btn-row" style="justify-content:center;margin-top:8px;">
+        <button class="secondary btn-sm" onclick="chMo(-1)">◀ Prev</button>
+        <button class="secondary btn-sm" onclick="chMo(1)">Next ▶</button>
+      </div>
+    </div>`;
+
+  const days = ['S','M','T','W','T','F','S'];
+  const todayStr = new Date().toISOString().slice(0,10);
+
+  (rooms.data||[]).forEach(r => {
+    html += `<div class="card" style="padding:10px 12px;">
+      <div style="font-weight:700;font-size:13px;margin-bottom:6px;">${r.unit_no} <span style="font-weight:400;color:var(--muted);font-size:12px;">${r.nickname||''}</span></div>
+      <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:3px;">`;
+    days.forEach(d => { html += `<div style="font-size:10px;font-weight:600;color:var(--muted);text-align:center;">${d}</div>`; });
+    for (let i=0;i<fd;i++) html += `<div style="height:36px;"></div>`;
+
+    for (let d=1;d<=dim;d++) {
+      const ds = `${yr}-${String(mo+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+      const k = `${r.room_id}_${ds}`;
+      const bk = bMap[k];
+      const isT = ds===todayStr;
+      let bg = '#E8F5E9';
+      let gn = '';
+      if (bk) { bg = bk.mode==='Online-Airbnb'?'#E1EFFE':'#FDF6B2'; gn = bk.guest?.split(' ')[0]||'B'; }
+      const cls = `cal-cell${bk?' booked':''}${isT?' today':''}`;
+      const click = bk ? `onclick="showBookingPopup('${r.room_id}','${ds}')"` : '';
+      const title = bk ? `title="${bk.guest||'Booked'}"` : isT ? 'title="Today"' : '';
+      html += `<div class="${cls}" style="background:${bg};" ${click} ${title}>
+        <div${isT?' style="color:var(--primary);"':''}>${d}${isT?' ●':''}</div>
+        ${bk?`<div class="cal-guest">${gn}</div>`:''}
+      </div>`;
+    }
+    html += `</div></div>`;
+  });
+
+  html += `<div class="card" style="text-align:center;padding:10px;">
+    <span style="background:#E8F5E9;padding:3px 10px;border-radius:10px;font-size:12px;">Free</span>
+    <span style="background:#E1EFFE;padding:3px 10px;border-radius:10px;font-size:12px;margin-left:6px;">Online</span>
+    <span style="background:#FDF6B2;padding:3px 10px;border-radius:10px;font-size:12px;margin-left:6px;">Offline</span>
+  </div>`;
+
+  renderShell(html, 'reports');
+  window._calM = mo; window._calY = yr;
+}
+
+function chMo(d) {
+  let m = (window._calM??new Date().getMonth())+d;
+  let y = window._calY??new Date().getFullYear();
+  if (m>11){m=0;y++;} if (m<0){m=11;y--;}
+  window._calM=m; window._calY=y; renderReports();
+}
+
+// Calendar click popup
+async function showBookingPopup(roomId, dateStr) {
+  const {data:bks} = await sb.from('guest_register')
+    .select('*, rooms(unit_no, nickname, property_name)')
+    .eq('room_id', roomId).lte('check_in', dateStr).gt('check_out', dateStr);
+  const b = (bks||[])[0];
+  if (!b) return;
+  const {data:pays} = await sb.from('payment_history').select('amount').eq('booking_id', b.booking_id);
+  const paid = (pays||[]).reduce((s,p)=>s+(p.amount||0),0);
+  const bal = (b.total_amount||0) - paid;
+  const nights = b.check_in&&b.check_out ? Math.round((new Date(b.check_out)-new Date(b.check_in))/864e5) : '-';
+  const idPaths = (b.id_proof_photo_paths||b.id_proof_photo_path||'').split(',').filter(Boolean);
+
+  const modal = document.createElement('div');
+  modal.className = 'modal-overlay';
+  modal.onclick = e => { if(e.target===modal) modal.remove(); };
+  modal.innerHTML = `<div class="modal-box">
+    <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">✕</button>
+    <h2>📅 Booking Details</h2>
+    <div class="metric-row"><span class="metric-label">Guest</span><span class="metric-value" style="font-size:15px;">${b.guest_name||'-'}</span></div>
+    <div class="metric-row"><span class="metric-label">Phone</span><span style="font-size:14px;">${b.phone||'-'}</span></div>
+    <div class="metric-row"><span class="metric-label">Property</span><span style="font-size:13px;">${b.rooms?.property_name||''}<br>${b.rooms?.unit_no||''} · ${b.rooms?.nickname||''}</span></div>
+    <div class="metric-row"><span class="metric-label">Mode</span><span class="badge ${b.booking_mode==='Online-Airbnb'?'blue':'yellow'}">${b.booking_mode||'Offline'}</span></div>
+    <div class="metric-row"><span class="metric-label">Booked By</span><span>${b.booked_by||'-'}</span></div>
+    <div class="metric-row"><span class="metric-label">Check-in</span><span style="font-weight:600;">${b.check_in||'-'}</span></div>
+    <div class="metric-row"><span class="metric-label">Check-out</span><span style="font-weight:600;">${b.check_out||'-'}</span></div>
+    <div class="metric-row"><span class="metric-label">Nights</span><span class="metric-value">${nights}</span></div>
+    <div class="metric-row"><span class="metric-label">Total</span><span class="metric-value">₹${(b.total_amount||0).toLocaleString('en-IN')}</span></div>
+    <div class="metric-row"><span class="metric-label">Paid</span><span class="metric-value" style="color:var(--green);">₹${paid.toLocaleString('en-IN')}</span></div>
+    <div class="metric-row"><span class="metric-label">Balance</span><span class="metric-value${bal>0?' warn':''}">₹${bal.toLocaleString('en-IN')}</span></div>
+    ${idPaths.length?`<div style="margin-top:10px;"><div class="section-title">ID Photos</div><div class="btn-row">${idPaths.map((p,i)=>`<button class="btn-sm outline" onclick="dlIdPhoto('${p}')">📥 Guest ${i+1}</button>`).join('')}</div></div>`:''}
+    ${b.notes?`<div style="margin-top:10px;padding:10px;background:var(--bg);border-radius:8px;font-size:13px;"><strong>Notes:</strong> ${b.notes}</div>`:''}
+    <div class="btn-row" style="margin-top:14px;">
+      <button class="btn-sm" onclick="this.closest('.modal-overlay').remove();editBooking('${b.booking_id}');">✏️ Edit</button>
+      ${bal>0?`<button class="btn-sm secondary" onclick="this.closest('.modal-overlay').remove();recordPayment('${b.booking_id}');">💰 Pay</button>`:''}
+      <button class="btn-sm outline" onclick="this.closest('.modal-overlay').remove();">Close</button>
+    </div>
+  </div>`;
+  document.body.appendChild(modal);
+}
+
+// ============ FY SUMMARY (CA VIEW) ============
+async function renderFYSummary(range='FY') {
+  const isCA = SESSION.role === 'ca';
+  if (!isCA) renderShell(`<div class="loading">Loading...</div>`, 'dashboard');
+
+  const now = new Date(), today = now.toISOString().slice(0,10);
+  let s,e,label;
+  if(range==='Today'){s=today;e=today;label='Today';}
+  else if(range==='Week'){let d=new Date(now);d.setDate(now.getDate()-7);s=d.toISOString().slice(0,10);e=today;label='Last 7 Days';}
+  else if(range==='Month'){s=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-01';e=today;label='This Month';}
+  else if(range==='Quarter'){let q=Math.floor(now.getMonth()/3)*3;s=now.getFullYear()+'-'+String(q+1).padStart(2,'0')+'-01';e=today;label='This Quarter';}
+  else if(range==='YTD'){s=now.getFullYear()+'-04-01';e=today;label='YTD';}
+  else{let fy=now.getMonth()>=3?now.getFullYear():now.getFullYear()-1;s=fy+'-04-01';e=(fy+1)+'-03-31';label=`FY ${fy}-${fy+1}`;}
+
+  const [gs,ex,py] = await Promise.all([
+    sb.from('guest_register').select('booking_id,check_in,total_amount,room_id,guest_name'),
+    sb.from('expenses').select('amount,month'),
+    sb.from('payment_history').select('booking_id,amount'),
+  ]);
+
+  const fg = (gs.data||[]).filter(g=>g.check_in>=s&&g.check_in<=e);
+  const ids = fg.map(g=>g.booking_id);
+  const pm = {};
+  (py.data||[]).forEach(p=>{if(ids.includes(p.booking_id))pm[p.booking_id]=(pm[p.booking_id]||0)+(p.amount||0);});
+  const inc = fg.reduce((a,g)=>a+(pm[g.booking_id]||0),0);
+  const exp = (ex.data||[]).reduce((a,x)=>a+(x.amount||0),0);
+  const net = inc - exp;
+
+  const btns = ['Today','Week','Month','Quarter','YTD','FY'].map(r=>
+    `<button class="${r===range?'':'secondary'} btn-sm" onclick="renderFYSummary('${r}')">${r}</button>`
+  ).join('');
+
+  const tbl = `<div class="table-wrap"><table>
+    <thead><tr><th>ID</th><th>Guest</th><th>Room</th><th>Check-in</th><th>Received</th></tr></thead>
+    <tbody>${fg.map(g=>`<tr><td>${g.booking_id}</td><td>${g.guest_name}</td><td>${g.room_id}</td><td>${g.check_in}</td><td>₹${(pm[g.booking_id]||0).toLocaleString('en-IN')}</td></tr>`).join('')}</tbody>
+  </table></div>`;
+
+  window._fyData = {label,startDate:s,endDate:e,totalIncome:inc,totalExpenses:exp,netProfit:net,bookings:fg,paidMap:pm};
+
+  if (isCA) {
+    appEl.innerHTML = `<div class="ca-wrap">
+      <div class="ca-header">
+        <img src="assets/logo.png" alt="" style="width:48px;height:48px;object-fit:contain;border-radius:10px;margin-bottom:6px;" />
+        <h1>${BRAND}</h1>
+        <div class="sub">👋 ${SESSION.displayName||'CA'} — Accountant</div>
+        <button class="ca-logout" onclick="logout()">🚪 Logout</button>
+      </div>
+      <div class="card">
+        <div class="section-title">📊 Financial Summary</div>
+        <div class="sub">${label} — ${s} to ${e}</div>
+        <div class="btn-row">${btns}</div>
+        <button class="outline btn-sm" onclick="downloadFYData()" style="margin-top:6px;">⬇️ Download CSV</button>
+      </div>
+      <div class="card">
+        <div class="metric-row"><span class="metric-label">Income (Received)</span><span class="metric-value">₹${inc.toLocaleString('en-IN')}</span></div>
+        <div class="metric-row"><span class="metric-label">Expenses</span><span class="metric-value warn">₹${exp.toLocaleString('en-IN')}</span></div>
+        <div class="metric-row"><span class="metric-label">Net Profit</span><span class="metric-value" style="color:${net>=0?'var(--green)':'var(--red)'};">₹${net.toLocaleString('en-IN')}</span></div>
+      </div>
+      <div class="card"><div class="section-title">Bookings (${fg.length})</div>${tbl}</div>
+      <div class="card" style="text-align:center;">
+        <button class="ca-logout" onclick="logout()">🚪 Logout</button>
+      </div>
+    </div>`;
+  } else {
+    renderShell(`
+      <div class="card">
+        <h1>📊 Financial Summary</h1>
+        <div class="sub">${label} — ${s} to ${e}</div>
+        <div class="btn-row">${btns}</div>
+        <button class="secondary btn-sm" onclick="renderDashboard()">← Back</button>
+        <button class="outline btn-sm" onclick="downloadFYData()">⬇️ Download CSV</button>
+      </div>
+      <div class="card">
+        <div class="metric-row"><span class="metric-label">Income</span><span class="metric-value">₹${inc.toLocaleString('en-IN')}</span></div>
+        <div class="metric-row"><span class="metric-label">Expenses</span><span class="metric-value warn">₹${exp.toLocaleString('en-IN')}</span></div>
+        <div class="metric-row"><span class="metric-label">Net Profit</span><span class="metric-value" style="color:${net>=0?'var(--green)':'var(--red)'};">₹${net.toLocaleString('en-IN')}</span></div>
+      </div>
+      <div class="card"><div class="section-title">Bookings (${fg.length})</div>${tbl}</div>
+    `, 'dashboard');
   }
+}
 
-  // Advance payment record
-  if (advanceAmount > 0) {
-    await sb.from('payment_history').insert({
-      booking_id: bookingId, amount: advanceAmount,
-      payment_mode: advancePaymentMode || null, notes: 'Advance at booking'
-    });
-  }
+function downloadFYData() {
+  const d = window._fyData; if (!d) return;
+  let csv = `Period,${d.label}\nFrom,${d.startDate}\nTo,${d.endDate}\nIncome,${d.totalIncome}\nExpenses,${d.totalExpenses}\nProfit,${d.netProfit}\n\nBooking ID,Guest,Room,Check-in,Received\n`;
+  d.bookings.forEach(g => { csv += `${g.booking_id},${g.guest_name},${g.room_id},${g.check_in},${d.paidMap[g.booking_id]||0}\n`; });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([csv],{type:'text/csv'}));
+  a.download = `Financial_${d.label}.csv`; a.click();
+}
 
-  // Mark room as Booked
-  await sb.from('flats_status').upsert({ room_id: roomId, status: 'Booked' });
 
-  // FIX Suggestion B: WhatsApp share — verified working
-  const propertyText = document.getElementById('roomId').selectedOptions[0]?.text || 'N/A';
-  const balanceAmount = totalAmount - advanceAmount;
-  const waMsg = [
-    '🏠 *New Booking Confirmed!*',
-    '',
-    `👤 Guest: ${guestName}`,
-    `📞 Phone: ${guestPhone || 'N/A'}`,
-    `🏡 Property: ${propertyText}`,
-    `📅 Check-in: ${checkIn || 'N/A'}`,
-    `📅 Check-out: ${checkOut || 'N/A'}`,
-    `💰 Total: ₹${totalAmount.toLocaleString('en-IN')}`,
-    `💵 Advance: ₹${advanceAmount.toLocaleString('en-IN')}`,
-    `💳 Balance: ₹${balanceAmount.toLocaleString('en-IN')}`,
-    `🔖 Mode: ${bookingMode}`,
-    '',
-    '— The Unique Haven Home Stay'
-  ].join('\n');
+// ============ MANAGE ROOMS ============
+async function renderManageRooms() {
+  renderShell(`<div class="loading">Loading...</div>`, 'rooms');
+  const {data:rooms,error} = await sb.from("rooms").select("*").order("room_id");
+  if (error) { renderShell(`<div class="error">${error.message}</div>`, 'rooms'); return; }
+  const isO = SESSION.role==='owner';
+  renderShell(`
+    <div class="card">
+      <h1>🏠 Manage Rooms</h1>
+      <div class="sub">${rooms.length} properties</div>
+      ${isO?`<button onclick="renderAddRoom()">➕ Add Property</button>`:''}
+    </div>
+    <div class="card"><div class="table-wrap"><table>
+      <thead><tr><th>ID</th><th>Property</th><th>Unit</th><th>Nickname</th><th>Rent</th><th>Status</th>${isO?'<th>Actions</th>':''}</tr></thead>
+      <tbody>${rooms.map(r=>`<tr>
+        <td><strong>${r.room_id}</strong></td>
+        <td style="max-width:200px;">${r.property_name||'-'}</td>
+        <td>${r.unit_no||'-'}</td>
+        <td>${r.nickname||'-'}</td>
+        <td>₹${r.rent_per_night||0}</td>
+        <td><span class="badge ${r.bookable?'green':'red'}">${r.mode||'On'}</span></td>
+        ${isO?`<td class="table-actions">
+          <button class="btn-sm" onclick="editRoom('${r.room_id}')">✏️ Edit</button>
+          <button class="btn-sm danger" onclick="deleteRoom('${r.room_id}','${r.unit_no}')">🗑️</button>
+        </td>`:''}
+      </tr>`).join('')}</tbody>
+    </table></div></div>`, 'rooms');
+}
 
-  setTimeout(() => {
-    window.open(`https://wa.me/?text=${encodeURIComponent(waMsg)}`, '_blank');
-  }, 400);
+function roomFormFields(r={}) {
+  return `
+    <div class="form-grid">
+      <div class="form-group"><label>Room ID</label><input id="roomId" value="${r.room_id||''}" ${r.room_id?'readonly':''} placeholder="e.g. GOM-601" /></div>
+      <div class="form-group"><label>Property Name</label><input id="propertyName" value="${r.property_name||''}" placeholder="Full Airbnb listing name" /></div>
+    </div>
+    <div class="form-grid">
+      <div class="form-group"><label>Unit No</label><input id="unitNo" value="${r.unit_no||''}" placeholder="e.g. FLAT101, Villa (One)" /></div>
+      <div class="form-group"><label>Nickname</label><input id="nickname" value="${r.nickname||''}" placeholder="Short name" /></div>
+    </div>
+    <div class="form-grid">
+      <div class="form-group"><label>Unit Type</label><select id="unitType"><option value="Flat" ${r.unit_type==='Flat'?'selected':''}>Flat</option><option value="Villa" ${r.unit_type==='Villa'?'selected':''}>Villa</option></select></div>
+      <div class="form-group"><label>Floor</label><input id="floor" value="${r.floor||''}" placeholder="1st, 2nd, ALL" /></div>
+    </div>
+    <div class="form-grid">
+      <div class="form-group"><label>Rent/Night ₹</label><input id="rent" type="number" value="${r.rent_per_night||''}" /></div>
+      <div class="form-group"><label>Max Guests</label><input id="maxGuests" type="number" value="${r.max_guests||''}" /></div>
+    </div>
+    <div class="form-group"><label>Address</label><input id="address" value="${r.address||''}" /></div>
+    <div class="form-grid">
+      <div class="form-group"><label>Mode</label><select id="mode"><option value="On" ${r.mode!=='Off'?'selected':''}>On</option><option value="Off" ${r.mode==='Off'?'selected':''}>Off</option></select></div>
+      <div class="form-group" style="justify-content:center;">
+        <label style="display:flex;align-items:center;gap:8px;margin-top:8px;">
+          <input type="checkbox" id="bookable" ${r.bookable!==false?'checked':''} /> Bookable
+        </label>
+      </div>
+    </div>
+    <div class="form-group"><label>Notes</label><textarea id="notes">${r.notes||''}</textarea></div>`;
+}
 
+function collectRoomForm() {
+  return {
+    room_id:document.getElementById('roomId').value.trim(),
+    property_name:document.getElementById('propertyName').value.trim()||null,
+    address:document.getElementById('address').value.trim()||null,
+    unit_type:document.getElementById('unitType').value,
+    unit_no:document.getElementById('unitNo').value.trim(),
+    floor:document.getElementById('floor').value.trim()||null,
+    nickname:document.getElementById('nickname').value.trim()||null,
+    rent_per_night:parseFloat(document.getElementById('rent').value)||null,
+    max_guests:parseInt(document.getElementById('maxGuests').value)||null,
+    mode:document.getElementById('mode').value,
+    bookable:document.getElementById('bookable').checked,
+    notes:document.getElementById('notes').value.trim()||null,
+  };
+}
+
+async function renderAddRoom() {
+  renderShell(`<div class="card"><h1>➕ Add Property</h1><button class="secondary btn-sm" onclick="renderManageRooms()">← Back</button></div>
+    <div class="card">${roomFormFields()}<button onclick="saveNewRoom()">💾 Save</button><div id="addErr"></div></div>`, 'rooms');
+}
+
+async function saveNewRoom() {
+  const o = collectRoomForm();
+  if (!o.room_id||!o.unit_no) { document.getElementById('addErr').innerHTML='<div class="error">Room ID & Unit No required</div>'; return; }
+  const {error} = await sb.from('rooms').insert(o);
+  if (error) { document.getElementById('addErr').innerHTML=`<div class="error">${error.message}</div>`; return; }
+  await sb.from('flats_status').insert({room_id:o.room_id,status:'Free',cleaning_status:'Clean'});
+  renderManageRooms();
+}
+
+async function editRoom(id) {
+  const {data:r} = await sb.from('rooms').select('*').eq('room_id',id).single();
+  if (!r) { alert('Not found'); return; }
+  renderShell(`<div class="card"><h1>✏️ Edit Property</h1><button class="secondary btn-sm" onclick="renderManageRooms()">← Back</button></div>
+    <div class="card">${roomFormFields(r)}<button onclick="updateRoom('${id}')">💾 Update</button><div id="editErr"></div></div>`, 'rooms');
+}
+
+async function updateRoom(id) {
+  const o = collectRoomForm(); delete o.room_id;
+  if (!o.unit_no) { document.getElementById('editErr').innerHTML='<div class="error">Unit No required</div>'; return; }
+  const {error} = await sb.from('rooms').update(o).eq('room_id',id);
+  if (error) { document.getElementById('editErr').innerHTML=`<div class="error">${error.message}</div>`; return; }
+  renderManageRooms();
+}
+
+async function deleteRoom(id, name) {
+  if (!confirm(`Delete "${name}"?`)) return;
+  await sb.from('flats_status').delete().eq('room_id',id);
+  await sb.from('rooms').delete().eq('room_id',id);
+  renderManageRooms();
+}
+
+// ============ FLATS STATUS ============
+async function renderFlatsStatus() {
+  renderShell(`<div class="loading">Loading...</div>`, 'flats');
+  const {data:flats} = await sb.from('flats_status').select('*, rooms(unit_no, nickname, property_name)').order('room_id');
+  const can = ['owner','viewer','manager'].includes(SESSION.role);
+  renderShell(`
+    <div class="card"><h1>🛏️ Flats Status</h1><div class="sub">${(flats||[]).length} flats</div></div>
+    <div class="card"><div class="table-wrap"><table>
+      <thead><tr><th>Property</th><th>Unit</th><th>Status</th><th>Cleaning</th><th>Issue</th>${can?'<th>Action</th>':''}</tr></thead>
+      <tbody>${(flats||[]).map(f=>`<tr>
+        <td>${f.rooms?.property_name||'-'}</td>
+        <td><strong>${f.rooms?.unit_no||f.room_id}</strong><br><small>${f.rooms?.nickname||''}</small></td>
+        <td><span class="badge ${f.status==='Free'?'green':f.status==='Booked'?'blue':'red'}">${f.status||'Free'}</span></td>
+        <td><span class="badge ${f.cleaning_status==='Clean'?'green':f.cleaning_status==='In Progress'?'yellow':'red'}">${f.cleaning_status||'Clean'}</span></td>
+        <td>${f.issue||'-'}</td>
+        ${can?`<td><button class="btn-sm" onclick="editFlatStatus('${f.room_id}')">✏️ Edit</button></td>`:''}
+      </tr>`).join('')}</tbody>
+    </table></div></div>`, 'flats');
+}
+
+async function editFlatStatus(id) {
+  const {data:f} = await sb.from('flats_status').select('*, rooms(unit_no, nickname)').eq('room_id',id).single();
+  if (!f) return;
+  const today = new Date().toISOString().slice(0,10);
+  renderShell(`
+    <div class="card"><h1>✏️ Flat Status</h1><div class="sub">${f.rooms?.unit_no||id}</div>
+      <button class="secondary btn-sm" onclick="renderFlatsStatus()">← Back</button></div>
+    <div class="card">
+      <div class="form-group"><label>Status</label><select id="flatStatus">
+        <option value="Free" ${f.status==='Free'?'selected':''}>Free</option>
+        <option value="Booked" ${f.status==='Booked'?'selected':''}>Booked</option>
+        <option value="Blocked-Maintenance" ${f.status==='Blocked-Maintenance'?'selected':''}>Blocked</option>
+      </select></div>
+      <div class="form-group"><label>Cleaning</label><select id="cleanSt">
+        <option value="Clean" ${f.cleaning_status==='Clean'?'selected':''}>Clean</option>
+        <option value="Dirty" ${f.cleaning_status==='Dirty'?'selected':''}>Dirty</option>
+        <option value="In Progress" ${f.cleaning_status==='In Progress'?'selected':''}>In Progress</option>
+      </select></div>
+      <div class="form-group"><label>Issue</label><input id="flatIssue" value="${f.issue||''}" /></div>
+      <div class="form-group"><label>Last Cleaned</label><input id="lastCleaned" type="date" value="${f.last_cleaned||today}" /></div>
+      <button onclick="saveFlatStatus('${id}')">💾 Update</button><div id="flatErr"></div>
+    </div>`, 'flats');
+}
+
+async function saveFlatStatus(id) {
+  const {error} = await sb.from('flats_status').update({
+    status:document.getElementById('flatStatus').value,
+    cleaning_status:document.getElementById('cleanSt').value,
+    issue:document.getElementById('flatIssue').value.trim()||null,
+    last_cleaned:document.getElementById('lastCleaned').value||null,
+  }).eq('room_id',id);
+  if (error) { document.getElementById('flatErr').innerHTML=`<div class="error">${error.message}</div>`; return; }
+  renderFlatsStatus();
+}
+
+// ============ MANAGE BOOKINGS ============
+async function renderManageBookings() {
+  renderShell(`<div class="loading">Loading...</div>`, 'bookings');
+  const {data:all,error} = await sb.from("guest_register")
+    .select("*, rooms(unit_no, nickname, property_name)").order("check_in",{ascending:false});
+  if (error) { renderShell(`<div class="error">${error.message}</div>`,'bookings'); return; }
+  const {data:rooms} = await sb.from('rooms').select('room_id, unit_no, nickname').order('unit_no');
+
+  const mf=SESSION.bookingFilter||'All', pf=SESSION.bookingPropFilter||'',
+    df=SESSION.bookingDateFilter||'', d1=SESSION.bookingDateFrom||'', d2=SESSION.bookingDateTo||'';
+
+  let f = all||[];
+  if (mf!=='All') f=f.filter(b=>b.booking_mode===mf);
+  if (pf) f=f.filter(b=>b.room_id===pf);
+  if (df) f=f.filter(b=>b.check_in===df);
+  if (d1) f=f.filter(b=>b.check_in>=d1);
+  if (d2) f=f.filter(b=>b.check_in<=d2);
+
+  const pm = await getPaidMap(f.map(b=>b.booking_id));
+  const canM = ['owner','viewer','manager'].includes(SESSION.role);
+  const canD = SESSION.role==='owner';
+
+  renderShell(`
+    <div class="card">
+      <h1>📅 Manage Bookings</h1>
+      <div class="sub">${f.length} bookings</div>
+      ${canM?`<button onclick="renderAddBooking()">➕ New Booking</button>`:''}
+    </div>
+    <div class="card">
+      <div class="section-title">🔍 Filters</div>
+      <div class="filter-bar">
+        <div class="filter-item"><label>Mode</label><select id="fMode">
+          <option value="All" ${mf==='All'?'selected':''}>All</option>
+          <option value="Online-Airbnb" ${mf==='Online-Airbnb'?'selected':''}>Online</option>
+          <option value="Offline" ${mf==='Offline'?'selected':''}>Offline</option>
+        </select></div>
+        <div class="filter-item"><label>Property</label><select id="fProp">
+          <option value="">All</option>
+          ${(rooms||[]).map(r=>`<option value="${r.room_id}" ${pf===r.room_id?'selected':''}>${r.nickname||r.unit_no}</option>`).join('')}
+        </select></div>
+        <div class="filter-item"><label>Date</label><input type="date" id="fDate" value="${df}" /></div>
+        <div class="filter-item"><label>From</label><input type="date" id="fFrom" value="${d1}" /></div>
+        <div class="filter-item"><label>To</label><input type="date" id="fTo" value="${d2}" /></div>
+        <div class="filter-item" style="flex-direction:row;gap:4px;align-items:flex-end;">
+          <button class="btn-sm" onclick="applyBkFilters()">🔍</button>
+          <button class="btn-sm outline" onclick="clearBkFilters()">✕</button>
+        </div>
+      </div>
+    </div>
+    <div class="card"><div class="table-wrap"><table>
+      <thead><tr><th>Guest</th><th>Property</th><th>Mode</th><th>By</th><th>ID</th><th>In</th><th>Out</th><th>Total</th><th>Paid</th><th>Due</th>${canM?'<th>Actions</th>':''}</tr></thead>
+      <tbody>${f.map(b=>{
+        const pd=pm[b.booking_id]||0, bal=(b.total_amount||0)-pd;
+        const ids=(b.id_proof_photo_paths||b.id_proof_photo_path||'').split(',').filter(Boolean);
+        return `<tr>
+          <td><strong>${b.guest_name||'-'}</strong><br><small>${b.phone||''}</small></td>
+          <td>${b.rooms?.property_name||'-'}<br><small>${b.rooms?.unit_no||''} · ${b.rooms?.nickname||''}</small></td>
+          <td><span class="badge ${b.booking_mode==='Online-Airbnb'?'blue':'yellow'}">${b.booking_mode==='Online-Airbnb'?'Online':'Offline'}</span></td>
+          <td><small>${b.booked_by||'-'}</small></td>
+          <td>${ids.length?ids.map((p,i)=>`<button class="btn-sm outline" style="margin:1px;" onclick="dlIdPhoto('${p}')">📎G${i+1}</button>`).join(''):'—'}</td>
+          <td>${b.check_in||'-'}</td><td>${b.check_out||'-'}</td>
+          <td>₹${(b.total_amount||0).toLocaleString('en-IN')}</td>
+          <td>₹${pd.toLocaleString('en-IN')}</td>
+          <td><span class="${bal>0?'metric-value warn':''}">₹${bal.toLocaleString('en-IN')}</span></td>
+          ${canM?`<td class="table-actions">
+            <button class="btn-sm" onclick="editBooking('${b.booking_id}')" title="Edit">✏️ Edit</button>
+            <button class="btn-sm secondary" onclick="recordPayment('${b.booking_id}')" title="Payment">💰 Pay</button>
+            ${bal>0?`<button class="btn-sm" onclick="markFullyPaid('${b.booking_id}')" title="Mark Paid">✅ Paid</button>`:''}
+            ${canD?`<button class="btn-sm danger" onclick="delBooking('${b.booking_id}','${(b.guest_name||'').replace(/'/g,"\\'")}','${b.room_id}')" title="Delete">🗑️ Del</button>`:''}
+          </td>`:''}</tr>`;}).join('')}</tbody>
+    </table></div></div>`, 'bookings');
+}
+
+function applyBkFilters() {
+  SESSION.bookingFilter=document.getElementById('fMode').value;
+  SESSION.bookingPropFilter=document.getElementById('fProp').value;
+  SESSION.bookingDateFilter=document.getElementById('fDate').value;
+  SESSION.bookingDateFrom=document.getElementById('fFrom').value;
+  SESSION.bookingDateTo=document.getElementById('fTo').value;
+  renderManageBookings();
+}
+function clearBkFilters() {
+  SESSION.bookingFilter='All'; SESSION.bookingPropFilter='';
+  SESSION.bookingDateFilter=''; SESSION.bookingDateFrom=''; SESSION.bookingDateTo='';
   renderManageBookings();
 }
 
-async function editBooking(bookingId) {
-  const { data: booking, error } = await sb.from('guest_register').select('*').eq('booking_id', bookingId).single();
-  if (error || !booking) { alert('Booking not found'); return; }
-  const { data: rooms } = await sb.from('rooms').select('room_id, unit_no, nickname, property_name, rent_per_night, bookable').order('room_id');
-  const { data: payments } = await sb.from('payment_history').select('*').eq('booking_id', bookingId).order('paid_at', { ascending: false });
+async function dlIdPhoto(path) {
+  const {data} = await sb.storage.from('id-proofs').createSignedUrl(path,300);
+  if (data?.signedUrl) { const a=document.createElement('a'); a.href=data.signedUrl; a.target='_blank'; a.download=path.split('/').pop(); document.body.appendChild(a); a.click(); a.remove(); }
+  else alert('Photo load failed');
+}
 
-  const totalPaid = (payments || []).reduce((s, p) => s + (p.amount || 0), 0);
-  const balance = (booking.total_amount || 0) - totalPaid;
+// ============ ADD BOOKING (Mobile-first, Camera+Gallery, 8 Guests) ============
+async function renderAddBooking() {
+  const {data:rooms} = await sb.from('rooms')
+    .select('room_id, unit_no, nickname, property_name, rent_per_night, bookable').order('room_id');
+  window._roomsCache = rooms||[];
 
-  let photoUrl = null;
-  if (booking.id_proof_photo_path) {
-    const { data: signed } = await sb.storage.from('id-proofs').createSignedUrl(booking.id_proof_photo_path, 300);
-    photoUrl = signed?.signedUrl || null;
+  let idSlots = '';
+  for (let i=1;i<=8;i++) {
+    idSlots += `
+      <div class="id-card" id="idSlot${i}" style="display:${i===1?'block':'none'};">
+        <div class="id-card-title">👤 Guest ${i}${i===1?' (Primary)':''}</div>
+        <input type="text" class="id-slot-name" id="gN${i}" placeholder="Guest ${i} naam" />
+        <div class="id-card-btns">
+          <button type="button" class="outline" onclick="document.getElementById('gCam${i}').click()">📷 Camera</button>
+          <button type="button" class="outline" onclick="document.getElementById('gGal${i}').click()">🖼️ Gallery</button>
+        </div>
+        <input type="file" id="gCam${i}" accept="image/*" capture="environment" style="display:none;" onchange="onIdPick(${i},'cam')" />
+        <input type="file" id="gGal${i}" accept="image/*" style="display:none;" onchange="onIdPick(${i},'gal')" />
+        <div class="file-info" id="idSt${i}"></div>
+      </div>`;
   }
 
   renderShell(`
     <div class="card">
-      <h1>✏️ Edit Booking</h1>
-      <button class="secondary" onclick="renderManageBookings()">← Back</button>
+      <h1>➕ New Booking</h1>
+      <button class="secondary btn-sm" onclick="renderManageBookings()">← Back</button>
     </div>
     <div class="card">
-      <input id="guestName" value="${booking.guest_name || ''}" placeholder="Guest Name" />
-      <input id="guestPhone" value="${booking.phone || ''}" placeholder="Phone" />
-      <select id="idProofType">
-        <option value="Aadhar"   ${booking.id_proof_type === 'Aadhar' ? 'selected' : ''}>Aadhar</option>
-        <option value="PAN"      ${booking.id_proof_type === 'PAN' ? 'selected' : ''}>PAN</option>
-        <option value="DL"       ${booking.id_proof_type === 'DL' ? 'selected' : ''}>Driving License</option>
-        <option value="Passport" ${booking.id_proof_type === 'Passport' ? 'selected' : ''}>Passport</option>
-      </select>
-      <input id="guestIdNo" value="${booking.id_proof_no || ''}" placeholder="ID Proof Number" />
-      ${photoUrl ? `<div class="sub">📎 <a href="${photoUrl}" target="_blank">Uploaded ID photo dekho</a></div>` : ''}
-      <label style="font-size:13px;color:#445;">Replace ID Proof Photo</label>
-      <input id="idPhoto" type="file" accept="image/*" capture="environment" />
-      <select id="roomId">${(rooms || []).map(r => `<option value="${r.room_id}" ${r.room_id === booking.room_id ? 'selected' : ''}>${r.property_name || ''} — ${r.unit_no}</option>`).join('')}</select>
-      <select id="bookingMode">
-        <option value="Offline" ${booking.booking_mode !== 'Online-Airbnb' ? 'selected' : ''}>Offline (Direct)</option>
-        <option value="Online-Airbnb" ${booking.booking_mode === 'Online-Airbnb' ? 'selected' : ''}>Online (Airbnb)</option>
-      </select>
-      <input id="checkIn" type="date" value="${booking.check_in || ''}" />
-      <input id="checkOut" type="date" value="${booking.check_out || ''}" />
-      <input id="guests" type="number" value="${booking.guests || 1}" />
-      <input id="totalAmount" type="number" value="${booking.total_amount || 0}" />
-      <select id="paymentStatus">
-        <option value="Unpaid"  ${booking.payment_status === 'Unpaid' ? 'selected' : ''}>Unpaid</option>
-        <option value="Partial" ${booking.payment_status === 'Partial' ? 'selected' : ''}>Partial</option>
-        <option value="Paid"    ${booking.payment_status === 'Paid' ? 'selected' : ''}>Paid</option>
-      </select>
-      <textarea id="bookingNotes">${booking.notes || ''}</textarea>
-      <button onclick="updateBooking('${bookingId}')">💾 Update Booking</button>
-      <div id="editBookingErr"></div>
+      <div class="form-grid">
+        <div class="form-group"><label>Guest Name *</label><input id="guestName" placeholder="Primary guest" /></div>
+        <div class="form-group"><label>Phone</label><input id="guestPhone" type="tel" placeholder="Mobile" /></div>
+      </div>
+      <div class="form-grid">
+        <div class="form-group"><label>Property *</label>
+          <select id="roomId" onchange="onRoomChg()">
+            <option value="">Select</option>
+            ${(rooms||[]).map(r=>`<option value="${r.room_id}">${r.nickname||r.unit_no} — ${(r.property_name||'').substring(0,30)}</option>`).join('')}
+          </select>
+          <div id="roomInfo" style="font-size:11px;color:var(--muted);margin-top:2px;"></div>
+        </div>
+        <div class="form-group"><label>Mode</label>
+          <select id="bookingMode" onchange="onModeChg()">
+            <option value="Offline">Offline (Direct)</option>
+            <option value="Online-Airbnb">Online (Airbnb)</option>
+          </select>
+        </div>
+      </div>
+
+      <div id="onlineBox" style="display:none;background:#f0f7ff;padding:12px;border-radius:8px;margin:6px 0;">
+        <div class="section-title">🌐 Airbnb Payout Details</div>
+        <div class="sub">Jo bank mein aaya — net payout amount neeche Total Amount mein daalo</div>
+      </div>
+
+      <div class="form-grid">
+        <div class="form-group"><label>Check-in</label><input id="checkIn" type="date" onchange="onRoomChg()" /></div>
+        <div class="form-group"><label>Check-out</label><input id="checkOut" type="date" onchange="onRoomChg()" /></div>
+      </div>
+      <div id="nightsInfo" style="font-size:12px;color:var(--muted);margin-bottom:6px;"></div>
+
+      <div class="form-grid">
+        <div class="form-group"><label>Guests</label><input id="guests" type="number" value="1" min="1" max="8" onchange="showIdSlots()" oninput="showIdSlots()" /></div>
+        <div class="form-group"><label>Total Amount ₹ * (net jo mila)</label>
+          <input id="totalAmount" type="number" placeholder="Actually kitna mila" oninput="onAmtChg()" />
+          <div id="sugInfo" style="font-size:11px;color:var(--muted);"></div>
+        </div>
+      </div>
+
+      <div class="form-grid">
+        <div class="form-group"><label>Advance ₹</label><input id="advanceAmt" type="number" value="0" oninput="onAmtChg()" /></div>
+        <div class="form-group"><label>Advance Mode</label>
+          <select id="advMode">
+            <option value="">--</option><option value="Cash">Cash</option>
+            <option value="UPI">UPI</option><option value="Bank">Bank</option>
+            <option value="Airbnb Payout">Airbnb Payout</option>
+          </select>
+        </div>
+      </div>
+      <div id="balInfo" style="font-size:13px;font-weight:600;margin:2px 0 8px;"></div>
+
+      <div style="background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:14px;margin-top:6px;">
+        <div class="section-title">🪪 ID Proof</div>
+        <div class="form-grid">
+          <div class="form-group"><label>ID Type</label>
+            <select id="idType"><option value="Aadhar" selected>Aadhar</option><option value="PAN">PAN</option><option value="DL">DL</option><option value="Passport">Passport</option></select>
+          </div>
+          <div class="form-group"><label>ID Number</label><input id="idNo" placeholder="e.g. 1234 5678 9012" /></div>
+        </div>
+        <div class="id-grid" id="idGrid">${idSlots}</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:6px;">📸 Camera se direct photo lo ya Gallery se select karo. Auto-compressed.</div>
+      </div>
+
+      <div class="form-group" style="margin-top:10px;"><label>Notes</label><textarea id="bkNotes" placeholder="Special requests..."></textarea></div>
+
+      <button id="saveBtn" onclick="saveBooking()" style="width:100%;padding:14px;font-size:15px;margin-top:10px;">💾 Save Booking</button>
+      <div id="addBkErr"></div>
+    </div>`, 'bookings');
+  showIdSlots();
+}
+
+function showIdSlots() {
+  const n = Math.min(parseInt(document.getElementById('guests')?.value)||1, 8);
+  for (let i=1;i<=8;i++) { const el=document.getElementById(`idSlot${i}`); if(el) el.style.display=i<=n?'block':'none'; }
+}
+
+function onIdPick(i, src) {
+  const inp = document.getElementById(src==='cam'?`gCam${i}`:`gGal${i}`);
+  const st = document.getElementById(`idSt${i}`);
+  const slot = document.getElementById(`idSlot${i}`);
+  if (inp?.files?.[0]) {
+    st.textContent = `✅ ${src==='cam'?'Camera':'Gallery'}: ${inp.files[0].name.substring(0,20)}`;
+    slot.classList.add('done');
+  }
+}
+
+function onModeChg() {
+  const m = document.getElementById('bookingMode').value;
+  document.getElementById('onlineBox').style.display = m==='Online-Airbnb'?'block':'none';
+  onAmtChg();
+}
+
+function onRoomChg() {
+  const rid = document.getElementById('roomId').value;
+  const ci = document.getElementById('checkIn').value;
+  const co = document.getElementById('checkOut').value;
+  const room = (window._roomsCache||[]).find(r=>r.room_id===rid);
+  const rInfo = document.getElementById('roomInfo');
+  if (room) rInfo.innerHTML = `₹${room.rent_per_night||0}/night · ${room.bookable?'✅ Bookable':'⚠️ Not Bookable'}`;
+  else rInfo.innerHTML = '';
+
+  const nInfo = document.getElementById('nightsInfo');
+  let nights = 0;
+  if (ci&&co) {
+    nights = Math.round((new Date(co)-new Date(ci))/864e5);
+    nInfo.innerHTML = nights>0?`🌙 <strong>${nights} night(s)</strong>`:`<span style="color:var(--red);">Check-out must be after check-in</span>`;
+  } else nInfo.innerHTML = '';
+
+  const sInfo = document.getElementById('sugInfo');
+  if (room&&nights>0) sInfo.innerHTML = `💡 Ref: ₹${(room.rent_per_night*nights).toLocaleString('en-IN')}`;
+  else sInfo.innerHTML = '';
+  onAmtChg();
+}
+
+function onAmtChg() {
+  const total = parseFloat(document.getElementById('totalAmount')?.value)||0;
+  const adv = parseFloat(document.getElementById('advanceAmt')?.value)||0;
+  const bal = total - adv;
+  const el = document.getElementById('balInfo');
+  if (el) {
+    if (total>0) el.innerHTML = bal>0?`<span style="color:var(--red);">💳 Balance: ₹${bal.toLocaleString('en-IN')}</span>`:`<span style="color:var(--green);">✅ Fully Paid</span>`;
+    else el.innerHTML = '';
+  }
+}
+
+async function uploadIdPhotos(bkId) {
+  const cnt = Math.min(parseInt(document.getElementById('guests')?.value)||1, 8);
+  const paths = [];
+  for (let i=1;i<=cnt;i++) {
+    const cam = document.getElementById(`gCam${i}`);
+    const gal = document.getElementById(`gGal${i}`);
+    const file = cam?.files?.[0] || gal?.files?.[0];
+    if (!file) continue;
+    try {
+      const name = (document.getElementById(`gN${i}`)?.value?.trim()||`Guest${i}`).replace(/[^a-zA-Z0-9]/g,'_').substring(0,20);
+      const comp = await compressImage(file);
+      const path = `${bkId}/${Date.now()}_${name}_g${i}.jpg`;
+      const {error} = await sb.storage.from('id-proofs').upload(path, comp, {contentType:'image/jpeg'});
+      if (!error) paths.push(path);
+    } catch(err) { console.warn(`Photo ${i} upload failed:`, err); }
+  }
+  return paths.length ? paths.join(',') : null;
+}
+
+async function saveBooking() {
+  const btn = document.getElementById('saveBtn');
+  if (btn.disabled) return;
+  btn.disabled=true; btn.textContent='⏳ Saving...';
+
+  try {
+    const gn=document.getElementById('guestName').value.trim();
+    const ph=document.getElementById('guestPhone').value.trim();
+    const rid=document.getElementById('roomId').value;
+    const mode=document.getElementById('bookingMode').value;
+    const ci=document.getElementById('checkIn').value;
+    const co=document.getElementById('checkOut').value;
+    const gs=parseInt(document.getElementById('guests').value)||1;
+    const tot=parseFloat(document.getElementById('totalAmount').value)||0;
+    const adv=parseFloat(document.getElementById('advanceAmt').value)||0;
+    const advMode=document.getElementById('advMode').value;
+    const idType=document.getElementById('idType').value;
+    const idNo=document.getElementById('idNo').value.trim();
+    const notes=document.getElementById('bkNotes').value.trim();
+
+    if (!gn||!rid) { document.getElementById('addBkErr').innerHTML='<div class="error">Guest name & property required</div>'; btn.disabled=false; btn.textContent='💾 Save Booking'; return; }
+
+    if (ci&&co) {
+      const {data:ex} = await sb.from('guest_register').select('booking_id,guest_name,check_in,check_out').eq('room_id',rid);
+      const clash = (ex||[]).find(b=>b.check_in&&b.check_out&&b.check_in<co&&b.check_out>ci);
+      if (clash) { document.getElementById('addBkErr').innerHTML=`<div class="error">⚠️ Clash: ${clash.guest_name} (${clash.check_in} → ${clash.check_out})</div>`; btn.disabled=false; btn.textContent='💾 Save Booking'; return; }
+    }
+
+    const bkId = 'B'+Date.now();
+    const photos = await uploadIdPhotos(bkId);
+
+    const {error} = await sb.from('guest_register').insert({
+      booking_id:bkId, guest_name:gn, phone:ph||null,
+      id_proof_type:idType||null, id_proof_no:idNo||null,
+      id_proof_photo_path:photos?photos.split(',')[0]:null,
+      id_proof_photo_paths:photos,
+      room_id:rid, booking_mode:mode,
+      check_in:ci||null, check_out:co||null, guests:gs,
+      total_amount:tot,
+      payment_status:adv>=tot&&tot>0?'Paid':(adv>0?'Partial':'Unpaid'),
+      notes:notes||null,
+      booked_by: SESSION.displayName || SESSION.role
+    });
+
+    if (error) { document.getElementById('addBkErr').innerHTML=`<div class="error">${error.message}</div>`; btn.disabled=false; btn.textContent='💾 Save Booking'; return; }
+
+    if (adv>0) await sb.from('payment_history').insert({booking_id:bkId,amount:adv,payment_mode:advMode||null,notes:'Advance'});
+    await sb.from('flats_status').upsert({room_id:rid,status:'Booked'});
+
+    // WhatsApp
+    const propTxt = document.getElementById('roomId').selectedOptions[0]?.text||'';
+    const msg = [`🏠 *Booking Confirmed!*`,'',`👤 ${gn}`,`📞 ${ph||'N/A'}`,`🏡 ${propTxt}`,`📅 ${ci||'N/A'} → ${co||'N/A'}`,`💰 Total: ₹${tot.toLocaleString('en-IN')}`,`💵 Advance: ₹${adv.toLocaleString('en-IN')}`,`💳 Balance: ₹${(tot-adv).toLocaleString('en-IN')}`,`🔖 ${mode}`,'',`— ${BRAND}`].join('\n');
+    setTimeout(()=>window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`,'_blank'),400);
+
+    renderManageBookings();
+  } catch(err) {
+    document.getElementById('addBkErr').innerHTML=`<div class="error">Error: ${err.message||err}</div>`;
+    btn.disabled=false; btn.textContent='💾 Save Booking';
+  }
+}
+
+// ============ EDIT BOOKING ============
+async function editBooking(bkId) {
+  const {data:b} = await sb.from('guest_register').select('*').eq('booking_id',bkId).single();
+  if (!b) { alert('Not found'); return; }
+  const {data:rooms} = await sb.from('rooms').select('room_id,unit_no,nickname,property_name').order('room_id');
+  const {data:pays} = await sb.from('payment_history').select('*').eq('booking_id',bkId).order('paid_at',{ascending:false});
+  const tp=(pays||[]).reduce((s,p)=>s+(p.amount||0),0);
+  const bal=(b.total_amount||0)-tp;
+
+  renderShell(`
+    <div class="card"><h1>✏️ Edit Booking</h1><button class="secondary btn-sm" onclick="renderManageBookings()">← Back</button></div>
+    <div class="card">
+      <div class="form-grid">
+        <div class="form-group"><label>Guest Name</label><input id="guestName" value="${b.guest_name||''}" /></div>
+        <div class="form-group"><label>Phone</label><input id="guestPhone" value="${b.phone||''}" /></div>
+      </div>
+      <div class="form-grid">
+        <div class="form-group"><label>ID Type</label><select id="idType">
+          <option value="Aadhar" ${b.id_proof_type==='Aadhar'?'selected':''}>Aadhar</option>
+          <option value="PAN" ${b.id_proof_type==='PAN'?'selected':''}>PAN</option>
+          <option value="DL" ${b.id_proof_type==='DL'?'selected':''}>DL</option>
+          <option value="Passport" ${b.id_proof_type==='Passport'?'selected':''}>Passport</option>
+        </select></div>
+        <div class="form-group"><label>ID Number</label><input id="idNo" value="${b.id_proof_no||''}" /></div>
+      </div>
+      <div class="form-group"><label>Replace ID Photo</label><input id="idPhoto" type="file" accept="image/*" /></div>
+      <div class="form-group"><label>Property</label><select id="roomId">${(rooms||[]).map(r=>`<option value="${r.room_id}" ${r.room_id===b.room_id?'selected':''}>${r.nickname||r.unit_no} — ${r.property_name||''}</option>`).join('')}</select></div>
+      <div class="form-grid">
+        <div class="form-group"><label>Mode</label><select id="bookingMode">
+          <option value="Offline" ${b.booking_mode!=='Online-Airbnb'?'selected':''}>Offline</option>
+          <option value="Online-Airbnb" ${b.booking_mode==='Online-Airbnb'?'selected':''}>Online</option>
+        </select></div>
+        <div class="form-group"><label>Status</label><select id="paySt">
+          <option value="Unpaid" ${b.payment_status==='Unpaid'?'selected':''}>Unpaid</option>
+          <option value="Partial" ${b.payment_status==='Partial'?'selected':''}>Partial</option>
+          <option value="Paid" ${b.payment_status==='Paid'?'selected':''}>Paid</option>
+        </select></div>
+      </div>
+      <div class="form-grid">
+        <div class="form-group"><label>Check-in</label><input id="checkIn" type="date" value="${b.check_in||''}" /></div>
+        <div class="form-group"><label>Check-out</label><input id="checkOut" type="date" value="${b.check_out||''}" /></div>
+      </div>
+      <div class="form-grid">
+        <div class="form-group"><label>Guests</label><input id="guests" type="number" value="${b.guests||1}" /></div>
+        <div class="form-group"><label>Total ₹</label><input id="totalAmount" type="number" value="${b.total_amount||0}" /></div>
+      </div>
+      <div class="form-group"><label>Notes</label><textarea id="bkNotes">${b.notes||''}</textarea></div>
+      <button onclick="updateBooking('${bkId}')">💾 Update</button><div id="editBkErr"></div>
     </div>
     <div class="card">
-      <h2 style="font-size:15px;margin-bottom:10px;">💳 Payment History</h2>
-      <div class="metric-row"><span class="metric-label">Total Amount</span><span class="metric-value">₹${(booking.total_amount || 0).toLocaleString("en-IN")}</span></div>
-      <div class="metric-row"><span class="metric-label">Total Paid</span><span class="metric-value">₹${totalPaid.toLocaleString("en-IN")}</span></div>
-      <div class="metric-row"><span class="metric-label">Balance Due</span><span class="metric-value ${balance > 0 ? 'warn' : ''}">₹${balance.toLocaleString("en-IN")}</span></div>
-      ${(payments || []).length ? `
-        <table style="margin-top:12px;">
-          <thead><tr><th>Date/Time</th><th>Amount</th><th>Mode</th><th>Notes</th></tr></thead>
-          <tbody>${payments.map(p => `<tr>
-            <td>${new Date(p.paid_at).toLocaleString('en-IN')}</td>
-            <td>₹${(p.amount || 0).toLocaleString("en-IN")}</td>
-            <td>${p.payment_mode || '-'}</td>
-            <td>${p.notes || '-'}</td>
-          </tr>`).join('')}</tbody>
-        </table>` : `<div class="sub">Koi payment record nahi hai abhi.</div>`}
-      <button onclick="recordPayment('${bookingId}')">➕ Naya Payment Add Karo</button>
-      ${balance > 0 ? `<button onclick="markFullyPaid('${bookingId}')">✅ Mark Fully Paid</button>` : ''}
+      <div class="section-title">💳 Payments</div>
+      <div class="metric-row"><span class="metric-label">Total</span><span class="metric-value">₹${(b.total_amount||0).toLocaleString('en-IN')}</span></div>
+      <div class="metric-row"><span class="metric-label">Paid</span><span class="metric-value" style="color:var(--green);">₹${tp.toLocaleString('en-IN')}</span></div>
+      <div class="metric-row"><span class="metric-label">Balance</span><span class="metric-value${bal>0?' warn':''}">₹${bal.toLocaleString('en-IN')}</span></div>
+      ${(pays||[]).length?`<div class="table-wrap" style="margin-top:8px;"><table><thead><tr><th>Date</th><th>Amount</th><th>Mode</th><th>Notes</th></tr></thead><tbody>${pays.map(p=>`<tr><td>${new Date(p.paid_at).toLocaleString('en-IN')}</td><td>₹${(p.amount||0).toLocaleString('en-IN')}</td><td>${p.payment_mode||'-'}</td><td>${p.notes||'-'}</td></tr>`).join('')}</tbody></table></div>`:'<div class="sub">No payments yet</div>'}
+      <div class="btn-row" style="margin-top:8px;">
+        <button class="btn-sm" onclick="recordPayment('${bkId}')">➕ Add Payment</button>
+        ${bal>0?`<button class="btn-sm secondary" onclick="markFullyPaid('${bkId}')">✅ Mark Paid</button>`:''}
+      </div>
     </div>`, 'bookings');
 }
 
-async function updateBooking(bookingId) {
-  const guestName = document.getElementById('guestName').value.trim();
-  const guestPhone = document.getElementById('guestPhone').value.trim();
-  const idProofType = document.getElementById('idProofType').value;
-  const guestIdNo = document.getElementById('guestIdNo').value.trim();
-  const roomId = document.getElementById('roomId').value;
-  const bookingMode = document.getElementById('bookingMode').value;
-  const checkIn = document.getElementById('checkIn').value;
-  const checkOut = document.getElementById('checkOut').value;
-  const guests = parseInt(document.getElementById('guests').value) || 1;
-  const totalAmount = parseFloat(document.getElementById('totalAmount').value) || 0;
-  const paymentStatus = document.getElementById('paymentStatus').value;
-  const notes = document.getElementById('bookingNotes').value.trim();
+async function updateBooking(bkId) {
+  const gn=document.getElementById('guestName').value.trim();
+  const rid=document.getElementById('roomId').value;
+  if (!gn||!rid) { document.getElementById('editBkErr').innerHTML='<div class="error">Name & property required</div>'; return; }
 
-  if (!guestName || !roomId) {
-    document.getElementById('editBookingErr').innerHTML = '<div class="error">Guest name aur property required hai</div>';
-    return;
+  const ci=document.getElementById('checkIn').value;
+  const co=document.getElementById('checkOut').value;
+  if (ci&&co) {
+    const {data:ex} = await sb.from('guest_register').select('booking_id,guest_name,check_in,check_out').eq('room_id',rid).neq('booking_id',bkId);
+    const clash = (ex||[]).find(b=>b.check_in&&b.check_out&&b.check_in<co&&b.check_out>ci);
+    if (clash) { document.getElementById('editBkErr').innerHTML=`<div class="error">Clash: ${clash.guest_name}</div>`; return; }
   }
 
-  if (checkIn && checkOut) {
-    const { data: existing } = await sb.from('guest_register')
-      .select('booking_id, guest_name, check_in, check_out')
-      .eq('room_id', roomId).neq('booking_id', bookingId);
-    const clash = (existing || []).find(b =>
-      b.check_in && b.check_out && b.check_in < checkOut && b.check_out > checkIn);
-    if (clash) {
-      document.getElementById('editBookingErr').innerHTML =
-        `<div class="error">⚠️ Property already booked hai (${clash.guest_name}, ${clash.check_in} → ${clash.check_out})</div>`;
-      return;
-    }
+  let photoPath = null;
+  const fi = document.getElementById('idPhoto');
+  if (fi?.files?.[0]) {
+    try {
+      const comp = await compressImage(fi.files[0]);
+      const path = `${bkId}/${Date.now()}_edit.jpg`;
+      const {error} = await sb.storage.from('id-proofs').upload(path,comp,{contentType:'image/jpeg'});
+      if (!error) photoPath = path;
+    } catch(e) { console.warn('Photo upload failed',e); }
   }
 
-  const photoPath = await uploadIdPhotoIfAny(bookingId);
-  const updateObj = {
-    guest_name: guestName, phone: guestPhone || null,
-    id_proof_type: idProofType || null, id_proof_no: guestIdNo || null,
-    room_id: roomId, booking_mode: bookingMode,
-    check_in: checkIn || null, check_out: checkOut || null,
-    guests, total_amount: totalAmount, payment_status: paymentStatus, notes: notes || null
+  const obj = {
+    guest_name:gn, phone:document.getElementById('guestPhone').value.trim()||null,
+    id_proof_type:document.getElementById('idType').value||null,
+    id_proof_no:document.getElementById('idNo').value.trim()||null,
+    room_id:rid, booking_mode:document.getElementById('bookingMode').value,
+    check_in:ci||null, check_out:co||null,
+    guests:parseInt(document.getElementById('guests').value)||1,
+    total_amount:parseFloat(document.getElementById('totalAmount').value)||0,
+    payment_status:document.getElementById('paySt').value,
+    notes:document.getElementById('bkNotes').value.trim()||null,
   };
-  if (photoPath) updateObj.id_proof_photo_path = photoPath;
+  if (photoPath) obj.id_proof_photo_path = photoPath;
 
-  const { error } = await sb.from('guest_register').update(updateObj).eq('booking_id', bookingId);
-  if (error) { document.getElementById('editBookingErr').innerHTML = `<div class="error">${error.message}</div>`; return; }
+  const {error} = await sb.from('guest_register').update(obj).eq('booking_id',bkId);
+  if (error) { document.getElementById('editBkErr').innerHTML=`<div class="error">${error.message}</div>`; return; }
   renderManageBookings();
 }
 
-// ================================================================
-//  FIX #8 + Suggestion C: Delete booking → property Free GUARANTEED
-// ================================================================
-async function deleteBooking(bookingId, guestName, roomIdParam) {
-  if (!confirm(`Delete booking for "${guestName}"?\n\nProperty automatically Free ho jayegi.`)) return;
+// ============ DELETE BOOKING (with image cleanup) ============
+async function delBooking(bkId, guestName, roomId) {
+  if (!confirm(`Delete booking for "${guestName}"?\nImages bhi delete hongi.`)) return;
 
-  // Step 1: Room ID fetch karo (param ya DB se)
-  let roomId = roomIdParam;
-  if (!roomId) {
-    const { data: booking } = await sb.from('guest_register')
-      .select('room_id').eq('booking_id', bookingId).single();
-    roomId = booking?.room_id;
+  // Get photos first
+  const {data:bk} = await sb.from('guest_register').select('room_id, id_proof_photo_paths, id_proof_photo_path').eq('booking_id',bkId).single();
+  const rid = roomId || bk?.room_id;
+
+  // Delete photos from storage
+  const paths = (bk?.id_proof_photo_paths||bk?.id_proof_photo_path||'').split(',').filter(Boolean);
+  if (paths.length) {
+    try { await sb.storage.from('id-proofs').remove(paths); } catch(e) { console.warn('Photo delete failed',e); }
   }
 
-  // Step 2: Payment history delete
-  await sb.from('payment_history').delete().eq('booking_id', bookingId);
+  // Delete payment history
+  await sb.from('payment_history').delete().eq('booking_id',bkId);
+  // Delete booking
+  const {error} = await sb.from('guest_register').delete().eq('booking_id',bkId);
+  if (error) { alert('Error: '+error.message); return; }
 
-  // Step 3: Booking delete
-  const { error } = await sb.from('guest_register').delete().eq('booking_id', bookingId);
-  if (error) { alert('Error deleting booking: ' + error.message); return; }
-
-  // Step 4: FIX #8 — Room status GUARANTEED Free karo
-  // Check karo koi aur active booking toh nahi hai is room ki
-  if (roomId) {
-    const today = new Date().toISOString().slice(0, 10);
-    const { data: activeBookings } = await sb.from('guest_register')
-      .select('booking_id').eq('room_id', roomId)
-      .gt('check_out', today); // sirf future/current bookings
-
-    if (!activeBookings || activeBookings.length === 0) {
-      // Koi aur booking nahi → Free karo
-      const { error: freeErr } = await sb.from('flats_status')
-        .update({ status: 'Free' }).eq('room_id', roomId);
-      if (freeErr) {
-        // upsert fallback
-        await sb.from('flats_status').upsert({ room_id: roomId, status: 'Free' });
-      }
+  // Free room if no other active booking
+  if (rid) {
+    const today = new Date().toISOString().slice(0,10);
+    const {data:active} = await sb.from('guest_register').select('booking_id').eq('room_id',rid).gt('check_out',today);
+    if (!active||!active.length) {
+      await sb.from('flats_status').update({status:'Free'}).eq('room_id',rid);
     }
   }
-
   renderManageBookings();
 }
 
-async function viewIdPhoto(path) {
-  const { data, error } = await sb.storage.from('id-proofs').createSignedUrl(path, 300);
-  if (error || !data?.signedUrl) { alert('Photo load nahi ho payi: ' + (error?.message || '')); return; }
-  window.open(data.signedUrl, '_blank');
+// ============ PAYMENTS ============
+async function recordPayment(bkId) {
+  const amt = prompt('Payment amount ₹?');
+  if (!amt||isNaN(parseFloat(amt))) return;
+  const mode = prompt('Mode? (Cash/UPI/Bank/Airbnb Payout)')||null;
+  await savePay(bkId, parseFloat(amt), mode);
 }
 
-async function viewIdPhotos(pathsCombined) {
-  const paths = pathsCombined.split(',').map(p => p.trim()).filter(Boolean);
-  for (const p of paths) {
-    const { data } = await sb.storage.from('id-proofs').createSignedUrl(p, 300);
-    if (data?.signedUrl) window.open(data.signedUrl, '_blank');
-  }
-}
-
-async function recordPayment(bookingId) {
-  const amount = prompt('Kitna payment mila? (₹)');
-  if (!amount || isNaN(parseFloat(amount))) return;
-  const mode = prompt('Payment mode? (Cash / UPI / Bank / Airbnb Payout)') || null;
-  await savePaymentAndRefresh(bookingId, parseFloat(amount), mode);
-}
-
-async function markFullyPaid(bookingId) {
-  const { data: booking } = await sb.from('guest_register').select('total_amount').eq('booking_id', bookingId).single();
-  const { data: payments } = await sb.from('payment_history').select('amount').eq('booking_id', bookingId);
-  const totalPaid = (payments || []).reduce((s, p) => s + (p.amount || 0), 0);
-  const balance = (booking?.total_amount || 0) - totalPaid;
-  if (balance <= 0) { alert('Ye booking already fully paid hai.'); return; }
-  const mode = prompt(`Balance ₹${balance.toLocaleString("en-IN")} — Payment Mode? (Cash/UPI/Bank/Airbnb Payout)`);
+async function markFullyPaid(bkId) {
+  const {data:b} = await sb.from('guest_register').select('total_amount').eq('booking_id',bkId).single();
+  const {data:p} = await sb.from('payment_history').select('amount').eq('booking_id',bkId);
+  const paid = (p||[]).reduce((s,x)=>s+(x.amount||0),0);
+  const bal = (b?.total_amount||0)-paid;
+  if (bal<=0) { alert('Already paid'); return; }
+  const mode = prompt(`Balance ₹${bal.toLocaleString('en-IN')} — Mode?`);
   if (!mode) return;
-  await savePaymentAndRefresh(bookingId, balance, mode);
+  await savePay(bkId, bal, mode);
 }
 
-async function savePaymentAndRefresh(bookingId, amount, mode) {
-  const { error } = await sb.from('payment_history').insert({ booking_id: bookingId, amount, payment_mode: mode });
-  if (error) { alert('Error: ' + error.message); return; }
-  const { data: booking } = await sb.from('guest_register').select('total_amount').eq('booking_id', bookingId).single();
-  const { data: payments } = await sb.from('payment_history').select('amount').eq('booking_id', bookingId);
-  const totalPaid = (payments || []).reduce((s, p) => s + (p.amount || 0), 0);
-  const status = totalPaid >= (booking?.total_amount || 0) && booking?.total_amount > 0 ? 'Paid' : (totalPaid > 0 ? 'Partial' : 'Unpaid');
-  await sb.from('guest_register').update({ payment_status: status }).eq('booking_id', bookingId);
-  if (document.getElementById('editBookingErr')) editBooking(bookingId);
+async function savePay(bkId, amount, mode) {
+  await sb.from('payment_history').insert({booking_id:bkId,amount,payment_mode:mode});
+  const {data:b} = await sb.from('guest_register').select('total_amount').eq('booking_id',bkId).single();
+  const {data:p} = await sb.from('payment_history').select('amount').eq('booking_id',bkId);
+  const paid = (p||[]).reduce((s,x)=>s+(x.amount||0),0);
+  const st = paid>=(b?.total_amount||0)&&b?.total_amount>0?'Paid':(paid>0?'Partial':'Unpaid');
+  await sb.from('guest_register').update({payment_status:st}).eq('booking_id',bkId);
+  if (document.getElementById('editBkErr')) editBooking(bkId);
   else renderManageBookings();
 }
 
-// ================================================================
-//  7. MANAGE EMPLOYEES
-// ================================================================
+// ============ EMPLOYEES ============
 async function renderManageEmployees() {
-  renderShell(`<div class="loading">Loading employees...</div>`, 'employees');
-  const { data: employees, error } = await sb.from("employees").select("*").order("name");
-  if (error) { renderShell(`<div class="error">Error: ${error.message}</div>`, 'employees'); return; }
-  const isOwner = SESSION.role === 'owner';
+  renderShell(`<div class="loading">Loading...</div>`, 'employees');
+  const {data:emps} = await sb.from("employees").select("*").order("name");
+  const isO = SESSION.role==='owner';
   renderShell(`
-    <div class="card">
-      <h1>👥 Manage Employees</h1>
-      <div class="sub">${employees.length} employees total</div>
-      ${isOwner ? `<button onclick="renderAddEmployee()">➕ Add New Employee</button>` : ''}
-    </div>
-    <div class="card"><div style="overflow-x:auto;"><table>
-      <thead><tr><th>Name</th><th>Role</th><th>Phone</th><th>Monthly Salary</th><th>Status</th>${isOwner ? '<th>Actions</th>' : ''}</tr></thead>
-      <tbody>${employees.map(emp => `
-        <tr>
-          <td><strong>${emp.name}</strong></td><td>${emp.role || '-'}</td><td>${emp.phone || '-'}</td>
-          <td>₹${(emp.monthly_salary || 0).toLocaleString("en-IN")}</td>
-          <td><span class="badge ${emp.status === 'Active' ? 'green' : 'red'}">${emp.status || 'Active'}</span></td>
-          ${isOwner ? `<td class="table-actions">
-            <button class="btn-sm" onclick="editEmployee('${emp.emp_id}')">✏️ Edit</button>
-            <button class="btn-sm danger" onclick="deleteEmployee('${emp.emp_id}','${emp.name}')">🗑️ Delete</button>
-          </td>` : ''}
-        </tr>`).join("")}
-      </tbody>
+    <div class="card"><h1>👥 Employees</h1><div class="sub">${(emps||[]).length} total</div>
+      ${isO?`<button onclick="renderAddEmp()">➕ Add</button>`:''}</div>
+    <div class="card"><div class="table-wrap"><table>
+      <thead><tr><th>Name</th><th>Role</th><th>Phone</th><th>Salary</th><th>Status</th>${isO?'<th>Actions</th>':''}</tr></thead>
+      <tbody>${(emps||[]).map(e=>`<tr>
+        <td><strong>${e.name}</strong></td><td>${e.role||'-'}</td><td>${e.phone||'-'}</td>
+        <td>₹${(e.monthly_salary||0).toLocaleString('en-IN')}</td>
+        <td><span class="badge ${e.status==='Active'?'green':'red'}">${e.status||'Active'}</span></td>
+        ${isO?`<td class="table-actions"><button class="btn-sm" onclick="editEmp('${e.emp_id}')">✏️</button><button class="btn-sm danger" onclick="delEmp('${e.emp_id}','${e.name}')">🗑️</button></td>`:''}
+      </tr>`).join('')}</tbody>
     </table></div></div>`, 'employees');
 }
 
-async function renderAddEmployee() {
-  renderShell(`
-    <div class="card"><h1>➕ Add New Employee</h1><button class="secondary" onclick="renderManageEmployees()">← Back</button></div>
+async function renderAddEmp() {
+  renderShell(`<div class="card"><h1>➕ Add Employee</h1><button class="secondary btn-sm" onclick="renderManageEmployees()">← Back</button></div>
     <div class="card">
-      <input id="empName" placeholder="Full Name" />
-      <input id="empPhone" placeholder="Phone Number" />
-      <input id="empRole" placeholder="Role (e.g., Manager, Cleaner)" />
-      <input id="empSalary" type="number" placeholder="Monthly Salary (₹)" />
-      <input id="empJoinDate" type="date" />
-      <input id="empRooms" placeholder="Assigned Properties (comma separated)" />
-      <label style="display:flex;align-items:center;gap:8px;margin:12px 0;">
-        <input type="checkbox" id="empActive" checked style="width:auto;" /><span>Active</span>
-      </label>
-      <textarea id="empNotes" placeholder="Notes (optional)"></textarea>
-      <button onclick="saveNewEmployee()">💾 Save Employee</button>
-      <div id="addEmpErr"></div>
+      <div class="form-grid"><div class="form-group"><label>Name</label><input id="eName" /></div><div class="form-group"><label>Phone</label><input id="ePhone" /></div></div>
+      <div class="form-grid"><div class="form-group"><label>Role</label><input id="eRole" placeholder="Manager, Cleaner..." /></div><div class="form-group"><label>Salary ₹</label><input id="eSal" type="number" /></div></div>
+      <div class="form-grid"><div class="form-group"><label>Join Date</label><input id="eJoin" type="date" /></div><div class="form-group"><label>Assigned Rooms</label><input id="eRooms" /></div></div>
+      <label style="display:flex;align-items:center;gap:8px;margin:8px 0;"><input type="checkbox" id="eActive" checked /> Active</label>
+      <button onclick="saveEmp()">💾 Save</button><div id="empErr"></div>
     </div>`, 'employees');
 }
 
-async function saveNewEmployee() {
-  const name = document.getElementById('empName').value.trim();
-  const phone = document.getElementById('empPhone').value.trim();
-  const role = document.getElementById('empRole').value.trim();
-  const salary = parseFloat(document.getElementById('empSalary').value) || 0;
-  const joinDate = document.getElementById('empJoinDate').value;
-  const rooms = document.getElementById('empRooms').value.trim();
-  const active = document.getElementById('empActive').checked;
-  const notes = document.getElementById('empNotes').value.trim();
-  if (!name) { document.getElementById('addEmpErr').innerHTML = '<div class="error">Name required</div>'; return; }
-  const empId = 'E' + Date.now();
-  const { error } = await sb.from('employees').insert({
-    emp_id: empId, name, phone: phone || null, role: role || null, assigned_rooms: rooms || null,
-    joining_date: joinDate || null, monthly_salary: salary, status: active ? 'Active' : 'Inactive', notes: notes || null
+async function saveEmp() {
+  const name=document.getElementById('eName').value.trim();
+  if (!name) { document.getElementById('empErr').innerHTML='<div class="error">Name required</div>'; return; }
+  const {error} = await sb.from('employees').insert({
+    emp_id:'E'+Date.now(), name, phone:document.getElementById('ePhone').value.trim()||null,
+    role:document.getElementById('eRole').value.trim()||null,
+    monthly_salary:parseFloat(document.getElementById('eSal').value)||0,
+    joining_date:document.getElementById('eJoin').value||null,
+    assigned_rooms:document.getElementById('eRooms').value.trim()||null,
+    status:document.getElementById('eActive').checked?'Active':'Inactive',
   });
-  if (error) { document.getElementById('addEmpErr').innerHTML = `<div class="error">${error.message}</div>`; return; }
+  if (error) { document.getElementById('empErr').innerHTML=`<div class="error">${error.message}</div>`; return; }
   renderManageEmployees();
 }
 
-async function editEmployee(empId) {
-  const { data: emp, error } = await sb.from('employees').select('*').eq('emp_id', empId).single();
-  if (error || !emp) { alert('Employee not found'); return; }
-  renderShell(`
-    <div class="card"><h1>✏️ Edit Employee</h1><button class="secondary" onclick="renderManageEmployees()">← Back</button></div>
+async function editEmp(id) {
+  const {data:e} = await sb.from('employees').select('*').eq('emp_id',id).single();
+  if (!e) return;
+  renderShell(`<div class="card"><h1>✏️ Edit Employee</h1><button class="secondary btn-sm" onclick="renderManageEmployees()">← Back</button></div>
     <div class="card">
-      <input id="empName" value="${emp.name}" placeholder="Full Name" />
-      <input id="empPhone" value="${emp.phone || ''}" placeholder="Phone Number" />
-      <input id="empRole" value="${emp.role || ''}" placeholder="Role" />
-      <input id="empSalary" type="number" value="${emp.monthly_salary || 0}" />
-      <input id="empJoinDate" type="date" value="${emp.joining_date || ''}" />
-      <input id="empRooms" value="${emp.assigned_rooms || ''}" placeholder="Assigned Properties" />
-      <label style="display:flex;align-items:center;gap:8px;margin:12px 0;">
-        <input type="checkbox" id="empActive" ${emp.status === 'Active' ? 'checked' : ''} style="width:auto;" /><span>Active</span>
-      </label>
-      <textarea id="empNotes">${emp.notes || ''}</textarea>
-      <button onclick="updateEmployee('${empId}')">💾 Update Employee</button>
-      <div id="editEmpErr"></div>
+      <div class="form-grid"><div class="form-group"><label>Name</label><input id="eName" value="${e.name}" /></div><div class="form-group"><label>Phone</label><input id="ePhone" value="${e.phone||''}" /></div></div>
+      <div class="form-grid"><div class="form-group"><label>Role</label><input id="eRole" value="${e.role||''}" /></div><div class="form-group"><label>Salary ₹</label><input id="eSal" type="number" value="${e.monthly_salary||0}" /></div></div>
+      <div class="form-grid"><div class="form-group"><label>Join Date</label><input id="eJoin" type="date" value="${e.joining_date||''}" /></div><div class="form-group"><label>Rooms</label><input id="eRooms" value="${e.assigned_rooms||''}" /></div></div>
+      <label style="display:flex;align-items:center;gap:8px;margin:8px 0;"><input type="checkbox" id="eActive" ${e.status==='Active'?'checked':''} /> Active</label>
+      <button onclick="updEmp('${id}')">💾 Update</button><div id="empErr"></div>
     </div>`, 'employees');
 }
 
-async function updateEmployee(empId) {
-  const name = document.getElementById('empName').value.trim();
-  const phone = document.getElementById('empPhone').value.trim();
-  const role = document.getElementById('empRole').value.trim();
-  const salary = parseFloat(document.getElementById('empSalary').value) || 0;
-  const joinDate = document.getElementById('empJoinDate').value;
-  const rooms = document.getElementById('empRooms').value.trim();
-  const active = document.getElementById('empActive').checked;
-  const notes = document.getElementById('empNotes').value.trim();
-  if (!name) { document.getElementById('editEmpErr').innerHTML = '<div class="error">Name required</div>'; return; }
-  const { error } = await sb.from('employees').update({
-    name, phone: phone || null, role: role || null, assigned_rooms: rooms || null,
-    joining_date: joinDate || null, monthly_salary: salary,
-    status: active ? 'Active' : 'Inactive', notes: notes || null
-  }).eq('emp_id', empId);
-  if (error) { document.getElementById('editEmpErr').innerHTML = `<div class="error">${error.message}</div>`; return; }
+async function updEmp(id) {
+  const name=document.getElementById('eName').value.trim();
+  if (!name) { document.getElementById('empErr').innerHTML='<div class="error">Name required</div>'; return; }
+  await sb.from('employees').update({
+    name, phone:document.getElementById('ePhone').value.trim()||null,
+    role:document.getElementById('eRole').value.trim()||null,
+    monthly_salary:parseFloat(document.getElementById('eSal').value)||0,
+    joining_date:document.getElementById('eJoin').value||null,
+    assigned_rooms:document.getElementById('eRooms').value.trim()||null,
+    status:document.getElementById('eActive').checked?'Active':'Inactive',
+  }).eq('emp_id',id);
   renderManageEmployees();
 }
 
-async function deleteEmployee(empId, empName) {
-  if (!confirm(`Delete "${empName}"? Unke saare records bhi delete ho jayenge.`)) return;
-  await sb.from('employee_tasks').delete().eq('emp_id', empId);
-  await sb.from('attendance_log').delete().eq('emp_id', empId);
-  await sb.from('salary_tracker').delete().eq('emp_id', empId);
-  await sb.from('advance_tracker').delete().eq('emp_id', empId);
-  await sb.from('profiles').delete().eq('emp_id', empId);
-  const { error } = await sb.from('employees').delete().eq('emp_id', empId);
-  if (error) { alert('Error: ' + error.message); return; }
+async function delEmp(id,name) {
+  if (!confirm(`Delete "${name}" & all records?`)) return;
+  await sb.from('employee_tasks').delete().eq('emp_id',id);
+  await sb.from('attendance_log').delete().eq('emp_id',id);
+  await sb.from('salary_tracker').delete().eq('emp_id',id);
+  await sb.from('advance_tracker').delete().eq('emp_id',id);
+  await sb.from('profiles').delete().eq('emp_id',id);
+  await sb.from('employees').delete().eq('emp_id',id);
   renderManageEmployees();
 }
 
-// ================================================================
-//  8. EMPLOYEE TASKS
-// ================================================================
+// ============ TASKS ============
 async function renderEmployeeTasks() {
-  renderShell(`<div class="loading">Loading tasks...</div>`, 'tasks');
-  const { data: tasks, error } = await sb.from('employee_tasks').select('*, employees(name)').order('assigned_date', { ascending: false });
-  if (error) { renderShell(`<div class="error">Error: ${error.message}</div>`, 'tasks'); return; }
-  const isOwner = SESSION.role === 'owner';
+  renderShell(`<div class="loading">Loading...</div>`, 'tasks');
+  const {data:tasks} = await sb.from('employee_tasks').select('*, employees(name)').order('assigned_date',{ascending:false});
+  const isO = SESSION.role==='owner';
   renderShell(`
-    <div class="card">
-      <h1>🧰 Employee Tasks</h1>
-      <div class="sub">${tasks.length} tasks total</div>
-      ${isOwner ? `<button onclick="renderAddTask()">➕ Add New Task</button>` : ''}
-    </div>
-    <div class="card"><div style="overflow-x:auto;"><table>
-      <thead><tr><th>Employee</th><th>Task</th><th>Assigned Date</th><th>Status</th>${isOwner ? '<th>Actions</th>' : ''}</tr></thead>
-      <tbody>${tasks.map(t => `
-        <tr>
-          <td><strong>${t.employees?.name || t.emp_id}</strong></td>
-          <td>${t.task_description || '-'}</td>
-          <td>${t.assigned_date || '-'}</td>
-          <td><span class="badge ${t.status === 'Completed' ? 'green' : t.status === 'In Progress' ? 'yellow' : 'red'}">${t.status || 'Pending'}</span></td>
-          ${isOwner ? `<td class="table-actions">
-            <button class="btn-sm" onclick="editTask(${t.id})">✏️ Edit</button>
-            <button class="btn-sm danger" onclick="deleteTask(${t.id})">🗑️ Delete</button>
-          </td>` : ''}
-        </tr>`).join('')}
-      </tbody>
+    <div class="card"><h1>🧰 Tasks</h1><div class="sub">${(tasks||[]).length} tasks</div>
+      ${isO?`<button onclick="renderAddTask()">➕ Add</button>`:''}</div>
+    <div class="card"><div class="table-wrap"><table>
+      <thead><tr><th>Employee</th><th>Task</th><th>Date</th><th>Status</th>${isO?'<th>Actions</th>':''}</tr></thead>
+      <tbody>${(tasks||[]).map(t=>`<tr>
+        <td><strong>${t.employees?.name||t.emp_id}</strong></td><td>${t.task_description||'-'}</td><td>${t.assigned_date||'-'}</td>
+        <td><span class="badge ${t.status==='Completed'?'green':t.status==='In Progress'?'yellow':'red'}">${t.status||'Pending'}</span></td>
+        ${isO?`<td class="table-actions"><button class="btn-sm" onclick="editTask(${t.id})">✏️</button><button class="btn-sm danger" onclick="delTask(${t.id})">🗑️</button></td>`:''}
+      </tr>`).join('')}</tbody>
     </table></div></div>`, 'tasks');
 }
 
 async function renderAddTask() {
-  const { data: employees } = await sb.from('employees').select('emp_id, name').eq('status', 'Active').order('name');
-  const today = new Date().toISOString().slice(0, 10);
-  renderShell(`
-    <div class="card"><h1>➕ Add New Task</h1><button class="secondary" onclick="renderEmployeeTasks()">← Back</button></div>
+  const {data:emps} = await sb.from('employees').select('emp_id,name').eq('status','Active').order('name');
+  renderShell(`<div class="card"><h1>➕ Add Task</h1><button class="secondary btn-sm" onclick="renderEmployeeTasks()">← Back</button></div>
     <div class="card">
-      <select id="taskEmpId"><option value="">Select Employee</option>
-        ${(employees || []).map(e => `<option value="${e.emp_id}">${e.name}</option>`).join('')}
-      </select>
-      <textarea id="taskDesc" placeholder="Task Description"></textarea>
-      <input id="taskDate" type="date" value="${today}" />
-      <select id="taskStatus">
-        <option value="Pending">Pending</option>
-        <option value="In Progress">In Progress</option>
-        <option value="Completed">Completed</option>
-      </select>
-      <textarea id="taskNotes" placeholder="Notes (optional)"></textarea>
-      <button onclick="saveNewTask()">💾 Save Task</button>
-      <div id="addTaskErr"></div>
+      <div class="form-group"><label>Employee</label><select id="tEmp"><option value="">Select</option>${(emps||[]).map(e=>`<option value="${e.emp_id}">${e.name}</option>`).join('')}</select></div>
+      <div class="form-group"><label>Task</label><textarea id="tDesc"></textarea></div>
+      <div class="form-grid"><div class="form-group"><label>Date</label><input id="tDate" type="date" value="${new Date().toISOString().slice(0,10)}" /></div>
+      <div class="form-group"><label>Status</label><select id="tSt"><option>Pending</option><option>In Progress</option><option>Completed</option></select></div></div>
+      <button onclick="saveTask()">💾 Save</button><div id="tErr"></div>
     </div>`, 'tasks');
 }
 
-async function saveNewTask() {
-  const empId = document.getElementById('taskEmpId').value;
-  const desc = document.getElementById('taskDesc').value.trim();
-  const date = document.getElementById('taskDate').value;
-  const status = document.getElementById('taskStatus').value;
-  const notes = document.getElementById('taskNotes').value.trim();
-  if (!empId || !desc) { document.getElementById('addTaskErr').innerHTML = '<div class="error">Employee aur task description required hai</div>'; return; }
-  const { error } = await sb.from('employee_tasks').insert({
-    emp_id: empId, task_description: desc, assigned_date: date || null, status, notes: notes || null
-  });
-  if (error) { document.getElementById('addTaskErr').innerHTML = `<div class="error">${error.message}</div>`; return; }
+async function saveTask() {
+  const eid=document.getElementById('tEmp').value, desc=document.getElementById('tDesc').value.trim();
+  if (!eid||!desc) { document.getElementById('tErr').innerHTML='<div class="error">Employee & task required</div>'; return; }
+  await sb.from('employee_tasks').insert({emp_id:eid,task_description:desc,assigned_date:document.getElementById('tDate').value||null,status:document.getElementById('tSt').value});
   renderEmployeeTasks();
 }
 
 async function editTask(id) {
-  const { data: task, error } = await sb.from('employee_tasks').select('*, employees(name)').eq('id', id).single();
-  if (error || !task) { alert('Task not found'); return; }
-  renderShell(`
-    <div class="card"><h1>✏️ Edit Task</h1><button class="secondary" onclick="renderEmployeeTasks()">← Back</button></div>
-    <div class="card">
-      <div class="sub"><strong>Employee:</strong> ${task.employees?.name || task.emp_id}</div>
-      <textarea id="taskDesc">${task.task_description || ''}</textarea>
-      <input id="taskDate" type="date" value="${task.assigned_date || ''}" />
-      <select id="taskStatus">
-        <option value="Pending"     ${task.status === 'Pending' ? 'selected' : ''}>Pending</option>
-        <option value="In Progress" ${task.status === 'In Progress' ? 'selected' : ''}>In Progress</option>
-        <option value="Completed"   ${task.status === 'Completed' ? 'selected' : ''}>Completed</option>
-      </select>
-      <textarea id="taskNotes">${task.notes || ''}</textarea>
-      <button onclick="updateTask(${id})">💾 Update Task</button>
-      <div id="editTaskErr"></div>
+  const {data:t} = await sb.from('employee_tasks').select('*, employees(name)').eq('id',id).single();
+  if (!t) return;
+  renderShell(`<div class="card"><h1>✏️ Edit Task</h1><button class="secondary btn-sm" onclick="renderEmployeeTasks()">← Back</button></div>
+    <div class="card"><div class="sub">${t.employees?.name||t.emp_id}</div>
+      <div class="form-group"><label>Task</label><textarea id="tDesc">${t.task_description||''}</textarea></div>
+      <div class="form-grid"><div class="form-group"><label>Date</label><input id="tDate" type="date" value="${t.assigned_date||''}" /></div>
+      <div class="form-group"><label>Status</label><select id="tSt"><option ${t.status==='Pending'?'selected':''}>Pending</option><option ${t.status==='In Progress'?'selected':''}>In Progress</option><option ${t.status==='Completed'?'selected':''}>Completed</option></select></div></div>
+      <button onclick="updTask(${id})">💾 Update</button>
     </div>`, 'tasks');
 }
 
-async function updateTask(id) {
-  const desc = document.getElementById('taskDesc').value.trim();
-  const date = document.getElementById('taskDate').value;
-  const status = document.getElementById('taskStatus').value;
-  const notes = document.getElementById('taskNotes').value.trim();
-  const { error } = await sb.from('employee_tasks').update({
-    task_description: desc, assigned_date: date || null, status, notes: notes || null
-  }).eq('id', id);
-  if (error) { document.getElementById('editTaskErr').innerHTML = `<div class="error">${error.message}</div>`; return; }
+async function updTask(id) {
+  await sb.from('employee_tasks').update({task_description:document.getElementById('tDesc').value.trim(),assigned_date:document.getElementById('tDate').value||null,status:document.getElementById('tSt').value}).eq('id',id);
   renderEmployeeTasks();
 }
 
-async function deleteTask(id) {
-  if (!confirm('Delete this task?')) return;
-  await sb.from('employee_tasks').delete().eq('id', id);
-  renderEmployeeTasks();
-}
+async function delTask(id) { if(confirm('Delete?')) { await sb.from('employee_tasks').delete().eq('id',id); renderEmployeeTasks(); } }
 
-// ================================================================
-//  9. ATTENDANCE
-// ================================================================
+// ============ ATTENDANCE ============
 async function renderAttendance() {
-  renderShell(`<div class="loading">Loading attendance...</div>`, 'attendance');
-  const today = new Date().toISOString().slice(0, 10);
-  const [employees, attendance] = await Promise.all([
-    sb.from('employees').select('emp_id, name').eq('status', 'Active').order('name'),
-    sb.from('attendance_log').select('*').eq('att_date', today)
+  renderShell(`<div class="loading">Loading...</div>`, 'attendance');
+  const today = new Date().toISOString().slice(0,10);
+  const [{data:emps},{data:att}] = await Promise.all([
+    sb.from('employees').select('emp_id,name').eq('status','Active').order('name'),
+    sb.from('attendance_log').select('*').eq('att_date',today)
   ]);
-  const isOwner = SESSION.role === 'owner';
-  const attMap = {};
-  (attendance.data || []).forEach(a => { attMap[a.emp_id] = a.status; });
+  const am = {}; (att||[]).forEach(a=>{am[a.emp_id]=a.status;});
+  const isO = SESSION.role==='owner';
   renderShell(`
-    <div class="card"><h1>📋 Attendance — ${today}</h1><div class="sub">${employees.data?.length || 0} active employees</div></div>
-    <div class="card"><div style="overflow-x:auto;"><table>
-      <thead><tr><th>Employee</th><th>Status</th>${isOwner ? '<th>Mark</th>' : ''}</tr></thead>
-      <tbody>${(employees.data || []).map(emp => {
-        const status = attMap[emp.emp_id] || 'Not Marked';
-        return `<tr>
-          <td><strong>${emp.name}</strong></td>
-          <td><span class="badge ${status === 'Present' ? 'green' : status === 'Absent' ? 'red' : 'yellow'}">${status}</span></td>
-          ${isOwner ? `<td class="table-actions">
-            <button class="btn-sm" onclick="markAttendance('${emp.emp_id}','Present')">✅</button>
-            <button class="btn-sm danger" onclick="markAttendance('${emp.emp_id}','Absent')">❌</button>
-            <button class="btn-sm secondary" onclick="markAttendance('${emp.emp_id}','Half Day')">½</button>
-          </td>` : ''}
-        </tr>`;
-      }).join("")}
-      </tbody>
+    <div class="card"><h1>📋 Attendance — ${today}</h1></div>
+    <div class="card"><div class="table-wrap"><table>
+      <thead><tr><th>Employee</th><th>Status</th>${isO?'<th>Mark</th>':''}</tr></thead>
+      <tbody>${(emps||[]).map(e=>{const st=am[e.emp_id]||'Not Marked';return`<tr>
+        <td><strong>${e.name}</strong></td>
+        <td><span class="badge ${st==='Present'?'green':st==='Absent'?'red':'yellow'}">${st}</span></td>
+        ${isO?`<td class="table-actions">
+          <button class="btn-sm" onclick="markAtt('${e.emp_id}','Present')">✅</button>
+          <button class="btn-sm danger" onclick="markAtt('${e.emp_id}','Absent')">❌</button>
+          <button class="btn-sm secondary" onclick="markAtt('${e.emp_id}','Half Day')">½</button>
+        </td>`:''}</tr>`;}).join('')}</tbody>
     </table></div></div>`, 'attendance');
 }
 
-async function markAttendance(empId, status) {
-  const today = new Date().toISOString().slice(0, 10);
-  const { data: existing } = await sb.from('attendance_log').select('id').eq('emp_id', empId).eq('att_date', today).single();
-  if (existing) await sb.from('attendance_log').update({ status }).eq('id', existing.id);
-  else await sb.from('attendance_log').insert({ emp_id: empId, att_date: today, status });
+async function markAtt(eid,st) {
+  const today=new Date().toISOString().slice(0,10);
+  const {data:ex}=await sb.from('attendance_log').select('id').eq('emp_id',eid).eq('att_date',today).single();
+  if(ex) await sb.from('attendance_log').update({status:st}).eq('id',ex.id);
+  else await sb.from('attendance_log').insert({emp_id:eid,att_date:today,status:st});
   renderAttendance();
 }
 
-// ================================================================
-//  10. MONTHLY ATTENDANCE SUMMARY
-// ================================================================
+// ============ ATTENDANCE SUMMARY ============
 async function renderAttendanceSummary() {
-  renderShell(`<div class="loading">Loading summary...</div>`, 'att-summary');
-  const currentMonth = new Date().toISOString().slice(0, 7);
-  const [employees, logs] = await Promise.all([
-    sb.from('employees').select('emp_id, name').eq('status', 'Active').order('name'),
-    sb.from('attendance_log').select('emp_id, att_date, status').like('att_date', `${currentMonth}%`)
+  renderShell(`<div class="loading">Loading...</div>`, 'att-summary');
+  const cm = new Date().toISOString().slice(0,7);
+  const [{data:emps},{data:logs}] = await Promise.all([
+    sb.from('employees').select('emp_id,name').eq('status','Active').order('name'),
+    sb.from('attendance_log').select('emp_id,status').like('att_date',`${cm}%`)
   ]);
-  const summary = (employees.data || []).map(emp => {
-    const empLogs = (logs.data || []).filter(l => l.emp_id === emp.emp_id);
-    const present = empLogs.filter(l => l.status === 'Present').length;
-    const absent = empLogs.filter(l => l.status === 'Absent').length;
-    const halfDay = empLogs.filter(l => l.status === 'Half Day').length;
-    const leave = empLogs.filter(l => l.status === 'Paid Leave' || l.status === 'Unpaid Leave').length;
-    const total = present + absent + halfDay + leave;
-    const pct = total > 0 ? ((present + halfDay * 0.5) / total * 100).toFixed(1) : '0.0';
-    return { ...emp, present, absent, halfDay, leave, pct };
+  const sum = (emps||[]).map(e=>{
+    const el=(logs||[]).filter(l=>l.emp_id===e.emp_id);
+    const pr=el.filter(l=>l.status==='Present').length;
+    const ab=el.filter(l=>l.status==='Absent').length;
+    const hd=el.filter(l=>l.status==='Half Day').length;
+    const tot=pr+ab+hd;
+    return {...e,pr,ab,hd,pct:tot>0?((pr+hd*0.5)/tot*100).toFixed(1):'0'};
   });
   renderShell(`
-    <div class="card">
-      <h1>📅 Monthly Attendance Summary</h1>
-      <div class="sub">Month: <strong>${currentMonth}</strong></div>
-      <button class="secondary" onclick="renderAttendance()">📋 Daily Log</button>
-    </div>
-    <div class="card"><div style="overflow-x:auto;"><table>
-      <thead><tr><th>Employee</th><th>Present</th><th>Half Days</th><th>Absent</th><th>Leave</th><th>Attendance %</th></tr></thead>
-      <tbody>${summary.map(s => `
-        <tr>
-          <td><strong>${s.name}</strong></td>
-          <td><span class="badge green">${s.present}</span></td>
-          <td><span class="badge yellow">${s.halfDay}</span></td>
-          <td><span class="badge ${s.absent > 0 ? 'red' : 'green'}">${s.absent}</span></td>
-          <td><span class="badge blue">${s.leave}</span></td>
-          <td><strong class="${parseFloat(s.pct) < 75 ? 'warn' : ''}">${s.pct}%</strong></td>
-        </tr>`).join('')}
-      </tbody>
+    <div class="card"><h1>📅 Monthly Summary — ${cm}</h1><button class="secondary btn-sm" onclick="renderAttendance()">📋 Daily</button></div>
+    <div class="card"><div class="table-wrap"><table>
+      <thead><tr><th>Employee</th><th>Present</th><th>Half</th><th>Absent</th><th>%</th></tr></thead>
+      <tbody>${sum.map(s=>`<tr><td><strong>${s.name}</strong></td>
+        <td><span class="badge green">${s.pr}</span></td>
+        <td><span class="badge yellow">${s.hd}</span></td>
+        <td><span class="badge ${s.ab>0?'red':'green'}">${s.ab}</span></td>
+        <td><strong>${s.pct}%</strong></td></tr>`).join('')}</tbody>
     </table></div></div>`, 'att-summary');
 }
 
-// ================================================================
-//  11. SALARY TRACKER
-// ================================================================
+// ============ SALARY ============
 async function renderSalaryTracker() {
-  renderShell(`<div class="loading">Loading salary data...</div>`, 'salary');
-  const { data: salaries, error } = await sb.from('salary_tracker').select('*, employees(name)').order('month', { ascending: false });
-  if (error) { renderShell(`<div class="error">Error: ${error.message}</div>`, 'salary'); return; }
-  const isOwner = SESSION.role === 'owner';
+  renderShell(`<div class="loading">Loading...</div>`, 'salary');
+  const {data:sals} = await sb.from('salary_tracker').select('*, employees(name)').order('month',{ascending:false});
+  const isO = SESSION.role==='owner';
   renderShell(`
-    <div class="card">
-      <h1>💰 Salary Tracker</h1>
-      <div class="sub">${salaries.length} salary records</div>
-      ${isOwner ? `<button onclick="renderAddSalary()">➕ Add Salary Record</button>` : ''}
-    </div>
-    <div class="card"><div style="overflow-x:auto;"><table>
-      <thead><tr><th>Employee</th><th>Month</th><th>Due</th><th>Paid</th><th>Balance</th><th>Payment Date</th>${isOwner ? '<th>Actions</th>' : ''}</tr></thead>
-      <tbody>${salaries.map(s => {
-        const balance = (s.salary_due || 0) - (s.salary_paid || 0);
-        return `<tr>
-          <td><strong>${s.employees?.name || s.emp_id}</strong></td>
-          <td>${s.month || '-'}</td>
-          <td>₹${(s.salary_due || 0).toLocaleString("en-IN")}</td>
-          <td>₹${(s.salary_paid || 0).toLocaleString("en-IN")}</td>
-          <td><span class="${balance > 0 ? 'warn' : ''}">₹${balance.toLocaleString("en-IN")}</span></td>
-          <td>${s.payment_date || '-'}</td>
-          ${isOwner ? `<td class="table-actions">
-            <button class="btn-sm" onclick="editSalary(${s.id})">✏️ Edit</button>
-            <button class="btn-sm danger" onclick="deleteSalary(${s.id})">🗑️ Delete</button>
-          </td>` : ''}
-        </tr>`;
-      }).join("")}
-      </tbody>
+    <div class="card"><h1>💰 Salary Tracker</h1>${isO?`<button onclick="renderAddSal()">➕ Add</button>`:''}</div>
+    <div class="card"><div class="table-wrap"><table>
+      <thead><tr><th>Employee</th><th>Month</th><th>Due</th><th>Paid</th><th>Balance</th>${isO?'<th>Actions</th>':''}</tr></thead>
+      <tbody>${(sals||[]).map(s=>{const b=(s.salary_due||0)-(s.salary_paid||0);return`<tr>
+        <td><strong>${s.employees?.name||s.emp_id}</strong></td><td>${s.month||'-'}</td>
+        <td>₹${(s.salary_due||0).toLocaleString('en-IN')}</td><td>₹${(s.salary_paid||0).toLocaleString('en-IN')}</td>
+        <td><span class="${b>0?'metric-value warn':''}">₹${b.toLocaleString('en-IN')}</span></td>
+        ${isO?`<td class="table-actions"><button class="btn-sm" onclick="editSal(${s.id})">✏️</button><button class="btn-sm danger" onclick="delSal(${s.id})">🗑️</button></td>`:''}</tr>`;}).join('')}</tbody>
     </table></div></div>`, 'salary');
 }
 
-async function renderAddSalary() {
-  const { data: employees } = await sb.from('employees').select('emp_id, name, monthly_salary').eq('status', 'Active').order('name');
-  window.SALARY_EMP_CACHE = employees || [];
-  const currentMonth = new Date().toISOString().slice(0, 7);
-  renderShell(`
-    <div class="card"><h1>➕ Add Salary Record</h1><button class="secondary" onclick="renderSalaryTracker()">← Back</button></div>
+async function renderAddSal() {
+  const {data:emps} = await sb.from('employees').select('emp_id,name,monthly_salary').eq('status','Active').order('name');
+  window._salCache=emps||[];
+  renderShell(`<div class="card"><h1>➕ Salary Record</h1><button class="secondary btn-sm" onclick="renderSalaryTracker()">← Back</button></div>
     <div class="card">
-      <select id="salEmpId" onchange="onSalaryEmpChange()">
-        <option value="">Select Employee</option>
-        ${(employees || []).map(e => `<option value="${e.emp_id}">${e.name}</option>`).join('')}
-      </select>
-      <div id="salEmpInfo" class="sub" style="margin-top:-6px;"></div>
-      <input id="salMonth" type="month" value="${currentMonth}" />
-      <input id="salDue" type="number" placeholder="Salary Due (₹)" />
-      <input id="salPaid" type="number" placeholder="Salary Paid (₹)" oninput="onSalaryAmountChange()" />
-      <div id="salPendingInfo" class="sub" style="margin-top:-6px;font-weight:600;"></div>
-      <input id="salPayDate" type="date" />
-      <input id="salPayMode" placeholder="Payment Mode (Cash/UPI/Bank)" />
-      <textarea id="salNotes" placeholder="Notes"></textarea>
-      <button onclick="saveNewSalary()">💾 Save Salary Record</button>
-      <div id="addSalErr"></div>
+      <div class="form-group"><label>Employee</label><select id="sEmp" onchange="onSalEmpChg()"><option value="">Select</option>${(emps||[]).map(e=>`<option value="${e.emp_id}">${e.name}</option>`).join('')}</select></div>
+      <div id="sInfo" class="sub"></div>
+      <div class="form-grid">
+        <div class="form-group"><label>Month</label><input id="sMo" type="month" value="${new Date().toISOString().slice(0,7)}" /></div>
+        <div class="form-group"><label>Due ₹</label><input id="sDue" type="number" /></div>
+      </div>
+      <div class="form-grid">
+        <div class="form-group"><label>Paid ₹</label><input id="sPaid" type="number" /></div>
+        <div class="form-group"><label>Date</label><input id="sDate" type="date" /></div>
+      </div>
+      <div class="form-group"><label>Mode</label><input id="sMode" placeholder="Cash/UPI/Bank" /></div>
+      <button onclick="saveSal()">💾 Save</button><div id="salErr"></div>
     </div>`, 'salary');
 }
 
-function onSalaryEmpChange() {
-  const empId = document.getElementById('salEmpId').value;
-  const emp = (window.SALARY_EMP_CACHE || []).find(e => e.emp_id === empId);
-  const infoEl = document.getElementById('salEmpInfo');
-  const dueEl = document.getElementById('salDue');
-  if (emp) {
-    infoEl.innerHTML = `💡 Suggested Salary Due: ₹${(emp.monthly_salary || 0).toLocaleString("en-IN")}`;
-    dueEl.value = emp.monthly_salary || 0;
-  } else { infoEl.innerHTML = ''; }
-  onSalaryAmountChange();
+function onSalEmpChg() {
+  const e=(window._salCache||[]).find(x=>x.emp_id===document.getElementById('sEmp').value);
+  if(e){document.getElementById('sInfo').innerHTML=`💡 Salary: ₹${(e.monthly_salary||0).toLocaleString('en-IN')}`;document.getElementById('sDue').value=e.monthly_salary||0;}
 }
 
-function onSalaryAmountChange() {
-  const due = parseFloat(document.getElementById('salDue')?.value) || 0;
-  const paid = parseFloat(document.getElementById('salPaid')?.value) || 0;
-  const pending = due - paid;
-  const el = document.getElementById('salPendingInfo');
-  if (el) {
-    el.innerHTML = due > 0
-      ? (pending > 0 ? `<span class="warn">Pending: ₹${pending.toLocaleString("en-IN")}</span>` : `<span style="color:#256029;">✅ Fully Paid</span>`)
-      : '';
-  }
-}
-
-async function saveNewSalary() {
-  const empId = document.getElementById('salEmpId').value;
-  const month = document.getElementById('salMonth').value;
-  const due = parseFloat(document.getElementById('salDue').value) || 0;
-  const paid = parseFloat(document.getElementById('salPaid').value) || 0;
-  const payDate = document.getElementById('salPayDate').value;
-  const payMode = document.getElementById('salPayMode').value.trim();
-  const notes = document.getElementById('salNotes').value.trim();
-  if (!empId || !month) { document.getElementById('addSalErr').innerHTML = '<div class="error">Employee aur month required hai</div>'; return; }
-  const { error } = await sb.from('salary_tracker').insert({
-    emp_id: empId, month, salary_due: due, salary_paid: paid,
-    payment_date: payDate || null, payment_mode: payMode || null, notes: notes || null
-  });
-  if (error) { document.getElementById('addSalErr').innerHTML = `<div class="error">${error.message}</div>`; return; }
+async function saveSal() {
+  const eid=document.getElementById('sEmp').value, mo=document.getElementById('sMo').value;
+  if(!eid||!mo){document.getElementById('salErr').innerHTML='<div class="error">Employee & month required</div>';return;}
+  await sb.from('salary_tracker').insert({emp_id:eid,month:mo,salary_due:parseFloat(document.getElementById('sDue').value)||0,salary_paid:parseFloat(document.getElementById('sPaid').value)||0,payment_date:document.getElementById('sDate').value||null,payment_mode:document.getElementById('sMode').value.trim()||null});
   renderSalaryTracker();
 }
 
-async function editSalary(id) {
-  const { data: salary, error } = await sb.from('salary_tracker').select('*, employees(name, monthly_salary)').eq('id', id).single();
-  if (error || !salary) { alert('Record not found'); return; }
-  renderShell(`
-    <div class="card"><h1>✏️ Edit Salary Record</h1><button class="secondary" onclick="renderSalaryTracker()">← Back</button></div>
-    <div class="card">
-      <div class="sub"><strong>Employee:</strong> ${salary.employees?.name || salary.emp_id}</div>
-      <input id="salMonth" type="month" value="${salary.month || ''}" />
-      <input id="salDue" type="number" value="${salary.salary_due || 0}" />
-      <input id="salPaid" type="number" value="${salary.salary_paid || 0}" oninput="onSalaryAmountChange()" />
-      <div id="salPendingInfo" class="sub" style="margin-top:-6px;font-weight:600;"></div>
-      <input id="salPayDate" type="date" value="${salary.payment_date || ''}" />
-      <input id="salPayMode" value="${salary.payment_mode || ''}" placeholder="Payment Mode" />
-      <textarea id="salNotes">${salary.notes || ''}</textarea>
-      <button onclick="updateSalary(${id})">💾 Update Record</button>
-      <div id="editSalErr"></div>
+async function editSal(id) {
+  const {data:s} = await sb.from('salary_tracker').select('*, employees(name)').eq('id',id).single();
+  if(!s)return;
+  renderShell(`<div class="card"><h1>✏️ Edit Salary</h1><button class="secondary btn-sm" onclick="renderSalaryTracker()">← Back</button></div>
+    <div class="card"><div class="sub">${s.employees?.name||s.emp_id}</div>
+      <div class="form-grid"><div class="form-group"><label>Month</label><input id="sMo" type="month" value="${s.month||''}" /></div><div class="form-group"><label>Due</label><input id="sDue" type="number" value="${s.salary_due||0}" /></div></div>
+      <div class="form-grid"><div class="form-group"><label>Paid</label><input id="sPaid" type="number" value="${s.salary_paid||0}" /></div><div class="form-group"><label>Date</label><input id="sDate" type="date" value="${s.payment_date||''}" /></div></div>
+      <div class="form-group"><label>Mode</label><input id="sMode" value="${s.payment_mode||''}" /></div>
+      <button onclick="updSal(${id})">💾 Update</button>
     </div>`, 'salary');
-  setTimeout(() => onSalaryAmountChange(), 100);
 }
 
-async function updateSalary(id) {
-  const month = document.getElementById('salMonth').value;
-  const due = parseFloat(document.getElementById('salDue').value) || 0;
-  const paid = parseFloat(document.getElementById('salPaid').value) || 0;
-  const payDate = document.getElementById('salPayDate').value;
-  const payMode = document.getElementById('salPayMode').value.trim();
-  const notes = document.getElementById('salNotes').value.trim();
-  const { error } = await sb.from('salary_tracker').update({
-    month, salary_due: due, salary_paid: paid,
-    payment_date: payDate || null, payment_mode: payMode || null, notes: notes || null
-  }).eq('id', id);
-  if (error) { document.getElementById('editSalErr').innerHTML = `<div class="error">${error.message}</div>`; return; }
+async function updSal(id) {
+  await sb.from('salary_tracker').update({month:document.getElementById('sMo').value,salary_due:parseFloat(document.getElementById('sDue').value)||0,salary_paid:parseFloat(document.getElementById('sPaid').value)||0,payment_date:document.getElementById('sDate').value||null,payment_mode:document.getElementById('sMode').value.trim()||null}).eq('id',id);
   renderSalaryTracker();
 }
 
-async function deleteSalary(id) {
-  if (!confirm('Delete this salary record?')) return;
-  await sb.from('salary_tracker').delete().eq('id', id);
-  renderSalaryTracker();
-}
+async function delSal(id){if(confirm('Delete?')){await sb.from('salary_tracker').delete().eq('id',id);renderSalaryTracker();}}
 
-// ================================================================
-//  12. ADVANCE TRACKER
-// ================================================================
+// ============ ADVANCE ============
 async function renderAdvanceTracker() {
-  renderShell(`<div class="loading">Loading advance data...</div>`, 'advance');
-  const { data: advances, error } = await sb.from('advance_tracker').select('*, employees(name)').order('date_given', { ascending: false });
-  if (error) { renderShell(`<div class="error">Error: ${error.message}</div>`, 'advance'); return; }
-  const isOwner = SESSION.role === 'owner';
+  renderShell(`<div class="loading">Loading...</div>`, 'advance');
+  const {data:advs} = await sb.from('advance_tracker').select('*, employees(name)').order('date_given',{ascending:false});
+  const isO = SESSION.role==='owner';
   renderShell(`
-    <div class="card">
-      <h1>💵 Advance Tracker</h1>
-      <div class="sub">${advances.length} advance records</div>
-      ${isOwner ? `<button onclick="renderAddAdvance()">➕ Add Advance Record</button>` : ''}
-    </div>
-    <div class="card"><div style="overflow-x:auto;"><table>
-      <thead><tr><th>Employee</th><th>Date Given</th><th>Amount</th><th>Repaid</th><th>Balance</th><th>Reason</th>${isOwner ? '<th>Actions</th>' : ''}</tr></thead>
-      <tbody>${advances.map(a => {
-        const balance = (a.advance_amount || 0) - (a.repaid_amount || 0);
-        return `<tr>
-          <td><strong>${a.employees?.name || a.emp_id}</strong></td>
-          <td>${a.date_given || '-'}</td>
-          <td>₹${(a.advance_amount || 0).toLocaleString("en-IN")}</td>
-          <td>₹${(a.repaid_amount || 0).toLocaleString("en-IN")}</td>
-          <td><span class="${balance > 0 ? 'warn' : ''}">₹${balance.toLocaleString("en-IN")}</span></td>
-          <td>${a.reason || '-'}</td>
-          ${isOwner ? `<td class="table-actions">
-            <button class="btn-sm" onclick="editAdvance(${a.id})">✏️ Edit</button>
-            <button class="btn-sm danger" onclick="deleteAdvance(${a.id})">🗑️ Delete</button>
-          </td>` : ''}
-        </tr>`;
-      }).join("")}
-      </tbody>
+    <div class="card"><h1>💵 Advance Tracker</h1>${isO?`<button onclick="renderAddAdv()">➕ Add</button>`:''}</div>
+    <div class="card"><div class="table-wrap"><table>
+      <thead><tr><th>Employee</th><th>Date</th><th>Amount</th><th>Repaid</th><th>Balance</th><th>Reason</th>${isO?'<th>Actions</th>':''}</tr></thead>
+      <tbody>${(advs||[]).map(a=>{const b=(a.advance_amount||0)-(a.repaid_amount||0);return`<tr>
+        <td><strong>${a.employees?.name||a.emp_id}</strong></td><td>${a.date_given||'-'}</td>
+        <td>₹${(a.advance_amount||0).toLocaleString('en-IN')}</td><td>₹${(a.repaid_amount||0).toLocaleString('en-IN')}</td>
+        <td><span class="${b>0?'metric-value warn':''}">₹${b.toLocaleString('en-IN')}</span></td><td>${a.reason||'-'}</td>
+        ${isO?`<td class="table-actions"><button class="btn-sm" onclick="editAdv(${a.id})">✏️</button><button class="btn-sm danger" onclick="delAdv(${a.id})">🗑️</button></td>`:''}</tr>`;}).join('')}</tbody>
     </table></div></div>`, 'advance');
 }
 
-async function renderAddAdvance() {
-  const { data: employees } = await sb.from('employees').select('emp_id, name').eq('status', 'Active').order('name');
-  const today = new Date().toISOString().slice(0, 10);
-  renderShell(`
-    <div class="card"><h1>➕ Add Advance Record</h1><button class="secondary" onclick="renderAdvanceTracker()">← Back</button></div>
+async function renderAddAdv() {
+  const {data:emps} = await sb.from('employees').select('emp_id,name').eq('status','Active').order('name');
+  renderShell(`<div class="card"><h1>➕ Advance</h1><button class="secondary btn-sm" onclick="renderAdvanceTracker()">← Back</button></div>
     <div class="card">
-      <select id="advEmpId"><option value="">Select Employee</option>
-        ${(employees || []).map(e => `<option value="${e.emp_id}">${e.name}</option>`).join('')}
-      </select>
-      <input id="advDate" type="date" value="${today}" />
-      <input id="advAmount" type="number" placeholder="Advance Amount (₹)" />
-      <input id="advRepaid" type="number" placeholder="Repaid Amount (₹)" value="0" />
-      <input id="advReason" placeholder="Reason" />
-      <textarea id="advNotes" placeholder="Notes"></textarea>
-      <button onclick="saveNewAdvance()">💾 Save Advance Record</button>
-      <div id="addAdvErr"></div>
+      <div class="form-group"><label>Employee</label><select id="aEmp"><option value="">Select</option>${(emps||[]).map(e=>`<option value="${e.emp_id}">${e.name}</option>`).join('')}</select></div>
+      <div class="form-grid"><div class="form-group"><label>Date</label><input id="aDate" type="date" value="${new Date().toISOString().slice(0,10)}" /></div><div class="form-group"><label>Amount ₹</label><input id="aAmt" type="number" /></div></div>
+      <div class="form-group"><label>Reason</label><input id="aReason" /></div>
+      <button onclick="saveAdv()">💾 Save</button><div id="advErr"></div>
     </div>`, 'advance');
 }
 
-async function saveNewAdvance() {
-  const empId = document.getElementById('advEmpId').value;
-  const date = document.getElementById('advDate').value;
-  const amount = parseFloat(document.getElementById('advAmount').value) || 0;
-  const repaid = parseFloat(document.getElementById('advRepaid').value) || 0;
-  const reason = document.getElementById('advReason').value.trim();
-  const notes = document.getElementById('advNotes').value.trim();
-  if (!empId || amount <= 0) { document.getElementById('addAdvErr').innerHTML = '<div class="error">Employee aur valid amount required hai</div>'; return; }
-  const { error } = await sb.from('advance_tracker').insert({
-    emp_id: empId, date_given: date || null, advance_amount: amount,
-    repaid_amount: repaid, reason: reason || null, notes: notes || null
-  });
-  if (error) { document.getElementById('addAdvErr').innerHTML = `<div class="error">${error.message}</div>`; return; }
+async function saveAdv() {
+  const eid=document.getElementById('aEmp').value;
+  const amt=parseFloat(document.getElementById('aAmt').value)||0;
+  if(!eid||amt<=0){document.getElementById('advErr').innerHTML='<div class="error">Employee & amount required</div>';return;}
+  await sb.from('advance_tracker').insert({emp_id:eid,date_given:document.getElementById('aDate').value||null,advance_amount:amt,repaid_amount:0,reason:document.getElementById('aReason').value.trim()||null});
   renderAdvanceTracker();
 }
 
-async function editAdvance(id) {
-  const { data: adv, error } = await sb.from('advance_tracker').select('*, employees(name)').eq('id', id).single();
-  if (error || !adv) { alert('Record not found'); return; }
-  renderShell(`
-    <div class="card"><h1>✏️ Edit Advance Record</h1><button class="secondary" onclick="renderAdvanceTracker()">← Back</button></div>
-    <div class="card">
-      <div class="sub"><strong>Employee:</strong> ${adv.employees?.name || adv.emp_id}</div>
-      <input id="advDate" type="date" value="${adv.date_given || ''}" />
-      <input id="advAmount" type="number" value="${adv.advance_amount || 0}" />
-      <input id="advRepaid" type="number" value="${adv.repaid_amount || 0}" />
-      <input id="advReason" value="${adv.reason || ''}" placeholder="Reason" />
-      <textarea id="advNotes">${adv.notes || ''}</textarea>
-      <button onclick="updateAdvance(${id})">💾 Update Record</button>
-      <div id="editAdvErr"></div>
+async function editAdv(id) {
+  const {data:a} = await sb.from('advance_tracker').select('*, employees(name)').eq('id',id).single();
+  if(!a)return;
+  renderShell(`<div class="card"><h1>✏️ Edit Advance</h1><button class="secondary btn-sm" onclick="renderAdvanceTracker()">← Back</button></div>
+    <div class="card"><div class="sub">${a.employees?.name||a.emp_id}</div>
+      <div class="form-grid"><div class="form-group"><label>Date</label><input id="aDate" type="date" value="${a.date_given||''}" /></div><div class="form-group"><label>Amount</label><input id="aAmt" type="number" value="${a.advance_amount||0}" /></div></div>
+      <div class="form-grid"><div class="form-group"><label>Repaid</label><input id="aRep" type="number" value="${a.repaid_amount||0}" /></div><div class="form-group"><label>Reason</label><input id="aReason" value="${a.reason||''}" /></div></div>
+      <button onclick="updAdv(${id})">💾 Update</button>
     </div>`, 'advance');
 }
 
-async function updateAdvance(id) {
-  const date = document.getElementById('advDate').value;
-  const amount = parseFloat(document.getElementById('advAmount').value) || 0;
-  const repaid = parseFloat(document.getElementById('advRepaid').value) || 0;
-  const reason = document.getElementById('advReason').value.trim();
-  const notes = document.getElementById('advNotes').value.trim();
-  const { error } = await sb.from('advance_tracker').update({
-    date_given: date || null, advance_amount: amount, repaid_amount: repaid,
-    reason: reason || null, notes: notes || null
-  }).eq('id', id);
-  if (error) { document.getElementById('editAdvErr').innerHTML = `<div class="error">${error.message}</div>`; return; }
+async function updAdv(id) {
+  await sb.from('advance_tracker').update({date_given:document.getElementById('aDate').value||null,advance_amount:parseFloat(document.getElementById('aAmt').value)||0,repaid_amount:parseFloat(document.getElementById('aRep').value)||0,reason:document.getElementById('aReason').value.trim()||null}).eq('id',id);
   renderAdvanceTracker();
 }
 
-async function deleteAdvance(id) {
-  if (!confirm('Delete this advance record?')) return;
-  await sb.from('advance_tracker').delete().eq('id', id);
-  renderAdvanceTracker();
-}
+async function delAdv(id){if(confirm('Delete?')){await sb.from('advance_tracker').delete().eq('id',id);renderAdvanceTracker();}}
 
-// ================================================================
-//  13. MANAGE STORE
-// ================================================================
+// ============ STORE ============
 async function renderStore() {
-  renderShell(`<div class="loading">Loading store...</div>`, 'store');
-  const [items, txns] = await Promise.all([
+  renderShell(`<div class="loading">Loading...</div>`, 'store');
+  const [{data:items},{data:txns}] = await Promise.all([
     sb.from('store_items').select('*').order('item_name'),
-    sb.from('stock_transactions').select('*, store_items(item_name, unit), rooms(unit_no, nickname)')
-      .order('txn_date', { ascending: false }).limit(50)
+    sb.from('stock_transactions').select('*, store_items(item_name,unit), rooms(unit_no)').order('txn_date',{ascending:false}).limit(50)
   ]);
-  const stockMap = {};
-  (txns.data || []).forEach(t => {
-    stockMap[t.item_id] = (stockMap[t.item_id] || 0) + (t.txn_type === 'In' ? (t.quantity || 0) : -(t.quantity || 0));
-  });
-
+  const sm = {}; (txns||[]).forEach(t=>{sm[t.item_id]=(sm[t.item_id]||0)+(t.txn_type==='In'?(t.quantity||0):-(t.quantity||0));});
   renderShell(`
+    <div class="card"><h1>📦 Store</h1>
+      <div class="btn-row"><button onclick="renderAddItem()">➕ Item</button><button class="secondary" onclick="renderAddTxn()">🔄 Stock In/Out</button></div></div>
+    <div class="card"><div class="section-title">Items</div><div class="table-wrap"><table>
+      <thead><tr><th>Item</th><th>Category</th><th>Stock</th><th>Reorder</th></tr></thead>
+      <tbody>${(items||[]).map(i=>{const s=sm[i.item_id]||0;return`<tr><td><strong>${i.item_name}</strong></td><td>${i.category||'-'}</td><td><span class="${s<=(i.reorder_level||0)?'metric-value warn':''}">${s}</span></td><td>${i.reorder_level||0}</td></tr>`;}).join('')}</tbody>
+    </table></div></div>
+    <div class="card"><div class="section-title">Recent Transactions</div><div class="table-wrap"><table>
+      <thead><tr><th>Date</th><th>Item</th><th>Type</th><th>Qty</th><th>Cost</th></tr></thead>
+      <tbody>${(txns||[]).map(t=>`<tr><td>${t.txn_date}</td><td>${t.store_items?.item_name||t.item_id}</td><td><span class="badge ${t.txn_type==='In'?'green':'yellow'}">${t.txn_type}</span></td><td>${t.quantity}</td><td>₹${(t.cost||0).toLocaleString('en-IN')}</td></tr>`).join('')}</tbody>
+    </table></div></div>`, 'store');
+}
+
+async function renderAddItem() {
+  renderShell(`<div class="card"><h1>➕ Store Item</h1><button class="secondary btn-sm" onclick="renderStore()">← Back</button></div>
     <div class="card">
-      <h1>📦 Manage Store / Inventory</h1>
-      <div class="sub">${items.data?.length || 0} items</div>
-      <button onclick="renderAddStoreItem()">➕ Add New Item</button>
-      <button class="secondary" onclick="renderAddStockTxn()">🔄 Log Stock In/Out</button>
-    </div>
-    <div class="card">
-      <h2 style="font-size:15px;margin-bottom:10px;">Items & Current Stock</h2>
-      <div style="overflow-x:auto;"><table>
-        <thead><tr><th>Item</th><th>Category</th><th>Unit</th><th>Current Stock</th><th>Reorder Level</th></tr></thead>
-        <tbody>${(items.data || []).map(it => {
-          const stock = stockMap[it.item_id] || 0;
-          return `<tr>
-            <td><strong>${it.item_name}</strong></td><td>${it.category || '-'}</td><td>${it.unit || '-'}</td>
-            <td><span class="${stock <= (it.reorder_level || 0) ? 'warn' : ''}">${stock}</span></td>
-            <td>${it.reorder_level || 0}</td>
-          </tr>`;
-        }).join('')}</tbody>
-      </table></div>
-    </div>
-    <div class="card">
-      <h2 style="font-size:15px;margin-bottom:10px;">Recent Stock Transactions</h2>
-      <div style="overflow-x:auto;"><table>
-        <thead><tr><th>Date</th><th>Item</th><th>Property</th><th>Type</th><th>Qty</th><th>Cost</th></tr></thead>
-        <tbody>${(txns.data || []).map(t => `<tr>
-          <td>${t.txn_date}</td>
-          <td>${t.store_items?.item_name || t.item_id}</td>
-          <td>${t.rooms?.unit_no || 'General'}</td>
-          <td><span class="badge ${t.txn_type === 'In' ? 'green' : 'yellow'}">${t.txn_type}</span></td>
-          <td>${t.quantity} ${t.store_items?.unit || ''}</td>
-          <td>₹${(t.cost || 0).toLocaleString("en-IN")}</td>
-        </tr>`).join('')}</tbody>
-      </table></div>
+      <div class="form-group"><label>Name</label><input id="iName" /></div>
+      <div class="form-grid"><div class="form-group"><label>Category</label><select id="iCat"><option>Linen</option><option>Toiletries</option><option>Cleaning</option><option>Electronics</option><option>Other</option></select></div>
+      <div class="form-group"><label>Unit</label><input id="iUnit" placeholder="pcs/kg" /></div></div>
+      <div class="form-group"><label>Reorder Level</label><input id="iReorder" type="number" value="0" /></div>
+      <button onclick="saveItem()">💾 Save</button><div id="iErr"></div>
     </div>`, 'store');
 }
 
-async function renderAddStoreItem() {
-  renderShell(`
-    <div class="card"><h1>➕ Add Store Item</h1><button class="secondary" onclick="renderStore()">← Back</button></div>
-    <div class="card">
-      <input id="itemName" placeholder="Item Name (e.g. Bedsheet)" />
-      <select id="itemCategory">
-        <option value="Linen">Linen</option><option value="Toiletries">Toiletries</option>
-        <option value="Cleaning">Cleaning</option><option value="Electronics">Electronics</option>
-        <option value="Furniture">Furniture</option><option value="Other">Other</option>
-      </select>
-      <input id="itemUnit" placeholder="Unit (pcs / kg / liter)" />
-      <input id="itemReorder" type="number" placeholder="Reorder Level" value="0" />
-      <textarea id="itemNotes" placeholder="Notes"></textarea>
-      <button onclick="saveStoreItem()">💾 Save Item</button>
-      <div id="itemErr"></div>
-    </div>`, 'store');
-}
-
-async function saveStoreItem() {
-  const name = document.getElementById('itemName').value.trim();
-  const category = document.getElementById('itemCategory').value;
-  const unit = document.getElementById('itemUnit').value.trim();
-  const reorder = parseFloat(document.getElementById('itemReorder').value) || 0;
-  const notes = document.getElementById('itemNotes').value.trim();
-  if (!name) { document.getElementById('itemErr').innerHTML = '<div class="error">Item name required</div>'; return; }
-  const itemId = 'ITM' + Date.now();
-  const { error } = await sb.from('store_items').insert({
-    item_id: itemId, item_name: name, category, unit: unit || null, reorder_level: reorder, notes: notes || null
-  });
-  if (error) { document.getElementById('itemErr').innerHTML = `<div class="error">${error.message}</div>`; return; }
+async function saveItem() {
+  const name=document.getElementById('iName').value.trim();
+  if(!name){document.getElementById('iErr').innerHTML='<div class="error">Name required</div>';return;}
+  await sb.from('store_items').insert({item_id:'ITM'+Date.now(),item_name:name,category:document.getElementById('iCat').value,unit:document.getElementById('iUnit').value.trim()||null,reorder_level:parseFloat(document.getElementById('iReorder').value)||0});
   renderStore();
 }
 
-async function renderAddStockTxn() {
-  const [items, rooms] = await Promise.all([
-    sb.from('store_items').select('item_id, item_name').order('item_name'),
-    sb.from('rooms').select('room_id, unit_no, property_name').order('room_id')
+async function renderAddTxn() {
+  const [{data:items},{data:rooms}] = await Promise.all([
+    sb.from('store_items').select('item_id,item_name').order('item_name'),
+    sb.from('rooms').select('room_id,unit_no,property_name').order('room_id')
   ]);
-  const today = new Date().toISOString().slice(0, 10);
-  renderShell(`
-    <div class="card"><h1>🔄 Log Stock In/Out</h1><button class="secondary" onclick="renderStore()">← Back</button></div>
+  renderShell(`<div class="card"><h1>🔄 Stock In/Out</h1><button class="secondary btn-sm" onclick="renderStore()">← Back</button></div>
     <div class="card">
-      <select id="txnItem"><option value="">Select Item</option>
-        ${(items.data || []).map(i => `<option value="${i.item_id}">${i.item_name}</option>`).join('')}
-      </select>
-      <select id="txnRoom"><option value="">General Stock (no specific property)</option>
-        ${(rooms.data || []).map(r => `<option value="${r.room_id}">${r.property_name || ''} — ${r.unit_no}</option>`).join('')}
-      </select>
-      <select id="txnType">
-        <option value="In">Stock In (Purchase)</option>
-        <option value="Out">Stock Out (Used)</option>
-      </select>
-      <input id="txnQty" type="number" placeholder="Quantity" />
-      <input id="txnCost" type="number" placeholder="Cost (₹, only for purchase)" />
-      <input id="txnDate" type="date" value="${today}" />
-      <textarea id="txnNotes" placeholder="Notes"></textarea>
-      <button onclick="saveStockTxn()">💾 Save Transaction</button>
-      <div id="txnErr"></div>
-    </div>`, 'store');
-}
-
-async function saveStockTxn() {
-  const itemId = document.getElementById('txnItem').value;
-  const roomId = document.getElementById('txnRoom').value || null;
-  const txnType = document.getElementById('txnType').value;
-  const qty = parseFloat(document.getElementById('txnQty').value) || 0;
-  const cost = parseFloat(document.getElementById('txnCost').value) || 0;
-  const date = document.getElementById('txnDate').value;
-  const notes = document.getElementById('txnNotes').value.trim();
-  if (!itemId || qty <= 0) { document.getElementById('txnErr').innerHTML = '<div class="error">Item aur valid quantity required hai</div>'; return; }
-  const { error } = await sb.from('stock_transactions').insert({
-    item_id: itemId, room_id: roomId, txn_type: txnType,
-    quantity: qty, cost, txn_date: date || null, notes: notes || null
-  });
-  if (error) { document.getElementById('txnErr').innerHTML = `<div class="error">${error.message}</div>`; return; }
-  renderStore();
-}
-
-// ================================================================
-//  14. EXPENSES & PROFIT
-// ================================================================
-async function renderExpenses() {
-  renderShell(`<div class="loading">Loading expenses...</div>`, 'expenses');
-  const currentMonth = new Date().toISOString().slice(0, 7);
-  const monthLabel = new Date().toLocaleString('en-IN', { month: 'short', year: 'numeric' }).replace(' ', '-');
-
-  const [categories, expenses, guests] = await Promise.all([
-    sb.from('expense_categories').select('*').order('category_name'),
-    sb.from('expenses').select('*, expense_categories(category_name)').order('entry_date', { ascending: false }),
-    sb.from('guest_register').select('booking_id, check_in, total_amount'),
-  ]);
-
-  const paidMap = await getPaidMap((guests.data || []).map(g => g.booking_id));
-  const monthIncome = (guests.data || [])
-    .filter(g => g.check_in?.startsWith(currentMonth))
-    .reduce((s, g) => s + (paidMap[g.booking_id] || 0), 0);
-  const monthExpenses = (expenses.data || [])
-    .filter(e => e.month === monthLabel)
-    .reduce((s, e) => s + (e.amount || 0), 0);
-  const profit = monthIncome - monthExpenses;
-
-  renderShell(`
-    <div class="card">
-      <h1>🧾 Expenses & Profit</h1>
-      <div class="sub">Current month: <strong>${monthLabel}</strong></div>
-      <button onclick="renderAddExpenseCategory()">➕ Add Expense Category</button>
-      <button class="secondary" onclick="renderAddExpenseEntry()">🧾 Log This Month's Expense</button>
-    </div>
-    <div class="card">
-      <div class="metric-row"><span class="metric-label">Total Income (${monthLabel})</span><span class="metric-value">₹${monthIncome.toLocaleString("en-IN")}</span></div>
-      <div class="metric-row"><span class="metric-label">Total Expenses (${monthLabel})</span><span class="metric-value warn">₹${monthExpenses.toLocaleString("en-IN")}</span></div>
-      <div class="metric-row"><span class="metric-label">Profit (${monthLabel})</span><span class="metric-value" style="color:${profit >= 0 ? '#2E7D32' : '#C0392B'};">₹${profit.toLocaleString("en-IN")}</span></div>
-    </div>
-    <div class="card">
-      <h2 style="font-size:15px;margin-bottom:10px;">Expense Categories</h2>
-      <div style="overflow-x:auto;"><table>
-        <thead><tr><th>Category</th><th>Default Monthly Amount</th><th>Notes</th></tr></thead>
-        <tbody>${(categories.data || []).map(c => `
-          <tr>
-            <td><strong>${c.category_name}</strong></td>
-            <td>₹${(c.default_monthly_amount || 0).toLocaleString("en-IN")}</td>
-            <td>${c.notes || '-'}</td>
-          </tr>`).join('') || '<tr><td colspan="3" class="sub">Koi category nahi hai</td></tr>'}
-        </tbody>
-      </table></div>
-    </div>
-    <div class="card">
-      <h2 style="font-size:15px;margin-bottom:10px;">All Expense Entries</h2>
-      <div style="overflow-x:auto;"><table>
-        <thead><tr><th>Month</th><th>Category</th><th>Amount</th><th>Date</th><th>Notes</th></tr></thead>
-        <tbody>${(expenses.data || []).map(e => `
-          <tr>
-            <td>${e.month || '-'}</td>
-            <td>${e.expense_categories?.category_name || '-'}</td>
-            <td>₹${(e.amount || 0).toLocaleString("en-IN")}</td>
-            <td>${e.entry_date || '-'}</td>
-            <td>${e.notes || '-'}</td>
-          </tr>`).join('') || '<tr><td colspan="5" class="sub">Koi entry nahi hai abhi</td></tr>'}
-        </tbody>
-      </table></div>
-    </div>`, 'expenses');
-}
-
-async function renderAddExpenseCategory() {
-  renderShell(`
-    <div class="card"><h1>➕ Add Expense Category</h1><button class="secondary" onclick="renderExpenses()">← Back</button></div>
-    <div class="card">
-      <input id="catName" placeholder="Category Name (e.g. Electricity, Staff Rent)" />
-      <input id="catDefault" type="number" placeholder="Default Monthly Amount (₹)" />
-      <textarea id="catNotes" placeholder="Notes"></textarea>
-      <button onclick="saveExpenseCategory()">💾 Save Category</button>
-      <div id="catErr"></div>
-    </div>`, 'expenses');
-}
-
-async function saveExpenseCategory() {
-  const name = document.getElementById('catName').value.trim();
-  const defaultAmt = parseFloat(document.getElementById('catDefault').value) || null;
-  const notes = document.getElementById('catNotes').value.trim();
-  if (!name) { document.getElementById('catErr').innerHTML = '<div class="error">Category name required</div>'; return; }
-  const categoryId = 'EXP' + Date.now();
-  const { error } = await sb.from('expense_categories').insert({
-    category_id: categoryId, category_name: name, default_monthly_amount: defaultAmt, notes: notes || null
-  });
-  if (error) { document.getElementById('catErr').innerHTML = `<div class="error">${error.message}</div>`; return; }
-  renderExpenses();
-}
-
-async function renderAddExpenseEntry() {
-  const [categoriesRes, roomsRes] = await Promise.all([
-    sb.from('expense_categories').select('*').order('category_name'),
-    sb.from('rooms').select('room_id, unit_no, nickname, property_name').order('unit_no'),
-  ]);
-  const categories = categoriesRes.data;
-  const rooms = roomsRes.data;
-  const now = new Date();
-  const monthLabel = now.toLocaleString('en-IN', { month: 'short', year: 'numeric' }).replace(' ', '-');
-  const today = now.toISOString().slice(0, 10);
-  window.EXPENSE_CAT_CACHE = categories || [];
-
-  renderShell(`
-    <div class="card"><h1>🧾 Log This Month's Expense</h1><button class="secondary" onclick="renderExpenses()">← Back</button></div>
-    <div class="card">
-      <select id="expCategory" onchange="onExpenseCategoryChange()">
-        <option value="">Select Category</option>
-        ${(categories || []).map(c => `<option value="${c.category_id}">${c.category_name}</option>`).join('')}
-      </select>
-      <div id="expCatInfo" class="sub" style="margin-top:-6px;"></div>
-      <select id="expRoom">
-        <option value="">General / Company-wide</option>
-        ${(rooms || []).map(r => `<option value="${r.room_id}">${r.property_name || ''} — ${r.unit_no} (${r.nickname || ''})</option>`).join('')}
-      </select>
-      <input id="expMonth" value="${monthLabel}" placeholder="Month (e.g. Jul-2026)" />
-      <input id="expAmount" type="number" placeholder="Amount (₹)" />
-      <input id="expDate" type="date" value="${today}" />
-      <textarea id="expNotes" placeholder="Notes"></textarea>
-      <button onclick="saveExpenseEntry()">💾 Save Expense</button>
-      <div id="expErr"></div>
-    </div>`, 'expenses');
-}
-
-function onExpenseCategoryChange() {
-  const catId = document.getElementById('expCategory').value;
-  const cat = (window.EXPENSE_CAT_CACHE || []).find(c => c.category_id === catId);
-  const infoEl = document.getElementById('expCatInfo');
-  const amtEl = document.getElementById('expAmount');
-  if (cat && cat.default_monthly_amount) {
-    infoEl.innerHTML = `💡 Suggested: ₹${cat.default_monthly_amount.toLocaleString("en-IN")}`;
-    amtEl.value = cat.default_monthly_amount;
-  } else { infoEl.innerHTML = ''; }
-}
-
-async function saveExpenseEntry() {
-  const categoryId = document.getElementById('expCategory').value;
-  const roomId = document.getElementById('expRoom').value || null;
-  const month = document.getElementById('expMonth').value.trim();
-  const amount = parseFloat(document.getElementById('expAmount').value) || 0;
-  const date = document.getElementById('expDate').value;
-  const notes = document.getElementById('expNotes').value.trim();
-  if (!categoryId || !month || amount <= 0) {
-    document.getElementById('expErr').innerHTML = '<div class="error">Category, month aur valid amount required hai</div>';
-    return;
-  }
-  const { error } = await sb.from('expenses').insert({
-    category_id: categoryId, room_id: roomId, month, amount, entry_date: date || null, notes: notes || null
-  });
-  if (error) { document.getElementById('expErr').innerHTML = `<div class="error">${error.message}</div>`; return; }
-  renderExpenses();
-}
-
-// ================================================================
-//  15. PROPERTY PROFIT REPORT
-// ================================================================
-async function renderPropertyReport(roomId, range = 'Month') {
-  renderShell(`<div class="loading">Loading report...</div>`, 'property-report');
-  const { data: rooms } = await sb.from('rooms').select('room_id, unit_no, nickname, property_name').order('unit_no');
-  const selectedRoom = roomId || rooms?.[0]?.room_id;
-
-  if (!selectedRoom) {
-    renderShell(`<div class="card"><h1>🏘️ Property Profit Report</h1><div class="sub">Koi property nahi mili</div></div>`, 'property-report');
-    return;
-  }
-
-  const now = new Date();
-  let startDate, endDate, label;
-  if (range === 'Month') {
-    startDate = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0, 10);
-    endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().slice(0, 10);
-    label = now.toLocaleString('en-IN', { month: 'long', year: 'numeric' });
-  } else if (range === 'Quarter') {
-    const q = Math.floor(now.getMonth() / 3);
-    startDate = new Date(now.getFullYear(), q * 3, 1).toISOString().slice(0, 10);
-    endDate = new Date(now.getFullYear(), q * 3 + 3, 0).toISOString().slice(0, 10);
-    label = `Q${q + 1} ${now.getFullYear()}`;
-  } else {
-    startDate = `${now.getFullYear()}-01-01`;
-    endDate = `${now.getFullYear()}-12-31`;
-    label = `Year ${now.getFullYear()}`;
-  }
-  const monthLabel = now.toLocaleString('en-IN', { month: 'short', year: 'numeric' }).replace(' ', '-');
-
-  const [guestsRes, expensesRes] = await Promise.all([
-    sb.from('guest_register').select('*').eq('room_id', selectedRoom).gte('check_in', startDate).lte('check_in', endDate),
-    sb.from('expenses').select('*, expense_categories(category_name)').eq('room_id', selectedRoom).eq('month', monthLabel),
-  ]);
-  const guests = guestsRes.data || [];
-  const paidMap = await getPaidMap(guests.map(g => g.booking_id));
-
-  const onlineBookings = guests.filter(g => g.booking_mode === 'Online-Airbnb');
-  const offlineBookings = guests.filter(g => g.booking_mode !== 'Online-Airbnb');
-  const onlineRevenue = onlineBookings.reduce((s, g) => s + (paidMap[g.booking_id] || 0), 0);
-  const offlineRevenue = offlineBookings.reduce((s, g) => s + (paidMap[g.booking_id] || 0), 0);
-  const onlineNights = onlineBookings.reduce((s, g) => s + (g.check_in && g.check_out ? Math.round((new Date(g.check_out) - new Date(g.check_in)) / 86400000) : 0), 0);
-  const offlineNights = offlineBookings.reduce((s, g) => s + (g.check_in && g.check_out ? Math.round((new Date(g.check_out) - new Date(g.check_in)) / 86400000) : 0), 0);
-  const totalRevenue = onlineRevenue + offlineRevenue;
-  const totalNights = onlineNights + offlineNights;
-  const expenseRows = expensesRes.data || [];
-  const totalExpenses = expenseRows.reduce((s, e) => s + (e.amount || 0), 0);
-  const operatingProfit = totalRevenue - totalExpenses;
-  const room = rooms.find(r => r.room_id === selectedRoom);
-
-  const content = `
-    <div class="card">
-      <h1>🏘️ Property Profit Report</h1>
-      <select id="reportRoomSel">
-        ${rooms.map(r => `<option value="${r.room_id}" ${r.room_id === selectedRoom ? 'selected' : ''}>${r.property_name || ''} — ${r.unit_no} (${r.nickname || ''})</option>`).join('')}
-      </select>
-      <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;">
-        <button class="${range === 'Month' ? '' : 'secondary'} btn-sm" onclick="renderPropertyReport('${selectedRoom}','Month')">Month</button>
-        <button class="${range === 'Quarter' ? '' : 'secondary'} btn-sm" onclick="renderPropertyReport('${selectedRoom}','Quarter')">Quarter</button>
-        <button class="${range === 'Year' ? '' : 'secondary'} btn-sm" onclick="renderPropertyReport('${selectedRoom}','Year')">Year</button>
+      <div class="form-group"><label>Item</label><select id="txItem"><option value="">Select</option>${(items||[]).map(i=>`<option value="${i.item_id}">${i.item_name}</option>`).join('')}</select></div>
+      <div class="form-group"><label>Property</label><select id="txRoom"><option value="">General</option>${(rooms||[]).map(r=>`<option value="${r.room_id}">${r.unit_no}</option>`).join('')}</select></div>
+      <div class="form-grid">
+        <div class="form-group"><label>Type</label><select id="txType"><option value="In">Stock In</option><option value="Out">Stock Out</option></select></div>
+        <div class="form-group"><label>Qty</label><input id="txQty" type="number" /></div>
       </div>
-    </div>
-    <div class="card">
-      <div class="sub"><strong>Property:</strong> ${room?.property_name || ''} — ${room?.unit_no} (${room?.nickname || ''})</div>
-      <div class="sub"><strong>Period:</strong> ${label}</div>
-    </div>
-    <div class="card">
-      <h2 style="font-size:15px;margin-bottom:10px;">💰 Key Financial Metrics</h2>
-      <div class="metric-row"><span class="metric-label">Total Gross Revenue</span><span class="metric-value">₹${totalRevenue.toLocaleString("en-IN")}</span></div>
-      <div class="metric-row"><span class="metric-label">Total Operating Expenses</span><span class="metric-value warn">₹${totalExpenses.toLocaleString("en-IN")}</span></div>
-      <div class="metric-row"><span class="metric-label">Operating Profit</span><span class="metric-value" style="color:${operatingProfit >= 0 ? '#2E7D32' : '#C0392B'};">₹${operatingProfit.toLocaleString("en-IN")}</span></div>
-    </div>
-    <div class="card">
-      <h2 style="font-size:15px;margin-bottom:10px;">📊 Revenue Breakdown</h2>
-      <table>
-        <thead><tr><th>Source</th><th>Nights</th><th>Revenue</th><th>%</th></tr></thead>
-        <tbody>
-          <tr><td>Online (Airbnb)</td><td>${onlineNights}</td><td>₹${onlineRevenue.toLocaleString("en-IN")}</td><td>${totalRevenue > 0 ? Math.round(onlineRevenue / totalRevenue * 100) : 0}%</td></tr>
-          <tr><td>Offline</td><td>${offlineNights}</td><td>₹${offlineRevenue.toLocaleString("en-IN")}</td><td>${totalRevenue > 0 ? Math.round(offlineRevenue / totalRevenue * 100) : 0}%</td></tr>
-          <tr style="font-weight:700;"><td>Total</td><td>${totalNights}</td><td>₹${totalRevenue.toLocaleString("en-IN")}</td><td>100%</td></tr>
-        </tbody>
-      </table>
-    </div>
-    <div class="card">
-      <h2 style="font-size:15px;margin-bottom:10px;">🧾 Expenses (${monthLabel})</h2>
-      <table>
-        <thead><tr><th>Category</th><th>Amount</th></tr></thead>
-        <tbody>
-          ${expenseRows.map(e => `<tr><td>${e.expense_categories?.category_name || '-'}</td><td>₹${(e.amount || 0).toLocaleString("en-IN")}</td></tr>`).join('') || '<tr><td colspan="2" class="sub">Is property ke liye koi expense nahi</td></tr>'}
-          <tr style="font-weight:700;"><td>Total</td><td>₹${totalExpenses.toLocaleString("en-IN")}</td></tr>
-        </tbody>
-      </table>
-    </div>`;
-
-  renderShell(content, 'property-report');
-  document.getElementById('reportRoomSel').onchange = (e) => renderPropertyReport(e.target.value, range);
+      <div class="form-grid"><div class="form-group"><label>Cost ₹</label><input id="txCost" type="number" /></div>
+      <div class="form-group"><label>Date</label><input id="txDate" type="date" value="${new Date().toISOString().slice(0,10)}" /></div></div>
+      <button onclick="saveTxn()">💾 Save</button><div id="txErr"></div>
+    </div>`, 'store');
 }
 
-// ================================================================
-//  16. INVESTORS / SUB-OWNERS
-// ================================================================
-async function renderManageInvestors() {
-  renderShell(`<div class="loading">Loading investors...</div>`, 'investors');
-  const [investors, links, rooms] = await Promise.all([
-    sb.from('investors').select('*').order('name'),
-    sb.from('investor_properties').select('*, investors(name), rooms(unit_no, property_name)'),
-    sb.from('rooms').select('room_id, unit_no, property_name').order('room_id')
+async function saveTxn() {
+  const iid=document.getElementById('txItem').value, qty=parseFloat(document.getElementById('txQty').value)||0;
+  if(!iid||qty<=0){document.getElementById('txErr').innerHTML='<div class="error">Item & qty required</div>';return;}
+  await sb.from('stock_transactions').insert({item_id:iid,room_id:document.getElementById('txRoom').value||null,txn_type:document.getElementById('txType').value,quantity:qty,cost:parseFloat(document.getElementById('txCost').value)||0,txn_date:document.getElementById('txDate').value||null});
+  renderStore();
+}
+
+// ============ EXPENSES ============
+async function renderExpenses() {
+  renderShell(`<div class="loading">Loading...</div>`, 'expenses');
+  const cm = new Date().toISOString().slice(0,7);
+  const ml = new Date().toLocaleString('en-IN',{month:'short',year:'numeric'}).replace(' ','-');
+  const [{data:cats},{data:exps},{data:gs}] = await Promise.all([
+    sb.from('expense_categories').select('*').order('category_name'),
+    sb.from('expenses').select('*, expense_categories(category_name)').order('entry_date',{ascending:false}),
+    sb.from('guest_register').select('booking_id,check_in,total_amount'),
   ]);
-  window.INVESTOR_ROOMS_CACHE = rooms.data || [];
-
+  const pm = await getPaidMap((gs||[]).map(g=>g.booking_id));
+  const inc = (gs||[]).filter(g=>g.check_in?.startsWith(cm)).reduce((s,g)=>s+(pm[g.booking_id]||0),0);
+  const mexp = (exps||[]).filter(e=>e.month===ml).reduce((s,e)=>s+(e.amount||0),0);
+  const profit = inc - mexp;
   renderShell(`
+    <div class="card"><h1>🧾 Expenses & Profit</h1><div class="sub">${ml}</div>
+      <div class="btn-row"><button onclick="renderAddExpCat()">➕ Category</button><button class="secondary" onclick="renderAddExpEntry()">🧾 Log Expense</button></div></div>
     <div class="card">
-      <h1>🧑‍💼 Sub-Owners</h1>
-      <div class="sub">${investors.data?.length || 0} sub-owners linked</div>
-      <button onclick="renderAddInvestor()">➕ Add Sub-Owner</button>
-      <button class="secondary" onclick="renderLinkProperty()">🔗 Link Property to Sub-Owner</button>
+      <div class="metric-row"><span class="metric-label">Income</span><span class="metric-value">₹${inc.toLocaleString('en-IN')}</span></div>
+      <div class="metric-row"><span class="metric-label">Expenses</span><span class="metric-value warn">₹${mexp.toLocaleString('en-IN')}</span></div>
+      <div class="metric-row"><span class="metric-label">Profit</span><span class="metric-value" style="color:${profit>=0?'var(--green)':'var(--red)'};">₹${profit.toLocaleString('en-IN')}</span></div>
     </div>
+    <div class="card"><div class="section-title">Categories</div><div class="table-wrap"><table>
+      <thead><tr><th>Category</th><th>Default ₹</th></tr></thead>
+      <tbody>${(cats||[]).map(c=>`<tr><td>${c.category_name}</td><td>₹${(c.default_monthly_amount||0).toLocaleString('en-IN')}</td></tr>`).join('')||'<tr><td colspan="2" class="sub">No categories</td></tr>'}</tbody>
+    </table></div></div>
+    <div class="card"><div class="section-title">Entries</div><div class="table-wrap"><table>
+      <thead><tr><th>Month</th><th>Category</th><th>Amount</th><th>Date</th></tr></thead>
+      <tbody>${(exps||[]).map(e=>`<tr><td>${e.month||'-'}</td><td>${e.expense_categories?.category_name||'-'}</td><td>₹${(e.amount||0).toLocaleString('en-IN')}</td><td>${e.entry_date||'-'}</td></tr>`).join('')||'<tr><td colspan="4" class="sub">No entries</td></tr>'}</tbody>
+    </table></div></div>`, 'expenses');
+}
+
+async function renderAddExpCat() {
+  renderShell(`<div class="card"><h1>➕ Expense Category</h1><button class="secondary btn-sm" onclick="renderExpenses()">← Back</button></div>
     <div class="card">
-      <h2 style="font-size:15px;margin-bottom:10px;">Sub-Owner → Property Mapping</h2>
-      <div style="overflow-x:auto;"><table>
-        <thead><tr><th>Sub-Owner</th><th>Property</th></tr></thead>
-        <tbody>${(links.data || []).map(l => `<tr><td>${l.investors?.name || l.investor_id}</td><td>${l.rooms?.property_name || ''} — ${l.rooms?.unit_no || l.room_id}</td></tr>`).join('')}</tbody>
-      </table></div>
+      <div class="form-group"><label>Name</label><input id="cName" /></div>
+      <div class="form-group"><label>Default Monthly ₹</label><input id="cAmt" type="number" /></div>
+      <button onclick="saveExpCat()">💾 Save</button><div id="cErr"></div>
+    </div>`, 'expenses');
+}
+
+async function saveExpCat() {
+  const name=document.getElementById('cName').value.trim();
+  if(!name){document.getElementById('cErr').innerHTML='<div class="error">Name required</div>';return;}
+  await sb.from('expense_categories').insert({category_id:'EXP'+Date.now(),category_name:name,default_monthly_amount:parseFloat(document.getElementById('cAmt').value)||null});
+  renderExpenses();
+}
+
+async function renderAddExpEntry() {
+  const [{data:cats},{data:rooms}] = await Promise.all([
+    sb.from('expense_categories').select('*').order('category_name'),
+    sb.from('rooms').select('room_id,unit_no,nickname').order('unit_no')
+  ]);
+  window._expCats=cats||[];
+  const ml = new Date().toLocaleString('en-IN',{month:'short',year:'numeric'}).replace(' ','-');
+  renderShell(`<div class="card"><h1>🧾 Log Expense</h1><button class="secondary btn-sm" onclick="renderExpenses()">← Back</button></div>
+    <div class="card">
+      <div class="form-group"><label>Category</label><select id="exCat" onchange="onExpCatChg()"><option value="">Select</option>${(cats||[]).map(c=>`<option value="${c.category_id}">${c.category_name}</option>`).join('')}</select></div>
+      <div id="exCatInfo" class="sub"></div>
+      <div class="form-group"><label>Property</label><select id="exRoom"><option value="">General</option>${(rooms||[]).map(r=>`<option value="${r.room_id}">${r.nickname||r.unit_no}</option>`).join('')}</select></div>
+      <div class="form-grid">
+        <div class="form-group"><label>Month</label><input id="exMo" value="${ml}" /></div>
+        <div class="form-group"><label>Amount ₹</label><input id="exAmt" type="number" /></div>
+      </div>
+      <div class="form-group"><label>Date</label><input id="exDate" type="date" value="${new Date().toISOString().slice(0,10)}" /></div>
+      <button onclick="saveExpEntry()">💾 Save</button><div id="exErr"></div>
+    </div>`, 'expenses');
+}
+
+function onExpCatChg() {
+  const c=(window._expCats||[]).find(x=>x.category_id===document.getElementById('exCat').value);
+  if(c?.default_monthly_amount){document.getElementById('exCatInfo').innerHTML=`💡 Default: ₹${c.default_monthly_amount.toLocaleString('en-IN')}`;document.getElementById('exAmt').value=c.default_monthly_amount;}
+  else document.getElementById('exCatInfo').innerHTML='';
+}
+
+async function saveExpEntry() {
+  const cid=document.getElementById('exCat').value, mo=document.getElementById('exMo').value.trim(), amt=parseFloat(document.getElementById('exAmt').value)||0;
+  if(!cid||!mo||amt<=0){document.getElementById('exErr').innerHTML='<div class="error">Category, month & amount required</div>';return;}
+  await sb.from('expenses').insert({category_id:cid,room_id:document.getElementById('exRoom').value||null,month:mo,amount:amt,entry_date:document.getElementById('exDate').value||null});
+  renderExpenses();
+}
+
+// ============ PROPERTY REPORT ============
+async function renderPropertyReport(roomId, range='Month') {
+  renderShell(`<div class="loading">Loading...</div>`, 'property-report');
+  const {data:rooms} = await sb.from('rooms').select('room_id,unit_no,nickname,property_name').order('unit_no');
+  const sel = roomId||rooms?.[0]?.room_id;
+  if(!sel){renderShell(`<div class="card"><h1>🏘️ No properties</h1></div>`,'property-report');return;}
+
+  const now=new Date(); let s,e,label;
+  if(range==='Month'){s=new Date(now.getFullYear(),now.getMonth(),1).toISOString().slice(0,10);e=new Date(now.getFullYear(),now.getMonth()+1,0).toISOString().slice(0,10);label=now.toLocaleString('en-IN',{month:'long',year:'numeric'});}
+  else if(range==='Quarter'){const q=Math.floor(now.getMonth()/3);s=new Date(now.getFullYear(),q*3,1).toISOString().slice(0,10);e=new Date(now.getFullYear(),q*3+3,0).toISOString().slice(0,10);label=`Q${q+1} ${now.getFullYear()}`;}
+  else{s=`${now.getFullYear()}-01-01`;e=`${now.getFullYear()}-12-31`;label=`${now.getFullYear()}`;}
+  const ml=now.toLocaleString('en-IN',{month:'short',year:'numeric'}).replace(' ','-');
+
+  const [{data:gs},{data:exs}] = await Promise.all([
+    sb.from('guest_register').select('*').eq('room_id',sel).gte('check_in',s).lte('check_in',e),
+    sb.from('expenses').select('*, expense_categories(category_name)').eq('room_id',sel).eq('month',ml)
+  ]);
+  const pm = await getPaidMap((gs||[]).map(g=>g.booking_id));
+  const on=(gs||[]).filter(g=>g.booking_mode==='Online-Airbnb'), off=(gs||[]).filter(g=>g.booking_mode!=='Online-Airbnb');
+  const onRev=on.reduce((a,g)=>a+(pm[g.booking_id]||0),0), offRev=off.reduce((a,g)=>a+(pm[g.booking_id]||0),0);
+  const totRev=onRev+offRev, totExp=(exs||[]).reduce((a,e)=>a+(e.amount||0),0), profit=totRev-totExp;
+  const room=rooms.find(r=>r.room_id===sel);
+
+  renderShell(`
+    <div class="card"><h1>🏘️ Property Report</h1>
+      <div class="form-group"><select id="rpRoom">${rooms.map(r=>`<option value="${r.room_id}" ${r.room_id===sel?'selected':''}>${r.nickname||r.unit_no}</option>`).join('')}</select></div>
+      <div class="btn-row">
+        <button class="${range==='Month'?'':'secondary'} btn-sm" onclick="renderPropertyReport('${sel}','Month')">Month</button>
+        <button class="${range==='Quarter'?'':'secondary'} btn-sm" onclick="renderPropertyReport('${sel}','Quarter')">Quarter</button>
+        <button class="${range==='Year'?'':'secondary'} btn-sm" onclick="renderPropertyReport('${sel}','Year')">Year</button>
+      </div></div>
+    <div class="card"><div class="sub">${room?.property_name||''} — ${label}</div>
+      <div class="metric-row"><span class="metric-label">Revenue</span><span class="metric-value">₹${totRev.toLocaleString('en-IN')}</span></div>
+      <div class="metric-row"><span class="metric-label">Expenses</span><span class="metric-value warn">₹${totExp.toLocaleString('en-IN')}</span></div>
+      <div class="metric-row"><span class="metric-label">Profit</span><span class="metric-value" style="color:${profit>=0?'var(--green)':'var(--red)'};">₹${profit.toLocaleString('en-IN')}</span></div>
     </div>
+    <div class="card"><div class="section-title">Revenue Split</div><div class="table-wrap"><table>
+      <thead><tr><th>Source</th><th>Revenue</th><th>%</th></tr></thead>
+      <tbody>
+        <tr><td>Online</td><td>₹${onRev.toLocaleString('en-IN')}</td><td>${totRev>0?Math.round(onRev/totRev*100):0}%</td></tr>
+        <tr><td>Offline</td><td>₹${offRev.toLocaleString('en-IN')}</td><td>${totRev>0?Math.round(offRev/totRev*100):0}%</td></tr>
+      </tbody>
+    </table></div></div>
+    <div class="card"><div class="section-title">Expenses (${ml})</div><div class="table-wrap"><table>
+      <thead><tr><th>Category</th><th>Amount</th></tr></thead>
+      <tbody>${(exs||[]).map(e=>`<tr><td>${e.expense_categories?.category_name||'-'}</td><td>₹${(e.amount||0).toLocaleString('en-IN')}</td></tr>`).join('')||'<tr><td colspan="2" class="sub">No expenses</td></tr>'}
+        <tr style="font-weight:700;"><td>Total</td><td>₹${totExp.toLocaleString('en-IN')}</td></tr>
+      </tbody>
+    </table></div></div>`, 'property-report');
+  document.getElementById('rpRoom').onchange=e=>renderPropertyReport(e.target.value,range);
+}
+
+// ============ INVESTORS ============
+async function renderManageInvestors() {
+  renderShell(`<div class="loading">Loading...</div>`, 'investors');
+  const [{data:invs},{data:links},{data:rooms}] = await Promise.all([
+    sb.from('investors').select('*').order('name'),
+    sb.from('investor_properties').select('*, investors(name), rooms(unit_no,property_name,nickname)'),
+    sb.from('rooms').select('room_id,unit_no,property_name').order('room_id')
+  ]);
+  window._invRooms=rooms||[];
+  renderShell(`
+    <div class="card"><h1>🧑‍💼 Sub-Owners</h1><div class="sub">${(invs||[]).length} investors</div>
+      <div class="btn-row"><button onclick="renderAddInv()">➕ Add</button><button class="secondary" onclick="renderLinkProp()">🔗 Link Property</button></div></div>
+    <div class="card"><div class="section-title">Mapping</div><div class="table-wrap"><table>
+      <thead><tr><th>Investor</th><th>Property</th><th>Share %</th></tr></thead>
+      <tbody>${(links||[]).map(l=>`<tr><td>${l.investors?.name||l.investor_id}</td><td>${l.rooms?.nickname||l.rooms?.unit_no||l.room_id}</td><td>—</td></tr>`).join('')}</tbody>
+    </table></div></div>
+    <div class="card"><div class="section-title">All Investors</div><div class="table-wrap"><table>
+      <thead><tr><th>Name</th><th>Phone</th><th>ID</th></tr></thead>
+      <tbody>${(invs||[]).map(i=>`<tr><td>${i.name}</td><td>${i.phone||'-'}</td><td><code>${i.investor_id}</code></td></tr>`).join('')}</tbody>
+    </table></div></div>`, 'investors');
+}
+
+async function renderAddInv() {
+  renderShell(`<div class="card"><h1>➕ Add Investor</h1><button class="secondary btn-sm" onclick="renderManageInvestors()">← Back</button></div>
     <div class="card">
-      <h2 style="font-size:15px;margin-bottom:10px;">All Sub-Owners</h2>
-      <div style="overflow-x:auto;"><table>
-        <thead><tr><th>Name</th><th>Phone</th><th>Sub-Owner ID</th></tr></thead>
-        <tbody>${(investors.data || []).map(i => `<tr><td>${i.name}</td><td>${i.phone || '-'}</td><td><code>${i.investor_id}</code></td></tr>`).join('')}</tbody>
-      </table></div>
+      <div class="form-group"><label>Name</label><input id="invName" /></div>
+      <div class="form-group"><label>Phone</label><input id="invPhone" /></div>
+      <button onclick="saveInv()">💾 Save</button><div id="invErr"></div>
     </div>`, 'investors');
 }
 
-async function renderAddInvestor() {
-  renderShell(`
-    <div class="card"><h1>➕ Add Sub-Owner</h1><button class="secondary" onclick="renderManageInvestors()">← Back</button></div>
-    <div class="card">
-      <input id="invName" placeholder="Sub-Owner Name" />
-      <input id="invPhone" placeholder="Phone Number" />
-      <textarea id="invNotes" placeholder="Notes"></textarea>
-      <button onclick="saveInvestor()">💾 Save Sub-Owner</button>
-      <div id="invErr"></div>
-    </div>`, 'investors');
+async function saveInv() {
+  const name=document.getElementById('invName').value.trim();
+  if(!name){document.getElementById('invErr').innerHTML='<div class="error">Name required</div>';return;}
+  const id='INV'+Date.now();
+  await sb.from('investors').insert({investor_id:id,name,phone:document.getElementById('invPhone').value.trim()||null});
+  renderShell(`<div class="card"><h1>✅ Investor Added</h1><div class="sub">ID: <code>${id}</code></div>
+    <button onclick="renderManageInvestors()">← Back</button></div>`, 'investors');
 }
 
-async function saveInvestor() {
-  const name = document.getElementById('invName').value.trim();
-  const phone = document.getElementById('invPhone').value.trim();
-  const notes = document.getElementById('invNotes').value.trim();
-  if (!name) { document.getElementById('invErr').innerHTML = '<div class="error">Name required</div>'; return; }
-  const investorId = 'INV' + Date.now();
-  const { error } = await sb.from('investors').insert({
-    investor_id: investorId, name, phone: phone || null, notes: notes || null
-  });
-  if (error) { document.getElementById('invErr').innerHTML = `<div class="error">${error.message}</div>`; return; }
-  renderShell(`
+async function renderLinkProp() {
+  const {data:invs} = await sb.from('investors').select('investor_id,name').order('name');
+  renderShell(`<div class="card"><h1>🔗 Link Property</h1><button class="secondary btn-sm" onclick="renderManageInvestors()">← Back</button></div>
     <div class="card">
-      <h1>✅ Sub-Owner Added</h1>
-      <div class="sub">Sub-Owner ID: <code>${investorId}</code></div>
-      <div class="sub" style="margin-top:8px;">Ab Authentication mein inka login banao, aur profiles table mein role='investor', investor_id='${investorId}' set karo.</div>
-      <button onclick="renderManageInvestors()">← Sub-Owners pe wapas jao</button>
-    </div>`, 'investors');
-}
-
-async function renderLinkProperty() {
-  const { data: investors } = await sb.from('investors').select('investor_id, name').order('name');
-  const rooms = window.INVESTOR_ROOMS_CACHE || [];
-  renderShell(`
-    <div class="card"><h1>🔗 Link Property to Sub-Owner</h1><button class="secondary" onclick="renderManageInvestors()">← Back</button></div>
-    <div class="card">
-      <select id="linkInvestor"><option value="">Select Sub-Owner</option>
-        ${(investors || []).map(i => `<option value="${i.investor_id}">${i.name}</option>`).join('')}
-      </select>
-      <select id="linkRoom"><option value="">Select Property</option>
-        ${rooms.map(r => `<option value="${r.room_id}">${r.property_name || ''} — ${r.unit_no}</option>`).join('')}
-      </select>
-      <button onclick="saveLink()">💾 Link Property</button>
-      <div id="linkErr"></div>
+      <div class="form-group"><label>Investor</label><select id="lInv"><option value="">Select</option>${(invs||[]).map(i=>`<option value="${i.investor_id}">${i.name}</option>`).join('')}</select></div>
+      <div class="form-group"><label>Property</label><select id="lRoom"><option value="">Select</option>${(window._invRooms||[]).map(r=>`<option value="${r.room_id}">${r.unit_no} — ${r.property_name||''}</option>`).join('')}</select></div>
+      <button onclick="saveLink()">💾 Link</button><div id="lErr"></div>
     </div>`, 'investors');
 }
 
 async function saveLink() {
-  const investorId = document.getElementById('linkInvestor').value;
-  const roomId = document.getElementById('linkRoom').value;
-  if (!investorId || !roomId) { document.getElementById('linkErr').innerHTML = '<div class="error">Dono select karo</div>'; return; }
-  const { error } = await sb.from('investor_properties').insert({ investor_id: investorId, room_id: roomId });
-  if (error) { document.getElementById('linkErr').innerHTML = `<div class="error">${error.message}</div>`; return; }
+  const inv=document.getElementById('lInv').value, room=document.getElementById('lRoom').value;
+  if(!inv||!room){document.getElementById('lErr').innerHTML='<div class="error">Both required</div>';return;}
+  await sb.from('investor_properties').insert({investor_id:inv,room_id:room});
   renderManageInvestors();
 }
 
-// ================================================================
-//  17. SUB-OWNER VIEW
-// ================================================================
-function filterBookingsByRange(bookings, range) {
-  if (range === 'All') return bookings;
-  const now = new Date();
-  let start;
-  if (range === 'Today') { start = new Date(now.getFullYear(), now.getMonth(), now.getDate()); }
-  else if (range === 'Week') { start = new Date(now); start.setDate(now.getDate() - 7); }
-  else if (range === 'Month') { start = new Date(now.getFullYear(), now.getMonth(), 1); }
-  else { return bookings; }
-  return bookings.filter(b => b.check_in && new Date(b.check_in) >= start);
+// ============ INVESTOR VIEW ============
+function filterByRange(bks, range) {
+  if(range==='All') return bks;
+  const now=new Date(); let start;
+  if(range==='Today') start=new Date(now.getFullYear(),now.getMonth(),now.getDate());
+  else if(range==='Week'){start=new Date(now);start.setDate(now.getDate()-7);}
+  else if(range==='Month') start=new Date(now.getFullYear(),now.getMonth(),1);
+  else return bks;
+  return bks.filter(b=>b.check_in&&new Date(b.check_in)>=start);
 }
 
-async function renderInvestorView(range = 'Month') {
-  if (!SESSION.investorId) { showError('Aapka profile kisi property se link nahi hai. Owner se contact karo.'); return; }
+async function renderInvestorView(range='Month') {
+  if(!SESSION.investorId){showError('No property linked. Contact owner.');return;}
+  const {data:links} = await sb.from('investor_properties').select('room_id, rooms(unit_no,property_name,nickname)').eq('investor_id',SESSION.investorId);
+  const rids = (links||[]).map(l=>l.room_id);
+  const {data:allBk} = rids.length ? await sb.from('guest_register').select('*, rooms(unit_no,property_name)').in('room_id',rids).order('check_in',{ascending:false}) : {data:[]};
+  const bks = filterByRange(allBk||[],range);
+  const pm = await getPaidMap(bks.map(b=>b.booking_id));
+  const rev = bks.reduce((s,b)=>s+(pm[b.booking_id]||0),0);
 
-  const { data: links } = await sb.from('investor_properties')
-    .select('room_id, rooms(unit_no, property_name, nickname)').eq('investor_id', SESSION.investorId);
-  const roomIds = (links || []).map(l => l.room_id);
-
-  const { data: allBookings } = roomIds.length
-    ? await sb.from('guest_register').select('*, rooms(unit_no, property_name)').in('room_id', roomIds).order('check_in', { ascending: false })
-    : { data: [] };
-
-  const bookings = filterBookingsByRange(allBookings || [], range);
-  const paidMap = await getPaidMap(bookings.map(b => b.booking_id));
-  const totalRevenue = bookings.reduce((s, b) => s + (paidMap[b.booking_id] || 0), 0);
-
-  appEl.innerHTML = `
-    <div class="wrap" style="max-width:700px;">
-      <div class="card">
-        <img src="assets/logo.png" alt="Logo" style="width:56px;height:56px;object-fit:contain;margin-bottom:8px;border-radius:10px;" />
-        <h1>${BRAND}</h1>
-        <div class="sub">👋 ${SESSION.displayName} — Sub-Owner Dashboard</div>
-        <button onclick="logout()" class="secondary">🚪 Logout</button>
-      </div>
-      <div class="card">
-        <label style="font-size:13px;color:#445;">Period</label>
-        <select id="subOwnerRange">
-          <option value="Today" ${range === 'Today' ? 'selected' : ''}>Aaj (Daily)</option>
-          <option value="Week" ${range === 'Week' ? 'selected' : ''}>Pichle 7 din</option>
-          <option value="Month" ${range === 'Month' ? 'selected' : ''}>Is mahine</option>
-          <option value="All" ${range === 'All' ? 'selected' : ''}>Sab (All Time)</option>
-        </select>
-      </div>
-      <div class="card">
-        <div class="metric-row"><span class="metric-label">Aapki Properties</span><span class="metric-value">${(links || []).length}</span></div>
-        <div class="metric-row"><span class="metric-label">Bookings (${range})</span><span class="metric-value">${bookings.length}</span></div>
-        <div class="metric-row"><span class="metric-label">Revenue Received (${range})</span><span class="metric-value">₹${totalRevenue.toLocaleString("en-IN")}</span></div>
-      </div>
-      <div class="card">
-        <h2 style="font-size:15px;margin-bottom:10px;">Aapki Properties</h2>
-        ${(links || []).map(l => `<div class="metric-row"><span class="metric-label">${l.rooms?.property_name || ''} — ${l.rooms?.unit_no}</span><span class="metric-value">${l.rooms?.nickname || ''}</span></div>`).join('') || '<div class="sub">Koi property link nahi hai</div>'}
-      </div>
-      <div class="card">
-        <h2 style="font-size:15px;margin-bottom:10px;">Booking History (${range})</h2>
-        <div style="overflow-x:auto;"><table>
-          <thead><tr><th>Guest</th><th>Property</th><th>Mode</th><th>Check-in</th><th>Check-out</th><th>Received</th></tr></thead>
-          <tbody>${bookings.map(b => `<tr>
-            <td>${b.guest_name || '-'}</td>
-            <td>${b.rooms?.unit_no || '-'}</td>
-            <td><span class="badge ${b.booking_mode === 'Online-Airbnb' ? 'blue' : 'yellow'}">${b.booking_mode || 'Offline'}</span></td>
-            <td>${b.check_in || '-'}</td>
-            <td>${b.check_out || '-'}</td>
-            <td>₹${(paidMap[b.booking_id] || 0).toLocaleString("en-IN")}</td>
-          </tr>`).join('') || '<tr><td colspan="6" class="sub">Is period mein koi booking nahi</td></tr>'}
-          </tbody>
-        </table></div>
-      </div>
-    </div>`;
-  document.getElementById('subOwnerRange').onchange = (e) => renderInvestorView(e.target.value);
+  appEl.innerHTML = `<div class="wrap" style="max-width:600px;">
+    <div class="card" style="text-align:center;">
+      <img src="assets/logo.png" alt="" style="width:48px;height:48px;object-fit:contain;border-radius:10px;margin-bottom:6px;" />
+      <h1>${BRAND}</h1><div class="sub">👋 ${SESSION.displayName}</div>
+      <button class="danger btn-sm" onclick="logout()">🚪 Logout</button>
+    </div>
+    <div class="card"><div class="form-group"><label>Period</label><select id="invRange">
+      <option value="Today" ${range==='Today'?'selected':''}>Today</option>
+      <option value="Week" ${range==='Week'?'selected':''}>Week</option>
+      <option value="Month" ${range==='Month'?'selected':''}>Month</option>
+      <option value="All" ${range==='All'?'selected':''}>All</option>
+    </select></div></div>
+    <div class="card">
+      <div class="metric-row"><span class="metric-label">Properties</span><span class="metric-value">${(links||[]).length}</span></div>
+      <div class="metric-row"><span class="metric-label">Bookings</span><span class="metric-value">${bks.length}</span></div>
+      <div class="metric-row"><span class="metric-label">Revenue</span><span class="metric-value">₹${rev.toLocaleString('en-IN')}</span></div>
+    </div>
+    <div class="card"><div class="section-title">Bookings</div><div class="table-wrap"><table>
+      <thead><tr><th>Guest</th><th>Property</th><th>In</th><th>Out</th><th>₹</th></tr></thead>
+      <tbody>${bks.map(b=>`<tr><td>${b.guest_name||'-'}</td><td>${b.rooms?.unit_no||'-'}</td><td>${b.check_in||'-'}</td><td>${b.check_out||'-'}</td><td>₹${(pm[b.booking_id]||0).toLocaleString('en-IN')}</td></tr>`).join('')||'<tr><td colspan="5" class="sub">No bookings</td></tr>'}</tbody>
+    </table></div></div>
+  </div>`;
+  document.getElementById('invRange').onchange=e=>renderInvestorView(e.target.value);
 }
 
-// ================================================================
-//  18. EMPLOYEE VIEW
-// ================================================================
+// ============ EMPLOYEE VIEW ============
 async function renderEmployeeView() {
-  if (!SESSION.empId) {
-    appEl.innerHTML = `<div class="wrap"><div class="card">
-      <h1>⚠️ Error</h1>
-      <div class="error">Aapka employee ID set nahi hai. Owner se contact karo.</div>
-      <button onclick="logout()">Logout</button>
-    </div></div>`;
-    return;
-  }
-  const [emp, salary, advance, tasks, attendance] = await Promise.all([
-    sb.from("employees").select("*").eq("emp_id", SESSION.empId).single(),
-    sb.from("salary_tracker").select("salary_due, salary_paid").eq("emp_id", SESSION.empId),
-    sb.from("advance_tracker").select("advance_amount, repaid_amount").eq("emp_id", SESSION.empId),
-    sb.from("employee_tasks").select("task_description, status").eq("emp_id", SESSION.empId).eq("status", "Pending"),
-    sb.from("attendance_log").select("status, att_date").eq("emp_id", SESSION.empId),
+  if(!SESSION.empId){appEl.innerHTML=`<div class="wrap"><div class="card"><h1>⚠️ Error</h1><div class="error">Employee ID not set</div><button onclick="logout()">Logout</button></div></div>`;return;}
+  const [{data:emp},{data:sal},{data:adv},{data:tasks},{data:att}] = await Promise.all([
+    sb.from("employees").select("*").eq("emp_id",SESSION.empId).single(),
+    sb.from("salary_tracker").select("salary_due,salary_paid").eq("emp_id",SESSION.empId),
+    sb.from("advance_tracker").select("advance_amount,repaid_amount").eq("emp_id",SESSION.empId),
+    sb.from("employee_tasks").select("task_description,status").eq("emp_id",SESSION.empId).eq("status","Pending"),
+    sb.from("attendance_log").select("status,att_date").eq("emp_id",SESSION.empId),
   ]);
-  const pendingSalary = (salary.data || []).reduce((s, r) => s + ((r.salary_due || 0) - (r.salary_paid || 0)), 0);
-  const pendingAdvance = (advance.data || []).reduce((s, r) => s + ((r.advance_amount || 0) - (r.repaid_amount || 0)), 0);
-  const thisMonth = new Date().toISOString().slice(0, 7);
-  const monthRows = (attendance.data || []).filter(a => a.att_date?.startsWith(thisMonth));
-  const present = monthRows.filter(a => a.status === "Present").length;
-  const absent = monthRows.filter(a => a.status === "Absent").length;
+  const pSal=(sal||[]).reduce((s,r)=>s+((r.salary_due||0)-(r.salary_paid||0)),0);
+  const pAdv=(adv||[]).reduce((s,r)=>s+((r.advance_amount||0)-(r.repaid_amount||0)),0);
+  const cm=new Date().toISOString().slice(0,7);
+  const mr=(att||[]).filter(a=>a.att_date?.startsWith(cm));
+  const pr=mr.filter(a=>a.status==='Present').length, ab=mr.filter(a=>a.status==='Absent').length;
 
-  appEl.innerHTML = `
-    <div class="wrap">
-      <div class="card">
-        <img src="assets/logo.png" alt="Logo" style="width:56px;height:56px;object-fit:contain;margin-bottom:8px;border-radius:10px;" />
-        <h1>${BRAND}</h1>
-        <div class="sub">👋 ${SESSION.displayName} — Employee Dashboard</div>
-        <button onclick="logout()" class="secondary">🚪 Logout</button>
-      </div>
-      <div class="card">
-        <div class="metric-row"><span class="metric-label">Name</span><span class="metric-value">${emp.data?.name || '-'}</span></div>
-        <div class="metric-row"><span class="metric-label">Role</span><span class="metric-value">${emp.data?.role || '-'}</span></div>
-        <div class="metric-row"><span class="metric-label">Monthly Salary</span><span class="metric-value">₹${(emp.data?.monthly_salary || 0).toLocaleString("en-IN")}</span></div>
-        <div class="metric-row"><span class="metric-label">Salary Pending</span><span class="metric-value ${pendingSalary > 0 ? 'warn' : ''}">₹${pendingSalary.toLocaleString("en-IN")}</span></div>
-        <div class="metric-row"><span class="metric-label">Advance Pending</span><span class="metric-value ${pendingAdvance > 0 ? 'warn' : ''}">₹${pendingAdvance.toLocaleString("en-IN")}</span></div>
-        <div class="metric-row"><span class="metric-label">Present This Month</span><span class="metric-value">${present}</span></div>
-        <div class="metric-row"><span class="metric-label">Absent This Month</span><span class="metric-value ${absent > 0 ? 'warn' : ''}">${absent}</span></div>
-      </div>
-      <div class="card">
-        <h2 style="font-size:16px;margin-bottom:12px;">📋 Pending Tasks</h2>
-        ${(tasks.data || []).length === 0
-          ? `<div class="sub">Koi pending task nahi ✅</div>`
-          : tasks.data.map(t => `<div class="metric-row"><span class="metric-label">${t.task_description}</span><span class="badge red">Pending</span></div>`).join("")}
-      </div>
-    </div>`;
+  appEl.innerHTML = `<div class="wrap">
+    <div class="card" style="text-align:center;">
+      <img src="assets/logo.png" alt="" style="width:48px;height:48px;object-fit:contain;border-radius:10px;margin-bottom:6px;" />
+      <h1>${BRAND}</h1><div class="sub">👋 ${SESSION.displayName}</div>
+      <button class="secondary btn-sm" onclick="logout()">🚪 Logout</button>
+    </div>
+    <div class="card">
+      <div class="metric-row"><span class="metric-label">Name</span><span class="metric-value" style="font-size:15px;">${emp?.name||'-'}</span></div>
+      <div class="metric-row"><span class="metric-label">Role</span><span>${emp?.role||'-'}</span></div>
+      <div class="metric-row"><span class="metric-label">Salary</span><span class="metric-value">₹${(emp?.monthly_salary||0).toLocaleString('en-IN')}</span></div>
+      <div class="metric-row"><span class="metric-label">Salary Pending</span><span class="metric-value${pSal>0?' warn':''}">₹${pSal.toLocaleString('en-IN')}</span></div>
+      <div class="metric-row"><span class="metric-label">Advance Due</span><span class="metric-value${pAdv>0?' warn':''}">₹${pAdv.toLocaleString('en-IN')}</span></div>
+      <div class="metric-row"><span class="metric-label">Present</span><span class="metric-value">${pr}</span></div>
+      <div class="metric-row"><span class="metric-label">Absent</span><span class="metric-value${ab>0?' warn':''}">${ab}</span></div>
+    </div>
+    <div class="card"><div class="section-title">📋 Pending Tasks</div>
+      ${(tasks||[]).length===0?'<div class="sub">No pending tasks ✅</div>':
+        (tasks||[]).map(t=>`<div class="metric-row"><span class="metric-label">${t.task_description}</span><span class="badge red">Pending</span></div>`).join('')}
+    </div>
+  </div>`;
 }
 
-// ================================================================
-//  FIX #9: Calendar Cell Click → Booking Detail Modal
-// ================================================================
-async function showCalendarBookingDetail(roomId, dateStr) {
-  // Find booking that covers this date for this room
-  const { data: bookings } = await sb.from('guest_register')
-    .select('*, rooms(unit_no, nickname, property_name)')
-    .eq('room_id', roomId)
-    .lte('check_in', dateStr)
-    .gt('check_out', dateStr);
-
-  const b = (bookings || [])[0];
-  if (!b) { alert('Is date pe koi booking nahi mili.'); return; }
-
-  const { data: payments } = await sb.from('payment_history')
-    .select('amount').eq('booking_id', b.booking_id);
-  const paid = (payments || []).reduce((s, p) => s + (p.amount || 0), 0);
-  const balance = (b.total_amount || 0) - paid;
-  const nights = b.check_in && b.check_out
-    ? Math.round((new Date(b.check_out) - new Date(b.check_in)) / 86400000)
-    : '-';
-
-  const idPaths = b.id_proof_photo_paths || b.id_proof_photo_path || '';
-  const idArr = idPaths ? idPaths.split(',').filter(Boolean) : [];
-
-  // Create modal
-  const modal = document.createElement('div');
-  modal.className = 'modal-overlay';
-  modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
-
-  modal.innerHTML = `
-    <div class="modal-box">
-      <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">✕</button>
-      <h2>📅 Booking Details</h2>
-
-      <div class="metric-row"><span class="metric-label">Guest</span><span class="metric-value" style="font-size:16px;">${b.guest_name || '-'}</span></div>
-      <div class="metric-row"><span class="metric-label">Phone</span><span class="metric-value" style="font-size:14px;">${b.phone || '-'}</span></div>
-      <div class="metric-row"><span class="metric-label">Property</span><span class="metric-value" style="font-size:14px;">${b.rooms?.property_name || ''} — ${b.rooms?.unit_no || ''} (${b.rooms?.nickname || ''})</span></div>
-      <div class="metric-row"><span class="metric-label">Mode</span><span class="badge ${b.booking_mode === 'Online-Airbnb' ? 'blue' : 'yellow'}">${b.booking_mode || 'Offline'}</span></div>
-      <div class="metric-row"><span class="metric-label">Booked By</span><span style="font-size:13px;">${b.booked_by || '-'}</span></div>
-      <div class="metric-row"><span class="metric-label">Check-in</span><span style="font-size:14px;font-weight:600;">${b.check_in || '-'}</span></div>
-      <div class="metric-row"><span class="metric-label">Check-out</span><span style="font-size:14px;font-weight:600;">${b.check_out || '-'}</span></div>
-      <div class="metric-row"><span class="metric-label">Nights</span><span class="metric-value">${nights}</span></div>
-      <div class="metric-row"><span class="metric-label">Total Amount</span><span class="metric-value">₹${(b.total_amount || 0).toLocaleString("en-IN")}</span></div>
-      <div class="metric-row"><span class="metric-label">Paid</span><span class="metric-value" style="color:#2E7D32;">₹${paid.toLocaleString("en-IN")}</span></div>
-      <div class="metric-row"><span class="metric-label">Balance</span><span class="metric-value ${balance > 0 ? 'warn' : ''}">₹${balance.toLocaleString("en-IN")}</span></div>
-
-      ${b.id_proof_type ? `<div class="metric-row"><span class="metric-label">ID Type</span><span>${b.id_proof_type}</span></div>` : ''}
-      ${b.id_proof_no ? `<div class="metric-row"><span class="metric-label">ID Number</span><span>${b.id_proof_no}</span></div>` : ''}
-
-      ${idArr.length > 0 ? `
-        <div style="margin-top:12px;padding-top:12px;border-top:1px solid #eee;">
-          <div style="font-size:13px;font-weight:600;margin-bottom:8px;">📎 ID Photos (${idArr.length})</div>
-          <div style="display:flex;flex-wrap:wrap;gap:6px;">
-            ${idArr.map((p, i) => `<button class="btn-sm" onclick="downloadIdPhoto('${p}')">📥 Guest ${i + 1}</button>`).join('')}
-          </div>
-        </div>` : ''}
-
-      ${b.notes ? `<div style="margin-top:12px;padding:10px;background:#faf6f2;border-radius:8px;font-size:13px;"><strong>Notes:</strong> ${b.notes}</div>` : ''}
-
-      <div style="margin-top:16px;display:flex;gap:8px;flex-wrap:wrap;">
-        <button class="btn-sm" onclick="this.closest('.modal-overlay').remove(); editBooking('${b.booking_id}');">✏️ Edit Booking</button>
-        ${balance > 0 ? `<button class="btn-sm" onclick="this.closest('.modal-overlay').remove(); recordPayment('${b.booking_id}');">💰 Record Payment</button>` : ''}
-        <button class="btn-sm secondary" onclick="this.closest('.modal-overlay').remove();">Close</button>
-      </div>
-    </div>`;
-
-  document.body.appendChild(modal);
-}
-// ================================================================
-//  START APP
-// ================================================================
+// ============ START ============
 init();
