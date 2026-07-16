@@ -179,8 +179,66 @@ function compressImage(file, maxDim=800, quality=0.5) {
   });
 }
 
+function parseLocalDateTime(dateStr, hour = 0, minute = 0) {
+  if (!dateStr) return null;
+  const [y, m, d] = dateStr.split('-').map(Number);
+  return new Date(y, m - 1, d, hour, minute, 0, 0);
+}
+
+function getBookingWindow(booking) {
+  if (!booking?.check_in || !booking?.check_out) return null;
+  return {
+    start: parseLocalDateTime(booking.check_in, 14, 0), // check-in 2 PM
+    end: parseLocalDateTime(booking.check_out, 11, 0),  // checkout 11 AM
+  };
+}
+
+function isBookingActiveNow(booking, now = new Date()) {
+  const w = getBookingWindow(booking);
+  if (!w) return false;
+  return now >= w.start && now < w.end;
+}
+
+function hasBookingEnded(booking, now = new Date()) {
+  const w = getBookingWindow(booking);
+  if (!w) return false;
+  return now >= w.end;
+}
+
+function findOverlappingBookings(bookings) {
+  const grouped = {};
+  (bookings || []).forEach(b => {
+    if (!b.room_id || !b.check_in || !b.check_out) return;
+    if (!grouped[b.room_id]) grouped[b.room_id] = [];
+    grouped[b.room_id].push(b);
+  });
+
+  const overlaps = [];
+
+  Object.keys(grouped).forEach(roomId => {
+    const list = grouped[roomId].sort((a, b) => (a.check_in || '').localeCompare(b.check_in || ''));
+    for (let i = 0; i < list.length; i++) {
+      for (let j = i + 1; j < list.length; j++) {
+        const a = list[i], b = list[j];
+        const aStart = parseLocalDateTime(a.check_in, 14, 0);
+        const aEnd = parseLocalDateTime(a.check_out, 11, 0);
+        const bStart = parseLocalDateTime(b.check_in, 14, 0);
+        const bEnd = parseLocalDateTime(b.check_out, 11, 0);
+
+        if (aStart < bEnd && aEnd > bStart) {
+          overlaps.push({ roomId, a, b });
+        }
+      }
+    }
+  });
+
+  return overlaps;
+}
+
+
 // ============ DASHBOARD ============
 async function renderDashboard() {
+  await autoCheckout();
   renderShell(`<div class="loading">Loading...</div>`, 'dashboard');
   const today = new Date().toISOString().slice(0,10);
   const [g, f] = await Promise.all([
@@ -560,6 +618,7 @@ async function deleteRoom(id, name) {
 
 // ============ FLATS STATUS ============
 async function renderFlatsStatus() {
+  await autoCheckout();
   renderShell(`<div class="loading">Loading...</div>`, 'flats');
   const {data:flats} = await sb.from('flats_status').select('*, rooms(unit_no, nickname, property_name)').order('room_id');
   const can = ['owner','viewer','manager'].includes(SESSION.role);
@@ -621,6 +680,8 @@ async function renderManageBookings() {
   if (error) { renderShell(`<div class="error">${error.message}</div>`,'bookings'); return; }
   const {data:rooms} = await sb.from('rooms').select('room_id, unit_no, nickname').order('unit_no');
 
+  const overlaps = findOverlappingBookings(all || []);
+
   const mf=SESSION.bookingFilter||'All', pf=SESSION.bookingPropFilter||'',
     df=SESSION.bookingDateFilter||'', d1=SESSION.bookingDateFrom||'', d2=SESSION.bookingDateTo||'';
 
@@ -641,6 +702,24 @@ async function renderManageBookings() {
       <div class="sub">${f.length} bookings</div>
       ${canM?`<button onclick="renderAddBooking()">➕ New Booking</button>`:''}
     </div>
+
+    ${overlaps.length ? `
+      <div class="card">
+        <div class="error">
+          <strong>⚠️ Overlapping / Duplicate Bookings Found (${overlaps.length})</strong><br><br>
+          ${overlaps.slice(0, 10).map(o => `
+            <div style="margin-bottom:6px;">
+              <strong>${o.roomId}</strong> —
+              ${o.a.guest_name || '-'} (${o.a.check_in} → ${o.a.check_out})
+              overlaps with
+              ${o.b.guest_name || '-'} (${o.b.check_in} → ${o.b.check_out})
+            </div>
+          `).join('')}
+          ${overlaps.length > 10 ? `<div>...and ${overlaps.length - 10} more</div>` : ''}
+        </div>
+      </div>
+    ` : ''}
+    
     <div class="card">
       <div class="section-title">🔍 Filters</div>
       <div class="filter-bar">
@@ -2359,25 +2438,64 @@ function downloadInvestorCSV(investorId, roomId, month) {
 }
 
 // ============ AUTO CHECKOUT — Free rooms where checkout <= today ============
+// ============ AUTO ROOM STATUS SYNC ============
+// Rule:
+// - Check-in starts at 2:00 PM
+// - Checkout ends at 11:00 AM
+// - After checkout => room Free + Dirty
 async function autoCheckout() {
-  const today = new Date().toISOString().slice(0,10);
-  const {data:expired} = await sb.from('guest_register')
-    .select('room_id, booking_id, check_out')
-    .lte('check_out', today);
+  const now = new Date();
 
-  if (!expired || !expired.length) return;
+  const [{ data: allRooms }, { data: flats }, { data: bookings }] = await Promise.all([
+    sb.from('rooms').select('room_id'),
+    sb.from('flats_status').select('room_id, status, cleaning_status'),
+    sb.from('guest_register').select('booking_id, room_id, guest_name, check_in, check_out')
+  ]);
 
-  const roomIds = [...new Set(expired.map(b=>b.room_id).filter(Boolean))];
+  const flatMap = {};
+  (flats || []).forEach(f => { flatMap[f.room_id] = f; });
 
-  for (const rid of roomIds) {
-    // Check if any FUTURE booking exists for this room
-    const {data:future} = await sb.from('guest_register')
-      .select('booking_id')
-      .eq('room_id', rid)
-      .gt('check_out', today);
+  const roomIds = (allRooms || []).map(r => r.room_id);
+  for (const roomId of roomIds) {
+    const currentFlat = flatMap[roomId] || {};
+    const roomBookings = (bookings || []).filter(b => b.room_id === roomId);
 
-    if (!future || future.length === 0) {
-      await sb.from('flats_status').update({status:'Free'}).eq('room_id', rid);
+    // Blocked maintenance ko touch mat karo
+    if (currentFlat.status === 'Blocked-Maintenance') continue;
+
+    const activeNow = roomBookings.some(b => isBookingActiveNow(b, now));
+    const anyEnded = roomBookings.some(b => hasBookingEnded(b, now));
+
+    let newStatus = currentFlat.status || 'Free';
+    let newCleaning = currentFlat.cleaning_status || 'Clean';
+
+    if (activeNow) {
+      newStatus = 'Booked';
+      // cleaning status ko active booking ke time force nahi kar rahe
+    } else {
+      newStatus = 'Free';
+      if (anyEnded) {
+        // room checkout ho chuka hai
+        if (newCleaning !== 'In Progress') newCleaning = 'Dirty';
+      }
+    }
+
+    const needsInsert = !flatMap[roomId];
+    const changed =
+      currentFlat.status !== newStatus ||
+      currentFlat.cleaning_status !== newCleaning;
+
+    if (needsInsert) {
+      await sb.from('flats_status').insert({
+        room_id: roomId,
+        status: newStatus,
+        cleaning_status: newCleaning
+      });
+    } else if (changed) {
+      await sb.from('flats_status').update({
+        status: newStatus,
+        cleaning_status: newCleaning
+      }).eq('room_id', roomId);
     }
   }
 }
