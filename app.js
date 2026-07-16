@@ -2672,11 +2672,12 @@ async function autoCheckout() {
 
     if (activeNow) {
       newStatus = 'Booked';
-      // cleaning status ko active booking ke time force nahi kar rahe
+      // Guest check-in means room must be clean
+      newCleaning = 'Clean';
     } else {
       newStatus = 'Free';
       if (anyEnded) {
-        // room checkout ho chuka hai
+        // Checkout ho chuka hai => needs cleaning
         if (newCleaning !== 'In Progress') newCleaning = 'Dirty';
       }
     }
