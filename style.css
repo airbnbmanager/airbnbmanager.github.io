@@ -164,3 +164,134 @@ tr:last-child td { border-bottom: none; }
 .loading { text-align: center; padding: 40px; font-size: 16px; color: var(--brand-muted); }
 
 code { background: #F1EAE4; padding: 2px 6px; border-radius: 4px; font-size: 12px; }
+
+
+/* ===== MODAL OVERLAY ===== */
+.modal-overlay {
+  position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+  background: rgba(0,0,0,0.6); z-index: 9999;
+  display: flex; align-items: center; justify-content: center;
+  padding: 16px;
+}
+.modal-box {
+  background: #fff; border-radius: 14px; padding: 24px;
+  max-width: 500px; width: 100%; max-height: 85vh; overflow-y: auto;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.25);
+}
+.modal-box h2 { font-size: 18px; margin-bottom: 12px; }
+.modal-close {
+  float: right; background: none; border: none; font-size: 22px;
+  cursor: pointer; color: #999; padding: 0; margin: 0;
+}
+.modal-close:hover { color: #333; }
+
+/* ===== ID UPLOAD GRID ===== */
+.id-upload-grid {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 10px; margin-top: 10px;
+}
+@media (max-width: 500px) {
+  .id-upload-grid { grid-template-columns: 1fr; }
+}
+.id-slot {
+  background: #fff; border: 2px dashed #ccc; border-radius: 10px;
+  padding: 12px; text-align: center; transition: border-color 0.2s;
+}
+.id-slot.has-file { border-color: #2E7D32; border-style: solid; background: #f5fff5; }
+.id-slot label {
+  display: block; font-size: 12px; color: #445;
+  font-weight: 600; margin-bottom: 6px;
+}
+.id-slot input[type="text"] {
+  width: 100%; padding: 6px 8px; border: 1px solid #ddd;
+  border-radius: 6px; font-size: 12px; margin-bottom: 6px;
+}
+.id-slot input[type="file"] {
+  width: 100%; font-size: 11px;
+}
+.id-slot .file-status {
+  font-size: 11px; margin-top: 4px; color: #2E7D32; font-weight: 600;
+}
+
+/* ===== FILTER BAR ===== */
+.filter-bar {
+  display: flex; flex-wrap: wrap; gap: 8px; align-items: flex-end;
+  margin: 8px 0 12px;
+}
+.filter-bar > div { display: flex; flex-direction: column; }
+.filter-bar label {
+  font-size: 11px; color: #8A7F76; font-weight: 600;
+  margin-bottom: 2px;
+}
+.filter-bar input, .filter-bar select {
+  padding: 8px; font-size: 13px; margin: 0;
+  min-width: 120px; border-radius: 6px;
+}
+@media (max-width: 600px) {
+  .filter-bar { flex-direction: column; }
+  .filter-bar input, .filter-bar select { width: 100%; }
+}
+
+
+/* ===== MOBILE RESPONSIVE FIXES ===== */
+@media (max-width: 768px) {
+  /* Sidebar mobile fix */
+  .sidebar { position: static; width: 100%; height: auto; }
+  .sidebar nav { max-height: 45vh; overflow-y: auto; }
+  .main-content { margin-left: 0 !important; padding: 12px !important; max-width: 100% !important; }
+
+  /* Tables scroll properly */
+  table { font-size: 12px; }
+  th, td { padding: 8px 6px; }
+  th { font-size: 11px; }
+
+  /* Cards less padding */
+  .card { padding: 16px; margin-bottom: 12px; }
+  h1 { font-size: 18px; }
+
+  /* Metric rows stack better */
+  .metric-row { flex-wrap: wrap; gap: 4px; }
+  .metric-value { font-size: 16px; }
+
+  /* Booking form grids — single column on small screens */
+  .card div[style*="grid-template-columns:1fr 1fr"],
+  .card div[style*="grid-template-columns: 1fr 1fr"] {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Filter bar stack vertically */
+  .filter-bar {
+    flex-direction: column !important;
+  }
+  .filter-bar > div { width: 100%; }
+  .filter-bar input, .filter-bar select { width: 100% !important; min-width: unset !important; }
+
+  /* Table action buttons smaller */
+  .table-actions { gap: 4px; }
+  .btn-sm { padding: 5px 8px; font-size: 11px; }
+
+  /* Modal responsive */
+  .modal-box { padding: 16px; max-height: 90vh; }
+  .modal-box h2 { font-size: 16px; }
+
+  /* ID upload grid single column */
+  .id-upload-grid { grid-template-columns: 1fr !important; }
+
+  /* Dashboard cards */
+  div[style*="grid-template-columns:repeat(auto-fit"] {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Buttons full width on mobile */
+  button { width: 100%; margin: 4px 0 !important; }
+  .btn-sm { width: auto; }
+  .table-actions button.btn-sm { width: auto; }
+}
+
+@media (max-width: 400px) {
+  .card { padding: 12px; }
+  h1 { font-size: 16px; }
+  button { font-size: 14px; padding: 10px 14px; }
+  .sidebar h2 { font-size: 14px; padding: 14px 16px 10px; }
+  .sidebar nav a { padding: 10px 16px; font-size: 13px; }
+}
