@@ -376,8 +376,14 @@ function changeMonth(delta) {
 //  3. FINANCIAL SUMMARY (CA View)
 // ================================================================
 async function renderFYSummary(range = 'FY') {
-  // FIX #1: CA ke liye bhi sidebar-free layout mein logout button hai
-  renderShell(`<div class="loading">Loading financial data...</div>`, 'dashboard');
+  const isCA = SESSION.role === 'ca';
+
+  // CA ke liye alag page — sidebar nahi, direct appEl
+  if (isCA) {
+    appEl.innerHTML = `<div class="ca-page"><div class="loading">Loading...</div></div>`;
+  } else {
+    renderShell(`<div class="loading">Loading financial data...</div>`, 'dashboard');
+  }
 
   const now = new Date();
   const today = now.toISOString().slice(0, 10);
@@ -415,7 +421,8 @@ async function renderFYSummary(range = 'FY') {
   const bookingIds = fyGuests.map(g => g.booking_id);
   const paidMap = {};
   (payments.data || []).forEach(p => {
-    if (bookingIds.includes(p.booking_id)) paidMap[p.booking_id] = (paidMap[p.booking_id] || 0) + (p.amount || 0);
+    if (bookingIds.includes(p.booking_id))
+      paidMap[p.booking_id] = (paidMap[p.booking_id] || 0) + (p.amount || 0);
   });
 
   const totalIncome = fyGuests.reduce((s, g) => s + (paidMap[g.booking_id] || 0), 0);
@@ -423,82 +430,119 @@ async function renderFYSummary(range = 'FY') {
   const netProfit = totalIncome - totalExpenses;
 
   const filterBtns = ['Today', 'Week', 'Month', 'Quarter', 'YTD', 'FY'].map(r =>
-    `<button class="${r === range ? '' : 'secondary'}" onclick="renderFYSummary('${r}')">${r}</button>`
+    `<button class="${r === range ? '' : 'secondary'}" style="margin:3px;" onclick="renderFYSummary('${r}')">${r}</button>`
   ).join('');
 
-  const isCA = SESSION.role === 'ca';
+  const bookingTable = `
+    <div style="overflow-x:auto;">
+    <table>
+      <thead><tr><th>Booking</th><th>Guest</th><th>Room</th><th>Check-in</th><th>Received ₹</th></tr></thead>
+      <tbody>${fyGuests.map(g => `<tr>
+        <td>${g.booking_id}</td>
+        <td>${g.guest_name}</td>
+        <td>${g.room_id}</td>
+        <td>${g.check_in}</td>
+        <td>₹${(paidMap[g.booking_id] || 0).toLocaleString('en-IN')}</td>
+      </tr>`).join('')}</tbody>
+    </table></div>`;
 
-  // FIX #1: CA ke liye clean page (no sidebar) mein proper logout button
-  const caContent = `
-    <div class="wrap" style="max-width:700px;">
-      <div class="card" style="text-align:center;">
-        <img src="assets/logo.png" alt="Logo" style="width:56px;height:56px;object-fit:contain;margin-bottom:8px;border-radius:10px;" />
-        <h1>${BRAND}</h1>
-        <div class="sub">👋 ${SESSION.displayName} — CA / Accountant View</div>
-        <div style="margin-top:12px;">
-          <button class="danger" onclick="logout()" style="max-width:200px;">🚪 Logout</button>
+  window._fyData = { label, startDate, endDate, totalIncome, totalExpenses, netProfit, bookings: fyGuests, paidMap };
+
+  if (isCA) {
+    // ── CA VIEW — standalone page, NO sidebar ──────────────────
+    appEl.innerHTML = `
+      <div class="ca-page">
+
+        <!-- HEADER with LOGOUT -->
+        <div class="ca-header">
+          <img src="assets/logo.png" alt="Logo"
+            style="width:52px;height:52px;object-fit:contain;margin-bottom:8px;border-radius:10px;" />
+          <h1>${BRAND}</h1>
+          <div class="sub">👋 ${SESSION.displayName} — CA / Accountant View</div>
+          <br/>
+          <button class="ca-logout-btn" onclick="logout()">🚪 Logout</button>
         </div>
-      </div>
+
+        <!-- FILTER CARD -->
+        <div class="card">
+          <div style="font-size:14px;font-weight:700;margin-bottom:8px;">📊 Financial Summary</div>
+          <div class="sub">${label} — ${startDate} to ${endDate}</div>
+          <div style="margin:8px 0;display:flex;flex-wrap:wrap;gap:4px;">${filterBtns}</div>
+          <button onclick="downloadFYData()">⬇️ Download CSV</button>
+        </div>
+
+        <!-- METRICS -->
+        <div class="card">
+          <div class="metric-row">
+            <span class="metric-label">Total Income (Received)</span>
+            <span class="metric-value">₹${totalIncome.toLocaleString('en-IN')}</span>
+          </div>
+          <div class="metric-row">
+            <span class="metric-label">Total Expenses</span>
+            <span class="metric-value warn">₹${totalExpenses.toLocaleString('en-IN')}</span>
+          </div>
+          <div class="metric-row">
+            <span class="metric-label">Net Profit (Taxable)</span>
+            <span class="metric-value" style="color:${netProfit >= 0 ? '#2E7D32' : '#C0392B'};">
+              ₹${netProfit.toLocaleString('en-IN')}
+            </span>
+          </div>
+          <div class="sub" style="margin-top:10px;">
+            💡 Period change karke quarterly report download kar sakte ho.
+          </div>
+        </div>
+
+        <!-- BOOKINGS TABLE -->
+        <div class="card">
+          <div style="font-size:14px;font-weight:700;margin-bottom:8px;">
+            Bookings (${fyGuests.length})
+          </div>
+          ${bookingTable}
+        </div>
+
+        <!-- BOTTOM LOGOUT -->
+        <div class="card" style="text-align:center;">
+          <button class="ca-logout-btn" onclick="logout()">🚪 Logout — Sign Out</button>
+        </div>
+
+      </div>`;
+
+  } else {
+    // ── OWNER / MANAGER VIEW — with sidebar ───────────────────
+    renderShell(`
       <div class="card">
-        <h2 style="font-size:16px;margin-bottom:10px;">📊 Financial Summary</h2>
+        <h1>📊 Financial Summary</h1>
         <div class="sub">${label} — ${startDate} to ${endDate}</div>
-        <div style="margin:10px 0;display:flex;flex-wrap:wrap;gap:6px;">${filterBtns}</div>
+        <div style="margin:8px 0;display:flex;flex-wrap:wrap;gap:4px;">${filterBtns}</div>
+        <button class="secondary" onclick="renderDashboard()">← Back</button>
         <button onclick="downloadFYData()">⬇️ Download CSV</button>
       </div>
       <div class="card">
-        <div class="metric-row"><span class="metric-label">Total Income (Received)</span><span class="metric-value">₹${totalIncome.toLocaleString("en-IN")}</span></div>
-        <div class="metric-row"><span class="metric-label">Total Expenses</span><span class="metric-value warn">₹${totalExpenses.toLocaleString("en-IN")}</span></div>
-        <div class="metric-row"><span class="metric-label">Net Profit (Taxable)</span><span class="metric-value" style="color:${netProfit >= 0 ? '#2E7D32' : '#C0392B'};">₹${netProfit.toLocaleString("en-IN")}</span></div>
-        <div class="sub" style="margin-top:12px;">💡 Period change kar ke quarterly report bhej sakte ho.</div>
+        <div class="metric-row">
+          <span class="metric-label">Total Income (Received)</span>
+          <span class="metric-value">₹${totalIncome.toLocaleString('en-IN')}</span>
+        </div>
+        <div class="metric-row">
+          <span class="metric-label">Total Expenses</span>
+          <span class="metric-value warn">₹${totalExpenses.toLocaleString('en-IN')}</span>
+        </div>
+        <div class="metric-row">
+          <span class="metric-label">Net Profit (Taxable)</span>
+          <span class="metric-value" style="color:${netProfit >= 0 ? '#2E7D32' : '#C0392B'};">
+            ₹${netProfit.toLocaleString('en-IN')}
+          </span>
+        </div>
+        <div class="sub" style="margin-top:10px;">
+          💡 Period change karke quarterly bhej sakte ho.
+        </div>
       </div>
       <div class="card">
-        <h3 style="font-size:14px;margin-bottom:8px;">Bookings (${fyGuests.length})</h3>
-        <div style="overflow-x:auto;"><table>
-          <thead><tr><th>Booking</th><th>Guest</th><th>Room</th><th>Check-in</th><th>Received (₹)</th></tr></thead>
-          <tbody>${fyGuests.map(g => `<tr>
-            <td>${g.booking_id}</td><td>${g.guest_name}</td><td>${g.room_id}</td>
-            <td>${g.check_in}</td><td>₹${(paidMap[g.booking_id] || 0).toLocaleString("en-IN")}</td>
-          </tr>`).join('')}</tbody>
-        </table></div>
-      </div>
-      <div class="card" style="text-align:center;padding:16px;">
-        <button class="danger" onclick="logout()" style="max-width:250px;margin:0 auto;">🚪 Logout — Sign Out</button>
-      </div>
-    </div>`;
-
-  const ownerContent = `
-    <div class="card">
-      <h1>📊 Financial Summary</h1>
-      <div class="sub">${label} — ${startDate} to ${endDate}</div>
-      <div style="margin:10px 0;display:flex;flex-wrap:wrap;gap:6px;">${filterBtns}</div>
-      <button class="secondary" onclick="renderDashboard()">← Back to Dashboard</button>
-      <button onclick="downloadFYData()">⬇️ Download CSV (CA)</button>
-    </div>
-    <div class="card">
-      <div class="metric-row"><span class="metric-label">Total Income (Received)</span><span class="metric-value">₹${totalIncome.toLocaleString("en-IN")}</span></div>
-      <div class="metric-row"><span class="metric-label">Total Expenses</span><span class="metric-value warn">₹${totalExpenses.toLocaleString("en-IN")}</span></div>
-      <div class="metric-row"><span class="metric-label">Net Profit (Taxable)</span><span class="metric-value" style="color:${netProfit >= 0 ? '#2E7D32' : '#C0392B'};">₹${netProfit.toLocaleString("en-IN")}</span></div>
-      <div class="sub" style="margin-top:12px;">💡 Period change kar ke quarterly bhej sakte ho.</div>
-    </div>
-    <div class="card">
-      <h3 style="font-size:14px;margin-bottom:8px;">Bookings (${fyGuests.length})</h3>
-      <div style="overflow-x:auto;"><table>
-        <thead><tr><th>Booking</th><th>Guest</th><th>Room</th><th>Check-in</th><th>Received (₹)</th></tr></thead>
-        <tbody>${fyGuests.map(g => `<tr>
-          <td>${g.booking_id}</td><td>${g.guest_name}</td><td>${g.room_id}</td>
-          <td>${g.check_in}</td><td>₹${(paidMap[g.booking_id] || 0).toLocaleString("en-IN")}</td>
-        </tr>`).join('')}</tbody>
-      </table></div>
-    </div>`;
-
-  if (isCA) {
-    // CA: sidebar nahi, direct appEl mein render
-    appEl.innerHTML = caContent;
-  } else {
-    renderShell(ownerContent, 'dashboard');
+        <div style="font-size:14px;font-weight:700;margin-bottom:8px;">
+          Bookings (${fyGuests.length})
+        </div>
+        ${bookingTable}
+      </div>`, 'dashboard');
   }
-
-  window._fyData = { label, startDate, endDate, totalIncome, totalExpenses, netProfit, bookings: fyGuests, paidMap };
 }
 
 function downloadFYData() {
@@ -910,15 +954,27 @@ async function renderAddBooking() {
     .select('room_id, unit_no, nickname, property_name, rent_per_night, bookable').order('room_id');
   window.BOOKING_ROOMS_CACHE = rooms || [];
 
-  // Build 8 ID upload slots
+  // 8 guest ID slots
   let idSlotsHtml = '';
   for (let i = 1; i <= 8; i++) {
     idSlotsHtml += `
-      <div class="id-slot" id="idSlot${i}">
-        <label>👤 Guest ${i} ${i === 1 ? '(Primary) *' : '(Optional)'}</label>
-        <input type="text" id="guestIdName${i}" placeholder="Guest ${i} ka naam" />
-        <input type="file" id="guestIdFile${i}" accept="image/*" capture="environment"
-          onchange="onIdFileChange(${i})" />
+      <div class="id-slot" id="idSlot${i}" style="display:${i === 1 ? 'block' : 'none'};">
+        <label>👤 Guest ${i}${i === 1 ? ' (Primary)' : ' (Optional)'}</label>
+        <input type="text" class="id-slot-name" id="guestIdName${i}"
+          placeholder="Guest ${i} ka naam" />
+
+        <div style="display:flex;flex-direction:column;gap:6px;margin-top:4px;">
+          <label style="font-size:11px;color:#666;font-weight:500;margin:0;">📷 Camera se photo lo:</label>
+          <input type="file" class="id-slot-file" id="guestIdCamera${i}"
+            accept="image/*" capture="environment"
+            onchange="onIdFileChange(${i},'camera')" />
+
+          <label style="font-size:11px;color:#666;font-weight:500;margin:0;">🖼️ Gallery se select karo:</label>
+          <input type="file" class="id-slot-file" id="guestIdGallery${i}"
+            accept="image/*"
+            onchange="onIdFileChange(${i},'gallery')" />
+        </div>
+
         <div class="file-status" id="idStatus${i}"></div>
       </div>`;
   }
@@ -930,31 +986,34 @@ async function renderAddBooking() {
     </div>
 
     <div class="card">
-      <!-- Guest Info -->
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+
+      <!-- Row 1: Guest Name + Phone -->
+      <div class="form-grid-2">
         <div>
-          <label style="font-size:13px;color:#445;font-weight:600;">Guest Name *</label>
-          <input id="guestName" placeholder="Primary guest ka naam" style="margin-top:4px;" />
+          <label style="font-size:13px;font-weight:600;color:#445;">Guest Name *</label>
+          <input id="guestName" placeholder="Primary guest ka naam" />
         </div>
         <div>
-          <label style="font-size:13px;color:#445;font-weight:600;">Phone Number</label>
-          <input id="guestPhone" type="tel" placeholder="Mobile number" style="margin-top:4px;" />
+          <label style="font-size:13px;font-weight:600;color:#445;">Phone Number</label>
+          <input id="guestPhone" type="tel" placeholder="Mobile number" />
         </div>
       </div>
 
-      <!-- Property & Mode -->
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:4px;">
+      <!-- Row 2: Property + Mode -->
+      <div class="form-grid-2">
         <div>
-          <label style="font-size:13px;color:#445;font-weight:600;">Property *</label>
-          <select id="roomId" onchange="onBookingRoomChange()" style="margin-top:4px;">
+          <label style="font-size:13px;font-weight:600;color:#445;">Property *</label>
+          <select id="roomId" onchange="onBookingRoomChange()">
             <option value="">Select Property</option>
-            ${(rooms || []).map(r => `<option value="${r.room_id}">${r.property_name || ''} — ${r.unit_no} (${r.nickname || ''})</option>`).join('')}
+            ${(rooms || []).map(r =>
+              `<option value="${r.room_id}">${r.property_name || ''} — ${r.unit_no} (${r.nickname || ''})</option>`
+            ).join('')}
           </select>
-          <div id="roomInfo" class="sub" style="font-size:12px;"></div>
+          <div id="roomInfo" style="font-size:12px;color:#8A7F76;margin-top:2px;"></div>
         </div>
         <div>
-          <label style="font-size:13px;color:#445;font-weight:600;">Booking Mode</label>
-          <select id="bookingMode" onchange="onBookingModeChange()" style="margin-top:4px;">
+          <label style="font-size:13px;font-weight:600;color:#445;">Booking Mode</label>
+          <select id="bookingMode" onchange="onBookingModeChange()">
             <option value="Offline">Offline (Direct)</option>
             <option value="Online-Airbnb">Online (Airbnb)</option>
           </select>
@@ -962,55 +1021,58 @@ async function renderAddBooking() {
       </div>
 
       <!-- Airbnb fields -->
-      <div id="onlineFields" style="display:none;background:#f0f7ff;padding:12px;border-radius:8px;margin-top:8px;">
+      <div id="onlineFields" style="display:none;background:#f0f7ff;padding:12px;border-radius:8px;margin:4px 0;">
         <div style="font-size:13px;font-weight:600;color:#2E7080;margin-bottom:8px;">🌐 Airbnb Details</div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div class="form-grid-2">
           <div>
-            <label style="font-size:12px;color:#445;">Gross Amount ₹</label>
-            <input id="grossAmount" type="number" placeholder="e.g. 5000" oninput="onBookingAmountChange()" style="margin-top:4px;" />
+            <label style="font-size:12px;color:#445;">Gross Amount ₹ (guest ne pay kiya)</label>
+            <input id="grossAmount" type="number" placeholder="e.g. 5000" oninput="onBookingAmountChange()" />
           </div>
           <div>
-            <label style="font-size:12px;color:#445;">Airbnb Fee ₹</label>
-            <input id="platformFee" type="number" placeholder="e.g. 600" oninput="onBookingAmountChange()" style="margin-top:4px;" />
+            <label style="font-size:12px;color:#445;">Airbnb Commission/Fee ₹</label>
+            <input id="platformFee" type="number" placeholder="e.g. 600" oninput="onBookingAmountChange()" />
           </div>
         </div>
       </div>
 
-      <!-- Check-in / Check-out -->
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:4px;">
+      <!-- Row 3: Check-in + Check-out -->
+      <div class="form-grid-2">
         <div>
-          <label style="font-size:13px;color:#445;font-weight:600;">Check-in Date</label>
-          <input id="checkIn" type="date" onchange="onBookingRoomChange()" style="margin-top:4px;" />
+          <label style="font-size:13px;font-weight:600;color:#445;">Check-in Date</label>
+          <input id="checkIn" type="date" onchange="onBookingRoomChange()" />
         </div>
         <div>
-          <label style="font-size:13px;color:#445;font-weight:600;">Check-out Date</label>
-          <input id="checkOut" type="date" onchange="onBookingRoomChange()" style="margin-top:4px;" />
-        </div>
-      </div>
-      <div id="nightsInfo" class="sub" style="font-size:12px;margin-top:2px;"></div>
-
-      <!-- Guests & Amount -->
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:4px;">
-        <div>
-          <label style="font-size:13px;color:#445;font-weight:600;">Number of Guests</label>
-          <input id="guests" type="number" value="1" min="1" max="8" onchange="updateIdSlotVisibility()" oninput="updateIdSlotVisibility()" style="margin-top:4px;" />
-        </div>
-        <div>
-          <label style="font-size:13px;color:#445;font-weight:600;">Total Amount ₹ *</label>
-          <input id="totalAmount" type="number" placeholder="Kitne mein book hua" oninput="onBookingAmountChange()" style="margin-top:4px;" />
-          <div id="suggestedInfo" class="sub" style="font-size:11px;"></div>
+          <label style="font-size:13px;font-weight:600;color:#445;">Check-out Date</label>
+          <input id="checkOut" type="date" onchange="onBookingRoomChange()" />
         </div>
       </div>
+      <div id="nightsInfo" style="font-size:12px;color:#8A7F76;margin-top:-2px;margin-bottom:4px;"></div>
 
-      <!-- Advance Payment -->
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:4px;">
+      <!-- Row 4: Guests + Total Amount -->
+      <div class="form-grid-2">
         <div>
-          <label style="font-size:13px;color:#445;font-weight:600;">Advance Amount ₹</label>
-          <input id="advanceAmount" type="number" placeholder="Abhi mila advance" value="0" oninput="onBookingAmountChange()" style="margin-top:4px;" />
+          <label style="font-size:13px;font-weight:600;color:#445;">Number of Guests</label>
+          <input id="guests" type="number" value="1" min="1" max="8"
+            onchange="updateIdSlotVisibility()" oninput="updateIdSlotVisibility()" />
         </div>
         <div>
-          <label style="font-size:13px;color:#445;font-weight:600;">Advance Payment Mode</label>
-          <select id="advancePaymentMode" style="margin-top:4px;">
+          <label style="font-size:13px;font-weight:600;color:#445;">Total Amount ₹ *</label>
+          <input id="totalAmount" type="number" placeholder="Kitne mein book hua"
+            oninput="onBookingAmountChange()" />
+          <div id="suggestedInfo" style="font-size:11px;color:#8A7F76;"></div>
+        </div>
+      </div>
+
+      <!-- Row 5: Advance + Mode -->
+      <div class="form-grid-2">
+        <div>
+          <label style="font-size:13px;font-weight:600;color:#445;">Advance Amount ₹</label>
+          <input id="advanceAmount" type="number" placeholder="Abhi mila advance"
+            value="0" oninput="onBookingAmountChange()" />
+        </div>
+        <div>
+          <label style="font-size:13px;font-weight:600;color:#445;">Advance Payment Mode</label>
+          <select id="advancePaymentMode">
             <option value="">-- Select --</option>
             <option value="Cash">Cash</option>
             <option value="UPI">UPI</option>
@@ -1019,19 +1081,20 @@ async function renderAddBooking() {
           </select>
         </div>
       </div>
-      <div id="balanceInfo" style="font-size:13px;font-weight:600;margin:4px 0 8px;"></div>
+      <div id="balanceInfo" style="font-size:13px;font-weight:600;margin:2px 0 8px;"></div>
 
-      <!-- ID PROOF SECTION — 8 Guests -->
+      <!-- ID PROOF SECTION -->
       <div style="background:#faf6f2;border:1px solid #efe7e0;border-radius:10px;padding:14px;margin-top:8px;">
-        <div style="font-size:14px;font-weight:700;color:#2B2420;margin-bottom:4px;">🪪 ID Proof Photos</div>
-        <div style="font-size:12px;color:#8A7F76;margin-bottom:8px;">
-          Har guest ka naam aur ID photo separately upload karo. Camera se seedha photo lo ya gallery se select karo.
+        <div style="font-size:14px;font-weight:700;color:#2B2420;margin-bottom:4px;">🪪 ID Proof</div>
+        <div style="font-size:12px;color:#8A7F76;margin-bottom:10px;">
+          Har guest ki ID alag upload karo. Camera ya Gallery — dono se ho sakta hai.
         </div>
 
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:10px;">
+        <!-- Primary ID Type + Number -->
+        <div class="form-grid-2">
           <div>
-            <label style="font-size:12px;color:#445;">Primary Guest ID Type</label>
-            <select id="idProofType" style="margin-top:4px;">
+            <label style="font-size:12px;color:#445;font-weight:600;">Primary Guest ID Type</label>
+            <select id="idProofType">
               <option value="Aadhar" selected>Aadhar ✅</option>
               <option value="PAN">PAN</option>
               <option value="DL">Driving License</option>
@@ -1039,41 +1102,56 @@ async function renderAddBooking() {
             </select>
           </div>
           <div>
-            <label style="font-size:12px;color:#445;">Primary Guest ID Number</label>
-            <input id="guestIdNo" placeholder="e.g. 1234 5678 9012" style="margin-top:4px;" />
+            <label style="font-size:12px;color:#445;font-weight:600;">Primary Guest ID Number</label>
+            <input id="guestIdNo" placeholder="e.g. 1234 5678 9012" />
           </div>
         </div>
 
+        <!-- 8 Guest Slots -->
         <div class="id-upload-grid" id="idUploadGrid">
           ${idSlotsHtml}
         </div>
-
-        <div class="sub" style="font-size:11px;margin-top:8px;">
-          💡 Sirf utne slots dikhte hain jitne guests hain. Photos auto-compressed hote hain upload se pehle.
+        <div style="font-size:11px;color:#8A7F76;margin-top:6px;">
+          💡 Guests ki count badhao toh zyada slots dikhenge. Photos auto-compress hoti hain.
         </div>
       </div>
 
-      <div style="margin-top:12px;">
-        <label style="font-size:13px;color:#445;font-weight:600;">Notes (Optional)</label>
-        <textarea id="bookingNotes" placeholder="Koi special request ya note..." style="margin-top:4px;"></textarea>
+      <!-- Notes -->
+      <div style="margin-top:10px;">
+        <label style="font-size:13px;font-weight:600;color:#445;">Notes (Optional)</label>
+        <textarea id="bookingNotes" placeholder="Koi special request ya note..."></textarea>
       </div>
 
-      <button id="saveBookingBtn" onclick="saveNewBooking()" style="width:100%;margin-top:12px;padding:16px;font-size:16px;">
+      <button id="saveBookingBtn" onclick="saveNewBooking()"
+        style="width:100%;margin-top:12px;padding:15px;font-size:15px;">
         💾 Save Booking
       </button>
       <div id="addBookingErr"></div>
-    </div>
+    </div>`, 'bookings');
 
-    <style>
-      @media (max-width: 600px) {
-        .card div[style*="grid-template-columns:1fr 1fr"] {
-          grid-template-columns: 1fr !important;
-        }
-      }
-    </style>`, 'bookings');
-
-  // Initially show only 1 slot
   updateIdSlotVisibility();
+}
+
+// Slots show/hide based on guest count
+function updateIdSlotVisibility() {
+  const count = Math.min(parseInt(document.getElementById('guests')?.value) || 1, 8);
+  for (let i = 1; i <= 8; i++) {
+    const slot = document.getElementById(`idSlot${i}`);
+    if (slot) slot.style.display = i <= count ? 'block' : 'none';
+  }
+}
+
+// File selected feedback
+function onIdFileChange(guestNum, source) {
+  const inputId = source === 'camera' ? `guestIdCamera${guestNum}` : `guestIdGallery${guestNum}`;
+  const fileInput = document.getElementById(inputId);
+  const statusEl = document.getElementById(`idStatus${guestNum}`);
+  const slotEl = document.getElementById(`idSlot${guestNum}`);
+  if (fileInput && fileInput.files && fileInput.files[0]) {
+    const fname = fileInput.files[0].name;
+    statusEl.textContent = `✅ ${source === 'camera' ? 'Camera' : 'Gallery'}: ${fname.substring(0, 22)}`;
+    slotEl.classList.add('has-file');
+  }
 }
 
 // Show/hide ID slots based on guest count
@@ -1206,22 +1284,28 @@ async function uploadMultipleIdPhotos(bookingId) {
   const paths = [];
 
   for (let i = 1; i <= guestCount; i++) {
-    const fileInput = document.getElementById(`guestIdFile${i}`);
-    if (!fileInput || !fileInput.files || !fileInput.files[0]) continue;
+    // Camera ya Gallery — jo bhi selected hai woh use karo
+    const cameraInput = document.getElementById(`guestIdCamera${i}`);
+    const galleryInput = document.getElementById(`guestIdGallery${i}`);
+
+    // Camera ko priority — agar camera se liya toh woh, warna gallery
+    const file = (cameraInput?.files?.[0]) || (galleryInput?.files?.[0]) || null;
+    if (!file) continue;
 
     const guestName = document.getElementById(`guestIdName${i}`)?.value?.trim() || `Guest${i}`;
     const safeName = guestName.replace(/[^a-zA-Z0-9]/g, '_').substring(0, 20);
-    const compressed = await compressImage(fileInput.files[0]);
-    const path = `${bookingId}/${Date.now()}_${safeName}.jpg`;
+    const compressed = await compressImage(file);
+    const path = `${bookingId}/${Date.now()}_${safeName}_g${i}.jpg`;
 
-    const { error } = await sb.storage.from('id-proofs')
+    const { error } = await sb.storage
+      .from('id-proofs')
       .upload(path, compressed, { contentType: 'image/jpeg' });
+
     if (!error) paths.push(path);
   }
 
   return paths.length ? paths.join(',') : null;
 }
-
 async function uploadIdPhotoIfAny(bookingId) {
   const fileInput = document.getElementById('idPhoto');
   if (!fileInput || !fileInput.files || !fileInput.files[0]) return null;
