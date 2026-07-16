@@ -135,11 +135,22 @@ function renderShell(content, activePage = 'dashboard') {
 function navigate(page) {
   SESSION.currentPage = page;
   const map = {
-    dashboard:renderDashboard, reports:renderReports, rooms:renderManageRooms,
-    flats:renderFlatsStatus, bookings:renderManageBookings, employees:renderManageEmployees,
-    tasks:renderEmployeeTasks, attendance:renderAttendance, 'att-summary':renderAttendanceSummary,
-    salary:renderSalaryTracker, advance:renderAdvanceTracker, store:renderStore,
-    expenses:renderExpenses, 'property-report':renderPropertyReport, investors:renderManageInvestors,
+    dashboard:renderDashboard,
+    reports:renderReports,
+    rooms:renderManageRooms,
+    flats:renderFlatsStatus,
+    bookings:renderManageBookings,
+    employees:renderManageEmployees,
+    tasks:renderEmployeeTasks,
+    attendance:renderAttendance,
+    'att-summary':renderAttendanceSummary,
+    salary:renderSalaryTracker,
+    advance:renderAdvanceTracker,
+    store:renderStore,
+    expenses:renderExpenses,
+    'property-report':renderPropertyReport,
+    investors:renderManageInvestors,
+    sop: renderSOPPage,
   };
   (map[page] || renderDashboard)();
 }
