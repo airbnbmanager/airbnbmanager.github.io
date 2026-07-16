@@ -7,7 +7,7 @@
 
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 const appEl = document.getElementById("app");
-const BRAND = "The UNIQUE HAVEN HOME STAY PVT LTD";
+const BRAND = "The UNIQUE HAVEN HOME STAY";
 
 let SESSION = {
   userId: null, role: null, empId: null, investorId: null,
@@ -40,6 +40,7 @@ async function loadProfile(userId) {
 
   if (profile.role === 'employee') renderEmployeeView();
   else if (profile.role === 'investor') renderInvestorView();
+  else if (profile.role === 'ca') renderFYSummary();
   else renderDashboard();
 }
 
@@ -84,27 +85,42 @@ function renderLogin() {
 
 // ============ SHELL (sidebar) ============
 function renderShell(content, activePage = 'dashboard') {
-  const isOwnerOrViewer = SESSION.role === 'owner' || SESSION.role === 'viewer';
-  if (!isOwnerOrViewer) { appEl.innerHTML = content; return; }
+  const showSidebar = ['owner', 'viewer', 'manager'].includes(SESSION.role);
+  if (!showSidebar) { appEl.innerHTML = content; return; }
 
   const isOwner = SESSION.role === 'owner';
-  const navItems = [
-    ['dashboard', '📊 Dashboard'],
-    ['reports', '📈 Reports'],
-    ['rooms', '🏠 Manage Rooms'],
-    ['flats', '🛏️ Flats Status'],
-    ['bookings', '📅 Manage Bookings'],
-    ['employees', '👥 Manage Employees'],
-    ['tasks', '🧰 Employee Tasks'],
-    ['attendance', '📋 Attendance'],
-    ['att-summary', '📅 Monthly Summary'],
-    ['salary', '💰 Salary Tracker'],
-    ['advance', '💵 Advance Tracker'],
-  ];
+  const isManager = SESSION.role === 'manager';
+
+  let navItems;
   if (isOwner) {
-    navItems.push(['store', '📦 Manage Store']);
-    navItems.push(['expenses', '🧾 Expenses & Profit']);
-    navItems.push(['investors', '🧑‍💼 Sub-Owners']);
+    navItems = [
+      ['dashboard', '📊 Dashboard'],
+      ['reports', '📈 Reports'],
+      ['rooms', '🏠 Manage Rooms'],
+      ['flats', '🛏️ Flats Status'],
+      ['bookings', '📅 Manage Bookings'],
+      ['employees', '👥 Manage Employees'],
+      ['tasks', '🧰 Employee Tasks'],
+      ['attendance', '📋 Attendance'],
+      ['att-summary', '📅 Monthly Summary'],
+      ['salary', '💰 Salary Tracker'],
+      ['advance', '💵 Advance Tracker'],
+      ['store', '📦 Manage Store'],
+      ['expenses', '🧾 Expenses & Profit'],
+      ['property-report', '🏘️ Property Profit Report'],
+      ['investors', '🧑‍💼 Sub-Owners'],
+    ];
+  } else {
+    // viewer (Property Owner) and manager (Firoz) get IDENTICAL restricted access
+    navItems = [
+      ['dashboard', '📊 Dashboard'],
+      ['reports', '📈 Reports'],
+      ['flats', '🛏️ Flats Status'],
+      ['bookings', '📅 Manage Bookings'],
+      ['att-summary', '📅 Monthly Summary'],
+      ['salary', '💰 Salary Tracker'],
+      ['advance', '💵 Advance Tracker'],
+    ];
   }
 
   appEl.innerHTML = `
@@ -147,6 +163,7 @@ function navigate(page) {
     case 'advance':     renderAdvanceTracker(); break;
     case 'store':       renderStore(); break;
     case 'expenses':    renderExpenses(); break;
+    case 'property-report': renderPropertyReport(); break;
     case 'investors':   renderManageInvestors(); break;
     default:            renderDashboard();
   }
@@ -286,19 +303,22 @@ async function renderReports() {
       html += `<div style="background:#f5f0eb;border-radius:4px;height:32px;"></div>`;
     }
 
+    const todayStr = new Date().toISOString().slice(0,10);
     for (let d=1; d<=daysInMonth; d++) {
       const dateStr = `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
       const key = `${room.room_id}_${dateStr}`;
       const booking = bookingMap[key];
+      const isToday = dateStr === todayStr;
       let bg = '#DCEFDC'; // free
       let guestName = '';
       if (booking) {
         bg = booking.mode === 'Online-Airbnb' ? '#E1EEF0' : '#FBEAC8';
         guestName = booking.guest?.split(' ')[0] || 'B';
       }
-      html += `<div style="background:${bg};border-radius:6px;padding:4px 2px;text-align:center;font-size:13px;font-weight:600;height:38px;display:flex;flex-direction:column;justify-content:center;cursor:default;">
-        <div>${d}</div>
-        ${booking ? `<div style="font-size:9px;font-weight:400;line-height:1.1;">${guestName}</div>` : ''}
+      const todayBorder = isToday ? 'border:2px solid #E2725B;box-shadow:0 0 0 2px rgba(226,114,91,0.25);' : '';
+      html += `<div style="background:${bg};border-radius:6px;padding:4px 2px;text-align:center;font-size:13px;font-weight:${isToday?800:600};height:38px;display:flex;flex-direction:column;justify-content:center;cursor:default;${todayBorder}">
+        <div style="${isToday?'color:#E2725B;':''}">${d}${isToday?' •':''}</div>
+        ${booking ? `<div style="font-size:9.5px;font-weight:700;line-height:1.1;color:#2B2420;">${guestName}</div>` : ''}
       </div>`;
     }
 
@@ -433,11 +453,12 @@ async function renderFYSummary(range = 'FY') {
     `<button class="${r===range?'':'secondary'}" onclick="renderFYSummary('${r}')">${r}</button>`
   ).join('');
 
+  const isCA = SESSION.role === 'ca';
   renderShell(`
     <div class="card"><h1>📊 Financial Summary</h1>
       <div class="sub">${label} — ${startDate} to ${endDate}</div>
       <div style="margin:10px 0;">${filterBtns}</div>
-      <button class="secondary" onclick="renderDashboard()">← Back to Dashboard</button>
+      ${isCA ? `<button class="secondary" onclick="logout()">🚪 Logout</button>` : `<button class="secondary" onclick="renderDashboard()">← Back to Dashboard</button>`}
       <button onclick="downloadFYData()">⬇️ Download CSV (CA)</button>
     </div>
     <div class="card">
@@ -620,7 +641,7 @@ async function renderFlatsStatus() {
     .select('*, rooms(unit_no, nickname, property_name)').order('room_id');
   if (error) { renderShell(`<div class="error">Error: ${error.message}</div>`, 'flats'); return; }
 
-  const isOwner = SESSION.role === 'owner';
+  const isOwner = ['owner', 'viewer', 'manager'].includes(SESSION.role);
   const content = `
     <div class="card"><h1>🛏️ Flats Status (Live)</h1><div class="sub">${flats.length} flats total</div></div>
     <div class="card"><div style="overflow-x:auto;">
@@ -699,7 +720,8 @@ async function renderManageBookings() {
   const filtered = bookings.filter(b => filter==='All' || b.booking_mode===filter);
   const paidMap = await getPaidMap(filtered.map(b=>b.booking_id));
 
-  const isOwner = SESSION.role === 'owner';
+  const canManage = ['owner', 'viewer', 'manager'].includes(SESSION.role);
+  const canDelete = SESSION.role === 'owner';
   const content = `
     <div class="card">
       <h1>📅 Manage Bookings</h1>
@@ -709,12 +731,12 @@ async function renderManageBookings() {
         <option value="Online-Airbnb" ${filter==='Online-Airbnb'?'selected':''}>Online (Airbnb)</option>
         <option value="Offline" ${filter==='Offline'?'selected':''}>Offline</option>
       </select>
-      ${isOwner ? `<button onclick="renderAddBooking()">➕ Add New Booking</button>` : ''}
+      ${canManage ? `<button onclick="renderAddBooking()">➕ Add New Booking</button>` : ''}
     </div>
     <div class="card"><div style="overflow-x:auto;">
       <table>
-        <thead><tr><th>Guest</th><th>Property/Unit</th><th>Mode</th><th>Check-in</th><th>Check-out</th>
-          <th>Total</th><th>Paid</th><th>Balance</th>${isOwner?'<th>Actions</th>':''}</tr></thead>
+        <thead><tr><th>Guest</th><th>Property/Unit</th><th>Mode</th><th>Booked By</th><th>ID</th><th>Check-in</th><th>Check-out</th>
+          <th>Total</th><th>Paid</th><th>Balance</th>${canManage?'<th>Actions</th>':''}</tr></thead>
         <tbody>
           ${filtered.map(b => {
             const paid = paidMap[b.booking_id] || 0;
@@ -724,17 +746,19 @@ async function renderManageBookings() {
               <td><strong>${b.guest_name||'-'}</strong><br><small>${b.phone||''}</small></td>
               <td>${b.rooms?.property_name||'-'}<br><small>${b.rooms?.unit_no||b.room_id} · ${b.rooms?.nickname||''}</small></td>
               <td><span class="badge ${b.booking_mode==='Online-Airbnb'?'blue':'yellow'}">${b.booking_mode||'Offline'}</span></td>
+              <td><small>${b.booked_by||'-'}</small></td>
+              <td>${b.id_proof_photo_paths || b.id_proof_photo_path ? `<button class="btn-sm" onclick="viewIdPhotos('${b.id_proof_photo_paths || b.id_proof_photo_path}')">📎 ${(b.id_proof_photo_paths||'').split(',').filter(Boolean).length || 1}</button>` : '-'}</td>
               <td>${b.check_in||'-'}</td>
               <td>${b.check_out||'-'}</td>
               <td>₹${(b.total_amount||0).toLocaleString("en-IN")}</td>
               <td>₹${paid.toLocaleString("en-IN")}</td>
               <td><span class="${balance>0?'warn':''}">₹${balance.toLocaleString("en-IN")}</span></td>
-              ${isOwner ? `
+              ${canManage ? `
                 <td class="table-actions">
                   <button class="btn-sm" onclick="editBooking('${b.booking_id}')">✏️ Edit</button>
                   <button class="btn-sm" onclick="recordPayment('${b.booking_id}')">➕ Payment</button>
                   ${balance > 0 ? `<button class="btn-sm" onclick="markFullyPaid('${b.booking_id}')">✅ Mark Paid</button>` : ''}
-                  <button class="btn-sm danger" onclick="deleteBooking('${b.booking_id}','${b.guest_name}')">🗑️</button>
+                  ${canDelete ? `<button class="btn-sm danger" onclick="deleteBooking('${b.booking_id}','${b.guest_name}')">🗑️</button>` : ''}
                 </td>` : ''}
             </tr>`;}).join("")}
         </tbody>
@@ -796,9 +820,9 @@ async function renderAddBooking() {
           <option value="Aadhar">Aadhar</option><option value="PAN">PAN</option>
           <option value="DL">Driving License</option><option value="Passport">Passport</option>
         </select>
-        <input id="guestIdNo" placeholder="ID Proof Number" />
-        <label style="font-size:13px;color:#8A7F76;">ID Proof Photo</label>
-        <input id="idPhoto" type="file" accept="image/*" />
+        <input id="guestIdNo" placeholder="ID Proof Number (primary guest)" />
+        <label style="font-size:13px;color:#8A7F76;">ID Proof Photos — max 8 guests, select multiple at once (auto-compressed)</label>
+        <input id="idPhotoMulti" type="file" accept="image/*" multiple />
       </details>
 
       <textarea id="bookingNotes" placeholder="Notes (optional)"></textarea>
@@ -866,14 +890,53 @@ function onBookingAmountChange() {
   }
 }
 
+// Compress an image file in-browser (canvas resize + JPEG quality) before upload —
+// keeps free 1GB Supabase Storage lasting much longer (target: ~6 months of data)
+function compressImage(file, maxDim = 1280, quality = 0.7) {
+  return new Promise((resolve) => {
+    const img = new Image();
+    const reader = new FileReader();
+    reader.onload = (e) => { img.src = e.target.result; };
+    img.onload = () => {
+      let { width, height } = img;
+      if (width > maxDim || height > maxDim) {
+        if (width > height) { height = Math.round(height * (maxDim / width)); width = maxDim; }
+        else { width = Math.round(width * (maxDim / height)); height = maxDim; }
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = width; canvas.height = height;
+      canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+      canvas.toBlob((blob) => resolve(blob || file), 'image/jpeg', quality);
+    };
+    img.onerror = () => resolve(file);
+    reader.readAsDataURL(file);
+  });
+}
+
 async function uploadIdPhotoIfAny(bookingId) {
   const fileInput = document.getElementById('idPhoto');
   if (!fileInput || !fileInput.files || !fileInput.files[0]) return null;
   const file = fileInput.files[0];
-  const path = `${bookingId}/${Date.now()}_${file.name}`;
-  const { error } = await sb.storage.from('id-proofs').upload(path, file);
+  const compressed = await compressImage(file);
+  const path = `${bookingId}/${Date.now()}_${file.name.replace(/\.[^.]+$/, '')}.jpg`;
+  const { error } = await sb.storage.from('id-proofs').upload(path, compressed, { contentType: 'image/jpeg' });
   if (error) { console.error('Photo upload failed:', error.message); return null; }
   return path;
+}
+
+// Multiple ID photos (max 8 guests) — compresses each, returns comma-separated paths
+async function uploadMultipleIdPhotos(bookingId) {
+  const fileInput = document.getElementById('idPhotoMulti');
+  if (!fileInput || !fileInput.files || fileInput.files.length === 0) return null;
+  const files = Array.from(fileInput.files).slice(0, 8);
+  const paths = [];
+  for (let i = 0; i < files.length; i++) {
+    const compressed = await compressImage(files[i]);
+    const path = `${bookingId}/${Date.now()}_guest${i+1}.jpg`;
+    const { error } = await sb.storage.from('id-proofs').upload(path, compressed, { contentType: 'image/jpeg' });
+    if (!error) paths.push(path);
+  }
+  return paths.length ? paths.join(',') : null;
 }
 
 async function saveNewBooking() {
@@ -919,15 +982,17 @@ async function saveNewBooking() {
   }
 
   const bookingId = 'B' + Date.now();
-  const photoPath = await uploadIdPhotoIfAny(bookingId);
+  const photoPathsCombined = await uploadMultipleIdPhotos(bookingId);
+  const firstPhotoPath = photoPathsCombined ? photoPathsCombined.split(',')[0] : null;
 
   const { error } = await sb.from('guest_register').insert({
     booking_id: bookingId, guest_name: guestName, phone: guestPhone||null,
-    id_proof_type: idProofType||null, id_proof_no: guestIdNo||null, id_proof_photo_path: photoPath,
+    id_proof_type: idProofType||null, id_proof_no: guestIdNo||null,
+    id_proof_photo_path: firstPhotoPath, id_proof_photo_paths: photoPathsCombined,
     room_id: roomId, booking_mode: bookingMode, gross_amount: grossAmount, platform_fee: platformFee,
     check_in: checkIn||null, check_out: checkOut||null, guests, total_amount: totalAmount,
     payment_status: advanceAmount >= totalAmount && totalAmount>0 ? 'Paid' : (advanceAmount>0 ? 'Partial' : 'Unpaid'),
-    notes: notes||null
+    notes: notes||null, booked_by: SESSION.displayName || SESSION.role
   });
 
   if (error) {
@@ -943,15 +1008,30 @@ async function saveNewBooking() {
   }
 
   await sb.from('flats_status').upsert({ room_id: roomId, status: 'Booked' });
-  
-  // ---- WHATSAPP SHARE (Auto-open, no confirm) ----
-  const msg = `🏠 *New Booking Alert!*%0A%0A👤 Guest: ${guestName}%0A📞 Phone: ${guestPhone || 'N/A'}%0A🏷️ Property: ${document.getElementById('roomId').selectedOptions[0]?.text || 'N/A'}%0A📅 Check-in: ${checkIn}%0A📅 Check-out: ${checkOut}%0A💰 Total: ₹${totalAmount}%0A💵 Advance: ₹${advanceAmount}%0A📌 Mode: ${bookingMode}`;
-  
-  // Open WhatsApp directly after a small delay
+
+  // ---- WHATSAPP SHARE (clean message — real newlines, encodeURIComponent handles everything) ----
+  const propertyText = document.getElementById('roomId').selectedOptions[0]?.text || 'N/A';
+  const balanceAmount = totalAmount - advanceAmount;
+  const msg = [
+    '🏠 *New Booking Confirmed!*',
+    '',
+    `👤 Guest: ${guestName}`,
+    `📞 Phone: ${guestPhone || 'N/A'}`,
+    `🏡 Property: ${propertyText}`,
+    `📅 Check-in: ${checkIn || 'N/A'}`,
+    `📅 Check-out: ${checkOut || 'N/A'}`,
+    `💰 Total Amount: ₹${totalAmount.toLocaleString('en-IN')}`,
+    `💵 Advance Paid: ₹${advanceAmount.toLocaleString('en-IN')}`,
+    `💳 Balance Due: ₹${balanceAmount.toLocaleString('en-IN')}`,
+    `🔖 Mode: ${bookingMode}`,
+    '',
+    '— The Unique Haven Home Stay'
+  ].join('\n');
+
   setTimeout(() => {
     window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
   }, 300);
-  
+
   renderManageBookings();
 }
 
@@ -1072,6 +1152,20 @@ async function deleteBooking(bookingId, guestName) {
     await sb.from('flats_status').upsert({ room_id: booking.room_id, status: 'Free' });
   }
   renderManageBookings();
+}
+
+async function viewIdPhoto(path) {
+  const { data, error } = await sb.storage.from('id-proofs').createSignedUrl(path, 300);
+  if (error || !data?.signedUrl) { alert('Photo load nahi ho payi: ' + (error?.message||'')); return; }
+  window.open(data.signedUrl, '_blank');
+}
+
+async function viewIdPhotos(pathsCombined) {
+  const paths = pathsCombined.split(',').map(p=>p.trim()).filter(Boolean);
+  for (const p of paths) {
+    const { data } = await sb.storage.from('id-proofs').createSignedUrl(p, 300);
+    if (data?.signedUrl) window.open(data.signedUrl, '_blank');
+  }
 }
 
 async function recordPayment(bookingId) {
@@ -1678,6 +1772,101 @@ async function saveStockTxn() {
 }
 
 // ============ EXPENSES & PROFIT ============
+// ============ PROPERTY-WISE PROFIT REPORT (Papa Ammi template style) ============
+async function renderPropertyReport(roomId, range = 'Month') {
+  renderShell(`<div class="loading">Loading report...</div>`, 'property-report');
+  const { data: rooms } = await sb.from('rooms').select('room_id, unit_no, nickname, property_name').order('unit_no');
+  const selectedRoom = roomId || rooms?.[0]?.room_id;
+
+  if (!selectedRoom) {
+    renderShell(`<div class="card"><h1>🏘️ Property Profit Report</h1><div class="sub">Koi property nahi mili</div></div>`, 'property-report');
+    return;
+  }
+
+  const now = new Date();
+  let startDate, endDate, label;
+  if (range === 'Month') {
+    startDate = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0,10);
+    endDate = new Date(now.getFullYear(), now.getMonth()+1, 0).toISOString().slice(0,10);
+    label = now.toLocaleString('en-IN', { month:'long', year:'numeric' });
+  } else if (range === 'Quarter') {
+    const q = Math.floor(now.getMonth()/3);
+    startDate = new Date(now.getFullYear(), q*3, 1).toISOString().slice(0,10);
+    endDate = new Date(now.getFullYear(), q*3+3, 0).toISOString().slice(0,10);
+    label = `Q${q+1} ${now.getFullYear()}`;
+  } else {
+    startDate = `${now.getFullYear()}-01-01`;
+    endDate = `${now.getFullYear()}-12-31`;
+    label = `Year ${now.getFullYear()}`;
+  }
+  const monthLabel = now.toLocaleString('en-IN', { month:'short', year:'numeric' }).replace(' ','-');
+
+  const [guestsRes, expensesRes] = await Promise.all([
+    sb.from('guest_register').select('*').eq('room_id', selectedRoom).gte('check_in', startDate).lte('check_in', endDate),
+    sb.from('expenses').select('*, expense_categories(category_name)').eq('room_id', selectedRoom).eq('month', monthLabel),
+  ]);
+  const guests = guestsRes.data || [];
+  const paidMap = await getPaidMap(guests.map(g=>g.booking_id));
+
+  const onlineBookings = guests.filter(g => g.booking_mode === 'Online-Airbnb');
+  const offlineBookings = guests.filter(g => g.booking_mode !== 'Online-Airbnb');
+  const onlineRevenue = onlineBookings.reduce((s,g)=>s+(paidMap[g.booking_id]||0),0);
+  const offlineRevenue = offlineBookings.reduce((s,g)=>s+(paidMap[g.booking_id]||0),0);
+  const onlineNights = onlineBookings.reduce((s,g)=> s + (g.check_in && g.check_out ? Math.round((new Date(g.check_out)-new Date(g.check_in))/86400000) : 0), 0);
+  const offlineNights = offlineBookings.reduce((s,g)=> s + (g.check_in && g.check_out ? Math.round((new Date(g.check_out)-new Date(g.check_in))/86400000) : 0), 0);
+  const totalRevenue = onlineRevenue + offlineRevenue;
+  const totalNights = onlineNights + offlineNights;
+
+  const expenseRows = expensesRes.data || [];
+  const totalExpenses = expenseRows.reduce((s,e)=>s+(e.amount||0),0);
+  const operatingProfit = totalRevenue - totalExpenses;
+
+  const room = rooms.find(r => r.room_id === selectedRoom);
+
+  const content = `
+    <div class="card"><h1>🏘️ Property Profit Report</h1>
+      <select id="reportRoomSel">${rooms.map(r => `<option value="${r.room_id}" ${r.room_id===selectedRoom?'selected':''}>${r.property_name||''} — ${r.unit_no} (${r.nickname||''})</option>`).join('')}</select>
+      <div style="margin-top:8px;">
+        <button class="btn-sm ${range==='Month'?'':'secondary'}" onclick="renderPropertyReport('${selectedRoom}','Month')">Month</button>
+        <button class="btn-sm ${range==='Quarter'?'':'secondary'}" onclick="renderPropertyReport('${selectedRoom}','Quarter')">Quarter</button>
+        <button class="btn-sm ${range==='Year'?'':'secondary'}" onclick="renderPropertyReport('${selectedRoom}','Year')">Year</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="sub"><strong>Property:</strong> ${room?.property_name||''} — ${room?.unit_no} (${room?.nickname||''})</div>
+      <div class="sub"><strong>Period:</strong> ${label}</div>
+    </div>
+
+    <div class="card"><h2 style="font-size:15px;margin-bottom:10px;">💰 Key Financial Metrics</h2>
+      <div class="metric-row"><span class="metric-label">Total Gross Revenue</span><span class="metric-value">₹${totalRevenue.toLocaleString("en-IN")}</span></div>
+      <div class="metric-row"><span class="metric-label">Total Operating Expenses</span><span class="metric-value warn">₹${totalExpenses.toLocaleString("en-IN")}</span></div>
+      <div class="metric-row"><span class="metric-label">Operating Profit</span><span class="metric-value" style="color:${operatingProfit>=0?'#2E7D32':'#C0392B'};">₹${operatingProfit.toLocaleString("en-IN")}</span></div>
+    </div>
+
+    <div class="card"><h2 style="font-size:15px;margin-bottom:10px;">📊 Revenue Breakdown</h2>
+      <table><thead><tr><th>Source</th><th>Nights</th><th>Revenue</th><th>% Contribution</th></tr></thead>
+        <tbody>
+          <tr><td>Online (Airbnb)</td><td>${onlineNights}</td><td>₹${onlineRevenue.toLocaleString("en-IN")}</td><td>${totalRevenue>0?Math.round(onlineRevenue/totalRevenue*100):0}%</td></tr>
+          <tr><td>Offline</td><td>${offlineNights}</td><td>₹${offlineRevenue.toLocaleString("en-IN")}</td><td>${totalRevenue>0?Math.round(offlineRevenue/totalRevenue*100):0}%</td></tr>
+          <tr style="font-weight:700;"><td>Total</td><td>${totalNights}</td><td>₹${totalRevenue.toLocaleString("en-IN")}</td><td>100%</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="card"><h2 style="font-size:15px;margin-bottom:10px;">🧾 Expense Summary (${monthLabel})</h2>
+      <table><thead><tr><th>Category</th><th>Amount</th></tr></thead>
+        <tbody>${expenseRows.map(e => `<tr><td>${e.expense_categories?.category_name||'-'}</td><td>₹${(e.amount||0).toLocaleString("en-IN")}</td></tr>`).join('') || '<tr><td colspan="2" class="sub">Is property ke liye is mahine koi expense entry nahi hai</td></tr>'}
+          <tr style="font-weight:700;"><td>Total Operating Expenses</td><td>₹${totalExpenses.toLocaleString("en-IN")}</td></tr>
+        </tbody>
+      </table>
+      <div class="sub" style="margin-top:8px;">💡 Property-specific expense add karne ke liye Expenses & Profit page mein "Log Expense" karte waqt Property select karo.</div>
+    </div>
+  `;
+  renderShell(content, 'property-report');
+  document.getElementById('reportRoomSel').onchange = (e) => renderPropertyReport(e.target.value, range);
+}
+
 async function renderExpenses() {
   renderShell(`<div class="loading">Loading expenses...</div>`, 'expenses');
   const currentMonth = new Date().toISOString().slice(0,7);
@@ -1751,7 +1940,12 @@ async function saveExpenseCategory() {
 }
 
 async function renderAddExpenseEntry() {
-  const { data: categories } = await sb.from('expense_categories').select('*').order('category_name');
+  const [categoriesRes, roomsRes] = await Promise.all([
+    sb.from('expense_categories').select('*').order('category_name'),
+    sb.from('rooms').select('room_id, unit_no, nickname, property_name').order('unit_no'),
+  ]);
+  const categories = categoriesRes.data;
+  const rooms = roomsRes.data;
   const now = new Date();
   const monthLabel = now.toLocaleString('en-IN', { month: 'short', year: 'numeric' }).replace(' ', '-');
   const today = now.toISOString().slice(0,10);
@@ -1763,6 +1957,8 @@ async function renderAddExpenseEntry() {
       <select id="expCategory" onchange="onExpenseCategoryChange()"><option value="">Select Category</option>
         ${(categories||[]).map(c => `<option value="${c.category_id}">${c.category_name}</option>`).join('')}</select>
       <div id="expCatInfo" class="sub" style="margin-top:-6px;"></div>
+      <select id="expRoom"><option value="">General / Company-wide (not property-specific)</option>
+        ${(rooms||[]).map(r => `<option value="${r.room_id}">${r.property_name||''} — ${r.unit_no} (${r.nickname||''})</option>`).join('')}</select>
       <input id="expMonth" value="${monthLabel}" placeholder="Month (e.g. Jul-2026)" />
       <input id="expAmount" type="number" placeholder="Amount (₹)" />
       <input id="expDate" type="date" value="${today}" />
@@ -1785,6 +1981,7 @@ function onExpenseCategoryChange() {
 
 async function saveExpenseEntry() {
   const categoryId = document.getElementById('expCategory').value;
+  const roomId = document.getElementById('expRoom').value || null;
   const month = document.getElementById('expMonth').value.trim();
   const amount = parseFloat(document.getElementById('expAmount').value) || 0;
   const date = document.getElementById('expDate').value;
@@ -1793,7 +1990,7 @@ async function saveExpenseEntry() {
     document.getElementById('expErr').innerHTML = '<div class="error">Category, month aur valid amount required hai</div>';
     return;
   }
-  const { error } = await sb.from('expenses').insert({ category_id: categoryId, month, amount, entry_date: date||null, notes: notes||null });
+  const { error } = await sb.from('expenses').insert({ category_id: categoryId, room_id: roomId, month, amount, entry_date: date||null, notes: notes||null });
   if (error) { document.getElementById('expErr').innerHTML = `<div class="error">${error.message}</div>`; return; }
   renderExpenses();
 }
