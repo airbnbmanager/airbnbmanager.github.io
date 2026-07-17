@@ -278,33 +278,86 @@ async function renderDashboard() {
     sb.from("guest_register").select("*, rooms(unit_no, nickname)"),
     sb.from("flats_status").select("room_id, status, cleaning_status"),
   ]);
-  const ci = (g.data||[]).filter(x => x.check_in === today);
-  const co = (g.data||[]).filter(x => x.check_out === today);
-  const dirty = (f.data||[]).filter(x => x.cleaning_status==="Dirty" && x.status!=="Blocked-Maintenance");
-  const nm = g2 => `${g2.rooms?.unit_no||g2.room_id}${g2.rooms?.nickname?' ('+g2.rooms.nickname+')':''}`;
+
+  const allBookings = g.data || [];
+  const allFlats = f.data || [];
+
+  // Check-ins today
+  const rawCheckins = allBookings.filter(x => x.check_in === today);
+  // Check-outs today
+  const rawCheckouts = allBookings.filter(x => x.check_out === today);
+
+  // Detect internal shifts: same guest has both checkin AND checkout today
+  const shiftGuests = new Set();
+  rawCheckins.forEach(ci => {
+    if (ci.parent_booking_id || ci.stay_group_id) {
+      const matching = rawCheckouts.find(co =>
+        co.guest_name === ci.guest_name ||
+        co.booking_id === ci.parent_booking_id ||
+        co.stay_group_id === ci.stay_group_id
+      );
+      if (matching) {
+        shiftGuests.add(ci.guest_name);
+      }
+    }
+  });
+
+  // Filter out internal shifts from real arrivals/departures
+  const realCheckins = rawCheckins.filter(x => !shiftGuests.has(x.guest_name));
+  const realCheckouts = rawCheckouts.filter(x => !shiftGuests.has(x.guest_name));
+  const shiftList = rawCheckins.filter(x => shiftGuests.has(x.guest_name));
+
+  // Booked right now
+  const bookedNow = allFlats.filter(x => x.status === 'Booked');
+  // Free & clean
+  const freeClean = allFlats.filter(x => x.status === 'Free' && x.cleaning_status === 'Clean');
+  // Need cleaning
+  const dirty = allFlats.filter(x => x.cleaning_status === 'Dirty' && x.status !== 'Blocked-Maintenance');
+  // Total properties
+  const totalProps = allFlats.length;
+
+  const nm = b => `${b.rooms?.unit_no||b.room_id}${b.rooms?.nickname?' ('+b.rooms.nickname+')':''}`;
 
   renderShell(`
     <div class="card">
       <h1>📊 Dashboard</h1>
       <div class="sub">${new Date().toLocaleDateString('en-IN',{weekday:'long',year:'numeric',month:'long',day:'numeric'})}</div>
     </div>
+
     <div class="stat-grid">
       <div class="stat-card" style="border-left:4px solid var(--green);">
-        <div class="stat-num">${ci.length}</div>
+        <div class="stat-num">${realCheckins.length}</div>
         <div class="stat-label">📥 Check-in Today</div>
-        ${ci.map(x=>`<div style="font-size:12px;margin-top:4px;">${x.guest_name} — ${nm(x)}</div>`).join('')||'<div class="sub" style="margin:4px 0 0;">Koi nahi</div>'}
+        ${realCheckins.map(x=>`<div style="font-size:12px;margin-top:4px;">${x.guest_name} — ${nm(x)}</div>`).join('')||'<div class="sub" style="margin:4px 0 0;">Koi nahi</div>'}
       </div>
       <div class="stat-card" style="border-left:4px solid var(--primary);">
-        <div class="stat-num">${co.length}</div>
+        <div class="stat-num">${realCheckouts.length}</div>
         <div class="stat-label">📤 Check-out Today</div>
-        ${co.map(x=>`<div style="font-size:12px;margin-top:4px;">${x.guest_name} — ${nm(x)}</div>`).join('')||'<div class="sub" style="margin:4px 0 0;">Koi nahi</div>'}
+        ${realCheckouts.map(x=>`<div style="font-size:12px;margin-top:4px;">${x.guest_name} — ${nm(x)}</div>`).join('')||'<div class="sub" style="margin:4px 0 0;">Koi nahi</div>'}
+      </div>
+      <div class="stat-card" style="border-left:4px solid #60a5fa;">
+        <div class="stat-num">${bookedNow.length}/${totalProps}</div>
+        <div class="stat-label">🛏️ Booked Now</div>
+      </div>
+    </div>
+
+    <div class="stat-grid">
+      <div class="stat-card" style="border-left:4px solid var(--green);">
+        <div class="stat-num">${freeClean.length}</div>
+        <div class="stat-label">✅ Free & Ready</div>
       </div>
       <div class="stat-card" style="border-left:4px solid var(--red);">
         <div class="stat-num">${dirty.length}</div>
         <div class="stat-label">🧹 Need Cleaning</div>
-        ${dirty.map(x=>`<div style="font-size:12px;margin-top:4px;">${x.room_id}</div>`).join('')||'<div class="sub" style="margin:4px 0 0;">Sab clean ✅</div>'}
+        ${dirty.map(x=>`<div style="font-size:11px;margin-top:3px;">${x.room_id}</div>`).join('')||'<div class="sub" style="margin:4px 0 0;">Sab clean ✅</div>'}
+      </div>
+      <div class="stat-card" style="border-left:4px solid #FDF6B2;">
+        <div class="stat-num">${shiftList.length}</div>
+        <div class="stat-label">🔁 Room Shifts</div>
+        ${shiftList.map(x=>`<div style="font-size:11px;margin-top:3px;">${x.guest_name} → ${nm(x)}</div>`).join('')||'<div class="sub" style="margin:4px 0 0;">None</div>'}
       </div>
     </div>
+
     <div class="card"><button onclick="renderFYSummary()">📊 Financial Summary (CA/ITR)</button></div>
   `, 'dashboard');
 }
@@ -1155,22 +1208,43 @@ async function saveBooking() {
 async function createOfflineExtension(parentBookingId) {
   const { data: b } = await sb.from('guest_register').select('*').eq('booking_id', parentBookingId).single();
   if (!b) { alert('Parent booking not found'); return; }
-  if (b.room_id) {
-    await sb.from('flats_status').update({status:'Free', cleaning_status:'Dirty'}).eq('room_id', b.room_id);
-  }
+
   const today = new Date().toISOString().slice(0,10);
-  if (b.check_out > today) {
-    await sb.from('guest_register').update({check_out: today}).eq('booking_id', parentBookingId);
+
+  // Fix: Force old booking checkout to today (if not already past)
+  if (b.check_out >= today) {
+    await sb.from('guest_register').update({
+      check_out: today,
+      notes: (b.notes ? b.notes + ' | ' : '') + 'Auto-closed: guest shifted/extended on ' + today
+    }).eq('booking_id', parentBookingId);
   }
+
+  // Fix: Mark old room as Free + Dirty
+  if (b.room_id) {
+    await sb.from('flats_status').update({
+      status: 'Free',
+      cleaning_status: 'Dirty'
+    }).eq('room_id', b.room_id);
+  }
+
   window._bookingPrefill = {
-    guestName: b.guest_name||'', guestPhone: b.phone||'',
-    roomId: b.room_id||'', sourceRoomId: b.source_room_id||b.room_id||'',
-    bookingMode: 'Offline', checkIn: today, checkOut: '',
-    guests: b.guests||1, totalAmount: '', advanceAmt: 0, advMode: '',
+    guestName: b.guest_name||'',
+    guestPhone: b.phone||'',
+    roomId: b.room_id||'',
+    sourceRoomId: b.source_room_id||b.room_id||'',
+    bookingMode: 'Offline',
+    checkIn: today,
+    checkOut: '',
+    guests: b.guests||1,
+    totalAmount: '',
+    advanceAmt: 0,
+    advMode: '',
     perDayRate: b.per_day_rate||'',
-    idType: b.id_proof_type||'Aadhar', idNo: b.id_proof_no||'',
+    idType: b.id_proof_type||'Aadhar',
+    idNo: b.id_proof_no||'',
     bkNotes: `Extension after previous stay (${parentBookingId})`,
-    parentBookingId: parentBookingId, stayGroupId: b.stay_group_id||b.booking_id
+    parentBookingId: parentBookingId,
+    stayGroupId: b.stay_group_id||b.booking_id
   };
   renderAddBooking();
 }
