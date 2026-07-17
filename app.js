@@ -2052,42 +2052,139 @@ async function renderAddInv() {
       <h1>➕ Add Investor</h1>
       <button class="secondary btn-sm" onclick="renderManageInvestors()">← Back</button>
     </div>
+
     <div class="card">
       <div class="section-title">👤 Investor Details</div>
       <div class="form-grid">
-        <div class="form-group"><label>Full Name *</label><input id="invName" placeholder="e.g. Papa Ammi" /></div>
-        <div class="form-group"><label>Phone</label><input id="invPhone" type="tel" placeholder="10-digit mobile" /></div>
+        <div class="form-group">
+          <label>Full Name *</label>
+          <input id="invName" placeholder="e.g. Papa Ammi" />
+        </div>
+        <div class="form-group">
+          <label>Phone</label>
+          <input id="invPhone" type="tel" placeholder="10-digit mobile" />
+        </div>
       </div>
+
       <div class="form-grid">
-        <div class="form-group"><label>Revenue Share %</label><input id="invShare" type="number" value="70" min="0" max="100" /></div>
-        <div class="form-group"><label>Notes</label><input id="invNotes" placeholder="Optional" /></div>
+        <div class="form-group">
+          <label>Revenue Share %</label>
+          <input id="invShare" type="number" value="70" min="0" max="100" />
+        </div>
+        <div class="form-group">
+          <label>Email (for future login)</label>
+          <input id="invEmail" type="email" placeholder="investor@gmail.com" />
+        </div>
       </div>
 
-      <div class="section-title" style="margin-top:12px;">🏠 Assign Properties</div>
-      <select id="invRooms" multiple style="min-height:120px;">
-        ${(rooms||[]).map(r=>`<option value="${r.room_id}">${r.nickname||r.unit_no} (${r.room_id})</option>`).join('')}
-      </select>
-      <div style="font-size:11px;color:var(--muted);margin-top:4px;">Hold Ctrl/Cmd to select multiple</div>
-
-      <div class="section-title" style="margin-top:12px;">🔐 Login Credentials (Auto Create)</div>
-      <div class="form-grid">
-        <div class="form-group"><label>Email *</label><input id="invEmail" type="email" placeholder="investor@gmail.com" /></div>
-        <div class="form-group"><label>Password *</label><input id="invPassword" type="password" placeholder="Min 6 characters" /></div>
-      </div>
-      <div style="font-size:12px;color:var(--muted);padding:8px;background:var(--bg);border-radius:8px;">
-        ℹ️ Investor ka account automatically create hoga. Ye credentials unhe share karo.
+      <div class="form-group">
+        <label>Assign Properties</label>
+        <select id="invRooms" multiple style="min-height:120px;">
+          ${(rooms||[]).map(r=>`<option value="${r.room_id}">${r.nickname||r.unit_no} (${r.room_id})</option>`).join('')}
+        </select>
+        <div style="font-size:11px;color:var(--muted);margin-top:4px;">
+          Hold Ctrl/Cmd to select multiple
+        </div>
       </div>
 
-      <button onclick="saveInvWithUser()" style="width:100%;margin-top:12px;padding:14px;">💾 Save Investor + Create Login</button>
+      <div class="form-group">
+        <label>Notes</label>
+        <textarea id="invNotes" placeholder="Optional notes"></textarea>
+      </div>
+
+      <div style="font-size:12px;color:var(--muted);padding:10px;background:var(--bg);border-radius:8px;">
+        ℹ️ Secure auto login creation will be added later with backend support.  
+        Abhi investor record + property mapping create hoga.
+      </div>
+
+      <button onclick="saveInvSafe()" style="width:100%;margin-top:12px;padding:14px;">💾 Save Investor</button>
       <div id="invErr"></div>
     </div>`, 'investors');
 }
-
-async function saveInv() {
-  // Legacy — redirect to new flow
+async function saveInvWithUser() {
+  // Old unsafe browser auth flow disabled
   renderAddInv();
 }
 
+async function saveInvSafe() {
+  const btn = document.querySelector('button[onclick="saveInvSafe()"]');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Saving...'; }
+
+  const name = document.getElementById('invName').value.trim();
+  const phone = document.getElementById('invPhone').value.trim();
+  const share = parseFloat(document.getElementById('invShare').value) || 70;
+  const email = document.getElementById('invEmail').value.trim();
+  const notes = document.getElementById('invNotes').value.trim();
+
+  const roomsSelect = document.getElementById('invRooms');
+  const selectedRooms = roomsSelect
+    ? Array.from(roomsSelect.selectedOptions).map(o => o.value)
+    : [];
+
+  if (!name) {
+    document.getElementById('invErr').innerHTML = '<div class="error">Name required</div>';
+    if (btn) { btn.disabled = false; btn.textContent = '💾 Save Investor'; }
+    return;
+  }
+
+  try {
+    const investorId = 'INV' + Date.now();
+
+    // Create investor row
+    const { error: invError } = await sb.from('investors').insert({
+      investor_id: investorId,
+      name: name,
+      phone: phone || null,
+      revenue_share_pct: share,
+      notes: [notes, email ? `Login Email: ${email}` : ''].filter(Boolean).join(' | ') || null
+    });
+    if (invError) throw new Error(invError.message);
+
+    // Link properties
+    if (selectedRooms.length > 0) {
+      const links = selectedRooms.map(rid => ({
+        investor_id: investorId,
+        room_id: rid
+      }));
+      const { error: linkError } = await sb.from('investor_properties').insert(links);
+      if (linkError) throw new Error(linkError.message);
+    }
+
+    renderShell(`
+      <div class="card" style="text-align:center;">
+        <div style="font-size:48px;margin-bottom:10px;">✅</div>
+        <h1>Investor Added</h1>
+        <div class="sub">Record created successfully</div>
+      </div>
+
+      <div class="card">
+        <div class="metric-row"><span class="metric-label">Name</span><span class="metric-value">${name}</span></div>
+        <div class="metric-row"><span class="metric-label">Phone</span><span>${phone || '-'}</span></div>
+        <div class="metric-row"><span class="metric-label">Share</span><span>${share}%</span></div>
+        <div class="metric-row"><span class="metric-label">Investor ID</span><code>${investorId}</code></div>
+        <div class="metric-row"><span class="metric-label">Login Email</span><span>${email || '-'}</span></div>
+      </div>
+
+      <div class="card">
+        <div class="section-title">Assigned Properties</div>
+        ${selectedRooms.length ? selectedRooms.map(r=>`<div style="padding:6px 0;">• ${r}</div>`).join('') : '<div class="sub">No property assigned</div>'}
+      </div>
+
+      <div class="card">
+        <div style="font-size:12px;color:var(--muted);padding:10px;background:var(--bg);border-radius:8px;">
+          🔐 Login account auto-create abhi disabled hai because secure backend required.  
+          Jab email IDs final ho jayengi tab backend se one-click user create karenge.
+        </div>
+        <div class="btn-row" style="margin-top:10px;">
+          <button class="secondary" onclick="renderManageInvestors()">← Back to Investors</button>
+        </div>
+      </div>`, 'investors');
+
+  } catch(err) {
+    document.getElementById('invErr').innerHTML = `<div class="error">${err.message}</div>`;
+    if (btn) { btn.disabled = false; btn.textContent = '💾 Save Investor'; }
+  }
+}
 async function saveInvWithUser() {
   const btn = document.querySelector('button[onclick="saveInvWithUser()"]');
   if (btn) { btn.disabled = true; btn.textContent = '⏳ Creating...'; }
