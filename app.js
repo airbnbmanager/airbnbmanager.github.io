@@ -697,63 +697,141 @@ async function deleteRoom(id, name) {
 // ============ FLATS STATUS ============
 async function renderFlatsStatus() {
   await autoCheckout();
-  renderShell(`<div class="loading">Loading...</div>`, 'flats');
-  const {data:flats} = await sb.from('flats_status')
+  renderShell(`<div class="loading">Loading flats status...</div>`, 'flats');
+
+  const { data: flats, error } = await sb
+    .from('flats_status')
     .select('*, rooms(unit_no, nickname, property_name)')
     .order('room_id');
-  const can = ['owner','viewer','manager'].includes(SESSION.role);
+
+  if (error) {
+    renderShell(`<div class="card"><div class="error">${error.message}</div></div>`, 'flats');
+    return;
+  }
+
+  const can = ['owner', 'viewer', 'manager'].includes(SESSION.role);
+
+  const freeCount = (flats || []).filter(f => f.status === 'Free').length;
+  const bookedCount = (flats || []).filter(f => f.status === 'Booked').length;
+  const dirtyCount = (flats || []).filter(f => f.cleaning_status === 'Dirty').length;
+  const cleanCount = (flats || []).filter(f => f.cleaning_status === 'Clean').length;
 
   renderShell(`
     <div class="card">
       <h1>🛏️ Flats Status</h1>
-      <div class="sub">${(flats||[]).length} flats</div>
+      <div class="sub">${(flats || []).length} total properties</div>
     </div>
-    <div class="card"><div class="table-wrap"><table>
-      <thead><tr>
-        <th>Property</th>
-        <th>Status</th>
-        <th>Cleaning</th>
-        <th>Quick Clean</th>
-        ${can?'<th>Edit</th>':''}
-      </tr></thead>
-      <tbody>${(flats||[]).map(f=>{
-        const isDirty = f.cleaning_status === 'Dirty';
-        const isClean = f.cleaning_status === 'Clean';
-        const isProgress = f.cleaning_status === 'In Progress';
-        return `<tr>
-          <td>
-            <strong>${f.rooms?.nickname||f.room_id}</strong><br>
-            <small style="color:var(--muted);">${f.rooms?.unit_no||''}</small>
-          </td>
-          <td>
-            <span class="badge ${f.status==='Free'?'green':f.status==='Booked'?'blue':'red'}">
-              ${f.status||'Free'}
-            </span>
-          </td>
-          <td>
-            <span class="badge ${isClean?'green':isProgress?'yellow':'red'}">
-              ${f.cleaning_status||'Clean'}
-            </span>
-          </td>
-          <td class="table-actions">
-            ${isDirty?`<button class="btn-sm green-btn" onclick="quickClean('${f.room_id}','Clean')">✅ Clean</button>`:''}
-            ${isClean?`<button class="btn-sm danger" onclick="quickClean('${f.room_id}','Dirty')">🧹 Dirty</button>`:''}
-            ${isProgress?`<button class="btn-sm green-btn" onclick="quickClean('${f.room_id}','Clean')">✅ Done</button>`:''}
-            ${isDirty?`<button class="btn-sm secondary" onclick="quickClean('${f.room_id}','In Progress')">🔄 Start</button>`:''}
-          </td>
-          ${can?`<td><button class="btn-sm outline" onclick="editFlatStatus('${f.room_id}')">✏️</button></td>`:''}
-        </tr>`;
-      }).join('')}</tbody>
-    </table></div></div>`, 'flats');
-}
 
-async function quickClean(roomId, newStatus) {
-  const updates = { cleaning_status: newStatus };
-  if (newStatus === 'Clean') {
-    updates.last_cleaned = new Date().toISOString().slice(0,10);
+    <div class="stat-grid">
+      <div class="stat-card" style="border-left:4px solid var(--green);">
+        <div class="stat-num">${freeCount}</div>
+        <div class="stat-label">Free</div>
+      </div>
+      <div class="stat-card" style="border-left:4px solid #60a5fa;">
+        <div class="stat-num">${bookedCount}</div>
+        <div class="stat-label">Booked</div>
+      </div>
+      <div class="stat-card" style="border-left:4px solid var(--red);">
+        <div class="stat-num">${dirtyCount}</div>
+        <div class="stat-label">Need Cleaning</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="section-title">Quick Cleaning Actions</div>
+      <div id="flatActionMsg"></div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Property</th>
+              <th>Status</th>
+              <th>Cleaning</th>
+              <th>Quick Action</th>
+              ${can ? '<th>More</th>' : ''}
+            </tr>
+          </thead>
+          <tbody>
+            ${(flats || []).map(f => {
+              const isDirty = f.cleaning_status === 'Dirty';
+              const isClean = f.cleaning_status === 'Clean';
+              const isProgress = f.cleaning_status === 'In Progress';
+              const name = `${f.rooms?.nickname || f.room_id}`;
+              const sub = `${f.rooms?.unit_no || ''}${f.rooms?.property_name ? ' · ' + f.rooms.property_name : ''}`;
+
+              return `
+                <tr>
+                  <td>
+                    <strong>${name}</strong><br>
+                    <small style="color:var(--muted);">${sub}</small>
+                  </td>
+                  <td>
+                    <span class="badge ${f.status === 'Free' ? 'green' : f.status === 'Booked' ? 'blue' : 'red'}">
+                      ${f.status || 'Free'}
+                    </span>
+                  </td>
+                  <td>
+                    <span class="badge ${isClean ? 'green' : isProgress ? 'yellow' : 'red'}">
+                      ${f.cleaning_status || 'Clean'}
+                    </span>
+                  </td>
+                  <td class="table-actions">
+                    ${isDirty ? `<button class="btn-sm green-btn" onclick="quickClean('${f.room_id}','Clean', this)">✅ Clean</button>` : ''}
+                    ${isDirty ? `<button class="btn-sm secondary" onclick="quickClean('${f.room_id}','In Progress', this)">🔄 Start</button>` : ''}
+                    ${isProgress ? `<button class="btn-sm green-btn" onclick="quickClean('${f.room_id}','Clean', this)">✅ Done</button>` : ''}
+                    ${isClean ? `<button class="btn-sm danger" onclick="quickClean('${f.room_id}','Dirty', this)">🧹 Dirty</button>` : ''}
+                  </td>
+                  ${can ? `<td><button class="btn-sm outline" onclick="editFlatStatus('${f.room_id}')">✏️ Edit</button></td>` : ''}
+                </tr>
+              `;
+            }).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `, 'flats');
+}
+async function quickClean(roomId, newStatus, btnEl = null) {
+  const msgEl = document.getElementById('flatActionMsg');
+
+  try {
+    if (btnEl) {
+      btnEl.disabled = true;
+      btnEl.textContent = '⏳ Saving...';
+    }
+
+    const updates = { cleaning_status: newStatus };
+
+    if (newStatus === 'Clean') {
+      updates.last_cleaned = new Date().toISOString().slice(0, 10);
+    }
+
+    const { error } = await sb
+      .from('flats_status')
+      .update(updates)
+      .eq('room_id', roomId);
+
+    if (error) throw error;
+
+    if (msgEl) {
+      msgEl.innerHTML = `<div class="success-msg">✅ ${roomId} marked as ${newStatus}</div>`;
+    }
+
+    // small delay so user sees success
+    setTimeout(() => {
+      renderFlatsStatus();
+    }, 250);
+
+  } catch (err) {
+    console.error('quickClean error:', err);
+    if (msgEl) {
+      msgEl.innerHTML = `<div class="error">❌ Update failed: ${err.message}</div>`;
+    }
+    if (btnEl) {
+      btnEl.disabled = false;
+      btnEl.textContent = 'Retry';
+    }
   }
-  await sb.from('flats_status').update(updates).eq('room_id', roomId);
-  renderFlatsStatus();
 }
 
 async function editFlatStatus(id) {
