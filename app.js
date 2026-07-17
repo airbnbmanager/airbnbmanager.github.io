@@ -698,21 +698,62 @@ async function deleteRoom(id, name) {
 async function renderFlatsStatus() {
   await autoCheckout();
   renderShell(`<div class="loading">Loading...</div>`, 'flats');
-  const {data:flats} = await sb.from('flats_status').select('*, rooms(unit_no, nickname, property_name)').order('room_id');
+  const {data:flats} = await sb.from('flats_status')
+    .select('*, rooms(unit_no, nickname, property_name)')
+    .order('room_id');
   const can = ['owner','viewer','manager'].includes(SESSION.role);
+
   renderShell(`
-    <div class="card"><h1>🛏️ Flats Status</h1><div class="sub">${(flats||[]).length} flats</div></div>
+    <div class="card">
+      <h1>🛏️ Flats Status</h1>
+      <div class="sub">${(flats||[]).length} flats</div>
+    </div>
     <div class="card"><div class="table-wrap"><table>
-      <thead><tr><th>Property</th><th>Unit</th><th>Status</th><th>Cleaning</th><th>Issue</th>${can?'<th>Action</th>':''}</tr></thead>
-      <tbody>${(flats||[]).map(f=>`<tr>
-        <td>${f.rooms?.nickname||f.rooms?.property_name||'-'}</td>
-        <td><strong>${f.rooms?.unit_no||f.room_id}</strong></td>
-        <td><span class="badge ${f.status==='Free'?'green':f.status==='Booked'?'blue':'red'}">${f.status||'Free'}</span></td>
-        <td><span class="badge ${f.cleaning_status==='Clean'?'green':f.cleaning_status==='In Progress'?'yellow':'red'}">${f.cleaning_status||'Clean'}</span></td>
-        <td>${f.issue||'-'}</td>
-        ${can?`<td><button class="btn-sm" onclick="editFlatStatus('${f.room_id}')">✏️</button></td>`:''}
-      </tr>`).join('')}</tbody>
+      <thead><tr>
+        <th>Property</th>
+        <th>Status</th>
+        <th>Cleaning</th>
+        <th>Quick Clean</th>
+        ${can?'<th>Edit</th>':''}
+      </tr></thead>
+      <tbody>${(flats||[]).map(f=>{
+        const isDirty = f.cleaning_status === 'Dirty';
+        const isClean = f.cleaning_status === 'Clean';
+        const isProgress = f.cleaning_status === 'In Progress';
+        return `<tr>
+          <td>
+            <strong>${f.rooms?.nickname||f.room_id}</strong><br>
+            <small style="color:var(--muted);">${f.rooms?.unit_no||''}</small>
+          </td>
+          <td>
+            <span class="badge ${f.status==='Free'?'green':f.status==='Booked'?'blue':'red'}">
+              ${f.status||'Free'}
+            </span>
+          </td>
+          <td>
+            <span class="badge ${isClean?'green':isProgress?'yellow':'red'}">
+              ${f.cleaning_status||'Clean'}
+            </span>
+          </td>
+          <td class="table-actions">
+            ${isDirty?`<button class="btn-sm green-btn" onclick="quickClean('${f.room_id}','Clean')">✅ Clean</button>`:''}
+            ${isClean?`<button class="btn-sm danger" onclick="quickClean('${f.room_id}','Dirty')">🧹 Dirty</button>`:''}
+            ${isProgress?`<button class="btn-sm green-btn" onclick="quickClean('${f.room_id}','Clean')">✅ Done</button>`:''}
+            ${isDirty?`<button class="btn-sm secondary" onclick="quickClean('${f.room_id}','In Progress')">🔄 Start</button>`:''}
+          </td>
+          ${can?`<td><button class="btn-sm outline" onclick="editFlatStatus('${f.room_id}')">✏️</button></td>`:''}
+        </tr>`;
+      }).join('')}</tbody>
     </table></div></div>`, 'flats');
+}
+
+async function quickClean(roomId, newStatus) {
+  const updates = { cleaning_status: newStatus };
+  if (newStatus === 'Clean') {
+    updates.last_cleaned = new Date().toISOString().slice(0,10);
+  }
+  await sb.from('flats_status').update(updates).eq('room_id', roomId);
+  renderFlatsStatus();
 }
 
 async function editFlatStatus(id) {
