@@ -229,12 +229,12 @@ function renderShell(content, activePage = 'dashboard') {
     ['tasks','🧰 Tasks'],['attendance','📋 Attendance'],['att-summary','📅 Summary'],
     ['salary','💰 Salary'],['advance','💵 Advance'],['store','📦 Store'],
     ['expenses','🧾 Expenses'],['property-report','🏘️ Property Report'],
-    ['investors','🧑‍💼 Sub-Owners'],['sop','📘 SOP'],
+        ['investors','🧑‍💼 Investors'],['sop','📘 SOP'],
    ] : [
     ['dashboard','🏠 Home'],['reports','📆 Calendar'],['flats','🛏️ Flats'],
     ['bookings','📅 Bookings'],['att-summary','📅 Attendance'],['salary','💰 Salary'],
     ['advance','💵 Advance'],['expenses','💹 P&L'],
-    ['property-report','🏘️ Property Report'],['investors','🧑‍💼 Sub-Owners'],['sop','📘 SOP'],
+    ['property-report','🏘️ Property Report'],    ['investors','🧑‍💼 Investors'],['sop','📘 SOP'],
   ];
 
   appEl.innerHTML = `
@@ -1985,7 +1985,7 @@ async function renderManageInvestors() {
   ]);
   window._invRooms=rooms||[];
   renderShell(`
-    <div class="card"><h1>🧑‍💼 Sub-Owners</h1><div class="sub">${(invs||[]).length} investors</div>
+        <div class="card"><h1>🧑‍💼 Investors</h1> <div class="sub">${(invs||[]).length} investors</div>
       <div class="btn-row"><button onclick="renderAddInv()">➕ Add</button><button class="secondary" onclick="renderLinkProp()">🔗 Link</button></div></div>
     <div class="card"><div class="section-title">Mapping</div><div class="table-wrap"><table>
       <thead><tr><th>Investor</th><th>Property</th><th>Share</th><th>Report</th></tr></thead>
