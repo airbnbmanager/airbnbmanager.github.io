@@ -224,7 +224,7 @@ function renderShell(content, activePage = 'dashboard') {
 
   const isOwner = SESSION.role === 'owner';
     const nav = isOwner ? [
-    ['dashboard','🏠 Home'],['reports','📆 Calendar'],['rooms','🏠 Rooms'],
+    ['dashboard','🏠 Home'],['reports','📆 Calendar'],    ['rooms','🏠 Properties'],
     ['flats','🛏️ Flats'],['bookings','📅 Bookings'],['employees','👥 Employees'],
     ['tasks','🧰 Tasks'],['attendance','📋 Attendance'],['att-summary','📅 Summary'],
     ['salary','💰 Salary'],['advance','💵 Advance'],['store','📦 Store'],
@@ -592,7 +592,7 @@ async function renderManageRooms() {
   const {data:rooms} = await sb.from("rooms").select("*").order("room_id");
   const isO = SESSION.role==='owner';
   renderShell(`
-    <div class="card"><h1>🏠 Rooms</h1><div class="sub">${(rooms||[]).length} properties</div>
+        <div class="card"><h1>🏠 Properties</h1><div class="sub">${(rooms||[]).length} properties</div>
       ${isO?`<button onclick="renderAddRoom()">➕ Add</button>`:''}</div>
     <div class="card"><div class="table-wrap"><table>
       <thead><tr><th>ID</th><th>Property</th><th>Nickname</th><th>Unit</th><th>Manager</th><th>Status</th>${isO?'<th>Actions</th>':''}</tr></thead>
@@ -659,7 +659,7 @@ function collectRoomForm() {
 }
 
 async function renderAddRoom() {
-  renderShell(`<div class="card"><h1>➕ Add Property</h1><button class="secondary btn-sm" onclick="renderManageRooms()">← Back</button></div>
+  renderShell(`    <div class="card"><h1>➕ Add Property</h1><button class="secondary btn-sm" onclick="renderManageRooms()">← Back</button></div>
     <div class="card">${roomFormFields()}<button onclick="saveNewRoom()">💾 Save</button><div id="addErr"></div></div>`, 'rooms');
 }
 
