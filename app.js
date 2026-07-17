@@ -273,10 +273,11 @@ function navigate(page) {
 async function renderDashboard() {
   await autoCheckout();
   renderShell(`<div class="loading">Loading...</div>`, 'dashboard');
+
   const today = new Date().toISOString().slice(0,10);
   const [g, f] = await Promise.all([
     sb.from("guest_register").select("*, rooms(unit_no, nickname)"),
-    sb.from("flats_status").select("room_id, status, cleaning_status"),
+    sb.from("flats_status").select("room_id, status, cleaning_status, rooms(unit_no, nickname)")
   ]);
 
   const allBookings = g.data || [];
@@ -287,7 +288,7 @@ async function renderDashboard() {
   // Check-outs today
   const rawCheckouts = allBookings.filter(x => x.check_out === today);
 
-  // Detect internal shifts: same guest has both checkin AND checkout today
+  // Internal shifts detect
   const shiftGuests = new Set();
   rawCheckins.forEach(ci => {
     if (ci.parent_booking_id || ci.stay_group_id) {
@@ -296,27 +297,22 @@ async function renderDashboard() {
         co.booking_id === ci.parent_booking_id ||
         co.stay_group_id === ci.stay_group_id
       );
-      if (matching) {
-        shiftGuests.add(ci.guest_name);
-      }
+      if (matching) shiftGuests.add(ci.guest_name);
     }
   });
 
-  // Filter out internal shifts from real arrivals/departures
   const realCheckins = rawCheckins.filter(x => !shiftGuests.has(x.guest_name));
   const realCheckouts = rawCheckouts.filter(x => !shiftGuests.has(x.guest_name));
   const shiftList = rawCheckins.filter(x => shiftGuests.has(x.guest_name));
 
-  // Booked right now
+  // KPIs
   const bookedNow = allFlats.filter(x => x.status === 'Booked');
-  // Free & clean
   const freeClean = allFlats.filter(x => x.status === 'Free' && x.cleaning_status === 'Clean');
-  // Need cleaning
   const dirty = allFlats.filter(x => x.cleaning_status === 'Dirty' && x.status !== 'Blocked-Maintenance');
-  // Total properties
   const totalProps = allFlats.length;
 
-  const nm = b => `${b.rooms?.unit_no||b.room_id}${b.rooms?.nickname?' ('+b.rooms.nickname+')':''}`;
+  const bookingName = b => `${b.rooms?.unit_no||b.room_id}${b.rooms?.nickname?' ('+b.rooms.nickname+')':''}`;
+  const flatName = fl => `${fl.rooms?.unit_no||fl.room_id}${fl.rooms?.nickname?' ('+fl.rooms.nickname+')':''}`;
 
   renderShell(`
     <div class="card">
@@ -328,16 +324,19 @@ async function renderDashboard() {
       <div class="stat-card" style="border-left:4px solid var(--green);">
         <div class="stat-num">${realCheckins.length}</div>
         <div class="stat-label">📥 Check-in Today</div>
-        ${realCheckins.map(x=>`<div style="font-size:12px;margin-top:4px;">${x.guest_name} — ${nm(x)}</div>`).join('')||'<div class="sub" style="margin:4px 0 0;">Koi nahi</div>'}
+        ${realCheckins.map(x=>`<div style="font-size:12px;margin-top:4px;">${x.guest_name} — ${bookingName(x)}</div>`).join('')||'<div class="sub" style="margin:4px 0 0;">Koi nahi</div>'}
       </div>
+
       <div class="stat-card" style="border-left:4px solid var(--primary);">
         <div class="stat-num">${realCheckouts.length}</div>
         <div class="stat-label">📤 Check-out Today</div>
-        ${realCheckouts.map(x=>`<div style="font-size:12px;margin-top:4px;">${x.guest_name} — ${nm(x)}</div>`).join('')||'<div class="sub" style="margin:4px 0 0;">Koi nahi</div>'}
+        ${realCheckouts.map(x=>`<div style="font-size:12px;margin-top:4px;">${x.guest_name} — ${bookingName(x)}</div>`).join('')||'<div class="sub" style="margin:4px 0 0;">Koi nahi</div>'}
       </div>
+
       <div class="stat-card" style="border-left:4px solid #60a5fa;">
         <div class="stat-num">${bookedNow.length}/${totalProps}</div>
         <div class="stat-label">🛏️ Booked Now</div>
+        ${bookedNow.map(x=>`<div style="font-size:11px;margin-top:3px;">${flatName(x)}</div>`).join('')||'<div class="sub" style="margin:4px 0 0;">None</div>'}
       </div>
     </div>
 
@@ -345,20 +344,25 @@ async function renderDashboard() {
       <div class="stat-card" style="border-left:4px solid var(--green);">
         <div class="stat-num">${freeClean.length}</div>
         <div class="stat-label">✅ Free & Ready</div>
+        ${freeClean.map(x=>`<div style="font-size:11px;margin-top:3px;">${flatName(x)}</div>`).join('')||'<div class="sub" style="margin:4px 0 0;">None</div>'}
       </div>
+
       <div class="stat-card" style="border-left:4px solid var(--red);">
         <div class="stat-num">${dirty.length}</div>
         <div class="stat-label">🧹 Need Cleaning</div>
-        ${dirty.map(x=>`<div style="font-size:11px;margin-top:3px;">${x.room_id}</div>`).join('')||'<div class="sub" style="margin:4px 0 0;">Sab clean ✅</div>'}
+        ${dirty.map(x=>`<div style="font-size:11px;margin-top:3px;">${flatName(x)}</div>`).join('')||'<div class="sub" style="margin:4px 0 0;">Sab clean ✅</div>'}
       </div>
+
       <div class="stat-card" style="border-left:4px solid #FDF6B2;">
         <div class="stat-num">${shiftList.length}</div>
         <div class="stat-label">🔁 Room Shifts</div>
-        ${shiftList.map(x=>`<div style="font-size:11px;margin-top:3px;">${x.guest_name} → ${nm(x)}</div>`).join('')||'<div class="sub" style="margin:4px 0 0;">None</div>'}
+        ${shiftList.map(x=>`<div style="font-size:11px;margin-top:3px;">${x.guest_name} → ${bookingName(x)}</div>`).join('')||'<div class="sub" style="margin:4px 0 0;">None</div>'}
       </div>
     </div>
 
-    <div class="card"><button onclick="renderFYSummary()">📊 Financial Summary (CA/ITR)</button></div>
+    <div class="card">
+      <button onclick="renderFYSummary()">📊 Financial Summary (CA/ITR)</button>
+    </div>
   `, 'dashboard');
 }
 
