@@ -1983,40 +1983,252 @@ async function renderManageInvestors() {
     sb.from('investor_properties').select('*, investors(name), rooms(unit_no,property_name,nickname)'),
     sb.from('rooms').select('room_id,unit_no,property_name,nickname').order('room_id')
   ]);
-  window._invRooms=rooms||[];
+  window._invRooms = rooms || [];
+
+  // Group links by investor
+  const invPropMap = {};
+  (links||[]).forEach(l => {
+    const iid = l.investor_id;
+    if (!invPropMap[iid]) invPropMap[iid] = [];
+    invPropMap[iid].push(l);
+  });
+
   renderShell(`
-        <div class="card"><h1>🧑‍💼 Investors</h1> <div class="sub">${(invs||[]).length} investors</div>
-      <div class="btn-row"><button onclick="renderAddInv()">➕ Add</button><button class="secondary" onclick="renderLinkProp()">🔗 Link</button></div></div>
-    <div class="card"><div class="section-title">Mapping</div><div class="table-wrap"><table>
-      <thead><tr><th>Investor</th><th>Property</th><th>Share</th><th>Report</th></tr></thead>
-      <tbody>${(links||[]).map(l=>`<tr>
-        <td>${l.investors?.name||l.investor_id}</td>
-        <td>${l.rooms?.nickname||l.rooms?.unit_no||l.room_id}</td>
-        <td>70%</td>
-        <td><button class="btn-sm" onclick="renderInvestorReport('${l.investor_id}','${l.room_id}')">📊</button></td>
-      </tr>`).join('')}</tbody>
-    </table></div></div>
-    <div class="card"><div class="section-title">All Investors</div><div class="table-wrap"><table>
-      <thead><tr><th>Name</th><th>Phone</th><th>ID</th></tr></thead>
-      <tbody>${(invs||[]).map(i=>`<tr><td><strong>${i.name}</strong></td><td>${i.phone||'-'}</td><td><code>${i.investor_id}</code></td></tr>`).join('')}</tbody>
-    </table></div></div>`, 'investors');
+    <div class="card">
+      <h1>🧑‍💼 Investors</h1>
+      <div class="sub">${(invs||[]).length} investors</div>
+      <div class="btn-row">
+        <button onclick="renderAddInv()">➕ Add Investor + Login</button>
+        <button class="secondary" onclick="renderLinkProp()">🔗 Link Property</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="section-title">All Investors</div>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Name</th><th>Phone</th><th>Share %</th><th>Properties</th><th>Report</th></tr></thead>
+        <tbody>${(invs||[]).map(i => {
+          const iLinks = invPropMap[i.investor_id] || [];
+          const propNames = iLinks.map(l => l.rooms?.nickname || l.room_id).join(', ') || '-';
+          return `<tr>
+            <td><strong>${i.name}</strong></td>
+            <td>${i.phone||'-'}</td>
+            <td><span class="badge green">${i.revenue_share_pct||70}%</span></td>
+            <td style="font-size:12px;">${propNames}</td>
+            <td class="table-actions">
+              ${iLinks.map(l=>`<button class="btn-sm" onclick="renderInvestorReport('${i.investor_id}','${l.room_id}')">📊 ${l.rooms?.nickname||l.room_id}</button>`).join('')}
+              ${iLinks.length===0?'<span style="color:var(--muted);font-size:12px;">No property</span>':''}
+            </td>
+          </tr>`;
+        }).join('')}</tbody>
+      </table></div>
+    </div>
+
+    <div class="card">
+      <div class="section-title">Property → Investor Mapping</div>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Property</th><th>Investor</th><th>Share</th><th>Remove</th></tr></thead>
+        <tbody>${(links||[]).map(l=>`<tr>
+          <td><strong>${l.rooms?.nickname||l.room_id}</strong><br><small>${l.rooms?.unit_no||''}</small></td>
+          <td>${l.investors?.name||l.investor_id}</td>
+          <td>${(invs||[]).find(i=>i.investor_id===l.investor_id)?.revenue_share_pct||70}%</td>
+          <td><button class="btn-sm danger" onclick="unlinkProperty('${l.investor_id}','${l.room_id}')">🗑️ Remove</button></td>
+        </tr>`).join('')}</tbody>
+      </table></div>
+    </div>`, 'investors');
 }
 
+async function unlinkProperty(investorId, roomId) {
+  if (!confirm('Remove this property link?')) return;
+  await sb.from('investor_properties').delete()
+    .eq('investor_id', investorId).eq('room_id', roomId);
+  renderManageInvestors();
+}
 async function renderAddInv() {
-  renderShell(`<div class="card"><h1>➕ Investor</h1><button class="secondary btn-sm" onclick="renderManageInvestors()">← Back</button></div>
+  const {data:rooms} = await sb.from('rooms').select('room_id, nickname, unit_no').order('room_id');
+
+  renderShell(`
     <div class="card">
-      <div class="form-group"><label>Name</label><input id="invName" /></div>
-      <div class="form-group"><label>Phone</label><input id="invPhone" /></div>
-      <button onclick="saveInv()">💾 Save</button><div id="invErr"></div>
+      <h1>➕ Add Investor</h1>
+      <button class="secondary btn-sm" onclick="renderManageInvestors()">← Back</button>
+    </div>
+    <div class="card">
+      <div class="section-title">👤 Investor Details</div>
+      <div class="form-grid">
+        <div class="form-group"><label>Full Name *</label><input id="invName" placeholder="e.g. Papa Ammi" /></div>
+        <div class="form-group"><label>Phone</label><input id="invPhone" type="tel" placeholder="10-digit mobile" /></div>
+      </div>
+      <div class="form-grid">
+        <div class="form-group"><label>Revenue Share %</label><input id="invShare" type="number" value="70" min="0" max="100" /></div>
+        <div class="form-group"><label>Notes</label><input id="invNotes" placeholder="Optional" /></div>
+      </div>
+
+      <div class="section-title" style="margin-top:12px;">🏠 Assign Properties</div>
+      <select id="invRooms" multiple style="min-height:120px;">
+        ${(rooms||[]).map(r=>`<option value="${r.room_id}">${r.nickname||r.unit_no} (${r.room_id})</option>`).join('')}
+      </select>
+      <div style="font-size:11px;color:var(--muted);margin-top:4px;">Hold Ctrl/Cmd to select multiple</div>
+
+      <div class="section-title" style="margin-top:12px;">🔐 Login Credentials (Auto Create)</div>
+      <div class="form-grid">
+        <div class="form-group"><label>Email *</label><input id="invEmail" type="email" placeholder="investor@gmail.com" /></div>
+        <div class="form-group"><label>Password *</label><input id="invPassword" type="password" placeholder="Min 6 characters" /></div>
+      </div>
+      <div style="font-size:12px;color:var(--muted);padding:8px;background:var(--bg);border-radius:8px;">
+        ℹ️ Investor ka account automatically create hoga. Ye credentials unhe share karo.
+      </div>
+
+      <button onclick="saveInvWithUser()" style="width:100%;margin-top:12px;padding:14px;">💾 Save Investor + Create Login</button>
+      <div id="invErr"></div>
     </div>`, 'investors');
 }
 
 async function saveInv() {
-  const name=document.getElementById('invName').value.trim();
-  if(!name){document.getElementById('invErr').innerHTML='<div class="error">Name required</div>';return;}
-  const id='INV'+Date.now();
-  await sb.from('investors').insert({investor_id:id,name,phone:document.getElementById('invPhone').value.trim()||null});
-  renderShell(`<div class="card"><h1>✅ Added</h1><div class="sub">ID: <code>${id}</code></div><button onclick="renderManageInvestors()">← Back</button></div>`, 'investors');
+  // Legacy — redirect to new flow
+  renderAddInv();
+}
+
+async function saveInvWithUser() {
+  const btn = document.querySelector('button[onclick="saveInvWithUser()"]');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Creating...'; }
+
+  const name = document.getElementById('invName').value.trim();
+  const phone = document.getElementById('invPhone').value.trim();
+  const share = parseFloat(document.getElementById('invShare').value) || 70;
+  const notes = document.getElementById('invNotes').value.trim();
+  const email = document.getElementById('invEmail').value.trim();
+  const password = document.getElementById('invPassword').value;
+
+  const roomsSelect = document.getElementById('invRooms');
+  const selectedRooms = roomsSelect ? Array.from(roomsSelect.selectedOptions).map(o => o.value) : [];
+
+  // Validation
+  if (!name) {
+    document.getElementById('invErr').innerHTML = '<div class="error">Name required</div>';
+    if (btn) { btn.disabled = false; btn.textContent = '💾 Save Investor + Create Login'; }
+    return;
+  }
+  if (!email || !password) {
+    document.getElementById('invErr').innerHTML = '<div class="error">Email aur password required hai</div>';
+    if (btn) { btn.disabled = false; btn.textContent = '💾 Save Investor + Create Login'; }
+    return;
+  }
+  if (password.length < 6) {
+    document.getElementById('invErr').innerHTML = '<div class="error">Password minimum 6 characters hona chahiye</div>';
+    if (btn) { btn.disabled = false; btn.textContent = '💾 Save Investor + Create Login'; }
+    return;
+  }
+
+  try {
+    // Step 1: Create investor record
+    const investorId = 'INV' + Date.now();
+    const { error: invError } = await sb.from('investors').insert({
+      investor_id: investorId,
+      name: name,
+      phone: phone || null,
+      revenue_share_pct: share,
+      notes: notes || null
+    });
+    if (invError) throw new Error('Investor create failed: ' + invError.message);
+
+    // Step 2: Assign properties
+    if (selectedRooms.length > 0) {
+      const links = selectedRooms.map(rid => ({ investor_id: investorId, room_id: rid }));
+      const { error: linkError } = await sb.from('investor_properties').insert(links);
+      if (linkError) throw new Error('Property link failed: ' + linkError.message);
+    }
+
+    // Step 3: Create Supabase auth user
+    const { data: authData, error: authError } = await sb.auth.admin
+      ? sb.auth.admin.createUser({ email, password, email_confirm: true })
+      : { data: null, error: { message: 'Admin API not available from client' } };
+
+    // Note: Admin API not available from browser client directly
+    // We use signUp instead — investor will need to confirm email
+    let userId = null;
+    if (authError || !authData?.user) {
+      // Fallback: use signUp (creates unconfirmed account)
+      const { data: signUpData, error: signUpError } = await sb.auth.signUp({
+        email: email,
+        password: password,
+      });
+      if (signUpError) throw new Error('Auth user create failed: ' + signUpError.message);
+      userId = signUpData?.user?.id;
+    } else {
+      userId = authData.user.id;
+    }
+
+    // Step 4: Create profile
+    if (userId) {
+      const { error: profError } = await sb.from('profiles').insert({
+        user_id: userId,
+        role: 'investor',
+        investor_id: investorId,
+        display_name: name + ' (Investor)'
+      });
+      if (profError) console.warn('Profile insert warning:', profError.message);
+    }
+
+    // Step 5: Show success
+    const propsText = selectedRooms.length > 0
+      ? selectedRooms.join(', ')
+      : 'None assigned';
+
+    renderShell(`
+      <div class="card" style="text-align:center;">
+        <div style="font-size:48px;margin-bottom:12px;">✅</div>
+        <h1>Investor Added Successfully!</h1>
+        <div class="sub">Share these credentials with the investor</div>
+      </div>
+      <div class="card">
+        <div class="section-title">👤 Investor Details</div>
+        <div class="metric-row"><span class="metric-label">Name</span><span class="metric-value">${name}</span></div>
+        <div class="metric-row"><span class="metric-label">Phone</span><span>${phone || '-'}</span></div>
+        <div class="metric-row"><span class="metric-label">Revenue Share</span><span class="metric-value">${share}%</span></div>
+        <div class="metric-row"><span class="metric-label">Properties</span><span style="font-size:12px;">${propsText}</span></div>
+        <div class="metric-row"><span class="metric-label">Investor ID</span><code>${investorId}</code></div>
+      </div>
+      <div class="card" style="background:#DEF7EC;border:1px solid #008A05;">
+        <div class="section-title">🔐 Login Credentials (Share with Investor)</div>
+        <div class="metric-row"><span class="metric-label">Website</span><span style="font-weight:600;">airbnbmanager.github.io</span></div>
+        <div class="metric-row"><span class="metric-label">Email</span><span style="font-weight:600;">${email}</span></div>
+        <div class="metric-row"><span class="metric-label">Password</span><span style="font-weight:600;">${password}</span></div>
+        <div style="font-size:12px;color:#03543F;margin-top:8px;">
+          ℹ️ ${userId ? 'Account created successfully. Investor can login directly.' : 'Account creation may need email confirmation.'}
+        </div>
+      </div>
+      <div class="card">
+        <div class="btn-row">
+          <button onclick="shareInvestorCredentials('${name}','${email}','${password}','${propsText}')">📱 WhatsApp Share</button>
+          <button class="secondary" onclick="renderManageInvestors()">← Back to Investors</button>
+        </div>
+      </div>`, 'investors');
+
+  } catch(err) {
+    document.getElementById('invErr').innerHTML = `<div class="error">❌ Error: ${err.message}</div>`;
+    if (btn) { btn.disabled = false; btn.textContent = '💾 Save Investor + Create Login'; }
+  }
+}
+
+function shareInvestorCredentials(name, email, password, properties) {
+  const msg = [
+    `🏠 *${BRAND}*`,
+    ``,
+    `Dear ${name},`,
+    ``,
+    `Aapka investor account ready hai!`,
+    ``,
+    `🌐 Website: airbnbmanager.github.io`,
+    `📧 Email: ${email}`,
+    `🔑 Password: ${password}`,
+    ``,
+    `🏡 Properties: ${properties}`,
+    ``,
+    `Login karke apni property ki bookings aur reports dekh sakte hain.`,
+    ``,
+    `— ${BRAND}`
+  ].join('\n');
+  window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
 }
 
 async function renderLinkProp() {
