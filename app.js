@@ -13,7 +13,8 @@ let SESSION = {
   userId: null, role: null, empId: null, investorId: null,
   displayName: null, currentPage: 'dashboard',
   bookingFilter: 'All', bookingPropFilter: '',
-  bookingDateFilter: '', bookingDateFrom: '', bookingDateTo: ''
+  bookingDateFilter: '', bookingDateFrom: '', bookingDateTo: '',
+  bookingSearch: ''
 };
 
 // ============ INIT ============
@@ -54,7 +55,8 @@ async function logout() {
   await sb.auth.signOut();
   SESSION = { userId:null, role:null, empId:null, investorId:null,
     displayName:null, currentPage:'dashboard', bookingFilter:'All',
-    bookingPropFilter:'', bookingDateFilter:'', bookingDateFrom:'', bookingDateTo:'' };
+    bookingPropFilter:'', bookingDateFilter:'', bookingDateFrom:'', bookingDateTo:'',
+    bookingSearch:'' };
   renderLogin();
 }
 
@@ -221,17 +223,17 @@ function renderShell(content, activePage = 'dashboard') {
   if (!show) { appEl.innerHTML = content; return; }
 
   const isOwner = SESSION.role === 'owner';
-  const nav = isOwner ? [
-    ['dashboard','🏠 Home'],['reports','📈 Reports'],['rooms','🏠 Rooms'],
+    const nav = isOwner ? [
+    ['dashboard','🏠 Home'],['reports','📆 Calendar'],['rooms','🏠 Rooms'],
     ['flats','🛏️ Flats'],['bookings','📅 Bookings'],['employees','👥 Employees'],
     ['tasks','🧰 Tasks'],['attendance','📋 Attendance'],['att-summary','📅 Summary'],
     ['salary','💰 Salary'],['advance','💵 Advance'],['store','📦 Store'],
     ['expenses','🧾 Expenses'],['property-report','🏘️ Property Report'],
     ['investors','🧑‍💼 Sub-Owners'],['sop','📘 SOP'],
-  ] : [
-    ['dashboard','🏠 Home'],['reports','📈 Reports'],['flats','🛏️ Flats'],
-    ['bookings','📅 Bookings'],['att-summary','📅 Summary'],['salary','💰 Salary'],
-    ['advance','💵 Advance'],['expenses','🧾 Expenses'],
+   ] : [
+    ['dashboard','🏠 Home'],['reports','📆 Calendar'],['flats','🛏️ Flats'],
+    ['bookings','📅 Bookings'],['att-summary','📅 Attendance'],['salary','💰 Salary'],
+    ['advance','💵 Advance'],['expenses','💹 P&L'],
     ['property-report','🏘️ Property Report'],['investors','🧑‍💼 Sub-Owners'],['sop','📘 SOP'],
   ];
 
@@ -701,7 +703,8 @@ async function renderManageBookings() {
   (rooms || []).forEach(r => { roomMap[r.room_id] = r; });
 
   const mf=SESSION.bookingFilter||'All', pf=SESSION.bookingPropFilter||'',
-    df=SESSION.bookingDateFilter||'', d1=SESSION.bookingDateFrom||'', d2=SESSION.bookingDateTo||'';
+    df=SESSION.bookingDateFilter||'', d1=SESSION.bookingDateFrom||'', d2=SESSION.bookingDateTo||'',
+    sq=SESSION.bookingSearch||'';
 
   let f = all||[];
   if (mf!=='All') f=f.filter(b=>b.booking_mode===mf);
@@ -709,33 +712,36 @@ async function renderManageBookings() {
   if (df) f=f.filter(b=>b.check_in===df);
   if (d1) f=f.filter(b=>b.check_in>=d1);
   if (d2) f=f.filter(b=>b.check_in<=d2);
+  // Guest name search
+  if (sq) f=f.filter(b=>(b.guest_name||'').toLowerCase().includes(sq.toLowerCase()) || (b.phone||'').includes(sq));
 
   const today = new Date().toISOString().slice(0,10);
-  f.sort((a,b) => {
+  f.sort((a,b2) => {
     const aActive = a.check_in <= today && a.check_out > today;
-    const bActive = b.check_in <= today && b.check_out > today;
+    const bActive = b2.check_in <= today && b2.check_out > today;
     const aToday = a.check_out === today;
-    const bToday = b.check_out === today;
+    const bToday = b2.check_out === today;
     const aFuture = a.check_in > today;
-    const bFuture = b.check_in > today;
+    const bFuture = b2.check_in > today;
     if (aActive && !bActive) return -1;
     if (!aActive && bActive) return 1;
     if (aToday && !bToday) return -1;
     if (!aToday && bToday) return 1;
     if (aFuture && !bFuture) return -1;
     if (!aFuture && bFuture) return 1;
-    return (b.check_in||'').localeCompare(a.check_in||'');
+    return (b2.check_in||'').localeCompare(a.check_in||'');
   });
 
   const overlaps = findOverlappingBookings(all || []);
   const pm = await getPaidMap(f.map(b=>b.booking_id));
   const canM = ['owner','viewer','manager'].includes(SESSION.role);
+  // Only owner can delete
   const canD = SESSION.role==='owner';
 
   renderShell(`
     <div class="card">
-      <h1>📅 Manage Bookings</h1>
-      <div class="sub">${f.length} bookings</div>
+      <h1>📅 Bookings</h1>
+      <div class="sub">${f.length} bookings ${sq?'matching "'+sq+'"':''}</div>
       ${canM?`<button onclick="renderAddBooking()">➕ New Booking</button>`:''}
     </div>
 
@@ -745,6 +751,14 @@ async function renderManageBookings() {
     </div></div>` : ''}
 
     <div class="card">
+      <!-- Search bar -->
+      <div class="search-bar" style="margin-bottom:10px;">
+        <span class="search-icon">🔍</span>
+        <input type="text" id="bkSearch" placeholder="Search guest name or phone..." value="${sq}"
+          oninput="SESSION.bookingSearch=this.value; renderManageBookings();" />
+        ${sq?`<button class="outline btn-sm" onclick="SESSION.bookingSearch='';renderManageBookings();" style="min-height:30px;padding:4px 8px;">✕</button>`:''}
+      </div>
+
       <div class="section-title">🔍 Filters</div>
       <div class="filter-bar">
         <div class="filter-item"><label>Mode</label><select id="fMode">
@@ -760,8 +774,8 @@ async function renderManageBookings() {
         <div class="filter-item"><label>From</label><input type="date" id="fFrom" value="${d1}" /></div>
         <div class="filter-item"><label>To</label><input type="date" id="fTo" value="${d2}" /></div>
         <div class="filter-item" style="flex-direction:row;gap:4px;align-items:flex-end;">
-          <button class="btn-sm" onclick="applyBkFilters()">🔍</button>
-          <button class="btn-sm outline" onclick="clearBkFilters()">✕</button>
+          <button class="btn-sm" onclick="applyBkFilters()">Apply</button>
+          <button class="btn-sm outline" onclick="clearBkFilters()">Clear</button>
         </div>
       </div>
     </div>
@@ -769,7 +783,7 @@ async function renderManageBookings() {
     <div class="card"><div class="table-wrap"><table>
       <thead><tr>
         <th>Status</th><th>Guest</th><th>Property</th><th>Mode</th><th>By</th>
-        <th>In</th><th>Out</th><th>Rate/Day</th><th>Total</th><th>Paid</th><th>Due</th>
+        <th>In</th><th>Out</th><th>Rate</th><th>Total</th><th>Paid</th><th>Due</th>
         ${canM?'<th>Actions</th>':''}
       </tr></thead>
       <tbody>${f.map(b=>{
@@ -777,31 +791,40 @@ async function renderManageBookings() {
         const isActive = b.check_in <= today && b.check_out > today;
         const isCheckoutToday = b.check_out === today;
         const isPast = b.check_out < today;
-        const statusBadge = isActive ? '<span class="badge green">🟢 Active</span>'
-          : isCheckoutToday ? '<span class="badge yellow">📤 Today</span>'
-          : isPast ? '<span class="badge red">Done</span>'
+        const statusBadge = isActive
+          ? '<span class="badge green">🟢 Active</span>'
+          : isCheckoutToday ? '<span class="badge yellow">📤 Checkout</span>'
+          : isPast ? '<span class="badge" style="background:#F3F4F6;color:#6B7280;">Done</span>'
           : '<span class="badge blue">Upcoming</span>';
         const ids=(b.id_proof_photo_paths||b.id_proof_photo_path||'').split(',').filter(Boolean);
-        return `<tr style="${isActive?'background:#f0fff4;':''}${isCheckoutToday?'background:#fffbeb;':''}">
+        const rowBg = isActive?'background:#f0fff4;':isCheckoutToday?'background:#fffbeb;':'';
+        return `<tr style="${rowBg}">
           <td>${statusBadge}</td>
-          <td><strong>${b.guest_name||'-'}</strong><br><small>${b.phone||''}</small>
-            ${ids.length?`<br>${ids.map((p,i)=>`<button class="btn-sm outline" style="margin:1px;padding:2px 6px;font-size:10px;" onclick="dlIdPhoto('${p}')">📎G${i+1}</button>`).join('')}`:''}</td>
-          <td><strong>${b.rooms?.nickname||'-'}</strong><br><small style="color:var(--muted);">${b.rooms?.unit_no||b.room_id}</small>
-            ${b.source_room_id && b.source_room_id !== b.room_id ? `<br><small style="color:#2563eb;">Source: ${roomMap[b.source_room_id]?.nickname||b.source_room_id}</small>` : ''}
-            ${b.parent_booking_id ? `<br><small style="color:var(--muted);">Ext: ${b.parent_booking_id}</small>` : ''}</td>
+          <td>
+            <strong>${b.guest_name||'-'}</strong><br>
+            <small style="color:var(--muted);">${b.phone||''}</small>
+            ${ids.length?`<br><div style="display:flex;flex-wrap:wrap;gap:2px;margin-top:2px;">${ids.map((p,i)=>`<button class="btn-sm outline" style="padding:2px 6px;font-size:10px;min-height:24px;" onclick="dlIdPhoto('${p}')">📎G${i+1}</button>`).join('')}</div>`:''}
+          </td>
+          <td>
+            <strong>${b.rooms?.nickname||'-'}</strong><br>
+            <small style="color:var(--muted);">${b.rooms?.unit_no||b.room_id}</small>
+            ${b.source_room_id && b.source_room_id !== b.room_id ? `<br><small style="color:#2563eb;font-size:10px;">📍 ${roomMap[b.source_room_id]?.nickname||b.source_room_id}</small>` : ''}
+            ${b.parent_booking_id ? `<br><small style="color:var(--muted);font-size:10px;">🔁 Ext</small>` : ''}
+          </td>
           <td><span class="badge ${b.booking_mode==='Online-Airbnb'?'blue':'yellow'}">${b.booking_mode==='Online-Airbnb'?'Online':'Offline'}</span></td>
           <td><small>${b.booked_by||'-'}</small></td>
-          <td>${b.check_in||'-'}</td><td>${b.check_out||'-'}</td>
-          <td>${b.per_day_rate?'₹'+b.per_day_rate.toLocaleString('en-IN'):'-'}</td>
-          <td>₹${(b.total_amount||0).toLocaleString('en-IN')}</td>
-          <td>₹${pd.toLocaleString('en-IN')}</td>
-          <td><span class="${bal>0?'metric-value warn':''}">₹${bal.toLocaleString('en-IN')}</span></td>
+          <td><small>${b.check_in||'-'}</small></td>
+          <td><small>${b.check_out||'-'}</small></td>
+          <td><small>${b.per_day_rate?'₹'+b.per_day_rate:'-'}</small></td>
+          <td><strong>₹${(b.total_amount||0).toLocaleString('en-IN')}</strong></td>
+          <td style="color:var(--green);">₹${pd.toLocaleString('en-IN')}</td>
+          <td><strong class="${bal>0?'metric-value warn':''}">₹${bal.toLocaleString('en-IN')}</strong></td>
           ${canM?`<td class="table-actions">
-            <button class="btn-sm" onclick="editBooking('${b.booking_id}')" title="Edit">✏️ Edit</button>
-            <button class="btn-sm secondary" onclick="addPaymentWithDate('${b.booking_id}')" title="Payment">💰 Pay</button>
-            <button class="btn-sm outline" onclick="createOfflineExtension('${b.booking_id}')" title="Extension">➕ Ext</button>
-            ${bal>0?`<button class="btn-sm" onclick="markFullyPaid('${b.booking_id}')" title="Mark Paid">✅</button>`:''}
-            ${canD?`<button class="btn-sm danger" onclick="delBooking('${b.booking_id}','${(b.guest_name||'').replace(/'/g,"\\'")}','${b.room_id}')" title="Delete">🗑️</button>`:''}
+            <button class="btn-sm" onclick="editBooking('${b.booking_id}')">✏️</button>
+            <button class="btn-sm secondary" onclick="addPaymentWithDate('${b.booking_id}')">💰</button>
+            <button class="btn-sm outline" onclick="createOfflineExtension('${b.booking_id}')">➕</button>
+            ${bal>0?`<button class="btn-sm green-btn" onclick="markFullyPaid('${b.booking_id}')">✅</button>`:''}
+            ${canD?`<button class="btn-sm danger" onclick="delBooking('${b.booking_id}','${(b.guest_name||'').replace(/'/g,"\\'")}','${b.room_id}')">🗑️</button>`:''}
           </td>`:''}</tr>`;}).join('')}</tbody>
     </table></div></div>`, 'bookings');
 }
@@ -818,6 +841,7 @@ function applyBkFilters() {
 function clearBkFilters() {
   SESSION.bookingFilter='All'; SESSION.bookingPropFilter='';
   SESSION.bookingDateFilter=''; SESSION.bookingDateFrom=''; SESSION.bookingDateTo='';
+  SESSION.bookingSearch='';
   renderManageBookings();
 }
 
@@ -1833,8 +1857,9 @@ async function renderExpenses() {
   const inc = (gs||[]).filter(g=>g.check_in?.startsWith(cm)).reduce((s,g)=>s+(pm[g.booking_id]||0),0);
   const mexp = (exps||[]).filter(e=>e.month===ml).reduce((s,e)=>s+(e.amount||0),0);
   const profit = inc - mexp;
-  renderShell(`
-    <div class="card"><h1>🧾 Expenses</h1><div class="sub">${ml}</div>
+    renderShell(`
+    <div class="card"><h1>💹 P&L (Profit & Loss)</h1>
+    <div class="sub">${ml}</div>
       <div class="btn-row"><button onclick="renderAddExpCat()">➕ Category</button><button class="secondary" onclick="renderAddExpEntry()">🧾 Log</button></div></div>
     <div class="card">
       <div class="metric-row"><span class="metric-label">Income</span><span class="metric-value">₹${inc.toLocaleString('en-IN')}</span></div>
