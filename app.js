@@ -2365,56 +2365,99 @@ async function renderEmployeeView() {
 // ============ SOP PAGE ============
 function renderSOPPage() {
   renderShell(`
-    <div class="card"><h1>📘 Booking SOP</h1><div class="sub">Only 3 people: Praveen, Firoz, Shahanshah</div></div>
+    <div class="card"><h1>📘 Booking SOP</h1><div class="sub">Standard Operating Procedure — ${BRAND}</div></div>
     <div class="card">
-      <div class="section-title">👥 Authorized</div>
-      <div class="metric-row"><span class="metric-label">1. Praveen</span><span class="badge green">Owner</span></div>
-      <div class="metric-row"><span class="metric-label">2. Firoz</span><span class="badge blue">Manager</span></div>
-      <div class="metric-row"><span class="metric-label">3. Shahanshah</span><span class="badge yellow">Owner</span></div>
+      <div class="section-title">👥 Team & Roles</div>
+      <div class="metric-row"><span class="metric-label">1. Mr. Shahanshah</span><span class="badge green">Owner</span></div>
+      <div class="metric-row"><span class="metric-label">2. Mr. Firoz Khan</span><span class="badge green">Owner</span></div>
+      <div class="metric-row"><span class="metric-label">3. Praveen Singh</span><span class="badge blue">Developer & Admin</span></div>
+      <div style="font-size:12px;color:var(--muted);margin-top:8px;padding:8px;background:var(--bg);border-radius:8px;">
+        📞 Shahanshah: 9450055554<br>
+        📞 Firoz Khan: 8299600709<br>
+        🛠️ Praveen: System Developer & Full Admin
+      </div>
+    </div>
+    <div class="card">
+      <div class="section-title">🔐 Permissions</div>
+      <div style="font-size:13px;line-height:1.8;">
+        <p><strong>Shahanshah & Firoz (Owners):</strong></p>
+        <p>• View all pages ✅</p>
+        <p>• Add / Edit bookings ✅</p>
+        <p>• Add / Edit employees ✅</p>
+        <p>• View reports & P&L ✅</p>
+        <p>• Manage Sub-Owners ✅</p>
+        <p>• Delete bookings ❌ (Admin only)</p>
+        <p style="margin-top:8px;"><strong>Praveen (Developer & Admin):</strong></p>
+        <p>• Full system access ✅</p>
+        <p>• Delete / modify anything ✅</p>
+        <p>• Database management ✅</p>
+        <p>• System configuration ✅</p>
+      </div>
     </div>
     <div class="card">
       <div class="section-title">✅ Golden Rules</div>
-      <div style="font-size:13px;line-height:1.7;">
+      <div style="font-size:13px;line-height:1.8;">
         <p><strong>1.</strong> Handwritten register = final truth</p>
         <p><strong>2.</strong> Actual stay room hi app me save hoga</p>
-        <p><strong>3.</strong> Online shift = source listing alag</p>
+        <p><strong>3.</strong> Online shift = source listing alag note karo</p>
         <p><strong>4.</strong> Online → Offline extension = new booking</p>
-        <p><strong>5.</strong> Room shift = note zaroor</p>
+        <p><strong>5.</strong> Room shift hua = note zaroor likho</p>
+        <p><strong>6.</strong> Same day app me entry karo</p>
       </div>
     </div>
     <div class="card">
-      <div class="section-title">🌐 Online Booking</div>
-      <div style="font-size:13px;line-height:1.7;">
-        <p><strong>Normal:</strong> Actual = Source = same room</p>
-        <p><strong>Shifted:</strong> Actual = shifted, Source = original</p>
-        <p><strong>Note:</strong> <code>Airbnb booked on GOM-101, shifted to GOM-102</code></p>
+      <div class="section-title">🌐 Online Booking SOP</div>
+      <div style="font-size:13px;line-height:1.8;">
+        <p><strong>Normal:</strong> Actual Stay = Source Listing = same room</p>
+        <p><strong>Shifted:</strong> Actual Stay = shifted room, Source = original Airbnb listing</p>
+        <p><strong>Note format:</strong></p>
+        <code>Airbnb booked on GOM-101, shifted to GOM-102</code>
+        <p style="margin-top:8px;"><strong>Amount:</strong> Jo bank me aaya (net payout) = Total Amount</p>
       </div>
     </div>
     <div class="card">
-      <div class="section-title">🔁 Offline Extension</div>
-      <div style="font-size:13px;line-height:1.7;">
-        <p>Same booking me mat mix karo</p>
-        <p><strong>➕ Ext</strong> button use karo</p>
-        <p><strong>Note:</strong> <code>Extension after Airbnb stay (ID)</code></p>
+      <div class="section-title">🔁 Offline Extension SOP</div>
+      <div style="font-size:13px;line-height:1.8;">
+        <p>Same booking me mix mat karo</p>
+        <p>Booking ke action me <strong>➕ Ext</strong> button use karo</p>
+        <p><strong>Note format:</strong></p>
+        <code>Extension after Airbnb stay (BOOKING_ID)</code>
       </div>
     </div>
     <div class="card">
       <div class="section-title">🧹 Daily Routine</div>
-      <div style="font-size:13px;line-height:1.7;">
+      <div style="font-size:13px;line-height:1.8;">
         <p>1. Register me likho</p>
         <p>2. Same day app me save karo</p>
         <p>3. Guest actual room verify karo</p>
-        <p>4. Shift / extension note karo</p>
-        <p>5. Overlap warning ignore mat karo</p>
+        <p>4. Shift / extension / source note karo</p>
+        <p>5. Overlap warning aaye to ignore mat karo</p>
+        <p>6. Checkout ke baad room status check karo</p>
+      </div>
+    </div>
+    <div class="card">
+      <div class="section-title">⏰ Timings</div>
+      <div style="font-size:13px;line-height:1.8;">
+        <p>🕑 Check-in Time: <strong>2:00 PM</strong></p>
+        <p>🕚 Check-out Time: <strong>11:00 AM</strong></p>
+        <p>Early check-in / late check-out subject to availability</p>
       </div>
     </div>
     <div class="card">
       <div class="section-title">❌ Don'ts</div>
-      <div style="font-size:13px;line-height:1.7;">
+      <div style="font-size:13px;line-height:1.8;">
         <p>• 2 active bookings same room pe nahi</p>
-        <p>• Online + offline mix nahi</p>
-        <p>• Fake guest name nahi</p>
-        <p>• Source listing ≠ actual stay</p>
+        <p>• Online + offline same booking me mix nahi</p>
+        <p>• Fake / placeholder guest name nahi</p>
+        <p>• Source listing ≠ actual stay room</p>
+        <p>• Bina note ke room shift nahi</p>
+      </div>
+    </div>
+    <div class="card" style="text-align:center;">
+      <div style="font-size:12px;color:var(--muted);">
+        ${BRAND}<br>
+        <strong>System by Praveen Singh</strong><br>
+        Last updated: ${new Date().toLocaleDateString('en-IN')}
       </div>
     </div>
   `, 'sop');
