@@ -694,8 +694,9 @@ async function renderReports() {
       if (bk) { bg = bk.mode==='Online-Airbnb'?'#E1EFFE':'#FDF6B2'; gn = bk.guest?.split(' ')[0]||'B'; }
       const cls = `cal-cell${bk?' booked':''}${isT?' today':''}`;
       const click = bk ? `onclick="showBookingPopup('${r.room_id}','${ds}')"` : '';
-      html += `<div class="${cls}" style="background:${bg};" ${click}>
-        <div${isT?' style="color:var(--primary);"':''}>${d}${isT?' ●':''}</div>
+      const title = bk ? `title="${bk.guest||'Booked'}"` : isT ? `title="Today"` : '';
+      html += `<div class="${cls}" style="background:${bg};" ${click} ${title}>
+        <div class="cal-date"${isT?' style="color:var(--primary);"':''}>${d}${isT?' ●':''}</div>
         ${bk?`<div class="cal-guest">${gn}</div>`:''}
       </div>`;
     }
@@ -1393,9 +1394,50 @@ function clearBkFilters() {
 }
 
 async function dlIdPhoto(path) {
-  const {data} = await sb.storage.from('id-proofs').createSignedUrl(path, 300);
-  if (!data?.signedUrl) { alert('Photo load failed'); return; }
+  const {data} = await sb.storage.from('id-proofs').createSignedUrl(path, 600);
+  if (!data?.signedUrl) {
+    alert('⚠️ Photo load failed. Try again.');
+    return;
+  }
   showPhotoViewer(data.signedUrl, path);
+}
+
+function showPhotoViewer(url, path) {
+  // Remove any existing viewer
+  document.querySelectorAll('.photo-viewer-overlay').forEach(el => el.remove());
+
+  const fileName = path ? path.split('/').pop() : 'ID Photo';
+
+  const overlay = document.createElement('div');
+  overlay.className = 'photo-viewer-overlay';
+  overlay.onclick = e => {
+    if (e.target === overlay) overlay.remove();
+  };
+
+  overlay.innerHTML = `
+    <button class="photo-viewer-close" onclick="this.closest('.photo-viewer-overlay').remove()">✕</button>
+    <img src="${url}" alt="ID Photo"
+      onerror="this.style.display='none'; this.nextElementSibling.style.display='block';"
+    />
+    <div style="display:none;color:#fff;font-size:16px;padding:20px;">
+      ⚠️ Photo load failed. File might be corrupted or expired.<br>
+      <button class="photo-viewer-nav button" onclick="window.open('${url}','_blank')" style="margin-top:12px;">Try Opening in New Tab</button>
+    </div>
+    <div class="photo-viewer-info">📄 ${fileName}</div>
+    <div class="photo-viewer-nav">
+      <button onclick="const a=document.createElement('a');a.href='${url}';a.download='${fileName}';a.target='_blank';document.body.appendChild(a);a.click();a.remove();">
+        📥 Download
+      </button>
+      <button onclick="window.open('${url}','_blank')">
+        🔗 Open in Tab
+      </button>
+      <button onclick="this.closest('.photo-viewer-overlay').remove()">
+        ✕ Close
+      </button>
+    </div>
+  `;
+
+  document.body.appendChild(overlay);
 }
 
 function showPhotoViewer(url, path) {
