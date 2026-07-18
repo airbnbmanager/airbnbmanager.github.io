@@ -8,6 +8,7 @@
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 const appEl = document.getElementById("app");
 const BRAND = "The UNIQUE HAVEN HOME STAY";
+const APP_VERSION = "v10";
 
 let SESSION = {
   userId: null, role: null, empId: null, investorId: null,
@@ -20,11 +21,19 @@ let SESSION = {
 // ============ INIT ============
 async function init() {
   try {
+    await forceServiceWorkerUpdateCheck();
+    showVersionNotice();
+
     const { data: { session } } = await sb.auth.getSession();
     if (!session) { renderLogin(); return; }
-    await autoCheckout();
+
+    // IMPORTANT:
+    // autoCheckout() removed from auto-load to prevent stale cached devices
+    // from mutating DB incorrectly.
     await loadProfile(session.user.id);
-  } catch (err) { showError("Setup incomplete. config.js check karo.", err); }
+  } catch (err) {
+    showError("Setup incomplete. config.js check karo.", err);
+  }
 }
 
 async function loadProfile(userId) {
@@ -58,6 +67,81 @@ async function logout() {
     bookingPropFilter:'', bookingDateFilter:'', bookingDateFrom:'', bookingDateTo:'',
     bookingSearch:'' };
   renderLogin();
+}
+
+async function forceServiceWorkerUpdateCheck() {
+  try {
+    if ('serviceWorker' in navigator) {
+      const reg = await navigator.serviceWorker.getRegistration();
+      if (reg) await reg.update();
+    }
+  } catch (e) {
+    console.warn('SW update check failed', e);
+  }
+}
+
+function showVersionNotice() {
+  try {
+    const oldVersion = localStorage.getItem('uh_app_version');
+    if (oldVersion && oldVersion !== APP_VERSION) {
+      window._showUpdateNotice = true;
+    }
+    localStorage.setItem('uh_app_version', APP_VERSION);
+  } catch (e) {
+    console.warn('Version notice storage failed', e);
+  }
+}
+
+function getUpdateNoticeHTML() {
+  if (!window._showUpdateNotice) return '';
+  return `
+    <div class="card" style="border-left:4px solid var(--primary);">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
+        <div>
+          <strong>🔄 New update loaded</strong><br>
+          <small style="color:var(--muted);">Please refresh once if any old screen is showing.</small>
+        </div>
+        <button class="btn-sm" onclick="window._showUpdateNotice=false; location.reload();">Refresh</button>
+      </div>
+    </div>
+  `;
+}
+
+async function manualSyncRoomStatus() {
+  const ok = confirm(
+    'Room status sync run karna hai?\n\n' +
+    'Ye checkout/checkin ke hisaab se room status & cleaning sync karega.\n' +
+    'Fresh browser se hi chalana recommended hai.'
+  );
+  if (!ok) return;
+
+  try {
+    await autoCheckout();
+    window._lastManualSync = new Date().toLocaleString('en-IN');
+    alert('✅ Room status synced successfully');
+    if (SESSION.currentPage === 'dashboard') renderDashboard();
+    else if (SESSION.currentPage === 'flats') renderFlatsStatus();
+  } catch (e) {
+    alert('❌ Sync failed: ' + (e.message || e));
+  }
+}
+
+function syncInfoHTML() {
+  const last = window._lastManualSync
+    ? `<div style="font-size:11px;color:var(--muted);margin-top:4px;">Last sync: ${window._lastManualSync}</div>`
+    : `<div style="font-size:11px;color:var(--muted);margin-top:4px;">Sync manually after major booking changes</div>`;
+
+  return `
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">
+        <div>
+          <strong>🔄 Manual Status Sync</strong>
+          ${last}
+        </div>
+        <button class="btn-sm" onclick="manualSyncRoomStatus()">Run Sync</button>
+      </div>
+    </div>
+  `;
 }
 
 // ============ HELPERS ============
@@ -308,7 +392,6 @@ function navigate(page) {
 
 // ============ DASHBOARD ============
 async function renderDashboard() {
-  await autoCheckout();
   renderShell(`<div class="loading">Loading...</div>`, 'dashboard');
 
   const today = new Date().toISOString().slice(0,10);
@@ -320,12 +403,9 @@ async function renderDashboard() {
   const allBookings = g.data || [];
   const allFlats = f.data || [];
 
-  // Check-ins today
   const rawCheckins = allBookings.filter(x => x.check_in === today);
-  // Check-outs today
   const rawCheckouts = allBookings.filter(x => x.check_out === today);
 
-  // Internal shifts detect
   const shiftGuests = new Set();
   rawCheckins.forEach(ci => {
     if (ci.parent_booking_id || ci.stay_group_id) {
@@ -342,7 +422,6 @@ async function renderDashboard() {
   const realCheckouts = rawCheckouts.filter(x => !shiftGuests.has(x.guest_name));
   const shiftList = rawCheckins.filter(x => shiftGuests.has(x.guest_name));
 
-  // KPIs
   const bookedNow = allFlats.filter(x => x.status === 'Booked');
   const freeClean = allFlats.filter(x => x.status === 'Free' && x.cleaning_status === 'Clean');
   const dirty = allFlats.filter(x => x.cleaning_status === 'Dirty' && x.status !== 'Blocked-Maintenance');
@@ -352,9 +431,13 @@ async function renderDashboard() {
   const flatName = fl => `${fl.rooms?.unit_no||fl.room_id}${fl.rooms?.nickname?' ('+fl.rooms.nickname+')':''}`;
 
   renderShell(`
+    ${getUpdateNoticeHTML()}
+    ${SESSION.role === 'owner' ? syncInfoHTML() : ''}
+
     <div class="card">
       <h1>📊 Dashboard</h1>
       <div class="sub">${new Date().toLocaleDateString('en-IN',{weekday:'long',year:'numeric',month:'long',day:'numeric'})}</div>
+      <div style="font-size:11px;color:var(--muted);">Build: ${APP_VERSION}</div>
     </div>
 
     <div class="stat-grid">
@@ -402,7 +485,6 @@ async function renderDashboard() {
     </div>
   `, 'dashboard');
 }
-
 // ============ REPORTS ============
 async function renderReports() {
   renderShell(`<div class="loading">Loading...</div>`, 'reports');
@@ -733,7 +815,6 @@ async function deleteRoom(id, name) {
 
 // ============ FLATS STATUS ============
 async function renderFlatsStatus() {
-  await autoCheckout();
   renderShell(`<div class="loading">Loading flats status...</div>`, 'flats');
 
   const { data: flats, error } = await sb
@@ -753,9 +834,13 @@ async function renderFlatsStatus() {
   const dirtyCount = (flats || []).filter(f => f.cleaning_status === 'Dirty').length;
 
   renderShell(`
+    ${getUpdateNoticeHTML()}
+    ${SESSION.role === 'owner' ? syncInfoHTML() : ''}
+
     <div class="card">
       <h1>🛏️ Flats Status</h1>
       <div class="sub">${(flats || []).length} flats</div>
+      <div style="font-size:11px;color:var(--muted);">Build: ${APP_VERSION}</div>
     </div>
 
     <div class="stat-grid">
@@ -820,7 +905,8 @@ async function renderFlatsStatus() {
           </tbody>
         </table>
       </div>
-    </div>`, 'flats');
+    </div>
+  `, 'flats');
 }
 
 async function quickClean(roomId, newStatus, btnEl = null) {
