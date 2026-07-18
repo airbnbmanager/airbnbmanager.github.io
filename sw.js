@@ -1,4 +1,4 @@
-const CACHE = 'uh-haven-v11';
+const CACHE = 'uh-haven-v12';
 const STATIC_FILES = [
   '/',
   '/index.html',
