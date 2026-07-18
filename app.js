@@ -150,37 +150,74 @@ function findOverlappingBookings(bookings) {
 // ============ AUTO ROOM STATUS SYNC ============
 async function autoCheckout() {
   const now = new Date();
+
   const [{ data: allRooms }, { data: flats }, { data: bookings }] = await Promise.all([
     sb.from('rooms').select('room_id'),
-    sb.from('flats_status').select('room_id, status, cleaning_status'),
+    sb.from('flats_status').select('room_id, status, cleaning_status, last_cleaned'),
     sb.from('guest_register').select('booking_id, room_id, guest_name, check_in, check_out')
   ]);
+
   const flatMap = {};
   (flats || []).forEach(f => { flatMap[f.room_id] = f; });
+
   const roomIds = (allRooms || []).map(r => r.room_id);
+
   for (const roomId of roomIds) {
     const currentFlat = flatMap[roomId] || {};
     const roomBookings = (bookings || []).filter(b => b.room_id === roomId);
+
+    // Maintenance rooms untouched
     if (currentFlat.status === 'Blocked-Maintenance') continue;
+
     const activeNow = roomBookings.some(b => isBookingActiveNow(b, now));
-    const anyEnded = roomBookings.some(b => hasBookingEnded(b, now));
+
+    // Latest ended booking for this room
+    const endedBookings = roomBookings
+      .filter(b => hasBookingEnded(b, now))
+      .sort((a, b) => (b.check_out || '').localeCompare(a.check_out || ''));
+
+    const latestEnded = endedBookings[0] || null;
+
     let newStatus = currentFlat.status || 'Free';
     let newCleaning = currentFlat.cleaning_status || 'Clean';
+
     if (activeNow) {
       newStatus = 'Booked';
       newCleaning = 'Clean';
     } else {
       newStatus = 'Free';
-      if (anyEnded) {
-        if (newCleaning !== 'In Progress') newCleaning = 'Dirty';
+
+      if (latestEnded) {
+        // If room was manually cleaned AFTER latest checkout date, keep it clean
+        const lastCleaned = currentFlat.last_cleaned || null;
+        const checkoutDate = latestEnded.check_out || null;
+
+        const cleanedAfterCheckout =
+          lastCleaned && checkoutDate && lastCleaned >= checkoutDate;
+
+        if (!cleanedAfterCheckout && newCleaning !== 'In Progress') {
+          newCleaning = 'Dirty';
+        }
       }
     }
+
     const needsInsert = !flatMap[roomId];
-    const changed = currentFlat.status !== newStatus || currentFlat.cleaning_status !== newCleaning;
+    const changed =
+      currentFlat.status !== newStatus ||
+      currentFlat.cleaning_status !== newCleaning;
+
     if (needsInsert) {
-      await sb.from('flats_status').insert({ room_id: roomId, status: newStatus, cleaning_status: newCleaning });
+      await sb.from('flats_status').insert({
+        room_id: roomId,
+        status: newStatus,
+        cleaning_status: newCleaning,
+        last_cleaned: null
+      });
     } else if (changed) {
-      await sb.from('flats_status').update({ status: newStatus, cleaning_status: newCleaning }).eq('room_id', roomId);
+      await sb.from('flats_status').update({
+        status: newStatus,
+        cleaning_status: newCleaning
+      }).eq('room_id', roomId);
     }
   }
 }
