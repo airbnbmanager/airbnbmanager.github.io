@@ -1245,7 +1245,266 @@ async function saveFlatStatus(id) {
   renderFlatsStatus();
 }
 
+// ============ GUEST LEDGER ============
+async function showGuestLedger(guestName) {
+  const {data:bookings} = await sb.from('guest_register')
+    .select('*, rooms(nickname, unit_no)')
+    .ilike('guest_name', `%${guestName}%`)
+    .order('check_in', {ascending:false});
 
+  if (!bookings || !bookings.length) {
+    alert('No bookings found for: ' + guestName);
+    return;
+  }
+
+  const bkIds = bookings.map(b => b.booking_id);
+  const {data:payments} = await sb.from('payment_history')
+    .select('booking_id, amount, payment_mode, payment_date')
+    .in('booking_id', bkIds);
+
+  const payMap = {};
+  (payments || []).forEach(p => {
+    payMap[p.booking_id] = (payMap[p.booking_id] || 0) + (p.amount || 0);
+  });
+
+  const totalAmount = bookings.reduce((s, b) => s + (b.total_amount || 0), 0);
+  const totalPaid = bookings.reduce((s, b) => s + (payMap[b.booking_id] || 0), 0);
+  const totalDue = totalAmount - totalPaid;
+  const totalNights = bookings.reduce((s, b) => {
+    if (b.check_in && b.check_out) return s + Math.max(calcNights(b.check_in, b.check_out), 0);
+    return s;
+  }, 0);
+  const totalBookings = bookings.length;
+
+  const modal = document.createElement('div');
+  modal.className = 'modal-overlay';
+  modal.onclick = e => { if (e.target === modal) modal.remove(); };
+
+  modal.innerHTML = `
+    <div class="modal-box" style="max-width:600px;">
+      <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">✕</button>
+      <h2>👤 Guest Ledger — ${guestName}</h2>
+
+      <div class="stat-grid" style="grid-template-columns:repeat(2,1fr);margin:12px 0;">
+        <div class="stat-card" style="border-left:4px solid var(--blue);">
+          <div class="stat-num">${totalBookings}</div>
+          <div class="stat-label">Total Stays</div>
+        </div>
+        <div class="stat-card" style="border-left:4px solid var(--green);">
+          <div class="stat-num">${totalNights}</div>
+          <div class="stat-label">Total Nights</div>
+        </div>
+      </div>
+
+      <div class="card" style="box-shadow:none;border:1px solid var(--border);margin:0 0 12px;">
+        <div class="metric-row">
+          <span class="metric-label">Total Billed</span>
+          <span class="metric-value">₹${totalAmount.toLocaleString('en-IN')}</span>
+        </div>
+        <div class="metric-row">
+          <span class="metric-label">Total Paid</span>
+          <span class="metric-value" style="color:var(--green);">₹${totalPaid.toLocaleString('en-IN')}</span>
+        </div>
+        <div class="metric-row">
+          <span class="metric-label">Total Due</span>
+          <span class="metric-value${totalDue > 0 ? ' warn' : ''}">₹${totalDue.toLocaleString('en-IN')}</span>
+        </div>
+        ${totalDue > 0
+          ? `<div style="margin-top:8px;padding:8px;background:#FDE8E8;border-radius:8px;font-size:12px;color:var(--red);">
+              ⚠️ Guest ka ₹${totalDue.toLocaleString('en-IN')} pending hai
+            </div>`
+          : `<div style="margin-top:8px;padding:8px;background:#DEF7EC;border-radius:8px;font-size:12px;color:var(--green);">
+              ✅ All payments clear
+            </div>`
+        }
+      </div>
+
+      <div class="section-title">Booking History</div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Property</th>
+              <th>Mode</th>
+              <th>In</th>
+              <th>Out</th>
+              <th>Nights</th>
+              <th>Total</th>
+              <th>Paid</th>
+              <th>Due</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${bookings.map(b => {
+              const paid = payMap[b.booking_id] || 0;
+              const due = (b.total_amount || 0) - paid;
+              const nights = b.check_in && b.check_out ? calcNights(b.check_in, b.check_out) : '-';
+              return `<tr>
+                <td>${b.rooms?.nickname || b.room_id || '-'}</td>
+                <td><span class="badge ${b.booking_mode === 'Online-Airbnb' ? 'blue' : 'yellow'}">${b.booking_mode === 'Online-Airbnb' ? 'On' : 'Off'}</span></td>
+                <td>${b.check_in || '-'}</td>
+                <td>${b.check_out || '-'}</td>
+                <td>${nights}</td>
+                <td>₹${(b.total_amount || 0).toLocaleString('en-IN')}</td>
+                <td style="color:var(--green);">₹${paid.toLocaleString('en-IN')}</td>
+                <td class="${due > 0 ? 'metric-value warn' : ''}">₹${due.toLocaleString('en-IN')}</td>
+              </tr>`;
+            }).join('')}
+          </tbody>
+        </table>
+      </div>
+
+      <div class="section-title" style="margin-top:12px;">Payment Log</div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>Date</th><th>Booking</th><th>Amount</th><th>Mode</th></tr>
+          </thead>
+          <tbody>
+            ${(payments || []).sort((a, b) => (b.payment_date || '').localeCompare(a.payment_date || '')).map(p => `<tr>
+              <td>${p.payment_date || '-'}</td>
+              <td style="font-size:11px;">${p.booking_id}</td>
+              <td>₹${(p.amount || 0).toLocaleString('en-IN')}</td>
+              <td>${p.payment_mode || '-'}</td>
+            </tr>`).join('') || '<tr><td colspan="4" class="sub">No payments</td></tr>'}
+          </tbody>
+        </table>
+      </div>
+
+      <div class="btn-row" style="margin-top:12px;">
+        <button class="outline" onclick="this.closest('.modal-overlay').remove()">Close</button>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(modal);
+}
+// ============ GUEST LEDGER ============
+async function showGuestLedger(guestName) {
+  const {data:bookings} = await sb.from('guest_register')
+    .select('*, rooms(nickname, unit_no)')
+    .ilike('guest_name', `%${guestName}%`)
+    .order('check_in', {ascending:false});
+
+  if (!bookings || !bookings.length) {
+    alert('No bookings found for: ' + guestName);
+    return;
+  }
+
+  const bkIds = bookings.map(b => b.booking_id);
+  const {data:payments} = await sb.from('payment_history')
+    .select('booking_id, amount, payment_mode, payment_date')
+    .in('booking_id', bkIds);
+
+  const payMap = {};
+  (payments || []).forEach(p => {
+    payMap[p.booking_id] = (payMap[p.booking_id] || 0) + (p.amount || 0);
+  });
+
+  const totalAmount = bookings.reduce((s, b) => s + (b.total_amount || 0), 0);
+  const totalPaid = bookings.reduce((s, b) => s + (payMap[b.booking_id] || 0), 0);
+  const totalDue = totalAmount - totalPaid;
+  const totalNights = bookings.reduce((s, b) => {
+    if (b.check_in && b.check_out) return s + Math.max(calcNights(b.check_in, b.check_out), 0);
+    return s;
+  }, 0);
+  const totalBookings = bookings.length;
+
+  const modal = document.createElement('div');
+  modal.className = 'modal-overlay';
+  modal.onclick = e => { if (e.target === modal) modal.remove(); };
+
+  modal.innerHTML = `
+    <div class="modal-box" style="max-width:600px;">
+      <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">✕</button>
+      <h2>👤 Guest Ledger — ${guestName}</h2>
+
+      <div class="stat-grid" style="grid-template-columns:repeat(2,1fr);margin:12px 0;">
+        <div class="stat-card" style="border-left:4px solid var(--blue);">
+          <div class="stat-num">${totalBookings}</div>
+          <div class="stat-label">Total Stays</div>
+        </div>
+        <div class="stat-card" style="border-left:4px solid var(--green);">
+          <div class="stat-num">${totalNights}</div>
+          <div class="stat-label">Total Nights</div>
+        </div>
+      </div>
+
+      <div class="card" style="box-shadow:none;border:1px solid var(--border);margin:0 0 12px;">
+        <div class="metric-row">
+          <span class="metric-label">Total Billed</span>
+          <span class="metric-value">₹${totalAmount.toLocaleString('en-IN')}</span>
+        </div>
+        <div class="metric-row">
+          <span class="metric-label">Total Paid</span>
+          <span class="metric-value" style="color:var(--green);">₹${totalPaid.toLocaleString('en-IN')}</span>
+        </div>
+        <div class="metric-row">
+          <span class="metric-label">Total Due</span>
+          <span class="metric-value${totalDue > 0 ? ' warn' : ''}">₹${totalDue.toLocaleString('en-IN')}</span>
+        </div>
+      </div>
+
+      <div class="section-title">Booking History</div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Property</th>
+              <th>Mode</th>
+              <th>In</th>
+              <th>Out</th>
+              <th>Nights</th>
+              <th>Total</th>
+              <th>Paid</th>
+              <th>Due</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${bookings.map(b => {
+              const paid = payMap[b.booking_id] || 0;
+              const due = (b.total_amount || 0) - paid;
+              const nights = b.check_in && b.check_out ? calcNights(b.check_in, b.check_out) : '-';
+              return `<tr>
+                <td>${b.rooms?.nickname || b.room_id || '-'}</td>
+                <td><span class="badge ${b.booking_mode === 'Online-Airbnb' ? 'blue' : 'yellow'}">${b.booking_mode === 'Online-Airbnb' ? 'On' : 'Off'}</span></td>
+                <td>${b.check_in || '-'}</td>
+                <td>${b.check_out || '-'}</td>
+                <td>${nights}</td>
+                <td>₹${(b.total_amount || 0).toLocaleString('en-IN')}</td>
+                <td style="color:var(--green);">₹${paid.toLocaleString('en-IN')}</td>
+                <td class="${due > 0 ? 'metric-value warn' : ''}">₹${due.toLocaleString('en-IN')}</td>
+              </tr>`;
+            }).join('')}
+          </tbody>
+        </table>
+      </div>
+
+      <div class="section-title" style="margin-top:12px;">Payment Log</div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>Date</th><th>Booking</th><th>Amount</th><th>Mode</th></tr>
+          </thead>
+          <tbody>
+            ${(payments || []).sort((a, b) => (b.payment_date || '').localeCompare(a.payment_date || '')).map(p => `<tr>
+              <td>${p.payment_date || '-'}</td>
+              <td style="font-size:11px;">${p.booking_id}</td>
+              <td>₹${(p.amount || 0).toLocaleString('en-IN')}</td>
+              <td>${p.payment_mode || '-'}</td><strong style="cursor:pointer;text-decoration:underline;color:var(--blue);" onclick="showGuestLedger('${(b.guest_name||'').replace(/'/g,"\\'")}')">${b.guest_name||'-'}</strong><br>
+            </tr>`).join('') || '<tr><td colspan="4" class="sub">No payments</td></tr>'}
+          </tbody>
+        </table>
+      </div>
+
+      <div class="btn-row" style="margin-top:12px;">
+        <button class="outline" onclick="this.closest('.modal-overlay').remove()">Close</button>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(modal);
+}
 // ============ MANAGE BOOKINGS ============
 async function renderManageBookings() {
   renderShell(`<div class="loading">Loading...</div>`, 'bookings');
@@ -1347,7 +1606,7 @@ async function renderManageBookings() {
         return `<tr style="${rowBg}">
           <td>${statusBadge}</td>
           <td>
-            <strong>${b.guest_name||'-'}</strong><br>
+            <strong style="cursor:pointer;text-decoration:underline;color:var(--blue);" onclick="showGuestLedger('${(b.guest_name||'').replace(/'/g,"\\'")}')">${b.guest_name||'-'}</strong><br>
             <small style="color:var(--muted);">${b.phone||''}</small>
             ${b.has_vehicle?`<br><small>🚗 ${b.vehicle_name||''} ${b.vehicle_number||''}</small>`:''}
             ${ids.length?`<br><div style="display:flex;flex-wrap:wrap;gap:2px;margin-top:2px;">${ids.map((p,i)=>`<button class="btn-sm outline" style="padding:2px 6px;font-size:10px;min-height:24px;" onclick="dlIdPhoto('${p}')">📎G${i+1}</button>`).join('')}</div>`:''}
@@ -2791,8 +3050,107 @@ async function renderEmployeeView(){if(!SESSION.empId){appEl.innerHTML=`<div cla
 
 // ============ CHECKIN MANAGER VIEW ============
 async function renderCheckinManagerView() {
-  // Same as dashboard but limited
-  renderDashboard();
+  renderShell(`<div class="loading">Loading...</div>`, 'dashboard');
+
+  const today = new Date().toISOString().slice(0, 10);
+  const day3 = dateAdd(today, 3);
+
+  const [g, f] = await Promise.all([
+    sb.from("guest_register").select("*, rooms(unit_no, nickname, checkin_manager, caretaker_phone)"),
+    sb.from("flats_status").select("room_id, status, cleaning_status, rooms(unit_no, nickname)")
+  ]);
+
+  const allBookings = g.data || [];
+  const allFlats = f.data || [];
+
+  const checkins = allBookings.filter(x => x.check_in === today);
+  const checkouts = allBookings.filter(x => x.check_out === today);
+  const upcoming = allBookings.filter(b => b.check_in > today && b.check_in <= day3);
+  const activeNow = allBookings.filter(b => b.check_in <= today && b.check_out > today);
+
+  const bookedNow = allFlats.filter(x => x.status === 'Booked');
+  const dirty = allFlats.filter(x => x.cleaning_status === 'Dirty');
+
+  const bookingName = b => `${b.rooms?.unit_no || b.room_id}${b.rooms?.nickname ? ' (' + b.rooms.nickname + ')' : ''}`;
+  const flatName = fl => `${fl.rooms?.unit_no || fl.room_id}${fl.rooms?.nickname ? ' (' + fl.rooms.nickname + ')' : ''}`;
+
+  renderShell(`
+    <div class="card">
+      <h1>👨‍💼 Check-in Manager Dashboard</h1>
+      <div class="sub">${new Date().toLocaleDateString('en-IN', {weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'})}</div>
+      <div style="font-size:11px;color:var(--muted);">👋 ${SESSION.displayName} · Build ${APP_VERSION}</div>
+    </div>
+
+    <div class="stat-grid">
+      <div class="stat-card" style="border-left:4px solid var(--green);">
+        <div class="stat-num">${checkins.length}</div>
+        <div class="stat-label">📥 Check-in Today</div>
+        ${checkins.map(x => `
+          <div style="font-size:12px;margin-top:4px;padding:4px 0;border-bottom:1px solid var(--border);">
+            <strong>${x.guest_name}</strong> — ${bookingName(x)}<br>
+            <small>📞 ${x.phone || 'No phone'} · 🕐 ${x.check_in_time || '2:00 PM'}</small>
+            ${x.has_vehicle ? `<br><small>🚗 ${x.vehicle_name || ''} ${x.vehicle_number || ''}</small>` : ''}
+          </div>
+        `).join('') || '<div class="sub" style="margin:4px 0 0;">Koi nahi</div>'}
+      </div>
+
+      <div class="stat-card" style="border-left:4px solid var(--primary);">
+        <div class="stat-num">${checkouts.length}</div>
+        <div class="stat-label">📤 Check-out Today</div>
+        ${checkouts.map(x => `
+          <div style="font-size:12px;margin-top:4px;">
+            <strong>${x.guest_name}</strong> — ${bookingName(x)}<br>
+            <small>🕐 ${x.check_out_time || '11:00 AM'}</small>
+          </div>
+        `).join('') || '<div class="sub" style="margin:4px 0 0;">Koi nahi</div>'}
+      </div>
+
+      <div class="stat-card" style="border-left:4px solid var(--blue);">
+        <div class="stat-num">${upcoming.length}</div>
+        <div class="stat-label">📅 Next 3 Days</div>
+        ${upcoming.slice(0, 5).map(x => `
+          <div style="font-size:11px;margin-top:3px;">
+            ${x.guest_name} — ${bookingName(x)} (${x.check_in})
+          </div>
+        `).join('') || '<div class="sub" style="margin:4px 0 0;">None</div>'}
+      </div>
+    </div>
+
+    <div class="stat-grid">
+      <div class="stat-card" style="border-left:4px solid #60a5fa;">
+        <div class="stat-num">${bookedNow.length}/${allFlats.length}</div>
+        <div class="stat-label">🛏️ Occupied</div>
+      </div>
+
+      <div class="stat-card" style="border-left:4px solid var(--red);">
+        <div class="stat-num">${dirty.length}</div>
+        <div class="stat-label">🧹 Need Cleaning</div>
+        ${dirty.map(x => `<div style="font-size:11px;margin-top:3px;">${flatName(x)}</div>`).join('') || '<div class="sub" style="margin:4px 0 0;">All clean ✅</div>'}
+      </div>
+
+      <div class="stat-card" style="border-left:4px solid var(--green);">
+        <div class="stat-num">${activeNow.length}</div>
+        <div class="stat-label">🟢 Active Guests</div>
+      </div>
+    </div>
+
+    ${activeNow.length ? `
+      <div class="card">
+        <div class="section-title">🟢 Currently Staying</div>
+        <div class="table-wrap"><table>
+          <thead><tr><th>Guest</th><th>Property</th><th>Phone</th><th>In</th><th>Out</th><th>Vehicle</th></tr></thead>
+          <tbody>${activeNow.map(b => `<tr>
+            <td><strong>${b.guest_name || '-'}</strong></td>
+            <td>${b.rooms?.nickname || b.room_id}</td>
+            <td>${b.phone || '-'}</td>
+            <td>${b.check_in || '-'}</td>
+            <td>${b.check_out || '-'}</td>
+            <td>${b.has_vehicle ? `🚗 ${b.vehicle_name || ''} ${b.vehicle_number || ''}` : '-'}</td>
+          </tr>`).join('')}</tbody>
+        </table></div>
+      </div>
+    ` : ''}
+  `, 'dashboard');
 }
 
 // ============ SOP PAGE ============
