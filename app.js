@@ -714,12 +714,11 @@ async function renderFlatsStatus() {
   const freeCount = (flats || []).filter(f => f.status === 'Free').length;
   const bookedCount = (flats || []).filter(f => f.status === 'Booked').length;
   const dirtyCount = (flats || []).filter(f => f.cleaning_status === 'Dirty').length;
-  const cleanCount = (flats || []).filter(f => f.cleaning_status === 'Clean').length;
 
   renderShell(`
     <div class="card">
       <h1>🛏️ Flats Status</h1>
-      <div class="sub">${(flats || []).length} total properties</div>
+      <div class="sub">${(flats || []).length} flats</div>
     </div>
 
     <div class="stat-grid">
@@ -738,17 +737,17 @@ async function renderFlatsStatus() {
     </div>
 
     <div class="card">
-      <div class="section-title">Quick Cleaning Actions</div>
       <div id="flatActionMsg"></div>
       <div class="table-wrap">
         <table>
           <thead>
             <tr>
               <th>Property</th>
+              <th>Unit</th>
               <th>Status</th>
               <th>Cleaning</th>
               <th>Quick Action</th>
-              ${can ? '<th>More</th>' : ''}
+              ${can ? '<th>Edit</th>' : ''}
             </tr>
           </thead>
           <tbody>
@@ -756,15 +755,11 @@ async function renderFlatsStatus() {
               const isDirty = f.cleaning_status === 'Dirty';
               const isClean = f.cleaning_status === 'Clean';
               const isProgress = f.cleaning_status === 'In Progress';
-              const name = `${f.rooms?.nickname || f.room_id}`;
-              const sub = `${f.rooms?.unit_no || ''}${f.rooms?.property_name ? ' · ' + f.rooms.property_name : ''}`;
 
               return `
                 <tr>
-                  <td>
-                    <strong>${name}</strong><br>
-                    <small style="color:var(--muted);">${sub}</small>
-                  </td>
+                  <td><strong>${f.rooms?.nickname || f.room_id}</strong></td>
+                  <td>${f.rooms?.unit_no || ''}</td>
                   <td>
                     <span class="badge ${f.status === 'Free' ? 'green' : f.status === 'Booked' ? 'blue' : 'red'}">
                       ${f.status || 'Free'}
@@ -788,9 +783,9 @@ async function renderFlatsStatus() {
           </tbody>
         </table>
       </div>
-    </div>
-  `, 'flats');
+    </div>`, 'flats');
 }
+
 async function quickClean(roomId, newStatus, btnEl = null) {
   const msgEl = document.getElementById('flatActionMsg');
 
@@ -800,7 +795,9 @@ async function quickClean(roomId, newStatus, btnEl = null) {
       btnEl.textContent = '⏳ Saving...';
     }
 
-    const updates = { cleaning_status: newStatus };
+    const updates = {
+      cleaning_status: newStatus
+    };
 
     if (newStatus === 'Clean') {
       updates.last_cleaned = new Date().toISOString().slice(0, 10);
@@ -817,7 +814,6 @@ async function quickClean(roomId, newStatus, btnEl = null) {
       msgEl.innerHTML = `<div class="success-msg">✅ ${roomId} marked as ${newStatus}</div>`;
     }
 
-    // small delay so user sees success
     setTimeout(() => {
       renderFlatsStatus();
     }, 250);
@@ -835,25 +831,57 @@ async function quickClean(roomId, newStatus, btnEl = null) {
 }
 
 async function editFlatStatus(id) {
-  const {data:f} = await sb.from('flats_status').select('*, rooms(unit_no, nickname)').eq('room_id',id).single();
-  if (!f) return;
+  const {data:f, error} = await sb
+    .from('flats_status')
+    .select('*, rooms(unit_no, nickname)')
+    .eq('room_id', id)
+    .single();
+
+  if (error || !f) {
+    alert('Flat not found');
+    return;
+  }
+
   renderShell(`
-    <div class="card"><h1>✏️ Flat Status</h1><div class="sub">${f.rooms?.unit_no||id}</div>
-      <button class="secondary btn-sm" onclick="renderFlatsStatus()">← Back</button></div>
     <div class="card">
-      <div class="form-group"><label>Status</label><select id="flatStatus">
-        <option value="Free" ${f.status==='Free'?'selected':''}>Free</option>
-        <option value="Booked" ${f.status==='Booked'?'selected':''}>Booked</option>
-        <option value="Blocked-Maintenance" ${f.status==='Blocked-Maintenance'?'selected':''}>Blocked</option>
-      </select></div>
-      <div class="form-group"><label>Cleaning</label><select id="cleanSt">
-        <option value="Clean" ${f.cleaning_status==='Clean'?'selected':''}>Clean</option>
-        <option value="Dirty" ${f.cleaning_status==='Dirty'?'selected':''}>Dirty</option>
-        <option value="In Progress" ${f.cleaning_status==='In Progress'?'selected':''}>In Progress</option>
-      </select></div>
-      <div class="form-group"><label>Issue</label><input id="flatIssue" value="${f.issue||''}" /></div>
-      <div class="form-group"><label>Last Cleaned</label><input id="lastCleaned" type="date" value="${f.last_cleaned||new Date().toISOString().slice(0,10)}" /></div>
-      <button onclick="saveFlatStatus('${id}')">💾 Update</button><div id="flatErr"></div>
+      <h1>✏️ Edit Flat Status</h1>
+      <div class="sub">${f.rooms?.nickname || id} (${f.rooms?.unit_no || ''})</div>
+      <button class="secondary btn-sm" onclick="renderFlatsStatus()">← Back</button>
+    </div>
+
+    <div class="card">
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Status</label>
+          <select id="flatStatus">
+            <option value="Free" ${f.status==='Free'?'selected':''}>Free</option>
+            <option value="Booked" ${f.status==='Booked'?'selected':''}>Booked</option>
+            <option value="Blocked-Maintenance" ${f.status==='Blocked-Maintenance'?'selected':''}>Blocked-Maintenance</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>Cleaning</label>
+          <select id="cleanSt">
+            <option value="Clean" ${f.cleaning_status==='Clean'?'selected':''}>Clean</option>
+            <option value="Dirty" ${f.cleaning_status==='Dirty'?'selected':''}>Dirty</option>
+            <option value="In Progress" ${f.cleaning_status==='In Progress'?'selected':''}>In Progress</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Issue</label>
+        <input id="flatIssue" value="${f.issue || ''}" placeholder="Optional issue / maintenance note" />
+      </div>
+
+      <div class="form-group">
+        <label>Last Cleaned</label>
+        <input id="lastCleaned" type="date" value="${f.last_cleaned || ''}" />
+      </div>
+
+      <button onclick="saveFlatStatus('${id}')">💾 Update</button>
+      <div id="flatErr"></div>
     </div>`, 'flats');
 }
 
