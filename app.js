@@ -1257,6 +1257,29 @@ async function renderAddBooking() {
           <input id="perDayRate" type="number" placeholder="Per night charge" oninput="onRateChg()" value="${pre.perDayRate||''}" />
         </div>
       </div>
+            <div class="form-grid">
+        <div class="form-group">
+          <label>Vehicle?</label>
+          <select id="hasVehicle" onchange="toggleVehicle()">
+            <option value="false" ${(pre.hasVehicle ? '' : 'selected')}>No</option>
+            <option value="true" ${(pre.hasVehicle ? 'selected' : '')}>Yes</option>
+          </select>
+        </div>
+      </div>
+
+      <div id="vehicleBox" style="display:${pre.hasVehicle ? 'block' : 'none'};">
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Vehicle Name</label>
+            <input id="vehicleName" placeholder="e.g. Swift Dzire" value="${pre.vehicleName || ''}" />
+          </div>
+          <div class="form-group">
+            <label>Registration No.</label>
+            <input id="vehicleNumber" placeholder="e.g. UP32 XX 1234" value="${pre.vehicleNumber || ''}" />
+          </div>
+        </div>
+      </div>
+
       <div class="form-grid">
         <div class="form-group">
           <label>Total Amount ₹ *</label>
@@ -1371,6 +1394,12 @@ function onAmtChg() {
     if (total>0) el.innerHTML = bal>0?`<span style="color:var(--red);">💳 Balance: ₹${bal.toLocaleString('en-IN')}</span>`:`<span style="color:var(--green);">✅ Fully Paid</span>`;
     else el.innerHTML = '';
   }
+}
+
+function toggleVehicle() {
+  const hasV = document.getElementById('hasVehicle')?.value === 'true';
+  const box = document.getElementById('vehicleBox');
+  if (box) box.style.display = hasV ? 'block' : 'none';
 }
 
 async function uploadIdPhotos(bkId) {
@@ -1622,6 +1651,9 @@ async function updateBooking(bkId, parentBookingId='', stayGroupId='') {
   const rid=document.getElementById('roomId').value;
   if (!gn||!rid) { document.getElementById('editBkErr').innerHTML='<div class="error">Name & property required</div>'; return; }
   const mode = document.getElementById('bookingMode').value;
+    const hasVehicle = document.getElementById('hasVehicle')?.value === 'true';
+  const vehicleName = hasVehicle ? (document.getElementById('vehicleName')?.value.trim() || null) : null;
+  const vehicleNumber = hasVehicle ? (document.getElementById('vehicleNumber')?.value.trim() || null) : null;
   const sourceRoomId = mode==='Online-Airbnb' ? (document.getElementById('sourceRoomId')?.value||rid) : null;
   const ci=document.getElementById('checkIn').value;
   const co=document.getElementById('checkOut').value;
@@ -1646,6 +1678,9 @@ async function updateBooking(bkId, parentBookingId='', stayGroupId='') {
     parent_booking_id:parentBookingId||null, stay_group_id:stayGroupId||bkId,
     booking_mode:mode, check_in:ci||null, check_out:co||null,
     guests:parseInt(document.getElementById('guests').value)||1,
+    has_vehicle: hasVehicle,
+    vehicle_name: vehicleName,
+    vehicle_number: vehicleNumber,
     per_day_rate:parseFloat(document.getElementById('perDayRate')?.value)||0,
     total_amount:parseFloat(document.getElementById('totalAmount').value)||0,
     payment_status:document.getElementById('paySt').value,
@@ -1658,20 +1693,57 @@ async function updateBooking(bkId, parentBookingId='', stayGroupId='') {
 }
 
 // ============ DELETE BOOKING ============
+// Enhanced delBooking with better error handling
 async function delBooking(bkId, guestName, roomId) {
-  if (!confirm(`Delete "${guestName}"?\nImages bhi delete hongi.`)) return;
-  const {data:bk} = await sb.from('guest_register').select('room_id, id_proof_photo_paths, id_proof_photo_path').eq('booking_id',bkId).single();
-  const rid = roomId || bk?.room_id;
-  const paths = (bk?.id_proof_photo_paths||bk?.id_proof_photo_path||'').split(',').filter(Boolean);
-  if (paths.length) { try { await sb.storage.from('id-proofs').remove(paths); } catch(e) {} }
-  await sb.from('payment_history').delete().eq('booking_id',bkId);
-  await sb.from('guest_register').delete().eq('booking_id',bkId);
-  if (rid) {
-    const today = new Date().toISOString().slice(0,10);
-    const {data:active} = await sb.from('guest_register').select('booking_id').eq('room_id',rid).gt('check_out',today);
-    if (!active||!active.length) await sb.from('flats_status').update({status:'Free'}).eq('room_id',rid);
+  if (!confirm(`Delete "${guestName}" booking?\nPayments + photos bhi delete hongi.`)) return;
+
+  try {
+    // Step 1: Get booking info
+    const {data:bk} = await sb.from('guest_register')
+      .select('room_id, id_proof_photo_paths, id_proof_photo_path, id_proof_front_paths, id_proof_back_paths')
+      .eq('booking_id', bkId).single();
+
+    // Step 2: Delete photos from storage
+    const allPaths = [
+      bk?.id_proof_photo_paths,
+      bk?.id_proof_photo_path,
+      bk?.id_proof_front_paths,
+      bk?.id_proof_back_paths
+    ].filter(Boolean).join(',').split(',').filter(Boolean);
+
+    if (allPaths.length) {
+      try { await sb.storage.from('id-proofs').remove(allPaths); }
+      catch(e) { console.warn('Photo cleanup:', e); }
+    }
+
+    // Step 3: Delete payments FIRST (foreign key)
+    const {error: payErr} = await sb.from('payment_history').delete().eq('booking_id', bkId);
+    if (payErr) console.warn('Payment delete:', payErr.message);
+
+    // Step 4: Delete booking
+    const {error: bkErr} = await sb.from('guest_register').delete().eq('booking_id', bkId);
+    if (bkErr) {
+      alert('❌ Delete failed: ' + bkErr.message);
+      return;
+    }
+
+    // Step 5: Room status update
+    const rid = roomId || bk?.room_id;
+    if (rid) {
+      const today = new Date().toISOString().slice(0,10);
+      const {data:active} = await sb.from('guest_register')
+        .select('booking_id').eq('room_id', rid).gt('check_out', today);
+      if (!active || !active.length) {
+        await sb.from('flats_status').update({status:'Free'}).eq('room_id', rid);
+      }
+    }
+
+    alert('✅ Booking deleted successfully');
+    renderManageBookings();
+
+  } catch(err) {
+    alert('❌ Error: ' + (err.message || err));
   }
-  renderManageBookings();
 }
 
 // ============ PAYMENTS ============
