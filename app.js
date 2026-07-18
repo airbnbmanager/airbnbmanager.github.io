@@ -373,12 +373,18 @@ function renderLogin() {
 
 // ============ SHELL ============
 function renderShell(content, activePage = 'dashboard') {
-  if (SESSION.investorId) { appEl.innerHTML = content; return; }
+  if (SESSION.investorId) { 
+    appEl.innerHTML = content; 
+    return; 
+  }
+
   const show = ['owner','viewer','manager','checkin_manager'].includes(SESSION.role);
-  if (!show) { appEl.innerHTML = content; return; }
+  if (!show) { 
+    appEl.innerHTML = content; 
+    return; 
+  }
 
   const isOwner = SESSION.role === 'owner';
-  const isManager = SESSION.role === 'manager';
   const isCheckin = SESSION.role === 'checkin_manager';
 
   let nav;
@@ -387,9 +393,9 @@ function renderShell(content, activePage = 'dashboard') {
     nav = [
       ['dashboard','🏠 Home'],
       ['reports','📆 Calendar'],
-      ['rooms','🏠 Properties'],
-      ['flats','🛏️ Flats'],
       ['bookings','📅 Bookings'],
+      ['flats','🛏️ Flats'],
+      ['rooms','🏠 Properties'],
       ['employees','👥 Employees'],
       ['tasks','🧰 Tasks'],
       ['attendance','📋 Attendance'],
@@ -407,16 +413,16 @@ function renderShell(content, activePage = 'dashboard') {
     nav = [
       ['dashboard','🏠 Home'],
       ['reports','📆 Calendar'],
-      ['flats','🛏️ Flats'],
       ['bookings','📅 Bookings'],
+      ['flats','🛏️ Flats'],
       ['sop','📘 SOP'],
     ];
   } else {
     nav = [
       ['dashboard','🏠 Home'],
       ['reports','📆 Calendar'],
-      ['flats','🛏️ Flats'],
       ['bookings','📅 Bookings'],
+      ['flats','🛏️ Flats'],
       ['employees','👥 Employees'],
       ['att-summary','📅 Attendance'],
       ['salary','💰 Salary'],
@@ -433,8 +439,13 @@ function renderShell(content, activePage = 'dashboard') {
   appEl.innerHTML = `
     <div class="app-container">
       <aside class="sidebar">
-        <h2><img src="assets/logo.png" alt="" style="width:24px;height:24px;object-fit:contain;border-radius:6px;" /> ${BRAND}</h2>
-        <nav>${nav.map(([k,l])=>`<a href="#" data-page="${k}" class="${activePage===k?'active':''}">${l}</a>`).join('')}</nav>
+        <h2>
+          <img src="assets/logo.png" alt="" style="width:24px;height:24px;object-fit:contain;border-radius:6px;" />
+          ${BRAND}
+        </h2>
+        <nav>
+          ${nav.map(([k,l]) => `<a href="#" data-page="${k}" class="${activePage===k?'active':''}">${l}</a>`).join('')}
+        </nav>
         <div class="sidebar-footer">
           <div class="logout-link" id="logoutBtn">🚪 Logout</div>
           <div class="sidebar-credit">Build ${APP_VERSION}<br>by Praveen Singh</div>
@@ -444,8 +455,12 @@ function renderShell(content, activePage = 'dashboard') {
     </div>`;
 
   document.querySelectorAll('.sidebar nav a').forEach(a => {
-    a.onclick = e => { e.preventDefault(); navigate(a.dataset.page); };
+    a.onclick = e => { 
+      e.preventDefault(); 
+      navigate(a.dataset.page); 
+    };
   });
+
   document.getElementById('logoutBtn').onclick = logout;
 }
 
@@ -1378,9 +1393,24 @@ function clearBkFilters() {
 }
 
 async function dlIdPhoto(path) {
-  const {data} = await sb.storage.from('id-proofs').createSignedUrl(path,300);
-  if (data?.signedUrl) { const a=document.createElement('a'); a.href=data.signedUrl; a.target='_blank'; a.download=path.split('/').pop(); document.body.appendChild(a); a.click(); a.remove(); }
-  else alert('Photo load failed');
+  const {data} = await sb.storage.from('id-proofs').createSignedUrl(path, 300);
+  if (!data?.signedUrl) { alert('Photo load failed'); return; }
+  showPhotoViewer(data.signedUrl, path);
+}
+
+function showPhotoViewer(url, path) {
+  const overlay = document.createElement('div');
+  overlay.className = 'photo-viewer-overlay';
+  overlay.onclick = e => { if (e.target === overlay) overlay.remove(); };
+  overlay.innerHTML = `
+    <button class="photo-viewer-close" onclick="this.closest('.photo-viewer-overlay').remove()">✕</button>
+    <img src="${url}" alt="ID Photo" onerror="this.src='';this.alt='⚠️ Photo load failed';" />
+    <div class="photo-viewer-nav">
+      <button onclick="window.open('${url}','_blank')">📥 Download</button>
+      <button onclick="this.closest('.photo-viewer-overlay').remove()">Close</button>
+    </div>
+  `;
+  document.body.appendChild(overlay);
 }
 
 // ============ ADD BOOKING ============
