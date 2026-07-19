@@ -39,8 +39,18 @@ async function renderExpenses() {
     </div>
     <div class="card"><div class="section-title">Entries</div>
       <div class="table-wrap"><table>
-        <thead><tr><th>Month</th><th>Category</th><th>Amount</th><th>Date</th></tr></thead>
-        <tbody>${(exps||[]).map(e=>`<tr><td>${e.month||'-'}</td><td>${e.expense_categories?.category_name||'-'}</td><td>₹${(e.amount||0).toLocaleString('en-IN')}</td><td>${e.entry_date||'-'}</td></tr>`).join('')||'<tr><td colspan="4" class="sub">None</td></tr>'}</tbody>
+        <thead><tr><th>Month</th><th>Category</th><th>Property</th><th>Amount</th><th>Date</th><th>Actions</th></tr></thead>
+        <tbody>${(exps||[]).map(e=>`<tr>
+          <td>${e.month||'-'}</td>
+          <td>${e.expense_categories?.category_name||'-'}</td>
+          <td>${e.room_id||'General'}</td>
+          <td>₹${(e.amount||0).toLocaleString('en-IN')}</td>
+          <td>${e.entry_date||'-'}</td>
+          <td class="table-actions">
+            <button class="btn-sm" onclick="editExpense(${e.id})">✏️</button>
+            <button class="btn-sm danger" onclick="delExpense(${e.id})">🗑️</button>
+          </td>
+        </tr>`).join('')||'<tr><td colspan="6" class="sub">None</td></tr>'}</tbody>
       </table></div>
     </div>
   `, 'expenses');
@@ -150,4 +160,58 @@ async function renderPropertyReport(roomId, range='Month') {
     </div>
   `, 'property-report');
   document.getElementById('rpRoom').onchange = e2 => renderPropertyReport(e2.target.value, range);
+}
+
+
+async function editExpense(id) {
+  const { data: exp } = await sb.from('expenses').select('*').eq('id', id).single();
+  if (!exp) { alert('Not found'); return; }
+
+  const [{ data: cats }, { data: rooms }] = await Promise.all([
+    sb.from('expense_categories').select('*').order('category_name'),
+    sb.from('rooms').select('room_id, unit_no, nickname').order('unit_no')
+  ]);
+
+  renderShell(`
+    <div class="card"><h1>✏️ Edit Expense</h1><button class="secondary btn-sm" onclick="renderExpenses()">← Back</button></div>
+    <div class="card">
+      <div class="form-group"><label>Category</label>
+        <select id="exCat">${(cats || []).map(c => `<option value="${c.category_id}" ${c.category_id === exp.category_id ? 'selected' : ''}>${c.category_name}</option>`).join('')}</select>
+      </div>
+      <div class="form-group"><label>Property</label>
+        <select id="exRoom">
+          <option value="">General</option>
+          ${(rooms || []).map(r => `<option value="${r.room_id}" ${r.room_id === exp.room_id ? 'selected' : ''}>${r.nickname || r.unit_no}</option>`).join('')}
+        </select>
+      </div>
+      <div class="form-grid">
+        <div class="form-group"><label>Month</label><input id="exMo" value="${exp.month || ''}" /></div>
+        <div class="form-group"><label>Amount ₹</label><input id="exAmt" type="number" value="${exp.amount || 0}" /></div>
+      </div>
+      <div class="form-group"><label>Date</label><input id="exDate" type="date" value="${exp.entry_date || ''}" /></div>
+      <div class="form-group"><label>Notes</label><input id="exNotes" value="${exp.notes || ''}" /></div>
+      <button onclick="updateExpense(${id})" style="width:100%;">💾 Update</button>
+      <div id="exErr"></div>
+    </div>
+  `, 'expenses');
+}
+
+async function updateExpense(id) {
+  const { error } = await sb.from('expenses').update({
+    category_id: document.getElementById('exCat').value,
+    room_id: document.getElementById('exRoom').value || null,
+    month: document.getElementById('exMo').value.trim(),
+    amount: parseFloat(document.getElementById('exAmt').value) || 0,
+    entry_date: document.getElementById('exDate').value || null,
+    notes: document.getElementById('exNotes').value.trim() || null,
+  }).eq('id', id);
+
+  if (error) { document.getElementById('exErr').innerHTML = `<div class="error">${error.message}</div>`; return; }
+  renderExpenses();
+}
+
+async function delExpense(id) {
+  if (!confirm('Delete this expense?')) return;
+  await sb.from('expenses').delete().eq('id', id);
+  renderExpenses();
 }
