@@ -215,3 +215,4 @@ async function delExpense(id) {
   await sb.from('expenses').delete().eq('id', id);
   renderExpenses();
 }
+
