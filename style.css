@@ -674,16 +674,35 @@ code {
   }
 }
 
-@media (max-width: 480px) {
-  .main-content,
-  .wrap,
-  .ca-wrap {
-    padding-top: 156px !important;
+@media print {
+  .sidebar, .sidebar-footer, .btn-row, button, .btn-sm,
+  .filter-bar, .search-bar, .modal-overlay, .stat-grid,
+  nav, .logout-link, .sidebar-credit, #logoutBtn {
+    display: none !important;
   }
-
-  .card { padding: 12px !important; }
-  h1 { font-size: 16px !important; }
-  .stat-card .stat-num { font-size: 24px !important; }
+  .app-container {
+    display: block !important;
+  }
+  .main-content {
+    margin-left: 0 !important;
+    padding: 10px !important;
+    max-width: 100% !important;
+  }
+  .card {
+    break-inside: avoid;
+    border: 1px solid #ddd;
+    box-shadow: none;
+    margin-bottom: 8px;
+    page-break-inside: avoid;
+  }
+  body {
+    background: #fff;
+    font-size: 12px;
+  }
+  table { font-size: 11px; }
+  th, td { padding: 6px 8px; white-space: normal; }
+  h1 { font-size: 16px; }
+  .metric-value { font-size: 14px; }
 }
 
 

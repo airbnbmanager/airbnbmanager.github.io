@@ -298,6 +298,15 @@ async function renderInvestorReport(investorId, roomId, month) {
         <span class="metric-value" style="color:#60a5fa;">₹${companyAmount.toLocaleString('en-IN')}</span>
       </div>
     </div>
+
+    <div class="card" style="text-align:center;font-size:12px;color:var(--muted);">
+      Prepared By: <strong>NISHA KHAN</strong><br>
+      Operator: <strong>${BRAND}</strong><br>
+      Report Date: ${new Date().toLocaleDateString('en-IN')}<br>
+      <div style="margin-top:8px;">
+        <button class="btn-sm" onclick="window.print()">🖨️ Print Report</button>
+      </div>
+    </div>
     
   `, 'investors');
 }
