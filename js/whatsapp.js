@@ -81,3 +81,60 @@ async function shareBookingWhatsApp(bkId) {
   `;
   document.body.appendChild(modal);
 }
+
+// ============ CHECKOUT REMINDER ============
+async function sendCheckoutReminder(bkId) {
+  const {data:b} = await sb.from('guest_register')
+    .select('*, rooms(unit_no, nickname, checkin_manager, caretaker_phone)')
+    .eq('booking_id', bkId).single();
+  if (!b) return;
+
+  const guestName = b.guest_name || 'Guest';
+  const property = b.rooms?.nickname || '';
+  const checkOut = b.check_out || '';
+  const checkOutTime = b.check_out_time || '11:00 AM';
+  const caretaker = b.rooms?.checkin_manager || '';
+  const caretakerPhone = b.rooms?.caretaker_phone || '';
+
+  const msg = [
+    `🔔 *Check-out Reminder*`,
+    ``,
+    `Dear ${guestName},`,
+    ``,
+    `This is a friendly reminder that your check-out is scheduled for today.`,
+    ``,
+    `🏡 *Property:* ${property}`,
+    `📅 *Check-out:* ${checkOut} at ${checkOutTime}`,
+    ``,
+    `Would you like to:`,
+    `✅ Check-out as planned`,
+    `🔄 Extend your stay (additional charges apply)`,
+    ``,
+    `Please let us know so we can make necessary arrangements.`,
+    caretaker ? `📞 Caretaker: ${caretaker}${caretakerPhone ? ' — +91 ' + caretakerPhone : ''}` : '',
+    ``,
+    `📞 Mr Shahanshah: 9450055554`,
+    `📞 Mr Firoz Khan: 8299600709`,
+    ``,
+    `Thank you for staying with us! 😊`,
+    `— ${BRAND}`
+  ].filter(Boolean).join('\n');
+
+  const modal = document.createElement('div');
+  modal.className = 'modal-overlay';
+  modal.onclick = e => { if (e.target === modal) modal.remove(); };
+  modal.innerHTML = `
+    <div class="modal-box">
+      <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">✕</button>
+      <h2>🔔 Checkout Reminder</h2>
+      <div class="sub">Guest: ${guestName} · ${property}</div>
+      <textarea id="reminderMsg" style="min-height:200px;font-size:12px;line-height:1.5;">${msg}</textarea>
+      <div class="btn-row" style="margin-top:10px;">
+        <button onclick="navigator.clipboard.writeText(document.getElementById('reminderMsg').value);alert('📋 Copied!')">📋 Copy</button>
+        <button class="green-btn" onclick="window.open('https://wa.me/?text='+encodeURIComponent(document.getElementById('reminderMsg').value),'_blank')">📱 WhatsApp</button>
+        ${b.phone ? `<button class="secondary" onclick="window.open('https://wa.me/91${b.phone}?text='+encodeURIComponent(document.getElementById('reminderMsg').value),'_blank')">📱 Direct</button>` : ''}
+        <button class="outline" onclick="this.closest('.modal-overlay').remove()">Close</button>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+}

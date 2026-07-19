@@ -248,10 +248,57 @@ async function renderInvestorReport(investorId, roomId, month) {
         </tr>`).join('')||'<tr><td colspan="6" class="sub">None</td></tr>'}</tbody>
       </table></div>
     </div>
-
-    <div class="card" style="text-align:center;font-size:12px;color:var(--muted);">
-      Prepared By: <strong>NISHA KHAN</strong><br>${BRAND} · ${new Date().toLocaleDateString('en-IN')}
+    <div class="card">
+      <div class="section-title">🧾 Expense Breakdown (${expMonth})</div>
+      ${useDefaults ? '<div class="sub" style="margin-bottom:8px;">ℹ️ Default expenses (actual not logged yet)</div>' : ''}
+      <div class="table-wrap"><table>
+        <thead><tr><th>Expense</th><th>Amount</th><th>Type</th></tr></thead>
+        <tbody>
+          ${useDefaults
+            ? (defaults||[]).map(d=>`<tr>
+                <td>${d.expense_name}</td>
+                <td>₹${(d.default_amount||0).toLocaleString('en-IN')}</td>
+                <td><span class="badge ${d.is_fixed?'green':'yellow'}">${d.is_fixed?'Fixed':'Variable'}</span></td>
+              </tr>`).join('')
+            : mExp.map(e=>`<tr>
+                <td>${e.expense_categories?.category_name||'-'}</td>
+                <td>₹${(e.amount||0).toLocaleString('en-IN')}</td>
+                <td>-</td>
+              </tr>`).join('')
+          }
+          <tr style="font-weight:700;background:#fafafa;">
+            <td>Total Expenses</td>
+            <td>₹${effectiveExp.toLocaleString('en-IN')}</td>
+            <td></td>
+          </tr>
+        </tbody>
+      </table></div>
     </div>
+
+    <div class="card" style="background:linear-gradient(135deg,#1a1a1a,#2d2d2d);color:#fff;">
+      <div style="font-size:12px;text-transform:uppercase;letter-spacing:0.5px;color:rgba(255,255,255,0.5);margin-bottom:10px;">Profit Distribution</div>
+      <div class="metric-row" style="border-color:rgba(255,255,255,0.15);">
+        <span style="color:rgba(255,255,255,0.8);">Revenue</span>
+        <span class="metric-value" style="color:#fff;">₹${totalRev.toLocaleString('en-IN')}</span>
+      </div>
+      <div class="metric-row" style="border-color:rgba(255,255,255,0.15);">
+        <span style="color:rgba(255,255,255,0.8);">Expenses</span>
+        <span class="metric-value" style="color:#ef4444;">₹${effectiveExp.toLocaleString('en-IN')}</span>
+      </div>
+      <div class="metric-row" style="border-color:rgba(255,255,255,0.15);">
+        <span style="color:rgba(255,255,255,0.8);">Net Profit</span>
+        <span class="metric-value" style="color:${profit>=0?'#4ade80':'#ef4444'};">₹${profit.toLocaleString('en-IN')}</span>
+      </div>
+      <div class="metric-row" style="border-color:rgba(255,255,255,0.15);">
+        <span style="color:rgba(255,255,255,0.8);">🏠 ${inv?.name} (${share}%)</span>
+        <span class="metric-value" style="color:#4ade80;">₹${investorAmount.toLocaleString('en-IN')}</span>
+      </div>
+      <div class="metric-row" style="border:none;">
+        <span style="color:rgba(255,255,255,0.8);">🏢 ${BRAND} (${cs}%)</span>
+        <span class="metric-value" style="color:#60a5fa;">₹${companyAmount.toLocaleString('en-IN')}</span>
+      </div>
+    </div>
+    
   `, 'investors');
 }
 

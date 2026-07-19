@@ -227,7 +227,8 @@ async function renderManageBookings() {
             <button class="btn-sm" onclick="editBooking('${b.booking_id}')">✏️</button>
             <button class="btn-sm secondary" onclick="showPaymentModal('${b.booking_id}')">💰</button>
             <button class="btn-sm outline" onclick="createOfflineExtension('${b.booking_id}')">➕</button>
-            ${isActive ? `<button class="btn-sm secondary" onclick="quickCheckout('${b.booking_id}','${b.room_id}')">📤</button>` : ''}
+                        ${isActive ? `<button class="btn-sm secondary" onclick="quickCheckout('${b.booking_id}','${b.room_id}')">📤</button>` : ''}
+            ${isCheckoutToday ? `<button class="btn-sm" style="background:#f59e0b;" onclick="sendCheckoutReminder('${b.booking_id}')">🔔</button>` : ''}
             <button class="btn-sm outline" onclick="shareBookingWhatsApp('${b.booking_id}')">📱</button>
             ${canD ? `<button class="btn-sm danger" onclick="delBooking('${b.booking_id}','${(b.guest_name || '').replace(/'/g, "\\'")}','${b.room_id}')">🗑️</button>` : ''}
           </td>` : ''}

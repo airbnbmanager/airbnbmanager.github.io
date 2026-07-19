@@ -688,7 +688,11 @@ async function renderAdvanceTracker() {
       ${isO ? `<button onclick="renderAddAdv()">➕ Add</button>` : ''}
     </div>
     <div class="card"><div class="table-wrap"><table>
-      <thead><tr><th>Employee</th><th>Date</th><th>Amount</th><th>Repaid</th><th>Balance</th><th>Reason</th>${isO ? '<th>Actions</th>' : ''}</tr></thead>
+      <thead><tr>
+        <th>Employee</th><th>Given Date</th><th>Amount</th>
+        <th>Repaid</th><th>Repaid Date</th><th>Balance</th><th>Reason</th>
+        ${isO ? '<th>Actions</th>' : ''}
+      </tr></thead>
       <tbody>${(advs || []).map(a => {
         const bal = (a.advance_amount || 0) - (a.repaid_amount || 0);
         return `<tr>
@@ -696,6 +700,7 @@ async function renderAdvanceTracker() {
           <td>${a.date_given || '-'}</td>
           <td>₹${(a.advance_amount || 0).toLocaleString('en-IN')}</td>
           <td>₹${(a.repaid_amount || 0).toLocaleString('en-IN')}</td>
+          <td>${a.repaid_date || '-'}</td>
           <td><span class="${bal > 0 ? 'metric-value warn' : ''}">₹${bal.toLocaleString('en-IN')}</span></td>
           <td>${a.reason || '-'}</td>
           ${isO ? `<td class="table-actions">
@@ -748,16 +753,28 @@ async function editAdv(id) {
     <div class="card">
       <div class="sub">${a.employees?.name || a.emp_id}</div>
       <div class="form-grid">
-        <div class="form-group"><label>Date</label><input id="aDate" type="date" value="${a.date_given || ''}" /></div>
-        <div class="form-group"><label>Amount</label><input id="aAmt" type="number" value="${a.advance_amount || 0}" /></div>
+        <div class="form-group"><label>Given Date</label><input id="aDate" type="date" value="${a.date_given || ''}" /></div>
+        <div class="form-group"><label>Amount ₹</label><input id="aAmt" type="number" value="${a.advance_amount || 0}" /></div>
       </div>
       <div class="form-grid">
-        <div class="form-group"><label>Repaid</label><input id="aRep" type="number" value="${a.repaid_amount || 0}" /></div>
-        <div class="form-group"><label>Reason</label><input id="aReason" value="${a.reason || ''}" /></div>
+        <div class="form-group"><label>Repaid ₹</label><input id="aRep" type="number" value="${a.repaid_amount || 0}" /></div>
+        <div class="form-group"><label>Repaid Date</label><input id="aRepDate" type="date" value="${a.repaid_date || ''}" /></div>
       </div>
+      <div class="form-group"><label>Reason</label><input id="aReason" value="${a.reason || ''}" /></div>
       <button onclick="updAdv(${id})" style="width:100%;">💾 Update</button>
     </div>
   `, 'advance');
+}
+
+async function updAdv(id) {
+  await sb.from('advance_tracker').update({
+    date_given: document.getElementById('aDate').value || null,
+    advance_amount: parseFloat(document.getElementById('aAmt').value) || 0,
+    repaid_amount: parseFloat(document.getElementById('aRep').value) || 0,
+    repaid_date: document.getElementById('aRepDate').value || null,
+    reason: document.getElementById('aReason').value.trim() || null
+  }).eq('id', id);
+  renderAdvanceTracker();
 }
 
 async function updAdv(id) {
