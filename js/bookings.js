@@ -83,7 +83,18 @@ async function showGuestLedger(guestName) {
     </div>`;
   document.body.appendChild(modal);
 }
-
+function buildIdButtons(b) {
+  const fp = (b.id_proof_front_paths || '').split(',').filter(Boolean);
+  const bp = (b.id_proof_back_paths || '').split(',').filter(Boolean);
+  const ap = (b.id_proof_photo_paths || b.id_proof_photo_path || '').split(',').filter(Boolean);
+  const seen = new Set();
+  const allPhotos = [...fp, ...bp, ...ap].filter(p => { if (seen.has(p)) return false; seen.add(p); return true; });
+  if (!allPhotos.length) return '<small style="color:var(--muted);">No ID</small>';
+  return allPhotos.map((p, i) => {
+    const label = fp.includes(p) ? 'F' : bp.includes(p) ? 'B' : 'ID';
+    return `<button class="btn-sm outline" style="padding:2px 6px;font-size:10px;min-height:22px;margin:1px;" onclick="dlIdPhoto('${p}')">${label}${Math.floor(i/2)+1}</button>`;
+  }).join('');
+}
 // ============ MANAGE BOOKINGS ============
 async function renderManageBookings() {
   renderShell(`<div class="loading">Loading...</div>`, 'bookings');
@@ -172,8 +183,8 @@ async function renderManageBookings() {
 
     <div class="card"><div class="table-wrap"><table>
       <thead><tr>
-        <th>Status</th><th>Guest</th><th>Property</th><th>Mode</th>
-        <th>In</th><th>Out</th><th>Total</th><th>Paid</th><th>Due</th>
+       <th>Status</th><th>Guest</th><th>Property</th><th>Mode</th>
+        <th>In</th><th>Out</th><th>ID Proof</th><th>Total</th><th>Paid</th><th>Due</th>
         ${canM ? '<th>Actions</th>' : ''}
       </tr></thead>
       <tbody>${f.map(b => {
@@ -204,9 +215,11 @@ async function renderManageBookings() {
             <small style="color:var(--muted);">${b.rooms?.unit_no || b.room_id}</small>
             ${b.source_room_id && b.source_room_id !== b.room_id ? `<br><small style="color:var(--blue);font-size:10px;">📍 ${roomMap[b.source_room_id]?.nickname || b.source_room_id}</small>` : ''}
           </td>
-          <td><span class="badge ${b.booking_mode === 'Online-Airbnb' ? 'blue' : 'yellow'}">${b.booking_mode === 'Online-Airbnb' ? 'On' : 'Off'}</span></td>
+                    <td><span class="badge ${b.booking_mode === 'Online-Airbnb' ? 'blue' : 'yellow'}">${b.booking_mode === 'Online-Airbnb' ? 'On' : 'Off'}</span></td>
           <td><small>${b.check_in || '-'}</small></td>
           <td><small>${b.check_out || '-'}</small></td>
+          <td>${buildIdButtons(b)}</td>
+
           <td><strong>₹${(b.total_amount || 0).toLocaleString('en-IN')}</strong></td>
           <td style="color:var(--green);">₹${pd.toLocaleString('en-IN')}</td>
           <td><strong class="${bal > 0 ? 'metric-value warn' : ''}">₹${bal.toLocaleString('en-IN')}</strong></td>
