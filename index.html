@@ -1,30 +1,42 @@
 <!DOCTYPE html>
-<html lang="hi">
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>The UNIQUE HAVEN HOME STAY</title>
   <link rel="icon" type="image/png" href="assets/logo.png" />
-
-  <!-- Manifest (PWA ke liye zaroori) -->
   <link rel="manifest" href="manifest.json" />
-
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
   <div id="app"></div>
 
+  <!-- Supabase -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
-  <script src="config.js"></script>
-  <script src="app.js"></script>
 
-  <!-- Service Worker register karo (sabse end mein) -->
+  <!-- Config -->
+  <script src="config.js"></script>
+
+  <!-- App Modules — order matters -->
+  <script src="js/core.js"></script>
+  <script src="js/dashboard.js"></script>
+  <script src="js/calendar.js"></script>
+  <script src="js/bookings.js"></script>
+  <script src="js/properties.js"></script>
+  <script src="js/employees.js"></script>
+  <script src="js/investors.js"></script>
+  <script src="js/store.js"></script>
+  <script src="js/expenses.js"></script>
+  <script src="js/maintenance.js"></script>
+  <script src="js/sop.js"></script>
+  <script src="js/whatsapp.js"></script>
+
+  <!-- Service Worker -->
   <script>
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('/sw.js')
-        .then(() => console.log('✅ Service Worker registered'))
-        .catch(err => console.log('❌ SW registration failed:', err));
+        .then(() => console.log('✅ SW registered'))
+        .catch(err => console.log('❌ SW failed:', err));
     }
   </script>
 </body>
