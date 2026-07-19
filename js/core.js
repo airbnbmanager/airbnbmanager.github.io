@@ -334,7 +334,7 @@ function renderShell(content, activePage = 'dashboard') {
   const userInfo = SESSION.displayName
     ? `<div style="padding:6px 14px 10px;font-size:12px;color:rgba(255,255,255,0.65);">
         👋 ${SESSION.displayName}
-        <span class="badge blue" style="margin-left:4px;font-size:9px;">${SESSION.role}</span>
+        <span class="badge blue" style="margin-left:4px;font-size:9px;">${SESSION.role === 'owner' ? 'Admin' : SESSION.role}</span>
       </div>`
     : '';
 

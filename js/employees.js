@@ -274,9 +274,20 @@ async function delEmp(id, name) {
 // ============ TASKS ============
 async function renderEmployeeTasks() {
   renderShell(`<div class="loading">Loading...</div>`, 'tasks');
+
+  // Separate queries to avoid join issues
   const { data: tasks } = await sb.from('employee_tasks')
-    .select('*, employees(name), rooms:room_id(nickname)')
+    .select('*')
     .order('assigned_date', { ascending: false });
+
+  const { data: emps } = await sb.from('employees').select('emp_id, name');
+  const { data: rooms } = await sb.from('rooms').select('room_id, nickname');
+
+  const empMap = {};
+  (emps || []).forEach(e => { empMap[e.emp_id] = e.name; });
+  const roomMap2 = {};
+  (rooms || []).forEach(r => { roomMap2[r.room_id] = r.nickname; });
+
   const isO = SESSION.role === 'owner';
 
   renderShell(`
@@ -286,19 +297,24 @@ async function renderEmployeeTasks() {
       ${isO ? `<button onclick="renderAddTask()">➕ Add Task</button>` : ''}
     </div>
     <div class="card"><div class="table-wrap"><table>
-      <thead><tr><th>Employee</th><th>Property</th><th>Type</th><th>Task</th><th>Date</th><th>Status</th>${isO ? '<th>Actions</th>' : ''}</tr></thead>
+      <thead><tr>
+        <th>Employee</th><th>Property</th><th>Type</th><th>Task</th>
+        <th>Priority</th><th>Date</th><th>Status</th>
+        ${isO ? '<th>Actions</th>' : ''}
+      </tr></thead>
       <tbody>${(tasks || []).map(t => `<tr>
-        <td><strong>${t.employees?.name || t.emp_id}</strong></td>
-        <td>${t.rooms?.nickname || '-'}</td>
+        <td><strong>${empMap[t.emp_id] || t.emp_id}</strong></td>
+        <td>${roomMap2[t.room_id] || '-'}</td>
         <td><span class="badge blue">${t.task_type || 'Other'}</span></td>
         <td>${t.task_description || '-'}</td>
+        <td><span class="badge ${t.priority === 'Urgent' ? 'red' : t.priority === 'High' ? 'yellow' : 'green'}">${t.priority || 'Normal'}</span></td>
         <td>${t.assigned_date || '-'}</td>
         <td><span class="badge ${t.status === 'Completed' ? 'green' : t.status === 'In Progress' ? 'yellow' : 'red'}">${t.status || 'Pending'}</span></td>
         ${isO ? `<td class="table-actions">
           <button class="btn-sm" onclick="editTask(${t.id})">✏️</button>
           <button class="btn-sm danger" onclick="delTask(${t.id})">🗑️</button>
         </td>` : ''}
-      </tr>`).join('')}</tbody>
+      </tr>`).join('') || '<tr><td colspan="8" class="sub">No tasks</td></tr>'}</tbody>
     </table></div></div>
   `, 'tasks');
 }
@@ -486,11 +502,12 @@ async function markAtt(eid, st) {
 async function renderAttendanceSummary() {
   renderShell(`<div class="loading">Loading...</div>`, 'att-summary');
   const cm = new Date().toISOString().slice(0, 7);
+  console.log('Attendance month filter:', cm);
   const daysInMonth = new Date(parseInt(cm.split('-')[0]), parseInt(cm.split('-')[1]), 0).getDate();
 
   const [{ data: emps }, { data: logs }] = await Promise.all([
     sb.from('employees').select('emp_id,name,role,monthly_salary').eq('status', 'Active').order('name'),
-    sb.from('attendance_log').select('emp_id,status,att_date').like('att_date', `${cm}%`)
+    sb.from('attendance_log').select('emp_id,status,att_date').gte('att_date', `${cm}-01`).lte('att_date', `${cm}-31`)
   ]);
 
   const sum = (emps || []).map(e => {
