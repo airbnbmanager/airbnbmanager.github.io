@@ -35,12 +35,10 @@ async function showGuestLedger(guestName) {
     <div class="modal-box" style="max-width:600px;">
       <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">✕</button>
       <h2>👤 Guest Ledger — ${guestName}</h2>
-
       <div class="stat-grid" style="grid-template-columns:repeat(2,1fr);margin:12px 0;">
         <div class="stat-card" style="border-left:4px solid var(--blue);"><div class="stat-num">${bookings.length}</div><div class="stat-label">Stays</div></div>
         <div class="stat-card" style="border-left:4px solid var(--green);"><div class="stat-num">${totalNights}</div><div class="stat-label">Nights</div></div>
       </div>
-
       <div class="card" style="box-shadow:none;border:1px solid var(--border);margin:0 0 12px;">
         <div class="metric-row"><span class="metric-label">Total Billed</span><span class="metric-value">₹${totalAmount.toLocaleString('en-IN')}</span></div>
         <div class="metric-row"><span class="metric-label">Total Paid</span><span class="metric-value" style="color:var(--green);">₹${totalPaid.toLocaleString('en-IN')}</span></div>
@@ -49,7 +47,6 @@ async function showGuestLedger(guestName) {
           ? `<div style="margin-top:8px;padding:8px;background:#FDE8E8;border-radius:8px;font-size:12px;color:var(--red);">⚠️ ₹${totalDue.toLocaleString('en-IN')} pending</div>`
           : `<div style="margin-top:8px;padding:8px;background:#DEF7EC;border-radius:8px;font-size:12px;color:var(--green);">✅ All clear</div>`}
       </div>
-
       <div class="section-title">Booking History</div>
       <div class="table-wrap"><table>
         <thead><tr><th>Property</th><th>Mode</th><th>In</th><th>Out</th><th>Total</th><th>Paid</th><th>Due</th></tr></thead>
@@ -66,7 +63,6 @@ async function showGuestLedger(guestName) {
           </tr>`;
         }).join('')}</tbody>
       </table></div>
-
       <div class="section-title" style="margin-top:12px;">Payment Log</div>
       <div class="table-wrap"><table>
         <thead><tr><th>Date</th><th>Amount</th><th>Mode</th></tr></thead>
@@ -76,13 +72,14 @@ async function showGuestLedger(guestName) {
           <td>${p.payment_mode || '-'}</td>
         </tr>`).join('') || '<tr><td colspan="3" class="sub">No payments</td></tr>'}</tbody>
       </table></div>
-
       <div class="btn-row" style="margin-top:12px;">
         <button class="outline" onclick="this.closest('.modal-overlay').remove()">Close</button>
       </div>
     </div>`;
   document.body.appendChild(modal);
 }
+
+// ============ ID BUTTON BUILDER ============
 function buildIdButtons(b) {
   const fp = (b.id_proof_front_paths || '').split(',').filter(Boolean);
   const bp = (b.id_proof_back_paths || '').split(',').filter(Boolean);
@@ -95,6 +92,7 @@ function buildIdButtons(b) {
     return `<button class="btn-sm outline" style="padding:2px 6px;font-size:10px;min-height:22px;margin:1px;" onclick="dlIdPhoto('${p}')">${label}${Math.floor(i/2)+1}</button>`;
   }).join('');
 }
+
 // ============ MANAGE BOOKINGS ============
 async function renderManageBookings() {
   renderShell(`<div class="loading">Loading...</div>`, 'bookings');
@@ -124,7 +122,6 @@ async function renderManageBookings() {
 
   const today = new Date().toISOString().slice(0, 10);
 
-  // Smart sort
   f.sort((a, b2) => {
     const aA = a.check_in <= today && a.check_out > today;
     const bA = b2.check_in <= today && b2.check_out > today;
@@ -159,7 +156,6 @@ async function renderManageBookings() {
           oninput="SESSION.bookingSearch=this.value; clearTimeout(window._searchTimer); window._searchTimer=setTimeout(()=>renderManageBookings(),600);" />
         ${sq ? `<button class="outline btn-sm" onclick="SESSION.bookingSearch='';renderManageBookings();" style="min-height:30px;padding:4px 8px;">✕</button>` : ''}
       </div>
-
       <div class="section-title">Filters</div>
       <div class="filter-bar">
         <div class="filter-item"><label>Mode</label><select id="fMode">
@@ -183,8 +179,8 @@ async function renderManageBookings() {
 
     <div class="card"><div class="table-wrap"><table>
       <thead><tr>
-       <th>Status</th><th>Guest</th><th>Property</th><th>Mode</th>
-        <th>In</th><th>Out</th><th>ID Proof</th><th>Total</th><th>Paid</th><th>Due</th>
+        <th>Status</th><th>Guest</th><th>Property</th><th>Mode</th>
+        <th>In</th><th>Out</th><th>ID</th><th>Total</th><th>Paid</th><th>Due</th>
         ${canM ? '<th>Actions</th>' : ''}
       </tr></thead>
       <tbody>${f.map(b => {
@@ -206,20 +202,22 @@ async function renderManageBookings() {
         return `<tr style="${rowBg}">
           <td>${statusBadge}</td>
           <td>
-            <strong style="cursor:pointer;text-decoration:underline;color:var(--blue);" onclick="showGuestLedger('${(b.guest_name || '').replace(/'/g, "\\'")}')">${b.guest_name || '-'}</strong><br>
+            <strong style="cursor:pointer;text-decoration:underline;color:var(--blue);"
+              onclick="showGuestLedger('${(b.guest_name || '').replace(/'/g, "\\'")}')">${b.guest_name || '-'}</strong><br>
             <small style="color:var(--muted);">${b.phone || ''}</small>
             ${b.has_vehicle ? `<br><small>🚗 ${b.vehicle_name || ''} ${b.vehicle_number || ''}</small>` : ''}
           </td>
           <td>
             <strong>${b.rooms?.nickname || '-'}</strong><br>
             <small style="color:var(--muted);">${b.rooms?.unit_no || b.room_id}</small>
-            ${b.source_room_id && b.source_room_id !== b.room_id ? `<br><small style="color:var(--blue);font-size:10px;">📍 ${roomMap[b.source_room_id]?.nickname || b.source_room_id}</small>` : ''}
+            ${b.source_room_id && b.source_room_id !== b.room_id
+              ? `<br><small style="color:var(--blue);font-size:10px;">📍 ${roomMap[b.source_room_id]?.nickname || b.source_room_id}</small>`
+              : ''}
           </td>
-                    <td><span class="badge ${b.booking_mode === 'Online-Airbnb' ? 'blue' : 'yellow'}">${b.booking_mode === 'Online-Airbnb' ? 'On' : 'Off'}</span></td>
+          <td><span class="badge ${b.booking_mode === 'Online-Airbnb' ? 'blue' : 'yellow'}">${b.booking_mode === 'Online-Airbnb' ? 'On' : 'Off'}</span></td>
           <td><small>${b.check_in || '-'}</small></td>
           <td><small>${b.check_out || '-'}</small></td>
           <td>${buildIdButtons(b)}</td>
-
           <td><strong>₹${(b.total_amount || 0).toLocaleString('en-IN')}</strong></td>
           <td style="color:var(--green);">₹${pd.toLocaleString('en-IN')}</td>
           <td><strong class="${bal > 0 ? 'metric-value warn' : ''}">₹${bal.toLocaleString('en-IN')}</strong></td>
@@ -227,7 +225,7 @@ async function renderManageBookings() {
             <button class="btn-sm" onclick="editBooking('${b.booking_id}')">✏️</button>
             <button class="btn-sm secondary" onclick="showPaymentModal('${b.booking_id}')">💰</button>
             <button class="btn-sm outline" onclick="createOfflineExtension('${b.booking_id}')">➕</button>
-                        ${isActive ? `<button class="btn-sm secondary" onclick="quickCheckout('${b.booking_id}','${b.room_id}')">📤</button>` : ''}
+            ${isActive ? `<button class="btn-sm secondary" onclick="quickCheckout('${b.booking_id}','${b.room_id}')">📤</button>` : ''}
             ${isCheckoutToday ? `<button class="btn-sm" style="background:#f59e0b;" onclick="sendCheckoutReminder('${b.booking_id}')">🔔</button>` : ''}
             <button class="btn-sm outline" onclick="shareBookingWhatsApp('${b.booking_id}')">📱</button>
             ${canD ? `<button class="btn-sm danger" onclick="delBooking('${b.booking_id}','${(b.guest_name || '').replace(/'/g, "\\'")}','${b.room_id}')">🗑️</button>` : ''}
@@ -258,7 +256,8 @@ function clearBkFilters() {
 async function renderAddBooking() {
   const pre = window._bookingPrefill || {};
   const {data:rooms} = await sb.from('rooms')
-    .select('room_id, unit_no, nickname, property_name, bookable, checkin_manager, caretaker_phone, map_link').order('room_id');
+    .select('room_id, unit_no, nickname, property_name, bookable, checkin_manager, caretaker_phone, map_link')
+    .order('room_id');
   window._roomsCache = rooms || [];
 
   let idSlots = '';
@@ -266,7 +265,8 @@ async function renderAddBooking() {
     idSlots += `
       <div class="id-card" id="idSlot${i}" style="display:${i === 1 ? 'block' : 'none'};">
         <div class="id-card-title">👤 Guest ${i}${i === 1 ? ' (Primary)' : ''}</div>
-        <input type="text" style="font-size:13px;min-height:36px;margin-bottom:4px;" id="gN${i}" placeholder="Guest ${i} naam" value="${i === 1 ? (pre.guestName || '') : ''}" />
+        <input type="text" style="font-size:13px;min-height:36px;margin-bottom:4px;" id="gN${i}"
+          placeholder="Guest ${i} naam" value="${i === 1 ? (pre.guestName || '') : ''}" />
         <div style="font-size:11px;color:var(--muted);margin:4px 0;">📄 Front Side</div>
         <div class="id-card-btns">
           <button type="button" class="outline" onclick="document.getElementById('gFCam${i}').click()">📷</button>
@@ -305,7 +305,7 @@ async function renderAddBooking() {
           <label>Property *</label>
           <select id="roomId" onchange="onRoomChg()">
             <option value="">Select</option>
-            ${(rooms || []).map(r => `<option value="${r.room_id}" ${pre.roomId === r.room_id ? 'selected' : ''}>${r.nickname || r.unit_no}</option>`).join('')}
+            ${(rooms || []).map(r => `<option value="${r.room_id}" ${pre.roomId === r.room_id ? 'selected' : ''}>${r.nickname || r.unit_no} (${r.unit_no})</option>`).join('')}
           </select>
           <div id="roomInfo" style="font-size:11px;color:var(--muted);margin-top:2px;"></div>
         </div>
@@ -313,7 +313,7 @@ async function renderAddBooking() {
           <label>Mode</label>
           <select id="bookingMode" onchange="onModeChg()">
             <option value="Offline" ${(pre.bookingMode || 'Offline') === 'Offline' ? 'selected' : ''}>Offline</option>
-            <option value="Online-Airbnb" ${(pre.bookingMode || '') === 'Online-Airbnb' ? 'selected' : ''}>Online</option>
+            <option value="Online-Airbnb" ${(pre.bookingMode || '') === 'Online-Airbnb' ? 'selected' : ''}>Online (Airbnb)</option>
           </select>
         </div>
       </div>
@@ -341,27 +341,55 @@ async function renderAddBooking() {
 
       <div class="form-grid">
         <div class="form-group">
-          <label>Checkout Confirmed?</label>
+          <label>Checkout Type</label>
           <select id="checkoutConfirmed">
-            <option value="yes" ${(pre.checkoutConfirmed || 'yes') === 'yes' ? 'selected' : ''}>Yes — Fixed date</option>
-            <option value="no" ${pre.checkoutConfirmed === 'no' ? 'selected' : ''}>No — Per day basis</option>
+            <option value="yes" ${(pre.checkoutConfirmed || 'yes') === 'yes' ? 'selected' : ''}>Fixed Date</option>
+            <option value="no" ${pre.checkoutConfirmed === 'no' ? 'selected' : ''}>Open — Per Day</option>
           </select>
         </div>
-        <div class="form-group"><label>Guests</label><input id="guests" type="number" value="${pre.guests || 1}" min="1" max="8" onchange="showIdSlots()" oninput="showIdSlots()" /></div>
-      </div>
-
-      <div class="form-grid">
-        <div class="form-group"><label>Per Day Rate ₹</label>
-          <input id="perDayRate" type="number" placeholder="Per night" oninput="onRateChg()" value="${pre.perDayRate || ''}" />
-        </div>
-        <div class="form-group"><label>Total Amount ₹ *</label>
-          <input id="totalAmount" type="number" placeholder="Final total" oninput="onAmtChg()" value="${pre.totalAmount || ''}" />
-          <div id="sugInfo" style="font-size:11px;color:var(--muted);"></div>
+        <div class="form-group"><label>Guests</label>
+          <input id="guests" type="number" value="${pre.guests || 1}" min="1" max="8"
+            onchange="showIdSlots()" oninput="showIdSlots()" />
         </div>
       </div>
 
+      <!-- OFFLINE: Total Amount + per day auto calc -->
+      <div id="offlineAmtBox">
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Total Amount ₹ *</label>
+            <input id="totalAmount" type="number" placeholder="Total kitne me book hua"
+              oninput="onAmtChg()" value="${pre.totalAmount || ''}" />
+            <div id="sugInfo" style="font-size:11px;color:var(--muted);"></div>
+          </div>
+          <div class="form-group">
+            <label>Per Day Rate ₹ (auto)</label>
+            <input id="perDayRate" type="number" placeholder="Auto from total ÷ nights" readonly
+              style="background:#f5f5f5;color:var(--muted);" value="${pre.perDayRate || ''}" />
+          </div>
+        </div>
+      </div>
+
+      <!-- ONLINE: Total Amount + per day auto calc -->
+      <div id="onlineAmtBox" style="display:none;">
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Total Amount ₹ * (Net Payout)</label>
+            <input id="totalAmountOnline" type="number" placeholder="Jo bank me aaya"
+              oninput="onAmtChg()" value="${pre.totalAmount || ''}" />
+          </div>
+          <div class="form-group">
+            <label>Per Day Rate ₹ (auto)</label>
+            <input id="perDayRateOnline" type="number" placeholder="Auto calc" readonly
+              style="background:#f5f5f5;color:var(--muted);" value="${pre.perDayRate || ''}" />
+          </div>
+        </div>
+      </div>
+
       <div class="form-grid">
-        <div class="form-group"><label>Advance ₹</label><input id="advanceAmt" type="number" value="${pre.advanceAmt || 0}" oninput="onAmtChg()" /></div>
+        <div class="form-group"><label>Advance ₹</label>
+          <input id="advanceAmt" type="number" value="${pre.advanceAmt || 0}" oninput="onAmtChg()" />
+        </div>
         <div class="form-group"><label>Advance Mode</label>
           <select id="advMode">
             <option value="">--</option>
@@ -372,9 +400,12 @@ async function renderAddBooking() {
           </select>
         </div>
       </div>
-      <div class="form-group"><label>Advance Date</label><input id="advDate" type="date" value="${new Date().toISOString().slice(0, 10)}" /></div>
+      <div class="form-group"><label>Advance Date</label>
+        <input id="advDate" type="date" value="${new Date().toISOString().slice(0, 10)}" />
+      </div>
       <div id="balInfo" style="font-size:13px;font-weight:600;margin:2px 0 8px;"></div>
 
+      <!-- VEHICLE -->
       <div class="form-grid">
         <div class="form-group">
           <label>Vehicle?</label>
@@ -389,21 +420,43 @@ async function renderAddBooking() {
           <div class="form-group"><label>Vehicle Name</label><input id="vehicleName" placeholder="e.g. Swift Dzire" value="${pre.vehicleName || ''}" /></div>
           <div class="form-group"><label>Registration No.</label><input id="vehicleNumber" placeholder="e.g. UP32 XX 1234" value="${pre.vehicleNumber || ''}" /></div>
         </div>
+        <div class="form-group">
+          <label>Vehicle Photo (Optional)</label>
+          <div class="id-card-btns">
+            <button type="button" class="outline" onclick="document.getElementById('vehiclePhotoCam').click()">📷 Camera</button>
+            <button type="button" class="outline" onclick="document.getElementById('vehiclePhotoGal').click()">🖼️ Gallery</button>
+          </div>
+          <input type="file" id="vehiclePhotoCam" accept="image/*" capture="environment" style="display:none;" />
+          <input type="file" id="vehiclePhotoGal" accept="image/*" style="display:none;" />
+        </div>
       </div>
 
+      <!-- ID PROOF -->
       <div style="background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:14px;margin-top:6px;">
         <div class="section-title">🪪 ID Proof (Front & Back)</div>
         <div class="form-grid">
           <div class="form-group"><label>ID Type</label>
-            <select id="idType"><option value="Aadhar" selected>Aadhar</option><option value="PAN">PAN</option><option value="DL">DL</option><option value="Passport">Passport</option></select>
+            <select id="idType">
+              <option value="Aadhar" selected>Aadhar</option>
+              <option value="PAN">PAN</option>
+              <option value="DL">DL</option>
+              <option value="Passport">Passport</option>
+            </select>
           </div>
-          <div class="form-group"><label>ID Number</label><input id="idNo" placeholder="e.g. 1234 5678 9012" value="${pre.idNo || ''}" /></div>
+          <div class="form-group"><label>ID Number</label>
+            <input id="idNo" placeholder="e.g. 1234 5678 9012" value="${pre.idNo || ''}" />
+          </div>
         </div>
         <div class="id-grid">${idSlots}</div>
       </div>
 
-      <div class="form-group" style="margin-top:10px;"><label>Notes</label><textarea id="bkNotes" placeholder="Special notes...">${pre.bkNotes || ''}</textarea></div>
-      <button id="saveBtn" onclick="saveBooking()" style="width:100%;padding:14px;font-size:15px;margin-top:10px;">💾 Save Booking</button>
+      <div class="form-group" style="margin-top:10px;">
+        <label>Notes</label>
+        <textarea id="bkNotes" placeholder="Special notes...">${pre.bkNotes || ''}</textarea>
+      </div>
+      <button id="saveBtn" onclick="saveBooking()" style="width:100%;padding:14px;font-size:15px;margin-top:10px;">
+        💾 Save Booking
+      </button>
       <div id="addBkErr"></div>
     </div>
   `, 'bookings');
@@ -414,7 +467,10 @@ async function renderAddBooking() {
 // ============ BOOKING HELPERS ============
 function showIdSlots() {
   const n = Math.min(parseInt(document.getElementById('guests')?.value) || 1, 8);
-  for (let i = 1; i <= 8; i++) { const el = document.getElementById(`idSlot${i}`); if (el) el.style.display = i <= n ? 'block' : 'none'; }
+  for (let i = 1; i <= 8; i++) {
+    const el = document.getElementById(`idSlot${i}`);
+    if (el) el.style.display = i <= n ? 'block' : 'none';
+  }
 }
 
 function onIdPick(i, side, src) {
@@ -423,8 +479,7 @@ function onIdPick(i, side, src) {
   const st = document.getElementById(`idSt${i}`);
   const slot = document.getElementById(`idSlot${i}`);
   if (inp?.files?.[0]) {
-    const prev = st.textContent || '';
-    st.textContent = prev + ` ✅ ${side}`;
+    st.textContent = (st.textContent || '') + ` ✅ ${side}`;
     slot.classList.add('done');
   }
 }
@@ -437,12 +492,28 @@ function toggleVehicle() {
 
 function onModeChg() {
   const m = document.getElementById('bookingMode')?.value;
+  const isOnline = m === 'Online-Airbnb';
+
+  // Toggle source listing box
   const onlineBox = document.getElementById('onlineBox');
-  if (onlineBox) onlineBox.style.display = m === 'Online-Airbnb' ? 'block' : 'none';
-  if (m === 'Online-Airbnb') {
+  if (onlineBox) onlineBox.style.display = isOnline ? 'block' : 'none';
+
+  // Toggle amount boxes
+  const offBox = document.getElementById('offlineAmtBox');
+  const onBox = document.getElementById('onlineAmtBox');
+  if (offBox) offBox.style.display = isOnline ? 'none' : 'block';
+  if (onBox) onBox.style.display = isOnline ? 'block' : 'none';
+
+  if (isOnline) {
     const rid = document.getElementById('roomId')?.value;
     const src = document.getElementById('sourceRoomId');
     if (src && !src.value && rid) src.value = rid;
+    // Online: auto fill advance = total
+    const tot = parseFloat(document.getElementById('totalAmountOnline')?.value) || 0;
+    if (tot > 0) {
+      const advEl = document.getElementById('advanceAmt');
+      if (advEl) advEl.value = tot;
+    }
   }
   onAmtChg();
 }
@@ -455,59 +526,70 @@ function onRoomChg() {
   const rInfo = document.getElementById('roomInfo');
   if (room) rInfo.innerHTML = `${room.bookable ? '✅' : '⚠️'} · ${room.checkin_manager || 'No manager'}`;
   else if (rInfo) rInfo.innerHTML = '';
+
   const mode = document.getElementById('bookingMode')?.value;
   const src = document.getElementById('sourceRoomId');
   if (mode === 'Online-Airbnb' && src && !src.value && rid) src.value = rid;
+
   const nInfo = document.getElementById('nightsInfo');
   if (ci && co) {
     const nights = calcNights(ci, co);
-    if (nInfo) nInfo.innerHTML = nights > 0 ? `🌙 <strong>${nights} night(s)</strong>` : `<span style="color:var(--red);">Invalid dates</span>`;
+    if (nInfo) nInfo.innerHTML = nights > 0
+      ? `🌙 <strong>${nights} night(s)</strong>`
+      : `<span style="color:var(--red);">Invalid dates</span>`;
   } else if (nInfo) nInfo.innerHTML = '';
-  onRateChg(); onAmtChg();
+
+  onAmtChg();
 }
 
 function onRateChg() {
-  const rate = parseFloat(document.getElementById('perDayRate')?.value) || 0;
-  const ci = document.getElementById('checkIn')?.value;
-  const co = document.getElementById('checkOut')?.value;
-  const sugInfo = document.getElementById('sugInfo');
-  const mode = document.getElementById('bookingMode')?.value;
-  if (rate > 0 && ci && co && mode !== 'Online-Airbnb') {
-    const nights = calcNights(ci, co);
-    if (nights > 0) {
-      const suggested = rate * nights;
-      if (sugInfo) sugInfo.innerHTML = `💡 ${nights} × ₹${rate.toLocaleString('en-IN')} = ₹${suggested.toLocaleString('en-IN')}`;
-      const totalEl = document.getElementById('totalAmount');
-      if (totalEl && !totalEl.value) totalEl.value = suggested;
-    } else if (sugInfo) sugInfo.innerHTML = '';
-  } else if (sugInfo) sugInfo.innerHTML = '';
+  // Not used directly — kept for compatibility
 }
 
 function onAmtChg() {
   const mode = document.getElementById('bookingMode')?.value;
-  const total = parseFloat(document.getElementById('totalAmount')?.value) || 0;
+  const isOnline = mode === 'Online-Airbnb';
+
+  const ci = document.getElementById('checkIn')?.value;
+  const co = document.getElementById('checkOut')?.value;
+  const nights = calcNights(ci, co);
+
+  let total = 0;
+
+  if (isOnline) {
+    // Online: user enters total (net payout) → per day auto calc → advance = total
+    total = parseFloat(document.getElementById('totalAmountOnline')?.value) || 0;
+    const rateEl = document.getElementById('perDayRateOnline');
+    if (rateEl && total > 0 && nights > 0) {
+      rateEl.value = Math.round(total / nights);
+    }
+    const advEl = document.getElementById('advanceAmt');
+    if (advEl && total > 0) advEl.value = total;
+
+  } else {
+    // Offline: user enters total → per day auto calc
+    total = parseFloat(document.getElementById('totalAmount')?.value) || 0;
+    const rateEl = document.getElementById('perDayRate');
+    if (rateEl && total > 0 && nights > 0) {
+      rateEl.value = Math.round(total / nights);
+    }
+  }
+
   const adv = parseFloat(document.getElementById('advanceAmt')?.value) || 0;
   const bal = total - adv;
   const el = document.getElementById('balInfo');
-
-  // Online: auto-calc per day + auto full paid
-  if (mode === 'Online-Airbnb' && total > 0) {
-    const ci = document.getElementById('checkIn')?.value;
-    const co = document.getElementById('checkOut')?.value;
-    const nights = calcNights(ci, co);
-    if (nights > 0) {
-      const rateEl = document.getElementById('perDayRate');
-      if (rateEl) rateEl.value = Math.round(total / nights);
-    }
-    const advEl = document.getElementById('advanceAmt');
-    if (advEl && (!advEl.value || advEl.value === '0')) advEl.value = total;
-  }
-
   if (el) {
     if (total > 0) el.innerHTML = bal > 0
       ? `<span style="color:var(--red);">💳 Balance: ₹${bal.toLocaleString('en-IN')}</span>`
       : `<span style="color:var(--green);">✅ Fully Paid</span>`;
     else el.innerHTML = '';
+  }
+
+  // Update sugInfo for offline
+  if (!isOnline && total > 0 && nights > 0) {
+    const rate = Math.round(total / nights);
+    const sugInfo = document.getElementById('sugInfo');
+    if (sugInfo) sugInfo.innerHTML = `💡 ₹${rate.toLocaleString('en-IN')}/night × ${nights} nights = ₹${total.toLocaleString('en-IN')}`;
   }
 }
 
@@ -517,10 +599,11 @@ async function uploadIdPhotos(bkId) {
   const frontPaths = [], backPaths = [], allPaths = [];
 
   for (let i = 1; i <= cnt; i++) {
-    const name = (document.getElementById(`gN${i}`)?.value?.trim() || `Guest${i}`).replace(/[^a-zA-Z0-9]/g, '_').substring(0, 20);
+    const name = (document.getElementById(`gN${i}`)?.value?.trim() || `Guest${i}`)
+      .replace(/[^a-zA-Z0-9]/g, '_').substring(0, 20);
 
-    // Front
-    const fFile = document.getElementById(`gFCam${i}`)?.files?.[0] || document.getElementById(`gFGal${i}`)?.files?.[0];
+    const fFile = document.getElementById(`gFCam${i}`)?.files?.[0]
+      || document.getElementById(`gFGal${i}`)?.files?.[0];
     if (fFile) {
       try {
         const comp = await compressImage(fFile);
@@ -530,8 +613,8 @@ async function uploadIdPhotos(bkId) {
       } catch (e) { console.warn(`Front ${i} failed`, e); }
     }
 
-    // Back
-    const bFile = document.getElementById(`gBCam${i}`)?.files?.[0] || document.getElementById(`gBGal${i}`)?.files?.[0];
+    const bFile = document.getElementById(`gBCam${i}`)?.files?.[0]
+      || document.getElementById(`gBGal${i}`)?.files?.[0];
     if (bFile) {
       try {
         const comp = await compressImage(bFile);
@@ -561,16 +644,27 @@ async function saveBooking() {
     const ph = document.getElementById('guestPhone').value.trim();
     const rid = document.getElementById('roomId').value;
     const mode = document.getElementById('bookingMode').value;
-    const sourceRoomId = mode === 'Online-Airbnb' ? (document.getElementById('sourceRoomId')?.value || rid) : null;
+    const isOnline = mode === 'Online-Airbnb';
+    const sourceRoomId = isOnline ? (document.getElementById('sourceRoomId')?.value || rid) : null;
     const ci = document.getElementById('checkIn').value;
     const co = document.getElementById('checkOut').value;
     const checkInTime = document.getElementById('checkInTime')?.value || '14:00';
     const checkOutTime = document.getElementById('checkOutTime')?.value || '11:00';
     const checkoutConfirmed = document.getElementById('checkoutConfirmed')?.value === 'yes';
     const gs = parseInt(document.getElementById('guests').value) || 1;
-    const perDayRate = parseFloat(document.getElementById('perDayRate')?.value) || 0;
-    let tot = parseFloat(document.getElementById('totalAmount').value) || 0;
-    let adv = parseFloat(document.getElementById('advanceAmt').value) || 0;
+    const nights = calcNights(ci, co);
+
+    // Get total from correct field
+    let tot = isOnline
+      ? parseFloat(document.getElementById('totalAmountOnline')?.value) || 0
+      : parseFloat(document.getElementById('totalAmount')?.value) || 0;
+
+    // Per day rate
+    const perDayRate = nights > 0 && tot > 0 ? Math.round(tot / nights) : 0;
+
+    // Advance: online = tot, offline = whatever entered
+    let adv = isOnline ? tot : (parseFloat(document.getElementById('advanceAmt').value) || 0);
+
     const advMode = document.getElementById('advMode').value;
     const advDate = document.getElementById('advDate')?.value || new Date().toISOString().slice(0, 10);
     const idType = document.getElementById('idType').value;
@@ -582,37 +676,40 @@ async function saveBooking() {
     const vehicleNumber = hasVehicle ? (document.getElementById('vehicleNumber')?.value.trim() || null) : null;
     let notes = document.getElementById('bkNotes').value.trim();
 
-    if (!gn || !rid) { document.getElementById('addBkErr').innerHTML = '<div class="error">Guest name & property required</div>'; btn.disabled = false; btn.textContent = '💾 Save Booking'; return; }
+    if (!gn || !rid) {
+      document.getElementById('addBkErr').innerHTML = '<div class="error">Guest name & property required</div>';
+      btn.disabled = false; btn.textContent = '💾 Save Booking'; return;
+    }
 
-    // Zero amount warning
     if (tot === 0) {
       const proceed = confirm('⚠️ Total amount ₹0 hai. Save karna hai?');
       if (!proceed) { btn.disabled = false; btn.textContent = '💾 Save Booking'; return; }
     }
 
-    // Online = auto full paid
-    if (mode === 'Online-Airbnb') adv = tot;
-
     // Clash check
     if (ci && co) {
-      const { data: ex } = await sb.from('guest_register').select('booking_id,guest_name,check_in,check_out').eq('room_id', rid);
+      const { data: ex } = await sb.from('guest_register')
+        .select('booking_id,guest_name,check_in,check_out').eq('room_id', rid);
       const clash = (ex || []).find(b => b.check_in && b.check_out && b.check_in < co && b.check_out > ci);
-      if (clash) { document.getElementById('addBkErr').innerHTML = `<div class="error">⚠️ Clash: ${clash.guest_name} (${clash.check_in}→${clash.check_out})</div>`; btn.disabled = false; btn.textContent = '💾 Save Booking'; return; }
+      if (clash) {
+        document.getElementById('addBkErr').innerHTML =
+          `<div class="error">⚠️ Clash: ${clash.guest_name} (${clash.check_in}→${clash.check_out})</div>`;
+        btn.disabled = false; btn.textContent = '💾 Save Booking'; return;
+      }
     }
 
     const bkId = 'B' + Date.now();
     const finalStayGroupId = stayGroupId || bkId;
     const photos = await uploadIdPhotos(bkId);
 
-    // Notes builder
     const noteParts = [];
     if (notes) noteParts.push(notes);
-    if (mode === 'Online-Airbnb' && sourceRoomId && sourceRoomId !== rid) noteParts.push(`Airbnb booked on ${sourceRoomId}, shifted to ${rid}`);
+    if (isOnline && sourceRoomId && sourceRoomId !== rid) noteParts.push(`Airbnb booked on ${sourceRoomId}, shifted to ${rid}`);
     if (parentBookingId) noteParts.push(`Extension after previous stay (${parentBookingId})`);
     if (!checkoutConfirmed) noteParts.push('Open-ended stay — per day basis');
     const finalNotes = noteParts.join(' | ');
 
-    const payStatus = mode === 'Online-Airbnb' ? 'Paid' : (adv >= tot && tot > 0 ? 'Paid' : (adv > 0 ? 'Partial' : 'Unpaid'));
+    const payStatus = isOnline ? 'Paid' : (adv >= tot && tot > 0 ? 'Paid' : (adv > 0 ? 'Partial' : 'Unpaid'));
 
     const { error } = await sb.from('guest_register').insert({
       booking_id: bkId, guest_name: gn, phone: ph || null,
@@ -622,22 +719,31 @@ async function saveBooking() {
       room_id: rid, source_room_id: sourceRoomId,
       parent_booking_id: parentBookingId, stay_group_id: finalStayGroupId,
       booking_mode: mode, check_in: ci || null, check_out: co || null,
-      check_in_time: checkInTime, check_out_time: checkOutTime, checkout_confirmed: checkoutConfirmed,
+      check_in_time: checkInTime, check_out_time: checkOutTime,
+      checkout_confirmed: checkoutConfirmed,
       guests: gs, per_day_rate: perDayRate, total_amount: tot,
       has_vehicle: hasVehicle, vehicle_name: vehicleName, vehicle_number: vehicleNumber,
       payment_status: payStatus, notes: finalNotes || null,
       booked_by: SESSION.displayName || SESSION.role
     });
 
-    if (error) { document.getElementById('addBkErr').innerHTML = `<div class="error">${error.message}</div>`; btn.disabled = false; btn.textContent = '💾 Save Booking'; return; }
+    if (error) {
+      document.getElementById('addBkErr').innerHTML = `<div class="error">${error.message}</div>`;
+      btn.disabled = false; btn.textContent = '💾 Save Booking'; return;
+    }
 
-    if (adv > 0) await sb.from('payment_history').insert({ booking_id: bkId, amount: adv, payment_mode: advMode || null, payment_date: advDate, notes: mode === 'Online-Airbnb' ? 'Airbnb Payout' : 'Advance' });
+    if (adv > 0) {
+      await sb.from('payment_history').insert({
+        booking_id: bkId, amount: adv, payment_mode: advMode || null,
+        payment_date: advDate, notes: isOnline ? 'Airbnb Payout' : 'Advance'
+      });
+    }
     await sb.from('flats_status').upsert({ room_id: rid, status: 'Booked' });
 
-    // WhatsApp auto share
     shareBookingWhatsApp(bkId);
     window._bookingPrefill = null;
     renderManageBookings();
+
   } catch (err) {
     document.getElementById('addBkErr').innerHTML = `<div class="error">${err.message || err}</div>`;
     btn.disabled = false; btn.textContent = '💾 Save Booking';
@@ -650,15 +756,23 @@ async function createOfflineExtension(parentBookingId) {
   if (!b) { alert('Not found'); return; }
   const today = new Date().toISOString().slice(0, 10);
   if (b.check_out >= today) {
-    await sb.from('guest_register').update({ check_out: today, notes: (b.notes ? b.notes + ' | ' : '') + 'Auto-closed: extended on ' + today }).eq('booking_id', parentBookingId);
+    await sb.from('guest_register').update({
+      check_out: today,
+      notes: (b.notes ? b.notes + ' | ' : '') + 'Auto-closed: extended on ' + today
+    }).eq('booking_id', parentBookingId);
   }
-  if (b.room_id) await sb.from('flats_status').update({ status: 'Free', cleaning_status: 'Dirty' }).eq('room_id', b.room_id);
+  if (b.room_id) {
+    await sb.from('flats_status').update({ status: 'Free', cleaning_status: 'Dirty' }).eq('room_id', b.room_id);
+  }
   window._bookingPrefill = {
     guestName: b.guest_name || '', guestPhone: b.phone || '',
     roomId: b.room_id || '', sourceRoomId: b.source_room_id || b.room_id || '',
-    bookingMode: 'Offline', checkIn: today, checkOut: '', checkInTime: '14:00', checkOutTime: '11:00', checkoutConfirmed: 'no',
-    guests: b.guests || 1, totalAmount: '', advanceAmt: 0, advMode: '', perDayRate: b.per_day_rate || '',
-    hasVehicle: b.has_vehicle || false, vehicleName: b.vehicle_name || '', vehicleNumber: b.vehicle_number || '',
+    bookingMode: 'Offline', checkIn: today, checkOut: '',
+    checkInTime: '14:00', checkOutTime: '11:00', checkoutConfirmed: 'no',
+    guests: b.guests || 1, totalAmount: '', advanceAmt: 0, advMode: '',
+    perDayRate: b.per_day_rate || '',
+    hasVehicle: b.has_vehicle || false, vehicleName: b.vehicle_name || '',
+    vehicleNumber: b.vehicle_number || '',
     idType: b.id_proof_type || 'Aadhar', idNo: b.id_proof_no || '',
     bkNotes: `Extension after previous stay (${parentBookingId})`,
     parentBookingId: parentBookingId, stayGroupId: b.stay_group_id || b.booking_id
@@ -670,13 +784,15 @@ async function createOfflineExtension(parentBookingId) {
 async function quickCheckout(bkId, roomId) {
   const today = new Date().toISOString().slice(0, 10);
   const nowTime = new Date().toTimeString().slice(0, 5);
-  const { data: bk } = await sb.from('guest_register').select('guest_name,check_in,per_day_rate,total_amount,notes').eq('booking_id', bkId).single();
+  const { data: bk } = await sb.from('guest_register')
+    .select('guest_name,check_in,per_day_rate,total_amount,notes').eq('booking_id', bkId).single();
   if (!bk) { alert('Not found'); return; }
   const nights = Math.max(calcNights(bk.check_in, today), 1);
   const calcTotal = bk.per_day_rate ? bk.per_day_rate * nights : bk.total_amount;
   if (!confirm(`Quick Checkout for ${bk.guest_name}?\n\nNights: ${nights}\nTotal: ₹${calcTotal.toLocaleString('en-IN')}\n\nProceed?`)) return;
   await sb.from('guest_register').update({
-    check_out: today, check_out_time: nowTime, total_amount: calcTotal, checkout_confirmed: true,
+    check_out: today, check_out_time: nowTime, total_amount: calcTotal,
+    checkout_confirmed: true,
     notes: (bk.notes ? bk.notes + ' | ' : '') + `Quick checkout ${today} ${nowTime}. ${nights} nights.`
   }).eq('booking_id', bkId);
   if (roomId) await sb.from('flats_status').update({ status: 'Free', cleaning_status: 'Dirty' }).eq('room_id', roomId);
@@ -695,7 +811,6 @@ async function editBooking(bkId) {
 
   const frontPaths = (b.id_proof_front_paths || '').split(',').filter(Boolean);
   const backPaths = (b.id_proof_back_paths || '').split(',').filter(Boolean);
-  const allPaths = (b.id_proof_photo_paths || b.id_proof_photo_path || '').split(',').filter(Boolean);
 
   let idSlots = '';
   for (let i = 1; i <= 8; i++) {
@@ -703,7 +818,10 @@ async function editBooking(bkId) {
       <div class="id-card" id="editIdSlot${i}" style="display:${i <= Math.max(b.guests || 1, 1) ? 'block' : 'none'};">
         <div class="id-card-title">👤 Guest ${i}</div>
         <div style="font-size:11px;margin:4px 0;">📄 Front</div>
-        ${frontPaths[i - 1] ? `<div class="btn-row"><button class="btn-sm outline" onclick="dlIdPhoto('${frontPaths[i - 1]}')">📥 View</button><button class="btn-sm danger" onclick="deleteIdPhoto('${bkId}','${frontPaths[i - 1]}','front',${i - 1})">🗑️</button></div>` : ''}
+        ${frontPaths[i - 1] ? `<div class="btn-row">
+          <button class="btn-sm outline" onclick="dlIdPhoto('${frontPaths[i - 1]}')">📥 View</button>
+          <button class="btn-sm danger" onclick="deleteIdPhoto('${bkId}','${frontPaths[i - 1]}','front',${i - 1})">🗑️</button>
+        </div>` : ''}
         <div class="id-card-btns">
           <button type="button" class="outline" onclick="document.getElementById('eFCam${i}').click()">📷 New</button>
           <button type="button" class="outline" onclick="document.getElementById('eFGal${i}').click()">🖼️ New</button>
@@ -711,7 +829,10 @@ async function editBooking(bkId) {
         <input type="file" id="eFCam${i}" accept="image/*" capture="environment" style="display:none;" />
         <input type="file" id="eFGal${i}" accept="image/*" style="display:none;" />
         <div style="font-size:11px;margin:4px 0;">📄 Back</div>
-        ${backPaths[i - 1] ? `<div class="btn-row"><button class="btn-sm outline" onclick="dlIdPhoto('${backPaths[i - 1]}')">📥 View</button><button class="btn-sm danger" onclick="deleteIdPhoto('${bkId}','${backPaths[i - 1]}','back',${i - 1})">🗑️</button></div>` : ''}
+        ${backPaths[i - 1] ? `<div class="btn-row">
+          <button class="btn-sm outline" onclick="dlIdPhoto('${backPaths[i - 1]}')">📥 View</button>
+          <button class="btn-sm danger" onclick="deleteIdPhoto('${bkId}','${backPaths[i - 1]}','back',${i - 1})">🗑️</button>
+        </div>` : ''}
         <div class="id-card-btns">
           <button type="button" class="outline" onclick="document.getElementById('eBCam${i}').click()">📷 New</button>
           <button type="button" class="outline" onclick="document.getElementById('eBGal${i}').click()">🖼️ New</button>
@@ -722,7 +843,10 @@ async function editBooking(bkId) {
   }
 
   renderShell(`
-    <div class="card"><h1>✏️ Edit Booking</h1><button class="secondary btn-sm" onclick="renderManageBookings()">← Back</button></div>
+    <div class="card">
+      <h1>✏️ Edit Booking</h1>
+      <button class="secondary btn-sm" onclick="renderManageBookings()">← Back</button>
+    </div>
     <div class="card">
       <div class="form-grid">
         <div class="form-group"><label>Guest Name</label><input id="guestName" value="${b.guest_name || ''}" /></div>
@@ -747,7 +871,9 @@ async function editBooking(bkId) {
 
       <div class="form-grid">
         <div class="form-group"><label>Property</label>
-          <select id="roomId">${(rooms || []).map(r => `<option value="${r.room_id}" ${r.room_id === b.room_id ? 'selected' : ''}>${r.nickname || r.unit_no}</option>`).join('')}</select>
+          <select id="roomId">
+            ${(rooms || []).map(r => `<option value="${r.room_id}" ${r.room_id === b.room_id ? 'selected' : ''}>${r.nickname || r.unit_no} (${r.unit_no})</option>`).join('')}
+          </select>
         </div>
         <div class="form-group"><label>Mode</label>
           <select id="bookingMode" onchange="toggleEditSourceBox()">
@@ -774,13 +900,12 @@ async function editBooking(bkId) {
         <div class="form-group"><label>Check-out Date</label><input id="checkOut" type="date" value="${b.check_out || ''}" /></div>
         <div class="form-group"><label>Check-out Time</label><input id="checkOutTime" type="time" value="${b.check_out_time || '11:00'}" /></div>
       </div>
-      <div class="form-group"><label>Checkout Confirmed?</label>
+      <div class="form-group"><label>Checkout Type</label>
         <select id="checkoutConfirmed">
-          <option value="yes" ${b.checkout_confirmed !== false ? 'selected' : ''}>Yes — Fixed</option>
-          <option value="no" ${b.checkout_confirmed === false ? 'selected' : ''}>No — Per day</option>
+          <option value="yes" ${b.checkout_confirmed !== false ? 'selected' : ''}>Fixed Date</option>
+          <option value="no" ${b.checkout_confirmed === false ? 'selected' : ''}>Open — Per Day</option>
         </select>
       </div>
-
       <div class="form-grid">
         <div class="form-group"><label>Guests</label><input id="guests" type="number" value="${b.guests || 1}" /></div>
         <div class="form-group"><label>Per Day Rate ₹</label><input id="perDayRate" type="number" value="${b.per_day_rate || ''}" /></div>
@@ -795,7 +920,6 @@ async function editBooking(bkId) {
           </select>
         </div>
       </div>
-
       <div class="form-grid">
         <div class="form-group"><label>Vehicle?</label>
           <select id="hasVehicle" onchange="toggleVehicle()">
@@ -810,7 +934,6 @@ async function editBooking(bkId) {
           <div class="form-group"><label>Registration No.</label><input id="vehicleNumber" value="${b.vehicle_number || ''}" /></div>
         </div>
       </div>
-
       <div class="form-group"><label>Notes</label><textarea id="bkNotes">${b.notes || ''}</textarea></div>
       <button onclick="updateBooking('${bkId}','${b.parent_booking_id || ''}','${b.stay_group_id || b.booking_id}')">💾 Update</button>
       <div id="editBkErr"></div>
@@ -821,7 +944,6 @@ async function editBooking(bkId) {
       <div class="metric-row"><span class="metric-label">Total</span><span class="metric-value">₹${(b.total_amount || 0).toLocaleString('en-IN')}</span></div>
       <div class="metric-row"><span class="metric-label">Paid</span><span class="metric-value" style="color:var(--green);">₹${tp.toLocaleString('en-IN')}</span></div>
       <div class="metric-row"><span class="metric-label">Balance</span><span class="metric-value${bal > 0 ? ' warn' : ''}">₹${bal.toLocaleString('en-IN')}</span></div>
-
       ${(pays || []).length ? `<div class="table-wrap" style="margin-top:8px;"><table>
         <thead><tr><th>Date</th><th>Amount</th><th>Mode</th><th>Notes</th><th>Actions</th></tr></thead>
         <tbody>${pays.map(p => `<tr>
@@ -835,7 +957,6 @@ async function editBooking(bkId) {
           </td>
         </tr>`).join('')}</tbody>
       </table></div>` : '<div class="sub">No payments</div>'}
-
       <div class="btn-row" style="margin-top:8px;">
         <button class="btn-sm" onclick="showPaymentModal('${bkId}')">➕ Payment</button>
         <button class="btn-sm outline" onclick="createOfflineExtension('${bkId}')">➕ Extension</button>
@@ -857,9 +978,10 @@ async function deleteIdPhoto(bkId, path, side, index) {
   if (!confirm('Delete this photo?')) return;
   try {
     await sb.storage.from('id-proofs').remove([path]);
-    const { data: bk } = await sb.from('guest_register').select('id_proof_front_paths, id_proof_back_paths, id_proof_photo_paths').eq('booking_id', bkId).single();
+    const { data: bk } = await sb.from('guest_register')
+      .select('id_proof_front_paths, id_proof_back_paths, id_proof_photo_paths')
+      .eq('booking_id', bkId).single();
     if (!bk) return;
-
     if (side === 'front') {
       const arr = (bk.id_proof_front_paths || '').split(',').filter(Boolean);
       arr.splice(index, 1);
@@ -869,11 +991,8 @@ async function deleteIdPhoto(bkId, path, side, index) {
       arr.splice(index, 1);
       await sb.from('guest_register').update({ id_proof_back_paths: arr.join(',') || null }).eq('booking_id', bkId);
     }
-
-    // Update all paths too
     const allArr = (bk.id_proof_photo_paths || '').split(',').filter(Boolean).filter(p => p !== path);
     await sb.from('guest_register').update({ id_proof_photo_paths: allArr.join(',') || null }).eq('booking_id', bkId);
-
     alert('✅ Photo deleted');
     editBooking(bkId);
   } catch (e) { alert('❌ Delete failed: ' + e.message); }
@@ -891,14 +1010,13 @@ async function updateBooking(bkId, parentBookingId = '', stayGroupId = '') {
   const co = document.getElementById('checkOut').value;
   const hasVehicle = document.getElementById('hasVehicle')?.value === 'true';
 
-  // Clash check
   if (ci && co) {
-    const { data: ex } = await sb.from('guest_register').select('booking_id,guest_name,check_in,check_out').eq('room_id', rid).neq('booking_id', bkId);
+    const { data: ex } = await sb.from('guest_register')
+      .select('booking_id,guest_name,check_in,check_out').eq('room_id', rid).neq('booking_id', bkId);
     const clash = (ex || []).find(b => b.check_in && b.check_out && b.check_in < co && b.check_out > ci);
     if (clash) { document.getElementById('editBkErr').innerHTML = `<div class="error">Clash: ${clash.guest_name}</div>`; return; }
   }
 
-  // Upload new photos if any
   let newFP = null, newBP = null, newAP = null;
   const gc = parseInt(document.getElementById('guests')?.value) || 1;
   const fArr = [], bArr = [], aArr = [];
@@ -912,6 +1030,10 @@ async function updateBooking(bkId, parentBookingId = '', stayGroupId = '') {
   if (bArr.length) newBP = bArr.join(',');
   if (aArr.length) newAP = aArr.join(',');
 
+  const totVal = parseFloat(document.getElementById('totalAmount').value) || 0;
+  const nights = calcNights(ci, co);
+  const perDay = nights > 0 && totVal > 0 ? Math.round(totVal / nights) : parseFloat(document.getElementById('perDayRate')?.value) || 0;
+
   const obj = {
     guest_name: gn, phone: document.getElementById('guestPhone').value.trim() || null,
     id_proof_type: document.getElementById('idType').value || null,
@@ -922,8 +1044,7 @@ async function updateBooking(bkId, parentBookingId = '', stayGroupId = '') {
     check_in_time: document.getElementById('checkInTime')?.value || '14:00',
     check_out_time: document.getElementById('checkOutTime')?.value || '11:00',
     checkout_confirmed: document.getElementById('checkoutConfirmed')?.value === 'yes',
-    guests: gc, per_day_rate: parseFloat(document.getElementById('perDayRate')?.value) || 0,
-    total_amount: parseFloat(document.getElementById('totalAmount').value) || 0,
+    guests: gc, per_day_rate: perDay, total_amount: totVal,
     payment_status: document.getElementById('paySt').value,
     has_vehicle: hasVehicle,
     vehicle_name: hasVehicle ? (document.getElementById('vehicleName')?.value.trim() || null) : null,
@@ -975,8 +1096,10 @@ function showPaymentModal(bkId) {
       <div class="form-group"><label>Amount ₹ *</label><input id="payAmt" type="number" placeholder="Amount" /></div>
       <div class="form-group"><label>Mode</label>
         <select id="payMode">
-          <option value="Cash">Cash</option><option value="UPI">UPI</option>
-          <option value="Bank">Bank Transfer</option><option value="Airbnb Payout">Airbnb Payout</option>
+          <option value="Cash">Cash</option>
+          <option value="UPI">UPI</option>
+          <option value="Bank">Bank Transfer</option>
+          <option value="Airbnb Payout">Airbnb Payout</option>
         </select>
       </div>
       <div class="form-group"><label>Date</label><input id="payDate" type="date" value="${new Date().toISOString().slice(0, 10)}" /></div>

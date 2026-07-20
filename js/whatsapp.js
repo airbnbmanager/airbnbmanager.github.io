@@ -42,7 +42,7 @@ async function shareBookingWhatsApp(bkId) {
     ``,
     `📋 *Check-in Instructions:*`,
     `Our caretaker will assist you with the check-in and show you around the place.`,
-    caretaker ? `📞 *Caretaker:* ${caretaker}${caretakerPhone ? ' — +91 ' + caretakerPhone : ''}` : '',
+      caretaker ? `📞 *Caretaker:* ${caretaker}${caretakerPhone ? ' — +91 ' + caretakerPhone : ''}` : '',
     ``,
     `If you need anything or caretaker is not reachable, contact:`,
     ``,

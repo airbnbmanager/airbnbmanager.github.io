@@ -602,6 +602,7 @@ async function renderUserManagement() {
           <td><span class="badge ${p.is_approved ? 'green' : 'yellow'}">${p.is_approved ? 'Active' : 'Pending'}</span></td>
           <td class="table-actions">
             <button class="btn-sm" onclick="changeUserRole('${p.user_id}','${p.display_name || ''}')">🔧 Role</button>
+            <button class="btn-sm danger" onclick="deleteUser('${p.user_id}','${p.display_name || ''}')">🗑️</button>
           </td>
         </tr>`).join('')}</tbody>
       </table></div>
@@ -676,5 +677,16 @@ async function changeUserRole(userId, name) {
   renderUserManagement();
 }
 
+async function deleteUser(userId, name) {
+  if (!confirm(`Delete user "${name}"?\n\nProfile + pending entry delete hogi. Auth user remain karega.`)) return;
+  try {
+    await sb.from('profiles').delete().eq('user_id', userId);
+    await sb.from('pending_users').delete().eq('user_id', userId);
+    alert(`✅ ${name} deleted`);
+    renderUserManagement();
+  } catch (err) {
+    alert('❌ Delete failed: ' + (err.message || err));
+  }
+}
 // ============ START ============
 init();

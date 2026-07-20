@@ -22,14 +22,15 @@ async function renderDashboard() {
   const rawCheckins = allBookings.filter(x => x.check_in === today);
   const rawCheckouts = allBookings.filter(x => x.check_out === today);
 
-  // Detect internal shifts
+  // Detect internal shifts — only when ROOM actually changed
   const shiftGuests = new Set();
   rawCheckins.forEach(ci => {
     if (ci.parent_booking_id || ci.stay_group_id) {
       const matching = rawCheckouts.find(co =>
-        co.guest_name === ci.guest_name ||
+        (co.guest_name === ci.guest_name ||
         co.booking_id === ci.parent_booking_id ||
-        co.stay_group_id === ci.stay_group_id
+        co.stay_group_id === ci.stay_group_id) &&
+        co.room_id !== ci.room_id  // Only count as shift if room actually changed
       );
       if (matching) shiftGuests.add(ci.guest_name);
     }
