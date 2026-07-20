@@ -610,20 +610,55 @@ async function renderUserManagement() {
 }
 
 async function approveUser(userId, name) {
-  const role = prompt(`Role assign karo for ${name}:\n\nOptions:\n- manager\n- viewer\n- checkin_manager\n- investor\n- employee\n- ca`);
+  const role = prompt(
+    `Role assign karo for ${name}:\n\nOptions:\n- manager\n- viewer\n- checkin_manager\n- investor\n- employee\n- ca`
+  );
   if (!role) return;
 
-  await sb.from('profiles').update({
-    role: role,
-    is_approved: true
-  }).eq('user_id', userId);
+  try {
+    const { data: pending } = await sb.from('pending_users')
+      .select('*')
+      .eq('user_id', userId)
+      .single();
 
-  await sb.from('pending_users').update({
-    status: 'Approved'
-  }).eq('user_id', userId);
+    const displayName = name || pending?.full_name || 'User';
+    const authProvider = pending?.auth_provider || 'google';
 
-  alert(`✅ ${name} approved as ${role}`);
-  renderUserManagement();
+    const { data: existing } = await sb.from('profiles')
+      .select('user_id')
+      .eq('user_id', userId)
+      .single();
+
+    if (existing) {
+      const { error: updErr } = await sb.from('profiles').update({
+        role: role,
+        display_name: displayName,
+        is_approved: true,
+        auth_provider: authProvider
+      }).eq('user_id', userId);
+      if (updErr) throw updErr;
+    } else {
+      const { error: insErr } = await sb.from('profiles').insert({
+        user_id: userId,
+        role: role,
+        display_name: displayName,
+        is_approved: true,
+        auth_provider: authProvider
+      });
+      if (insErr) throw insErr;
+    }
+
+    const { error: pendErr } = await sb.from('pending_users').update({
+      status: 'Approved'
+    }).eq('user_id', userId);
+    if (pendErr) throw pendErr;
+
+    alert(`✅ ${displayName} approved as ${role}`);
+    renderUserManagement();
+
+  } catch (err) {
+    alert('❌ Approve failed: ' + (err.message || err));
+  }
 }
 
 async function rejectUser(userId) {
