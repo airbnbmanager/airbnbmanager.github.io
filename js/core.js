@@ -286,20 +286,20 @@ function renderShell(content, activePage = 'dashboard') {
       ['dashboard', '🏠 Home'],
       ['reports', '📆 Calendar'],
       ['bookings', '📅 Bookings'],
-      ['flats', '🛏️ Flats Status'],
+      ['flats', '🛏️ Flats'],
       ['rooms', '🏠 Properties'],
-      ['employees', '👥 Employees'],
+      ['employees', '👥 Team'],
       ['tasks', '🧰 Tasks'],
       ['attendance', '📋 Attendance'],
-      ['att-summary', '📊 Attendance Report'],
+      ['att-summary', '📊 Att. Report'],
       ['salary', '💰 Payroll'],
       ['advance', '💵 Advances'],
       ['store', '📦 Inventory'],
       ['expenses', '💹 P&L'],
-      ['maintenance', '🔧 Maintenance'],
-      ['property-report', '🏘️ Property Report'],
+      ['maintenance', '🔧 Repairs'],
+      ['property-report', '🏘️ Reports'],
       ['investors', '🧑‍💼 Investors'],
-      ['user-mgmt', '👤 User Management'],
+      ['user-mgmt', '👤 Users'],
       ['sop', '📘 SOP'],
     ];
   } else if (isCheckin) {
@@ -307,57 +307,56 @@ function renderShell(content, activePage = 'dashboard') {
       ['dashboard', '🏠 Home'],
       ['reports', '📆 Calendar'],
       ['bookings', '📅 Bookings'],
-      ['flats', '🛏️ Flats Status'],
+      ['flats', '🛏️ Flats'],
       ['sop', '📘 SOP'],
     ];
   } else {
-    // manager / viewer
     nav = [
       ['dashboard', '🏠 Home'],
       ['reports', '📆 Calendar'],
       ['bookings', '📅 Bookings'],
-      ['flats', '🛏️ Flats Status'],
-      ['employees', '👥 Employees'],
-      ['att-summary', '📊 Attendance Report'],
+      ['flats', '🛏️ Flats'],
+      ['employees', '👥 Team'],
+      ['att-summary', '📊 Att. Report'],
       ['salary', '💰 Payroll'],
       ['advance', '💵 Advances'],
       ['expenses', '💹 P&L'],
-      ['maintenance', '🔧 Maintenance'],
-      ['property-report', '🏘️ Property Report'],
+      ['maintenance', '🔧 Repairs'],
+      ['property-report', '🏘️ Reports'],
       ['investors', '🧑‍💼 Investors'],
       ['store', '📦 Inventory'],
       ['sop', '📘 SOP'],
     ];
   }
 
-  // User info bar
-  const userInfo = SESSION.displayName
-    ? `<div style="padding:6px 14px 10px;font-size:12px;color:rgba(255,255,255,0.65);">
-        👋 ${SESSION.displayName}
-        <span class="badge blue" style="margin-left:4px;font-size:9px;">${SESSION.role === 'owner' ? 'Admin' : SESSION.role}</span>
-      </div>`
-    : '';
+  const roleLabel = SESSION.role === 'owner' ? 'Admin' : SESSION.role;
+  const shortName = (SESSION.displayName || '').split('(')[0].trim().split(' ')[0];
 
   appEl.innerHTML = `
     <div class="app-container">
-      <aside class="sidebar">
-        <h2>
-          <img src="assets/logo.png" alt="" style="width:24px;height:24px;object-fit:contain;border-radius:6px;" />
-          ${BRAND}
-        </h2>
-        ${userInfo}
-        <nav>
+      <aside class="sidebar" id="sidebarEl">
+        <!-- Row 1: Logo + User + Logout -->
+        <div class="sidebar-top">
+          <div class="sidebar-brand" onclick="navigate('dashboard')">
+            <img src="assets/logo.png" alt="" />
+            <span>UHHS</span>
+          </div>
+          <div class="sidebar-user">
+            <span class="sidebar-username">${shortName}</span>
+            <span class="badge blue sidebar-role">${roleLabel}</span>
+            <div class="sidebar-logout" id="logoutBtn">🚪</div>
+          </div>
+        </div>
+
+        <!-- Row 2: Navigation -->
+        <nav class="sidebar-nav">
           ${nav.map(([k, l]) => `<a href="#" data-page="${k}" class="${activePage === k ? 'active' : ''}">${l}</a>`).join('')}
         </nav>
-        <div class="sidebar-footer">
-          <div class="logout-link" id="logoutBtn">🚪 Logout</div>
-          <div class="sidebar-credit">Build ${APP_VERSION} · by Praveen Singh</div>
-        </div>
       </aside>
       <main class="main-content" id="mainContent">${content}</main>
     </div>`;
 
-  document.querySelectorAll('.sidebar nav a').forEach(a => {
+  document.querySelectorAll('.sidebar-nav a').forEach(a => {
     a.onclick = e => { e.preventDefault(); navigate(a.dataset.page); };
   });
   document.getElementById('logoutBtn').onclick = logout;
