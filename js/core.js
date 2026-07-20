@@ -610,56 +610,96 @@ async function renderUserManagement() {
   `, 'user-mgmt');
 }
 
+// ============ ROLE PICKER MODAL ============
+function showRolePickerModal(userId, name, callback) {
+  const modal = document.createElement('div');
+  modal.className = 'modal-overlay';
+  modal.onclick = e => { if (e.target === modal) modal.remove(); };
+  modal.innerHTML = `
+    <div class="modal-box">
+      <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">✕</button>
+      <h2>🔧 Assign Role</h2>
+      <div class="sub">${name}</div>
+      <div class="form-group" style="margin-top:12px;">
+        <label>Select Role *</label>
+        <select id="rolePickerSel" style="font-size:15px;">
+          <option value="">-- Select Role --</option>
+          <option value="owner">👑 Owner (Full Access)</option>
+          <option value="manager">🧑‍💼 Manager (Add/Edit, No Delete)</option>
+          <option value="viewer">👁️ Viewer (Read Only)</option>
+          <option value="checkin_manager">🏠 Check-in Manager (Dashboard + Bookings)</option>
+          <option value="investor">📊 Investor (Own Property Only)</option>
+          <option value="employee">👷 Employee (Self View Only)</option>
+          <option value="ca">📋 CA / Accountant (Financial Reports)</option>
+        </select>
+      </div>
+      <div style="font-size:12px;color:var(--muted);margin-top:6px;padding:8px;background:var(--bg);border-radius:8px;" id="roleDesc"></div>
+      <button onclick="confirmRolePicker('${userId}','${name.replace(/'/g,"\\'")}',callback_${userId.replace(/-/g,'_')})" style="width:100%;margin-top:12px;">✅ Confirm Role</button>
+      <div id="rolePickerErr"></div>
+    </div>`;
+  document.body.appendChild(modal);
+
+  // Store callback globally
+  window[`callback_${userId.replace(/-/g,'_')}`] = callback;
+
+  // Role description on change
+  document.getElementById('rolePickerSel').onchange = function() {
+    const desc = {
+      owner: 'Full system access. Can add, edit, delete everything.',
+      manager: 'Can add and edit bookings, employees, etc. Cannot delete.',
+      viewer: 'Read-only access to all pages.',
+      checkin_manager: 'Can view dashboard, calendar, bookings, and flats status. Can upload guest ID.',
+      investor: 'Can only view their assigned property bookings and reports.',
+      employee: 'Can only view their own attendance, salary, and tasks.',
+      ca: 'Can only access financial reports and download CSV.'
+    };
+    document.getElementById('roleDesc').textContent = desc[this.value] || '';
+  };
+}
+
+async function confirmRolePicker(userId, name, callbackFn) {
+  const role = document.getElementById('rolePickerSel').value;
+  if (!role) { document.getElementById('rolePickerErr').innerHTML = '<div class="error">Role select karo</div>'; return; }
+  document.querySelector('.modal-overlay')?.remove();
+  if (typeof callbackFn === 'function') callbackFn(role);
+}
+
+// ============ APPROVE USER ============
 async function approveUser(userId, name) {
-  const role = prompt(
-    `Role assign karo for ${name}:\n\nOptions:\n- manager\n- viewer\n- checkin_manager\n- investor\n- employee\n- ca`
-  );
-  if (!role) return;
+  showRolePickerModal(userId, name, async (role) => {
+    try {
+      const { data: pending } = await sb.from('pending_users').select('*').eq('user_id', userId).single();
+      const displayName = name || pending?.full_name || 'User';
+      const authProvider = pending?.auth_provider || 'google';
 
-  try {
-    const { data: pending } = await sb.from('pending_users')
-      .select('*')
-      .eq('user_id', userId)
-      .single();
+      const { data: existing } = await sb.from('profiles').select('user_id').eq('user_id', userId).single();
 
-    const displayName = name || pending?.full_name || 'User';
-    const authProvider = pending?.auth_provider || 'google';
+      if (existing) {
+        await sb.from('profiles').update({ role, display_name: displayName, is_approved: true, auth_provider: authProvider }).eq('user_id', userId);
+      } else {
+        await sb.from('profiles').insert({ user_id: userId, role, display_name: displayName, is_approved: true, auth_provider: authProvider });
+      }
 
-    const { data: existing } = await sb.from('profiles')
-      .select('user_id')
-      .eq('user_id', userId)
-      .single();
-
-    if (existing) {
-      const { error: updErr } = await sb.from('profiles').update({
-        role: role,
-        display_name: displayName,
-        is_approved: true,
-        auth_provider: authProvider
-      }).eq('user_id', userId);
-      if (updErr) throw updErr;
-    } else {
-      const { error: insErr } = await sb.from('profiles').insert({
-        user_id: userId,
-        role: role,
-        display_name: displayName,
-        is_approved: true,
-        auth_provider: authProvider
-      });
-      if (insErr) throw insErr;
+      await sb.from('pending_users').update({ status: 'Approved' }).eq('user_id', userId);
+      alert(`✅ ${displayName} approved as ${role}`);
+      renderUserManagement();
+    } catch (err) {
+      alert('❌ Approve failed: ' + (err.message || err));
     }
+  });
+}
 
-    const { error: pendErr } = await sb.from('pending_users').update({
-      status: 'Approved'
-    }).eq('user_id', userId);
-    if (pendErr) throw pendErr;
-
-    alert(`✅ ${displayName} approved as ${role}`);
-    renderUserManagement();
-
-  } catch (err) {
-    alert('❌ Approve failed: ' + (err.message || err));
-  }
+// ============ CHANGE USER ROLE ============
+async function changeUserRole(userId, name) {
+  showRolePickerModal(userId, name, async (role) => {
+    try {
+      await sb.from('profiles').update({ role }).eq('user_id', userId);
+      alert(`✅ Role changed to ${role}`);
+      renderUserManagement();
+    } catch (err) {
+      alert('❌ Role change failed: ' + (err.message || err));
+    }
+  });
 }
 
 async function rejectUser(userId) {
@@ -669,13 +709,7 @@ async function rejectUser(userId) {
   renderUserManagement();
 }
 
-async function changeUserRole(userId, name) {
-  const role = prompt(`Change role for ${name}:\n\nOptions:\n- owner\n- manager\n- viewer\n- checkin_manager\n- investor\n- employee\n- ca`);
-  if (!role) return;
-  await sb.from('profiles').update({ role: role }).eq('user_id', userId);
-  alert(`✅ Role changed to ${role}`);
-  renderUserManagement();
-}
+
 
 async function deleteUser(userId, name) {
   if (!confirm(`Delete user "${name}"?\n\nProfile + pending entry delete hogi. Auth user remain karega.`)) return;
