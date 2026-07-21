@@ -1,14 +1,24 @@
-const CACHE = 'uh-haven-v25';
+const CACHE = 'uh-haven-v26';
 const STATIC_FILES = [
   '/',
-  '/index.html',
-  '/app.js',
+  '/admin.html',
   '/config.js',
   '/style.css',
-  '/assets/logo.png'
+  '/assets/logo.png',
+  '/js/core.js',
+  '/js/dashboard.js',
+  '/js/calendar.js',
+  '/js/bookings.js',
+  '/js/properties.js',
+  '/js/employees.js',
+  '/js/expenses.js',
+  '/js/store.js',
+  '/js/maintenance.js',
+  '/js/investors.js',
+  '/js/sop.js',
+  '/js/whatsapp.js'
 ];
 
-// Install
 self.addEventListener('install', event => {
   self.skipWaiting();
   event.waitUntil(
@@ -16,44 +26,30 @@ self.addEventListener('install', event => {
   );
 });
 
-// Activate
 self.addEventListener('activate', event => {
   event.waitUntil(
     caches.keys().then(keys =>
-      Promise.all(
-        keys.filter(k => k !== CACHE).map(k => caches.delete(k))
-      )
+      Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)))
     ).then(() => self.clients.claim())
   );
 });
 
-// Fetch strategy
 self.addEventListener('fetch', event => {
   const req = event.request;
   const url = new URL(req.url);
-
-  // Only same-origin
   if (url.origin !== location.origin) return;
 
-  // Network-first for HTML/JS/CSS
-  if (
-    req.destination === 'document' ||
-    req.destination === 'script' ||
-    req.destination === 'style'
-  ) {
+  if (req.destination === 'document' || req.destination === 'script' || req.destination === 'style') {
     event.respondWith(
-      fetch(req)
-        .then(res => {
-          const copy = res.clone();
-          caches.open(CACHE).then(cache => cache.put(req, copy));
-          return res;
-        })
-        .catch(() => caches.match(req))
+      fetch(req).then(res => {
+        const copy = res.clone();
+        caches.open(CACHE).then(cache => cache.put(req, copy));
+        return res;
+      }).catch(() => caches.match(req))
     );
     return;
   }
 
-  // Cache-first for images/static assets
   event.respondWith(
     caches.match(req).then(cached => {
       if (cached) return cached;
