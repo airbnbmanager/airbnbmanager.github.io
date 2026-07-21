@@ -1,43 +1,570 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>The UNIQUE HAVEN HOME STAY</title>
-  <link rel="icon" type="image/png" href="assets/logo.png" />
-  <link rel="manifest" href="manifest.json" />
-  <link rel="stylesheet" href="style.css" />
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<!-- SEO -->
+<title>UNIQUE HAVEN HOMES STAY — Luxury Homestays in Lucknow, Gomti Nagar</title>
+<meta content="Premium luxury homestays in Lucknow — 15 fully furnished properties in Gomti Nagar, Vishesh Khand, Chinhat. Near Lulu Mall, Max Hospital, Ekana Stadium. Book directly or on Airbnb." name="description"/>
+<meta content="homestay lucknow, luxury flat gomti nagar, airbnb lucknow, villa lucknow, vishesh khand, chinhat, lulu mall accommodation, unique haven homes stay" name="keywords"/>
+<meta content="UNIQUE HAVEN HOMES STAY" name="author"/>
+<!-- Open Graph -->
+<meta content="UNIQUE HAVEN HOMES STAY — Luxury Homestays Lucknow" property="og:title"/>
+<meta content="15 luxury properties in Gomti Nagar. Fully furnished flats and villas. Book directly." property="og:description"/>
+<meta content="assets/logo.png" property="og:image"/>
+<meta content="website" property="og:type"/>
+<!-- Favicon -->
+<link href="assets/logo.png" rel="icon" type="image/png"/>
+<!-- Styles -->
+<link href="website.css" rel="stylesheet"/>
 </head>
 <body>
-  <div id="app"></div>
+<!-- ─── NAVBAR ─── -->
+<nav class="site-nav">
+<a class="site-nav-logo" href="properties.html">
+<img alt="Logo" src="assets/logo.png"/>
+<span>UNIQUE HAVEN<br/>HOMES STAY</span>
+</a>
+<div class="site-nav-links">
+<a href="#properties">Properties</a>
+<a href="#why-us">Why Us</a>
+<a href="#contact">Contact</a>
+<a class="site-nav-cta" href="https://wa.me/919450055554" target="_blank">📱 WhatsApp</a>
+</div>
+</nav>
+<!-- ─── HERO ─── -->
+<section class="hero">
+<img alt="Logo" class="hero-logo" src="assets/logo.png"/>
+<h1>Luxury Homestays in Lucknow</h1>
+<p>Premium fully furnished flats &amp; villas in Gomti Nagar. Book direct &amp; save up to 15% — No middleman, best price guaranteed!</p>
+<div class="hero-badges">
+<span class="hero-badge">💰 Book Direct — Save 15%</span>
+<span class="hero-badge">✅ Airbnb Verified</span>
+<span class="hero-badge">🏆 Superhost Quality</span>
+<span class="hero-badge">📍 Gomti Nagar</span>
+<span class="hero-badge">🛎️ 24/7 Support</span>
+</div>
+<div class="hero-stats">
+<div>
+<div class="hero-stat-num">15</div>
+<div class="hero-stat-label">Properties</div>
+</div>
+<div>
+<div class="hero-stat-num">4.9★</div>
+<div class="hero-stat-label">Average Rating</div>
+</div>
+<div>
+<div class="hero-stat-num">500+</div>
+<div class="hero-stat-label">Happy Guests</div>
+</div>
+<div>
+<div class="hero-stat-num">24/7</div>
+<div class="hero-stat-label">Support</div>
+</div>
+</div>
+</section>
+<!-- ─── FILTERS ─── -->
+<div class="filter-section">
+<button class="filter-btn active" onclick="filterProperties('all', this)">All (15)</button>
+<button class="filter-btn" onclick="filterProperties('flat', this)">🏢 Flats (9)</button>
+<button class="filter-btn" onclick="filterProperties('villa', this)">🏡 Villas (6)</button>
+<button class="filter-btn" onclick="filterProperties('vikalp', this)">📍 Vikalp Khand</button>
+<button class="filter-btn" onclick="filterProperties('vishesh', this)">📍 Vishesh Khand</button>
+</div>
+<!-- ─── PROPERTIES ─── -->
+<section class="section" id="properties">
+<div class="section-title">Our Properties</div>
+<div class="section-sub">Carefully curated luxury stays across Gomti Nagar, Lucknow</div>
+<div class="property-grid" id="propertyGrid">
+<!-- GOM-101: RedRose Palace -->
+<div class="property-card" data-area="vikalp" data-type="flat">
+<a class="property-img-link" href="redrose-palace.html"><div class="property-img"><img alt="RedRose Palace" src="assets/properties/redrose-palace/cover.jpg"/></div></a>
+<div class="property-body">
+<div class="property-type">3BHK Flat · Vikalp Khand</div>
+<div class="property-name"><a href="redrose-palace.html" class="property-name-link">RedRose Palace</a></div>
+<div class="property-location">📍 Vikalp Khand, Gomti Nagar, Chinhat</div>
+<div class="property-amenities">
+<span class="amenity-tag">👥 Up to 10</span>
+<span class="amenity-tag">❄️ AC</span>
+<span class="amenity-tag">📶 WiFi</span>
+<span class="amenity-tag">🅿️ Parking</span>
+<span class="amenity-tag">🍳 Kitchen</span>
+</div>
+<div style="font-size:12px;color:var(--muted);margin-bottom:12px;">
+            🏥 Max Hospital — 5 min · 🛍️ Lulu Mall — 20 min
+          </div>
+<div class="property-footer">
+<span class="property-guests"></span>
+<div class="property-btns">
+<a class="btn-whatsapp" href="https://wa.me/919450055554?text=Hi,%20I'm%20interested%20in%20booking%20RedRose%20Palace%20directly.%20Please%20share%20availability%20and%20best%20price." target="_blank">💬 Book Direct</a>
+<a class="btn-airbnb" href="https://www.airbnb.co.in/rooms/1654261872286835347?source_impression_id=p3_1784490513_P3oar9FOiU4NE51K" target="_blank">Airbnb ↗</a>
+</div>
+</div>
+</div>
+</div>
+<!-- GOM-102: Black Beauty -->
+<div class="property-card" data-area="vikalp" data-type="flat">
+<a class="property-img-link" href="black-beauty.html"><div class="property-img"><img alt="Black Beauty" src="assets/properties/black-beauty/cover.jpg"/></div></a>
+<div class="property-body">
+<div class="property-type">3BHK Flat · Vikalp Khand</div>
+<div class="property-name"><a href="black-beauty.html" class="property-name-link">Black Beauty</a></div>
+<div class="property-location">📍 Vikalp Khand, Gomti Nagar, Chinhat</div>
+<div class="property-amenities">
+<span class="amenity-tag">👥 Up to 10</span>
+<span class="amenity-tag">❄️ AC</span>
+<span class="amenity-tag">📶 WiFi</span>
+<span class="amenity-tag">🅿️ Parking</span>
+<span class="amenity-tag">🍳 Kitchen</span>
+</div>
+<div style="font-size:12px;color:var(--muted);margin-bottom:12px;">
+            🏥 Max Hospital — 5 min · 🛍️ Lulu Mall — 20 min
+          </div>
+<div class="property-footer">
+<span class="property-guests"></span>
+<div class="property-btns">
+<a class="btn-whatsapp" href="https://wa.me/919450055554?text=Hi,%20I%27m%20interested%20in%20booking%20Black%20Beauty%20directly.%20Please%20share%20availability%20and%20best%20price." target="_blank">💬 Book Direct</a>
+<a class="btn-airbnb" href="https://www.airbnb.co.in/rooms/1676840617430941240?source_impression_id=p3_1784490513_P3k6wKZ7csnNCsbP" target="_blank">Airbnb ↗</a>
+</div>
+</div>
+</div>
+</div>
+<!-- GOM-201: The Dark Blue -->
+<div class="property-card" data-area="vikalp" data-type="flat">
+<a class="property-img-link" href="the-dark-blue.html"><div class="property-img"><img alt="The Dark Blue" src="assets/properties/the-dark-blue/cover.jpg"/></div></a>
+<div class="property-body">
+<div class="property-type">3BHK Flat · Vikalp Khand</div>
+<div class="property-name"><a href="the-dark-blue.html" class="property-name-link">The Dark Blue</a></div>
+<div class="property-location">📍 Vikalp Khand, Gomti Nagar, Chinhat</div>
+<div class="property-amenities">
+<span class="amenity-tag">👥 Up to 10</span>
+<span class="amenity-tag">❄️ AC</span>
+<span class="amenity-tag">📶 WiFi</span>
+<span class="amenity-tag">🅿️ Parking</span>
+<span class="amenity-tag">🍳 Kitchen</span>
+</div>
+<div style="font-size:12px;color:var(--muted);margin-bottom:12px;">
+            🏥 Max Hospital — 5 min · 🛍️ Lulu Mall — 20 min
+          </div>
+<div class="property-footer">
+<div class="property-btns">
+<a class="btn-whatsapp" href="https://wa.me/919450055554?text=Hi,%20I%27m%20interested%20in%20booking%20The%20Dark%20Blue%20directly.%20Please%20share%20availability%20and%20best%20price." target="_blank">💬 Book Direct</a>
+<a class="btn-airbnb" href="https://www.airbnb.co.in/rooms/1655969170448425308?source_impression_id=p3_1784490513_P3yajPI12Fht4JnV" target="_blank">Airbnb ↗</a>
+</div>
+</div>
+</div>
+</div>
+<!-- GOM-202: The Brown -->
+<div class="property-card" data-area="vikalp" data-type="flat">
+<a class="property-img-link" href="the-brown.html"><div class="property-img"><img alt="The Brown" src="assets/properties/the-brown/cover.jpg"/></div></a>
+<div class="property-body">
+<div class="property-type">3BHK Flat · Vikalp Khand</div>
+<div class="property-name"><a href="the-brown.html" class="property-name-link">The Brown</a></div>
+<div class="property-location">📍 Vikalp Khand, Gomti Nagar, Chinhat</div>
+<div class="property-amenities">
+<span class="amenity-tag">👥 Up to 10</span>
+<span class="amenity-tag">❄️ AC</span>
+<span class="amenity-tag">📶 WiFi</span>
+<span class="amenity-tag">🅿️ Parking</span>
+<span class="amenity-tag">🍳 Kitchen</span>
+</div>
+<div style="font-size:12px;color:var(--muted);margin-bottom:12px;">
+            🏥 Max Hospital — 5 min · 🛍️ Lulu Mall — 20 min
+          </div>
+<div class="property-footer">
+<div class="property-btns">
+<a class="btn-whatsapp" href="https://wa.me/919450055554?text=Hi,%20I%27m%20interested%20in%20booking%20The%20Brown%20directly.%20Please%20share%20availability%20and%20best%20price." target="_blank">💬 Book Direct</a>
+<a class="btn-airbnb" href="https://www.airbnb.co.in/rooms/1660898784168880636?source_impression_id=p3_1784490513_P3MjEVYpf6l2D65g" target="_blank">Airbnb ↗</a>
+</div>
+</div>
+</div>
+</div>
+<!-- GOM-301: The Light Green -->
+<div class="property-card" data-area="vikalp" data-type="flat">
+<a class="property-img-link" href="the-light-green.html"><div class="property-img"><img alt="The Light Green" src="assets/properties/the-light-green/cover.jpg"/></div></a>
+<div class="property-body">
+<div class="property-type">3BHK Flat · Vikalp Khand</div>
+<div class="property-name"><a href="the-light-green.html" class="property-name-link">The Light Green</a></div>
+<div class="property-location">📍 Vikalp Khand, Gomti Nagar, Chinhat</div>
+<div class="property-amenities">
+<span class="amenity-tag">👥 Up to 10</span>
+<span class="amenity-tag">❄️ AC</span>
+<span class="amenity-tag">📶 WiFi</span>
+<span class="amenity-tag">🅿️ Parking</span>
+<span class="amenity-tag">🍳 Kitchen</span>
+</div>
+<div style="font-size:12px;color:var(--muted);margin-bottom:12px;">
+            🏥 Max Hospital — 5 min · 🛍️ Lulu Mall — 20 min
+          </div>
+<div class="property-footer">
+<div class="property-btns">
+<a class="btn-whatsapp" href="https://wa.me/919450055554?text=Hi,%20I%27m%20interested%20in%20booking%20The%20Light%20Green%20directly.%20Please%20share%20availability%20and%20best%20price." target="_blank">💬 Book Direct</a>
+<a class="btn-airbnb" href="https://www.airbnb.co.in/rooms/1679155811558485410?source_impression_id=p3_1784490513_P3wcv49C1dQL1hSZ" target="_blank">Airbnb ↗</a>
+</div>
+</div>
+</div>
+</div>
+<!-- GOM-302: The Unique -->
+<div class="property-card" data-area="vikalp" data-type="flat">
+<a class="property-img-link" href="the-unique.html"><div class="property-img"><img alt="The Unique" src="assets/properties/the-unique/cover.jpg"/></div></a>
+<div class="property-body">
+<div class="property-type">3BHK Flat · Vikalp Khand</div>
+<div class="property-name"><a href="the-unique.html" class="property-name-link">The Unique</a></div>
+<div class="property-location">📍 Vikalp Khand, Gomti Nagar, Chinhat</div>
+<div class="property-amenities">
+<span class="amenity-tag">👥 Up to 10</span>
+<span class="amenity-tag">❄️ AC</span>
+<span class="amenity-tag">📶 WiFi</span>
+<span class="amenity-tag">🅿️ Parking</span>
+<span class="amenity-tag">🍳 Kitchen</span>
+</div>
+<div style="font-size:12px;color:var(--muted);margin-bottom:12px;">
+            🏥 Max Hospital — 5 min · 🛍️ Lulu Mall — 20 min
+          </div>
+<div class="property-footer">
+<div class="property-btns">
+<a class="btn-whatsapp" href="https://wa.me/919450055554?text=Hi,%20I%27m%20interested%20in%20booking%20The%20Unique%20directly.%20Please%20share%20availability%20and%20best%20price." target="_blank">💬 Book Direct</a>
+<a class="btn-airbnb" href="https://www.airbnb.co.in/rooms/1679190202218939181?source_impression_id=p3_1784490513_P3yUPfEoP2cxebTZ" target="_blank">Airbnb ↗</a>
+</div>
+</div>
+</div>
+</div>
+<!-- GOM-401: The Nawabi Stay -->
+<div class="property-card" data-area="vikalp" data-type="flat">
+<a class="property-img-link" href="the-nawabi-stay.html"><div class="property-img"><img alt="The Nawabi Stay" src="assets/properties/the-nawabi-stay/cover.jpg"/></div></a>
+<div class="property-body">
+<div class="property-type">3BHK Flat · Near Max Hospital</div>
+<div class="property-name"><a href="the-nawabi-stay.html" class="property-name-link">The Nawabi Stay</a></div>
+<div class="property-location">📍 Vikalp Khand, Gomti Nagar, Chinhat</div>
+<div class="property-amenities">
+<span class="amenity-tag">👥 Up to 10</span>
+<span class="amenity-tag">❄️ AC</span>
+<span class="amenity-tag">📶 WiFi</span>
+<span class="amenity-tag">🅿️ Parking</span>
+<span class="amenity-tag">🍳 Kitchen</span>
+</div>
+<div style="font-size:12px;color:var(--muted);margin-bottom:12px;">
+            🏥 Max Hospital — 3 min walk · 🛍️ Lulu Mall — 20 min
+          </div>
+<div class="property-footer">
+<div class="property-btns">
+<a class="btn-whatsapp" href="https://wa.me/919450055554?text=Hi,%20I%27m%20interested%20in%20booking%20The%20Nawabi%20Stay%20directly.%20Please%20share%20availability%20and%20best%20price." target="_blank">💬 Book Direct</a>
+<a class="btn-airbnb" href="https://www.airbnb.co.in/rooms/1723434530455939144?source_impression_id=p3_1784490772_P3w95W-qShI6nglf" target="_blank">Airbnb ↗</a>
+</div>
+</div>
+</div>
+</div>
+<!-- GOM-501: Starlight Blue PentHouse -->
+<div class="property-card" data-area="vikalp" data-type="flat">
+<a class="property-img-link" href="starlight-blue-penthouse.html"><div class="property-img"><img alt="Starlight Blue PentHouse" src="assets/properties/starlight-blue/cover.jpg"/></div></a>
+<div class="property-body">
+<div class="property-type">PentHouse · Top Floor · Vikalp Khand</div>
+<div class="property-name"><a href="starlight-blue-penthouse.html" class="property-name-link">Starlight Blue PentHouse</a></div>
+<div class="property-location">📍 Vikalp Khand, Gomti Nagar, Chinhat</div>
+<div class="property-amenities">
+<span class="amenity-tag">👥 Up to 10</span>
+<span class="amenity-tag">❄️ AC</span>
+<span class="amenity-tag">📶 WiFi</span>
+<span class="amenity-tag">🅿️ Parking</span>
+<span class="amenity-tag">🌆 Top Floor</span>
+</div>
+<div style="font-size:12px;color:var(--muted);margin-bottom:12px;">
+            🏥 Max Hospital — 5 min · 🛍️ Lulu Mall — 20 min
+          </div>
+<div class="property-footer">
+<div class="property-btns">
+<a class="btn-whatsapp" href="https://wa.me/919450055554?text=Hi,%20I%27m%20interested%20in%20booking%20Starlight%20Blue%20PentHouse%20directly.%20Please%20share%20availability%20and%20best%20price." target="_blank">💬 BookDirect</a>
+<a class="btn-airbnb" href="https://www.airbnb.co.in/rooms/1718385679817913835?source_impression_id=p3_1784490513_P37OBi0pj9zNphrt" target="_blank">Airbnb ↗</a>
+</div>
+</div>
+</div>
+</div>
+<!-- VIL-101: Gomti Grand Villa -->
+<div class="property-card" data-area="other" data-type="flat">
+<a class="property-img-link" href="gomti-grand-villa.html"><div class="property-img"><img alt="Gomti Grand Villa" src="assets/properties/gomti-grand-villa/cover.jpg"/></div></a>
+<div class="property-body">
+<div class="property-type">4BHK Villa · Near Lulu Mall</div>
+<div class="property-name"><a href="gomti-grand-villa.html" class="property-name-link">Gomti Grand Villa</a></div>
+<div class="property-location">📍 Geetapuri Colony, Lucknow</div>
+<div class="property-amenities">
+<span class="amenity-tag">👥 Up to 10</span>
+<span class="amenity-tag">❄️ AC</span>
+<span class="amenity-tag">📶 WiFi</span>
+<span class="amenity-tag">🅿️ Private Parking</span>
+<span class="amenity-tag">🏡 Garden</span>
+</div>
+<div style="font-size:12px;color:var(--muted);margin-bottom:12px;">
+            🛍️ Lulu Mall — 10 min · 🏟️ Ekana Stadium — 15 min · ✈️ Airport — 20 min
+          </div>
+<div class="property-footer">
+<div class="property-btns">
+<a class="btn-whatsapp" href="https://wa.me/919450055554?text=Hi,%20I%27m%20interested%20in%20booking%20Gomti%20Grand%20Villa%20directly.%20Please%20share%20availability%20and%20best%20price." target="_blank">💬 Book Direct</a>
+<a class="btn-airbnb" href="https://www.airbnb.co.in/rooms/1721732716374002170?source_impression_id=p3_1784490772_P3SmEM9lpmYLymtK" target="_blank">Airbnb ↗</a>
+</div>
+</div>
+</div>
+</div>
+<!-- VIL-102: Royal White House -->
+<div class="property-card" data-area="other" data-type="villa">
+<a class="property-img-link" href="royal-white-house.html"><div class="property-img"><img alt="Royal White House" src="assets/properties/royal-white-house/cover.jpg"/></div></a>
+<div class="property-body">
+<div class="property-type">Villa · Near Lulu Mall &amp; Airport</div>
+<div class="property-name"><a href="royal-white-house.html" class="property-name-link">Royal White House</a></div>
+<div class="property-location">📍 Omex City, Lucknow</div>
+<div class="property-amenities">
+<span class="amenity-tag">👥 Up to 10</span>
+<span class="amenity-tag">❄️ AC</span>
+<span class="amenity-tag">📶 WiFi</span>
+<span class="amenity-tag">🅿️ Parking</span>
+</div>
+<div style="font-size:12px;color:var(--muted);margin-bottom:12px;">
+            🛍️ Lulu Mall — 10 min · 🏟️ Ekana — 12 min · ✈️ Airport — 15 min
+          </div>
+<div class="property-footer">
+<div class="property-btns">
+<a class="btn-whatsapp" href="https://wa.me/919450055554?text=Hi,%20I%27m%20interested%20in%20booking%20Royal%20White%20House%20directly.%20Please%20share%20availability%20and%20best%20price." target="_blank">💬 Book Direct</a>
+<a class="btn-airbnb" href="https://www.airbnb.co.in/rooms/1718315215180636685?source_impression_id=p3_1784490513_P3BvUG5nmBuCUCTv" target="_blank">Airbnb ↗</a>
+</div>
+</div>
+</div>
+</div>
+<!-- VIL-103: The Pink House -->
+<div class="property-card" data-area="vishesh" data-type="villa">
+<a class="property-img-link" href="the-pink-house.html"><div class="property-img"><img alt="The Pink House" src="assets/properties/the-pink-house/cover.jpg"/></div></a>
+<div class="property-body">
+<div class="property-type">5BR Elegant Villa · Vishesh Khand</div>
+<div class="property-name"><a href="the-pink-house.html" class="property-name-link">The Pink House</a></div>
+<div class="property-location">📍 Vishesh Khand 3, Gomti Nagar</div>
+<div class="property-amenities">
+<span class="amenity-tag">👥 Up to 12</span>
+<span class="amenity-tag">❄️ AC</span>
+<span class="amenity-tag">📶 WiFi</span>
+<span class="amenity-tag">🅿️ Parking</span>
+<span class="amenity-tag">🎉 Events</span>
+</div>
+<div style="font-size:12px;color:var(--muted);margin-bottom:12px;">
+            🛍️ Plassio Mall — 5 min · 🛍️ Lulu Mall — 8 min · 🏟️ Ekana — 12 min
+          </div>
+<div class="property-footer">
+<div class="property-btns">
+<a class="btn-whatsapp" href="https://wa.me/919450055554?text=Hi,%20I%27m%20interested%20in%20booking%20The%20Pink%20House%20directly.%20Please%20share%20availability%20and%20best%20price." target="_blank">💬 Book Direct</a>
+<a class="btn-airbnb" href="https://www.airbnb.co.in/rooms/1592729438969718723?source_impression_id=p3_1784490513_P3GouKQWd_2t7syC" target="_blank">Airbnb ↗</a>
+</div>
+</div>
+</div>
+</div>
+<!-- VIL-104: The Green House -->
+<div class="property-card" data-area="vishesh" data-type="villa">
+<a class="property-img-link" href="the-green-house.html"><div class="property-img"><img alt="The Green House" src="assets/properties/the-green-house/cover.jpg"/></div></a>
+<div class="property-body">
+<div class="property-type">3BR Villa · Vishesh Khand</div>
+<div class="property-name"><a href="the-green-house.html" class="property-name-link">The Green House</a></div>
+<div class="property-location">📍 Vishesh Khand 3, Gomti Nagar</div>
+<div class="property-amenities">
+<span class="amenity-tag">👥 Up to 10</span>
+<span class="amenity-tag">❄️ AC</span>
+<span class="amenity-tag">📶 WiFi</span>
+<span class="amenity-tag">🅿️ Parking</span>
+<span class="amenity-tag">🌿 Garden</span>
+</div>
+<div style="font-size:12px;color:var(--muted);margin-bottom:12px;">
+            🛍️ Plassio Mall — 5 min · 🛍️ Lulu Mall — 8 min
+          </div>
+<div class="property-footer">
+<div class="property-btns">
+<a class="btn-whatsapp" href="https://wa.me/919450055554?text=Hi,%20I%27m%20interested%20in%20booking%20The%20Green%20House%20directly.%20Please%20share%20availability%20and%20best%20price." target="_blank">💬 Book Direct</a>
+<a class="btn-airbnb" href="https://www.airbnb.co.in/rooms/1593461780265937816?source_impression_id=p3_1784490513_P3yrS5s1Jatw1AKp" target="_blank">Airbnb ↗</a>
+</div>
+</div>
+</div>
+</div>
+<!-- VIL-105: The Yellow House -->
+<div class="property-card" data-area="vishesh" data-type="villa">
+<a class="property-img-link" href="the-yellow-house.html"><div class="property-img"><img alt="The Yellow House" src="assets/properties/the-yellow-house/cover.jpg"/></div></a>
+<div class="property-body">
+<div class="property-type">3BHK Villa · Vishesh Khand · ⭐ 4.87</div>
+<div class="property-name"><a href="the-yellow-house.html" class="property-name-link">The Yellow House</a></div>
+<div class="property-location">📍 Vishesh Khand 3, Gomti Nagar</div>
+<div class="property-amenities">
+<span class="amenity-tag">👥 Up to 10</span>
+<span class="amenity-tag">❄️ AC</span>
+<span class="amenity-tag">📶 WiFi</span>
+<span class="amenity-tag">🅿️ Parking</span>
+<span class="amenity-tag">⭐ Highly Rated</span>
+</div>
+<div style="font-size:12px;color:var(--muted);margin-bottom:12px;">
+            🛍️ Plassio — 5 min · 🛍️ Lulu — 8 min · 39 reviews on Airbnb
+          </div>
+<div class="property-footer">
+<div class="property-btns">
+<a class="btn-whatsapp" href="https://wa.me/919450055554?text=Hi,%20I%27m%20interested%20in%20booking%20The%20Yellow%20House%20directly.%20Please%20share%20availability%20and%20best%20price." target="_blank">💬 Book Direct</a>
+<a class="btn-airbnb" href="https://www.airbnb.co.in/rooms/1592729918855637425?source_impression_id=p3_1784490513_P3Ja3wCeiHfkB2Qv" target="_blank">Airbnb ↗</a>
+</div>
+</div>
+</div>
+</div>
+<!-- LUL-402: Celebrity Garden -->
+<div class="property-card" data-area="other" data-type="flat">
+<a class="property-img-link" href="celebrity-garden.html"><div class="property-img"><img alt="Celebrity Garden" src="assets/properties/celebrity-garden/cover.jpg"/></div></a>
+<div class="property-body">
+<div class="property-type">5-Bed Flat · Near Lulu Mall &amp; Medanta · ⭐ 4.94</div>
+<div class="property-name"><a href="celebrity-garden.html" class="property-name-link">Celebrity Garden</a></div>
+<div class="property-location">📍 Near Lulu Mall, Lucknow</div>
+<div class="property-amenities">
+<span class="amenity-tag">👥 Up to 12</span>
+<span class="amenity-tag">❄️ AC</span>
+<span class="amenity-tag">📶 WiFi</span>
+<span class="amenity-tag">🅿️ Parking</span>
+<span class="amenity-tag">⭐ Top Rated</span>
+</div>
+<div style="font-size:12px;color:var(--muted);margin-bottom:12px;">
+            🛍️ Lulu Mall — 8 min · 🏥 Medanta — 10 min · 🏟️ Ekana — 12 min · 4.94★ (16 reviews)
+          </div>
+<div class="property-footer">
+<div class="property-btns">
+<a class="btn-whatsapp" href="https://wa.me/919450055554?text=Hi,%20I%27m%20interested%20in%20booking%20Celebrity%20Garden%20directly.%20Please%20share%20availability%20and%20best%20price." target="_blank">💬 Book Direct</a>
+<a class="btn-airbnb" href="https://www.airbnb.co.in/rooms/1606514664948608755?source_impression_id=p3_1784490513_P3zxSlYsSHDaZ8oS" target="_blank">Airbnb ↗</a>
+</div>
+</div>
+</div>
+</div>
+<!-- VIL-107: The Velvet House -->
+<div class="property-card" data-area="other" data-type="villa">
+<a class="property-img-link" href="the-velvet-house.html"><div class="property-img"><img alt="The Velvet House" src="assets/properties/the-velvet-house/cover.jpg"/></div></a>
+<div class="property-body">
+<div class="property-type">Villa · Near Lulu Mall &amp; Medanta</div>
+<div class="property-name"><a href="the-velvet-house.html" class="property-name-link">The Velvet House</a></div>
+<div class="property-location">📍 Near Lulu Mall, Lucknow</div>
+<div class="property-amenities">
+<span class="amenity-tag">👥 Up to 10</span>
+<span class="amenity-tag">❄️ AC</span>
+<span class="amenity-tag">📶 WiFi</span>
+<span class="amenity-tag">🅿️ Parking</span>
+</div>
+<div style="font-size:12px;color:var(--muted);margin-bottom:12px;">
+            🛍️ Lulu Mall — 8 min · 🏥 Medanta — 10 min · 🏟️ Ekana — 12 min
+          </div>
+<div class="property-footer">
+<div class="property-btns">
+<a class="btn-whatsapp" href="https://wa.me/919450055554?text=Hi,%20I%27m%20interested%20in%20booking%20The%20Velvet%20House%20directly.%20Please%20share%20availability%20and%20best%20price." target="_blank">💬 Book Direct</a>
+<a class="btn-airbnb" href="https://www.airbnb.co.in/rooms/1727830063287100082?source_impression_id=p3_1784490772_P331XHHIbl7DXnMc" target="_blank">Airbnb ↗</a>
+</div>
+</div>
+</div>
+</div>
+<!-- end property-grid -->
+</div>
+</section>
+<!-- ─── WHY US ─── -->
+<section style="background:#fff;padding:60px 0;">
+<div class="section" id="why-us" style="padding-top:0;padding-bottom:0;">
+<div class="section-title">Why Choose Us?</div>
+<div class="section-sub">We go beyond just accommodation — we create experiences</div>
+<div class="usp-grid">
+<div class="usp-card">
+<div class="usp-icon">🏆</div>
+<div class="usp-title">Superhost Quality</div>
+<div class="usp-desc">Airbnb Superhost standards with 4.9★ average rating across all properties</div>
+</div>
+<div class="usp-card">
+<div class="usp-icon">🛎️</div>
+<div class="usp-title">24/7 Support</div>
+<div class="usp-desc">Dedicated caretakers and owner contact available round the clock</div>
+</div>
+<div class="usp-card">
+<div class="usp-icon">🏠</div>
+<div class="usp-title">Fully Furnished</div>
+<div class="usp-desc">Move-in ready with premium furniture, AC, WiFi, kitchen, and all essentials</div>
+</div>
+<div class="usp-card">
+<div class="usp-icon">📍</div>
+<div class="usp-title">Prime Location</div>
+<div class="usp-desc">Minutes from Lulu Mall, Max Hospital, Ekana Stadium, and Lucknow Airport</div>
+</div>
+<div class="usp-card">
+<div class="usp-icon">✅</div>
+<div class="usp-title">Verified &amp; Safe</div>
+<div class="usp-desc">Government ID verification at check-in. CCTV in common areas for safety</div>
+</div>
+<div class="usp-card">
+<div class="usp-icon">👨‍👩‍👧‍👦</div>
+<div class="usp-title">Family Friendly</div>
+<div class="usp-desc">Perfect for families, groups, business travellers, wedding guests &amp; events</div>
+</div>
+</div>
+</div>
+</section>
+<!-- ─── CONTACT ─── -->
+<section class="contact-section" id="contact">
+<h2>Book Direct &amp; Save 15%</h2>
+<p>Skip the middleman — contact us directly for best prices, availability, and custom stays!</p>
+<div class="contact-cards">
+<div class="contact-card">
+<div class="contact-card-name">Mr. Shahanshah</div>
+<div class="contact-card-phone">+91 94500 55554</div>
+<div class="contact-card-role">Owner</div>
+</div>
+<div class="contact-card">
+<div class="contact-card-name">Mr. Firoz Khan</div>
+<div class="contact-card-phone">+91 82996 00709</div>
+<div class="contact-card-role">Owner</div>
+</div>
+</div>
+<div style="display:flex;justify-content:center;gap:12px;flex-wrap:wrap;">
+<a class="whatsapp-btn-large" href="https://wa.me/919450055554" target="_blank">
+        💬 WhatsApp Shahanshah
+      </a>
+<a class="whatsapp-btn-large" href="https://wa.me/918299600709" target="_blank">
+        💬 WhatsApp Firoz
+      </a>
+</div>
+<div style="margin-top:24px;color:rgba(255,255,255,0.5);font-size:14px;">
+      📧 Enquiry for custom stays, long-term, events, and group bookings welcome
+    </div>
+</section>
+<!-- ─── FOOTER ─── -->
+  <footer class="site-footer">
+    <div style="margin-bottom:16px;">
+      <img src="assets/logo.png" alt="" style="width:40px;height:40px;border-radius:10px;object-fit:contain;opacity:0.7;" />
+    </div>
+    <div style="font-weight:700;color:rgba(255,255,255,0.8);margin-bottom:8px;">UNIQUE HAVEN HOMES STAY</div>
+    <div style="margin-bottom:16px;">Lucknow, Uttar Pradesh, India</div>
+    <div style="font-size:12px;margin-bottom:8px;">
+      <a href="#properties" style="margin:0 8px;">Properties</a> ·
+      · <a href="admin.html" style="margin:0 8px;">Staff Login</a>
+      <a href="#contact" style="margin:0 8px;">Contact</a> ·
+      <a href="https://www.airbnb.co.in/users/profile/1592729439630759961" target="_blank" style="margin:0 8px;">View on Airbnb</a>
+    </div>
+    <div id="year-line" style="font-size:11px;margin-top:16px;"></div>
+  </footer>
 
-  <!-- Supabase -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <!-- ─── SCRIPT ─── -->
+<script>
+    // Filter properties
+    function filterProperties(type, btn) {
+      // Update active button
+      document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
 
-  <!-- Config -->
-  <script src="config.js"></script>
+      // Filter cards
+      const cards = document.querySelectorAll('.property-card');
+      cards.forEach(card => {
+        const cardType = card.dataset.type;
+        const cardArea = card.dataset.area;
+        let show = false;
 
-  <!-- App Modules — order matters -->
-  <script src="js/core.js"></script>
-  <script src="js/dashboard.js"></script>
-  <script src="js/calendar.js"></script>
-  <script src="js/bookings.js"></script>
-  <script src="js/properties.js"></script>
-  <script src="js/employees.js"></script>
-  <script src="js/investors.js"></script>
-  <script src="js/store.js"></script>
-  <script src="js/expenses.js"></script>
-  <script src="js/maintenance.js"></script>
-  <script src="js/sop.js"></script>
-  <script src="js/whatsapp.js"></script>
+        if (type === 'all') show = true;
+        else if (type === 'flat' && cardType === 'flat') show = true;
+        else if (type === 'villa' && cardType === 'villa') show = true;
+        else if (type === 'vikalp' && cardArea === 'vikalp') show = true;
+        else if (type === 'vishesh' && cardArea === 'vishesh') show = true;
 
-  <!-- Service Worker -->
-  <script>
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/sw.js')
-        .then(() => console.log('✅ SW registered'))
-        .catch(err => console.log('❌ SW failed:', err));
+        card.style.display = show ? 'block' : 'none';
+      });
     }
-  </script>
+
+    // Fix footer year
+    document.getElementById('year-line').textContent =
+      `© ${new Date().getFullYear()} UNIQUE HAVEN HOMES STAY · Developed by Praveen Singh`;
+</script>
 </body>
 </html>
