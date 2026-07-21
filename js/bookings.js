@@ -271,21 +271,16 @@ async function renderAddBooking() {
         <div class="id-card-title">👤 Guest ${i}${i === 1 ? ' (Primary)' : ''}</div>
         <input type="text" style="font-size:13px;min-height:36px;margin-bottom:4px;" id="gN${i}"
           placeholder="Guest ${i} naam" value="${i === 1 ? (pre.guestName || '') : ''}" />
-        <div style="font-size:11px;color:var(--muted);margin:4px 0;">📄 Front Side</div>
-        <div class="id-card-btns">
-          <button type="button" class="outline" onclick="document.getElementById('gFCam${i}').click()">📷</button>
-          <button type="button" class="outline" onclick="document.getElementById('gFGal${i}').click()">🖼️</button>
-        </div>
-        <input type="file" id="gFCam${i}" accept="image/*" capture="environment" style="display:none;" onchange="onIdPick(${i},'front','cam')" />
-        <input type="file" id="gFGal${i}" accept="image/*" style="display:none;" onchange="onIdPick(${i},'front','gal')" />
-        <div style="font-size:11px;color:var(--muted);margin:4px 0;">📄 Back Side</div>
-        <div class="id-card-btns">
-          <button type="button" class="outline" onclick="document.getElementById('gBCam${i}').click()">📷</button>
-          <button type="button" class="outline" onclick="document.getElementById('gBGal${i}').click()">🖼️</button>
-        </div>
-        <input type="file" id="gBCam${i}" accept="image/*" capture="environment" style="display:none;" onchange="onIdPick(${i},'back','cam')" />
-        <input type="file" id="gBGal${i}" accept="image/*" style="display:none;" onchange="onIdPick(${i},'back','gal')" />
-        <div class="file-info" id="idSt${i}"></div>
+
+        <div style="font-size:11px;color:var(--muted);margin:6px 0 2px;font-weight:600;">📄 Front Side</div>
+        <input type="file" id="idFront${i}" accept="image/*" capture="environment"
+          style="font-size:12px;" onchange="onIdFileSelect(this, ${i}, 'front')" />
+        <div id="previewFront${i}" style="margin:4px 0;"></div>
+
+        <div style="font-size:11px;color:var(--muted);margin:6px 0 2px;font-weight:600;">📄 Back Side</div>
+        <input type="file" id="idBack${i}" accept="image/*" capture="environment"
+          style="font-size:12px;" onchange="onIdFileSelect(this, ${i}, 'back')" />
+        <div id="previewBack${i}" style="margin:4px 0;"></div>
       </div>`;
   }
 
@@ -421,18 +416,18 @@ async function renderAddBooking() {
       </div>
       <div id="vehicleBox" style="display:${pre.hasVehicle ? 'block' : 'none'};">
         <div class="form-grid">
-          <div class="form-group"><label>Vehicle Name</label><input id="vehicleName" placeholder="e.g. Swift Dzire" value="${pre.vehicleName || ''}" /></div>
-          <div class="form-group"><label>Registration No.</label><input id="vehicleNumber" placeholder="e.g. UP32 XX 1234" value="${pre.vehicleNumber || ''}" /></div>
+          <div class="form-group"><label>Vehicle Name</label>
+            <input id="vehicleName" placeholder="e.g. Swift Dzire" value="${pre.vehicleName || ''}" />
+          </div>
+          <div class="form-group"><label>Registration No.</label>
+            <input id="vehicleNumber" placeholder="e.g. UP32 XX 1234" value="${pre.vehicleNumber || ''}" />
+          </div>
         </div>
         <div class="form-group">
           <label>Vehicle Photo (Optional)</label>
-          <div class="id-card-btns">
-            <button type="button" class="outline" onclick="document.getElementById('vehiclePhotoCam').click()">📷 Camera</button>
-            <button type="button" class="outline" onclick="document.getElementById('vehiclePhotoGal').click()">🖼️ Gallery</button>
-          </div>
-          <input type="file" id="vehiclePhotoCam" accept="image/*" capture="environment" style="display:none;" onchange="onVehiclePhotoPick('cam')" />
-          <input type="file" id="vehiclePhotoGal" accept="image/*" style="display:none;" onchange="onVehiclePhotoPick('gal')" />
-          <div id="vehiclePhotoPreview" style="margin-top:6px;"></div>
+          <input type="file" id="vehiclePhoto" accept="image/*" capture="environment"
+            style="font-size:12px;" onchange="onVehiclePhotoSelect(this)" />
+          <div id="vehiclePhotoPreview" style="margin:4px 0;"></div>
         </div>
       </div>
 
@@ -478,46 +473,7 @@ function showIdSlots() {
   }
 }
 
-function onIdPick(i, side, src) {
-  const prefix = side === 'front' ? 'gF' : 'gB';
-  const inp = document.getElementById(src === 'cam' ? `${prefix}Cam${i}` : `${prefix}Gal${i}`);
-  const st = document.getElementById(`idSt${i}`);
-  const slot = document.getElementById(`idSlot${i}`);
 
-  if (inp?.files?.[0]) {
-    const file = inp.files[0];
-    const sizeMB = (file.size / 1024 / 1024).toFixed(1);
-
-    // Show preview
-    const reader = new FileReader();
-    reader.onload = function(e) {
-      // Add preview image
-      let previewId = `preview_${side}_${i}`;
-      let existing = document.getElementById(previewId);
-      if (existing) existing.remove();
-
-      const previewDiv = document.createElement('div');
-      previewDiv.id = previewId;
-      previewDiv.style.cssText = 'margin:4px 0;';
-      previewDiv.innerHTML = `
-        <img src="${e.target.result}" style="width:60px;height:40px;object-fit:cover;border-radius:6px;border:2px solid var(--green);" />
-        <span style="font-size:10px;color:var(--green);margin-left:4px;">✅ ${side} ready (${sizeMB}MB)</span>
-      `;
-
-      // Insert after the file input buttons
-      const btnsDiv = inp.closest('.id-card');
-      if (btnsDiv) btnsDiv.appendChild(previewDiv);
-    };
-    reader.readAsDataURL(file);
-
-    // Update status text
-    if (st) {
-      const prev = st.textContent || '';
-      st.textContent = prev + ` ✅ ${side}`;
-    }
-    if (slot) slot.classList.add('done');
-  }
-}
 // ============ VEHICLE PHOTO HANDLER ============
 function onVehiclePhotoPick(src, mode = 'new') {
   const prefix = mode === 'edit' ? 'editVehicle' : 'vehicle';
@@ -642,54 +598,101 @@ function onAmtChg() {
   }
 }
 
-// ============ UPLOAD ID PHOTOS ============
-// ============ UPLOAD ID PHOTOS WITH PROGRESS ============
+// ============ ROBUST FILE UPLOAD HELPERS ============
+
+function onIdFileSelect(input, guestNum, side) {
+  const previewEl = document.getElementById(`preview${side === 'front' ? 'Front' : 'Back'}${guestNum}`);
+  const slot = document.getElementById(`idSlot${guestNum}`);
+
+  if (!input.files || !input.files[0]) {
+    if (previewEl) previewEl.innerHTML = '';
+    return;
+  }
+
+  const file = input.files[0];
+  const sizeMB = (file.size / 1024 / 1024).toFixed(1);
+
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    if (previewEl) {
+      previewEl.innerHTML = `
+        <div style="display:flex;align-items:center;gap:6px;padding:4px;background:#f0fff4;border-radius:6px;border:1px solid var(--green);">
+          <img src="${e.target.result}" style="width:50px;height:35px;object-fit:cover;border-radius:4px;" />
+          <div>
+            <div style="font-size:10px;color:var(--green);font-weight:600;">✅ ${side} ready</div>
+            <div style="font-size:9px;color:var(--muted);">${sizeMB} MB</div>
+          </div>
+          <button type="button" class="btn-sm danger" style="min-height:22px;padding:2px 6px;font-size:9px;margin-left:auto;"
+            onclick="clearIdFile(${guestNum},'${side}')">✕</button>
+        </div>`;
+    }
+    if (slot) slot.classList.add('done');
+  };
+  reader.readAsDataURL(file);
+}
+
+function clearIdFile(guestNum, side) {
+  const inputId = side === 'front' ? `idFront${guestNum}` : `idBack${guestNum}`;
+  const previewId = `preview${side === 'front' ? 'Front' : 'Back'}${guestNum}`;
+  const input = document.getElementById(inputId);
+  const preview = document.getElementById(previewId);
+  if (input) input.value = '';
+  if (preview) preview.innerHTML = '';
+}
+
+function onVehiclePhotoSelect(input) {
+  const previewEl = document.getElementById('vehiclePhotoPreview');
+  if (!input.files || !input.files[0]) {
+    if (previewEl) previewEl.innerHTML = '';
+    return;
+  }
+  const file = input.files[0];
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    if (previewEl) {
+      previewEl.innerHTML = `
+        <div style="display:flex;align-items:center;gap:6px;padding:4px;background:#f0fff4;border-radius:6px;border:1px solid var(--green);">
+          <img src="${e.target.result}" style="width:60px;height:40px;object-fit:cover;border-radius:4px;" />
+          <span style="font-size:10px;color:var(--green);font-weight:600;">✅ Vehicle photo ready</span>
+          <button type="button" class="btn-sm danger" style="min-height:22px;padding:2px 6px;font-size:9px;margin-left:auto;"
+            onclick="document.getElementById('vehiclePhoto').value='';document.getElementById('vehiclePhotoPreview').innerHTML='';">✕</button>
+        </div>`;
+    }
+  };
+  reader.readAsDataURL(file);
+}
+
+// ============ ROBUST UPLOAD TO STORAGE ============
 async function uploadIdPhotos(bkId) {
   const cnt = Math.min(parseInt(document.getElementById('guests')?.value) || 1, 8);
   const frontPaths = [], backPaths = [], allPaths = [];
 
-  // Count total files
-  let totalFiles = 0;
   for (let i = 1; i <= cnt; i++) {
-    if (document.getElementById(`gFCam${i}`)?.files?.[0] || document.getElementById(`gFGal${i}`)?.files?.[0]) totalFiles++;
-    if (document.getElementById(`gBCam${i}`)?.files?.[0] || document.getElementById(`gBGal${i}`)?.files?.[0]) totalFiles++;
-  }
-
-  // Show progress
-  let done = 0;
-  const showProgress = (msg) => {
-    const btn = document.getElementById('saveBtn');
-    if (btn) btn.textContent = totalFiles > 0 ? `⏳ Uploading ${done}/${totalFiles}... ${msg}` : '⏳ Saving...';
-  };
-
-  for (let i = 1; i <= cnt; i++) {
-    const name = (document.getElementById(`gN${i}`)?.value?.trim() || `Guest${i}`)
+    const guestName = (document.getElementById(`gN${i}`)?.value?.trim() || `Guest${i}`)
       .replace(/[^a-zA-Z0-9]/g, '_').substring(0, 20);
 
-    const fFile = document.getElementById(`gFCam${i}`)?.files?.[0]
-      || document.getElementById(`gFGal${i}`)?.files?.[0];
-    if (fFile) {
+    // Front
+    const frontInput = document.getElementById(`idFront${i}`);
+    if (frontInput?.files?.[0]) {
       try {
-        showProgress(`Guest ${i} Front`);
-        const comp = await compressImage(fFile);
-        const path = `${bkId}/${Date.now()}_${name}_front.jpg`;
+        const comp = await compressImage(frontInput.files[0]);
+        const path = `${bkId}/${Date.now()}_${guestName}_front.jpg`;
         const { error } = await sb.storage.from('id-proofs').upload(path, comp, { contentType: 'image/jpeg' });
         if (!error) { frontPaths.push(path); allPaths.push(path); }
-        done++;
-      } catch (e) { console.warn(`Front ${i} failed`, e); }
+        else console.warn('Front upload error:', error.message);
+      } catch (e) { console.warn(`Front ${i} failed:`, e); }
     }
 
-    const bFile = document.getElementById(`gBCam${i}`)?.files?.[0]
-      || document.getElementById(`gBGal${i}`)?.files?.[0];
-    if (bFile) {
+    // Back
+    const backInput = document.getElementById(`idBack${i}`);
+    if (backInput?.files?.[0]) {
       try {
-        showProgress(`Guest ${i} Back`);
-        const comp = await compressImage(bFile);
-        const path = `${bkId}/${Date.now()}_${name}_back.jpg`;
+        const comp = await compressImage(backInput.files[0]);
+        const path = `${bkId}/${Date.now()}_${guestName}_back.jpg`;
         const { error } = await sb.storage.from('id-proofs').upload(path, comp, { contentType: 'image/jpeg' });
         if (!error) { backPaths.push(path); allPaths.push(path); }
-        done++;
-      } catch (e) { console.warn(`Back ${i} failed`, e); }
+        else console.warn('Back upload error:', error.message);
+      } catch (e) { console.warn(`Back ${i} failed:`, e); }
     }
   }
 
@@ -701,6 +704,19 @@ async function uploadIdPhotos(bkId) {
   };
 }
 
+async function uploadVehiclePhoto(bkId) {
+  const input = document.getElementById('vehiclePhoto');
+  if (!input?.files?.[0]) return null;
+
+  try {
+    const comp = await compressImage(input.files[0]);
+    const path = `${bkId}/${Date.now()}_vehicle.jpg`;
+    const { error } = await sb.storage.from('id-proofs').upload(path, comp, { contentType: 'image/jpeg' });
+    if (!error) return path;
+    console.warn('Vehicle photo upload error:', error.message);
+  } catch (e) { console.warn('Vehicle photo failed:', e); }
+  return null;
+}
 // ============ SAVE BOOKING ============
 async function saveBooking() {
   const btn = document.getElementById('saveBtn');
@@ -769,6 +785,7 @@ async function saveBooking() {
     const bkId = 'B' + Date.now();
     const finalStayGroupId = stayGroupId || bkId;
     const photos = await uploadIdPhotos(bkId);
+    const vehiclePhotoPath = hasVehicle ? await uploadVehiclePhoto(bkId) : null;
     
     // Upload vehicle photo
     let vehiclePhotoPath = null;
@@ -806,6 +823,7 @@ async function saveBooking() {
       checkout_confirmed: checkoutConfirmed,
       guests: gs, per_day_rate: perDayRate, total_amount: tot,
       has_vehicle: hasVehicle, vehicle_name: vehicleName, vehicle_number: vehicleNumber,
+      vehicle_photo_path: vehiclePhotoPath,
       vehicle_photo_path: vehiclePhotoPath,
       payment_status: payStatus, notes: finalNotes || null,
       booked_by: SESSION.displayName || SESSION.role
@@ -1035,6 +1053,19 @@ async function editBooking(bkId) {
           <div class="form-group"><label>Vehicle Name</label><input id="vehicleName" value="${b.vehicle_name || ''}" /></div>
           <div class="form-group"><label>Registration No.</label><input id="vehicleNumber" value="${b.vehicle_number || ''}" /></div>
         </div>
+        <div class="form-group">
+          <label>Vehicle Photo</label>
+          ${b.vehicle_photo_path
+            ? `<div class="btn-row" style="margin:4px 0;">
+                <button class="btn-sm green-btn" onclick="dlIdPhoto('${b.vehicle_photo_path}')">📥 View Photo</button>
+                <span style="font-size:10px;color:var(--green);">✅ Uploaded</span>
+              </div>`
+            : '<div style="font-size:11px;color:var(--muted);">No photo</div>'}
+          <input type="file" id="vehiclePhoto" accept="image/*" capture="environment"
+            style="font-size:12px;" onchange="onVehiclePhotoSelect(this)" />
+          <div id="vehiclePhotoPreview"></div>
+        </div>
+      </div>
         <div class="form-group">
           <label>Vehicle Photo</label>
           ${b.vehicle_photo_path ? `
