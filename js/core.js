@@ -136,7 +136,14 @@ async function loadProfile(userId) {
   else if (p.role === 'checkin_manager') renderCheckinManagerView();
   else if (p.role === 'investor' || (p.role === 'viewer' && p.investor_id)) renderInvestorView();
   else if (p.role === 'ca') renderFYSummary();
-  else renderDashboard();
+    else {
+    const lastPage = localStorage.getItem('uh_last_page');
+    if (lastPage && typeof window[`render${lastPage}`] !== 'undefined') {
+      navigate(lastPage);
+    } else {
+      renderDashboard();
+    }
+  }
 }
 
 async function handleNewGoogleUser(user) {
@@ -364,6 +371,7 @@ function renderShell(content, activePage = 'dashboard') {
 
 function navigate(page) {
   SESSION.currentPage = page;
+  try { localStorage.setItem('uh_last_page', page); } catch(e) {}
   const map = {
     dashboard: renderDashboard,
     reports: renderReports,
