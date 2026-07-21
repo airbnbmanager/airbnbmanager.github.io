@@ -426,8 +426,9 @@ async function renderAddBooking() {
             <button type="button" class="outline" onclick="document.getElementById('vehiclePhotoCam').click()">📷 Camera</button>
             <button type="button" class="outline" onclick="document.getElementById('vehiclePhotoGal').click()">🖼️ Gallery</button>
           </div>
-          <input type="file" id="vehiclePhotoCam" accept="image/*" capture="environment" style="display:none;" />
-          <input type="file" id="vehiclePhotoGal" accept="image/*" style="display:none;" />
+          <input type="file" id="vehiclePhotoCam" accept="image/*" capture="environment" style="display:none;" onchange="onVehiclePhotoPick('cam')" />
+          <input type="file" id="vehiclePhotoGal" accept="image/*" style="display:none;" onchange="onVehiclePhotoPick('gal')" />
+          <div id="vehiclePhotoPreview" style="margin-top:6px;"></div>
         </div>
       </div>
 
@@ -482,6 +483,20 @@ function onIdPick(i, side, src) {
     st.textContent = (st.textContent || '') + ` ✅ ${side}`;
     slot.classList.add('done');
   }
+}
+// ============ VEHICLE PHOTO HANDLER ============
+function onVehiclePhotoPick(src, mode = 'new') {
+  const prefix = mode === 'edit' ? 'editVehicle' : 'vehicle';
+  const inp = document.getElementById(src === 'cam' ? `${prefix}PhotoCam` : `${prefix}PhotoGal`);
+  const preview = document.getElementById('vehiclePhotoPreview');
+  if (!inp?.files?.[0] || !preview) return;
+  const file = inp.files[0];
+  const url = URL.createObjectURL(file);
+  preview.innerHTML = `
+    <div style="position:relative;display:inline-block;margin-top:4px;">
+      <img src="${url}" style="width:100%;max-width:280px;border-radius:8px;border:2px solid var(--green);" />
+      <div style="font-size:11px;color:var(--green);margin-top:4px;">✅ ${file.name}</div>
+    </div>`;
 }
 
 function toggleVehicle() {
@@ -594,9 +609,24 @@ function onAmtChg() {
 }
 
 // ============ UPLOAD ID PHOTOS ============
+// ============ UPLOAD ID PHOTOS WITH PROGRESS ============
 async function uploadIdPhotos(bkId) {
   const cnt = Math.min(parseInt(document.getElementById('guests')?.value) || 1, 8);
   const frontPaths = [], backPaths = [], allPaths = [];
+
+  // Count total files
+  let totalFiles = 0;
+  for (let i = 1; i <= cnt; i++) {
+    if (document.getElementById(`gFCam${i}`)?.files?.[0] || document.getElementById(`gFGal${i}`)?.files?.[0]) totalFiles++;
+    if (document.getElementById(`gBCam${i}`)?.files?.[0] || document.getElementById(`gBGal${i}`)?.files?.[0]) totalFiles++;
+  }
+
+  // Show progress
+  let done = 0;
+  const showProgress = (msg) => {
+    const btn = document.getElementById('saveBtn');
+    if (btn) btn.textContent = totalFiles > 0 ? `⏳ Uploading ${done}/${totalFiles}... ${msg}` : '⏳ Saving...';
+  };
 
   for (let i = 1; i <= cnt; i++) {
     const name = (document.getElementById(`gN${i}`)?.value?.trim() || `Guest${i}`)
@@ -606,10 +636,12 @@ async function uploadIdPhotos(bkId) {
       || document.getElementById(`gFGal${i}`)?.files?.[0];
     if (fFile) {
       try {
+        showProgress(`Guest ${i} Front`);
         const comp = await compressImage(fFile);
         const path = `${bkId}/${Date.now()}_${name}_front.jpg`;
         const { error } = await sb.storage.from('id-proofs').upload(path, comp, { contentType: 'image/jpeg' });
         if (!error) { frontPaths.push(path); allPaths.push(path); }
+        done++;
       } catch (e) { console.warn(`Front ${i} failed`, e); }
     }
 
@@ -617,10 +649,12 @@ async function uploadIdPhotos(bkId) {
       || document.getElementById(`gBGal${i}`)?.files?.[0];
     if (bFile) {
       try {
+        showProgress(`Guest ${i} Back`);
         const comp = await compressImage(bFile);
         const path = `${bkId}/${Date.now()}_${name}_back.jpg`;
         const { error } = await sb.storage.from('id-proofs').upload(path, comp, { contentType: 'image/jpeg' });
         if (!error) { backPaths.push(path); allPaths.push(path); }
+        done++;
       } catch (e) { console.warn(`Back ${i} failed`, e); }
     }
   }
@@ -701,6 +735,21 @@ async function saveBooking() {
     const bkId = 'B' + Date.now();
     const finalStayGroupId = stayGroupId || bkId;
     const photos = await uploadIdPhotos(bkId);
+    
+    // Upload vehicle photo
+    let vehiclePhotoPath = null;
+    if (hasVehicle) {
+      const vFile = document.getElementById('vehiclePhotoCam')?.files?.[0]
+        || document.getElementById('vehiclePhotoGal')?.files?.[0];
+      if (vFile) {
+        try {
+          const comp = await compressImage(vFile);
+          const vPath = `${bkId}/vehicle_${Date.now()}.jpg`;
+          const { error: vErr } = await sb.storage.from('id-proofs').upload(vPath, comp, { contentType: 'image/jpeg' });
+          if (!vErr) vehiclePhotoPath = vPath;
+        } catch (e) { console.warn('Vehicle photo upload failed', e); }
+      }
+    }
 
     const noteParts = [];
     if (notes) noteParts.push(notes);
@@ -723,6 +772,7 @@ async function saveBooking() {
       checkout_confirmed: checkoutConfirmed,
       guests: gs, per_day_rate: perDayRate, total_amount: tot,
       has_vehicle: hasVehicle, vehicle_name: vehicleName, vehicle_number: vehicleNumber,
+      vehicle_photo_path: vehiclePhotoPath,
       payment_status: payStatus, notes: finalNotes || null,
       booked_by: SESSION.displayName || SESSION.role
     });
@@ -762,7 +812,11 @@ async function createOfflineExtension(parentBookingId) {
     }).eq('booking_id', parentBookingId);
   }
   if (b.room_id) {
-    await sb.from('flats_status').update({ status: 'Free', cleaning_status: 'Dirty' }).eq('room_id', b.room_id);
+    await sb.from('flats_status').update({ 
+      status: 'Free', 
+      cleaning_status: 'Dirty',
+      last_checkout: today
+    }).eq('room_id', b.room_id);
   }
   window._bookingPrefill = {
     guestName: b.guest_name || '', guestPhone: b.phone || '',
@@ -795,7 +849,11 @@ async function quickCheckout(bkId, roomId) {
     checkout_confirmed: true,
     notes: (bk.notes ? bk.notes + ' | ' : '') + `Quick checkout ${today} ${nowTime}. ${nights} nights.`
   }).eq('booking_id', bkId);
-  if (roomId) await sb.from('flats_status').update({ status: 'Free', cleaning_status: 'Dirty' }).eq('room_id', roomId);
+  if (roomId) await sb.from('flats_status').update({ 
+    status: 'Free', 
+    cleaning_status: 'Dirty',
+    last_checkout: today
+  }).eq('room_id', roomId);
   alert(`✅ ${bk.guest_name} checked out! Total: ₹${calcTotal.toLocaleString('en-IN')}`);
   renderManageBookings();
 }
@@ -933,6 +991,20 @@ async function editBooking(bkId) {
           <div class="form-group"><label>Vehicle Name</label><input id="vehicleName" value="${b.vehicle_name || ''}" /></div>
           <div class="form-group"><label>Registration No.</label><input id="vehicleNumber" value="${b.vehicle_number || ''}" /></div>
         </div>
+        <div class="form-group">
+          <label>Vehicle Photo</label>
+          ${b.vehicle_photo_path ? `
+            <div style="margin-bottom:8px;">
+              <button class="btn-sm outline" onclick="dlIdPhoto('${b.vehicle_photo_path}')">📷 View Current Photo</button>
+            </div>` : ''}
+          <div class="id-card-btns">
+            <button type="button" class="outline" onclick="document.getElementById('editVehiclePhotoCam').click()">📷 Camera</button>
+            <button type="button" class="outline" onclick="document.getElementById('editVehiclePhotoGal').click()">🖼️ Gallery</button>
+          </div>
+          <input type="file" id="editVehiclePhotoCam" accept="image/*" capture="environment" style="display:none;" onchange="onVehiclePhotoPick('cam','edit')" />
+          <input type="file" id="editVehiclePhotoGal" accept="image/*" style="display:none;" onchange="onVehiclePhotoPick('gal','edit')" />
+          <div id="vehiclePhotoPreview" style="margin-top:6px;"></div>
+        </div>
       </div>
       <div class="form-group"><label>Notes</label><textarea id="bkNotes">${b.notes || ''}</textarea></div>
       <button onclick="updateBooking('${bkId}','${b.parent_booking_id || ''}','${b.stay_group_id || b.booking_id}')">💾 Update</button>
@@ -1054,6 +1126,20 @@ async function updateBooking(bkId, parentBookingId = '', stayGroupId = '') {
   if (newFP) obj.id_proof_front_paths = newFP;
   if (newBP) obj.id_proof_back_paths = newBP;
   if (newAP) { obj.id_proof_photo_paths = newAP; obj.id_proof_photo_path = aArr[0]; }
+
+  // Vehicle photo upload
+  if (obj.has_vehicle) {
+    const vFile = document.getElementById('editVehiclePhotoCam')?.files?.[0]
+      || document.getElementById('editVehiclePhotoGal')?.files?.[0];
+    if (vFile) {
+      try {
+        const vc = await compressImage(vFile);
+        const vp = `${bkId}/vehicle_${Date.now()}.jpg`;
+        const { error: ve } = await sb.storage.from('id-proofs').upload(vp, vc, { contentType: 'image/jpeg' });
+        if (!ve) obj.vehicle_photo_path = vp;
+      } catch (e) { console.warn('Vehicle photo update failed', e); }
+    }
+  }
 
   const { error } = await sb.from('guest_register').update(obj).eq('booking_id', bkId);
   if (error) { document.getElementById('editBkErr').innerHTML = `<div class="error">${error.message}</div>`; return; }

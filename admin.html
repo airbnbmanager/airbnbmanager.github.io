@@ -35,17 +35,19 @@
   <script src="js/users.js"></script>
   <script src="js/sop.js"></script>
 
-  <!-- AUTH GUARD — sb client use karta hai (core.js wala) -->
+  <!-- AUTH GUARD — only redirects if truly no session -->
   <script>
     window.addEventListener("load", async () => {
       try {
+        // Small delay — core.js ko init hone do
+        await new Promise(r => setTimeout(r, 800));
         const { data: { session } } = await sb.auth.getSession();
         if (!session) {
           window.location.replace("/");
         }
       } catch (e) {
-        console.warn("Auth check failed:", e);
-        // Error pe redirect mat karo — login flow core.js handle karega
+        // Koi error pe redirect mat karo — core.js handle karega
+        console.warn("Auth check skipped:", e);
       }
     });
   </script>

@@ -668,8 +668,37 @@ code {
 /* ─── ID CARDS ─── */
 .id-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  margin-top: 8px;
+}
+.id-card {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px;
+  font-size: 13px;
+  width: 100%;
+  box-sizing: border-box;
+}
+.id-card.done {
+  border-color: var(--green);
+  background: #f0fff4;
+}
+.id-card-title {
+  font-weight: 600;
+  margin-bottom: 6px;
+  font-size: 13px;
+}
+.id-card-btns {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin: 4px 0;
+}
+.id-card-btns button {
+  flex: 1;
+  min-width: 70px;
 }
 .id-card {
   border: 2px dashed var(--border);
