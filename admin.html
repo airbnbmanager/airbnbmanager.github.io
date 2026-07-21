@@ -10,30 +10,35 @@
 </head>
 <body>
   <div id="app"></div>
-<!-- Supabase -->
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-<!-- Config -->
-<script src="config.js"></script>
+  <!-- Supabase -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-<!-- ✅ AUTH GUARD (ADD THIS BLOCK) -->
-<script>
-  document.addEventListener("DOMContentLoaded", async () => {
-    const { data: { session } } = await supabase.auth.getSession();
+  <!-- Config -->
+  <script src="config.js"></script>
 
-    if (!session) {
-      // Not logged in → redirect to homepage
-      window.location.href = "/";
-    }
-  });
-</script>
+  <!-- App Modules — order matters -->
+  <script src="js/core.js"></script>
+  <script src="js/dashboard.js"></script>
+  <script src="js/calendar.js"></script>
+  <script src="js/bookings.js"></script>
+  <script src="js/properties.js"></script>
 
-<!-- App Modules — order matters -->
-<script src="js/core.js"></script>
-<script src="js/dashboard.js"></script>
-<script src="js/calendar.js"></script>
-<script src="js/bookings.js"></script>
-<script src="js/properties.js"></script>
+  <!-- AUTH GUARD — runs after everything loads -->
+  <script>
+    window.addEventListener("load", async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) {
+          window.location.replace("/");
+        }
+      } catch (e) {
+        console.warn("Auth check failed:", e);
+        window.location.replace("/");
+      }
+    });
+  </script>
+
   <!-- Service Worker -->
   <script>
     if ('serviceWorker' in navigator) {
