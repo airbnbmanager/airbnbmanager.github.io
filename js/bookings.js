@@ -86,11 +86,15 @@ function buildIdButtons(b) {
   const ap = (b.id_proof_photo_paths || b.id_proof_photo_path || '').split(',').filter(Boolean);
   const seen = new Set();
   const allPhotos = [...fp, ...bp, ...ap].filter(p => { if (seen.has(p)) return false; seen.add(p); return true; });
-  if (!allPhotos.length) return '<small style="color:var(--muted);">No ID</small>';
-  return allPhotos.map((p, i) => {
-    const label = fp.includes(p) ? 'F' : bp.includes(p) ? 'B' : 'ID';
-    return `<button class="btn-sm outline" style="padding:2px 6px;font-size:10px;min-height:22px;margin:1px;" onclick="dlIdPhoto('${p}')">${label}${Math.floor(i/2)+1}</button>`;
-  }).join('');
+
+  if (!allPhotos.length) return '<small style="color:var(--red);">❌ No ID</small>';
+
+  const count = allPhotos.length;
+  return `<span style="font-size:10px;color:var(--green);font-weight:600;">✅ ${count}</span> ` +
+    allPhotos.slice(0, 4).map((p, i) => {
+      const label = fp.includes(p) ? 'F' : bp.includes(p) ? 'B' : 'ID';
+      return `<button class="btn-sm outline" style="padding:1px 5px;font-size:9px;min-height:20px;margin:1px;" onclick="dlIdPhoto('${p}')">${label}${Math.floor(i/2)+1}</button>`;
+    }).join('');
 }
 
 // ============ MANAGE BOOKINGS ============
@@ -479,9 +483,39 @@ function onIdPick(i, side, src) {
   const inp = document.getElementById(src === 'cam' ? `${prefix}Cam${i}` : `${prefix}Gal${i}`);
   const st = document.getElementById(`idSt${i}`);
   const slot = document.getElementById(`idSlot${i}`);
+
   if (inp?.files?.[0]) {
-    st.textContent = (st.textContent || '') + ` ✅ ${side}`;
-    slot.classList.add('done');
+    const file = inp.files[0];
+    const sizeMB = (file.size / 1024 / 1024).toFixed(1);
+
+    // Show preview
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      // Add preview image
+      let previewId = `preview_${side}_${i}`;
+      let existing = document.getElementById(previewId);
+      if (existing) existing.remove();
+
+      const previewDiv = document.createElement('div');
+      previewDiv.id = previewId;
+      previewDiv.style.cssText = 'margin:4px 0;';
+      previewDiv.innerHTML = `
+        <img src="${e.target.result}" style="width:60px;height:40px;object-fit:cover;border-radius:6px;border:2px solid var(--green);" />
+        <span style="font-size:10px;color:var(--green);margin-left:4px;">✅ ${side} ready (${sizeMB}MB)</span>
+      `;
+
+      // Insert after the file input buttons
+      const btnsDiv = inp.closest('.id-card');
+      if (btnsDiv) btnsDiv.appendChild(previewDiv);
+    };
+    reader.readAsDataURL(file);
+
+    // Update status text
+    if (st) {
+      const prev = st.textContent || '';
+      st.textContent = prev + ` ✅ ${side}`;
+    }
+    if (slot) slot.classList.add('done');
   }
 }
 // ============ VEHICLE PHOTO HANDLER ============
@@ -790,8 +824,16 @@ async function saveBooking() {
     }
     await sb.from('flats_status').upsert({ room_id: rid, status: 'Booked' });
 
-    shareBookingWhatsApp(bkId);
     window._bookingPrefill = null;
+
+    // Success feedback
+    alert('✅ Booking saved successfully!\n\nGuest: ' + gn + '\nProperty: ' + (document.getElementById('roomId').selectedOptions[0]?.text || rid));
+
+    // WhatsApp share option
+    if (confirm('📱 WhatsApp message share karna hai?')) {
+      shareBookingWhatsApp(bkId);
+    }
+
     renderManageBookings();
 
   } catch (err) {
@@ -876,10 +918,11 @@ async function editBooking(bkId) {
       <div class="id-card" id="editIdSlot${i}" style="display:${i <= Math.max(b.guests || 1, 1) ? 'block' : 'none'};">
         <div class="id-card-title">👤 Guest ${i}</div>
         <div style="font-size:11px;margin:4px 0;">📄 Front</div>
-        ${frontPaths[i - 1] ? `<div class="btn-row">
-          <button class="btn-sm outline" onclick="dlIdPhoto('${frontPaths[i - 1]}')">📥 View</button>
-          <button class="btn-sm danger" onclick="deleteIdPhoto('${bkId}','${frontPaths[i - 1]}','front',${i - 1})">🗑️</button>
-        </div>` : ''}
+        ${frontPaths[i - 1] ? `<div class="btn-row" style="margin:4px 0;">
+          <button class="btn-sm green-btn" onclick="dlIdPhoto('${frontPaths[i - 1]}')">📥 View Front</button>
+          <button class="btn-sm danger" onclick="deleteIdPhoto('${bkId}','${frontPaths[i - 1]}','front',${i - 1})">🗑️ Delete</button>
+          <span style="font-size:10px;color:var(--green);">✅ Uploaded</span>
+        </div>` : '<div style="font-size:11px;color:var(--muted);margin:2px 0;">⚠️ No front photo</div>'}
         <div class="id-card-btns">
           <button type="button" class="outline" onclick="document.getElementById('eFCam${i}').click()">📷 New</button>
           <button type="button" class="outline" onclick="document.getElementById('eFGal${i}').click()">🖼️ New</button>
@@ -887,10 +930,11 @@ async function editBooking(bkId) {
         <input type="file" id="eFCam${i}" accept="image/*" capture="environment" style="display:none;" />
         <input type="file" id="eFGal${i}" accept="image/*" style="display:none;" />
         <div style="font-size:11px;margin:4px 0;">📄 Back</div>
-        ${backPaths[i - 1] ? `<div class="btn-row">
-          <button class="btn-sm outline" onclick="dlIdPhoto('${backPaths[i - 1]}')">📥 View</button>
-          <button class="btn-sm danger" onclick="deleteIdPhoto('${bkId}','${backPaths[i - 1]}','back',${i - 1})">🗑️</button>
-        </div>` : ''}
+        ${backPaths[i - 1] ? `<div class="btn-row" style="margin:4px 0;">
+          <button class="btn-sm green-btn" onclick="dlIdPhoto('${backPaths[i - 1]}')">📥 View Back</button>
+          <button class="btn-sm danger" onclick="deleteIdPhoto('${bkId}','${backPaths[i - 1]}','back',${i - 1})">🗑️ Delete</button>
+          <span style="font-size:10px;color:var(--green);">✅ Uploaded</span>
+        </div>` : '<div style="font-size:11px;color:var(--muted);margin:2px 0;">⚠️ No back photo</div>'}
         <div class="id-card-btns">
           <button type="button" class="outline" onclick="document.getElementById('eBCam${i}').click()">📷 New</button>
           <button type="button" class="outline" onclick="document.getElementById('eBGal${i}').click()">🖼️ New</button>
