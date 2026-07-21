@@ -787,20 +787,6 @@ async function saveBooking() {
     const photos = await uploadIdPhotos(bkId);
     const vehiclePhotoPath = hasVehicle ? await uploadVehiclePhoto(bkId) : null;
     
-    // Upload vehicle photo
-    let vehiclePhotoPath = null;
-    if (hasVehicle) {
-      const vFile = document.getElementById('vehiclePhotoCam')?.files?.[0]
-        || document.getElementById('vehiclePhotoGal')?.files?.[0];
-      if (vFile) {
-        try {
-          const comp = await compressImage(vFile);
-          const vPath = `${bkId}/vehicle_${Date.now()}.jpg`;
-          const { error: vErr } = await sb.storage.from('id-proofs').upload(vPath, comp, { contentType: 'image/jpeg' });
-          if (!vErr) vehiclePhotoPath = vPath;
-        } catch (e) { console.warn('Vehicle photo upload failed', e); }
-      }
-    }
 
     const noteParts = [];
     if (notes) noteParts.push(notes);
@@ -823,7 +809,6 @@ async function saveBooking() {
       checkout_confirmed: checkoutConfirmed,
       guests: gs, per_day_rate: perDayRate, total_amount: tot,
       has_vehicle: hasVehicle, vehicle_name: vehicleName, vehicle_number: vehicleNumber,
-      vehicle_photo_path: vehiclePhotoPath,
       vehicle_photo_path: vehiclePhotoPath,
       payment_status: payStatus, notes: finalNotes || null,
       booked_by: SESSION.displayName || SESSION.role
