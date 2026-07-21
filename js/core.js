@@ -244,7 +244,7 @@ async function loginWithGoogle() {
   const { error } = await sb.auth.signInWithOAuth({
     provider: 'google',
     options: {
-      redirectTo: 'https://uniquehavenhomesstay.com'
+      redirectTo: 'https://uniquehavenhomesstay.com/admin.html'
     }
   });
   if (error) {
