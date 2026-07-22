@@ -559,6 +559,14 @@
 
         card.style.display = show ? 'block' : 'none';
       });
+
+      // Scroll so the first visible property is right below the sticky nav + filter bar
+      const grid = document.getElementById('propertyGrid');
+      const nav = document.querySelector('.site-nav');
+      const filterBar = document.querySelector('.filter-section');
+      const offset = (nav ? nav.offsetHeight : 0) + (filterBar ? filterBar.offsetHeight : 0);
+      const gridTop = grid.getBoundingClientRect().top + window.pageYOffset - offset - 12;
+      window.scrollTo({ top: gridTop, behavior: 'smooth' });
     }
 
     // Fix footer year
