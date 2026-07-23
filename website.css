@@ -3206,3 +3206,55 @@ a.whatsapp-btn-large * {
   .contact-card-phone { font-size: 22px !important; }
   .contact-card-phone a[href^="mailto:"] { font-size: 13px !important; }
 }
+
+/* ============ CONTACT CARD - FINAL COLOR FIX ============ */
+
+/* Phone number - STRONG red visible on light bg */
+.contact-card .contact-card-phone,
+.contact-card > .contact-card-phone,
+.contact-card [class*="phone"] {
+  color: #E00B41 !important;
+  -webkit-text-fill-color: #E00B41 !important;
+  background: transparent !important;
+  background-image: none !important;
+  text-shadow: none !important;
+  font-size: 26px !important;
+  font-weight: 900 !important;
+  opacity: 1 !important;
+}
+
+/* Email link */
+.contact-card-phone a[href^="mailto:"] {
+  color: #E00B41 !important;
+  -webkit-text-fill-color: #E00B41 !important;
+  font-size: 15px !important;
+  font-weight: 700 !important;
+}
+
+/* OWNER / DIRECT EMAIL badge - dark text on light bg */
+.contact-card-role,
+.contact-card > .contact-card-role {
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+  background: #FF385C !important;
+  background-image: none !important;
+  padding: 8px 20px !important;
+  border-radius: 999px !important;
+  font-size: 11px !important;
+  font-weight: 800 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 2px !important;
+  display: inline-block !important;
+  border: none !important;
+  margin-top: 16px !important;
+  opacity: 1 !important;
+  box-shadow: 0 4px 12px rgba(255,56,92,0.3) !important;
+}
+
+/* Name */
+.contact-card-name {
+  color: #222222 !important;
+  -webkit-text-fill-color: #222222 !important;
+  font-size: 22px !important;
+  font-weight: 700 !important;
+}
