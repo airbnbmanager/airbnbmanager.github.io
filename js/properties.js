@@ -390,3 +390,280 @@ async function saveFlatStatus(id) {
   if (error) { document.getElementById('flatErr').innerHTML = `<div class="error">${error.message}</div>`; return; }
   renderFlatsStatus();
 }
+// ============ PROPERTY SHIFTS MANAGEMENT ============
+async function renderPropertyShifts(roomId) {
+  renderShell(`<div class="loading">Loading...</div>`, 'rooms');
+
+  const [{ data: rooms }, { data: emps }] = await Promise.all([
+    sb.from('rooms').select('room_id, nickname, unit_no').order('room_id'),
+    sb.from('employees')
+      .select('emp_id, name, phone, property_role, role')
+      .eq('status', 'Active')
+      .order('name')
+  ]);
+
+  const selRoom = roomId || rooms?.[0]?.room_id;
+  window._shiftEmps = emps || [];
+
+  const { data: shifts } = selRoom
+    ? await sb.from('property_shifts')
+        .select('*, employees(name, phone)')
+        .eq('room_id', selRoom)
+        .eq('is_active', true)
+        .order('shift_type')
+    : { data: [] };
+
+  const room = (rooms || []).find(r => r.room_id === selRoom);
+
+  renderShell(`
+    <div class="card">
+      <h1>🕐 Property Shifts</h1>
+      <button class="secondary btn-sm" onclick="renderManageRooms()">← Back</button>
+    </div>
+
+    <div class="card">
+      <div class="form-group">
+        <label>Select Property</label>
+        <select onchange="renderPropertyShifts(this.value)">
+          ${(rooms || []).map(r =>
+            `<option value="${r.room_id}" ${r.room_id === selRoom ? 'selected' : ''}>
+              ${r.nickname || r.unit_no}
+            </option>`
+          ).join('')}
+        </select>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="section-title">
+        🏠 ${room?.nickname || selRoom} — Shifts
+        <button class="btn-sm" style="float:right;"
+          onclick="renderAddShift('${selRoom}')">➕ Add Shift</button>
+      </div>
+
+      ${(shifts || []).length === 0
+        ? '<div class="sub">No shifts configured. Add shifts to show contacts in WhatsApp messages.</div>'
+        : `<div class="table-wrap"><table>
+            <thead><tr>
+              <th>Employee</th>
+              <th>Shift</th>
+              <th>Time</th>
+              <th>Role</th>
+              <th>Actions</th>
+            </tr></thead>
+            <tbody>
+              ${(shifts || []).map(sh => `
+                <tr>
+                  <td>
+                    <strong>${sh.employees?.name || sh.emp_id}</strong>
+                    ${sh.employees?.phone
+                      ? `<br><small style="color:var(--muted);">📞 ${sh.employees.phone}</small>`
+                      : ''}
+                  </td>
+                  <td>
+                    <span class="badge ${sh.shift_type === 'Day' ? 'yellow' : 'blue'}">
+                      ${sh.shift_type === 'Day' ? '☀️ Day' : '🌙 Night'}
+                    </span>
+                  </td>
+                  <td style="font-size:12px;">
+                    ${sh.shift_start || '-'} → ${sh.shift_end || '-'}
+                  </td>
+                  <td>
+                    <span class="badge green">${sh.contact_role || 'Caretaker'}</span>
+                  </td>
+                  <td class="table-actions">
+                    <button class="btn-sm" onclick="editShift(${sh.id},'${selRoom}')">✏️</button>
+                    <button class="btn-sm danger" onclick="deleteShift(${sh.id},'${selRoom}')">🗑️</button>
+                  </td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table></div>`}
+    </div>
+  `, 'rooms');
+}
+
+async function renderAddShift(roomId) {
+  const emps = window._shiftEmps || [];
+
+  renderShell(`
+    <div class="card">
+      <h1>➕ Add Shift Contact</h1>
+      <button class="secondary btn-sm" onclick="renderPropertyShifts('${roomId}')">← Back</button>
+    </div>
+    <div class="card">
+      <div class="form-group">
+        <label>Employee *</label>
+        <select id="shEmp">
+          <option value="">Select Employee</option>
+          ${emps.map(e => {
+            const role = e.property_role || e.role || 'Staff';
+            return `<option value="${e.emp_id}">${e.name} (${role})</option>`;
+          }).join('')}
+        </select>
+      </div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Shift Type</label>
+          <select id="shType">
+            <option value="Day">☀️ Day Shift</option>
+            <option value="Night">🌙 Night Shift</option>
+            <option value="All Day">🔄 All Day</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Contact Role</label>
+          <select id="shRole">
+            <option value="Caretaker">Caretaker</option>
+            <option value="Check-in Manager">Check-in Manager</option>
+            <option value="Manager">Manager</option>
+            <option value="Manager & Check-in">Manager & Check-in</option>
+            <option value="Supervisor">Supervisor</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Shift Start</label>
+          <input id="shStart" type="time" value="08:00" />
+        </div>
+        <div class="form-group">
+          <label>Shift End</label>
+          <input id="shEnd" type="time" value="20:00" />
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Notes</label>
+        <input id="shNotes" placeholder="Optional" />
+      </div>
+      <button onclick="saveShift('${roomId}')" style="width:100%;margin-top:10px;">
+        💾 Save Shift
+      </button>
+      <div id="shErr"></div>
+    </div>
+  `, 'rooms');
+}
+
+async function saveShift(roomId) {
+  const btn = document.querySelector('button[onclick^="saveShift"]');
+  if (btn) { if (btn.disabled) return; btn.disabled = true; btn.textContent = '⏳ Saving...'; }
+
+  const empId = document.getElementById('shEmp').value;
+  if (!empId) {
+    document.getElementById('shErr').innerHTML = '<div class="error">Employee required</div>';
+    if (btn) { btn.disabled = false; btn.textContent = '💾 Save Shift'; }
+    return;
+  }
+
+  const { error } = await sb.from('property_shifts').insert({
+    room_id: roomId,
+    emp_id: empId,
+    shift_type: document.getElementById('shType').value,
+    contact_role: document.getElementById('shRole').value,
+    shift_start: document.getElementById('shStart').value,
+    shift_end: document.getElementById('shEnd').value,
+    notes: document.getElementById('shNotes').value.trim() || null,
+    is_active: true
+  });
+
+  if (error) {
+    document.getElementById('shErr').innerHTML = `<div class="error">${error.message}</div>`;
+    if (btn) { btn.disabled = false; btn.textContent = '💾 Save Shift'; }
+    return;
+  }
+
+  alert('✅ Shift saved!');
+  renderPropertyShifts(roomId);
+}
+
+async function editShift(id, roomId) {
+  const [{ data: sh }, emps] = await Promise.all([
+    sb.from('property_shifts').select('*').eq('id', id).single(),
+    Promise.resolve(window._shiftEmps || [])
+  ]);
+
+  if (!sh) { alert('Not found'); return; }
+
+  renderShell(`
+    <div class="card">
+      <h1>✏️ Edit Shift</h1>
+      <button class="secondary btn-sm" onclick="renderPropertyShifts('${roomId}')">← Back</button>
+    </div>
+    <div class="card">
+      <div class="form-group">
+        <label>Employee *</label>
+        <select id="shEmp">
+          ${emps.map(e => {
+            const role = e.property_role || e.role || 'Staff';
+            return `<option value="${e.emp_id}" ${e.emp_id === sh.emp_id ? 'selected' : ''}>
+              ${e.name} (${role})
+            </option>`;
+          }).join('')}
+        </select>
+      </div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Shift Type</label>
+          <select id="shType">
+            <option value="Day" ${sh.shift_type === 'Day' ? 'selected' : ''}>☀️ Day Shift</option>
+            <option value="Night" ${sh.shift_type === 'Night' ? 'selected' : ''}>🌙 Night Shift</option>
+            <option value="All Day" ${sh.shift_type === 'All Day' ? 'selected' : ''}>🔄 All Day</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Contact Role</label>
+          <select id="shRole">
+            ${['Caretaker','Check-in Manager','Manager','Manager & Check-in','Supervisor'].map(r =>
+              `<option value="${r}" ${r === sh.contact_role ? 'selected' : ''}>${r}</option>`
+            ).join('')}
+          </select>
+        </div>
+      </div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Shift Start</label>
+          <input id="shStart" type="time" value="${sh.shift_start || '08:00'}" />
+        </div>
+        <div class="form-group">
+          <label>Shift End</label>
+          <input id="shEnd" type="time" value="${sh.shift_end || '20:00'}" />
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Notes</label>
+        <input id="shNotes" value="${sh.notes || ''}" />
+      </div>
+      <button onclick="updateShift(${id},'${roomId}')" style="width:100%;margin-top:10px;">
+        💾 Update Shift
+      </button>
+      <div id="shErr"></div>
+    </div>
+  `, 'rooms');
+}
+
+async function updateShift(id, roomId) {
+  const { error } = await sb.from('property_shifts').update({
+    emp_id: document.getElementById('shEmp').value,
+    shift_type: document.getElementById('shType').value,
+    contact_role: document.getElementById('shRole').value,
+    shift_start: document.getElementById('shStart').value,
+    shift_end: document.getElementById('shEnd').value,
+    notes: document.getElementById('shNotes').value.trim() || null
+  }).eq('id', id);
+
+  if (error) {
+    document.getElementById('shErr').innerHTML = `<div class="error">${error.message}</div>`;
+    return;
+  }
+
+  alert('✅ Updated!');
+  renderPropertyShifts(roomId);
+}
+
+async function deleteShift(id, roomId) {
+  if (!confirm('Remove this shift contact?')) return;
+  const { error } = await sb.from('property_shifts').delete().eq('id', id);
+  if (error) { alert('❌ ' + error.message); return; }
+  alert('✅ Shift removed');
+  renderPropertyShifts(roomId);
+}
