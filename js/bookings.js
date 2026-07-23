@@ -862,95 +862,162 @@ function stringifyIdPathArray(arr) {
   return JSON.stringify((arr || []).map(x => x || null));
 }
 
-// ============ ROBUST UPLOAD TO STORAGE ============
+// ============ ROBUST UPLOAD WITH RETRY & PROGRESS ============
+
+async function robustUpload(path, blob, maxRetries = 3) {
+  let lastError = null;
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      const { error } = await sb.storage.from('id-proofs').upload(path, blob, {
+        contentType: 'image/jpeg',
+        upsert: true,
+        cacheControl: '3600'
+      });
+      if (!error) return { success: true, path };
+      lastError = error;
+      // Wait before retry (exponential backoff)
+      if (attempt < maxRetries) await new Promise(r => setTimeout(r, attempt * 800));
+    } catch (e) {
+      lastError = e;
+      if (attempt < maxRetries) await new Promise(r => setTimeout(r, attempt * 800));
+    }
+  }
+  return { success: false, error: lastError?.message || 'Upload failed after 3 attempts' };
+}
+
+async function smartCompress(file, targetSizeKB = 300) {
+  // Progressive compression - reduces quality until under target size
+  let quality = 0.8;
+  let maxDim = 1200;
+
+  // Large files get more aggressive compression
+  const sizeMB = file.size / 1024 / 1024;
+  if (sizeMB > 5) { quality = 0.6; maxDim = 1000; }
+  if (sizeMB > 10) { quality = 0.5; maxDim = 800; }
+
+  try {
+    return await compressImage(file, maxDim, quality);
+  } catch (e) {
+    console.warn('Compression failed, using original:', e);
+    return file;
+  }
+}
+
 async function uploadIdPhotos(bkId) {
   const cnt = Math.min(parseInt(document.getElementById('guests')?.value) || 1, 8);
-  const frontPaths = [], backPaths = [], allPaths = [];
+  const frontPaths = Array(cnt).fill(null);
+  const backPaths = Array(cnt).fill(null);
+  const allPaths = [];
+  const failedUploads = [];
 
-  // Count total files to upload
-  let totalFiles = 0, uploaded = 0;
-  for (let i = 1; i <= cnt; i++) {
-    if (document.getElementById(`idFront${i}`)?.files?.[0]) totalFiles++;
-    if (document.getElementById(`idBack${i}`)?.files?.[0]) totalFiles++;
-  }
-
-  // Show upload progress bar
-  const progressEl = document.getElementById('idUploadSummary') || document.getElementById('addBkErr');
-  const showProgress = (n, total, label) => {
-    const pct = total > 0 ? Math.round(n / total * 100) : 0;
-    if (progressEl) {
-      progressEl.innerHTML = `
-        <div style="padding:10px;background:var(--bg);border-radius:8px;margin:8px 0;">
-          <div style="font-size:12px;font-weight:600;margin-bottom:4px;">📤 Uploading ${label}... (${n}/${total})</div>
-          <div style="height:8px;background:var(--border);border-radius:4px;overflow:hidden;">
-            <div style="height:100%;width:${pct}%;background:var(--green);border-radius:4px;transition:width 0.3s;"></div>
-          </div>
-          <div style="font-size:11px;color:var(--muted);margin-top:4px;">${pct}% complete</div>
-        </div>`;
-    }
-  };
-
-  if (totalFiles === 0) return { frontPaths: null, backPaths: null, allPaths: null, firstPath: null };
-
+  // Collect all files to upload
+  const uploadQueue = [];
   for (let i = 1; i <= cnt; i++) {
     const guestName = (document.getElementById(`gN${i}`)?.value?.trim() || `Guest${i}`)
       .replace(/[^a-zA-Z0-9]/g, '_').substring(0, 20);
 
-    const frontInput = document.getElementById(`idFrontCam${i}`)?.files?.[0] ? document.getElementById(`idFrontCam${i}`) : document.getElementById(`idFrontGal${i}`);
-    if (frontInput?.files?.[0]) {
-      showProgress(uploaded, totalFiles, `Guest ${i} Front`);
-      try {
-        const comp = await compressImage(frontInput.files[0]);
-        const path = `${bkId}/${Date.now()}_${guestName}_front.jpg`;
-        const { error } = await sb.storage.from('id-proofs').upload(path, comp, { contentType: 'image/jpeg' });
-        if (!error) {
-          frontPaths.push(path); allPaths.push(path);
-          uploaded++;
-          showProgress(uploaded, totalFiles, `Guest ${i} Front ✅`);
-        } else {
-          console.warn('Front upload error:', error.message);
-          uploaded++;
-          showProgress(uploaded, totalFiles, `Guest ${i} Front ❌`);
-        }
-      } catch (e) {
-        console.warn(`Front ${i} failed:`, e);
-        uploaded++;
-      }
-    }
+    const frontFile = document.getElementById(`idFrontCam${i}`)?.files?.[0]
+      || document.getElementById(`idFrontGal${i}`)?.files?.[0];
+    if (frontFile) uploadQueue.push({ file: frontFile, side: 'front', guestNum: i, guestName });
 
-    const backInput = document.getElementById(`idBackCam${i}`)?.files?.[0] ? document.getElementById(`idBackCam${i}`) : document.getElementById(`idBackGal${i}`);
-    if (backInput?.files?.[0]) {
-      showProgress(uploaded, totalFiles, `Guest ${i} Back`);
-      try {
-        const comp = await compressImage(backInput.files[0]);
-        const path = `${bkId}/${Date.now()}_${guestName}_back.jpg`;
-        const { error } = await sb.storage.from('id-proofs').upload(path, comp, { contentType: 'image/jpeg' });
-        if (!error) {
-          backPaths.push(path); allPaths.push(path);
-          uploaded++;
-          showProgress(uploaded, totalFiles, `Guest ${i} Back ✅`);
+    const backFile = document.getElementById(`idBackCam${i}`)?.files?.[0]
+      || document.getElementById(`idBackGal${i}`)?.files?.[0];
+    if (backFile) uploadQueue.push({ file: backFile, side: 'back', guestNum: i, guestName });
+  }
+
+  const totalFiles = uploadQueue.length;
+  if (totalFiles === 0) {
+    return { frontPaths: null, backPaths: null, allPaths: null, firstPath: null };
+  }
+
+  const progressEl = document.getElementById('idUploadSummary') || document.getElementById('addBkErr');
+
+  const renderProgress = (currentIdx, currentFile, status) => {
+    if (!progressEl) return;
+    const pct = totalFiles > 0 ? Math.round((currentIdx / totalFiles) * 100) : 0;
+
+    let queueList = '';
+    uploadQueue.forEach((item, i) => {
+      let icon = '⏳';
+      let color = '#B0B0B0';
+      if (i < currentIdx) { icon = '✅'; color = '#00A699'; }
+      if (i === currentIdx) { icon = status || '📤'; color = '#FF385C'; }
+      queueList += `
+        <div style="display:flex;align-items:center;gap:6px;padding:4px 8px;background:${i === currentIdx ? '#FFF0F3' : 'transparent'};border-radius:4px;font-size:11px;">
+          <span style="color:${color};font-weight:700;">${icon}</span>
+          <span style="color:${color};">Guest ${item.guestNum} ${item.side === 'front' ? 'Front' : 'Back'}</span>
+          <span style="color:var(--muted);font-size:10px;margin-left:auto;">${(item.file.size/1024/1024).toFixed(1)}MB</span>
+        </div>`;
+    });
+
+    progressEl.innerHTML = `
+      <div style="padding:14px;background:#fff;border:2px solid #FF385C;border-radius:12px;margin:8px 0;box-shadow:0 4px 12px rgba(255,56,92,0.15);">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+          <div style="font-size:14px;font-weight:700;color:var(--dark);">
+            📤 Uploading ID Photos...
+          </div>
+          <div style="font-size:13px;font-weight:700;color:#FF385C;">${currentIdx}/${totalFiles}</div>
+        </div>
+        <div style="height:8px;background:#EBEBEB;border-radius:4px;overflow:hidden;margin-bottom:12px;">
+          <div style="height:100%;width:${pct}%;background:linear-gradient(90deg,#FF385C,#E00B41);border-radius:4px;transition:width 0.3s;"></div>
+        </div>
+        <div style="max-height:200px;overflow-y:auto;">
+          ${queueList}
+        </div>
+        <div style="font-size:11px;color:var(--muted);margin-top:8px;text-align:center;">
+          ${pct}% complete · Please don't close this window
+        </div>
+      </div>`;
+  };
+
+  for (let i = 0; i < uploadQueue.length; i++) {
+    const item = uploadQueue[i];
+    renderProgress(i, item, '📤');
+
+    try {
+      // Compress
+      const compressed = await smartCompress(item.file);
+
+      // Upload with retry
+      const timestamp = Date.now();
+      const path = `${bkId}/${timestamp}_${item.guestName}_${item.side}.jpg`;
+      const result = await robustUpload(path, compressed, 3);
+
+      if (result.success) {
+        if (item.side === 'front') {
+          frontPaths[item.guestNum - 1] = path;
         } else {
-          console.warn('Back upload error:', error.message);
-          uploaded++;
-          showProgress(uploaded, totalFiles, `Guest ${i} Back ❌`);
+          backPaths[item.guestNum - 1] = path;
         }
-      } catch (e) {
-        console.warn(`Back ${i} failed:`, e);
-        uploaded++;
+        allPaths.push(path);
+        renderProgress(i + 1, item, '✅');
+      } else {
+        failedUploads.push({ ...item, error: result.error });
+        renderProgress(i + 1, item, '❌');
+        console.warn(`Failed: Guest ${item.guestNum} ${item.side}:`, result.error);
       }
+    } catch (e) {
+      failedUploads.push({ ...item, error: e.message });
+      console.error(`Error uploading Guest ${item.guestNum} ${item.side}:`, e);
     }
   }
 
-  // Final status
+  // Final summary
   if (progressEl) {
     const successCount = allPaths.length;
+    const isPerfect = failedUploads.length === 0;
+
     progressEl.innerHTML = `
-      <div style="padding:10px;background:#f0fff4;border-radius:8px;border:1.5px solid var(--green);margin:8px 0;">
-        <div style="font-size:12px;font-weight:700;color:var(--green);">
-          ✅ ${successCount}/${totalFiles} photos uploaded successfully
+      <div style="padding:14px;background:${isPerfect ? '#f0fff4' : '#FFF5F5'};border:2px solid ${isPerfect ? '#00A699' : '#FF385C'};border-radius:12px;margin:8px 0;">
+        <div style="font-size:15px;font-weight:800;color:${isPerfect ? '#00A699' : '#FF385C'};margin-bottom:6px;">
+          ${isPerfect ? '✅ All Photos Uploaded Successfully!' : '⚠️ Upload Completed with Errors'}
         </div>
-        <div style="height:8px;background:var(--border);border-radius:4px;overflow:hidden;margin-top:4px;">
-          <div style="height:100%;width:100%;background:var(--green);border-radius:4px;"></div>
+        <div style="font-size:13px;color:var(--dark);">
+          <strong>${successCount}</strong> of <strong>${totalFiles}</strong> photos uploaded
+          ${failedUploads.length > 0 ? `<br><span style="color:var(--red);">❌ ${failedUploads.length} failed - please retry</span>` : ''}
+        </div>
+        <div style="height:8px;background:#EBEBEB;border-radius:4px;overflow:hidden;margin-top:8px;">
+          <div style="height:100%;width:100%;background:${isPerfect ? '#00A699' : '#FF385C'};border-radius:4px;"></div>
         </div>
       </div>`;
   }
@@ -959,7 +1026,8 @@ async function uploadIdPhotos(bkId) {
     frontPaths: stringifyIdPathArray(frontPaths),
     backPaths: stringifyIdPathArray(backPaths),
     allPaths: allPaths.length ? allPaths.join(',') : null,
-    firstPath: allPaths[0] || null
+    firstPath: allPaths[0] || null,
+    failedCount: failedUploads.length
   };
 }
 
@@ -968,12 +1036,14 @@ async function uploadVehiclePhoto(bkId) {
   if (!input?.files?.[0]) return null;
 
   try {
-    const comp = await compressImage(input.files[0]);
+    const compressed = await smartCompress(input.files[0]);
     const path = `${bkId}/${Date.now()}_vehicle.jpg`;
-    const { error } = await sb.storage.from('id-proofs').upload(path, comp, { contentType: 'image/jpeg' });
-    if (!error) return path;
-    console.warn('Vehicle photo upload error:', error.message);
-  } catch (e) { console.warn('Vehicle photo failed:', e); }
+    const result = await robustUpload(path, compressed, 3);
+    if (result.success) return path;
+    console.warn('Vehicle photo failed:', result.error);
+  } catch (e) {
+    console.warn('Vehicle photo failed:', e);
+  }
   return null;
 }
 // ============ SAVE BOOKING ============
