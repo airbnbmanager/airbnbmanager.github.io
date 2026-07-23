@@ -277,14 +277,22 @@ async function renderAddBooking() {
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
           <div>
             <div style="font-size:11px;color:var(--muted);font-weight:600;margin-bottom:4px;">📄 Front</div>
-            <input type="file" id="idFront${i}" accept="image/*" capture="environment"
-              style="font-size:12px;width:100%;" onchange="onIdFileSelect(this,${i},'front')" />
+            <div class="id-card-btns">
+              <button type="button" class="outline" onclick="document.getElementById('idFrontCam${i}').click()">📷 Camera</button>
+              <button type="button" class="outline" onclick="document.getElementById('idFrontGal${i}').click()">🖼️ Gallery</button>
+            </div>
+            <input type="file" id="idFrontCam${i}" accept="image/*" capture="environment" style="display:none;" onchange="onIdFileSelect(this,${i},'front')" />
+            <input type="file" id="idFrontGal${i}" accept="image/*" style="display:none;" onchange="onIdFileSelect(this,${i},'front')" />
             <div id="previewFront${i}" style="margin-top:4px;"></div>
           </div>
           <div>
             <div style="font-size:11px;color:var(--muted);font-weight:600;margin-bottom:4px;">📄 Back</div>
-            <input type="file" id="idBack${i}" accept="image/*" capture="environment"
-              style="font-size:12px;width:100%;" onchange="onIdFileSelect(this,${i},'back')" />
+            <div class="id-card-btns">
+              <button type="button" class="outline" onclick="document.getElementById('idBackCam${i}').click()">📷 Camera</button>
+              <button type="button" class="outline" onclick="document.getElementById('idBackGal${i}').click()">🖼️ Gallery</button>
+            </div>
+            <input type="file" id="idBackCam${i}" accept="image/*" capture="environment" style="display:none;" onchange="onIdFileSelect(this,${i},'back')" />
+            <input type="file" id="idBackGal${i}" accept="image/*" style="display:none;" onchange="onIdFileSelect(this,${i},'back')" />
             <div id="previewBack${i}" style="margin-top:4px;"></div>
           </div>
         </div>
@@ -654,10 +662,12 @@ function onIdFileSelect(input, guestNum, side) {
 }
 
 function clearIdFile(guestNum, side) {
-  const inputId = side === 'front' ? `idFront${guestNum}` : `idBack${guestNum}`;
+  const prefix = side === 'front' ? 'idFront' : 'idBack';
+  const cam = document.getElementById(`${prefix}Cam${guestNum}`);
+  const gal = document.getElementById(`${prefix}Gal${guestNum}`);
   const previewId = `preview${side === 'front' ? 'Front' : 'Back'}${guestNum}`;
-  const input = document.getElementById(inputId);
-  if (input) input.value = '';
+  if (cam) cam.value = '';
+  if (gal) gal.value = '';
   const preview = document.getElementById(previewId);
   if (preview) preview.innerHTML = '';
   updateIdUploadSummary();
@@ -669,11 +679,13 @@ function updateIdUploadSummary() {
   const cnt = Math.min(parseInt(document.getElementById('guests')?.value) || 1, 8);
   let ready = 0, total = 0;
   for (let i = 1; i <= 8; i++) {
-    const f = document.getElementById(`idFront${i}`);
-    const b = document.getElementById(`idBack${i}`);
+    const fc = document.getElementById(`idFrontCam${i}`);
+    const fg = document.getElementById(`idFrontGal${i}`);
+    const bc = document.getElementById(`idBackCam${i}`);
+    const bg = document.getElementById(`idBackGal${i}`);
     total += 2;
-    if (f?.files?.length) ready++;
-    if (b?.files?.length) ready++;
+    if (fc?.files?.length || fg?.files?.length) ready++;
+    if (bc?.files?.length || bg?.files?.length) ready++;
   }
   const pct = total > 0 ? Math.round(ready / total * 100) : 0;
   const color = pct === 100 ? 'var(--green)' : pct > 0 ? 'var(--yellow)' : 'var(--red)';
@@ -761,7 +773,7 @@ async function uploadIdPhotos(bkId) {
     const guestName = (document.getElementById(`gN${i}`)?.value?.trim() || `Guest${i}`)
       .replace(/[^a-zA-Z0-9]/g, '_').substring(0, 20);
 
-    const frontInput = document.getElementById(`idFront${i}`);
+    const frontInput = document.getElementById(`idFrontCam${i}`)?.files?.[0] ? document.getElementById(`idFrontCam${i}`) : document.getElementById(`idFrontGal${i}`);
     if (frontInput?.files?.[0]) {
       showProgress(uploaded, totalFiles, `Guest ${i} Front`);
       try {
@@ -783,7 +795,7 @@ async function uploadIdPhotos(bkId) {
       }
     }
 
-    const backInput = document.getElementById(`idBack${i}`);
+    const backInput = document.getElementById(`idBackCam${i}`)?.files?.[0] ? document.getElementById(`idBackCam${i}`) : document.getElementById(`idBackGal${i}`);
     if (backInput?.files?.[0]) {
       showProgress(uploaded, totalFiles, `Guest ${i} Back`);
       try {
@@ -1046,9 +1058,7 @@ async function editBooking(bkId) {
     const bp = backPaths[i - 1] || null;
     idSlots += `
       <div style="padding:10px;margin-bottom:8px;background:var(--bg);border:1px solid var(--border);border-radius:10px;">
-        <div style="font-weight:700;font-size:13px;margin-bottom:6px;">
-          👤 Guest ${i}
-        </div>
+        <div style="font-weight:700;font-size:13px;margin-bottom:6px;">👤 Guest ${i}</div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
           <div>
             <div style="font-size:11px;color:var(--muted);font-weight:600;margin-bottom:4px;">📄 Front</div>
@@ -1059,8 +1069,12 @@ async function editBooking(bkId) {
                 <button class="btn-sm danger" onclick="deleteIdPhoto('${bkId}','${fp}','front',${i - 1})">🗑️</button>
               </div>
             </div>` : '<div style="font-size:11px;color:var(--red);margin-bottom:4px;">⚠️ No photo</div>'}
-            <input type="file" id="eFront${i}" accept="image/*" capture="environment"
-              style="font-size:12px;width:100%;" />
+            <div class="id-card-btns">
+              <button type="button" class="outline" onclick="document.getElementById('eFrontCam${i}').click()">📷 Camera</button>
+              <button type="button" class="outline" onclick="document.getElementById('eFrontGal${i}').click()">🖼️ Gallery</button>
+            </div>
+            <input type="file" id="eFrontCam${i}" accept="image/*" capture="environment" style="display:none;" />
+            <input type="file" id="eFrontGal${i}" accept="image/*" style="display:none;" />
           </div>
           <div>
             <div style="font-size:11px;color:var(--muted);font-weight:600;margin-bottom:4px;">📄 Back</div>
@@ -1071,8 +1085,12 @@ async function editBooking(bkId) {
                 <button class="btn-sm danger" onclick="deleteIdPhoto('${bkId}','${bp}','back',${i - 1})">🗑️</button>
               </div>
             </div>` : '<div style="font-size:11px;color:var(--red);margin-bottom:4px;">⚠️ No photo</div>'}
-            <input type="file" id="eBack${i}" accept="image/*" capture="environment"
-              style="font-size:12px;width:100%;" />
+            <div class="id-card-btns">
+              <button type="button" class="outline" onclick="document.getElementById('eBackCam${i}').click()">📷 Camera</button>
+              <button type="button" class="outline" onclick="document.getElementById('eBackGal${i}').click()">🖼️ Gallery</button>
+            </div>
+            <input type="file" id="eBackCam${i}" accept="image/*" capture="environment" style="display:none;" />
+            <input type="file" id="eBackGal${i}" accept="image/*" style="display:none;" />
           </div>
         </div>
       </div>`;
@@ -1308,9 +1326,9 @@ async function updateBooking(bkId, parentBookingId = '', stayGroupId = '') {
   const bArr = existBack.length  ? existBack.slice()  : Array(gc).fill(null);
   const aArr = (oldBk?.id_proof_photo_paths || '').split(',').filter(Boolean);
   for (let i = 1; i <= gc; i++) {
-    const fFile = document.getElementById(`eFront${i}`)?.files?.[0];
+    const fFile = document.getElementById(`eFrontCam${i}`)?.files?.[0] || document.getElementById(`eFrontGal${i}`)?.files?.[0];
     if (fFile) { try { const c = await compressImage(fFile); const p = `${bkId}/${Date.now()}_g${i}_front.jpg`; const { error } = await sb.storage.from('id-proofs').upload(p, c, { contentType: 'image/jpeg' }); if (!error) { while(fArr.length < i) fArr.push(null); fArr[i-1] = p; aArr.push(p); } } catch (e) { } }
-    const bFile = document.getElementById(`eBack${i}`)?.files?.[0];
+    const bFile = document.getElementById(`eBackCam${i}`)?.files?.[0] || document.getElementById(`eBackGal${i}`)?.files?.[0];
     if (bFile) { try { const c = await compressImage(bFile); const p = `${bkId}/${Date.now()}_g${i}_back.jpg`; const { error } = await sb.storage.from('id-proofs').upload(p, c, { contentType: 'image/jpeg' }); if (!error) { while(bArr.length < i) bArr.push(null); bArr[i-1] = p; aArr.push(p); } } catch (e) { } }
   }
 
