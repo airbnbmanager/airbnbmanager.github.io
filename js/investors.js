@@ -396,6 +396,7 @@ async function renderInvestorReport(investorId, roomId, month) {
         </div>
         <div class="form-group" style="justify-content:flex-end;">
           <button class="btn-sm" onclick="printInvestorReport('${inv?.name || 'Investor'}','${room?.nickname || roomId}','${monthYear}')">🖨️ Print / Save PDF</button>
+          ${excludedBookings.length > 0 ? `<button class="btn-sm outline" style="margin-left:6px;" onclick="renderFriendsReport('${investorId}','${roomId}','${selMonth}')">🎁 Friends Report (${excludedBookings.length})</button>` : ''}
         </div>
       </div>
     </div>
@@ -618,42 +619,6 @@ async function renderInvestorReport(investorId, roomId, month) {
         </p>
       </div>
 
-      ${excludedBookings.length > 0 ? `
-      <div style="margin-bottom:20px;padding-top:20px;border-top:2px dashed #FFB800;">
-        <div style="font-size:15px;font-weight:700;margin-bottom:10px;padding:8px 12px;background:linear-gradient(90deg,#FFB800,#FC642D);color:#fff;border-radius:6px;">🎁 Complimentary / Friends Stays (Not in Revenue)</div>
-        <table style="width:100%;border-collapse:collapse;font-size:12px;">
-          <thead>
-            <tr style="background:#FFF9E6;border-bottom:2px solid #FFB800;">
-              <th style="padding:6px;border:1px solid #FFB800;">Guest</th>
-              <th style="padding:6px;border:1px solid #FFB800;">Check-in</th>
-              <th style="padding:6px;border:1px solid #FFB800;">Check-out</th>
-              <th style="padding:6px;border:1px solid #FFB800;">Nights</th>
-              <th style="padding:6px;border:1px solid #FFB800;">Notes</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${excludedBookings.map(b => `
-              <tr>
-                <td style="padding:6px;border:1px solid #FFB800;">${b.guest_name || '-'}</td>
-                <td style="padding:6px;border:1px solid #FFB800;">${b.check_in || '-'}</td>
-                <td style="padding:6px;border:1px solid #FFB800;">${b.check_out || '-'}</td>
-                <td style="padding:6px;border:1px solid #FFB800;text-align:center;">${cn(b)}</td>
-                <td style="padding:6px;border:1px solid #FFB800;font-size:11px;color:#767676;">${b.notes || 'Complimentary'}</td>
-              </tr>
-            `).join('')}
-            <tr style="background:#FFF9E6;font-weight:700;">
-              <td colspan="3" style="padding:6px;border:1px solid #FFB800;text-align:right;">Total Complimentary Nights:</td>
-              <td style="padding:6px;border:1px solid #FFB800;text-align:center;">${excludedBookings.reduce((s,b) => s + cn(b), 0)}</td>
-              <td style="padding:6px;border:1px solid #FFB800;text-align:center;color:#767676;">Not counted</td>
-            </tr>
-          </tbody>
-        </table>
-        <div style="font-size:11px;color:#767676;margin-top:6px;font-style:italic;">
-          ℹ️ These stays are excluded from revenue calculation. Shown here for transparency only.
-        </div>
-      </div>
-      ` : ''}
-
       <div style="background:linear-gradient(135deg,#484848,#767676);color:#fff;padding:20px;margin:20px -30px -30px -30px;border-radius:0 0 12px 12px;text-align:center;">
         <img src="assets/logo.png" alt="Logo" style="width:40px;height:40px;border-radius:8px;background:#fff;padding:4px;margin-bottom:6px;" />
         <div style="font-size:11px;color:rgba(255,255,255,0.7);letter-spacing:2px;margin-bottom:8px;">${BRAND.toUpperCase()}</div>
@@ -848,4 +813,165 @@ function printInvestorReport(investorName, propertyName, monthYear) {
   setTimeout(() => {
     document.title = originalTitle;
   }, 1000);
+}
+
+
+// ============ FRIENDS/COMPLIMENTARY STAYS REPORT ============
+async function renderFriendsReport(investorId, roomId, month) {
+  renderShell(`<div class="loading">Generating friends report...</div>`, 'investors');
+
+  const now = new Date();
+  const selMonth = month || `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  const monthDate = new Date(selMonth + '-01');
+  const monthYear = monthDate.toLocaleString('en-IN', { month: 'long', year: 'numeric' });
+  const monthStart = selMonth + '-01';
+  const monthEnd = new Date(parseInt(selMonth.split('-')[0]), parseInt(selMonth.split('-')[1]), 0).toISOString().slice(0, 10);
+
+  const [{data:inv}, {data:room}, {data:bookings}] = await Promise.all([
+    sb.from('investors').select('*').eq('investor_id', investorId).single(),
+    sb.from('rooms').select('*').eq('room_id', roomId).single(),
+    sb.from('guest_register').select('*').eq('room_id', roomId).gte('check_in', monthStart).lte('check_in', monthEnd).order('check_in'),
+  ]);
+
+  // Only friends bookings
+  const excludeKeywords = ['(friends)', '(complimentary)', '(comp)', '(free)', '(owner)', '(family)'];
+  const friendsBookings = (bookings || []).filter(b => {
+    const name = (b.guest_name || '').toLowerCase();
+    const notes = (b.notes || '').toLowerCase();
+    return excludeKeywords.some(k => name.includes(k) || notes.includes(k));
+  });
+
+  const cn = b => b.check_in && b.check_out ? calcNights(b.check_in, b.check_out) : 0;
+  const totalNights = friendsBookings.reduce((s, b) => s + cn(b), 0);
+
+  const today = new Date().toLocaleDateString('en-GB');
+
+  const months = [];
+  for (let i = 0; i < 12; i++) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    months.push({
+      val: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`,
+      lbl: d.toLocaleString('en-IN', { month: 'short', year: 'numeric' })
+    });
+  }
+
+  renderShell(`
+    <div class="card no-print">
+      <h1>🎁 Complimentary / Friends Report</h1>
+      <button class="secondary btn-sm" onclick="renderInvestorReport('${investorId}','${roomId}','${selMonth}')">← Back to Main Report</button>
+      <div class="form-grid" style="margin-top:8px;">
+        <div class="form-group">
+          <label>Month</label>
+          <select onchange="renderFriendsReport('${investorId}','${roomId}',this.value)">
+            ${months.map(m => `<option value="${m.val}" ${m.val === selMonth ? 'selected' : ''}>${m.lbl}</option>`).join('')}
+          </select>
+        </div>
+        <div class="form-group" style="justify-content:flex-end;">
+          <button class="btn-sm" onclick="printInvestorReport('${inv?.name || 'Investor'}','${room?.nickname || roomId}_Friends','${monthYear}')">🖨️ Print / Save PDF</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card report-doc" style="max-width:800px;margin:0 auto;padding:30px;background:#fff;box-shadow:0 8px 32px rgba(255,90,95,0.15);border:1px solid #FFEBEC;border-radius:12px;overflow:hidden;">
+
+      <div style="background:linear-gradient(135deg,#FFB800 0%,#FC642D 100%);color:#fff;padding:28px 20px;border-radius:12px 12px 0 0;text-align:center;margin:-30px -30px 20px -30px;">
+        <img src="assets/logo.png" alt="Logo" style="width:60px;height:60px;border-radius:12px;background:#fff;padding:6px;margin-bottom:8px;" />
+        <div style="font-size:11px;letter-spacing:3px;color:rgba(255,255,255,0.8);margin-bottom:4px;">${BRAND.toUpperCase()}</div>
+        <h1 style="font-size:22px;margin:4px 0;letter-spacing:2px;color:#fff;font-weight:800;">🎁 COMPLIMENTARY STAYS REPORT</h1>
+        <div style="font-size:13px;color:rgba(255,255,255,0.95);margin-top:6px;">${monthYear}</div>
+      </div>
+
+      <div style="margin-bottom:20px;">
+        <div style="font-size:15px;font-weight:700;margin-bottom:10px;padding:8px 12px;background:linear-gradient(90deg,#FF5A5F,#FC642D);color:#fff;border-radius:6px;">🏠 Property Details</div>
+        <div style="line-height:2;font-size:14px;padding:10px;">
+          <div><strong>Property:</strong> ${room?.nickname || room?.property_name || '-'}</div>
+          <div><strong>Owner:</strong> ${inv?.name || '-'}</div>
+          <div><strong>Location:</strong> ${room?.address || 'Lucknow'}</div>
+          <div><strong>Reporting Period:</strong> ${monthYear}</div>
+          <div><strong>Report Date:</strong> ${today}</div>
+        </div>
+      </div>
+
+      <div style="margin-bottom:20px;">
+        <div style="font-size:15px;font-weight:700;margin-bottom:10px;padding:8px 12px;background:linear-gradient(90deg,#FFB800,#FC642D);color:#fff;border-radius:6px;">🎁 Complimentary / Friends Stays</div>
+
+        <table style="width:100%;border-collapse:collapse;font-size:13px;">
+          <thead>
+            <tr style="background:#FFF9E6;border-bottom:2px solid #FFB800;">
+              <th style="padding:8px;border:1px solid #FFB800;">Guest Name</th>
+              <th style="padding:8px;border:1px solid #FFB800;">Phone</th>
+              <th style="padding:8px;border:1px solid #FFB800;">Check-in</th>
+              <th style="padding:8px;border:1px solid #FFB800;">Check-out</th>
+              <th style="padding:8px;border:1px solid #FFB800;text-align:center;">Nights</th>
+              <th style="padding:8px;border:1px solid #FFB800;">Type</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${friendsBookings.map(b => {
+              const name = (b.guest_name || '').toLowerCase();
+              let type = 'Complimentary';
+              if (name.includes('(friends)')) type = 'Friends';
+              else if (name.includes('(owner)')) type = 'Owner';
+              else if (name.includes('(family)')) type = 'Family';
+              else if (name.includes('(comp)') || name.includes('(complimentary)')) type = 'Complimentary';
+              else if (name.includes('(free)')) type = 'Free';
+
+              return `
+                <tr>
+                  <td style="padding:8px;border:1px solid #FFB800;"><strong>${b.guest_name || '-'}</strong></td>
+                  <td style="padding:8px;border:1px solid #FFB800;font-size:12px;">${b.phone || '-'}</td>
+                  <td style="padding:8px;border:1px solid #FFB800;">${b.check_in || '-'}</td>
+                  <td style="padding:8px;border:1px solid #FFB800;">${b.check_out || '-'}</td>
+                  <td style="padding:8px;border:1px solid #FFB800;text-align:center;font-weight:700;">${cn(b)}</td>
+                  <td style="padding:8px;border:1px solid #FFB800;"><span style="background:#FFB800;color:#fff;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;">${type}</span></td>
+                </tr>
+              `;
+            }).join('') || '<tr><td colspan="6" style="padding:14px;text-align:center;color:#767676;border:1px solid #FFB800;">No complimentary stays this month</td></tr>'}
+            ${friendsBookings.length > 0 ? `
+            <tr style="background:#FFF0F0;font-weight:700;">
+              <td colspan="4" style="padding:10px;border:1px solid #FFB800;text-align:right;">Total Complimentary Nights:</td>
+              <td style="padding:10px;border:1px solid #FFB800;text-align:center;font-size:15px;color:#FF5A5F;">${totalNights}</td>
+              <td style="padding:10px;border:1px solid #FFB800;text-align:center;color:#767676;font-size:11px;">Not counted in revenue</td>
+            </tr>
+            ` : ''}
+          </tbody>
+        </table>
+      </div>
+
+      ${friendsBookings.length > 0 ? `
+      <div style="margin-bottom:20px;padding:14px;background:#FFF9E6;border-left:4px solid #FFB800;border-radius:6px;font-size:13px;line-height:1.8;">
+        <strong style="color:#FC642D;">📌 Note:</strong>
+        <div style="margin-top:6px;color:#484848;">
+          These bookings are complimentary stays and are NOT included in the revenue calculation of the main investor report.
+          They are documented here for transparency and record-keeping purposes only.
+        </div>
+      </div>
+      ` : ''}
+
+      <div style="background:linear-gradient(135deg,#484848,#767676);color:#fff;padding:20px;margin:20px -30px -30px -30px;border-radius:0 0 12px 12px;text-align:center;">
+        <img src="assets/logo.png" alt="Logo" style="width:40px;height:40px;border-radius:8px;background:#fff;padding:4px;margin-bottom:6px;" />
+        <div style="font-size:11px;color:rgba(255,255,255,0.7);letter-spacing:2px;margin-bottom:8px;">${BRAND.toUpperCase()}</div>
+        <div style="font-size:12px;line-height:1.8;color:rgba(255,255,255,0.9);">
+          <div><strong style="color:#fff;">Prepared By:</strong> NISHA KHAN</div>
+          <div><strong style="color:#fff;">Operator:</strong> ${BRAND}</div>
+          <div><strong style="color:#fff;">Report Date:</strong> ${today}</div>
+        </div>
+        <div style="font-size:10px;color:rgba(255,255,255,0.5);margin-top:8px;">
+          🌐 uniquehavenhomesstay.com
+        </div>
+      </div>
+    </div>
+
+    <style>
+      @media print {
+        @page { size: A4; margin: 15mm 12mm; }
+        .sidebar, .no-print, button { display: none !important; }
+        .app-container { display: block !important; }
+        .main-content { margin: 0 !important; padding: 0 !important; }
+        .card { border: none !important; box-shadow: none !important; padding: 0 !important; margin: 0 !important; }
+        body { background: #fff !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+        .report-doc { max-width: 100% !important; margin: 0 !important; padding: 0 !important; }
+      }
+    </style>
+  `, 'investors');
 }
