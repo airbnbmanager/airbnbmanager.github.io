@@ -22,13 +22,17 @@ async function checkStorageUsage() {
 // ============ EMPLOYEES ============
 async function renderManageEmployees() {
   renderShell(`<div class="loading">Loading...</div>`, 'employees');
-  const { data: emps } = await sb.from("employees").select("*").order("name");
+  const [{ data: emps }, storageInfo] = await Promise.all([
+    sb.from("employees").select("*").order("name"),
+    checkStorageUsage()
+  ]);
   const isO = SESSION.role === 'owner';
 
   renderShell(`
     <div class="card">
       <h1>👥 Employees</h1>
       <div class="sub">${(emps || []).length} total</div>
+      <div class="sub">ID Storage: ${(storageInfo?.files || 0)} files · Plan: ${storageInfo?.label || '1 GB'}</div>
       ${isO ? `<button onclick="renderAddEmp()">➕ Add Employee</button>` : ''}
     </div>
     <div class="card"><div class="table-wrap"><table>

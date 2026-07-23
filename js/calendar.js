@@ -39,6 +39,28 @@ async function renderReports() {
   const bookedNights = Object.keys(bMap).filter(k => k.includes(`_${mp}`)).length;
   const occ = totalRoomNights > 0 ? Math.round(bookedNights / totalRoomNights * 100) : 0;
 
+  const today = new Date().toISOString().slice(0, 10);
+  const day7 = dateAdd(today, 7);
+
+  const upcoming7 = (bookings.data || [])
+    .filter(b => b.check_in > today && b.check_in <= day7)
+    .sort((a, b) => (a.check_in || '').localeCompare(b.check_in || ''));
+
+  const allUpcoming = (bookings.data || [])
+    .filter(b => b.check_in > today)
+    .sort((a, b) => (a.check_in || '').localeCompare(b.check_in || ''));
+
+  const openStays = (bookings.data || []).filter(b =>
+    b.checkout_confirmed === false &&
+    b.check_in <= today &&
+    (b.check_out >= today || !b.check_out)
+  );
+
+  const bName = b => {
+    const room = (rooms.data || []).find(r => r.room_id === b.room_id);
+    return room?.nickname || room?.unit_no || b.room_id || '-';
+  };
+
   let html = `
     <div class="card">
       <h1>📆 Calendar — ${mName} ${yr}</h1>
@@ -50,6 +72,41 @@ async function renderReports() {
       <div class="metric-row"><span class="metric-label">Revenue</span><span class="metric-value">₹${rev.toLocaleString('en-IN')}</span></div>
       <div class="metric-row"><span class="metric-label">Online / Offline</span><span class="metric-value">${onCount} / ${offCount}</span></div>
       <div class="metric-row"><span class="metric-label">Occupancy</span><span class="metric-value">${occ}%</span></div>
+    </div>
+
+    <div class="stat-grid">
+      <div class="stat-card" style="border-left:4px solid var(--blue);">
+        <div class="stat-num">${upcoming7.length}</div>
+        <div class="stat-label">📅 Next 7 Days</div>
+        ${upcoming7.slice(0, 6).map(x => `
+          <div style="font-size:11px;margin-top:3px;padding:2px 0;border-bottom:1px solid var(--border);">
+            <strong>${x.guest_name || '-'}</strong> — ${bName(x)}<br>
+            <small style="color:var(--muted);">${x.check_in || '-'} · ${x.check_in_time || '2 PM'}</small>
+          </div>
+        `).join('') || '<div class="sub" style="margin:4px 0 0;">None</div>'}
+      </div>
+
+      <div class="stat-card" style="border-left:4px solid var(--primary);">
+        <div class="stat-num">${openStays.length}</div>
+        <div class="stat-label">🔄 Open Stays</div>
+        ${openStays.slice(0, 6).map(x => `
+          <div style="font-size:11px;margin-top:3px;padding:2px 0;border-bottom:1px solid var(--border);">
+            <strong>${x.guest_name || '-'}</strong> — ${bName(x)}<br>
+            <small style="color:var(--muted);">Since ${x.check_in || '-'}</small>
+          </div>
+        `).join('') || '<div class="sub" style="margin:4px 0 0;">None</div>'}
+      </div>
+
+      <div class="stat-card" style="border-left:4px solid var(--yellow);">
+        <div class="stat-num">${allUpcoming.length}</div>
+        <div class="stat-label">📆 All Upcoming</div>
+        ${allUpcoming.slice(0, 6).map(x => `
+          <div style="font-size:11px;margin-top:3px;padding:2px 0;border-bottom:1px solid var(--border);">
+            <strong>${x.guest_name || '-'}</strong> — ${bName(x)}<br>
+            <small style="color:var(--muted);">${x.check_in || '-'}</small>
+          </div>
+        `).join('') || '<div class="sub" style="margin:4px 0 0;">None</div>'}
+      </div>
     </div>
 
     <div class="card" style="text-align:center;background:var(--dark);color:#fff;">

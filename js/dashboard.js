@@ -131,43 +131,6 @@ async function renderDashboard() {
       </div>
     </div>
 
-    <!-- Row 3: Next 7 Days + Open Stays -->
-    <div class="stat-grid">
-      <div class="stat-card" style="border-left:4px solid var(--blue);">
-        <div class="stat-num">${upcoming7.length}</div>
-        <div class="stat-label">📅 Next 7 Days</div>
-        ${upcoming7.slice(0, 6).map(x => `
-          <div style="font-size:11px;margin-top:3px;padding:2px 0;border-bottom:1px solid var(--border);">
-            <strong>${x.guest_name}</strong> — ${bName(x)}<br>
-            <small style="color:var(--muted);">${x.check_in} · ${x.check_in_time || '2 PM'}</small>
-          </div>
-        `).join('') || '<div class="sub" style="margin:4px 0 0;">None</div>'}
-      </div>
-
-      <div class="stat-card" style="border-left:4px solid var(--primary);">
-        <div class="stat-num">${openStays.length}</div>
-        <div class="stat-label">🔄 Open Stays</div>
-        ${openStays.slice(0, 4).map(x => `
-          <div style="font-size:11px;margin-top:3px;">
-            ${x.guest_name} — ${bName(x)}<br>
-            <small style="color:var(--muted);">Since ${x.check_in}</small>
-          </div>
-        `).join('') || '<div class="sub" style="margin:4px 0 0;">None</div>'}
-      </div>
-
-      <div class="stat-card" style="border-left:4px solid var(--yellow);">
-        <div class="stat-num">${allUpcoming.length}</div>
-        <div class="stat-label">📆 All Upcoming</div>
-        ${allUpcoming.slice(0, 4).map(x => `
-          <div style="font-size:11px;margin-top:3px;">
-            ${x.guest_name} — ${bName(x)}<br>
-            <small style="color:var(--muted);">${x.check_in}</small>
-          </div>
-        `).join('') || '<div class="sub" style="margin:4px 0 0;">None</div>'}
-        ${allUpcoming.length > 4 ? `<div style="font-size:11px;margin-top:4px;color:var(--primary);cursor:pointer;" onclick="navigate('bookings')">View all ${allUpcoming.length} →</div>` : ''}
-      </div>
-    </div>
-
 
   `, 'dashboard');
 }
