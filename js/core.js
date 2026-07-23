@@ -353,6 +353,7 @@ function renderShell(content, activePage = 'dashboard') {
       ['monthly-expenses', '📅 Monthly Expenses'],
       ['financial', '📊 Financial Summary'],
       ['financial-sheet', '📈 Financial Sheet'],
+      ['airbnb-sync', '🔄 Airbnb Sync'],
       ['property-report', '🏘️ Property Reports'],
       ['investors', '🧑‍💼 Investors'],
 
@@ -467,6 +468,7 @@ function navigate(page) {
     'shifts': renderPropertyShifts,
     'financial': () => renderFYSummary('Month'),
     'financial-sheet': renderFinancialSheet,
+    'airbnb-sync': renderAirbnbSync,
     investors: renderManageInvestors,
     maintenance: renderMaintenanceLog,
     'user-mgmt': renderUserManagement,
