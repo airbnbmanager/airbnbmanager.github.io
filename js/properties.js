@@ -397,7 +397,7 @@ async function renderPropertyShifts(roomId) {
   const [{ data: rooms }, { data: emps }, { data: allShifts, error: shiftErr }] = await Promise.all([
     sb.from('rooms').select('room_id, nickname, unit_no').order('room_id'),
     sb.from('employees')
-      .select('emp_id, name, phone, property_role, role')
+      .select('emp_id, name, phone, property_role, role, assigned_rooms')
       .eq('status', 'Active')
       .order('name'),
     sb.from('property_shifts')
@@ -585,7 +585,9 @@ async function renderPropertyShifts(roomId) {
 }
 
 async function renderAddShift(roomId) {
-  const emps = window._shiftEmps || [];
+  const emps = (window._shiftEmps || []).filter(e =>
+    ((e.assigned_rooms || '').split(',').map(x => x.trim()).filter(Boolean)).includes(roomId)
+  );
 
   renderShell(`
     <div class="card">
@@ -678,10 +680,15 @@ async function saveShift(roomId) {
 }
 
 async function editShift(id, roomId) {
-  const [{ data: sh }, emps] = await Promise.all([
+  const [{ data: sh }, allEmps] = await Promise.all([
     sb.from('property_shifts').select('*').eq('id', id).single(),
     Promise.resolve(window._shiftEmps || [])
   ]);
+
+  const emps = (allEmps || []).filter(e => {
+    const assigned = ((e.assigned_rooms || '').split(',').map(x => x.trim()).filter(Boolean));
+    return assigned.includes(roomId) || e.emp_id === sh?.emp_id;
+  });
 
   if (!sh) { alert('Not found'); return; }
 
