@@ -3440,3 +3440,52 @@ a.whatsapp-btn-large {
   fill: #FFFFFF !important;
   color: #FFFFFF !important;
 }
+
+/* SUPERHOST BADGE - FORCE SOLID WHITE ============ */
+.superhost-trust-badge {
+  background: #FFFFFF !important;
+  background-color: #FFFFFF !important;
+  background-image: none !important;
+  background-gradient: none !important;
+  border: 3px solid #FF385C !important;
+  padding: 12px 22px !important;
+  gap: 14px !important;
+  box-shadow: 0 8px 24px rgba(255,56,92,0.15) !important;
+}
+
+.superhost-trust-badge::before,
+.superhost-trust-badge::after {
+  display: none !important;
+}
+
+.superhost-trust-badge > * {
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+}
+
+.superhost-trust-badge > span:nth-child(1),
+.superhost-trust-badge .sh-pill {
+  background: #FF385C !important;
+  background-color: #FF385C !important;
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+  padding: 6px 14px !important;
+  border-radius: 999px !important;
+}
+
+.superhost-trust-badge > span:nth-child(2),
+.superhost-trust-badge .sh-rating {
+  color: #E00B41 !important;
+  -webkit-text-fill-color: #E00B41 !important;
+  font-weight: 900 !important;
+  font-size: 20px !important;
+}
+
+.superhost-trust-badge > span:nth-child(3),
+.superhost-trust-badge .sh-reviews {
+  color: #222222 !important;
+  -webkit-text-fill-color: #222222 !important;
+  font-weight: 700 !important;
+  font-size: 14px !important;
+}
