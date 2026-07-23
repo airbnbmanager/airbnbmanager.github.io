@@ -2420,69 +2420,25 @@ footer a { color: #484848 !important; }
 }
 
 /* ============ SUPERHOST TRUST BADGE FIX ============ */
-.superhost-trust-badge {
-  background: #fff !important;
-  border: 2px solid #FF385C !important;
-  padding: 10px 20px !important;
-  gap: 10px !important;
-}
 
-.superhost-trust-badge > span:first-child {
-  background: #FF385C !important;
-  color: #fff !important;
-  padding: 6px 12px !important;
-  border-radius: 999px !important;
-  font-size: 11px !important;
-  font-weight: 800 !important;
-  letter-spacing: 0.5px !important;
-  white-space: nowrap !important;
-}
 
-.superhost-trust-badge > span:nth-child(2) {
-  color: #FF385C !important;
-  font-weight: 800 !important;
-  font-size: 18px !important;
-  white-space: nowrap !important;
-}
 
-.superhost-trust-badge > span:last-child {
-  color: #484848 !important;
-  font-size: 14px !important;
-  font-weight: 500 !important;
-  white-space: nowrap !important;
-}
+
+
+
+
 
 @media (max-width: 480px) {
-  .superhost-trust-badge {
-    flex-wrap: wrap !important;
-    padding: 10px 16px !important;
-    gap: 8px !important;
-  }
-  .superhost-trust-badge > span:last-child {
-    font-size: 12px !important;
-  }
+  
+  
 }
 
 /* ============ SUPERHOST BADGE TEXT VISIBLE ============ */
-.superhost-trust-badge span,
-.superhost-trust-badge > span:last-child {
-  color: #484848 !important;
-  font-size: 14px !important;
-  font-weight: 600 !important;
-  opacity: 1 !important;
-  visibility: visible !important;
-}
 
-.superhost-trust-badge > span:nth-child(2) {
-  color: #FF385C !important;
-  font-weight: 800 !important;
-  font-size: 18px !important;
-}
 
-.superhost-trust-badge > span:first-child {
-  background: #FF385C !important;
-  color: #fff !important;
-}
+
+
+
 
 /* ============ BOOK DIRECT BANNER - CENTER ALIGN ============ */
 .book-direct-banner {
@@ -2601,16 +2557,8 @@ footer a { color: #484848 !important; }
 
 /* Mobile responsive */
 @media (max-width: 768px) {
-  .superhost-trust-badge {
-    flex-wrap: wrap !important;
-    justify-content: center !important;
-    padding: 12px 18px !important;
-  }
-  .superhost-trust-badge > span:last-child {
-    font-size: 12px !important;
-    width: 100% !important;
-    text-align: center !important;
-  }
+  
+  
   .wa-banner {
     padding: 32px 20px !important;
     margin: 32px 16px !important;
@@ -3275,71 +3223,82 @@ a.whatsapp-btn-large * {
 }
 
 /* ============ SUPERHOST BADGE - FIX ALL TEXT VISIBILITY ============ */
-.superhost-trust-badge {
-  background: #FFFFFF !important;
-  border: 2px solid #FF385C !important;
-  padding: 12px 22px !important;
-  gap: 12px !important;
-  display: inline-flex !important;
-  align-items: center !important;
-  border-radius: 999px !important;
-  text-decoration: none !important;
-  box-shadow: 0 8px 24px rgba(255,56,92,0.15) !important;
-}
 
-.superhost-trust-badge > span {
-  color: #222222 !important;
-  -webkit-text-fill-color: #222222 !important;
-  opacity: 1 !important;
-}
+
+
 
 /* SUPERHOST pill */
-.superhost-trust-badge > span:nth-of-type(1) {
-  background: #FF385C !important;
-  color: #FFFFFF !important;
-  -webkit-text-fill-color: #FFFFFF !important;
-  padding: 6px 12px !important;
-  border-radius: 999px !important;
-  font-size: 11px !important;
-  font-weight: 800 !important;
-  letter-spacing: 0.5px !important;
-  white-space: nowrap !important;
-}
+
 
 /* ★ 4.87 */
-.superhost-trust-badge > span:nth-of-type(2) {
-  color: #FF385C !important;
-  -webkit-text-fill-color: #FF385C !important;
-  font-weight: 800 !important;
-  font-size: 18px !important;
-  white-space: nowrap !important;
-}
+
 
 /* (158 reviews on Airbnb) */
-.superhost-trust-badge > span:nth-of-type(3) {
-  color: #484848 !important;
-  -webkit-text-fill-color: #484848 !important;
-  font-size: 14px !important;
-  font-weight: 600 !important;
-  white-space: nowrap !important;
+
+
+
+
+@media (max-width: 480px) {
+  
+  
+}
+
+
+/* ============ SUPERHOST TRUST BADGE - CLEAN ============ */
+.superhost-trust-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  background: #FFFFFF;
+  border: 2px solid #FF385C;
+  padding: 10px 20px;
+  border-radius: 999px;
+  text-decoration: none;
+  box-shadow: 0 8px 24px rgba(255,56,92,0.15);
+  margin: 20px auto;
+  transition: all 0.3s;
 }
 
 .superhost-trust-badge:hover {
-  transform: translateY(-2px) !important;
-  box-shadow: 0 12px 32px rgba(255,56,92,0.25) !important;
-  background: #FFF8F9 !important;
+  transform: translateY(-2px);
+  box-shadow: 0 12px 32px rgba(255,56,92,0.25);
+}
+
+.superhost-trust-badge .sh-pill {
+  background: #FF385C;
+  color: #FFFFFF;
+  padding: 6px 14px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.6px;
+  white-space: nowrap;
+}
+
+.superhost-trust-badge .sh-rating {
+  color: #E00B41;
+  font-weight: 800;
+  font-size: 18px;
+  white-space: nowrap;
+}
+
+.superhost-trust-badge .sh-reviews {
+  color: #484848;
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
 }
 
 @media (max-width: 480px) {
   .superhost-trust-badge {
-    flex-wrap: wrap !important;
-    justify-content: center !important;
-    padding: 10px 16px !important;
-    gap: 8px !important;
+    flex-wrap: wrap;
+    justify-content: center;
+    padding: 10px 16px;
+    gap: 8px;
   }
-  .superhost-trust-badge > span:nth-of-type(3) {
-    font-size: 12px !important;
-    width: 100% !important;
-    text-align: center !important;
+  .superhost-trust-badge .sh-reviews {
+    font-size: 12px;
+    width: 100%;
+    text-align: center;
   }
 }
