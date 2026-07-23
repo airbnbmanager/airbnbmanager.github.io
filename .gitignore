@@ -3,3 +3,4 @@
 supabase/.temp/
 js/*.bak
 js/*.bak.*
+.DS_Store
