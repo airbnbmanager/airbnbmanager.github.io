@@ -284,6 +284,8 @@ async function renderAddBooking() {
       </div>`;
   }
 
+  const idSummaryHtml = '<div id="idUploadSummary"></div>';
+
   renderShell(`
     <div class="card">
       <h1>➕ New Booking</h1>
@@ -611,22 +613,27 @@ function onIdFileSelect(input, guestNum, side) {
 
   const file = input.files[0];
   const sizeMB = (file.size / 1024 / 1024).toFixed(1);
+  const sideLabel = side === 'front' ? 'Front' : 'Back';
 
   const reader = new FileReader();
   reader.onload = function(e) {
     if (previewEl) {
       previewEl.innerHTML = `
-        <div style="display:flex;align-items:center;gap:6px;padding:4px;background:#f0fff4;border-radius:6px;border:1px solid var(--green);">
-          <img src="${e.target.result}" style="width:50px;height:35px;object-fit:cover;border-radius:4px;" />
-          <div>
-            <div style="font-size:10px;color:var(--green);font-weight:600;">✅ ${side} ready</div>
-            <div style="font-size:9px;color:var(--muted);">${sizeMB} MB</div>
+        <div style="display:flex;align-items:center;gap:8px;padding:6px 8px;background:#f0fff4;border-radius:8px;border:1.5px solid var(--green);margin:4px 0;">
+          <img src="${e.target.result}" style="width:56px;height:40px;object-fit:cover;border-radius:6px;border:1px solid var(--border);" />
+          <div style="flex:1;">
+            <div style="font-size:11px;color:var(--green);font-weight:700;">✅ ${sideLabel} Ready</div>
+            <div style="font-size:10px;color:var(--muted);">${sizeMB} MB · Will compress on upload</div>
           </div>
-          <button type="button" class="btn-sm danger" style="min-height:22px;padding:2px 6px;font-size:9px;margin-left:auto;"
+          <button type="button" class="btn-sm danger" style="min-height:24px;padding:2px 8px;font-size:10px;"
             onclick="clearIdFile(${guestNum},'${side}')">✕</button>
         </div>`;
     }
-    if (slot) slot.classList.add('done');
+    if (slot) {
+      slot.classList.add('done');
+      slot.style.borderColor = 'var(--green)';
+    }
+    updateIdUploadSummary();
   };
   reader.readAsDataURL(file);
 }
@@ -638,6 +645,33 @@ function clearIdFile(guestNum, side) {
   const preview = document.getElementById(previewId);
   if (input) input.value = '';
   if (preview) preview.innerHTML = '';
+  const slot = document.getElementById(`idSlot${guestNum}`);
+  if (slot) slot.style.borderColor = '';
+  updateIdUploadSummary();
+}
+
+function updateIdUploadSummary() {
+  const el = document.getElementById('idUploadSummary');
+  if (!el) return;
+  const cnt = Math.min(parseInt(document.getElementById('guests')?.value) || 1, 8);
+  let ready = 0, total = 0;
+  for (let i = 1; i <= cnt; i++) {
+    const f = document.getElementById(`idFront${i}`);
+    const b = document.getElementById(`idBack${i}`);
+    if (f) { total++; if (f.files?.length) ready++; }
+    if (b) { total++; if (b.files?.length) ready++; }
+  }
+  const pct = total > 0 ? Math.round(ready / total * 100) : 0;
+  const color = pct === 100 ? 'var(--green)' : pct > 0 ? 'var(--yellow)' : 'var(--red)';
+  el.innerHTML = `
+    <div style="display:flex;align-items:center;gap:8px;padding:8px;background:var(--bg);border-radius:8px;margin:8px 0;">
+      <div style="flex:1;">
+        <div style="height:6px;background:var(--border);border-radius:3px;overflow:hidden;">
+          <div style="height:100%;width:${pct}%;background:${color};border-radius:3px;transition:width 0.3s;"></div>
+        </div>
+      </div>
+      <span style="font-size:11px;font-weight:700;color:${color};">${ready}/${total} photos · ${pct}%</span>
+    </div>`;
 }
 
 function onVehiclePhotoSelect(input) {
@@ -667,33 +701,92 @@ async function uploadIdPhotos(bkId) {
   const cnt = Math.min(parseInt(document.getElementById('guests')?.value) || 1, 8);
   const frontPaths = [], backPaths = [], allPaths = [];
 
+  // Count total files to upload
+  let totalFiles = 0, uploaded = 0;
+  for (let i = 1; i <= cnt; i++) {
+    if (document.getElementById(`idFront${i}`)?.files?.[0]) totalFiles++;
+    if (document.getElementById(`idBack${i}`)?.files?.[0]) totalFiles++;
+  }
+
+  // Show upload progress bar
+  const progressEl = document.getElementById('idUploadSummary') || document.getElementById('addBkErr');
+  const showProgress = (n, total, label) => {
+    const pct = total > 0 ? Math.round(n / total * 100) : 0;
+    if (progressEl) {
+      progressEl.innerHTML = `
+        <div style="padding:10px;background:var(--bg);border-radius:8px;margin:8px 0;">
+          <div style="font-size:12px;font-weight:600;margin-bottom:4px;">📤 Uploading ${label}... (${n}/${total})</div>
+          <div style="height:8px;background:var(--border);border-radius:4px;overflow:hidden;">
+            <div style="height:100%;width:${pct}%;background:var(--green);border-radius:4px;transition:width 0.3s;"></div>
+          </div>
+          <div style="font-size:11px;color:var(--muted);margin-top:4px;">${pct}% complete</div>
+        </div>`;
+    }
+  };
+
+  if (totalFiles === 0) return { frontPaths: null, backPaths: null, allPaths: null, firstPath: null };
+
   for (let i = 1; i <= cnt; i++) {
     const guestName = (document.getElementById(`gN${i}`)?.value?.trim() || `Guest${i}`)
       .replace(/[^a-zA-Z0-9]/g, '_').substring(0, 20);
 
-    // Front
     const frontInput = document.getElementById(`idFront${i}`);
     if (frontInput?.files?.[0]) {
+      showProgress(uploaded, totalFiles, `Guest ${i} Front`);
       try {
         const comp = await compressImage(frontInput.files[0]);
         const path = `${bkId}/${Date.now()}_${guestName}_front.jpg`;
         const { error } = await sb.storage.from('id-proofs').upload(path, comp, { contentType: 'image/jpeg' });
-        if (!error) { frontPaths.push(path); allPaths.push(path); }
-        else console.warn('Front upload error:', error.message);
-      } catch (e) { console.warn(`Front ${i} failed:`, e); }
+        if (!error) {
+          frontPaths.push(path); allPaths.push(path);
+          uploaded++;
+          showProgress(uploaded, totalFiles, `Guest ${i} Front ✅`);
+        } else {
+          console.warn('Front upload error:', error.message);
+          uploaded++;
+          showProgress(uploaded, totalFiles, `Guest ${i} Front ❌`);
+        }
+      } catch (e) {
+        console.warn(`Front ${i} failed:`, e);
+        uploaded++;
+      }
     }
 
-    // Back
     const backInput = document.getElementById(`idBack${i}`);
     if (backInput?.files?.[0]) {
+      showProgress(uploaded, totalFiles, `Guest ${i} Back`);
       try {
         const comp = await compressImage(backInput.files[0]);
         const path = `${bkId}/${Date.now()}_${guestName}_back.jpg`;
         const { error } = await sb.storage.from('id-proofs').upload(path, comp, { contentType: 'image/jpeg' });
-        if (!error) { backPaths.push(path); allPaths.push(path); }
-        else console.warn('Back upload error:', error.message);
-      } catch (e) { console.warn(`Back ${i} failed:`, e); }
+        if (!error) {
+          backPaths.push(path); allPaths.push(path);
+          uploaded++;
+          showProgress(uploaded, totalFiles, `Guest ${i} Back ✅`);
+        } else {
+          console.warn('Back upload error:', error.message);
+          uploaded++;
+          showProgress(uploaded, totalFiles, `Guest ${i} Back ❌`);
+        }
+      } catch (e) {
+        console.warn(`Back ${i} failed:`, e);
+        uploaded++;
+      }
     }
+  }
+
+  // Final status
+  if (progressEl) {
+    const successCount = allPaths.length;
+    progressEl.innerHTML = `
+      <div style="padding:10px;background:#f0fff4;border-radius:8px;border:1.5px solid var(--green);margin:8px 0;">
+        <div style="font-size:12px;font-weight:700;color:var(--green);">
+          ✅ ${successCount}/${totalFiles} photos uploaded successfully
+        </div>
+        <div style="height:8px;background:var(--border);border-radius:4px;overflow:hidden;margin-top:4px;">
+          <div style="height:100%;width:100%;background:var(--green);border-radius:4px;"></div>
+        </div>
+      </div>`;
   }
 
   return {
