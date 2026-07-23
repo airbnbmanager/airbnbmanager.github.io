@@ -10,25 +10,24 @@ async function getCaretakersForRoom(roomId, roomData) {
 
   // Step 1: employees table se assigned_rooms match karo
   const { data: emps } = await sb.from('employees')
-    .select('name, phone, role')
+    .select('name, phone, role, assigned_rooms')
     .eq('status', 'Active');
 
   (emps || []).forEach(e => {
     const assigned = (e.assigned_rooms || '').split(',').map(s => s.trim()).filter(Boolean);
     if (assigned.includes(roomId)) {
-      const name = e.name || '';
-      const phone = e.phone || '';
-      // avoid duplicates
+      const name = (e.name || '').trim();
+      const phone = (e.phone || '').replace(/[^0-9]/g, '');
       if (name && !caretakers.find(c => c.name === name)) {
         caretakers.push({ name, phone });
       }
     }
   });
 
-  // Step 2: rooms table caretaker_name fallback (agar employee me nahi mila)
-  const rCaretaker = r.caretaker_name || '';
-  const rPhone = r.caretaker_phone || '';
-  const rManager = r.checkin_manager || '';
+  // Step 2: rooms table fallback — skip "Pending"
+  const rCaretaker = (r.caretaker_name || '').trim();
+  const rPhone     = (r.caretaker_phone || '').replace(/[^0-9]/g, '');
+  const rManager   = (r.checkin_manager || '').trim();
 
   if (rCaretaker && rCaretaker.toLowerCase() !== 'pending') {
     if (!caretakers.find(c => c.name === rCaretaker)) {
@@ -49,7 +48,7 @@ async function getCaretakersForRoom(roomId, roomData) {
 function formatCaretakerLines(caretakers) {
   if (!caretakers || caretakers.length === 0) return [];
   return caretakers.map(c =>
-    `📞 *Caretaker:* ${c.name}${c.phone ? ' — +91 ' + c.phone.replace(/[^0-9]/g, '') : ''}`
+    `📞 *Caretaker:* ${c.name}${c.phone ? ' — +91 ' + c.phone : ''}`
   );
 }
 
@@ -60,24 +59,23 @@ async function shareBookingWhatsApp(bkId) {
     .eq('booking_id', bkId).single();
   if (!b) { alert('Not found'); return; }
 
-  const r = b.rooms || {};
+  const r      = b.rooms || {};
   const roomId = r.room_id || b.room_id;
 
-  const guestName     = b.guest_name || 'Guest';
-  const propertyName  = r.nickname || r.unit_no || 'Property';
-  const building      = r.building_name || '';
-  const address       = r.address || '';
-  const floorInfo     = r.floor_info || '';
-  const mapLink       = r.map_link || '';
-  const directions    = r.directions || '';
-  const landmarks     = r.landmarks || '';
-  const checkIn       = b.check_in || 'N/A';
-  const checkOut      = b.check_out || 'N/A';
-  const checkInTime   = b.check_in_time || '2:00 PM';
-  const checkOutTime  = b.check_out_time || '11:00 AM';
+  const guestName    = b.guest_name || 'Guest';
+  const propertyName = r.nickname || r.unit_no || 'Property';
+  const building     = r.building_name || '';
+  const address      = r.address || '';
+  const floorInfo    = r.floor_info || '';
+  const mapLink      = r.map_link || '';
+  const directions   = r.directions || '';
+  const landmarks    = r.landmarks || '';
+  const checkIn      = b.check_in || 'N/A';
+  const checkOut     = b.check_out || 'N/A';
+  const checkInTime  = b.check_in_time || '2:00 PM';
+  const checkOutTime = b.check_out_time || '11:00 AM';
 
-  // Get caretakers from employees + rooms
-  const caretakers = await getCaretakersForRoom(roomId, r);
+  const caretakers     = await getCaretakersForRoom(roomId, r);
   const caretakerLines = formatCaretakerLines(caretakers);
 
   const msg = [
@@ -86,13 +84,13 @@ async function shareBookingWhatsApp(bkId) {
     `Thank you for booking your stay with us. 😊`,
     ``,
     `🏡 *Property:* ${propertyName}`,
-    building   ? `🏢 ${building}`              : '',
-    address    ? `📍 *Address:* ${address}`    : '',
-    floorInfo  ? `🏠 ${floorInfo}`             : '',
-    mapLink    ? `📌 *Location:* ${mapLink}`   : '',
+    building   ? `🏢 ${building}`            : '',
+    address    ? `📍 *Address:* ${address}`  : '',
+    floorInfo  ? `🏠 ${floorInfo}`           : '',
+    mapLink    ? `📌 *Location:* ${mapLink}` : '',
     ``,
     directions ? `🗺️ *How to Reach:*\n${directions}` : '',
-    landmarks  ? `📍 *Nearby:* ${landmarks}`  : '',
+    landmarks  ? `📍 *Nearby:* ${landmarks}` : '',
     ``,
     `⏰ *Timings:*`,
     `▫️ Check-in: ${checkIn} at ${checkInTime}`,
@@ -131,7 +129,7 @@ async function sendCheckoutReminder(bkId) {
     .eq('booking_id', bkId).single();
   if (!b) { alert('Not found'); return; }
 
-  const r = b.rooms || {};
+  const r      = b.rooms || {};
   const roomId = r.room_id || b.room_id;
 
   const guestName    = b.guest_name || 'Guest';
@@ -139,8 +137,7 @@ async function sendCheckoutReminder(bkId) {
   const checkOut     = b.check_out || '';
   const checkOutTime = b.check_out_time || '11:00 AM';
 
-  // Get caretakers from employees + rooms
-  const caretakers = await getCaretakersForRoom(roomId, r);
+  const caretakers     = await getCaretakersForRoom(roomId, r);
   const caretakerLines = formatCaretakerLines(caretakers);
 
   const msg = [
@@ -159,7 +156,7 @@ async function sendCheckoutReminder(bkId) {
     `Would you like to *extend your stay*?`,
     `We'd love to have you longer! Just let us know and we'll check availability for you. 😊`,
     ``,
-    `Need any help?`,
+    caretakerLines.length ? `Need any help?` : '',
     ...caretakerLines,
     ``,
     `For any other assistance:`,
@@ -191,9 +188,7 @@ function showWhatsAppModal(guestName, propertyName, phone, msg) {
       <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">✕</button>
       <h2>📱 WhatsApp Message</h2>
       <div class="sub">Guest: ${guestName} · ${propertyName}</div>
-
       <textarea id="waMsg" style="min-height:250px;font-size:12px;line-height:1.5;">${msg}</textarea>
-
       <div class="btn-row" style="margin-top:10px;">
         <button onclick="
           navigator.clipboard.writeText(document.getElementById('waMsg').value)
@@ -205,17 +200,14 @@ function showWhatsAppModal(guestName, propertyName, phone, msg) {
               alert('📋 Copied!');
             });
         ">📋 Copy</button>
-
         <button class="green-btn" onclick="window.open('https://wa.me/?text='+encodeURIComponent(document.getElementById('waMsg').value),'_blank')">
           📱 WhatsApp
         </button>
-
         ${fullPhone ? `
           <button class="secondary" onclick="window.open('https://wa.me/${fullPhone}?text='+encodeURIComponent(document.getElementById('waMsg').value),'_blank')">
             📱 Direct ${phone || ''}
           </button>
         ` : ''}
-
         <button class="outline" onclick="this.closest('.modal-overlay').remove()">Close</button>
       </div>
     </div>

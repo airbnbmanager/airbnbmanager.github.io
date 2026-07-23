@@ -247,7 +247,39 @@ async function updEmp(id) {
   }
 
   await sb.from('employees').update(obj).eq('emp_id', id);
+
+  // Auto-sync caretaker to rooms table
+  await syncCaretakerToRooms(id, obj.assigned_rooms || '', obj.name, obj.phone || '');
+
   renderManageEmployees();
+}
+
+// ============ AUTO SYNC CARETAKER TO ROOMS ============
+async function syncCaretakerToRooms(empId, assignedRooms, empName, empPhone) {
+  if (!assignedRooms) return;
+  const roomIds = assignedRooms.split(',').map(s => s.trim()).filter(Boolean);
+  if (!roomIds.length) return;
+
+  const cleanPhone = (empPhone || '').replace(/[^0-9]/g, '');
+
+  for (const roomId of roomIds) {
+    // Check current caretaker in rooms table
+    const { data: room } = await sb.from('rooms')
+      .select('room_id, caretaker_name, caretaker_phone')
+      .eq('room_id', roomId).single();
+
+    if (!room) continue;
+
+    const current = (room.caretaker_name || '').trim().toLowerCase();
+
+    // Only update if empty or "Pending"
+    if (!current || current === 'pending') {
+      await sb.from('rooms').update({
+        caretaker_name: empName,
+        caretaker_phone: cleanPhone || null
+      }).eq('room_id', roomId);
+    }
+  }
 }
 
 async function delEmp(id, name) {
