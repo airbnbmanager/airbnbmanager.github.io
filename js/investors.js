@@ -338,21 +338,18 @@ async function renderInvestorReport(investorId, roomId, month) {
     return excludeKeywords.some(k => name.includes(k) || notes.includes(k));
   };
 
-  const filteredBookings = (bookings || []).filter(b => !isExcluded(b));
   const excludedBookings = (bookings || []).filter(b => isExcluded(b));
-
-  // Override bookings variable
-  bookings = filteredBookings;
+  const activeBookings = (bookings || []).filter(b => !isExcluded(b));
 
   const share = inv?.revenue_share_pct || 70;
   const cs = 100 - share;
-  const bkIds = (bookings || []).map(b => b.booking_id);
+  const bkIds = activeBookings.map(b => b.booking_id);
   const pm = {};
   (payments || []).forEach(p => { if (bkIds.includes(p.booking_id)) pm[p.booking_id] = (pm[p.booking_id] || 0) + (p.amount || 0); });
 
   const cn = b => b.check_in && b.check_out ? calcNights(b.check_in, b.check_out) : 0;
-  const onBks = (bookings || []).filter(b => b.booking_mode === 'Online-Airbnb');
-  const offBks = (bookings || []).filter(b => b.booking_mode !== 'Online-Airbnb');
+  const onBks = activeBookings.filter(b => b.booking_mode === 'Online-Airbnb');
+  const offBks = activeBookings.filter(b => b.booking_mode !== 'Online-Airbnb');
 
   const onNights = onBks.reduce((s, b) => s + cn(b), 0);
   const offNights = offBks.reduce((s, b) => s + cn(b), 0);
