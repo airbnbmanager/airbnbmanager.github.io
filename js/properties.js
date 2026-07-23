@@ -392,57 +392,74 @@ async function saveFlatStatus(id) {
 }
 // ============ PROPERTY SHIFTS MANAGEMENT ============
 async function renderPropertyShifts(roomId) {
-  renderShell(`<div class="loading">Loading...</div>`, 'rooms');
+  renderShell(`<div class="loading">Loading...</div>`, 'shifts');
 
-  const [{ data: rooms }, { data: emps }] = await Promise.all([
+  const [{ data: rooms }, { data: emps }, { data: allShifts }] = await Promise.all([
     sb.from('rooms').select('room_id, nickname, unit_no').order('room_id'),
     sb.from('employees')
       .select('emp_id, name, phone, property_role, role')
       .eq('status', 'Active')
-      .order('name')
+      .order('name'),
+    sb.from('property_shifts')
+      .select('*, employees(name, phone), rooms(nickname, unit_no)')
+      .eq('is_active', true)
+      .order('room_id')
   ]);
 
-  const selRoom = roomId || rooms?.[0]?.room_id;
+  const selRoom = roomId || '';
   window._shiftEmps = emps || [];
 
-  const { data: shifts } = selRoom
-    ? await sb.from('property_shifts')
-        .select('*, employees(name, phone)')
-        .eq('room_id', selRoom)
-        .eq('is_active', true)
-        .order('shift_type')
-    : { data: [] };
+  const filteredShifts = selRoom
+    ? (allShifts || []).filter(s => s.room_id === selRoom)
+    : [];
 
   const room = (rooms || []).find(r => r.room_id === selRoom);
+
+  // Group all shifts by property for overview
+  const byRoom = {};
+  (allShifts || []).forEach(sh => {
+    if (!byRoom[sh.room_id]) byRoom[sh.room_id] = { room: sh.rooms, shifts: [] };
+    byRoom[sh.room_id].shifts.push(sh);
+  });
+
+  // Properties without any shifts
+  const noShiftRooms = (rooms || []).filter(r => !byRoom[r.room_id]);
 
   renderShell(`
     <div class="card">
       <h1>🕐 Property Shifts</h1>
-      <button class="secondary btn-sm" onclick="renderManageRooms()">← Back</button>
+      <div class="sub">Manage day/night shift contacts for each property</div>
     </div>
 
     <div class="card">
-      <div class="form-group">
-        <label>Select Property</label>
-        <select onchange="renderPropertyShifts(this.value)">
-          ${(rooms || []).map(r =>
-            `<option value="${r.room_id}" ${r.room_id === selRoom ? 'selected' : ''}>
-              ${r.nickname || r.unit_no}
-            </option>`
-          ).join('')}
-        </select>
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Select Property to Edit</label>
+          <select id="shiftPropSel" onchange="renderPropertyShifts(this.value)">
+            <option value="">-- All Properties Overview --</option>
+            ${(rooms || []).map(r =>
+              `<option value="${r.room_id}" ${r.room_id === selRoom ? 'selected' : ''}>
+                ${r.nickname || r.unit_no}
+              </option>`
+            ).join('')}
+          </select>
+        </div>
+        ${selRoom ? `
+        <div class="form-group" style="justify-content:flex-end;">
+          <button onclick="renderAddShift('${selRoom}')" style="margin-top:20px;">
+            ➕ Add Shift
+          </button>
+        </div>` : ''}
       </div>
     </div>
 
+    ${selRoom ? `
     <div class="card">
       <div class="section-title">
-        🏠 ${room?.nickname || selRoom} — Shifts
-        <button class="btn-sm" style="float:right;"
-          onclick="renderAddShift('${selRoom}')">➕ Add Shift</button>
+        🏠 ${room?.nickname || selRoom} — Shift Contacts
       </div>
-
-      ${(shifts || []).length === 0
-        ? '<div class="sub">No shifts configured. Add shifts to show contacts in WhatsApp messages.</div>'
+      ${filteredShifts.length === 0
+        ? '<div class="sub">No shifts configured for this property.</div>'
         : `<div class="table-wrap"><table>
             <thead><tr>
               <th>Employee</th>
@@ -452,7 +469,7 @@ async function renderPropertyShifts(roomId) {
               <th>Actions</th>
             </tr></thead>
             <tbody>
-              ${(shifts || []).map(sh => `
+              ${filteredShifts.map(sh => `
                 <tr>
                   <td>
                     <strong>${sh.employees?.name || sh.emp_id}</strong>
@@ -461,8 +478,8 @@ async function renderPropertyShifts(roomId) {
                       : ''}
                   </td>
                   <td>
-                    <span class="badge ${sh.shift_type === 'Day' ? 'yellow' : 'blue'}">
-                      ${sh.shift_type === 'Day' ? '☀️ Day' : '🌙 Night'}
+                    <span class="badge ${sh.shift_type === 'Day' ? 'yellow' : sh.shift_type === 'Night' ? 'blue' : 'green'}">
+                      ${sh.shift_type === 'Day' ? '☀️ Day' : sh.shift_type === 'Night' ? '🌙 Night' : '🔄 All Day'}
                     </span>
                   </td>
                   <td style="font-size:12px;">
@@ -480,7 +497,77 @@ async function renderPropertyShifts(roomId) {
             </tbody>
           </table></div>`}
     </div>
-  `, 'rooms');
+    ` : ''}
+
+    <div class="card">
+      <div class="section-title">📋 All Properties — Shift Overview</div>
+      ${Object.keys(byRoom).length === 0
+        ? '<div class="sub">No shifts configured for any property.</div>'
+        : Object.entries(byRoom).map(([rid, g]) => {
+          const dayS = g.shifts.filter(s => s.shift_type === 'Day');
+          const nightS = g.shifts.filter(s => s.shift_type === 'Night');
+          const allDayS = g.shifts.filter(s => s.shift_type === 'All Day');
+          return `
+            <div style="margin-bottom:16px;padding:12px;background:var(--bg);border-radius:10px;border:1px solid var(--border);">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+                <strong style="font-size:14px;">🏠 ${g.room?.nickname || g.room?.unit_no || rid}</strong>
+                <button class="btn-sm outline" onclick="renderPropertyShifts('${rid}')">✏️ Edit</button>
+              </div>
+              ${dayS.length ? `
+                <div style="margin:4px 0;">
+                  <span style="font-size:12px;font-weight:600;color:var(--yellow);">☀️ Day (${dayS[0]?.shift_start || '08:00'} - ${dayS[0]?.shift_end || '20:00'})</span>
+                  ${dayS.map(s => `
+                    <div style="font-size:12px;margin:2px 0 2px 16px;">
+                      📞 <strong>${s.employees?.name || '-'}</strong>
+                      ${s.employees?.phone ? `— ${s.employees.phone}` : ''}
+                      <span class="badge green" style="font-size:10px;padding:1px 6px;">${s.contact_role || '-'}</span>
+                    </div>
+                  `).join('')}
+                </div>
+              ` : ''}
+              ${nightS.length ? `
+                <div style="margin:4px 0;">
+                  <span style="font-size:12px;font-weight:600;color:var(--blue);">🌙 Night (${nightS[0]?.shift_start || '20:00'} - ${nightS[0]?.shift_end || '08:00'})</span>
+                  ${nightS.map(s => `
+                    <div style="font-size:12px;margin:2px 0 2px 16px;">
+                      📞 <strong>${s.employees?.name || '-'}</strong>
+                      ${s.employees?.phone ? `— ${s.employees.phone}` : ''}
+                      <span class="badge green" style="font-size:10px;padding:1px 6px;">${s.contact_role || '-'}</span>
+                    </div>
+                  `).join('')}
+                </div>
+              ` : ''}
+              ${allDayS.length ? `
+                <div style="margin:4px 0;">
+                  <span style="font-size:12px;font-weight:600;color:var(--green);">🔄 All Day</span>
+                  ${allDayS.map(s => `
+                    <div style="font-size:12px;margin:2px 0 2px 16px;">
+                      📞 <strong>${s.employees?.name || '-'}</strong>
+                      ${s.employees?.phone ? `— ${s.employees.phone}` : ''}
+                      <span class="badge green" style="font-size:10px;padding:1px 6px;">${s.contact_role || '-'}</span>
+                    </div>
+                  `).join('')}
+                </div>
+              ` : ''}
+              ${!dayS.length && !nightS.length && !allDayS.length ? '<div class="sub" style="font-size:11px;">No shifts</div>' : ''}
+            </div>
+          `;
+        }).join('')}
+    </div>
+
+    ${noShiftRooms.length ? `
+    <div class="card">
+      <div class="section-title" style="color:var(--red);">⚠️ Properties Without Shifts (${noShiftRooms.length})</div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;">
+        ${noShiftRooms.map(r => `
+          <button class="btn-sm outline" onclick="renderPropertyShifts('${r.room_id}')">
+            ${r.nickname || r.unit_no} ➕
+          </button>
+        `).join('')}
+      </div>
+    </div>
+    ` : ''}
+  `, 'shifts');
 }
 
 async function renderAddShift(roomId) {
