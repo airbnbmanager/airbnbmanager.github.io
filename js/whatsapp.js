@@ -3,56 +3,109 @@
  * UNIQUE HAVEN HOMES STAY
  */
 
-// ============ HELPER: Property Contacts ============
+// ============ HELPER: Property Contacts (Shift-Based) ============
 async function getPropertyContactsForRoom(roomId, roomData = {}) {
-  let r = roomData || {};
-
-  if (!r.room_id || r.caretaker_emp_id === undefined || r.checkin_manager_emp_id === undefined) {
-    const { data: room } = await sb.from('rooms')
-      .select('room_id, nickname, unit_no, caretaker_emp_id, checkin_manager_emp_id, caretaker_name, caretaker_phone, checkin_manager')
-      .eq('room_id', roomId).single();
-    if (room) r = { ...r, ...room };
-  }
-
-  const caretakerId = r.caretaker_emp_id || null;
-  const managerId = r.checkin_manager_emp_id || null;
-  const ids = [caretakerId, managerId].filter(Boolean);
-
-  const empMap = {};
-  if (ids.length) {
-    const { data: emps } = await sb.from('employees')
-      .select('emp_id, name, phone')
-      .in('emp_id', ids);
-    (emps || []).forEach(e => { empMap[e.emp_id] = e; });
-  }
-
-  const lines = [];
-  const seenNames = new Set();
-
   const cleanPhone = p => (p || '').replace(/[^0-9]/g, '');
+  const seenNames = new Set();
+  const lines = [];
+
   const addLine = (label, name, phone) => {
     const nm = (name || '').trim();
     if (!nm || nm.toLowerCase() === 'pending' || seenNames.has(nm.toLowerCase())) return;
     seenNames.add(nm.toLowerCase());
     const ph = cleanPhone(phone);
-    lines.push(`📞 *${label}:* ${nm}${ph ? ' — +91 ' + ph : ''}`);
+    lines.push("📞 *" + label + ":* " + nm + (ph ? ' — +91 ' + ph : ''));
   };
 
-  if (caretakerId && managerId && caretakerId === managerId) {
-    const e = empMap[caretakerId];
-    if (e) addLine('Caretaker / Check-in Manager', e.name, e.phone);
-  } else {
-    if (caretakerId && empMap[caretakerId]) addLine('Caretaker', empMap[caretakerId].name, empMap[caretakerId].phone);
-    if (managerId && empMap[managerId]) addLine('Check-in Manager', empMap[managerId].name, empMap[managerId].phone);
+  // Step 1: property_shifts table se shift-based contacts
+  const { data: shifts } = await sb.from('property_shifts')
+    .select('emp_id, shift_type, shift_start, shift_end, contact_role')
+    .eq('room_id', roomId)
+    .eq('is_active', true);
+
+  if (shifts && shifts.length > 0) {
+    const empIds = [...new Set(shifts.map(s => s.emp_id))];
+    const { data: emps } = await sb.from('employees')
+      .select('emp_id, name, phone')
+      .in('emp_id', empIds);
+
+    const empMap = {};
+    (emps || []).forEach(e => { empMap[e.emp_id] = e; });
+
+    // Group by shift
+    const dayShifts = shifts.filter(s => s.shift_type === 'Day');
+    const nightShifts = shifts.filter(s => s.shift_type === 'Night');
+
+    const hasMultipleShifts = dayShifts.length > 0 && nightShifts.length > 0;
+
+    if (hasMultipleShifts) {
+      // Day shift contacts
+      if (dayShifts.length > 0) {
+        const dayStart = dayShifts[0]?.shift_start || '8 AM';
+        const dayEnd = dayShifts[0]?.shift_end || '8 PM';
+        lines.push('');
+        lines.push('☀️ *Day Shift (' + dayStart + ' - ' + dayEnd + '):*');
+        dayShifts.forEach(s => {
+          const e = empMap[s.emp_id];
+          if (e) addLine(s.contact_role || 'Caretaker', e.name, e.phone);
+        });
+      }
+
+      // Night shift contacts
+      if (nightShifts.length > 0) {
+        const nightStart = nightShifts[0]?.shift_start || '8 PM';
+        const nightEnd = nightShifts[0]?.shift_end || '8 AM';
+        seenNames.clear();
+        lines.push('');
+        lines.push('🌙 *Night Shift (' + nightStart + ' - ' + nightEnd + '):*');
+        nightShifts.forEach(s => {
+          const e = empMap[s.emp_id];
+          if (e) addLine(s.contact_role || 'Caretaker', e.name, e.phone);
+        });
+      }
+    } else {
+      // Single shift — show all contacts flat
+      shifts.forEach(s => {
+        const e = empMap[s.emp_id];
+        if (e) addLine(s.contact_role || 'Caretaker', e.name, e.phone);
+      });
+    }
+
+    return lines.filter(l => l !== undefined);
   }
 
-  // Legacy fallback only if emp_id not set
+  // Step 2: Fallback to rooms table emp_id
+  let r = roomData || {};
+  if (!r.caretaker_emp_id && !r.checkin_manager_emp_id) {
+    const { data: room } = await sb.from('rooms')
+      .select('caretaker_emp_id, checkin_manager_emp_id, caretaker_name, caretaker_phone, checkin_manager')
+      .eq('room_id', roomId).single();
+    if (room) r = { ...r, ...room };
+  }
+
+  const ids = [r.caretaker_emp_id, r.checkin_manager_emp_id].filter(Boolean);
+  if (ids.length) {
+    const { data: emps } = await sb.from('employees')
+      .select('emp_id, name, phone').in('emp_id', ids);
+    const empMap = {};
+    (emps || []).forEach(e => { empMap[e.emp_id] = e; });
+
+    if (r.caretaker_emp_id && r.checkin_manager_emp_id && r.caretaker_emp_id === r.checkin_manager_emp_id) {
+      const e = empMap[r.caretaker_emp_id];
+      if (e) addLine('Caretaker / Manager', e.name, e.phone);
+    } else {
+      if (empMap[r.caretaker_emp_id]) addLine('Caretaker', empMap[r.caretaker_emp_id].name, empMap[r.caretaker_emp_id].phone);
+      if (empMap[r.checkin_manager_emp_id]) addLine('Manager', empMap[r.checkin_manager_emp_id].name, empMap[r.checkin_manager_emp_id].phone);
+    }
+  }
+
+  // Step 3: Legacy text fallback
   if (!lines.length) {
     addLine('Caretaker', r.caretaker_name || '', r.caretaker_phone || '');
-    addLine('Check-in Manager', r.checkin_manager || '', '');
+    addLine('Manager', r.checkin_manager || '', '');
   }
 
-  return lines;
+  return lines.filter(l => l !== undefined);
 }
 
 // ============ BOOKING WELCOME MESSAGE ============
