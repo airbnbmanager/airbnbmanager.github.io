@@ -347,24 +347,23 @@ async function requestReview(bkId) {
   const propertyName = b.rooms?.nickname || 'our property';
   const isOnline = b.booking_mode === 'Online-Airbnb';
 
-  const airbnbLink = 'https://www.airbnb.co.in/users/profile/1592729439630759961';
-  const googleLink = 'https://g.page/r/YOUR_GOOGLE_BUSINESS_ID/review'; // Replace with actual
+  const airbnbProfile = 'https://www.airbnb.co.in/users/profile/1592729439630759961';
 
   const msg = [
     `Hi ${guestName}! 🙏`,
     ``,
     `Thank you for staying at *${propertyName}*!`,
-    `It was a pleasure hosting you. 🏡`,
+    `It was truly a pleasure hosting you. 🏡`,
     ``,
-    `Your happiness means everything to us! ⭐`,
+    `Your feedback means the world to us! ⭐`,
     ``,
-    isOnline
-      ? `Would you kindly leave us a *5-star review on Airbnb*? It really helps our small business grow. 💖\n\n👉 ${airbnbLink}`
-      : `Would you kindly leave us a *5-star Google review*? It really helps our small business grow. 💖\n\n👉 ${googleLink}`,
+    `Kindly spare 30 seconds to leave us a *5-star review on Airbnb*:`,
     ``,
-    `Takes just 30 seconds — means the world to us! 🌟`,
+    `👉 ${airbnbProfile}`,
     ``,
-    `Hope to welcome you again soon!`,
+    `Your review helps our small business grow & helps other travellers choose us with confidence. 💖`,
+    ``,
+    `Hope to welcome you back soon! 🌟`,
     ``,
     `— Team *${BRAND}*`
   ].join('\n');
