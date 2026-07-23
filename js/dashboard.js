@@ -106,6 +106,8 @@ async function renderDashboard() {
   // Occupancy %
   const occupancyPct = totalProps > 0 ? Math.round(bookedNow.length / totalProps * 100) : 0;
 
+  const maintPending = (maint || []).length;
+
   const bName = b => `${b.rooms?.nickname || b.rooms?.unit_no || b.room_id}`;
   const fName = fl => `${fl.rooms?.nickname || fl.rooms?.unit_no || fl.room_id}`;
 
