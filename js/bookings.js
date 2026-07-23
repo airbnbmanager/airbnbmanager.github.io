@@ -267,39 +267,24 @@ async function renderAddBooking() {
   let idSlots = '';
   for (let i = 1; i <= 8; i++) {
     idSlots += `
-      <div class="id-card" id="idSlot${i}" style="display:${i === 1 ? 'block' : 'none'};">
-        <div class="id-card-title">👤 Guest ${i}${i === 1 ? ' (Primary)' : ''}</div>
-        <input type="text" style="font-size:13px;min-height:36px;margin-bottom:6px;"
-          id="gN${i}" placeholder="Guest ${i} naam"
-          value="${i === 1 ? (pre.guestName || '') : ''}" />
-
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:4px;">
+      <div style="padding:10px;margin-bottom:8px;background:var(--bg);border:1px solid var(--border);border-radius:10px;">
+        <div style="font-weight:700;font-size:13px;margin-bottom:6px;">
+          👤 Guest ${i} ${i === 1 ? '(Primary)' : ''}
+        </div>
+        <input type="text" id="gN${i}" placeholder="Guest ${i} naam"
+          value="${i === 1 ? (pre.guestName || '') : ''}"
+          style="font-size:13px;min-height:36px;margin-bottom:8px;width:100%;" />
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
           <div>
-            <div style="font-size:11px;color:var(--muted);font-weight:600;margin-bottom:4px;">📄 Front Side</div>
-            <div class="id-card-btns">
-              <button type="button" class="outline"
-                onclick="document.getElementById('idFrontCam${i}').click()">📷 Cam</button>
-              <button type="button" class="outline"
-                onclick="document.getElementById('idFrontGal${i}').click()">🖼️ Gallery</button>
-            </div>
-            <input type="file" id="idFrontCam${i}" accept="image/*" capture="environment"
-              style="display:none;" onchange="onIdFileSelect(this,${i},'front')" />
-            <input type="file" id="idFrontGal${i}" accept="image/*"
-              style="display:none;" onchange="onIdFileSelect(this,${i},'front')" />
+            <div style="font-size:11px;color:var(--muted);font-weight:600;margin-bottom:4px;">📄 Front</div>
+            <input type="file" id="idFront${i}" accept="image/*" capture="environment"
+              style="font-size:12px;width:100%;" onchange="onIdFileSelect(this,${i},'front')" />
             <div id="previewFront${i}" style="margin-top:4px;"></div>
           </div>
           <div>
-            <div style="font-size:11px;color:var(--muted);font-weight:600;margin-bottom:4px;">📄 Back Side</div>
-            <div class="id-card-btns">
-              <button type="button" class="outline"
-                onclick="document.getElementById('idBackCam${i}').click()">📷 Cam</button>
-              <button type="button" class="outline"
-                onclick="document.getElementById('idBackGal${i}').click()">🖼️ Gallery</button>
-            </div>
-            <input type="file" id="idBackCam${i}" accept="image/*" capture="environment"
-              style="display:none;" onchange="onIdFileSelect(this,${i},'back')" />
-            <input type="file" id="idBackGal${i}" accept="image/*"
-              style="display:none;" onchange="onIdFileSelect(this,${i},'back')" />
+            <div style="font-size:11px;color:var(--muted);font-weight:600;margin-bottom:4px;">📄 Back</div>
+            <input type="file" id="idBack${i}" accept="image/*" capture="environment"
+              style="font-size:12px;width:100%;" onchange="onIdFileSelect(this,${i},'back')" />
             <div id="previewBack${i}" style="margin-top:4px;"></div>
           </div>
         </div>
@@ -669,16 +654,12 @@ function onIdFileSelect(input, guestNum, side) {
 }
 
 function clearIdFile(guestNum, side) {
-  const prefix = side === 'front' ? 'idFront' : 'idBack';
+  const inputId = side === 'front' ? `idFront${guestNum}` : `idBack${guestNum}`;
   const previewId = `preview${side === 'front' ? 'Front' : 'Back'}${guestNum}`;
-  const cam = document.getElementById(`${prefix}Cam${guestNum}`);
-  const gal = document.getElementById(`${prefix}Gal${guestNum}`);
-  if (cam) cam.value = '';
-  if (gal) gal.value = '';
+  const input = document.getElementById(inputId);
+  if (input) input.value = '';
   const preview = document.getElementById(previewId);
   if (preview) preview.innerHTML = '';
-  const slot = document.getElementById(`idSlot${guestNum}`);
-  if (slot) slot.style.borderColor = '';
   updateIdUploadSummary();
 }
 
@@ -687,14 +668,12 @@ function updateIdUploadSummary() {
   if (!el) return;
   const cnt = Math.min(parseInt(document.getElementById('guests')?.value) || 1, 8);
   let ready = 0, total = 0;
-  for (let i = 1; i <= cnt; i++) {
-    const fc = document.getElementById(`idFrontCam${i}`);
-    const fg = document.getElementById(`idFrontGal${i}`);
-    const bc = document.getElementById(`idBackCam${i}`);
-    const bg = document.getElementById(`idBackGal${i}`);
+  for (let i = 1; i <= 8; i++) {
+    const f = document.getElementById(`idFront${i}`);
+    const b = document.getElementById(`idBack${i}`);
     total += 2;
-    if (fc?.files?.length || fg?.files?.length) ready++;
-    if (bc?.files?.length || bg?.files?.length) ready++;
+    if (f?.files?.length) ready++;
+    if (b?.files?.length) ready++;
   }
   const pct = total > 0 ? Math.round(ready / total * 100) : 0;
   const color = pct === 100 ? 'var(--green)' : pct > 0 ? 'var(--yellow)' : 'var(--red)';
@@ -782,7 +761,7 @@ async function uploadIdPhotos(bkId) {
     const guestName = (document.getElementById(`gN${i}`)?.value?.trim() || `Guest${i}`)
       .replace(/[^a-zA-Z0-9]/g, '_').substring(0, 20);
 
-    const frontInput = document.getElementById(`idFrontCam${i}`)?.files?.[0] ? document.getElementById(`idFrontCam${i}`) : document.getElementById(`idFrontGal${i}`);
+    const frontInput = document.getElementById(`idFront${i}`);
     if (frontInput?.files?.[0]) {
       showProgress(uploaded, totalFiles, `Guest ${i} Front`);
       try {
@@ -804,7 +783,7 @@ async function uploadIdPhotos(bkId) {
       }
     }
 
-    const backInput = document.getElementById(`idBackCam${i}`)?.files?.[0] ? document.getElementById(`idBackCam${i}`) : document.getElementById(`idBackGal${i}`);
+    const backInput = document.getElementById(`idBack${i}`);
     if (backInput?.files?.[0]) {
       showProgress(uploaded, totalFiles, `Guest ${i} Back`);
       try {
@@ -1063,33 +1042,39 @@ async function editBooking(bkId) {
 
   let idSlots = '';
   for (let i = 1; i <= 8; i++) {
+    const fp = frontPaths[i - 1] || null;
+    const bp = backPaths[i - 1] || null;
     idSlots += `
-      <div class="id-card" id="editIdSlot${i}" style="display:${i <= guestCountForUI ? 'block' : 'none'};">
-        <div class="id-card-title">👤 Guest ${i}</div>
-        <div style="font-size:11px;margin:4px 0;">📄 Front</div>
-        ${frontPaths[i - 1] ? `<div class="btn-row" style="margin:4px 0;">
-          <button class="btn-sm green-btn" onclick="dlIdPhoto('${frontPaths[i - 1]}')">📥 View Front</button>
-          <button class="btn-sm danger" onclick="deleteIdPhoto('${bkId}','${frontPaths[i - 1]}','front',${i - 1})">🗑️ Delete</button>
-          <span style="font-size:10px;color:var(--green);">✅ Uploaded</span>
-        </div>` : '<div style="font-size:11px;color:var(--muted);margin:2px 0;">⚠️ No front photo</div>'}
-        <div class="id-card-btns">
-          <button type="button" class="outline" onclick="document.getElementById('eFCam${i}').click()">📷 New</button>
-          <button type="button" class="outline" onclick="document.getElementById('eFGal${i}').click()">🖼️ New</button>
+      <div style="padding:10px;margin-bottom:8px;background:var(--bg);border:1px solid var(--border);border-radius:10px;">
+        <div style="font-weight:700;font-size:13px;margin-bottom:6px;">
+          👤 Guest ${i}
         </div>
-        <input type="file" id="eFCam${i}" accept="image/*" capture="environment" style="display:none;" />
-        <input type="file" id="eFGal${i}" accept="image/*" style="display:none;" />
-        <div style="font-size:11px;margin:4px 0;">📄 Back</div>
-        ${backPaths[i - 1] ? `<div class="btn-row" style="margin:4px 0;">
-          <button class="btn-sm green-btn" onclick="dlIdPhoto('${backPaths[i - 1]}')">📥 View Back</button>
-          <button class="btn-sm danger" onclick="deleteIdPhoto('${bkId}','${backPaths[i - 1]}','back',${i - 1})">🗑️ Delete</button>
-          <span style="font-size:10px;color:var(--green);">✅ Uploaded</span>
-        </div>` : '<div style="font-size:11px;color:var(--muted);margin:2px 0;">⚠️ No back photo</div>'}
-        <div class="id-card-btns">
-          <button type="button" class="outline" onclick="document.getElementById('eBCam${i}').click()">📷 New</button>
-          <button type="button" class="outline" onclick="document.getElementById('eBGal${i}').click()">🖼️ New</button>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+          <div>
+            <div style="font-size:11px;color:var(--muted);font-weight:600;margin-bottom:4px;">📄 Front</div>
+            ${fp ? `<div style="padding:6px;background:#f0fff4;border:1.5px solid var(--green);border-radius:8px;margin-bottom:6px;">
+              <div style="font-size:11px;color:var(--green);font-weight:700;">✅ Uploaded</div>
+              <div class="btn-row" style="margin-top:4px;">
+                <button class="btn-sm green-btn" onclick="dlIdPhoto('${fp}')">📥 View</button>
+                <button class="btn-sm danger" onclick="deleteIdPhoto('${bkId}','${fp}','front',${i - 1})">🗑️</button>
+              </div>
+            </div>` : '<div style="font-size:11px;color:var(--red);margin-bottom:4px;">⚠️ No photo</div>'}
+            <input type="file" id="eFront${i}" accept="image/*" capture="environment"
+              style="font-size:12px;width:100%;" />
+          </div>
+          <div>
+            <div style="font-size:11px;color:var(--muted);font-weight:600;margin-bottom:4px;">📄 Back</div>
+            ${bp ? `<div style="padding:6px;background:#f0fff4;border:1.5px solid var(--green);border-radius:8px;margin-bottom:6px;">
+              <div style="font-size:11px;color:var(--green);font-weight:700;">✅ Uploaded</div>
+              <div class="btn-row" style="margin-top:4px;">
+                <button class="btn-sm green-btn" onclick="dlIdPhoto('${bp}')">📥 View</button>
+                <button class="btn-sm danger" onclick="deleteIdPhoto('${bkId}','${bp}','back',${i - 1})">🗑️</button>
+              </div>
+            </div>` : '<div style="font-size:11px;color:var(--red);margin-bottom:4px;">⚠️ No photo</div>'}
+            <input type="file" id="eBack${i}" accept="image/*" capture="environment"
+              style="font-size:12px;width:100%;" />
+          </div>
         </div>
-        <input type="file" id="eBCam${i}" accept="image/*" capture="environment" style="display:none;" />
-        <input type="file" id="eBGal${i}" accept="image/*" style="display:none;" />
       </div>`;
   }
 
@@ -1323,9 +1308,9 @@ async function updateBooking(bkId, parentBookingId = '', stayGroupId = '') {
   const bArr = existBack.length  ? existBack.slice()  : Array(gc).fill(null);
   const aArr = (oldBk?.id_proof_photo_paths || '').split(',').filter(Boolean);
   for (let i = 1; i <= gc; i++) {
-    const fFile = document.getElementById(`eFCam${i}`)?.files?.[0] || document.getElementById(`eFGal${i}`)?.files?.[0];
+    const fFile = document.getElementById(`eFront${i}`)?.files?.[0];
     if (fFile) { try { const c = await compressImage(fFile); const p = `${bkId}/${Date.now()}_g${i}_front.jpg`; const { error } = await sb.storage.from('id-proofs').upload(p, c, { contentType: 'image/jpeg' }); if (!error) { while(fArr.length < i) fArr.push(null); fArr[i-1] = p; aArr.push(p); } } catch (e) { } }
-    const bFile = document.getElementById(`eBCam${i}`)?.files?.[0] || document.getElementById(`eBGal${i}`)?.files?.[0];
+    const bFile = document.getElementById(`eBack${i}`)?.files?.[0];
     if (bFile) { try { const c = await compressImage(bFile); const p = `${bkId}/${Date.now()}_g${i}_back.jpg`; const { error } = await sb.storage.from('id-proofs').upload(p, c, { contentType: 'image/jpeg' }); if (!error) { while(bArr.length < i) bArr.push(null); bArr[i-1] = p; aArr.push(p); } } catch (e) { } }
   }
 
