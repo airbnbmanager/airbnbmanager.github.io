@@ -2220,3 +2220,79 @@ footer a { color: #484848 !important; }
   color: rgba(255,255,255,0.9) !important;
   font-size: 15px !important;
 }
+
+
+/* ============ AIRBNB RATING BADGES ============ */
+.property-card {
+  position: relative !important;
+}
+
+.rating-badge {
+  position: absolute !important;
+  top: 12px !important;
+  right: 12px !important;
+  background: rgba(255,255,255,0.95) !important;
+  backdrop-filter: blur(10px) !important;
+  color: #222 !important;
+  padding: 6px 12px !important;
+  border-radius: 999px !important;
+  font-weight: 700 !important;
+  font-size: 13px !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 4px !important;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important;
+  z-index: 2 !important;
+  cursor: pointer !important;
+  transition: all 0.2s !important;
+  text-decoration: none !important;
+}
+
+.rating-badge:hover {
+  background: #fff !important;
+  transform: scale(1.05) !important;
+  box-shadow: 0 6px 16px rgba(0,0,0,0.2) !important;
+}
+
+.rating-badge .star {
+  color: #FF385C !important;
+  font-size: 14px !important;
+}
+
+.rating-badge .count {
+  color: #717171 !important;
+  font-weight: 500 !important;
+  font-size: 12px !important;
+}
+
+/* Verified badge */
+.verified-badge {
+  position: absolute !important;
+  top: 12px !important;
+  left: 12px !important;
+  background: rgba(255,56,92,0.95) !important;
+  color: #fff !important;
+  padding: 5px 10px !important;
+  border-radius: 999px !important;
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 4px !important;
+  box-shadow: 0 4px 12px rgba(255,56,92,0.3) !important;
+  z-index: 2 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.5px !important;
+  text-decoration: none !important;
+}
+
+.verified-badge:hover {
+  background: #E31C5F !important;
+}
+
+/* Card image wrapper needs relative */
+.property-card > a:first-child,
+.prop-card > a:first-child {
+  position: relative !important;
+  display: block !important;
+}
