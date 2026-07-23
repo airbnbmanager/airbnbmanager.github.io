@@ -669,7 +669,7 @@ async function renderPropertyReport(roomId, range = 'Month') {
         </tbody>
       </table></div>
     </div>
-  `, 'expenses');
+  `, 'property-report');
 
   document.getElementById('rpRoom').onchange = ev =>
     renderPropertyReport(ev.target.value, range);
