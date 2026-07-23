@@ -134,11 +134,63 @@ async function processAirbnbCSV(input) {
 
     window._reconData = { missing, matched, extraInApp, airbnbBookings };
 
+    // Calculate current month stats
+    const now = new Date();
+    const curMonth = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0');
+
+    const appThisMonth = (appBookings || []).filter(b =>
+      b.check_in && b.check_in.startsWith(curMonth)
+    );
+    const csvThisMonth = airbnbBookings.filter(ab => {
+      const cdate = convertDate(ab.startDate);
+      return cdate.startsWith(curMonth);
+    });
+
+    const appMonthRev = appThisMonth.reduce((s2,b) => s2 + (b.total_amount || 0), 0);
+    const csvMonthRev = csvThisMonth.reduce((s2,ab) => s2 + (ab.amount || 0), 0);
+    const diff = Math.abs(appMonthRev - csvMonthRev);
+    const monthName = now.toLocaleString('en-IN', {month: 'long', year: 'numeric'});
+    const syncPercent = csvThisMonth.length > 0
+      ? Math.round((appThisMonth.length / csvThisMonth.length) * 100)
+      : 100;
+
     document.getElementById('reconResults').innerHTML = `
+      <div class="card" style="background:linear-gradient(135deg,#FF385C,#E00B41);color:#fff;">
+        <div class="section-title" style="color:#fff;border:none;">
+          📊 ${monthName} — Sync Status
+        </div>
+        <div class="stat-grid" style="margin-top:12px;">
+          <div style="background:rgba(255,255,255,0.15);padding:16px;border-radius:12px;text-align:center;">
+            <div style="font-size:28px;font-weight:800;color:#fff;">${appThisMonth.length}</div>
+            <div style="font-size:11px;color:rgba(255,255,255,0.85);text-transform:uppercase;letter-spacing:1px;margin-top:4px;">📱 In App</div>
+            <div style="font-size:14px;color:#fff;margin-top:6px;font-weight:600;">₹${appMonthRev.toLocaleString('en-IN')}</div>
+          </div>
+          <div style="background:rgba(255,255,255,0.15);padding:16px;border-radius:12px;text-align:center;">
+            <div style="font-size:28px;font-weight:800;color:#fff;">${csvThisMonth.length}</div>
+            <div style="font-size:11px;color:rgba(255,255,255,0.85);text-transform:uppercase;letter-spacing:1px;margin-top:4px;">🌐 On Airbnb</div>
+            <div style="font-size:14px;color:#fff;margin-top:6px;font-weight:600;">₹${csvMonthRev.toLocaleString('en-IN')}</div>
+          </div>
+          <div style="background:rgba(255,255,255,0.15);padding:16px;border-radius:12px;text-align:center;">
+            <div style="font-size:28px;font-weight:800;color:${syncPercent === 100 ? '#4ade80' : '#fef08a'};">${syncPercent}%</div>
+            <div style="font-size:11px;color:rgba(255,255,255,0.85);text-transform:uppercase;letter-spacing:1px;margin-top:4px;">🔄 Sync Rate</div>
+            <div style="font-size:14px;color:#fff;margin-top:6px;font-weight:600;">
+              ${syncPercent === 100 ? '✅ Perfect' : appThisMonth.length < csvThisMonth.length ? '⚠️ Missing entries' : 'Extra in app'}
+            </div>
+          </div>
+          <div style="background:rgba(255,255,255,0.15);padding:16px;border-radius:12px;text-align:center;">
+            <div style="font-size:22px;font-weight:800;color:${diff < 100 ? '#4ade80' : '#fca5a5'};">₹${diff.toLocaleString('en-IN')}</div>
+            <div style="font-size:11px;color:rgba(255,255,255,0.85);text-transform:uppercase;letter-spacing:1px;margin-top:4px;">💰 Revenue Diff</div>
+            <div style="font-size:14px;color:#fff;margin-top:6px;font-weight:600;">
+              ${diff < 100 ? '✅ Match' : '⚠️ Check'}
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div class="stat-grid">
         <div class="stat-card" style="border-left:4px solid var(--green);">
           <div class="stat-num" style="color:var(--green);">${matched.length}</div>
-          <div class="stat-label">✅ Matched</div>
+          <div class="stat-label">✅ Matched (All Time)</div>
         </div>
         <div class="stat-card" style="border-left:4px solid var(--red);">
           <div class="stat-num" style="color:var(--red);">${missing.length}</div>
