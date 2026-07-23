@@ -2296,3 +2296,28 @@ footer a { color: #484848 !important; }
   position: relative !important;
   display: block !important;
 }
+
+/* Superhost Badge Enhancement */
+.verified-badge {
+  background: linear-gradient(135deg, #FF385C 0%, #E00B41 100%) !important;
+  color: #fff !important;
+  padding: 6px 12px !important;
+  font-size: 11px !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.3px !important;
+}
+
+.verified-badge:hover {
+  background: linear-gradient(135deg, #E00B41 0%, #BD1E59 100%) !important;
+  transform: scale(1.05) !important;
+}
+
+/* Rating badge - Airbnb pink accent */
+.rating-badge {
+  background: rgba(255,255,255,0.98) !important;
+}
+
+.rating-badge .star {
+  color: #FF385C !important;
+  filter: drop-shadow(0 0 2px rgba(255,56,92,0.3)) !important;
+}
