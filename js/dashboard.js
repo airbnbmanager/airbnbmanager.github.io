@@ -23,7 +23,7 @@ async function renderDashboard() {
     sb.from("flats_status").select("room_id, status, cleaning_status, rooms(unit_no, nickname)"),
     sb.from("payment_history").select("booking_id, amount, payment_date"),
     sb.from("employee_tasks").select("*, employees(name)").eq('status', 'Pending'),
-    sb.from("maintenance_log").select("*, rooms(nickname)").neq('status', 'Resolved'),
+    sb.from("maintenance_log").select("*").neq('status', 'Resolved'),
     sb.from("attendance_log").select("emp_id, status").eq('att_date', today),
     sb.from("employees").select("emp_id, name").eq('status', 'Active')
   ]);
@@ -102,9 +102,6 @@ async function renderDashboard() {
 
   // Pending tasks
   const urgentTasks = (tasks || []).filter(t => t.priority === 'Urgent').length;
-
-  // Maintenance
-  const maintPending = (maint || []).length;
 
   // Occupancy %
   const occupancyPct = totalProps > 0 ? Math.round(bookedNow.length / totalProps * 100) : 0;
@@ -225,7 +222,7 @@ async function renderDashboard() {
         <div class="stat-label">🔧 Maintenance</div>
         ${(maint || []).slice(0, 3).map(m => `
           <div style="font-size:11px;margin-top:2px;">
-            ${m.rooms?.nickname || 'General'}: ${m.description?.slice(0, 30) || '-'}
+            ${m.room_id || 'General'}: ${m.description?.slice(0, 30) || '-'}
           </div>
         `).join('') || '<div class="sub" style="margin:4px 0 0;">No issues ✅</div>'}
       </div>
