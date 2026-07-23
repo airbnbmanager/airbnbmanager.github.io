@@ -620,29 +620,82 @@ async function renderPropertyReport(roomId, range = 'Month') {
     </div>
 
     <div class="card">
-      <div class="section-title">📋 Bookings — ${label}</div>
+      <div class="section-title">💰 Revenue Breakdown by Source</div>
+      <div class="stat-grid">
+        <div class="stat-card" style="border-left:4px solid var(--blue);">
+          <div class="stat-num" style="color:var(--blue);font-size:22px;">₹${onRev.toLocaleString('en-IN')}</div>
+          <div class="stat-label">🌐 Online (Airbnb)</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:4px;">${onBks.length} bookings</div>
+        </div>
+        <div class="stat-card" style="border-left:4px solid var(--yellow);">
+          <div class="stat-num" style="color:var(--yellow);font-size:22px;">₹${offRev.toLocaleString('en-IN')}</div>
+          <div class="stat-label">🏠 Offline (Direct)</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:4px;">${offBks.length} bookings</div>
+        </div>
+        <div class="stat-card" style="border-left:4px solid var(--green);">
+          <div class="stat-num" style="color:var(--green);font-size:22px;">₹${totRev.toLocaleString('en-IN')}</div>
+          <div class="stat-label">📊 Total Revenue</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:4px;">${(gs || []).length} total bookings</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="section-title">🌐 Online Bookings (Airbnb) — ${label}</div>
       <div class="table-wrap"><table>
         <thead><tr>
-          <th>Guest</th><th>Mode</th><th>In</th><th>Out</th><th>₹</th>
+          <th>Guest</th><th>Check-in</th><th>Check-out</th><th>Nights</th><th>Amount</th>
         </tr></thead>
         <tbody>
-          ${(gs || []).length === 0
-            ? '<tr><td colspan="5" class="sub">No bookings</td></tr>'
-            : (gs || []).map(g => `
+          ${onBks.length === 0
+            ? '<tr><td colspan="5" class="sub">No online bookings</td></tr>'
+            : onBks.map(g => `
                 <tr>
-                  <td>${g.guest_name || '-'}</td>
-                  <td>
-                    <span class="badge ${g.booking_mode === 'Online-Airbnb' ? 'blue' : 'yellow'}">
-                      ${g.booking_mode === 'Online-Airbnb' ? 'Online' : 'Offline'}
-                    </span>
-                  </td>
+                  <td><strong>${g.guest_name || '-'}</strong></td>
                   <td style="font-size:12px;">${g.check_in || '-'}</td>
                   <td style="font-size:12px;">${g.check_out || '-'}</td>
-                  <td style="color:var(--green);font-weight:600;">
+                  <td>${g.check_in && g.check_out ? calcNights(g.check_in, g.check_out) : '-'}</td>
+                  <td style="color:var(--blue);font-weight:700;">
                     ₹${(pm[g.booking_id] || 0).toLocaleString('en-IN')}
                   </td>
                 </tr>
               `).join('')}
+          ${onBks.length > 0 ? `
+          <tr style="background:#EBF5FF;font-weight:700;">
+            <td colspan="3">Online Total</td>
+            <td>${onBks.reduce((s,b) => s + (b.check_in && b.check_out ? calcNights(b.check_in, b.check_out) : 0), 0)}</td>
+            <td style="color:var(--blue);">₹${onRev.toLocaleString('en-IN')}</td>
+          </tr>` : ''}
+        </tbody>
+      </table></div>
+    </div>
+
+    <div class="card">
+      <div class="section-title">🏠 Offline Bookings (Direct) — ${label}</div>
+      <div class="table-wrap"><table>
+        <thead><tr>
+          <th>Guest</th><th>Check-in</th><th>Check-out</th><th>Nights</th><th>Amount</th>
+        </tr></thead>
+        <tbody>
+          ${offBks.length === 0
+            ? '<tr><td colspan="5" class="sub">No offline bookings</td></tr>'
+            : offBks.map(g => `
+                <tr>
+                  <td><strong>${g.guest_name || '-'}</strong></td>
+                  <td style="font-size:12px;">${g.check_in || '-'}</td>
+                  <td style="font-size:12px;">${g.check_out || '-'}</td>
+                  <td>${g.check_in && g.check_out ? calcNights(g.check_in, g.check_out) : '-'}</td>
+                  <td style="color:var(--yellow);font-weight:700;">
+                    ₹${(pm[g.booking_id] || 0).toLocaleString('en-IN')}
+                  </td>
+                </tr>
+              `).join('')}
+          ${offBks.length > 0 ? `
+          <tr style="background:#FEF3C7;font-weight:700;">
+            <td colspan="3">Offline Total</td>
+            <td>${offBks.reduce((s,b) => s + (b.check_in && b.check_out ? calcNights(b.check_in, b.check_out) : 0), 0)}</td>
+            <td style="color:var(--yellow);">₹${offRev.toLocaleString('en-IN')}</td>
+          </tr>` : ''}
         </tbody>
       </table></div>
     </div>
