@@ -26,7 +26,7 @@ async function renderManageEmployees() {
         <td>${e.role || '-'}</td>
         <td>${e.phone || '-'}</td>
         <td style="font-size:11px;max-width:120px;">${e.assigned_rooms || '-'}</td>
-        <td>₹${(e.monthly_salary || 0).toLocaleString('en-IN')}</td>
+        <td style="color:var(--red);">₹${(e.monthly_salary || 0).toLocaleString('en-IN')}</td>
         <td>
           ${e.id_proof_photo_front ? `<button class="btn-sm outline" onclick="dlIdPhoto('${e.id_proof_photo_front}')">📄 F</button>` : ''}
           ${e.id_proof_photo_back ? `<button class="btn-sm outline" onclick="dlIdPhoto('${e.id_proof_photo_back}')">📄 B</button>` : ''}
@@ -77,14 +77,8 @@ async function renderAddEmp() {
       </div>
       <div class="form-group"><label>Emergency Contact</label><input id="eEmergency" /></div>
       <div class="form-grid">
-        <div class="form-group">
-          <label>ID Front Photo</label>
-          <input id="eIdFront" type="file" accept="image/*" />
-        </div>
-        <div class="form-group">
-          <label>ID Back Photo</label>
-          <input id="eIdBack" type="file" accept="image/*" />
-        </div>
+        <div class="form-group"><label>ID Front Photo</label><input id="eIdFront" type="file" accept="image/*" /></div>
+        <div class="form-group"><label>ID Back Photo</label><input id="eIdBack" type="file" accept="image/*" /></div>
       </div>
       <label style="display:flex;align-items:center;gap:8px;margin:8px 0;">
         <input type="checkbox" id="eActive" checked /> Active
@@ -103,7 +97,6 @@ async function saveEmp() {
   const roomsSelect = document.getElementById('eRooms');
   const selectedRooms = roomsSelect ? Array.from(roomsSelect.selectedOptions).map(o => o.value).join(',') : '';
 
-  // Upload ID photos
   let frontPath = null, backPath = null;
   const empId = 'E' + Date.now();
 
@@ -188,7 +181,6 @@ async function editEmp(id) {
         <div class="form-group"><label>Address</label><input id="eAddr" value="${e.address || ''}" /></div>
       </div>
       <div class="form-group"><label>Emergency Contact</label><input id="eEmergency" value="${e.emergency_contact || ''}" /></div>
-
       <div class="section-title" style="margin-top:12px;">📄 ID Photos</div>
       <div class="form-grid">
         <div class="form-group">
@@ -202,7 +194,6 @@ async function editEmp(id) {
           <input id="eIdBack" type="file" accept="image/*" />
         </div>
       </div>
-
       <label style="display:flex;align-items:center;gap:8px;margin:8px 0;">
         <input type="checkbox" id="eActive" ${e.status === 'Active' ? 'checked' : ''} /> Active
       </label>
@@ -235,7 +226,6 @@ async function updEmp(id) {
     notes: document.getElementById('eNotes').value.trim() || null,
   };
 
-  // Upload new ID photos if selected
   const frontFile = document.getElementById('eIdFront')?.files?.[0];
   if (frontFile) {
     try {
@@ -275,7 +265,6 @@ async function delEmp(id, name) {
 async function renderEmployeeTasks() {
   renderShell(`<div class="loading">Loading...</div>`, 'tasks');
 
-  // Separate queries to avoid join issues
   const { data: tasks } = await sb.from('employee_tasks')
     .select('*')
     .order('assigned_date', { ascending: false });
@@ -378,7 +367,6 @@ async function saveTask() {
   const eid = document.getElementById('tEmp').value;
   const desc = document.getElementById('tDesc').value.trim();
   if (!eid || !desc) { document.getElementById('tErr').innerHTML = '<div class="error">Employee & task required</div>'; return; }
-
   await sb.from('employee_tasks').insert({
     emp_id: eid,
     room_id: document.getElementById('tRoom').value || null,
@@ -409,13 +397,13 @@ async function editTask(id) {
       <div class="form-grid">
         <div class="form-group"><label>Type</label>
           <select id="tType">
-            ${['Cleaning', 'Dusting', 'Laundry', 'Maintenance', 'Guest Check-in', 'Guest Check-out', 'Inventory', 'Other']
+            ${['Cleaning','Dusting','Laundry','Maintenance','Guest Check-in','Guest Check-out','Inventory','Other']
               .map(tp => `<option ${tp === t.task_type ? 'selected' : ''}>${tp}</option>`).join('')}
           </select>
         </div>
         <div class="form-group"><label>Priority</label>
           <select id="tPriority">
-            ${['Normal', 'High', 'Urgent'].map(p => `<option ${p === (t.priority || 'Normal') ? 'selected' : ''}>${p}</option>`).join('')}
+            ${['Normal','High','Urgent'].map(p => `<option ${p === (t.priority || 'Normal') ? 'selected' : ''}>${p}</option>`).join('')}
           </select>
         </div>
       </div>
@@ -502,7 +490,6 @@ async function markAtt(eid, st) {
 async function renderAttendanceSummary() {
   renderShell(`<div class="loading">Loading...</div>`, 'att-summary');
   const cm = new Date().toISOString().slice(0, 7);
-  console.log('Attendance month filter:', cm);
   const daysInMonth = new Date(parseInt(cm.split('-')[0]), parseInt(cm.split('-')[1]), 0).getDate();
 
   const [{ data: emps }, { data: logs }] = await Promise.all([
@@ -518,19 +505,16 @@ async function renderAttendanceSummary() {
     const totalMarked = pr + ab + hd;
     const effectiveDays = pr + (hd * 0.5);
     const pct = totalMarked > 0 ? ((effectiveDays / totalMarked) * 100).toFixed(1) : '0.0';
-
-    // Salary calculation
     const perDay = e.monthly_salary > 0 ? Math.round(e.monthly_salary / daysInMonth) : 0;
     const earnedSalary = Math.round(effectiveDays * perDay);
     const deduction = (e.monthly_salary || 0) - earnedSalary;
-
     return { ...e, pr, ab, hd, totalMarked, effectiveDays, pct, perDay, earnedSalary, deduction };
   });
 
   renderShell(`
     <div class="card">
       <h1>📊 Attendance Report — ${cm}</h1>
-      <div class="sub">Working days: 7 days/week | Days in month: ${daysInMonth}</div>
+      <div class="sub">Days in month: ${daysInMonth}</div>
       <button class="secondary btn-sm" onclick="renderAttendance()">📋 Mark Today</button>
     </div>
     <div class="card"><div class="table-wrap"><table>
@@ -546,9 +530,9 @@ async function renderAttendanceSummary() {
         <td><span class="badge ${s.ab > 0 ? 'red' : 'green'}">${s.ab}</span></td>
         <td><strong>${s.effectiveDays}</strong></td>
         <td><strong class="${parseFloat(s.pct) < 75 ? 'metric-value warn' : ''}">${s.pct}%</strong></td>
-        <td>₹${s.perDay.toLocaleString('en-IN')}</td>
+        <td style="color:var(--red);">₹${s.perDay.toLocaleString('en-IN')}</td>
         <td style="color:var(--green);">₹${s.earnedSalary.toLocaleString('en-IN')}</td>
-        <td class="${s.deduction > 0 ? 'metric-value warn' : ''}">₹${s.deduction.toLocaleString('en-IN')}</td>
+        <td style="color:${s.deduction > 0 ? 'var(--red)' : 'var(--green)'};">₹${s.deduction.toLocaleString('en-IN')}</td>
       </tr>`).join('')}</tbody>
     </table></div></div>
   `, 'att-summary');
@@ -567,15 +551,18 @@ async function renderSalaryTracker() {
       ${isO ? `<button onclick="renderAddSal()">➕ Add Record</button>` : ''}
     </div>
     <div class="card"><div class="table-wrap"><table>
-      <thead><tr><th>Employee</th><th>Month</th><th>Due</th><th>Paid</th><th>Balance</th>${isO ? '<th>Actions</th>' : ''}</tr></thead>
+      <thead><tr>
+        <th>Employee</th><th>Month</th><th>Due ₹</th><th>Paid ₹</th><th>Balance ₹</th>
+        ${isO ? '<th>Actions</th>' : ''}
+      </tr></thead>
       <tbody>${(sals || []).map(s => {
         const bal = (s.salary_due || 0) - (s.salary_paid || 0);
         return `<tr>
           <td><strong>${s.employees?.name || s.emp_id}</strong></td>
           <td>${s.month || '-'}</td>
-          <td>₹${(s.salary_due || 0).toLocaleString('en-IN')}</td>
-          <td>₹${(s.salary_paid || 0).toLocaleString('en-IN')}</td>
-          <td><span class="${bal > 0 ? 'metric-value warn' : ''}">₹${bal.toLocaleString('en-IN')}</span></td>
+          <td style="color:var(--red);">₹${(s.salary_due || 0).toLocaleString('en-IN')}</td>
+          <td style="color:var(--green);">₹${(s.salary_paid || 0).toLocaleString('en-IN')}</td>
+          <td style="color:${bal > 0 ? 'var(--red)' : 'var(--green)'};">₹${bal.toLocaleString('en-IN')}</td>
           ${isO ? `<td class="table-actions">
             <button class="btn-sm" onclick="editSal(${s.id})">✏️</button>
             <button class="btn-sm danger" onclick="delSal(${s.id})">🗑️</button>
@@ -607,8 +594,11 @@ async function renderAddSal() {
         <div class="form-group"><label>Paid ₹</label><input id="sPaid" type="number" /></div>
         <div class="form-group"><label>Date</label><input id="sDate" type="date" value="${new Date().toISOString().slice(0, 10)}" /></div>
       </div>
-      <div class="form-group"><label>Mode</label>
-        <select id="sMode"><option value="">--</option><option>Cash</option><option>UPI</option><option>Bank</option></select>
+      <div class="form-group"><label>Payment Mode</label>
+        <select id="sMode">
+          <option value="">--</option>
+          <option>Cash</option><option>UPI</option><option>Bank</option>
+        </select>
       </div>
       <button onclick="saveSal()" style="width:100%;">💾 Save</button>
       <div id="salErr"></div>
@@ -619,7 +609,7 @@ async function renderAddSal() {
 function onSalEmpChg() {
   const e = (window._salCache || []).find(x => x.emp_id === document.getElementById('sEmp').value);
   if (e) {
-    document.getElementById('sInfo').innerHTML = `💡 Salary: ₹${(e.monthly_salary || 0).toLocaleString('en-IN')}`;
+    document.getElementById('sInfo').innerHTML = `💡 Monthly Salary: ₹${(e.monthly_salary || 0).toLocaleString('en-IN')}`;
     document.getElementById('sDue').value = e.monthly_salary || 0;
   }
 }
@@ -629,7 +619,8 @@ async function saveSal() {
   const mo = document.getElementById('sMo').value;
   if (!eid || !mo) { document.getElementById('salErr').innerHTML = '<div class="error">Employee & month required</div>'; return; }
   await sb.from('salary_tracker').insert({
-    emp_id: eid, month: mo,
+    emp_id: eid,
+    month: mo,
     salary_due: parseFloat(document.getElementById('sDue').value) || 0,
     salary_paid: parseFloat(document.getElementById('sPaid').value) || 0,
     payment_date: document.getElementById('sDate').value || null,
@@ -648,13 +639,20 @@ async function editSal(id) {
       <div class="sub">${s.employees?.name || s.emp_id}</div>
       <div class="form-grid">
         <div class="form-group"><label>Month</label><input id="sMo" type="month" value="${s.month || ''}" /></div>
-        <div class="form-group"><label>Due</label><input id="sDue" type="number" value="${s.salary_due || 0}" /></div>
+        <div class="form-group"><label>Due ₹</label><input id="sDue" type="number" value="${s.salary_due || 0}" /></div>
       </div>
       <div class="form-grid">
-        <div class="form-group"><label>Paid</label><input id="sPaid" type="number" value="${s.salary_paid || 0}" /></div>
+        <div class="form-group"><label>Paid ₹</label><input id="sPaid" type="number" value="${s.salary_paid || 0}" /></div>
         <div class="form-group"><label>Date</label><input id="sDate" type="date" value="${s.payment_date || ''}" /></div>
       </div>
-      <div class="form-group"><label>Mode</label><input id="sMode" value="${s.payment_mode || ''}" /></div>
+      <div class="form-group"><label>Payment Mode</label>
+        <select id="sMode">
+          <option value="" ${!s.payment_mode ? 'selected' : ''}>--</option>
+          <option ${s.payment_mode === 'Cash' ? 'selected' : ''}>Cash</option>
+          <option ${s.payment_mode === 'UPI' ? 'selected' : ''}>UPI</option>
+          <option ${s.payment_mode === 'Bank' ? 'selected' : ''}>Bank</option>
+        </select>
+      </div>
       <button onclick="updSal(${id})" style="width:100%;">💾 Update</button>
     </div>
   `, 'salary');
@@ -681,28 +679,50 @@ async function renderAdvanceTracker() {
   const { data: advs } = await sb.from('advance_tracker').select('*, employees(name)').order('date_given', { ascending: false });
   const isO = SESSION.role === 'owner';
 
+  const totalGiven   = (advs || []).reduce((s, a) => s + (a.advance_amount || 0), 0);
+  const totalRepaid  = (advs || []).reduce((s, a) => s + (a.repaid_amount || 0), 0);
+  const totalBalance = totalGiven - totalRepaid;
+
   renderShell(`
     <div class="card">
       <h1>💵 Advances</h1>
       <div class="sub">${(advs || []).length} records</div>
       ${isO ? `<button onclick="renderAddAdv()">➕ Add</button>` : ''}
     </div>
+
+    <div class="card">
+      <div class="metric-row">
+        <span class="metric-label">Total Given</span>
+        <span class="metric-value" style="color:var(--red);">₹${totalGiven.toLocaleString('en-IN')}</span>
+      </div>
+      <div class="metric-row">
+        <span class="metric-label">Total Repaid</span>
+        <span class="metric-value" style="color:var(--green);">₹${totalRepaid.toLocaleString('en-IN')}</span>
+      </div>
+      <div class="metric-row">
+        <span class="metric-label">Outstanding</span>
+        <span class="metric-value" style="color:${totalBalance > 0 ? 'var(--red)' : 'var(--green)'};">₹${totalBalance.toLocaleString('en-IN')}</span>
+      </div>
+    </div>
+
     <div class="card"><div class="table-wrap"><table>
       <thead><tr>
-        <th>Employee</th><th>Given Date</th><th>Amount</th>
-        <th>Repaid</th><th>Repaid Date</th><th>Balance</th><th>Reason</th>
+        <th>Employee</th><th>Date</th><th>Given ₹</th>
+        <th>Repaid ₹</th><th>Repaid On</th><th>Balance ₹</th>
+        <th>Mode</th><th>Reason</th>
         ${isO ? '<th>Actions</th>' : ''}
       </tr></thead>
       <tbody>${(advs || []).map(a => {
         const bal = (a.advance_amount || 0) - (a.repaid_amount || 0);
         return `<tr>
           <td><strong>${a.employees?.name || a.emp_id}</strong></td>
-          <td>${a.date_given || '-'}</td>
-          <td>₹${(a.advance_amount || 0).toLocaleString('en-IN')}</td>
-          <td>₹${(a.repaid_amount || 0).toLocaleString('en-IN')}</td>
-          <td>${a.repaid_date || '-'}</td>
-          <td><span class="${bal > 0 ? 'metric-value warn' : ''}">₹${bal.toLocaleString('en-IN')}</span></td>
-          <td>${a.reason || '-'}</td>
+          <td style="font-size:12px;">${a.date_given || '-'}</td>
+          <td style="color:var(--red);">₹${(a.advance_amount || 0).toLocaleString('en-IN')}</td>
+          <td style="color:var(--green);">₹${(a.repaid_amount || 0).toLocaleString('en-IN')}</td>
+          <td style="font-size:12px;">${a.repaid_date || '-'}</td>
+          <td style="color:${bal > 0 ? 'var(--red)' : 'var(--green)'};">₹${bal.toLocaleString('en-IN')}</td>
+          <td style="font-size:12px;">${a.payment_mode || '-'}</td>
+          <td style="font-size:12px;">${a.reason || '-'}</td>
           ${isO ? `<td class="table-actions">
             <button class="btn-sm" onclick="editAdv(${a.id})">✏️</button>
             <button class="btn-sm danger" onclick="delAdv(${a.id})">🗑️</button>
@@ -724,10 +744,18 @@ async function renderAddAdv() {
         </select>
       </div>
       <div class="form-grid">
-        <div class="form-group"><label>Date</label><input id="aDate" type="date" value="${new Date().toISOString().slice(0, 10)}" /></div>
-        <div class="form-group"><label>Amount ₹</label><input id="aAmt" type="number" /></div>
+        <div class="form-group"><label>Date Given</label><input id="aDate" type="date" value="${new Date().toISOString().slice(0, 10)}" /></div>
+        <div class="form-group"><label>Amount ₹ *</label><input id="aAmt" type="number" /></div>
       </div>
-      <div class="form-group"><label>Reason</label><input id="aReason" /></div>
+      <div class="form-grid">
+        <div class="form-group"><label>Payment Mode</label>
+          <select id="aMode">
+            <option value="">--</option>
+            <option>Cash</option><option>UPI</option><option>Bank</option>
+          </select>
+        </div>
+        <div class="form-group"><label>Reason</label><input id="aReason" /></div>
+      </div>
       <button onclick="saveAdv()" style="width:100%;">💾 Save</button>
       <div id="advErr"></div>
     </div>
@@ -738,10 +766,15 @@ async function saveAdv() {
   const eid = document.getElementById('aEmp').value;
   const amt = parseFloat(document.getElementById('aAmt').value) || 0;
   if (!eid || amt <= 0) { document.getElementById('advErr').innerHTML = '<div class="error">Employee & amount required</div>'; return; }
-  await sb.from('advance_tracker').insert({
-    emp_id: eid, date_given: document.getElementById('aDate').value || null,
-    advance_amount: amt, repaid_amount: 0, reason: document.getElementById('aReason').value.trim() || null
+  const { error } = await sb.from('advance_tracker').insert({
+    emp_id: eid,
+    date_given: document.getElementById('aDate').value || null,
+    advance_amount: amt,
+    repaid_amount: 0,
+    payment_mode: document.getElementById('aMode').value || null,
+    reason: document.getElementById('aReason').value.trim() || null
   });
+  if (error) { document.getElementById('advErr').innerHTML = `<div class="error">${error.message}</div>`; return; }
   renderAdvanceTracker();
 }
 
@@ -751,7 +784,7 @@ async function editAdv(id) {
   renderShell(`
     <div class="card"><h1>✏️ Edit Advance</h1><button class="secondary btn-sm" onclick="renderAdvanceTracker()">← Back</button></div>
     <div class="card">
-      <div class="sub">${a.employees?.name || a.emp_id}</div>
+      <div class="sub" style="font-weight:600;font-size:14px;">${a.employees?.name || a.emp_id}</div>
       <div class="form-grid">
         <div class="form-group"><label>Given Date</label><input id="aDate" type="date" value="${a.date_given || ''}" /></div>
         <div class="form-group"><label>Amount ₹</label><input id="aAmt" type="number" value="${a.advance_amount || 0}" /></div>
@@ -760,7 +793,17 @@ async function editAdv(id) {
         <div class="form-group"><label>Repaid ₹</label><input id="aRep" type="number" value="${a.repaid_amount || 0}" /></div>
         <div class="form-group"><label>Repaid Date</label><input id="aRepDate" type="date" value="${a.repaid_date || ''}" /></div>
       </div>
-      <div class="form-group"><label>Reason</label><input id="aReason" value="${a.reason || ''}" /></div>
+      <div class="form-grid">
+        <div class="form-group"><label>Payment Mode</label>
+          <select id="aMode">
+            <option value="" ${!a.payment_mode ? 'selected' : ''}>--</option>
+            <option ${a.payment_mode === 'Cash' ? 'selected' : ''}>Cash</option>
+            <option ${a.payment_mode === 'UPI' ? 'selected' : ''}>UPI</option>
+            <option ${a.payment_mode === 'Bank' ? 'selected' : ''}>Bank</option>
+          </select>
+        </div>
+        <div class="form-group"><label>Reason</label><input id="aReason" value="${a.reason || ''}" /></div>
+      </div>
       <button onclick="updAdv(${id})" style="width:100%;">💾 Update</button>
     </div>
   `, 'advance');
@@ -772,16 +815,7 @@ async function updAdv(id) {
     advance_amount: parseFloat(document.getElementById('aAmt').value) || 0,
     repaid_amount: parseFloat(document.getElementById('aRep').value) || 0,
     repaid_date: document.getElementById('aRepDate').value || null,
-    reason: document.getElementById('aReason').value.trim() || null
-  }).eq('id', id);
-  renderAdvanceTracker();
-}
-
-async function updAdv(id) {
-  await sb.from('advance_tracker').update({
-    date_given: document.getElementById('aDate').value || null,
-    advance_amount: parseFloat(document.getElementById('aAmt').value) || 0,
-    repaid_amount: parseFloat(document.getElementById('aRep').value) || 0,
+    payment_mode: document.getElementById('aMode').value || null,
     reason: document.getElementById('aReason').value.trim() || null
   }).eq('id', id);
   renderAdvanceTracker();
