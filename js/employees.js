@@ -42,6 +42,31 @@ async function renderManageEmployees() {
   `, 'employees');
 }
 
+function employeeRoleOptions(selected = '') {
+  const roles = [
+    'Caretaker',
+    'Check-in Manager',
+    'Cleaner',
+    'Housekeeping',
+    'Maid',
+    'Laundry',
+    'Maintenance',
+    'Inventory',
+    'Driver',
+    'Supervisor',
+    'Admin & Developer',
+    'Other'
+  ];
+  const list = roles.includes(selected) || !selected ? roles : [selected, ...roles];
+  return list.map(r => `<option value="${r}" ${r === selected ? 'selected' : ''}>${r}</option>`).join('');
+}
+
+function employeePropertyRoleOptions(selected = 'Staff') {
+  const roles = ['Staff', 'Caretaker', 'Check-in Manager'];
+  const list = roles.includes(selected) || !selected ? roles : [selected, ...roles];
+  return list.map(r => `<option value="${r}" ${r === selected ? 'selected' : ''}>${r}</option>`).join('');
+}
+
 async function renderAddEmp() {
   const { data: rooms } = await sb.from('rooms').select('room_id, nickname').order('room_id');
   renderShell(`
@@ -52,9 +77,14 @@ async function renderAddEmp() {
         <div class="form-group"><label>Phone</label><input id="ePhone" type="tel" /></div>
       </div>
       <div class="form-grid">
-        <div class="form-group"><label>Role</label><input id="eRole" placeholder="Manager, Cleaner..." /></div>
-        <div class="form-group"><label>Monthly Salary ₹</label><input id="eSal" type="number" /></div>
+        <div class="form-group"><label>Role</label>
+          <select id="eRole">${employeeRoleOptions('')}</select>
+        </div>
+        <div class="form-group"><label>Property Contact Role</label>
+          <select id="ePropertyRole">${employeePropertyRoleOptions('Staff')}</select>
+        </div>
       </div>
+      <div class="form-group"><label>Monthly Salary ₹</label><input id="eSal" type="number" /></div>
       <div class="form-group">
         <label>Assigned Properties</label>
         <select id="eRooms" multiple style="min-height:120px;">
@@ -124,7 +154,8 @@ async function saveEmp() {
     emp_id: empId,
     name,
     phone: document.getElementById('ePhone').value.trim() || null,
-    role: document.getElementById('eRole').value.trim() || null,
+    role: document.getElementById('eRole').value || null,
+    property_role: document.getElementById('ePropertyRole').value || 'Staff',
     monthly_salary: parseFloat(document.getElementById('eSal').value) || 0,
     joining_date: document.getElementById('eJoin').value || null,
     assigned_rooms: selectedRooms || null,
@@ -156,9 +187,14 @@ async function editEmp(id) {
         <div class="form-group"><label>Phone</label><input id="ePhone" value="${e.phone || ''}" /></div>
       </div>
       <div class="form-grid">
-        <div class="form-group"><label>Role</label><input id="eRole" value="${e.role || ''}" /></div>
-        <div class="form-group"><label>Salary ₹</label><input id="eSal" type="number" value="${e.monthly_salary || 0}" /></div>
+        <div class="form-group"><label>Role</label>
+          <select id="eRole">${employeeRoleOptions(e.role || '')}</select>
+        </div>
+        <div class="form-group"><label>Property Contact Role</label>
+          <select id="ePropertyRole">${employeePropertyRoleOptions(e.property_role || 'Staff')}</select>
+        </div>
       </div>
+      <div class="form-group"><label>Salary ₹</label><input id="eSal" type="number" value="${e.monthly_salary || 0}" /></div>
       <div class="form-group">
         <label>Assigned Properties</label>
         <select id="eRooms" multiple style="min-height:120px;">
@@ -214,7 +250,8 @@ async function updEmp(id) {
   const obj = {
     name,
     phone: document.getElementById('ePhone').value.trim() || null,
-    role: document.getElementById('eRole').value.trim() || null,
+    role: document.getElementById('eRole').value || null,
+    property_role: document.getElementById('ePropertyRole').value || 'Staff',
     monthly_salary: parseFloat(document.getElementById('eSal').value) || 0,
     joining_date: document.getElementById('eJoin').value || null,
     assigned_rooms: selectedRooms || null,
@@ -248,39 +285,10 @@ async function updEmp(id) {
 
   await sb.from('employees').update(obj).eq('emp_id', id);
 
-  // Auto-sync caretaker to rooms table
-  await syncCaretakerToRooms(id, obj.assigned_rooms || '', obj.name, obj.phone || '');
 
   renderManageEmployees();
 }
 
-// ============ AUTO SYNC CARETAKER TO ROOMS ============
-async function syncCaretakerToRooms(empId, assignedRooms, empName, empPhone) {
-  if (!assignedRooms) return;
-  const roomIds = assignedRooms.split(',').map(s => s.trim()).filter(Boolean);
-  if (!roomIds.length) return;
-
-  const cleanPhone = (empPhone || '').replace(/[^0-9]/g, '');
-
-  for (const roomId of roomIds) {
-    // Check current caretaker in rooms table
-    const { data: room } = await sb.from('rooms')
-      .select('room_id, caretaker_name, caretaker_phone')
-      .eq('room_id', roomId).single();
-
-    if (!room) continue;
-
-    const current = (room.caretaker_name || '').trim().toLowerCase();
-
-    // Only update if empty or "Pending"
-    if (!current || current === 'pending') {
-      await sb.from('rooms').update({
-        caretaker_name: empName,
-        caretaker_phone: cleanPhone || null
-      }).eq('room_id', roomId);
-    }
-  }
-}
 
 async function delEmp(id, name) {
   if (!confirm(`Delete "${name}" & all records?`)) return;

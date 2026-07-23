@@ -3,63 +3,66 @@
  * UNIQUE HAVEN HOMES STAY
  */
 
-// ============ HELPER: Get Caretakers for a Room ============
-async function getCaretakersForRoom(roomId, roomData) {
-  const r = roomData || {};
-  const caretakers = [];
+// ============ HELPER: Property Contacts ============
+async function getPropertyContactsForRoom(roomId, roomData = {}) {
+  let r = roomData || {};
 
-  // Step 1: employees table se assigned_rooms match karo
-  const { data: emps } = await sb.from('employees')
-    .select('name, phone, role, assigned_rooms')
-    .eq('status', 'Active');
-
-  (emps || []).forEach(e => {
-    const assigned = (e.assigned_rooms || '').split(',').map(s => s.trim()).filter(Boolean);
-    if (assigned.includes(roomId)) {
-      const name = (e.name || '').trim();
-      const phone = (e.phone || '').replace(/[^0-9]/g, '');
-      if (name && !caretakers.find(c => c.name === name)) {
-        caretakers.push({ name, phone });
-      }
-    }
-  });
-
-  // Step 2: rooms table fallback — skip "Pending"
-  const rCaretaker = (r.caretaker_name || '').trim();
-  const rPhone     = (r.caretaker_phone || '').replace(/[^0-9]/g, '');
-  const rManager   = (r.checkin_manager || '').trim();
-
-  if (rCaretaker && rCaretaker.toLowerCase() !== 'pending') {
-    if (!caretakers.find(c => c.name === rCaretaker)) {
-      caretakers.push({ name: rCaretaker, phone: rPhone });
-    }
+  if (!r.room_id || r.caretaker_emp_id === undefined || r.checkin_manager_emp_id === undefined) {
+    const { data: room } = await sb.from('rooms')
+      .select('room_id, nickname, unit_no, caretaker_emp_id, checkin_manager_emp_id, caretaker_name, caretaker_phone, checkin_manager')
+      .eq('room_id', roomId).single();
+    if (room) r = { ...r, ...room };
   }
 
-  if (rManager && rManager.toLowerCase() !== 'pending') {
-    if (!caretakers.find(c => c.name === rManager)) {
-      caretakers.push({ name: rManager, phone: '' });
-    }
+  const caretakerId = r.caretaker_emp_id || null;
+  const managerId = r.checkin_manager_emp_id || null;
+  const ids = [caretakerId, managerId].filter(Boolean);
+
+  const empMap = {};
+  if (ids.length) {
+    const { data: emps } = await sb.from('employees')
+      .select('emp_id, name, phone')
+      .in('emp_id', ids);
+    (emps || []).forEach(e => { empMap[e.emp_id] = e; });
   }
 
-  return caretakers;
-}
+  const lines = [];
+  const seenNames = new Set();
 
-// ============ Format Caretaker Lines ============
-function formatCaretakerLines(caretakers) {
-  if (!caretakers || caretakers.length === 0) return [];
-  return caretakers.map(c =>
-    `📞 *Caretaker:* ${c.name}${c.phone ? ' — +91 ' + c.phone : ''}`
-  );
+  const cleanPhone = p => (p || '').replace(/[^0-9]/g, '');
+  const addLine = (label, name, phone) => {
+    const nm = (name || '').trim();
+    if (!nm || nm.toLowerCase() === 'pending' || seenNames.has(nm.toLowerCase())) return;
+    seenNames.add(nm.toLowerCase());
+    const ph = cleanPhone(phone);
+    lines.push(`📞 *${label}:* ${nm}${ph ? ' — +91 ' + ph : ''}`);
+  };
+
+  if (caretakerId && managerId && caretakerId === managerId) {
+    const e = empMap[caretakerId];
+    if (e) addLine('Caretaker / Check-in Manager', e.name, e.phone);
+  } else {
+    if (caretakerId && empMap[caretakerId]) addLine('Caretaker', empMap[caretakerId].name, empMap[caretakerId].phone);
+    if (managerId && empMap[managerId]) addLine('Check-in Manager', empMap[managerId].name, empMap[managerId].phone);
+  }
+
+  // Legacy fallback only if emp_id not set
+  if (!lines.length) {
+    addLine('Caretaker', r.caretaker_name || '', r.caretaker_phone || '');
+    addLine('Check-in Manager', r.checkin_manager || '', '');
+  }
+
+  return lines;
 }
 
 // ============ BOOKING WELCOME MESSAGE ============
 async function shareBookingWhatsApp(bkId) {
   const { data: b } = await sb.from('guest_register')
-    .select('*, rooms(room_id, unit_no, nickname, property_name, checkin_manager, caretaker_name, caretaker_phone, map_link, address, directions, landmarks, floor_info, building_name)')
+    .select('*, rooms(room_id, unit_no, nickname, property_name, checkin_manager, checkin_manager_emp_id, caretaker_name, caretaker_phone, caretaker_emp_id, map_link, address, directions, landmarks, floor_info, building_name)')
     .eq('booking_id', bkId).single();
   if (!b) { alert('Not found'); return; }
 
-  const r      = b.rooms || {};
+  const r = b.rooms || {};
   const roomId = r.room_id || b.room_id;
 
   const guestName    = b.guest_name || 'Guest';
@@ -75,8 +78,7 @@ async function shareBookingWhatsApp(bkId) {
   const checkInTime  = b.check_in_time || '2:00 PM';
   const checkOutTime = b.check_out_time || '11:00 AM';
 
-  const caretakers     = await getCaretakersForRoom(roomId, r);
-  const caretakerLines = formatCaretakerLines(caretakers);
+  const contactLines = await getPropertyContactsForRoom(roomId, r);
 
   const msg = [
     `Hii ${guestName}! 👋`,
@@ -98,7 +100,7 @@ async function shareBookingWhatsApp(bkId) {
     ``,
     `📋 *Check-in Instructions:*`,
     `Our caretaker will assist you with the check-in and show you around the place.`,
-    ...caretakerLines,
+    ...contactLines,
     ``,
     `If caretaker is not reachable, contact:`,
     `📞 Mr Shahanshah — 9450055554`,
@@ -117,7 +119,7 @@ async function shareBookingWhatsApp(bkId) {
     ``,
     `— Team *${BRAND}*`,
     `🌐 uniquehavenhomesstay.com`
-  ].filter(v => v !== false && v !== null && v !== undefined).join('\n');
+  ].filter(v => v !== false && v !== null && v !== undefined && v !== '').join('\n');
 
   showWhatsAppModal(guestName, propertyName, b.phone, msg);
 }
@@ -125,11 +127,11 @@ async function shareBookingWhatsApp(bkId) {
 // ============ CHECKOUT REMINDER ============
 async function sendCheckoutReminder(bkId) {
   const { data: b } = await sb.from('guest_register')
-    .select('*, rooms(room_id, unit_no, nickname, checkin_manager, caretaker_name, caretaker_phone)')
+    .select('*, rooms(room_id, unit_no, nickname, checkin_manager, checkin_manager_emp_id, caretaker_name, caretaker_phone, caretaker_emp_id)')
     .eq('booking_id', bkId).single();
   if (!b) { alert('Not found'); return; }
 
-  const r      = b.rooms || {};
+  const r = b.rooms || {};
   const roomId = r.room_id || b.room_id;
 
   const guestName    = b.guest_name || 'Guest';
@@ -137,8 +139,7 @@ async function sendCheckoutReminder(bkId) {
   const checkOut     = b.check_out || '';
   const checkOutTime = b.check_out_time || '11:00 AM';
 
-  const caretakers     = await getCaretakersForRoom(roomId, r);
-  const caretakerLines = formatCaretakerLines(caretakers);
+  const contactLines = await getPropertyContactsForRoom(roomId, r);
 
   const msg = [
     `Hi ${guestName}! 👋`,
@@ -156,8 +157,8 @@ async function sendCheckoutReminder(bkId) {
     `Would you like to *extend your stay*?`,
     `We'd love to have you longer! Just let us know and we'll check availability for you. 😊`,
     ``,
-    caretakerLines.length ? `Need any help?` : '',
-    ...caretakerLines,
+    contactLines.length ? `Need any help?` : '',
+    ...contactLines,
     ``,
     `For any other assistance:`,
     `📞 Mr Shahanshah — 9450055554`,
@@ -169,7 +170,7 @@ async function sendCheckoutReminder(bkId) {
     ``,
     `— Team *${BRAND}*`,
     `🌐 uniquehavenhomesstay.com`
-  ].filter(v => v !== false && v !== null && v !== undefined).join('\n');
+  ].filter(v => v !== false && v !== null && v !== undefined && v !== '').join('\n');
 
   showWhatsAppModal(guestName, propertyName, b.phone, msg);
 }

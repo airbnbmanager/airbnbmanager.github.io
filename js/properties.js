@@ -6,8 +6,14 @@
 // ============ PROPERTIES (ROOMS) ============
 async function renderManageRooms() {
   renderShell(`<div class="loading">Loading...</div>`, 'rooms');
-  const { data: rooms, error } = await sb.from("rooms").select("*").order("room_id");
+  const [{ data: rooms, error }, { data: emps }] = await Promise.all([
+    sb.from("rooms").select("*").order("room_id"),
+    sb.from("employees").select("emp_id,name,phone,property_role,role,status").eq("status", "Active").order("name")
+  ]);
   if (error) { renderShell(`<div class="card"><div class="error">${error.message}</div></div>`, 'rooms'); return; }
+
+  const empMap = {};
+  (emps || []).forEach(e => { empMap[e.emp_id] = e; });
   const isO = SESSION.role === 'owner';
 
   renderShell(`
@@ -20,36 +26,63 @@ async function renderManageRooms() {
       <div class="table-wrap"><table>
         <thead><tr>
           <th>ID</th><th>Property</th><th>Nickname</th><th>Unit</th>
-          <th>Manager</th><th>Lock</th><th>Map</th><th>Status</th>
+          <th>Contacts</th><th>Lock</th><th>Map</th><th>Status</th>
           ${isO ? '<th>Actions</th>' : ''}
         </tr></thead>
-        <tbody>${(rooms || []).map(r => `<tr>
-          <td><strong>${r.room_id}</strong></td>
-          <td style="max-width:200px;font-size:12px;">${r.property_name || '-'}</td>
-          <td>${r.nickname || '-'}</td>
-          <td>${r.unit_no || '-'}</td>
-          <td>
-            ${r.checkin_manager || '-'}
-            ${r.caretaker_phone ? `<br><small>${r.caretaker_phone}</small>` : ''}
-            ${r.caretaker_name ? `<br><small>${r.caretaker_name}</small>` : ''}
-          </td>
-          <td>
-            <span class="badge ${r.lock_type === 'Smart' ? 'blue' : 'yellow'}">${r.lock_type || 'Physical'}</span>
-            ${r.key_number ? `<br><small>🔑 ${r.key_number}</small>` : ''}
-          </td>
-          <td>${r.map_link ? `<a href="${r.map_link}" target="_blank">📍</a>` : '-'}</td>
-          <td><span class="badge ${r.bookable ? 'green' : 'red'}">${r.mode || 'On'}</span></td>
-          ${isO ? `<td class="table-actions">
-            <button class="btn-sm" onclick="editRoom('${r.room_id}')">✏️</button>
-            <button class="btn-sm danger" onclick="deleteRoom('${r.room_id}','${r.unit_no}')">🗑️</button>
-          </td>` : ''}
-        </tr>`).join('')}</tbody>
+        <tbody>${(rooms || []).map(r => {
+          const mgr = empMap[r.checkin_manager_emp_id];
+          const care = empMap[r.caretaker_emp_id];
+          const mgrName = mgr?.name || r.checkin_manager || '-';
+          const mgrPhone = mgr?.phone || '';
+          const careName = care?.name || r.caretaker_name || '-';
+          const carePhone = care?.phone || r.caretaker_phone || '';
+          return `<tr>
+            <td><strong>${r.room_id}</strong></td>
+            <td style="max-width:200px;font-size:12px;">${r.property_name || '-'}</td>
+            <td>${r.nickname || '-'}</td>
+            <td>${r.unit_no || '-'}</td>
+            <td style="font-size:12px;">
+              <strong>Caretaker:</strong> ${careName}
+              ${carePhone ? `<br><small>📞 ${carePhone}</small>` : ''}
+              <br><strong>Manager:</strong> ${mgrName}
+              ${mgrPhone ? `<br><small>📞 ${mgrPhone}</small>` : ''}
+            </td>
+            <td>
+              <span class="badge ${r.lock_type === 'Smart' ? 'blue' : 'yellow'}">${r.lock_type || 'Physical'}</span>
+              ${r.key_number ? `<br><small>🔑 ${r.key_number}</small>` : ''}
+            </td>
+            <td>${r.map_link ? `<a href="${r.map_link}" target="_blank">📍</a>` : '-'}</td>
+            <td><span class="badge ${r.bookable ? 'green' : 'red'}">${r.mode || 'On'}</span></td>
+            ${isO ? `<td class="table-actions">
+              <button class="btn-sm" onclick="editRoom('${r.room_id}')">✏️</button>
+              <button class="btn-sm danger" onclick="deleteRoom('${r.room_id}','${r.unit_no}')">🗑️</button>
+            </td>` : ''}
+          </tr>`;
+        }).join('')}</tbody>
       </table></div>
     </div>
   `, 'rooms');
 }
 
-function roomFormFields(r = {}) {
+function roomContactOptions(emps, selectedId, allowedRoles = ['Caretaker', 'Check-in Manager']) {
+  const matchRole = (e, roleName) => {
+    const txt = `${e.property_role || ''} ${e.role || ''}`.toLowerCase();
+    if (roleName === 'Caretaker') return txt.includes('caretaker') || txt.includes('care taker');
+    if (roleName === 'Check-in Manager') return txt.includes('check-in manager') || txt.includes('checkin manager');
+    return false;
+  };
+
+  let list = (emps || []).filter(e => allowedRoles.some(r => matchRole(e, r)));
+  const cur = (emps || []).find(e => e.emp_id === selectedId);
+  if (cur && !list.find(e => e.emp_id === selectedId)) list = [cur, ...list];
+
+  return `<option value="">-- Select --</option>` + list.map(e => {
+    const labelRole = e.property_role || e.role || 'Staff';
+    return `<option value="${e.emp_id}" ${e.emp_id === selectedId ? 'selected' : ''}>${e.name} (${labelRole})</option>`;
+  }).join('');
+}
+
+function roomFormFields(r = {}, emps = []) {
   return `
     <div class="form-grid">
       <div class="form-group"><label>Room ID *</label><input id="roomId" value="${r.room_id || ''}" ${r.room_id ? 'readonly' : ''} placeholder="e.g. GOM-101" /></div>
@@ -73,12 +106,19 @@ function roomFormFields(r = {}) {
       <div class="form-group"><label>Building Name</label><input id="buildingName" value="${r.building_name || ''}" placeholder="e.g. Mehadi Park" /></div>
     </div>
 
-    <div class="section-title" style="margin-top:12px;">👨‍💼 Check-in Manager</div>
+    <div class="section-title" style="margin-top:12px;">👨‍💼 Property Contacts</div>
     <div class="form-grid">
-      <div class="form-group"><label>Manager Name</label><input id="checkinMgr" value="${r.checkin_manager || ''}" placeholder="e.g. Mr. Esha" /></div>
-      <div class="form-group"><label>Caretaker Name</label><input id="caretakerName" value="${r.caretaker_name || ''}" placeholder="e.g. Aniket" /></div>
+      <div class="form-group"><label>Caretaker</label>
+        <select id="caretakerEmp">
+          ${roomContactOptions(emps, r.caretaker_emp_id || '', ['Caretaker', 'Check-in Manager'])}
+        </select>
+      </div>
+      <div class="form-group"><label>Check-in Manager</label>
+        <select id="checkinMgrEmp">
+          ${roomContactOptions(emps, r.checkin_manager_emp_id || '', ['Caretaker', 'Check-in Manager'])}
+        </select>
+      </div>
     </div>
-    <div class="form-group"><label>Caretaker Phone</label><input id="caretakerPhone" value="${r.caretaker_phone || ''}" placeholder="e.g. 9876543210" /></div>
 
     <div class="section-title" style="margin-top:12px;">📍 Location</div>
     <div class="form-group"><label>Address</label><input id="address" value="${r.address || ''}" placeholder="Full address" /></div>
@@ -119,6 +159,13 @@ function roomFormFields(r = {}) {
 }
 
 function collectRoomForm() {
+  const emps = window._roomEmpCache || [];
+  const caretakerEmpId = document.getElementById('caretakerEmp')?.value || null;
+  const checkinMgrEmpId = document.getElementById('checkinMgrEmp')?.value || null;
+
+  const caretaker = emps.find(e => e.emp_id === caretakerEmpId) || null;
+  const manager = emps.find(e => e.emp_id === checkinMgrEmpId) || null;
+
   return {
     room_id: document.getElementById('roomId').value.trim(),
     property_name: document.getElementById('propertyName').value.trim() || null,
@@ -129,9 +176,11 @@ function collectRoomForm() {
     nickname: document.getElementById('nickname').value.trim() || null,
     max_guests: parseInt(document.getElementById('maxGuests').value) || null,
     building_name: document.getElementById('buildingName').value.trim() || null,
-    checkin_manager: document.getElementById('checkinMgr').value.trim() || null,
-    caretaker_name: document.getElementById('caretakerName').value.trim() || null,
-    caretaker_phone: document.getElementById('caretakerPhone').value.trim() || null,
+    checkin_manager_emp_id: checkinMgrEmpId,
+    caretaker_emp_id: caretakerEmpId,
+    checkin_manager: manager?.name || null,
+    caretaker_name: caretaker?.name || null,
+    caretaker_phone: caretaker?.phone?.trim() || null,
     map_link: document.getElementById('mapLink').value.trim() || null,
     directions: document.getElementById('directions').value.trim() || null,
     landmarks: document.getElementById('landmarks').value.trim() || null,
@@ -145,13 +194,17 @@ function collectRoomForm() {
 }
 
 async function renderAddRoom() {
+  const { data: emps } = await sb.from('employees')
+    .select('emp_id,name,phone,property_role,role,status')
+    .eq('status', 'Active').order('name');
+  window._roomEmpCache = emps || [];
   renderShell(`
     <div class="card">
       <h1>➕ Add Property</h1>
       <button class="secondary btn-sm" onclick="renderManageRooms()">← Back</button>
     </div>
     <div class="card">
-      ${roomFormFields()}
+      ${roomFormFields({}, window._roomEmpCache)}
       <button onclick="saveNewRoom()" style="width:100%;margin-top:12px;">💾 Save Property</button>
       <div id="addErr"></div>
     </div>`, 'rooms');
@@ -170,15 +223,19 @@ async function saveNewRoom() {
 }
 
 async function editRoom(id) {
-  const { data: r } = await sb.from('rooms').select('*').eq('room_id', id).single();
+  const [{ data: r }, { data: emps }] = await Promise.all([
+    sb.from('rooms').select('*').eq('room_id', id).single(),
+    sb.from('employees').select('emp_id,name,phone,property_role,role,status').eq('status', 'Active').order('name')
+  ]);
   if (!r) { alert('Not found'); return; }
+  window._roomEmpCache = emps || [];
   renderShell(`
     <div class="card">
       <h1>✏️ Edit Property</h1>
       <button class="secondary btn-sm" onclick="renderManageRooms()">← Back</button>
     </div>
     <div class="card">
-      ${roomFormFields(r)}
+      ${roomFormFields(r, window._roomEmpCache)}
       <button onclick="updateRoom('${id}')" style="width:100%;margin-top:12px;">💾 Update Property</button>
       <div id="editErr"></div>
     </div>`, 'rooms');
