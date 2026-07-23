@@ -508,22 +508,43 @@ async function delTask(id) {
 }
 
 // ============ ATTENDANCE ============
-async function renderAttendance() {
+async function renderAttendance(selectedDate) {
   renderShell(`<div class="loading">Loading...</div>`, 'attendance');
   const today = new Date().toISOString().slice(0, 10);
+  const attDate = selectedDate || today;
+
   const [{ data: emps }, { data: att }] = await Promise.all([
     sb.from('employees').select('emp_id,name,role').eq('status', 'Active').order('name'),
-    sb.from('attendance_log').select('*').eq('att_date', today)
+    sb.from('attendance_log').select('*').eq('att_date', attDate)
   ]);
   const am = {};
   (att || []).forEach(a => { am[a.emp_id] = a.status; });
   const isO = ['owner','admin'].includes(SESSION.role);
 
+  const dateLabel = new Date(attDate).toLocaleDateString('en-IN', {
+    weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
+  });
+  const isToday = attDate === today;
+
   renderShell(`
     <div class="card">
-      <h1>📋 Attendance — ${today}</h1>
+      <h1>📋 Attendance</h1>
+      <div class="sub">${dateLabel} ${isToday ? '(Today)' : '(Back-dated)'}</div>
+
+      <div class="form-grid" style="margin-top:12px;">
+        <div class="form-group">
+          <label>Select Date (Back-dated allowed)</label>
+          <input type="date" id="attDatePicker" value="${attDate}" max="${today}"
+            onchange="renderAttendance(this.value)" />
+        </div>
+        <div class="form-group" style="justify-content:flex-end;">
+          ${!isToday ? `<button class="btn-sm" onclick="renderAttendance('${today}')">📅 Back to Today</button>` : ''}
+        </div>
+      </div>
+
       <div class="sub">${(emps || []).length} active employees</div>
     </div>
+
     <div class="card"><div class="table-wrap"><table>
       <thead><tr><th>Employee</th><th>Role</th><th>Status</th>${isO ? '<th>Mark</th>' : ''}</tr></thead>
       <tbody>${(emps || []).map(e => {
@@ -531,11 +552,11 @@ async function renderAttendance() {
         return `<tr>
           <td><strong>${e.name}</strong></td>
           <td style="font-size:12px;">${e.role || '-'}</td>
-          <td><span class="badge ${st === 'Present' ? 'green' : st === 'Absent' ? 'red' : 'yellow'}">${st}</span></td>
+          <td><span class="badge ${st === 'Present' ? 'green' : st === 'Absent' ? 'red' : st === 'Half Day' ? 'yellow' : 'yellow'}">${st}</span></td>
           ${isO ? `<td class="table-actions">
-            <button class="btn-sm green-btn" onclick="markAtt('${e.emp_id}','Present')">✅ P</button>
-            <button class="btn-sm danger" onclick="markAtt('${e.emp_id}','Absent')">❌ A</button>
-            <button class="btn-sm secondary" onclick="markAtt('${e.emp_id}','Half Day')">½</button>
+            <button class="btn-sm green-btn" onclick="markAtt('${e.emp_id}','Present','${attDate}')">✅ P</button>
+            <button class="btn-sm danger" onclick="markAtt('${e.emp_id}','Absent','${attDate}')">❌ A</button>
+            <button class="btn-sm secondary" onclick="markAtt('${e.emp_id}','Half Day','${attDate}')">½</button>
           </td>` : ''}
         </tr>`;
       }).join('')}</tbody>
@@ -543,12 +564,12 @@ async function renderAttendance() {
   `, 'attendance');
 }
 
-async function markAtt(eid, st) {
-  const today = new Date().toISOString().slice(0, 10);
-  const { data: ex } = await sb.from('attendance_log').select('id').eq('emp_id', eid).eq('att_date', today).single();
+async function markAtt(eid, st, dateStr) {
+  const attDate = dateStr || new Date().toISOString().slice(0, 10);
+  const { data: ex } = await sb.from('attendance_log').select('id').eq('emp_id', eid).eq('att_date', attDate).single();
   if (ex) await sb.from('attendance_log').update({ status: st }).eq('id', ex.id);
-  else await sb.from('attendance_log').insert({ emp_id: eid, att_date: today, status: st });
-  renderAttendance();
+  else await sb.from('attendance_log').insert({ emp_id: eid, att_date: attDate, status: st });
+  renderAttendance(attDate);
 }
 
 // ============ ATTENDANCE SUMMARY ============
