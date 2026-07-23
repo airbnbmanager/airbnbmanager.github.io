@@ -394,35 +394,50 @@ async function saveFlatStatus(id) {
 async function renderPropertyShifts(roomId) {
   renderShell(`<div class="loading">Loading...</div>`, 'shifts');
 
-  const [{ data: rooms }, { data: emps }, { data: allShifts }] = await Promise.all([
+  const [{ data: rooms }, { data: emps }, { data: allShifts, error: shiftErr }] = await Promise.all([
     sb.from('rooms').select('room_id, nickname, unit_no').order('room_id'),
     sb.from('employees')
       .select('emp_id, name, phone, property_role, role')
       .eq('status', 'Active')
       .order('name'),
     sb.from('property_shifts')
-      .select('*, employees(name, phone), rooms(nickname, unit_no)')
+      .select('*')
       .eq('is_active', true)
       .order('room_id')
   ]);
 
+  if (shiftErr) {
+    renderShell(`<div class="card"><div class="error">Shifts load failed: ${shiftErr.message}</div></div>`, 'shifts');
+    return;
+  }
+
   const selRoom = roomId || '';
   window._shiftEmps = emps || [];
 
+  const empMap = {};
+  (emps || []).forEach(e => { empMap[e.emp_id] = e; });
+
+  const roomMap = {};
+  (rooms || []).forEach(r => { roomMap[r.room_id] = r; });
+
+  const shiftsHydrated = (allShifts || []).map(sh => ({
+    ...sh,
+    employees: empMap[sh.emp_id] || null,
+    rooms: roomMap[sh.room_id] || null
+  }));
+
   const filteredShifts = selRoom
-    ? (allShifts || []).filter(s => s.room_id === selRoom)
+    ? shiftsHydrated.filter(s => s.room_id === selRoom)
     : [];
 
   const room = (rooms || []).find(r => r.room_id === selRoom);
 
-  // Group all shifts by property for overview
   const byRoom = {};
-  (allShifts || []).forEach(sh => {
+  shiftsHydrated.forEach(sh => {
     if (!byRoom[sh.room_id]) byRoom[sh.room_id] = { room: sh.rooms, shifts: [] };
     byRoom[sh.room_id].shifts.push(sh);
   });
 
-  // Properties without any shifts
   const noShiftRooms = (rooms || []).filter(r => !byRoom[r.room_id]);
 
   renderShell(`
@@ -549,7 +564,6 @@ async function renderPropertyShifts(roomId) {
                   `).join('')}
                 </div>
               ` : ''}
-              ${!dayS.length && !nightS.length && !allDayS.length ? '<div class="sub" style="font-size:11px;">No shifts</div>' : ''}
             </div>
           `;
         }).join('')}
