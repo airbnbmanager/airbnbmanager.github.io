@@ -497,6 +497,14 @@ function showIdSlots() {
   }
 }
 
+function showEditIdSlots() {
+  const n = Math.min(parseInt(document.getElementById('guests')?.value) || 1, 8);
+  for (let i = 1; i <= 8; i++) {
+    const el = document.getElementById(`editIdSlot${i}`);
+    if (el) el.style.display = i <= n ? 'block' : 'none';
+  }
+}
+
 
 // ============ VEHICLE PHOTO HANDLER ============
 function onVehiclePhotoPick(src, mode = 'new') {
@@ -855,7 +863,7 @@ async function saveBooking() {
     const checkInTime = document.getElementById('checkInTime')?.value || '14:00';
     const checkOutTime = document.getElementById('checkOutTime')?.value || '11:00';
     const checkoutConfirmed = document.getElementById('checkoutConfirmed')?.value === 'yes';
-    const gs = parseInt(document.getElementById('guests').value) || 1;
+    const gs = Math.min(Math.max(parseInt(document.getElementById('guests').value) || 1, 1), 8);
     const nights = calcNights(ci, co);
 
     // Get total from correct field
@@ -1032,13 +1040,14 @@ async function editBooking(bkId) {
   const tp = (pays || []).reduce((s, p) => s + (p.amount || 0), 0);
   const bal = (b.total_amount || 0) - tp;
 
-  const frontPaths = (b.id_proof_front_paths || '').split(',').filter(Boolean);
-  const backPaths = (b.id_proof_back_paths || '').split(',').filter(Boolean);
+  const frontPaths = parseIdPathArray(b.id_proof_front_paths);
+  const backPaths = parseIdPathArray(b.id_proof_back_paths);
+  const guestCountForUI = Math.min(Math.max(parseInt(b.guests || 1) || 1, 1), 8);
 
   let idSlots = '';
   for (let i = 1; i <= 8; i++) {
     idSlots += `
-      <div class="id-card" id="editIdSlot${i}" style="display:${i <= Math.max(b.guests || 1, 1) ? 'block' : 'none'};">
+      <div class="id-card" id="editIdSlot${i}" style="display:${i <= guestCountForUI ? 'block' : 'none'};">
         <div class="id-card-title">👤 Guest ${i}</div>
         <div style="font-size:11px;margin:4px 0;">📄 Front</div>
         ${frontPaths[i - 1] ? `<div class="btn-row" style="margin:4px 0;">
@@ -1132,7 +1141,7 @@ async function editBooking(bkId) {
         </select>
       </div>
       <div class="form-grid">
-        <div class="form-group"><label>Guests</label><input id="guests" type="number" value="${b.guests || 1}" /></div>
+        <div class="form-group"><label>Guests</label><input id="guests" type="number" value="${guestCountForUI}" min="1" max="8" onchange="showEditIdSlots()" oninput="showEditIdSlots()" /></div>
         <div class="form-group"><label>Per Day Rate ₹</label><input id="perDayRate" type="number" value="${b.per_day_rate || ''}" /></div>
       </div>
       <div class="form-grid">
@@ -1284,7 +1293,7 @@ async function updateBooking(bkId, parentBookingId = '', stayGroupId = '') {
     if (clash) { document.getElementById('editBkErr').innerHTML = `<div class="error">Clash: ${clash.guest_name}</div>`; return; }
   }
 
-  const gc = parseInt(document.getElementById('guests')?.value) || 1;
+  const gc = Math.min(Math.max(parseInt(document.getElementById('guests')?.value) || 1, 1), 8);
   const existFront = parseIdPathArray(b?.id_proof_front_paths);
   const existBack  = parseIdPathArray(b?.id_proof_back_paths);
   const fArr = existFront.length ? existFront.slice() : Array(gc).fill(null);
