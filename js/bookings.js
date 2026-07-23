@@ -728,6 +728,17 @@ function onAmtChg() {
 
 function onEditIdFileSelect(input, guestNum, side) {
   if (!input.files || !input.files[0]) return;
+
+  openCropModal(input.files[0], (croppedFile) => {
+    const dt = new DataTransfer();
+    dt.items.add(croppedFile);
+    input.files = dt.files;
+    showEditPreview(input, guestNum, side);
+  });
+}
+
+function showEditPreview(input, guestNum, side) {
+  if (!input.files || !input.files[0]) return;
   const file = input.files[0];
   const sizeMB = (file.size / 1024 / 1024).toFixed(1);
   const sideLabel = side === 'front' ? 'Front' : 'Back';
@@ -756,6 +767,21 @@ function onIdFileSelect(input, guestNum, side) {
     if (previewEl) previewEl.innerHTML = '';
     return;
   }
+
+  // Open crop modal
+  openCropModal(input.files[0], (croppedFile) => {
+    // Replace input's file with cropped version
+    const dt = new DataTransfer();
+    dt.items.add(croppedFile);
+    input.files = dt.files;
+    showIdPreview(input, guestNum, side);
+  });
+}
+
+function showIdPreview(input, guestNum, side) {
+  const previewEl = document.getElementById(`preview${side === 'front' ? 'Front' : 'Back'}${guestNum}`);
+  const slot = document.getElementById(`idSlot${guestNum}`);
+  if (!input.files || !input.files[0]) return;
 
   const file = input.files[0];
   const sizeMB = (file.size / 1024 / 1024).toFixed(1);
@@ -829,6 +855,18 @@ function onVehiclePhotoSelect(input) {
     if (previewEl) previewEl.innerHTML = '';
     return;
   }
+
+  openCropModal(input.files[0], (croppedFile) => {
+    const dt = new DataTransfer();
+    dt.items.add(croppedFile);
+    input.files = dt.files;
+    showVehiclePreview(input);
+  });
+}
+
+function showVehiclePreview(input) {
+  const previewEl = document.getElementById('vehiclePhotoPreview');
+  if (!input.files || !input.files[0]) return;
   const file = input.files[0];
   const reader = new FileReader();
   reader.onload = function(e) {
@@ -1910,4 +1948,176 @@ async function exportBookingsPDF() {
   const win = window.open('', '_blank');
   win.document.write(html);
   win.document.close();
+}
+
+
+// ============ CROP MODAL ============
+function openCropModal(file, callback) {
+  const modal = document.createElement('div');
+  modal.className = 'modal-overlay';
+  modal.style.zIndex = '10000';
+
+  modal.innerHTML = `
+    <div class="modal-box" style="max-width:700px;padding:16px;">
+      <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">✕</button>
+      <h2>✂️ Crop Image</h2>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:8px;">
+        Drag corners to select area. Click Save when done.
+      </div>
+
+      <div style="position:relative;overflow:hidden;background:#000;border-radius:8px;">
+        <canvas id="cropCanvas" style="display:block;max-width:100%;cursor:crosshair;"></canvas>
+        <div id="cropOverlay" style="position:absolute;border:2px dashed #FF385C;background:rgba(255,56,92,0.15);pointer-events:none;display:none;"></div>
+      </div>
+
+      <div class="btn-row" style="margin-top:12px;justify-content:center;">
+        <button class="btn-sm" onclick="applyCrop()" style="background:#00A699;">✂️ Apply Crop</button>
+        <button class="btn-sm outline" onclick="resetCrop()">↻ Reset</button>
+        <button class="btn-sm" onclick="saveCroppedImage()" style="background:#FF385C;">💾 Save</button>
+        <button class="btn-sm secondary" onclick="skipCrop()">⏭️ Use Original</button>
+      </div>
+
+      <div id="cropInfo" style="font-size:11px;color:var(--muted);margin-top:6px;text-align:center;"></div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+
+  const canvas = document.getElementById('cropCanvas');
+  const ctx = canvas.getContext('2d');
+  const overlay = document.getElementById('cropOverlay');
+  const info = document.getElementById('cropInfo');
+
+  const img = new Image();
+  img.onload = () => {
+    // Fit image to max 600px width
+    const maxW = 600;
+    const scale = Math.min(1, maxW / img.width);
+    canvas.width = img.width * scale;
+    canvas.height = img.height * scale;
+    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+    info.innerHTML = `Original: ${img.width}×${img.height} · Displayed: ${Math.round(canvas.width)}×${Math.round(canvas.height)}`;
+
+    window._cropData = {
+      img, canvas, ctx, scale,
+      originalFile: file,
+      callback,
+      selection: null,
+      startX: 0, startY: 0,
+      isDragging: false
+    };
+
+    // Mouse events
+    canvas.onmousedown = startCropSelect;
+    canvas.onmousemove = updateCropSelect;
+    canvas.onmouseup = endCropSelect;
+    canvas.ontouchstart = e => { e.preventDefault(); startCropSelect(e.touches[0]); };
+    canvas.ontouchmove = e => { e.preventDefault(); updateCropSelect(e.touches[0]); };
+    canvas.ontouchend = e => { e.preventDefault(); endCropSelect(); };
+  };
+  img.src = URL.createObjectURL(file);
+}
+
+function startCropSelect(e) {
+  const cd = window._cropData;
+  if (!cd) return;
+  const rect = cd.canvas.getBoundingClientRect();
+  cd.startX = e.clientX - rect.left;
+  cd.startY = e.clientY - rect.top;
+  cd.isDragging = true;
+}
+
+function updateCropSelect(e) {
+  const cd = window._cropData;
+  if (!cd || !cd.isDragging) return;
+  const rect = cd.canvas.getBoundingClientRect();
+  const x = e.clientX - rect.left;
+  const y = e.clientY - rect.top;
+
+  const overlay = document.getElementById('cropOverlay');
+  const canvas = cd.canvas;
+  const canvasRect = canvas.getBoundingClientRect();
+  const canvasOffsetX = canvas.offsetLeft;
+  const canvasOffsetY = canvas.offsetTop;
+
+  const left = Math.min(cd.startX, x);
+  const top = Math.min(cd.startY, y);
+  const width = Math.abs(x - cd.startX);
+  const height = Math.abs(y - cd.startY);
+
+  cd.selection = { x: left, y: top, w: width, h: height };
+
+  overlay.style.display = 'block';
+  overlay.style.left = (canvas.offsetLeft + left) + 'px';
+  overlay.style.top = (canvas.offsetTop + top) + 'px';
+  overlay.style.width = width + 'px';
+  overlay.style.height = height + 'px';
+
+  document.getElementById('cropInfo').innerHTML =
+    `Selection: ${Math.round(width)}×${Math.round(height)}px`;
+}
+
+function endCropSelect() {
+  const cd = window._cropData;
+  if (cd) cd.isDragging = false;
+}
+
+function applyCrop() {
+  const cd = window._cropData;
+  if (!cd || !cd.selection || cd.selection.w < 10 || cd.selection.h < 10) {
+    alert('Please select an area first (drag on image)');
+    return;
+  }
+  const { canvas, ctx, img, scale, selection } = cd;
+  // Get cropped area
+  const sx = selection.x / scale;
+  const sy = selection.y / scale;
+  const sw = selection.w / scale;
+  const sh = selection.h / scale;
+
+  // Draw cropped image
+  canvas.width = selection.w;
+  canvas.height = selection.h;
+  ctx.drawImage(img, sx, sy, sw, sh, 0, 0, selection.w, selection.h);
+
+  cd.selection = null;
+  document.getElementById('cropOverlay').style.display = 'none';
+  document.getElementById('cropInfo').innerHTML = `✅ Cropped to ${Math.round(canvas.width)}×${Math.round(canvas.height)}`;
+}
+
+function resetCrop() {
+  const cd = window._cropData;
+  if (!cd) return;
+  const { img } = cd;
+  const maxW = 600;
+  const scale = Math.min(1, maxW / img.width);
+  cd.canvas.width = img.width * scale;
+  cd.canvas.height = img.height * scale;
+  cd.scale = scale;
+  cd.ctx.drawImage(img, 0, 0, cd.canvas.width, cd.canvas.height);
+  cd.selection = null;
+  document.getElementById('cropOverlay').style.display = 'none';
+  document.getElementById('cropInfo').innerHTML = `Reset · ${img.width}×${img.height}`;
+}
+
+function saveCroppedImage() {
+  const cd = window._cropData;
+  if (!cd) return;
+  cd.canvas.toBlob(blob => {
+    const croppedFile = new File([blob], cd.originalFile.name, {
+      type: 'image/jpeg',
+      lastModified: Date.now()
+    });
+    cd.callback(croppedFile);
+    document.querySelector('.modal-overlay').remove();
+    window._cropData = null;
+  }, 'image/jpeg', 0.9);
+}
+
+function skipCrop() {
+  const cd = window._cropData;
+  if (!cd) return;
+  cd.callback(cd.originalFile);
+  document.querySelector('.modal-overlay').remove();
+  window._cropData = null;
 }
