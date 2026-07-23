@@ -2193,3 +2193,30 @@ footer a { color: #484848 !important; }
 /* Book direct banner text stays white on red */
 .book-direct-banner strong { color: #fff !important; }
 .book-direct-banner span { color: rgba(255,255,255,0.95) !important; }
+
+/* ============ CONTACT SECTION - ALL TEXT VISIBLE ============ */
+.contact-section,
+.contact-section *,
+.contact-section p,
+.contact-section span,
+.contact-section div {
+  color: rgba(255,255,255,0.95) !important;
+}
+
+.contact-section h1,
+.contact-section h2,
+.contact-section h3 {
+  color: #fff !important;
+}
+
+.contact-section a:not(.wa-banner-btn):not(.contact-card-phone a) {
+  color: #FF385C !important;
+}
+
+/* Tagline / enquiry text at bottom */
+.contact-section > div:last-child,
+.contact-section [style*="rgba(255,255,255,0.5)"],
+.contact-section [style*="margin-top"] {
+  color: rgba(255,255,255,0.9) !important;
+  font-size: 15px !important;
+}
