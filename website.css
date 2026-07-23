@@ -2321,3 +2321,117 @@ footer a { color: #484848 !important; }
   color: #FF385C !important;
   filter: drop-shadow(0 0 2px rgba(255,56,92,0.3)) !important;
 }
+
+/* ============ SAVE 15% BADGE - PROMINENT EVERYWHERE ============ */
+.save-15-badge,
+[class*="save-15"] {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  background: linear-gradient(135deg, #FF385C 0%, #E00B41 100%) !important;
+  color: #fff !important;
+  padding: 6px 14px !important;
+  border-radius: 999px !important;
+  font-size: 12px !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.5px !important;
+  text-transform: uppercase !important;
+  box-shadow: 0 4px 12px rgba(255,56,92,0.35) !important;
+  animation: save-pulse 2s ease-in-out infinite !important;
+}
+
+@keyframes save-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); box-shadow: 0 6px 20px rgba(255,56,92,0.5); }
+}
+
+/* Property card - Save 15% ribbon */
+.property-card::after,
+.prop-card::after {
+  content: 'SAVE 15%';
+  position: absolute;
+  bottom: 12px;
+  left: 12px;
+  background: linear-gradient(135deg, #FF385C, #E00B41);
+  color: #fff;
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.8px;
+  box-shadow: 0 4px 12px rgba(255,56,92,0.4);
+  pointer-events: none;
+  z-index: 2;
+}
+
+/* WhatsApp button on cards */
+.btn-whatsapp {
+  background: #25D366 !important;
+  color: #fff !important;
+  padding: 10px 20px !important;
+  border-radius: 8px !important;
+  font-weight: 700 !important;
+  font-size: 14px !important;
+  text-decoration: none !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  box-shadow: 0 4px 12px rgba(37,211,102,0.3) !important;
+  transition: all 0.2s !important;
+  margin-top: 8px !important;
+}
+
+.btn-whatsapp:hover {
+  background: #128C7E !important;
+  transform: translateY(-2px) !important;
+  box-shadow: 0 8px 20px rgba(37,211,102,0.45) !important;
+}
+
+.btn-whatsapp svg {
+  width: 18px !important;
+  height: 18px !important;
+}
+
+/* Book Direct banner - even more prominent */
+.book-direct-banner {
+  background: linear-gradient(135deg, #FF385C 0%, #E00B41 50%, #BD1E59 100%) !important;
+  padding: 28px 24px !important;
+  border-radius: 20px !important;
+  margin: 40px 20px !important;
+  box-shadow: 0 20px 40px rgba(255,56,92,0.35) !important;
+  position: relative !important;
+  overflow: hidden !important;
+}
+
+.book-direct-banner::before {
+  content: '💰';
+  position: absolute;
+  top: -20px;
+  right: -20px;
+  font-size: 120px;
+  opacity: 0.15;
+  transform: rotate(-15deg);
+}
+
+.book-direct-banner strong {
+  font-size: 24px !important;
+  color: #fff !important;
+  display: block !important;
+  margin-bottom: 6px !important;
+}
+
+.book-direct-banner span {
+  color: rgba(255,255,255,0.95) !important;
+  font-size: 16px !important;
+  font-weight: 500 !important;
+}
+
+@media (max-width: 768px) {
+  .book-direct-banner strong { font-size: 18px !important; }
+  .book-direct-banner span { font-size: 13px !important; }
+  .property-card::after,
+  .prop-card::after {
+    font-size: 10px !important;
+    padding: 3px 10px !important;
+  }
+}
