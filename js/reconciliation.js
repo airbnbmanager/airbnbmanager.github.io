@@ -104,6 +104,8 @@ async function processAirbnbCSV(input) {
     const missing = [];
     const matched = [];
 
+    const nameMismatches = [];
+
     airbnbBookings.forEach(ab => {
       const cdate = convertDate(ab.startDate);
       if (cdate < '2026-07-01') return;
