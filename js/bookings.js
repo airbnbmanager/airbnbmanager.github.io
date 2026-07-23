@@ -269,18 +269,40 @@ async function renderAddBooking() {
     idSlots += `
       <div class="id-card" id="idSlot${i}" style="display:${i === 1 ? 'block' : 'none'};">
         <div class="id-card-title">👤 Guest ${i}${i === 1 ? ' (Primary)' : ''}</div>
-        <input type="text" style="font-size:13px;min-height:36px;margin-bottom:4px;" id="gN${i}"
-          placeholder="Guest ${i} naam" value="${i === 1 ? (pre.guestName || '') : ''}" />
+        <input type="text" style="font-size:13px;min-height:36px;margin-bottom:6px;"
+          id="gN${i}" placeholder="Guest ${i} naam"
+          value="${i === 1 ? (pre.guestName || '') : ''}" />
 
-        <div style="font-size:11px;color:var(--muted);margin:6px 0 2px;font-weight:600;">📄 Front Side</div>
-        <input type="file" id="idFront${i}" accept="image/*" capture="environment"
-          style="font-size:12px;" onchange="onIdFileSelect(this, ${i}, 'front')" />
-        <div id="previewFront${i}" style="margin:4px 0;"></div>
-
-        <div style="font-size:11px;color:var(--muted);margin:6px 0 2px;font-weight:600;">📄 Back Side</div>
-        <input type="file" id="idBack${i}" accept="image/*" capture="environment"
-          style="font-size:12px;" onchange="onIdFileSelect(this, ${i}, 'back')" />
-        <div id="previewBack${i}" style="margin:4px 0;"></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:4px;">
+          <div>
+            <div style="font-size:11px;color:var(--muted);font-weight:600;margin-bottom:4px;">📄 Front Side</div>
+            <div class="id-card-btns">
+              <button type="button" class="outline"
+                onclick="document.getElementById('idFrontCam${i}').click()">📷 Cam</button>
+              <button type="button" class="outline"
+                onclick="document.getElementById('idFrontGal${i}').click()">🖼️ Gallery</button>
+            </div>
+            <input type="file" id="idFrontCam${i}" accept="image/*" capture="environment"
+              style="display:none;" onchange="onIdFileSelect(this,${i},'front')" />
+            <input type="file" id="idFrontGal${i}" accept="image/*"
+              style="display:none;" onchange="onIdFileSelect(this,${i},'front')" />
+            <div id="previewFront${i}" style="margin-top:4px;"></div>
+          </div>
+          <div>
+            <div style="font-size:11px;color:var(--muted);font-weight:600;margin-bottom:4px;">📄 Back Side</div>
+            <div class="id-card-btns">
+              <button type="button" class="outline"
+                onclick="document.getElementById('idBackCam${i}').click()">📷 Cam</button>
+              <button type="button" class="outline"
+                onclick="document.getElementById('idBackGal${i}').click()">🖼️ Gallery</button>
+            </div>
+            <input type="file" id="idBackCam${i}" accept="image/*" capture="environment"
+              style="display:none;" onchange="onIdFileSelect(this,${i},'back')" />
+            <input type="file" id="idBackGal${i}" accept="image/*"
+              style="display:none;" onchange="onIdFileSelect(this,${i},'back')" />
+            <div id="previewBack${i}" style="margin-top:4px;"></div>
+          </div>
+        </div>
       </div>`;
   }
 
@@ -639,11 +661,13 @@ function onIdFileSelect(input, guestNum, side) {
 }
 
 function clearIdFile(guestNum, side) {
-  const inputId = side === 'front' ? `idFront${guestNum}` : `idBack${guestNum}`;
+  const prefix = side === 'front' ? 'idFront' : 'idBack';
   const previewId = `preview${side === 'front' ? 'Front' : 'Back'}${guestNum}`;
-  const input = document.getElementById(inputId);
+  const cam = document.getElementById(`${prefix}Cam${guestNum}`);
+  const gal = document.getElementById(`${prefix}Gal${guestNum}`);
+  if (cam) cam.value = '';
+  if (gal) gal.value = '';
   const preview = document.getElementById(previewId);
-  if (input) input.value = '';
   if (preview) preview.innerHTML = '';
   const slot = document.getElementById(`idSlot${guestNum}`);
   if (slot) slot.style.borderColor = '';
@@ -656,10 +680,13 @@ function updateIdUploadSummary() {
   const cnt = Math.min(parseInt(document.getElementById('guests')?.value) || 1, 8);
   let ready = 0, total = 0;
   for (let i = 1; i <= cnt; i++) {
-    const f = document.getElementById(`idFront${i}`);
-    const b = document.getElementById(`idBack${i}`);
-    if (f) { total++; if (f.files?.length) ready++; }
-    if (b) { total++; if (b.files?.length) ready++; }
+    const fc = document.getElementById(`idFrontCam${i}`);
+    const fg = document.getElementById(`idFrontGal${i}`);
+    const bc = document.getElementById(`idBackCam${i}`);
+    const bg = document.getElementById(`idBackGal${i}`);
+    total += 2;
+    if (fc?.files?.length || fg?.files?.length) ready++;
+    if (bc?.files?.length || bg?.files?.length) ready++;
   }
   const pct = total > 0 ? Math.round(ready / total * 100) : 0;
   const color = pct === 100 ? 'var(--green)' : pct > 0 ? 'var(--yellow)' : 'var(--red)';
@@ -730,7 +757,7 @@ async function uploadIdPhotos(bkId) {
     const guestName = (document.getElementById(`gN${i}`)?.value?.trim() || `Guest${i}`)
       .replace(/[^a-zA-Z0-9]/g, '_').substring(0, 20);
 
-    const frontInput = document.getElementById(`idFront${i}`);
+    const frontInput = document.getElementById(`idFrontCam${i}`)?.files?.[0] ? document.getElementById(`idFrontCam${i}`) : document.getElementById(`idFrontGal${i}`);
     if (frontInput?.files?.[0]) {
       showProgress(uploaded, totalFiles, `Guest ${i} Front`);
       try {
@@ -752,7 +779,7 @@ async function uploadIdPhotos(bkId) {
       }
     }
 
-    const backInput = document.getElementById(`idBack${i}`);
+    const backInput = document.getElementById(`idBackCam${i}`)?.files?.[0] ? document.getElementById(`idBackCam${i}`) : document.getElementById(`idBackGal${i}`);
     if (backInput?.files?.[0]) {
       showProgress(uploaded, totalFiles, `Guest ${i} Back`);
       try {
