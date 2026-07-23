@@ -81,9 +81,9 @@ async function showGuestLedger(guestName) {
 
 // ============ ID BUTTON BUILDER ============
 function buildIdButtons(b) {
-  const fp = (b.id_proof_front_paths || '').split(',').filter(Boolean);
-  const bp = (b.id_proof_back_paths || '').split(',').filter(Boolean);
-  const ap = (b.id_proof_photo_paths || b.id_proof_photo_path || '').split(',').filter(Boolean);
+  const fp = parseIdPathArray(b.id_proof_front_paths).filter(Boolean);
+  const bp = parseIdPathArray(b.id_proof_back_paths).filter(Boolean);
+  const ap = [...new Set((b.id_proof_photo_paths || b.id_proof_photo_path || '').split(',').filter(Boolean))];
   const seen = new Set();
   const allPhotos = [...fp, ...bp, ...ap].filter(p => { if (seen.has(p)) return false; seen.add(p); return true; });
 
@@ -1349,7 +1349,7 @@ async function updateBooking(bkId, parentBookingId = '', stayGroupId = '') {
   const existBack  = parseIdPathArray(oldBk?.id_proof_back_paths);
   const fArr = existFront.length ? existFront.slice() : Array(gc).fill(null);
   const bArr = existBack.length  ? existBack.slice()  : Array(gc).fill(null);
-  const aArr = (oldBk?.id_proof_photo_paths || '').split(',').filter(Boolean);
+  const aArr = [...new Set((oldBk?.id_proof_photo_paths || '').split(',').filter(Boolean))];
   for (let i = 1; i <= gc; i++) {
     const fFile = document.getElementById(`eFrontCam${i}`)?.files?.[0] || document.getElementById(`eFrontGal${i}`)?.files?.[0];
     if (fFile) { try { const c = await compressImage(fFile); const p = `${bkId}/${Date.now()}_g${i}_front.jpg`; const { error } = await sb.storage.from('id-proofs').upload(p, c, { contentType: 'image/jpeg' }); if (!error) { while(fArr.length < i) fArr.push(null); fArr[i-1] = p; aArr.push(p); } } catch (e) { } }
@@ -1381,7 +1381,8 @@ async function updateBooking(bkId, parentBookingId = '', stayGroupId = '') {
   };
   obj.id_proof_front_paths = stringifyIdPathArray(fArr);
   obj.id_proof_back_paths  = stringifyIdPathArray(bArr);
-  if (aArr.length) { obj.id_proof_photo_paths = aArr.join(','); obj.id_proof_photo_path = aArr[0]; }
+  const uniqA = [...new Set(aArr.filter(Boolean))];
+  if (uniqA.length) { obj.id_proof_photo_paths = uniqA.join(','); obj.id_proof_photo_path = uniqA[0]; }
 
   // Vehicle photo upload
   if (obj.has_vehicle) {
