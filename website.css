@@ -2418,3 +2418,47 @@ footer a { color: #484848 !important; }
     padding: 3px 10px !important;
   }
 }
+
+/* ============ SUPERHOST TRUST BADGE FIX ============ */
+.superhost-trust-badge {
+  background: #fff !important;
+  border: 2px solid #FF385C !important;
+  padding: 10px 20px !important;
+  gap: 10px !important;
+}
+
+.superhost-trust-badge > span:first-child {
+  background: #FF385C !important;
+  color: #fff !important;
+  padding: 6px 12px !important;
+  border-radius: 999px !important;
+  font-size: 11px !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.5px !important;
+  white-space: nowrap !important;
+}
+
+.superhost-trust-badge > span:nth-child(2) {
+  color: #FF385C !important;
+  font-weight: 800 !important;
+  font-size: 18px !important;
+  white-space: nowrap !important;
+}
+
+.superhost-trust-badge > span:last-child {
+  color: #484848 !important;
+  font-size: 14px !important;
+  font-weight: 500 !important;
+  white-space: nowrap !important;
+}
+
+@media (max-width: 480px) {
+  .superhost-trust-badge {
+    flex-wrap: wrap !important;
+    padding: 10px 16px !important;
+    gap: 8px !important;
+  }
+  .superhost-trust-badge > span:last-child {
+    font-size: 12px !important;
+  }
+}
