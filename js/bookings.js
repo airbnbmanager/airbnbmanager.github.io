@@ -1262,13 +1262,11 @@ async function updateBooking(bkId, parentBookingId = '', stayGroupId = '') {
   const fArr = [], bArr = [], aArr = [];
   for (let i = 1; i <= gc; i++) {
     const fFile = document.getElementById(`eFCam${i}`)?.files?.[0] || document.getElementById(`eFGal${i}`)?.files?.[0];
-    if (fFile) { try { const c = await compressImage(fFile); const p = `${bkId}/${Date.now()}_g${i}_front.jpg`; const { error } = await sb.storage.from('id-proofs').upload(p, c, { contentType: 'image/jpeg' }); if (!error) { fArr.push(p); aArr.push(p); } } catch (e) { } }
+    if (fFile) { try { const c = await compressImage(fFile); const p = `${bkId}/${Date.now()}_g${i}_front.jpg`; const { error } = await sb.storage.from('id-proofs').upload(p, c, { contentType: 'image/jpeg' }); if (!error) { while(fArr.length < i) fArr.push(null); fArr[i-1] = p; aArr.push(p); } } catch (e) { } }
     const bFile = document.getElementById(`eBCam${i}`)?.files?.[0] || document.getElementById(`eBGal${i}`)?.files?.[0];
-    if (bFile) { try { const c = await compressImage(bFile); const p = `${bkId}/${Date.now()}_g${i}_back.jpg`; const { error } = await sb.storage.from('id-proofs').upload(p, c, { contentType: 'image/jpeg' }); if (!error) { bArr.push(p); aArr.push(p); } } catch (e) { } }
+    if (bFile) { try { const c = await compressImage(bFile); const p = `${bkId}/${Date.now()}_g${i}_back.jpg`; const { error } = await sb.storage.from('id-proofs').upload(p, c, { contentType: 'image/jpeg' }); if (!error) { while(bArr.length < i) bArr.push(null); bArr[i-1] = p; aArr.push(p); } } catch (e) { } }
   }
-  if (fArr.length) newFP = fArr.join(',');
-  if (bArr.length) newBP = bArr.join(',');
-  if (aArr.length) newAP = aArr.join(',');
+
 
   const totVal = parseFloat(document.getElementById('totalAmount').value) || 0;
   const nights = calcNights(ci, co);
@@ -1291,9 +1289,9 @@ async function updateBooking(bkId, parentBookingId = '', stayGroupId = '') {
     vehicle_number: hasVehicle ? (document.getElementById('vehicleNumber')?.value.trim() || null) : null,
     notes: document.getElementById('bkNotes').value.trim() || null,
   };
-  if (newFP) obj.id_proof_front_paths = newFP;
-  if (newBP) obj.id_proof_back_paths = newBP;
-  if (newAP) { obj.id_proof_photo_paths = newAP; obj.id_proof_photo_path = aArr[0]; }
+  obj.id_proof_front_paths = stringifyIdPathArray(fArr);
+  obj.id_proof_back_paths  = stringifyIdPathArray(bArr);
+  if (aArr.length) { obj.id_proof_photo_paths = aArr.join(','); obj.id_proof_photo_path = aArr[0]; }
 
   // Vehicle photo upload
   if (obj.has_vehicle) {
