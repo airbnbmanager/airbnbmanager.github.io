@@ -2924,3 +2924,110 @@ a.whatsapp-btn-large * {
   color: #ffffff !important;
   -webkit-text-fill-color: #ffffff !important;
 }
+
+/* ============ CONTACT CARDS - FINAL POLISH ============ */
+.contact-cards {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)) !important;
+  gap: 20px !important;
+  max-width: 1000px !important;
+  margin: 40px auto !important;
+}
+
+.contact-card {
+  background: rgba(255,255,255,0.08) !important;
+  border: 1.5px solid rgba(255,255,255,0.15) !important;
+  border-radius: 20px !important;
+  padding: 36px 24px !important;
+  text-align: center !important;
+  transition: all 0.3s !important;
+  backdrop-filter: blur(20px) !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  min-height: 200px !important;
+}
+
+.contact-card:hover {
+  background: rgba(255,56,92,0.1) !important;
+  border-color: #FF385C !important;
+  transform: translateY(-6px) !important;
+  box-shadow: 0 20px 40px rgba(0,0,0,0.3) !important;
+}
+
+/* Name (Mr. Shahanshah / Mr. Firoz / Email Us) */
+.contact-card-name,
+.contact-card > *:first-child {
+  font-size: 22px !important;
+  font-weight: 700 !important;
+  color: #ffffff !important;
+  margin: 0 0 16px 0 !important;
+  letter-spacing: -0.3px !important;
+  line-height: 1.2 !important;
+}
+
+/* Phone number - big pink */
+.contact-card-phone {
+  font-size: 24px !important;
+  color: #FF385C !important;
+  font-weight: 800 !important;
+  margin: 12px 0 !important;
+  word-break: break-word !important;
+  line-height: 1.3 !important;
+  letter-spacing: 0.5px !important;
+}
+
+/* Email - smaller, wraps */
+.contact-card-phone a[href^="mailto:"] {
+  font-size: 15px !important;
+  color: #FF385C !important;
+  font-weight: 600 !important;
+  word-break: break-all !important;
+  display: inline-block !important;
+  max-width: 100% !important;
+  line-height: 1.4 !important;
+  letter-spacing: 0 !important;
+  text-decoration: none !important;
+  border-bottom: 1px dashed rgba(255,56,92,0.4) !important;
+}
+
+.contact-card-phone a[href^="mailto:"]:hover {
+  color: #fff !important;
+  border-bottom-color: #fff !important;
+}
+
+/* Role label - Owner / Direct Email */
+.contact-card-role {
+  color: rgba(255,255,255,0.6) !important;
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 2.5px !important;
+  margin-top: 14px !important;
+  padding: 6px 16px !important;
+  background: rgba(255,255,255,0.05) !important;
+  border-radius: 999px !important;
+  display: inline-block !important;
+}
+
+@media (max-width: 768px) {
+  .contact-cards {
+    grid-template-columns: 1fr !important;
+    gap: 14px !important;
+    max-width: 100% !important;
+    padding: 0 8px !important;
+  }
+  .contact-card {
+    padding: 28px 20px !important;
+    min-height: auto !important;
+  }
+  .contact-card-name { font-size: 19px !important; }
+  .contact-card-phone { font-size: 20px !important; }
+  .contact-card-phone a[href^="mailto:"] { font-size: 13px !important; }
+  .contact-card-role {
+    font-size: 10px !important;
+    letter-spacing: 2px !important;
+    padding: 5px 12px !important;
+  }
+}
