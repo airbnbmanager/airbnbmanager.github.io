@@ -168,17 +168,7 @@ async function renderDashboard() {
       </div>
     </div>
 
-    <!-- Quick Actions -->
-    <div class="card">
-      <div class="section-title">Quick Actions</div>
-      <div class="btn-row">
-        <button onclick="navigate('bookings')">📅 Bookings</button>
-        <button class="secondary" onclick="navigate('flats')">🛏️ Flats</button>
-        <button class="secondary" onclick="navigate('expenses')">💹 P&L</button>
-        <button class="secondary" onclick="navigate('financial')">📊 Financial</button>
-        <button class="outline" onclick="navigate('property-report')">🏘️ Reports</button>
-      </div>
-    </div>
+
   `, 'dashboard');
 }
 
