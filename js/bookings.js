@@ -731,6 +731,23 @@ function onVehiclePhotoSelect(input) {
   reader.readAsDataURL(file);
 }
 
+function parseIdPathArray(val) {
+  if (!val) return [];
+  const txt = String(val).trim();
+  if (!txt) return [];
+  if (txt.startsWith('[')) {
+    try {
+      const arr = JSON.parse(txt);
+      return Array.isArray(arr) ? arr : [];
+    } catch (e) {}
+  }
+  return txt.split(',').filter(Boolean);
+}
+
+function stringifyIdPathArray(arr) {
+  return JSON.stringify((arr || []).map(x => x || null));
+}
+
 // ============ ROBUST UPLOAD TO STORAGE ============
 async function uploadIdPhotos(bkId) {
   const cnt = Math.min(parseInt(document.getElementById('guests')?.value) || 1, 8);
@@ -825,8 +842,8 @@ async function uploadIdPhotos(bkId) {
   }
 
   return {
-    frontPaths: frontPaths.length ? frontPaths.join(',') : null,
-    backPaths: backPaths.length ? backPaths.join(',') : null,
+    frontPaths: stringifyIdPathArray(frontPaths),
+    backPaths: stringifyIdPathArray(backPaths),
     allPaths: allPaths.length ? allPaths.join(',') : null,
     firstPath: allPaths[0] || null
   };
@@ -1246,15 +1263,17 @@ async function deleteIdPhoto(bkId, path, side, index) {
     if (!bk) return;
 
     const updateObj = {};
+    const frontArr = parseIdPathArray(bk.id_proof_front_paths);
+    const backArr = parseIdPathArray(bk.id_proof_back_paths);
 
     if (side === 'front') {
-      const arr = (bk.id_proof_front_paths || '').split(',').filter(Boolean);
-      arr.splice(index, 1);
-      updateObj.id_proof_front_paths = arr.join(',') || null;
+      while (frontArr.length <= index) frontArr.push(null);
+      frontArr[index] = null;
+      updateObj.id_proof_front_paths = stringifyIdPathArray(frontArr);
     } else {
-      const arr = (bk.id_proof_back_paths || '').split(',').filter(Boolean);
-      arr.splice(index, 1);
-      updateObj.id_proof_back_paths = arr.join(',') || null;
+      while (backArr.length <= index) backArr.push(null);
+      backArr[index] = null;
+      updateObj.id_proof_back_paths = stringifyIdPathArray(backArr);
     }
 
     const allArr = (bk.id_proof_photo_paths || '')
@@ -1294,11 +1313,15 @@ async function updateBooking(bkId, parentBookingId = '', stayGroupId = '') {
   }
 
   const gc = Math.min(Math.max(parseInt(document.getElementById('guests')?.value) || 1, 1), 8);
-  const existFront = parseIdPathArray(b?.id_proof_front_paths);
-  const existBack  = parseIdPathArray(b?.id_proof_back_paths);
+  const { data: oldBk } = await sb.from('guest_register')
+    .select('id_proof_front_paths, id_proof_back_paths, id_proof_photo_paths')
+    .eq('booking_id', bkId).single();
+
+  const existFront = parseIdPathArray(oldBk?.id_proof_front_paths);
+  const existBack  = parseIdPathArray(oldBk?.id_proof_back_paths);
   const fArr = existFront.length ? existFront.slice() : Array(gc).fill(null);
   const bArr = existBack.length  ? existBack.slice()  : Array(gc).fill(null);
-  const aArr = (b?.id_proof_photo_paths || '').split(',').filter(Boolean);
+  const aArr = (oldBk?.id_proof_photo_paths || '').split(',').filter(Boolean);
   for (let i = 1; i <= gc; i++) {
     const fFile = document.getElementById(`eFCam${i}`)?.files?.[0] || document.getElementById(`eFGal${i}`)?.files?.[0];
     if (fFile) { try { const c = await compressImage(fFile); const p = `${bkId}/${Date.now()}_g${i}_front.jpg`; const { error } = await sb.storage.from('id-proofs').upload(p, c, { contentType: 'image/jpeg' }); if (!error) { while(fArr.length < i) fArr.push(null); fArr[i-1] = p; aArr.push(p); } } catch (e) { } }
