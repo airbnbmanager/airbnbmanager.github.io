@@ -389,8 +389,8 @@ async function renderInvestorReport(investorId, roomId, month) {
       </div>
     </div>
 
-    <div class="card report-doc" style="max-width:800px;margin:0 auto;padding:30px;background:#fff;box-shadow:0 8px 32px rgba(0,0,0,0.12);border-radius:12px;overflow:hidden;">
-      <div style="background:linear-gradient(135deg,#1a1a2e 0%,#0f3460 50%,#e94560 100%);color:#fff;padding:24px 20px;border-radius:12px 12px 0 0;text-align:center;margin:-30px -30px 20px -30px;">
+    <div class="card report-doc" style="max-width:800px;margin:0 auto;padding:30px;background:#fff;box-shadow:0 8px 32px rgba(255,90,95,0.15);border:1px solid #FFEBEC;border-radius:12px;overflow:hidden;">
+      <div style="background:linear-gradient(135deg,#FF5A5F 0%,#FC642D 100%);color:#fff;padding:28px 20px;border-radius:12px 12px 0 0;text-align:center;margin:-30px -30px 20px -30px;">
         <img src="assets/logo.png" alt="Logo" style="width:60px;height:60px;border-radius:12px;background:#fff;padding:6px;margin-bottom:8px;" />
         <div style="font-size:11px;letter-spacing:3px;color:rgba(255,255,255,0.7);margin-bottom:4px;">${BRAND.toUpperCase()}</div>
         <h1 style="font-size:22px;margin:4px 0;letter-spacing:2px;color:#fff;font-weight:800;">MONTHLY INVESTOR EARNINGS</h1>
@@ -398,7 +398,7 @@ async function renderInvestorReport(investorId, roomId, month) {
       </div>
 
       <div style="margin-bottom:20px;">
-        <div style="font-size:15px;font-weight:700;margin-bottom:10px;padding:8px 12px;background:linear-gradient(90deg,#e94560,#0f3460);color:#fff;border-radius:6px;">🏠 Property Overview</div>
+        <div style="font-size:15px;font-weight:700;margin-bottom:10px;padding:8px 12px;background:linear-gradient(90deg,#FF5A5F,#FC642D);color:#fff;border-radius:6px;">🏠 Property Overview</div>
         <div style="line-height:2;font-size:14px;">
           <div><strong>Property Owner Name:</strong> ${inv?.name || '-'}</div>
           <div><strong>Property Name:</strong> ${room?.nickname || room?.property_name || '-'}</div>
@@ -409,7 +409,7 @@ async function renderInvestorReport(investorId, roomId, month) {
       </div>
 
       <div style="margin-bottom:20px;">
-        <div style="font-size:15px;font-weight:700;margin-bottom:10px;padding:8px 12px;background:linear-gradient(90deg,#0f3460,#16537e);color:#fff;border-radius:6px;">📋 Executive Summary</div>
+        <div style="font-size:15px;font-weight:700;margin-bottom:10px;padding:8px 12px;background:linear-gradient(90deg,#484848,#767676);color:#fff;border-radius:6px;">📋 Executive Summary</div>
         <p style="font-size:13px;line-height:1.8;text-align:justify;margin:8px 0;">
           This report outlines the financial and operational performance of <strong>${room?.nickname}</strong>, Lucknow for ${monthYear}.
           The property generated revenue through <strong>Airbnb platform bookings</strong> along with <strong>direct offline reservations</strong> during the reporting period.
@@ -425,20 +425,20 @@ async function renderInvestorReport(investorId, roomId, month) {
       </div>
 
       <div style="margin-bottom:20px;">
-        <div style="font-size:15px;font-weight:700;margin-bottom:10px;padding:8px 12px;background:linear-gradient(90deg,#0a7d1a,#0d9438);color:#fff;border-radius:6px;">💰 Key Financial Metrics</div>
+        <div style="font-size:15px;font-weight:700;margin-bottom:10px;padding:8px 12px;background:linear-gradient(90deg,#00A699,#007A87);color:#fff;border-radius:6px;">💰 Key Financial Metrics</div>
         <table style="width:100%;border-collapse:collapse;font-size:13px;">
           <tbody>
             <tr><td style="padding:8px;border:1px solid #ccc;"><strong>Total Gross Revenue</strong></td><td style="padding:8px;border:1px solid #ccc;text-align:right;">₹${totalRev.toLocaleString('en-IN')}</td></tr>
             <tr><td style="padding:8px;border:1px solid #ccc;"><strong>Total Operating Expenses</strong></td><td style="padding:8px;border:1px solid #ccc;text-align:right;">₹${totalExp.toLocaleString('en-IN')}</td></tr>
-            <tr style="background:linear-gradient(90deg,#fff3e0,#ffe0b2);"><td style="padding:8px;border:1px solid #ffb74d;"><strong>Operating Profit</strong></td><td style="padding:8px;border:1px solid #ccc;text-align:right;"><strong>₹${profit.toLocaleString('en-IN')}</strong></td></tr>
-            <tr style="background:#e8f5e9;"><td style="padding:8px;border:1px solid #a5d6a7;"><strong>Investor Share (${share}%)</strong></td><td style="padding:8px;border:1px solid #a5d6a7;text-align:right;color:#0a7d1a;font-weight:700;font-size:14px;">₹${investorAmount.toLocaleString('en-IN')}</td></tr>
-            <tr style="background:#e3f2fd;"><td style="padding:8px;border:1px solid #90caf9;"><strong>${BRAND} Share (${cs}%)</strong></td><td style="padding:8px;border:1px solid #90caf9;text-align:right;color:#0a5599;font-weight:700;font-size:14px;">₹${companyAmount.toLocaleString('en-IN')}</td></tr>
+            <tr style="background:linear-gradient(90deg,#FFEBEC,#FFE4D6);"><td style="padding:8px;border:1px solid #FF5A5F;"><strong>Operating Profit</strong></td><td style="padding:8px;border:1px solid #ccc;text-align:right;"><strong>₹${profit.toLocaleString('en-IN')}</strong></td></tr>
+            <tr style="background:#E0F5F3;"><td style="padding:8px;border:1px solid #00A699;"><strong>Investor Share (${share}%)</strong></td><td style="padding:8px;border:1px solid #00A699;text-align:right;color:#00A699;font-weight:700;font-size:14px;">₹${investorAmount.toLocaleString('en-IN')}</td></tr>
+            <tr style="background:#E6F2F4;"><td style="padding:8px;border:1px solid #007A87;"><strong>${BRAND} Share (${cs}%)</strong></td><td style="padding:8px;border:1px solid #007A87;text-align:right;color:#007A87;font-weight:700;font-size:14px;">₹${companyAmount.toLocaleString('en-IN')}</td></tr>
           </tbody>
         </table>
       </div>
 
       <div style="margin-bottom:20px;">
-        <div style="font-size:15px;font-weight:700;margin-bottom:10px;padding:8px 12px;background:linear-gradient(90deg,#0a5599,#1976d2);color:#fff;border-radius:6px;">📈 Revenue Breakdown</div>
+        <div style="font-size:15px;font-weight:700;margin-bottom:10px;padding:8px 12px;background:linear-gradient(90deg,#007A87,#00A699);color:#fff;border-radius:6px;">📈 Revenue Breakdown</div>
 
         <div style="font-size:14px;font-weight:600;margin:10px 0 4px;">🌐 Online Bookings (Airbnb)</div>
         <div style="font-size:13px;margin-left:12px;">
@@ -449,7 +449,7 @@ async function renderInvestorReport(investorId, roomId, month) {
         <div style="font-size:14px;font-weight:600;margin:14px 0 4px;">🏠 Offline / Direct Bookings</div>
         <table style="width:100%;border-collapse:collapse;font-size:12px;margin-top:4px;">
           <thead>
-            <tr style="background:#f0f0f0;">
+            <tr style="background:#F7F7F7;border-bottom:2px solid #FF5A5F;">
               <th style="padding:6px;border:1px solid #ccc;">Guest</th>
               <th style="padding:6px;border:1px solid #ccc;">Check-in</th>
               <th style="padding:6px;border:1px solid #ccc;">Check-out</th>
@@ -467,7 +467,7 @@ async function renderInvestorReport(investorId, roomId, month) {
                 <td style="padding:6px;border:1px solid #ccc;text-align:right;">₹${(pm[b.booking_id] || 0).toLocaleString('en-IN')}</td>
               </tr>
             `).join('') || '<tr><td colspan="5" style="padding:8px;text-align:center;color:#999;border:1px solid #ccc;">No offline bookings</td></tr>'}
-            <tr style="background:#f9f9f9;font-weight:700;">
+            <tr style="background:#FFF0F0;font-weight:700;color:#484848;">
               <td colspan="3" style="padding:6px;border:1px solid #ccc;text-align:right;">Total Offline:</td>
               <td style="padding:6px;border:1px solid #ccc;text-align:center;">${offNights}</td>
               <td style="padding:6px;border:1px solid #ccc;text-align:right;">₹${offRev.toLocaleString('en-IN')}</td>
@@ -477,10 +477,10 @@ async function renderInvestorReport(investorId, roomId, month) {
       </div>
 
       <div style="margin-bottom:20px;">
-        <div style="font-size:15px;font-weight:700;margin-bottom:10px;padding:8px 12px;background:linear-gradient(90deg,#673ab7,#9c27b0);color:#fff;border-radius:6px;">📊 Total Revenue Summary</div>
+        <div style="font-size:15px;font-weight:700;margin-bottom:10px;padding:8px 12px;background:linear-gradient(90deg,#FC642D,#FF5A5F);color:#fff;border-radius:6px;">📊 Total Revenue Summary</div>
         <table style="width:100%;border-collapse:collapse;font-size:13px;">
           <thead>
-            <tr style="background:#f0f0f0;">
+            <tr style="background:#F7F7F7;border-bottom:2px solid #FF5A5F;">
               <th style="padding:8px;border:1px solid #ccc;">Source</th>
               <th style="padding:8px;border:1px solid #ccc;">Nights</th>
               <th style="padding:8px;border:1px solid #ccc;text-align:right;">Revenue</th>
@@ -500,7 +500,7 @@ async function renderInvestorReport(investorId, roomId, month) {
               <td style="padding:8px;border:1px solid #ccc;text-align:right;">₹${offRev.toLocaleString('en-IN')}</td>
               <td style="padding:8px;border:1px solid #ccc;text-align:center;">${offlinePct}%</td>
             </tr>
-            <tr style="background:#f9f9f9;font-weight:700;">
+            <tr style="background:#FFF0F0;font-weight:700;color:#484848;">
               <td style="padding:8px;border:1px solid #ccc;">Total</td>
               <td style="padding:8px;border:1px solid #ccc;text-align:center;">${totalNights}</td>
               <td style="padding:8px;border:1px solid #ccc;text-align:right;">₹${totalRev.toLocaleString('en-IN')}</td>
@@ -511,11 +511,11 @@ async function renderInvestorReport(investorId, roomId, month) {
       </div>
 
       <div style="margin-bottom:20px;">
-        <div style="font-size:15px;font-weight:700;margin-bottom:10px;padding:8px 12px;background:linear-gradient(90deg,#c62828,#e94560);color:#fff;border-radius:6px;">💸 Expense Summary (${monthName} ${selMonth.split('-')[0]})</div>
+        <div style="font-size:15px;font-weight:700;margin-bottom:10px;padding:8px 12px;background:linear-gradient(90deg,#FF5A5F,#484848);color:#fff;border-radius:6px;">💸 Expense Summary (${monthName} ${selMonth.split('-')[0]})</div>
         ${useDefaults ? '<div style="font-size:11px;color:#666;font-style:italic;margin-bottom:6px;">ℹ️ Showing default expenses (actual not logged)</div>' : ''}
         <table style="width:100%;border-collapse:collapse;font-size:13px;">
           <thead>
-            <tr style="background:#f0f0f0;">
+            <tr style="background:#F7F7F7;border-bottom:2px solid #FF5A5F;">
               <th style="padding:8px;border:1px solid #ccc;">Expense Category</th>
               <th style="padding:8px;border:1px solid #ccc;text-align:right;">Amount</th>
             </tr>
@@ -534,7 +534,7 @@ async function renderInvestorReport(investorId, roomId, month) {
                   <td style="padding:8px;border:1px solid #ccc;text-align:right;">₹${(e.amount || 0).toLocaleString('en-IN')}</td>
                 </tr>
               `).join('')}
-            <tr style="background:#f9f9f9;font-weight:700;">
+            <tr style="background:#FFF0F0;font-weight:700;color:#484848;">
               <td style="padding:8px;border:1px solid #ccc;">Total Operating Expenses</td>
               <td style="padding:8px;border:1px solid #ccc;text-align:right;">₹${totalExp.toLocaleString('en-IN')}</td>
             </tr>
@@ -543,7 +543,7 @@ async function renderInvestorReport(investorId, roomId, month) {
       </div>
 
       <div style="margin-bottom:20px;">
-        <div style="font-size:15px;font-weight:700;margin-bottom:10px;padding:8px 12px;background:linear-gradient(90deg,#f57c00,#ff9800);color:#fff;border-radius:6px;">💹 Profitability Calculation</div>
+        <div style="font-size:15px;font-weight:700;margin-bottom:10px;padding:8px 12px;background:linear-gradient(90deg,#FC642D,#FF5A5F);color:#fff;border-radius:6px;">💹 Profitability Calculation</div>
         <div style="font-size:13px;line-height:2;padding:10px;background:#f9f9f9;border:1px solid #ccc;">
           <div>Total Revenue: ₹${totalRev.toLocaleString('en-IN')}</div>
           <div>Total Expenses: − ₹${totalExp.toLocaleString('en-IN')}</div>
@@ -552,10 +552,10 @@ async function renderInvestorReport(investorId, roomId, month) {
       </div>
 
       <div style="margin-bottom:20px;">
-        <div style="font-size:15px;font-weight:700;margin-bottom:10px;padding:8px 12px;background:linear-gradient(90deg,#1a1a2e,#e94560);color:#fff;border-radius:6px;">🎯 Profit Distribution – ${monthYear}</div>
+        <div style="font-size:15px;font-weight:700;margin-bottom:10px;padding:8px 12px;background:linear-gradient(90deg,#484848,#FF5A5F);color:#fff;border-radius:6px;">🎯 Profit Distribution – ${monthYear}</div>
         <table style="width:100%;border-collapse:collapse;font-size:13px;">
           <thead>
-            <tr style="background:#f0f0f0;">
+            <tr style="background:#F7F7F7;border-bottom:2px solid #FF5A5F;">
               <th style="padding:8px;border:1px solid #ccc;">Stakeholder</th>
               <th style="padding:8px;border:1px solid #ccc;text-align:center;">Share</th>
               <th style="padding:8px;border:1px solid #ccc;text-align:right;">Amount</th>
@@ -572,7 +572,7 @@ async function renderInvestorReport(investorId, roomId, month) {
               <td style="padding:8px;border:1px solid #ccc;text-align:center;">${cs}%</td>
               <td style="padding:8px;border:1px solid #ccc;text-align:right;color:#0a5599;font-weight:700;">₹${companyAmount.toLocaleString('en-IN')}</td>
             </tr>
-            <tr style="background:#f9f9f9;font-weight:700;">
+            <tr style="background:#FFF0F0;font-weight:700;color:#484848;">
               <td style="padding:8px;border:1px solid #ccc;">Total Distributed Profit</td>
               <td style="padding:8px;border:1px solid #ccc;text-align:center;">100%</td>
               <td style="padding:8px;border:1px solid #ccc;text-align:right;">₹${profit.toLocaleString('en-IN')}</td>
@@ -582,7 +582,7 @@ async function renderInvestorReport(investorId, roomId, month) {
       </div>
 
       <div style="margin-bottom:20px;">
-        <div style="font-size:15px;font-weight:700;margin-bottom:10px;padding:8px 12px;background:linear-gradient(90deg,#455a64,#607d8b);color:#fff;border-radius:6px;">🏛️ Ownership & Operating Structure</div>
+        <div style="font-size:15px;font-weight:700;margin-bottom:10px;padding:8px 12px;background:linear-gradient(90deg,#484848,#767676);color:#fff;border-radius:6px;">🏛️ Ownership & Operating Structure</div>
         <div style="font-size:13px;line-height:2;">
           <div><strong>Property Ownership:</strong> Investor — ${inv?.name || '-'}</div>
           <div><strong>Property Operator:</strong> ${BRAND}</div>
@@ -593,7 +593,7 @@ async function renderInvestorReport(investorId, roomId, month) {
       </div>
 
       <div style="margin-bottom:20px;">
-        <div style="font-size:15px;font-weight:700;margin-bottom:10px;padding:8px 12px;background:linear-gradient(90deg,#00695c,#009688);color:#fff;border-radius:6px;">📝 Management Commentary</div>
+        <div style="font-size:15px;font-weight:700;margin-bottom:10px;padding:8px 12px;background:linear-gradient(90deg,#00A699,#007A87);color:#fff;border-radius:6px;">📝 Management Commentary</div>
         <p style="font-size:13px;line-height:1.8;text-align:justify;">
           <strong>${room?.nickname}</strong> maintained ${totalRev > 50000 ? 'strong' : totalRev > 20000 ? 'stable' : 'moderate'} booking performance during ${monthYear}
           with the majority of revenue generated through
@@ -607,7 +607,7 @@ async function renderInvestorReport(investorId, roomId, month) {
         </p>
       </div>
 
-      <div style="background:linear-gradient(135deg,#1a1a2e,#0f3460);color:#fff;padding:18px 20px;margin:20px -30px -30px -30px;border-radius:0 0 12px 12px;text-align:center;">
+      <div style="background:linear-gradient(135deg,#484848,#767676);color:#fff;padding:20px;margin:20px -30px -30px -30px;border-radius:0 0 12px 12px;text-align:center;">
         <img src="assets/logo.png" alt="Logo" style="width:40px;height:40px;border-radius:8px;background:#fff;padding:4px;margin-bottom:6px;" />
         <div style="font-size:11px;color:rgba(255,255,255,0.7);letter-spacing:2px;margin-bottom:8px;">${BRAND.toUpperCase()}</div>
         <div style="font-size:12px;line-height:1.8;color:rgba(255,255,255,0.9);">
