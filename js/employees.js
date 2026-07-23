@@ -864,3 +864,350 @@ async function updAdv(id) {
 async function delAdv(id) {
   if (confirm('Delete?')) { await sb.from('advance_tracker').delete().eq('id', id); renderAdvanceTracker(); }
 }
+
+// ============ EMPLOYEE GENERAL EXPENSES ============
+async function renderEmpExpenses() {
+  renderShell(`<div class="loading">Loading...</div>`, 'emp-expenses');
+
+  const [{ data: exps }, { data: emps }, { data: rooms }] = await Promise.all([
+    sb.from('daily_expenses')
+      .select('*')
+      .order('expense_date', { ascending: false })
+      .limit(200),
+    sb.from('employees').select('emp_id, name').eq('status', 'Active').order('name'),
+    sb.from('rooms').select('room_id, nickname').order('room_id')
+  ]);
+
+  const empMap = {};
+  (emps || []).forEach(e => { empMap[e.emp_id] = e.name; });
+  const roomMap = {};
+  (rooms || []).forEach(r => { roomMap[r.room_id] = r.nickname; });
+
+  const total = (exps || []).reduce((s, e) => s + (e.amount || 0), 0);
+  const isO = SESSION.role === 'owner' || SESSION.role === 'manager';
+
+  window._empExpData = exps || [];
+  window._empExpEmpMap = empMap;
+  window._empExpRoomMap = roomMap;
+  window._empExpEmps = emps || [];
+  window._empExpRooms = rooms || [];
+
+  renderShell(`
+    <div class="card">
+      <h1>🧾 Employee Expenses</h1>
+      <div class="sub">Daily / General expenses by staff</div>
+      <div class="btn-row">
+        <button onclick="renderAddEmpExpense()">➕ Log Expense</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="section-title">🔍 Filter</div>
+      <div class="form-grid">
+        <div class="form-group"><label>Employee</label>
+          <select id="eeEmpFilter" onchange="filterEmpExpenses()">
+            <option value="">All Employees</option>
+            ${(emps || []).map(e => `<option value="${e.emp_id}">${e.name}</option>`).join('')}
+          </select>
+        </div>
+        <div class="form-group"><label>Category</label>
+          <select id="eeCatFilter" onchange="filterEmpExpenses()">
+            <option value="">All Categories</option>
+            ${['Cleaning Supplies','Grocery','Transport','Maintenance','Laundry','Utilities','Other']
+              .map(c => `<option value="${c}">${c}</option>`).join('')}
+          </select>
+        </div>
+        <div class="form-group"><label>Month</label>
+          <input type="month" id="eeMonthFilter"
+            value="${new Date().toISOString().slice(0,7)}"
+            onchange="filterEmpExpenses()" />
+        </div>
+      </div>
+    </div>
+
+    <div id="eeTableWrap"></div>
+  `, 'emp-expenses');
+
+  filterEmpExpenses();
+}
+
+function filterEmpExpenses() {
+  const wrap = document.getElementById('eeTableWrap');
+  if (!wrap) return;
+
+  const empVal   = document.getElementById('eeEmpFilter')?.value || '';
+  const catVal   = document.getElementById('eeCatFilter')?.value || '';
+  const monthVal = document.getElementById('eeMonthFilter')?.value || '';
+
+  let filtered = (window._empExpData || []);
+  if (empVal)   filtered = filtered.filter(e => e.emp_id === empVal);
+  if (catVal)   filtered = filtered.filter(e => e.category === catVal);
+  if (monthVal) filtered = filtered.filter(e => (e.expense_date || '').startsWith(monthVal));
+
+  const total = filtered.reduce((s, e) => s + (e.amount || 0), 0);
+  const isO = SESSION.role === 'owner' || SESSION.role === 'manager';
+
+  wrap.innerHTML = `
+    <div class="card">
+      <div class="section-title">
+        Expenses
+        <span class="badge red" style="float:right;">
+          Total: ₹${total.toLocaleString('en-IN')}
+        </span>
+      </div>
+      <div class="table-wrap"><table>
+        <thead><tr>
+          <th>Date</th><th>Employee</th><th>Category</th>
+          <th>Property</th><th>Amount</th><th>Description</th>
+          <th>Paid To</th><th>Mode</th>
+          ${isO ? '<th>Actions</th>' : ''}
+        </tr></thead>
+        <tbody>
+          ${filtered.length === 0
+            ? `<tr><td colspan="${isO ? 9 : 8}" class="sub" style="text-align:center;">No expenses</td></tr>`
+            : filtered.map(e => `
+              <tr>
+                <td style="font-size:12px;">${e.expense_date || '-'}</td>
+                <td><strong>${window._empExpEmpMap[e.emp_id] || e.emp_id || '-'}</strong></td>
+                <td><span class="badge yellow">${e.category || '-'}</span></td>
+                <td style="font-size:12px;">${window._empExpRoomMap[e.room_id] || e.room_id || 'General'}</td>
+                <td style="color:var(--red);font-weight:700;">₹${(e.amount || 0).toLocaleString('en-IN')}</td>
+                <td style="font-size:12px;max-width:160px;">${e.description || '-'}</td>
+                <td style="font-size:12px;">${e.paid_to || '-'}</td>
+                <td style="font-size:12px;">${e.payment_mode || '-'}</td>
+                ${isO ? `<td class="table-actions">
+                  <button class="btn-sm" onclick="editEmpExpense(${e.id})">✏️</button>
+                  <button class="btn-sm danger" onclick="delEmpExpense(${e.id})">🗑️</button>
+                </td>` : ''}
+              </tr>
+            `).join('')}
+        </tbody>
+        ${filtered.length > 0 ? `
+        <tfoot>
+          <tr style="font-weight:700;background:#fafafa;">
+            <td colspan="4">Total</td>
+            <td style="color:var(--red);">₹${total.toLocaleString('en-IN')}</td>
+            <td colspan="${isO ? 4 : 3}"></td>
+          </tr>
+        </tfoot>` : ''}
+      </table></div>
+    </div>
+  `;
+}
+
+async function renderAddEmpExpense() {
+  const today = new Date().toISOString().slice(0, 10);
+
+  renderShell(`
+    <div class="card">
+      <h1>➕ Log Employee Expense</h1>
+      <button class="secondary btn-sm" onclick="renderEmpExpenses()">← Back</button>
+    </div>
+    <div class="card">
+      <div class="form-grid">
+        <div class="form-group"><label>Employee *</label>
+          <select id="eeEmp">
+            <option value="">Select Employee</option>
+            ${(window._empExpEmps || []).map(e =>
+              `<option value="${e.emp_id}">${e.name}</option>`
+            ).join('')}
+          </select>
+        </div>
+        <div class="form-group"><label>Date *</label>
+          <input id="eeDate" type="date" value="${today}" />
+        </div>
+      </div>
+      <div class="form-grid">
+        <div class="form-group"><label>Category *</label>
+          <select id="eeCat">
+            <option value="">Select</option>
+            ${['Cleaning Supplies','Grocery','Transport','Maintenance','Laundry','Utilities','Other']
+              .map(c => `<option value="${c}">${c}</option>`).join('')}
+          </select>
+        </div>
+        <div class="form-group"><label>Amount ₹ *</label>
+          <input id="eeAmt" type="number" placeholder="0" />
+        </div>
+      </div>
+      <div class="form-group"><label>Description *</label>
+        <textarea id="eeDesc" placeholder="Kya kharcha kiya..."></textarea>
+      </div>
+      <div class="form-grid">
+        <div class="form-group"><label>Property</label>
+          <select id="eeRoom">
+            <option value="">General / All</option>
+            ${(window._empExpRooms || []).map(r =>
+              `<option value="${r.room_id}">${r.nickname || r.room_id}</option>`
+            ).join('')}
+          </select>
+        </div>
+        <div class="form-group"><label>Paid To</label>
+          <input id="eePaidTo" placeholder="Vendor / Shop name" />
+        </div>
+      </div>
+      <div class="form-group"><label>Payment Mode</label>
+        <select id="eeMode">
+          <option value="">--</option>
+          <option>Cash</option>
+          <option>UPI</option>
+          <option>Bank</option>
+        </select>
+      </div>
+      <div class="form-group"><label>Notes</label>
+        <textarea id="eeNotes" placeholder="Optional"></textarea>
+      </div>
+      <button onclick="saveEmpExpense()" style="width:100%;margin-top:10px;">
+        💾 Save Expense
+      </button>
+      <div id="eeErr"></div>
+    </div>
+  `, 'emp-expenses');
+}
+
+async function saveEmpExpense() {
+  const btn = document.querySelector('button[onclick="saveEmpExpense()"]');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Saving...'; }
+
+  const empId = document.getElementById('eeEmp').value;
+  const date  = document.getElementById('eeDate').value;
+  const cat   = document.getElementById('eeCat').value;
+  const amt   = parseFloat(document.getElementById('eeAmt').value) || 0;
+  const desc  = document.getElementById('eeDesc').value.trim();
+
+  if (!empId || !date || !cat || amt <= 0 || !desc) {
+    document.getElementById('eeErr').innerHTML =
+      '<div class="error">Employee, Date, Category, Amount & Description required</div>';
+    if (btn) { btn.disabled = false; btn.textContent = '💾 Save Expense'; }
+    return;
+  }
+
+  const { error } = await sb.from('daily_expenses').insert({
+    emp_id:       empId,
+    expense_date: date,
+    category:     cat,
+    amount:       amt,
+    description:  desc,
+    room_id:      document.getElementById('eeRoom').value || null,
+    paid_to:      document.getElementById('eePaidTo').value.trim() || null,
+    payment_mode: document.getElementById('eeMode').value || null,
+    notes:        document.getElementById('eeNotes').value.trim() || null,
+    created_by:   SESSION.userId || null
+  });
+
+  if (error) {
+    document.getElementById('eeErr').innerHTML =
+      `<div class="error">${error.message}</div>`;
+    if (btn) { btn.disabled = false; btn.textContent = '💾 Save Expense'; }
+    return;
+  }
+
+  alert('✅ Expense saved!');
+  renderEmpExpenses();
+}
+
+async function editEmpExpense(id) {
+  const { data: ex } = await sb.from('daily_expenses').select('*').eq('id', id).single();
+  if (!ex) { alert('Not found'); return; }
+
+  renderShell(`
+    <div class="card">
+      <h1>✏️ Edit Expense</h1>
+      <button class="secondary btn-sm" onclick="renderEmpExpenses()">← Back</button>
+    </div>
+    <div class="card">
+      <div class="form-grid">
+        <div class="form-group"><label>Employee</label>
+          <select id="eeEmp">
+            ${(window._empExpEmps || []).map(e =>
+              `<option value="${e.emp_id}" ${e.emp_id === ex.emp_id ? 'selected' : ''}>${e.name}</option>`
+            ).join('')}
+          </select>
+        </div>
+        <div class="form-group"><label>Date</label>
+          <input id="eeDate" type="date" value="${ex.expense_date || ''}" />
+        </div>
+      </div>
+      <div class="form-grid">
+        <div class="form-group"><label>Category</label>
+          <select id="eeCat">
+            ${['Cleaning Supplies','Grocery','Transport','Maintenance','Laundry','Utilities','Other']
+              .map(c => `<option value="${c}" ${c === ex.category ? 'selected' : ''}>${c}</option>`).join('')}
+          </select>
+        </div>
+        <div class="form-group"><label>Amount ₹</label>
+          <input id="eeAmt" type="number" value="${ex.amount || 0}" />
+        </div>
+      </div>
+      <div class="form-group"><label>Description</label>
+        <textarea id="eeDesc">${ex.description || ''}</textarea>
+      </div>
+      <div class="form-grid">
+        <div class="form-group"><label>Property</label>
+          <select id="eeRoom">
+            <option value="">General / All</option>
+            ${(window._empExpRooms || []).map(r =>
+              `<option value="${r.room_id}" ${r.room_id === ex.room_id ? 'selected' : ''}>${r.nickname || r.room_id}</option>`
+            ).join('')}
+          </select>
+        </div>
+        <div class="form-group"><label>Paid To</label>
+          <input id="eePaidTo" value="${ex.paid_to || ''}" />
+        </div>
+      </div>
+      <div class="form-group"><label>Payment Mode</label>
+        <select id="eeMode">
+          <option value="" ${!ex.payment_mode ? 'selected' : ''}>--</option>
+          <option ${ex.payment_mode === 'Cash' ? 'selected' : ''}>Cash</option>
+          <option ${ex.payment_mode === 'UPI' ? 'selected' : ''}>UPI</option>
+          <option ${ex.payment_mode === 'Bank' ? 'selected' : ''}>Bank</option>
+        </select>
+      </div>
+      <div class="form-group"><label>Notes</label>
+        <textarea id="eeNotes">${ex.notes || ''}</textarea>
+      </div>
+      <button onclick="updateEmpExpense(${id})" style="width:100%;margin-top:10px;">
+        💾 Update
+      </button>
+      <div id="eeErr"></div>
+    </div>
+  `, 'emp-expenses');
+}
+
+async function updateEmpExpense(id) {
+  const amt  = parseFloat(document.getElementById('eeAmt').value) || 0;
+  const desc = document.getElementById('eeDesc').value.trim();
+  if (!desc || amt <= 0) {
+    document.getElementById('eeErr').innerHTML =
+      '<div class="error">Amount & Description required</div>';
+    return;
+  }
+
+  const { error } = await sb.from('daily_expenses').update({
+    emp_id:       document.getElementById('eeEmp').value || null,
+    expense_date: document.getElementById('eeDate').value || null,
+    category:     document.getElementById('eeCat').value || null,
+    amount:       amt,
+    description:  desc,
+    room_id:      document.getElementById('eeRoom').value || null,
+    paid_to:      document.getElementById('eePaidTo').value.trim() || null,
+    payment_mode: document.getElementById('eeMode').value || null,
+    notes:        document.getElementById('eeNotes').value.trim() || null
+  }).eq('id', id);
+
+  if (error) {
+    document.getElementById('eeErr').innerHTML =
+      `<div class="error">${error.message}</div>`;
+    return;
+  }
+
+  alert('✅ Updated!');
+  renderEmpExpenses();
+}
+
+async function delEmpExpense(id) {
+  if (!confirm('Delete this expense?')) return;
+  const { error } = await sb.from('daily_expenses').delete().eq('id', id);
+  if (error) { alert('❌ ' + error.message); return; }
+  alert('✅ Deleted');
+  renderEmpExpenses();
+}
