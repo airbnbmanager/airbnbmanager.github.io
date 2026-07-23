@@ -133,7 +133,6 @@ async function loadProfile(userId) {
   SESSION.displayName = p.display_name || p.role;
 
   if (p.role === 'employee') renderEmployeeView();
-  else if (p.role === 'checkin_manager') renderCheckinManagerView();
   else if (p.role === 'investor' || (p.role === 'viewer' && p.investor_id)) renderInvestorView();
   else if (p.role === 'ca') renderFYSummary();
     else {
@@ -280,15 +279,41 @@ async function loginWithEmail() {
 // ============ SHELL ============
 function renderShell(content, activePage = 'dashboard') {
   if (SESSION.investorId) { appEl.innerHTML = content; return; }
-  const show = ['owner', 'viewer', 'manager', 'checkin_manager'].includes(SESSION.role);
+  const show = ['admin', 'owner', 'viewer', 'booking_staff', 'manager', 'checkin_manager'].includes(SESSION.role);
   if (!show) { appEl.innerHTML = content; return; }
 
-  const isOwner = SESSION.role === 'owner';
+  const isAdmin = SESSION.role === 'admin';
+  const isOwner = SESSION.role === 'owner' || isAdmin;
+  const isBookingStaff = SESSION.role === 'booking_staff';
+  const isViewer = SESSION.role === 'viewer' && !SESSION.investorId;
   const isCheckin = SESSION.role === 'checkin_manager';
 
   let nav;
 
-  if (isOwner) {
+  if (isViewer) {
+    nav = [
+      { section: 'MAIN' },
+      ['dashboard', '🏠 Dashboard'],
+      ['bookings', '📅 Today Bookings'],
+      ['flats', '🛏️ Flats Status'],
+      { section: 'HELP' },
+      ['sop', '📘 SOP Guide'],
+    ];
+  } else if (isBookingStaff) {
+    nav = [
+      { section: 'MAIN' },
+      ['dashboard', '🏠 Dashboard'],
+      ['reports', '📆 Calendar'],
+      { section: 'GUESTS' },
+      ['bookings', '📅 Bookings'],
+      ['flats', '🛏️ Flats Status'],
+      { section: 'PROPERTIES' },
+      ['rooms', '🏠 Properties'],
+      ['shifts', '🕐 Shifts'],
+      { section: 'HELP' },
+      ['sop', '📘 SOP Guide'],
+    ];
+  } else if (isOwner) {
     nav = [
       { section: 'MAIN' },
       ['dashboard', '🏠 Dashboard'],
@@ -368,7 +393,7 @@ function renderShell(content, activePage = 'dashboard') {
     ];
   }
 
-  const roleLabel = SESSION.role === 'owner' ? 'Admin' : SESSION.role;
+  const roleLabel = SESSION.role === 'admin' ? 'Admin' : SESSION.role === 'owner' ? 'Owner' : SESSION.role === 'booking_staff' ? 'Staff' : SESSION.role === 'viewer' ? 'Viewer' : SESSION.role;
   const shortName = (SESSION.displayName || '').split('(')[0].trim().split(' ')[0];
 
   appEl.innerHTML = `
@@ -673,10 +698,10 @@ function showRolePickerModal(userId, name, callback) {
         <label>Select Role *</label>
         <select id="rolePickerSel" style="font-size:15px;">
           <option value="">-- Select Role --</option>
-          <option value="owner">👑 Owner (Full Access)</option>
-          <option value="manager">🧑‍💼 Manager (Add/Edit, No Delete)</option>
-          <option value="viewer">👁️ Viewer (Read Only)</option>
-          <option value="checkin_manager">🏠 Check-in Manager (Dashboard + Bookings)</option>
+          <option value="admin">🔧 Admin (Full Access + Delete)</option>
+          <option value="owner">👑 Owner (View All + Book + Edit, No Delete)</option>
+          <option value="booking_staff">📋 Booking Staff (Bookings + ID Upload, No Delete)</option>
+          <option value="viewer">👁️ Viewer (Limited View — Today's info)</option>
           <option value="investor">📊 Investor (Own Property Only)</option>
           <option value="employee">👷 Employee (Self View Only)</option>
           <option value="ca">📋 CA / Accountant (Financial Reports)</option>
@@ -694,13 +719,13 @@ function showRolePickerModal(userId, name, callback) {
   // Role description on change
   document.getElementById('rolePickerSel').onchange = function() {
     const desc = {
-      owner: 'Full system access. Can add, edit, delete everything.',
-      manager: 'Can add and edit bookings, employees, etc. Cannot delete.',
-      viewer: 'Read-only access to all pages.',
-      checkin_manager: 'Can view dashboard, calendar, bookings, and flats status. Can upload guest ID.',
-      investor: 'Can only view their assigned property bookings and reports.',
-      employee: 'Can only view their own attendance, salary, and tasks.',
-      ca: 'Can only access financial reports and download CSV.'
+      admin: '🔧 Full access - can add, edit, delete everything. Only for developers/system admins.',
+      owner: '👑 Property owners - view all data, add/edit bookings & payments. Cannot delete.',
+      booking_staff: '📋 Trusted staff - book guests, upload IDs, edit bookings. Cannot delete.',
+      viewer: '👁️ Limited view - today\'s bookings, checkouts, payments status only.',
+      investor: '📊 Investor - only view their own linked property bookings and monthly reports.',
+      employee: '👷 Employee - only view own attendance, salary, advances, tasks.',
+      ca: '📋 CA/Accountant - financial reports and CSV downloads only.'
     };
     document.getElementById('roleDesc').textContent = desc[this.value] || '';
   };
