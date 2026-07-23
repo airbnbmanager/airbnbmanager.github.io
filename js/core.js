@@ -135,6 +135,7 @@ async function loadProfile(userId) {
   if (p.role === 'employee') renderEmployeeView();
   else if (p.role === 'investor' || (p.role === 'viewer' && p.investor_id)) renderInvestorView();
   else if (p.role === 'ca') renderFYSummary();
+  else if (p.role === 'checkin_manager') renderCheckinManagerViewNew();
     else {
     const lastPage = localStorage.getItem('uh_last_page');
     if (lastPage && typeof window[`render${lastPage}`] !== 'undefined') {
@@ -280,6 +281,7 @@ async function loginWithEmail() {
 function renderShell(content, activePage = 'dashboard') {
   if (SESSION.investorId) { appEl.innerHTML = content; return; }
   const show = ['admin', 'owner', 'viewer', 'booking_staff', 'manager', 'checkin_manager'].includes(SESSION.role);
+  const isCheckinMgr = SESSION.role === 'checkin_manager';
   if (!show) { appEl.innerHTML = content; return; }
 
   const isAdmin = SESSION.role === 'admin';
@@ -290,7 +292,16 @@ function renderShell(content, activePage = 'dashboard') {
 
   let nav;
 
-  if (isViewer) {
+  if (isCheckinMgr) {
+    nav = [
+      { section: 'MY PROPERTIES' },
+      ['dashboard', '🏠 My Dashboard'],
+      ['bookings', '📅 My Bookings'],
+      ['flats', '🛏️ Flats Status'],
+      { section: 'HELP' },
+      ['sop', '📘 SOP Guide'],
+    ];
+  } else if (isViewer) {
     nav = [
       { section: 'MAIN' },
       ['dashboard', '🏠 Dashboard'],

@@ -450,3 +450,137 @@ async function renderCheckinManagerView() {
     ` : ''}
   `, 'dashboard');
 }
+
+
+// ============ NEW CHECKIN MANAGER VIEW (Property Filtered) ============
+async function renderCheckinManagerViewNew() {
+  renderShell(`<div class="loading">Loading your properties...</div>`, 'dashboard');
+
+  const today = new Date().toISOString().slice(0, 10);
+  const day7 = dateAdd(today, 7);
+
+  // Get employee's assigned properties
+  const { data: emp } = await sb.from('employees')
+    .select('assigned_rooms, name')
+    .eq('emp_id', SESSION.empId)
+    .single();
+
+  if (!emp) {
+    appEl.innerHTML = `<div class="wrap"><div class="card"><h1>⚠️ Setup Incomplete</h1><div class="error">Employee record not linked. Contact admin.</div><button onclick="logout()">Logout</button></div></div>`;
+    return;
+  }
+
+  const myRoomIds = (emp.assigned_rooms || '').split(',').map(r => r.trim()).filter(Boolean);
+
+  if (myRoomIds.length === 0) {
+    appEl.innerHTML = `<div class="wrap"><div class="card"><h1>⚠️ No Properties</h1><div class="error">No properties assigned. Contact admin.</div><button onclick="logout()">Logout</button></div></div>`;
+    return;
+  }
+
+  const [g, f] = await Promise.all([
+    sb.from("guest_register")
+      .select("*, rooms(unit_no, nickname, checkin_manager, caretaker_phone)")
+      .in('room_id', myRoomIds),
+    sb.from("flats_status")
+      .select("room_id, status, cleaning_status, rooms(unit_no, nickname)")
+      .in('room_id', myRoomIds)
+  ]);
+
+  const allBookings = g.data || [];
+  const allFlats = f.data || [];
+
+  const checkins = allBookings.filter(x => x.check_in === today);
+  const checkouts = allBookings.filter(x => x.check_out === today);
+  const upcoming = allBookings.filter(b => b.check_in > today && b.check_in <= day7)
+    .sort((a, b) => (a.check_in || '').localeCompare(b.check_in || ''));
+  const activeNow = allBookings.filter(b => b.check_in <= today && b.check_out > today);
+  const bookedNow = allFlats.filter(x => x.status === 'Booked');
+  const dirty = allFlats.filter(x => x.cleaning_status === 'Dirty');
+
+  const bName = b => `${b.rooms?.nickname || b.rooms?.unit_no || b.room_id}`;
+  const fName = fl => `${fl.rooms?.nickname || fl.rooms?.unit_no || fl.room_id}`;
+
+  renderShell(`
+    <div class="card">
+      <h1>🏠 My Properties</h1>
+      <div class="sub">👋 ${emp.name} — ${myRoomIds.length} properties assigned</div>
+      <div class="sub">${new Date().toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</div>
+    </div>
+
+    <div class="stat-grid">
+      <div class="stat-card" style="border-left:4px solid var(--green);">
+        <div class="stat-num">${checkins.length}</div>
+        <div class="stat-label">📥 Check-in Today</div>
+        ${checkins.map(x => `
+          <div style="font-size:12px;margin-top:4px;padding:4px 0;border-bottom:1px solid var(--border);">
+            <strong>${x.guest_name}</strong> — ${bName(x)}<br>
+            <small>📞 ${x.phone || '-'} · 🕐 ${x.check_in_time || '2 PM'}</small>
+            ${x.has_vehicle ? `<br><small>🚗 ${x.vehicle_name || ''} ${x.vehicle_number || ''}</small>` : ''}
+          </div>
+        `).join('') || '<div class="sub" style="margin:4px 0 0;">None</div>'}
+      </div>
+
+      <div class="stat-card" style="border-left:4px solid var(--primary);">
+        <div class="stat-num">${checkouts.length}</div>
+        <div class="stat-label">📤 Check-out Today</div>
+        ${checkouts.map(x => `
+          <div style="font-size:12px;margin-top:4px;">
+            <strong>${x.guest_name}</strong> — ${bName(x)}<br>
+            <small>🕐 ${x.check_out_time || '11 AM'}</small>
+          </div>
+        `).join('') || '<div class="sub" style="margin:4px 0 0;">None</div>'}
+      </div>
+
+      <div class="stat-card" style="border-left:4px solid var(--blue);">
+        <div class="stat-num">${upcoming.length}</div>
+        <div class="stat-label">📅 Next 7 Days</div>
+        ${upcoming.slice(0, 5).map(x => `
+          <div style="font-size:11px;margin-top:3px;">${x.guest_name} — ${bName(x)} (${x.check_in})</div>
+        `).join('') || '<div class="sub" style="margin:4px 0 0;">None</div>'}
+      </div>
+    </div>
+
+    <div class="stat-grid">
+      <div class="stat-card" style="border-left:4px solid #60a5fa;">
+        <div class="stat-num">${bookedNow.length}/${allFlats.length}</div>
+        <div class="stat-label">🛏️ My Occupied</div>
+      </div>
+      <div class="stat-card" style="border-left:4px solid var(--red);">
+        <div class="stat-num">${dirty.length}</div>
+        <div class="stat-label">🧹 Need Cleaning</div>
+        ${dirty.map(x => `<div style="font-size:11px;margin-top:2px;">${fName(x)}</div>`).join('') || '<div class="sub" style="margin:4px 0 0;">All clean ✅</div>'}
+      </div>
+      <div class="stat-card" style="border-left:4px solid var(--green);">
+        <div class="stat-num">${activeNow.length}</div>
+        <div class="stat-label">🟢 Currently Staying</div>
+      </div>
+    </div>
+
+    ${activeNow.length ? `
+      <div class="card">
+        <div class="section-title">🟢 Currently Staying in My Properties</div>
+        <div class="table-wrap"><table>
+          <thead><tr><th>Guest</th><th>Property</th><th>Phone</th><th>In</th><th>Out</th></tr></thead>
+          <tbody>${activeNow.map(b => `<tr>
+            <td><strong>${b.guest_name || '-'}</strong></td>
+            <td>${bName(b)}</td>
+            <td>${b.phone || '-'}</td>
+            <td>${b.check_in || '-'}</td>
+            <td>${b.check_out || '-'}</td>
+          </tr>`).join('')}</tbody>
+        </table></div>
+      </div>
+    ` : ''}
+
+    <div class="card" style="background:#F7F7F7;">
+      <div class="section-title">🏠 My Assigned Properties</div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;">
+        ${allFlats.map(f => `
+          <span class="badge ${f.status === 'Booked' ? 'blue' : 'green'}">
+            ${fName(f)} - ${f.status}
+          </span>
+        `).join('')}
+      </div>
+    </div>
+  `, 'dashboard');
+}
