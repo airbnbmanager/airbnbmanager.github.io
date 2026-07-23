@@ -272,6 +272,7 @@ async function renderManageBookings() {
         <div class="filter-item"><label>To</label><input type="date" id="fTo" value="${d2}" /></div>
         <div class="filter-item" style="flex-direction:row;gap:4px;align-items:flex-end;">
           <button class="btn-sm" onclick="applyBkFilters()">Apply</button>
+          <button class="btn-sm" style="background:#00A699;" onclick="exportBookingsPDF()">📄 Export PDF</button>
           <button class="btn-sm outline" onclick="clearBkFilters()">Clear</button>
         </div>
       </div>
