@@ -1110,24 +1110,39 @@ async function deleteIdPhoto(bkId, path, side, index) {
   if (!confirm('Delete this photo?')) return;
   try {
     await sb.storage.from('id-proofs').remove([path]);
+
     const { data: bk } = await sb.from('guest_register')
-      .select('id_proof_front_paths, id_proof_back_paths, id_proof_photo_paths')
+      .select('id_proof_front_paths, id_proof_back_paths, id_proof_photo_paths, id_proof_photo_path')
       .eq('booking_id', bkId).single();
     if (!bk) return;
+
+    const updateObj = {};
+
     if (side === 'front') {
       const arr = (bk.id_proof_front_paths || '').split(',').filter(Boolean);
       arr.splice(index, 1);
-      await sb.from('guest_register').update({ id_proof_front_paths: arr.join(',') || null }).eq('booking_id', bkId);
+      updateObj.id_proof_front_paths = arr.join(',') || null;
     } else {
       const arr = (bk.id_proof_back_paths || '').split(',').filter(Boolean);
       arr.splice(index, 1);
-      await sb.from('guest_register').update({ id_proof_back_paths: arr.join(',') || null }).eq('booking_id', bkId);
+      updateObj.id_proof_back_paths = arr.join(',') || null;
     }
-    const allArr = (bk.id_proof_photo_paths || '').split(',').filter(Boolean).filter(p => p !== path);
-    await sb.from('guest_register').update({ id_proof_photo_paths: allArr.join(',') || null }).eq('booking_id', bkId);
+
+    const allArr = (bk.id_proof_photo_paths || '')
+      .split(',')
+      .filter(Boolean)
+      .filter(x => x !== path);
+
+    updateObj.id_proof_photo_paths = allArr.join(',') || null;
+    updateObj.id_proof_photo_path = allArr[0] || null;
+
+    await sb.from('guest_register').update(updateObj).eq('booking_id', bkId);
+
     alert('✅ Photo deleted');
     editBooking(bkId);
-  } catch (e) { alert('❌ Delete failed: ' + e.message); }
+  } catch (e) {
+    alert('❌ Delete failed: ' + e.message);
+  }
 }
 
 // ============ UPDATE BOOKING ============
@@ -1211,23 +1226,52 @@ async function delBooking(bkId, guestName, roomId) {
   if (!confirm(`Delete "${guestName}" booking?\nPayments + photos bhi delete hongi.`)) return;
   try {
     const { data: bk } = await sb.from('guest_register')
-      .select('room_id, id_proof_photo_paths, id_proof_photo_path, id_proof_front_paths, id_proof_back_paths')
+      .select('room_id, id_proof_photo_paths, id_proof_photo_path, id_proof_front_paths, id_proof_back_paths, vehicle_photo_path')
       .eq('booking_id', bkId).single();
-    const allPaths = [bk?.id_proof_photo_paths, bk?.id_proof_photo_path, bk?.id_proof_front_paths, bk?.id_proof_back_paths]
-      .filter(Boolean).join(',').split(',').filter(Boolean);
-    if (allPaths.length) { try { await sb.storage.from('id-proofs').remove(allPaths); } catch (e) { } }
+
+    const allPaths = [
+      bk?.id_proof_photo_paths,
+      bk?.id_proof_photo_path,
+      bk?.id_proof_front_paths,
+      bk?.id_proof_back_paths,
+      bk?.vehicle_photo_path
+    ]
+      .filter(Boolean)
+      .join(',')
+      .split(',')
+      .filter(Boolean);
+
+    const uniquePaths = [...new Set(allPaths)];
+
+    if (uniquePaths.length) {
+      try { await sb.storage.from('id-proofs').remove(uniquePaths); } catch (e) {}
+    }
+
     await sb.from('payment_history').delete().eq('booking_id', bkId);
     const { error } = await sb.from('guest_register').delete().eq('booking_id', bkId);
     if (error) { alert('❌ Delete failed: ' + error.message); return; }
+
     const rid = roomId || bk?.room_id;
     if (rid) {
       const today = new Date().toISOString().slice(0, 10);
-      const { data: active } = await sb.from('guest_register').select('booking_id').eq('room_id', rid).gt('check_out', today);
-      if (!active || !active.length) await sb.from('flats_status').update({ status: 'Free' }).eq('room_id', rid);
+      const { data: active } = await sb.from('guest_register')
+        .select('booking_id')
+        .eq('room_id', rid)
+        .gt('check_out', today);
+
+      if (!active || !active.length) {
+        await sb.from('flats_status').update({
+          status: 'Free',
+          cleaning_status: 'Dirty'
+        }).eq('room_id', rid);
+      }
     }
+
     alert('✅ Booking deleted');
     renderManageBookings();
-  } catch (err) { alert('❌ Error: ' + (err.message || err)); }
+  } catch (err) {
+    alert('❌ Error: ' + (err.message || err));
+  }
 }
 
 // ============ PAYMENT MODAL ============
