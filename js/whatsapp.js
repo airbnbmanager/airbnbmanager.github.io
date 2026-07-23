@@ -14,7 +14,8 @@ async function getPropertyContactsForRoom(roomId, roomData = {}) {
     if (!nm || nm.toLowerCase() === 'pending' || seenNames.has(nm.toLowerCase())) return;
     seenNames.add(nm.toLowerCase());
     const ph = cleanPhone(phone);
-    lines.push("📞 *" + label + ":* " + nm + (ph ? ' — +91 ' + ph : ''));
+    const prefix = nm.startsWith('Mr.') || nm.startsWith('Mrs.') || nm.startsWith('Ms.') || nm.startsWith('Dr.') ? '' : 'Mr. ';
+    lines.push("📞 *" + label + ":* " + prefix + nm + (ph ? ' — +91 ' + ph : ''));
   };
 
   // Step 1: property_shifts table se shift-based contacts
