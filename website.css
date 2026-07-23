@@ -3258,3 +3258,18 @@ a.whatsapp-btn-large * {
   font-size: 22px !important;
   font-weight: 700 !important;
 }
+
+/* Phone number - proper professional size */
+.contact-card .contact-card-phone {
+  font-size: 20px !important;
+  font-weight: 700 !important;
+  color: #E00B41 !important;
+  margin: 14px 0 !important;
+  letter-spacing: 0.3px !important;
+}
+
+@media (max-width: 768px) {
+  .contact-card .contact-card-phone {
+    font-size: 18px !important;
+  }
+}
