@@ -325,6 +325,123 @@ async function renderDashboard() {
     </div>
     ` : ''}
 
+    <!-- WhatsApp Tasks Today -->
+    ${(() => {
+      const todayDate = new Date().toISOString().slice(0, 10);
+      const tomorrow = dateAdd(todayDate, 1);
+      const yesterday = dateAdd(todayDate, -1);
+
+      // Tomorrow's check-ins → send check-in reminder today
+      const checkinReminders = allBookings.filter(b =>
+        b.check_in === tomorrow && b.phone
+      );
+
+      // Today's checkouts → send checkout reminder
+      const checkoutReminders = allBookings.filter(b =>
+        b.check_out === todayDate && b.phone
+      );
+
+      // Yesterday's checkouts → request review
+      const reviewRequests = allBookings.filter(b =>
+        b.check_out === yesterday && b.phone
+      );
+
+      // Bookings without ID → request ID
+      const noIdBookings = allBookings.filter(b => {
+        if (!b.phone) return false;
+        if (b.check_in > todayDate) return false; // Not yet checked in
+        if (b.check_out < todayDate) return false; // Already left
+        const hasId = (b.id_proof_photo_paths || b.id_proof_photo_path || '').split(',').filter(Boolean).length > 0;
+        return !hasId;
+      });
+
+      const totalTasks = checkinReminders.length + checkoutReminders.length + reviewRequests.length + noIdBookings.length;
+      if (totalTasks === 0) return '';
+
+      return `
+      <div class="card" style="border-left:4px solid #25D366;background:#F0FFF4;">
+        <div class="section-title" style="color:#128C7E;">
+          📱 WhatsApp Tasks Today (${totalTasks})
+        </div>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:12px;">
+          Click each button to send personalized message via WhatsApp
+        </div>
+
+        ${checkinReminders.length ? `
+        <div style="margin-bottom:16px;">
+          <div style="font-size:13px;font-weight:700;color:#00A699;margin-bottom:8px;">
+            📅 Check-in Reminder (${checkinReminders.length}) — Guests arriving tomorrow
+          </div>
+          ${checkinReminders.map(b => `
+            <div style="display:flex;align-items:center;gap:10px;padding:8px;background:#fff;border-radius:8px;margin-bottom:6px;border:1px solid var(--border);">
+              <div style="flex:1;">
+                <strong>${b.guest_name}</strong> — ${b.rooms?.nickname || b.room_id}
+                <br><small style="color:var(--muted);">📞 ${b.phone} · Check-in: ${b.check_in} ${b.check_in_time || ''}</small>
+              </div>
+              <button class="btn-sm" style="background:#00A699;color:#fff;" onclick="sendCheckinReminder('${b.booking_id}')">📅 Send</button>
+            </div>
+          `).join('')}
+        </div>
+        ` : ''}
+
+        ${checkoutReminders.length ? `
+        <div style="margin-bottom:16px;">
+          <div style="font-size:13px;font-weight:700;color:#FF385C;margin-bottom:8px;">
+            📤 Checkout Reminder (${checkoutReminders.length}) — Leaving today
+          </div>
+          ${checkoutReminders.map(b => `
+            <div style="display:flex;align-items:center;gap:10px;padding:8px;background:#fff;border-radius:8px;margin-bottom:6px;border:1px solid var(--border);">
+              <div style="flex:1;">
+                <strong>${b.guest_name}</strong> — ${b.rooms?.nickname || b.room_id}
+                <br><small style="color:var(--muted);">📞 ${b.phone} · Checkout: ${b.check_out_time || '11:00 AM'}</small>
+              </div>
+              <button class="btn-sm" style="background:#FF385C;color:#fff;" onclick="sendCheckoutReminder('${b.booking_id}')">🔔 Send</button>
+            </div>
+          `).join('')}
+        </div>
+        ` : ''}
+
+        ${noIdBookings.length ? `
+        <div style="margin-bottom:16px;">
+          <div style="font-size:13px;font-weight:700;color:#FFB800;margin-bottom:8px;">
+            🪪 ID Missing (${noIdBookings.length}) — Currently staying without ID
+          </div>
+          ${noIdBookings.map(b => `
+            <div style="display:flex;align-items:center;gap:10px;padding:8px;background:#fff;border-radius:8px;margin-bottom:6px;border:1px solid var(--border);">
+              <div style="flex:1;">
+                <strong>${b.guest_name}</strong> — ${b.rooms?.nickname || b.room_id}
+                <br><small style="color:var(--muted);">📞 ${b.phone} · Guests: ${b.guests || 1}</small>
+              </div>
+              <button class="btn-sm" style="background:#FFB800;color:#fff;" onclick="requestGuestID('${b.booking_id}')">🪪 Request</button>
+            </div>
+          `).join('')}
+        </div>
+        ` : ''}
+
+        ${reviewRequests.length ? `
+        <div style="margin-bottom:8px;">
+          <div style="font-size:13px;font-weight:700;color:#722ED1;margin-bottom:8px;">
+            ⭐ Review Request (${reviewRequests.length}) — Checked out yesterday
+          </div>
+          ${reviewRequests.map(b => `
+            <div style="display:flex;align-items:center;gap:10px;padding:8px;background:#fff;border-radius:8px;margin-bottom:6px;border:1px solid var(--border);">
+              <div style="flex:1;">
+                <strong>${b.guest_name}</strong> — ${b.rooms?.nickname || b.room_id}
+                <br><small style="color:var(--muted);">📞 ${b.phone} · Stay: ${b.check_in} → ${b.check_out}</small>
+              </div>
+              <button class="btn-sm" style="background:#722ED1;color:#fff;" onclick="requestReview('${b.booking_id}')">⭐ Request</button>
+            </div>
+          `).join('')}
+        </div>
+        ` : ''}
+
+        <div style="font-size:11px;color:var(--muted);text-align:center;margin-top:12px;padding-top:12px;border-top:1px dashed var(--border);">
+          💡 Tip: Only send reviews to happy guests (5★ potential)
+        </div>
+      </div>
+      `;
+    })()}
+
     <!-- Monthly Summary -->
     <div class="card" style="background:linear-gradient(135deg,#1a1a1a,#2d2d2d);color:#fff;">
       <div style="font-size:11px;text-transform:uppercase;letter-spacing:1px;color:rgba(255,255,255,0.5);margin-bottom:10px;">
