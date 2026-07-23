@@ -66,64 +66,71 @@ async function processAirbnbCSV(input) {
       appMap[key] = b;
     });
 
-    // Convert CSV date to YYYY-MM-DD format
+    // Convert CSV date MM/DD/YYYY to YYYY-MM-DD
     const convertDate = (d) => {
       if (!d) return '';
-      // MM/DD/YYYY or DD/MM/YYYY format from Airbnb
       const parts = d.split('/');
       if (parts.length === 3) {
-        // Airbnb uses MM/DD/YYYY
         return `${parts[2]}-${parts[0].padStart(2,'0')}-${parts[1].padStart(2,'0')}`;
       }
       return d;
     };
 
-    // Build multiple index for app bookings (by first name + date, and full name + date)
-    const appMapAlt = {};
-    (appBookings || []).forEach(b => {
-      const key1 = normalizeKey(b.guest_name, b.check_in);
-      const key2 = normalizeKeyAlt(b.guest_name, b.check_in);
-      appMap[key1] = b;
-      appMapAlt[key2] = b;
-      // Also try by date only for close match
-      const dateKey = 'date_' + b.check_in;
-      if (!appMap[dateKey]) appMap[dateKey] = [];
-      if (Array.isArray(appMap[dateKey])) appMap[dateKey].push(b);
-    });
+    // Fuzzy match: first 3-4 chars + date + amount tolerance
+    const fuzzyMatch = (name1, name2) => {
+      if (!name1 || !name2) return false;
+      const n1 = name1.toLowerCase().replace(/[^a-z]/g, '');
+      const n2 = name2.toLowerCase().replace(/[^a-z]/g, '');
+      if (n1 === n2) return true;
+      // Check if first 4 chars match (handles Prashant/Prashantkumar, Vikash/Vikas)
+      if (n1.length >= 4 && n2.length >= 4) {
+        if (n1.substring(0, 4) === n2.substring(0, 4)) return true;
+      }
+      // Check if one contains the other
+      if (n1.includes(n2) || n2.includes(n1)) return true;
+      return false;
+    };
 
-    // Find missing (in CSV but not in app)
-    const missing = airbnbBookings.filter(ab => {
-      const cdate = convertDate(ab.startDate);
-      if (cdate < '2026-07-01') return false;
-      ab.startDateNorm = cdate;
-      ab.endDateNorm = convertDate(ab.endDate);
-      const key = normalizeKey(ab.guest, cdate);
-      const keyAlt = normalizeKeyAlt(ab.guest, cdate);
-      return !appMap[key] && !appMapAlt[keyAlt];
-    });
+    // Amount tolerance (within ₹5 = match)
+    const amountMatch = (a, b) => Math.abs((a || 0) - (b || 0)) < 5;
 
-    // Find matched
-    const matched = airbnbBookings.filter(ab => {
-      const cdate = convertDate(ab.startDate);
-      if (cdate < '2026-07-01') return false;
-      const key = normalizeKey(ab.guest, cdate);
-      const keyAlt = normalizeKeyAlt(ab.guest, cdate);
-      return !!appMap[key] || !!appMapAlt[keyAlt];
-    });
+    // Preprocess app bookings
+    const appList = (appBookings || []).map(b => ({
+      ...b,
+      _matched: false
+    }));
 
-    // Extra in app (not in CSV)
-    const csvMap = {};
-    const csvMapAlt = {};
+    // For each CSV booking, find match in app
+    const missing = [];
+    const matched = [];
+
     airbnbBookings.forEach(ab => {
       const cdate = convertDate(ab.startDate);
-      csvMap[normalizeKey(ab.guest, cdate)] = ab;
-      csvMapAlt[normalizeKeyAlt(ab.guest, cdate)] = ab;
+      if (cdate < '2026-07-01') return;
+      ab.startDateNorm = cdate;
+      ab.endDateNorm = convertDate(ab.endDate);
+
+      // Try to find match by date + fuzzy name + amount
+      const match = appList.find(b => {
+        if (b._matched) return false;
+        if (b.check_in !== cdate) return false;
+        // Prefer name+amount match
+        if (fuzzyMatch(ab.guest, b.guest_name)) return true;
+        // Fallback: amount match on same date
+        if (amountMatch(ab.amount, b.total_amount)) return true;
+        return false;
+      });
+
+      if (match) {
+        match._matched = true;
+        matched.push(ab);
+      } else {
+        missing.push(ab);
+      }
     });
-    const extraInApp = (appBookings || []).filter(b => {
-      const key = normalizeKey(b.guest_name, b.check_in);
-      const keyAlt = normalizeKeyAlt(b.guest_name, b.check_in);
-      return !csvMap[key] && !csvMapAlt[keyAlt];
-    });
+
+    // Extra in app = un-matched app bookings
+    const extraInApp = appList.filter(b => !b._matched);
 
     window._reconData = { missing, matched, extraInApp, airbnbBookings };
 
