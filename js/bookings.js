@@ -90,10 +90,23 @@ function buildIdButtons(b) {
   if (!allPhotos.length) return '<small style="color:var(--red);">❌ No ID</small>';
 
   const count = allPhotos.length;
+  // Count front/back per guest
+  const frontCount = {};
+  const backCount = {};
+
   return `<span style="font-size:10px;color:var(--green);font-weight:600;">✅ ${count}</span> ` +
-    allPhotos.slice(0, 4).map((p, i) => {
-      const label = fp.includes(p) ? 'F' : bp.includes(p) ? 'B' : 'ID';
-      return `<button class="btn-sm outline" style="padding:1px 5px;font-size:9px;min-height:20px;margin:1px;" onclick="dlIdPhoto('${p}')">${label}${Math.floor(i/2)+1}</button>`;
+    allPhotos.map((p, i) => {
+      let label;
+      if (fp.includes(p)) {
+        const idx = fp.indexOf(p) + 1;
+        label = 'F' + idx;
+      } else if (bp.includes(p)) {
+        const idx = bp.indexOf(p) + 1;
+        label = 'B' + idx;
+      } else {
+        label = 'ID' + (i + 1);
+      }
+      return `<button class="btn-sm outline" style="padding:1px 5px;font-size:9px;min-height:20px;margin:1px;" onclick="dlIdPhoto('${p}')">${label}</button>`;
     }).join('');
 }
 
