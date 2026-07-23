@@ -1522,9 +1522,25 @@ async function updateBooking(bkId, parentBookingId = '', stayGroupId = '') {
   const aArr = [...new Set((oldBk?.id_proof_photo_paths || '').split(',').filter(Boolean))];
   for (let i = 1; i <= gc; i++) {
     const fFile = document.getElementById(`eFrontCam${i}`)?.files?.[0] || document.getElementById(`eFrontGal${i}`)?.files?.[0];
-    if (fFile) { try { const c = await compressImage(fFile); const p = `${bkId}/${Date.now()}_g${i}_front.jpg`; const { error } = await sb.storage.from('id-proofs').upload(p, c, { contentType: 'image/jpeg' }); if (!error) { while(fArr.length < i) fArr.push(null); fArr[i-1] = p; aArr.push(p); } } catch (e) { } }
+    if (fFile) {
+      try {
+        const c = await smartCompress(fFile);
+        const p = `${bkId}/${Date.now()}_g${i}_front.jpg`;
+        const result = await robustUpload(p, c, 3);
+        if (result.success) { while(fArr.length < i) fArr.push(null); fArr[i-1] = p; aArr.push(p); }
+        else console.warn('Front upload failed:', result.error);
+      } catch (e) { console.warn('Front upload error:', e); }
+    }
     const bFile = document.getElementById(`eBackCam${i}`)?.files?.[0] || document.getElementById(`eBackGal${i}`)?.files?.[0];
-    if (bFile) { try { const c = await compressImage(bFile); const p = `${bkId}/${Date.now()}_g${i}_back.jpg`; const { error } = await sb.storage.from('id-proofs').upload(p, c, { contentType: 'image/jpeg' }); if (!error) { while(bArr.length < i) bArr.push(null); bArr[i-1] = p; aArr.push(p); } } catch (e) { } }
+    if (bFile) {
+      try {
+        const c = await smartCompress(bFile);
+        const p = `${bkId}/${Date.now()}_g${i}_back.jpg`;
+        const result = await robustUpload(p, c, 3);
+        if (result.success) { while(bArr.length < i) bArr.push(null); bArr[i-1] = p; aArr.push(p); }
+        else console.warn('Back upload failed:', result.error);
+      } catch (e) { console.warn('Back upload error:', e); }
+    }
   }
 
 
@@ -1560,10 +1576,11 @@ async function updateBooking(bkId, parentBookingId = '', stayGroupId = '') {
       || document.getElementById('editVehiclePhotoGal')?.files?.[0];
     if (vFile) {
       try {
-        const vc = await compressImage(vFile);
+        const vc = await smartCompress(vFile);
         const vp = `${bkId}/vehicle_${Date.now()}.jpg`;
-        const { error: ve } = await sb.storage.from('id-proofs').upload(vp, vc, { contentType: 'image/jpeg' });
-        if (!ve) obj.vehicle_photo_path = vp;
+        const result = await robustUpload(vp, vc, 3);
+        if (result.success) obj.vehicle_photo_path = vp;
+        else console.warn('Vehicle upload failed:', result.error);
       } catch (e) { console.warn('Vehicle photo update failed', e); }
     }
   }
