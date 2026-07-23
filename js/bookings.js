@@ -618,13 +618,26 @@ function onVehiclePhotoPick(src, mode = 'new') {
   const inp = document.getElementById(src === 'cam' ? `${prefix}PhotoCam` : `${prefix}PhotoGal`);
   const preview = document.getElementById('vehiclePhotoPreview');
   if (!inp?.files?.[0] || !preview) return;
-  const file = inp.files[0];
-  const url = URL.createObjectURL(file);
-  preview.innerHTML = `
-    <div style="position:relative;display:inline-block;margin-top:4px;">
-      <img src="${url}" style="width:100%;max-width:280px;border-radius:8px;border:2px solid var(--green);" />
-      <div style="font-size:11px;color:var(--green);margin-top:4px;">✅ ${file.name}</div>
-    </div>`;
+
+  openCropModal(inp.files[0], (croppedFile) => {
+    const dt = new DataTransfer();
+    dt.items.add(croppedFile);
+    inp.files = dt.files;
+    const url = URL.createObjectURL(croppedFile);
+    const sizeMB = (croppedFile.size / 1024 / 1024).toFixed(1);
+    preview.innerHTML = `
+      <div style="display:flex;align-items:center;gap:8px;padding:8px;background:#f0fff4;border-radius:8px;border:1.5px solid var(--green);margin:6px 0;">
+        <img src="${url}" style="width:70px;height:50px;object-fit:cover;border-radius:6px;" />
+        <div style="flex:1;">
+          <div style="font-size:12px;color:var(--green);font-weight:700;">✅ Ready</div>
+          <div style="font-size:10px;color:var(--muted);">${sizeMB} MB</div>
+        </div>
+        <button type="button" class="btn-sm outline" style="padding:4px 10px;font-size:11px;"
+          onclick="onVehiclePhotoPick('gal','${mode}')">✂️ Re-crop</button>
+        <button type="button" class="btn-sm danger" style="padding:4px 10px;font-size:11px;"
+          onclick="document.getElementById('${prefix}PhotoCam').value='';document.getElementById('${prefix}PhotoGal').value='';document.getElementById('vehiclePhotoPreview').innerHTML='';">🗑️</button>
+      </div>`;
+  });
 }
 
 function toggleVehicle() {
@@ -881,19 +894,43 @@ function showVehiclePreview(input) {
   const previewEl = document.getElementById('vehiclePhotoPreview');
   if (!input.files || !input.files[0]) return;
   const file = input.files[0];
+  const sizeMB = (file.size / 1024 / 1024).toFixed(1);
   const reader = new FileReader();
   reader.onload = function(e) {
     if (previewEl) {
       previewEl.innerHTML = `
-        <div style="display:flex;align-items:center;gap:6px;padding:4px;background:#f0fff4;border-radius:6px;border:1px solid var(--green);">
-          <img src="${e.target.result}" style="width:60px;height:40px;object-fit:cover;border-radius:4px;" />
-          <span style="font-size:10px;color:var(--green);font-weight:600;">✅ Vehicle photo ready</span>
-          <button type="button" class="btn-sm danger" style="min-height:22px;padding:2px 6px;font-size:9px;margin-left:auto;"
-            onclick="document.getElementById('vehiclePhoto').value='';document.getElementById('vehiclePhotoPreview').innerHTML='';">✕</button>
+        <div style="display:flex;align-items:center;gap:8px;padding:8px;background:#f0fff4;border-radius:8px;border:1.5px solid var(--green);margin:6px 0;">
+          <img src="${e.target.result}" style="width:70px;height:50px;object-fit:cover;border-radius:6px;border:1px solid var(--border);" />
+          <div style="flex:1;">
+            <div style="font-size:12px;color:var(--green);font-weight:700;">✅ Vehicle Photo Ready</div>
+            <div style="font-size:10px;color:var(--muted);">${sizeMB} MB</div>
+          </div>
+          <button type="button" class="btn-sm outline" style="padding:4px 10px;font-size:11px;"
+            onclick="reCropVehicle()">✂️ Re-crop</button>
+          <button type="button" class="btn-sm danger" style="padding:4px 10px;font-size:11px;"
+            onclick="clearVehiclePhoto()">🗑️ Delete</button>
         </div>`;
     }
   };
   reader.readAsDataURL(file);
+}
+
+function clearVehiclePhoto() {
+  const inp = document.getElementById('vehiclePhoto');
+  const preview = document.getElementById('vehiclePhotoPreview');
+  if (inp) inp.value = '';
+  if (preview) preview.innerHTML = '';
+}
+
+function reCropVehicle() {
+  const inp = document.getElementById('vehiclePhoto');
+  if (!inp?.files?.[0]) return;
+  openCropModal(inp.files[0], (croppedFile) => {
+    const dt = new DataTransfer();
+    dt.items.add(croppedFile);
+    inp.files = dt.files;
+    showVehiclePreview(inp);
+  });
 }
 
 function parseIdPathArray(val) {
