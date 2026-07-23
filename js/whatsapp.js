@@ -271,3 +271,38 @@ function showWhatsAppModal(guestName, propertyName, phone, msg) {
   `;
   document.body.appendChild(modal);
 }
+
+
+// ============ REQUEST ID PROOF MESSAGE ============
+async function requestGuestID(bkId) {
+  const { data: b } = await sb.from('guest_register')
+    .select('*, rooms(nickname, unit_no)')
+    .eq('booking_id', bkId).single();
+  if (!b) { alert('Booking not found'); return; }
+
+  const guestName = b.guest_name || 'Guest';
+  const propertyName = b.rooms?.nickname || b.rooms?.unit_no || 'our property';
+  const guests = b.guests || 1;
+
+  const msg = [
+    `Hi ${guestName}! 👋`,
+    ``,
+    `Hope you're enjoying your stay at *${propertyName}*! 🏡`,
+    ``,
+    `As per government guidelines, we need to complete your check-in formalities by verifying ID proofs of all guests.`,
+    ``,
+    `📸 *Kindly share:*`,
+    `• Front & back photo of *Aadhar Card / DL / Passport*`,
+    guests > 1 ? `• ID of all *${guests} guests* staying with you` : `• Your ID proof`,
+    ``,
+    `✅ Just click clear photos and send them here on WhatsApp — takes just 2 minutes!`,
+    ``,
+    `🔒 *Your privacy is 100% safe* — IDs are stored securely and used only for legal compliance.`,
+    ``,
+    `Thank you for your cooperation! 🙏`,
+    ``,
+    `— Team *${BRAND}*`
+  ].filter(Boolean).join('\n');
+
+  showWhatsAppModal(guestName, propertyName, b.phone, msg);
+}
