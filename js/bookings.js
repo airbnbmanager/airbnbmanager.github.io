@@ -319,7 +319,7 @@ async function renderManageBookings() {
             <strong style="cursor:pointer;text-decoration:underline;color:var(--blue);"
               onclick="showGuestLedger('${(b.guest_name || '').replace(/'/g, "\\'")}')">${b.guest_name || '-'}</strong><br>
             <small style="color:var(--muted);">${b.phone || ''}</small>
-            ${b.has_vehicle ? `<br><small>🚗 ${b.vehicle_name || ''} ${b.vehicle_number || ''}</small>` : ''}
+            ${b.has_vehicle ? `<br><small>🚗 ${b.vehicle_name || ''} ${b.vehicle_number || ''}${b.vehicle_photo_path ? ` <button class="btn-sm green-btn" style="padding:1px 6px;font-size:9px;min-height:18px;" onclick="dlIdPhoto('${b.vehicle_photo_path}')">📷</button>` : ''}</small>` : ''}
           </td>
           <td>
             <strong>${b.rooms?.nickname || '-'}</strong><br>
@@ -1475,29 +1475,20 @@ async function editBooking(bkId) {
           ${b.vehicle_photo_path
             ? `<div class="btn-row" style="margin:4px 0;">
                 <button class="btn-sm green-btn" onclick="dlIdPhoto('${b.vehicle_photo_path}')">📥 View Photo</button>
+                <button class="btn-sm danger" onclick="deleteVehiclePhoto('${bkId}','${b.vehicle_photo_path}')">🗑️ Delete</button>
                 <span style="font-size:10px;color:var(--green);">✅ Uploaded</span>
               </div>`
-            : '<div style="font-size:11px;color:var(--muted);">No photo</div>'}
-          <input type="file" id="vehiclePhoto" accept="image/*" capture="environment"
-            style="font-size:12px;" onchange="onVehiclePhotoSelect(this)" />
+            : '<div style="font-size:11px;color:var(--muted);margin-bottom:6px;">No photo yet</div>'}
+          <div class="id-card-btns">
+            <button type="button" class="outline" onclick="document.getElementById('vehiclePhotoCam').click()">📷 Camera</button>
+            <button type="button" class="outline" onclick="document.getElementById('vehiclePhotoGal').click()">🖼️ Gallery</button>
+          </div>
+          <input type="file" id="vehiclePhotoCam" accept="image/*" capture="environment" style="display:none;" onchange="onEditVehiclePick(this)" />
+          <input type="file" id="vehiclePhotoGal" accept="image/*" style="display:none;" onchange="onEditVehiclePick(this)" />
           <div id="vehiclePhotoPreview"></div>
         </div>
       </div>
-        <div class="form-group">
-          <label>Vehicle Photo</label>
-          ${b.vehicle_photo_path ? `
-            <div style="margin-bottom:8px;">
-              <button class="btn-sm outline" onclick="dlIdPhoto('${b.vehicle_photo_path}')">📷 View Current Photo</button>
-            </div>` : ''}
-          <div class="id-card-btns">
-            <button type="button" class="outline" onclick="document.getElementById('editVehiclePhotoCam').click()">📷 Camera</button>
-            <button type="button" class="outline" onclick="document.getElementById('editVehiclePhotoGal').click()">🖼️ Gallery</button>
-          </div>
-          <input type="file" id="editVehiclePhotoCam" accept="image/*" capture="environment" style="display:none;" onchange="onVehiclePhotoPick('cam','edit')" />
-          <input type="file" id="editVehiclePhotoGal" accept="image/*" style="display:none;" onchange="onVehiclePhotoPick('gal','edit')" />
-          <div id="vehiclePhotoPreview" style="margin-top:6px;"></div>
-        </div>
-      </div>
+
       <div class="form-group"><label>Notes</label><textarea id="bkNotes">${b.notes || ''}</textarea></div>
       <button onclick="updateBooking('${bkId}','${b.parent_booking_id || ''}','${b.stay_group_id || b.booking_id}')">💾 Update</button>
       <div id="editBkErr"></div>
@@ -1660,8 +1651,8 @@ async function updateBooking(bkId, parentBookingId = '', stayGroupId = '') {
 
   // Vehicle photo upload
   if (obj.has_vehicle) {
-    const vFile = document.getElementById('editVehiclePhotoCam')?.files?.[0]
-      || document.getElementById('editVehiclePhotoGal')?.files?.[0];
+    const vFile = document.getElementById('vehiclePhotoCam')?.files?.[0]
+      || document.getElementById('vehiclePhotoGal')?.files?.[0] || document.getElementById('vehiclePhoto')?.files?.[0];
     if (vFile) {
       try {
         const vc = await smartCompress(vFile);
@@ -2171,3 +2162,39 @@ function skipCrop() {
   document.querySelector('.modal-overlay').remove();
   window._cropData = null;
 }
+
+
+async function deleteVehiclePhoto(bkId, path) {
+  if (!confirm('Delete vehicle photo?')) return;
+  try {
+    await sb.storage.from('id-proofs').remove([path]);
+    await sb.from('guest_register').update({ vehicle_photo_path: null }).eq('booking_id', bkId);
+    alert('✅ Vehicle photo deleted');
+    editBooking(bkId);
+  } catch (e) {
+    alert('❌ ' + e.message);
+  }
+}
+
+function onEditVehiclePick(input) {
+  if (!input.files || !input.files[0]) return;
+  openCropModal(input.files[0], (croppedFile) => {
+    const dt = new DataTransfer();
+    dt.items.add(croppedFile);
+    input.files = dt.files;
+    const url = URL.createObjectURL(croppedFile);
+    const sizeMB = (croppedFile.size / 1024 / 1024).toFixed(1);
+    document.getElementById('vehiclePhotoPreview').innerHTML = `
+      <div style="display:flex;align-items:center;gap:8px;padding:8px;background:#f0fff4;border-radius:8px;border:1.5px solid var(--green);margin:6px 0;">
+        <img src="${url}" style="width:70px;height:50px;object-fit:cover;border-radius:6px;" />
+        <div style="flex:1;">
+          <div style="font-size:12px;color:var(--green);font-weight:700;">✅ New Photo Ready</div>
+          <div style="font-size:10px;color:var(--muted);">${sizeMB} MB · Save to upload</div>
+        </div>
+        <button type="button" class="btn-sm danger" style="padding:4px 10px;font-size:11px;"
+          onclick="document.getElementById('vehiclePhotoCam').value='';document.getElementById('vehiclePhotoGal').value='';document.getElementById('vehiclePhotoPreview').innerHTML='';">🗑️</button>
+      </div>`;
+  });
+}
+
+// Fix updateBooking to use new input IDs
