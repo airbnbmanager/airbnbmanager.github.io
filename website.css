@@ -2135,3 +2135,61 @@ p a[href*="airbnb"]:hover,
   transform: none !important;
   box-shadow: none !important;
 }
+
+/* ============ SOFTER COLOR OVERRIDES - Better than pure black ============ */
+:root {
+  --dark: #484848 !important;
+  --dark-soft: #2B2B2B !important;
+  --heading: #333333 !important;
+}
+
+body, p, span, div {
+  color: #484848 !important;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  color: #333333 !important;
+}
+
+/* Contact section - softer dark */
+.contact-section {
+  background: linear-gradient(135deg, #2B2B2B 0%, #3D3D3D 100%) !important;
+}
+
+/* Nav links - softer */
+nav a, header a {
+  color: #484848 !important;
+}
+
+/* Filter active - softer dark */
+.filter-tabs button.active,
+.category-tabs button.active {
+  background: #333333 !important;
+  border-color: #333333 !important;
+}
+
+/* Property titles */
+.property-card h3,
+.property-card h3 a,
+.prop-card h3,
+.property-title {
+  color: #333333 !important;
+}
+
+/* Secondary buttons */
+.btn.secondary,
+button.secondary {
+  border-color: #484848 !important;
+  color: #484848 !important;
+}
+
+/* Footer */
+footer {
+  color: #717171 !important;
+}
+
+footer a { color: #484848 !important; }
+
+/* Book direct banner text stays white on red */
+.book-direct-banner strong { color: #fff !important; }
+.book-direct-banner span { color: rgba(255,255,255,0.95) !important; }
