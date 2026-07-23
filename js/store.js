@@ -19,7 +19,7 @@ async function renderStore() {
     stockMap[key] = (stockMap[key] || 0) + (t.txn_type === 'In' ? (t.quantity || 0) : -(t.quantity || 0));
   });
 
-  const isO = SESSION.role === 'owner';
+  const isO = ['owner','admin'].includes(SESSION.role);
 
   renderShell(`
     <div class="card">

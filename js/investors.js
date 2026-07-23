@@ -20,7 +20,7 @@ async function renderManageInvestors() {
     invPropMap[l.investor_id].push(l);
   });
 
-  const isO = SESSION.role === 'owner';
+  const isO = ['owner','admin'].includes(SESSION.role);
 
   renderShell(`
     <div class="card">

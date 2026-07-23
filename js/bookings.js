@@ -215,7 +215,7 @@ async function renderManageBookings() {
   const overlaps = findOverlappingBookings(all || []);
   const pm = await getPaidMap(f.map(b => b.booking_id));
   const canM = ['owner', 'viewer', 'manager'].includes(SESSION.role);
-  const canD = SESSION.role === 'owner';
+  const canD = ['owner','admin'].includes(SESSION.role);
 
   renderShell(`
     <div class="card">

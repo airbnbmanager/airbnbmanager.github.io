@@ -146,7 +146,7 @@ function applyExpenseFilters() {
   if (catVal)     filtered = filtered.filter(e => e.category_id === catVal);
 
   const total = filtered.reduce((s, e) => s + (e.amount || 0), 0);
-  const isO = SESSION.role === 'owner' || SESSION.role === 'manager';
+  const isO = ['owner','admin'].includes(SESSION.role) || SESSION.role === 'manager';
 
   wrap.innerHTML = `
     <div class="card">

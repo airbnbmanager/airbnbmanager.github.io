@@ -14,7 +14,7 @@ async function renderManageRooms() {
 
   const empMap = {};
   (emps || []).forEach(e => { empMap[e.emp_id] = e; });
-  const isO = SESSION.role === 'owner';
+  const isO = ['owner','admin'].includes(SESSION.role);
 
   renderShell(`
     <div class="card">
@@ -274,7 +274,7 @@ async function renderFlatsStatus() {
 
   renderShell(`
     ${updateNoticeHTML()}
-    ${SESSION.role === 'owner' ? syncInfoHTML() : ''}
+    ${['owner','admin'].includes(SESSION.role) ? syncInfoHTML() : ''}
 
     <div class="card">
       <h1>🛏️ Flats Status</h1>
