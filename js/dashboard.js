@@ -249,6 +249,57 @@ async function renderDashboard() {
         </table></div>`}
     </div>
 
+    <!-- Extended Stays -->
+    ${extendedWithParent.length > 0 ? `
+    <div class="card" style="border-left:4px solid var(--yellow);">
+      <div class="section-title">
+        🔄 Extended Stays (${extendedWithParent.length})
+        <span class="badge yellow" style="float:right;">Last 30 days</span>
+      </div>
+      <div class="table-wrap"><table>
+        <thead><tr>
+          <th>Guest</th><th>Property</th><th>Original Out</th><th>Extended Till</th><th>Amount</th>
+        </tr></thead>
+        <tbody>${extendedWithParent.slice(0, 10).map(({ext, parent}) => `
+          <tr>
+            <td>
+              <strong>${ext.guest_name}</strong>
+              ${ext.phone ? `<br><small style="color:var(--muted);">📞 ${ext.phone}</small>` : ''}
+            </td>
+            <td style="font-size:12px;">${ext.rooms?.nickname || ext.room_id}</td>
+            <td style="font-size:12px;color:var(--muted);">${parent?.check_out || '-'}</td>
+            <td style="font-size:12px;color:var(--green);"><strong>${ext.check_out || 'Open'}</strong></td>
+            <td style="color:var(--green);">₹${(ext.total_amount || 0).toLocaleString('en-IN')}</td>
+          </tr>
+        `).join('')}</tbody>
+      </table></div>
+    </div>
+    ` : ''}
+
+    <!-- Guest Shifts -->
+    ${allShifts.length > 0 ? `
+    <div class="card" style="border-left:4px solid var(--blue);">
+      <div class="section-title">
+        🔁 Room Shifts (${allShifts.length})
+        <span class="badge blue" style="float:right;">Last 30 days</span>
+      </div>
+      <div class="table-wrap"><table>
+        <thead><tr>
+          <th>Guest</th><th>From</th><th>To</th><th>Shift Date</th><th>Phone</th>
+        </tr></thead>
+        <tbody>${allShifts.slice(0, 10).map(sh => `
+          <tr>
+            <td><strong>${sh.guest}</strong></td>
+            <td style="font-size:12px;color:var(--red);">${sh.fromRoom}</td>
+            <td style="font-size:12px;color:var(--green);"><strong>→ ${sh.toRoom}</strong></td>
+            <td style="font-size:12px;">${sh.shiftDate}</td>
+            <td style="font-size:12px;">${sh.phone || '-'}</td>
+          </tr>
+        `).join('')}</tbody>
+      </table></div>
+    </div>
+    ` : ''}
+
     <!-- Monthly Summary -->
     <div class="card" style="background:linear-gradient(135deg,#1a1a1a,#2d2d2d);color:#fff;">
       <div style="font-size:11px;text-transform:uppercase;letter-spacing:1px;color:rgba(255,255,255,0.5);margin-bottom:10px;">
