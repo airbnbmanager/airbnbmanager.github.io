@@ -383,7 +383,7 @@ function renderShell(content, activePage = 'dashboard') {
           <div class="sidebar-user">
             <span class="sidebar-username">${shortName}</span>
             <span class="badge blue sidebar-role">${roleLabel}</span>
-            <div class="sidebar-logout" id="logoutBtn">🚪</div>
+            <button class="sidebar-logout" id="logoutBtn" style="background:#FF5A5F;color:#fff;border:none;padding:6px 12px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:4px;">🚪 Logout</button>
           </div>
         </div>
 
