@@ -191,42 +191,34 @@ async function sendCheckoutReminder(bkId) {
 
   const r = b.rooms || {};
   const roomId = r.room_id || b.room_id;
-
-  const guestName    = b.guest_name || 'Guest';
+  const guestName = b.guest_name || 'Guest';
   const propertyName = r.nickname || r.unit_no || 'Property';
-  const checkOut     = b.check_out || '';
+  const checkOut = b.check_out || '';
   const checkOutTime = b.check_out_time || '11:00 AM';
 
   const contactLines = await getPropertyContactsForRoom(roomId, r);
 
   const msg = [
-    `Hi ${guestName}, hope you had a great stay! 😊`,
+    `Hi ${guestName}! 👋`,
     ``,
-    `Checkout time is *${checkOutTime}* on *${checkOut}*.`,
+    `Hope you had a great stay at *${propertyName}*! 😊`,
     ``,
-    `A few things before you go:`,
-    `🔑 Hand over the keys to our caretaker`,
-    `🚪 Ensure all doors & windows are secured`,
-    `👜 Check for any personal belongings`,
-    b.has_vehicle ? `🚗 Please clear the parking area` : '',
+    `⏰ Gentle reminder — checkout is at *${checkOutTime}* on *${checkOut}*.`,
     ``,
-    contactLines.length ? `Your contact for any help:` : '',
+    `Before leaving:`,
+    `🔑 Hand over keys to caretaker`,
+    `🚪 Lock all doors & windows`,
+    `👜 Check for personal belongings`,
+    b.has_vehicle ? `🚗 Clear parking area` : '',
+    ``,
+    `Want to *extend*? Let us know! 😊`,
+    ``,
+    contactLines.length ? `Need help?` : '',
     ...contactLines,
     ``,
-    `Let me know if there's anything I can do for you before you go.`,
-    ``,
-    `If you'd like to *extend your stay*, just say the word — we'll check availability! 😊`,
-    ``,
-    `For any other assistance:`,
-    `📞 Mr Shahanshah — 9450055554`,
-    `📞 Mr Firoz Khan — 8299600709`,
-    ``,
-    `Thank you for choosing *${BRAND}*!`,
-    `We hope to welcome you back soon. 🙏`,
-    ``,
-    `— Team *${BRAND}*`,
-    `🌐 uniquehavenhomesstay.com`
-  ].filter(v => v !== false && v !== null && v !== undefined && v !== '').join('\n');
+    `Thanks for choosing *${BRAND}*! 🙏`,
+    `Hope to welcome you again soon!`
+  ].filter(v => v !== '' && v !== false && v !== null && v !== undefined).join('\n');
 
   showWhatsAppModal(guestName, propertyName, b.phone, msg);
 }
@@ -303,6 +295,79 @@ async function requestGuestID(bkId) {
     ``,
     `— Team *${BRAND}*`
   ].filter(Boolean).join('\n');
+
+  showWhatsAppModal(guestName, propertyName, b.phone, msg);
+}
+
+
+// ============ CHECK-IN REMINDER (1 day before) ============
+async function sendCheckinReminder(bkId) {
+  const { data: b } = await sb.from('guest_register')
+    .select('*, rooms(room_id, unit_no, nickname, map_link, address)')
+    .eq('booking_id', bkId).single();
+  if (!b) { alert('Not found'); return; }
+
+  const r = b.rooms || {};
+  const roomId = r.room_id || b.room_id;
+  const guestName = b.guest_name || 'Guest';
+  const propertyName = r.nickname || r.unit_no || 'Property';
+  const checkIn = b.check_in || '';
+  const checkInTime = b.check_in_time || '2:00 PM';
+  const contactLines = await getPropertyContactsForRoom(roomId, r);
+
+  const msg = [
+    `Hi ${guestName}! 👋`,
+    ``,
+    `Excited to host you at *${propertyName}* tomorrow! 🎉`,
+    ``,
+    `📅 Check-in: *${checkIn}* at *${checkInTime}*`,
+    r.map_link ? `📍 Location: ${r.map_link}` : '',
+    ``,
+    `Please carry *govt ID (Aadhar/DL/Passport)* for all guests. 📸`,
+    ``,
+    contactLines.length ? `Your contact:` : '',
+    ...contactLines,
+    ``,
+    `Safe travels! See you soon 🚗`,
+    ``,
+    `— Team *${BRAND}*`
+  ].filter(v => v !== '' && v !== false && v !== null && v !== undefined).join('\n');
+
+  showWhatsAppModal(guestName, propertyName, b.phone, msg);
+}
+
+// ============ REVIEW REQUEST (5-star customers) ============
+async function requestReview(bkId) {
+  const { data: b } = await sb.from('guest_register')
+    .select('*, rooms(nickname, unit_no)')
+    .eq('booking_id', bkId).single();
+  if (!b) { alert('Not found'); return; }
+
+  const guestName = b.guest_name || 'Guest';
+  const propertyName = b.rooms?.nickname || 'our property';
+  const isOnline = b.booking_mode === 'Online-Airbnb';
+
+  const airbnbLink = 'https://www.airbnb.co.in/users/profile/1592729439630759961';
+  const googleLink = 'https://g.page/r/YOUR_GOOGLE_BUSINESS_ID/review'; // Replace with actual
+
+  const msg = [
+    `Hi ${guestName}! 🙏`,
+    ``,
+    `Thank you for staying at *${propertyName}*!`,
+    `It was a pleasure hosting you. 🏡`,
+    ``,
+    `Your happiness means everything to us! ⭐`,
+    ``,
+    isOnline
+      ? `Would you kindly leave us a *5-star review on Airbnb*? It really helps our small business grow. 💖\n\n👉 ${airbnbLink}`
+      : `Would you kindly leave us a *5-star Google review*? It really helps our small business grow. 💖\n\n👉 ${googleLink}`,
+    ``,
+    `Takes just 30 seconds — means the world to us! 🌟`,
+    ``,
+    `Hope to welcome you again soon!`,
+    ``,
+    `— Team *${BRAND}*`
+  ].join('\n');
 
   showWhatsAppModal(guestName, propertyName, b.phone, msg);
 }

@@ -135,7 +135,7 @@ async function loadProfile(userId) {
   if (p.role === 'employee') renderEmployeeView();
   else if (p.role === 'investor' || (p.role === 'viewer' && p.investor_id)) renderInvestorView();
   else if (p.role === 'ca') renderFYSummary();
-  else if (p.role === 'checkin_manager') renderCheckinManagerViewNew();
+  else if (p.role === 'checkin_manager' || p.role === 'caretaker') renderCheckinManagerViewNew();
     else {
     const lastPage = localStorage.getItem('uh_last_page');
     if (lastPage && typeof window[`render${lastPage}`] !== 'undefined') {
@@ -280,8 +280,8 @@ async function loginWithEmail() {
 // ============ SHELL ============
 function renderShell(content, activePage = 'dashboard') {
   if (SESSION.investorId) { appEl.innerHTML = content; return; }
-  const show = ['admin', 'owner', 'viewer', 'booking_staff', 'manager', 'checkin_manager'].includes(SESSION.role);
-  const isCheckinMgr = SESSION.role === 'checkin_manager';
+  const show = ['admin', 'owner', 'viewer', 'booking_staff', 'manager', 'checkin_manager', 'caretaker'].includes(SESSION.role);
+  const isCheckinMgr = SESSION.role === 'checkin_manager' || SESSION.role === 'caretaker';
   if (!show) { appEl.innerHTML = content; return; }
 
   const isAdmin = SESSION.role === 'admin';
@@ -406,7 +406,7 @@ function renderShell(content, activePage = 'dashboard') {
     ];
   }
 
-  const roleLabel = SESSION.role === 'admin' ? 'Admin' : SESSION.role === 'owner' ? 'Owner' : SESSION.role === 'booking_staff' ? 'Staff' : SESSION.role === 'viewer' ? 'Viewer' : SESSION.role;
+  const roleLabel = SESSION.role === 'admin' ? 'Admin' : SESSION.role === 'owner' ? 'Owner' : SESSION.role === 'booking_staff' ? 'Staff' : SESSION.role === 'caretaker' ? 'Caretaker' : SESSION.role === 'viewer' ? 'Viewer' : SESSION.role;
   const shortName = (SESSION.displayName || '').split('(')[0].trim().split(' ')[0];
 
   appEl.innerHTML = `
@@ -716,6 +716,7 @@ function showRolePickerModal(userId, name, callback) {
           <option value="admin">🔧 Admin (Full Access + Delete)</option>
           <option value="owner">👑 Owner (View All + Book + Edit, No Delete)</option>
           <option value="booking_staff">📋 Booking Staff (Bookings + ID Upload, No Delete)</option>
+          <option value="caretaker">🏠 Caretaker (Own Property View + Basic Actions)</option>
           <option value="viewer">👁️ Viewer (Limited View — Today's info)</option>
           <option value="investor">📊 Investor (Own Property Only)</option>
           <option value="employee">👷 Employee (Self View Only)</option>
@@ -737,6 +738,7 @@ function showRolePickerModal(userId, name, callback) {
       admin: '🔧 Full access - can add, edit, delete everything. Only for developers/system admins.',
       owner: '👑 Property owners - view all data, add/edit bookings & payments. Cannot delete.',
       booking_staff: '📋 Trusted staff - book guests, upload IDs, edit bookings. Cannot delete.',
+      caretaker: '🏠 Caretaker - view own assigned property bookings, guests, checkins. Report to Manager.',
       viewer: '👁️ Limited view - today\'s bookings, checkouts, payments status only.',
       investor: '📊 Investor - only view their own linked property bookings and monthly reports.',
       employee: '👷 Employee - only view own attendance, salary, advances, tasks.',
