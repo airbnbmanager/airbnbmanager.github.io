@@ -3273,3 +3273,73 @@ a.whatsapp-btn-large * {
     font-size: 18px !important;
   }
 }
+
+/* ============ SUPERHOST BADGE - FIX ALL TEXT VISIBILITY ============ */
+.superhost-trust-badge {
+  background: #FFFFFF !important;
+  border: 2px solid #FF385C !important;
+  padding: 12px 22px !important;
+  gap: 12px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  border-radius: 999px !important;
+  text-decoration: none !important;
+  box-shadow: 0 8px 24px rgba(255,56,92,0.15) !important;
+}
+
+.superhost-trust-badge > span {
+  color: #222222 !important;
+  -webkit-text-fill-color: #222222 !important;
+  opacity: 1 !important;
+}
+
+/* SUPERHOST pill */
+.superhost-trust-badge > span:nth-of-type(1) {
+  background: #FF385C !important;
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+  padding: 6px 12px !important;
+  border-radius: 999px !important;
+  font-size: 11px !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.5px !important;
+  white-space: nowrap !important;
+}
+
+/* ★ 4.87 */
+.superhost-trust-badge > span:nth-of-type(2) {
+  color: #FF385C !important;
+  -webkit-text-fill-color: #FF385C !important;
+  font-weight: 800 !important;
+  font-size: 18px !important;
+  white-space: nowrap !important;
+}
+
+/* (158 reviews on Airbnb) */
+.superhost-trust-badge > span:nth-of-type(3) {
+  color: #484848 !important;
+  -webkit-text-fill-color: #484848 !important;
+  font-size: 14px !important;
+  font-weight: 600 !important;
+  white-space: nowrap !important;
+}
+
+.superhost-trust-badge:hover {
+  transform: translateY(-2px) !important;
+  box-shadow: 0 12px 32px rgba(255,56,92,0.25) !important;
+  background: #FFF8F9 !important;
+}
+
+@media (max-width: 480px) {
+  .superhost-trust-badge {
+    flex-wrap: wrap !important;
+    justify-content: center !important;
+    padding: 10px 16px !important;
+    gap: 8px !important;
+  }
+  .superhost-trust-badge > span:nth-of-type(3) {
+    font-size: 12px !important;
+    width: 100% !important;
+    text-align: center !important;
+  }
+}
