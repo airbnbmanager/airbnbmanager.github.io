@@ -500,3 +500,377 @@ body {
   .property-btns { width: 100%; }
   .property-btns a { flex: 1; justify-content: center; }
 }
+
+/* ============================================================
+   AIRBNB THEME OVERRIDE - Preserves all HTML/SEO structure
+   ============================================================ */
+
+:root {
+  --airbnb-red: #FF5A5F;
+  --airbnb-coral: #FC642D;
+  --airbnb-teal: #00A699;
+  --airbnb-cyan: #007A87;
+  --airbnb-dark: #222222;
+  --airbnb-grey: #484848;
+  --airbnb-light-grey: #767676;
+  --airbnb-bg: #F7F7F7;
+  --airbnb-border: #DDDDDD;
+  --airbnb-white: #FFFFFF;
+  --airbnb-shadow: 0 6px 16px rgba(0,0,0,0.12);
+  --airbnb-shadow-hover: 0 10px 28px rgba(0,0,0,0.18);
+}
+
+* {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  font-family: 'Circular', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important;
+  color: var(--airbnb-dark) !important;
+  background: var(--airbnb-white) !important;
+  line-height: 1.5;
+}
+
+/* Header/Nav */
+header, .header, nav {
+  background: var(--airbnb-white) !important;
+  border-bottom: 1px solid var(--airbnb-border) !important;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.08);
+}
+
+nav a, header a {
+  color: var(--airbnb-dark) !important;
+  font-weight: 500 !important;
+  transition: color 0.2s;
+}
+
+nav a:hover, header a:hover {
+  color: var(--airbnb-red) !important;
+}
+
+/* Hero Section */
+.hero, .hero-section {
+  background: linear-gradient(135deg, #FFF8F8 0%, #FFFFFF 100%) !important;
+  color: var(--airbnb-dark) !important;
+  padding: 80px 20px 60px !important;
+  text-align: center;
+}
+
+.hero h1 {
+  font-size: 48px !important;
+  font-weight: 800 !important;
+  color: var(--airbnb-dark) !important;
+  letter-spacing: -1px;
+  margin-bottom: 16px;
+  background: linear-gradient(135deg, var(--airbnb-red), var(--airbnb-coral));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.hero p, .hero .sub {
+  font-size: 20px !important;
+  color: var(--airbnb-grey) !important;
+  font-weight: 400 !important;
+}
+
+/* Property Cards - Airbnb style */
+.property-card, .prop-card, .card-item {
+  background: var(--airbnb-white) !important;
+  border: none !important;
+  border-radius: 16px !important;
+  overflow: hidden !important;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+}
+
+.property-card:hover, .prop-card:hover, .card-item:hover {
+  transform: translateY(-6px);
+}
+
+.property-card img, .prop-card img, .card-item img {
+  width: 100% !important;
+  height: 260px !important;
+  object-fit: cover !important;
+  border-radius: 12px !important;
+  transition: transform 0.4s;
+}
+
+.property-card:hover img, .prop-card:hover img {
+  transform: scale(1.03);
+}
+
+.property-title, .prop-name, .property-card h3 {
+  font-size: 16px !important;
+  font-weight: 600 !important;
+  color: var(--airbnb-dark) !important;
+  margin: 12px 0 4px !important;
+}
+
+.property-location, .prop-loc {
+  font-size: 14px !important;
+  color: var(--airbnb-light-grey) !important;
+}
+
+.property-price, .prop-price {
+  font-size: 15px !important;
+  font-weight: 600 !important;
+  color: var(--airbnb-dark) !important;
+  margin-top: 6px;
+}
+
+.property-price::before {
+  content: '';
+}
+
+/* Buttons - Airbnb gradient */
+.btn, button.primary, .book-btn, .cta-btn, .whatsapp-btn-large {
+  background: linear-gradient(135deg, var(--airbnb-red) 0%, var(--airbnb-coral) 100%) !important;
+  color: #fff !important;
+  padding: 12px 24px !important;
+  border-radius: 8px !important;
+  border: none !important;
+  font-weight: 600 !important;
+  font-size: 15px !important;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 4px 12px rgba(255, 90, 95, 0.25);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  text-decoration: none !important;
+}
+
+.btn:hover, button.primary:hover, .book-btn:hover, .cta-btn:hover, .whatsapp-btn-large:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(255, 90, 95, 0.35);
+}
+
+.btn.secondary, button.secondary {
+  background: var(--airbnb-white) !important;
+  color: var(--airbnb-dark) !important;
+  border: 1.5px solid var(--airbnb-dark) !important;
+  box-shadow: none !important;
+}
+
+.btn.secondary:hover, button.secondary:hover {
+  background: var(--airbnb-bg) !important;
+}
+
+/* Section Titles */
+h2 {
+  font-size: 32px !important;
+  font-weight: 700 !important;
+  color: var(--airbnb-dark) !important;
+  margin: 40px 0 20px !important;
+  letter-spacing: -0.5px;
+}
+
+h3 {
+  font-size: 22px !important;
+  font-weight: 600 !important;
+  color: var(--airbnb-dark) !important;
+}
+
+/* USP Section */
+.usp-section, .features, .why-us {
+  background: var(--airbnb-bg) !important;
+  padding: 60px 20px !important;
+}
+
+.usp-card, .feature-card {
+  background: var(--airbnb-white) !important;
+  border-radius: 16px !important;
+  padding: 32px 24px !important;
+  border: 1px solid var(--airbnb-border) !important;
+  transition: all 0.3s;
+}
+
+.usp-card:hover, .feature-card:hover {
+  border-color: var(--airbnb-red) !important;
+  box-shadow: var(--airbnb-shadow-hover);
+  transform: translateY(-4px);
+}
+
+.usp-title, .feature-title {
+  font-size: 18px !important;
+  font-weight: 600 !important;
+  color: var(--airbnb-dark) !important;
+  margin: 12px 0 8px !important;
+}
+
+.usp-desc, .feature-desc {
+  color: var(--airbnb-light-grey) !important;
+  font-size: 15px !important;
+  line-height: 1.6 !important;
+}
+
+/* Contact Section */
+.contact-section {
+  background: linear-gradient(135deg, var(--airbnb-dark) 0%, var(--airbnb-grey) 100%) !important;
+  color: #fff !important;
+  padding: 80px 20px !important;
+  border-radius: 24px;
+  margin: 40px auto !important;
+  max-width: 1200px;
+}
+
+.contact-section h2 {
+  color: #fff !important;
+  font-size: 40px !important;
+}
+
+.contact-cards {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)) !important;
+  gap: 20px !important;
+  margin: 40px auto !important;
+  max-width: 900px;
+}
+
+.contact-card {
+  background: rgba(255,255,255,0.08) !important;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255,255,255,0.15) !important;
+  border-radius: 16px !important;
+  padding: 32px 24px !important;
+  text-align: center;
+  transition: all 0.3s;
+}
+
+.contact-card:hover {
+  background: rgba(255,90,95,0.15) !important;
+  border-color: var(--airbnb-red) !important;
+  transform: translateY(-4px);
+}
+
+.contact-card-name {
+  font-size: 20px !important;
+  font-weight: 700 !important;
+  color: #fff !important;
+  margin-bottom: 8px;
+}
+
+.contact-card-phone {
+  font-size: 22px !important;
+  color: var(--airbnb-red) !important;
+  font-weight: 600 !important;
+  margin: 8px 0;
+}
+
+.contact-card-role {
+  color: rgba(255,255,255,0.7) !important;
+  font-size: 13px !important;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+/* Property Detail Page */
+.property-hero, .prop-hero {
+  border-radius: 16px !important;
+  overflow: hidden !important;
+  margin-bottom: 32px !important;
+}
+
+.amenities-grid {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)) !important;
+  gap: 16px !important;
+}
+
+.amenity-item {
+  padding: 16px !important;
+  border: 1px solid var(--airbnb-border) !important;
+  border-radius: 12px !important;
+  transition: all 0.2s;
+}
+
+.amenity-item:hover {
+  border-color: var(--airbnb-red) !important;
+  background: #FFF8F8 !important;
+}
+
+/* Footer */
+footer {
+  background: var(--airbnb-bg) !important;
+  border-top: 1px solid var(--airbnb-border) !important;
+  padding: 40px 20px !important;
+  color: var(--airbnb-light-grey) !important;
+  text-align: center;
+}
+
+footer a {
+  color: var(--airbnb-dark) !important;
+  text-decoration: none;
+}
+
+footer a:hover {
+  color: var(--airbnb-red) !important;
+  text-decoration: underline;
+}
+
+/* WhatsApp button special */
+.whatsapp-btn-large {
+  background: #25D366 !important;
+  padding: 14px 28px !important;
+  font-size: 16px !important;
+}
+
+.whatsapp-btn-large:hover {
+  background: #128C7E !important;
+}
+
+.whatsapp-btn-large svg {
+  width: 24px;
+  height: 24px;
+}
+
+/* Grid Layouts */
+.properties-grid, .props-grid {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)) !important;
+  gap: 24px !important;
+  padding: 40px 20px !important;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+/* Star Rating */
+.rating, .stars {
+  color: var(--airbnb-dark) !important;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.rating::before, .stars::before {
+  content: '★';
+  color: var(--airbnb-dark);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .hero h1 { font-size: 32px !important; }
+  .hero p { font-size: 16px !important; }
+  h2 { font-size: 24px !important; }
+  .contact-section h2 { font-size: 28px !important; }
+  .property-card img { height: 220px !important; }
+  .properties-grid { grid-template-columns: 1fr !important; padding: 20px !important; }
+  .contact-cards { grid-template-columns: 1fr !important; }
+}
+
+/* Smooth scroll */
+html { scroll-behavior: smooth; }
+
+/* Selection color */
+::selection {
+  background: var(--airbnb-red);
+  color: #fff;
+}
+
+/* Print friendly */
+@media print {
+  body { background: #fff !important; }
+}
