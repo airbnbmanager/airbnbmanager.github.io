@@ -267,7 +267,7 @@ async function renderFlatsStatus() {
 
   if (error) { renderShell(`<div class="card"><div class="error">${error.message}</div></div>`, 'flats'); return; }
 
-  const can = ['owner', 'viewer', 'manager', 'checkin_manager'].includes(SESSION.role);
+  const can = ['owner','admin','viewer','manager','checkin_manager'].includes(SESSION.role);
   const freeCount = (flats || []).filter(f => f.status === 'Free').length;
   const bookedCount = (flats || []).filter(f => f.status === 'Booked').length;
   const dirtyCount = (flats || []).filter(f => f.cleaning_status === 'Dirty').length;

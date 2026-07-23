@@ -139,7 +139,7 @@ async function renderDashboard() {
 
   renderShell(`
     ${updateNoticeHTML()}
-    ${SESSION.role === 'owner' ? syncInfoHTML() : ''}
+    ${['owner','admin'].includes(SESSION.role) ? syncInfoHTML() : ''}
 
     <div class="card">
       <h1>📊 Dashboard</h1>
