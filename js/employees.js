@@ -1268,7 +1268,7 @@ async function showEmpDetailModal(empId) {
     sb.from('employees').select('*').eq('emp_id', empId).single(),
     sb.from('salary_tracker').select('*').eq('emp_id', empId).order('month', { ascending: false }),
     sb.from('advance_tracker').select('*').eq('emp_id', empId).order('date_given', { ascending: false }),
-    sb.from('daily_expenses').select('*, rooms(nickname)').eq('emp_id', empId).order('expense_date', { ascending: false }).limit(50),
+    sb.from('daily_expenses').select('*').eq('emp_id', empId).order('expense_date', { ascending: false }).limit(50),
     sb.from('attendance_log').select('status, att_date').eq('emp_id', empId).gte('att_date', new Date().toISOString().slice(0,7) + '-01'),
     sb.from('employee_tasks').select('*').eq('emp_id', empId).order('assigned_date', { ascending: false }).limit(20)
   ]);
@@ -1371,7 +1371,7 @@ async function showEmpDetailModal(empId) {
             <tr>
               <td style="font-size:12px;">${r.expense_date || '-'}</td>
               <td><span class="badge yellow">${r.category || '-'}</span></td>
-              <td style="font-size:12px;">${r.rooms?.nickname || r.room_id || 'General'}</td>
+              <td style="font-size:12px;">${r.room_id || 'General'}</td>
               <td style="color:var(--red);">₹${(r.amount || 0).toLocaleString('en-IN')}</td>
               <td style="font-size:12px;max-width:150px;">${r.description || '-'}</td>
             </tr>
