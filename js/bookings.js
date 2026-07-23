@@ -1257,9 +1257,12 @@ async function updateBooking(bkId, parentBookingId = '', stayGroupId = '') {
     if (clash) { document.getElementById('editBkErr').innerHTML = `<div class="error">Clash: ${clash.guest_name}</div>`; return; }
   }
 
-  let newFP = null, newBP = null, newAP = null;
   const gc = parseInt(document.getElementById('guests')?.value) || 1;
-  const fArr = [], bArr = [], aArr = [];
+  const existFront = parseIdPathArray(b?.id_proof_front_paths);
+  const existBack  = parseIdPathArray(b?.id_proof_back_paths);
+  const fArr = existFront.length ? existFront.slice() : Array(gc).fill(null);
+  const bArr = existBack.length  ? existBack.slice()  : Array(gc).fill(null);
+  const aArr = (b?.id_proof_photo_paths || '').split(',').filter(Boolean);
   for (let i = 1; i <= gc; i++) {
     const fFile = document.getElementById(`eFCam${i}`)?.files?.[0] || document.getElementById(`eFGal${i}`)?.files?.[0];
     if (fFile) { try { const c = await compressImage(fFile); const p = `${bkId}/${Date.now()}_g${i}_front.jpg`; const { error } = await sb.storage.from('id-proofs').upload(p, c, { contentType: 'image/jpeg' }); if (!error) { while(fArr.length < i) fArr.push(null); fArr[i-1] = p; aArr.push(p); } } catch (e) { } }
