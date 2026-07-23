@@ -150,6 +150,36 @@ async function processAirbnbCSV(input) {
         </div>
       </div>
 
+      ${nameMismatches.length > 0 ? `
+      <div class="card" style="border-left:4px solid var(--yellow);background:#FFF9E6;">
+        <div class="section-title">
+          ✏️ Name Mismatches (${nameMismatches.length}) — Update to Airbnb official names
+        </div>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:8px;">
+          These bookings match by date+amount but names differ. Click "Fix" to update app with Airbnb name.
+        </div>
+        <div class="table-wrap"><table>
+          <thead><tr>
+            <th>App Name (Current)</th><th>Airbnb Name (Official)</th><th>Date</th><th>Amount</th><th>Action</th>
+          </tr></thead>
+          <tbody>
+            ${nameMismatches.map((nm, i) => `
+              <tr>
+                <td style="color:var(--red);">${nm.oldName}</td>
+                <td style="color:var(--green);font-weight:700;">${nm.newName}</td>
+                <td style="font-size:12px;">${nm.checkIn}</td>
+                <td>₹${nm.amount.toLocaleString('en-IN')}</td>
+                <td><button class="btn-sm green-btn" onclick="fixNameMismatch(${i})">✏️ Fix Name</button></td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table></div>
+        <button class="btn-sm" style="margin-top:10px;background:var(--green);" onclick="fixAllNameMismatches()">
+          ✅ Fix All ${nameMismatches.length} Names
+        </button>
+      </div>
+      ` : ''}
+
       ${missing.length > 0 ? `
       <div class="card" style="border-left:4px solid var(--red);">
         <div class="section-title">
@@ -333,5 +363,36 @@ async function quickAddMissing(index) {
   alert(`✅ Added: ${m.guest} at ${matchedRoom.nickname}`);
 
   // Refresh
+  document.querySelector('input[type="file"]').dispatchEvent(new Event('change'));
+}
+
+
+async function fixNameMismatch(index) {
+  const nm = window._nameMismatches?.[index];
+  if (!nm) return;
+
+  const { error } = await sb.from('guest_register')
+    .update({ guest_name: nm.newName })
+    .eq('booking_id', nm.bookingId);
+
+  if (error) { alert('❌ ' + error.message); return; }
+  alert(`✅ Updated: ${nm.oldName} → ${nm.newName}`);
+  document.querySelector('input[type="file"]').dispatchEvent(new Event('change'));
+}
+
+async function fixAllNameMismatches() {
+  const list = window._nameMismatches || [];
+  if (!list.length) return;
+  if (!confirm(`Update ${list.length} guest names to Airbnb official names?`)) return;
+
+  let success = 0, failed = 0;
+  for (const nm of list) {
+    const { error } = await sb.from('guest_register')
+      .update({ guest_name: nm.newName })
+      .eq('booking_id', nm.bookingId);
+    if (error) failed++;
+    else success++;
+  }
+  alert(`✅ Updated ${success} names\n❌ Failed: ${failed}`);
   document.querySelector('input[type="file"]').dispatchEvent(new Event('change'));
 }
