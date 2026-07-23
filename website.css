@@ -3031,3 +3031,178 @@ a.whatsapp-btn-large * {
     padding: 5px 12px !important;
   }
 }
+
+/* ============ CONTACT SECTION - PREMIUM WHITE/LIGHT ============ */
+.contact-section {
+  background: #FFFFFF !important;
+  color: #222222 !important;
+  padding: 80px 40px !important;
+  border-radius: 32px !important;
+  margin: 60px 20px !important;
+  max-width: 1200px !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.08) !important;
+  border: 1px solid #EBEBEB !important;
+  position: relative !important;
+  overflow: hidden !important;
+}
+
+/* Decorative gradient corner */
+.contact-section::before {
+  content: '' !important;
+  position: absolute !important;
+  top: -100px !important;
+  right: -100px !important;
+  width: 400px !important;
+  height: 400px !important;
+  background: radial-gradient(circle, rgba(255,56,92,0.08) 0%, transparent 70%) !important;
+  pointer-events: none !important;
+}
+
+/* Heading */
+.contact-section h2 {
+  color: #222222 !important;
+  font-size: 44px !important;
+  font-weight: 800 !important;
+  text-align: center !important;
+  margin-bottom: 16px !important;
+  letter-spacing: -0.03em !important;
+  font-family: 'Inter', sans-serif !important;
+  font-style: normal !important;
+}
+
+.contact-section > p {
+  color: #717171 !important;
+  text-align: center !important;
+  font-size: 17px !important;
+  max-width: 600px !important;
+  margin: 0 auto 48px !important;
+  line-height: 1.6 !important;
+}
+
+/* Contact cards - Light premium */
+.contact-cards {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)) !important;
+  gap: 24px !important;
+  max-width: 1000px !important;
+  margin: 40px auto !important;
+}
+
+.contact-card {
+  background: #FAFAFA !important;
+  border: 2px solid #EBEBEB !important;
+  border-radius: 20px !important;
+  padding: 40px 24px !important;
+  text-align: center !important;
+  transition: all 0.3s !important;
+  backdrop-filter: none !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  min-height: 220px !important;
+}
+
+.contact-card:hover {
+  background: #FFF !important;
+  border-color: #FF385C !important;
+  transform: translateY(-8px) !important;
+  box-shadow: 0 20px 40px rgba(255,56,92,0.15) !important;
+}
+
+/* Name */
+.contact-card-name,
+.contact-card > *:first-child {
+  font-size: 22px !important;
+  font-weight: 700 !important;
+  color: #222222 !important;
+  margin: 0 0 16px 0 !important;
+  letter-spacing: -0.3px !important;
+}
+
+/* Phone - big red */
+.contact-card-phone {
+  font-size: 26px !important;
+  color: #FF385C !important;
+  font-weight: 800 !important;
+  margin: 12px 0 !important;
+  word-break: break-word !important;
+  letter-spacing: 0.3px !important;
+}
+
+/* Email link */
+.contact-card-phone a[href^="mailto:"] {
+  font-size: 15px !important;
+  color: #FF385C !important;
+  font-weight: 600 !important;
+  word-break: break-all !important;
+  display: inline-block !important;
+  max-width: 100% !important;
+  border-bottom: 1.5px dashed rgba(255,56,92,0.4) !important;
+  text-decoration: none !important;
+  padding-bottom: 2px !important;
+}
+
+.contact-card-phone a[href^="mailto:"]:hover {
+  color: #E00B41 !important;
+  border-bottom-style: solid !important;
+}
+
+/* Role badge */
+.contact-card-role {
+  color: #FF385C !important;
+  font-size: 11px !important;
+  font-weight: 800 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 2.5px !important;
+  margin-top: 16px !important;
+  padding: 8px 18px !important;
+  background: #FFF0F3 !important;
+  border-radius: 999px !important;
+  display: inline-block !important;
+  border: 1px solid rgba(255,56,92,0.2) !important;
+}
+
+/* Enquiry text at bottom */
+.contact-section > div:last-child,
+.contact-section [style*="rgba(255,255,255,0.5)"] {
+  color: #717171 !important;
+  font-size: 15px !important;
+  font-weight: 500 !important;
+  margin-top: 30px !important;
+  text-align: center !important;
+}
+
+/* WhatsApp buttons container */
+.contact-section [style*="justify-content:center"][style*="gap"],
+.contact-section > div:has(.whatsapp-btn-large) {
+  display: flex !important;
+  justify-content: center !important;
+  gap: 16px !important;
+  flex-wrap: wrap !important;
+  margin: 32px 0 !important;
+}
+
+/* Mobile */
+@media (max-width: 768px) {
+  .contact-section {
+    padding: 48px 20px !important;
+    margin: 40px 16px !important;
+    border-radius: 20px !important;
+  }
+  .contact-section h2 { font-size: 30px !important; }
+  .contact-section > p { font-size: 15px !important; margin-bottom: 32px !important; }
+  .contact-cards {
+    grid-template-columns: 1fr !important;
+    gap: 14px !important;
+  }
+  .contact-card {
+    padding: 32px 20px !important;
+    min-height: auto !important;
+  }
+  .contact-card-name { font-size: 19px !important; }
+  .contact-card-phone { font-size: 22px !important; }
+  .contact-card-phone a[href^="mailto:"] { font-size: 13px !important; }
+}
