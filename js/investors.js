@@ -487,15 +487,6 @@ async function renderInvestorReport(investorId, roomId, month) {
         </table>
       </div>
 
-      ${excludedBookings.length > 0 ? `
-      <div style="margin-bottom:16px;padding:10px 14px;background:#FFF9E6;border-left:4px solid #FFB800;border-radius:6px;font-size:12px;">
-        <strong>ℹ️ Excluded Bookings (${excludedBookings.length}):</strong> Complimentary/Friends stays not counted in revenue.
-        <div style="margin-top:6px;color:#767676;">
-          ${excludedBookings.map(b => `• ${b.guest_name} (${b.check_in} → ${b.check_out})`).join('<br>')}
-        </div>
-      </div>
-      ` : ''}
-
       <div style="margin-bottom:20px;">
         <div style="font-size:15px;font-weight:700;margin-bottom:10px;padding:8px 12px;background:linear-gradient(90deg,#FC642D,#FF5A5F);color:#fff;border-radius:6px;">📊 Total Revenue Summary</div>
         <table style="width:100%;border-collapse:collapse;font-size:13px;">
@@ -626,6 +617,42 @@ async function renderInvestorReport(investorId, roomId, month) {
           stable performance and improve profitability in the coming months.
         </p>
       </div>
+
+      ${excludedBookings.length > 0 ? `
+      <div style="margin-bottom:20px;padding-top:20px;border-top:2px dashed #FFB800;">
+        <div style="font-size:15px;font-weight:700;margin-bottom:10px;padding:8px 12px;background:linear-gradient(90deg,#FFB800,#FC642D);color:#fff;border-radius:6px;">🎁 Complimentary / Friends Stays (Not in Revenue)</div>
+        <table style="width:100%;border-collapse:collapse;font-size:12px;">
+          <thead>
+            <tr style="background:#FFF9E6;border-bottom:2px solid #FFB800;">
+              <th style="padding:6px;border:1px solid #FFB800;">Guest</th>
+              <th style="padding:6px;border:1px solid #FFB800;">Check-in</th>
+              <th style="padding:6px;border:1px solid #FFB800;">Check-out</th>
+              <th style="padding:6px;border:1px solid #FFB800;">Nights</th>
+              <th style="padding:6px;border:1px solid #FFB800;">Notes</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${excludedBookings.map(b => `
+              <tr>
+                <td style="padding:6px;border:1px solid #FFB800;">${b.guest_name || '-'}</td>
+                <td style="padding:6px;border:1px solid #FFB800;">${b.check_in || '-'}</td>
+                <td style="padding:6px;border:1px solid #FFB800;">${b.check_out || '-'}</td>
+                <td style="padding:6px;border:1px solid #FFB800;text-align:center;">${cn(b)}</td>
+                <td style="padding:6px;border:1px solid #FFB800;font-size:11px;color:#767676;">${b.notes || 'Complimentary'}</td>
+              </tr>
+            `).join('')}
+            <tr style="background:#FFF9E6;font-weight:700;">
+              <td colspan="3" style="padding:6px;border:1px solid #FFB800;text-align:right;">Total Complimentary Nights:</td>
+              <td style="padding:6px;border:1px solid #FFB800;text-align:center;">${excludedBookings.reduce((s,b) => s + cn(b), 0)}</td>
+              <td style="padding:6px;border:1px solid #FFB800;text-align:center;color:#767676;">Not counted</td>
+            </tr>
+          </tbody>
+        </table>
+        <div style="font-size:11px;color:#767676;margin-top:6px;font-style:italic;">
+          ℹ️ These stays are excluded from revenue calculation. Shown here for transparency only.
+        </div>
+      </div>
+      ` : ''}
 
       <div style="background:linear-gradient(135deg,#484848,#767676);color:#fff;padding:20px;margin:20px -30px -30px -30px;border-radius:0 0 12px 12px;text-align:center;">
         <img src="assets/logo.png" alt="Logo" style="width:40px;height:40px;border-radius:8px;background:#fff;padding:4px;margin-bottom:6px;" />
