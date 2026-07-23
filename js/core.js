@@ -290,12 +290,20 @@ function renderShell(content, activePage = 'dashboard') {
 
   if (isOwner) {
     nav = [
+      { section: 'MAIN' },
       ['dashboard', '🏠 Dashboard'],
       ['reports', '📆 Calendar'],
+
+      { section: 'GUESTS' },
       ['bookings', '📅 Bookings'],
       ['flats', '🛏️ Flats Status'],
+
+      { section: 'PROPERTIES' },
       ['rooms', '🏠 Properties'],
       ['shifts', '🕐 Shifts'],
+      ['maintenance', '🔧 Maintenance'],
+
+      { section: 'TEAM' },
       ['employees', '👥 Employees'],
       ['tasks', '🧰 Tasks'],
       ['attendance', '📋 Attendance'],
@@ -303,13 +311,18 @@ function renderShell(content, activePage = 'dashboard') {
       ['salary', '💰 Payroll'],
       ['advance', '💵 Advances'],
       ['emp-expenses', '🧾 Staff Expenses'],
-      ['store', '📦 Inventory'],
+
+      { section: 'FINANCE' },
       ['expenses', '💹 Expenses & P&L'],
       ['monthly-expenses', '📅 Monthly Expenses'],
-      ['maintenance', '🔧 Maintenance'],
-      ['property-report', '🏘️ Property Reports'],
       ['financial', '📊 Financial Summary'],
+      ['property-report', '🏘️ Property Reports'],
       ['investors', '🧑‍💼 Investors'],
+
+      { section: 'STORE' },
+      ['store', '📦 Inventory'],
+
+      { section: 'ADMIN' },
       ['user-mgmt', '👤 User Management'],
       ['sop', '📘 SOP Guide'],
     ];
@@ -323,21 +336,34 @@ function renderShell(content, activePage = 'dashboard') {
     ];
   } else {
     nav = [
+      { section: 'MAIN' },
       ['dashboard', '🏠 Dashboard'],
       ['reports', '📆 Calendar'],
+
+      { section: 'GUESTS' },
       ['bookings', '📅 Bookings'],
       ['flats', '🛏️ Flats Status'],
+
+      { section: 'PROPERTIES' },
+      ['maintenance', '🔧 Maintenance'],
+
+      { section: 'TEAM' },
       ['employees', '👥 Employees'],
       ['att-summary', '📊 Attendance Report'],
       ['salary', '💰 Payroll'],
       ['advance', '💵 Advances'],
       ['emp-expenses', '🧾 Staff Expenses'],
+
+      { section: 'FINANCE' },
       ['expenses', '💹 Expenses & P&L'],
-      ['maintenance', '🔧 Maintenance'],
-      ['property-report', '🏘️ Property Reports'],
       ['financial', '📊 Financial Summary'],
+      ['property-report', '🏘️ Property Reports'],
       ['investors', '🧑‍💼 Investors'],
+
+      { section: 'STORE' },
       ['store', '📦 Inventory'],
+
+      { section: 'HELP' },
       ['sop', '📘 SOP Guide'],
     ];
   }
@@ -363,7 +389,13 @@ function renderShell(content, activePage = 'dashboard') {
 
         <!-- Row 2: Navigation -->
         <nav class="sidebar-nav">
-          ${nav.map(([k, l]) => `<a href="#" data-page="${k}" class="${activePage === k ? 'active' : ''}">${l}</a>`).join('')}
+          ${nav.map(item => {
+            if (item.section) {
+              return `<div style="font-size:10px;font-weight:700;color:rgba(255,255,255,0.4);letter-spacing:1.5px;padding:12px 12px 4px;margin-top:4px;">${item.section}</div>`;
+            }
+            const [k, l] = item;
+            return `<a href="#" data-page="${k}" class="${activePage === k ? 'active' : ''}">${l}</a>`;
+          }).join('')}
         </nav>
       </aside>
       <main class="main-content" id="mainContent">${content}</main>
