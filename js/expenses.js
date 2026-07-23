@@ -911,3 +911,297 @@ async function deleteDefaultExpense(id, name) {
   alert('✅ Deleted');
   renderDefaultExpenses();
 }
+
+// ============ MONTHLY PROPERTY EXPENSE MANAGER ============
+async function renderMonthlyExpenses(roomId, month) {
+  renderShell(`<div class="loading">Loading...</div>`, 'expenses');
+
+  const now = new Date();
+  const selMonth = month || `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  const monthLabel = new Date(selMonth + '-01').toLocaleString('en-IN', { month: 'short', year: 'numeric' }).replace(' ', '-');
+
+  // Previous month
+  const prevDate = new Date(selMonth + '-01');
+  prevDate.setMonth(prevDate.getMonth() - 1);
+  const prevMonthLabel = prevDate.toLocaleString('en-IN', { month: 'short', year: 'numeric' }).replace(' ', '-');
+
+  const [{ data: rooms }, { data: cats }, { data: defaults }] = await Promise.all([
+    sb.from('rooms').select('room_id, nickname, unit_no').order('room_id'),
+    sb.from('expense_categories').select('*').order('category_name'),
+    sb.from('property_default_expenses').select('*')
+  ]);
+
+  const selRoom = roomId || rooms?.[0]?.room_id;
+  const room = (rooms || []).find(r => r.room_id === selRoom);
+
+  // Load current month expenses for this room
+  const { data: currentExps } = await sb.from('expenses')
+    .select('*, expense_categories(category_name)')
+    .eq('room_id', selRoom)
+    .eq('month', monthLabel);
+
+  // Load previous month for auto-copy option
+  const { data: prevExps } = await sb.from('expenses')
+    .select('*, expense_categories(category_name)')
+    .eq('room_id', selRoom)
+    .eq('month', prevMonthLabel);
+
+  // Get property defaults
+  const roomDefaults = (defaults || []).filter(d => d.room_id === selRoom);
+
+  // Build combined expense list
+  const expenseMap = {};
+
+  // Start with defaults
+  roomDefaults.forEach(d => {
+    expenseMap[d.expense_name] = {
+      name: d.expense_name,
+      defaultAmount: d.default_amount || 0,
+      currentAmount: 0,
+      prevAmount: 0,
+      currentId: null,
+      isFixed: d.is_fixed
+    };
+  });
+
+  // Add previous month amounts
+  (prevExps || []).forEach(e => {
+    const catName = e.expense_categories?.category_name || 'Other';
+    if (!expenseMap[catName]) {
+      expenseMap[catName] = { name: catName, defaultAmount: 0, currentAmount: 0, prevAmount: 0, currentId: null, isFixed: false };
+    }
+    expenseMap[catName].prevAmount = e.amount || 0;
+    expenseMap[catName].categoryId = e.category_id;
+  });
+
+  // Add current month amounts (override)
+  (currentExps || []).forEach(e => {
+    const catName = e.expense_categories?.category_name || 'Other';
+    if (!expenseMap[catName]) {
+      expenseMap[catName] = { name: catName, defaultAmount: 0, currentAmount: 0, prevAmount: 0, currentId: null, isFixed: false };
+    }
+    expenseMap[catName].currentAmount = e.amount || 0;
+    expenseMap[catName].currentId = e.id;
+    expenseMap[catName].categoryId = e.category_id;
+  });
+
+  // Add categories that don't exist yet
+  (cats || []).forEach(c => {
+    if (!expenseMap[c.category_name]) {
+      expenseMap[c.category_name] = {
+        name: c.category_name,
+        defaultAmount: c.default_monthly_amount || 0,
+        currentAmount: 0,
+        prevAmount: 0,
+        currentId: null,
+        isFixed: false,
+        categoryId: c.category_id
+      };
+    } else if (!expenseMap[c.category_name].categoryId) {
+      expenseMap[c.category_name].categoryId = c.category_id;
+    }
+  });
+
+  const expList = Object.values(expenseMap);
+  const totalCurrent = expList.reduce((s, e) => s + (e.currentAmount || 0), 0);
+  const totalPrev = expList.reduce((s, e) => s + (e.prevAmount || 0), 0);
+  const totalDefault = expList.reduce((s, e) => s + (e.defaultAmount || 0), 0);
+
+  // Month options (last 12)
+  const months = [];
+  for (let i = 0; i < 12; i++) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    months.push({
+      val: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`,
+      lbl: d.toLocaleString('en-IN', { month: 'long', year: 'numeric' })
+    });
+  }
+
+  window._monthlyExpData = { selRoom, selMonth, monthLabel, prevMonthLabel, expList, cats: cats || [] };
+
+  renderShell(`
+    <div class="card">
+      <h1>📅 Monthly Property Expenses</h1>
+      <div class="sub">Simple month-end expense entry per property</div>
+      <button class="secondary btn-sm" onclick="renderExpenses()">← Back to All</button>
+    </div>
+
+    <div class="card">
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Property *</label>
+          <select onchange="renderMonthlyExpenses(this.value, '${selMonth}')">
+            ${(rooms || []).map(r =>
+              `<option value="${r.room_id}" ${r.room_id === selRoom ? 'selected' : ''}>${r.nickname || r.unit_no}</option>`
+            ).join('')}
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Month *</label>
+          <select onchange="renderMonthlyExpenses('${selRoom}', this.value)">
+            ${months.map(m =>
+              `<option value="${m.val}" ${m.val === selMonth ? 'selected' : ''}>${m.lbl}</option>`
+            ).join('')}
+          </select>
+        </div>
+      </div>
+      <div class="btn-row">
+        ${(prevExps || []).length > 0 ? `<button class="btn-sm outline" onclick="copyPrevMonthExpenses()">📋 Copy from ${prevMonthLabel}</button>` : ''}
+        <button class="btn-sm outline" onclick="applyDefaultExpenses()">⚙️ Apply Defaults</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="section-title">
+        🏠 ${room?.nickname || selRoom} — ${monthLabel}
+        <span class="badge red" style="float:right;">Total: ₹${totalCurrent.toLocaleString('en-IN')}</span>
+      </div>
+
+      <div class="table-wrap"><table>
+        <thead><tr>
+          <th>Expense</th>
+          <th>Default</th>
+          <th>${prevMonthLabel}</th>
+          <th>Current Month ₹</th>
+          <th>Action</th>
+        </tr></thead>
+        <tbody>
+          ${expList.map((e, i) => `
+            <tr>
+              <td><strong>${e.name}</strong></td>
+              <td style="color:var(--muted);font-size:12px;">₹${e.defaultAmount.toLocaleString('en-IN')}</td>
+              <td style="color:var(--muted);font-size:12px;">₹${e.prevAmount.toLocaleString('en-IN')}</td>
+              <td>
+                <input type="number" id="expInput_${i}"
+                  value="${e.currentAmount || ''}"
+                  placeholder="0"
+                  style="width:100%;font-size:13px;padding:6px 8px;"
+                  data-cat="${e.categoryId || ''}"
+                  data-name="${e.name}"
+                  data-id="${e.currentId || ''}" />
+              </td>
+              <td>
+                ${e.prevAmount > 0 && !e.currentAmount ?
+                  `<button class="btn-sm outline" onclick="document.getElementById('expInput_${i}').value = ${e.prevAmount}">↺ Prev</button>` :
+                  ''}
+                ${e.defaultAmount > 0 && !e.currentAmount ?
+                  `<button class="btn-sm outline" onclick="document.getElementById('expInput_${i}').value = ${e.defaultAmount}">↺ Default</button>` :
+                  ''}
+              </td>
+            </tr>
+          `).join('')}
+        </tbody>
+        <tfoot>
+          <tr style="font-weight:700;background:#fafafa;">
+            <td>Total</td>
+            <td style="color:var(--muted);">₹${totalDefault.toLocaleString('en-IN')}</td>
+            <td style="color:var(--muted);">₹${totalPrev.toLocaleString('en-IN')}</td>
+            <td style="color:var(--red);">₹${totalCurrent.toLocaleString('en-IN')}</td>
+            <td></td>
+          </tr>
+        </tfoot>
+      </table></div>
+
+      <button onclick="saveMonthlyExpenses()" style="width:100%;margin-top:12px;padding:14px;">
+        💾 Save All Expenses for ${monthLabel}
+      </button>
+      <div id="monthlyExpErr"></div>
+    </div>
+
+    <div class="card" style="background:#f0f7ff;border-left:4px solid var(--blue);">
+      <div class="section-title">💡 How to Use</div>
+      <div style="font-size:13px;line-height:2;">
+        <p><strong>1.</strong> Property + Month select karo</p>
+        <p><strong>2.</strong> "Copy from Prev" — pichle mahine ke amounts copy karo</p>
+        <p><strong>3.</strong> "Apply Defaults" — property defaults apply karo</p>
+        <p><strong>4.</strong> Har expense ka amount enter/edit karo</p>
+        <p><strong>5.</strong> "↺ Prev" ya "↺ Default" button se quick fill</p>
+        <p><strong>6.</strong> 💾 Save All — sab expenses ek saath save honge</p>
+      </div>
+    </div>
+  `, 'expenses');
+}
+
+async function copyPrevMonthExpenses() {
+  const d = window._monthlyExpData;
+  d.expList.forEach((e, i) => {
+    if (e.prevAmount > 0) {
+      const input = document.getElementById(`expInput_${i}`);
+      if (input) input.value = e.prevAmount;
+    }
+  });
+  alert(`✅ Copied from ${d.prevMonthLabel}`);
+}
+
+async function applyDefaultExpenses() {
+  const d = window._monthlyExpData;
+  d.expList.forEach((e, i) => {
+    if (e.defaultAmount > 0) {
+      const input = document.getElementById(`expInput_${i}`);
+      if (input) input.value = e.defaultAmount;
+    }
+  });
+  alert('✅ Defaults applied');
+}
+
+async function saveMonthlyExpenses() {
+  const btn = document.querySelector('button[onclick="saveMonthlyExpenses()"]');
+  if (btn) { if (btn.disabled) return; btn.disabled = true; btn.textContent = '⏳ Saving...'; }
+
+  const d = window._monthlyExpData;
+  const inputs = document.querySelectorAll('input[id^="expInput_"]');
+
+  const errors = [];
+  let saved = 0;
+
+  for (const input of inputs) {
+    const amount = parseFloat(input.value) || 0;
+    const catId = input.dataset.cat;
+    const name = input.dataset.name;
+    const existingId = input.dataset.id;
+
+    // Skip if no amount and no existing record
+    if (amount === 0 && !existingId) continue;
+
+    try {
+      if (amount === 0 && existingId) {
+        // Delete existing if amount is 0
+        await sb.from('expenses').delete().eq('id', existingId);
+        saved++;
+      } else if (existingId) {
+        // Update existing
+        await sb.from('expenses').update({
+          amount,
+          category_id: catId || null,
+          month: d.monthLabel,
+          room_id: d.selRoom
+        }).eq('id', existingId);
+        saved++;
+      } else if (catId) {
+        // Insert new
+        await sb.from('expenses').insert({
+          category_id: catId,
+          room_id: d.selRoom,
+          month: d.monthLabel,
+          amount,
+          entry_date: new Date().toISOString().slice(0, 10),
+          notes: `Monthly bulk entry`
+        });
+        saved++;
+      } else {
+        errors.push(`${name}: category missing`);
+      }
+    } catch (e) {
+      errors.push(`${name}: ${e.message}`);
+    }
+  }
+
+  if (errors.length) {
+    document.getElementById('monthlyExpErr').innerHTML =
+      `<div class="error">${errors.join('<br>')}</div>`;
+    if (btn) { btn.disabled = false; btn.textContent = '💾 Save All Expenses'; }
+  } else {
+    alert(`✅ ${saved} expenses saved for ${d.monthLabel}`);
+    renderMonthlyExpenses(d.selRoom, d.selMonth);
+  }
+}
