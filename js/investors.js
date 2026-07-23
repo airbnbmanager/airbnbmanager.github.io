@@ -330,6 +330,20 @@ async function renderInvestorReport(investorId, roomId, month) {
     sb.from('payment_history').select('booking_id, amount'),
   ]);
 
+  // Filter out complimentary/friends bookings
+  const excludeKeywords = ['(friends)', '(complimentary)', '(comp)', '(free)', '(owner)', '(family)'];
+  const isExcluded = (b) => {
+    const name = (b.guest_name || '').toLowerCase();
+    const notes = (b.notes || '').toLowerCase();
+    return excludeKeywords.some(k => name.includes(k) || notes.includes(k));
+  };
+
+  const filteredBookings = (bookings || []).filter(b => !isExcluded(b));
+  const excludedBookings = (bookings || []).filter(b => isExcluded(b));
+
+  // Override bookings variable
+  bookings = filteredBookings;
+
   const share = inv?.revenue_share_pct || 70;
   const cs = 100 - share;
   const bkIds = (bookings || []).map(b => b.booking_id);
@@ -475,6 +489,15 @@ async function renderInvestorReport(investorId, roomId, month) {
           </tbody>
         </table>
       </div>
+
+      ${excludedBookings.length > 0 ? `
+      <div style="margin-bottom:16px;padding:10px 14px;background:#FFF9E6;border-left:4px solid #FFB800;border-radius:6px;font-size:12px;">
+        <strong>ℹ️ Excluded Bookings (${excludedBookings.length}):</strong> Complimentary/Friends stays not counted in revenue.
+        <div style="margin-top:6px;color:#767676;">
+          ${excludedBookings.map(b => `• ${b.guest_name} (${b.check_in} → ${b.check_out})`).join('<br>')}
+        </div>
+      </div>
+      ` : ''}
 
       <div style="margin-bottom:20px;">
         <div style="font-size:15px;font-weight:700;margin-bottom:10px;padding:8px 12px;background:linear-gradient(90deg,#FC642D,#FF5A5F);color:#fff;border-radius:6px;">📊 Total Revenue Summary</div>
