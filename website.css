@@ -3489,3 +3489,80 @@ a.whatsapp-btn-large {
   font-weight: 700 !important;
   font-size: 14px !important;
 }
+
+/* ============ HERO TOP GAP FIX ============ */
+.hero, .hero-section, section.hero {
+  padding: 40px 20px 40px !important;
+}
+
+@media (max-width: 768px) {
+  .hero, .hero-section, section.hero {
+    padding: 24px 16px 32px !important;
+  }
+}
+
+/* ============ SUPERHOST BADGE - FINAL FIX ============ */
+/* Remove any gradient/red background from badge itself */
+.superhost-trust-badge,
+a.superhost-trust-badge {
+  background: #FFFFFF !important;
+  background-color: #FFFFFF !important;
+  background-image: none !important;
+  border: 2.5px solid #FF385C !important;
+  padding: 10px 20px !important;
+  border-radius: 999px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 12px !important;
+  text-decoration: none !important;
+  box-shadow: 0 8px 24px rgba(255,56,92,0.12) !important;
+}
+
+/* Remove any pseudo elements */
+.superhost-trust-badge::before,
+.superhost-trust-badge::after {
+  content: none !important;
+  display: none !important;
+  background: none !important;
+}
+
+/* All children - transparent bg */
+.superhost-trust-badge > *,
+.superhost-trust-badge span {
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  box-shadow: none !important;
+}
+
+/* SUPERHOST pill - only this red */
+.superhost-trust-badge > span:first-child,
+.superhost-trust-badge .sh-pill {
+  background: #FF385C !important;
+  background-color: #FF385C !important;
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+  padding: 6px 12px !important;
+  border-radius: 999px !important;
+  font-size: 11px !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.5px !important;
+}
+
+/* Star + rating - red text on white */
+.superhost-trust-badge > span:nth-child(2),
+.superhost-trust-badge .sh-rating {
+  color: #E00B41 !important;
+  -webkit-text-fill-color: #E00B41 !important;
+  font-weight: 800 !important;
+  font-size: 18px !important;
+}
+
+/* Reviews text - dark on white */
+.superhost-trust-badge > span:nth-child(3),
+.superhost-trust-badge .sh-reviews {
+  color: #222222 !important;
+  -webkit-text-fill-color: #222222 !important;
+  font-weight: 600 !important;
+  font-size: 14px !important;
+}
