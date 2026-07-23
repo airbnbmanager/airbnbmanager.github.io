@@ -3404,3 +3404,39 @@ a.whatsapp-btn-large {
   fill: #fff !important;
   flex-shrink: 0 !important;
 }
+
+/* Superhost badge - FORCE red border white bg */
+.superhost-trust-badge {
+  background: #FFFFFF !important;
+  background-image: none !important;
+  border: 2.5px solid #FF385C !important;
+  box-shadow: 0 8px 24px rgba(255,56,92,0.15) !important;
+}
+
+.superhost-trust-badge .sh-pill,
+.superhost-trust-badge > span:nth-child(1) {
+  background: #FF385C !important;
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+}
+
+.superhost-trust-badge .sh-rating,
+.superhost-trust-badge > span:nth-child(2) {
+  color: #E00B41 !important;
+  -webkit-text-fill-color: #E00B41 !important;
+  background: transparent !important;
+}
+
+.superhost-trust-badge .sh-reviews,
+.superhost-trust-badge > span:nth-child(3) {
+  color: #222222 !important;
+  -webkit-text-fill-color: #222222 !important;
+  background: transparent !important;
+}
+
+/* Floating WhatsApp icon proper white */
+.floating-whatsapp svg,
+.floating-whatsapp svg path {
+  fill: #FFFFFF !important;
+  color: #FFFFFF !important;
+}
