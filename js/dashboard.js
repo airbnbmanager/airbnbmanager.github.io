@@ -108,6 +108,32 @@ async function renderDashboard() {
 
   const maintPending = (maint || []).length;
 
+  const today30 = new Date(); today30.setDate(today30.getDate() - 30);
+  const today30Str = today30.toISOString().slice(0, 10);
+  const extendedStays = allBookings.filter(b =>
+    b.parent_booking_id &&
+    b.check_in >= today30Str &&
+    (b.check_out >= today || !b.check_out)
+  ).sort((a, b) => (b.check_in || '').localeCompare(a.check_in || ''));
+  const extendedWithParent = extendedStays.map(ext => {
+    const parent = allBookings.find(pb => pb.booking_id === ext.parent_booking_id);
+    return { ext, parent };
+  });
+  const allShifts = [];
+  allBookings.filter(b => b.parent_booking_id && b.check_in >= today30Str)
+    .forEach(ext => {
+      const parent = allBookings.find(pb => pb.booking_id === ext.parent_booking_id);
+      if (parent && parent.room_id !== ext.room_id) {
+        allShifts.push({
+          guest: ext.guest_name,
+          fromRoom: parent.rooms?.nickname || parent.room_id,
+          toRoom: ext.rooms?.nickname || ext.room_id,
+          shiftDate: ext.check_in,
+          phone: ext.phone
+        });
+      }
+    });
+
   const bName = b => `${b.rooms?.nickname || b.rooms?.unit_no || b.room_id}`;
   const fName = fl => `${fl.rooms?.nickname || fl.rooms?.unit_no || fl.room_id}`;
 
