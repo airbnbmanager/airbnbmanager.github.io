@@ -2891,3 +2891,36 @@ footer a { color: #484848 !important; }
   flex-wrap: wrap !important;
   margin: 24px 0 !important;
 }
+
+/* ============ WHATSAPP BUTTON - FORCE WHITE TEXT ============ */
+.whatsapp-btn-large,
+.whatsapp-btn-large *,
+a.whatsapp-btn-large,
+a.whatsapp-btn-large * {
+  color: #ffffff !important;
+  background-image: none !important;
+  -webkit-text-fill-color: #ffffff !important;
+  text-shadow: none !important;
+}
+
+.whatsapp-btn-large {
+  background: #25D366 !important;
+  background-color: #25D366 !important;
+}
+
+.whatsapp-btn-large svg,
+.whatsapp-btn-large svg path {
+  fill: #ffffff !important;
+  color: #ffffff !important;
+}
+
+.whatsapp-btn-large:hover {
+  background: #128C7E !important;
+  background-color: #128C7E !important;
+}
+
+.whatsapp-btn-large:hover,
+.whatsapp-btn-large:hover * {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+}
