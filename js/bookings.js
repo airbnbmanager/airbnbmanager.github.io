@@ -625,6 +625,29 @@ function onAmtChg() {
 
 // ============ ROBUST FILE UPLOAD HELPERS ============
 
+
+function onEditIdFileSelect(input, guestNum, side) {
+  if (!input.files || !input.files[0]) return;
+  const file = input.files[0];
+  const sizeMB = (file.size / 1024 / 1024).toFixed(1);
+  const sideLabel = side === 'front' ? 'Front' : 'Back';
+  const previewEl = document.getElementById(`ePreview${sideLabel}${guestNum}`);
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    if (previewEl) {
+      previewEl.innerHTML = `
+        <div style="display:flex;align-items:center;gap:8px;padding:6px 8px;background:#f0fff4;border-radius:8px;border:1.5px solid var(--green);margin:4px 0;">
+          <img src="${e.target.result}" style="width:56px;height:40px;object-fit:cover;border-radius:6px;border:1px solid var(--border);" />
+          <div style="flex:1;">
+            <div style="font-size:11px;color:var(--green);font-weight:700;">✅ New ${sideLabel} Ready</div>
+            <div style="font-size:10px;color:var(--muted);">${sizeMB} MB · Save to upload</div>
+          </div>
+        </div>`;
+    }
+  };
+  reader.readAsDataURL(file);
+}
+
 function onIdFileSelect(input, guestNum, side) {
   const previewEl = document.getElementById(`preview${side === 'front' ? 'Front' : 'Back'}${guestNum}`);
   const slot = document.getElementById(`idSlot${guestNum}`);
@@ -1073,8 +1096,9 @@ async function editBooking(bkId) {
               <button type="button" class="outline" onclick="document.getElementById('eFrontCam${i}').click()">📷 Camera</button>
               <button type="button" class="outline" onclick="document.getElementById('eFrontGal${i}').click()">🖼️ Gallery</button>
             </div>
-            <input type="file" id="eFrontCam${i}" accept="image/*" capture="environment" style="display:none;" />
-            <input type="file" id="eFrontGal${i}" accept="image/*" style="display:none;" />
+            <input type="file" id="eFrontCam${i}" accept="image/*" capture="environment" style="display:none;" onchange="onEditIdFileSelect(this,${i},'front')" />
+            <input type="file" id="eFrontGal${i}" accept="image/*" style="display:none;" onchange="onEditIdFileSelect(this,${i},'front')" />
+            <div id="ePreviewFront${i}" style="margin-top:4px;"></div>
           </div>
           <div>
             <div style="font-size:11px;color:var(--muted);font-weight:600;margin-bottom:4px;">📄 Back</div>
@@ -1089,8 +1113,9 @@ async function editBooking(bkId) {
               <button type="button" class="outline" onclick="document.getElementById('eBackCam${i}').click()">📷 Camera</button>
               <button type="button" class="outline" onclick="document.getElementById('eBackGal${i}').click()">🖼️ Gallery</button>
             </div>
-            <input type="file" id="eBackCam${i}" accept="image/*" capture="environment" style="display:none;" />
-            <input type="file" id="eBackGal${i}" accept="image/*" style="display:none;" />
+            <input type="file" id="eBackCam${i}" accept="image/*" capture="environment" style="display:none;" onchange="onEditIdFileSelect(this,${i},'back')" />
+            <input type="file" id="eBackGal${i}" accept="image/*" style="display:none;" onchange="onEditIdFileSelect(this,${i},'back')" />
+            <div id="ePreviewBack${i}" style="margin-top:4px;"></div>
           </div>
         </div>
       </div>`;
