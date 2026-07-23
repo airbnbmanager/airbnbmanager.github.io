@@ -99,6 +99,14 @@ function buildIdButtons(b) {
 
 // ============ MANAGE BOOKINGS ============
 async function renderManageBookings() {
+  // Fetch payments for filter
+  const { data: allPays } = await sb.from('payment_history').select('booking_id, amount');
+  const paidMap = {};
+  (allPays || []).forEach(p => {
+    paidMap[p.booking_id] = (paidMap[p.booking_id] || 0) + (p.amount || 0);
+  });
+  window._bkPaidMap = paidMap;
+
   renderShell(`<div class="loading">Loading...</div>`, 'bookings');
 
   const {data:all, error} = await sb.from("guest_register")
@@ -123,6 +131,73 @@ async function renderManageBookings() {
   if (d1) f = f.filter(b => b.check_in >= d1);
   if (d2) f = f.filter(b => b.check_in <= d2);
   if (sq) f = f.filter(b => (b.guest_name || '').toLowerCase().includes(sq.toLowerCase()) || (b.phone || '').includes(sq));
+
+  // Period filter
+  const period = SESSION.bookingPeriod;
+  if (period) {
+    const now = new Date();
+    let ps, pe;
+    if (period === 'thisMonth') {
+      ps = new Date(now.getFullYear(), now.getMonth(), 1);
+      pe = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    } else if (period === 'lastMonth') {
+      ps = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      pe = new Date(now.getFullYear(), now.getMonth(), 0);
+    } else if (period === 'thisQtr') {
+      const q = Math.floor(now.getMonth() / 3);
+      ps = new Date(now.getFullYear(), q * 3, 1);
+      pe = new Date(now.getFullYear(), q * 3 + 3, 0);
+    } else if (period === 'lastQtr') {
+      const q = Math.floor(now.getMonth() / 3) - 1;
+      const y = q < 0 ? now.getFullYear() - 1 : now.getFullYear();
+      const qq = q < 0 ? 3 : q;
+      ps = new Date(y, qq * 3, 1);
+      pe = new Date(y, qq * 3 + 3, 0);
+    } else if (period === 'thisYear') {
+      ps = new Date(now.getFullYear(), 0, 1);
+      pe = new Date(now.getFullYear(), 11, 31);
+    } else if (period === 'lastYear') {
+      ps = new Date(now.getFullYear() - 1, 0, 1);
+      pe = new Date(now.getFullYear() - 1, 11, 31);
+    }
+    if (ps && pe) {
+      const psStr = ps.toISOString().slice(0, 10);
+      const peStr = pe.toISOString().slice(0, 10);
+      f = f.filter(b => b.check_in >= psStr && b.check_in <= peStr);
+    }
+  }
+
+  // Payment filter
+  const payFilter = SESSION.bookingPayFilter;
+  if (payFilter) {
+    // Get all payments for these bookings
+    const bookingIds = f.map(b => b.booking_id);
+    const paidMap = window._bkPaidMap || {};
+
+    if (payFilter === 'zero') {
+      f = f.filter(b => (b.total_amount || 0) === 0);
+    } else if (payFilter === 'unpaid') {
+      f = f.filter(b => (paidMap[b.booking_id] || 0) === 0 && (b.total_amount || 0) > 0);
+    } else if (payFilter === 'partial') {
+      f = f.filter(b => {
+        const paid = paidMap[b.booking_id] || 0;
+        const total = b.total_amount || 0;
+        return paid > 0 && paid < total;
+      });
+    } else if (payFilter === 'paid') {
+      f = f.filter(b => {
+        const paid = paidMap[b.booking_id] || 0;
+        const total = b.total_amount || 0;
+        return total > 0 && paid >= total;
+      });
+    } else if (payFilter === 'due') {
+      f = f.filter(b => {
+        const paid = paidMap[b.booking_id] || 0;
+        const total = b.total_amount || 0;
+        return total > 0 && (total - paid) > 0;
+      });
+    }
+  }
 
   const today = new Date().toISOString().slice(0, 10);
 
@@ -162,6 +237,27 @@ async function renderManageBookings() {
       </div>
       <div class="section-title">Filters</div>
       <div class="filter-bar">
+        <div class="filter-item"><label>Period</label>
+          <select id="fPeriod" onchange="onPeriodChg()">
+            <option value="">Custom</option>
+            <option value="thisMonth" ${SESSION.bookingPeriod === 'thisMonth' ? 'selected' : ''}>This Month</option>
+            <option value="lastMonth" ${SESSION.bookingPeriod === 'lastMonth' ? 'selected' : ''}>Last Month</option>
+            <option value="thisQtr" ${SESSION.bookingPeriod === 'thisQtr' ? 'selected' : ''}>This Quarter</option>
+            <option value="lastQtr" ${SESSION.bookingPeriod === 'lastQtr' ? 'selected' : ''}>Last Quarter</option>
+            <option value="thisYear" ${SESSION.bookingPeriod === 'thisYear' ? 'selected' : ''}>This Year</option>
+            <option value="lastYear" ${SESSION.bookingPeriod === 'lastYear' ? 'selected' : ''}>Last Year</option>
+          </select>
+        </div>
+        <div class="filter-item"><label>Payment</label>
+          <select id="fPayStatus">
+            <option value="">All Payments</option>
+            <option value="unpaid" ${SESSION.bookingPayFilter === 'unpaid' ? 'selected' : ''}>❌ Unpaid</option>
+            <option value="partial" ${SESSION.bookingPayFilter === 'partial' ? 'selected' : ''}>⚠️ Partial</option>
+            <option value="paid" ${SESSION.bookingPayFilter === 'paid' ? 'selected' : ''}>✅ Fully Paid</option>
+            <option value="zero" ${SESSION.bookingPayFilter === 'zero' ? 'selected' : ''}>🔴 ₹0 Amount</option>
+            <option value="due" ${SESSION.bookingPayFilter === 'due' ? 'selected' : ''}>💰 Has Balance Due</option>
+          </select>
+        </div>
         <div class="filter-item"><label>Mode</label><select id="fMode">
           <option value="All" ${mf === 'All' ? 'selected' : ''}>All</option>
           <option value="Online-Airbnb" ${mf === 'Online-Airbnb' ? 'selected' : ''}>Online</option>
@@ -241,6 +337,8 @@ async function renderManageBookings() {
 }
 
 function applyBkFilters() {
+  SESSION.bookingPeriod = document.getElementById('fPeriod')?.value || '';
+  SESSION.bookingPayFilter = document.getElementById('fPayStatus')?.value || '';
   SESSION.bookingFilter = document.getElementById('fMode').value;
   SESSION.bookingPropFilter = document.getElementById('fProp').value;
   SESSION.bookingDateFilter = document.getElementById('fDate').value;
@@ -251,6 +349,7 @@ function applyBkFilters() {
 
 function clearBkFilters() {
   SESSION.bookingFilter = 'All'; SESSION.bookingPropFilter = '';
+  SESSION.bookingPeriod = ''; SESSION.bookingPayFilter = '';
   SESSION.bookingDateFilter = ''; SESSION.bookingDateFrom = ''; SESSION.bookingDateTo = '';
   SESSION.bookingSearch = '';
   renderManageBookings();
@@ -1560,4 +1659,9 @@ async function recalcPaymentStatus(bkId) {
   const paid = (p || []).reduce((s, x) => s + (x.amount || 0), 0);
   const st = paid >= (b?.total_amount || 0) && b?.total_amount > 0 ? 'Paid' : (paid > 0 ? 'Partial' : 'Unpaid');
   await sb.from('guest_register').update({ payment_status: st }).eq('booking_id', bkId);
+}
+
+function onPeriodChg() {
+  SESSION.bookingPeriod = document.getElementById('fPeriod')?.value || '';
+  renderManageBookings();
 }
