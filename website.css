@@ -2071,3 +2071,67 @@ button[class*="tab"].active,
   color: var(--grey) !important;
   font-size: 14px !important;
 }
+
+/* ============ AIRBNB LINK - Official Style ============ */
+a[href*="airbnb"],
+.airbnb-link,
+.airbnb-btn,
+[href*="airbnb.com"],
+[href*="airbnb.co.in"] {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  background: linear-gradient(135deg, #FF385C 0%, #E00B41 100%) !important;
+  color: #fff !important;
+  padding: 10px 20px !important;
+  border-radius: 999px !important;
+  font-weight: 600 !important;
+  font-size: 14px !important;
+  text-decoration: none !important;
+  box-shadow: 0 4px 12px rgba(255,56,92,0.3) !important;
+  transition: all 0.2s !important;
+  border: none !important;
+}
+
+a[href*="airbnb"]::before,
+.airbnb-link::before {
+  content: '' !important;
+  display: inline-block !important;
+  width: 18px !important;
+  height: 18px !important;
+  background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="white"><path d="M16 1c-3.3 0-6 2.7-6 6 0 1.5.6 3 1.6 4.3-3.2 3.4-6.9 8.3-8.5 12.2-1.4 3.6 1.1 7.5 5 7.5 2.3 0 4.5-1.6 6.4-3.6.5.5 1 1 1.5 1.4l.8.6c1.5 1 3 1.6 4.5 1.6 3.9 0 6.4-3.9 5-7.5-1.6-3.9-5.3-8.8-8.5-12.2C21.4 10 22 8.5 22 7c0-3.3-2.7-6-6-6zm0 3c1.7 0 3 1.3 3 3s-1.3 3-3 3-3-1.3-3-3 1.3-3 3-3z"/></svg>') !important;
+  background-size: contain !important;
+  background-repeat: no-repeat !important;
+}
+
+a[href*="airbnb"]:hover,
+.airbnb-link:hover,
+[href*="airbnb.com"]:hover {
+  background: linear-gradient(135deg, #E00B41 0%, #BD1E59 100%) !important;
+  transform: translateY(-2px) !important;
+  box-shadow: 0 8px 20px rgba(255,56,92,0.45) !important;
+}
+
+/* If it's in text/description, keep it subtle */
+p a[href*="airbnb"],
+.desc a[href*="airbnb"] {
+  background: transparent !important;
+  color: var(--red) !important;
+  padding: 0 !important;
+  box-shadow: none !important;
+  border-bottom: 1.5px solid var(--red) !important;
+  border-radius: 0 !important;
+  font-weight: 600 !important;
+}
+
+p a[href*="airbnb"]::before,
+.desc a[href*="airbnb"]::before {
+  display: none !important;
+}
+
+p a[href*="airbnb"]:hover,
+.desc a[href*="airbnb"]:hover {
+  background: var(--red-light) !important;
+  transform: none !important;
+  box-shadow: none !important;
+}
