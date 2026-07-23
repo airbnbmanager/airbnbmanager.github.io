@@ -2462,3 +2462,166 @@ footer a { color: #484848 !important; }
     font-size: 12px !important;
   }
 }
+
+/* ============ SUPERHOST BADGE TEXT VISIBLE ============ */
+.superhost-trust-badge span,
+.superhost-trust-badge > span:last-child {
+  color: #484848 !important;
+  font-size: 14px !important;
+  font-weight: 600 !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+.superhost-trust-badge > span:nth-child(2) {
+  color: #FF385C !important;
+  font-weight: 800 !important;
+  font-size: 18px !important;
+}
+
+.superhost-trust-badge > span:first-child {
+  background: #FF385C !important;
+  color: #fff !important;
+}
+
+/* ============ BOOK DIRECT BANNER - CENTER ALIGN ============ */
+.book-direct-banner {
+  margin-left: auto !important;
+  margin-right: auto !important;
+  max-width: 900px !important;
+  text-align: center !important;
+  display: block !important;
+  padding: 32px 24px !important;
+}
+
+.book-direct-banner strong {
+  display: block !important;
+  text-align: center !important;
+  font-size: 26px !important;
+  color: #fff !important;
+  margin-bottom: 8px !important;
+}
+
+.book-direct-banner span {
+  display: block !important;
+  text-align: center !important;
+  color: rgba(255,255,255,0.95) !important;
+  font-size: 16px !important;
+}
+
+/* ============ WHATSAPP BANNER - PROMINENT WITH ICONS ============ */
+.wa-banner {
+  background: linear-gradient(135deg, #25D366 0%, #128C7E 100%) !important;
+  color: #fff !important;
+  padding: 40px 30px !important;
+  border-radius: 24px !important;
+  margin: 40px auto !important;
+  max-width: 900px !important;
+  text-align: center !important;
+  box-shadow: 0 20px 50px rgba(37,211,102,0.35) !important;
+  position: relative !important;
+  overflow: hidden !important;
+}
+
+.wa-banner::before {
+  content: '💬';
+  position: absolute;
+  top: -30px;
+  right: -30px;
+  font-size: 180px;
+  opacity: 0.12;
+  transform: rotate(-15deg);
+  pointer-events: none;
+}
+
+.wa-banner::after {
+  content: '';
+  position: absolute;
+  bottom: -50px;
+  left: -50px;
+  width: 200px;
+  height: 200px;
+  background: radial-gradient(circle, rgba(255,255,255,0.15) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.wa-banner h3 {
+  color: #fff !important;
+  font-size: 28px !important;
+  font-weight: 800 !important;
+  margin: 0 0 12px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 12px !important;
+}
+
+.wa-banner p {
+  color: rgba(255,255,255,0.95) !important;
+  font-size: 16px !important;
+  margin: 0 0 24px !important;
+  font-weight: 500 !important;
+}
+
+.wa-banner-btn {
+  background: #fff !important;
+  color: #128C7E !important;
+  padding: 16px 36px !important;
+  border-radius: 999px !important;
+  font-weight: 800 !important;
+  font-size: 17px !important;
+  text-decoration: none !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 12px !important;
+  transition: all 0.3s !important;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.2) !important;
+  animation: wa-btn-pulse 2s infinite !important;
+}
+
+.wa-banner-btn::before {
+  content: '';
+  display: inline-block;
+  width: 24px;
+  height: 24px;
+  background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="%23128C7E"><path d="M16 3C9.4 3 4 8.4 4 15c0 2.6.9 5.1 2.3 7.1L4 29l7.2-2.3c2 1.1 4.3 1.7 6.7 1.7 6.6 0 12-5.4 12-12S22.6 3 16 3z"/></svg>');
+  background-size: contain;
+  background-repeat: no-repeat;
+}
+
+.wa-banner-btn:hover {
+  transform: translateY(-4px) scale(1.02) !important;
+  box-shadow: 0 15px 40px rgba(0,0,0,0.3) !important;
+}
+
+@keyframes wa-btn-pulse {
+  0%, 100% { box-shadow: 0 10px 30px rgba(0,0,0,0.2); }
+  50% { box-shadow: 0 15px 40px rgba(255,255,255,0.4), 0 0 0 8px rgba(255,255,255,0.15); }
+}
+
+/* Mobile responsive */
+@media (max-width: 768px) {
+  .superhost-trust-badge {
+    flex-wrap: wrap !important;
+    justify-content: center !important;
+    padding: 12px 18px !important;
+  }
+  .superhost-trust-badge > span:last-child {
+    font-size: 12px !important;
+    width: 100% !important;
+    text-align: center !important;
+  }
+  .wa-banner {
+    padding: 32px 20px !important;
+    margin: 32px 16px !important;
+  }
+  .wa-banner h3 { font-size: 22px !important; }
+  .wa-banner p { font-size: 14px !important; }
+  .wa-banner-btn { padding: 14px 28px !important; font-size: 15px !important; }
+  .book-direct-banner {
+    margin: 32px 16px !important;
+    padding: 24px 20px !important;
+  }
+  .book-direct-banner strong { font-size: 20px !important; }
+  .book-direct-banner span { font-size: 14px !important; }
+}
