@@ -384,7 +384,7 @@ async function renderInvestorReport(investorId, roomId, month) {
           </select>
         </div>
         <div class="form-group" style="justify-content:flex-end;">
-          <button class="btn-sm" onclick="window.print()">🖨️ Print / Save PDF</button>
+          <button class="btn-sm" onclick="printInvestorReport('${inv?.name || 'Investor'}','${room?.nickname || roomId}','${monthYear}')">🖨️ Print / Save PDF</button>
         </div>
       </div>
     </div>
@@ -613,11 +613,26 @@ async function renderInvestorReport(investorId, roomId, month) {
 
     <style>
       @media print {
+        @page {
+          size: A4;
+          margin: 15mm 12mm;
+        }
         .sidebar, .no-print, button { display: none !important; }
         .app-container { display: block !important; }
         .main-content { margin: 0 !important; padding: 0 !important; }
-        .card { border: none !important; box-shadow: none !important; }
-        body { background: #fff !important; }
+        .card { border: none !important; box-shadow: none !important; padding: 0 !important; margin: 0 !important; }
+        body { background: #fff !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+        .report-doc {
+          max-width: 100% !important;
+          margin: 0 !important;
+          padding: 0 !important;
+          font-size: 11pt;
+        }
+        .report-doc h1 { font-size: 16pt !important; }
+        .report-doc div[style*="font-size:16px"] { font-size: 13pt !important; }
+        .report-doc table { page-break-inside: avoid; }
+        .report-doc tr { page-break-inside: avoid; }
+        .report-doc > div { page-break-inside: avoid; margin-bottom: 12px !important; }
       }
     </style>
   `, 'investors');
@@ -761,4 +776,19 @@ async function renderEmployeeView() {
           : (tasks || []).map(t => `<div class="metric-row"><span class="metric-label">${t.task_description}</span><span class="badge red">Pending</span></div>`).join('')}
       </div>
     </div>`;
+}
+
+// ============ PRINT WITH AUTO FILENAME ============
+function printInvestorReport(investorName, propertyName, monthYear) {
+  const cleanName = (str) => (str || '').replace(/[^a-zA-Z0-9]/g, '_');
+  const filename = `${cleanName(investorName)}_${cleanName(propertyName)}_${cleanName(monthYear)}_Report`;
+
+  const originalTitle = document.title;
+  document.title = filename;
+
+  window.print();
+
+  setTimeout(() => {
+    document.title = originalTitle;
+  }, 1000);
 }
