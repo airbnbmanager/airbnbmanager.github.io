@@ -874,3 +874,244 @@ html { scroll-behavior: smooth; }
 @media print {
   body { background: #fff !important; }
 }
+
+
+/* ============ THEME TOGGLE ============ */
+:root {
+  --bg-main: #FFFFFF;
+  --text-main: #222222;
+  --bg-card: #FFFFFF;
+  --border-color: #DDDDDD;
+  --text-muted: #767676;
+  --bg-section: #F7F7F7;
+}
+
+[data-theme="dark"] {
+  --bg-main: #0F0F0F;
+  --text-main: #F5F5F5;
+  --bg-card: #1A1A1A;
+  --border-color: #333;
+  --text-muted: #999;
+  --bg-section: #151515;
+}
+
+[data-theme="dark"] body {
+  background: #0F0F0F !important;
+  color: #F5F5F5 !important;
+}
+
+[data-theme="dark"] header,
+[data-theme="dark"] nav {
+  background: #1A1A1A !important;
+  border-color: #333 !important;
+}
+
+[data-theme="dark"] nav a,
+[data-theme="dark"] header a,
+[data-theme="dark"] h1,
+[data-theme="dark"] h2,
+[data-theme="dark"] h3,
+[data-theme="dark"] p {
+  color: #F5F5F5 !important;
+}
+
+[data-theme="dark"] .hero,
+[data-theme="dark"] .hero-section {
+  background: linear-gradient(135deg, #1A1A1A, #0F0F0F) !important;
+}
+
+[data-theme="dark"] .property-card,
+[data-theme="dark"] .prop-card,
+[data-theme="dark"] .usp-card,
+[data-theme="dark"] .feature-card {
+  background: #1A1A1A !important;
+  border-color: #333 !important;
+  color: #F5F5F5 !important;
+}
+
+[data-theme="dark"] .usp-section {
+  background: #151515 !important;
+}
+
+[data-theme="dark"] footer {
+  background: #1A1A1A !important;
+  color: #999 !important;
+}
+
+.theme-toggle {
+  position: fixed;
+  bottom: 20px;
+  left: 20px;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: #FFFFFF;
+  border: 2px solid #DDDDDD;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  z-index: 998;
+  transition: all 0.3s;
+}
+
+[data-theme="dark"] .theme-toggle {
+  background: #1A1A1A;
+  border-color: #333;
+}
+
+.theme-toggle:hover {
+  transform: scale(1.1) rotate(15deg);
+}
+
+/* Fix hero badges visibility */
+.hero-badges span,
+.hero-badge,
+.hero .badge {
+  color: #FFFFFF !important;
+  background: rgba(255,90,95,0.9) !important;
+  padding: 6px 14px !important;
+  border-radius: 20px !important;
+  font-weight: 600 !important;
+  margin: 4px !important;
+  display: inline-block !important;
+}
+
+/* Fix hero stats */
+.hero-stats,
+.stats-row {
+  display: flex;
+  justify-content: center;
+  gap: 40px;
+  flex-wrap: wrap;
+  margin: 40px 0;
+}
+
+.hero-stats > div,
+.stats-row > div {
+  text-align: center;
+  color: #222222;
+}
+
+[data-theme="dark"] .hero-stats > div,
+[data-theme="dark"] .stats-row > div {
+  color: #F5F5F5 !important;
+}
+
+.hero-stats strong,
+.stats-row strong {
+  display: block;
+  font-size: 36px;
+  font-weight: 800;
+  background: linear-gradient(135deg, #FF5A5F, #FC642D);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Email overflow fix */
+.contact-card-phone {
+  word-break: break-word !important;
+  overflow-wrap: break-word !important;
+  font-size: 16px !important;
+  line-height: 1.4;
+}
+
+.contact-card-phone a {
+  word-break: break-all;
+  display: inline-block;
+  max-width: 100%;
+  color: #FF5A5F !important;
+}
+
+@media (max-width: 480px) {
+  .contact-card-phone {
+    font-size: 13px !important;
+  }
+}
+
+/* Floating WhatsApp */
+.floating-whatsapp {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  z-index: 999;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: #25D366;
+  color: #fff !important;
+  padding: 14px 20px;
+  border-radius: 50px;
+  box-shadow: 0 8px 24px rgba(37, 211, 102, 0.4);
+  text-decoration: none !important;
+  font-weight: 700;
+  font-size: 15px;
+  animation: pulse-wa 2s infinite;
+  transition: all 0.3s;
+}
+
+.floating-whatsapp:hover {
+  background: #128C7E;
+  transform: scale(1.05);
+}
+
+.floating-whatsapp svg {
+  width: 28px;
+  height: 28px;
+}
+
+@keyframes pulse-wa {
+  0%, 100% { box-shadow: 0 8px 24px rgba(37, 211, 102, 0.4); }
+  50% { box-shadow: 0 8px 30px rgba(37, 211, 102, 0.7), 0 0 0 10px rgba(37, 211, 102, 0.1); }
+}
+
+@media (max-width: 480px) {
+  .floating-whatsapp span { display: none; }
+  .floating-whatsapp { padding: 14px; border-radius: 50%; }
+}
+
+/* WhatsApp banner */
+.wa-banner {
+  background: linear-gradient(135deg, #25D366, #128C7E);
+  color: #fff;
+  padding: 24px 20px;
+  border-radius: 16px;
+  margin: 30px auto;
+  max-width: 900px;
+  text-align: center;
+  box-shadow: 0 8px 24px rgba(37, 211, 102, 0.25);
+}
+
+.wa-banner h3 {
+  color: #fff !important;
+  margin: 0 0 8px !important;
+  font-size: 22px !important;
+}
+
+.wa-banner p {
+  color: rgba(255,255,255,0.9) !important;
+  margin: 0 0 16px;
+  font-size: 15px;
+}
+
+.wa-banner-btn {
+  background: #fff !important;
+  color: #128C7E !important;
+  padding: 12px 28px !important;
+  border-radius: 50px !important;
+  font-weight: 700 !important;
+  text-decoration: none !important;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 16px !important;
+  box-shadow: none !important;
+  transition: transform 0.2s;
+}
+
+.wa-banner-btn:hover {
+  transform: scale(1.05);
+}

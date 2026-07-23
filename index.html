@@ -494,6 +494,16 @@
 </div>
 </section>
 <!-- ─── CONTACT ─── -->
+<div style="padding:20px;">
+<div class="wa-banner">
+<h3>💬 Instant Booking on WhatsApp</h3>
+<p>Book directly with the owner — Best prices, instant confirmation, no middleman fees!</p>
+<a href="https://wa.me/919450055554?text=Hi%21%20I%20want%20to%20book%20a%20luxury%20stay" target="_blank" class="wa-banner-btn">
+Chat with Owner Now →
+</a>
+</div>
+</div>
+
 <section class="contact-section" id="contact">
 <h2>Book Direct &amp; Save 15%</h2>
 <p>Skip the middleman — contact us directly for best prices, availability, and custom stays!</p>
@@ -577,6 +587,27 @@
     // Fix footer year
     document.getElementById('year-line').textContent =
       `© ${new Date().getFullYear()} UNIQUE HAVEN HOMES STAY · Developed by Praveen Singh`;
+</script>
+
+<a href="https://wa.me/919450055554?text=Hi%21%20I%20want%20to%20book%20a%20luxury%20stay" target="_blank" class="floating-whatsapp" aria-label="Book on WhatsApp">
+  <svg viewBox="0 0 32 32" fill="currentColor"><path d="M16 3C9.4 3 4 8.4 4 15c0 2.6 0.9 5.1 2.3 7.1L4 29l7.2-2.3c2 1.1 4.3 1.7 6.7 1.7 6.6 0 12-5.4 12-12S22.6 3 16 3z"/></svg>
+  <span>Book on WhatsApp</span>
+</a>
+<button class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle theme" id="themeToggle">🌙</button>
+<script>
+function toggleTheme(){
+  var c=document.documentElement.getAttribute('data-theme')||'light';
+  var n=c==='dark'?'light':'dark';
+  document.documentElement.setAttribute('data-theme',n);
+  localStorage.setItem('theme',n);
+  document.getElementById('themeToggle').textContent=n==='dark'?'☀️':'🌙';
+}
+(function(){
+  var saved=localStorage.getItem('theme')||'light';
+  document.documentElement.setAttribute('data-theme',saved);
+  var b=document.getElementById('themeToggle');
+  if(b)b.textContent=saved==='dark'?'☀️':'🌙';
+})();
 </script>
 </body>
 </html>
