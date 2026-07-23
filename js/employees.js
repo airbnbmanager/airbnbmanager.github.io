@@ -640,7 +640,7 @@ async function renderSalaryTracker() {
       <tbody>${(sals || []).map(s => {
         const bal = (s.salary_due || 0) - (s.salary_paid || 0);
         return `<tr>
-          <td><strong>${s.employees?.name || s.emp_id}</strong></td>
+          <td><strong style="color:var(--primary);cursor:pointer;text-decoration:underline;" onclick="showEmpDetailModal('${s.emp_id}')">${s.employees?.name || s.emp_id}</strong></td>
           <td>${s.month || '-'}</td>
           <td style="color:var(--red);">₹${(s.salary_due || 0).toLocaleString('en-IN')}</td>
           <td style="color:var(--green);">₹${(s.salary_paid || 0).toLocaleString('en-IN')}</td>
@@ -801,7 +801,7 @@ async function renderAdvanceTracker() {
       <tbody>${(advs || []).map(a => {
         const bal = (a.advance_amount || 0) - (a.repaid_amount || 0);
         return `<tr>
-          <td><strong>${a.employees?.name || a.emp_id}</strong></td>
+          <td><strong style="color:var(--primary);cursor:pointer;text-decoration:underline;" onclick="showEmpDetailModal('${a.emp_id}')">${a.employees?.name || a.emp_id}</strong></td>
           <td style="font-size:12px;">${a.date_given || '-'}</td>
           <td style="color:var(--red);">₹${(a.advance_amount || 0).toLocaleString('en-IN')}</td>
           <td style="color:var(--green);">₹${(a.repaid_amount || 0).toLocaleString('en-IN')}</td>
@@ -1260,4 +1260,142 @@ async function delEmpExpense(id) {
   if (error) { alert('❌ ' + error.message); return; }
   alert('✅ Deleted');
   renderEmpExpenses();
+}
+
+// ============ EMPLOYEE DETAIL MODAL ============
+async function showEmpDetailModal(empId) {
+  const [{ data: emp }, { data: sals }, { data: advs }, { data: exps }, { data: att }, { data: tasks }] = await Promise.all([
+    sb.from('employees').select('*').eq('emp_id', empId).single(),
+    sb.from('salary_tracker').select('*').eq('emp_id', empId).order('month', { ascending: false }),
+    sb.from('advance_tracker').select('*').eq('emp_id', empId).order('date_given', { ascending: false }),
+    sb.from('daily_expenses').select('*, rooms(nickname)').eq('emp_id', empId).order('expense_date', { ascending: false }).limit(50),
+    sb.from('attendance_log').select('status, att_date').eq('emp_id', empId).gte('att_date', new Date().toISOString().slice(0,7) + '-01'),
+    sb.from('employee_tasks').select('*').eq('emp_id', empId).order('assigned_date', { ascending: false }).limit(20)
+  ]);
+
+  if (!emp) { alert('Employee not found'); return; }
+
+  const totalDue = (sals || []).reduce((s, r) => s + (r.salary_due || 0), 0);
+  const totalPaid = (sals || []).reduce((s, r) => s + (r.salary_paid || 0), 0);
+  const salBalance = totalDue - totalPaid;
+
+  const totalAdvGiven = (advs || []).reduce((s, r) => s + (r.advance_amount || 0), 0);
+  const totalAdvRepaid = (advs || []).reduce((s, r) => s + (r.repaid_amount || 0), 0);
+  const advBalance = totalAdvGiven - totalAdvRepaid;
+
+  const totalGenExp = (exps || []).reduce((s, r) => s + (r.amount || 0), 0);
+
+  const presentDays = (att || []).filter(a => a.status === 'Present').length;
+  const absentDays = (att || []).filter(a => a.status === 'Absent').length;
+  const halfDays = (att || []).filter(a => a.status === 'Half Day').length;
+
+  const pendingTasks = (tasks || []).filter(t => t.status === 'Pending').length;
+  const completedTasks = (tasks || []).filter(t => t.status === 'Completed').length;
+
+  const modal = document.createElement('div');
+  modal.className = 'modal-overlay';
+  modal.onclick = e => { if (e.target === modal) modal.remove(); };
+
+  modal.innerHTML = `
+    <div class="modal-box" style="max-width:700px;">
+      <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">✕</button>
+      <h2>👤 ${emp.name}</h2>
+      <div class="sub">${emp.role || '-'} · 📞 ${emp.phone || '-'}</div>
+
+      <div class="stat-grid" style="margin-top:12px;">
+        <div class="stat-card" style="border-left:4px solid var(--red);">
+          <div class="stat-num" style="color:var(--red);font-size:18px;">₹${salBalance.toLocaleString('en-IN')}</div>
+          <div class="stat-label">Salary Pending</div>
+        </div>
+        <div class="stat-card" style="border-left:4px solid var(--red);">
+          <div class="stat-num" style="color:var(--red);font-size:18px;">₹${advBalance.toLocaleString('en-IN')}</div>
+          <div class="stat-label">Advance Due</div>
+        </div>
+        <div class="stat-card" style="border-left:4px solid var(--blue);">
+          <div class="stat-num" style="color:var(--blue);font-size:18px;">₹${totalGenExp.toLocaleString('en-IN')}</div>
+          <div class="stat-label">Staff Expense</div>
+        </div>
+      </div>
+
+      <div class="stat-grid">
+        <div class="stat-card" style="border-left:4px solid var(--green);">
+          <div class="stat-num" style="color:var(--green);">${presentDays}</div>
+          <div class="stat-label">Present (${new Date().toISOString().slice(0,7)})</div>
+        </div>
+        <div class="stat-card" style="border-left:4px solid var(--red);">
+          <div class="stat-num" style="color:var(--red);">${absentDays}</div>
+          <div class="stat-label">Absent</div>
+        </div>
+        <div class="stat-card" style="border-left:4px solid var(--yellow);">
+          <div class="stat-num" style="color:var(--yellow);">${pendingTasks}</div>
+          <div class="stat-label">Pending Tasks</div>
+        </div>
+      </div>
+
+      <div class="section-title" style="margin-top:14px;">💰 Salary History</div>
+      ${(sals || []).length === 0 ? '<div class="sub">No records</div>' : `
+        <div class="table-wrap"><table>
+          <thead><tr><th>Month</th><th>Due</th><th>Paid</th><th>Balance</th></tr></thead>
+          <tbody>${sals.map(r => {
+            const b = (r.salary_due || 0) - (r.salary_paid || 0);
+            return `<tr>
+              <td>${r.month || '-'}</td>
+              <td style="color:var(--red);">₹${(r.salary_due || 0).toLocaleString('en-IN')}</td>
+              <td style="color:var(--green);">₹${(r.salary_paid || 0).toLocaleString('en-IN')}</td>
+              <td style="color:${b > 0 ? 'var(--red)' : 'var(--green)'};">₹${b.toLocaleString('en-IN')}</td>
+            </tr>`;
+          }).join('')}</tbody>
+        </table></div>`}
+
+      <div class="section-title" style="margin-top:14px;">💵 Advance History</div>
+      ${(advs || []).length === 0 ? '<div class="sub">No advances</div>' : `
+        <div class="table-wrap"><table>
+          <thead><tr><th>Date</th><th>Given</th><th>Repaid</th><th>Balance</th><th>Reason</th></tr></thead>
+          <tbody>${advs.map(r => {
+            const b = (r.advance_amount || 0) - (r.repaid_amount || 0);
+            return `<tr>
+              <td style="font-size:12px;">${r.date_given || '-'}</td>
+              <td style="color:var(--red);">₹${(r.advance_amount || 0).toLocaleString('en-IN')}</td>
+              <td style="color:var(--green);">₹${(r.repaid_amount || 0).toLocaleString('en-IN')}</td>
+              <td style="color:${b > 0 ? 'var(--red)' : 'var(--green)'};">₹${b.toLocaleString('en-IN')}</td>
+              <td style="font-size:12px;">${r.reason || '-'}</td>
+            </tr>`;
+          }).join('')}</tbody>
+        </table></div>`}
+
+      <div class="section-title" style="margin-top:14px;">🧾 Staff Expenses</div>
+      ${(exps || []).length === 0 ? '<div class="sub">No expenses</div>' : `
+        <div class="table-wrap"><table>
+          <thead><tr><th>Date</th><th>Category</th><th>Property</th><th>Amount</th><th>Description</th></tr></thead>
+          <tbody>${exps.map(r => `
+            <tr>
+              <td style="font-size:12px;">${r.expense_date || '-'}</td>
+              <td><span class="badge yellow">${r.category || '-'}</span></td>
+              <td style="font-size:12px;">${r.rooms?.nickname || r.room_id || 'General'}</td>
+              <td style="color:var(--red);">₹${(r.amount || 0).toLocaleString('en-IN')}</td>
+              <td style="font-size:12px;max-width:150px;">${r.description || '-'}</td>
+            </tr>
+          `).join('')}</tbody>
+        </table></div>`}
+
+      <div class="section-title" style="margin-top:14px;">🧰 Recent Tasks</div>
+      ${(tasks || []).length === 0 ? '<div class="sub">No tasks</div>' : `
+        <div class="table-wrap"><table>
+          <thead><tr><th>Date</th><th>Type</th><th>Task</th><th>Status</th></tr></thead>
+          <tbody>${tasks.slice(0, 10).map(t => `
+            <tr>
+              <td style="font-size:12px;">${t.assigned_date || '-'}</td>
+              <td><span class="badge blue">${t.task_type || 'Other'}</span></td>
+              <td style="font-size:12px;max-width:180px;">${t.task_description || '-'}</td>
+              <td><span class="badge ${t.status === 'Completed' ? 'green' : t.status === 'In Progress' ? 'yellow' : 'red'}">${t.status || 'Pending'}</span></td>
+            </tr>
+          `).join('')}</tbody>
+        </table></div>`}
+
+      <div class="btn-row" style="margin-top:12px;">
+        <button class="outline" onclick="this.closest('.modal-overlay').remove()">Close</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
 }
