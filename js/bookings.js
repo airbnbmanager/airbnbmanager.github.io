@@ -1665,3 +1665,161 @@ function onPeriodChg() {
   SESSION.bookingPeriod = document.getElementById('fPeriod')?.value || '';
   renderManageBookings();
 }
+
+
+// ============ EXPORT FILTERED BOOKINGS TO PDF ============
+async function exportBookingsPDF() {
+  // Get current filtered bookings from displayed table
+  const rows = document.querySelectorAll('.table-wrap table tbody tr');
+  if (!rows.length) { alert('No bookings to export'); return; }
+
+  const now = new Date();
+  const dateStr = now.toLocaleDateString('en-IN');
+  const filterInfo = [];
+
+  const period = SESSION.bookingPeriod || '';
+  const payFilter = SESSION.bookingPayFilter || '';
+  const mode = SESSION.bookingFilter || '';
+  const prop = SESSION.bookingPropFilter || '';
+  const search = SESSION.bookingSearch || '';
+
+  if (period) filterInfo.push(`Period: ${period}`);
+  if (payFilter) filterInfo.push(`Payment: ${payFilter}`);
+  if (mode && mode !== 'All') filterInfo.push(`Mode: ${mode}`);
+  if (prop) filterInfo.push(`Property: ${prop}`);
+  if (search) filterInfo.push(`Search: ${search}`);
+
+  // Build print HTML
+  let tableRows = '';
+  let totalDue = 0, totalAmount = 0, totalPaid = 0;
+
+  rows.forEach(tr => {
+    const cells = tr.querySelectorAll('td');
+    if (cells.length < 8) return;
+
+    const guest = cells[1]?.innerText?.trim() || '';
+    const property = cells[2]?.innerText?.trim() || '';
+    const mode2 = cells[3]?.innerText?.trim() || '';
+    const checkIn = cells[4]?.innerText?.trim() || '';
+    const checkOut = cells[5]?.innerText?.trim() || '';
+    const total = cells[7]?.innerText?.trim() || '';
+    const paid = cells[8]?.innerText?.trim() || '';
+    const due = cells[9]?.innerText?.trim() || '';
+
+    // Parse amounts
+    const totalNum = parseFloat(total.replace(/[₹,]/g, '')) || 0;
+    const paidNum = parseFloat(paid.replace(/[₹,]/g, '')) || 0;
+    const dueNum = parseFloat(due.replace(/[₹,]/g, '')) || 0;
+
+    totalAmount += totalNum;
+    totalPaid += paidNum;
+    totalDue += dueNum;
+
+    tableRows += `
+      <tr>
+        <td>${guest}</td>
+        <td>${property}</td>
+        <td>${mode2}</td>
+        <td>${checkIn}</td>
+        <td>${checkOut}</td>
+        <td style="text-align:right;">${total}</td>
+        <td style="text-align:right;color:#0A7D1A;">${paid}</td>
+        <td style="text-align:right;color:#FF385C;font-weight:700;">${due}</td>
+      </tr>`;
+  });
+
+  const html = `<!DOCTYPE html>
+<html>
+<head>
+<title>Bookings Report - ${dateStr}</title>
+<style>
+  @page { size: A4 landscape; margin: 12mm; }
+  body { font-family: -apple-system, sans-serif; color: #222; margin: 0; padding: 20px; }
+  .header { background: linear-gradient(135deg,#FF385C,#E00B41); color: #fff; padding: 20px; border-radius: 12px; margin-bottom: 20px; }
+  .header h1 { margin: 0 0 6px 0; font-size: 22px; }
+  .header .meta { font-size: 13px; opacity: 0.9; }
+  .filters { background: #FEF3C7; padding: 12px 16px; border-radius: 8px; margin-bottom: 16px; font-size: 12px; }
+  .filters strong { color: #B45309; }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  th { background: #222; color: #fff; padding: 10px 8px; text-align: left; font-weight: 700; }
+  td { padding: 8px; border-bottom: 1px solid #EBEBEB; }
+  tr:nth-child(even) { background: #FAFAFA; }
+  .totals { margin-top: 20px; background: #F7F7F7; padding: 16px; border-radius: 8px; display: flex; justify-content: space-around; }
+  .totals div { text-align: center; }
+  .totals .label { font-size: 11px; color: #717171; text-transform: uppercase; letter-spacing: 1px; }
+  .totals .value { font-size: 20px; font-weight: 800; margin-top: 4px; }
+  .footer { margin-top: 30px; text-align: center; font-size: 11px; color: #717171; border-top: 1px solid #EBEBEB; padding-top: 12px; }
+  @media print {
+    body { padding: 0; }
+    .no-print { display: none; }
+  }
+</style>
+</head>
+<body>
+  <div class="header">
+    <h1>📅 Bookings Report</h1>
+    <div class="meta">${BRAND} · Generated ${dateStr}</div>
+  </div>
+
+  ${filterInfo.length ? `
+  <div class="filters">
+    <strong>🔍 Filters Applied:</strong> ${filterInfo.join(' | ')}
+  </div>
+  ` : ''}
+
+  <table>
+    <thead>
+      <tr>
+        <th>Guest</th>
+        <th>Property</th>
+        <th>Mode</th>
+        <th>Check-in</th>
+        <th>Check-out</th>
+        <th style="text-align:right;">Total</th>
+        <th style="text-align:right;">Paid</th>
+        <th style="text-align:right;">Due</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${tableRows}
+    </tbody>
+  </table>
+
+  <div class="totals">
+    <div>
+      <div class="label">Total Bookings</div>
+      <div class="value">${rows.length}</div>
+    </div>
+    <div>
+      <div class="label">Total Amount</div>
+      <div class="value">₹${totalAmount.toLocaleString('en-IN')}</div>
+    </div>
+    <div>
+      <div class="label">Total Paid</div>
+      <div class="value" style="color:#0A7D1A;">₹${totalPaid.toLocaleString('en-IN')}</div>
+    </div>
+    <div>
+      <div class="label">Total Due</div>
+      <div class="value" style="color:#FF385C;">₹${totalDue.toLocaleString('en-IN')}</div>
+    </div>
+  </div>
+
+  <div class="footer">
+    ${BRAND} · Contact: Mr. Shahanshah 9450055554 · Mr. Firoz Khan 8299600709<br>
+    Generated from UHHS Admin System
+  </div>
+
+  <div class="no-print" style="text-align:center;margin-top:20px;">
+    <button onclick="window.print()" style="padding:12px 32px;background:#FF385C;color:#fff;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-size:15px;">🖨️ Print / Save as PDF</button>
+  </div>
+
+  <script>
+    setTimeout(() => window.print(), 500);
+  </script>
+</body>
+</html>`;
+
+  const win = window.open('', '_blank');
+  win.document.write(html);
+  win.document.close();
+}
