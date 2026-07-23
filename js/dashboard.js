@@ -174,7 +174,8 @@ async function renderDashboard() {
       <div class="btn-row">
         <button onclick="navigate('bookings')">📅 Bookings</button>
         <button class="secondary" onclick="navigate('flats')">🛏️ Flats</button>
-        <button class="outline" onclick="navigate('expenses')">💹 P&L</button>
+        <button class="secondary" onclick="navigate('expenses')">💹 P&L</button>
+        <button class="secondary" onclick="navigate('financial')">📊 Financial</button>
         <button class="outline" onclick="navigate('property-report')">🏘️ Reports</button>
       </div>
     </div>
