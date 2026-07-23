@@ -314,16 +314,19 @@ async function renderInvestorReport(investorId, roomId, month) {
 
   const now = new Date();
   const selMonth = month || `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-  const monthLabel = new Date(selMonth + '-01').toLocaleString('en-IN', { month: 'long', year: 'numeric' });
+  const monthDate = new Date(selMonth + '-01');
+  const monthName = monthDate.toLocaleString('en-IN', { month: 'long' }).toUpperCase();
+  const monthYear = monthDate.toLocaleString('en-IN', { month: 'long', year: 'numeric' });
   const monthStart = selMonth + '-01';
   const monthEnd = new Date(parseInt(selMonth.split('-')[0]), parseInt(selMonth.split('-')[1]), 0).toISOString().slice(0, 10);
+  const monthShort = monthDate.toLocaleString('en-IN', { month: 'short', year: 'numeric' }).replace(' ', '-');
 
   const [{data:inv}, {data:room}, {data:bookings}, {data:defaults}, {data:expenses}, {data:payments}] = await Promise.all([
     sb.from('investors').select('*').eq('investor_id', investorId).single(),
     sb.from('rooms').select('*').eq('room_id', roomId).single(),
-    sb.from('guest_register').select('*').eq('room_id', roomId).gte('check_in', monthStart).lte('check_in', monthEnd),
+    sb.from('guest_register').select('*').eq('room_id', roomId).gte('check_in', monthStart).lte('check_in', monthEnd).order('check_in'),
     sb.from('property_default_expenses').select('*').eq('room_id', roomId).order('expense_name'),
-    sb.from('expenses').select('*, expense_categories(category_name)').eq('room_id', roomId),
+    sb.from('expenses').select('*, expense_categories(category_name)').eq('room_id', roomId).eq('month', monthShort),
     sb.from('payment_history').select('booking_id, amount'),
   ]);
 
@@ -336,19 +339,27 @@ async function renderInvestorReport(investorId, roomId, month) {
   const cn = b => b.check_in && b.check_out ? calcNights(b.check_in, b.check_out) : 0;
   const onBks = (bookings || []).filter(b => b.booking_mode === 'Online-Airbnb');
   const offBks = (bookings || []).filter(b => b.booking_mode !== 'Online-Airbnb');
+
+  const onNights = onBks.reduce((s, b) => s + cn(b), 0);
+  const offNights = offBks.reduce((s, b) => s + cn(b), 0);
+  const totalNights = onNights + offNights;
+
   const onRev = onBks.reduce((s, b) => s + (pm[b.booking_id] || 0), 0);
   const offRev = offBks.reduce((s, b) => s + (pm[b.booking_id] || 0), 0);
   const totalRev = onRev + offRev;
 
-  const expMonth = new Date(selMonth + '-01').toLocaleString('en-IN', { month: 'short', year: 'numeric' }).replace(' ', '-');
-  const mExp = (expenses || []).filter(e => e.month === expMonth);
-  const useDefaults = mExp.length === 0;
-  const effectiveExp = useDefaults
+  const useDefaults = (expenses || []).length === 0;
+  const expList = useDefaults ? (defaults || []) : (expenses || []);
+  const totalExp = useDefaults
     ? (defaults || []).reduce((s, d) => s + (d.default_amount || 0), 0)
-    : mExp.reduce((s, e) => s + (e.amount || 0), 0);
-  const profit = totalRev - effectiveExp;
+    : (expenses || []).reduce((s, e) => s + (e.amount || 0), 0);
+
+  const profit = totalRev - totalExp;
   const investorAmount = Math.round(profit * share / 100);
   const companyAmount = profit - investorAmount;
+
+  const onlinePct = totalRev > 0 ? Math.round(onRev * 100 / totalRev) : 0;
+  const offlinePct = totalRev > 0 ? Math.round(offRev * 100 / totalRev) : 0;
 
   const months = [];
   for (let i = 0; i < 12; i++) {
@@ -359,113 +370,256 @@ async function renderInvestorReport(investorId, roomId, month) {
     });
   }
 
+  const today = new Date().toLocaleDateString('en-GB');
+
   renderShell(`
-    <div class="card">
+    <div class="card no-print">
       <h1>📊 Investor Report</h1>
       <button class="secondary btn-sm" onclick="renderManageInvestors()">← Back</button>
       <div class="form-grid" style="margin-top:8px;">
-        <div class="form-group"><label>Month</label>
+        <div class="form-group">
+          <label>Month</label>
           <select onchange="renderInvestorReport('${investorId}','${roomId}',this.value)">
             ${months.map(m => `<option value="${m.val}" ${m.val === selMonth ? 'selected' : ''}>${m.lbl}</option>`).join('')}
           </select>
         </div>
         <div class="form-group" style="justify-content:flex-end;">
-          <button class="btn-sm" onclick="window.print()">🖨️ Print</button>
+          <button class="btn-sm" onclick="window.print()">🖨️ Print / Save PDF</button>
         </div>
       </div>
     </div>
 
-    <div class="card" style="background:var(--dark);color:#fff;text-align:center;">
-      <div style="font-size:11px;text-transform:uppercase;letter-spacing:1px;color:rgba(255,255,255,0.6);">Monthly Investor Report</div>
-      <h1 style="color:#fff;margin:6px 0;">${BRAND}</h1>
-      <div style="font-size:13px;color:rgba(255,255,255,0.8);">${monthLabel}</div>
+    <div class="card report-doc" style="max-width:800px;margin:0 auto;padding:30px;background:#fff;">
+      <div style="text-align:center;border-bottom:3px double #000;padding-bottom:14px;margin-bottom:20px;">
+        <h1 style="font-size:22px;margin:0;letter-spacing:2px;">MONTHLY INVESTOR EARNINGS REPORT</h1>
+      </div>
+
+      <div style="margin-bottom:20px;">
+        <div style="font-size:16px;font-weight:700;margin-bottom:8px;">Property Overview</div>
+        <div style="line-height:2;font-size:14px;">
+          <div><strong>Property Owner Name:</strong> ${inv?.name || '-'}</div>
+          <div><strong>Property Name:</strong> ${room?.nickname || room?.property_name || '-'}</div>
+          <div><strong>Location:</strong> ${room?.address || 'Lucknow'}</div>
+          <div><strong>Reporting Period:</strong> ${monthYear}</div>
+          <div><strong>Report Date:</strong> ${today}</div>
+        </div>
+      </div>
+
+      <div style="margin-bottom:20px;">
+        <div style="font-size:16px;font-weight:700;margin-bottom:8px;border-bottom:2px solid #000;padding-bottom:4px;">Executive Summary</div>
+        <p style="font-size:13px;line-height:1.8;text-align:justify;margin:8px 0;">
+          This report outlines the financial and operational performance of <strong>${room?.nickname}</strong>, Lucknow for ${monthYear}.
+          The property generated revenue through <strong>Airbnb platform bookings</strong> along with <strong>direct offline reservations</strong> during the reporting period.
+        </p>
+        <p style="font-size:13px;line-height:1.8;text-align:justify;margin:8px 0;">
+          Operational expenses included rent, housekeeping, supplies, transportation, and maintenance-related items.
+          After deducting all operational costs, the remaining profit has been distributed according to the
+          <strong>${share}% investor and ${cs}% ${BRAND}</strong> revenue-sharing model.
+        </p>
+        <p style="font-size:13px;line-height:1.8;text-align:justify;margin:8px 0;">
+          All financial figures have been verified and recalculated.
+        </p>
+      </div>
+
+      <div style="margin-bottom:20px;">
+        <div style="font-size:16px;font-weight:700;margin-bottom:8px;border-bottom:2px solid #000;padding-bottom:4px;">Key Financial Metrics</div>
+        <table style="width:100%;border-collapse:collapse;font-size:13px;">
+          <tbody>
+            <tr><td style="padding:8px;border:1px solid #ccc;"><strong>Total Gross Revenue</strong></td><td style="padding:8px;border:1px solid #ccc;text-align:right;">₹${totalRev.toLocaleString('en-IN')}</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ccc;"><strong>Total Operating Expenses</strong></td><td style="padding:8px;border:1px solid #ccc;text-align:right;">₹${totalExp.toLocaleString('en-IN')}</td></tr>
+            <tr style="background:#f9f9f9;"><td style="padding:8px;border:1px solid #ccc;"><strong>Operating Profit</strong></td><td style="padding:8px;border:1px solid #ccc;text-align:right;"><strong>₹${profit.toLocaleString('en-IN')}</strong></td></tr>
+            <tr><td style="padding:8px;border:1px solid #ccc;"><strong>Investor Share (${share}%)</strong></td><td style="padding:8px;border:1px solid #ccc;text-align:right;color:#0a7d1a;font-weight:700;">₹${investorAmount.toLocaleString('en-IN')}</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ccc;"><strong>${BRAND} Share (${cs}%)</strong></td><td style="padding:8px;border:1px solid #ccc;text-align:right;color:#0a5599;font-weight:700;">₹${companyAmount.toLocaleString('en-IN')}</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div style="margin-bottom:20px;">
+        <div style="font-size:16px;font-weight:700;margin-bottom:8px;border-bottom:2px solid #000;padding-bottom:4px;">Revenue Breakdown</div>
+
+        <div style="font-size:14px;font-weight:600;margin:10px 0 4px;">🌐 Online Bookings (Airbnb)</div>
+        <div style="font-size:13px;margin-left:12px;">
+          <div>Nights Booked: <strong>${onNights}</strong></div>
+          <div>Revenue: <strong>₹${onRev.toLocaleString('en-IN')}</strong></div>
+        </div>
+
+        <div style="font-size:14px;font-weight:600;margin:14px 0 4px;">🏠 Offline / Direct Bookings</div>
+        <table style="width:100%;border-collapse:collapse;font-size:12px;margin-top:4px;">
+          <thead>
+            <tr style="background:#f0f0f0;">
+              <th style="padding:6px;border:1px solid #ccc;">Guest</th>
+              <th style="padding:6px;border:1px solid #ccc;">Check-in</th>
+              <th style="padding:6px;border:1px solid #ccc;">Check-out</th>
+              <th style="padding:6px;border:1px solid #ccc;">Nights</th>
+              <th style="padding:6px;border:1px solid #ccc;text-align:right;">Revenue</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${offBks.map(b => `
+              <tr>
+                <td style="padding:6px;border:1px solid #ccc;">${b.guest_name || '-'}</td>
+                <td style="padding:6px;border:1px solid #ccc;">${b.check_in || '-'}</td>
+                <td style="padding:6px;border:1px solid #ccc;">${b.check_out || '-'}</td>
+                <td style="padding:6px;border:1px solid #ccc;text-align:center;">${cn(b)}</td>
+                <td style="padding:6px;border:1px solid #ccc;text-align:right;">₹${(pm[b.booking_id] || 0).toLocaleString('en-IN')}</td>
+              </tr>
+            `).join('') || '<tr><td colspan="5" style="padding:8px;text-align:center;color:#999;border:1px solid #ccc;">No offline bookings</td></tr>'}
+            <tr style="background:#f9f9f9;font-weight:700;">
+              <td colspan="3" style="padding:6px;border:1px solid #ccc;text-align:right;">Total Offline:</td>
+              <td style="padding:6px;border:1px solid #ccc;text-align:center;">${offNights}</td>
+              <td style="padding:6px;border:1px solid #ccc;text-align:right;">₹${offRev.toLocaleString('en-IN')}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div style="margin-bottom:20px;">
+        <div style="font-size:16px;font-weight:700;margin-bottom:8px;border-bottom:2px solid #000;padding-bottom:4px;">Total Revenue Summary</div>
+        <table style="width:100%;border-collapse:collapse;font-size:13px;">
+          <thead>
+            <tr style="background:#f0f0f0;">
+              <th style="padding:8px;border:1px solid #ccc;">Source</th>
+              <th style="padding:8px;border:1px solid #ccc;">Nights</th>
+              <th style="padding:8px;border:1px solid #ccc;text-align:right;">Revenue</th>
+              <th style="padding:8px;border:1px solid #ccc;text-align:center;">% Contribution</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td style="padding:8px;border:1px solid #ccc;">Airbnb</td>
+              <td style="padding:8px;border:1px solid #ccc;text-align:center;">${onNights}</td>
+              <td style="padding:8px;border:1px solid #ccc;text-align:right;">₹${onRev.toLocaleString('en-IN')}</td>
+              <td style="padding:8px;border:1px solid #ccc;text-align:center;">${onlinePct}%</td>
+            </tr>
+            <tr>
+              <td style="padding:8px;border:1px solid #ccc;">Offline</td>
+              <td style="padding:8px;border:1px solid #ccc;text-align:center;">${offNights}</td>
+              <td style="padding:8px;border:1px solid #ccc;text-align:right;">₹${offRev.toLocaleString('en-IN')}</td>
+              <td style="padding:8px;border:1px solid #ccc;text-align:center;">${offlinePct}%</td>
+            </tr>
+            <tr style="background:#f9f9f9;font-weight:700;">
+              <td style="padding:8px;border:1px solid #ccc;">Total</td>
+              <td style="padding:8px;border:1px solid #ccc;text-align:center;">${totalNights}</td>
+              <td style="padding:8px;border:1px solid #ccc;text-align:right;">₹${totalRev.toLocaleString('en-IN')}</td>
+              <td style="padding:8px;border:1px solid #ccc;text-align:center;">100%</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div style="margin-bottom:20px;">
+        <div style="font-size:16px;font-weight:700;margin-bottom:8px;border-bottom:2px solid #000;padding-bottom:4px;">Expense Summary (${monthName} ${selMonth.split('-')[0]})</div>
+        ${useDefaults ? '<div style="font-size:11px;color:#666;font-style:italic;margin-bottom:6px;">ℹ️ Showing default expenses (actual not logged)</div>' : ''}
+        <table style="width:100%;border-collapse:collapse;font-size:13px;">
+          <thead>
+            <tr style="background:#f0f0f0;">
+              <th style="padding:8px;border:1px solid #ccc;">Expense Category</th>
+              <th style="padding:8px;border:1px solid #ccc;text-align:right;">Amount</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${useDefaults
+              ? (defaults || []).map(d => `
+                <tr>
+                  <td style="padding:8px;border:1px solid #ccc;">${d.expense_name}</td>
+                  <td style="padding:8px;border:1px solid #ccc;text-align:right;">${(d.default_amount || 0) === 0 ? 'Free' : '₹' + d.default_amount.toLocaleString('en-IN')}</td>
+                </tr>
+              `).join('')
+              : (expenses || []).map(e => `
+                <tr>
+                  <td style="padding:8px;border:1px solid #ccc;">${e.expense_categories?.category_name || '-'}</td>
+                  <td style="padding:8px;border:1px solid #ccc;text-align:right;">₹${(e.amount || 0).toLocaleString('en-IN')}</td>
+                </tr>
+              `).join('')}
+            <tr style="background:#f9f9f9;font-weight:700;">
+              <td style="padding:8px;border:1px solid #ccc;">Total Operating Expenses</td>
+              <td style="padding:8px;border:1px solid #ccc;text-align:right;">₹${totalExp.toLocaleString('en-IN')}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div style="margin-bottom:20px;">
+        <div style="font-size:16px;font-weight:700;margin-bottom:8px;border-bottom:2px solid #000;padding-bottom:4px;">Profitability Calculation</div>
+        <div style="font-size:13px;line-height:2;padding:10px;background:#f9f9f9;border:1px solid #ccc;">
+          <div>Total Revenue: ₹${totalRev.toLocaleString('en-IN')}</div>
+          <div>Total Expenses: − ₹${totalExp.toLocaleString('en-IN')}</div>
+          <div style="border-top:1px solid #999;margin-top:4px;padding-top:4px;"><strong>Operating Profit = ₹${profit.toLocaleString('en-IN')}</strong></div>
+        </div>
+      </div>
+
+      <div style="margin-bottom:20px;">
+        <div style="font-size:16px;font-weight:700;margin-bottom:8px;border-bottom:2px solid #000;padding-bottom:4px;">Profit Distribution – ${monthYear}</div>
+        <table style="width:100%;border-collapse:collapse;font-size:13px;">
+          <thead>
+            <tr style="background:#f0f0f0;">
+              <th style="padding:8px;border:1px solid #ccc;">Stakeholder</th>
+              <th style="padding:8px;border:1px solid #ccc;text-align:center;">Share</th>
+              <th style="padding:8px;border:1px solid #ccc;text-align:right;">Amount</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td style="padding:8px;border:1px solid #ccc;">Investor — ${inv?.name || '-'}</td>
+              <td style="padding:8px;border:1px solid #ccc;text-align:center;">${share}%</td>
+              <td style="padding:8px;border:1px solid #ccc;text-align:right;color:#0a7d1a;font-weight:700;">₹${investorAmount.toLocaleString('en-IN')}</td>
+            </tr>
+            <tr>
+              <td style="padding:8px;border:1px solid #ccc;">${BRAND}</td>
+              <td style="padding:8px;border:1px solid #ccc;text-align:center;">${cs}%</td>
+              <td style="padding:8px;border:1px solid #ccc;text-align:right;color:#0a5599;font-weight:700;">₹${companyAmount.toLocaleString('en-IN')}</td>
+            </tr>
+            <tr style="background:#f9f9f9;font-weight:700;">
+              <td style="padding:8px;border:1px solid #ccc;">Total Distributed Profit</td>
+              <td style="padding:8px;border:1px solid #ccc;text-align:center;">100%</td>
+              <td style="padding:8px;border:1px solid #ccc;text-align:right;">₹${profit.toLocaleString('en-IN')}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div style="margin-bottom:20px;">
+        <div style="font-size:16px;font-weight:700;margin-bottom:8px;border-bottom:2px solid #000;padding-bottom:4px;">Ownership & Operating Structure</div>
+        <div style="font-size:13px;line-height:2;">
+          <div><strong>Property Ownership:</strong> Investor — ${inv?.name || '-'}</div>
+          <div><strong>Property Operator:</strong> ${BRAND}</div>
+          <div style="margin-top:8px;"><strong>Revenue Sharing Model:</strong></div>
+          <div style="margin-left:16px;">• Investor Share: ${share}%</div>
+          <div style="margin-left:16px;">• ${BRAND}: ${cs}%</div>
+        </div>
+      </div>
+
+      <div style="margin-bottom:20px;">
+        <div style="font-size:16px;font-weight:700;margin-bottom:8px;border-bottom:2px solid #000;padding-bottom:4px;">Management Commentary</div>
+        <p style="font-size:13px;line-height:1.8;text-align:justify;">
+          <strong>${room?.nickname}</strong> maintained ${totalRev > 50000 ? 'strong' : totalRev > 20000 ? 'stable' : 'moderate'} booking performance during ${monthYear}
+          with the majority of revenue generated through
+          ${onRev > offRev ? '<strong>Airbnb</strong>' : '<strong>direct offline</strong>'} bookings.
+          While the property operates under a rental cost structure, the overall expense levels remained controlled,
+          allowing the property to generate a ${profit >= 0 ? 'positive' : 'negative'} operating margin.
+        </p>
+        <p style="font-size:13px;line-height:1.8;text-align:justify;">
+          With continued booking demand and optimized pricing strategies, the property is expected to maintain
+          stable performance and improve profitability in the coming months.
+        </p>
+      </div>
+
+      <div style="border-top:2px solid #000;padding-top:12px;margin-top:30px;font-size:12px;line-height:1.8;">
+        <div><strong>Prepared By:</strong> NISHA KHAN</div>
+        <div><strong>Operator:</strong> ${BRAND}</div>
+        <div><strong>Date:</strong> ${today}</div>
+      </div>
     </div>
 
-    <div class="card">
-      <div class="section-title">Property</div>
-      <div class="metric-row"><span class="metric-label">Property</span><span style="font-weight:600;">${room?.nickname || '-'}</span></div>
-      <div class="metric-row"><span class="metric-label">Owner</span><span style="font-weight:600;">${inv?.name || '-'}</span></div>
-      <div class="metric-row"><span class="metric-label">Share</span><span>${share}% Investor / ${cs}% Company</span></div>
-    </div>
-
-    <div class="card">
-      <div class="section-title">💰 Revenue</div>
-      <div class="metric-row"><span class="metric-label">Online (Airbnb)</span><span class="metric-value" style="color:var(--blue);">₹${onRev.toLocaleString('en-IN')}</span></div>
-      <div class="metric-row"><span class="metric-label">Offline (Direct)</span><span class="metric-value" style="color:var(--yellow);">₹${offRev.toLocaleString('en-IN')}</span></div>
-      <div class="metric-row"><span class="metric-label">Total Revenue</span><span class="metric-value">₹${totalRev.toLocaleString('en-IN')}</span></div>
-    </div>
-
-    <div class="card">
-      <div class="section-title">📅 Bookings</div>
-      <div class="table-wrap"><table>
-        <thead><tr><th>Guest</th><th>Mode</th><th>In</th><th>Out</th><th>Nights</th><th>₹</th></tr></thead>
-        <tbody>${(bookings || []).map(b => `<tr>
-          <td>${b.guest_name || '-'}</td>
-          <td><span class="badge ${b.booking_mode === 'Online-Airbnb' ? 'blue' : 'yellow'}">${b.booking_mode === 'Online-Airbnb' ? 'On' : 'Off'}</span></td>
-          <td>${b.check_in || '-'}</td><td>${b.check_out || '-'}</td><td>${cn(b)}</td>
-          <td>₹${(pm[b.booking_id] || 0).toLocaleString('en-IN')}</td>
-        </tr>`).join('') || '<tr><td colspan="6" class="sub">None</td></tr>'}</tbody>
-      </table></div>
-    </div>
-
-    <div class="card">
-      <div class="section-title">🧾 Expenses (${expMonth})</div>
-      ${useDefaults ? '<div class="sub" style="margin-bottom:8px;">ℹ️ Default expenses (actual not logged)</div>' : ''}
-      <div class="table-wrap"><table>
-        <thead><tr><th>Expense</th><th>Amount</th><th>Type</th></tr></thead>
-        <tbody>
-          ${useDefaults
-            ? (defaults || []).map(d => `<tr>
-                <td>${d.expense_name}</td>
-                <td style="color:var(--red);">₹${(d.default_amount || 0).toLocaleString('en-IN')}</td>
-                <td><span class="badge ${d.is_fixed ? 'green' : 'yellow'}">${d.is_fixed ? 'Fixed' : 'Variable'}</span></td>
-              </tr>`).join('')
-            : mExp.map(e => `<tr>
-                <td>${e.expense_categories?.category_name || '-'}</td>
-                <td style="color:var(--red);">₹${(e.amount || 0).toLocaleString('en-IN')}</td>
-                <td>-</td>
-              </tr>`).join('')}
-          <tr style="font-weight:700;background:#fafafa;">
-            <td>Total Expenses</td>
-            <td style="color:var(--red);">₹${effectiveExp.toLocaleString('en-IN')}</td>
-            <td></td>
-          </tr>
-        </tbody>
-      </table></div>
-    </div>
-
-    <div class="card" style="background:linear-gradient(135deg,#1a1a1a,#2d2d2d);color:#fff;">
-      <div style="font-size:12px;text-transform:uppercase;letter-spacing:0.5px;color:rgba(255,255,255,0.5);margin-bottom:10px;">Profit Distribution</div>
-      <div class="metric-row" style="border-color:rgba(255,255,255,0.15);">
-        <span style="color:rgba(255,255,255,0.8);">Revenue</span>
-        <span class="metric-value" style="color:#fff;">₹${totalRev.toLocaleString('en-IN')}</span>
-      </div>
-      <div class="metric-row" style="border-color:rgba(255,255,255,0.15);">
-        <span style="color:rgba(255,255,255,0.8);">Expenses</span>
-        <span class="metric-value" style="color:#ef4444;">₹${effectiveExp.toLocaleString('en-IN')}</span>
-      </div>
-      <div class="metric-row" style="border-color:rgba(255,255,255,0.15);">
-        <span style="color:rgba(255,255,255,0.8);">Net Profit</span>
-        <span class="metric-value" style="color:${profit >= 0 ? '#4ade80' : '#ef4444'};">₹${profit.toLocaleString('en-IN')}</span>
-      </div>
-      <div class="metric-row" style="border-color:rgba(255,255,255,0.15);">
-        <span style="color:rgba(255,255,255,0.8);">🏠 ${inv?.name} (${share}%)</span>
-        <span class="metric-value" style="color:${investorAmount >= 0 ? '#4ade80' : '#ef4444'};">₹${investorAmount.toLocaleString('en-IN')}</span>
-      </div>
-      <div class="metric-row" style="border:none;">
-        <span style="color:rgba(255,255,255,0.8);">🏢 ${BRAND} (${cs}%)</span>
-        <span class="metric-value" style="color:${companyAmount >= 0 ? '#60a5fa' : '#ef4444'};">₹${companyAmount.toLocaleString('en-IN')}</span>
-      </div>
-    </div>
-
-    <div class="card" style="text-align:center;font-size:12px;color:var(--muted);">
-      Prepared By: <strong>NISHA KHAN</strong><br>
-      Operator: <strong>${BRAND}</strong><br>
-      Report Date: ${new Date().toLocaleDateString('en-IN')}<br>
-      <div style="margin-top:8px;">
-        <button class="btn-sm" onclick="window.print()">🖨️ Print Report</button>
-      </div>
-    </div>
+    <style>
+      @media print {
+        .sidebar, .no-print, button { display: none !important; }
+        .app-container { display: block !important; }
+        .main-content { margin: 0 !important; padding: 0 !important; }
+        .card { border: none !important; box-shadow: none !important; }
+        body { background: #fff !important; }
+      }
+    </style>
   `, 'investors');
 }
 
