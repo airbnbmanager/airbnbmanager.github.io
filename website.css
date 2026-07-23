@@ -3302,3 +3302,105 @@ a.whatsapp-btn-large * {
     text-align: center;
   }
 }
+
+/* ============ WHATSAPP BUTTON - MENUBAR STYLE EVERYWHERE ============ */
+
+/* Header WhatsApp button (already good) */
+.nav-whatsapp,
+header a[href*="wa.me"],
+nav a[href*="wa.me"] {
+  background: #25D366 !important;
+  color: #fff !important;
+  padding: 10px 20px !important;
+  border-radius: 999px !important;
+  font-weight: 700 !important;
+  font-size: 14px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  text-decoration: none !important;
+  box-shadow: 0 4px 12px rgba(37,211,102,0.3) !important;
+  transition: all 0.2s !important;
+}
+
+.nav-whatsapp:hover,
+header a[href*="wa.me"]:hover {
+  background: #128C7E !important;
+  transform: translateY(-2px) !important;
+}
+
+/* Book Direct button on property cards - MATCH menubar style */
+.btn-whatsapp,
+a.btn-whatsapp {
+  background: #25D366 !important;
+  color: #fff !important;
+  padding: 10px 20px !important;
+  border-radius: 999px !important;
+  font-weight: 700 !important;
+  font-size: 14px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  text-decoration: none !important;
+  box-shadow: 0 4px 12px rgba(37,211,102,0.3) !important;
+  transition: all 0.2s !important;
+  border: none !important;
+}
+
+.btn-whatsapp svg {
+  width: 18px !important;
+  height: 18px !important;
+  fill: #fff !important;
+  flex-shrink: 0 !important;
+}
+
+.btn-whatsapp:hover {
+  background: #128C7E !important;
+  transform: translateY(-2px) !important;
+  box-shadow: 0 6px 16px rgba(37,211,102,0.45) !important;
+}
+
+/* Contact section WhatsApp buttons - same style */
+.whatsapp-btn-large,
+a.whatsapp-btn-large {
+  background: #25D366 !important;
+  color: #fff !important;
+  padding: 12px 24px !important;
+  border-radius: 999px !important;
+  font-weight: 700 !important;
+  font-size: 15px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  text-decoration: none !important;
+  box-shadow: 0 4px 12px rgba(37,211,102,0.35) !important;
+  transition: all 0.2s !important;
+  border: none !important;
+}
+
+.whatsapp-btn-large svg {
+  width: 20px !important;
+  height: 20px !important;
+  fill: #fff !important;
+}
+
+.whatsapp-btn-large:hover {
+  background: #128C7E !important;
+  transform: translateY(-2px) !important;
+}
+
+/* Mobile - all WhatsApp buttons full width and touch-friendly */
+@media (max-width: 768px) {
+  .btn-whatsapp,
+  .whatsapp-btn-large {
+    padding: 12px 20px !important;
+    font-size: 14px !important;
+    min-height: 44px !important;
+  }
+}
+
+/* Ensure SVG inside any wa link */
+[href*="wa.me"] svg {
+  fill: #fff !important;
+  flex-shrink: 0 !important;
+}
