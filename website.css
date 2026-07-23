@@ -2345,24 +2345,7 @@ footer a { color: #484848 !important; }
   50% { transform: scale(1.05); box-shadow: 0 6px 20px rgba(255,56,92,0.5); }
 }
 
-/* Property card - Save 15% ribbon */
-.property-card::after,
-.prop-card::after {
-  content: 'SAVE 15%';
-  position: absolute;
-  bottom: 12px;
-  left: 12px;
-  background: linear-gradient(135deg, #FF385C, #E00B41);
-  color: #fff;
-  padding: 4px 12px;
-  border-radius: 999px;
-  font-size: 11px;
-  font-weight: 800;
-  letter-spacing: 0.8px;
-  box-shadow: 0 4px 12px rgba(255,56,92,0.4);
-  pointer-events: none;
-  z-index: 2;
-}
+
 
 /* WhatsApp button on cards */
 .btn-whatsapp {
