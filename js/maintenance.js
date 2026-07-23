@@ -57,6 +57,8 @@ async function renderAddMaintenance() {
 }
 
 async function saveMaintenance() {
+  const _btn = document.querySelector('button[onclick="saveMaintenance()"]');
+  if (_btn) { if (_btn.disabled) return; _btn.disabled = true; _btn.textContent = '⏳ Saving...'; }
   const desc = document.getElementById('mDesc').value.trim();
   if(!desc){document.getElementById('mErr').innerHTML='<div class="error">Description required</div>';return;}
   await sb.from('maintenance_log').insert({

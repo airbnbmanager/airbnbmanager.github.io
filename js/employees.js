@@ -1,3 +1,18 @@
+
+// ============ STORAGE USAGE CHECK ============
+async function checkStorageUsage() {
+  try {
+    const { data, error } = await sb.storage.from('id-proofs').list('', { limit: 1000 });
+    if (error) return { used: 0, total: 1073741824, error: error.message };
+    let totalSize = 0;
+    const countFiles = (data || []).length;
+    // Supabase free = 1GB storage
+    return { files: countFiles, total: 1073741824, label: '1 GB (Free Plan)' };
+  } catch(e) {
+    return { files: 0, total: 1073741824, label: '1 GB', error: e.message };
+  }
+}
+
 /**
  * Employees Module
  * Employees, Tasks, Attendance, Salary, Advance
@@ -121,6 +136,8 @@ async function renderAddEmp() {
 }
 
 async function saveEmp() {
+  const _btn = document.querySelector('button[onclick="saveEmp()"]');
+  if (_btn) { if (_btn.disabled) return; _btn.disabled = true; _btn.textContent = '⏳ Saving...'; }
   const name = document.getElementById('eName').value.trim();
   if (!name) { document.getElementById('empErr').innerHTML = '<div class="error">Name required</div>'; return; }
 
@@ -241,6 +258,8 @@ async function editEmp(id) {
 }
 
 async function updEmp(id) {
+  const _btn = document.querySelector('button[onclick^="updEmp"]');
+  if (_btn) { if (_btn.disabled) return; _btn.disabled = true; _btn.textContent = '⏳ Updating...'; }
   const name = document.getElementById('eName').value.trim();
   if (!name) { document.getElementById('empErr').innerHTML = '<div class="error">Name required</div>'; return; }
 
@@ -404,6 +423,8 @@ async function renderAddTask() {
 }
 
 async function saveTask() {
+  const _btn = document.querySelector('button[onclick="saveTask()"]');
+  if (_btn) { if (_btn.disabled) return; _btn.disabled = true; _btn.textContent = '⏳ Saving...'; }
   const eid = document.getElementById('tEmp').value;
   const desc = document.getElementById('tDesc').value.trim();
   if (!eid || !desc) { document.getElementById('tErr').innerHTML = '<div class="error">Employee & task required</div>'; return; }
@@ -581,8 +602,24 @@ async function renderAttendanceSummary() {
 // ============ SALARY TRACKER ============
 async function renderSalaryTracker() {
   renderShell(`<div class="loading">Loading...</div>`, 'salary');
-  const { data: sals } = await sb.from('salary_tracker').select('*, employees(name)').order('month', { ascending: false });
+  const [{ data: sals }, { data: advs }, { data: genExps }] = await Promise.all([
+    sb.from('salary_tracker').select('*, employees(name)').order('month', { ascending: false }),
+    sb.from('advance_tracker').select('emp_id, advance_amount, repaid_amount'),
+    sb.from('daily_expenses').select('emp_id, amount')
+  ]);
   const isO = SESSION.role === 'owner';
+
+  // Advance per employee
+  const advMap = {};
+  (advs || []).forEach(a => {
+    advMap[a.emp_id] = (advMap[a.emp_id] || 0) + ((a.advance_amount || 0) - (a.repaid_amount || 0));
+  });
+
+  // General expense per employee
+  const genMap = {};
+  (genExps || []).forEach(e => {
+    genMap[e.emp_id] = (genMap[e.emp_id] || 0) + (e.amount || 0);
+  });
 
   renderShell(`
     <div class="card">
@@ -593,6 +630,7 @@ async function renderSalaryTracker() {
     <div class="card"><div class="table-wrap"><table>
       <thead><tr>
         <th>Employee</th><th>Month</th><th>Due ₹</th><th>Paid ₹</th><th>Balance ₹</th>
+        <th>Advance ₹</th><th>Staff Exp ₹</th>
         ${isO ? '<th>Actions</th>' : ''}
       </tr></thead>
       <tbody>${(sals || []).map(s => {
@@ -603,6 +641,8 @@ async function renderSalaryTracker() {
           <td style="color:var(--red);">₹${(s.salary_due || 0).toLocaleString('en-IN')}</td>
           <td style="color:var(--green);">₹${(s.salary_paid || 0).toLocaleString('en-IN')}</td>
           <td style="color:${bal > 0 ? 'var(--red)' : 'var(--green)'};">₹${bal.toLocaleString('en-IN')}</td>
+          <td style="color:var(--red);">₹${(advMap[s.emp_id] || 0).toLocaleString('en-IN')}</td>
+          <td style="color:var(--blue);">₹${(genMap[s.emp_id] || 0).toLocaleString('en-IN')}</td>
           ${isO ? `<td class="table-actions">
             <button class="btn-sm" onclick="editSal(${s.id})">✏️</button>
             <button class="btn-sm danger" onclick="delSal(${s.id})">🗑️</button>
@@ -655,6 +695,8 @@ function onSalEmpChg() {
 }
 
 async function saveSal() {
+  const _btn = document.querySelector('button[onclick="saveSal()"]');
+  if (_btn) { if (_btn.disabled) return; _btn.disabled = true; _btn.textContent = '⏳ Saving...'; }
   const eid = document.getElementById('sEmp').value;
   const mo = document.getElementById('sMo').value;
   if (!eid || !mo) { document.getElementById('salErr').innerHTML = '<div class="error">Employee & month required</div>'; return; }
@@ -803,6 +845,8 @@ async function renderAddAdv() {
 }
 
 async function saveAdv() {
+  const _btn = document.querySelector('button[onclick="saveAdv()"]');
+  if (_btn) { if (_btn.disabled) return; _btn.disabled = true; _btn.textContent = '⏳ Saving...'; }
   const eid = document.getElementById('aEmp').value;
   const amt = parseFloat(document.getElementById('aAmt').value) || 0;
   if (!eid || amt <= 0) { document.getElementById('advErr').innerHTML = '<div class="error">Employee & amount required</div>'; return; }
@@ -1065,6 +1109,8 @@ async function renderAddEmpExpense() {
 }
 
 async function saveEmpExpense() {
+  const _btn = document.querySelector('button[onclick="saveEmpExpense()"]');
+  if (_btn) { if (_btn.disabled) return; _btn.disabled = true; _btn.textContent = '⏳ Saving...'; }
   const btn = document.querySelector('button[onclick="saveEmpExpense()"]');
   if (btn) { btn.disabled = true; btn.textContent = '⏳ Saving...'; }
 

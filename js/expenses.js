@@ -245,6 +245,8 @@ async function renderAddExpCat() {
 }
 
 async function saveExpCat() {
+  const _btn = document.querySelector('button[onclick="saveExpCat()"]');
+  if (_btn) { if (_btn.disabled) return; _btn.disabled = true; _btn.textContent = '⏳ Saving...'; }
   const name = document.getElementById('cName').value.trim();
   if (!name) {
     document.getElementById('cErr').innerHTML =
@@ -794,6 +796,8 @@ async function renderAddDefaultExpense() {
 }
 
 async function saveDefaultExpense() {
+  const _btn = document.querySelector('button[onclick="saveDefaultExpense()"]');
+  if (_btn) { if (_btn.disabled) return; _btn.disabled = true; _btn.textContent = '⏳ Saving...'; }
   const roomId  = document.getElementById('defRoom').value;
   const name    = document.getElementById('defName').value.trim();
   const amount  = parseFloat(document.getElementById('defAmount').value);

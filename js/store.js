@@ -108,6 +108,8 @@ async function renderAddItem() {
 }
 
 async function saveItem() {
+  const _btn = document.querySelector('button[onclick="saveItem()"]');
+  if (_btn) { if (_btn.disabled) return; _btn.disabled = true; _btn.textContent = '⏳ Saving...'; }
   const name = document.getElementById('iName').value.trim();
   if (!name) { document.getElementById('iErr').innerHTML = '<div class="error">Name required</div>'; return; }
   const { error } = await sb.from('store_items').insert({
@@ -205,6 +207,8 @@ async function renderStockIn() {
 }
 
 async function saveStockIn() {
+  const _btn = document.querySelector('button[onclick="saveStockIn()"]');
+  if (_btn) { if (_btn.disabled) return; _btn.disabled = true; _btn.textContent = '⏳ Saving...'; }
   const itemId = document.getElementById('txItem').value;
   const qty = parseFloat(document.getElementById('txQty').value) || 0;
   if (!itemId || qty <= 0) { document.getElementById('txErr').innerHTML = '<div class="error">Item & quantity required</div>'; return; }
@@ -280,6 +284,8 @@ async function renderStockOut() {
 }
 
 async function saveStockOut() {
+  const _btn = document.querySelector('button[onclick="saveStockOut()"]');
+  if (_btn) { if (_btn.disabled) return; _btn.disabled = true; _btn.textContent = '⏳ Saving...'; }
   const itemId = document.getElementById('txItem').value;
   const qty = parseFloat(document.getElementById('txQty').value) || 0;
   if (!itemId || qty <= 0) { document.getElementById('txErr').innerHTML = '<div class="error">Item & quantity required</div>'; return; }
