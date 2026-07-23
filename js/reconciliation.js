@@ -124,10 +124,21 @@ async function processAirbnbCSV(input) {
       if (match) {
         match._matched = true;
         matched.push(ab);
+        if (match.guest_name !== ab.guest) {
+          nameMismatches.push({
+            bookingId: match.booking_id,
+            oldName: match.guest_name,
+            newName: ab.guest,
+            checkIn: cdate,
+            amount: ab.amount
+          });
+        }
       } else {
         missing.push(ab);
       }
     });
+
+    window._nameMismatches = nameMismatches;
 
     // Extra in app = un-matched app bookings
     const extraInApp = appList.filter(b => !b._matched);
