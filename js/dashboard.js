@@ -336,15 +336,21 @@ async function renderDashboard() {
         b.check_in === tomorrow && b.phone
       );
 
-      // Today's checkouts → send checkout reminder
-      const checkoutReminders = allBookings.filter(b =>
-        b.check_out === todayDate && b.phone
-      );
+      // Today's checkouts → send checkout reminder (only if not past)
+      const checkoutReminders = allBookings.filter(b => {
+        if (!b.phone || !b.check_out) return false;
+        if (b.check_out !== todayDate) return false;
+        // Only if guest is still active (checked in already)
+        return b.check_in <= todayDate;
+      });
 
-      // Yesterday's checkouts → request review
-      const reviewRequests = allBookings.filter(b =>
-        b.check_out === yesterday && b.phone
-      );
+      // Yesterday's checkouts → request review (only recent 7 days)
+      const reviewRequests = allBookings.filter(b => {
+        if (!b.phone || !b.check_out) return false;
+        // Only past week
+        const sevenDaysAgo = dateAdd(todayDate, -7);
+        return b.check_out >= sevenDaysAgo && b.check_out < todayDate;
+      });
 
       // Bookings without ID → request ID
       const noIdBookings = allBookings.filter(b => {

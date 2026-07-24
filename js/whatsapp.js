@@ -189,6 +189,11 @@ async function sendCheckoutReminder(bkId) {
     .eq('booking_id', bkId).single();
   if (!b) { alert('Not found'); return; }
 
+  const today = new Date().toISOString().slice(0, 10);
+  if (b.check_out < today) {
+    if (!confirm(`⚠️ Checkout date (${b.check_out}) is in the past!\n\nDid you mean to send Review Request instead?\n\nClick OK to send reminder anyway, Cancel to abort.`)) return;
+  }
+
   const r = b.rooms || {};
   const roomId = r.room_id || b.room_id;
   const guestName = b.guest_name || 'Guest';
