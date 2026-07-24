@@ -33,9 +33,20 @@ async function getPropertyContactsForRoom(roomId, roomData = {}) {
     const empMap = {};
     (emps || []).forEach(e => { empMap[e.emp_id] = e; });
 
-    // Group by shift
-    const dayShifts = shifts.filter(s => s.shift_type === 'Day');
-    const nightShifts = shifts.filter(s => s.shift_type === 'Night');
+    // Sort function - Caretaker first, then Manager
+    const rolePriority = (role) => {
+      const r = (role || '').toLowerCase();
+      if (r === 'caretaker') return 1;
+      if (r.includes('check-in')) return 2;
+      if (r.includes('manager')) return 3;
+      return 4;
+    };
+
+    // Group by shift + sort by role priority
+    const dayShifts = shifts.filter(s => s.shift_type === 'Day')
+      .sort((a, b) => rolePriority(a.contact_role) - rolePriority(b.contact_role));
+    const nightShifts = shifts.filter(s => s.shift_type === 'Night')
+      .sort((a, b) => rolePriority(a.contact_role) - rolePriority(b.contact_role));
 
     const hasMultipleShifts = dayShifts.length > 0 && nightShifts.length > 0;
 
