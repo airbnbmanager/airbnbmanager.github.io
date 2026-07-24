@@ -352,6 +352,7 @@ function renderShell(content, activePage = 'dashboard') {
       ['expenses', '💹 Expenses & P&L'],
       ['monthly-expenses', '📅 Monthly Expenses'],
       ['financial', '📊 Financial Summary'],
+      ['financial-sheet', '📈 Financial Sheet'],
       ['property-report', '🏘️ Property Reports'],
       ['investors', '🧑‍💼 Investors'],
 
@@ -465,6 +466,7 @@ function navigate(page) {
     'property-report': renderPropertyReport,
     'shifts': renderPropertyShifts,
     'financial': () => renderFYSummary('Month'),
+    'financial-sheet': renderFinancialSheet,
     investors: renderManageInvestors,
     maintenance: renderMaintenanceLog,
     'user-mgmt': renderUserManagement,
@@ -806,6 +808,31 @@ async function deleteUser(userId, name) {
   } catch (err) {
     alert('❌ Delete failed: ' + (err.message || err));
   }
+}
+
+
+// ============ FINANCIAL GOOGLE SHEET ============
+function renderFinancialSheet() {
+  const sheetUrl = 'https://docs.google.com/spreadsheets/d/1eOwfIghwul5W-JObh7SRkA1_xFy97CxUJmsO8b6K3K8/edit?usp=sharing';
+  const embedUrl = 'https://docs.google.com/spreadsheets/d/1eOwfIghwul5W-JObh7SRkA1_xFy97CxUJmsO8b6K3K8/preview';
+
+  renderShell(`
+    <div class="card">
+      <h1>📈 Financial Sheet</h1>
+      <div class="sub">Live Google Sheet — internal financial records</div>
+      <div class="btn-row" style="margin-top:8px;">
+        <a href="${sheetUrl}" target="_blank" class="btn-sm">🔗 Open in Google Sheets</a>
+      </div>
+    </div>
+
+    <div class="card" style="padding:0;overflow:hidden;">
+      <iframe
+        src="${embedUrl}"
+        style="width:100%;height:80vh;border:none;display:block;"
+        allowfullscreen>
+      </iframe>
+    </div>
+  `, 'financial-sheet');
 }
 // ============ START ============
 init();
