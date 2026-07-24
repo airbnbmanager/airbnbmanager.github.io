@@ -1,4 +1,4 @@
-const CACHE_NAME = 'uhhs-live-v17';
+const CACHE_NAME = 'uhhs-live-v20';
 
 self.addEventListener('install', event => {
   self.skipWaiting();

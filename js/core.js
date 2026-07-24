@@ -8,7 +8,7 @@
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 const appEl = document.getElementById("app");
 const BRAND = "The UNIQUE HAVEN HOME STAY";
-const APP_VERSION = "v15";
+const APP_VERSION = "v20";
 
 let SESSION = {
   userId: null,
