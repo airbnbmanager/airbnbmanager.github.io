@@ -299,6 +299,7 @@ function renderShell(content, activePage = 'dashboard') {
       ['bookings', '📅 My Bookings'],
       ['flats', '🛏️ Flats Status'],
       { section: 'HELP' },
+      ['settings', '⚙️ Settings'],
       ['sop', '📘 SOP Guide'],
     ];
   } else if (isViewer) {
@@ -469,6 +470,7 @@ function navigate(page) {
     'financial': () => renderFYSummary('Month'),
     'financial-sheet': renderFinancialSheet,
     'airbnb-sync': renderAirbnbSync,
+    'settings': renderSettings,
     investors: renderManageInvestors,
     maintenance: renderMaintenanceLog,
     'user-mgmt': renderUserManagement,
@@ -840,3 +842,116 @@ function renderFinancialSheet() {
 }
 // ============ START ============
 init();
+
+// ============ APP SETTINGS ============
+async function renderSettings() {
+  renderShell(`<div class="loading">Loading settings...</div>`, 'settings');
+
+  const { data: settings } = await sb.from('app_settings').select('*').order('key');
+
+  renderShell(`
+    <div class="card">
+      <h1>⚙️ App Settings</h1>
+      <div class="sub">Manage brand info, links, phone numbers, and defaults</div>
+    </div>
+
+    <div class="card">
+      <div class="section-title">🔧 All Settings</div>
+      <div class="table-wrap"><table>
+        <thead><tr>
+          <th style="width:200px;">Key</th>
+          <th>Value</th>
+          <th>Description</th>
+          <th style="width:100px;">Action</th>
+        </tr></thead>
+        <tbody>
+          ${(settings || []).map(s => `
+            <tr>
+              <td><strong>${s.key}</strong></td>
+              <td>
+                <input type="text" id="set_${s.key}" value="${(s.value || '').replace(/"/g, '&quot;')}"
+                  style="width:100%;font-size:12px;padding:6px 8px;" />
+              </td>
+              <td style="font-size:12px;color:var(--muted);">${s.description || '-'}</td>
+              <td>
+                <button class="btn-sm green-btn" onclick="saveSetting('${s.key}')">💾 Save</button>
+              </td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table></div>
+    </div>
+
+    <div class="card">
+      <div class="section-title">➕ Add New Setting</div>
+      <div class="form-grid">
+        <div class="form-group"><label>Key</label><input id="newSetKey" placeholder="e.g. instagram_url" /></div>
+        <div class="form-group"><label>Value</label><input id="newSetValue" placeholder="e.g. https://..." /></div>
+      </div>
+      <div class="form-group"><label>Description</label><input id="newSetDesc" placeholder="Optional" /></div>
+      <button onclick="addSetting()" style="width:100%;margin-top:10px;">💾 Add Setting</button>
+      <div id="settingErr"></div>
+    </div>
+
+    <div class="card" style="background:#FFF9E6;border-left:4px solid #FFB800;">
+      <div class="section-title">💡 Where these are used:</div>
+      <ul style="font-size:13px;line-height:2;padding-left:20px;">
+        <li><strong>airbnb_review_link</strong> — Review request WhatsApp (Airbnb guests)</li>
+        <li><strong>google_review_link</strong> — Review request WhatsApp (Offline guests)</li>
+        <li><strong>owner_phone_1/2</strong> — All WhatsApp messages fallback contact</li>
+        <li><strong>checkin_time/checkout_time</strong> — Default times in new bookings</li>
+        <li><strong>website_url</strong> — Website link in all messages</li>
+        <li><strong>brand_name</strong> — Displayed everywhere as brand</li>
+      </ul>
+    </div>
+  `, 'settings');
+}
+
+async function saveSetting(key) {
+  const value = document.getElementById(`set_${key}`).value.trim();
+  const { error } = await sb.from('app_settings')
+    .update({ value, updated_at: new Date().toISOString() })
+    .eq('key', key);
+
+  if (error) {
+    alert('❌ ' + error.message);
+    return;
+  }
+  alert(`✅ Updated: ${key}`);
+  // Clear cache so new value picks up
+  window._appSettings = null;
+}
+
+async function addSetting() {
+  const key = document.getElementById('newSetKey').value.trim();
+  const value = document.getElementById('newSetValue').value.trim();
+  const desc = document.getElementById('newSetDesc').value.trim();
+
+  if (!key || !value) {
+    document.getElementById('settingErr').innerHTML = '<div class="error">Key and value required</div>';
+    return;
+  }
+
+  const { error } = await sb.from('app_settings').insert({
+    key, value, description: desc || null
+  });
+
+  if (error) {
+    document.getElementById('settingErr').innerHTML = `<div class="error">${error.message}</div>`;
+    return;
+  }
+
+  alert(`✅ Added: ${key}`);
+  window._appSettings = null;
+  renderSettings();
+}
+
+// Helper: Get setting value (cached)
+async function getSetting(key, fallback = '') {
+  if (!window._appSettings) {
+    const { data } = await sb.from('app_settings').select('key, value');
+    window._appSettings = {};
+    (data || []).forEach(s => { window._appSettings[s.key] = s.value; });
+  }
+  return window._appSettings[key] || fallback;
+}

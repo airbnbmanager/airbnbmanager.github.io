@@ -352,8 +352,8 @@ async function requestReview(bkId) {
   const propertyName = b.rooms?.nickname || 'our property';
   const isOnline = b.booking_mode === 'Online-Airbnb';
 
-  const airbnbProfile = 'https://www.airbnb.co.in/users/profile/1592729439630759961';
-  const googleReview = 'https://g.page/r/YOUR_GOOGLE_ID/review'; // Update with actual Google Business review link
+  const airbnbProfile = await getSetting('airbnb_review_link', 'https://www.airbnb.co.in/users/profile/1592729439630759961');
+  const googleReview = await getSetting('google_review_link', 'https://g.page/r/YOUR_GOOGLE_ID/review');
 
   const platform = isOnline ? 'Airbnb' : 'Google';
   const link = isOnline ? airbnbProfile : googleReview;
