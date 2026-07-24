@@ -353,6 +353,10 @@ async function requestReview(bkId) {
   const isOnline = b.booking_mode === 'Online-Airbnb';
 
   const airbnbProfile = 'https://www.airbnb.co.in/users/profile/1592729439630759961';
+  const googleReview = 'https://g.page/r/YOUR_GOOGLE_ID/review'; // Update with actual Google Business review link
+
+  const platform = isOnline ? 'Airbnb' : 'Google';
+  const link = isOnline ? airbnbProfile : googleReview;
 
   const msg = [
     `Hi ${guestName}! 🙏`,
@@ -362,9 +366,9 @@ async function requestReview(bkId) {
     ``,
     `Your feedback means the world to us! ⭐`,
     ``,
-    `Kindly spare 30 seconds to leave us a *5-star review on Airbnb*:`,
+    `Kindly spare 30 seconds to leave us a *5-star review on ${platform}*:`,
     ``,
-    `👉 ${airbnbProfile}`,
+    `👉 ${link}`,
     ``,
     `Your review helps our small business grow & helps other travellers choose us with confidence. 💖`,
     ``,
