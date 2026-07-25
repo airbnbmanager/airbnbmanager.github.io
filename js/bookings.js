@@ -773,11 +773,21 @@ function onAmtChg() {
 
 function onEditIdFileSelect(input, guestNum, side) {
   if (!input.files || !input.files[0]) return;
+  const originalFile = input.files[0];
 
-  openCropModal(input.files[0], (croppedFile) => {
-    const dt = new DataTransfer();
-    dt.items.add(croppedFile);
-    input.files = dt.files;
+  openCropModal(originalFile, (croppedFile) => {
+    // Store in global map (DataTransfer unreliable)
+    if (!window._editIdFiles) window._editIdFiles = {};
+    const key = `${side}_${guestNum}`;
+    window._editIdFiles[key] = croppedFile;
+
+    // Also try DataTransfer as fallback
+    try {
+      const dt = new DataTransfer();
+      dt.items.add(croppedFile);
+      input.files = dt.files;
+    } catch(e) {}
+
     showEditPreview(input, guestNum, side);
   });
 }
@@ -1619,7 +1629,9 @@ async function updateBooking(bkId, parentBookingId = '', stayGroupId = '') {
   const bArr = existBack.length  ? existBack.slice()  : Array(gc).fill(null);
   const aArr = [...new Set((oldBk?.id_proof_photo_paths || '').split(',').filter(Boolean))];
   for (let i = 1; i <= gc; i++) {
-    const fFile = document.getElementById(`eFrontCam${i}`)?.files?.[0] || document.getElementById(`eFrontGal${i}`)?.files?.[0];
+    const fFile = (window._editIdFiles && window._editIdFiles[`front_${i}`]) 
+      || document.getElementById(`eFrontCam${i}`)?.files?.[0] 
+      || document.getElementById(`eFrontGal${i}`)?.files?.[0];
     if (fFile) {
       try {
         const c = await smartCompress(fFile);
@@ -1629,7 +1641,9 @@ async function updateBooking(bkId, parentBookingId = '', stayGroupId = '') {
         else console.warn('Front upload failed:', result.error);
       } catch (e) { console.warn('Front upload error:', e); }
     }
-    const bFile = document.getElementById(`eBackCam${i}`)?.files?.[0] || document.getElementById(`eBackGal${i}`)?.files?.[0];
+    const bFile = (window._editIdFiles && window._editIdFiles[`back_${i}`])
+      || document.getElementById(`eBackCam${i}`)?.files?.[0] 
+      || document.getElementById(`eBackGal${i}`)?.files?.[0];
     if (bFile) {
       try {
         const c = await smartCompress(bFile);
@@ -1685,6 +1699,7 @@ async function updateBooking(bkId, parentBookingId = '', stayGroupId = '') {
 
   const { error } = await sb.from('guest_register').update(obj).eq('booking_id', bkId);
   if (error) { document.getElementById('editBkErr').innerHTML = `<div class="error">${error.message}</div>`; return; }
+  window._editIdFiles = {}; // Clear cache
   renderManageBookings();
 }
 
