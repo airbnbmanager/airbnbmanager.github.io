@@ -9,3 +9,6 @@ js/*.bak.*
 *.bak
 *.bak.*
 .bak-propname/
+
+.bak-alerts/
+.bak-propname/
