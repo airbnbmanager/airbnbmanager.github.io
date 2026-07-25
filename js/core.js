@@ -131,6 +131,7 @@ async function loadProfile(userId) {
   SESSION.empId = p.emp_id;
   SESSION.investorId = p.investor_id;
   SESSION.displayName = p.display_name || p.role;
+  startHeartbeat();
 
   if (p.role === 'employee') renderEmployeeView();
   else if (p.role === 'investor' || (p.role === 'viewer' && p.investor_id)) renderInvestorView();
@@ -292,6 +293,9 @@ function renderShell(content, activePage = 'dashboard') {
 
   let nav;
 
+  // Settings visible only to admin
+  const showSettings = isAdmin;
+
   if (isCheckinMgr) {
     nav = [
       { section: 'MY PROPERTIES' },
@@ -299,7 +303,6 @@ function renderShell(content, activePage = 'dashboard') {
       ['bookings', '📅 My Bookings'],
       ['flats', '🛏️ Flats Status'],
       { section: 'HELP' },
-      ['settings', '⚙️ Settings'],
       ['sop', '📘 SOP Guide'],
     ];
   } else if (isViewer) {
@@ -363,6 +366,7 @@ function renderShell(content, activePage = 'dashboard') {
 
       { section: 'ADMIN' },
       ['user-mgmt', '👤 User Management'],
+      ...(showSettings ? [['settings', '⚙️ Settings']] : []),
       ['sop', '📘 SOP Guide'],
     ];
   } else if (isCheckin) {
@@ -599,13 +603,17 @@ async function autoCheckout() {
 
     if (activeNow) {
       newS = 'Booked';
-      newC = 'Clean';
+      // Don't change cleaning if it's already Dirty (guest may have complained)
+      if (newC !== 'Dirty' && newC !== 'In Progress') newC = 'Clean';
     } else {
       newS = 'Free';
       if (latest) {
         const lc = cf.last_cleaned || null;
         const co = latest.check_out || null;
-        if (!(lc && co && lc >= co) && newC !== 'In Progress') newC = 'Dirty';
+        // Mark dirty if cleaned before last checkout
+        if (!(lc && co && lc >= co) && newC !== 'In Progress') {
+          newC = 'Dirty';
+        }
       }
     }
 
@@ -954,4 +962,26 @@ async function getSetting(key, fallback = '') {
     (data || []).forEach(s => { window._appSettings[s.key] = s.value; });
   }
   return window._appSettings[key] || fallback;
+}
+
+
+async function startHeartbeat() {
+  if (!SESSION.userId) return;
+  // Update immediately
+  await sb.from('profiles').update({ last_seen: new Date().toISOString() }).eq('user_id', SESSION.userId);
+  // Then every 30 seconds
+  setInterval(async () => {
+    if (SESSION.userId) {
+      await sb.from('profiles').update({ last_seen: new Date().toISOString() }).eq('user_id', SESSION.userId);
+    }
+  }, 30000);
+}
+
+async function getActiveUsers() {
+  const twoMinAgo = new Date(Date.now() - 2 * 60 * 1000).toISOString();
+  const { data } = await sb.from('profiles')
+    .select('display_name, role, last_seen')
+    .gte('last_seen', twoMinAgo)
+    .order('last_seen', { ascending: false });
+  return data || [];
 }
