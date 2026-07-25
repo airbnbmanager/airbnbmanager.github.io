@@ -159,7 +159,16 @@ async function renderDashboard() {
       </div>
     </div>
 
-    
+    ${overdue.length > 0 ? `
+    <div class="card" style="border-left:4px solid var(--red);background:#FEF2F2;">
+      <div class="section-title" style="color:var(--red);">⚠️ Overdue Checkouts (${overdue.length})</div>
+      ${overdue.slice(0, 3).map(x => `
+        <div style="font-size:12px;padding:4px 0;">
+          <strong>${x.guest_name}</strong> — ${bName(x)}
+          <br><small style="color:var(--muted);">Was due: ${x.check_out}</small>
+        </div>
+      `).join('')}
+      ${overdue.length > 3 ? `<div style="font-size:11px;color:var(--primary);cursor:pointer;" onclick="navigate('bookings')">View all →</div>` : ''}
     </div>
     ` : ''}
 
