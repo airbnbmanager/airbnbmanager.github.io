@@ -80,7 +80,10 @@ async function renderDashboard() {
   // Total pending balance (all active bookings)
   const pendingBalance = allBookings
     .filter(b => b.check_out >= today || !b.check_out)
-    .reduce((s, b) => s + Math.max((b.total_amount || 0) - (paidMap[b.booking_id] || 0), 0), 0);
+    .reduce((s, b) => {
+      const due = (b.total_amount || 0) - (paidMap[b.booking_id] || 0);
+      return s + (due > 1 ? due : 0); // Ignore < Re 1
+    }, 0);
 
   // This month bookings
   const monthBookings = allBookings.filter(b => (b.check_in || '') >= monthStart).length;
@@ -797,6 +800,8 @@ function filterAndShowBookings(type) {
     SESSION.bookingPeriod = 'thisMonth';
   } else if (type === 'due') {
     SESSION.bookingPayFilter = 'due';
+    // Only current + upcoming (not done bookings)
+    SESSION.bookingDateFrom = today;
   } else if (type === 'unpaid') {
     SESSION.bookingPayFilter = 'unpaid';
   } else if (type === 'checkinToday') {
