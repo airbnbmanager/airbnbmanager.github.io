@@ -1781,3 +1781,26 @@ code {
     text-transform: uppercase;
   }
 }
+
+/* ═══════════════════════════════════════════════════════════
+   MOBILE: Hide top sidebar-nav (bottom nav is enough)
+   ═══════════════════════════════════════════════════════════ */
+
+@media (max-width: 768px) {
+  /* Hide top horizontal pills on mobile */
+  .sidebar .sidebar-nav {
+    display: none !important;
+  }
+
+  /* But show them in drawer mode when More clicked */
+  .sidebar.mobile-drawer-open .sidebar-nav {
+    display: flex !important;
+    flex-direction: column !important;
+  }
+
+  /* Reduce sidebar top height (only logo + user row) */
+  .sidebar {
+    height: auto !important;
+    padding-bottom: 0 !important;
+  }
+}
