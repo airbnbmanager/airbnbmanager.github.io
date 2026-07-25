@@ -349,7 +349,7 @@ async function renderManageBookings() {
           <td>${buildIdButtons(b)}</td>
           <td><strong>₹${(b.total_amount || 0).toLocaleString('en-IN')}</strong></td>
           <td style="color:var(--green);">₹${pd.toLocaleString('en-IN')}</td>
-          <td><strong class="${bal > 0 ? 'metric-value warn' : ''}">₹${bal.toLocaleString('en-IN')}</strong></td>
+          <td><strong class="${bal > 0.99 ? 'metric-value warn' : ''}">₹${Math.abs(bal) < 1 ? '0' : bal.toLocaleString('en-IN')}</strong></td>
           ${canM ? `<td class="table-actions">
             <button class="btn-sm" onclick="editBooking('${b.booking_id}')">✏️</button>
             <button class="btn-sm secondary" onclick="showPaymentModal('${b.booking_id}')">💰</button>
@@ -1359,7 +1359,7 @@ async function editBooking(bkId) {
   const { data: rooms } = await sb.from('rooms').select('room_id,unit_no,nickname,property_name').order('room_id');
   const { data: pays } = await sb.from('payment_history').select('*').eq('booking_id', bkId).order('paid_at', { ascending: false });
   const tp = (pays || []).reduce((s, p) => s + (p.amount || 0), 0);
-  const bal = (b.total_amount || 0) - tp;
+  const bal = Math.round(((b.total_amount || 0) - tp) * 100) / 100;
 
   const frontPaths = parseIdPathArray(b.id_proof_front_paths);
   const backPaths = parseIdPathArray(b.id_proof_back_paths);
