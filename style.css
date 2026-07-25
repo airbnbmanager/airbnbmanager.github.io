@@ -1614,3 +1614,61 @@ code {
   background: #F0FFF4;
   color: #128C7E;
 }
+
+/* ═══════════════════════════════════════════════════════════
+   PWA MOBILE FIX — Section Headings + Sidebar (Safe, non-breaking)
+   ═══════════════════════════════════════════════════════════ */
+
+/* Section heading — desktop default */
+.nav-section-heading {
+  font-size: 10px;
+  font-weight: 700;
+  color: rgba(255,255,255,0.4);
+  letter-spacing: 1.5px;
+  padding: 12px 12px 4px;
+  margin-top: 4px;
+  text-transform: uppercase;
+}
+
+/* MOBILE — hide section headings completely (they cause visual duplication) */
+@media (max-width: 768px) {
+  .nav-section-heading {
+    display: none !important;
+  }
+
+  /* Ensure sidebar-nav items don't stretch weirdly on horizontal scroll */
+  .sidebar-nav {
+    display: flex !important;
+    flex-direction: row !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+    scroll-snap-type: x proximity;
+    gap: 4px;
+    padding: 8px 12px !important;
+  }
+
+  .sidebar-nav a {
+    flex: 0 0 auto !important;
+    white-space: nowrap;
+    scroll-snap-align: start;
+    padding: 8px 14px !important;
+    border-radius: 20px !important;
+    font-size: 13px !important;
+    min-height: 36px;
+    display: inline-flex !important;
+    align-items: center;
+  }
+
+  .sidebar-nav a.active {
+    background: rgba(226,114,91,0.25) !important;
+    color: #fff !important;
+  }
+}
+
+/* Extra small phones */
+@media (max-width: 480px) {
+  .sidebar-nav a {
+    font-size: 12px !important;
+    padding: 6px 12px !important;
+  }
+}

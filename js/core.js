@@ -434,7 +434,7 @@ function renderShell(content, activePage = 'dashboard') {
         <nav class="sidebar-nav">
           ${nav.map(item => {
             if (item.section) {
-              return `<div style="font-size:10px;font-weight:700;color:rgba(255,255,255,0.4);letter-spacing:1.5px;padding:12px 12px 4px;margin-top:4px;">${item.section}</div>`;
+              return `<div class="nav-section-heading">${item.section}</div>`;
             }
             const [k, l] = item;
             return `<a href="#" data-page="${k}" class="${activePage === k ? 'active' : ''}">${l}</a>`;
