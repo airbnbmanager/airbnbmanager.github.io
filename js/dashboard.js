@@ -203,6 +203,15 @@ async function renderDashboard() {
         <div class="stat-label">💳 Total Pending</div>
         <div style="font-size:10px;color:var(--muted);">All unpaid combined</div>
       </div>
+      <div class="stat-card" style="border-left:4px solid #FFB800;cursor:pointer;" onclick="filterAndShowBookings('noId')">
+        <div class="stat-num" style="color:#FFB800;font-size:20px;">${allBookings.filter(b => {
+          if (b.check_in > today) return false;
+          if (b.check_out < dateAdd(today, -7)) return false;
+          return !(b.id_proof_photo_paths || b.id_proof_photo_path || '').split(',').filter(Boolean).length;
+        }).length}</div>
+        <div class="stat-label">🪪 ID Pending</div>
+        <div style="font-size:10px;color:var(--muted);">Active + last 7 days</div>
+      </div>
     </div>
 
     <!-- Online vs Offline Bookings -->
@@ -820,6 +829,9 @@ function filterAndShowBookings(type) {
     SESSION.bookingDateTo = dateAdd(today, -1);
   } else if (type === 'due') {
     SESSION.bookingPayFilter = 'due';
+  } else if (type === 'noId') {
+    SESSION.bookingPayFilter = '';
+    SESSION.bookingDateFrom = dateAdd(today, -7);
   } else if (type === 'unpaid') {
     SESSION.bookingPayFilter = 'unpaid';
   } else if (type === 'checkinToday') {
