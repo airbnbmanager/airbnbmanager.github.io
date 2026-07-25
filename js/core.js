@@ -442,12 +442,44 @@ function renderShell(content, activePage = 'dashboard') {
         </nav>
       </aside>
       <main class="main-content" id="mainContent">${content}</main>
+
+      <!-- Mobile Bottom Navigation -->
+      <nav class="bottom-nav" id="bottomNav">
+        <a href="#" data-page="dashboard" class="${activePage === 'dashboard' ? 'active' : ''}">
+          <span class="bn-icon">🏠</span><span class="bn-label">Home</span>
+        </a>
+        <a href="#" data-page="bookings" class="${activePage === 'bookings' ? 'active' : ''}">
+          <span class="bn-icon">📅</span><span class="bn-label">Bookings</span>
+        </a>
+        <a href="#" data-page="flats" class="${activePage === 'flats' ? 'active' : ''}">
+          <span class="bn-icon">🛏️</span><span class="bn-label">Flats</span>
+        </a>
+        <a href="#" data-page="rooms" class="${activePage === 'rooms' ? 'active' : ''}">
+          <span class="bn-icon">🏘️</span><span class="bn-label">Property</span>
+        </a>
+        <a href="#" id="bottomNavMore">
+          <span class="bn-icon">☰</span><span class="bn-label">More</span>
+        </a>
+      </nav>
     </div>`;
 
   document.querySelectorAll('.sidebar-nav a').forEach(a => {
     a.onclick = e => { e.preventDefault(); navigate(a.dataset.page); };
   });
   document.getElementById('logoutBtn').onclick = logout;
+
+  // Bottom Nav handlers (mobile only)
+  document.querySelectorAll('.bottom-nav a[data-page]').forEach(a => {
+    a.onclick = e => { e.preventDefault(); navigate(a.dataset.page); };
+  });
+  const moreBtn = document.getElementById('bottomNavMore');
+  if (moreBtn) {
+    moreBtn.onclick = e => {
+      e.preventDefault();
+      const sb = document.getElementById('sidebarEl');
+      if (sb) sb.classList.toggle('mobile-drawer-open');
+    };
+  }
 }
 
 function navigate(page) {
