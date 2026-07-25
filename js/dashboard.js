@@ -78,10 +78,15 @@ async function renderDashboard() {
     .reduce((s, p) => s + (p.amount || 0), 0);
 
   // Total pending balance (all active bookings)
-  const pendingBalance = allBookings.reduce((s, b) => {
+  const activeDue = allBookings.filter(b => b.check_out >= today || !b.check_out).reduce((s, b) => {
       const due = (b.total_amount || 0) - (paidMap[b.booking_id] || 0);
       return s + (due > 1 ? due : 0);
     }, 0);
+  const pastDue = allBookings.filter(b => b.check_out && b.check_out < today).reduce((s, b) => {
+      const due = (b.total_amount || 0) - (paidMap[b.booking_id] || 0);
+      return s + (due > 1 ? due : 0);
+    }, 0);
+  const pendingBalance = activeDue + pastDue;
 
   // This month bookings
   const monthBookings = allBookings.filter(b => (b.check_in || '') >= monthStart).length;
@@ -183,9 +188,20 @@ async function renderDashboard() {
         <div class="stat-num" style="color:var(--blue);font-size:22px;">₹${monthRevenue.toLocaleString('en-IN')}</div>
         <div class="stat-label">📈 This Month</div>
       </div>
+      <div class="stat-card" style="border-left:4px solid #FF385C;cursor:pointer;" onclick="filterAndShowBookings('activeDue')">
+        <div class="stat-num" style="color:#FF385C;font-size:20px;">₹${activeDue.toLocaleString('en-IN')}</div>
+        <div class="stat-label">🔴 Active Due</div>
+        <div style="font-size:10px;color:var(--muted);">Current + Upcoming guests</div>
+      </div>
+      <div class="stat-card" style="border-left:4px solid #FFB800;cursor:pointer;" onclick="filterAndShowBookings('pastDue')">
+        <div class="stat-num" style="color:#FFB800;font-size:20px;">₹${pastDue.toLocaleString('en-IN')}</div>
+        <div class="stat-label">⏳ Past Due</div>
+        <div style="font-size:10px;color:var(--muted);">Checked out but unpaid</div>
+      </div>
       <div class="stat-card" style="border-left:4px solid var(--red);cursor:pointer;" onclick="filterAndShowBookings('due')">
-        <div class="stat-num" style="color:var(--red);font-size:22px;">₹${pendingBalance.toLocaleString('en-IN')}</div>
-        <div class="stat-label">💳 Pending Balance</div>
+        <div class="stat-num" style="color:var(--red);font-size:20px;">₹${pendingBalance.toLocaleString('en-IN')}</div>
+        <div class="stat-label">💳 Total Pending</div>
+        <div style="font-size:10px;color:var(--muted);">All unpaid combined</div>
       </div>
     </div>
 
@@ -796,6 +812,12 @@ function filterAndShowBookings(type) {
     SESSION._filterByPaymentDate = today;
   } else if (type === 'thisMonth') {
     SESSION.bookingPeriod = 'thisMonth';
+  } else if (type === 'activeDue') {
+    SESSION.bookingPayFilter = 'due';
+    SESSION.bookingDateFrom = today;
+  } else if (type === 'pastDue') {
+    SESSION.bookingPayFilter = 'due';
+    SESSION.bookingDateTo = dateAdd(today, -1);
   } else if (type === 'due') {
     SESSION.bookingPayFilter = 'due';
   } else if (type === 'unpaid') {
