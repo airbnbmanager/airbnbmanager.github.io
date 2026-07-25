@@ -1631,7 +1631,26 @@ async function updateBooking(bkId, parentBookingId = '', stayGroupId = '') {
   console.log('[Update] Files map at save:', window._editIdFiles);
   console.log('[Update] Guest count:', gc);
 
-  for (let i = 1; i <= gc; i++) {
+  // Find max guest index with pending files
+  let maxGuestWithFile = gc;
+  if (window._editIdFiles) {
+    Object.keys(window._editIdFiles).forEach(key => {
+      const num = parseInt(key.split('_')[1]);
+      if (num > maxGuestWithFile) maxGuestWithFile = num;
+    });
+  }
+  // Also check DOM inputs
+  for (let i = 1; i <= 8; i++) {
+    if (document.getElementById(`eFrontCam${i}`)?.files?.[0] ||
+        document.getElementById(`eFrontGal${i}`)?.files?.[0] ||
+        document.getElementById(`eBackCam${i}`)?.files?.[0] ||
+        document.getElementById(`eBackGal${i}`)?.files?.[0]) {
+      if (i > maxGuestWithFile) maxGuestWithFile = i;
+    }
+  }
+  console.log('[Update] Loop till:', maxGuestWithFile);
+
+  for (let i = 1; i <= maxGuestWithFile; i++) {
     const fFile = (window._editIdFiles && window._editIdFiles[`front_${i}`]) 
       || document.getElementById(`eFrontCam${i}`)?.files?.[0] 
       || document.getElementById(`eFrontGal${i}`)?.files?.[0];
