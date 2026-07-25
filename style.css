@@ -1875,3 +1875,19 @@ code {
     padding-left: 11px !important;
   }
 }
+
+/* ═══════════════════════════════════════════════════════════
+   FORCE HIDE TOP NAV ON MOBILE — Higher specificity
+   ═══════════════════════════════════════════════════════════ */
+@media (max-width: 768px) {
+  /* Higher specificity: aside.sidebar > nav.sidebar-nav */
+  aside.sidebar > nav.sidebar-nav {
+    display: none !important;
+  }
+
+  /* But show inside drawer */
+  aside.sidebar.mobile-drawer-open > nav.sidebar-nav {
+    display: flex !important;
+    flex-direction: column !important;
+  }
+}
