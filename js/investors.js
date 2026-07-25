@@ -247,7 +247,7 @@ async function deleteInvestor(investorId, name) {
     fsn.success(`Success`, `✅ Investor "${name}" deleted`);
     renderManageInvestors();
   } catch (err) {
-    alert('❌ Delete failed: ' + err.message);
+    fsn.error('Error', '❌ Delete failed: ' + err.message);
   }
 }
 

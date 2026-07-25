@@ -101,7 +101,7 @@ async function manualSync() {
     fsn.success('Success', '✅ Synced!');
     if (SESSION.currentPage === 'dashboard') renderDashboard();
     else if (SESSION.currentPage === 'flats') renderFlatsStatus();
-  } catch (e) { alert('❌ Failed: ' + e.message); }
+  } catch (e) { fsn.error('Error', '❌ Failed: ' + e.message); }
 }
 
 // ============ AUTH ============
@@ -830,7 +830,7 @@ async function approveUser(userId, name) {
       fsn.success(`Success`, `✅ ${displayName} approved as ${role}`);
       renderUserManagement();
     } catch (err) {
-      alert('❌ Approve failed: ' + (err.message || err));
+      fsn.error('Error', '❌ Approve failed: ' + (err.message || err));
     }
   });
 }
@@ -843,7 +843,7 @@ async function changeUserRole(userId, name) {
       fsn.success(`Success`, `✅ Role changed to ${role}`);
       renderUserManagement();
     } catch (err) {
-      alert('❌ Role change failed: ' + (err.message || err));
+      fsn.error('Error', '❌ Role change failed: ' + (err.message || err));
     }
   });
 }
@@ -865,7 +865,7 @@ async function deleteUser(userId, name) {
     fsn.success(`Success`, `✅ ${name} deleted`);
     renderUserManagement();
   } catch (err) {
-    alert('❌ Delete failed: ' + (err.message || err));
+    fsn.error('Error', '❌ Delete failed: ' + (err.message || err));
   }
 }
 
@@ -967,7 +967,7 @@ async function saveSetting(key) {
     .eq('key', key);
 
   if (error) {
-    alert('❌ ' + error.message);
+    fsn.error('Error', '❌ ' + error.message);
     return;
   }
   fsn.success(`Success`, `✅ Updated: ${key}`);

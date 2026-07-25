@@ -771,7 +771,7 @@ async function updateShift(id, roomId) {
 async function deleteShift(id, roomId) {
   if (!confirm('Remove this shift contact?')) return;
   const { error } = await sb.from('property_shifts').delete().eq('id', id);
-  if (error) { alert('❌ ' + error.message); return; }
+  if (error) { fsn.error('Error', '❌ ' + error.message); return; }
   fsn.success('Success', '✅ Shift removed');
   renderPropertyShifts(roomId);
 }

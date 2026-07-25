@@ -10,7 +10,7 @@ async function showGuestLedger(guestName) {
     .ilike('guest_name', `%${guestName}%`)
     .order('check_in', {ascending:false});
 
-  if (!bookings || !bookings.length) { alert('No bookings found for: ' + guestName); return; }
+  if (!bookings || !bookings.length) { fsn.info('Info', 'No bookings found for: ' + guestName); return; }
 
   const bkIds = bookings.map(b => b.booking_id);
   const {data:payments} = await sb.from('payment_history')
@@ -1301,7 +1301,7 @@ async function saveBooking() {
     window._bookingPrefill = null;
 
     // Success feedback
-    alert('✅ Booking saved successfully!\n\nGuest: ' + gn + '\nProperty: ' + (document.getElementById('roomId').selectedOptions[0]?.text || rid));
+    fsn.success('Success', '✅ Booking saved successfully!\n\nGuest: ' + gn + '\nProperty: ' + (document.getElementById('roomId').selectedOptions[0]?.text || rid));
 
     // WhatsApp share option
     if (confirm('📱 WhatsApp message share karna hai?')) {
@@ -1620,7 +1620,7 @@ async function deleteIdPhoto(bkId, path, side, index) {
     fsn.success('Success', '✅ Photo deleted');
     editBooking(bkId);
   } catch (e) {
-    alert('❌ Delete failed: ' + e.message);
+    fsn.error('Error', '❌ Delete failed: ' + e.message);
   }
 }
 
@@ -1773,7 +1773,7 @@ async function delBooking(bkId, guestName, roomId) {
 
     await sb.from('payment_history').delete().eq('booking_id', bkId);
     const { error } = await sb.from('guest_register').delete().eq('booking_id', bkId);
-    if (error) { alert('❌ Delete failed: ' + error.message); return; }
+    if (error) { fsn.error('Error', '❌ Delete failed: ' + error.message); return; }
 
     const rid = roomId || bk?.room_id;
     if (rid) {
@@ -1794,7 +1794,7 @@ async function delBooking(bkId, guestName, roomId) {
     fsn.success('Success', '✅ Booking deleted');
     renderManageBookings();
   } catch (err) {
-    alert('❌ Error: ' + (err.message || err));
+    fsn.error('Error', '❌ Error: ' + (err.message || err));
   }
 }
 
@@ -2248,7 +2248,7 @@ async function deleteVehiclePhoto(bkId, path) {
     fsn.success('Success', '✅ Vehicle photo deleted');
     editBooking(bkId);
   } catch (e) {
-    alert('❌ ' + e.message);
+    fsn.error('Error', '❌ ' + e.message);
   }
 }
 

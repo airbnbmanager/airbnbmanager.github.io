@@ -487,7 +487,7 @@ async function updateExpense(id) {
 async function delExpense(id) {
   if (!confirm('Delete this expense?')) return;
   const { error } = await sb.from('expenses').delete().eq('id', id);
-  if (error) { alert('❌ ' + error.message); return; }
+  if (error) { fsn.error('Error', '❌ ' + error.message); return; }
   fsn.success('Success', '✅ Deleted');
   renderExpenses();
 }
@@ -960,7 +960,7 @@ async function deleteDefaultExpense(id, name) {
   if (!confirm(`Delete "${name}"?`)) return;
   const { error } = await sb.from('property_default_expenses')
     .delete().eq('id', id);
-  if (error) { alert('❌ ' + error.message); return; }
+  if (error) { fsn.error('Error', '❌ ' + error.message); return; }
   fsn.success('Success', '✅ Deleted');
   renderDefaultExpenses();
 }

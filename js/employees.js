@@ -1278,7 +1278,7 @@ async function updateEmpExpense(id) {
 async function delEmpExpense(id) {
   if (!confirm('Delete this expense?')) return;
   const { error } = await sb.from('daily_expenses').delete().eq('id', id);
-  if (error) { alert('❌ ' + error.message); return; }
+  if (error) { fsn.error('Error', '❌ ' + error.message); return; }
   fsn.success('Success', '✅ Deleted');
   renderEmpExpenses();
 }

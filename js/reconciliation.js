@@ -414,7 +414,7 @@ async function quickAddMissing(index) {
     booked_by: SESSION.displayName || 'Auto Sync'
   });
 
-  if (error) { alert('❌ Failed: ' + error.message); return; }
+  if (error) { fsn.error('Error', '❌ Failed: ' + error.message); return; }
 
   // Also add payment
   await sb.from('payment_history').insert({
@@ -440,7 +440,7 @@ async function fixNameMismatch(index) {
     .update({ guest_name: nm.newName })
     .eq('booking_id', nm.bookingId);
 
-  if (error) { alert('❌ ' + error.message); return; }
+  if (error) { fsn.error('Error', '❌ ' + error.message); return; }
   fsn.success(`Success`, `✅ Updated: ${nm.oldName} → ${nm.newName}`);
   document.querySelector('input[type="file"]').dispatchEvent(new Event('change'));
 }
