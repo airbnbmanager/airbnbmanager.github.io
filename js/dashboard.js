@@ -98,7 +98,7 @@ async function renderDashboard() {
 
   // Overdue checkouts (past checkout, still active)
   const overdue = allBookings.filter(b =>
-    b.check_out && b.check_out < today && b.checkout_confirmed !== false
+    b.check_out && b.check_out < today && false
   );
 
   // Active stays
