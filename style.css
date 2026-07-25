@@ -1593,3 +1593,24 @@ code {
   border-radius: 12px !important;
   box-sizing: border-box !important;
 }
+
+@keyframes pulse-dot { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+
+.wa-tpl-btn {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 10px 12px;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  font-size: 13px;
+  color: #222;
+  cursor: pointer;
+  margin: 2px 0;
+}
+.wa-tpl-btn:hover {
+  background: #F0FFF4;
+  color: #128C7E;
+}

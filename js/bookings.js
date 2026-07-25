@@ -112,6 +112,16 @@ function buildIdButtons(b) {
 
 // ============ MANAGE BOOKINGS ============
 async function renderManageBookings() {
+  // For caretaker/checkin_manager - filter to only their properties
+  if (['caretaker', 'checkin_manager'].includes(SESSION.role) && SESSION.empId) {
+    const { data: emp } = await sb.from('employees')
+      .select('assigned_rooms')
+      .eq('emp_id', SESSION.empId).single();
+    if (emp?.assigned_rooms) {
+      window._myAssignedRooms = emp.assigned_rooms.split(',').map(r => r.trim()).filter(Boolean);
+    }
+  }
+
   // Fetch payments for filter
   const { data: allPays } = await sb.from('payment_history').select('booking_id, amount');
   const paidMap = {};
@@ -138,6 +148,11 @@ async function renderManageBookings() {
   const sq = SESSION.bookingSearch || '';
 
   let f = all || [];
+  // Filter for caretaker - only their properties
+  if (window._myAssignedRooms && window._myAssignedRooms.length) {
+    f = f.filter(b => window._myAssignedRooms.includes(b.room_id));
+  }
+
   if (mf !== 'All') f = f.filter(b => b.booking_mode === mf);
   if (pf) f = f.filter(b => b.room_id === pf);
   if (df) f = f.filter(b => b.check_in === df);
@@ -341,7 +356,8 @@ async function renderManageBookings() {
             <button class="btn-sm outline" onclick="createOfflineExtension('${b.booking_id}')">➕</button>
             ${isActive ? `<button class="btn-sm secondary" onclick="quickCheckout('${b.booking_id}','${b.room_id}')">📤</button>` : ''}
             ${isCheckoutToday ? `<button class="btn-sm" style="background:#f59e0b;" onclick="sendCheckoutReminder('${b.booking_id}')">🔔</button>` : ''}
-            <button class="btn-sm outline" onclick="shareBookingWhatsApp('${b.booking_id}')" title="Welcome message">📱</button>
+            <button class="btn-sm outline" onclick="shareBookingWhatsApp('${b.booking_id}')" title="Welcome">📱</button>
+            <button class="btn-sm" style="background:#128C7E;color:#fff;" onclick="showWATemplatesMenu('${b.booking_id}',this)" title="Templates">💬</button>
             <button class="btn-sm" style="background:#FFB800;color:#fff;" onclick="requestGuestID('${b.booking_id}')" title="Request ID">🪪</button>
             <button class="btn-sm" style="background:#00A699;color:#fff;" onclick="sendCheckinReminder('${b.booking_id}')" title="Check-in reminder">📅</button>
             <button class="btn-sm" style="background:${b.booking_mode === 'Online-Airbnb' ? '#FF385C' : '#4285F4'};color:#fff;" onclick="requestReview('${b.booking_id}')" title="${b.booking_mode === 'Online-Airbnb' ? 'Airbnb Review ⭐' : 'Google Review ⭐'}">⭐</button>
@@ -2201,3 +2217,34 @@ function onEditVehiclePick(input) {
 }
 
 // Fix updateBooking to use new input IDs
+
+
+function showWATemplatesMenu(bkId, btn) {
+  document.querySelectorAll('.wa-templates-menu').forEach(el => el.remove());
+  const menu = document.createElement('div');
+  menu.className = 'wa-templates-menu';
+  menu.style.cssText = 'position:fixed;background:#fff;border:1px solid #ddd;border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,0.15);padding:8px;z-index:9999;min-width:220px;';
+  const rect = btn.getBoundingClientRect();
+  menu.style.top = (rect.bottom + 4) + 'px';
+  menu.style.left = Math.max(10, rect.left - 100) + 'px';
+  menu.innerHTML = `
+    <div style="font-size:11px;color:#717171;padding:4px 8px;text-transform:uppercase;font-weight:700;letter-spacing:1px;">Templates</div>
+    <button class="wa-tpl-btn" onclick="sendBookingFormat('${bkId}');closeWAMenu()">📋 Booking Format</button>
+    <button class="wa-tpl-btn" onclick="sendCaretakerFormat('${bkId}');closeWAMenu()">🏠 Caretaker Update</button>
+    <button class="wa-tpl-btn" onclick="sendPaymentFormat('${bkId}');closeWAMenu()">💳 Payment Update</button>
+    <button class="wa-tpl-btn" onclick="sendIDGroupFormat('${bkId}');closeWAMenu()">🪪 ID Upload</button>
+  `;
+  document.body.appendChild(menu);
+  setTimeout(() => document.addEventListener('click', closeWAMenuOnClickOutside), 100);
+}
+
+function closeWAMenu() {
+  document.querySelectorAll('.wa-templates-menu').forEach(el => el.remove());
+  document.removeEventListener('click', closeWAMenuOnClickOutside);
+}
+
+function closeWAMenuOnClickOutside(e) {
+  if (!e.target.closest('.wa-templates-menu') && !e.target.closest('[onclick*=showWATemplates]')) {
+    closeWAMenu();
+  }
+}
