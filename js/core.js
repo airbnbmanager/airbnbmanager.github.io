@@ -1030,3 +1030,111 @@ async function getActiveUsers() {
     .order('last_seen', { ascending: false });
   return data || [];
 }
+
+// ═══════════════════════════════════════════════════════════
+// 🎯 FULL SCREEN NOTIFICATION (fsn)
+// Use: fsn.success('Saved!', 'Booking confirmed'); fsn.error('Failed'); etc.
+// ═══════════════════════════════════════════════════════════
+(function(){
+  function show(type, title, message, autoClose) {
+    // Remove any existing
+    const existing = document.querySelector('.fsn-overlay');
+    if (existing) existing.remove();
+
+    const icons = { success: '✓', error: '✕', info: 'ℹ', warning: '!' };
+    const overlay = document.createElement('div');
+    overlay.className = 'fsn-overlay';
+    overlay.innerHTML = `
+      <div class="fsn-card">
+        <div class="fsn-icon ${type}">${icons[type] || 'ℹ'}</div>
+        <div class="fsn-title">${title || ''}</div>
+        ${message ? `<div class="fsn-message">${message}</div>` : ''}
+        <button class="fsn-btn" data-fsn-close>OK</button>
+      </div>`;
+    document.body.appendChild(overlay);
+
+    const close = () => {
+      overlay.classList.add('closing');
+      setTimeout(() => overlay.remove(), 200);
+    };
+    overlay.querySelector('[data-fsn-close]').onclick = close;
+    overlay.onclick = e => { if (e.target === overlay) close(); };
+
+    if (autoClose) setTimeout(close, autoClose);
+    return close;
+  }
+
+  window.fsn = {
+    success: (title, msg, auto) => show('success', title, msg, auto || 2500),
+    error:   (title, msg, auto) => show('error',   title, msg, auto),
+    info:    (title, msg, auto) => show('info',    title, msg, auto),
+    warning: (title, msg, auto) => show('warning', title, msg, auto)
+  };
+})();
+
+// ═══════════════════════════════════════════════════════════
+// 🎯 PULL TO REFRESH — Mobile only
+// ═══════════════════════════════════════════════════════════
+(function(){
+  if (window.matchMedia('(min-width: 769px)').matches) return;
+
+  let startY = 0, currentY = 0, isPulling = false, isRefreshing = false;
+  const THRESHOLD = 70;
+
+  // Create indicator
+  const indicator = document.createElement('div');
+  indicator.className = 'ptr-indicator';
+  indicator.innerHTML = '<div class="ptr-spinner"></div>';
+  document.body.appendChild(indicator);
+
+  function getScrollableParent() {
+    const main = document.getElementById('mainContent');
+    return main || document.scrollingElement || document.documentElement;
+  }
+
+  document.addEventListener('touchstart', e => {
+    if (isRefreshing) return;
+    const scroller = getScrollableParent();
+    if (scroller.scrollTop > 5) return;
+    startY = e.touches[0].clientY;
+    isPulling = true;
+  }, { passive: true });
+
+  document.addEventListener('touchmove', e => {
+    if (!isPulling || isRefreshing) return;
+    currentY = e.touches[0].clientY;
+    const diff = currentY - startY;
+    if (diff > 0 && diff < 150) {
+      indicator.style.top = Math.min(20, -60 + diff * 0.6) + 'px';
+      indicator.querySelector('.ptr-spinner').style.transform = `rotate(${diff * 3}deg)`;
+      if (diff > THRESHOLD) indicator.classList.add('ptr-pulling');
+      else indicator.classList.remove('ptr-pulling');
+    }
+  }, { passive: true });
+
+  document.addEventListener('touchend', () => {
+    if (!isPulling) return;
+    isPulling = false;
+    const diff = currentY - startY;
+    if (diff > THRESHOLD && !isRefreshing) {
+      isRefreshing = true;
+      indicator.classList.remove('ptr-pulling');
+      indicator.classList.add('ptr-refreshing');
+      // Re-render current page
+      setTimeout(() => {
+        try {
+          const currentPage = SESSION.currentPage || 'dashboard';
+          if (typeof navigate === 'function') navigate(currentPage);
+        } catch(e) { console.warn('PTR refresh failed', e); }
+        setTimeout(() => {
+          indicator.classList.remove('ptr-refreshing');
+          indicator.style.top = '-60px';
+          isRefreshing = false;
+        }, 500);
+      }, 300);
+    } else {
+      indicator.style.top = '-60px';
+      indicator.classList.remove('ptr-pulling');
+    }
+  }, { passive: true });
+})();
