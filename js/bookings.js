@@ -210,6 +210,15 @@ async function renderManageBookings() {
 
   // Payment filter
   const payFilter = SESSION.bookingPayFilter;
+  // No ID filter (from dashboard KPI)
+  if (SESSION._filterNoId) {
+    f = f.filter(b => {
+      const hasId = (b.id_proof_photo_paths || b.id_proof_photo_path || '').split(',').filter(Boolean).length > 0;
+      return !hasId;
+    });
+    SESSION._filterNoId = null;
+  }
+
   if (payFilter) {
     // Get all payments for these bookings
     const bookingIds = f.map(b => b.booking_id);

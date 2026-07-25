@@ -832,6 +832,7 @@ function filterAndShowBookings(type) {
   } else if (type === 'noId') {
     SESSION.bookingPayFilter = '';
     SESSION.bookingDateFrom = dateAdd(today, -7);
+    SESSION._filterNoId = true;
   } else if (type === 'unpaid') {
     SESSION.bookingPayFilter = 'unpaid';
   } else if (type === 'checkinToday') {
