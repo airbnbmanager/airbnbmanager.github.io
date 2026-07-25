@@ -404,139 +404,141 @@ async function sendBookingFormat(bkId) {
   const { data: b } = await sb.from('guest_register')
     .select('*, rooms(nickname, floor)')
     .eq('booking_id', bkId).single();
-  if (!b) { alert('Not found'); return; }
 
-  const { data: pays } = await sb.from('payment_history').select('amount').eq('booking_id', bkId);
-  const paid = (pays || []).reduce((s, p) => s + (p.amount || 0), 0);
-  const due = (b.total_amount || 0) - paid;
-  const nights = b.check_in && b.check_out ? calcNights(b.check_in, b.check_out) : 0;
+  // If booking data available, pre-fill; otherwise blank
+  if (b) {
+    const { data: pays } = await sb.from('payment_history').select('amount').eq('booking_id', bkId);
+    const paid = (pays || []).reduce((s, p) => s + (p.amount || 0), 0);
+    const due = (b.total_amount || 0) - paid;
+    const nights = b.check_in && b.check_out ? calcNights(b.check_in, b.check_out) : 0;
 
-  const msg = [
-    '📋 *NEW BOOKING*',
-    '',
-    '👤 *Name:* ' + (b.guest_name || '-'),
-    '📞 *Mobile:* ' + (b.phone || '-'),
-    '🏠 *Property:* ' + (b.rooms?.nickname || b.room_id),
-    b.rooms?.floor ? '🏢 *Floor:* ' + b.rooms.floor : '',
-    '',
-    '📅 *Check-in:* ' + (b.check_in || '-') + ' (after ' + (b.check_in_time || '2:00 PM') + ')',
-    '📅 *Check-out:* ' + (b.check_out || '-') + ' (before ' + (b.check_out_time || '11:00 AM') + ')',
-    '🌙 *Nights:* ' + nights,
-    '',
-    '💰 *Total:* ₹' + (b.total_amount || 0).toLocaleString('en-IN'),
-    '✅ *Advance:* ₹' + paid.toLocaleString('en-IN'),
-    '⏳ *Pending:* ₹' + (due > 0 ? due : 0).toLocaleString('en-IN')
-  ].filter(Boolean).join('\n');
+    const msg = [
+      '📋 *NEW BOOKING*',
+      '━━━━━━━━━━━━━━━━━━━━━',
+      '',
+      '👤 *Name:* ' + (b.guest_name || '________'),
+      '📞 *Mobile:* ' + (b.phone || '________'),
+      '🏠 *Property:* ' + (b.rooms?.nickname || '________'),
+      b.rooms?.floor ? '🏢 *Floor:* ' + b.rooms.floor : '',
+      '',
+      '📅 *Check-in:* ' + (b.check_in || '________') + ' (after ' + (b.check_in_time || '2:00 PM') + ')',
+      '📅 *Check-out:* ' + (b.check_out || '________') + ' (before ' + (b.check_out_time || '11:00 AM') + ')',
+      '🌙 *Nights:* ' + nights,
+      '',
+      '💰 *Total:* ₹' + (b.total_amount || 0).toLocaleString('en-IN'),
+      '✅ *Advance:* ₹' + paid.toLocaleString('en-IN'),
+      '⏳ *Pending:* ₹' + (due > 0 ? due : 0).toLocaleString('en-IN'),
+      '',
+      '━━━━━━━━━━━━━━━━━━━━━',
+      '✅ *Booking confirmed*'
+    ].filter(Boolean).join('\n');
 
-  showWhatsAppModal(b.guest_name, b.rooms?.nickname, b.phone, msg);
+    showWhatsAppModal(b.guest_name, b.rooms?.nickname, b.phone, msg);
+  } else {
+    // Blank template
+    const msg = [
+      '📋 *NEW BOOKING*',
+      '━━━━━━━━━━━━━━━━━━━━━',
+      '',
+      '👤 Name: ________',
+      '📞 Mobile: ________',
+      '🏠 Property (Villa/Flat): ________',
+      '🏢 Floor: ________',
+      '',
+      '📅 Check-in: ________ (after 2:00 PM)',
+      '📅 Check-out: ________ (before 11:00 AM)',
+      '🌙 Nights: ________',
+      '',
+      '💰 Total: ₹________',
+      '✅ Advance: ₹________',
+      '⏳ Pending: ₹________',
+      '',
+      '━━━━━━━━━━━━━━━━━━━━━',
+      '✅ *Ye form fill karke group me send karo*'
+    ].join('\n');
+
+    showWhatsAppModal('Staff', 'Booking Form', '', msg);
+  }
 }
 
 async function sendCaretakerFormat(bkId) {
-  const { data: b } = await sb.from('guest_register')
-    .select('*, rooms(nickname)')
-    .eq('booking_id', bkId).single();
-  if (!b) { alert('Not found'); return; }
-
-  const idCount = (b.id_proof_photo_paths || '').split(',').filter(Boolean).length;
-  const guestCount = b.guests || 1;
-  const idStatus = idCount >= guestCount ? '✅ Complete' : '⚠️ ' + idCount + '/' + guestCount + ' (Pending)';
-
   const msg = [
-    '🏠 *CARETAKER UPDATE*',
-    '━━━━━━━━━━━━━━━━━',
+    '🏠 *CARETAKER CHECK-IN UPDATE*',
+    '━━━━━━━━━━━━━━━━━━━━━',
     '',
-    '👤 *Guest Name:* ' + (b.guest_name || '⬜ [Fill guest name]'),
-    '📞 *Mobile:* ' + (b.phone || '⬜ [Fill phone number]'),
-    '🏠 *Property:* ' + (b.rooms?.nickname || '⬜ [Property name]'),
-    '⏰ *Check-in Time:* ' + (b.check_in_time || '⬜ [Actual arrival time]'),
-    '👥 *Total Guests:* ' + guestCount,
+    '👤 Guest Name: ________',
+    '📞 Mobile: ________',
+    '🏠 Property (Villa/Flat): ________',
+    '⏰ Actual Check-in Time: ________',
+    '👥 Total Guests: ________',
     '',
-    b.has_vehicle
-      ? '🚗 *Vehicle:* ' + (b.vehicle_name || '') + ' ' + (b.vehicle_number || '⬜ [Fill vehicle no]')
-      : '🚗 *Vehicle:* No vehicle',
+    '🚗 Vehicle: Yes / No',
+    '🚗 Vehicle Name: ________',
+    '🚗 Vehicle No: ________',
     '',
-    '🪪 *ID Status:* ' + idStatus,
-    '🪪 *IDs Collected:* ⬜ [Kitni ID mili? 1/2/3]',
+    '🪪 ID Collected: Yes / No',
+    '🪪 Kitni ID Mili: ___/___',
+    '📸 ID Photos: Neeche bhejo 👇',
     '',
-    '📝 *Special Instructions:*',
-    b.notes ? b.notes : '⬜ [Koi special request? AC/Keys/Parking]',
+    '🔑 Keys Given: Yes / No',
+    '🧹 Room Clean Tha: Yes / No',
+    '📝 Special Request: ________',
     '',
-    '━━━━━━━━━━━━━━━━━',
-    '✅ Caretaker: Please fill ⬜ fields and send'
-  ].filter(Boolean).join('\n');
+    '━━━━━━━━━━━━━━━━━━━━━',
+    '✅ *Ye form fill karke group me send karo*',
+    '✅ *ID photos alag se bhejo*'
+  ].join('\n');
 
-  showWhatsAppModal(b.guest_name, b.rooms?.nickname, b.phone, msg);
+  showWhatsAppModal('Caretaker', 'Check-in Form', '', msg);
 }
 
 async function sendPaymentFormat(bkId) {
-  const { data: b } = await sb.from('guest_register')
-    .select('*, rooms(nickname, unit_type)')
-    .eq('booking_id', bkId).single();
-  if (!b) { alert('Not found'); return; }
-
-  const { data: pays } = await sb.from('payment_history')
-    .select('*').eq('booking_id', bkId)
-    .order('payment_date', { ascending: false });
-
-  const totalPaid = (pays || []).reduce((s, p) => s + (p.amount || 0), 0);
-  const due = (b.total_amount || 0) - totalPaid;
-  const lastPay = (pays || [])[0];
-
   const msg = [
     '💳 *PAYMENT UPDATE*',
-    '━━━━━━━━━━━━━━━━━',
+    '━━━━━━━━━━━━━━━━━━━━━',
     '',
-    '👤 *Guest:* ' + (b.guest_name || '-'),
-    '🏠 *Property:* ' + (b.rooms?.nickname || '-'),
+    '👤 Guest Name: ________',
+    '🏠 Property (Villa/Flat): ________',
     '',
-    '💰 *Total Amount:* ₹' + (b.total_amount || 0).toLocaleString('en-IN'),
-    '✅ *Total Paid:* ₹' + totalPaid.toLocaleString('en-IN'),
-    due > 1 ? '⏳ *Pending:* ₹' + due.toLocaleString('en-IN') : '✅ *Fully Paid*',
+    '📅 Payment Date: ________',
+    '💰 Amount Received: ₹________',
+    '🏦 Mode: Cash / UPI / Bank Transfer',
     '',
-    lastPay ? '📅 *Last Payment:*' : '',
-    lastPay ? '   Date: ' + (lastPay.payment_date || '-') : '',
-    lastPay ? '   Amount: ₹' + (lastPay.amount || 0).toLocaleString('en-IN') : '',
-    lastPay ? '   Mode: ' + (lastPay.payment_mode || '-') : '',
+    '💰 Total Booking Amount: ₹________',
+    '✅ Total Paid Till Now: ₹________',
+    '⏳ Remaining Balance: ₹________',
     '',
-    due > 1 ? '⬜ *New Payment Received:*' : '',
-    due > 1 ? '📅 Date: ⬜ [Today date]' : '',
-    due > 1 ? '💰 Amount: ⬜ [Kitna mila?]' : '',
-    due > 1 ? '🏦 Mode: ⬜ [Cash/UPI/Bank]' : '',
+    '📝 Notes: ________',
     '',
-    '━━━━━━━━━━━━━━━━━',
-    due > 1 ? '✅ Please fill ⬜ and send payment details' : '✅ No pending payment'
-  ].filter(Boolean).join('\n');
+    '━━━━━━━━━━━━━━━━━━━━━',
+    '✅ *Ye form fill karke group me send karo*',
+    '✅ *Payment receipt screenshot bhi bhejo*'
+  ].join('\n');
 
-  showWhatsAppModal(b.guest_name, b.rooms?.nickname, b.phone, msg);
+  showWhatsAppModal('Staff', 'Payment Form', '', msg);
 }
 
 async function sendIDGroupFormat(bkId) {
-  const { data: b } = await sb.from('guest_register')
-    .select('*, rooms(nickname, unit_type)')
-    .eq('booking_id', bkId).single();
-  if (!b) { alert('Not found'); return; }
-
-  const idCount = (b.id_proof_photo_paths || '').split(',').filter(Boolean).length;
-  const guestCount = b.guests || 1;
-
   const msg = [
     '🪪 *ID UPLOAD*',
-    '━━━━━━━━━━━━━━━━━',
+    '━━━━━━━━━━━━━━━━━━━━━',
     '',
-    '👤 *Booking Name:* ' + (b.guest_name || '-'),
-    '🏠 *Property:* ' + (b.rooms?.nickname || '-'),
-    '👥 *Total Guests:* ' + guestCount,
-    '🪪 *IDs Uploaded:* ' + idCount + '/' + guestCount,
+    '👤 Booking Name: ________',
+    '🏠 Property (Villa/Flat): ________',
+    '👥 Total Guests: ________',
     '',
-    '📸 *Required: Front + Back of Aadhar/DL/Passport*',
+    '📸 *Required:*',
+    '• Aadhar Card / DL / Passport',
+    '• Front + Back dono side',
+    '• Sabhi guests ka',
     '',
-    guestCount > idCount ? '⬜ *Pending IDs:* ' + (guestCount - idCount) + ' guest(s)' : '✅ *All IDs collected*',
+    '🪪 Kitni ID Bhej Rahe: ___/___',
     '',
-    '📎 IDs attached below 👇',
+    '📎 *ID photos neeche bhejo* 👇',
     '',
-    '━━━━━━━━━━━━━━━━━',
-    '✅ Attach ID photos and send in this chat'
-  ].filter(Boolean).join('\n');
+    '━━━━━━━━━━━━━━━━━━━━━',
+    '✅ *Ye form fill karo + ID photos attach karke bhejo*'
+  ].join('\n');
 
-  showWhatsAppModal(b.guest_name, b.rooms?.nickname, b.phone, msg);
+  showWhatsAppModal('Staff', 'ID Upload Form', '', msg);
 }
