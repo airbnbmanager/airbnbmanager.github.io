@@ -444,6 +444,9 @@ function renderShell(content, activePage = 'dashboard') {
         </div>
 
         <!-- Row 2: Navigation -->
+        <div class="drawer-search">
+          <input type="text" id="drawerSearchInput" placeholder="🔍 Search menu..." />
+        </div>
         <nav class="sidebar-nav">
           ${nav.map(item => {
             if (item.section) {
@@ -1060,6 +1063,13 @@ async function getActiveUsers() {
     overlay.querySelector('[data-fsn-close]').onclick = close;
     overlay.onclick = e => { if (e.target === overlay) close(); };
 
+    // Haptic feedback on notification
+    try {
+      if (type === 'success') window.haptic && window.haptic.success();
+      else if (type === 'error') window.haptic && window.haptic.error();
+      else window.haptic && window.haptic.light();
+    } catch(e) {}
+
     if (autoClose) setTimeout(close, autoClose);
     return close;
   }
@@ -1138,3 +1148,122 @@ async function getActiveUsers() {
     }
   }, { passive: true });
 })();
+
+// ═══════════════════════════════════════════════════════════
+// 🎯 SPLASH SCREEN — Hide after app boots
+// ═══════════════════════════════════════════════════════════
+(function(){
+  function hideSplash() {
+    const splash = document.getElementById('splashScreen');
+    if (!splash) return;
+    splash.classList.add('hide');
+    setTimeout(() => splash.remove(), 500);
+  }
+  // Hide after DOM ready + minimum 800ms for branding
+  if (document.readyState === 'complete') {
+    setTimeout(hideSplash, 800);
+  } else {
+    window.addEventListener('load', () => setTimeout(hideSplash, 800));
+  }
+  // Failsafe — hide after 5s no matter what
+  setTimeout(hideSplash, 5000);
+})();
+
+// ═══════════════════════════════════════════════════════════
+// 🎯 HAPTIC FEEDBACK — Vibrate on tap (Android)
+// ═══════════════════════════════════════════════════════════
+window.haptic = {
+  light:  () => { try { navigator.vibrate && navigator.vibrate(10); } catch(e) {} },
+  medium: () => { try { navigator.vibrate && navigator.vibrate(20); } catch(e) {} },
+  heavy:  () => { try { navigator.vibrate && navigator.vibrate([30, 10, 30]); } catch(e) {} },
+  success:() => { try { navigator.vibrate && navigator.vibrate([15, 30, 15]); } catch(e) {} },
+  error:  () => { try { navigator.vibrate && navigator.vibrate([50, 30, 50]); } catch(e) {} }
+};
+
+// Auto-trigger haptic on nav clicks (mobile only)
+document.addEventListener('click', (e) => {
+  if (!window.matchMedia('(max-width: 768px)').matches) return;
+  const t = e.target.closest('.bottom-nav a, .sidebar-nav a, .btn-sm, button.btn');
+  if (t) window.haptic.light();
+}, true);
+
+// ═══════════════════════════════════════════════════════════
+// 🎯 DRAWER SEARCH — Filter menu items live
+// ═══════════════════════════════════════════════════════════
+function initDrawerSearch() {
+  const input = document.getElementById('drawerSearchInput');
+  if (!input) return;
+  input.addEventListener('input', () => {
+    const q = input.value.toLowerCase().trim();
+    const nav = document.querySelector('aside.sidebar.mobile-drawer-open .sidebar-nav');
+    if (!nav) return;
+    const items = nav.querySelectorAll('a[data-page]');
+    const sections = nav.querySelectorAll('.nav-section-heading');
+
+    items.forEach(a => {
+      const txt = (a.textContent || '').toLowerCase();
+      if (!q || txt.includes(q)) a.classList.remove('filter-hidden');
+      else a.classList.add('filter-hidden');
+    });
+
+    // Hide section if all its items hidden
+    sections.forEach(sec => {
+      let next = sec.nextElementSibling;
+      let hasVisible = false;
+      while (next && !next.classList.contains('nav-section-heading')) {
+        if (next.tagName === 'A' && !next.classList.contains('filter-hidden')) {
+          hasVisible = true; break;
+        }
+        next = next.nextElementSibling;
+      }
+      if (!hasVisible && q) sec.classList.add('filter-hidden');
+      else sec.classList.remove('filter-hidden');
+    });
+  });
+}
+window.initDrawerSearch = initDrawerSearch;
+
+// ═══════════════════════════════════════════════════════════
+// 🎯 SKELETON LOADER HELPER
+// Usage: showSkeleton(elementId, 'cards' | 'table' | 'list')
+// ═══════════════════════════════════════════════════════════
+window.showSkeleton = function(target, type = 'cards', count = 5) {
+  const el = typeof target === 'string' ? document.getElementById(target) : target;
+  if (!el) return;
+  let html = '<div class="skeleton-loading">';
+  if (type === 'cards') {
+    for (let i = 0; i < count; i++) {
+      html += `
+        <div class="skeleton-card">
+          <div class="skeleton skeleton-line title"></div>
+          <div class="skeleton skeleton-line lg"></div>
+          <div class="skeleton skeleton-line md"></div>
+          <div style="display:flex;gap:8px;margin-top:10px;">
+            <div class="skeleton skeleton-badge"></div>
+            <div class="skeleton skeleton-btn"></div>
+          </div>
+        </div>`;
+    }
+  } else if (type === 'table') {
+    html += '<div class="skeleton-card">';
+    for (let i = 0; i < count; i++) {
+      html += `<div style="display:flex;gap:12px;padding:10px 0;border-bottom:1px solid #f0f0f0;">
+        <div class="skeleton skeleton-avatar"></div>
+        <div style="flex:1;">
+          <div class="skeleton skeleton-line md"></div>
+          <div class="skeleton skeleton-line sm"></div>
+        </div>
+        <div class="skeleton skeleton-badge"></div>
+      </div>`;
+    }
+    html += '</div>';
+  } else { // list
+    html += '<div class="skeleton-card">';
+    for (let i = 0; i < count; i++) {
+      html += `<div class="skeleton skeleton-line lg"></div>`;
+    }
+    html += '</div>';
+  }
+  html += '</div>';
+  el.innerHTML = html;
+};
