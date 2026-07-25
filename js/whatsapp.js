@@ -398,3 +398,103 @@ async function requestReview(bkId) {
 
   showWhatsAppModal(guestName, propertyName, b.phone, msg);
 }
+
+
+async function sendBookingFormat(bkId) {
+  const { data: b } = await sb.from('guest_register')
+    .select('*, rooms(nickname, floor)')
+    .eq('booking_id', bkId).single();
+  if (!b) { alert('Not found'); return; }
+
+  const { data: pays } = await sb.from('payment_history').select('amount').eq('booking_id', bkId);
+  const paid = (pays || []).reduce((s, p) => s + (p.amount || 0), 0);
+  const due = (b.total_amount || 0) - paid;
+  const nights = b.check_in && b.check_out ? calcNights(b.check_in, b.check_out) : 0;
+
+  const msg = [
+    '📋 *NEW BOOKING*',
+    '',
+    '👤 *Name:* ' + (b.guest_name || '-'),
+    '📞 *Mobile:* ' + (b.phone || '-'),
+    '🏠 *Property:* ' + (b.rooms?.nickname || b.room_id),
+    b.rooms?.floor ? '🏢 *Floor:* ' + b.rooms.floor : '',
+    '',
+    '📅 *Check-in:* ' + (b.check_in || '-') + ' (after ' + (b.check_in_time || '2:00 PM') + ')',
+    '📅 *Check-out:* ' + (b.check_out || '-') + ' (before ' + (b.check_out_time || '11:00 AM') + ')',
+    '🌙 *Nights:* ' + nights,
+    '',
+    '💰 *Total:* ₹' + (b.total_amount || 0).toLocaleString('en-IN'),
+    '✅ *Advance:* ₹' + paid.toLocaleString('en-IN'),
+    '⏳ *Pending:* ₹' + (due > 0 ? due : 0).toLocaleString('en-IN')
+  ].filter(Boolean).join('\n');
+
+  showWhatsAppModal(b.guest_name, b.rooms?.nickname, b.phone, msg);
+}
+
+async function sendCaretakerFormat(bkId) {
+  const { data: b } = await sb.from('guest_register')
+    .select('*, rooms(nickname)')
+    .eq('booking_id', bkId).single();
+  if (!b) { alert('Not found'); return; }
+
+  const idCount = (b.id_proof_photo_paths || '').split(',').filter(Boolean).length;
+
+  const msg = [
+    '🏠 *CARETAKER UPDATE*',
+    '',
+    '👤 *Guest Name:* ' + (b.guest_name || '-'),
+    '📞 *Mobile:* ' + (b.phone || '-'),
+    '🏠 *Property:* ' + (b.rooms?.nickname || '-'),
+    '⏰ *Check-in Time:* ' + (b.check_in_time || '2:00 PM'),
+    '👥 *Total Guests:* ' + (b.guests || 1),
+    b.has_vehicle ? '🚗 *Vehicle No:* ' + (b.vehicle_number || '-') : '',
+    '🪪 *ID Collected:* ' + idCount + '/' + (b.guests || 1),
+    b.notes ? '📝 *Notes:* ' + b.notes : ''
+  ].filter(Boolean).join('\n');
+
+  showWhatsAppModal(b.guest_name, b.rooms?.nickname, b.phone, msg);
+}
+
+async function sendPaymentFormat(bkId) {
+  const { data: b } = await sb.from('guest_register')
+    .select('*, rooms(nickname, unit_type)')
+    .eq('booking_id', bkId).single();
+  if (!b) { alert('Not found'); return; }
+
+  const { data: pays } = await sb.from('payment_history')
+    .select('*').eq('booking_id', bkId)
+    .order('payment_date', { ascending: false })
+    .limit(1);
+
+  const lastPay = (pays || [])[0];
+  if (!lastPay) { alert('No payment yet'); return; }
+
+  const msg = [
+    '💳 *PAYMENT UPDATE*',
+    '',
+    '📅 *Date:* ' + (lastPay.payment_date || '-'),
+    '💰 *Amount:* ₹' + (lastPay.amount || 0).toLocaleString('en-IN'),
+    '🏦 *Mode:* ' + (lastPay.payment_mode || '-'),
+    '🏠 *Property:* ' + (b.rooms?.nickname || '-'),
+    '👤 *Guest:* ' + (b.guest_name || '-')
+  ].join('\n');
+
+  showWhatsAppModal(b.guest_name, b.rooms?.nickname, b.phone, msg);
+}
+
+async function sendIDGroupFormat(bkId) {
+  const { data: b } = await sb.from('guest_register')
+    .select('*, rooms(nickname, unit_type)')
+    .eq('booking_id', bkId).single();
+  if (!b) { alert('Not found'); return; }
+
+  const msg = [
+    '🪪 *ID UPLOAD*',
+    '',
+    '👤 *Booking Name:* ' + (b.guest_name || '-'),
+    '🏠 *Property:* ' + (b.rooms?.nickname || '-'),
+    '📎 IDs attached below 👇'
+  ].join('\n');
+
+  showWhatsAppModal(b.guest_name, b.rooms?.nickname, b.phone, msg);
+}
