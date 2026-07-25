@@ -771,6 +771,11 @@ function onAmtChg() {
 // ============ ROBUST FILE UPLOAD HELPERS ============
 
 
+// ═══════════════════════════════════════════════════════════
+// 🔒 STABLE - DO NOT MODIFY (ID Upload Fixed 2026-07-26)
+// Uses window._editIdFiles map + maxGuestWithFile loop
+// Works for all 8 guests, mobile crop, DataTransfer fallback
+// ═══════════════════════════════════════════════════════════
 function onEditIdFileSelect(input, guestNum, side) {
   if (!input.files || !input.files[0]) return;
   const originalFile = input.files[0];
@@ -779,14 +784,12 @@ function onEditIdFileSelect(input, guestNum, side) {
     if (!window._editIdFiles) window._editIdFiles = {};
     const key = `${side}_${guestNum}`;
     window._editIdFiles[key] = croppedFile;
-    console.log('[Edit ID] Stored:', key, croppedFile.name, croppedFile.size, 'bytes');
-    console.log('[Edit ID] Total in map:', Object.keys(window._editIdFiles).length);
 
     try {
       const dt = new DataTransfer();
       dt.items.add(croppedFile);
       input.files = dt.files;
-    } catch(e) { console.warn('DataTransfer failed:', e); }
+    } catch(e) {}
 
     showEditPreview(input, guestNum, side);
   });
@@ -1628,9 +1631,6 @@ async function updateBooking(bkId, parentBookingId = '', stayGroupId = '') {
   const fArr = existFront.length ? existFront.slice() : Array(gc).fill(null);
   const bArr = existBack.length  ? existBack.slice()  : Array(gc).fill(null);
   const aArr = [...new Set((oldBk?.id_proof_photo_paths || '').split(',').filter(Boolean))];
-  console.log('[Update] Files map at save:', window._editIdFiles);
-  console.log('[Update] Guest count:', gc);
-
   // Find max guest index with pending files
   let maxGuestWithFile = gc;
   if (window._editIdFiles) {
@@ -1648,13 +1648,10 @@ async function updateBooking(bkId, parentBookingId = '', stayGroupId = '') {
       if (i > maxGuestWithFile) maxGuestWithFile = i;
     }
   }
-  console.log('[Update] Loop till:', maxGuestWithFile);
-
   for (let i = 1; i <= maxGuestWithFile; i++) {
     const fFile = (window._editIdFiles && window._editIdFiles[`front_${i}`]) 
       || document.getElementById(`eFrontCam${i}`)?.files?.[0] 
       || document.getElementById(`eFrontGal${i}`)?.files?.[0];
-    if (fFile) console.log('[Update] Guest', i, 'front file found:', fFile.name);
     if (fFile) {
       try {
         const c = await smartCompress(fFile);
