@@ -1804,3 +1804,74 @@ code {
     padding-bottom: 0 !important;
   }
 }
+
+/* ═══════════════════════════════════════════════════════════
+   DRAWER FIX — Clean vertical menu when "More" clicked
+   ═══════════════════════════════════════════════════════════ */
+
+@media (max-width: 768px) {
+  /* Drawer container */
+  .sidebar.mobile-drawer-open {
+    background: #1a1a1a !important;
+  }
+
+  /* Nav container inside drawer */
+  .sidebar.mobile-drawer-open .sidebar-nav {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 0 !important;
+    padding: 4px 8px 20px !important;
+    overflow-x: hidden !important;
+  }
+
+  /* Section headings — proper left-aligned, no pill */
+  .sidebar.mobile-drawer-open .nav-section-heading {
+    display: block !important;
+    background: transparent !important;
+    text-align: left !important;
+    padding: 16px 12px 6px !important;
+    margin: 0 !important;
+    font-size: 10px !important;
+    font-weight: 700 !important;
+    color: rgba(255,255,255,0.35) !important;
+    letter-spacing: 2px !important;
+    text-transform: uppercase !important;
+    border: none !important;
+    border-radius: 0 !important;
+    width: 100% !important;
+    box-shadow: none !important;
+  }
+
+  /* Menu items — clean rows */
+  .sidebar.mobile-drawer-open .sidebar-nav a {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    width: 100% !important;
+    flex: none !important;
+    padding: 12px 14px !important;
+    margin: 2px 0 !important;
+    font-size: 14px !important;
+    font-weight: 500 !important;
+    background: transparent !important;
+    color: rgba(255,255,255,0.85) !important;
+    border-radius: 8px !important;
+    text-align: left !important;
+    white-space: normal !important;
+    min-height: auto !important;
+  }
+
+  .sidebar.mobile-drawer-open .sidebar-nav a:hover,
+  .sidebar.mobile-drawer-open .sidebar-nav a:active {
+    background: rgba(255,255,255,0.06) !important;
+  }
+
+  /* Active item — subtle orange, not full red */
+  .sidebar.mobile-drawer-open .sidebar-nav a.active {
+    background: rgba(226,114,91,0.18) !important;
+    color: #E2725B !important;
+    border-left: 3px solid #E2725B !important;
+    padding-left: 11px !important;
+  }
+}
