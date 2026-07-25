@@ -1,20 +1,25 @@
 {
   "name": "The UNIQUE HAVEN HOME STAY",
   "short_name": "Unique Haven",
-  "start_url": "/",
+  "description": "Property Management - Lucknow",
+  "start_url": "/admin.html",
+  "scope": "/",
   "display": "standalone",
+  "orientation": "portrait",
   "background_color": "#FAF6F2",
   "theme_color": "#E2725B",
   "icons": [
     {
       "src": "assets/logo.png",
       "sizes": "192x192",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
     },
     {
       "src": "assets/logo.png",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
     }
   ]
 }
