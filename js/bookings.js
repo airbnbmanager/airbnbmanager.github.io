@@ -776,17 +776,17 @@ function onEditIdFileSelect(input, guestNum, side) {
   const originalFile = input.files[0];
 
   openCropModal(originalFile, (croppedFile) => {
-    // Store in global map (DataTransfer unreliable)
     if (!window._editIdFiles) window._editIdFiles = {};
     const key = `${side}_${guestNum}`;
     window._editIdFiles[key] = croppedFile;
+    console.log('[Edit ID] Stored:', key, croppedFile.name, croppedFile.size, 'bytes');
+    console.log('[Edit ID] Total in map:', Object.keys(window._editIdFiles).length);
 
-    // Also try DataTransfer as fallback
     try {
       const dt = new DataTransfer();
       dt.items.add(croppedFile);
       input.files = dt.files;
-    } catch(e) {}
+    } catch(e) { console.warn('DataTransfer failed:', e); }
 
     showEditPreview(input, guestNum, side);
   });
@@ -1628,10 +1628,14 @@ async function updateBooking(bkId, parentBookingId = '', stayGroupId = '') {
   const fArr = existFront.length ? existFront.slice() : Array(gc).fill(null);
   const bArr = existBack.length  ? existBack.slice()  : Array(gc).fill(null);
   const aArr = [...new Set((oldBk?.id_proof_photo_paths || '').split(',').filter(Boolean))];
+  console.log('[Update] Files map at save:', window._editIdFiles);
+  console.log('[Update] Guest count:', gc);
+
   for (let i = 1; i <= gc; i++) {
     const fFile = (window._editIdFiles && window._editIdFiles[`front_${i}`]) 
       || document.getElementById(`eFrontCam${i}`)?.files?.[0] 
       || document.getElementById(`eFrontGal${i}`)?.files?.[0];
+    if (fFile) console.log('[Update] Guest', i, 'front file found:', fFile.name);
     if (fFile) {
       try {
         const c = await smartCompress(fFile);
