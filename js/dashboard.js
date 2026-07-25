@@ -97,9 +97,6 @@ async function renderDashboard() {
     .sort((a, b) => (a.check_in || '').localeCompare(b.check_in || ''));
 
   // Overdue checkouts (past checkout, still active)
-  const overdue = allBookings.filter(b =>
-    b.check_out && b.check_out < today && b.checkout_confirmed !== false
-  );
 
   // Active stays
   const activeNow = allBookings.filter(b => b.check_in <= today && (b.check_out > today || !b.check_out));
@@ -164,17 +161,6 @@ async function renderDashboard() {
         </div>
       </div>
     </div>
-
-    ${overdue.length > 0 ? `
-    <div class="card" style="border-left:4px solid var(--red);background:#FEF2F2;">
-      <div class="section-title" style="color:var(--red);">⚠️ Overdue Checkouts (${overdue.length})</div>
-      ${overdue.slice(0, 3).map(x => `
-        <div style="font-size:12px;padding:4px 0;">
-          <strong>${x.guest_name}</strong> — ${bName(x)}
-          <br><small style="color:var(--muted);">Was due: ${x.check_out}</small>
-        </div>
-      `).join('')}
-      ${overdue.length > 3 ? `<div style="font-size:11px;color:var(--primary);cursor:pointer;" onclick="navigate('bookings')">View all →</div>` : ''}
     </div>
     ` : ''}
 
@@ -428,9 +414,8 @@ async function renderDashboard() {
       // Yesterday's checkouts → request review (only recent 7 days)
       const reviewRequests = allBookings.filter(b => {
         if (!b.phone || !b.check_out) return false;
-        // Only past week
-        const sevenDaysAgo = dateAdd(todayDate, -7);
-        return b.check_out >= sevenDaysAgo && b.check_out < todayDate;
+        const threeDaysAgo = dateAdd(todayDate, -3);
+        return b.check_out >= threeDaysAgo && b.check_out < todayDate;
       });
 
       // Bookings without ID → request ID
@@ -546,8 +531,12 @@ async function renderDashboard() {
         <span style="color:rgba(255,255,255,0.8);">Occupancy</span>
         <span class="metric-value" style="color:#60a5fa;">${occupancyPct}%</span>
       </div>
+      <div class="metric-row" style="border-color:rgba(255,255,255,0.15);">
+        <span style="color:rgba(255,255,255,0.8);">Active Due</span>
+        <span class="metric-value" style="color:#fca5a5;">₹${activeDue.toLocaleString('en-IN')}</span>
+      </div>
       <div class="metric-row" style="border:none;">
-        <span style="color:rgba(255,255,255,0.8);">Pending Balance</span>
+        <span style="color:rgba(255,255,255,0.8);">Total Pending</span>
         <span class="metric-value" style="color:#ef4444;">₹${pendingBalance.toLocaleString('en-IN')}</span>
       </div>
     </div>
