@@ -39,7 +39,7 @@ async function renderManageRooms() {
           return `<tr>
             <td><strong>${r.room_id}</strong></td>
             <td style="max-width:200px;font-size:12px;">${r.property_name || '-'}</td>
-            <td>${r.nickname || '-'}</td>
+            <td>${propLabel(r) || '-'}</td>
             <td>${r.unit_no || '-'}</td>
             <td style="font-size:12px;">
               <strong>Caretaker:</strong> ${careName}
@@ -309,7 +309,7 @@ async function renderFlatsStatus() {
           const isProgress = f.cleaning_status === 'In Progress';
 
           return `<tr>
-            <td><strong>${f.rooms?.nickname || f.room_id}</strong></td>
+            <td><strong>${propLabel(f.rooms) || f.room_id}</strong></td>
             <td>${f.rooms?.unit_no || ''}</td>
             <td><span class="badge ${f.status === 'Free' ? 'green' : f.status === 'Booked' ? 'blue' : 'red'}">${f.status || 'Free'}</span></td>
             <td><span class="badge ${isClean ? 'green' : isProgress ? 'yellow' : 'red'}">${f.cleaning_status || 'Clean'}</span></td>
@@ -352,7 +352,7 @@ async function editFlatStatus(id) {
   renderShell(`
     <div class="card">
       <h1>✏️ Flat Status</h1>
-      <div class="sub">${f.rooms?.nickname || id} (${f.rooms?.unit_no || ''})</div>
+      <div class="sub">${propLabel(f.rooms) || id}</div>
       <button class="secondary btn-sm" onclick="renderFlatsStatus()">← Back</button>
     </div>
     <div class="card">
@@ -525,7 +525,7 @@ async function renderPropertyShifts(roomId) {
           return `
             <div style="margin-bottom:16px;padding:12px;background:var(--bg);border-radius:10px;border:1px solid var(--border);">
               <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-                <strong style="font-size:14px;">🏠 ${g.room?.nickname || g.room?.unit_no || rid}</strong>
+                <strong style="font-size:14px;">🏠 ${propLabel(g.room) || rid}</strong>
                 <button class="btn-sm outline" onclick="renderPropertyShifts('${rid}')">✏️ Edit</button>
               </div>
               ${dayS.length ? `

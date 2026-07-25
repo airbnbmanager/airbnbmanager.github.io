@@ -41,7 +41,7 @@ async function renderManageInvestors() {
         </tr></thead>
         <tbody>${(invs || []).map(i => {
           const iLinks = invPropMap[i.investor_id] || [];
-          const propNames = iLinks.map(l => l.rooms?.nickname || l.room_id).join(', ') || '-';
+          const propNames = iLinks.map(l => propLabel(l.rooms) || l.room_id).join(', ') || '-';
           return `<tr>
             <td><strong>${i.name}</strong></td>
             <td>${i.phone || '-'}</td>
@@ -66,7 +66,7 @@ async function renderManageInvestors() {
         <tbody>${(links || []).map(l => {
           const inv = (invs || []).find(i => i.investor_id === l.investor_id);
           return `<tr>
-            <td><strong>${l.rooms?.nickname || l.room_id}</strong><br><small style="color:var(--muted);">${l.rooms?.unit_no || ''}</small></td>
+            <td><strong>${propLabel(l.rooms) || l.room_id}</strong><br><small style="color:var(--muted);">${l.rooms?.unit_no || ''}</small></td>
             <td>${l.investors?.name || l.investor_id}</td>
             <td>${inv?.revenue_share_pct || 70}%</td>
             <td><button class="btn-sm danger" onclick="unlinkProperty('${l.investor_id}','${l.room_id}')">🗑️ Remove</button></td>
@@ -723,7 +723,7 @@ async function renderInvestorView(range = 'Month') {
         <div class="section-title">Properties</div>
         ${(links || []).map(l => `
           <div style="padding:8px 0;border-bottom:1px solid var(--border);">
-            <strong>${l.rooms?.nickname || l.rooms?.unit_no || '-'}</strong><br>
+            <strong>${propLabel(l.rooms) || '-'}</strong><br>
             <small style="color:var(--muted);">${l.rooms?.property_name || ''}</small>
           </div>
         `).join('') || '<div class="sub">None</div>'}
@@ -735,7 +735,7 @@ async function renderInvestorView(range = 'Month') {
           <thead><tr><th>Guest</th><th>Property</th><th>Mode</th><th>In</th><th>Out</th><th>₹</th></tr></thead>
           <tbody>${bks.map(b => `<tr>
             <td>${b.guest_name || '-'}</td>
-            <td>${b.rooms?.nickname || '-'}</td>
+            <td>${propLabel(b.rooms) || '-'}</td>
             <td><span class="badge ${b.booking_mode === 'Online-Airbnb' ? 'blue' : 'yellow'}">${b.booking_mode === 'Online-Airbnb' ? 'On' : 'Off'}</span></td>
             <td>${b.check_in || '-'}</td>
             <td>${b.check_out || '-'}</td>

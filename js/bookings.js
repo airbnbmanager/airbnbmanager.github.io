@@ -54,7 +54,7 @@ async function showGuestLedger(guestName) {
           const pd = payMap[b.booking_id] || 0;
           const due = (b.total_amount || 0) - pd;
           return `<tr>
-            <td>${b.rooms?.nickname || b.room_id || '-'}</td>
+            <td>${propLabel(b.rooms) || b.room_id || '-'}</td>
             <td><span class="badge ${b.booking_mode === 'Online-Airbnb' ? 'blue' : 'yellow'}">${b.booking_mode === 'Online-Airbnb' ? 'On' : 'Off'}</span></td>
             <td>${b.check_in || '-'}</td><td>${b.check_out || '-'}</td>
             <td>₹${(b.total_amount || 0).toLocaleString('en-IN')}</td>
@@ -359,10 +359,10 @@ async function renderManageBookings() {
             ${b.has_vehicle ? `<br><small>🚗 ${b.vehicle_name || ''} ${b.vehicle_number || ''}${b.vehicle_photo_path ? ` <button class="btn-sm green-btn" style="padding:1px 6px;font-size:9px;min-height:18px;" onclick="dlIdPhoto('${b.vehicle_photo_path}')">📷</button>` : ''}</small>` : ''}
           </td>
           <td>
-            <strong>${b.rooms?.nickname || '-'}</strong><br>
+            <strong>${propLabel(b.rooms) || '-'}</strong><br>
             <small style="color:var(--muted);">${b.rooms?.unit_no || b.room_id}</small>
             ${b.source_room_id && b.source_room_id !== b.room_id
-              ? `<br><small style="color:var(--blue);font-size:10px;">📍 ${roomMap[b.source_room_id]?.nickname || b.source_room_id}</small>`
+              ? `<br><small style="color:var(--blue);font-size:10px;">📍 ${propLabel(roomMap[b.source_room_id]) || b.source_room_id}</small>`
               : ''}
           </td>
           <td><span class="badge ${b.booking_mode === 'Online-Airbnb' ? 'blue' : 'yellow'}">${b.booking_mode === 'Online-Airbnb' ? 'On' : 'Off'}</span></td>

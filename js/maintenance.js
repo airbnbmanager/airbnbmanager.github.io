@@ -6,7 +6,7 @@
 async function renderMaintenanceLog() {
   renderShell(`<div class="loading">Loading...</div>`, 'maintenance');
   const {data:logs} = await sb.from('maintenance_log').select('*').order('reported_date',{ascending:false});
-  const {data:rooms} = await sb.from('rooms').select('room_id,nickname').order('room_id');
+  const {data:rooms} = await sb.from('rooms').select('room_id,nickname,unit_no').order('room_id');
   const roomMap = {};
   (rooms||[]).forEach(r=>{roomMap[r.room_id]=r;});
 
@@ -19,7 +19,7 @@ async function renderMaintenanceLog() {
     <div class="card"><div class="table-wrap"><table>
       <thead><tr><th>Property</th><th>Type</th><th>Description</th><th>Cost</th><th>Status</th><th>Date</th><th>Actions</th></tr></thead>
       <tbody>${(logs||[]).map(l=>`<tr>
-        <td>${roomMap[l.room_id]?.nickname||l.room_id||'General'}</td>
+        <td>${propLabel(roomMap[l.room_id])||l.room_id||'General'}</td>
         <td><span class="badge blue">${l.issue_type||'-'}</span></td>
         <td style="max-width:180px;">${l.description||'-'}</td>
         <td>₹${(l.cost||0).toLocaleString('en-IN')}</td>
@@ -35,12 +35,12 @@ async function renderMaintenanceLog() {
 }
 
 async function renderAddMaintenance() {
-  const {data:rooms} = await sb.from('rooms').select('room_id,nickname').order('room_id');
+  const {data:rooms} = await sb.from('rooms').select('room_id,nickname,unit_no').order('room_id');
   renderShell(`
     <div class="card"><h1>➕ Add Issue</h1><button class="secondary btn-sm" onclick="renderMaintenanceLog()">← Back</button></div>
     <div class="card">
       <div class="form-group"><label>Property</label>
-        <select id="mRoom"><option value="">General</option>${(rooms||[]).map(r=>`<option value="${r.room_id}">${r.nickname||r.room_id}</option>`).join('')}</select>
+        <select id="mRoom"><option value="">General</option>${(rooms||[]).map(r=>`<option value="${r.room_id}">${propLabel(r)}</option>`).join('')}</select>
       </div>
       <div class="form-group"><label>Issue Type</label>
         <select id="mType"><option>Plumbing</option><option>Electrical</option><option>Furniture</option><option>Appliance</option><option>Painting</option><option>Cleaning</option><option>Other</option></select>
@@ -75,12 +75,12 @@ async function saveMaintenance() {
 async function editMaintenance(id) {
   const {data:m} = await sb.from('maintenance_log').select('*').eq('id',id).single();
   if(!m) return;
-  const {data:rooms} = await sb.from('rooms').select('room_id,nickname').order('room_id');
+  const {data:rooms} = await sb.from('rooms').select('room_id,nickname,unit_no').order('room_id');
   renderShell(`
     <div class="card"><h1>✏️ Edit Issue</h1><button class="secondary btn-sm" onclick="renderMaintenanceLog()">← Back</button></div>
     <div class="card">
       <div class="form-group"><label>Property</label>
-        <select id="mRoom"><option value="">General</option>${(rooms||[]).map(r=>`<option value="${r.room_id}" ${r.room_id===m.room_id?'selected':''}>${r.nickname||r.room_id}</option>`).join('')}</select>
+        <select id="mRoom"><option value="">General</option>${(rooms||[]).map(r=>`<option value="${r.room_id}" ${r.room_id===m.room_id?'selected':''}>${propLabel(r)}</option>`).join('')}</select>
       </div>
       <div class="form-group"><label>Type</label>
         <select id="mType">${['Plumbing','Electrical','Furniture','Appliance','Painting','Cleaning','Other'].map(t=>`<option ${t===m.issue_type?'selected':''}>${t}</option>`).join('')}</select>

@@ -58,7 +58,7 @@ async function renderReports() {
 
   const bName = b => {
     const room = (rooms.data || []).find(r => r.room_id === b.room_id);
-    return room?.nickname || room?.unit_no || b.room_id || '-';
+    return propLabel(room) || b.room_id || '-';
   };
 
   let html = `
@@ -224,7 +224,7 @@ async function showBookingPopup(roomId, dateStr) {
       </div>
       <div class="metric-row">
         <span class="metric-label">Property</span>
-        <span>${b.rooms?.nickname || ''} · ${b.rooms?.unit_no || ''}</span>
+        <span>${propLabel(b.rooms) || ''}</span>
       </div>
       <div class="metric-row">
         <span class="metric-label">Mode</span>

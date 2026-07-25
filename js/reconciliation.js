@@ -290,7 +290,7 @@ async function processAirbnbCSV(input) {
             ${extraInApp.slice(0, 20).map(b => `
               <tr>
                 <td>${b.guest_name || '-'}</td>
-                <td style="font-size:12px;">${b.rooms?.nickname || b.room_id}</td>
+                <td style="font-size:12px;">${propLabel(b.rooms) || b.room_id}</td>
                 <td>${b.check_in || '-'}</td>
                 <td>${b.check_out || '-'}</td>
                 <td>₹${(b.total_amount || 0).toLocaleString('en-IN')}</td>
@@ -383,7 +383,7 @@ async function quickAddMissing(index) {
   if (!m) return;
 
   // Try to auto-match property from listing name
-  const { data: rooms } = await sb.from('rooms').select('room_id, nickname, property_name');
+  const { data: rooms } = await sb.from('rooms').select('room_id, nickname, unit_no, property_name');
   const listing = (m.listing || '').toLowerCase();
   const matchedRoom = (rooms || []).find(r =>
     listing.includes((r.nickname || '').toLowerCase()) ||

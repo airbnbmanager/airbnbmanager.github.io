@@ -178,7 +178,7 @@ function applyExpenseFilters() {
                     </span>
                   </td>
                   <td style="font-size:12px;">
-                    ${e.rooms?.nickname || e.rooms?.unit_no || e.room_id || 'General'}
+                    ${propLabel(e.rooms) || e.room_id || 'General'}
                   </td>
                   <td style="color:var(--red);font-weight:700;">
                     ₹${(e.amount || 0).toLocaleString('en-IN')}
@@ -765,7 +765,7 @@ async function renderDefaultExpenses() {
       : Object.entries(byRoom).map(([roomId, g]) => `
           <div class="card">
             <div class="section-title">
-              🏠 ${g.room?.nickname || g.room?.unit_no || roomId}
+              🏠 ${propLabel(g.room) || roomId}
               <span class="badge red" style="float:right;">
                 ₹${g.items
                   .reduce((s, i) => s + (i.default_amount || 0), 0)
