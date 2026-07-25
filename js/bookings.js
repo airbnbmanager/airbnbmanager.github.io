@@ -344,7 +344,7 @@ async function renderManageBookings() {
             <button class="btn-sm outline" onclick="shareBookingWhatsApp('${b.booking_id}')" title="Welcome message">📱</button>
             <button class="btn-sm" style="background:#FFB800;color:#fff;" onclick="requestGuestID('${b.booking_id}')" title="Request ID">🪪</button>
             <button class="btn-sm" style="background:#00A699;color:#fff;" onclick="sendCheckinReminder('${b.booking_id}')" title="Check-in reminder">📅</button>
-            <button class="btn-sm" style="background:#FF385C;color:#fff;" onclick="requestReview('${b.booking_id}')" title="Request 5★ review">⭐</button>
+            <button class="btn-sm" style="background:${b.booking_mode === 'Online-Airbnb' ? '#FF385C' : '#4285F4'};color:#fff;" onclick="requestReview('${b.booking_id}')" title="${b.booking_mode === 'Online-Airbnb' ? 'Airbnb Review ⭐' : 'Google Review ⭐'}">⭐</button>
             ${canD ? `<button class="btn-sm danger" onclick="delBooking('${b.booking_id}','${(b.guest_name || '').replace(/'/g, "\\'")}','${b.room_id}')">🗑️</button>` : ''}
           </td>` : ''}
         </tr>`;

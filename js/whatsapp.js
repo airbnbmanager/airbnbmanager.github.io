@@ -141,7 +141,7 @@ async function shareBookingWhatsApp(bkId) {
   const checkIn      = b.check_in || 'N/A';
   const checkOut     = b.check_out || 'N/A';
   const checkInTime  = b.check_in_time || '2:00 PM';
-  const checkOutTime = b.check_out_time || '11:00 AM';
+  const checkOutTime = '11:00 AM'; // Always 11 AM for checkout reminders
 
   const contactLines = await getPropertyContactsForRoom(roomId, r);
 
@@ -319,7 +319,7 @@ async function requestGuestID(bkId) {
 // ============ CHECK-IN REMINDER (1 day before) ============
 async function sendCheckinReminder(bkId) {
   const { data: b } = await sb.from('guest_register')
-    .select('*, rooms(room_id, unit_no, nickname, map_link, address)')
+    .select('*, rooms(room_id, unit_no, nickname, map_link, address, directions, landmarks)')
     .eq('booking_id', bkId).single();
   if (!b) { alert('Not found'); return; }
 
@@ -334,19 +334,27 @@ async function sendCheckinReminder(bkId) {
   const msg = [
     `Hi ${guestName}! 👋`,
     ``,
-    `Excited to host you at *${propertyName}* tomorrow! 🎉`,
+    `Just a friendly reminder — your stay at *${propertyName}* begins tomorrow! 🎉`,
     ``,
-    `📅 Check-in: *${checkIn}* at *${checkInTime}*`,
-    r.map_link ? `📍 Location: ${r.map_link}` : '',
+    `📅 *Check-in:* ${checkIn} at ${checkInTime}`,
+    r.address ? `📍 *Address:* ${r.address}` : '',
+    r.map_link ? `🗺️ *Location:* ${r.map_link}` : '',
+    r.landmarks ? `📌 *Nearby:* ${r.landmarks}` : '',
     ``,
-    `Please carry *govt ID (Aadhar/DL/Passport)* for all guests. 📸`,
+    `📸 *Please carry:*`,
+    `• Government ID (Aadhar / DL / Passport) for all guests`,
     ``,
-    contactLines.length ? `Your contact:` : '',
+    contactLines.length ? `📞 *Your Contacts:*` : '',
     ...contactLines,
     ``,
-    `Safe travels! See you soon 🚗`,
+    `If caretaker not reachable:`,
+    `📞 Mr Shahanshah — 9450055554`,
+    `📞 Mr Firoz Khan — 8299600709`,
     ``,
-    `— Team *${BRAND}*`
+    `Safe travels! Looking forward to hosting you 🙏`,
+    ``,
+    `— Team *${BRAND}*`,
+    `🌐 uniquehavenhomesstay.com`
   ].filter(v => v !== '' && v !== false && v !== null && v !== undefined).join('\n');
 
   showWhatsAppModal(guestName, propertyName, b.phone, msg);

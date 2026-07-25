@@ -175,6 +175,57 @@ async function renderDashboard() {
       </div>
     </div>
 
+    <!-- Online vs Offline Bookings -->
+    ${(() => {
+      const now = new Date();
+      const todayD = now.toISOString().slice(0, 10);
+      const weekAgo = dateAdd(todayD, -7);
+      const monthStart2 = todayD.slice(0, 7) + '-01';
+
+      const onlineToday = allBookings.filter(b => b.booking_mode === 'Online-Airbnb' && b.check_in === todayD);
+      const offlineToday = allBookings.filter(b => b.booking_mode !== 'Online-Airbnb' && b.check_in === todayD);
+      const onlineWeek = allBookings.filter(b => b.booking_mode === 'Online-Airbnb' && b.check_in >= weekAgo && b.check_in <= todayD);
+      const offlineWeek = allBookings.filter(b => b.booking_mode !== 'Online-Airbnb' && b.check_in >= weekAgo && b.check_in <= todayD);
+      const onlineMonth = allBookings.filter(b => b.booking_mode === 'Online-Airbnb' && b.check_in >= monthStart2);
+      const offlineMonth = allBookings.filter(b => b.booking_mode !== 'Online-Airbnb' && b.check_in >= monthStart2);
+
+      const rev = arr => arr.reduce((s,b) => s + (b.total_amount || 0), 0);
+
+      return `
+      <div class="card">
+        <div class="section-title">📊 Online vs Offline Bookings</div>
+        <div class="table-wrap"><table>
+          <thead><tr>
+            <th>Period</th>
+            <th style="color:#1E429F;">🌐 Online (Airbnb)</th>
+            <th style="color:#B45309;">🏠 Offline (Direct)</th>
+            <th>Total</th>
+          </tr></thead>
+          <tbody>
+            <tr>
+              <td><strong>Today</strong></td>
+              <td style="color:#1E429F;">${onlineToday.length} · ₹${rev(onlineToday).toLocaleString('en-IN')}</td>
+              <td style="color:#B45309;">${offlineToday.length} · ₹${rev(offlineToday).toLocaleString('en-IN')}</td>
+              <td><strong>${onlineToday.length + offlineToday.length}</strong> · ₹${(rev(onlineToday) + rev(offlineToday)).toLocaleString('en-IN')}</td>
+            </tr>
+            <tr>
+              <td><strong>This Week</strong></td>
+              <td style="color:#1E429F;">${onlineWeek.length} · ₹${rev(onlineWeek).toLocaleString('en-IN')}</td>
+              <td style="color:#B45309;">${offlineWeek.length} · ₹${rev(offlineWeek).toLocaleString('en-IN')}</td>
+              <td><strong>${onlineWeek.length + offlineWeek.length}</strong> · ₹${(rev(onlineWeek) + rev(offlineWeek)).toLocaleString('en-IN')}</td>
+            </tr>
+            <tr>
+              <td><strong>This Month</strong></td>
+              <td style="color:#1E429F;">${onlineMonth.length} · ₹${rev(onlineMonth).toLocaleString('en-IN')}</td>
+              <td style="color:#B45309;">${offlineMonth.length} · ₹${rev(offlineMonth).toLocaleString('en-IN')}</td>
+              <td><strong>${onlineMonth.length + offlineMonth.length}</strong> · ₹${(rev(onlineMonth) + rev(offlineMonth)).toLocaleString('en-IN')}</td>
+            </tr>
+          </tbody>
+        </table></div>
+      </div>
+      `;
+    })()}
+
     <!-- Operations Row 1 -->
     <div class="stat-grid">
       <div class="stat-card" style="border-left:4px solid var(--green);">
