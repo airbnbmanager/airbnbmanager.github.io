@@ -125,7 +125,7 @@ async function shareBookingWhatsApp(bkId) {
   const { data: b } = await sb.from('guest_register')
     .select('*, rooms(room_id, unit_no, nickname, property_name, checkin_manager, checkin_manager_emp_id, caretaker_name, caretaker_phone, caretaker_emp_id, map_link, address, directions, landmarks, floor_info, building_name)')
     .eq('booking_id', bkId).single();
-  if (!b) { alert('Not found'); return; }
+  if (!b) { fsn.error('Error', 'Not found'); return; }
 
   const r = b.rooms || {};
   const roomId = r.room_id || b.room_id;
@@ -198,7 +198,7 @@ async function sendCheckoutReminder(bkId) {
   const { data: b } = await sb.from('guest_register')
     .select('*, rooms(room_id, unit_no, nickname, checkin_manager, checkin_manager_emp_id, caretaker_name, caretaker_phone, caretaker_emp_id)')
     .eq('booking_id', bkId).single();
-  if (!b) { alert('Not found'); return; }
+  if (!b) { fsn.error('Error', 'Not found'); return; }
 
   const today = new Date().toISOString().slice(0, 10);
   if (b.check_out < today) {
@@ -257,12 +257,12 @@ function showWhatsAppModal(guestName, propertyName, phone, msg) {
       <div class="btn-row" style="margin-top:10px;">
         <button onclick="
           navigator.clipboard.writeText(document.getElementById('waMsg').value)
-            .then(() => alert('📋 Message copied!'))
+            .then(() => fsn.info('Info', '📋 Message copied!'))
             .catch(() => {
               const t = document.getElementById('waMsg');
               t.select();
               document.execCommand('copy');
-              alert('📋 Copied!');
+              fsn.info('Info', '📋 Copied!');
             });
         ">📋 Copy</button>
         <button class="green-btn" onclick="window.open('https://wa.me/?text='+encodeURIComponent(document.getElementById('waMsg').value),'_blank')">
@@ -286,7 +286,7 @@ async function requestGuestID(bkId) {
   const { data: b } = await sb.from('guest_register')
     .select('*, rooms(nickname, unit_no)')
     .eq('booking_id', bkId).single();
-  if (!b) { alert('Booking not found'); return; }
+  if (!b) { fsn.error('Error', 'Booking not found'); return; }
 
   const guestName = b.guest_name || 'Guest';
   const propertyName = b.rooms?.nickname || b.rooms?.unit_no || 'our property';
@@ -321,7 +321,7 @@ async function sendCheckinReminder(bkId) {
   const { data: b } = await sb.from('guest_register')
     .select('*, rooms(room_id, unit_no, nickname, map_link, address, directions, landmarks)')
     .eq('booking_id', bkId).single();
-  if (!b) { alert('Not found'); return; }
+  if (!b) { fsn.error('Error', 'Not found'); return; }
 
   const r = b.rooms || {};
   const roomId = r.room_id || b.room_id;
@@ -365,7 +365,7 @@ async function requestReview(bkId) {
   const { data: b } = await sb.from('guest_register')
     .select('*, rooms(nickname, unit_no)')
     .eq('booking_id', bkId).single();
-  if (!b) { alert('Not found'); return; }
+  if (!b) { fsn.error('Error', 'Not found'); return; }
 
   const guestName = b.guest_name || 'Guest';
   const propertyName = b.rooms?.nickname || 'our property';

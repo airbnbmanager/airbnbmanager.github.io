@@ -266,7 +266,7 @@ async function saveExpCat() {
       `<div class="error">${error.message}</div>`;
     return;
   }
-  alert('✅ Category saved!');
+  fsn.success('Success', '✅ Category saved!');
   renderExpenses();
 }
 
@@ -380,7 +380,7 @@ async function saveExpEntry() {
     return;
   }
 
-  alert('✅ Expense saved!');
+  fsn.success('Success', '✅ Expense saved!');
   renderExpenses();
 }
 
@@ -392,7 +392,7 @@ async function editExpense(id) {
     sb.from('rooms').select('room_id, unit_no, nickname').order('unit_no')
   ]);
 
-  if (!exp) { alert('Expense not found'); return; }
+  if (!exp) { fsn.error('Error', 'Expense not found'); return; }
 
   renderShell(`
     <div class="card">
@@ -479,7 +479,7 @@ async function updateExpense(id) {
     return;
   }
 
-  alert('✅ Expense updated!');
+  fsn.success('Success', '✅ Expense updated!');
   renderExpenses();
 }
 
@@ -488,7 +488,7 @@ async function delExpense(id) {
   if (!confirm('Delete this expense?')) return;
   const { error } = await sb.from('expenses').delete().eq('id', id);
   if (error) { alert('❌ ' + error.message); return; }
-  alert('✅ Deleted');
+  fsn.success('Success', '✅ Deleted');
   renderExpenses();
 }
 
@@ -874,7 +874,7 @@ async function saveDefaultExpense() {
       `<div class="error">${error.message}</div>`;
     return;
   }
-  alert('✅ Default expense added!');
+  fsn.success('Success', '✅ Default expense added!');
   renderDefaultExpenses();
 }
 
@@ -885,7 +885,7 @@ async function editDefaultExpense(id) {
     sb.from('rooms').select('room_id, nickname, unit_no').order('room_id')
   ]);
 
-  if (!def) { alert('Not found'); return; }
+  if (!def) { fsn.error('Error', 'Not found'); return; }
 
   renderShell(`
     <div class="card">
@@ -951,7 +951,7 @@ async function updateDefaultExpense(id) {
       `<div class="error">${error.message}</div>`;
     return;
   }
-  alert('✅ Updated!');
+  fsn.success('Success', '✅ Updated!');
   renderDefaultExpenses();
 }
 
@@ -961,7 +961,7 @@ async function deleteDefaultExpense(id, name) {
   const { error } = await sb.from('property_default_expenses')
     .delete().eq('id', id);
   if (error) { alert('❌ ' + error.message); return; }
-  alert('✅ Deleted');
+  fsn.success('Success', '✅ Deleted');
   renderDefaultExpenses();
 }
 
@@ -1183,7 +1183,7 @@ async function copyPrevMonthExpenses() {
       if (input) input.value = e.prevAmount;
     }
   });
-  alert(`✅ Copied from ${d.prevMonthLabel}`);
+  fsn.success(`Success`, `✅ Copied from ${d.prevMonthLabel}`);
 }
 
 async function applyDefaultExpenses() {
@@ -1194,7 +1194,7 @@ async function applyDefaultExpenses() {
       if (input) input.value = e.defaultAmount;
     }
   });
-  alert('✅ Defaults applied');
+  fsn.success('Success', '✅ Defaults applied');
 }
 
 async function saveMonthlyExpenses() {
@@ -1254,7 +1254,7 @@ async function saveMonthlyExpenses() {
       `<div class="error">${errors.join('<br>')}</div>`;
     if (btn) { btn.disabled = false; btn.textContent = '💾 Save All Expenses'; }
   } else {
-    alert(`✅ ${saved} expenses saved for ${d.monthLabel}`);
+    fsn.success(`Success`, `✅ ${saved} expenses saved for ${d.monthLabel}`);
     renderMonthlyExpenses(d.selRoom, d.selMonth);
   }
 }

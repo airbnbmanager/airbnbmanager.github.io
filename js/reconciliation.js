@@ -391,7 +391,7 @@ async function quickAddMissing(index) {
   );
 
   if (!matchedRoom) {
-    alert(`⚠️ Property not auto-detected for: ${m.listing}\n\nPlease add manually from Bookings page.`);
+    fsn.warning(`Warning`, `⚠️ Property not auto-detected for: ${m.listing}\n\nPlease add manually from Bookings page.`);
     return;
   }
 
@@ -425,7 +425,7 @@ async function quickAddMissing(index) {
     notes: 'Airbnb Auto Sync'
   });
 
-  alert(`✅ Added: ${m.guest} at ${matchedRoom.nickname}`);
+  fsn.success(`Success`, `✅ Added: ${m.guest} at ${matchedRoom.nickname}`);
 
   // Refresh
   document.querySelector('input[type="file"]').dispatchEvent(new Event('change'));
@@ -441,7 +441,7 @@ async function fixNameMismatch(index) {
     .eq('booking_id', nm.bookingId);
 
   if (error) { alert('❌ ' + error.message); return; }
-  alert(`✅ Updated: ${nm.oldName} → ${nm.newName}`);
+  fsn.success(`Success`, `✅ Updated: ${nm.oldName} → ${nm.newName}`);
   document.querySelector('input[type="file"]').dispatchEvent(new Event('change'));
 }
 
@@ -458,6 +458,6 @@ async function fixAllNameMismatches() {
     if (error) failed++;
     else success++;
   }
-  alert(`✅ Updated ${success} names\n❌ Failed: ${failed}`);
+  fsn.success(`Success`, `✅ Updated ${success} names\n❌ Failed: ${failed}`);
   document.querySelector('input[type="file"]').dispatchEvent(new Event('change'));
 }

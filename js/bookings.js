@@ -1319,7 +1319,7 @@ async function saveBooking() {
 // ============ EXTENSION ============
 async function createOfflineExtension(parentBookingId) {
   const { data: b } = await sb.from('guest_register').select('*').eq('booking_id', parentBookingId).single();
-  if (!b) { alert('Not found'); return; }
+  if (!b) { fsn.error('Error', 'Not found'); return; }
   const today = new Date().toISOString().slice(0, 10);
   if (b.check_out >= today) {
     await sb.from('guest_register').update({
@@ -1356,7 +1356,7 @@ async function quickCheckout(bkId, roomId) {
   const nowTime = new Date().toTimeString().slice(0, 5);
   const { data: bk } = await sb.from('guest_register')
     .select('guest_name,check_in,per_day_rate,total_amount,notes').eq('booking_id', bkId).single();
-  if (!bk) { alert('Not found'); return; }
+  if (!bk) { fsn.error('Error', 'Not found'); return; }
   const nights = Math.max(calcNights(bk.check_in, today), 1);
   const calcTotal = bk.per_day_rate ? bk.per_day_rate * nights : bk.total_amount;
   if (!confirm(`Quick Checkout for ${bk.guest_name}?\n\nNights: ${nights}\nTotal: ₹${calcTotal.toLocaleString('en-IN')}\n\nProceed?`)) return;
@@ -1370,14 +1370,14 @@ async function quickCheckout(bkId, roomId) {
     cleaning_status: 'Dirty',
     last_checkout: today
   }).eq('room_id', roomId);
-  alert(`✅ ${bk.guest_name} checked out! Total: ₹${calcTotal.toLocaleString('en-IN')}`);
+  fsn.success(`Success`, `✅ ${bk.guest_name} checked out! Total: ₹${calcTotal.toLocaleString('en-IN')}`);
   renderManageBookings();
 }
 
 // ============ EDIT BOOKING ============
 async function editBooking(bkId) {
   const { data: b } = await sb.from('guest_register').select('*').eq('booking_id', bkId).single();
-  if (!b) { alert('Not found'); return; }
+  if (!b) { fsn.error('Error', 'Not found'); return; }
   const { data: rooms } = await sb.from('rooms').select('room_id,unit_no,nickname,property_name').order('room_id');
   const { data: pays } = await sb.from('payment_history').select('*').eq('booking_id', bkId).order('paid_at', { ascending: false });
   const tp = (pays || []).reduce((s, p) => s + (p.amount || 0), 0);
@@ -1617,7 +1617,7 @@ async function deleteIdPhoto(bkId, path, side, index) {
 
     await sb.from('guest_register').update(updateObj).eq('booking_id', bkId);
 
-    alert('✅ Photo deleted');
+    fsn.success('Success', '✅ Photo deleted');
     editBooking(bkId);
   } catch (e) {
     alert('❌ Delete failed: ' + e.message);
@@ -1791,7 +1791,7 @@ async function delBooking(bkId, guestName, roomId) {
       }
     }
 
-    alert('✅ Booking deleted');
+    fsn.success('Success', '✅ Booking deleted');
     renderManageBookings();
   } catch (err) {
     alert('❌ Error: ' + (err.message || err));
@@ -1844,7 +1844,7 @@ async function addPaymentWithDate(bkId) { showPaymentModal(bkId); }
 
 async function editPayment(payId, bkId) {
   const { data: pay } = await sb.from('payment_history').select('*').eq('id', payId).single();
-  if (!pay) { alert('Not found'); return; }
+  if (!pay) { fsn.error('Error', 'Not found'); return; }
   const modal = document.createElement('div');
   modal.className = 'modal-overlay';
   modal.onclick = e => { if (e.target === modal) modal.remove(); };
@@ -1892,7 +1892,7 @@ async function markFullyPaid(bkId) {
   const { data: p } = await sb.from('payment_history').select('amount').eq('booking_id', bkId);
   const paid = (p || []).reduce((s, x) => s + (x.amount || 0), 0);
   const bal = (b?.total_amount || 0) - paid;
-  if (bal <= 0) { alert('Already paid'); return; }
+  if (bal <= 0) { fsn.info('Info', 'Already paid'); return; }
   showPaymentModal(bkId);
 }
 
@@ -1914,7 +1914,7 @@ function onPeriodChg() {
 async function exportBookingsPDF() {
   // Get current filtered bookings from displayed table
   const rows = document.querySelectorAll('.table-wrap table tbody tr');
-  if (!rows.length) { alert('No bookings to export'); return; }
+  if (!rows.length) { fsn.info('Info', 'No bookings to export'); return; }
 
   const now = new Date();
   const dateStr = now.toLocaleDateString('en-IN');
@@ -2182,7 +2182,7 @@ function endCropSelect() {
 function applyCrop() {
   const cd = window._cropData;
   if (!cd || !cd.selection || cd.selection.w < 10 || cd.selection.h < 10) {
-    alert('Please select an area first (drag on image)');
+    fsn.info('Info', 'Please select an area first (drag on image)');
     return;
   }
   const { canvas, ctx, img, scale, selection } = cd;
@@ -2245,7 +2245,7 @@ async function deleteVehiclePhoto(bkId, path) {
   try {
     await sb.storage.from('id-proofs').remove([path]);
     await sb.from('guest_register').update({ vehicle_photo_path: null }).eq('booking_id', bkId);
-    alert('✅ Vehicle photo deleted');
+    fsn.success('Success', '✅ Vehicle photo deleted');
     editBooking(bkId);
   } catch (e) {
     alert('❌ ' + e.message);

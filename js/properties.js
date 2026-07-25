@@ -227,7 +227,7 @@ async function editRoom(id) {
     sb.from('rooms').select('*').eq('room_id', id).single(),
     sb.from('employees').select('emp_id,name,phone,property_role,role,status').eq('status', 'Active').order('name')
   ]);
-  if (!r) { alert('Not found'); return; }
+  if (!r) { fsn.error('Error', 'Not found'); return; }
   window._roomEmpCache = emps || [];
   renderShell(`
     <div class="card">
@@ -347,7 +347,7 @@ async function editFlatStatus(id) {
   const { data: f } = await sb.from('flats_status')
     .select('*, rooms(unit_no, nickname)')
     .eq('room_id', id).single();
-  if (!f) { alert('Not found'); return; }
+  if (!f) { fsn.error('Error', 'Not found'); return; }
 
   renderShell(`
     <div class="card">
@@ -675,7 +675,7 @@ async function saveShift(roomId) {
     return;
   }
 
-  alert('✅ Shift saved!');
+  fsn.success('Success', '✅ Shift saved!');
   renderPropertyShifts(roomId);
 }
 
@@ -690,7 +690,7 @@ async function editShift(id, roomId) {
     return assigned.includes(roomId) || e.emp_id === sh?.emp_id;
   });
 
-  if (!sh) { alert('Not found'); return; }
+  if (!sh) { fsn.error('Error', 'Not found'); return; }
 
   renderShell(`
     <div class="card">
@@ -764,7 +764,7 @@ async function updateShift(id, roomId) {
     return;
   }
 
-  alert('✅ Updated!');
+  fsn.success('Success', '✅ Updated!');
   renderPropertyShifts(roomId);
 }
 
@@ -772,6 +772,6 @@ async function deleteShift(id, roomId) {
   if (!confirm('Remove this shift contact?')) return;
   const { error } = await sb.from('property_shifts').delete().eq('id', id);
   if (error) { alert('❌ ' + error.message); return; }
-  alert('✅ Shift removed');
+  fsn.success('Success', '✅ Shift removed');
   renderPropertyShifts(roomId);
 }

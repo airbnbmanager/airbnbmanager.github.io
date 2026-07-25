@@ -126,7 +126,7 @@ async function saveItem() {
 // ============ EDIT ITEM ============
 async function editItem(itemId) {
   const { data: item } = await sb.from('store_items').select('*').eq('item_id', itemId).single();
-  if (!item) { alert('Not found'); return; }
+  if (!item) { fsn.error('Error', 'Not found'); return; }
 
   renderShell(`
     <div class="card"><h1>✏️ Edit Item</h1>
@@ -224,7 +224,7 @@ async function saveStockIn() {
     notes: document.getElementById('txNotes').value.trim() || null
   });
   if (error) { document.getElementById('txErr').innerHTML = `<div class="error">${error.message}</div>`; return; }
-  alert('✅ Stock In saved');
+  fsn.success('Success', '✅ Stock In saved');
   renderStore();
 }
 
@@ -302,14 +302,14 @@ async function saveStockOut() {
     notes: document.getElementById('txNotes').value.trim() || null
   });
   if (error) { document.getElementById('txErr').innerHTML = `<div class="error">${error.message}</div>`; return; }
-  alert('✅ Stock Out saved');
+  fsn.success('Success', '✅ Stock Out saved');
   renderStore();
 }
 
 // ============ EDIT TRANSACTION ============
 async function editTxn(txnId) {
   const { data: t } = await sb.from('stock_transactions').select('*, store_items(item_name)').eq('id', txnId).single();
-  if (!t) { alert('Not found'); return; }
+  if (!t) { fsn.error('Error', 'Not found'); return; }
 
   renderShell(`
     <div class="card"><h1>✏️ Edit Transaction</h1>

@@ -144,7 +144,7 @@ async function saveInvSafe() {
       if (linkErr) throw new Error(linkErr.message);
     }
 
-    alert(`✅ Investor "${name}" added successfully!`);
+    fsn.success(`Success`, `✅ Investor "${name}" added successfully!`);
     renderManageInvestors();
   } catch (err) {
     document.getElementById('invErr').innerHTML = `<div class="error">${err.message}</div>`;
@@ -155,7 +155,7 @@ async function saveInvSafe() {
 // ============ EDIT INVESTOR ============
 async function editInvestor(investorId) {
   const { data: inv } = await sb.from('investors').select('*').eq('investor_id', investorId).single();
-  if (!inv) { alert('Not found'); return; }
+  if (!inv) { fsn.error('Error', 'Not found'); return; }
 
   const { data: links } = await sb.from('investor_properties').select('room_id').eq('investor_id', investorId);
   const linkedRooms = (links || []).map(l => l.room_id);
@@ -226,7 +226,7 @@ async function updateInvestor(investorId) {
       if (linkErr) throw new Error(linkErr.message);
     }
 
-    alert(`✅ Investor "${name}" updated!`);
+    fsn.success(`Success`, `✅ Investor "${name}" updated!`);
     renderManageInvestors();
   } catch (err) {
     document.getElementById('invErr').innerHTML = `<div class="error">${err.message}</div>`;
@@ -244,7 +244,7 @@ async function deleteInvestor(investorId, name) {
     const { error } = await sb.from('investors').delete().eq('investor_id', investorId);
     if (error) throw new Error(error.message);
 
-    alert(`✅ Investor "${name}" deleted`);
+    fsn.success(`Success`, `✅ Investor "${name}" deleted`);
     renderManageInvestors();
   } catch (err) {
     alert('❌ Delete failed: ' + err.message);
@@ -297,14 +297,14 @@ async function saveLink() {
   const { error } = await sb.from('investor_properties').insert({ investor_id: inv, room_id: room });
   if (error) { document.getElementById('lErr').innerHTML = `<div class="error">${error.message}</div>`; return; }
 
-  alert('✅ Property linked!');
+  fsn.success('Success', '✅ Property linked!');
   renderManageInvestors();
 }
 
 async function unlinkProperty(inv, room) {
   if (!confirm('Remove this property link?')) return;
   await sb.from('investor_properties').delete().eq('investor_id', inv).eq('room_id', room);
-  alert('✅ Property unlinked');
+  fsn.success('Success', '✅ Property unlinked');
   renderManageInvestors();
 }
 

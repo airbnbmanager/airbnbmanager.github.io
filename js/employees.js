@@ -1172,13 +1172,13 @@ async function saveEmpExpense() {
     return;
   }
 
-  alert('✅ Expense saved!');
+  fsn.success('Success', '✅ Expense saved!');
   renderEmpExpenses();
 }
 
 async function editEmpExpense(id) {
   const { data: ex } = await sb.from('daily_expenses').select('*').eq('id', id).single();
-  if (!ex) { alert('Not found'); return; }
+  if (!ex) { fsn.error('Error', 'Not found'); return; }
 
   renderShell(`
     <div class="card">
@@ -1271,7 +1271,7 @@ async function updateEmpExpense(id) {
     return;
   }
 
-  alert('✅ Updated!');
+  fsn.success('Success', '✅ Updated!');
   renderEmpExpenses();
 }
 
@@ -1279,7 +1279,7 @@ async function delEmpExpense(id) {
   if (!confirm('Delete this expense?')) return;
   const { error } = await sb.from('daily_expenses').delete().eq('id', id);
   if (error) { alert('❌ ' + error.message); return; }
-  alert('✅ Deleted');
+  fsn.success('Success', '✅ Deleted');
   renderEmpExpenses();
 }
 
@@ -1294,7 +1294,7 @@ async function showEmpDetailModal(empId) {
     sb.from('employee_tasks').select('*').eq('emp_id', empId).order('assigned_date', { ascending: false }).limit(20)
   ]);
 
-  if (!emp) { alert('Employee not found'); return; }
+  if (!emp) { fsn.error('Error', 'Employee not found'); return; }
 
   const totalDue = (sals || []).reduce((s, r) => s + (r.salary_due || 0), 0);
   const totalPaid = (sals || []).reduce((s, r) => s + (r.salary_paid || 0), 0);

@@ -98,7 +98,7 @@ async function manualSync() {
   try {
     await autoCheckout();
     window._lastSync = new Date().toLocaleString('en-IN');
-    alert('✅ Synced!');
+    fsn.success('Success', '✅ Synced!');
     if (SESSION.currentPage === 'dashboard') renderDashboard();
     else if (SESSION.currentPage === 'flats') renderFlatsStatus();
   } catch (e) { alert('❌ Failed: ' + e.message); }
@@ -676,7 +676,7 @@ async function autoCheckout() {
 // ============ PHOTO VIEWER ============
 async function dlIdPhoto(path) {
   const { data } = await sb.storage.from('id-proofs').createSignedUrl(path, 600);
-  if (!data?.signedUrl) { alert('⚠️ Photo load failed'); return; }
+  if (!data?.signedUrl) { fsn.error('Error', '⚠️ Photo load failed'); return; }
   showPhotoViewer(data.signedUrl, path);
 }
 
@@ -827,7 +827,7 @@ async function approveUser(userId, name) {
       }
 
       await sb.from('pending_users').update({ status: 'Approved' }).eq('user_id', userId);
-      alert(`✅ ${displayName} approved as ${role}`);
+      fsn.success(`Success`, `✅ ${displayName} approved as ${role}`);
       renderUserManagement();
     } catch (err) {
       alert('❌ Approve failed: ' + (err.message || err));
@@ -840,7 +840,7 @@ async function changeUserRole(userId, name) {
   showRolePickerModal(userId, name, async (role) => {
     try {
       await sb.from('profiles').update({ role }).eq('user_id', userId);
-      alert(`✅ Role changed to ${role}`);
+      fsn.success(`Success`, `✅ Role changed to ${role}`);
       renderUserManagement();
     } catch (err) {
       alert('❌ Role change failed: ' + (err.message || err));
@@ -862,7 +862,7 @@ async function deleteUser(userId, name) {
   try {
     await sb.from('profiles').delete().eq('user_id', userId);
     await sb.from('pending_users').delete().eq('user_id', userId);
-    alert(`✅ ${name} deleted`);
+    fsn.success(`Success`, `✅ ${name} deleted`);
     renderUserManagement();
   } catch (err) {
     alert('❌ Delete failed: ' + (err.message || err));
@@ -970,7 +970,7 @@ async function saveSetting(key) {
     alert('❌ ' + error.message);
     return;
   }
-  alert(`✅ Updated: ${key}`);
+  fsn.success(`Success`, `✅ Updated: ${key}`);
   // Clear cache so new value picks up
   window._appSettings = null;
 }
@@ -994,7 +994,7 @@ async function addSetting() {
     return;
   }
 
-  alert(`✅ Added: ${key}`);
+  fsn.success(`Success`, `✅ Added: ${key}`);
   window._appSettings = null;
   renderSettings();
 }
