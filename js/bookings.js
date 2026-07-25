@@ -123,7 +123,7 @@ async function renderManageBookings() {
   }
 
   // Fetch payments for filter
-  const { data: allPays } = await sb.from('payment_history').select('booking_id, amount');
+  const { data: allPays } = await sb.from('payment_history').select('booking_id, amount, payment_date');
   const paidMap = {};
   (allPays || []).forEach(p => {
     paidMap[p.booking_id] = (paidMap[p.booking_id] || 0) + (p.amount || 0);
@@ -193,6 +193,19 @@ async function renderManageBookings() {
       const peStr = pe.toISOString().slice(0, 10);
       f = f.filter(b => b.check_in >= psStr && b.check_in <= peStr);
     }
+  }
+
+  // Payment date filter (from dashboard KPI click)
+  if (SESSION._filterByPaymentDate) {
+    const payDate = SESSION._filterByPaymentDate;
+    const paidMap2 = window._bkPaidMap || {};
+    // Get booking IDs that received payment on this date
+    const paymentDateBkIds = new Set();
+    (allPays || []).forEach(p => {
+      if (p.payment_date === payDate) paymentDateBkIds.add(p.booking_id);
+    });
+    f = f.filter(b => paymentDateBkIds.has(b.booking_id));
+    SESSION._filterByPaymentDate = null; // Clear after use
   }
 
   // Payment filter

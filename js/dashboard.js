@@ -6,6 +6,8 @@
 async function renderDashboard() {
   renderShell(`<div class="loading">Loading...</div>`, 'dashboard');
 
+  const activeUsers = await getActiveUsers();
+
   const today = new Date().toISOString().slice(0, 10);
   const day7 = dateAdd(today, 7);
   const monthStart = today.slice(0, 7) + '-01';
@@ -142,8 +144,19 @@ async function renderDashboard() {
     ${['owner','admin'].includes(SESSION.role) ? syncInfoHTML() : ''}
 
     <div class="card">
-      <h1>📊 Dashboard</h1>
-      <div class="sub">${new Date().toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</div>
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+        <div>
+          <h1>📊 Dashboard</h1>
+          <div class="sub">${new Date().toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</div>
+        </div>
+        <div style="text-align:right;cursor:pointer;" onclick="showActiveUsersModal()" title="Click to see online users">
+          <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;">Online Now</div>
+          <div style="font-size:20px;font-weight:800;color:#00A699;display:flex;align-items:center;gap:6px;justify-content:flex-end;">
+            <span style="width:10px;height:10px;background:#00A699;border-radius:50%;display:inline-block;animation:pulse-dot 1.5s ease-in-out infinite;"></span>
+            ${activeUsers.length} ${activeUsers.length === 1 ? 'user' : 'users'}
+          </div>
+        </div>
+      </div>
     </div>
 
     ${overdue.length > 0 ? `
@@ -773,8 +786,13 @@ function filterAndShowBookings(type) {
   const today = new Date().toISOString().slice(0, 10);
 
   if (type === 'todayRevenue') {
-    SESSION.bookingDateFilter = today;
-    SESSION.bookingPayFilter = 'paid';
+    // Show bookings that received payment today (not by check-in date)
+    SESSION.bookingDateFilter = '';
+    SESSION.bookingPayFilter = '';
+    SESSION.bookingSearch = '';
+    SESSION.bookingPeriod = '';
+    // Set flag to filter by payment date
+    SESSION._filterByPaymentDate = today;
   } else if (type === 'thisMonth') {
     SESSION.bookingPeriod = 'thisMonth';
   } else if (type === 'due') {
@@ -789,4 +807,37 @@ function filterAndShowBookings(type) {
   }
 
   navigate('bookings');
+}
+
+
+async function showActiveUsersModal() {
+  const users = await getActiveUsers();
+  const modal = document.createElement('div');
+  modal.className = 'modal-overlay';
+  modal.onclick = e => { if (e.target === modal) modal.remove(); };
+
+  modal.innerHTML = `
+    <div class="modal-box" style="max-width:450px;">
+      <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">✕</button>
+      <h2>🟢 Online Users (${users.length})</h2>
+      <div class="sub">Active in last 2 minutes</div>
+      <div style="margin-top:16px;">
+        ${users.length === 0 ? '<div class="sub">No one online right now</div>' :
+          users.map(u => {
+            const secAgo = Math.round((Date.now() - new Date(u.last_seen).getTime()) / 1000);
+            const timeStr = secAgo < 60 ? `${secAgo}s ago` : `${Math.floor(secAgo/60)}m ago`;
+            return `
+              <div style="display:flex;align-items:center;gap:12px;padding:12px;background:#F0FFF4;border:1px solid #00A699;border-radius:10px;margin-bottom:8px;">
+                <span style="width:12px;height:12px;background:#00A699;border-radius:50%;animation:pulse-dot 1.5s ease-in-out infinite;"></span>
+                <div style="flex:1;">
+                  <strong>${u.display_name || 'User'}</strong>
+                  <div style="font-size:12px;color:var(--muted);">${u.role} · ${timeStr}</div>
+                </div>
+              </div>
+            `;
+          }).join('')}
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
 }
