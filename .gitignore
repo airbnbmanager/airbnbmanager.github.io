@@ -4,3 +4,8 @@ supabase/.temp/
 js/*.bak
 js/*.bak.*
 .DS_Store
+
+# Backup files
+*.bak
+*.bak.*
+.bak-propname/
