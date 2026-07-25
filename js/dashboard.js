@@ -161,15 +161,15 @@ async function renderDashboard() {
 
     <!-- Financial Row -->
     <div class="stat-grid">
-      <div class="stat-card" style="border-left:4px solid var(--green);cursor:pointer;" onclick="navigate('financial')">
+      <div class="stat-card" style="border-left:4px solid var(--green);cursor:pointer;" onclick="filterAndShowBookings('todayRevenue')">
         <div class="stat-num" style="color:var(--green);font-size:22px;">₹${todayRevenue.toLocaleString('en-IN')}</div>
         <div class="stat-label">💰 Today's Revenue</div>
       </div>
-      <div class="stat-card" style="border-left:4px solid var(--blue);cursor:pointer;" onclick="navigate('financial')">
+      <div class="stat-card" style="border-left:4px solid var(--blue);cursor:pointer;" onclick="filterAndShowBookings('thisMonth')">
         <div class="stat-num" style="color:var(--blue);font-size:22px;">₹${monthRevenue.toLocaleString('en-IN')}</div>
         <div class="stat-label">📈 This Month</div>
       </div>
-      <div class="stat-card" style="border-left:4px solid var(--red);cursor:pointer;" onclick="navigate('bookings')">
+      <div class="stat-card" style="border-left:4px solid var(--red);cursor:pointer;" onclick="filterAndShowBookings('due')">
         <div class="stat-num" style="color:var(--red);font-size:22px;">₹${pendingBalance.toLocaleString('en-IN')}</div>
         <div class="stat-label">💳 Pending Balance</div>
       </div>
@@ -757,4 +757,36 @@ async function renderCheckinManagerViewNew() {
       </div>
     </div>
   `, 'dashboard');
+}
+
+
+function filterAndShowBookings(type) {
+  SESSION.bookingFilter = 'All';
+  SESSION.bookingPropFilter = '';
+  SESSION.bookingDateFilter = '';
+  SESSION.bookingDateFrom = '';
+  SESSION.bookingDateTo = '';
+  SESSION.bookingSearch = '';
+  SESSION.bookingPeriod = '';
+  SESSION.bookingPayFilter = '';
+
+  const today = new Date().toISOString().slice(0, 10);
+
+  if (type === 'todayRevenue') {
+    SESSION.bookingDateFilter = today;
+    SESSION.bookingPayFilter = 'paid';
+  } else if (type === 'thisMonth') {
+    SESSION.bookingPeriod = 'thisMonth';
+  } else if (type === 'due') {
+    SESSION.bookingPayFilter = 'due';
+  } else if (type === 'unpaid') {
+    SESSION.bookingPayFilter = 'unpaid';
+  } else if (type === 'checkinToday') {
+    SESSION.bookingDateFilter = today;
+  } else if (type === 'checkoutToday') {
+    SESSION.bookingDateFrom = today;
+    SESSION.bookingDateTo = today;
+  }
+
+  navigate('bookings');
 }
