@@ -263,7 +263,7 @@ async function renderStockOut() {
         <div class="form-group"><label>Property</label>
           <select id="txRoom">
             <option value="">General / All</option>
-            ${(rooms || []).map(r => `<option value="${r.room_id}">${r.nickname || r.unit_no}</option>`).join('')}
+            ${(rooms || []).map(r => `<option value="${r.room_id}">${propLabel(r)}</option>`).join('')}
           </select>
         </div>
         <div class="form-group"><label>Given To / Received By</label>

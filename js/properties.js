@@ -454,7 +454,7 @@ async function renderPropertyShifts(roomId) {
             <option value="">-- All Properties Overview --</option>
             ${(rooms || []).map(r =>
               `<option value="${r.room_id}" ${r.room_id === selRoom ? 'selected' : ''}>
-                ${r.nickname || r.unit_no}
+                ${propLabel(r)}
               </option>`
             ).join('')}
           </select>
@@ -575,7 +575,7 @@ async function renderPropertyShifts(roomId) {
       <div style="display:flex;flex-wrap:wrap;gap:8px;">
         ${noShiftRooms.map(r => `
           <button class="btn-sm outline" onclick="renderPropertyShifts('${r.room_id}')">
-            ${r.nickname || r.unit_no} ➕
+            ${propLabel(r)} ➕
           </button>
         `).join('')}
       </div>

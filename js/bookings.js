@@ -315,7 +315,7 @@ async function renderManageBookings() {
         </select></div>
         <div class="filter-item"><label>Property</label><select id="fProp">
           <option value="">All</option>
-          ${(rooms || []).map(r => `<option value="${r.room_id}" ${pf === r.room_id ? 'selected' : ''}>${r.nickname || r.unit_no}</option>`).join('')}
+          ${(rooms || []).map(r => `<option value="${r.room_id}" ${pf === r.room_id ? 'selected' : ''}>${propLabel(r)}</option>`).join('')}
         </select></div>
         <div class="filter-item"><label>Date</label><input type="date" id="fDate" value="${df}" /></div>
         <div class="filter-item"><label>From</label><input type="date" id="fFrom" value="${d1}" /></div>
@@ -475,7 +475,7 @@ async function renderAddBooking() {
           <label>Property *</label>
           <select id="roomId" onchange="onRoomChg()">
             <option value="">Select</option>
-            ${(rooms || []).map(r => `<option value="${r.room_id}" ${pre.roomId === r.room_id ? 'selected' : ''}>${r.nickname || r.unit_no} (${r.unit_no})</option>`).join('')}
+            ${(rooms || []).map(r => `<option value="${r.room_id}" ${pre.roomId === r.room_id ? 'selected' : ''}>${propLabel(r)} (${r.unit_no})</option>`).join('')}
           </select>
           <div id="roomInfo" style="font-size:11px;color:var(--muted);margin-top:2px;"></div>
         </div>
@@ -494,7 +494,7 @@ async function renderAddBooking() {
           <label>Original Listing (agar shift hua)</label>
           <select id="sourceRoomId">
             <option value="">Same as actual</option>
-            ${(rooms || []).map(r => `<option value="${r.room_id}" ${(pre.sourceRoomId || '') === r.room_id ? 'selected' : ''}>${r.nickname || r.unit_no}</option>`).join('')}
+            ${(rooms || []).map(r => `<option value="${r.room_id}" ${(pre.sourceRoomId || '') === r.room_id ? 'selected' : ''}>${propLabel(r)}</option>`).join('')}
           </select>
         </div>
       </div>
@@ -1463,7 +1463,7 @@ async function editBooking(bkId) {
       <div class="form-grid">
         <div class="form-group"><label>Property</label>
           <select id="roomId">
-            ${(rooms || []).map(r => `<option value="${r.room_id}" ${r.room_id === b.room_id ? 'selected' : ''}>${r.nickname || r.unit_no} (${r.unit_no})</option>`).join('')}
+            ${(rooms || []).map(r => `<option value="${r.room_id}" ${r.room_id === b.room_id ? 'selected' : ''}>${propLabel(r)} (${r.unit_no})</option>`).join('')}
           </select>
         </div>
         <div class="form-group"><label>Mode</label>
@@ -1477,7 +1477,7 @@ async function editBooking(bkId) {
       <div id="editSourceBox" style="display:${b.booking_mode === 'Online-Airbnb' ? 'block' : 'none'};background:#f0f7ff;padding:12px;border-radius:8px;margin:6px 0;">
         <div class="form-group"><label>Source Listing</label>
           <select id="sourceRoomId"><option value="">Same</option>
-            ${(rooms || []).map(r => `<option value="${r.room_id}" ${(b.source_room_id || b.room_id) === r.room_id ? 'selected' : ''}>${r.nickname || r.unit_no}</option>`).join('')}
+            ${(rooms || []).map(r => `<option value="${r.room_id}" ${(b.source_room_id || b.room_id) === r.room_id ? 'selected' : ''}>${propLabel(r)}</option>`).join('')}
           </select>
         </div>
       </div>

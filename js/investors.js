@@ -98,7 +98,7 @@ async function renderAddInv() {
       <div class="form-group">
         <label>Assign Properties</label>
         <select id="invRooms" multiple style="min-height:120px;">
-          ${(rooms || []).map(r => `<option value="${r.room_id}">${r.nickname || r.unit_no} (${r.room_id})</option>`).join('')}
+          ${(rooms || []).map(r => `<option value="${r.room_id}">${propLabel(r)} (${r.room_id})</option>`).join('')}
         </select>
         <small style="color:var(--muted);">Hold Ctrl/Cmd to select multiple</small>
       </div>
@@ -184,7 +184,7 @@ async function editInvestor(investorId) {
       <div class="form-group">
         <label>Assigned Properties</label>
         <select id="invRooms" multiple style="min-height:120px;">
-          ${(rooms || []).map(r => `<option value="${r.room_id}" ${linkedRooms.includes(r.room_id) ? 'selected' : ''}>${r.nickname || r.unit_no} (${r.room_id})</option>`).join('')}
+          ${(rooms || []).map(r => `<option value="${r.room_id}" ${linkedRooms.includes(r.room_id) ? 'selected' : ''}>${propLabel(r)} (${r.room_id})</option>`).join('')}
         </select>
         <small style="color:var(--muted);">Hold Ctrl/Cmd to select multiple. Deselect to remove link.</small>
       </div>
@@ -268,7 +268,7 @@ async function renderLinkProp() {
       </div>
       <div class="form-group"><label>Property *</label>
         <select id="lRoom"><option value="">Select Property</option>
-          ${(window._invRooms || []).map(r => `<option value="${r.room_id}">${r.nickname || r.unit_no} (${r.room_id})</option>`).join('')}
+          ${(window._invRooms || []).map(r => `<option value="${r.room_id}">${propLabel(r)} (${r.room_id})</option>`).join('')}
         </select>
       </div>
       <button onclick="saveLink()" style="width:100%;">💾 Link Property</button>

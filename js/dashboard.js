@@ -134,16 +134,16 @@ async function renderDashboard() {
       if (parent && parent.room_id !== ext.room_id) {
         allShifts.push({
           guest: ext.guest_name,
-          fromRoom: parent.rooms?.nickname || parent.room_id,
-          toRoom: ext.rooms?.nickname || ext.room_id,
+          fromRoom: propLabel(parent.rooms) || parent.room_id,
+          toRoom: propLabel(ext.rooms) || ext.room_id,
           shiftDate: ext.check_in,
           phone: ext.phone
         });
       }
     });
 
-  const bName = b => `${b.rooms?.nickname || b.rooms?.unit_no || b.room_id}`;
-  const fName = fl => `${fl.rooms?.nickname || fl.rooms?.unit_no || fl.room_id}`;
+  const bName = b => `${propLabel(b.rooms) || b.room_id}`;
+  const fName = fl => `${propLabel(fl.rooms) || fl.room_id}`;
 
   renderShell(`
     ${updateNoticeHTML()}
@@ -381,7 +381,7 @@ async function renderDashboard() {
               <strong>${ext.guest_name}</strong>
               ${ext.phone ? `<br><small style="color:var(--muted);">📞 ${ext.phone}</small>` : ''}
             </td>
-            <td style="font-size:12px;">${ext.rooms?.nickname || ext.room_id}</td>
+            <td style="font-size:12px;">${propLabel(ext.rooms) || ext.room_id}</td>
             <td style="font-size:12px;color:var(--muted);">${parent?.check_out || '-'}</td>
             <td style="font-size:12px;color:var(--green);"><strong>${ext.check_out || 'Open'}</strong></td>
             <td style="color:var(--green);">₹${(ext.total_amount || 0).toLocaleString('en-IN')}</td>
@@ -587,8 +587,8 @@ async function renderCheckinManagerView() {
   const bookedNow = allFlats.filter(x => x.status === 'Booked');
   const dirty = allFlats.filter(x => x.cleaning_status === 'Dirty');
 
-  const bName = b => `${b.rooms?.nickname || b.rooms?.unit_no || b.room_id}`;
-  const fName = fl => `${fl.rooms?.nickname || fl.rooms?.unit_no || fl.room_id}`;
+  const bName = b => `${propLabel(b.rooms) || b.room_id}`;
+  const fName = fl => `${propLabel(fl.rooms) || fl.room_id}`;
 
   renderShell(`
     <div class="card">
@@ -710,8 +710,8 @@ async function renderCheckinManagerViewNew() {
   const bookedNow = allFlats.filter(x => x.status === 'Booked');
   const dirty = allFlats.filter(x => x.cleaning_status === 'Dirty');
 
-  const bName = b => `${b.rooms?.nickname || b.rooms?.unit_no || b.room_id}`;
-  const fName = fl => `${fl.rooms?.nickname || fl.rooms?.unit_no || fl.room_id}`;
+  const bName = b => `${propLabel(b.rooms) || b.room_id}`;
+  const fName = fl => `${propLabel(fl.rooms) || fl.room_id}`;
 
   renderShell(`
     <div class="card">

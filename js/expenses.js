@@ -82,7 +82,7 @@ async function renderExpenses() {
           <select id="expRoomFilter" onchange="applyExpenseFilters()">
             <option value="">All Properties</option>
             ${(rooms || []).map(r =>
-              `<option value="${r.room_id}">${r.nickname || r.unit_no}</option>`
+              `<option value="${r.room_id}">${propLabel(r)}</option>`
             ).join('')}
           </select>
         </div>
@@ -304,7 +304,7 @@ async function renderAddExpEntry() {
         <select id="exRoom">
           <option value="">General / All</option>
           ${(rooms || []).map(r =>
-            `<option value="${r.room_id}">${r.nickname || r.unit_no}</option>`
+            `<option value="${r.room_id}">${propLabel(r)}</option>`
           ).join('')}
         </select>
       </div>
@@ -419,7 +419,7 @@ async function editExpense(id) {
           ${(rooms || []).map(r =>
             `<option value="${r.room_id}"
               ${r.room_id === exp.room_id ? 'selected' : ''}>
-              ${r.nickname || r.unit_no}
+              ${propLabel(r)}
             </option>`
           ).join('')}
         </select>
@@ -563,7 +563,7 @@ async function renderPropertyReport(roomId, range = 'Month') {
           ${rooms.map(r =>
             `<option value="${r.room_id}"
               ${r.room_id === sel ? 'selected' : ''}>
-              ${r.nickname || r.unit_no}
+              ${propLabel(r)}
             </option>`
           ).join('')}
         </select>
@@ -821,7 +821,7 @@ async function renderAddDefaultExpense() {
         <select id="defRoom">
           <option value="">Select Property</option>
           ${(rooms || []).map(r =>
-            `<option value="${r.room_id}">${r.nickname || r.unit_no}</option>`
+            `<option value="${r.room_id}">${propLabel(r)}</option>`
           ).join('')}
         </select>
       </div>
@@ -899,7 +899,7 @@ async function editDefaultExpense(id) {
           ${(rooms || []).map(r =>
             `<option value="${r.room_id}"
               ${r.room_id === def.room_id ? 'selected' : ''}>
-              ${r.nickname || r.unit_no}
+              ${propLabel(r)}
             </option>`
           ).join('')}
         </select>
@@ -1085,7 +1085,7 @@ async function renderMonthlyExpenses(roomId, month) {
           <label>Property *</label>
           <select onchange="renderMonthlyExpenses(this.value, '${selMonth}')">
             ${(rooms || []).map(r =>
-              `<option value="${r.room_id}" ${r.room_id === selRoom ? 'selected' : ''}>${r.nickname || r.unit_no}</option>`
+              `<option value="${r.room_id}" ${r.room_id === selRoom ? 'selected' : ''}>${propLabel(r)}</option>`
             ).join('')}
           </select>
         </div>

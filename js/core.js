@@ -5,6 +5,19 @@
  * ===================================
  */
 
+// ============ PROPERTY DISPLAY HELPER ============
+// Shows: "The Red (101)" instead of just "The Red"
+// Use everywhere: dashboards, filters, dropdowns, reports
+function propLabel(r) {
+  if (!r) return '-';
+  const nick = r.nickname || '';
+  const unit = r.unit_no || '';
+  if (nick && unit) return nick + ' (' + unit + ')';
+  return nick || unit || r.room_id || '-';
+}
+window.propLabel = propLabel;
+
+
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 const appEl = document.getElementById("app");
 const BRAND = "The UNIQUE HAVEN HOME STAY";

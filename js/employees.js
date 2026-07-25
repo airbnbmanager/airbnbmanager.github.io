@@ -107,7 +107,7 @@ async function renderAddEmp() {
       <div class="form-group">
         <label>Assigned Properties</label>
         <select id="eRooms" multiple style="min-height:120px;">
-          ${(rooms || []).map(r => `<option value="${r.room_id}">${r.nickname || r.room_id}</option>`).join('')}
+          ${(rooms || []).map(r => `<option value="${r.room_id}">${propLabel(r)}</option>`).join('')}
         </select>
         <small style="color:var(--muted);">Hold Ctrl/Cmd to select multiple</small>
       </div>
@@ -219,7 +219,7 @@ async function editEmp(id) {
       <div class="form-group">
         <label>Assigned Properties</label>
         <select id="eRooms" multiple style="min-height:120px;">
-          ${(rooms || []).map(r => `<option value="${r.room_id}" ${assignedArr.includes(r.room_id) ? 'selected' : ''}>${r.nickname || r.room_id}</option>`).join('')}
+          ${(rooms || []).map(r => `<option value="${r.room_id}" ${assignedArr.includes(r.room_id) ? 'selected' : ''}>${propLabel(r)}</option>`).join('')}
         </select>
       </div>
       <div class="form-grid">
@@ -388,7 +388,7 @@ async function renderAddTask() {
         </div>
         <div class="form-group"><label>Property</label>
           <select id="tRoom"><option value="">General</option>
-            ${(rooms || []).map(r => `<option value="${r.room_id}">${r.nickname || r.room_id}</option>`).join('')}
+            ${(rooms || []).map(r => `<option value="${r.room_id}">${propLabel(r)}</option>`).join('')}
           </select>
         </div>
       </div>
@@ -456,7 +456,7 @@ async function editTask(id) {
       <div class="form-group"><label>Property</label>
         <select id="tRoom">
           <option value="">General</option>
-          ${(rooms || []).map(r => `<option value="${r.room_id}" ${r.room_id === t.room_id ? 'selected' : ''}>${r.nickname || r.room_id}</option>`).join('')}
+          ${(rooms || []).map(r => `<option value="${r.room_id}" ${r.room_id === t.room_id ? 'selected' : ''}>${propLabel(r)}</option>`).join('')}
         </select>
       </div>
       <div class="form-grid">
@@ -1106,7 +1106,7 @@ async function renderAddEmpExpense() {
           <select id="eeRoom">
             <option value="">General / All</option>
             ${(window._empExpRooms || []).map(r =>
-              `<option value="${r.room_id}">${r.nickname || r.room_id}</option>`
+              `<option value="${r.room_id}">${propLabel(r)}</option>`
             ).join('')}
           </select>
         </div>
@@ -1217,7 +1217,7 @@ async function editEmpExpense(id) {
           <select id="eeRoom">
             <option value="">General / All</option>
             ${(window._empExpRooms || []).map(r =>
-              `<option value="${r.room_id}" ${r.room_id === ex.room_id ? 'selected' : ''}>${r.nickname || r.room_id}</option>`
+              `<option value="${r.room_id}" ${r.room_id === ex.room_id ? 'selected' : ''}>${propLabel(r)}</option>`
             ).join('')}
           </select>
         </div>
