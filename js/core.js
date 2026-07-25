@@ -493,7 +493,16 @@ function renderShell(content, activePage = 'dashboard') {
     moreBtn.onclick = e => {
       e.preventDefault();
       const sb = document.getElementById('sidebarEl');
-      if (sb) sb.classList.toggle('mobile-drawer-open');
+      if (sb) {
+        sb.classList.toggle('mobile-drawer-open');
+        if (sb.classList.contains('mobile-drawer-open')) {
+          setTimeout(() => {
+            if (typeof initDrawerSearch === 'function') initDrawerSearch();
+            const inp = document.getElementById('drawerSearchInput');
+            if (inp) inp.value = '';
+          }, 50);
+        }
+      }
     };
   }
 }
