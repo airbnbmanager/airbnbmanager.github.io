@@ -45,5 +45,35 @@
         .catch(err => console.log('❌ SW failed:', err));
     }
   </script>
+  <!-- PWA Install Button -->
+  <div id="pwa-install-bar" style="display:none;position:fixed;bottom:20px;left:50%;transform:translateX(-50%);z-index:99999;background:#E2725B;color:white;padding:14px 28px;border-radius:50px;font-size:15px;font-weight:600;box-shadow:0 4px 20px rgba(0,0,0,0.3);cursor:pointer;align-items:center;gap:10px;font-family:sans-serif;">
+    📲 Install App
+  </div>
+
+  <script>
+    let deferredPrompt;
+
+    window.addEventListener("beforeinstallprompt", (e) => {
+      e.preventDefault();
+      deferredPrompt = e;
+      const btn = document.getElementById("pwa-install-bar");
+      btn.style.display = "flex";
+      console.log("✅ Install prompt ready");
+    });
+
+    document.getElementById("pwa-install-bar").addEventListener("click", async () => {
+      if (!deferredPrompt) return;
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      console.log("User choice:", outcome);
+      deferredPrompt = null;
+      document.getElementById("pwa-install-bar").style.display = "none";
+    });
+
+    window.addEventListener("appinstalled", () => {
+      console.log("✅ PWA Installed!");
+      document.getElementById("pwa-install-bar").style.display = "none";
+    });
+  </script>
 </body>
 </html>
