@@ -1,4 +1,4 @@
-const CACHE_NAME = 'uhhs-live-v90';
+const CACHE_NAME = 'uhhs-live-v115';
 const RUNTIME_CACHE = 'uhhs-runtime-v49';
 
 const CORE_ASSETS = [
@@ -20,7 +20,8 @@ const CORE_ASSETS = [
   '/js/sop.js',
   '/js/whatsapp.js',
   '/js/reconciliation.js',
-  '/js/notifications.js'
+  '/js/notifications.js',
+  '/js/chat.js'
 ];
 
 self.addEventListener('install', event => {
