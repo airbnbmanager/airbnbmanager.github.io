@@ -316,10 +316,12 @@ async function renderFlatsStatus() {
             <td><span class="badge ${f.status === 'Free' ? 'green' : f.status === 'Booked' ? 'blue' : 'red'}">${f.status || 'Free'}</span></td>
             <td><span class="badge ${isClean ? 'green' : isProgress ? 'yellow' : 'red'}">${f.cleaning_status || 'Clean'}</span></td>
             <td class="table-actions">
-              ${isDirty ? `<button class="btn-sm green-btn" onclick="quickClean('${f.room_id}','Clean',this)">✅ Clean</button>` : ''}
-              ${isDirty ? `<button class="btn-sm secondary" onclick="quickClean('${f.room_id}','In Progress',this)">🔄</button>` : ''}
-              ${isProgress ? `<button class="btn-sm green-btn" onclick="quickClean('${f.room_id}','Clean',this)">✅ Done</button>` : ''}
-              ${isClean ? `<button class="btn-sm danger" onclick="quickClean('${f.room_id}','Dirty',this)">🧹</button>` : ''}
+              ${can ? `
+                ${isDirty ? `<button class="btn-sm green-btn" onclick="quickClean('${f.room_id}','Clean',this)">✅ Clean</button>` : ''}
+                ${isDirty ? `<button class="btn-sm secondary" onclick="quickClean('${f.room_id}','In Progress',this)">🔄</button>` : ''}
+                ${isProgress ? `<button class="btn-sm green-btn" onclick="quickClean('${f.room_id}','Clean',this)">✅ Done</button>` : ''}
+                ${isClean ? `<button class="btn-sm danger" onclick="quickClean('${f.room_id}','Dirty',this)">🧹</button>` : ''}
+              ` : '-'}
             </td>
             ${can ? `<td><button class="btn-sm outline" onclick="editFlatStatus('${f.room_id}')">✏️</button></td>` : ''}
           </tr>`;
