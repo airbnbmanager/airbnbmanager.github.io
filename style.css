@@ -4056,3 +4056,139 @@ textarea:focus {
     min-height: 26px !important;
   }
 }
+
+/* ═══════════════════════════════════════════════════════════
+   📱 MOBILE — Auto convert tables to CARDS (no horizontal scroll)
+   ═══════════════════════════════════════════════════════════ */
+@media (max-width: 768px) {
+
+  /* Hide the table wrapper's horizontal scroll */
+  .table-wrap {
+    overflow-x: visible !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  /* Table becomes vertical block */
+  .table-wrap table,
+  .card table {
+    display: block !important;
+    width: 100% !important;
+    border-collapse: separate !important;
+    border-spacing: 0 !important;
+  }
+
+  /* Hide table header on mobile */
+  .table-wrap thead,
+  .card thead {
+    display: none !important;
+  }
+
+  /* tbody as container */
+  .table-wrap tbody,
+  .card tbody {
+    display: block !important;
+    width: 100% !important;
+  }
+
+  /* Each row = one card */
+  .table-wrap tbody tr,
+  .card tbody tr {
+    display: block !important;
+    background: #fff !important;
+    border: 1px solid #e5e5e5 !important;
+    border-radius: 10px !important;
+    padding: 10px 12px !important;
+    margin-bottom: 10px !important;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04) !important;
+  }
+
+  /* Each cell = label + value stacked */
+  .table-wrap tbody td,
+  .card tbody td {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: flex-start !important;
+    gap: 12px !important;
+    padding: 4px 0 !important;
+    border: none !important;
+    text-align: right !important;
+    font-size: 12px !important;
+    max-width: 100% !important;
+    white-space: normal !important;
+    word-wrap: break-word !important;
+  }
+
+  /* Auto-generate label from data-label OR fallback */
+  .table-wrap tbody td::before,
+  .card tbody td::before {
+    content: attr(data-label);
+    font-weight: 600;
+    color: #666;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    text-align: left;
+    flex-shrink: 0;
+    min-width: 80px;
+  }
+
+  /* First td (usually name/main) - highlight */
+  .table-wrap tbody td:first-child,
+  .card tbody td:first-child {
+    justify-content: flex-start !important;
+    padding-bottom: 8px !important;
+    border-bottom: 1px solid #f0f0f0 !important;
+    margin-bottom: 6px !important;
+    text-align: left !important;
+  }
+
+  .table-wrap tbody td:first-child::before,
+  .card tbody td:first-child::before {
+    display: none !important;
+  }
+
+  .table-wrap tbody td:first-child strong,
+  .card tbody td:first-child strong {
+    font-size: 14px !important;
+    color: #111 !important;
+  }
+
+  /* Action buttons full width row */
+  .table-wrap tbody td.table-actions,
+  .card tbody td.table-actions {
+    justify-content: flex-start !important;
+    flex-wrap: wrap !important;
+    gap: 6px !important;
+    padding-top: 8px !important;
+    margin-top: 6px !important;
+    border-top: 1px solid #f0f0f0 !important;
+    text-align: left !important;
+  }
+
+  .table-wrap tbody td.table-actions::before,
+  .card tbody td.table-actions::before {
+    display: none !important;
+  }
+
+  .table-wrap tbody td.table-actions .btn-sm,
+  .card tbody td.table-actions .btn-sm {
+    flex: 0 0 auto !important;
+    padding: 6px 10px !important;
+    font-size: 12px !important;
+    min-height: 32px !important;
+  }
+
+  /* Badges */
+  td .badge {
+    display: inline-block !important;
+    font-size: 10px !important;
+  }
+}
+
+/* Dark mode for card view */
+[data-theme="dark"] .table-wrap tbody tr,
+[data-theme="dark"] .card tbody tr {
+  background: #1a1f26 !important;
+  border-color: #2d3540 !important;
+}

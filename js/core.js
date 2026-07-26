@@ -1849,3 +1849,35 @@ window.chartCard = function(canvasId, title, height) {
 
   console.log('🔙 Back button handler ready');
 })();
+
+// ═══════════════════════════════════════════════════════════
+// 📱 AUTO CARD LABELS — Add data-label from <th> to <td> for mobile card view
+// ═══════════════════════════════════════════════════════════
+(function() {
+  function addTableLabels() {
+    document.querySelectorAll('table').forEach(table => {
+      const headers = Array.from(table.querySelectorAll('thead th')).map(th =>
+        th.textContent.trim()
+      );
+      if (headers.length === 0) return;
+      table.querySelectorAll('tbody tr').forEach(tr => {
+        tr.querySelectorAll('td').forEach((td, i) => {
+          if (headers[i] && !td.hasAttribute('data-label')) {
+            td.setAttribute('data-label', headers[i]);
+          }
+        });
+      });
+    });
+  }
+
+  // Run on any DOM change (SPA)
+  const observer = new MutationObserver(addTableLabels);
+  observer.observe(document.body, { childList: true, subtree: true });
+
+  // Initial
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', addTableLabels);
+  } else {
+    addTableLabels();
+  }
+})();
