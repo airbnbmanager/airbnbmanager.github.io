@@ -534,8 +534,8 @@ function renderShell(content, activePage = 'dashboard') {
 
   // Custom badge overrides (per user)
   const CUSTOM_BADGES = {
-    'c6343844-a307-4668-9b16-1947a0c0f8fa': 'Developer',   // Praveen (main)
-    'e3717cbd-da9a-495e-a940-2995021e8ca2': 'Manager',     // Praveen (was Backup Admin)
+    'c6343844-a307-4668-9b16-1947a0c0f8fa': 'Manager',      // praveensinghaws@gmail.com
+    'e3717cbd-da9a-495e-a940-2995021e8ca2': 'Developer',    // admin@uniquehavenhomesstay.com
   };
   const displayBadge = CUSTOM_BADGES[SESSION.userId] || roleLabel;
 
