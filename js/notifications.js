@@ -223,11 +223,20 @@
 
   // ─── Subscribe to Supabase Realtime ───
   function startRealtime() {
-    if (!window.sb || !window.SESSION || !window.SESSION.role) return;
+    if (!window.sb) {
+      console.warn('⚠️ Notifications: window.sb not ready');
+      return false;
+    }
+    if (!window.SESSION || !window.SESSION.role) {
+      console.warn('⚠️ Notifications: SESSION not ready');
+      return false;
+    }
+    if (window.SESSION.investorId) {
+      console.log('ℹ️ Notifications: skipping for investor');
+      return false;
+    }
 
-    // Skip for investor role (not needed)
-    if (window.SESSION.investorId) return;
-
+    console.log('🔔 Starting notifications for role:', window.SESSION.role);
     // Cleanup any existing
     stopRealtime();
 
@@ -334,7 +343,8 @@
       .subscribe();
 
     NOTIFICATIONS.channels = [bookingChannel, paymentChannel, taskChannel, bookingUpdateChannel];
-    console.log('🔔 Realtime notifications: ACTIVE');
+    console.log('🔔 Realtime notifications: ACTIVE (' + NOTIFICATIONS.channels.length + ' channels)');
+    return true;
   }
 
   function stopRealtime() {
@@ -355,11 +365,25 @@
   };
 
   // Auto-start when session becomes available
+  let checkCount = 0;
   const startCheck = setInterval(() => {
+    checkCount++;
     if (window.SESSION && window.SESSION.role && window.sb) {
       clearInterval(startCheck);
-      startRealtime();
+      console.log('🔔 Session detected, starting notifications...');
+      const ok = startRealtime();
       updateBellBadge();
+      if (!ok) {
+        // Retry after delay if start failed
+        setTimeout(() => {
+          console.log('🔔 Retry startRealtime...');
+          startRealtime();
+        }, 2000);
+      }
+    }
+    if (checkCount > 60) {
+      clearInterval(startCheck);
+      console.warn('⚠️ Notifications: SESSION never ready after 30s');
     }
   }, 500);
 
