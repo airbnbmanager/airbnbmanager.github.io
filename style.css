@@ -3140,3 +3140,92 @@ body.has-offline-banner {
   background: #1a1f26 !important;
   color: #f0f0f0 !important;
 }
+
+/* ═══════════════════════════════════════════════════════════
+   🌙 DARK MODE — Chart bars, progress bars, colored patti
+   ═══════════════════════════════════════════════════════════ */
+
+/* Colored background divs — force white text */
+[data-theme="dark"] [style*="background:#16a34a"],
+[data-theme="dark"] [style*="background: #16a34a"],
+[data-theme="dark"] [style*="background:#22c55e"],
+[data-theme="dark"] [style*="background:#2563eb"],
+[data-theme="dark"] [style*="background: #2563eb"],
+[data-theme="dark"] [style*="background:#3b82f6"],
+[data-theme="dark"] [style*="background:#E2725B"],
+[data-theme="dark"] [style*="background: #E2725B"],
+[data-theme="dark"] [style*="background:#e2725b"],
+[data-theme="dark"] [style*="background:#dc2626"],
+[data-theme="dark"] [style*="background:#ef4444"],
+[data-theme="dark"] [style*="background:#d97706"],
+[data-theme="dark"] [style*="background:#f59e0b"],
+[data-theme="dark"] [style*="background:#8b5cf6"],
+[data-theme="dark"] [style*="background:#6366f1"],
+[data-theme="dark"] [style*="background:#0891b2"],
+[data-theme="dark"] [style*="background:#059669"],
+[data-theme="dark"] [style*="background:#ea580c"],
+[data-theme="dark"] [style*="background:var(--primary)"],
+[data-theme="dark"] [style*="background:var(--green)"],
+[data-theme="dark"] [style*="background:var(--blue)"],
+[data-theme="dark"] [style*="background:var(--red)"],
+[data-theme="dark"] [style*="background: linear-gradient"] {
+  color: #fff !important;
+}
+
+/* Colored divs ke andar sab text/span/div white */
+[data-theme="dark"] [style*="background:#16a34a"] *,
+[data-theme="dark"] [style*="background: #16a34a"] *,
+[data-theme="dark"] [style*="background:#22c55e"] *,
+[data-theme="dark"] [style*="background:#2563eb"] *,
+[data-theme="dark"] [style*="background: #2563eb"] *,
+[data-theme="dark"] [style*="background:#3b82f6"] *,
+[data-theme="dark"] [style*="background:#E2725B"] *,
+[data-theme="dark"] [style*="background: #E2725B"] *,
+[data-theme="dark"] [style*="background:#e2725b"] *,
+[data-theme="dark"] [style*="background:#dc2626"] *,
+[data-theme="dark"] [style*="background:#ef4444"] *,
+[data-theme="dark"] [style*="background:#d97706"] *,
+[data-theme="dark"] [style*="background:#f59e0b"] *,
+[data-theme="dark"] [style*="background:#8b5cf6"] *,
+[data-theme="dark"] [style*="background:#6366f1"] *,
+[data-theme="dark"] [style*="background:#0891b2"] *,
+[data-theme="dark"] [style*="background:#059669"] *,
+[data-theme="dark"] [style*="background:#ea580c"] *,
+[data-theme="dark"] [style*="background:var(--primary)"] *,
+[data-theme="dark"] [style*="background:var(--green)"] *,
+[data-theme="dark"] [style*="background:var(--blue)"] *,
+[data-theme="dark"] [style*="background:var(--red)"] *,
+[data-theme="dark"] [style*="background: linear-gradient"] * {
+  color: #fff !important;
+}
+
+/* Progress bars / chart bars — universal */
+[data-theme="dark"] div[style*="width:"][style*="%"][style*="background"] {
+  color: #fff !important;
+}
+
+[data-theme="dark"] div[style*="width:"][style*="%"][style*="background"] * {
+  color: #fff !important;
+}
+
+/* Common chart container patterns */
+[data-theme="dark"] .chart-bar,
+[data-theme="dark"] .progress-bar,
+[data-theme="dark"] .stat-bar {
+  color: #fff !important;
+}
+
+[data-theme="dark"] .chart-bar *,
+[data-theme="dark"] .progress-bar *,
+[data-theme="dark"] .stat-bar * {
+  color: #fff !important;
+}
+
+/* Fix any inline color:#333 or dark inside colored bg */
+[data-theme="dark"] [style*="background"] [style*="color:#333"],
+[data-theme="dark"] [style*="background"] [style*="color: #333"],
+[data-theme="dark"] [style*="background"] [style*="color:#111"],
+[data-theme="dark"] [style*="background"] [style*="color: #111"],
+[data-theme="dark"] [style*="background"] [style*="color:#000"] {
+  color: #fff !important;
+}
