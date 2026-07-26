@@ -57,7 +57,7 @@ async function renderManageRooms() {
             <td><span class="badge ${r.bookable ? 'green' : 'red'}">${r.mode || 'On'}</span></td>
             ${isO ? `<td class="table-actions">
               <button class="btn-sm" onclick="editRoom('${r.room_id}')">✏️</button>
-              <button class="btn-sm danger" onclick="deleteRoom('${r.room_id}','${r.unit_no}')">🗑️</button>
+              ${window.canDelete && window.canDelete() ? `<button class="btn-sm danger" onclick="deleteRoom('${r.room_id}','${r.unit_no}')">🗑️</button>` : ''}
             </td>` : ''}
           </tr>`;
         }).join('')}</tbody>
@@ -509,7 +509,7 @@ async function renderPropertyShifts(roomId) {
                   </td>
                   <td class="table-actions">
                     <button class="btn-sm" onclick="editShift(${sh.id},'${selRoom}')">✏️</button>
-                    <button class="btn-sm danger" onclick="deleteShift(${sh.id},'${selRoom}')">🗑️</button>
+                    ${window.canDelete && window.canDelete() ? `<button class="btn-sm danger" onclick="deleteShift(${sh.id},'${selRoom}')">🗑️</button>` : ''}
                   </td>
                 </tr>
               `).join('')}

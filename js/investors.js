@@ -52,7 +52,7 @@ async function renderManageInvestors() {
             </td>
             ${isO ? `<td class="table-actions">
               <button class="btn-sm" onclick="editInvestor('${i.investor_id}')">✏️</button>
-              <button class="btn-sm danger" onclick="deleteInvestor('${i.investor_id}','${i.name}')">🗑️</button>
+              ${window.canDelete && window.canDelete() ? `<button class="btn-sm danger" onclick="deleteInvestor('${i.investor_id}','${i.name}')">🗑️</button>` : ''}
             </td>` : ''}
           </tr>`;
         }).join('')}</tbody>

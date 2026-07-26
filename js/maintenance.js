@@ -27,7 +27,7 @@ async function renderMaintenanceLog() {
         <td>${l.reported_date||'-'}</td>
         <td class="table-actions">
           <button class="btn-sm" onclick="editMaintenance(${l.id})">✏️</button>
-          <button class="btn-sm danger" onclick="delMaintenance(${l.id})">🗑️</button>
+          ${window.canDelete && window.canDelete() ? `<button class="btn-sm danger" onclick="delMaintenance(${l.id})">🗑️</button>` : ''}
         </td>
       </tr>`).join('')||'<tr><td colspan="7" class="sub">No entries</td></tr>'}</tbody>
     </table></div></div>

@@ -56,7 +56,7 @@ async function renderManageEmployees() {
         <td><span class="badge ${e.status === 'Active' ? 'green' : 'red'}">${e.status || 'Active'}</span></td>
         ${isO ? `<td class="table-actions">
           <button class="btn-sm" onclick="editEmp('${e.emp_id}')">✏️</button>
-          <button class="btn-sm danger" onclick="delEmp('${e.emp_id}','${e.name}')">🗑️</button>
+          ${window.canDelete && window.canDelete() ? `<button class="btn-sm danger" onclick="delEmp('${e.emp_id}','${e.name}')">🗑️</button>` : ''}
         </td>` : ''}
       </tr>`).join('')}</tbody>
     </table></div></div>
@@ -366,7 +366,7 @@ async function renderEmployeeTasks() {
         <td><span class="badge ${t.status === 'Completed' ? 'green' : t.status === 'In Progress' ? 'yellow' : 'red'}">${t.status || 'Pending'}</span></td>
         ${isO ? `<td class="table-actions">
           <button class="btn-sm" onclick="editTask(${t.id})">✏️</button>
-          <button class="btn-sm danger" onclick="delTask(${t.id})">🗑️</button>
+          ${window.canDelete && window.canDelete() ? `<button class="btn-sm danger" onclick="delTask(${t.id})">🗑️</button>` : ''}
         </td>` : ''}
       </tr>`).join('') || '<tr><td colspan="8" class="sub">No tasks</td></tr>'}</tbody>
     </table></div></div>
@@ -672,7 +672,7 @@ async function renderSalaryTracker() {
           <td style="color:var(--blue);">₹${(genMap[s.emp_id] || 0).toLocaleString('en-IN')}</td>
           ${isO ? `<td class="table-actions">
             <button class="btn-sm" onclick="editSal(${s.id})">✏️</button>
-            <button class="btn-sm danger" onclick="delSal(${s.id})">🗑️</button>
+            ${window.canDelete && window.canDelete() ? `<button class="btn-sm danger" onclick="delSal(${s.id})">🗑️</button>` : ''}
           </td>` : ''}
         </tr>`;
       }).join('')}</tbody>
@@ -834,7 +834,7 @@ async function renderAdvanceTracker() {
           <td style="font-size:12px;">${a.reason || '-'}</td>
           ${isO ? `<td class="table-actions">
             <button class="btn-sm" onclick="editAdv(${a.id})">✏️</button>
-            <button class="btn-sm danger" onclick="delAdv(${a.id})">🗑️</button>
+            ${window.canDelete && window.canDelete() ? `<button class="btn-sm danger" onclick="delAdv(${a.id})">🗑️</button>` : ''}
           </td>` : ''}
         </tr>`;
       }).join('')}</tbody>
@@ -1048,7 +1048,7 @@ function filterEmpExpenses() {
                 <td style="font-size:12px;">${e.payment_mode || '-'}</td>
                 ${isO ? `<td class="table-actions">
                   <button class="btn-sm" onclick="editEmpExpense(${e.id})">✏️</button>
-                  <button class="btn-sm danger" onclick="delEmpExpense(${e.id})">🗑️</button>
+                  ${window.canDelete && window.canDelete() ? `<button class="btn-sm danger" onclick="delEmpExpense(${e.id})">🗑️</button>` : ''}
                 </td>` : ''}
               </tr>
             `).join('')}

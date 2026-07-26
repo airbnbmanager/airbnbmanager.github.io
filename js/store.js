@@ -50,7 +50,7 @@ async function renderStore() {
             <td>${low ? '<span class="badge red">Low Stock</span>' : '<span class="badge green">OK</span>'}</td>
             ${isO ? `<td class="table-actions">
               <button class="btn-sm" onclick="editItem('${item.item_id}')">✏️</button>
-              <button class="btn-sm danger" onclick="delItem('${item.item_id}','${item.item_name}')">🗑️</button>
+              ${window.canDelete && window.canDelete() ? `<button class="btn-sm danger" onclick="delItem('${item.item_id}','${item.item_name}')">🗑️</button>` : ''}
             </td>` : ''}
           </tr>`;
         }).join('')}</tbody>
@@ -75,7 +75,7 @@ async function renderStore() {
           <td>${t.cost ? '₹' + t.cost.toLocaleString('en-IN') : '-'}</td>
           ${isO ? `<td class="table-actions">
             <button class="btn-sm" onclick="editTxn(${t.id})">✏️</button>
-            <button class="btn-sm danger" onclick="delTxn(${t.id})">🗑️</button>
+            ${window.canDelete && window.canDelete() ? `<button class="btn-sm danger" onclick="delTxn(${t.id})">🗑️</button>` : ''}
           </td>` : ''}
         </tr>`).join('') || '<tr><td colspan="8" class="sub">No transactions</td></tr>'}</tbody>
       </table></div>

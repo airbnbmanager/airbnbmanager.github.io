@@ -1403,7 +1403,7 @@ async function editBooking(bkId) {
               <div style="font-size:11px;color:var(--green);font-weight:700;">✅ Uploaded</div>
               <div class="btn-row" style="margin-top:4px;">
                 <button class="btn-sm green-btn" onclick="dlIdPhoto('${fp}')">📥 View</button>
-                <button class="btn-sm danger" onclick="deleteIdPhoto('${bkId}','${fp}','front',${i - 1})">🗑️</button>
+                ${window.canDelete && window.canDelete() ? `<button class="btn-sm danger" onclick="deleteIdPhoto('${bkId}','${fp}','front',${i - 1})">🗑️</button>` : ''}
               </div>
             </div>` : '<div style="font-size:11px;color:var(--red);margin-bottom:4px;">⚠️ No photo</div>'}
             <div class="id-card-btns">
@@ -1420,7 +1420,7 @@ async function editBooking(bkId) {
               <div style="font-size:11px;color:var(--green);font-weight:700;">✅ Uploaded</div>
               <div class="btn-row" style="margin-top:4px;">
                 <button class="btn-sm green-btn" onclick="dlIdPhoto('${bp}')">📥 View</button>
-                <button class="btn-sm danger" onclick="deleteIdPhoto('${bkId}','${bp}','back',${i - 1})">🗑️</button>
+                ${window.canDelete && window.canDelete() ? `<button class="btn-sm danger" onclick="deleteIdPhoto('${bkId}','${bp}','back',${i - 1})">🗑️</button>` : ''}
               </div>
             </div>` : '<div style="font-size:11px;color:var(--red);margin-bottom:4px;">⚠️ No photo</div>'}
             <div class="id-card-btns">
@@ -1531,7 +1531,7 @@ async function editBooking(bkId) {
           ${b.vehicle_photo_path
             ? `<div class="btn-row" style="margin:4px 0;">
                 <button class="btn-sm green-btn" onclick="dlIdPhoto('${b.vehicle_photo_path}')">📥 View Photo</button>
-                <button class="btn-sm danger" onclick="deleteVehiclePhoto('${bkId}','${b.vehicle_photo_path}')">🗑️ Delete</button>
+                ${window.canDelete && window.canDelete() ? `<button class="btn-sm danger" onclick="deleteVehiclePhoto('${bkId}','${b.vehicle_photo_path}')">🗑️ Delete</button>` : ''}
                 <span style="font-size:10px;color:var(--green);">✅ Uploaded</span>
               </div>`
             : '<div style="font-size:11px;color:var(--muted);margin-bottom:6px;">No photo yet</div>'}
@@ -1564,7 +1564,7 @@ async function editBooking(bkId) {
           <td>${p.notes || '-'}</td>
           <td class="table-actions">
             <button class="btn-sm" onclick="editPayment(${p.id},'${bkId}')">✏️</button>
-            <button class="btn-sm danger" onclick="delPayment(${p.id},'${bkId}')">🗑️</button>
+            ${window.canDelete && window.canDelete() ? `<button class="btn-sm danger" onclick="delPayment(${p.id},'${bkId}')">🗑️</button>` : ''}
           </td>
         </tr>`).join('')}</tbody>
       </table></div>` : '<div class="sub">No payments</div>'}

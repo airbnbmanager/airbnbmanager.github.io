@@ -191,7 +191,7 @@ function applyExpenseFilters() {
                   </td>
                   <td class="table-actions">
                     <button class="btn-sm" onclick="editExpense(${e.id})">✏️</button>
-                    <button class="btn-sm danger" onclick="delExpense(${e.id})">🗑️</button>
+                    ${window.canDelete && window.canDelete() ? `<button class="btn-sm danger" onclick="delExpense(${e.id})">🗑️</button>` : ''}
                   </td>
                 </tr>
               `).join('')}
