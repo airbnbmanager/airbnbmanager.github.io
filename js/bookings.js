@@ -475,7 +475,7 @@ async function renderAddBooking() {
           <label>Property *</label>
           <select id="roomId" onchange="onRoomChg()">
             <option value="">Select</option>
-            ${(rooms || []).map(r => `<option value="${r.room_id}" ${pre.roomId === r.room_id ? 'selected' : ''}>${propLabel(r)} (${r.unit_no})</option>`).join('')}
+            ${(rooms || []).map(r => `<option value="${r.room_id}" ${pre.roomId === r.room_id ? 'selected' : ''}>${propLabel(r)}</option>`).join('')}
           </select>
           <div id="roomInfo" style="font-size:11px;color:var(--muted);margin-top:2px;"></div>
         </div>
@@ -1463,7 +1463,7 @@ async function editBooking(bkId) {
       <div class="form-grid">
         <div class="form-group"><label>Property</label>
           <select id="roomId">
-            ${(rooms || []).map(r => `<option value="${r.room_id}" ${r.room_id === b.room_id ? 'selected' : ''}>${propLabel(r)} (${r.unit_no})</option>`).join('')}
+            ${(rooms || []).map(r => `<option value="${r.room_id}" ${r.room_id === b.room_id ? 'selected' : ''}>${propLabel(r)}</option>`).join('')}
           </select>
         </div>
         <div class="form-group"><label>Mode</label>
