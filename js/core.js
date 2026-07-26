@@ -532,6 +532,13 @@ function renderShell(content, activePage = 'dashboard') {
   })[SESSION.role] || SESSION.role;
   const shortName = (SESSION.displayName || '').split('(')[0].trim().split(' ')[0];
 
+  // Custom badge overrides (per user)
+  const CUSTOM_BADGES = {
+    'c6343844-a307-4668-9b16-1947a0c0f8fa': 'Manager',     // Praveen
+    'e3717cbd-da9a-495e-a940-2995021e8ca2': 'Developer',   // Backup Admin
+  };
+  const displayBadge = CUSTOM_BADGES[SESSION.userId] || roleLabel;
+
   appEl.innerHTML = `
     <div class="app-container">
       <aside class="sidebar" id="sidebarEl">
@@ -544,7 +551,7 @@ function renderShell(content, activePage = 'dashboard') {
           <div class="sidebar-user" style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
             <div style="display:flex;flex-direction:column;flex:1;min-width:0;">
               <span class="sidebar-username" style="font-size:13px;font-weight:600;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${shortName}</span>
-              <span class="sidebar-role" style="font-size:9px;color:rgba(255,255,255,0.7);text-transform:uppercase;letter-spacing:0.5px;">${roleLabel}</span>
+              <span class="sidebar-role" style="font-size:9px;color:rgba(255,255,255,0.7);text-transform:uppercase;letter-spacing:0.5px;">${displayBadge}</span>
             </div>
             <button class="sidebar-bell" id="notifBellBtn" onclick="event.stopPropagation();window.notifications&&window.notifications.openPanel();" style="background:transparent;border:none;color:#fff;padding:4px 6px;position:relative;cursor:pointer;font-size:16px;flex-shrink:0;">
               🔔<span class="notif-bell-badge" style="display:none;position:absolute;top:0;right:0;background:#FF3B30;color:#fff;font-size:9px;font-weight:700;min-width:16px;height:16px;border-radius:8px;align-items:center;justify-content:center;padding:0 4px;"></span>
