@@ -4108,15 +4108,32 @@ textarea:focus {
   .card tbody td {
     display: flex !important;
     justify-content: space-between !important;
-    align-items: flex-start !important;
+    align-items: center !important;
     gap: 12px !important;
-    padding: 4px 0 !important;
+    padding: 6px 0 !important;
     border: none !important;
     text-align: right !important;
-    font-size: 12px !important;
+    font-size: 13px !important;
     max-width: 100% !important;
     white-space: normal !important;
     word-wrap: break-word !important;
+    min-height: 24px !important;
+  }
+
+  /* Cell content — flex to prevent letter-per-line wrapping */
+  .table-wrap tbody td > *,
+  .card tbody td > * {
+    display: inline-block !important;
+    word-break: normal !important;
+    overflow-wrap: normal !important;
+  }
+
+  /* Text in cell value area — wrap by words not letters */
+  .table-wrap tbody td,
+  .card tbody td {
+    overflow-wrap: break-word !important;
+    word-break: normal !important;
+    hyphens: none !important;
   }
 
   /* Auto-generate label from data-label OR fallback */
@@ -4191,4 +4208,56 @@ textarea:focus {
 [data-theme="dark"] .card tbody tr {
   background: #1a1f26 !important;
   border-color: #2d3540 !important;
+}
+
+
+/* ═══════════════════════════════════════════════════════════
+   📅 CALENDAR — Don't apply card view (needs grid)
+   ═══════════════════════════════════════════════════════════ */
+@media (max-width: 768px) {
+  /* Calendar tables should keep normal layout */
+  .calendar-grid,
+  .calendar-grid table,
+  #calendarWrap table,
+  [class*="calendar"] table {
+    display: table !important;
+  }
+
+  .calendar-grid thead,
+  #calendarWrap thead,
+  [class*="calendar"] thead {
+    display: table-header-group !important;
+  }
+
+  .calendar-grid tbody,
+  #calendarWrap tbody,
+  [class*="calendar"] tbody {
+    display: table-row-group !important;
+  }
+
+  .calendar-grid tbody tr,
+  #calendarWrap tbody tr,
+  [class*="calendar"] tbody tr {
+    display: table-row !important;
+    background: transparent !important;
+    border: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    box-shadow: none !important;
+  }
+
+  .calendar-grid tbody td,
+  #calendarWrap tbody td,
+  [class*="calendar"] tbody td {
+    display: table-cell !important;
+    text-align: center !important;
+    padding: 4px !important;
+    border: 1px solid #eee !important;
+  }
+
+  .calendar-grid tbody td::before,
+  #calendarWrap tbody td::before,
+  [class*="calendar"] tbody td::before {
+    display: none !important;
+  }
 }
