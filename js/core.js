@@ -1935,3 +1935,52 @@ window.forceLogoutAll = async function() {
     if (window.fsn) fsn.error('Failed', e.message);
   }
 };
+
+// ═══════════════════════════════════════════════════════════
+// 🔒 AUTO LOGOUT WATCHER — Check if force-logged-out by admin
+// ═══════════════════════════════════════════════════════════
+(function() {
+  let logoutCheckTimer = null;
+
+  function startLogoutWatch() {
+    if (logoutCheckTimer) clearInterval(logoutCheckTimer);
+    if (!SESSION.userId) return;
+
+    logoutCheckTimer = setInterval(async () => {
+      if (!SESSION.userId || !sb) return;
+      try {
+        const { data, error } = await sb.from('profiles')
+          .select('is_approved')
+          .eq('user_id', SESSION.userId)
+          .single();
+
+        if (error) return;
+
+        if (data && data.is_approved === false) {
+          clearInterval(logoutCheckTimer);
+          console.log('🚪 Force logout detected by admin');
+          if (window.fsn) {
+            fsn.warning('Logged Out', 'You have been logged out by admin');
+          }
+          setTimeout(() => {
+            if (typeof logout === 'function') logout();
+            else location.reload();
+          }, 2000);
+        }
+      } catch(e) {}
+    }, 10000); // Check every 10 seconds
+  }
+
+  // Start when SESSION ready
+  const checkTimer = setInterval(() => {
+    if (window.SESSION && window.SESSION.userId && window.sb) {
+      clearInterval(checkTimer);
+      startLogoutWatch();
+      console.log('🔒 Logout watcher active (checks every 10s)');
+    }
+  }, 1000);
+
+  window.addEventListener('beforeunload', () => {
+    if (logoutCheckTimer) clearInterval(logoutCheckTimer);
+  });
+})();
