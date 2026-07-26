@@ -440,7 +440,7 @@ function renderShell(content, activePage = 'dashboard') {
       ['monthly-expenses', '📅 Monthly Expenses'],
       ['financial', '📊 Financial Summary'],
       ['financial-sheet', '📈 Financial Sheet'],
-      ['airbnb-sync', '🔄 Airbnb Sync'],
+      ...(isAdmin ? [['airbnb-sync', '🔄 Airbnb Sync']] : []),
       ['property-report', '🏘️ Property Reports'],
       ['investors', '🧑‍💼 Investors'],
 
@@ -448,7 +448,7 @@ function renderShell(content, activePage = 'dashboard') {
       ['store', '📦 Inventory'],
 
       { section: 'ADMIN' },
-      ['user-mgmt', '👤 User Management'],
+      ...(isAdmin ? [['user-mgmt', '👤 User Management']] : []),
       ...(showSettings ? [['settings', '⚙️ Settings']] : []),
       ['sop', '📘 SOP Guide'],
     ];
