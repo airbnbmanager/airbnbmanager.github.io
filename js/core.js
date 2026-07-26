@@ -21,15 +21,15 @@ window.propLabel = propLabel;
 // 🔐 ROLE PERMISSION HELPERS
 // ═══════════════════════════════════════════════════════════
 window.canDelete = function() {
-  return SESSION.role === 'super_admin';
+  return SESSION.role === 'developer';
 };
 
 window.canEdit = function() {
-  return ['super_admin', 'owner', 'admin', 'moderator'].includes(SESSION.role);
+  return ['developer', 'owner', 'admin', 'moderator'].includes(SESSION.role);
 };
 
 window.canView = function() {
-  return ['super_admin', 'owner', 'admin', 'moderator', 'subowner', 'booking_staff', 'viewer'].includes(SESSION.role);
+  return ['developer', 'owner', 'admin', 'moderator', 'subowner', 'booking_staff', 'viewer'].includes(SESSION.role);
 };
 
 window.isReadOnly = function() {
@@ -38,19 +38,19 @@ window.isReadOnly = function() {
 
 window.canModerate = function() {
   // Booking, ID upload, attendance, WhatsApp
-  return ['super_admin', 'owner', 'admin', 'moderator'].includes(SESSION.role);
+  return ['developer', 'owner', 'admin', 'moderator'].includes(SESSION.role);
 };
 
 window.canManageUsers = function() {
-  return ['super_admin', 'admin'].includes(SESSION.role);
+  return ['developer', 'admin'].includes(SESSION.role);
 };
 
 window.canManageFinance = function() {
-  return ['super_admin', 'owner', 'admin'].includes(SESSION.role);
+  return ['developer', 'owner', 'admin'].includes(SESSION.role);
 };
 
 window.canManageStaff = function() {
-  return ['super_admin', 'owner', 'admin'].includes(SESSION.role);
+  return ['developer', 'owner', 'admin'].includes(SESSION.role);
 };
 
 
@@ -364,11 +364,11 @@ async function loginWithEmail() {
 // ============ SHELL ============
 function renderShell(content, activePage = 'dashboard') {
   if (SESSION.investorId) { appEl.innerHTML = content; return; }
-  const show = ['super_admin', 'admin', 'owner', 'moderator', 'subowner', 'viewer', 'booking_staff', 'manager', 'checkin_manager', 'caretaker'].includes(SESSION.role);
+  const show = ['developer', 'admin', 'owner', 'moderator', 'subowner', 'viewer', 'booking_staff', 'manager', 'checkin_manager', 'caretaker'].includes(SESSION.role);
   const isCheckinMgr = SESSION.role === 'checkin_manager' || SESSION.role === 'caretaker';
   if (!show) { appEl.innerHTML = content; return; }
 
-  const isAdmin = SESSION.role === 'admin' || SESSION.role === 'super_admin';
+  const isAdmin = SESSION.role === 'admin' || SESSION.role === 'developer';
   const isOwner = SESSION.role === 'owner' || isAdmin;
   const isBookingStaff = SESSION.role === 'booking_staff' || SESSION.role === 'moderator';
   const isViewer = (SESSION.role === 'viewer' || SESSION.role === 'subowner') && !SESSION.investorId;
@@ -495,7 +495,7 @@ function renderShell(content, activePage = 'dashboard') {
   }
 
   const roleLabel = ({
-    'super_admin': '🔴 Super Admin',
+    'developer': '🔴 Developer',
     'admin': 'Admin',
     'owner': '🟠 Owner',
     'moderator': '🟡 Moderator',
@@ -895,18 +895,9 @@ function showRolePickerModal(userId, name, callback) {
         <label>Select Role *</label>
         <select id="rolePickerSel" style="font-size:15px;">
           <option value="">-- Select Role --</option>
-        <option value="super_admin">🔴 Super Admin (Full + Delete)</option>
-          <option value="admin">🔧 Admin (Full Access + Delete)</option>
-          <option value="owner">🟠 Owner (Full Access, No Delete)</option>
-          <option value="moderator">🟡 Moderator (Booking + ID + WhatsApp + Attendance)</option>
-        <option value="booking_staff">📋 Booking Staff (Booking only)</option>
-          <option value="caretaker">📱 Caretaker (Mobile Check-in View)</option>
-          <option value="viewer">👁️ Viewer (Limited View — Today's info)</option>
-          <option value="subowner">🟢 Sub-owner (Own Property Only)</option>
-        <option value="subowner">🟢 Sub-owner (Own Property Only)</option>
-          <option value="investor">📊 Investor (Own Property Only)</option>
-          <option value="employee">👷 Employee (Self Attendance View)</option>
-          <option value="ca">📋 💼 CA / Accountant (Financial Reports)</option>
+          <option value="developer">🔴 Developer (Full + Delete)</option>
+          <option value="owner">🟠 Owner (Full, No Delete)</option>
+          <option value="moderator">🟡 Moderator (Booking + ID + WhatsApp)</option>
         </select>
       </div>
       <div style="font-size:12px;color:var(--muted);margin-top:6px;padding:8px;background:var(--bg);border-radius:8px;" id="roleDesc"></div>
