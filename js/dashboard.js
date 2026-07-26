@@ -490,7 +490,7 @@ async function renderDashboard() {
                 <strong>${b.guest_name}</strong> — ${propLabel(b.rooms) || b.room_id}
                 <br><small style="color:var(--muted);">📞 ${b.phone} · Check-in: ${b.check_in} ${b.check_in_time || ''}</small>
               </div>
-              <button class="btn-sm" style="background:#00A699;color:#fff;" onclick="sendCheckinReminder('${b.booking_id}')">📅 Send</button>
+              <button class="btn-sm" style="background:#00A699;color:#fff;" onclick="sendCheckinReminder('${b.booking_id}')">📅 Reminder</button>
             </div>
           `).join('')}
         </div>
@@ -507,7 +507,7 @@ async function renderDashboard() {
                 <strong>${b.guest_name}</strong> — ${propLabel(b.rooms) || b.room_id}
                 <br><small style="color:var(--muted);">📞 ${b.phone} · Check-in: ${b.check_in_time || '14:00'}</small>
               </div>
-              <button class="btn-sm" style="background:#E2725B;color:#fff;" onclick="sendArrivalDetails('${b.booking_id}')">⏰ Send</button>
+              <button class="btn-sm" style="background:#E2725B;color:#fff;" onclick="sendArrivalDetails('${b.booking_id}')">⏰ Send Keys+WiFi</button>
             </div>
           `).join('')}
         </div>
@@ -524,7 +524,7 @@ async function renderDashboard() {
                 <strong>${b.guest_name}</strong> — ${propLabel(b.rooms) || b.room_id}
                 <br><small style="color:var(--muted);">📞 ${b.phone} · Checkout: ${b.check_out_time || '11:00 AM'}</small>
               </div>
-              <button class="btn-sm" style="background:#FF385C;color:#fff;" onclick="sendCheckoutReminder('${b.booking_id}')">🔔 Send</button>
+              <button class="btn-sm" style="background:#FF385C;color:#fff;" onclick="sendCheckoutReminder('${b.booking_id}')">🔔 Checkout Alert</button>
             </div>
           `).join('')}
         </div>
@@ -541,7 +541,7 @@ async function renderDashboard() {
                 <strong>${b.guest_name}</strong> — ${propLabel(b.rooms) || b.room_id}
                 <br><small style="color:var(--muted);">📞 ${b.phone} · Guests: ${b.guests || 1}</small>
               </div>
-              <button class="btn-sm" style="background:#FFB800;color:#fff;" onclick="requestGuestID('${b.booking_id}')">🪪 Request</button>
+              <button class="btn-sm" style="background:#FFB800;color:#fff;" onclick="requestGuestID('${b.booking_id}')">🪪 Ask ID</button>
             </div>
           `).join('')}
         </div>
@@ -558,7 +558,7 @@ async function renderDashboard() {
                 <strong>${b.guest_name}</strong> — ${propLabel(b.rooms) || b.room_id}
                 <br><small style="color:var(--muted);">📞 ${b.phone} · Stay: ${b.check_in} → ${b.check_out}</small>
               </div>
-              <button class="btn-sm" style="background:#722ED1;color:#fff;" onclick="requestReview('${b.booking_id}')">⭐ Request</button>
+              <button class="btn-sm" style="background:#722ED1;color:#fff;" onclick="requestReview('${b.booking_id}')">⭐ Review Link</button>
             </div>
           `).join('')}
         </div>
