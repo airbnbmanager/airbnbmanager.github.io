@@ -3294,3 +3294,136 @@ body.has-offline-banner {
 [data-theme="dark"] .sidebar-username {
   color: rgba(255,255,255,0.9) !important;
 }
+
+/* ═══════════════════════════════════════════════════════════
+   🌙 DARK MODE — Sidebar text visibility fix
+   ═══════════════════════════════════════════════════════════ */
+
+/* Remove universal border-color override that was clipping text */
+[data-theme="dark"] * {
+  border-color: unset !important;
+}
+
+/* Re-apply borders only where needed */
+[data-theme="dark"] table,
+[data-theme="dark"] table th,
+[data-theme="dark"] table td,
+[data-theme="dark"] input,
+[data-theme="dark"] select,
+[data-theme="dark"] textarea,
+[data-theme="dark"] .card {
+  border-color: #2d3540 !important;
+}
+
+/* Sidebar section headings — proper visibility */
+[data-theme="dark"] .nav-section-heading,
+[data-theme="dark"] aside .nav-section-heading {
+  color: rgba(255,255,255,0.5) !important;
+  padding: 12px 12px 4px !important;
+  overflow: visible !important;
+  text-align: left !important;
+}
+
+/* Sidebar nav items — full width, no clipping */
+[data-theme="dark"] .sidebar-nav a,
+[data-theme="dark"] aside .sidebar-nav a {
+  color: rgba(255,255,255,0.85) !important;
+  padding-left: 12px !important;
+  padding-right: 12px !important;
+  overflow: visible !important;
+  white-space: nowrap !important;
+}
+
+/* Active menu item */
+[data-theme="dark"] .sidebar-nav a.active {
+  background: rgba(226,114,91,0.25) !important;
+  color: #fff !important;
+  border-left: 3px solid #E2725B !important;
+}
+
+/* Sidebar itself proper bg (already dark by default) */
+[data-theme="dark"] .sidebar {
+  background: #0a0e13 !important;
+}
+
+/* Fix: sidebar not affected by universal color override */
+[data-theme="dark"] .sidebar *,
+[data-theme="dark"] aside * {
+  color: inherit !important;
+}
+
+[data-theme="dark"] .sidebar-brand span {
+  color: #fff !important;
+}
+
+[data-theme="dark"] .sidebar-username {
+  color: rgba(255,255,255,0.9) !important;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   🌙 DARK MODE — Final polish (table headers, badges)
+   ═══════════════════════════════════════════════════════════ */
+
+/* Table headers — force dark bg for readability */
+[data-theme="dark"] thead,
+[data-theme="dark"] thead tr,
+[data-theme="dark"] thead th,
+[data-theme="dark"] tr.header-row,
+[data-theme="dark"] .table-header {
+  background: #2a323d !important;
+  color: #f0f0f0 !important;
+}
+
+[data-theme="dark"] thead th *,
+[data-theme="dark"] thead td * {
+  color: #f0f0f0 !important;
+}
+
+/* Column headers with light bg (like PERIOD, ONLINE etc) */
+[data-theme="dark"] [style*="background:#f5f5f5"],
+[data-theme="dark"] [style*="background: #f5f5f5"],
+[data-theme="dark"] [style*="background:#fafafa"],
+[data-theme="dark"] [style*="background: #fafafa"],
+[data-theme="dark"] [style*="background:#f0f0f0"],
+[data-theme="dark"] [style*="background: #f0f0f0"],
+[data-theme="dark"] [style*="background:#e5e5e5"],
+[data-theme="dark"] [style*="background:#ddd"],
+[data-theme="dark"] [style*="background:#eeeeee"] {
+  background: #2a323d !important;
+  color: #f0f0f0 !important;
+}
+
+[data-theme="dark"] [style*="background:#f5f5f5"] *,
+[data-theme="dark"] [style*="background: #f5f5f5"] *,
+[data-theme="dark"] [style*="background:#fafafa"] *,
+[data-theme="dark"] [style*="background: #fafafa"] * {
+  color: #f0f0f0 !important;
+}
+
+/* Yellow/warning badges — dark text on yellow */
+[data-theme="dark"] .badge.yellow,
+[data-theme="dark"] [style*="background:#fef3c7"],
+[data-theme="dark"] [style*="background:#fef08a"],
+[data-theme="dark"] [style*="background:#fde68a"],
+[data-theme="dark"] [style*="background:#fbbf24"],
+[data-theme="dark"] [style*="background:#f59e0b"],
+[data-theme="dark"] [style*="background:#eab308"],
+[data-theme="dark"] [style*="background:yellow"] {
+  color: #1a1a1a !important;
+}
+
+[data-theme="dark"] .badge.yellow *,
+[data-theme="dark"] [style*="background:#fef3c7"] *,
+[data-theme="dark"] [style*="background:#fef08a"] *,
+[data-theme="dark"] [style*="background:#fde68a"] *,
+[data-theme="dark"] [style*="background:#fbbf24"] * {
+  color: #1a1a1a !important;
+}
+
+/* Light backgrounds with dark text — ensure visible */
+[data-theme="dark"] [style*="background:#d1f7e0"],
+[data-theme="dark"] [style*="background:#dbeafe"],
+[data-theme="dark"] [style*="background:#fee2e2"],
+[data-theme="dark"] [style*="background:#f3e8ff"] {
+  color: #1a1a1a !important;
+}
