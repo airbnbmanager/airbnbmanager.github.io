@@ -3742,3 +3742,62 @@ textarea:focus {
 [data-theme="dark"] [style*="color:#999"] {
   color: #b0b0b0 !important;
 }
+
+/* ═══════════════════════════════════════════════════════════
+   📸 MOBILE CROP MODAL FIX v2 — Force buttons visible
+   ═══════════════════════════════════════════════════════════ */
+
+/* Modal overlay pe crop modal */
+@media (max-width: 768px) {
+  /* Any modal with "Crop" or crop image */
+  [class*="modal"]:has(canvas),
+  [class*="modal"]:has(img[src*="blob:"]),
+  div[style*="position:fixed"]:has(canvas) {
+    display: flex !important;
+    flex-direction: column !important;
+    max-height: 90vh !important;
+    height: 90vh !important;
+    padding: 0 !important;
+  }
+
+  /* Image/Canvas — limit height */
+  [class*="modal"] canvas,
+  [class*="modal"] img[src*="blob:"] {
+    max-height: 55vh !important;
+    max-width: 100% !important;
+    object-fit: contain !important;
+  }
+
+  /* Div containing canvas — scroll if needed */
+  [class*="modal"] > div:has(canvas),
+  [class*="modal"] > div:has(img[src*="blob:"]) {
+    max-height: 60vh !important;
+    overflow: auto !important;
+  }
+}
+
+/* Universal: buttons always visible at bottom of modal */
+@media (max-width: 768px) {
+  /* Buttons row inside modal — force sticky bottom */
+  [class*="modal"] > div:last-child,
+  [class*="modal"] .btn-row,
+  [class*="modal"] div[style*="display:flex"]:last-child {
+    position: sticky !important;
+    bottom: 0 !important;
+    background: #fff !important;
+    padding: 12px !important;
+    padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px)) !important;
+    z-index: 1000 !important;
+    border-top: 1px solid #eee !important;
+    display: flex !important;
+    gap: 8px !important;
+    flex-shrink: 0 !important;
+  }
+
+  /* Modal-Body: scrollable middle */
+  [class*="modal"] > div:not(:first-child):not(:last-child) {
+    flex: 1 !important;
+    overflow-y: auto !important;
+    min-height: 0 !important;
+  }
+}
