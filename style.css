@@ -3592,3 +3592,87 @@ textarea:focus {
 .theme-swatch.ocean { background: linear-gradient(135deg, #0891b2 0%, #0c4a6e 100%); }
 .theme-swatch.forest { background: linear-gradient(135deg, #16a34a 0%, #14532d 100%); }
 .theme-swatch.midnight { background: linear-gradient(135deg, #000 0%, #333 100%); }
+
+/* ═══════════════════════════════════════════════════════════
+   🔧 FIX — Card text visibility across ALL themes
+   ═══════════════════════════════════════════════════════════ */
+
+/* Ocean theme fixes */
+[data-theme="ocean"] .card,
+[data-theme="ocean"] .wrap > div,
+[data-theme="ocean"] table {
+  background: #ffffff !important;
+  color: #0c4a6e !important;
+}
+
+[data-theme="ocean"] .card *,
+[data-theme="ocean"] table * {
+  color: #0c4a6e !important;
+}
+
+[data-theme="ocean"] .sub,
+[data-theme="ocean"] small,
+[data-theme="ocean"] .muted {
+  color: #64748b !important;
+}
+
+/* Forest theme fixes */
+[data-theme="forest"] .card,
+[data-theme="forest"] .wrap > div,
+[data-theme="forest"] table {
+  background: #ffffff !important;
+  color: #14532d !important;
+}
+
+[data-theme="forest"] .card *,
+[data-theme="forest"] table * {
+  color: #14532d !important;
+}
+
+[data-theme="forest"] .sub,
+[data-theme="forest"] small,
+[data-theme="forest"] .muted {
+  color: #6b7280 !important;
+}
+
+/* Preserve colored numbers/badges in all themes */
+[data-theme="ocean"] [style*="color:#16a34a"],
+[data-theme="ocean"] [style*="color: #16a34a"],
+[data-theme="forest"] [style*="color:#16a34a"] { color: #16a34a !important; }
+
+[data-theme="ocean"] [style*="color:#2563eb"],
+[data-theme="ocean"] [style*="color: #2563eb"],
+[data-theme="forest"] [style*="color:#2563eb"] { color: #2563eb !important; }
+
+[data-theme="ocean"] [style*="color:#dc2626"],
+[data-theme="ocean"] [style*="color: #dc2626"],
+[data-theme="forest"] [style*="color:#dc2626"] { color: #dc2626 !important; }
+
+[data-theme="ocean"] [style*="color:#d97706"],
+[data-theme="ocean"] [style*="color: #d97706"],
+[data-theme="forest"] [style*="color:#d97706"] { color: #d97706 !important; }
+
+[data-theme="ocean"] [style*="color:#E2725B"],
+[data-theme="ocean"] [style*="color: #E2725B"],
+[data-theme="forest"] [style*="color:#E2725B"] { color: #E2725B !important; }
+
+/* Midnight — even darker fixes */
+[data-theme="midnight"] .card,
+[data-theme="midnight"] .wrap > div,
+[data-theme="midnight"] table {
+  background: #0a0a0a !important;
+  color: #e4e4e7 !important;
+  border: 1px solid #1f1f1f !important;
+}
+
+[data-theme="midnight"] .card *,
+[data-theme="midnight"] table * {
+  color: inherit !important;
+}
+
+/* Colored text preserved in midnight */
+[data-theme="midnight"] [style*="color:#16a34a"] { color: #4ade80 !important; }
+[data-theme="midnight"] [style*="color:#2563eb"] { color: #60a5fa !important; }
+[data-theme="midnight"] [style*="color:#dc2626"] { color: #f87171 !important; }
+[data-theme="midnight"] [style*="color:#d97706"] { color: #fbbf24 !important; }
+[data-theme="midnight"] [style*="color:#E2725B"] { color: #fb923c !important; }
