@@ -157,6 +157,7 @@ async function renderDashboard() {
           <h1>📊 Dashboard</h1>
           <div class="sub">${new Date().toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</div>
         </div>
+        ${SESSION.role === 'developer' ? `
         <div style="text-align:right;cursor:pointer;" onclick="showActiveUsersModal()" title="Click to see online users">
           <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;">Online Now</div>
           <div style="font-size:20px;font-weight:800;color:#00A699;display:flex;align-items:center;gap:6px;justify-content:flex-end;">
@@ -164,6 +165,7 @@ async function renderDashboard() {
             ${activeUsers.length} ${activeUsers.length === 1 ? 'user' : 'users'}
           </div>
         </div>
+        ` : ''}
       </div>
     </div>
 
@@ -880,6 +882,10 @@ function filterAndShowBookings(type) {
 
 
 async function showActiveUsersModal() {
+  if (SESSION.role !== 'developer') {
+    if (window.fsn) fsn.error('Denied', 'Only Developer can view online users');
+    return;
+  }
   const users = await getActiveUsers();
   const modal = document.createElement('div');
   modal.className = 'modal-overlay';
