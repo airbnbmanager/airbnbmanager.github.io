@@ -4372,3 +4372,58 @@ textarea:focus {
     border-radius: 4px !important;
   }
 }
+
+/* ═══════════════════════════════════════════════════════════
+   📱 WHATSAPP MODAL — Full message visible on mobile
+   ═══════════════════════════════════════════════════════════ */
+@media (max-width: 768px) {
+  /* WhatsApp modal — full screen */
+  .modal-overlay:has(#waMsg) .modal-box,
+  .modal-overlay:has(textarea[id*="waMsg"]) .modal-box {
+    max-width: 100% !important;
+    width: 100% !important;
+    height: 100vh !important;
+    max-height: 100vh !important;
+    margin: 0 !important;
+    padding: 12px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    border-radius: 0 !important;
+  }
+
+  /* Textarea itself — flex grow */
+  #waMsg,
+  textarea[id*="waMsg"] {
+    flex: 1 !important;
+    min-height: 400px !important;
+    height: auto !important;
+    max-height: none !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+    font-size: 13px !important;
+    line-height: 1.5 !important;
+    padding: 12px !important;
+    font-family: 'Courier New', monospace !important;
+    resize: none !important;
+    border: 1px solid #ddd !important;
+    border-radius: 8px !important;
+  }
+
+  /* Buttons row */
+  .modal-overlay:has(#waMsg) .btn-row {
+    flex-shrink: 0 !important;
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 8px !important;
+    padding: 10px 0 !important;
+    padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px)) !important;
+  }
+
+  .modal-overlay:has(#waMsg) .btn-row button {
+    padding: 12px !important;
+    font-size: 13px !important;
+    min-height: 44px !important;
+    white-space: normal !important;
+    word-break: keep-all !important;
+  }
+}
