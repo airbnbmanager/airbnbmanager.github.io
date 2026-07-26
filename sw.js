@@ -1,4 +1,4 @@
-const CACHE_NAME = 'uhhs-live-v44';
+const CACHE_NAME = 'uhhs-live-v45';
 
 const CORE_ASSETS = [
   '/admin.html',

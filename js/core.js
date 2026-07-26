@@ -19,6 +19,8 @@ window.propLabel = propLabel;
 
 
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+window.sb = sb;
+
 const appEl = document.getElementById("app");
 const BRAND = "The UNIQUE HAVEN HOME STAY";
 const APP_VERSION = "v20";
@@ -37,6 +39,8 @@ let SESSION = {
   bookingDateTo: '',
   bookingSearch: ''
 };
+window.SESSION = SESSION;
+
 
 // ============ INIT ============
 async function init() {
