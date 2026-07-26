@@ -1881,3 +1881,57 @@ window.chartCard = function(canvasId, title, height) {
     addTableLabels();
   }
 })();
+
+
+// ═══════════════════════════════════════════════════════════
+// 🚪 FORCE LOGOUT — Developer only
+// ═══════════════════════════════════════════════════════════
+window.forceLogoutUser = async function(userId, name) {
+  if (!window.canDelete || !window.canDelete()) {
+    if (window.fsn) fsn.error('Denied', 'Only Developer can force logout users');
+    return;
+  }
+  if (userId === SESSION.userId) {
+    if (window.fsn) fsn.warning('Cannot', 'You cannot force-logout yourself');
+    return;
+  }
+  if (!confirm('Force logout "' + name + '"?\n\nThey will be immediately logged out.')) return;
+
+  try {
+    const { error } = await sb.from('profiles').update({ is_approved: false }).eq('user_id', userId);
+    if (error) throw error;
+    setTimeout(async () => {
+      await sb.from('profiles').update({ is_approved: true }).eq('user_id', userId);
+    }, 3000);
+    if (window.fsn) fsn.success('Success', name + ' has been logged out');
+    if (typeof renderUserManagement === 'function') renderUserManagement();
+  } catch (e) {
+    if (window.fsn) fsn.error('Failed', e.message);
+  }
+};
+
+window.forceLogoutAll = async function() {
+  if (!window.canDelete || !window.canDelete()) {
+    if (window.fsn) fsn.error('Denied', 'Only Developer can force logout users');
+    return;
+  }
+  if (!confirm('Force logout ALL users (except yourself)?\n\nEveryone will need to login again.')) return;
+
+  try {
+    const { data: users } = await sb.from('profiles').select('user_id, display_name').neq('user_id', SESSION.userId);
+    if (!users || users.length === 0) {
+      if (window.fsn) fsn.info('Info', 'No other users');
+      return;
+    }
+    const userIds = users.map(u => u.user_id);
+    const { error } = await sb.from('profiles').update({ is_approved: false }).in('user_id', userIds);
+    if (error) throw error;
+    setTimeout(async () => {
+      await sb.from('profiles').update({ is_approved: true }).in('user_id', userIds);
+    }, 3000);
+    if (window.fsn) fsn.success('Success', users.length + ' users logged out');
+    if (typeof renderUserManagement === 'function') renderUserManagement();
+  } catch (e) {
+    if (window.fsn) fsn.error('Failed', e.message);
+  }
+};
