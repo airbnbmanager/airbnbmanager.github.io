@@ -3926,3 +3926,133 @@ textarea:focus {
 #notifBellBtn {
   color: #fff !important;
 }
+
+/* ═══════════════════════════════════════════════════════════
+   📱 MOBILE — Reduce horizontal scroll everywhere
+   ═══════════════════════════════════════════════════════════ */
+@media (max-width: 768px) {
+
+  /* All tables — compact + smart wrap */
+  .table-wrap {
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    margin: 0 -8px !important;
+    padding: 0 8px !important;
+  }
+
+  .table-wrap table,
+  table {
+    font-size: 12px !important;
+    min-width: unset !important;
+    width: 100% !important;
+  }
+
+  .table-wrap th,
+  .table-wrap td,
+  table th,
+  table td {
+    padding: 6px 4px !important;
+    font-size: 11px !important;
+    white-space: normal !important;
+    word-wrap: break-word !important;
+    max-width: 150px !important;
+  }
+
+  /* Action buttons compact */
+  .table-actions {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 3px !important;
+    max-width: 120px !important;
+  }
+
+  .table-actions .btn-sm,
+  .btn-sm {
+    padding: 4px 6px !important;
+    font-size: 11px !important;
+    min-height: 28px !important;
+    line-height: 1 !important;
+  }
+
+  /* Cards use full width */
+  .card {
+    padding: 12px !important;
+    margin: 8px 0 !important;
+  }
+
+  /* Forms — full width inputs */
+  input, select, textarea {
+    max-width: 100% !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+    font-size: 14px !important;
+  }
+
+  .form-group {
+    margin-bottom: 10px !important;
+  }
+
+  /* Grid layouts — stack on mobile */
+  [style*="grid-template-columns"] {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Wide containers */
+  .wrap {
+    padding: 8px !important;
+    max-width: 100% !important;
+    overflow-x: hidden !important;
+  }
+
+  /* Prevent horizontal body scroll */
+  body {
+    overflow-x: hidden !important;
+  }
+
+  /* Long text (property names, addresses) — wrap properly */
+  td strong,
+  td .sub,
+  td small {
+    display: inline-block !important;
+    max-width: 100% !important;
+    word-break: break-word !important;
+  }
+
+  /* Badges compact */
+  .badge {
+    font-size: 10px !important;
+    padding: 2px 6px !important;
+    white-space: nowrap !important;
+  }
+
+  /* Filter bars */
+  .filters, .filter-row {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 6px !important;
+  }
+
+  /* Modals full-width on mobile */
+  .modal-overlay .modal-box {
+    max-width: 100% !important;
+    margin: 4px !important;
+    padding: 12px !important;
+  }
+}
+
+/* Extra small phones (< 400px) */
+@media (max-width: 400px) {
+  .table-wrap th,
+  .table-wrap td,
+  table th,
+  table td {
+    padding: 4px 3px !important;
+    font-size: 10px !important;
+  }
+
+  .btn-sm {
+    padding: 3px 5px !important;
+    font-size: 10px !important;
+    min-height: 26px !important;
+  }
+}
