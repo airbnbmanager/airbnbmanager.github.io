@@ -4341,3 +4341,34 @@ textarea:focus {
     display: inline !important;
   }
 }
+
+
+/* ═══════════════════════════════════════════════════════════
+   📅 CALENDAR FIX v2 — Grid layout on mobile (uses divs not tables)
+   ═══════════════════════════════════════════════════════════ */
+@media (max-width: 768px) {
+  /* Calendar uses inline grid divs — protect them */
+  #mainContent .card > div[style*="grid-template-columns"] {
+    display: grid !important;
+    grid-template-columns: repeat(7, 1fr) !important;
+    gap: 3px !important;
+  }
+
+  #mainContent .card > div[style*="grid-template-columns"] > div {
+    display: block !important;
+    text-align: center !important;
+    padding: 4px 2px !important;
+    font-size: 10px !important;
+    min-height: 42px !important;
+    white-space: normal !important;
+    word-break: keep-all !important;
+    max-width: none !important;
+  }
+
+  /* Day labels row */
+  #mainContent .card > div[style*="grid-template-columns"] > div:nth-child(-n+7) {
+    font-weight: 700 !important;
+    background: rgba(0,0,0,0.05) !important;
+    border-radius: 4px !important;
+  }
+}
