@@ -482,6 +482,12 @@ function renderShell(content, activePage = 'dashboard') {
         <div class="drawer-search">
           <input type="text" id="drawerSearchInput" placeholder="🔍 Search menu..." />
         </div>
+        <div class="theme-toggle-wrap">
+          <div class="theme-toggle ${window.themeManager?.get() === 'dark' ? 'active' : ''}" onclick="window.themeManager.toggle()">
+            <span>🌙 Dark Mode</span>
+            <div class="theme-toggle-switch"></div>
+          </div>
+        </div>
         <nav class="sidebar-nav">
           ${nav.map(item => {
             if (item.section) {
@@ -1402,3 +1408,114 @@ window.showLoadingSkeleton = function(type) {
     '</div>';
   target.innerHTML = wrapper;
 };
+
+// ═══════════════════════════════════════════════════════════
+// 🌙 DARK MODE MANAGER
+// ═══════════════════════════════════════════════════════════
+window.themeManager = (function() {
+  const KEY = 'uh_theme';
+
+  function get() {
+    return localStorage.getItem(KEY) || 'light';
+  }
+
+  function apply(theme) {
+    document.documentElement.setAttribute('data-theme', theme);
+    // Update theme-color meta for status bar
+    const meta = document.querySelector('meta[name="theme-color"]');
+    if (meta) {
+      meta.setAttribute('content', theme === 'dark' ? '#0f1419' : '#E2725B');
+    }
+    // Update all toggle UIs
+    document.querySelectorAll('.theme-toggle').forEach(el => {
+      if (theme === 'dark') el.classList.add('active');
+      else el.classList.remove('active');
+    });
+  }
+
+  function toggle() {
+    const current = get();
+    const next = current === 'dark' ? 'light' : 'dark';
+    localStorage.setItem(KEY, next);
+    apply(next);
+    if (window.haptic) window.haptic.medium();
+    return next;
+  }
+
+  function init() {
+    apply(get());
+  }
+
+  // Apply immediately on load
+  init();
+
+  return { get, apply, toggle, init };
+})();
+
+// ═══════════════════════════════════════════════════════════
+// 📴 OFFLINE MODE MANAGER
+// ═══════════════════════════════════════════════════════════
+window.offlineManager = (function() {
+  let banner = null;
+
+  function createBanner() {
+    if (banner) return banner;
+    banner = document.createElement('div');
+    banner.className = 'offline-banner';
+    banner.innerHTML = '<span class="dot"></span><span class="msg">Offline — Showing cached data</span>';
+    document.body.appendChild(banner);
+    return banner;
+  }
+
+  function showOffline() {
+    createBanner();
+    banner.classList.remove('online');
+    banner.querySelector('.msg').textContent = 'Offline — Showing cached data';
+    banner.classList.add('show');
+    document.body.classList.add('has-offline-banner');
+    if (window.haptic) window.haptic.error();
+  }
+
+  function showOnline() {
+    if (!banner) return;
+    banner.classList.add('online');
+    banner.querySelector('.msg').textContent = '✓ Back online';
+    banner.classList.add('show');
+    if (window.haptic) window.haptic.success();
+    setTimeout(() => {
+      banner.classList.remove('show');
+      document.body.classList.remove('has-offline-banner');
+    }, 2500);
+  }
+
+  function init() {
+    if (!navigator.onLine) showOffline();
+
+    window.addEventListener('online', () => {
+      console.log('📶 Back online');
+      showOnline();
+      // Trigger current page refresh
+      setTimeout(() => {
+        try {
+          if (typeof navigate === 'function' && SESSION.currentPage) {
+            navigate(SESSION.currentPage);
+          }
+        } catch(e) {}
+      }, 500);
+    });
+
+    window.addEventListener('offline', () => {
+      console.log('📴 Gone offline');
+      showOffline();
+    });
+  }
+
+  return { init, showOffline, showOnline };
+})();
+
+// Init offline manager on load
+if (document.readyState === 'complete') {
+  window.offlineManager.init();
+} else {
+  window.addEventListener('load', () => window.offlineManager.init());
+}
