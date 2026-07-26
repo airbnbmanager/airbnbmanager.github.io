@@ -3743,3 +3743,84 @@ textarea:focus {
   color: #b0b0b0 !important;
 }
 
+
+/* ═══════════════════════════════════════════════════════════
+   📸 CROP MODAL MOBILE FIX — Precise (uses actual classes)
+   ═══════════════════════════════════════════════════════════ */
+@media (max-width: 768px) {
+  /* Modal overlay covers full screen */
+  .modal-overlay {
+    padding: 8px !important;
+    align-items: flex-start !important;
+    overflow-y: auto !important;
+  }
+
+  /* Modal box — max 95vh with proper flex */
+  .modal-overlay .modal-box {
+    height: 95vh !important;
+    max-height: 95vh !important;
+    display: flex !important;
+    flex-direction: column !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 10px !important;
+  }
+
+  /* Modal heading */
+  .modal-overlay .modal-box h2 {
+    flex-shrink: 0 !important;
+    margin: 0 0 8px !important;
+    font-size: 16px !important;
+  }
+
+  /* Canvas container — scrollable, larger height */
+  .modal-overlay .modal-box > div[style*="overflow:hidden"] {
+    flex: 1 1 auto !important;
+    overflow: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    min-height: 300px !important;
+    max-height: none !important;
+    display: block !important;
+  }
+
+  /* Canvas — natural size, allow scroll */
+  #cropCanvas {
+    max-width: 100% !important;
+    width: 100% !important;
+    height: auto !important;
+    display: block !important;
+    margin: 0 auto !important;
+  }
+
+  /* Buttons row — ALWAYS visible at bottom */
+  .modal-overlay .modal-box .btn-row {
+    flex-shrink: 0 !important;
+    background: #fff !important;
+    padding: 8px 0 !important;
+    padding-bottom: calc(8px + env(safe-area-inset-bottom, 0px)) !important;
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 6px !important;
+    position: sticky !important;
+    bottom: 0 !important;
+    z-index: 10 !important;
+    border-top: 1px solid #eee !important;
+    margin-top: 8px !important;
+  }
+
+  .modal-overlay .modal-box .btn-row button {
+    flex: 1 1 auto !important;
+    min-width: 90px !important;
+    min-height: 44px !important;
+    font-size: 13px !important;
+    padding: 10px 8px !important;
+  }
+
+  /* Info text */
+  #cropInfo {
+    flex-shrink: 0 !important;
+    font-size: 10px !important;
+    padding: 4px !important;
+  }
+}
