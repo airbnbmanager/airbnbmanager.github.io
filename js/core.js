@@ -369,8 +369,8 @@ function renderShell(content, activePage = 'dashboard') {
   if (!show) { appEl.innerHTML = content; return; }
 
   const isAdmin = SESSION.role === 'admin' || SESSION.role === 'developer';
-  const isOwner = SESSION.role === 'owner' || isAdmin;
-  const isBookingStaff = SESSION.role === 'booking_staff' || SESSION.role === 'moderator';
+  const isOwner = SESSION.role === 'owner' || SESSION.role === 'moderator' || isAdmin;
+  const isBookingStaff = SESSION.role === 'booking_staff';
   const isViewer = (SESSION.role === 'viewer' || SESSION.role === 'subowner') && !SESSION.investorId;
   const isCheckin = SESSION.role === 'checkin_manager';
 
