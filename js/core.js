@@ -379,7 +379,7 @@ function renderShell(content, activePage = 'dashboard') {
   // Settings visible only to admin
   const showSettings = isAdmin;
 
-  // Viewer: 4 items view-only (no attendance)
+  // Viewer: 5 items view-only (with chat)
   if (SESSION.role === 'viewer') {
     nav = [
       { section: 'MAIN' },
@@ -388,6 +388,8 @@ function renderShell(content, activePage = 'dashboard') {
       { section: 'GUESTS' },
       ['bookings', '📅 Bookings'],
       ['flats', '🛏️ Flats Status'],
+      { section: 'COMMUNICATION' },
+      ['chat', '💬 Team Chat'],
     ];
   } else if (SESSION.role === 'moderator') {
     nav = [
@@ -399,6 +401,8 @@ function renderShell(content, activePage = 'dashboard') {
       ['flats', '🛏️ Flats Status'],
       { section: 'TEAM' },
       ['attendance', '📋 Attendance'],
+      { section: 'COMMUNICATION' },
+      ['chat', '💬 Team Chat'],
     ];
   } else if (isCheckinMgr) {
     nav = [
@@ -467,6 +471,9 @@ function renderShell(content, activePage = 'dashboard') {
 
       { section: 'STORE' },
       ['store', '📦 Inventory'],
+
+      { section: 'COMMUNICATION' },
+      ['chat', '💬 Team Chat'],
 
       { section: 'ADMIN' },
       ...(isAdmin ? [['user-mgmt', '👤 User Management']] : []),
@@ -658,6 +665,7 @@ function navigate(page) {
   if (window.trackPageVisit) window.trackPageVisit(page);
   const map = {
     dashboard: renderDashboard,
+    chat: renderChat,
     reports: renderReports,
     rooms: renderManageRooms,
     flats: renderFlatsStatus,
