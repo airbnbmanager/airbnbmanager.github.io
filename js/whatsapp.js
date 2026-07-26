@@ -3,7 +3,7 @@
 // ═══════════════════════════════════════════════════════════
 // PROPERTY WEBSITE URL MAPPING
 // ═══════════════════════════════════════════════════════════
-function getPropertyURL(nickname) {
+window.getPropertyURL = function(nickname) {
   if (!nickname) return 'https://uniquehavenhomesstay.com';
   const map = {
     'The Brown': 'the-brown',
