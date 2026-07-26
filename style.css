@@ -3823,3 +3823,51 @@ textarea:focus {
     padding: 4px !important;
   }
 }
+
+/* ═══════════════════════════════════════════════════════════
+   🐛 FIX: Desktop Logout button visibility
+   ═══════════════════════════════════════════════════════════ */
+.sidebar-user {
+  display: flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  flex-wrap: wrap !important;
+  justify-content: flex-end !important;
+  min-width: 0 !important;
+}
+
+.sidebar-logout {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex-shrink: 0 !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+.sidebar-bell {
+  flex-shrink: 0 !important;
+}
+
+/* Desktop specifically — ensure sidebar top has enough space */
+@media (min-width: 769px) {
+  .sidebar-top {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 12px !important;
+    padding: 14px !important;
+  }
+
+  .sidebar-user {
+    justify-content: space-between !important;
+    width: 100% !important;
+  }
+
+  .sidebar-username {
+    flex: 1 !important;
+    min-width: 0 !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+  }
+}
