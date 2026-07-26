@@ -537,17 +537,19 @@ function renderShell(content, activePage = 'dashboard') {
       <aside class="sidebar" id="sidebarEl">
         <!-- Row 1: Logo + User + Logout -->
         <div class="sidebar-top">
-          <div class="sidebar-brand" onclick="navigate('dashboard')">
-            <img src="assets/logo.png" alt="" />
-            <span>UHHS</span>
+          <div class="sidebar-brand" onclick="navigate('dashboard')" style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+            <img src="assets/logo.png" alt="" style="width:28px;height:28px;border-radius:6px;object-fit:contain;" />
+            <span style="font-size:14px;font-weight:800;color:#fff;">UHHS</span>
           </div>
-          <div class="sidebar-user">
-            <span class="sidebar-username">${shortName}</span>
-            <span class="badge blue sidebar-role">${roleLabel}</span>
-            <button class="sidebar-bell" id="notifBellBtn" onclick="event.stopPropagation();window.notifications&&window.notifications.openPanel();" style="background:transparent;border:none;color:#fff;padding:0 8px;position:relative;cursor:pointer;font-size:16px;">
-              🔔<span class="notif-bell-badge" style="display:none;position:absolute;top:-2px;right:-2px;background:#FF3B30;color:#fff;font-size:9px;font-weight:700;min-width:16px;height:16px;border-radius:8px;display:flex;align-items:center;justify-content:center;padding:0 4px;"></span>
+          <div class="sidebar-user" style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+            <div style="display:flex;flex-direction:column;flex:1;min-width:0;">
+              <span class="sidebar-username" style="font-size:13px;font-weight:600;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${shortName}</span>
+              <span class="sidebar-role" style="font-size:9px;color:rgba(255,255,255,0.7);text-transform:uppercase;letter-spacing:0.5px;">${roleLabel}</span>
+            </div>
+            <button class="sidebar-bell" id="notifBellBtn" onclick="event.stopPropagation();window.notifications&&window.notifications.openPanel();" style="background:transparent;border:none;color:#fff;padding:4px 6px;position:relative;cursor:pointer;font-size:16px;flex-shrink:0;">
+              🔔<span class="notif-bell-badge" style="display:none;position:absolute;top:0;right:0;background:#FF3B30;color:#fff;font-size:9px;font-weight:700;min-width:16px;height:16px;border-radius:8px;align-items:center;justify-content:center;padding:0 4px;"></span>
             </button>
-            <button class="sidebar-logout" id="logoutBtn" style="background:#FF5A5F;color:#fff;border:none;padding:2px 10px;border-radius:12px;font-size:11px;font-weight:600;cursor:pointer;line-height:1;height:20px;min-height:20px;max-height:20px;box-sizing:border-box;">Logout</button>
+            <button class="sidebar-logout" id="logoutBtn" style="background:#FF5A5F;color:#fff;border:none;padding:5px 12px;border-radius:14px;font-size:11px;font-weight:600;cursor:pointer;flex-shrink:0;white-space:nowrap;">Logout</button>
           </div>
         </div>
 
