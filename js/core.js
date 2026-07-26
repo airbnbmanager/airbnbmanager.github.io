@@ -369,7 +369,7 @@ function renderShell(content, activePage = 'dashboard') {
   if (!show) { appEl.innerHTML = content; return; }
 
   const isAdmin = SESSION.role === 'admin' || SESSION.role === 'developer';
-  const isOwner = SESSION.role === 'owner' || SESSION.role === 'moderator' || isAdmin;
+  const isOwner = SESSION.role === 'owner' || isAdmin;
   const isBookingStaff = SESSION.role === 'booking_staff';
   const isViewer = (SESSION.role === 'viewer' || SESSION.role === 'subowner') && !SESSION.investorId;
   const isCheckin = SESSION.role === 'checkin_manager';
@@ -379,7 +379,19 @@ function renderShell(content, activePage = 'dashboard') {
   // Settings visible only to admin
   const showSettings = isAdmin;
 
-  if (isCheckinMgr) {
+  // Moderator: only 5 items
+  if (SESSION.role === 'moderator') {
+    nav = [
+      { section: 'MAIN' },
+      ['dashboard', '🏠 Dashboard'],
+      ['reports', '📆 Calendar'],
+      { section: 'GUESTS' },
+      ['bookings', '📅 Bookings'],
+      ['flats', '🛏️ Flats Status'],
+      { section: 'TEAM' },
+      ['attendance', '📋 Attendance'],
+    ];
+  } else if (isCheckinMgr) {
     nav = [
       { section: 'MY PROPERTIES' },
       ['dashboard', '🏠 My Dashboard'],
