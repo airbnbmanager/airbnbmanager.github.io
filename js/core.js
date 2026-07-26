@@ -17,6 +17,34 @@ function propLabel(r) {
 }
 window.propLabel = propLabel;
 
+// ═══════════════════════════════════════════════════════════
+// 📊 PAGE VISIT TRACKER — for smart bottom nav
+// ═══════════════════════════════════════════════════════════
+window.trackPageVisit = function(page) {
+  if (!page) return;
+  const skip = ['dashboard']; // don't track dashboard (always in nav)
+  if (skip.includes(page)) return;
+  try {
+    const visits = JSON.parse(localStorage.getItem('uh_page_visits') || '{}');
+    visits[page] = (visits[page] || 0) + 1;
+    localStorage.setItem('uh_page_visits', JSON.stringify(visits));
+  } catch(e) {}
+};
+
+window.getRecentPages = function(limit) {
+  limit = limit || 3;
+  try {
+    const visits = JSON.parse(localStorage.getItem('uh_page_visits') || '{}');
+    const sorted = Object.entries(visits)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, limit)
+      .map(([page]) => page);
+    return sorted;
+  } catch(e) { return []; }
+};
+
+
+
 
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 window.sb = sb;
@@ -466,23 +494,49 @@ function renderShell(content, activePage = 'dashboard') {
       </aside>
       <main class="main-content" id="mainContent">${content}</main>
 
-      <!-- Mobile Bottom Navigation -->
+      <!-- Mobile Bottom Navigation (Smart/Recent) -->
       <nav class="bottom-nav" id="bottomNav">
-        <a href="#" data-page="dashboard" class="${activePage === 'dashboard' ? 'active' : ''}">
-          <span class="bn-icon">🏠</span><span class="bn-label">Home</span>
-        </a>
-        <a href="#" data-page="bookings" class="${activePage === 'bookings' ? 'active' : ''}">
-          <span class="bn-icon">📅</span><span class="bn-label">Bookings</span>
-        </a>
-        <a href="#" data-page="flats" class="${activePage === 'flats' ? 'active' : ''}">
-          <span class="bn-icon">🛏️</span><span class="bn-label">Flats</span>
-        </a>
-        <a href="#" data-page="rooms" class="${activePage === 'rooms' ? 'active' : ''}">
-          <span class="bn-icon">🏘️</span><span class="bn-label">Property</span>
-        </a>
-        <a href="#" id="bottomNavMore">
-          <span class="bn-icon">☰</span><span class="bn-label">More</span>
-        </a>
+        ${(() => {
+          // Page metadata: [key, icon, label]
+          const PAGES = {
+            dashboard:  ['🏠', 'Home'],
+            bookings:   ['📅', 'Bookings'],
+            flats:      ['🛏️', 'Flats'],
+            rooms:      ['🏘️', 'Property'],
+            shifts:     ['🕐', 'Shifts'],
+            reports:    ['📆', 'Calendar'],
+            maintenance:['🔧', 'Maintain'],
+            employees:  ['👥', 'Team'],
+            tasks:      ['🧰', 'Tasks'],
+            attendance: ['📋', 'Attend'],
+            salary:     ['💰', 'Payroll'],
+            expenses:   ['💹', 'Expenses'],
+            store:      ['📦', 'Store'],
+            investors:  ['🧑‍💼', 'Invest'],
+            sop:        ['📘', 'SOP']
+          };
+          // Get 3 most-visited (or defaults)
+          let recent = (window.getRecentPages ? window.getRecentPages(3) : []);
+          const defaults = ['bookings', 'flats', 'rooms'];
+          // Fill with defaults if not enough recent
+          for (const d of defaults) {
+            if (recent.length >= 3) break;
+            if (!recent.includes(d)) recent.push(d);
+          }
+          recent = recent.slice(0, 3);
+
+          // Home first
+          let html = `<a href="#" data-page="dashboard" class="${activePage === 'dashboard' ? 'active' : ''}"><span class="bn-icon">🏠</span><span class="bn-label">Home</span></a>`;
+          // 3 recent
+          for (const p of recent) {
+            const meta = PAGES[p];
+            if (!meta) continue;
+            html += `<a href="#" data-page="${p}" class="${activePage === p ? 'active' : ''}"><span class="bn-icon">${meta[0]}</span><span class="bn-label">${meta[1]}</span></a>`;
+          }
+          // More last
+          html += `<a href="#" id="bottomNavMore"><span class="bn-icon">☰</span><span class="bn-label">More</span></a>`;
+          return html;
+        })()}
       </nav>
     </div>`;
 
@@ -517,6 +571,7 @@ function renderShell(content, activePage = 'dashboard') {
 function navigate(page) {
   SESSION.currentPage = page;
   try { localStorage.setItem('uh_last_page', page); } catch(e) {}
+  if (window.trackPageVisit) window.trackPageVisit(page);
   const map = {
     dashboard: renderDashboard,
     reports: renderReports,
