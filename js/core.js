@@ -483,9 +483,13 @@ function renderShell(content, activePage = 'dashboard') {
           <input type="text" id="drawerSearchInput" placeholder="🔍 Search menu..." />
         </div>
         <div class="theme-toggle-wrap">
-          <div class="theme-toggle ${window.themeManager?.get() === 'dark' ? 'active' : ''}" onclick="window.themeManager.toggle()">
-            <span>🌙 Dark Mode</span>
-            <div class="theme-toggle-switch"></div>
+          <div style="font-size:11px;color:rgba(255,255,255,0.5);font-weight:700;letter-spacing:1.5px;margin-bottom:8px;">THEME</div>
+          <div class="theme-picker">
+            <div class="theme-swatch light" onclick="window.themeManager.set('light')" title="Light"></div>
+            <div class="theme-swatch dark" onclick="window.themeManager.set('dark')" title="Dark"></div>
+            <div class="theme-swatch ocean" onclick="window.themeManager.set('ocean')" title="Ocean"></div>
+            <div class="theme-swatch forest" onclick="window.themeManager.set('forest')" title="Forest"></div>
+            <div class="theme-swatch midnight" onclick="window.themeManager.set('midnight')" title="Midnight"></div>
           </div>
         </div>
         <nav class="sidebar-nav">
@@ -1449,7 +1453,12 @@ window.themeManager = (function() {
   // Apply immediately on load
   init();
 
-  return { get, apply, toggle, init };
+  function set(theme) {
+    localStorage.setItem(KEY, theme);
+    apply(theme);
+    if (window.haptic) window.haptic.medium();
+  }
+  return { get, apply, toggle, init, set };
 })();
 
 // ═══════════════════════════════════════════════════════════
@@ -1519,3 +1528,82 @@ if (document.readyState === 'complete') {
 } else {
   window.addEventListener('load', () => window.offlineManager.init());
 }
+
+// ═══════════════════════════════════════════════════════════
+// 📊 CHARTS HELPER (Chart.js)
+// Usage: renderChart('canvasId', 'bar', { labels: [...], values: [...] })
+// ═══════════════════════════════════════════════════════════
+window.renderChart = function(canvasId, type, data, options) {
+  const canvas = document.getElementById(canvasId);
+  if (!canvas || !window.Chart) return null;
+
+  // Destroy previous instance
+  const existing = Chart.getChart(canvas);
+  if (existing) existing.destroy();
+
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  const textColor = isDark ? '#f0f0f0' : '#333';
+  const gridColor = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)';
+
+  const defaultColors = ['#E2725B', '#16a34a', '#2563eb', '#d97706', '#8b5cf6', '#0891b2'];
+
+  const config = {
+    type: type,
+    data: {
+      labels: data.labels || [],
+      datasets: [{
+        label: data.label || '',
+        data: data.values || [],
+        backgroundColor: type === 'line' ? 'rgba(226,114,91,0.15)' :
+                          type === 'doughnut' || type === 'pie' ? defaultColors :
+                          '#E2725B',
+        borderColor: type === 'line' ? '#E2725B' : (type === 'doughnut' || type === 'pie' ? defaultColors : '#E2725B'),
+        borderWidth: type === 'line' ? 3 : 1,
+        fill: type === 'line',
+        tension: 0.35,
+        borderRadius: type === 'bar' ? 6 : 0
+      }]
+    },
+    options: Object.assign({
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          display: type === 'doughnut' || type === 'pie',
+          labels: { color: textColor, font: { family: 'Inter', size: 12 } }
+        },
+        tooltip: {
+          backgroundColor: isDark ? '#0f1419' : '#1a1a1a',
+          titleFont: { family: 'Inter', weight: 600 },
+          bodyFont: { family: 'Inter' },
+          padding: 10,
+          cornerRadius: 8
+        }
+      },
+      scales: (type === 'doughnut' || type === 'pie') ? {} : {
+        y: {
+          beginAtZero: true,
+          ticks: { color: textColor, font: { family: 'Inter' } },
+          grid: { color: gridColor }
+        },
+        x: {
+          ticks: { color: textColor, font: { family: 'Inter' } },
+          grid: { display: false }
+        }
+      }
+    }, options || {})
+  };
+
+  return new Chart(canvas, config);
+};
+
+// Quick chart HTML wrapper
+window.chartCard = function(canvasId, title, height) {
+  return `
+    <div class="card" style="padding:16px;margin:12px 0;">
+      <h3 style="margin:0 0 12px;font-size:15px;">${title}</h3>
+      <div style="position:relative;height:${height || 260}px;">
+        <canvas id="${canvasId}"></canvas>
+      </div>
+    </div>`;
+};

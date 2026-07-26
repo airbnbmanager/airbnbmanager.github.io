@@ -336,3 +336,86 @@
 
   window.addEventListener('beforeunload', stopAll);
 })();
+
+// ═══════════════════════════════════════════════════════════
+// 🔔 NOTIFICATION SETTINGS (Custom Rules)
+// ═══════════════════════════════════════════════════════════
+window.notifSettings = (function() {
+  const KEY = 'uh_notif_settings';
+  const DEFAULT = {
+    booking: true,
+    payment: true,
+    checkin: true,
+    checkout: true,
+    task: true,
+    sound: true,
+    vibrate: true
+  };
+
+  function get() {
+    try { return { ...DEFAULT, ...JSON.parse(localStorage.getItem(KEY) || '{}') }; }
+    catch(e) { return DEFAULT; }
+  }
+
+  function save(settings) {
+    localStorage.setItem(KEY, JSON.stringify(settings));
+  }
+
+  function isEnabled(type) {
+    return get()[type] !== false;
+  }
+
+  function openSettings() {
+    const s = get();
+    const overlay = document.createElement('div');
+    overlay.className = 'notif-panel-overlay show';
+    overlay.innerHTML = `
+      <div class="notif-panel" style="max-width:400px;">
+        <div class="notif-panel-header">
+          <h3>🔔 Notification Settings</h3>
+          <button class="notif-panel-close">×</button>
+        </div>
+        <div style="padding:20px;">
+          <div style="font-size:12px;color:#888;text-transform:uppercase;letter-spacing:1px;margin-bottom:12px;font-weight:700;">Notify me about</div>
+          ${[
+            ['booking', '📅', 'New Bookings'],
+            ['payment', '💰', 'Payments'],
+            ['checkin', '✅', 'Check-ins'],
+            ['checkout', '📤', 'Check-outs'],
+            ['task', '🧰', 'Tasks']
+          ].map(([key, icon, label]) => `
+            <label style="display:flex;align-items:center;justify-content:space-between;padding:12px;border-bottom:1px solid #eee;cursor:pointer;">
+              <span>${icon} ${label}</span>
+              <input type="checkbox" data-setting="${key}" ${s[key] !== false ? 'checked' : ''} style="width:20px;height:20px;cursor:pointer;">
+            </label>`).join('')}
+          <div style="font-size:12px;color:#888;text-transform:uppercase;letter-spacing:1px;margin:20px 0 12px;font-weight:700;">Feedback</div>
+          <label style="display:flex;align-items:center;justify-content:space-between;padding:12px;border-bottom:1px solid #eee;cursor:pointer;">
+            <span>🔊 Sound</span>
+            <input type="checkbox" data-setting="sound" ${s.sound !== false ? 'checked' : ''} style="width:20px;height:20px;cursor:pointer;">
+          </label>
+          <label style="display:flex;align-items:center;justify-content:space-between;padding:12px;cursor:pointer;">
+            <span>📳 Vibrate</span>
+            <input type="checkbox" data-setting="vibrate" ${s.vibrate !== false ? 'checked' : ''} style="width:20px;height:20px;cursor:pointer;">
+          </label>
+        </div>
+      </div>`;
+    document.body.appendChild(overlay);
+
+    overlay.querySelectorAll('input[data-setting]').forEach(input => {
+      input.onchange = () => {
+        const settings = get();
+        settings[input.dataset.setting] = input.checked;
+        save(settings);
+      };
+    });
+
+    const close = () => {
+      overlay.classList.remove('show');
+      setTimeout(() => overlay.remove(), 250);
+    };
+    overlay.onclick = e => { if (e.target === overlay) close(); };
+    overlay.querySelector('.notif-panel-close').onclick = close;
+  }
+
+  return { get, save, isEnabled, openSettings };
+})();

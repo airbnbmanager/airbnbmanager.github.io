@@ -3427,3 +3427,168 @@ body.has-offline-banner {
 [data-theme="dark"] [style*="background:#f3e8ff"] {
   color: #1a1a1a !important;
 }
+
+/* ═══════════════════════════════════════════════════════════
+   🎨 CUSTOM FONTS — Inter (modern, native app feel)
+   ═══════════════════════════════════════════════════════════ */
+body, input, select, textarea, button {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+  font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'Inter', sans-serif !important;
+  letter-spacing: -0.02em;
+  font-weight: 700;
+}
+
+.sidebar-brand span {
+  letter-spacing: -0.03em;
+  font-weight: 800;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   ✨ IMPROVED ANIMATIONS
+   ═══════════════════════════════════════════════════════════ */
+
+/* Smoother page transitions */
+@media (max-width: 768px) {
+  .main-content {
+    animation: pageEnter 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  @keyframes pageEnter {
+    from {
+      opacity: 0;
+      transform: translateY(12px) scale(0.98);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+}
+
+/* Card hover lift (desktop) */
+@media (min-width: 769px) {
+  .card,
+  [data-page] {
+    transition: transform 0.15s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.15s;
+  }
+
+  .card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+  }
+}
+
+/* Button press effect */
+button:not(:disabled):active {
+  transform: scale(0.97);
+  transition: transform 0.08s;
+}
+
+/* Ripple effect on tap (mobile) */
+@keyframes rippleOut {
+  0% { transform: scale(0); opacity: 0.5; }
+  100% { transform: scale(3); opacity: 0; }
+}
+
+/* Smooth focus rings */
+input:focus,
+select:focus,
+textarea:focus {
+  outline: none !important;
+  box-shadow: 0 0 0 3px rgba(226,114,91,0.2) !important;
+  border-color: #E2725B !important;
+  transition: box-shadow 0.15s, border-color 0.15s;
+}
+
+/* Number counter animation */
+@keyframes countUp {
+  from { transform: translateY(4px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+/* Stagger children */
+.stagger-in > * {
+  animation: staggerIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) backwards;
+}
+
+.stagger-in > *:nth-child(1) { animation-delay: 0.05s; }
+.stagger-in > *:nth-child(2) { animation-delay: 0.1s; }
+.stagger-in > *:nth-child(3) { animation-delay: 0.15s; }
+.stagger-in > *:nth-child(4) { animation-delay: 0.2s; }
+.stagger-in > *:nth-child(5) { animation-delay: 0.25s; }
+.stagger-in > *:nth-child(6) { animation-delay: 0.3s; }
+
+@keyframes staggerIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   🎨 CUSTOM THEME PRESETS
+   ═══════════════════════════════════════════════════════════ */
+
+/* Ocean (Blue) */
+[data-theme="ocean"] {
+  --bg-primary: #f0f7ff;
+  --bg-secondary: #ffffff;
+  --text-primary: #0c4a6e;
+  --border-color: #bae6fd;
+  --primary: #0891b2;
+}
+[data-theme="ocean"] body { background: #f0f7ff !important; }
+[data-theme="ocean"] .btn, [data-theme="ocean"] button.btn { background: #0891b2 !important; }
+
+/* Forest (Green) */
+[data-theme="forest"] {
+  --bg-primary: #f0fdf4;
+  --bg-secondary: #ffffff;
+  --text-primary: #14532d;
+  --border-color: #bbf7d0;
+  --primary: #16a34a;
+}
+[data-theme="forest"] body { background: #f0fdf4 !important; }
+[data-theme="forest"] .btn, [data-theme="forest"] button.btn { background: #16a34a !important; }
+
+/* Sunset (default warm) — already the app default */
+
+/* Midnight (deep dark) */
+[data-theme="midnight"] {
+  --bg-primary: #000000;
+  --bg-secondary: #0a0a0a;
+  --text-primary: #e4e4e7;
+  --border-color: #1f1f1f;
+}
+[data-theme="midnight"] body { background: #000 !important; color: #e4e4e7 !important; }
+[data-theme="midnight"] .card { background: #0a0a0a !important; }
+
+/* Theme picker in drawer */
+.theme-picker {
+  display: flex;
+  gap: 8px;
+  padding: 8px 14px 14px;
+  flex-wrap: wrap;
+}
+
+.theme-swatch {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  cursor: pointer;
+  border: 2px solid transparent;
+  transition: transform 0.15s, border-color 0.15s;
+}
+
+.theme-swatch:hover { transform: scale(1.15); }
+.theme-swatch.active { border-color: #fff; }
+
+.theme-swatch.light { background: linear-gradient(135deg, #FAF6F2 0%, #E2725B 100%); }
+.theme-swatch.dark { background: linear-gradient(135deg, #1a1f26 0%, #0f1419 100%); }
+.theme-swatch.ocean { background: linear-gradient(135deg, #0891b2 0%, #0c4a6e 100%); }
+.theme-swatch.forest { background: linear-gradient(135deg, #16a34a 0%, #14532d 100%); }
+.theme-swatch.midnight { background: linear-gradient(135deg, #000 0%, #333 100%); }
