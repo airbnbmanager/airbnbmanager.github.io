@@ -891,7 +891,12 @@ async function renderUserManagement() {
     ` : ''}
 
     <div class="card">
-      <div class="section-title">All Users (${(profiles || []).length})</div>
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:12px;">
+        <div class="section-title" style="margin:0;">All Users (${(profiles || []).length})</div>
+        ${window.canDelete && window.canDelete() ? `
+          <button class="btn-sm danger" onclick="forceLogoutAll()" style="background:#dc2626;">🚪 Logout All Users</button>
+        ` : ''}
+      </div>
       <div class="table-wrap"><table>
         <thead><tr><th>Name</th><th>Role</th><th>Provider</th><th>Status</th><th>Actions</th></tr></thead>
         <tbody>${(profiles || []).map(p => `<tr>
@@ -904,6 +909,9 @@ async function renderUserManagement() {
           <td><span class="badge ${p.is_approved ? 'green' : 'yellow'}">${p.is_approved ? 'Active' : 'Pending'}</span></td>
           <td class="table-actions">
             <button class="btn-sm" onclick="changeUserRole('${p.user_id}','${p.display_name || ''}')">🔧 Role</button>
+            ${window.canDelete && window.canDelete() && p.user_id !== SESSION.userId ? `
+              <button class="btn-sm" style="background:#f59e0b;color:#fff;" onclick="forceLogoutUser('${p.user_id}','${p.display_name || ''}')" title="Force logout this user">🚪</button>
+            ` : ''}
             ${window.canDelete && window.canDelete() ? `<button class="btn-sm danger" onclick="deleteUser('${p.user_id}','${p.display_name || ''}')">🗑️</button>` : ''}
           </td>
         </tr>`).join('')}</tbody>
