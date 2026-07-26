@@ -1092,6 +1092,7 @@ async function getActiveUsers() {
 })();
 
 // ═══════════════════════════════════════════════════════════
+/* DISABLED - causing refresh issues
 // 🎯 PULL TO REFRESH — Mobile only
 // ═══════════════════════════════════════════════════════════
 (function(){
@@ -1157,6 +1158,7 @@ async function getActiveUsers() {
     }
   }, { passive: true });
 })();
+*/
 
 // ═══════════════════════════════════════════════════════════
 // 🎯 SPLASH SCREEN — Hide after app boots
