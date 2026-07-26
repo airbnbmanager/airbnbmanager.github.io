@@ -895,14 +895,17 @@ function showRolePickerModal(userId, name, callback) {
         <label>Select Role *</label>
         <select id="rolePickerSel" style="font-size:15px;">
           <option value="">-- Select Role --</option>
+        <option value="super_admin">🔴 Super Admin (Full + Delete)</option>
           <option value="admin">🔧 Admin (Full Access + Delete)</option>
-          <option value="owner">👑 Owner (View All + Book + Edit, No Delete)</option>
-          <option value="booking_staff">📋 Booking Staff (Bookings + ID Upload, No Delete)</option>
-          <option value="caretaker">🏠 Caretaker (Own Property View + Basic Actions)</option>
+          <option value="owner">🟠 Owner (Full Access, No Delete)</option>
+          <option value="moderator">🟡 Moderator (Booking + ID + WhatsApp + Attendance)</option>
+        <option value="booking_staff">📋 Booking Staff (Booking only)</option>
+          <option value="caretaker">📱 Caretaker (Mobile Check-in View)</option>
           <option value="viewer">👁️ Viewer (Limited View — Today's info)</option>
-          <option value="investor">📊 Investor (Own Property Only)</option>
-          <option value="employee">👷 Employee (Self View Only)</option>
-          <option value="ca">📋 CA / Accountant (Financial Reports)</option>
+          <option value="subowner">🟢 Sub-owner (Own Property Only)</option>
+        <option value="investor">📊 Investor (Own Property Only)</option>
+          <option value="employee">👷 Employee (Self Attendance View)</option>
+          <option value="ca">📋 💼 CA / Accountant (Financial Reports)</option>
         </select>
       </div>
       <div style="font-size:12px;color:var(--muted);margin-top:6px;padding:8px;background:var(--bg);border-radius:8px;" id="roleDesc"></div>
