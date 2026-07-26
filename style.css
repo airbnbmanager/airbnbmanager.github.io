@@ -2982,3 +2982,161 @@ body, .card, .main-content, table, input, select, textarea {
 body.has-offline-banner {
   padding-top: 32px;
 }
+
+/* ═══════════════════════════════════════════════════════════
+   🌙 DARK MODE — Universal overrides for hardcoded colors
+   ═══════════════════════════════════════════════════════════ */
+
+[data-theme="dark"] * {
+  /* Preserve existing borders but soften */
+  border-color: var(--border-color, #2d3540) !important;
+}
+
+/* Hardcoded white/light backgrounds → dark */
+[data-theme="dark"] [style*="background:#fff"],
+[data-theme="dark"] [style*="background: #fff"],
+[data-theme="dark"] [style*="background:#ffffff"],
+[data-theme="dark"] [style*="background: #ffffff"],
+[data-theme="dark"] [style*="background:white"],
+[data-theme="dark"] [style*="background: white"],
+[data-theme="dark"] [style*="background:#fafafa"],
+[data-theme="dark"] [style*="background:#f5f5f5"],
+[data-theme="dark"] [style*="background:#f8f8f8"],
+[data-theme="dark"] [style*="background:#eee"],
+[data-theme="dark"] [style*="background:#f0f0f0"] {
+  background: #1a1f26 !important;
+  color: #f0f0f0 !important;
+}
+
+/* Hardcoded dark text on cards → light text */
+[data-theme="dark"] [style*="color:#111"],
+[data-theme="dark"] [style*="color: #111"],
+[data-theme="dark"] [style*="color:#222"],
+[data-theme="dark"] [style*="color: #222"],
+[data-theme="dark"] [style*="color:#333"],
+[data-theme="dark"] [style*="color: #333"],
+[data-theme="dark"] [style*="color:#444"],
+[data-theme="dark"] [style*="color: #444"],
+[data-theme="dark"] [style*="color:#000"],
+[data-theme="dark"] [style*="color: #000"],
+[data-theme="dark"] [style*="color:black"] {
+  color: #f0f0f0 !important;
+}
+
+/* Muted text still muted but visible */
+[data-theme="dark"] [style*="color:#555"],
+[data-theme="dark"] [style*="color: #555"],
+[data-theme="dark"] [style*="color:#666"],
+[data-theme="dark"] [style*="color: #666"],
+[data-theme="dark"] [style*="color:#777"],
+[data-theme="dark"] [style*="color:#888"],
+[data-theme="dark"] [style*="color: #888"],
+[data-theme="dark"] [style*="color:#999"] {
+  color: #b0b0b0 !important;
+}
+
+/* Common Tailwind-like grays */
+[data-theme="dark"] [style*="color:gray"],
+[data-theme="dark"] [style*="color: gray"] {
+  color: #a0a0a0 !important;
+}
+
+/* Div/section common in this app */
+[data-theme="dark"] .wrap {
+  background: #0f1419 !important;
+}
+
+/* All divs with no bg but visible text */
+[data-theme="dark"] body,
+[data-theme="dark"] .main-content {
+  color: #f0f0f0 !important;
+}
+
+/* Force text on ALL headings + paragraphs + spans in main content */
+[data-theme="dark"] .main-content h1,
+[data-theme="dark"] .main-content h2,
+[data-theme="dark"] .main-content h3,
+[data-theme="dark"] .main-content h4,
+[data-theme="dark"] .main-content h5,
+[data-theme="dark"] .main-content p,
+[data-theme="dark"] .main-content div,
+[data-theme="dark"] .main-content span,
+[data-theme="dark"] .main-content label,
+[data-theme="dark"] .main-content strong,
+[data-theme="dark"] .main-content td,
+[data-theme="dark"] .main-content th {
+  color: inherit;
+}
+
+[data-theme="dark"] .main-content > * {
+  color: #f0f0f0;
+}
+
+/* Buttons visible */
+[data-theme="dark"] button:not(.btn-danger):not(.danger):not(.sidebar-logout) {
+  color: #f0f0f0;
+}
+
+/* Preserve colored buttons (green/blue/red/primary) */
+[data-theme="dark"] .btn,
+[data-theme="dark"] button.btn,
+[data-theme="dark"] .btn-primary {
+  color: #fff !important;
+}
+
+[data-theme="dark"] .badge {
+  color: #fff !important;
+}
+
+/* Metric cards colored borders — keep visible */
+[data-theme="dark"] [style*="border-left"] {
+  background: #1a1f26 !important;
+}
+
+/* Table striped rows */
+[data-theme="dark"] tr:nth-child(even) {
+  background: #1e242d !important;
+}
+
+[data-theme="dark"] tr:hover {
+  background: #242a33 !important;
+}
+
+/* Modals/overlays */
+[data-theme="dark"] .modal,
+[data-theme="dark"] .modal-content,
+[data-theme="dark"] .overlay > div {
+  background: #1a1f26 !important;
+  color: #f0f0f0 !important;
+}
+
+/* Inputs visible */
+[data-theme="dark"] input,
+[data-theme="dark"] select,
+[data-theme="dark"] textarea {
+  background: #242a33 !important;
+  color: #f0f0f0 !important;
+  border: 1px solid #2d3540 !important;
+}
+
+[data-theme="dark"] input::placeholder,
+[data-theme="dark"] textarea::placeholder {
+  color: #808080 !important;
+}
+
+/* Option text */
+[data-theme="dark"] option {
+  background: #1a1f26 !important;
+  color: #f0f0f0 !important;
+}
+
+/* Error/success/warning colors preserved */
+[data-theme="dark"] .error { color: #f87171 !important; background: rgba(248,113,113,0.1) !important; }
+[data-theme="dark"] .success { color: #4ade80 !important; }
+[data-theme="dark"] .warn, [data-theme="dark"] .warning { color: #fbbf24 !important; }
+
+/* Login screen dark */
+[data-theme="dark"] .card {
+  background: #1a1f26 !important;
+  color: #f0f0f0 !important;
+}
