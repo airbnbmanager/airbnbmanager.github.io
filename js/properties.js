@@ -128,6 +128,8 @@ function roomFormFields(r = {}, emps = []) {
     <div class="form-group"><label>Directions</label><textarea id="directions" placeholder="Chaurahe se kaise aana hai, kahan mudna hai...">${r.directions || ''}</textarea></div>
     <div class="form-group"><label>Nearby Landmarks</label><input id="landmarks" value="${r.landmarks || ''}" placeholder="Lulu Mall 10 min, Max Hospital 5 min" /></div>
     <div class="form-group"><label>Floor Info (for guest)</label><input id="floorInfo" value="${r.floor_info || ''}" placeholder="e.g. Property located on 2nd floor" /></div>
+    <div class="form-group"><label>📶 WiFi Name (SSID)</label><input id="wifiSsid" value="${r.wifi_ssid || ''}" placeholder="e.g. Airbnb.in1" /></div>
+    <div class="form-group"><label>🔑 WiFi Password</label><input id="wifiPassword" value="${r.wifi_password || ''}" placeholder="WiFi password" /></div>
 
     <div class="section-title" style="margin-top:12px;">🔐 Lock & Key</div>
     <div class="form-grid">
@@ -187,6 +189,8 @@ function collectRoomForm() {
     directions: document.getElementById('directions').value.trim() || null,
     landmarks: document.getElementById('landmarks').value.trim() || null,
     floor_info: document.getElementById('floorInfo').value.trim() || null,
+    wifi_ssid: document.getElementById('wifiSsid')?.value.trim() || null,
+    wifi_password: document.getElementById('wifiPassword')?.value.trim() || null,
     lock_type: document.getElementById('lockType').value,
     key_number: document.getElementById('keyNumber').value.trim() || null,
     mode: document.getElementById('mode').value,
