@@ -232,13 +232,14 @@
     stopRealtime();
 
     // 1. New Bookings
+    console.log('🔔 Subscribing to bookings channel...');
     const bookingChannel = sb.channel('notif-bookings')
       .on('postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'guest_register' },
         async (payload) => {
           const b = payload.new;
           // Skip if this booking existed before app opened
-          if (new Date(b.created_at || 0).getTime() < NOTIFICATIONS.startupTime - 5000) return;
+          // startup filter removed for reliability
 
           // Fetch room name
           let roomName = b.room_id;
@@ -267,7 +268,7 @@
         { event: 'INSERT', schema: 'public', table: 'payment_history' },
         (payload) => {
           const p = payload.new;
-          if (new Date(p.created_at || 0).getTime() < NOTIFICATIONS.startupTime - 5000) return;
+          // startup filter removed
           notify({
             type: 'payment',
             icon: '💰',
@@ -286,7 +287,7 @@
         { event: 'INSERT', schema: 'public', table: 'employee_tasks' },
         (payload) => {
           const t = payload.new;
-          if (new Date(t.created_at || 0).getTime() < NOTIFICATIONS.startupTime - 5000) return;
+          // startup filter removed
           notify({
             type: 'task',
             icon: '🧰',
