@@ -439,6 +439,9 @@ function renderShell(content, activePage = 'dashboard') {
           <div class="sidebar-user">
             <span class="sidebar-username">${shortName}</span>
             <span class="badge blue sidebar-role">${roleLabel}</span>
+            <button class="sidebar-bell" id="notifBellBtn" onclick="event.stopPropagation();window.notifications&&window.notifications.openPanel();" style="background:transparent;border:none;color:#fff;padding:0 8px;position:relative;cursor:pointer;font-size:16px;">
+              🔔<span class="notif-bell-badge" style="display:none;position:absolute;top:-2px;right:-2px;background:#FF3B30;color:#fff;font-size:9px;font-weight:700;min-width:16px;height:16px;border-radius:8px;display:flex;align-items:center;justify-content:center;padding:0 4px;"></span>
+            </button>
             <button class="sidebar-logout" id="logoutBtn" style="background:#FF5A5F;color:#fff;border:none;padding:2px 10px;border-radius:12px;font-size:11px;font-weight:600;cursor:pointer;line-height:1;height:20px;min-height:20px;max-height:20px;box-sizing:border-box;">Logout</button>
           </div>
         </div>

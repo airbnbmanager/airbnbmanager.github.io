@@ -2475,3 +2475,192 @@ code {
     display: none !important;
   }
 }
+
+/* ═══════════════════════════════════════════════════════════
+   🔔 NOTIFICATION TOASTS + BELL PANEL
+   ═══════════════════════════════════════════════════════════ */
+
+#notifToastContainer {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 999998;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  pointer-events: none;
+  max-width: 360px;
+}
+
+@media (max-width: 768px) {
+  #notifToastContainer {
+    top: 10px;
+    left: 10px;
+    right: 10px;
+    max-width: none;
+  }
+}
+
+.notif-toast {
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+  padding: 12px 14px;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  transform: translateX(120%);
+  opacity: 0;
+  transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.2s;
+  pointer-events: auto;
+  cursor: pointer;
+  border-left: 4px solid #E2725B;
+}
+
+.notif-toast.show { transform: translateX(0); opacity: 1; }
+.notif-toast.notif-booking { border-left-color: #16a34a; }
+.notif-toast.notif-payment { border-left-color: #E2725B; }
+.notif-toast.notif-checkin { border-left-color: #2563eb; }
+.notif-toast.notif-checkout { border-left-color: #6b7280; }
+.notif-toast.notif-task { border-left-color: #d97706; }
+
+.notif-toast .notif-icon {
+  font-size: 24px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+.notif-toast .notif-body { flex: 1; min-width: 0; }
+.notif-toast .notif-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #111;
+  margin-bottom: 2px;
+}
+.notif-toast .notif-msg {
+  font-size: 13px;
+  color: #444;
+  line-height: 1.35;
+  word-wrap: break-word;
+}
+.notif-toast .notif-sub {
+  font-size: 11px;
+  color: #888;
+  margin-top: 3px;
+}
+.notif-toast .notif-close {
+  background: transparent;
+  border: none;
+  color: #999;
+  font-size: 20px;
+  cursor: pointer;
+  padding: 0 4px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+/* Bell Panel */
+.notif-panel-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.5);
+  backdrop-filter: blur(3px);
+  z-index: 999999;
+  display: flex;
+  justify-content: flex-end;
+  opacity: 0;
+  transition: opacity 0.25s;
+}
+.notif-panel-overlay.show { opacity: 1; }
+
+.notif-panel {
+  background: #fff;
+  width: 380px;
+  max-width: 90%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  transform: translateX(100%);
+  transition: transform 0.3s ease-out;
+  box-shadow: -8px 0 30px rgba(0,0,0,0.2);
+}
+.notif-panel-overlay.show .notif-panel { transform: translateX(0); }
+
+.notif-panel-header {
+  padding: 16px;
+  border-bottom: 1px solid #eee;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #fafafa;
+}
+.notif-panel-header h3 { margin: 0; font-size: 17px; }
+.notif-panel-close {
+  background: transparent;
+  border: none;
+  font-size: 26px;
+  cursor: pointer;
+  color: #666;
+  line-height: 1;
+}
+
+.notif-panel-actions {
+  padding: 8px 16px;
+  display: flex;
+  gap: 8px;
+  border-bottom: 1px solid #eee;
+}
+.notif-panel-actions button {
+  flex: 1;
+  padding: 8px;
+  background: #f5f5f5;
+  border: none;
+  border-radius: 6px;
+  font-size: 12px;
+  cursor: pointer;
+  color: #444;
+}
+.notif-panel-actions button:hover { background: #eee; }
+
+.notif-panel-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 4px 0;
+}
+
+.notif-item {
+  padding: 12px 16px;
+  display: flex;
+  gap: 10px;
+  cursor: pointer;
+  border-bottom: 1px solid #f5f5f5;
+  transition: background 0.15s;
+}
+.notif-item:hover { background: #fafafa; }
+.notif-item.unread { background: #fff7f5; }
+.notif-item.unread::before {
+  content: '';
+  width: 8px;
+  height: 8px;
+  background: #E2725B;
+  border-radius: 50%;
+  align-self: center;
+  margin-right: -4px;
+}
+.notif-item .notif-icon { font-size: 22px; line-height: 1; flex-shrink: 0; }
+.notif-item .notif-body { flex: 1; min-width: 0; }
+.notif-item .notif-title { font-size: 13px; font-weight: 600; color: #111; }
+.notif-item .notif-msg { font-size: 12px; color: #555; margin-top: 2px; line-height: 1.35; }
+.notif-item .notif-time { font-size: 10px; color: #999; margin-top: 4px; }
+
+.notif-empty {
+  text-align: center;
+  padding: 60px 20px;
+  color: #999;
+  font-size: 13px;
+}
+
+/* Bell button in sidebar */
+.sidebar-bell {
+  transition: transform 0.15s;
+}
+.sidebar-bell:active { transform: scale(0.9); }
