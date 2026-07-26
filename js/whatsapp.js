@@ -174,7 +174,7 @@ async function shareBookingWhatsApp(bkId) {
   const propertyURL = getPropertyURL(propertyName);
 
   const msg = [
-    `Hii ${guestName}! 👋`,
+    `Hi ${guestName}! 👋`,
     `Welcome to *${BRAND}*!`,
     `Thank you for booking your stay with us. 😊`,
     ``,
@@ -241,9 +241,9 @@ async function sendArrivalDetails(bkId) {
   const contactLines = await getPropertyContactsForRoom(roomId, r);
 
   const msg = [
-    `Hii ${guestName}! 👋`,
+    `Hi ${guestName}! 👋`,
     ``,
-    `Aap *${propertyName}* pe 1 hour me pahuchne wale hain! ⏰`,
+    `You will be arriving at *${propertyName}* in about 1 hour! ⏰`,
     ``,
     `📍 *Address:*`,
     r.address || 'N/A',
