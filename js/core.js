@@ -903,7 +903,8 @@ function showRolePickerModal(userId, name, callback) {
           <option value="caretaker">📱 Caretaker (Mobile Check-in View)</option>
           <option value="viewer">👁️ Viewer (Limited View — Today's info)</option>
           <option value="subowner">🟢 Sub-owner (Own Property Only)</option>
-        <option value="investor">📊 Investor (Own Property Only)</option>
+        <option value="subowner">🟢 Sub-owner (Own Property Only)</option>
+          <option value="investor">📊 Investor (Own Property Only)</option>
           <option value="employee">👷 Employee (Self Attendance View)</option>
           <option value="ca">📋 💼 CA / Accountant (Financial Reports)</option>
         </select>
