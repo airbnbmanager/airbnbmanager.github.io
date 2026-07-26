@@ -28,7 +28,7 @@ async function renderManageEmployees() {
     sb.from("employees").select("*").order("name"),
     checkStorageUsage()
   ]);
-  const isO = ['owner','admin'].includes(SESSION.role);
+  const isO = ['owner','admin','moderator','developer'].includes(SESSION.role);
 
   renderShell(`
     <div class="card">
@@ -342,7 +342,7 @@ async function renderEmployeeTasks() {
   const roomMap2 = {};
   (rooms || []).forEach(r => { roomMap2[r.room_id] = r.nickname; });
 
-  const isO = ['owner','admin'].includes(SESSION.role);
+  const isO = ['owner','admin','moderator','developer'].includes(SESSION.role);
 
   renderShell(`
     <div class="card">
@@ -521,7 +521,7 @@ async function renderAttendance(selectedDate) {
   ]);
   const am = {};
   (att || []).forEach(a => { am[a.emp_id] = a.status; });
-  const isO = ['owner','admin'].includes(SESSION.role);
+  const isO = ['owner','admin','moderator','developer'].includes(SESSION.role);
 
   const dateLabel = new Date(attDate).toLocaleDateString('en-IN', {
     weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
@@ -634,7 +634,7 @@ async function renderSalaryTracker() {
     sb.from('advance_tracker').select('emp_id, advance_amount, repaid_amount'),
     sb.from('daily_expenses').select('emp_id, amount')
   ]);
-  const isO = ['owner','admin'].includes(SESSION.role);
+  const isO = ['owner','admin','moderator','developer'].includes(SESSION.role);
 
   // Advance per employee
   const advMap = {};
@@ -786,7 +786,7 @@ async function delSal(id) {
 async function renderAdvanceTracker() {
   renderShell(`<div class="loading">Loading...</div>`, 'advance');
   const { data: advs } = await sb.from('advance_tracker').select('*, employees(name)').order('date_given', { ascending: false });
-  const isO = ['owner','admin'].includes(SESSION.role);
+  const isO = ['owner','admin','moderator','developer'].includes(SESSION.role);
 
   const totalGiven   = (advs || []).reduce((s, a) => s + (a.advance_amount || 0), 0);
   const totalRepaid  = (advs || []).reduce((s, a) => s + (a.repaid_amount || 0), 0);
@@ -955,7 +955,7 @@ async function renderEmpExpenses() {
   (rooms || []).forEach(r => { roomMap[r.room_id] = r.nickname; });
 
   const total = (exps || []).reduce((s, e) => s + (e.amount || 0), 0);
-  const isO = ['owner','admin'].includes(SESSION.role) || SESSION.role === 'manager';
+  const isO = ['owner','admin','moderator','developer'].includes(SESSION.role) || SESSION.role === 'manager';
 
   window._empExpData = exps || [];
   window._empExpEmpMap = empMap;
@@ -1016,7 +1016,7 @@ function filterEmpExpenses() {
   if (monthVal) filtered = filtered.filter(e => (e.expense_date || '').startsWith(monthVal));
 
   const total = filtered.reduce((s, e) => s + (e.amount || 0), 0);
-  const isO = ['owner','admin'].includes(SESSION.role) || SESSION.role === 'manager';
+  const isO = ['owner','admin','moderator','developer'].includes(SESSION.role) || SESSION.role === 'manager';
 
   wrap.innerHTML = `
     <div class="card">
