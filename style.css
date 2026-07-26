@@ -3864,10 +3864,33 @@ textarea:focus {
   }
 
   .sidebar-username {
-    flex: 1 !important;
+    flex: 0 1 auto !important;
     min-width: 0 !important;
-    overflow: hidden !important;
-    text-overflow: ellipsis !important;
+    overflow: visible !important;
     white-space: nowrap !important;
+    font-size: 13px !important;
+    max-width: 150px !important;
+    text-overflow: ellipsis !important;
+    overflow: hidden !important;
   }
+}
+
+
+/* ═══════════════════════════════════════════════════════════
+   🔔 Bell icon - only red when notification, white otherwise
+   ═══════════════════════════════════════════════════════════ */
+.sidebar-bell {
+  color: #ffffff !important;
+  filter: none !important;
+}
+
+/* Only badge (count circle) is red */
+.notif-bell-badge {
+  background: #FF3B30 !important;
+  color: #fff !important;
+}
+
+/* Bell emoji itself always white */
+#notifBellBtn {
+  color: #fff !important;
 }
