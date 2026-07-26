@@ -1,4 +1,34 @@
 /**
+
+// ═══════════════════════════════════════════════════════════
+// PROPERTY WEBSITE URL MAPPING
+// ═══════════════════════════════════════════════════════════
+function getPropertyURL(nickname) {
+  if (!nickname) return 'https://uniquehavenhomesstay.com';
+  const map = {
+    'The Brown': 'the-brown',
+    'Black Beauty': 'black-beauty',
+    'Celebrity Garden': 'celebrity-garden',
+    'RedRose Palace': 'redrose-palace',
+    'The Dark Blue': 'the-dark-blue',
+    'The Green House': 'the-green-house',
+    'The Light Green': 'the-light-green',
+    'The Nawabi Stay': 'the-nawabi-stay',
+    'The Pink House': 'the-pink-house',
+    'Royal White House': 'royal-white-house',
+    'Starlight Blue PentHouse': 'starlight-blue-penthouse',
+    'The Unique': 'the-unique',
+    'The Velvet House': 'the-velvet-house',
+    'The Yellow House': 'the-yellow-house',
+    'Gomti Grand Villa': 'gomti-grand-villa'
+  };
+  const slug = map[nickname];
+  return slug
+    ? `https://uniquehavenhomesstay.com/${slug}.html`
+    : 'https://uniquehavenhomesstay.com';
+}
+
+
  * WhatsApp Module
  * UNIQUE HAVEN HOMES STAY
  */
@@ -145,6 +175,9 @@ async function shareBookingWhatsApp(bkId) {
 
   const contactLines = await getPropertyContactsForRoom(roomId, r);
 
+  // Website URL for property preview
+  const propertyURL = getPropertyURL(propertyName);
+
   const msg = [
     `Hii ${guestName}! 👋`,
     `Welcome to *${BRAND}*!`,
@@ -152,19 +185,21 @@ async function shareBookingWhatsApp(bkId) {
     ``,
     `🏡 *Property:* ${propertyName}`,
     building   ? `🏢 ${building}`            : '',
-    address    ? `📍 *Address:* ${address}`  : '',
+    address    ? `📍 Address: ${address}`    : '',
     floorInfo  ? `🏠 ${floorInfo}`           : '',
-    mapLink    ? `📌 *Location:* ${mapLink}` : '',
     ``,
-    directions ? `🗺️ *How to Reach:*\n${directions}` : '',
-    landmarks  ? `📍 *Nearby:* ${landmarks}` : '',
+    `🌐 View property details:`,
+    propertyURL,
+    ``,
+    mapLink    ? `📍 Location on Map:` : '',
+    mapLink    ? mapLink : '',
     ``,
     `⏰ *Timings:*`,
     `▫️ Check-in: ${checkIn} at ${checkInTime}`,
     `▫️ Check-out: ${checkOut} at ${checkOutTime}`,
     ``,
-    `📋 *Check-in Instructions:*`,
-    `Our caretaker will assist you with the check-in and show you around the place.`,
+    `📋 *Your Caretaker:*`,
+    `Our caretaker will assist you with check-in and show you around.`,
     ...contactLines,
     ``,
     `If caretaker is not reachable, contact:`,
@@ -172,7 +207,7 @@ async function shareBookingWhatsApp(bkId) {
     `📞 Mr Firoz Khan — 8299600709`,
     ``,
     b.has_vehicle ? `🚗 *Vehicle Parking:*` : '',
-    b.has_vehicle ? `If you are arriving by car, please share your vehicle name and registration number on WhatsApp or tell the caretaker at check-in so your parking can be managed properly.` : '',
+    b.has_vehicle ? `If arriving by car, share vehicle name & number with caretaker.` : '',
     b.has_vehicle && (b.vehicle_name || b.vehicle_number) ? `Your vehicle: ${b.vehicle_name || ''} ${b.vehicle_number || ''}` : '',
     ``,
     `⚠️ *House Rules:*`,
@@ -181,13 +216,13 @@ async function shareBookingWhatsApp(bkId) {
     `• No wild parties or disruptive gatherings`,
     `• Early check-in / late check-out subject to availability`,
     `• Government ID required at check-in`,
-    `• We want to keep the neighbourhood peaceful for everyone`,
     ``,
-    `Need anything? Message us anytime!`,
-    `Happy to help whenever you need. 😊`,
+    `We'll send full arrival details (WiFi, key info) 1 hour before check-in ⏰`,
+    ``,
+    `Need help? Message anytime! 😊`,
     ``,
     `— Team *${BRAND}*`,
-    `🌐 uniquehavenhomesstay.com`
+    `🌐 https://uniquehavenhomesstay.com`
   ].filter(v => v !== false && v !== null && v !== undefined && v !== '').join('\n');
 
   showWhatsAppModal(guestName, propertyName, b.phone, msg);
