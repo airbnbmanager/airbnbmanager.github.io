@@ -112,6 +112,8 @@ function buildIdButtons(b) {
 
 // ============ MANAGE BOOKINGS ============
 async function renderManageBookings() {
+  if (window.showLoadingSkeleton) window.showLoadingSkeleton('list');
+
   // For caretaker/checkin_manager - filter to only their properties
   if (['caretaker', 'checkin_manager'].includes(SESSION.role) && SESSION.empId) {
     const { data: emp } = await sb.from('employees')

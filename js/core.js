@@ -1285,3 +1285,65 @@ window.showSkeleton = function(target, type = 'cards', count = 5) {
   html += '</div>';
   el.innerHTML = html;
 };
+
+// ═══════════════════════════════════════════════════════════
+// 🎨 EMPTY STATE HELPER
+// ═══════════════════════════════════════════════════════════
+window.emptyState = function(config) {
+  const c = config || {};
+  const onclick = c.btnAction ? `onclick="${c.btnAction}"` : '';
+  return `
+    <div class="empty-state">
+      <div class="empty-state-icon">${c.icon || '📭'}</div>
+      <div class="empty-state-title">${c.title || 'Nothing here yet'}</div>
+      ${c.message ? `<div class="empty-state-message">${c.message}</div>` : ''}
+      ${c.btnText ? `<button class="empty-state-btn" ${onclick}>${c.btnText}</button>` : ''}
+    </div>`;
+};
+
+// ═══════════════════════════════════════════════════════════
+// 💀 IMPROVED SKELETON HELPERS
+// ═══════════════════════════════════════════════════════════
+window.skeletonMetrics = function(count) {
+  count = count || 4;
+  let html = '<div class="skeleton-page-header"><div class="skeleton skeleton-line title" style="width:200px;"></div><div class="skeleton skeleton-line sm" style="margin-top:8px;"></div></div>';
+  html += '<div class="skeleton-metrics">';
+  for (let i = 0; i < count; i++) {
+    html += `
+      <div class="skeleton-metric-card">
+        <div class="skeleton skeleton-line sm" style="margin-bottom:8px;"></div>
+        <div class="skeleton skeleton-line" style="height:28px;width:70%;"></div>
+        <div class="skeleton skeleton-line sm" style="margin-top:6px;"></div>
+      </div>`;
+  }
+  html += '</div>';
+  return html;
+};
+
+window.skeletonList = function(count) {
+  count = count || 5;
+  let html = '<div class="skeleton-page-header"><div class="skeleton skeleton-line title" style="width:180px;"></div></div>';
+  html += '<div class="skeleton-card" style="background:#fff;border-radius:12px;padding:12px;">';
+  for (let i = 0; i < count; i++) {
+    html += `<div style="display:flex;gap:12px;padding:12px 0;border-bottom:1px solid #f5f5f5;">
+      <div class="skeleton skeleton-avatar"></div>
+      <div style="flex:1;">
+        <div class="skeleton skeleton-line md"></div>
+        <div class="skeleton skeleton-line sm" style="margin-top:6px;"></div>
+      </div>
+      <div class="skeleton skeleton-badge"></div>
+    </div>`;
+  }
+  html += '</div>';
+  return html;
+};
+
+// Show skeleton in main area (auto-detects)
+window.showLoadingSkeleton = function(type) {
+  const target = document.getElementById('mainContent') || document.getElementById('app');
+  if (!target) return;
+  const wrapper = '<div class="wrap">' +
+    (type === 'metrics' ? window.skeletonMetrics(6) : window.skeletonList(6)) +
+    '</div>';
+  target.innerHTML = wrapper;
+};

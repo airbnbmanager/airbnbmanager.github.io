@@ -21,6 +21,8 @@ async function checkStorageUsage() {
 
 // ============ EMPLOYEES ============
 async function renderManageEmployees() {
+  if (window.showLoadingSkeleton) window.showLoadingSkeleton('list');
+
   renderShell(`<div class="loading">Loading...</div>`, 'employees');
   const [{ data: emps }, storageInfo] = await Promise.all([
     sb.from("employees").select("*").order("name"),

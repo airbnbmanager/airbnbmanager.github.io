@@ -5,6 +5,8 @@
 
 // ============ MAIN EXPENSES VIEW ============
 async function renderExpenses() {
+  if (window.showLoadingSkeleton) window.showLoadingSkeleton('list');
+
   renderShell(`<div class="loading">Loading...</div>`, 'expenses');
 
   const cm = new Date().toISOString().slice(0, 7);

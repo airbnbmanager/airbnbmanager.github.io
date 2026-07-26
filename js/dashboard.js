@@ -4,6 +4,8 @@
  */
 
 async function renderDashboard() {
+  if (window.showLoadingSkeleton) window.showLoadingSkeleton('metrics');
+
   renderShell(`<div class="loading">Loading...</div>`, 'dashboard');
 
   const activeUsers = await getActiveUsers();

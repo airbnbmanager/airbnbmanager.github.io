@@ -5,6 +5,8 @@
 
 // ============ PROPERTIES (ROOMS) ============
 async function renderManageRooms() {
+  if (window.showLoadingSkeleton) window.showLoadingSkeleton('list');
+
   renderShell(`<div class="loading">Loading...</div>`, 'rooms');
   const [{ data: rooms, error }, { data: emps }] = await Promise.all([
     sb.from("rooms").select("*").order("room_id"),
