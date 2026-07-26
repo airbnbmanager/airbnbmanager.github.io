@@ -481,6 +481,7 @@ function renderShell(content, activePage = 'dashboard') {
         <!-- Row 2: Navigation -->
         <div class="drawer-search">
           <input type="text" id="drawerSearchInput" placeholder="🔍 Search menu..." />
+          <button onclick="window.openPreferences && window.openPreferences()" style="width:100%;margin-top:8px;padding:10px;background:rgba(255,255,255,0.08);color:rgba(255,255,255,0.85);border:none;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;">⚙️ Preferences</button>
         </div>
         
         <nav class="sidebar-nav">
