@@ -3849,29 +3849,61 @@ textarea:focus {
   flex-shrink: 0 !important;
 }
 
-/* Desktop specifically — ensure sidebar top has enough space */
+/* Desktop sidebar — clean compact single-row layout */
 @media (min-width: 769px) {
   .sidebar-top {
+    display: flex !important;
     flex-direction: column !important;
     align-items: stretch !important;
-    gap: 12px !important;
+    gap: 10px !important;
     padding: 14px !important;
   }
 
+  .sidebar-brand {
+    justify-content: flex-start !important;
+  }
+
   .sidebar-user {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
     justify-content: space-between !important;
+    gap: 6px !important;
     width: 100% !important;
+    flex-wrap: nowrap !important;
   }
 
   .sidebar-username {
-    flex: 0 1 auto !important;
+    flex: 1 1 auto !important;
     min-width: 0 !important;
-    overflow: visible !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
     white-space: nowrap !important;
     font-size: 13px !important;
-    max-width: 150px !important;
-    text-overflow: ellipsis !important;
-    overflow: hidden !important;
+    color: #fff !important;
+    font-weight: 600 !important;
+  }
+
+  .sidebar-role {
+    flex-shrink: 0 !important;
+    font-size: 9px !important;
+    padding: 2px 6px !important;
+  }
+
+  .sidebar-bell {
+    flex-shrink: 0 !important;
+    padding: 0 4px !important;
+    font-size: 15px !important;
+  }
+
+  .sidebar-logout {
+    flex-shrink: 0 !important;
+    padding: 3px 10px !important;
+    font-size: 11px !important;
+    height: 22px !important;
+    min-height: 22px !important;
+    max-height: 22px !important;
+    line-height: 1 !important;
   }
 }
 
