@@ -906,7 +906,10 @@ async function showActiveUsersModal() {
                 <span style="width:12px;height:12px;background:#00A699;border-radius:50%;animation:pulse-dot 1.5s ease-in-out infinite;"></span>
                 <div style="flex:1;">
                   <strong>${u.display_name || 'User'}</strong>
-                  <div style="font-size:12px;color:var(--muted);">${u.role} · ${timeStr}</div>
+                  <div style="font-size:12px;color:var(--muted);">${(({
+                    'c6343844-a307-4668-9b16-1947a0c0f8fa': 'Manager',
+                    'e3717cbd-da9a-495e-a940-2995021e8ca2': 'Developer'
+                  })[u.user_id] || u.role)} · ${timeStr}</div>
                 </div>
               </div>
             `;
