@@ -2142,8 +2142,13 @@ function startCropSelect(e) {
   const cd = window._cropData;
   if (!cd) return;
   const rect = cd.canvas.getBoundingClientRect();
-  cd.startX = e.clientX - rect.left;
-  cd.startY = e.clientY - rect.top;
+  // Scale from displayed size to canvas actual size
+  const scaleX = cd.canvas.width / rect.width;
+  const scaleY = cd.canvas.height / rect.height;
+  cd.startX = (e.clientX - rect.left) * scaleX;
+  cd.startY = (e.clientY - rect.top) * scaleY;
+  cd.dispScaleX = scaleX;
+  cd.dispScaleY = scaleY;
   cd.isDragging = true;
 }
 
@@ -2151,14 +2156,15 @@ function updateCropSelect(e) {
   const cd = window._cropData;
   if (!cd || !cd.isDragging) return;
   const rect = cd.canvas.getBoundingClientRect();
-  const x = e.clientX - rect.left;
-  const y = e.clientY - rect.top;
+  const scaleX = cd.canvas.width / rect.width;
+  const scaleY = cd.canvas.height / rect.height;
+
+  // Coordinates in canvas natural space
+  const x = (e.clientX - rect.left) * scaleX;
+  const y = (e.clientY - rect.top) * scaleY;
 
   const overlay = document.getElementById('cropOverlay');
   const canvas = cd.canvas;
-  const canvasRect = canvas.getBoundingClientRect();
-  const canvasOffsetX = canvas.offsetLeft;
-  const canvasOffsetY = canvas.offsetTop;
 
   const left = Math.min(cd.startX, x);
   const top = Math.min(cd.startY, y);
@@ -2167,11 +2173,12 @@ function updateCropSelect(e) {
 
   cd.selection = { x: left, y: top, w: width, h: height };
 
+  // Overlay in DISPLAYED coordinates (divide by scale)
   overlay.style.display = 'block';
-  overlay.style.left = (canvas.offsetLeft + left) + 'px';
-  overlay.style.top = (canvas.offsetTop + top) + 'px';
-  overlay.style.width = width + 'px';
-  overlay.style.height = height + 'px';
+  overlay.style.left = (canvas.offsetLeft + left / scaleX) + 'px';
+  overlay.style.top = (canvas.offsetTop + top / scaleY) + 'px';
+  overlay.style.width = (width / scaleX) + 'px';
+  overlay.style.height = (height / scaleY) + 'px';
 
   document.getElementById('cropInfo').innerHTML =
     `Selection: ${Math.round(width)}×${Math.round(height)}px`;
