@@ -379,8 +379,17 @@ function renderShell(content, activePage = 'dashboard') {
   // Settings visible only to admin
   const showSettings = isAdmin;
 
-  // Moderator: only 5 items
-  if (SESSION.role === 'moderator') {
+  // Viewer: 4 items view-only (no attendance)
+  if (SESSION.role === 'viewer') {
+    nav = [
+      { section: 'MAIN' },
+      ['dashboard', '🏠 Dashboard'],
+      ['reports', '📆 Calendar'],
+      { section: 'GUESTS' },
+      ['bookings', '📅 Bookings'],
+      ['flats', '🛏️ Flats Status'],
+    ];
+  } else if (SESSION.role === 'moderator') {
     nav = [
       { section: 'MAIN' },
       ['dashboard', '🏠 Dashboard'],
@@ -511,6 +520,7 @@ function renderShell(content, activePage = 'dashboard') {
     'admin': 'Admin',
     'owner': '🟠 Owner',
     'moderator': '🟡 Moderator',
+    'viewer': '👁️ Viewer',
     'subowner': '🟢 Sub-owner',
     'booking_staff': 'Staff',
     'caretaker': 'Caretaker',
@@ -910,6 +920,7 @@ function showRolePickerModal(userId, name, callback) {
           <option value="developer">🔴 Developer (Full + Delete)</option>
           <option value="owner">🟠 Owner (Full, No Delete)</option>
           <option value="moderator">🟡 Moderator (Booking + ID + WhatsApp)</option>
+          <option value="viewer">👁️ Viewer (View Only - 4 items)</option>
         </select>
       </div>
       <div style="font-size:12px;color:var(--muted);margin-top:6px;padding:8px;background:var(--bg);border-radius:8px;" id="roleDesc"></div>
