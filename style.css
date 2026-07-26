@@ -4212,52 +4212,132 @@ textarea:focus {
 
 
 /* ═══════════════════════════════════════════════════════════
-   📅 CALENDAR — Don't apply card view (needs grid)
+   📅 CALENDAR — Restore normal grid layout
    ═══════════════════════════════════════════════════════════ */
 @media (max-width: 768px) {
-  /* Calendar tables should keep normal layout */
-  .calendar-grid,
-  .calendar-grid table,
-  #calendarWrap table,
-  [class*="calendar"] table {
-    display: table !important;
+  /* Undo card conversion for calendar page */
+  #mainContent .calendar-grid,
+  #mainContent [class*="calendar"] {
+    display: block !important;
   }
 
-  .calendar-grid thead,
-  #calendarWrap thead,
-  [class*="calendar"] thead {
+  #mainContent .calendar-grid table,
+  #mainContent [class*="calendar"] table,
+  .wrap table.calendar-table {
+    display: table !important;
+    width: 100% !important;
+    table-layout: fixed !important;
+  }
+
+  #mainContent .calendar-grid thead,
+  #mainContent [class*="calendar"] thead,
+  .wrap table.calendar-table thead {
     display: table-header-group !important;
   }
 
-  .calendar-grid tbody,
-  #calendarWrap tbody,
-  [class*="calendar"] tbody {
+  #mainContent .calendar-grid tbody,
+  #mainContent [class*="calendar"] tbody,
+  .wrap table.calendar-table tbody {
     display: table-row-group !important;
   }
 
-  .calendar-grid tbody tr,
-  #calendarWrap tbody tr,
-  [class*="calendar"] tbody tr {
+  #mainContent .calendar-grid tr,
+  #mainContent [class*="calendar"] tr,
+  .wrap table.calendar-table tr {
     display: table-row !important;
     background: transparent !important;
     border: none !important;
     padding: 0 !important;
     margin: 0 !important;
     box-shadow: none !important;
+    border-radius: 0 !important;
   }
 
-  .calendar-grid tbody td,
-  #calendarWrap tbody td,
-  [class*="calendar"] tbody td {
+  #mainContent .calendar-grid td,
+  #mainContent .calendar-grid th,
+  #mainContent [class*="calendar"] td,
+  #mainContent [class*="calendar"] th,
+  .wrap table.calendar-table td,
+  .wrap table.calendar-table th {
     display: table-cell !important;
     text-align: center !important;
-    padding: 4px !important;
+    padding: 6px 2px !important;
     border: 1px solid #eee !important;
+    font-size: 11px !important;
+    vertical-align: middle !important;
+    min-height: unset !important;
   }
 
-  .calendar-grid tbody td::before,
-  #calendarWrap tbody td::before,
-  [class*="calendar"] tbody td::before {
+  #mainContent .calendar-grid td::before,
+  #mainContent [class*="calendar"] td::before,
+  .wrap table.calendar-table td::before {
     display: none !important;
+    content: none !important;
+  }
+}
+
+/* Also: fix booking card cell content wrapping */
+@media (max-width: 768px) {
+  /* Cell values should not break in weird places */
+  .table-wrap tbody td,
+  .card tbody td {
+    white-space: normal !important;
+    word-break: keep-all !important;
+    overflow-wrap: break-word !important;
+  }
+
+  /* Right side value area (after ::before label) */
+  .table-wrap tbody td > *:first-child,
+  .card tbody td > *:first-child {
+    display: inline !important;
+  }
+}
+
+
+/* ═══════════════════════════════════════════════════════════
+   📱 CELL CONTENT — Keep phone/text on one line
+   ═══════════════════════════════════════════════════════════ */
+@media (max-width: 768px) {
+  /* Cell value area — right side */
+  .table-wrap tbody td,
+  .card tbody td {
+    display: block !important;
+    padding: 8px 0 !important;
+    text-align: left !important;
+  }
+
+  /* Label goes above value */
+  .table-wrap tbody td::before,
+  .card tbody td::before {
+    display: block !important;
+    margin-bottom: 4px !important;
+    color: #888 !important;
+    font-size: 10px !important;
+    font-weight: 700 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.5px !important;
+  }
+
+  /* Value line - wraps naturally */
+  .table-wrap tbody td strong,
+  .card tbody td strong {
+    display: inline-block !important;
+    font-size: 14px !important;
+  }
+
+  /* Small subtext keeps its line */
+  .table-wrap tbody td small,
+  .card tbody td small {
+    display: block !important;
+    font-size: 11px !important;
+    color: #666 !important;
+    margin-top: 2px !important;
+    white-space: normal !important;
+  }
+
+  /* Phone/text — no crazy wrap */
+  .table-wrap tbody td br + *,
+  .card tbody td br + * {
+    display: inline !important;
   }
 }
