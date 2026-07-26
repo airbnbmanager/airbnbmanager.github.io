@@ -428,6 +428,20 @@ async function renderDashboard() {
         b.check_in === tomorrow && b.phone
       );
 
+      // Today's check-ins arriving in next 2 hours → send arrival details
+      const nowMinutes = new Date().getHours() * 60 + new Date().getMinutes();
+      const arrivingSoon = allBookings.filter(b => {
+        if (!b.phone || b.check_in !== todayDate) return false;
+        // parse check_in_time like "14:00" or "2:00 PM"
+        const t = (b.check_in_time || '14:00').toString();
+        let mins = 14 * 60; // default 2 PM
+        const m24 = t.match(/^(\d{1,2}):(\d{2})/);
+        if (m24) mins = parseInt(m24[1]) * 60 + parseInt(m24[2]);
+        // Arriving in next 2 hours OR arrived in last 30 min (not yet checked in via actual_checkin)
+        const diff = mins - nowMinutes;
+        return diff >= -30 && diff <= 120;
+      });
+
       // Today's checkouts → send checkout reminder (only if not past)
       const checkoutReminders = allBookings.filter(b => {
         if (!b.phone || !b.check_out) return false;
@@ -453,7 +467,7 @@ async function renderDashboard() {
         return !hasId;
       });
 
-      const totalTasks = checkinReminders.length + checkoutReminders.length + reviewRequests.length + noIdBookings.length;
+      const totalTasks = checkinReminders.length + arrivingSoon.length + checkoutReminders.length + reviewRequests.length + noIdBookings.length;
       if (totalTasks === 0) return '';
 
       return `
@@ -477,6 +491,23 @@ async function renderDashboard() {
                 <br><small style="color:var(--muted);">📞 ${b.phone} · Check-in: ${b.check_in} ${b.check_in_time || ''}</small>
               </div>
               <button class="btn-sm" style="background:#00A699;color:#fff;" onclick="sendCheckinReminder('${b.booking_id}')">📅 Send</button>
+            </div>
+          `).join('')}
+        </div>
+        ` : ''}
+
+        ${arrivingSoon.length ? `
+        <div style="margin-bottom:16px;">
+          <div style="font-size:13px;font-weight:700;color:#E2725B;margin-bottom:8px;">
+            ⏰ Arriving Soon (${arrivingSoon.length}) — Send WiFi + Key details
+          </div>
+          ${arrivingSoon.map(b => `
+            <div style="display:flex;align-items:center;gap:10px;padding:8px;background:#fff;border-radius:8px;margin-bottom:6px;border:1px solid var(--border);">
+              <div style="flex:1;">
+                <strong>${b.guest_name}</strong> — ${propLabel(b.rooms) || b.room_id}
+                <br><small style="color:var(--muted);">📞 ${b.phone} · Check-in: ${b.check_in_time || '14:00'}</small>
+              </div>
+              <button class="btn-sm" style="background:#E2725B;color:#fff;" onclick="sendArrivalDetails('${b.booking_id}')">⏰ Send</button>
             </div>
           `).join('')}
         </div>
