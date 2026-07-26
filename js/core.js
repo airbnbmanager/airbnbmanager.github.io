@@ -482,16 +482,7 @@ function renderShell(content, activePage = 'dashboard') {
         <div class="drawer-search">
           <input type="text" id="drawerSearchInput" placeholder="🔍 Search menu..." />
         </div>
-        <div class="theme-toggle-wrap">
-          <div style="font-size:11px;color:rgba(255,255,255,0.5);font-weight:700;letter-spacing:1.5px;margin-bottom:8px;">THEME</div>
-          <div class="theme-picker">
-            <div class="theme-swatch light" onclick="window.themeManager.set('light')" title="Light"></div>
-            <div class="theme-swatch dark" onclick="window.themeManager.set('dark')" title="Dark"></div>
-            <div class="theme-swatch ocean" onclick="window.themeManager.set('ocean')" title="Ocean"></div>
-            <div class="theme-swatch forest" onclick="window.themeManager.set('forest')" title="Forest"></div>
-            <div class="theme-swatch midnight" onclick="window.themeManager.set('midnight')" title="Midnight"></div>
-          </div>
-        </div>
+        
         <nav class="sidebar-nav">
           ${nav.map(item => {
             if (item.section) {
@@ -1424,6 +1415,11 @@ window.themeManager = (function() {
   }
 
   function apply(theme) {
+    // Only allow light/dark
+    if (theme !== 'light' && theme !== 'dark') {
+      theme = 'light';
+      localStorage.setItem(KEY, 'light');
+    }
     document.documentElement.setAttribute('data-theme', theme);
     // Update theme-color meta for status bar
     const meta = document.querySelector('meta[name="theme-color"]');
@@ -1460,6 +1456,53 @@ window.themeManager = (function() {
   }
   return { get, apply, toggle, init, set };
 })();
+
+// ═══════════════════════════════════════════════════════════
+// ⚙️ PREFERENCES PANEL — Theme + Notifications settings
+// ═══════════════════════════════════════════════════════════
+window.openPreferences = function() {
+  const overlay = document.createElement('div');
+  overlay.className = 'notif-panel-overlay show';
+  const currentTheme = window.themeManager?.get() || 'light';
+  overlay.innerHTML = `
+    <div class="notif-panel" style="max-width:420px;">
+      <div class="notif-panel-header">
+        <h3>⚙️ Preferences</h3>
+        <button class="notif-panel-close">×</button>
+      </div>
+      <div style="padding:20px;">
+        <div style="font-size:11px;color:#888;text-transform:uppercase;letter-spacing:1.5px;font-weight:700;margin-bottom:12px;">Appearance</div>
+
+        <label style="display:flex;align-items:center;justify-content:space-between;padding:14px;background:var(--bg-tertiary,#f5f5f5);border-radius:10px;margin-bottom:8px;cursor:pointer;">
+          <span style="display:flex;align-items:center;gap:10px;">
+            <span style="font-size:22px;">${currentTheme === 'dark' ? '🌙' : '☀️'}</span>
+            <span>
+              <div style="font-weight:600;">Dark Mode</div>
+              <div style="font-size:12px;opacity:0.6;">Switch between light and dark themes</div>
+            </span>
+          </span>
+          <div class="theme-toggle ${currentTheme === 'dark' ? 'active' : ''}" onclick="window.themeManager.toggle();this.classList.toggle('active');event.stopPropagation();">
+            <div class="theme-toggle-switch"></div>
+          </div>
+        </label>
+
+        <div style="font-size:11px;color:#888;text-transform:uppercase;letter-spacing:1.5px;font-weight:700;margin:24px 0 12px;">Notifications</div>
+
+        <button onclick="if(window.notifSettings){window.notifSettings.openSettings();document.querySelector('.notif-panel-overlay')?.remove();}" style="width:100%;padding:14px;background:var(--bg-tertiary,#f5f5f5);border:none;border-radius:10px;text-align:left;cursor:pointer;font-size:14px;display:flex;align-items:center;gap:10px;">
+          <span style="font-size:22px;">🔔</span>
+          <span>
+            <div style="font-weight:600;">Notification Settings</div>
+            <div style="font-size:12px;opacity:0.6;">Choose what alerts to receive</div>
+          </span>
+        </button>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+  const close = () => { overlay.classList.remove('show'); setTimeout(() => overlay.remove(), 250); };
+  overlay.onclick = e => { if (e.target === overlay) close(); };
+  overlay.querySelector('.notif-panel-close').onclick = close;
+};
+
 
 // ═══════════════════════════════════════════════════════════
 // 📴 OFFLINE MODE MANAGER
