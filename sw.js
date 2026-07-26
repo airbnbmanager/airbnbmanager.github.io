@@ -1,4 +1,4 @@
-const CACHE_NAME = 'uhhs-live-v87';
+const CACHE_NAME = 'uhhs-live-v89';
 const RUNTIME_CACHE = 'uhhs-runtime-v49';
 
 const CORE_ASSETS = [
