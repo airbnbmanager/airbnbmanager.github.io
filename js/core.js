@@ -904,7 +904,10 @@ async function renderUserManagement() {
             ${p.avatar_url ? `<img src="${p.avatar_url}" style="width:24px;height:24px;border-radius:50%;vertical-align:middle;margin-right:6px;" />` : ''}
             <strong>${p.display_name || '-'}</strong>
           </td>
-          <td><span class="badge ${p.role === 'owner' ? 'green' : p.role === 'manager' ? 'blue' : 'yellow'}">${p.role}</span></td>
+          <td><span class="badge ${p.role === 'owner' ? 'green' : p.role === 'manager' ? 'blue' : 'yellow'}">${(({
+              'c6343844-a307-4668-9b16-1947a0c0f8fa': 'Manager',
+              'e3717cbd-da9a-495e-a940-2995021e8ca2': 'Developer'
+            })[p.user_id]) || p.role}</span></td>
           <td>${p.auth_provider || 'email'}</td>
           <td><span class="badge ${p.is_approved ? 'green' : 'yellow'}">${p.is_approved ? 'Active' : 'Pending'}</span></td>
           <td class="table-actions">
