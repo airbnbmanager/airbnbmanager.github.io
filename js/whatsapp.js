@@ -228,6 +228,62 @@ async function shareBookingWhatsApp(bkId) {
   showWhatsAppModal(guestName, propertyName, b.phone, msg);
 }
 
+
+
+// ============ 1-HOUR BEFORE CHECK-IN MESSAGE (Arrival Details) ============
+async function sendArrivalDetails(bkId) {
+  const { data: b } = await sb.from('guest_register')
+    .select('*, rooms(room_id, unit_no, nickname, property_name, address, floor, floor_info, building_name, map_link, key_number, lock_type, wifi_ssid, wifi_password, checkin_manager_emp_id, caretaker_emp_id, caretaker_name, caretaker_phone, checkin_manager)')
+    .eq('booking_id', bkId).single();
+  if (!b) { fsn.error('Error', 'Not found'); return; }
+
+  const r = b.rooms || {};
+  const roomId = r.room_id || b.room_id;
+  const guestName = b.guest_name || 'Guest';
+  const propertyName = r.nickname || r.unit_no || 'Property';
+  const propertyURL = getPropertyURL(propertyName);
+
+  const contactLines = await getPropertyContactsForRoom(roomId, r);
+
+  const msg = [
+    `Hii ${guestName}! 👋`,
+    ``,
+    `Aap *${propertyName}* pe 1 hour me pahuchne wale hain! ⏰`,
+    ``,
+    `📍 *Address:*`,
+    r.address || 'N/A',
+    r.building_name ? `🏢 ${r.building_name}` : '',
+    r.floor_info || (r.floor ? `🏠 Floor: ${r.floor}` : ''),
+    ``,
+    r.map_link ? `📍 Location on Map:` : '',
+    r.map_link ? r.map_link : '',
+    ``,
+    `🔑 *Key & Lock Details:*`,
+    r.lock_type ? `▫️ Lock Type: ${r.lock_type}` : '',
+    r.key_number ? `▫️ Key Number: *${r.key_number}*` : '',
+    ``,
+    (r.wifi_ssid || r.wifi_password) ? `📶 *WiFi Details:*` : '',
+    r.wifi_ssid ? `▫️ Network: *${r.wifi_ssid}*` : '',
+    r.wifi_password ? `▫️ Password: *${r.wifi_password}*` : '',
+    ``,
+    `📞 *Your Caretaker on arrival:*`,
+    ...contactLines,
+    ``,
+    b.has_vehicle ? `🚗 Parking assistance available — inform caretaker.` : '',
+    ``,
+    `🌐 Property details:`,
+    propertyURL,
+    ``,
+    `Safe journey! 🚗`,
+    `See you soon 🙏`,
+    ``,
+    `— Team *${BRAND}*`
+  ].filter(v => v !== false && v !== null && v !== undefined && v !== '').join('\n');
+
+  showWhatsAppModal(guestName, propertyName, b.phone, msg);
+}
+window.sendArrivalDetails = sendArrivalDetails;
+
 // ============ CHECKOUT REMINDER ============
 async function sendCheckoutReminder(bkId) {
   const { data: b } = await sb.from('guest_register')
