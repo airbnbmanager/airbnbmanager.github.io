@@ -18,6 +18,44 @@ function propLabel(r) {
 window.propLabel = propLabel;
 
 // ═══════════════════════════════════════════════════════════
+// 🔐 ROLE PERMISSION HELPERS
+// ═══════════════════════════════════════════════════════════
+window.canDelete = function() {
+  return SESSION.role === 'super_admin';
+};
+
+window.canEdit = function() {
+  return ['super_admin', 'owner', 'admin', 'moderator'].includes(SESSION.role);
+};
+
+window.canView = function() {
+  return ['super_admin', 'owner', 'admin', 'moderator', 'subowner', 'booking_staff', 'viewer'].includes(SESSION.role);
+};
+
+window.isReadOnly = function() {
+  return ['subowner', 'viewer'].includes(SESSION.role);
+};
+
+window.canModerate = function() {
+  // Booking, ID upload, attendance, WhatsApp
+  return ['super_admin', 'owner', 'admin', 'moderator'].includes(SESSION.role);
+};
+
+window.canManageUsers = function() {
+  return ['super_admin', 'admin'].includes(SESSION.role);
+};
+
+window.canManageFinance = function() {
+  return ['super_admin', 'owner', 'admin'].includes(SESSION.role);
+};
+
+window.canManageStaff = function() {
+  return ['super_admin', 'owner', 'admin'].includes(SESSION.role);
+};
+
+
+
+// ═══════════════════════════════════════════════════════════
 // 📊 PAGE VISIT TRACKER — for smart bottom nav
 // ═══════════════════════════════════════════════════════════
 window.trackPageVisit = function(page) {
@@ -326,14 +364,14 @@ async function loginWithEmail() {
 // ============ SHELL ============
 function renderShell(content, activePage = 'dashboard') {
   if (SESSION.investorId) { appEl.innerHTML = content; return; }
-  const show = ['admin', 'owner', 'viewer', 'booking_staff', 'manager', 'checkin_manager', 'caretaker'].includes(SESSION.role);
+  const show = ['super_admin', 'admin', 'owner', 'moderator', 'subowner', 'viewer', 'booking_staff', 'manager', 'checkin_manager', 'caretaker'].includes(SESSION.role);
   const isCheckinMgr = SESSION.role === 'checkin_manager' || SESSION.role === 'caretaker';
   if (!show) { appEl.innerHTML = content; return; }
 
-  const isAdmin = SESSION.role === 'admin';
+  const isAdmin = SESSION.role === 'admin' || SESSION.role === 'super_admin';
   const isOwner = SESSION.role === 'owner' || isAdmin;
-  const isBookingStaff = SESSION.role === 'booking_staff';
-  const isViewer = SESSION.role === 'viewer' && !SESSION.investorId;
+  const isBookingStaff = SESSION.role === 'booking_staff' || SESSION.role === 'moderator';
+  const isViewer = (SESSION.role === 'viewer' || SESSION.role === 'subowner') && !SESSION.investorId;
   const isCheckin = SESSION.role === 'checkin_manager';
 
   let nav;
@@ -456,7 +494,20 @@ function renderShell(content, activePage = 'dashboard') {
     ];
   }
 
-  const roleLabel = SESSION.role === 'admin' ? 'Admin' : SESSION.role === 'owner' ? 'Owner' : SESSION.role === 'booking_staff' ? 'Staff' : SESSION.role === 'caretaker' ? 'Caretaker' : SESSION.role === 'viewer' ? 'Viewer' : SESSION.role;
+  const roleLabel = ({
+    'super_admin': '🔴 Super Admin',
+    'admin': 'Admin',
+    'owner': '🟠 Owner',
+    'moderator': '🟡 Moderator',
+    'subowner': '🟢 Sub-owner',
+    'booking_staff': 'Staff',
+    'caretaker': 'Caretaker',
+    'checkin_manager': 'Check-in Mgr',
+    'viewer': 'Viewer',
+    'investor': 'Investor',
+    'employee': 'Employee',
+    'ca': 'CA'
+  })[SESSION.role] || SESSION.role;
   const shortName = (SESSION.displayName || '').split('(')[0].trim().split(' ')[0];
 
   appEl.innerHTML = `
@@ -822,7 +873,7 @@ async function renderUserManagement() {
           <td><span class="badge ${p.is_approved ? 'green' : 'yellow'}">${p.is_approved ? 'Active' : 'Pending'}</span></td>
           <td class="table-actions">
             <button class="btn-sm" onclick="changeUserRole('${p.user_id}','${p.display_name || ''}')">🔧 Role</button>
-            <button class="btn-sm danger" onclick="deleteUser('${p.user_id}','${p.display_name || ''}')">🗑️</button>
+            ${window.canDelete && window.canDelete() ? `<button class="btn-sm danger" onclick="deleteUser('${p.user_id}','${p.display_name || ''}')">🗑️</button>` : ''}
           </td>
         </tr>`).join('')}</tbody>
       </table></div>
@@ -915,7 +966,8 @@ async function approveUser(userId, name) {
 async function changeUserRole(userId, name) {
   showRolePickerModal(userId, name, async (role) => {
     try {
-      await sb.from('profiles').update({ role }).eq('user_id', userId);
+      const { error: updErr } = await sb.from('profiles').update({ role }).eq('user_id', userId);
+      if (updErr) { fsn.error('Role Change Failed', updErr.message); return; }
       fsn.success(`Success`, `✅ Role changed to ${role}`);
       renderUserManagement();
     } catch (err) {
@@ -934,9 +986,11 @@ async function rejectUser(userId) {
 
 
 async function deleteUser(userId, name) {
+  if (window.canDelete && !window.canDelete()) { fsn.error('Denied', 'Only Super Admin can delete users'); return; }
   if (!confirm(`Delete user "${name}"?\n\nProfile + pending entry delete hogi. Auth user remain karega.`)) return;
   try {
-    await sb.from('profiles').delete().eq('user_id', userId);
+    const { error: delErr } = await sb.from('profiles').delete().eq('user_id', userId);
+    if (delErr) { fsn.error('Delete Failed', delErr.message); return; }
     await sb.from('pending_users').delete().eq('user_id', userId);
     fsn.success(`Success`, `✅ ${name} deleted`);
     renderUserManagement();
