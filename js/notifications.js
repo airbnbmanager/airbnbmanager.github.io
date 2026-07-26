@@ -365,3 +365,55 @@
   // Cleanup on unload
   window.addEventListener('beforeunload', stopRealtime);
 })();
+
+// ═══════════════════════════════════════════════════════════
+// 🐛 DEBUG PANEL — Remove after testing
+// ═══════════════════════════════════════════════════════════
+window.notifDebug = function() {
+  const info = {
+    'window.sb': !!window.sb,
+    'window.SESSION': !!window.SESSION,
+    'SESSION.role': window.SESSION?.role || 'NOT SET',
+    'SESSION.investorId': window.SESSION?.investorId || 'no',
+    'Channels active': NOTIFICATIONS.channels.length,
+    'History count': NOTIFICATIONS.history.length,
+    'Startup time': new Date(NOTIFICATIONS.startupTime).toLocaleTimeString()
+  };
+
+  let msg = '';
+  for (const [k, v] of Object.entries(info)) {
+    msg += k + ': ' + v + '\n';
+  }
+
+  if (window.fsn) {
+    window.fsn.info('Notification Debug', msg.replace(/\n/g, '<br>'), 10000);
+  } else {
+    alert(msg);
+  }
+  console.table(info);
+  return info;
+};
+
+// Add debug button to bottom-right (visible only in URL has ?debug)
+if (location.search.includes('debug')) {
+  const btn = document.createElement('button');
+  btn.textContent = '🐛 Debug';
+  btn.style.cssText = 'position:fixed;bottom:80px;right:10px;z-index:99999;background:#333;color:#fff;padding:10px;border-radius:8px;border:none;font-size:14px;';
+  btn.onclick = () => window.notifDebug();
+  document.body.appendChild(btn);
+
+  const testBtn = document.createElement('button');
+  testBtn.textContent = '🔔 Test Notif';
+  testBtn.style.cssText = 'position:fixed;bottom:130px;right:10px;z-index:99999;background:#E2725B;color:#fff;padding:10px;border-radius:8px;border:none;font-size:14px;';
+  testBtn.onclick = () => {
+    window.notifications && window.notifications.notify({
+      type: 'booking',
+      icon: '📅',
+      title: 'TEST',
+      message: 'This is a test notification',
+      sub: 'If you see this, UI works',
+      page: 'bookings'
+    });
+  };
+  document.body.appendChild(testBtn);
+}
