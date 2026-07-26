@@ -16,7 +16,7 @@ async function renderManageRooms() {
 
   const empMap = {};
   (emps || []).forEach(e => { empMap[e.emp_id] = e; });
-  const isO = ['owner','admin'].includes(SESSION.role);
+  const isO = ['owner','admin','moderator','developer'].includes(SESSION.role);
 
   renderShell(`
     <div class="card">
@@ -269,14 +269,14 @@ async function renderFlatsStatus() {
 
   if (error) { renderShell(`<div class="card"><div class="error">${error.message}</div></div>`, 'flats'); return; }
 
-  const can = ['owner','admin','viewer','manager','checkin_manager'].includes(SESSION.role);
+  const can = ['owner','admin','manager','moderator','developer','checkin_manager'].includes(SESSION.role);
   const freeCount = (flats || []).filter(f => f.status === 'Free').length;
   const bookedCount = (flats || []).filter(f => f.status === 'Booked').length;
   const dirtyCount = (flats || []).filter(f => f.cleaning_status === 'Dirty').length;
 
   renderShell(`
     ${updateNoticeHTML()}
-    ${['owner','admin'].includes(SESSION.role) ? syncInfoHTML() : ''}
+    ${['owner','admin','moderator','developer'].includes(SESSION.role) ? syncInfoHTML() : ''}
 
     <div class="card">
       <h1>🛏️ Flats Status</h1>
