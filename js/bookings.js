@@ -136,6 +136,26 @@ async function renderManageBookings() {
 
   const {data:all, error} = await sb.from("guest_register")
     .select("*, rooms(unit_no, nickname, property_name)").order("check_in", {ascending:false});
+
+  // 🎯 SMART ORDER: Currently Staying → Upcoming → Recently Left
+  if (bookings && bookings.length) {
+    const today = new Date().toISOString().slice(0, 10);
+
+    bookings.sort((a, b) => {
+      // Categorize each booking: 0=staying, 1=upcoming, 2=left
+      const catA = a.check_in <= today && a.check_out >= today ? 0
+                 : a.check_in > today ? 1 : 2;
+      const catB = b.check_in <= today && b.check_out >= today ? 0
+                 : b.check_in > today ? 1 : 2;
+
+      if (catA !== catB) return catA - catB;
+
+      // Same category — sub-sort:
+      if (catA === 0) return b.check_in.localeCompare(a.check_in);   // Staying: newest arrival first
+      if (catA === 1) return a.check_in.localeCompare(b.check_in);   // Upcoming: nearest first
+      return b.check_out.localeCompare(a.check_out);                  // Left: latest checkout first
+    });
+  }
   if (error) { renderShell(`<div class="error">${error.message}</div>`, 'bookings'); return; }
 
   const {data:rooms} = await sb.from('rooms').select('room_id, unit_no, nickname, property_name').order('unit_no');
