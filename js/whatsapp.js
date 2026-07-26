@@ -27,9 +27,6 @@ window.getPropertyURL = function(nickname) {
 }
 
 
- * WhatsApp Module
- * UNIQUE HAVEN HOMES STAY
- */
 
 // ============ HELPER: Property Contacts (Shift-Based) ============
 async function getPropertyContactsForRoom(roomId, roomData = {}) {

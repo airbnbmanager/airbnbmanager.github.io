@@ -999,7 +999,7 @@ async function renderEmpExpenses() {
     <div id="eeTableWrap"></div>
   `, 'emp-expenses');
 
-  filterEmpExpenses();y
+  filterEmpExpenses();
 }
 
 function filterEmpExpenses() {
