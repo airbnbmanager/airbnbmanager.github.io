@@ -379,8 +379,7 @@ async function renderManageBookings() {
             <button class="btn-sm secondary" onclick="showPaymentModal('${b.booking_id}')">💰</button>
             <button class="btn-sm outline" onclick="createOfflineExtension('${b.booking_id}')">➕</button>
             ${isActive ? `<button class="btn-sm secondary" onclick="quickCheckout('${b.booking_id}','${b.room_id}')">📤</button>` : ''}
-            ${isCheckoutToday ? `<button class="btn-sm" style="background:#f59e0b;" onclick="sendCheckoutReminder('${b.booking_id}')">🔔</button>` : ''}
-            <button class="btn-sm outline" onclick="shareBookingWhatsApp('${b.booking_id}')" title="Welcome">📱</button>
+            <button class="btn-sm outline" onclick="shareBookingWhatsApp('${b.booking_id}')" title="1️⃣ Welcome (New Booking)">📱</button>
             <button class="btn-sm" style="background:#128C7E;color:#fff;" onclick="showWATemplatesMenu('${b.booking_id}',this)" title="Templates">💬</button>
             <button class="btn-sm" style="background:#FFB800;color:#fff;" onclick="requestGuestID('${b.booking_id}')" title="Request ID">🪪</button>
             <button class="btn-sm" style="background:#00A699;color:#fff;" onclick="sendCheckinReminder('${b.booking_id}')" title="Check-in reminder">📅</button>
