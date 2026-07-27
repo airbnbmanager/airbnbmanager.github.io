@@ -1379,8 +1379,10 @@ async function quickCheckout(bkId, roomId) {
 
 // ============ EDIT BOOKING ============
 async function editBooking(bkId) {
+  window._origBooking = null; // reset
   const { data: b } = await sb.from('guest_register').select('*').eq('booking_id', bkId).single();
   if (!b) { fsn.error('Error', 'Not found'); return; }
+  window._origBooking = b; // ✅ Store original for auto-dirty check
   const { data: rooms } = await sb.from('rooms').select('room_id,unit_no,nickname,property_name').order('room_id');
   const { data: pays } = await sb.from('payment_history').select('*').eq('booking_id', bkId).order('paid_at', { ascending: false });
   const tp = (pays || []).reduce((s, p) => s + (p.amount || 0), 0);
@@ -1745,6 +1747,26 @@ async function updateBooking(bkId, parentBookingId = '', stayGroupId = '') {
   const { error } = await sb.from('guest_register').update(obj).eq('booking_id', bkId);
   if (error) { document.getElementById('editBkErr').innerHTML = `<div class="error">${error.message}</div>`; return; }
   window._editIdFiles = {}; // Clear cache
+
+  // ✅ AUTO-DIRTY: If checkout_confirmed newly set to true → mark flat dirty
+  try {
+    const isNowConfirmed  = obj.checkout_confirmed === true;
+    const wasConfirmed    = window._origBooking?.checkout_confirmed === true;
+    const today           = new Date().toISOString().slice(0, 10);
+    const coDate          = obj.check_out || '';
+    const isPastOrToday   = coDate <= today;
+
+    if (isNowConfirmed && !wasConfirmed && isPastOrToday && rid) {
+      await sb.from('flats_status').update({
+        status: 'Free',
+        cleaning_status: 'Dirty',
+        last_checkout: today
+      }).eq('room_id', rid);
+      console.log('🧹 Auto-dirty triggered for room:', rid);
+      fsn.success('Checked Out', '✅ Flat marked Dirty');
+    }
+  } catch(e) { console.warn('Auto-dirty error:', e); }
+
   renderManageBookings();
 }
 
