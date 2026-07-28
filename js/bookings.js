@@ -82,6 +82,211 @@ async function showGuestLedger(guestName) {
 }
 
 
+
+// ============ PRINT GUEST LEDGER ============
+async function printGuestLedger(guestName) {
+  const {data:bookings} = await sb.from('guest_register')
+    .select('*, rooms(nickname, unit_no, property_name)')
+    .ilike('guest_name', '%' + guestName + '%')
+    .order('check_in', {ascending:false});
+  if (!bookings || !bookings.length) { fsn.info('Info', 'No bookings'); return; }
+
+  const bkIds = bookings.map(b => b.booking_id);
+  const {data:payments} = await sb.from('payment_history').select('*').in('booking_id', bkIds);
+  const payMap = {};
+  (payments || []).forEach(p => { payMap[p.booking_id] = (payMap[p.booking_id] || 0) + (p.amount || 0); });
+
+  const totalAmount = bookings.reduce((s, b) => s + (b.total_amount || 0), 0);
+  const totalPaid = bookings.reduce((s, b) => s + (payMap[b.booking_id] || 0), 0);
+  const totalDue = totalAmount - totalPaid;
+  const totalNights = bookings.reduce((s, b) => {
+    if (b.check_in && b.check_out) return s + calcNights(b.check_in, b.check_out);
+    return s;
+  }, 0);
+
+  const firstBk = bookings[0];
+  const dateStr = new Date().toLocaleDateString('en-IN');
+  const dueColor = totalDue > 0 ? '#FF385C' : '#0A7D1A';
+  const dueBg = totalDue > 0 ? '#FDE8E8' : '#DEF7EC';
+
+  let bkRows = '';
+  bookings.forEach(b => {
+    const pd = payMap[b.booking_id] || 0;
+    const due = (b.total_amount || 0) - pd;
+    const dc = due > 0 ? '#FF385C' : '#0A7D1A';
+    bkRows += '<tr>' +
+      '<td>' + (propLabel(b.rooms) || b.room_id || '-') + '</td>' +
+      '<td>' + (b.booking_mode === 'Online-Airbnb' ? 'Online' : 'Offline') + '</td>' +
+      '<td>' + (b.check_in || '-') + '</td>' +
+      '<td>' + (b.check_out || '-') + '</td>' +
+      '<td style="text-align:right;">₹' + (b.total_amount || 0).toLocaleString('en-IN') + '</td>' +
+      '<td style="text-align:right;color:#0A7D1A;">₹' + pd.toLocaleString('en-IN') + '</td>' +
+      '<td style="text-align:right;color:' + dc + ';font-weight:700;">₹' + due.toLocaleString('en-IN') + '</td>' +
+      '</tr>';
+  });
+
+  let payRows = '';
+  const sortedPays = (payments || []).sort((a, b) => (b.payment_date || '').localeCompare(a.payment_date || ''));
+  if (sortedPays.length === 0) {
+    payRows = '<tr><td colspan="4" style="text-align:center;color:#717171;">No payments recorded</td></tr>';
+  } else {
+    sortedPays.forEach(p => {
+      payRows += '<tr>' +
+        '<td>' + (p.payment_date || '-') + '</td>' +
+        '<td style="text-align:right;">₹' + (p.amount || 0).toLocaleString('en-IN') + '</td>' +
+        '<td>' + (p.payment_mode || '-') + '</td>' +
+        '<td>' + (p.notes || '-') + '</td>' +
+        '</tr>';
+    });
+  }
+
+  const dueMsg = totalDue > 0
+    ? '⚠️ Balance Due: ₹' + totalDue.toLocaleString('en-IN') + ' — Kindly clear at earliest'
+    : '✅ Fully Settled — Thank You!';
+
+  const html = '<!DOCTYPE html><html><head><title>Guest Ledger - ' + guestName + '</title>' +
+    '<style>' +
+    '@page { size: A4; margin: 12mm; }' +
+    'body { font-family: -apple-system, sans-serif; color: #222; margin: 0; padding: 20px; }' +
+    '.header { background: linear-gradient(135deg,#FF385C,#E00B41); color: #fff; padding: 20px; border-radius: 12px; margin-bottom: 20px; }' +
+    '.header h1 { margin: 0 0 6px 0; font-size: 22px; }' +
+    '.header .meta { font-size: 13px; opacity: 0.9; }' +
+    '.guest-info { background: #F7F7F7; padding: 14px 18px; border-radius: 8px; margin-bottom: 16px; font-size: 13px; }' +
+    '.summary { display: grid; grid-template-columns: repeat(4,1fr); gap: 10px; margin-bottom: 20px; }' +
+    '.summary-card { background: #FAFAFA; padding: 12px; border-radius: 8px; text-align: center; border: 1px solid #EBEBEB; }' +
+    '.summary-card .label { font-size: 10px; color: #717171; text-transform: uppercase; }' +
+    '.summary-card .value { font-size: 18px; font-weight: 800; margin-top: 4px; }' +
+    '.section-title { font-size: 14px; font-weight: 700; margin: 18px 0 8px; color: #222; border-bottom: 2px solid #FF385C; padding-bottom: 4px; }' +
+    'table { width: 100%; border-collapse: collapse; font-size: 12px; margin-bottom: 10px; }' +
+    'th { background: #222; color: #fff; padding: 8px; text-align: left; font-size: 11px; }' +
+    'td { padding: 7px 8px; border-bottom: 1px solid #EBEBEB; }' +
+    'tr:nth-child(even) { background: #FAFAFA; }' +
+    '.due-alert { background: ' + dueBg + '; color: ' + dueColor + '; padding: 14px; border-radius: 8px; text-align: center; font-weight: 700; font-size: 15px; margin-top: 16px; }' +
+    '.footer { margin-top: 24px; text-align: center; font-size: 11px; color: #717171; border-top: 1px solid #EBEBEB; padding-top: 12px; }' +
+    '@media print { body { padding: 0; } .no-print { display: none; } }' +
+    '</style></head><body>' +
+    '<div class="header"><h1>👤 Guest Ledger — ' + guestName + '</h1>' +
+    '<div class="meta">' + BRAND + ' · Generated ' + dateStr + '</div></div>' +
+    '<div class="guest-info"><strong>Guest:</strong> ' + guestName + ' &nbsp;·&nbsp; ' +
+    '<strong>Phone:</strong> ' + (firstBk.phone || '-') + ' &nbsp;·&nbsp; ' +
+    '<strong>Stays:</strong> ' + bookings.length + ' &nbsp;·&nbsp; ' +
+    '<strong>Nights:</strong> ' + totalNights + '</div>' +
+    '<div class="summary">' +
+    '<div class="summary-card"><div class="label">Stays</div><div class="value">' + bookings.length + '</div></div>' +
+    '<div class="summary-card"><div class="label">Total Billed</div><div class="value">₹' + totalAmount.toLocaleString('en-IN') + '</div></div>' +
+    '<div class="summary-card"><div class="label">Total Paid</div><div class="value" style="color:#0A7D1A;">₹' + totalPaid.toLocaleString('en-IN') + '</div></div>' +
+    '<div class="summary-card"><div class="label">Balance Due</div><div class="value" style="color:' + dueColor + ';">₹' + totalDue.toLocaleString('en-IN') + '</div></div>' +
+    '</div>' +
+    '<div class="section-title">📅 Booking History</div>' +
+    '<table><thead><tr><th>Property</th><th>Mode</th><th>Check-in</th><th>Check-out</th>' +
+    '<th style="text-align:right;">Total</th><th style="text-align:right;">Paid</th><th style="text-align:right;">Due</th></tr></thead>' +
+    '<tbody>' + bkRows + '</tbody></table>' +
+    '<div class="section-title">💰 Payment Log</div>' +
+    '<table><thead><tr><th>Date</th><th style="text-align:right;">Amount</th><th>Mode</th><th>Notes</th></tr></thead>' +
+    '<tbody>' + payRows + '</tbody></table>' +
+    '<div class="due-alert">' + dueMsg + '</div>' +
+    '<div class="footer">' + BRAND + ' · Contact: Mr. Shahanshah 9450055554 · Mr. Firoz Khan 8299600709<br>Generated ' + dateStr + '</div>' +
+    '<div class="no-print" style="text-align:center;margin-top:20px;">' +
+    '<button onclick="window.print()" style="padding:12px 32px;background:#FF385C;color:#fff;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-size:15px;">🖨️ Print / Save as PDF</button>' +
+    '</div>' +
+    '<script>setTimeout(function(){window.print();}, 500);<\/script>' +
+    '</body></html>';
+
+  const win = window.open('', '_blank');
+  win.document.write(html);
+  win.document.close();
+}
+
+// ============ WHATSAPP GUEST LEDGER ============
+async function whatsappGuestLedger(guestName) {
+  const {data:bookings} = await sb.from('guest_register')
+    .select('*, rooms(nickname, unit_no, property_name)')
+    .ilike('guest_name', '%' + guestName + '%')
+    .order('check_in', {ascending:false});
+  if (!bookings || !bookings.length) { fsn.info('Info', 'No bookings'); return; }
+
+  const bkIds = bookings.map(b => b.booking_id);
+  const {data:payments} = await sb.from('payment_history').select('*').in('booking_id', bkIds);
+  const payMap = {};
+  (payments || []).forEach(p => { payMap[p.booking_id] = (payMap[p.booking_id] || 0) + (p.amount || 0); });
+
+  const totalAmount = bookings.reduce((s, b) => s + (b.total_amount || 0), 0);
+  const totalPaid = bookings.reduce((s, b) => s + (payMap[b.booking_id] || 0), 0);
+  const totalDue = totalAmount - totalPaid;
+  const totalNights = bookings.reduce((s, b) => {
+    if (b.check_in && b.check_out) return s + calcNights(b.check_in, b.check_out);
+    return s;
+  }, 0);
+
+  const firstBk = bookings[0];
+  const phone = (firstBk.phone || '').replace(/[^0-9]/g, '');
+  const NL = String.fromCharCode(10);
+
+  let bkList = '';
+  bookings.forEach((b, i) => {
+    const pd = payMap[b.booking_id] || 0;
+    const due = (b.total_amount || 0) - pd;
+    const prop = propLabel(b.rooms) || b.room_id;
+    bkList += (i + 1) + '. ' + prop + NL +
+      '   ' + (b.check_in || '-') + ' -> ' + (b.check_out || '-') + NL +
+      '   Total: Rs.' + (b.total_amount || 0).toLocaleString('en-IN') +
+      ' | Paid: Rs.' + pd.toLocaleString('en-IN') +
+      ' | Due: Rs.' + due.toLocaleString('en-IN') + NL + NL;
+  });
+
+  let payList = '';
+  const sortedPays = (payments || []).sort((a, b) => (b.payment_date || '').localeCompare(a.payment_date || ''));
+  if (sortedPays.length === 0) {
+    payList = '- No payments recorded';
+  } else {
+    sortedPays.forEach(p => {
+      payList += '- ' + (p.payment_date || '-') + ' Rs.' + (p.amount || 0).toLocaleString('en-IN') +
+        ' (' + (p.payment_mode || '-') + ')' + NL;
+    });
+  }
+
+  const dueLine = totalDue > 0
+    ? NL + '*Kindly clear pending Rs.' + totalDue.toLocaleString('en-IN') + '*' + NL
+    : NL + '*Fully Settled - Thank You!*' + NL;
+
+  const msg = '*UNIQUE HAVEN HOMES STAY*' + NL +
+    '*Guest Ledger - ' + guestName + '*' + NL + NL +
+    '*Summary:*' + NL +
+    '- Total Stays: ' + bookings.length + NL +
+    '- Total Nights: ' + totalNights + NL +
+    '- Total Billed: Rs.' + totalAmount.toLocaleString('en-IN') + NL +
+    '- Total Paid: Rs.' + totalPaid.toLocaleString('en-IN') + NL +
+    '- *Balance Due: Rs.' + totalDue.toLocaleString('en-IN') + '*' + NL + NL +
+    '*Booking History:*' + NL + bkList +
+    '*Payment Log:*' + NL + payList +
+    dueLine +
+    '*Contact:*' + NL +
+    'Mr. Shahanshah - 9450055554' + NL +
+    'Mr. Firoz Khan - 8299600709';
+
+  const shareModal = document.createElement('div');
+  shareModal.className = 'modal-overlay';
+  shareModal.onclick = e => { if (e.target === shareModal) shareModal.remove(); };
+
+  const q = String.fromCharCode(39);
+  const sendBtn = phone
+    ? '<button style="background:#25D366;color:#fff;" onclick="window.open(' + q + 'https://wa.me/' + phone + '?text=' + q + '+encodeURIComponent(document.getElementById(' + q + 'waLedgerMsg' + q + ').value),' + q + '_blank' + q + ')">Send to ' + phone + '</button>'
+    : '';
+  const shareBtn = '<button style="background:#128C7E;color:#fff;" onclick="window.open(' + q + 'https://wa.me/?text=' + q + '+encodeURIComponent(document.getElementById(' + q + 'waLedgerMsg' + q + ').value),' + q + '_blank' + q + ')">Share</button>';
+  const copyBtn = '<button class="outline" onclick="navigator.clipboard.writeText(document.getElementById(' + q + 'waLedgerMsg' + q + ').value);fsn.success(' + q + 'Copied' + q + ',' + q + 'Message copied' + q + ')">Copy</button>';
+  const closeBtn = '<button class="outline" onclick="this.closest(' + q + '.modal-overlay' + q + ').remove()">Close</button>';
+
+  shareModal.innerHTML =
+    '<div class="modal-box" style="max-width:600px;">' +
+    '<button class="modal-close" onclick="this.closest(' + q + '.modal-overlay' + q + ').remove()">X</button>' +
+    '<h2>WhatsApp Ledger - ' + guestName + '</h2>' +
+    '<textarea id="waLedgerMsg" style="width:100%;height:400px;font-family:monospace;font-size:12px;padding:10px;border:1px solid var(--border);border-radius:8px;">' + msg + '</textarea>' +
+    '<div class="btn-row" style="margin-top:12px;">' +
+    sendBtn + shareBtn + copyBtn + closeBtn +
+    '</div></div>';
+  document.body.appendChild(shareModal);
+}
+
 // ============ ID BUTTON BUILDER ============
 function buildIdButtons(b) {
   const fp = parseIdPathArray(b.id_proof_front_paths).filter(Boolean);
