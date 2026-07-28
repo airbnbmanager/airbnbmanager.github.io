@@ -465,9 +465,10 @@ async function showBookingPopup(roomId, dateStr) {
 }
 
 // ============ FINANCIAL SUMMARY (unchanged) ============
-async function renderFYSummary(range = 'FY') {
+async function renderFYSummary(range = 'FY', propFilter = '', modeFilter = '') {
   const isCA = SESSION.role === 'ca';
   if (!isCA) renderShell(`<div class="loading">Loading...</div>`, 'dashboard');
+  const { data: allRooms } = await sb.from('rooms').select('room_id, nickname, property_name').order('room_id');
 
   const now = new Date(), today = now.toISOString().slice(0, 10);
   let s, e, label;
@@ -485,7 +486,11 @@ async function renderFYSummary(range = 'FY') {
     sb.from('payment_history').select('booking_id,amount'),
   ]);
 
-  const fg = (gs.data || []).filter(g => g.check_in >= s && g.check_in <= e);
+  let fg = (gs.data || []).filter(g => g.check_in >= s && g.check_in <= e);
+  fg = fg.filter(g => g.guest_name && g.guest_name.toLowerCase().trim() !== 'pending');
+  if (propFilter) fg = fg.filter(g => g.room_id === propFilter);
+  if (modeFilter === 'Online') fg = fg.filter(g => g.booking_mode === 'Online-Airbnb');
+  if (modeFilter === 'Offline') fg = fg.filter(g => g.booking_mode !== 'Online-Airbnb');
   const ids = fg.map(g => g.booking_id);
   const pm = {};
   (py.data || []).forEach(p => { if (ids.includes(p.booking_id)) pm[p.booking_id] = (pm[p.booking_id] || 0) + (p.amount || 0); });
@@ -496,7 +501,7 @@ async function renderFYSummary(range = 'FY') {
   const offlineInc = inc - onlineInc;
 
   const btns = ['Today', 'Week', 'Month', 'Quarter', 'YTD', 'FY'].map(r =>
-    `<button class="${r === range ? '' : 'secondary'} btn-sm" onclick="renderFYSummary('${r}')">${r}</button>`
+    `<button class="${r === range ? '' : 'secondary'} btn-sm" onclick="renderFYSummary('${r}', '${propFilter}', '${modeFilter}')">${r}</button>`
   ).join('');
 
   const tbl = `<div class="table-wrap"><table>
@@ -511,7 +516,17 @@ async function renderFYSummary(range = 'FY') {
 
   const summaryContent = `
     <div class="card"><h1>📊 Financial Summary</h1><div class="sub">${label} — ${s} to ${e}</div>
-      <div class="btn-row">${btns}</div>
+      <div class="btn-row" style="flex-wrap:wrap;gap:8px;">${btns}
+        <select onchange="renderFYSummary('${range}', this.value, '${modeFilter}')" style="padding:8px 12px;border-radius:8px;border:1px solid var(--border);font-size:13px;">
+          <option value="">All Properties</option>
+          ${(allRooms || []).map(r => `<option value="${r.room_id}" ${propFilter === r.room_id ? 'selected' : ''}>${r.nickname || r.room_id}</option>`).join('')}
+        </select>
+        <select onchange="renderFYSummary('${range}', '${propFilter}', this.value)" style="padding:8px 12px;border-radius:8px;border:1px solid var(--border);font-size:13px;">
+          <option value="">All Modes</option>
+          <option value="Online" ${modeFilter === 'Online' ? 'selected' : ''}>🌐 Online (Airbnb)</option>
+          <option value="Offline" ${modeFilter === 'Offline' ? 'selected' : ''}>💵 Offline (Direct)</option>
+        </select>
+      </div>
       ${!isCA ? `<button class="secondary btn-sm" onclick="renderDashboard()">← Back</button>` : ''}
       <button class="outline btn-sm" onclick="downloadFYData()">⬇️ CSV</button>
     </div>
