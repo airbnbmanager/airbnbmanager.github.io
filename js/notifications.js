@@ -40,10 +40,91 @@
 
   // ─── History ───
   function saveHist(n) {
-    NOTIF.history.unshift({ ...n, id: Date.now()+Math.random(), read: false, time: new Date().toISOString() });
+    const entry = { ...n, id: Date.now()+Math.random(), read: false, time: new Date().toISOString() };
+    NOTIF.history.unshift(entry);
     if (NOTIF.history.length > NOTIF.maxHistory) NOTIF.history = NOTIF.history.slice(0, NOTIF.maxHistory);
     localStorage.setItem('uh_notif_history', JSON.stringify(NOTIF.history));
     updateBadge();
+    // ✅ PERSIST TO DB (background, non-blocking)
+    persistNotificationDB(entry);
+  }
+
+  // ─── Persist to DB (background) ───
+  async function persistNotificationDB(n) {
+    if (!window.sb || !window.SESSION?.userId) return;
+    try {
+      const { data, error } = await sb.from('notifications').insert({
+        user_id: window.SESSION.userId,
+        type: n.type || 'info',
+        icon: n.icon || '🔔',
+        title: n.title || '',
+        message: n.message || '',
+        page: n.page || null,
+        data: n.sub ? { sub: n.sub } : null
+      }).select('id').single();
+      if (!error && data) {
+        // Store DB id so we can update read status later
+        const local = NOTIF.history.find(x => x.id === n.id);
+        if (local) local.dbId = data.id;
+        localStorage.setItem('uh_notif_history', JSON.stringify(NOTIF.history));
+      }
+    } catch(e) { console.warn('Notif DB persist failed:', e); }
+  }
+
+  // ─── Fetch unread from DB (on login) ───
+  async function fetchUnreadFromDB() {
+    if (!window.sb || !window.SESSION?.userId) return;
+    try {
+      const { data, error } = await sb.from('notifications')
+        .select('*')
+        .eq('user_id', window.SESSION.userId)
+        .eq('is_read', false)
+        .order('created_at', { ascending: false })
+        .limit(50);
+      if (error) return console.warn('Notif fetch error:', error);
+      if (!data || data.length === 0) return;
+
+      // Merge with local history (dedupe by dbId)
+      const existingDbIds = new Set(NOTIF.history.map(x => x.dbId).filter(Boolean));
+      const newOnes = data.filter(d => !existingDbIds.has(d.id)).map(d => ({
+        id: Date.now() + Math.random(),
+        dbId: d.id,
+        type: d.type,
+        icon: d.icon || '🔔',
+        title: d.title,
+        message: d.message,
+        page: d.page,
+        sub: d.data?.sub,
+        read: false,
+        time: d.created_at
+      }));
+      if (newOnes.length > 0) {
+        NOTIF.history = [...newOnes, ...NOTIF.history].slice(0, NOTIF.maxHistory);
+        localStorage.setItem('uh_notif_history', JSON.stringify(NOTIF.history));
+        updateBadge();
+        console.log('🔔 Loaded', newOnes.length, 'unread notifications from DB');
+      }
+    } catch(e) { console.warn('Notif DB fetch failed:', e); }
+  }
+
+  // ─── Mark read in DB ───
+  async function markReadDB(dbIds) {
+    if (!window.sb || !window.SESSION?.userId || !dbIds?.length) return;
+    try {
+      await sb.from('notifications')
+        .update({ is_read: true })
+        .in('id', dbIds);
+    } catch(e) { console.warn('Notif markRead failed:', e); }
+  }
+
+  // ─── Clear all from DB ───
+  async function clearAllDB() {
+    if (!window.sb || !window.SESSION?.userId) return;
+    try {
+      await sb.from('notifications')
+        .delete()
+        .eq('user_id', window.SESSION.userId);
+    } catch(e) { console.warn('Notif clearAll failed:', e); }
   }
 
   function updateBadge() {
@@ -132,19 +213,27 @@
     o.onclick = e => { if (e.target === o) close(); };
     o.querySelector('.notif-panel-close').onclick = close;
     o.querySelector('.notif-mark-all').onclick = () => {
+      const dbIds = NOTIF.history.filter(n => !n.read && n.dbId).map(n => n.dbId);
       NOTIF.history.forEach(n => n.read = true);
       localStorage.setItem('uh_notif_history', JSON.stringify(NOTIF.history));
-      updateBadge(); close();
+      updateBadge();
+      markReadDB(dbIds); // background
+      close();
     };
     o.querySelector('.notif-clear-all').onclick = () => {
       NOTIF.history = []; localStorage.removeItem('uh_notif_history');
-      updateBadge(); close();
+      updateBadge();
+      clearAllDB(); // background
+      close();
     };
     o.querySelectorAll('.notif-item').forEach(item => {
       item.onclick = () => {
         const id = parseFloat(item.dataset.id);
         const n = NOTIF.history.find(x => x.id === id);
-        if (n) n.read = true;
+        if (n) {
+          n.read = true;
+          if (n.dbId) markReadDB([n.dbId]); // background
+        }
         localStorage.setItem('uh_notif_history', JSON.stringify(NOTIF.history));
         updateBadge();
         const p = item.dataset.page;
@@ -296,6 +385,7 @@
       clearInterval(timer);
       startAll();
       updateBadge();
+      fetchUnreadFromDB(); // ✅ Load persistent notifications on login
     }
     if (tries > 120) {
       clearInterval(timer);
