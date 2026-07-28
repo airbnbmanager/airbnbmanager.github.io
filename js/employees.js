@@ -34,7 +34,7 @@ async function renderManageEmployees() {
     <div class="card">
       <h1>👥 Employees</h1>
       <div class="sub">${(emps || []).length} total</div>
-      <div class="sub">ID Storage: ${(storageInfo?.files || 0)} files · Plan: ${storageInfo?.label || '1 GB'}</div>
+      ${SESSION.role === 'developer' ? `<div class="sub">ID Storage: ${(storageInfo?.files || 0)} files · Plan: ${storageInfo?.label || '1 GB'}</div>` : ''}
       ${isO ? `<button onclick="renderAddEmp()">➕ Add Employee</button>` : ''}
     </div>
     <div class="card"><div class="table-wrap"><table>
