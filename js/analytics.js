@@ -467,6 +467,13 @@
         '<div id="staffPerfContainer"><div class="loading">Loading staff stats...</div></div>' +
       '</div>';
 
+    // Predictions placeholder (loaded async)
+    const predictHtml =
+      '<div class="card" style="margin-top:16px;border:2px solid #8B5CF6;">' +
+        '<div class="section-title">🔮 Predictions & Forecasts</div>' +
+        '<div id="predictContainer"><div class="loading">Analyzing trends...</div></div>' +
+      '</div>';
+
     // Top guests
     const guestRows = topGuests.map((g, i) => {
       const isOnline = g.online > g.offline;
@@ -568,6 +575,9 @@
         // Staff performance
         staffPerfHtml +
 
+        // Predictions
+        predictHtml +
+
       '</div>';
 
     renderShell(html, 'analytics');
@@ -575,6 +585,7 @@
     // Load async sections (after main render)
     loadMonthlyComparison();
     loadStaffPerformance();
+    loadPredictions();
   }
 
   // ═══ MONTHLY COMPARISON ═══
@@ -831,6 +842,145 @@
       }, 1000);
     }, 300);
   };
+
+  
+  // ═══ PREDICTIONS & FORECASTS ═══
+  async function loadPredictions() {
+    const container = document.getElementById('predictContainer');
+    if (!container) return;
+
+    // Fetch last 90 days for prediction
+    const from90 = daysAgo(90);
+    const today = new Date().toISOString().slice(0, 10);
+
+    const [bkRes, roomsRes] = await Promise.all([
+      sb.from('guest_register')
+        .select('booking_id, check_in, check_out, total_amount, booking_mode')
+        .gte('check_in', from90)
+        .neq('verification_status', 'rejected'),
+      sb.from('rooms').select('room_id')
+    ]);
+
+    const bookings = bkRes.data || [];
+    const rooms = roomsRes.data || [];
+    const totalRooms = rooms.length;
+
+    if (bookings.length < 5) {
+      container.innerHTML = '<div style="color:#888;padding:20px;text-align:center;">Not enough data for predictions (need 5+ bookings)</div>';
+      return;
+    }
+
+    // ─── Calculate daily averages by day-of-week ───
+    const dowStats = [[], [], [], [], [], [], []]; // Sun-Sat
+    bookings.forEach(b => {
+      if (!b.check_in) return;
+      const dow = new Date(b.check_in).getDay();
+      dowStats[dow].push(b.total_amount || 0);
+    });
+    const dowAvg = dowStats.map(arr => arr.length ? arr.reduce((s, v) => s + v, 0) / arr.length : 0);
+
+    // ─── Next 7 days projection ───
+    let projected7d = 0;
+    for (let i = 0; i < 7; i++) {
+      const d = new Date();
+      d.setDate(d.getDate() + i);
+      projected7d += dowAvg[d.getDay()] * 1.2; // ~1.2 bookings per day heuristic
+    }
+
+    // ─── Next 30 days projection based on recent trend ───
+    const last30 = daysAgo(30);
+    const prev30 = daysAgo(60);
+    const last30Bks = bookings.filter(b => b.check_in >= last30);
+    const prev30Bks = bookings.filter(b => b.check_in >= prev30 && b.check_in < last30);
+    const last30Rev = last30Bks.reduce((s, b) => s + (b.total_amount || 0), 0);
+    const prev30Rev = prev30Bks.reduce((s, b) => s + (b.total_amount || 0), 0);
+    const growthRate = prev30Rev > 0 ? (last30Rev - prev30Rev) / prev30Rev : 0;
+    const projected30d = Math.round(last30Rev * (1 + Math.min(growthRate, 0.5))); // cap growth at 50%
+
+    // ─── Occupancy projection ───
+    let last30Nights = 0;
+    last30Bks.forEach(b => {
+      last30Nights += Math.min(calcNights(b.check_in, b.check_out), 30);
+    });
+    const last30Occ = totalRooms > 0 ? (last30Nights / (totalRooms * 30) * 100) : 0;
+    const projected30Occ = Math.min(100, Math.round(last30Occ * (1 + growthRate * 0.5)));
+
+    // ─── Best/worst days of week ───
+    const dowNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    let bestDow = 0, worstDow = 0;
+    for (let i = 0; i < 7; i++) {
+      if (dowAvg[i] > dowAvg[bestDow]) bestDow = i;
+      if (dowAvg[i] < dowAvg[worstDow] && dowAvg[i] > 0) worstDow = i;
+    }
+
+    // ─── Seasonality: this month vs same month prev quarter ───
+    const currentMonth = new Date().getMonth();
+    const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+
+    // ─── Booked-in advance ratio ───
+    const nowStr = today;
+    const futureBks = bookings.filter(b => b.check_in > nowStr).length;
+
+    // ─── Render ───
+    const trendIcon = growthRate > 0.05 ? '📈' : growthRate < -0.05 ? '📉' : '➡️';
+    const trendColor = growthRate > 0.05 ? '#0A7D1A' : growthRate < -0.05 ? '#DC2626' : '#F59E0B';
+
+    container.innerHTML =
+      '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;">' +
+
+        '<div style="background:linear-gradient(135deg,#8B5CF6,#6D28D9);color:#fff;padding:16px;border-radius:12px;">' +
+          '<div style="font-size:11px;opacity:0.9;">📅 NEXT 7 DAYS</div>' +
+          '<div style="font-size:26px;font-weight:800;margin-top:4px;">' + formatK(projected7d) + '</div>' +
+          '<div style="font-size:11px;opacity:0.9;">Projected revenue</div>' +
+        '</div>' +
+
+        '<div style="background:linear-gradient(135deg,#3B82F6,#1E40AF);color:#fff;padding:16px;border-radius:12px;">' +
+          '<div style="font-size:11px;opacity:0.9;">📊 NEXT 30 DAYS</div>' +
+          '<div style="font-size:26px;font-weight:800;margin-top:4px;">' + formatK(projected30d) + '</div>' +
+          '<div style="font-size:11px;opacity:0.9;">' + trendIcon + ' ' + (growthRate >= 0 ? '+' : '') + (growthRate * 100).toFixed(0) + '% growth trend</div>' +
+        '</div>' +
+
+        '<div style="background:linear-gradient(135deg,#0A7D1A,#065F17);color:#fff;padding:16px;border-radius:12px;">' +
+          '<div style="font-size:11px;opacity:0.9;">🏠 EXPECTED OCCUPANCY</div>' +
+          '<div style="font-size:26px;font-weight:800;margin-top:4px;">' + projected30Occ + '%</div>' +
+          '<div style="font-size:11px;opacity:0.9;">Next 30 days</div>' +
+        '</div>' +
+
+        '<div style="background:linear-gradient(135deg,#F59E0B,#B45309);color:#fff;padding:16px;border-radius:12px;">' +
+          '<div style="font-size:11px;opacity:0.9;">📅 FUTURE BOOKINGS</div>' +
+          '<div style="font-size:26px;font-weight:800;margin-top:4px;">' + futureBks + '</div>' +
+          '<div style="font-size:11px;opacity:0.9;">Already booked ahead</div>' +
+        '</div>' +
+
+      '</div>' +
+
+      '<div style="margin-top:16px;padding:14px;background:#F3F4F6;border-radius:10px;">' +
+        '<div style="font-weight:700;margin-bottom:10px;">📈 Day-of-Week Performance</div>' +
+        '<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:6px;">' +
+          [0,1,2,3,4,5,6].map(i => {
+            const isMax = i === bestDow;
+            const isMin = i === worstDow && dowAvg[i] > 0;
+            const bg = isMax ? '#D1FAE5' : isMin ? '#FEE2E2' : '#fff';
+            const border = isMax ? '2px solid #0A7D1A' : isMin ? '2px solid #DC2626' : '1px solid #ddd';
+            return '<div style="background:' + bg + ';border:' + border + ';padding:10px;border-radius:8px;text-align:center;">' +
+              '<div style="font-size:10px;color:#888;">' + dowNames[i].slice(0,3) + '</div>' +
+              '<div style="font-size:14px;font-weight:700;">' + formatK(dowAvg[i]) + '</div>' +
+              (isMax ? '<div style="font-size:9px;color:#0A7D1A;">🏆 BEST</div>' : '') +
+              (isMin ? '<div style="font-size:9px;color:#DC2626;">⚠️ LOW</div>' : '') +
+            '</div>';
+          }).join('') +
+        '</div>' +
+      '</div>' +
+
+      '<div style="margin-top:14px;padding:12px;background:#EDE9FE;border-radius:8px;border-left:4px solid #8B5CF6;">' +
+        '<strong>💡 Insight:</strong> ' +
+        (growthRate > 0.15
+          ? 'Strong growth momentum! Consider raising prices 5-10%.'
+          : growthRate < -0.1
+          ? 'Revenue declining — check pricing, marketing, competitors.'
+          : 'Steady performance. Best day: ' + dowNames[bestDow] + '. Boost ' + dowNames[worstDow] + ' with weekday discount.') +
+      '</div>';
+  }
 
   window.renderAnalytics = renderAnalytics;
 })();
