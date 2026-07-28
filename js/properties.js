@@ -323,8 +323,10 @@ async function renderFlatsStatus() {
               ${can ? `
                 ${isDirty ? `<button class="btn-sm green-btn" onclick="quickClean('${f.room_id}','Clean',this)">✅ Clean</button>` : ''}
                 ${isDirty ? `<button class="btn-sm secondary" onclick="quickClean('${f.room_id}','In Progress',this)">🔄</button>` : ''}
+                ${isDirty ? `<button class="btn-sm" style="background:#F59E0B;color:#fff;" onclick="showRefuseCleaningModal('${f.room_id}','${(propLabel(f.rooms) || f.room_id).replace(/'/g, "\\'")}')">❌ Refuse</button>` : ''}
                 ${isProgress ? `<button class="btn-sm green-btn" onclick="quickClean('${f.room_id}','Clean',this)">✅ Done</button>` : ''}
                 ${isClean ? `<button class="btn-sm danger" onclick="quickClean('${f.room_id}','Dirty',this)">🧹</button>` : ''}
+                ${f.cleaning_refused_reason ? `<div style="font-size:10px;color:#F59E0B;margin-top:4px;">🚫 Refused: ${f.cleaning_refused_reason}</div>` : ''}
               ` : '-'}
             </td>
             ${can ? `<td><button class="btn-sm outline" onclick="editFlatStatus('${f.room_id}')">✏️</button></td>` : ''}
@@ -335,7 +337,106 @@ async function renderFlatsStatus() {
   `, 'flats');
 }
 
+// ═══ CLEANING REFUSE MODAL ═══
+function showRefuseCleaningModal(roomId, roomLabel) {
+  const modal = document.createElement('div');
+  modal.className = 'modal-overlay';
+  modal.onclick = e => { if (e.target === modal) modal.remove(); };
+  modal.innerHTML = '<div class="modal-box" style="max-width:450px;">' +
+    '<button class="modal-close" onclick="this.closest(\'.modal-overlay\').remove()">✕</button>' +
+    '<h2>❌ Refuse Cleaning</h2>' +
+    '<p style="color:var(--muted);margin:0 0 12px;">Room: <strong>' + roomLabel + '</strong></p>' +
+    '<div class="form-group">' +
+    '<label>Reason *</label>' +
+    '<select id="refuseReason">' +
+    '<option value="">— Select Reason —</option>' +
+    '<option value="Not enough time today">Not enough time today</option>' +
+    '<option value="Cleaning supplies unavailable">Cleaning supplies unavailable</option>' +
+    '<option value="Guest still in flat">Guest still in flat</option>' +
+    '<option value="Staff unavailable">Staff unavailable</option>' +
+    '<option value="Water/electricity issue">Water/electricity issue</option>' +
+    '<option value="Other">Other (specify below)</option>' +
+    '</select></div>' +
+    '<div class="form-group">' +
+    '<label>Additional Notes</label>' +
+    '<textarea id="refuseNotes" rows="3" placeholder="Optional details..." style="width:100%;padding:8px;border:1px solid var(--border);border-radius:6px;"></textarea>' +
+    '</div>' +
+    '<button onclick="saveRefuseCleaning(\'' + roomId + '\')" style="width:100%;background:#F59E0B;color:#fff;margin-top:10px;">💾 Save Refusal</button>' +
+    '<div id="refuseErr"></div>' +
+    '</div>';
+  document.body.appendChild(modal);
+}
+
+async function saveRefuseCleaning(roomId) {
+  const reason = document.getElementById('refuseReason')?.value;
+  const notes = document.getElementById('refuseNotes')?.value?.trim() || '';
+  if (!reason) {
+    document.getElementById('refuseErr').innerHTML = '<div class="error">Please select a reason</div>';
+    return;
+  }
+
+  const fullReason = notes ? (reason + ' — ' + notes) : reason;
+
+  const { error } = await sb.from('flats_status').update({
+    cleaning_refused_reason: fullReason,
+    cleaning_refused_by: SESSION.userId,
+    cleaning_refused_at: new Date().toISOString()
+  }).eq('room_id', roomId);
+
+  if (error) {
+    document.getElementById('refuseErr').innerHTML = '<div class="error">' + error.message + '</div>';
+    return;
+  }
+
+  if (window.fsn) fsn.warning('Cleaning Refused', 'Reason logged: ' + reason);
+  document.querySelector('.modal-overlay')?.remove();
+  if (window.renderPropertyList) renderPropertyList();
+  if (window.renderDashboard) renderDashboard();
+}
+
+// ═══ DAILY 11 AM CLEANING REMINDER ═══
+async function checkDailyCleaningReminder() {
+  const now = new Date();
+  const currentHour = now.getHours();
+  const today = now.toISOString().slice(0, 10);
+  const lastReminderDate = localStorage.getItem('uh_cleaning_reminder_date');
+
+  if (currentHour < 11 || currentHour >= 18) return;
+  if (lastReminderDate === today) return;
+
+  const { data: dirtyFlats } = await sb.from('flats_status')
+    .select('room_id, cleaning_status, cleaning_refused_reason')
+    .eq('cleaning_status', 'Dirty');
+
+  const pendingCount = (dirtyFlats || []).filter(f => !f.cleaning_refused_reason).length;
+
+  if (pendingCount > 0 && window.fsn) {
+    window.fsn.warning(
+      '🧹 Daily Cleaning Reminder',
+      pendingCount + ' flat(s) pending cleaning today. Check Properties page.'
+    );
+    localStorage.setItem('uh_cleaning_reminder_date', today);
+  }
+}
+
+// Auto-check on load + every 30 min
+setTimeout(function(){ if(window.sb && window.SESSION?.userId) checkDailyCleaningReminder(); }, 5000);
+setInterval(function(){ if(window.sb && window.SESSION?.userId) checkDailyCleaningReminder(); }, 30 * 60 * 1000);
+
+// Expose globally
+window.showRefuseCleaningModal = showRefuseCleaningModal;
+window.saveRefuseCleaning = saveRefuseCleaning;
+
 async function quickClean(roomId, newStatus, btnEl = null) {
+  // Clear refuse reason if marking clean
+  if (newStatus === 'Clean') {
+    await sb.from('flats_status').update({
+      cleaning_refused_reason: null,
+      cleaning_refused_by: null,
+      cleaning_refused_at: null
+    }).eq('room_id', roomId);
+  }
+
   const msgEl = document.getElementById('flatActionMsg');
   try {
     if (btnEl) { btnEl.disabled = true; btnEl.textContent = '⏳'; }
