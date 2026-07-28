@@ -38,32 +38,128 @@
     const appEl = document.getElementById('mainContent') || document.getElementById('app');
     if (!appEl) return;
 
+    // Inject chat CSS once
+    if (!document.getElementById('chat-mobile-css')) {
+      const css = document.createElement('style');
+      css.id = 'chat-mobile-css';
+      css.textContent = `
+        .uh-chat-root {
+          position: fixed;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          display: flex;
+          flex-direction: column;
+          background: #fafafa;
+          z-index: 9999;
+          padding-top: env(safe-area-inset-top, 0px);
+        }
+        .uh-chat-header {
+          flex: 0 0 auto;
+          padding: 12px 14px;
+          background: #1a1f26;
+          color: #fff;
+          display: flex;
+          align-items: center;
+          gap: 10px;
+        }
+        .uh-chat-messages {
+          flex: 1 1 auto;
+          overflow-y: auto;
+          overflow-x: hidden;
+          padding: 12px;
+          background: #fafafa;
+          -webkit-overflow-scrolling: touch;
+          overscroll-behavior: contain;
+        }
+        .uh-chat-input-bar {
+          flex: 0 0 auto;
+          padding: 10px;
+          padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px));
+          background: #fff;
+          border-top: 1px solid #e5e5e5;
+          display: flex;
+          gap: 8px;
+          align-items: center;
+        }
+        .uh-chat-input {
+          flex: 1 1 auto;
+          min-width: 0;
+          padding: 12px 14px;
+          border: 1px solid #ddd;
+          border-radius: 24px;
+          font-size: 16px;
+          outline: none;
+          background: #fff;
+          color: #111;
+          -webkit-appearance: none;
+          appearance: none;
+        }
+        .uh-chat-input:focus {
+          border-color: #25D366;
+        }
+        .uh-chat-send {
+          flex: 0 0 auto;
+          background: #25D366;
+          color: #fff;
+          border: none;
+          padding: 0 18px;
+          height: 44px;
+          border-radius: 24px;
+          font-weight: 600;
+          cursor: pointer;
+          min-width: 70px;
+          font-size: 14px;
+        }
+        .uh-chat-send:active { background: #128C7E; }
+        @media (max-width: 768px) {
+          .uh-chat-root { padding-top: env(safe-area-inset-top, 0px); }
+        }
+        body.uh-chat-active { overflow: hidden; }
+        body.uh-chat-active .bottom-nav,
+        body.uh-chat-active #bottomNav,
+        body.uh-chat-active .bottomNav,
+        body.uh-chat-active .drawer,
+        body.uh-chat-active #drawer,
+        body.uh-chat-active .drawer-overlay,
+        body.uh-chat-active #drawerOverlay,
+        body.uh-chat-active .top-bar,
+        body.uh-chat-active #topBar,
+        body.uh-chat-active .header,
+        body.uh-chat-active .sidebar { display: none !important; }
+      `;
+      document.head.appendChild(css);
+    }
+
+    document.body.classList.add('uh-chat-active');
+
     appEl.innerHTML = `
-      <div class="wrap" style="padding:0;display:flex;flex-direction:column;height:calc(100vh - 130px);">
-        <div style="padding:14px;background:#1a1f26;color:#fff;display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:10;">
+      <div class="uh-chat-root">
+        <div class="uh-chat-header">
+          <div onclick="window.navigate && window.navigate('dashboard')" style="font-size:20px;cursor:pointer;padding:4px 10px;margin-left:-6px;">←</div>
           <div style="font-size:22px;">💬</div>
-          <div>
+          <div style="flex:1;min-width:0;">
             <div style="font-weight:700;font-size:15px;">Team Chat</div>
             <div style="font-size:11px;opacity:0.7;" id="chatOnlineText">Loading...</div>
           </div>
+          <div onclick="window.navigate && window.navigate('dashboard')" style="font-size:22px;cursor:pointer;padding:4px 10px;opacity:0.8;">✕</div>
         </div>
-
-        <div id="chatMessages" style="flex:1;overflow-y:auto;padding:12px;background:#fafafa;-webkit-overflow-scrolling:touch;">
+        <div id="chatMessages" class="uh-chat-messages">
           ${renderMessagesList()}
         </div>
-
-        <div style="padding:10px;background:#fff;border-top:1px solid #e5e5e5;display:flex;gap:8px;position:sticky;bottom:0;">
+        <div class="uh-chat-input-bar">
           <input
             id="chatInput"
             type="text"
+            autocomplete="off"
+            autocorrect="off"
+            autocapitalize="sentences"
             placeholder="Type a message..."
-            style="flex:1;padding:12px 14px;border:1px solid #ddd;border-radius:24px;font-size:14px;outline:none;"
+            class="uh-chat-input"
             onkeydown="if(event.key==='Enter'){event.preventDefault();window.sendChatMessage();}"
           />
-          <button
-            onclick="window.sendChatMessage()"
-            style="background:#25D366;color:#fff;border:none;padding:0 18px;border-radius:24px;font-weight:600;cursor:pointer;min-width:70px;"
-          >Send</button>
+          <button onclick="window.sendChatMessage()" class="uh-chat-send">Send</button>
         </div>
       </div>
     `;
@@ -252,7 +348,10 @@
   const origNav = window.navigate;
   if (origNav && !window._chatNavWrapped) {
     window.navigate = function(page) {
-      if (page !== 'chat') CHAT.isOpen = false;
+      if (page !== 'chat') {
+        CHAT.isOpen = false;
+        document.body.classList.remove('uh-chat-active');
+      }
       return origNav.apply(this, arguments);
     };
     window._chatNavWrapped = true;
