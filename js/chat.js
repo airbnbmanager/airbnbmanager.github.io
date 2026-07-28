@@ -128,6 +128,63 @@
         body.uh-chat-active #topBar,
         body.uh-chat-active .header,
         body.uh-chat-active .sidebar { display: none !important; }
+        .uh-chat-imgbtn {
+          flex: 0 0 auto;
+          font-size: 22px;
+          padding: 8px 10px;
+          cursor: pointer;
+          background: #f0f0f0;
+          border-radius: 20px;
+          user-select: none;
+          border: 1px solid #ddd;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          min-width: 42px;
+          height: 42px;
+        }
+        .uh-chat-imgbtn:active { background: #e0e0e0; }
+        .uh-chat-img-msg {
+          max-width: 220px;
+          max-height: 280px;
+          border-radius: 8px;
+          cursor: pointer;
+          margin: 4px 0;
+          display: block;
+          background: #f0f0f0;
+        }
+        .uh-chat-img-fullscreen {
+          position: fixed;
+          inset: 0;
+          background: rgba(0,0,0,0.95);
+          z-index: 100000;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 20px;
+        }
+        .uh-chat-img-fullscreen img {
+          max-width: 100%;
+          max-height: 100%;
+          object-fit: contain;
+        }
+        .uh-chat-img-fullscreen .close-btn {
+          position: absolute;
+          top: 20px;
+          right: 20px;
+          background: rgba(255,255,255,0.2);
+          color: #fff;
+          border: none;
+          font-size: 28px;
+          width: 44px;
+          height: 44px;
+          border-radius: 50%;
+          cursor: pointer;
+        }
+        .uh-chat-uploading {
+          opacity: 0.6;
+          pointer-events: none;
+        }
       `;
       document.head.appendChild(css);
     }
@@ -149,6 +206,8 @@
           ${renderMessagesList()}
         </div>
         <div class="uh-chat-input-bar">
+          <label for="chatImgInput" class="uh-chat-imgbtn" title="Send image">📷</label>
+          <input id="chatImgInput" type="file" accept="image/*" style="display:none;" onchange="window.uploadChatImage(this)" />
           <input
             id="chatInput"
             type="text"
@@ -213,7 +272,8 @@
         <div style="display:flex;justify-content:${isMine ? 'flex-end' : 'flex-start'};margin-bottom:6px;">
           <div style="max-width:75%;background:${isMine ? '#DCF8C6' : '#fff'};border-radius:12px;padding:8px 12px;box-shadow:0 1px 1px rgba(0,0,0,0.08);position:relative;">
             ${!isMine ? `<div style="font-size:11px;font-weight:700;color:#E2725B;margin-bottom:2px;">${m.user_name}</div>` : ''}
-            <div style="font-size:14px;color:#111;word-wrap:break-word;">${escapeHtml(m.message)}</div>
+            ${m.image_path ? `<img class="uh-chat-img-msg" src="${window.chatImageUrl(m.image_path)}" onclick="window.openChatImage('${m.image_path}')" alt="Chat image" />` : ''}
+            ${m.message ? `<div style="font-size:14px;color:#111;word-wrap:break-word;">${escapeHtml(m.message)}</div>` : ''}
             <div style="font-size:10px;color:#888;text-align:right;margin-top:2px;">
               ${time}
               ${canDelete ? `<span onclick="window.deleteChatMsg(${m.id})" style="margin-left:8px;cursor:pointer;color:#999;" title="Delete">🗑</span>` : ''}
@@ -231,6 +291,75 @@
     div.textContent = text;
     return div.innerHTML;
   }
+
+  // ─── Image URL helper ───
+  window.chatImageUrl = function(path) {
+    if (!path) return '';
+    const { data } = sb.storage.from('chat-images').getPublicUrl(path);
+    return data?.publicUrl || '';
+  };
+
+  // ─── Open image fullscreen ───
+  window.openChatImage = function(path) {
+    const url = window.chatImageUrl(path);
+    if (!url) return;
+    const overlay = document.createElement('div');
+    overlay.className = 'uh-chat-img-fullscreen';
+    overlay.innerHTML = '<button class="close-btn">✕</button><img src="' + url + '" alt="Full image" />';
+    overlay.onclick = () => overlay.remove();
+    document.body.appendChild(overlay);
+  };
+
+  // ─── Upload image ───
+  window.uploadChatImage = async function(fileInput) {
+    const file = fileInput?.files?.[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      if (window.fsn) fsn.error('Too Large', 'Image must be under 5MB');
+      fileInput.value = '';
+      return;
+    }
+
+    const imgBtn = document.querySelector('.uh-chat-imgbtn');
+    if (imgBtn) imgBtn.classList.add('uh-chat-uploading');
+
+    try {
+      let uploadFile = file;
+      if (window.smartCompress) {
+        try { uploadFile = await window.smartCompress(file); } catch(e) {}
+      }
+
+      const ts = Date.now();
+      const ext = (file.name.split('.').pop() || 'jpg').toLowerCase();
+      const path = SESSION.userId + '/' + ts + '.' + ext;
+
+      const { error: upErr } = await sb.storage
+        .from('chat-images')
+        .upload(path, uploadFile, { contentType: file.type || 'image/jpeg', upsert: false });
+
+      if (upErr) throw upErr;
+
+      const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+      const { error: msgErr } = await sb.from('chat_messages').insert({
+        user_id: SESSION.userId,
+        user_name: SESSION.displayName || 'User',
+        message: '',
+        image_path: path,
+        expires_at: expiresAt
+      });
+
+      if (msgErr) throw msgErr;
+
+      if (window.fsn) fsn.success('Sent', 'Image sent (auto-delete in 24hr)');
+    } catch (e) {
+      console.error('Image upload failed:', e);
+      if (window.fsn) fsn.error('Upload Failed', e.message || 'Try again');
+    } finally {
+      if (imgBtn) imgBtn.classList.remove('uh-chat-uploading');
+      fileInput.value = '';
+    }
+  };
 
   // ─── Send message ───
   window.sendChatMessage = async function() {
