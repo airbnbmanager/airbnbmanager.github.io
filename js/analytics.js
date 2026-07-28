@@ -460,6 +460,13 @@
         '<div id="monthlyCompContainer"><div class="loading">Loading monthly data...</div></div>' +
       '</div>';
 
+    // Staff performance placeholder (loaded async)
+    const staffPerfHtml =
+      '<div class="card" style="margin-top:16px;">' +
+        '<div class="section-title">👤 Staff Performance (Last ' + AN.period + ' Days)</div>' +
+        '<div id="staffPerfContainer"><div class="loading">Loading staff stats...</div></div>' +
+      '</div>';
+
     // Top guests
     const guestRows = topGuests.map((g, i) => {
       const isOnline = g.online > g.offline;
@@ -555,12 +562,16 @@
         // Monthly comparison
         monthlyCompHtml +
 
+        // Staff performance
+        staffPerfHtml +
+
       '</div>';
 
     renderShell(html, 'analytics');
 
-    // Load monthly comparison async (after main render)
+    // Load async sections (after main render)
     loadMonthlyComparison();
+    loadStaffPerformance();
   }
 
   // ═══ MONTHLY COMPARISON ═══
@@ -679,6 +690,109 @@
       '</table></div>';
   }
 
+
+  
+  // ═══ STAFF PERFORMANCE ═══
+  async function loadStaffPerformance() {
+    const container = document.getElementById('staffPerfContainer');
+    if (!container) return;
+
+    const fromDate = daysAgo(AN.period);
+
+    const [profRes, bkRes, payRes] = await Promise.all([
+      sb.from('profiles').select('user_id, display_name, role').eq('is_approved', true),
+      sb.from('guest_register')
+        .select('booking_id, total_amount, created_by, booked_by, verification_status')
+        .gte('check_in', fromDate)
+        .neq('verification_status', 'rejected'),
+      sb.from('payment_history')
+        .select('id, amount, created_by, verification_status')
+        .gte('payment_date', fromDate)
+        .neq('verification_status', 'rejected')
+    ]);
+
+    const profiles = profRes.data || [];
+    const bookings = bkRes.data || [];
+    const payments = payRes.data || [];
+
+    const profMap = {};
+    profiles.forEach(p => { profMap[p.user_id] = p; });
+
+    // Aggregate stats per user
+    const staffStats = {};
+    bookings.forEach(b => {
+      const uid = b.created_by;
+      if (!uid) return;
+      if (!staffStats[uid]) staffStats[uid] = {
+        name: profMap[uid]?.display_name || b.booked_by || 'Unknown',
+        role: profMap[uid]?.role || 'unknown',
+        bookings: 0, bookingRev: 0, pending: 0,
+        payments: 0, paymentRev: 0
+      };
+      staffStats[uid].bookings++;
+      staffStats[uid].bookingRev += b.total_amount || 0;
+      if (b.verification_status === 'pending') staffStats[uid].pending++;
+    });
+
+    payments.forEach(p => {
+      const uid = p.created_by;
+      if (!uid) return;
+      if (!staffStats[uid]) staffStats[uid] = {
+        name: profMap[uid]?.display_name || 'Unknown',
+        role: profMap[uid]?.role || 'unknown',
+        bookings: 0, bookingRev: 0, pending: 0,
+        payments: 0, paymentRev: 0
+      };
+      staffStats[uid].payments++;
+      staffStats[uid].paymentRev += p.amount || 0;
+    });
+
+    const staffArr = Object.values(staffStats)
+      .filter(s => s.bookings > 0 || s.payments > 0)
+      .sort((a, b) => (b.bookingRev + b.paymentRev) - (a.bookingRev + a.paymentRev));
+
+    if (staffArr.length === 0) {
+      container.innerHTML = '<div style="text-align:center;padding:20px;color:#888;">No staff activity in this period</div>';
+      return;
+    }
+
+    const roleColors = {
+      developer: '#8B5CF6', owner: '#FF385C',
+      moderator: '#F59E0B', viewer: '#888'
+    };
+
+    const rows = staffArr.map((s, i) => {
+      const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : '👤';
+      const verifyRate = s.bookings > 0 ? Math.round(((s.bookings - s.pending) / s.bookings) * 100) : 100;
+      const rateColor = verifyRate === 100 ? '#0A7D1A' : verifyRate >= 90 ? '#F59E0B' : '#DC2626';
+      const roleColor = roleColors[s.role] || '#666';
+
+      return '<div style="border:1px solid #eee;border-radius:10px;padding:14px;margin-bottom:10px;">' +
+        '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">' +
+          '<div>' +
+            '<span style="font-size:20px;">' + medal + '</span> ' +
+            '<strong style="font-size:15px;">' + s.name + '</strong> ' +
+            '<span style="background:' + roleColor + ';color:#fff;font-size:10px;padding:2px 8px;border-radius:10px;font-weight:600;">' + s.role + '</span>' +
+          '</div>' +
+          '<div style="font-size:18px;font-weight:800;color:#0A7D1A;">' + formatK(s.bookingRev + s.paymentRev) + '</div>' +
+        '</div>' +
+        '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;font-size:12px;">' +
+          '<div>📅 <strong>' + s.bookings + '</strong> bookings<br>' +
+            '<small style="color:#888;">' + formatK(s.bookingRev) + ' revenue</small></div>' +
+          '<div>💰 <strong>' + s.payments + '</strong> payments<br>' +
+            '<small style="color:#888;">' + formatK(s.paymentRev) + ' collected</small></div>' +
+          '<div>' +
+            (s.pending > 0
+              ? '<span style="color:#F59E0B;">⚠️ <strong>' + s.pending + '</strong> pending</span>'
+              : '<span style="color:#0A7D1A;">✅ All verified</span>') +
+            '<br><small style="color:' + rateColor + ';">' + verifyRate + '% verify rate</small>' +
+          '</div>' +
+        '</div>' +
+      '</div>';
+    }).join('');
+
+    container.innerHTML = rows;
+  }
 
   window.renderAnalytics = renderAnalytics;
 })();
