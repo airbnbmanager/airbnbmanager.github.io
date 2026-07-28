@@ -545,10 +545,133 @@
           '</div>' +
         '</div>' +
 
+        // Monthly comparison
+        monthlyCompHtml +
+
       '</div>';
 
     renderShell(html, 'analytics');
+
+    // Load monthly comparison async (after main render)
+    loadMonthlyComparison();
   }
+
+  // ═══ MONTHLY COMPARISON ═══
+  async function loadMonthlyComparison() {
+    const container = document.getElementById('monthlyCompContainer');
+    if (!container) return;
+
+    // Fetch last 12 months of data
+    const now = new Date();
+    const yearAgo = new Date(now.getFullYear() - 1, now.getMonth(), 1);
+    const fromStr = yearAgo.toISOString().slice(0, 10);
+
+    const { data: allBks } = await sb.from('guest_register')
+      .select('booking_id, check_in, total_amount, booking_mode')
+      .gte('check_in', fromStr)
+      .neq('verification_status', 'rejected');
+
+    if (!allBks || allBks.length === 0) {
+      container.innerHTML = '<div style="text-align:center;padding:20px;color:#888;">No data available</div>';
+      return;
+    }
+
+    // Group by month
+    const monthMap = {};
+    allBks.forEach(b => {
+      if (!b.check_in) return;
+      const month = b.check_in.slice(0, 7); // YYYY-MM
+      if (!monthMap[month]) monthMap[month] = { online: 0, offline: 0, count: 0 };
+      const rev = b.total_amount || 0;
+      monthMap[month].count++;
+      if (b.booking_mode === 'Online-Airbnb') monthMap[month].online += rev;
+      else monthMap[month].offline += rev;
+    });
+
+    // Sort by month desc
+    const sortedMonths = Object.keys(monthMap).sort((a, b) => b.localeCompare(a)).slice(0, 12);
+
+    // Calculate growth
+    let bestMonth = { key: '', total: 0 };
+    let bestGrowth = { key: '', pct: -999 };
+
+    const rows = sortedMonths.map((m, i) => {
+      const d = monthMap[m];
+      const total = d.online + d.offline;
+      const prev = sortedMonths[i + 1] ? monthMap[sortedMonths[i + 1]] : null;
+      const prevTotal = prev ? (prev.online + prev.offline) : 0;
+      const growth = prevTotal > 0 ? ((total - prevTotal) / prevTotal * 100) : null;
+
+      if (total > bestMonth.total) bestMonth = { key: m, total };
+      if (growth !== null && growth > bestGrowth.pct) bestGrowth = { key: m, pct: growth };
+
+      const monthName = new Date(m + '-01').toLocaleDateString('en-IN', { month: 'short', year: '2-digit' });
+      const growthDisplay = growth === null ? '<span style="color:#888;">—</span>' :
+        growth >= 0 
+          ? '<span style="color:#0A7D1A;font-weight:700;">↑ +' + growth.toFixed(0) + '%</span>'
+          : '<span style="color:#DC2626;font-weight:700;">↓ ' + growth.toFixed(0) + '%</span>';
+
+      const isBest = m === bestMonth.key;
+
+      return '<tr style="' + (isBest ? 'background:#FEF3C7;' : '') + '">' +
+        '<td style="font-weight:700;">' + monthName + (isBest ? ' 🏆' : '') + '</td>' +
+        '<td style="text-align:right;color:#FF385C;">' + formatK(d.online) + '</td>' +
+        '<td style="text-align:right;color:#F59E0B;">' + formatK(d.offline) + '</td>' +
+        '<td style="text-align:right;font-weight:700;">' + formatK(total) + '</td>' +
+        '<td style="text-align:center;">' + d.count + '</td>' +
+        '<td style="text-align:right;">' + growthDisplay + '</td>' +
+        '</tr>';
+    }).join('');
+
+    // Mini bar chart of monthly totals
+    const monthTotals = sortedMonths.slice().reverse().map(m => monthMap[m].online + monthMap[m].offline);
+    const maxT = Math.max(...monthTotals, 1);
+    const barChart = monthTotals.map((v, i) => {
+      const h = (v / maxT) * 100;
+      const monthKey = sortedMonths.slice().reverse()[i];
+      const monthShort = new Date(monthKey + '-01').toLocaleDateString('en-IN', { month: 'short' });
+      return '<div style="flex:1;display:flex;flex-direction:column;align-items:center;">' +
+        '<div style="width:100%;height:100px;display:flex;align-items:flex-end;">' +
+          '<div style="width:100%;background:linear-gradient(180deg,#FF385C,#E00B41);border-radius:4px 4px 0 0;height:' + h + '%;transition:height 0.5s;" title="' + monthShort + ': ' + formatK(v) + '"></div>' +
+        '</div>' +
+        '<div style="font-size:10px;margin-top:4px;color:#666;">' + monthShort + '</div>' +
+      '</div>';
+    }).join('');
+
+    const bestGrowthMonth = bestGrowth.key ? new Date(bestGrowth.key + '-01').toLocaleDateString('en-IN', { month: 'short', year: '2-digit' }) : '-';
+    const bestMonthName = bestMonth.key ? new Date(bestMonth.key + '-01').toLocaleDateString('en-IN', { month: 'short', year: '2-digit' }) : '-';
+
+    container.innerHTML =
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;">' +
+        '<div style="background:#FEF3C7;padding:12px;border-radius:8px;">' +
+          '<div style="font-size:11px;color:#888;text-transform:uppercase;">🏆 Best Month</div>' +
+          '<div style="font-size:18px;font-weight:800;color:#B45309;">' + bestMonthName + '</div>' +
+          '<div style="font-size:13px;">' + formatK(bestMonth.total) + ' total revenue</div>' +
+        '</div>' +
+        '<div style="background:#D1FAE5;padding:12px;border-radius:8px;">' +
+          '<div style="font-size:11px;color:#888;text-transform:uppercase;">📈 Best Growth</div>' +
+          '<div style="font-size:18px;font-weight:800;color:#0A7D1A;">' + bestGrowthMonth + '</div>' +
+          '<div style="font-size:13px;">+' + bestGrowth.pct.toFixed(0) + '% vs previous</div>' +
+        '</div>' +
+      '</div>' +
+
+      '<div style="display:flex;gap:4px;height:130px;margin-bottom:16px;padding:10px;background:#fafafa;border-radius:8px;">' +
+        barChart +
+      '</div>' +
+
+      '<div class="table-wrap"><table style="font-size:13px;">' +
+        '<thead><tr style="background:#222;color:#fff;">' +
+          '<th>Month</th>' +
+          '<th style="text-align:right;">🌐 Online</th>' +
+          '<th style="text-align:right;">💵 Offline</th>' +
+          '<th style="text-align:right;">Total</th>' +
+          '<th style="text-align:center;">Bookings</th>' +
+          '<th style="text-align:right;">vs Prev</th>' +
+        '</tr></thead>' +
+        '<tbody>' + rows + '</tbody>' +
+      '</table></div>';
+  }
+
 
   window.renderAnalytics = renderAnalytics;
 })();
