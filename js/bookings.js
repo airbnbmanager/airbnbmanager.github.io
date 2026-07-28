@@ -1336,6 +1336,14 @@ async function createOfflineExtension(parentBookingId) {
       cleaning_status: 'Dirty',
       last_checkout: today
     }).eq('room_id', b.room_id);
+
+      // Auto-sync room statuses after checkout
+      try {
+        if (typeof window.autoCheckout === 'function') {
+          await window.autoCheckout();
+          console.log('🔄 Auto-sync done after checkout');
+        }
+      } catch(e) { console.warn('Auto-sync failed:', e); }
   }
   window._bookingPrefill = {
     guestName: b.guest_name || '', guestPhone: b.phone || '',
@@ -1373,6 +1381,14 @@ async function quickCheckout(bkId, roomId) {
     cleaning_status: 'Dirty',
     last_checkout: today
   }).eq('room_id', roomId);
+
+      // Auto-sync room statuses after checkout
+      try {
+        if (typeof window.autoCheckout === 'function') {
+          await window.autoCheckout();
+          console.log('🔄 Auto-sync done after checkout');
+        }
+      } catch(e) { console.warn('Auto-sync failed:', e); }
   fsn.success(`Success`, `✅ ${bk.guest_name} checked out! Total: ₹${calcTotal.toLocaleString('en-IN')}`);
   renderManageBookings();
 }
@@ -1751,17 +1767,24 @@ async function updateBooking(bkId, parentBookingId = '', stayGroupId = '') {
   // ✅ AUTO-DIRTY: If checkout_confirmed newly set to true → mark flat dirty
   try {
     const isNowConfirmed  = obj.checkout_confirmed === true;
-    const wasConfirmed    = window._origBooking?.checkout_confirmed === true;
     const today           = new Date().toISOString().slice(0, 10);
     const coDate          = obj.check_out || '';
-    const isPastOrToday   = coDate <= today;
+    const isPastOrToday   = coDate && coDate <= today;
 
-    if (isNowConfirmed && !wasConfirmed && isPastOrToday && rid) {
+    if (isNowConfirmed && isPastOrToday && rid) {
       await sb.from('flats_status').update({
         status: 'Free',
         cleaning_status: 'Dirty',
         last_checkout: today
       }).eq('room_id', rid);
+
+      // Auto-sync room statuses after checkout
+      try {
+        if (typeof window.autoCheckout === 'function') {
+          await window.autoCheckout();
+          console.log('🔄 Auto-sync done after checkout');
+        }
+      } catch(e) { console.warn('Auto-sync failed:', e); }
       console.log('🧹 Auto-dirty triggered for room:', rid);
       fsn.success('Checked Out', '✅ Flat marked Dirty');
     }
