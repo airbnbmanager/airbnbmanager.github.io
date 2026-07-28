@@ -2125,15 +2125,107 @@ function showPaymentModal(bkId) {
 async function savePaymentModal(bkId) {
   const amt = parseFloat(document.getElementById('payAmt')?.value) || 0;
   if (amt <= 0) { document.getElementById('payErr').innerHTML = '<div class="error">Amount required</div>'; return; }
-  const { error } = await sb.from('payment_history').insert({
-    booking_id: bkId, amount: amt,
-    payment_mode: document.getElementById('payMode')?.value,
-    payment_date: document.getElementById('payDate')?.value,
-    notes: document.getElementById('payNotes')?.value?.trim() || null
-  });
-  if (error) { document.getElementById('payErr').innerHTML = `<div class="error">${error.message}</div>`; return; }
-  await recalcPaymentStatus(bkId);
+
+  const mode = document.getElementById('payMode')?.value;
+  const payDate = document.getElementById('payDate')?.value;
+  const userNotes = document.getElementById('payNotes')?.value?.trim() || null;
+
+  // Get current booking + guest info for auto-distribution
+  const { data: currBk } = await sb.from('guest_register')
+    .select('total_amount, guest_name, phone').eq('booking_id', bkId).single();
+  const { data: currPays } = await sb.from('payment_history').select('amount').eq('booking_id', bkId);
+  const currPaid = (currPays || []).reduce((s, p) => s + (p.amount || 0), 0);
+  const currTotal = currBk?.total_amount || 0;
+  const currRemaining = Math.max(currTotal - currPaid, 0); // how much still due on current
+
+  let paymentForCurrent = amt;
+  let overflow = 0;
+
+  // If payment exceeds current due -> auto-distribute overflow to oldest unpaid booking
+  if (amt > currRemaining && currRemaining >= 0) {
+    paymentForCurrent = currRemaining;
+    overflow = amt - currRemaining;
+  }
+
+  // Step 1: Insert current booking payment (only up to remaining)
+  if (paymentForCurrent > 0) {
+    const { error } = await sb.from('payment_history').insert({
+      booking_id: bkId, amount: paymentForCurrent,
+      payment_mode: mode,
+      payment_date: payDate,
+      notes: userNotes
+    });
+    if (error) { document.getElementById('payErr').innerHTML = `<div class="error">${error.message}</div>`; return; }
+    await recalcPaymentStatus(bkId);
+  }
+
+  // Step 2: Distribute overflow to previous unpaid bookings (oldest first)
+  let distributed = [];
+  let remainingOverflow = overflow;
+
+  if (overflow > 0 && currBk) {
+    // Find same guest's other bookings with due > 0, oldest first
+    const { data: otherBks } = await sb.from('guest_register')
+      .select('booking_id, total_amount, check_in, guest_name, phone, rooms(unit_no,nickname)')
+      .neq('booking_id', bkId)
+      .or(`phone.eq.${currBk.phone || 'xxx'},guest_name.eq.${currBk.guest_name}`)
+      .order('check_in', { ascending: true });
+
+    for (const ob of (otherBks || [])) {
+      if (remainingOverflow <= 0) break;
+      const { data: obPays } = await sb.from('payment_history').select('amount').eq('booking_id', ob.booking_id);
+      const obPaid = (obPays || []).reduce((s, p) => s + (p.amount || 0), 0);
+      const obDue = Math.max((ob.total_amount || 0) - obPaid, 0);
+      if (obDue <= 0) continue;
+
+      const toApply = Math.min(remainingOverflow, obDue);
+      const { error: distErr } = await sb.from('payment_history').insert({
+        booking_id: ob.booking_id,
+        amount: toApply,
+        payment_mode: mode,
+        payment_date: payDate,
+        notes: (userNotes ? userNotes + ' | ' : '') + `Auto-adjusted from booking ${bkId}`
+      });
+      if (!distErr) {
+        await recalcPaymentStatus(ob.booking_id);
+        distributed.push({
+          bkId: ob.booking_id,
+          amount: toApply,
+          room: propLabel(ob.rooms) || ob.booking_id,
+          date: ob.check_in
+        });
+        remainingOverflow -= toApply;
+      }
+    }
+  }
+
+  // If any overflow left uncovered, add as advance/extra on current
+  if (remainingOverflow > 0) {
+    const { error: extraErr } = await sb.from('payment_history').insert({
+      booking_id: bkId, amount: remainingOverflow,
+      payment_mode: mode,
+      payment_date: payDate,
+      notes: (userNotes ? userNotes + ' | ' : '') + 'Advance / extra payment'
+    });
+    if (!extraErr) await recalcPaymentStatus(bkId);
+  }
+
   document.querySelector('.modal-overlay')?.remove();
+
+  // Show distribution summary
+  if (distributed.length > 0) {
+    const distMsg = distributed.map(d =>
+      `• ₹${d.amount.toLocaleString('en-IN')} → ${d.room} (${d.date})`
+    ).join('\n');
+    if (window.fsn) {
+      fsn.success('Payment Auto-Distributed',
+        `₹${paymentForCurrent.toLocaleString('en-IN')} on current booking\n` +
+        `${distMsg}` +
+        (remainingOverflow > 0 ? `\n• ₹${remainingOverflow.toLocaleString('en-IN')} → Advance` : '')
+      );
+    }
+  }
+
   if (document.getElementById('editBkErr')) editBooking(bkId);
   else renderManageBookings();
 }
