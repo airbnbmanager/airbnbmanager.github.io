@@ -49,6 +49,17 @@ function approvalMeta() {
   };
 }
 
+function approvalUpdateMeta() {
+  const trusted = isTrustedUser();
+  return {
+    verification_status: trusted ? 'verified' : 'pending',
+    verified_by: trusted ? SESSION.userId : null,
+    verified_at: trusted ? new Date().toISOString() : null,
+    rejection_reason: null
+  };
+}
+
+
 // Get user display name for a user_id (cached)
 window._userNameCache = window._userNameCache || {};
 async function getUserName(userId) {
@@ -2196,6 +2207,9 @@ async function updateBooking(bkId, parentBookingId = '', stayGroupId = '') {
     }
   }
 
+  Object.assign(obj, approvalUpdateMeta());
+
+
   const { error } = await sb.from('guest_register').update(obj).eq('booking_id', bkId);
   if (error) { document.getElementById('editBkErr').innerHTML = `<div class="error">${error.message}</div>`; return; }
   window._editIdFiles = {}; // Clear cache
@@ -2474,12 +2488,14 @@ async function editPayment(payId, bkId) {
 }
 
 async function saveEditPayment(payId, bkId) {
-  await sb.from('payment_history').update({
+  const payPatch = {
     amount: parseFloat(document.getElementById('editPayAmt')?.value) || 0,
     payment_mode: document.getElementById('editPayMode')?.value,
     payment_date: document.getElementById('editPayDate')?.value || null,
     notes: document.getElementById('editPayNotes')?.value?.trim() || null
-  }).eq('id', payId);
+  };
+  Object.assign(payPatch, approvalUpdateMeta());
+  await sb.from('payment_history').update(payPatch).eq('id', payId);
   await recalcPaymentStatus(bkId);
   document.querySelector('.modal-overlay')?.remove();
   editBooking(bkId);
