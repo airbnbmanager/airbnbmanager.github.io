@@ -135,14 +135,35 @@
       }
     });
 
+        // ─ DATA QUALITY WARNINGS ─
+    const badNames = bookings.filter(b => {
+      const n = (b.guest_name || '').toLowerCase().trim();
+      return ['pending', 'tbd', 'unknown', '', 'guest'].includes(n);
+    });
+    if (badNames.length > 0) {
+      insights.critical.push({
+        icon: '📝',
+        title: badNames.length + ' bookings have placeholder guest names',
+        detail: 'Fix names for accurate reports',
+        action: { label: 'View →', fn: "window.navigate('bookings')" }
+      });
+    }
+
     // ─ WINS ─
     if (prevRevenue > 0) {
       const change = ((totalRevenue - prevRevenue) / prevRevenue) * 100;
-      if (change > 5) {
+      if (change > 5 && change < 300) {
         insights.wins.push({
           icon: '📈',
           title: 'Revenue up ' + change.toFixed(0) + '% vs previous period',
           detail: 'Total: ' + formatK(totalRevenue),
+          action: null
+        });
+      } else if (change >= 300) {
+        insights.wins.push({
+          icon: '🚀',
+          title: 'Revenue skyrocketed! (>' + change.toFixed(0) + '%)',
+          detail: 'Previous period had low activity — huge growth this month',
           action: null
         });
       }
@@ -252,6 +273,9 @@
     bookings.forEach(b => {
       const key = (b.phone || b.guest_name || '').trim();
       if (!key) return;
+      // Skip placeholder names
+      const nameLower = (b.guest_name || '').toLowerCase().trim();
+      if (['pending', 'tbd', 'unknown', 'guest', 'test'].includes(nameLower)) return;
       if (!guestMap[key]) guestMap[key] = { name: b.guest_name, phone: b.phone, revenue: 0, stays: 0, due: 0, online: 0, offline: 0 };
       const bkPaid = paidByBk[b.booking_id] || 0;
       const bkDue = Math.max(0, (b.total_amount || 0) - bkPaid);
@@ -463,7 +487,7 @@
 
         // Main metrics row
         '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin:16px 0;">' +
-          metricCard('💰 Total Revenue', formatK(totalRevenue), revChange !== 0 ? (revChange >= 0 ? '↑' : '↓') + ' ' + Math.abs(revChange).toFixed(0) + '% vs prev' : null, '#FF385C') +
+          metricCard('💰 Total Revenue', formatK(totalRevenue), revChange !== 0 ? (revChange >= 0 ? '↑' : '↓') + ' ' + (Math.abs(revChange) > 999 ? '999+' : Math.abs(revChange).toFixed(0)) + '% vs prev' : null, '#FF385C') +
           metricCard('🌐 Online (Airbnb)', formatK(onlineRev), onlineBks.length + ' bookings · ~' + formatK(commissionEst) + ' fees', '#8B5CF6') +
           metricCard('💵 Offline (Direct)', formatK(offlineRev), offlineBks.length + ' bookings · zero fees ✅', '#F59E0B') +
           metricCard('📊 Occupancy', occupancy.toFixed(0) + '%', totalNights + ' room-nights', '#3B82F6') +
