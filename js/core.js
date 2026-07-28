@@ -443,6 +443,7 @@ function renderShell(content, activePage = 'dashboard') {
       ['reports', '📆 Calendar'],
       ['pendingApprovals', '🟡 Pending Approvals'],
       ['analytics', '📊 Analytics'],
+      ['whatsapp-hub', '📱 Communication Hub'],
 
       { section: 'GUESTS' },
       ['bookings', '📅 Bookings'],
@@ -497,6 +498,7 @@ function renderShell(content, activePage = 'dashboard') {
       ['reports', '📆 Calendar'],
       ['pendingApprovals', '🟡 Pending Approvals'],
       ['analytics', '📊 Analytics'],
+      ['whatsapp-hub', '📱 Communication Hub'],
 
       { section: 'GUESTS' },
       ['bookings', '📅 Bookings'],
@@ -691,6 +693,7 @@ function navigate(page) {
     'financial-sheet': renderFinancialSheet,
     'airbnb-sync': renderAirbnbSync,
     'analytics': renderAnalytics,
+    'whatsapp-hub': renderWhatsAppHub,
     'settings': renderSettings,
     investors: renderManageInvestors,
     maintenance: renderMaintenanceLog,
