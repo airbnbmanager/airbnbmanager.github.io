@@ -145,13 +145,21 @@ async function renderReports() {
         const isOnline = bk.booking_mode === 'Online-Airbnb';
         const bg = isOnline ? '#FF385C' : '#F59E0B';
         const guestInitial = (bk.guest_name || 'G').charAt(0).toUpperCase();
-        const firstName = (bk.guest_name || 'Guest').split(' ')[0].substring(0, 10);
+        // Better name: try full first name (or first + last initial if too long)
+        const nameParts = (bk.guest_name || 'Guest').trim().split(/\s+/);
+        let firstName = nameParts[0] || 'G';
+        // If name is > 10 chars AND has 2+ words, use "Firstname L."
+        if (firstName.length > 10 && nameParts.length > 1) {
+          firstName = firstName.substring(0, 8) + '.';
+        } else if (firstName.length > 12) {
+          firstName = firstName.substring(0, 11);
+        }
 
         // Calculate day of the booking span (for repeating name every 3-4 cells)
         const totalNights = calcNights(bk.check_in, bk.check_out);
         const currentNight = calcNights(bk.check_in, ds);
-        // Show name on: first day, every 3rd day, last day
-        const showName = isCheckIn || isCheckOut || (currentNight > 0 && currentNight % 3 === 0);
+        // Show name on: first day, every 2nd day, last day (max visibility)
+        const showName = isCheckIn || isCheckOut || (currentNight > 0 && currentNight % 2 === 0);
         const showAvatar = isCheckIn;
 
         // Pill style: rounded left on check-in, rounded right on check-out
@@ -324,17 +332,19 @@ async function renderReports() {
       }
       .cal-name {
         white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        font-size: 10px;
+        overflow: visible;
+        font-size: 11px;
+        color: #fff;
+        text-shadow: 0 1px 1px rgba(0,0,0,0.2);
       }
+      .cal-pill { overflow: visible; }
       @media (max-width: 640px) {
-        .cal-day { min-height: 44px; }
+        .cal-day { min-height: 48px; }
         .cal-date-num { font-size: 11px; padding: 2px 3px 0; }
         .cal-rate { font-size: 9px; }
-        .cal-pill { font-size: 9px; padding: 2px 3px; }
-        .cal-avatar { width: 16px; height: 16px; font-size: 9px; }
-        .cal-name { font-size: 9px; }
+        .cal-pill { font-size: 10px; padding: 2px 4px; }
+        .cal-avatar { width: 18px; height: 18px; font-size: 10px; }
+        .cal-name { font-size: 10px; font-weight: 700; }
       }
       .cal-room-card { overflow-x: auto; }
     `;
