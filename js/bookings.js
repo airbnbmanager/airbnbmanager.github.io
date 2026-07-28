@@ -73,11 +73,14 @@ async function showGuestLedger(guestName) {
         </tr>`).join('') || '<tr><td colspan="3" class="sub">No payments</td></tr>'}</tbody>
       </table></div>
       <div class="btn-row" style="margin-top:12px;">
+        <button onclick="printGuestLedger('${guestName.replace(/'/g, "\\'")}')" style="background:#00A699;color:#fff;">🖨️ Print Ledger</button>
+        <button onclick="whatsappGuestLedger('${guestName.replace(/'/g, "\\'")}')" style="background:#25D366;color:#fff;">📱 WhatsApp</button>
         <button class="outline" onclick="this.closest('.modal-overlay').remove()">Close</button>
       </div>
     </div>`;
   document.body.appendChild(modal);
 }
+
 
 // ============ ID BUTTON BUILDER ============
 function buildIdButtons(b) {
