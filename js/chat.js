@@ -534,15 +534,70 @@
         { event: 'INSERT', schema: 'public', table: 'chat_messages' },
         (payload) => {
           const m = payload.new;
-          // Check if message matches current mode filter
+          const isMine = m.user_id === SESSION.userId;
+
+          // ═══ NOTIFICATION LOGIC (independent of current mode) ═══
+          // Show notification for ANY relevant message (not from self)
+          if (!isMine && window.notifications) {
+            // Determine if THIS user should be notified for this message
+            const shouldNotify = (
+              // Group chat → notify everyone
+              (!m.chat_type || m.chat_type === 'group') ||
+              // Property chat (GOM/VIL) → notify everyone (open access)
+              (m.chat_type === 'property') ||
+              // DM → notify only recipient
+              (m.chat_type === 'dm' && m.recipient_user_id === SESSION.userId)
+            );
+
+            if (shouldNotify) {
+              // Skip toast if chat OPEN and in matching mode
+              const inSameView = (
+                CHAT.isOpen && (
+                  (CHAT.mode === 'group' && (!m.chat_type || m.chat_type === 'group')) ||
+                  ((CHAT.mode === 'GOM' || CHAT.mode === 'VIL') && m.chat_type === 'property' && m.property_id === CHAT.mode) ||
+                  (CHAT.mode === 'dm' && m.chat_type === 'dm' &&
+                   (m.user_id === CHAT.dmUserId && m.recipient_user_id === SESSION.userId))
+                )
+              );
+
+              if (!inSameView) {
+                // Build notification title based on chat type
+                let title = m.user_name || 'New message';
+                if (m.chat_type === 'property' && m.property_id) {
+                  title = '🏢 ' + m.property_id + ' — ' + (m.user_name || 'User');
+                } else if (m.chat_type === 'dm') {
+                  title = '👤 ' + (m.user_name || 'User') + ' (DM)';
+                }
+
+                const previewMsg = m.image_path ? '📷 Sent an image' : (m.message || '').substring(0, 100);
+
+                window.notifications.notify({
+                  type: 'chat',
+                  icon: '💬',
+                  title: title,
+                  message: previewMsg,
+                  page: 'chat',
+                  sound: 'info'
+                });
+              }
+            }
+          }
+
+          // ═══ UPDATE UI (only if matches current mode) ═══
           const matchesMode = (
             (CHAT.mode === 'group' && (!m.chat_type || m.chat_type === 'group')) ||
             ((CHAT.mode === 'GOM' || CHAT.mode === 'VIL') && m.chat_type === 'property' && m.property_id === CHAT.mode) ||
-            (CHAT.mode === 'dm' && m.chat_type === 'dm' && 
+            (CHAT.mode === 'dm' && m.chat_type === 'dm' &&
              ((m.user_id === SESSION.userId && m.recipient_user_id === CHAT.dmUserId) ||
               (m.user_id === CHAT.dmUserId && m.recipient_user_id === SESSION.userId)))
           );
-          if (!matchesMode) return; // Ignore messages not in current view
+
+          if (!matchesMode) {
+            // Still update unread count for other views
+            updateUnread();
+            return;
+          }
+
           CHAT.messages.push(m);
           if (CHAT.isOpen) {
             const box = document.getElementById('chatMessages');
@@ -553,19 +608,7 @@
             CHAT.lastSeenId = m.id;
             localStorage.setItem('uh_chat_lastseen', CHAT.lastSeenId.toString());
           } else {
-            // Show unread badge
             updateUnread();
-            // Notification
-            if (payload.new.user_id !== SESSION.userId && window.notifications) {
-              window.notifications.notify({
-                type: 'chat',
-                icon: '💬',
-                title: payload.new.user_name,
-                message: payload.new.message.substring(0, 100),
-                page: 'chat',
-                sound: 'info'
-              });
-            }
           }
         })
       .on('postgres_changes',
