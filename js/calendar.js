@@ -145,7 +145,14 @@ async function renderReports() {
         const isOnline = bk.booking_mode === 'Online-Airbnb';
         const bg = isOnline ? '#FF385C' : '#F59E0B';
         const guestInitial = (bk.guest_name || 'G').charAt(0).toUpperCase();
-        const showName = isCheckIn ? (bk.guest_name || '').split(' ')[0].substring(0, 8) : '';
+        const firstName = (bk.guest_name || 'Guest').split(' ')[0].substring(0, 10);
+
+        // Calculate day of the booking span (for repeating name every 3-4 cells)
+        const totalNights = calcNights(bk.check_in, bk.check_out);
+        const currentNight = calcNights(bk.check_in, ds);
+        // Show name on: first day, every 3rd day, last day
+        const showName = isCheckIn || isCheckOut || (currentNight > 0 && currentNight % 3 === 0);
+        const showAvatar = isCheckIn;
 
         // Pill style: rounded left on check-in, rounded right on check-out
         let borderRadius = '0';
@@ -155,10 +162,10 @@ async function renderReports() {
 
         cellsHtml += `
           <div class="cal-day booked ${isToday ? 'today' : ''}" onclick="showBookingPopup('${r.room_id}','${ds}')" title="${bk.guest_name || 'Booked'}">
-            <div class="cal-date-num">${d}${isToday ? '' : ''}</div>
+            <div class="cal-date-num">${d}</div>
             <div class="cal-pill" style="background:${bg};border-radius:${borderRadius};">
-              ${isCheckIn ? `<span class="cal-avatar">${guestInitial}</span>` : ''}
-              ${showName ? `<span class="cal-name">${showName}</span>` : ''}
+              ${showAvatar ? `<span class="cal-avatar">${guestInitial}</span>` : ''}
+              ${showName ? `<span class="cal-name">${firstName}</span>` : ''}
             </div>
           </div>`;
       } else {
