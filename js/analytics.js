@@ -486,11 +486,14 @@
       '<div class="wrap">' +
         '<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">' +
           '<h1>📊 Analytics Dashboard</h1>' +
+          '<div style="display:flex;gap:8px;align-items:center;">' +
+          '<button onclick="printAnalytics()" class="btn-sm" style="background:#0A7D1A;color:#fff;padding:8px 14px;">🖨️ Print / PDF</button>' +
           '<select onchange="setAnalyticsPeriod(this.value)" style="padding:8px 12px;border:1px solid #ccc;border-radius:6px;">' +
             [7, 30, 60, 90, 180, 365].map(d =>
               '<option value="' + d + '"' + (AN.period === d ? ' selected' : '') + '>Last ' + (d >= 365 ? '1 year' : d >= 180 ? '6 months' : d + ' days') + '</option>'
             ).join('') +
           '</select>' +
+          '</div>' +
         '</div>' +
 
         // Insights card
@@ -793,6 +796,41 @@
 
     container.innerHTML = rows;
   }
+
+  
+  // ═══ PRINT ANALYTICS AS PDF ═══
+  window.printAnalytics = function() {
+    const originalTitle = document.title;
+    const dateStr = new Date().toLocaleDateString('en-IN');
+    document.title = 'UHHS Analytics — ' + dateStr;
+
+    // Inject print styles
+    const printCSS = document.createElement('style');
+    printCSS.id = 'analytics-print-css';
+    printCSS.textContent = `
+      @media print {
+        body * { visibility: hidden; }
+        #mainContent, #mainContent * { visibility: visible; }
+        #mainContent { position: absolute; left: 0; top: 0; width: 100%; }
+        .drawer, #drawer, .bottom-nav, #bottomNav, .top-bar, #topBar,
+        button, select, .btn-sm, .no-print { display: none !important; }
+        .card { box-shadow: none !important; border: 1px solid #ddd; page-break-inside: avoid; }
+        h1 { color: #FF385C; border-bottom: 2px solid #FF385C; padding-bottom: 8px; }
+        .section-title { color: #222; border-bottom: 1px solid #eee; }
+        table { font-size: 11px !important; }
+        @page { margin: 12mm; size: A4; }
+      }
+    `;
+    document.head.appendChild(printCSS);
+
+    setTimeout(() => {
+      window.print();
+      setTimeout(() => {
+        document.title = originalTitle;
+        printCSS.remove();
+      }, 1000);
+    }, 300);
+  };
 
   window.renderAnalytics = renderAnalytics;
 })();
