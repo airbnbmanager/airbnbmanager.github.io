@@ -1992,3 +1992,9 @@ window.forceLogoutAll = async function() {
     if (logoutCheckTimer) clearInterval(logoutCheckTimer);
   });
 })();
+
+
+// Expose autoCheckout globally for auto-sync after checkout
+if (typeof autoCheckout === 'function') {
+  window.autoCheckout = autoCheckout;
+}
