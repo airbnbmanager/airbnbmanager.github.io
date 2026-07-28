@@ -89,7 +89,7 @@ async function buildMessageData(bkId) {
     googleReview: config.google_review_url || '',
     airbnbReview: config.airbnb_host_url || '',
     isAirbnb: bk.booking_mode === 'Online-Airbnb',
-    discount: config.discount_percent || 10
+    discount: config.discount_percent || 15
   };
 }
 
@@ -147,7 +147,7 @@ ${fmtContacts(d)}
 
 WiFi and key details will be shared 1 hour before check-in.
 
-*Save ${d.discount}% next visit — book direct:*
+*Save ${d.discount}% on your next stay — book direct:*
 ${d.websiteURL}
 
 — Team ${BRAND_NAME}`;
@@ -250,7 +250,7 @@ If you enjoyed your stay, a 30-second review on *${platform}* helps our small te
 Review here: ${reviewURL}
 
 *Planning your next Lucknow trip?*
-Book direct on our website and save ${d.discount}% vs ${platform}:
+Book direct on our website — save ${d.discount}% vs Airbnb/Booking.com:
 ${d.websiteURL}
 
 Save our number — we'd love to host you again.
