@@ -137,6 +137,7 @@ async function renderManageBookings() {
   const {data:all, error} = await sb.from("guest_register")
     .select("*, rooms(unit_no, nickname, property_name)").order("check_in", {ascending:false});
   if (error) { renderShell(`<div class="error">${error.message}</div>`, 'bookings'); return; }
+  window._allBookings = all || []; // ✅ Store globally for prev-due calculation
 
   const {data:rooms} = await sb.from('rooms').select('room_id, unit_no, nickname, property_name').order('unit_no');
   const roomMap = {};
@@ -358,6 +359,21 @@ async function renderManageBookings() {
             <strong style="cursor:pointer;text-decoration:underline;color:var(--blue);"
               onclick="showGuestLedger('${(b.guest_name || '').replace(/'/g, "\\'")}')">${b.guest_name || '-'}</strong><br>
             <small style="color:var(--muted);">${b.phone || ''}</small>
+            ${(() => {
+              const allBks = window._allBookings || [];
+              const pm = window._bkPaidMap || {};
+              const sameGuest = allBks.filter(x =>
+                x.booking_id !== b.booking_id &&
+                ((b.phone && x.phone === b.phone) || x.guest_name === b.guest_name)
+              );
+              const prevDue = sameGuest.reduce((s, x) => {
+                const due = (x.total_amount || 0) - (pm[x.booking_id] || 0);
+                return s + (due > 0 ? due : 0);
+              }, 0);
+              return prevDue > 0
+                ? `<br><small style="color:#FF385C;font-weight:700;font-size:10px;">⚠️ Prev Due ₹${prevDue.toLocaleString('en-IN')}</small>`
+                : '';
+            })()}
             ${b.has_vehicle ? `<br><small>🚗 ${b.vehicle_name || ''} ${b.vehicle_number || ''}${b.vehicle_photo_path ? ` <button class="btn-sm green-btn" style="padding:1px 6px;font-size:9px;min-height:18px;" onclick="dlIdPhoto('${b.vehicle_photo_path}')">📷</button>` : ''}</small>` : ''}
           </td>
           <td>
@@ -1848,6 +1864,31 @@ async function delBooking(bkId, guestName, roomId) {
 
 // ============ PAYMENT MODAL ============
 function showPaymentModal(bkId) {
+  // Build previous due warning for this guest
+  const allBks = window._allBookings || [];
+  const pm = window._bkPaidMap || {};
+  const thisBk = allBks.find(x => x.booking_id === bkId) || {};
+  const sameGuest = allBks.filter(x =>
+    x.booking_id !== bkId &&
+    ((thisBk.phone && x.phone === thisBk.phone) || x.guest_name === thisBk.guest_name)
+  );
+  const prevDue = sameGuest.reduce((s, x) => {
+    const due = (x.total_amount || 0) - (pm[x.booking_id] || 0);
+    return s + (due > 0 ? due : 0);
+  }, 0);
+  const currentDue = (thisBk.total_amount || 0) - (pm[bkId] || 0);
+  const totalCollectible = Math.max(currentDue, 0) + prevDue;
+
+  const prevDueHtml = prevDue > 0 ? `
+    <div style="background:#FDE8E8;border:1px solid #FCA5A5;border-radius:8px;padding:10px;margin-bottom:12px;font-size:13px;">
+      <div style="font-weight:700;color:#DC2626;margin-bottom:4px;">⚠️ Guest has Previous Due!</div>
+      <div style="color:#374151;">Current Booking Due: <strong>₹\${Math.max(currentDue,0).toLocaleString('en-IN')}</strong></div>
+      <div style="color:#DC2626;">Previous Bookings Due: <strong>₹\${prevDue.toLocaleString('en-IN')}</strong></div>
+      <div style="border-top:1px solid #FCA5A5;margin-top:6px;padding-top:6px;font-weight:700;color:#DC2626;">
+        Total Collectible: ₹\${totalCollectible.toLocaleString('en-IN')}
+      </div>
+    </div>` : '';
+
   const modal = document.createElement('div');
   modal.className = 'modal-overlay';
   modal.onclick = e => { if (e.target === modal) modal.remove(); };
@@ -1855,6 +1896,7 @@ function showPaymentModal(bkId) {
     <div class="modal-box">
       <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">✕</button>
       <h2>💰 Add Payment</h2>
+      \${prevDueHtml}
       <div class="form-group"><label>Amount ₹ *</label><input id="payAmt" type="number" placeholder="Amount" /></div>
       <div class="form-group"><label>Mode</label>
         <select id="payMode">
