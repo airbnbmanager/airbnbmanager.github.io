@@ -45,14 +45,15 @@
       css.textContent = `
         .uh-chat-root {
           position: fixed;
-          top: 56px;
+          top: 0;
           left: 0;
           right: 0;
           bottom: 0;
           display: flex;
           flex-direction: column;
           background: #fafafa;
-          z-index: 100;
+          z-index: 9999;
+          padding-top: env(safe-area-inset-top, 0px);
         }
         .uh-chat-header {
           flex: 0 0 auto;
@@ -113,12 +114,20 @@
         }
         .uh-chat-send:active { background: #128C7E; }
         @media (max-width: 768px) {
-          .uh-chat-root { top: 52px; }
+          .uh-chat-root { padding-top: env(safe-area-inset-top, 0px); }
         }
         body.uh-chat-active { overflow: hidden; }
         body.uh-chat-active .bottom-nav,
         body.uh-chat-active #bottomNav,
-        body.uh-chat-active .bottomNav { display: none !important; }
+        body.uh-chat-active .bottomNav,
+        body.uh-chat-active .drawer,
+        body.uh-chat-active #drawer,
+        body.uh-chat-active .drawer-overlay,
+        body.uh-chat-active #drawerOverlay,
+        body.uh-chat-active .top-bar,
+        body.uh-chat-active #topBar,
+        body.uh-chat-active .header,
+        body.uh-chat-active .sidebar { display: none !important; }
       `;
       document.head.appendChild(css);
     }
@@ -128,11 +137,13 @@
     appEl.innerHTML = `
       <div class="uh-chat-root">
         <div class="uh-chat-header">
+          <div onclick="window.navigate && window.navigate('dashboard')" style="font-size:20px;cursor:pointer;padding:4px 10px;margin-left:-6px;">←</div>
           <div style="font-size:22px;">💬</div>
           <div style="flex:1;min-width:0;">
             <div style="font-weight:700;font-size:15px;">Team Chat</div>
             <div style="font-size:11px;opacity:0.7;" id="chatOnlineText">Loading...</div>
           </div>
+          <div onclick="window.navigate && window.navigate('dashboard')" style="font-size:22px;cursor:pointer;padding:4px 10px;opacity:0.8;">✕</div>
         </div>
         <div id="chatMessages" class="uh-chat-messages">
           ${renderMessagesList()}
