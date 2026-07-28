@@ -300,15 +300,15 @@
       let actions = '';
       if (r.status === 'new') {
         actions =
-          '<button class="btn-sm ' + (r.action === 'import' ? 'green-btn' : 'outline') + '" onclick="setRowAction(' + idx + ',\\'import\\')">✅ Import</button> ' +
-          '<button class="btn-sm ' + (r.action === 'skip' ? 'danger' : 'outline') + '" onclick="setRowAction(' + idx + ',\\'skip\\')">🚫 Skip</button>';
+          '<button class="btn-sm ' + (r.action === 'import' ? 'green-btn' : 'outline') + '" onclick="setRowAction(' + idx + ',\\\'import\\\')">✅ Import</button> ' +
+          '<button class="btn-sm ' + (r.action === 'skip' ? 'danger' : 'outline') + '" onclick="setRowAction(' + idx + ',\\\'skip\\\')">🚫 Skip</button>';
       } else if (r.status === 'conflict') {
         actions =
-          '<button class="btn-sm ' + (r.action === 'update' ? 'green-btn' : 'outline') + '" onclick="setRowAction(' + idx + ',\\'update\\')">🔄 Update</button> ' +
-          '<button class="btn-sm ' + (r.action === 'skip' ? 'danger' : 'outline') + '" onclick="setRowAction(' + idx + ',\\'skip\\')">🚫 Skip</button> ' +
-          '<button class="btn-sm outline" onclick="editBooking(\\'' + (r.dbBk?.booking_id || '') + '\\')">👁️ View</button>';
+          '<button class="btn-sm ' + (r.action === 'update' ? 'green-btn' : 'outline') + '" onclick="setRowAction(' + idx + ',\\\'update\\\')">🔄 Update</button> ' +
+          '<button class="btn-sm ' + (r.action === 'skip' ? 'danger' : 'outline') + '" onclick="setRowAction(' + idx + ',\\\'skip\\\')">🚫 Skip</button> ' +
+          '<button class="btn-sm outline" onclick="editBooking(\\\'' + (r.dbBk?.booking_id || '') + '\\\')">👁️ View</button>';
       } else {
-        actions = '<button class="btn-sm outline" onclick="editBooking(\\'' + (r.dbBk?.booking_id || '') + '\\')">👁️ View</button>';
+        actions = '<button class="btn-sm outline" onclick="editBooking(\\\'' + (r.dbBk?.booking_id || '') + '\\\')">👁️ View</button>';
       }
 
       const guestFuzzy = r.dbBk ? fuzzyMatch(r.guest_name, r.dbBk.guest_name || '') : 100;
@@ -319,13 +319,13 @@
           '<td>' + statusBadge(r.status) + '</td>' +
           '<td><small><strong>' + r.confirmation_code + '</strong></small></td>' +
           '<td>' +
-            '<input type="text" value="' + r.guest_name + '" onchange="editReservationField(' + idx + ',\\'guest_name\\',this.value)" style="width:110px;font-size:12px;padding:2px 4px;" />' +
+            '<input type="text" value="' + r.guest_name + '" onchange="editReservationField(' + idx + ',\\\'guest_name\\\',this.value)" style="width:110px;font-size:12px;padding:2px 4px;" />' +
             guestWarn +
             (r.dbBk?.guest_name && guestFuzzy < 100 ? '<br><small style="color:#888;">DB: ' + r.dbBk.guest_name + '</small>' : '') +
           '</td>' +
           '<td><small>' + r.check_in + '<br>→ ' + r.check_out + '<br>(' + r.nights + ' nt)</small></td>' +
           '<td>' +
-            '<input type="number" value="' + r.gross + '" onchange="editReservationField(' + idx + ',\\'gross\\',this.value)" style="width:80px;font-size:12px;padding:2px 4px;" />' +
+            '<input type="number" value="' + r.gross + '" onchange="editReservationField(' + idx + ',\\\'gross\\\',this.value)" style="width:80px;font-size:12px;padding:2px 4px;" />' +
             '<br><small>Net: ₹' + r.amount.toLocaleString('en-IN') + '</small>' +
           '</td>' +
           '<td>' +
@@ -357,19 +357,19 @@
         '<div class="section-title">📊 CSV Summary</div>' +
         '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin:10px 0;">' +
           '<div class="stat-card" style="background:#fff;border:2px solid #eee;text-align:center;padding:10px;"><div style="font-size:24px;font-weight:800;">' + counts.all + '</div><div style="font-size:11px;color:#888;">Total</div></div>' +
-          '<div class="stat-card" style="background:#D1FAE5;text-align:center;padding:10px;cursor:pointer;" onclick="setSyncFilter(\\'new\\')"><div style="font-size:24px;font-weight:800;color:#0A7D1A;">' + counts.new + '</div><div style="font-size:11px;">🆕 New</div></div>' +
-          '<div class="stat-card" style="background:#DBEAFE;text-align:center;padding:10px;cursor:pointer;" onclick="setSyncFilter(\\'match\\')"><div style="font-size:24px;font-weight:800;color:#1E40AF;">' + counts.match + '</div><div style="font-size:11px;">✅ Match</div></div>' +
-          '<div class="stat-card" style="background:#FEF3C7;text-align:center;padding:10px;cursor:pointer;" onclick="setSyncFilter(\\'conflict\\')"><div style="font-size:24px;font-weight:800;color:#B45309;">' + counts.conflict + '</div><div style="font-size:11px;">⚠️ Conflict</div></div>' +
-          '<div class="stat-card" style="background:#FEE2E2;text-align:center;padding:10px;cursor:pointer;" onclick="setSyncFilter(\\'unmapped\\')"><div style="font-size:24px;font-weight:800;color:#DC2626;">' + counts.unmapped + '</div><div style="font-size:11px;">🔴 Unmapped</div></div>' +
+          '<div class="stat-card" style="background:#D1FAE5;text-align:center;padding:10px;cursor:pointer;" onclick="setSyncFilter(\\\'new\\\')"><div style="font-size:24px;font-weight:800;color:#0A7D1A;">' + counts.new + '</div><div style="font-size:11px;">🆕 New</div></div>' +
+          '<div class="stat-card" style="background:#DBEAFE;text-align:center;padding:10px;cursor:pointer;" onclick="setSyncFilter(\\\'match\\\')"><div style="font-size:24px;font-weight:800;color:#1E40AF;">' + counts.match + '</div><div style="font-size:11px;">✅ Match</div></div>' +
+          '<div class="stat-card" style="background:#FEF3C7;text-align:center;padding:10px;cursor:pointer;" onclick="setSyncFilter(\\\'conflict\\\')"><div style="font-size:24px;font-weight:800;color:#B45309;">' + counts.conflict + '</div><div style="font-size:11px;">⚠️ Conflict</div></div>' +
+          '<div class="stat-card" style="background:#FEE2E2;text-align:center;padding:10px;cursor:pointer;" onclick="setSyncFilter(\\\'unmapped\\\')"><div style="font-size:24px;font-weight:800;color:#DC2626;">' + counts.unmapped + '</div><div style="font-size:11px;">🔴 Unmapped</div></div>' +
         '</div>' +
 
         '<div style="display:flex;gap:8px;flex-wrap:wrap;margin:10px 0;align-items:center;">' +
           '<strong>Filter:</strong> ' +
-          '<button class="btn-sm ' + (SYNC.filter === 'all' ? '' : 'outline') + '" onclick="setSyncFilter(\\'all\\')">All (' + counts.all + ')</button>' +
-          '<button class="btn-sm ' + (SYNC.filter === 'new' ? 'green-btn' : 'outline') + '" onclick="setSyncFilter(\\'new\\')">🆕 New (' + counts.new + ')</button>' +
-          '<button class="btn-sm ' + (SYNC.filter === 'conflict' ? '' : 'outline') + '" style="' + (SYNC.filter === 'conflict' ? 'background:#F59E0B;color:#fff;' : '') + '" onclick="setSyncFilter(\\'conflict\\')">⚠️ Conflicts (' + counts.conflict + ')</button>' +
-          '<button class="btn-sm ' + (SYNC.filter === 'match' ? '' : 'outline') + '" onclick="setSyncFilter(\\'match\\')">✅ Matched (' + counts.match + ')</button>' +
-          '<button class="btn-sm ' + (SYNC.filter === 'unmapped' ? 'danger' : 'outline') + '" onclick="setSyncFilter(\\'unmapped\\')">🔴 Unmapped (' + counts.unmapped + ')</button>' +
+          '<button class="btn-sm ' + (SYNC.filter === 'all' ? '' : 'outline') + '" onclick="setSyncFilter(\\\'all\\\')">All (' + counts.all + ')</button>' +
+          '<button class="btn-sm ' + (SYNC.filter === 'new' ? 'green-btn' : 'outline') + '" onclick="setSyncFilter(\\\'new\\\')">🆕 New (' + counts.new + ')</button>' +
+          '<button class="btn-sm ' + (SYNC.filter === 'conflict' ? '' : 'outline') + '" style="' + (SYNC.filter === 'conflict' ? 'background:#F59E0B;color:#fff;' : '') + '" onclick="setSyncFilter(\\\'conflict\\\')">⚠️ Conflicts (' + counts.conflict + ')</button>' +
+          '<button class="btn-sm ' + (SYNC.filter === 'match' ? '' : 'outline') + '" onclick="setSyncFilter(\\\'match\\\')">✅ Matched (' + counts.match + ')</button>' +
+          '<button class="btn-sm ' + (SYNC.filter === 'unmapped' ? 'danger' : 'outline') + '" onclick="setSyncFilter(\\\'unmapped\\\')">🔴 Unmapped (' + counts.unmapped + ')</button>' +
         '</div>' +
 
         '<div class="table-wrap"><table style="font-size:12px;">' +
