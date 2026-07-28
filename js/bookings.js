@@ -752,17 +752,17 @@ async function renderManageBookings() {
           <td style="color:var(--green);">₹${pd.toLocaleString('en-IN')}</td>
           <td><strong class="${bal > 0.99 ? 'metric-value warn' : ''}">₹${Math.abs(bal) < 1 ? '0' : bal.toLocaleString('en-IN')}</strong></td>
           ${canM ? `<td class="table-actions">
-            <button class="btn-sm" onclick="editBooking('${b.booking_id}')">✏️</button>
-            <button class="btn-sm secondary" onclick="showPaymentModal('${b.booking_id}')">💰</button>
-            <button class="btn-sm" style="background:#0891B2;color:#fff;" onclick="quickExtend('${b.booking_id}')" title="Quick Extend N days">⏭️</button>
-            <button class="btn-sm outline" onclick="createOfflineExtension('${b.booking_id}')" title="New extension booking">➕</button>
-            ${isActive ? `<button class="btn-sm secondary" onclick="quickCheckout('${b.booking_id}','${b.room_id}')">📤</button>` : ''}
-            <button class="btn-sm outline" onclick="shareBookingWhatsApp('${b.booking_id}')" title="1️⃣ Welcome (New Booking)">📱</button>
-            <button class="btn-sm" style="background:#00A699;color:#fff;" onclick="sendCheckinReminder('${b.booking_id}')" title="2️⃣ Reminder (Tomorrow arriving)">📅</button>
-            <button class="btn-sm" style="background:#E2725B;color:#fff;" onclick="sendArrivalDetails('${b.booking_id}')" title="3️⃣ Send Keys + WiFi (1hr before check-in)">⏰</button>
-            <button class="btn-sm" style="background:#FFB800;color:#fff;" onclick="requestGuestID('${b.booking_id}')" title="4️⃣ Ask ID (Guest has no ID)">🪪</button>
-            <button class="btn-sm" style="background:#FF385C;color:#fff;" onclick="sendCheckoutReminder('${b.booking_id}')" title="5️⃣ Checkout Alert">🔔</button>
-            <button class="btn-sm" style="background:${b.booking_mode === 'Online-Airbnb' ? '#722ED1' : '#4285F4'};color:#fff;" onclick="requestReview('${b.booking_id}')" title="6️⃣ ${b.booking_mode === 'Online-Airbnb' ? 'Airbnb Review Link' : 'Google Review Link'}">⭐</button>
+            <button class="btn-sm" onclick="editBooking('${b.booking_id}')" title="Edit">✏️</button>
+            <button class="btn-sm secondary" onclick="showPaymentModal('${b.booking_id}')" title="Pay">💰</button>
+            <button class="btn-sm" style="background:#0891B2;color:#fff;" onclick="quickExtend('${b.booking_id}')" title="Extend">⏭️</button>
+            <button class="btn-sm outline" onclick="createOfflineExtension('${b.booking_id}')" title="New Ext">➕</button>
+            ${isActive ? `<button class="btn-sm secondary" onclick="quickCheckout('${b.booking_id}','${b.room_id}')" title="Checkout">📤</button>` : ''}
+            <button class="btn-sm outline" onclick="shareBookingWhatsApp('${b.booking_id}')" title="Welcome">📱</button>
+            <button class="btn-sm" style="background:#00A699;color:#fff;" onclick="sendCheckinReminder('${b.booking_id}')" title="Remind">📅</button>
+            <button class="btn-sm" style="background:#E2725B;color:#fff;" onclick="sendArrivalDetails('${b.booking_id}')" title="Arrival">⏰</button>
+            <button class="btn-sm" style="background:#FFB800;color:#fff;" onclick="requestGuestID('${b.booking_id}')" title="Ask ID">🪪</button>
+            <button class="btn-sm" style="background:#FF385C;color:#fff;" onclick="sendCheckoutReminder('${b.booking_id}')" title="Bye">🔔</button>
+            <button class="btn-sm" style="background:${b.booking_mode === 'Online-Airbnb' ? '#722ED1' : '#4285F4'};color:#fff;" onclick="requestReview('${b.booking_id}')" title="Review">⭐</button>
             <button class="btn-sm" style="background:#128C7E;color:#fff;" onclick="showWATemplatesMenu('${b.booking_id}',this)" title="Templates">💬</button>
             ${!b.is_cancelled && canM ? `<button class="btn-sm" style="background:#F59E0B;color:#fff;" onclick="cancelBooking('${b.booking_id}','${(b.guest_name || '').replace(/'/g, "\\'")}')" title="Cancel">🚫</button>` : ''}
             ${b.is_cancelled && canM ? `<button class="btn-sm outline" onclick="uncancelBooking('${b.booking_id}')" title="Restore">↩️</button>` : ''}
