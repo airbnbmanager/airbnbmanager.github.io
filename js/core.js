@@ -543,7 +543,15 @@ function renderShell(content, activePage = 'dashboard') {
     'employee': 'Employee',
     'ca': 'CA'
   })[SESSION.role] || SESSION.role;
-  const shortName = (SESSION.displayName || '').split('(')[0].trim().split(' ')[0];
+  const rawDisplayName =
+    SESSION.displayName ||
+    SESSION.fullName ||
+    SESSION.name ||
+    (SESSION.profile && SESSION.profile.full_name) ||
+    (SESSION.user && SESSION.user.user_metadata && SESSION.user.user_metadata.full_name) ||
+    (SESSION.user && SESSION.user.email ? SESSION.user.email.split('@')[0] : '') ||
+    '';
+  const shortName = rawDisplayName.split('(')[0].trim().split(' ')[0];
 
   // Custom badge overrides (per user)
   const CUSTOM_BADGES = {
