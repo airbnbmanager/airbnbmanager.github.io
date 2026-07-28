@@ -396,6 +396,7 @@ async function renderInvestorReport(investorId, roomId, month) {
         </div>
         <div class="form-group" style="justify-content:flex-end;">
           <button class="btn-sm" onclick="printInvestorReport('${inv?.name || 'Investor'}','${room?.nickname || roomId}','${monthYear}')">🖨️ Print / Save PDF</button>
+          <button class="btn-sm" style="background:#25D366;color:#fff;" onclick="whatsappInvestorReport('${investorId}','${roomId}','${monthYear}')">📱 WhatsApp</button>
           ${excludedBookings.length > 0 ? `<button class="btn-sm outline" style="margin-left:6px;" onclick="renderFriendsReport('${investorId}','${roomId}','${selMonth}')">🎁 Friends Report (${excludedBookings.length})</button>` : ''}
         </div>
       </div>
@@ -801,6 +802,96 @@ async function renderEmployeeView() {
 }
 
 // ============ PRINT WITH AUTO FILENAME ============
+
+// ═══ WHATSAPP INVESTOR REPORT ═══
+window.whatsappInvestorReport = async function(investorId, roomId, monthYear) {
+  try {
+    // Fetch investor details
+    const { data: inv } = await sb.from('investors').select('*').eq('investor_id', investorId).single();
+    if (!inv) { fsn.error('Error', 'Investor not found'); return; }
+
+    // Fetch room
+    const { data: room } = await sb.from('rooms').select('*').eq('room_id', roomId).single();
+
+    // Calculate month range
+    const [year, month] = monthYear.split('-');
+    const startDate = year + '-' + month.padStart(2, '0') + '-01';
+    const lastDay = new Date(parseInt(year), parseInt(month), 0).getDate();
+    const endDate = year + '-' + month.padStart(2, '0') + '-' + lastDay;
+
+    // Fetch bookings + payments for this room in the month
+    const { data: bookings } = await sb.from('guest_register')
+      .select('booking_id, guest_name, check_in, check_out, total_amount, booking_mode')
+      .eq('room_id', roomId)
+      .gte('check_in', startDate)
+      .lte('check_in', endDate)
+      .neq('is_cancelled', true)
+      .neq('verification_status', 'rejected');
+
+    const bks = bookings || [];
+    const totalRevenue = bks.reduce((s, b) => s + (b.total_amount || 0), 0);
+    const investorShare = inv.share_percent || 0;
+    const investorAmount = Math.round((totalRevenue * investorShare) / 100);
+    const houseAmount = totalRevenue - investorAmount;
+
+    const NL = String.fromCharCode(10);
+    const monthName = new Date(startDate).toLocaleDateString('en-IN', { month: 'long', year: 'numeric' });
+    const roomName = room ? (room.nickname || room.property_name || roomId) : roomId;
+
+    let bkList = '';
+    bks.forEach((b, i) => {
+      const mode = b.booking_mode === 'Online-Airbnb' ? 'Airbnb' : 'Direct';
+      bkList += (i + 1) + '. ' + b.guest_name + NL +
+        '   ' + b.check_in + ' → ' + b.check_out + ' (' + mode + ')' + NL +
+        '   Rs.' + (b.total_amount || 0).toLocaleString('en-IN') + NL + NL;
+    });
+
+    const msg = '*UNIQUE HAVEN HOMES STAY*' + NL +
+      '*Investor Report — ' + monthName + '*' + NL + NL +
+      '👤 Investor: *' + inv.name + '*' + NL +
+      '🏠 Property: *' + roomName + '*' + NL +
+      '📊 Share: *' + investorShare + '%*' + NL + NL +
+      '━━━━━━━━━━━━━━━━━━━━' + NL +
+      '*💰 SUMMARY*' + NL +
+      '━━━━━━━━━━━━━━━━━━━━' + NL +
+      'Total Bookings: ' + bks.length + NL +
+      'Total Revenue: Rs.' + totalRevenue.toLocaleString('en-IN') + NL +
+      '*Your Share (' + investorShare + '%): Rs.' + investorAmount.toLocaleString('en-IN') + '*' + NL +
+      'House Share: Rs.' + houseAmount.toLocaleString('en-IN') + NL + NL +
+      (bks.length > 0 ? '*📅 BOOKINGS:*' + NL + bkList : '_No bookings this month_' + NL + NL) +
+      '━━━━━━━━━━━━━━━━━━━━' + NL +
+      '📞 Contact:' + NL +
+      'Mr. Shahanshah - 9450055554' + NL +
+      'Mr. Firoz Khan - 8299600709';
+
+    const phone = (inv.phone || '').replace(/[^0-9]/g, '');
+    const shareModal = document.createElement('div');
+    shareModal.className = 'modal-overlay';
+    shareModal.onclick = e => { if (e.target === shareModal) shareModal.remove(); };
+
+    const q = String.fromCharCode(39);
+    const sendBtn = phone
+      ? '<button style="background:#25D366;color:#fff;" onclick="window.open(' + q + 'https://wa.me/91' + phone + '?text=' + q + '+encodeURIComponent(document.getElementById(' + q + 'waInvMsg' + q + ').value),' + q + '_blank' + q + ')">📱 Send to ' + inv.name + '</button>'
+      : '';
+
+    shareModal.innerHTML =
+      '<div class="modal-box" style="max-width:600px;">' +
+        '<button class="modal-close" onclick="this.closest(' + q + '.modal-overlay' + q + ').remove()">✕</button>' +
+        '<h2>📱 WhatsApp Investor Report</h2>' +
+        '<textarea id="waInvMsg" style="width:100%;height:400px;font-family:monospace;font-size:12px;padding:10px;border:1px solid var(--border);border-radius:8px;">' + msg + '</textarea>' +
+        '<div class="btn-row" style="margin-top:12px;">' +
+          sendBtn +
+          '<button style="background:#128C7E;color:#fff;" onclick="window.open(' + q + 'https://wa.me/?text=' + q + '+encodeURIComponent(document.getElementById(' + q + 'waInvMsg' + q + ').value),' + q + '_blank' + q + ')">📤 Share</button>' +
+          '<button class="outline" onclick="navigator.clipboard.writeText(document.getElementById(' + q + 'waInvMsg' + q + ').value);fsn.success(' + q + 'Copied' + q + ',' + q + 'Message copied' + q + ')">📋 Copy</button>' +
+          '<button class="outline" onclick="this.closest(' + q + '.modal-overlay' + q + ').remove()">Close</button>' +
+        '</div>' +
+      '</div>';
+    document.body.appendChild(shareModal);
+  } catch (e) {
+    fsn.error('Error', e.message || 'Failed to generate report');
+  }
+};
+
 function printInvestorReport(investorName, propertyName, monthYear) {
   const cleanName = (str) => (str || '').replace(/[^a-zA-Z0-9]/g, '_');
   const filename = `${cleanName(investorName)}_${cleanName(propertyName)}_${cleanName(monthYear)}_Report`;
