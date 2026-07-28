@@ -7,6 +7,38 @@
 function isTrustedUser() {
   return ['developer', 'owner'].includes(SESSION.role);
 }
+// ═══ LOYALTY TIER SYSTEM ═══
+window._guestStaysCache = window._guestStaysCache || {};
+
+function getLoyaltyTier(stays) {
+  if (stays >= 7) return { tier: 'Platinum', icon: '💎', color: '#8B5CF6', discount: 20 };
+  if (stays >= 4) return { tier: 'Gold', icon: '🥇', color: '#F59E0B', discount: 15 };
+  if (stays >= 2) return { tier: 'Silver', icon: '🥈', color: '#6B7280', discount: 10 };
+  return { tier: 'Bronze', icon: '🥉', color: '#B45309', discount: 0 };
+}
+
+async function preloadGuestStays() {
+  try {
+    const { data } = await sb.from('guest_register')
+      .select('phone, guest_name, is_cancelled')
+      .neq('is_cancelled', true);
+    window._guestStaysCache = {};
+    (data || []).forEach(b => {
+      const key = (b.phone || b.guest_name || '').trim();
+      if (!key) return;
+      window._guestStaysCache[key] = (window._guestStaysCache[key] || 0) + 1;
+    });
+  } catch(e) { console.warn('Loyalty preload failed:', e); }
+}
+
+function getGuestTierBadge(guest) {
+  const key = (guest.phone || guest.guest_name || '').trim();
+  const stays = window._guestStaysCache[key] || 0;
+  if (stays < 2) return '';
+  const t = getLoyaltyTier(stays);
+  return ' <span style="background:' + t.color + ';color:#fff;padding:1px 6px;border-radius:8px;font-size:9px;font-weight:700;" title="' + t.tier + ' member — ' + stays + ' stays, ' + t.discount + '% loyalty discount">' + t.icon + ' ' + t.tier + '</span>';
+}
+
 function approvalMeta() {
   const trusted = isTrustedUser();
   return {
@@ -132,6 +164,20 @@ async function showGuestLedger(guestName) {
     <div class="modal-box" style="max-width:600px;">
       <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">✕</button>
       <h2>👤 Guest Ledger — ${guestName}</h2>
+      ${(() => {
+        const t = getLoyaltyTier(bookings.length);
+        const nextTier = bookings.length < 2 ? { tier: 'Silver', at: 2 } :
+                         bookings.length < 4 ? { tier: 'Gold', at: 4 } :
+                         bookings.length < 7 ? { tier: 'Platinum', at: 7 } : null;
+        return '<div style="display:flex;align-items:center;gap:12px;padding:12px;background:linear-gradient(135deg,' + t.color + ',rgba(0,0,0,0.1));color:#fff;border-radius:10px;margin-bottom:12px;">' +
+          '<div style="font-size:32px;">' + t.icon + '</div>' +
+          '<div style="flex:1;">' +
+            '<div style="font-weight:700;font-size:16px;">' + t.tier + ' Member</div>' +
+            '<div style="font-size:12px;opacity:0.9;">' + bookings.length + ' stay(s) · ' + t.discount + '% loyalty discount available</div>' +
+            (nextTier ? '<div style="font-size:11px;margin-top:4px;opacity:0.8;">🎯 ' + (nextTier.at - bookings.length) + ' more stay(s) to reach ' + nextTier.tier + '</div>' : '<div style="font-size:11px;margin-top:4px;">🏆 Top tier reached!</div>') +
+          '</div>' +
+        '</div>';
+      })()}
       <div class="stat-grid" style="grid-template-columns:repeat(2,1fr);margin:12px 0;">
         <div class="stat-card" style="border-left:4px solid var(--blue);"><div class="stat-num">${bookings.length}</div><div class="stat-label">Stays</div></div>
         <div class="stat-card" style="border-left:4px solid var(--green);"><div class="stat-num">${totalNights}</div><div class="stat-label">Nights</div></div>
@@ -418,6 +464,8 @@ function buildIdButtons(b) {
 // ============ MANAGE BOOKINGS ============
 async function renderManageBookings() {
   if (window.showLoadingSkeleton) window.showLoadingSkeleton('list');
+  if (typeof preloadUserNames === 'function') await preloadUserNames();
+  if (typeof preloadGuestStays === 'function') await preloadGuestStays();
 
   // For caretaker/checkin_manager - filter to only their properties
   if (['caretaker', 'checkin_manager'].includes(SESSION.role) && SESSION.empId) {
@@ -429,10 +477,14 @@ async function renderManageBookings() {
     }
   }
 
-  // Fetch payments for filter (exclude REJECTED)
+  // Fetch payments for filter (exclude REJECTED + cancelled bookings)
   const { data: allPays } = await sb.from('payment_history')
     .select('booking_id, amount, payment_date, verification_status')
     .neq('verification_status', 'rejected');
+  // Get cancelled booking IDs to exclude their payments from revenue calc
+  const { data: cancelledBks } = await sb.from('guest_register')
+    .select('booking_id').eq('is_cancelled', true);
+  const cancelledSet = new Set((cancelledBks || []).map(b => b.booking_id));
   const paidMap = {};
   (allPays || []).forEach(p => {
     paidMap[p.booking_id] = (paidMap[p.booking_id] || 0) + (p.amount || 0);
@@ -664,7 +716,7 @@ async function renderManageBookings() {
           <td>${statusBadge}</td>
           <td>
             <strong style="cursor:pointer;text-decoration:underline;color:var(--blue);"
-              onclick="showGuestLedger('${(b.guest_name || '').replace(/'/g, "\\'")}')">${b.guest_name || '-'}</strong>${b.verification_status === 'pending' ? ' <span class="badge yellow" style="font-size:9px;">🟡 Pending</span>' : ''}${b.verification_status === 'rejected' ? ' <span class="badge red" style="font-size:9px;" title="' + (b.rejection_reason || '').replace(/"/g,'&quot;') + '">❌ Rejected</span>' : ''}<br>
+              onclick="showGuestLedger('${(b.guest_name || '').replace(/'/g, "\\'")}')">${b.guest_name || '-'}</strong>${typeof getGuestTierBadge === 'function' ? getGuestTierBadge(b) : ''}${b.is_cancelled ? ' <span class="badge red" style="font-size:9px;" title="' + (b.cancellation_reason || '').replace(/"/g,'&quot;') + '">🚫 CANCELLED</span>' : ''}${b.verification_status === 'pending' ? ' <span class="badge yellow" style="font-size:9px;">🟡 Pending</span>' : ''}${b.verification_status === 'rejected' ? ' <span class="badge red" style="font-size:9px;" title="' + (b.rejection_reason || '').replace(/"/g,'&quot;') + '">❌ Rejected</span>' : ''}<br>
             <small style="color:var(--muted);">${b.phone || ''}</small>
             ${b.created_by ? '<br><small style="color:#888;font-size:10px;">👤 ' + (window._userNameCache[b.created_by] || b.booked_by || 'User') + '</small>' : (b.booked_by ? '<br><small style="color:#888;font-size:10px;">👤 ' + b.booked_by + '</small>' : '')}
             ${b.verification_status === 'pending' && isTrustedUser() ? '<br><button class="btn-sm green-btn" style="padding:2px 8px;font-size:10px;margin-top:2px;" onclick="event.stopPropagation();approveBooking(\'' + b.booking_id + '\')">✅ Approve</button> <button class="btn-sm danger" style="padding:2px 8px;font-size:10px;" onclick="event.stopPropagation();rejectBooking(\'' + b.booking_id + '\')">❌ Reject</button>' : ''}
@@ -702,7 +754,8 @@ async function renderManageBookings() {
           ${canM ? `<td class="table-actions">
             <button class="btn-sm" onclick="editBooking('${b.booking_id}')">✏️</button>
             <button class="btn-sm secondary" onclick="showPaymentModal('${b.booking_id}')">💰</button>
-            <button class="btn-sm outline" onclick="createOfflineExtension('${b.booking_id}')">➕</button>
+            <button class="btn-sm" style="background:#0891B2;color:#fff;" onclick="quickExtend('${b.booking_id}')" title="Quick Extend N days">⏭️</button>
+            <button class="btn-sm outline" onclick="createOfflineExtension('${b.booking_id}')" title="New extension booking">➕</button>
             ${isActive ? `<button class="btn-sm secondary" onclick="quickCheckout('${b.booking_id}','${b.room_id}')">📤</button>` : ''}
             <button class="btn-sm outline" onclick="shareBookingWhatsApp('${b.booking_id}')" title="1️⃣ Welcome (New Booking)">📱</button>
             <button class="btn-sm" style="background:#00A699;color:#fff;" onclick="sendCheckinReminder('${b.booking_id}')" title="2️⃣ Reminder (Tomorrow arriving)">📅</button>
@@ -711,6 +764,8 @@ async function renderManageBookings() {
             <button class="btn-sm" style="background:#FF385C;color:#fff;" onclick="sendCheckoutReminder('${b.booking_id}')" title="5️⃣ Checkout Alert">🔔</button>
             <button class="btn-sm" style="background:${b.booking_mode === 'Online-Airbnb' ? '#722ED1' : '#4285F4'};color:#fff;" onclick="requestReview('${b.booking_id}')" title="6️⃣ ${b.booking_mode === 'Online-Airbnb' ? 'Airbnb Review Link' : 'Google Review Link'}">⭐</button>
             <button class="btn-sm" style="background:#128C7E;color:#fff;" onclick="showWATemplatesMenu('${b.booking_id}',this)" title="Templates">💬</button>
+            ${!b.is_cancelled && canM ? `<button class="btn-sm" style="background:#F59E0B;color:#fff;" onclick="cancelBooking('${b.booking_id}','${(b.guest_name || '').replace(/'/g, "\\'")}')" title="Cancel">🚫</button>` : ''}
+            ${b.is_cancelled && canM ? `<button class="btn-sm outline" onclick="uncancelBooking('${b.booking_id}')" title="Restore">↩️</button>` : ''}
             ${canD ? `<button class="btn-sm danger" onclick="delBooking('${b.booking_id}','${(b.guest_name || '').replace(/'/g, "\\'")}','${b.room_id}')">🗑️</button>` : ''}
           </td>` : ''}
         </tr>`;
@@ -1687,6 +1742,60 @@ async function createOfflineExtension(parentBookingId) {
   };
   renderAddBooking();
 }
+
+// ═══ QUICK EXTEND (one-click N days extension) ═══
+window.quickExtend = async function(bkId) {
+  const { data: b } = await sb.from('guest_register').select('*').eq('booking_id', bkId).single();
+  if (!b) { fsn.error('Error', 'Not found'); return; }
+
+  const days = prompt('Extend for how many days?\n\nGuest: ' + b.guest_name + '\nCurrent check-out: ' + b.check_out + '\nPer day rate: ₹' + (b.per_day_rate || 0), '3');
+  if (!days) return;
+  const n = parseInt(days);
+  if (isNaN(n) || n < 1) { fsn.error('Error', 'Invalid days'); return; }
+
+  const perDay = b.per_day_rate || 0;
+  if (perDay <= 0) {
+    fsn.error('Error', 'Per day rate not set on original booking');
+    return;
+  }
+
+  const extraAmount = perDay * n;
+  if (!confirm('Extend ' + b.guest_name + ' for ' + n + ' more days?\n\nExtra: ₹' + extraAmount.toLocaleString('en-IN') + ' (₹' + perDay + ' × ' + n + ' days)\n\nProceed?')) return;
+
+  // Calculate new check-out date
+  const oldCheckout = new Date(b.check_out);
+  const newCheckout = new Date(oldCheckout);
+  newCheckout.setDate(newCheckout.getDate() + n);
+  const newCheckoutStr = newCheckout.toISOString().slice(0, 10);
+  const newTotal = (b.total_amount || 0) + extraAmount;
+
+  // Check room availability for extension period
+  const today = new Date().toISOString().slice(0, 10);
+  const { data: conflicts } = await sb.from('guest_register')
+    .select('booking_id, guest_name, check_in')
+    .eq('room_id', b.room_id)
+    .neq('booking_id', bkId)
+    .neq('is_cancelled', true)
+    .gte('check_in', b.check_out)
+    .lt('check_in', newCheckoutStr);
+
+  if (conflicts && conflicts.length > 0) {
+    fsn.error('Conflict', 'Room booked by ' + conflicts[0].guest_name + ' on ' + conflicts[0].check_in);
+    return;
+  }
+
+  // Update booking
+  const { error } = await sb.from('guest_register').update({
+    check_out: newCheckoutStr,
+    total_amount: newTotal,
+    notes: (b.notes ? b.notes + ' | ' : '') + 'Quick-extended ' + n + ' days on ' + today + ' (+₹' + extraAmount + ')'
+  }).eq('booking_id', bkId);
+
+  if (error) { fsn.error('Error', error.message); return; }
+
+  fsn.success('Extended', '✅ ' + b.guest_name + ' extended ' + n + ' days\nNew checkout: ' + newCheckoutStr + '\nNew total: ₹' + newTotal.toLocaleString('en-IN'));
+  renderManageBookings();
+};
 
 // ============ QUICK CHECKOUT ============
 async function quickCheckout(bkId, roomId) {
@@ -2808,6 +2917,114 @@ function closeWAMenuOnClickOutside(e) {
     closeWAMenu();
   }
 }
+
+
+// ═══ CANCEL BOOKING ═══
+window.cancelBooking = async function(bkId, guestName) {
+  const { data: bk } = await sb.from('guest_register')
+    .select('total_amount, is_cancelled').eq('booking_id', bkId).single();
+  if (!bk) { fsn.error('Error', 'Not found'); return; }
+  if (bk.is_cancelled) { fsn.info('Info', 'Already cancelled'); return; }
+
+  const { data: pays } = await sb.from('payment_history')
+    .select('amount').eq('booking_id', bkId).neq('verification_status', 'rejected');
+  const totalPaid = (pays || []).reduce((s, p) => s + (p.amount || 0), 0);
+
+  const modal = document.createElement('div');
+  modal.className = 'modal-overlay';
+  modal.onclick = e => { if (e.target === modal) modal.remove(); };
+  modal.innerHTML =
+    '<div class="modal-box" style="max-width:450px;">' +
+      '<button class="modal-close" onclick="this.closest(\'.modal-overlay\').remove()">✕</button>' +
+      '<h2>❌ Cancel Booking</h2>' +
+      '<p style="color:var(--muted);margin:0 0 12px;">Guest: <strong>' + (guestName || bkId) + '</strong></p>' +
+      '<div style="background:#FEF3C7;padding:10px;border-radius:8px;margin-bottom:12px;font-size:12px;">' +
+        '💰 Total Amount: <strong>₹' + (bk.total_amount || 0).toLocaleString('en-IN') + '</strong><br>' +
+        '💵 Already Paid: <strong>₹' + totalPaid.toLocaleString('en-IN') + '</strong>' +
+      '</div>' +
+      '<div class="form-group">' +
+        '<label>Cancellation Reason *</label>' +
+        '<select id="cancelReason">' +
+          '<option value="">— Select —</option>' +
+          '<option value="Guest cancelled - Change of plans">Guest cancelled — Change of plans</option>' +
+          '<option value="Guest cancelled - Emergency">Guest cancelled — Emergency</option>' +
+          '<option value="No show">Guest No-show</option>' +
+          '<option value="Property unavailable">Property unavailable</option>' +
+          '<option value="Payment issue">Payment issue</option>' +
+          '<option value="Duplicate booking">Duplicate booking</option>' +
+          '<option value="Airbnb cancelled">Airbnb cancelled</option>' +
+          '<option value="Other">Other</option>' +
+        '</select>' +
+      '</div>' +
+      '<div class="form-group">' +
+        '<label>Additional Notes</label>' +
+        '<textarea id="cancelNotes" rows="2" placeholder="Optional details..." style="width:100%;padding:8px;border:1px solid var(--border);border-radius:6px;"></textarea>' +
+      '</div>' +
+      '<div class="form-group">' +
+        '<label>Refund Amount ₹ (of ₹' + totalPaid.toLocaleString('en-IN') + ' paid)</label>' +
+        '<input id="cancelRefund" type="number" value="' + totalPaid + '" min="0" max="' + totalPaid + '" />' +
+      '</div>' +
+      '<button onclick="saveCancelBooking(\'' + bkId + '\')" style="width:100%;background:#DC2626;color:#fff;margin-top:10px;">🚫 Confirm Cancellation</button>' +
+      '<div id="cancelErr"></div>' +
+    '</div>';
+  document.body.appendChild(modal);
+};
+
+window.saveCancelBooking = async function(bkId) {
+  const reason = document.getElementById('cancelReason')?.value;
+  const notes = document.getElementById('cancelNotes')?.value?.trim() || '';
+  const refund = parseFloat(document.getElementById('cancelRefund')?.value) || 0;
+
+  if (!reason) {
+    document.getElementById('cancelErr').innerHTML = '<div class="error">Please select a reason</div>';
+    return;
+  }
+
+  const fullReason = notes ? reason + ' — ' + notes : reason;
+
+  const { error } = await sb.from('guest_register').update({
+    is_cancelled: true,
+    cancelled_at: new Date().toISOString(),
+    cancelled_by: SESSION.userId,
+    cancellation_reason: fullReason,
+    refund_amount: refund,
+    payment_status: 'Cancelled'
+  }).eq('booking_id', bkId);
+
+  if (error) {
+    document.getElementById('cancelErr').innerHTML = '<div class="error">' + error.message + '</div>';
+    return;
+  }
+
+  // Free up the room
+  const { data: bk } = await sb.from('guest_register').select('room_id').eq('booking_id', bkId).single();
+  if (bk?.room_id) {
+    await sb.from('flats_status').upsert({
+      room_id: bk.room_id,
+      status: 'Free',
+      cleaning_status: 'Dirty',
+      last_checkout: new Date().toISOString().slice(0, 10)
+    }, { onConflict: 'room_id' });
+  }
+
+  fsn.warning('Cancelled', '❌ Booking cancelled\n💰 Refund: ₹' + refund.toLocaleString('en-IN'));
+  document.querySelector('.modal-overlay')?.remove();
+  renderManageBookings();
+};
+
+window.uncancelBooking = async function(bkId) {
+  if (!confirm('Restore this cancelled booking?')) return;
+  const { error } = await sb.from('guest_register').update({
+    is_cancelled: false,
+    cancelled_at: null,
+    cancelled_by: null,
+    cancellation_reason: null,
+    refund_amount: 0
+  }).eq('booking_id', bkId);
+  if (error) { fsn.error('Error', error.message); return; }
+  fsn.success('Restored', '✅ Booking restored');
+  renderManageBookings();
+};
 
 // ═══ PENDING APPROVALS PAGE ═══
 window.renderPendingApprovals = async function() {

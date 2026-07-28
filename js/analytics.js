@@ -453,6 +453,27 @@
       '</div>';
     }).join('');
 
+    // Monthly comparison placeholder (loaded async)
+    const monthlyCompHtml =
+      '<div class="card" style="margin-top:16px;">' +
+        '<div class="section-title">📅 Monthly Comparison (Last 12 Months)</div>' +
+        '<div id="monthlyCompContainer"><div class="loading">Loading monthly data...</div></div>' +
+      '</div>';
+
+    // Staff performance placeholder (loaded async)
+    const staffPerfHtml =
+      '<div class="card" style="margin-top:16px;">' +
+        '<div class="section-title">👤 Staff Performance (Last ' + AN.period + ' Days)</div>' +
+        '<div id="staffPerfContainer"><div class="loading">Loading staff stats...</div></div>' +
+      '</div>';
+
+    // Predictions placeholder (loaded async)
+    const predictHtml =
+      '<div class="card" style="margin-top:16px;border:2px solid #8B5CF6;">' +
+        '<div class="section-title">🔮 Predictions & Forecasts</div>' +
+        '<div id="predictContainer"><div class="loading">Analyzing trends...</div></div>' +
+      '</div>';
+
     // Top guests
     const guestRows = topGuests.map((g, i) => {
       const isOnline = g.online > g.offline;
@@ -472,11 +493,14 @@
       '<div class="wrap">' +
         '<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">' +
           '<h1>📊 Analytics Dashboard</h1>' +
+          '<div style="display:flex;gap:8px;align-items:center;">' +
+          '<button onclick="printAnalytics()" class="btn-sm" style="background:#0A7D1A;color:#fff;padding:8px 14px;">🖨️ Print / PDF</button>' +
           '<select onchange="setAnalyticsPeriod(this.value)" style="padding:8px 12px;border:1px solid #ccc;border-radius:6px;">' +
             [7, 30, 60, 90, 180, 365].map(d =>
               '<option value="' + d + '"' + (AN.period === d ? ' selected' : '') + '>Last ' + (d >= 365 ? '1 year' : d >= 180 ? '6 months' : d + ' days') + '</option>'
             ).join('') +
           '</select>' +
+          '</div>' +
         '</div>' +
 
         // Insights card
@@ -545,9 +569,417 @@
           '</div>' +
         '</div>' +
 
+        // Monthly comparison
+        monthlyCompHtml +
+
+        // Staff performance
+        staffPerfHtml +
+
+        // Predictions
+        predictHtml +
+
       '</div>';
 
     renderShell(html, 'analytics');
+
+    // Load async sections (after main render)
+    loadMonthlyComparison();
+    loadStaffPerformance();
+    loadPredictions();
+  }
+
+  // ═══ MONTHLY COMPARISON ═══
+  async function loadMonthlyComparison() {
+    const container = document.getElementById('monthlyCompContainer');
+    if (!container) return;
+
+    // Fetch last 12 months of data
+    const now = new Date();
+    const yearAgo = new Date(now.getFullYear() - 1, now.getMonth(), 1);
+    const fromStr = yearAgo.toISOString().slice(0, 10);
+
+    const { data: allBks } = await sb.from('guest_register')
+      .select('booking_id, check_in, total_amount, booking_mode')
+      .gte('check_in', fromStr)
+      .neq('verification_status', 'rejected');
+
+    if (!allBks || allBks.length === 0) {
+      container.innerHTML = '<div style="text-align:center;padding:20px;color:#888;">No data available</div>';
+      return;
+    }
+
+    // Group by month
+    const monthMap = {};
+    allBks.forEach(b => {
+      if (!b.check_in) return;
+      const month = b.check_in.slice(0, 7); // YYYY-MM
+      if (!monthMap[month]) monthMap[month] = { online: 0, offline: 0, count: 0 };
+      const rev = b.total_amount || 0;
+      monthMap[month].count++;
+      if (b.booking_mode === 'Online-Airbnb') monthMap[month].online += rev;
+      else monthMap[month].offline += rev;
+    });
+
+    // Sort by month desc
+    const sortedMonths = Object.keys(monthMap).sort((a, b) => b.localeCompare(a)).slice(0, 12);
+
+    // Calculate growth
+    let bestMonth = { key: '', total: 0 };
+    let bestGrowth = { key: '', pct: -999 };
+
+    const rows = sortedMonths.map((m, i) => {
+      const d = monthMap[m];
+      const total = d.online + d.offline;
+      const prev = sortedMonths[i + 1] ? monthMap[sortedMonths[i + 1]] : null;
+      const prevTotal = prev ? (prev.online + prev.offline) : 0;
+      const growth = prevTotal > 0 ? ((total - prevTotal) / prevTotal * 100) : null;
+
+      if (total > bestMonth.total) bestMonth = { key: m, total };
+      if (growth !== null && growth > bestGrowth.pct) bestGrowth = { key: m, pct: growth };
+
+      const monthName = new Date(m + '-01').toLocaleDateString('en-IN', { month: 'short', year: '2-digit' });
+      const growthDisplay = growth === null ? '<span style="color:#888;">—</span>' :
+        growth >= 0 
+          ? '<span style="color:#0A7D1A;font-weight:700;">↑ +' + growth.toFixed(0) + '%</span>'
+          : '<span style="color:#DC2626;font-weight:700;">↓ ' + growth.toFixed(0) + '%</span>';
+
+      const isBest = m === bestMonth.key;
+
+      return '<tr style="' + (isBest ? 'background:#FEF3C7;' : '') + '">' +
+        '<td style="font-weight:700;">' + monthName + (isBest ? ' 🏆' : '') + '</td>' +
+        '<td style="text-align:right;color:#FF385C;">' + formatK(d.online) + '</td>' +
+        '<td style="text-align:right;color:#F59E0B;">' + formatK(d.offline) + '</td>' +
+        '<td style="text-align:right;font-weight:700;">' + formatK(total) + '</td>' +
+        '<td style="text-align:center;">' + d.count + '</td>' +
+        '<td style="text-align:right;">' + growthDisplay + '</td>' +
+        '</tr>';
+    }).join('');
+
+    // Mini bar chart of monthly totals
+    const monthTotals = sortedMonths.slice().reverse().map(m => monthMap[m].online + monthMap[m].offline);
+    const maxT = Math.max(...monthTotals, 1);
+    const barChart = monthTotals.map((v, i) => {
+      const h = (v / maxT) * 100;
+      const monthKey = sortedMonths.slice().reverse()[i];
+      const monthShort = new Date(monthKey + '-01').toLocaleDateString('en-IN', { month: 'short' });
+      return '<div style="flex:1;display:flex;flex-direction:column;align-items:center;">' +
+        '<div style="width:100%;height:100px;display:flex;align-items:flex-end;">' +
+          '<div style="width:100%;background:linear-gradient(180deg,#FF385C,#E00B41);border-radius:4px 4px 0 0;height:' + h + '%;transition:height 0.5s;" title="' + monthShort + ': ' + formatK(v) + '"></div>' +
+        '</div>' +
+        '<div style="font-size:10px;margin-top:4px;color:#666;">' + monthShort + '</div>' +
+      '</div>';
+    }).join('');
+
+    const bestGrowthMonth = bestGrowth.key ? new Date(bestGrowth.key + '-01').toLocaleDateString('en-IN', { month: 'short', year: '2-digit' }) : '-';
+    const bestMonthName = bestMonth.key ? new Date(bestMonth.key + '-01').toLocaleDateString('en-IN', { month: 'short', year: '2-digit' }) : '-';
+
+    container.innerHTML =
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;">' +
+        '<div style="background:#FEF3C7;padding:12px;border-radius:8px;">' +
+          '<div style="font-size:11px;color:#888;text-transform:uppercase;">🏆 Best Month</div>' +
+          '<div style="font-size:18px;font-weight:800;color:#B45309;">' + bestMonthName + '</div>' +
+          '<div style="font-size:13px;">' + formatK(bestMonth.total) + ' total revenue</div>' +
+        '</div>' +
+        '<div style="background:#D1FAE5;padding:12px;border-radius:8px;">' +
+          '<div style="font-size:11px;color:#888;text-transform:uppercase;">📈 Best Growth</div>' +
+          '<div style="font-size:18px;font-weight:800;color:#0A7D1A;">' + bestGrowthMonth + '</div>' +
+          '<div style="font-size:13px;">+' + bestGrowth.pct.toFixed(0) + '% vs previous</div>' +
+        '</div>' +
+      '</div>' +
+
+      '<div style="display:flex;gap:4px;height:130px;margin-bottom:16px;padding:10px;background:#fafafa;border-radius:8px;">' +
+        barChart +
+      '</div>' +
+
+      '<div class="table-wrap"><table style="font-size:13px;">' +
+        '<thead><tr style="background:#222;color:#fff;">' +
+          '<th>Month</th>' +
+          '<th style="text-align:right;">🌐 Online</th>' +
+          '<th style="text-align:right;">💵 Offline</th>' +
+          '<th style="text-align:right;">Total</th>' +
+          '<th style="text-align:center;">Bookings</th>' +
+          '<th style="text-align:right;">vs Prev</th>' +
+        '</tr></thead>' +
+        '<tbody>' + rows + '</tbody>' +
+      '</table></div>';
+  }
+
+
+  
+  // ═══ STAFF PERFORMANCE ═══
+  async function loadStaffPerformance() {
+    const container = document.getElementById('staffPerfContainer');
+    if (!container) return;
+
+    const fromDate = daysAgo(AN.period);
+
+    const [profRes, bkRes, payRes] = await Promise.all([
+      sb.from('profiles').select('user_id, display_name, role').eq('is_approved', true),
+      sb.from('guest_register')
+        .select('booking_id, total_amount, created_by, booked_by, verification_status')
+        .gte('check_in', fromDate)
+        .neq('verification_status', 'rejected'),
+      sb.from('payment_history')
+        .select('id, amount, created_by, verification_status')
+        .gte('payment_date', fromDate)
+        .neq('verification_status', 'rejected')
+    ]);
+
+    const profiles = profRes.data || [];
+    const bookings = bkRes.data || [];
+    const payments = payRes.data || [];
+
+    const profMap = {};
+    profiles.forEach(p => { profMap[p.user_id] = p; });
+
+    // Aggregate stats per user
+    const staffStats = {};
+    bookings.forEach(b => {
+      const uid = b.created_by;
+      if (!uid) return;
+      if (!staffStats[uid]) staffStats[uid] = {
+        name: profMap[uid]?.display_name || b.booked_by || 'Unknown',
+        role: profMap[uid]?.role || 'unknown',
+        bookings: 0, bookingRev: 0, pending: 0,
+        payments: 0, paymentRev: 0
+      };
+      staffStats[uid].bookings++;
+      staffStats[uid].bookingRev += b.total_amount || 0;
+      if (b.verification_status === 'pending') staffStats[uid].pending++;
+    });
+
+    payments.forEach(p => {
+      const uid = p.created_by;
+      if (!uid) return;
+      if (!staffStats[uid]) staffStats[uid] = {
+        name: profMap[uid]?.display_name || 'Unknown',
+        role: profMap[uid]?.role || 'unknown',
+        bookings: 0, bookingRev: 0, pending: 0,
+        payments: 0, paymentRev: 0
+      };
+      staffStats[uid].payments++;
+      staffStats[uid].paymentRev += p.amount || 0;
+    });
+
+    const staffArr = Object.values(staffStats)
+      .filter(s => s.bookings > 0 || s.payments > 0)
+      .sort((a, b) => (b.bookingRev + b.paymentRev) - (a.bookingRev + a.paymentRev));
+
+    if (staffArr.length === 0) {
+      container.innerHTML = '<div style="text-align:center;padding:20px;color:#888;">No staff activity in this period</div>';
+      return;
+    }
+
+    const roleColors = {
+      developer: '#8B5CF6', owner: '#FF385C',
+      moderator: '#F59E0B', viewer: '#888'
+    };
+
+    const rows = staffArr.map((s, i) => {
+      const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : '👤';
+      const verifyRate = s.bookings > 0 ? Math.round(((s.bookings - s.pending) / s.bookings) * 100) : 100;
+      const rateColor = verifyRate === 100 ? '#0A7D1A' : verifyRate >= 90 ? '#F59E0B' : '#DC2626';
+      const roleColor = roleColors[s.role] || '#666';
+
+      return '<div style="border:1px solid #eee;border-radius:10px;padding:14px;margin-bottom:10px;">' +
+        '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">' +
+          '<div>' +
+            '<span style="font-size:20px;">' + medal + '</span> ' +
+            '<strong style="font-size:15px;">' + s.name + '</strong> ' +
+            '<span style="background:' + roleColor + ';color:#fff;font-size:10px;padding:2px 8px;border-radius:10px;font-weight:600;">' + s.role + '</span>' +
+          '</div>' +
+          '<div style="font-size:18px;font-weight:800;color:#0A7D1A;">' + formatK(s.bookingRev + s.paymentRev) + '</div>' +
+        '</div>' +
+        '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;font-size:12px;">' +
+          '<div>📅 <strong>' + s.bookings + '</strong> bookings<br>' +
+            '<small style="color:#888;">' + formatK(s.bookingRev) + ' revenue</small></div>' +
+          '<div>💰 <strong>' + s.payments + '</strong> payments<br>' +
+            '<small style="color:#888;">' + formatK(s.paymentRev) + ' collected</small></div>' +
+          '<div>' +
+            (s.pending > 0
+              ? '<span style="color:#F59E0B;">⚠️ <strong>' + s.pending + '</strong> pending</span>'
+              : '<span style="color:#0A7D1A;">✅ All verified</span>') +
+            '<br><small style="color:' + rateColor + ';">' + verifyRate + '% verify rate</small>' +
+          '</div>' +
+        '</div>' +
+      '</div>';
+    }).join('');
+
+    container.innerHTML = rows;
+  }
+
+  
+  // ═══ PRINT ANALYTICS AS PDF ═══
+  window.printAnalytics = function() {
+    const originalTitle = document.title;
+    const dateStr = new Date().toLocaleDateString('en-IN');
+    document.title = 'UHHS Analytics — ' + dateStr;
+
+    // Inject print styles
+    const printCSS = document.createElement('style');
+    printCSS.id = 'analytics-print-css';
+    printCSS.textContent = `
+      @media print {
+        body * { visibility: hidden; }
+        #mainContent, #mainContent * { visibility: visible; }
+        #mainContent { position: absolute; left: 0; top: 0; width: 100%; }
+        .drawer, #drawer, .bottom-nav, #bottomNav, .top-bar, #topBar,
+        button, select, .btn-sm, .no-print { display: none !important; }
+        .card { box-shadow: none !important; border: 1px solid #ddd; page-break-inside: avoid; }
+        h1 { color: #FF385C; border-bottom: 2px solid #FF385C; padding-bottom: 8px; }
+        .section-title { color: #222; border-bottom: 1px solid #eee; }
+        table { font-size: 11px !important; }
+        @page { margin: 12mm; size: A4; }
+      }
+    `;
+    document.head.appendChild(printCSS);
+
+    setTimeout(() => {
+      window.print();
+      setTimeout(() => {
+        document.title = originalTitle;
+        printCSS.remove();
+      }, 1000);
+    }, 300);
+  };
+
+  
+  // ═══ PREDICTIONS & FORECASTS ═══
+  async function loadPredictions() {
+    const container = document.getElementById('predictContainer');
+    if (!container) return;
+
+    // Fetch last 90 days for prediction
+    const from90 = daysAgo(90);
+    const today = new Date().toISOString().slice(0, 10);
+
+    const [bkRes, roomsRes] = await Promise.all([
+      sb.from('guest_register')
+        .select('booking_id, check_in, check_out, total_amount, booking_mode')
+        .gte('check_in', from90)
+        .neq('verification_status', 'rejected'),
+      sb.from('rooms').select('room_id')
+    ]);
+
+    const bookings = bkRes.data || [];
+    const rooms = roomsRes.data || [];
+    const totalRooms = rooms.length;
+
+    if (bookings.length < 5) {
+      container.innerHTML = '<div style="color:#888;padding:20px;text-align:center;">Not enough data for predictions (need 5+ bookings)</div>';
+      return;
+    }
+
+    // ─── Calculate daily averages by day-of-week ───
+    const dowStats = [[], [], [], [], [], [], []]; // Sun-Sat
+    bookings.forEach(b => {
+      if (!b.check_in) return;
+      const dow = new Date(b.check_in).getDay();
+      dowStats[dow].push(b.total_amount || 0);
+    });
+    const dowAvg = dowStats.map(arr => arr.length ? arr.reduce((s, v) => s + v, 0) / arr.length : 0);
+
+    // ─── Next 7 days projection ───
+    let projected7d = 0;
+    for (let i = 0; i < 7; i++) {
+      const d = new Date();
+      d.setDate(d.getDate() + i);
+      projected7d += dowAvg[d.getDay()] * 1.2; // ~1.2 bookings per day heuristic
+    }
+
+    // ─── Next 30 days projection based on recent trend ───
+    const last30 = daysAgo(30);
+    const prev30 = daysAgo(60);
+    const last30Bks = bookings.filter(b => b.check_in >= last30);
+    const prev30Bks = bookings.filter(b => b.check_in >= prev30 && b.check_in < last30);
+    const last30Rev = last30Bks.reduce((s, b) => s + (b.total_amount || 0), 0);
+    const prev30Rev = prev30Bks.reduce((s, b) => s + (b.total_amount || 0), 0);
+    const growthRate = prev30Rev > 0 ? (last30Rev - prev30Rev) / prev30Rev : 0;
+    const projected30d = Math.round(last30Rev * (1 + Math.min(growthRate, 0.5))); // cap growth at 50%
+
+    // ─── Occupancy projection ───
+    let last30Nights = 0;
+    last30Bks.forEach(b => {
+      last30Nights += Math.min(calcNights(b.check_in, b.check_out), 30);
+    });
+    const last30Occ = totalRooms > 0 ? (last30Nights / (totalRooms * 30) * 100) : 0;
+    const projected30Occ = Math.min(100, Math.round(last30Occ * (1 + growthRate * 0.5)));
+
+    // ─── Best/worst days of week ───
+    const dowNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    let bestDow = 0, worstDow = 0;
+    for (let i = 0; i < 7; i++) {
+      if (dowAvg[i] > dowAvg[bestDow]) bestDow = i;
+      if (dowAvg[i] < dowAvg[worstDow] && dowAvg[i] > 0) worstDow = i;
+    }
+
+    // ─── Seasonality: this month vs same month prev quarter ───
+    const currentMonth = new Date().getMonth();
+    const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+
+    // ─── Booked-in advance ratio ───
+    const nowStr = today;
+    const futureBks = bookings.filter(b => b.check_in > nowStr).length;
+
+    // ─── Render ───
+    const trendIcon = growthRate > 0.05 ? '📈' : growthRate < -0.05 ? '📉' : '➡️';
+    const trendColor = growthRate > 0.05 ? '#0A7D1A' : growthRate < -0.05 ? '#DC2626' : '#F59E0B';
+
+    container.innerHTML =
+      '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;">' +
+
+        '<div style="background:linear-gradient(135deg,#8B5CF6,#6D28D9);color:#fff;padding:16px;border-radius:12px;">' +
+          '<div style="font-size:11px;opacity:0.9;">📅 NEXT 7 DAYS</div>' +
+          '<div style="font-size:26px;font-weight:800;margin-top:4px;">' + formatK(projected7d) + '</div>' +
+          '<div style="font-size:11px;opacity:0.9;">Projected revenue</div>' +
+        '</div>' +
+
+        '<div style="background:linear-gradient(135deg,#3B82F6,#1E40AF);color:#fff;padding:16px;border-radius:12px;">' +
+          '<div style="font-size:11px;opacity:0.9;">📊 NEXT 30 DAYS</div>' +
+          '<div style="font-size:26px;font-weight:800;margin-top:4px;">' + formatK(projected30d) + '</div>' +
+          '<div style="font-size:11px;opacity:0.9;">' + trendIcon + ' ' + (growthRate >= 0 ? '+' : '') + (growthRate * 100).toFixed(0) + '% growth trend</div>' +
+        '</div>' +
+
+        '<div style="background:linear-gradient(135deg,#0A7D1A,#065F17);color:#fff;padding:16px;border-radius:12px;">' +
+          '<div style="font-size:11px;opacity:0.9;">🏠 EXPECTED OCCUPANCY</div>' +
+          '<div style="font-size:26px;font-weight:800;margin-top:4px;">' + projected30Occ + '%</div>' +
+          '<div style="font-size:11px;opacity:0.9;">Next 30 days</div>' +
+        '</div>' +
+
+        '<div style="background:linear-gradient(135deg,#F59E0B,#B45309);color:#fff;padding:16px;border-radius:12px;">' +
+          '<div style="font-size:11px;opacity:0.9;">📅 FUTURE BOOKINGS</div>' +
+          '<div style="font-size:26px;font-weight:800;margin-top:4px;">' + futureBks + '</div>' +
+          '<div style="font-size:11px;opacity:0.9;">Already booked ahead</div>' +
+        '</div>' +
+
+      '</div>' +
+
+      '<div style="margin-top:16px;padding:14px;background:#F3F4F6;border-radius:10px;">' +
+        '<div style="font-weight:700;margin-bottom:10px;">📈 Day-of-Week Performance</div>' +
+        '<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:6px;">' +
+          [0,1,2,3,4,5,6].map(i => {
+            const isMax = i === bestDow;
+            const isMin = i === worstDow && dowAvg[i] > 0;
+            const bg = isMax ? '#D1FAE5' : isMin ? '#FEE2E2' : '#fff';
+            const border = isMax ? '2px solid #0A7D1A' : isMin ? '2px solid #DC2626' : '1px solid #ddd';
+            return '<div style="background:' + bg + ';border:' + border + ';padding:10px;border-radius:8px;text-align:center;">' +
+              '<div style="font-size:10px;color:#888;">' + dowNames[i].slice(0,3) + '</div>' +
+              '<div style="font-size:14px;font-weight:700;">' + formatK(dowAvg[i]) + '</div>' +
+              (isMax ? '<div style="font-size:9px;color:#0A7D1A;">🏆 BEST</div>' : '') +
+              (isMin ? '<div style="font-size:9px;color:#DC2626;">⚠️ LOW</div>' : '') +
+            '</div>';
+          }).join('') +
+        '</div>' +
+      '</div>' +
+
+      '<div style="margin-top:14px;padding:12px;background:#EDE9FE;border-radius:8px;border-left:4px solid #8B5CF6;">' +
+        '<strong>💡 Insight:</strong> ' +
+        (growthRate > 0.15
+          ? 'Strong growth momentum! Consider raising prices 5-10%.'
+          : growthRate < -0.1
+          ? 'Revenue declining — check pricing, marketing, competitors.'
+          : 'Steady performance. Best day: ' + dowNames[bestDow] + '. Boost ' + dowNames[worstDow] + ' with weekday discount.') +
+      '</div>';
   }
 
   window.renderAnalytics = renderAnalytics;
