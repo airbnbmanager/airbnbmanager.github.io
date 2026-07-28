@@ -49,6 +49,16 @@ function approvalMeta() {
   };
 }
 
+function approvalUpdateMeta() {
+  const trusted = isTrustedUser();
+  return {
+    verification_status: trusted ? 'verified' : 'pending',
+    verified_by: trusted ? SESSION.userId : null,
+    verified_at: trusted ? new Date().toISOString() : null,
+    rejection_reason: null
+  };
+}
+
 // Get user display name for a user_id (cached)
 window._userNameCache = window._userNameCache || {};
 async function getUserName(userId) {
@@ -2196,7 +2206,106 @@ async function updateBooking(bkId, parentBookingId = '', stayGroupId = '') {
     }
   }
 
+  Object.assign(obj, approvalUpdateMeta());
+
+
+  // ═══ DETECT CHANGES for notification ═══
+
+
+  const orig = window._origBooking || {};
+
+
+  const trackFields = {
+
+
+    guest_name: 'Guest Name',
+
+
+    phone: 'Phone',
+
+
+    check_in: 'Check-in',
+
+
+    check_out: 'Check-out',
+
+
+    room_id: 'Room',
+
+
+    total_amount: 'Amount',
+
+
+    booking_mode: 'Mode',
+
+
+    guests: 'Guest Count'
+
+
+  };
+
+
+  const changes = [];
+
+
+  Object.keys(trackFields).forEach(f => {
+
+
+    const oldVal = orig[f];
+
+
+    const newVal = obj[f];
+
+
+    if (oldVal !== undefined && newVal !== undefined && String(oldVal || '') !== String(newVal || '')) {
+
+
+      changes.push(trackFields[f] + ': ' + (oldVal || '-') + ' -> ' + (newVal || '-'));
+
+
+    }
+
+
+  });
+
+
   const { error } = await sb.from('guest_register').update(obj).eq('booking_id', bkId);
+
+
+  // ═══ SEND NOTIFICATION if changes detected & non-trusted user ═══
+
+
+  if (!error && changes.length > 0 && !isTrustedUser()) {
+
+
+    try {
+
+
+      const userName = (SESSION.displayName || 'Someone').split(' ')[0];
+
+
+      // Fetch developer/owner users to notify
+      const { data: notifTargets } = await sb.from('profiles')
+        .select('user_id').in('role', ['developer', 'owner']);
+      if (notifTargets && notifTargets.length > 0) {
+        const notifRows = notifTargets.map(u => ({
+          user_id: u.user_id,
+          type: 'booking',
+          icon: '✏️',
+          title: 'Booking Edited: ' + (obj.guest_name || bkId),
+          message: userName + ' changed ' + changes.join(' | '),
+          page: 'bookings',
+          data: { booking_id: bkId, changes: changes },
+          is_read: false
+        }));
+        await sb.from('notifications').insert(notifRows);
+      }
+
+
+    } catch(e) { console.warn('Notify failed:', e); }
+
+
+  }
   if (error) { document.getElementById('editBkErr').innerHTML = `<div class="error">${error.message}</div>`; return; }
   window._editIdFiles = {}; // Clear cache
 
@@ -2474,12 +2583,14 @@ async function editPayment(payId, bkId) {
 }
 
 async function saveEditPayment(payId, bkId) {
-  await sb.from('payment_history').update({
+  const payPatch = {
     amount: parseFloat(document.getElementById('editPayAmt')?.value) || 0,
     payment_mode: document.getElementById('editPayMode')?.value,
     payment_date: document.getElementById('editPayDate')?.value || null,
     notes: document.getElementById('editPayNotes')?.value?.trim() || null
-  }).eq('id', payId);
+  };
+  Object.assign(payPatch, approvalUpdateMeta());
+  await sb.from('payment_history').update(payPatch).eq('id', payId);
   await recalcPaymentStatus(bkId);
   document.querySelector('.modal-overlay')?.remove();
   editBooking(bkId);
