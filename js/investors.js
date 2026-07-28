@@ -20,7 +20,7 @@ async function renderManageInvestors() {
     invPropMap[l.investor_id].push(l);
   });
 
-  const isO = ['owner','admin'].includes(SESSION.role);
+  const isO = ['owner','admin','developer','moderator'].includes(SESSION.role);
 
   renderShell(`
     <div class="card">
@@ -37,7 +37,7 @@ async function renderManageInvestors() {
       <div class="table-wrap"><table>
         <thead><tr>
           <th>Name</th><th>Phone</th><th>Share</th><th>Properties</th>
-          <th>Report</th>${isO ? '<th>Actions</th>' : ''}
+          <th>Actions</th>
         </tr></thead>
         <tbody>${(invs || []).map(i => {
           const iLinks = invPropMap[i.investor_id] || [];
@@ -47,13 +47,11 @@ async function renderManageInvestors() {
             <td>${i.phone || '-'}</td>
             <td><span class="badge green">${i.revenue_share_pct || 70}%</span></td>
             <td style="font-size:12px;">${propNames}</td>
-            <td class="table-actions">
-              ${iLinks.map(l => `<button class="btn-sm" onclick="renderInvestorReport('${i.investor_id}','${l.room_id}')">📊</button>`).join('') || '-'}
+            <td class="table-actions" style="white-space:nowrap;">
+              ${iLinks.map(l => `<button class="btn-sm" title="Report ${l.room_id}" onclick="renderInvestorReport('${i.investor_id}','${l.room_id}')">📊</button>`).join('')}
+              ${isO ? `<button class="btn-sm" title="Edit" onclick="editInvestor('${i.investor_id}')">✏️</button>` : ''}
+              ${isO && window.canDelete && window.canDelete() ? `<button class="btn-sm danger" title="Delete" onclick="deleteInvestor('${i.investor_id}','${i.name}')">🗑️</button>` : ''}
             </td>
-            ${isO ? `<td class="table-actions">
-              <button class="btn-sm" onclick="editInvestor('${i.investor_id}')">✏️</button>
-              ${window.canDelete && window.canDelete() ? `<button class="btn-sm danger" onclick="deleteInvestor('${i.investor_id}','${i.name}')">🗑️</button>` : ''}
-            </td>` : ''}
           </tr>`;
         }).join('')}</tbody>
       </table></div>
