@@ -429,10 +429,14 @@ async function renderManageBookings() {
     }
   }
 
-  // Fetch payments for filter (exclude REJECTED)
+  // Fetch payments for filter (exclude REJECTED + cancelled bookings)
   const { data: allPays } = await sb.from('payment_history')
     .select('booking_id, amount, payment_date, verification_status')
     .neq('verification_status', 'rejected');
+  // Get cancelled booking IDs to exclude their payments from revenue calc
+  const { data: cancelledBks } = await sb.from('guest_register')
+    .select('booking_id').eq('is_cancelled', true);
+  const cancelledSet = new Set((cancelledBks || []).map(b => b.booking_id));
   const paidMap = {};
   (allPays || []).forEach(p => {
     paidMap[p.booking_id] = (paidMap[p.booking_id] || 0) + (p.amount || 0);
@@ -664,7 +668,7 @@ async function renderManageBookings() {
           <td>${statusBadge}</td>
           <td>
             <strong style="cursor:pointer;text-decoration:underline;color:var(--blue);"
-              onclick="showGuestLedger('${(b.guest_name || '').replace(/'/g, "\\'")}')">${b.guest_name || '-'}</strong>${b.verification_status === 'pending' ? ' <span class="badge yellow" style="font-size:9px;">🟡 Pending</span>' : ''}${b.verification_status === 'rejected' ? ' <span class="badge red" style="font-size:9px;" title="' + (b.rejection_reason || '').replace(/"/g,'&quot;') + '">❌ Rejected</span>' : ''}<br>
+              onclick="showGuestLedger('${(b.guest_name || '').replace(/'/g, "\\'")}')">${b.guest_name || '-'}</strong>${b.is_cancelled ? ' <span class="badge red" style="font-size:9px;" title="' + (b.cancellation_reason || '').replace(/"/g,'&quot;') + '">🚫 CANCELLED</span>' : ''}${b.verification_status === 'pending' ? ' <span class="badge yellow" style="font-size:9px;">🟡 Pending</span>' : ''}${b.verification_status === 'rejected' ? ' <span class="badge red" style="font-size:9px;" title="' + (b.rejection_reason || '').replace(/"/g,'&quot;') + '">❌ Rejected</span>' : ''}<br>
             <small style="color:var(--muted);">${b.phone || ''}</small>
             ${b.created_by ? '<br><small style="color:#888;font-size:10px;">👤 ' + (window._userNameCache[b.created_by] || b.booked_by || 'User') + '</small>' : (b.booked_by ? '<br><small style="color:#888;font-size:10px;">👤 ' + b.booked_by + '</small>' : '')}
             ${b.verification_status === 'pending' && isTrustedUser() ? '<br><button class="btn-sm green-btn" style="padding:2px 8px;font-size:10px;margin-top:2px;" onclick="event.stopPropagation();approveBooking(\'' + b.booking_id + '\')">✅ Approve</button> <button class="btn-sm danger" style="padding:2px 8px;font-size:10px;" onclick="event.stopPropagation();rejectBooking(\'' + b.booking_id + '\')">❌ Reject</button>' : ''}
@@ -2808,6 +2812,114 @@ function closeWAMenuOnClickOutside(e) {
     closeWAMenu();
   }
 }
+
+
+// ═══ CANCEL BOOKING ═══
+window.cancelBooking = async function(bkId, guestName) {
+  const { data: bk } = await sb.from('guest_register')
+    .select('total_amount, is_cancelled').eq('booking_id', bkId).single();
+  if (!bk) { fsn.error('Error', 'Not found'); return; }
+  if (bk.is_cancelled) { fsn.info('Info', 'Already cancelled'); return; }
+
+  const { data: pays } = await sb.from('payment_history')
+    .select('amount').eq('booking_id', bkId).neq('verification_status', 'rejected');
+  const totalPaid = (pays || []).reduce((s, p) => s + (p.amount || 0), 0);
+
+  const modal = document.createElement('div');
+  modal.className = 'modal-overlay';
+  modal.onclick = e => { if (e.target === modal) modal.remove(); };
+  modal.innerHTML =
+    '<div class="modal-box" style="max-width:450px;">' +
+      '<button class="modal-close" onclick="this.closest(\'.modal-overlay\').remove()">✕</button>' +
+      '<h2>❌ Cancel Booking</h2>' +
+      '<p style="color:var(--muted);margin:0 0 12px;">Guest: <strong>' + (guestName || bkId) + '</strong></p>' +
+      '<div style="background:#FEF3C7;padding:10px;border-radius:8px;margin-bottom:12px;font-size:12px;">' +
+        '💰 Total Amount: <strong>₹' + (bk.total_amount || 0).toLocaleString('en-IN') + '</strong><br>' +
+        '💵 Already Paid: <strong>₹' + totalPaid.toLocaleString('en-IN') + '</strong>' +
+      '</div>' +
+      '<div class="form-group">' +
+        '<label>Cancellation Reason *</label>' +
+        '<select id="cancelReason">' +
+          '<option value="">— Select —</option>' +
+          '<option value="Guest cancelled - Change of plans">Guest cancelled — Change of plans</option>' +
+          '<option value="Guest cancelled - Emergency">Guest cancelled — Emergency</option>' +
+          '<option value="No show">Guest No-show</option>' +
+          '<option value="Property unavailable">Property unavailable</option>' +
+          '<option value="Payment issue">Payment issue</option>' +
+          '<option value="Duplicate booking">Duplicate booking</option>' +
+          '<option value="Airbnb cancelled">Airbnb cancelled</option>' +
+          '<option value="Other">Other</option>' +
+        '</select>' +
+      '</div>' +
+      '<div class="form-group">' +
+        '<label>Additional Notes</label>' +
+        '<textarea id="cancelNotes" rows="2" placeholder="Optional details..." style="width:100%;padding:8px;border:1px solid var(--border);border-radius:6px;"></textarea>' +
+      '</div>' +
+      '<div class="form-group">' +
+        '<label>Refund Amount ₹ (of ₹' + totalPaid.toLocaleString('en-IN') + ' paid)</label>' +
+        '<input id="cancelRefund" type="number" value="' + totalPaid + '" min="0" max="' + totalPaid + '" />' +
+      '</div>' +
+      '<button onclick="saveCancelBooking(\'' + bkId + '\')" style="width:100%;background:#DC2626;color:#fff;margin-top:10px;">🚫 Confirm Cancellation</button>' +
+      '<div id="cancelErr"></div>' +
+    '</div>';
+  document.body.appendChild(modal);
+};
+
+window.saveCancelBooking = async function(bkId) {
+  const reason = document.getElementById('cancelReason')?.value;
+  const notes = document.getElementById('cancelNotes')?.value?.trim() || '';
+  const refund = parseFloat(document.getElementById('cancelRefund')?.value) || 0;
+
+  if (!reason) {
+    document.getElementById('cancelErr').innerHTML = '<div class="error">Please select a reason</div>';
+    return;
+  }
+
+  const fullReason = notes ? reason + ' — ' + notes : reason;
+
+  const { error } = await sb.from('guest_register').update({
+    is_cancelled: true,
+    cancelled_at: new Date().toISOString(),
+    cancelled_by: SESSION.userId,
+    cancellation_reason: fullReason,
+    refund_amount: refund,
+    payment_status: 'Cancelled'
+  }).eq('booking_id', bkId);
+
+  if (error) {
+    document.getElementById('cancelErr').innerHTML = '<div class="error">' + error.message + '</div>';
+    return;
+  }
+
+  // Free up the room
+  const { data: bk } = await sb.from('guest_register').select('room_id').eq('booking_id', bkId).single();
+  if (bk?.room_id) {
+    await sb.from('flats_status').upsert({
+      room_id: bk.room_id,
+      status: 'Free',
+      cleaning_status: 'Dirty',
+      last_checkout: new Date().toISOString().slice(0, 10)
+    }, { onConflict: 'room_id' });
+  }
+
+  fsn.warning('Cancelled', '❌ Booking cancelled\n💰 Refund: ₹' + refund.toLocaleString('en-IN'));
+  document.querySelector('.modal-overlay')?.remove();
+  renderManageBookings();
+};
+
+window.uncancelBooking = async function(bkId) {
+  if (!confirm('Restore this cancelled booking?')) return;
+  const { error } = await sb.from('guest_register').update({
+    is_cancelled: false,
+    cancelled_at: null,
+    cancelled_by: null,
+    cancellation_reason: null,
+    refund_amount: 0
+  }).eq('booking_id', bkId);
+  if (error) { fsn.error('Error', error.message); return; }
+  fsn.success('Restored', '✅ Booking restored');
+  renderManageBookings();
+};
 
 // ═══ PENDING APPROVALS PAGE ═══
 window.renderPendingApprovals = async function() {
