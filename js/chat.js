@@ -8,19 +8,95 @@
     channel: null,
     unreadCount: 0,
     lastSeenId: parseInt(localStorage.getItem('uh_chat_lastseen') || '0'),
-    isOpen: false
+    isOpen: false,
+    mode: localStorage.getItem('uh_chat_mode') || 'group',  // group | GOM | VIL | dm
+    dmUserId: localStorage.getItem('uh_chat_dm_user') || null,
+    dmUserName: localStorage.getItem('uh_chat_dm_name') || null,
+    users: []  // for DM selector
   };
 
-  // ─── Fetch messages ───
+  // ─── Fetch messages (filtered by mode) ───
   async function loadMessages() {
-    const { data, error } = await sb.from('chat_messages')
-      .select('*')
-      .order('created_at', { ascending: true })
-      .limit(200);
+    let query = sb.from('chat_messages').select('*').order('created_at', { ascending: true }).limit(200);
+
+    if (CHAT.mode === 'group') {
+      query = query.or('chat_type.is.null,chat_type.eq.group');
+    } else if (CHAT.mode === 'GOM' || CHAT.mode === 'VIL') {
+      query = query.eq('chat_type', 'property').eq('property_id', CHAT.mode);
+    } else if (CHAT.mode === 'dm' && CHAT.dmUserId) {
+      // Show messages between me and selected user (both directions)
+      query = query.eq('chat_type', 'dm')
+        .or(`and(user_id.eq.${SESSION.userId},recipient_user_id.eq.${CHAT.dmUserId}),and(user_id.eq.${CHAT.dmUserId},recipient_user_id.eq.${SESSION.userId})`);
+    } else if (CHAT.mode === 'dm' && !CHAT.dmUserId) {
+      CHAT.messages = [];
+      updateUnread();
+      return;
+    }
+
+    const { data, error } = await query;
     if (error) return console.warn('Chat load error:', error);
     CHAT.messages = data || [];
     updateUnread();
   }
+
+  // ─── Fetch users for DM selector ───
+  async function loadDMUsers() {
+    if (CHAT.users.length > 0) return CHAT.users;
+    const { data } = await sb.from('profiles')
+      .select('user_id, display_name, role')
+      .eq('is_approved', true)
+      .neq('user_id', SESSION.userId)
+      .order('display_name');
+    CHAT.users = data || [];
+    return CHAT.users;
+  }
+
+  // ─── Switch mode ───
+  window.switchChatMode = async function(mode, dmUserId, dmUserName) {
+    CHAT.mode = mode;
+    localStorage.setItem('uh_chat_mode', mode);
+    if (mode === 'dm') {
+      if (dmUserId) {
+        CHAT.dmUserId = dmUserId;
+        CHAT.dmUserName = dmUserName || 'User';
+        localStorage.setItem('uh_chat_dm_user', dmUserId);
+        localStorage.setItem('uh_chat_dm_name', CHAT.dmUserName);
+      }
+    } else {
+      CHAT.dmUserId = null;
+      CHAT.dmUserName = null;
+    }
+    await renderChat();
+  };
+
+  // ─── Show DM user picker ───
+  window.showDMPicker = async function() {
+    const users = await loadDMUsers();
+    const modal = document.createElement('div');
+    modal.className = 'modal-overlay';
+    modal.style.zIndex = '99999';
+    modal.onclick = e => { if (e.target === modal) modal.remove(); };
+    let userList = '';
+    users.forEach(u => {
+      const initial = (u.display_name || '?').charAt(0).toUpperCase();
+      userList += '<div onclick="window.startDM(\'' + u.user_id + '\',\'' + (u.display_name || 'User').replace(/'/g, "\\'") + '\')" style="display:flex;align-items:center;gap:10px;padding:12px;border-bottom:1px solid #eee;cursor:pointer;">' +
+        '<div style="width:40px;height:40px;border-radius:50%;background:#128C7E;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;">' + initial + '</div>' +
+        '<div><div style="font-weight:600;">' + (u.display_name || 'User') + '</div>' +
+        '<div style="font-size:11px;color:#888;">' + (u.role || '') + '</div></div>' +
+        '</div>';
+    });
+    modal.innerHTML = '<div class="modal-box" style="max-width:400px;max-height:70vh;overflow-y:auto;">' +
+      '<button class="modal-close" onclick="this.closest(\'.modal-overlay\').remove()">✕</button>' +
+      '<h2>💬 Select User to DM</h2>' +
+      (userList || '<div style="text-align:center;color:#888;padding:20px;">No users</div>') +
+      '</div>';
+    document.body.appendChild(modal);
+  };
+
+  window.startDM = function(userId, userName) {
+    document.querySelector('.modal-overlay')?.remove();
+    window.switchChatMode('dm', userId, userName);
+  };
 
   // ─── Render chat page ───
   async function renderChat() {
@@ -185,6 +261,32 @@
           opacity: 0.6;
           pointer-events: none;
         }
+        .uh-chat-tabs {
+          flex: 0 0 auto;
+          display: flex;
+          background: #fff;
+          border-bottom: 1px solid #e5e5e5;
+          overflow-x: auto;
+          -webkit-overflow-scrolling: touch;
+        }
+        .uh-chat-tab {
+          flex: 1 0 auto;
+          padding: 10px 14px;
+          background: transparent;
+          border: none;
+          border-bottom: 3px solid transparent;
+          color: #666;
+          font-size: 13px;
+          font-weight: 600;
+          cursor: pointer;
+          white-space: nowrap;
+          transition: all 0.2s;
+        }
+        .uh-chat-tab:hover { background: #f5f5f5; color: #222; }
+        .uh-chat-tab.active {
+          color: #128C7E;
+          border-bottom-color: #128C7E;
+        }
       `;
       document.head.appendChild(css);
     }
@@ -197,10 +299,22 @@
           <div onclick="window.navigate && window.navigate('dashboard')" style="font-size:20px;cursor:pointer;padding:4px 10px;margin-left:-6px;">←</div>
           <div style="font-size:22px;">💬</div>
           <div style="flex:1;min-width:0;">
-            <div style="font-weight:700;font-size:15px;">Team Chat</div>
+            <div style="font-weight:700;font-size:15px;">${
+              CHAT.mode === 'group' ? 'Team Chat' :
+              CHAT.mode === 'GOM' ? '🏢 Gomti Chat' :
+              CHAT.mode === 'VIL' ? '🏢 Villa Chat' :
+              CHAT.mode === 'dm' && CHAT.dmUserName ? '👤 ' + CHAT.dmUserName :
+              CHAT.mode === 'dm' ? 'Select user' : 'Team Chat'
+            }</div>
             <div style="font-size:11px;opacity:0.7;" id="chatOnlineText">Loading...</div>
           </div>
           <div onclick="window.navigate && window.navigate('dashboard')" style="font-size:22px;cursor:pointer;padding:4px 10px;opacity:0.8;">✕</div>
+        </div>
+        <div class="uh-chat-tabs">
+          <button class="uh-chat-tab ${CHAT.mode === 'group' ? 'active' : ''}" onclick="window.switchChatMode('group')">🌐 All</button>
+          <button class="uh-chat-tab ${CHAT.mode === 'GOM' ? 'active' : ''}" onclick="window.switchChatMode('GOM')">🏢 GOM</button>
+          <button class="uh-chat-tab ${CHAT.mode === 'VIL' ? 'active' : ''}" onclick="window.switchChatMode('VIL')">🏢 VIL</button>
+          <button class="uh-chat-tab ${CHAT.mode === 'dm' ? 'active' : ''}" onclick="window.showDMPicker()">👤 DM</button>
         </div>
         <div id="chatMessages" class="uh-chat-messages">
           ${renderMessagesList()}
@@ -346,7 +460,10 @@
         user_name: SESSION.displayName || 'User',
         message: '',
         image_path: path,
-        expires_at: expiresAt
+        expires_at: expiresAt,
+        chat_type: CHAT.mode === 'dm' ? 'dm' : (CHAT.mode === 'group' ? 'group' : 'property'),
+        property_id: (CHAT.mode === 'GOM' || CHAT.mode === 'VIL') ? CHAT.mode : null,
+        recipient_user_id: CHAT.mode === 'dm' ? CHAT.dmUserId : null
       });
 
       if (msgErr) throw msgErr;
@@ -368,15 +485,25 @@
     const msg = input.value.trim();
     if (!msg) return;
 
+    if (CHAT.mode === 'dm' && !CHAT.dmUserId) {
+      if (window.fsn) fsn.warning('Select User', 'Pick a user first');
+      return;
+    }
+
     input.value = '';
     input.disabled = true;
 
+    const payload = {
+      user_id: SESSION.userId,
+      user_name: SESSION.displayName || 'User',
+      message: msg,
+      chat_type: CHAT.mode === 'dm' ? 'dm' : (CHAT.mode === 'group' ? 'group' : 'property'),
+      property_id: (CHAT.mode === 'GOM' || CHAT.mode === 'VIL') ? CHAT.mode : null,
+      recipient_user_id: CHAT.mode === 'dm' ? CHAT.dmUserId : null
+    };
+
     try {
-      const { error } = await sb.from('chat_messages').insert({
-        user_id: SESSION.userId,
-        user_name: SESSION.displayName || 'User',
-        message: msg
-      });
+      const { error } = await sb.from('chat_messages').insert(payload);
       if (error) throw error;
     } catch (e) {
       if (window.fsn) fsn.error('Send Failed', e.message);
@@ -406,16 +533,24 @@
       .on('postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'chat_messages' },
         (payload) => {
-          CHAT.messages.push(payload.new);
+          const m = payload.new;
+          // Check if message matches current mode filter
+          const matchesMode = (
+            (CHAT.mode === 'group' && (!m.chat_type || m.chat_type === 'group')) ||
+            ((CHAT.mode === 'GOM' || CHAT.mode === 'VIL') && m.chat_type === 'property' && m.property_id === CHAT.mode) ||
+            (CHAT.mode === 'dm' && m.chat_type === 'dm' && 
+             ((m.user_id === SESSION.userId && m.recipient_user_id === CHAT.dmUserId) ||
+              (m.user_id === CHAT.dmUserId && m.recipient_user_id === SESSION.userId)))
+          );
+          if (!matchesMode) return; // Ignore messages not in current view
+          CHAT.messages.push(m);
           if (CHAT.isOpen) {
-            // Update UI
             const box = document.getElementById('chatMessages');
             if (box) {
               box.innerHTML = renderMessagesList();
               box.scrollTop = box.scrollHeight;
             }
-            // Mark as read
-            CHAT.lastSeenId = payload.new.id;
+            CHAT.lastSeenId = m.id;
             localStorage.setItem('uh_chat_lastseen', CHAT.lastSeenId.toString());
           } else {
             // Show unread badge
