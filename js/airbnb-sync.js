@@ -6,11 +6,13 @@
   const SYNC = {
     csvData: [],
     reservations: [],
+    allReservations: [],  // unfiltered
     payouts: [],
     rooms: [],
-    existingByCode: {},   // confirmation_code → booking record
-    existingByGuest: [],  // for fuzzy dupe detection
-    filter: 'all'
+    existingByCode: {},
+    existingByGuest: [],
+    filter: 'all',
+    fromDate: '2026-07-01'  // Only import bookings on/after this date
   };
 
   // ─── Date MM/DD/YYYY → YYYY-MM-DD ───
@@ -86,9 +88,25 @@
     return best;
   }
 
+  // ─── Find matching DB booking by guest name + dates (fallback) ───
+  function findFuzzyMatch(csvBk) {
+    return SYNC.existingByGuest.find(db => {
+      if (db.airbnb_confirmation_code) return false;
+      if (db.check_in !== csvBk.check_in) return false;
+      const nameScore = fuzzyMatch(csvBk.guest_name || '', db.guest_name || '');
+      return nameScore >= 60;
+    });
+  }
+
   // ─── Compare Airbnb reservation vs existing system booking ───
   function compareBooking(csvBk, dbBk) {
     const issues = [];
+    if (!dbBk) {
+      dbBk = findFuzzyMatch(csvBk);
+      if (dbBk) {
+        issues.push({ field: 'Match', csv: 'By guest+date', db: 'Missing Airbnb code' });
+      }
+    }
     if (!dbBk) return { status: 'new', issues };
 
     // Guest name check
@@ -217,10 +235,29 @@
       }
     });
 
-    SYNC.reservations = Object.values(reservationsByCode);
+    SYNC.allReservations = Object.values(reservationsByCode);
+    // Apply date filter
+    SYNC.reservations = SYNC.allReservations.filter(r =>
+      !r.check_in || !SYNC.fromDate || r.check_in >= SYNC.fromDate
+    );
     SYNC.payouts = payouts;
     SYNC.filter = 'all';
 
+    renderPreview();
+  };
+
+  window.setFromDate = function(date) {
+    SYNC.fromDate = date;
+    SYNC.reservations = SYNC.allReservations.filter(r =>
+      !r.check_in || !SYNC.fromDate || r.check_in >= SYNC.fromDate
+    );
+    renderPreview();
+  };
+
+  window.bulkAction = function(status, action) {
+    SYNC.reservations.forEach(r => {
+      if (r.status === status) r.action = action;
+    });
     renderPreview();
   };
 
@@ -354,13 +391,27 @@
     container.innerHTML =
       '<div class="card" style="margin-top:20px;">' +
 
-        '<div class="section-title">📊 CSV Summary</div>' +
+        '<div class="section-title">📅 Filter by Check-in Date</div>' +
+        '<div style="display:flex;gap:10px;align-items:center;margin:10px 0;padding:12px;background:#EFF6FF;border-radius:8px;">' +
+          '<label>From:</label>' +
+          '<input type="date" value="' + SYNC.fromDate + '" onchange="setFromDate(this.value)" style="padding:6px 10px;border:1px solid #ccc;border-radius:6px;" />' +
+          '<span style="color:#666;font-size:12px;">Showing ' + SYNC.reservations.length + ' of ' + SYNC.allReservations.length + ' total in CSV</span>' +
+        '</div>' +
+
+        '<div class="section-title">📊 Summary</div>' +
         '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin:10px 0;">' +
           '<div class="stat-card" style="background:#fff;border:2px solid #eee;text-align:center;padding:10px;"><div style="font-size:24px;font-weight:800;">' + counts.all + '</div><div style="font-size:11px;color:#888;">Total</div></div>' +
           '<div class="stat-card" style="background:#D1FAE5;text-align:center;padding:10px;cursor:pointer;" onclick="setSyncFilter(\\\'new\\\')"><div style="font-size:24px;font-weight:800;color:#0A7D1A;">' + counts.new + '</div><div style="font-size:11px;">🆕 New</div></div>' +
           '<div class="stat-card" style="background:#DBEAFE;text-align:center;padding:10px;cursor:pointer;" onclick="setSyncFilter(\\\'match\\\')"><div style="font-size:24px;font-weight:800;color:#1E40AF;">' + counts.match + '</div><div style="font-size:11px;">✅ Match</div></div>' +
           '<div class="stat-card" style="background:#FEF3C7;text-align:center;padding:10px;cursor:pointer;" onclick="setSyncFilter(\\\'conflict\\\')"><div style="font-size:24px;font-weight:800;color:#B45309;">' + counts.conflict + '</div><div style="font-size:11px;">⚠️ Conflict</div></div>' +
           '<div class="stat-card" style="background:#FEE2E2;text-align:center;padding:10px;cursor:pointer;" onclick="setSyncFilter(\\\'unmapped\\\')"><div style="font-size:24px;font-weight:800;color:#DC2626;">' + counts.unmapped + '</div><div style="font-size:11px;">🔴 Unmapped</div></div>' +
+        '</div>' +
+
+        '<div style="display:flex;gap:8px;flex-wrap:wrap;margin:10px 0;padding:10px;background:#F3F4F6;border-radius:8px;">' +
+          '<strong>Bulk:</strong> ' +
+          '<button class="btn-sm green-btn" onclick="bulkAction(\'new\',\'import\')">✅ Import all NEW</button>' +
+          '<button class="btn-sm" style="background:#F59E0B;color:#fff;" onclick="bulkAction(\'conflict\',\'update\')">🔄 Update all CONFLICTS</button>' +
+          '<button class="btn-sm outline" onclick="bulkAction(\'new\',\'skip\');bulkAction(\'conflict\',\'skip\')">🚫 Skip all</button>' +
         '</div>' +
 
         '<div style="display:flex;gap:8px;flex-wrap:wrap;margin:10px 0;align-items:center;">' +
