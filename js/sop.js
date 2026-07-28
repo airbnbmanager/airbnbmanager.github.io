@@ -15,7 +15,9 @@ function renderSOPTab(page) {
     { icon: '🏠', title: 'Overview' },
     { icon: '📊', title: 'Dashboard' },
     { icon: '📅', title: 'Booking' },
+    { icon: '🔄', title: 'Airbnb Sync' },
     { icon: '💰', title: 'Payments' },
+    { icon: '🔐', title: 'Approval Flow' },
     { icon: '🛏️', title: 'Flats Status' },
     { icon: '🏘️', title: 'Properties' },
     { icon: '🕐', title: 'Shifts' },
@@ -29,6 +31,7 @@ function renderSOPTab(page) {
     { icon: '📦', title: 'Inventory' },
     { icon: '🔧', title: 'Maintenance' },
     { icon: '📱', title: 'WhatsApp' },
+    { icon: '📊', title: 'Analytics' },
     { icon: '🧑‍💼', title: 'Investors' },
     { icon: '⚠️', title: 'Rules & Don\'ts' },
   ];
@@ -54,16 +57,15 @@ function renderSOPTab(page) {
     <div class="card">
       <div class="section-title">🔐 Role Permissions</div>
       <div class="table-wrap"><table>
-        <thead><tr><th>Role</th><th>Access</th></tr></thead>
+        <thead><tr><th>Role</th><th>Access</th><th>Approval</th></tr></thead>
         <tbody>
-          <tr><td><span class="badge green">Owner</span></td><td>View + Add + Edit ✅ | Delete ❌</td></tr>
-          <tr><td><span class="badge blue">Admin</span></td><td>Full Access ✅</td></tr>
-          <tr><td><span class="badge yellow">Manager</span></td><td>Bookings + Flats ✅</td></tr>
-          <tr><td><span class="badge blue">Investor</span></td><td>Own property read-only ✅</td></tr>
-          <tr><td><span class="badge yellow">CA</span></td><td>Financial reports only ✅</td></tr>
-          <tr><td><span class="badge red">Employee</span></td><td>Self view only ✅</td></tr>
+          <tr><td><span class="badge blue">Developer</span></td><td>Full Access + Delete ✅</td><td>Auto-verified</td></tr>
+          <tr><td><span class="badge green">Owner</span></td><td>Full (except delete + user mgmt)</td><td>Auto-verified</td></tr>
+          <tr><td><span class="badge yellow">Moderator</span></td><td>5 items: Dashboard, Calendar, Bookings, Flats, Attendance</td><td>Pending → needs approval</td></tr>
+          <tr><td><span class="badge red">Viewer</span></td><td>Same 5 items but read-only</td><td>Cannot create</td></tr>
         </tbody>
       </table></div>
+      <p style="margin-top:8px;font-size:12px;color:var(--muted);">💡 Moderator ki entries pending status me jati hain — Owner/Developer approve karta hai</p>
     </div>
 
     <div class="card">
@@ -162,7 +164,64 @@ function renderSOPTab(page) {
       </div>
     </div>`,
 
-    // ============ PAGE 3 — PAYMENTS ============
+
+
+    // ============ PAGE 3 — AIRBNB SYNC ============
+    `<div class="card">
+      <div class="section-title">🔄 Airbnb CSV Sync — Poori Process</div>
+      <div style="font-size:13px;line-height:2;">
+        <p><strong>Airbnb ki booking auto-import karne ka smart way:</strong></p>
+        <p><strong>Step 1:</strong> Airbnb dashboard kholo</p>
+        <p><strong>Step 2:</strong> Reservations → Transaction history</p>
+        <p><strong>Step 3:</strong> "Get CSV file" click → Download</p>
+        <p><strong>Step 4:</strong> UHHS app me 🔄 Airbnb Sync menu open karo</p>
+        <p><strong>Step 5:</strong> CSV upload karo</p>
+        <p><strong>Step 6:</strong> System auto compare karega:</p>
+        <p style="margin-left:16px;">🆕 <strong>NEW</strong> — Nayi bookings</p>
+        <p style="margin-left:16px;">⚠️ <strong>CONFLICT</strong> — Existing but amount/date different</p>
+        <p style="margin-left:16px;">✅ <strong>MATCH</strong> — Already synced</p>
+        <p><strong>Step 7:</strong> Date filter set karo (default: July 2026+)</p>
+        <p><strong>Step 8:</strong> Bulk actions use karo:</p>
+        <p style="margin-left:16px;">✅ Import all NEW</p>
+        <p style="margin-left:16px;">🔄 Update all CONFLICTS</p>
+        <p><strong>Step 9:</strong> 🚀 Process bookings</p>
+      </div>
+    </div>
+
+    <div class="card" style="border-left:4px solid var(--yellow);">
+      <div class="section-title">⚠️ CSV Se Kya Nahi Milta</div>
+      <div style="font-size:13px;line-height:2;">
+        <p>Airbnb CSV me ye fields nahi hote — <strong>manually add karna hoga</strong>:</p>
+        <p>❌ <strong>Phone Number</strong> — Airbnb app se copy karo</p>
+        <p>❌ <strong>Guest Count</strong> — Airbnb app se copy karo</p>
+        <p>❌ <strong>ID Proof</strong> — Check-in ke time</p>
+        <p>❌ <strong>Vehicle Info</strong> — Check-in ke time</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="section-title">💡 Airbnb Se Kya Auto Aata Hai</div>
+      <div style="font-size:13px;line-height:2;">
+        <p>✅ Guest Name</p>
+        <p>✅ Check-in / Check-out dates</p>
+        <p>✅ Total Amount (Gross)</p>
+        <p>✅ Property (auto-matched via listing name)</p>
+        <p>✅ Payment mode auto = "Airbnb Payout"</p>
+        <p>✅ Payment status auto = "Paid"</p>
+        <p>✅ Confirmation code (for dupe check)</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="section-title">🔁 Duplicate Detection</div>
+      <div style="font-size:13px;line-height:2;">
+        <p>System 2 tarah se duplicate check karta hai:</p>
+        <p>1. <strong>Exact match</strong> — Same confirmation code</p>
+        <p>2. <strong>Fuzzy match</strong> — Same guest name + check-in date</p>
+        <p>Isse guarantee hai ki koi duplicate booking nahi banegi!</p>
+      </div>
+    </div>`,
+    // ============ PAGE 4 — PAYMENTS ============
     `<div class="card">
       <div class="section-title">💰 Payment Log Karein</div>
       <div style="font-size:13px;line-height:2;">
@@ -199,7 +258,57 @@ function renderSOPTab(page) {
       </div>
     </div>`,
 
-    // ============ PAGE 4 — FLATS STATUS ============
+
+
+    // ============ PAGE 5 — APPROVAL WORKFLOW ============
+    `<div class="card">
+      <div class="section-title">🔐 Approval Workflow Kaise Kaam Karta Hai</div>
+      <div style="font-size:13px;line-height:2;">
+        <p><strong>Purpose:</strong> Data integrity + accountability</p>
+        <p><br>System me 4 roles hain:</p>
+        <p>👤 <strong>Developer</strong> — Full access, auto-verified</p>
+        <p>👤 <strong>Owner</strong> — Full access, auto-verified</p>
+        <p>👤 <strong>Moderator</strong> — Data entry karega, but PENDING status me jayega</p>
+        <p>👤 <strong>Viewer</strong> — Sirf dekh sakta hai, kuch bhi create nahi</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="section-title">📋 Kaise Approve Karein</div>
+      <div style="font-size:13px;line-height:2;">
+        <p><strong>Owner / Developer ke liye:</strong></p>
+        <p><strong>Step 1:</strong> 🟡 Pending Approvals menu click karo</p>
+        <p><strong>Step 2:</strong> Pending bookings + payments list dikhegi</p>
+        <p><strong>Step 3:</strong> Har entry ke 3 options:</p>
+        <p style="margin-left:16px;">✅ <strong>Approve</strong> — Verified mark ho jayegi</p>
+        <p style="margin-left:16px;">❌ <strong>Reject</strong> — Reason maangega</p>
+        <p style="margin-left:16px;">✏️ <strong>View</strong> — Detail dekhne ke liye</p>
+        <p><strong>Step 4:</strong> Approved entries revenue calc me count hongi</p>
+        <p><strong>Step 5:</strong> Rejected entries excluded rahengi</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="section-title">🎯 Audit Trail</div>
+      <div style="font-size:13px;line-height:2;">
+        <p>Har booking / payment me automatic track hota hai:</p>
+        <p>• 👤 <strong>Created By</strong> — Kis ne banaya (name shown)</p>
+        <p>• ✅ <strong>Verified By</strong> — Kis ne approve kiya</p>
+        <p>• 🕐 <strong>Verified At</strong> — Kab approve hua</p>
+        <p>• ❌ <strong>Rejection Reason</strong> — Agar reject hua toh kyu</p>
+      </div>
+    </div>
+
+    <div class="card" style="border-left:4px solid var(--green);">
+      <div class="section-title">💡 Best Practice</div>
+      <div style="font-size:13px;line-height:2;">
+        <p>• Owner har din pending approvals check kare (usually low count)</p>
+        <p>• Reject karne se pehle reason clear likho</p>
+        <p>• Moderator ko batao kya galat tha</p>
+        <p>• Pending count badge menu me visible hoga</p>
+      </div>
+    </div>`,
+    // ============ PAGE 6 — FLATS STATUS ============
     `<div class="card">
       <div class="section-title">🛏️ Flats Status Manage Karein</div>
       <div style="font-size:13px;line-height:2;">
@@ -605,7 +714,59 @@ function renderSOPTab(page) {
       </div>
     </div>`,
 
-    // ============ PAGE 17 — INVESTORS ============
+
+
+    // ============ PAGE 19 — ANALYTICS ============
+    `<div class="card">
+      <div class="section-title">📊 Analytics Dashboard Understand Karein</div>
+      <div style="font-size:13px;line-height:2;">
+        <p><strong>Kya show hota hai:</strong></p>
+        <p>💰 <strong>Total Revenue</strong> — Selected period ka</p>
+        <p>🌐 <strong>Online Revenue</strong> — Airbnb (with commission estimate)</p>
+        <p>💵 <strong>Offline Revenue</strong> — Direct bookings (zero fees)</p>
+        <p>📊 <strong>Occupancy</strong> — Rooms booked vs available %</p>
+        <p>📅 <strong>Total Bookings</strong> + Average stay</p>
+        <p>⚠️ <strong>Pending Due</strong> — Total unpaid amounts</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="section-title">🎯 Smart Insights (Auto)</div>
+      <div style="font-size:13px;line-height:2;">
+        <p>System auto detect karta hai:</p>
+        <p>🚨 <strong>CRITICAL:</strong> High pending dues, pending approvals</p>
+        <p>💰 <strong>OPPORTUNITIES:</strong> Underpriced properties, high Airbnb dependency</p>
+        <p>⭐ <strong>WINS:</strong> Revenue growth, top performers</p>
+        <p><br>Har insight ke saath <strong>action button</strong> hota hai:</p>
+        <p>• 📱 WhatsApp reminder send</p>
+        <p>• Review pending approvals</p>
+        <p>• Adjust pricing suggestions</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="section-title">📈 Charts & Trends</div>
+      <div style="font-size:13px;line-height:2;">
+        <p>• <strong>Revenue Trend</strong> — Dual line (Online vs Offline)</p>
+        <p>• <strong>Payment Modes Donut</strong> — Cash/UPI/Airbnb split</p>
+        <p>• <strong>Booking Source Donut</strong> — Airbnb vs Direct</p>
+        <p>• <strong>Top Properties Bar</strong> — Revenue + occupancy per property</p>
+        <p>• <strong>Monthly Comparison</strong> — 12 month history table</p>
+        <p>• <strong>Staff Performance</strong> — Bookings created by each user</p>
+        <p>• <strong>Predictions</strong> — 7d/30d forecast + day-of-week</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="section-title">🖨️ Print / PDF Export</div>
+      <div style="font-size:13px;line-height:2;">
+        <p>Top-right corner me 🖨️ button — puri analytics ko PDF me save karo</p>
+        <p>• Investor meeting ke liye</p>
+        <p>• Monthly review ke liye</p>
+        <p>• CA ko bhejne ke liye</p>
+      </div>
+    </div>`,
+    // ============ PAGE 20 — INVESTORS ============
     `<div class="card">
       <div class="section-title">🧑‍💼 Investor Add Karein</div>
       <div style="font-size:13px;line-height:2;">

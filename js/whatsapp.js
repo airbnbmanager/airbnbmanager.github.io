@@ -1,630 +1,480 @@
 // ═══════════════════════════════════════════════════════════
-// PROPERTY WEBSITE URL MAPPING
+// 📱 WHATSAPP TEMPLATES v2 — Universal Data Fetch
+// Professional, short, marketing-focused
 // ═══════════════════════════════════════════════════════════
+
+// ═══ HARDCODED: Business Owners (Escalation) ═══
+const OWNERS = [
+  { name: 'Mr. Shahanshah', phone: '9450055554' },
+  { name: 'Mr. Firoz Khan', phone: '8299600709' }
+];
+
+const BRAND_URL = 'https://uniquehavenhomesstay.com';
+const BRAND_NAME = 'The Unique Haven Homes Stay';
+
+// ═══ Get property URL from nickname ═══
 window.getPropertyURL = function(nickname) {
-  if (!nickname) return 'https://uniquehavenhomesstay.com';
-  const map = {
-    'The Brown': 'the-brown',
-    'Black Beauty': 'black-beauty',
-    'Celebrity Garden': 'celebrity-garden',
-    'RedRose Palace': 'redrose-palace',
-    'The Dark Blue': 'the-dark-blue',
-    'The Green House': 'the-green-house',
-    'The Light Green': 'the-light-green',
-    'The Nawabi Stay': 'the-nawabi-stay',
-    'The Pink House': 'the-pink-house',
-    'Royal White House': 'royal-white-house',
-    'Starlight Blue PentHouse': 'starlight-blue-penthouse',
-    'The Unique': 'the-unique',
-    'The Velvet House': 'the-velvet-house',
-    'The Yellow House': 'the-yellow-house',
-    'Gomti Grand Villa': 'gomti-grand-villa'
+  if (!nickname) return BRAND_URL;
+  const slug = String(nickname).toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+  return BRAND_URL + '/' + slug + '.html';
+};
+
+// ═══ UNIVERSAL DATA BUILDER ═══
+async function buildMessageData(bkId) {
+  const { data: bk, error } = await sb.from('guest_register')
+    .select('*, rooms(*)')
+    .eq('booking_id', bkId).single();
+
+  if (error || !bk) return null;
+
+  const room = bk.rooms || {};
+  const roomId = bk.room_id;
+
+  // Fetch config
+  const { data: cfg } = await sb.from('company_config').select('*').eq('id', 1).single();
+  const config = cfg || {};
+
+  // Fetch staff for this property (assigned_rooms contains roomId)
+  const { data: allStaff } = await sb.from('employees')
+    .select('name, phone, shift, whatsapp_display_role, assigned_rooms')
+    .eq('in_whatsapp_template', true);
+
+  const propertyStaff = (allStaff || []).filter(e => {
+    const rooms = (e.assigned_rooms || '').split(',').map(r => r.trim());
+    return rooms.includes(roomId);
+  });
+
+  const dayStaff = propertyStaff.filter(e => e.shift === 'day' && e.phone);
+  const nightStaff = propertyStaff.filter(e => e.shift === 'night' && e.phone);
+
+  // Clean phone (remove spaces)
+  const cleanPhone = p => (p || '').replace(/\s+/g, '');
+
+  // Calculate paid + due
+  const { data: pays } = await sb.from('payment_history')
+    .select('amount').eq('booking_id', bkId).neq('verification_status', 'rejected');
+  const totalPaid = (pays || []).reduce((s, p) => s + (p.amount || 0), 0);
+  const totalDue = Math.max(0, (bk.total_amount || 0) - totalPaid);
+  const nights = calcNights(bk.check_in, bk.check_out);
+
+  return {
+    bk, room, config,
+    guestName: bk.guest_name || 'Guest',
+    phone: bk.phone,
+    propertyName: room.nickname || room.property_name || roomId,
+    propertyFullName: room.property_name || room.nickname || roomId,
+    flat: room.unit_no || roomId,
+    floor: room.floor || '',
+    address: room.address || 'Vikalp Khand, Gomtinagar, Chinhat, Lucknow',
+    mapLink: room.map_link || '',
+    propertyURL: window.getPropertyURL(room.nickname),
+    wifi: room.wifi_ssid || 'Ask caretaker',
+    wifiPass: room.wifi_password || 'Ask caretaker',
+    keyNo: room.key_number || 'Ask caretaker',
+    lockType: room.lock_type || 'Physical',
+    checkIn: bk.check_in || '',
+    checkOut: bk.check_out || '',
+    checkInTime: bk.check_in_time || '14:00',
+    checkOutTime: bk.check_out_time || '11:00',
+    nights,
+    total: bk.total_amount || 0,
+    paid: totalPaid,
+    due: totalDue,
+    vehicle: bk.has_vehicle ? ((bk.vehicle_name || '') + ' ' + (bk.vehicle_number || '')).trim() : null,
+    dayStaff: dayStaff.map(s => ({ name: s.name, phone: cleanPhone(s.phone), role: s.whatsapp_display_role || 'Caretaker' })),
+    nightStaff: nightStaff.map(s => ({ name: s.name, phone: cleanPhone(s.phone), role: s.whatsapp_display_role || 'Caretaker' })),
+    owners: OWNERS,
+    websiteURL: config.website_url || BRAND_URL,
+    googleReview: config.google_review_url || '',
+    airbnbReview: config.airbnb_host_url || '',
+    isAirbnb: bk.booking_mode === 'Online-Airbnb',
+    discount: config.discount_percent || 15
   };
-  const slug = map[nickname];
-  return slug
-    ? `https://uniquehavenhomesstay.com/${slug}.html`
-    : 'https://uniquehavenhomesstay.com';
 }
 
-
-
-// ============ HELPER: Property Contacts (Shift-Based) ============
-async function getPropertyContactsForRoom(roomId, roomData = {}) {
-  const cleanPhone = p => (p || '').replace(/[^0-9]/g, '');
-  const seenNames = new Set();
-  const lines = [];
-
-  const addLine = (label, name, phone) => {
-    const nm = (name || '').trim();
-    if (!nm || nm.toLowerCase() === 'pending' || seenNames.has(nm.toLowerCase())) return;
-    seenNames.add(nm.toLowerCase());
-    const ph = cleanPhone(phone);
-    const prefix = nm.startsWith('Mr.') || nm.startsWith('Mrs.') || nm.startsWith('Ms.') || nm.startsWith('Dr.') ? '' : 'Mr. ';
-    lines.push("📞 *" + label + ":* " + prefix + nm + (ph ? ' — +91 ' + ph : ''));
-  };
-
-  // Step 1: property_shifts table se shift-based contacts
-  const { data: shifts } = await sb.from('property_shifts')
-    .select('emp_id, shift_type, shift_start, shift_end, contact_role')
-    .eq('room_id', roomId)
-    .eq('is_active', true);
-
-  if (shifts && shifts.length > 0) {
-    const empIds = [...new Set(shifts.map(s => s.emp_id))];
-    const { data: emps } = await sb.from('employees')
-      .select('emp_id, name, phone')
-      .in('emp_id', empIds);
-
-    const empMap = {};
-    (emps || []).forEach(e => { empMap[e.emp_id] = e; });
-
-    // Sort function - Caretaker first, then Manager
-    const rolePriority = (role) => {
-      const r = (role || '').toLowerCase();
-      if (r === 'caretaker') return 1;
-      if (r.includes('check-in')) return 2;
-      if (r.includes('manager')) return 3;
-      return 4;
-    };
-
-    // Group by shift + sort by role priority
-    const dayShifts = shifts.filter(s => s.shift_type === 'Day')
-      .sort((a, b) => rolePriority(a.contact_role) - rolePriority(b.contact_role));
-    const nightShifts = shifts.filter(s => s.shift_type === 'Night')
-      .sort((a, b) => rolePriority(a.contact_role) - rolePriority(b.contact_role));
-
-    const hasMultipleShifts = dayShifts.length > 0 && nightShifts.length > 0;
-
-    if (hasMultipleShifts) {
-      // Day shift contacts
-      if (dayShifts.length > 0) {
-        const dayStart = dayShifts[0]?.shift_start || '8 AM';
-        const dayEnd = dayShifts[0]?.shift_end || '8 PM';
-        lines.push('');
-        lines.push('☀️ *Day Shift (' + dayStart + ' - ' + dayEnd + '):*');
-        dayShifts.forEach(s => {
-          const e = empMap[s.emp_id];
-          if (e) addLine(s.contact_role || 'Caretaker', e.name, e.phone);
-        });
-      }
-
-      // Night shift contacts
-      if (nightShifts.length > 0) {
-        const nightStart = nightShifts[0]?.shift_start || '8 PM';
-        const nightEnd = nightShifts[0]?.shift_end || '8 AM';
-        seenNames.clear();
-        lines.push('');
-        lines.push('🌙 *Night Shift (' + nightStart + ' - ' + nightEnd + '):*');
-        nightShifts.forEach(s => {
-          const e = empMap[s.emp_id];
-          if (e) addLine(s.contact_role || 'Caretaker', e.name, e.phone);
-        });
-      }
-    } else {
-      // Single shift — show all contacts flat
-      shifts.forEach(s => {
-        const e = empMap[s.emp_id];
-        if (e) addLine(s.contact_role || 'Caretaker', e.name, e.phone);
-      });
-    }
-
-    return lines.filter(l => l !== undefined);
+// ═══ Format contact list block ═══
+function fmtContacts(d) {
+  let out = '';
+  if (d.dayStaff.length > 0) {
+    out += '*Day (8 AM – 8 PM)*\n';
+    d.dayStaff.forEach(s => {
+      out += s.role + ': ' + s.name + ' — ' + s.phone + '\n';
+    });
   }
-
-  // Step 2: Fallback to rooms table emp_id
-  let r = roomData || {};
-  if (!r.caretaker_emp_id && !r.checkin_manager_emp_id) {
-    const { data: room } = await sb.from('rooms')
-      .select('caretaker_emp_id, checkin_manager_emp_id, caretaker_name, caretaker_phone, checkin_manager')
-      .eq('room_id', roomId).single();
-    if (room) r = { ...r, ...room };
+  if (d.nightStaff.length > 0) {
+    out += '\n*Night (8 PM – 8 AM)*\n';
+    d.nightStaff.forEach(s => {
+      out += s.role + ': ' + s.name + ' — ' + s.phone + '\n';
+    });
   }
-
-  const ids = [r.caretaker_emp_id, r.checkin_manager_emp_id].filter(Boolean);
-  if (ids.length) {
-    const { data: emps } = await sb.from('employees')
-      .select('emp_id, name, phone').in('emp_id', ids);
-    const empMap = {};
-    (emps || []).forEach(e => { empMap[e.emp_id] = e; });
-
-    if (r.caretaker_emp_id && r.checkin_manager_emp_id && r.caretaker_emp_id === r.checkin_manager_emp_id) {
-      const e = empMap[r.caretaker_emp_id];
-      if (e) addLine('Caretaker / Manager', e.name, e.phone);
-    } else {
-      if (empMap[r.caretaker_emp_id]) addLine('Caretaker', empMap[r.caretaker_emp_id].name, empMap[r.caretaker_emp_id].phone);
-      if (empMap[r.checkin_manager_emp_id]) addLine('Manager', empMap[r.checkin_manager_emp_id].name, empMap[r.checkin_manager_emp_id].phone);
-    }
-  }
-
-  // Step 3: Legacy text fallback
-  if (!lines.length) {
-    addLine('Caretaker', r.caretaker_name || '', r.caretaker_phone || '');
-    addLine('Manager', r.checkin_manager || '', '');
-  }
-
-  return lines.filter(l => l !== undefined);
+  out += '\n*Escalation*\n';
+  d.owners.forEach(o => {
+    out += o.name + ' — ' + o.phone + '\n';
+  });
+  return out.trim();
 }
 
-// ============ BOOKING WELCOME MESSAGE ============
-async function shareBookingWhatsApp(bkId) {
-  const { data: b } = await sb.from('guest_register')
-    .select('*, rooms(room_id, unit_no, nickname, property_name, checkin_manager, checkin_manager_emp_id, caretaker_name, caretaker_phone, caretaker_emp_id, map_link, address, directions, landmarks, floor_info, building_name)')
-    .eq('booking_id', bkId).single();
-  if (!b) { fsn.error('Error', 'Not found'); return; }
-
-  const r = b.rooms || {};
-  const roomId = r.room_id || b.room_id;
-
-  const guestName    = b.guest_name || 'Guest';
-  const propertyName = r.nickname || r.unit_no || 'Property';
-  const building     = r.building_name || '';
-  const address      = r.address || '';
-  const floorInfo    = r.floor_info || '';
-  const mapLink      = r.map_link || '';
-  const directions   = r.directions || '';
-  const landmarks    = r.landmarks || '';
-  const checkIn      = b.check_in || 'N/A';
-  const checkOut     = b.check_out || 'N/A';
-  const checkInTime  = b.check_in_time || '2:00 PM';
-  const checkOutTime = '11:00 AM'; // Always 11 AM for checkout reminders
-
-  const contactLines = await getPropertyContactsForRoom(roomId, r);
-
-  // Website URL for property preview
-  const propertyURL = getPropertyURL(propertyName);
-
-  const msg = [
-    `Hi ${guestName}! 👋`,
-    `Welcome to *${BRAND}*!`,
-    `Thank you for booking your stay with us. 😊`,
-    ``,
-    `🏡 *Property:* ${propertyName}`,
-    building   ? `🏢 ${building}`            : '',
-    address    ? `📍 Address: ${address}`    : '',
-    floorInfo  ? `🏠 ${floorInfo}`           : '',
-    ``,
-    `🌐 View property details:`,
-    propertyURL,
-    ``,
-    mapLink    ? `📍 Location on Map:` : '',
-    mapLink    ? mapLink : '',
-    ``,
-    `⏰ *Timings:*`,
-    `▫️ Check-in: ${checkIn} at ${checkInTime}`,
-    `▫️ Check-out: ${checkOut} at ${checkOutTime}`,
-    ``,
-    `📋 *Your Caretaker:*`,
-    `Our caretaker will assist you with check-in and show you around.`,
-    ...contactLines,
-    ``,
-    `If caretaker is not reachable, contact:`,
-    `📞 Mr Shahanshah — 9450055554`,
-    `📞 Mr Firoz Khan — 8299600709`,
-    ``,
-    b.has_vehicle ? `🚗 *Vehicle Parking:*` : '',
-    b.has_vehicle ? `If arriving by car, share vehicle name & number with caretaker.` : '',
-    b.has_vehicle && (b.vehicle_name || b.vehicle_number) ? `Your vehicle: ${b.vehicle_name || ''} ${b.vehicle_number || ''}` : '',
-    ``,
-    `⚠️ *House Rules:*`,
-    `• No loud music after 11 PM`,
-    `• Park your car where caretaker instructs`,
-    `• No wild parties or disruptive gatherings`,
-    `• Early check-in / late check-out subject to availability`,
-    `• Government ID required at check-in`,
-    ``,
-    `We'll send full arrival details (WiFi, key info) 1 hour before check-in ⏰`,
-    ``,
-    `Need help? Message anytime! 😊`,
-    ``,
-    `— Team *${BRAND}*`,
-    `🌐 https://uniquehavenhomesstay.com`
-  ].filter(v => v !== false && v !== null && v !== undefined && v !== '').join('\n');
-
-  showWhatsAppModal(guestName, propertyName, b.phone, msg);
+function fmtDate(d) {
+  if (!d) return '';
+  try {
+    return new Date(d).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+  } catch(e) { return d; }
 }
 
+// ═══════════════════════════════════════════════════════════
+// TEMPLATES (10 total — polished, short, marketing focus)
+// ═══════════════════════════════════════════════════════════
 
+// ═══ 1. WELCOME (New Booking) ═══
+function tplWelcome(d) {
+  return `Hi ${d.guestName},
 
-// ============ 1-HOUR BEFORE CHECK-IN MESSAGE (Arrival Details) ============
-async function sendArrivalDetails(bkId) {
-  const { data: b } = await sb.from('guest_register')
-    .select('*, rooms(room_id, unit_no, nickname, property_name, address, floor, floor_info, building_name, map_link, key_number, lock_type, wifi_ssid, wifi_password, checkin_manager_emp_id, caretaker_emp_id, caretaker_name, caretaker_phone, checkin_manager)')
-    .eq('booking_id', bkId).single();
-  if (!b) { fsn.error('Error', 'Not found'); return; }
+Welcome to *${BRAND_NAME}*.
+Your booking is confirmed.
 
-  const r = b.rooms || {};
-  const roomId = r.room_id || b.room_id;
-  const guestName = b.guest_name || 'Guest';
-  const propertyName = r.nickname || r.unit_no || 'Property';
-  const propertyURL = getPropertyURL(propertyName);
+*Booking Details*
+Property: ${d.propertyName}
+Address: ${d.address}
+Check-in: ${fmtDate(d.checkIn)}, ${d.checkInTime}
+Check-out: ${fmtDate(d.checkOut)}, ${d.checkOutTime}
+Nights: ${d.nights} | Total: ₹${d.total.toLocaleString('en-IN')}
 
-  const contactLines = await getPropertyContactsForRoom(roomId, r);
+*Property Info*
+${d.propertyURL}
+${d.mapLink ? 'Map: ' + d.mapLink + '\n' : ''}
+${fmtContacts(d)}
 
-  const msg = [
-    `Hi ${guestName}! 👋`,
-    ``,
-    `You will be arriving at *${propertyName}* in about 1 hour! ⏰`,
-    ``,
-    `📍 *Address:*`,
-    r.address || 'N/A',
-    r.building_name ? `🏢 ${r.building_name}` : '',
-    r.floor_info || (r.floor ? `🏠 Floor: ${r.floor}` : ''),
-    ``,
-    r.map_link ? `📍 Location on Map:` : '',
-    r.map_link ? r.map_link : '',
-    ``,
-    `🔑 *Key & Lock Details:*`,
-    r.lock_type ? `▫️ Lock Type: ${r.lock_type}` : '',
-    r.key_number ? `▫️ Key Number: *${r.key_number}*` : '',
-    ``,
-    (r.wifi_ssid || r.wifi_password) ? `📶 *WiFi Details:*` : '',
-    r.wifi_ssid ? `▫️ Network: *${r.wifi_ssid}*` : '',
-    r.wifi_password ? `▫️ Password: *${r.wifi_password}*` : '',
-    ``,
-    `📞 *Your Caretaker on arrival:*`,
-    ...contactLines,
-    ``,
-    b.has_vehicle ? `🚗 Parking assistance available — inform caretaker.` : '',
-    ``,
-    `🌐 Property details:`,
-    propertyURL,
-    ``,
-    `Safe journey! 🚗`,
-    `See you soon 🙏`,
-    ``,
-    `— Team *${BRAND}*`
-  ].filter(v => v !== false && v !== null && v !== undefined && v !== '').join('\n');
+WiFi and key details will be shared 1 hour before check-in.
 
-  showWhatsAppModal(guestName, propertyName, b.phone, msg);
-}
-window.sendArrivalDetails = sendArrivalDetails;
+*Save ${d.discount}% on your next stay — book direct:*
+${d.websiteURL}
 
-// ============ CHECKOUT REMINDER ============
-async function sendCheckoutReminder(bkId) {
-  const { data: b } = await sb.from('guest_register')
-    .select('*, rooms(room_id, unit_no, nickname, checkin_manager, checkin_manager_emp_id, caretaker_name, caretaker_phone, caretaker_emp_id)')
-    .eq('booking_id', bkId).single();
-  if (!b) { fsn.error('Error', 'Not found'); return; }
-
-  const today = new Date().toISOString().slice(0, 10);
-  if (b.check_out < today) {
-    if (!confirm(`⚠️ Checkout date (${b.check_out}) is in the past!\n\nDid you mean to send Review Request instead?\n\nClick OK to send reminder anyway, Cancel to abort.`)) return;
-  }
-
-  const r = b.rooms || {};
-  const roomId = r.room_id || b.room_id;
-  const guestName = b.guest_name || 'Guest';
-  const propertyName = r.nickname || r.unit_no || 'Property';
-  const checkOut = b.check_out || '';
-  const checkOutTime = b.check_out_time || '11:00 AM';
-
-  const contactLines = await getPropertyContactsForRoom(roomId, r);
-
-  const msg = [
-    `Hi ${guestName}! 👋`,
-    ``,
-    `Hope you had a great stay at *${propertyName}*! 😊`,
-    ``,
-    `⏰ Gentle reminder — checkout is at *${checkOutTime}* on *${checkOut}*.`,
-    ``,
-    `Before leaving:`,
-    `🔑 Hand over keys to caretaker`,
-    `🚪 Lock all doors & windows`,
-    `👜 Check for personal belongings`,
-    b.has_vehicle ? `🚗 Clear parking area` : '',
-    ``,
-    `Want to *extend*? Let us know! 😊`,
-    ``,
-    contactLines.length ? `Need help?` : '',
-    ...contactLines,
-    ``,
-    `Thanks for choosing *${BRAND}*! 🙏`,
-    `Hope to welcome you again soon!`
-  ].filter(v => v !== '' && v !== false && v !== null && v !== undefined).join('\n');
-
-  showWhatsAppModal(guestName, propertyName, b.phone, msg);
+— Team ${BRAND_NAME}`;
 }
 
-// ============ WHATSAPP MODAL ============
+// ═══ 2. REMINDER (Day Before Check-in) ═══
+function tplReminder(d) {
+  return `Hi ${d.guestName},
+
+Your stay at *${d.propertyName}* begins tomorrow, ${fmtDate(d.checkIn)} at ${d.checkInTime}.
+
+Please carry Government ID (Aadhar / DL / Passport) for all guests.
+
+Address: ${d.address}
+${d.mapLink ? 'Map: ' + d.mapLink : ''}
+
+Arrival contact: ${d.dayStaff[0]?.name || 'Caretaker'} — ${d.dayStaff[0]?.phone || d.owners[0].phone}
+
+Full arrival details (WiFi, key) will be shared 1 hour before check-in.
+
+— Team ${BRAND_NAME}
+${d.websiteURL}`;
+}
+
+// ═══ 3. ARRIVAL DETAILS (1 hr before) ═══
+function tplArrival(d) {
+  return `Hi ${d.guestName},
+
+Your flat is ready. Details below.
+
+*${d.propertyName}*
+${d.address}${d.floor ? '\nFloor: ' + d.floor : ''}
+${d.mapLink ? 'Map: ' + d.mapLink : ''}
+
+*Access*
+Lock: ${d.lockType}
+Key: *${d.keyNo}*
+
+*WiFi*
+Network: *${d.wifi}*
+Password: *${d.wifiPass}*
+
+${fmtContacts(d)}
+
+${d.vehicle ? 'Parking assistance available — inform caretaker (' + d.vehicle + ').\n\n' : ''}Safe journey. See you soon.
+
+— Team ${BRAND_NAME}`;
+}
+
+// ═══ 4. ID REQUEST (Manual) ═══
+function tplIdRequest(d) {
+  return `Hi ${d.guestName},
+
+Government requires ID verification for all hotel guests.
+
+Please share on WhatsApp:
+• Front + back photo of Aadhar / DL / Passport
+• One ID per guest
+
+Takes 2 minutes. Data stored securely, used only for legal compliance.
+
+Thank you for cooperation.
+
+— Team ${BRAND_NAME}`;
+}
+
+// ═══ 5. CHECKOUT REMINDER ═══
+function tplCheckout(d) {
+  return `Hi ${d.guestName},
+
+Gentle reminder — checkout is at *${d.checkOutTime}* today from *${d.propertyName}*.
+
+Before leaving:
+• Hand keys to caretaker
+• Lock all doors and windows
+• Check personal belongings
+
+Want to *extend*? Reply here — we'll check availability.
+
+${fmtContacts(d)}
+
+Thank you for staying with us.
+
+— Team ${BRAND_NAME}`;
+}
+
+// ═══ 6. REVIEW REQUEST ═══
+function tplReview(d) {
+  const reviewURL = d.isAirbnb
+    ? (d.airbnbReview || 'https://www.airbnb.com')
+    : (d.googleReview || 'https://google.com');
+  const platform = d.isAirbnb ? 'Airbnb' : 'Google';
+
+  return `Hi ${d.guestName},
+
+Thank you for staying at *${d.propertyName}*. Hope you had a comfortable time.
+
+If you enjoyed your stay, a 30-second review on *${platform}* helps our small team a lot.
+
+Review here: ${reviewURL}
+
+*Planning your next Lucknow trip?*
+Book direct on our website — save ${d.discount}% vs Airbnb/Booking.com:
+${d.websiteURL}
+
+Save our number — we'd love to host you again.
+
+— Team ${BRAND_NAME}`;
+}
+
+// ═══════════════════════════════════════════════════════════
+// STAFF GROUP TEMPLATES (Internal)
+// ═══════════════════════════════════════════════════════════
+
+// ═══ 7. NEW BOOKING ALERT (Staff Group) ═══
+function tplStaffNewBooking(d) {
+  return `*NEW BOOKING*
+
+Guest: ${d.guestName}
+Phone: ${d.phone || '-'}
+Property: ${d.propertyName} (${d.flat})${d.floor ? ' | Floor: ' + d.floor : ''}
+Check-in: ${fmtDate(d.checkIn)}, ${d.checkInTime}
+Check-out: ${fmtDate(d.checkOut)}, ${d.checkOutTime}
+Nights: ${d.nights}
+Total: ₹${d.total.toLocaleString('en-IN')} | Paid: ₹${d.paid.toLocaleString('en-IN')} | Due: ₹${d.due.toLocaleString('en-IN')}
+${d.vehicle ? 'Vehicle: ' + d.vehicle + '\n' : ''}
+Caretaker: Please prepare property.`;
+}
+
+// ═══ 8. CARETAKER CHECK-IN FORM ═══
+function tplStaffCheckinForm(d) {
+  return `*CHECK-IN UPDATE — Fill & Send*
+
+Booking: ${d.guestName}
+Property: ${d.propertyName}
+
+Actual Check-in Time: ____
+Total Guests: ____
+
+Vehicle: Yes / No
+Vehicle Details: ____
+
+ID Collected: Yes / No
+IDs Received: __ / __
+
+Keys Handed: Yes / No
+Room Was Clean: Yes / No
+Special Requests: ____
+
+— Fill above, then attach ID photos below`;
+}
+
+// ═══ 9. PAYMENT UPDATE FORM ═══
+function tplStaffPaymentForm(d) {
+  return `*PAYMENT RECEIVED — Fill & Send*
+
+Guest: ${d.guestName}
+Property: ${d.propertyName}
+Booking ID: ${d.bk.booking_id}
+
+Date: ____
+Amount: ₹____
+Mode: Cash / UPI / Bank
+
+Total Booking: ₹${d.total.toLocaleString('en-IN')}
+Paid Till Now: ₹${d.paid.toLocaleString('en-IN')}
+Balance Due: ₹${d.due.toLocaleString('en-IN')}
+
+Notes: ____
+
+— Attach payment screenshot below`;
+}
+
+// ═══ 10. ID UPLOAD REQUEST (Staff) ═══
+function tplStaffIdRequest(d) {
+  return `*ID UPLOAD NEEDED*
+
+Booking: ${d.guestName}
+Property: ${d.propertyName}
+Booking ID: ${d.bk.booking_id}
+
+Required:
+• Aadhar / DL / Passport
+• Front + Back both sides
+• All guests
+
+IDs sending: __ of __
+
+— Attach ID photos below this message`;
+}
+
+// ═══════════════════════════════════════════════════════════
+// UI FUNCTIONS (Modal + Send)
+// ═══════════════════════════════════════════════════════════
+
 function showWhatsAppModal(guestName, propertyName, phone, msg) {
+  const cleanPhone = (phone || '').replace(/[^0-9]/g, '');
+  const fullPhone = cleanPhone.length === 10 ? '91' + cleanPhone : cleanPhone;
+
   const modal = document.createElement('div');
   modal.className = 'modal-overlay';
   modal.onclick = e => { if (e.target === modal) modal.remove(); };
-
-  const cleanPhone = (phone || '').replace(/[^0-9]/g, '');
-  const fullPhone  = cleanPhone.length === 10 ? '91' + cleanPhone : cleanPhone;
-
   modal.innerHTML = `
-    <div class="modal-box">
+    <div class="modal-box" style="max-width:600px;">
       <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">✕</button>
-      <h2>📱 WhatsApp Message</h2>
-      <div class="sub">Guest: ${guestName} · ${propertyName}</div>
-      <textarea id="waMsg" style="min-height:250px;font-size:12px;line-height:1.5;">${msg}</textarea>
-      <div class="btn-row" style="margin-top:10px;">
-        <button onclick="
-          navigator.clipboard.writeText(document.getElementById('waMsg').value)
-            .then(() => fsn.info('Info', '📋 Message copied!'))
-            .catch(() => {
-              const t = document.getElementById('waMsg');
-              t.select();
-              document.execCommand('copy');
-              fsn.info('Info', '📋 Copied!');
-            });
-        ">📋 Copy</button>
+      <h2>📱 WhatsApp — ${guestName}</h2>
+      <p style="color:#666;font-size:12px;margin:0 0 8px;">${propertyName}${phone ? ' · ' + phone : ''}</p>
+      <textarea id="waMsg" style="width:100%;height:400px;font-family:monospace;font-size:12px;padding:10px;border:1px solid var(--border);border-radius:8px;">${msg}</textarea>
+      <div class="btn-row" style="margin-top:12px;flex-wrap:wrap;">
         <button class="green-btn" onclick="window.open('https://wa.me/?text='+encodeURIComponent(document.getElementById('waMsg').value),'_blank')">
-          📱 WhatsApp
+          📤 Share (any contact)
         </button>
-        ${fullPhone ? `
-          <button class="secondary" onclick="window.open('https://wa.me/${fullPhone}?text='+encodeURIComponent(document.getElementById('waMsg').value),'_blank')">
-            📱 Direct ${phone || ''}
-          </button>
-        ` : ''}
+        ${phone ? `<button class="secondary" onclick="window.open('https://wa.me/${fullPhone}?text='+encodeURIComponent(document.getElementById('waMsg').value),'_blank')">
+          📱 Send to ${phone}
+        </button>` : ''}
+        <button class="outline" onclick="navigator.clipboard.writeText(document.getElementById('waMsg').value);fsn.success('Copied','Message copied')">
+          📋 Copy
+        </button>
         <button class="outline" onclick="this.closest('.modal-overlay').remove()">Close</button>
       </div>
-    </div>
-  `;
+    </div>`;
   document.body.appendChild(modal);
 }
 
+// ═══════════════════════════════════════════════════════════
+// EXPOSED FUNCTIONS (Called from bookings.js buttons)
+// ═══════════════════════════════════════════════════════════
 
-// ============ REQUEST ID PROOF MESSAGE ============
-async function requestGuestID(bkId) {
-  const { data: b } = await sb.from('guest_register')
-    .select('*, rooms(nickname, unit_no)')
-    .eq('booking_id', bkId).single();
-  if (!b) { fsn.error('Error', 'Booking not found'); return; }
-
-  const guestName = b.guest_name || 'Guest';
-  const propertyName = b.rooms?.nickname || b.rooms?.unit_no || 'our property';
-  const guests = b.guests || 1;
-
-  const msg = [
-    `Hi ${guestName}! 👋`,
-    ``,
-    `Hope you're enjoying your stay at *${propertyName}*! 🏡`,
-    ``,
-    `As per government guidelines, we need to complete your check-in formalities by verifying ID proofs of all guests.`,
-    ``,
-    `📸 *Kindly share:*`,
-    `• Front & back photo of *Aadhar Card / DL / Passport*`,
-    guests > 1 ? `• ID of all *${guests} guests* staying with you` : `• Your ID proof`,
-    ``,
-    `✅ Just click clear photos and send them here on WhatsApp — takes just 2 minutes!`,
-    ``,
-    `🔒 *Your privacy is 100% safe* — IDs are stored securely and used only for legal compliance.`,
-    ``,
-    `Thank you for your cooperation! 🙏`,
-    ``,
-    `— Team *${BRAND}*`
-  ].filter(Boolean).join('\n');
-
-  showWhatsAppModal(guestName, propertyName, b.phone, msg);
+async function shareBookingWhatsApp(bkId) {
+  const d = await buildMessageData(bkId);
+  if (!d) { fsn.error('Error', 'Booking not found'); return; }
+  showWhatsAppModal(d.guestName, d.propertyName, d.phone, tplWelcome(d));
 }
 
-
-// ============ CHECK-IN REMINDER (1 day before) ============
 async function sendCheckinReminder(bkId) {
-  const { data: b } = await sb.from('guest_register')
-    .select('*, rooms(room_id, unit_no, nickname, map_link, address, directions, landmarks)')
-    .eq('booking_id', bkId).single();
-  if (!b) { fsn.error('Error', 'Not found'); return; }
-
-  const r = b.rooms || {};
-  const roomId = r.room_id || b.room_id;
-  const guestName = b.guest_name || 'Guest';
-  const propertyName = r.nickname || r.unit_no || 'Property';
-  const checkIn = b.check_in || '';
-  const checkInTime = b.check_in_time || '2:00 PM';
-  const contactLines = await getPropertyContactsForRoom(roomId, r);
-
-  const msg = [
-    `Hi ${guestName}! 👋`,
-    ``,
-    `Just a friendly reminder — your stay at *${propertyName}* begins tomorrow! 🎉`,
-    ``,
-    `📅 *Check-in:* ${checkIn} at ${checkInTime}`,
-    r.address ? `📍 *Address:* ${r.address}` : '',
-    r.map_link ? `🗺️ *Location:* ${r.map_link}` : '',
-    r.landmarks ? `📌 *Nearby:* ${r.landmarks}` : '',
-    ``,
-    `📸 *Please carry:*`,
-    `• Government ID (Aadhar / DL / Passport) for all guests`,
-    ``,
-    contactLines.length ? `📞 *Your Contacts:*` : '',
-    ...contactLines,
-    ``,
-    `If caretaker not reachable:`,
-    `📞 Mr Shahanshah — 9450055554`,
-    `📞 Mr Firoz Khan — 8299600709`,
-    ``,
-    `Safe travels! Looking forward to hosting you 🙏`,
-    ``,
-    `— Team *${BRAND}*`,
-    `🌐 uniquehavenhomesstay.com`
-  ].filter(v => v !== '' && v !== false && v !== null && v !== undefined).join('\n');
-
-  showWhatsAppModal(guestName, propertyName, b.phone, msg);
+  const d = await buildMessageData(bkId);
+  if (!d) { fsn.error('Error', 'Booking not found'); return; }
+  showWhatsAppModal(d.guestName, d.propertyName, d.phone, tplReminder(d));
 }
 
-// ============ REVIEW REQUEST (5-star customers) ============
+async function sendArrivalDetails(bkId) {
+  const d = await buildMessageData(bkId);
+  if (!d) { fsn.error('Error', 'Booking not found'); return; }
+  showWhatsAppModal(d.guestName, d.propertyName, d.phone, tplArrival(d));
+}
+
+async function requestGuestID(bkId) {
+  const d = await buildMessageData(bkId);
+  if (!d) { fsn.error('Error', 'Booking not found'); return; }
+  showWhatsAppModal(d.guestName, d.propertyName, d.phone, tplIdRequest(d));
+}
+
+async function sendCheckoutReminder(bkId) {
+  const d = await buildMessageData(bkId);
+  if (!d) { fsn.error('Error', 'Booking not found'); return; }
+  showWhatsAppModal(d.guestName, d.propertyName, d.phone, tplCheckout(d));
+}
+
 async function requestReview(bkId) {
-  const { data: b } = await sb.from('guest_register')
-    .select('*, rooms(nickname, unit_no)')
-    .eq('booking_id', bkId).single();
-  if (!b) { fsn.error('Error', 'Not found'); return; }
-
-  const guestName = b.guest_name || 'Guest';
-  const propertyName = b.rooms?.nickname || 'our property';
-  const isOnline = b.booking_mode === 'Online-Airbnb';
-
-  const airbnbProfile = await getSetting('airbnb_review_link', 'https://www.airbnb.co.in/users/profile/1592729439630759961');
-  const googleReview = await getSetting('google_review_link', 'https://g.page/r/YOUR_GOOGLE_ID/review');
-
-  const platform = isOnline ? 'Airbnb' : 'Google';
-  const link = isOnline ? airbnbProfile : googleReview;
-
-  const msg = [
-    `Hi ${guestName}! 🙏`,
-    ``,
-    `Thank you for staying at *${propertyName}*!`,
-    `It was truly a pleasure hosting you. 🏡`,
-    ``,
-    `Your feedback means the world to us! ⭐`,
-    ``,
-    `Kindly spare 30 seconds to leave us a *5-star review on ${platform}*:`,
-    ``,
-    `👉 ${link}`,
-    ``,
-    `Your review helps our small business grow & helps other travellers choose us with confidence. 💖`,
-    ``,
-    `Hope to welcome you back soon! 🌟`,
-    ``,
-    `— Team *${BRAND}*`
-  ].join('\n');
-
-  showWhatsAppModal(guestName, propertyName, b.phone, msg);
+  const d = await buildMessageData(bkId);
+  if (!d) { fsn.error('Error', 'Booking not found'); return; }
+  showWhatsAppModal(d.guestName, d.propertyName, d.phone, tplReview(d));
 }
-
 
 async function sendBookingFormat(bkId) {
-  const { data: b } = await sb.from('guest_register')
-    .select('*, rooms(nickname, floor)')
-    .eq('booking_id', bkId).single();
-
-  // If booking data available, pre-fill; otherwise blank
-  if (b) {
-    const { data: pays } = await sb.from('payment_history').select('amount').eq('booking_id', bkId);
-    const paid = (pays || []).reduce((s, p) => s + (p.amount || 0), 0);
-    const due = (b.total_amount || 0) - paid;
-    const nights = b.check_in && b.check_out ? calcNights(b.check_in, b.check_out) : 0;
-
-    const msg = [
-      '📋 *NEW BOOKING*',
-      '━━━━━━━━━━━━━━━━━━━━━',
-      '',
-      '👤 *Name:* ' + (b.guest_name || '________'),
-      '📞 *Mobile:* ' + (b.phone || '________'),
-      '🏠 *Property:* ' + (b.rooms?.nickname || '________'),
-      b.rooms?.floor ? '🏢 *Floor:* ' + b.rooms.floor : '',
-      '',
-      '📅 *Check-in:* ' + (b.check_in || '________') + ' (after ' + (b.check_in_time || '2:00 PM') + ')',
-      '📅 *Check-out:* ' + (b.check_out || '________') + ' (before ' + (b.check_out_time || '11:00 AM') + ')',
-      '🌙 *Nights:* ' + nights,
-      '',
-      '💰 *Total:* ₹' + (b.total_amount || 0).toLocaleString('en-IN'),
-      '✅ *Advance:* ₹' + paid.toLocaleString('en-IN'),
-      '⏳ *Pending:* ₹' + (due > 0 ? due : 0).toLocaleString('en-IN'),
-      '',
-      '━━━━━━━━━━━━━━━━━━━━━',
-      '✅ *Booking confirmed*'
-    ].filter(Boolean).join('\n');
-
-    showWhatsAppModal(b.guest_name, b.rooms?.nickname, b.phone, msg);
-  } else {
-    // Blank template
-    const msg = [
-      '📋 *NEW BOOKING*',
-      '━━━━━━━━━━━━━━━━━━━━━',
-      '',
-      '👤 Name: ________',
-      '📞 Mobile: ________',
-      '🏠 Property (Villa/Flat): ________',
-      '🏢 Floor: ________',
-      '',
-      '📅 Check-in: ________ (after 2:00 PM)',
-      '📅 Check-out: ________ (before 11:00 AM)',
-      '🌙 Nights: ________',
-      '',
-      '💰 Total: ₹________',
-      '✅ Advance: ₹________',
-      '⏳ Pending: ₹________',
-      '',
-      '━━━━━━━━━━━━━━━━━━━━━',
-      '✅ *Ye form fill karke group me send karo*'
-    ].join('\n');
-
-    showWhatsAppModal('Staff', 'Booking Form', '', msg);
-  }
+  const d = await buildMessageData(bkId);
+  if (!d) { fsn.error('Error', 'Booking not found'); return; }
+  showWhatsAppModal('Staff Group', d.propertyName, '', tplStaffNewBooking(d));
 }
 
 async function sendCaretakerFormat(bkId) {
-  const msg = [
-    '🏠 *CARETAKER CHECK-IN UPDATE*',
-    '━━━━━━━━━━━━━━━━━━━━━',
-    '',
-    '👤 Guest Name: ________',
-    '📞 Mobile: ________',
-    '🏠 Property (Villa/Flat): ________',
-    '⏰ Actual Check-in Time: ________',
-    '👥 Total Guests: ________',
-    '',
-    '🚗 Vehicle: Yes / No',
-    '🚗 Vehicle Name: ________',
-    '🚗 Vehicle No: ________',
-    '',
-    '🪪 ID Collected: Yes / No',
-    '🪪 Kitni ID Mili: ___/___',
-    '📸 ID Photos: Neeche bhejo 👇',
-    '',
-    '🔑 Keys Given: Yes / No',
-    '🧹 Room Clean Tha: Yes / No',
-    '📝 Special Request: ________',
-    '',
-    '━━━━━━━━━━━━━━━━━━━━━',
-    '✅ *Ye form fill karke group me send karo*',
-    '✅ *ID photos alag se bhejo*'
-  ].join('\n');
-
-  showWhatsAppModal('Caretaker', 'Check-in Form', '', msg);
+  const d = await buildMessageData(bkId);
+  if (!d) { fsn.error('Error', 'Booking not found'); return; }
+  showWhatsAppModal('Staff Group', d.propertyName, '', tplStaffCheckinForm(d));
 }
 
 async function sendPaymentFormat(bkId) {
-  const msg = [
-    '💳 *PAYMENT UPDATE*',
-    '━━━━━━━━━━━━━━━━━━━━━',
-    '',
-    '👤 Guest Name: ________',
-    '🏠 Property (Villa/Flat): ________',
-    '',
-    '📅 Payment Date: ________',
-    '💰 Amount Received: ₹________',
-    '🏦 Mode: Cash / UPI / Bank Transfer',
-    '',
-    '💰 Total Booking Amount: ₹________',
-    '✅ Total Paid Till Now: ₹________',
-    '⏳ Remaining Balance: ₹________',
-    '',
-    '📝 Notes: ________',
-    '',
-    '━━━━━━━━━━━━━━━━━━━━━',
-    '✅ *Ye form fill karke group me send karo*',
-    '✅ *Payment receipt screenshot bhi bhejo*'
-  ].join('\n');
-
-  showWhatsAppModal('Staff', 'Payment Form', '', msg);
+  const d = await buildMessageData(bkId);
+  if (!d) { fsn.error('Error', 'Booking not found'); return; }
+  showWhatsAppModal('Staff Group', d.propertyName, '', tplStaffPaymentForm(d));
 }
 
 async function sendIDGroupFormat(bkId) {
-  const msg = [
-    '🪪 *ID UPLOAD*',
-    '━━━━━━━━━━━━━━━━━━━━━',
-    '',
-    '👤 Booking Name: ________',
-    '🏠 Property (Villa/Flat): ________',
-    '👥 Total Guests: ________',
-    '',
-    '📸 *Required:*',
-    '• Aadhar Card / DL / Passport',
-    '• Front + Back dono side',
-    '• Sabhi guests ka',
-    '',
-    '🪪 Kitni ID Bhej Rahe: ___/___',
-    '',
-    '📎 *ID photos neeche bhejo* 👇',
-    '',
-    '━━━━━━━━━━━━━━━━━━━━━',
-    '✅ *Ye form fill karo + ID photos attach karke bhejo*'
-  ].join('\n');
-
-  showWhatsAppModal('Staff', 'ID Upload Form', '', msg);
+  const d = await buildMessageData(bkId);
+  if (!d) { fsn.error('Error', 'Booking not found'); return; }
+  showWhatsAppModal('Staff Group', d.propertyName, '', tplStaffIdRequest(d));
 }
+
+// ═══ Templates menu (button in booking row) ═══
+window.showWATemplatesMenu = function(bkId, btn) {
+  const menu = document.createElement('div');
+  menu.className = 'modal-overlay';
+  menu.onclick = e => { if (e.target === menu) menu.remove(); };
+  menu.innerHTML = `
+    <div class="modal-box" style="max-width:400px;">
+      <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">✕</button>
+      <h2>💬 Message Templates</h2>
+      <p style="color:#666;font-size:12px;">Choose message to send</p>
+
+      <div style="margin-top:16px;">
+        <div style="font-size:11px;color:#888;text-transform:uppercase;margin:12px 0 6px;">👤 To Guest</div>
+        <button class="outline" style="width:100%;text-align:left;margin-bottom:6px;" onclick="this.closest('.modal-overlay').remove();shareBookingWhatsApp('${bkId}')">📱 Welcome / Confirmation</button>
+        <button class="outline" style="width:100%;text-align:left;margin-bottom:6px;" onclick="this.closest('.modal-overlay').remove();sendCheckinReminder('${bkId}')">📅 Reminder (Day Before)</button>
+        <button class="outline" style="width:100%;text-align:left;margin-bottom:6px;" onclick="this.closest('.modal-overlay').remove();sendArrivalDetails('${bkId}')">🔑 Arrival Details (WiFi, Keys)</button>
+        <button class="outline" style="width:100%;text-align:left;margin-bottom:6px;" onclick="this.closest('.modal-overlay').remove();requestGuestID('${bkId}')">🪪 Request ID</button>
+        <button class="outline" style="width:100%;text-align:left;margin-bottom:6px;" onclick="this.closest('.modal-overlay').remove();sendCheckoutReminder('${bkId}')">🔔 Checkout Reminder</button>
+        <button class="outline" style="width:100%;text-align:left;margin-bottom:6px;" onclick="this.closest('.modal-overlay').remove();requestReview('${bkId}')">⭐ Review Request</button>
+
+        <div style="font-size:11px;color:#888;text-transform:uppercase;margin:16px 0 6px;">👥 To Staff Group</div>
+        <button class="outline" style="width:100%;text-align:left;margin-bottom:6px;" onclick="this.closest('.modal-overlay').remove();sendBookingFormat('${bkId}')">📋 New Booking Alert</button>
+        <button class="outline" style="width:100%;text-align:left;margin-bottom:6px;" onclick="this.closest('.modal-overlay').remove();sendCaretakerFormat('${bkId}')">🏠 Caretaker Check-in Form</button>
+        <button class="outline" style="width:100%;text-align:left;margin-bottom:6px;" onclick="this.closest('.modal-overlay').remove();sendPaymentFormat('${bkId}')">💳 Payment Update Form</button>
+        <button class="outline" style="width:100%;text-align:left;margin-bottom:6px;" onclick="this.closest('.modal-overlay').remove();sendIDGroupFormat('${bkId}')">🪪 ID Upload Request</button>
+      </div>
+    </div>`;
+  document.body.appendChild(menu);
+};
+
+// Expose all
+window.shareBookingWhatsApp = shareBookingWhatsApp;
+window.sendCheckinReminder = sendCheckinReminder;
+window.sendArrivalDetails = sendArrivalDetails;
+window.requestGuestID = requestGuestID;
+window.sendCheckoutReminder = sendCheckoutReminder;
+window.requestReview = requestReview;
+window.sendBookingFormat = sendBookingFormat;
+window.sendCaretakerFormat = sendCaretakerFormat;
+window.sendPaymentFormat = sendPaymentFormat;
+window.sendIDGroupFormat = sendIDGroupFormat;
+window.buildMessageData = buildMessageData;
