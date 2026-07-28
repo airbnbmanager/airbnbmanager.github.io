@@ -453,6 +453,13 @@
       '</div>';
     }).join('');
 
+    // Monthly comparison placeholder (loaded async)
+    const monthlyCompHtml =
+      '<div class="card" style="margin-top:16px;">' +
+        '<div class="section-title">📅 Monthly Comparison (Last 12 Months)</div>' +
+        '<div id="monthlyCompContainer"><div class="loading">Loading monthly data...</div></div>' +
+      '</div>';
+
     // Top guests
     const guestRows = topGuests.map((g, i) => {
       const isOnline = g.online > g.offline;
