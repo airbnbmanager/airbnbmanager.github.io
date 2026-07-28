@@ -9,7 +9,7 @@ async function renderManageInvestors() {
 
   const [{data:invs}, {data:links}, {data:rooms}] = await Promise.all([
     sb.from('investors').select('*').order('name'),
-    sb.from('investor_properties').select('*, investors(name), rooms(unit_no, property_name, nickname)'),
+    sb.from('investor_rooms').select('*, investors(name), rooms(unit_no, property_name, nickname)'),
     sb.from('rooms').select('room_id, unit_no, property_name, nickname').order('room_id')
   ]);
   window._invRooms = rooms || [];
@@ -140,7 +140,7 @@ async function saveInvSafe() {
 
     if (selectedRooms.length > 0) {
       const links = selectedRooms.map(rid => ({ investor_id: investorId, room_id: rid }));
-      const { error: linkErr } = await sb.from('investor_properties').insert(links);
+      const { error: linkErr } = await sb.from('investor_rooms').insert(links);
       if (linkErr) throw new Error(linkErr.message);
     }
 
@@ -157,7 +157,7 @@ async function editInvestor(investorId) {
   const { data: inv } = await sb.from('investors').select('*').eq('investor_id', investorId).single();
   if (!inv) { fsn.error('Error', 'Not found'); return; }
 
-  const { data: links } = await sb.from('investor_properties').select('room_id').eq('investor_id', investorId);
+  const { data: links } = await sb.from('investor_rooms').select('room_id').eq('investor_id', investorId);
   const linkedRooms = (links || []).map(l => l.room_id);
 
   const { data: rooms } = await sb.from('rooms').select('room_id, nickname, unit_no').order('room_id');
@@ -218,11 +218,11 @@ async function updateInvestor(investorId) {
     if (error) throw new Error(error.message);
 
     // Update property links — delete all old, insert new
-    await sb.from('investor_properties').delete().eq('investor_id', investorId);
+    await sb.from('investor_rooms').delete().eq('investor_id', investorId);
 
     if (selectedRooms.length > 0) {
       const links = selectedRooms.map(rid => ({ investor_id: investorId, room_id: rid }));
-      const { error: linkErr } = await sb.from('investor_properties').insert(links);
+      const { error: linkErr } = await sb.from('investor_rooms').insert(links);
       if (linkErr) throw new Error(linkErr.message);
     }
 
@@ -239,7 +239,7 @@ async function deleteInvestor(investorId, name) {
 
   try {
     // Remove property links
-    await sb.from('investor_properties').delete().eq('investor_id', investorId);
+    await sb.from('investor_rooms').delete().eq('investor_id', investorId);
     // Remove investor
     const { error } = await sb.from('investors').delete().eq('investor_id', investorId);
     if (error) throw new Error(error.message);
@@ -286,7 +286,7 @@ async function saveLink() {
   }
 
   // Check if already linked
-  const { data: existing } = await sb.from('investor_properties')
+  const { data: existing } = await sb.from('investor_rooms')
     .select('investor_id').eq('investor_id', inv).eq('room_id', room).single();
 
   if (existing) {
@@ -294,7 +294,7 @@ async function saveLink() {
     return;
   }
 
-  const { error } = await sb.from('investor_properties').insert({ investor_id: inv, room_id: room });
+  const { error } = await sb.from('investor_rooms').insert({ investor_id: inv, room_id: room });
   if (error) { document.getElementById('lErr').innerHTML = `<div class="error">${error.message}</div>`; return; }
 
   fsn.success('Success', '✅ Property linked!');
@@ -303,7 +303,7 @@ async function saveLink() {
 
 async function unlinkProperty(inv, room) {
   if (!confirm('Remove this property link?')) return;
-  await sb.from('investor_properties').delete().eq('investor_id', inv).eq('room_id', room);
+  await sb.from('investor_rooms').delete().eq('investor_id', inv).eq('room_id', room);
   fsn.success('Success', '✅ Property unlinked');
   renderManageInvestors();
 }
@@ -678,7 +678,7 @@ async function renderInvestorView(range = 'Month') {
   appEl.innerHTML = `<div class="wrap" style="max-width:650px;"><div class="loading">Loading...</div></div>`;
 
   const { data: inv } = await sb.from('investors').select('*').eq('investor_id', SESSION.investorId).single();
-  const { data: links } = await sb.from('investor_properties')
+  const { data: links } = await sb.from('investor_rooms')
     .select('room_id, rooms(unit_no, property_name, nickname, checkin_manager)')
     .eq('investor_id', SESSION.investorId);
   const rids = (links || []).map(l => l.room_id);

@@ -465,9 +465,12 @@ async function showBookingPopup(roomId, dateStr) {
 }
 
 // ============ FINANCIAL SUMMARY (unchanged) ============
-async function renderFYSummary(range = 'FY') {
+async function renderFYSummary(range = 'FY', propFilter = '') {
   const isCA = SESSION.role === 'ca';
   if (!isCA) renderShell(`<div class="loading">Loading...</div>`, 'dashboard');
+  
+  // Fetch rooms for property filter
+  const { data: allRooms } = await sb.from('rooms').select('room_id, nickname, property_name').order('room_id');
 
   const now = new Date(), today = now.toISOString().slice(0, 10);
   let s, e, label;
@@ -485,7 +488,11 @@ async function renderFYSummary(range = 'FY') {
     sb.from('payment_history').select('booking_id,amount'),
   ]);
 
-  const fg = (gs.data || []).filter(g => g.check_in >= s && g.check_in <= e);
+  let fg = (gs.data || []).filter(g => g.check_in >= s && g.check_in <= e);
+  // Exclude placeholder guests
+  fg = fg.filter(g => g.guest_name && g.guest_name.toLowerCase() !== 'pending' && !g.guest_name.toLowerCase().startsWith('pending '));
+  // Apply property filter
+  if (propFilter) fg = fg.filter(g => g.room_id === propFilter);
   const ids = fg.map(g => g.booking_id);
   const pm = {};
   (py.data || []).forEach(p => { if (ids.includes(p.booking_id)) pm[p.booking_id] = (pm[p.booking_id] || 0) + (p.amount || 0); });
@@ -496,8 +503,15 @@ async function renderFYSummary(range = 'FY') {
   const offlineInc = inc - onlineInc;
 
   const btns = ['Today', 'Week', 'Month', 'Quarter', 'YTD', 'FY'].map(r =>
-    `<button class="${r === range ? '' : 'secondary'} btn-sm" onclick="renderFYSummary('${r}')">${r}</button>`
+    `<button class="${r === range ? '' : 'secondary'} btn-sm" onclick="renderFYSummary('${r}', '${propFilter}')">${r}</button>`
   ).join('');
+  
+  const propOptions = (allRooms || []).map(r => 
+    `<option value="${r.room_id}" ${propFilter === r.room_id ? 'selected' : ''}>${r.nickname || r.room_id}</option>`
+  ).join('');
+  const propDropdown = `<select onchange="renderFYSummary('${range}', this.value)" style="padding:8px 12px;border-radius:8px;border:1px solid var(--border);font-size:13px;">
+    <option value="">All Properties</option>${propOptions}
+  </select>`;
 
   const tbl = `<div class="table-wrap"><table>
     <thead><tr><th>ID</th><th>Guest</th><th>Room</th><th>Mode</th><th>Check-in</th><th>Received</th></tr></thead>
@@ -511,7 +525,7 @@ async function renderFYSummary(range = 'FY') {
 
   const summaryContent = `
     <div class="card"><h1>📊 Financial Summary</h1><div class="sub">${label} — ${s} to ${e}</div>
-      <div class="btn-row">${btns}</div>
+      <div class="btn-row" style="flex-wrap:wrap;gap:8px;">${btns} ${propDropdown}</div>
       ${!isCA ? `<button class="secondary btn-sm" onclick="renderDashboard()">← Back</button>` : ''}
       <button class="outline btn-sm" onclick="downloadFYData()">⬇️ CSV</button>
     </div>
