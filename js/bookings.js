@@ -7,6 +7,38 @@
 function isTrustedUser() {
   return ['developer', 'owner'].includes(SESSION.role);
 }
+// ═══ LOYALTY TIER SYSTEM ═══
+window._guestStaysCache = window._guestStaysCache || {};
+
+function getLoyaltyTier(stays) {
+  if (stays >= 7) return { tier: 'Platinum', icon: '💎', color: '#8B5CF6', discount: 20 };
+  if (stays >= 4) return { tier: 'Gold', icon: '🥇', color: '#F59E0B', discount: 15 };
+  if (stays >= 2) return { tier: 'Silver', icon: '🥈', color: '#6B7280', discount: 10 };
+  return { tier: 'Bronze', icon: '🥉', color: '#B45309', discount: 0 };
+}
+
+async function preloadGuestStays() {
+  try {
+    const { data } = await sb.from('guest_register')
+      .select('phone, guest_name, is_cancelled')
+      .neq('is_cancelled', true);
+    window._guestStaysCache = {};
+    (data || []).forEach(b => {
+      const key = (b.phone || b.guest_name || '').trim();
+      if (!key) return;
+      window._guestStaysCache[key] = (window._guestStaysCache[key] || 0) + 1;
+    });
+  } catch(e) { console.warn('Loyalty preload failed:', e); }
+}
+
+function getGuestTierBadge(guest) {
+  const key = (guest.phone || guest.guest_name || '').trim();
+  const stays = window._guestStaysCache[key] || 0;
+  if (stays < 2) return '';
+  const t = getLoyaltyTier(stays);
+  return ' <span style="background:' + t.color + ';color:#fff;padding:1px 6px;border-radius:8px;font-size:9px;font-weight:700;" title="' + t.tier + ' member — ' + stays + ' stays, ' + t.discount + '% loyalty discount">' + t.icon + ' ' + t.tier + '</span>';
+}
+
 function approvalMeta() {
   const trusted = isTrustedUser();
   return {
@@ -132,6 +164,20 @@ async function showGuestLedger(guestName) {
     <div class="modal-box" style="max-width:600px;">
       <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">✕</button>
       <h2>👤 Guest Ledger — ${guestName}</h2>
+      ${(() => {
+        const t = getLoyaltyTier(bookings.length);
+        const nextTier = bookings.length < 2 ? { tier: 'Silver', at: 2 } :
+                         bookings.length < 4 ? { tier: 'Gold', at: 4 } :
+                         bookings.length < 7 ? { tier: 'Platinum', at: 7 } : null;
+        return '<div style="display:flex;align-items:center;gap:12px;padding:12px;background:linear-gradient(135deg,' + t.color + ',rgba(0,0,0,0.1));color:#fff;border-radius:10px;margin-bottom:12px;">' +
+          '<div style="font-size:32px;">' + t.icon + '</div>' +
+          '<div style="flex:1;">' +
+            '<div style="font-weight:700;font-size:16px;">' + t.tier + ' Member</div>' +
+            '<div style="font-size:12px;opacity:0.9;">' + bookings.length + ' stay(s) · ' + t.discount + '% loyalty discount available</div>' +
+            (nextTier ? '<div style="font-size:11px;margin-top:4px;opacity:0.8;">🎯 ' + (nextTier.at - bookings.length) + ' more stay(s) to reach ' + nextTier.tier + '</div>' : '<div style="font-size:11px;margin-top:4px;">🏆 Top tier reached!</div>') +
+          '</div>' +
+        '</div>';
+      })()}
       <div class="stat-grid" style="grid-template-columns:repeat(2,1fr);margin:12px 0;">
         <div class="stat-card" style="border-left:4px solid var(--blue);"><div class="stat-num">${bookings.length}</div><div class="stat-label">Stays</div></div>
         <div class="stat-card" style="border-left:4px solid var(--green);"><div class="stat-num">${totalNights}</div><div class="stat-label">Nights</div></div>
@@ -668,7 +714,7 @@ async function renderManageBookings() {
           <td>${statusBadge}</td>
           <td>
             <strong style="cursor:pointer;text-decoration:underline;color:var(--blue);"
-              onclick="showGuestLedger('${(b.guest_name || '').replace(/'/g, "\\'")}')">${b.guest_name || '-'}</strong>${b.is_cancelled ? ' <span class="badge red" style="font-size:9px;" title="' + (b.cancellation_reason || '').replace(/"/g,'&quot;') + '">🚫 CANCELLED</span>' : ''}${b.verification_status === 'pending' ? ' <span class="badge yellow" style="font-size:9px;">🟡 Pending</span>' : ''}${b.verification_status === 'rejected' ? ' <span class="badge red" style="font-size:9px;" title="' + (b.rejection_reason || '').replace(/"/g,'&quot;') + '">❌ Rejected</span>' : ''}<br>
+              onclick="showGuestLedger('${(b.guest_name || '').replace(/'/g, "\\'")}')">${b.guest_name || '-'}</strong>${typeof getGuestTierBadge === 'function' ? getGuestTierBadge(b) : ''}${b.is_cancelled ? ' <span class="badge red" style="font-size:9px;" title="' + (b.cancellation_reason || '').replace(/"/g,'&quot;') + '">🚫 CANCELLED</span>' : ''}${b.verification_status === 'pending' ? ' <span class="badge yellow" style="font-size:9px;">🟡 Pending</span>' : ''}${b.verification_status === 'rejected' ? ' <span class="badge red" style="font-size:9px;" title="' + (b.rejection_reason || '').replace(/"/g,'&quot;') + '">❌ Rejected</span>' : ''}<br>
             <small style="color:var(--muted);">${b.phone || ''}</small>
             ${b.created_by ? '<br><small style="color:#888;font-size:10px;">👤 ' + (window._userNameCache[b.created_by] || b.booked_by || 'User') + '</small>' : (b.booked_by ? '<br><small style="color:#888;font-size:10px;">👤 ' + b.booked_by + '</small>' : '')}
             ${b.verification_status === 'pending' && isTrustedUser() ? '<br><button class="btn-sm green-btn" style="padding:2px 8px;font-size:10px;margin-top:2px;" onclick="event.stopPropagation();approveBooking(\'' + b.booking_id + '\')">✅ Approve</button> <button class="btn-sm danger" style="padding:2px 8px;font-size:10px;" onclick="event.stopPropagation();rejectBooking(\'' + b.booking_id + '\')">❌ Reject</button>' : ''}
