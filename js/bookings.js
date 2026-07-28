@@ -715,6 +715,8 @@ async function renderManageBookings() {
             <button class="btn-sm" style="background:#FF385C;color:#fff;" onclick="sendCheckoutReminder('${b.booking_id}')" title="5️⃣ Checkout Alert">🔔</button>
             <button class="btn-sm" style="background:${b.booking_mode === 'Online-Airbnb' ? '#722ED1' : '#4285F4'};color:#fff;" onclick="requestReview('${b.booking_id}')" title="6️⃣ ${b.booking_mode === 'Online-Airbnb' ? 'Airbnb Review Link' : 'Google Review Link'}">⭐</button>
             <button class="btn-sm" style="background:#128C7E;color:#fff;" onclick="showWATemplatesMenu('${b.booking_id}',this)" title="Templates">💬</button>
+            ${!b.is_cancelled && canM ? `<button class="btn-sm" style="background:#F59E0B;color:#fff;" onclick="cancelBooking('${b.booking_id}','${(b.guest_name || '').replace(/'/g, "\\'")}')" title="Cancel">🚫</button>` : ''}
+            ${b.is_cancelled && canM ? `<button class="btn-sm outline" onclick="uncancelBooking('${b.booking_id}')" title="Restore">↩️</button>` : ''}
             ${canD ? `<button class="btn-sm danger" onclick="delBooking('${b.booking_id}','${(b.guest_name || '').replace(/'/g, "\\'")}','${b.room_id}')">🗑️</button>` : ''}
           </td>` : ''}
         </tr>`;
