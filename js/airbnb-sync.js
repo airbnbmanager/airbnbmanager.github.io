@@ -23,6 +23,10 @@
     return y + '-' + m.padStart(2, '0') + '-' + d.padStart(2, '0');
   }
 
+  function fmtNum(n) {
+    return (Number(n) || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 });
+  }
+
   // ─── CSV parser ───
   function parseCSV(text) {
     const lines = text.split(/\r?\n/).filter(l => l.trim());
@@ -164,16 +168,22 @@
     renderShell(`
       <div class="wrap">
         <h1>🔄 Airbnb CSV Sync</h1>
-        <p style="color:#888;">Upload Airbnb transaction CSV to compare + import bookings</p>
+        <p style="color:#888;">Compare Airbnb CSV with app bookings — find missing entries, sync amounts</p>
 
-        <div class="card" style="text-align:center;padding:30px;">
-          <input type="file" id="airbnbCsvFile" accept=".csv" style="display:none;" onchange="handleAirbnbCSV(this)" />
-          <label for="airbnbCsvFile" style="display:inline-block;padding:16px 32px;background:#FF385C;color:#fff;border-radius:8px;cursor:pointer;font-weight:600;">
-            📁 Upload Airbnb CSV
-          </label>
-          <p style="color:#888;margin-top:12px;font-size:12px;">
-            Airbnb → Reservations → Transaction history → Export CSV
-          </p>
+        <div class="card" style="border-left:4px solid #3B82F6;background:#EFF6FF;">
+          <div class="section-title">📖 HOW TO USE</div>
+          <div style="line-height:1.9;font-size:13px;">
+            <div><strong>Step 1:</strong> Go to <a href="https://www.airbnb.co.in/hosting/reservations/all" target="_blank" style="color:#FF385C;font-weight:600;">Airbnb Earnings ↗</a></div>
+            <div><strong>Step 2:</strong> Click <strong>"Get CSV file"</strong> → Download</div>
+            <div><strong>Step 3:</strong> Upload CSV below</div>
+            <div><strong>Step 4:</strong> System will show missing bookings + conflicts (from July 2026)</div>
+            <div><strong>Step 5:</strong> Review & click <strong>"Process"</strong> to import/update</div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="section-title">📁 Upload Airbnb CSV File</div>
+          <input type="file" id="airbnbCsvFile" accept=".csv" onchange="handleAirbnbCSV(this)" style="width:100%;padding:12px;border:2px dashed #ddd;border-radius:8px;cursor:pointer;background:#fafafa;" />
         </div>
 
         <div id="airbnbSyncPreview"></div>
@@ -388,8 +398,46 @@
 
     const totalActions = SYNC.reservations.filter(r => r.action === 'import' || r.action === 'update').length;
 
+    // ─── Calculate sync stats ───
+    const inAppCount = SYNC.existingByGuest.filter(g => g.booking_mode === 'Online-Airbnb').length;
+    const inAppRev = SYNC.existingByGuest.filter(g => g.booking_mode === 'Online-Airbnb').reduce((s, g) => s + (g.total_amount || 0), 0);
+    const onAirbnbCount = SYNC.reservations.length;
+    const onAirbnbRev = SYNC.reservations.reduce((s, r) => s + (r.gross || 0), 0);
+    const syncRate = onAirbnbCount > 0 ? Math.round((inAppCount / onAirbnbCount) * 100) : 0;
+    const revDiff = Math.abs(inAppRev - onAirbnbRev);
+    const syncColor = syncRate === 100 ? '#0A7D1A' : syncRate > 90 ? '#F59E0B' : '#DC2626';
+    const syncLabel = syncRate === 100 ? '✅ Perfectly Synced' : syncRate > 100 ? '⚠️ Extra in App' : syncRate > 90 ? '⚠️ Nearly Synced' : '🔴 Needs Sync';
+
     container.innerHTML =
-      '<div class="card" style="margin-top:20px;">' +
+      // BIG SYNC STATUS CARD
+      '<div class="card" style="margin-top:20px;background:linear-gradient(135deg,#FF385C,#E00B41);color:#fff;border:none;">' +
+        '<div class="section-title" style="color:#fff;border:none;">📊 JULY 2026 — SYNC STATUS</div>' +
+        '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-top:10px;">' +
+          '<div style="background:rgba(255,255,255,0.15);padding:16px;border-radius:10px;text-align:center;">' +
+            '<div style="font-size:32px;font-weight:800;">' + inAppCount + '</div>' +
+            '<div style="font-size:11px;opacity:0.9;">📱 IN APP</div>' +
+            '<div style="font-size:13px;margin-top:4px;">₹' + fmtNum(inAppRev) + '</div>' +
+          '</div>' +
+          '<div style="background:rgba(255,255,255,0.15);padding:16px;border-radius:10px;text-align:center;">' +
+            '<div style="font-size:32px;font-weight:800;">' + onAirbnbCount + '</div>' +
+            '<div style="font-size:11px;opacity:0.9;">🌐 ON AIRBNB</div>' +
+            '<div style="font-size:13px;margin-top:4px;">₹' + fmtNum(onAirbnbRev) + '</div>' +
+          '</div>' +
+          '<div style="background:rgba(255,255,255,0.15);padding:16px;border-radius:10px;text-align:center;">' +
+            '<div style="font-size:32px;font-weight:800;color:' + (syncRate === 100 ? '#D1FAE5' : '#FEF3C7') + ';">' + syncRate + '%</div>' +
+            '<div style="font-size:11px;opacity:0.9;">🔄 SYNC RATE</div>' +
+            '<div style="font-size:12px;margin-top:4px;">' + syncLabel + '</div>' +
+          '</div>' +
+          '<div style="background:rgba(255,255,255,0.15);padding:16px;border-radius:10px;text-align:center;">' +
+            '<div style="font-size:24px;font-weight:800;">₹' + fmtNum(revDiff) + '</div>' +
+            '<div style="font-size:11px;opacity:0.9;">💰 REVENUE DIFF</div>' +
+            '<div style="font-size:12px;margin-top:4px;">' + (revDiff < 100 ? '✅ Matched' : '⚠️ Check') + '</div>' +
+          '</div>' +
+        '</div>' +
+      '</div>' +
+
+      // Compare details
+      '<div class="card" style="margin-top:16px;">' +
 
         '<div class="section-title">📅 Filter by Check-in Date</div>' +
         '<div style="display:flex;gap:10px;align-items:center;margin:10px 0;padding:12px;background:#EFF6FF;border-radius:8px;">' +
