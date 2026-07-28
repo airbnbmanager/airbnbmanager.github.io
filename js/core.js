@@ -441,6 +441,7 @@ function renderShell(content, activePage = 'dashboard') {
       { section: 'MAIN' },
       ['dashboard', '🏠 Dashboard'],
       ['reports', '📆 Calendar'],
+      ['pendingApprovals', '🟡 Pending Approvals'],
 
       { section: 'GUESTS' },
       ['bookings', '📅 Bookings'],
@@ -493,6 +494,7 @@ function renderShell(content, activePage = 'dashboard') {
       { section: 'MAIN' },
       ['dashboard', '🏠 Dashboard'],
       ['reports', '📆 Calendar'],
+      ['pendingApprovals', '🟡 Pending Approvals'],
 
       { section: 'GUESTS' },
       ['bookings', '📅 Bookings'],
@@ -682,6 +684,7 @@ function navigate(page) {
     expenses: renderExpenses,
     'property-report': renderPropertyReport,
     'shifts': renderPropertyShifts,
+    'pendingApprovals': renderPendingApprovals,
     'financial': () => renderFYSummary('Month'),
     'financial-sheet': renderFinancialSheet,
     'airbnb-sync': renderAirbnbSync,

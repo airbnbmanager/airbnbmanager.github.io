@@ -3,6 +3,81 @@
  * UNIQUE HAVEN HOMES STAY
  */
 
+// ═══ APPROVAL WORKFLOW HELPERS ═══
+function isTrustedUser() {
+  return ['developer', 'owner'].includes(SESSION.role);
+}
+function approvalMeta() {
+  const trusted = isTrustedUser();
+  return {
+    created_by: SESSION.userId,
+    verification_status: trusted ? 'verified' : 'pending',
+    verified_by: trusted ? SESSION.userId : null,
+    verified_at: trusted ? new Date().toISOString() : null
+  };
+}
+
+// ═══ APPROVE / REJECT BOOKING ═══
+window.approveBooking = async function(bkId) {
+  if (!isTrustedUser()) { fsn.error('Denied', 'Only owner/developer can approve'); return; }
+  const { error } = await sb.from('guest_register').update({
+    verification_status: 'verified',
+    verified_by: SESSION.userId,
+    verified_at: new Date().toISOString(),
+    rejection_reason: null
+  }).eq('booking_id', bkId);
+  if (error) { fsn.error('Error', error.message); return; }
+  fsn.success('Approved', '✅ Booking verified');
+  if (window.renderManageBookings) renderManageBookings();
+  if (window.renderPendingApprovals) renderPendingApprovals();
+};
+
+window.rejectBooking = async function(bkId) {
+  if (!isTrustedUser()) { fsn.error('Denied', 'Only owner/developer can reject'); return; }
+  const reason = prompt('Reason for rejection?');
+  if (!reason || !reason.trim()) return;
+  const { error } = await sb.from('guest_register').update({
+    verification_status: 'rejected',
+    verified_by: SESSION.userId,
+    verified_at: new Date().toISOString(),
+    rejection_reason: reason.trim()
+  }).eq('booking_id', bkId);
+  if (error) { fsn.error('Error', error.message); return; }
+  fsn.warning('Rejected', 'Booking marked rejected');
+  if (window.renderManageBookings) renderManageBookings();
+  if (window.renderPendingApprovals) renderPendingApprovals();
+};
+
+window.approvePayment = async function(payId) {
+  if (!isTrustedUser()) { fsn.error('Denied', 'Only owner/developer can approve'); return; }
+  const { error } = await sb.from('payment_history').update({
+    verification_status: 'verified',
+    verified_by: SESSION.userId,
+    verified_at: new Date().toISOString(),
+    rejection_reason: null
+  }).eq('id', payId);
+  if (error) { fsn.error('Error', error.message); return; }
+  fsn.success('Approved', '✅ Payment verified');
+  if (window.renderPendingApprovals) renderPendingApprovals();
+  if (window.renderManageBookings) renderManageBookings();
+};
+
+window.rejectPayment = async function(payId) {
+  if (!isTrustedUser()) { fsn.error('Denied', 'Only owner/developer can reject'); return; }
+  const reason = prompt('Reason for rejection?');
+  if (!reason || !reason.trim()) return;
+  const { error } = await sb.from('payment_history').update({
+    verification_status: 'rejected',
+    verified_by: SESSION.userId,
+    verified_at: new Date().toISOString(),
+    rejection_reason: reason.trim()
+  }).eq('id', payId);
+  if (error) { fsn.error('Error', error.message); return; }
+  fsn.warning('Rejected', 'Payment marked rejected');
+  if (window.renderPendingApprovals) renderPendingApprovals();
+};
+
+
 // ============ GUEST LEDGER ============
 async function showGuestLedger(guestName) {
   const {data:bookings} = await sb.from('guest_register')
@@ -565,8 +640,9 @@ async function renderManageBookings() {
           <td>${statusBadge}</td>
           <td>
             <strong style="cursor:pointer;text-decoration:underline;color:var(--blue);"
-              onclick="showGuestLedger('${(b.guest_name || '').replace(/'/g, "\\'")}')">${b.guest_name || '-'}</strong><br>
+              onclick="showGuestLedger('${(b.guest_name || '').replace(/'/g, "\\'")}')">${b.guest_name || '-'}</strong>${b.verification_status === 'pending' ? ' <span class="badge yellow" style="font-size:9px;">🟡 Pending</span>' : ''}${b.verification_status === 'rejected' ? ' <span class="badge red" style="font-size:9px;" title="' + (b.rejection_reason || '').replace(/"/g,'&quot;') + '">❌ Rejected</span>' : ''}<br>
             <small style="color:var(--muted);">${b.phone || ''}</small>
+            ${b.verification_status === 'pending' && isTrustedUser() ? '<br><button class="btn-sm green-btn" style="padding:2px 8px;font-size:10px;margin-top:2px;" onclick="event.stopPropagation();approveBooking(\'' + b.booking_id + '\')">✅ Approve</button> <button class="btn-sm danger" style="padding:2px 8px;font-size:10px;" onclick="event.stopPropagation();rejectBooking(\'' + b.booking_id + '\')">❌ Reject</button>' : ''}
             ${(() => {
               const allBks = window._allBookings || [];
               const pm = window._bkPaidMap || {};
@@ -1496,6 +1572,7 @@ async function saveBooking() {
     const payStatus = isOnline ? 'Paid' : (adv >= tot && tot > 0 ? 'Paid' : (adv > 0 ? 'Partial' : 'Unpaid'));
 
     const { error } = await sb.from('guest_register').insert({
+      ...approvalMeta(),
       booking_id: bkId, guest_name: gn, phone: ph || null,
       id_proof_type: idType || null, id_proof_no: idNo || null,
       id_proof_photo_path: photos.firstPath, id_proof_photo_paths: photos.allPaths,
@@ -1520,7 +1597,8 @@ async function saveBooking() {
     if (adv > 0) {
       await sb.from('payment_history').insert({
         booking_id: bkId, amount: adv, payment_mode: advMode || null,
-        payment_date: advDate, notes: isOnline ? 'Airbnb Payout' : 'Advance'
+        payment_date: advDate, notes: isOnline ? 'Airbnb Payout' : 'Advance',
+        ...approvalMeta()
       });
     }
     await sb.from('flats_status').upsert({ room_id: rid, status: 'Booked' });
@@ -2153,7 +2231,8 @@ async function savePaymentModal(bkId) {
       booking_id: bkId, amount: paymentForCurrent,
       payment_mode: mode,
       payment_date: payDate,
-      notes: userNotes
+      notes: userNotes,
+      ...approvalMeta()
     });
     if (error) { document.getElementById('payErr').innerHTML = `<div class="error">${error.message}</div>`; return; }
     await recalcPaymentStatus(bkId);
@@ -2184,7 +2263,8 @@ async function savePaymentModal(bkId) {
         amount: toApply,
         payment_mode: mode,
         payment_date: payDate,
-        notes: (userNotes ? userNotes + ' | ' : '') + `Auto-adjusted from booking ${bkId}`
+        notes: (userNotes ? userNotes + ' | ' : '') + `Auto-adjusted from booking ${bkId}`,
+        ...approvalMeta()
       });
       if (!distErr) {
         await recalcPaymentStatus(ob.booking_id);
@@ -2205,7 +2285,8 @@ async function savePaymentModal(bkId) {
       booking_id: bkId, amount: remainingOverflow,
       payment_mode: mode,
       payment_date: payDate,
-      notes: (userNotes ? userNotes + ' | ' : '') + 'Advance / extra payment'
+      notes: (userNotes ? userNotes + ' | ' : '') + 'Advance / extra payment',
+      ...approvalMeta()
     });
     if (!extraErr) await recalcPaymentStatus(bkId);
   }
@@ -2702,3 +2783,114 @@ function closeWAMenuOnClickOutside(e) {
     closeWAMenu();
   }
 }
+
+// ═══ PENDING APPROVALS PAGE ═══
+window.renderPendingApprovals = async function() {
+  if (!isTrustedUser()) {
+    renderShell('<div class="card"><div class="error">❌ Access denied — Only Owner/Developer</div></div>', 'pendingApprovals');
+    return;
+  }
+
+  renderShell('<div class="loading">Loading pending approvals...</div>', 'pendingApprovals');
+
+  const [bkResult, payResult] = await Promise.all([
+    sb.from('guest_register')
+      .select('*, rooms(unit_no, nickname, property_name)')
+      .eq('verification_status', 'pending')
+      .order('booking_id', { ascending: false }),
+    sb.from('payment_history')
+      .select('*, guest:guest_register(guest_name, room_id, rooms(unit_no, nickname))')
+      .eq('verification_status', 'pending')
+      .order('id', { ascending: false })
+  ]);
+
+  const bkList = bkResult.data || [];
+  const payList = payResult.data || [];
+  const totalPending = bkList.length + payList.length;
+
+  let bkRows = '';
+  bkList.forEach(b => {
+    const creator = b.booked_by || 'Unknown';
+    bkRows += '<tr>' +
+      '<td><strong>' + (b.guest_name || '-') + '</strong><br><small style="color:#888;">' + (b.phone || '') + '</small></td>' +
+      '<td>' + (propLabel(b.rooms) || b.room_id) + '</td>' +
+      '<td><small>' + (b.check_in || '') + ' → ' + (b.check_out || '') + '</small></td>' +
+      '<td><strong>₹' + (b.total_amount || 0).toLocaleString('en-IN') + '</strong></td>' +
+      '<td><small style="color:#F59E0B;">👤 ' + creator + '</small></td>' +
+      '<td>' +
+        '<button class="btn-sm green-btn" onclick="approveBooking(\'' + b.booking_id + '\')">✅ Approve</button> ' +
+        '<button class="btn-sm danger" onclick="rejectBooking(\'' + b.booking_id + '\')">❌ Reject</button> ' +
+        '<button class="btn-sm outline" onclick="editBooking(\'' + b.booking_id + '\')">✏️ View</button>' +
+      '</td>' +
+      '</tr>';
+  });
+
+  let payRows = '';
+  payList.forEach(p => {
+    const guestName = p.guest?.guest_name || '-';
+    const roomLabel = p.guest?.rooms ? (propLabel(p.guest.rooms) || p.guest.room_id) : (p.booking_id || '');
+    payRows += '<tr>' +
+      '<td><strong>' + guestName + '</strong><br><small style="color:#888;">' + (p.booking_id || '') + '</small></td>' +
+      '<td>' + roomLabel + '</td>' +
+      '<td><strong style="color:#0A7D1A;">₹' + (p.amount || 0).toLocaleString('en-IN') + '</strong><br><small>' + (p.payment_mode || '-') + '</small></td>' +
+      '<td><small>' + (p.payment_date || '-') + '</small><br><small style="color:#888;">' + (p.notes || '') + '</small></td>' +
+      '<td>' +
+        '<button class="btn-sm green-btn" onclick="approvePayment(' + p.id + ')">✅ Approve</button> ' +
+        '<button class="btn-sm danger" onclick="rejectPayment(' + p.id + ')">❌ Reject</button>' +
+      '</td>' +
+      '</tr>';
+  });
+
+  const html = '<div class="wrap">' +
+    '<h1>🟡 Pending Approvals <span style="background:#F59E0B;color:#fff;padding:4px 12px;border-radius:20px;font-size:14px;margin-left:8px;">' + totalPending + '</span></h1>' +
+    '<p style="color:#888;">Items created by moderators awaiting your verification</p>' +
+    '<div class="card" style="margin-top:16px;">' +
+      '<div class="section-title">📅 Pending Bookings (' + bkList.length + ')</div>' +
+      (bkList.length === 0
+        ? '<div style="text-align:center;padding:30px;color:#888;">✨ No pending bookings</div>'
+        : '<div class="table-wrap"><table>' +
+            '<thead><tr><th>Guest</th><th>Property</th><th>Dates</th><th>Amount</th><th>Created By</th><th>Actions</th></tr></thead>' +
+            '<tbody>' + bkRows + '</tbody>' +
+          '</table></div>') +
+    '</div>' +
+    '<div class="card" style="margin-top:16px;">' +
+      '<div class="section-title">💰 Pending Payments (' + payList.length + ')</div>' +
+      (payList.length === 0
+        ? '<div style="text-align:center;padding:30px;color:#888;">✨ No pending payments</div>'
+        : '<div class="table-wrap"><table>' +
+            '<thead><tr><th>Guest</th><th>Property</th><th>Amount</th><th>Date/Notes</th><th>Actions</th></tr></thead>' +
+            '<tbody>' + payRows + '</tbody>' +
+          '</table></div>') +
+    '</div>' +
+    '</div>';
+
+  renderShell(html, 'pendingApprovals');
+  window._pendingCount = totalPending;
+};
+
+// ═══ Fetch pending count for menu badge ═══
+window.fetchPendingCount = async function() {
+  if (!isTrustedUser()) { window._pendingCount = 0; return 0; }
+  try {
+    const [bkRes, payRes] = await Promise.all([
+      sb.from('guest_register').select('booking_id', { count: 'exact', head: true }).eq('verification_status', 'pending'),
+      sb.from('payment_history').select('id', { count: 'exact', head: true }).eq('verification_status', 'pending')
+    ]);
+    const total = (bkRes.count || 0) + (payRes.count || 0);
+    window._pendingCount = total;
+    document.querySelectorAll('.pending-approvals-badge').forEach(el => {
+      if (total > 0) {
+        el.textContent = total > 99 ? '99+' : total;
+        el.style.display = 'inline-flex';
+      } else {
+        el.style.display = 'none';
+      }
+    });
+    return total;
+  } catch(e) { console.warn('Pending count fetch failed:', e); return 0; }
+};
+
+setInterval(function() { if (window.sb && window.SESSION?.userId && isTrustedUser()) window.fetchPendingCount(); }, 60000);
+setTimeout(function() { if (window.sb && window.SESSION?.userId && isTrustedUser()) window.fetchPendingCount(); }, 3000);
+
+
