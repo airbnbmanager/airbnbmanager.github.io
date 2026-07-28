@@ -17,6 +17,27 @@ function approvalMeta() {
   };
 }
 
+// Get user display name for a user_id (cached)
+window._userNameCache = window._userNameCache || {};
+async function getUserName(userId) {
+  if (!userId) return 'Unknown';
+  if (window._userNameCache[userId]) return window._userNameCache[userId];
+  try {
+    const { data } = await sb.from('profiles').select('display_name').eq('user_id', userId).single();
+    const name = data?.display_name || 'User';
+    window._userNameCache[userId] = name;
+    return name;
+  } catch(e) { return 'User'; }
+}
+
+// Preload all user names once
+async function preloadUserNames() {
+  try {
+    const { data } = await sb.from('profiles').select('user_id, display_name');
+    (data || []).forEach(p => { window._userNameCache[p.user_id] = p.display_name || 'User'; });
+  } catch(e) {}
+}
+
 // ═══ APPROVE / REJECT BOOKING ═══
 window.approveBooking = async function(bkId) {
   if (!isTrustedUser()) { fsn.error('Denied', 'Only owner/developer can approve'); return; }
@@ -89,8 +110,9 @@ async function showGuestLedger(guestName) {
 
   const bkIds = bookings.map(b => b.booking_id);
   const {data:payments} = await sb.from('payment_history')
-    .select('booking_id, amount, payment_mode, payment_date')
-    .in('booking_id', bkIds);
+    .select('booking_id, amount, payment_mode, payment_date, verification_status')
+    .in('booking_id', bkIds)
+    .neq('verification_status', 'rejected');
 
   const payMap = {};
   (payments || []).forEach(p => { payMap[p.booking_id] = (payMap[p.booking_id] || 0) + (p.amount || 0); });
@@ -407,8 +429,10 @@ async function renderManageBookings() {
     }
   }
 
-  // Fetch payments for filter
-  const { data: allPays } = await sb.from('payment_history').select('booking_id, amount, payment_date');
+  // Fetch payments for filter (exclude REJECTED)
+  const { data: allPays } = await sb.from('payment_history')
+    .select('booking_id, amount, payment_date, verification_status')
+    .neq('verification_status', 'rejected');
   const paidMap = {};
   (allPays || []).forEach(p => {
     paidMap[p.booking_id] = (paidMap[p.booking_id] || 0) + (p.amount || 0);
@@ -642,6 +666,7 @@ async function renderManageBookings() {
             <strong style="cursor:pointer;text-decoration:underline;color:var(--blue);"
               onclick="showGuestLedger('${(b.guest_name || '').replace(/'/g, "\\'")}')">${b.guest_name || '-'}</strong>${b.verification_status === 'pending' ? ' <span class="badge yellow" style="font-size:9px;">🟡 Pending</span>' : ''}${b.verification_status === 'rejected' ? ' <span class="badge red" style="font-size:9px;" title="' + (b.rejection_reason || '').replace(/"/g,'&quot;') + '">❌ Rejected</span>' : ''}<br>
             <small style="color:var(--muted);">${b.phone || ''}</small>
+            ${b.created_by ? '<br><small style="color:#888;font-size:10px;">👤 ' + (window._userNameCache[b.created_by] || b.booked_by || 'User') + '</small>' : (b.booked_by ? '<br><small style="color:#888;font-size:10px;">👤 ' + b.booked_by + '</small>' : '')}
             ${b.verification_status === 'pending' && isTrustedUser() ? '<br><button class="btn-sm green-btn" style="padding:2px 8px;font-size:10px;margin-top:2px;" onclick="event.stopPropagation();approveBooking(\'' + b.booking_id + '\')">✅ Approve</button> <button class="btn-sm danger" style="padding:2px 8px;font-size:10px;" onclick="event.stopPropagation();rejectBooking(\'' + b.booking_id + '\')">❌ Reject</button>' : ''}
             ${(() => {
               const allBks = window._allBookings || [];
@@ -2211,7 +2236,7 @@ async function savePaymentModal(bkId) {
   // Get current booking + guest info for auto-distribution
   const { data: currBk } = await sb.from('guest_register')
     .select('total_amount, guest_name, phone').eq('booking_id', bkId).single();
-  const { data: currPays } = await sb.from('payment_history').select('amount').eq('booking_id', bkId);
+  const { data: currPays } = await sb.from('payment_history').select('amount, verification_status').eq('booking_id', bkId).neq('verification_status', 'rejected');
   const currPaid = (currPays || []).reduce((s, p) => s + (p.amount || 0), 0);
   const currTotal = currBk?.total_amount || 0;
   const currRemaining = Math.max(currTotal - currPaid, 0); // how much still due on current
@@ -2252,7 +2277,7 @@ async function savePaymentModal(bkId) {
 
     for (const ob of (otherBks || [])) {
       if (remainingOverflow <= 0) break;
-      const { data: obPays } = await sb.from('payment_history').select('amount').eq('booking_id', ob.booking_id);
+      const { data: obPays } = await sb.from('payment_history').select('amount, verification_status').eq('booking_id', ob.booking_id).neq('verification_status', 'rejected');
       const obPaid = (obPays || []).reduce((s, p) => s + (p.amount || 0), 0);
       const obDue = Math.max((ob.total_amount || 0) - obPaid, 0);
       if (obDue <= 0) continue;
@@ -2360,7 +2385,7 @@ async function delPayment(payId, bkId) {
 
 async function markFullyPaid(bkId) {
   const { data: b } = await sb.from('guest_register').select('total_amount').eq('booking_id', bkId).single();
-  const { data: p } = await sb.from('payment_history').select('amount').eq('booking_id', bkId);
+  const { data: p } = await sb.from('payment_history').select('amount, verification_status').eq('booking_id', bkId).neq('verification_status', 'rejected');
   const paid = (p || []).reduce((s, x) => s + (x.amount || 0), 0);
   const bal = (b?.total_amount || 0) - paid;
   if (bal <= 0) { fsn.info('Info', 'Already paid'); return; }
@@ -2369,7 +2394,7 @@ async function markFullyPaid(bkId) {
 
 async function recalcPaymentStatus(bkId) {
   const { data: b } = await sb.from('guest_register').select('total_amount').eq('booking_id', bkId).single();
-  const { data: p } = await sb.from('payment_history').select('amount').eq('booking_id', bkId);
+  const { data: p } = await sb.from('payment_history').select('amount, verification_status').eq('booking_id', bkId).neq('verification_status', 'rejected');
   const paid = (p || []).reduce((s, x) => s + (x.amount || 0), 0);
   const st = paid >= (b?.total_amount || 0) && b?.total_amount > 0 ? 'Paid' : (paid > 0 ? 'Partial' : 'Unpaid');
   await sb.from('guest_register').update({ payment_status: st }).eq('booking_id', bkId);
