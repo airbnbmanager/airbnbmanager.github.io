@@ -145,14 +145,12 @@ async function renderReports() {
         const isOnline = bk.booking_mode === 'Online-Airbnb';
         const bg = isOnline ? '#FF385C' : '#F59E0B';
         const guestInitial = (bk.guest_name || 'G').charAt(0).toUpperCase();
-        // Better name: try full first name (or first + last initial if too long)
+        // Smart name: full first name if short, truncate if long
         const nameParts = (bk.guest_name || 'Guest').trim().split(/\s+/);
         let firstName = nameParts[0] || 'G';
-        // If name is > 10 chars AND has 2+ words, use "Firstname L."
-        if (firstName.length > 10 && nameParts.length > 1) {
-          firstName = firstName.substring(0, 8) + '.';
-        } else if (firstName.length > 12) {
-          firstName = firstName.substring(0, 11);
+        // If too long, truncate; CSS ellipsis will handle rest
+        if (firstName.length > 8) {
+          firstName = firstName.substring(0, 8);
         }
 
         // Calculate day of the booking span (for repeating name every 3-4 cells)
@@ -332,21 +330,36 @@ async function renderReports() {
       }
       .cal-name {
         white-space: nowrap;
-        overflow: visible;
+        overflow: hidden;
+        text-overflow: ellipsis;
         font-size: 11px;
         color: #fff;
         text-shadow: 0 1px 1px rgba(0,0,0,0.2);
+        max-width: 100%;
+        font-weight: 700;
       }
-      .cal-pill { overflow: visible; }
+      .cal-pill { 
+        overflow: hidden;
+        min-width: 0;
+      }
+      .cal-day.booked {
+        min-width: 0;
+        overflow: hidden;
+      }
       @media (max-width: 640px) {
-        .cal-day { min-height: 48px; }
-        .cal-date-num { font-size: 11px; padding: 2px 3px 0; }
-        .cal-rate { font-size: 9px; }
-        .cal-pill { font-size: 10px; padding: 2px 4px; }
-        .cal-avatar { width: 18px; height: 18px; font-size: 10px; }
-        .cal-name { font-size: 10px; font-weight: 700; }
+        .cal-grid { gap: 1px; }
+        .cal-day { min-height: 46px; }
+        .cal-date-num { font-size: 10px; padding: 1px 2px 0; }
+        .cal-rate { font-size: 8px; }
+        .cal-pill { font-size: 9px; padding: 1px 2px; margin: 1px 0; }
+        .cal-avatar { width: 14px; height: 14px; font-size: 8px; }
+        .cal-name { font-size: 9px; font-weight: 700; }
+        .cal-hdr { font-size: 9px; padding: 2px 0; }
       }
-      .cal-room-card { overflow-x: auto; }
+      .cal-room-card { overflow: hidden; }
+      @media (max-width: 640px) {
+        .cal-room-card { padding: 8px 6px !important; }
+      }
     `;
     document.head.appendChild(css);
   }
