@@ -788,7 +788,7 @@
             '<strong style="font-size:15px;">' + s.name + '</strong> ' +
             '<span style="background:' + roleColor + ';color:#fff;font-size:10px;padding:2px 8px;border-radius:10px;font-weight:600;">' + s.role + '</span>' +
           '</div>' +
-          '<div style="font-size:18px;font-weight:800;color:#0A7D1A;">' + formatK(s.bookingRev + s.paymentRev) + '</div>' +
+          '<div style="font-size:18px;font-weight:800;color:#0A7D1A;">' + formatK(s.bookingRev) + '</div>' +
         '</div>' +
         '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;font-size:12px;">' +
           '<div>📅 <strong>' + s.bookings + '</strong> bookings<br>' +
