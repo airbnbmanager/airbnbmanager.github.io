@@ -706,7 +706,8 @@ async function renderManageBookings() {
           ${canM ? `<td class="table-actions">
             <button class="btn-sm" onclick="editBooking('${b.booking_id}')">✏️</button>
             <button class="btn-sm secondary" onclick="showPaymentModal('${b.booking_id}')">💰</button>
-            <button class="btn-sm outline" onclick="createOfflineExtension('${b.booking_id}')">➕</button>
+            <button class="btn-sm" style="background:#0891B2;color:#fff;" onclick="quickExtend('${b.booking_id}')" title="Quick Extend N days">⏭️</button>
+            <button class="btn-sm outline" onclick="createOfflineExtension('${b.booking_id}')" title="New extension booking">➕</button>
             ${isActive ? `<button class="btn-sm secondary" onclick="quickCheckout('${b.booking_id}','${b.room_id}')">📤</button>` : ''}
             <button class="btn-sm outline" onclick="shareBookingWhatsApp('${b.booking_id}')" title="1️⃣ Welcome (New Booking)">📱</button>
             <button class="btn-sm" style="background:#00A699;color:#fff;" onclick="sendCheckinReminder('${b.booking_id}')" title="2️⃣ Reminder (Tomorrow arriving)">📅</button>
@@ -1693,6 +1694,60 @@ async function createOfflineExtension(parentBookingId) {
   };
   renderAddBooking();
 }
+
+// ═══ QUICK EXTEND (one-click N days extension) ═══
+window.quickExtend = async function(bkId) {
+  const { data: b } = await sb.from('guest_register').select('*').eq('booking_id', bkId).single();
+  if (!b) { fsn.error('Error', 'Not found'); return; }
+
+  const days = prompt('Extend for how many days?\n\nGuest: ' + b.guest_name + '\nCurrent check-out: ' + b.check_out + '\nPer day rate: ₹' + (b.per_day_rate || 0), '3');
+  if (!days) return;
+  const n = parseInt(days);
+  if (isNaN(n) || n < 1) { fsn.error('Error', 'Invalid days'); return; }
+
+  const perDay = b.per_day_rate || 0;
+  if (perDay <= 0) {
+    fsn.error('Error', 'Per day rate not set on original booking');
+    return;
+  }
+
+  const extraAmount = perDay * n;
+  if (!confirm('Extend ' + b.guest_name + ' for ' + n + ' more days?\n\nExtra: ₹' + extraAmount.toLocaleString('en-IN') + ' (₹' + perDay + ' × ' + n + ' days)\n\nProceed?')) return;
+
+  // Calculate new check-out date
+  const oldCheckout = new Date(b.check_out);
+  const newCheckout = new Date(oldCheckout);
+  newCheckout.setDate(newCheckout.getDate() + n);
+  const newCheckoutStr = newCheckout.toISOString().slice(0, 10);
+  const newTotal = (b.total_amount || 0) + extraAmount;
+
+  // Check room availability for extension period
+  const today = new Date().toISOString().slice(0, 10);
+  const { data: conflicts } = await sb.from('guest_register')
+    .select('booking_id, guest_name, check_in')
+    .eq('room_id', b.room_id)
+    .neq('booking_id', bkId)
+    .neq('is_cancelled', true)
+    .gte('check_in', b.check_out)
+    .lt('check_in', newCheckoutStr);
+
+  if (conflicts && conflicts.length > 0) {
+    fsn.error('Conflict', 'Room booked by ' + conflicts[0].guest_name + ' on ' + conflicts[0].check_in);
+    return;
+  }
+
+  // Update booking
+  const { error } = await sb.from('guest_register').update({
+    check_out: newCheckoutStr,
+    total_amount: newTotal,
+    notes: (b.notes ? b.notes + ' | ' : '') + 'Quick-extended ' + n + ' days on ' + today + ' (+₹' + extraAmount + ')'
+  }).eq('booking_id', bkId);
+
+  if (error) { fsn.error('Error', error.message); return; }
+
+  fsn.success('Extended', '✅ ' + b.guest_name + ' extended ' + n + ' days\nNew checkout: ' + newCheckoutStr + '\nNew total: ₹' + newTotal.toLocaleString('en-IN'));
+  renderManageBookings();
+};
 
 // ============ QUICK CHECKOUT ============
 async function quickCheckout(bkId, roomId) {
