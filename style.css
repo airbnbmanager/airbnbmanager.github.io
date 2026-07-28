@@ -4427,3 +4427,98 @@ textarea:focus {
     word-break: keep-all !important;
   }
 }
+
+/* ═══ ACTION BUTTONS WITH LABELS ═══ */
+.btn-action {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  min-width: 52px;
+  padding: 6px 4px;
+  margin: 2px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  background: #F3F4F6;
+  color: #222;
+  transition: transform 0.1s, box-shadow 0.1s;
+  font-family: inherit;
+}
+.btn-action:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.15);
+}
+.btn-action:active {
+  transform: translateY(0);
+}
+.btn-ic {
+  font-size: 18px;
+  line-height: 1;
+}
+.btn-lb {
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 1.1;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  opacity: 0.95;
+}
+@media (max-width: 640px) {
+  .btn-action {
+    min-width: 46px;
+    padding: 5px 3px;
+    margin: 1px;
+  }
+  .btn-ic { font-size: 16px; }
+  .btn-lb { font-size: 8px; }
+}
+
+/* ═══ ACTION BUTTON LABELS (CSS-only) ═══ */
+.table-actions {
+  display: flex !important;
+  flex-wrap: wrap;
+  gap: 3px;
+}
+.table-actions .btn-sm {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  min-width: 42px;
+  padding: 4px 3px 2px;
+  border-radius: 8px;
+  font-size: 14px;
+  position: relative;
+}
+.table-actions .btn-sm::after {
+  content: attr(title);
+  font-size: 7px;
+  font-weight: 700;
+  line-height: 1;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  display: block;
+  max-width: 48px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  opacity: 0.9;
+  color: inherit;
+}
+/* Hide ::after for buttons without title */
+.table-actions .btn-sm:not([title])::after {
+  display: none;
+}
+@media (max-width: 640px) {
+  .table-actions .btn-sm {
+    min-width: 36px;
+    padding: 3px 2px 1px;
+    font-size: 13px;
+  }
+  .table-actions .btn-sm::after {
+    font-size: 6px;
+    max-width: 38px;
+  }
+}
