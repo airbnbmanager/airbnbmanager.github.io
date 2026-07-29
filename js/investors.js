@@ -20,7 +20,7 @@ async function renderManageInvestors() {
     invPropMap[l.investor_id].push(l);
   });
 
-  const isO = ['owner','admin','developer','moderator'].includes(SESSION.role);
+  const isO = ['developer','admin'].includes(SESSION.role);
 
   renderShell(`
     <div class="card">
@@ -233,18 +233,30 @@ async function updateInvestor(investorId) {
 
 // ============ DELETE INVESTOR ============
 async function deleteInvestor(investorId, name) {
-  if (!confirm(`Delete investor "${name}"?\n\nProperty links bhi remove hongi.`)) return;
+  if (!confirm(`⚠️ Delete investor "${name}"?\n\nProperty links bhi remove ho jayengi.`)) return;
 
   try {
-    // Remove property links
-    await sb.from('investor_properties').delete().eq('investor_id', investorId);
-    // Remove investor
-    const { error } = await sb.from('investors').delete().eq('investor_id', investorId);
-    if (error) throw new Error(error.message);
+    console.log('🗑️ Deleting investor:', investorId);
 
-    fsn.success(`Success`, `✅ Investor "${name}" deleted`);
+    // Step 1: Remove property links with select() for verification
+    const linkResult = await sb.from('investor_properties').delete().eq('investor_id', investorId).select();
+    console.log('Link delete result:', linkResult);
+
+    // Step 2: Remove investor with select() for verification
+    const invResult = await sb.from('investors').delete().eq('investor_id', investorId).select();
+    console.log('Investor delete result:', invResult);
+
+    if (invResult.error) throw new Error(invResult.error.message);
+
+    // Verify actually deleted
+    if (!invResult.data || invResult.data.length === 0) {
+      throw new Error('BACKEND BLOCKED: 0 rows deleted. Supabase RLS policy issue. Check SQL Editor.');
+    }
+
+    fsn.success(`Success`, `✅ Investor "${name}" deleted (${invResult.data.length} row)`);
     renderManageInvestors();
   } catch (err) {
+    console.error('Delete error:', err);
     fsn.error('Error', '❌ Delete failed: ' + err.message);
   }
 }
