@@ -50,7 +50,7 @@ async function renderManageInvestors() {
             <td class="table-actions" style="white-space:nowrap;">
               ${iLinks.map(l => `<button class="btn-sm" title="Report ${l.room_id}" onclick="renderInvestorReport('${i.investor_id}','${l.room_id}')">📊</button>`).join('')}
               ${isO ? `<button class="btn-sm" title="Edit" onclick="editInvestor('${i.investor_id}')">✏️</button>` : ''}
-              ${isO && window.canDelete && window.canDelete() ? `<button class="btn-sm danger" title="Delete" onclick="deleteInvestor('${i.investor_id}','${i.name}')">🗑️</button>` : ''}
+              ${isO ? `<button class="btn-sm danger" title="Delete" onclick="deleteInvestor('${i.investor_id}','${i.name}')">🗑️</button>` : ''}
             </td>
           </tr>`;
         }).join('')}</tbody>
@@ -828,7 +828,7 @@ window.whatsappInvestorReport = async function(investorId, roomId, monthYear) {
 
     const bks = bookings || [];
     const totalRevenue = bks.reduce((s, b) => s + (b.total_amount || 0), 0);
-    const investorShare = inv.share_percent || 0;
+    const investorShare = inv.revenue_share_pct || 70;
     const investorAmount = Math.round((totalRevenue * investorShare) / 100);
     const houseAmount = totalRevenue - investorAmount;
 
