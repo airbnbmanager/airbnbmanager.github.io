@@ -726,7 +726,7 @@ async function renderManageBookings() {
           <td>${statusBadge}</td>
           <td>
             <strong style="cursor:pointer;text-decoration:underline;color:var(--blue);"
-              onclick="showGuestLedger('${(b.guest_name || '').replace(/'/g, "\\'")}')">${b.guest_name || '-'}</strong>${typeof getGuestTierBadge === 'function' ? getGuestTierBadge(b) : ''}${b.is_cancelled ? ' <span class="badge red" style="font-size:9px;" title="' + (b.cancellation_reason || '').replace(/"/g,'&quot;') + '">🚫 CANCELLED</span>' : ''}${b.verification_status === 'pending' ? ' <span class="badge yellow" style="font-size:9px;">🟡 Pending</span>' : ''}${b.verification_status === 'rejected' ? ' <span class="badge red" style="font-size:9px;" title="' + (b.rejection_reason || '').replace(/"/g,'&quot;') + '">❌ Rejected</span>' : ''}<br>
+              onclick="showGuestLedger('${(b.guest_name || '').replace(/'/g, "\\'")}')">${b.guest_name || '-'}</strong>${typeof getGuestTierBadge === 'function' ? getGuestTierBadge(b) : ''}${b.is_cancelled ? ' <span class="badge red" style="font-size:9px;" title="' + (b.cancellation_reason || '').replace(/"/g,'&quot;') + '">🚫 CANCELLED</span>' : ''}${b.verification_status === 'pending' ? ' <span class="badge yellow" style="font-size:9px;">🟡 Pending</span>' : ''}${b.is_review_booking ? ' <span class="badge" style="font-size:9px;background:#8B5CF6;color:#fff;">👻 Review</span>' : ''}${b.verification_status === 'rejected' ? ' <span class="badge red" style="font-size:9px;" title="' + (b.rejection_reason || '').replace(/"/g,'&quot;') + '">❌ Rejected</span>' : ''}<br>
             <small style="color:var(--muted);">${b.phone || ''}</small>
             ${b.created_by ? '<br><small style="color:#888;font-size:10px;">👤 ' + (window._userNameCache[b.created_by] || b.booked_by || 'User') + '</small>' : (b.booked_by ? '<br><small style="color:#888;font-size:10px;">👤 ' + b.booked_by + '</small>' : '')}
             ${b.verification_status === 'pending' && isTrustedUser() ? '<br><button class="btn-sm green-btn" style="padding:2px 8px;font-size:10px;margin-top:2px;" onclick="event.stopPropagation();approveBooking(\'' + b.booking_id + '\')">✅ Approve</button> <button class="btn-sm danger" style="padding:2px 8px;font-size:10px;" onclick="event.stopPropagation();rejectBooking(\'' + b.booking_id + '\')">❌ Reject</button>' : ''}
@@ -805,6 +805,8 @@ function clearBkFilters() {
 
 // ============ ADD BOOKING ============
 async function renderAddBooking() {
+  const today_iso = new Date().toISOString().slice(0,10);
+  const { data: recentBookings } = await sb.from('guest_register').select('booking_id, guest_name, room_id, check_in, check_out, rooms(nickname)').gte('check_out', today_iso).eq('is_review_booking', false).order('check_in', {ascending: true}).limit(100);
   const pre = window._bookingPrefill || {};
   const {data:rooms} = await sb.from('rooms')
     .select('room_id, unit_no, nickname, property_name, bookable, checkin_manager, caretaker_phone, map_link')
@@ -880,6 +882,19 @@ async function renderAddBooking() {
           </select>
         </div>
       </div>
+
+      <div class="form-group" style="padding:12px;background:#FFF8E1;border-radius:8px;border:1px solid #FFC107;">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:600;">
+          <input type="checkbox" id="isReviewBooking" onchange="toggleReviewBooking()" style="width:18px;height:18px;" />
+          <span>🔗 Review Booking (Airbnb duplicate — for reviews only)</span>
+        </label>
+        <div id="linkedBookingWrap" style="display:none;margin-top:8px;">
+          <label style="font-size:12px;color:#666;">Link to existing booking:</label>
+          <select id="linkedBookingId" style="width:100%;padding:8px;margin-top:4px;"><option value="">-- Select existing booking --</option>${(recentBookings || []).map(rb => `<option value="${rb.booking_id}">${rb.guest_name} — ${rb.rooms?.nickname || rb.room_id} (${rb.check_in} to ${rb.check_out})</option>`).join('')}</select>
+          <div style="font-size:11px;color:#888;margin-top:4px;">This booking will skip clash check + not count in revenue/occupancy</div>
+        </div>
+      </div>
+
 
       <div id="onlineBox" style="display:none;background:#f0f7ff;padding:12px;border-radius:8px;margin:6px 0;">
         <div class="section-title">🌐 Source Listing</div>
@@ -1638,7 +1653,8 @@ async function saveBooking() {
     if (ci && co) {
       const { data: ex } = await sb.from('guest_register')
         .select('booking_id,guest_name,check_in,check_out').eq('room_id', rid);
-      const clash = (ex || []).find(b => b.check_in && b.check_out && b.check_in < co && b.check_out > ci);
+      const isReviewBk = document.getElementById('isReviewBooking')?.checked;
+      const clash = isReviewBk ? null : (ex || []).find(b => b.check_in && b.check_out && b.check_in < co && b.check_out > ci);
       if (clash) {
         document.getElementById('addBkErr').innerHTML =
           `<div class="error">⚠️ Clash: ${clash.guest_name} (${clash.check_in}→${clash.check_out})</div>`;
@@ -1664,6 +1680,8 @@ async function saveBooking() {
     const { error } = await sb.from('guest_register').insert({
       ...approvalMeta(),
       booking_id: bkId, guest_name: gn, phone: ph || null,
+      is_review_booking: document.getElementById('isReviewBooking')?.checked || false,
+      linked_booking_id: document.getElementById('linkedBookingId')?.value || null,
       id_proof_type: idType || null, id_proof_no: idNo || null,
       id_proof_photo_path: photos.firstPath, id_proof_photo_paths: photos.allPaths,
       id_proof_front_paths: photos.frontPaths, id_proof_back_paths: photos.backPaths,
@@ -1845,6 +1863,8 @@ async function editBooking(bkId) {
   const { data: b } = await sb.from('guest_register').select('*').eq('booking_id', bkId).single();
   if (!b) { fsn.error('Error', 'Not found'); return; }
   window._origBooking = b; // ✅ Store original for auto-dirty check
+  const today_iso = new Date().toISOString().slice(0,10);
+  const { data: recentBookings } = await sb.from('guest_register').select('booking_id, guest_name, room_id, check_in, check_out, rooms(nickname)').gte('check_out', today_iso).eq('is_review_booking', false).order('check_in', {ascending: true}).limit(100);
   const { data: rooms } = await sb.from('rooms').select('room_id,unit_no,nickname,property_name').order('room_id');
   const { data: pays } = await sb.from('payment_history').select('*').eq('booking_id', bkId).order('paid_at', { ascending: false });
   const tp = (pays || []).reduce((s, p) => s + (p.amount || 0), 0);
@@ -1910,6 +1930,18 @@ async function editBooking(bkId) {
         <div class="form-group"><label>Guest Name</label><input id="guestName" value="${b.guest_name || ''}" /></div>
         <div class="form-group"><label>Phone</label><input id="guestPhone" value="${b.phone || ''}" /></div>
       </div>
+      <div class="form-group" style="padding:12px;background:#FFF8E1;border-radius:8px;border:1px solid #FFC107;">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:600;">
+          <input type="checkbox" id="isReviewBooking" ${b.is_review_booking ? 'checked' : ''} onchange="toggleReviewBooking()" style="width:18px;height:18px;" />
+          <span>🔗 Review Booking (Airbnb duplicate — for reviews only)</span>
+        </label>
+        <div id="linkedBookingWrap" style="display:${b.is_review_booking ? 'block' : 'none'};margin-top:8px;">
+          <label style="font-size:12px;color:#666;">Link to existing booking:</label>
+          <select id="linkedBookingId" style="width:100%;padding:8px;margin-top:4px;"><option value="">-- Select existing booking --</option>${(recentBookings || []).map(rb => `<option value="${rb.booking_id}" ${b.linked_booking_id === rb.booking_id ? 'selected' : ''}>${rb.guest_name} — ${rb.rooms?.nickname || rb.room_id} (${rb.check_in})</option>`).join('')}</select>
+          <div style="font-size:11px;color:#888;margin-top:4px;">Skips clash check + not counted in revenue/occupancy</div>
+        </div>
+      </div>
+
       <div class="form-grid">
         <div class="form-group"><label>ID Type</label>
           <select id="idType">
@@ -2106,7 +2138,8 @@ async function updateBooking(bkId, parentBookingId = '', stayGroupId = '') {
   if (ci && co) {
     const { data: ex } = await sb.from('guest_register')
       .select('booking_id,guest_name,check_in,check_out').eq('room_id', rid).neq('booking_id', bkId);
-    const clash = (ex || []).find(b => b.check_in && b.check_out && b.check_in < co && b.check_out > ci);
+    const isReviewBk = document.getElementById('isReviewBooking')?.checked;
+    const clash = isReviewBk ? null : (ex || []).find(b => b.check_in && b.check_out && b.check_in < co && b.check_out > ci);
     if (clash) { document.getElementById('editBkErr').innerHTML = `<div class="error">Clash: ${clash.guest_name}</div>`; return; }
   }
 
@@ -2171,6 +2204,8 @@ async function updateBooking(bkId, parentBookingId = '', stayGroupId = '') {
 
   const obj = {
     guest_name: gn, phone: document.getElementById('guestPhone').value.trim() || null,
+    is_review_booking: document.getElementById('isReviewBooking')?.checked || false,
+    linked_booking_id: document.getElementById('linkedBookingId')?.value || null,
     id_proof_type: document.getElementById('idType').value || null,
     id_proof_no: document.getElementById('idNo').value.trim() || null,
     room_id: rid, source_room_id: sourceRoomId,
@@ -3247,3 +3282,11 @@ setInterval(function() { if (window.sb && window.SESSION?.userId && isTrustedUse
 setTimeout(function() { if (window.sb && window.SESSION?.userId && isTrustedUser()) window.fetchPendingCount(); }, 3000);
 
 
+
+
+// Toggle review booking dropdown visibility
+window.toggleReviewBooking = function() {
+  const wrap = document.getElementById('linkedBookingWrap');
+  const cb = document.getElementById('isReviewBooking');
+  if (wrap && cb) wrap.style.display = cb.checked ? 'block' : 'none';
+};
