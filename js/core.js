@@ -25,7 +25,7 @@ window.canDelete = function() {
 };
 
 window.canEdit = function() {
-  return ['developer', 'owner', 'admin', 'moderator'].includes(SESSION.role);
+  return ['developer', 'admin', 'moderator'].includes(SESSION.role);
 };
 
 window.canView = function() {
@@ -38,7 +38,7 @@ window.isReadOnly = function() {
 
 window.canModerate = function() {
   // Booking, ID upload, attendance, WhatsApp
-  return ['developer', 'owner', 'admin', 'moderator'].includes(SESSION.role);
+  return ['developer', 'admin', 'moderator'].includes(SESSION.role);
 };
 
 window.canManageUsers = function() {
