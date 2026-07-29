@@ -274,30 +274,37 @@ async function renderDashboard() {
       <div class="stat-card" style="border-left:4px solid var(--green);">
         <div class="stat-num">${realCheckins.length}</div>
         <div class="stat-label">📥 Check-in Today</div>
-        ${realCheckins.slice(0, 3).map(x => `
+        <div style="max-height:200px;overflow-y:auto;">
+        ${realCheckins.map(x => `
           <div style="font-size:12px;margin-top:4px;padding:4px 0;border-bottom:1px solid var(--border);">
             <strong>${x.guest_name}</strong> — ${bName(x)}<br>
             <small style="color:var(--muted);">📞 ${x.phone || '-'} · 🕐 ${x.check_in_time || '2 PM'}</small>
             ${x.has_vehicle ? `<br><small>🚗 ${x.vehicle_name || ''} ${x.vehicle_number || ''}</small>` : ''}
           </div>
         `).join('') || '<div class="sub" style="margin:4px 0 0;">None</div>'}
+        </div>
       </div>
 
       <div class="stat-card" style="border-left:4px solid var(--primary);">
         <div class="stat-num">${realCheckouts.length}</div>
         <div class="stat-label">📤 Check-out Today</div>
-        ${realCheckouts.slice(0, 3).map(x => `
-          <div style="font-size:12px;margin-top:4px;">
+        <div style="max-height:200px;overflow-y:auto;">
+        ${realCheckouts.map(x => `
+          <div style="font-size:12px;margin-top:4px;padding:4px 0;border-bottom:1px solid var(--border);">
             <strong>${x.guest_name}</strong> — ${bName(x)}<br>
-            <small>🕐 ${x.check_out_time || '11 AM'}</small>
+            <small style="color:var(--muted);">📞 ${x.phone || '-'} · 🕐 ${x.check_out_time || '11 AM'}</small>
           </div>
         `).join('') || '<div class="sub" style="margin:4px 0 0;">None</div>'}
+        </div>
       </div>
 
-      <div class="stat-card" style="border-left:4px solid #60a5fa;cursor:pointer;" onclick="navigate('flats')">
-        <div class="stat-num">${bookedNow.length}/${totalProps}</div>
-        <div class="stat-label">🛏️ Occupied (${occupancyPct}%)</div>
-        ${bookedNow.slice(0, 4).map(x => `<div style="font-size:11px;margin-top:2px;">${fName(x)}</div>`).join('') || '<div class="sub" style="margin:4px 0 0;">All free</div>'}
+      <div class="stat-card" style="border-left:4px solid #60a5fa;cursor:pointer;" onclick="filterAndShowBookings('currentStay')">
+        <div class="stat-num">${activeNow.length}/${totalProps}</div>
+        <div class="stat-label">🛏️ Occupied (${Math.round(activeNow.length/totalProps*100) || 0}%)</div>
+        <div style="max-height:180px;overflow-y:auto;">
+        ${activeNow.map(x => `<div style="font-size:11px;margin-top:2px;padding:2px 0;border-bottom:1px dashed #eee;"><strong>${x.guest_name}</strong> — ${bName(x)}</div>`).join('') || '<div class="sub" style="margin:4px 0 0;">All free</div>'}
+        </div>
+        ${activeNow.length > 0 ? `<div style="font-size:10px;color:var(--primary);margin-top:6px;text-align:right;">→ View all bookings</div>` : ''}
       </div>
     </div>
 
@@ -306,19 +313,26 @@ async function renderDashboard() {
       <div class="stat-card" style="border-left:4px solid var(--green);cursor:pointer;" onclick="navigate('flats')">
         <div class="stat-num">${freeClean.length}</div>
         <div class="stat-label">✅ Ready to Book</div>
-        ${freeClean.slice(0, 4).map(x => `<div style="font-size:11px;margin-top:2px;">${fName(x)}</div>`).join('') || '<div class="sub" style="margin:4px 0 0;">None</div>'}
+        <div style="max-height:180px;overflow-y:auto;">
+        ${freeClean.map(x => `<div style="font-size:11px;margin-top:2px;padding:2px 0;border-bottom:1px dashed #eee;">${fName(x)}</div>`).join('') || '<div class="sub" style="margin:4px 0 0;">None</div>'}
+        </div>
       </div>
 
       <div class="stat-card" style="border-left:4px solid var(--red);cursor:pointer;" onclick="navigate('flats')">
         <div class="stat-num">${dirty.length}</div>
         <div class="stat-label">🧹 Need Cleaning</div>
-        ${dirty.slice(0, 4).map(x => `<div style="font-size:11px;margin-top:2px;">${fName(x)}</div>`).join('') || '<div class="sub" style="margin:4px 0 0;">All clean ✅</div>'}
+        <div style="max-height:180px;overflow-y:auto;">
+        ${dirty.map(x => `<div style="font-size:11px;margin-top:2px;padding:2px 0;border-bottom:1px dashed #eee;">${fName(x)}</div>`).join('') || '<div class="sub" style="margin:4px 0 0;">All clean ✅</div>'}
+        </div>
       </div>
 
-      <div class="stat-card" style="border-left:4px solid var(--blue);cursor:pointer;" onclick="navigate('bookings')">
+      <div class="stat-card" style="border-left:4px solid var(--blue);cursor:pointer;" onclick="filterAndShowBookings('currentStay')">
         <div class="stat-num">${activeNow.length}</div>
         <div class="stat-label">🟢 Currently Staying</div>
-        ${activeNow.slice(0, 3).map(x => `<div style="font-size:11px;margin-top:2px;">${x.guest_name} — ${bName(x)}</div>`).join('') || '<div class="sub" style="margin:4px 0 0;">None</div>'}
+        <div style="max-height:180px;overflow-y:auto;">
+        ${activeNow.map(x => `<div style="font-size:11px;margin-top:2px;padding:2px 0;border-bottom:1px dashed #eee;"><strong>${x.guest_name}</strong> — ${bName(x)}</div>`).join('') || '<div class="sub" style="margin:4px 0 0;">None</div>'}
+        </div>
+        ${activeNow.length > 0 ? `<div style="font-size:10px;color:var(--primary);margin-top:6px;text-align:right;">→ View all</div>` : ''}
       </div>
     </div>
 
@@ -875,6 +889,8 @@ function filterAndShowBookings(type) {
   } else if (type === 'checkoutToday') {
     SESSION.bookingDateFrom = today;
     SESSION.bookingDateTo = today;
+  } else if (type === 'currentStay') {
+    SESSION._filterCurrentStay = true;
   }
 
   navigate('bookings');
