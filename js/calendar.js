@@ -481,13 +481,13 @@ async function renderFYSummary(range = 'FY', propFilter = '', modeFilter = '') {
   else { let fy = now.getMonth() >= 3 ? now.getFullYear() : now.getFullYear() - 1; s = fy + '-04-01'; e = (fy + 1) + '-03-31'; label = `FY ${fy}-${fy + 1}`; }
 
   const [gs, ex, py] = await Promise.all([
-    sb.from('guest_register').select('booking_id,check_in,total_amount,room_id,guest_name,booking_mode'),
+    sb.from('guest_register').select('booking_id,check_in,total_amount,room_id,guest_name,booking_mode,is_review_booking'),
     sb.from('expenses').select('amount,month'),
     sb.from('payment_history').select('booking_id,amount'),
   ]);
 
   let fg = (gs.data || []).filter(g => g.check_in >= s && g.check_in <= e);
-  fg = fg.filter(g => g.guest_name && g.guest_name.toLowerCase().trim() !== 'pending');
+  fg = fg.filter(g => g.guest_name && g.guest_name.toLowerCase().trim() !== 'pending' && !g.is_review_booking);
   if (propFilter) fg = fg.filter(g => g.room_id === propFilter);
   if (modeFilter === 'Online') fg = fg.filter(g => g.booking_mode === 'Online-Airbnb');
   if (modeFilter === 'Offline') fg = fg.filter(g => g.booking_mode !== 'Online-Airbnb');
