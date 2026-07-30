@@ -772,7 +772,11 @@ async function renderManageBookings() {
               ? `<br><small style="color:var(--blue);font-size:10px;">📍 ${propLabel(roomMap[b.source_room_id]) || b.source_room_id}</small>`
               : ''}
           </td>
-          <td><span class="badge ${b.booking_mode === 'Online-Airbnb' ? 'blue' : 'yellow'}">${b.booking_mode === 'Online-Airbnb' ? 'On' : 'Off'}</span></td>
+          <td>
+              <span class="badge ${b.booking_mode === 'Online-Airbnb' ? 'blue' : 'yellow'}">${b.booking_mode === 'Online-Airbnb' ? 'On' : 'Off'}</span>
+              ${b.is_review_booking ? '<span class="badge" style="background:#722ED1;color:#fff;font-size:9px;">⭐ REVIEW</span>' : ''}
+              ${b.linked_booking_id ? `<span class="badge" style="background:#0EA5E9;color:#fff;font-size:9px;cursor:pointer;" title="Linked to booking ${b.linked_booking_id}" onclick="showLinkedBooking('${b.linked_booking_id}')">🔗 LINKED</span>` : ''}
+            </td>
           <td><small>${b.check_in || '-'}</small></td>
           <td><small>${b.check_out || '-'}</small></td>
           <td>${buildIdButtons(b)}</td>
@@ -3421,4 +3425,61 @@ window.switchPaymentBooking = function(newBkId, oldBkId) {
   document.querySelector('.modal-overlay')?.remove();
   window._paymentConfirmedForDupe = false;
   showPaymentModal(newBkId);
+};
+
+
+// ═══ SHOW LINKED BOOKING DETAILS ═══
+window.showLinkedBooking = async function(linkedBookingId) {
+  const { data: bk } = await sb.from('guest_register')
+    .select('booking_id, guest_name, phone, room_id, booking_mode, check_in, check_out, total_amount, is_review_booking')
+    .eq('booking_id', linkedBookingId).single();
+  
+  if (!bk) {
+    fsn.error('Not Found', 'Linked booking not found');
+    return;
+  }
+
+  const modal = document.createElement('div');
+  modal.className = 'modal-overlay';
+  modal.onclick = e => { if (e.target === modal) modal.remove(); };
+
+  modal.innerHTML = `
+    <div class="modal-box" style="max-width:450px;">
+      <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">✕</button>
+      <h2>🔗 Linked Booking</h2>
+      <div style="background:#F0F9FF;padding:14px;border-radius:8px;margin-top:12px;border:1px solid #0EA5E9;">
+        <div style="font-size:16px;font-weight:700;">${bk.guest_name}</div>
+        <div style="font-size:12px;color:#666;margin-top:4px;">
+          📞 ${bk.phone || '-'} · 🏠 ${bk.room_id}<br>
+          📅 ${bk.check_in} → ${bk.check_out || 'Open'}<br>
+          💰 ₹${(bk.total_amount || 0).toLocaleString('en-IN')}<br>
+          <span class="badge ${bk.booking_mode === 'Online-Airbnb' ? 'blue' : 'yellow'}">${bk.booking_mode}</span>
+          ${bk.is_review_booking ? '<span class="badge" style="background:#722ED1;color:#fff;">⭐ REVIEW</span>' : ''}
+        </div>
+      </div>
+      <div style="margin-top:14px;font-size:12px;color:#666;font-style:italic;">
+        💡 Dono bookings same guest ka hai — offline stay + online review booking
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+};
+
+// ═══ AUTO-DETECT DUPLICATE ═══
+window.detectDuplicateBookings = function(bookings) {
+  const groups = {};
+  bookings.forEach(b => {
+    if (b.is_cancelled) return;
+    const key = `${b.room_id}_${b.check_in}`;
+    if (!groups[key]) groups[key] = [];
+    groups[key].push(b);
+  });
+  
+  const dupes = {};
+  Object.entries(groups).forEach(([key, bks]) => {
+    if (bks.length > 1) {
+      bks.forEach(b => dupes[b.booking_id] = bks.length);
+    }
+  });
+  return dupes;
 };
