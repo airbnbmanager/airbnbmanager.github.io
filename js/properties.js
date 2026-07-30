@@ -265,6 +265,10 @@ async function deleteRoom(id, name) {
 
 // ============ FLATS STATUS ============
 async function renderFlatsStatus() {
+  // 🎯 Dashboard filter support
+  const dashFilter = SESSION._filterFlatsStatus || '';
+  SESSION._filterFlatsStatus = null; // Clear after read
+
   renderShell(`<div class="loading">Loading...</div>`, 'flats');
 
   const { data: flats, error } = await sb.from('flats_status')

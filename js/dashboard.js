@@ -315,7 +315,7 @@ async function renderDashboard() {
 
     <!-- Operations Row 2 -->
     <div class="stat-grid">
-      <div class="stat-card" style="border-left:4px solid var(--green);cursor:pointer;" onclick="navigate('flats')">
+      <div class="stat-card" style="border-left:4px solid var(--green);cursor:pointer;" onclick="filterAndShowFlats('clean')">
         <div class="stat-num">${freeClean.length}</div>
         <div class="stat-label">✅ Ready to Book</div>
         <div style="max-height:180px;overflow-y:auto;">
@@ -323,7 +323,7 @@ async function renderDashboard() {
         </div>
       </div>
 
-      <div class="stat-card" style="border-left:4px solid var(--red);cursor:pointer;" onclick="navigate('flats')">
+      <div class="stat-card" style="border-left:4px solid var(--red);cursor:pointer;" onclick="filterAndShowFlats('dirty')">
         <div class="stat-num">${dirty.length}</div>
         <div class="stat-label">🧹 Need Cleaning</div>
         <div style="max-height:180px;overflow-y:auto;">
@@ -343,7 +343,7 @@ async function renderDashboard() {
 
     <!-- Staff & Alerts Row -->
     <div class="stat-grid">
-      <div class="stat-card" style="border-left:4px solid var(--green);cursor:pointer;" onclick="navigate('attendance')">
+      <div class="stat-card" style="border-left:4px solid var(--green);cursor:pointer;" onclick="filterAndShowAttendance('present')">
         <div class="stat-num" style="color:var(--green);">${presentToday}/${totalEmps}</div>
         <div class="stat-label">👥 Staff Present</div>
       </div>
@@ -899,6 +899,24 @@ function filterAndShowBookings(type) {
   } else if (type === 'review') {
     SESSION._filterReviewOnly = true;
   }
+
+  navigate('bookings');
+}
+
+// ═══ FLATS PAGE FILTERS ═══
+function filterAndShowFlats(type) {
+  SESSION._filterFlatsStatus = type; // 'clean', 'dirty', 'occupied'
+  navigate('flats');
+}
+
+// ═══ ATTENDANCE PAGE FILTER ═══
+function filterAndShowAttendance(type) {
+  SESSION._filterAttendanceType = type; // 'present', 'absent'
+  navigate('attendance');
+}
+
+// Placeholder to avoid double navigate call
+function _oldFilterEnd() {
 
   navigate('bookings');
 }

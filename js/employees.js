@@ -511,6 +511,10 @@ async function delTask(id) {
 
 // ============ ATTENDANCE ============
 async function renderAttendance(selectedDate) {
+  // 🎯 Dashboard filter support
+  const dashAttFilter = SESSION._filterAttendanceType || '';
+  SESSION._filterAttendanceType = null; // Clear after read
+
   renderShell(`<div class="loading">Loading...</div>`, 'attendance');
   const today = new Date().toISOString().slice(0, 10);
   const attDate = selectedDate || today;

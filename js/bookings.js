@@ -583,6 +583,24 @@ async function renderManageBookings() {
   // Payment filter
   const payFilter = SESSION.bookingPayFilter;
   // No ID filter (from dashboard KPI)
+  // 🟢 Currently Staying filter
+  if (SESSION._filterCurrentStay) {
+    const today = new Date().toISOString().slice(0, 10);
+    bookings = bookings.filter(b => 
+      b.check_in && b.check_in <= today && 
+      (!b.check_out || b.check_out > today) &&
+      !b.is_cancelled &&
+      b.verification_status !== 'rejected'
+    );
+    SESSION._filterCurrentStay = null;
+  }
+
+  // ⭐ Review Bookings filter
+  if (SESSION._filterReviewOnly) {
+    bookings = bookings.filter(b => b.is_review_booking === true);
+    SESSION._filterReviewOnly = null;
+  }
+
   if (SESSION._filterNoId) {
     f = f.filter(b => {
       const hasId = (b.id_proof_photo_paths || b.id_proof_photo_path || '').split(',').filter(Boolean).length > 0;
