@@ -1081,44 +1081,121 @@ async function renderFriendsReport(investorId, roomId, month) {
 }
 
 
-// ═══ QUICK ACTIONS — WhatsApp + Email ═══
+
+// ═══ QUICK ACTIONS — Professional WhatsApp + Email ═══
 window.quickWhatsAppInvestor = async function(investorId) {
   try {
+    // Fetch investor + linked properties
     const { data: inv } = await sb.from('investors').select('*').eq('investor_id', investorId).single();
-    if (!inv || !inv.phone) {
-      fsn.error('Error', 'Phone number not available');
-      return;
-    }
+    if (!inv) { fsn.error('Error', 'Investor not found'); return; }
+    if (!inv.phone) { fsn.error('Error', 'Phone number not available'); return; }
     
+    // Get linked properties
+    const { data: links } = await sb.from('investor_properties')
+      .select('room_id, rooms(nickname, property_name)')
+      .eq('investor_id', investorId);
+    
+    const propNames = (links || []).map(l => 
+      l.rooms?.nickname || l.rooms?.property_name || l.room_id
+    ).join(', ') || 'your properties';
+    
+    // Format phone (add 91 if 10 digits)
     const phone = inv.phone.replace(/[^0-9]/g, '');
     const finalPhone = phone.length === 10 ? '91' + phone : phone;
     
-    const message = 'Namaste ' + inv.name + ',\n\nAap se ' + BRAND + ' regarding baat karna hai.\n\nRegards';
+    // Get current month name
+    const now = new Date();
+    const monthName = now.toLocaleString('en-IN', { month: 'long', year: 'numeric' });
+    const share = inv.revenue_share_pct || 70;
+    
+    // Professional WhatsApp message
+    const NL = String.fromCharCode(10);
+    const message = 
+      '🏨 *UNIQUE HAVEN HOMES STAY*' + NL + NL +
+      'Namaste ' + inv.name + ' ji 🙏' + NL + NL +
+      'Umeed hai aap kushal honge. Aapki property *' + propNames + '* ka update:' + NL + NL +
+      '📅 *Month:* ' + monthName + NL +
+      '📊 *Your Share:* ' + share + '%' + NL + NL +
+      'Kripya confirm karein ki aapko monthly report mil gayi hai ya koi query ho toh batayein.' + NL + NL +
+      'Detailed report separately share ki jayegi.' + NL + NL +
+      '───────────────' + NL +
+      '*Regards,*' + NL +
+      'Praveen Mishra' + NL +
+      'Team UHHS' + NL +
+      '📞 +91 9450055554';
+    
     const url = 'https://wa.me/' + finalPhone + '?text=' + encodeURIComponent(message);
     window.open(url, '_blank');
+    
+    if (typeof fsn !== 'undefined') fsn.success('Opening WhatsApp', 'Message ready for ' + inv.name);
   } catch (e) {
-    fsn.error('Error', e.message);
+    console.error('WhatsApp error:', e);
+    if (typeof fsn !== 'undefined') fsn.error('Error', e.message);
   }
 };
 
 window.quickEmailInvestor = async function(investorId) {
   try {
+    // Fetch investor + linked properties
     const { data: inv } = await sb.from('investors').select('*').eq('investor_id', investorId).single();
     if (!inv) { fsn.error('Error', 'Not found'); return; }
     
+    // Extract email from notes
     const emailMatch = (inv.notes || '').match(/Email:\s*(\S+)/);
     const email = emailMatch ? emailMatch[1] : '';
     
     if (!email) {
-      fsn.error('Error', 'Email not set for this investor');
+      fsn.error('Error', 'Email not set. Edit investor and add Email in profile.');
       return;
     }
     
-    const subject = BRAND + ' - Monthly Update';
-    const body = 'Namaste ' + inv.name + ',\n\nAap se ' + BRAND + ' regarding baat karna hai.\n\nRegards';
-    const url = 'mailto:' + email + '?subject=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(body);
+    // Get linked properties
+    const { data: links } = await sb.from('investor_properties')
+      .select('room_id, rooms(nickname, property_name)')
+      .eq('investor_id', investorId);
+    
+    const propNames = (links || []).map(l => 
+      l.rooms?.nickname || l.rooms?.property_name || l.room_id
+    ).join(', ') || 'your properties';
+    
+    // Current month
+    const now = new Date();
+    const monthName = now.toLocaleString('en-IN', { month: 'long', year: 'numeric' });
+    const share = inv.revenue_share_pct || 70;
+    
+    const subject = monthName + ' Monthly Report - ' + propNames + ' - UHHS';
+    
+    const body = 
+      'Namaste ' + inv.name + ' ji,\n\n' +
+      'Umeed hai aap kushal honge.\n\n' +
+      'Aapki property "' + propNames + '" ki monthly financial summary ke liye ye email hai.\n\n' +
+      '📅 Reporting Period: ' + monthName + '\n' +
+      '📊 Your Revenue Share: ' + share + '%\n\n' +
+      'Complete detailed report attached mein bheji ja rahi hai. Isme included hai:\n' +
+      '• Total revenue breakdown\n' +
+      '• Online (Airbnb) vs Offline bookings\n' +
+      '• Operating expenses\n' +
+      '• Your share calculation\n' +
+      '• Booking-wise details\n\n' +
+      'Kripya report review karein aur koi query ho toh niche diye number pe contact karein.\n\n' +
+      'Aapka support hamesha appreciated hai. Dhanyawad!\n\n' +
+      '───────────────────────\n' +
+      'Warm regards,\n\n' +
+      'Praveen Mishra\n' +
+      'UNIQUE HAVEN HOMES STAY\n' +
+      '📞 +91 9450055554\n' +
+      '📧 uniquehavenhomesstay@gmail.com\n' +
+      '🌐 uniquehavenhomesstay.com\n' +
+      '───────────────────────';
+    
+    const url = 'mailto:' + email + 
+                '?subject=' + encodeURIComponent(subject) + 
+                '&body=' + encodeURIComponent(body);
     window.location.href = url;
+    
+    if (typeof fsn !== 'undefined') fsn.success('Opening Email', 'Ready to send to ' + email);
   } catch (e) {
-    fsn.error('Error', e.message);
+    console.error('Email error:', e);
+    if (typeof fsn !== 'undefined') fsn.error('Error', e.message);
   }
 };
