@@ -180,7 +180,59 @@
   }
 
   // ─── Bell Panel ───
-  function openPanel() {
+  async function openPanel() {
+    // Fetch reminders first
+    let overdueRem = [], upcomingRem = [];
+    try {
+      const now = new Date().toISOString();
+      const in24h = new Date(Date.now() + 24*60*60*1000).toISOString();
+      
+      const [{ data: overdueRaw }, { data: upcomingRaw }] = await Promise.all([
+        sb.from('reminders').select('*').eq('is_resolved', false).lt('reminder_time', now).order('reminder_time', { ascending: false }).limit(10),
+        sb.from('reminders').select('*').eq('is_resolved', false).gte('reminder_time', now).lte('reminder_time', in24h).order('reminder_time').limit(10)
+      ]);
+      
+      // Get booking names
+      const allBkIds = [...new Set([...(overdueRaw||[]), ...(upcomingRaw||[])].map(r => r.booking_id))];
+      let bkMap = {};
+      if (allBkIds.length > 0) {
+        const { data: bks } = await sb.from('guest_register')
+          .select('booking_id, guest_name, room_id, phone').in('booking_id', allBkIds);
+        (bks || []).forEach(b => bkMap[b.booking_id] = b);
+      }
+      overdueRem = (overdueRaw || []).map(r => ({ ...r, bk: bkMap[r.booking_id] || {} }));
+      upcomingRem = (upcomingRaw || []).map(r => ({ ...r, bk: bkMap[r.booking_id] || {} }));
+    } catch(e) { console.error('Reminders fetch error:', e); }
+    
+    const typeIcon = t => ({ payment: '💰', id: '🪪', checkout: '🚪', custom: '📌' })[t] || '📌';
+    const renderRemItem = (r, isOverdue) => {
+      const time = new Date(r.reminder_time);
+      const timeStr = time.toLocaleString('en-IN', {day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit'});
+      return `
+        <div class="notif-item unread" style="background:${isOverdue ? '#FEE2E2' : '#FEF3C7'};border-left:4px solid ${isOverdue ? '#DC2626' : '#F59E0B'};cursor:pointer;" data-rem-id="${r.id}">
+          <div class="notif-icon">${typeIcon(r.reminder_type)}</div>
+          <div class="notif-body">
+            <div class="notif-title" style="color:${isOverdue ? '#991B1B' : '#78350F'};">
+              ${r.reminder_type.toUpperCase()}${r.amount > 0 ? ' — ₹' + r.amount : ''}
+              ${isOverdue ? ' <span style="background:#DC2626;color:#fff;padding:1px 6px;border-radius:8px;font-size:9px;">OVERDUE</span>' : ''}
+            </div>
+            <div class="notif-msg"><strong>${r.bk.guest_name || 'Unknown'}</strong> — ${r.bk.room_id || '-'}${r.reminder_note ? '<br><em>"' + r.reminder_note + '"</em>' : ''}</div>
+            <div class="notif-time">⏰ ${timeStr}</div>
+          </div>
+        </div>`;
+    };
+    
+    const remHtml = (overdueRem.length + upcomingRem.length) > 0 ? `
+      <div style="padding:8px 12px;background:#F9FAFB;border-bottom:1px solid #E5E7EB;font-weight:700;font-size:12px;color:#6B7280;text-transform:uppercase;letter-spacing:0.5px;">
+        📌 Reminders (${overdueRem.length + upcomingRem.length})
+      </div>
+      ${overdueRem.map(r => renderRemItem(r, true)).join('')}
+      ${upcomingRem.map(r => renderRemItem(r, false)).join('')}
+      <div style="padding:8px 12px;background:#F9FAFB;border-bottom:1px solid #E5E7EB;font-weight:700;font-size:12px;color:#6B7280;text-transform:uppercase;letter-spacing:0.5px;margin-top:4px;">
+        🔔 Recent Activity
+      </div>
+    ` : '';
+    
     const o = document.createElement('div');
     o.className = 'notif-panel-overlay';
     o.innerHTML = `
@@ -192,10 +244,12 @@
         <div class="notif-panel-actions">
           <button class="notif-mark-all">Mark all read</button>
           <button class="notif-clear-all">Clear all</button>
+          <button onclick="navigate('reminders');this.closest('.notif-panel-overlay').remove();" style="background:#7C3AED;color:#fff;">View All Reminders →</button>
         </div>
         <div class="notif-panel-list">
+          ${remHtml}
           ${NOTIF.history.length === 0
-            ? '<div class="notif-empty">No notifications yet</div>'
+            ? (remHtml ? '' : '<div class="notif-empty">No notifications yet</div>')
             : NOTIF.history.map(n => `
               <div class="notif-item ${n.read?'':'unread'}" data-id="${n.id}" data-page="${n.page||''}">
                 <div class="notif-icon">${n.icon}</div>
@@ -208,6 +262,15 @@
         </div>
       </div>`;
     document.body.appendChild(o);
+    
+    // Reminder item click → open reminders page
+    o.querySelectorAll('[data-rem-id]').forEach(el => {
+      el.onclick = () => {
+        o.classList.remove('show');
+        setTimeout(() => o.remove(), 250);
+        if (typeof navigate === 'function') navigate('reminders');
+      };
+    });
     setTimeout(() => o.classList.add('show'), 10);
     const close = () => { o.classList.remove('show'); setTimeout(() => o.remove(), 250); };
     o.onclick = e => { if (e.target === o) close(); };
