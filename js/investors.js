@@ -1135,6 +1135,66 @@ window.quickWhatsAppInvestor = async function(investorId) {
 };
 
 window.quickEmailInvestor = async function(investorId) {
+  // Show options dialog
+  const modal = document.createElement('div');
+  modal.className = 'modal-overlay';
+  modal.onclick = e => { if (e.target === modal) modal.remove(); };
+  const q = String.fromCharCode(39);
+  
+  modal.innerHTML = 
+    '<div class="modal-box" style="max-width:450px;">' +
+      '<button class="modal-close" onclick="this.closest(' + q + '.modal-overlay' + q + ').remove()">✕</button>' +
+      '<h2>📧 Send Email to Investor</h2>' +
+      '<p style="color:#666;font-size:13px;margin:10px 0;">Email attachment browser se nahi ja sakti. Do options:</p>' +
+      '<div style="display:flex;flex-direction:column;gap:10px;margin-top:16px;">' +
+        '<button onclick="generateReportPDFThenEmail(' + q + investorId + q + ');this.closest(' + q + '.modal-overlay' + q + ').remove()" style="background:#4285F4;color:#fff;padding:14px;border:none;border-radius:8px;cursor:pointer;font-size:14px;text-align:left;">' +
+          '<div style="font-weight:700;">📄 Generate PDF + Open Email</div>' +
+          '<div style="font-size:11px;opacity:0.9;margin-top:4px;">Report PDF download hoga, phir email draft khulega. PDF manually attach karo.</div>' +
+        '</button>' +
+        '<button onclick="sendPlainEmail(' + q + investorId + q + ');this.closest(' + q + '.modal-overlay' + q + ').remove()" style="background:#059669;color:#fff;padding:14px;border:none;border-radius:8px;cursor:pointer;font-size:14px;text-align:left;">' +
+          '<div style="font-weight:700;">📝 Plain Email (No Attachment)</div>' +
+          '<div style="font-size:11px;opacity:0.9;margin-top:4px;">Sirf summary text with numbers. No PDF.</div>' +
+        '</button>' +
+      '</div>' +
+    '</div>';
+  document.body.appendChild(modal);
+};
+
+window.generateReportPDFThenEmail = async function(investorId) {
+  try {
+    const { data: inv } = await sb.from('investors').select('*').eq('investor_id', investorId).single();
+    if (!inv) return;
+    
+    const { data: links } = await sb.from('investor_properties')
+      .select('room_id')
+      .eq('investor_id', investorId);
+    
+    if (!links || links.length === 0) {
+      fsn.error('Error', 'No property linked to this investor');
+      return;
+    }
+    
+    // Open report page in new window
+    const roomId = links[0].room_id;
+    const now = new Date();
+    const monthStr = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0');
+    
+    // Navigate to report first
+    fsn.success('Step 1', 'Opening report — please Print/Save as PDF from browser');
+    setTimeout(() => {
+      renderInvestorReport(investorId, roomId, monthStr);
+      setTimeout(() => {
+        if (confirm('Report tayyar hai! Print/PDF save karke ready ho? OK dabao email draft kholne ke liye.')) {
+          sendPlainEmail(investorId);
+        }
+      }, 1500);
+    }, 500);
+  } catch (e) {
+    fsn.error('Error', e.message);
+  }
+};
+
+window.sendPlainEmail = async function(investorId) {
   try {
     // Fetch investor + linked properties
     const { data: inv } = await sb.from('investors').select('*').eq('investor_id', investorId).single();
