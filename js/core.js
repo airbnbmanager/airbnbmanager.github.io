@@ -467,6 +467,7 @@ function renderShell(content, activePage = 'dashboard') {
       ['expenses', '💹 Expenses & P&L'],
       ['monthly-expenses', '📅 Monthly Expenses'],
       ['financial', '📊 Financial Summary'],
+      ['daily-report', '📅 Daily Report'],
       ['financial-sheet', '📈 Financial Sheet'],
       ...(isAdmin ? [['airbnb-sync', '🔄 Airbnb Sync']] : []),
       ['property-report', '🏘️ Property Reports'],
@@ -517,6 +518,7 @@ function renderShell(content, activePage = 'dashboard') {
       { section: 'FINANCE' },
       ['expenses', '💹 Expenses & P&L'],
       ['financial', '📊 Financial Summary'],
+      ['daily-report', '📅 Daily Report'],
       ['property-report', '🏘️ Property Reports'],
       ['investors', '🧑‍💼 Investors'],
 
@@ -675,6 +677,7 @@ function navigate(page) {
     reports: renderReports,
     rooms: renderManageRooms,
     flats: renderFlatsStatus,
+    'daily-report': renderDailyReport,
     bookings: renderManageBookings,
     employees: renderManageEmployees,
     tasks: renderEmployeeTasks,

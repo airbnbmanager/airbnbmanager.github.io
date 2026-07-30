@@ -340,11 +340,12 @@ async function renderInvestorReport(investorId, roomId, month) {
     sb.from('payment_history').select('booking_id, amount'),
   ]);
 
-  // Filter out complimentary/friends bookings
+  // Filter out complimentary/friends bookings + REVIEW bookings (fake Airbnb)
   const excludeKeywords = ['(friends)', '(complimentary)', '(comp)', '(free)', '(owner)', '(family)'];
   const isExcluded = (b) => {
     const name = (b.guest_name || '').toLowerCase();
     const notes = (b.notes || '').toLowerCase();
+    if (b.is_review_booking === true) return true;  // ⭐ EXCLUDE review bookings (our own money)
     return excludeKeywords.some(k => name.includes(k) || notes.includes(k));
   };
 

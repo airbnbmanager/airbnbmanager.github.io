@@ -763,7 +763,7 @@
 
     const staffArr = Object.values(staffStats)
       .filter(s => s.bookings > 0 || s.payments > 0)
-      .sort((a, b) => (b.bookingRev + b.paymentRev) - (a.bookingRev + a.paymentRev));
+      .sort((a, b) => Math.max(b.bookingRev, b.paymentRev) - Math.max(a.bookingRev, a.paymentRev));
 
     if (staffArr.length === 0) {
       container.innerHTML = '<div style="text-align:center;padding:20px;color:#888;">No staff activity in this period</div>';
