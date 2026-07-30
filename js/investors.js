@@ -49,6 +49,8 @@ async function renderManageInvestors() {
             <td style="font-size:12px;">${propNames}</td>
             <td class="table-actions" style="white-space:nowrap;">
               ${iLinks.map(l => `<button class="btn-sm" title="Report ${l.room_id}" onclick="renderInvestorReport('${i.investor_id}','${l.room_id}')">📊</button>`).join('')}
+              ${i.phone ? `<button class="btn-sm" title="WhatsApp ${i.phone}" style="background:#25D366;color:#fff;" onclick="quickWhatsAppInvestor('${i.investor_id}')">📱</button>` : ''}
+              ${(i.notes && i.notes.match(/Email:\s*(\S+)/)) ? `<button class="btn-sm" title="Email" style="background:#4285F4;color:#fff;" onclick="quickEmailInvestor('${i.investor_id}')">📧</button>` : ''}
               ${isO ? `<button class="btn-sm" title="Edit" onclick="editInvestor('${i.investor_id}')">✏️</button>` : ''}
               ${isO ? `<button class="btn-sm danger" title="Delete" onclick="deleteInvestor('${i.investor_id}','${i.name}')">🗑️</button>` : ''}
             </td>
