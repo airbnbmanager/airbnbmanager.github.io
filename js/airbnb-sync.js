@@ -503,12 +503,7 @@
           '<button class="btn-sm ' + (SYNC.filter === 'unmapped' ? 'danger' : 'outline') + '" onclick="setSyncFilter(\\\'unmapped\\\')">🔴 Unmapped (' + counts.unmapped + ')</button>' +
         '</div>' +
 
-        '<div class="table-wrap"><table style="font-size:12px;">' +
-          '<thead><tr style="background:#222;color:#fff;">' +
-            '<th>Status</th><th>Code</th><th>Guest</th><th>Dates</th><th>Amount</th><th>Listing → Room</th><th>Actions</th>' +
-          '</tr></thead>' +
-          '<tbody>' + (rows || '<tr><td colspan="7" style="text-align:center;padding:20px;color:#888;">No rows match filter</td></tr>') + '</tbody>' +
-        '</table></div>' +
+        '<div style="margin-top:14px;">' + (rows || '<div style="text-align:center;padding:40px;color:#888;">No bookings match filter</div>') + '</div>' +
 
         (SYNC.payouts.length > 0 ?
           '<h3 style="margin-top:20px;">💰 Payouts (' + SYNC.payouts.length + ')</h3>' +
