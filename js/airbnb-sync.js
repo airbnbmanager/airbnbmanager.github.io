@@ -125,9 +125,10 @@
     if (csvBk.check_out !== dbBk.check_out) {
       issues.push({ field: 'Check-out', csv: csvBk.check_out, db: dbBk.check_out });
     }
-    // Amount (tolerance ₹10)
-    if (Math.abs((csvBk.gross || 0) - (dbBk.total_amount || 0)) > 10) {
-      issues.push({ field: 'Amount', csv: '₹' + csvBk.gross, db: '₹' + (dbBk.total_amount || 0) });
+    // Amount comparison — use NET (actual payout received), not GROSS
+    // App stores NET amount; Airbnb CSV: gross - fees - tax = net (payout)
+    if (Math.abs((csvBk.amount || 0) - (dbBk.total_amount || 0)) > 10) {
+      issues.push({ field: 'Amount', csv: '₹' + csvBk.amount + ' (net)', db: '₹' + (dbBk.total_amount || 0) });
     }
     // Room
     if (csvBk.matched_room_id && dbBk.room_id && csvBk.matched_room_id !== dbBk.room_id) {
@@ -575,8 +576,13 @@
         check_in_time: '14:00',
         check_out_time: '11:00',
         checkout_confirmed: true,
-        total_amount: r.gross,
-        per_day_rate: r.nights > 0 ? Math.round(r.gross / r.nights) : r.gross,
+        total_amount: r.amount,
+        per_day_rate: r.nights > 0 ? Math.round(r.amount / r.nights) : r.amount,
+        gross_amount: r.gross,
+        platform_fee: (r.gross || 0) - (r.amount || 0),
+        airbnb_service_fee: r.service_fee || 0,
+        airbnb_cleaning_fee: r.cleaning_fee || 0,
+        airbnb_net_payout: r.amount,
         payment_status: 'Paid',
         notes: noteBits.join(' | ')
       };
@@ -616,7 +622,7 @@
         };
         const { error } = await sb.from('guest_register').insert(payload);
         if (error) { console.warn('Insert failed:', error.message); failed++; continue; }
-        // Also insert Airbnb payment for the net amount
+        // Insert Airbnb payment — NET amount (actual received)
         if (r.amount > 0) {
           await sb.from('payment_history').insert({
             booking_id: bkId,
