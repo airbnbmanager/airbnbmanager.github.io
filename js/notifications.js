@@ -271,6 +271,25 @@
         if (typeof navigate === 'function') navigate('reminders');
       };
     });
+    
+    // Regular notification click → navigate to relevant page
+    o.querySelectorAll('.notif-item[data-page]').forEach(el => {
+      if (el.dataset.remId) return; // Skip reminders (already handled)
+      el.onclick = () => {
+        const id = parseFloat(el.dataset.id);
+        const n = NOTIF.history.find(x => x.id === id);
+        if (n) {
+          n.read = true;
+          if (n.dbId) markReadDB([n.dbId]);
+        }
+        localStorage.setItem('uh_notif_history', JSON.stringify(NOTIF.history));
+        updateBadge();
+        const p = el.dataset.page;
+        if (p && typeof navigate === 'function') navigate(p);
+        o.classList.remove('show');
+        setTimeout(() => o.remove(), 250);
+      };
+    });
     setTimeout(() => o.classList.add('show'), 10);
     const close = () => { o.classList.remove('show'); setTimeout(() => o.remove(), 250); };
     o.onclick = e => { if (e.target === o) close(); };
