@@ -956,7 +956,7 @@
 
       '<div style="margin-top:16px;padding:14px;background:#F3F4F6;border-radius:10px;">' +
         '<div style="font-weight:700;margin-bottom:10px;">📈 Day-of-Week Performance</div>' +
-        '<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:6px;">' +
+        '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(60px,1fr));overflow-x:auto;gap:6px;">' +
           [0,1,2,3,4,5,6].map(i => {
             const isMax = i === bestDow;
             const isMin = i === worstDow && dowAvg[i] > 0;
