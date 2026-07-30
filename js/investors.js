@@ -343,11 +343,12 @@ async function renderInvestorReport(investorId, roomId, month) {
   ]);
 
   // Filter out complimentary/friends bookings + REVIEW bookings (fake Airbnb)
-  const excludeKeywords = ['(friends)', '(complimentary)', '(comp)', '(free)', '(owner)', '(family)'];
+  const excludeKeywords = ['(friends)', '(complimentary)', '(comp)', '(free)', '(owner)', '(family)', 'friends)', 'complimentary)', 'comp)', 'free)', 'owner)', 'family)'];
   const isExcluded = (b) => {
-    const name = (b.guest_name || '').toLowerCase();
+    const name = (b.guest_name || '').toLowerCase().replace(/\s+/g, ' ');
     const notes = (b.notes || '').toLowerCase();
     if (b.is_review_booking === true) return true;  // ⭐ EXCLUDE review bookings (our own money)
+    // Check with and without spaces around brackets
     return excludeKeywords.some(k => name.includes(k) || notes.includes(k));
   };
 
