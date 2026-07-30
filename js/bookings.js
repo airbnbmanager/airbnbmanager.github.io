@@ -2488,10 +2488,102 @@ async function savePaymentModal(bkId) {
 
   // Get current booking + guest info for auto-distribution
   const { data: currBk } = await sb.from('guest_register')
+    .select('total_amount, guest_name, phone, room_id, check_in, check_out, booking_mode, is_review_booking, linked_booking_id').eq('booking_id', bkId).single();
+
+  // 🚨 DUPLICATE BOOKING CHECK — Same room + overlapping dates
+  if (currBk && !window._paymentConfirmedForDupe) {
+    const { data: sameRoomBks } = await sb.from('guest_register')
+      .select('booking_id, guest_name, booking_mode, check_in, check_out, total_amount, is_review_booking, linked_booking_id')
+      .eq('room_id', currBk.room_id)
+      .neq('booking_id', bkId)
+      .lte('check_in', currBk.check_out || currBk.check_in)
+      .gte('check_out', currBk.check_in);
+
+    if (sameRoomBks && sameRoomBks.length > 0) {
+      // Fetch payments for other bookings
+      const otherBkIds = sameRoomBks.map(b => b.booking_id);
+      const { data: otherPays } = await sb.from('payment_history')
+        .select('booking_id, amount').in('booking_id', otherBkIds).neq('verification_status', 'rejected');
+      
+      const payMap = {};
+      (otherPays || []).forEach(p => {
+        payMap[p.booking_id] = (payMap[p.booking_id] || 0) + (p.amount || 0);
+      });
+
+      // Also current booking's paid amount
+      const { data: currPays2 } = await sb.from('payment_history')
+        .select('amount').eq('booking_id', bkId).neq('verification_status', 'rejected');
+      const currPaidTotal = (currPays2 || []).reduce((s, p) => s + (p.amount || 0), 0);
+
+      const currDue = Math.max((currBk.total_amount || 0) - currPaidTotal, 0);
+
+      // Build warning UI
+      const bookingsList = [
+        {
+          bookingId: bkId,
+          name: currBk.guest_name,
+          mode: currBk.booking_mode,
+          isReview: currBk.is_review_booking,
+          total: currBk.total_amount || 0,
+          paid: currPaidTotal,
+          due: currDue,
+          isCurrent: true
+        },
+        ...sameRoomBks.map(b => {
+          const paid = payMap[b.booking_id] || 0;
+          return {
+            bookingId: b.booking_id,
+            name: b.guest_name,
+            mode: b.booking_mode,
+            isReview: b.is_review_booking,
+            total: b.total_amount || 0,
+            paid: paid,
+            due: Math.max((b.total_amount || 0) - paid, 0),
+            isCurrent: false
+          };
+        })
+      ];
+
+      const warningHtml = 
+        '<div style="background:#FFF9E6;border:2px solid #FFB800;padding:14px;border-radius:8px;margin-bottom:12px;">' +
+          '<div style="font-weight:800;color:#B45309;margin-bottom:8px;font-size:14px;">⚠️ Multiple Bookings for ' + currBk.room_id + '</div>' +
+          '<div style="font-size:12px;color:#666;margin-bottom:10px;">Same room mein overlapping dates hain. Confirm karo payment kaunse booking mein add karna hai:</div>' +
+          bookingsList.map(b => 
+            '<div style="padding:8px;background:' + (b.isCurrent ? '#E6F7FF' : '#fff') + ';border:1px solid ' + (b.isCurrent ? '#1E429F' : '#ddd') + ';border-radius:6px;margin-bottom:6px;cursor:pointer;" onclick="switchPaymentBooking(\'' + b.bookingId + '\',\'' + bkId + '\')">' +
+              '<div style="display:flex;justify-content:space-between;align-items:center;">' +
+                '<div>' +
+                  '<strong>' + b.name + '</strong>' +
+                  (b.isReview ? ' <span style="background:#722ED1;color:#fff;padding:2px 6px;border-radius:10px;font-size:10px;">⭐ REVIEW</span>' : '') +
+                  ' <span style="background:' + (b.mode === 'Online-Airbnb' ? '#1E429F' : '#B45309') + ';color:#fff;padding:2px 6px;border-radius:10px;font-size:10px;">' + (b.mode === 'Online-Airbnb' ? 'Online' : 'Offline') + '</span>' +
+                  (b.isCurrent ? ' <span style="color:#1E429F;font-weight:700;font-size:11px;">← Selected</span>' : '') +
+                '</div>' +
+              '</div>' +
+              '<div style="font-size:11px;color:#666;margin-top:4px;">' +
+                'Total: ₹' + b.total.toLocaleString('en-IN') + 
+                ' · Paid: ₹' + b.paid.toLocaleString('en-IN') + 
+                ' · <strong style="color:' + (b.due > 0 ? '#DC2626' : '#059669') + ';">Due: ₹' + b.due.toLocaleString('en-IN') + '</strong>' +
+              '</div>' +
+            '</div>'
+          ).join('') +
+          '<div style="display:flex;gap:8px;margin-top:10px;">' +
+            '<button onclick="proceedPaymentAnyway(\'' + bkId + '\')" style="flex:1;background:#059669;color:#fff;padding:8px;border:none;border-radius:6px;cursor:pointer;font-weight:700;">✅ Confirm & Save Payment</button>' +
+            '<button onclick="cancelPayment()" style="flex:1;background:#DC2626;color:#fff;padding:8px;border:none;border-radius:6px;cursor:pointer;">❌ Cancel</button>' +
+          '</div>' +
+        '</div>';
+
+      document.getElementById('payErr').innerHTML = warningHtml;
+      return;
+    }
+  }
+
+  // Reset flag
+  window._paymentConfirmedForDupe = false;
+
+  const { data: currBk2 } = await sb.from('guest_register')
     .select('total_amount, guest_name, phone').eq('booking_id', bkId).single();
   const { data: currPays } = await sb.from('payment_history').select('amount, verification_status').eq('booking_id', bkId).neq('verification_status', 'rejected');
   const currPaid = (currPays || []).reduce((s, p) => s + (p.amount || 0), 0);
-  const currTotal = currBk?.total_amount || 0;
+  const currTotal = currBk2?.total_amount || currBk?.total_amount || 0;
   const currRemaining = Math.max(currTotal - currPaid, 0); // how much still due on current
 
   let paymentForCurrent = amt;
@@ -3289,4 +3381,25 @@ window.toggleReviewBooking = function() {
   const wrap = document.getElementById('linkedBookingWrap');
   const cb = document.getElementById('isReviewBooking');
   if (wrap && cb) wrap.style.display = cb.checked ? 'block' : 'none';
+};
+
+
+// ═══ PAYMENT DUPLICATE WARNING HELPERS ═══
+window.proceedPaymentAnyway = function(bkId) {
+  window._paymentConfirmedForDupe = true;
+  document.getElementById('payErr').innerHTML = '';
+  savePaymentModal(bkId);
+};
+
+window.cancelPayment = function() {
+  document.querySelector('.modal-overlay')?.remove();
+  window._paymentConfirmedForDupe = false;
+};
+
+window.switchPaymentBooking = function(newBkId, oldBkId) {
+  if (newBkId === oldBkId) return;
+  if (!confirm('Payment ko is booking mein switch karein?')) return;
+  document.querySelector('.modal-overlay')?.remove();
+  window._paymentConfirmedForDupe = false;
+  showPaymentModal(newBkId);
 };
