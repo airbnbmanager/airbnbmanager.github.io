@@ -200,23 +200,32 @@ async function renderReminders() {
 
   const now = new Date().toISOString();
   
-  const [{ data: pending }, { data: overdue }, { data: resolved }] = await Promise.all([
-    sb.from('reminders')
-      .select('*, guest_register(guest_name, phone, room_id, total_amount)')
-      .eq('is_resolved', false)
-      .gte('reminder_time', now)
-      .order('reminder_time'),
-    sb.from('reminders')
-      .select('*, guest_register(guest_name, phone, room_id, total_amount)')
-      .eq('is_resolved', false)
-      .lt('reminder_time', now)
-      .order('reminder_time', { ascending: false }),
-    sb.from('reminders')
-      .select('*, guest_register(guest_name, phone, room_id)')
-      .eq('is_resolved', true)
-      .order('resolved_at', { ascending: false })
-      .limit(20)
+  // Fetch reminders (without join due to no foreign key)
+  const [{ data: pendingRaw }, { data: overdueRaw }, { data: resolvedRaw }] = await Promise.all([
+    sb.from('reminders').select('*').eq('is_resolved', false).gte('reminder_time', now).order('reminder_time'),
+    sb.from('reminders').select('*').eq('is_resolved', false).lt('reminder_time', now).order('reminder_time', { ascending: false }),
+    sb.from('reminders').select('*').eq('is_resolved', true).order('resolved_at', { ascending: false }).limit(20)
   ]);
+
+  // Manual join with bookings
+  const allBkIds = [...new Set([
+    ...(pendingRaw || []).map(r => r.booking_id),
+    ...(overdueRaw || []).map(r => r.booking_id),
+    ...(resolvedRaw || []).map(r => r.booking_id)
+  ])];
+
+  let bkMap = {};
+  if (allBkIds.length > 0) {
+    const { data: bks } = await sb.from('guest_register')
+      .select('booking_id, guest_name, phone, room_id, total_amount')
+      .in('booking_id', allBkIds);
+    (bks || []).forEach(b => bkMap[b.booking_id] = b);
+  }
+
+  const attachBooking = arr => (arr || []).map(r => ({ ...r, guest_register: bkMap[r.booking_id] || {} }));
+  const pending = attachBooking(pendingRaw);
+  const overdue = attachBooking(overdueRaw);
+  const resolved = attachBooking(resolvedRaw);
 
   const typeIcon = t => ({ payment: '💰', id: '🪪', checkout: '🚪', custom: '📌' })[t] || '📌';
   const typeName = t => ({ payment: 'Payment', id: 'ID Proof', checkout: 'Checkout', custom: 'Custom' })[t] || t;
