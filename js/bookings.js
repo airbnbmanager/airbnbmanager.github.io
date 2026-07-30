@@ -586,7 +586,7 @@ async function renderManageBookings() {
   // 🟢 Currently Staying filter
   if (SESSION._filterCurrentStay) {
     const today = new Date().toISOString().slice(0, 10);
-    bookings = bookings.filter(b => 
+    f = f.filter(b => 
       b.check_in && b.check_in <= today && 
       (!b.check_out || b.check_out > today) &&
       !b.is_cancelled &&
@@ -597,7 +597,7 @@ async function renderManageBookings() {
 
   // ⭐ Review Bookings filter
   if (SESSION._filterReviewOnly) {
-    bookings = bookings.filter(b => b.is_review_booking === true);
+    f = f.filter(b => b.is_review_booking === true);
     SESSION._filterReviewOnly = null;
   }
 
