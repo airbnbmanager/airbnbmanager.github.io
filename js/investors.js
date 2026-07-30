@@ -50,7 +50,7 @@ async function renderManageInvestors() {
             <td class="table-actions" style="white-space:nowrap;">
               ${iLinks.map(l => `<button class="btn-sm" title="Report ${l.room_id}" onclick="renderInvestorReport('${i.investor_id}','${l.room_id}')">📊</button>`).join('')}
               ${i.phone ? `<button class="btn-sm" title="WhatsApp ${i.phone}" style="background:#25D366;color:#fff;" onclick="quickWhatsAppInvestor('${i.investor_id}')">📱</button>` : ''}
-              ${(i.notes && i.notes.match(/Email:\s*(\S+)/)) ? `<button class="btn-sm" title="Email" style="background:#4285F4;color:#fff;" onclick="quickEmailInvestor('${i.investor_id}')">📧</button>` : ''}
+
               ${isO ? `<button class="btn-sm" title="Edit" onclick="editInvestor('${i.investor_id}')">✏️</button>` : ''}
               ${isO ? `<button class="btn-sm danger" title="Delete" onclick="deleteInvestor('${i.investor_id}','${i.name}')">🗑️</button>` : ''}
             </td>
@@ -1113,16 +1113,17 @@ window.quickWhatsAppInvestor = async function(investorId) {
     const message = 
       '🏨 *UNIQUE HAVEN HOMES STAY*' + NL + NL +
       'Namaste ' + inv.name + ' ji 🙏' + NL + NL +
-      'Umeed hai aap kushal honge. Aapki property *' + propNames + '* ka update:' + NL + NL +
-      '📅 *Month:* ' + monthName + NL +
+      'Umeed hai aap kushal honge.' + NL + NL +
+      '📅 *' + monthName + '* ki monthly report attached hai (PDF).' + NL + NL +
+      '🏠 *Property:* ' + propNames + NL +
       '📊 *Your Share:* ' + share + '%' + NL + NL +
-      'Kripya confirm karein ki aapko monthly report mil gayi hai ya koi query ho toh batayein.' + NL + NL +
-      'Detailed report separately share ki jayegi.' + NL + NL +
+      'Kripya PDF check karein aur koi query ho toh batayein.' + NL + NL +
       '───────────────' + NL +
       '*Regards,*' + NL +
       'Praveen Mishra' + NL +
       'Team UHHS' + NL +
-      '📞 +91 9450055554';
+      '📞 +91 9450055554' + NL +
+      '🌐 uniquehavenhomesstay.com';
     
     const url = 'https://wa.me/' + finalPhone + '?text=' + encodeURIComponent(message);
     window.open(url, '_blank');
