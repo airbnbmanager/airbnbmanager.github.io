@@ -216,7 +216,7 @@
               ${r.reminder_type.toUpperCase()}${r.amount > 0 ? ' — ₹' + r.amount : ''}
               ${isOverdue ? ' <span style="background:#DC2626;color:#fff;padding:1px 6px;border-radius:8px;font-size:9px;">OVERDUE</span>' : ''}
             </div>
-            <div class="notif-msg"><strong>${r.bk.guest_name || 'Unknown'}</strong> — ${r.bk.room_id || '-'}${r.reminder_note ? '<br><em>"' + r.reminder_note + '"</em>' : ''}</div>
+            <div class="notif-msg"><strong>${r.bk.guest_name || 'Unknown'}</strong> — ${r.bk.room_id || '-'}${r.reminder_note ? '<br><em>"' + r.reminder_note + '"</em>' : ''}${(r.assigned_to && r.assigned_to.length > 0) ? '<br>👥 <em>' + r.assigned_to.length + ' assigned</em>' : ''}</div>
             <div class="notif-time">⏰ ${timeStr}</div>
           </div>
         </div>`;

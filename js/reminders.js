@@ -17,6 +17,17 @@ window.showReminderModal = async function(bookingId) {
     .eq('booking_id', bookingId)
     .eq('is_resolved', false)
     .order('reminder_time');
+  
+  // Get all active employees for assignment
+  const { data: employees } = await sb.from('employees')
+    .select('emp_id, name, role, phone, assigned_rooms')
+    .eq('status', 'Active')
+    .order('name');
+  
+  // Auto-suggest: employees assigned to this room
+  const suggestedEmpIds = (employees || [])
+    .filter(e => (e.assigned_rooms || '').split(',').map(r => r.trim()).includes(bk.room_id))
+    .map(e => e.emp_id);
 
   // Calculate default reminder time (tomorrow 9 AM)
   const tomorrow = new Date();
@@ -86,6 +97,18 @@ window.showReminderModal = async function(bookingId) {
         <input type="text" id="remNote" placeholder="Guest ne 9 AM tak dene ka bola hai" />
       </div>
 
+      <div class="form-group">
+        <label>👥 Assign To Employees (optional)</label>
+        <select id="remAssign" multiple style="min-height:120px;padding:8px;">
+          ${(employees || []).map(e => `
+            <option value="${e.emp_id}" ${suggestedEmpIds.includes(e.emp_id) ? 'selected' : ''}>
+              ${e.name} (${e.role || 'Staff'})${suggestedEmpIds.includes(e.emp_id) ? ' ⭐' : ''}
+            </option>
+          `).join('')}
+        </select>
+        <small style="color:#666;">Hold Ctrl/Cmd to select multiple. ⭐ = assigned to this room</small>
+      </div>
+
       <div style="display:flex;gap:6px;margin-top:12px;flex-wrap:wrap;">
         <button onclick="setQuickReminderTime('9am')" class="btn-sm outline">🌅 9 AM</button>
         <button onclick="setQuickReminderTime('12pm')" class="btn-sm outline">☀️ 12 PM</button>
@@ -149,12 +172,17 @@ window.saveReminder = async function(bookingId) {
     return;
   }
 
+  // Get selected employees
+  const assignSelect = document.getElementById('remAssign');
+  const assignedEmpIds = assignSelect ? Array.from(assignSelect.selectedOptions).map(o => o.value) : [];
+
   const { error } = await sb.from('reminders').insert({
     booking_id: bookingId,
     reminder_type: type,
     reminder_time: new Date(time).toISOString(),
     reminder_note: note || null,
     amount: type === 'payment' ? amt : 0,
+    assigned_to: assignedEmpIds,
     created_by: SESSION.userId
   });
 
@@ -199,6 +227,11 @@ async function renderReminders() {
   renderShell(`<div class="loading">Loading reminders...</div>`, 'reminders');
 
   const now = new Date().toISOString();
+  
+  // Cache employee names for display
+  const { data: emps } = await sb.from('employees').select('emp_id, name');
+  window._empMap = {};
+  (emps || []).forEach(e => window._empMap[e.emp_id] = e.name);
   
   // Fetch reminders (without join due to no foreign key)
   const [{ data: pendingRaw }, { data: overdueRaw }, { data: resolvedRaw }] = await Promise.all([
@@ -248,6 +281,7 @@ async function renderReminders() {
               ${gr.phone ? ` · 📞 ${gr.phone}` : ''}
             </div>
             ${r.reminder_note ? `<div style="font-size:12px;color:#6B7280;margin-top:4px;font-style:italic;">"${r.reminder_note}"</div>` : ''}
+            ${(r.assigned_to && r.assigned_to.length > 0) ? `<div style="font-size:11px;color:#7C3AED;margin-top:4px;font-weight:600;">👥 Assigned: ${(r.assigned_to || []).map(id => (window._empMap && window._empMap[id]) || id).join(', ')}</div>` : ''}
             <div style="font-size:11px;color:${isOverdue ? '#DC2626' : '#059669'};margin-top:6px;font-weight:600;">
               ⏰ ${timeStr}
             </div>
