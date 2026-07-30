@@ -303,14 +303,6 @@ async function renderDashboard() {
         </div>
       </div>
 
-      <div class="stat-card" style="border-left:4px solid #60a5fa;cursor:pointer;" onclick="filterAndShowBookings('currentStay')">
-        <div class="stat-num">${activeNow.length}/${totalProps}</div>
-        <div class="stat-label">🛏️ Occupied (${Math.round(activeNow.length/totalProps*100) || 0}%)</div>
-        <div style="max-height:180px;overflow-y:auto;">
-        ${activeNow.map(x => `<div style="font-size:11px;margin-top:2px;padding:2px 0;border-bottom:1px dashed #eee;"><strong>${x.guest_name}</strong> — ${bName(x)}</div>`).join('') || '<div class="sub" style="margin:4px 0 0;">All free</div>'}
-        </div>
-        ${activeNow.length > 0 ? `<div style="font-size:10px;color:var(--primary);margin-top:6px;text-align:right;">→ View all bookings</div>` : ''}
-      </div>
     </div>
 
     <!-- Operations Row 2 -->
@@ -332,7 +324,7 @@ async function renderDashboard() {
       </div>
 
       <div class="stat-card" style="border-left:4px solid var(--blue);cursor:pointer;" onclick="filterAndShowBookings('currentStay')">
-        <div class="stat-num">${activeNow.length}</div>
+        <div class="stat-num">${activeNow.length}/${totalProps} <span style="font-size:14px;color:var(--muted);">(${Math.round(activeNow.length/totalProps*100) || 0}%)</span></div>
         <div class="stat-label">🟢 Currently Staying</div>
         <div style="max-height:180px;overflow-y:auto;">
         ${activeNow.map(x => `<div style="font-size:11px;margin-top:2px;padding:2px 0;border-bottom:1px dashed #eee;"><strong>${x.guest_name}</strong> — ${bName(x)}</div>`).join('') || '<div class="sub" style="margin:4px 0 0;">None</div>'}
