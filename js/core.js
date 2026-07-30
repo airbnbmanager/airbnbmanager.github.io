@@ -419,6 +419,7 @@ function renderShell(content, activePage = 'dashboard') {
       ['dashboard', '🏠 Dashboard'],
       ['bookings', '📅 Today Bookings'],
       ['flats', '🛏️ Flats Status'],
+      ['reminders', '🔔 Reminders'],
       { section: 'HELP' },
       ['sop', '📘 SOP Guide'],
     ];
@@ -430,6 +431,7 @@ function renderShell(content, activePage = 'dashboard') {
       { section: 'GUESTS' },
       ['bookings', '📅 Bookings'],
       ['flats', '🛏️ Flats Status'],
+      ['reminders', '🔔 Reminders'],
       { section: 'PROPERTIES' },
       ['rooms', '🏠 Properties'],
       ['shifts', '🕐 Shifts'],
@@ -442,6 +444,7 @@ function renderShell(content, activePage = 'dashboard') {
       ['dashboard', '🏠 Dashboard'],
       ['reports', '📆 Calendar'],
       ['pendingApprovals', '🟡 Pending Approvals'],
+      ['reminders', '🔔 Reminders'],
       ['analytics', '📊 Analytics'],
       ['whatsapp-hub', '📱 Communication Hub'],
 
