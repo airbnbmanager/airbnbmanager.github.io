@@ -410,7 +410,7 @@ async function renderInvestorReport(investorId, roomId, month) {
         </div>
         <div class="form-group" style="justify-content:flex-end;">
           <button class="btn-sm" onclick="printInvestorReport('${inv?.name || 'Investor'}','${room?.nickname || roomId}','${monthYear}')">🖨️ Print / Save PDF</button>
-          <button class="btn-sm" style="background:#25D366;color:#fff;" onclick="whatsappInvestorReport('${investorId}','${roomId}','${monthYear}')">📱 WhatsApp</button>
+          
           ${excludedBookings.length > 0 ? `<button class="btn-sm outline" style="margin-left:6px;" onclick="renderFriendsReport('${investorId}','${roomId}','${selMonth}')">🎁 Friends Report (${excludedBookings.length})</button>` : ''}
         </div>
       </div>
