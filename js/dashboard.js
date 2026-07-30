@@ -216,6 +216,11 @@ async function renderDashboard() {
         <div class="stat-label">🪪 ID Pending</div>
         <div style="font-size:10px;color:var(--muted);">Active + last 7 days</div>
       </div>
+      <div class="stat-card" style="border-left:4px solid #722ED1;cursor:pointer;" onclick="filterAndShowBookings('review')">
+        <div class="stat-num" style="color:#722ED1;font-size:20px;">${allBookings.filter(b => b.is_review_booking === true).length}</div>
+        <div class="stat-label">⭐ Review Bookings</div>
+        <div style="font-size:10px;color:var(--muted);">Fake Airbnb for reviews</div>
+      </div>
     </div>
 
     <!-- Online vs Offline Bookings -->
@@ -891,6 +896,8 @@ function filterAndShowBookings(type) {
     SESSION.bookingDateTo = today;
   } else if (type === 'currentStay') {
     SESSION._filterCurrentStay = true;
+  } else if (type === 'review') {
+    SESSION._filterReviewOnly = true;
   }
 
   navigate('bookings');
