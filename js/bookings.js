@@ -778,6 +778,7 @@ async function renderManageBookings() {
               <span class="badge ${b.booking_mode === 'Online-Airbnb' ? 'blue' : 'yellow'}">${b.booking_mode === 'Online-Airbnb' ? 'On' : 'Off'}</span>
               ${b.is_review_booking ? '<span class="badge" style="background:#722ED1;color:#fff;font-size:9px;">⭐ REVIEW</span>' : ''}
               ${b.linked_booking_id ? `<span class="badge" style="background:#0EA5E9;color:#fff;font-size:9px;cursor:pointer;" title="Linked to booking ${b.linked_booking_id}" onclick="showLinkedBooking('${b.linked_booking_id}')">🔗 LINKED</span>` : ''}
+              ${(!b.linked_booking_id && !b.is_review_booking && window.checkDuplicate && window.checkDuplicate(b, window._allBookings || [])) ? `<span class="badge" style="background:#F59E0B;color:#fff;font-size:9px;cursor:pointer;" title="Same room + date overlap detected" onclick="showDuplicateOptions('${b.booking_id}')">⚠️ DUPE</span>` : ''}
             </td>
           <td><small>${b.check_in || '-'}</small></td>
           <td><small>${b.check_out || '-'}</small></td>
