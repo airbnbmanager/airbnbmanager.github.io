@@ -491,6 +491,7 @@ function renderShell(content, activePage = 'dashboard') {
       ['reports', '📆 Calendar'],
       ['bookings', '📅 Bookings'],
       ['flats', '🛏️ Flats Status'],
+      ['reminders', '🔔 Reminders'],
       ['sop', '📘 SOP Guide'],
     ];
   } else {
