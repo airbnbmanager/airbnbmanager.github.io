@@ -513,6 +513,8 @@ async function renderManageBookings() {
   (rooms || []).forEach(r => { roomMap[r.room_id] = r; });
 
   const mf = SESSION.bookingFilter || 'All';
+  // Store all bookings globally for duplicate detection
+  window._allBookings = f;
   const pf = SESSION.bookingPropFilter || '';
   const df = SESSION.bookingDateFilter || '';
   const d1 = SESSION.bookingDateFrom || '';
@@ -3482,4 +3484,133 @@ window.detectDuplicateBookings = function(bookings) {
     }
   });
   return dupes;
+};
+
+
+// ═══ DUPLICATE DETECTION ═══
+window.checkDuplicate = function(booking, allBookings) {
+  if (!allBookings) return false;
+  const dupes = allBookings.filter(b => 
+    b.booking_id !== booking.booking_id &&
+    b.room_id === booking.room_id &&
+    !b.is_cancelled &&
+    // Overlapping dates
+    b.check_in <= (booking.check_out || booking.check_in) &&
+    (b.check_out || b.check_in) >= booking.check_in
+  );
+  return dupes.length > 0;
+};
+
+// ═══ SHOW DUPLICATE OPTIONS MODAL ═══
+window.showDuplicateOptions = async function(bookingId) {
+  const { data: currBk } = await sb.from('guest_register')
+    .select('*')
+    .eq('booking_id', bookingId).single();
+  
+  if (!currBk) return;
+  
+  // Find overlapping bookings
+  const { data: overlaps } = await sb.from('guest_register')
+    .select('booking_id, guest_name, room_id, booking_mode, check_in, check_out, total_amount, is_review_booking, linked_booking_id')
+    .eq('room_id', currBk.room_id)
+    .neq('booking_id', bookingId)
+    .lte('check_in', currBk.check_out || currBk.check_in)
+    .gte('check_out', currBk.check_in);
+  
+  const modal = document.createElement('div');
+  modal.className = 'modal-overlay';
+  modal.onclick = e => { if (e.target === modal) modal.remove(); };
+  
+  modal.innerHTML = `
+    <div class="modal-box" style="max-width:600px;">
+      <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">✕</button>
+      <h2>⚠️ Duplicate Bookings Detected</h2>
+      
+      <div style="background:#FEF3C7;padding:12px;border-radius:8px;margin:12px 0;border:1px solid #F59E0B;">
+        <div style="font-weight:700;color:#78350F;margin-bottom:6px;">Current Booking:</div>
+        <div><strong>${currBk.guest_name}</strong> — ${currBk.room_id}</div>
+        <div style="font-size:12px;color:#666;">${currBk.check_in} → ${currBk.check_out || 'Open'} · ${currBk.booking_mode}</div>
+      </div>
+      
+      <div style="font-weight:700;margin:14px 0 8px;">Overlapping Bookings (${(overlaps || []).length}):</div>
+      
+      ${(overlaps || []).map(b => `
+        <div style="background:#F9FAFB;padding:12px;border-radius:8px;margin-bottom:8px;border:1px solid #E5E7EB;">
+          <div><strong>${b.guest_name}</strong>
+            ${b.is_review_booking ? '<span class="badge" style="background:#722ED1;color:#fff;font-size:9px;">⭐ REVIEW</span>' : ''}
+            ${b.linked_booking_id === bookingId ? '<span class="badge" style="background:#0EA5E9;color:#fff;font-size:9px;">🔗 LINKED</span>' : ''}
+          </div>
+          <div style="font-size:12px;color:#666;margin:4px 0;">
+            ${b.check_in} → ${b.check_out || 'Open'} · ${b.booking_mode} · ₹${(b.total_amount || 0).toLocaleString('en-IN')}
+          </div>
+          ${!b.linked_booking_id ? `
+            <button onclick="linkBookings('${bookingId}', '${b.booking_id}')" 
+                    style="background:#0EA5E9;color:#fff;border:none;padding:6px 12px;border-radius:6px;cursor:pointer;font-size:12px;margin-top:6px;">
+              🔗 Link These Bookings
+            </button>
+          ` : `<span style="font-size:11px;color:#059669;">✓ Already linked</span>`}
+        </div>
+      `).join('') || '<div style="color:#999;">No overlaps found</div>'}
+      
+      <div style="margin-top:14px;padding:10px;background:#F0F9FF;border-radius:6px;font-size:12px;color:#0369A1;">
+        💡 <strong>Tip:</strong> Link karo agar dono same guest ki bookings hain (e.g., offline stay + online review booking)
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+};
+
+// ═══ LINK TWO BOOKINGS ═══
+window.linkBookings = async function(bookingA, bookingB) {
+  if (!confirm('Ye dono bookings ko link karna hai? Same guest hone ki confirmation.')) return;
+  
+  // Link A → B (A is the review booking, B is the original)
+  // Set linked_booking_id on the newer one
+  const { data: bkA } = await sb.from('guest_register').select('created_at, is_review_booking').eq('booking_id', bookingA).single();
+  const { data: bkB } = await sb.from('guest_register').select('created_at, is_review_booking').eq('booking_id', bookingB).single();
+  
+  // The review one should link to the offline (original)
+  let sourceId, targetId;
+  if (bkA?.is_review_booking) {
+    sourceId = bookingA;
+    targetId = bookingB;
+  } else if (bkB?.is_review_booking) {
+    sourceId = bookingB;
+    targetId = bookingA;
+  } else {
+    // Neither is review, link newer to older
+    if (new Date(bkA.created_at) > new Date(bkB.created_at)) {
+      sourceId = bookingA;
+      targetId = bookingB;
+    } else {
+      sourceId = bookingB;
+      targetId = bookingA;
+    }
+  }
+  
+  const { error } = await sb.from('guest_register')
+    .update({ linked_booking_id: targetId })
+    .eq('booking_id', sourceId);
+  
+  if (error) {
+    fsn.error('Error', error.message);
+    return;
+  }
+  
+  fsn.success('Linked!', '✅ Bookings linked successfully');
+  document.querySelector('.modal-overlay')?.remove();
+  if (typeof renderManageBookings === 'function') renderManageBookings();
+};
+
+// ═══ UNLINK BOOKING ═══
+window.unlinkBooking = async function(bookingId) {
+  if (!confirm('Remove the link from this booking?')) return;
+  
+  const { error } = await sb.from('guest_register')
+    .update({ linked_booking_id: null })
+    .eq('booking_id', bookingId);
+  
+  if (error) { fsn.error('Error', error.message); return; }
+  fsn.success('Unlinked', '✅ Link removed');
+  if (typeof renderManageBookings === 'function') renderManageBookings();
 };
