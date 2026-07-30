@@ -1079,3 +1079,46 @@ async function renderFriendsReport(investorId, roomId, month) {
     </style>
   `, 'investors');
 }
+
+
+// ═══ QUICK ACTIONS — WhatsApp + Email ═══
+window.quickWhatsAppInvestor = async function(investorId) {
+  try {
+    const { data: inv } = await sb.from('investors').select('*').eq('investor_id', investorId).single();
+    if (!inv || !inv.phone) {
+      fsn.error('Error', 'Phone number not available');
+      return;
+    }
+    
+    const phone = inv.phone.replace(/[^0-9]/g, '');
+    const finalPhone = phone.length === 10 ? '91' + phone : phone;
+    
+    const message = 'Namaste ' + inv.name + ',\n\nAap se ' + BRAND + ' regarding baat karna hai.\n\nRegards';
+    const url = 'https://wa.me/' + finalPhone + '?text=' + encodeURIComponent(message);
+    window.open(url, '_blank');
+  } catch (e) {
+    fsn.error('Error', e.message);
+  }
+};
+
+window.quickEmailInvestor = async function(investorId) {
+  try {
+    const { data: inv } = await sb.from('investors').select('*').eq('investor_id', investorId).single();
+    if (!inv) { fsn.error('Error', 'Not found'); return; }
+    
+    const emailMatch = (inv.notes || '').match(/Email:\s*(\S+)/);
+    const email = emailMatch ? emailMatch[1] : '';
+    
+    if (!email) {
+      fsn.error('Error', 'Email not set for this investor');
+      return;
+    }
+    
+    const subject = BRAND + ' - Monthly Update';
+    const body = 'Namaste ' + inv.name + ',\n\nAap se ' + BRAND + ' regarding baat karna hai.\n\nRegards';
+    const url = 'mailto:' + email + '?subject=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(body);
+    window.location.href = url;
+  } catch (e) {
+    fsn.error('Error', e.message);
+  }
+};
