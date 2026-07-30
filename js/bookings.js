@@ -513,8 +513,6 @@ async function renderManageBookings() {
   (rooms || []).forEach(r => { roomMap[r.room_id] = r; });
 
   const mf = SESSION.bookingFilter || 'All';
-  // Store all bookings globally for duplicate detection
-  window._allBookings = f;
   const pf = SESSION.bookingPropFilter || '';
   const df = SESSION.bookingDateFilter || '';
   const d1 = SESSION.bookingDateFrom || '';
@@ -522,6 +520,7 @@ async function renderManageBookings() {
   const sq = SESSION.bookingSearch || '';
 
   let f = all || [];
+  window._allBookings = f; // For duplicate detection
   // Filter for caretaker - only their properties
   if (window._myAssignedRooms && window._myAssignedRooms.length) {
     f = f.filter(b => window._myAssignedRooms.includes(b.room_id));
