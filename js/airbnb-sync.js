@@ -343,19 +343,31 @@
           '</div>';
       }
 
-      // Action buttons based on status
+      // Action buttons — per field for conflicts
       let actions = '';
       if (r.status === 'new') {
         actions =
-          '<button class="btn-sm ' + (r.action === 'import' ? 'green-btn' : 'outline') + '" onclick="setRowAction(' + idx + ',\\\'import\\\')">✅ Import</button> ' +
-          '<button class="btn-sm ' + (r.action === 'skip' ? 'danger' : 'outline') + '" onclick="setRowAction(' + idx + ',\\\'skip\\\')">🚫 Skip</button>';
+          '<button class="btn-sm ' + (r.action === 'import' ? 'green-btn' : 'outline') + '" onclick="setRowAction(' + idx + ',\'import\')">✅ Import New</button> ' +
+          '<button class="btn-sm ' + (r.action === 'skip' ? 'danger' : 'outline') + '" onclick="setRowAction(' + idx + ',\'skip\')">🚫 Skip</button>';
       } else if (r.status === 'conflict') {
+        // Per-field fix buttons
+        const fieldBtns = (r.issues || []).map(i => {
+          const fieldKey = i.field.toLowerCase().replace(/[^a-z]/g, '');
+          const isFixed = (r.fieldFixes || {})[fieldKey];
+          return '<button class="btn-sm ' + (isFixed ? 'green-btn' : 'outline') + '" style="font-size:10px;padding:3px 8px;" onclick="toggleFieldFix(' + idx + ',\'' + fieldKey + '\')" title="Fix ' + i.field + '">' + (isFixed ? '✓' : '🔧') + ' ' + i.field + '</button>';
+        }).join(' ');
+        
         actions =
-          '<button class="btn-sm ' + (r.action === 'update' ? 'green-btn' : 'outline') + '" onclick="setRowAction(' + idx + ',\\\'update\\\')">🔄 Update</button> ' +
-          '<button class="btn-sm ' + (r.action === 'skip' ? 'danger' : 'outline') + '" onclick="setRowAction(' + idx + ',\\\'skip\\\')">🚫 Skip</button> ' +
-          '<button class="btn-sm outline" onclick="editBooking(\\\'' + (r.dbBk?.booking_id || '') + '\\\')">👁️ View</button>';
+          '<div style="display:flex;flex-direction:column;gap:4px;">' +
+            '<div style="display:flex;gap:3px;flex-wrap:wrap;">' + fieldBtns + '</div>' +
+            '<div style="display:flex;gap:3px;">' +
+              '<button class="btn-sm ' + (r.action === 'update' ? 'green-btn' : 'outline') + '" onclick="setRowAction(' + idx + ',\'update\')" title="Fix all fields">🔄 Fix All</button>' +
+              '<button class="btn-sm ' + (r.action === 'skip' ? 'danger' : 'outline') + '" onclick="setRowAction(' + idx + ',\'skip\')">🚫 Skip</button>' +
+              '<button class="btn-sm outline" onclick="editBooking(\'' + (r.dbBk?.booking_id || '') + '\')">👁️</button>' +
+            '</div>' +
+          '</div>';
       } else {
-        actions = '<button class="btn-sm outline" onclick="editBooking(\\\'' + (r.dbBk?.booking_id || '') + '\\\')">👁️ View</button>';
+        actions = '<button class="btn-sm outline" onclick="editBooking(\'' + (r.dbBk?.booking_id || '') + '\')">👁️ View</button>';
       }
 
       const guestFuzzy = r.dbBk ? fuzzyMatch(r.guest_name, r.dbBk.guest_name || '') : 100;
@@ -455,12 +467,32 @@
           '<div class="stat-card" style="background:#FEE2E2;text-align:center;padding:10px;cursor:pointer;" onclick="setSyncFilter(\\\'unmapped\\\')"><div style="font-size:24px;font-weight:800;color:#DC2626;">' + counts.unmapped + '</div><div style="font-size:11px;">🔴 Unmapped</div></div>' +
         '</div>' +
 
-        '<div style="display:flex;gap:8px;flex-wrap:wrap;margin:10px 0;padding:10px;background:#F3F4F6;border-radius:8px;">' +
-          '<strong>Bulk:</strong> ' +
-          '<button class="btn-sm green-btn" onclick="bulkAction(\'new\',\'import\')">✅ Import all NEW</button>' +
-          '<button class="btn-sm" style="background:#F59E0B;color:#fff;" onclick="bulkAction(\'conflict\',\'update\')">🔄 Update all CONFLICTS</button>' +
-          '<button class="btn-sm outline" onclick="bulkAction(\'new\',\'skip\');bulkAction(\'conflict\',\'skip\')">🚫 Skip all</button>' +
-        '</div>' +
+        (function() {
+          // Count issues by field type
+          const fieldCounts = { Guest: 0, 'Check-in': 0, 'Check-out': 0, Amount: 0, Room: 0 };
+          SYNC.reservations.forEach(r => {
+            if (r.status === 'conflict' && r.issues) {
+              r.issues.forEach(i => { if (fieldCounts[i.field] !== undefined) fieldCounts[i.field]++; });
+            }
+          });
+          
+          let bulkHtml = '<div style="display:flex;gap:8px;flex-wrap:wrap;margin:10px 0;padding:12px;background:#F3F4F6;border-radius:8px;">' +
+            '<div style="width:100%;font-weight:700;margin-bottom:4px;">🔧 BULK FIX BY FIELD:</div>';
+          
+          if (fieldCounts.Guest > 0) bulkHtml += '<button class="btn-sm" style="background:#7C3AED;color:#fff;" onclick="bulkFixField(\'Guest\')">👤 Fix ' + fieldCounts.Guest + ' Name(s)</button>';
+          if (fieldCounts['Check-in'] > 0) bulkHtml += '<button class="btn-sm" style="background:#0EA5E9;color:#fff;" onclick="bulkFixField(\'Check-in\')">📅 Fix ' + fieldCounts['Check-in'] + ' Check-in(s)</button>';
+          if (fieldCounts['Check-out'] > 0) bulkHtml += '<button class="btn-sm" style="background:#0EA5E9;color:#fff;" onclick="bulkFixField(\'Check-out\')">📅 Fix ' + fieldCounts['Check-out'] + ' Check-out(s)</button>';
+          if (fieldCounts.Amount > 0) bulkHtml += '<button class="btn-sm" style="background:#059669;color:#fff;" onclick="bulkFixField(\'Amount\')">💰 Fix ' + fieldCounts.Amount + ' Amount(s)</button>';
+          if (fieldCounts.Room > 0) bulkHtml += '<button class="btn-sm" style="background:#DC2626;color:#fff;" onclick="bulkFixField(\'Room\')">🏠 Fix ' + fieldCounts.Room + ' Room(s)</button>';
+          
+          bulkHtml += '<div style="width:100%;font-weight:700;margin:8px 0 4px;">🎯 BULK ACTIONS:</div>' +
+            '<button class="btn-sm green-btn" onclick="bulkAction(\'new\',\'import\')">✅ Import all NEW</button>' +
+            '<button class="btn-sm" style="background:#F59E0B;color:#fff;" onclick="bulkAction(\'conflict\',\'update\')">🔄 Fix ALL Conflicts</button>' +
+            '<button class="btn-sm outline" onclick="bulkAction(\'new\',\'skip\');bulkAction(\'conflict\',\'skip\')">🚫 Skip all</button>' +
+          '</div>';
+          
+          return bulkHtml;
+        })() +
 
         '<div style="display:flex;gap:8px;flex-wrap:wrap;margin:10px 0;align-items:center;">' +
           '<strong>Filter:</strong> ' +
@@ -495,6 +527,28 @@
 
       '</div>';
   }
+
+  window.toggleFieldFix = function(idx, fieldKey) {
+    if (!SYNC.reservations[idx]) return;
+    if (!SYNC.reservations[idx].fieldFixes) SYNC.reservations[idx].fieldFixes = {};
+    SYNC.reservations[idx].fieldFixes[fieldKey] = !SYNC.reservations[idx].fieldFixes[fieldKey];
+    // Auto-set action to update if any field is fixed
+    const hasFixes = Object.values(SYNC.reservations[idx].fieldFixes).some(v => v);
+    if (hasFixes) SYNC.reservations[idx].action = 'update';
+    renderPreview();
+  };
+
+  window.bulkFixField = function(fieldName) {
+    const key = fieldName.toLowerCase().replace(/[^a-z]/g, '');
+    SYNC.reservations.forEach(r => {
+      if (r.status === 'conflict' && (r.issues || []).some(i => i.field === fieldName)) {
+        if (!r.fieldFixes) r.fieldFixes = {};
+        r.fieldFixes[key] = true;
+        r.action = 'update';
+      }
+    });
+    renderPreview();
+  };
 
   window.runAirbnbImport = async function() {
     const toProcess = SYNC.reservations.filter(r => r.action === 'import' || r.action === 'update');
@@ -533,8 +587,25 @@
       };
 
       if (r.action === 'update' && r.dbBk) {
-        // UPDATE existing
-        const { error } = await sb.from('guest_register').update(commonFields).eq('booking_id', r.dbBk.booking_id);
+        // Build update object based on fieldFixes (if specific) or all
+        let updateFields = commonFields;
+        if (r.fieldFixes && Object.keys(r.fieldFixes).length > 0) {
+          // Only update specific fields
+          updateFields = {};
+          if (r.fieldFixes.guest) updateFields.guest_name = commonFields.guest_name;
+          if (r.fieldFixes.checkin) updateFields.check_in = commonFields.check_in;
+          if (r.fieldFixes.checkout) updateFields.check_out = commonFields.check_out;
+          if (r.fieldFixes.amount) {
+            updateFields.total_amount = commonFields.total_amount;
+            updateFields.per_day_rate = commonFields.per_day_rate;
+          }
+          if (r.fieldFixes.room) {
+            updateFields.room_id = commonFields.room_id;
+            updateFields.source_room_id = commonFields.source_room_id;
+          }
+          if (Object.keys(updateFields).length === 0) { continue; }
+        }
+        const { error } = await sb.from('guest_register').update(updateFields).eq('booking_id', r.dbBk.booking_id);
         if (error) { console.warn('Update failed:', error.message); failed++; continue; }
         updated++;
       } else {
