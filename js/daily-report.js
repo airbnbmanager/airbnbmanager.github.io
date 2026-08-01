@@ -25,7 +25,13 @@ async function renderDailyReport(selectedDate) {
   // Today's activity
   const checkins = (allBks || []).filter(b => b.check_in === repDate && !b.is_cancelled);
   const checkouts = (allBks || []).filter(b => b.check_out === repDate && !b.is_cancelled);
-  const newBookings = (allBks || []).filter(b => {
+  
+  // "New Bookings" = bookings CHECKING IN on this date (business perspective)
+  // This is what generates revenue for the day
+  const newBookings = checkins;
+  
+  // Separately track bookings CREATED on this date (data entry perspective)
+  const bookingsCreatedToday = (allBks || []).filter(b => {
     if (!b.created_at) return false;
     return b.created_at.startsWith(repDate);
   });
@@ -51,12 +57,10 @@ async function renderDailyReport(selectedDate) {
     paymentByMode[mode] = (paymentByMode[mode] || 0) + (p.amount || 0);
   });
 
-  // Booking totals for today's checkins
+  // Booking totals for today's check-ins (use FULL payment history, not just today's)
   const newBookingTotal = newBookings.reduce((s, b) => s + (b.total_amount || 0), 0);
-  const newBookingUnpaid = newBookings.reduce((s, b) => {
-    const paid = paidMap[b.booking_id] || 0;
-    return s + Math.max((b.total_amount || 0) - paid, 0);
-  }, 0);
+  // Note: paidMap only has today's payments — we need full history for accurate collected amount
+  // (defined below as paidMapFull) — so we compute this AFTER paidMapFull is created
 
   // Online vs Offline
   const onlineBks = newBookings.filter(b => b.booking_mode === 'Online-Airbnb');
@@ -88,6 +92,17 @@ async function renderDailyReport(selectedDate) {
     const due = Math.max((b.total_amount || 0) - paid, 0);
     return s + (due > 1 ? due : 0);
   }, 0);
+  
+  // Recompute check-in based metrics using FULL payment history
+  const newBookingCollected = newBookings.reduce((s, b) => s + (paidMapFull[b.booking_id] || 0), 0);
+  const newBookingDue = Math.max(newBookingTotal - newBookingCollected, 0);
+  
+  // Revenue from today's check-ins (booking value, regardless of payment date)
+  const todayRevenue = newBookingTotal;
+  
+  // Actual payment transactions on this date (for reference)
+  const todayPaymentTransactions = (allPays || []).length;
+  const todayPaymentAmount = totalPayments;
 
   // Property occupancy
   const totalRooms = (rooms || []).length;
@@ -140,9 +155,9 @@ async function renderDailyReport(selectedDate) {
           <div style="font-size:11px;color:#666;">₹${newBookingTotal.toLocaleString('en-IN')} total value</div>
         </div>
         <div style="background:#E6FFED;padding:14px;border-radius:8px;border-left:4px solid #059669;">
-          <div style="font-size:11px;color:#666;text-transform:uppercase;">Payments Received</div>
-          <div style="font-size:26px;font-weight:800;color:#059669;">₹${totalPayments.toLocaleString('en-IN')}</div>
-          <div style="font-size:11px;color:#666;">${(allPays || []).length} transactions</div>
+          <div style="font-size:11px;color:#666;text-transform:uppercase;">Today's Revenue</div>
+          <div style="font-size:26px;font-weight:800;color:#059669;">₹${todayRevenue.toLocaleString('en-IN')}</div>
+          <div style="font-size:11px;color:#666;">${newBookings.length} check-ins · ${todayPaymentTransactions} payment${todayPaymentTransactions === 1 ? '' : 's'} recorded</div>
         </div>
         <div style="background:#FEF3C7;padding:14px;border-radius:8px;border-left:4px solid #B45309;">
           <div style="font-size:11px;color:#666;text-transform:uppercase;">Total Pending Due</div>
