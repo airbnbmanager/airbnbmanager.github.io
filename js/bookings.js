@@ -208,7 +208,7 @@ async function showGuestLedger(guestName) {
           const due = (b.total_amount || 0) - pd;
           return `<tr>
             <td>${propLabel(b.rooms) || b.room_id || '-'}</td>
-            <td><span class="badge ${b.booking_mode === 'Online-Airbnb' ? 'blue' : 'yellow'}">${b.booking_mode === 'Online-Airbnb' ? 'On' : 'Off'}</span></td>
+            <td><span class="channel-badge ${b.booking_mode === 'Online-Airbnb' ? 'channel-airbnb' : 'channel-direct'}">${b.booking_mode === 'Online-Airbnb' ? 'Airbnb' : 'Direct'}</span></td>
             <td>${b.check_in || '-'}</td><td>${b.check_out || '-'}</td>
             <td>₹${(b.total_amount || 0).toLocaleString('en-IN')}</td>
             <td style="color:var(--green);">₹${pd.toLocaleString('en-IN')}</td>
@@ -774,7 +774,7 @@ async function renderManageBookings() {
               : ''}
           </td>
           <td>
-              <span class="badge ${b.booking_mode === 'Online-Airbnb' ? 'blue' : 'yellow'}">${b.booking_mode === 'Online-Airbnb' ? 'On' : 'Off'}</span>
+              <span class="channel-badge ${b.booking_mode === 'Online-Airbnb' ? 'channel-airbnb' : 'channel-direct'}">${b.booking_mode === 'Online-Airbnb' ? 'Airbnb' : 'Direct'}</span>
               ${b.is_review_booking ? '<span class="badge" style="background:#722ED1;color:#fff;font-size:9px;">⭐ REVIEW</span>' : ''}
               ${b.linked_booking_id ? `<span class="badge" style="background:#0EA5E9;color:#fff;font-size:9px;cursor:pointer;" title="Linked to booking ${b.linked_booking_id}" onclick="showLinkedBooking('${b.linked_booking_id}')">🔗 LINKED</span>` : ''}
               ${(!b.linked_booking_id && !b.is_review_booking && window.checkDuplicate && window.checkDuplicate(b, window._allBookings || [])) ? `<span class="badge" style="background:#F59E0B;color:#fff;font-size:9px;cursor:pointer;" title="Same room + date overlap detected" onclick="showDuplicateOptions('${b.booking_id}')">⚠️ DUPE</span>` : ''}
@@ -788,18 +788,18 @@ async function renderManageBookings() {
           ${canM ? `<td class="table-actions">
             <button class="btn-sm" onclick="editBooking('${b.booking_id}')" title="Edit">✏️</button>
             <button class="btn-sm secondary" onclick="showPaymentModal('${b.booking_id}')" title="Pay">💰</button>
-            <button class="btn-sm" style="background:#0891B2;color:#fff;" onclick="quickExtend('${b.booking_id}')" title="Extend">⏭️</button>
+            <button class="btn-sm" style="background:var(--primary);color:#fff;" onclick="quickExtend('${b.booking_id}')" title="Extend">⏭️</button>
             <button class="btn-sm outline" onclick="createOfflineExtension('${b.booking_id}')" title="New Ext">➕</button>
             ${isActive ? `<button class="btn-sm secondary" onclick="quickCheckout('${b.booking_id}','${b.room_id}')" title="Checkout">📤</button>` : ''}
-            <button class="btn-sm outline" onclick="shareBookingWhatsApp('${b.booking_id}')" title="Welcome">📱</button>
-            <button class="btn-sm" style="background:#00A699;color:#fff;" onclick="sendCheckinReminder('${b.booking_id}')" title="Remind">📅</button>
-            <button class="btn-sm" style="background:#E2725B;color:#fff;" onclick="sendArrivalDetails('${b.booking_id}')" title="Arrival">⏰</button>
-            <button class="btn-sm" style="background:#FFB800;color:#fff;" onclick="requestGuestID('${b.booking_id}')" title="Ask ID">🪪</button>
-            <button class="btn-sm" style="background:#FF385C;color:#fff;" onclick="sendCheckoutReminder('${b.booking_id}')" title="Bye">🔔</button>
-            <button class="btn-sm" style="background:${b.booking_mode === 'Online-Airbnb' ? '#722ED1' : '#4285F4'};color:#fff;" onclick="requestReview('${b.booking_id}')" title="Review">⭐</button>
-            <button class="btn-sm" style="background:#7C3AED;color:#fff;" onclick="showReminderModal('${b.booking_id}')" title="Set Reminder">🔔</button>
-            <button class="btn-sm" style="background:#128C7E;color:#fff;" onclick="showWATemplatesMenu('${b.booking_id}',this)" title="Templates">💬</button>
-            ${!b.is_cancelled && canM ? `<button class="btn-sm" style="background:#F59E0B;color:#fff;" onclick="cancelBooking('${b.booking_id}','${(b.guest_name || '').replace(/'/g, "\\'")}')" title="Cancel">🚫</button>` : ''}
+            <button class="btn-sm" style="background:#0E9F9B;color:#fff;" onclick="shareBookingWhatsApp('${b.booking_id}')" title="Welcome">📱</button>
+            <button class="btn-sm" style="background:#0E9F9B;color:#fff;" onclick="sendCheckinReminder('${b.booking_id}')" title="Remind">📅</button>
+            <button class="btn-sm" style="background:#0E9F9B;color:#fff;" onclick="sendArrivalDetails('${b.booking_id}')" title="Arrival">⏰</button>
+            <button class="btn-sm" style="background:var(--yellow);color:#fff;" onclick="requestGuestID('${b.booking_id}')" title="Ask ID">🪪</button>
+            <button class="btn-sm" style="background:#0E9F9B;color:#fff;" onclick="sendCheckoutReminder('${b.booking_id}')" title="Bye">🔔</button>
+            <button class="btn-sm" style="background:${b.booking_mode === 'Online-Airbnb' ? '#FF385C' : '#6C5CE0'};color:#fff;" onclick="requestReview('${b.booking_id}')" title="Review">⭐</button>
+            <button class="btn-sm" style="background:var(--primary);color:#fff;" onclick="showReminderModal('${b.booking_id}')" title="Set Reminder">🔔</button>
+            <button class="btn-sm" style="background:#0E9F9B;color:#fff;" onclick="showWATemplatesMenu('${b.booking_id}',this)" title="Templates">💬</button>
+            ${!b.is_cancelled && canM ? `<button class="btn-sm" style="background:var(--yellow);color:#fff;" onclick="cancelBooking('${b.booking_id}','${(b.guest_name || '').replace(/'/g, "\\'")}')" title="Cancel">🚫</button>` : ''}
             ${b.is_cancelled && canM ? `<button class="btn-sm outline" onclick="uncancelBooking('${b.booking_id}')" title="Restore">↩️</button>` : ''}
             ${canD ? `<button class="btn-sm danger" onclick="delBooking('${b.booking_id}','${(b.guest_name || '').replace(/'/g, "\\'")}','${b.room_id}')">🗑️</button>` : ''}
           </td>` : ''}
