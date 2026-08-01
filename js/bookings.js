@@ -581,8 +581,17 @@ async function renderManageBookings() {
     SESSION._filterByPaymentDate = null; // Clear after use
   }
 
-  // Payment filter
+  // Payment filter (also handles 'duplicates' special case)
   const payFilter = SESSION.bookingPayFilter;
+  if (payFilter === 'duplicates') {
+    window._allBookings = f;
+    f = f.filter(b => 
+      !b.linked_booking_id && 
+      !b.is_review_booking && 
+      window.checkDuplicate && 
+      window.checkDuplicate(b, f)
+    );
+  }
   // No ID filter (from dashboard KPI)
   // 🟢 Currently Staying filter
   if (SESSION._filterCurrentStay) {
@@ -697,6 +706,7 @@ async function renderManageBookings() {
             <option value="paid" ${SESSION.bookingPayFilter === 'paid' ? 'selected' : ''}>✅ Fully Paid</option>
             <option value="zero" ${SESSION.bookingPayFilter === 'zero' ? 'selected' : ''}>🔴 ₹0 Amount</option>
             <option value="due" ${SESSION.bookingPayFilter === 'due' ? 'selected' : ''}>💰 Has Balance Due</option>
+            <option value="duplicates" ${SESSION.bookingPayFilter === 'duplicates' ? 'selected' : ''}>⚠️ Duplicates Only</option>
           </select>
         </div>
         <div class="filter-item"><label>Mode</label><select id="fMode">
@@ -790,6 +800,7 @@ async function renderManageBookings() {
             <button class="btn-sm secondary" onclick="showPaymentModal('${b.booking_id}')" title="Pay">💰</button>
             <button class="btn-sm" style="background:var(--primary);color:#fff;" onclick="quickExtend('${b.booking_id}')" title="Extend">⏭️</button>
             <button class="btn-sm outline" onclick="createOfflineExtension('${b.booking_id}')" title="New Ext">➕</button>
+            <button class="btn-sm" style="background:#8B5CF6;color:#fff;" onclick="showGroupBookingModal('${b.booking_id}')" title="Group">🎊</button>
             ${isActive ? `<button class="btn-sm secondary" onclick="quickCheckout('${b.booking_id}','${b.room_id}')" title="Checkout">📤</button>` : ''}
             <button class="btn-sm" style="background:#0E9F9B;color:#fff;" onclick="shareBookingWhatsApp('${b.booking_id}')" title="Welcome">📱</button>
             <button class="btn-sm" style="background:#0E9F9B;color:#fff;" onclick="sendCheckinReminder('${b.booking_id}')" title="Remind">📅</button>
@@ -3649,3 +3660,159 @@ window.unlinkBooking = async function(bookingId) {
   fsn.success('Unlinked', '✅ Link removed');
   if (typeof renderManageBookings === 'function') renderManageBookings();
 };
+
+
+// ═══════════════════════════════════════════════
+// 🎊 GROUP BOOKING MODAL — Wedding/Family/Corporate
+// ═══════════════════════════════════════════════
+window.showGroupBookingModal = async function(bookingId) {
+  const { data: currBk } = await sb.from('guest_register')
+    .select('*, rooms(unit_no, nickname)')
+    .eq('booking_id', bookingId).single();
+  
+  if (!currBk) {
+    if (window.fsn) fsn.error('Not found', 'Booking not found');
+    return;
+  }
+  
+  const { data: candidates } = await sb.from('guest_register')
+    .select('booking_id, guest_name, room_id, phone, check_in, check_out, total_amount, booking_mode, stay_group_id, rooms(unit_no, nickname)')
+    .neq('booking_id', bookingId)
+    .or('is_cancelled.is.null,is_cancelled.eq.false');
+  
+  const nameNorm = (currBk.guest_name || '').trim().toLowerCase();
+  const relatedBookings = (candidates || []).filter(b => {
+    const nameMatch = b.guest_name && b.guest_name.trim().toLowerCase() === nameNorm;
+    const phoneMatch = b.phone && currBk.phone && b.phone === currBk.phone;
+    if (!nameMatch && !phoneMatch) return false;
+    const daysDiff = Math.abs(new Date(b.check_in) - new Date(currBk.check_in)) / (1000*60*60*24);
+    return daysDiff <= 3;
+  });
+  
+  const existingGroupId = currBk.stay_group_id;
+  const groupBookings = existingGroupId ? (candidates || []).filter(b => b.stay_group_id === existingGroupId) : [];
+  
+  const modal = document.createElement('div');
+  modal.className = 'modal-overlay';
+  modal.onclick = e => { if (e.target === modal) modal.remove(); };
+  
+  modal.innerHTML = `
+    <div class="modal-box" style="max-width:600px;">
+      <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">✕</button>
+      <h2>🎊 Group Booking Manager</h2>
+      <div class="sub">Weddings, family trips, corporate — link related bookings together</div>
+      
+      <div style="background:#F5F3FF;border:1px solid #8B5CF6;border-radius:10px;padding:12px;margin:12px 0;">
+        <div style="font-size:12px;color:#6D28D9;font-weight:700;margin-bottom:4px;">CURRENT BOOKING</div>
+        <div><strong>${currBk.guest_name}</strong> — ${propLabel(currBk.rooms) || currBk.room_id}</div>
+        <div style="font-size:12px;color:var(--muted);">📅 ${currBk.check_in} → ${currBk.check_out || 'Open'} · 📞 ${currBk.phone || '-'} · ₹${(currBk.total_amount || 0).toLocaleString('en-IN')}</div>
+        ${existingGroupId ? `<div style="margin-top:6px;font-size:11px;color:#059669;">✅ Already in group: <code>${existingGroupId}</code></div>` : ''}
+      </div>
+      
+      ${groupBookings.length > 0 ? `
+        <div style="margin:14px 0 8px;font-weight:700;color:#059669;">✅ Bookings already in this group (${groupBookings.length}):</div>
+        ${groupBookings.map(b => `
+          <div style="background:#F0FDF4;border:1px solid #86EFAC;border-radius:8px;padding:10px;margin-bottom:6px;">
+            <div><strong>${b.guest_name}</strong> — ${propLabel(b.rooms) || b.room_id}</div>
+            <div style="font-size:12px;color:var(--muted);">${b.check_in} → ${b.check_out || 'Open'} · ₹${(b.total_amount || 0).toLocaleString('en-IN')}</div>
+          </div>
+        `).join('')}
+      ` : ''}
+      
+      ${relatedBookings.filter(b => b.stay_group_id !== existingGroupId).length > 0 ? `
+        <div style="margin:14px 0 8px;font-weight:700;">Related bookings found (${relatedBookings.filter(b => b.stay_group_id !== existingGroupId).length}):</div>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:8px;">Check the ones that belong to this group:</div>
+        ${relatedBookings.filter(b => b.stay_group_id !== existingGroupId).map(b => `
+          <label style="display:flex;align-items:flex-start;gap:10px;background:#fafafa;border:1px solid var(--border);border-radius:8px;padding:10px;margin-bottom:6px;cursor:pointer;">
+            <input type="checkbox" class="grp-check" data-bid="${b.booking_id}" style="margin-top:3px;width:18px;height:18px;">
+            <div style="flex:1;">
+              <div><strong>${b.guest_name}</strong> — ${propLabel(b.rooms) || b.room_id}</div>
+              <div style="font-size:12px;color:var(--muted);">${b.check_in} → ${b.check_out || 'Open'} · 📞 ${b.phone || '-'} · ${b.booking_mode} · ₹${(b.total_amount || 0).toLocaleString('en-IN')}</div>
+              ${b.stay_group_id ? `<div style="font-size:10px;color:#F59E0B;">⚠️ Already in group: ${b.stay_group_id}</div>` : ''}
+            </div>
+          </label>
+        `).join('')}
+      ` : (groupBookings.length === 0 ? '<div class="sub" style="padding:10px;">No related bookings found within ±3 days of check-in.</div>' : '')}
+      
+      <div style="margin:14px 0 8px;">
+        <label style="font-size:12px;font-weight:600;color:#484848;">Group Type</label>
+        <select id="grpType" style="width:100%;padding:10px;border-radius:8px;border:1.5px solid var(--border);margin-top:4px;">
+          <option value="WEDDING">💒 Wedding</option>
+          <option value="FAMILY">👨‍👩‍👧 Family Trip</option>
+          <option value="CORPORATE">💼 Corporate Event</option>
+          <option value="FRIENDS">👥 Friends Group</option>
+          <option value="OTHER">📌 Other</option>
+        </select>
+      </div>
+      
+      <div style="margin:10px 0;">
+        <label style="font-size:12px;font-weight:600;color:#484848;">Notes (optional)</label>
+        <textarea id="grpNotes" placeholder="e.g. Wedding - 35 guests - Full building" style="width:100%;padding:10px;border-radius:8px;border:1.5px solid var(--border);margin-top:4px;min-height:60px;">${currBk.notes || ''}</textarea>
+      </div>
+      
+      <div class="btn-row" style="margin-top:16px;">
+        <button onclick="this.closest('.modal-overlay').remove()" class="outline">Cancel</button>
+        <button style="background:#8B5CF6;color:#fff;" onclick="saveGroupBooking('${bookingId}')">
+          🎊 ${existingGroupId ? 'Update Group' : 'Create Group'}
+        </button>
+        ${existingGroupId ? `<button class="danger" onclick="removeFromGroup('${bookingId}')">🚫 Remove from Group</button>` : ''}
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+};
+
+window.saveGroupBooking = async function(bookingId) {
+  const checkedIds = Array.from(document.querySelectorAll('.grp-check:checked')).map(cb => cb.dataset.bid);
+  const grpType = document.getElementById('grpType').value;
+  const notes = document.getElementById('grpNotes').value.trim();
+  
+  const { data: currBk } = await sb.from('guest_register')
+    .select('stay_group_id, guest_name, check_in')
+    .eq('booking_id', bookingId).single();
+  
+  let groupId = currBk.stay_group_id;
+  if (!groupId) {
+    const guestSlug = (currBk.guest_name || 'GUEST').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 10);
+    const dateSlug = (currBk.check_in || '').replace(/-/g, '');
+    groupId = `GRP-${guestSlug}-${grpType}-${dateSlug}`;
+  }
+  
+  const allBookingIds = [bookingId, ...checkedIds];
+  
+  const { error } = await sb.from('guest_register')
+    .update({ 
+      stay_group_id: groupId,
+      notes: notes || null
+    })
+    .in('booking_id', allBookingIds);
+  
+  if (error) {
+    if (window.fsn) fsn.error('Error', error.message);
+    else alert('Error: ' + error.message);
+    return;
+  }
+  
+  document.querySelector('.modal-overlay')?.remove();
+  if (window.fsn) fsn.success('Group Created', `${allBookingIds.length} bookings grouped as ${groupId}`);
+  renderManageBookings();
+};
+
+window.removeFromGroup = async function(bookingId) {
+  if (!confirm('Remove this booking from its group?')) return;
+  
+  const { error } = await sb.from('guest_register')
+    .update({ stay_group_id: null })
+    .eq('booking_id', bookingId);
+  
+  if (error) {
+    if (window.fsn) fsn.error('Error', error.message);
+    else alert('Error: ' + error.message);
+    return;
+  }
+  
+  document.querySelector('.modal-overlay')?.remove();
+  if (window.fsn) fsn.success('Removed', 'Booking removed from group');
+  renderManageBookings();
+};
+
