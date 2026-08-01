@@ -4609,3 +4609,118 @@ textarea:focus {
 }
 
 /* Buttons using --primary automatically pick up new indigo via existing var-based rules above this block */
+
+/* ═══════════════════════════════════════════════════════════
+   🎨 THEME v2.1 — KPI Stat Cards, tinted per accent color
+   Matches inline border-left colors already set by JS (no JS changes needed)
+   ═══════════════════════════════════════════════════════════ */
+
+.stat-card {
+  padding: 18px 18px 16px;
+  border-left-width: 4px !important;
+  border-left-style: solid !important;
+  border-top: 1px solid var(--border);
+  border-right: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+}
+
+.stat-card .stat-num { font-size: 24px; margin-bottom: 2px; }
+.stat-card .stat-label { display: flex; align-items: center; gap: 6px; }
+
+/* Green family — revenue, success, matched */
+.stat-card[style*="var(--green)"],
+.stat-card[style*="#25D366"] {
+  background: linear-gradient(135deg, #EAF7F1 0%, #ffffff 55%);
+}
+
+/* Red family — due, overdue, alerts */
+.stat-card[style*="var(--red)"],
+.stat-card[style*="#FF385C"] {
+  background: linear-gradient(135deg, #FDE9EC 0%, #ffffff 55%);
+}
+
+/* Yellow/amber family — pending, past due */
+.stat-card[style*="var(--yellow)"],
+.stat-card[style*="#FFB800"] {
+  background: linear-gradient(135deg, #FFF6E0 0%, #ffffff 55%);
+}
+
+/* Blue family — informational, this month, occupied */
+.stat-card[style*="var(--blue)"],
+.stat-card[style*="#60a5fa"] {
+  background: linear-gradient(135deg, #EAF3FE 0%, #ffffff 55%);
+}
+
+/* Primary violet — brand highlight */
+.stat-card[style*="var(--primary)"] {
+  background: linear-gradient(135deg, #EFEDFC 0%, #ffffff 55%);
+}
+
+/* Purple — review bookings */
+.stat-card[style*="#722ED1"] {
+  background: linear-gradient(135deg, #F3EBFC 0%, #ffffff 55%);
+}
+
+.stat-card:hover {
+  box-shadow: var(--shadow-hover);
+  transform: translateY(-3px);
+}
+
+/* Section header cards (Dashboard title, Online Now, etc) — softer look */
+.card {
+  padding: 20px;
+}
+.card h1 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Badges get a touch more presence inside cards */
+.stat-card .badge { margin-top: 6px; }
+
+/* ═══════════════════════════════════════════════════════════
+   🎨 THEME v2.2 — Channel Identity: Airbnb vs Direct
+   Airbnb = their own brand red (instant recognition)
+   Direct = your brand violet (your own booking channel)
+   ═══════════════════════════════════════════════════════════ */
+
+.channel-badge, .channel-value {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 700;
+}
+
+.channel-badge {
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 12px;
+}
+
+.channel-badge::before, .channel-value::before {
+  content: '';
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+  flex-shrink: 0;
+}
+
+.channel-airbnb {
+  color: #FF385C;
+}
+.channel-badge.channel-airbnb {
+  background: rgba(255,56,92,0.12);
+}
+
+.channel-direct {
+  color: var(--primary);
+}
+.channel-badge.channel-direct {
+  background: rgba(108,92,224,0.12);
+}
+
+.channel-value {
+  font-size: 13px;
+}

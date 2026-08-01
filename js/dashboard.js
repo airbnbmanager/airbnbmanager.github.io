@@ -245,27 +245,27 @@ async function renderDashboard() {
         <div class="table-wrap"><table>
           <thead><tr>
             <th>Period</th>
-            <th style="color:#1E429F;">🌐 Online (Airbnb)</th>
-            <th style="color:#B45309;">🏠 Offline (Direct)</th>
+            <th><span class="channel-badge channel-airbnb">🌐 Airbnb</span></th>
+            <th><span class="channel-badge channel-direct">🏠 Direct</span></th>
             <th>Total</th>
           </tr></thead>
           <tbody>
             <tr style="cursor:pointer;" onclick="filterBookingsByMode('Online-Airbnb','today')">
               <td><strong>Today</strong></td>
-              <td style="color:#1E429F;">${onlineToday.length} · ₹${rev(onlineToday).toLocaleString('en-IN')}</td>
-              <td style="color:#B45309;" onclick="event.stopPropagation();filterBookingsByMode('Offline','today')">${offlineToday.length} · ₹${rev(offlineToday).toLocaleString('en-IN')}</td>
+              <td><span class="channel-value channel-airbnb">${onlineToday.length} · ₹${rev(onlineToday).toLocaleString('en-IN')}</span></td>
+              <td onclick="event.stopPropagation();filterBookingsByMode('Offline','today')"><span class="channel-value channel-direct">${offlineToday.length} · ₹${rev(offlineToday).toLocaleString('en-IN')}</span></td>
               <td onclick="event.stopPropagation();filterBookingsByMode('All','today')"><strong>${onlineToday.length + offlineToday.length}</strong> · ₹${(rev(onlineToday) + rev(offlineToday)).toLocaleString('en-IN')}</td>
             </tr>
             <tr style="cursor:pointer;" onclick="filterBookingsByMode('Online-Airbnb','week')">
               <td><strong>This Week</strong></td>
-              <td style="color:#1E429F;">${onlineWeek.length} · ₹${rev(onlineWeek).toLocaleString('en-IN')}</td>
-              <td style="color:#B45309;" onclick="event.stopPropagation();filterBookingsByMode('Offline','week')">${offlineWeek.length} · ₹${rev(offlineWeek).toLocaleString('en-IN')}</td>
+              <td><span class="channel-value channel-airbnb">${onlineWeek.length} · ₹${rev(onlineWeek).toLocaleString('en-IN')}</span></td>
+              <td onclick="event.stopPropagation();filterBookingsByMode('Offline','week')"><span class="channel-value channel-direct">${offlineWeek.length} · ₹${rev(offlineWeek).toLocaleString('en-IN')}</span></td>
               <td onclick="event.stopPropagation();filterBookingsByMode('All','week')"><strong>${onlineWeek.length + offlineWeek.length}</strong> · ₹${(rev(onlineWeek) + rev(offlineWeek)).toLocaleString('en-IN')}</td>
             </tr>
             <tr style="cursor:pointer;" onclick="filterBookingsByMode('Online-Airbnb','month')">
               <td><strong>This Month</strong></td>
-              <td style="color:#1E429F;">${onlineMonth.length} · ₹${rev(onlineMonth).toLocaleString('en-IN')}</td>
-              <td style="color:#B45309;" onclick="event.stopPropagation();filterBookingsByMode('Offline','month')">${offlineMonth.length} · ₹${rev(offlineMonth).toLocaleString('en-IN')}</td>
+              <td><span class="channel-value channel-airbnb">${onlineMonth.length} · ₹${rev(onlineMonth).toLocaleString('en-IN')}</span></td>
+              <td onclick="event.stopPropagation();filterBookingsByMode('Offline','month')"><span class="channel-value channel-direct">${offlineMonth.length} · ₹${rev(offlineMonth).toLocaleString('en-IN')}</span></td>
               <td onclick="event.stopPropagation();filterBookingsByMode('All','month')"><strong>${onlineMonth.length + offlineMonth.length}</strong> · ₹${(rev(onlineMonth) + rev(offlineMonth)).toLocaleString('en-IN')}</td>
             </tr>
           </tbody>
