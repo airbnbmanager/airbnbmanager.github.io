@@ -329,7 +329,7 @@ async function renderFlatsStatus() {
                 ${isDirty ? `<button class="btn-sm secondary" onclick="quickClean('${f.room_id}','In Progress',this)">🔄</button>` : ''}
                 ${isDirty ? `<button class="btn-sm" style="background:#F59E0B;color:#fff;" onclick="showRefuseCleaningModal('${f.room_id}','${(propLabel(f.rooms) || f.room_id).replace(/'/g, "\\'")}')">❌ Refuse</button>` : ''}
                 ${isProgress ? `<button class="btn-sm green-btn" onclick="quickClean('${f.room_id}','Clean',this)">✅ Done</button>` : ''}
-                ${isClean ? `<button class="btn-sm danger" onclick="quickClean('${f.room_id}','Dirty',this)">🧹</button>` : ''}
+                ${isClean ? `<button class="btn-sm danger" onclick="quickClean('${f.room_id}','Dirty',this)">🧹 Mark Dirty</button>` : ''}
                 ${f.cleaning_refused_reason ? `<div style="font-size:10px;color:#F59E0B;margin-top:4px;">🚫 Refused: ${f.cleaning_refused_reason}</div>` : ''}
               ` : '-'}
             </td>
