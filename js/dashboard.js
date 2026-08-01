@@ -69,15 +69,22 @@ async function renderDashboard() {
     paidMap[p.booking_id] = (paidMap[p.booking_id] || 0) + (p.amount || 0);
   });
 
-  // Today's revenue (payments received today)
-  const todayRevenue = allPayments
+  // Today's revenue = total booking value of guests checking in today
+  //   (regardless of whether payment has been received yet)
+  const todayCheckinBookings = allBookings.filter(b => b.check_in === today);
+  const todayRevenue = todayCheckinBookings.reduce((s, b) => s + (b.total_amount || 0), 0);
+  const todayCollected = todayCheckinBookings.reduce((s, b) => s + (paidMap[b.booking_id] || 0), 0);
+  const todayPending = todayRevenue - todayCollected;
+
+  // Payments actually received today (for reference)
+  const todayPaymentsReceived = allPayments
     .filter(p => p.payment_date === today)
     .reduce((s, p) => s + (p.amount || 0), 0);
 
-  // This month revenue
-  const monthRevenue = allPayments
-    .filter(p => (p.payment_date || '') >= monthStart)
-    .reduce((s, p) => s + (p.amount || 0), 0);
+  // This month revenue = total booking value of guests checking in this month
+  const monthCheckinBookings = allBookings.filter(b => (b.check_in || '') >= monthStart);
+  const monthRevenue = monthCheckinBookings.reduce((s, b) => s + (b.total_amount || 0), 0);
+  const monthCollected = monthCheckinBookings.reduce((s, b) => s + (paidMap[b.booking_id] || 0), 0);
 
   // Total pending balance (all active bookings)
   const activeDue = allBookings.filter(b => b.check_out >= today || !b.check_out).reduce((s, b) => {
@@ -187,10 +194,12 @@ async function renderDashboard() {
       <div class="stat-card" style="border-left:4px solid var(--green);cursor:pointer;" onclick="filterAndShowBookings('todayRevenue')">
         <div class="stat-num" style="color:var(--green);font-size:22px;">₹${todayRevenue.toLocaleString('en-IN')}</div>
         <div class="stat-label">💰 Today's Revenue</div>
+        <div style="font-size:10px;color:var(--muted);">${todayCheckinBookings.length} check-ins · Collected ₹${todayCollected.toLocaleString('en-IN')}${todayPending > 0 ? ` · Due ₹${todayPending.toLocaleString('en-IN')}` : ''}</div>
       </div>
       <div class="stat-card" style="border-left:4px solid var(--blue);cursor:pointer;" onclick="filterAndShowBookings('thisMonth')">
         <div class="stat-num" style="color:var(--blue);font-size:22px;">₹${monthRevenue.toLocaleString('en-IN')}</div>
         <div class="stat-label">📈 This Month</div>
+        <div style="font-size:10px;color:var(--muted);">${monthCheckinBookings.length} check-ins · Collected ₹${monthCollected.toLocaleString('en-IN')}</div>
       </div>
       <div class="stat-card" style="border-left:4px solid #FF385C;cursor:pointer;" onclick="filterAndShowBookings('activeDue')">
         <div class="stat-num" style="color:#FF385C;font-size:20px;">₹${activeDue.toLocaleString('en-IN')}</div>
@@ -594,8 +603,12 @@ async function renderDashboard() {
         <span class="metric-value" style="color:#fff;">${monthBookings}</span>
       </div>
       <div class="metric-row" style="border-color:rgba(255,255,255,0.15);">
-        <span style="color:rgba(255,255,255,0.8);">Revenue</span>
+        <span style="color:rgba(255,255,255,0.8);">Revenue (Bookings)</span>
         <span class="metric-value" style="color:#4ade80;">₹${monthRevenue.toLocaleString('en-IN')}</span>
+      </div>
+      <div class="metric-row" style="border-color:rgba(255,255,255,0.15);">
+        <span style="color:rgba(255,255,255,0.8);">Collected</span>
+        <span class="metric-value" style="color:#4ade80;">₹${monthCollected.toLocaleString('en-IN')}</span>
       </div>
       <div class="metric-row" style="border-color:rgba(255,255,255,0.15);">
         <span style="color:rgba(255,255,255,0.8);">Occupancy</span>
