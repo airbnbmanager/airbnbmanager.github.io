@@ -1661,7 +1661,7 @@ code {
   }
 
   .sidebar-nav a.active {
-    background: rgba(226,114,91,0.25) !important;
+    background: var(--primary) !important;
     color: #fff !important;
   }
 }
@@ -1690,7 +1690,7 @@ code {
     left: 0;
     right: 0;
     height: 62px;
-    background: #1a1a1a;
+    background: var(--dark);
     border-top: 1px solid rgba(255,255,255,0.08);
     z-index: 9998;
     padding: 0;
@@ -1726,7 +1726,7 @@ code {
   }
 
   .bottom-nav a.active {
-    color: #E2725B !important;
+    color: var(--primary) !important;
     background: transparent !important;
   }
 
@@ -1868,12 +1868,13 @@ code {
     background: rgba(255,255,255,0.06) !important;
   }
 
-  /* Active item — subtle orange, not full red */
+  /* Active item — violet theme */
   .sidebar.mobile-drawer-open .sidebar-nav a.active {
-    background: rgba(226,114,91,0.18) !important;
-    color: #E2725B !important;
-    border-left: 3px solid #E2725B !important;
-    padding-left: 11px !important;
+    background: var(--primary) !important;
+    color: #fff !important;
+    border-left: none !important;
+    border-radius: 10px !important;
+    padding-left: 14px !important;
   }
 }
 
@@ -3272,14 +3273,16 @@ body.has-offline-banner {
 
 /* Active menu item */
 [data-theme="dark"] .sidebar-nav a.active {
-  background: rgba(226,114,91,0.25) !important;
+  background: var(--primary) !important;
   color: #fff !important;
-  border-left: 3px solid #E2725B !important;
+  border-left: none !important;
+  border-radius: 10px !important;
+  box-shadow: 0 4px 14px rgba(108,92,224,0.35) !important;
 }
 
 /* Sidebar itself proper bg (already dark by default) */
 [data-theme="dark"] .sidebar {
-  background: #0a0e13 !important;
+  background: var(--dark) !important;
 }
 
 /* Fix: sidebar not affected by universal color override */
@@ -3337,14 +3340,16 @@ body.has-offline-banner {
 
 /* Active menu item */
 [data-theme="dark"] .sidebar-nav a.active {
-  background: rgba(226,114,91,0.25) !important;
+  background: var(--primary) !important;
   color: #fff !important;
-  border-left: 3px solid #E2725B !important;
+  border-left: none !important;
+  border-radius: 10px !important;
+  box-shadow: 0 4px 14px rgba(108,92,224,0.35) !important;
 }
 
 /* Sidebar itself proper bg (already dark by default) */
 [data-theme="dark"] .sidebar {
-  background: #0a0e13 !important;
+  background: var(--dark) !important;
 }
 
 /* Fix: sidebar not affected by universal color override */
