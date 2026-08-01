@@ -1,14 +1,14 @@
+# Editor/IDE
 .claude/
+
+# System files
 .DS_Store
+**/.DS_Store
+
+# Supabase
 supabase/.temp/
-js/*.bak
-js/*.bak.*
-.DS_Store
 
 # Backup files
 *.bak
 *.bak.*
-.bak-propname/
-
-.bak-alerts/
-.bak-propname/
+.bak-*/
