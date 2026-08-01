@@ -3490,14 +3490,49 @@ window.detectDuplicateBookings = function(bookings) {
 // ═══ DUPLICATE DETECTION ═══
 window.checkDuplicate = function(booking, allBookings) {
   if (!allBookings) return false;
-  const dupes = allBookings.filter(b => 
-    b.booking_id !== booking.booking_id &&
-    b.room_id === booking.room_id &&
-    !b.is_cancelled &&
-    // Overlapping dates
-    b.check_in <= (booking.check_out || booking.check_in) &&
-    (b.check_out || b.check_in) >= booking.check_in
-  );
+  const dupes = allBookings.filter(b => {
+    // Basic filters
+    if (b.booking_id === booking.booking_id) return false;
+    if (b.is_cancelled) return false;
+    if (b.room_id !== booking.room_id) return false;
+    
+    // Skip if same group (family/wedding/multi-room booking)
+    if (booking.stay_group_id && b.stay_group_id === booking.stay_group_id) return false;
+    
+    // Skip if parent-child (extended stay)
+    if (b.parent_booking_id === booking.booking_id) return false;
+    if (booking.parent_booking_id === b.booking_id) return false;
+    if (b.parent_booking_id && b.parent_booking_id === booking.parent_booking_id) return false;
+    
+    // Skip if already linked to each other
+    if (b.linked_booking_id === booking.booking_id) return false;
+    if (booking.linked_booking_id === b.booking_id) return false;
+    
+    // Skip review bookings (fake Airbnb entries)
+    if (b.is_review_booking || booking.is_review_booking) return false;
+    
+    // Check for date overlap
+    const bCheckOut = b.check_out || b.check_in;
+    const bookCheckOut = booking.check_out || booking.check_in;
+    if (b.check_in > bookCheckOut) return false;
+    if (bCheckOut < booking.check_in) return false;
+    
+    // Same guest + same date range = likely group booking, not duplicate
+    if (b.guest_name && booking.guest_name 
+        && b.guest_name.trim().toLowerCase() === booking.guest_name.trim().toLowerCase()
+        && b.check_in === booking.check_in) {
+      return false;
+    }
+    
+    // Same phone + same date = likely group booking by one person
+    if (b.phone && booking.phone 
+        && b.phone === booking.phone
+        && b.check_in === booking.check_in) {
+      return false;
+    }
+    
+    return true; // Real overlap detected
+  });
   return dupes.length > 0;
 };
 
