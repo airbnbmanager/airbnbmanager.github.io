@@ -1,20 +1,21 @@
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
 :root {
-  --primary: #FF385C;
-  --primary-dark: #E31C5F;
-  --dark: #222222;
-  --bg: #F7F7F7;
+  --primary: #6C5CE0;
+  --primary-dark: #5646C4;
+  --dark: #221F3D;
+  --bg: #F6F4FB;
   --card: #FFFFFF;
-  --text: #222222;
-  --muted: #717171;
-  --border: #DDDDDD;
-  --green: #008A05;
-  --red: #C13515;
-  --yellow: #B45309;
-  --blue: #1D4ED8;
-  --radius: 12px;
-  --shadow: 0 2px 16px rgba(0,0,0,0.08);
+  --text: #221F3D;
+  --muted: #726F8C;
+  --border: #E8E4F5;
+  --green: #1F9D66;
+  --red: #D64545;
+  --yellow: #C48A1F;
+  --blue: #3B6FE0;
+  --radius: 16px;
+  --shadow: 0 4px 20px rgba(34,31,61,0.06);
+  --shadow-hover: 0 10px 28px rgba(34,31,61,0.12);
 }
 
 html { -webkit-text-size-adjust: 100%; }
@@ -3429,18 +3430,18 @@ body.has-offline-banner {
 }
 
 /* ═══════════════════════════════════════════════════════════
-   🎨 CUSTOM FONTS — Inter (modern, native app feel)
+   🎨 CUSTOM FONTS — Manrope (body) + Fraunces (headings)
    ═══════════════════════════════════════════════════════════ */
 body, input, select, textarea, button {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+  font-family: 'Manrope', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
   font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
 h1, h2, h3, h4, h5, h6 {
-  font-family: 'Inter', sans-serif !important;
-  letter-spacing: -0.02em;
+  font-family: 'Fraunces', serif !important;
+  letter-spacing: -0.01em;
   font-weight: 700;
 }
 
@@ -4538,3 +4539,68 @@ textarea:focus {
     max-width: 42px;
   }
 }
+
+/* ═══════════════════════════════════════════════════════════
+   🎨 THEME v2 — Visual Redesign (indigo/violet, soft cards)
+   Appended at end so it safely overrides earlier same-specificity rules
+   ═══════════════════════════════════════════════════════════ */
+
+.card {
+  border-radius: var(--radius);
+  transition: box-shadow 0.2s ease;
+}
+.card:hover { box-shadow: var(--shadow-hover); }
+
+.section-title { font-family: 'Manrope', sans-serif; }
+
+.stat-grid { gap: 14px; }
+
+.stat-card {
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  transition: box-shadow 0.2s ease, transform 0.15s ease;
+}
+.stat-card:hover {
+  box-shadow: var(--shadow-hover);
+  transform: translateY(-2px);
+}
+.stat-card .stat-num {
+  font-family: 'Manrope', sans-serif;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+}
+.stat-card .stat-label {
+  font-weight: 600;
+  letter-spacing: 0.2px;
+}
+
+.badge {
+  border-radius: 8px;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+  padding: 4px 10px;
+}
+
+/* Sidebar — deep indigo + pill-style active nav */
+.sidebar-brand span { font-family: 'Fraunces', serif; letter-spacing: 0.2px; }
+
+.sidebar-nav a, .sidebar nav a {
+  margin: 2px 10px;
+  border-radius: 10px;
+  border-left: none !important;
+}
+.sidebar-nav a.active, .sidebar nav a.active {
+  background: var(--primary) !important;
+  color: #fff !important;
+  box-shadow: 0 4px 14px rgba(108,92,224,0.35);
+}
+.sidebar-nav a:hover, .sidebar nav a:hover {
+  background: rgba(255,255,255,0.08) !important;
+}
+
+@media (max-width: 768px) {
+  .sidebar-nav a.active, .sidebar nav a.active { box-shadow: none; }
+  .sidebar-nav a, .sidebar nav a { margin: 0; border-radius: 999px; }
+}
+
+/* Buttons using --primary automatically pick up new indigo via existing var-based rules above this block */
