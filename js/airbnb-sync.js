@@ -11,6 +11,7 @@
     rooms: [],
     existingByCode: {},
     existingByGuest: [],
+    possiblyCancelled: [],
     filter: 'all',
     fromDate: '2026-07-01'  // Only import bookings on/after this date
   };
@@ -134,6 +135,11 @@
     if (csvBk.matched_room_id && dbBk.room_id && csvBk.matched_room_id !== dbBk.room_id) {
       issues.push({ field: 'Room', csv: csvBk.matched_room_id, db: dbBk.room_id });
     }
+    // Mode — a booking matched to an Airbnb code must be tagged Online-Airbnb.
+    // Catches the case where you first entered it manually as Direct.
+    if (dbBk.booking_mode && dbBk.booking_mode !== 'Online-Airbnb') {
+      issues.push({ field: 'Mode', csv: 'Online-Airbnb', db: dbBk.booking_mode });
+    }
 
     return {
       status: issues.length > 0 ? 'conflict' : 'match',
@@ -156,7 +162,7 @@
 
     // Load ALL existing bookings for fuzzy comparison
     const { data: existing } = await sb.from('guest_register')
-      .select('booking_id, airbnb_confirmation_code, guest_name, check_in, check_out, total_amount, room_id, booking_mode, rooms(unit_no, nickname)')
+      .select('booking_id, airbnb_confirmation_code, guest_name, check_in, check_out, total_amount, room_id, booking_mode, is_cancelled, rooms(unit_no, nickname)')
       .order('check_in', { ascending: false })
       .limit(500);
 
@@ -254,14 +260,32 @@
     SYNC.payouts = payouts;
     SYNC.filter = 'all';
 
+    computePossiblyCancelled();
     renderPreview();
   };
+
+  // ─── Find DB bookings tagged Airbnb (within the date window) that no longer
+  // appear anywhere in this CSV export — likely cancelled on Airbnb's side. ───
+  function computePossiblyCancelled() {
+    const csvCodes = new Set(Object.keys(SYNC.allReservations.reduce((acc, r) => {
+      acc[r.confirmation_code] = true;
+      return acc;
+    }, {})));
+    SYNC.possiblyCancelled = SYNC.existingByGuest.filter(e =>
+      e.airbnb_confirmation_code &&
+      e.booking_mode === 'Online-Airbnb' &&
+      !e.is_cancelled &&
+      !csvCodes.has(e.airbnb_confirmation_code) &&
+      (!SYNC.fromDate || (e.check_in && e.check_in >= SYNC.fromDate))
+    );
+  }
 
   window.setFromDate = function(date) {
     SYNC.fromDate = date;
     SYNC.reservations = SYNC.allReservations.filter(r =>
       !r.check_in || !SYNC.fromDate || r.check_in >= SYNC.fromDate
     );
+    computePossiblyCancelled();
     renderPreview();
   };
 
@@ -421,6 +445,31 @@
     const syncColor = syncRate === 100 ? '#0A7D1A' : syncRate > 90 ? '#F59E0B' : '#DC2626';
     const syncLabel = syncRate === 100 ? '✅ Perfectly Synced' : syncRate > 100 ? '⚠️ Extra in App' : syncRate > 90 ? '⚠️ Nearly Synced' : '🔴 Needs Sync';
 
+    // ─── Possibly-cancelled panel (DB has Airbnb code, CSV no longer has it) ───
+    let cancelledHtml = '';
+    if (SYNC.possiblyCancelled.length > 0) {
+      cancelledHtml =
+        '<div class="card" style="margin-top:16px;border-left:4px solid #DC2626;background:#FEF2F2;">' +
+          '<div class="section-title" style="color:#991B1B;">🔴 Possibly Cancelled on Airbnb (' + SYNC.possiblyCancelled.length + ')</div>' +
+          '<div style="font-size:12px;color:#7F1D1D;margin-bottom:10px;">These are tagged Airbnb in your register but no longer appear in this CSV export within your date range. Verify on Airbnb before marking cancelled — the CSV export window may simply not cover them.</div>' +
+          '<div class="table-wrap"><table><thead><tr><th>Guest</th><th>Property</th><th>Check-in</th><th>Amount</th><th>Code</th><th>Action</th></tr></thead><tbody>' +
+          SYNC.possiblyCancelled.map(e =>
+            '<tr>' +
+              '<td>' + (e.guest_name || '-') + '</td>' +
+              '<td><small>' + (e.rooms?.unit_no || '') + ' ' + (e.rooms?.nickname || '') + '</small></td>' +
+              '<td>' + (e.check_in || '-') + '</td>' +
+              '<td>₹' + (e.total_amount || 0).toLocaleString('en-IN') + '</td>' +
+              '<td><small>' + (e.airbnb_confirmation_code || '') + '</small></td>' +
+              '<td>' +
+                '<button class="btn-sm" style="background:var(--yellow);color:#fff;" onclick="cancelBooking(\'' + e.booking_id + '\',\'' + (e.guest_name || '').replace(/'/g, "\\'") + '\')">🚫 Mark Cancelled</button> ' +
+                '<button class="btn-sm outline" onclick="editBooking(\'' + e.booking_id + '\')">👁️ View</button>' +
+              '</td>' +
+            '</tr>'
+          ).join('') +
+          '</tbody></table></div>' +
+        '</div>';
+    }
+
     container.innerHTML =
       // BIG SYNC STATUS CARD
       '<div class="card" style="margin-top:20px;background:linear-gradient(135deg,#FF385C,#E00B41);color:#fff;border:none;">' +
@@ -449,6 +498,8 @@
         '</div>' +
       '</div>' +
 
+      cancelledHtml +
+
       // Compare details
       '<div class="card" style="margin-top:16px;">' +
 
@@ -470,7 +521,7 @@
 
         (function() {
           // Count issues by field type
-          const fieldCounts = { Guest: 0, 'Check-in': 0, 'Check-out': 0, Amount: 0, Room: 0 };
+          const fieldCounts = { Guest: 0, 'Check-in': 0, 'Check-out': 0, Amount: 0, Room: 0, Mode: 0 };
           SYNC.reservations.forEach(r => {
             if (r.status === 'conflict' && r.issues) {
               r.issues.forEach(i => { if (fieldCounts[i.field] !== undefined) fieldCounts[i.field]++; });
@@ -485,6 +536,7 @@
           if (fieldCounts['Check-out'] > 0) bulkHtml += '<button class="btn-sm" style="background:#0EA5E9;color:#fff;" onclick="bulkFixField(\'Check-out\')">📅 Fix ' + fieldCounts['Check-out'] + ' Check-out(s)</button>';
           if (fieldCounts.Amount > 0) bulkHtml += '<button class="btn-sm" style="background:#059669;color:#fff;" onclick="bulkFixField(\'Amount\')">💰 Fix ' + fieldCounts.Amount + ' Amount(s)</button>';
           if (fieldCounts.Room > 0) bulkHtml += '<button class="btn-sm" style="background:#DC2626;color:#fff;" onclick="bulkFixField(\'Room\')">🏠 Fix ' + fieldCounts.Room + ' Room(s)</button>';
+          if (fieldCounts.Mode > 0) bulkHtml += '<button class="btn-sm" style="background:#6C5CE0;color:#fff;" onclick="bulkFixField(\'Mode\')">🏷️ Fix ' + fieldCounts.Mode + ' Mode(s)</button>';
           
           bulkHtml += '<div style="width:100%;font-weight:700;margin:8px 0 4px;">🎯 BULK ACTIONS:</div>' +
             '<button class="btn-sm green-btn" onclick="bulkAction(\'new\',\'import\')">✅ Import all NEW</button>' +
@@ -603,6 +655,9 @@
           if (r.fieldFixes.room) {
             updateFields.room_id = commonFields.room_id;
             updateFields.source_room_id = commonFields.source_room_id;
+          }
+          if (r.fieldFixes.mode) {
+            updateFields.booking_mode = commonFields.booking_mode;
           }
           if (Object.keys(updateFields).length === 0) { continue; }
         }
