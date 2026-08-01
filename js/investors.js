@@ -751,7 +751,7 @@ async function renderInvestorView(range = 'Month') {
           <tbody>${bks.map(b => `<tr>
             <td>${b.guest_name || '-'}</td>
             <td>${propLabel(b.rooms) || '-'}</td>
-            <td><span class="badge ${b.booking_mode === 'Online-Airbnb' ? 'blue' : 'yellow'}">${b.booking_mode === 'Online-Airbnb' ? 'On' : 'Off'}</span></td>
+            <td><span class="channel-badge ${b.booking_mode === 'Online-Airbnb' ? 'channel-airbnb' : 'channel-direct'}">${b.booking_mode === 'Online-Airbnb' ? '🌐' : '🏠'}</span></td>
             <td>${b.check_in || '-'}</td>
             <td>${b.check_out || '-'}</td>
             <td style="color:var(--green);">₹${(pm[b.booking_id] || 0).toLocaleString('en-IN')}</td>

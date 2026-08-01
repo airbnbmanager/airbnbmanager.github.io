@@ -597,14 +597,14 @@ async function renderPropertyReport(roomId, range = 'Month') {
         <span class="metric-value">₹${totRev.toLocaleString('en-IN')}</span>
       </div>
       <div class="metric-row">
-        <span class="metric-label">Online (Airbnb)</span>
-        <span class="metric-value" style="color:var(--blue);">
+        <span class="metric-label">🌐 Online (Airbnb)</span>
+        <span class="metric-value" style="color:#FF385C;">
           ₹${onRev.toLocaleString('en-IN')}
         </span>
       </div>
       <div class="metric-row">
-        <span class="metric-label">Offline (Direct)</span>
-        <span class="metric-value" style="color:var(--yellow);">
+        <span class="metric-label">🏠 Offline (Direct)</span>
+        <span class="metric-value" style="color:#6C5CE0;">
           ₹${offRev.toLocaleString('en-IN')}
         </span>
       </div>
@@ -624,13 +624,13 @@ async function renderPropertyReport(roomId, range = 'Month') {
     <div class="card">
       <div class="section-title">💰 Revenue Breakdown by Source</div>
       <div class="stat-grid">
-        <div class="stat-card" style="border-left:4px solid var(--blue);">
-          <div class="stat-num" style="color:var(--blue);font-size:22px;">₹${onRev.toLocaleString('en-IN')}</div>
+        <div class="stat-card" style="border-left:4px solid #FF385C;">
+          <div class="stat-num" style="color:#FF385C;font-size:22px;">₹${onRev.toLocaleString('en-IN')}</div>
           <div class="stat-label">🌐 Online (Airbnb)</div>
           <div style="font-size:11px;color:var(--muted);margin-top:4px;">${onBks.length} bookings</div>
         </div>
-        <div class="stat-card" style="border-left:4px solid var(--yellow);">
-          <div class="stat-num" style="color:var(--yellow);font-size:22px;">₹${offRev.toLocaleString('en-IN')}</div>
+        <div class="stat-card" style="border-left:4px solid #6C5CE0;">
+          <div class="stat-num" style="color:#6C5CE0;font-size:22px;">₹${offRev.toLocaleString('en-IN')}</div>
           <div class="stat-label">🏠 Offline (Direct)</div>
           <div style="font-size:11px;color:var(--muted);margin-top:4px;">${offBks.length} bookings</div>
         </div>

@@ -143,7 +143,7 @@ async function renderReports() {
         const isCheckIn = bk.check_in === ds;
         const isCheckOut = dateAdd(ds, 1) === bk.check_out;
         const isOnline = bk.booking_mode === 'Online-Airbnb';
-        const bg = isOnline ? '#FF385C' : '#F59E0B';
+        const bg = isOnline ? '#FF385C' : '#6C5CE0';
         const guestInitial = (bk.guest_name || 'G').charAt(0).toUpperCase();
         // Smart name: full first name if short, truncate if long
         const nameParts = (bk.guest_name || 'Guest').trim().split(/\s+/);
@@ -202,7 +202,7 @@ async function renderReports() {
     <div class="card" style="padding:12px;text-align:center;">
       <div style="display:inline-flex;gap:12px;flex-wrap:wrap;justify-content:center;font-size:12px;">
         <span><span style="display:inline-block;width:14px;height:14px;background:#FF385C;border-radius:3px;vertical-align:middle;"></span> Airbnb</span>
-        <span><span style="display:inline-block;width:14px;height:14px;background:#F59E0B;border-radius:3px;vertical-align:middle;"></span> Direct</span>
+        <span><span style="display:inline-block;width:14px;height:14px;background:#6C5CE0;border-radius:3px;vertical-align:middle;"></span> Direct</span>
         <span><span style="display:inline-block;width:14px;height:14px;background:#fff;border:1px solid #ddd;border-radius:3px;vertical-align:middle;"></span> Free</span>
         <span><span style="display:inline-block;width:14px;height:14px;background:#FEE2E2;border-radius:3px;vertical-align:middle;"></span> Today</span>
       </div>
@@ -435,7 +435,7 @@ async function showBookingPopup(roomId, dateStr) {
       <div class="metric-row"><span class="metric-label">Phone</span><span>${b.phone || '-'}</span></div>
       <div class="metric-row"><span class="metric-label">Property</span><span>${propLabel(b.rooms) || ''}</span></div>
       <div class="metric-row"><span class="metric-label">Mode</span>
-        <span class="badge ${b.booking_mode === 'Online-Airbnb' ? 'blue' : 'yellow'}">${b.booking_mode === 'Online-Airbnb' ? 'Online' : 'Offline'}</span>
+        <span class="channel-badge ${b.booking_mode === 'Online-Airbnb' ? 'channel-airbnb' : 'channel-direct'}">${b.booking_mode === 'Online-Airbnb' ? '🌐 Airbnb' : '🏠 Direct'}</span>
       </div>
       <div class="metric-row"><span class="metric-label">Check-in</span><span>${b.check_in || '-'} ${b.check_in_time || ''}</span></div>
       <div class="metric-row"><span class="metric-label">Check-out</span><span>${b.check_out || '-'} ${b.check_out_time || ''}</span></div>

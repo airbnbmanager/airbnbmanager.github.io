@@ -2579,7 +2579,7 @@ async function savePaymentModal(bkId) {
                 '<div>' +
                   '<strong>' + b.name + '</strong>' +
                   (b.isReview ? ' <span style="background:#722ED1;color:#fff;padding:2px 6px;border-radius:10px;font-size:10px;">⭐ REVIEW</span>' : '') +
-                  ' <span style="background:' + (b.mode === 'Online-Airbnb' ? '#1E429F' : '#B45309') + ';color:#fff;padding:2px 6px;border-radius:10px;font-size:10px;">' + (b.mode === 'Online-Airbnb' ? 'Online' : 'Offline') + '</span>' +
+                  ' <span style="background:' + (b.mode === 'Online-Airbnb' ? '#FF385C' : '#6C5CE0') + ';color:#fff;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:700;">' + (b.mode === 'Online-Airbnb' ? '🌐 Airbnb' : '🏠 Direct') + '</span>' +
                   (b.isCurrent ? ' <span style="color:#1E429F;font-weight:700;font-size:11px;">← Selected</span>' : '') +
                 '</div>' +
               '</div>' +
