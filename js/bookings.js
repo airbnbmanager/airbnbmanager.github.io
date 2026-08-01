@@ -519,6 +519,8 @@ async function renderManageBookings() {
   const d2 = SESSION.bookingDateTo || '';
   const sq = SESSION.bookingSearch || '';
 
+  window._rawBookingsList = all || []; // for dupe check
+
   let f = all || [];
   window._allBookings = f; // For duplicate detection
   // Filter for caretaker - only their properties
@@ -584,13 +586,20 @@ async function renderManageBookings() {
   // Payment filter (also handles 'duplicates' special case)
   const payFilter = SESSION.bookingPayFilter;
   if (payFilter === 'duplicates') {
-    window._allBookings = f;
-    f = f.filter(b => 
-      !b.linked_booking_id && 
-      !b.is_review_booking && 
-      window.checkDuplicate && 
-      window.checkDuplicate(b, f)
-    );
+    // Use the raw fetched list (before any filtering) for accurate duplicate detection
+    const rawAll = window._rawBookingsList || f;
+    f = f.filter(b => {
+      // Explicit skips — these are legitimate, not duplicates
+      if (b.linked_booking_id) return false;
+      if (b.is_review_booking) return false;
+      if (b.is_cancelled) return false;
+      if (b.parent_booking_id) return false;
+      if (b.stay_group_id) return false;
+      
+      // Check against ALL raw bookings, not filtered subset
+      if (!window.checkDuplicate) return false;
+      return window.checkDuplicate(b, rawAll);
+    });
   }
   // No ID filter (from dashboard KPI)
   // 🟢 Currently Staying filter
@@ -787,7 +796,7 @@ async function renderManageBookings() {
               <span class="channel-badge ${b.booking_mode === 'Online-Airbnb' ? 'channel-airbnb' : 'channel-direct'}">${b.booking_mode === 'Online-Airbnb' ? 'Airbnb' : 'Direct'}</span>
               ${b.is_review_booking ? '<span class="badge" style="background:#722ED1;color:#fff;font-size:9px;">⭐ REVIEW</span>' : ''}
               ${b.linked_booking_id ? `<span class="badge" style="background:#0EA5E9;color:#fff;font-size:9px;cursor:pointer;" title="Linked to booking ${b.linked_booking_id}" onclick="showLinkedBooking('${b.linked_booking_id}')">🔗 LINKED</span>` : ''}
-              ${(!b.linked_booking_id && !b.is_review_booking && window.checkDuplicate && window.checkDuplicate(b, window._allBookings || [])) ? `<span class="badge" style="background:#F59E0B;color:#fff;font-size:9px;cursor:pointer;" title="Same room + date overlap detected" onclick="showDuplicateOptions('${b.booking_id}')">⚠️ DUPE</span>` : ''}
+              ${(!b.linked_booking_id && !b.is_review_booking && !b.is_cancelled && !b.parent_booking_id && !b.stay_group_id && window.checkDuplicate && window.checkDuplicate(b, window._rawBookingsList || window._allBookings || [])) ? `<span class="badge" style="background:#F59E0B;color:#fff;font-size:9px;cursor:pointer;" title="Same room + date overlap detected" onclick="showDuplicateOptions('${b.booking_id}')">⚠️ DUPE</span>` : ''}
             </td>
           <td><small>${b.check_in || '-'}</small></td>
           <td><small>${b.check_out || '-'}</small></td>
