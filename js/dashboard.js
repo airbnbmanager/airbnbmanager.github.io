@@ -216,14 +216,16 @@ async function renderDashboard() {
         <div class="stat-label">💳 Total Pending</div>
         <div style="font-size:10px;color:var(--muted);">All unpaid combined</div>
       </div>
-      <div class="stat-card" style="border-left:4px solid #FFB800;cursor:pointer;" onclick="filterAndShowBookings('noId')">
+      <div class="stat-card" style="border-left:4px solid #FFB800;cursor:pointer;" onclick="showPendingIdModal()">
         <div class="stat-num" style="color:#FFB800;font-size:20px;">${allBookings.filter(b => {
+          if (b.is_cancelled) return false;
           if (b.check_in > today) return false;
-          if (b.check_out < dateAdd(today, -7)) return false;
+          if (b.check_out < today) return false;
+          if ((b.guest_name || '').toLowerCase().includes('(friend')) return false;
           return !(b.id_proof_photo_paths || b.id_proof_photo_path || '').split(',').filter(Boolean).length;
         }).length}</div>
         <div class="stat-label">🪪 ID Pending</div>
-        <div style="font-size:10px;color:var(--muted);">Active + last 7 days</div>
+        <div style="font-size:10px;color:var(--muted);">Currently staying (click for details)</div>
       </div>
       <div class="stat-card" style="border-left:4px solid #722ED1;cursor:pointer;" onclick="filterAndShowBookings('review')">
         <div class="stat-num" style="color:#722ED1;font-size:20px;">${allBookings.filter(b => b.is_review_booking === true).length}</div>
@@ -925,6 +927,136 @@ function _oldFilterEnd() {
 
   navigate('bookings');
 }
+
+
+
+async function showPendingIdModal(days) {
+  const daysBack = days !== undefined ? days : 0;
+  const today = new Date().toISOString().slice(0, 10);
+  const fromDate = daysBack > 0 ? dateAdd(today, -daysBack) : today;
+
+  const { data: bks } = await sb.from('guest_register').select('*, rooms(nickname, unit_no)');
+
+  const filtered = (bks || []).filter(b => {
+    if (b.is_cancelled) return false;
+    if ((b.guest_name || '').toLowerCase().includes('(friend')) return false;
+    if (b.check_in > today) return false;
+    if (b.check_out < fromDate) return false;
+    const hasId = (b.id_proof_photo_paths || b.id_proof_photo_path || '').split(',').filter(Boolean).length > 0;
+    return !hasId;
+  }).sort((a,b) => (b.check_in || '').localeCompare(a.check_in || ''));
+
+  window._pendingIdCache = filtered;
+
+  const modal = document.createElement('div');
+  modal.className = 'modal-overlay';
+  modal.onclick = e => { if (e.target === modal) modal.remove(); };
+
+  const rangeOptions = [
+    { label: 'Currently Staying Only', val: 0 },
+    { label: 'Last 7 days', val: 7 },
+    { label: 'Last 15 days', val: 15 },
+    { label: 'Last 30 days', val: 30 },
+    { label: 'Last 60 days', val: 60 },
+    { label: 'Last 90 days', val: 90 }
+  ];
+
+  const rowsHtml = filtered.length === 0
+    ? '<div style="padding:30px;text-align:center;color:#999;">✅ No pending IDs</div>'
+    : '<table style="width:100%;font-size:12px;border-collapse:collapse;">' +
+      '<thead style="background:#F9FAFB;position:sticky;top:0;">' +
+      '<tr>' +
+      '<th style="padding:8px;text-align:left;">Booking ID</th>' +
+      '<th style="padding:8px;text-align:left;">Guest</th>' +
+      '<th style="padding:8px;text-align:left;">Flat</th>' +
+      '<th style="padding:8px;text-align:left;">Check-in</th>' +
+      '<th style="padding:8px;text-align:left;">Check-out</th>' +
+      '<th style="padding:8px;text-align:left;">Phone</th>' +
+      '<th style="padding:8px;text-align:left;">Vehicle</th>' +
+      '</tr></thead><tbody>' +
+      filtered.map(b => {
+        const veh = b.has_vehicle ? ((b.vehicle_name || '') + ' ' + (b.vehicle_number || '')).trim() : '';
+        return '<tr style="border-top:1px solid var(--border);">' +
+          '<td style="padding:8px;font-family:monospace;font-size:11px;">' + b.booking_id + '</td>' +
+          '<td style="padding:8px;"><strong>' + (b.guest_name || '-') + '</strong></td>' +
+          '<td style="padding:8px;">' + (b.rooms?.nickname || b.room_id || '-') + '</td>' +
+          '<td style="padding:8px;font-size:11px;">' + (b.check_in || '-') + '</td>' +
+          '<td style="padding:8px;font-size:11px;">' + (b.check_out || '-') + '</td>' +
+          '<td style="padding:8px;font-size:11px;">' + (b.phone || '-') + '</td>' +
+          '<td style="padding:8px;font-size:11px;">' + (veh || '-') + '</td>' +
+          '</tr>';
+      }).join('') +
+      '</tbody></table>';
+
+  const optionsHtml = rangeOptions.map(o =>
+    '<option value="' + o.val + '"' + (o.val === daysBack ? ' selected' : '') + '>' + o.label + '</option>'
+  ).join('');
+
+  modal.innerHTML =
+    '<div class="modal-box" style="max-width:900px;">' +
+      '<button class="modal-close" onclick="this.closest(\'.modal-overlay\').remove()">✕</button>' +
+      '<h2>🪪 ID Pending (' + filtered.length + ')</h2>' +
+      '<div class="sub">Guests without ID proof · Excludes cancelled & (Friends)</div>' +
+      '<div style="margin:16px 0;display:flex;gap:8px;flex-wrap:wrap;align-items:center;">' +
+        '<label style="font-size:12px;font-weight:600;">Date Range:</label>' +
+        '<select onchange="this.closest(\'.modal-overlay\').remove();showPendingIdModal(parseInt(this.value))" style="padding:6px 10px;border:1px solid var(--border);border-radius:6px;">' +
+          optionsHtml +
+        '</select>' +
+        '<button class="btn-sm" style="background:#25D366;color:#fff;" onclick="shareIdPendingWhatsApp(' + daysBack + ')">📱 Share on WhatsApp</button>' +
+        '<button class="btn-sm outline" onclick="copyIdPendingText(' + daysBack + ')">📋 Copy Text</button>' +
+      '</div>' +
+      '<div style="max-height:60vh;overflow:auto;border:1px solid var(--border);border-radius:8px;">' + rowsHtml + '</div>' +
+    '</div>';
+  document.body.appendChild(modal);
+}
+
+function buildIdPendingMessage(daysBack) {
+  const list = window._pendingIdCache || [];
+  const today = new Date().toISOString().slice(0, 10);
+  const NL = String.fromCharCode(10);
+  const rangeLabel = daysBack === 0 ? 'Currently Staying' : ('Last ' + daysBack + ' days');
+
+  let msg = '*🪪 ID PENDING REPORT*' + NL;
+  msg += '*' + rangeLabel + ' · ' + new Date(today).toLocaleDateString('en-IN', {day:'2-digit', month:'short', year:'numeric'}) + '*' + NL;
+  msg += '━━━━━━━━━━━━━━━━━' + NL + NL;
+
+  if (list.length === 0) {
+    msg += '✅ No pending IDs' + NL;
+  } else {
+    msg += '*Total Pending:* ' + list.length + NL + NL;
+    list.forEach((b, i) => {
+      msg += (i + 1) + '. *' + (b.guest_name || 'Unknown') + '*' + NL;
+      msg += '   🏠 Flat: ' + (b.rooms?.nickname || b.room_id || '-') + NL;
+      msg += '   🆔 Booking: ' + b.booking_id + NL;
+      msg += '   📅 ' + (b.check_in || '?') + ' → ' + (b.check_out || '?') + NL;
+      if (b.phone) msg += '   📞 ' + b.phone + NL;
+      const veh = b.has_vehicle ? ((b.vehicle_name || '') + ' ' + (b.vehicle_number || '')).trim() : '';
+      if (veh) msg += '   🚗 Vehicle: ' + veh + NL;
+      msg += NL;
+    });
+  }
+
+  msg += '━━━━━━━━━━━━━━━━━' + NL;
+  msg += '_UNIQUE HAVEN HOMES STAY_';
+  return msg;
+}
+
+function shareIdPendingWhatsApp(daysBack) {
+  const msg = buildIdPendingMessage(daysBack);
+  window.open('https://wa.me/?text=' + encodeURIComponent(msg), '_blank');
+}
+
+function copyIdPendingText(daysBack) {
+  const msg = buildIdPendingMessage(daysBack);
+  navigator.clipboard.writeText(msg).then(() => {
+    if (window.fsn) fsn.success('Copied', 'ID pending list copied');
+    else alert('Copied to clipboard');
+  });
+}
+
+window.showPendingIdModal = showPendingIdModal;
+window.shareIdPendingWhatsApp = shareIdPendingWhatsApp;
+window.copyIdPendingText = copyIdPendingText;
 
 
 async function showActiveUsersModal() {
