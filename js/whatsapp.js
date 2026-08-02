@@ -280,6 +280,7 @@ function tplInvestorAlert(d) {
   return `*Booking Update*
 
 Property: ${d.propertyName} (${d.flat})
+Booking: ${d.isAirbnb ? 'Online (Airbnb)' : 'Offline (Direct)'}
 Check-in: ${fmtDate(d.checkIn)}, ${d.checkInTime}
 Check-out: ${fmtDate(d.checkOut)}, ${d.checkOutTime}
 Nights: ${d.nights}
