@@ -1,19 +1,19 @@
 // ═══════════════════════════════════════════════════════════
-// 🔄 AIRBNB CSV SYNC — Enhanced Compare Version
+// 🔄 AIRBNB CSV SYNC — Instant One-Click Fix Version
 // ═══════════════════════════════════════════════════════════
 
 (function() {
   const SYNC = {
     csvData: [],
     reservations: [],
-    allReservations: [],  // unfiltered
+    allReservations: [],
     payouts: [],
     rooms: [],
     existingByCode: {},
     existingByGuest: [],
     possiblyCancelled: [],
-    filter: 'all',
-    fromDate: '2026-07-01'  // Only import bookings on/after this date
+    fromDate: '2026-07-01',
+    toDate: new Date().toISOString().slice(0, 10)  // auto = today
   };
 
   // ─── Date MM/DD/YYYY → YYYY-MM-DD ───
@@ -26,6 +26,13 @@
 
   function fmtNum(n) {
     return (Number(n) || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 });
+  }
+
+  function fmtDate(d) {
+    if (!d) return '-';
+    const dt = new Date(d + 'T00:00:00');
+    if (isNaN(dt)) return d;
+    return dt.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
   }
 
   // ─── CSV parser ───
@@ -45,7 +52,7 @@
       out.push(cur);
       return out;
     };
-    const headers = parseLine(lines[0]).map(h => h.trim());
+    const headers = parseLine(lines[0]).map(h => h.trim().replace(/^\uFEFF/, ''));
     return lines.slice(1).map(line => {
       const values = parseLine(line);
       const row = {};
@@ -62,13 +69,11 @@
     if (a === b) return 100;
     if (!a.length || !b.length) return 0;
     if (a.includes(b) || b.includes(a)) return 90;
-    // Common prefix
     let common = 0;
     for (let i = 0; i < Math.min(a.length, b.length); i++) {
       if (a[i] === b[i]) common++; else break;
     }
     const prefScore = (common / Math.max(a.length, b.length)) * 100;
-    // Word overlap
     const aw = new Set(a.match(/[a-z0-9]+/g) || []);
     const bw = new Set(b.match(/[a-z0-9]+/g) || []);
     let overlap = 0;
@@ -77,7 +82,7 @@
     return Math.max(prefScore, wordScore);
   }
 
-  // ─── Match Airbnb listing → your room (returns { room_id, confidence }) ───
+  // ─── Match Airbnb listing → your room ───
   function matchListing(listing) {
     if (!listing) return { room_id: null, confidence: 0 };
     let best = { room_id: null, confidence: 0 };
@@ -106,46 +111,36 @@
   // ─── Compare Airbnb reservation vs existing system booking ───
   function compareBooking(csvBk, dbBk) {
     const issues = [];
+    let matchedByFallback = false;
     if (!dbBk) {
       dbBk = findFuzzyMatch(csvBk);
-      if (dbBk) {
-        issues.push({ field: 'Match', csv: 'By guest+date', db: 'Missing Airbnb code' });
-      }
+      if (dbBk) matchedByFallback = true;
     }
     if (!dbBk) return { status: 'new', issues };
 
-    // Guest name check
+    if (matchedByFallback) {
+      issues.push({ field: 'code', label: 'Airbnb Code', csv: csvBk.confirmation_code, db: '(missing)' });
+    }
     if (csvBk.guest_name && dbBk.guest_name && fuzzyMatch(csvBk.guest_name, dbBk.guest_name) < 70) {
-      issues.push({ field: 'Guest', csv: csvBk.guest_name, db: dbBk.guest_name });
+      issues.push({ field: 'guest_name', label: 'Name', csv: csvBk.guest_name, db: dbBk.guest_name });
     }
-    // Check-in
     if (csvBk.check_in !== dbBk.check_in) {
-      issues.push({ field: 'Check-in', csv: csvBk.check_in, db: dbBk.check_in });
+      issues.push({ field: 'check_in', label: 'Check-in', csv: csvBk.check_in, db: dbBk.check_in });
     }
-    // Check-out
     if (csvBk.check_out !== dbBk.check_out) {
-      issues.push({ field: 'Check-out', csv: csvBk.check_out, db: dbBk.check_out });
+      issues.push({ field: 'check_out', label: 'Check-out', csv: csvBk.check_out, db: dbBk.check_out });
     }
-    // Amount comparison — use NET (actual payout received), not GROSS
-    // App stores NET amount; Airbnb CSV: gross - fees - tax = net (payout)
     if (Math.abs((csvBk.amount || 0) - (dbBk.total_amount || 0)) > 10) {
-      issues.push({ field: 'Amount', csv: '₹' + csvBk.amount + ' (net)', db: '₹' + (dbBk.total_amount || 0) });
+      issues.push({ field: 'amount', label: 'Amount', csv: csvBk.amount, db: dbBk.total_amount || 0 });
     }
-    // Room
     if (csvBk.matched_room_id && dbBk.room_id && csvBk.matched_room_id !== dbBk.room_id) {
-      issues.push({ field: 'Room', csv: csvBk.matched_room_id, db: dbBk.room_id });
+      issues.push({ field: 'room', label: 'Property', csv: csvBk.matched_room_id, db: dbBk.room_id });
     }
-    // Mode — a booking matched to an Airbnb code must be tagged Online-Airbnb.
-    // Catches the case where you first entered it manually as Direct.
     if (dbBk.booking_mode && dbBk.booking_mode !== 'Online-Airbnb') {
-      issues.push({ field: 'Mode', csv: 'Online-Airbnb', db: dbBk.booking_mode });
+      issues.push({ field: 'mode', label: 'Mode', csv: 'Online-Airbnb', db: dbBk.booking_mode });
     }
 
-    return {
-      status: issues.length > 0 ? 'conflict' : 'match',
-      issues,
-      dbBk
-    };
+    return { status: issues.length > 0 ? 'conflict' : 'match', issues, dbBk };
   }
 
   // ─── Main render ───
@@ -160,7 +155,6 @@
       .order('unit_no');
     SYNC.rooms = rooms || [];
 
-    // Load ALL existing bookings for fuzzy comparison
     const { data: existing } = await sb.from('guest_register')
       .select('booking_id, airbnb_confirmation_code, guest_name, check_in, check_out, total_amount, room_id, booking_mode, is_cancelled, rooms(unit_no, nickname)')
       .order('check_in', { ascending: false })
@@ -175,16 +169,15 @@
     renderShell(`
       <div class="wrap">
         <h1>🔄 Airbnb CSV Sync</h1>
-        <p style="color:#888;">Compare Airbnb CSV with app bookings — find missing entries, sync amounts</p>
+        <p style="color:#888;">Upload the CSV — wrong names, dates &amp; amounts get flagged with a one-click fix. Missing bookings show up as one-click adds.</p>
 
         <div class="card" style="border-left:4px solid #3B82F6;background:#EFF6FF;">
           <div class="section-title">📖 HOW TO USE</div>
           <div style="line-height:1.9;font-size:13px;">
             <div><strong>Step 1:</strong> Go to <a href="https://www.airbnb.co.in/hosting/reservations/all" target="_blank" style="color:#FF385C;font-weight:600;">Airbnb Earnings ↗</a></div>
             <div><strong>Step 2:</strong> Click <strong>"Get CSV file"</strong> → Download</div>
-            <div><strong>Step 3:</strong> Upload CSV below</div>
-            <div><strong>Step 4:</strong> System will show missing bookings + conflicts (from July 2026)</div>
-            <div><strong>Step 5:</strong> Review & click <strong>"Process"</strong> to import/update</div>
+            <div><strong>Step 3:</strong> Upload CSV below — auto-checks 1 Jul to today</div>
+            <div><strong>Step 4:</strong> Click "Fix" next to any wrong field, or "+ Add" for a missing booking — applies instantly</div>
           </div>
         </div>
 
@@ -209,11 +202,9 @@
     const reservationsByCode = {};
     const payouts = [];
 
-    // ─── Pass 1: sum "Amount" across ALL row-types sharing a Confirmation Code.
-    // Airbnb splits a single booking's payout across multiple rows —
-    // 'Reservation' (gross - service fee), 'Tax Withholding for India Income'
-    // (negative, TDS deducted), 'Host-Remitted Tax' (positive, if applicable).
-    // Reading only the 'Reservation' row overstates the payout by the TDS amount. ───
+    // Sum "Amount" across ALL row-types sharing a Confirmation Code —
+    // Reservation + Tax Withholding for India Income + Host-Remitted Tax —
+    // for the TRUE net payout (reading only the Reservation row overstates it).
     const netAmountByCode = {};
     rows.forEach(r => {
       const type = r['Type'];
@@ -248,234 +239,260 @@
           guest_name: r['Guest'] || '',
           listing: listing,
           amount: Math.round((netAmountByCode[code] || parseFloat(r['Amount'] || 0)) * 100) / 100,
-          reservation_row_amount: parseFloat(r['Amount'] || 0),
           gross: parseFloat(r['Gross earnings'] || 0),
           service_fee: parseFloat(r['Service fee'] || 0),
           cleaning_fee: parseFloat(r['Cleaning fee'] || 0),
           matched_room_id: match.room_id,
           match_confidence: match.confidence,
         };
-        // Compare with DB
         const dbBk = SYNC.existingByCode[code];
         const cmp = compareBooking(csvBk, dbBk);
         csvBk.status = cmp.status;
         csvBk.issues = cmp.issues;
         csvBk.dbBk = cmp.dbBk;
-        csvBk.action = cmp.status === 'new' ? 'import' : (cmp.status === 'conflict' ? 'update' : 'skip');
         reservationsByCode[code] = csvBk;
       }
     });
 
     SYNC.allReservations = Object.values(reservationsByCode);
-    // Apply date filter
-    SYNC.reservations = SYNC.allReservations.filter(r =>
-      !r.check_in || !SYNC.fromDate || r.check_in >= SYNC.fromDate
-    );
+    // Auto date-range: 1 July → today. Editable below if needed.
+    applyDateFilter();
     SYNC.payouts = payouts;
-    SYNC.filter = 'all';
 
     computePossiblyCancelled();
     renderPreview();
   };
 
-  // ─── Find DB bookings tagged Airbnb (within the date window) that no longer
-  // appear anywhere in this CSV export — likely cancelled on Airbnb's side. ───
+  function applyDateFilter() {
+    SYNC.reservations = SYNC.allReservations.filter(r =>
+      !r.check_in || ((!SYNC.fromDate || r.check_in >= SYNC.fromDate) && (!SYNC.toDate || r.check_in <= SYNC.toDate))
+    );
+  }
+
   function computePossiblyCancelled() {
-    const csvCodes = new Set(Object.keys(SYNC.allReservations.reduce((acc, r) => {
-      acc[r.confirmation_code] = true;
-      return acc;
-    }, {})));
+    const csvCodes = new Set(SYNC.allReservations.map(r => r.confirmation_code));
     SYNC.possiblyCancelled = SYNC.existingByGuest.filter(e =>
       e.airbnb_confirmation_code &&
       e.booking_mode === 'Online-Airbnb' &&
       !e.is_cancelled &&
       !csvCodes.has(e.airbnb_confirmation_code) &&
-      (!SYNC.fromDate || (e.check_in && e.check_in >= SYNC.fromDate))
+      (!SYNC.fromDate || (e.check_in && e.check_in >= SYNC.fromDate)) &&
+      (!SYNC.toDate || (e.check_in && e.check_in <= SYNC.toDate))
     );
   }
 
-  window.setFromDate = function(date) {
-    SYNC.fromDate = date;
-    SYNC.reservations = SYNC.allReservations.filter(r =>
-      !r.check_in || !SYNC.fromDate || r.check_in >= SYNC.fromDate
-    );
+  window.setDateRange = function(which, value) {
+    if (which === 'from') SYNC.fromDate = value;
+    else SYNC.toDate = value;
+    applyDateFilter();
     computePossiblyCancelled();
     renderPreview();
   };
 
-  window.bulkAction = function(status, action) {
-    SYNC.reservations.forEach(r => {
-      if (r.status === status) r.action = action;
-    });
-    renderPreview();
+  window.setRoomMap = function(code, roomId) {
+    const r = SYNC.reservations.find(x => x.confirmation_code === code);
+    if (r) { r.matched_room_id = roomId; r.match_confidence = 100; }
   };
 
-  window.setSyncFilter = function(f) {
-    SYNC.filter = f;
-    renderPreview();
-  };
+  // ─── INSTANT actions — every click writes to Supabase right away ───
 
-  window.setRowAction = function(idx, action) {
-    if (SYNC.reservations[idx]) SYNC.reservations[idx].action = action;
-    renderPreview();
-  };
+  window.instantAddBooking = async function(code) {
+    const r = SYNC.reservations.find(x => x.confirmation_code === code);
+    if (!r) return;
+    if (!r.matched_room_id) { fsn.error('Pick a property first', 'Select which property this booking belongs to, then click Add again.'); return; }
 
-  window.setRoomMap = function(idx, roomId) {
-    if (SYNC.reservations[idx]) {
-      SYNC.reservations[idx].matched_room_id = roomId;
-      SYNC.reservations[idx].match_confidence = 100; // manual
+    const btn = document.getElementById('add-' + code);
+    if (btn) { btn.disabled = true; btn.textContent = '⏳ Adding...'; }
+
+    const noteBits = ['Airbnb Code: ' + r.confirmation_code];
+    if (r.cleaning_fee) noteBits.push('Clean: ₹' + r.cleaning_fee);
+    if (r.service_fee) noteBits.push('Fee: ₹' + r.service_fee);
+
+    const bkId = 'AIR' + r.confirmation_code;
+    const payload = {
+      guest_name: r.guest_name,
+      room_id: r.matched_room_id,
+      source_room_id: r.matched_room_id,
+      booking_mode: 'Online-Airbnb',
+      check_in: r.check_in,
+      check_out: r.check_out,
+      check_in_time: '14:00',
+      check_out_time: '11:00',
+      checkout_confirmed: true,
+      total_amount: r.amount,
+      per_day_rate: r.nights > 0 ? Math.round(r.amount / r.nights) : r.amount,
+      gross_amount: r.gross,
+      platform_fee: (r.gross || 0) - (r.amount || 0),
+      airbnb_service_fee: r.service_fee || 0,
+      airbnb_cleaning_fee: r.cleaning_fee || 0,
+      airbnb_net_payout: r.amount,
+      payment_status: 'Paid',
+      notes: noteBits.join(' | '),
+      booking_id: bkId,
+      airbnb_confirmation_code: r.confirmation_code,
+      guests: 1,
+      booked_by: SESSION.displayName || 'Airbnb Sync',
+      ...(typeof approvalMeta === 'function' ? approvalMeta() : {})
+    };
+
+    const { error } = await sb.from('guest_register').insert(payload);
+    if (error) {
+      fsn.error('Add failed', error.message);
+      if (btn) { btn.disabled = false; btn.textContent = '➕ Add Booking'; }
+      return;
     }
+    if (r.amount > 0) {
+      await sb.from('payment_history').insert({
+        booking_id: bkId,
+        amount: r.amount,
+        payment_mode: 'Airbnb Payout',
+        payment_date: r.date || r.check_out,
+        notes: 'Auto-imported from Airbnb CSV',
+        ...(typeof approvalMeta === 'function' ? approvalMeta() : {})
+      });
+    }
+    fsn.success('Added', r.guest_name + ' — booking added ✅');
+    // Remove from the new-bookings list live
+    SYNC.reservations = SYNC.reservations.filter(x => x.confirmation_code !== code);
+    SYNC.allReservations = SYNC.allReservations.filter(x => x.confirmation_code !== code);
+    renderPreview();
   };
 
-  window.editReservationField = function(idx, field, value) {
-    if (SYNC.reservations[idx]) {
-      if (field === 'gross' || field === 'amount') value = parseFloat(value) || 0;
-      SYNC.reservations[idx][field] = value;
+  window.instantFixField = async function(code, field) {
+    const r = SYNC.reservations.find(x => x.confirmation_code === code);
+    if (!r || !r.dbBk) return;
+    const issue = (r.issues || []).find(i => i.field === field);
+    if (!issue) return;
+
+    const btn = document.getElementById('fix-' + code + '-' + field);
+    if (btn) { btn.disabled = true; btn.textContent = '⏳...'; }
+
+    let updateFields = {};
+    if (field === 'guest_name') updateFields.guest_name = r.guest_name;
+    if (field === 'check_in') updateFields.check_in = r.check_in;
+    if (field === 'check_out') updateFields.check_out = r.check_out;
+    if (field === 'amount') {
+      updateFields.total_amount = r.amount;
+      updateFields.per_day_rate = r.nights > 0 ? Math.round(r.amount / r.nights) : r.amount;
+    }
+    if (field === 'room') { updateFields.room_id = r.matched_room_id; updateFields.source_room_id = r.matched_room_id; }
+    if (field === 'mode') updateFields.booking_mode = 'Online-Airbnb';
+    if (field === 'code') updateFields.airbnb_confirmation_code = r.confirmation_code;
+
+    const { error } = await sb.from('guest_register').update(updateFields).eq('booking_id', r.dbBk.booking_id);
+    if (error) {
+      fsn.error('Fix failed', error.message);
+      if (btn) { btn.disabled = false; btn.textContent = '✓ Fix'; }
+      return;
+    }
+
+    // Reflect the fix locally, remove that one issue, re-render
+    Object.assign(r.dbBk, updateFields);
+    r.issues = (r.issues || []).filter(i => i.field !== field);
+    if (r.issues.length === 0) {
+      SYNC.reservations = SYNC.reservations.filter(x => x.confirmation_code !== code);
+    }
+    fsn.success('Fixed', issue.label + ' corrected ✅');
+    renderPreview();
+  };
+
+  window.instantFixAll = async function(code) {
+    const r = SYNC.reservations.find(x => x.confirmation_code === code);
+    if (!r) return;
+    const fields = (r.issues || []).map(i => i.field);
+    for (const f of fields) {
+      await window.instantFixField(code, f);
     }
   };
 
   function statusBadge(s) {
     if (s === 'new') return '<span class="badge green">🆕 NEW</span>';
-    if (s === 'match') return '<span class="badge blue">✅ MATCH</span>';
     if (s === 'conflict') return '<span class="badge yellow">⚠️ CONFLICT</span>';
-    return '<span class="badge">-</span>';
+    return '<span class="badge blue">✅ MATCH</span>';
   }
 
   function renderPreview() {
     const container = document.getElementById('airbnbSyncPreview');
     if (!container) return;
 
-    const counts = {
-      all: SYNC.reservations.length,
-      new: SYNC.reservations.filter(r => r.status === 'new').length,
-      match: SYNC.reservations.filter(r => r.status === 'match').length,
-      conflict: SYNC.reservations.filter(r => r.status === 'conflict').length,
-      unmapped: SYNC.reservations.filter(r => !r.matched_room_id).length,
-    };
+    const newBookings = SYNC.reservations.filter(r => r.status === 'new');
+    const conflicts = SYNC.reservations.filter(r => r.status === 'conflict');
+    const matched = SYNC.reservations.filter(r => r.status === 'match');
 
-    let filtered = SYNC.reservations;
-    if (SYNC.filter === 'new') filtered = filtered.filter(r => r.status === 'new');
-    else if (SYNC.filter === 'match') filtered = filtered.filter(r => r.status === 'match');
-    else if (SYNC.filter === 'conflict') filtered = filtered.filter(r => r.status === 'conflict');
-    else if (SYNC.filter === 'unmapped') filtered = filtered.filter(r => !r.matched_room_id);
-
-    const roomOpts = (selected) => SYNC.rooms.map(rm =>
+    const roomOpts = (selected) => '<option value="">— Select property —</option>' + SYNC.rooms.map(rm =>
       '<option value="' + rm.room_id + '"' + (rm.room_id === selected ? ' selected' : '') + '>' +
       (rm.unit_no || '') + ' — ' + ((rm.nickname || rm.property_name || '').substring(0, 30)) +
       '</option>'
     ).join('');
 
-    let rows = '';
-    filtered.forEach(r => {
-      const idx = SYNC.reservations.indexOf(r);
-      const dbRoom = r.dbBk?.rooms ? (r.dbBk.rooms.unit_no + ' ' + (r.dbBk.rooms.nickname || '')) : '';
-      const confidence = r.match_confidence >= 80 ? 'green' : r.match_confidence >= 50 ? 'orange' : 'red';
+    // ─── 🆕 New bookings — one click to add ───
+    let newHtml = '';
+    if (newBookings.length > 0) {
+      newHtml = '<div class="card" style="margin-top:16px;border-left:4px solid var(--green);">' +
+        '<div class="section-title">🆕 New Bookings — Not in Your System (' + newBookings.length + ')</div>' +
+        '<div style="font-size:12px;color:var(--muted);margin-bottom:10px;">These are on Airbnb but you haven\u2019t entered them yet. Pick the property (if not auto-matched) and click Add.</div>' +
+        newBookings.map(r => `
+          <div style="display:flex;flex-wrap:wrap;align-items:center;gap:10px;padding:12px;border:1px solid var(--border);border-radius:12px;margin-bottom:10px;background:var(--green-bg);">
+            <div style="flex:1;min-width:160px;">
+              <strong>${r.guest_name}</strong><br>
+              <small style="color:var(--muted);">${fmtDate(r.check_in)} → ${fmtDate(r.check_out)} · ${r.nights} nt</small>
+            </div>
+            <div style="min-width:120px;">
+              <strong>₹${fmtNum(r.amount)}</strong><br><small style="color:var(--muted);">net payout</small>
+            </div>
+            <div style="min-width:200px;">
+              <select onchange="setRoomMap('${r.confirmation_code}', this.value)" style="width:100%;padding:6px;font-size:12px;">
+                ${roomOpts(r.matched_room_id)}
+              </select>
+              ${r.matched_room_id ? '<small style="color:var(--green);">✓ ' + r.match_confidence + '% match</small>' : '<small style="color:var(--red);">⚠️ pick property</small>'}
+            </div>
+            <button id="add-${r.confirmation_code}" class="btn-sm" style="background:var(--green);color:#fff;font-weight:700;" onclick="instantAddBooking('${r.confirmation_code}')">➕ Add Booking</button>
+          </div>
+        `).join('') +
+      '</div>';
+    }
 
-      // Issue diff visualization
-      let issueHtml = '';
-      if (r.issues && r.issues.length > 0) {
-        issueHtml = '<div style="background:#FEF3C7;padding:8px;border-radius:6px;margin-top:6px;font-size:11px;">' +
-          '<strong>⚠️ Differences:</strong><br>' +
-          r.issues.map(i =>
-            '<div>' + i.field + ': <span style="color:#DC2626;text-decoration:line-through;">' + i.db + '</span> → <span style="color:#0A7D1A;font-weight:600;">' + i.csv + '</span></div>'
-          ).join('') +
-          '</div>';
-      }
+    // ─── ⚠️ Conflicts — one click per field to fix ───
+    let conflictHtml = '';
+    if (conflicts.length > 0) {
+      conflictHtml = '<div class="card" style="margin-top:16px;border-left:4px solid var(--yellow);">' +
+        '<div class="section-title">✏️ Wrong Details — Click to Correct (' + conflicts.length + ')</div>' +
+        '<div style="font-size:12px;color:var(--muted);margin-bottom:10px;">Left = what\u2019s in your app now. Right = what Airbnb actually shows. Click Fix to correct that one field instantly.</div>' +
+        conflicts.map(r => `
+          <div style="padding:12px;border:1px solid var(--border);border-radius:12px;margin-bottom:10px;background:var(--gold-bg);">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+              <strong>${r.guest_name}</strong>
+              <small style="color:var(--muted);">${r.confirmation_code}</small>
+            </div>
+            ${(r.issues || []).map(i => `
+              <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:6px 0;border-top:1px solid rgba(0,0,0,0.06);">
+                <span style="min-width:80px;font-weight:700;font-size:12px;">${i.label}:</span>
+                <span style="text-decoration:line-through;color:var(--red);font-size:13px;">${i.field === 'amount' ? '₹' + fmtNum(i.db) : (i.field === 'check_in' || i.field === 'check_out' ? fmtDate(i.db) : i.db)}</span>
+                <span>→</span>
+                <span style="color:var(--green);font-weight:700;font-size:13px;">${i.field === 'amount' ? '₹' + fmtNum(i.csv) : (i.field === 'check_in' || i.field === 'check_out' ? fmtDate(i.csv) : i.csv)}</span>
+                <button id="fix-${r.confirmation_code}-${i.field}" class="btn-sm" style="background:var(--primary);color:#fff;margin-left:auto;" onclick="instantFixField('${r.confirmation_code}','${i.field}')">✓ Fix</button>
+              </div>
+            `).join('')}
+            ${(r.issues || []).length > 1 ? `<div style="text-align:right;margin-top:8px;"><button class="btn-sm outline" onclick="instantFixAll('${r.confirmation_code}')">✓ Fix All ${r.issues.length} Above</button></div>` : ''}
+          </div>
+        `).join('') +
+      '</div>';
+    }
 
-      // Action buttons — per field for conflicts
-      let actions = '';
-      if (r.status === 'new') {
-        actions =
-          '<button class="btn-sm ' + (r.action === 'import' ? 'green-btn' : 'outline') + '" onclick="setRowAction(' + idx + ',\'import\')">✅ Import New</button> ' +
-          '<button class="btn-sm ' + (r.action === 'skip' ? 'danger' : 'outline') + '" onclick="setRowAction(' + idx + ',\'skip\')">🚫 Skip</button>';
-      } else if (r.status === 'conflict') {
-        // Per-field fix buttons
-        const fieldBtns = (r.issues || []).map(i => {
-          const fieldKey = i.field.toLowerCase().replace(/[^a-z]/g, '');
-          const isFixed = (r.fieldFixes || {})[fieldKey];
-          return '<button class="btn-sm ' + (isFixed ? 'green-btn' : 'outline') + '" style="font-size:10px;padding:3px 8px;" onclick="toggleFieldFix(' + idx + ',\'' + fieldKey + '\')" title="Fix ' + i.field + '">' + (isFixed ? '✓' : '🔧') + ' ' + i.field + '</button>';
-        }).join(' ');
-        
-        actions =
-          '<div style="display:flex;flex-direction:column;gap:4px;">' +
-            '<div style="display:flex;gap:3px;flex-wrap:wrap;">' + fieldBtns + '</div>' +
-            '<div style="display:flex;gap:3px;">' +
-              '<button class="btn-sm ' + (r.action === 'update' ? 'green-btn' : 'outline') + '" onclick="setRowAction(' + idx + ',\'update\')" title="Fix all fields">🔄 Fix All</button>' +
-              '<button class="btn-sm ' + (r.action === 'skip' ? 'danger' : 'outline') + '" onclick="setRowAction(' + idx + ',\'skip\')">🚫 Skip</button>' +
-              '<button class="btn-sm outline" onclick="editBooking(\'' + (r.dbBk?.booking_id || '') + '\')">👁️</button>' +
-            '</div>' +
-          '</div>';
-      } else {
-        actions = '<button class="btn-sm outline" onclick="editBooking(\'' + (r.dbBk?.booking_id || '') + '\')">👁️ View</button>';
-      }
-
-      const guestFuzzy = r.dbBk ? fuzzyMatch(r.guest_name, r.dbBk.guest_name || '') : 100;
-      const guestWarn = guestFuzzy < 90 && r.dbBk ? ' <span style="color:#F59E0B;font-size:10px;" title="Possible name mismatch">⚠️</span>' : '';
-
-      rows +=
-        '<tr style="border-top:2px solid #eee;">' +
-          '<td>' + statusBadge(r.status) + '</td>' +
-          '<td><small><strong>' + r.confirmation_code + '</strong></small></td>' +
-          '<td>' +
-            '<input type="text" value="' + r.guest_name + '" onchange="editReservationField(' + idx + ',\'guest_name\',this.value)" style="width:110px;font-size:12px;padding:2px 4px;" />' +
-            guestWarn +
-            (r.dbBk?.guest_name && guestFuzzy < 100 ? '<br><small style="color:#888;">DB: ' + r.dbBk.guest_name + '</small>' : '') +
-          '</td>' +
-          '<td><small>' + r.check_in + '<br>→ ' + r.check_out + '<br>(' + r.nights + ' nt)</small></td>' +
-          '<td>' +
-            '<input type="number" value="' + r.gross + '" onchange="editReservationField(' + idx + ',\'gross\',this.value)" style="width:80px;font-size:12px;padding:2px 4px;" />' +
-            '<br><small>Net: ₹' + r.amount.toLocaleString('en-IN') + '</small>' +
-            (Math.abs((r.reservation_row_amount || r.amount) - r.amount) > 1 ?
-              '<br><small style="color:#B45309;" title="Reservation row alone showed ₹' + r.reservation_row_amount.toLocaleString('en-IN') + '; tax withholding/remittance rows adjusted it to the true payout">🧾 TDS-adjusted</small>' : '') +
-          '</td>' +
-          '<td>' +
-            '<small style="color:#888;">' + (r.listing || '').substring(0, 35) + '</small><br>' +
-            '<select onchange="setRoomMap(' + idx + ',this.value)" style="font-size:11px;padding:2px;max-width:180px;">' +
-              '<option value="">— Select —</option>' +
-              roomOpts(r.matched_room_id) +
-            '</select>' +
-            (r.matched_room_id ? ' <span style="color:' + confidence + ';font-size:10px;font-weight:700;">' + r.match_confidence + '%</span>' : ' <span style="color:#DC2626;font-size:10px;">❌</span>') +
-          '</td>' +
-          '<td>' + actions + issueHtml + '</td>' +
-        '</tr>';
-    });
-
-    let payoutRows = '';
-    SYNC.payouts.forEach(p => {
-      payoutRows += '<tr>' +
-        '<td>' + p.date + '</td>' +
-        '<td><strong style="color:#0A7D1A;">₹' + p.amount.toLocaleString('en-IN') + '</strong></td>' +
-        '<td><small>' + (p.reference || '').substring(0, 60) + '</small></td>' +
-        '</tr>';
-    });
-
-    const totalActions = SYNC.reservations.filter(r => r.action === 'import' || r.action === 'update').length;
-
-    // ─── Calculate sync stats ───
-    const inAppCount = SYNC.existingByGuest.filter(g => g.booking_mode === 'Online-Airbnb').length;
-    const inAppRev = SYNC.existingByGuest.filter(g => g.booking_mode === 'Online-Airbnb').reduce((s, g) => s + (g.total_amount || 0), 0);
-    const onAirbnbCount = SYNC.reservations.length;
-    const onAirbnbRev = SYNC.reservations.reduce((s, r) => s + (r.gross || 0), 0);
-    const syncRate = onAirbnbCount > 0 ? Math.round((inAppCount / onAirbnbCount) * 100) : 0;
-    const revDiff = Math.abs(inAppRev - onAirbnbRev);
-    const syncColor = syncRate === 100 ? '#0A7D1A' : syncRate > 90 ? '#F59E0B' : '#DC2626';
-    const syncLabel = syncRate === 100 ? '✅ Perfectly Synced' : syncRate > 100 ? '⚠️ Extra in App' : syncRate > 90 ? '⚠️ Nearly Synced' : '🔴 Needs Sync';
-
-    // ─── Possibly-cancelled panel (DB has Airbnb code, CSV no longer has it) ───
+    // ─── Possibly cancelled ───
     let cancelledHtml = '';
     if (SYNC.possiblyCancelled.length > 0) {
       cancelledHtml =
         '<div class="card" style="margin-top:16px;border-left:4px solid #DC2626;background:#FEF2F2;">' +
           '<div class="section-title" style="color:#991B1B;">🔴 Possibly Cancelled on Airbnb (' + SYNC.possiblyCancelled.length + ')</div>' +
-          '<div style="font-size:12px;color:#7F1D1D;margin-bottom:10px;">These are tagged Airbnb in your register but no longer appear in this CSV export within your date range. Verify on Airbnb before marking cancelled — the CSV export window may simply not cover them.</div>' +
-          '<div class="table-wrap"><table><thead><tr><th>Guest</th><th>Property</th><th>Check-in</th><th>Amount</th><th>Code</th><th>Action</th></tr></thead><tbody>' +
+          '<div style="font-size:12px;color:#7F1D1D;margin-bottom:10px;">Tagged Airbnb in your register but not in this CSV. Verify on Airbnb before marking cancelled.</div>' +
+          '<div class="table-wrap"><table><thead><tr><th>Guest</th><th>Property</th><th>Check-in</th><th>Amount</th><th>Action</th></tr></thead><tbody>' +
           SYNC.possiblyCancelled.map(e =>
             '<tr>' +
               '<td>' + (e.guest_name || '-') + '</td>' +
               '<td><small>' + (e.rooms?.unit_no || '') + ' ' + (e.rooms?.nickname || '') + '</small></td>' +
-              '<td>' + (e.check_in || '-') + '</td>' +
-              '<td>₹' + (e.total_amount || 0).toLocaleString('en-IN') + '</td>' +
-              '<td><small>' + (e.airbnb_confirmation_code || '') + '</small></td>' +
+              '<td>' + fmtDate(e.check_in) + '</td>' +
+              '<td>₹' + fmtNum(e.total_amount) + '</td>' +
               '<td>' +
                 '<button class="btn-sm" style="background:var(--yellow);color:#fff;" onclick="cancelBooking(\'' + e.booking_id + '\',\'' + (e.guest_name || '').replace(/'/g, "\\'") + '\')">🚫 Mark Cancelled</button> ' +
                 '<button class="btn-sm outline" onclick="editBooking(\'' + e.booking_id + '\')">👁️ View</button>' +
@@ -486,236 +503,49 @@
         '</div>';
     }
 
+    const inAppCount = SYNC.existingByGuest.filter(g => g.booking_mode === 'Online-Airbnb').length;
+    const inAppRev = SYNC.existingByGuest.filter(g => g.booking_mode === 'Online-Airbnb').reduce((s, g) => s + (g.total_amount || 0), 0);
+    const onAirbnbCount = SYNC.reservations.length;
+    const onAirbnbRev = SYNC.reservations.reduce((s, r) => s + (r.gross || 0), 0);
+    const syncRate = onAirbnbCount > 0 ? Math.round((inAppCount / onAirbnbCount) * 100) : 0;
+    const revDiff = Math.abs(inAppRev - onAirbnbRev);
+    const syncLabel = syncRate === 100 ? '✅ Perfectly Synced' : syncRate > 100 ? '⚠️ Extra in App' : syncRate > 90 ? '⚠️ Nearly Synced' : '🔴 Needs Sync';
+
+    let payoutRows = '';
+    SYNC.payouts.forEach(p => {
+      payoutRows += '<tr><td>' + fmtDate(p.date) + '</td><td><strong style="color:#0A7D1A;">₹' + fmtNum(p.amount) + '</strong></td><td><small>' + (p.reference || '').substring(0, 60) + '</small></td></tr>';
+    });
+
     container.innerHTML =
-      // BIG SYNC STATUS CARD
       '<div class="card" style="margin-top:20px;background:linear-gradient(135deg,#FF385C,#E00B41);color:#fff;border:none;">' +
-        '<div class="section-title" style="color:#fff;border:none;">📊 JULY 2026 — SYNC STATUS</div>' +
-        '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-top:10px;">' +
-          '<div style="background:rgba(255,255,255,0.15);padding:16px;border-radius:10px;text-align:center;">' +
-            '<div style="font-size:32px;font-weight:800;">' + inAppCount + '</div>' +
-            '<div style="font-size:11px;opacity:0.9;">📱 IN APP</div>' +
-            '<div style="font-size:13px;margin-top:4px;">₹' + fmtNum(inAppRev) + '</div>' +
-          '</div>' +
-          '<div style="background:rgba(255,255,255,0.15);padding:16px;border-radius:10px;text-align:center;">' +
-            '<div style="font-size:32px;font-weight:800;">' + onAirbnbCount + '</div>' +
-            '<div style="font-size:11px;opacity:0.9;">🌐 ON AIRBNB</div>' +
-            '<div style="font-size:13px;margin-top:4px;">₹' + fmtNum(onAirbnbRev) + '</div>' +
-          '</div>' +
-          '<div style="background:rgba(255,255,255,0.15);padding:16px;border-radius:10px;text-align:center;">' +
-            '<div style="font-size:32px;font-weight:800;color:' + (syncRate === 100 ? '#D1FAE5' : '#FEF3C7') + ';">' + syncRate + '%</div>' +
-            '<div style="font-size:11px;opacity:0.9;">🔄 SYNC RATE</div>' +
-            '<div style="font-size:12px;margin-top:4px;">' + syncLabel + '</div>' +
-          '</div>' +
-          '<div style="background:rgba(255,255,255,0.15);padding:16px;border-radius:10px;text-align:center;">' +
-            '<div style="font-size:24px;font-weight:800;">₹' + fmtNum(revDiff) + '</div>' +
-            '<div style="font-size:11px;opacity:0.9;">💰 REVENUE DIFF</div>' +
-            '<div style="font-size:12px;margin-top:4px;">' + (revDiff < 100 ? '✅ Matched' : '⚠️ Check') + '</div>' +
-          '</div>' +
+        '<div class="section-title" style="color:#fff;border:none;">📊 SYNC STATUS · ' + fmtDate(SYNC.fromDate) + ' → ' + fmtDate(SYNC.toDate) + '</div>' +
+        '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-top:10px;">' +
+          '<div style="background:rgba(255,255,255,0.15);padding:14px;border-radius:10px;text-align:center;"><div style="font-size:26px;font-weight:800;">' + newBookings.length + '</div><div style="font-size:11px;opacity:0.9;">🆕 TO ADD</div></div>' +
+          '<div style="background:rgba(255,255,255,0.15);padding:14px;border-radius:10px;text-align:center;"><div style="font-size:26px;font-weight:800;">' + conflicts.length + '</div><div style="font-size:11px;opacity:0.9;">✏️ TO FIX</div></div>' +
+          '<div style="background:rgba(255,255,255,0.15);padding:14px;border-radius:10px;text-align:center;"><div style="font-size:26px;font-weight:800;">' + matched.length + '</div><div style="font-size:11px;opacity:0.9;">✅ ALREADY OK</div></div>' +
+          '<div style="background:rgba(255,255,255,0.15);padding:14px;border-radius:10px;text-align:center;"><div style="font-size:20px;font-weight:800;">₹' + fmtNum(revDiff) + '</div><div style="font-size:11px;opacity:0.9;">💰 REV DIFF</div><div style="font-size:11px;margin-top:2px;">' + syncLabel + '</div></div>' +
         '</div>' +
       '</div>' +
 
-      cancelledHtml +
-
-      // Compare details
       '<div class="card" style="margin-top:16px;">' +
-
-        '<div class="section-title">📅 Filter by Check-in Date</div>' +
-        '<div style="display:flex;gap:10px;align-items:center;margin:10px 0;padding:12px;background:#EFF6FF;border-radius:8px;">' +
-          '<label>From:</label>' +
-          '<input type="date" value="' + SYNC.fromDate + '" onchange="setFromDate(this.value)" style="padding:6px 10px;border:1px solid #ccc;border-radius:6px;" />' +
+        '<div class="section-title">📅 Date Range (auto: 1 Jul → today)</div>' +
+        '<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">' +
+          '<label>From: <input type="date" value="' + SYNC.fromDate + '" onchange="setDateRange(\'from\',this.value)" style="padding:6px 10px;border:1px solid #ccc;border-radius:6px;" /></label>' +
+          '<label>To: <input type="date" value="' + SYNC.toDate + '" onchange="setDateRange(\'to\',this.value)" style="padding:6px 10px;border:1px solid #ccc;border-radius:6px;" /></label>' +
           '<span style="color:#666;font-size:12px;">Showing ' + SYNC.reservations.length + ' of ' + SYNC.allReservations.length + ' total in CSV</span>' +
         '</div>' +
+      '</div>' +
 
-        '<div class="section-title">📊 Summary</div>' +
-        '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin:10px 0;">' +
-          '<div class="stat-card" style="background:#fff;border:2px solid #eee;text-align:center;padding:10px;"><div style="font-size:24px;font-weight:800;">' + counts.all + '</div><div style="font-size:11px;color:#888;">Total</div></div>' +
-          '<div class="stat-card" style="background:#D1FAE5;text-align:center;padding:10px;cursor:pointer;" onclick="setSyncFilter(\'new\')"><div style="font-size:24px;font-weight:800;color:#0A7D1A;">' + counts.new + '</div><div style="font-size:11px;">🆕 New</div></div>' +
-          '<div class="stat-card" style="background:#DBEAFE;text-align:center;padding:10px;cursor:pointer;" onclick="setSyncFilter(\'match\')"><div style="font-size:24px;font-weight:800;color:#1E40AF;">' + counts.match + '</div><div style="font-size:11px;">✅ Match</div></div>' +
-          '<div class="stat-card" style="background:#FEF3C7;text-align:center;padding:10px;cursor:pointer;" onclick="setSyncFilter(\'conflict\')"><div style="font-size:24px;font-weight:800;color:#B45309;">' + counts.conflict + '</div><div style="font-size:11px;">⚠️ Conflict</div></div>' +
-          '<div class="stat-card" style="background:#FEE2E2;text-align:center;padding:10px;cursor:pointer;" onclick="setSyncFilter(\'unmapped\')"><div style="font-size:24px;font-weight:800;color:#DC2626;">' + counts.unmapped + '</div><div style="font-size:11px;">🔴 Unmapped</div></div>' +
-        '</div>' +
+      newHtml + conflictHtml + cancelledHtml +
 
-        (function() {
-          // Count issues by field type
-          const fieldCounts = { Guest: 0, 'Check-in': 0, 'Check-out': 0, Amount: 0, Room: 0, Mode: 0 };
-          SYNC.reservations.forEach(r => {
-            if (r.status === 'conflict' && r.issues) {
-              r.issues.forEach(i => { if (fieldCounts[i.field] !== undefined) fieldCounts[i.field]++; });
-            }
-          });
-          
-          let bulkHtml = '<div style="display:flex;gap:8px;flex-wrap:wrap;margin:10px 0;padding:12px;background:#F3F4F6;border-radius:8px;">' +
-            '<div style="width:100%;font-weight:700;margin-bottom:4px;">🔧 BULK FIX BY FIELD:</div>';
-          
-          if (fieldCounts.Guest > 0) bulkHtml += '<button class="btn-sm" style="background:#7C3AED;color:#fff;" onclick="bulkFixField(\'Guest\')">👤 Fix ' + fieldCounts.Guest + ' Name(s)</button>';
-          if (fieldCounts['Check-in'] > 0) bulkHtml += '<button class="btn-sm" style="background:#0EA5E9;color:#fff;" onclick="bulkFixField(\'Check-in\')">📅 Fix ' + fieldCounts['Check-in'] + ' Check-in(s)</button>';
-          if (fieldCounts['Check-out'] > 0) bulkHtml += '<button class="btn-sm" style="background:#0EA5E9;color:#fff;" onclick="bulkFixField(\'Check-out\')">📅 Fix ' + fieldCounts['Check-out'] + ' Check-out(s)</button>';
-          if (fieldCounts.Amount > 0) bulkHtml += '<button class="btn-sm" style="background:#059669;color:#fff;" onclick="bulkFixField(\'Amount\')">💰 Fix ' + fieldCounts.Amount + ' Amount(s)</button>';
-          if (fieldCounts.Room > 0) bulkHtml += '<button class="btn-sm" style="background:#DC2626;color:#fff;" onclick="bulkFixField(\'Room\')">🏠 Fix ' + fieldCounts.Room + ' Room(s)</button>';
-          if (fieldCounts.Mode > 0) bulkHtml += '<button class="btn-sm" style="background:#6C5CE0;color:#fff;" onclick="bulkFixField(\'Mode\')">🏷️ Fix ' + fieldCounts.Mode + ' Mode(s)</button>';
-          
-          bulkHtml += '<div style="width:100%;font-weight:700;margin:8px 0 4px;">🎯 BULK ACTIONS:</div>' +
-            '<button class="btn-sm green-btn" onclick="bulkAction(\'new\',\'import\')">✅ Import all NEW</button>' +
-            '<button class="btn-sm" style="background:#F59E0B;color:#fff;" onclick="bulkAction(\'conflict\',\'update\')">🔄 Fix ALL Conflicts</button>' +
-            '<button class="btn-sm outline" onclick="bulkAction(\'new\',\'skip\');bulkAction(\'conflict\',\'skip\')">🚫 Skip all</button>' +
-          '</div>';
-          
-          return bulkHtml;
-        })() +
+      (matched.length > 0 ? '<div class="card" style="margin-top:16px;"><div class="section-title">✅ Already Correct (' + matched.length + ')</div><div style="font-size:12px;color:var(--muted);">No action needed — these match perfectly.</div></div>' : '') +
 
-        '<div style="display:flex;gap:8px;flex-wrap:wrap;margin:10px 0;align-items:center;">' +
-          '<strong>Filter:</strong> ' +
-          '<button class="btn-sm ' + (SYNC.filter === 'all' ? '' : 'outline') + '" onclick="setSyncFilter(\'all\')">All (' + counts.all + ')</button>' +
-          '<button class="btn-sm ' + (SYNC.filter === 'new' ? 'green-btn' : 'outline') + '" onclick="setSyncFilter(\'new\')">🆕 New (' + counts.new + ')</button>' +
-          '<button class="btn-sm ' + (SYNC.filter === 'conflict' ? '' : 'outline') + '" style="' + (SYNC.filter === 'conflict' ? 'background:#F59E0B;color:#fff;' : '') + '" onclick="setSyncFilter(\'conflict\')">⚠️ Conflicts (' + counts.conflict + ')</button>' +
-          '<button class="btn-sm ' + (SYNC.filter === 'match' ? '' : 'outline') + '" onclick="setSyncFilter(\'match\')">✅ Matched (' + counts.match + ')</button>' +
-          '<button class="btn-sm ' + (SYNC.filter === 'unmapped' ? 'danger' : 'outline') + '" onclick="setSyncFilter(\'unmapped\')">🔴 Unmapped (' + counts.unmapped + ')</button>' +
-        '</div>' +
-
-        '<div style="margin-top:14px;">' + (rows || '<div style="text-align:center;padding:40px;color:#888;">No bookings match filter</div>') + '</div>' +
-
-        (SYNC.payouts.length > 0 ?
-          '<h3 style="margin-top:20px;">💰 Payouts (' + SYNC.payouts.length + ')</h3>' +
-          '<div class="table-wrap"><table>' +
-            '<thead><tr><th>Date</th><th>Amount</th><th>Reference</th></tr></thead>' +
-            '<tbody>' + payoutRows + '</tbody>' +
-          '</table></div>'
-        : '') +
-
-        '<div style="text-align:center;margin-top:20px;padding:16px;background:#F3F4F6;border-radius:8px;">' +
-          '<div style="margin-bottom:10px;color:#374151;">Will process <strong>' + totalActions + '</strong> bookings (skips will be ignored)</div>' +
-          '<button onclick="runAirbnbImport()" style="padding:14px 40px;background:#008a05;color:#fff;border:none;border-radius:8px;font-size:16px;font-weight:700;cursor:pointer;">' +
-            '🚀 Process ' + totalActions + ' Bookings' +
-          '</button>' +
-        '</div>' +
-
-      '</div>';
+      (SYNC.payouts.length > 0 ?
+        '<div class="card" style="margin-top:16px;"><h3 style="margin-top:0;">💰 Payouts (' + SYNC.payouts.length + ')</h3>' +
+          '<div class="table-wrap"><table><thead><tr><th>Date</th><th>Amount</th><th>Reference</th></tr></thead><tbody>' + payoutRows + '</tbody></table></div>' +
+        '</div>'
+      : '');
   }
-
-  window.toggleFieldFix = function(idx, fieldKey) {
-    if (!SYNC.reservations[idx]) return;
-    if (!SYNC.reservations[idx].fieldFixes) SYNC.reservations[idx].fieldFixes = {};
-    SYNC.reservations[idx].fieldFixes[fieldKey] = !SYNC.reservations[idx].fieldFixes[fieldKey];
-    // Auto-set action to update if any field is fixed
-    const hasFixes = Object.values(SYNC.reservations[idx].fieldFixes).some(v => v);
-    if (hasFixes) SYNC.reservations[idx].action = 'update';
-    renderPreview();
-  };
-
-  window.bulkFixField = function(fieldName) {
-    const key = fieldName.toLowerCase().replace(/[^a-z]/g, '');
-    SYNC.reservations.forEach(r => {
-      if (r.status === 'conflict' && (r.issues || []).some(i => i.field === fieldName)) {
-        if (!r.fieldFixes) r.fieldFixes = {};
-        r.fieldFixes[key] = true;
-        r.action = 'update';
-      }
-    });
-    renderPreview();
-  };
-
-  window.runAirbnbImport = async function() {
-    const toProcess = SYNC.reservations.filter(r => r.action === 'import' || r.action === 'update');
-    if (toProcess.length === 0) { fsn.info('Info', 'Nothing to process'); return; }
-
-    const unmapped = toProcess.filter(r => !r.matched_room_id);
-    if (unmapped.length > 0) {
-      if (!confirm(unmapped.length + ' rows have no room mapped. Continue and skip them?')) return;
-    }
-
-    if (!confirm('Process ' + toProcess.length + ' bookings? This will create/update records in database.')) return;
-
-    let created = 0, updated = 0, failed = 0;
-
-    for (const r of toProcess) {
-      if (!r.matched_room_id) { failed++; continue; }
-
-      const noteBits = ['Airbnb Code: ' + r.confirmation_code];
-      if (r.cleaning_fee) noteBits.push('Clean: ₹' + r.cleaning_fee);
-      if (r.service_fee) noteBits.push('Fee: ₹' + r.service_fee);
-
-      const commonFields = {
-        guest_name: r.guest_name,
-        room_id: r.matched_room_id,
-        source_room_id: r.matched_room_id,
-        booking_mode: 'Online-Airbnb',
-        check_in: r.check_in,
-        check_out: r.check_out,
-        check_in_time: '14:00',
-        check_out_time: '11:00',
-        checkout_confirmed: true,
-        total_amount: r.amount,
-        per_day_rate: r.nights > 0 ? Math.round(r.amount / r.nights) : r.amount,
-        gross_amount: r.gross,
-        platform_fee: (r.gross || 0) - (r.amount || 0),
-        airbnb_service_fee: r.service_fee || 0,
-        airbnb_cleaning_fee: r.cleaning_fee || 0,
-        airbnb_net_payout: r.amount,
-        payment_status: 'Paid',
-        notes: noteBits.join(' | ')
-      };
-
-      if (r.action === 'update' && r.dbBk) {
-        // Build update object based on fieldFixes (if specific) or all
-        let updateFields = commonFields;
-        if (r.fieldFixes && Object.keys(r.fieldFixes).length > 0) {
-          // Only update specific fields
-          updateFields = {};
-          if (r.fieldFixes.guest) updateFields.guest_name = commonFields.guest_name;
-          if (r.fieldFixes.checkin) updateFields.check_in = commonFields.check_in;
-          if (r.fieldFixes.checkout) updateFields.check_out = commonFields.check_out;
-          if (r.fieldFixes.amount) {
-            updateFields.total_amount = commonFields.total_amount;
-            updateFields.per_day_rate = commonFields.per_day_rate;
-          }
-          if (r.fieldFixes.room) {
-            updateFields.room_id = commonFields.room_id;
-            updateFields.source_room_id = commonFields.source_room_id;
-          }
-          if (r.fieldFixes.mode) {
-            updateFields.booking_mode = commonFields.booking_mode;
-          }
-          if (Object.keys(updateFields).length === 0) { continue; }
-        }
-        const { error } = await sb.from('guest_register').update(updateFields).eq('booking_id', r.dbBk.booking_id);
-        if (error) { console.warn('Update failed:', error.message); failed++; continue; }
-        updated++;
-      } else {
-        // INSERT new
-        const bkId = 'AIR' + r.confirmation_code;
-        const payload = {
-          ...commonFields,
-          booking_id: bkId,
-          airbnb_confirmation_code: r.confirmation_code,
-          guests: 1,
-          booked_by: SESSION.displayName || 'Airbnb Sync',
-          ...(typeof approvalMeta === 'function' ? approvalMeta() : {})
-        };
-        const { error } = await sb.from('guest_register').insert(payload);
-        if (error) { console.warn('Insert failed:', error.message); failed++; continue; }
-        // Insert Airbnb payment — NET amount (actual received)
-        if (r.amount > 0) {
-          await sb.from('payment_history').insert({
-            booking_id: bkId,
-            amount: r.amount,
-            payment_mode: 'Airbnb Payout',
-            payment_date: r.date || r.check_out,
-            notes: 'Auto-imported from Airbnb CSV',
-            ...(typeof approvalMeta === 'function' ? approvalMeta() : {})
-          });
-        }
-        created++;
-      }
-    }
-
-    fsn.success('Sync Complete',
-      '✅ ' + created + ' created\n' +
-      '🔄 ' + updated + ' updated\n' +
-      (failed > 0 ? '❌ ' + failed + ' failed' : '')
-    );
-
-    setTimeout(() => renderAirbnbSync(), 1500);
-  };
 
   window.renderAirbnbSync = renderAirbnbSync;
 })();
