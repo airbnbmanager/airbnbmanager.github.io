@@ -209,6 +209,19 @@
     const reservationsByCode = {};
     const payouts = [];
 
+    // ─── Pass 1: sum "Amount" across ALL row-types sharing a Confirmation Code.
+    // Airbnb splits a single booking's payout across multiple rows —
+    // 'Reservation' (gross - service fee), 'Tax Withholding for India Income'
+    // (negative, TDS deducted), 'Host-Remitted Tax' (positive, if applicable).
+    // Reading only the 'Reservation' row overstates the payout by the TDS amount. ───
+    const netAmountByCode = {};
+    rows.forEach(r => {
+      const type = r['Type'];
+      const code = r['Confirmation Code'];
+      if (type === 'Payout' || !code) return;
+      netAmountByCode[code] = (netAmountByCode[code] || 0) + (parseFloat(r['Amount']) || 0);
+    });
+
     rows.forEach(r => {
       const type = r['Type'];
       const code = r['Confirmation Code'];
@@ -234,7 +247,8 @@
           nights: parseInt(r['Nights'] || 0),
           guest_name: r['Guest'] || '',
           listing: listing,
-          amount: parseFloat(r['Amount'] || 0),
+          amount: Math.round((netAmountByCode[code] || parseFloat(r['Amount'] || 0)) * 100) / 100,
+          reservation_row_amount: parseFloat(r['Amount'] || 0),
           gross: parseFloat(r['Gross earnings'] || 0),
           service_fee: parseFloat(r['Service fee'] || 0),
           cleaning_fee: parseFloat(r['Cleaning fee'] || 0),
@@ -411,6 +425,8 @@
           '<td>' +
             '<input type="number" value="' + r.gross + '" onchange="editReservationField(' + idx + ',\\\'gross\\\',this.value)" style="width:80px;font-size:12px;padding:2px 4px;" />' +
             '<br><small>Net: ₹' + r.amount.toLocaleString('en-IN') + '</small>' +
+            (Math.abs((r.reservation_row_amount || r.amount) - r.amount) > 1 ?
+              '<br><small style="color:#B45309;" title="Reservation row alone showed ₹' + r.reservation_row_amount.toLocaleString('en-IN') + '; tax withholding/remittance rows adjusted it to the true payout">🧾 TDS-adjusted</small>' : '') +
           '</td>' +
           '<td>' +
             '<small style="color:#888;">' + (r.listing || '').substring(0, 35) + '</small><br>' +
