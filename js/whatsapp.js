@@ -137,27 +137,40 @@ function fmtDate(d) {
 
 // ═══ 1. WELCOME (New Booking) ═══
 function tplWelcome(d) {
-  return `Hi ${d.guestName},
+  const caretaker = d.dayStaff.find(s => /caretaker/i.test(s.role)) || d.dayStaff[0];
+  const manager = d.dayStaff.find(s => /manager/i.test(s.role));
 
-Welcome to *${BRAND_NAME}*.
-Your booking is confirmed.
+  let contactLines = '';
+  if (caretaker) contactLines += `📞 ${caretaker.phone} ${caretaker.name} (Caretaker)\n`;
+  if (manager) contactLines += `${manager.phone} ${manager.name} (Manager)\n`;
 
-*Booking Details*
-Property: ${d.propertyName}
-Address: ${d.address}
-Check-in: ${fmtDate(d.checkIn)}, ${d.checkInTime}
-Check-out: ${fmtDate(d.checkOut)}, ${d.checkOutTime}
-Nights: ${d.nights} | Total: ₹${d.total.toLocaleString('en-IN')}
+  return `Hii ${d.guestName} welcome to Unique Haven Home stay
+Thank you for booking your stay with us
 
-*Property Info*
-${d.propertyURL}
-${d.mapLink ? 'Map: ' + d.mapLink + '\n' : ''}
-${fmtContacts(d)}
+📍 Property Address:
+${d.address}
+Flat No ${d.flat}${d.floor ? ' ' + d.floor + ' floor' : ''}
+${d.mapLink ? '📌Location pin:\n' + d.mapLink : ''}
 
-*Save ${d.discount}% on your next stay — book direct:*
-${d.websiteURL}
+Timings:
+Check-in: ${fmtDate(d.checkIn)}, at ${d.checkInTime}
+Check-out: ${fmtDate(d.checkOut)}, at ${d.checkOutTime}
 
-— Team ${BRAND_NAME}`;
+Check In Instructions:
+Our caretaker will assist you with the check-in and show you around the place:
+${contactLines.trim()}
+
+House rules
+• No loud music after 11 PM
+•Early check in/late check out subject to Availability
+• No wild parties or disruptive gatherings
+We want to keep the neighbourhood peaceful for everyone.
+
+Contact
+If you need anything, message me anytime or call directly
+📞${d.owners[0]?.name || 'Mr Shahansha'} ${d.owners[0]?.phone || '9450055554'}
+📞${d.owners[1]?.name || 'Mr Firoz khan'} ${d.owners[1]?.phone || '8299600709'}
+Happy to help whenever you need.`;
 }
 
 // ═══ 2. REMINDER (Day Before Check-in) ═══
