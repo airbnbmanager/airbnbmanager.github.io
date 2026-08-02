@@ -67,7 +67,8 @@ async function saveMaintenance() {
     description:desc,
     cost:parseFloat(document.getElementById('mCost').value)||0,
     status:document.getElementById('mStatus').value,
-    notes:document.getElementById('mNotes').value.trim()||null
+    notes:document.getElementById('mNotes').value.trim()||null,
+    created_by: SESSION.userId
   });
   renderMaintenanceLog();
 }

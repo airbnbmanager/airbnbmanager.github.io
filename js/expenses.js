@@ -372,7 +372,8 @@ async function saveExpEntry() {
     month: mo,
     amount: amt,
     entry_date: date,
-    notes: notes
+    notes: notes,
+    created_by: SESSION.userId
   });
 
   if (error) {
@@ -1240,7 +1241,8 @@ async function saveMonthlyExpenses() {
           month: d.monthLabel,
           amount,
           entry_date: new Date().toISOString().slice(0, 10),
-          notes: `Monthly bulk entry`
+          notes: `Monthly bulk entry`,
+          created_by: SESSION.userId
         });
         saved++;
       } else {

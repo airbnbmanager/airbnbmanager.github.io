@@ -1751,6 +1751,7 @@ async function saveBooking() {
       await sb.from('payment_history').insert({
         booking_id: bkId, amount: adv, payment_mode: advMode || null,
         payment_date: advDate, notes: isOnline ? 'Airbnb Payout' : 'Advance',
+        created_by: SESSION.userId,
         ...approvalMeta()
       });
     }
@@ -2647,6 +2648,7 @@ async function savePaymentModal(bkId) {
       payment_mode: mode,
       payment_date: payDate,
       notes: userNotes,
+      created_by: SESSION.userId,
       ...approvalMeta()
     });
     if (error) { document.getElementById('payErr').innerHTML = `<div class="error">${error.message}</div>`; return; }
@@ -2679,6 +2681,7 @@ async function savePaymentModal(bkId) {
         payment_mode: mode,
         payment_date: payDate,
         notes: (userNotes ? userNotes + ' | ' : '') + `Auto-adjusted from booking ${bkId}`,
+        created_by: SESSION.userId,
         ...approvalMeta()
       });
       if (!distErr) {
@@ -2701,6 +2704,7 @@ async function savePaymentModal(bkId) {
       payment_mode: mode,
       payment_date: payDate,
       notes: (userNotes ? userNotes + ' | ' : '') + 'Advance / extra payment',
+      created_by: SESSION.userId,
       ...approvalMeta()
     });
     if (!extraErr) await recalcPaymentStatus(bkId);
