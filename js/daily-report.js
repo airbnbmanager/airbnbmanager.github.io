@@ -1,5 +1,5 @@
 /**
- * Daily Report Generator
+ * Daily Report Generator - UPGRADED
  * UNIQUE HAVEN HOMES STAY
  */
 
@@ -9,7 +9,6 @@ async function renderDailyReport(selectedDate) {
   
   renderShell(`<div class="loading">Generating report for ${repDate}...</div>`, 'daily-report');
 
-  // Fetch all data for the date
   const [
     { data: allBks },
     { data: allPays },
@@ -22,33 +21,16 @@ async function renderDailyReport(selectedDate) {
     sb.from('company_config').select('*').eq('id', 1).single()
   ]);
 
-  // Today's activity
   const checkins = (allBks || []).filter(b => b.check_in === repDate && !b.is_cancelled);
   const checkouts = (allBks || []).filter(b => b.check_out === repDate && !b.is_cancelled);
-  
-  // "New Bookings" = bookings CHECKING IN on this date (business perspective)
-  // This is what generates revenue for the day
   const newBookings = checkins;
   
-  // Separately track bookings CREATED on this date (data entry perspective)
-  const bookingsCreatedToday = (allBks || []).filter(b => {
-    if (!b.created_at) return false;
-    return b.created_at.startsWith(repDate);
-  });
-
-  // Currently staying
   const staying = (allBks || []).filter(b => 
     b.check_in && b.check_in <= repDate && 
     (!b.check_out || b.check_out > repDate) &&
     !b.is_cancelled &&
     b.verification_status !== 'rejected'
   );
-
-  // Payment breakdown
-  const paidMap = {};
-  (allPays || []).forEach(p => {
-    paidMap[p.booking_id] = (paidMap[p.booking_id] || 0) + (p.amount || 0);
-  });
 
   const totalPayments = (allPays || []).reduce((s, p) => s + (p.amount || 0), 0);
   const paymentByMode = {};
@@ -57,28 +39,13 @@ async function renderDailyReport(selectedDate) {
     paymentByMode[mode] = (paymentByMode[mode] || 0) + (p.amount || 0);
   });
 
-  // Booking totals for today's check-ins (use FULL payment history, not just today's)
   const newBookingTotal = newBookings.reduce((s, b) => s + (b.total_amount || 0), 0);
-  // Note: paidMap only has today's payments — we need full history for accurate collected amount
-  // (defined below as paidMapFull) — so we compute this AFTER paidMapFull is created
-
-  // Online vs Offline
   const onlineBks = newBookings.filter(b => b.booking_mode === 'Online-Airbnb');
   const offlineBks = newBookings.filter(b => b.booking_mode !== 'Online-Airbnb');
   const reviewBks = newBookings.filter(b => b.is_review_booking === true);
 
-  // All pending dues (till today)
-  const allDues = (allBks || []).reduce((s, b) => {
-    if (b.is_cancelled) return s;
-    if (b.check_in > repDate) return s;
-    const { data: bkPays } = { data: [] };
-    return s;
-  }, 0);
-
-  // Get all payments (not just today) for dues calculation
   const { data: allPaysFull } = await sb.from('payment_history')
-    .select('booking_id, amount')
-    .neq('verification_status', 'rejected');
+    .select('booking_id, amount').neq('verification_status', 'rejected');
   
   const paidMapFull = {};
   (allPaysFull || []).forEach(p => {
@@ -87,28 +54,17 @@ async function renderDailyReport(selectedDate) {
 
   const totalDueOverall = (allBks || []).reduce((s, b) => {
     if (b.is_cancelled) return s;
-    if (b.check_in > repDate) return s;  // Future bookings
+    if (b.check_in > repDate) return s;
     const paid = paidMapFull[b.booking_id] || 0;
     const due = Math.max((b.total_amount || 0) - paid, 0);
     return s + (due > 1 ? due : 0);
   }, 0);
-  
-  // Recompute check-in based metrics using FULL payment history
-  const newBookingCollected = newBookings.reduce((s, b) => s + (paidMapFull[b.booking_id] || 0), 0);
-  const newBookingDue = Math.max(newBookingTotal - newBookingCollected, 0);
-  
-  // Revenue from today's check-ins (booking value, regardless of payment date)
-  const todayRevenue = newBookingTotal;
-  
-  // Actual payment transactions on this date (for reference)
-  const todayPaymentTransactions = (allPays || []).length;
-  const todayPaymentAmount = totalPayments;
 
-  // Property occupancy
+  const todayPaymentTransactions = (allPays || []).length;
+
   const totalRooms = (rooms || []).length;
   const occupancyPct = totalRooms > 0 ? Math.round(staying.length / totalRooms * 100) : 0;
 
-  // Available dates for dropdown
   const dates = [];
   for (let i = 0; i <= 30; i++) {
     const d = new Date();
@@ -121,6 +77,8 @@ async function renderDailyReport(selectedDate) {
     weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' 
   });
 
+  const checkoutsDue = checkouts.filter(b => Math.max((b.total_amount||0) - (paidMapFull[b.booking_id]||0), 0) > 0);
+
   renderShell(`
     <div class="card no-print">
       <h1>📊 Daily Report</h1>
@@ -132,7 +90,7 @@ async function renderDailyReport(selectedDate) {
           </select>
         </div>
         <div class="form-group" style="justify-content:flex-end;">
-          <button onclick="window.print()" class="btn-sm">🖨️ Print / PDF</button>
+          <button onclick="printDailyReportWindow()" class="btn-sm">🖨️ Print / PDF</button>
           <button onclick="whatsappDailyReport('${repDate}')" class="btn-sm" style="background:#25D366;color:#fff;margin-left:6px;">📱 WhatsApp</button>
         </div>
       </div>
@@ -140,51 +98,84 @@ async function renderDailyReport(selectedDate) {
 
     <div class="card report-doc" style="max-width:900px;margin:0 auto;padding:30px;">
       
-      <!-- Header -->
       <div style="background:linear-gradient(135deg,#FF5A5F 0%,#FC642D 100%);color:#fff;padding:24px;border-radius:12px;text-align:center;margin:-30px -30px 20px;">
         <div style="font-size:12px;letter-spacing:2px;opacity:0.9;">${brand.toUpperCase()}</div>
         <h1 style="margin:8px 0;font-size:24px;">📊 DAILY REPORT</h1>
         <div style="font-size:14px;opacity:0.95;">${dateFormatted}</div>
       </div>
 
-      <!-- Summary Cards -->
-      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:20px;">
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:12px;">
         <div style="background:#E6F7FF;padding:14px;border-radius:8px;border-left:4px solid #1E429F;">
-          <div style="font-size:11px;color:#666;text-transform:uppercase;">New Bookings</div>
-          <div style="font-size:26px;font-weight:800;color:#1E429F;">${newBookings.length}</div>
-          <div style="font-size:11px;color:#666;">₹${newBookingTotal.toLocaleString('en-IN')} total value</div>
+          <div style="font-size:10px;color:#666;text-transform:uppercase;font-weight:600;">Check-ins</div>
+          <div style="font-size:26px;font-weight:800;color:#1E429F;">${checkins.length}</div>
+          <div style="font-size:11px;color:#666;">₹${newBookingTotal.toLocaleString('en-IN')} value</div>
+        </div>
+        <div style="background:#FEE2E2;padding:14px;border-radius:8px;border-left:4px solid #DC2626;">
+          <div style="font-size:10px;color:#666;text-transform:uppercase;font-weight:600;">Check-outs</div>
+          <div style="font-size:26px;font-weight:800;color:#DC2626;">${checkouts.length}</div>
+          <div style="font-size:11px;color:#666;">Rooms freeing up</div>
         </div>
         <div style="background:#E6FFED;padding:14px;border-radius:8px;border-left:4px solid #059669;">
-          <div style="font-size:11px;color:#666;text-transform:uppercase;">Today's Revenue</div>
-          <div style="font-size:26px;font-weight:800;color:#059669;">₹${todayRevenue.toLocaleString('en-IN')}</div>
-          <div style="font-size:11px;color:#666;">${newBookings.length} check-ins · ${todayPaymentTransactions} payment${todayPaymentTransactions === 1 ? '' : 's'} recorded</div>
-        </div>
-        <div style="background:#FEF3C7;padding:14px;border-radius:8px;border-left:4px solid #B45309;">
-          <div style="font-size:11px;color:#666;text-transform:uppercase;">Total Pending Due</div>
-          <div style="font-size:26px;font-weight:800;color:#B45309;">₹${totalDueOverall.toLocaleString('en-IN')}</div>
-          <div style="font-size:11px;color:#666;">All active bookings</div>
+          <div style="font-size:10px;color:#666;text-transform:uppercase;font-weight:600;">Collections</div>
+          <div style="font-size:26px;font-weight:800;color:#059669;">₹${totalPayments.toLocaleString('en-IN')}</div>
+          <div style="font-size:11px;color:#666;">${todayPaymentTransactions} txn${todayPaymentTransactions===1?'':'s'}</div>
         </div>
         <div style="background:#FCE7F3;padding:14px;border-radius:8px;border-left:4px solid #BE185D;">
-          <div style="font-size:11px;color:#666;text-transform:uppercase;">Occupancy</div>
+          <div style="font-size:10px;color:#666;text-transform:uppercase;font-weight:600;">Occupancy</div>
           <div style="font-size:26px;font-weight:800;color:#BE185D;">${staying.length}/${totalRooms}</div>
           <div style="font-size:11px;color:#666;">${occupancyPct}% occupied</div>
         </div>
       </div>
 
-      <!-- Check-ins -->
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:20px;">
+        <div style="background:#FEF3C7;padding:14px;border-radius:8px;border-left:4px solid #B45309;">
+          <div style="font-size:10px;color:#666;text-transform:uppercase;font-weight:600;">Total Pending Dues</div>
+          <div style="font-size:22px;font-weight:800;color:#B45309;">₹${totalDueOverall.toLocaleString('en-IN')}</div>
+          <div style="font-size:11px;color:#666;">All active bookings</div>
+        </div>
+        <div style="background:#F3E8FF;padding:14px;border-radius:8px;border-left:4px solid #7C3AED;">
+          <div style="font-size:10px;color:#666;text-transform:uppercase;font-weight:600;">Currently Staying</div>
+          <div style="font-size:22px;font-weight:800;color:#7C3AED;">${staying.length} guests</div>
+          <div style="font-size:11px;color:#666;">In-house right now</div>
+        </div>
+        <div style="background:#DBEAFE;padding:14px;border-radius:8px;border-left:4px solid #1D4ED8;">
+          <div style="font-size:10px;color:#666;text-transform:uppercase;font-weight:600;">Available Rooms</div>
+          <div style="font-size:22px;font-weight:800;color:#1D4ED8;">${totalRooms - staying.length}</div>
+          <div style="font-size:11px;color:#666;">Ready to book</div>
+        </div>
+      </div>
+
+      ${checkoutsDue.length > 0 || totalDueOverall > 0 ? `
+      <div style="margin-bottom:20px;">
+        <div style="background:linear-gradient(90deg,#DC2626,#F59E0B);color:#fff;padding:8px 14px;border-radius:6px 6px 0 0;font-weight:700;">
+          ⚠️ Action Required
+        </div>
+        <div style="border:1px solid #FCA5A5;border-top:none;border-radius:0 0 6px 6px;padding:12px;background:#FEF2F2;">
+          <ul style="margin:0;padding-left:20px;font-size:13px;line-height:1.8;">
+            ${checkoutsDue.map(b => {
+              const due = Math.max((b.total_amount||0) - (paidMapFull[b.booking_id]||0), 0);
+              return `<li><strong style="color:#DC2626;">Collect ₹${due.toLocaleString('en-IN')}</strong> from <strong>${b.guest_name}</strong> (${b.rooms?.nickname || b.room_id}) — checking out today ${b.guest_phone ? '📞 '+b.guest_phone : ''}</li>`;
+            }).join('')}
+            ${totalDueOverall > 0 ? `<li>Total pending dues to follow up: <strong>₹${totalDueOverall.toLocaleString('en-IN')}</strong></li>` : ''}
+          </ul>
+        </div>
+      </div>` : ''}
+
       <div style="margin-bottom:20px;">
         <div style="background:linear-gradient(90deg,#059669,#10B981);color:#fff;padding:8px 14px;border-radius:6px 6px 0 0;font-weight:700;">
           📥 Check-ins Today (${checkins.length})
         </div>
         <div style="border:1px solid #E5E7EB;border-top:none;border-radius:0 0 6px 6px;padding:12px;">
           ${checkins.length === 0 ? '<div style="color:#999;text-align:center;padding:20px;">No check-ins today</div>' :
-            `<table style="width:100%;font-size:13px;">
+            `<table style="width:100%;font-size:12px;">
               <thead style="background:#F9FAFB;">
                 <tr>
                   <th style="padding:8px;text-align:left;">Guest</th>
                   <th style="padding:8px;text-align:left;">Property</th>
+                  <th style="padding:8px;text-align:center;">Nights</th>
+                  <th style="padding:8px;text-align:left;">Contact</th>
                   <th style="padding:8px;text-align:left;">Time</th>
-                  <th style="padding:8px;text-align:right;">Amount</th>
+                  <th style="padding:8px;text-align:right;">Total</th>
                   <th style="padding:8px;text-align:right;">Paid</th>
                   <th style="padding:8px;text-align:right;">Due</th>
                 </tr>
@@ -193,13 +184,16 @@ async function renderDailyReport(selectedDate) {
                 ${checkins.map(b => {
                   const paid = paidMapFull[b.booking_id] || 0;
                   const due = Math.max((b.total_amount || 0) - paid, 0);
+                  const nights = b.check_in && b.check_out ? Math.max(1, Math.ceil((new Date(b.check_out) - new Date(b.check_in))/86400000)) : '-';
                   return `<tr style="border-top:1px solid #E5E7EB;">
                     <td style="padding:8px;"><strong>${b.guest_name}</strong>${b.is_review_booking ? ' <span style="background:#722ED1;color:#fff;padding:1px 6px;border-radius:8px;font-size:10px;">REVIEW</span>' : ''}</td>
                     <td style="padding:8px;">${b.rooms?.nickname || b.room_id}</td>
+                    <td style="padding:8px;text-align:center;">${nights}</td>
+                    <td style="padding:8px;font-size:11px;">${b.guest_phone || '-'}</td>
                     <td style="padding:8px;">${b.check_in_time || '2 PM'}</td>
                     <td style="padding:8px;text-align:right;">₹${(b.total_amount || 0).toLocaleString('en-IN')}</td>
                     <td style="padding:8px;text-align:right;color:#059669;">₹${paid.toLocaleString('en-IN')}</td>
-                    <td style="padding:8px;text-align:right;color:${due > 0 ? '#DC2626' : '#059669'};">₹${due.toLocaleString('en-IN')}</td>
+                    <td style="padding:8px;text-align:right;color:${due > 0 ? '#DC2626' : '#059669'};font-weight:700;">₹${due.toLocaleString('en-IN')}</td>
                   </tr>`;
                 }).join('')}
               </tbody>
@@ -208,19 +202,21 @@ async function renderDailyReport(selectedDate) {
         </div>
       </div>
 
-      <!-- Check-outs -->
       <div style="margin-bottom:20px;">
         <div style="background:linear-gradient(90deg,#DC2626,#EF4444);color:#fff;padding:8px 14px;border-radius:6px 6px 0 0;font-weight:700;">
           📤 Check-outs Today (${checkouts.length})
         </div>
         <div style="border:1px solid #E5E7EB;border-top:none;border-radius:0 0 6px 6px;padding:12px;">
           ${checkouts.length === 0 ? '<div style="color:#999;text-align:center;padding:20px;">No check-outs today</div>' :
-            `<table style="width:100%;font-size:13px;">
+            `<table style="width:100%;font-size:12px;">
               <thead style="background:#F9FAFB;">
                 <tr>
                   <th style="padding:8px;text-align:left;">Guest</th>
                   <th style="padding:8px;text-align:left;">Property</th>
+                  <th style="padding:8px;text-align:left;">Contact</th>
                   <th style="padding:8px;text-align:left;">Time</th>
+                  <th style="padding:8px;text-align:right;">Total</th>
+                  <th style="padding:8px;text-align:right;">Paid</th>
                   <th style="padding:8px;text-align:right;">Due</th>
                 </tr>
               </thead>
@@ -228,11 +224,14 @@ async function renderDailyReport(selectedDate) {
                 ${checkouts.map(b => {
                   const paid = paidMapFull[b.booking_id] || 0;
                   const due = Math.max((b.total_amount || 0) - paid, 0);
-                  return `<tr style="border-top:1px solid #E5E7EB;">
+                  return `<tr style="border-top:1px solid #E5E7EB;${due > 0 ? 'background:#FEF2F2;' : ''}">
                     <td style="padding:8px;"><strong>${b.guest_name}</strong></td>
                     <td style="padding:8px;">${b.rooms?.nickname || b.room_id}</td>
+                    <td style="padding:8px;font-size:11px;">${b.guest_phone || '-'}</td>
                     <td style="padding:8px;">${b.check_out_time || '11 AM'}</td>
-                    <td style="padding:8px;text-align:right;color:${due > 0 ? '#DC2626' : '#059669'};">₹${due.toLocaleString('en-IN')}</td>
+                    <td style="padding:8px;text-align:right;">₹${(b.total_amount || 0).toLocaleString('en-IN')}</td>
+                    <td style="padding:8px;text-align:right;color:#059669;">₹${paid.toLocaleString('en-IN')}</td>
+                    <td style="padding:8px;text-align:right;color:${due > 0 ? '#DC2626' : '#059669'};font-weight:700;">₹${due.toLocaleString('en-IN')}${due>0?' ⚠️':''}</td>
                   </tr>`;
                 }).join('')}
               </tbody>
@@ -241,24 +240,60 @@ async function renderDailyReport(selectedDate) {
         </div>
       </div>
 
-      <!-- Payments Received -->
+      <div style="margin-bottom:20px;">
+        <div style="background:linear-gradient(90deg,#7C3AED,#8B5CF6);color:#fff;padding:8px 14px;border-radius:6px 6px 0 0;font-weight:700;">
+          🏠 Currently In-House (${staying.length})
+        </div>
+        <div style="border:1px solid #E5E7EB;border-top:none;border-radius:0 0 6px 6px;padding:12px;">
+          ${staying.length === 0 ? '<div style="color:#999;text-align:center;padding:20px;">No guests in-house</div>' :
+            `<table style="width:100%;font-size:12px;">
+              <thead style="background:#F9FAFB;">
+                <tr>
+                  <th style="padding:8px;text-align:left;">Guest</th>
+                  <th style="padding:8px;text-align:left;">Property</th>
+                  <th style="padding:8px;text-align:left;">Check-in</th>
+                  <th style="padding:8px;text-align:left;">Check-out</th>
+                  <th style="padding:8px;text-align:left;">Contact</th>
+                  <th style="padding:8px;text-align:right;">Due</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${staying.map(b => {
+                  const paid = paidMapFull[b.booking_id] || 0;
+                  const due = Math.max((b.total_amount || 0) - paid, 0);
+                  return `<tr style="border-top:1px solid #E5E7EB;">
+                    <td style="padding:8px;"><strong>${b.guest_name}</strong></td>
+                    <td style="padding:8px;">${b.rooms?.nickname || b.room_id}</td>
+                    <td style="padding:8px;font-size:11px;">${b.check_in || '-'}</td>
+                    <td style="padding:8px;font-size:11px;">${b.check_out || '-'}</td>
+                    <td style="padding:8px;font-size:11px;">${b.guest_phone || '-'}</td>
+                    <td style="padding:8px;text-align:right;color:${due > 0 ? '#DC2626' : '#059669'};font-weight:700;">₹${due.toLocaleString('en-IN')}</td>
+                  </tr>`;
+                }).join('')}
+              </tbody>
+            </table>`
+          }
+        </div>
+      </div>
+
       <div style="margin-bottom:20px;">
         <div style="background:linear-gradient(90deg,#059669,#10B981);color:#fff;padding:8px 14px;border-radius:6px 6px 0 0;font-weight:700;">
-          💰 Payments Received (${(allPays || []).length}) — ₹${totalPayments.toLocaleString('en-IN')}
+          💰 Payments Received (${(allPays || []).length}) — Total ₹${totalPayments.toLocaleString('en-IN')}
         </div>
         <div style="border:1px solid #E5E7EB;border-top:none;border-radius:0 0 6px 6px;padding:12px;">
           ${(allPays || []).length === 0 ? '<div style="color:#999;text-align:center;padding:20px;">No payments today</div>' :
             `<div style="margin-bottom:12px;">
               ${Object.entries(paymentByMode).map(([mode, amt]) => 
-                `<span style="display:inline-block;background:#F0FDF4;border:1px solid #059669;color:#065F46;padding:4px 10px;border-radius:20px;margin-right:6px;font-size:12px;font-weight:600;">${mode}: ₹${amt.toLocaleString('en-IN')}</span>`
+                `<span style="display:inline-block;background:#F0FDF4;border:1px solid #059669;color:#065F46;padding:4px 10px;border-radius:20px;margin-right:6px;margin-bottom:4px;font-size:12px;font-weight:600;">${mode}: ₹${amt.toLocaleString('en-IN')}</span>`
               ).join('')}
             </div>
-            <table style="width:100%;font-size:13px;">
+            <table style="width:100%;font-size:12px;">
               <thead style="background:#F9FAFB;">
                 <tr>
                   <th style="padding:8px;text-align:left;">Guest</th>
                   <th style="padding:8px;text-align:left;">Property</th>
                   <th style="padding:8px;text-align:left;">Mode</th>
+                  <th style="padding:8px;text-align:left;">Ref/Notes</th>
                   <th style="padding:8px;text-align:right;">Amount</th>
                 </tr>
               </thead>
@@ -269,6 +304,7 @@ async function renderDailyReport(selectedDate) {
                     <td style="padding:8px;">${bk?.guest_name || 'Unknown'}</td>
                     <td style="padding:8px;">${bk?.rooms?.nickname || bk?.room_id || '-'}</td>
                     <td style="padding:8px;">${p.payment_mode || '-'}</td>
+                    <td style="padding:8px;font-size:11px;color:#666;">${p.reference_no || p.notes || '-'}</td>
                     <td style="padding:8px;text-align:right;color:#059669;font-weight:700;">₹${(p.amount || 0).toLocaleString('en-IN')}</td>
                   </tr>`;
                 }).join('')}
@@ -278,10 +314,9 @@ async function renderDailyReport(selectedDate) {
         </div>
       </div>
 
-      <!-- Booking Mode Breakdown -->
-      <div style="margin-bottom:20px;">
+      ${checkins.length > 0 ? `<div style="margin-bottom:20px;">
         <div style="background:linear-gradient(90deg,#7C3AED,#8B5CF6);color:#fff;padding:8px 14px;border-radius:6px 6px 0 0;font-weight:700;">
-          📊 New Bookings Breakdown
+          📊 Today's Check-ins — Source Breakdown
         </div>
         <div style="border:1px solid #E5E7EB;border-top:none;border-radius:0 0 6px 6px;padding:12px;">
           <table style="width:100%;font-size:13px;">
@@ -302,9 +337,8 @@ async function renderDailyReport(selectedDate) {
             </tr>` : ''}
           </table>
         </div>
-      </div>
+      </div>` : ''}
 
-      <!-- Footer -->
       <div style="background:linear-gradient(135deg,#1F2937,#374151);color:#fff;padding:16px;margin:20px -30px -30px;border-radius:0 0 12px 12px;text-align:center;">
         <div style="font-size:11px;opacity:0.7;letter-spacing:2px;margin-bottom:6px;">${brand.toUpperCase()}</div>
         <div style="font-size:12px;opacity:0.9;">Report generated: ${new Date().toLocaleString('en-IN')}</div>
@@ -313,17 +347,40 @@ async function renderDailyReport(selectedDate) {
 
     <style>
       @media print {
-        @page { size: A4; margin: 15mm; }
-        .sidebar, .no-print { display: none !important; }
-        .main-content { margin: 0 !important; padding: 0 !important; }
-        .card { border: none !important; box-shadow: none !important; }
+        @page { size: A4; margin: 10mm; }
       }
     </style>
   `, 'daily-report');
 }
 
+function printDailyReportWindow() {
+  const reportEl = document.querySelector('.report-doc');
+  if (!reportEl) { alert('Report not loaded'); return; }
+  const html = reportEl.outerHTML;
+  const w = window.open('', '_blank', 'width=1000,height=800');
+  w.document.write(
+    '<!DOCTYPE html><html><head><title>Daily Report</title>' +
+    '<meta charset="utf-8">' +
+    '<style>' +
+    '* { box-sizing: border-box; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; color-adjust: exact !important; }' +
+    'html, body { margin: 0; padding: 0; background: #fff; color: #111; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif; font-size: 13px; }' +
+    '.report-doc { max-width: 100% !important; margin: 0 !important; padding: 20px !important; box-shadow: none !important; border: none !important; background: #fff !important; display: block !important; visibility: visible !important; }' +
+    '.report-doc * { visibility: visible !important; }' +
+    'table { width: 100%; border-collapse: collapse; }' +
+    'th, td { padding: 6px 8px; }' +
+    'h1, h2, h3 { margin: 6px 0; }' +
+    '@page { size: A4; margin: 8mm; }' +
+    '</style></head><body>' +
+    html +
+    '<script>window.onload = function(){ setTimeout(function(){ window.print(); }, 400); };<\/script>' +
+    '</body></html>'
+  );
+  w.document.close();
+  w.focus();
+}
+window.printDailyReportWindow = printDailyReportWindow;
+
 async function whatsappDailyReport(date) {
-  // Get same data
   const [
     { data: allBks },
     { data: allPays }
@@ -385,7 +442,6 @@ async function whatsappDailyReport(date) {
   msg += '━━━━━━━━━━━━━━━━━' + NL;
   msg += '_UNIQUE HAVEN HOMES STAY_';
 
-  // Show modal
   const modal = document.createElement('div');
   modal.className = 'modal-overlay';
   modal.onclick = e => { if (e.target === modal) modal.remove(); };
