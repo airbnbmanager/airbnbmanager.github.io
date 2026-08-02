@@ -58,6 +58,14 @@ async function buildMessageData(bkId) {
   const totalDue = Math.max(0, (bk.total_amount || 0) - totalPaid);
   const nights = calcNights(bk.check_in, bk.check_out);
 
+  // Fetch investor(s) linked to this property — for the Investor Alert template
+  const { data: invLinks } = await sb.from('investor_properties')
+    .select('investor_id, investors(name, phone)')
+    .eq('room_id', roomId);
+  const investors = (invLinks || [])
+    .filter(l => l.investors && l.investors.phone)
+    .map(l => ({ name: l.investors.name, phone: cleanPhone(l.investors.phone) }));
+
   return {
     bk, room, config,
     guestName: bk.guest_name || 'Guest',
@@ -85,6 +93,7 @@ async function buildMessageData(bkId) {
     dayStaff: dayStaff.map(s => ({ name: s.name, phone: cleanPhone(s.phone), role: s.whatsapp_display_role || 'Caretaker' })),
     nightStaff: nightStaff.map(s => ({ name: s.name, phone: cleanPhone(s.phone), role: s.whatsapp_display_role || 'Caretaker' })),
     owners: OWNERS,
+    investors,
     websiteURL: config.website_url || BRAND_URL,
     googleReview: config.google_review_url || '',
     airbnbReview: config.airbnb_host_url || '',
@@ -144,8 +153,6 @@ Nights: ${d.nights} | Total: ₹${d.total.toLocaleString('en-IN')}
 ${d.propertyURL}
 ${d.mapLink ? 'Map: ' + d.mapLink + '\n' : ''}
 ${fmtContacts(d)}
-
-WiFi and key details will be shared 1 hour before check-in.
 
 *Save ${d.discount}% on your next stay — book direct:*
 ${d.websiteURL}
@@ -234,26 +241,49 @@ Thank you for staying with us.
 — Team ${BRAND_NAME}`;
 }
 
-// ═══ 6. REVIEW REQUEST ═══
-function tplReview(d) {
-  const reviewURL = d.isAirbnb
-    ? (d.airbnbReview || 'https://www.airbnb.com')
-    : (d.googleReview || 'https://google.com');
-  const platform = d.isAirbnb ? 'Airbnb' : 'Google';
-
+// ═══ 6a. GOOGLE REVIEW REQUEST ═══
+function tplGoogleReview(d) {
   return `Hi ${d.guestName},
 
 Thank you for staying at *${d.propertyName}*. Hope you had a comfortable time.
 
-If you enjoyed your stay, a 30-second review on *${platform}* helps our small team a lot.
+If you enjoyed your stay, a 30-second review on *Google* helps our small team a lot.
 
-Review here: ${reviewURL}
+Review here: ${d.googleReview || 'https://google.com'}
 
 *Planning your next Lucknow trip?*
 Book direct on our website — save ${d.discount}% vs Airbnb/Booking.com:
 ${d.websiteURL}
 
 Save our number — we'd love to host you again.
+
+— Team ${BRAND_NAME}`;
+}
+
+// ═══ 6b. AIRBNB REVIEW REQUEST — manual only, send when guest was genuinely happy ═══
+function tplAirbnbReview(d) {
+  return `Hi ${d.guestName},
+
+Thank you for staying at *${d.propertyName}*. Hope you had a wonderful time with us.
+
+If you have a moment, a review on *Airbnb* means a lot for our small team.
+
+Review here: ${d.airbnbReview || 'https://www.airbnb.com'}
+
+Save our number — we'd love to host you again.
+
+— Team ${BRAND_NAME}`;
+}
+
+// ═══ INVESTOR CHECK-IN ALERT — short, no payment breakdown ═══
+function tplInvestorAlert(d) {
+  return `*Booking Update*
+
+Property: ${d.propertyName} (${d.flat})
+Check-in: ${fmtDate(d.checkIn)}, ${d.checkInTime}
+Check-out: ${fmtDate(d.checkOut)}, ${d.checkOutTime}
+Nights: ${d.nights}
+Amount: ₹${d.total.toLocaleString('en-IN')}
 
 — Team ${BRAND_NAME}`;
 }
@@ -372,6 +402,37 @@ function showWhatsAppModal(guestName, propertyName, phone, msg) {
   document.body.appendChild(modal);
 }
 
+// ═══ Investor alert modal — supports 1+ investors linked to a property ═══
+function showInvestorAlertModal(propertyName, investors, msg) {
+  const modal = document.createElement('div');
+  modal.className = 'modal-overlay';
+  modal.onclick = e => { if (e.target === modal) modal.remove(); };
+  const recipients = (investors || []).map(inv => {
+    const clean = (inv.phone || '').replace(/[^0-9]/g, '');
+    const full = clean.length === 10 ? '91' + clean : clean;
+    return `<button class="secondary" style="margin-right:6px;margin-bottom:6px;" onclick="window.open('https://wa.me/${full}?text='+encodeURIComponent(document.getElementById('waMsg').value),'_blank')">
+      📱 Send to ${inv.name} — ${inv.phone}
+    </button>`;
+  }).join('');
+
+  modal.innerHTML = `
+    <div class="modal-box" style="max-width:600px;">
+      <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">✕</button>
+      <h2>📱 Investor Alert</h2>
+      <p style="color:#666;font-size:12px;margin:0 0 8px;">${propertyName}</p>
+      ${!investors || investors.length === 0 ? '<div class="error" style="margin-bottom:10px;">⚠️ No investor with a phone number is linked to this property. Add one in Investors → Edit.</div>' : ''}
+      <textarea id="waMsg" style="width:100%;height:200px;font-family:monospace;font-size:12px;padding:10px;border:1px solid var(--border);border-radius:8px;">${msg}</textarea>
+      <div class="btn-row" style="margin-top:12px;flex-wrap:wrap;">
+        ${recipients}
+        <button class="outline" onclick="navigator.clipboard.writeText(document.getElementById('waMsg').value);fsn.success('Copied','Message copied')">
+          📋 Copy
+        </button>
+        <button class="outline" onclick="this.closest('.modal-overlay').remove()">Close</button>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+}
+
 // ═══════════════════════════════════════════════════════════
 // EXPOSED FUNCTIONS (Called from bookings.js buttons)
 // ═══════════════════════════════════════════════════════════
@@ -382,22 +443,10 @@ async function shareBookingWhatsApp(bkId) {
   showWhatsAppModal(d.guestName, d.propertyName, d.phone, tplWelcome(d));
 }
 
-async function sendCheckinReminder(bkId) {
-  const d = await buildMessageData(bkId);
-  if (!d) { fsn.error('Error', 'Booking not found'); return; }
-  showWhatsAppModal(d.guestName, d.propertyName, d.phone, tplReminder(d));
-}
-
 async function sendArrivalDetails(bkId) {
   const d = await buildMessageData(bkId);
   if (!d) { fsn.error('Error', 'Booking not found'); return; }
   showWhatsAppModal(d.guestName, d.propertyName, d.phone, tplArrival(d));
-}
-
-async function requestGuestID(bkId) {
-  const d = await buildMessageData(bkId);
-  if (!d) { fsn.error('Error', 'Booking not found'); return; }
-  showWhatsAppModal(d.guestName, d.propertyName, d.phone, tplIdRequest(d));
 }
 
 async function sendCheckoutReminder(bkId) {
@@ -406,10 +455,16 @@ async function sendCheckoutReminder(bkId) {
   showWhatsAppModal(d.guestName, d.propertyName, d.phone, tplCheckout(d));
 }
 
-async function requestReview(bkId) {
+async function requestGoogleReview(bkId) {
   const d = await buildMessageData(bkId);
   if (!d) { fsn.error('Error', 'Booking not found'); return; }
-  showWhatsAppModal(d.guestName, d.propertyName, d.phone, tplReview(d));
+  showWhatsAppModal(d.guestName, d.propertyName, d.phone, tplGoogleReview(d));
+}
+
+async function requestAirbnbReview(bkId) {
+  const d = await buildMessageData(bkId);
+  if (!d) { fsn.error('Error', 'Booking not found'); return; }
+  showWhatsAppModal(d.guestName, d.propertyName, d.phone, tplAirbnbReview(d));
 }
 
 async function sendBookingFormat(bkId) {
@@ -418,25 +473,13 @@ async function sendBookingFormat(bkId) {
   showWhatsAppModal('Staff Group', d.propertyName, '', tplStaffNewBooking(d));
 }
 
-async function sendCaretakerFormat(bkId) {
+async function sendInvestorAlert(bkId) {
   const d = await buildMessageData(bkId);
   if (!d) { fsn.error('Error', 'Booking not found'); return; }
-  showWhatsAppModal('Staff Group', d.propertyName, '', tplStaffCheckinForm(d));
+  showInvestorAlertModal(d.propertyName, d.investors, tplInvestorAlert(d));
 }
 
-async function sendPaymentFormat(bkId) {
-  const d = await buildMessageData(bkId);
-  if (!d) { fsn.error('Error', 'Booking not found'); return; }
-  showWhatsAppModal('Staff Group', d.propertyName, '', tplStaffPaymentForm(d));
-}
-
-async function sendIDGroupFormat(bkId) {
-  const d = await buildMessageData(bkId);
-  if (!d) { fsn.error('Error', 'Booking not found'); return; }
-  showWhatsAppModal('Staff Group', d.propertyName, '', tplStaffIdRequest(d));
-}
-
-// ═══ Templates menu (button in booking row) ═══
+// ═══ Single WhatsApp menu — all message types in one place ═══
 window.showWATemplatesMenu = function(bkId, btn) {
   const menu = document.createElement('div');
   menu.className = 'modal-overlay';
@@ -444,23 +487,20 @@ window.showWATemplatesMenu = function(bkId, btn) {
   menu.innerHTML = `
     <div class="modal-box" style="max-width:400px;">
       <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">✕</button>
-      <h2>💬 Message Templates</h2>
+      <h2>💬 WhatsApp Messages</h2>
       <p style="color:#666;font-size:12px;">Choose message to send</p>
 
       <div style="margin-top:16px;">
-        <div style="font-size:11px;color:#888;text-transform:uppercase;margin:12px 0 6px;">👤 To Guest</div>
-        <button class="outline" style="width:100%;text-align:left;margin-bottom:6px;" onclick="this.closest('.modal-overlay').remove();shareBookingWhatsApp('${bkId}')">📱 Welcome / Confirmation</button>
-        <button class="outline" style="width:100%;text-align:left;margin-bottom:6px;" onclick="this.closest('.modal-overlay').remove();sendCheckinReminder('${bkId}')">📅 Reminder (Day Before)</button>
-        <button class="outline" style="width:100%;text-align:left;margin-bottom:6px;" onclick="this.closest('.modal-overlay').remove();sendArrivalDetails('${bkId}')">🔑 Arrival Details (WiFi, Keys)</button>
-        <button class="outline" style="width:100%;text-align:left;margin-bottom:6px;" onclick="this.closest('.modal-overlay').remove();requestGuestID('${bkId}')">🪪 Request ID</button>
-        <button class="outline" style="width:100%;text-align:left;margin-bottom:6px;" onclick="this.closest('.modal-overlay').remove();sendCheckoutReminder('${bkId}')">🔔 Checkout Reminder</button>
-        <button class="outline" style="width:100%;text-align:left;margin-bottom:6px;" onclick="this.closest('.modal-overlay').remove();requestReview('${bkId}')">⭐ Review Request</button>
+        <div style="font-size:11px;color:#888;text-transform:uppercase;margin:12px 0 6px;">👥 Internal</div>
+        <button class="outline" style="width:100%;text-align:left;margin-bottom:6px;" onclick="this.closest('.modal-overlay').remove();sendBookingFormat('${bkId}')">📋 New Booking Alert (Staff)</button>
+        <button class="outline" style="width:100%;text-align:left;margin-bottom:6px;" onclick="this.closest('.modal-overlay').remove();sendInvestorAlert('${bkId}')">💼 Investor Alert</button>
 
-        <div style="font-size:11px;color:#888;text-transform:uppercase;margin:16px 0 6px;">👥 To Staff Group</div>
-        <button class="outline" style="width:100%;text-align:left;margin-bottom:6px;" onclick="this.closest('.modal-overlay').remove();sendBookingFormat('${bkId}')">📋 New Booking Alert</button>
-        <button class="outline" style="width:100%;text-align:left;margin-bottom:6px;" onclick="this.closest('.modal-overlay').remove();sendCaretakerFormat('${bkId}')">🏠 Caretaker Check-in Form</button>
-        <button class="outline" style="width:100%;text-align:left;margin-bottom:6px;" onclick="this.closest('.modal-overlay').remove();sendPaymentFormat('${bkId}')">💳 Payment Update Form</button>
-        <button class="outline" style="width:100%;text-align:left;margin-bottom:6px;" onclick="this.closest('.modal-overlay').remove();sendIDGroupFormat('${bkId}')">🪪 ID Upload Request</button>
+        <div style="font-size:11px;color:#888;text-transform:uppercase;margin:16px 0 6px;">👤 To Guest</div>
+        <button class="outline" style="width:100%;text-align:left;margin-bottom:6px;" onclick="this.closest('.modal-overlay').remove();shareBookingWhatsApp('${bkId}')">📱 Welcome / Confirmation</button>
+        <button class="outline" style="width:100%;text-align:left;margin-bottom:6px;" onclick="this.closest('.modal-overlay').remove();sendArrivalDetails('${bkId}')">🔑 Arrival Details (WiFi, Keys)</button>
+        <button class="outline" style="width:100%;text-align:left;margin-bottom:6px;" onclick="this.closest('.modal-overlay').remove();sendCheckoutReminder('${bkId}')">🔔 Checkout Reminder</button>
+        <button class="outline" style="width:100%;text-align:left;margin-bottom:6px;" onclick="this.closest('.modal-overlay').remove();requestGoogleReview('${bkId}')">⭐ Google Review Request</button>
+        <button class="outline" style="width:100%;text-align:left;margin-bottom:6px;" onclick="this.closest('.modal-overlay').remove();requestAirbnbReview('${bkId}')">⭐ Airbnb Review Request <small style="color:#888;">(only if guest was happy)</small></button>
       </div>
     </div>`;
   document.body.appendChild(menu);
@@ -468,13 +508,10 @@ window.showWATemplatesMenu = function(bkId, btn) {
 
 // Expose all
 window.shareBookingWhatsApp = shareBookingWhatsApp;
-window.sendCheckinReminder = sendCheckinReminder;
 window.sendArrivalDetails = sendArrivalDetails;
-window.requestGuestID = requestGuestID;
 window.sendCheckoutReminder = sendCheckoutReminder;
-window.requestReview = requestReview;
+window.requestGoogleReview = requestGoogleReview;
+window.requestAirbnbReview = requestAirbnbReview;
 window.sendBookingFormat = sendBookingFormat;
-window.sendCaretakerFormat = sendCaretakerFormat;
-window.sendPaymentFormat = sendPaymentFormat;
-window.sendIDGroupFormat = sendIDGroupFormat;
+window.sendInvestorAlert = sendInvestorAlert;
 window.buildMessageData = buildMessageData;

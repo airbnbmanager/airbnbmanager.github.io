@@ -811,14 +811,8 @@ async function renderManageBookings() {
             <button class="btn-sm outline" onclick="createOfflineExtension('${b.booking_id}')" title="New Ext">➕</button>
             <button class="btn-sm" style="background:#8B5CF6;color:#fff;" onclick="showGroupBookingModal('${b.booking_id}')" title="Group">🎊</button>
             ${isActive ? `<button class="btn-sm secondary" onclick="quickCheckout('${b.booking_id}','${b.room_id}')" title="Checkout">📤</button>` : ''}
-            <button class="btn-sm" style="background:#0E9F9B;color:#fff;" onclick="shareBookingWhatsApp('${b.booking_id}')" title="Welcome">📱</button>
-            <button class="btn-sm" style="background:#0E9F9B;color:#fff;" onclick="sendCheckinReminder('${b.booking_id}')" title="Remind">📅</button>
-            <button class="btn-sm" style="background:#0E9F9B;color:#fff;" onclick="sendArrivalDetails('${b.booking_id}')" title="Arrival">⏰</button>
-            <button class="btn-sm" style="background:var(--yellow);color:#fff;" onclick="requestGuestID('${b.booking_id}')" title="Ask ID">🪪</button>
-            <button class="btn-sm" style="background:#0E9F9B;color:#fff;" onclick="sendCheckoutReminder('${b.booking_id}')" title="Bye">🔔</button>
-            <button class="btn-sm" style="background:${b.booking_mode === 'Online-Airbnb' ? '#FF385C' : '#6C5CE0'};color:#fff;" onclick="requestReview('${b.booking_id}')" title="Review">⭐</button>
+            <button class="btn-sm" style="background:#0E9F9B;color:#fff;" onclick="showWATemplatesMenu('${b.booking_id}',this)" title="WhatsApp">💬</button>
             <button class="btn-sm" style="background:var(--primary);color:#fff;" onclick="showReminderModal('${b.booking_id}')" title="Set Reminder">🔔</button>
-            <button class="btn-sm" style="background:#0E9F9B;color:#fff;" onclick="showWATemplatesMenu('${b.booking_id}',this)" title="Templates">💬</button>
             ${!b.is_cancelled && canM ? `<button class="btn-sm" style="background:var(--yellow);color:#fff;" onclick="cancelBooking('${b.booking_id}','${(b.guest_name || '').replace(/'/g, "\\'")}')" title="Cancel">🚫</button>` : ''}
             ${b.is_cancelled && canM ? `<button class="btn-sm outline" onclick="uncancelBooking('${b.booking_id}')" title="Restore">↩️</button>` : ''}
             ${canD ? `<button class="btn-sm danger" onclick="delBooking('${b.booking_id}','${(b.guest_name || '').replace(/'/g, "\\'")}','${b.room_id}')">🗑️</button>` : ''}
@@ -3175,35 +3169,7 @@ function onEditVehiclePick(input) {
 // Fix updateBooking to use new input IDs
 
 
-function showWATemplatesMenu(bkId, btn) {
-  document.querySelectorAll('.wa-templates-menu').forEach(el => el.remove());
-  const menu = document.createElement('div');
-  menu.className = 'wa-templates-menu';
-  menu.style.cssText = 'position:fixed;background:#fff;border:1px solid #ddd;border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,0.15);padding:8px;z-index:9999;min-width:220px;';
-  const rect = btn.getBoundingClientRect();
-  menu.style.top = (rect.bottom + 4) + 'px';
-  menu.style.left = Math.max(10, rect.left - 100) + 'px';
-  menu.innerHTML = `
-    <div style="font-size:11px;color:#717171;padding:4px 8px;text-transform:uppercase;font-weight:700;letter-spacing:1px;">Templates</div>
-    <button class="wa-tpl-btn" onclick="sendBookingFormat('${bkId}');closeWAMenu()">📋 Booking Format</button>
-    <button class="wa-tpl-btn" onclick="sendCaretakerFormat('${bkId}');closeWAMenu()">🏠 Caretaker Update</button>
-    <button class="wa-tpl-btn" onclick="sendPaymentFormat('${bkId}');closeWAMenu()">💳 Payment Update</button>
-    <button class="wa-tpl-btn" onclick="sendIDGroupFormat('${bkId}');closeWAMenu()">🪪 ID Upload</button>
-  `;
-  document.body.appendChild(menu);
-  setTimeout(() => document.addEventListener('click', closeWAMenuOnClickOutside), 100);
-}
-
-function closeWAMenu() {
-  document.querySelectorAll('.wa-templates-menu').forEach(el => el.remove());
-  document.removeEventListener('click', closeWAMenuOnClickOutside);
-}
-
-function closeWAMenuOnClickOutside(e) {
-  if (!e.target.closest('.wa-templates-menu') && !e.target.closest('[onclick*=showWATemplates]')) {
-    closeWAMenu();
-  }
-}
+// WhatsApp menu now lives in whatsapp.js (window.showWATemplatesMenu) — single source of truth
 
 
 // ═══ CANCEL BOOKING ═══
