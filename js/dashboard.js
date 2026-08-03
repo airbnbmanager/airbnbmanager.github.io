@@ -234,6 +234,18 @@ async function renderDashboard() {
       </div>
     </div>
 
+    ${SESSION.role === 'developer' ? `
+    <div class="card" style="border-left:4px solid #F59E0B;background:#FFFBEB;">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
+        <div>
+          <div style="font-weight:700;color:#92400E;font-size:14px;">🔧 Payment Overflow Fixer</div>
+          <div style="font-size:12px;color:#78350F;">Detects bookings with negative due & redistributes to unpaid ones (same guest)</div>
+        </div>
+        <button class="btn-sm" style="background:#F59E0B;color:#fff;" onclick="autoFixOverflowPayments()">🔧 Fix Overflow Payments</button>
+      </div>
+    </div>
+    ` : ''}
+
     <!-- Online vs Offline Bookings -->
     ${(() => {
       const now = new Date();

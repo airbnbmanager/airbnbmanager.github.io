@@ -1742,12 +1742,76 @@ async function saveBooking() {
     }
 
     if (adv > 0) {
-      await sb.from('payment_history').insert({
-        booking_id: bkId, amount: adv, payment_mode: advMode || null,
-        payment_date: advDate, notes: isOnline ? 'Airbnb Payout' : 'Advance',
-        created_by: SESSION.userId,
-        ...approvalMeta()
-      });
+      // Compute current booking's remaining due (total - already-paid, though for new booking paid=0)
+      const currTotal = totalAmt || 0;
+      const currRemaining = currTotal; // new booking, no prior payments
+      let payForCurrent = adv;
+      let overflow = 0;
+      if (adv > currRemaining && currRemaining >= 0) {
+        payForCurrent = currRemaining;
+        overflow = adv - currRemaining;
+      }
+
+      // Insert current booking payment (capped at remaining)
+      if (payForCurrent > 0) {
+        await sb.from('payment_history').insert({
+          booking_id: bkId, amount: payForCurrent, payment_mode: advMode || null,
+          payment_date: advDate, notes: isOnline ? 'Airbnb Payout' : 'Advance',
+          created_by: SESSION.userId,
+          ...approvalMeta()
+        });
+      }
+
+      // Distribute overflow to same guest's other unpaid bookings (oldest first)
+      let remainingOverflow = overflow;
+      const distributedAdv = [];
+      if (overflow > 0) {
+        const { data: otherBks } = await sb.from('guest_register')
+          .select('booking_id, total_amount, check_in, guest_name, phone, rooms(unit_no,nickname)')
+          .neq('booking_id', bkId)
+          .or(`phone.eq.${ph || 'xxx'},guest_name.eq.${gn}`)
+          .order('check_in', { ascending: true });
+
+        for (const ob of (otherBks || [])) {
+          if (remainingOverflow <= 0) break;
+          const { data: obPays } = await sb.from('payment_history')
+            .select('amount, verification_status').eq('booking_id', ob.booking_id)
+            .neq('verification_status', 'rejected');
+          const obPaid = (obPays || []).reduce((s, p) => s + (p.amount || 0), 0);
+          const obDue = Math.max((ob.total_amount || 0) - obPaid, 0);
+          if (obDue <= 0) continue;
+          const toApply = Math.min(remainingOverflow, obDue);
+          const { error: distErr } = await sb.from('payment_history').insert({
+            booking_id: ob.booking_id, amount: toApply, payment_mode: advMode || null,
+            payment_date: advDate,
+            notes: `Auto-adjusted from booking ${bkId}`,
+            created_by: SESSION.userId,
+            ...approvalMeta()
+          });
+          if (!distErr) {
+            await recalcPaymentStatus(ob.booking_id);
+            distributedAdv.push({ bkId: ob.booking_id, amount: toApply, room: propLabel(ob.rooms) || ob.booking_id });
+            remainingOverflow -= toApply;
+          }
+        }
+      }
+
+      // Any leftover overflow → save as advance/extra on current booking
+      if (remainingOverflow > 0) {
+        await sb.from('payment_history').insert({
+          booking_id: bkId, amount: remainingOverflow, payment_mode: advMode || null,
+          payment_date: advDate, notes: 'Advance / extra payment',
+          created_by: SESSION.userId,
+          ...approvalMeta()
+        });
+      }
+
+      await recalcPaymentStatus(bkId);
+
+      // Log distribution to console for verification
+      if (distributedAdv.length > 0) {
+        console.log('💰 Auto-distributed advance payment:', distributedAdv);
+      }
     }
     await sb.from('flats_status').upsert({ room_id: rid, status: 'Booked' });
 
@@ -3795,3 +3859,156 @@ window.removeFromGroup = async function(bookingId) {
   renderManageBookings();
 };
 
+
+
+// ═══════════════════════════════════════════════════════════
+// AUTO-FIX OVERFLOW: Detects bookings with negative due and
+// redistributes extra payment to same guest's unpaid bookings
+// ═══════════════════════════════════════════════════════════
+async function autoFixOverflowPayments() {
+  const btn = event?.target;
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Scanning...'; }
+
+  try {
+    // Fetch all active bookings
+    const { data: allBks } = await sb.from('guest_register')
+      .select('booking_id, guest_name, phone, total_amount, room_id, check_in, is_cancelled, rooms(nickname, unit_no)')
+      .neq('is_cancelled', true);
+
+    const { data: allPays } = await sb.from('payment_history')
+      .select('booking_id, amount, verification_status')
+      .neq('verification_status', 'rejected');
+
+    // Calculate paid per booking
+    const paidMap = {};
+    (allPays || []).forEach(p => {
+      paidMap[p.booking_id] = (paidMap[p.booking_id] || 0) + (p.amount || 0);
+    });
+
+    // Find bookings with negative due (overpaid)
+    const overpaid = (allBks || []).filter(b => {
+      const paid = paidMap[b.booking_id] || 0;
+      return paid > (b.total_amount || 0);
+    }).map(b => ({
+      ...b,
+      paid: paidMap[b.booking_id] || 0,
+      overflow: (paidMap[b.booking_id] || 0) - (b.total_amount || 0)
+    }));
+
+    if (overpaid.length === 0) {
+      alert('✅ No overpaid bookings found. Everything is balanced!');
+      if (btn) { btn.disabled = false; btn.textContent = '🔧 Fix Overflow Payments'; }
+      return;
+    }
+
+    // Build preview of adjustments
+    const adjustments = [];
+
+    for (const ob of overpaid) {
+      let remaining = ob.overflow;
+      // Find same guest's unpaid bookings
+      const sameGuest = (allBks || []).filter(b => {
+        if (b.booking_id === ob.booking_id) return false;
+        if (b.phone && ob.phone && b.phone === ob.phone) return true;
+        if (b.guest_name === ob.guest_name) return true;
+        return false;
+      }).sort((a, b) => (a.check_in || '').localeCompare(b.check_in || ''));
+
+      for (const target of sameGuest) {
+        if (remaining <= 0) break;
+        const tPaid = paidMap[target.booking_id] || 0;
+        const tDue = Math.max((target.total_amount || 0) - tPaid, 0);
+        if (tDue <= 0) continue;
+        const toMove = Math.min(remaining, tDue);
+        adjustments.push({
+          fromBk: ob.booking_id,
+          fromRoom: ob.rooms?.nickname || ob.room_id,
+          toBk: target.booking_id,
+          toRoom: target.rooms?.nickname || target.room_id,
+          guestName: ob.guest_name,
+          amount: toMove
+        });
+        remaining -= toMove;
+        // Update local paidMap so subsequent iterations know
+        paidMap[target.booking_id] = tPaid + toMove;
+        paidMap[ob.booking_id] = (paidMap[ob.booking_id] || 0) - toMove;
+      }
+    }
+
+    if (adjustments.length === 0) {
+      alert('⚠️ Found ' + overpaid.length + ' overpaid booking(s) but no matching unpaid bookings from same guest to adjust to.');
+      if (btn) { btn.disabled = false; btn.textContent = '🔧 Fix Overflow Payments'; }
+      return;
+    }
+
+    // Show preview modal
+    const previewText = adjustments.map((a, i) =>
+      (i + 1) + '. ' + a.guestName + ': Move ₹' + a.amount.toLocaleString('en-IN') +
+      '\n   FROM: ' + a.fromRoom + ' (' + a.fromBk + ')' +
+      '\n   TO:   ' + a.toRoom + ' (' + a.toBk + ')'
+    ).join('\n\n');
+
+    const confirmed = confirm(
+      '🔧 OVERFLOW AUTO-FIX PREVIEW\n' +
+      '━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n' +
+      previewText +
+      '\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━\n' +
+      'Total adjustments: ' + adjustments.length + '\n' +
+      'Apply these changes?'
+    );
+
+    if (!confirmed) {
+      if (btn) { btn.disabled = false; btn.textContent = '🔧 Fix Overflow Payments'; }
+      return;
+    }
+
+    if (btn) btn.textContent = '⏳ Applying...';
+
+    // Apply adjustments
+    let successCount = 0;
+    for (const a of adjustments) {
+      // 1. Add negative correction to source (reduces its paid amount)
+      const { error: e1 } = await sb.from('payment_history').insert({
+        booking_id: a.fromBk,
+        amount: -a.amount,
+        payment_mode: 'Adjustment',
+        payment_date: new Date().toISOString().slice(0, 10),
+        notes: 'Overflow auto-adjusted → ' + a.toBk + ' (' + a.toRoom + ')',
+        created_by: SESSION.userId,
+        verification_status: 'verified'
+      });
+
+      // 2. Add positive payment to target
+      const { error: e2 } = await sb.from('payment_history').insert({
+        booking_id: a.toBk,
+        amount: a.amount,
+        payment_mode: 'Adjustment',
+        payment_date: new Date().toISOString().slice(0, 10),
+        notes: 'Overflow received from ' + a.fromBk + ' (' + a.fromRoom + ')',
+        created_by: SESSION.userId,
+        verification_status: 'verified'
+      });
+
+      if (!e1 && !e2) {
+        await recalcPaymentStatus(a.fromBk);
+        await recalcPaymentStatus(a.toBk);
+        successCount++;
+      } else {
+        console.error('Adjustment failed:', a, e1, e2);
+      }
+    }
+
+    alert('✅ Done! ' + successCount + '/' + adjustments.length + ' adjustments applied successfully.');
+    if (btn) { btn.disabled = false; btn.textContent = '🔧 Fix Overflow Payments'; }
+
+    // Refresh bookings if visible
+    if (typeof renderManageBookings === 'function' && location.hash.includes('bookings')) {
+      renderManageBookings();
+    }
+  } catch (err) {
+    alert('❌ Error: ' + err.message);
+    if (btn) { btn.disabled = false; btn.textContent = '🔧 Fix Overflow Payments'; }
+  }
+}
+
+window.autoFixOverflowPayments = autoFixOverflowPayments;
