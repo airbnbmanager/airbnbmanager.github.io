@@ -495,7 +495,7 @@ async function sendBookingFormat(bkId) {
 async function sendInvestorAlert(bkId) {
   const d = await buildMessageData(bkId);
   if (!d) { fsn.error('Error', 'Booking not found'); return; }
-  showInvestorAlertModal(d.propertyName, d.investors, tplInvestorAlert(d));
+  showInvestorAlertModal(d.propertyName, d.investors, tplInvestorAlert(d), d.room?.whatsapp_group_link || "", d.room?.whatsapp_group_name || "");
 }
 
 // ═══ Single WhatsApp menu — all message types in one place ═══
