@@ -157,6 +157,16 @@ function roomFormFields(r = {}, emps = []) {
         </label>
       </div>
     </div>
+    <div class="section-title" style="margin-top:12px;">📱 WhatsApp Group (Investors)</div>
+    <div class="form-group">
+      <label>Group Invite Link</label>
+      <input id="whatsappGroupLink" value="${r.whatsapp_group_link || ''}" placeholder="https://chat.whatsapp.com/XXXXX" />
+      <small style="color:#666;font-size:11px;">WhatsApp group open karke Invite Link copy karo</small>
+    </div>
+    <div class="form-group">
+      <label>Group Name (Optional)</label>
+      <input id="whatsappGroupName" value="${r.whatsapp_group_name || ''}" placeholder="e.g. Royal White House Investors" />
+    </div>
 
     <div class="form-group"><label>Notes</label><textarea id="notes">${r.notes || ''}</textarea></div>
   `;
@@ -196,6 +206,8 @@ function collectRoomForm() {
     mode: document.getElementById('mode').value,
     bookable: document.getElementById('bookable').checked,
     notes: document.getElementById('notes').value.trim() || null,
+        whatsapp_group_link: document.getElementById('whatsappGroupLink')?.value.trim() || null,
+    whatsapp_group_name: document.getElementById('whatsappGroupName')?.value.trim() || null,
   };
 }
 
