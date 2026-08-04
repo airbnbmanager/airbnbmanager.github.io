@@ -1743,7 +1743,7 @@ async function saveBooking() {
 
     if (adv > 0) {
       // Compute current booking's remaining due (total - already-paid, though for new booking paid=0)
-      const currTotal = totalAmount || 0;
+      const currTotal = totalAmt || 0;
       const currRemaining = currTotal; // new booking, no prior payments
       let payForCurrent = adv;
       let overflow = 0;
