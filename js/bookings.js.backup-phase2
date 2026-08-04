@@ -1688,42 +1688,16 @@ async function saveBooking() {
       if (!proceed) { btn.disabled = false; btn.textContent = '💾 Save Booking'; return; }
     }
 
-    // Clash check — WARN but allow (Phase 2 upgrade)
-    let doubleBookingNote = null;
+    // Clash check
     if (ci && co) {
       const { data: ex } = await sb.from('guest_register')
-        .select('booking_id,guest_name,check_in,check_out,booking_mode,total_amount,is_cancelled')
-        .eq('room_id', rid);
+        .select('booking_id,guest_name,check_in,check_out').eq('room_id', rid);
       const isReviewBk = document.getElementById('isReviewBooking')?.checked;
-      const clashes = isReviewBk ? [] : (ex || []).filter(b =>
-        !b.is_cancelled && b.check_in && b.check_out && b.check_in < co && b.check_out > ci
-      );
-
-      if (clashes.length > 0) {
-        const clashList = clashes.map(c => {
-          const modeLabel = c.booking_mode === 'Online-Airbnb' ? '🌐 Airbnb' : '🏠 Direct';
-          return `• ${c.guest_name} (${c.check_in} → ${c.check_out}) — ${modeLabel} — ₹${(c.total_amount || 0).toLocaleString('en-IN')}`;
-        }).join('\n');
-
-        const warningMsg = `⚠️ DOUBLE BOOKING WARNING\n\n` +
-          `Ye slot pe pehle se ${clashes.length} booking hai:\n\n${clashList}\n\n` +
-          `Kya fir bhi save karna hai?\n\n` +
-          `✅ OK = Save Anyway (audit note add hoga)\n` +
-          `❌ Cancel = Booking cancel karo`;
-
-        const proceed = confirm(warningMsg);
-        if (!proceed) {
-          document.getElementById('addBkErr').innerHTML =
-            `<div class="error">❌ Booking cancelled — clash with ${clashes[0].guest_name}</div>`;
-          btn.disabled = false;
-          btn.textContent = '💾 Save Booking';
-          return;
-        }
-
-        // User approved — add audit note
-        const userName = SESSION.displayName || SESSION.role || 'Unknown';
-        const clashNames = clashes.map(c => c.guest_name).join(', ');
-        doubleBookingNote = `⚠️ Double booking approved by ${userName} on ${new Date().toISOString().slice(0,10)} — clashes with: ${clashNames}`;
+      const clash = isReviewBk ? null : (ex || []).find(b => b.check_in && b.check_out && b.check_in < co && b.check_out > ci);
+      if (clash) {
+        document.getElementById('addBkErr').innerHTML =
+          `<div class="error">⚠️ Clash: ${clash.guest_name} (${clash.check_in}→${clash.check_out})</div>`;
+        btn.disabled = false; btn.textContent = '💾 Save Booking'; return;
       }
     }
 
@@ -1735,7 +1709,6 @@ async function saveBooking() {
 
     const noteParts = [];
     if (notes) noteParts.push(notes);
-    if (doubleBookingNote) noteParts.push(doubleBookingNote);
     if (isOnline && sourceRoomId && sourceRoomId !== rid) noteParts.push(`Airbnb booked on ${sourceRoomId}, shifted to ${rid}`);
     if (parentBookingId) noteParts.push(`Extension after previous stay (${parentBookingId})`);
     if (!checkoutConfirmed) noteParts.push('Open-ended stay — per day basis');
@@ -2268,23 +2241,12 @@ async function updateBooking(bkId, parentBookingId = '', stayGroupId = '') {
 
   if (ci && co) {
     const { data: ex } = await sb.from('guest_register')
-      .select('booking_id,guest_name,check_in,check_out,booking_mode,total_amount,is_cancelled')
-      .eq('room_id', rid).neq('booking_id', bkId);
+      .select('booking_id,guest_name,check_in,check_out').eq('room_id', rid).neq('booking_id', bkId);
     const isReviewBk = document.getElementById('isReviewBooking')?.checked;
-    const clashes = isReviewBk ? [] : (ex || []).filter(b =>
-      !b.is_cancelled && b.check_in && b.check_out && b.check_in < co && b.check_out > ci
-    );
-    if (clashes.length > 0) {
-      const clashList = clashes.map(c =>
-        `• ${c.guest_name} (${c.check_in} → ${c.check_out}) — ₹${(c.total_amount || 0).toLocaleString('en-IN')}`
-      ).join('\n');
-      const proceed = confirm(`⚠️ DOUBLE BOOKING WARNING\n\nYe slot pe pehle se ${clashes.length} booking hai:\n\n${clashList}\n\nFir bhi update karna hai?`);
-      if (!proceed) {
-        document.getElementById('editBkErr').innerHTML = `<div class="error">❌ Update cancelled — clash with ${clashes[0].guest_name}</div>`;
-        return;
-      }
-    }
+    const clash = isReviewBk ? null : (ex || []).find(b => b.check_in && b.check_out && b.check_in < co && b.check_out > ci);
+    if (clash) { document.getElementById('editBkErr').innerHTML = `<div class="error">Clash: ${clash.guest_name}</div>`; return; }
   }
+
   const gc = Math.min(Math.max(parseInt(document.getElementById('guests')?.value) || 1, 1), 8);
   const { data: oldBk } = await sb.from('guest_register')
     .select('id_proof_front_paths, id_proof_back_paths, id_proof_photo_paths')
