@@ -910,83 +910,14 @@ function printInvestorReport(investorName, propertyName, monthYear) {
   const cleanName = (str) => (str || '').replace(/[^a-zA-Z0-9]/g, '_');
   const filename = `${cleanName(investorName)}_${cleanName(propertyName)}_${cleanName(monthYear)}_Report`;
 
-  // Get the report element from current page
-  const reportEl = document.querySelector('.report-doc');
-  if (!reportEl) {
-    alert('Report not found. Please try again.');
-    return;
-  }
+  const originalTitle = document.title;
+  document.title = filename;
 
-  const reportHTML = reportEl.outerHTML;
-  const today = new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+  window.print();
 
-  // Build clean HTML for new window
-  const html = `<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="UTF-8">
-  <title>${filename}</title>
-  <style>
-    @page { size: A4; margin: 15mm 12mm; }
-    * { box-sizing: border-box; }
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      margin: 0;
-      padding: 20px;
-      background: #fff;
-      color: #222;
-      -webkit-print-color-adjust: exact;
-      print-color-adjust: exact;
-    }
-    .report-doc {
-      max-width: 100% !important;
-      margin: 0 !important;
-      padding: 0 !important;
-      box-shadow: none !important;
-      border: none !important;
-      background: #fff !important;
-    }
-    table { width: 100%; border-collapse: collapse; page-break-inside: avoid; }
-    tr { page-break-inside: avoid; }
-    h1 { font-size: 20pt; margin: 0 0 8px; }
-    h2 { font-size: 14pt; margin: 12px 0 6px; }
-    .footer-brand {
-      margin-top: 30px;
-      padding-top: 12px;
-      border-top: 1px solid #ddd;
-      text-align: center;
-      font-size: 10pt;
-      color: #666;
-    }
-    @media print {
-      body { padding: 0; }
-      .no-print { display: none !important; }
-    }
-  </style>
-</head>
-<body>
-  ${reportHTML}
-  <div class="footer-brand">
-    Report generated on ${today} · Website developed by Praveen Singh
-  </div>
-  <script>
-    window.onload = function() {
-      setTimeout(function() {
-        window.print();
-      }, 400);
-    };
-  </script>
-</body>
-</html>`;
-
-  const win = window.open('', '_blank');
-  if (!win) {
-    alert('Popup blocked! Please allow popups for this site.');
-    return;
-  }
-  win.document.title = filename;
-  win.document.write(html);
-  win.document.close();
+  setTimeout(() => {
+    document.title = originalTitle;
+  }, 1000);
 }
 
 
