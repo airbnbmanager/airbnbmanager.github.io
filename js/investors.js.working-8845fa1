@@ -654,7 +654,7 @@ async function renderInvestorReport(investorId, roomId, month) {
           size: A4;
           margin: 15mm 12mm;
         }
-        .sidebar, .no-print, button, .bottom-nav, #bottomNav, .top-bar, #topBar, .drawer, #drawer, nav[class*="bottom"] { display: none !important; }
+        .sidebar, .no-print, button { display: none !important; }
         .app-container { display: block !important; }
         .main-content { margin: 0 !important; padding: 0 !important; }
         .card { border: none !important; box-shadow: none !important; padding: 0 !important; margin: 0 !important; }
@@ -751,7 +751,7 @@ async function renderInvestorView(range = 'Month') {
           <tbody>${bks.map(b => `<tr>
             <td>${b.guest_name || '-'}</td>
             <td>${propLabel(b.rooms) || '-'}</td>
-            <td><span class="channel-badge ${b.booking_mode === 'Online-Airbnb' ? 'channel-airbnb' : 'channel-direct'}">${b.booking_mode === 'Online-Airbnb' ? '🌐' : '🏠'}</span></td>
+            <td><span class="badge ${b.booking_mode === 'Online-Airbnb' ? 'blue' : 'yellow'}">${b.booking_mode === 'Online-Airbnb' ? 'On' : 'Off'}</span></td>
             <td>${b.check_in || '-'}</td>
             <td>${b.check_out || '-'}</td>
             <td style="color:var(--green);">₹${(pm[b.booking_id] || 0).toLocaleString('en-IN')}</td>
@@ -1070,7 +1070,7 @@ async function renderFriendsReport(investorId, roomId, month) {
     <style>
       @media print {
         @page { size: A4; margin: 15mm 12mm; }
-        .sidebar, .no-print, button, .bottom-nav, #bottomNav, .top-bar, #topBar, .drawer, #drawer, nav[class*="bottom"] { display: none !important; }
+        .sidebar, .no-print, button { display: none !important; }
         .app-container { display: block !important; }
         .main-content { margin: 0 !important; padding: 0 !important; }
         .card { border: none !important; box-shadow: none !important; padding: 0 !important; margin: 0 !important; }
