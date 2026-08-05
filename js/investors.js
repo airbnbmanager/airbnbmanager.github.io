@@ -780,7 +780,7 @@ async function renderInvestorView(range = 'Month') {
 
   const { data: inv } = await sb.from('investors').select('*').eq('investor_id', SESSION.investorId).single();
   const { data: links } = await sb.from('investor_properties')
-    .select('room_id, rooms(unit_no, property_name, nickname, checkin_manager)')
+    .select('room_id, share_percent, rooms(unit_no, property_name, nickname, checkin_manager)')
     .eq('investor_id', SESSION.investorId);
   const rids = (links || []).map(l => l.room_id);
 
@@ -793,7 +793,19 @@ async function renderInvestorView(range = 'Month') {
   const bks = filterByRange(allBk || [], range);
   const pm = await getPaidMap(bks.map(b => b.booking_id));
   const rev = bks.reduce((s, b) => s + (pm[b.booking_id] || 0), 0);
-  const share = inv?.revenue_share_pct || 70;
+  
+  // NEW: Use investor_properties.share_percent (per property)
+  // For dashboard view (multiple properties), calculate weighted avg amount
+  const COMPANY_PCT = 30;
+  const INVESTOR_POOL_PCT = 70;
+  // Estimate investor amount using pool logic (no expenses here - just revenue view)
+  const investorPool = rev * INVESTOR_POOL_PCT / 100;
+  // Average share % across all linked properties
+  const avgShare = (links && links.length > 0)
+    ? links.reduce((s, l) => s + (l.share_percent || 100), 0) / links.length
+    : 100;
+  const investorAmountEstimated = Math.round(investorPool * avgShare / 100);
+  const share = INVESTOR_POOL_PCT;  // for display
 
   appEl.innerHTML = `
     <div class="wrap" style="max-width:650px;">
@@ -818,7 +830,12 @@ async function renderInvestorView(range = 'Month') {
 
       <div class="card">
         <div class="metric-row"><span class="metric-label">Total Revenue</span><span class="metric-value">₹${rev.toLocaleString('en-IN')}</span></div>
-        <div class="metric-row"><span class="metric-label">Your Share (${share}%)</span><span class="metric-value" style="color:var(--green);">₹${Math.round(rev * share / 100).toLocaleString('en-IN')}</span></div>
+        <div class="metric-row"><span class="metric-label">${BRAND} Share (${COMPANY_PCT}%)</span><span class="metric-value" style="color:#007A87;">₹${Math.round(rev * COMPANY_PCT / 100).toLocaleString('en-IN')}</span></div>
+        <div class="metric-row"><span class="metric-label">Investor Pool (${INVESTOR_POOL_PCT}%)</span><span class="metric-value" style="color:var(--green);">₹${Math.round(investorPool).toLocaleString('en-IN')}</span></div>
+        <div class="metric-row"><span class="metric-label">Your Estimated Share</span><span class="metric-value" style="color:var(--green);font-weight:700;">₹${investorAmountEstimated.toLocaleString('en-IN')}</span></div>
+        <div style="font-size:11px;color:var(--muted);margin-top:6px;">
+          💡 Note: This is revenue-based estimate. Actual share depends on expenses. See detailed report for accurate breakdown.
+        </div>
       </div>
 
       <div class="card">
@@ -931,9 +948,32 @@ window.whatsappInvestorReport = async function(investorId, roomId, monthYear) {
 
     const bks = bookings || [];
     const totalRevenue = bks.reduce((s, b) => s + (b.total_amount || 0), 0);
-    const investorShare = inv.revenue_share_pct || 70;
-    const investorAmount = Math.round((totalRevenue * investorShare) / 100);
-    const houseAmount = totalRevenue - investorAmount;
+    
+    // NEW MULTI-INVESTOR FORMULA
+    // Fetch this investor's share % for this specific property
+    const { data: propLink } = await sb.from('investor_properties')
+      .select('share_percent')
+      .eq('investor_id', investorId)
+      .eq('room_id', roomId)
+      .maybeSingle();
+    const poolSharePct = propLink?.share_percent || 100;
+    
+    // Fetch expenses for accurate profit calc
+    const monthShortWA = new Date(startDate).toLocaleString('en-IN', {month:'short', year:'numeric'}).replace(' ','-');
+    const { data: monthExps } = await sb.from('expenses')
+      .select('amount').eq('room_id', roomId).eq('month', monthShortWA);
+    const totalExpensesWA = (monthExps || []).reduce((s, e) => s + (e.amount || 0), 0);
+    
+    const profitWA = totalRevenue - totalExpensesWA;
+    const houseAmount = Math.round(profitWA * 0.30);  // Company 30%
+    const investorPoolWA = profitWA - houseAmount;    // Pool 70%
+    const investorAmount = Math.round(investorPoolWA * poolSharePct / 100);
+    const investorShare = poolSharePct;  // for display
+    
+    // Split combined names for cleaner display
+    const invNames = (inv.name || 'Investor').split('&').map(n => n.trim()).filter(n => n);
+    const isMulti = invNames.length > 1;
+    const perPerson = isMulti ? Math.round(investorPoolWA / invNames.length) : investorAmount;
 
     const NL = String.fromCharCode(10);
     const monthName = new Date(startDate).toLocaleDateString('en-IN', { month: 'long', year: 'numeric' });
@@ -950,15 +990,19 @@ window.whatsappInvestorReport = async function(investorId, roomId, monthYear) {
     const msg = '*UNIQUE HAVEN HOMES STAY*' + NL +
       '*Investor Report — ' + monthName + '*' + NL + NL +
       '👤 Investor: *' + inv.name + '*' + NL +
-      '🏠 Property: *' + roomName + '*' + NL +
-      '📊 Share: *' + investorShare + '%*' + NL + NL +
+      '🏠 Property: *' + roomName + '*' + NL + NL +
       '━━━━━━━━━━━━━━━━━━━━' + NL +
       '*💰 SUMMARY*' + NL +
       '━━━━━━━━━━━━━━━━━━━━' + NL +
       'Total Bookings: ' + bks.length + NL +
       'Total Revenue: Rs.' + totalRevenue.toLocaleString('en-IN') + NL +
-      '*Your Share (' + investorShare + '%): Rs.' + investorAmount.toLocaleString('en-IN') + '*' + NL +
-      'House Share: Rs.' + houseAmount.toLocaleString('en-IN') + NL + NL +
+      'Total Expenses: Rs.' + totalExpensesWA.toLocaleString('en-IN') + NL +
+      'Operating Profit: Rs.' + profitWA.toLocaleString('en-IN') + NL + NL +
+      '🏢 House Share (30%): Rs.' + houseAmount.toLocaleString('en-IN') + NL +
+      '👥 Investor Pool (70%): Rs.' + investorPoolWA.toLocaleString('en-IN') + NL +
+      (isMulti 
+        ? invNames.map(n => '   ↳ ' + n + ' (' + (100/invNames.length).toFixed(2) + '%): Rs.' + perPerson.toLocaleString('en-IN')).join(NL) + NL
+        : '   ↳ *Your Share: Rs.' + investorAmount.toLocaleString('en-IN') + '*' + NL) + NL +
       (bks.length > 0 ? '*📅 BOOKINGS:*' + NL + bkList : '_No bookings this month_' + NL + NL) +
       '━━━━━━━━━━━━━━━━━━━━' + NL +
       '📞 Contact:' + NL +
@@ -1263,7 +1307,10 @@ window.quickWhatsAppInvestor = async function(investorId) {
     // Get current month name
     const now = new Date();
     const monthName = now.toLocaleString('en-IN', { month: 'long', year: 'numeric' });
-    const share = inv.revenue_share_pct || 70;
+    // NEW: Use pool logic (70% investor pool, split among multi-investors)
+    const invNamesArr = (inv.name || 'Investor').split('&').map(n => n.trim()).filter(n => n);
+    const isMultiInv = invNamesArr.length > 1;
+    const perInvestorPct = (100 / invNamesArr.length).toFixed(2);
     
     // Professional WhatsApp message
     const NL = String.fromCharCode(10);
@@ -1273,7 +1320,10 @@ window.quickWhatsAppInvestor = async function(investorId) {
       'Umeed hai aap kushal honge.' + NL + NL +
       '📅 *' + monthName + '* ki monthly report attached hai (PDF).' + NL + NL +
       '🏠 *Property:* ' + propNames + NL +
-      '📊 *Your Share:* ' + share + '%' + NL + NL +
+      '📊 *Investor Pool Share:* 70% of profit' + NL +
+      (isMultiInv 
+        ? invNamesArr.map(n => '   ↳ ' + n + ': ' + perInvestorPct + '% of pool').join(NL) + NL
+        : '') + NL +
       'Kripya PDF check karein aur koi query ho toh batayein.' + NL + NL +
       '───────────────' + NL +
       '*Regards,*' + NL +
@@ -1379,7 +1429,10 @@ window.sendPlainEmail = async function(investorId) {
     // Current month
     const now = new Date();
     const monthName = now.toLocaleString('en-IN', { month: 'long', year: 'numeric' });
-    const share = inv.revenue_share_pct || 70;
+    // NEW: Multi-investor aware
+    const invNamesEmail = (inv.name || 'Investor').split('&').map(n => n.trim()).filter(n => n);
+    const isMultiEmail = invNamesEmail.length > 1;
+    const perPersonPct = (100 / invNamesEmail.length).toFixed(2);
     
     const subject = monthName + ' Monthly Report - ' + propNames + ' - UHHS';
     
@@ -1388,7 +1441,10 @@ window.sendPlainEmail = async function(investorId) {
       'Umeed hai aap kushal honge.\n\n' +
       'Aapki property "' + propNames + '" ki monthly financial summary ke liye ye email hai.\n\n' +
       '📅 Reporting Period: ' + monthName + '\n' +
-      '📊 Your Revenue Share: ' + share + '%\n\n' +
+      '📊 Revenue Sharing Model: 70% Investor Pool, 30% UHHS\n' +
+      (isMultiEmail 
+        ? '👥 Investor Split:\n' + invNamesEmail.map(n => '   - ' + n + ': ' + perPersonPct + '% of investor pool').join('\n') + '\n\n'
+        : '\n') +
       'Complete detailed report attached mein bheji ja rahi hai. Isme included hai:\n' +
       '• Total revenue breakdown\n' +
       '• Online (Airbnb) vs Offline bookings\n' +
