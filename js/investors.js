@@ -9,7 +9,7 @@ async function renderManageInvestors() {
 
   const [{data:invs}, {data:links}, {data:rooms}] = await Promise.all([
     sb.from('investors').select('*').order('name'),
-    sb.from('investor_properties').select('*, investors(name), rooms(unit_no, property_name, nickname)'),
+    sb.from('investor_properties').select('investor_id, room_id, share_percent, is_active, investors(name), rooms(unit_no, property_name, nickname)'),
     sb.from('rooms').select('room_id, unit_no, property_name, nickname').order('room_id')
   ]);
   window._invRooms = rooms || [];
@@ -36,21 +36,27 @@ async function renderManageInvestors() {
       <div class="section-title">All Investors</div>
       <div class="table-wrap"><table>
         <thead><tr>
-          <th>Name</th><th>Phone</th><th>Share</th><th>Properties</th>
+          <th>Name</th><th>Phone</th><th>Properties & Shares</th>
           <th>Actions</th>
         </tr></thead>
         <tbody>${(invs || []).map(i => {
           const iLinks = invPropMap[i.investor_id] || [];
-          const propNames = iLinks.map(l => propLabel(l.rooms) || l.room_id).join(', ') || '-';
+          const propBadges = iLinks.length === 0 
+            ? '<span class="sub">No properties</span>'
+            : iLinks.map(l => {
+                const share = l.share_percent || 0;
+                const shareColor = share === 100 ? 'green' : share >= 50 ? 'blue' : share > 0 ? 'yellow' : 'red';
+                return `<div style="display:inline-block;margin:2px;padding:4px 8px;background:#f8f8f8;border-radius:6px;font-size:12px;">
+                  🏠 <strong>${propLabel(l.rooms) || l.room_id}</strong>
+                  <span class="badge ${shareColor}" style="margin-left:4px;">${share}%</span>
+                </div>`;
+              }).join('');
           return `<tr>
             <td><strong>${i.name}</strong></td>
             <td>${i.phone || '-'}</td>
-            <td><span class="badge green">${i.revenue_share_pct || 70}%</span></td>
-            <td style="font-size:12px;">${propNames}</td>
+            <td style="font-size:12px;">${propBadges}</td>
             <td class="table-actions" style="white-space:nowrap;">
               ${iLinks.map(l => `<button class="btn-sm" title="Report ${l.room_id}" onclick="renderInvestorReport('${i.investor_id}','${l.room_id}')">📊</button>`).join('')}
-
-
               ${isO ? `<button class="btn-sm" title="Edit" onclick="editInvestor('${i.investor_id}')">✏️</button>` : ''}
               ${isO ? `<button class="btn-sm danger" title="Delete" onclick="deleteInvestor('${i.investor_id}','${i.name}')">🗑️</button>` : ''}
             </td>
@@ -64,12 +70,16 @@ async function renderManageInvestors() {
       <div class="table-wrap"><table>
         <thead><tr><th>Property</th><th>Investor</th><th>Share</th><th>Remove</th></tr></thead>
         <tbody>${(links || []).map(l => {
-          const inv = (invs || []).find(i => i.investor_id === l.investor_id);
+          const share = l.share_percent || 0;
+          const shareColor = share === 100 ? 'green' : share >= 50 ? 'blue' : share > 0 ? 'yellow' : 'red';
           return `<tr>
             <td><strong>${propLabel(l.rooms) || l.room_id}</strong><br><small style="color:var(--muted);">${l.rooms?.unit_no || ''}</small></td>
             <td>${l.investors?.name || l.investor_id}</td>
-            <td>${inv?.revenue_share_pct || 70}%</td>
-            <td><button class="btn-sm danger" onclick="unlinkProperty('${l.investor_id}','${l.room_id}')">🗑️ Remove</button></td>
+            <td><span class="badge ${shareColor}">${share}%</span></td>
+            <td class="table-actions">
+              <button class="btn-sm" onclick="editShareInline('${l.investor_id}','${l.room_id}',${share})" title="Edit Share">✏️</button>
+              <button class="btn-sm danger" onclick="unlinkProperty('${l.investor_id}','${l.room_id}')" title="Remove">🗑️</button>
+            </td>
           </tr>`;
         }).join('') || '<tr><td colspan="4" class="sub">No mappings</td></tr>'}</tbody>
       </table></div>
@@ -1375,3 +1385,33 @@ window.sendPlainEmail = async function(investorId) {
     if (typeof fsn !== 'undefined') fsn.error('Error', e.message);
   }
 };
+
+
+// ============ INLINE EDIT SHARE % ============
+async function editShareInline(investorId, roomId, currentShare) {
+  const newShare = prompt(
+    `Edit share % for this investor-property link:\n\nCurrent: ${currentShare}%\n\nEnter new share % (0-100):`,
+    currentShare
+  );
+  
+  if (newShare === null) return; // cancelled
+  
+  const share = parseFloat(newShare);
+  if (isNaN(share) || share < 0 || share > 100) {
+    fsn.error('Invalid', '❌ Share % must be between 0 and 100');
+    return;
+  }
+  
+  const { error } = await sb.from('investor_properties')
+    .update({ share_percent: share })
+    .eq('investor_id', investorId)
+    .eq('room_id', roomId);
+  
+  if (error) {
+    fsn.error('Error', '❌ ' + error.message);
+    return;
+  }
+  
+  fsn.success('Success', `✅ Share updated to ${share}%`);
+  renderManageInvestors();
+}
