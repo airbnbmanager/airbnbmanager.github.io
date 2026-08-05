@@ -1218,6 +1218,7 @@ async function renderMonthlyExpenses(roomId, month) {
         ${(prevExps || []).length > 0 ? `<button class="btn-sm outline" onclick="copyPrevMonthExpenses()">📋 Copy from ${prevMonthLabel}</button>` : ''}
         <button class="btn-sm outline" onclick="applyDefaultExpenses()">⚙️ Apply Defaults</button>
         <button class="btn-sm secondary" onclick="toggleMonthlyInlineCat()">➕ New Category</button>
+        <button class="btn-sm secondary" onclick="renderManageCategories()">⚙️ Manage Categories</button>
       </div>
 
       <div id="monthlyInlineCatForm" style="display:none;background:#f0f7ff;
