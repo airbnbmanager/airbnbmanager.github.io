@@ -44,7 +44,7 @@ async function renderExpenses() {
       <div class="sub">${ml}</div>
       <div class="btn-row">
         <button onclick="renderAddExpEntry()">🧾 Log Expense</button>
-        <button class="secondary" onclick="renderAddExpCat()">➕ Category</button>
+        <button class="secondary" onclick="renderManageCategories()">⚙️ Manage Categories</button>
         <button class="secondary" onclick="renderDefaultExpenses()">⚙️ Defaults</button>
       </div>
     </div>
