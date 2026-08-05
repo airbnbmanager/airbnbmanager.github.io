@@ -451,6 +451,17 @@ async function renderInvestorReport(investorId, roomId, month) {
   const investorAmount = Math.round(investorPool * investorPoolShare / 100);
   // For UI clarity
   const otherInvestorsAmount = investorPool - investorAmount;
+  
+  // ===== SPLIT INVESTOR NAME BY "&" =====
+  // Handles "Firoz & Shahenshah" → ["Firoz", "Shahenshah"]
+  // Or single "Ammy papa" → ["Ammy papa"]
+  const investorNames = (inv?.name || 'Investor')
+    .split('&')
+    .map(n => n.trim())
+    .filter(n => n.length > 0);
+  const personCount = investorNames.length;
+  const perPersonAmount = personCount > 0 ? Math.round(investorPool / personCount) : investorPool;
+  const isMultiPerson = personCount > 1;
 
   const onlinePct = totalRev > 0 ? Math.round(onRev * 100 / totalRev) : 0;
   const offlinePct = totalRev > 0 ? Math.round(offRev * 100 / totalRev) : 0;
@@ -528,9 +539,8 @@ async function renderInvestorReport(investorId, roomId, month) {
             <tr><td style="padding:8px;border:1px solid #ccc;"><strong>Total Operating Expenses</strong></td><td style="padding:8px;border:1px solid #ccc;text-align:right;">₹${totalExp.toLocaleString('en-IN')}</td></tr>
             <tr style="background:linear-gradient(90deg,#FFEBEC,#FFE4D6);"><td style="padding:8px;border:1px solid #FF5A5F;"><strong>Operating Profit</strong></td><td style="padding:8px;border:1px solid #ccc;text-align:right;"><strong>₹${profit.toLocaleString('en-IN')}</strong></td></tr>
             <tr style="background:#E6F2F4;"><td style="padding:8px;border:1px solid #007A87;"><strong>${BRAND} Share (${COMPANY_PCT}%)</strong></td><td style="padding:8px;border:1px solid #007A87;text-align:right;color:#007A87;font-weight:700;font-size:14px;">₹${companyAmount.toLocaleString('en-IN')}</td></tr>
-            <tr style="background:#F0F5F5;"><td style="padding:8px;border:1px solid #ccc;"><strong>Total Investor Pool (${INVESTOR_POOL_PCT}%)</strong></td><td style="padding:8px;border:1px solid #ccc;text-align:right;">₹${investorPool.toLocaleString('en-IN')}</td></tr>
-            ${investorPoolShare < 100 ? `<tr style="background:#FFF8E1;"><td style="padding:8px;border:1px solid #ccc;color:#666;">Other Investors Share (${(100 - investorPoolShare).toFixed(2)}% of pool)</td><td style="padding:8px;border:1px solid #ccc;text-align:right;color:#666;">₹${otherInvestorsAmount.toLocaleString('en-IN')}</td></tr>` : ''}
-            <tr style="background:#E0F5F3;"><td style="padding:8px;border:2px solid #00A699;"><strong>Your Share ${investorPoolShare < 100 ? `(${investorPoolShare}% of pool)` : `(100% of pool)`}</strong></td><td style="padding:8px;border:2px solid #00A699;text-align:right;color:#00A699;font-weight:700;font-size:16px;">₹${investorAmount.toLocaleString('en-IN')}</td></tr>
+            <tr style="background:#E0F5F3;"><td style="padding:8px;border:2px solid #00A699;"><strong>Total Investor Pool ${isMultiPerson ? `(${inv?.name || ''})` : `(${INVESTOR_POOL_PCT}%)`}</strong></td><td style="padding:8px;border:2px solid #00A699;text-align:right;color:#00A699;font-weight:700;font-size:16px;">₹${investorPool.toLocaleString('en-IN')}</td></tr>
+            ${isMultiPerson ? investorNames.map(n => `<tr style="background:#F0FAF9;"><td style="padding:8px;border:1px solid #ccc;padding-left:24px;">↳ ${n} Share (${(100/personCount).toFixed(2)}%)</td><td style="padding:8px;border:1px solid #ccc;text-align:right;color:#00A699;font-weight:600;">₹${perPersonAmount.toLocaleString('en-IN')}</td></tr>`).join('') : ''}
           </tbody>
         </table>
       </div>
@@ -665,21 +675,16 @@ async function renderInvestorReport(investorId, roomId, month) {
               <td style="padding:8px;border:1px solid #ccc;text-align:center;">${COMPANY_PCT}%</td>
               <td style="padding:8px;border:1px solid #ccc;text-align:right;color:#0a5599;font-weight:700;">₹${companyAmount.toLocaleString('en-IN')}</td>
             </tr>
-            <tr style="background:#F0F5F5;">
-              <td style="padding:8px;border:1px solid #ccc;"><strong>Total Investor Pool</strong></td>
-              <td style="padding:8px;border:1px solid #ccc;text-align:center;">${INVESTOR_POOL_PCT}%</td>
-              <td style="padding:8px;border:1px solid #ccc;text-align:right;font-weight:700;">₹${investorPool.toLocaleString('en-IN')}</td>
-            </tr>
-            ${investorPoolShare < 100 ? `<tr style="background:#FFF8E1;color:#666;">
-              <td style="padding:8px;border:1px solid #ccc;padding-left:24px;">↳ Other Investors (${(100 - investorPoolShare).toFixed(2)}% of pool)</td>
-              <td style="padding:8px;border:1px solid #ccc;text-align:center;">-</td>
-              <td style="padding:8px;border:1px solid #ccc;text-align:right;">₹${otherInvestorsAmount.toLocaleString('en-IN')}</td>
-            </tr>` : ''}
             <tr style="background:#E0F5F3;">
-              <td style="padding:8px;border:2px solid #00A699;padding-left:24px;"><strong>↳ Your Share — ${inv?.name || '-'} (${investorPoolShare}% of pool)</strong></td>
-              <td style="padding:8px;border:2px solid #00A699;text-align:center;">-</td>
-              <td style="padding:8px;border:2px solid #00A699;text-align:right;color:#00A699;font-weight:700;font-size:14px;">₹${investorAmount.toLocaleString('en-IN')}</td>
+              <td style="padding:8px;border:2px solid #00A699;"><strong>Total Investor Pool — ${inv?.name || '-'}</strong></td>
+              <td style="padding:8px;border:2px solid #00A699;text-align:center;">${INVESTOR_POOL_PCT}%</td>
+              <td style="padding:8px;border:2px solid #00A699;text-align:right;color:#00A699;font-weight:700;font-size:14px;">₹${investorPool.toLocaleString('en-IN')}</td>
             </tr>
+            ${isMultiPerson ? investorNames.map(n => `<tr style="background:#F0FAF9;">
+              <td style="padding:8px;border:1px solid #ccc;padding-left:24px;">↳ ${n}</td>
+              <td style="padding:8px;border:1px solid #ccc;text-align:center;">${(100/personCount).toFixed(2)}% of pool</td>
+              <td style="padding:8px;border:1px solid #ccc;text-align:right;color:#00A699;font-weight:600;">₹${perPersonAmount.toLocaleString('en-IN')}</td>
+            </tr>`).join('') : ''}
             <tr style="background:#FFF0F0;font-weight:700;color:#484848;">
               <td style="padding:8px;border:1px solid #ccc;">Total Distributed Profit</td>
               <td style="padding:8px;border:1px solid #ccc;text-align:center;">100%</td>
@@ -692,13 +697,12 @@ async function renderInvestorReport(investorId, roomId, month) {
       <div style="margin-bottom:20px;">
         <div style="font-size:15px;font-weight:700;margin-bottom:10px;padding:8px 12px;background:linear-gradient(90deg,#484848,#767676);color:#fff;border-radius:6px;">🏛️ Ownership & Operating Structure</div>
         <div style="font-size:13px;line-height:2;">
-          <div><strong>Property Ownership:</strong> Investor — ${inv?.name || '-'}${investorPoolShare < 100 ? ` (${investorPoolShare}% ownership)` : ''}</div>
+          <div><strong>Property Ownership:</strong> ${inv?.name || '-'}</div>
           <div><strong>Property Operator:</strong> ${BRAND}</div>
           <div style="margin-top:8px;"><strong>Revenue Sharing Model:</strong></div>
           <div style="margin-left:16px;">• ${BRAND} (Company): ${COMPANY_PCT}%</div>
           <div style="margin-left:16px;">• Investor Pool: ${INVESTOR_POOL_PCT}%</div>
-          ${investorPoolShare < 100 ? `<div style="margin-left:32px;color:#666;">↳ Your Ownership: ${investorPoolShare}% of investor pool</div>
-          <div style="margin-left:32px;color:#666;">↳ Other Investors: ${(100 - investorPoolShare).toFixed(2)}% of investor pool</div>` : `<div style="margin-left:32px;color:#666;">↳ You hold: 100% of investor pool</div>`}
+          ${isMultiPerson ? `<div style="margin-top:8px;"><strong>Investor Split (${personCount} people):</strong></div>` + investorNames.map(n => `<div style="margin-left:32px;color:#00A699;">↳ ${n}: ${(100/personCount).toFixed(2)}% of investor pool</div>`).join('') : ''}
         </div>
       </div>
 
