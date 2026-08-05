@@ -532,6 +532,16 @@
     '</div>';
   }
 
+  function metricCardWithProration(label, current, previous, color, isProrated, fullAmount, daysDone, daysTotal) {
+    const change = changeDisplay(current, previous);
+    return '<div style="padding:14px;background:#fff;border:1px solid #eee;border-left:4px solid ' + color + ';border-radius:8px;">' +
+      '<div style="font-size:11px;color:#666;margin-bottom:4px;">' + label + (isProrated ? ' <span style="background:#F59E0B;color:#fff;padding:1px 5px;border-radius:3px;font-size:9px;">PRORATED</span>' : '') + '</div>' +
+      '<div style="font-size:22px;font-weight:800;color:' + color + ';">' + formatK(current) + '</div>' +
+      '<div style="font-size:11px;color:#888;margin-top:4px;">vs ' + formatK(previous) + ' <span style="color:' + change.color + ';font-weight:600;">' + change.icon + ' ' + change.text + '</span></div>' +
+      (isProrated ? '<div style="font-size:10px;color:#F59E0B;margin-top:2px;">📅 Full month: ' + formatK(fullAmount) + ' (' + daysDone + '/' + daysTotal + ' days)</div>' : '') +
+    '</div>';
+  }
+
   function metricCard(label, current, previous, color) {
     const change = changeDisplay(current, previous);
     return '<div style="padding:14px;background:#fff;border:1px solid #eee;border-left:4px solid ' + color + ';border-radius:8px;">' +
