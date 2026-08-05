@@ -1,183 +1,343 @@
 // ═══════════════════════════════════════════════════════════
-// 📊 ANALYTICS DASHBOARD v2 — with Insights + Online/Offline
+// 📊 ANALYTICS DASHBOARD v3.0 BEST — Complete Business Intelligence
+// Features: Month/Quarter/Year + Property Performance + Insights + Cash Flow
 // ═══════════════════════════════════════════════════════════
 
 (function() {
   const AN = {
-    period: 30,
-    revenueMode: 'both'
+    viewType: 'month',
+    periodKey: null,
+    compareKey: null
   };
 
-  window.setAnalyticsPeriod = function(days) {
-    AN.period = parseInt(days) || 30;
-    renderAnalytics();
-  };
-
-  window.setRevenueMode = function(mode) {
-    AN.revenueMode = mode;
-    renderAnalytics();
-  };
-
-  function daysAgo(n) {
-    const d = new Date();
-    d.setDate(d.getDate() - n);
-    return d.toISOString().slice(0, 10);
+  function initDefaults() {
+    const now = new Date();
+    AN.periodKey = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0');
+    AN.compareKey = getPreviousPeriod(AN.viewType, AN.periodKey);
   }
 
+  // ═══ DATE UTILITIES ═══
+  function getDateRange(viewType, periodKey) {
+    if (viewType === 'month') {
+      const [year, month] = periodKey.split('-');
+      const from = year + '-' + month + '-01';
+      const lastDay = new Date(parseInt(year), parseInt(month), 0).getDate();
+      const to = year + '-' + month + '-' + String(lastDay).padStart(2, '0');
+      return { from, to, label: new Date(from).toLocaleString('en-IN', {month: 'long', year: 'numeric'}), days: lastDay };
+    }
+    if (viewType === 'quarter') {
+      const [year, q] = periodKey.split('-Q');
+      const startMonth = (parseInt(q) - 1) * 3;
+      const from = year + '-' + String(startMonth + 1).padStart(2, '0') + '-01';
+      const endMonth = startMonth + 3;
+      const lastDay = new Date(parseInt(year), endMonth, 0).getDate();
+      const to = year + '-' + String(endMonth).padStart(2, '0') + '-' + lastDay;
+      const days = Math.round((new Date(to) - new Date(from)) / 86400000) + 1;
+      return { from, to, label: 'Q' + q + ' ' + year, days };
+    }
+    if (viewType === 'year') {
+      return { from: periodKey + '-01-01', to: periodKey + '-12-31', label: 'Year ' + periodKey, days: 365 };
+    }
+  }
+
+  function getPreviousPeriod(viewType, periodKey) {
+    if (viewType === 'month') {
+      const [year, month] = periodKey.split('-').map(Number);
+      const prevMonth = month === 1 ? 12 : month - 1;
+      const prevYear = month === 1 ? year - 1 : year;
+      return prevYear + '-' + String(prevMonth).padStart(2, '0');
+    }
+    if (viewType === 'quarter') {
+      const [year, q] = periodKey.split('-Q').map(Number);
+      const prevQ = q === 1 ? 4 : q - 1;
+      const prevYear = q === 1 ? year - 1 : year;
+      return prevYear + '-Q' + prevQ;
+    }
+    return String(parseInt(periodKey) - 1);
+  }
+
+  function getMonthOptions(count) {
+    const opts = [];
+    const now = new Date();
+    for (let i = 0; i < count; i++) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      opts.push({
+        key: d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0'),
+        label: d.toLocaleString('en-IN', {month: 'long', year: 'numeric'})
+      });
+    }
+    return opts;
+  }
+
+  function getQuarterOptions(count) {
+    const opts = [];
+    const now = new Date();
+    let year = now.getFullYear();
+    let q = Math.floor(now.getMonth() / 3) + 1;
+    for (let i = 0; i < count; i++) {
+      opts.push({
+        key: year + '-Q' + q,
+        label: 'Q' + q + ' ' + year + ' (' + ['Jan-Mar','Apr-Jun','Jul-Sep','Oct-Dec'][q-1] + ')'
+      });
+      q--;
+      if (q === 0) { q = 4; year--; }
+    }
+    return opts;
+  }
+
+  function getYearOptions(count) {
+    const opts = [];
+    const now = new Date();
+    for (let i = 0; i < count; i++) {
+      opts.push({ key: String(now.getFullYear() - i), label: 'Year ' + (now.getFullYear() - i) });
+    }
+    return opts;
+  }
+
+  // ═══ FORMATTERS ═══
   function formatK(n) {
     n = Number(n) || 0;
-    if (n >= 100000) return '₹' + (n / 100000).toFixed(1) + 'L';
-    if (n >= 1000) return '₹' + (n / 1000).toFixed(1) + 'K';
+    if (Math.abs(n) >= 100000) return '₹' + (n / 100000).toFixed(1) + 'L';
+    if (Math.abs(n) >= 1000) return '₹' + (n / 1000).toFixed(1) + 'K';
     return '₹' + Math.round(n);
-  }
-
-  function fmt(n) {
-    return (Number(n) || 0).toLocaleString('en-IN');
   }
 
   function calcNights(a, b) {
     if (!a || !b) return 0;
-    const d = (new Date(b) - new Date(a)) / 86400000;
-    return Math.max(0, Math.round(d));
+    return Math.max(0, Math.round((new Date(b) - new Date(a)) / 86400000));
   }
 
-  // ═══ AUTO INSIGHTS ENGINE ═══
-  function generateInsights(data) {
-    const insights = { critical: [], opportunities: [], wins: [] };
-    const { bookings, payments, pendingBookings, totalRevenue, prevRevenue,
-            onlineRev, offlineRev, propMap, guests, occupancy, pendingDue } = data;
+  function changeDisplay(current, previous) {
+    if (!previous || Math.abs(previous) < 100) return { text: 'N/A', color: '#999', icon: '' };
+    const pct = ((current - previous) / Math.abs(previous)) * 100;
+    const icon = pct > 5 ? '📈' : pct < -5 ? '📉' : '➡️';
+    const color = pct > 5 ? '#0A7D1A' : pct < -5 ? '#DC2626' : '#666';
+    const sign = pct > 0 ? '+' : '';
+    return { text: sign + pct.toFixed(1) + '%', color, icon };
+  }
 
-    // ─ CRITICAL ─
-    // High pending dues
-    const highDuePeople = Object.values(guests)
-      .filter(g => g.due > 20000)
-      .sort((a, b) => b.due - a.due)
-      .slice(0, 3);
-    highDuePeople.forEach(g => {
+  function getMonthKeysInRange(range) {
+    const keys = [];
+    let curr = new Date(new Date(range.from).getFullYear(), new Date(range.from).getMonth(), 1);
+    const end = new Date(range.to);
+    while (curr <= end) {
+      keys.push(curr.toLocaleString('en-IN', {month: 'short', year: 'numeric'}).replace(' ', '-'));
+      curr.setMonth(curr.getMonth() + 1);
+    }
+    return keys;
+  }
+
+  // ═══ CONTROL HANDLERS ═══
+  window.setV2ViewType = function(type) {
+    AN.viewType = type;
+    const now = new Date();
+    if (type === 'month') AN.periodKey = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0');
+    else if (type === 'quarter') AN.periodKey = now.getFullYear() + '-Q' + (Math.floor(now.getMonth() / 3) + 1);
+    else AN.periodKey = String(now.getFullYear());
+    AN.compareKey = getPreviousPeriod(AN.viewType, AN.periodKey);
+    renderAnalytics();
+  };
+
+  window.setV2Period = function(key) {
+    AN.periodKey = key;
+    AN.compareKey = getPreviousPeriod(AN.viewType, AN.periodKey);
+    renderAnalytics();
+  };
+
+  window.setV2Compare = function(key) {
+    AN.compareKey = key;
+    renderAnalytics();
+  };
+
+  window.printAnalytics = function() { window.print(); };
+
+  // ═══ MAIN RENDER ═══
+  async function renderAnalytics() {
+    if (!['developer', 'owner', 'admin'].includes(SESSION.role)) {
+      renderShell('<div class="card"><div class="error">Only Owner/Developer/Admin</div></div>', 'analytics');
+      return;
+    }
+
+    if (!AN.periodKey) initDefaults();
+
+    renderShell('<div class="loading">📊 Crunching business intelligence...</div>', 'analytics');
+
+    const currentRange = getDateRange(AN.viewType, AN.periodKey);
+    const compareRange = getDateRange(AN.viewType, AN.compareKey);
+
+    const [currentData, compareData, roomsRes, allExpensesRes, investorLinksRes, paymentsRes] = await Promise.all([
+      fetchPeriodData(currentRange),
+      fetchPeriodData(compareRange),
+      sb.from('rooms').select('room_id, unit_no, nickname, property_name'),
+      sb.from('expenses').select('room_id, amount, month'),
+      sb.from('investor_properties').select('room_id, share_percent, investors(name, investor_id)'),
+      sb.from('payment_history').select('booking_id, amount, payment_date, payment_mode').gte('payment_date', currentRange.from).lte('payment_date', currentRange.to).neq('verification_status', 'rejected')
+    ]);
+
+    const rooms = roomsRes.data || [];
+    const allExpenses = allExpensesRes.data || [];
+    const investorLinks = investorLinksRes.data || [];
+    const payments = paymentsRes.data || [];
+
+    const current = calculateMetrics(currentData, rooms, allExpenses, currentRange, payments);
+    const compare = calculateMetrics(compareData, rooms, allExpenses, compareRange, []);
+    const propPerf = calculatePropertyPerformance(currentData, rooms, allExpenses, investorLinks, currentRange);
+    const insights = generateInsights(current, compare, propPerf, currentData, currentRange);
+    const cashFlow = calculateCashFlow(currentData, payments, current);
+
+    const html = buildDashboardHTML(current, compare, currentRange, compareRange, propPerf, insights, cashFlow, currentData);
+    renderShell(html, 'analytics');
+  }
+
+  async function fetchPeriodData(range) {
+    const [bkRes, pendingRes] = await Promise.all([
+      sb.from('guest_register')
+        .select('booking_id, guest_name, phone, room_id, check_in, check_out, total_amount, booking_mode, is_review_booking, show_to_investor, rooms(unit_no, nickname, property_name)')
+        .gte('check_in', range.from).lte('check_in', range.to)
+        .neq('verification_status', 'rejected'),
+      sb.from('guest_register').select('booking_id', { count: 'exact', head: true }).eq('verification_status', 'pending')
+    ]);
+    return { bookings: bkRes.data || [], pendingCount: pendingRes.count || 0 };
+  }
+
+  function calculateMetrics(data, rooms, allExpenses, range, payments) {
+    const validBks = data.bookings.filter(b => b.show_to_investor !== false);
+    const onlineBks = validBks.filter(b => b.booking_mode === 'Online-Airbnb' && !b.is_review_booking);
+    const offlineBks = validBks.filter(b => b.booking_mode !== 'Online-Airbnb' && !b.is_review_booking);
+    const reviewBks = validBks.filter(b => b.is_review_booking === true);
+
+    const onlineRev = onlineBks.reduce((s, b) => s + (b.total_amount || 0), 0);
+    const offlineRev = offlineBks.reduce((s, b) => s + (b.total_amount || 0), 0);
+    const reviewRev = reviewBks.reduce((s, b) => s + (b.total_amount || 0), 0);
+    const totalRevenue = onlineRev + offlineRev + reviewRev;
+
+    let totalNights = 0;
+    validBks.forEach(b => { totalNights += calcNights(b.check_in, b.check_out); });
+    const totalRoomNights = rooms.length * range.days;
+    const occupancy = totalRoomNights > 0 ? Math.min(100, (totalNights / totalRoomNights * 100)) : 0;
+
+    const monthKeys = getMonthKeysInRange(range);
+    const totalExpenses = allExpenses.filter(e => monthKeys.includes(e.month)).reduce((s, e) => s + (e.amount || 0), 0);
+
+    const totalCollected = (payments || []).reduce((s, p) => s + (p.amount || 0), 0);
+    const profitMargin = totalRevenue > 0 ? ((totalRevenue - totalExpenses) / totalRevenue * 100) : 0;
+
+    return {
+      totalRevenue, onlineRev, offlineRev, reviewRev,
+      totalBookings: validBks.length,
+      onlineBks: onlineBks.length, offlineBks: offlineBks.length, reviewBks: reviewBks.length,
+      occupancy, totalNights, totalRoomNights,
+      totalExpenses, netProfit: totalRevenue - totalExpenses,
+      totalCollected, profitMargin,
+      avgNights: validBks.length > 0 ? totalNights / validBks.length : 0,
+      avgBookingValue: validBks.length > 0 ? totalRevenue / validBks.length : 0
+    };
+  }
+
+  function calculatePropertyPerformance(data, rooms, allExpenses, investorLinks, range) {
+    const monthKeys = getMonthKeysInRange(range);
+    return rooms.map(room => {
+      const roomBks = data.bookings.filter(b => b.room_id === room.room_id && b.show_to_investor !== false);
+      const roomOnline = roomBks.filter(b => b.booking_mode === 'Online-Airbnb' && !b.is_review_booking);
+      const roomOffline = roomBks.filter(b => b.booking_mode !== 'Online-Airbnb' && !b.is_review_booking);
+      const roomReview = roomBks.filter(b => b.is_review_booking === true);
+      const roomOnlineRev = roomOnline.reduce((s, b) => s + (b.total_amount || 0), 0);
+      const roomOfflineRev = roomOffline.reduce((s, b) => s + (b.total_amount || 0), 0);
+      const roomReviewRev = roomReview.reduce((s, b) => s + (b.total_amount || 0), 0);
+      const roomRevenue = roomOnlineRev + roomOfflineRev + roomReviewRev;
+      const roomExpenses = allExpenses.filter(e => e.room_id === room.room_id && monthKeys.includes(e.month)).reduce((s, e) => s + (e.amount || 0), 0);
+      const profit = roomRevenue - roomExpenses;
+      const bookedNights = roomBks.reduce((s, b) => s + calcNights(b.check_in, b.check_out), 0);
+      const occupancyPct = range.days > 0 ? Math.min(100, (bookedNights / range.days) * 100) : 0;
+      const vacantDays = range.days - bookedNights;
+
+      let status;
+      if (profit < 0) status = 'CRITICAL';
+      else if (profit < 5000 || occupancyPct < 30) status = 'WARNING';
+      else if (profit > 10000 && occupancyPct > 60) status = 'HEALTHY';
+      else status = 'NEUTRAL';
+
+      const avgOfflineRate = roomOffline.length > 0
+        ? Math.round(roomOfflineRev / Math.max(1, roomOffline.reduce((s, b) => s + calcNights(b.check_in, b.check_out), 0)))
+        : 3000;
+
+      let recommendation;
+      if (profit < 0) {
+        const daysNeeded = Math.ceil(Math.abs(profit) / avgOfflineRate);
+        recommendation = 'Book ' + daysNeeded + ' more offline days @ ₹' + avgOfflineRate.toLocaleString('en-IN') + ' to break even';
+      } else if (occupancyPct < 30) recommendation = 'Low occupancy (' + Math.round(occupancyPct) + '%) — push offline bookings';
+      else if (occupancyPct > 80) recommendation = 'High demand — consider raising rates';
+      else recommendation = 'Performing well';
+
+      const invLink = investorLinks.find(l => l.room_id === room.room_id);
+      const investorName = invLink && invLink.investors ? invLink.investors.name : 'Unassigned';
+
+      return {
+        room, status, revenue: roomRevenue, onlineRev: roomOnlineRev, offlineRev: roomOfflineRev, reviewRev: roomReviewRev,
+        onlineBks: roomOnline.length, offlineBks: roomOffline.length, reviewBks: roomReview.length,
+        expenses: roomExpenses, profit, occupancyPct, bookedNights, vacantDays,
+        recommendation, investorName
+      };
+    }).sort((a, b) => {
+      const order = { CRITICAL: 0, WARNING: 1, NEUTRAL: 2, HEALTHY: 3 };
+      return order[a.status] - order[b.status] || a.profit - b.profit;
+    });
+  }
+
+  function generateInsights(current, compare, propPerf, currentData, range) {
+    const insights = { critical: [], opportunities: [], wins: [] };
+    const critical = propPerf.filter(p => p.status === 'CRITICAL');
+    const healthy = propPerf.filter(p => p.status === 'HEALTHY');
+
+    if (critical.length > 0) {
+      insights.critical.push({
+        icon: '🔴',
+        text: critical.length + ' propert' + (critical.length > 1 ? 'ies' : 'y') + ' making losses',
+        detail: 'Immediate action needed. Total loss: ₹' + Math.abs(critical.reduce((s, p) => s + p.profit, 0)).toLocaleString('en-IN')
+      });
+    }
+
+    if (currentData.pendingCount > 0) {
       insights.critical.push({
         icon: '⚠️',
-        title: (g.name || 'Guest') + ' has ' + formatK(g.due) + ' pending',
-        detail: g.stays + ' stay(s) · ' + (g.phone || 'no phone'),
-        action: g.phone ? { label: '📱 WhatsApp', fn: "window.open('https://wa.me/91" + g.phone.replace(/[^0-9]/g,'') + "?text=' + encodeURIComponent('Reminder: ₹" + fmt(g.due) + " payment pending for your recent stay. Please clear at earliest.'), '_blank')" } : null
-      });
-    });
-
-    // Pending approvals
-    if (pendingBookings > 5) {
-      insights.critical.push({
-        icon: '🟡',
-        title: pendingBookings + ' bookings awaiting approval',
-        detail: 'Some may be > 24hrs old',
-        action: { label: 'Review Now →', fn: "window.navigate('pendingApprovals')" }
+        text: currentData.pendingCount + ' booking' + (currentData.pendingCount > 1 ? 's' : '') + ' pending approval',
+        detail: 'Review needed for verification'
       });
     }
 
-    // ─ OPPORTUNITIES ─
-    // High occupancy + low revenue (underpriced)
-    Object.values(propMap).forEach(p => {
-      const occ = (p.nights / AN.period) * 100;
-      const avg = p.count > 0 ? p.revenue / p.count : 0;
-      if (occ > 70 && avg < 3000 && p.count >= 3) {
-        insights.opportunities.push({
-          icon: '💡',
-          title: p.name + ': ' + occ.toFixed(0) + '% occupancy but only ' + formatK(avg) + '/booking',
-          detail: 'Looks underpriced — consider +30% rate',
-          action: null
-        });
-      }
-    });
-
-    // Airbnb heavy — push direct
-    const onlineShare = totalRevenue > 0 ? (onlineRev / totalRevenue * 100) : 0;
-    if (onlineShare > 60) {
-      const commission = Math.round(onlineRev * 0.15);
+    const onlinePct = current.totalRevenue > 0 ? (current.onlineRev / current.totalRevenue * 100) : 0;
+    if (onlinePct > 80) {
       insights.opportunities.push({
         icon: '💡',
-        title: onlineShare.toFixed(0) + '% revenue from Airbnb (~' + formatK(commission) + ' commission)',
-        detail: 'Push direct bookings — repeat WhatsApp campaign',
-        action: null
+        text: 'Over-reliance on Airbnb (' + Math.round(onlinePct) + '%)',
+        detail: 'Push direct bookings to save ~15% commission'
       });
     }
 
-    // Weekday gap
-    let weekdayNights = 0, weekendNights = 0;
-    bookings.forEach(b => {
-      if (!b.check_in || !b.check_out) return;
-      const start = new Date(b.check_in);
-      const nights = calcNights(b.check_in, b.check_out);
-      for (let i = 0; i < nights; i++) {
-        const d = new Date(start);
-        d.setDate(d.getDate() + i);
-        const day = d.getDay();
-        if (day === 0 || day === 6 || day === 5) weekendNights++;
-        else weekdayNights++;
-      }
-    });
-    if (weekdayNights > 0 && weekendNights > weekdayNights * 1.5) {
+    const lowOccProperties = propPerf.filter(p => p.occupancyPct < 30 && p.status !== 'HEALTHY');
+    if (lowOccProperties.length > 0) {
       insights.opportunities.push({
-        icon: '💡',
-        title: 'Weekdays underutilized',
-        detail: 'Weekend ' + weekendNights + ' nights vs Weekday ' + weekdayNights + ' — try Mon-Wed 20% discount',
-        action: null
+        icon: '📊',
+        text: lowOccProperties.length + ' propert' + (lowOccProperties.length > 1 ? 'ies' : 'y') + ' with <30% occupancy',
+        detail: 'Vacancy opportunity: total ' + lowOccProperties.reduce((s, p) => s + p.vacantDays, 0) + ' vacant days'
       });
     }
 
-    // 100% dependent property (all online OR all offline)
-    Object.values(propMap).forEach(p => {
-      if (p.count < 2) return;
-      if (p.onlineCount === p.count && p.count >= 3) {
-        insights.opportunities.push({
-          icon: '⚠️',
-          title: p.name + ' is 100% Airbnb-dependent',
-          detail: 'Diversify — promote for direct bookings',
-          action: null
-        });
-      }
-    });
-
-        // ─ DATA QUALITY WARNINGS ─
-    const badNames = bookings.filter(b => {
-      const n = (b.guest_name || '').toLowerCase().trim();
-      return ['pending', 'tbd', 'unknown', '', 'guest'].includes(n);
-    });
-    if (badNames.length > 0) {
-      insights.critical.push({
-        icon: '📝',
-        title: badNames.length + ' bookings have placeholder guest names',
-        detail: 'Fix names for accurate reports',
-        action: { label: 'View →', fn: "window.navigate('bookings')" }
+    if (current.totalRevenue > compare.totalRevenue && compare.totalRevenue > 1000) {
+      const growth = ((current.totalRevenue - compare.totalRevenue) / compare.totalRevenue * 100);
+      insights.wins.push({
+        icon: '🚀',
+        text: 'Revenue up ' + growth.toFixed(1) + '% vs previous',
+        detail: 'Great momentum — keep it going!'
       });
     }
 
-    // ─ WINS ─
-    if (prevRevenue > 0) {
-      const change = ((totalRevenue - prevRevenue) / prevRevenue) * 100;
-      if (change > 5 && change < 300) {
+    healthy.slice(0, 3).forEach(p => {
+      if (p.occupancyPct > 80) {
         insights.wins.push({
-          icon: '📈',
-          title: 'Revenue up ' + change.toFixed(0) + '% vs previous period',
-          detail: 'Total: ' + formatK(totalRevenue),
-          action: null
-        });
-      } else if (change >= 300) {
-        insights.wins.push({
-          icon: '🚀',
-          title: 'Revenue skyrocketed! (>' + change.toFixed(0) + '%)',
-          detail: 'Previous period had low activity — huge growth this month',
-          action: null
-        });
-      }
-    }
-
-    // Star property (100% occupancy)
-    Object.values(propMap).forEach(p => {
-      const occ = (p.nights / AN.period) * 100;
-      if (occ >= 90) {
-        insights.wins.push({
-          icon: '🥇',
-          title: p.name + ': ' + occ.toFixed(0) + '% occupancy!',
-          detail: 'Star performer — consider premium pricing',
-          action: null
+          icon: '🏆',
+          text: (p.room.nickname || p.room.unit_no) + ': ' + Math.round(p.occupancyPct) + '% occupancy',
+          detail: 'Star performer — consider premium pricing'
         });
       }
     });
@@ -185,961 +345,293 @@
     return insights;
   }
 
-  // ═══ DONUT CHART SVG ═══
-  function donutChart(segments, size = 160) {
-    // segments: [{ label, value, color }]
-    const total = segments.reduce((s, x) => s + x.value, 0) || 1;
-    const cx = size / 2, cy = size / 2, r = size * 0.35, sw = size * 0.15;
-    const circ = 2 * Math.PI * r;
-    let offset = 0;
-    const parts = segments.map(seg => {
-      const frac = seg.value / total;
-      const dash = frac * circ;
-      const el = '<circle cx="' + cx + '" cy="' + cy + '" r="' + r + '" fill="none" stroke="' + seg.color + '" stroke-width="' + sw + '" stroke-dasharray="' + dash + ' ' + (circ - dash) + '" stroke-dashoffset="' + (-offset) + '" transform="rotate(-90 ' + cx + ' ' + cy + ')" />';
-      offset += dash;
-      return el;
-    }).join('');
-
-    return '<svg viewBox="0 0 ' + size + ' ' + size + '" style="width:' + size + 'px;height:' + size + 'px;">' +
-      '<circle cx="' + cx + '" cy="' + cy + '" r="' + r + '" fill="none" stroke="#f0f0f0" stroke-width="' + sw + '" />' +
-      parts +
-      '<text x="' + cx + '" y="' + (cy - 4) + '" text-anchor="middle" font-size="14" font-weight="700" fill="#222">' + formatK(total) + '</text>' +
-      '<text x="' + cx + '" y="' + (cy + 14) + '" text-anchor="middle" font-size="10" fill="#888">Total</text>' +
-    '</svg>';
+  function calculateCashFlow(currentData, payments, current) {
+    const pendingDue = current.totalRevenue - current.totalCollected;
+    return {
+      cashIn: current.totalCollected,
+      cashOut: current.totalExpenses,
+      netCash: current.totalCollected - current.totalExpenses,
+      pending: Math.max(0, pendingDue),
+      revenueBooked: current.totalRevenue
+    };
   }
 
-  // ═══ MAIN RENDER ═══
-  async function renderAnalytics() {
-    if (!['developer', 'owner'].includes(SESSION.role)) {
-      renderShell('<div class="card"><div class="error">❌ Only Owner/Developer</div></div>', 'analytics');
-      return;
+  // ═══ UI BUILDERS ═══
+  function buildDashboardHTML(current, compare, currentRange, compareRange, propPerf, insights, cashFlow, currentData) {
+    const monthOpts = getMonthOptions(6);
+    const quarterOpts = getQuarterOptions(4);
+    const yearOpts = getYearOptions(3);
+    const opts = AN.viewType === 'month' ? monthOpts : AN.viewType === 'quarter' ? quarterOpts : yearOpts;
+
+    const isIncomplete = new Date(currentRange.to) > new Date();
+    let daysCompleted = currentRange.days;
+    if (isIncomplete) {
+      const now = new Date();
+      const start = new Date(currentRange.from);
+      daysCompleted = Math.max(1, Math.min(currentRange.days, Math.floor((now - start) / 86400000) + 1));
     }
+    const projected = isIncomplete && daysCompleted > 0 ? (current.totalRevenue / daysCompleted) * currentRange.days : null;
 
-    renderShell('<div class="loading">📊 Crunching numbers...</div>', 'analytics');
+    return '<div class="wrap">' +
+      buildFilterCard(opts) +
+      buildBusinessHealthCard(current, compare, propPerf) +
+      buildInsightsCard(insights) +
+      buildComparisonCard(current, compare, currentRange, compareRange, isIncomplete, daysCompleted, projected) +
+      buildCashFlowCard(cashFlow, current) +
+      buildPropertyPerfCard(propPerf, currentRange) +
+      buildTopPropertiesCard(propPerf, currentRange) +
+      buildStyles() +
+    '</div>';
+  }
 
-    const fromDate = daysAgo(AN.period);
-    const prevFromDate = daysAgo(AN.period * 2);
+  function buildStyles() {
+    return '<style>@media print{.no-print{display:none!important;}body{background:#fff;}.card{break-inside:avoid;}}</style>';
+  }
 
-    const [bkRes, payRes, roomsRes, prevBkRes, pendingRes] = await Promise.all([
-      sb.from('guest_register')
-        .select('booking_id, guest_name, phone, room_id, check_in, check_out, total_amount, booking_mode, created_by, booked_by, rooms(unit_no, nickname, property_name)')
-        .gte('check_in', fromDate)
-        .neq('verification_status', 'rejected'),
-      sb.from('payment_history')
-        .select('id, booking_id, amount, payment_mode, payment_date, verification_status')
-        .gte('payment_date', fromDate)
-        .neq('verification_status', 'rejected'),
-      sb.from('rooms').select('room_id, unit_no, nickname, property_name'),
-      sb.from('guest_register')
-        .select('total_amount, booking_mode')
-        .gte('check_in', prevFromDate)
-        .lt('check_in', fromDate)
-        .neq('verification_status', 'rejected'),
-      sb.from('guest_register').select('booking_id', { count: 'exact', head: true })
-        .eq('verification_status', 'pending')
-    ]);
+  function buildFilterCard(opts) {
+    const btnStyle = 'margin:0;border-radius:0;padding:8px 14px;';
+    return '<div class="card no-print">' +
+      '<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">' +
+        '<h1 style="margin:0;">📊 Analytics Dashboard</h1>' +
+        '<div><button class="btn-sm outline" onclick="renderAnalytics()">🔄 Refresh</button> ' +
+        '<button class="btn-sm" onclick="printAnalytics()">🖨️ Print</button></div>' +
+      '</div>' +
+      '<div style="margin-top:16px;padding:14px;background:#F8F9FA;border-radius:8px;">' +
+        '<div style="display:flex;flex-wrap:wrap;gap:12px;align-items:end;">' +
+          '<div><label style="font-size:11px;color:#666;display:block;margin-bottom:4px;">📊 View By</label>' +
+            '<div style="display:inline-flex;background:#fff;border-radius:6px;border:1px solid #ddd;overflow:hidden;">' +
+              '<button class="btn-sm ' + (AN.viewType === 'month' ? '' : 'outline') + '" onclick="setV2ViewType(\'month\')" style="' + btnStyle + '">Month</button>' +
+              '<button class="btn-sm ' + (AN.viewType === 'quarter' ? '' : 'outline') + '" onclick="setV2ViewType(\'quarter\')" style="' + btnStyle + '">Quarter</button>' +
+              '<button class="btn-sm ' + (AN.viewType === 'year' ? '' : 'outline') + '" onclick="setV2ViewType(\'year\')" style="' + btnStyle + '">Year</button>' +
+            '</div></div>' +
+          '<div><label style="font-size:11px;color:#666;display:block;margin-bottom:4px;">📅 Period</label>' +
+            '<select onchange="setV2Period(this.value)" style="padding:8px 12px;border-radius:6px;border:1px solid #ddd;">' +
+              opts.map(o => '<option value="' + o.key + '" ' + (o.key === AN.periodKey ? 'selected' : '') + '>' + o.label + '</option>').join('') +
+            '</select></div>' +
+          '<div><label style="font-size:11px;color:#666;display:block;margin-bottom:4px;">🔄 Compare With</label>' +
+            '<select onchange="setV2Compare(this.value)" style="padding:8px 12px;border-radius:6px;border:1px solid #ddd;">' +
+              opts.filter(o => o.key !== AN.periodKey).map(o => '<option value="' + o.key + '" ' + (o.key === AN.compareKey ? 'selected' : '') + '>' + o.label + '</option>').join('') +
+            '</select></div>' +
+        '</div></div></div>';
+  }
 
-    const bookings = bkRes.data || [];
-    const payments = payRes.data || [];
-    const rooms = roomsRes.data || [];
-    const prevBookings = prevBkRes.data || [];
-    const pendingBookings = pendingRes.count || 0;
+  function buildBusinessHealthCard(current, compare, propPerf) {
+    const critical = propPerf.filter(p => p.status === 'CRITICAL').length;
+    const warning = propPerf.filter(p => p.status === 'WARNING').length;
+    const healthy = propPerf.filter(p => p.status === 'HEALTHY').length;
+    
+    let overallHealth, healthColor, healthIcon;
+    if (critical > propPerf.length * 0.3) { overallHealth = 'Critical'; healthColor = '#DC2626'; healthIcon = '🔴'; }
+    else if (critical > 0 || warning > propPerf.length * 0.4) { overallHealth = 'Needs Attention'; healthColor = '#F59E0B'; healthIcon = '🟡'; }
+    else { overallHealth = 'Healthy'; healthColor = '#0A7D1A'; healthIcon = '🟢'; }
 
-    // ─── Core metrics ───
-    const totalRevenue = bookings.reduce((s, b) => s + (b.total_amount || 0), 0);
-    const prevRevenue = prevBookings.reduce((s, b) => s + (b.total_amount || 0), 0);
-    const revChange = prevRevenue > 0 ? ((totalRevenue - prevRevenue) / prevRevenue * 100) : 0;
+    const revGrowth = compare.totalRevenue > 100 ? ((current.totalRevenue - compare.totalRevenue) / compare.totalRevenue * 100) : 0;
 
-    const onlineBks = bookings.filter(b => b.booking_mode === 'Online-Airbnb');
-    const offlineBks = bookings.filter(b => b.booking_mode !== 'Online-Airbnb');
-    const onlineRev = onlineBks.reduce((s, b) => s + (b.total_amount || 0), 0);
-    const offlineRev = offlineBks.reduce((s, b) => s + (b.total_amount || 0), 0);
-    const commissionEst = Math.round(onlineRev * 0.15); // ~15% Airbnb takes
+    return '<div class="card" style="background:linear-gradient(135deg,' + healthColor + '15,' + healthColor + '05);border-left:5px solid ' + healthColor + ';">' +
+      '<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;">' +
+        '<div><div style="font-size:12px;color:#666;">💼 BUSINESS HEALTH</div>' +
+          '<div style="font-size:24px;font-weight:800;color:' + healthColor + ';">' + healthIcon + ' ' + overallHealth + '</div></div>' +
+        '<div style="display:flex;gap:20px;flex-wrap:wrap;">' +
+          '<div style="text-align:center;"><div style="font-size:11px;color:#666;">Revenue Growth</div><div style="font-size:20px;font-weight:700;color:' + (revGrowth >= 0 ? '#0A7D1A' : '#DC2626') + ';">' + (revGrowth >= 0 ? '📈 +' : '📉 ') + revGrowth.toFixed(1) + '%</div></div>' +
+          '<div style="text-align:center;"><div style="font-size:11px;color:#666;">Profit Margin</div><div style="font-size:20px;font-weight:700;color:' + (current.profitMargin >= 0 ? '#0A7D1A' : '#DC2626') + ';">' + current.profitMargin.toFixed(1) + '%</div></div>' +
+          '<div style="text-align:center;"><div style="font-size:11px;color:#666;">Occupancy</div><div style="font-size:20px;font-weight:700;color:#3B82F6;">' + Math.round(current.occupancy) + '%</div></div>' +
+        '</div>' +
+      '</div></div>';
+  }
 
-    // ─── Occupancy (capped at 100%) ───
-    let totalNights = 0;
-    bookings.forEach(b => {
-      totalNights += Math.min(calcNights(b.check_in, b.check_out), AN.period);
-    });
-    const totalRoomNights = rooms.length * AN.period;
-    const occupancy = Math.min(100, totalRoomNights > 0 ? (totalNights / totalRoomNights * 100) : 0);
-    const avgStay = bookings.length > 0 ? totalNights / bookings.length : 0;
-
-    // ─── Payments (guest map with dues) ───
-    const paidByBk = {};
-    payments.forEach(p => { paidByBk[p.booking_id] = (paidByBk[p.booking_id] || 0) + (p.amount || 0); });
-
-    const guestMap = {};
-    bookings.forEach(b => {
-      const key = (b.phone || b.guest_name || '').trim();
-      if (!key) return;
-      // Skip placeholder names
-      const nameLower = (b.guest_name || '').toLowerCase().trim();
-      if (['pending', 'tbd', 'unknown', 'guest', 'test'].includes(nameLower)) return;
-      if (!guestMap[key]) guestMap[key] = { name: b.guest_name, phone: b.phone, revenue: 0, stays: 0, due: 0, online: 0, offline: 0 };
-      const bkPaid = paidByBk[b.booking_id] || 0;
-      const bkDue = Math.max(0, (b.total_amount || 0) - bkPaid);
-      guestMap[key].revenue += b.total_amount || 0;
-      guestMap[key].due += bkDue;
-      guestMap[key].stays++;
-      if (b.booking_mode === 'Online-Airbnb') guestMap[key].online += b.total_amount || 0;
-      else guestMap[key].offline += b.total_amount || 0;
-    });
-    const topGuests = Object.values(guestMap).sort((a, b) => b.revenue - a.revenue).slice(0, 5);
-    const pendingDue = Object.values(guestMap).reduce((s, g) => s + g.due, 0);
-
-    // ─── Property performance with online/offline split ───
-    const propMap = {};
-    bookings.forEach(b => {
-      const key = b.room_id;
-      if (!propMap[key]) propMap[key] = {
-        name: propLabel(b.rooms) || b.room_id, revenue: 0, count: 0, nights: 0,
-        onlineRev: 0, offlineRev: 0, onlineCount: 0, offlineCount: 0
-      };
-      const p = propMap[key];
-      const rev = b.total_amount || 0;
-      p.revenue += rev;
-      p.count++;
-      p.nights += Math.min(calcNights(b.check_in, b.check_out), AN.period);
-      if (b.booking_mode === 'Online-Airbnb') { p.onlineRev += rev; p.onlineCount++; }
-      else { p.offlineRev += rev; p.offlineCount++; }
-    });
-    const topProps = Object.values(propMap).sort((a, b) => b.revenue - a.revenue);
-
-    // ─── Payment mode breakdown ───
-    const modeTotals = {};
-    payments.forEach(p => {
-      const m = (p.payment_mode || 'Other').trim();
-      modeTotals[m] = (modeTotals[m] || 0) + (p.amount || 0);
-    });
-    const modeArr = Object.entries(modeTotals).sort((a, b) => b[1] - a[1]);
-
-    // ─── Daily revenue (online vs offline) ───
-    const dailyOn = {}, dailyOff = {};
-    for (let i = 0; i < AN.period; i++) {
-      const d = daysAgo(AN.period - 1 - i);
-      dailyOn[d] = 0; dailyOff[d] = 0;
+  function buildInsightsCard(insights) {
+    if (insights.critical.length === 0 && insights.opportunities.length === 0 && insights.wins.length === 0) {
+      return '<div class="card"><div class="section-title">🎯 Smart Insights</div><div style="text-align:center;color:#999;padding:20px;">No insights available yet</div></div>';
     }
-    payments.forEach(p => {
-      if (!p.payment_date || dailyOn[p.payment_date] === undefined) return;
-      // Check if payment mode is online (Airbnb Payout) or offline
-      const bk = bookings.find(b => b.booking_id === p.booking_id);
-      const isOnline = bk?.booking_mode === 'Online-Airbnb' || p.payment_mode === 'Airbnb Payout';
-      if (isOnline) dailyOn[p.payment_date] += p.amount || 0;
-      else dailyOff[p.payment_date] += p.amount || 0;
-    });
+    let html = '<div class="card"><div class="section-title">🎯 Smart Insights (Auto-Generated)</div>';
+    if (insights.critical.length > 0) {
+      html += '<div style="color:#DC2626;font-weight:700;margin-top:8px;">🔴 CRITICAL (' + insights.critical.length + ')</div>';
+      insights.critical.forEach(i => {
+        html += '<div style="background:#FEF2F2;border-left:3px solid #DC2626;padding:10px;margin:6px 0;border-radius:4px;">' +
+          '<div style="font-weight:600;font-size:13px;">' + i.icon + ' ' + i.text + '</div>' +
+          '<div style="font-size:11px;color:#666;">' + i.detail + '</div></div>';
+      });
+    }
+    if (insights.opportunities.length > 0) {
+      html += '<div style="color:#F59E0B;font-weight:700;margin-top:12px;">💡 OPPORTUNITIES (' + insights.opportunities.length + ')</div>';
+      insights.opportunities.forEach(i => {
+        html += '<div style="background:#FFFBEB;border-left:3px solid #F59E0B;padding:10px;margin:6px 0;border-radius:4px;">' +
+          '<div style="font-weight:600;font-size:13px;">' + i.icon + ' ' + i.text + '</div>' +
+          '<div style="font-size:11px;color:#666;">' + i.detail + '</div></div>';
+      });
+    }
+    if (insights.wins.length > 0) {
+      html += '<div style="color:#0A7D1A;font-weight:700;margin-top:12px;">⭐ WINS (' + insights.wins.length + ')</div>';
+      insights.wins.forEach(i => {
+        html += '<div style="background:#F0FDF4;border-left:3px solid #22C55E;padding:10px;margin:6px 0;border-radius:4px;">' +
+          '<div style="font-weight:600;font-size:13px;">' + i.icon + ' ' + i.text + '</div>' +
+          '<div style="font-size:11px;color:#666;">' + i.detail + '</div></div>';
+      });
+    }
+    html += '</div>';
+    return html;
+  }
 
-    // ─── Generate insights ───
-    const insights = generateInsights({
-      bookings, payments, pendingBookings, totalRevenue, prevRevenue,
-      onlineRev, offlineRev, propMap, guests: guestMap, occupancy, pendingDue
-    });
+  function buildComparisonCard(current, compare, currentRange, compareRange, isIncomplete, daysCompleted, projected) {
+    return '<div class="card">' +
+      '<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:12px;">' +
+        '<div><div style="font-size:18px;font-weight:700;color:#333;">📊 ' + currentRange.label + '</div>' +
+        '<div style="font-size:12px;color:#666;">vs ' + compareRange.label + '</div></div>' +
+        (isIncomplete ? '<div style="background:#FFF7E6;border:1px solid #F59E0B;padding:6px 12px;border-radius:6px;font-size:12px;color:#F59E0B;">⏳ ' + daysCompleted + '/' + currentRange.days + ' days • Projected: ' + (projected ? formatK(projected) : 'N/A') + '</div>' : '') +
+      '</div>' +
+      '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;">' +
+        metricCard('💰 Total Revenue', current.totalRevenue, compare.totalRevenue, '#FF385C') +
+        metricCard('💸 Total Expenses', current.totalExpenses, compare.totalExpenses, '#DC2626') +
+        metricCard('📈 Net Profit', current.netProfit, compare.netProfit, current.netProfit >= 0 ? '#0A7D1A' : '#DC2626') +
+        metricCard('🌐 Online (Airbnb)', current.onlineRev, compare.onlineRev, '#8B5CF6') +
+        metricCard('🏠 Offline (Direct)', current.offlineRev, compare.offlineRev, '#F59E0B') +
+        occupancyCard(current.occupancy, compare.occupancy, current.totalNights, current.totalRoomNights) +
+      '</div>' +
+      '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px;margin-top:12px;">' +
+        statBox('📅 Bookings', current.totalBookings, 'vs ' + compare.totalBookings) +
+        statBox('🌙 Avg Nights', current.avgNights.toFixed(1), 'per booking') +
+        statBox('💵 Avg Value', formatK(current.avgBookingValue), '') +
+        statBox('⭐ Review', current.reviewBks, formatK(current.reviewRev), '#722ED1') +
+      '</div>' +
+    '</div>';
+  }
 
-    // ═══ BUILD HTML ═══
+  function statBox(label, value, sub, color) {
+    return '<div style="padding:10px;background:#F8F9FA;border-radius:6px;text-align:center;">' +
+      '<div style="font-size:11px;color:#666;">' + label + '</div>' +
+      '<div style="font-size:18px;font-weight:700;color:' + (color || '#333') + ';">' + value + '</div>' +
+      (sub ? '<div style="font-size:10px;color:#888;">' + sub + '</div>' : '') +
+    '</div>';
+  }
 
-    // Insights card
-    const insightCard = (i, colorBg) =>
-      '<div style="background:' + colorBg + ';border-radius:8px;padding:12px;margin-bottom:8px;">' +
-        '<div style="display:flex;justify-content:space-between;align-items:start;gap:10px;">' +
-          '<div style="flex:1;">' +
-            '<div style="font-weight:700;font-size:13px;">' + i.icon + ' ' + i.title + '</div>' +
-            (i.detail ? '<div style="font-size:11px;color:#555;margin-top:4px;">' + i.detail + '</div>' : '') +
-          '</div>' +
-          (i.action ? '<button class="btn-sm" style="background:#222;color:#fff;font-size:11px;white-space:nowrap;" onclick="' + i.action.fn + '">' + i.action.label + '</button>' : '') +
+  function metricCard(label, current, previous, color) {
+    const change = changeDisplay(current, previous);
+    return '<div style="padding:14px;background:#fff;border:1px solid #eee;border-left:4px solid ' + color + ';border-radius:8px;">' +
+      '<div style="font-size:11px;color:#666;margin-bottom:4px;">' + label + '</div>' +
+      '<div style="font-size:22px;font-weight:800;color:' + color + ';">' + formatK(current) + '</div>' +
+      '<div style="font-size:11px;color:#888;margin-top:4px;">vs ' + formatK(previous) + ' <span style="color:' + change.color + ';font-weight:600;">' + change.icon + ' ' + change.text + '</span></div>' +
+    '</div>';
+  }
+
+  function occupancyCard(current, previous, nights, roomNights) {
+    const change = changeDisplay(current, previous);
+    return '<div style="padding:14px;background:#fff;border:1px solid #eee;border-left:4px solid #3B82F6;border-radius:8px;">' +
+      '<div style="font-size:11px;color:#666;margin-bottom:4px;">📊 Occupancy</div>' +
+      '<div style="font-size:22px;font-weight:800;color:#3B82F6;">' + Math.round(current) + '%</div>' +
+      '<div style="font-size:11px;color:#888;margin-top:4px;">vs ' + Math.round(previous) + '% <span style="color:' + change.color + ';font-weight:600;">' + change.icon + ' ' + change.text + '</span></div>' +
+      '<div style="font-size:10px;color:#999;margin-top:2px;">' + nights + '/' + roomNights + ' room-nights</div>' +
+    '</div>';
+  }
+
+  function buildCashFlowCard(cashFlow, current) {
+    return '<div class="card"><div class="section-title">💰 Cash Flow</div>' +
+      '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;">' +
+        '<div style="padding:14px;background:#F0FDF4;border-radius:8px;border-left:4px solid #22C55E;">' +
+          '<div style="font-size:11px;color:#666;">💵 Cash IN (Collected)</div>' +
+          '<div style="font-size:20px;font-weight:800;color:#0A7D1A;">' + formatK(cashFlow.cashIn) + '</div>' +
         '</div>' +
-      '</div>';
-
-    const insightsHtml =
-      (insights.critical.length + insights.opportunities.length + insights.wins.length) === 0
-      ? '<div style="text-align:center;padding:20px;color:#888;">All systems running smoothly 🎉</div>'
-      :
-      (insights.critical.length > 0
-        ? '<div style="margin-bottom:12px;"><strong style="color:#DC2626;">🚨 CRITICAL (' + insights.critical.length + ')</strong></div>' +
-          insights.critical.map(i => insightCard(i, '#FEE2E2')).join('')
-        : '') +
-      (insights.opportunities.length > 0
-        ? '<div style="margin:12px 0;"><strong style="color:#B45309;">💰 OPPORTUNITIES (' + insights.opportunities.length + ')</strong></div>' +
-          insights.opportunities.map(i => insightCard(i, '#FEF3C7')).join('')
-        : '') +
-      (insights.wins.length > 0
-        ? '<div style="margin:12px 0;"><strong style="color:#0A7D1A;">⭐ WINS (' + insights.wins.length + ')</strong></div>' +
-          insights.wins.map(i => insightCard(i, '#D1FAE5')).join('')
-        : '');
-
-    // Metric card
-    const metricCard = (label, value, sub, color) =>
-      '<div style="background:#fff;padding:14px;border-radius:10px;border-left:4px solid ' + color + ';box-shadow:0 2px 4px rgba(0,0,0,0.05);">' +
-        '<div style="font-size:10px;color:#888;text-transform:uppercase;letter-spacing:1px;">' + label + '</div>' +
-        '<div style="font-size:22px;font-weight:800;margin-top:4px;color:' + color + ';">' + value + '</div>' +
-        (sub ? '<div style="font-size:10px;color:#666;margin-top:2px;">' + sub + '</div>' : '') +
-      '</div>';
-
-    // Revenue trend chart (dual line)
-    const chartW = 800, chartH = 220, padL = 55, padB = 30, padT = 10;
-    const onValues = Object.values(dailyOn);
-    const offValues = Object.values(dailyOff);
-    const bothValues = onValues.map((v, i) => v + offValues[i]);
-    const dates = Object.keys(dailyOn);
-    const maxV = Math.max(...bothValues, ...onValues, ...offValues, 1);
-    const stepX = (chartW - padL - 10) / Math.max(dates.length - 1, 1);
-    const y = v => chartH - padB - (v / maxV) * (chartH - padB - padT);
-
-    const linePts = (vals) => vals.map((v, i) => (padL + i * stepX) + ',' + y(v)).join(' ');
-
-    const trendChart =
-      '<svg viewBox="0 0 ' + chartW + ' ' + chartH + '" style="width:100%;height:auto;background:#fafafa;border-radius:8px;">' +
-        [0, 0.25, 0.5, 0.75, 1].map(f =>
-          '<line x1="' + padL + '" y1="' + y(maxV * f) + '" x2="' + (chartW - 10) + '" y2="' + y(maxV * f) + '" stroke="#eee" />' +
-          '<text x="' + (padL - 5) + '" y="' + (y(maxV * f) + 4) + '" font-size="10" fill="#888" text-anchor="end">' + formatK(maxV * f) + '</text>'
-        ).join('') +
-        (AN.revenueMode === 'both' || AN.revenueMode === 'online' ?
-          '<polyline points="' + linePts(onValues) + '" fill="none" stroke="#FF385C" stroke-width="2.5" />' +
-          onValues.map((v, i) => '<circle cx="' + (padL + i * stepX) + '" cy="' + y(v) + '" r="2.5" fill="#FF385C"><title>Online ' + dates[i] + ': ' + formatK(v) + '</title></circle>').join('')
-        : '') +
-        (AN.revenueMode === 'both' || AN.revenueMode === 'offline' ?
-          '<polyline points="' + linePts(offValues) + '" fill="none" stroke="#F59E0B" stroke-width="2.5" stroke-dasharray="6 3" />' +
-          offValues.map((v, i) => '<circle cx="' + (padL + i * stepX) + '" cy="' + y(v) + '" r="2.5" fill="#F59E0B"><title>Offline ' + dates[i] + ': ' + formatK(v) + '</title></circle>').join('')
-        : '') +
-        dates.filter((_, i) => i % Math.ceil(dates.length / 8) === 0).map((d) => {
-          const idx = dates.indexOf(d);
-          return '<text x="' + (padL + idx * stepX) + '" y="' + (chartH - 8) + '" font-size="10" fill="#888" text-anchor="middle">' + d.slice(5) + '</text>';
-        }).join('') +
-      '</svg>' +
-      '<div style="display:flex;justify-content:center;gap:20px;margin-top:8px;font-size:12px;">' +
-        '<span><span style="display:inline-block;width:14px;height:3px;background:#FF385C;vertical-align:middle;"></span> Online (Airbnb): ' + formatK(onlineRev) + '</span>' +
-        '<span><span style="display:inline-block;width:14px;height:3px;background:#F59E0B;vertical-align:middle;border-top:1px dashed #F59E0B;"></span> Offline (Direct): ' + formatK(offlineRev) + '</span>' +
-      '</div>';
-
-    // Donut: Payment modes
-    const modeColors = { 'Cash': '#0A7D1A', 'UPI': '#8B5CF6', 'Bank Transfer': '#3B82F6', 'Bank': '#3B82F6', 'Airbnb Payout': '#FF385C', 'Other': '#888' };
-    const modeSegments = modeArr.map(([m, v]) => ({ label: m, value: v, color: modeColors[m] || '#666' }));
-    const modeDonut = donutChart(modeSegments, 160);
-    const modeLegend = modeArr.map(([m, v]) => {
-      const pct = totalRevenue > 0 ? ((v / modeArr.reduce((s, [, x]) => s + x, 0)) * 100).toFixed(1) : 0;
-      return '<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:12px;">' +
-        '<span><span style="display:inline-block;width:10px;height:10px;background:' + (modeColors[m] || '#666') + ';border-radius:2px;margin-right:6px;"></span>' + m + '</span>' +
-        '<span><strong>' + formatK(v) + '</strong> <small style="color:#888;">(' + pct + '%)</small></span>' +
-      '</div>';
-    }).join('');
-
-    // Donut: Booking source (online/offline count)
-    const sourceSegments = [
-      { label: 'Airbnb', value: onlineBks.length, color: '#FF385C' },
-      { label: 'Direct', value: offlineBks.length, color: '#F59E0B' }
-    ];
-    const sourceDonut = donutChart(sourceSegments, 160);
-
-    // Top properties with online/offline split
-    const maxPropRev = topProps[0]?.revenue || 1;
-    const propRows = topProps.slice(0, 8).map((p, i) => {
-      const occ = Math.min(100, (p.nights / AN.period) * 100).toFixed(0);
-      const pct = (p.revenue / maxPropRev * 100).toFixed(0);
-      const onPct = p.revenue > 0 ? (p.onlineRev / p.revenue * 100).toFixed(0) : 0;
-      const offPct = 100 - onPct;
-      const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : '·';
-      return '<div style="margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid #f0f0f0;">' +
-        '<div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px;">' +
-          '<span>' + medal + ' <strong>' + p.name + '</strong> <small style="color:#888;">' + p.count + ' bk · ' + occ + '% occ</small></span>' +
-          '<strong>' + formatK(p.revenue) + '</strong>' +
+        '<div style="padding:14px;background:#FEF2F2;border-radius:8px;border-left:4px solid #DC2626;">' +
+          '<div style="font-size:11px;color:#666;">💸 Cash OUT (Expenses)</div>' +
+          '<div style="font-size:20px;font-weight:800;color:#DC2626;">' + formatK(cashFlow.cashOut) + '</div>' +
         '</div>' +
-        '<div style="background:#f0f0f0;border-radius:4px;height:16px;overflow:hidden;display:flex;">' +
-          '<div style="background:#FF385C;height:100%;width:' + (pct * onPct / 100) + '%;" title="Online: ' + formatK(p.onlineRev) + '"></div>' +
-          '<div style="background:#F59E0B;height:100%;width:' + (pct * offPct / 100) + '%;" title="Offline: ' + formatK(p.offlineRev) + '"></div>' +
+        '<div style="padding:14px;background:' + (cashFlow.netCash >= 0 ? '#F0FDF4' : '#FEF2F2') + ';border-radius:8px;border-left:4px solid ' + (cashFlow.netCash >= 0 ? '#22C55E' : '#DC2626') + ';">' +
+          '<div style="font-size:11px;color:#666;">📊 Net Cash Flow</div>' +
+          '<div style="font-size:20px;font-weight:800;color:' + (cashFlow.netCash >= 0 ? '#0A7D1A' : '#DC2626') + ';">' + formatK(cashFlow.netCash) + '</div>' +
         '</div>' +
-        '<div style="display:flex;justify-content:space-between;font-size:10px;color:#666;margin-top:3px;">' +
-          '<span>🌐 ' + formatK(p.onlineRev) + ' (' + p.onlineCount + ')</span>' +
-          '<span>💵 ' + formatK(p.offlineRev) + ' (' + p.offlineCount + ')</span>' +
+        '<div style="padding:14px;background:#FFF7E6;border-radius:8px;border-left:4px solid #F59E0B;">' +
+          '<div style="font-size:11px;color:#666;">⏳ Pending Collection</div>' +
+          '<div style="font-size:20px;font-weight:800;color:#F59E0B;">' + formatK(cashFlow.pending) + '</div>' +
         '</div>' +
-      '</div>';
-    }).join('');
+      '</div></div>';
+  }
 
-    // Monthly comparison placeholder (loaded async)
-    const monthlyCompHtml =
-      '<div class="card" style="margin-top:16px;">' +
-        '<div class="section-title">📅 Monthly Comparison (Last 12 Months)</div>' +
-        '<div id="monthlyCompContainer"><div class="loading">Loading monthly data...</div></div>' +
-      '</div>';
-
-    // Staff performance placeholder (loaded async)
-    const staffPerfHtml =
-      '<div class="card" style="margin-top:16px;">' +
-        '<div class="section-title">👤 Staff Performance (Last ' + AN.period + ' Days)</div>' +
-        '<div id="staffPerfContainer"><div class="loading">Loading staff stats...</div></div>' +
-      '</div>';
-
-    // (Predictions + Top Guests removed — not actionable)
-
-    // ═══ PROPERTY PERFORMANCE ANALYSIS ═══
-    // Fetch expenses for the period
-    const currentMonth = new Date().toLocaleString('en-IN', {month:'short', year:'numeric'}).replace(' ','-');
-    const { data: expensesData } = await sb.from('expenses')
-      .select('room_id, amount, month')
-      .eq('month', currentMonth);
-    
-    // Fetch investor mappings
-    const { data: investorLinks } = await sb.from('investor_properties')
-      .select('room_id, investors(name)');
-    
-    // Build property performance map
-    const propPerf = rooms.map(room => {
-      const roomBks = bookings.filter(b => b.room_id === room.room_id);
-      const roomOnline = roomBks.filter(b => b.booking_mode === 'Online-Airbnb');
-      const roomOffline = roomBks.filter(b => b.booking_mode !== 'Online-Airbnb' && !b.is_review_booking);
-      const roomReview = roomBks.filter(b => b.is_review_booking === true);
-      
-      const roomOnlineRev = roomOnline.reduce((s, b) => s + (b.total_amount || 0), 0);
-      const roomOfflineRev = roomOffline.reduce((s, b) => s + (b.total_amount || 0), 0);
-      const roomReviewRev = roomReview.reduce((s, b) => s + (b.total_amount || 0), 0);
-      const roomRevenue = roomOnlineRev + roomOfflineRev + roomReviewRev;
-      
-      // Room expenses
-      const roomExpenses = (expensesData || [])
-        .filter(e => e.room_id === room.room_id)
-        .reduce((s, e) => s + (e.amount || 0), 0);
-      
-      const profit = roomRevenue - roomExpenses;
-      
-      // Advanced occupancy calculation
-      const bookedNights = roomBks.reduce((s, b) => s + Math.min(calcNights(b.check_in, b.check_out), AN.period), 0);
-      const totalPossibleNights = AN.period;
-      const occupancyPct = totalPossibleNights > 0 ? Math.min(100, (bookedNights / totalPossibleNights) * 100) : 0;
-      const vacantDays = totalPossibleNights - bookedNights;
-      
-      // Categorize status
-      let status, statusColor, statusIcon;
-      if (profit < 0) {
-        status = 'CRITICAL';
-        statusColor = '#DC2626';
-        statusIcon = '🔴';
-      } else if (profit < 5000 || occupancyPct < 30) {
-        status = 'WARNING';
-        statusColor = '#F59E0B';
-        statusIcon = '🟡';
-      } else if (profit > 10000 && occupancyPct > 60) {
-        status = 'HEALTHY';
-        statusColor = '#0A7D1A';
-        statusIcon = '🟢';
-      } else {
-        status = 'NEUTRAL';
-        statusColor = '#666';
-        statusIcon = '⚪';
-      }
-      
-      // Recommendation engine
-      let recommendation = '';
-      const avgOfflineRate = roomOffline.length > 0 
-        ? Math.round(roomOfflineRev / roomOffline.reduce((s, b) => s + calcNights(b.check_in, b.check_out), 1))
-        : 3000;
-      
-      if (profit < 0) {
-        const daysNeeded = Math.ceil(Math.abs(profit) / avgOfflineRate);
-        recommendation = `Book ${daysNeeded} more offline days @ ₹${avgOfflineRate.toLocaleString('en-IN')} to break even`;
-      } else if (occupancyPct < 30) {
-        recommendation = `Low occupancy (${Math.round(occupancyPct)}%) — push offline bookings`;
-      } else if (occupancyPct > 80) {
-        recommendation = `High demand — consider raising rates`;
-      } else if (roomOfflineRev === 0 && roomOnlineRev > 0) {
-        recommendation = `100% Airbnb — try direct bookings to save commission`;
-      } else {
-        recommendation = `Performing well`;
-      }
-      
-      // Get investor name
-      const invLink = (investorLinks || []).find(l => l.room_id === room.room_id);
-      const investorName = invLink?.investors?.name || 'Unassigned';
-      
-      return {
-        room, status, statusColor, statusIcon,
-        revenue: roomRevenue, onlineRev: roomOnlineRev, offlineRev: roomOfflineRev, reviewRev: roomReviewRev,
-        onlineBks: roomOnline.length, offlineBks: roomOffline.length, reviewBks: roomReview.length,
-        expenses: roomExpenses, profit,
-        occupancyPct, bookedNights, vacantDays,
-        recommendation, investorName, avgOfflineRate
-      };
-    });
-    
-    // Sort: critical first, then warning, then healthy
-    const statusOrder = { CRITICAL: 0, WARNING: 1, NEUTRAL: 2, HEALTHY: 3 };
-    propPerf.sort((a, b) => statusOrder[a.status] - statusOrder[b.status] || a.profit - b.profit);
-    
+  function buildPropertyPerfCard(propPerf, range) {
     const critical = propPerf.filter(p => p.status === 'CRITICAL');
     const warning = propPerf.filter(p => p.status === 'WARNING');
     const healthy = propPerf.filter(p => p.status === 'HEALTHY');
     const neutral = propPerf.filter(p => p.status === 'NEUTRAL');
-    
-    // Build UI
-    const criticalCards = critical.map(p => `
-      <div style="background:#FEF2F2;border:2px solid #DC2626;border-radius:10px;padding:16px;margin-bottom:12px;">
-        <div style="display:flex;justify-content:space-between;align-items:start;flex-wrap:wrap;gap:8px;margin-bottom:10px;">
-          <div>
-            <div style="font-weight:700;font-size:16px;color:#DC2626;">🔴 ${p.room.nickname || p.room.unit_no}</div>
-            <div style="font-size:12px;color:#666;">👤 ${p.investorName}</div>
-          </div>
-          <div style="text-align:right;">
-            <div style="font-size:20px;font-weight:800;color:#DC2626;">LOSS: -₹${Math.abs(p.profit).toLocaleString('en-IN')}</div>
-            <div style="font-size:11px;color:#666;">Occupancy: ${Math.round(p.occupancyPct)}%</div>
-          </div>
-        </div>
-        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;font-size:12px;margin-bottom:10px;">
-          <div style="background:#fff;padding:8px;border-radius:6px;">
-            <div style="color:#666;font-size:10px;">Revenue</div>
-            <div style="font-weight:700;">₹${p.revenue.toLocaleString('en-IN')}</div>
-            <div style="font-size:10px;color:#888;">🌐${p.onlineBks} 🏠${p.offlineBks} ⭐${p.reviewBks}</div>
-          </div>
-          <div style="background:#fff;padding:8px;border-radius:6px;">
-            <div style="color:#666;font-size:10px;">Expenses</div>
-            <div style="font-weight:700;color:#DC2626;">₹${p.expenses.toLocaleString('en-IN')}</div>
-          </div>
-          <div style="background:#fff;padding:8px;border-radius:6px;">
-            <div style="color:#666;font-size:10px;">Vacant Days</div>
-            <div style="font-weight:700;color:#F59E0B;">${p.vacantDays} / ${AN.period}</div>
-          </div>
-        </div>
-        <div style="background:#FFF7E6;padding:10px;border-left:3px solid #F59E0B;border-radius:4px;font-size:12px;">
-          <strong>💡 ACTION:</strong> ${p.recommendation}
-        </div>
-      </div>
-    `).join('');
-    
-    const warningCards = warning.map(p => `
-      <div style="background:#FFFBEB;border:1px solid #F59E0B;border-radius:8px;padding:12px;margin-bottom:8px;">
-        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
-          <div>
-            <strong style="color:#F59E0B;">🟡 ${p.room.nickname || p.room.unit_no}</strong>
-            <span style="font-size:11px;color:#666;margin-left:8px;">👤 ${p.investorName}</span>
-          </div>
-          <div style="font-size:13px;">
-            Revenue: <strong>₹${p.revenue.toLocaleString('en-IN')}</strong> | 
-            Profit: <strong style="color:${p.profit < 0 ? '#DC2626' : '#F59E0B'};">₹${p.profit.toLocaleString('en-IN')}</strong> | 
-            Occ: <strong>${Math.round(p.occupancyPct)}%</strong>
-          </div>
-        </div>
-        <div style="font-size:11px;color:#666;margin-top:4px;font-style:italic;">💡 ${p.recommendation}</div>
-      </div>
-    `).join('');
-    
-    const healthyCards = healthy.slice(0, 5).map((p, i) => `
-      <div style="background:#F0FDF4;border:1px solid #22C55E;border-radius:8px;padding:10px;margin-bottom:6px;">
-        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
-          <div>
-            <strong>${i === 0 ? '🏆' : i === 1 ? '🥈' : i === 2 ? '🥉' : '🟢'} ${p.room.nickname || p.room.unit_no}</strong>
-            <span style="font-size:11px;color:#666;margin-left:6px;">👤 ${p.investorName}</span>
-          </div>
-          <div style="font-size:13px;">
-            <strong style="color:#0A7D1A;">₹${p.profit.toLocaleString('en-IN')}</strong> profit | 
-            <strong>${Math.round(p.occupancyPct)}%</strong> occ
-          </div>
-        </div>
-      </div>
-    `).join('');
-    
-    const propPerfHtml = `
-      <div class="card" style="margin-top:16px;">
-        <div class="section-title">🏠 Property Performance Dashboard (Last ${AN.period} Days)</div>
-        
-        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:16px;">
-          <div style="background:#FEF2F2;border:2px solid #DC2626;padding:12px;border-radius:8px;text-align:center;">
-            <div style="font-size:24px;font-weight:800;color:#DC2626;">${critical.length}</div>
-            <div style="font-size:11px;color:#666;">🔴 Loss Making</div>
-          </div>
-          <div style="background:#FFFBEB;border:2px solid #F59E0B;padding:12px;border-radius:8px;text-align:center;">
-            <div style="font-size:24px;font-weight:800;color:#F59E0B;">${warning.length}</div>
-            <div style="font-size:11px;color:#666;">🟡 Warning</div>
-          </div>
-          <div style="background:#F0FDF4;border:2px solid #22C55E;padding:12px;border-radius:8px;text-align:center;">
-            <div style="font-size:24px;font-weight:800;color:#0A7D1A;">${healthy.length}</div>
-            <div style="font-size:11px;color:#666;">🟢 Healthy</div>
-          </div>
-          <div style="background:#F5F5F5;border:2px solid #999;padding:12px;border-radius:8px;text-align:center;">
-            <div style="font-size:24px;font-weight:800;color:#666;">${neutral.length}</div>
-            <div style="font-size:11px;color:#666;">⚪ Neutral</div>
-          </div>
-        </div>
-        
-        ${critical.length > 0 ? `
-          <div style="font-weight:700;color:#DC2626;margin:16px 0 8px;font-size:14px;">🚨 CRITICAL — Immediate Action Required (${critical.length})</div>
-          ${criticalCards}
-        ` : ''}
-        
-        ${warning.length > 0 ? `
-          <div style="font-weight:700;color:#F59E0B;margin:16px 0 8px;font-size:14px;">⚠️ WARNING — Underperforming (${warning.length})</div>
-          ${warningCards}
-        ` : ''}
-        
-        ${healthy.length > 0 ? `
-          <div style="font-weight:700;color:#0A7D1A;margin:16px 0 8px;font-size:14px;">🏆 TOP PERFORMERS (Top 5)</div>
-          ${healthyCards}
-        ` : ''}
-        
-        ${critical.length === 0 && warning.length === 0 ? `
-          <div style="text-align:center;padding:20px;color:#0A7D1A;background:#F0FDF4;border-radius:8px;">
-            🎉 All properties performing well! No critical issues.
-          </div>
-        ` : ''}
-      </div>
-    `;
 
-    // ═══ Assemble ═══
-    const html =
-      '<div class="wrap">' +
-        '<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">' +
-          '<h1>📊 Analytics Dashboard</h1>' +
-          '<div style="display:flex;gap:8px;align-items:center;">' +
-          '<button onclick="printAnalytics()" class="btn-sm" style="background:#0A7D1A;color:#fff;padding:8px 14px;">🖨️ Print / PDF</button>' +
-          '<select onchange="setAnalyticsPeriod(this.value)" style="padding:8px 12px;border:1px solid #ccc;border-radius:6px;">' +
-            [7, 30, 60, 90, 180, 365].map(d =>
-              '<option value="' + d + '"' + (AN.period === d ? ' selected' : '') + '>Last ' + (d >= 365 ? '1 year' : d >= 180 ? '6 months' : d + ' days') + '</option>'
-            ).join('') +
-          '</select>' +
-          '</div>' +
-        '</div>' +
-
-        // Insights card
-        '<div class="card" style="border:2px solid #FF385C;margin-top:16px;">' +
-          '<div class="section-title">🎯 SMART INSIGHTS (Auto-Generated)</div>' +
-          insightsHtml +
-        '</div>' +
-
-        // Main metrics row
-        '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin:16px 0;">' +
-          metricCard('💰 Total Revenue', formatK(totalRevenue), revChange !== 0 ? (revChange >= 0 ? '↑' : '↓') + ' ' + (Math.abs(revChange) > 999 ? '999+' : Math.abs(revChange).toFixed(0)) + '% vs prev' : null, '#FF385C') +
-          metricCard('🌐 Online (Airbnb)', formatK(onlineRev), onlineBks.length + ' bookings · ~' + formatK(commissionEst) + ' fees', '#8B5CF6') +
-          metricCard('💵 Offline (Direct)', formatK(offlineRev), offlineBks.length + ' bookings · zero fees ✅', '#F59E0B') +
-          metricCard('📊 Occupancy', occupancy.toFixed(0) + '%', totalNights + ' room-nights', '#3B82F6') +
-          metricCard('📅 Bookings', bookings.length, 'Avg ' + avgStay.toFixed(1) + ' nights', '#0A7D1A') +
-          metricCard('⚠️ Pending Due', formatK(pendingDue), Object.values(guestMap).filter(g => g.due > 0).length + ' guests', '#DC2626') +
-        '</div>' +
-
-        // Revenue chart
-        '<div class="card">' +
-          '<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">' +
-            '<div class="section-title" style="margin:0;">📈 Revenue Trend — Online vs Offline</div>' +
-            '<div>' +
-              '<button class="btn-sm ' + (AN.revenueMode === 'both' ? '' : 'outline') + '" onclick="setRevenueMode(\'both\')">Both</button> ' +
-              '<button class="btn-sm ' + (AN.revenueMode === 'online' ? '' : 'outline') + '" onclick="setRevenueMode(\'online\')">Online</button> ' +
-              '<button class="btn-sm ' + (AN.revenueMode === 'offline' ? '' : 'outline') + '" onclick="setRevenueMode(\'offline\')">Offline</button>' +
-            '</div>' +
-          '</div>' +
-          trendChart +
-        '</div>' +
-
-        // NEW: Property Performance Dashboard (loss detection + recommendations)
-        propPerfHtml +
-
-        // Top Properties (full width, no more donuts + guests)
-        '<div class="card" style="margin-top:16px;">' +
-          '<div class="section-title">🏠 Top Properties (Online 🌐 / Offline 💵)</div>' +
-          propRows +
-        '</div>' +
-
-        // Monthly comparison
-        monthlyCompHtml +
-
-        // Staff performance
-        staffPerfHtml +
-
+    let html = '<div class="card"><div class="section-title">🏠 Property Performance — ' + range.label + '</div>' +
+      '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:16px;">' +
+        '<div style="background:#FEF2F2;border:2px solid #DC2626;padding:12px;border-radius:8px;text-align:center;"><div style="font-size:24px;font-weight:800;color:#DC2626;">' + critical.length + '</div><div style="font-size:11px;color:#666;">🔴 Loss Making</div></div>' +
+        '<div style="background:#FFFBEB;border:2px solid #F59E0B;padding:12px;border-radius:8px;text-align:center;"><div style="font-size:24px;font-weight:800;color:#F59E0B;">' + warning.length + '</div><div style="font-size:11px;color:#666;">🟡 Warning</div></div>' +
+        '<div style="background:#F0FDF4;border:2px solid #22C55E;padding:12px;border-radius:8px;text-align:center;"><div style="font-size:24px;font-weight:800;color:#0A7D1A;">' + healthy.length + '</div><div style="font-size:11px;color:#666;">🟢 Healthy</div></div>' +
+        '<div style="background:#F5F5F5;border:2px solid #999;padding:12px;border-radius:8px;text-align:center;"><div style="font-size:24px;font-weight:800;color:#666;">' + neutral.length + '</div><div style="font-size:11px;color:#666;">⚪ Neutral</div></div>' +
       '</div>';
 
-    renderShell(html, 'analytics');
+    if (critical.length > 0) {
+      html += '<div style="font-weight:700;color:#DC2626;margin:16px 0 8px;font-size:14px;">🚨 CRITICAL — Immediate Action (' + critical.length + ')</div>';
+      html += critical.map(p =>
+        '<div style="background:#FEF2F2;border:2px solid #DC2626;border-radius:10px;padding:16px;margin-bottom:12px;">' +
+          '<div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:10px;">' +
+            '<div><div style="font-weight:700;font-size:16px;color:#DC2626;">🔴 ' + (p.room.nickname || p.room.unit_no) + '</div>' +
+            '<div style="font-size:12px;color:#666;">👤 ' + p.investorName + '</div></div>' +
+            '<div style="text-align:right;"><div style="font-size:20px;font-weight:800;color:#DC2626;">LOSS: -₹' + Math.abs(p.profit).toLocaleString('en-IN') + '</div>' +
+            '<div style="font-size:11px;color:#666;">Occ: ' + Math.round(p.occupancyPct) + '% | Vacant: ' + p.vacantDays + 'd</div></div>' +
+          '</div>' +
+          '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(100px,1fr));gap:8px;font-size:12px;margin-bottom:10px;">' +
+            '<div style="background:#fff;padding:8px;border-radius:6px;"><div style="color:#666;font-size:10px;">Revenue</div><div style="font-weight:700;">₹' + p.revenue.toLocaleString('en-IN') + '</div><div style="font-size:10px;color:#888;">🌐' + p.onlineBks + ' 🏠' + p.offlineBks + ' ⭐' + p.reviewBks + '</div></div>' +
+            '<div style="background:#fff;padding:8px;border-radius:6px;"><div style="color:#666;font-size:10px;">Expenses</div><div style="font-weight:700;color:#DC2626;">₹' + p.expenses.toLocaleString('en-IN') + '</div></div>' +
+          '</div>' +
+          '<div style="background:#FFF7E6;padding:10px;border-left:3px solid #F59E0B;border-radius:4px;font-size:12px;"><strong>💡 ACTION:</strong> ' + p.recommendation + '</div>' +
+        '</div>'
+      ).join('');
+    }
 
-    // Load async sections (after main render)
-    loadMonthlyComparison();
-    loadStaffPerformance();
-    loadPredictions();
+    if (warning.length > 0) {
+      html += '<div style="font-weight:700;color:#F59E0B;margin:16px 0 8px;font-size:14px;">⚠️ WARNING (' + warning.length + ')</div>';
+      html += warning.map(p =>
+        '<div style="background:#FFFBEB;border:1px solid #F59E0B;border-radius:8px;padding:12px;margin-bottom:8px;">' +
+          '<div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;">' +
+            '<div><strong style="color:#F59E0B;">🟡 ' + (p.room.nickname || p.room.unit_no) + '</strong>' +
+            '<span style="font-size:11px;color:#666;margin-left:8px;">👤 ' + p.investorName + '</span></div>' +
+            '<div style="font-size:13px;">Rev: <strong>₹' + p.revenue.toLocaleString('en-IN') + '</strong> | Profit: <strong style="color:' + (p.profit < 0 ? '#DC2626' : '#F59E0B') + ';">₹' + p.profit.toLocaleString('en-IN') + '</strong> | Occ: <strong>' + Math.round(p.occupancyPct) + '%</strong></div>' +
+          '</div>' +
+          '<div style="font-size:11px;color:#666;margin-top:4px;font-style:italic;">💡 ' + p.recommendation + '</div>' +
+        '</div>'
+      ).join('');
+    }
+
+    if (healthy.length > 0) {
+      html += '<div style="font-weight:700;color:#0A7D1A;margin:16px 0 8px;font-size:14px;">🏆 TOP PERFORMERS (Top 5)</div>';
+      html += healthy.slice(0, 5).map((p, i) =>
+        '<div style="background:#F0FDF4;border:1px solid #22C55E;border-radius:8px;padding:10px;margin-bottom:6px;">' +
+          '<div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;">' +
+            '<div><strong>' + (i === 0 ? '🏆' : i === 1 ? '🥈' : i === 2 ? '🥉' : '🟢') + ' ' + (p.room.nickname || p.room.unit_no) + '</strong>' +
+            '<span style="font-size:11px;color:#666;margin-left:6px;">👤 ' + p.investorName + '</span></div>' +
+            '<div style="font-size:13px;"><strong style="color:#0A7D1A;">₹' + p.profit.toLocaleString('en-IN') + '</strong> profit | <strong>' + Math.round(p.occupancyPct) + '%</strong> occ</div>' +
+          '</div>' +
+        '</div>'
+      ).join('');
+    }
+
+    html += '</div>';
+    return html;
   }
 
-  // ═══ MONTHLY COMPARISON ═══
-  async function loadMonthlyComparison() {
-    const container = document.getElementById('monthlyCompContainer');
-    if (!container) return;
-
-    // Fetch last 12 months of data
-    const now = new Date();
-    const yearAgo = new Date(now.getFullYear() - 1, now.getMonth(), 1);
-    const fromStr = yearAgo.toISOString().slice(0, 10);
-
-    const { data: allBks } = await sb.from('guest_register')
-      .select('booking_id, check_in, total_amount, booking_mode')
-      .gte('check_in', fromStr)
-      .neq('verification_status', 'rejected');
-
-    if (!allBks || allBks.length === 0) {
-      container.innerHTML = '<div style="text-align:center;padding:20px;color:#888;">No data available</div>';
-      return;
-    }
-
-    // Group by month
-    const monthMap = {};
-    allBks.forEach(b => {
-      if (!b.check_in) return;
-      const month = b.check_in.slice(0, 7); // YYYY-MM
-      if (!monthMap[month]) monthMap[month] = { online: 0, offline: 0, count: 0 };
-      const rev = b.total_amount || 0;
-      monthMap[month].count++;
-      if (b.booking_mode === 'Online-Airbnb') monthMap[month].online += rev;
-      else monthMap[month].offline += rev;
-    });
-
-    // Sort by month desc
-    const sortedMonths = Object.keys(monthMap).sort((a, b) => b.localeCompare(a)).slice(0, 12);
-
-    // Calculate growth
-    let bestMonth = { key: '', total: 0 };
-    let bestGrowth = { key: '', pct: -999 };
-
-    const rows = sortedMonths.map((m, i) => {
-      const d = monthMap[m];
-      const total = d.online + d.offline;
-      const prev = sortedMonths[i + 1] ? monthMap[sortedMonths[i + 1]] : null;
-      const prevTotal = prev ? (prev.online + prev.offline) : 0;
-      const growth = prevTotal > 0 ? ((total - prevTotal) / prevTotal * 100) : null;
-
-      if (total > bestMonth.total) bestMonth = { key: m, total };
-      if (growth !== null && growth > bestGrowth.pct) bestGrowth = { key: m, pct: growth };
-
-      const monthName = new Date(m + '-01').toLocaleDateString('en-IN', { month: 'short', year: '2-digit' });
-      const growthDisplay = growth === null ? '<span style="color:#888;">—</span>' :
-        growth >= 0 
-          ? '<span style="color:#0A7D1A;font-weight:700;">↑ +' + growth.toFixed(0) + '%</span>'
-          : '<span style="color:#DC2626;font-weight:700;">↓ ' + growth.toFixed(0) + '%</span>';
-
-      const isBest = m === bestMonth.key;
-
-      return '<tr style="' + (isBest ? 'background:#FEF3C7;' : '') + '">' +
-        '<td style="font-weight:700;">' + monthName + (isBest ? ' 🏆' : '') + '</td>' +
-        '<td style="text-align:right;color:#FF385C;">' + formatK(d.online) + '</td>' +
-        '<td style="text-align:right;color:#F59E0B;">' + formatK(d.offline) + '</td>' +
-        '<td style="text-align:right;font-weight:700;">' + formatK(total) + '</td>' +
-        '<td style="text-align:center;">' + d.count + '</td>' +
-        '<td style="text-align:right;">' + growthDisplay + '</td>' +
-        '</tr>';
-    }).join('');
-
-    // Mini bar chart of monthly totals
-    const monthTotals = sortedMonths.slice().reverse().map(m => monthMap[m].online + monthMap[m].offline);
-    const maxT = Math.max(...monthTotals, 1);
-    const barChart = monthTotals.map((v, i) => {
-      const h = (v / maxT) * 100;
-      const monthKey = sortedMonths.slice().reverse()[i];
-      const monthShort = new Date(monthKey + '-01').toLocaleDateString('en-IN', { month: 'short' });
-      return '<div style="flex:1;display:flex;flex-direction:column;align-items:center;">' +
-        '<div style="width:100%;height:100px;display:flex;align-items:flex-end;">' +
-          '<div style="width:100%;background:linear-gradient(180deg,#FF385C,#E00B41);border-radius:4px 4px 0 0;height:' + h + '%;transition:height 0.5s;" title="' + monthShort + ': ' + formatK(v) + '"></div>' +
-        '</div>' +
-        '<div style="font-size:10px;margin-top:4px;color:#666;">' + monthShort + '</div>' +
-      '</div>';
-    }).join('');
-
-    const bestGrowthMonth = bestGrowth.key ? new Date(bestGrowth.key + '-01').toLocaleDateString('en-IN', { month: 'short', year: '2-digit' }) : '-';
-    const bestMonthName = bestMonth.key ? new Date(bestMonth.key + '-01').toLocaleDateString('en-IN', { month: 'short', year: '2-digit' }) : '-';
-
-    container.innerHTML =
-      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;">' +
-        '<div style="background:#FEF3C7;padding:12px;border-radius:8px;">' +
-          '<div style="font-size:11px;color:#888;text-transform:uppercase;">🏆 Best Month</div>' +
-          '<div style="font-size:18px;font-weight:800;color:#B45309;">' + bestMonthName + '</div>' +
-          '<div style="font-size:13px;">' + formatK(bestMonth.total) + ' total revenue</div>' +
-        '</div>' +
-        '<div style="background:#D1FAE5;padding:12px;border-radius:8px;">' +
-          '<div style="font-size:11px;color:#888;text-transform:uppercase;">📈 Best Growth</div>' +
-          '<div style="font-size:18px;font-weight:800;color:#0A7D1A;">' + bestGrowthMonth + '</div>' +
-          '<div style="font-size:13px;">+' + bestGrowth.pct.toFixed(0) + '% vs previous</div>' +
-        '</div>' +
-      '</div>' +
-
-      '<div style="display:flex;gap:4px;height:130px;margin-bottom:16px;padding:10px;background:#fafafa;border-radius:8px;">' +
-        barChart +
-      '</div>' +
-
-      '<div class="table-wrap"><table style="font-size:13px;">' +
-        '<thead><tr style="background:#222;color:#fff;">' +
-          '<th>Month</th>' +
-          '<th style="text-align:right;">🌐 Online</th>' +
-          '<th style="text-align:right;">💵 Offline</th>' +
-          '<th style="text-align:right;">Total</th>' +
-          '<th style="text-align:center;">Bookings</th>' +
-          '<th style="text-align:right;">vs Prev</th>' +
-        '</tr></thead>' +
-        '<tbody>' + rows + '</tbody>' +
-      '</table></div>';
-  }
-
-
-  
-  // ═══ STAFF PERFORMANCE ═══
-  async function loadStaffPerformance() {
-    const container = document.getElementById('staffPerfContainer');
-    if (!container) return;
-
-    const fromDate = daysAgo(AN.period);
-
-    const [profRes, bkRes, payRes] = await Promise.all([
-      sb.from('profiles').select('user_id, display_name, role').eq('is_approved', true),
-      sb.from('guest_register')
-        .select('booking_id, total_amount, created_by, booked_by, verification_status')
-        .gte('check_in', fromDate)
-        .neq('verification_status', 'rejected'),
-      sb.from('payment_history')
-        .select('id, amount, created_by, verification_status')
-        .gte('payment_date', fromDate)
-        .neq('verification_status', 'rejected')
-    ]);
-
-    const profiles = profRes.data || [];
-    const bookings = bkRes.data || [];
-    const payments = payRes.data || [];
-
-    const profMap = {};
-    profiles.forEach(p => { profMap[p.user_id] = p; });
-
-    // Aggregate stats per user
-    const staffStats = {};
-    bookings.forEach(b => {
-      const uid = b.created_by;
-      if (!uid) return;
-      if (!staffStats[uid]) staffStats[uid] = {
-        name: profMap[uid]?.display_name || b.booked_by || 'Unknown',
-        role: profMap[uid]?.role || 'unknown',
-        bookings: 0, bookingRev: 0, pending: 0,
-        payments: 0, paymentRev: 0
-      };
-      staffStats[uid].bookings++;
-      staffStats[uid].bookingRev += b.total_amount || 0;
-      if (b.verification_status === 'pending') staffStats[uid].pending++;
-    });
-
-    payments.forEach(p => {
-      const uid = p.created_by;
-      if (!uid) return;
-      if (!staffStats[uid]) staffStats[uid] = {
-        name: profMap[uid]?.display_name || 'Unknown',
-        role: profMap[uid]?.role || 'unknown',
-        bookings: 0, bookingRev: 0, pending: 0,
-        payments: 0, paymentRev: 0
-      };
-      staffStats[uid].payments++;
-      staffStats[uid].paymentRev += p.amount || 0;
-    });
-
-    const staffArr = Object.values(staffStats)
-      .filter(s => s.bookings > 0 || s.payments > 0)
-      .sort((a, b) => Math.max(b.bookingRev, b.paymentRev) - Math.max(a.bookingRev, a.paymentRev));
-
-    if (staffArr.length === 0) {
-      container.innerHTML = '<div style="text-align:center;padding:20px;color:#888;">No staff activity in this period</div>';
-      return;
-    }
-
-    const roleColors = {
-      developer: '#8B5CF6', owner: '#FF385C',
-      moderator: '#F59E0B', viewer: '#888'
-    };
-
-    const rows = staffArr.map((s, i) => {
-      const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : '👤';
-      const verifyRate = s.bookings > 0 ? Math.round(((s.bookings - s.pending) / s.bookings) * 100) : 100;
-      const rateColor = verifyRate === 100 ? '#0A7D1A' : verifyRate >= 90 ? '#F59E0B' : '#DC2626';
-      const roleColor = roleColors[s.role] || '#666';
-
-      return '<div style="border:1px solid #eee;border-radius:10px;padding:14px;margin-bottom:10px;">' +
-        '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">' +
-          '<div>' +
-            '<span style="font-size:20px;">' + medal + '</span> ' +
-            '<strong style="font-size:15px;">' + s.name + '</strong> ' +
-            '<span style="background:' + roleColor + ';color:#fff;font-size:10px;padding:2px 8px;border-radius:10px;font-weight:600;">' + s.role + '</span>' +
+  function buildTopPropertiesCard(propPerf, range) {
+    const sorted = [...propPerf].sort((a, b) => b.revenue - a.revenue);
+    const maxRev = Math.max(...sorted.map(p => p.revenue), 1);
+    return '<div class="card"><div class="section-title">📊 Revenue Breakdown — ' + range.label + '</div>' +
+      sorted.map(p => {
+        const onlinePct = p.revenue > 0 ? (p.onlineRev / p.revenue * 100) : 0;
+        const offlinePct = p.revenue > 0 ? (p.offlineRev / p.revenue * 100) : 0;
+        const totalPct = (p.revenue / maxRev * 100);
+        return '<div style="padding:10px 0;border-bottom:1px solid #eee;">' +
+          '<div style="display:flex;justify-content:space-between;margin-bottom:6px;">' +
+            '<strong>' + (p.room.nickname || p.room.unit_no) + '</strong>' +
+            '<span style="font-weight:700;">' + formatK(p.revenue) + '</span></div>' +
+          '<div style="display:flex;height:8px;background:#F5F5F5;border-radius:4px;overflow:hidden;">' +
+            '<div style="background:#FF385C;width:' + (totalPct * onlinePct / 100) + '%;"></div>' +
+            '<div style="background:#F59E0B;width:' + (totalPct * offlinePct / 100) + '%;"></div>' +
           '</div>' +
-          '<div style="font-size:18px;font-weight:800;color:#0A7D1A;">' + formatK(s.bookingRev) + '</div>' +
-        '</div>' +
-        '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;font-size:12px;">' +
-          '<div>📅 <strong>' + s.bookings + '</strong> bookings<br>' +
-            '<small style="color:#888;">' + formatK(s.bookingRev) + ' revenue</small></div>' +
-          '<div>💰 <strong>' + s.payments + '</strong> payments<br>' +
-            '<small style="color:#888;">' + formatK(s.paymentRev) + ' collected</small></div>' +
-          '<div>' +
-            (s.pending > 0
-              ? '<span style="color:#F59E0B;">⚠️ <strong>' + s.pending + '</strong> pending</span>'
-              : '<span style="color:#0A7D1A;">✅ All verified</span>') +
-            '<br><small style="color:' + rateColor + ';">' + verifyRate + '% verify rate</small>' +
+          '<div style="display:flex;justify-content:space-between;font-size:10px;color:#888;margin-top:3px;">' +
+            '<span>🌐 ' + formatK(p.onlineRev) + ' (' + p.onlineBks + ')</span>' +
+            '<span>🏠 ' + formatK(p.offlineRev) + ' (' + p.offlineBks + ')</span>' +
           '</div>' +
-        '</div>' +
-      '</div>';
-    }).join('');
-
-    container.innerHTML = rows;
-  }
-
-  
-  // ═══ PRINT ANALYTICS AS PDF ═══
-  window.printAnalytics = function() {
-    const originalTitle = document.title;
-    const dateStr = new Date().toLocaleDateString('en-IN');
-    document.title = 'UHHS Analytics — ' + dateStr;
-
-    // Inject print styles
-    const printCSS = document.createElement('style');
-    printCSS.id = 'analytics-print-css';
-    printCSS.textContent = `
-      @media print {
-        body * { visibility: hidden; }
-        #mainContent, #mainContent * { visibility: visible; }
-        #mainContent { position: absolute; left: 0; top: 0; width: 100%; }
-        .drawer, #drawer, .bottom-nav, #bottomNav, .top-bar, #topBar,
-        button, select, .btn-sm, .no-print { display: none !important; }
-        .card { box-shadow: none !important; border: 1px solid #ddd; page-break-inside: avoid; }
-        h1 { color: #FF385C; border-bottom: 2px solid #FF385C; padding-bottom: 8px; }
-        .section-title { color: #222; border-bottom: 1px solid #eee; }
-        table { font-size: 11px !important; }
-        @page { margin: 12mm; size: A4; }
-      }
-    `;
-    document.head.appendChild(printCSS);
-
-    setTimeout(() => {
-      window.print();
-      setTimeout(() => {
-        document.title = originalTitle;
-        printCSS.remove();
-      }, 1000);
-    }, 300);
-  };
-
-  
-  // ═══ PREDICTIONS & FORECASTS ═══
-  async function loadPredictions() {
-    const container = document.getElementById('predictContainer');
-    if (!container) return;
-
-    // Fetch last 90 days for prediction
-    const from90 = daysAgo(90);
-    const today = new Date().toISOString().slice(0, 10);
-
-    const [bkRes, roomsRes] = await Promise.all([
-      sb.from('guest_register')
-        .select('booking_id, check_in, check_out, total_amount, booking_mode')
-        .gte('check_in', from90)
-        .neq('verification_status', 'rejected'),
-      sb.from('rooms').select('room_id')
-    ]);
-
-    const bookings = bkRes.data || [];
-    const rooms = roomsRes.data || [];
-    const totalRooms = rooms.length;
-
-    if (bookings.length < 5) {
-      container.innerHTML = '<div style="color:#888;padding:20px;text-align:center;">Not enough data for predictions (need 5+ bookings)</div>';
-      return;
-    }
-
-    // ─── Calculate daily averages by day-of-week ───
-    const dowStats = [[], [], [], [], [], [], []]; // Sun-Sat
-    bookings.forEach(b => {
-      if (!b.check_in) return;
-      const dow = new Date(b.check_in).getDay();
-      dowStats[dow].push(b.total_amount || 0);
-    });
-    const dowAvg = dowStats.map(arr => arr.length ? arr.reduce((s, v) => s + v, 0) / arr.length : 0);
-
-    // ─── Next 7 days projection ───
-    let projected7d = 0;
-    for (let i = 0; i < 7; i++) {
-      const d = new Date();
-      d.setDate(d.getDate() + i);
-      projected7d += dowAvg[d.getDay()] * 1.2; // ~1.2 bookings per day heuristic
-    }
-
-    // ─── Next 30 days projection based on recent trend ───
-    const last30 = daysAgo(30);
-    const prev30 = daysAgo(60);
-    const last30Bks = bookings.filter(b => b.check_in >= last30);
-    const prev30Bks = bookings.filter(b => b.check_in >= prev30 && b.check_in < last30);
-    const last30Rev = last30Bks.reduce((s, b) => s + (b.total_amount || 0), 0);
-    const prev30Rev = prev30Bks.reduce((s, b) => s + (b.total_amount || 0), 0);
-    const growthRate = prev30Rev > 0 ? (last30Rev - prev30Rev) / prev30Rev : 0;
-    const projected30d = Math.round(last30Rev * (1 + Math.min(growthRate, 0.5))); // cap growth at 50%
-
-    // ─── Occupancy projection ───
-    let last30Nights = 0;
-    last30Bks.forEach(b => {
-      last30Nights += Math.min(calcNights(b.check_in, b.check_out), 30);
-    });
-    const last30Occ = totalRooms > 0 ? (last30Nights / (totalRooms * 30) * 100) : 0;
-    const projected30Occ = Math.min(100, Math.round(last30Occ * (1 + growthRate * 0.5)));
-
-    // ─── Best/worst days of week ───
-    const dowNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-    let bestDow = 0, worstDow = 0;
-    for (let i = 0; i < 7; i++) {
-      if (dowAvg[i] > dowAvg[bestDow]) bestDow = i;
-      if (dowAvg[i] < dowAvg[worstDow] && dowAvg[i] > 0) worstDow = i;
-    }
-
-    // ─── Seasonality: this month vs same month prev quarter ───
-    const currentMonth = new Date().getMonth();
-    const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-
-    // ─── Booked-in advance ratio ───
-    const nowStr = today;
-    const futureBks = bookings.filter(b => b.check_in > nowStr).length;
-
-    // ─── Render ───
-    const trendIcon = growthRate > 0.05 ? '📈' : growthRate < -0.05 ? '📉' : '➡️';
-    const trendColor = growthRate > 0.05 ? '#0A7D1A' : growthRate < -0.05 ? '#DC2626' : '#F59E0B';
-
-    container.innerHTML =
-      '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;">' +
-
-        '<div style="background:linear-gradient(135deg,#8B5CF6,#6D28D9);color:#fff;padding:16px;border-radius:12px;">' +
-          '<div style="font-size:11px;opacity:0.9;">📅 NEXT 7 DAYS</div>' +
-          '<div style="font-size:26px;font-weight:800;margin-top:4px;">' + formatK(projected7d) + '</div>' +
-          '<div style="font-size:11px;opacity:0.9;">Projected revenue</div>' +
-        '</div>' +
-
-        '<div style="background:linear-gradient(135deg,#3B82F6,#1E40AF);color:#fff;padding:16px;border-radius:12px;">' +
-          '<div style="font-size:11px;opacity:0.9;">📊 NEXT 30 DAYS</div>' +
-          '<div style="font-size:26px;font-weight:800;margin-top:4px;">' + formatK(projected30d) + '</div>' +
-          '<div style="font-size:11px;opacity:0.9;">' + trendIcon + ' ' + (growthRate >= 0 ? '+' : '') + (growthRate * 100).toFixed(0) + '% growth trend</div>' +
-        '</div>' +
-
-        '<div style="background:linear-gradient(135deg,#0A7D1A,#065F17);color:#fff;padding:16px;border-radius:12px;">' +
-          '<div style="font-size:11px;opacity:0.9;">🏠 EXPECTED OCCUPANCY</div>' +
-          '<div style="font-size:26px;font-weight:800;margin-top:4px;">' + projected30Occ + '%</div>' +
-          '<div style="font-size:11px;opacity:0.9;">Next 30 days</div>' +
-        '</div>' +
-
-        '<div style="background:linear-gradient(135deg,#F59E0B,#B45309);color:#fff;padding:16px;border-radius:12px;">' +
-          '<div style="font-size:11px;opacity:0.9;">📅 FUTURE BOOKINGS</div>' +
-          '<div style="font-size:26px;font-weight:800;margin-top:4px;">' + futureBks + '</div>' +
-          '<div style="font-size:11px;opacity:0.9;">Already booked ahead</div>' +
-        '</div>' +
-
-      '</div>' +
-
-      '<div style="margin-top:16px;padding:14px;background:#F3F4F6;border-radius:10px;">' +
-        '<div style="font-weight:700;margin-bottom:10px;">📈 Day-of-Week Performance</div>' +
-        '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(60px,1fr));overflow-x:auto;gap:6px;">' +
-          [0,1,2,3,4,5,6].map(i => {
-            const isMax = i === bestDow;
-            const isMin = i === worstDow && dowAvg[i] > 0;
-            const bg = isMax ? '#D1FAE5' : isMin ? '#FEE2E2' : '#fff';
-            const border = isMax ? '2px solid #0A7D1A' : isMin ? '2px solid #DC2626' : '1px solid #ddd';
-            return '<div style="background:' + bg + ';border:' + border + ';padding:10px;border-radius:8px;text-align:center;">' +
-              '<div style="font-size:10px;color:#888;">' + dowNames[i].slice(0,3) + '</div>' +
-              '<div style="font-size:14px;font-weight:700;">' + formatK(dowAvg[i]) + '</div>' +
-              (isMax ? '<div style="font-size:9px;color:#0A7D1A;">🏆 BEST</div>' : '') +
-              (isMin ? '<div style="font-size:9px;color:#DC2626;">⚠️ LOW</div>' : '') +
-            '</div>';
-          }).join('') +
-        '</div>' +
-      '</div>' +
-
-      '<div style="margin-top:14px;padding:12px;background:#EDE9FE;border-radius:8px;border-left:4px solid #8B5CF6;">' +
-        '<strong>💡 Insight:</strong> ' +
-        (growthRate > 0.15
-          ? 'Strong growth momentum! Consider raising prices 5-10%.'
-          : growthRate < -0.1
-          ? 'Revenue declining — check pricing, marketing, competitors.'
-          : 'Steady performance. Best day: ' + dowNames[bestDow] + '. Boost ' + dowNames[worstDow] + ' with weekday discount.') +
-      '</div>';
+        '</div>';
+      }).join('') +
+    '</div>';
   }
 
   window.renderAnalytics = renderAnalytics;
