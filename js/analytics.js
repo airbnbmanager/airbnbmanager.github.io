@@ -277,10 +277,18 @@
       const occupancyPct = range.days > 0 ? Math.min(100, (bookedNights / range.days) * 100) : 0;
       const vacantDays = range.days - bookedNights;
 
+      // Adjust thresholds for prorated periods
+      const scaleFactor = isIncomplete ? (daysCompleted / range.days) : 1;
+      const lossThreshold = 0;  // Loss is always loss
+      const warningProfitThreshold = 5000 * scaleFactor;
+      const healthyProfitThreshold = 10000 * scaleFactor;
+      const warningOccThreshold = 30;  // Occupancy % stays same
+      const healthyOccThreshold = 60;
+      
       let status;
-      if (profit < 0) status = 'CRITICAL';
-      else if (profit < 5000 || occupancyPct < 30) status = 'WARNING';
-      else if (profit > 10000 && occupancyPct > 60) status = 'HEALTHY';
+      if (profit < lossThreshold) status = 'CRITICAL';
+      else if (profit < warningProfitThreshold || occupancyPct < warningOccThreshold) status = 'WARNING';
+      else if (profit > healthyProfitThreshold && occupancyPct > healthyOccThreshold) status = 'HEALTHY';
       else status = 'NEUTRAL';
 
       const avgOfflineRate = roomOffline.length > 0
@@ -419,10 +427,12 @@
   function buildFilterCard(opts) {
     const btnStyle = 'margin:0;border-radius:0;padding:8px 14px;';
     return '<div class="card no-print">' +
-      '<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">' +
-        '<h1 style="margin:0;">📊 Analytics Dashboard</h1>' +
-        '<div><button class="btn-sm outline" onclick="renderAnalytics()">🔄 Refresh</button> ' +
-        '<button class="btn-sm" onclick="printAnalytics()">🖨️ Print</button></div>' +
+      '<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:8px;">' +
+        '<h1 style="margin:0;font-size:24px;">📊 Analytics Dashboard</h1>' +
+        '<div style="display:flex;gap:6px;">' +
+          '<button class="btn-sm outline" onclick="renderAnalytics()">🔄 Refresh</button>' +
+          '<button class="btn-sm" onclick="printAnalytics()">🖨️ Print</button>' +
+        '</div>' +
       '</div>' +
       '<div style="margin-top:16px;padding:14px;background:#F8F9FA;border-radius:8px;">' +
         '<div style="display:flex;flex-wrap:wrap;gap:12px;align-items:end;">' +
@@ -444,14 +454,31 @@
   }
 
   function buildBusinessHealthCard(current, compare, propPerf) {
+    // Check if using template data (same expense across properties)
+    const uniqueExpenses = new Set(propPerf.filter(p => p.expenses > 0).map(p => p.expenses));
+    const isTemplateData = uniqueExpenses.size === 1 && propPerf.filter(p => p.expenses > 0).length > 3;
     const critical = propPerf.filter(p => p.status === 'CRITICAL').length;
     const warning = propPerf.filter(p => p.status === 'WARNING').length;
     const healthy = propPerf.filter(p => p.status === 'HEALTHY').length;
     
+    // Business health based on OVERALL profit, not just property counts
     let overallHealth, healthColor, healthIcon;
-    if (critical > propPerf.length * 0.3) { overallHealth = 'Critical'; healthColor = '#DC2626'; healthIcon = '🔴'; }
-    else if (critical > 0 || warning > propPerf.length * 0.4) { overallHealth = 'Needs Attention'; healthColor = '#F59E0B'; healthIcon = '🟡'; }
-    else { overallHealth = 'Healthy'; healthColor = '#0A7D1A'; healthIcon = '🟢'; }
+    const overallProfitable = current.netProfit > 0;
+    const criticalRatio = critical / Math.max(1, propPerf.length);
+    
+    if (!overallProfitable || criticalRatio > 0.4) {
+      overallHealth = 'Critical';
+      healthColor = '#DC2626';
+      healthIcon = '🔴';
+    } else if (criticalRatio > 0.1 || warning > propPerf.length * 0.5) {
+      overallHealth = 'Needs Attention';
+      healthColor = '#F59E0B';
+      healthIcon = '🟡';
+    } else {
+      overallHealth = 'Healthy';
+      healthColor = '#0A7D1A';
+      healthIcon = '🟢';
+    }
 
     const revGrowth = compare.totalRevenue > 100 ? ((current.totalRevenue - compare.totalRevenue) / compare.totalRevenue * 100) : 0;
 
@@ -464,7 +491,9 @@
           '<div style="text-align:center;"><div style="font-size:11px;color:#666;">Profit Margin</div><div style="font-size:20px;font-weight:700;color:' + (current.profitMargin >= 0 ? '#0A7D1A' : '#DC2626') + ';">' + current.profitMargin.toFixed(1) + '%</div></div>' +
           '<div style="text-align:center;"><div style="font-size:11px;color:#666;">Occupancy</div><div style="font-size:20px;font-weight:700;color:#3B82F6;">' + Math.round(current.occupancy) + '%</div></div>' +
         '</div>' +
-      '</div></div>';
+      '</div>' +
+      (isTemplateData ? '<div style="margin-top:10px;padding:8px 12px;background:#FEF3C7;border-radius:6px;font-size:11px;color:#92400E;">💡 <strong>Note:</strong> All properties currently show same expense value (template data). Update individual property expenses for accurate insights.</div>' : '') +
+    '</div>';
   }
 
   function buildInsightsCard(insights) {
