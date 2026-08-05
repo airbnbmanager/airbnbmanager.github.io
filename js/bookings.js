@@ -591,7 +591,7 @@ async function renderManageBookings() {
     f = f.filter(b => {
       // Explicit skips — these are legitimate, not duplicates
       if (b.linked_booking_id) return false;
-      if (b.is_review_booking) return false;
+      if (b.show_to_investor === false) return false;
       if (b.is_cancelled) return false;
       if (b.parent_booking_id) return false;
       if (b.stay_group_id) return false;
@@ -764,7 +764,7 @@ async function renderManageBookings() {
           <td>${statusBadge}</td>
           <td>
             <strong style="cursor:pointer;text-decoration:underline;color:var(--blue);"
-              onclick="showGuestLedger('${(b.guest_name || '').replace(/'/g, "\\'")}')">${b.guest_name || '-'}</strong>${typeof getGuestTierBadge === 'function' ? getGuestTierBadge(b) : ''}${b.is_cancelled ? ' <span class="badge red" style="font-size:9px;" title="' + (b.cancellation_reason || '').replace(/"/g,'&quot;') + '">🚫 CANCELLED</span>' : ''}${b.verification_status === 'pending' ? ' <span class="badge yellow" style="font-size:9px;">🟡 Pending</span>' : ''}${b.is_review_booking ? ' <span class="badge" style="font-size:9px;background:#8B5CF6;color:#fff;">👻 Review</span>' : ''}${b.verification_status === 'rejected' ? ' <span class="badge red" style="font-size:9px;" title="' + (b.rejection_reason || '').replace(/"/g,'&quot;') + '">❌ Rejected</span>' : ''}<br>
+              onclick="showGuestLedger('${(b.guest_name || '').replace(/'/g, "\\'")}')">${b.guest_name || '-'}</strong>${typeof getGuestTierBadge === 'function' ? getGuestTierBadge(b) : ''}${b.is_cancelled ? ' <span class="badge red" style="font-size:9px;" title="' + (b.cancellation_reason || '').replace(/"/g,'&quot;') + '">🚫 CANCELLED</span>' : ''}${b.verification_status === 'pending' ? ' <span class="badge yellow" style="font-size:9px;">🟡 Pending</span>' : ''}${b.is_review_booking ? ' <span class="badge" style="font-size:9px;background:#8B5CF6;color:#fff;">👻 Review</span>' : ''}${b.show_to_investor === false ? ' <span class="badge" style="font-size:9px;background:#DC2626;color:#fff;" title="' + (b.hide_reason || 'Hidden from investor reports').replace(/"/g,'&quot;') + '">🚫 Hidden</span>' : ''}${b.verification_status === 'rejected' ? ' <span class="badge red" style="font-size:9px;" title="' + (b.rejection_reason || '').replace(/"/g,'&quot;') + '">❌ Rejected</span>' : ''}<br>
             <small style="color:var(--muted);">${b.phone || ''}</small>
             ${b.created_by ? '<br><small style="color:#888;font-size:10px;">👤 ' + (window._userNameCache[b.created_by] || b.booked_by || 'User') + '</small>' : (b.booked_by ? '<br><small style="color:#888;font-size:10px;">👤 ' + b.booked_by + '</small>' : '')}
             ${b.verification_status === 'pending' && isTrustedUser() ? '<br><button class="btn-sm green-btn" style="padding:2px 8px;font-size:10px;margin-top:2px;" onclick="event.stopPropagation();approveBooking(\'' + b.booking_id + '\')">✅ Approve</button> <button class="btn-sm danger" style="padding:2px 8px;font-size:10px;" onclick="event.stopPropagation();rejectBooking(\'' + b.booking_id + '\')">❌ Reject</button>' : ''}
@@ -933,6 +933,22 @@ async function renderAddBooking() {
           <div style="font-size:11px;color:#888;margin-top:4px;">This booking will skip clash check + not count in revenue/occupancy</div>
         </div>
       </div>
+
+      ${['developer','admin','manager'].includes(SESSION.role) ? `
+      <div class="form-group" style="padding:12px;background:#F0F7FF;border-radius:8px;border:1px solid #3B82F6;">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:600;">
+          <input type="checkbox" id="showToInvestor" checked onchange="toggleHideReason()" style="width:18px;height:18px;" />
+          <span>👁️ Show this booking to Investor</span>
+        </label>
+        <div style="font-size:11px;color:#666;margin-top:4px;margin-left:26px;">
+          ✅ Checked (default): Booking will appear in investor reports<br>
+          🚫 Unchecked: Booking hidden from investor reports (admin-only)
+        </div>
+        <div id="hideReasonWrap" style="display:none;margin-top:8px;">
+          <label style="font-size:12px;color:#666;">📝 Reason for hiding (optional):</label>
+          <input id="hideReason" placeholder="e.g. Complimentary stay, renovation team, personal use" style="width:100%;padding:8px;margin-top:4px;font-size:13px;" />
+        </div>
+      </div>` : ''}
 
 
       <div id="onlineBox" style="display:none;background:#f0f7ff;padding:12px;border-radius:8px;margin:6px 0;">
@@ -1636,6 +1652,20 @@ async function uploadVehiclePhoto(bkId) {
   return null;
 }
 // ============ SAVE BOOKING ============
+function toggleHideReason() {
+  const cb = document.getElementById('showToInvestor');
+  const wrap = document.getElementById('hideReasonWrap');
+  if (!cb || !wrap) return;
+  wrap.style.display = cb.checked ? 'none' : 'block';
+}
+
+function toggleEditHideReason() {
+  const cb = document.getElementById('editShowToInvestor');
+  const wrap = document.getElementById('editHideReasonWrap');
+  if (!cb || !wrap) return;
+  wrap.style.display = cb.checked ? 'none' : 'block';
+}
+
 async function saveBooking() {
   const btn = document.getElementById('saveBtn');
   if (btn.disabled) return;
@@ -1677,6 +1707,12 @@ async function saveBooking() {
     const vehicleName = hasVehicle ? (document.getElementById('vehicleName')?.value.trim() || null) : null;
     const vehicleNumber = hasVehicle ? (document.getElementById('vehicleNumber')?.value.trim() || null) : null;
     let notes = document.getElementById('bkNotes').value.trim();
+
+    // NEW: Read show_to_investor + hide_reason (admin toggle)
+    const showToInvEl = document.getElementById('showToInvestor');
+    const showToInvestor = showToInvEl ? showToInvEl.checked : true;  // default true
+    const hideReasonEl = document.getElementById('hideReason');
+    const hideReason = (!showToInvestor && hideReasonEl) ? hideReasonEl.value.trim() || null : null;
 
     if (!gn || !rid) {
       document.getElementById('addBkErr').innerHTML = '<div class="error">Guest name & property required</div>';
@@ -1760,7 +1796,9 @@ async function saveBooking() {
       has_vehicle: hasVehicle, vehicle_name: vehicleName, vehicle_number: vehicleNumber,
       vehicle_photo_path: vehiclePhotoPath,
       payment_status: payStatus, notes: finalNotes || null,
-      booked_by: SESSION.displayName || SESSION.role
+      booked_by: SESSION.displayName || SESSION.role,
+      show_to_investor: showToInvestor,
+      hide_reason: hideReason
     });
 
     if (error) {
@@ -2173,6 +2211,22 @@ async function editBooking(bkId) {
         </div>
       </div>
 
+      ${['developer','admin','manager'].includes(SESSION.role) ? `
+      <div class="form-group" style="padding:12px;background:#F0F7FF;border-radius:8px;border:1px solid #3B82F6;">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:600;">
+          <input type="checkbox" id="editShowToInvestor" ${b.show_to_investor !== false ? 'checked' : ''} onchange="toggleEditHideReason()" style="width:18px;height:18px;" />
+          <span>👁️ Show this booking to Investor</span>
+        </label>
+        <div style="font-size:11px;color:#666;margin-top:4px;margin-left:26px;">
+          ✅ Checked: Booking appears in investor reports<br>
+          🚫 Unchecked: Booking hidden from investor reports (admin-only)
+        </div>
+        <div id="editHideReasonWrap" style="display:${b.show_to_investor === false ? 'block' : 'none'};margin-top:8px;">
+          <label style="font-size:12px;color:#666;">📝 Reason for hiding (optional):</label>
+          <input id="editHideReason" value="${(b.hide_reason || '').replace(/"/g, '&quot;')}" placeholder="e.g. Complimentary stay, renovation team" style="width:100%;padding:8px;margin-top:4px;font-size:13px;" />
+        </div>
+      </div>` : ''}
+
       <div class="form-group"><label>Notes</label><textarea id="bkNotes">${b.notes || ''}</textarea></div>
       <button onclick="updateBooking('${bkId}','${b.parent_booking_id || ''}','${b.stay_group_id || b.booking_id}')">💾 Update</button>
       <div id="editBkErr"></div>
@@ -2245,6 +2299,16 @@ async function deleteIdPhoto(bkId, path, side, index) {
     updateObj.id_proof_photo_paths = allArr.join(',') || null;
     updateObj.id_proof_photo_path = allArr[0] || null;
 
+    // NEW: Add show_to_investor + hide_reason to update
+    const editShowToInvEl = document.getElementById('editShowToInvestor');
+    if (editShowToInvEl) {
+      updateObj.show_to_investor = editShowToInvEl.checked;
+      const editHideReasonEl = document.getElementById('editHideReason');
+      updateObj.hide_reason = (!editShowToInvEl.checked && editHideReasonEl) 
+        ? editHideReasonEl.value.trim() || null 
+        : null;
+    }
+    
     await sb.from('guest_register').update(updateObj).eq('booking_id', bkId);
 
     fsn.success('Success', '✅ Photo deleted');
