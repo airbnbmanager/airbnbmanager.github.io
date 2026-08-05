@@ -293,13 +293,52 @@ async function renderAddExpEntry() {
     <div class="card">
       <div class="form-group">
         <label>Category *</label>
-        <select id="exCat" onchange="onExpCatChg()">
-          <option value="">Select</option>
-          ${(cats || []).map(c =>
-            `<option value="${c.category_id}">${c.category_name}</option>`
-          ).join('')}
-        </select>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <select id="exCat" onchange="onExpCatChg()" style="flex:1;">
+            <option value="">Select</option>
+            ${(cats || []).map(c =>
+              `<option value="${c.category_id}">${c.category_name}</option>`
+            ).join('')}
+          </select>
+          <button type="button" class="btn-sm secondary"
+            onclick="toggleInlineCatForm()"
+            style="white-space:nowrap;padding:8px 12px;">
+            ➕ New
+          </button>
+        </div>
       </div>
+
+      <div id="inlineCatForm" style="display:none;background:#f0f7ff;
+        border-left:3px solid var(--blue);padding:12px;
+        border-radius:8px;margin-bottom:8px;">
+        <div style="font-weight:600;margin-bottom:8px;font-size:13px;">
+          ➕ Add New Category
+        </div>
+        <div class="form-grid" style="margin-bottom:8px;">
+          <div class="form-group" style="margin:0;">
+            <input id="inlineCatName" placeholder="Category name *"
+              style="font-size:13px;" />
+          </div>
+          <div class="form-group" style="margin:0;">
+            <input id="inlineCatAmt" type="number"
+              placeholder="Default ₹/month"
+              style="font-size:13px;" />
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;">
+          <button type="button" onclick="saveInlineCategory()"
+            style="flex:1;padding:8px;font-size:13px;">
+            💾 Save Category
+          </button>
+          <button type="button" class="secondary"
+            onclick="toggleInlineCatForm()"
+            style="padding:8px 12px;font-size:13px;">
+            ✕
+          </button>
+        </div>
+        <div id="inlineCatErr" style="margin-top:6px;"></div>
+      </div>
+
       <div id="exCatInfo" class="sub" style="margin-bottom:8px;"></div>
       <div class="form-group">
         <label>Property</label>
@@ -346,6 +385,80 @@ function onExpCatChg() {
   } else {
     document.getElementById('exCatInfo').innerHTML = '';
   }
+}
+
+// ============ INLINE CATEGORY (from expense form) ============
+function toggleInlineCatForm() {
+  const form = document.getElementById('inlineCatForm');
+  if (!form) return;
+  const isHidden = form.style.display === 'none';
+  form.style.display = isHidden ? 'block' : 'none';
+  if (isHidden) {
+    document.getElementById('inlineCatName').focus();
+    document.getElementById('inlineCatErr').innerHTML = '';
+  }
+}
+
+async function saveInlineCategory() {
+  const btn = document.querySelector('button[onclick="saveInlineCategory()"]');
+  if (btn) { if (btn.disabled) return; btn.disabled = true; btn.textContent = '⏳...'; }
+
+  const name = (document.getElementById('inlineCatName')?.value || '').trim();
+  const amt  = parseFloat(document.getElementById('inlineCatAmt')?.value) || null;
+
+  if (!name) {
+    document.getElementById('inlineCatErr').innerHTML =
+      '<div class="error" style="font-size:12px;">Category name required</div>';
+    if (btn) { btn.disabled = false; btn.textContent = '💾 Save Category'; }
+    return;
+  }
+
+  const newId = 'EXP' + Date.now();
+
+  const { error } = await sb.from('expense_categories').insert({
+    category_id: newId,
+    category_name: name,
+    default_monthly_amount: amt
+  });
+
+  if (error) {
+    document.getElementById('inlineCatErr').innerHTML =
+      `<div class="error" style="font-size:12px;">${error.message}</div>`;
+    if (btn) { btn.disabled = false; btn.textContent = '💾 Save Category'; }
+    return;
+  }
+
+  // Add to window cache
+  const newCat = { category_id: newId, category_name: name, default_monthly_amount: amt };
+  window._expCats = [...(window._expCats || []), newCat];
+
+  // Add to dropdown + select it
+  const sel = document.getElementById('exCat');
+  if (sel) {
+    const opt = document.createElement('option');
+    opt.value = newId;
+    opt.textContent = name;
+    sel.appendChild(opt);
+    sel.value = newId;
+  }
+
+  // Show default hint if amt given
+  if (amt) {
+    document.getElementById('exCatInfo').innerHTML =
+      `💡 Default: ₹${amt.toLocaleString('en-IN')}`;
+    const amtInput = document.getElementById('exAmt');
+    if (amtInput && !amtInput.value) amtInput.value = amt;
+  }
+
+  // Hide form + reset
+  document.getElementById('inlineCatName').value = '';
+  document.getElementById('inlineCatAmt').value  = '';
+  document.getElementById('inlineCatErr').innerHTML = '';
+  document.getElementById('inlineCatForm').style.display = 'none';
+
+  fsn.success('Success', `✅ "${name}" category added!`);
+
+  if (btn) { btn.disabled = false; btn.textContent = '💾 Save Category'; }
 }
 
 async function saveExpEntry() {
