@@ -1634,10 +1634,18 @@ window.sendPlainEmail = async function(investorId) {
       l.rooms?.nickname || l.rooms?.property_name || l.room_id
     ).join(', ') || 'your properties';
     
-    // Use SELECTED month (from modal) instead of current
+    // Use SELECTED month (from prompt) instead of current
     const selected = window._waSelectedMonth;
-    const now = selected ? new Date(selected.year, selected.month - 1, 1) : new Date();
-    const monthName = selected ? selected.monthName : now.toLocaleString('en-IN', { month: 'long', year: 'numeric' });
+    let now, monthName;
+    if (selected) {
+      now = new Date(selected.year, selected.month - 1, 1);
+      monthName = selected.monthName;
+      console.log('📅 Using selected month:', monthName);
+    } else {
+      now = new Date();
+      monthName = now.toLocaleString('en-IN', { month: 'long', year: 'numeric' });
+      console.log('⚠️  No selection, using current month:', monthName);
+    }
     // NEW: Multi-investor aware
     const invNamesEmail = (inv.name || 'Investor').split('&').map(n => n.trim()).filter(n => n);
     const isMultiEmail = invNamesEmail.length > 1;
