@@ -217,12 +217,36 @@ async function updateInvestor(investorId) {
     }).eq('investor_id', investorId);
     if (error) throw new Error(error.message);
 
-    // Update property links — delete all old, insert new
-    await sb.from('investor_properties').delete().eq('investor_id', investorId);
-
-    if (selectedRooms.length > 0) {
-      const links = selectedRooms.map(rid => ({ investor_id: investorId, room_id: rid }));
-      const { error: linkErr } = await sb.from('investor_properties').insert(links);
+    // SMART UPDATE: preserve share_percent for existing links
+    // Get current links with their share_percent
+    const { data: currentLinks } = await sb.from('investor_properties')
+      .select('room_id, share_percent, is_active')
+      .eq('investor_id', investorId);
+    
+    const currentRoomIds = (currentLinks || []).map(l => l.room_id);
+    
+    // Rooms to ADD (in selected but not in current)
+    const toAdd = selectedRooms.filter(rid => !currentRoomIds.includes(rid));
+    // Rooms to REMOVE (in current but not in selected)
+    const toRemove = currentRoomIds.filter(rid => !selectedRooms.includes(rid));
+    
+    // Remove only unselected ones (preserves share_percent for others!)
+    if (toRemove.length > 0) {
+      await sb.from('investor_properties')
+        .delete()
+        .eq('investor_id', investorId)
+        .in('room_id', toRemove);
+    }
+    
+    // Add new ones with default 100% share (user can edit later)
+    if (toAdd.length > 0) {
+      const newLinks = toAdd.map(rid => ({ 
+        investor_id: investorId, 
+        room_id: rid,
+        share_percent: 100,
+        is_active: true
+      }));
+      const { error: linkErr } = await sb.from('investor_properties').insert(newLinks);
       if (linkErr) throw new Error(linkErr.message);
     }
 
@@ -283,6 +307,15 @@ async function renderLinkProp() {
           ${(window._invRooms || []).map(r => `<option value="${r.room_id}">${propLabel(r)}</option>`).join('')}
         </select>
       </div>
+      <div class="form-group">
+        <label>Share % for this Property *</label>
+        <input id="lShare" type="number" min="0" max="100" step="0.01" 
+          value="100" placeholder="e.g. 50 for 50%" />
+        <small style="color:var(--muted);">
+          Agar property ke multiple investors hain to divide karo.<br>
+          Example: 2 investors = 50 each, 3 investors = 33.33 each
+        </small>
+      </div>
       <button onclick="saveLink()" style="width:100%;">💾 Link Property</button>
       <div id="lErr"></div>
     </div>
@@ -292,8 +325,15 @@ async function renderLinkProp() {
 async function saveLink() {
   const inv = document.getElementById('lInv').value;
   const room = document.getElementById('lRoom').value;
+  const share = parseFloat(document.getElementById('lShare')?.value) || 100;
+  
   if (!inv || !room) {
-    document.getElementById('lErr').innerHTML = '<div class="error">Both fields required</div>';
+    document.getElementById('lErr').innerHTML = '<div class="error">Investor & property required</div>';
+    return;
+  }
+  
+  if (share < 0 || share > 100) {
+    document.getElementById('lErr').innerHTML = '<div class="error">Share % must be between 0 and 100</div>';
     return;
   }
 
@@ -302,14 +342,19 @@ async function saveLink() {
     .select('investor_id').eq('investor_id', inv).eq('room_id', room).single();
 
   if (existing) {
-    document.getElementById('lErr').innerHTML = '<div class="error">Already linked!</div>';
+    document.getElementById('lErr').innerHTML = '<div class="error">Already linked! Use Edit Share instead.</div>';
     return;
   }
 
-  const { error } = await sb.from('investor_properties').insert({ investor_id: inv, room_id: room });
+  const { error } = await sb.from('investor_properties').insert({ 
+    investor_id: inv, 
+    room_id: room,
+    share_percent: share,
+    is_active: true
+  });
   if (error) { document.getElementById('lErr').innerHTML = `<div class="error">${error.message}</div>`; return; }
 
-  fsn.success('Success', '✅ Property linked!');
+  fsn.success('Success', `✅ Property linked with ${share}% share!`);
   renderManageInvestors();
 }
 
