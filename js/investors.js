@@ -57,6 +57,7 @@ async function renderManageInvestors() {
             <td style="font-size:12px;">${propBadges}</td>
             <td class="table-actions" style="white-space:nowrap;">
               ${iLinks.map(l => `<button class="btn-sm" title="Report ${l.room_id}" onclick="renderInvestorReport('${i.investor_id}','${l.room_id}')">📊</button>`).join('')}
+              ${i.phone ? `<button class="btn-sm" style="background:#25D366;color:#fff;" title="Send WhatsApp" onclick="quickWhatsAppInvestor('${i.investor_id}')">📱</button>` : ''}
               ${isO ? `<button class="btn-sm" title="Edit" onclick="editInvestor('${i.investor_id}')">✏️</button>` : ''}
               ${isO ? `<button class="btn-sm danger" title="Delete" onclick="deleteInvestor('${i.investor_id}','${i.name}')">🗑️</button>` : ''}
             </td>
