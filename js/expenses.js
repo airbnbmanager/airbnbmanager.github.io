@@ -1217,6 +1217,38 @@ async function renderMonthlyExpenses(roomId, month) {
       <div class="btn-row">
         ${(prevExps || []).length > 0 ? `<button class="btn-sm outline" onclick="copyPrevMonthExpenses()">📋 Copy from ${prevMonthLabel}</button>` : ''}
         <button class="btn-sm outline" onclick="applyDefaultExpenses()">⚙️ Apply Defaults</button>
+        <button class="btn-sm secondary" onclick="toggleMonthlyInlineCat()">➕ New Category</button>
+      </div>
+
+      <div id="monthlyInlineCatForm" style="display:none;background:#f0f7ff;
+        border-left:3px solid var(--blue);padding:12px;
+        border-radius:8px;margin-top:10px;">
+        <div style="font-weight:600;margin-bottom:8px;font-size:13px;">
+          ➕ Add New Expense Category
+        </div>
+        <div class="form-grid" style="margin-bottom:8px;">
+          <div class="form-group" style="margin:0;">
+            <input id="monthlyCatName" placeholder="Category name *"
+              style="font-size:13px;" />
+          </div>
+          <div class="form-group" style="margin:0;">
+            <input id="monthlyCatAmt" type="number"
+              placeholder="Default ₹/month (optional)"
+              style="font-size:13px;" />
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;">
+          <button type="button" onclick="saveMonthlyInlineCat()"
+            style="flex:1;padding:8px;font-size:13px;">
+            💾 Save & Add to List
+          </button>
+          <button type="button" class="secondary"
+            onclick="toggleMonthlyInlineCat()"
+            style="padding:8px 12px;font-size:13px;">
+            ✕
+          </button>
+        </div>
+        <div id="monthlyCatErr" style="margin-top:6px;"></div>
       </div>
     </div>
 
