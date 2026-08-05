@@ -467,26 +467,7 @@
         '<div id="staffPerfContainer"><div class="loading">Loading staff stats...</div></div>' +
       '</div>';
 
-    // Predictions placeholder (loaded async)
-    const predictHtml =
-      '<div class="card" style="margin-top:16px;border:2px solid #8B5CF6;">' +
-        '<div class="section-title">🔮 Predictions & Forecasts</div>' +
-        '<div id="predictContainer"><div class="loading">Analyzing trends...</div></div>' +
-      '</div>';
-
-    // Top guests
-    const guestRows = topGuests.map((g, i) => {
-      const isOnline = g.online > g.offline;
-      const src = isOnline ? '🌐 Airbnb' : '💵 Direct';
-      const dueBadge = g.due > 0 ? '<span class="badge red" style="font-size:10px;">Due: ' + formatK(g.due) + '</span>' : '';
-      return '<div style="display:flex;justify-content:space-between;align-items:center;padding:8px;border-bottom:1px solid #eee;">' +
-        '<div>' +
-          '<strong>#' + (i + 1) + ' ' + (g.name || 'Guest') + '</strong> ' + dueBadge + '<br>' +
-          '<small style="color:#888;">' + (g.phone || '') + ' · ' + g.stays + ' stay(s) · ' + src + '</small>' +
-        '</div>' +
-        '<strong style="color:#0A7D1A;">' + formatK(g.revenue) + '</strong>' +
-      '</div>';
-    }).join('') || '<div style="text-align:center;color:#888;padding:20px;">No guests</div>';
+    // (Predictions + Top Guests removed — not actionable)
 
     // ═══ Assemble ═══
     const html =
@@ -532,41 +513,10 @@
           trendChart +
         '</div>' +
 
-        // Donuts row
-        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px;">' +
-          '<div class="card">' +
-            '<div class="section-title">🍩 Payment Modes</div>' +
-            '<div style="display:flex;align-items:center;gap:20px;flex-wrap:wrap;">' +
-              '<div>' + modeDonut + '</div>' +
-              '<div style="flex:1;min-width:180px;">' + modeLegend + '</div>' +
-            '</div>' +
-          '</div>' +
-          '<div class="card">' +
-            '<div class="section-title">🍩 Booking Source</div>' +
-            '<div style="display:flex;align-items:center;gap:20px;flex-wrap:wrap;">' +
-              '<div>' + sourceDonut + '</div>' +
-              '<div style="flex:1;min-width:180px;">' +
-                '<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:12px;"><span><span style="display:inline-block;width:10px;height:10px;background:#FF385C;border-radius:2px;margin-right:6px;"></span>Airbnb</span><span><strong>' + onlineBks.length + '</strong> (' + formatK(onlineRev) + ')</span></div>' +
-                '<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:12px;"><span><span style="display:inline-block;width:10px;height:10px;background:#F59E0B;border-radius:2px;margin-right:6px;"></span>Direct</span><span><strong>' + offlineBks.length + '</strong> (' + formatK(offlineRev) + ')</span></div>' +
-                '<div style="margin-top:10px;padding-top:10px;border-top:1px solid #eee;font-size:11px;color:#888;">' +
-                  '💡 Estimated commission: ' + formatK(commissionEst) + '<br>' +
-                  '💡 If all direct: +' + formatK(commissionEst) + ' profit' +
-                '</div>' +
-              '</div>' +
-            '</div>' +
-          '</div>' +
-        '</div>' +
-
-        // Property + Guests
-        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px;">' +
-          '<div class="card">' +
-            '<div class="section-title">🏠 Top Properties (Online 🌐 / Offline 💵)</div>' +
-            propRows +
-          '</div>' +
-          '<div class="card">' +
-            '<div class="section-title">👤 Top 5 Guests</div>' +
-            guestRows +
-          '</div>' +
+        // Top Properties (full width, no more donuts + guests)
+        '<div class="card" style="margin-top:16px;">' +
+          '<div class="section-title">🏠 Top Properties (Online 🌐 / Offline 💵)</div>' +
+          propRows +
         '</div>' +
 
         // Monthly comparison
@@ -576,7 +526,6 @@
         staffPerfHtml +
 
         // Predictions
-        predictHtml +
 
       '</div>';
 
