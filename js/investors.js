@@ -981,6 +981,28 @@ async function renderEmployeeView() {
 
 // ═══ WHATSAPP INVESTOR REPORT ═══
 window.whatsappInvestorReport = async function(investorId, roomId, monthYear) {
+  // If no monthYear passed, prompt user to select
+  if (!monthYear) {
+    const now = new Date();
+    const monthOpts = [];
+    for (let i = 0; i < 6; i++) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const key = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+      const label = d.toLocaleString('en-IN', {month: 'long', year: 'numeric'});
+      monthOpts.push({ key, label });
+    }
+    let promptMsg = '📱 Send WhatsApp Report\n\nSelect month number:\n';
+    monthOpts.forEach((o, i) => {
+      const marker = i === 0 ? ' (current)' : i === 1 ? ' ⭐' : '';
+      promptMsg += (i + 1) + '. ' + o.label + marker + '\n';
+    });
+    promptMsg += '\nEnter number:';
+    const choice = prompt(promptMsg, '2');
+    if (choice === null) return;
+    const idx = parseInt(choice) - 1;
+    if (isNaN(idx) || idx < 0 || idx >= monthOpts.length) return;
+    monthYear = monthOpts[idx].label;
+  }
   try {
     // Fetch investor details
     const { data: inv } = await sb.from('investors').select('*').eq('investor_id', investorId).single();
@@ -1344,14 +1366,57 @@ async function renderFriendsReport(investorId, roomId, month) {
 // ═══ QUICK ACTIONS — Professional WhatsApp + Email ═══
 // ═══ SHOW MONTH SELECTOR MODAL BEFORE SENDING ═══
 window.quickWhatsAppInvestor = async function(investorId) {
-  // First, show month selector modal
+  // Check investor first
   const { data: inv } = await sb.from('investors').select('name, phone').eq('investor_id', investorId).single();
   if (!inv || !inv.phone) {
     fsn.error('Error', 'Investor not found or no phone number');
     return;
   }
   
-  // Generate last 6 months options
+  // SIMPLE PROMPT for month selection (works reliably)
+  const now = new Date();
+  const monthOpts = [];
+  for (let i = 0; i < 6; i++) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const key = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+    const label = d.toLocaleString('en-IN', {month: 'long', year: 'numeric'});
+    monthOpts.push({ key, label });
+  }
+  
+  // Build prompt message
+  let promptMsg = '📱 Send WhatsApp to ' + inv.name + '\n\n';
+  promptMsg += 'Select month number:\n';
+  monthOpts.forEach((o, i) => {
+    const marker = i === 0 ? ' (current — incomplete)' : i === 1 ? ' ⭐ RECOMMENDED' : '';
+    promptMsg += (i + 1) + '. ' + o.label + marker + '\n';
+  });
+  promptMsg += '\nEnter number (1-6):';
+  
+  const choice = prompt(promptMsg, '2');  // Default: 2 (last month)
+  if (choice === null) return;  // Cancelled
+  
+  const idx = parseInt(choice) - 1;
+  if (isNaN(idx) || idx < 0 || idx >= monthOpts.length) {
+    fsn.error('Invalid', 'Please enter number 1-6');
+    return;
+  }
+  
+  const selected = monthOpts[idx];
+  const [year, month] = selected.key.split('-').map(Number);
+  
+  // Store for use
+  window._waSelectedMonth = {
+    year, month,
+    monthName: selected.label,
+    key: selected.key
+  };
+  
+  await _originalQuickWhatsAppInvestor(investorId);
+};
+
+// Old modal code (unused)
+async function _unusedModalFunction(investorId) {
+  const { data: inv } = await sb.from('investors').select('name, phone').eq('investor_id', investorId).single();
   const monthOpts = [];
   const now = new Date();
   for (let i = 0; i < 6; i++) {
@@ -1470,9 +1535,10 @@ async function _originalQuickWhatsAppInvestor(investorId) {
       'Kripya PDF check karein aur koi query ho toh batayein.' + NL + NL +
       '───────────────' + NL +
       '*Regards,*' + NL +
-      'Praveen Mishra' + NL +
       'Team UHHS' + NL +
-      '📞 +91 9450055554' + NL +
+      'Team UHHS' + NL +
+      '📞 Mr. Shahanshah: 9450055554' + NL +
+      '📞 Mr. Firoz Khan: 8299600709' + NL +
       '🌐 uniquehavenhomesstay.com';
     
     const url = 'https://wa.me/' + finalPhone + '?text=' + encodeURIComponent(message);
@@ -1599,7 +1665,7 @@ window.sendPlainEmail = async function(investorId) {
       'Aapka support hamesha appreciated hai. Dhanyawad!\n\n' +
       '───────────────────────\n' +
       'Warm regards,\n\n' +
-      'Praveen Mishra\n' +
+      'Team UHHS\n' +
       'UNIQUE HAVEN HOMES STAY\n' +
       '📞 +91 9450055554\n' +
       '📧 uniquehavenhomesstay@gmail.com\n' +
