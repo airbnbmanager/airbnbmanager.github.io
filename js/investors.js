@@ -1536,7 +1536,6 @@ async function _originalQuickWhatsAppInvestor(investorId) {
       '───────────────' + NL +
       '*Regards,*' + NL +
       'Team UHHS' + NL +
-      'Team UHHS' + NL +
       '📞 Mr. Shahanshah: 9450055554' + NL +
       '📞 Mr. Firoz Khan: 8299600709' + NL +
       '🌐 uniquehavenhomesstay.com';
