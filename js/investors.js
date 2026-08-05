@@ -388,13 +388,14 @@ async function renderInvestorReport(investorId, roomId, month) {
   const monthEnd = new Date(parseInt(selMonth.split('-')[0]), parseInt(selMonth.split('-')[1]), 0).toISOString().slice(0, 10);
   const monthShort = monthDate.toLocaleString('en-IN', { month: 'short', year: 'numeric' }).replace(' ', '-');
 
-  const [{data:inv}, {data:room}, {data:bookings}, {data:defaults}, {data:expenses}, {data:payments}] = await Promise.all([
+  const [{data:inv}, {data:room}, {data:bookings}, {data:defaults}, {data:expenses}, {data:payments}, {data:link}] = await Promise.all([
     sb.from('investors').select('*').eq('investor_id', investorId).single(),
     sb.from('rooms').select('*').eq('room_id', roomId).single(),
     sb.from('guest_register').select('*').eq('room_id', roomId).gte('check_in', monthStart).lte('check_in', monthEnd).order('check_in'),
     sb.from('property_default_expenses').select('*').eq('room_id', roomId).order('expense_name'),
     sb.from('expenses').select('*, expense_categories(category_name)').eq('room_id', roomId).eq('month', monthShort),
     sb.from('payment_history').select('booking_id, amount'),
+    sb.from('investor_properties').select('share_percent').eq('investor_id', investorId).eq('room_id', roomId).maybeSingle(),
   ]);
 
   // Filter out complimentary/friends bookings + REVIEW bookings (fake Airbnb)
@@ -410,8 +411,15 @@ async function renderInvestorReport(investorId, roomId, month) {
   const excludedBookings = (bookings || []).filter(b => isExcluded(b));
   const activeBookings = (bookings || []).filter(b => !isExcluded(b));
 
-  const share = inv?.revenue_share_pct || 70;
-  const cs = 100 - share;
+  // NEW MULTI-INVESTOR FORMULA:
+  // Company: FIXED 30%
+  // Investor Pool: 70% of profit
+  // This investor's share: pool × (link.share_percent / 100)
+  const COMPANY_PCT = 30;
+  const INVESTOR_POOL_PCT = 70;
+  const investorPoolShare = link?.share_percent || 100;  // % of pool for THIS investor
+  const share = INVESTOR_POOL_PCT;      // for display "70% investor pool"
+  const cs = COMPANY_PCT;                // for display "30% company"
   const bkIds = activeBookings.map(b => b.booking_id);
   const pm = {};
   (payments || []).forEach(p => { if (bkIds.includes(p.booking_id)) pm[p.booking_id] = (pm[p.booking_id] || 0) + (p.amount || 0); });
@@ -435,8 +443,14 @@ async function renderInvestorReport(investorId, roomId, month) {
     : (expenses || []).reduce((s, e) => s + (e.amount || 0), 0);
 
   const profit = totalRev - totalExp;
-  const investorAmount = Math.round(profit * share / 100);
-  const companyAmount = profit - investorAmount;
+  // Company always gets 30%
+  const companyAmount = Math.round(profit * COMPANY_PCT / 100);
+  // Investor pool = 70% of profit
+  const investorPool = profit - companyAmount;
+  // THIS specific investor's share of the pool
+  const investorAmount = Math.round(investorPool * investorPoolShare / 100);
+  // For UI clarity
+  const otherInvestorsAmount = investorPool - investorAmount;
 
   const onlinePct = totalRev > 0 ? Math.round(onRev * 100 / totalRev) : 0;
   const offlinePct = totalRev > 0 ? Math.round(offRev * 100 / totalRev) : 0;
@@ -499,7 +513,7 @@ async function renderInvestorReport(investorId, roomId, month) {
         <p style="font-size:13px;line-height:1.8;text-align:justify;margin:8px 0;">
           Operational expenses included rent, housekeeping, supplies, transportation, and maintenance-related items.
           After deducting all operational costs, the remaining profit has been distributed according to the
-          <strong>${share}% investor and ${cs}% ${BRAND}</strong> revenue-sharing model.
+          <strong>${INVESTOR_POOL_PCT}% investor pool and ${COMPANY_PCT}% ${BRAND}</strong> revenue-sharing model${investorPoolShare < 100 ? ` (this investor holds ${investorPoolShare}% of the investor pool)` : ''}.
         </p>
         <p style="font-size:13px;line-height:1.8;text-align:justify;margin:8px 0;">
           All financial figures have been verified and recalculated.
@@ -513,8 +527,10 @@ async function renderInvestorReport(investorId, roomId, month) {
             <tr><td style="padding:8px;border:1px solid #ccc;"><strong>Total Gross Revenue</strong></td><td style="padding:8px;border:1px solid #ccc;text-align:right;">₹${totalRev.toLocaleString('en-IN')}</td></tr>
             <tr><td style="padding:8px;border:1px solid #ccc;"><strong>Total Operating Expenses</strong></td><td style="padding:8px;border:1px solid #ccc;text-align:right;">₹${totalExp.toLocaleString('en-IN')}</td></tr>
             <tr style="background:linear-gradient(90deg,#FFEBEC,#FFE4D6);"><td style="padding:8px;border:1px solid #FF5A5F;"><strong>Operating Profit</strong></td><td style="padding:8px;border:1px solid #ccc;text-align:right;"><strong>₹${profit.toLocaleString('en-IN')}</strong></td></tr>
-            <tr style="background:#E0F5F3;"><td style="padding:8px;border:1px solid #00A699;"><strong>Investor Share (${share}%)</strong></td><td style="padding:8px;border:1px solid #00A699;text-align:right;color:#00A699;font-weight:700;font-size:14px;">₹${investorAmount.toLocaleString('en-IN')}</td></tr>
-            <tr style="background:#E6F2F4;"><td style="padding:8px;border:1px solid #007A87;"><strong>${BRAND} Share (${cs}%)</strong></td><td style="padding:8px;border:1px solid #007A87;text-align:right;color:#007A87;font-weight:700;font-size:14px;">₹${companyAmount.toLocaleString('en-IN')}</td></tr>
+            <tr style="background:#E6F2F4;"><td style="padding:8px;border:1px solid #007A87;"><strong>${BRAND} Share (${COMPANY_PCT}%)</strong></td><td style="padding:8px;border:1px solid #007A87;text-align:right;color:#007A87;font-weight:700;font-size:14px;">₹${companyAmount.toLocaleString('en-IN')}</td></tr>
+            <tr style="background:#F0F5F5;"><td style="padding:8px;border:1px solid #ccc;"><strong>Total Investor Pool (${INVESTOR_POOL_PCT}%)</strong></td><td style="padding:8px;border:1px solid #ccc;text-align:right;">₹${investorPool.toLocaleString('en-IN')}</td></tr>
+            ${investorPoolShare < 100 ? `<tr style="background:#FFF8E1;"><td style="padding:8px;border:1px solid #ccc;color:#666;">Other Investors Share (${(100 - investorPoolShare).toFixed(2)}% of pool)</td><td style="padding:8px;border:1px solid #ccc;text-align:right;color:#666;">₹${otherInvestorsAmount.toLocaleString('en-IN')}</td></tr>` : ''}
+            <tr style="background:#E0F5F3;"><td style="padding:8px;border:2px solid #00A699;"><strong>Your Share ${investorPoolShare < 100 ? `(${investorPoolShare}% of pool)` : `(100% of pool)`}</strong></td><td style="padding:8px;border:2px solid #00A699;text-align:right;color:#00A699;font-weight:700;font-size:16px;">₹${investorAmount.toLocaleString('en-IN')}</td></tr>
           </tbody>
         </table>
       </div>
