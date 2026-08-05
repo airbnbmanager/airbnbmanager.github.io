@@ -1456,3 +1456,232 @@ async function saveMonthlyInlineCat() {
     renderMonthlyExpenses(d.selRoom, d.selMonth);
   }
 }
+
+// ============================================================
+// MANAGE CATEGORIES — Full CRUD (Add/Edit/Delete)
+// ============================================================
+async function renderManageCategories() {
+  renderShell(`<div class="loading">Loading...</div>`, 'expenses');
+
+  const [{ data: cats }, { data: allExps }] = await Promise.all([
+    sb.from('expense_categories').select('*').order('category_name'),
+    sb.from('expenses').select('category_id')
+  ]);
+
+  const usageMap = {};
+  (allExps || []).forEach(e => {
+    if (e.category_id) usageMap[e.category_id] = (usageMap[e.category_id] || 0) + 1;
+  });
+
+  window._allCats = cats || [];
+
+  renderShell(`
+    <div class="card">
+      <h1>⚙️ Manage Categories</h1>
+      <div class="sub">Add, edit or delete expense categories</div>
+      <div class="btn-row">
+        <button onclick="toggleAddCatForm()">➕ Add New Category</button>
+        <button class="secondary btn-sm" onclick="renderExpenses()">← Back to Expenses</button>
+      </div>
+    </div>
+
+    <div id="addCatFormCard" style="display:none;">
+      <div class="card" style="background:#f0f7ff;border-left:4px solid var(--blue);">
+        <div class="section-title">➕ New Category</div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Category Name *</label>
+            <input id="newCatName" placeholder="e.g. Internet, Gas" />
+          </div>
+          <div class="form-group">
+            <label>Default ₹/month</label>
+            <input id="newCatAmt" type="number" placeholder="Optional" />
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:8px;">
+          <button onclick="saveNewCategory()" style="flex:1;">💾 Save</button>
+          <button class="secondary" onclick="toggleAddCatForm()">✕ Cancel</button>
+        </div>
+        <div id="newCatErr"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="section-title">
+        📂 All Categories
+        <span class="badge blue" style="float:right;">${(cats || []).length} total</span>
+      </div>
+      <div class="table-wrap"><table>
+        <thead><tr>
+          <th>Category</th>
+          <th>Default ₹/month</th>
+          <th>Used In</th>
+          <th>Actions</th>
+        </tr></thead>
+        <tbody>
+          ${(cats || []).length === 0
+            ? '<tr><td colspan="4" class="sub" style="text-align:center;">No categories yet</td></tr>'
+            : (cats || []).map(c => {
+                const count = usageMap[c.category_id] || 0;
+                return `
+                  <tr>
+                    <td><strong>${c.category_name}</strong>
+                      ${c.notes ? `<div class="sub" style="font-size:11px;">${c.notes}</div>` : ''}
+                    </td>
+                    <td style="color:var(--red);font-weight:600;">
+                      ₹${(c.default_monthly_amount || 0).toLocaleString('en-IN')}
+                    </td>
+                    <td>
+                      <span class="badge ${count > 0 ? 'green' : 'yellow'}">
+                        ${count} ${count === 1 ? 'expense' : 'expenses'}
+                      </span>
+                    </td>
+                    <td class="table-actions">
+                      <button class="btn-sm" onclick="editCategoryInline('${c.category_id}')">✏️</button>
+                      <button class="btn-sm danger" onclick="deleteCategory('${c.category_id}', '${(c.category_name || '').replace(/'/g, "\\'")}', ${count})">🗑️</button>
+                    </td>
+                  </tr>
+                `;
+              }).join('')}
+        </tbody>
+      </table></div>
+    </div>
+
+    <div class="card" style="background:#fef3c7;border-left:4px solid var(--yellow);">
+      <div class="section-title">⚠️ Important</div>
+      <div style="font-size:13px;line-height:1.8;">
+        <p><strong>Edit:</strong> Category name/amount change kar sakte ho. Existing expenses auto-update honge (same ID).</p>
+        <p><strong>Delete:</strong> Agar expenses use kar rahi hain to delete nahi hoga. Pehle expenses delete/reassign karo.</p>
+      </div>
+    </div>
+  `, 'expenses');
+}
+
+function toggleAddCatForm() {
+  const card = document.getElementById('addCatFormCard');
+  if (!card) return;
+  const isHidden = card.style.display === 'none';
+  card.style.display = isHidden ? 'block' : 'none';
+  if (isHidden) {
+    document.getElementById('newCatName').focus();
+    document.getElementById('newCatErr').innerHTML = '';
+  }
+}
+
+async function saveNewCategory() {
+  const btn = document.querySelector('button[onclick="saveNewCategory()"]');
+  if (btn) { if (btn.disabled) return; btn.disabled = true; btn.textContent = '⏳...'; }
+
+  const name = document.getElementById('newCatName').value.trim();
+  const amt  = parseFloat(document.getElementById('newCatAmt').value) || null;
+
+  if (!name) {
+    document.getElementById('newCatErr').innerHTML = '<div class="error">Name required</div>';
+    if (btn) { btn.disabled = false; btn.textContent = '💾 Save'; }
+    return;
+  }
+
+  const { error } = await sb.from('expense_categories').insert({
+    category_id: 'EXP' + Date.now(),
+    category_name: name,
+    default_monthly_amount: amt
+  });
+
+  if (error) {
+    document.getElementById('newCatErr').innerHTML = `<div class="error">${error.message}</div>`;
+    if (btn) { btn.disabled = false; btn.textContent = '💾 Save'; }
+    return;
+  }
+
+  fsn.success('Success', `✅ "${name}" added!`);
+  renderManageCategories();
+}
+
+async function editCategoryInline(catId) {
+  const cat = (window._allCats || []).find(c => c.category_id === catId);
+  if (!cat) { fsn.error('Error', 'Category not found'); return; }
+
+  renderShell(`
+    <div class="card">
+      <h1>✏️ Edit Category</h1>
+      <button class="secondary btn-sm" onclick="renderManageCategories()">← Back</button>
+    </div>
+    <div class="card">
+      <div class="form-group">
+        <label>Category Name *</label>
+        <input id="editCatName" value="${(cat.category_name || '').replace(/"/g, '&quot;')}" />
+      </div>
+      <div class="form-group">
+        <label>Default ₹/month</label>
+        <input id="editCatAmt" type="number" value="${cat.default_monthly_amount || ''}" placeholder="Optional" />
+      </div>
+      <div class="form-group">
+        <label>Notes</label>
+        <input id="editCatNotes" value="${(cat.notes || '').replace(/"/g, '&quot;')}" placeholder="Optional" />
+      </div>
+      <button onclick="updateCategory('${catId}')" style="width:100%;margin-top:10px;">
+        💾 Update Category
+      </button>
+      <div id="editCatErr"></div>
+    </div>
+
+    <div class="card" style="background:#f0f7ff;">
+      <div class="section-title">💡 Info</div>
+      <div style="font-size:13px;line-height:1.8;">
+        <p><strong>ID:</strong> <code>${cat.category_id}</code></p>
+        <p>Naam badalne se existing expenses me auto-update ho jayega (same ID hai).</p>
+      </div>
+    </div>
+  `, 'expenses');
+}
+
+async function updateCategory(catId) {
+  const btn = document.querySelector(`button[onclick="updateCategory('${catId}')"]`);
+  if (btn) { if (btn.disabled) return; btn.disabled = true; btn.textContent = '⏳...'; }
+
+  const name  = document.getElementById('editCatName').value.trim();
+  const amt   = parseFloat(document.getElementById('editCatAmt').value) || null;
+  const notes = document.getElementById('editCatNotes').value.trim() || null;
+
+  if (!name) {
+    document.getElementById('editCatErr').innerHTML = '<div class="error">Name required</div>';
+    if (btn) { btn.disabled = false; btn.textContent = '💾 Update Category'; }
+    return;
+  }
+
+  const { error } = await sb.from('expense_categories').update({
+    category_name: name,
+    default_monthly_amount: amt,
+    notes: notes
+  }).eq('category_id', catId);
+
+  if (error) {
+    document.getElementById('editCatErr').innerHTML = `<div class="error">${error.message}</div>`;
+    if (btn) { btn.disabled = false; btn.textContent = '💾 Update Category'; }
+    return;
+  }
+
+  fsn.success('Success', `✅ "${name}" updated!`);
+  renderManageCategories();
+}
+
+async function deleteCategory(catId, catName, usageCount) {
+  if (usageCount > 0) {
+    fsn.error('Cannot Delete',
+      `❌ "${catName}" is used in ${usageCount} expense(s). Delete/reassign those first.`);
+    return;
+  }
+
+  if (!confirm(`Delete category "${catName}"?\n\nThis cannot be undone.`)) return;
+
+  const { error } = await sb.from('expense_categories')
+    .delete().eq('category_id', catId);
+
+  if (error) {
+    fsn.error('Error', '❌ ' + error.message);
+    return;
+  }
+
+  fsn.success('Success', `✅ "${catName}" deleted`);
+  renderManageCategories();
+}
