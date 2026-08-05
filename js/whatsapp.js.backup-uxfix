@@ -437,33 +437,12 @@ function showInvestorAlertModal(propertyName, investors, msg, groupLink, groupNa
       ${!investors || investors.length === 0 ? '<div class="error" style="margin-bottom:10px;">⚠️ No investor with a phone number is linked to this property. Add one in Investors → Edit.</div>' : ''}
       <textarea id="waMsg" style="width:100%;height:200px;font-family:monospace;font-size:12px;padding:10px;border:1px solid var(--border);border-radius:8px;">${msg}</textarea>
       <div class="btn-row" style="margin-top:12px;flex-wrap:wrap;">
-        ${groupLink ? `<button style="background:#128C7E;color:#fff;font-weight:700;padding:10px 16px;font-size:14px;" onclick="
-          const msg = document.getElementById('waMsg').value;
-          navigator.clipboard.writeText(msg).then(function() {
-            const helpBox = document.createElement('div');
-            helpBox.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.9);z-index:99999;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;text-align:center;color:#fff;';
-            helpBox.innerHTML = '<div style=\\'font-size:60px;margin-bottom:20px;\\'>📱</div>' +
-              '<h2 style=\\'color:#25D366;margin-bottom:20px;\\'>Message Copied! ✅</h2>' +
-              '<div style=\\'background:#128C7E;padding:20px;border-radius:12px;max-width:400px;margin-bottom:20px;\\'>' +
-                '<div style=\\'font-size:14px;line-height:1.8;\\'>' +
-                  '<strong>Group opening in 3 seconds...</strong><br><br>' +
-                  '📝 <strong>Steps:</strong><br>' +
-                  '1️⃣ Group chat khulega<br>' +
-                  '2️⃣ Message box <strong>long-press</strong> karo<br>' +
-                  '3️⃣ <strong>Paste</strong> select karo<br>' +
-                  '4️⃣ <strong>Send</strong> button (➤) dabao<br><br>' +
-                  '<div style=\\'background:#075E54;padding:8px;border-radius:6px;font-size:12px;\\'>💡 Total: 3 taps</div>' +
-                '</div>' +
-              '</div>' +
-              '<button onclick=\\'this.parentElement.remove()\\' style=\\'background:#fff;color:#000;padding:10px 30px;border:none;border-radius:8px;font-weight:700;cursor:pointer;\\'>Close</button>';
-            document.body.appendChild(helpBox);
-            setTimeout(function() {
-              window.open('${groupLink}', '_blank');
-              setTimeout(function() { helpBox.remove(); }, 5000);
-            }, 3000);
-          });
-        ">📢 Send to Group (${groupName || 'Property Group'})</button>` : '<button disabled style="background:#ccc;color:#666;cursor:not-allowed;padding:10px 16px;" title="Add WhatsApp group link in Property Edit">📢 No Group Link (add in Property Edit)</button>'}
-      ${recipients}
+        ${groupLink ? `<button style="background:#128C7E;color:#fff;font-weight:700;" onclick="
+          navigator.clipboard.writeText(document.getElementById('waMsg').value);
+          window.open('${groupLink}', '_blank');
+          setTimeout(function(){ if(window.fsn) fsn.success('✅ Message Copied', 'Group khul gaya — paste karo message'); }, 500);
+        ">📢 Send to Group (${groupName || 'Property Group'})</button>` : '<button disabled style="background:#ccc;color:#666;cursor:not-allowed;" title="Add WhatsApp group link in Property Edit">📢 No Group Link (add in Property Edit)</button>'}
+        ${recipients}
         <button class="outline" onclick="navigator.clipboard.writeText(document.getElementById('waMsg').value);fsn.success('Copied','Message copied')">
           📋 Copy
         </button>
