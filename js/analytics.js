@@ -469,6 +469,216 @@
 
     // (Predictions + Top Guests removed — not actionable)
 
+    // ═══ PROPERTY PERFORMANCE ANALYSIS ═══
+    // Fetch expenses for the period
+    const currentMonth = new Date().toLocaleString('en-IN', {month:'short', year:'numeric'}).replace(' ','-');
+    const { data: expensesData } = await sb.from('expenses')
+      .select('room_id, amount, month')
+      .eq('month', currentMonth);
+    
+    // Fetch investor mappings
+    const { data: investorLinks } = await sb.from('investor_properties')
+      .select('room_id, investors(name)');
+    
+    // Build property performance map
+    const propPerf = rooms.map(room => {
+      const roomBks = bookings.filter(b => b.room_id === room.room_id);
+      const roomOnline = roomBks.filter(b => b.booking_mode === 'Online-Airbnb');
+      const roomOffline = roomBks.filter(b => b.booking_mode !== 'Online-Airbnb' && !b.is_review_booking);
+      const roomReview = roomBks.filter(b => b.is_review_booking === true);
+      
+      const roomOnlineRev = roomOnline.reduce((s, b) => s + (b.total_amount || 0), 0);
+      const roomOfflineRev = roomOffline.reduce((s, b) => s + (b.total_amount || 0), 0);
+      const roomReviewRev = roomReview.reduce((s, b) => s + (b.total_amount || 0), 0);
+      const roomRevenue = roomOnlineRev + roomOfflineRev + roomReviewRev;
+      
+      // Room expenses
+      const roomExpenses = (expensesData || [])
+        .filter(e => e.room_id === room.room_id)
+        .reduce((s, e) => s + (e.amount || 0), 0);
+      
+      const profit = roomRevenue - roomExpenses;
+      
+      // Advanced occupancy calculation
+      const bookedNights = roomBks.reduce((s, b) => s + Math.min(calcNights(b.check_in, b.check_out), AN.period), 0);
+      const totalPossibleNights = AN.period;
+      const occupancyPct = totalPossibleNights > 0 ? Math.min(100, (bookedNights / totalPossibleNights) * 100) : 0;
+      const vacantDays = totalPossibleNights - bookedNights;
+      
+      // Categorize status
+      let status, statusColor, statusIcon;
+      if (profit < 0) {
+        status = 'CRITICAL';
+        statusColor = '#DC2626';
+        statusIcon = '🔴';
+      } else if (profit < 5000 || occupancyPct < 30) {
+        status = 'WARNING';
+        statusColor = '#F59E0B';
+        statusIcon = '🟡';
+      } else if (profit > 10000 && occupancyPct > 60) {
+        status = 'HEALTHY';
+        statusColor = '#0A7D1A';
+        statusIcon = '🟢';
+      } else {
+        status = 'NEUTRAL';
+        statusColor = '#666';
+        statusIcon = '⚪';
+      }
+      
+      // Recommendation engine
+      let recommendation = '';
+      const avgOfflineRate = roomOffline.length > 0 
+        ? Math.round(roomOfflineRev / roomOffline.reduce((s, b) => s + calcNights(b.check_in, b.check_out), 1))
+        : 3000;
+      
+      if (profit < 0) {
+        const daysNeeded = Math.ceil(Math.abs(profit) / avgOfflineRate);
+        recommendation = `Book ${daysNeeded} more offline days @ ₹${avgOfflineRate.toLocaleString('en-IN')} to break even`;
+      } else if (occupancyPct < 30) {
+        recommendation = `Low occupancy (${Math.round(occupancyPct)}%) — push offline bookings`;
+      } else if (occupancyPct > 80) {
+        recommendation = `High demand — consider raising rates`;
+      } else if (roomOfflineRev === 0 && roomOnlineRev > 0) {
+        recommendation = `100% Airbnb — try direct bookings to save commission`;
+      } else {
+        recommendation = `Performing well`;
+      }
+      
+      // Get investor name
+      const invLink = (investorLinks || []).find(l => l.room_id === room.room_id);
+      const investorName = invLink?.investors?.name || 'Unassigned';
+      
+      return {
+        room, status, statusColor, statusIcon,
+        revenue: roomRevenue, onlineRev: roomOnlineRev, offlineRev: roomOfflineRev, reviewRev: roomReviewRev,
+        onlineBks: roomOnline.length, offlineBks: roomOffline.length, reviewBks: roomReview.length,
+        expenses: roomExpenses, profit,
+        occupancyPct, bookedNights, vacantDays,
+        recommendation, investorName, avgOfflineRate
+      };
+    });
+    
+    // Sort: critical first, then warning, then healthy
+    const statusOrder = { CRITICAL: 0, WARNING: 1, NEUTRAL: 2, HEALTHY: 3 };
+    propPerf.sort((a, b) => statusOrder[a.status] - statusOrder[b.status] || a.profit - b.profit);
+    
+    const critical = propPerf.filter(p => p.status === 'CRITICAL');
+    const warning = propPerf.filter(p => p.status === 'WARNING');
+    const healthy = propPerf.filter(p => p.status === 'HEALTHY');
+    const neutral = propPerf.filter(p => p.status === 'NEUTRAL');
+    
+    // Build UI
+    const criticalCards = critical.map(p => `
+      <div style="background:#FEF2F2;border:2px solid #DC2626;border-radius:10px;padding:16px;margin-bottom:12px;">
+        <div style="display:flex;justify-content:space-between;align-items:start;flex-wrap:wrap;gap:8px;margin-bottom:10px;">
+          <div>
+            <div style="font-weight:700;font-size:16px;color:#DC2626;">🔴 ${p.room.nickname || p.room.unit_no}</div>
+            <div style="font-size:12px;color:#666;">👤 ${p.investorName}</div>
+          </div>
+          <div style="text-align:right;">
+            <div style="font-size:20px;font-weight:800;color:#DC2626;">LOSS: -₹${Math.abs(p.profit).toLocaleString('en-IN')}</div>
+            <div style="font-size:11px;color:#666;">Occupancy: ${Math.round(p.occupancyPct)}%</div>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;font-size:12px;margin-bottom:10px;">
+          <div style="background:#fff;padding:8px;border-radius:6px;">
+            <div style="color:#666;font-size:10px;">Revenue</div>
+            <div style="font-weight:700;">₹${p.revenue.toLocaleString('en-IN')}</div>
+            <div style="font-size:10px;color:#888;">🌐${p.onlineBks} 🏠${p.offlineBks} ⭐${p.reviewBks}</div>
+          </div>
+          <div style="background:#fff;padding:8px;border-radius:6px;">
+            <div style="color:#666;font-size:10px;">Expenses</div>
+            <div style="font-weight:700;color:#DC2626;">₹${p.expenses.toLocaleString('en-IN')}</div>
+          </div>
+          <div style="background:#fff;padding:8px;border-radius:6px;">
+            <div style="color:#666;font-size:10px;">Vacant Days</div>
+            <div style="font-weight:700;color:#F59E0B;">${p.vacantDays} / ${AN.period}</div>
+          </div>
+        </div>
+        <div style="background:#FFF7E6;padding:10px;border-left:3px solid #F59E0B;border-radius:4px;font-size:12px;">
+          <strong>💡 ACTION:</strong> ${p.recommendation}
+        </div>
+      </div>
+    `).join('');
+    
+    const warningCards = warning.map(p => `
+      <div style="background:#FFFBEB;border:1px solid #F59E0B;border-radius:8px;padding:12px;margin-bottom:8px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+          <div>
+            <strong style="color:#F59E0B;">🟡 ${p.room.nickname || p.room.unit_no}</strong>
+            <span style="font-size:11px;color:#666;margin-left:8px;">👤 ${p.investorName}</span>
+          </div>
+          <div style="font-size:13px;">
+            Revenue: <strong>₹${p.revenue.toLocaleString('en-IN')}</strong> | 
+            Profit: <strong style="color:${p.profit < 0 ? '#DC2626' : '#F59E0B'};">₹${p.profit.toLocaleString('en-IN')}</strong> | 
+            Occ: <strong>${Math.round(p.occupancyPct)}%</strong>
+          </div>
+        </div>
+        <div style="font-size:11px;color:#666;margin-top:4px;font-style:italic;">💡 ${p.recommendation}</div>
+      </div>
+    `).join('');
+    
+    const healthyCards = healthy.slice(0, 5).map((p, i) => `
+      <div style="background:#F0FDF4;border:1px solid #22C55E;border-radius:8px;padding:10px;margin-bottom:6px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+          <div>
+            <strong>${i === 0 ? '🏆' : i === 1 ? '🥈' : i === 2 ? '🥉' : '🟢'} ${p.room.nickname || p.room.unit_no}</strong>
+            <span style="font-size:11px;color:#666;margin-left:6px;">👤 ${p.investorName}</span>
+          </div>
+          <div style="font-size:13px;">
+            <strong style="color:#0A7D1A;">₹${p.profit.toLocaleString('en-IN')}</strong> profit | 
+            <strong>${Math.round(p.occupancyPct)}%</strong> occ
+          </div>
+        </div>
+      </div>
+    `).join('');
+    
+    const propPerfHtml = `
+      <div class="card" style="margin-top:16px;">
+        <div class="section-title">🏠 Property Performance Dashboard (Last ${AN.period} Days)</div>
+        
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:16px;">
+          <div style="background:#FEF2F2;border:2px solid #DC2626;padding:12px;border-radius:8px;text-align:center;">
+            <div style="font-size:24px;font-weight:800;color:#DC2626;">${critical.length}</div>
+            <div style="font-size:11px;color:#666;">🔴 Loss Making</div>
+          </div>
+          <div style="background:#FFFBEB;border:2px solid #F59E0B;padding:12px;border-radius:8px;text-align:center;">
+            <div style="font-size:24px;font-weight:800;color:#F59E0B;">${warning.length}</div>
+            <div style="font-size:11px;color:#666;">🟡 Warning</div>
+          </div>
+          <div style="background:#F0FDF4;border:2px solid #22C55E;padding:12px;border-radius:8px;text-align:center;">
+            <div style="font-size:24px;font-weight:800;color:#0A7D1A;">${healthy.length}</div>
+            <div style="font-size:11px;color:#666;">🟢 Healthy</div>
+          </div>
+          <div style="background:#F5F5F5;border:2px solid #999;padding:12px;border-radius:8px;text-align:center;">
+            <div style="font-size:24px;font-weight:800;color:#666;">${neutral.length}</div>
+            <div style="font-size:11px;color:#666;">⚪ Neutral</div>
+          </div>
+        </div>
+        
+        ${critical.length > 0 ? `
+          <div style="font-weight:700;color:#DC2626;margin:16px 0 8px;font-size:14px;">🚨 CRITICAL — Immediate Action Required (${critical.length})</div>
+          ${criticalCards}
+        ` : ''}
+        
+        ${warning.length > 0 ? `
+          <div style="font-weight:700;color:#F59E0B;margin:16px 0 8px;font-size:14px;">⚠️ WARNING — Underperforming (${warning.length})</div>
+          ${warningCards}
+        ` : ''}
+        
+        ${healthy.length > 0 ? `
+          <div style="font-weight:700;color:#0A7D1A;margin:16px 0 8px;font-size:14px;">🏆 TOP PERFORMERS (Top 5)</div>
+          ${healthyCards}
+        ` : ''}
+        
+        ${critical.length === 0 && warning.length === 0 ? `
+          <div style="text-align:center;padding:20px;color:#0A7D1A;background:#F0FDF4;border-radius:8px;">
+            🎉 All properties performing well! No critical issues.
+          </div>
+        ` : ''}
+      </div>
+    `;
+
     // ═══ Assemble ═══
     const html =
       '<div class="wrap">' +
@@ -513,6 +723,9 @@
           trendChart +
         '</div>' +
 
+        // NEW: Property Performance Dashboard (loss detection + recommendations)
+        propPerfHtml +
+
         // Top Properties (full width, no more donuts + guests)
         '<div class="card" style="margin-top:16px;">' +
           '<div class="section-title">🏠 Top Properties (Online 🌐 / Offline 💵)</div>' +
@@ -524,8 +737,6 @@
 
         // Staff performance
         staffPerfHtml +
-
-        // Predictions
 
       '</div>';
 
