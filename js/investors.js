@@ -404,13 +404,17 @@ async function renderInvestorReport(investorId, roomId, month) {
   const isExcluded = (b) => {
     const name = (b.guest_name || '').toLowerCase().replace(/\s+/g, ' ');
     const notes = (b.notes || '').toLowerCase();
-    if (b.is_review_booking === true) return true;  // ⭐ EXCLUDE review bookings (our own money)
-    // Check with and without spaces around brackets
+    // NEW: Only exclude if admin marked as hidden from investor
+    if (b.show_to_investor === false) return true;
+    // Legacy: Also exclude if guest name contains "friends", "complimentary" etc.
     return excludeKeywords.some(k => name.includes(k) || notes.includes(k));
   };
 
   const excludedBookings = (bookings || []).filter(b => isExcluded(b));
   const activeBookings = (bookings || []).filter(b => !isExcluded(b));
+  
+  // NEW: Count hidden bookings (for footer transparency)
+  const hiddenCount = (bookings || []).filter(b => b.show_to_investor === false).length;
 
   // NEW MULTI-INVESTOR FORMULA:
   // Company: FIXED 30%
@@ -426,16 +430,20 @@ async function renderInvestorReport(investorId, roomId, month) {
   (payments || []).forEach(p => { if (bkIds.includes(p.booking_id)) pm[p.booking_id] = (pm[p.booking_id] || 0) + (p.amount || 0); });
 
   const cn = b => b.check_in && b.check_out ? calcNights(b.check_in, b.check_out) : 0;
-  const onBks = activeBookings.filter(b => b.booking_mode === 'Online-Airbnb');
-  const offBks = activeBookings.filter(b => b.booking_mode !== 'Online-Airbnb');
+  // NEW: 3-way split — Online, Offline, Review
+  const reviewBks = activeBookings.filter(b => b.is_review_booking === true);
+  const onBks = activeBookings.filter(b => b.booking_mode === 'Online-Airbnb' && !b.is_review_booking);
+  const offBks = activeBookings.filter(b => b.booking_mode !== 'Online-Airbnb' && !b.is_review_booking);
 
   const onNights = onBks.reduce((s, b) => s + cn(b), 0);
   const offNights = offBks.reduce((s, b) => s + cn(b), 0);
-  const totalNights = onNights + offNights;
+  const reviewNights = reviewBks.reduce((s, b) => s + cn(b), 0);
+  const totalNights = onNights + offNights + reviewNights;
 
   const onRev = onBks.reduce((s, b) => s + (pm[b.booking_id] || 0), 0);
   const offRev = offBks.reduce((s, b) => s + (pm[b.booking_id] || 0), 0);
-  const totalRev = onRev + offRev;
+  const reviewRev = reviewBks.reduce((s, b) => s + (pm[b.booking_id] || 0), 0);
+  const totalRev = onRev + offRev + reviewRev;
 
   const useDefaults = (expenses || []).length === 0;
   const expList = useDefaults ? (defaults || []) : (expenses || []);
@@ -567,6 +575,7 @@ async function renderInvestorReport(investorId, roomId, month) {
             </tr>
           </thead>
           <tbody>
+            ${offBks.length === 0 ? '<tr><td colspan="5" style="padding:6px;border:1px solid #ccc;text-align:center;color:#999;">No offline bookings</td></tr>' : ''}
             ${offBks.map(b => `
               <tr>
                 <td style="padding:6px;border:1px solid #ccc;">${b.guest_name || '-'}</td>
@@ -583,6 +592,40 @@ async function renderInvestorReport(investorId, roomId, month) {
             </tr>
           </tbody>
         </table>
+
+        ${reviewBks.length > 0 ? `
+        <div style="font-size:14px;font-weight:600;margin:14px 0 4px;color:#722ED1;">⭐ Review Bookings (Airbnb Reviews)</div>
+        <table style="width:100%;border-collapse:collapse;font-size:12px;margin-top:4px;">
+          <thead>
+            <tr style="background:#F5F0FF;border-bottom:2px solid #722ED1;">
+              <th style="padding:6px;border:1px solid #ccc;">Guest</th>
+              <th style="padding:6px;border:1px solid #ccc;">Check-in</th>
+              <th style="padding:6px;border:1px solid #ccc;">Check-out</th>
+              <th style="padding:6px;border:1px solid #ccc;">Nights</th>
+              <th style="padding:6px;border:1px solid #ccc;text-align:right;">Revenue</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${reviewBks.map(b => `
+              <tr>
+                <td style="padding:6px;border:1px solid #ccc;">${b.guest_name || '-'} <span style="background:#722ED1;color:#fff;padding:1px 4px;border-radius:3px;font-size:9px;">REVIEW</span></td>
+                <td style="padding:6px;border:1px solid #ccc;">${b.check_in || '-'}</td>
+                <td style="padding:6px;border:1px solid #ccc;">${b.check_out || '-'}</td>
+                <td style="padding:6px;border:1px solid #ccc;text-align:center;">${cn(b)}</td>
+                <td style="padding:6px;border:1px solid #ccc;text-align:right;">₹${(pm[b.booking_id] || 0).toLocaleString('en-IN')}</td>
+              </tr>
+            `).join('')}
+            <tr style="background:#F5F0FF;font-weight:700;">
+              <td colspan="3" style="padding:6px;border:1px solid #ccc;">Review Bookings Total</td>
+              <td style="padding:6px;border:1px solid #ccc;text-align:center;">${reviewNights}</td>
+              <td style="padding:6px;border:1px solid #ccc;text-align:right;">₹${reviewRev.toLocaleString('en-IN')}</td>
+            </tr>
+          </tbody>
+        </table>
+        <div style="font-size:11px;color:#666;margin-top:4px;font-style:italic;">
+          💡 Review bookings help build Airbnb ratings and visibility
+        </div>
+        ` : ''}
       </div>
 
       <div style="margin-bottom:20px;">
@@ -609,6 +652,12 @@ async function renderInvestorReport(investorId, roomId, month) {
               <td style="padding:8px;border:1px solid #ccc;text-align:right;">₹${offRev.toLocaleString('en-IN')}</td>
               <td style="padding:8px;border:1px solid #ccc;text-align:center;">${offlinePct}%</td>
             </tr>
+            ${reviewBks.length > 0 ? `<tr style="background:#F5F0FF;">
+              <td style="padding:8px;border:1px solid #ccc;">⭐ Review</td>
+              <td style="padding:8px;border:1px solid #ccc;text-align:center;">${reviewNights}</td>
+              <td style="padding:8px;border:1px solid #ccc;text-align:right;">₹${reviewRev.toLocaleString('en-IN')}</td>
+              <td style="padding:8px;border:1px solid #ccc;text-align:center;">${totalRev > 0 ? Math.round(reviewRev * 100 / totalRev) : 0}%</td>
+            </tr>` : ''}
             <tr style="background:#FFF0F0;font-weight:700;color:#484848;">
               <td style="padding:8px;border:1px solid #ccc;">Total</td>
               <td style="padding:8px;border:1px solid #ccc;text-align:center;">${totalNights}</td>
@@ -707,6 +756,14 @@ async function renderInvestorReport(investorId, roomId, month) {
         </div>
       </div>
 
+      ${hiddenCount > 0 ? `
+      <div style="margin-bottom:20px;padding:14px;background:#FFF7E6;border-left:4px solid #FF9500;border-radius:6px;">
+        <div style="font-size:13px;color:#666;">
+          <strong>📝 Note:</strong> ${hiddenCount} booking${hiddenCount > 1 ? 's' : ''} marked as internal — not included in this report.
+        </div>
+      </div>
+      ` : ''}
+      
       <div style="margin-bottom:20px;">
         <div style="font-size:15px;font-weight:700;margin-bottom:10px;padding:8px 12px;background:linear-gradient(90deg,#00A699,#007A87);color:#fff;border-radius:6px;">📝 Management Commentary</div>
         <p style="font-size:13px;line-height:1.8;text-align:justify;">
