@@ -406,15 +406,121 @@ function calCreateBooking(roomId, dateStr) {
 }
 
 // ============ BOOKING POPUP (Calendar Click) ============
+
+// ═══ MULTI-BOOKING LIST VIEW (when 2+ bookings on same date) ═══
+async function showMultiBookingList(bookings, roomId, dateStr) {
+  const roomInfo = bookings[0].rooms || {};
+  const roomLabel = propLabel(roomInfo) || roomId;
+  const dateFmt = new Date(dateStr).toLocaleDateString('en-IN', {weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'});
+  
+  // Fetch payments for all bookings
+  const bkIds = bookings.map(b => b.booking_id);
+  const { data: allPays } = await sb.from('payment_history')
+    .select('booking_id, amount, verification_status')
+    .in('booking_id', bkIds)
+    .neq('verification_status', 'rejected');
+  
+  const paidMap = {};
+  (allPays || []).forEach(p => {
+    paidMap[p.booking_id] = (paidMap[p.booking_id] || 0) + (p.amount || 0);
+  });
+  
+  const modal = document.createElement('div');
+  modal.className = 'modal-overlay';
+  modal.onclick = e => { if (e.target === modal) modal.remove(); };
+  
+  const bookingCards = bookings.map((b, idx) => {
+    const paid = paidMap[b.booking_id] || 0;
+    const bal = (b.total_amount || 0) - paid;
+    const nights = b.check_in && b.check_out ? calcNights(b.check_in, b.check_out) : '-';
+    const modeIcon = b.booking_mode === 'Online-Airbnb' ? '🌐' : '🏠';
+    const modeText = b.booking_mode === 'Online-Airbnb' ? 'Airbnb' : 'Direct';
+    const statusBadges = [];
+    if (b.is_review_booking) statusBadges.push('<span style="background:#8B5CF6;color:#fff;padding:2px 6px;border-radius:4px;font-size:10px;">⭐ REVIEW</span>');
+    if (b.show_to_investor === false) statusBadges.push('<span style="background:#DC2626;color:#fff;padding:2px 6px;border-radius:4px;font-size:10px;">🚫 HIDDEN</span>');
+    if (b.is_cancelled) statusBadges.push('<span style="background:#DC2626;color:#fff;padding:2px 6px;border-radius:4px;font-size:10px;">❌ CANCELLED</span>');
+    
+    return `
+      <div style="background:#fff;border:2px solid ${idx === 0 ? '#3B82F6' : '#F59E0B'};border-radius:10px;padding:14px;margin-bottom:12px;">
+        <div style="display:flex;justify-content:space-between;align-items:start;flex-wrap:wrap;gap:8px;margin-bottom:10px;">
+          <div>
+            <div style="font-weight:700;font-size:15px;">
+              ${idx + 1}. ${modeIcon} ${b.guest_name || 'Guest'} 
+              ${statusBadges.join(' ')}
+            </div>
+            <div style="font-size:11px;color:#666;margin-top:2px;">
+              📞 ${b.phone || 'No phone'} · ${modeText}
+            </div>
+          </div>
+          <div style="text-align:right;">
+            <div style="font-size:16px;font-weight:800;color:#333;">₹${(b.total_amount || 0).toLocaleString('en-IN')}</div>
+            <div style="font-size:10px;color:${bal > 0 ? '#DC2626' : '#0A7D1A'};">
+              ${bal > 0 ? 'Due: ₹' + bal.toLocaleString('en-IN') : '✅ Paid'}
+            </div>
+          </div>
+        </div>
+        
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(100px,1fr));gap:8px;font-size:12px;background:#F8F9FA;padding:8px;border-radius:6px;margin-bottom:10px;">
+          <div><strong>Check-in:</strong><br>${b.check_in || '-'} ${b.check_in_time || ''}</div>
+          <div><strong>Check-out:</strong><br>${b.check_out || '-'} ${b.check_out_time || ''}</div>
+          <div><strong>Nights:</strong><br>${nights}</div>
+          <div><strong>Guests:</strong><br>${b.guests || 1}</div>
+        </div>
+        
+        ${b.notes ? `<div style="font-size:11px;color:#666;padding:6px;background:#FEF3C7;border-radius:4px;margin-bottom:8px;"><strong>Notes:</strong> ${b.notes}</div>` : ''}
+        
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+          <button class="btn-sm" onclick="this.closest('.modal-overlay').remove(); editBooking('${b.booking_id}');" style="flex:1;">✏️ Edit</button>
+          <button class="btn-sm secondary" onclick="this.closest('.modal-overlay').remove(); showPaymentModal('${b.booking_id}');" style="flex:1;">💰 Pay</button>
+          <button class="btn-sm outline" onclick="this.closest('.modal-overlay').remove(); shareBookingWhatsApp('${b.booking_id}');" style="flex:1;">📱 Share</button>
+        </div>
+      </div>
+    `;
+  }).join('');
+  
+  modal.innerHTML = `
+    <div class="modal-box" style="max-width:600px;">
+      <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">✕</button>
+      <h2 style="margin:0 0 4px;">📅 ${bookings.length} Bookings on This Date</h2>
+      <div style="font-size:13px;color:#666;margin-bottom:8px;">
+        🏠 ${roomLabel} • ${dateFmt}
+      </div>
+      
+      ${bookings.length > 1 ? `
+      <div style="background:#FEF3C7;border-left:4px solid #F59E0B;padding:10px;border-radius:6px;margin-bottom:12px;font-size:12px;color:#92400E;">
+        ⚠️ <strong>Multiple bookings detected!</strong> This is either a double-booking or a review/duplicate entry.
+        Please verify with guests.
+      </div>` : ''}
+      
+      ${bookingCards}
+      
+      <div class="btn-row" style="margin-top:8px;">
+        <button class="btn-sm outline" onclick="this.closest('.modal-overlay').remove();" style="width:100%;">Close</button>
+      </div>
+    </div>`;
+  
+  document.body.appendChild(modal);
+}
+
 async function showBookingPopup(roomId, dateStr) {
   const { data: bks } = await sb.from('guest_register')
     .select('*, rooms(unit_no, nickname, property_name)')
     .eq('room_id', roomId)
     .lte('check_in', dateStr)
-    .gt('check_out', dateStr);
+    .gt('check_out', dateStr)
+    .neq('verification_status', 'rejected')
+    .order('check_in', { ascending: true });
 
-  const b = (bks || [])[0];
-  if (!b) return;
+  const bookings = bks || [];
+  if (bookings.length === 0) return;
+  
+  // If multiple bookings — show LIST view
+  if (bookings.length > 1) {
+    return showMultiBookingList(bookings, roomId, dateStr);
+  }
+  
+  // Otherwise, single booking view (original logic)
+  const b = bookings[0];
 
   const { data: pays } = await sb.from('payment_history').select('amount, verification_status').eq('booking_id', b.booking_id).neq('verification_status', 'rejected');
   const paid = (pays || []).reduce((s, p) => s + (p.amount || 0), 0);
