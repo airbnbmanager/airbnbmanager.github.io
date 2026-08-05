@@ -12,3 +12,9 @@ supabase/.temp/
 *.bak
 *.bak.*
 .bak-*/
+
+# Backup files (auto-created during dev, don't track)
+*.backup*
+*.bak
+*.working*
+.old-backups-*/
