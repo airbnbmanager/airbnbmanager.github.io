@@ -1407,3 +1407,52 @@ async function saveMonthlyExpenses() {
     renderMonthlyExpenses(d.selRoom, d.selMonth);
   }
 }
+
+// ============ MONTHLY EXPENSES — INLINE CATEGORY ============
+function toggleMonthlyInlineCat() {
+  const form = document.getElementById('monthlyInlineCatForm');
+  if (!form) return;
+  const isHidden = form.style.display === 'none';
+  form.style.display = isHidden ? 'block' : 'none';
+  if (isHidden) {
+    document.getElementById('monthlyCatName').focus();
+    document.getElementById('monthlyCatErr').innerHTML = '';
+  }
+}
+
+async function saveMonthlyInlineCat() {
+  const btn = document.querySelector('button[onclick="saveMonthlyInlineCat()"]');
+  if (btn) { if (btn.disabled) return; btn.disabled = true; btn.textContent = '⏳...'; }
+
+  const name = (document.getElementById('monthlyCatName')?.value || '').trim();
+  const amt  = parseFloat(document.getElementById('monthlyCatAmt')?.value) || null;
+
+  if (!name) {
+    document.getElementById('monthlyCatErr').innerHTML =
+      '<div class="error" style="font-size:12px;">Category name required</div>';
+    if (btn) { btn.disabled = false; btn.textContent = '💾 Save & Add to List'; }
+    return;
+  }
+
+  const newId = 'EXP' + Date.now();
+
+  const { error } = await sb.from('expense_categories').insert({
+    category_id: newId,
+    category_name: name,
+    default_monthly_amount: amt
+  });
+
+  if (error) {
+    document.getElementById('monthlyCatErr').innerHTML =
+      `<div class="error" style="font-size:12px;">${error.message}</div>`;
+    if (btn) { btn.disabled = false; btn.textContent = '💾 Save & Add to List'; }
+    return;
+  }
+
+  fsn.success('Success', `✅ "${name}" category added!`);
+
+  const d = window._monthlyExpData;
+  if (d) {
+    renderMonthlyExpenses(d.selRoom, d.selMonth);
+  }
+}
