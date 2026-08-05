@@ -38,7 +38,9 @@ async function renderReports() {
     if (!b.check_in || !b.check_out || !b.room_id) return;
     let c = b.check_in;
     while (c < b.check_out) {
-      bMap[`${b.room_id}_${c}`] = b;
+      const _bkey = `${b.room_id}_${c}`;
+      if (!bMap[_bkey]) bMap[_bkey] = [];
+      bMap[_bkey].push(b);
       c = dateAdd(c, 1);
     }
   });
@@ -135,7 +137,9 @@ async function renderReports() {
     for (let d = 1; d <= dim; d++) {
       const ds = `${yr}-${String(mo + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
       const k = `${r.room_id}_${ds}`;
-      const bk = bMap[k];
+      const bkArr = bMap[k] || [];
+      const bk = bkArr[0];  // First booking for display
+      const overlapCount = bkArr.length;  // Total bookings on this day
       const isToday = ds === todayStr;
       const isPast = ds < todayStr;
 
@@ -166,9 +170,15 @@ async function renderReports() {
         else if (isCheckIn) borderRadius = '16px 0 0 16px';
         else if (isCheckOut) borderRadius = '0 16px 16px 0';
 
+        // Build overlap title (all guest names)
+        const overlapTitle = overlapCount > 1 
+          ? bkArr.map(x => x.guest_name || 'Guest').join(' + ')
+          : (bk.guest_name || 'Booked');
+        
         cellsHtml += `
-          <div class="cal-day booked ${isToday ? 'today' : ''}" onclick="showBookingPopup('${r.room_id}','${ds}')" title="${bk.guest_name || 'Booked'}">
+          <div class="cal-day booked ${isToday ? 'today' : ''}" onclick="showBookingPopup('${r.room_id}','${ds}')" title="${overlapTitle}" style="position:relative;">
             <div class="cal-date-num">${d}</div>
+            ${overlapCount > 1 ? `<div style="position:absolute;top:3px;right:3px;background:#DC2626;color:#fff;border-radius:50%;min-width:18px;height:18px;padding:0 4px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;box-shadow:0 2px 4px rgba(0,0,0,0.4);z-index:3;line-height:1;" title="${overlapCount} bookings on this date">${overlapCount}</div>` : ''}
             <div class="cal-pill" style="background:${bg};border-radius:${borderRadius};">
               ${showAvatar ? `<span class="cal-avatar">${guestInitial}</span>` : ''}
               ${showName ? `<span class="cal-name">${firstName}</span>` : ''}
