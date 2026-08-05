@@ -1342,7 +1342,92 @@ async function renderFriendsReport(investorId, roomId, month) {
 
 
 // ═══ QUICK ACTIONS — Professional WhatsApp + Email ═══
+// ═══ SHOW MONTH SELECTOR MODAL BEFORE SENDING ═══
 window.quickWhatsAppInvestor = async function(investorId) {
+  // First, show month selector modal
+  const { data: inv } = await sb.from('investors').select('name, phone').eq('investor_id', investorId).single();
+  if (!inv || !inv.phone) {
+    fsn.error('Error', 'Investor not found or no phone number');
+    return;
+  }
+  
+  // Generate last 6 months options
+  const monthOpts = [];
+  const now = new Date();
+  for (let i = 0; i < 6; i++) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const key = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+    const label = d.toLocaleString('en-IN', {month: 'long', year: 'numeric'});
+    monthOpts.push({ key, label });
+  }
+  
+  // Show modal
+  const modal = document.createElement('div');
+  modal.className = 'modal-overlay';
+  modal.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;';
+  modal.onclick = e => { if (e.target === modal) modal.remove(); };
+  
+  modal.innerHTML = `
+    <div style="background:#fff;border-radius:12px;padding:24px;max-width:500px;width:100%;max-height:90vh;overflow-y:auto;">
+      <h2 style="margin:0 0 8px;font-size:20px;">📱 Send WhatsApp Report</h2>
+      <div style="font-size:13px;color:#666;margin-bottom:16px;">
+        To: <strong>${inv.name}</strong> (${inv.phone})
+      </div>
+      
+      <div style="margin-bottom:16px;">
+        <label style="display:block;font-size:13px;font-weight:600;margin-bottom:6px;">📅 Select Report Month:</label>
+        <select id="waMonthSelect" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:6px;font-size:14px;">
+          ${monthOpts.map((o, i) => `<option value="${o.key}" ${i === 1 ? 'selected' : ''}>${o.label}${i === 0 ? ' (Current — incomplete)' : i === 1 ? ' ⭐ (Recommended)' : ''}</option>`).join('')}
+        </select>
+        <div style="font-size:11px;color:#888;margin-top:4px;">
+          💡 Last month is usually the correct choice for monthly reports
+        </div>
+      </div>
+      
+      <div style="margin-bottom:16px;padding:12px;background:#F0F7FF;border-radius:8px;border-left:3px solid #3B82F6;font-size:12px;">
+        <strong>Message will include:</strong><br>
+        • Investor name<br>
+        • Selected month<br>
+        • Properties list<br>
+        • Investor pool share (70%)<br>
+        • Individual split (if multi-investor)
+      </div>
+      
+      <div style="display:flex;gap:8px;justify-content:flex-end;">
+        <button onclick="this.closest('.modal-overlay').remove()" 
+          style="padding:10px 20px;background:#eee;color:#333;border:none;border-radius:6px;cursor:pointer;">
+          Cancel
+        </button>
+        <button onclick="sendInvestorWhatsAppWithMonth('${investorId}', document.getElementById('waMonthSelect').value)" 
+          style="padding:10px 20px;background:#25D366;color:#fff;border:none;border-radius:6px;cursor:pointer;font-weight:600;">
+          📱 Send WhatsApp
+        </button>
+      </div>
+    </div>
+  `;
+  
+  document.body.appendChild(modal);
+};
+
+// ═══ ACTUAL SEND FUNCTION (called from modal) ═══
+window.sendInvestorWhatsAppWithMonth = async function(investorId, selectedMonthKey) {
+  // Close modal first
+  document.querySelector('.modal-overlay')?.remove();
+  
+  // Parse selected month
+  const [year, month] = selectedMonthKey.split('-').map(Number);
+  const selectedDate = new Date(year, month - 1, 1);
+  const monthName = selectedDate.toLocaleString('en-IN', { month: 'long', year: 'numeric' });
+  
+  // Store for the original function to use
+  window._waSelectedMonth = { year, month, monthName, key: selectedMonthKey };
+  
+  // Call original send logic
+  await _originalQuickWhatsAppInvestor(investorId);
+};
+
+// ═══ ORIGINAL SEND LOGIC (renamed) ═══
+async function _originalQuickWhatsAppInvestor(investorId) {
   try {
     // Fetch investor + linked properties
     const { data: inv } = await sb.from('investors').select('*').eq('investor_id', investorId).single();
@@ -1484,9 +1569,10 @@ window.sendPlainEmail = async function(investorId) {
       l.rooms?.nickname || l.rooms?.property_name || l.room_id
     ).join(', ') || 'your properties';
     
-    // Current month
-    const now = new Date();
-    const monthName = now.toLocaleString('en-IN', { month: 'long', year: 'numeric' });
+    // Use SELECTED month (from modal) instead of current
+    const selected = window._waSelectedMonth;
+    const now = selected ? new Date(selected.year, selected.month - 1, 1) : new Date();
+    const monthName = selected ? selected.monthName : now.toLocaleString('en-IN', { month: 'long', year: 'numeric' });
     // NEW: Multi-investor aware
     const invNamesEmail = (inv.name || 'Investor').split('&').map(n => n.trim()).filter(n => n);
     const isMultiEmail = invNamesEmail.length > 1;
