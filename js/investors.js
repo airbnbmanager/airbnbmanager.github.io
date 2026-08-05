@@ -661,14 +661,24 @@ async function renderInvestorReport(investorId, roomId, month) {
           </thead>
           <tbody>
             <tr>
-              <td style="padding:8px;border:1px solid #ccc;">Investor — ${inv?.name || '-'}</td>
-              <td style="padding:8px;border:1px solid #ccc;text-align:center;">${share}%</td>
-              <td style="padding:8px;border:1px solid #ccc;text-align:right;color:#0a7d1a;font-weight:700;">₹${investorAmount.toLocaleString('en-IN')}</td>
-            </tr>
-            <tr>
-              <td style="padding:8px;border:1px solid #ccc;">${BRAND}</td>
-              <td style="padding:8px;border:1px solid #ccc;text-align:center;">${cs}%</td>
+              <td style="padding:8px;border:1px solid #ccc;">${BRAND} (Company Share)</td>
+              <td style="padding:8px;border:1px solid #ccc;text-align:center;">${COMPANY_PCT}%</td>
               <td style="padding:8px;border:1px solid #ccc;text-align:right;color:#0a5599;font-weight:700;">₹${companyAmount.toLocaleString('en-IN')}</td>
+            </tr>
+            <tr style="background:#F0F5F5;">
+              <td style="padding:8px;border:1px solid #ccc;"><strong>Total Investor Pool</strong></td>
+              <td style="padding:8px;border:1px solid #ccc;text-align:center;">${INVESTOR_POOL_PCT}%</td>
+              <td style="padding:8px;border:1px solid #ccc;text-align:right;font-weight:700;">₹${investorPool.toLocaleString('en-IN')}</td>
+            </tr>
+            ${investorPoolShare < 100 ? `<tr style="background:#FFF8E1;color:#666;">
+              <td style="padding:8px;border:1px solid #ccc;padding-left:24px;">↳ Other Investors (${(100 - investorPoolShare).toFixed(2)}% of pool)</td>
+              <td style="padding:8px;border:1px solid #ccc;text-align:center;">-</td>
+              <td style="padding:8px;border:1px solid #ccc;text-align:right;">₹${otherInvestorsAmount.toLocaleString('en-IN')}</td>
+            </tr>` : ''}
+            <tr style="background:#E0F5F3;">
+              <td style="padding:8px;border:2px solid #00A699;padding-left:24px;"><strong>↳ Your Share — ${inv?.name || '-'} (${investorPoolShare}% of pool)</strong></td>
+              <td style="padding:8px;border:2px solid #00A699;text-align:center;">-</td>
+              <td style="padding:8px;border:2px solid #00A699;text-align:right;color:#00A699;font-weight:700;font-size:14px;">₹${investorAmount.toLocaleString('en-IN')}</td>
             </tr>
             <tr style="background:#FFF0F0;font-weight:700;color:#484848;">
               <td style="padding:8px;border:1px solid #ccc;">Total Distributed Profit</td>
@@ -682,11 +692,13 @@ async function renderInvestorReport(investorId, roomId, month) {
       <div style="margin-bottom:20px;">
         <div style="font-size:15px;font-weight:700;margin-bottom:10px;padding:8px 12px;background:linear-gradient(90deg,#484848,#767676);color:#fff;border-radius:6px;">🏛️ Ownership & Operating Structure</div>
         <div style="font-size:13px;line-height:2;">
-          <div><strong>Property Ownership:</strong> Investor — ${inv?.name || '-'}</div>
+          <div><strong>Property Ownership:</strong> Investor — ${inv?.name || '-'}${investorPoolShare < 100 ? ` (${investorPoolShare}% ownership)` : ''}</div>
           <div><strong>Property Operator:</strong> ${BRAND}</div>
           <div style="margin-top:8px;"><strong>Revenue Sharing Model:</strong></div>
-          <div style="margin-left:16px;">• Investor Share: ${share}%</div>
-          <div style="margin-left:16px;">• ${BRAND}: ${cs}%</div>
+          <div style="margin-left:16px;">• ${BRAND} (Company): ${COMPANY_PCT}%</div>
+          <div style="margin-left:16px;">• Investor Pool: ${INVESTOR_POOL_PCT}%</div>
+          ${investorPoolShare < 100 ? `<div style="margin-left:32px;color:#666;">↳ Your Ownership: ${investorPoolShare}% of investor pool</div>
+          <div style="margin-left:32px;color:#666;">↳ Other Investors: ${(100 - investorPoolShare).toFixed(2)}% of investor pool</div>` : `<div style="margin-left:32px;color:#666;">↳ You hold: 100% of investor pool</div>`}
         </div>
       </div>
 
