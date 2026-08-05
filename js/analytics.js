@@ -216,8 +216,21 @@
     const totalRoomNights = rooms.length * range.days;
     const occupancy = totalRoomNights > 0 ? Math.min(100, (totalNights / totalRoomNights * 100)) : 0;
 
+    // ═══ SMART PRORATION LOGIC ═══
+    const isIncomplete = new Date(range.to) > new Date();
+    const now = new Date();
+    const start = new Date(range.from);
+    const daysCompleted = isIncomplete
+      ? Math.max(1, Math.min(range.days, Math.floor((now - start) / 86400000) + 1))
+      : range.days;
+
     const monthKeys = getMonthKeysInRange(range);
-    const totalExpenses = allExpenses.filter(e => monthKeys.includes(e.month)).reduce((s, e) => s + (e.amount || 0), 0);
+    const fullExpenses = allExpenses.filter(e => monthKeys.includes(e.month)).reduce((s, e) => s + (e.amount || 0), 0);
+    
+    // Prorate expenses if period is incomplete (current month/quarter/year)
+    const totalExpenses = isIncomplete && range.days > 0
+      ? Math.round((fullExpenses / range.days) * daysCompleted)
+      : fullExpenses;
 
     const totalCollected = (payments || []).reduce((s, p) => s + (p.amount || 0), 0);
     const profitMargin = totalRevenue > 0 ? ((totalRevenue - totalExpenses) / totalRevenue * 100) : 0;
@@ -228,6 +241,7 @@
       onlineBks: onlineBks.length, offlineBks: offlineBks.length, reviewBks: reviewBks.length,
       occupancy, totalNights, totalRoomNights,
       totalExpenses, netProfit: totalRevenue - totalExpenses,
+      fullExpenses, isProrated: isIncomplete, daysCompleted, daysInPeriod: range.days,
       totalCollected, profitMargin,
       avgNights: validBks.length > 0 ? totalNights / validBks.length : 0,
       avgBookingValue: validBks.length > 0 ? totalRevenue / validBks.length : 0
@@ -236,6 +250,14 @@
 
   function calculatePropertyPerformance(data, rooms, allExpenses, investorLinks, range) {
     const monthKeys = getMonthKeysInRange(range);
+    // Same proration logic for consistency
+    const isIncomplete = new Date(range.to) > new Date();
+    const now = new Date();
+    const start = new Date(range.from);
+    const daysCompleted = isIncomplete
+      ? Math.max(1, Math.min(range.days, Math.floor((now - start) / 86400000) + 1))
+      : range.days;
+    
     return rooms.map(room => {
       const roomBks = data.bookings.filter(b => b.room_id === room.room_id && b.show_to_investor !== false);
       const roomOnline = roomBks.filter(b => b.booking_mode === 'Online-Airbnb' && !b.is_review_booking);
@@ -245,7 +267,11 @@
       const roomOfflineRev = roomOffline.reduce((s, b) => s + (b.total_amount || 0), 0);
       const roomReviewRev = roomReview.reduce((s, b) => s + (b.total_amount || 0), 0);
       const roomRevenue = roomOnlineRev + roomOfflineRev + roomReviewRev;
-      const roomExpenses = allExpenses.filter(e => e.room_id === room.room_id && monthKeys.includes(e.month)).reduce((s, e) => s + (e.amount || 0), 0);
+      const roomFullExpenses = allExpenses.filter(e => e.room_id === room.room_id && monthKeys.includes(e.month)).reduce((s, e) => s + (e.amount || 0), 0);
+      // Apply same proration for property-level analysis
+      const roomExpenses = isIncomplete && range.days > 0
+        ? Math.round((roomFullExpenses / range.days) * daysCompleted)
+        : roomFullExpenses;
       const profit = roomRevenue - roomExpenses;
       const bookedNights = roomBks.reduce((s, b) => s + calcNights(b.check_in, b.check_out), 0);
       const occupancyPct = range.days > 0 ? Math.min(100, (bookedNights / range.days) * 100) : 0;
@@ -347,10 +373,12 @@
 
   function calculateCashFlow(currentData, payments, current) {
     const pendingDue = current.totalRevenue - current.totalCollected;
+    // Cash Flow uses FULL expenses (actual cash requirement, not prorated)
+    const cashOut = current.fullExpenses !== undefined ? current.fullExpenses : current.totalExpenses;
     return {
       cashIn: current.totalCollected,
-      cashOut: current.totalExpenses,
-      netCash: current.totalCollected - current.totalExpenses,
+      cashOut: cashOut,
+      netCash: current.totalCollected - cashOut,
       pending: Math.max(0, pendingDue),
       revenueBooked: current.totalRevenue
     };
@@ -477,11 +505,11 @@
       '<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:12px;">' +
         '<div><div style="font-size:18px;font-weight:700;color:#333;">📊 ' + currentRange.label + '</div>' +
         '<div style="font-size:12px;color:#666;">vs ' + compareRange.label + '</div></div>' +
-        (isIncomplete ? '<div style="background:#FFF7E6;border:1px solid #F59E0B;padding:6px 12px;border-radius:6px;font-size:12px;color:#F59E0B;">⏳ ' + daysCompleted + '/' + currentRange.days + ' days • Projected: ' + (projected ? formatK(projected) : 'N/A') + '</div>' : '') +
+        (isIncomplete ? '<div style="background:#FFF7E6;border:1px solid #F59E0B;padding:6px 12px;border-radius:6px;font-size:12px;color:#F59E0B;">⏳ ' + daysCompleted + '/' + currentRange.days + ' days • Projected: ' + (projected ? formatK(projected) : 'N/A') + ' • <strong>Expenses prorated</strong></div>' : '') +
       '</div>' +
       '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;">' +
         metricCard('💰 Total Revenue', current.totalRevenue, compare.totalRevenue, '#FF385C') +
-        metricCard('💸 Total Expenses', current.totalExpenses, compare.totalExpenses, '#DC2626') +
+        metricCardWithProration('💸 Total Expenses', current.totalExpenses, compare.totalExpenses, '#DC2626', current.isProrated, current.fullExpenses, current.daysCompleted, current.daysInPeriod) +
         metricCard('📈 Net Profit', current.netProfit, compare.netProfit, current.netProfit >= 0 ? '#0A7D1A' : '#DC2626') +
         metricCard('🌐 Online (Airbnb)', current.onlineRev, compare.onlineRev, '#8B5CF6') +
         metricCard('🏠 Offline (Direct)', current.offlineRev, compare.offlineRev, '#F59E0B') +
