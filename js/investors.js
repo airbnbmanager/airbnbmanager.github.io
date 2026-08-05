@@ -1513,8 +1513,11 @@ async function _originalQuickWhatsAppInvestor(investorId) {
     const finalPhone = phone.length === 10 ? '91' + phone : phone;
     
     // Get current month name
-    const now = new Date();
-    const monthName = now.toLocaleString('en-IN', { month: 'long', year: 'numeric' });
+    // Use SELECTED month from prompt (or current if none)
+    const selectedM = window._waSelectedMonth;
+    const now = selectedM ? new Date(selectedM.year, selectedM.month - 1, 1) : new Date();
+    const monthName = selectedM ? selectedM.monthName : now.toLocaleString('en-IN', { month: 'long', year: 'numeric' });
+    console.log('📅 WhatsApp using month:', monthName, selectedM ? '(from prompt)' : '(current)');
     // NEW: Use pool logic (70% investor pool, split among multi-investors)
     const invNamesArr = (inv.name || 'Investor').split('&').map(n => n.trim()).filter(n => n);
     const isMultiInv = invNamesArr.length > 1;
