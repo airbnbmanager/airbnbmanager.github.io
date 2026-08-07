@@ -333,11 +333,15 @@ async function renderEmployeeTasks(viewMode) {
 
   const { data: tasks } = await sb.from('employee_tasks')
     .select('*').order('assigned_date', { ascending: false });
-  const { data: emps } = await sb.from('employees').select('emp_id, name');
+  const { data: emps } = await sb.from('employees').select('emp_id, name, assigned_rooms');
   const { data: rooms } = await sb.from('rooms').select('room_id, nickname');
 
   const empMap = {};
-  (emps || []).forEach(e => { empMap[e.emp_id] = e.name; });
+  const empInfoMap = {};
+  (emps || []).forEach(e => {
+    empMap[e.emp_id] = e.name;
+    empInfoMap[e.emp_id] = e;
+  });
   const roomMap2 = {};
   (rooms || []).forEach(r => { roomMap2[r.room_id] = r.nickname; });
 
@@ -351,10 +355,28 @@ async function renderEmployeeTasks(viewMode) {
   const empGroups = {};
   filteredTasks.forEach(t => {
     const eName = empMap[t.emp_id] || t.emp_id;
-    if (!empGroups[eName]) empGroups[eName] = { tasks: [], props: {} };
+    const empInfo = empInfoMap[t.emp_id] || {};
+    const assignedRooms = (empInfo.assigned_rooms || '')
+      .split(',')
+      .map(s => s.trim())
+      .filter(Boolean);
+
+    if (!empGroups[eName]) empGroups[eName] = { tasks: [], props: {}, units: 0 };
     empGroups[eName].tasks.push(t);
-    const prop = roomMap2[t.room_id] || 'General/All';
-    empGroups[eName].props[prop] = (empGroups[eName].props[prop] || 0) + 1;
+
+    const isAllTask = !t.room_id && /all/i.test((t.task_description || '') + ' ' + (t.task_type || ''));
+
+    if (isAllTask && assignedRooms.length) {
+      assignedRooms.forEach(rid => {
+        const prop = roomMap2[rid] || rid;
+        empGroups[eName].props[prop] = (empGroups[eName].props[prop] || 0) + 1;
+        empGroups[eName].units += 1;
+      });
+    } else {
+      const prop = roomMap2[t.room_id] || 'General/All';
+      empGroups[eName].props[prop] = (empGroups[eName].props[prop] || 0) + 1;
+      empGroups[eName].units += 1;
+    }
   });
 
   const monthOpts = allMonths.map(m =>
@@ -363,14 +385,14 @@ async function renderEmployeeTasks(viewMode) {
 
   let tableHTML = '';
   if (isByEmp) {
-    tableHTML += '<thead><tr><th>Employee / Property</th><th>Total</th><th>Completed ✅</th><th>Pending ⏳</th><th>In Progress 🔄</th></tr></thead><tbody>';
+    tableHTML += '<thead><tr><th>Employee / Property</th><th>Work Units</th><th>Completed ✅</th><th>Pending ⏳</th><th>In Progress 🔄</th></tr></thead><tbody>';
     Object.entries(empGroups).forEach(([eName, d]) => {
       const done = d.tasks.filter(t => t.status==='Completed').length;
       const pend = d.tasks.filter(t => t.status==='Pending').length;
       const prog = d.tasks.filter(t => t.status==='In Progress').length;
       tableHTML += `<tr style="background:var(--card-bg);border-top:2px solid var(--border)">
-        <td><strong>👤 ${eName}</strong></td>
-        <td><span class="badge blue">${d.tasks.length}</span></td>
+        <td><strong>👤 ${eName}</strong><div class="sub">${Object.keys(d.props).length} properties • ${d.tasks.length} entries</div></td>
+        <td><span class="badge blue">${d.units || d.tasks.length}</span></td>
         <td><span class="badge green">${done}</span></td>
         <td><span class="badge ${pend>0?'red':'green'}">${pend}</span></td>
         <td><span class="badge ${prog>0?'yellow':'green'}">${prog}</span></td>
