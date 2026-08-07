@@ -81,15 +81,29 @@ window.ICAL_SYNC = {
       result.fetched = events.length;
       result.skippedFuture = totalEvents - events.length;
       
-      // Get existing UIDs to prevent duplicates
+      // Get existing UIDs AND date-range bookings to prevent duplicates
       const { data: existing } = await sb.from('guest_register')
-        .select('ical_uid')
-        .eq('room_id', room.room_id)
-        .not('ical_uid', 'is', null);
-      const existingUids = new Set((existing || []).map(e => e.ical_uid));
+        .select('ical_uid, check_in, check_out, booking_mode, is_cancelled')
+        .eq('room_id', room.room_id);
+      const existingUids = new Set((existing || [])
+        .filter(e => e.ical_uid)
+        .map(e => e.ical_uid));
       
+      // Also check by date+mode (Airbnb bookings on same dates = duplicate)
+      const existingDateRanges = new Set(
+        (existing || [])
+          .filter(e => !e.is_cancelled && e.booking_mode === 'Online-Airbnb')
+          .map(e => `${e.check_in}|${e.check_out}`)
+      );
+
       for (const event of events) {
+        // Skip if UID already synced
         if (existingUids.has(event.uid)) {
+          result.skipped++;
+          continue;
+        }
+        // Skip if manual Airbnb entry already exists for same dates
+        if (existingDateRanges.has(`${event.checkIn}|${event.checkOut}`)) {
           result.skipped++;
           continue;
         }
