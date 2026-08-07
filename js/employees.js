@@ -427,9 +427,11 @@ async function renderEmployeeTasks(viewMode) {
     for (let day = daysInMonth; day >= 1; day--) {
       const dateStr = `${selectedMonth}-${String(day).padStart(2,'0')}`;
       const dTasks = tasksByDate[dateStr] || [];
+      const count = dTasks.length;
+      // Skip dates with no tasks
+      if (count === 0) continue;
       const dObj = new Date(dateStr);
       const dayName = dayNames[dObj.getDay()];
-      const count = dTasks.length;
 
       // Group tasks by employee for this date
       const empGroupsDate = {};
@@ -461,7 +463,7 @@ async function renderEmployeeTasks(viewMode) {
              ${count>0 ? `onclick="toggleTaskDate('${dateStr}')"` : ''}>
           <div style="display:flex;justify-content:space-between;align-items:center;">
             <div>
-              <span id="arrow-${dateStr}" style="display:inline-block;width:20px;">${count>0?'▶':'·'}</span>
+              <span id="arrow-${dateStr}" style="display:inline-block;width:20px;">${count>0?'▼':'·'}</span>
               <strong>📅 ${dateStr} (${dayName})</strong>
               ${isToday ? '<span class="badge yellow" style="margin-left:8px;">Today</span>' : ''}
             </div>
@@ -469,7 +471,7 @@ async function renderEmployeeTasks(viewMode) {
               <span class="badge ${count>0?'green':'red'}">${count} tasks</span>
             </div>
           </div>
-          ${count>0 ? `<div id="date-${dateStr}" style="display:none;margin-top:8px;padding-top:8px;border-top:1px dashed var(--border);">${expandHTML}</div>` : ''}
+          ${count>0 ? `<div id="date-${dateStr}" style="display:block;margin-top:8px;padding-top:8px;border-top:1px dashed var(--border);">${expandHTML}</div>` : ''}
         </div>
       `);
     }
