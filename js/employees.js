@@ -408,6 +408,74 @@ async function renderEmployeeTasks(viewMode) {
     tableHTML += '</tbody>';
   }
 
+  // ── Build By-Date view ──
+  let byDateHTML = '';
+  if (viewMode === 'byDate') {
+    const [yr, mo] = selectedMonth.split('-').map(Number);
+    const daysInMonth = new Date(yr, mo, 0).getDate();
+    const dayNames = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+
+    const tasksByDate = {};
+    filteredTasks.forEach(t => {
+      const d = t.assigned_date;
+      if (!d) return;
+      if (!tasksByDate[d]) tasksByDate[d] = [];
+      tasksByDate[d].push(t);
+    });
+
+    const rows = [];
+    for (let day = daysInMonth; day >= 1; day--) {
+      const dateStr = `${selectedMonth}-${String(day).padStart(2,'0')}`;
+      const dTasks = tasksByDate[dateStr] || [];
+      const dObj = new Date(dateStr);
+      const dayName = dayNames[dObj.getDay()];
+      const count = dTasks.length;
+
+      // Group tasks by employee for this date
+      const empGroupsDate = {};
+      dTasks.forEach(t => {
+        const eName = empMap[t.emp_id] || t.emp_id;
+        if (!empGroupsDate[eName]) empGroupsDate[eName] = [];
+        empGroupsDate[eName].push(t);
+      });
+
+      let expandHTML = '';
+      Object.entries(empGroupsDate).forEach(([eName, arr]) => {
+        expandHTML += `<div style="margin:8px 0 4px 12px;"><strong>👤 ${eName}</strong></div>`;
+        arr.forEach(t => {
+          const prop = roomMap2[t.room_id] || 'General/All';
+          const stC = t.status==='Completed'?'green':t.status==='In Progress'?'yellow':'red';
+          expandHTML += `<div style="margin-left:32px;padding:4px 0;color:var(--muted);font-size:13px;">
+            ↳ ${prop} — <span class="badge blue">${t.task_type||'Task'}</span>
+            <span style="color:var(--fg);">${t.task_description||'-'}</span>
+            <span class="badge ${stC}">${t.status||'Pending'}</span>
+          </div>`;
+        });
+      });
+
+      const isToday = dateStr === new Date().toISOString().slice(0,10);
+      const bgColor = isToday ? 'background:var(--primary-fade,rgba(100,150,255,0.1));' : '';
+
+      rows.push(`
+        <div style="border-bottom:1px solid var(--border);padding:12px;${bgColor}cursor:${count>0?'pointer':'default'};"
+             ${count>0 ? `onclick="toggleTaskDate('${dateStr}')"` : ''}>
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <div>
+              <span id="arrow-${dateStr}" style="display:inline-block;width:20px;">${count>0?'▶':'·'}</span>
+              <strong>📅 ${dateStr} (${dayName})</strong>
+              ${isToday ? '<span class="badge yellow" style="margin-left:8px;">Today</span>' : ''}
+            </div>
+            <div>
+              <span class="badge ${count>0?'green':'red'}">${count} tasks</span>
+            </div>
+          </div>
+          ${count>0 ? `<div id="date-${dateStr}" style="display:none;margin-top:8px;padding-top:8px;border-top:1px dashed var(--border);">${expandHTML}</div>` : ''}
+        </div>
+      `);
+    }
+    byDateHTML = rows.join('');
+  }
+
   renderShell(`
     <div class="card">
       <h1>🧰 Tasks</h1>
@@ -416,14 +484,25 @@ async function renderEmployeeTasks(viewMode) {
         ${isO ? '<button onclick="renderAddTask()">➕ Add Task</button>' : ''}
         <button class="${!isByEmp?'':'secondary'} btn-sm" onclick="window._taskMonth='${selectedMonth}';renderEmployeeTasks('list')">📋 All Tasks</button>
         <button class="${isByEmp?'':'secondary'} btn-sm" onclick="window._taskMonth='${selectedMonth}';renderEmployeeTasks('byEmployee')">👤 By Employee</button>
+        <button class="${viewMode==='byDate'?'':'secondary'} btn-sm" onclick="window._taskMonth='${selectedMonth}';renderEmployeeTasks('byDate')">📅 By Date</button>
         <select onchange="window._taskMonth=this.value;renderEmployeeTasks('${viewMode}')" style="padding:4px 8px;border-radius:6px;border:1px solid var(--border);">
           ${monthOpts}
         </select>
       </div>
     </div>
-    <div class="card"><div class="table-wrap"><table>${tableHTML}</table></div></div>
+    <div class="card">${viewMode==='byDate' ? byDateHTML : `<div class="table-wrap"><table>${tableHTML}</table></div>`}</div>
   `, 'tasks');
 }
+
+window.toggleTaskDate = function(dateKey) {
+  const el = document.getElementById('date-' + dateKey);
+  const arrow = document.getElementById('arrow-' + dateKey);
+  if (el) {
+    const hidden = el.style.display === 'none';
+    el.style.display = hidden ? 'block' : 'none';
+    if (arrow) arrow.textContent = hidden ? '▼' : '▶';
+  }
+};
 async function renderAddTask() {
   const [{ data: emps }, { data: rooms }] = await Promise.all([
     sb.from('employees').select('emp_id,name').eq('status', 'Active').order('name'),
