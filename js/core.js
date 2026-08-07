@@ -473,7 +473,7 @@ function renderShell(content, activePage = 'dashboard') {
       ['daily-report', '📅 Daily Report'],
       ['reminders', '🔔 Reminders'],
       ['financial-sheet', '📈 Financial Sheet'],
-      ...(isAdmin ? [['airbnb-sync', '🔄 Airbnb Sync']] : []),
+      ...(isAdmin ? [['airbnb-sync', '🔄 Airbnb Sync'], ['ical-sync', '📅 iCal Sync']] : []),
       ['property-report', '🏘️ Property Reports'],
       ['investors', '🧑‍💼 Investors'],
 
@@ -702,6 +702,7 @@ function navigate(page) {
     'financial': () => renderFYSummary('Month'),
     'financial-sheet': renderFinancialSheet,
     'airbnb-sync': renderAirbnbSync,
+    'ical-sync': renderIcalSync,
     'analytics': renderAnalytics,
     'whatsapp-hub': renderWhatsAppHub,
     'settings': renderSettings,
