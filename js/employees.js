@@ -327,111 +327,101 @@ async function delEmp(id, name) {
 }
 
 // ============ TASKS ============
-async function renderEmployeeTasks(viewMode = 'list') {
-  renderShell(`<div class="loading">Loading...</div>`, 'tasks');
+async function renderEmployeeTasks(viewMode) {
+  viewMode = viewMode || "list";
+  renderShell("<div class=\"loading\">Loading...</div>", "tasks");
 
-  const { data: tasks } = await sb.from('employee_tasks')
-    .select('*')
-    .order('assigned_date', { ascending: false });
+  const { data: tasks } = await sb.from("employee_tasks")
+    .select("*")
+    .order("assigned_date", { ascending: false });
 
-  const { data: emps } = await sb.from('employees').select('emp_id, name');
-  const { data: rooms } = await sb.from('rooms').select('room_id, nickname');
+  const { data: emps } = await sb.from("employees").select("emp_id, name");
+  const { data: rooms } = await sb.from("rooms").select("room_id, nickname");
 
   const empMap = {};
-  (emps || []).forEach(e => { empMap[e.emp_id] = e.name; });
+  (emps || []).forEach(function(e) { empMap[e.emp_id] = e.name; });
   const roomMap2 = {};
-  (rooms || []).forEach(r => { roomMap2[r.room_id] = r.nickname; });
+  (rooms || []).forEach(function(r) { roomMap2[r.room_id] = r.nickname; });
 
-  const isO = ['owner','admin','moderator','developer'].includes(SESSION.role);
+  const isO = ["owner","admin","moderator","developer"].includes(SESSION.role);
 
-  const allMonths = [...new Set((tasks||[]).map(t => (t.assigned_date||'').slice(0,7)).filter(Boolean))].sort().reverse();
+  const allMonths = [...new Set((tasks||[]).map(function(t){ return (t.assigned_date||"").slice(0,7); }).filter(Boolean))].sort().reverse();
   const currentMonth = new Date().toISOString().slice(0,7);
   const selectedMonth = window._taskMonth || currentMonth;
-  const filteredTasks = (tasks||[]).filter(t => (t.assigned_date||'').startsWith(selectedMonth));
+  const filteredTasks = (tasks||[]).filter(function(t){ return (t.assigned_date||"").startsWith(selectedMonth); });
 
-  function renderByEmployee() {
-    const empGroups = {};
-    filteredTasks.forEach(t => {
-      const eName = empMap[t.emp_id] || t.emp_id;
-      if (!empGroups[eName]) empGroups[eName] = { tasks: [], properties: {} };
-      empGroups[eName].tasks.push(t);
-      const prop = roomMap2[t.room_id] || 'General/All';
-      if (!empGroups[eName].properties[prop]) empGroups[eName].properties[prop] = 0;
-      empGroups[eName].properties[prop]++;
-    });
+  const isByEmp = viewMode === "byEmployee";
 
-    return Object.entries(empGroups).map(([eName, data]) => {
-      const completed = data.tasks.filter(t => t.status === 'Completed').length;
-      const pending   = data.tasks.filter(t => t.status === 'Pending').length;
-      const inProg    = data.tasks.filter(t => t.status === 'In Progress').length;
+  // Build by-employee summary
+  const empGroups = {};
+  filteredTasks.forEach(function(t) {
+    const eName = empMap[t.emp_id] || t.emp_id;
+    if (!empGroups[eName]) empGroups[eName] = { tasks: [], properties: {} };
+    empGroups[eName].tasks.push(t);
+    const prop = roomMap2[t.room_id] || "General/All";
+    if (!empGroups[eName].properties[prop]) empGroups[eName].properties[prop] = 0;
+    empGroups[eName].properties[prop]++;
+  });
+
+  let bodyHTML = "";
+  let headHTML = "";
+
+  if (isByEmp) {
+    headHTML = "<thead><tr><th>Employee / Property</th><th>Total</th><th>Completed</th><th>Pending</th><th>In Progress</th></tr></thead>";
+    const rows = Object.entries(empGroups).map(function(entry) {
+      const eName = entry[0];
+      const data = entry[1];
+      const completed = data.tasks.filter(function(t){ return t.status === "Completed"; }).length;
+      const pending   = data.tasks.filter(function(t){ return t.status === "Pending"; }).length;
+      const inProg    = data.tasks.filter(function(t){ return t.status === "In Progress"; }).length;
       const total     = data.tasks.length;
-
-      const propRows = Object.entries(data.properties).map(([prop, count]) => `
-        <tr style="background:var(--bg);">
-          <td style="padding-left:24px;color:var(--muted);font-size:13px;">↳ ${prop}</td>
-          <td><span class="badge blue">${count}</span></td>
-          <td>-</td><td>-</td><td>-</td>
-        </tr>`).join('');
-
-      return `
-        <tr style="background:var(--card-bg);border-top:2px solid var(--border);">
-          <td><strong>👤 ${eName}</strong></td>
-          <td><span class="badge blue">${total}</span></td>
-          <td><span class="badge green">${completed} ✅</span></td>
-          <td><span class="badge ${pending > 0 ? 'red' : 'green'}">${pending} ⏳</span></td>
-          <td><span class="badge ${inProg > 0 ? 'yellow' : 'green'}">${inProg} 🔄</span></td>
-        </tr>${propRows}`;
-    }).join('') || '<tr><td colspan="5" class="sub">No tasks this month</td></tr>';
+      const propRows  = Object.entries(data.properties).map(function(pe) {
+        return "<tr style=\"background:var(--bg)\"><td style=\"padding-left:24px;color:var(--muted);font-size:13px\">↳ " + pe[0] + "</td><td><span class=\"badge blue\">" + pe[1] + "</span></td><td>-</td><td>-</td><td>-</td></tr>";
+      }).join("");
+      return "<tr style=\"background:var(--card-bg);border-top:2px solid var(--border)\"><td><strong>👤 " + eName + "</strong></td><td><span class=\"badge blue\">" + total + "</span></td><td><span class=\"badge green\">" + completed + " ✅</span></td><td><span class=\"badge " + (pending > 0 ? "red" : "green") + "\">" + pending + " ⏳</span></td><td><span class=\"badge " + (inProg > 0 ? "yellow" : "green") + "\">" + inProg + " 🔄</span></td></tr>" + propRows;
+    });
+    bodyHTML = rows.length ? rows.join("") : "<tr><td colspan=\"5\" class=\"sub\">No tasks this month</td></tr>";
+  } else {
+    headHTML = "<thead><tr><th>Employee</th><th>Property</th><th>Type</th><th>Task</th><th>Priority</th><th>Date</th><th>Status</th>" + (isO ? "<th>Actions</th>" : "") + "</tr></thead>";
+    const rows = filteredTasks.map(function(t) {
+      const priClass = t.priority === "Urgent" ? "red" : t.priority === "High" ? "yellow" : "green";
+      const stClass  = t.status === "Completed" ? "green" : t.status === "In Progress" ? "yellow" : "red";
+      const actBtn   = isO ? ("<td class=\"table-actions\"><button class=\"btn-sm\" onclick=\"editTask(" + t.id + ")\">✏️</button>" + (window && window.canDelete && window.canDelete() ? "<button class=\"btn-sm danger\" onclick=\"delTask(" + t.id + ")\">🗑️</button>" : "") + "</td>") : "";
+      return "<tr><td><strong>" + (empMap[t.emp_id]||t.emp_id) + "</strong></td><td>" + (roomMap2[t.room_id]||"-") + "</td><td><span class=\"badge blue\">" + (t.task_type||"Other") + "</span></td><td>" + (t.task_description||"-") + "</td><td><span class=\"badge " + priClass + "\">" + (t.priority||"Normal") + "</span></td><td>" + (t.assigned_date||"-") + "</td><td><span class=\"badge " + stClass + "\">" + (t.status||"Pending") + "</span></td>" + actBtn + "</tr>";
+    });
+    bodyHTML = rows.length ? rows.join("") : "<tr><td colspan=\"8\" class=\"sub\">No tasks this month</td></tr>";
   }
 
-  function renderList() {
-    return filteredTasks.map(t => `<tr>
-      <td><strong>${empMap[t.emp_id] || t.emp_id}</strong></td>
-      <td>${roomMap2[t.room_id] || '-'}</td>
-      <td><span class="badge blue">${t.task_type || 'Other'}</span></td>
-      <td>${t.task_description || '-'}</td>
-      <td><span class="badge ${t.priority === 'Urgent' ? 'red' : t.priority === 'High' ? 'yellow' : 'green'}">${t.priority || 'Normal'}</span></td>
-      <td>${t.assigned_date || '-'}</td>
-      <td><span class="badge ${t.status === 'Completed' ? 'green' : t.status === 'In Progress' ? 'yellow' : 'red'}">${t.status || 'Pending'}</span></td>
-      ${isO ? `<td class="table-actions">
-        <button class="btn-sm" onclick="editTask(${t.id})">✏️</button>
-        ${window.canDelete && window.canDelete() ? `<button class="btn-sm danger" onclick="delTask(${t.id})">🗑️</button>` : ''}
-      </td>` : ''}
-    </tr>`).join('') || '<tr><td colspan="8" class="sub">No tasks this month</td></tr>';
-  }
+  const monthOptions = allMonths.map(function(m) {
+    return "<option value=\"" + m + "\"" + (m === selectedMonth ? " selected" : "") + ">" + m + "</option>";
+  }).join("");
 
-  const isByEmp = viewMode === 'byEmployee';
+  const html = [
+    "<div class=\"card\">",
+    "  <h1>🧰 Tasks</h1>",
+    "  <div class=\"sub\">" + filteredTasks.length + " tasks — " + selectedMonth + "</div>",
+    "  <div style=\"display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;\">",
+    (isO ? "    <button onclick=\"renderAddTask()\">➕ Add Task</button>" : ""),
+    "    <button class=\"" + (!isByEmp ? "" : "secondary") + " btn-sm\" onclick=\"window._taskMonth='" + selectedMonth + "';renderEmployeeTasks('list')\">📋 All Tasks</button>",
+    "    <button class=\"" + (isByEmp ? "" : "secondary") + " btn-sm\" onclick=\"window._taskMonth='" + selectedMonth + "';renderEmployeeTasks('byEmployee')\">👤 By Employee</button>",
+    "    <select onchange=\"window._taskMonth=this.value;renderEmployeeTasks('" + viewMode + "')\" style=\"padding:4px 8px;border-radius:6px;border:1px solid var(--border)\">" + monthOptions + "</select>",
+    "  </div>",
+    "</div>",
+    "<div class=\"card\"><div class=\"table-wrap\"><table>",
+    headHTML,
+    "<tbody>" + bodyHTML + "</tbody>",
+    "</table></div></div>"
+  ].join("
+");
 
-  renderShell(`
-    <div class="card">
-      <h1>🧰 Tasks</h1>
-      <div class="sub">${filteredTasks.length} tasks — ${selectedMonth}</div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;">
-        ${isO ? `<button onclick="renderAddTask()">➕ Add Task</button>` : ''}
-        <button class="${!isByEmp ? '' : 'secondary'} btn-sm" onclick="window._taskMonth='${selectedMonth}';renderEmployeeTasks('list')">📋 All Tasks</button>
-        <button class="${isByEmp ? '' : 'secondary'} btn-sm" onclick="window._taskMonth='${selectedMonth}';renderEmployeeTasks('byEmployee')">👤 By Employee</button>
-        <select onchange="window._taskMonth=this.value;renderEmployeeTasks('${viewMode}')" style="padding:4px 8px;border-radius:6px;border:1px solid var(--border);">
-          ${allMonths.map(m => `<option value="${m}" ${m === selectedMonth ? 'selected' : ''}>${m}</option>`).join('')}
-        </select>
-      </div>
-    </div>
-    <div class="card"><div class="table-wrap"><table>
-      ${isByEmp ? `
-        <thead><tr>
-          <th>Employee / Property</th><th>Total</th><th>Completed</th><th>Pending</th><th>In Progress</th>
-        </tr></thead>
-        <tbody>${renderByEmployee()}</tbody>
-      ` : `
-        <thead><tr>
-          <th>Employee</th><th>Property</th><th>Type</th><th>Task</th>
-          <th>Priority</th><th>Date</th><th>Status</th>
-          ${isO ? '<th>Actions</th>' : ''}
-        </tr></thead>
-        <tbody>${renderList()}</tbody>
-      `}
-    </table></div></div>
-  `, 'tasks');
+  renderShell(html, "tasks");
 }
+
+async function renderAddTask() {
+  const [{ data: emps }, { data: rooms }] = await Promise.all([
+    sb.from('employees').select('emp_id,name').eq('status', 'Active').order('name'),
+    sb.from('rooms').select('room_id,nickname').order('room_id')
+  ]);
 
   renderShell(`
     <div class="card"><h1>➕ Add Task</h1><button class="secondary btn-sm" onclick="renderEmployeeTasks()">← Back</button></div>
