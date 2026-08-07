@@ -424,7 +424,7 @@ async function renderEmployeeTasks(viewMode) {
     });
 
     const rows = [];
-    for (let day = daysInMonth; day >= 1; day--) {
+    for (let day = 1; day <= daysInMonth; day++) {
       const dateStr = `${selectedMonth}-${String(day).padStart(2,'0')}`;
       const dTasks = tasksByDate[dateStr] || [];
       const count = dTasks.length;
