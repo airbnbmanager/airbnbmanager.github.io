@@ -18,3 +18,8 @@ supabase/.temp/
 *.bak
 *.working*
 .old-backups-*/
+
+# Backup files
+*.backup*
+*.old*
+*.bak
