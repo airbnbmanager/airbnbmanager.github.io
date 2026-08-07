@@ -77,14 +77,12 @@ window.ICAL_SYNC = {
           check_in: event.checkIn,
           check_out: event.checkOut,
           total_amount: 0,
-          amount_paid: 0,
           booking_mode: 'Airbnb',
           payment_status: 'Pending',
-          num_guests: 1,
+          guests: 1,
           ical_uid: event.uid,
           synced_from_ical: true,
-          notes: `Auto-synced from Airbnb iCal on ${new Date().toISOString().slice(0,10)}. Original summary: ${event.summary}`,
-          created_at: new Date().toISOString()
+          notes: `Auto-synced from Airbnb iCal on ${new Date().toISOString().slice(0,10)}. Original: ${event.summary}`
         });
         
         if (error) {
