@@ -103,7 +103,7 @@ window.ICAL_SYNC = {
           check_in: event.checkIn,
           check_out: event.checkOut,
           total_amount: 0,
-          booking_mode: 'Airbnb',
+          booking_mode: 'Online-Airbnb',
           payment_status: 'Pending',
           guests: 1,
           ical_uid: event.uid,
