@@ -2705,9 +2705,22 @@ async function savePaymentModal(bkId) {
       .lte('check_in', currBk.check_out || currBk.check_in)
       .gte('check_out', currBk.check_in);
 
-    if (sameRoomBks && sameRoomBks.length > 0) {
+    // 🎯 SMART FILTER: Skip warning if same guest (extension/duplicate) or linked booking
+    const currGuestNorm = (currBk.guest_name || '').trim().toLowerCase().replace(/\s+/g, ' ');
+    const filteredSameRoomBks = (sameRoomBks || []).filter(b => {
+      const otherGuestNorm = (b.guest_name || '').trim().toLowerCase().replace(/\s+/g, ' ');
+      // Same guest name → obviously same person, no warning needed
+      if (otherGuestNorm === currGuestNorm) return false;
+      // Linked bookings (review/extension) → no warning
+      if (b.linked_booking_id === bkId || currBk.linked_booking_id === b.booking_id) return false;
+      // Both marked as review → no warning
+      if (b.is_review_booking && currBk.is_review_booking) return false;
+      return true; // Different guest → real conflict, show warning
+    });
+
+    if (filteredSameRoomBks.length > 0) {
       // Fetch payments for other bookings
-      const otherBkIds = sameRoomBks.map(b => b.booking_id);
+      const otherBkIds = filteredSameRoomBks.map(b => b.booking_id);
       const { data: otherPays } = await sb.from('payment_history')
         .select('booking_id, amount').in('booking_id', otherBkIds).neq('verification_status', 'rejected');
       
@@ -2735,7 +2748,7 @@ async function savePaymentModal(bkId) {
           due: currDue,
           isCurrent: true
         },
-        ...sameRoomBks.map(b => {
+        ...filteredSameRoomBks.map(b => {
           const paid = payMap[b.booking_id] || 0;
           return {
             bookingId: b.booking_id,
