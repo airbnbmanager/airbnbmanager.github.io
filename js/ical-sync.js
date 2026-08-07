@@ -47,6 +47,9 @@ window.ICAL_SYNC = {
       if (e.isFuture) return false;
       // Skip old bookings (previous months)
       if (e.isBeforeMonth) return false;
+      // CRITICAL: Skip manual blocks (not actual bookings)
+      // Airbnb sends 2 types: "Reserved" (real booking) vs "Not available" (owner blocked)
+      if (e.isBlocked) return false;
       return true;
     });
   },
