@@ -15,23 +15,40 @@ window.ICAL_SYNC = {
     return text;
   },
   
-  // Parse iCal to booking events
+  // Parse iCal to booking events (with filtering)
   parseIcal(icalText) {
     const events = icalText.split('BEGIN:VEVENT').slice(1);
+    const today = new Date().toISOString().slice(0, 10);
+    const monthStart = today.slice(0, 8) + '01';
+
     return events.map(ev => {
       const start = ev.match(/DTSTART[^:]*:(\d{8})/)?.[1];
       const end = ev.match(/DTEND[^:]*:(\d{8})/)?.[1];
       const summary = ev.match(/SUMMARY:(.+)/)?.[1]?.trim() || 'Reserved';
       const uid = ev.match(/UID:(.+)/)?.[1]?.trim();
       const fmt = d => d ? `${d.slice(0,4)}-${d.slice(4,6)}-${d.slice(6,8)}` : null;
+
+      const checkIn = fmt(start);
+      const checkOut = fmt(end);
+
       return {
-        checkIn: fmt(start),
-        checkOut: fmt(end),
+        checkIn,
+        checkOut,
         summary,
         uid,
-        isBlocked: summary.toLowerCase().includes('not available') || summary.toLowerCase().includes('blocked')
+        isBlocked: summary.toLowerCase().includes('not available') || summary.toLowerCase().includes('blocked'),
+        isFuture: checkIn > today,
+        isBeforeMonth: checkIn < monthStart
       };
-    }).filter(e => e.checkIn && e.checkOut && e.uid);
+    }).filter(e => {
+      // Must have valid dates + uid
+      if (!e.checkIn || !e.checkOut || !e.uid) return false;
+      // Skip future bookings (not confirmed yet)
+      if (e.isFuture) return false;
+      // Skip old bookings (previous months)
+      if (e.isBeforeMonth) return false;
+      return true;
+    });
   },
   
   // Sync single property
@@ -39,9 +56,11 @@ window.ICAL_SYNC = {
     const result = {
       room: room.nickname || room.unit_no,
       roomId: room.room_id,
+      totalInIcal: 0,
       fetched: 0,
       created: 0,
       skipped: 0,
+      skippedFuture: 0,
       errors: []
     };
     
@@ -52,8 +71,12 @@ window.ICAL_SYNC = {
     
     try {
       const icalText = await this.fetchIcal(room.airbnb_ical_url);
+      // Count total events (before filter)
+      const totalEvents = icalText.split('BEGIN:VEVENT').length - 1;
+      result.totalInIcal = totalEvents;
       const events = this.parseIcal(icalText);
       result.fetched = events.length;
+      result.skippedFuture = totalEvents - events.length;
       
       // Get existing UIDs to prevent duplicates
       const { data: existing } = await sb.from('guest_register')
