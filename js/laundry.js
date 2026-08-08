@@ -14,12 +14,20 @@ window.renderLaundry = async function() {
   const monthStart = currentMonth + '-01';
   const monthEnd = new Date(parseInt(currentMonth.split('-')[0]), parseInt(currentMonth.split('-')[1]), 0).toISOString().slice(0, 10);
   
-  const [{ data: records }, { data: items }, { data: rooms }, { data: recItems }] = await Promise.all([
+  const [{ data: records }, { data: items }, { data: rooms }, { data: recItems }, { data: allPayments }] = await Promise.all([
     sb.from('laundry_records').select('*').gte('record_date', monthStart).lte('record_date', monthEnd).order('record_date', { ascending: false }),
     sb.from('laundry_items').select('*').eq('active', true).order('item_name'),
     sb.from('rooms').select('room_id, nickname, unit_no').order('unit_no'),
-    sb.from('laundry_record_items').select('*, laundry_items(item_name)')
+    sb.from('laundry_record_items').select('*, laundry_items(item_name)'),
+    sb.from('laundry_payments').select('*').order('payment_date', { ascending: false })
   ]);
+  
+  // Group payments by record_id + recalculate paid amount from payments table
+  const paymentsByRecord = {};
+  (allPayments || []).forEach(p => {
+    if (!paymentsByRecord[p.record_id]) paymentsByRecord[p.record_id] = [];
+    paymentsByRecord[p.record_id].push(p);
+  });
   
   const roomMap = {};
   (rooms || []).forEach(r => { roomMap[r.room_id] = r.nickname || r.unit_no; });
@@ -31,7 +39,7 @@ window.renderLaundry = async function() {
   });
   
   const totalAmount = (records || []).reduce((s, r) => s + Number(r.total_amount || 0), 0);
-  const totalPaid = (records || []).reduce((s, r) => s + Number(r.paid_amount || 0), 0);
+  const totalPaid = Object.values(paymentsByRecord).flat().reduce((s, p) => s + Number(p.amount || 0), 0);
   const totalDue = totalAmount - totalPaid;
   
   // Item-wise consumption
@@ -101,17 +109,27 @@ window.renderLaundry = async function() {
           ${(records || []).map(r => {
             const rItems = itemsByRecord[r.id] || [];
             const itemsSummary = rItems.map(ri => `${ri.quantity} ${ri.laundry_items?.item_name || '?'}`).join(', ');
-            const due = Number(r.total_amount || 0) - Number(r.paid_amount || 0);
-            const status = due <= 0 ? 'green' : (r.paid_amount > 0 ? 'yellow' : 'red');
-            const statusText = due <= 0 ? 'Paid ✅' : (r.paid_amount > 0 ? `Partial (₹${due} due)` : 'Unpaid');
+            const recPayments = paymentsByRecord[r.id] || [];
+            const recPaid = recPayments.reduce((s, p) => s + Number(p.amount || 0), 0);
+            const total = Number(r.total_amount || 0);
+            const due = total - recPaid;
+            const status = due <= 0 ? 'green' : (recPaid > 0 ? 'yellow' : 'red');
+            const statusText = due <= 0 ? 'Paid ✅' : (recPaid > 0 ? `Partial (₹${due.toLocaleString('en-IN')} due)` : 'Unpaid');
             return `<tr>
               <td>${r.record_date}</td>
               <td>${roomMap[r.room_id] || 'General'}</td>
               <td><strong>${r.vendor_name || '-'}</strong></td>
               <td style="font-size:11px;color:#666;max-width:250px;">${itemsSummary || '-'}</td>
-              <td style="text-align:right;"><strong>₹${Number(r.total_amount || 0).toLocaleString('en-IN')}</strong></td>
-              <td><span class="badge ${status}">${statusText}</span></td>
+              <td style="text-align:right;">
+                <strong>₹${total.toLocaleString('en-IN')}</strong>
+                ${recPaid > 0 ? `<div style="font-size:10px;color:#059669;">Paid: ₹${recPaid.toLocaleString('en-IN')}</div>` : ''}
+              </td>
+              <td>
+                <span class="badge ${status}">${statusText}</span>
+                ${recPayments.length > 0 ? `<div style="font-size:10px;color:#666;margin-top:2px;cursor:pointer;" onclick="showLaundryPayments(${r.id})">📜 ${recPayments.length} payment${recPayments.length>1?'s':''}</div>` : ''}
+              </td>
               <td class="table-actions">
+                ${due > 0 ? `<button class="btn-sm" style="background:#10B981;color:#fff;" onclick="addLaundryPayment(${r.id}, ${due})">💰 Pay</button>` : ''}
                 <button class="btn-sm" onclick="editLaundry(${r.id})">✏️</button>
                 <button class="btn-sm danger" onclick="deleteLaundry(${r.id})">🗑️</button>
               </td>
@@ -591,6 +609,140 @@ window.handleVendorChange = async function(select) {
   window._laundryVendorsList = [...(window._laundryVendorsList || []), data];
   
   fsn.success('Added', '✅ Vendor ' + name + ' added');
+};
+
+window.addLaundryPayment = async function(recordId, dueAmount) {
+  const { data: rec } = await sb.from('laundry_records').select('*').eq('id', recordId).single();
+  if (!rec) { fsn.error('Error', 'Record not found'); return; }
+  
+  const modal = document.createElement('div');
+  modal.className = 'modal-overlay';
+  modal.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:9999;';
+  modal.innerHTML = `
+    <div class="modal-box" style="background:#fff;border-radius:12px;padding:20px;max-width:450px;width:90%;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+        <h2 style="margin:0;">💰 Add Payment</h2>
+        <button onclick="this.closest('.modal-overlay').remove()" style="background:none;border:none;font-size:22px;cursor:pointer;">✕</button>
+      </div>
+      <div style="background:#F0FDF4;padding:10px;border-radius:8px;margin-bottom:12px;font-size:13px;">
+        <div><strong>${rec.vendor_name}</strong> — ${rec.record_date}</div>
+        <div style="color:#DC2626;margin-top:4px;">Due: <strong>₹${dueAmount.toLocaleString('en-IN')}</strong></div>
+      </div>
+      <div class="form-group"><label>Amount ₹ *</label><input id="lpAmt" type="number" value="${dueAmount}" min="0"></div>
+      <div class="form-group"><label>Payment Date *</label><input id="lpDate" type="date" value="${new Date().toISOString().slice(0,10)}"></div>
+      <div class="form-group"><label>Mode</label>
+        <select id="lpMode">
+          <option>Cash</option><option>UPI</option><option>Bank</option>
+        </select>
+      </div>
+      <div class="form-group"><label>Notes</label><input id="lpNotes" type="text" placeholder="Optional"></div>
+      <button onclick="saveLaundryPayment(${recordId})" style="width:100%;background:#10B981;color:#fff;padding:10px;border:none;border-radius:6px;font-weight:700;cursor:pointer;">💾 Save Payment</button>
+      <div id="lpErr" style="margin-top:8px;"></div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+};
+
+window.saveLaundryPayment = async function(recordId) {
+  const amount = parseFloat(document.getElementById('lpAmt').value) || 0;
+  const date = document.getElementById('lpDate').value;
+  const mode = document.getElementById('lpMode').value;
+  const notes = document.getElementById('lpNotes').value.trim();
+  
+  if (amount <= 0 || !date) {
+    document.getElementById('lpErr').innerHTML = '<div class="error">Amount and Date required</div>';
+    return;
+  }
+  
+  const { error } = await sb.from('laundry_payments').insert({
+    record_id: recordId,
+    amount, payment_date: date, payment_mode: mode, notes
+  });
+  
+  if (error) {
+    document.getElementById('lpErr').innerHTML = '<div class="error">' + error.message + '</div>';
+    return;
+  }
+  
+  // Update record's paid_amount + status
+  const { data: allPays } = await sb.from('laundry_payments').select('amount').eq('record_id', recordId);
+  const totalPaid = (allPays || []).reduce((s, p) => s + Number(p.amount || 0), 0);
+  const { data: rec } = await sb.from('laundry_records').select('total_amount').eq('id', recordId).single();
+  const total = Number(rec?.total_amount || 0);
+  const status = totalPaid >= total ? 'Paid' : (totalPaid > 0 ? 'Partial' : 'Pending');
+  
+  await sb.from('laundry_records').update({
+    paid_amount: totalPaid,
+    payment_status: status
+  }).eq('id', recordId);
+  
+  document.querySelector('.modal-overlay')?.remove();
+  fsn.success('Success', '✅ Payment added!');
+  renderLaundry();
+};
+
+window.showLaundryPayments = async function(recordId) {
+  const { data: payments } = await sb.from('laundry_payments')
+    .select('*').eq('record_id', recordId).order('payment_date', { ascending: false });
+  const { data: rec } = await sb.from('laundry_records').select('*').eq('id', recordId).single();
+  
+  const modal = document.createElement('div');
+  modal.className = 'modal-overlay';
+  modal.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:9999;';
+  modal.innerHTML = `
+    <div class="modal-box" style="background:#fff;border-radius:12px;padding:20px;max-width:600px;width:90%;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+        <h2 style="margin:0;">📜 Payment History</h2>
+        <button onclick="this.closest('.modal-overlay').remove()" style="background:none;border:none;font-size:22px;cursor:pointer;">✕</button>
+      </div>
+      <div style="background:#F0FDF4;padding:10px;border-radius:8px;margin-bottom:12px;font-size:13px;">
+        <strong>${rec?.vendor_name}</strong> — ${rec?.record_date} — Total: ₹${Number(rec?.total_amount||0).toLocaleString('en-IN')}
+      </div>
+      <table style="width:100%;border-collapse:collapse;">
+        <thead><tr style="background:#f5f5f5;">
+          <th style="padding:8px;text-align:left;">Date</th>
+          <th style="padding:8px;text-align:left;">Mode</th>
+          <th style="padding:8px;text-align:right;">Amount</th>
+          <th style="padding:8px;">Notes</th>
+          <th style="padding:8px;">Action</th>
+        </tr></thead>
+        <tbody>
+          ${(payments || []).map(p => `<tr style="border-bottom:1px solid #eee;">
+            <td style="padding:8px;">${p.payment_date}</td>
+            <td style="padding:8px;">${p.payment_mode}</td>
+            <td style="padding:8px;text-align:right;"><strong>₹${Number(p.amount).toLocaleString('en-IN')}</strong></td>
+            <td style="padding:8px;font-size:11px;color:#666;">${p.notes || '-'}</td>
+            <td style="padding:8px;"><button class="btn-sm danger" onclick="deleteLaundryPayment(${p.id}, ${recordId})">🗑️</button></td>
+          </tr>`).join('') || '<tr><td colspan="5" style="padding:16px;text-align:center;color:#999;">No payments</td></tr>'}
+        </tbody>
+      </table>
+      <div style="text-align:right;margin-top:10px;padding-top:10px;border-top:2px solid #eee;">
+        <strong>Total Paid: ₹${(payments || []).reduce((s, p) => s + Number(p.amount || 0), 0).toLocaleString('en-IN')}</strong>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+};
+
+window.deleteLaundryPayment = async function(paymentId, recordId) {
+  if (!confirm('Delete this payment?')) return;
+  await sb.from('laundry_payments').delete().eq('id', paymentId);
+  
+  // Recalculate record status
+  const { data: allPays } = await sb.from('laundry_payments').select('amount').eq('record_id', recordId);
+  const totalPaid = (allPays || []).reduce((s, p) => s + Number(p.amount || 0), 0);
+  const { data: rec } = await sb.from('laundry_records').select('total_amount').eq('id', recordId).single();
+  const total = Number(rec?.total_amount || 0);
+  const status = totalPaid >= total ? 'Paid' : (totalPaid > 0 ? 'Partial' : 'Pending');
+  
+  await sb.from('laundry_records').update({
+    paid_amount: totalPaid,
+    payment_status: status
+  }).eq('id', recordId);
+  
+  document.querySelector('.modal-overlay')?.remove();
+  fsn.success('Success', '✅ Payment deleted');
+  renderLaundry();
 };
 
 console.log('✅ Laundry module loaded');
