@@ -160,9 +160,11 @@ async function renderAddMaintenance() {
       </div>
       <div class="form-group">
         <label>Issue Type *</label>
-        <select id="mType">
+        <select id="mType" onchange="handleMaintTypeChange(this)">
           ${MAINT_TYPES.map(t => `<option>${t}</option>`).join('')}
+          <option value="__custom__" style="color:#059669;font-weight:700;">✏️ Custom (type your own)...</option>
         </select>
+        <input id="mTypeCustom" type="text" placeholder="Enter custom type..." style="display:none;margin-top:8px;">
       </div>
       <div class="form-group">
         <label>Description *</label>
@@ -249,6 +251,25 @@ async function maintCompressImage(file, maxWidth = 800, quality = 0.7) {
   });
 }
 
+window.handleMaintTypeChange = function(select) {
+  const customInput = document.getElementById('mTypeCustom');
+  if (select.value === '__custom__') {
+    customInput.style.display = 'block';
+    customInput.focus();
+  } else {
+    customInput.style.display = 'none';
+    customInput.value = '';
+  }
+};
+
+function getMaintType() {
+  const sel = document.getElementById('mType');
+  if (sel.value === '__custom__') {
+    return document.getElementById('mTypeCustom').value.trim() || 'Other';
+  }
+  return sel.value;
+}
+
 async function saveMaintenance() {
   const desc = document.getElementById('mDesc').value.trim();
   if (!desc) {
@@ -271,7 +292,7 @@ async function saveMaintenance() {
   
   const { error } = await sb.from('maintenance_log').insert({
     room_id: document.getElementById('mRoom').value || null,
-    issue_type: document.getElementById('mType').value,
+    issue_type: getMaintType(),
     priority: document.getElementById('mPriority').value,
     description: desc,
     cost: parseFloat(document.getElementById('mCost').value) || 0,
@@ -325,9 +346,12 @@ async function editMaintenance(id) {
       </div>
       <div class="form-group">
         <label>Issue Type</label>
-        <select id="mType">
+        <select id="mType" onchange="handleMaintTypeChange(this)">
           ${MAINT_TYPES.map(t => `<option ${t===m.issue_type?'selected':''}>${t}</option>`).join('')}
+          ${m.issue_type && !MAINT_TYPES.includes(m.issue_type) ? `<option value="${m.issue_type}" selected>${m.issue_type}</option>` : ''}
+          <option value="__custom__" style="color:#059669;font-weight:700;">✏️ Custom (type your own)...</option>
         </select>
+        <input id="mTypeCustom" type="text" placeholder="Enter custom type..." style="display:none;margin-top:8px;">
       </div>
       <div class="form-group">
         <label>Description *</label>
@@ -430,7 +454,7 @@ async function updateMaintenance() {
   const status = document.getElementById('mStatus').value;
   const updateObj = {
     room_id: document.getElementById('mRoom').value || null,
-    issue_type: document.getElementById('mType').value,
+    issue_type: getMaintType(),
     priority: document.getElementById('mPriority').value,
     description: desc,
     cost: parseFloat(document.getElementById('mCost').value) || 0,
