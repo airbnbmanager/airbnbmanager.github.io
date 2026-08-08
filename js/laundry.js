@@ -207,6 +207,7 @@ window.addLaundryItemRow = function() {
       <select class="laundry-item-select" onchange="updateItemRate(this)">
         <option value="">-- Select --</option>
         ${items.map(i => `<option value="${i.id}" data-rate="${i.default_rate}">${i.item_name}</option>`).join('')}
+        <option value="__new__" style="color:#059669;font-weight:700;">➕ Add New Item...</option>
       </select>
     </div>
     <div class="form-group" style="margin:0;">
@@ -227,7 +228,48 @@ window.addLaundryItemRow = function() {
   updateLaundryTotal();
 };
 
-window.updateItemRate = function(select) {
+window.updateItemRate = async function(select) {
+  if (select.value === '__new__') {
+    const name = prompt('New item name:');
+    if (!name) { select.value = ''; return; }
+    const rate = parseFloat(prompt('Default rate per piece (₹):') || '0');
+    
+    const { data, error } = await sb.from('laundry_items').insert({
+      item_name: name.trim(),
+      default_rate: rate,
+      active: true
+    }).select().single();
+    
+    if (error) {
+      alert('Error: ' + error.message);
+      select.value = '';
+      return;
+    }
+    
+    // Add new option to all dropdowns
+    document.querySelectorAll('.laundry-item-select').forEach(sel => {
+      const newOpt = document.createElement('option');
+      newOpt.value = data.id;
+      newOpt.dataset.rate = data.default_rate;
+      newOpt.textContent = data.item_name;
+      // Insert before "+ Add New"
+      const addNewOpt = sel.querySelector('option[value="__new__"]');
+      sel.insertBefore(newOpt, addNewOpt);
+    });
+    
+    // Refresh cache
+    window._laundryItemsList = [...(window._laundryItemsList || []), data];
+    
+    // Auto-select new item in current row
+    select.value = data.id;
+    const row = select.closest('.laundry-item-row');
+    row.querySelector('.laundry-rate').value = data.default_rate;
+    updateLaundryTotal();
+    
+    fsn.success('Added', '✅ ' + name + ' added to items');
+    return;
+  }
+  
   const opt = select.options[select.selectedIndex];
   const rate = opt?.dataset?.rate || 0;
   const row = select.closest('.laundry-item-row');
