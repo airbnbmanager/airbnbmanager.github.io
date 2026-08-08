@@ -699,6 +699,7 @@ function navigate(page) {
     'financial-sheet': renderFinancialSheet,
     'airbnb-sync': renderAirbnbSync,
     'ical-sync': renderIcalSync,
+    laundry: renderLaundry,
     'analytics': renderAnalytics,
     'whatsapp-hub': renderWhatsAppHub,
     'settings': renderSettings,
