@@ -462,17 +462,12 @@ function renderShell(content, activePage = 'dashboard') {
       ['att-summary', '📊 Attendance Report'],
       ['salary', '💰 Payroll'],
       ['advance', '💵 Advances'],
-      ['emp-expenses', '🧾 Staff Expenses'],
 
       { section: 'FINANCE' },
       ['expenses', '💹 Expenses & P&L'],
       ['monthly-expenses', '📅 Monthly Expenses'],
-      ['financial', '📊 Financial Summary'],
       ['daily-report', '📅 Daily Report'],
-      ['reminders', '🔔 Reminders'],
-      ['financial-sheet', '📈 Financial Sheet'],
       ...(isAdmin ? [['airbnb-sync', '🔄 Airbnb Sync'], ['ical-sync', '📅 iCal Sync'], ['laundry', '🧺 Laundry'], ['reimbursements', '💸 Daily Expenses']] : []),
-      ['property-report', '🏘️ Property Reports'],
       ['investors', '🧑‍💼 Investors'],
 
       { section: 'STORE' },
