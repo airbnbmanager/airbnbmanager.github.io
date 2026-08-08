@@ -369,7 +369,173 @@ window.deleteLaundry = async function(id) {
 };
 
 window.editLaundry = async function(id) {
-  fsn.info('Info', 'Edit coming soon — delete and re-add for now');
+  renderShell('<div class="loading">Loading...</div>', 'laundry');
+  
+  const [{ data: rec }, { data: recItems }, { data: items }, { data: rooms }, { data: vendors }] = await Promise.all([
+    sb.from('laundry_records').select('*').eq('id', id).single(),
+    sb.from('laundry_record_items').select('*').eq('record_id', id),
+    sb.from('laundry_items').select('*').eq('active', true).order('item_name'),
+    sb.from('rooms').select('room_id, nickname, unit_no').order('unit_no'),
+    sb.from('laundry_vendors').select('*').eq('active', true).order('vendor_name')
+  ]);
+  
+  if (!rec) {
+    fsn.error('Error', 'Record not found');
+    renderLaundry();
+    return;
+  }
+  
+  window._laundryItemsList = items || [];
+  window._laundryEditId = id;
+  window._laundryVendorsList = vendors || [];
+  
+  // Check if vendor exists in list, else add it as option
+  const vendorInList = (vendors || []).some(v => v.vendor_name === rec.vendor_name);
+  const vendorOpts = (vendors || []).map(v => 
+    `<option value="${v.vendor_name}" ${v.vendor_name === rec.vendor_name ? 'selected' : ''}>${v.vendor_name}${v.phone ? ' (' + v.phone + ')' : ''}</option>`
+  ).join('');
+  
+  renderShell(`
+    <div class="card">
+      <h1>✏️ Edit Laundry Record</h1>
+      <button class="secondary btn-sm" onclick="renderLaundry()">← Back</button>
+    </div>
+    <div class="card">
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Date *</label>
+          <input id="lDate" type="date" value="${rec.record_date}">
+        </div>
+        <div class="form-group">
+          <label>Property</label>
+          <select id="lRoom">
+            <option value="">General / All</option>
+            ${(rooms || []).map(r => `<option value="${r.room_id}" ${r.room_id === rec.room_id ? 'selected' : ''}>${r.nickname || r.unit_no}</option>`).join('')}
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Vendor *</label>
+        <select id="lVendor" onchange="handleVendorChange(this)">
+          <option value="">-- Select Vendor --</option>
+          ${!vendorInList && rec.vendor_name ? `<option value="${rec.vendor_name}" selected>${rec.vendor_name}</option>` : ''}
+          ${vendorOpts}
+          <option value="__new__" style="color:#059669;font-weight:700;">➕ Add New Vendor...</option>
+        </select>
+      </div>
+    </div>
+    
+    <div class="card">
+      <div class="section-title">🧺 Items</div>
+      <div id="laundryItemsRows"></div>
+      <button onclick="addLaundryItemRow()" class="btn-sm" style="margin-top:8px;">➕ Add Item</button>
+      
+      <div style="margin-top:16px;padding:12px;background:#F0FDF4;border-radius:8px;text-align:right;">
+        <span style="font-size:14px;color:#666;">Grand Total: </span>
+        <span id="laundryGrandTotal" style="font-size:20px;font-weight:800;color:#059669;">₹0</span>
+      </div>
+    </div>
+    
+    <div class="card">
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Payment Mode</label>
+          <select id="lPayMode">
+            <option ${rec.payment_mode === 'Cash' ? 'selected' : ''}>Cash</option>
+            <option ${rec.payment_mode === 'UPI' ? 'selected' : ''}>UPI</option>
+            <option ${rec.payment_mode === 'Bank' ? 'selected' : ''}>Bank</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Paid Amount</label>
+          <input id="lPaidAmt" type="number" value="${rec.paid_amount || 0}" min="0">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Notes</label>
+        <textarea id="lNotes" rows="2">${rec.notes || ''}</textarea>
+      </div>
+      <button onclick="updateLaundry()" style="width:100%;">💾 Update Record</button>
+      <div id="lErr"></div>
+    </div>
+  `, 'laundry');
+  
+  // Pre-populate items
+  (recItems || []).forEach(ri => {
+    addLaundryItemRow();
+    const lastRow = document.querySelectorAll('.laundry-item-row').length - 1;
+    const rows = document.querySelectorAll('.laundry-item-row');
+    const row = rows[lastRow];
+    row.querySelector('.laundry-item-select').value = ri.item_id;
+    row.querySelector('.laundry-qty').value = ri.quantity;
+    row.querySelector('.laundry-rate').value = ri.rate;
+  });
+  updateLaundryTotal();
+};
+
+window.updateLaundry = async function() {
+  const id = window._laundryEditId;
+  const date = document.getElementById('lDate').value;
+  const room = document.getElementById('lRoom').value || null;
+  const vendor = document.getElementById('lVendor').value.trim();
+  const payMode = document.getElementById('lPayMode').value;
+  const paidAmt = parseFloat(document.getElementById('lPaidAmt').value) || 0;
+  const notes = document.getElementById('lNotes').value.trim();
+  
+  if (!date || !vendor || vendor === '__new__') {
+    document.getElementById('lErr').innerHTML = '<div class="error">Date and Vendor required</div>';
+    return;
+  }
+  
+  const rows = document.querySelectorAll('.laundry-item-row');
+  const items = [];
+  let total = 0;
+  
+  rows.forEach(row => {
+    const itemId = row.querySelector('.laundry-item-select').value;
+    const qty = parseInt(row.querySelector('.laundry-qty').value) || 0;
+    const rate = parseFloat(row.querySelector('.laundry-rate').value) || 0;
+    if (itemId && itemId !== '__new__' && qty > 0 && rate > 0) {
+      items.push({ record_id: id, item_id: parseInt(itemId), quantity: qty, rate });
+      total += qty * rate;
+    }
+  });
+  
+  if (items.length === 0) {
+    document.getElementById('lErr').innerHTML = '<div class="error">Add at least 1 item</div>';
+    return;
+  }
+  
+  const paymentStatus = paidAmt >= total ? 'Paid' : (paidAmt > 0 ? 'Partial' : 'Pending');
+  
+  // Update master record
+  const { error: e1 } = await sb.from('laundry_records').update({
+    record_date: date,
+    room_id: room,
+    vendor_name: vendor,
+    total_amount: total,
+    payment_mode: payMode,
+    payment_status: paymentStatus,
+    paid_amount: paidAmt,
+    notes: notes
+  }).eq('id', id);
+  
+  if (e1) {
+    document.getElementById('lErr').innerHTML = '<div class="error">' + e1.message + '</div>';
+    return;
+  }
+  
+  // Delete old items, insert new
+  await sb.from('laundry_record_items').delete().eq('record_id', id);
+  const { error: e2 } = await sb.from('laundry_record_items').insert(items);
+  
+  if (e2) {
+    document.getElementById('lErr').innerHTML = '<div class="error">Items: ' + e2.message + '</div>';
+    return;
+  }
+  
+  fsn.success('Success', '✅ Updated!');
+  renderLaundry();
 };
 
 window.handleVendorChange = async function(select) {
