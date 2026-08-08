@@ -2666,7 +2666,7 @@ function showPaymentModal(bkId) {
     <div class="modal-box">
       <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">✕</button>
       <h2>💰 Add Payment</h2>
-      \${prevDueHtml}
+      ${prevDueHtml}
       <div class="form-group"><label>Amount ₹ *</label><input id="payAmt" type="number" placeholder="Amount" /></div>
       <div class="form-group"><label>Mode</label>
         <select id="payMode">

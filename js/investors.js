@@ -559,8 +559,10 @@ async function renderInvestorReport(investorId, roomId, month) {
 
         <div style="font-size:14px;font-weight:600;margin:10px 0 4px;">🌐 Online Bookings (Airbnb)</div>
         <div style="font-size:13px;margin-left:12px;">
-          <div>Nights Booked: <strong>${onNights}</strong></div>
-          <div>Revenue: <strong>₹${onRev.toLocaleString('en-IN')}</strong></div>
+          ${onBks.length === 0 
+            ? '<div style="padding:8px;color:#999;font-style:italic;">🌙 No online bookings this month</div>'
+            : `<div>Nights Booked: <strong>${onNights}</strong></div>
+               <div>Revenue: <strong>₹${onRev.toLocaleString('en-IN')}</strong></div>`}
         </div>
 
         <div style="font-size:14px;font-weight:600;margin:14px 0 4px;">🏠 Offline / Direct Bookings</div>
@@ -575,7 +577,7 @@ async function renderInvestorReport(investorId, roomId, month) {
             </tr>
           </thead>
           <tbody>
-            ${offBks.length === 0 ? '<tr><td colspan="5" style="padding:6px;border:1px solid #ccc;text-align:center;color:#999;">No offline bookings</td></tr>' : ''}
+            ${offBks.length === 0 ? '<tr><td colspan="5" style="padding:12px;border:1px solid #ccc;text-align:center;color:#999;font-style:italic;">🌙 No offline bookings this month</td></tr>' : ''}
             ${offBks.map(b => `
               <tr>
                 <td style="padding:6px;border:1px solid #ccc;">${b.guest_name || '-'}</td>
