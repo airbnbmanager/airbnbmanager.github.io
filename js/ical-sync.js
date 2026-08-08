@@ -207,6 +207,18 @@ window.renderIcalSync = async function() {
     <div class="card">
       <h1>🔄 Airbnb iCal Auto-Sync</h1>
       <div class="sub">Real-time calendar sync from Airbnb (every property)</div>
+      <div style="margin-top:8px;font-size:12px;color:var(--muted);">
+        ⏰ Auto-sync: every 2 hours | 
+        Last: <span id="lastSyncTime">${(() => {
+          const t = parseInt(localStorage.getItem('ical_last_sync') || '0');
+          if (!t) return 'Never';
+          const mins = Math.round((Date.now() - t) / 60000);
+          if (mins < 1) return 'Just now';
+          if (mins < 60) return mins + ' min ago';
+          const hrs = Math.round(mins / 60);
+          return hrs + ' hour' + (hrs > 1 ? 's' : '') + ' ago';
+        })()}</span>
+      </div>
     </div>
 
     <div class="card" style="border-left:4px solid #10B981;background:#F0FDF4;">
@@ -373,3 +385,110 @@ function renderSyncResults(results) {
 }
 
 console.log('✅ iCal Sync module loaded');
+
+
+// ═══════════════════════════════════════════════════════════
+// 🔄 AUTO-SYNC SCHEDULER (every 2 hours)
+// ═══════════════════════════════════════════════════════════
+
+window.ICAL_AUTO_SYNC = {
+  INTERVAL_MS: 2 * 60 * 60 * 1000,  // 2 hours
+  MIN_GAP_MS: 30 * 60 * 1000,        // 30 min minimum between syncs
+  timer: null,
+  isRunning: false,
+  
+  getLastSync() {
+    return parseInt(localStorage.getItem('ical_last_sync') || '0');
+  },
+  
+  setLastSync() {
+    localStorage.setItem('ical_last_sync', Date.now().toString());
+  },
+  
+  async runSilent() {
+    if (this.isRunning) {
+      console.log('⏭️ iCal sync already running, skip');
+      return;
+    }
+    
+    // Check minimum gap
+    const lastSync = this.getLastSync();
+    const gap = Date.now() - lastSync;
+    if (lastSync && gap < this.MIN_GAP_MS) {
+      const minsLeft = Math.round((this.MIN_GAP_MS - gap) / 60000);
+      console.log('⏭️ iCal sync too soon, next in ' + minsLeft + ' min');
+      return;
+    }
+    
+    this.isRunning = true;
+    console.log('🔄 iCal auto-sync started at ' + new Date().toLocaleTimeString());
+    
+    try {
+      const { total, results } = await ICAL_SYNC.syncAll();
+      const totalCreated = results.reduce((s, r) => s + (r.created || 0), 0);
+      const totalErrors = results.reduce((s, r) => s + (r.errors?.length || 0), 0);
+      
+      this.setLastSync();
+      
+      if (totalCreated > 0) {
+        console.log('✅ iCal auto-sync: ' + totalCreated + ' new bookings');
+        if (window.fsn?.success) {
+          fsn.success('iCal Sync', '✅ ' + totalCreated + ' new bookings imported');
+        }
+      } else {
+        console.log('✅ iCal auto-sync: no new bookings');
+      }
+      
+      if (totalErrors > 0) {
+        console.warn('⚠️ iCal sync errors: ' + totalErrors);
+      }
+    } catch (err) {
+      console.error('❌ iCal auto-sync failed:', err.message);
+    } finally {
+      this.isRunning = false;
+    }
+  },
+  
+  start() {
+    if (this.timer) {
+      console.log('⏭️ iCal scheduler already running');
+      return;
+    }
+    
+    // Only for admin/owner/developer
+    if (!['owner', 'admin', 'developer'].includes(window.SESSION?.role)) {
+      console.log('⏭️ iCal auto-sync: not authorized for role');
+      return;
+    }
+    
+    console.log('🔄 iCal auto-sync scheduler started (every 2 hours)');
+    
+    // Run once after 30 seconds (initial delay)
+    setTimeout(() => this.runSilent(), 30000);
+    
+    // Then every 2 hours
+    this.timer = setInterval(() => this.runSilent(), this.INTERVAL_MS);
+  },
+  
+  stop() {
+    if (this.timer) {
+      clearInterval(this.timer);
+      this.timer = null;
+      console.log('⏹️ iCal auto-sync scheduler stopped');
+    }
+  }
+};
+
+// Auto-start when SESSION is ready
+(function autoStartIcalSync() {
+  const check = () => {
+    if (window.SESSION?.role) {
+      ICAL_AUTO_SYNC.start();
+    } else {
+      setTimeout(check, 2000);
+    }
+  };
+  setTimeout(check, 3000);
+})();
+
+console.log('✅ iCal Auto-Sync module ready');
