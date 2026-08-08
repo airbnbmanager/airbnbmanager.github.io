@@ -216,9 +216,21 @@ window.renderIcalSync = async function() {
     <div class="card">
       <h1>🔄 Airbnb iCal Auto-Sync</h1>
       <div class="sub">Real-time calendar sync from Airbnb (every property)</div>
+      <div style="margin-top:12px;padding:10px;background:${ICAL_AUTO_SYNC.isEnabled()?'#F0FDF4':'#FEF2F2'};border-radius:8px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+        <div>
+          <strong style="color:${ICAL_AUTO_SYNC.isEnabled()?'#059669':'#DC2626'};">
+            ${ICAL_AUTO_SYNC.isEnabled() ? '✅ Auto-Sync: ENABLED' : '⏸️ Auto-Sync: DISABLED'}
+          </strong>
+          <div style="font-size:11px;color:#666;margin-top:2px;">
+            ${ICAL_AUTO_SYNC.isEnabled() ? 'Runs every 2 hours automatically' : 'Only manual sync works'}
+          </div>
+        </div>
+        <button onclick="toggleIcalAutoSync()" style="padding:6px 14px;background:${ICAL_AUTO_SYNC.isEnabled()?'#DC2626':'#059669'};color:#fff;border:none;border-radius:6px;font-weight:600;cursor:pointer;">
+          ${ICAL_AUTO_SYNC.isEnabled() ? '⏸️ Disable' : '▶️ Enable'}
+        </button>
+      </div>
       <div style="margin-top:8px;font-size:12px;color:var(--muted);">
-        ⏰ Auto-sync: every 2 hours | 
-        Last: <span id="lastSyncTime">${(() => {
+        Last sync: <span id="lastSyncTime">${(() => {
           const t = parseInt(localStorage.getItem('ical_last_sync') || '0');
           if (!t) return 'Never';
           const mins = Math.round((Date.now() - t) / 60000);
@@ -458,9 +470,19 @@ window.ICAL_AUTO_SYNC = {
     }
   },
   
+  isEnabled() {
+    return localStorage.getItem('ical_auto_sync_enabled') !== 'false';
+  },
+  
   start() {
     if (this.timer) {
       console.log('⏭️ iCal scheduler already running');
+      return;
+    }
+    
+    // Check user preference
+    if (!this.isEnabled()) {
+      console.log('⏸️ iCal auto-sync DISABLED by user');
       return;
     }
     
@@ -477,6 +499,24 @@ window.ICAL_AUTO_SYNC = {
     
     // Then every 2 hours
     this.timer = setInterval(() => this.runSilent(), this.INTERVAL_MS);
+  },
+  
+  enable() {
+    localStorage.setItem('ical_auto_sync_enabled', 'true');
+    this.start();
+    if (window.fsn?.success) fsn.success('Auto-Sync', '✅ Enabled — runs every 2 hours');
+    return true;
+  },
+  
+  disable() {
+    localStorage.setItem('ical_auto_sync_enabled', 'false');
+    this.stop();
+    if (window.fsn?.info) fsn.info('Auto-Sync', '⏸️ Disabled — manual sync still works');
+    return false;
+  },
+  
+  toggle() {
+    return this.isEnabled() ? this.disable() : this.enable();
   },
   
   stop() {
@@ -499,5 +539,10 @@ window.ICAL_AUTO_SYNC = {
   };
   setTimeout(check, 3000);
 })();
+
+window.toggleIcalAutoSync = function() {
+  ICAL_AUTO_SYNC.toggle();
+  renderIcalSync();  // Refresh UI
+};
 
 console.log('✅ iCal Auto-Sync module ready');
