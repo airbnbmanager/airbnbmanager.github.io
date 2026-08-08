@@ -835,6 +835,14 @@ function filterByRange(bks, range) {
 }
 
 async function renderInvestorView(range = 'Month') {
+  window._investorTabsHtml = `
+    <div class="card" style="padding:8px;margin-bottom:12px;">
+      <div style="display:flex;gap:8px;">
+        <button style="flex:1;">👥 Investors List</button>
+        <button onclick="renderMonthlyExpenses()" class="secondary" style="flex:1;">📅 Monthly Expenses</button>
+      </div>
+    </div>`;
+
   if (!SESSION.investorId) { showError('No property linked.'); return; }
   appEl.innerHTML = `<div class="wrap" style="max-width:650px;"><div class="loading">Loading...</div></div>`;
 

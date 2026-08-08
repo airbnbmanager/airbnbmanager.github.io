@@ -464,7 +464,6 @@ function renderShell(content, activePage = 'dashboard') {
 
       { section: 'FINANCE' },
       ['expenses', '💹 Expenses & P&L'],
-      ['monthly-expenses', '📅 Monthly Expenses'],
       ['daily-report', '📅 Daily Report'],
       ...(isAdmin ? [['airbnb-sync', '🔄 Airbnb Sync'], ['laundry', '🧺 Laundry'], ['reimbursements', '💸 Daily Expenses']] : []),
       ['investors', '🧑‍💼 Investors'],
