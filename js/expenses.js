@@ -1083,15 +1083,9 @@ async function deleteDefaultExpense(id, name) {
 
 // ============ MONTHLY PROPERTY EXPENSE MANAGER ============
 async function renderMonthlyExpenses(roomId, month) {
-  window._investorTabsHtml = `
-    <div class="card" style="padding:8px;margin-bottom:12px;">
-      <div style="display:flex;gap:8px;">
-        <button onclick="renderInvestorView()" class="secondary" style="flex:1;">👥 Investors List</button>
-        <button style="flex:1;">📅 Monthly Expenses</button>
-      </div>
-    </div>`;
 
-  renderShell(`${window._investorTabsHtml || ""}
+  renderShell(`<div class="card" style="padding:8px;margin-bottom:12px;"><div style="display:flex;gap:8px;"><button onclick="renderInvestors()" class="secondary" style="flex:1;">👥 Investors List</button><button style="flex:1;">📅 Monthly Expenses</button></div></div>
+    ${window._investorTabsHtml || ""}
     <div class="loading">Loading...</div>`, 'expenses');
 
   const now = new Date();
