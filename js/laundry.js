@@ -707,12 +707,15 @@ window.showLaundryPayments = async function(recordId) {
           <th style="padding:8px;">Action</th>
         </tr></thead>
         <tbody>
-          ${(payments || []).map(p => `<tr style="border-bottom:1px solid #eee;">
+          ${(payments || []).map(p => `<tr style="border-bottom:1px solid #eee;" id="lpay-row-${p.id}">
             <td style="padding:8px;">${p.payment_date}</td>
             <td style="padding:8px;">${p.payment_mode}</td>
             <td style="padding:8px;text-align:right;"><strong>₹${Number(p.amount).toLocaleString('en-IN')}</strong></td>
             <td style="padding:8px;font-size:11px;color:#666;">${p.notes || '-'}</td>
-            <td style="padding:8px;"><button class="btn-sm danger" onclick="deleteLaundryPayment(${p.id}, ${recordId})">🗑️</button></td>
+            <td style="padding:8px;white-space:nowrap;">
+              <button class="btn-sm" onclick="editLaundryPayment(${p.id}, ${recordId})">✏️</button>
+              <button class="btn-sm danger" onclick="deleteLaundryPayment(${p.id}, ${recordId})">🗑️</button>
+            </td>
           </tr>`).join('') || '<tr><td colspan="5" style="padding:16px;text-align:center;color:#999;">No payments</td></tr>'}
         </tbody>
       </table>
@@ -722,6 +725,82 @@ window.showLaundryPayments = async function(recordId) {
     </div>
   `;
   document.body.appendChild(modal);
+};
+
+window.editLaundryPayment = async function(paymentId, recordId) {
+  const { data: pay } = await sb.from('laundry_payments').select('*').eq('id', paymentId).single();
+  if (!pay) { fsn.error('Error', 'Payment not found'); return; }
+  
+  // Close existing modal
+  document.querySelector('.modal-overlay')?.remove();
+  
+  const modal = document.createElement('div');
+  modal.className = 'modal-overlay';
+  modal.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:9999;';
+  modal.innerHTML = `
+    <div class="modal-box" style="background:#fff;border-radius:12px;padding:20px;max-width:450px;width:90%;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+        <h2 style="margin:0;">✏️ Edit Payment</h2>
+        <button onclick="this.closest('.modal-overlay').remove();showLaundryPayments(${recordId});" style="background:none;border:none;font-size:22px;cursor:pointer;">✕</button>
+      </div>
+      <div class="form-group"><label>Amount ₹ *</label><input id="lpEditAmt" type="number" value="${pay.amount}" min="0"></div>
+      <div class="form-group"><label>Payment Date *</label><input id="lpEditDate" type="date" value="${pay.payment_date}"></div>
+      <div class="form-group"><label>Mode</label>
+        <select id="lpEditMode">
+          <option ${pay.payment_mode === 'Cash' ? 'selected' : ''}>Cash</option>
+          <option ${pay.payment_mode === 'UPI' ? 'selected' : ''}>UPI</option>
+          <option ${pay.payment_mode === 'Bank' ? 'selected' : ''}>Bank</option>
+        </select>
+      </div>
+      <div class="form-group"><label>Notes</label><input id="lpEditNotes" type="text" value="${pay.notes || ''}"></div>
+      <div style="display:flex;gap:8px;">
+        <button onclick="updateLaundryPayment(${paymentId}, ${recordId})" style="flex:1;background:#3B82F6;color:#fff;padding:10px;border:none;border-radius:6px;font-weight:700;cursor:pointer;">💾 Update</button>
+        <button onclick="this.closest('.modal-overlay').remove();showLaundryPayments(${recordId});" style="flex:1;background:#6B7280;color:#fff;padding:10px;border:none;border-radius:6px;cursor:pointer;">Cancel</button>
+      </div>
+      <div id="lpEditErr" style="margin-top:8px;"></div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+};
+
+window.updateLaundryPayment = async function(paymentId, recordId) {
+  const amount = parseFloat(document.getElementById('lpEditAmt').value) || 0;
+  const date = document.getElementById('lpEditDate').value;
+  const mode = document.getElementById('lpEditMode').value;
+  const notes = document.getElementById('lpEditNotes').value.trim();
+  
+  if (amount <= 0 || !date) {
+    document.getElementById('lpEditErr').innerHTML = '<div class="error">Amount and Date required</div>';
+    return;
+  }
+  
+  const { error } = await sb.from('laundry_payments').update({
+    amount, payment_date: date, payment_mode: mode, notes
+  }).eq('id', paymentId);
+  
+  if (error) {
+    document.getElementById('lpEditErr').innerHTML = '<div class="error">' + error.message + '</div>';
+    return;
+  }
+  
+  // Recalculate record status
+  const { data: allPays } = await sb.from('laundry_payments').select('amount').eq('record_id', recordId);
+  const totalPaid = (allPays || []).reduce((s, p) => s + Number(p.amount || 0), 0);
+  const { data: rec } = await sb.from('laundry_records').select('total_amount').eq('id', recordId).single();
+  const total = Number(rec?.total_amount || 0);
+  const status = totalPaid >= total ? 'Paid' : (totalPaid > 0 ? 'Partial' : 'Pending');
+  
+  await sb.from('laundry_records').update({
+    paid_amount: totalPaid,
+    payment_status: status
+  }).eq('id', recordId);
+  
+  document.querySelector('.modal-overlay')?.remove();
+  fsn.success('Success', '✅ Payment updated!');
+  
+  // Refresh main list AND reopen history
+  await renderLaundry();
+  setTimeout(() => showLaundryPayments(recordId), 300);
 };
 
 window.deleteLaundryPayment = async function(paymentId, recordId) {
@@ -742,7 +821,12 @@ window.deleteLaundryPayment = async function(paymentId, recordId) {
   
   document.querySelector('.modal-overlay')?.remove();
   fsn.success('Success', '✅ Payment deleted');
-  renderLaundry();
+  await renderLaundry();
+  // Reopen history modal
+  const { data: remaining } = await sb.from('laundry_payments').select('*').eq('record_id', recordId).limit(1);
+  if (remaining && remaining.length > 0) {
+    setTimeout(() => showLaundryPayments(recordId), 300);
+  }
 };
 
 console.log('✅ Laundry module loaded');
