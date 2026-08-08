@@ -510,14 +510,11 @@ function renderShell(content, activePage = 'dashboard') {
       ['att-summary', '📊 Attendance Report'],
       ['salary', '💰 Payroll'],
       ['advance', '💵 Advances'],
-      ['emp-expenses', '🧾 Staff Expenses'],
 
       { section: 'FINANCE' },
       ['expenses', '💹 Expenses & P&L'],
-      ['financial', '📊 Financial Summary'],
       ['daily-report', '📅 Daily Report'],
       ['reminders', '🔔 Reminders'],
-      ['property-report', '🏘️ Property Reports'],
       ['investors', '🧑‍💼 Investors'],
 
       { section: 'STORE' },
