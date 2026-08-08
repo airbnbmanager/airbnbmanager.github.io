@@ -189,6 +189,14 @@ window.ICAL_SYNC = {
 // ═══════════════════════════════════════════════════════════
 
 window.renderIcalSync = async function() {
+  window._airbnbTabsHtml = `
+    <div class="card" style="padding:8px;margin-bottom:12px;">
+      <div style="display:flex;gap:8px;">
+        <button onclick="renderAirbnbSync()" class="secondary" style="flex:1;">📁 CSV Import</button>
+        <button style="flex:1;">📅 iCal Auto-Sync</button>
+      </div>
+    </div>`;
+  
   if (!['developer', 'owner'].includes(SESSION.role)) {
     renderShell('<div class="card"><div class="error">❌ Only Owner/Developer</div></div>', 'ical-sync');
     return;
@@ -204,6 +212,7 @@ window.renderIcalSync = async function() {
   const notConfigured = (rooms || []).filter(r => !r.airbnb_ical_url);
   
   renderShell(`
+    ${window._airbnbTabsHtml || ''}
     <div class="card">
       <h1>🔄 Airbnb iCal Auto-Sync</h1>
       <div class="sub">Real-time calendar sync from Airbnb (every property)</div>

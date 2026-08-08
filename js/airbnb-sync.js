@@ -145,6 +145,14 @@
 
   // ─── Main render ───
   async function renderAirbnbSync() {
+    window._airbnbTabsHtml = `
+      <div class="card" style="padding:8px;margin-bottom:12px;">
+        <div style="display:flex;gap:8px;">
+          <button style="flex:1;">📁 CSV Import</button>
+          <button onclick="renderIcalSync()" class="secondary" style="flex:1;">📅 iCal Auto-Sync</button>
+        </div>
+      </div>`;
+    
     if (!['developer', 'owner'].includes(SESSION.role)) {
       renderShell('<div class="card"><div class="error">❌ Only Owner/Developer</div></div>', 'airbnb-sync');
       return;
@@ -167,6 +175,7 @@
     });
 
     renderShell(`
+      ${window._airbnbTabsHtml || ''}
       <div class="wrap">
         <h1>🔄 Airbnb CSV Sync</h1>
         <p style="color:#888;">Upload the CSV — wrong names, dates &amp; amounts get flagged with a one-click fix. Missing bookings show up as one-click adds.</p>
