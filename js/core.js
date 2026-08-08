@@ -471,7 +471,7 @@ function renderShell(content, activePage = 'dashboard') {
       ['daily-report', '📅 Daily Report'],
       ['reminders', '🔔 Reminders'],
       ['financial-sheet', '📈 Financial Sheet'],
-      ...(isAdmin ? [['airbnb-sync', '🔄 Airbnb Sync'], ['ical-sync', '📅 iCal Sync']] : []),
+      ...(isAdmin ? [['airbnb-sync', '🔄 Airbnb Sync'], ['ical-sync', '📅 iCal Sync'], ['laundry', '🧺 Laundry']] : []),
       ['property-report', '🏘️ Property Reports'],
       ['investors', '🧑‍💼 Investors'],
 
