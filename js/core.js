@@ -471,7 +471,7 @@ function renderShell(content, activePage = 'dashboard') {
       ['daily-report', '📅 Daily Report'],
       ['reminders', '🔔 Reminders'],
       ['financial-sheet', '📈 Financial Sheet'],
-      ...(isAdmin ? [['airbnb-sync', '🔄 Airbnb Sync'], ['ical-sync', '📅 iCal Sync'], ['laundry', '🧺 Laundry']] : []),
+      ...(isAdmin ? [['airbnb-sync', '🔄 Airbnb Sync'], ['ical-sync', '📅 iCal Sync'], ['laundry', '🧺 Laundry'], ['reimbursements', '💸 Daily Expenses']] : []),
       ['property-report', '🏘️ Property Reports'],
       ['investors', '🧑‍💼 Investors'],
 
@@ -700,6 +700,7 @@ function navigate(page) {
     'airbnb-sync': renderAirbnbSync,
     'ical-sync': renderIcalSync,
     laundry: renderLaundry,
+    reimbursements: renderReimbursements,
     'analytics': renderAnalytics,
     'whatsapp-hub': renderWhatsAppHub,
     'settings': renderSettings,
