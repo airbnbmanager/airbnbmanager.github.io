@@ -103,9 +103,9 @@ window.renderReimbursements = async function() {
           ${filtered.length === 0 ? '<tr><td colspan="8" style="text-align:center;padding:20px;color:#999;">No expenses found</td></tr>' : ''}
           ${filtered.map(r => {
             const statusColor = r.status === 'Received' ? 'green' : (r.status === 'Claimed' ? 'yellow' : 'red');
-            const propLabel = r.from_property && r.to_property 
-              ? `${roomMap[r.from_property] || r.from_property} → ${roomMap[r.to_property] || r.to_property}`
-              : (r.from_property ? roomMap[r.from_property] || 'General' : 'General');
+            const fromLbl = r.from_property ? (roomMap[r.from_property] || r.from_property) : '';
+            const toLbl = r.to_property ? (roomMap[r.to_property] || r.to_property) : '';
+            const propLabel = fromLbl && toLbl ? `${fromLbl} → ${toLbl}` : (fromLbl || toLbl || 'General');
             return `<tr>
               <td>${r.expense_date}</td>
               <td><span class="badge blue">${r.category}</span></td>
@@ -160,22 +160,26 @@ window.renderAddReimbursement = async function() {
     </div>
     
     <div class="card">
-      <div class="section-title">📍 Property (Optional)</div>
+      <div class="section-title">📍 From / To Location (Optional)</div>
       <div class="form-grid">
         <div class="form-group">
-          <label>From Property</label>
-          <select id="rFromProp">
-            <option value="">-- Select --</option>
-            ${(rooms || []).map(r => `<option value="${r.room_id}">${r.nickname || r.unit_no}</option>`).join('')}
-          </select>
+          <label>From</label>
+          <input id="rFromText" type="text" list="propList" placeholder="Property name OR any location...">
         </div>
         <div class="form-group">
-          <label>To Property (if delivery)</label>
-          <select id="rToProp">
-            <option value="">-- Same as From --</option>
-            ${(rooms || []).map(r => `<option value="${r.room_id}">${r.nickname || r.unit_no}</option>`).join('')}
-          </select>
+          <label>To</label>
+          <input id="rToText" type="text" list="propList" placeholder="Property name OR any location...">
         </div>
+      </div>
+      <datalist id="propList">
+        ${(rooms || []).map(r => `<option value="${r.nickname || r.unit_no}">`).join('')}
+        <option value="Big Bazaar">
+        <option value="Local Market">
+        <option value="Office">
+        <option value="Home">
+      </datalist>
+      <div style="font-size:11px;color:#666;margin-top:4px;">
+        💡 Type property name OR any location (e.g. "Big Bazaar", "Local Market")
       </div>
     </div>
     
@@ -247,8 +251,8 @@ window.saveReimbursement = async function() {
   const cat = document.getElementById('rCat').value;
   const desc = document.getElementById('rDesc').value.trim();
   const amt = parseFloat(document.getElementById('rAmt').value) || 0;
-  const fromProp = document.getElementById('rFromProp').value || null;
-  const toProp = document.getElementById('rToProp').value || null;
+  const fromProp = document.getElementById('rFromText').value.trim() || null;
+  const toProp = document.getElementById('rToText').value.trim() || null;
   const paidBy = document.getElementById('rPaidBy').value.trim();
   const notes = document.getElementById('rNotes').value.trim();
   
@@ -318,7 +322,174 @@ window.markReimbReceived = async function(id) {
 };
 
 window.editReimbursement = async function(id) {
-  fsn.info('Info', 'Edit coming soon — delete and re-add for now');
+  const [{ data: rec }, { data: rooms }] = await Promise.all([
+    sb.from('reimbursements').select('*').eq('id', id).single(),
+    sb.from('rooms').select('room_id, nickname, unit_no').order('unit_no')
+  ]);
+  
+  if (!rec) { fsn.error('Error', 'Record not found'); return; }
+  window._reimbEditId = id;
+  window._reimbEditPhoto = rec.receipt_photo;
+  
+  renderShell(`
+    <div class="card">
+      <h1>✏️ Edit Daily Expense</h1>
+      <button class="secondary btn-sm" onclick="renderReimbursements()">← Back</button>
+    </div>
+    <div class="card">
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Date *</label>
+          <input id="rDate" type="date" value="${rec.expense_date}">
+        </div>
+        <div class="form-group">
+          <label>Category *</label>
+          <select id="rCat">
+            ${REIMB_CATEGORIES.map(c => `<option value="${c}" ${c === rec.category ? 'selected' : ''}>${c}</option>`).join('')}
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Description *</label>
+        <textarea id="rDesc" rows="2">${rec.description || ''}</textarea>
+      </div>
+      <div class="form-group">
+        <label>Amount ₹ *</label>
+        <input id="rAmt" type="number" value="${rec.amount}">
+      </div>
+    </div>
+    
+    <div class="card">
+      <div class="section-title">📍 From / To Location (Optional)</div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label>From</label>
+          <input id="rFromText" type="text" list="propList" value="${rec.from_property || ''}" placeholder="Property or location">
+        </div>
+        <div class="form-group">
+          <label>To</label>
+          <input id="rToText" type="text" list="propList" value="${rec.to_property || ''}" placeholder="Property or location">
+        </div>
+      </div>
+      <datalist id="propList">
+        ${(rooms || []).map(r => `<option value="${r.nickname || r.unit_no}">`).join('')}
+      </datalist>
+    </div>
+    
+    <div class="card">
+      <div class="form-group">
+        <label>Paid By</label>
+        <input id="rPaidBy" type="text" value="${rec.paid_by || ''}">
+      </div>
+      <div class="form-group">
+        <label>Status</label>
+        <select id="rStatus">
+          <option value="Pending" ${rec.status === 'Pending' ? 'selected' : ''}>⏳ Pending</option>
+          <option value="Claimed" ${rec.status === 'Claimed' ? 'selected' : ''}>📤 Claimed</option>
+          <option value="Received" ${rec.status === 'Received' ? 'selected' : ''}>✅ Received</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>📸 Receipt Photo</label>
+        ${rec.receipt_photo ? `<div style="margin-bottom:8px;"><img src="${rec.receipt_photo}" style="max-width:150px;border-radius:6px;"><br><button class="btn-sm danger" onclick="removeExistingPhoto()">🗑️ Remove Photo</button></div>` : ''}
+        <input id="rPhoto" type="file" accept="image/*" capture="environment">
+        <div id="rPhotoPreview" style="margin-top:8px;"></div>
+      </div>
+      <div class="form-group">
+        <label>Notes</label>
+        <textarea id="rNotes" rows="2">${rec.notes || ''}</textarea>
+      </div>
+      <button onclick="updateReimbursement()" style="width:100%;">💾 Update Expense</button>
+      <div id="rErr"></div>
+    </div>
+  `, 'reimbursements');
+  
+  // Photo change handler
+  document.getElementById('rPhoto').addEventListener('change', async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const preview = document.getElementById('rPhotoPreview');
+    preview.innerHTML = '<div style="color:#666;">Compressing...</div>';
+    try {
+      const compressed = await compressImage(file);
+      window._reimbPhotoBlob = compressed;
+      const url = URL.createObjectURL(compressed);
+      preview.innerHTML = `<img src="${url}" style="max-width:150px;border-radius:8px;border:1px solid #ddd;">
+        <div style="font-size:11px;color:#666;margin-top:4px;">New: ${Math.round(compressed.size/1024)}KB</div>`;
+    } catch (err) {
+      preview.innerHTML = '<div style="color:#DC2626;">Error: ' + err.message + '</div>';
+    }
+  });
+};
+
+window.removeExistingPhoto = function() {
+  if (!confirm('Remove existing photo?')) return;
+  window._reimbEditPhoto = null;
+  fsn.info('Info', 'Photo will be removed on Update');
+};
+
+window.updateReimbursement = async function() {
+  const id = window._reimbEditId;
+  const date = document.getElementById('rDate').value;
+  const cat = document.getElementById('rCat').value;
+  const desc = document.getElementById('rDesc').value.trim();
+  const amt = parseFloat(document.getElementById('rAmt').value) || 0;
+  const fromProp = document.getElementById('rFromText').value.trim() || null;
+  const toProp = document.getElementById('rToText').value.trim() || null;
+  const paidBy = document.getElementById('rPaidBy').value.trim();
+  const status = document.getElementById('rStatus').value;
+  const notes = document.getElementById('rNotes').value.trim();
+  
+  if (!date || !cat || !desc || amt <= 0) {
+    document.getElementById('rErr').innerHTML = '<div class="error">Date, Category, Description, Amount required</div>';
+    return;
+  }
+  
+  // Upload new photo if any
+  let photoUrl = window._reimbEditPhoto;
+  if (window._reimbPhotoBlob) {
+    try {
+      const path = `reimbursements/${Date.now()}_${Math.random().toString(36).substr(2,6)}.jpg`;
+      const { error: upErr } = await sb.storage.from('id-proofs').upload(path, window._reimbPhotoBlob, {
+        contentType: 'image/jpeg'
+      });
+      if (upErr) throw upErr;
+      const { data: { publicUrl } } = sb.storage.from('id-proofs').getPublicUrl(path);
+      photoUrl = publicUrl;
+    } catch (err) {
+      document.getElementById('rErr').innerHTML = '<div class="error">Photo: ' + err.message + '</div>';
+      return;
+    }
+  }
+  
+  const updateObj = {
+    expense_date: date,
+    category: cat,
+    description: desc,
+    amount: amt,
+    paid_by: paidBy,
+    from_property: fromProp,
+    to_property: toProp,
+    receipt_photo: photoUrl,
+    notes,
+    status
+  };
+  
+  // Auto-set claimed/received dates
+  if (status === 'Claimed' && !window._reimbEditPhoto) updateObj.claimed_date = new Date().toISOString().slice(0,10);
+  if (status === 'Received') updateObj.received_date = new Date().toISOString().slice(0,10);
+  
+  const { error } = await sb.from('reimbursements').update(updateObj).eq('id', id);
+  
+  if (error) {
+    document.getElementById('rErr').innerHTML = '<div class="error">' + error.message + '</div>';
+    return;
+  }
+  
+  window._reimbPhotoBlob = null;
+  window._reimbEditPhoto = null;
+  fsn.success('Success', '✅ Updated!');
+  renderReimbursements();
 };
 
 window.deleteReimbursement = async function(id) {
