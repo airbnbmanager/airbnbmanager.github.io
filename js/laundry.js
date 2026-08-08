@@ -226,7 +226,7 @@ window.addLaundryItemRow = function() {
     </div>
     <div class="form-group" style="margin:0;">
       <label style="font-size:11px;">Total ₹</label>
-      <input type="number" class="laundry-subtotal" value="0" readonly style="background:#f5f5f5;">
+      <input type="number" class="laundry-subtotal" value="0" min="0" oninput="reverseCalcRate(this)" style="background:#FEF3C7;" title="Enter total to auto-calculate per-piece rate">
     </div>
     <button class="btn-sm danger" onclick="this.parentElement.remove();updateLaundryTotal();">🗑️</button>
   `;
@@ -281,6 +281,26 @@ window.updateItemRate = async function(select) {
   const row = select.closest('.laundry-item-row');
   row.querySelector('.laundry-rate').value = rate;
   updateLaundryTotal();
+};
+
+window.reverseCalcRate = function(input) {
+  const row = input.closest('.laundry-item-row');
+  const qty = parseFloat(row.querySelector('.laundry-qty').value) || 0;
+  const total = parseFloat(input.value) || 0;
+  if (qty > 0 && total > 0) {
+    const rate = (total / qty).toFixed(2);
+    row.querySelector('.laundry-rate').value = rate;
+  }
+  updateGrandTotalOnly();
+};
+
+window.updateGrandTotalOnly = function() {
+  let grandTotal = 0;
+  document.querySelectorAll('.laundry-item-row').forEach(row => {
+    const subtotal = parseFloat(row.querySelector('.laundry-subtotal').value) || 0;
+    grandTotal += subtotal;
+  });
+  document.getElementById('laundryGrandTotal').textContent = '₹' + grandTotal.toLocaleString('en-IN');
 };
 
 window.updateLaundryTotal = function() {
