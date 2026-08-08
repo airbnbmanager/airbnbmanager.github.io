@@ -389,7 +389,6 @@ function renderShell(content, activePage = 'dashboard') {
       ['bookings', '📅 Bookings'],
       ['flats', '🛏️ Flats Status'],
       { section: 'COMMUNICATION' },
-      ['chat', '💬 Team Chat'],
     ];
   } else if (SESSION.role === 'moderator') {
     nav = [
@@ -402,7 +401,6 @@ function renderShell(content, activePage = 'dashboard') {
       { section: 'TEAM' },
       ['attendance', '📋 Attendance'],
       { section: 'COMMUNICATION' },
-      ['chat', '💬 Team Chat'],
     ];
   } else if (isCheckinMgr) {
     nav = [
@@ -481,7 +479,6 @@ function renderShell(content, activePage = 'dashboard') {
       ['store', '📦 Inventory'],
 
       { section: 'COMMUNICATION' },
-      ['chat', '💬 Team Chat'],
 
       { section: 'ADMIN' },
       ...(isAdmin ? [['user-mgmt', '👤 User Management']] : []),
@@ -679,7 +676,6 @@ function navigate(page) {
   if (window.trackPageVisit) window.trackPageVisit(page);
   const map = {
     dashboard: renderDashboard,
-    chat: renderChat,
     reports: renderReports,
     rooms: renderManageRooms,
     flats: renderFlatsStatus,
