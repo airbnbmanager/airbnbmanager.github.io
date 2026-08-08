@@ -459,7 +459,6 @@ function renderShell(content, activePage = 'dashboard') {
       ['employees', '👥 Employees'],
       ['tasks', '🧰 Tasks'],
       ['attendance', '📋 Attendance'],
-      ['att-summary', '📊 Attendance Report'],
       ['salary', '💰 Payroll'],
       ['advance', '💵 Advances'],
 
@@ -507,7 +506,6 @@ function renderShell(content, activePage = 'dashboard') {
 
       { section: 'TEAM' },
       ['employees', '👥 Employees'],
-      ['att-summary', '📊 Attendance Report'],
       ['salary', '💰 Payroll'],
       ['advance', '💵 Advances'],
 

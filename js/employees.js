@@ -643,11 +643,22 @@ async function delTask(id) {
 
 // ============ ATTENDANCE ============
 async function renderAttendance(selectedDate) {
+  // Tab switcher
+  const _renderAttendanceTabs = (active) => `
+    <div class="card" style="padding:8px;margin-bottom:12px;">
+      <div style="display:flex;gap:8px;">
+        <button onclick="renderAttendance()" class="${active==='mark'?'':'secondary'}" style="flex:1;">📋 Mark Today</button>
+        <button onclick="renderAttendanceSummary()" class="${active==='report'?'':'secondary'}" style="flex:1;">📊 Reports</button>
+      </div>
+    </div>`;
+  window._attTabsHtml = _renderAttendanceTabs('mark');
+
   // 🎯 Dashboard filter support
   const dashAttFilter = SESSION._filterAttendanceType || '';
   SESSION._filterAttendanceType = null; // Clear after read
 
-  renderShell(`<div class="loading">Loading...</div>`, 'attendance');
+  renderShell(`${window._attTabsHtml || ""}
+    <div class="loading">Loading...</div>`, 'attendance');
   const today = new Date().toISOString().slice(0, 10);
   const attDate = selectedDate || today;
 
@@ -664,7 +675,8 @@ async function renderAttendance(selectedDate) {
   });
   const isToday = attDate === today;
 
-  renderShell(`
+  renderShell(`${window._attTabsHtml || ""}
+    
     <div class="card">
       <h1>📋 Attendance</h1>
       <div class="sub">${dateLabel} ${isToday ? '(Today)' : '(Back-dated)'}</div>
@@ -712,7 +724,17 @@ async function markAtt(eid, st, dateStr) {
 
 // ============ ATTENDANCE SUMMARY ============
 async function renderAttendanceSummary() {
-  renderShell(`<div class="loading">Loading...</div>`, 'att-summary');
+  const _renderTabsRep = () => `
+    <div class="card" style="padding:8px;margin-bottom:12px;">
+      <div style="display:flex;gap:8px;">
+        <button onclick="renderAttendance()" class="secondary" style="flex:1;">📋 Mark Today</button>
+        <button style="flex:1;">📊 Reports</button>
+      </div>
+    </div>`;
+  window._attTabsHtmlRep = _renderTabsRep();
+
+  renderShell(`${window._attTabsHtmlRep || ""}
+    <div class="loading">Loading...</div>`, 'att-summary');
   const cm = new Date().toISOString().slice(0, 7);
   const daysInMonth = new Date(parseInt(cm.split('-')[0]), parseInt(cm.split('-')[1]), 0).getDate();
 
@@ -735,7 +757,8 @@ async function renderAttendanceSummary() {
     return { ...e, pr, ab, hd, totalMarked, effectiveDays, pct, perDay, earnedSalary, deduction };
   });
 
-  renderShell(`
+  renderShell(`${window._attTabsHtmlRep || ""}
+    
     <div class="card">
       <h1>📊 Attendance Report — ${cm}</h1>
       <div class="sub">Days in month: ${daysInMonth}</div>
