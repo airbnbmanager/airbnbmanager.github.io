@@ -3,16 +3,42 @@
 // ═══════════════════════════════════════════════════════════
 
 window.ICAL_SYNC = {
-  CORS_PROXY: 'https://corsproxy.io/?',
+  // Multiple CORS proxies for fallback (if one fails, try next)
+  CORS_PROXIES: [
+    'https://corsproxy.io/?',
+    'https://api.codetabs.com/v1/proxy?quest=',
+    'https://api.allorigins.win/raw?url=',
+    'https://proxy.cors.sh/'
+  ],
   
-  // Fetch iCal data via CORS proxy
+  // Fetch iCal data via CORS proxy (with fallback)
   async fetchIcal(url) {
-    const proxyUrl = this.CORS_PROXY + encodeURIComponent(url);
-    const res = await fetch(proxyUrl);
-    if (!res.ok) throw new Error('Fetch failed: ' + res.status);
-    const text = await res.text();
-    if (!text.includes('BEGIN:VCALENDAR')) throw new Error('Invalid iCal data');
-    return text;
+    let lastError = null;
+    for (let i = 0; i < this.CORS_PROXIES.length; i++) {
+      try {
+        const proxy = this.CORS_PROXIES[i];
+        const proxyUrl = proxy + encodeURIComponent(url);
+        const res = await fetch(proxyUrl, { 
+          method: 'GET',
+          headers: { 'Accept': 'text/calendar, text/plain, */*' }
+        });
+        if (!res.ok) {
+          lastError = 'Proxy ' + (i+1) + ' returned ' + res.status;
+          continue;
+        }
+        const text = await res.text();
+        if (!text.includes('BEGIN:VCALENDAR')) {
+          lastError = 'Proxy ' + (i+1) + ' returned invalid data';
+          continue;
+        }
+        console.log('✅ iCal fetched via proxy ' + (i+1));
+        return text;
+      } catch (err) {
+        lastError = 'Proxy ' + (i+1) + ' error: ' + err.message;
+        continue;
+      }
+    }
+    throw new Error('All proxies failed. Last: ' + lastError);
   },
   
   // Parse iCal to booking events (with filtering)
