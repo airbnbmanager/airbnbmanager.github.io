@@ -1120,7 +1120,7 @@ async function renderEmpExpenses() {
         <div class="form-group"><label>Category</label>
           <select id="eeCatFilter" onchange="filterEmpExpenses()">
             <option value="">All Categories</option>
-            ${['Cleaning Supplies','Grocery','Transport','Maintenance','Laundry','Utilities','Other']
+            ${['🧹 Cleaning Supplies','🛒 Grocery/Food','🚗 Travel/Fuel','🔧 Maintenance','💡 Utilities','📱 Recharge/Internet','🎁 Guest Requests','📦 Other']
               .map(c => `<option value="${c}">${c}</option>`).join('')}
           </select>
         </div>
@@ -1228,7 +1228,7 @@ async function renderAddEmpExpense() {
         <div class="form-group"><label>Category *</label>
           <select id="eeCat">
             <option value="">Select</option>
-            ${['Cleaning Supplies','Grocery','Transport','Maintenance','Laundry','Utilities','Other']
+            ${['🧹 Cleaning Supplies','🛒 Grocery/Food','🚗 Travel/Fuel','🔧 Maintenance','💡 Utilities','📱 Recharge/Internet','🎁 Guest Requests','📦 Other']
               .map(c => `<option value="${c}">${c}</option>`).join('')}
           </select>
         </div>
@@ -1339,7 +1339,7 @@ async function editEmpExpense(id) {
       <div class="form-grid">
         <div class="form-group"><label>Category</label>
           <select id="eeCat">
-            ${['Cleaning Supplies','Grocery','Transport','Maintenance','Laundry','Utilities','Other']
+            ${['🧹 Cleaning Supplies','🛒 Grocery/Food','🚗 Travel/Fuel','🔧 Maintenance','💡 Utilities','📱 Recharge/Internet','🎁 Guest Requests','📦 Other']
               .map(c => `<option value="${c}" ${c === ex.category ? 'selected' : ''}>${c}</option>`).join('')}
           </select>
         </div>
