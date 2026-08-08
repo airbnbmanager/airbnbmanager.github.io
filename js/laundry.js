@@ -124,13 +124,15 @@ window.renderLaundry = async function() {
 };
 
 window.renderAddLaundry = async function() {
-  const [{ data: items }, { data: rooms }] = await Promise.all([
+  const [{ data: items }, { data: rooms }, { data: vendors }] = await Promise.all([
     sb.from('laundry_items').select('*').eq('active', true).order('item_name'),
-    sb.from('rooms').select('room_id, nickname, unit_no').order('unit_no')
+    sb.from('rooms').select('room_id, nickname, unit_no').order('unit_no'),
+    sb.from('laundry_vendors').select('*').eq('active', true).order('vendor_name')
   ]);
   
   window._laundryItemsList = items || [];
   window._laundryRoomsList = rooms || [];
+  window._laundryVendorsList = vendors || [];
   
   renderShell(`
     <div class="card">
@@ -152,8 +154,12 @@ window.renderAddLaundry = async function() {
         </div>
       </div>
       <div class="form-group">
-        <label>Vendor Name *</label>
-        <input id="lVendor" type="text" placeholder="e.g. Aayush Laundry">
+        <label>Vendor *</label>
+        <select id="lVendor" onchange="handleVendorChange(this)">
+          <option value="">-- Select Vendor --</option>
+          ${(vendors || []).map(v => `<option value="${v.vendor_name}">${v.vendor_name}${v.phone ? ' (' + v.phone + ')' : ''}</option>`).join('')}
+          <option value="__new__" style="color:#059669;font-weight:700;">➕ Add New Vendor...</option>
+        </select>
       </div>
     </div>
     
@@ -293,6 +299,10 @@ window.saveLaundry = async function() {
   const date = document.getElementById('lDate').value;
   const room = document.getElementById('lRoom').value || null;
   const vendor = document.getElementById('lVendor').value.trim();
+  if (vendor === '__new__') {
+    document.getElementById('lErr').innerHTML = '<div class="error">Please select a vendor</div>';
+    return;
+  }
   const payMode = document.getElementById('lPayMode').value;
   const paidAmt = parseFloat(document.getElementById('lPaidAmt').value) || 0;
   const notes = document.getElementById('lNotes').value.trim();
@@ -360,6 +370,41 @@ window.deleteLaundry = async function(id) {
 
 window.editLaundry = async function(id) {
   fsn.info('Info', 'Edit coming soon — delete and re-add for now');
+};
+
+window.handleVendorChange = async function(select) {
+  if (select.value !== '__new__') return;
+  
+  const name = prompt('New vendor name:');
+  if (!name || !name.trim()) { select.value = ''; return; }
+  
+  const phone = prompt('Vendor phone (optional):') || null;
+  
+  const { data, error } = await sb.from('laundry_vendors').insert({
+    vendor_name: name.trim(),
+    phone: phone
+  }).select().single();
+  
+  if (error) {
+    alert('Error: ' + error.message);
+    select.value = '';
+    return;
+  }
+  
+  // Add new option to dropdown
+  const newOpt = document.createElement('option');
+  newOpt.value = data.vendor_name;
+  newOpt.textContent = data.vendor_name + (data.phone ? ' (' + data.phone + ')' : '');
+  const addNewOpt = select.querySelector('option[value="__new__"]');
+  select.insertBefore(newOpt, addNewOpt);
+  
+  // Auto-select
+  select.value = data.vendor_name;
+  
+  // Update cache
+  window._laundryVendorsList = [...(window._laundryVendorsList || []), data];
+  
+  fsn.success('Added', '✅ Vendor ' + name + ' added');
 };
 
 console.log('✅ Laundry module loaded');
