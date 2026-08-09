@@ -806,6 +806,7 @@ async function renderManageBookings() {
           <td><strong class="${bal > 0.99 ? 'metric-value warn' : ''}">₹${Math.abs(bal) < 1 ? '0' : bal.toLocaleString('en-IN')}</strong></td>
           ${canM ? `<td class="table-actions">
             <button class="btn-sm" onclick="editBooking('${b.booking_id}')" title="Edit">✏️</button>
+            <button class="btn-sm" style="background:#8B5CF6;color:#fff;" onclick="duplicateBooking('${b.booking_id}')" title="Duplicate this booking">📋</button>
             <button class="btn-sm secondary" onclick="showPaymentModal('${b.booking_id}')" title="Pay">💰</button>
             <button class="btn-sm" style="background:var(--primary);color:#fff;" onclick="quickExtend('${b.booking_id}')" title="Extend">⏭️</button>
             <button class="btn-sm outline" onclick="createOfflineExtension('${b.booking_id}')" title="New Ext">➕</button>
@@ -968,6 +969,72 @@ window.clearRebookData = function() {
   fsn.info('Cleared', 'Start fresh entry');
 };
 
+// ═══════════════════════════════════════════════════════════
+// 🔄 DUPLICATE BOOKING (One-Click Clone)
+// ═══════════════════════════════════════════════════════════
+
+window.duplicateBooking = async function(bookingId) {
+  const { data: b } = await sb.from('guest_register').select('*').eq('booking_id', bookingId).single();
+  if (!b) { fsn.error('Error', 'Booking not found'); return; }
+  
+  const today = new Date().toISOString().slice(0, 10);
+  
+  // Calculate same nights as original
+  const origIn = new Date(b.check_in);
+  const origOut = new Date(b.check_out);
+  const nights = Math.max(1, Math.round((origOut - origIn) / (1000*60*60*24)));
+  
+  const newOut = new Date();
+  newOut.setDate(newOut.getDate() + nights);
+  const newOutStr = newOut.toISOString().slice(0, 10);
+  
+  // Set prefill data (reuses existing renderAddBooking pre-fill mechanism)
+  window._bookingPrefill = {
+    guestName: b.guest_name || '',
+    guestPhone: b.phone || '',
+    roomId: b.room_id || '',
+    bookingMode: b.booking_mode || 'Offline',
+    checkIn: today,
+    checkOut: newOutStr,
+    checkInTime: b.check_in_time || '14:00',
+    checkOutTime: b.check_out_time || '11:00',
+    guests: b.guests || 1,
+    idType: b.id_proof_type || '',
+    idNo: b.id_proof_no || '',
+    checkoutConfirmed: b.checkout_confirmed === false ? 'no' : 'yes',
+    hasVehicle: b.has_vehicle ? 'Yes' : 'No',
+    vehicleName: b.vehicle_name || '',
+    vehicleNumber: b.vehicle_number || '',
+    sourceRoomId: b.source_room_id || ''
+  };
+  
+  // Reuse photos from original
+  window._rebookedGuestData = {
+    id_proof_front_paths: b.id_proof_front_paths,
+    id_proof_back_paths: b.id_proof_back_paths,
+    id_proof_photo_paths: b.id_proof_photo_paths,
+    vehicle_photo_path: b.vehicle_photo_path
+  };
+  
+  fsn.success('Duplicated', '✅ ' + b.guest_name + ' - just change property/dates if needed');
+  renderAddBooking();
+  
+  // Scroll top after render
+  setTimeout(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    // Highlight duplicated notification
+    const wrap = document.querySelector('.card');
+    if (wrap) {
+      const notice = document.createElement('div');
+      notice.style.cssText = 'padding:12px;background:#F0FDF4;border:2px solid #059669;border-radius:8px;margin-bottom:12px;';
+      notice.innerHTML = '<strong style="color:#059669;">🔄 Duplicated from: ' + (b.guest_name || 'previous booking') + '</strong>' +
+        '<div style="font-size:12px;color:#666;margin-top:4px;">✅ All data + photos reused. Check-in set to today. Adjust property/dates/amount as needed.</div>' +
+        '<button onclick="window._bookingPrefill=null;window._rebookedGuestData=null;renderAddBooking();" style="margin-top:8px;background:#DC2626;color:#fff;border:none;padding:4px 10px;border-radius:4px;font-size:11px;cursor:pointer;">✕ Clear (Start Fresh)</button>';
+      wrap.parentNode.insertBefore(notice, wrap.nextSibling);
+    }
+  }, 200);
+};
+
 async function renderAddBooking() {
   const today_iso = new Date().toISOString().slice(0,10);
   const { data: recentBookings } = await sb.from('guest_register').select('booking_id, guest_name, room_id, check_in, check_out, rooms(nickname)').gte('check_out', today_iso).eq('is_review_booking', false).order('check_in', {ascending: true}).limit(100);
@@ -1024,14 +1091,7 @@ async function renderAddBooking() {
       <input type="hidden" id="stayGroupId" value="${pre.stayGroupId || ''}" />
       ${pre.parentBookingId ? `<div class="success-msg" style="margin-bottom:10px;">Extension of <strong>${pre.parentBookingId}</strong></div>` : ''}
 
-      <!-- 🔍 REPEAT GUEST SEARCH -->
-      <div class="form-group" style="padding:12px;background:#EFF6FF;border-radius:8px;border:1px solid #3B82F6;margin-bottom:12px;">
-        <label style="font-weight:600;color:#1E40AF;">🔍 Repeat Guest? Search here first!</label>
-        <input type="text" id="repeatGuestSearch" placeholder="Type name or phone (min 3 chars)..." style="width:100%;padding:8px;margin-top:6px;border:1px solid #ddd;border-radius:6px;" oninput="searchRepeatGuests(this.value)">
-        <div id="repeatGuestResults" style="margin-top:8px;"></div>
-      </div>
-
-      <div class="form-grid">
+<div class="form-grid">
         <div class="form-group"><label>Guest Name *</label><input id="guestName" placeholder="Guest ka naam" value="${pre.guestName || ''}" /></div>
         <div class="form-group"><label>Phone</label><input id="guestPhone" type="tel" placeholder="Mobile" value="${pre.guestPhone || ''}" /></div>
       </div>
