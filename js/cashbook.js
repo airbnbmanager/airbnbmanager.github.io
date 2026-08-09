@@ -179,11 +179,17 @@ async function renderCBHandover(tabs) {
       
       ${payments && payments.length > 0 ? `
         <div class="form-group" style="padding:10px;background:#F0FDF4;border-radius:8px;">
-          <label style="font-weight:600;">
-            <input type="checkbox" id="hMarkAllPaid" checked> Mark all ${payments.length} payments from <strong>${fromPerson}</strong> as handed over
-          </label>
-          <div style="font-size:11px;color:#666;margin-top:4px;">
-            Total: ₹${payments.reduce((s,p)=>s+Number(p.amount||0),0).toLocaleString('en-IN')}
+          <label style="font-weight:600;display:block;margin-bottom:8px;">☑️ Select payments to hand over:</label>
+          <div style="max-height:200px;overflow-y:auto;">
+            ${payments.map(p => `
+              <label style="display:flex;align-items:center;gap:8px;padding:6px;background:#fff;border-radius:4px;margin-bottom:4px;cursor:pointer;">
+                <input type="checkbox" class="hPaymentCheck" data-id="${p.id}" data-amount="${p.amount}" checked onchange="updateHandoverAmount()">
+                <span style="flex:1;font-size:12px;">${p.payment_date} · ${p.payment_mode} · <strong>₹${Number(p.amount).toLocaleString('en-IN')}</strong></span>
+              </label>
+            `).join('')}
+          </div>
+          <div style="margin-top:8px;padding:6px;background:#DBEAFE;border-radius:4px;font-size:12px;text-align:right;">
+            Selected total: <strong id="selectedTotal">₹${payments.reduce((s,p)=>s+Number(p.amount||0),0).toLocaleString('en-IN')}</strong>
           </div>
         </div>
       ` : ''}
@@ -211,23 +217,18 @@ window.saveHandover = async function() {
   const amount = parseFloat(document.getElementById('hAmount').value) || 0;
   const date = document.getElementById('hDate').value;
   const notes = document.getElementById('hNotes').value.trim();
-  const markPaid = document.getElementById('hMarkAllPaid')?.checked;
+
   
   if (!from || !to || amount <= 0) {
     document.getElementById('hErr').innerHTML = '<div class="error">From, To, Amount required</div>';
     return;
   }
   
-  // Get payment IDs to mark
-  let paymentIds = [];
-  if (markPaid) {
-    const { data: pays } = await sb.from('payment_history')
-      .select('id')
-      .eq('handover_status', 'in_hand')
-      .eq('received_by', from)
-      .neq('verification_status', 'rejected');
-    paymentIds = (pays || []).map(p => String(p.id));
-  }
+  // Get selected payment IDs from checkboxes
+  const paymentIds = [];
+  document.querySelectorAll('.hPaymentCheck:checked').forEach(cb => {
+    paymentIds.push(String(cb.dataset.id));
+  });
   
   // Insert handover record
   const { error: e1 } = await sb.from('cash_handovers').insert({
@@ -244,12 +245,12 @@ window.saveHandover = async function() {
     return;
   }
   
-  // Update payment statuses if marked
-  if (markPaid && paymentIds.length > 0) {
+  // Update selected payment statuses
+  if (paymentIds.length > 0) {
     await sb.from('payment_history')
       .update({ 
         handover_status: 'handed_over',
-        received_by: to  // reassign to new holder
+        received_by: to
       })
       .in('id', paymentIds.map(id => parseInt(id)));
   }
@@ -405,6 +406,17 @@ window.deleteHandover = async function(id) {
   await sb.from('cash_handovers').delete().eq('id', id);
   fsn.success('Deleted', '✅ Handover reversed');
   renderCashBook();
+};
+
+window.updateHandoverAmount = function() {
+  let total = 0;
+  document.querySelectorAll('.hPaymentCheck:checked').forEach(cb => {
+    total += Number(cb.dataset.amount || 0);
+  });
+  const totalEl = document.getElementById('selectedTotal');
+  if (totalEl) totalEl.innerHTML = '₹' + total.toLocaleString('en-IN');
+  const amtInput = document.getElementById('hAmount');
+  if (amtInput) amtInput.value = total;
 };
 
 console.log('✅ Cash Book module loaded');
