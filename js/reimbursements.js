@@ -197,6 +197,24 @@ window.renderAddReimbursement = async function() {
         <label>Notes</label>
         <textarea id="rNotes" rows="2" placeholder="Optional notes..."></textarea>
       </div>
+      <div class="form-group" style="padding:12px;background:#F0F7FF;border-radius:8px;border:1px solid #3B82F6;">
+        <label style="font-weight:600;">💵 Payment Source</label>
+        <div style="margin-top:6px;">
+          <label style="display:flex;align-items:center;gap:6px;cursor:pointer;margin-bottom:6px;">
+            <input type="radio" name="paySource" value="own_money" checked onchange="toggleAdvanceDropdown(false)"> 
+            <span>💰 My Money (will claim later)</span>
+          </label>
+          <label style="display:flex;align-items:center;gap:6px;cursor:pointer;">
+            <input type="radio" name="paySource" value="company_advance" onchange="toggleAdvanceDropdown(true)">
+            <span>🏦 Company Advance (already received money)</span>
+          </label>
+        </div>
+        <div id="advanceDropdownWrap" style="display:none;margin-top:10px;">
+          <select id="rAdvanceId" style="width:100%;padding:8px;">
+            <option value="">-- Select active advance --</option>
+          </select>
+        </div>
+      </div>
       <button onclick="saveReimbursement()" style="width:100%;">💾 Save Expense</button>
       <div id="rErr"></div>
     </div>
@@ -306,7 +324,11 @@ window.saveReimbursement = async function() {
     }
   }
   
+  const paySource = document.querySelector('input[name="paySource"]:checked')?.value || 'own_money';
+  const advanceId = paySource === 'company_advance' ? (parseInt(document.getElementById('rAdvanceId')?.value) || null) : null;
   const { error } = await sb.from('reimbursements').insert({
+    payment_source: paySource,
+    company_advance_id: advanceId,
     expense_date: date,
     category: cat,
     description: desc,
@@ -427,6 +449,16 @@ window.editReimbursement = async function(id) {
         <label>Notes</label>
         <textarea id="rNotes" rows="2">${rec.notes || ''}</textarea>
       </div>
+      <div class="form-group" style="padding:12px;background:#F0F7FF;border-radius:8px;border:1px solid #3B82F6;">
+        <label style="font-weight:600;">💵 Payment Source</label>
+        <div style="margin-top:6px;">
+          <label><input type="radio" name="paySource" value="own_money" ${!rec.company_advance_id ? 'checked':''} onchange="toggleAdvanceDropdown(false)"> 💰 My Money</label><br>
+          <label><input type="radio" name="paySource" value="company_advance" ${rec.company_advance_id ? 'checked':''} onchange="toggleAdvanceDropdown(true)"> 🏦 Company Advance</label>
+        </div>
+        <div id="advanceDropdownWrap" style="display:${rec.company_advance_id?'block':'none'};margin-top:10px;">
+          <select id="rAdvanceId" style="width:100%;padding:8px;"><option value="">-- Loading --</option></select>
+        </div>
+      </div>
       <button onclick="updateReimbursement()" style="width:100%;">💾 Update Expense</button>
       <div id="rErr"></div>
     </div>
@@ -490,7 +522,11 @@ window.updateReimbursement = async function() {
     }
   }
   
+  const paySource = document.querySelector('input[name="paySource"]:checked')?.value || 'own_money';
+  const advanceId = paySource === 'company_advance' ? (parseInt(document.getElementById('rAdvanceId')?.value) || null) : null;
   const updateObj = {
+    payment_source: paySource,
+    company_advance_id: advanceId,
     expense_date: date,
     category: cat,
     description: desc,
@@ -528,3 +564,24 @@ window.deleteReimbursement = async function(id) {
 };
 
 console.log('✅ Reimbursements module loaded');
+
+
+window.toggleAdvanceDropdown = async function(show) {
+  const wrap = document.getElementById('advanceDropdownWrap');
+  if (!wrap) return;
+  wrap.style.display = show ? 'block' : 'none';
+  if (show) {
+    const sel = document.getElementById('rAdvanceId');
+    if (sel && !sel.dataset.loaded) {
+      const { data: advances } = await sb.from('company_advances')
+        .select('*').eq('status', 'Active').order('advance_date', { ascending: false });
+      sel.innerHTML = '<option value="">-- Select active advance --</option>' + 
+        (advances || []).map(a => {
+          const bal = Number(a.amount_given) - Number(a.amount_spent||0);
+          return `<option value="${a.id}">₹${Number(a.amount_given).toLocaleString('en-IN')} from ${a.given_by} (${a.advance_date}) — Balance: ₹${bal.toLocaleString('en-IN')}</option>`;
+        }).join('');
+      sel.dataset.loaded = '1';
+    }
+  }
+};
+

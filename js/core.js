@@ -465,7 +465,7 @@ function renderShell(content, activePage = 'dashboard') {
       { section: 'FINANCE' },
       ['expenses', '💹 Expenses & P&L'],
       ['daily-report', '📅 Daily Report'],
-      ...(isAdmin ? [['airbnb-sync', '🔄 Airbnb Sync'], ['laundry', '🧺 Laundry'], ['reimbursements', '💸 Daily Expenses'], ['property-setup', '🏗️ Property Setup'], ['cashbook', '💰 Cash Book']] : []),
+      ...(isAdmin ? [['airbnb-sync', '🔄 Airbnb Sync'], ['laundry', '🧺 Laundry'], ['reimbursements', '💸 Daily Expenses'], ['property-setup', '🏗️ Property Setup'], ['cashbook', '💰 Cash Book'], ['company-advances', '💵 Company Advances']] : []),
       ['investors', '🧑‍💼 Investors'],
 
       { section: 'STORE' },
@@ -692,6 +692,7 @@ function navigate(page) {
     reimbursements: renderReimbursements,
     'property-setup': renderPropertySetup,
     cashbook: renderCashBook,
+    'company-advances': renderCompanyAdvances,
     'analytics': renderAnalytics,
     'whatsapp-hub': renderWhatsAppHub,
     'settings': renderSettings,
