@@ -915,16 +915,19 @@ window.rebookGuest = async function(bookingId) {
   
   setVal('guestName', b.guest_name || '');
   setVal('guestPhone', b.phone || '');
-  setVal('idProofType', b.id_proof_type || '');
-  setVal('idProofNo', b.id_proof_no || '');
+  setVal('idType', b.id_proof_type || '');
+  setVal('idNo', b.id_proof_no || '');
   setVal('guests', b.guests || 1);
+  if (typeof showIdSlots === 'function') showIdSlots();
   
-  // Vehicle
+  // Vehicle (hasVehicle is a SELECT with Yes/No)
   if (b.has_vehicle) {
-    setChk('hasVehicle', true);
+    setVal('hasVehicle', 'Yes');
     if (typeof toggleVehicle === 'function') toggleVehicle();
-    setVal('vehicleName', b.vehicle_name || '');
-    setVal('vehicleNumber', b.vehicle_number || '');
+    setTimeout(() => {
+      setVal('vehicleName', b.vehicle_name || '');
+      setVal('vehicleNumber', b.vehicle_number || '');
+    }, 100);
   }
   
   // Show existing ID photos (reuse info)
