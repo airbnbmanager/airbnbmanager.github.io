@@ -35,7 +35,7 @@ async function renderCBInHand(tabs) {
   
   const [{ data: payments }, { data: emps }] = await Promise.all([
     sb.from('payment_history')
-      .select('id, booking_id, amount, payment_date, payment_mode, received_by, handover_status')
+      .select('id, booking_id, amount, payment_date, payment_mode, received_by, handover_status, guest_register(guest_name, rooms(nickname, unit_no))')
       .eq('handover_status', 'in_hand')
       .neq('verification_status', 'rejected')
       .order('payment_date', { ascending: false }),
@@ -96,12 +96,24 @@ async function renderCBInHand(tabs) {
         <details style="margin-top:10px;">
           <summary style="cursor:pointer;font-size:12px;color:#666;">View ${data.count} payment${data.count>1?'s':''}</summary>
           <div style="margin-top:8px;">
-            ${data.payments.map(p => `
-              <div style="padding:6px 8px;background:#fafafa;border-radius:4px;margin-bottom:4px;font-size:12px;display:flex;justify-content:space-between;">
-                <span>${p.payment_date} · ${p.payment_mode} · ${p.booking_id}</span>
-                <strong>₹${Number(p.amount).toLocaleString('en-IN')}</strong>
+            ${data.payments.map(p => {
+              const guest = p.guest_register?.guest_name || p.booking_id;
+              const room = p.guest_register?.rooms?.nickname || p.guest_register?.rooms?.unit_no || '';
+              return `
+              <div style="padding:8px 10px;background:#fafafa;border-radius:6px;margin-bottom:6px;font-size:12px;">
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                  <div>
+                    <strong>${guest}</strong>
+                    ${room ? `<span style="color:#666;"> · 🏠 ${room}</span>` : ''}
+                  </div>
+                  <strong style="color:#059669;">₹${Number(p.amount).toLocaleString('en-IN')}</strong>
+                </div>
+                <div style="font-size:10px;color:#999;margin-top:2px;">
+                  ${p.payment_date} · ${p.payment_mode} · ${p.booking_id}
+                </div>
               </div>
-            `).join('')}
+              `;
+            }).join('')}
           </div>
         </details>
       </div>
