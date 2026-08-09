@@ -42,6 +42,20 @@ async function renderCBInHand(tabs) {
     sb.from('employees').select('emp_id, name').eq('status', 'Active').order('name')
   ]);
   
+  // Fetch own_money expenses (pending)
+  const { data: ownExpenses } = await sb.from('reimbursements')
+    .select('id, amount, paid_by, description, expense_date, category')
+    .eq('payment_source', 'own_money')
+    .neq('status', 'Received');
+  
+  const expensesByPerson = {};
+  (ownExpenses || []).forEach(e => {
+    const person = e.paid_by || 'Unknown';
+    if (!expensesByPerson[person]) expensesByPerson[person] = { total: 0, list: [] };
+    expensesByPerson[person].total += Number(e.amount || 0);
+    expensesByPerson[person].list.push(e);
+  });
+  
   // Group by received_by
   const byPerson = {};
   (payments || []).forEach(p => {
@@ -52,7 +66,9 @@ async function renderCBInHand(tabs) {
     byPerson[person].payments.push(p);
   });
   
-  const totalInHand = Object.values(byPerson).reduce((s, p) => s + p.total, 0);
+  const totalExpenses = Object.values(expensesByPerson).reduce((s, p) => s + p.total, 0);
+  const totalReceived = Object.values(byPerson).reduce((s, p) => s + p.total, 0);
+  const totalInHand = totalReceived - totalExpenses;
   const totalCount = Object.values(byPerson).reduce((s, p) => s + p.count, 0);
   
   renderShell(`
@@ -89,8 +105,16 @@ async function renderCBInHand(tabs) {
             <div style="font-size:12px;color:#666;margin-top:4px;">${data.count} payment${data.count>1?'s':''} received</div>
           </div>
           <div style="text-align:right;">
-            <div style="font-size:20px;font-weight:800;color:#B45309;">₹${data.total.toLocaleString('en-IN')}</div>
-            ${!CASH_FINAL_HOLDERS.includes(person) ? `<button onclick="startHandover('${person}',${data.total})" style="margin-top:6px;background:#059669;color:#fff;border:none;padding:6px 12px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:600;">🤝 Handover Now</button>` : ''}
+            ${(() => {
+              const exp = expensesByPerson[person] || { total: 0, list: [] };
+              const net = data.total - exp.total;
+              return `
+                <div style="font-size:12px;color:#059669;">Received: ₹${data.total.toLocaleString('en-IN')}</div>
+                ${exp.total > 0 ? `<div style="font-size:12px;color:#DC2626;">Spent: -₹${exp.total.toLocaleString('en-IN')}</div>` : ''}
+                <div style="font-size:20px;font-weight:800;color:${net>0?'#B45309':'#059669'};">₹${net.toLocaleString('en-IN')}</div>
+                ${!CASH_FINAL_HOLDERS.includes(person) && net > 0 ? `<button onclick="startHandover('${person}',${net})" style="margin-top:6px;background:#059669;color:#fff;border:none;padding:6px 12px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:600;">🤝 Handover Now</button>` : ''}
+              `;
+            })()}
           </div>
         </div>
         <details style="margin-top:10px;">
