@@ -2875,13 +2875,29 @@ function showPaymentModal(bkId) {
       ${prevDueHtml}
       <div class="form-group"><label>Amount ₹ *</label><input id="payAmt" type="number" placeholder="Amount" /></div>
       <div class="form-group"><label>Mode</label>
-        <select id="payMode">
+        <select id="payMode" onchange="onPayModeChange()">
           <option value="Cash">Cash</option>
           <option value="UPI">UPI</option>
           <option value="Bank">Bank Transfer</option>
           <option value="Airbnb Payout">Airbnb Payout</option>
         </select>
       </div>
+      
+      <div class="form-group"><label>💰 Received By *</label>
+        <select id="payReceivedBy" style="width:100%;padding:8px;">
+          <option value="">-- Select who received --</option>
+          <optgroup label="Final Holders (UPI/Bank)">
+            <option value="Firoz">Firoz</option>
+            <option value="Shahenshah">Shahenshah</option>
+          </optgroup>
+          <optgroup label="Cash Receivers" id="payCashReceivers">
+            <!-- Populated dynamically -->
+          </optgroup>
+          <option value="__custom__" style="color:#059669;font-weight:700;">✏️ Custom name...</option>
+        </select>
+        <input id="payReceivedByCustom" type="text" placeholder="Type name..." style="display:none;margin-top:6px;width:100%;padding:8px;">
+      </div>
+      
       <div class="form-group"><label>Date</label><input id="payDate" type="date" value="${new Date().toISOString().slice(0, 10)}" /></div>
       <div class="form-group"><label>Notes</label><input id="payNotes" placeholder="Optional" /></div>
       <button onclick="savePaymentModal('${bkId}')" style="width:100%;margin-top:10px;">💾 Save Payment</button>
@@ -2891,6 +2907,16 @@ function showPaymentModal(bkId) {
 }
 
 async function savePaymentModal(bkId) {
+  const receivedByEl = document.getElementById('payReceivedBy');
+  let receivedBy = receivedByEl?.value || '';
+  if (receivedBy === '__custom__') {
+    receivedBy = document.getElementById('payReceivedByCustom')?.value?.trim() || '';
+  }
+  if (!receivedBy) {
+    document.getElementById('payErr').innerHTML = '<div class="error">Please select who received the payment</div>';
+    return;
+  }
+  
   const amt = parseFloat(document.getElementById('payAmt')?.value) || 0;
   if (amt <= 0) { document.getElementById('payErr').innerHTML = '<div class="error">Amount required</div>'; return; }
 
@@ -3025,6 +3051,8 @@ async function savePaymentModal(bkId) {
     const { error } = await sb.from('payment_history').insert({
       booking_id: bkId, amount: paymentForCurrent,
       payment_mode: mode,
+    received_by: receivedBy,
+    handover_status: (mode === "Cash" && !["Firoz","Shahenshah"].includes(receivedBy)) ? "in_hand" : "handed_over",
       payment_date: payDate,
       notes: userNotes,
       created_by: SESSION.userId,
