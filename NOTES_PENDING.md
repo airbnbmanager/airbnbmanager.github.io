@@ -1,45 +1,34 @@
-# 📋 PENDING TASKS (09 Aug 2026)
+# 📋 PENDING TASKS (10 Aug 2026)
 
-## 🔥 HIGH PRIORITY
+## ✅ COMPLETED (09 Aug):
+- Photo upload mobile/iPad fix
+- Duplicate booking button
+- Cash Book (4 tabs)
+- Payment Received By tracking
+- Company Advances (4 tabs)
+- Handover checkbox fix
+- SQL data cleanup
 
-### 1. Photo Upload Fix (Mobile/iPad)
-- Affects: Laundry, Daily Expenses, Maintenance, Property Setup
-- Issue: iOS Safari file input problems
-- Fix: Better handler + HEIC support + fallback
+## 🟡 REMAINING:
 
-### 2. Repeat Guest Feature
-- Search existing guest (name/phone)
-- Show last bookings
-- Rebook button → prefill all data
-- Only change: dates + property
-- Reuse: photos, phone, ID
+### 1. Maintenance Before/After Photos
+- Verify workflow complete
+- Test on mobile
 
-### 3. Cash Flow Tracking (BIG)
-- Payment modal: Add "Received By" (dropdown)
-- All employees can receive cash
-- UPI auto → Firoz OR Shahenshah
-- New menu: 💰 Cash Book
-  - Cash-in-hand per employee
-  - Handover system (Yash → Praveen → Firoz)
-  - Daily reconciliation
+### 2. Cash Exchange Feature (Complex)
+- ATM/QR transactions between people
+- Multi-mode partial exchange
+- Auto-adjust balance
 
-## 🟡 MEDIUM PRIORITY
+### 3. Full Responsive Design (Phase 3)
+- Sidebar accordion groups
+- Mobile bottom nav
+- Tablet drawer
 
-### 4. Maintenance Before/After Photos
-- Verify: Already partially in code
-- Complete workflow
+### 4. Handover to Shahenshah - 12,600
+- Praveen has ₹12,600 pending
+- Test new checkbox handover system
 
-### 5. Company Advance for Payments
-- Take advance from company
-- Track usage
-- Reconcile balance/refund
-
-## 🟢 LOW (Later)
-
-### 6. UI Polish
-### 7. Full Responsive (Phase 3)
-
----
-Time Notes: 
-- All 3 HIGH = 3-4 hours
-- Best: Do fresh with clear mind
+## 💡 IDEAS:
+- WhatsApp batch send to investors
+- Guest search across bookings
