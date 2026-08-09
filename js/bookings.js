@@ -2839,6 +2839,45 @@ async function delBooking(bkId, guestName, roomId) {
 }
 
 // ============ PAYMENT MODAL ============
+
+// ═══ Cash Book: Payment Received By helpers ═══
+window.onPayModeChange = async function() {
+  const mode = document.getElementById('payMode')?.value;
+  const receivedBy = document.getElementById('payReceivedBy');
+  if (!receivedBy) return;
+  
+  // ALWAYS load employees list (regardless of mode)
+  const cashGrp = document.getElementById('payCashReceivers');
+  if (cashGrp && !cashGrp.dataset.loaded) {
+    const { data: emps } = await sb.from('employees')
+      .select('emp_id, name').eq('status', 'Active').order('name');
+    // Exclude Firoz/Shahenshah (already in Final Holders)
+    const filtered = (emps || []).filter(e => !['Firoz', 'Shahenshah'].includes(e.name));
+    cashGrp.innerHTML = filtered.map(e => 
+      `<option value="${e.name}">${e.name}</option>`
+    ).join('');
+    cashGrp.dataset.loaded = '1';
+  }
+  
+  // Auto-select for UPI/Bank/Airbnb → Firoz (default)
+  if (mode === 'UPI' || mode === 'Bank Transfer' || mode === 'Airbnb Payout') {
+    if (!receivedBy.value || receivedBy.value === '') {
+      receivedBy.value = 'Firoz';
+    }
+  }
+};
+
+// Handle custom name toggle
+document.addEventListener('change', e => {
+  if (e.target?.id === 'payReceivedBy') {
+    const custom = document.getElementById('payReceivedByCustom');
+    if (custom) custom.style.display = e.target.value === '__custom__' ? 'block' : 'none';
+    if (e.target.value === '__custom__') {
+      setTimeout(() => custom?.focus(), 50);
+    }
+  }
+});
+
 function showPaymentModal(bkId) {
   // Build previous due warning for this guest
   const allBks = window._allBookings || [];
