@@ -843,6 +843,128 @@ function clearBkFilters() {
 }
 
 // ============ ADD BOOKING ============
+// ═══════════════════════════════════════════════════════════
+// 🔍 REPEAT GUEST SEARCH
+// ═══════════════════════════════════════════════════════════
+
+let _repeatSearchTimer = null;
+
+window.searchRepeatGuests = function(query) {
+  clearTimeout(_repeatSearchTimer);
+  const resultsEl = document.getElementById('repeatGuestResults');
+  
+  if (!query || query.trim().length < 3) {
+    resultsEl.innerHTML = '';
+    return;
+  }
+  
+  resultsEl.innerHTML = '<div style="color:#666;font-size:12px;">Searching...</div>';
+  
+  _repeatSearchTimer = setTimeout(async () => {
+    const q = query.trim();
+    // Search by name OR phone
+    const { data } = await sb.from('guest_register')
+      .select('booking_id, guest_name, phone, room_id, check_in, check_out, booking_mode, id_proof_type, id_proof_no, id_proof_front_paths, id_proof_back_paths, id_proof_photo_paths, has_vehicle, vehicle_name, vehicle_number, guests, rooms(nickname, unit_no)')
+      .or(`guest_name.ilike.%${q}%,phone.ilike.%${q}%`)
+      .neq('is_cancelled', true)
+      .order('check_in', { ascending: false })
+      .limit(10);
+    
+    if (!data || data.length === 0) {
+      resultsEl.innerHTML = '<div style="color:#999;font-size:12px;padding:8px;">No past guests found. Continue with new entry below.</div>';
+      return;
+    }
+    
+    // Group by unique guest (name+phone)
+    const uniqueGuests = {};
+    data.forEach(b => {
+      const key = (b.guest_name || '') + '|' + (b.phone || '');
+      if (!uniqueGuests[key]) uniqueGuests[key] = { guest: b, bookings: [] };
+      uniqueGuests[key].bookings.push(b);
+    });
+    
+    resultsEl.innerHTML = Object.values(uniqueGuests).map(({ guest, bookings }) => {
+      const propName = guest.rooms?.nickname || guest.rooms?.unit_no || guest.room_id || '-';
+      const hasId = guest.id_proof_no || guest.id_proof_front_paths || guest.id_proof_photo_paths;
+      return `
+        <div style="padding:10px;background:#fff;border:1px solid #ddd;border-radius:8px;margin-bottom:6px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+            <div>
+              <strong style="color:#1E40AF;">${guest.guest_name}</strong>
+              ${guest.phone ? `<span style="color:#666;font-size:12px;"> · 📱 ${guest.phone}</span>` : ''}
+              ${hasId ? '<span style="background:#059669;color:#fff;font-size:10px;padding:2px 6px;border-radius:8px;margin-left:4px;">✓ ID Saved</span>' : ''}
+            </div>
+            <button onclick="rebookGuest('${guest.booking_id}')" style="background:#3B82F6;color:#fff;border:none;padding:6px 12px;border-radius:6px;cursor:pointer;font-weight:600;font-size:12px;">🔄 Rebook</button>
+          </div>
+          <div style="font-size:11px;color:#666;margin-top:4px;">
+            Last: ${propName} · ${guest.check_in} → ${guest.check_out} · ${bookings.length} total booking${bookings.length>1?'s':''}
+          </div>
+        </div>
+      `;
+    }).join('');
+  }, 300);
+};
+
+window.rebookGuest = async function(bookingId) {
+  const { data: b } = await sb.from('guest_register').select('*').eq('booking_id', bookingId).single();
+  if (!b) { fsn.error('Error', 'Booking not found'); return; }
+  
+  // Pre-fill all fields (except dates, property, amount)
+  const setVal = (id, val) => { const el = document.getElementById(id); if (el && val != null) el.value = val; };
+  const setChk = (id, val) => { const el = document.getElementById(id); if (el) el.checked = !!val; };
+  
+  setVal('guestName', b.guest_name || '');
+  setVal('guestPhone', b.phone || '');
+  setVal('idProofType', b.id_proof_type || '');
+  setVal('idProofNo', b.id_proof_no || '');
+  setVal('guests', b.guests || 1);
+  
+  // Vehicle
+  if (b.has_vehicle) {
+    setChk('hasVehicle', true);
+    if (typeof toggleVehicle === 'function') toggleVehicle();
+    setVal('vehicleName', b.vehicle_name || '');
+    setVal('vehicleNumber', b.vehicle_number || '');
+  }
+  
+  // Show existing ID photos (reuse info)
+  const hasPhotos = b.id_proof_front_paths || b.id_proof_back_paths || b.id_proof_photo_paths;
+  if (hasPhotos) {
+    window._rebookedGuestData = {
+      id_proof_front_paths: b.id_proof_front_paths,
+      id_proof_back_paths: b.id_proof_back_paths,
+      id_proof_photo_paths: b.id_proof_photo_paths,
+      vehicle_photo_path: b.vehicle_photo_path
+    };
+    
+    const resultsEl = document.getElementById('repeatGuestResults');
+    resultsEl.innerHTML = `
+      <div style="padding:10px;background:#F0FDF4;border:2px solid #059669;border-radius:8px;">
+        <div style="color:#059669;font-weight:700;">✅ Guest data loaded! Photos will be reused.</div>
+        <div style="font-size:11px;color:#666;margin-top:4px;">Just enter new: Property + Dates + Amount</div>
+        <button onclick="clearRebookData()" style="margin-top:8px;background:#DC2626;color:#fff;border:none;padding:4px 10px;border-radius:4px;font-size:11px;cursor:pointer;">✕ Clear (Start Fresh)</button>
+      </div>
+    `;
+    document.getElementById('repeatGuestSearch').value = '✓ ' + b.guest_name + ' (rebook)';
+  }
+  
+  fsn.success('Loaded', '✅ ' + b.guest_name + ' - data pre-filled');
+  
+  // Scroll to property field
+  document.getElementById('roomId')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+};
+
+window.clearRebookData = function() {
+  window._rebookedGuestData = null;
+  document.getElementById('repeatGuestSearch').value = '';
+  document.getElementById('repeatGuestResults').innerHTML = '';
+  ['guestName', 'guestPhone', 'idProofNo', 'vehicleName', 'vehicleNumber'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  fsn.info('Cleared', 'Start fresh entry');
+};
+
 async function renderAddBooking() {
   const today_iso = new Date().toISOString().slice(0,10);
   const { data: recentBookings } = await sb.from('guest_register').select('booking_id, guest_name, room_id, check_in, check_out, rooms(nickname)').gte('check_out', today_iso).eq('is_review_booking', false).order('check_in', {ascending: true}).limit(100);
@@ -898,6 +1020,13 @@ async function renderAddBooking() {
       <input type="hidden" id="parentBookingId" value="${pre.parentBookingId || ''}" />
       <input type="hidden" id="stayGroupId" value="${pre.stayGroupId || ''}" />
       ${pre.parentBookingId ? `<div class="success-msg" style="margin-bottom:10px;">Extension of <strong>${pre.parentBookingId}</strong></div>` : ''}
+
+      <!-- 🔍 REPEAT GUEST SEARCH -->
+      <div class="form-group" style="padding:12px;background:#EFF6FF;border-radius:8px;border:1px solid #3B82F6;margin-bottom:12px;">
+        <label style="font-weight:600;color:#1E40AF;">🔍 Repeat Guest? Search here first!</label>
+        <input type="text" id="repeatGuestSearch" placeholder="Type name or phone (min 3 chars)..." style="width:100%;padding:8px;margin-top:6px;border:1px solid #ddd;border-radius:6px;" oninput="searchRepeatGuests(this.value)">
+        <div id="repeatGuestResults" style="margin-top:8px;"></div>
+      </div>
 
       <div class="form-grid">
         <div class="form-group"><label>Guest Name *</label><input id="guestName" placeholder="Guest ka naam" value="${pre.guestName || ''}" /></div>
@@ -1765,8 +1894,21 @@ async function saveBooking() {
 
     const bkId = 'B' + Date.now();
     const finalStayGroupId = stayGroupId || bkId;
-    const photos = await uploadIdPhotos(bkId);
-    const vehiclePhotoPath = hasVehicle ? await uploadVehiclePhoto(bkId) : null;
+    // 🔄 REUSE photos from rebook if available
+    let photos;
+    if (window._rebookedGuestData) {
+      photos = {
+        front: window._rebookedGuestData.id_proof_front_paths,
+        back: window._rebookedGuestData.id_proof_back_paths,
+        combined: window._rebookedGuestData.id_proof_photo_paths
+      };
+      console.log('♻️ Reusing photos from rebook');
+    } else {
+      photos = await uploadIdPhotos(bkId);
+    }
+    const vehiclePhotoPath = hasVehicle 
+      ? (window._rebookedGuestData?.vehicle_photo_path || await uploadVehiclePhoto(bkId))
+      : null;
     
 
     const noteParts = [];
@@ -1890,6 +2032,7 @@ async function saveBooking() {
       shareBookingWhatsApp(bkId);
     }
 
+    window._rebookedGuestData = null;
     renderManageBookings();
 
   } catch (err) {
