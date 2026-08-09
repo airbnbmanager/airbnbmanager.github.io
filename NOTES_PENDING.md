@@ -3,32 +3,27 @@
 ## ✅ COMPLETED (09 Aug):
 - Photo upload mobile/iPad fix
 - Duplicate booking button
-- Cash Book (4 tabs)
+- Cash Book (4 tabs) + Handover checkbox fix
 - Payment Received By tracking
 - Company Advances (4 tabs)
-- Handover checkbox fix
-- SQL data cleanup
+- SQL data cleanup + verification
+- v3.0-cash-flow-stable tagged
 
 ## 🟡 REMAINING:
 
 ### 1. Maintenance Before/After Photos
-- Verify workflow complete
+- Verify workflow (already partially done)
 - Test on mobile
 
-### 2. Cash Exchange Feature (Complex)
-- ATM/QR transactions between people
-- Multi-mode partial exchange
-- Auto-adjust balance
-
-### 3. Full Responsive Design (Phase 3)
+### 2. Full Responsive Design (Phase 3)
 - Sidebar accordion groups
 - Mobile bottom nav
 - Tablet drawer
 
-### 4. Handover to Shahenshah - 12,600
-- Praveen has ₹12,600 pending
+### 3. Praveen Cash Handover Test
+- ₹12,600 pending to Shahenshah
 - Test new checkbox handover system
 
-## 💡 IDEAS:
+## 💡 IDEAS (Optional):
 - WhatsApp batch send to investors
 - Guest search across bookings
