@@ -27,3 +27,22 @@
 ## 💡 IDEAS (Optional):
 - WhatsApp batch send to investors
 - Guest search across bookings
+
+## 🐛 NEW BUGS (10 Aug Session):
+
+### 1. Photo Attachment Issue
+- Daily Expenses photo upload proper nahi
+- Check: add form + edit form
+- Test on mobile
+
+### 2. UPI Payment → "Unknown" in Cash Book
+- UPI mode select karne pe received_by auto Firoz nahi ho raha
+- Fix: onPayModeChange logic verify
+- Query: SELECT * FROM payment_history WHERE payment_mode='UPI' AND received_by IS NULL LIMIT 5;
+
+### 3. Test Smart Cash Management
+- New feature deployed but not fully tested
+- Test scenarios:
+  - Amount = available cash (company_cash)
+  - Amount > available (split)
+  - Amount < available (own or company choice)
