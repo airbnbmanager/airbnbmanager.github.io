@@ -129,6 +129,9 @@ window.renderReimbursements = async function() {
 };
 
 window.renderAddReimbursement = async function() {
+  window._companyCashData = null;
+  setTimeout(() => window.loadAvailableCash && window.loadAvailableCash(), 200);
+
   const { data: rooms } = await sb.from('rooms').select('room_id, nickname, unit_no').order('unit_no');
   
   renderShell(`
@@ -197,17 +200,31 @@ window.renderAddReimbursement = async function() {
         <label>Notes</label>
         <textarea id="rNotes" rows="2" placeholder="Optional notes..."></textarea>
       </div>
-      <div class="form-group" style="padding:12px;background:#F0F7FF;border-radius:8px;border:1px solid #3B82F6;">
+      <div id="cashAvailabilityBox" class="form-group" style="padding:12px;background:#F0F7FF;border-radius:8px;border:1px solid #3B82F6;">
         <label style="font-weight:600;">💵 Payment Source</label>
-        <div style="margin-top:6px;">
+        <div id="cashInfo" style="margin:8px 0;padding:10px;background:#fff;border-radius:6px;font-size:13px;">
+          <div style="color:#666;">Loading available cash...</div>
+        </div>
+        <div style="margin-top:6px;" id="paySourceOptions">
           <label style="display:flex;align-items:center;gap:6px;cursor:pointer;margin-bottom:6px;">
-            <input type="radio" name="paySource" value="own_money" checked onchange="toggleAdvanceDropdown(false)"> 
+            <input type="radio" name="paySource" value="own_money" checked onchange="onPaySourceChange()"> 
             <span>💰 My Money (will claim later)</span>
           </label>
-          <label style="display:flex;align-items:center;gap:6px;cursor:pointer;">
-            <input type="radio" name="paySource" value="company_advance" onchange="toggleAdvanceDropdown(true)">
-            <span>🏦 Company Advance (already received money)</span>
+          <label style="display:flex;align-items:center;gap:6px;cursor:pointer;margin-bottom:6px;" id="splitOption" style="display:none;">
+            <input type="radio" name="paySource" value="split" onchange="onPaySourceChange()"> 
+            <span>🔀 Split: Company cash + Own money</span>
           </label>
+          <label style="display:flex;align-items:center;gap:6px;cursor:pointer;margin-bottom:6px;" id="companyCashOption" style="display:none;">
+            <input type="radio" name="paySource" value="company_cash" onchange="onPaySourceChange()"> 
+            <span>🏢 Company Cash (from my in-hand)</span>
+          </label>
+          <label style="display:flex;align-items:center;gap:6px;cursor:pointer;">
+            <input type="radio" name="paySource" value="company_advance" onchange="onPaySourceChange()">
+            <span>🏦 Company Advance</span>
+          </label>
+        </div>
+        <div id="splitPreview" style="display:none;margin-top:10px;padding:10px;background:#FEF3C7;border-radius:6px;font-size:12px;">
+          <!-- Split calculation shown here -->
         </div>
         <div id="advanceDropdownWrap" style="display:none;margin-top:10px;">
           <select id="rAdvanceId" style="width:100%;padding:8px;">
@@ -326,9 +343,50 @@ window.saveReimbursement = async function() {
   
   const paySource = document.querySelector('input[name="paySource"]:checked')?.value || 'own_money';
   const advanceId = paySource === 'company_advance' ? (parseInt(document.getElementById('rAdvanceId')?.value) || null) : null;
+  const currentUser = SESSION.displayName || 'Praveen Singh';
+  
+  // Handle company_cash and split sources
+  let finalSource = paySource;
+  let companyPortionAmt = 0;
+  let ownPortionAmt = amt;
+  let paymentIdsToConsume = [];
+  
+  if (paySource === 'company_cash' || paySource === 'split') {
+    const data = window._companyCashData;
+    if (!data || data.netAvailable <= 0) {
+      document.getElementById('rErr').innerHTML = '<div class="error">No company cash available</div>';
+      return;
+    }
+    
+    if (paySource === 'company_cash') {
+      if (amt > data.netAvailable) {
+        document.getElementById('rErr').innerHTML = `<div class="error">Amount ₹${amt} exceeds available ₹${data.netAvailable}. Use Split option.</div>`;
+        return;
+      }
+      companyPortionAmt = amt;
+      ownPortionAmt = 0;
+      finalSource = 'company_cash';
+    } else {
+      companyPortionAmt = Math.min(amt, data.netAvailable);
+      ownPortionAmt = amt - companyPortionAmt;
+      finalSource = 'split';
+    }
+    
+    // FIFO consume payments
+    let toConsume = companyPortionAmt;
+    for (const pmt of data.payments) {
+      if (toConsume <= 0) break;
+      paymentIdsToConsume.push(pmt.id);
+      toConsume -= Number(pmt.amount);
+    }
+  }
+  
   const { error } = await sb.from('reimbursements').insert({
-    payment_source: paySource,
+    payment_source: finalSource,
     company_advance_id: advanceId,
+    consumed_payment_ids: paymentIdsToConsume.length > 0 ? paymentIdsToConsume.map(String) : null,
+    company_portion: companyPortionAmt,
+    own_portion: ownPortionAmt,
     expense_date: date,
     category: cat,
     description: desc,
@@ -348,8 +406,25 @@ window.saveReimbursement = async function() {
     return;
   }
   
+  // Mark consumed payments as handed_over
+  if (paymentIdsToConsume.length > 0) {
+    await sb.from('payment_history')
+      .update({ handover_status: 'handed_over' })
+      .in('id', paymentIdsToConsume);
+    
+    // Create handover record
+    await sb.from('cash_handovers').insert({
+      handover_date: date,
+      from_person: currentUser,
+      to_person: 'Expense: ' + desc.substring(0,50),
+      amount: companyPortionAmt,
+      payment_ids: paymentIdsToConsume.map(String),
+      notes: 'Auto-created from expense: ' + cat
+    });
+  }
+  
   window._reimbPhotoBlob = null;
-  fsn.success('Success', '✅ Expense saved!');
+  fsn.success('Success', '✅ Expense saved!' + (companyPortionAmt>0?` (₹${companyPortionAmt} from company cash)`:''));
   renderReimbursements();
 };
 
@@ -584,4 +659,153 @@ window.toggleAdvanceDropdown = async function(show) {
     }
   }
 };
+
+
+
+// ═══════════════════════════════════════════════════════════
+// 💰 SMART CASH MANAGEMENT
+// ═══════════════════════════════════════════════════════════
+
+window._companyCashData = null;
+
+window.loadAvailableCash = async function() {
+  const currentUser = SESSION.displayName || 'Praveen Singh';
+  
+  // Get all in_hand payments for current user
+  const { data: payments } = await sb.from('payment_history')
+    .select('id, amount, payment_date, payment_mode')
+    .eq('received_by', currentUser)
+    .eq('handover_status', 'in_hand')
+    .neq('verification_status', 'rejected')
+    .order('payment_date', { ascending: true });  // FIFO - oldest first
+  
+  const totalCash = (payments || []).reduce((s, p) => s + Number(p.amount || 0), 0);
+  
+  // Get pending own_money expenses (already claimed against this cash)
+  const { data: pendingExp } = await sb.from('reimbursements')
+    .select('amount')
+    .eq('paid_by', currentUser)
+    .eq('payment_source', 'own_money')
+    .neq('status', 'Received');
+  
+  const alreadySpent = (pendingExp || []).reduce((s, e) => s + Number(e.amount || 0), 0);
+  const netAvailable = Math.max(0, totalCash - alreadySpent);
+  
+  window._companyCashData = {
+    user: currentUser,
+    totalCash,
+    alreadySpent,
+    netAvailable,
+    payments: payments || []
+  };
+  
+  updateCashInfo();
+};
+
+window.updateCashInfo = function() {
+  const data = window._companyCashData;
+  if (!data) return;
+  
+  const infoEl = document.getElementById('cashInfo');
+  const amtInput = document.getElementById('rAmount');
+  const enteredAmt = parseFloat(amtInput?.value) || 0;
+  
+  const shortBy = enteredAmt - data.netAvailable;
+  
+  let html = `
+    <div style="display:flex;justify-content:space-between;align-items:center;">
+      <span>💰 <strong>${data.user}</strong> has:</span>
+      <strong style="color:${data.netAvailable>0?'#059669':'#999'};font-size:16px;">₹${data.netAvailable.toLocaleString('en-IN')}</strong>
+    </div>
+    <div style="font-size:11px;color:#666;margin-top:2px;">
+      (Received ₹${data.totalCash.toLocaleString('en-IN')} - Already claimed ₹${data.alreadySpent.toLocaleString('en-IN')})
+    </div>
+  `;
+  
+  if (enteredAmt > 0) {
+    if (shortBy > 0 && data.netAvailable > 0) {
+      html += `
+        <div style="margin-top:8px;padding:6px;background:#FEF3C7;border-radius:4px;font-size:12px;">
+          ⚠️ Amount ₹${enteredAmt.toLocaleString('en-IN')} > Available ₹${data.netAvailable.toLocaleString('en-IN')}<br>
+          <strong>Short by: ₹${shortBy.toLocaleString('en-IN')}</strong>
+        </div>
+      `;
+    } else if (enteredAmt <= data.netAvailable && data.netAvailable > 0) {
+      html += `
+        <div style="margin-top:8px;padding:6px;background:#F0FDF4;border-radius:4px;font-size:12px;color:#059669;">
+          ✅ Enough company cash available
+        </div>
+      `;
+    }
+  }
+  
+  infoEl.innerHTML = html;
+  
+  // Show/hide options based on availability
+  const companyCashOpt = document.getElementById('companyCashOption');
+  const splitOpt = document.getElementById('splitOption');
+  
+  if (data.netAvailable > 0) {
+    if (enteredAmt > 0 && enteredAmt <= data.netAvailable) {
+      // Full company cash available
+      if (companyCashOpt) companyCashOpt.style.display = 'flex';
+      if (splitOpt) splitOpt.style.display = 'none';
+    } else if (enteredAmt > data.netAvailable) {
+      // Split needed
+      if (companyCashOpt) companyCashOpt.style.display = 'none';
+      if (splitOpt) splitOpt.style.display = 'flex';
+    } else {
+      if (companyCashOpt) companyCashOpt.style.display = 'flex';
+      if (splitOpt) splitOpt.style.display = 'flex';
+    }
+  } else {
+    if (companyCashOpt) companyCashOpt.style.display = 'none';
+    if (splitOpt) splitOpt.style.display = 'none';
+  }
+  
+  // Update split preview
+  updateSplitPreview();
+};
+
+window.updateSplitPreview = function() {
+  const source = document.querySelector('input[name="paySource"]:checked')?.value;
+  const preview = document.getElementById('splitPreview');
+  if (!preview) return;
+  
+  if (source === 'split') {
+    const data = window._companyCashData;
+    const amt = parseFloat(document.getElementById('rAmount')?.value) || 0;
+    const fromCompany = Math.min(amt, data?.netAvailable || 0);
+    const fromOwn = amt - fromCompany;
+    
+    preview.style.display = 'block';
+    preview.innerHTML = `
+      <strong>🔀 Split Payment Breakdown:</strong><br>
+      🏢 From Company Cash: <strong>₹${fromCompany.toLocaleString('en-IN')}</strong><br>
+      💰 From Own Money: <strong>₹${fromOwn.toLocaleString('en-IN')}</strong> <span style="color:#666;">(will be added to reimbursement)</span>
+    `;
+  } else {
+    preview.style.display = 'none';
+  }
+};
+
+window.onPaySourceChange = function() {
+  const source = document.querySelector('input[name="paySource"]:checked')?.value;
+  const advWrap = document.getElementById('advanceDropdownWrap');
+  
+  if (advWrap) advWrap.style.display = source === 'company_advance' ? 'block' : 'none';
+  
+  if (source === 'company_advance') {
+    toggleAdvanceDropdown(true);
+  }
+  
+  updateSplitPreview();
+};
+
+// Watch amount input changes
+document.addEventListener('input', e => {
+  if (e.target?.id === 'rAmount') {
+    updateCashInfo();
+  }
+});
 
