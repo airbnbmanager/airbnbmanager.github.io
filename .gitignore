@@ -23,3 +23,5 @@ supabase/.temp/
 *.backup*
 *.old*
 *.bak
+.vscode/
+supabase/.temp/
