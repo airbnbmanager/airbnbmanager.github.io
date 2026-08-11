@@ -460,6 +460,7 @@ function renderShell(content, activePage = 'dashboard') {
       ['tasks', '🧰 Tasks'],
       ['attendance', '📋 Attendance'],
       ['salary', '💰 Payroll'],
+      ['employee-ledger', '📒 Emp Ledger'],
       ['advance', '💵 Advances'],
 
       { section: 'FINANCE' },
@@ -506,6 +507,7 @@ function renderShell(content, activePage = 'dashboard') {
       { section: 'TEAM' },
       ['employees', '👥 Employees'],
       ['salary', '💰 Payroll'],
+      ['employee-ledger', '📒 Emp Ledger'],
       ['advance', '💵 Advances'],
 
       { section: 'FINANCE' },
@@ -601,6 +603,7 @@ function renderShell(content, activePage = 'dashboard') {
             tasks:      ['🧰', 'Tasks'],
             attendance: ['📋', 'Attend'],
             salary:     ['💰', 'Payroll'],
+            'employee-ledger': ['📒', 'Emp Ledger'],
             expenses:   ['💹', 'Expenses'],
             store:      ['📦', 'Store'],
             investors:  ['🧑‍💼', 'Invest'],
@@ -693,6 +696,7 @@ function navigate(page) {
     'property-setup': renderPropertySetup,
     cashbook: renderCashBook,
     'company-advances': renderCompanyAdvances,
+    'employee-ledger': renderEmployeeLedger,
     'analytics': renderAnalytics,
     'whatsapp-hub': renderWhatsAppHub,
     'settings': renderSettings,
