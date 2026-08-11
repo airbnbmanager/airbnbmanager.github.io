@@ -34,6 +34,10 @@ window.CASHBOOK_V2 = {
     const { data: expenses } = await sb.from('cash_expenses')
       .select('paid_by, amount');
     
+    // 4. Reimbursements (Praveen's own money spent for company)
+    const { data: reimbursements } = await sb.from('reimbursements')
+      .select('paid_by, amount');
+    
     return holders.map(holder => {
       // Cash received directly (from guests)
       const received = (cashPayments || [])
@@ -50,12 +54,18 @@ window.CASHBOOK_V2 = {
         .filter(h => h.from_person === holder.name)
         .reduce((s, h) => s + (h.amount || 0), 0);
       
-      // Expenses
+      // Expenses (salary etc from cash pool)
       const totalExpenses = (expenses || [])
         .filter(e => e.paid_by === holder.name)
         .reduce((s, e) => s + (e.amount || 0), 0);
       
-      const balance = received + handoversIn - handoversOut - totalExpenses;
+      // Reimbursements (own money spent for company)
+      const totalReimbursements = (reimbursements || [])
+        .filter(r => r.paid_by === holder.name)
+        .reduce((s, r) => s + (r.amount || 0), 0);
+      
+      // Balance: positive = has cash, negative = company owes them
+      const balance = received + handoversIn - handoversOut - totalExpenses - totalReimbursements;
       
       return {
         ...holder,
@@ -63,6 +73,7 @@ window.CASHBOOK_V2 = {
         handoversIn,
         handoversOut,
         expenses: totalExpenses,
+        reimbursements: totalReimbursements,
         balance
       };
     });
@@ -149,24 +160,29 @@ function renderHolderCard(h, bgColor, textColor) {
         </div>
       </div>
       
-      <div style="margin-top:10px;display:grid;grid-template-columns:repeat(4,1fr);gap:8px;font-size:11px;">
+      <div style="margin-top:10px;display:grid;grid-template-columns:repeat(5,1fr);gap:6px;font-size:10px;">
         <div style="padding:6px;background:#F0FDF4;border-radius:6px;text-align:center;">
           <div style="color:#166534;">Received</div>
           <div style="font-weight:700;">₹${h.received.toLocaleString('en-IN')}</div>
         </div>
         <div style="padding:6px;background:#EFF6FF;border-radius:6px;text-align:center;">
-          <div style="color:#1E40AF;">Handover In</div>
+          <div style="color:#1E40AF;">HO In</div>
           <div style="font-weight:700;">₹${h.handoversIn.toLocaleString('en-IN')}</div>
         </div>
         <div style="padding:6px;background:#FEF3C7;border-radius:6px;text-align:center;">
-          <div style="color:#92400E;">Handover Out</div>
+          <div style="color:#92400E;">HO Out</div>
           <div style="font-weight:700;">₹${h.handoversOut.toLocaleString('en-IN')}</div>
         </div>
         <div style="padding:6px;background:#FEE2E2;border-radius:6px;text-align:center;">
-          <div style="color:#991B1B;">Expenses</div>
+          <div style="color:#991B1B;">Salary</div>
           <div style="font-weight:700;">₹${h.expenses.toLocaleString('en-IN')}</div>
         </div>
+        <div style="padding:6px;background:#F3E8FF;border-radius:6px;text-align:center;">
+          <div style="color:#7C3AED;">Reimburse</div>
+          <div style="font-weight:700;">₹${(h.reimbursements||0).toLocaleString('en-IN')}</div>
+        </div>
       </div>
+      ${h.balance < 0 ? `<div style="margin-top:8px;padding:8px;background:#FEE2E2;border-left:4px solid #DC2626;border-radius:6px;font-size:12px;color:#991B1B;"><strong>💰 Company Owes:</strong> ₹${Math.abs(h.balance).toLocaleString('en-IN')} (reimbursement due)</div>` : ''}
       
       ${h.balance > 0 ? `
         <div style="margin-top:8px;display:flex;gap:6px;">
