@@ -459,7 +459,6 @@ function renderShell(content, activePage = 'dashboard') {
       ['employees', '👥 Employees'],
       ['tasks', '🧰 Tasks'],
       ['attendance', '📋 Attendance'],
-      ['salary', '💰 Payroll'],
       ['employee-ledger', '📒 Emp Ledger'],
       ['advance', '💵 Advances'],
 
@@ -506,7 +505,6 @@ function renderShell(content, activePage = 'dashboard') {
 
       { section: 'TEAM' },
       ['employees', '👥 Employees'],
-      ['salary', '💰 Payroll'],
       ['employee-ledger', '📒 Emp Ledger'],
       ['advance', '💵 Advances'],
 
@@ -602,7 +600,6 @@ function renderShell(content, activePage = 'dashboard') {
             employees:  ['👥', 'Team'],
             tasks:      ['🧰', 'Tasks'],
             attendance: ['📋', 'Attend'],
-            salary:     ['💰', 'Payroll'],
             'employee-ledger': ['📒', 'Emp Ledger'],
             expenses:   ['💹', 'Expenses'],
             store:      ['📦', 'Store'],
