@@ -42,18 +42,24 @@ async function renderCBInHand(tabs) {
     sb.from('employees').select('emp_id, name').eq('status', 'Active').order('name')
   ]);
   
-  // Fetch own_money expenses (pending)
-  const { data: ownExpenses } = await sb.from('reimbursements')
-    .select('id, amount, paid_by, description, expense_date, category')
-    .eq('payment_source', 'own_money')
-    .neq('status', 'Received');
+  // Fetch handovers (in/out) for accurate balance
+  const { data: handoversAll } = await sb.from('cash_handovers').select('from_person, to_person, amount');
   
-  const expensesByPerson = {};
-  (ownExpenses || []).forEach(e => {
-    const person = e.paid_by || 'Unknown';
-    if (!expensesByPerson[person]) expensesByPerson[person] = { total: 0, list: [] };
-    expensesByPerson[person].total += Number(e.amount || 0);
-    expensesByPerson[person].list.push(e);
+  // Fetch cash expenses (salary etc)
+  const { data: cashExp } = await sb.from('cash_expenses').select('paid_by, amount');
+  
+  const expensesByPerson = {}; // Deprecated but kept for compat
+  const handoverInByPerson = {};
+  const handoverOutByPerson = {};
+  const cashExpByPerson = {};
+  
+  (handoversAll || []).forEach(h => {
+    handoverInByPerson[h.to_person] = (handoverInByPerson[h.to_person] || 0) + Number(h.amount || 0);
+    handoverOutByPerson[h.from_person] = (handoverOutByPerson[h.from_person] || 0) + Number(h.amount || 0);
+  });
+  
+  (cashExp || []).forEach(e => {
+    cashExpByPerson[e.paid_by] = (cashExpByPerson[e.paid_by] || 0) + Number(e.amount || 0);
   });
   
   // Group by received_by
@@ -66,9 +72,25 @@ async function renderCBInHand(tabs) {
     byPerson[person].payments.push(p);
   });
   
-  const totalExpenses = Object.values(expensesByPerson).reduce((s, p) => s + p.total, 0);
+  // Add handovers IN as pseudo-payments (money that came via handover)
+  Object.keys(handoverInByPerson).forEach(person => {
+    if (!byPerson[person]) byPerson[person] = { total: 0, count: 0, payments: [] };
+    byPerson[person].handoverIn = handoverInByPerson[person] || 0;
+  });
+  
+  // Store handover out + expenses in byPerson
+  Object.keys(byPerson).forEach(person => {
+    byPerson[person].handoverIn = handoverInByPerson[person] || 0;
+    byPerson[person].handoverOut = handoverOutByPerson[person] || 0;
+    byPerson[person].cashExpenses = cashExpByPerson[person] || 0;
+  });
+  
   const totalReceived = Object.values(byPerson).reduce((s, p) => s + p.total, 0);
-  const totalInHand = totalReceived - totalExpenses;
+  const totalHandIn = Object.values(byPerson).reduce((s, p) => s + (p.handoverIn||0), 0);
+  const totalHandOut = Object.values(byPerson).reduce((s, p) => s + (p.handoverOut||0), 0);
+  const totalCashExp = Object.values(byPerson).reduce((s, p) => s + (p.cashExpenses||0), 0);
+  const totalExpenses = totalCashExp; // for backward compat
+  const totalInHand = totalReceived + totalHandIn - totalHandOut - totalCashExp;
   const totalCount = Object.values(byPerson).reduce((s, p) => s + p.count, 0);
   
   renderShell(`
