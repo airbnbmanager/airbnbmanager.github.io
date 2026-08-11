@@ -54,25 +54,20 @@ window.CASHBOOK_V2 = {
         .filter(h => h.from_person === holder.name)
         .reduce((s, h) => s + (h.amount || 0), 0);
       
-      // Expenses (salary etc from cash pool)
-      const totalExpenses = (expenses || [])
-        .filter(e => e.paid_by === holder.name)
-        .reduce((s, e) => s + (e.amount || 0), 0);
-      
       // Reimbursements (own money spent for company)
       const totalReimbursements = (reimbursements || [])
         .filter(r => r.paid_by === holder.name)
         .reduce((s, r) => s + (r.amount || 0), 0);
       
       // Balance: positive = has cash, negative = company owes them
-      const balance = received + handoversIn - handoversOut - totalExpenses - totalReimbursements;
+      // NOTE: Salary excluded (tracked in Employee Ledger separately)
+      const balance = received + handoversIn - handoversOut - totalReimbursements;
       
       return {
         ...holder,
         received,
         handoversIn,
         handoversOut,
-        expenses: totalExpenses,
         reimbursements: totalReimbursements,
         balance
       };
@@ -160,22 +155,18 @@ function renderHolderCard(h, bgColor, textColor) {
         </div>
       </div>
       
-      <div style="margin-top:10px;display:grid;grid-template-columns:repeat(5,1fr);gap:6px;font-size:10px;">
+      <div style="margin-top:10px;display:grid;grid-template-columns:repeat(4,1fr);gap:6px;font-size:11px;">
         <div style="padding:6px;background:#F0FDF4;border-radius:6px;text-align:center;">
           <div style="color:#166534;">Received</div>
           <div style="font-weight:700;">₹${h.received.toLocaleString('en-IN')}</div>
         </div>
         <div style="padding:6px;background:#EFF6FF;border-radius:6px;text-align:center;">
-          <div style="color:#1E40AF;">HO In</div>
+          <div style="color:#1E40AF;">Handover In</div>
           <div style="font-weight:700;">₹${h.handoversIn.toLocaleString('en-IN')}</div>
         </div>
         <div style="padding:6px;background:#FEF3C7;border-radius:6px;text-align:center;">
-          <div style="color:#92400E;">HO Out</div>
+          <div style="color:#92400E;">Handover Out</div>
           <div style="font-weight:700;">₹${h.handoversOut.toLocaleString('en-IN')}</div>
-        </div>
-        <div style="padding:6px;background:#FEE2E2;border-radius:6px;text-align:center;">
-          <div style="color:#991B1B;">Salary</div>
-          <div style="font-weight:700;">₹${h.expenses.toLocaleString('en-IN')}</div>
         </div>
         <div style="padding:6px;background:#F3E8FF;border-radius:6px;text-align:center;">
           <div style="color:#7C3AED;">Reimburse</div>
