@@ -2843,40 +2843,43 @@ async function delBooking(bkId, guestName, roomId) {
 
 // ============ PAYMENT MODAL ============
 
-// ═══ Cash Book: Payment Received By helpers ═══
+// ═══ Cash Book: Payment Received By helpers (uses cash_holders DB) ═══
 window.onPayModeChange = async function() {
   const mode = document.getElementById('payMode')?.value;
-  if (mode === "Airbnb Payout") receivedBy = "Firoz";
-  if (!receivedBy || receivedBy.trim() === "") receivedBy = "Firoz";
-  const receivedBy = document.getElementById('payReceivedBy');
+  const receivedByEl = document.getElementById('payReceivedBy');
   const custom = document.getElementById('payReceivedByCustom');
-  if (!receivedBy) return;
+  if (!receivedByEl) return;
 
-  // Load employees ONCE (cache)
-  if (!window._empListCache) {
-    const { data: emps } = await sb.from('employees')
-      .select('emp_id, name').eq('status', 'Active').order('name');
-    window._empListCache = (emps || []).map(e => e.name);
+  // Load cash_holders from DB (cached)
+  if (!window._cashHoldersCache) {
+    const { data: holders } = await sb.from('cash_holders')
+      .select('name, type').eq('is_active', true);
+    window._cashHoldersCache = holders || [];
   }
-  const owners = ['Firoz', 'Shahenshah'];
-  const staffOnly = window._empListCache.filter(n => !owners.includes(n));
+  const holders = window._cashHoldersCache;
+  const finalHolders = holders.filter(h => h.type === 'final').map(h => h.name);
+  const managers = holders.filter(h => h.type === 'manager').map(h => h.name);
+  const receivers = holders.filter(h => h.type === 'receiver').map(h => h.name);
 
   let html = '<option value="">-- Select who received --</option>';
 
   if (mode === 'Cash') {
-    // CASH: Owners + Staff dropdown (NO typing = NO typos)
-    html += '<optgroup label="Owners">';
-    owners.forEach(o => html += `<option value="${o}">${o}</option>`);
+    // CASH: ALL holders can receive
+    html += '<optgroup label="Final (Company)">';
+    finalHolders.forEach(o => html += `<option value="${o}">${o}</option>`);
     html += '</optgroup>';
-    html += '<optgroup label="Staff (Cash Receivers)">';
-    staffOnly.forEach(s => html += `<option value="${s}">${s}</option>`);
+    html += '<optgroup label="Manager">';
+    managers.forEach(m => html += `<option value="${m}">${m}</option>`);
     html += '</optgroup>';
-    receivedBy.innerHTML = html;
+    html += '<optgroup label="Staff (Receivers)">';
+    receivers.forEach(s => html += `<option value="${s}">${s}</option>`);
+    html += '</optgroup>';
+    receivedByEl.innerHTML = html;
     if (custom) { custom.style.display = 'none'; custom.value = ''; }
   } else {
-    // UPI / Bank / Airbnb Payout: ONLY Firoz + Shahenshah
+    // UPI / Bank / Airbnb Payout: ONLY final holders (company accounts)
     html += '<optgroup label="Final Holders (Company Accounts)">';
-    owners.forEach(o => html += `<option value="${o}">${o}</option>`);
+    finalHolders.forEach(o => html += `<option value="${o}">${o}</option>`);
     html += '</optgroup>';
     receivedBy.innerHTML = html;
     if (custom) { custom.style.display = 'none'; custom.value = ''; }
