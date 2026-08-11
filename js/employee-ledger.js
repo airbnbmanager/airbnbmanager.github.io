@@ -6,12 +6,13 @@
 window.EMPLOYEE_LEDGER = {
   
   // Calculate salary earned using ATTENDANCE_LOG (attendance-based)
+  // Returns { earned, present, half, absent, workDays }
   async calculateEarned(empId, joiningDate, monthlySalary, asOnDate) {
-    const rolloutDate = '2026-08-01'; // Aug onwards auto, before = manual opening balance
+    const rolloutDate = '2026-08-01';
     const startDate = joiningDate && joiningDate > rolloutDate ? joiningDate : rolloutDate;
     const endDate = asOnDate;
     
-    if (startDate > endDate) return 0;
+    if (startDate > endDate) return { earned: 0, present: 0, half: 0, absent: 0, workDays: 0 };
     
     const { data: attendance } = await sb.from('attendance_log')
       .select('att_date, status')
@@ -19,14 +20,18 @@ window.EMPLOYEE_LEDGER = {
       .gte('att_date', startDate)
       .lte('att_date', endDate);
     
-    let workDays = 0;
+    let present = 0, half = 0, absent = 0;
     (attendance || []).forEach(a => {
-      if (a.status === 'Present') workDays += 1;
-      else if (a.status === 'Half Day') workDays += 0.5;
+      if (a.status === 'Present') present += 1;
+      else if (a.status === 'Half Day') half += 1;
+      else if (a.status === 'Absent') absent += 1;
     });
     
+    const workDays = present + (half * 0.5);
     const dailyRate = monthlySalary / 30;
-    return Math.round(dailyRate * workDays);
+    const earned = Math.round(dailyRate * workDays);
+    
+    return { earned, present, half, absent, workDays };
   },
 
   // Get full ledger for all employees
@@ -49,8 +54,9 @@ window.EMPLOYEE_LEDGER = {
     
     // Build ledger for each employee (async because of attendance fetch)
     const ledger = await Promise.all((emps || []).map(async (emp) => {
-      // Salary earned from attendance
-      const earned = await this.calculateEarned(emp.emp_id, emp.joining_date, emp.monthly_salary, today);
+      // Salary earned from attendance (returns object with stats)
+      const earnedData = await this.calculateEarned(emp.emp_id, emp.joining_date, emp.monthly_salary, today);
+      const earned = earnedData.earned;
       
       // Opening balance (if any)
       const opening = (salaries || [])
@@ -74,10 +80,11 @@ window.EMPLOYEE_LEDGER = {
       return {
         ...emp,
         earned,
+        earnedData, // { earned, present, half, absent, workDays }
         opening,
         paid,
         advanceOutstanding,
-        balance, // positive = company owes, negative = employee owes
+        balance,
         status: balance > 0 ? 'company_owes' : balance < 0 ? 'employee_owes' : 'settled'
       };
     }));
@@ -169,22 +176,44 @@ window.renderEmployeeLedger = async function() {
               </div>
             </div>
             
-            <div style="margin-top:10px;padding-top:10px;border-top:1px dashed #E5E7EB;display:grid;grid-template-columns:repeat(4,1fr);gap:8px;font-size:11px;">
-              <div>
-                <div style="color:#6B7280;">Opening</div>
-                <div style="font-weight:700;color:#111827;">₹${emp.opening.toLocaleString('en-IN')}</div>
+            <div style="margin-top:10px;padding-top:10px;border-top:1px dashed #E5E7EB;">
+              
+              <!-- Opening Balance (Manual) -->
+              <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 8px;background:#F3F4F6;border-radius:6px;margin-bottom:6px;">
+                <div>
+                  <div style="font-size:10px;color:#6B7280;">📅 Opening (31 Jul 2026)</div>
+                  <div style="font-size:14px;font-weight:700;color:#111827;">₹${emp.opening.toLocaleString('en-IN')}</div>
+                </div>
+                <button onclick="editOpeningBalance('${emp.emp_id}', '${emp.name}')" style="padding:4px 10px;background:#8B5CF6;color:#fff;border:none;border-radius:4px;font-size:11px;font-weight:600;cursor:pointer;">✏️ Edit</button>
               </div>
-              <div>
-                <div style="color:#6B7280;">Earned</div>
-                <div style="font-weight:700;color:#111827;">₹${emp.earned.toLocaleString('en-IN')}</div>
+              
+              <!-- Current Month (Auto from attendance) -->
+              <div style="padding:6px 8px;background:#EFF6FF;border-radius:6px;margin-bottom:6px;">
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                  <div>
+                    <div style="font-size:10px;color:#1E40AF;">📆 August 2026 (auto)</div>
+                    <div style="font-size:14px;font-weight:700;color:#111827;">₹${emp.earned.toLocaleString('en-IN')}</div>
+                  </div>
+                  <div style="font-size:10px;color:#6B7280;text-align:right;">
+                    ✅ ${emp.earnedData.present}P · 🕐 ${emp.earnedData.half}H · ❌ ${emp.earnedData.absent}A
+                  </div>
+                </div>
               </div>
-              <div>
-                <div style="color:#6B7280;">Paid</div>
-                <div style="font-weight:700;color:#059669;">₹${emp.paid.toLocaleString('en-IN')}</div>
-              </div>
-              <div>
-                <div style="color:#6B7280;">Advance Due</div>
-                <div style="font-weight:700;color:#DC2626;">₹${emp.advanceOutstanding.toLocaleString('en-IN')}</div>
+              
+              <!-- Total & Paid -->
+              <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:6px;">
+                <div style="padding:6px;background:#FEF3C7;border-radius:6px;text-align:center;">
+                  <div style="font-size:10px;color:#92400E;">Total Earned</div>
+                  <div style="font-size:13px;font-weight:700;color:#111827;">₹${(emp.opening + emp.earned).toLocaleString('en-IN')}</div>
+                </div>
+                <div style="padding:6px;background:#DCFCE7;border-radius:6px;text-align:center;">
+                  <div style="font-size:10px;color:#166534;">Paid</div>
+                  <div style="font-size:13px;font-weight:700;color:#059669;">₹${emp.paid.toLocaleString('en-IN')}</div>
+                </div>
+                <div style="padding:6px;background:#FEE2E2;border-radius:6px;text-align:center;">
+                  <div style="font-size:10px;color:#991B1B;">Advance Due</div>
+                  <div style="font-size:13px;font-weight:700;color:#DC2626;">₹${emp.advanceOutstanding.toLocaleString('en-IN')}</div>
+                </div>
               </div>
             </div>
             
@@ -530,6 +559,22 @@ window.showEmployeeHistory = async function(empId, empName) {
     </div>
   `;
   document.body.appendChild(modal);
+};
+
+// Quick edit opening balance (pre-fills modal with existing data)
+window.editOpeningBalance = async function(empId, empName) {
+  // Open modal
+  await showOpeningBalanceModal();
+  
+  // Wait for modal to render, then select employee
+  setTimeout(async () => {
+    const empSelect = document.getElementById('obEmp');
+    if (empSelect) {
+      empSelect.value = empId;
+      // Trigger check to auto-fill existing values
+      await checkExistingOpening();
+    }
+  }, 200);
 };
 
 console.log('✅ Employee Ledger module loaded');
