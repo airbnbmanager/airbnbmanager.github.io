@@ -5,30 +5,18 @@
 
 window.EMPLOYEE_LEDGER = {
   
-  // Calculate salary earned using ATTENDANCE_LOG (attendance-based)
-  async calculateEarned(empId, joiningDate, monthlySalary, asOnDate) {
-    const rolloutDate = '2026-07-01';
-    const startDate = joiningDate && joiningDate > rolloutDate ? joiningDate : rolloutDate;
-    const endDate = asOnDate;
+  // Calculate salary earned from joining date (or Aug 1) to today
+  calculateEarned(joiningDate, monthlySalary, asOnDate) {
+    const rolloutDate = new Date('2026-08-01');
+    const joining = new Date(joiningDate || '2026-08-01');
+    const startDate = joining > rolloutDate ? joining : rolloutDate;
+    const endDate = new Date(asOnDate);
     
     if (startDate > endDate) return 0;
     
-    // Fetch attendance from log
-    const { data: attendance } = await sb.from('attendance_log')
-      .select('att_date, status')
-      .eq('emp_id', empId)
-      .gte('att_date', startDate)
-      .lte('att_date', endDate);
-    
-    let workDays = 0;
-    (attendance || []).forEach(a => {
-      if (a.status === 'Present') workDays += 1;
-      else if (a.status === 'Half Day') workDays += 0.5;
-      // Absent = 0
-    });
-    
+    const daysWorked = Math.floor((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1;
     const dailyRate = monthlySalary / 30;
-    return Math.round(dailyRate * workDays);
+    return Math.round(dailyRate * daysWorked);
   },
 
   // Get full ledger for all employees
@@ -52,7 +40,7 @@ window.EMPLOYEE_LEDGER = {
     // Build ledger for each employee
     const ledger = (emps || []).map(emp => {
       // Salary earned (from Aug 1 or joining, whichever later)
-      const earned = await this.calculateEarned(emp.emp_id, emp.joining_date, emp.monthly_salary, today);
+      const earned = this.calculateEarned(emp.joining_date, emp.monthly_salary, today);
       
       // Opening balance (if any)
       const opening = (salaries || [])
@@ -82,7 +70,7 @@ window.EMPLOYEE_LEDGER = {
         balance, // positive = company owes, negative = employee owes
         status: balance > 0 ? 'company_owes' : balance < 0 ? 'employee_owes' : 'settled'
       };
-    }));
+    });
     
     return ledger;
   },
