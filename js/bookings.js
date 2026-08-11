@@ -2027,6 +2027,7 @@ async function saveBooking() {
         await sb.from('payment_history').insert({
           booking_id: bkId, amount: payForCurrent, payment_mode: advMode || null,
           payment_date: advDate, notes: isOnline ? 'Airbnb Payout' : 'Advance',
+          received_by: "Firoz", handover_status: "handed_over",
           created_by: SESSION.userId,
           ...approvalMeta()
         });
@@ -2072,6 +2073,7 @@ async function saveBooking() {
         await sb.from('payment_history').insert({
           booking_id: bkId, amount: remainingOverflow, payment_mode: advMode || null,
           payment_date: advDate, notes: 'Advance / extra payment',
+          received_by: "Firoz", handover_status: "handed_over",
           created_by: SESSION.userId,
           ...approvalMeta()
         });
@@ -3169,6 +3171,7 @@ async function savePaymentModal(bkId) {
       payment_mode: mode,
       payment_date: payDate,
       notes: (userNotes ? userNotes + ' | ' : '') + 'Advance / extra payment',
+      received_by: receivedBy || "Firoz", handover_status: (mode === "Cash" && !["Firoz","Shahenshah"].includes(receivedBy)) ? "in_hand" : "handed_over",
       created_by: SESSION.userId,
       ...approvalMeta()
     });
@@ -4381,6 +4384,7 @@ async function autoFixOverflowPayments() {
         payment_mode: 'Adjustment',
         payment_date: new Date().toISOString().slice(0, 10),
         notes: 'Overflow auto-adjusted → ' + a.toBk + ' (' + a.toRoom + ')',
+        received_by: "Firoz", handover_status: "handed_over",
         created_by: SESSION.userId,
         verification_status: 'verified'
       });
@@ -4392,6 +4396,7 @@ async function autoFixOverflowPayments() {
         payment_mode: 'Adjustment',
         payment_date: new Date().toISOString().slice(0, 10),
         notes: 'Overflow received from ' + a.fromBk + ' (' + a.fromRoom + ')',
+        received_by: "Firoz", handover_status: "handed_over",
         created_by: SESSION.userId,
         verification_status: 'verified'
       });

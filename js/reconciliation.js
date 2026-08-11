@@ -422,7 +422,9 @@ async function quickAddMissing(index) {
     amount: m.amount,
     payment_mode: 'Airbnb Payout',
     payment_date: m.startDateNorm || m.startDate,
-    notes: 'Airbnb Auto Sync'
+    notes: 'Airbnb Auto Sync',
+    received_by: "Firoz",
+    handover_status: "handed_over"
   });
 
   fsn.success(`Success`, `✅ Added: ${m.guest} at ${matchedRoom.nickname}`);

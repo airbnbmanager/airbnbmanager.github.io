@@ -357,6 +357,8 @@
         payment_mode: 'Airbnb Payout',
         payment_date: r.date || r.check_out,
         notes: 'Auto-imported from Airbnb CSV',
+        received_by: "Firoz",
+        handover_status: "handed_over",
         ...(typeof approvalMeta === 'function' ? approvalMeta() : {})
       });
     }
