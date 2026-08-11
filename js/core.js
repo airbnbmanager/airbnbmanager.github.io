@@ -693,6 +693,7 @@ function navigate(page) {
     reimbursements: renderReimbursements,
     'property-setup': renderPropertySetup,
     'company-advances': renderCompanyAdvances,
+    cashbook: renderCashBook,
     'employee-ledger': renderEmployeeLedger,
     'analytics': renderAnalytics,
     'whatsapp-hub': renderWhatsAppHub,
