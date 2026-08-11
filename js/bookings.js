@@ -2843,6 +2843,8 @@ async function delBooking(bkId, guestName, roomId) {
 // ═══ Cash Book: Payment Received By helpers ═══
 window.onPayModeChange = async function() {
   const mode = document.getElementById('payMode')?.value;
+  if (mode === "Airbnb Payout") receivedBy = "Firoz";
+  if (!receivedBy || receivedBy.trim() === "") receivedBy = "Firoz";
   const receivedBy = document.getElementById('payReceivedBy');
   const custom = document.getElementById('payReceivedByCustom');
   if (!receivedBy) return;
@@ -2955,6 +2957,7 @@ function showPaymentModal(bkId) {
       <div id="payErr"></div>
     </div>`;
   document.body.appendChild(modal);
+  setTimeout(() => window.onPayModeChange(), 100);
 }
 
 async function savePaymentModal(bkId) {
@@ -2972,6 +2975,8 @@ async function savePaymentModal(bkId) {
   if (amt <= 0) { document.getElementById('payErr').innerHTML = '<div class="error">Amount required</div>'; return; }
 
   const mode = document.getElementById('payMode')?.value;
+  if (mode === "Airbnb Payout") receivedBy = "Firoz";
+  if (!receivedBy || receivedBy.trim() === "") receivedBy = "Firoz";
   const payDate = document.getElementById('payDate')?.value;
   const userNotes = document.getElementById('payNotes')?.value?.trim() || null;
 
