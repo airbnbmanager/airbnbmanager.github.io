@@ -2844,26 +2844,38 @@ async function delBooking(bkId, guestName, roomId) {
 window.onPayModeChange = async function() {
   const mode = document.getElementById('payMode')?.value;
   const receivedBy = document.getElementById('payReceivedBy');
+  const custom = document.getElementById('payReceivedByCustom');
   if (!receivedBy) return;
-  
-  // ALWAYS load employees list (regardless of mode)
-  const cashGrp = document.getElementById('payCashReceivers');
-  if (cashGrp && !cashGrp.dataset.loaded) {
+
+  // Load employees ONCE (cache)
+  if (!window._empListCache) {
     const { data: emps } = await sb.from('employees')
       .select('emp_id, name').eq('status', 'Active').order('name');
-    // Exclude Firoz/Shahenshah (already in Final Holders)
-    const filtered = (emps || []).filter(e => !['Firoz', 'Shahenshah'].includes(e.name));
-    cashGrp.innerHTML = filtered.map(e => 
-      `<option value="${e.name}">${e.name}</option>`
-    ).join('');
-    cashGrp.dataset.loaded = '1';
+    window._empListCache = (emps || []).map(e => e.name);
   }
-  
-  // Auto-select for UPI/Bank/Airbnb → Firoz (default)
-  if (mode === 'UPI' || mode === 'Bank Transfer' || mode === 'Airbnb Payout') {
-    if (!receivedBy.value || receivedBy.value === '') {
-      receivedBy.value = 'Firoz';
-    }
+  const owners = ['Firoz', 'Shahenshah'];
+  const staffOnly = window._empListCache.filter(n => !owners.includes(n));
+
+  let html = '<option value="">-- Select who received --</option>';
+
+  if (mode === 'Cash') {
+    // CASH: Owners + Staff dropdown (NO typing = NO typos)
+    html += '<optgroup label="Owners">';
+    owners.forEach(o => html += `<option value="${o}">${o}</option>`);
+    html += '</optgroup>';
+    html += '<optgroup label="Staff (Cash Receivers)">';
+    staffOnly.forEach(s => html += `<option value="${s}">${s}</option>`);
+    html += '</optgroup>';
+    receivedBy.innerHTML = html;
+    if (custom) { custom.style.display = 'none'; custom.value = ''; }
+  } else {
+    // UPI / Bank / Airbnb Payout: ONLY Firoz + Shahenshah
+    html += '<optgroup label="Final Holders (Company Accounts)">';
+    owners.forEach(o => html += `<option value="${o}">${o}</option>`);
+    html += '</optgroup>';
+    receivedBy.innerHTML = html;
+    if (custom) { custom.style.display = 'none'; custom.value = ''; }
+    receivedBy.value = 'Firoz'; // auto-select
   }
 };
 
