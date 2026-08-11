@@ -28,7 +28,7 @@ window.CASHBOOK_V2 = {
     
     // 2. Handovers
     const { data: handovers } = await sb.from('cash_handovers')
-      .select('from_holder, to_holder, amount');
+      .select('from_person, to_person, amount');
     
     // 3. Expenses
     const { data: expenses } = await sb.from('cash_expenses')
@@ -42,12 +42,12 @@ window.CASHBOOK_V2 = {
       
       // Handovers IN
       const handoversIn = (handovers || [])
-        .filter(h => h.to_holder === holder.name)
+        .filter(h => h.to_person === holder.name)
         .reduce((s, h) => s + (h.amount || 0), 0);
       
       // Handovers OUT
       const handoversOut = (handovers || [])
-        .filter(h => h.from_holder === holder.name)
+        .filter(h => h.from_person === holder.name)
         .reduce((s, h) => s + (h.amount || 0), 0);
       
       // Expenses
@@ -432,8 +432,8 @@ window.saveHandover = async function() {
   if (amount <= 0) { document.getElementById('hoErr').innerHTML = '<div class="error">Enter amount</div>'; return; }
   
   const { error } = await sb.from('cash_handovers').insert({
-    from_holder: from,
-    to_holder: to,
+    from_person: from,
+    to_person: to,
     amount,
     handover_date: date,
     notes,
