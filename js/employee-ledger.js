@@ -218,16 +218,18 @@ window.showOpeningBalanceModal = async function() {
       
       <div class="form-group" style="margin-top:12px;">
         <label>Effective Date *</label>
-        <input id="obDate" type="date" value="2026-07-31" />
+        <input id="obDate" type="date" value="2026-07-31" onchange="checkExistingOpening()" />
       </div>
       
       <div class="form-group">
         <label>Employee *</label>
-        <select id="obEmp">
+        <select id="obEmp" onchange="checkExistingOpening()">
           <option value="">-- Select Employee --</option>
           ${(emps || []).map(e => `<option value="${e.emp_id}">${e.name}</option>`).join('')}
         </select>
       </div>
+      
+      <div id="obExistBanner" style="display:none;padding:10px;background:#FEF3C7;border-left:4px solid #F59E0B;border-radius:6px;margin-bottom:10px;font-size:12px;color:#92400E;"></div>
       
       <div class="form-group">
         <label>Type *</label>
@@ -249,12 +251,53 @@ window.showOpeningBalanceModal = async function() {
       
       <div id="obErr"></div>
       
-      <button onclick="saveOpeningBalance()" style="width:100%;margin-top:10px;background:#7C3AED;color:#fff;padding:10px;border:none;border-radius:6px;font-weight:600;cursor:pointer;">
+      <button id="obSaveBtn" onclick="saveOpeningBalance()" style="width:100%;margin-top:10px;background:#7C3AED;color:#fff;padding:10px;border:none;border-radius:6px;font-weight:600;cursor:pointer;">
         💾 Save Opening Balance
       </button>
     </div>
   `;
   document.body.appendChild(modal);
+};
+
+// Check if opening balance exists — auto-fill form for update
+window.checkExistingOpening = async function() {
+  const empId = document.getElementById('obEmp').value;
+  const banner = document.getElementById('obExistBanner');
+  const saveBtn = document.getElementById('obSaveBtn');
+  
+  if (!empId) {
+    banner.style.display = 'none';
+    saveBtn.innerHTML = '💾 Save Opening Balance';
+    return;
+  }
+  
+  const { data: existing } = await sb.from('salary_tracker')
+    .select('*')
+    .eq('emp_id', empId)
+    .eq('is_opening_balance', true)
+    .maybeSingle();
+  
+  if (existing) {
+    // EXISTS — auto-fill form
+    const type = existing.salary_due > 0 ? 'company_owes' : 'employee_owes';
+    const amount = existing.salary_due > 0 ? existing.salary_due : existing.salary_paid;
+    
+    document.getElementById('obType').value = type;
+    document.getElementById('obAmount').value = amount;
+    document.getElementById('obNotes').value = existing.notes || '';
+    if (existing.payment_date) document.getElementById('obDate').value = existing.payment_date;
+    
+    banner.style.display = 'block';
+    banner.innerHTML = '⚠️ <strong>Existing opening balance found:</strong> ₹' + amount + ' — Save will UPDATE existing entry';
+    saveBtn.innerHTML = '✏️ Update Opening Balance';
+    saveBtn.style.background = '#F59E0B';
+  } else {
+    banner.style.display = 'none';
+    saveBtn.innerHTML = '💾 Save Opening Balance';
+    saveBtn.style.background = '#7C3AED';
+    document.getElementById('obAmount').value = '';
+    document.getElementById('obNotes').value = '';
+  }
 };
 
 window.saveOpeningBalance = async function() {
