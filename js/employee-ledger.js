@@ -7,7 +7,7 @@ window.EMPLOYEE_LEDGER = {
   
   // Calculate salary earned using ATTENDANCE_LOG (attendance-based)
   async calculateEarned(empId, joiningDate, monthlySalary, asOnDate) {
-    const rolloutDate = '2026-08-01'; // Ledger rollout date - before this = opening balance
+    const rolloutDate = '2026-07-11'; // Attendance rollout date - full auto calculation
     const startDate = joiningDate && joiningDate > rolloutDate ? joiningDate : rolloutDate;
     const endDate = asOnDate;
     
