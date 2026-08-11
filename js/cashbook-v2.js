@@ -464,148 +464,183 @@ window.saveHandover = async function() {
 window.showDailyReport = async function(reportDate) {
   const date = reportDate || new Date().toISOString().slice(0, 10);
   
-  // ═══ CASH HOLDERS BALANCES (All Time) ═══
+  // Find all UNSETTLED cash (from anytime, still pending handover)
   const balances = await CASHBOOK_V2.calculateBalances();
-  
-  // Only non-final holders (staff/manager) have pending cash
   const holdersWithCash = balances.filter(h => h.balance > 0 && h.type !== 'final');
-  const totalUndelivered = holdersWithCash.reduce((s, h) => s + h.balance, 0);
+  const totalInHand = holdersWithCash.reduce((s, h) => s + h.balance, 0);
   
-  // ═══ TODAY'S CASH FLOW ═══
-  const { data: todayReceived } = await sb.from('payment_history')
+  // Get ALL received cash for holders that still have pending balance
+  const pendingHolderNames = holdersWithCash.map(h => h.name);
+  
+  const { data: allReceived } = await sb.from('payment_history')
     .select('id, booking_id, amount, received_by, payment_date, notes')
-    .eq('payment_mode', 'Cash').eq('payment_date', date);
+    .eq('payment_mode', 'Cash')
+    .in('received_by', pendingHolderNames.length > 0 ? pendingHolderNames : ['__none__'])
+    .lte('payment_date', date)
+    .order('payment_date', { ascending: false });
   
-  const { data: todayHandovers } = await sb.from('cash_handovers')
-    .select('*').eq('handover_date', date);
+  // Get ALL cash expenses (any date, from any holder with pending balance)
+  const { data: allExpenses } = await sb.from('cash_expenses')
+    .select('*')
+    .in('paid_by', pendingHolderNames.length > 0 ? pendingHolderNames : ['__none__'])
+    .lte('expense_date', date)
+    .order('expense_date', { ascending: false });
   
-  const tdReceived = (todayReceived || []).reduce((s, p) => s + p.amount, 0);
-  const tdHandovers = (todayHandovers || []).reduce((s, h) => s + h.amount, 0);
+  // Get handovers OUT (deducted from pending)
+  const { data: allHandoversOut } = await sb.from('cash_handovers')
+    .select('*')
+    .in('from_person', pendingHolderNames.length > 0 ? pendingHolderNames : ['__none__'])
+    .lte('handover_date', date)
+    .order('handover_date', { ascending: false });
+  
+  // Get handovers IN (added to pending)
+  const { data: allHandoversIn } = await sb.from('cash_handovers')
+    .select('*')
+    .in('to_person', pendingHolderNames.length > 0 ? pendingHolderNames : ['__none__'])
+    .lte('handover_date', date)
+    .order('handover_date', { ascending: false });
+  
+  const totalReceived = (allReceived || []).reduce((s, p) => s + p.amount, 0);
+  const totalExpenses = (allExpenses || []).reduce((s, e) => s + e.amount, 0);
+  const totalHandoversOut = (allHandoversOut || []).reduce((s, h) => s + h.amount, 0);
+  const totalHandoversIn = (allHandoversIn || []).reduce((s, h) => s + h.amount, 0);
   
   // Get guest names
-  const bookingIds = (todayReceived || []).map(p => p.booking_id).filter(Boolean);
+  const bookingIds = (allReceived || []).map(p => p.booking_id).filter(Boolean);
   let guestMap = {};
+  let roomMap = {};
   if (bookingIds.length > 0) {
     const { data: bookings } = await sb.from('guest_register')
-      .select('booking_id, guest_name').in('booking_id', bookingIds);
-    (bookings || []).forEach(b => guestMap[b.booking_id] = b.guest_name);
+      .select('booking_id, guest_name, room_id').in('booking_id', bookingIds);
+    (bookings || []).forEach(b => { 
+      guestMap[b.booking_id] = b.guest_name; 
+      roomMap[b.booking_id] = b.room_id;
+    });
+    
+    const roomIds = [...new Set(Object.values(roomMap))];
+    if (roomIds.length > 0) {
+      const { data: rooms } = await sb.from('rooms').select('room_id, nickname').in('room_id', roomIds);
+      const roomNick = {};
+      (rooms || []).forEach(r => roomNick[r.room_id] = r.nickname);
+      Object.keys(roomMap).forEach(bid => { roomMap[bid] = roomNick[roomMap[bid]] || roomMap[bid]; });
+    }
   }
+  
+  // WhatsApp format text (for copy)
+  let whatsappText = `📊 *CASH SUMMARY — ${new Date(date).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'})}*\n\n`;
+  whatsappText += `💰 *PAYMENTS RECEIVED:*\n`;
+  (allReceived || []).forEach(p => {
+    const guest = guestMap[p.booking_id] || 'Manual';
+    const room = roomMap[p.booking_id] || '';
+    whatsappText += `• ₹${p.amount.toLocaleString('en-IN')} ${guest}${room ? ' (' + room + ')' : ''} - ${p.payment_date} - ${p.received_by}\n`;
+  });
+  whatsappText += `Total: ₹${totalReceived.toLocaleString('en-IN')}\n\n`;
+  
+  if ((allExpenses || []).length > 0) {
+    whatsappText += `💸 *EXPENSES:*\n`;
+    (allExpenses || []).forEach(e => {
+      whatsappText += `• ₹${e.amount.toLocaleString('en-IN')} ${e.paid_to} (${e.category})\n`;
+    });
+    whatsappText += `Total: ₹${totalExpenses.toLocaleString('en-IN')}\n\n`;
+  }
+  
+  if ((allHandoversOut || []).length > 0) {
+    whatsappText += `📤 *HANDOVERS:*\n`;
+    (allHandoversOut || []).forEach(h => {
+      whatsappText += `• ₹${h.amount.toLocaleString('en-IN')} ${h.from_person} → ${h.to_person}\n`;
+    });
+    whatsappText += `Total: ₹${totalHandoversOut.toLocaleString('en-IN')}\n\n`;
+  }
+  
+  whatsappText += `📊 *CASH IN HAND: ₹${totalInHand.toLocaleString('en-IN')}*\n`;
+  whatsappText += `(${totalReceived} + ${totalHandoversIn} - ${totalExpenses} - ${totalHandoversOut})`;
+  
+  window._reportText = whatsappText;
   
   const modal = document.createElement('div');
   modal.className = 'modal-overlay';
   modal.onclick = e => { if (e.target === modal) modal.remove(); };
   modal.innerHTML = `
-    <div class="modal-box" style="max-width:750px;max-height:90vh;overflow-y:auto;">
+    <div class="modal-box" style="max-width:700px;max-height:90vh;overflow-y:auto;">
       <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">✕</button>
       
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:8px;">
-        <h2 style="margin:0;">📊 Cash Report</h2>
+        <h2 style="margin:0;">📊 Cash Summary</h2>
         <input type="date" value="${date}" onchange="showDailyReport(this.value);this.closest('.modal-overlay').remove();" style="padding:6px 10px;border:1px solid #E5E7EB;border-radius:6px;">
       </div>
       
-      <!-- ═══ CASH IN HAND (Pending Handover) ═══ -->
-      <div style="padding:16px;background:linear-gradient(135deg,#FEF3C7,#FDE68A);border-radius:10px;margin-bottom:14px;">
-        <div style="font-weight:800;color:#92400E;margin-bottom:6px;font-size:16px;">💰 KISKE PAAS KITNA CASH HAI</div>
-        <div style="font-size:11px;color:#78350F;margin-bottom:12px;">Pending handover — abhi tak Firoz/Shahenshah/Company tak nahi pahuncha</div>
-        
-        ${holdersWithCash.length === 0 ? `
-          <div style="padding:20px;background:#fff;border-radius:8px;text-align:center;">
-            <div style="font-size:20px;">✅</div>
-            <div style="font-weight:700;color:#059669;margin-top:4px;">Sab paisa handover ho gaya!</div>
-          </div>
-        ` : holdersWithCash.map(h => `
-          <div style="padding:12px;background:#fff;border-radius:8px;margin-bottom:8px;">
-            <div style="display:flex;justify-content:space-between;align-items:center;">
-              <div>
-                <div style="font-weight:700;color:#111827;font-size:15px;">${h.name}</div>
-                <div style="font-size:10px;color:#6B7280;text-transform:uppercase;">${h.type}</div>
-              </div>
-              <div style="font-size:22px;font-weight:800;color:#D97706;">₹${h.balance.toLocaleString('en-IN')}</div>
-            </div>
-            <div style="margin-top:8px;padding-top:8px;border-top:1px dashed #E5E7EB;display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;font-size:11px;">
-              <div style="text-align:center;padding:4px;background:#F0FDF4;border-radius:4px;">
-                <div style="color:#166534;">Received</div>
-                <div style="font-weight:700;">₹${h.received.toLocaleString('en-IN')}</div>
-              </div>
-              <div style="text-align:center;padding:4px;background:#EFF6FF;border-radius:4px;">
-                <div style="color:#1E40AF;">HO In</div>
-                <div style="font-weight:700;">₹${h.handoversIn.toLocaleString('en-IN')}</div>
-              </div>
-              <div style="text-align:center;padding:4px;background:#FEE2E2;border-radius:4px;">
-                <div style="color:#991B1B;">HO Out</div>
-                <div style="font-weight:700;">₹${h.handoversOut.toLocaleString('en-IN')}</div>
-              </div>
+      <div style="text-align:center;padding:12px;background:#F3F4F6;border-radius:8px;margin-bottom:14px;">
+        <div style="font-size:11px;color:#6B7280;">Report as on</div>
+        <div style="font-size:16px;font-weight:700;">${new Date(date).toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long',year:'numeric'})}</div>
+      </div>
+      
+      <!-- PAYMENTS RECEIVED -->
+      <div style="padding:14px;background:#F0FDF4;border-radius:10px;margin-bottom:12px;border-left:4px solid #059669;">
+        <div style="font-weight:800;color:#059669;margin-bottom:8px;font-size:15px;">💰 PAYMENTS RECEIVED</div>
+        ${(allReceived || []).length === 0 ? '<div style="color:#6B7280;font-size:12px;">No pending payments</div>' : (allReceived || []).map(p => `
+          <div style="padding:8px 10px;background:#fff;border-radius:6px;margin-bottom:4px;display:flex;justify-content:space-between;align-items:center;">
+            <div>
+              <div style="font-weight:700;font-size:13px;">₹${p.amount.toLocaleString('en-IN')} ${guestMap[p.booking_id] || 'Manual'}</div>
+              <div style="font-size:10px;color:#6B7280;">${roomMap[p.booking_id] || ''} · ${p.payment_date} · <strong>${p.received_by}</strong></div>
             </div>
           </div>
         `).join('')}
-        
-        ${holdersWithCash.length > 0 ? `
-          <div style="margin-top:10px;padding:12px;background:#78350F;color:#fff;border-radius:8px;text-align:center;">
-            <div style="font-size:11px;font-weight:600;opacity:0.9;">TOTAL PENDING HANDOVER</div>
-            <div style="font-size:24px;font-weight:800;">₹${totalUndelivered.toLocaleString('en-IN')}</div>
-          </div>
-        ` : ''}
+        <div style="margin-top:8px;padding:8px;background:#059669;color:#fff;border-radius:6px;text-align:center;font-weight:700;">
+          Total: ₹${totalReceived.toLocaleString('en-IN')}
+        </div>
       </div>
       
-      <!-- ═══ TODAY'S CASH FLOW ═══ -->
-      <div style="padding:16px;background:#EFF6FF;border-radius:10px;">
-        <div style="font-weight:800;color:#1E40AF;margin-bottom:10px;font-size:16px;">
-          📅 CASH FLOW — ${new Date(date).toLocaleDateString('en-IN',{weekday:'short',day:'numeric',month:'short'})}
-        </div>
-        
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;">
-          <div style="padding:12px;background:#fff;border-radius:8px;text-align:center;border-left:3px solid #059669;">
-            <div style="font-size:10px;color:#6B7280;font-weight:600;">CASH RECEIVED</div>
-            <div style="font-size:20px;font-weight:800;color:#059669;">₹${tdReceived.toLocaleString('en-IN')}</div>
-            <div style="font-size:10px;color:#6B7280;">${(todayReceived||[]).length} entries</div>
-          </div>
-          <div style="padding:12px;background:#fff;border-radius:8px;text-align:center;border-left:3px solid #2563EB;">
-            <div style="font-size:10px;color:#6B7280;font-weight:600;">HANDOVERS</div>
-            <div style="font-size:20px;font-weight:800;color:#2563EB;">₹${tdHandovers.toLocaleString('en-IN')}</div>
-            <div style="font-size:10px;color:#6B7280;">${(todayHandovers||[]).length} entries</div>
+      <!-- EXPENSES -->
+      ${(allExpenses || []).length > 0 ? `
+        <div style="padding:14px;background:#FEE2E2;border-radius:10px;margin-bottom:12px;border-left:4px solid #DC2626;">
+          <div style="font-weight:800;color:#DC2626;margin-bottom:8px;font-size:15px;">💸 EXPENSES FROM CASH</div>
+          ${(allExpenses || []).map(e => `
+            <div style="padding:8px 10px;background:#fff;border-radius:6px;margin-bottom:4px;display:flex;justify-content:space-between;align-items:center;">
+              <div>
+                <div style="font-weight:700;font-size:13px;">₹${e.amount.toLocaleString('en-IN')} ${e.paid_to}</div>
+                <div style="font-size:10px;color:#6B7280;">${e.category} · ${e.expense_date} · by <strong>${e.paid_by}</strong></div>
+              </div>
+            </div>
+          `).join('')}
+          <div style="margin-top:8px;padding:8px;background:#DC2626;color:#fff;border-radius:6px;text-align:center;font-weight:700;">
+            Total: ₹${totalExpenses.toLocaleString('en-IN')}
           </div>
         </div>
-        
-        ${(todayReceived||[]).length > 0 ? `
-          <div style="margin-top:12px;">
-            <div style="font-size:13px;font-weight:700;color:#059669;margin-bottom:6px;">💰 Cash Received:</div>
-            ${(todayReceived||[]).map(p => `
-              <div style="padding:8px 10px;background:#fff;border-radius:6px;margin-bottom:4px;display:flex;justify-content:space-between;align-items:center;">
-                <div>
-                  <div style="font-weight:700;font-size:13px;">${guestMap[p.booking_id] || 'Manual Entry'}</div>
-                  <div style="font-size:10px;color:#6B7280;">Received by <strong>${p.received_by}</strong>${p.notes ? ' · ' + p.notes : ''}</div>
-                </div>
-                <div style="font-weight:800;color:#059669;font-size:16px;">₹${p.amount.toLocaleString('en-IN')}</div>
-              </div>
-            `).join('')}
+      ` : ''}
+      
+      <!-- HANDOVERS -->
+      ${(allHandoversOut || []).length > 0 ? `
+        <div style="padding:14px;background:#EFF6FF;border-radius:10px;margin-bottom:12px;border-left:4px solid #2563EB;">
+          <div style="font-weight:800;color:#2563EB;margin-bottom:8px;font-size:15px;">📤 HANDOVERS</div>
+          ${(allHandoversOut || []).map(h => `
+            <div style="padding:8px 10px;background:#fff;border-radius:6px;margin-bottom:4px;display:flex;justify-content:space-between;">
+              <div style="font-weight:700;font-size:13px;">₹${h.amount.toLocaleString('en-IN')} ${h.from_person} → ${h.to_person}</div>
+              <div style="font-size:10px;color:#6B7280;">${h.handover_date}</div>
+            </div>
+          `).join('')}
+          <div style="margin-top:8px;padding:8px;background:#2563EB;color:#fff;border-radius:6px;text-align:center;font-weight:700;">
+            Total: ₹${totalHandoversOut.toLocaleString('en-IN')}
           </div>
-        ` : ''}
-        
-        ${(todayHandovers||[]).length > 0 ? `
-          <div style="margin-top:12px;">
-            <div style="font-size:13px;font-weight:700;color:#2563EB;margin-bottom:6px;">📤 Handovers:</div>
-            ${(todayHandovers||[]).map(h => `
-              <div style="padding:8px 10px;background:#fff;border-radius:6px;margin-bottom:4px;display:flex;justify-content:space-between;align-items:center;">
-                <div>
-                  <div style="font-weight:700;font-size:13px;">${h.from_person} → ${h.to_person}</div>
-                  ${h.notes ? `<div style="font-size:10px;color:#6B7280;">${h.notes}</div>` : ''}
-                </div>
-                <div style="font-weight:800;color:#2563EB;font-size:16px;">₹${h.amount.toLocaleString('en-IN')}</div>
-              </div>
-            `).join('')}
-          </div>
-        ` : ''}
-        
-        ${tdReceived === 0 && tdHandovers === 0 ? `
-          <div style="text-align:center;padding:20px;color:#6B7280;font-size:13px;">
-            No cash activity on this date
-          </div>
-        ` : ''}
+        </div>
+      ` : ''}
+      
+      <!-- FINAL SUMMARY -->
+      <div style="padding:16px;background:linear-gradient(135deg,#FEF3C7,#FDE68A);border-radius:10px;text-align:center;border:2px solid #D97706;">
+        <div style="font-size:12px;color:#78350F;font-weight:600;">CASH IN HAND</div>
+        <div style="font-size:32px;font-weight:800;color:#D97706;margin:6px 0;">₹${totalInHand.toLocaleString('en-IN')}</div>
+        <div style="font-size:11px;color:#92400E;">
+          Received ₹${totalReceived} ${totalHandoversIn > 0 ? '+ HO In ₹' + totalHandoversIn : ''} - Expenses ₹${totalExpenses} - Handovers ₹${totalHandoversOut}
+        </div>
       </div>
       
-      <button onclick="window.print()" style="width:100%;margin-top:14px;padding:10px;background:#374151;color:#fff;border:none;border-radius:6px;font-weight:600;cursor:pointer;">
-        🖨️ Print Report
-      </button>
+      <div style="margin-top:14px;display:flex;gap:6px;">
+        <button onclick="navigator.clipboard.writeText(window._reportText); alert('Copied to clipboard!');" style="flex:1;padding:10px;background:#25D366;color:#fff;border:none;border-radius:6px;font-weight:600;cursor:pointer;">
+          📋 Copy for WhatsApp
+        </button>
+        <button onclick="window.print()" style="flex:1;padding:10px;background:#374151;color:#fff;border:none;border-radius:6px;font-weight:600;cursor:pointer;">
+          🖨️ Print
+        </button>
+      </div>
     </div>
   `;
   document.body.appendChild(modal);
