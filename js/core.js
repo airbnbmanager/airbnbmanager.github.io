@@ -460,6 +460,7 @@ function renderShell(content, activePage = 'dashboard') {
       ['tasks', '🧰 Tasks'],
       ['attendance', '📋 Attendance'],
       ['employee-ledger', '📒 Emp Ledger'],
+      ['cashbook-v2', '💵 Cash Book V2'],
       ['advance', '💵 Advances'],
 
       { section: 'FINANCE' },
@@ -506,6 +507,7 @@ function renderShell(content, activePage = 'dashboard') {
       { section: 'TEAM' },
       ['employees', '👥 Employees'],
       ['employee-ledger', '📒 Emp Ledger'],
+      ['cashbook-v2', '💵 Cash Book V2'],
       ['advance', '💵 Advances'],
 
       { section: 'FINANCE' },
@@ -601,6 +603,7 @@ function renderShell(content, activePage = 'dashboard') {
             tasks:      ['🧰', 'Tasks'],
             attendance: ['📋', 'Attend'],
             'employee-ledger': ['📒', 'Emp Ledger'],
+            'cashbook-v2': ['💵', 'Cash Book V2'],
             expenses:   ['💹', 'Expenses'],
             store:      ['📦', 'Store'],
             investors:  ['🧑‍💼', 'Invest'],
@@ -694,6 +697,7 @@ function navigate(page) {
     cashbook: renderCashBook,
     'company-advances': renderCompanyAdvances,
     'employee-ledger': renderEmployeeLedger,
+    'cashbook-v2': renderCashBookV2,
     'analytics': renderAnalytics,
     'whatsapp-hub': renderWhatsAppHub,
     'settings': renderSettings,
