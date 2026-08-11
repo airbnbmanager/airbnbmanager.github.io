@@ -2054,7 +2054,7 @@ async function saveBooking() {
           const { error: distErr } = await sb.from('payment_history').insert({
             booking_id: ob.booking_id, amount: toApply, payment_mode: advMode || null,
             payment_date: advDate,
-            received_by: receivedBy || "Firoz", handover_status: "handed_over",
+            received_by: receivedBy || "Firoz", handover_status: (mode === "Cash" && !["Firoz","Shahenshah"].includes(receivedBy)) ? "in_hand" : "handed_over",
             notes: `Auto-adjusted from booking ${bkId}`,
             created_by: SESSION.userId,
             ...approvalMeta()
@@ -3144,7 +3144,7 @@ async function savePaymentModal(bkId) {
         amount: toApply,
         payment_mode: mode,
         payment_date: payDate,
-        received_by: receivedBy || "Firoz", handover_status: "handed_over",
+        received_by: receivedBy || "Firoz", handover_status: (mode === "Cash" && !["Firoz","Shahenshah"].includes(receivedBy)) ? "in_hand" : "handed_over",
         notes: (userNotes ? userNotes + ' | ' : '') + `Auto-adjusted from booking ${bkId}`,
         created_by: SESSION.userId,
         ...approvalMeta()
