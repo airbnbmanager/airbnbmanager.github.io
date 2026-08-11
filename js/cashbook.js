@@ -389,12 +389,58 @@ window.cbReport = async function() {
         <div style="font-size:32px;font-weight:800;">₹${totalPending.toLocaleString('en-IN')}</div>
       </div>
       
-      <button onclick="navigator.clipboard.writeText(window._cbReportText); alert('✅ Copied! Paste in WhatsApp');" style="width:100%;margin-top:12px;padding:12px;background:#25D366;color:#fff;border:none;border-radius:6px;font-weight:600;cursor:pointer;">
-        📋 Copy for WhatsApp
-      </button>
+      <div style="display:flex;gap:6px;margin-top:12px;">
+        <button onclick="navigator.clipboard.writeText(window._cbReportText); alert('✅ Copied! Paste in WhatsApp');" style="flex:1;padding:12px;background:#25D366;color:#fff;border:none;border-radius:6px;font-weight:600;cursor:pointer;">
+          📋 Copy for WhatsApp
+        </button>
+        <button onclick="cbPrintReport()" style="flex:1;padding:12px;background:#374151;color:#fff;border:none;border-radius:6px;font-weight:600;cursor:pointer;">
+          🖨️ Print
+        </button>
+      </div>
     </div>
   `;
   document.body.appendChild(modal);
+};
+
+// Print report as PDF-ready page
+window.cbPrintReport = function() {
+  const text = window._cbReportText || 'No report';
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <title>Cash Report - ${new Date().toLocaleDateString('en-IN')}</title>
+      <style>
+        body { font-family: 'Segoe UI', Arial, sans-serif; padding: 30px; max-width: 700px; margin: 0 auto; color: #111827; }
+        h1 { color: #D97706; border-bottom: 3px solid #FEF3C7; padding-bottom: 10px; margin-bottom: 20px; }
+        .header { text-align: center; margin-bottom: 20px; }
+        .footer { text-align: center; margin-top: 30px; padding-top: 15px; border-top: 2px solid #E5E7EB; font-size: 11px; color: #6B7280; }
+        pre { background: #F9FAFB; padding: 20px; border-radius: 8px; white-space: pre-wrap; font-family: inherit; font-size: 14px; line-height: 1.6; border-left: 4px solid #D97706; }
+        .brand { font-size: 12px; color: #6B7280; }
+        @media print {
+          body { padding: 15px; }
+          button { display: none; }
+        }
+      </style>
+    </head>
+    <body>
+      <div class="header">
+        <h1>💰 Cash Book Report</h1>
+        <div class="brand">The Unique Haven Home Stay</div>
+        <div class="brand">Generated: ${new Date().toLocaleString('en-IN')}</div>
+      </div>
+      <pre>${text.replace(/\*/g, '')}</pre>
+      <div class="footer">
+        UHHS · Lucknow · Contact: Mr. Firoz Khan 8299600709 · Mr. Shahanshah 9450055554
+      </div>
+      <script>window.onload = () => setTimeout(() => window.print(), 300);<\/script>
+    </body>
+    </html>
+  `;
+  
+  const win = window.open('', '_blank', 'width=800,height=900');
+  win.document.write(html);
+  win.document.close();
 };
 
 console.log('✅ Cash Book loaded (fresh)');
