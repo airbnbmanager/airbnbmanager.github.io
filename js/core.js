@@ -460,7 +460,7 @@ function renderShell(content, activePage = 'dashboard') {
       ['tasks', '🧰 Tasks'],
       ['attendance', '📋 Attendance'],
       ['employee-ledger', '📒 Emp Ledger'],
-      ['cashbook-v2', '💵 Cash Book V2'],
+      
       ['advance', '💵 Advances'],
 
       { section: 'FINANCE' },
@@ -507,7 +507,7 @@ function renderShell(content, activePage = 'dashboard') {
       { section: 'TEAM' },
       ['employees', '👥 Employees'],
       ['employee-ledger', '📒 Emp Ledger'],
-      ['cashbook-v2', '💵 Cash Book V2'],
+      
       ['advance', '💵 Advances'],
 
       { section: 'FINANCE' },
