@@ -269,6 +269,22 @@ window.saveOpeningBalance = async function() {
   
   // For "company_owes" → salary_due = amount, salary_paid = 0
   // For "employee_owes" → salary_paid = amount, salary_due = 0 (like advance)
+  // Check if opening balance already exists for this employee
+  const { data: existing } = await sb.from('salary_tracker')
+    .select('id')
+    .eq('emp_id', empId)
+    .eq('is_opening_balance', true);
+  
+  if (existing && existing.length > 0) {
+    if (!confirm('Opening balance already exists for this employee. Do you want to REPLACE it? (Old entry will be deleted)')) {
+      return;
+    }
+    await sb.from('salary_tracker')
+      .delete()
+      .eq('emp_id', empId)
+      .eq('is_opening_balance', true);
+  }
+  
   const record = {
     emp_id: empId,
     month: 'OPENING-' + date,
