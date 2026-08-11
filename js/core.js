@@ -460,6 +460,12 @@ function renderShell(content, activePage = 'dashboard') {
       ['tasks', '🧰 Tasks'],
       ['attendance', '📋 Attendance'],
       ['employee-ledger', '📒 Emp Ledger'],
+      ['airbnb-sync', '🔄 Airbnb Sync'],
+      ['laundry', '🧺 Laundry'],
+      ['reimbursements', '💸 Daily Expenses'],
+      ['property-setup', '🏗️ Property Setup'],
+      ['cashbook', '💰 Cash Book'],
+      ['company-advances', '💵 Company Advances'],
       
       ['advance', '💵 Advances'],
 
@@ -506,6 +512,12 @@ function renderShell(content, activePage = 'dashboard') {
       { section: 'TEAM' },
       ['employees', '👥 Employees'],
       ['employee-ledger', '📒 Emp Ledger'],
+      ['airbnb-sync', '🔄 Airbnb Sync'],
+      ['laundry', '🧺 Laundry'],
+      ['reimbursements', '💸 Daily Expenses'],
+      ['property-setup', '🏗️ Property Setup'],
+      ['cashbook', '💰 Cash Book'],
+      ['company-advances', '💵 Company Advances'],
       
       ['advance', '💵 Advances'],
 
