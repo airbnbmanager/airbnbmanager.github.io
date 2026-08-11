@@ -431,7 +431,7 @@ window.cbPrintReport = function() {
       </div>
       <pre>${text.replace(/\*/g, '')}</pre>
       <div class="footer">
-        UHHS · Lucknow · Contact: Mr. Firoz Khan 8299600709 · Mr. Shahanshah 9450055554
+        Prepared by Praveen Singh · UHHS Lucknow
       </div>
       <script>window.onload = () => setTimeout(() => window.print(), 300);<\/script>
     </body>
