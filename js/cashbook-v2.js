@@ -117,6 +117,9 @@ window.renderCashBookV2 = async function() {
         <button onclick="showAddHolderModal()" style="padding:10px 16px;background:#3B82F6;color:#fff;border:none;border-radius:6px;font-weight:600;cursor:pointer;">
           ➕ Add Holder
         </button>
+        <button onclick="showDailyReport()" style="padding:10px 16px;background:#DC2626;color:#fff;border:none;border-radius:6px;font-weight:600;cursor:pointer;">
+          📊 Daily Report
+        </button>
       </div>
     </div>
     
@@ -452,6 +455,168 @@ window.saveHandover = async function() {
   fsn.success('Done', '✅ ₹' + amount + ' handed over ' + from + ' → ' + to);
   document.querySelector('.modal-overlay').remove();
   renderCashBookV2();
+};
+
+// ═══════════════════════════════════════════════════════════
+// DAILY CASH REPORT
+// ═══════════════════════════════════════════════════════════
+
+window.showDailyReport = async function(reportDate) {
+  const date = reportDate || new Date().toISOString().slice(0, 10);
+  
+  // Fetch all data for that date
+  const { data: cashReceived } = await sb.from('payment_history')
+    .select('id, booking_id, amount, received_by, payment_date, notes')
+    .eq('payment_mode', 'Cash')
+    .eq('payment_date', date);
+  
+  const { data: handovers } = await sb.from('cash_handovers')
+    .select('*')
+    .eq('handover_date', date);
+  
+  const { data: expenses } = await sb.from('cash_expenses')
+    .select('*')
+    .eq('expense_date', date);
+  
+  const { data: reimbursements } = await sb.from('reimbursements')
+    .select('*')
+    .eq('expense_date', date);
+  
+  // Totals
+  const totalReceived = (cashReceived || []).reduce((s, p) => s + p.amount, 0);
+  const totalExpenses = (expenses || []).reduce((s, e) => s + e.amount, 0);
+  const totalReimburse = (reimbursements || []).reduce((s, r) => s + r.amount, 0);
+  const totalHandovers = (handovers || []).reduce((s, h) => s + h.amount, 0);
+  
+  // Get guest names for received payments
+  const bookingIds = (cashReceived || []).map(p => p.booking_id).filter(Boolean);
+  let guestMap = {};
+  if (bookingIds.length > 0) {
+    const { data: bookings } = await sb.from('guest_register')
+      .select('booking_id, guest_name, room_id')
+      .in('booking_id', bookingIds);
+    (bookings || []).forEach(b => guestMap[b.booking_id] = b.guest_name);
+  }
+  
+  const modal = document.createElement('div');
+  modal.className = 'modal-overlay';
+  modal.onclick = e => { if (e.target === modal) modal.remove(); };
+  modal.innerHTML = `
+    <div class="modal-box" style="max-width:800px;max-height:90vh;overflow-y:auto;">
+      <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">✕</button>
+      
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:8px;">
+        <h2 style="margin:0;">📊 Daily Cash Report</h2>
+        <input type="date" value="${date}" onchange="showDailyReport(this.value);this.closest('.modal-overlay').remove();" style="padding:6px 10px;border:1px solid #E5E7EB;border-radius:6px;">
+      </div>
+      
+      <div style="text-align:center;padding:12px;background:#F3F4F6;border-radius:8px;margin-bottom:14px;">
+        <div style="font-size:11px;color:#6B7280;font-weight:600;">REPORT DATE</div>
+        <div style="font-size:18px;font-weight:700;color:#111827;">${new Date(date).toLocaleDateString('en-IN', {weekday:'long', day:'numeric', month:'long', year:'numeric'})}</div>
+      </div>
+      
+      <!-- Summary Cards -->
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px;">
+        <div style="padding:10px;background:#DCFCE7;border-radius:8px;text-align:center;">
+          <div style="font-size:10px;color:#166534;font-weight:600;">CASH IN</div>
+          <div style="font-size:16px;font-weight:800;color:#059669;">₹${totalReceived.toLocaleString('en-IN')}</div>
+        </div>
+        <div style="padding:10px;background:#FEE2E2;border-radius:8px;text-align:center;">
+          <div style="font-size:10px;color:#991B1B;font-weight:600;">EXPENSES</div>
+          <div style="font-size:16px;font-weight:800;color:#DC2626;">₹${totalExpenses.toLocaleString('en-IN')}</div>
+        </div>
+        <div style="padding:10px;background:#F3E8FF;border-radius:8px;text-align:center;">
+          <div style="font-size:10px;color:#7C3AED;font-weight:600;">REIMBURSE</div>
+          <div style="font-size:16px;font-weight:800;color:#7C3AED;">₹${totalReimburse.toLocaleString('en-IN')}</div>
+        </div>
+        <div style="padding:10px;background:#EFF6FF;border-radius:8px;text-align:center;">
+          <div style="font-size:10px;color:#1E40AF;font-weight:600;">HANDOVERS</div>
+          <div style="font-size:16px;font-weight:800;color:#2563EB;">₹${totalHandovers.toLocaleString('en-IN')}</div>
+        </div>
+      </div>
+      
+      <!-- Cash Received -->
+      <div style="margin-bottom:14px;">
+        <div style="font-weight:700;color:#059669;margin-bottom:6px;font-size:14px;">💰 Cash Received (${(cashReceived||[]).length})</div>
+        ${(cashReceived||[]).length === 0 ? '<div style="padding:10px;background:#F9FAFB;border-radius:6px;font-size:12px;color:#6B7280;">No cash received today</div>' : (cashReceived||[]).map(p => `
+          <div style="padding:8px 10px;background:#F0FDF4;border-radius:6px;margin-bottom:4px;display:flex;justify-content:space-between;font-size:12px;">
+            <div>
+              <strong>${guestMap[p.booking_id] || 'Unknown'}</strong>
+              <span style="color:#6B7280;"> · Received by ${p.received_by}</span>
+              ${p.notes ? `<div style="font-size:10px;color:#6B7280;">${p.notes}</div>` : ''}
+            </div>
+            <div style="font-weight:700;color:#059669;">₹${p.amount.toLocaleString('en-IN')}</div>
+          </div>
+        `).join('')}
+      </div>
+      
+      <!-- Expenses (Salary etc) -->
+      <div style="margin-bottom:14px;">
+        <div style="font-weight:700;color:#DC2626;margin-bottom:6px;font-size:14px;">💸 Expenses from Cash Pool (${(expenses||[]).length})</div>
+        <div style="font-size:11px;color:#92400E;background:#FEF3C7;padding:6px 10px;border-radius:6px;margin-bottom:6px;">
+          ℹ️ Ye company ke cash se diya gaya (guest cash pool)
+        </div>
+        ${(expenses||[]).length === 0 ? '<div style="padding:10px;background:#F9FAFB;border-radius:6px;font-size:12px;color:#6B7280;">No expenses today</div>' : (expenses||[]).map(e => `
+          <div style="padding:8px 10px;background:#FEE2E2;border-radius:6px;margin-bottom:4px;display:flex;justify-content:space-between;font-size:12px;">
+            <div>
+              <strong>${e.paid_to}</strong>
+              <span style="color:#6B7280;"> · ${e.category} · Paid by ${e.paid_by}</span>
+              ${e.notes ? `<div style="font-size:10px;color:#6B7280;">${e.notes}</div>` : ''}
+            </div>
+            <div style="font-weight:700;color:#DC2626;">₹${e.amount.toLocaleString('en-IN')}</div>
+          </div>
+        `).join('')}
+      </div>
+      
+      <!-- Reimbursements -->
+      <div style="margin-bottom:14px;">
+        <div style="font-weight:700;color:#7C3AED;margin-bottom:6px;font-size:14px;">💜 Reimbursements (${(reimbursements||[]).length})</div>
+        <div style="font-size:11px;color:#5B21B6;background:#F3E8FF;padding:6px 10px;border-radius:6px;margin-bottom:6px;">
+          ℹ️ Ye paise Praveen ne apne pocket se company ke liye kharch kiye (Company owes)
+        </div>
+        ${(reimbursements||[]).length === 0 ? '<div style="padding:10px;background:#F9FAFB;border-radius:6px;font-size:12px;color:#6B7280;">No reimbursements today</div>' : (reimbursements||[]).map(r => `
+          <div style="padding:8px 10px;background:#F3E8FF;border-radius:6px;margin-bottom:4px;display:flex;justify-content:space-between;font-size:12px;">
+            <div>
+              <strong>${r.category || r.description || 'Reimbursement'}</strong>
+              <span style="color:#6B7280;"> · Paid by ${r.paid_by}</span>
+              ${r.notes ? `<div style="font-size:10px;color:#6B7280;">${r.notes}</div>` : ''}
+            </div>
+            <div style="font-weight:700;color:#7C3AED;">₹${r.amount.toLocaleString('en-IN')}</div>
+          </div>
+        `).join('')}
+      </div>
+      
+      <!-- Handovers -->
+      <div style="margin-bottom:14px;">
+        <div style="font-weight:700;color:#2563EB;margin-bottom:6px;font-size:14px;">📤 Handovers (${(handovers||[]).length})</div>
+        ${(handovers||[]).length === 0 ? '<div style="padding:10px;background:#F9FAFB;border-radius:6px;font-size:12px;color:#6B7280;">No handovers today</div>' : (handovers||[]).map(h => `
+          <div style="padding:8px 10px;background:#EFF6FF;border-radius:6px;margin-bottom:4px;display:flex;justify-content:space-between;font-size:12px;">
+            <div>
+              <strong>${h.from_person}</strong> → <strong>${h.to_person}</strong>
+              ${h.notes ? `<div style="font-size:10px;color:#6B7280;">${h.notes}</div>` : ''}
+            </div>
+            <div style="font-weight:700;color:#2563EB;">₹${h.amount.toLocaleString('en-IN')}</div>
+          </div>
+        `).join('')}
+      </div>
+      
+      <!-- Bottom Summary -->
+      <div style="padding:14px;background:linear-gradient(135deg, #FEF3C7, #FDE68A);border-radius:10px;margin-top:14px;">
+        <div style="font-weight:700;color:#92400E;margin-bottom:8px;font-size:14px;">📊 Day Summary</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px;">
+          <div>Cash IN:</div><div style="text-align:right;font-weight:700;color:#059669;">₹${totalReceived.toLocaleString('en-IN')}</div>
+          <div>Company Cash Used (Salary):</div><div style="text-align:right;font-weight:700;color:#DC2626;">₹${totalExpenses.toLocaleString('en-IN')}</div>
+          <div>Praveen Money Used (Reimburse):</div><div style="text-align:right;font-weight:700;color:#7C3AED;">₹${totalReimburse.toLocaleString('en-IN')}</div>
+          <div>Handovers:</div><div style="text-align:right;font-weight:700;color:#2563EB;">₹${totalHandovers.toLocaleString('en-IN')}</div>
+        </div>
+      </div>
+      
+      <button onclick="window.print()" style="width:100%;margin-top:12px;padding:10px;background:#374151;color:#fff;border:none;border-radius:6px;font-weight:600;cursor:pointer;">
+        🖨️ Print Report
+      </button>
+    </div>
+  `;
+  document.body.appendChild(modal);
 };
 
 console.log('✅ Cash Book V2 module loaded');
