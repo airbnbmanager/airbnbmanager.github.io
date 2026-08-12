@@ -14,6 +14,7 @@ const MAINT_STATUSES = ['Pending', 'In Progress', 'Resolved', 'Verified'];
 
 async function renderMaintenanceLog() {
   renderShell(`<div class="loading">Loading...</div>`, 'maintenance');
+  if (window._initMaintPhotoInputs) window._initMaintPhotoInputs();
   
   const monthFilter = window._maintMonth || 'All';
   const statusFilter = window._maintStatus || 'All';
@@ -122,7 +123,14 @@ async function renderMaintenanceLog() {
             <td>₹${Number(l.cost || 0).toLocaleString('en-IN')}</td>
             <td><span class="badge ${statusClass}" style="font-size:10px;">${status}</span></td>
             <td style="font-size:11px;">${l.reported_date || '-'}</td>
-            <td>${l.photo_after ? `<a href="${l.photo_after}" target="_blank"><img src="${l.photo_after}" style="width:35px;height:35px;object-fit:cover;border-radius:4px;"></a>` : (l.photo_before ? `<a href="${l.photo_before}" target="_blank"><img src="${l.photo_before}" style="width:35px;height:35px;object-fit:cover;border-radius:4px;border:2px solid #F59E0B;" title="Before photo"></a>` : '-')}</td>
+            <td>${(() => {
+              const p = l.photo_after || l.photo_before;
+              if (!p) return '-';
+              const path = p.includes('/id-proofs/') ? p.split('/id-proofs/')[1] : p;
+              const label = l.photo_after ? '📷 After' : '📷 Before';
+              const color = l.photo_after ? '#10B981' : '#F59E0B';
+              return `<button class="btn-sm" style="background:${color};color:#fff;padding:3px 8px;font-size:10px;" onclick="dlIdPhoto('${path}')">${label}</button>`;
+            })()}</td>
             <td class="table-actions">
               <button class="btn-sm" onclick="editMaintenance(${l.id})">✏️</button>
               ${window.canDelete && window.canDelete() ? `<button class="btn-sm danger" onclick="delMaintenance(${l.id})">🗑️</button>` : ''}
@@ -132,6 +140,7 @@ async function renderMaintenanceLog() {
       </tbody>
     </table></div></div>
   `, 'maintenance');
+  if (window._initMaintPhotoInputs) window._initMaintPhotoInputs();
 }
 
 async function renderAddMaintenance() {
@@ -201,7 +210,13 @@ async function renderAddMaintenance() {
       </div>
       <div class="form-group">
         <label>📸 Photo (before repair)</label>
-        <input id="mPhoto" type="file" accept="image/*,image/heic,image/heif,.heic,.heif">
+        <div style="display:flex;gap:8px;margin-bottom:8px;">
+          <button type="button" class="btn-sm" style="background:#3B82F6;color:#fff;padding:8px 14px;" onclick="document.getElementById('mPhotoCam').click()">📷 Camera</button>
+          <button type="button" class="btn-sm" style="background:#6B7280;color:#fff;padding:8px 14px;" onclick="document.getElementById('mPhotoGal').click()">🖼️ Gallery</button>
+        </div>
+        <input id="mPhotoCam" type="file" accept="image/*" capture="environment" style="display:none;">
+        <input id="mPhotoGal" type="file" accept="image/*,image/heic,image/heif,.heic,.heif" style="display:none;">
+        <div id="mPhotoPreview" style="margin-top:8px;"></div>
         <div id="mPhotoPreview" style="margin-top:8px;"></div>
       </div>
       <div class="form-group">
@@ -212,6 +227,7 @@ async function renderAddMaintenance() {
       <div id="mErr"></div>
     </div>
   `, 'maintenance');
+  if (window._initMaintPhotoInputs) window._initMaintPhotoInputs();
   
   document.getElementById('mPhoto').addEventListener('change', async (e) => {
     const file = e.target.files[0];
@@ -313,9 +329,9 @@ async function saveMaintenance() {
   if (window._maintPhotoBlob) {
     try {
       const path = `maintenance/${Date.now()}_${Math.random().toString(36).substr(2,6)}.jpg`;
-      const { error: upErr } = await sb.storage.from('id-proofs').upload(path, window._maintPhotoBlob, { contentType: 'image/jpeg' });
+      const { error: upErr } = await sb.storage.from('id-proofs').upload(path, window._maintPhotoBlob, { contentType: window._maintPhotoBlob.type || 'image/jpeg', upsert: false });
       if (upErr) throw upErr;
-      photoUrl = sb.storage.from('id-proofs').getPublicUrl(path).data.publicUrl;
+      photoUrl = path;  // Store path
     } catch (err) {
       document.getElementById('mErr').innerHTML = '<div class="error">Photo: ' + err.message + '</div>';
       return;
@@ -427,13 +443,21 @@ async function editMaintenance(id) {
       
       ${m.photo_before ? `<div class="form-group">
         <label>📸 Before Photo (existing)</label>
-        <div><img src="${m.photo_before}" style="max-width:150px;border-radius:6px;"></div>
+        <div><button type="button" class="btn-sm" style="background:#F59E0B;color:#fff;padding:6px 12px;" onclick="dlIdPhoto('${m.photo_before && m.photo_before.includes('/id-proofs/') ? m.photo_before.split('/id-proofs/')[1] : m.photo_before}')">📷 View Before Photo</button></div>
       </div>` : ''}
       
       <div class="form-group">
         <label>📸 After Photo (post-repair)</label>
-        ${m.photo_after ? `<div style="margin-bottom:8px;"><img src="${m.photo_after}" style="max-width:150px;border-radius:6px;"></div>` : ''}
-        <input id="mPhotoAfter" type="file" accept="image/*,image/heic,image/heif,.heic,.heif">
+        ${m.photo_after ? `<div style="margin-bottom:8px;padding:8px;background:#F0FDF4;border-radius:6px;">
+          <button type="button" class="btn-sm" style="background:#10B981;color:#fff;padding:6px 12px;" onclick="dlIdPhoto('${m.photo_after.includes('/id-proofs/') ? m.photo_after.split('/id-proofs/')[1] : m.photo_after}')">📷 View After Photo</button>
+        </div>` : ''}
+        <div style="display:flex;gap:8px;margin-bottom:8px;">
+          <button type="button" class="btn-sm" style="background:#3B82F6;color:#fff;padding:8px 14px;" onclick="document.getElementById('mPhotoAfterCam').click()">📷 Camera</button>
+          <button type="button" class="btn-sm" style="background:#6B7280;color:#fff;padding:8px 14px;" onclick="document.getElementById('mPhotoAfterGal').click()">🖼️ Gallery</button>
+        </div>
+        <input id="mPhotoAfterCam" type="file" accept="image/*" capture="environment" style="display:none;">
+        <input id="mPhotoAfterGal" type="file" accept="image/*,image/heic,image/heif,.heic,.heif" style="display:none;">
+        <div id="mPhotoAfterPreview" style="margin-top:8px;"></div>
         <div id="mPhotoAfterPreview" style="margin-top:8px;"></div>
       </div>
       
@@ -445,6 +469,7 @@ async function editMaintenance(id) {
       <div id="mErr"></div>
     </div>
   `, 'maintenance');
+  if (window._initMaintPhotoInputs) window._initMaintPhotoInputs();
   
   document.getElementById('mPhotoAfter').addEventListener('change', async (e) => {
     const file = e.target.files[0];
@@ -474,9 +499,16 @@ async function updateMaintenance() {
   if (window._maintAfterPhotoBlob) {
     try {
       const path = `maintenance/${Date.now()}_after.jpg`;
-      const { error: upErr } = await sb.storage.from('id-proofs').upload(path, window._maintAfterPhotoBlob, { contentType: 'image/jpeg' });
+      const { error: upErr } = await sb.storage.from('id-proofs').upload(path, window._maintAfterPhotoBlob, { contentType: window._maintAfterPhotoBlob.type || 'image/jpeg', upsert: false });
       if (upErr) throw upErr;
-      photoAfterUrl = sb.storage.from('id-proofs').getPublicUrl(path).data.publicUrl;
+      // Delete old after photo if replacing
+      if (window._maintEditPhotoAfter) {
+        try {
+          const oldP = window._maintEditPhotoAfter.includes('/id-proofs/') ? window._maintEditPhotoAfter.split('/id-proofs/')[1] : window._maintEditPhotoAfter;
+          if (oldP) await sb.storage.from('id-proofs').remove([oldP]);
+        } catch (e) {}
+      }
+      photoAfterUrl = path;  // Store path
     } catch (err) {
       document.getElementById('mErr').innerHTML = '<div class="error">Photo: ' + err.message + '</div>';
       return;
@@ -521,3 +553,55 @@ async function delMaintenance(id) {
   fsn.success('Success', '✅ Deleted');
   renderMaintenanceLog();
 }
+
+
+// ═══════════════════════════════════════════════════════════
+// 📷 MAINTENANCE PHOTO HELPERS (uses booking's openCropModal)
+// ═══════════════════════════════════════════════════════════
+
+function setupMaintPhotoInput(camId, galId, previewId, blobVar) {
+  const camEl = document.getElementById(camId);
+  const galEl = document.getElementById(galId);
+  const previewEl = document.getElementById(previewId);
+  if (!camEl || !galEl || !previewEl) return;
+
+  function handleFile(file) {
+    if (!file) return;
+    if (typeof openCropModal === 'function') {
+      openCropModal(file, (croppedFile) => {
+        window[blobVar] = croppedFile;
+        showMaintPreview(croppedFile, previewEl, blobVar);
+      });
+    } else {
+      window[blobVar] = file;
+      showMaintPreview(file, previewEl, blobVar);
+    }
+  }
+
+  camEl.addEventListener('change', e => { handleFile(e.target.files[0]); e.target.value = ''; });
+  galEl.addEventListener('change', e => { handleFile(e.target.files[0]); e.target.value = ''; });
+}
+
+function showMaintPreview(file, previewEl, blobVar) {
+  const url = URL.createObjectURL(file);
+  const sizeMB = (file.size / 1024 / 1024).toFixed(2);
+  previewEl.innerHTML = `
+    <div style="display:flex;align-items:center;gap:8px;padding:8px;background:#f0fff4;border-radius:8px;border:1.5px solid #10B981;margin:6px 0;">
+      <img src="${url}" style="width:70px;height:50px;object-fit:cover;border-radius:6px;" />
+      <div style="flex:1;">
+        <div style="font-size:12px;color:#059669;font-weight:700;">✅ Photo Ready</div>
+        <div style="font-size:10px;color:#666;">${sizeMB} MB</div>
+      </div>
+      <button type="button" class="btn-sm danger" style="padding:4px 10px;font-size:11px;"
+        onclick="window['${blobVar}']=null;this.parentElement.parentElement.innerHTML='';">🗑️</button>
+    </div>`;
+}
+
+// Auto-init on page render (delegated via setTimeout hook)
+const _origRenderMaintAdd = window.renderMaintenance;
+window._initMaintPhotoInputs = function() {
+  setTimeout(() => {
+    setupMaintPhotoInput('mPhotoCam', 'mPhotoGal', 'mPhotoPreview', '_maintPhotoBlob');
+    setupMaintPhotoInput('mPhotoAfterCam', 'mPhotoAfterGal', 'mPhotoAfterPreview', '_maintAfterPhotoBlob');
+  }, 200);
+};
