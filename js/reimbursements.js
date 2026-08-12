@@ -190,8 +190,8 @@ window.renderAddReimbursement = async function() {
     
     <div class="card">
       <div class="form-group">
-        <label>Paid By</label>
-        <input id="rPaidBy" type="text" value="${SESSION.displayName || SESSION.role || ''}" placeholder="Your name">
+        <label>💰 Paid By</label>
+        <div id="rPaidByWrap"></div>
       </div>
       <div class="form-group">
           <label>📸 Receipt Photo</label>
