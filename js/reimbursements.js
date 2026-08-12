@@ -246,6 +246,12 @@ window.renderAddReimbursement = async function() {
   
   // Preview + compress on file select (mobile safe)
   setupReimbPhotoInput('rPhotoCam', 'rPhotoGal', 'rPhotoPreview');
+  // Init Paid By dropdown
+  const defaultPaidBy = SESSION.displayName || SESSION.role || '';
+  window.renderCashHolderDropdown('rPaidBy', defaultPaidBy).then(html => {
+    const wrap = document.getElementById('rPaidByWrap');
+    if (wrap) wrap.innerHTML = html;
+  });
 };
 
 // Image compression (max 800px width, 70% quality)
@@ -309,7 +315,7 @@ window.saveReimbursement = async function() {
   const amt = parseFloat(document.getElementById('rAmt').value) || 0;
   const fromProp = document.getElementById('rFromText').value.trim() || null;
   const toProp = document.getElementById('rToText').value.trim() || null;
-  const paidBy = document.getElementById('rPaidBy').value.trim();
+  const paidBy = await window.getCashHolderValue('rPaidBy');
   const notes = document.getElementById('rNotes').value.trim();
   
   if (!date || !cat || !desc || amt <= 0) {
@@ -496,8 +502,8 @@ window.editReimbursement = async function(id) {
     
     <div class="card">
       <div class="form-group">
-        <label>Paid By</label>
-        <input id="rPaidBy" type="text" value="${rec.paid_by || ''}">
+        <label>💰 Paid By</label>
+        <div id="rPaidByWrap"></div>
       </div>
       <div class="form-group">
         <label>Status</label>
@@ -543,6 +549,11 @@ window.editReimbursement = async function(id) {
   
   // Photo change handler (mobile safe)
   setupReimbPhotoInput('rPhotoCam', 'rPhotoGal', 'rPhotoPreview');
+  // Init Paid By dropdown
+  window.renderCashHolderDropdown('rPaidBy', rec.paid_by || '').then(html => {
+    const wrap = document.getElementById('rPaidByWrap');
+    if (wrap) wrap.innerHTML = html;
+  });
 };
 
 window.removeExistingPhoto = async function() {
@@ -564,7 +575,7 @@ window.updateReimbursement = async function() {
   const amt = parseFloat(document.getElementById('rAmt').value) || 0;
   const fromProp = document.getElementById('rFromText').value.trim() || null;
   const toProp = document.getElementById('rToText').value.trim() || null;
-  const paidBy = document.getElementById('rPaidBy').value.trim();
+  const paidBy = await window.getCashHolderValue('rPaidBy');
   const status = document.getElementById('rStatus').value;
   const notes = document.getElementById('rNotes').value.trim();
   

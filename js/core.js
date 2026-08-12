@@ -2022,3 +2022,116 @@ window.forceLogoutAll = async function() {
 if (typeof autoCheckout === 'function') {
   window.autoCheckout = autoCheckout;
 }
+
+// ═══════════════════════════════════════════════════════════
+// 💰 UNIVERSAL CASH HOLDERS DROPDOWN
+// ═══════════════════════════════════════════════════════════
+
+window._cashHoldersCache = null;
+
+async function loadCashHolders(forceRefresh = false) {
+  if (!forceRefresh && window._cashHoldersCache) return window._cashHoldersCache;
+  const { data } = await sb.from('cash_holders').select('*').eq('is_active', true).order('type').order('name');
+  window._cashHoldersCache = data || [];
+  return window._cashHoldersCache;
+}
+
+/**
+ * Universal dropdown for cash holders
+ * @param {string} selectId - HTML id for select element
+ * @param {string} currentValue - Current selected name
+ * @param {object} opts - { filterType: 'final'|'manager'|'receiver'|null (all), allowCustom: true, addNew: true }
+ * @returns {string} - HTML string
+ */
+window.renderCashHolderDropdown = async function(selectId, currentValue = '', opts = {}) {
+  const holders = await loadCashHolders();
+  const { filterType = null, allowCustom = true, addNew = true } = opts;
+  const filtered = filterType ? holders.filter(h => h.type === filterType) : holders;
+
+  const grouped = { final: [], manager: [], receiver: [] };
+  filtered.forEach(h => { if (grouped[h.type]) grouped[h.type].push(h); });
+
+  const groupLabels = { final: '💼 Final Holders', manager: '👔 Manager', receiver: '👤 Staff (Receivers)' };
+  let html = `<select id="${selectId}" style="width:100%;padding:8px;border-radius:6px;border:1px solid #ddd;">
+    <option value="">-- Select --</option>`;
+
+  for (const [type, list] of Object.entries(grouped)) {
+    if (list.length === 0) continue;
+    html += `<optgroup label="${groupLabels[type]}">`;
+    list.forEach(h => {
+      const sel = h.name === currentValue ? 'selected' : '';
+      html += `<option value="${h.name}" ${sel}>${h.name}</option>`;
+    });
+    html += `</optgroup>`;
+  }
+
+  if (allowCustom) {
+    html += `<option value="__custom__" style="color:#059669;font-weight:700;">✏️ Custom name...</option>`;
+  }
+  if (addNew) {
+    html += `<option value="__addnew__" style="color:#7C3AED;font-weight:700;">➕ Add new holder...</option>`;
+  }
+  html += `</select>`;
+
+  if (allowCustom) {
+    html += `<input id="${selectId}Custom" type="text" placeholder="Type name..." style="display:${currentValue && !filtered.find(h=>h.name===currentValue) ? 'block' : 'none'};margin-top:6px;width:100%;padding:8px;" value="${currentValue && !filtered.find(h=>h.name===currentValue) ? currentValue : ''}">`;
+  }
+
+  return html;
+};
+
+/** Get final value from dropdown (handles custom + add new) */
+window.getCashHolderValue = async function(selectId) {
+  const sel = document.getElementById(selectId);
+  if (!sel) return '';
+  let val = sel.value;
+  if (val === '__custom__') {
+    return document.getElementById(selectId + 'Custom')?.value?.trim() || '';
+  }
+  if (val === '__addnew__') {
+    const name = prompt('New cash holder name:');
+    if (!name || !name.trim()) return '';
+    const type = prompt('Type? (final / manager / receiver)', 'receiver');
+    if (!['final', 'manager', 'receiver'].includes(type)) { alert('Invalid type'); return ''; }
+    const { error } = await sb.from('cash_holders').insert({ name: name.trim(), type, is_active: true, spending_limit: type === 'final' ? 999999 : (type === 'manager' ? 50000 : 0) });
+    if (error) { alert('Error: ' + error.message); return ''; }
+    fsn.success('Added', `✅ ${name} added as ${type}`);
+    await loadCashHolders(true);  // Refresh cache
+    return name.trim();
+  }
+  return val;
+};
+
+/** Auto-init: handle __custom__ + __addnew__ toggle */
+document.addEventListener('change', async (e) => {
+  if (e.target?.tagName === 'SELECT' && e.target.id) {
+    const val = e.target.value;
+    const customInput = document.getElementById(e.target.id + 'Custom');
+    if (customInput) {
+      customInput.style.display = val === '__custom__' ? 'block' : 'none';
+      if (val === '__custom__') setTimeout(() => customInput.focus(), 50);
+    }
+    if (val === '__addnew__') {
+      const name = prompt('New cash holder name:');
+      if (name && name.trim()) {
+        const type = prompt('Type? (final / manager / receiver)', 'receiver');
+        if (['final', 'manager', 'receiver'].includes(type)) {
+          const { error } = await sb.from('cash_holders').insert({ name: name.trim(), type, is_active: true, spending_limit: type === 'final' ? 999999 : (type === 'manager' ? 50000 : 0) });
+          if (!error) {
+            fsn.success('Added', `✅ ${name} added`);
+            window._cashHoldersCache = null;
+            // Re-render dropdown
+            const newHtml = await window.renderCashHolderDropdown(e.target.id, name.trim());
+            const wrapper = document.createElement('div');
+            wrapper.innerHTML = newHtml;
+            e.target.parentElement.innerHTML = wrapper.innerHTML;
+          }
+        }
+      } else {
+        e.target.value = '';
+      }
+    }
+  }
+});
+
+console.log('✅ Universal cash holder dropdown loaded');

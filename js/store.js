@@ -218,7 +218,7 @@ async function saveStockIn() {
     txn_type: 'In',
     quantity: qty,
     cost: parseFloat(document.getElementById('txCost').value) || 0,
-    received_by: document.getElementById('txBy').value || null,
+    received_by: (await window.getCashHolderValue('txBy')) || null,
     txn_date: document.getElementById('txDate').value || null,
     purpose: 'Purchase',
     notes: document.getElementById('txNotes').value.trim() || null
@@ -296,7 +296,7 @@ async function saveStockOut() {
     txn_type: 'Out',
     quantity: qty,
     cost: 0,
-    received_by: document.getElementById('txBy').value || null,
+    received_by: (await window.getCashHolderValue('txBy')) || null,
     txn_date: document.getElementById('txDate').value || null,
     purpose: document.getElementById('txPurpose').value || 'Property Use',
     notes: document.getElementById('txNotes').value.trim() || null
@@ -328,13 +328,20 @@ async function editTxn(txnId) {
               .map(p => `<option ${p === (t.purpose || '') ? 'selected' : ''}>${p}</option>`).join('')}
           </select>
         </div>
-        <div class="form-group"><label>By</label><input id="txBy" value="${t.received_by || ''}" /></div>
+        <div class="form-group"><label>💰 By</label><div id="txByWrap"></div></div>
       </div>
       <div class="form-group"><label>Date</label><input id="txDate" type="date" value="${t.txn_date || ''}" /></div>
       <div class="form-group"><label>Notes</label><input id="txNotes" value="${t.notes || ''}" /></div>
       <button onclick="updateTxn(${txnId})" style="width:100%;">💾 Update</button>
     </div>
   `, 'store');
+  // Init By dropdown
+  if (window.renderCashHolderDropdown) {
+    window.renderCashHolderDropdown('txBy', t.received_by || '').then(html => {
+      const wrap = document.getElementById('txByWrap');
+      if (wrap) wrap.innerHTML = html;
+    });
+  }
 }
 
 async function updateTxn(txnId) {
@@ -342,7 +349,7 @@ async function updateTxn(txnId) {
     quantity: parseFloat(document.getElementById('txQty').value) || 0,
     cost: parseFloat(document.getElementById('txCost').value) || 0,
     purpose: document.getElementById('txPurpose').value || null,
-    received_by: document.getElementById('txBy').value.trim() || null,
+    received_by: (await window.getCashHolderValue('txBy')) || null,
     txn_date: document.getElementById('txDate').value || null,
     notes: document.getElementById('txNotes').value.trim() || null
   }).eq('id', txnId);
