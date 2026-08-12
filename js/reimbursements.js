@@ -114,7 +114,7 @@ window.renderReimbursements = async function() {
               <td style="max-width:200px;">${r.description || '-'}</td>
               <td style="font-size:11px;">${propLabel}</td>
               <td style="text-align:right;"><strong>₹${Number(r.amount || 0).toLocaleString('en-IN')}</strong></td>
-              <td>${r.receipt_photo ? `<a href="${r.receipt_photo}" target="_blank"><img src="${r.receipt_photo}" style="width:40px;height:40px;object-fit:cover;border-radius:4px;cursor:pointer;"></a>` : '-'}</td>
+              <td>${r.receipt_photo ? `<button class="btn-sm" style="background:#3B82F6;color:#fff;padding:4px 10px;" onclick="dlIdPhoto('${r.receipt_photo.includes('/id-proofs/') ? r.receipt_photo.split('/id-proofs/')[1] : r.receipt_photo}')">📷 View</button>` : '-'}</td>
               <td><span class="badge ${statusColor}">${r.status}</span></td>
               <td class="table-actions">
                 ${r.status === 'Pending' ? `<button class="btn-sm" style="background:#F59E0B;color:#fff;" onclick="markReimbClaimed(${r.id})" title="Mark as Claimed">📤</button>` : ''}
@@ -323,11 +323,11 @@ window.saveReimbursement = async function() {
     try {
       const path = `reimbursements/${Date.now()}_${Math.random().toString(36).substr(2,6)}.jpg`;
       const { error: upErr } = await sb.storage.from('id-proofs').upload(path, window._reimbPhotoBlob, {
-        contentType: 'image/jpeg'
+        contentType: window._reimbPhotoBlob.type || 'image/jpeg',
+        upsert: false
       });
       if (upErr) throw upErr;
-      const { data: { publicUrl } } = sb.storage.from('id-proofs').getPublicUrl(path);
-      photoUrl = publicUrl;
+      photoUrl = path;  // Store path, not URL
     } catch (err) {
       document.getElementById('rErr').innerHTML = '<div class="error">Photo upload: ' + err.message + '</div>';
       return;
@@ -509,7 +509,11 @@ window.editReimbursement = async function(id) {
       </div>
       <div class="form-group">
         <label>📸 Receipt Photo</label>
-        ${rec.receipt_photo ? `<div style="margin-bottom:8px;"><img src="${rec.receipt_photo}" style="max-width:150px;border-radius:6px;"><br><button class="btn-sm danger" onclick="removeExistingPhoto()">🗑️ Remove Photo</button></div>` : ''}
+        ${rec.receipt_photo ? `<div id="existingPhotoBox" style="margin-bottom:8px;padding:8px;background:#F0F7FF;border-radius:6px;">
+            <div style="font-size:12px;color:#666;margin-bottom:6px;">📎 Existing receipt attached</div>
+            <button type="button" class="btn-sm" style="background:#3B82F6;color:#fff;padding:6px 12px;" onclick="dlIdPhoto('${rec.receipt_photo.includes('/id-proofs/') ? rec.receipt_photo.split('/id-proofs/')[1] : rec.receipt_photo}')">📷 View</button>
+            <button type="button" class="btn-sm danger" style="padding:6px 12px;" onclick="removeExistingPhoto()">🗑️ Remove Photo</button>
+          </div>` : ''}
           <div style="display:flex;gap:8px;margin-bottom:8px;">
             <button type="button" class="btn-sm" style="background:#3B82F6;color:#fff;padding:8px 14px;" onclick="document.getElementById('rPhotoCam').click()">📷 Camera</button>
             <button type="button" class="btn-sm" style="background:#6B7280;color:#fff;padding:8px 14px;" onclick="document.getElementById('rPhotoGal').click()">🖼️ Gallery</button>
@@ -573,7 +577,9 @@ window.updateReimbursement = async function() {
   if (window._reimbDeleteOldPhoto) {
     try {
       const oldUrl = window._reimbDeleteOldPhoto;
-      const oldPath = oldUrl.split('/id-proofs/')[1];
+      const oldPath = oldUrl.includes('/id-proofs/') 
+        ? oldUrl.split('/id-proofs/')[1]
+        : oldUrl;
       if (oldPath) await sb.storage.from('id-proofs').remove([oldPath]);
     } catch (e) { console.warn('Old photo delete failed:', e); }
     window._reimbDeleteOldPhoto = null;
@@ -589,15 +595,16 @@ window.updateReimbursement = async function() {
         upsert: false
       });
       if (upErr) throw upErr;
-      const { data: { publicUrl } } = sb.storage.from('id-proofs').getPublicUrl(path);
-      photoUrl = publicUrl;
-      // Also delete old if replacing
+      // Delete old photo if replacing
       if (window._reimbEditPhoto) {
         try {
-          const oldPath = window._reimbEditPhoto.split('/id-proofs/')[1];
+          const oldPath = window._reimbEditPhoto.includes('/id-proofs/') 
+            ? window._reimbEditPhoto.split('/id-proofs/')[1]
+            : window._reimbEditPhoto;
           if (oldPath) await sb.storage.from('id-proofs').remove([oldPath]);
         } catch (e) {}
       }
+      photoUrl = path;  // Store path, not URL
     } catch (err) {
       document.getElementById('rErr').innerHTML = '<div class="error">Photo upload failed: ' + err.message + '</div>';
       return;
