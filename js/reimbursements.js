@@ -47,6 +47,8 @@ window.renderReimbursements = async function() {
       <div class="sub">${(reimbs||[]).length} entries — ${currentMonth}</div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;">
         <button onclick="renderAddReimbursement()">➕ Add Expense</button>
+          <button onclick="showReimbReport()" style="background:#7C3AED;color:#fff;">📊 Report</button>
+          <button onclick="claimAllPending()" style="background:#DC2626;color:#fff;">💰 Claim All Pending</button>
         <input type="month" value="${currentMonth}" onchange="window._reimbMonth=this.value;renderReimbursements()" style="padding:6px 8px;border-radius:6px;border:1px solid var(--border);">
         <select onchange="window._reimbStatus=this.value;renderReimbursements()" style="padding:6px 8px;border-radius:6px;border:1px solid var(--border);">
           <option value="All" ${statusFilter==='All'?'selected':''}>All Status</option>
@@ -539,10 +541,15 @@ window.editReimbursement = async function(id) {
   setupReimbPhotoInput('rPhotoCam', 'rPhotoGal', 'rPhotoPreview');
 };
 
-window.removeExistingPhoto = function() {
-  if (!confirm('Remove existing photo?')) return;
+window.removeExistingPhoto = async function() {
+  if (!confirm('Remove existing photo? (Will delete from storage on Update)')) return;
+  const oldPath = window._reimbEditPhoto;
   window._reimbEditPhoto = null;
-  fsn.info('Info', 'Photo will be removed on Update');
+  window._reimbDeleteOldPhoto = oldPath;
+  // Hide preview immediately
+  const previewImg = document.querySelector('[onclick*="removeExistingPhoto"]');
+  if (previewImg) previewImg.parentElement.style.display = 'none';
+  fsn.info('Info', '🗑️ Photo will be removed when you click Update');
 };
 
 window.updateReimbursement = async function() {
@@ -562,19 +569,37 @@ window.updateReimbursement = async function() {
     return;
   }
   
+  // Delete old photo if user removed it
+  if (window._reimbDeleteOldPhoto) {
+    try {
+      const oldUrl = window._reimbDeleteOldPhoto;
+      const oldPath = oldUrl.split('/id-proofs/')[1];
+      if (oldPath) await sb.storage.from('id-proofs').remove([oldPath]);
+    } catch (e) { console.warn('Old photo delete failed:', e); }
+    window._reimbDeleteOldPhoto = null;
+  }
+
   // Upload new photo if any
   let photoUrl = window._reimbEditPhoto;
   if (window._reimbPhotoBlob) {
     try {
       const path = `reimbursements/${Date.now()}_${Math.random().toString(36).substr(2,6)}.jpg`;
       const { error: upErr } = await sb.storage.from('id-proofs').upload(path, window._reimbPhotoBlob, {
-        contentType: 'image/jpeg'
+        contentType: window._reimbPhotoBlob.type || 'image/jpeg',
+        upsert: false
       });
       if (upErr) throw upErr;
       const { data: { publicUrl } } = sb.storage.from('id-proofs').getPublicUrl(path);
       photoUrl = publicUrl;
+      // Also delete old if replacing
+      if (window._reimbEditPhoto) {
+        try {
+          const oldPath = window._reimbEditPhoto.split('/id-proofs/')[1];
+          if (oldPath) await sb.storage.from('id-proofs').remove([oldPath]);
+        } catch (e) {}
+      }
     } catch (err) {
-      document.getElementById('rErr').innerHTML = '<div class="error">Photo: ' + err.message + '</div>';
+      document.getElementById('rErr').innerHTML = '<div class="error">Photo upload failed: ' + err.message + '</div>';
       return;
     }
   }
@@ -797,41 +822,43 @@ document.addEventListener('input', e => {
 // ═══════════════════════════════════════════════════════════
 
 function setupReimbPhotoInput(camId, galId, previewId) {
-  // Support old single-input call: setupReimbPhotoInput('rPhoto', 'rPhotoPreview')
-  // and new dual-input call: setupReimbPhotoInput('rPhotoCam', 'rPhotoGal', 'rPhotoPreview')
-  let camEl, galEl, previewEl;
-  if (!previewId) {
-    // Old style: first arg = input id, second = preview id
-    previewEl = document.getElementById(galId);
-    camEl = document.getElementById(camId + 'Cam') || document.getElementById(camId);
-    galEl = document.getElementById(camId + 'Gal') || document.getElementById(camId);
-  } else {
-    camEl = document.getElementById(camId);
-    galEl = document.getElementById(galId);
-    previewEl = document.getElementById(previewId);
-  }
+  const camEl = document.getElementById(camId);
+  const galEl = document.getElementById(galId);
+  const previewEl = document.getElementById(previewId);
+  if (!camEl || !galEl || !previewEl) return;
 
-  async function handleFile(file) {
+  function handleFile(file) {
     if (!file) return;
-    previewEl.innerHTML = '<div style="color:#666;">Processing...</div>';
-    let uploadBlob = file;
-    try {
-      const compressed = await compressImage(file);
-      uploadBlob = compressed || file;
-      const url = URL.createObjectURL(uploadBlob);
-      previewEl.innerHTML = `<img src="${url}" style="max-width:150px;max-height:150px;border-radius:8px;border:1px solid #ddd;">
-        <div style="font-size:11px;color:#059669;margin-top:4px;">✅ ${Math.round(uploadBlob.size/1024)}KB</div>`;
-    } catch (err) {
-      // Compression failed — use original file (mobile fallback)
-      const url = URL.createObjectURL(file);
-      previewEl.innerHTML = `<img src="${url}" style="max-width:150px;max-height:150px;border-radius:8px;border:1px solid #ddd;">
-        <div style="font-size:11px;color:#F59E0B;margin-top:4px;">⚠️ Original: ${Math.round(file.size/1024)}KB</div>`;
+    // Use booking's openCropModal
+    if (typeof openCropModal === 'function') {
+      openCropModal(file, (croppedFile) => {
+        window._reimbPhotoBlob = croppedFile;
+        showReimbPreview(croppedFile, previewEl);
+      });
+    } else {
+      // Fallback: no crop, just use file
+      window._reimbPhotoBlob = file;
+      showReimbPreview(file, previewEl);
     }
-    window._reimbPhotoBlob = uploadBlob;
   }
 
-  if (camEl) camEl.addEventListener('change', e => handleFile(e.target.files[0]));
-  if (galEl && galEl !== camEl) galEl.addEventListener('change', e => handleFile(e.target.files[0]));
+  camEl.addEventListener('change', e => { handleFile(e.target.files[0]); e.target.value = ''; });
+  galEl.addEventListener('change', e => { handleFile(e.target.files[0]); e.target.value = ''; });
+}
+
+function showReimbPreview(file, previewEl) {
+  const url = URL.createObjectURL(file);
+  const sizeMB = (file.size / 1024 / 1024).toFixed(2);
+  previewEl.innerHTML = `
+    <div style="display:flex;align-items:center;gap:8px;padding:8px;background:#f0fff4;border-radius:8px;border:1.5px solid #10B981;margin:6px 0;">
+      <img src="${url}" style="width:70px;height:50px;object-fit:cover;border-radius:6px;" />
+      <div style="flex:1;">
+        <div style="font-size:12px;color:#059669;font-weight:700;">✅ Photo Ready</div>
+        <div style="font-size:10px;color:#666;">${sizeMB} MB · Save to upload</div>
+      </div>
+      <button type="button" class="btn-sm danger" style="padding:4px 10px;font-size:11px;"
+        onclick="window._reimbPhotoBlob=null;this.parentElement.parentElement.innerHTML='';">🗑️</button>
+    </div>`;
 }
 
 // ═══════════════════════════════════════════════════════════
