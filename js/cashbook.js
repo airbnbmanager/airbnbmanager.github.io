@@ -58,6 +58,7 @@ window.renderCashBook = async function() {
       
       <div style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap;">
         <button onclick="cbAddHolder()" style="padding:10px 16px;background:#3B82F6;color:#fff;border:none;border-radius:6px;font-weight:600;cursor:pointer;">➕ Add Holder</button>
+        <button onclick="manageCashHolders()" style="padding:10px 16px;background:#7C3AED;color:#fff;border:none;border-radius:6px;font-weight:600;cursor:pointer;">⚙️ Manage Holders</button>
         <button onclick="cbReport()" style="padding:10px 16px;background:#DC2626;color:#fff;border:none;border-radius:6px;font-weight:600;cursor:pointer;">📊 Report</button>
       </div>
     </div>

@@ -2134,4 +2134,84 @@ document.addEventListener('change', async (e) => {
   }
 });
 
+
+/** Manage cash holders — list + deactivate + delete */
+window.manageCashHolders = async function() {
+  const { data: holders } = await sb.from('cash_holders').select('*').order('type').order('name');
+  const modal = document.createElement('div');
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px;';
+  const groups = { final: [], manager: [], receiver: [] };
+  (holders || []).forEach(h => { if (groups[h.type]) groups[h.type].push(h); });
+  const labels = { final: '💼 Final Holders', manager: '👔 Manager', receiver: '👤 Receivers' };
+
+  modal.innerHTML = `
+    <div style="background:#fff;border-radius:12px;max-width:500px;width:100%;max-height:85vh;overflow-y:auto;padding:20px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+        <h2 style="margin:0;">💰 Manage Cash Holders</h2>
+        <button onclick="this.closest('[style*=fixed]').remove()" style="background:none;border:none;font-size:20px;cursor:pointer;">✕</button>
+      </div>
+      <button onclick="addNewHolderPrompt()" style="width:100%;background:#7C3AED;color:#fff;padding:10px;margin-bottom:16px;border:none;border-radius:6px;cursor:pointer;">➕ Add New Holder</button>
+      ${Object.entries(groups).map(([type, list]) => list.length === 0 ? '' : `
+        <div style="margin-bottom:16px;">
+          <div style="font-weight:700;margin-bottom:8px;color:#374151;">${labels[type]} (${list.length})</div>
+          ${list.map(h => `
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:10px;background:${h.is_active?'#F9FAFB':'#FEE2E2'};border-radius:6px;margin-bottom:6px;">
+              <div>
+                <div style="font-weight:600;">${h.name} ${!h.is_active?'<span style="color:#DC2626;font-size:11px;">(inactive)</span>':''}</div>
+                <div style="font-size:11px;color:#666;">Limit: ₹${Number(h.spending_limit||0).toLocaleString('en-IN')}</div>
+              </div>
+              <div style="display:flex;gap:6px;">
+                ${h.is_active 
+                  ? `<button onclick="toggleHolder(${h.id},false)" style="background:#F59E0B;color:#fff;padding:5px 10px;border:none;border-radius:4px;font-size:11px;cursor:pointer;">Deactivate</button>`
+                  : `<button onclick="toggleHolder(${h.id},true)" style="background:#10B981;color:#fff;padding:5px 10px;border:none;border-radius:4px;font-size:11px;cursor:pointer;">Activate</button>`}
+                <button onclick="deleteHolder(${h.id},'${h.name.replace(/'/g,"\\'")}')" style="background:#DC2626;color:#fff;padding:5px 10px;border:none;border-radius:4px;font-size:11px;cursor:pointer;">🗑️</button>
+              </div>
+            </div>`).join('')}
+        </div>`).join('')}
+    </div>`;
+  document.body.appendChild(modal);
+  modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+};
+
+window.toggleHolder = async function(id, active) {
+  await sb.from('cash_holders').update({ is_active: active }).eq('id', id);
+  window._cashHoldersCache = null;
+  fsn.success('Done', active ? '✅ Activated' : '⏸️ Deactivated');
+  document.querySelector('[style*="z-index:9999"]')?.remove();
+  window.manageCashHolders();
+};
+
+window.deleteHolder = async function(id, name) {
+  // Check if used anywhere
+  const [{ count: c1 }, { count: c2 }] = await Promise.all([
+    sb.from('payment_history').select('*', { count: 'exact', head: true }).eq('received_by', name),
+    sb.from('reimbursements').select('*', { count: 'exact', head: true }).eq('paid_by', name)
+  ]);
+  const totalUsed = (c1 || 0) + (c2 || 0);
+  const msg = totalUsed > 0
+    ? `⚠️ "${name}" ${totalUsed} records me use ho raha hai!\n\nDelete karne se data corrupt ho sakta hai.\n\nBetter: "Deactivate" karo.\n\nFir bhi delete karna hai?`
+    : `Delete "${name}"? (Not used anywhere)`;
+  if (!confirm(msg)) return;
+  const { error } = await sb.from('cash_holders').delete().eq('id', id);
+  if (error) { fsn.error('Error', error.message); return; }
+  window._cashHoldersCache = null;
+  fsn.success('Deleted', `🗑️ ${name} removed`);
+  document.querySelector('[style*="z-index:9999"]')?.remove();
+  window.manageCashHolders();
+};
+
+window.addNewHolderPrompt = async function() {
+  const name = prompt('Holder name:');
+  if (!name || !name.trim()) return;
+  const type = prompt('Type? (final / manager / receiver)', 'receiver');
+  if (!['final','manager','receiver'].includes(type)) { alert('Invalid type'); return; }
+  const limit = type === 'final' ? 999999 : (type === 'manager' ? 50000 : 0);
+  const { error } = await sb.from('cash_holders').insert({ name: name.trim(), type, is_active: true, spending_limit: limit });
+  if (error) { fsn.error('Error', error.message); return; }
+  window._cashHoldersCache = null;
+  fsn.success('Added', `✅ ${name} added`);
+  document.querySelector('[style*="z-index:9999"]')?.remove();
+  window.manageCashHolders();
+};
+
 console.log('✅ Universal cash holder dropdown loaded');
