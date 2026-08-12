@@ -192,8 +192,13 @@ window.renderAddReimbursement = async function() {
         <input id="rPaidBy" type="text" value="${SESSION.displayName || SESSION.role || ''}" placeholder="Your name">
       </div>
       <div class="form-group">
-        <label>📸 Receipt Photo (auto-compressed)</label>
-        <input id="rPhoto" type="file" accept="image/*,image/heic,image/heif,.heic,.heif">
+          <label>📸 Receipt Photo</label>
+          <div style="display:flex;gap:8px;margin-bottom:8px;">
+            <button type="button" class="btn-sm" style="background:#3B82F6;color:#fff;padding:8px 14px;" onclick="document.getElementById('rPhotoCam').click()">📷 Camera</button>
+            <button type="button" class="btn-sm" style="background:#6B7280;color:#fff;padding:8px 14px;" onclick="document.getElementById('rPhotoGal').click()">🖼️ Gallery</button>
+          </div>
+          <input id="rPhotoCam" type="file" accept="image/*" capture="environment" style="display:none;">
+          <input id="rPhotoGal" type="file" accept="image/*,image/heic,image/heif,.heic,.heif" style="display:none;">
         <div id="rPhotoPreview" style="margin-top:8px;"></div>
       </div>
       <div class="form-group">
@@ -237,22 +242,8 @@ window.renderAddReimbursement = async function() {
     </div>
   `, 'reimbursements');
   
-  // Preview + compress on file select
-  document.getElementById('rPhoto').addEventListener('change', async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    const preview = document.getElementById('rPhotoPreview');
-    preview.innerHTML = '<div style="color:#666;">Compressing...</div>';
-    try {
-      const compressed = await compressImage(file);
-      window._reimbPhotoBlob = compressed;
-      const url = URL.createObjectURL(compressed);
-      preview.innerHTML = `<img src="${url}" style="max-width:150px;max-height:150px;border-radius:8px;border:1px solid #ddd;">
-        <div style="font-size:11px;color:#666;margin-top:4px;">Size: ${Math.round(compressed.size/1024)}KB</div>`;
-    } catch (err) {
-      preview.innerHTML = '<div style="color:#DC2626;">Error: ' + err.message + '</div>';
-    }
-  });
+  // Preview + compress on file select (mobile safe)
+  setupReimbPhotoInput('rPhotoCam', 'rPhotoGal', 'rPhotoPreview');
 };
 
 // Image compression (max 800px width, 70% quality)
@@ -517,7 +508,12 @@ window.editReimbursement = async function(id) {
       <div class="form-group">
         <label>📸 Receipt Photo</label>
         ${rec.receipt_photo ? `<div style="margin-bottom:8px;"><img src="${rec.receipt_photo}" style="max-width:150px;border-radius:6px;"><br><button class="btn-sm danger" onclick="removeExistingPhoto()">🗑️ Remove Photo</button></div>` : ''}
-        <input id="rPhoto" type="file" accept="image/*,image/heic,image/heif,.heic,.heif">
+          <div style="display:flex;gap:8px;margin-bottom:8px;">
+            <button type="button" class="btn-sm" style="background:#3B82F6;color:#fff;padding:8px 14px;" onclick="document.getElementById('rPhotoCam').click()">📷 Camera</button>
+            <button type="button" class="btn-sm" style="background:#6B7280;color:#fff;padding:8px 14px;" onclick="document.getElementById('rPhotoGal').click()">🖼️ Gallery</button>
+          </div>
+          <input id="rPhotoCam" type="file" accept="image/*" capture="environment" style="display:none;">
+          <input id="rPhotoGal" type="file" accept="image/*,image/heic,image/heif,.heic,.heif" style="display:none;">
         <div id="rPhotoPreview" style="margin-top:8px;"></div>
       </div>
       <div class="form-group">
@@ -539,22 +535,8 @@ window.editReimbursement = async function(id) {
     </div>
   `, 'reimbursements');
   
-  // Photo change handler
-  document.getElementById('rPhoto').addEventListener('change', async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    const preview = document.getElementById('rPhotoPreview');
-    preview.innerHTML = '<div style="color:#666;">Compressing...</div>';
-    try {
-      const compressed = await compressImage(file);
-      window._reimbPhotoBlob = compressed;
-      const url = URL.createObjectURL(compressed);
-      preview.innerHTML = `<img src="${url}" style="max-width:150px;border-radius:8px;border:1px solid #ddd;">
-        <div style="font-size:11px;color:#666;margin-top:4px;">New: ${Math.round(compressed.size/1024)}KB</div>`;
-    } catch (err) {
-      preview.innerHTML = '<div style="color:#DC2626;">Error: ' + err.message + '</div>';
-    }
-  });
+  // Photo change handler (mobile safe)
+  setupReimbPhotoInput('rPhotoCam', 'rPhotoGal', 'rPhotoPreview');
 };
 
 window.removeExistingPhoto = function() {
@@ -809,3 +791,211 @@ document.addEventListener('input', e => {
   }
 });
 
+
+// ═══════════════════════════════════════════════════════════
+// 📷 MOBILE SAFE PHOTO UPLOAD HELPER
+// ═══════════════════════════════════════════════════════════
+
+function setupReimbPhotoInput(camId, galId, previewId) {
+  // Support old single-input call: setupReimbPhotoInput('rPhoto', 'rPhotoPreview')
+  // and new dual-input call: setupReimbPhotoInput('rPhotoCam', 'rPhotoGal', 'rPhotoPreview')
+  let camEl, galEl, previewEl;
+  if (!previewId) {
+    // Old style: first arg = input id, second = preview id
+    previewEl = document.getElementById(galId);
+    camEl = document.getElementById(camId + 'Cam') || document.getElementById(camId);
+    galEl = document.getElementById(camId + 'Gal') || document.getElementById(camId);
+  } else {
+    camEl = document.getElementById(camId);
+    galEl = document.getElementById(galId);
+    previewEl = document.getElementById(previewId);
+  }
+
+  async function handleFile(file) {
+    if (!file) return;
+    previewEl.innerHTML = '<div style="color:#666;">Processing...</div>';
+    let uploadBlob = file;
+    try {
+      const compressed = await compressImage(file);
+      uploadBlob = compressed || file;
+      const url = URL.createObjectURL(uploadBlob);
+      previewEl.innerHTML = `<img src="${url}" style="max-width:150px;max-height:150px;border-radius:8px;border:1px solid #ddd;">
+        <div style="font-size:11px;color:#059669;margin-top:4px;">✅ ${Math.round(uploadBlob.size/1024)}KB</div>`;
+    } catch (err) {
+      // Compression failed — use original file (mobile fallback)
+      const url = URL.createObjectURL(file);
+      previewEl.innerHTML = `<img src="${url}" style="max-width:150px;max-height:150px;border-radius:8px;border:1px solid #ddd;">
+        <div style="font-size:11px;color:#F59E0B;margin-top:4px;">⚠️ Original: ${Math.round(file.size/1024)}KB</div>`;
+    }
+    window._reimbPhotoBlob = uploadBlob;
+  }
+
+  if (camEl) camEl.addEventListener('change', e => handleFile(e.target.files[0]));
+  if (galEl && galEl !== camEl) galEl.addEventListener('change', e => handleFile(e.target.files[0]));
+}
+
+// ═══════════════════════════════════════════════════════════
+// 📊 DAILY EXPENSES REPORT
+// ═══════════════════════════════════════════════════════════
+
+window.showReimbReport = async function() {
+  const currentMonth = window._reimbMonth || new Date().toISOString().slice(0, 7);
+  const monthStart = currentMonth + '-01';
+  const monthEnd = new Date(parseInt(currentMonth.split('-')[0]), parseInt(currentMonth.split('-')[1]), 0).toISOString().slice(0, 10);
+
+  const { data: reimbs } = await sb.from('reimbursements')
+    .select('*')
+    .gte('expense_date', monthStart)
+    .lte('expense_date', monthEnd)
+    .order('expense_date', { ascending: true });
+
+  const all = reimbs || [];
+  const totalAmt = all.reduce((s, r) => s + Number(r.amount || 0), 0);
+  const pending = all.filter(r => r.status === 'Pending');
+  const claimed = all.filter(r => r.status === 'Claimed');
+  const received = all.filter(r => r.status === 'Received');
+
+  const totalPending = pending.reduce((s, r) => s + Number(r.amount || 0), 0);
+  const totalClaimed = claimed.reduce((s, r) => s + Number(r.amount || 0), 0);
+  const totalReceived = received.reduce((s, r) => s + Number(r.amount || 0), 0);
+
+  // Person wise
+  const byPerson = {};
+  all.forEach(r => {
+    const p = r.paid_by || 'Unknown';
+    if (!byPerson[p]) byPerson[p] = { pending: 0, claimed: 0, received: 0, total: 0 };
+    byPerson[p].total += Number(r.amount || 0);
+    if (r.status === 'Pending') byPerson[p].pending += Number(r.amount || 0);
+    else if (r.status === 'Claimed') byPerson[p].claimed += Number(r.amount || 0);
+    else if (r.status === 'Received') byPerson[p].received += Number(r.amount || 0);
+  });
+
+  // Category wise
+  const byCat = {};
+  all.forEach(r => {
+    const c = r.category || 'Other';
+    if (!byCat[c]) byCat[c] = 0;
+    byCat[c] += Number(r.amount || 0);
+  });
+
+  // WhatsApp text
+  const waText = `💸 *Daily Expenses Report — ${currentMonth}*
+━━━━━━━━━━━━━━━━━━━━
+📊 *Summary*
+Total Entries: ${all.length}
+Total Amount: ₹${totalAmt.toLocaleString('en-IN')}
+⏳ Pending: ₹${totalPending.toLocaleString('en-IN')} (${pending.length})
+📤 Claimed: ₹${totalClaimed.toLocaleString('en-IN')} (${claimed.length})
+✅ Received: ₹${totalReceived.toLocaleString('en-IN')} (${received.length})
+
+👤 *Person-wise Dues*
+${Object.entries(byPerson).map(([p, v]) => 
+  `${p}: ₹${v.total.toLocaleString('en-IN')} (Pending: ₹${v.pending.toLocaleString('en-IN')})`
+).join('\n')}
+
+📂 *Category-wise*
+${Object.entries(byCat).map(([c, a]) => 
+  `${c}: ₹${a.toLocaleString('en-IN')}`
+).join('\n')}
+━━━━━━━━━━━━━━━━━━━━
+UHHS — The Unique Haven Home Stay`;
+
+  const modal = document.createElement('div');
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px;';
+  modal.innerHTML = `
+    <div style="background:#fff;border-radius:12px;max-width:520px;width:100%;max-height:90vh;overflow-y:auto;padding:24px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+        <h2 style="margin:0;">📊 Expenses Report</h2>
+        <button onclick="this.closest('[style*=fixed]').remove()" style="background:none;border:none;font-size:20px;cursor:pointer;">✕</button>
+      </div>
+      <div style="font-size:13px;color:#666;margin-bottom:16px;">Month: ${currentMonth}</div>
+
+      <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:16px;">
+        <div style="padding:12px;background:#EFF6FF;border-radius:8px;text-align:center;">
+          <div style="font-size:20px;font-weight:800;color:#1E40AF;">₹${totalAmt.toLocaleString('en-IN')}</div>
+          <div style="font-size:11px;color:#666;">Total (${all.length})</div>
+        </div>
+        <div style="padding:12px;background:#FEF2F2;border-radius:8px;text-align:center;">
+          <div style="font-size:20px;font-weight:800;color:#DC2626;">₹${totalPending.toLocaleString('en-IN')}</div>
+          <div style="font-size:11px;color:#666;">⏳ Pending (${pending.length})</div>
+        </div>
+        <div style="padding:12px;background:#FEF3C7;border-radius:8px;text-align:center;">
+          <div style="font-size:20px;font-weight:800;color:#B45309;">₹${totalClaimed.toLocaleString('en-IN')}</div>
+          <div style="font-size:11px;color:#666;">📤 Claimed (${claimed.length})</div>
+        </div>
+        <div style="padding:12px;background:#F0FDF4;border-radius:8px;text-align:center;">
+          <div style="font-size:20px;font-weight:800;color:#059669;">₹${totalReceived.toLocaleString('en-IN')}</div>
+          <div style="font-size:11px;color:#666;">✅ Received (${received.length})</div>
+        </div>
+      </div>
+
+      <div style="margin-bottom:16px;">
+        <div style="font-weight:700;margin-bottom:8px;">👤 Person-wise Dues</div>
+        ${Object.entries(byPerson).map(([p, v]) => `
+          <div style="display:flex;justify-content:space-between;padding:8px 12px;background:#F9FAFB;border-radius:6px;margin-bottom:4px;">
+            <span><strong>${p}</strong></span>
+            <span>₹${v.total.toLocaleString('en-IN')} <span style="color:#DC2626;">(Due: ₹${(v.pending + v.claimed).toLocaleString('en-IN')})</span></span>
+          </div>`).join('')}
+      </div>
+
+      <div style="margin-bottom:20px;">
+        <div style="font-weight:700;margin-bottom:8px;">📂 Category-wise</div>
+        ${Object.entries(byCat).map(([c, a]) => `
+          <div style="display:flex;justify-content:space-between;padding:8px 12px;background:#F9FAFB;border-radius:6px;margin-bottom:4px;">
+            <span>${c}</span>
+            <strong>₹${a.toLocaleString('en-IN')}</strong>
+          </div>`).join('')}
+      </div>
+
+      <div style="display:flex;gap:10px;">
+        <button onclick="
+          navigator.clipboard.writeText(\`${waText.replace(/`/g, '\\`')}\`);
+          fsn.success('Copied!','📋 WhatsApp text copied');
+        " style="flex:1;background:#25D366;color:#fff;padding:10px;">📋 Copy WhatsApp</button>
+        <button onclick="window.print()" style="flex:1;background:#3B82F6;color:#fff;padding:10px;">🖨️ Print</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+  modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+};
+
+// ═══════════════════════════════════════════════════════════
+// 💰 CLAIM ALL PENDING
+// ═══════════════════════════════════════════════════════════
+
+window.claimAllPending = async function() {
+  const currentMonth = window._reimbMonth || new Date().toISOString().slice(0, 7);
+  const monthStart = currentMonth + '-01';
+  const monthEnd = new Date(parseInt(currentMonth.split('-')[0]), parseInt(currentMonth.split('-')[1]), 0).toISOString().slice(0, 10);
+
+  const { data: pending } = await sb.from('reimbursements')
+    .select('id, amount, paid_by, description')
+    .eq('status', 'Pending')
+    .gte('expense_date', monthStart)
+    .lte('expense_date', monthEnd);
+
+  if (!pending || pending.length === 0) {
+    fsn.info('No Pending', 'Koi pending expense nahi hai is month me');
+    return;
+  }
+
+  const total = pending.reduce((s, r) => s + Number(r.amount || 0), 0);
+
+  if (!confirm(`💰 ${pending.length} pending expenses ko "Claimed" mark karein?\nTotal: ₹${total.toLocaleString('en-IN')}`)) return;
+
+  const ids = pending.map(r => r.id);
+  const today = new Date().toISOString().slice(0, 10);
+
+  const { error } = await sb.from('reimbursements')
+    .update({ status: 'Claimed', claimed_date: today })
+    .in('id', ids);
+
+  if (error) {
+    fsn.error('Error', error.message);
+    return;
+  }
+
+  fsn.success('Done!', `✅ ${pending.length} expenses claimed — ₹${total.toLocaleString('en-IN')}`);
+  renderReimbursements();
+};
