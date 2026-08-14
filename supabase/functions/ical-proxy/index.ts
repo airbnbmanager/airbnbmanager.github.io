@@ -1,10 +1,15 @@
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-};
+// Supabase Edge Function: iCal Proxy
+// Fetches iCal data from any URL (Airbnb, Booking.com, etc.)
 
 Deno.serve(async (req) => {
+  // CORS headers
+  const corsHeaders = {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'GET, OPTIONS',
+    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  };
+
+  // Handle CORS preflight
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
   }
@@ -14,19 +19,13 @@ Deno.serve(async (req) => {
     const targetUrl = url.searchParams.get('url');
 
     if (!targetUrl) {
-      return new Response(
-        JSON.stringify({ error: 'Missing url parameter' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      return new Response(JSON.stringify({ error: 'Missing url parameter' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
-    if (!targetUrl.includes('airbnb.') || !targetUrl.includes('.ics')) {
-      return new Response(
-        JSON.stringify({ error: 'Only Airbnb iCal URLs allowed' }),
-        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
+    // Fetch the iCal
     const response = await fetch(targetUrl, {
       headers: {
         'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36',
@@ -35,25 +34,31 @@ Deno.serve(async (req) => {
     });
 
     if (!response.ok) {
-      return new Response(
-        JSON.stringify({ error: 'Airbnb returned ' + response.status }),
-        { status: response.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      return new Response(JSON.stringify({ 
+        error: 'Fetch failed', 
+        status: response.status 
+      }), {
+        status: response.status,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
-    const icalText = await response.text();
+    const text = await response.text();
 
-    return new Response(icalText, {
+    return new Response(text, {
+      status: 200,
       headers: {
         ...corsHeaders,
-        'Content-Type': 'text/calendar',
-        'Cache-Control': 'no-cache',
+        'Content-Type': 'text/calendar; charset=utf-8',
+        'Cache-Control': 'public, max-age=300', // 5 min cache
       },
     });
-  } catch (err) {
-    return new Response(
-      JSON.stringify({ error: err.message }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+  } catch (error) {
+    return new Response(JSON.stringify({ 
+      error: error.message 
+    }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
   }
 });

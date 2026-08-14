@@ -6,10 +6,10 @@ window.ICAL_SYNC = {
   // Multiple CORS proxies for fallback (if one fails, try next)
   // Own Supabase Edge Function (primary) + public proxies (fallback)
   CORS_PROXIES: [
+    'https://vxxmigdzimnrbbmkjzoa.supabase.co/functions/v1/ical-proxy?url=',
     'https://corsproxy.io/?',
     'https://api.codetabs.com/v1/proxy?quest=',
-    'https://api.allorigins.win/raw?url=',
-    'https://proxy.cors.sh/'
+    'https://api.allorigins.win/raw?url='
   ],
   
   // Fetch iCal data via CORS proxy (with fallback)
@@ -279,7 +279,7 @@ window.renderIcalSync = async function() {
             ${ICAL_AUTO_SYNC.isEnabled() ? '✅ Auto-Sync: ENABLED' : '⏸️ Auto-Sync: DISABLED'}
           </strong>
           <div style="font-size:11px;color:#666;margin-top:2px;">
-            ${ICAL_AUTO_SYNC.isEnabled() ? 'Runs every 2 hours automatically' : 'Only manual sync works'}
+            ${ICAL_AUTO_SYNC.isEnabled() ? 'Runs every 15 minutes automatically' : 'Only manual sync works'}
           </div>
         </div>
         <button onclick="toggleIcalAutoSync()" style="padding:6px 14px;background:${ICAL_AUTO_SYNC.isEnabled()?'#DC2626':'#059669'};color:#fff;border:none;border-radius:6px;font-weight:600;cursor:pointer;">
@@ -466,12 +466,12 @@ console.log('✅ iCal Sync module loaded');
 
 
 // ═══════════════════════════════════════════════════════════
-// 🔄 AUTO-SYNC SCHEDULER (every 2 hours)
+// 🔄 AUTO-SYNC SCHEDULER (every 15 minutes)
 // ═══════════════════════════════════════════════════════════
 
 window.ICAL_AUTO_SYNC = {
-  INTERVAL_MS: 2 * 60 * 60 * 1000,  // 2 hours
-  MIN_GAP_MS: 30 * 60 * 1000,        // 30 min minimum between syncs
+  INTERVAL_MS: 15 * 60 * 1000,  // 2 hours
+  MIN_GAP_MS: 10 * 60 * 1000,        // 30 min minimum between syncs
   timer: null,
   isRunning: false,
   
@@ -549,19 +549,19 @@ window.ICAL_AUTO_SYNC = {
       return;
     }
     
-    console.log('🔄 iCal auto-sync scheduler started (every 2 hours)');
+    console.log('🔄 iCal auto-sync scheduler started (every 15 minutes)');
     
     // Run once after 30 seconds (initial delay)
     setTimeout(() => this.runSilent(), 30000);
     
-    // Then every 2 hours
+    // Then every 15 minutes
     this.timer = setInterval(() => this.runSilent(), this.INTERVAL_MS);
   },
   
   enable() {
     localStorage.setItem('ical_auto_sync_enabled', 'true');
     this.start();
-    if (window.fsn?.success) fsn.success('Auto-Sync', '✅ Enabled — runs every 2 hours');
+    if (window.fsn?.success) fsn.success('Auto-Sync', '✅ Enabled — runs every 15 minutes');
     return true;
   },
   
