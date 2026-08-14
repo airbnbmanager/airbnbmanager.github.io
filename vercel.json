@@ -1,5 +1,7 @@
 {
   "rewrites": [
     { "source": "/", "destination": "/admin.html" }
-  ]
+  ],
+  "cleanUrls": false,
+  "trailingSlash": false
 }
