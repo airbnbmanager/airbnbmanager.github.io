@@ -4,7 +4,7 @@
  * Links expenses to advances, tracks reconciliation
  */
 
-const CA_OWNERS = ['Firoz', 'Shahenshah'];
+const CA_OWNERS = ['Company', 'Firoz', 'Shahenshah', 'Praveen'];
 
 window.renderCompanyAdvances = async function() {
   if (!['owner', 'admin', 'developer', 'manager'].includes(SESSION.role)) {
