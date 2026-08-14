@@ -3,7 +3,7 @@
 // ═══════════════════════════════════════════════════════════
 
 (function() {
-  const SYNC = {
+  const SYNC = window.SYNC = {
     csvData: [],
     reservations: [],
     allReservations: [],
@@ -440,7 +440,10 @@
     let newHtml = '';
     if (newBookings.length > 0) {
       newHtml = '<div class="card" style="margin-top:16px;border-left:4px solid var(--green);">' +
-        '<div class="section-title">🆕 New Bookings — Not in Your System (' + newBookings.length + ')</div>' +
+        '<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:12px;">' +
+          '<div class="section-title" style="margin:0;">🆕 New Bookings — Not in Your System (' + newBookings.length + ')</div>' +
+          '<button onclick="addAllNewBookings()" style="background:#059669;color:#fff;padding:10px 20px;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-size:14px;">➕ Add All ' + newBookings.length + ' Bookings</button>' +
+        '</div>' +
         '<div style="font-size:12px;color:var(--muted);margin-bottom:10px;">These are on Airbnb but you haven\u2019t entered them yet. Pick the property (if not auto-matched) and click Add.</div>' +
         newBookings.map(r => `
           <div style="display:flex;flex-wrap:wrap;align-items:center;gap:10px;padding:12px;border:1px solid var(--border);border-radius:12px;margin-bottom:10px;background:var(--green-bg);">
@@ -560,3 +563,136 @@
 
   window.renderAirbnbSync = renderAirbnbSync;
 })();
+
+// ═══════════════════════════════════════════════════════════
+// ➕ ADD ALL NEW BOOKINGS AT ONCE
+// ═══════════════════════════════════════════════════════════
+window.addAllNewBookings = async function() {
+  const newBookings = (window.SYNC?.reservations || []).filter(r => r.status === 'new');
+  if (newBookings.length === 0) {
+    fsn.info('No New', 'Koi new booking nahi hai');
+    return;
+  }
+  
+  if (!confirm('➕ Add all ' + newBookings.length + ' bookings to system?')) return;
+  
+  let success = 0;
+  let failed = 0;
+  const errors = [];
+  
+  const btnAll = document.querySelector('[onclick="addAllNewBookings()"]');
+  if (btnAll) { btnAll.disabled = true; }
+  
+  for (let i = 0; i < newBookings.length; i++) {
+    const r = newBookings[i];
+    if (btnAll) btnAll.textContent = '⏳ Adding ' + (i+1) + '/' + newBookings.length + '...';
+    
+    try {
+      const roomSelect = document.getElementById('room-' + r.confirmation_code);
+      const roomId = roomSelect?.value || r.matched_room_id;
+      
+      if (!roomId) {
+        failed++;
+        errors.push(r.guest_name + ': No property matched');
+        continue;
+      }
+      
+      // Check for existing "Airbnb Guest" or "Blocked" placeholder on same date+room
+      const { data: existing } = await sb.from('guest_register')
+        .select('booking_id, guest_name, total_amount')
+        .eq('room_id', roomId)
+        .eq('check_in', r.check_in)
+        .eq('check_out', r.check_out)
+        .in('booking_mode', ['Online-Airbnb', 'Offline-Blocked'])
+        .limit(1);
+      
+      const netAmount = r.amount || 0;
+      const grossAmount = r.gross || r.gross_earnings || netAmount;
+      // Calculate per-day rate
+      const checkInDate = new Date(r.check_in);
+      const checkOutDate = new Date(r.check_out);
+      const nights = Math.max(1, Math.round((checkOutDate - checkInDate) / (1000 * 60 * 60 * 24)));
+      const perDayRate = Math.round(netAmount / nights);  // Rate based on total_amount (matches Total field)
+      
+      const bookingUpdate = {
+        guest_name: r.guest_name,
+        guests: r.guests || 1,
+        total_amount: netAmount,
+        gross_amount: grossAmount,
+        per_day_rate: perDayRate,
+        airbnb_net_payout: netAmount,
+        airbnb_service_fee: r.service_fee || 0,
+        airbnb_cleaning_fee: r.cleaning_fee || 0,
+        airbnb_tax_withheld: r.tax_withheld || 0,
+        airbnb_confirmation_code: r.confirmation_code,
+        booking_mode: 'Online-Airbnb',
+        payment_status: 'Paid',
+        verification_status: 'verified',
+        notes: 'CSV import ' + new Date().toISOString().slice(0,10) + ' — filled from Airbnb data'
+      };
+      
+      let bookingId;
+      let isUpdate = false;
+      
+      if (existing && existing.length > 0) {
+        // UPDATE existing placeholder
+        bookingId = existing[0].booking_id;
+        const { error: upErr } = await sb.from('guest_register')
+          .update(bookingUpdate)
+          .eq('booking_id', bookingId);
+        if (upErr) {
+          failed++;
+          errors.push(r.guest_name + ' (update): ' + upErr.message);
+          continue;
+        }
+        isUpdate = true;
+      } else {
+        // INSERT new
+        bookingId = 'BK' + Date.now() + Math.floor(Math.random() * 1000);
+        bookingUpdate.booking_id = bookingId;
+        bookingUpdate.room_id = roomId;
+        bookingUpdate.check_in = r.check_in;
+        bookingUpdate.check_out = r.check_out;
+        const { error: insErr } = await sb.from('guest_register').insert(bookingUpdate);
+        if (insErr) {
+          failed++;
+          errors.push(r.guest_name + ': ' + (insErr.message.includes('duplicate') ? 'Already exists' : insErr.message));
+          continue;
+        }
+      }
+      
+      // Auto-create Airbnb payout entry in payment_history (if amount > 0)
+      if (netAmount > 0) {
+        const { data: existingPay } = await sb.from('payment_history')
+          .select('id').eq('booking_id', bookingId).limit(1);
+        if (!existingPay || existingPay.length === 0) {
+          await sb.from('payment_history').insert({
+            booking_id: bookingId,
+            amount: netAmount,
+            payment_date: r.check_out || r.check_in,
+            paid_at: new Date().toISOString(),
+            payment_mode: 'Airbnb Payout',
+            received_by: 'Firoz',
+            received_by_type: 'final',
+            handover_status: 'handed_over',
+            verification_status: 'verified',
+            notes: 'Auto-created from CSV import (Airbnb payout to Firoz)'
+          });
+        }
+      }
+      
+      success++;
+    } catch (err) {
+      failed++;
+      errors.push(r.guest_name + ': ' + err.message);
+    }
+  }
+  
+  let msg = '✅ ' + success + ' added';
+  if (failed > 0) msg += '\n❌ ' + failed + ' failed\n\n' + errors.slice(0, 5).join('\n');
+  alert(msg);
+  
+  if (window.renderAirbnbSync) renderAirbnbSync();
+};
+
+console.log('✅ addAllNewBookings loaded');

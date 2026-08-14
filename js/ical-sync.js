@@ -5,9 +5,7 @@
 window.ICAL_SYNC = {
   // Multiple CORS proxies for fallback (if one fails, try next)
   // Own Supabase Edge Function (primary) + public proxies (fallback)
-  EDGE_FUNCTION_URL: 'https://vxxmigdzimnrbbmkjzoa.supabase.co/functions/v1/ical-proxy?url=',
   CORS_PROXIES: [
-    'https://vxxmigdzimnrbbmkjzoa.supabase.co/functions/v1/ical-proxy?url=',
     'https://corsproxy.io/?',
     'https://api.codetabs.com/v1/proxy?quest=',
     'https://api.allorigins.win/raw?url=',
@@ -72,13 +70,9 @@ window.ICAL_SYNC = {
     }).filter(e => {
       // Must have valid dates + uid
       if (!e.checkIn || !e.checkOut || !e.uid) return false;
-      // Skip future bookings (not confirmed yet)
-      if (e.isFuture) return false;
-      // Skip old bookings (previous months)
-      if (e.isBeforeMonth) return false;
-      // CRITICAL: Skip manual blocks (not actual bookings)
-      // Airbnb sends 2 types: "Reserved" (real booking) vs "Not available" (owner blocked)
-      if (e.isBlocked) return false;
+      // Import EVERYTHING: past + future + blocked
+      // Blocked dates → Pending booking (fill details later)
+      // Future bookings → advance planning
       return true;
     });
   },
@@ -125,6 +119,12 @@ window.ICAL_SYNC = {
           .map(e => `${e.check_in}|${e.check_out}`)
       );
 
+      // Also get ALL bookings (any mode) for overlap check
+      const { data: allExisting } = await sb.from('guest_register')
+        .select('check_in, check_out, booking_mode')
+        .eq('room_id', room.room_id)
+        .eq('is_cancelled', false);
+      
       for (const event of events) {
         // Skip if UID already synced
         if (existingUids.has(event.uid)) {
@@ -136,26 +136,51 @@ window.ICAL_SYNC = {
           result.skipped++;
           continue;
         }
+        // Skip if ANY overlap exists (manual block or booking)
+        const hasOverlap = (allExisting || []).some(e => 
+          e.check_in <= event.checkOut && e.check_out >= event.checkIn
+        );
+        if (hasOverlap) {
+          result.skipped++;
+          continue;
+        }
         
-        // Create placeholder booking
+        // Create placeholder booking (blocked vs real)
         const bookingId = 'BK' + Date.now() + Math.floor(Math.random() * 1000);
+        const isBlocked = event.isBlocked;
+        const isFuture = event.isFuture;
+        
+        const guestName = isBlocked 
+          ? '🚫 Blocked (Fill Details)' 
+          : '🏨 Airbnb Guest (Fill Details)';
+        
+        const bookingNotes = isBlocked
+          ? `⚠️ BLOCKED on Airbnb (${event.summary}). Owner may have offline booking here. Fill guest details when confirmed.`
+          : `Airbnb reservation auto-synced. Original summary: ${event.summary}. Waiting for guest details (name, phone, amount).`;
+        
         const { error } = await sb.from('guest_register').insert({
           booking_id: bookingId,
           room_id: room.room_id,
-          guest_name: 'Airbnb Guest (Needs Details)',
+          guest_name: guestName,
           check_in: event.checkIn,
           check_out: event.checkOut,
           total_amount: 0,
-          booking_mode: 'Online-Airbnb',
-          payment_status: 'Pending',
+          booking_mode: isBlocked ? 'Offline-Blocked' : 'Online-Airbnb',
+          payment_status: 'Unpaid',
+          verification_status: 'pending_details',
           guests: 1,
           ical_uid: event.uid,
           synced_from_ical: true,
-          notes: `Auto-synced from Airbnb iCal on ${new Date().toISOString().slice(0,10)}. Original: ${event.summary}`
+          notes: bookingNotes
         });
         
         if (error) {
-          result.errors.push(`${event.checkIn}: ${error.message}`);
+          // Silently skip duplicate UIDs (already synced from another source)
+          if (error.message.includes('duplicate key') || error.message.includes('guest_register_ical_uid')) {
+            result.skipped++;
+          } else {
+            result.errors.push(`${event.checkIn}: ${error.message}`);
+          }
         } else {
           result.created++;
         }
@@ -167,8 +192,37 @@ window.ICAL_SYNC = {
     return result;
   },
   
+  // Auto-cleanup: Remove stale placeholder bookings
+  async cleanupStalePlaceholders() {
+    // Delete "Fill Details" bookings that:
+    // 1. Are older than 7 days (past checkouts, never got real data)
+    // 2. Have 0 amount
+    // 3. Are synced from iCal
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - 7);
+    const cutoffStr = cutoff.toISOString().slice(0, 10);
+    
+    const { data: stale, error } = await sb.from('guest_register')
+      .select('booking_id')
+      .lt('check_out', cutoffStr)
+      .eq('total_amount', 0)
+      .eq('synced_from_ical', true);
+    
+    if (stale && stale.length > 0) {
+      const ids = stale.map(s => s.booking_id);
+      await sb.from('guest_register').delete().in('booking_id', ids);
+      console.log('🧹 Cleaned', stale.length, 'stale placeholder bookings');
+      return stale.length;
+    }
+    return 0;
+  },
+  
   // Sync all properties
   async syncAll() {
+    // Auto-cleanup first
+    const cleaned = await this.cleanupStalePlaceholders();
+    if (cleaned > 0) console.log('✅ Cleanup:', cleaned, 'stale removed');
+    
     const { data: rooms } = await sb.from('rooms')
       .select('room_id, unit_no, nickname, airbnb_ical_url')
       .not('airbnb_ical_url', 'is', null);
