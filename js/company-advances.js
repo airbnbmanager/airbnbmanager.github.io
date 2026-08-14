@@ -4,7 +4,10 @@
  * Links expenses to advances, tracks reconciliation
  */
 
-const CA_OWNERS = ['Company', 'Firoz', 'Shahenshah', 'Praveen'];
+// Advance can come from:
+// 1. Company (UHHS PVT LTD - business fund)
+// 2-4. Personal (owner/manager's own money)
+const CA_OWNERS = ['🏢 Company (UHHS PVT LTD)', 'Firoz', 'Shahenshah', 'Praveen'];
 
 window.renderCompanyAdvances = async function() {
   if (!['owner', 'admin', 'developer', 'manager'].includes(SESSION.role)) {
@@ -126,7 +129,7 @@ async function renderCANew(tabs) {
     <div class="card">
       <div class="form-grid">
         <div class="form-group">
-          <label>Given By (Owner) *</label>
+          <label>Given By (Source) *</label>
           <select id="caGivenBy">
             ${CA_OWNERS.map(o => `<option value="${o}">${o}</option>`).join('')}
             <option value="__custom__">✏️ Other...</option>
