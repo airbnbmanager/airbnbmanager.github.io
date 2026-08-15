@@ -1907,6 +1907,15 @@ async function saveBooking() {
     let adv = isOnline ? tot : (parseFloat(document.getElementById('advanceAmt').value) || 0);
 
     const advMode = document.getElementById('advMode').value;
+    const receivedBy = (window.getAdvReceivedBy && window.getAdvReceivedBy()) || null;
+    const handoverStatus = (advMode === 'Cash' && !['Firoz','Shahenshah'].includes(receivedBy)) ? 'in_hand' : 'handed_over';
+    
+    // ✅ VALIDATION: If advance > 0, must select who received
+    if (adv > 0 && !receivedBy) {
+      alert('⚠️ Please select who received the advance payment!');
+      document.getElementById('advReceivedBy')?.focus();
+      return;
+    }
     const advDate = document.getElementById('advDate')?.value || new Date().toISOString().slice(0, 10);
     const idType = document.getElementById('idType').value;
     const idNo = document.getElementById('idNo').value.trim();
@@ -2044,7 +2053,7 @@ async function saveBooking() {
         await sb.from('payment_history').insert({
           booking_id: bkId, amount: payForCurrent, payment_mode: advMode || null,
           payment_date: advDate, notes: isOnline ? 'Airbnb Payout' : 'Advance',
-          received_by: "Firoz", handover_status: "handed_over",
+          received_by: receivedBy, handover_status: handoverStatus,
           created_by: SESSION.userId,
           ...approvalMeta()
         });
@@ -2072,7 +2081,7 @@ async function saveBooking() {
           const { error: distErr } = await sb.from('payment_history').insert({
             booking_id: ob.booking_id, amount: toApply, payment_mode: advMode || null,
             payment_date: advDate,
-            received_by: receivedBy || "Firoz", handover_status: (mode === "Cash" && !["Firoz","Shahenshah"].includes(receivedBy)) ? "in_hand" : "handed_over",
+            received_by: receivedBy, handover_status: handoverStatus,
             notes: `Auto-adjusted from booking ${bkId}`,
             created_by: SESSION.userId,
             ...approvalMeta()
@@ -2090,7 +2099,7 @@ async function saveBooking() {
         await sb.from('payment_history').insert({
           booking_id: bkId, amount: remainingOverflow, payment_mode: advMode || null,
           payment_date: advDate, notes: 'Advance / extra payment',
-          received_by: "Firoz", handover_status: "handed_over",
+          received_by: receivedBy, handover_status: handoverStatus,
           created_by: SESSION.userId,
           ...approvalMeta()
         });
