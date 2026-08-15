@@ -467,6 +467,7 @@ function renderShell(content, activePage = 'dashboard') {
 
       { section: 'FINANCE' },
       ['cashbook', '💰 Cash Book'],
+      ['my-ledger', '💼 My Ledger'],
       ['reimbursements', '💸 Daily Expenses'],
       ['company-advances', '💵 Company Advances'],
       ['laundry', '🧺 Laundry'],
@@ -518,6 +519,7 @@ function renderShell(content, activePage = 'dashboard') {
 
       { section: 'FINANCE' },
       ['cashbook', '💰 Cash Book'],
+      ['my-ledger', '💼 My Ledger'],
       ['reimbursements', '💸 Daily Expenses'],
       ['company-advances', '💵 Company Advances'],
       ['laundry', '🧺 Laundry'],
@@ -705,6 +707,7 @@ function navigate(page) {
     'property-setup': renderPropertySetup,
     'company-advances': renderCompanyAdvances,
     cashbook: renderCashBook,
+    'my-ledger': renderMyLedger,
     'employee-ledger': renderEmployeeLedger,
     'analytics': renderAnalytics,
     'whatsapp-hub': renderWhatsAppHub,
