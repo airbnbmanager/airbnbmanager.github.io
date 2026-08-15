@@ -182,7 +182,38 @@ async function renderAddMaintenance() {
       <div class="form-grid">
         <div class="form-group">
           <label>Cost ₹</label>
-          <input id="mCost" type="number" value="0">
+          <input id="mCost" type="number" value="0" oninput="onMaintCostChange()">
+        </div>
+      </div>
+      
+      <!-- 💰 Payment Info (shown only if cost > 0) -->
+      <div id="maintPaymentSection" style="display:none;padding:12px;background:#FFF9E6;border:1px solid #FCD34D;border-radius:8px;margin:8px 0;">
+        <div style="font-weight:700;font-size:13px;margin-bottom:8px;color:#92400E;">💰 Payment Info</div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Payment Mode</label>
+            <select id="mPaymentMode" onchange="onMaintPayModeChange()">
+              <option value="">-- Select --</option>
+              <option value="Cash">Cash</option>
+              <option value="UPI">UPI</option>
+              <option value="Bank">Bank</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label id="mPaidByLabel">💵 Paid By *</label>
+            <select id="mPaidBy">
+              <option value="">-- Select --</option>
+            </select>
+            <input id="mPaidByCustom" type="text" placeholder="Custom name..." style="display:none;margin-top:6px;" />
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Payment Date</label>
+          <input id="mPaymentDate" type="date" value="${new Date().toISOString().slice(0,10)}">
+        </div>
+      </div>
+      <div class="form-group" style="display:none;">
+        <div>
         </div>
         <div class="form-group">
           <label>Date</label>
@@ -338,18 +369,32 @@ async function saveMaintenance() {
     }
   }
   
+  const cost = parseFloat(document.getElementById('mCost').value) || 0;
+  const paidBy = getMaintPaidBy();
+  const payMode = document.getElementById('mPaymentMode')?.value || null;
+  const payDate = document.getElementById('mPaymentDate')?.value || null;
+  
+  // Validation: if cost > 0, payment info required
+  if (cost > 0 && (!paidBy || !payMode)) {
+    document.getElementById('mErr').innerHTML = '<div class="error">⚠️ Payment Mode aur Paid By required hai (cost > 0)</div>';
+    return;
+  }
+  
   const { error } = await sb.from('maintenance_log').insert({
     room_id: document.getElementById('mRoom').value || null,
     issue_type: getMaintType(),
     priority: document.getElementById('mPriority').value,
     description: desc,
-    cost: parseFloat(document.getElementById('mCost').value) || 0,
+    cost: cost,
     reported_date: document.getElementById('mDate').value,
     assigned_to: document.getElementById('mAssigned').value || null,
     vendor_name: document.getElementById('mVendor').value.trim() || null,
     status: document.getElementById('mStatus').value,
     photo_before: photoUrl,
-    notes: document.getElementById('mNotes').value.trim() || null
+    notes: document.getElementById('mNotes').value.trim() || null,
+    paid_by: cost > 0 ? paidBy : null,
+    payment_mode: cost > 0 ? payMode : null,
+    payment_date: cost > 0 ? (payDate || new Date().toISOString().slice(0,10)) : null
   });
   
   if (error) {
@@ -363,8 +408,10 @@ async function saveMaintenance() {
 }
 
 async function editMaintenance(id) {
+  window._editMaintData = null;
   const [{ data: m }, { data: rooms }, { data: emps }] = await Promise.all([
     sb.from('maintenance_log').select('*').eq('id', id).single(),
+    // stored later via _editMaintData
     sb.from('rooms').select('room_id, nickname, unit_no').order('room_id'),
     sb.from('employees').select('emp_id, name').eq('status', 'Active').order('name')
   ]);
@@ -408,7 +455,38 @@ async function editMaintenance(id) {
       <div class="form-grid">
         <div class="form-group">
           <label>Cost ₹</label>
-          <input id="mCost" type="number" value="${m.cost || 0}">
+          <input id="mCost" type="number" value="${m.cost || 0}" oninput="onMaintCostChange()">
+        </div>
+      </div>
+      
+      <!-- 💰 Payment Info -->
+      <div id="maintPaymentSection" style="display:${(m.cost || 0) > 0 ? 'block' : 'none'};padding:12px;background:#FFF9E6;border:1px solid #FCD34D;border-radius:8px;margin:8px 0;">
+        <div style="font-weight:700;font-size:13px;margin-bottom:8px;color:#92400E;">💰 Payment Info</div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Payment Mode</label>
+            <select id="mPaymentMode" onchange="onMaintPayModeChange()">
+              <option value="">-- Select --</option>
+              <option value="Cash" ${m.payment_mode === 'Cash' ? 'selected' : ''}>Cash</option>
+              <option value="UPI" ${m.payment_mode === 'UPI' ? 'selected' : ''}>UPI</option>
+              <option value="Bank" ${m.payment_mode === 'Bank' ? 'selected' : ''}>Bank</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label id="mPaidByLabel">💵 Paid By *</label>
+            <select id="mPaidBy">
+              <option value="">-- Select --</option>
+            </select>
+            <input id="mPaidByCustom" type="text" placeholder="Custom name..." style="display:none;margin-top:6px;" />
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Payment Date</label>
+          <input id="mPaymentDate" type="date" value="${m.payment_date || new Date().toISOString().slice(0,10)}">
+        </div>
+      </div>
+      <div class="form-group" style="display:none;">
+        <div>
         </div>
         <div class="form-group">
           <label>Reported Date</label>
@@ -528,8 +606,18 @@ async function updateMaintenance() {
     vendor_name: document.getElementById('mVendor').value.trim() || null,
     status,
     photo_after: photoAfterUrl,
-    notes: document.getElementById('mNotes').value.trim() || null
+    notes: document.getElementById('mNotes').value.trim() || null,
+    paid_by: (parseFloat(document.getElementById('mCost').value) || 0) > 0 ? getMaintPaidBy() : null,
+    payment_mode: (parseFloat(document.getElementById('mCost').value) || 0) > 0 ? (document.getElementById('mPaymentMode')?.value || null) : null,
+    payment_date: (parseFloat(document.getElementById('mCost').value) || 0) > 0 ? (document.getElementById('mPaymentDate')?.value || null) : null
   };
+  
+  // Validation
+  const _cost = parseFloat(document.getElementById('mCost').value) || 0;
+  if (_cost > 0 && (!updateObj.paid_by || !updateObj.payment_mode)) {
+    document.getElementById('mErr').innerHTML = '<div class="error">⚠️ Payment Mode aur Paid By required hai (cost > 0)</div>';
+    return;
+  }
   
   // Auto-set resolved date if status changed to resolved
   if ((status === 'Resolved' || status === 'Verified') && !updateObj.resolved_date) {
@@ -546,6 +634,20 @@ async function updateMaintenance() {
   fsn.success('Success', '✅ Updated!');
   renderMaintenanceLog();
 }
+
+// Auto-init payment section on edit form open (delayed for DOM)
+window.addEventListener('load', () => {
+  const observer = new MutationObserver(() => {
+    const section = document.getElementById('maintPaymentSection');
+    const mode = document.getElementById('mPaymentMode');
+    if (section && mode && !section.dataset.inited) {
+      section.dataset.inited = '1';
+      const existingPaid = window._editMaintData?.paid_by || null;
+      setTimeout(() => window.initMaintPaymentSection(mode.value, existingPaid), 100);
+    }
+  });
+  observer.observe(document.body, { childList: true, subtree: true });
+});
 
 async function delMaintenance(id) {
   if (!confirm('Delete this maintenance record?')) return;
@@ -605,3 +707,114 @@ window._initMaintPhotoInputs = function() {
     setupMaintPhotoInput('mPhotoAfterCam', 'mPhotoAfterGal', 'mPhotoAfterPreview', '_maintAfterPhotoBlob');
   }, 200);
 };
+
+// ═══════════════════════════════════════════════════════════
+// 💰 MAINTENANCE — Paid By dropdown handlers
+// ═══════════════════════════════════════════════════════════
+window.onMaintCostChange = function() {
+  const cost = parseFloat(document.getElementById('mCost')?.value) || 0;
+  const section = document.getElementById('maintPaymentSection');
+  if (section) section.style.display = cost > 0 ? 'block' : 'none';
+};
+
+window.onMaintPayModeChange = async function() {
+  const mode = document.getElementById('mPaymentMode')?.value;
+  const dropdown = document.getElementById('mPaidBy');
+  const label = document.getElementById('mPaidByLabel');
+  const custom = document.getElementById('mPaidByCustom');
+  
+  if (!dropdown) return;
+  
+  // Update label
+  if (label) {
+    if (mode === 'Cash') label.innerHTML = '💵 Cash Paid By *';
+    else if (mode === 'UPI') label.innerHTML = '📱 UPI Paid From *';
+    else if (mode === 'Bank') label.innerHTML = '🏦 Bank Account *';
+    else label.innerHTML = '💵 Paid By *';
+  }
+  
+  // Load holders (cache)
+  if (!window._cashHoldersCache) {
+    const { data: holders } = await sb.from('cash_holders')
+      .select('name, type').eq('is_active', true).order('type').order('name');
+    window._cashHoldersCache = holders || [];
+  }
+  const holders = window._cashHoldersCache;
+  const finalH = holders.filter(h => h.type === 'final').map(h => h.name);
+  const mgrH = holders.filter(h => h.type === 'manager').map(h => h.name);
+  const recvH = holders.filter(h => h.type === 'receiver').map(h => h.name);
+  
+  let html = '<option value="">-- Select --</option>';
+  
+  if (mode === 'Cash' || !mode) {
+    // Cash: sabhi holders (koi bhi cash spend kar sakta hai)
+    if (finalH.length) {
+      html += '<optgroup label="🏢 Final (Company)">';
+      finalH.forEach(n => html += `<option value="${n}">${n}</option>`);
+      html += '</optgroup>';
+    }
+    if (mgrH.length) {
+      html += '<optgroup label="👨‍💼 Manager">';
+      mgrH.forEach(n => html += `<option value="${n}">${n}</option>`);
+      html += '</optgroup>';
+    }
+    if (recvH.length) {
+      html += '<optgroup label="👥 Staff">';
+      recvH.forEach(n => html += `<option value="${n}">${n}</option>`);
+      html += '</optgroup>';
+    }
+  } else {
+    // UPI/Bank → only final holders (company accounts)
+    if (finalH.length) {
+      html += '<optgroup label="🏢 Company Accounts">';
+      finalH.forEach(n => html += `<option value="${n}">${n}</option>`);
+      html += '</optgroup>';
+    }
+  }
+  
+  html += '<option value="__custom__">➕ Custom Name...</option>';
+  dropdown.innerHTML = html;
+  
+  // Auto-select Firoz for online modes
+  if (mode === 'UPI' || mode === 'Bank') {
+    if (finalH.includes('Firoz')) dropdown.value = 'Firoz';
+  }
+  
+  // Handle custom toggle
+  dropdown.onchange = function() {
+    if (custom) {
+      if (this.value === '__custom__') { custom.style.display = 'block'; setTimeout(() => custom.focus(), 50); }
+      else { custom.style.display = 'none'; custom.value = ''; }
+    }
+  };
+  
+  if (custom) { custom.style.display = 'none'; custom.value = ''; }
+};
+
+window.getMaintPaidBy = function() {
+  const dropdown = document.getElementById('mPaidBy');
+  if (!dropdown) return null;
+  if (dropdown.value === '__custom__') {
+    return document.getElementById('mPaidByCustom')?.value?.trim() || null;
+  }
+  return dropdown.value || null;
+};
+
+// Pre-populate on edit form load
+window.initMaintPaymentSection = async function(existingMode, existingPaidBy) {
+  const modeEl = document.getElementById('mPaymentMode');
+  if (modeEl && existingMode) modeEl.value = existingMode;
+  await window.onMaintPayModeChange();
+  const dropdown = document.getElementById('mPaidBy');
+  if (dropdown && existingPaidBy) {
+    const exists = Array.from(dropdown.options).some(o => o.value === existingPaidBy);
+    if (exists) dropdown.value = existingPaidBy;
+    else {
+      dropdown.value = '__custom__';
+      const custom = document.getElementById('mPaidByCustom');
+      if (custom) { custom.style.display = 'block'; custom.value = existingPaidBy; }
+    }
+  }
+};
+
+console.log('✅ Maintenance Paid-By module loaded');
