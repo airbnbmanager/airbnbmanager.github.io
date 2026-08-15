@@ -13,7 +13,7 @@ window.renderMyLedger = async function() {
     sb.from('cash_handovers').select('*').eq('from_person', userName).order('handover_date', { ascending: false }),
     sb.from('payment_history').select('*, guest_register(guest_name, rooms(nickname,unit_no))').eq('received_by', userName).eq('payment_mode', 'Cash').neq('verification_status', 'rejected').order('payment_date', { ascending: false }),
     sb.from('cash_expenses').select('*').eq('paid_by', userName).order('expense_date', { ascending: false }),
-    sb.from('expenses').select('*, expense_categories(category_name), rooms(nickname,unit_no)').eq('paid_by', userName).order('entry_date', { ascending: false })
+    Promise.resolve({ data: [] })
   ]);
   
   const totalHOIn = (handoversIn || []).reduce((s, h) => s + Number(h.amount || 0), 0);
