@@ -6,20 +6,23 @@ window.renderMyLedger = async function() {
     { data: handoversIn },
     { data: handoversOut },
     { data: paymentsReceived },
-    { data: expenses }
+    { data: expenses },
+    { data: dailyExps }
   ] = await Promise.all([
     sb.from('cash_handovers').select('*').eq('to_person', userName).order('handover_date', { ascending: false }),
     sb.from('cash_handovers').select('*').eq('from_person', userName).order('handover_date', { ascending: false }),
     sb.from('payment_history').select('*, guest_register(guest_name, rooms(nickname,unit_no))').eq('received_by', userName).eq('payment_mode', 'Cash').neq('verification_status', 'rejected').order('payment_date', { ascending: false }),
-    sb.from('cash_expenses').select('*').eq('paid_by', userName).order('expense_date', { ascending: false })
+    sb.from('cash_expenses').select('*').eq('paid_by', userName).order('expense_date', { ascending: false }),
+    sb.from('expenses').select('*, expense_categories(category_name), rooms(nickname,unit_no)').eq('paid_by', userName).order('entry_date', { ascending: false })
   ]);
   
   const totalHOIn = (handoversIn || []).reduce((s, h) => s + Number(h.amount || 0), 0);
   const totalHOOut = (handoversOut || []).reduce((s, h) => s + Number(h.amount || 0), 0);
   const totalReceived = (paymentsReceived || []).reduce((s, p) => s + Number(p.amount || 0), 0);
   const totalExpenses = (expenses || []).reduce((s, e) => s + Number(e.amount || 0), 0);
+  const totalDailyExps = (dailyExps || []).reduce((s, e) => s + Number(e.amount || 0), 0);
   const totalIn = totalHOIn + totalReceived;
-  const totalOut = totalHOOut + totalExpenses;
+  const totalOut = totalHOOut + totalExpenses + totalDailyExps;
   const balance = totalIn - totalOut;
   
   const expByCategory = {};
@@ -78,6 +81,16 @@ window.renderMyLedger = async function() {
     });
     html += '</tbody></table></div>';
   });
+  
+  // Daily Expenses Section
+  if ((dailyExps || []).length > 0) {
+    html += '<div style="margin:16px 0;"><div style="font-weight:700;font-size:13px;color:#666;margin-bottom:8px;">📋 DAILY EXPENSES <span style="color:#DC2626;">₹' + totalDailyExps.toLocaleString('en-IN') + '</span> <span style="color:#999;font-weight:400;">(' + dailyExps.length + ' entries)</span></div>';
+    html += '<table style="width:100%;font-size:13px;"><thead><tr style="background:#F3F4F6;"><th style="text-align:left;padding:8px;">Date</th><th>Category</th><th>Room</th><th>Amount</th><th>Notes</th></tr></thead><tbody>';
+    dailyExps.forEach(e => {
+      html += '<tr style="border-bottom:1px solid #E5E7EB;"><td style="padding:8px;">' + e.entry_date + '</td><td style="font-weight:600;">' + (e.expense_categories?.category_name || '-') + '</td><td style="font-size:11px;">' + (e.rooms?.nickname || e.rooms?.unit_no || '-') + '</td><td style="text-align:right;color:#DC2626;font-weight:700;">₹' + Number(e.amount).toLocaleString('en-IN') + '</td><td style="font-size:11px;color:#666;">' + (e.notes || '').slice(0, 60) + '</td></tr>';
+    });
+    html += '</tbody></table></div>';
+  }
   
   if ((handoversOut || []).length > 0) {
     html += '<div style="margin:16px 0;"><div style="font-weight:700;font-size:13px;color:#666;margin-bottom:8px;">🔄 Handovers Given <span style="color:#DC2626;">₹' + totalHOOut.toLocaleString('en-IN') + '</span></div>';

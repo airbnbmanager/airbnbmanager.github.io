@@ -363,6 +363,30 @@ async function renderAddExpEntry() {
         <label>Date</label>
         <input id="exDate" type="date" value="${today}" />
       </div>
+      
+      <!-- 💰 Payment Info -->
+      <div style="padding:12px;background:#FFF9E6;border:1px solid #FCD34D;border-radius:8px;margin:8px 0;">
+        <div style="font-weight:700;font-size:13px;margin-bottom:8px;color:#92400E;">💰 Payment Info</div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Payment Mode *</label>
+            <select id="exPayMode" onchange="onExpPayModeChange()">
+              <option value="">-- Select --</option>
+              <option value="Cash">Cash</option>
+              <option value="UPI">UPI</option>
+              <option value="Bank">Bank</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label id="exPaidByLabel">💵 Paid By *</label>
+            <select id="exPaidBy">
+              <option value="">-- Select --</option>
+            </select>
+            <input id="exPaidByCustom" type="text" placeholder="Custom name..." style="display:none;margin-top:6px;" />
+          </div>
+        </div>
+      </div>
+      
       <div class="form-group">
         <label>Notes</label>
         <textarea id="exNotes" placeholder="Optional details..."></textarea>
@@ -479,11 +503,21 @@ async function saveExpEntry() {
     return;
   }
 
-  const { error } = await sb.from('expenses').insert({
+  const paidBy = getExpPaidBy();
+  const payMode = document.getElementById('exPayMode')?.value || null;
+  
+  if (!paidBy || !payMode) {
+    document.getElementById('exErr').innerHTML = '<div class="error">⚠️ Payment Mode aur Paid By required hain</div>';
+    return;
+  }
+  
+  const { data: newExp, error } = await sb.from('expenses').insert({
     category_id: cid,
     room_id: roomId,
     month: mo,
     amount: amt,
+    paid_by: paidBy,
+    payment_mode: payMode,
     entry_date: date,
     notes: notes,
     created_by: SESSION.userId
@@ -1689,3 +1723,85 @@ async function deleteCategory(catId, catName, usageCount) {
   fsn.success('Success', `✅ "${catName}" deleted`);
   renderManageCategories();
 }
+
+// ═══════════════════════════════════════════════════════════
+// 💰 EXPENSES — Paid By dropdown handlers
+// ═══════════════════════════════════════════════════════════
+window.onExpPayModeChange = async function() {
+  const mode = document.getElementById('exPayMode')?.value;
+  const dropdown = document.getElementById('exPaidBy');
+  const label = document.getElementById('exPaidByLabel');
+  const custom = document.getElementById('exPaidByCustom');
+  
+  if (!dropdown) return;
+  
+  if (label) {
+    if (mode === 'Cash') label.innerHTML = '💵 Cash Paid By *';
+    else if (mode === 'UPI') label.innerHTML = '📱 UPI Paid From *';
+    else if (mode === 'Bank') label.innerHTML = '🏦 Bank Account *';
+    else label.innerHTML = '💵 Paid By *';
+  }
+  
+  if (!window._cashHoldersCache) {
+    const { data: holders } = await sb.from('cash_holders')
+      .select('name, type').eq('is_active', true).order('type').order('name');
+    window._cashHoldersCache = holders || [];
+  }
+  const holders = window._cashHoldersCache;
+  const finalH = holders.filter(h => h.type === 'final').map(h => h.name);
+  const mgrH = holders.filter(h => h.type === 'manager').map(h => h.name);
+  const recvH = holders.filter(h => h.type === 'receiver').map(h => h.name);
+  
+  let html = '<option value="">-- Select --</option>';
+  
+  if (mode === 'Cash' || !mode) {
+    if (finalH.length) {
+      html += '<optgroup label="🏢 Final (Company)">';
+      finalH.forEach(n => html += `<option value="${n}">${n}</option>`);
+      html += '</optgroup>';
+    }
+    if (mgrH.length) {
+      html += '<optgroup label="👨‍💼 Manager">';
+      mgrH.forEach(n => html += `<option value="${n}">${n}</option>`);
+      html += '</optgroup>';
+    }
+    if (recvH.length) {
+      html += '<optgroup label="👥 Staff">';
+      recvH.forEach(n => html += `<option value="${n}">${n}</option>`);
+      html += '</optgroup>';
+    }
+  } else {
+    if (finalH.length) {
+      html += '<optgroup label="🏢 Company Accounts">';
+      finalH.forEach(n => html += `<option value="${n}">${n}</option>`);
+      html += '</optgroup>';
+    }
+  }
+  
+  html += '<option value="__custom__">➕ Custom Name...</option>';
+  dropdown.innerHTML = html;
+  
+  if (mode === 'UPI' || mode === 'Bank') {
+    if (finalH.includes('Firoz')) dropdown.value = 'Firoz';
+  }
+  
+  dropdown.onchange = function() {
+    if (custom) {
+      if (this.value === '__custom__') { custom.style.display = 'block'; setTimeout(() => custom.focus(), 50); }
+      else { custom.style.display = 'none'; custom.value = ''; }
+    }
+  };
+  
+  if (custom) { custom.style.display = 'none'; custom.value = ''; }
+};
+
+window.getExpPaidBy = function() {
+  const dropdown = document.getElementById('exPaidBy');
+  if (!dropdown) return null;
+  if (dropdown.value === '__custom__') {
+    return document.getElementById('exPaidByCustom')?.value?.trim() || null;
+  }
+  return dropdown.value || null;
+};
+
+console.log('✅ Expenses Paid-By module loaded');
