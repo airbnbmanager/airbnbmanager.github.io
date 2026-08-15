@@ -3241,26 +3241,76 @@ async function editPayment(payId, bkId) {
       <h2>✏️ Edit Payment</h2>
       <div class="form-group"><label>Amount ₹</label><input id="editPayAmt" type="number" value="${pay.amount}" /></div>
       <div class="form-group"><label>Mode</label>
-        <select id="editPayMode">
+        <select id="editPayMode" onchange="onEditPayModeChange()">
           <option value="Cash" ${pay.payment_mode === 'Cash' ? 'selected' : ''}>Cash</option>
           <option value="UPI" ${pay.payment_mode === 'UPI' ? 'selected' : ''}>UPI</option>
           <option value="Bank" ${pay.payment_mode === 'Bank' ? 'selected' : ''}>Bank</option>
           <option value="Airbnb Payout" ${pay.payment_mode === 'Airbnb Payout' ? 'selected' : ''}>Airbnb Payout</option>
         </select>
       </div>
+      <div class="form-group">
+        <label id="editReceivedByLabel">💰 Received By *</label>
+        <select id="editPayReceivedBy" onchange="onEditReceivedByChange()">
+          <option value="">-- Select --</option>
+        </select>
+        <input id="editPayReceivedByCustom" type="text" placeholder="Enter new name..." 
+               style="display:none;margin-top:6px;" />
+        <button type="button" onclick="quickAddCashHolder().then(()=>onEditPayModeChange())" 
+                style="margin-top:6px;padding:8px;background:#f0f0f0;border:1px dashed #999;border-radius:8px;cursor:pointer;width:100%;font-size:12px;">
+          ➕ Add New Receiver
+        </button>
+      </div>
       <div class="form-group"><label>Date</label><input id="editPayDate" type="date" value="${pay.payment_date || ''}" /></div>
       <div class="form-group"><label>Notes</label><input id="editPayNotes" value="${pay.notes || ''}" /></div>
       <button onclick="saveEditPayment(${payId},'${bkId}')" style="width:100%;margin-top:10px;">💾 Update</button>
     </div>`;
   document.body.appendChild(modal);
+  // Pre-populate received_by dropdown
+  setTimeout(async () => {
+    await window.onEditPayModeChange();
+    const dropdown = document.getElementById('editPayReceivedBy');
+    if (dropdown && pay.received_by) {
+      // Check if value exists in dropdown
+      const exists = Array.from(dropdown.options).some(o => o.value === pay.received_by);
+      if (exists) {
+        dropdown.value = pay.received_by;
+      } else {
+        // Not in list — use custom
+        dropdown.value = '__custom__';
+        const custom = document.getElementById('editPayReceivedByCustom');
+        if (custom) { custom.style.display = 'block'; custom.value = pay.received_by; }
+      }
+    }
+  }, 100);
 }
 
 async function saveEditPayment(payId, bkId) {
+  // Get received_by (dropdown or custom)
+  const dropdown = document.getElementById('editPayReceivedBy');
+  let receivedBy = dropdown?.value || '';
+  if (receivedBy === '__custom__') {
+    receivedBy = document.getElementById('editPayReceivedByCustom')?.value?.trim() || '';
+  }
+  
+  const amount = parseFloat(document.getElementById('editPayAmt')?.value) || 0;
+  const mode = document.getElementById('editPayMode')?.value;
+  
+  // Validation
+  if (amount > 0 && !receivedBy) {
+    alert('⚠️ Please select who received the payment!');
+    document.getElementById('editPayReceivedBy')?.focus();
+    return;
+  }
+  
+  const handoverStatus = (mode === 'Cash' && !['Firoz','Shahenshah'].includes(receivedBy)) ? 'in_hand' : 'handed_over';
+  
   const payPatch = {
-    amount: parseFloat(document.getElementById('editPayAmt')?.value) || 0,
-    payment_mode: document.getElementById('editPayMode')?.value,
+    amount: amount,
+    payment_mode: mode,
     payment_date: document.getElementById('editPayDate')?.value || null,
-    notes: document.getElementById('editPayNotes')?.value?.trim() || null
+    notes: document.getElementById('editPayNotes')?.value?.trim() || null,
+    received_by: receivedBy || null,
+    handover_status: handoverStatus
   };
   Object.assign(payPatch, approvalUpdateMeta());
   await sb.from('payment_history').update(payPatch).eq('id', payId);
@@ -4903,3 +4953,87 @@ window.getAdvReceivedBy = function() {
 };
 
 console.log('✅ Advance Received-By dropdown module loaded');
+
+// ═══════════════════════════════════════════════════════════
+// 💰 EDIT PAYMENT — Received By dropdown handler
+// ═══════════════════════════════════════════════════════════
+window.onEditPayModeChange = async function() {
+  const mode = document.getElementById('editPayMode')?.value;
+  const dropdown = document.getElementById('editPayReceivedBy');
+  const label = document.getElementById('editReceivedByLabel');
+  const custom = document.getElementById('editPayReceivedByCustom');
+  
+  if (!dropdown) return;
+  
+  // Update label based on mode
+  if (label) {
+    if (mode === 'Cash') label.innerHTML = '💵 Cash Received By *';
+    else if (mode === 'UPI') label.innerHTML = '📱 UPI Received In *';
+    else if (mode === 'Bank') label.innerHTML = '🏦 Bank Account *';
+    else label.innerHTML = '💰 Received By *';
+  }
+  
+  // Load cash_holders (use cache)
+  if (!window._cashHoldersCache) {
+    const { data: holders } = await sb.from('cash_holders')
+      .select('name, type').eq('is_active', true).order('type').order('name');
+    window._cashHoldersCache = holders || [];
+  }
+  const holders = window._cashHoldersCache;
+  const finalH = holders.filter(h => h.type === 'final').map(h => h.name);
+  const mgrH = holders.filter(h => h.type === 'manager').map(h => h.name);
+  const recvH = holders.filter(h => h.type === 'receiver').map(h => h.name);
+  
+  let html = '<option value="">-- Select --</option>';
+  
+  if (mode === 'Cash') {
+    if (finalH.length) {
+      html += '<optgroup label="🏢 Final (Company)">';
+      finalH.forEach(n => html += `<option value="${n}">${n}</option>`);
+      html += '</optgroup>';
+    }
+    if (mgrH.length) {
+      html += '<optgroup label="👨‍💼 Manager">';
+      mgrH.forEach(n => html += `<option value="${n}">${n}</option>`);
+      html += '</optgroup>';
+    }
+    if (recvH.length) {
+      html += '<optgroup label="👥 Staff / Receiver">';
+      recvH.forEach(n => html += `<option value="${n}">${n}</option>`);
+      html += '</optgroup>';
+    }
+  } else {
+    // UPI/Bank/Airbnb → only company (final) accounts
+    if (finalH.length) {
+      html += '<optgroup label="🏢 Company Accounts">';
+      finalH.forEach(n => html += `<option value="${n}">${n}</option>`);
+      html += '</optgroup>';
+    }
+  }
+  
+  html += '<option value="__custom__">➕ Custom Name...</option>';
+  dropdown.innerHTML = html;
+  
+  // Auto-select Firoz for online modes
+  if (mode === 'UPI' || mode === 'Bank' || mode === 'Airbnb Payout') {
+    if (finalH.includes('Firoz')) dropdown.value = 'Firoz';
+    else if (finalH.length === 1) dropdown.value = finalH[0];
+  }
+  
+  if (custom) { custom.style.display = 'none'; custom.value = ''; }
+};
+
+window.onEditReceivedByChange = function() {
+  const dropdown = document.getElementById('editPayReceivedBy');
+  const custom = document.getElementById('editPayReceivedByCustom');
+  if (!custom) return;
+  if (dropdown.value === '__custom__') {
+    custom.style.display = 'block';
+    setTimeout(() => custom.focus(), 50);
+  } else {
+    custom.style.display = 'none';
+    custom.value = '';
+  }
+};
+
+console.log('✅ Edit Payment Received-By module loaded');
