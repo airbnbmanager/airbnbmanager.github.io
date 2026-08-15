@@ -1216,13 +1216,30 @@ async function renderAddBooking() {
           <input id="advanceAmt" type="number" value="${pre.advanceAmt || 0}" oninput="onAmtChg()" />
         </div>
         <div class="form-group"><label>Advance Mode</label>
-          <select id="advMode">
+          <select id="advMode" onchange="onAdvanceModeChange()">
             <option value="">--</option>
             <option value="Cash" ${pre.advMode === 'Cash' ? 'selected' : ''}>Cash</option>
             <option value="UPI" ${pre.advMode === 'UPI' ? 'selected' : ''}>UPI</option>
             <option value="Bank" ${pre.advMode === 'Bank' ? 'selected' : ''}>Bank</option>
             <option value="Airbnb Payout" ${pre.advMode === 'Airbnb Payout' ? 'selected' : ''}>Airbnb Payout</option>
           </select>
+        </div>
+      </div>
+      <div class="form-grid" id="advReceivedByRow" style="display:${pre.advMode ? 'grid' : 'none'};">
+        <div class="form-group">
+          <label id="advReceivedByLabel">💰 Received By *</label>
+          <select id="advReceivedBy" onchange="onAdvReceivedByChange()">
+            <option value="">-- Select --</option>
+          </select>
+          <input id="advReceivedByCustom" type="text" placeholder="Enter new name..." 
+                 style="display:none;margin-top:6px;" />
+        </div>
+        <div class="form-group">
+          <label>&nbsp;</label>
+          <button type="button" onclick="quickAddCashHolder()" 
+                  style="padding:10px;background:#f0f0f0;border:1px dashed #999;border-radius:8px;cursor:pointer;width:100%;font-size:13px;">
+            ➕ Add New Receiver
+          </button>
         </div>
       </div>
       <div class="form-group"><label>Advance Date</label>
@@ -4427,3 +4444,417 @@ async function autoFixOverflowPayments() {
 }
 
 window.autoFixOverflowPayments = autoFixOverflowPayments;
+
+// ═══════════════════════════════════════════════════════════
+// 💰 ADVANCE "RECEIVED BY" DROPDOWN (Cash Holder Integration)
+// ═══════════════════════════════════════════════════════════
+window.onAdvanceModeChange = async function() {
+  const mode = document.getElementById('advMode')?.value;
+  const row = document.getElementById('advReceivedByRow');
+  const dropdown = document.getElementById('advReceivedBy');
+  const label = document.getElementById('advReceivedByLabel');
+  const custom = document.getElementById('advReceivedByCustom');
+  
+  if (!row || !dropdown) return;
+  
+  // Hide if no mode
+  if (!mode) { 
+    row.style.display = 'none'; 
+    return; 
+  }
+  row.style.display = 'grid';
+  
+  // Update label based on mode
+  if (mode === 'Cash') {
+    label.innerHTML = '💵 Cash Received By *';
+  } else if (mode === 'UPI') {
+    label.innerHTML = '📱 UPI Received In *';
+  } else if (mode === 'Bank') {
+    label.innerHTML = '🏦 Bank Account *';
+  } else {
+    label.innerHTML = '💰 Received By *';
+  }
+  
+  // Load cash_holders from DB
+  if (!window._cashHoldersCache) {
+    const { data: holders } = await sb.from('cash_holders')
+      .select('name, type').eq('is_active', true).order('type').order('name');
+    window._cashHoldersCache = holders || [];
+  }
+  const holders = window._cashHoldersCache;
+  const finalHolders = holders.filter(h => h.type === 'final').map(h => h.name);
+  const managers = holders.filter(h => h.type === 'manager').map(h => h.name);
+  const receivers = holders.filter(h => h.type === 'receiver').map(h => h.name);
+  
+  let html = '<option value="">-- Select --</option>';
+  
+  if (mode === 'Cash') {
+    // Cash: sabhi le sakte hain
+    if (finalHolders.length) {
+      html += '<optgroup label="🏢 Final (Company)">';
+      finalHolders.forEach(n => html += `<option value="${n}">${n}</option>`);
+      html += '</optgroup>';
+    }
+    if (managers.length) {
+      html += '<optgroup label="👨‍💼 Manager">';
+      managers.forEach(n => html += `<option value="${n}">${n}</option>`);
+      html += '</optgroup>';
+    }
+    if (receivers.length) {
+      html += '<optgroup label="👥 Staff / Receiver">';
+      receivers.forEach(n => html += `<option value="${n}">${n}</option>`);
+      html += '</optgroup>';
+    }
+  } else {
+    // UPI/Bank/Airbnb: only company accounts (final)
+    if (finalHolders.length) {
+      html += '<optgroup label="🏢 Company Accounts">';
+      finalHolders.forEach(n => html += `<option value="${n}">${n}</option>`);
+      html += '</optgroup>';
+    }
+  }
+  
+  html += '<option value="__custom__">➕ Add New / Custom Name...</option>';
+  dropdown.innerHTML = html;
+  
+  // Auto-select if only one option (for online modes)
+  if (mode !== 'Cash' && finalHolders.length === 1) {
+    dropdown.value = finalHolders[0];
+  }
+  
+  if (custom) { custom.style.display = 'none'; custom.value = ''; }
+};
+
+// Handle custom name toggle
+window.onAdvReceivedByChange = function() {
+  const dropdown = document.getElementById('advReceivedBy');
+  const custom = document.getElementById('advReceivedByCustom');
+  if (!custom) return;
+  if (dropdown.value === '__custom__') {
+    custom.style.display = 'block';
+    setTimeout(() => custom.focus(), 50);
+  } else {
+    custom.style.display = 'none';
+    custom.value = '';
+  }
+};
+
+// Quick add new cash holder (inline)
+window.quickAddCashHolder = async function() {
+  const name = prompt('New receiver name:\n(e.g. Employee name, or "Company Bank")');
+  if (!name || !name.trim()) return;
+  
+  const type = prompt('Type?\n\n• final  = Owner/Company (can hold big cash + online)\n• manager  = Manager (medium cash)\n• receiver = Staff (small cash only)\n\nEnter one:', 'receiver');
+  if (!['final','manager','receiver'].includes(type)) { 
+    alert('Invalid type. Use: final, manager, or receiver'); 
+    return; 
+  }
+  
+  const limit = type === 'final' ? 999999 : (type === 'manager' ? 50000 : 5000);
+  const { error } = await sb.from('cash_holders').insert({ 
+    name: name.trim(), type, is_active: true, spending_limit: limit 
+  });
+  
+  if (error) { 
+    alert('Error: ' + error.message); 
+    return; 
+  }
+  
+  // Refresh cache
+  window._cashHoldersCache = null;
+  
+  // Reload dropdown & auto-select new one
+  await window.onAdvanceModeChange();
+  const dropdown = document.getElementById('advReceivedBy');
+  if (dropdown) dropdown.value = name.trim();
+  
+  if (window.fsn?.success) fsn.success('Added', `✅ ${name} added as ${type}`);
+};
+
+// Get advance received_by value (for save)
+window.getAdvReceivedBy = function() {
+  const dropdown = document.getElementById('advReceivedBy');
+  if (!dropdown) return null;
+  if (dropdown.value === '__custom__') {
+    return document.getElementById('advReceivedByCustom')?.value?.trim() || null;
+  }
+  return dropdown.value || null;
+};
+
+console.log('✅ Advance Received-By dropdown module loaded');
+
+// ═══════════════════════════════════════════════════════════
+// 💰 ADVANCE "RECEIVED BY" DROPDOWN (Cash Holder Integration)
+// ═══════════════════════════════════════════════════════════
+window.onAdvanceModeChange = async function() {
+  const mode = document.getElementById('advMode')?.value;
+  const row = document.getElementById('advReceivedByRow');
+  const dropdown = document.getElementById('advReceivedBy');
+  const label = document.getElementById('advReceivedByLabel');
+  const custom = document.getElementById('advReceivedByCustom');
+  
+  if (!row || !dropdown) return;
+  
+  // Hide if no mode
+  if (!mode) { 
+    row.style.display = 'none'; 
+    return; 
+  }
+  row.style.display = 'grid';
+  
+  // Update label based on mode
+  if (mode === 'Cash') {
+    label.innerHTML = '💵 Cash Received By *';
+  } else if (mode === 'UPI') {
+    label.innerHTML = '📱 UPI Received In *';
+  } else if (mode === 'Bank') {
+    label.innerHTML = '🏦 Bank Account *';
+  } else {
+    label.innerHTML = '💰 Received By *';
+  }
+  
+  // Load cash_holders from DB
+  if (!window._cashHoldersCache) {
+    const { data: holders } = await sb.from('cash_holders')
+      .select('name, type').eq('is_active', true).order('type').order('name');
+    window._cashHoldersCache = holders || [];
+  }
+  const holders = window._cashHoldersCache;
+  const finalHolders = holders.filter(h => h.type === 'final').map(h => h.name);
+  const managers = holders.filter(h => h.type === 'manager').map(h => h.name);
+  const receivers = holders.filter(h => h.type === 'receiver').map(h => h.name);
+  
+  let html = '<option value="">-- Select --</option>';
+  
+  if (mode === 'Cash') {
+    // Cash: sabhi le sakte hain
+    if (finalHolders.length) {
+      html += '<optgroup label="🏢 Final (Company)">';
+      finalHolders.forEach(n => html += `<option value="${n}">${n}</option>`);
+      html += '</optgroup>';
+    }
+    if (managers.length) {
+      html += '<optgroup label="👨‍💼 Manager">';
+      managers.forEach(n => html += `<option value="${n}">${n}</option>`);
+      html += '</optgroup>';
+    }
+    if (receivers.length) {
+      html += '<optgroup label="👥 Staff / Receiver">';
+      receivers.forEach(n => html += `<option value="${n}">${n}</option>`);
+      html += '</optgroup>';
+    }
+  } else {
+    // UPI/Bank/Airbnb: only company accounts (final)
+    if (finalHolders.length) {
+      html += '<optgroup label="🏢 Company Accounts">';
+      finalHolders.forEach(n => html += `<option value="${n}">${n}</option>`);
+      html += '</optgroup>';
+    }
+  }
+  
+  html += '<option value="__custom__">➕ Add New / Custom Name...</option>';
+  dropdown.innerHTML = html;
+  
+  // Auto-select if only one option (for online modes)
+  if (mode !== 'Cash' && finalHolders.length === 1) {
+    dropdown.value = finalHolders[0];
+  }
+  
+  if (custom) { custom.style.display = 'none'; custom.value = ''; }
+};
+
+// Handle custom name toggle
+window.onAdvReceivedByChange = function() {
+  const dropdown = document.getElementById('advReceivedBy');
+  const custom = document.getElementById('advReceivedByCustom');
+  if (!custom) return;
+  if (dropdown.value === '__custom__') {
+    custom.style.display = 'block';
+    setTimeout(() => custom.focus(), 50);
+  } else {
+    custom.style.display = 'none';
+    custom.value = '';
+  }
+};
+
+// Quick add new cash holder (inline)
+window.quickAddCashHolder = async function() {
+  const name = prompt('New receiver name:\n(e.g. Employee name, or "Company Bank")');
+  if (!name || !name.trim()) return;
+  
+  const type = prompt('Type?\n\n• final  = Owner/Company (can hold big cash + online)\n• manager  = Manager (medium cash)\n• receiver = Staff (small cash only)\n\nEnter one:', 'receiver');
+  if (!['final','manager','receiver'].includes(type)) { 
+    alert('Invalid type. Use: final, manager, or receiver'); 
+    return; 
+  }
+  
+  const limit = type === 'final' ? 999999 : (type === 'manager' ? 50000 : 5000);
+  const { error } = await sb.from('cash_holders').insert({ 
+    name: name.trim(), type, is_active: true, spending_limit: limit 
+  });
+  
+  if (error) { 
+    alert('Error: ' + error.message); 
+    return; 
+  }
+  
+  // Refresh cache
+  window._cashHoldersCache = null;
+  
+  // Reload dropdown & auto-select new one
+  await window.onAdvanceModeChange();
+  const dropdown = document.getElementById('advReceivedBy');
+  if (dropdown) dropdown.value = name.trim();
+  
+  if (window.fsn?.success) fsn.success('Added', `✅ ${name} added as ${type}`);
+};
+
+// Get advance received_by value (for save)
+window.getAdvReceivedBy = function() {
+  const dropdown = document.getElementById('advReceivedBy');
+  if (!dropdown) return null;
+  if (dropdown.value === '__custom__') {
+    return document.getElementById('advReceivedByCustom')?.value?.trim() || null;
+  }
+  return dropdown.value || null;
+};
+
+console.log('✅ Advance Received-By dropdown module loaded');
+
+// ═══════════════════════════════════════════════════════════
+// 💰 ADVANCE "RECEIVED BY" DROPDOWN (Cash Holder Integration)
+// ═══════════════════════════════════════════════════════════
+window.onAdvanceModeChange = async function() {
+  const mode = document.getElementById('advMode')?.value;
+  const row = document.getElementById('advReceivedByRow');
+  const dropdown = document.getElementById('advReceivedBy');
+  const label = document.getElementById('advReceivedByLabel');
+  const custom = document.getElementById('advReceivedByCustom');
+  
+  if (!row || !dropdown) return;
+  
+  // Hide if no mode
+  if (!mode) { 
+    row.style.display = 'none'; 
+    return; 
+  }
+  row.style.display = 'grid';
+  
+  // Update label based on mode
+  if (mode === 'Cash') {
+    label.innerHTML = '💵 Cash Received By *';
+  } else if (mode === 'UPI') {
+    label.innerHTML = '📱 UPI Received In *';
+  } else if (mode === 'Bank') {
+    label.innerHTML = '🏦 Bank Account *';
+  } else {
+    label.innerHTML = '💰 Received By *';
+  }
+  
+  // Load cash_holders from DB
+  if (!window._cashHoldersCache) {
+    const { data: holders } = await sb.from('cash_holders')
+      .select('name, type').eq('is_active', true).order('type').order('name');
+    window._cashHoldersCache = holders || [];
+  }
+  const holders = window._cashHoldersCache;
+  const finalHolders = holders.filter(h => h.type === 'final').map(h => h.name);
+  const managers = holders.filter(h => h.type === 'manager').map(h => h.name);
+  const receivers = holders.filter(h => h.type === 'receiver').map(h => h.name);
+  
+  let html = '<option value="">-- Select --</option>';
+  
+  if (mode === 'Cash') {
+    // Cash: sabhi le sakte hain
+    if (finalHolders.length) {
+      html += '<optgroup label="🏢 Final (Company)">';
+      finalHolders.forEach(n => html += `<option value="${n}">${n}</option>`);
+      html += '</optgroup>';
+    }
+    if (managers.length) {
+      html += '<optgroup label="👨‍💼 Manager">';
+      managers.forEach(n => html += `<option value="${n}">${n}</option>`);
+      html += '</optgroup>';
+    }
+    if (receivers.length) {
+      html += '<optgroup label="👥 Staff / Receiver">';
+      receivers.forEach(n => html += `<option value="${n}">${n}</option>`);
+      html += '</optgroup>';
+    }
+  } else {
+    // UPI/Bank/Airbnb: only company accounts (final)
+    if (finalHolders.length) {
+      html += '<optgroup label="🏢 Company Accounts">';
+      finalHolders.forEach(n => html += `<option value="${n}">${n}</option>`);
+      html += '</optgroup>';
+    }
+  }
+  
+  html += '<option value="__custom__">➕ Add New / Custom Name...</option>';
+  dropdown.innerHTML = html;
+  
+  // Auto-select if only one option (for online modes)
+  if (mode !== 'Cash' && finalHolders.length === 1) {
+    dropdown.value = finalHolders[0];
+  }
+  
+  if (custom) { custom.style.display = 'none'; custom.value = ''; }
+};
+
+// Handle custom name toggle
+window.onAdvReceivedByChange = function() {
+  const dropdown = document.getElementById('advReceivedBy');
+  const custom = document.getElementById('advReceivedByCustom');
+  if (!custom) return;
+  if (dropdown.value === '__custom__') {
+    custom.style.display = 'block';
+    setTimeout(() => custom.focus(), 50);
+  } else {
+    custom.style.display = 'none';
+    custom.value = '';
+  }
+};
+
+// Quick add new cash holder (inline)
+window.quickAddCashHolder = async function() {
+  const name = prompt('New receiver name:\n(e.g. Employee name, or "Company Bank")');
+  if (!name || !name.trim()) return;
+  
+  const type = prompt('Type?\n\n• final  = Owner/Company (can hold big cash + online)\n• manager  = Manager (medium cash)\n• receiver = Staff (small cash only)\n\nEnter one:', 'receiver');
+  if (!['final','manager','receiver'].includes(type)) { 
+    alert('Invalid type. Use: final, manager, or receiver'); 
+    return; 
+  }
+  
+  const limit = type === 'final' ? 999999 : (type === 'manager' ? 50000 : 5000);
+  const { error } = await sb.from('cash_holders').insert({ 
+    name: name.trim(), type, is_active: true, spending_limit: limit 
+  });
+  
+  if (error) { 
+    alert('Error: ' + error.message); 
+    return; 
+  }
+  
+  // Refresh cache
+  window._cashHoldersCache = null;
+  
+  // Reload dropdown & auto-select new one
+  await window.onAdvanceModeChange();
+  const dropdown = document.getElementById('advReceivedBy');
+  if (dropdown) dropdown.value = name.trim();
+  
+  if (window.fsn?.success) fsn.success('Added', `✅ ${name} added as ${type}`);
+};
+
+// Get advance received_by value (for save)
+window.getAdvReceivedBy = function() {
+  const dropdown = document.getElementById('advReceivedBy');
+  if (!dropdown) return null;
+  if (dropdown.value === '__custom__') {
+    return document.getElementById('advReceivedByCustom')?.value?.trim() || null;
+  }
+  return dropdown.value || null;
+};
+
+console.log('✅ Advance Received-By dropdown module loaded');
