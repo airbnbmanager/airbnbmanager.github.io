@@ -4526,9 +4526,21 @@ window.onAdvanceModeChange = async function() {
   html += '<option value="__custom__">➕ Add New / Custom Name...</option>';
   dropdown.innerHTML = html;
   
-  // Auto-select if only one option (for online modes)
-  if (mode !== 'Cash' && finalHolders.length === 1) {
-    dropdown.value = finalHolders[0];
+  // Auto-select for online modes
+  if (mode === 'UPI') {
+    // UPI hamesha Firoz ke account me
+    if (finalHolders.includes('Firoz')) {
+      dropdown.value = 'Firoz';
+    } else if (finalHolders.length > 0) {
+      dropdown.value = finalHolders[0];
+    }
+  } else if (mode === 'Bank' || mode === 'Airbnb Payout') {
+    // Bank/Airbnb → company account (Firoz default)
+    if (finalHolders.includes('Firoz')) {
+      dropdown.value = 'Firoz';
+    } else if (finalHolders.length === 1) {
+      dropdown.value = finalHolders[0];
+    }
   }
   
   if (custom) { custom.style.display = 'none'; custom.value = ''; }
@@ -4664,9 +4676,21 @@ window.onAdvanceModeChange = async function() {
   html += '<option value="__custom__">➕ Add New / Custom Name...</option>';
   dropdown.innerHTML = html;
   
-  // Auto-select if only one option (for online modes)
-  if (mode !== 'Cash' && finalHolders.length === 1) {
-    dropdown.value = finalHolders[0];
+  // Auto-select for online modes
+  if (mode === 'UPI') {
+    // UPI hamesha Firoz ke account me
+    if (finalHolders.includes('Firoz')) {
+      dropdown.value = 'Firoz';
+    } else if (finalHolders.length > 0) {
+      dropdown.value = finalHolders[0];
+    }
+  } else if (mode === 'Bank' || mode === 'Airbnb Payout') {
+    // Bank/Airbnb → company account (Firoz default)
+    if (finalHolders.includes('Firoz')) {
+      dropdown.value = 'Firoz';
+    } else if (finalHolders.length === 1) {
+      dropdown.value = finalHolders[0];
+    }
   }
   
   if (custom) { custom.style.display = 'none'; custom.value = ''; }
@@ -4802,9 +4826,21 @@ window.onAdvanceModeChange = async function() {
   html += '<option value="__custom__">➕ Add New / Custom Name...</option>';
   dropdown.innerHTML = html;
   
-  // Auto-select if only one option (for online modes)
-  if (mode !== 'Cash' && finalHolders.length === 1) {
-    dropdown.value = finalHolders[0];
+  // Auto-select for online modes
+  if (mode === 'UPI') {
+    // UPI hamesha Firoz ke account me
+    if (finalHolders.includes('Firoz')) {
+      dropdown.value = 'Firoz';
+    } else if (finalHolders.length > 0) {
+      dropdown.value = finalHolders[0];
+    }
+  } else if (mode === 'Bank' || mode === 'Airbnb Payout') {
+    // Bank/Airbnb → company account (Firoz default)
+    if (finalHolders.includes('Firoz')) {
+      dropdown.value = 'Firoz';
+    } else if (finalHolders.length === 1) {
+      dropdown.value = finalHolders[0];
+    }
   }
   
   if (custom) { custom.style.display = 'none'; custom.value = ''; }
