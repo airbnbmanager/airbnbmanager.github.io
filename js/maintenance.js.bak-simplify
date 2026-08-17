@@ -788,10 +788,45 @@ window.onMaintPayModeChange = async function() {
   }
   
   // Load holders (cache)
-  // Only 2 options: Praveen + Company
+  if (!window._cashHoldersCache) {
+    const { data: holders } = await sb.from('cash_holders')
+      .select('name, type').eq('is_active', true).order('type').order('name');
+    window._cashHoldersCache = holders || [];
+  }
+  const holders = window._cashHoldersCache;
+  const finalH = holders.filter(h => h.type === 'final').map(h => h.name);
+  const mgrH = holders.filter(h => h.type === 'manager').map(h => h.name);
+  const recvH = holders.filter(h => h.type === 'receiver').map(h => h.name);
+  
   let html = '<option value="">-- Select --</option>';
-  html += '<option value="Praveen">🔵 Praveen (my pocket)</option>';
-  html += '<option value="Company">🏢 Company (company account)</option>';
+  
+  if (mode === 'Cash' || !mode) {
+    // Cash: sabhi holders (koi bhi cash spend kar sakta hai)
+    if (finalH.length) {
+      html += '<optgroup label="🏢 Final (Company)">';
+      finalH.forEach(n => html += `<option value="${n}">${n}</option>`);
+      html += '</optgroup>';
+    }
+    if (mgrH.length) {
+      html += '<optgroup label="👨‍💼 Manager">';
+      mgrH.forEach(n => html += `<option value="${n}">${n}</option>`);
+      html += '</optgroup>';
+    }
+    if (recvH.length) {
+      html += '<optgroup label="👥 Staff">';
+      recvH.forEach(n => html += `<option value="${n}">${n}</option>`);
+      html += '</optgroup>';
+    }
+  } else {
+    // UPI/Bank → only final holders (company accounts)
+    if (finalH.length) {
+      html += '<optgroup label="🏢 Company Accounts">';
+      finalH.forEach(n => html += `<option value="${n}">${n}</option>`);
+      html += '</optgroup>';
+    }
+  }
+  
+  html += '<option value="__custom__">➕ Custom Name...</option>';
   dropdown.innerHTML = html;
   
   // Auto-select Firoz for online modes

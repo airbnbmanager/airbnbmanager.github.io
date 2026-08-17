@@ -2869,30 +2869,6 @@ async function delBooking(bkId, guestName, roomId) {
 
 // ============ PAYMENT MODAL ============
 
-
-// ═══ Cash Book: Payment Received By helpers (uses cash_holders + employees) ═══
-async function loadReceiveByHolders() {
-  if (window._receiveHoldersCache) return window._receiveHoldersCache;
-  
-  const [{ data: holders }, { data: emps }] = await Promise.all([
-    sb.from('cash_holders').select('name, type').eq('is_active', true),
-    sb.from('employees').select('name, role').eq('status', 'Active')
-  ]);
-  
-  // Roles that CANNOT receive cash
-  const excludeRoles = ['Cleaning Staff', 'Maid', 'Dusting & Bedding'];
-  const cashReceivers = (emps || [])
-    .filter(e => !excludeRoles.includes(e.role))
-    .map(e => e.name);
-  
-  window._receiveHoldersCache = {
-    owners: (holders || []).filter(h => h.type === 'final').map(h => h.name),
-    manager: (holders || []).filter(h => h.type === 'manager').map(h => h.name),
-    employees: cashReceivers
-  };
-  return window._receiveHoldersCache;
-}
-
 // ═══ Cash Book: Payment Received By helpers (uses cash_holders DB) ═══
 window.onPayModeChange = async function() {
   const mode = document.getElementById('payMode')?.value;
@@ -2900,11 +2876,16 @@ window.onPayModeChange = async function() {
   const custom = document.getElementById('payReceivedByCustom');
   if (!receivedByEl) return;
 
-  // Load holders + employees (cached)
-  const data = await loadReceiveByHolders();
-  const finalHolders = data.owners;
-  const managers = data.manager;
-  const receivers = data.employees;
+  // Load cash_holders from DB (cached)
+  if (!window._cashHoldersCache) {
+    const { data: holders } = await sb.from('cash_holders')
+      .select('name, type').eq('is_active', true);
+    window._cashHoldersCache = holders || [];
+  }
+  const holders = window._cashHoldersCache;
+  const finalHolders = holders.filter(h => h.type === 'final').map(h => h.name);
+  const managers = holders.filter(h => h.type === 'manager').map(h => h.name);
+  const receivers = holders.filter(h => h.type === 'receiver').map(h => h.name);
 
   let html = '<option value="">-- Select who received --</option>';
 
@@ -4553,11 +4534,16 @@ window.onAdvanceModeChange = async function() {
     label.innerHTML = '💰 Received By *';
   }
   
-  // Load holders + employees (cached)
-  const data = await loadReceiveByHolders();
-  const finalHolders = data.owners;
-  const managers = data.manager;
-  const receivers = data.employees;
+  // Load cash_holders from DB
+  if (!window._cashHoldersCache) {
+    const { data: holders } = await sb.from('cash_holders')
+      .select('name, type').eq('is_active', true).order('type').order('name');
+    window._cashHoldersCache = holders || [];
+  }
+  const holders = window._cashHoldersCache;
+  const finalHolders = holders.filter(h => h.type === 'final').map(h => h.name);
+  const managers = holders.filter(h => h.type === 'manager').map(h => h.name);
+  const receivers = holders.filter(h => h.type === 'receiver').map(h => h.name);
   
   let html = '<option value="">-- Select --</option>';
   
@@ -4698,11 +4684,16 @@ window.onAdvanceModeChange = async function() {
     label.innerHTML = '💰 Received By *';
   }
   
-  // Load holders + employees (cached)
-  const data = await loadReceiveByHolders();
-  const finalHolders = data.owners;
-  const managers = data.manager;
-  const receivers = data.employees;
+  // Load cash_holders from DB
+  if (!window._cashHoldersCache) {
+    const { data: holders } = await sb.from('cash_holders')
+      .select('name, type').eq('is_active', true).order('type').order('name');
+    window._cashHoldersCache = holders || [];
+  }
+  const holders = window._cashHoldersCache;
+  const finalHolders = holders.filter(h => h.type === 'final').map(h => h.name);
+  const managers = holders.filter(h => h.type === 'manager').map(h => h.name);
+  const receivers = holders.filter(h => h.type === 'receiver').map(h => h.name);
   
   let html = '<option value="">-- Select --</option>';
   
@@ -4843,11 +4834,16 @@ window.onAdvanceModeChange = async function() {
     label.innerHTML = '💰 Received By *';
   }
   
-  // Load holders + employees (cached)
-  const data = await loadReceiveByHolders();
-  const finalHolders = data.owners;
-  const managers = data.manager;
-  const receivers = data.employees;
+  // Load cash_holders from DB
+  if (!window._cashHoldersCache) {
+    const { data: holders } = await sb.from('cash_holders')
+      .select('name, type').eq('is_active', true).order('type').order('name');
+    window._cashHoldersCache = holders || [];
+  }
+  const holders = window._cashHoldersCache;
+  const finalHolders = holders.filter(h => h.type === 'final').map(h => h.name);
+  const managers = holders.filter(h => h.type === 'manager').map(h => h.name);
+  const receivers = holders.filter(h => h.type === 'receiver').map(h => h.name);
   
   let html = '<option value="">-- Select --</option>';
   
@@ -4977,11 +4973,16 @@ window.onEditPayModeChange = async function() {
     else label.innerHTML = '💰 Received By *';
   }
   
-  // Load holders + employees (cached)
-  const dataE = await loadReceiveByHolders();
-  const finalH = dataE.owners;
-  const mgrH = dataE.manager;
-  const recvH = dataE.employees;
+  // Load cash_holders (use cache)
+  if (!window._cashHoldersCache) {
+    const { data: holders } = await sb.from('cash_holders')
+      .select('name, type').eq('is_active', true).order('type').order('name');
+    window._cashHoldersCache = holders || [];
+  }
+  const holders = window._cashHoldersCache;
+  const finalH = holders.filter(h => h.type === 'final').map(h => h.name);
+  const mgrH = holders.filter(h => h.type === 'manager').map(h => h.name);
+  const recvH = holders.filter(h => h.type === 'receiver').map(h => h.name);
   
   let html = '<option value="">-- Select --</option>';
   

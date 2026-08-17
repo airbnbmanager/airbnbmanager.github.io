@@ -182,38 +182,7 @@ async function renderAddMaintenance() {
       <div class="form-grid">
         <div class="form-group">
           <label>Cost ₹</label>
-          <input id="mCost" type="number" value="0" oninput="onMaintCostChange()">
-        </div>
-      </div>
-      
-      <!-- 💰 Payment Info (shown only if cost > 0) -->
-      <div id="maintPaymentSection" style="display:none;padding:12px;background:#FFF9E6;border:1px solid #FCD34D;border-radius:8px;margin:8px 0;">
-        <div style="font-weight:700;font-size:13px;margin-bottom:8px;color:#92400E;">💰 Payment Info</div>
-        <div class="form-grid">
-          <div class="form-group">
-            <label>Payment Mode</label>
-            <select id="mPaymentMode" onchange="onMaintPayModeChange()">
-              <option value="">-- Select --</option>
-              <option value="Cash">Cash</option>
-              <option value="UPI">UPI</option>
-              <option value="Bank">Bank</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label id="mPaidByLabel">💵 Paid By *</label>
-            <select id="mPaidBy">
-              <option value="">-- Select --</option>
-            </select>
-            <input id="mPaidByCustom" type="text" placeholder="Custom name..." style="display:none;margin-top:6px;" />
-          </div>
-        </div>
-        <div class="form-group">
-          <label>Payment Date</label>
-          <input id="mPaymentDate" type="date" value="${new Date().toISOString().slice(0,10)}">
-        </div>
-      </div>
-      <div class="form-group" style="display:none;">
-        <div>
+          <input id="mCost" type="number" value="0">
         </div>
         <div class="form-group">
           <label>Date</label>
@@ -369,54 +338,19 @@ async function saveMaintenance() {
     }
   }
   
-  const cost = parseFloat(document.getElementById('mCost').value) || 0;
-  const paidBy = getMaintPaidBy();
-  const payMode = document.getElementById('mPaymentMode')?.value || null;
-  const payDate = document.getElementById('mPaymentDate')?.value || null;
-  
-  // Validation: if cost > 0, payment info required
-  if (cost > 0 && (!paidBy || !payMode)) {
-    document.getElementById('mErr').innerHTML = '<div class="error">⚠️ Payment Mode aur Paid By required hai (cost > 0)</div>';
-    return;
-  }
-  
-  const { data: newMaint, error } = await sb.from('maintenance_log').insert({
+  const { error } = await sb.from('maintenance_log').insert({
     room_id: document.getElementById('mRoom').value || null,
     issue_type: getMaintType(),
     priority: document.getElementById('mPriority').value,
     description: desc,
-    cost: cost,
+    cost: parseFloat(document.getElementById('mCost').value) || 0,
     reported_date: document.getElementById('mDate').value,
     assigned_to: document.getElementById('mAssigned').value || null,
     vendor_name: document.getElementById('mVendor').value.trim() || null,
     status: document.getElementById('mStatus').value,
     photo_before: photoUrl,
-    notes: document.getElementById('mNotes').value.trim() || null,
-    paid_by: cost > 0 ? paidBy : null,
-    payment_mode: cost > 0 ? payMode : null,
-    payment_date: cost > 0 ? (payDate || new Date().toISOString().slice(0,10)) : null
-  }).select().single();
-  
-  // 🔥 AUTO cash_expenses entry (if cost paid)
-  if (!error && newMaint && cost > 0 && paidBy) {
-    try {
-      const vendorName = document.getElementById('mVendor')?.value?.trim() || 'Maintenance';
-      await sb.from('cash_expenses').insert({
-        paid_by: paidBy,
-        amount: cost,
-        category: 'maintenance',
-        linked_id: newMaint.id,
-        linked_type: 'maintenance_log',
-        paid_to: vendorName,
-        expense_date: payDate || new Date().toISOString().slice(0,10),
-        notes: `Maintenance: ${desc.slice(0, 100)}`,
-        source: payMode === 'Cash' ? 'guest_cash' : 'company_account'
-      });
-      console.log('✅ Auto cash_expenses entry created');
-    } catch(e) {
-      console.warn('cash_expenses insert failed:', e);
-    }
-  }
+    notes: document.getElementById('mNotes').value.trim() || null
+  });
   
   if (error) {
     document.getElementById('mErr').innerHTML = '<div class="error">' + error.message + '</div>';
@@ -429,10 +363,8 @@ async function saveMaintenance() {
 }
 
 async function editMaintenance(id) {
-  window._editMaintData = null;
   const [{ data: m }, { data: rooms }, { data: emps }] = await Promise.all([
     sb.from('maintenance_log').select('*').eq('id', id).single(),
-    // stored later via _editMaintData
     sb.from('rooms').select('room_id, nickname, unit_no').order('room_id'),
     sb.from('employees').select('emp_id, name').eq('status', 'Active').order('name')
   ]);
@@ -476,38 +408,7 @@ async function editMaintenance(id) {
       <div class="form-grid">
         <div class="form-group">
           <label>Cost ₹</label>
-          <input id="mCost" type="number" value="${m.cost || 0}" oninput="onMaintCostChange()">
-        </div>
-      </div>
-      
-      <!-- 💰 Payment Info -->
-      <div id="maintPaymentSection" style="display:${(m.cost || 0) > 0 ? 'block' : 'none'};padding:12px;background:#FFF9E6;border:1px solid #FCD34D;border-radius:8px;margin:8px 0;">
-        <div style="font-weight:700;font-size:13px;margin-bottom:8px;color:#92400E;">💰 Payment Info</div>
-        <div class="form-grid">
-          <div class="form-group">
-            <label>Payment Mode</label>
-            <select id="mPaymentMode" onchange="onMaintPayModeChange()">
-              <option value="">-- Select --</option>
-              <option value="Cash" ${m.payment_mode === 'Cash' ? 'selected' : ''}>Cash</option>
-              <option value="UPI" ${m.payment_mode === 'UPI' ? 'selected' : ''}>UPI</option>
-              <option value="Bank" ${m.payment_mode === 'Bank' ? 'selected' : ''}>Bank</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label id="mPaidByLabel">💵 Paid By *</label>
-            <select id="mPaidBy">
-              <option value="">-- Select --</option>
-            </select>
-            <input id="mPaidByCustom" type="text" placeholder="Custom name..." style="display:none;margin-top:6px;" />
-          </div>
-        </div>
-        <div class="form-group">
-          <label>Payment Date</label>
-          <input id="mPaymentDate" type="date" value="${m.payment_date || new Date().toISOString().slice(0,10)}">
-        </div>
-      </div>
-      <div class="form-group" style="display:none;">
-        <div>
+          <input id="mCost" type="number" value="${m.cost || 0}">
         </div>
         <div class="form-group">
           <label>Reported Date</label>
@@ -627,18 +528,8 @@ async function updateMaintenance() {
     vendor_name: document.getElementById('mVendor').value.trim() || null,
     status,
     photo_after: photoAfterUrl,
-    notes: document.getElementById('mNotes').value.trim() || null,
-    paid_by: (parseFloat(document.getElementById('mCost').value) || 0) > 0 ? getMaintPaidBy() : null,
-    payment_mode: (parseFloat(document.getElementById('mCost').value) || 0) > 0 ? (document.getElementById('mPaymentMode')?.value || null) : null,
-    payment_date: (parseFloat(document.getElementById('mCost').value) || 0) > 0 ? (document.getElementById('mPaymentDate')?.value || null) : null
+    notes: document.getElementById('mNotes').value.trim() || null
   };
-  
-  // Validation
-  const _cost = parseFloat(document.getElementById('mCost').value) || 0;
-  if (_cost > 0 && (!updateObj.paid_by || !updateObj.payment_mode)) {
-    document.getElementById('mErr').innerHTML = '<div class="error">⚠️ Payment Mode aur Paid By required hai (cost > 0)</div>';
-    return;
-  }
   
   // Auto-set resolved date if status changed to resolved
   if ((status === 'Resolved' || status === 'Verified') && !updateObj.resolved_date) {
@@ -651,62 +542,15 @@ async function updateMaintenance() {
     return;
   }
   
-  // 🔥 Sync cash_expenses entry
-  if (updateObj.cost > 0 && updateObj.paid_by) {
-    try {
-      // Delete old entry
-      await sb.from('cash_expenses').delete()
-        .eq('linked_type', 'maintenance_log').eq('linked_id', id);
-      
-      // Insert new
-      const vendorName = document.getElementById('mVendor')?.value?.trim() || 'Maintenance';
-      await sb.from('cash_expenses').insert({
-        paid_by: updateObj.paid_by,
-        amount: updateObj.cost,
-        category: 'maintenance',
-        linked_id: id,
-        linked_type: 'maintenance_log',
-        paid_to: vendorName,
-        expense_date: updateObj.payment_date || new Date().toISOString().slice(0,10),
-        notes: `Maintenance: ${(updateObj.description || '').slice(0, 100)}`,
-        source: updateObj.payment_mode === 'Cash' ? 'guest_cash' : 'company_account'
-      });
-      console.log('✅ cash_expenses synced on update');
-    } catch(e) {
-      console.warn('cash_expenses sync failed:', e);
-    }
-  } else {
-    // Cost = 0 or no paid_by → delete linked entry
-    await sb.from('cash_expenses').delete()
-      .eq('linked_type', 'maintenance_log').eq('linked_id', id);
-  }
-  
   window._maintAfterPhotoBlob = null;
   fsn.success('Success', '✅ Updated!');
   renderMaintenanceLog();
 }
 
-// Auto-init payment section on edit form open (delayed for DOM)
-window.addEventListener('load', () => {
-  const observer = new MutationObserver(() => {
-    const section = document.getElementById('maintPaymentSection');
-    const mode = document.getElementById('mPaymentMode');
-    if (section && mode && !section.dataset.inited) {
-      section.dataset.inited = '1';
-      const existingPaid = window._editMaintData?.paid_by || null;
-      setTimeout(() => window.initMaintPaymentSection(mode.value, existingPaid), 100);
-    }
-  });
-  observer.observe(document.body, { childList: true, subtree: true });
-});
-
 async function delMaintenance(id) {
   if (!confirm('Delete this maintenance record?')) return;
   await sb.from('maintenance_log').delete().eq('id', id);
-  // Auto delete linked cash_expense
-  await sb.from('cash_expenses').delete()
-    .eq('linked_type', 'maintenance_log').eq('linked_id', id);
-  fsn.success('Success', '✅ Deleted (cash entry also removed)');
+  fsn.success('Success', '✅ Deleted');
   renderMaintenanceLog();
 }
 
@@ -761,79 +605,3 @@ window._initMaintPhotoInputs = function() {
     setupMaintPhotoInput('mPhotoAfterCam', 'mPhotoAfterGal', 'mPhotoAfterPreview', '_maintAfterPhotoBlob');
   }, 200);
 };
-
-// ═══════════════════════════════════════════════════════════
-// 💰 MAINTENANCE — Paid By dropdown handlers
-// ═══════════════════════════════════════════════════════════
-window.onMaintCostChange = function() {
-  const cost = parseFloat(document.getElementById('mCost')?.value) || 0;
-  const section = document.getElementById('maintPaymentSection');
-  if (section) section.style.display = cost > 0 ? 'block' : 'none';
-};
-
-window.onMaintPayModeChange = async function() {
-  const mode = document.getElementById('mPaymentMode')?.value;
-  const dropdown = document.getElementById('mPaidBy');
-  const label = document.getElementById('mPaidByLabel');
-  const custom = document.getElementById('mPaidByCustom');
-  
-  if (!dropdown) return;
-  
-  // Update label
-  if (label) {
-    if (mode === 'Cash') label.innerHTML = '💵 Cash Paid By *';
-    else if (mode === 'UPI') label.innerHTML = '📱 UPI Paid From *';
-    else if (mode === 'Bank') label.innerHTML = '🏦 Bank Account *';
-    else label.innerHTML = '💵 Paid By *';
-  }
-  
-  // Load holders (cache)
-  // Only 2 options: Praveen + Company
-  let html = '<option value="">-- Select --</option>';
-  html += '<option value="Praveen">🔵 Praveen (my pocket)</option>';
-  html += '<option value="Company">🏢 Company (company account)</option>';
-  dropdown.innerHTML = html;
-  
-  // Auto-select Firoz for online modes
-  if (mode === 'UPI' || mode === 'Bank') {
-    if (finalH.includes('Firoz')) dropdown.value = 'Firoz';
-  }
-  
-  // Handle custom toggle
-  dropdown.onchange = function() {
-    if (custom) {
-      if (this.value === '__custom__') { custom.style.display = 'block'; setTimeout(() => custom.focus(), 50); }
-      else { custom.style.display = 'none'; custom.value = ''; }
-    }
-  };
-  
-  if (custom) { custom.style.display = 'none'; custom.value = ''; }
-};
-
-window.getMaintPaidBy = function() {
-  const dropdown = document.getElementById('mPaidBy');
-  if (!dropdown) return null;
-  if (dropdown.value === '__custom__') {
-    return document.getElementById('mPaidByCustom')?.value?.trim() || null;
-  }
-  return dropdown.value || null;
-};
-
-// Pre-populate on edit form load
-window.initMaintPaymentSection = async function(existingMode, existingPaidBy) {
-  const modeEl = document.getElementById('mPaymentMode');
-  if (modeEl && existingMode) modeEl.value = existingMode;
-  await window.onMaintPayModeChange();
-  const dropdown = document.getElementById('mPaidBy');
-  if (dropdown && existingPaidBy) {
-    const exists = Array.from(dropdown.options).some(o => o.value === existingPaidBy);
-    if (exists) dropdown.value = existingPaidBy;
-    else {
-      dropdown.value = '__custom__';
-      const custom = document.getElementById('mPaidByCustom');
-      if (custom) { custom.style.display = 'block'; custom.value = existingPaidBy; }
-    }
-  }
-};
-
-console.log('✅ Maintenance Paid-By module loaded');
