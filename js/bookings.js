@@ -145,7 +145,7 @@ window.rejectPayment = async function(payId) {
 async function showGuestLedger(guestName) {
   const {data:bookings} = await sb.from('guest_register')
     .select('*, rooms(nickname, unit_no)')
-    .ilike('guest_name', `%${guestName}%`)
+    .eq('guest_name', guestName)
     .order('check_in', {ascending:false});
 
   if (!bookings || !bookings.length) { fsn.info('Info', 'No bookings found for: ' + guestName); return; }
@@ -240,7 +240,7 @@ async function showGuestLedger(guestName) {
 async function printGuestLedger(guestName) {
   const {data:bookings} = await sb.from('guest_register')
     .select('*, rooms(nickname, unit_no, property_name)')
-    .ilike('guest_name', '%' + guestName + '%')
+    .eq('guest_name', guestName)
     .order('check_in', {ascending:false});
   if (!bookings || !bookings.length) { fsn.info('Info', 'No bookings'); return; }
 
@@ -354,7 +354,7 @@ async function printGuestLedger(guestName) {
 async function whatsappGuestLedger(guestName) {
   const {data:bookings} = await sb.from('guest_register')
     .select('*, rooms(nickname, unit_no, property_name)')
-    .ilike('guest_name', '%' + guestName + '%')
+    .eq('guest_name', guestName)
     .order('check_in', {ascending:false});
   if (!bookings || !bookings.length) { fsn.info('Info', 'No bookings'); return; }
 
