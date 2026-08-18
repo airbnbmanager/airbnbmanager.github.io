@@ -14,8 +14,8 @@ window.renderCashBook = async function() {
   // Fetch all data
   const [{ data: holders }, { data: payments }, { data: handovers }] = await Promise.all([
     sb.from('cash_holders').select('*').eq('is_active', true),
-    sb.from('payment_history').select('received_by, amount, booking_id, payment_date, payment_mode, guest_register(guest_name, rooms(nickname))').eq('payment_mode', 'Cash').neq('verification_status', 'rejected'),
-    sb.from('cash_handovers').select('*').order('handover_date', { ascending: false })
+    sb.from('payment_history').select('received_by, amount, booking_id, payment_date, payment_mode, guest_register(guest_name, rooms(nickname))').eq('payment_mode', 'Cash').neq('verification_status', 'rejected').gte('payment_date', '2026-08-19'),
+    sb.from('cash_handovers').select('*').gte('handover_date', '2026-08-19').order('handover_date', { ascending: false })
   ]);
   const expenses = []; // No longer tracking expenses in Cash Book
   
@@ -284,8 +284,8 @@ window.cbReport = async function() {
   
   const [{ data: holders }, { data: payments }, { data: handovers }] = await Promise.all([
     sb.from('cash_holders').select('*').eq('is_active', true),
-    sb.from('payment_history').select('booking_id, amount, received_by, payment_date, guest_register(guest_name, rooms(nickname))').eq('payment_mode', 'Cash').neq('verification_status', 'rejected'),
-    sb.from('cash_handovers').select('*').order('handover_date', { ascending: false })
+    sb.from('payment_history').select('booking_id, amount, received_by, payment_date, guest_register(guest_name, rooms(nickname))').eq('payment_mode', 'Cash').neq('verification_status', 'rejected').gte('payment_date', '2026-08-19'),
+    sb.from('cash_handovers').select('*').gte('handover_date', '2026-08-19').order('handover_date', { ascending: false })
   ]);
   const expenses = []; // No longer tracking expenses in Cash Book
   
