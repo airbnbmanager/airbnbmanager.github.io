@@ -1,424 +1,323 @@
 // ═══════════════════════════════════════════════════════════
-// 👥 EMPLOYEE LEDGER MODULE
-// Tracks: Salary earned, paid, advances, opening balance
+// 👥 EMPLOYEE LEDGER — Clean HRMS System
+// Month filter + Salary + Advance auto-deduct
 // ═══════════════════════════════════════════════════════════
 
 window.EMPLOYEE_LEDGER = {
   
-  // Calculate salary earned using ATTENDANCE_LOG (attendance-based)
-  // Returns { earned, present, half, absent, workDays }
-  async calculateEarned(empId, joiningDate, monthlySalary, asOnDate) {
-    const rolloutDate = '2026-08-01';
-    const startDate = joiningDate && joiningDate > rolloutDate ? joiningDate : rolloutDate;
-    const endDate = asOnDate;
-    
-    if (startDate > endDate) return { earned: 0, present: 0, half: 0, absent: 0, workDays: 0 };
-    
-    const { data: attendance } = await sb.from('attendance_log')
-      .select('att_date, status')
-      .eq('emp_id', empId)
-      .gte('att_date', startDate)
-      .lte('att_date', endDate);
-    
-    let present = 0, half = 0, absent = 0;
-    (attendance || []).forEach(a => {
-      if (a.status === 'Present') present += 1;
-      else if (a.status === 'Half Day') half += 1;
-      else if (a.status === 'Absent') absent += 1;
-    });
-    
-    const workDays = present + (half * 0.5);
-    const dailyRate = monthlySalary / 30;
-    const earned = Math.round(dailyRate * workDays);
-    
-    return { earned, present, half, absent, workDays };
+  // Get days in month + days elapsed till today
+  getMonthInfo(monthStr) {
+    const [year, month] = monthStr.split('-').map(Number);
+    const daysInMonth = new Date(year, month, 0).getDate();
+    const today = new Date();
+    const isCurrentMonth = today.getFullYear() === year && (today.getMonth() + 1) === month;
+    const daysElapsed = isCurrentMonth ? today.getDate() : daysInMonth;
+    return { daysInMonth, daysElapsed, isCurrentMonth };
   },
 
-  // Get full ledger for all employees
-  async getLedger(asOnDate) {
-    const today = asOnDate || new Date().toISOString().slice(0, 10);
+  // Calculate salary earned for given month
+  async calculateSalaryEarned(emp, monthStr) {
+    const { daysInMonth, daysElapsed } = this.getMonthInfo(monthStr);
+    const monthStart = monthStr + '-01';
+    const monthEnd = monthStr + '-' + String(daysInMonth).padStart(2, '0');
     
-    // 1. All active employees
-    const { data: emps } = await sb.from('employees')
-      .select('emp_id, name, role, monthly_salary, joining_date, status')
-      .eq('status', 'Active')
-      .order('name');
+    // Get attendance for month
+    const { data: attendance } = await sb.from('attendance_log')
+      .select('att_date, status')
+      .eq('emp_id', emp.emp_id)
+      .gte('att_date', monthStart)
+      .lte('att_date', monthEnd);
     
-    // 2. All salary_tracker entries
-    const { data: salaries } = await sb.from('salary_tracker')
-      .select('*');
+    const present = (attendance || []).filter(a => a.status === 'Present').length;
+    const half = (attendance || []).filter(a => a.status === 'Half Day').length;
+    const absent = (attendance || []).filter(a => a.status === 'Absent').length;
+    const workedDays = present + (half * 0.5);
     
-    // 3. All advances (from advance_tracker)
-    const { data: advances } = await sb.from('advance_tracker')
-      .select('*');
+    let earned = 0;
+    let breakdown = '';
     
-    // Build ledger for each employee (async because of attendance fetch)
-    const ledger = await Promise.all((emps || []).map(async (emp) => {
-      // Salary earned from attendance (returns object with stats)
-      const earnedData = await this.calculateEarned(emp.emp_id, emp.joining_date, emp.monthly_salary, today);
-      const earned = earnedData.earned;
-      
-      // Opening balance (if any)
-      const opening = (salaries || [])
-        .filter(s => s.emp_id === emp.emp_id && s.is_opening_balance)
-        .reduce((sum, s) => sum + (s.salary_due - s.salary_paid), 0);
-      
-      // Regular salary payments (non-opening)
-      const paid = (salaries || [])
-        .filter(s => s.emp_id === emp.emp_id && !s.is_opening_balance)
-        .reduce((sum, s) => sum + (s.salary_paid || 0), 0);
-      
-      // Advances taken (unrepaid portion)
-      const empAdvances = (advances || []).filter(a => a.emp_id === emp.emp_id);
-      const totalAdvance = empAdvances.reduce((sum, a) => sum + (a.advance_amount || 0), 0);
-      const advanceRepaid = empAdvances.reduce((sum, a) => sum + (a.repaid_amount || 0), 0);
-      const advanceOutstanding = totalAdvance - advanceRepaid;
-      
-      // Net balance = Opening + Earned - Paid - Advance Outstanding
-      const balance = opening + earned - paid - advanceOutstanding;
-      
-      return {
-        ...emp,
-        earned,
-        earnedData, // { earned, present, half, absent, workDays }
-        opening,
-        paid,
-        advanceOutstanding,
-        balance,
-        status: balance > 0 ? 'company_owes' : balance < 0 ? 'employee_owes' : 'settled'
-      };
-    }));
+    if (emp.employee_type === 'per_flat' && emp.per_flat_rate > 0) {
+      // Laxmi type: per flat cleaning
+      // TODO: fetch flats_cleaned from log — for now use present days × 3 flats
+      const flatsCleaned = present * 3;
+      earned = flatsCleaned * emp.per_flat_rate;
+      breakdown = flatsCleaned + ' flats × ₹' + emp.per_flat_rate;
+    } else if (emp.employee_type === 'per_day' && emp.daily_wage > 0) {
+      earned = workedDays * emp.daily_wage;
+      breakdown = workedDays + ' days × ₹' + emp.daily_wage;
+    } else {
+      // Monthly (default)
+      const dailyRate = emp.monthly_salary / 30;
+      earned = Math.round(workedDays * dailyRate);
+      breakdown = workedDays + ' days × ₹' + Math.round(dailyRate) + '/day';
+    }
     
-    return ledger;
+    return { earned, present, half, absent, workedDays, breakdown, daysInMonth, daysElapsed };
   },
-  
-  // Get totals
-  getTotals(ledger) {
-    const companyOwes = ledger.filter(e => e.balance > 0).reduce((s, e) => s + e.balance, 0);
-    const owedToCompany = ledger.filter(e => e.balance < 0).reduce((s, e) => s + Math.abs(e.balance), 0);
-    return { companyOwes, owedToCompany, net: companyOwes - owedToCompany };
+
+  // Get salary paid in month
+  async getSalaryPaid(empId, monthStr) {
+    const monthStart = monthStr + '-01';
+    const [y, m] = monthStr.split('-').map(Number);
+    const lastDay = new Date(y, m, 0).getDate();
+    const monthEnd = monthStr + '-' + String(lastDay).padStart(2, '0');
+    
+    const { data } = await sb.from('salary_tracker')
+      .select('salary_paid')
+      .eq('emp_id', empId)
+      .gte('payment_date', monthStart)
+      .lte('payment_date', monthEnd);
+    
+    return (data || []).reduce((s, r) => s + Number(r.salary_paid || 0), 0);
+  },
+
+  // Get advances given in month (not yet deducted)
+  async getPendingAdvances(empId, monthStr) {
+    const monthStart = monthStr + '-01';
+    const [y, m] = monthStr.split('-').map(Number);
+    const lastDay = new Date(y, m, 0).getDate();
+    const monthEnd = monthStr + '-' + String(lastDay).padStart(2, '0');
+    
+    const { data } = await sb.from('advance_tracker')
+      .select('*')
+      .eq('emp_id', empId)
+      .gte('date_given', monthStart)
+      .lte('date_given', monthEnd)
+      .eq('is_deducted', false);
+    
+    return data || [];
+  },
+
+  // Get opening balance (previous months pending)
+  async getOpeningBalance(empId, monthStr) {
+    const monthStart = monthStr + '-01';
+    const { data } = await sb.from('salary_tracker')
+      .select('salary_due, salary_paid')
+      .eq('emp_id', empId)
+      .lt('payment_date', monthStart);
+    
+    const totalDue = (data || []).reduce((s, r) => s + Number(r.salary_due || 0), 0);
+    const totalPaid = (data || []).reduce((s, r) => s + Number(r.salary_paid || 0), 0);
+    return totalDue - totalPaid;
   }
 };
 
 // ═══════════════════════════════════════════════════════════
-// UI: Render Employee Ledger
+// MAIN RENDER FUNCTION
 // ═══════════════════════════════════════════════════════════
-
 window.renderEmployeeLedger = async function() {
-  if (!['developer', 'owner', 'admin'].includes(SESSION.role)) {
-    renderShell('<div class="card"><div class="error">❌ Only Owner/Admin/Developer</div></div>', 'employee-ledger');
+  if (!['developer', 'owner', 'admin', 'manager'].includes(SESSION.role)) {
+    renderShell('<div class="card"><div class="error">❌ Access denied</div></div>', 'employee-ledger');
     return;
   }
+  
+  // Selected month (default: current)
+  const now = new Date();
+  const currentMonth = now.toISOString().slice(0, 7); // YYYY-MM
+  const selectedMonth = window._empLedgerMonth || currentMonth;
   
   renderShell('<div class="loading">Loading ledger...</div>', 'employee-ledger');
   
-  const today = new Date().toISOString().slice(0, 10);
-  const ledger = await EMPLOYEE_LEDGER.getLedger(today);
-  const totals = EMPLOYEE_LEDGER.getTotals(ledger);
+  // Fetch active employees
+  const { data: emps } = await sb.from('employees')
+    .select('*')
+    .eq('status', 'Active')
+    .order('name');
   
-  // Sort: company_owes first, then settled, then employee_owes
-  ledger.sort((a, b) => b.balance - a.balance);
+  if (!emps || emps.length === 0) {
+    renderShell('<div class="card"><h1>📒 Employee Ledger</h1><div class="sub">No active employees</div></div>', 'employee-ledger');
+    return;
+  }
   
-  renderShell(`
+  // Build ledger data for each employee
+  const ledger = [];
+  for (const emp of emps) {
+    const earnedData = await EMPLOYEE_LEDGER.calculateSalaryEarned(emp, selectedMonth);
+    const paid = await EMPLOYEE_LEDGER.getSalaryPaid(emp.emp_id, selectedMonth);
+    const advances = await EMPLOYEE_LEDGER.getPendingAdvances(emp.emp_id, selectedMonth);
+    const opening = await EMPLOYEE_LEDGER.getOpeningBalance(emp.emp_id, selectedMonth);
+    const advanceTotal = advances.reduce((s, a) => s + Number(a.advance_amount || 0), 0);
+    const netPayable = opening + earnedData.earned - paid - advanceTotal;
+    
+    ledger.push({
+      ...emp,
+      earnedData,
+      paid,
+      advances,
+      advanceTotal,
+      opening,
+      netPayable
+    });
+  }
+  
+  // Sort: highest owed first
+  ledger.sort((a, b) => b.netPayable - a.netPayable);
+  
+  // Month options (last 6 months + next 1)
+  const monthOptions = [];
+  for (let i = -6; i <= 0; i++) {
+    const d = new Date(now.getFullYear(), now.getMonth() + i, 1);
+    const val = d.toISOString().slice(0, 7);
+    const label = d.toLocaleDateString('en-IN', { month: 'long', year: 'numeric' });
+    monthOptions.push({ val, label });
+  }
+  
+  const totalPayable = ledger.reduce((s, e) => s + Math.max(e.netPayable, 0), 0);
+  const totalAdvanceOut = ledger.reduce((s, e) => s + e.advanceTotal, 0);
+  
+  // Build HTML
+  let html = `
     <div class="card">
-      <h1>👥 Employee Ledger</h1>
-      <div class="sub">As on ${new Date(today).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</div>
+      <h1>📒 Employee Ledger</h1>
+      <div class="sub">Salary + Advance tracking (attendance-based)</div>
       
-      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:14px;">
+      <div style="display:flex;gap:12px;align-items:center;margin-top:14px;flex-wrap:wrap;">
+        <label style="font-size:13px;font-weight:600;">📅 Month:</label>
+        <select onchange="window._empLedgerMonth=this.value;renderEmployeeLedger();" 
+                style="padding:8px 12px;border:1px solid #ddd;border-radius:8px;font-size:14px;font-weight:600;">
+          ${monthOptions.map(m => 
+            '<option value="' + m.val + '"' + (m.val === selectedMonth ? ' selected' : '') + '>' + m.label + '</option>'
+          ).join('')}
+        </select>
+      </div>
+      
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-top:14px;">
         <div style="padding:14px;background:#FEF3C7;border-radius:10px;text-align:center;">
-          <div style="font-size:11px;color:#92400E;font-weight:600;">Company Owes</div>
-          <div style="font-size:22px;font-weight:800;color:#D97706;margin-top:4px;">₹${totals.companyOwes.toLocaleString('en-IN')}</div>
+          <div style="font-size:11px;color:#92400E;font-weight:600;">💰 TOTAL PAYABLE</div>
+          <div style="font-size:22px;font-weight:800;color:#D97706;margin-top:4px;">₹${totalPayable.toLocaleString('en-IN')}</div>
         </div>
-        <div style="padding:14px;background:#DCFCE7;border-radius:10px;text-align:center;">
-          <div style="font-size:11px;color:#166534;font-weight:600;">Owed to Company</div>
-          <div style="font-size:22px;font-weight:800;color:#16A34A;margin-top:4px;">₹${totals.owedToCompany.toLocaleString('en-IN')}</div>
+        <div style="padding:14px;background:#FEE2E2;border-radius:10px;text-align:center;">
+          <div style="font-size:11px;color:#991B1B;font-weight:600;">🎁 ADVANCE OUTSTANDING</div>
+          <div style="font-size:22px;font-weight:800;color:#DC2626;margin-top:4px;">₹${totalAdvanceOut.toLocaleString('en-IN')}</div>
         </div>
         <div style="padding:14px;background:#DBEAFE;border-radius:10px;text-align:center;">
-          <div style="font-size:11px;color:#1E40AF;font-weight:600;">Net Liability</div>
-          <div style="font-size:22px;font-weight:800;color:#2563EB;margin-top:4px;">₹${totals.net.toLocaleString('en-IN')}</div>
+          <div style="font-size:11px;color:#1E40AF;font-weight:600;">👥 EMPLOYEES</div>
+          <div style="font-size:22px;font-weight:800;color:#2563EB;margin-top:4px;">${ledger.length}</div>
         </div>
       </div>
-      
-      <div style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap;">
-        <button onclick="showOpeningBalanceModal()" style="padding:8px 14px;background:#7C3AED;color:#fff;border:none;border-radius:6px;font-weight:600;cursor:pointer;">
-          📝 Set Opening Balance
-        </button>
-        <button onclick="showPaySalaryModal()" style="padding:8px 14px;background:#059669;color:#fff;border:none;border-radius:6px;font-weight:600;cursor:pointer;">
-          💰 Pay Salary
-        </button>
-      </div>
-    </div>
-    
-    <div class="card">
-      <div class="section-title">Employee Balances</div>
-      
-      ${ledger.map(emp => {
-        const bal = emp.balance;
-        const isPositive = bal > 0;
-        const isZero = bal === 0;
-        const color = isPositive ? '#D97706' : isZero ? '#6B7280' : '#DC2626';
-        const bgColor = isPositive ? '#FEF3C7' : isZero ? '#F3F4F6' : '#FEE2E2';
-        const statusLabel = isPositive ? 'Company Owes' : isZero ? 'Settled' : 'Owes Company';
-        
-        return `
-          <div style="border:1px solid #E5E7EB;border-radius:10px;padding:14px;margin-bottom:10px;background:#fff;">
-            <div style="display:flex;justify-content:space-between;align-items:start;flex-wrap:wrap;gap:8px;">
-              <div style="flex:1;min-width:200px;">
-                <div style="font-size:16px;font-weight:700;color:#111827;">${emp.name}</div>
-                <div style="font-size:11px;color:#6B7280;margin-top:2px;">
-                  ${emp.role} · ₹${emp.monthly_salary.toLocaleString('en-IN')}/mo
-                  ${emp.joining_date ? ' · Joined ' + new Date(emp.joining_date).toLocaleDateString('en-IN', {day:'numeric', month:'short'}) : ''}
-                </div>
-              </div>
-              <div style="text-align:right;">
-                <div style="font-size:10px;color:${color};font-weight:600;text-transform:uppercase;">${statusLabel}</div>
-                <div style="font-size:22px;font-weight:800;color:${color};">₹${Math.abs(bal).toLocaleString('en-IN')}</div>
-              </div>
-            </div>
-            
-            <div style="margin-top:10px;padding-top:10px;border-top:1px dashed #E5E7EB;">
-              
-              <!-- Opening Balance (Manual) -->
-              <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 8px;background:#F3F4F6;border-radius:6px;margin-bottom:6px;">
-                <div>
-                  <div style="font-size:10px;color:#6B7280;">📅 Opening (31 Jul 2026)</div>
-                  <div style="font-size:14px;font-weight:700;color:#111827;">₹${emp.opening.toLocaleString('en-IN')}</div>
-                </div>
-                <button onclick="editOpeningBalance('${emp.emp_id}', '${emp.name}')" style="padding:4px 10px;background:#8B5CF6;color:#fff;border:none;border-radius:4px;font-size:11px;font-weight:600;cursor:pointer;">✏️ Edit</button>
-              </div>
-              
-              <!-- Current Month (Auto from attendance) -->
-              <div style="padding:6px 8px;background:#EFF6FF;border-radius:6px;margin-bottom:6px;">
-                <div style="display:flex;justify-content:space-between;align-items:center;">
-                  <div>
-                    <div style="font-size:10px;color:#1E40AF;">📆 August 2026 (auto)</div>
-                    <div style="font-size:14px;font-weight:700;color:#111827;">₹${emp.earned.toLocaleString('en-IN')}</div>
-                  </div>
-                  <div style="font-size:10px;color:#6B7280;text-align:right;">
-                    ✅ ${emp.earnedData.present}P · 🕐 ${emp.earnedData.half}H · ❌ ${emp.earnedData.absent}A
-                  </div>
-                </div>
-              </div>
-              
-              <!-- Total & Paid -->
-              <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:6px;">
-                <div style="padding:6px;background:#FEF3C7;border-radius:6px;text-align:center;">
-                  <div style="font-size:10px;color:#92400E;">Total Earned</div>
-                  <div style="font-size:13px;font-weight:700;color:#111827;">₹${(emp.opening + emp.earned).toLocaleString('en-IN')}</div>
-                </div>
-                <div style="padding:6px;background:#DCFCE7;border-radius:6px;text-align:center;">
-                  <div style="font-size:10px;color:#166534;">Paid</div>
-                  <div style="font-size:13px;font-weight:700;color:#059669;">₹${emp.paid.toLocaleString('en-IN')}</div>
-                </div>
-                <div style="padding:6px;background:#FEE2E2;border-radius:6px;text-align:center;">
-                  <div style="font-size:10px;color:#991B1B;">Advance Due</div>
-                  <div style="font-size:13px;font-weight:700;color:#DC2626;">₹${emp.advanceOutstanding.toLocaleString('en-IN')}</div>
-                </div>
-              </div>
-            </div>
-            
-            <div style="margin-top:8px;display:flex;gap:6px;">
-              <button onclick="showPaySalaryModal('${emp.emp_id}')" style="flex:1;padding:6px;background:#059669;color:#fff;border:none;border-radius:5px;font-size:12px;font-weight:600;cursor:pointer;">💰 Pay</button>
-              <button onclick="showEmployeeHistory('${emp.emp_id}', '${emp.name}')" style="flex:1;padding:6px;background:#6366F1;color:#fff;border:none;border-radius:5px;font-size:12px;font-weight:600;cursor:pointer;">📊 History</button>
-            </div>
-          </div>
-        `;
-      }).join('')}
-    </div>
-  `, 'employee-ledger');
-};
-
-// ═══════════════════════════════════════════════════════════
-// Opening Balance Modal
-// ═══════════════════════════════════════════════════════════
-
-window.showOpeningBalanceModal = async function() {
-  const { data: emps } = await sb.from('employees')
-    .select('emp_id, name').eq('status', 'Active').order('name');
-  
-  const modal = document.createElement('div');
-  modal.className = 'modal-overlay';
-  modal.onclick = e => { if (e.target === modal) modal.remove(); };
-  modal.innerHTML = `
-    <div class="modal-box" style="max-width:500px;">
-      <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">✕</button>
-      <h2>📝 Set Opening Balance</h2>
-      <div class="sub">Pending amount as of a specific date (before rollout)</div>
-      
-      <div class="form-group" style="margin-top:12px;">
-        <label>Effective Date *</label>
-        <input id="obDate" type="date" value="2026-07-31" onchange="checkExistingOpening()" />
-      </div>
-      
-      <div class="form-group">
-        <label>Employee *</label>
-        <select id="obEmp" onchange="checkExistingOpening()">
-          <option value="">-- Select Employee --</option>
-          ${(emps || []).map(e => `<option value="${e.emp_id}">${e.name}</option>`).join('')}
-        </select>
-      </div>
-      
-      <div id="obExistBanner" style="display:none;padding:10px;background:#FEF3C7;border-left:4px solid #F59E0B;border-radius:6px;margin-bottom:10px;font-size:12px;color:#92400E;"></div>
-      
-      <div class="form-group">
-        <label>Type *</label>
-        <select id="obType">
-          <option value="company_owes">Company owes Employee (pending salary)</option>
-          <option value="employee_owes">Employee owes Company (advance)</option>
-        </select>
-      </div>
-      
-      <div class="form-group">
-        <label>Amount ₹ *</label>
-        <input id="obAmount" type="number" placeholder="Amount" />
-      </div>
-      
-      <div class="form-group">
-        <label>Notes</label>
-        <input id="obNotes" type="text" placeholder="e.g., Pending from July" />
-      </div>
-      
-      <div id="obErr"></div>
-      
-      <button id="obSaveBtn" onclick="saveOpeningBalance()" style="width:100%;margin-top:10px;background:#7C3AED;color:#fff;padding:10px;border:none;border-radius:6px;font-weight:600;cursor:pointer;">
-        💾 Save Opening Balance
-      </button>
     </div>
   `;
-  document.body.appendChild(modal);
-};
-
-// Check if opening balance exists — auto-fill form for update
-window.checkExistingOpening = async function() {
-  const empId = document.getElementById('obEmp').value;
-  const banner = document.getElementById('obExistBanner');
-  const saveBtn = document.getElementById('obSaveBtn');
   
-  if (!empId) {
-    banner.style.display = 'none';
-    saveBtn.innerHTML = '💾 Save Opening Balance';
-    return;
-  }
-  
-  const { data: existing } = await sb.from('salary_tracker')
-    .select('*')
-    .eq('emp_id', empId)
-    .eq('is_opening_balance', true)
-    .maybeSingle();
-  
-  if (existing) {
-    // EXISTS — auto-fill form
-    const type = existing.salary_due > 0 ? 'company_owes' : 'employee_owes';
-    const amount = existing.salary_due > 0 ? existing.salary_due : existing.salary_paid;
+  // Employee cards
+  for (const emp of ledger) {
+    const bal = emp.netPayable;
+    const balColor = bal > 0 ? '#D97706' : (bal < 0 ? '#DC2626' : '#059669');
+    const balBg = bal > 0 ? '#FEF3C7' : (bal < 0 ? '#FEE2E2' : '#D1FAE5');
+    const status = bal > 0 ? 'COMPANY OWES' : (bal < 0 ? 'EMPLOYEE OWES' : 'SETTLED');
     
-    document.getElementById('obType').value = type;
-    document.getElementById('obAmount').value = amount;
-    document.getElementById('obNotes').value = existing.notes || '';
-    if (existing.payment_date) document.getElementById('obDate').value = existing.payment_date;
-    
-    banner.style.display = 'block';
-    banner.innerHTML = '⚠️ <strong>Existing opening balance found:</strong> ₹' + amount + ' — Save will UPDATE existing entry';
-    saveBtn.innerHTML = '✏️ Update Opening Balance';
-    saveBtn.style.background = '#F59E0B';
-  } else {
-    banner.style.display = 'none';
-    saveBtn.innerHTML = '💾 Save Opening Balance';
-    saveBtn.style.background = '#7C3AED';
-    document.getElementById('obAmount').value = '';
-    document.getElementById('obNotes').value = '';
+    html += `
+      <div class="card" style="border-left:4px solid ${balColor};">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;">
+          <div style="flex:1;min-width:200px;">
+            <div style="font-size:17px;font-weight:700;color:#111827;">${emp.name}</div>
+            <div style="font-size:12px;color:#6B7280;margin-top:4px;">
+              ${emp.role} · ${emp.employee_type === 'per_flat' ? '₹' + emp.per_flat_rate + '/flat' : (emp.employee_type === 'per_day' ? '₹' + emp.daily_wage + '/day' : '₹' + emp.monthly_salary.toLocaleString('en-IN') + '/mo')}
+            </div>
+          </div>
+          <div style="text-align:right;background:${balBg};padding:10px 16px;border-radius:10px;">
+            <div style="font-size:10px;color:${balColor};font-weight:700;letter-spacing:0.5px;">${status}</div>
+            <div style="font-size:24px;font-weight:800;color:${balColor};">₹${Math.abs(bal).toLocaleString('en-IN')}</div>
+          </div>
+        </div>
+        
+        <!-- Breakdown -->
+        <div style="margin-top:14px;padding:12px;background:#F9FAFB;border-radius:8px;">
+          
+          ${emp.opening !== 0 ? `
+          <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px dashed #E5E7EB;">
+            <span style="font-size:13px;color:#6B7280;">📅 Opening balance (previous months)</span>
+            <span style="font-size:14px;font-weight:700;color:${emp.opening > 0 ? '#059669' : '#DC2626'};">
+              ${emp.opening > 0 ? '+' : ''}₹${emp.opening.toLocaleString('en-IN')}
+            </span>
+          </div>
+          ` : ''}
+          
+          <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px dashed #E5E7EB;">
+            <span style="font-size:13px;color:#059669;">💵 Salary earned (${emp.earnedData.breakdown})</span>
+            <span style="font-size:14px;font-weight:700;color:#059669;">+₹${emp.earnedData.earned.toLocaleString('en-IN')}</span>
+          </div>
+          
+          <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px dashed #E5E7EB;">
+            <span style="font-size:13px;color:#DC2626;">💸 Salary paid this month</span>
+            <span style="font-size:14px;font-weight:700;color:#DC2626;">-₹${emp.paid.toLocaleString('en-IN')}</span>
+          </div>
+          
+          ${emp.advanceTotal > 0 ? `
+          <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px dashed #E5E7EB;">
+            <span style="font-size:13px;color:#DC2626;">🎁 Advance given (${emp.advances.length} entries)</span>
+            <span style="font-size:14px;font-weight:700;color:#DC2626;">-₹${emp.advanceTotal.toLocaleString('en-IN')}</span>
+          </div>
+          ` : ''}
+          
+          <div style="display:flex;justify-content:space-between;padding:10px 0 4px;border-top:2px solid #E5E7EB;margin-top:6px;">
+            <span style="font-size:14px;font-weight:700;color:#111827;">💰 Net Payable</span>
+            <span style="font-size:16px;font-weight:800;color:${balColor};">₹${bal.toLocaleString('en-IN')}</span>
+          </div>
+          
+          <div style="font-size:10px;color:#6B7280;margin-top:6px;">
+            ✅ ${emp.earnedData.present} Present · 🕐 ${emp.earnedData.half} Half · ❌ ${emp.earnedData.absent} Absent (out of ${emp.earnedData.daysElapsed} days)
+          </div>
+        </div>
+        
+        <!-- Advance entries detail (if any) -->
+        ${emp.advances.length > 0 ? `
+        <div style="margin-top:10px;padding:10px;background:#FEF3C7;border-radius:8px;">
+          <div style="font-size:11px;font-weight:700;color:#92400E;margin-bottom:6px;">🎁 ADVANCES THIS MONTH:</div>
+          ${emp.advances.map(a => `
+            <div style="display:flex;justify-content:space-between;font-size:12px;padding:3px 0;">
+              <span>${a.date_given} · ${a.reason || 'Advance'} (${a.payment_mode})</span>
+              <span style="font-weight:700;">₹${Number(a.advance_amount).toLocaleString('en-IN')}</span>
+            </div>
+          `).join('')}
+        </div>
+        ` : ''}
+        
+        <!-- Action buttons -->
+        <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+          <button onclick="window.paySalaryModal('${emp.emp_id}','${emp.name.replace(/'/g,"\\'")}',${bal})" 
+                  style="flex:1;min-width:140px;padding:10px;background:#059669;color:#fff;border:none;border-radius:8px;font-weight:700;cursor:pointer;">
+            💵 Pay Salary
+          </button>
+          <button onclick="window.giveAdvanceModal('${emp.emp_id}','${emp.name.replace(/'/g,"\\'")}')" 
+                  style="flex:1;min-width:140px;padding:10px;background:#F59E0B;color:#fff;border:none;border-radius:8px;font-weight:700;cursor:pointer;">
+            🎁 Give Advance
+          </button>
+          <button onclick="window.viewEmpHistory('${emp.emp_id}','${emp.name.replace(/'/g,"\\'")}')" 
+                  style="padding:10px 14px;background:#6B7280;color:#fff;border:none;border-radius:8px;font-weight:700;cursor:pointer;">
+            📊 History
+          </button>
+        </div>
+      </div>
+    `;
   }
-};
-
-window.saveOpeningBalance = async function() {
-  const empId = document.getElementById('obEmp').value;
-  const type = document.getElementById('obType').value;
-  const amount = parseFloat(document.getElementById('obAmount').value) || 0;
-  const date = document.getElementById('obDate').value;
-  const notes = document.getElementById('obNotes').value.trim() || 'Opening balance';
   
-  if (!empId) { document.getElementById('obErr').innerHTML = '<div class="error">Select employee</div>'; return; }
-  if (amount <= 0) { document.getElementById('obErr').innerHTML = '<div class="error">Enter amount</div>'; return; }
-  
-  // For "company_owes" → salary_due = amount, salary_paid = 0
-  // For "employee_owes" → salary_paid = amount, salary_due = 0 (like advance)
-  // Check if opening balance already exists for this employee
-  const { data: existing } = await sb.from('salary_tracker')
-    .select('id')
-    .eq('emp_id', empId)
-    .eq('is_opening_balance', true);
-  
-  if (existing && existing.length > 0) {
-    if (!confirm('Opening balance already exists for this employee. Do you want to REPLACE it? (Old entry will be deleted)')) {
-      return;
-    }
-    await sb.from('salary_tracker')
-      .delete()
-      .eq('emp_id', empId)
-      .eq('is_opening_balance', true);
-  }
-  
-  const record = {
-    emp_id: empId,
-    month: 'OPENING-' + date,
-    salary_due: type === 'company_owes' ? amount : 0,
-    salary_paid: type === 'employee_owes' ? amount : 0,
-    payment_date: date,
-    is_opening_balance: true,
-    notes: notes + ' (as on ' + date + ')'
-  };
-  
-  const { error } = await sb.from('salary_tracker').insert(record);
-  
-  if (error) {
-    document.getElementById('obErr').innerHTML = '<div class="error">' + error.message + '</div>';
-    return;
-  }
-  
-  fsn.success('Saved', '✅ Opening balance recorded');
-  document.querySelector('.modal-overlay').remove();
-  renderEmployeeLedger();
+  renderShell(html, 'employee-ledger');
 };
 
 // ═══════════════════════════════════════════════════════════
-// Pay Salary Modal
+// PAY SALARY MODAL
 // ═══════════════════════════════════════════════════════════
-
-window.showPaySalaryModal = async function(preSelectedEmpId) {
-  const { data: emps } = await sb.from('employees')
-    .select('emp_id, name, monthly_salary').eq('status', 'Active').order('name');
-  
-  const { data: holders } = await sb.from('cash_holders')
-    .select('name').eq('is_active', true).order('name');
-  
+window.paySalaryModal = function(empId, empName, suggestedAmount) {
   const modal = document.createElement('div');
   modal.className = 'modal-overlay';
   modal.onclick = e => { if (e.target === modal) modal.remove(); };
   modal.innerHTML = `
     <div class="modal-box" style="max-width:500px;">
       <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">✕</button>
-      <h2>💰 Pay Salary</h2>
-      
-      <div class="form-group" style="margin-top:12px;">
-        <label>Employee *</label>
-        <select id="psEmp">
-          <option value="">-- Select Employee --</option>
-          ${(emps || []).map(e => `<option value="${e.emp_id}" ${preSelectedEmpId === e.emp_id ? 'selected' : ''}>${e.name} (₹${e.monthly_salary}/mo)</option>`).join('')}
-        </select>
+      <h2>💵 Pay Salary — ${empName}</h2>
+      <div style="margin-bottom:14px;padding:10px;background:#FEF3C7;border-radius:8px;">
+        <div style="font-size:12px;color:#92400E;">💡 Suggested amount (Net Payable):</div>
+        <div style="font-size:20px;font-weight:800;color:#D97706;">₹${suggestedAmount.toLocaleString('en-IN')}</div>
       </div>
       
       <div class="form-group">
         <label>Amount ₹ *</label>
-        <input id="psAmount" type="number" placeholder="Amount paid" />
-      </div>
-      
-      <div class="form-group">
-        <label>Payment Date *</label>
-        <input id="psDate" type="date" value="${new Date().toISOString().slice(0,10)}" />
+        <input id="paySalAmt" type="number" value="${suggestedAmount > 0 ? suggestedAmount : ''}" placeholder="Enter amount" />
       </div>
       
       <div class="form-group">
         <label>Payment Mode *</label>
-        <select id="psMode">
+        <select id="paySalMode">
           <option value="Cash">Cash</option>
           <option value="UPI">UPI</option>
           <option value="Bank">Bank Transfer</option>
@@ -426,155 +325,197 @@ window.showPaySalaryModal = async function(preSelectedEmpId) {
       </div>
       
       <div class="form-group">
-        <label>Paid By (Cash Holder) *</label>
-        <select id="psPaidBy">
-          <option value="">-- Select --</option>
-          ${(holders || []).map(h => `<option value="${h.name}">${h.name}</option>`).join('')}
+        <label>Paid By *</label>
+        <select id="paySalBy">
+          <option value="Praveen">🔵 Praveen (my pocket)</option>
+          <option value="Company">🏢 Company (company account)</option>
         </select>
       </div>
       
       <div class="form-group">
-        <label>Notes</label>
-        <input id="psNotes" type="text" placeholder="Optional notes" />
+        <label>Date</label>
+        <input id="paySalDate" type="date" value="${new Date().toISOString().slice(0,10)}" />
       </div>
       
-      <div id="psErr"></div>
+      <div class="form-group">
+        <label>Notes (optional)</label>
+        <input id="paySalNotes" placeholder="e.g. July salary balance" />
+      </div>
       
-      <button onclick="savePaySalary()" style="width:100%;margin-top:10px;background:#059669;color:#fff;padding:10px;border:none;border-radius:6px;font-weight:600;cursor:pointer;">
-        💾 Record Payment
+      <button onclick="window.savePaySalary('${empId}','${empName.replace(/'/g,"\\'")}')" 
+              style="width:100%;padding:12px;background:#059669;color:#fff;border:none;border-radius:8px;font-weight:700;font-size:15px;cursor:pointer;">
+        💾 Save Payment
       </button>
     </div>
   `;
   document.body.appendChild(modal);
 };
 
-window.savePaySalary = async function() {
-  const empId = document.getElementById('psEmp').value;
-  const amount = parseFloat(document.getElementById('psAmount').value) || 0;
-  const date = document.getElementById('psDate').value;
-  const mode = document.getElementById('psMode').value;
-  const paidBy = document.getElementById('psPaidBy').value;
-  const notes = document.getElementById('psNotes').value.trim() || null;
+window.savePaySalary = async function(empId, empName) {
+  const amt = parseFloat(document.getElementById('paySalAmt').value) || 0;
+  const mode = document.getElementById('paySalMode').value;
+  const paidBy = document.getElementById('paySalBy').value;
+  const date = document.getElementById('paySalDate').value;
+  const notes = document.getElementById('paySalNotes').value.trim();
   
-  if (!empId) { document.getElementById('psErr').innerHTML = '<div class="error">Select employee</div>'; return; }
-  if (amount <= 0) { document.getElementById('psErr').innerHTML = '<div class="error">Enter amount</div>'; return; }
-  if (!paidBy) { document.getElementById('psErr').innerHTML = '<div class="error">Select who paid</div>'; return; }
+  if (amt <= 0) { alert('⚠️ Amount required'); return; }
   
-  const empData = (await sb.from('employees').select('name').eq('emp_id', empId).single()).data;
-  const monthStr = date.slice(0, 7); // YYYY-MM
+  const monthStr = date.slice(0, 7);
   
-  // Insert into salary_tracker
-  const { data: salRecord, error: salErr } = await sb.from('salary_tracker').insert({
+  const { error } = await sb.from('salary_tracker').insert({
     emp_id: empId,
     month: monthStr,
     salary_due: 0,
-    salary_paid: amount,
+    salary_paid: amt,
     payment_date: date,
     payment_mode: mode,
     paid_by: paidBy,
-    is_opening_balance: false,
-    notes: notes
-  }).select().single();
+    notes: notes || null
+  });
   
-  if (salErr) {
-    document.getElementById('psErr').innerHTML = '<div class="error">' + salErr.message + '</div>';
-    return;
-  }
+  if (error) { alert('❌ Error: ' + error.message); return; }
   
-  // Also insert into cash_expenses (deducts from paid_by's balance)
-  if (mode === 'Cash') {
-    await sb.from('cash_expenses').insert({
-      paid_by: paidBy,
-      amount: amount,
-      category: 'salary',
-      linked_id: salRecord.id,
-      linked_type: 'salary_tracker',
-      paid_to: empData?.name || empId,
-      expense_date: date,
-      notes: 'Salary payment: ' + (notes || ''),
-      created_by: SESSION.userId
-    });
-  }
-  
-  fsn.success('Paid', '✅ Salary payment recorded');
-  document.querySelector('.modal-overlay').remove();
+  document.querySelector('.modal-overlay')?.remove();
+  if (window.fsn?.success) fsn.success('Payment Saved', '✅ ₹' + amt + ' paid to ' + empName);
   renderEmployeeLedger();
 };
 
 // ═══════════════════════════════════════════════════════════
-// Employee History Modal
+// GIVE ADVANCE MODAL
 // ═══════════════════════════════════════════════════════════
-
-window.showEmployeeHistory = async function(empId, empName) {
-  const { data: salaries } = await sb.from('salary_tracker')
-    .select('*').eq('emp_id', empId).order('payment_date', { ascending: false });
-  
-  const { data: advances } = await sb.from('advance_tracker')
-    .select('*').eq('emp_id', empId).order('date_given', { ascending: false });
-  
+window.giveAdvanceModal = function(empId, empName) {
   const modal = document.createElement('div');
   modal.className = 'modal-overlay';
   modal.onclick = e => { if (e.target === modal) modal.remove(); };
   modal.innerHTML = `
-    <div class="modal-box" style="max-width:600px;max-height:80vh;overflow-y:auto;">
+    <div class="modal-box" style="max-width:500px;">
       <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">✕</button>
-      <h2>📊 ${empName} — History</h2>
+      <h2>🎁 Give Advance — ${empName}</h2>
+      <div style="margin-bottom:14px;padding:10px;background:#FEE2E2;border-radius:8px;font-size:12px;color:#991B1B;">
+        ⚠️ This advance will be auto-deducted from employee's salary this month.
+      </div>
       
-      <div class="section-title" style="margin-top:14px;">Salary Records</div>
-      ${(salaries || []).length === 0 ? '<div class="sub">No salary records yet</div>' : `
-        <div class="table-wrap"><table>
-          <thead><tr><th>Date</th><th>Month</th><th>Due</th><th>Paid</th><th>By</th><th>Notes</th></tr></thead>
-          <tbody>
-            ${salaries.map(s => `
-              <tr>
-                <td style="font-size:11px;">${s.payment_date || '-'}</td>
-                <td style="font-size:11px;">${s.month}${s.is_opening_balance ? ' 🔹' : ''}</td>
-                <td>₹${(s.salary_due||0).toLocaleString('en-IN')}</td>
-                <td style="color:#059669;">₹${(s.salary_paid||0).toLocaleString('en-IN')}</td>
-                <td style="font-size:11px;">${s.paid_by || '-'}</td>
-                <td style="font-size:10px;color:#6B7280;">${s.notes || '-'}</td>
-              </tr>
-            `).join('')}
-          </tbody>
-        </table></div>
-      `}
+      <div class="form-group">
+        <label>Amount ₹ *</label>
+        <input id="advAmt" type="number" placeholder="Enter amount" autofocus />
+      </div>
       
-      <div class="section-title" style="margin-top:14px;">Advance Records</div>
-      ${(advances || []).length === 0 ? '<div class="sub">No advance records</div>' : `
-        <div class="table-wrap"><table>
-          <thead><tr><th>Date</th><th>Amount</th><th>Repaid</th><th>Mode</th><th>Reason</th></tr></thead>
-          <tbody>
-            ${advances.map(a => `
-              <tr>
-                <td style="font-size:11px;">${a.date_given}</td>
-                <td>₹${(a.advance_amount||0).toLocaleString('en-IN')}</td>
-                <td style="color:#059669;">₹${(a.repaid_amount||0).toLocaleString('en-IN')}</td>
-                <td style="font-size:11px;">${a.payment_mode || '-'}</td>
-                <td style="font-size:11px;">${a.reason || '-'}</td>
-              </tr>
-            `).join('')}
-          </tbody>
-        </table></div>
-      `}
+      <div class="form-group">
+        <label>Reason *</label>
+        <input id="advReason" placeholder="e.g. Medicine, Petrol, Emergency" />
+      </div>
+      
+      <div class="form-group">
+        <label>Payment Mode *</label>
+        <select id="advMode">
+          <option value="Cash">Cash</option>
+          <option value="UPI">UPI</option>
+        </select>
+      </div>
+      
+      <div class="form-group">
+        <label>Given By *</label>
+        <select id="advBy">
+          <option value="Praveen">🔵 Praveen (my pocket)</option>
+          <option value="Company">🏢 Company (company account)</option>
+        </select>
+      </div>
+      
+      <div class="form-group">
+        <label>Date</label>
+        <input id="advDate" type="date" value="${new Date().toISOString().slice(0,10)}" />
+      </div>
+      
+      <button onclick="window.saveGiveAdvance('${empId}','${empName.replace(/'/g,"\\'")}')" 
+              style="width:100%;padding:12px;background:#F59E0B;color:#fff;border:none;border-radius:8px;font-weight:700;font-size:15px;cursor:pointer;">
+        💾 Give Advance
+      </button>
     </div>
   `;
   document.body.appendChild(modal);
 };
 
-// Quick edit opening balance (pre-fills modal with existing data)
-window.editOpeningBalance = async function(empId, empName) {
-  // Open modal
-  await showOpeningBalanceModal();
+window.saveGiveAdvance = async function(empId, empName) {
+  const amt = parseFloat(document.getElementById('advAmt').value) || 0;
+  const reason = document.getElementById('advReason').value.trim();
+  const mode = document.getElementById('advMode').value;
+  const paidBy = document.getElementById('advBy').value;
+  const date = document.getElementById('advDate').value;
   
-  // Wait for modal to render, then select employee
-  setTimeout(async () => {
-    const empSelect = document.getElementById('obEmp');
-    if (empSelect) {
-      empSelect.value = empId;
-      // Trigger check to auto-fill existing values
-      await checkExistingOpening();
-    }
-  }, 200);
+  if (amt <= 0) { alert('⚠️ Amount required'); return; }
+  if (!reason) { alert('⚠️ Reason required'); return; }
+  
+  const { error } = await sb.from('advance_tracker').insert({
+    emp_id: empId,
+    date_given: date,
+    advance_amount: amt,
+    repaid_amount: 0,
+    reason: reason,
+    payment_mode: mode,
+    paid_by: paidBy,
+    is_deducted: false
+  });
+  
+  if (error) { alert('❌ Error: ' + error.message); return; }
+  
+  document.querySelector('.modal-overlay')?.remove();
+  if (window.fsn?.success) fsn.success('Advance Given', '✅ ₹' + amt + ' advance to ' + empName);
+  renderEmployeeLedger();
 };
 
-console.log('✅ Employee Ledger module loaded');
+// ═══════════════════════════════════════════════════════════
+// VIEW HISTORY MODAL
+// ═══════════════════════════════════════════════════════════
+window.viewEmpHistory = async function(empId, empName) {
+  const [{ data: salaries }, { data: advances }] = await Promise.all([
+    sb.from('salary_tracker').select('*').eq('emp_id', empId).order('payment_date', { ascending: false }),
+    sb.from('advance_tracker').select('*').eq('emp_id', empId).order('date_given', { ascending: false })
+  ]);
+  
+  const modal = document.createElement('div');
+  modal.className = 'modal-overlay';
+  modal.onclick = e => { if (e.target === modal) modal.remove(); };
+  
+  let html = `
+    <div class="modal-box" style="max-width:700px;max-height:80vh;overflow-y:auto;">
+      <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">✕</button>
+      <h2>📊 History — ${empName}</h2>
+      
+      <div style="margin-top:14px;">
+        <div style="font-weight:700;font-size:14px;color:#059669;margin-bottom:8px;">💵 Salary Payments (${(salaries || []).length})</div>
+        ${(salaries || []).length === 0 ? '<div style="color:#999;">No payments</div>' :
+          '<table style="width:100%;font-size:12px;"><thead><tr style="background:#F3F4F6;"><th style="text-align:left;padding:6px;">Date</th><th>Amount</th><th>Mode</th><th>Paid By</th><th>Notes</th></tr></thead><tbody>' +
+          (salaries || []).map(s => 
+            '<tr style="border-bottom:1px solid #E5E7EB;">' +
+            '<td style="padding:6px;">' + (s.payment_date || s.month) + '</td>' +
+            '<td style="text-align:right;color:#059669;font-weight:700;">₹' + Number(s.salary_paid).toLocaleString('en-IN') + '</td>' +
+            '<td>' + (s.payment_mode || '-') + '</td>' +
+            '<td>' + (s.paid_by || '-') + '</td>' +
+            '<td style="font-size:11px;">' + (s.notes || '-') + '</td>' +
+            '</tr>'
+          ).join('') + '</tbody></table>'
+        }
+      </div>
+      
+      <div style="margin-top:20px;">
+        <div style="font-weight:700;font-size:14px;color:#F59E0B;margin-bottom:8px;">🎁 Advances (${(advances || []).length})</div>
+        ${(advances || []).length === 0 ? '<div style="color:#999;">No advances</div>' :
+          '<table style="width:100%;font-size:12px;"><thead><tr style="background:#F3F4F6;"><th style="text-align:left;padding:6px;">Date</th><th>Amount</th><th>Reason</th><th>Mode</th><th>Status</th></tr></thead><tbody>' +
+          (advances || []).map(a => 
+            '<tr style="border-bottom:1px solid #E5E7EB;">' +
+            '<td style="padding:6px;">' + a.date_given + '</td>' +
+            '<td style="text-align:right;color:#F59E0B;font-weight:700;">₹' + Number(a.advance_amount).toLocaleString('en-IN') + '</td>' +
+            '<td>' + (a.reason || '-') + '</td>' +
+            '<td>' + (a.payment_mode || '-') + '</td>' +
+            '<td>' + (a.is_deducted ? '✅ Deducted' : '⏳ Pending') + '</td>' +
+            '</tr>'
+          ).join('') + '</tbody></table>'
+        }
+      </div>
+    </div>
+  `;
+  modal.innerHTML = html;
+  document.body.appendChild(modal);
+};
+
+console.log('✅ Employee Ledger v2 (Clean HRMS) loaded');
