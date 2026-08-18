@@ -30,10 +30,21 @@ window.renderCashBook = async function() {
     return { ...h, received, hoIn, hoOut, exp, balance, receivedList };
   });
   
+  // Filter: show only holders with balance OR today activity
+  const today = new Date().toISOString().slice(0, 10);
+  const hasActivity = (name) => {
+    return (payments || []).some(p => p.received_by === name && p.payment_date >= today) ||
+           (handovers || []).some(h => (h.to_person === name || h.from_person === name) && h.handover_date >= today);
+  };
+  
+  const relevantBalances = balances.filter(h => 
+    h.balance !== 0 || h.received > 0 || h.hoIn > 0 || h.hoOut > 0 || hasActivity(h.name)
+  );
+  
   // Group by type
-  const finals = balances.filter(h => h.type === 'final');
-  const managers = balances.filter(h => h.type === 'manager');
-  const receivers = balances.filter(h => h.type === 'receiver');
+  const finals = relevantBalances.filter(h => h.type === 'final');
+  const managers = relevantBalances.filter(h => h.type === 'manager');
+  const receivers = relevantBalances.filter(h => h.type === 'receiver');
   
   const totalPending = balances.filter(h => h.type !== 'final').reduce((s, h) => s + Math.max(h.balance, 0), 0);
   const totalInFinal = finals.reduce((s, h) => s + h.balance, 0);
