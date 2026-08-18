@@ -397,26 +397,7 @@ async function saveMaintenance() {
     payment_date: cost > 0 ? (payDate || new Date().toISOString().slice(0,10)) : null
   }).select().single();
   
-  // 🔥 AUTO cash_expenses entry (if cost paid)
-  if (!error && newMaint && cost > 0 && paidBy) {
-    try {
-      const vendorName = document.getElementById('mVendor')?.value?.trim() || 'Maintenance';
-      await sb.from('cash_expenses').insert({
-        paid_by: paidBy,
-        amount: cost,
-        category: 'maintenance',
-        linked_id: newMaint.id,
-        linked_type: 'maintenance_log',
-        paid_to: vendorName,
-        expense_date: payDate || new Date().toISOString().slice(0,10),
-        notes: `Maintenance: ${desc.slice(0, 100)}`,
-        source: payMode === 'Cash' ? 'guest_cash' : 'company_account'
-      });
-      console.log('✅ Auto cash_expenses entry created');
-    } catch(e) {
-      console.warn('cash_expenses insert failed:', e);
-    }
-  }
+  // Cash Book no longer tracks maintenance (separate module)
   
   if (error) {
     document.getElementById('mErr').innerHTML = '<div class="error">' + error.message + '</div>';
@@ -651,35 +632,7 @@ async function updateMaintenance() {
     return;
   }
   
-  // 🔥 Sync cash_expenses entry
-  if (updateObj.cost > 0 && updateObj.paid_by) {
-    try {
-      // Delete old entry
-      await sb.from('cash_expenses').delete()
-        .eq('linked_type', 'maintenance_log').eq('linked_id', id);
-      
-      // Insert new
-      const vendorName = document.getElementById('mVendor')?.value?.trim() || 'Maintenance';
-      await sb.from('cash_expenses').insert({
-        paid_by: updateObj.paid_by,
-        amount: updateObj.cost,
-        category: 'maintenance',
-        linked_id: id,
-        linked_type: 'maintenance_log',
-        paid_to: vendorName,
-        expense_date: updateObj.payment_date || new Date().toISOString().slice(0,10),
-        notes: `Maintenance: ${(updateObj.description || '').slice(0, 100)}`,
-        source: updateObj.payment_mode === 'Cash' ? 'guest_cash' : 'company_account'
-      });
-      console.log('✅ cash_expenses synced on update');
-    } catch(e) {
-      console.warn('cash_expenses sync failed:', e);
-    }
-  } else {
-    // Cost = 0 or no paid_by → delete linked entry
-    await sb.from('cash_expenses').delete()
-      .eq('linked_type', 'maintenance_log').eq('linked_id', id);
-  }
+  // Cash Book no longer tracks maintenance updates
   
   window._maintAfterPhotoBlob = null;
   fsn.success('Success', '✅ Updated!');
@@ -703,10 +656,7 @@ window.addEventListener('load', () => {
 async function delMaintenance(id) {
   if (!confirm('Delete this maintenance record?')) return;
   await sb.from('maintenance_log').delete().eq('id', id);
-  // Auto delete linked cash_expense
-  await sb.from('cash_expenses').delete()
-    .eq('linked_type', 'maintenance_log').eq('linked_id', id);
-  fsn.success('Success', '✅ Deleted (cash entry also removed)');
+  fsn.success('Success', '✅ Deleted');
   renderMaintenanceLog();
 }
 
