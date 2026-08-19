@@ -2234,15 +2234,102 @@ async function quickCheckout(bkId, roomId) {
   const today = new Date().toISOString().slice(0, 10);
   const nowTime = new Date().toTimeString().slice(0, 5);
   const { data: bk } = await sb.from('guest_register')
-    .select('guest_name,check_in,per_day_rate,total_amount,notes').eq('booking_id', bkId).single();
+    .select('guest_name,phone,check_in,per_day_rate,total_amount,notes').eq('booking_id', bkId).single();
   if (!bk) { fsn.error('Error', 'Not found'); return; }
   const nights = Math.max(calcNights(bk.check_in, today), 1);
   const calcTotal = bk.per_day_rate ? bk.per_day_rate * nights : bk.total_amount;
-  if (!confirm(`Quick Checkout for ${bk.guest_name}?\n\nNights: ${nights}\nTotal: ₹${calcTotal.toLocaleString('en-IN')}\n\nProceed?`)) return;
+  
+  // Show rating modal instead of simple confirm
+  showCheckoutRatingModal(bkId, roomId, bk, nights, calcTotal, today, nowTime);
+}
+
+// Rating modal for checkout
+window.showCheckoutRatingModal = function(bkId, roomId, bk, nights, calcTotal, today, nowTime) {
+  const modal = document.createElement('div');
+  modal.className = 'modal-overlay';
+  modal.onclick = e => { if (e.target === modal) modal.remove(); };
+  modal.innerHTML = `
+    <div class="modal-box" style="max-width:500px;">
+      <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">✕</button>
+      <h2>✅ Checkout: ${bk.guest_name}</h2>
+      
+      <div style="margin-bottom:14px;padding:12px;background:#F0F7FF;border-radius:8px;">
+        <div style="font-size:12px;color:#1E40AF;">Nights: <strong>${nights}</strong> · Total: <strong>₹${calcTotal.toLocaleString('en-IN')}</strong></div>
+      </div>
+      
+      <div style="margin-bottom:12px;">
+        <label style="font-weight:600;font-size:14px;margin-bottom:8px;display:block;">⭐ How was this guest?</label>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
+          <label style="cursor:pointer;padding:14px 8px;background:#DCFCE7;border:2px solid #DCFCE7;border-radius:8px;text-align:center;transition:all 0.2s;" onclick="selectRating(this,'good')">
+            <input type="radio" name="rating" value="good" style="display:none;" />
+            <div style="font-size:28px;">😊</div>
+            <div style="font-size:11px;font-weight:700;color:#166534;margin-top:4px;">GOOD</div>
+            <div style="font-size:9px;color:#166534;">Mark VIP</div>
+          </label>
+          <label style="cursor:pointer;padding:14px 8px;background:#F3F4F6;border:2px solid #F3F4F6;border-radius:8px;text-align:center;transition:all 0.2s;" onclick="selectRating(this,'normal')">
+            <input type="radio" name="rating" value="normal" checked style="display:none;" />
+            <div style="font-size:28px;">😐</div>
+            <div style="font-size:11px;font-weight:700;color:#6B7280;margin-top:4px;">NORMAL</div>
+            <div style="font-size:9px;color:#6B7280;">Default</div>
+          </label>
+          <label style="cursor:pointer;padding:14px 8px;background:#FEE2E2;border:2px solid #FEE2E2;border-radius:8px;text-align:center;transition:all 0.2s;" onclick="selectRating(this,'bad')">
+            <input type="radio" name="rating" value="bad" style="display:none;" />
+            <div style="font-size:28px;">⚠️</div>
+            <div style="font-size:11px;font-weight:700;color:#991B1B;margin-top:4px;">BAD</div>
+            <div style="font-size:9px;color:#991B1B;">Warning</div>
+          </label>
+        </div>
+      </div>
+      
+      <div class="form-group">
+        <label>Notes (optional)</label>
+        <textarea id="ratingNotes" rows="3" placeholder="e.g. Great manners, kept flat clean / Was noisy, damaged towel"></textarea>
+      </div>
+      
+      <div style="display:flex;gap:8px;margin-top:14px;">
+        <button onclick="this.closest('.modal-overlay').remove()" style="flex:1;padding:12px;background:#E5E7EB;color:#374151;border:none;border-radius:8px;font-weight:700;cursor:pointer;">Cancel</button>
+        <button onclick="saveCheckoutWithRating('${bkId}','${roomId||''}','${today}','${nowTime}',${nights},${calcTotal})" style="flex:2;padding:12px;background:#059669;color:#fff;border:none;border-radius:8px;font-weight:700;cursor:pointer;">✅ Save & Checkout</button>
+      </div>
+    </div>
+  `;
+  
+  // Set default (normal selected)
+  document.body.appendChild(modal);
+  setTimeout(() => {
+    const normalLabel = modal.querySelectorAll('label')[1];
+    if (normalLabel) selectRating(normalLabel, 'normal');
+  }, 50);
+};
+
+window.selectRating = function(el, rating) {
+  // Reset all
+  el.closest('.modal-box').querySelectorAll('label[onclick*="selectRating"]').forEach(l => {
+    const bg = l.style.background;
+    l.style.border = '2px solid ' + bg;
+  });
+  // Highlight selected
+  const border = rating === 'good' ? '#059669' : rating === 'bad' ? '#DC2626' : '#6B7280';
+  el.style.border = '2px solid ' + border;
+  el.querySelector('input').checked = true;
+};
+
+window.saveCheckoutWithRating = async function(bkId, roomId, today, nowTime, nights, calcTotal) {
+  const rating = document.querySelector('input[name="rating"]:checked')?.value || 'normal';
+  const notes = document.getElementById('ratingNotes')?.value?.trim() || null;
+  
+  const { data: bk } = await sb.from('guest_register').select('guest_name,notes').eq('booking_id', bkId).single();
+  
+  // Update booking with checkout + rating
   await sb.from('guest_register').update({
-    check_out: today, check_out_time: nowTime, total_amount: calcTotal,
+    check_out: today, 
+    check_out_time: nowTime, 
+    total_amount: calcTotal,
     checkout_confirmed: true,
-    notes: (bk.notes ? bk.notes + ' | ' : '') + `Quick checkout ${today} ${nowTime}. ${nights} nights.`
+    client_rating: rating,
+    rating_notes: notes,
+    rated_at: new Date().toISOString(),
+    rated_by: SESSION.userId,
+    notes: (bk?.notes ? bk.notes + ' | ' : '') + `Quick checkout ${today} ${nowTime}. ${nights} nights. Rating: ${rating}`
   }).eq('booking_id', bkId);
   if (roomId) await sb.from('flats_status').update({ 
     status: 'Free', 
