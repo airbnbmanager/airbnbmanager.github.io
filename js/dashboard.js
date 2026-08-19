@@ -1,3 +1,55 @@
+
+// ═══════════════════════════════════════════════════════════
+// ⏰ ATTENTION NEEDED helper (late checkouts + arriving soon)
+// ═══════════════════════════════════════════════════════════
+function computeAttention(checkinsToday, checkoutsToday) {
+  const now = new Date();
+  const nowMinutes = now.getHours() * 60 + now.getMinutes();
+  
+  const parseTime = (t, defaultMin) => {
+    if (!t) return defaultMin;
+    const s = t.toString().trim();
+    const m1 = s.match(/^(\d{1,2}):(\d{2})/);
+    if (m1) return parseInt(m1[1]) * 60 + parseInt(m1[2]);
+    const m2 = s.match(/^(\d{1,2})\s*(AM|PM)/i);
+    if (m2) {
+      let h = parseInt(m2[1]);
+      if (m2[2].toUpperCase() === 'PM' && h !== 12) h += 12;
+      if (m2[2].toUpperCase() === 'AM' && h === 12) h = 0;
+      return h * 60;
+    }
+    return defaultMin;
+  };
+  
+  const lateCheckouts = checkoutsToday.filter(x => {
+    const ct = parseTime(x.check_out_time, 11 * 60);
+    return nowMinutes > ct;
+  }).map(x => {
+    const ct = parseTime(x.check_out_time, 11 * 60);
+    const delayMin = nowMinutes - ct;
+    const delayStr = delayMin >= 60 
+      ? Math.floor(delayMin/60) + 'h ' + (delayMin%60) + 'm'
+      : delayMin + 'm';
+    return Object.assign({}, x, { delay: delayStr });
+  });
+  
+  const arrivingSoon = checkinsToday.filter(x => {
+    const ct = parseTime(x.check_in_time, 14 * 60);
+    const diff = ct - nowMinutes;
+    return diff >= -30 && diff <= 180;
+  }).map(x => {
+    const ct = parseTime(x.check_in_time, 14 * 60);
+    const diff = ct - nowMinutes;
+    let eta;
+    if (diff < 0) eta = Math.abs(diff) + 'm late';
+    else if (diff < 60) eta = 'in ' + diff + 'm';
+    else eta = 'in ' + Math.floor(diff/60) + 'h ' + (diff%60) + 'm';
+    return Object.assign({}, x, { eta });
+  });
+  
+  return { lateCheckouts, arrivingSoon };
+}
+
 /**
  * Dashboard Module
  * UNIQUE HAVEN HOMES STAY
@@ -246,6 +298,41 @@ async function renderDashboard() {
         `).join('') || '<div class="sub" style="margin:4px 0 0;">None</div>'}
         </div>
       </div>
+
+      ${(() => {
+        const { lateCheckouts, arrivingSoon } = computeAttention(realCheckins, realCheckouts);
+        const total = lateCheckouts.length + arrivingSoon.length;
+        return `
+        <div class="stat-card" style="border-left:4px solid ${total > 0 ? 'var(--orange, #F97316)' : 'var(--muted)'};${total > 0 ? 'background:#FFF7ED;' : ''}">
+          <div class="stat-num">${total}</div>
+          <div class="stat-label">⏰ Attention Needed</div>
+          <div style="max-height:200px;overflow-y:auto;">
+          ${lateCheckouts.length > 0 ? `
+            <div style="margin-top:6px;">
+              <strong style="font-size:11px;color:var(--red);">🚨 LATE CHECK-OUTS (${lateCheckouts.length})</strong>
+              ${lateCheckouts.map(x => `
+                <div style="font-size:12px;margin-top:4px;padding:4px 0;border-bottom:1px solid var(--border);">
+                  <strong style="cursor:pointer;color:var(--blue);text-decoration:underline;" onclick="openBookingFromDashboard('${x.booking_id}')">${x.guest_name}</strong> — ${bName(x)}<br>
+                  <small style="color:var(--red);">⚠️ ${x.delay} late · Expected ${x.check_out_time || '11 AM'}</small>
+                </div>
+              `).join('')}
+            </div>
+          ` : ''}
+          ${arrivingSoon.length > 0 ? `
+            <div style="margin-top:8px;">
+              <strong style="font-size:11px;color:var(--blue);">⏳ ARRIVING SOON (${arrivingSoon.length})</strong>
+              ${arrivingSoon.map(x => `
+                <div style="font-size:12px;margin-top:4px;padding:4px 0;border-bottom:1px solid var(--border);">
+                  <strong style="cursor:pointer;color:var(--blue);text-decoration:underline;" onclick="openBookingFromDashboard('${x.booking_id}')">${x.guest_name}</strong> — ${bName(x)}<br>
+                  <small style="color:var(--muted);">🕐 ${x.eta} · Expected ${x.check_in_time || '2 PM'}</small>
+                </div>
+              `).join('')}
+            </div>
+          ` : ''}
+          ${total === 0 ? '<div class="sub" style="margin:4px 0 0;">✅ All on track</div>' : ''}
+          </div>
+        </div>`;
+      })()}
 
     </div>
 
