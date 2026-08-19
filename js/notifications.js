@@ -294,7 +294,7 @@
         
         // 🎯 SMART HIGHLIGHT: scroll to entity + flash animation
         if (entityId) {
-          setTimeout(() => highlightEntity(entityId, entityType), 800);
+          setTimeout(() => highlightEntity(entityId, entityType), 1200);
         }
       };
     });
@@ -611,6 +611,7 @@ window.notifSettings = (function() {
 // 🎯 HIGHLIGHT ENTITY (scroll + flash animation)
 // ═══════════════════════════════════════════════════════════
 window.highlightEntity = function(entityId, entityType) {
+  console.log('🎯 Attempting to highlight:', entityId, entityType);
   if (!entityId) return;
   
   // Try multiple times (page might still be loading)

@@ -760,7 +760,7 @@ async function renderManageBookings() {
 
         const rowBg = isActive ? 'background:#f0fff4;' : isCheckoutToday ? 'background:#fffbeb;' : '';
 
-        return `<tr style="${rowBg}">
+        return `<tr data-booking-id="${b.booking_id}" style="${rowBg}">
           <td>${statusBadge}</td>
           <td>
             <strong style="cursor:pointer;text-decoration:underline;color:var(--blue);"
