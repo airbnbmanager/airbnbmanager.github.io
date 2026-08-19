@@ -3,6 +3,28 @@
  * UNIQUE HAVEN HOMES STAY
  */
 
+// ═══════════════════════════════════════════════════════════
+// 🏷️ Rating Badge Helper
+// ═══════════════════════════════════════════════════════════
+window.getRatingBadge = function(rating) {
+  if (rating === 'good') return ' <span title="Trusted guest" style="font-size:12px;">⭐</span>';
+  if (rating === 'bad') return ' <span title="Bad rating - see notes" style="font-size:12px;color:#DC2626;">⚠️</span>';
+  if (rating === 'normal') return ' <span title="Normal guest" style="font-size:10px;opacity:0.5;">😐</span>';
+  return '';
+};
+
+window.openBookingFromDashboard = function(bkId) {
+  if (typeof editBooking === 'function') {
+    editBooking(bkId);
+  } else if (typeof navigate === 'function') {
+    navigate('bookings');
+    setTimeout(() => {
+      if (typeof highlightEntity === 'function') highlightEntity(bkId, 'booking');
+    }, 800);
+  }
+};
+
+
 async function renderDashboard() {
   if (window.showLoadingSkeleton) window.showLoadingSkeleton('metrics');
 
@@ -188,7 +210,7 @@ async function renderDashboard() {
       <div class="section-title" style="color:var(--red);">⚠️ Overdue Checkouts (${overdue.length})</div>
       ${overdue.slice(0, 3).map(x => `
         <div style="font-size:12px;padding:4px 0;">
-          <strong>${x.guest_name}</strong> — ${bName(x)}
+          <strong style="cursor:pointer;color:var(--blue);text-decoration:underline;" onclick="openBookingFromDashboard('${x.booking_id}')">${x.guest_name}</strong>${getRatingBadge(x.client_rating)} — ${bName(x)}
           <br><small style="color:var(--muted);">Was due: ${x.check_out}</small>
         </div>
       `).join('')}
@@ -204,7 +226,7 @@ async function renderDashboard() {
         <div style="max-height:200px;overflow-y:auto;">
         ${realCheckins.map(x => `
           <div style="font-size:12px;margin-top:4px;padding:4px 0;border-bottom:1px solid var(--border);">
-            <strong>${x.guest_name}</strong> — ${bName(x)}<br>
+            <strong style="cursor:pointer;color:var(--blue);text-decoration:underline;" onclick="openBookingFromDashboard('${x.booking_id}')">${x.guest_name}</strong>${getRatingBadge(x.client_rating)} — ${bName(x)}<br>
             <small style="color:var(--muted);">📞 ${x.phone || '-'} · 🕐 ${x.check_in_time || '2 PM'}</small>
             ${x.has_vehicle ? `<br><small>🚗 ${x.vehicle_name || ''} ${x.vehicle_number || ''}</small>` : ''}
           </div>
@@ -218,7 +240,7 @@ async function renderDashboard() {
         <div style="max-height:200px;overflow-y:auto;">
         ${realCheckouts.map(x => `
           <div style="font-size:12px;margin-top:4px;padding:4px 0;border-bottom:1px solid var(--border);">
-            <strong>${x.guest_name}</strong> — ${bName(x)}<br>
+            <strong style="cursor:pointer;color:var(--blue);text-decoration:underline;" onclick="openBookingFromDashboard('${x.booking_id}')">${x.guest_name}</strong>${getRatingBadge(x.client_rating)} — ${bName(x)}<br>
             <small style="color:var(--muted);">📞 ${x.phone || '-'} · 🕐 ${x.check_out_time || '11 AM'}</small>
           </div>
         `).join('') || '<div class="sub" style="margin:4px 0 0;">None</div>'}
@@ -249,7 +271,7 @@ async function renderDashboard() {
         <div class="stat-num">${activeNow.length}/${totalProps} <span style="font-size:14px;color:var(--muted);">(${Math.round(activeNow.length/totalProps*100) || 0}%)</span></div>
         <div class="stat-label">🟢 Currently Staying</div>
         <div style="max-height:180px;overflow-y:auto;">
-        ${activeNow.map(x => `<div style="font-size:11px;margin-top:2px;padding:2px 0;border-bottom:1px dashed #eee;"><strong>${x.guest_name}</strong> — ${bName(x)}</div>`).join('') || '<div class="sub" style="margin:4px 0 0;">None</div>'}
+        ${activeNow.map(x => `<div style="font-size:11px;margin-top:2px;padding:2px 0;border-bottom:1px dashed #eee;"><strong style="cursor:pointer;color:var(--blue);text-decoration:underline;" onclick="openBookingFromDashboard('${x.booking_id}')">${x.guest_name}</strong>${getRatingBadge(x.client_rating)} — ${bName(x)}</div>`).join('') || '<div class="sub" style="margin:4px 0 0;">None</div>'}
         </div>
         ${activeNow.length > 0 ? `<div style="font-size:10px;color:var(--primary);margin-top:6px;text-align:right;">→ View all</div>` : ''}
       </div>
@@ -574,7 +596,7 @@ async function renderCheckinManagerView() {
         <div class="stat-label">📥 Check-in Today</div>
         ${checkins.map(x => `
           <div style="font-size:12px;margin-top:4px;padding:4px 0;border-bottom:1px solid var(--border);">
-            <strong>${x.guest_name}</strong> — ${bName(x)}<br>
+            <strong style="cursor:pointer;color:var(--blue);text-decoration:underline;" onclick="openBookingFromDashboard('${x.booking_id}')">${x.guest_name}</strong>${getRatingBadge(x.client_rating)} — ${bName(x)}<br>
             <small>📞 ${x.phone || '-'} · 🕐 ${x.check_in_time || '2:00 PM'}</small>
             ${x.has_vehicle ? `<br><small>🚗 ${x.vehicle_name || ''} ${x.vehicle_number || ''}</small>` : ''}
           </div>
@@ -586,7 +608,7 @@ async function renderCheckinManagerView() {
         <div class="stat-label">📤 Check-out Today</div>
         ${checkouts.map(x => `
           <div style="font-size:12px;margin-top:4px;">
-            <strong>${x.guest_name}</strong> — ${bName(x)}<br>
+            <strong style="cursor:pointer;color:var(--blue);text-decoration:underline;" onclick="openBookingFromDashboard('${x.booking_id}')">${x.guest_name}</strong>${getRatingBadge(x.client_rating)} — ${bName(x)}<br>
             <small>🕐 ${x.check_out_time || '11:00 AM'}</small>
           </div>
         `).join('') || '<div class="sub" style="margin:4px 0 0;">None</div>'}
@@ -698,7 +720,7 @@ async function renderCheckinManagerViewNew() {
         <div class="stat-label">📥 Check-in Today</div>
         ${checkins.map(x => `
           <div style="font-size:12px;margin-top:4px;padding:4px 0;border-bottom:1px solid var(--border);">
-            <strong>${x.guest_name}</strong> — ${bName(x)}<br>
+            <strong style="cursor:pointer;color:var(--blue);text-decoration:underline;" onclick="openBookingFromDashboard('${x.booking_id}')">${x.guest_name}</strong>${getRatingBadge(x.client_rating)} — ${bName(x)}<br>
             <small>📞 ${x.phone || '-'} · 🕐 ${x.check_in_time || '2 PM'}</small>
             ${x.has_vehicle ? `<br><small>🚗 ${x.vehicle_name || ''} ${x.vehicle_number || ''}</small>` : ''}
           </div>
@@ -710,7 +732,7 @@ async function renderCheckinManagerViewNew() {
         <div class="stat-label">📤 Check-out Today</div>
         ${checkouts.map(x => `
           <div style="font-size:12px;margin-top:4px;">
-            <strong>${x.guest_name}</strong> — ${bName(x)}<br>
+            <strong style="cursor:pointer;color:var(--blue);text-decoration:underline;" onclick="openBookingFromDashboard('${x.booking_id}')">${x.guest_name}</strong>${getRatingBadge(x.client_rating)} — ${bName(x)}<br>
             <small>🕐 ${x.check_out_time || '11 AM'}</small>
           </div>
         `).join('') || '<div class="sub" style="margin:4px 0 0;">None</div>'}
