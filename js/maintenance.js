@@ -124,12 +124,18 @@ async function renderMaintenanceLog() {
             <td><span class="badge ${statusClass}" style="font-size:10px;">${status}</span></td>
             <td style="font-size:11px;">${l.reported_date || '-'}</td>
             <td>${(() => {
-              const p = l.photo_after || l.photo_before;
-              if (!p) return '-';
-              const path = p.includes('/id-proofs/') ? p.split('/id-proofs/')[1] : p;
-              const label = l.photo_after ? '📷 After' : '📷 Before';
-              const color = l.photo_after ? '#10B981' : '#F59E0B';
-              return `<button class="btn-sm" style="background:${color};color:#fff;padding:3px 8px;font-size:10px;" onclick="dlIdPhoto('${path}')">${label}</button>`;
+              const getPath = (p) => p.includes('/id-proofs/') ? p.split('/id-proofs/')[1] : p;
+              const btns = [];
+              if (l.photo_before) {
+                btns.push(`<button class="btn-sm" style="background:#F59E0B;color:#fff;padding:3px 8px;font-size:10px;margin:1px 0;display:block;" onclick="dlIdPhoto('${getPath(l.photo_before)}')" title="Bill">🧾 Bill</button>`);
+              }
+              if (l.payment_photo) {
+                btns.push(`<button class="btn-sm" style="background:#3B82F6;color:#fff;padding:3px 8px;font-size:10px;margin:1px 0;display:block;" onclick="dlIdPhoto('${getPath(l.payment_photo)}')" title="Payment">💳 Pay</button>`);
+              }
+              if (l.photo_after) {
+                btns.push(`<button class="btn-sm" style="background:#10B981;color:#fff;padding:3px 8px;font-size:10px;margin:1px 0;display:block;" onclick="dlIdPhoto('${getPath(l.photo_after)}')" title="After">✅ After</button>`);
+              }
+              return btns.length ? btns.join('') : '-';
             })()}</td>
             <td class="table-actions">
               <button class="btn-sm" onclick="editMaintenance(${l.id})">✏️</button>
@@ -240,15 +246,24 @@ async function renderAddMaintenance() {
         </select>
       </div>
       <div class="form-group">
-        <label>📸 Photo (before repair)</label>
+        <label>🧾 Bill Photo (Vendor Receipt)</label>
         <div style="display:flex;gap:8px;margin-bottom:8px;">
-          <button type="button" class="btn-sm" style="background:#3B82F6;color:#fff;padding:8px 14px;" onclick="document.getElementById('mPhotoCam').click()">📷 Camera</button>
-          <button type="button" class="btn-sm" style="background:#6B7280;color:#fff;padding:8px 14px;" onclick="document.getElementById('mPhotoGal').click()">🖼️ Gallery</button>
+          <button type="button" class="btn-sm" style="background:#3B82F6;color:#fff;padding:8px 14px;" onclick="document.getElementById('mBillCam').click()">📷 Camera</button>
+          <button type="button" class="btn-sm" style="background:#6B7280;color:#fff;padding:8px 14px;" onclick="document.getElementById('mBillGal').click()">🖼️ Gallery</button>
         </div>
-        <input id="mPhotoCam" type="file" accept="image/*" capture="environment" style="display:none;">
-        <input id="mPhotoGal" type="file" accept="image/*,image/heic,image/heif,.heic,.heif" style="display:none;">
-        <div id="mPhotoPreview" style="margin-top:8px;"></div>
-        <div id="mPhotoPreview" style="margin-top:8px;"></div>
+        <input id="mBillCam" type="file" accept="image/*" capture="environment" style="display:none;">
+        <input id="mBillGal" type="file" accept="image/*,image/heic,image/heif,.heic,.heif" style="display:none;">
+        <div id="mBillPreview" style="margin-top:8px;"></div>
+      </div>
+      <div class="form-group">
+        <label>💳 Payment Screenshot (After Pay)</label>
+        <div style="display:flex;gap:8px;margin-bottom:8px;">
+          <button type="button" class="btn-sm" style="background:#10B981;color:#fff;padding:8px 14px;" onclick="document.getElementById('mPayCam').click()">📷 Camera</button>
+          <button type="button" class="btn-sm" style="background:#6B7280;color:#fff;padding:8px 14px;" onclick="document.getElementById('mPayGal').click()">🖼️ Gallery</button>
+        </div>
+        <input id="mPayCam" type="file" accept="image/*" capture="environment" style="display:none;">
+        <input id="mPayGal" type="file" accept="image/*,image/heic,image/heif,.heic,.heif" style="display:none;">
+        <div id="mPayPreview" style="margin-top:8px;"></div>
       </div>
       <div class="form-group">
         <label>Notes</label>
@@ -260,21 +275,30 @@ async function renderAddMaintenance() {
   `, 'maintenance');
   if (window._initMaintPhotoInputs) window._initMaintPhotoInputs();
   
-  document.getElementById('mPhoto').addEventListener('change', async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    const preview = document.getElementById('mPhotoPreview');
-    preview.innerHTML = '<div style="color:#666;">Compressing...</div>';
-    try {
-      const compressed = await maintCompressImage(file);
-      window._maintPhotoBlob = compressed;
-      const url = URL.createObjectURL(compressed);
-      preview.innerHTML = `<img src="${url}" style="max-width:150px;border-radius:8px;border:1px solid #ddd;">
-        <div style="font-size:11px;color:#666;">Size: ${Math.round(compressed.size/1024)}KB</div>`;
-    } catch (err) {
-      preview.innerHTML = '<div style="color:#DC2626;">Error: ' + err.message + '</div>';
-    }
-  });
+  // Photo handler factory (bill + payment)
+  const _attachMaintPhoto = (inputIds, previewId, blobKey) => {
+    inputIds.forEach(id => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.addEventListener('change', async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const preview = document.getElementById(previewId);
+        preview.innerHTML = '<div style="color:#666;">Compressing...</div>';
+        try {
+          const compressed = await maintCompressImage(file);
+          window[blobKey] = compressed;
+          const url = URL.createObjectURL(compressed);
+          preview.innerHTML = `<img src="${url}" style="max-width:150px;border-radius:8px;border:1px solid #ddd;">
+            <div style="font-size:11px;color:#666;">Size: ${Math.round(compressed.size/1024)}KB</div>`;
+        } catch (err) {
+          preview.innerHTML = '<div style="color:#DC2626;">Error: ' + err.message + '</div>';
+        }
+      });
+    });
+  };
+  _attachMaintPhoto(['mBillCam', 'mBillGal'], 'mBillPreview', '_maintBillBlob');
+  _attachMaintPhoto(['mPayCam', 'mPayGal'], 'mPayPreview', '_maintPayBlob');
 }
 
 async function maintCompressImage(file, maxWidth = 800, quality = 0.7) {
@@ -356,17 +380,22 @@ async function saveMaintenance() {
     return;
   }
   
-  let photoUrl = null;
-  if (window._maintPhotoBlob) {
-    try {
-      const path = `maintenance/${Date.now()}_${Math.random().toString(36).substr(2,6)}.jpg`;
-      const { error: upErr } = await sb.storage.from('id-proofs').upload(path, window._maintPhotoBlob, { contentType: window._maintPhotoBlob.type || 'image/jpeg', upsert: false });
-      if (upErr) throw upErr;
-      photoUrl = path;  // Store path
-    } catch (err) {
-      document.getElementById('mErr').innerHTML = '<div class="error">Photo: ' + err.message + '</div>';
-      return;
-    }
+  // Upload both photos (bill + payment)
+  let billPhotoUrl = null;
+  let payPhotoUrl = null;
+  const _uploadMaintPhoto = async (blob, prefix) => {
+    if (!blob) return null;
+    const path = `maintenance/${prefix}_${Date.now()}_${Math.random().toString(36).substr(2,6)}.jpg`;
+    const { error: upErr } = await sb.storage.from('id-proofs').upload(path, blob, { contentType: blob.type || 'image/jpeg', upsert: false });
+    if (upErr) throw upErr;
+    return path;
+  };
+  try {
+    if (window._maintBillBlob) billPhotoUrl = await _uploadMaintPhoto(window._maintBillBlob, 'bill');
+    if (window._maintPayBlob) payPhotoUrl = await _uploadMaintPhoto(window._maintPayBlob, 'pay');
+  } catch (err) {
+    document.getElementById('mErr').innerHTML = '<div class="error">Photo upload: ' + err.message + '</div>';
+    return;
   }
   
   const cost = parseFloat(document.getElementById('mCost').value) || 0;
@@ -390,7 +419,8 @@ async function saveMaintenance() {
     assigned_to: document.getElementById('mAssigned').value || null,
     vendor_name: document.getElementById('mVendor').value.trim() || null,
     status: document.getElementById('mStatus').value,
-    photo_before: photoUrl,
+    photo_before: billPhotoUrl,
+    payment_photo: payPhotoUrl,
     notes: document.getElementById('mNotes').value.trim() || null,
     paid_by: cost > 0 ? paidBy : null,
     payment_mode: cost > 0 ? payMode : null,
@@ -404,7 +434,8 @@ async function saveMaintenance() {
     return;
   }
   
-  window._maintPhotoBlob = null;
+  window._maintBillBlob = null;
+  window._maintPayBlob = null;
   fsn.success('Success', '✅ Issue saved!');
   renderMaintenanceLog();
 }
