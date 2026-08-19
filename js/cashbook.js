@@ -49,7 +49,8 @@ window.renderCashBook = async function() {
   
   // Split payments by mode
   const cashPayments = (payments || []).filter(p => p.payment_mode === 'Cash');
-  const upiPayments = (payments || []).filter(p => ['UPI', 'Bank', 'Airbnb Payout'].includes(p.payment_mode));
+  const upiPayments = (payments || []).filter(p => ['UPI', 'Bank'].includes(p.payment_mode));
+  const airbnbPayments = (payments || []).filter(p => p.payment_mode === 'Airbnb Payout');
   
   // Calculate CASH balances per holder
   const cashBalances = (holders || []).map(h => {
@@ -81,6 +82,16 @@ window.renderCashBook = async function() {
   const cashInHand = relevantCash.filter(h => h.type !== 'final').reduce((s, h) => s + Math.max(h.balance, 0), 0);
   const cashInCompany = relevantCash.filter(h => h.type === 'final').reduce((s, h) => s + h.balance, 0);
   const totalUpi = upiPayments.reduce((s, p) => s + Number(p.amount || 0), 0);
+  const totalAirbnb = airbnbPayments.reduce((s, p) => s + Number(p.amount || 0), 0);
+  
+  // Group airbnb by receiver
+  const airbnbByReceiver = {};
+  airbnbPayments.forEach(p => {
+    const key = p.received_by || 'Company';
+    if (!airbnbByReceiver[key]) airbnbByReceiver[key] = { total: 0, list: [] };
+    airbnbByReceiver[key].total += Number(p.amount || 0);
+    airbnbByReceiver[key].list.push(p);
+  });
   
   // ═══════════════════════════════════════════════════════════
   // BUILD UI
@@ -106,21 +117,26 @@ window.renderCashBook = async function() {
       </div>
       
       <!-- Summary Cards -->
-      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-top:14px;">
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-top:14px;">
         <div style="padding:14px;background:#FEF3C7;border-radius:10px;text-align:center;">
           <div style="font-size:11px;color:#92400E;font-weight:600;">💵 CASH IN HAND</div>
-          <div style="font-size:22px;font-weight:800;color:#D97706;">₹${cashInHand.toLocaleString('en-IN')}</div>
+          <div style="font-size:20px;font-weight:800;color:#D97706;">₹${cashInHand.toLocaleString('en-IN')}</div>
           <div style="font-size:10px;color:#78350F;">Pending handover</div>
         </div>
         <div style="padding:14px;background:#DCFCE7;border-radius:10px;text-align:center;">
           <div style="font-size:11px;color:#166534;font-weight:600;">🏦 WITH COMPANY</div>
-          <div style="font-size:22px;font-weight:800;color:#059669;">₹${cashInCompany.toLocaleString('en-IN')}</div>
-          <div style="font-size:10px;color:#166534;">Final holders</div>
+          <div style="font-size:20px;font-weight:800;color:#059669;">₹${cashInCompany.toLocaleString('en-IN')}</div>
+          <div style="font-size:10px;color:#166534;">Cash + handovers</div>
         </div>
         <div style="padding:14px;background:#DBEAFE;border-radius:10px;text-align:center;">
           <div style="font-size:11px;color:#1E40AF;font-weight:600;">📱 UPI RECEIVED</div>
-          <div style="font-size:22px;font-weight:800;color:#2563EB;">₹${totalUpi.toLocaleString('en-IN')}</div>
-          <div style="font-size:10px;color:#1E40AF;">${upiPayments.length} transactions</div>
+          <div style="font-size:20px;font-weight:800;color:#2563EB;">₹${totalUpi.toLocaleString('en-IN')}</div>
+          <div style="font-size:10px;color:#1E40AF;">${upiPayments.length} txns · Firoz/Hazi</div>
+        </div>
+        <div style="padding:14px;background:#FCE7F3;border-radius:10px;text-align:center;">
+          <div style="font-size:11px;color:#9F1239;font-weight:600;">🏨 AIRBNB PAYOUT</div>
+          <div style="font-size:20px;font-weight:800;color:#DB2777;">₹${totalAirbnb.toLocaleString('en-IN')}</div>
+          <div style="font-size:10px;color:#9F1239;">${airbnbPayments.length} txns · Company a/c</div>
         </div>
       </div>
       
@@ -135,10 +151,13 @@ window.renderCashBook = async function() {
     <div class="card" style="padding:0;overflow:hidden;">
       <div style="display:flex;border-bottom:2px solid #E5E7EB;">
         <button onclick="cbSetTab('cash')" style="flex:1;padding:14px;background:${window._cbTab==='cash'?'#FEF3C7':'#fff'};color:${window._cbTab==='cash'?'#D97706':'#6B7280'};border:none;font-weight:700;font-size:14px;cursor:pointer;border-bottom:${window._cbTab==='cash'?'3px solid #D97706':'none'};">
-          💵 CASH (${cashPayments.length + handovers.length})
+          💵 CASH (${cashPayments.length + (handovers||[]).length})
         </button>
         <button onclick="cbSetTab('upi')" style="flex:1;padding:14px;background:${window._cbTab==='upi'?'#DBEAFE':'#fff'};color:${window._cbTab==='upi'?'#2563EB':'#6B7280'};border:none;font-weight:700;font-size:14px;cursor:pointer;border-bottom:${window._cbTab==='upi'?'3px solid #2563EB':'none'};">
           📱 UPI / BANK (${upiPayments.length})
+        </button>
+        <button onclick="cbSetTab('airbnb')" style="flex:1;padding:14px;background:${window._cbTab==='airbnb'?'#FCE7F3':'#fff'};color:${window._cbTab==='airbnb'?'#DB2777':'#6B7280'};border:none;font-weight:700;font-size:14px;cursor:pointer;border-bottom:${window._cbTab==='airbnb'?'3px solid #DB2777':'none'};">
+          🏨 AIRBNB PAYOUT (${airbnbPayments.length})
         </button>
       </div>
     </div>
@@ -213,6 +232,54 @@ window.renderCashBook = async function() {
                     <td style="padding:8px;">${p.guest_register?.guest_name || '-'}</td>
                     <td style="padding:8px;font-size:11px;color:#6B7280;">${p.guest_register?.rooms?.nickname || p.guest_register?.rooms?.unit_no || '-'}</td>
                     <td style="padding:8px;"><span style="background:${p.payment_mode==='UPI'?'#DBEAFE':p.payment_mode==='Bank'?'#E0E7FF':'#FCE7F3'};color:#1E40AF;padding:2px 8px;border-radius:4px;font-size:10px;">${p.payment_mode}</span></td>
+                    <td style="padding:8px;text-align:right;font-weight:700;color:#059669;">₹${Number(p.amount).toLocaleString('en-IN')}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+        `;
+      });
+    }
+  }
+  
+  // ═══════════════════════════════════════════════════════════
+  // AIRBNB PAYOUT TAB
+  // ═══════════════════════════════════════════════════════════
+  if (window._cbTab === 'airbnb') {
+    if (airbnbPayments.length === 0) {
+      html += '<div class="card"><div style="text-align:center;padding:40px;color:#6B7280;">No Airbnb payouts in this period</div></div>';
+    } else {
+      Object.keys(airbnbByReceiver).forEach(receiver => {
+        const info = airbnbByReceiver[receiver];
+        html += `
+          <div class="card" style="border-left:4px solid #DB2777;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+              <div>
+                <div style="font-size:16px;font-weight:700;">🏨 ${receiver}</div>
+                <div style="font-size:11px;color:#6B7280;">${info.list.length} Airbnb payout${info.list.length > 1 ? 's' : ''}</div>
+              </div>
+              <div style="text-align:right;background:#FCE7F3;padding:8px 14px;border-radius:8px;">
+                <div style="font-size:10px;color:#9F1239;font-weight:700;">TOTAL PAYOUT</div>
+                <div style="font-size:20px;font-weight:800;color:#DB2777;">₹${info.total.toLocaleString('en-IN')}</div>
+              </div>
+            </div>
+            
+            <table style="width:100%;font-size:12px;border-collapse:collapse;">
+              <thead>
+                <tr style="background:#F3F4F6;">
+                  <th style="text-align:left;padding:8px;">Date</th>
+                  <th style="text-align:left;padding:8px;">Guest</th>
+                  <th style="text-align:left;padding:8px;">Property</th>
+                  <th style="text-align:right;padding:8px;">Amount</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${info.list.map(p => `
+                  <tr style="border-bottom:1px solid #E5E7EB;">
+                    <td style="padding:8px;">${p.payment_date}</td>
+                    <td style="padding:8px;">${p.guest_register?.guest_name || '-'}</td>
+                    <td style="padding:8px;font-size:11px;color:#6B7280;">${p.guest_register?.rooms?.nickname || p.guest_register?.rooms?.unit_no || '-'}</td>
                     <td style="padding:8px;text-align:right;font-weight:700;color:#059669;">₹${Number(p.amount).toLocaleString('en-IN')}</td>
                   </tr>
                 `).join('')}
