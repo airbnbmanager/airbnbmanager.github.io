@@ -7,6 +7,13 @@ async function renderDashboard() {
   if (window.showLoadingSkeleton) window.showLoadingSkeleton('metrics');
 
   renderShell(`<div class="loading">Loading...</div>`, 'dashboard');
+  
+  // 🔧 AUTO Payment Overflow Fix (silent, runs on every dashboard load)
+  try {
+    if (typeof window.autoFixOverflowPayments === 'function') {
+      await window.autoFixOverflowPayments(true); // silent mode
+    }
+  } catch(e) { console.warn('Auto overflow fix failed:', e); }
 
   const activeUsers = await getActiveUsers();
 

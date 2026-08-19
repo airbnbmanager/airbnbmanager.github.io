@@ -4373,8 +4373,8 @@ window.removeFromGroup = async function(bookingId) {
 // AUTO-FIX OVERFLOW: Detects bookings with negative due and
 // redistributes extra payment to same guest's unpaid bookings
 // ═══════════════════════════════════════════════════════════
-async function autoFixOverflowPayments() {
-  const btn = event?.target;
+async function autoFixOverflowPayments(silent = false) {
+  const btn = silent ? null : event?.target;
   if (btn) { btn.disabled = true; btn.textContent = '⏳ Scanning...'; }
 
   try {
@@ -4404,7 +4404,7 @@ async function autoFixOverflowPayments() {
     }));
 
     if (overpaid.length === 0) {
-      alert('✅ No overpaid bookings found. Everything is balanced!');
+      if (!silent) alert('✅ No overpaid bookings found. Everything is balanced!');
       if (btn) { btn.disabled = false; btn.textContent = '🔧 Fix Overflow Payments'; }
       return;
     }
