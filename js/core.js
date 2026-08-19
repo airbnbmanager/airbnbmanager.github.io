@@ -465,7 +465,8 @@ function renderShell(content, activePage = 'dashboard') {
 
       { section: 'FINANCE' },
       ['cashbook', '💰 Cash Book'],
-      ['expenses', '📊 Daily Expenses & P&L'],
+      ['reimbursements', '💸 Daily Expenses'],
+      ['expenses', '📊 Monthly Expenses & P&L'],
       ['maintenance', '🔧 Maintenance'],
       ['laundry', '🧺 Laundry'],
       ['investors', '🧑‍💼 Investors'],
@@ -516,7 +517,8 @@ function renderShell(content, activePage = 'dashboard') {
 
       { section: 'FINANCE' },
       ['cashbook', '💰 Cash Book'],
-      ['expenses', '📊 Daily Expenses & P&L'],
+      ['reimbursements', '💸 Daily Expenses'],
+      ['expenses', '📊 Monthly Expenses & P&L'],
       ['maintenance', '🔧 Maintenance'],
       ['laundry', '🧺 Laundry'],
       ['reminders', '🔔 Reminders'],
