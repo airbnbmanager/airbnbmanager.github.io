@@ -453,6 +453,8 @@ async function editMaintenance(id) {
   window._maintEditId = id;
   window._maintEditPhotoBefore = m.photo_before;
   window._maintEditPhotoAfter = m.photo_after;
+  window._maintEditPaymentPhoto = m.payment_photo;
+  window._maintEditPayBlob = null;
   
   renderShell(`
     <div class="card"><h1>✏️ Edit Issue</h1><button class="secondary btn-sm" onclick="renderMaintenanceLog()">← Back</button></div>
@@ -558,9 +560,9 @@ async function editMaintenance(id) {
       </div>` : ''}
       
       <div class="form-group">
-        <label>📸 After Photo (post-repair)</label>
+        <label>✅ After Photo (post-repair)</label>
         ${m.photo_after ? `<div style="margin-bottom:8px;padding:8px;background:#F0FDF4;border-radius:6px;">
-          <button type="button" class="btn-sm" style="background:#10B981;color:#fff;padding:6px 12px;" onclick="dlIdPhoto('${m.photo_after.includes('/id-proofs/') ? m.photo_after.split('/id-proofs/')[1] : m.photo_after}')">📷 View After Photo</button>
+          <button type="button" class="btn-sm" style="background:#10B981;color:#fff;padding:6px 12px;" onclick="dlIdPhoto('${m.photo_after.includes('/id-proofs/') ? m.photo_after.split('/id-proofs/')[1] : m.photo_after}')">📷 View Existing</button>
         </div>` : ''}
         <div style="display:flex;gap:8px;margin-bottom:8px;">
           <button type="button" class="btn-sm" style="background:#3B82F6;color:#fff;padding:8px 14px;" onclick="document.getElementById('mPhotoAfterCam').click()">📷 Camera</button>
@@ -569,7 +571,20 @@ async function editMaintenance(id) {
         <input id="mPhotoAfterCam" type="file" accept="image/*" capture="environment" style="display:none;">
         <input id="mPhotoAfterGal" type="file" accept="image/*,image/heic,image/heif,.heic,.heif" style="display:none;">
         <div id="mPhotoAfterPreview" style="margin-top:8px;"></div>
-        <div id="mPhotoAfterPreview" style="margin-top:8px;"></div>
+      </div>
+      
+      <div class="form-group">
+        <label>💳 Payment Screenshot</label>
+        ${m.payment_photo ? `<div style="margin-bottom:8px;padding:8px;background:#EFF6FF;border-radius:6px;">
+          <button type="button" class="btn-sm" style="background:#3B82F6;color:#fff;padding:6px 12px;" onclick="dlIdPhoto('${m.payment_photo.includes('/id-proofs/') ? m.payment_photo.split('/id-proofs/')[1] : m.payment_photo}')">💳 View Existing</button>
+        </div>` : ''}
+        <div style="display:flex;gap:8px;margin-bottom:8px;">
+          <button type="button" class="btn-sm" style="background:#10B981;color:#fff;padding:8px 14px;" onclick="document.getElementById('mPhotoPayCam').click()">📷 Camera</button>
+          <button type="button" class="btn-sm" style="background:#6B7280;color:#fff;padding:8px 14px;" onclick="document.getElementById('mPhotoPayGal').click()">🖼️ Gallery</button>
+        </div>
+        <input id="mPhotoPayCam" type="file" accept="image/*" capture="environment" style="display:none;">
+        <input id="mPhotoPayGal" type="file" accept="image/*,image/heic,image/heif,.heic,.heif" style="display:none;">
+        <div id="mPhotoPayPreview" style="margin-top:8px;"></div>
       </div>
       
       <div class="form-group">
@@ -582,20 +597,29 @@ async function editMaintenance(id) {
   `, 'maintenance');
   if (window._initMaintPhotoInputs) window._initMaintPhotoInputs();
   
-  document.getElementById('mPhotoAfter').addEventListener('change', async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    const preview = document.getElementById('mPhotoAfterPreview');
-    preview.innerHTML = '<div style="color:#666;">Compressing...</div>';
-    try {
-      const compressed = await maintCompressImage(file);
-      window._maintAfterPhotoBlob = compressed;
-      const url = URL.createObjectURL(compressed);
-      preview.innerHTML = `<img src="${url}" style="max-width:150px;border-radius:8px;border:1px solid #ddd;">`;
-    } catch (err) {
-      preview.innerHTML = '<div style="color:#DC2626;">Error: ' + err.message + '</div>';
-    }
-  });
+  // Photo handler factory - attach to both after and payment
+  const _attachEditPhoto = (inputIds, previewId, blobKey) => {
+    inputIds.forEach(id => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.addEventListener('change', async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const preview = document.getElementById(previewId);
+        preview.innerHTML = '<div style="color:#666;">Compressing...</div>';
+        try {
+          const compressed = await maintCompressImage(file);
+          window[blobKey] = compressed;
+          const url = URL.createObjectURL(compressed);
+          preview.innerHTML = `<img src="${url}" style="max-width:150px;border-radius:8px;border:1px solid #ddd;">`;
+        } catch (err) {
+          preview.innerHTML = '<div style="color:#DC2626;">Error: ' + err.message + '</div>';
+        }
+      });
+    });
+  };
+  _attachEditPhoto(['mPhotoAfterCam', 'mPhotoAfterGal'], 'mPhotoAfterPreview', '_maintAfterPhotoBlob');
+  _attachEditPhoto(['mPhotoPayCam', 'mPhotoPayGal'], 'mPhotoPayPreview', '_maintEditPayBlob');
 }
 
 async function updateMaintenance() {
@@ -609,19 +633,38 @@ async function updateMaintenance() {
   let photoAfterUrl = window._maintEditPhotoAfter;
   if (window._maintAfterPhotoBlob) {
     try {
-      const path = `maintenance/${Date.now()}_after.jpg`;
+      const path = `maintenance/after_${Date.now()}_${Math.random().toString(36).substr(2,6)}.jpg`;
       const { error: upErr } = await sb.storage.from('id-proofs').upload(path, window._maintAfterPhotoBlob, { contentType: window._maintAfterPhotoBlob.type || 'image/jpeg', upsert: false });
       if (upErr) throw upErr;
-      // Delete old after photo if replacing
       if (window._maintEditPhotoAfter) {
         try {
           const oldP = window._maintEditPhotoAfter.includes('/id-proofs/') ? window._maintEditPhotoAfter.split('/id-proofs/')[1] : window._maintEditPhotoAfter;
           if (oldP) await sb.storage.from('id-proofs').remove([oldP]);
         } catch (e) {}
       }
-      photoAfterUrl = path;  // Store path
+      photoAfterUrl = path;
     } catch (err) {
-      document.getElementById('mErr').innerHTML = '<div class="error">Photo: ' + err.message + '</div>';
+      document.getElementById('mErr').innerHTML = '<div class="error">After Photo: ' + err.message + '</div>';
+      return;
+    }
+  }
+  
+  // Upload new payment photo if provided
+  let paymentPhotoUrl = window._maintEditPaymentPhoto;
+  if (window._maintEditPayBlob) {
+    try {
+      const path = `maintenance/pay_${Date.now()}_${Math.random().toString(36).substr(2,6)}.jpg`;
+      const { error: upErr } = await sb.storage.from('id-proofs').upload(path, window._maintEditPayBlob, { contentType: window._maintEditPayBlob.type || 'image/jpeg', upsert: false });
+      if (upErr) throw upErr;
+      if (window._maintEditPaymentPhoto) {
+        try {
+          const oldP = window._maintEditPaymentPhoto.includes('/id-proofs/') ? window._maintEditPaymentPhoto.split('/id-proofs/')[1] : window._maintEditPaymentPhoto;
+          if (oldP) await sb.storage.from('id-proofs').remove([oldP]);
+        } catch (e) {}
+      }
+      paymentPhotoUrl = path;
+    } catch (err) {
+      document.getElementById('mErr').innerHTML = '<div class="error">Payment Photo: ' + err.message + '</div>';
       return;
     }
   }
@@ -639,6 +682,7 @@ async function updateMaintenance() {
     vendor_name: document.getElementById('mVendor').value.trim() || null,
     status,
     photo_after: photoAfterUrl,
+    payment_photo: paymentPhotoUrl,
     notes: document.getElementById('mNotes').value.trim() || null,
     paid_by: (parseFloat(document.getElementById('mCost').value) || 0) > 0 ? getMaintPaidBy() : null,
     payment_mode: (parseFloat(document.getElementById('mCost').value) || 0) > 0 ? (document.getElementById('mPaymentMode')?.value || null) : null,
