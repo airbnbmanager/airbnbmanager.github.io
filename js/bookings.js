@@ -4444,7 +4444,7 @@ async function autoFixOverflowPayments(silent = false) {
     }
 
     if (adjustments.length === 0) {
-      alert('⚠️ Found ' + overpaid.length + ' overpaid booking(s) but no matching unpaid bookings from same guest to adjust to.');
+      if (!silent) alert('⚠️ Found ' + overpaid.length + ' overpaid booking(s) but no matching unpaid bookings from same guest to adjust to.');
       if (btn) { btn.disabled = false; btn.textContent = '🔧 Fix Overflow Payments'; }
       return;
     }
@@ -4508,7 +4508,7 @@ async function autoFixOverflowPayments(silent = false) {
       }
     }
 
-    alert('✅ Done! ' + successCount + '/' + adjustments.length + ' adjustments applied successfully.');
+    if (!silent) alert('✅ Done! ' + successCount + '/' + adjustments.length + ' adjustments applied successfully.');
     if (btn) { btn.disabled = false; btn.textContent = '🔧 Fix Overflow Payments'; }
 
     // Refresh bookings if visible
@@ -4516,7 +4516,7 @@ async function autoFixOverflowPayments(silent = false) {
       renderManageBookings();
     }
   } catch (err) {
-    alert('❌ Error: ' + err.message);
+    if (!silent) alert('❌ Error: ' + err.message);
     if (btn) { btn.disabled = false; btn.textContent = '🔧 Fix Overflow Payments'; }
   }
 }
