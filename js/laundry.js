@@ -100,6 +100,7 @@ window.renderLaundry = async function() {
       <div class="sub">${(records||[]).length} records — ${currentMonth}</div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;">
         <button onclick="renderAddLaundry()">➕ Add Laundry</button>
+        <button onclick="showLaundryReport()" style="background:#8B5CF6;color:#fff;">📊 Report</button>
         <input type="month" value="${currentMonth}" onchange="window._laundryMonth=this.value;renderLaundry()" style="padding:6px 8px;border-radius:6px;border:1px solid var(--border);">
       </div>
     </div>
@@ -1119,5 +1120,166 @@ window.undoLaundryClaim = async function(paymentId, recordId) {
   fsn.success('Reverted', '↩️ Claim reverted');
   document.querySelector('.modal-overlay')?.remove();
   setTimeout(() => { showLaundryPayments(recordId); renderLaundry(); }, 200);
+};
+
+// ═══════════════════════════════════════════════════════════
+// 📊 LAUNDRY REPORT MODAL
+// ═══════════════════════════════════════════════════════════
+window.showLaundryReport = async function() {
+  const currentMonth = window._laundryMonth || new Date().toISOString().slice(0, 7);
+  const monthStart = currentMonth + '-01';
+  const monthEnd = currentMonth + '-31';
+  
+  const [{ data: records }, { data: recItems }, { data: allPayments }, { data: items }] = await Promise.all([
+    sb.from('laundry_records').select('*').gte('record_date', monthStart).lte('record_date', monthEnd),
+    sb.from('laundry_record_items').select('*'),
+    sb.from('laundry_payments').select('*').gte('payment_date', monthStart).lte('payment_date', monthEnd),
+    sb.from('laundry_items').select('*')
+  ]);
+  
+  const itemsMap = {};
+  (items || []).forEach(i => itemsMap[i.id] = i.item_name);
+  
+  const recordIds = (records || []).map(r => r.id);
+  const monthItems = (recItems || []).filter(ri => recordIds.includes(ri.record_id));
+  
+  // Financial summary
+  const totalAmount = (records || []).reduce((s, r) => s + Number(r.total_amount || 0), 0);
+  const totalPaid = (allPayments || []).reduce((s, p) => s + Number(p.amount || 0), 0);
+  const totalDue = totalAmount - totalPaid;
+  
+  // Claim breakdown
+  const unclaimed = (allPayments || []).filter(p => (p.claim_status || 'not_claimed') === 'not_claimed');
+  const claimed = (allPayments || []).filter(p => p.claim_status === 'claimed');
+  const received = (allPayments || []).filter(p => p.claim_status === 'received');
+  const unclaimedAmt = unclaimed.reduce((s, p) => s + Number(p.amount || 0), 0);
+  const claimedAmt = claimed.reduce((s, p) => s + Number(p.amount || 0), 0);
+  const receivedAmt = received.reduce((s, p) => s + Number(p.amount || 0), 0);
+  
+  // Vendor breakdown
+  const vendorMap = {};
+  (records || []).forEach(r => {
+    const v = r.vendor_name || 'Unknown';
+    if (!vendorMap[v]) vendorMap[v] = { count: 0, amount: 0 };
+    vendorMap[v].count++;
+    vendorMap[v].amount += Number(r.total_amount || 0);
+  });
+  const vendorList = Object.entries(vendorMap).sort((a,b) => b[1].amount - a[1].amount);
+  
+  // Item consumption
+  const itemStats = {};
+  monthItems.forEach(ri => {
+    const name = itemsMap[ri.item_id] || 'Unknown';
+    if (!itemStats[name]) itemStats[name] = { qty: 0, amount: 0 };
+    itemStats[name].qty += Number(ri.quantity || 0);
+    itemStats[name].amount += Number(ri.subtotal || (ri.quantity * ri.rate) || 0);
+  });
+  const itemList = Object.entries(itemStats).sort((a,b) => b[1].qty - a[1].qty);
+  
+  // Payment mode breakdown
+  const modeMap = {};
+  (allPayments || []).forEach(p => {
+    const m = p.payment_mode || 'Cash';
+    if (!modeMap[m]) modeMap[m] = { count: 0, amount: 0 };
+    modeMap[m].count++;
+    modeMap[m].amount += Number(p.amount || 0);
+  });
+  
+  const modal = document.createElement('div');
+  modal.className = 'modal-overlay';
+  modal.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:9999;padding:20px;';
+  modal.innerHTML = `
+    <div class="modal-box" style="background:#fff;border-radius:12px;padding:24px;max-width:700px;width:100%;max-height:90vh;overflow-y:auto;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;border-bottom:2px solid #eee;padding-bottom:12px;">
+        <div>
+          <h2 style="margin:0;">📊 Laundry Report</h2>
+          <div style="font-size:12px;color:#666;margin-top:2px;">${currentMonth} · ${(records||[]).length} records · ${(allPayments||[]).length} payments</div>
+        </div>
+        <button onclick="this.closest('.modal-overlay').remove()" style="background:none;border:none;font-size:24px;cursor:pointer;">✕</button>
+      </div>
+      
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:20px;">
+        <div style="padding:12px;background:#EFF6FF;border-radius:8px;text-align:center;">
+          <div style="font-size:20px;font-weight:800;color:#1E40AF;">₹${totalAmount.toLocaleString('en-IN')}</div>
+          <div style="font-size:11px;color:#666;">Total Amount</div>
+        </div>
+        <div style="padding:12px;background:#F0FDF4;border-radius:8px;text-align:center;">
+          <div style="font-size:20px;font-weight:800;color:#059669;">₹${totalPaid.toLocaleString('en-IN')}</div>
+          <div style="font-size:11px;color:#666;">Paid (${(allPayments||[]).length})</div>
+        </div>
+        <div style="padding:12px;background:${totalDue > 0 ? '#FEF2F2' : '#F0FDF4'};border-radius:8px;text-align:center;">
+          <div style="font-size:20px;font-weight:800;color:${totalDue > 0 ? '#DC2626' : '#059669'};">₹${totalDue.toLocaleString('en-IN')}</div>
+          <div style="font-size:11px;color:#666;">Due</div>
+        </div>
+      </div>
+      
+      <div style="margin-bottom:20px;padding:14px;background:#FFFBEB;border-radius:8px;border-left:4px solid #F59E0B;">
+        <div style="font-weight:700;margin-bottom:8px;">📤 Claim Status</div>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;font-size:12px;">
+          <div><span style="color:#92400E;">⏳ Unclaimed:</span> <strong>₹${unclaimedAmt.toLocaleString('en-IN')}</strong> (${unclaimed.length})</div>
+          <div><span style="color:#1E40AF;">📤 Claimed:</span> <strong>₹${claimedAmt.toLocaleString('en-IN')}</strong> (${claimed.length})</div>
+          <div><span style="color:#065F46;">✅ Received:</span> <strong>₹${receivedAmt.toLocaleString('en-IN')}</strong> (${received.length})</div>
+        </div>
+      </div>
+      
+      <div style="margin-bottom:20px;">
+        <div style="font-weight:700;margin-bottom:8px;">🏆 Vendor Breakdown</div>
+        <table style="width:100%;border-collapse:collapse;font-size:12px;">
+          <thead><tr style="background:#f5f5f5;">
+            <th style="padding:6px;text-align:left;">Vendor</th>
+            <th style="padding:6px;text-align:center;">Records</th>
+            <th style="padding:6px;text-align:right;">Total</th>
+            <th style="padding:6px;text-align:right;">%</th>
+          </tr></thead>
+          <tbody>
+            ${vendorList.map(([name, data]) => `
+              <tr style="border-bottom:1px solid #eee;">
+                <td style="padding:6px;"><strong>${name}</strong></td>
+                <td style="padding:6px;text-align:center;">${data.count}</td>
+                <td style="padding:6px;text-align:right;">₹${data.amount.toLocaleString('en-IN')}</td>
+                <td style="padding:6px;text-align:right;">${totalAmount > 0 ? Math.round(data.amount / totalAmount * 100) : 0}%</td>
+              </tr>
+            `).join('') || '<tr><td colspan="4" style="padding:12px;text-align:center;color:#999;">No data</td></tr>'}
+          </tbody>
+        </table>
+      </div>
+      
+      <div style="margin-bottom:20px;">
+        <div style="font-weight:700;margin-bottom:8px;">📊 Top Items Consumed</div>
+        <table style="width:100%;border-collapse:collapse;font-size:12px;">
+          <thead><tr style="background:#f5f5f5;">
+            <th style="padding:6px;text-align:left;">Item</th>
+            <th style="padding:6px;text-align:center;">Qty</th>
+            <th style="padding:6px;text-align:right;">Amount</th>
+          </tr></thead>
+          <tbody>
+            ${itemList.slice(0, 10).map(([name, data]) => `
+              <tr style="border-bottom:1px solid #eee;">
+                <td style="padding:6px;">${name}</td>
+                <td style="padding:6px;text-align:center;"><strong>${data.qty}</strong></td>
+                <td style="padding:6px;text-align:right;">₹${data.amount.toLocaleString('en-IN')}</td>
+              </tr>
+            `).join('') || '<tr><td colspan="3" style="padding:12px;text-align:center;color:#999;">No data</td></tr>'}
+          </tbody>
+        </table>
+      </div>
+      
+      <div style="margin-bottom:12px;">
+        <div style="font-weight:700;margin-bottom:8px;">💳 Payment Modes</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          ${Object.entries(modeMap).map(([mode, data]) => `
+            <div style="padding:8px 12px;background:#f5f5f5;border-radius:6px;font-size:12px;">
+              <strong>${mode}</strong>: ₹${data.amount.toLocaleString('en-IN')} <span style="color:#666;">(${data.count})</span>
+            </div>
+          `).join('') || '<div style="color:#999;">No payments yet</div>'}
+        </div>
+      </div>
+      
+      <div style="text-align:right;padding-top:12px;border-top:1px solid #eee;">
+        <button onclick="this.closest('.modal-overlay').remove()" style="background:#6B7280;color:#fff;padding:8px 20px;border:none;border-radius:6px;cursor:pointer;">Close</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
 };
 

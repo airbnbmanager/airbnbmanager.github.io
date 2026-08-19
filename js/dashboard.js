@@ -1142,3 +1142,124 @@ function filterBookingsByMode(mode, period) {
 
   navigate('bookings');
 }
+
+// ═══════════════════════════════════════════════════════════
+// 🔔 LAUNDRY REMINDERS - Async loader for dashboard
+// Runs after main dashboard render, injects into Attention card
+// ═══════════════════════════════════════════════════════════
+async function loadLaundryReminders() {
+  try {
+    const { data: payments } = await sb.from('laundry_payments')
+      .select('id, amount, payment_date, claim_date, claim_status, record_id');
+    
+    if (!payments || payments.length === 0) return;
+    
+    const today = new Date();
+    const daysAgo = (dateStr) => {
+      if (!dateStr) return 0;
+      return Math.floor((today - new Date(dateStr)) / (1000 * 60 * 60 * 24));
+    };
+    
+    // Unclaimed > 7 days
+    const oldUnclaimed = payments.filter(p => 
+      (p.claim_status || 'not_claimed') === 'not_claimed' && 
+      daysAgo(p.payment_date) > 7
+    );
+    
+    // Claimed but not received > 15 days
+    const oldClaimed = payments.filter(p => 
+      p.claim_status === 'claimed' && 
+      p.claim_date && 
+      daysAgo(p.claim_date) > 15
+    );
+    
+    if (oldUnclaimed.length === 0 && oldClaimed.length === 0) return;
+    
+    const unclaimedAmt = oldUnclaimed.reduce((s, p) => s + Number(p.amount || 0), 0);
+    const claimedAmt = oldClaimed.reduce((s, p) => s + Number(p.amount || 0), 0);
+    
+    // Find the "Attention Needed" card
+    const attentionCards = document.querySelectorAll('.stat-card');
+    let targetCard = null;
+    attentionCards.forEach(card => {
+      const label = card.querySelector('.stat-label');
+      if (label && label.textContent.includes('Attention Needed')) {
+        targetCard = card;
+      }
+    });
+    
+    if (!targetCard) return;
+    
+    // Find the scrollable content div
+    const contentDiv = targetCard.querySelector('div[style*="max-height"]');
+    if (!contentDiv) return;
+    
+    // Build reminder HTML
+    let html = '';
+    
+    if (oldUnclaimed.length > 0) {
+      const oldest = Math.max(...oldUnclaimed.map(p => daysAgo(p.payment_date)));
+      html += `
+        <div style="margin-top:10px;padding-top:8px;border-top:1px dashed #ddd;">
+          <strong style="font-size:11px;color:#92400E;">💰 UNCLAIMED LAUNDRY (${oldUnclaimed.length})</strong>
+          <div style="font-size:12px;margin-top:4px;padding:6px;background:#FFFBEB;border-radius:6px;cursor:pointer;" onclick="navigateTo('laundry')">
+            <strong style="color:#92400E;">₹${unclaimedAmt.toLocaleString('en-IN')}</strong> not claimed
+            <div style="font-size:10px;color:#666;margin-top:2px;">Oldest: ${oldest} days ago · Click to view</div>
+          </div>
+        </div>`;
+    }
+    
+    if (oldClaimed.length > 0) {
+      const oldest = Math.max(...oldClaimed.map(p => daysAgo(p.claim_date)));
+      html += `
+        <div style="margin-top:8px;padding-top:6px;">
+          <strong style="font-size:11px;color:#1E40AF;">📤 PENDING RECEIVED (${oldClaimed.length})</strong>
+          <div style="font-size:12px;margin-top:4px;padding:6px;background:#DBEAFE;border-radius:6px;cursor:pointer;" onclick="navigateTo('laundry')">
+            <strong style="color:#1E40AF;">₹${claimedAmt.toLocaleString('en-IN')}</strong> waiting from company
+            <div style="font-size:10px;color:#666;margin-top:2px;">Oldest: ${oldest} days ago · Follow up needed</div>
+          </div>
+        </div>`;
+    }
+    
+    // Append to attention card content
+    contentDiv.insertAdjacentHTML('beforeend', html);
+    
+    // Update card style if it was "All on track" - remove that message and highlight
+    const allTrackDiv = contentDiv.querySelector('.sub');
+    if (allTrackDiv && allTrackDiv.textContent.includes('All on track')) {
+      allTrackDiv.remove();
+    }
+    
+    // Update border color to orange if any alerts
+    targetCard.style.borderLeftColor = 'var(--orange, #F97316)';
+    targetCard.style.background = '#FFF7ED';
+    
+    // Update count in stat-num
+    const statNum = targetCard.querySelector('.stat-num');
+    if (statNum) {
+      const currentNum = parseInt(statNum.textContent) || 0;
+      const newTotal = currentNum + oldUnclaimed.length + oldClaimed.length;
+      statNum.textContent = newTotal;
+    }
+    
+    console.log('✅ Laundry reminders injected:', { unclaimed: oldUnclaimed.length, pendingReceived: oldClaimed.length });
+    
+  } catch (e) {
+    console.warn('Laundry reminders load failed:', e);
+  }
+}
+
+// Auto-run when dashboard renders
+window._laundryReminderInterval = setInterval(() => {
+  if (window.location.hash === '#dashboard' || window.location.hash === '' || window.location.hash === '#') {
+    const attention = document.querySelector('.stat-label');
+    if (attention && document.body.textContent.includes('Attention Needed') && !document.body.dataset.reminderLoaded) {
+      document.body.dataset.reminderLoaded = 'true';
+      loadLaundryReminders().then(() => {
+        setTimeout(() => { delete document.body.dataset.reminderLoaded; }, 60000);
+      });
+    }
+  }
+}, 2000);
+
+console.log('✅ Laundry reminder module loaded');
