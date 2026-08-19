@@ -26,7 +26,7 @@ window.renderCashBook = async function() {
     startDate = window._cbCustomDate;
     endDate = window._cbCustomDate;
   } else if (window._cbFilter === 'all') {
-    startDate = '2026-08-19'; // Cutoff
+    startDate = '2020-01-01'; // Show all historical
   } else {
     startDate = today;
   }
@@ -124,9 +124,9 @@ window.renderCashBook = async function() {
           <div style="font-size:10px;color:#78350F;">Pending handover</div>
         </div>
         <div style="padding:14px;background:#DCFCE7;border-radius:10px;text-align:center;">
-          <div style="font-size:11px;color:#166534;font-weight:600;">🏦 WITH COMPANY</div>
-          <div style="font-size:20px;font-weight:800;color:#059669;">₹${cashInCompany.toLocaleString('en-IN')}</div>
-          <div style="font-size:10px;color:#166534;">Cash + handovers</div>
+          <div style="font-size:11px;color:#166534;font-weight:600;">🏦 TOTAL WITH COMPANY</div>
+          <div style="font-size:20px;font-weight:800;color:#059669;">₹${(cashInCompany + totalUpi + totalAirbnb).toLocaleString('en-IN')}</div>
+          <div style="font-size:10px;color:#166534;">Cash ₹${cashInCompany.toLocaleString('en-IN')} + UPI ₹${totalUpi.toLocaleString('en-IN')} + Airbnb ₹${totalAirbnb.toLocaleString('en-IN')}</div>
         </div>
         <div style="padding:14px;background:#DBEAFE;border-radius:10px;text-align:center;">
           <div style="font-size:11px;color:#1E40AF;font-weight:600;">📱 UPI RECEIVED</div>
