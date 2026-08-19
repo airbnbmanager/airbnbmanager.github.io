@@ -1,4 +1,28 @@
 // ═══════════════════════════════════════════════════════════
+// 📷 Image compression for laundry photos
+// ═══════════════════════════════════════════════════════════
+async function laundryCompressImage(file, maxWidth = 800, quality = 0.7) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = e => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        let w = img.width, h = img.height;
+        if (w > maxWidth) { h = h * (maxWidth / w); w = maxWidth; }
+        canvas.width = w; canvas.height = h;
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+        canvas.toBlob(blob => blob ? resolve(blob) : reject(new Error('Compression failed')), 'image/jpeg', quality);
+      };
+      img.onerror = () => reject(new Error('Invalid image'));
+      img.src = e.target.result;
+    };
+    reader.onerror = () => reject(new Error('Read failed'));
+    reader.readAsDataURL(file);
+  });
+}
+
+// ═══════════════════════════════════════════════════════════
 // 🧺 LAUNDRY TRACKER MODULE
 // ═══════════════════════════════════════════════════════════
 
@@ -40,6 +64,15 @@ window.renderLaundry = async function() {
   
   const totalAmount = (records || []).reduce((s, r) => s + Number(r.total_amount || 0), 0);
   const totalPaid = Object.values(paymentsByRecord).flat().reduce((s, p) => s + Number(p.amount || 0), 0);
+  
+  // Claim totals
+  const allPays = Object.values(paymentsByRecord).flat();
+  const unclaimedPays = allPays.filter(p => (p.claim_status || 'not_claimed') === 'not_claimed');
+  const claimedPays = allPays.filter(p => p.claim_status === 'claimed');
+  const receivedPays = allPays.filter(p => p.claim_status === 'received');
+  const totalUnclaimed = unclaimedPays.reduce((s, p) => s + Number(p.amount || 0), 0);
+  const totalClaimed = claimedPays.reduce((s, p) => s + Number(p.amount || 0), 0);
+  const totalReceived = receivedPays.reduce((s, p) => s + Number(p.amount || 0), 0);
   const totalDue = totalAmount - totalPaid;
   
   // Item-wise consumption
@@ -86,6 +119,20 @@ window.renderLaundry = async function() {
           <div style="font-size:11px;color:#666;">Due</div>
         </div>
       </div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:12px;">
+        <div style="text-align:center;padding:14px;background:#FFFBEB;border-radius:8px;border:1px solid #FDE68A;">
+          <div style="font-size:22px;font-weight:800;color:#92400E;">₹${totalUnclaimed.toLocaleString('en-IN')}</div>
+          <div style="font-size:11px;color:#666;">⏳ Unclaimed <span style="color:#999;">(${unclaimedPays.length})</span></div>
+        </div>
+        <div style="text-align:center;padding:14px;background:#DBEAFE;border-radius:8px;border:1px solid #93C5FD;">
+          <div style="font-size:22px;font-weight:800;color:#1E40AF;">₹${totalClaimed.toLocaleString('en-IN')}</div>
+          <div style="font-size:11px;color:#666;">📤 Claimed <span style="color:#999;">(${claimedPays.length})</span></div>
+        </div>
+        <div style="text-align:center;padding:14px;background:#D1FAE5;border-radius:8px;border:1px solid #6EE7B7;">
+          <div style="font-size:22px;font-weight:800;color:#065F46;">₹${totalReceived.toLocaleString('en-IN')}</div>
+          <div style="font-size:11px;color:#666;">✅ Received <span style="color:#999;">(${receivedPays.length})</span></div>
+        </div>
+      </div>
     </div>
 
     ${Object.keys(itemStats).length > 0 ? `
@@ -102,10 +149,10 @@ window.renderLaundry = async function() {
       <div class="table-wrap"><table>
         <thead><tr>
           <th>Date</th><th>Property</th><th>Vendor</th><th>Items</th>
-          <th style="text-align:right;">Total</th><th>Status</th><th>Actions</th>
+          <th style="text-align:right;">Total</th><th>Status</th><th>📷 Photos</th><th>Actions</th>
         </tr></thead>
         <tbody>
-          ${(records || []).length === 0 ? '<tr><td colspan="7" style="text-align:center;padding:20px;color:#999;">No laundry records this month</td></tr>' : ''}
+          ${(records || []).length === 0 ? '<tr><td colspan="8" style="text-align:center;padding:20px;color:#999;">No laundry records this month</td></tr>' : ''}
           ${(records || []).map(r => {
             const rItems = itemsByRecord[r.id] || [];
             const itemsSummary = rItems.map(ri => `${ri.quantity} ${ri.laundry_items?.item_name || '?'}`).join(', ');
@@ -127,6 +174,30 @@ window.renderLaundry = async function() {
               <td>
                 <span class="badge ${status}">${statusText}</span>
                 ${recPayments.length > 0 ? `<div style="font-size:10px;color:#666;margin-top:2px;cursor:pointer;" onclick="showLaundryPayments(${r.id})">📜 ${recPayments.length} payment${recPayments.length>1?'s':''}</div>` : ''}
+                ${(() => {
+                  const unclaimed = recPayments.filter(p => (p.claim_status || 'not_claimed') === 'not_claimed');
+                  const claimed = recPayments.filter(p => p.claim_status === 'claimed');
+                  const unclaimedAmt = unclaimed.reduce((s, p) => s + Number(p.amount || 0), 0);
+                  const claimedAmt = claimed.reduce((s, p) => s + Number(p.amount || 0), 0);
+                  const parts = [];
+                  if (unclaimedAmt > 0) parts.push(`<div style="font-size:10px;color:#92400E;margin-top:2px;">⏳ Unclaimed: ₹${unclaimedAmt.toLocaleString('en-IN')}</div>`);
+                  if (claimedAmt > 0) parts.push(`<div style="font-size:10px;color:#1E40AF;">📤 Claimed: ₹${claimedAmt.toLocaleString('en-IN')}</div>`);
+                  return parts.join('');
+                })()}
+              </td>
+              <td>
+                ${(() => {
+                  const getPath = (p) => p.includes('/id-proofs/') ? p.split('/id-proofs/')[1] : p;
+                  const btns = [];
+                  if (r.bill_photo) {
+                    btns.push(`<button class="btn-sm" style="background:#F59E0B;color:#fff;padding:3px 8px;font-size:10px;margin:1px 0;display:block;width:100%;" onclick="dlIdPhoto('${getPath(r.bill_photo)}')" title="View Bill Photo">🧾 Bill</button>`);
+                  }
+                  const paysWithPhoto = recPayments.filter(p => p.payment_photo);
+                  if (paysWithPhoto.length > 0) {
+                    btns.push(`<button class="btn-sm" style="background:#3B82F6;color:#fff;padding:3px 8px;font-size:10px;margin:1px 0;display:block;width:100%;" onclick="showLaundryPayments(${r.id})" title="View Payment Screenshots">💳 Pay (${paysWithPhoto.length})</button>`);
+                  }
+                  return btns.length ? btns.join('') : '<span style="color:#999;font-size:11px;">-</span>';
+                })()}
               </td>
               <td class="table-actions">
                 ${due > 0 ? `<button class="btn-sm" style="background:#10B981;color:#fff;" onclick="addLaundryPayment(${r.id}, ${due})">💰 Pay</button>` : ''}
@@ -206,6 +277,16 @@ window.renderAddLaundry = async function() {
         </div>
       </div>
       <div class="form-group">
+        <label>🧾 Bill Photo (Vendor Bill)</label>
+        <div style="display:flex;gap:8px;margin-bottom:8px;">
+          <button type="button" class="btn-sm" style="background:#F59E0B;color:#fff;padding:8px 14px;" onclick="document.getElementById('lBillCam').click()">📷 Camera</button>
+          <button type="button" class="btn-sm" style="background:#6B7280;color:#fff;padding:8px 14px;" onclick="document.getElementById('lBillGal').click()">🖼️ Gallery</button>
+        </div>
+        <input id="lBillCam" type="file" accept="image/*" capture="environment" style="display:none;">
+        <input id="lBillGal" type="file" accept="image/*,image/heic,image/heif,.heic,.heif" style="display:none;">
+        <div id="lBillPreview" style="margin-top:8px;"></div>
+      </div>
+      <div class="form-group">
         <label>Notes</label>
         <textarea id="lNotes" rows="2"></textarea>
       </div>
@@ -215,6 +296,30 @@ window.renderAddLaundry = async function() {
   `, 'laundry');
   
   addLaundryItemRow();
+  
+  // Reset previous blob
+  window._laundryBillBlob = null;
+  
+  // Attach bill photo handlers
+  ['lBillCam', 'lBillGal'].forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.addEventListener('change', async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const preview = document.getElementById('lBillPreview');
+      preview.innerHTML = '<div style="color:#666;">Compressing...</div>';
+      try {
+        const compressed = await laundryCompressImage(file);
+        window._laundryBillBlob = compressed;
+        const url = URL.createObjectURL(compressed);
+        preview.innerHTML = `<img src="${url}" style="max-width:150px;border-radius:8px;border:1px solid #ddd;">
+          <div style="font-size:11px;color:#666;">Size: ${Math.round(compressed.size/1024)}KB</div>`;
+      } catch (err) {
+        preview.innerHTML = '<div style="color:#DC2626;">Error: ' + err.message + '</div>';
+      }
+    });
+  });
 };
 
 window.addLaundryItemRow = function() {
@@ -371,6 +476,20 @@ window.saveLaundry = async function() {
   
   const paymentStatus = paidAmt >= total ? 'Paid' : (paidAmt > 0 ? 'Partial' : 'Pending');
   
+  // Upload bill photo if provided
+  let billPhotoPath = null;
+  if (window._laundryBillBlob) {
+    try {
+      const path = `laundry/bill_${Date.now()}_${Math.random().toString(36).substr(2,6)}.jpg`;
+      const { error: upErr } = await sb.storage.from('id-proofs').upload(path, window._laundryBillBlob, { contentType: window._laundryBillBlob.type || 'image/jpeg', upsert: false });
+      if (upErr) throw upErr;
+      billPhotoPath = path;
+    } catch (err) {
+      document.getElementById('lErr').innerHTML = '<div class="error">Bill photo: ' + err.message + '</div>';
+      return;
+    }
+  }
+  
   const { data: rec, error: e1 } = await sb.from('laundry_records').insert({
     record_date: date,
     room_id: room,
@@ -379,7 +498,8 @@ window.saveLaundry = async function() {
     payment_mode: payMode,
     payment_status: paymentStatus,
     paid_amount: paidAmt,
-    notes: notes
+    notes: notes,
+    bill_photo: billPhotoPath
   }).select().single();
   
   if (e1) {
@@ -395,6 +515,7 @@ window.saveLaundry = async function() {
     return;
   }
   
+  window._laundryBillBlob = null;
   fsn.success('Success', '✅ Laundry saved!');
   renderLaundry();
 };
@@ -490,6 +611,20 @@ window.editLaundry = async function(id) {
         </div>
       </div>
       <div class="form-group">
+        <label>🧾 Bill Photo (Vendor Bill)</label>
+        ${rec.bill_photo ? `<div style="margin-bottom:8px;padding:8px;background:#FFFBEB;border-radius:6px;">
+          <button type="button" class="btn-sm" style="background:#F59E0B;color:#fff;padding:6px 12px;" onclick="dlIdPhoto('${rec.bill_photo.includes('/id-proofs/') ? rec.bill_photo.split('/id-proofs/')[1] : rec.bill_photo}')">🧾 View Existing Bill</button>
+          <span style="font-size:11px;color:#666;margin-left:8px;">Upload new to replace</span>
+        </div>` : ''}
+        <div style="display:flex;gap:8px;margin-bottom:8px;">
+          <button type="button" class="btn-sm" style="background:#F59E0B;color:#fff;padding:8px 14px;" onclick="document.getElementById('lBillCam').click()">📷 Camera</button>
+          <button type="button" class="btn-sm" style="background:#6B7280;color:#fff;padding:8px 14px;" onclick="document.getElementById('lBillGal').click()">🖼️ Gallery</button>
+        </div>
+        <input id="lBillCam" type="file" accept="image/*" capture="environment" style="display:none;">
+        <input id="lBillGal" type="file" accept="image/*,image/heic,image/heif,.heic,.heif" style="display:none;">
+        <div id="lBillPreview" style="margin-top:8px;"></div>
+      </div>
+      <div class="form-group">
         <label>Notes</label>
         <textarea id="lNotes" rows="2">${rec.notes || ''}</textarea>
       </div>
@@ -509,6 +644,31 @@ window.editLaundry = async function(id) {
     row.querySelector('.laundry-rate').value = ri.rate;
   });
   updateLaundryTotal();
+  
+  // Store existing bill photo path + reset blob
+  window._laundryEditBillPath = rec.bill_photo || null;
+  window._laundryBillBlob = null;
+  
+  // Attach bill photo handlers (same as add form)
+  ['lBillCam', 'lBillGal'].forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.addEventListener('change', async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const preview = document.getElementById('lBillPreview');
+      preview.innerHTML = '<div style="color:#666;">Compressing...</div>';
+      try {
+        const compressed = await laundryCompressImage(file);
+        window._laundryBillBlob = compressed;
+        const url = URL.createObjectURL(compressed);
+        preview.innerHTML = `<img src="${url}" style="max-width:150px;border-radius:8px;border:1px solid #ddd;">
+          <div style="font-size:11px;color:#666;">New photo ready · Size: ${Math.round(compressed.size/1024)}KB</div>`;
+      } catch (err) {
+        preview.innerHTML = '<div style="color:#DC2626;">Error: ' + err.message + '</div>';
+      }
+    });
+  });
 };
 
 window.updateLaundry = async function() {
@@ -546,6 +706,27 @@ window.updateLaundry = async function() {
   
   const paymentStatus = paidAmt >= total ? 'Paid' : (paidAmt > 0 ? 'Partial' : 'Pending');
   
+  // Upload new bill photo if provided (and delete old)
+  let billPhotoPath = window._laundryEditBillPath;
+  if (window._laundryBillBlob) {
+    try {
+      const path = `laundry/bill_${Date.now()}_${Math.random().toString(36).substr(2,6)}.jpg`;
+      const { error: upErr } = await sb.storage.from('id-proofs').upload(path, window._laundryBillBlob, { contentType: window._laundryBillBlob.type || 'image/jpeg', upsert: false });
+      if (upErr) throw upErr;
+      // Delete old photo if existed
+      if (window._laundryEditBillPath) {
+        try {
+          const oldP = window._laundryEditBillPath.includes('/id-proofs/') ? window._laundryEditBillPath.split('/id-proofs/')[1] : window._laundryEditBillPath;
+          if (oldP) await sb.storage.from('id-proofs').remove([oldP]);
+        } catch (e) {}
+      }
+      billPhotoPath = path;
+    } catch (err) {
+      document.getElementById('lErr').innerHTML = '<div class="error">Bill photo: ' + err.message + '</div>';
+      return;
+    }
+  }
+  
   // Update master record
   const { error: e1 } = await sb.from('laundry_records').update({
     record_date: date,
@@ -555,7 +736,8 @@ window.updateLaundry = async function() {
     payment_mode: payMode,
     payment_status: paymentStatus,
     paid_amount: paidAmt,
-    notes: notes
+    notes: notes,
+    bill_photo: billPhotoPath
   }).eq('id', id);
   
   if (e1) {
@@ -572,6 +754,8 @@ window.updateLaundry = async function() {
     return;
   }
   
+  window._laundryBillBlob = null;
+  window._laundryEditBillPath = null;
   fsn.success('Success', '✅ Updated!');
   renderLaundry();
 };
@@ -636,11 +820,43 @@ window.addLaundryPayment = async function(recordId, dueAmount) {
         </select>
       </div>
       <div class="form-group"><label>Notes</label><input id="lpNotes" type="text" placeholder="Optional"></div>
+      <div class="form-group">
+        <label>💳 Payment Screenshot</label>
+        <div style="display:flex;gap:8px;margin-bottom:8px;">
+          <button type="button" class="btn-sm" style="background:#10B981;color:#fff;padding:8px 14px;" onclick="document.getElementById('lpPayCam').click()">📷 Camera</button>
+          <button type="button" class="btn-sm" style="background:#6B7280;color:#fff;padding:8px 14px;" onclick="document.getElementById('lpPayGal').click()">🖼️ Gallery</button>
+        </div>
+        <input id="lpPayCam" type="file" accept="image/*" capture="environment" style="display:none;">
+        <input id="lpPayGal" type="file" accept="image/*,image/heic,image/heif,.heic,.heif" style="display:none;">
+        <div id="lpPayPreview" style="margin-top:8px;"></div>
+      </div>
       <button onclick="saveLaundryPayment(${recordId})" style="width:100%;background:#10B981;color:#fff;padding:10px;border:none;border-radius:6px;font-weight:700;cursor:pointer;">💾 Save Payment</button>
       <div id="lpErr" style="margin-top:8px;"></div>
     </div>
   `;
   document.body.appendChild(modal);
+  
+  // Reset previous blob + attach payment photo handlers
+  window._laundryPayBlob = null;
+  ['lpPayCam', 'lpPayGal'].forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.addEventListener('change', async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const preview = document.getElementById('lpPayPreview');
+      preview.innerHTML = '<div style="color:#666;">Compressing...</div>';
+      try {
+        const compressed = await laundryCompressImage(file);
+        window._laundryPayBlob = compressed;
+        const url = URL.createObjectURL(compressed);
+        preview.innerHTML = `<img src="${url}" style="max-width:150px;border-radius:8px;border:1px solid #ddd;">
+          <div style="font-size:11px;color:#666;">Size: ${Math.round(compressed.size/1024)}KB</div>`;
+      } catch (err) {
+        preview.innerHTML = '<div style="color:#DC2626;">Error: ' + err.message + '</div>';
+      }
+    });
+  });
 };
 
 window.saveLaundryPayment = async function(recordId) {
@@ -654,9 +870,24 @@ window.saveLaundryPayment = async function(recordId) {
     return;
   }
   
+  // Upload payment screenshot if provided
+  let paymentPhotoPath = null;
+  if (window._laundryPayBlob) {
+    try {
+      const path = `laundry/pay_${Date.now()}_${Math.random().toString(36).substr(2,6)}.jpg`;
+      const { error: upErr } = await sb.storage.from('id-proofs').upload(path, window._laundryPayBlob, { contentType: window._laundryPayBlob.type || 'image/jpeg', upsert: false });
+      if (upErr) throw upErr;
+      paymentPhotoPath = path;
+    } catch (err) {
+      document.getElementById('lpErr').innerHTML = '<div class="error">Payment photo: ' + err.message + '</div>';
+      return;
+    }
+  }
+  
   const { error } = await sb.from('laundry_payments').insert({
     record_id: recordId,
-    amount, payment_date: date, payment_mode: mode, notes
+    amount, payment_date: date, payment_mode: mode, notes,
+    payment_photo: paymentPhotoPath
   });
   
   if (error) {
@@ -677,6 +908,7 @@ window.saveLaundryPayment = async function(recordId) {
   }).eq('id', recordId);
   
   document.querySelector('.modal-overlay')?.remove();
+  window._laundryPayBlob = null;
   fsn.success('Success', '✅ Payment added!');
   renderLaundry();
 };
@@ -698,25 +930,46 @@ window.showLaundryPayments = async function(recordId) {
       <div style="background:#F0FDF4;padding:10px;border-radius:8px;margin-bottom:12px;font-size:13px;">
         <strong>${rec?.vendor_name}</strong> — ${rec?.record_date} — Total: ₹${Number(rec?.total_amount||0).toLocaleString('en-IN')}
       </div>
-      <table style="width:100%;border-collapse:collapse;">
+      <table style="width:100%;border-collapse:collapse;font-size:12px;">
         <thead><tr style="background:#f5f5f5;">
-          <th style="padding:8px;text-align:left;">Date</th>
-          <th style="padding:8px;text-align:left;">Mode</th>
-          <th style="padding:8px;text-align:right;">Amount</th>
-          <th style="padding:8px;">Notes</th>
-          <th style="padding:8px;">Action</th>
+          <th style="padding:6px;text-align:left;">Date</th>
+          <th style="padding:6px;text-align:left;">Mode</th>
+          <th style="padding:6px;text-align:right;">Amount</th>
+          <th style="padding:6px;">📷</th>
+          <th style="padding:6px;">Claim Status</th>
+          <th style="padding:6px;">Actions</th>
         </tr></thead>
         <tbody>
-          ${(payments || []).map(p => `<tr style="border-bottom:1px solid #eee;" id="lpay-row-${p.id}">
-            <td style="padding:8px;">${p.payment_date}</td>
-            <td style="padding:8px;">${p.payment_mode}</td>
-            <td style="padding:8px;text-align:right;"><strong>₹${Number(p.amount).toLocaleString('en-IN')}</strong></td>
-            <td style="padding:8px;font-size:11px;color:#666;">${p.notes || '-'}</td>
-            <td style="padding:8px;white-space:nowrap;">
-              <button class="btn-sm" onclick="editLaundryPayment(${p.id}, ${recordId})">✏️</button>
-              <button class="btn-sm danger" onclick="deleteLaundryPayment(${p.id}, ${recordId})">🗑️</button>
-            </td>
-          </tr>`).join('') || '<tr><td colspan="5" style="padding:16px;text-align:center;color:#999;">No payments</td></tr>'}
+          ${(payments || []).map(p => {
+            const getPath = (pt) => pt.includes('/id-proofs/') ? pt.split('/id-proofs/')[1] : pt;
+            const cs = p.claim_status || 'not_claimed';
+            let claimBadge = '', claimBtns = '';
+            if (cs === 'not_claimed') {
+              claimBadge = '<span style="background:#FEF3C7;color:#92400E;padding:2px 6px;border-radius:4px;font-size:10px;">⏳ Not Claimed</span>';
+              claimBtns = `<button class="btn-sm" style="background:#3B82F6;color:#fff;padding:3px 6px;font-size:10px;" onclick="markLaundryClaimed(${p.id}, ${recordId})" title="Mark as Claimed">📤 Claim</button>`;
+            } else if (cs === 'claimed') {
+              const cd = p.claim_date ? ` (${p.claim_date})` : '';
+              claimBadge = `<span style="background:#DBEAFE;color:#1E40AF;padding:2px 6px;border-radius:4px;font-size:10px;">📤 Claimed${cd}</span>`;
+              claimBtns = `<button class="btn-sm" style="background:#10B981;color:#fff;padding:3px 6px;font-size:10px;" onclick="markLaundryReceived(${p.id}, ${recordId})" title="Mark as Received">✅ Received</button>
+                <button class="btn-sm" style="background:#F59E0B;color:#fff;padding:3px 6px;font-size:10px;" onclick="undoLaundryClaim(${p.id}, ${recordId})" title="Undo Claim">↩️</button>`;
+            } else if (cs === 'received') {
+              const rd = p.claim_received_date ? ` (${p.claim_received_date})` : '';
+              claimBadge = `<span style="background:#D1FAE5;color:#065F46;padding:2px 6px;border-radius:4px;font-size:10px;">✅ Received${rd}</span>`;
+              claimBtns = `<button class="btn-sm" style="background:#F59E0B;color:#fff;padding:3px 6px;font-size:10px;" onclick="undoLaundryClaim(${p.id}, ${recordId})" title="Undo">↩️</button>`;
+            }
+            return `<tr style="border-bottom:1px solid #eee;" id="lpay-row-${p.id}">
+              <td style="padding:6px;">${p.payment_date}</td>
+              <td style="padding:6px;">${p.payment_mode}</td>
+              <td style="padding:6px;text-align:right;"><strong>₹${Number(p.amount).toLocaleString('en-IN')}</strong></td>
+              <td style="padding:6px;">${p.payment_photo ? `<button class="btn-sm" style="background:#3B82F6;color:#fff;padding:2px 6px;font-size:10px;" onclick="dlIdPhoto('${getPath(p.payment_photo)}')" title="View">💳</button>` : '<span style="color:#999;">-</span>'}</td>
+              <td style="padding:6px;">${claimBadge}</td>
+              <td style="padding:6px;white-space:nowrap;">
+                ${claimBtns}
+                <button class="btn-sm" onclick="editLaundryPayment(${p.id}, ${recordId})" title="Edit">✏️</button>
+                <button class="btn-sm danger" onclick="deleteLaundryPayment(${p.id}, ${recordId})" title="Delete">🗑️</button>
+              </td>
+            </tr>`;
+          }).join('') || '<tr><td colspan="6" style="padding:16px;text-align:center;color:#999;">No payments</td></tr>'}
         </tbody>
       </table>
       <div style="text-align:right;margin-top:10px;padding-top:10px;border-top:2px solid #eee;">
@@ -830,3 +1083,41 @@ window.deleteLaundryPayment = async function(paymentId, recordId) {
 };
 
 console.log('✅ Laundry module loaded');
+
+// ═══════════════════════════════════════════════════════════
+// 📤 CLAIM MANAGEMENT FUNCTIONS
+// ═══════════════════════════════════════════════════════════
+
+window.markLaundryClaimed = async function(paymentId, recordId) {
+  const today = new Date().toISOString().slice(0, 10);
+  const { error } = await sb.from('laundry_payments')
+    .update({ claim_status: 'claimed', claim_date: today })
+    .eq('id', paymentId);
+  if (error) { fsn.error('Error', error.message); return; }
+  fsn.success('Claimed', '📤 Marked as claimed');
+  document.querySelector('.modal-overlay')?.remove();
+  setTimeout(() => showLaundryPayments(recordId), 200);
+};
+
+window.markLaundryReceived = async function(paymentId, recordId) {
+  const today = new Date().toISOString().slice(0, 10);
+  const { error } = await sb.from('laundry_payments')
+    .update({ claim_status: 'received', claim_received_date: today })
+    .eq('id', paymentId);
+  if (error) { fsn.error('Error', error.message); return; }
+  fsn.success('Received', '✅ Marked as received');
+  document.querySelector('.modal-overlay')?.remove();
+  setTimeout(() => { showLaundryPayments(recordId); renderLaundry(); }, 200);
+};
+
+window.undoLaundryClaim = async function(paymentId, recordId) {
+  if (!confirm('Undo claim status? It will revert to Not Claimed.')) return;
+  const { error } = await sb.from('laundry_payments')
+    .update({ claim_status: 'not_claimed', claim_date: null, claim_received_date: null })
+    .eq('id', paymentId);
+  if (error) { fsn.error('Error', error.message); return; }
+  fsn.success('Reverted', '↩️ Claim reverted');
+  document.querySelector('.modal-overlay')?.remove();
+  setTimeout(() => { showLaundryPayments(recordId); renderLaundry(); }, 200);
+};
+
