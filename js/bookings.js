@@ -1093,7 +1093,11 @@ async function renderAddBooking() {
 
 <div class="form-grid">
         <div class="form-group"><label>Guest Name *</label><input id="guestName" placeholder="Guest ka naam" value="${pre.guestName || ''}" /></div>
-        <div class="form-group"><label>Phone</label><input id="guestPhone" type="tel" placeholder="Mobile" value="${pre.guestPhone || ''}" /></div>
+        <div class="form-group">
+          <label>Phone</label>
+          <input id="guestPhone" type="tel" placeholder="Mobile" value="${pre.guestPhone || ''}" onblur="checkGuestRating(this.value)" />
+          <div id="guestRatingWarning" style="margin-top:6px;"></div>
+        </div>
       </div>
 
       <div class="form-grid">
@@ -2419,7 +2423,11 @@ async function editBooking(bkId) {
     <div class="card">
       <div class="form-grid">
         <div class="form-group"><label>Guest Name</label><input id="guestName" value="${b.guest_name || ''}" /></div>
-        <div class="form-group"><label>Phone</label><input id="guestPhone" value="${b.phone || ''}" /></div>
+        <div class="form-group">
+          <label>Phone</label>
+          <input id="guestPhone" value="${b.phone || ''}" onblur="checkGuestRating(this.value)" />
+          <div id="guestRatingWarning" style="margin-top:6px;"></div>
+        </div>
       </div>
       <div class="form-group" style="padding:12px;background:#FFF8E1;border-radius:8px;border:1px solid #FFC107;">
         <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:600;">
@@ -5123,3 +5131,98 @@ window.onEditReceivedByChange = function() {
 };
 
 console.log('✅ Edit Payment Received-By module loaded');
+
+// ═══════════════════════════════════════════════════════════
+// 🎯 GUEST RATING LOOKUP (on phone blur)
+// ═══════════════════════════════════════════════════════════
+window.checkGuestRating = async function(phone) {
+  const warnEl = document.getElementById('guestRatingWarning');
+  if (!warnEl) return;
+  if (!phone || phone.trim().length < 6) {
+    warnEl.innerHTML = '';
+    return;
+  }
+  
+  const cleanPhone = phone.trim();
+  
+  // Fetch all previous bookings with this phone
+  const { data: previous } = await sb.from('guest_register')
+    .select('booking_id, guest_name, check_in, check_out, client_rating, rating_notes, total_amount')
+    .eq('phone', cleanPhone)
+    .not('client_rating', 'is', null)
+    .order('check_out', { ascending: false })
+    .limit(10);
+  
+  if (!previous || previous.length === 0) {
+    // Check if guest exists but no rating
+    const { data: anyBooking } = await sb.from('guest_register')
+      .select('booking_id, guest_name, check_in')
+      .eq('phone', cleanPhone)
+      .limit(5);
+    
+    if (anyBooking && anyBooking.length > 0) {
+      warnEl.innerHTML = `
+        <div style="padding:10px;background:#F0F7FF;border-left:4px solid #3B82F6;border-radius:6px;font-size:12px;">
+          ℹ️ <strong>Returning guest</strong> — ${anyBooking.length} previous booking${anyBooking.length > 1 ? 's' : ''} (no rating yet)
+        </div>
+      `;
+    } else {
+      warnEl.innerHTML = `
+        <div style="padding:8px;background:#F9FAFB;border-left:4px solid #9CA3AF;border-radius:6px;font-size:12px;color:#6B7280;">
+          🆕 New guest — no previous history
+        </div>
+      `;
+    }
+    return;
+  }
+  
+  // Count ratings
+  const good = previous.filter(p => p.client_rating === 'good').length;
+  const normal = previous.filter(p => p.client_rating === 'normal').length;
+  const bad = previous.filter(p => p.client_rating === 'bad').length;
+  const total = previous.length;
+  
+  // Determine overall status
+  let bgColor, borderColor, icon, statusText, textColor;
+  
+  if (bad > 0) {
+    bgColor = '#FEE2E2';
+    borderColor = '#DC2626';
+    icon = '⚠️';
+    statusText = 'WARNING: Bad rating history';
+    textColor = '#991B1B';
+  } else if (good > normal) {
+    bgColor = '#DCFCE7';
+    borderColor = '#059669';
+    icon = '⭐';
+    statusText = 'TRUSTED GUEST';
+    textColor = '#166534';
+  } else {
+    bgColor = '#FEF3C7';
+    borderColor = '#F59E0B';
+    icon = 'ℹ️';
+    statusText = 'Returning guest';
+    textColor = '#92400E';
+  }
+  
+  // Recent notes (last 3 with notes)
+  const withNotes = previous.filter(p => p.rating_notes && p.rating_notes.trim());
+  const notesHtml = withNotes.slice(0, 3).map(p => 
+    `<div style="font-size:10px;color:${textColor};margin-top:3px;">• ${p.check_out}: ${p.client_rating === 'bad' ? '⚠️' : p.client_rating === 'good' ? '⭐' : '•'} "${p.rating_notes.slice(0, 80)}"</div>`
+  ).join('');
+  
+  warnEl.innerHTML = `
+    <div style="padding:12px;background:${bgColor};border-left:4px solid ${borderColor};border-radius:8px;font-size:13px;">
+      <div style="font-weight:700;color:${textColor};">${icon} ${statusText}</div>
+      <div style="font-size:11px;color:${textColor};margin-top:4px;">
+        ${total} previous stay${total > 1 ? 's' : ''} · 
+        ${good > 0 ? '⭐ ' + good + ' good' : ''}${good > 0 && (normal > 0 || bad > 0) ? ' · ' : ''}${normal > 0 ? '😐 ' + normal + ' normal' : ''}${normal > 0 && bad > 0 ? ' · ' : ''}${bad > 0 ? '⚠️ ' + bad + ' bad' : ''}
+      </div>
+      ${notesHtml}
+    </div>
+  `;
+  
+  console.log('✅ Guest rating loaded:', { total, good, normal, bad });
+};
+
+console.log('✅ Guest Rating lookup module loaded');
