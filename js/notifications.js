@@ -251,7 +251,7 @@
           ${NOTIF.history.length === 0
             ? (remHtml ? '' : '<div class="notif-empty">No notifications yet</div>')
             : NOTIF.history.map(n => `
-              <div class="notif-item ${n.read?'':'unread'}" data-id="${n.id}" data-page="${n.page||''}">
+              <div class="notif-item ${n.read?'':'unread'}" data-id="${n.id}" data-page="${n.page||''}" data-entity-id="${n.entityId||''}" data-entity-type="${n.entityType||''}">
                 <div class="notif-icon">${n.icon}</div>
                 <div class="notif-body">
                   <div class="notif-title">${n.title}</div>
@@ -285,9 +285,17 @@
         localStorage.setItem('uh_notif_history', JSON.stringify(NOTIF.history));
         updateBadge();
         const p = el.dataset.page;
+        const entityId = el.dataset.entityId;
+        const entityType = el.dataset.entityType;
+        
         if (p && typeof navigate === 'function') navigate(p);
         o.classList.remove('show');
         setTimeout(() => o.remove(), 250);
+        
+        // 🎯 SMART HIGHLIGHT: scroll to entity + flash animation
+        if (entityId) {
+          setTimeout(() => highlightEntity(entityId, entityType), 800);
+        }
       };
     });
     setTimeout(() => o.classList.add('show'), 10);
@@ -379,7 +387,9 @@
             title: 'New Booking!',
             message: (b.guest_name || 'Guest') + ' — ' + roomName,
             sub: 'Check-in: ' + (b.check_in || '-') + ' • ₹' + (b.total_amount || 0),
-            page: 'bookings'
+            page: 'bookings',
+            entityId: b.booking_id,
+            entityType: 'booking'
           });
         })
       .subscribe((s) => console.log('🔔 Bookings channel:', s));
@@ -396,7 +406,9 @@
             title: 'Payment Received',
             message: '₹' + (p.amount || 0) + ' — ' + (p.payment_mode || 'Payment'),
             sub: p.notes || '',
-            page: 'bookings', sound: 'payment'
+            page: 'bookings', sound: 'payment',
+            entityId: p.booking_id,
+            entityType: 'payment'
           });
         })
       .subscribe((s) => console.log('🔔 Payments channel:', s));
@@ -413,8 +425,10 @@
             title: 'New Task Assigned',
             message: t.task_description || 'Task',
             sub: t.emp_id || '',
-            page: 'tasks', sound: 'task'
-          });
+            page: 'tasks', sound: 'task',
+              entityId: t.task_id || t.id,
+              entityType: 'task'
+            });
         })
       .subscribe((s) => console.log('🔔 Tasks channel:', s));
 
@@ -591,3 +605,82 @@ window.notifSettings = (function() {
 
   return { get, save, isEnabled, openSettings };
 })();
+
+
+// ═══════════════════════════════════════════════════════════
+// 🎯 HIGHLIGHT ENTITY (scroll + flash animation)
+// ═══════════════════════════════════════════════════════════
+window.highlightEntity = function(entityId, entityType) {
+  if (!entityId) return;
+  
+  // Try multiple times (page might still be loading)
+  let attempts = 0;
+  const maxAttempts = 10;
+  
+  const tryHighlight = () => {
+    attempts++;
+    
+    // Look for element with matching id/data-attribute
+    const selectors = [
+      `[data-booking-id="${entityId}"]`,
+      `[data-id="${entityId}"]`,
+      `#booking-${entityId}`,
+      `[data-task-id="${entityId}"]`,
+      // Fallback: text content search
+    ];
+    
+    let el = null;
+    for (const sel of selectors) {
+      try {
+        el = document.querySelector(sel);
+        if (el) break;
+      } catch(e) {}
+    }
+    
+    // Text-based fallback: find row/card containing entityId text
+    if (!el) {
+      const allElements = document.querySelectorAll('tr, .card, .booking-item');
+      for (const e of allElements) {
+        if (e.textContent && e.textContent.includes(entityId)) {
+          el = e;
+          break;
+        }
+      }
+    }
+    
+    if (el) {
+      // Scroll into view
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      
+      // Flash animation
+      const origBg = el.style.backgroundColor;
+      const origTransition = el.style.transition;
+      el.style.transition = 'background-color 0.3s ease';
+      el.style.backgroundColor = '#FEF3C7';
+      el.style.boxShadow = '0 0 0 3px #F59E0B';
+      
+      // Pulse effect
+      let pulses = 0;
+      const pulse = () => {
+        pulses++;
+        if (pulses > 6) {
+          el.style.backgroundColor = origBg;
+          el.style.boxShadow = '';
+          el.style.transition = origTransition;
+          return;
+        }
+        el.style.backgroundColor = pulses % 2 === 0 ? '#FEF3C7' : '#FDE68A';
+        setTimeout(pulse, 400);
+      };
+      pulse();
+      
+      console.log('🎯 Highlighted entity:', entityId);
+    } else if (attempts < maxAttempts) {
+      setTimeout(tryHighlight, 300);
+    } else {
+      console.warn('⚠️ Entity not found for highlight:', entityId);
+    }
+  };
+  
+  tryHighlight();
+};
