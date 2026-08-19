@@ -4456,7 +4456,7 @@ async function autoFixOverflowPayments(silent = false) {
       '\n   TO:   ' + a.toRoom + ' (' + a.toBk + ')'
     ).join('\n\n');
 
-    const confirmed = confirm(
+    const confirmed = silent ? true : confirm(
       '🔧 OVERFLOW AUTO-FIX PREVIEW\n' +
       '━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n' +
       previewText +
