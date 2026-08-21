@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════════
-// 📤 CLAIMS MANAGER ENGINE v5 (Employee Name Mapping + Staff Advance Grouping)
+// 📤 CLAIMS MANAGER ENGINE v6 (Fixed Employee Table Select)
 // ═══════════════════════════════════════════════════════════
 
 window._claimsState = {
@@ -187,6 +187,7 @@ async function loadClaimsData() {
   if (container) container.innerHTML = '<div style="text-align:center;padding:30px;color:#666;">Loading claims and advances data...</div>';
 
   try {
+    // ✅ Query employees table with correct columns: emp_id, name
     const [eRes, mRes, lRes, aRes, empRes] = await Promise.all([
       sb.from('reimbursements')
         .select('*')
@@ -209,13 +210,12 @@ async function loadClaimsData() {
         .gte('date_given', fromDate)
         .lte('date_given', toDate)
         .order('date_given', { ascending: false }),
-      sb.from('employees').select('id, name, emp_id')
+      sb.from('employees').select('emp_id, name')
     ]);
 
-    // Build comprehensive Employee Name Lookup Map (supporting both id and emp_id string)
+    // Build Employee Name Lookup Map
     const empMap = {};
     (empRes.data || []).forEach(e => {
-      if (e.id) empMap[e.id] = e.name;
       if (e.emp_id) empMap[e.emp_id] = e.name;
     });
     window._claimsState.empMap = empMap;
@@ -281,16 +281,15 @@ async function loadClaimsData() {
       });
     });
 
-    // 4. Staff Advances (advance_tracker with Employee Name Resolution)
+    // 4. Staff Advances (advance_tracker with Real Employee Name)
     (aRes.data || []).forEach(adv => {
-      const empName = empMap[adv.emp_id] || adv.emp_id || 'Staff';
+      const realName = empMap[adv.emp_id] || adv.emp_id || 'Staff';
       const isDeducted = adv.is_deducted === true || adv.is_deducted === 'true';
       const st = isDeducted ? 'received' : 'claimed';
       const advAmt = Number(adv.advance_amount || 0);
 
-      // Track individual employee advance sum
       if (!isDeducted) {
-        empAdvanceSum[empName] = (empAdvanceSum[empName] || 0) + advAmt;
+        empAdvanceSum[realName] = (empAdvanceSum[realName] || 0) + advAmt;
       }
 
       combined.push({
@@ -300,10 +299,10 @@ async function loadClaimsData() {
         id: adv.id,
         sortDate: adv.date_given || adv.created_at,
         dateStr: adv.date_given || (adv.created_at || '').slice(0, 10),
-        description: `Advance to ${empName}: ${adv.reason || adv.notes || 'Given'}`,
-        vendorOrStaff: `👤 ${empName}`,
-        paidBy: adv.paid_by || 'Praveen', // Default to Praveen if null!
-        amount: -Math.abs(advAmt), // Negative to offset claim
+        description: `Advance to ${realName}: ${adv.reason || adv.notes || 'Given'}`,
+        vendorOrStaff: `👤 ${realName}`,
+        paidBy: adv.paid_by || 'Praveen',
+        amount: -Math.abs(advAmt),
         status: st,
         photo: null,
         raw: adv
@@ -332,7 +331,7 @@ async function loadClaimsData() {
     if (el('statAdvancesAmt')) el('statAdvancesAmt').textContent = '-₹' + advTotal.toLocaleString('en-IN');
     if (el('statNetPayableAmt')) el('statNetPayableAmt').textContent = '₹' + netDue.toLocaleString('en-IN');
 
-    // Render Staff Advances Breakdown Badges
+    // Render Staff Advances Breakdown Badges (with Real Names!)
     const empBreakdownContainer = document.getElementById('staffAdvancesBreakdownContainer');
     if (empBreakdownContainer) {
       const empEntries = Object.entries(empAdvanceSum);
@@ -630,4 +629,4 @@ function copyClaimWhatsAppText() {
   navigator.clipboard.writeText(text).then(() => alert('✅ Copied! Paste in WhatsApp.'));
 }
 
-console.log('✅ Claims Manager v5 loaded (Advance Employee Names + Staff Advances Breakdown)');
+console.log('✅ Claims Manager v6 loaded (Fixed employee emp_id mapping)');
