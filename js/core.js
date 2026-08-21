@@ -469,6 +469,8 @@ function renderShell(content, activePage = 'dashboard') {
       ['expenses', '📊 Monthly Expenses & P&L'],
       ['maintenance', '🔧 Maintenance'],
       ['laundry', '🧺 Laundry'],
+      ['claims', '📤 Claims Manager'],
+      ['dailyReport', '📊 Daily Report'],
       ['investors', '🧑‍💼 Investors'],
 
       { section: 'STORE' },
@@ -521,6 +523,8 @@ function renderShell(content, activePage = 'dashboard') {
       ['expenses', '📊 Monthly Expenses & P&L'],
       ['maintenance', '🔧 Maintenance'],
       ['laundry', '🧺 Laundry'],
+      ['claims', '📤 Claims Manager'],
+      ['dailyReport', '📊 Daily Report'],
       ['reminders', '🔔 Reminders'],
       ['investors', '🧑‍💼 Investors'],
 
@@ -699,6 +703,8 @@ function navigate(page) {
     'airbnb-sync': renderAirbnbSync,
     'ical-sync': renderIcalSync,
     laundry: renderLaundry,
+    dailyReport: renderDailyReport,
+    claims: renderClaims,
     reimbursements: renderReimbursements,
     'property-setup': renderPropertySetup,
     'company-advances': renderCompanyAdvances,
