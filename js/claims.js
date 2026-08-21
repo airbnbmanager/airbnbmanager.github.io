@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════════
-// 📤 CLAIMS MANAGER ENGINE v4 (With advance_tracker + Paid By Filter)
+// 📤 CLAIMS MANAGER ENGINE v5 (Employee Name Mapping + Staff Advance Grouping)
 // ═══════════════════════════════════════════════════════════
 
 window._claimsState = {
@@ -9,9 +9,10 @@ window._claimsState = {
   toTime: '23:59',
   moduleFilter: 'all',
   statusFilter: 'claimed',
-  paidByFilter: 'all', // all, Praveen, etc.
+  paidByFilter: 'all',
   selectedIds: new Set(),
-  allData: []
+  allData: [],
+  empMap: {}
 };
 
 function claimsStatusBadge(st) {
@@ -41,7 +42,7 @@ async function renderClaims() {
         <div>
           <h1 style="margin:0;font-size:22px;">📤 Universal Claims Manager</h1>
           <div style="font-size:12px;color:var(--muted);margin-top:4px;">
-            Checkpoint: <strong>17-Aug-2026 8:35 PM</strong> · Filter by Payer (e.g. Paid By Praveen)
+            Checkpoint: <strong>17-Aug-2026 8:35 PM</strong> · Auto Employee Lookup · Grouped Staff Advances
           </div>
         </div>
         <div style="display:flex;gap:8px;flex-wrap:wrap;">
@@ -84,7 +85,7 @@ async function renderClaims() {
             <option value="reimbursements">💸 Daily Expenses</option>
             <option value="maintenance">🔧 Maintenance</option>
             <option value="laundry">🧺 Laundry</option>
-            <option value="advances">💰 Advances (Staff)</option>
+            <option value="advances">💰 Staff Advances</option>
           </select>
         </div>
         <div>
@@ -111,16 +112,24 @@ async function renderClaims() {
         </div>
         <div style="text-align:center;padding:12px;background:#FEF3C7;border-radius:8px;">
           <div id="statClaimedAmt" style="font-size:20px;font-weight:800;color:#92400E;">₹0</div>
-          <div style="font-size:11px;color:#666;">📤 Claimed (due to Payer)</div>
+          <div style="font-size:11px;color:#666;">📤 Claimed Expenses</div>
         </div>
         <div style="text-align:center;padding:12px;background:#FEE2E2;border-radius:8px;">
           <div id="statAdvancesAmt" style="font-size:20px;font-weight:800;color:#991B1B;">-₹0</div>
-          <div style="font-size:11px;color:#666;">🔻 Less Advances Given</div>
+          <div style="font-size:11px;color:#666;">🔻 Less Staff Advances Given</div>
         </div>
         <div style="text-align:center;padding:12px;background:#D1FAE5;border-radius:8px;">
           <div id="statNetPayableAmt" style="font-size:20px;font-weight:800;color:#065F46;">₹0</div>
           <div style="font-size:11px;color:#666;">💵 NET PAYABLE TO PAYER</div>
         </div>
+      </div>
+    </div>
+
+    <!-- STAFF ADVANCES GROUPED BREAKDOWN CARD -->
+    <div class="card" style="background:#FFF5F5;border:1px solid #FECDD3;">
+      <div style="font-size:13px;font-weight:700;color:#991B1B;margin-bottom:8px;">👥 Staff Advances Breakdown (Grouped by Employee)</div>
+      <div id="staffAdvancesBreakdownContainer" style="display:flex;flex-wrap:wrap;gap:8px;font-size:12px;">
+        <div style="color:#666;">Loading staff advance totals...</div>
       </div>
     </div>
 
@@ -178,7 +187,6 @@ async function loadClaimsData() {
   if (container) container.innerHTML = '<div style="text-align:center;padding:30px;color:#666;">Loading claims and advances data...</div>';
 
   try {
-    // ✅ Query real advance_tracker table!
     const [eRes, mRes, lRes, aRes, empRes] = await Promise.all([
       sb.from('reimbursements')
         .select('*')
@@ -201,26 +209,19 @@ async function loadClaimsData() {
         .gte('date_given', fromDate)
         .lte('date_given', toDate)
         .order('date_given', { ascending: false }),
-      sb.from('employees').select('id, name')
+      sb.from('employees').select('id, name, emp_id')
     ]);
 
+    // Build comprehensive Employee Name Lookup Map (supporting both id and emp_id string)
     const empMap = {};
-    (empRes.data || []).forEach(e => empMap[e.id] = e.name);
-
-    // Populate Paid By dropdown with unique payers found
-    const payers = new Set(['Praveen']);
-    (eRes.data || []).forEach(r => { if (r.paid_by) payers.add(r.paid_by); if (r.paid_to) payers.add(r.paid_to); });
-    (mRes.data || []).forEach(m => { if (m.paid_by) payers.add(m.paid_by); });
-    (aRes.data || []).forEach(a => { if (a.paid_by) payers.add(a.paid_by); });
-
-    const pbSelect = document.getElementById('cfPaidBy');
-    if (pbSelect) {
-      const currentVal = pbSelect.value;
-      pbSelect.innerHTML = `<option value="all">All Payers</option>` + 
-        Array.from(payers).map(p => `<option value="${p.toLowerCase()}" ${currentVal===p.toLowerCase()?'selected':''}>${p}</option>`).join('');
-    }
+    (empRes.data || []).forEach(e => {
+      if (e.id) empMap[e.id] = e.name;
+      if (e.emp_id) empMap[e.emp_id] = e.name;
+    });
+    window._claimsState.empMap = empMap;
 
     const combined = [];
+    const empAdvanceSum = {};
 
     // 1. Daily Expenses / Reimbursements
     (eRes.data || []).forEach(r => {
@@ -280,11 +281,17 @@ async function loadClaimsData() {
       });
     });
 
-    // 4. Staff Advances Given (from advance_tracker table!)
+    // 4. Staff Advances (advance_tracker with Employee Name Resolution)
     (aRes.data || []).forEach(adv => {
-      const empName = empMap[adv.emp_id] || adv.notes || 'Staff';
+      const empName = empMap[adv.emp_id] || adv.emp_id || 'Staff';
       const isDeducted = adv.is_deducted === true || adv.is_deducted === 'true';
       const st = isDeducted ? 'received' : 'claimed';
+      const advAmt = Number(adv.advance_amount || 0);
+
+      // Track individual employee advance sum
+      if (!isDeducted) {
+        empAdvanceSum[empName] = (empAdvanceSum[empName] || 0) + advAmt;
+      }
 
       combined.push({
         uniqKey: `advance_${adv.id}`,
@@ -294,9 +301,9 @@ async function loadClaimsData() {
         sortDate: adv.date_given || adv.created_at,
         dateStr: adv.date_given || (adv.created_at || '').slice(0, 10),
         description: `Advance to ${empName}: ${adv.reason || adv.notes || 'Given'}`,
-        vendorOrStaff: empName,
-        paidBy: adv.paid_by || 'Praveen',
-        amount: -Math.abs(Number(adv.advance_amount || 0)), // Negative to offset claim
+        vendorOrStaff: `👤 ${empName}`,
+        paidBy: adv.paid_by || 'Praveen', // Default to Praveen if null!
+        amount: -Math.abs(advAmt), // Negative to offset claim
         status: st,
         photo: null,
         raw: adv
@@ -325,6 +332,21 @@ async function loadClaimsData() {
     if (el('statAdvancesAmt')) el('statAdvancesAmt').textContent = '-₹' + advTotal.toLocaleString('en-IN');
     if (el('statNetPayableAmt')) el('statNetPayableAmt').textContent = '₹' + netDue.toLocaleString('en-IN');
 
+    // Render Staff Advances Breakdown Badges
+    const empBreakdownContainer = document.getElementById('staffAdvancesBreakdownContainer');
+    if (empBreakdownContainer) {
+      const empEntries = Object.entries(empAdvanceSum);
+      if (empEntries.length === 0) {
+        empBreakdownContainer.innerHTML = '<span style="color:#059669;font-weight:600;">✅ No active staff advances in selected period.</span>';
+      } else {
+        empBreakdownContainer.innerHTML = empEntries.map(([name, sum]) => `
+          <div style="padding:6px 12px;background:#fff;border:1px solid #FDA4AF;border-radius:6px;box-shadow:0 1px 2px rgba(0,0,0,0.05);">
+            <strong style="color:#991B1B;">👤 ${name}:</strong> <span style="font-weight:700;color:#DC2626;">₹${sum.toLocaleString('en-IN')}</span>
+          </div>
+        `).join('');
+      }
+    }
+
     renderClaimsTable();
   } catch (err) {
     console.error('Claims load failed:', err);
@@ -341,7 +363,6 @@ function renderClaimsTable() {
   const filtered = allData.filter(item => {
     if (moduleFilter !== 'all' && item.module !== moduleFilter) return false;
     
-    // Filter by Paid By (Payer)
     if (paidByFilter !== 'all') {
       const p = (item.paidBy || '').toLowerCase();
       if (!p.includes(paidByFilter.toLowerCase())) return false;
@@ -390,6 +411,7 @@ function renderClaimsTable() {
           <th style="padding:10px;">Module</th>
           <th style="padding:10px;">Date</th>
           <th style="padding:10px;">Description</th>
+          <th style="padding:10px;">Vendor / Staff</th>
           <th style="padding:10px;">Paid By</th>
           <th style="padding:10px;text-align:right;">Amount (₹)</th>
           <th style="padding:10px;text-align:center;">Status</th>
@@ -404,7 +426,7 @@ function renderClaimsTable() {
     const badge = claimsStatusBadge(item.status);
     const isNeg = item.amount < 0;
     html += `
-      <tr style="border-bottom:1px solid #E2E8F0;background:${isChecked ? '#F0F9FF' : (isNeg ? '#FEF2F2' : '#fff')};">
+      <tr style="border-bottom:1px solid #E2E8F0;background:${isChecked ? '#F0F9FF' : (isNeg ? '#FFF5F5' : '#fff')};">
         <td style="padding:10px;"><input type="checkbox" ${isChecked ? 'checked' : ''} onchange="toggleClaimSelect('${item.uniqKey}')"></td>
         <td style="padding:10px;">
           <span style="font-size:10px;font-weight:700;padding:2px 6px;border-radius:4px;background:${isNeg ? '#FEE2E2' : '#F3E8FF'};color:${isNeg ? '#991B1B' : '#6B21A8'};">
@@ -413,6 +435,7 @@ function renderClaimsTable() {
         </td>
         <td style="padding:10px;white-space:nowrap;color:#64748B;">${item.dateStr}</td>
         <td style="padding:10px;font-weight:600;color:#1E293B;max-width:260px;">${item.description}</td>
+        <td style="padding:10px;color:#334155;font-weight:600;">${item.vendorOrStaff}</td>
         <td style="padding:10px;color:#475569;">
           <span style="padding:2px 6px;background:#F1F5F9;border-radius:4px;font-weight:600;">👤 ${item.paidBy}</span>
         </td>
@@ -559,6 +582,7 @@ function generateClaimReport() {
           <th style="padding:8px;text-align:left;">Type</th>
           <th style="padding:8px;text-align:left;">Date</th>
           <th style="padding:8px;text-align:left;">Description</th>
+          <th style="padding:8px;text-align:left;">Vendor / Staff</th>
           <th style="padding:8px;text-align:left;">Paid By</th>
           <th style="padding:8px;text-align:right;">Amount</th>
         </tr></thead>
@@ -568,6 +592,7 @@ function generateClaimReport() {
               <td style="padding:8px;">${i.moduleLabel}</td>
               <td style="padding:8px;">${i.dateStr}</td>
               <td style="padding:8px;">${i.description}</td>
+              <td style="padding:8px;">${i.vendorOrStaff}</td>
               <td style="padding:8px;">👤 ${i.paidBy}</td>
               <td style="padding:8px;text-align:right;font-weight:700;color:${i.amount < 0 ? '#DC2626' : '#000'};">
                 ${i.amount < 0 ? '-₹' + Math.abs(i.amount).toLocaleString('en-IN') : '₹' + i.amount.toLocaleString('en-IN')}
@@ -576,7 +601,7 @@ function generateClaimReport() {
         </tbody>
       </table>
       <div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:8px;padding:14px;font-size:13px;">
-        <div style="display:flex;justify-content:space-between;"><span>Total Expenses Paid:</span><strong>₹${totalExpenses.toLocaleString('en-IN')}</strong></div>
+        <div style="display:flex;justify-content:space-between;"><span>Total Expenses Paid by ${paidByFilter.toUpperCase()}:</span><strong>₹${totalExpenses.toLocaleString('en-IN')}</strong></div>
         <div style="display:flex;justify-content:space-between;color:#DC2626;"><span>Less Staff Advances Given:</span><strong>-₹${totalAdvances.toLocaleString('en-IN')}</strong></div>
         <div style="display:flex;justify-content:space-between;padding-top:8px;border-top:2px solid #0F172A;font-size:16px;font-weight:800;">
           <span>NET AMOUNT DUE TO PAYER (${paidByFilter.toUpperCase()}):</span><span>₹${net.toLocaleString('en-IN')}</span>
@@ -597,12 +622,12 @@ function copyClaimWhatsAppText() {
   items.forEach((i, idx) => {
     if (i.amount < 0) totalAdvances += Math.abs(i.amount);
     else totalExpenses += i.amount;
-    listText += `${idx + 1}. *${i.moduleLabel}* (${i.dateStr})\n   ${i.description} → ₹${Math.abs(i.amount)} (By: ${i.paidBy})\n`;
+    listText += `${idx + 1}. *${i.moduleLabel}* (${i.dateStr})\n   ${i.description} → ₹${Math.abs(i.amount)}\n`;
   });
   const net = totalExpenses - totalAdvances;
   const { fromDate, toDate, paidByFilter } = window._claimsState;
-  const text = `📋 *EXPENSE CLAIM STATEMENT (${paidByFilter.toUpperCase()})*\n📅 Period: ${fromDate} → ${toDate}\n\n*BREAKDOWN:*\n${listText}\n————————————\n🔹 Total Expenses: ₹${totalExpenses}\n🔻 Staff Advances Given: -₹${totalAdvances}\n💵 *NET DUE TO PAYER: ₹${net}*\n————————————\n_Offline Airbnb Manager_`;
+  const text = `📋 *EXPENSE CLAIM STATEMENT (${paidByFilter.toUpperCase()})*\n📅 Period: ${fromDate} → ${toDate}\n\n*BREAKDOWN:*\n${listText}\n————————————\n🔹 Total Expenses Paid: ₹${totalExpenses}\n🔻 Staff Advances Given: -₹${totalAdvances}\n💵 *NET DUE TO PAYER: ₹${net}*\n————————————\n_Offline Airbnb Manager_`;
   navigator.clipboard.writeText(text).then(() => alert('✅ Copied! Paste in WhatsApp.'));
 }
 
-console.log('✅ Claims Manager v4 loaded (advance_tracker + Paid By Praveen filter)');
+console.log('✅ Claims Manager v5 loaded (Advance Employee Names + Staff Advances Breakdown)');
