@@ -234,7 +234,7 @@ async function loadClaimsData() {
         dateStr: r.expense_date || (r.created_at || '').slice(0, 10),
         description: r.description || r.notes || 'Daily Expense',
         vendorOrStaff: r.paid_to || '-',
-        paidBy: r.paid_by || r.paid_to || 'Praveen',
+        paidBy: r.paid_by || 'Praveen',
         amount: Number(r.amount || 0),
         status: mapReimbStatus(r.status),
         photo: r.receipt_photo,
