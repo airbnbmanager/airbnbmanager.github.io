@@ -1022,8 +1022,16 @@ async function renderAddAdv() {
             <option>Cash</option><option>UPI</option><option>Bank</option>
           </select>
         </div>
-        <div class="form-group"><label>Reason</label><input id="aReason" /></div>
+        <div class="form-group">
+          <label>Paid By (Payer)</label>
+          <select id="aPaidBy">
+            <option value="Praveen" selected>Praveen</option>
+            <option value="Company">Company / Owner</option>
+            <option value="Cash Holder">Cash Holder</option>
+          </select>
+        </div>
       </div>
+      <div class="form-group"><label>Reason</label><input id="aReason" /></div>
       <button onclick="saveAdv()" style="width:100%;">💾 Save</button>
       <div id="advErr"></div>
     </div>
@@ -1036,12 +1044,14 @@ async function saveAdv() {
   const eid = document.getElementById('aEmp').value;
   const amt = parseFloat(document.getElementById('aAmt').value) || 0;
   if (!eid || amt <= 0) { document.getElementById('advErr').innerHTML = '<div class="error">Employee & amount required</div>'; return; }
+  const paidByVal = document.getElementById('aPaidBy')?.value || 'Praveen';
   const { error } = await sb.from('advance_tracker').insert({
     emp_id: eid,
     date_given: document.getElementById('aDate').value || null,
     advance_amount: amt,
     repaid_amount: 0,
     payment_mode: document.getElementById('aMode').value || null,
+    paid_by: paidByVal,
     reason: document.getElementById('aReason').value.trim() || null
   });
   if (error) { document.getElementById('advErr').innerHTML = `<div class="error">${error.message}</div>`; return; }
@@ -1072,8 +1082,15 @@ async function editAdv(id) {
             <option ${a.payment_mode === 'Bank' ? 'selected' : ''}>Bank</option>
           </select>
         </div>
-        <div class="form-group"><label>Reason</label><input id="aReason" value="${a.reason || ''}" /></div>
+        <div class="form-group"><label>Paid By (Payer)</label>
+          <select id="aPaidBy">
+            <option value="Praveen" ${(!a.paid_by || a.paid_by === 'Praveen') ? 'selected' : ''}>Praveen</option>
+            <option value="Company" ${a.paid_by === 'Company' ? 'selected' : ''}>Company / Owner</option>
+            <option value="Cash Holder" ${a.paid_by === 'Cash Holder' ? 'selected' : ''}>Cash Holder</option>
+          </select>
+        </div>
       </div>
+      <div class="form-group"><label>Reason</label><input id="aReason" value="${a.reason || ''}" /></div>
       <button onclick="updAdv(${id})" style="width:100%;">💾 Update</button>
     </div>
   `, 'advance');
@@ -1086,6 +1103,7 @@ async function updAdv(id) {
     repaid_amount: parseFloat(document.getElementById('aRep').value) || 0,
     repaid_date: document.getElementById('aRepDate').value || null,
     payment_mode: document.getElementById('aMode').value || null,
+    paid_by: document.getElementById('aPaidBy')?.value || 'Praveen',
     reason: document.getElementById('aReason').value.trim() || null
   }).eq('id', id);
   renderAdvanceTracker();
