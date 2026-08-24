@@ -400,7 +400,7 @@ async function renderInvestorReport(investorId, roomId, month) {
     sb.from('rooms').select('*').eq('room_id', roomId).single(),
     sb.from('guest_register').select('*').eq('room_id', roomId).gte('check_in', monthStart).lte('check_in', monthEnd).order('check_in'),
     sb.from('property_default_expenses').select('*').eq('room_id', roomId).order('expense_name'),
-    sb.from('expenses').select('*, expense_categories(category_name)').eq('room_id', roomId).eq('month', monthShort),
+    sb.from('expenses').select('*').eq('room_id', roomId).eq('month', monthShort),
     sb.from('payment_history').select('booking_id, amount'),
     sb.from('investor_properties').select('share_percent').eq('investor_id', investorId).eq('room_id', roomId).maybeSingle(),
   ]);

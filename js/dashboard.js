@@ -167,16 +167,11 @@ async function renderDashboard() {
   const monthRevenue = monthCheckinBookings.reduce((s, b) => s + (b.total_amount || 0), 0);
   const monthCollected = monthCheckinBookings.reduce((s, b) => s + (paidMap[b.booking_id] || 0), 0);
 
-  // Total pending balance (all active bookings)
-  const activeDue = allBookings.filter(b => b.check_out >= today || !b.check_out).reduce((s, b) => {
+  // Current Month Pending Balance (ignores corrupted historical backfill entries)
+  const pendingBalance = monthCheckinBookings.reduce((s, b) => {
       const due = (b.total_amount || 0) - (paidMap[b.booking_id] || 0);
-      return s + (due > 1 ? due : 0);
+      return s + (due > 0 ? due : 0);
     }, 0);
-  const pastDue = allBookings.filter(b => b.check_out && b.check_out < today).reduce((s, b) => {
-      const due = (b.total_amount || 0) - (paidMap[b.booking_id] || 0);
-      return s + (due > 1 ? due : 0);
-    }, 0);
-  const pendingBalance = activeDue + pastDue;
 
   // This month bookings
   const monthBookings = allBookings.filter(b => (b.check_in || '') >= monthStart).length;

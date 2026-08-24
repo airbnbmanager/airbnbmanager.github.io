@@ -37,12 +37,10 @@ window.renderCashBook = async function() {
     sb.from('payment_history')
       .select('id, received_by, amount, booking_id, payment_date, payment_mode, notes, paid_at, guest_register(guest_name, rooms(nickname, unit_no))')
       .neq('verification_status', 'rejected')
-      .gte('payment_date', startDate)
       .lte('payment_date', endDate)
       .order('paid_at', { ascending: false }),
     sb.from('cash_handovers')
       .select('*')
-      .gte('handover_date', startDate)
       .lte('handover_date', endDate)
       .order('created_at', { ascending: false })
   ]);
@@ -55,8 +53,8 @@ window.renderCashBook = async function() {
   // Calculate CASH balances per holder
   const cashBalances = (holders || []).map(h => {
     const received = cashPayments.filter(p => p.received_by === h.name).reduce((s, p) => s + Number(p.amount || 0), 0);
-    const hoIn = (handovers || []).filter(x => x.to_person === h.name).reduce((s, x) => s + Number(x.amount || 0), 0);
-    const hoOut = (handovers || []).filter(x => x.from_person === h.name).reduce((s, x) => s + Number(x.amount || 0), 0);
+    const hoIn = (handovers || []).filter(x => x.to_person === h.name && !(x.notes || '').toLowerCase().includes('upi')).reduce((s, x) => s + Number(x.amount || 0), 0);
+    const hoOut = (handovers || []).filter(x => x.from_person === h.name && !(x.notes || '').toLowerCase().includes('upi')).reduce((s, x) => s + Number(x.amount || 0), 0);
     const balance = received + hoIn - hoOut;
     const receivedList = cashPayments.filter(p => p.received_by === h.name);
     const hoInList = (handovers || []).filter(x => x.to_person === h.name);
@@ -448,6 +446,7 @@ window.cbHandover = async function(fromPerson, maxAmount) {
 window.cbSaveHandover = async function(fromPerson) {
   const toPerson = document.getElementById('cbToPerson').value;
   const amount = parseFloat(document.getElementById('cbAmount').value) || 0;
+  const mode = document.getElementById('cbMode')?.value || 'Cash';
   const date = document.getElementById('cbDate').value;
   const notes = document.getElementById('cbNotes').value.trim();
   
@@ -456,7 +455,7 @@ window.cbSaveHandover = async function(fromPerson) {
   const { error } = await sb.from('cash_handovers').insert({
     from_person: fromPerson,
     to_person: toPerson,
-    amount, handover_date: date, notes: notes || null,
+    amount, handover_date: date, notes: notes ? (mode + ' Transfer | ' + notes) : (mode + ' Transfer'),
     created_by: SESSION.userId
   });
   

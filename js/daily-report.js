@@ -16,13 +16,13 @@ async function renderDailyReport(selectedDate) {
     { data: cfg }
   ] = await Promise.all([
     sb.from('guest_register').select('*, rooms(nickname, unit_no)'),
-    sb.from('payment_history').select('*').eq('payment_date', repDate).neq('verification_status', 'rejected'),
+    sb.from('payment_history').select('*').gte('payment_date', repDate).lte('payment_date', endDate).neq('verification_status', 'rejected'),
     sb.from('rooms').select('room_id, nickname, unit_no'),
     sb.from('company_config').select('*').eq('id', 1).single()
   ]);
 
-  const checkins = (allBks || []).filter(b => b.check_in === repDate && !b.is_cancelled);
-  const checkouts = (allBks || []).filter(b => b.check_out === repDate && !b.is_cancelled);
+  const checkins = (allBks || []).filter(b => (b.check_in >= repDate && b.check_in <= endDate) && !b.is_cancelled);
+  const checkouts = (allBks || []).filter(b => (b.check_out >= repDate && b.check_out <= endDate) && !b.is_cancelled);
   const newBookings = checkins;
   
   const staying = (allBks || []).filter(b => 
