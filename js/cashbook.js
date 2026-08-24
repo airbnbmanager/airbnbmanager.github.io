@@ -51,7 +51,54 @@ window.renderCashBook = async function() {
   const airbnbPayments = (payments || []).filter(p => p.payment_mode === 'Airbnb Payout');
   
   // Calculate CASH balances per holder
-  const cashBalances = (holders || []).map(h => {
+  // MASTER CARRY-FORWARD & MODE ISOLATION LOGIC
+  const allPersonsSet = new Set([
+    ...(holders || []).map(h => h.name),
+    ...(payments || []).map(p => p.received_by).filter(Boolean),
+    ...(handovers || []).map(h => h.from_person).filter(Boolean),
+    ...(handovers || []).map(h => h.to_person).filter(Boolean),
+    'Shahenshah', 'Praveen', 'Aniket', 'Yash', 'Mr. Alam Hazi Sahab', 'Firoz'
+  ]);
+  const allPersonNames = Array.from(allPersonsSet);
+
+  const cashBalances = allPersonNames.map(name => {
+    const h = (holders || []).find(x => x.name === name) || { name, type: 'Staff' };
+
+    // CUMULATIVE ALL-TIME PAYMENTS & HANDOVERS FOR ACCURATE BALANCE
+    const cashPaymentsList = (payments || []).filter(p => 
+      (p.received_by || '').strip?.()?.toLowerCase() === name.toLowerCase() || 
+      (p.received_by || '').trim().toLowerCase() === name.toLowerCase()
+    ).filter(p => (p.payment_mode || 'Cash').toLowerCase() === 'cash');
+
+    const received = cashPaymentsList.reduce((s, p) => s + Number(p.amount || 0), 0);
+
+    const hoInList = (handovers || []).filter(x => 
+      (x.to_person || '').trim().toLowerCase() === name.toLowerCase() && 
+      !(x.notes || '').toLowerCase().includes('upi')
+    );
+    const hoIn = hoInList.reduce((s, x) => s + Number(x.amount || 0), 0);
+
+    const hoOutList = (handovers || []).filter(x => 
+      (x.from_person || '').trim().toLowerCase() === name.toLowerCase() && 
+      !(x.notes || '').toLowerCase().includes('upi')
+    );
+    const hoOut = hoOutList.reduce((s, x) => s + Number(x.amount || 0), 0);
+
+    const balance = received + hoIn - hoOut;
+
+    return {
+      holder: h,
+      balance,
+      received,
+      hoIn,
+      hoOut,
+      receivedList: cashPaymentsList,
+      hoInList,
+      hoOutList
+    };
+  });
+
+  const unusedVar = (holders || []).map(h => {
     const received = cashPayments.filter(p => p.received_by === h.name).reduce((s, p) => s + Number(p.amount || 0), 0);
     const hoIn = (handovers || []).filter(x => x.to_person === h.name && !(x.notes || '').toLowerCase().includes('upi')).reduce((s, x) => s + Number(x.amount || 0), 0);
     const hoOut = (handovers || []).filter(x => x.from_person === h.name && !(x.notes || '').toLowerCase().includes('upi')).reduce((s, x) => s + Number(x.amount || 0), 0);
