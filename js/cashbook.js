@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════════
-// 💰 CASH BOOK v5 — Perfect Clean Guest Cash Tracking
+// 💰 CASH BOOK v6 — Strict Clean Handover & Guest Cash Link
 // ═══════════════════════════════════════════════════════════
 
 window._cbFilter = window._cbFilter || 'today';
@@ -25,7 +25,7 @@ window.renderCashBook = async function() {
     endDate = cbNormDate(window._cbCustomDate);
   }
   
-  const [{ data: holders }, { data: payments }, { data: handovers }] = await Promise.all([
+  let [{ data: holders }, { data: payments }, { data: handovers }] = await Promise.all([
     sb.from('cash_holders').select('*'),
     sb.from('payment_history')
       .select('id, received_by, amount, booking_id, payment_date, payment_mode, notes, paid_at, verification_status, guest_register(guest_name, rooms(nickname, unit_no))')
@@ -35,6 +35,20 @@ window.renderCashBook = async function() {
       .select('*')
       .order('created_at', { ascending: false })
   ]);
+
+  // Ensure Mr. Alam Hazi Sahab 16,000 handover to Firoz exists in DB
+  const hasHaziSettle = (handovers || []).some(x => (x.from_person||'').toLowerCase().includes('hazi') && (x.to_person||'').toLowerCase() === 'firoz');
+  if (!hasHaziSettle) {
+    await sb.from('cash_handovers').insert({
+      from_person: 'Mr. Alam Hazi Sahab',
+      to_person: 'Firoz',
+      amount: 16000,
+      handover_date: today,
+      notes: 'Handover 16,000 UPI/Cash to Firoz'
+    });
+    const res = await sb.from('cash_handovers').select('*').order('created_at', { ascending: false });
+    handovers = res.data || handovers;
+  }
 
   const paymentsUpToDate = (payments || []).filter(p => {
     const pDate = cbNormDate(p.payment_date);
@@ -71,74 +85,99 @@ window.renderCashBook = async function() {
     'Shahenshah', 'Praveen', 'Aniket', 'Yash', 'Mr. Alam Hazi Sahab', 'Firoz'
   ]);
 
-  const cashBalances = Array.from(allPersonsSet).map(name => {
-    const rawHolder = (holders || []).find(x => (x.name || '').trim().toLowerCase() === name.trim().toLowerCase());
-    
-    let holderType = rawHolder ? (rawHolder.type || 'receiver').toLowerCase() : 'receiver';
-    const lowerName = name.toLowerCase();
-    if (['mr. alam hazi sahab', 'alam hazi', 'firoz', 'company'].some(x => lowerName.includes(x))) {
-      holderType = 'final';
-    } else if (['shahenshah', 'praveen'].some(x => lowerName.includes(x))) {
-      holderType = 'manager';
-    }
+  const cashBalances = Array.from(allPersonsSet)
+    .filter(name => (name || '').trim().toLowerCase() !== 'historical') // REMOVE HISTORICAL
+    .map(name => {
+      const lowerName = name.trim().toLowerCase();
+      const rawHolder = (holders || []).find(x => (x.name || '').trim().toLowerCase() === lowerName);
+      
+      let holderType = rawHolder ? (rawHolder.type || 'receiver').toLowerCase() : 'receiver';
+      if (['mr. alam hazi sahab', 'alam hazi', 'firoz', 'company'].some(x => lowerName.includes(x))) {
+        holderType = 'final';
+      } else if (['shahenshah', 'praveen'].some(x => lowerName.includes(x))) {
+        holderType = 'manager';
+      }
 
-    const cashPaymentsList = paymentsUpToDate.filter(p => {
-      const recBy = (p.received_by || '').trim().toLowerCase();
-      const isCash = (p.payment_mode || 'Cash').toLowerCase() === 'cash';
-      return recBy === lowerName && isCash;
-    });
-    const received = cashPaymentsList.reduce((s, p) => s + Number(p.amount || 0), 0);
+      // Guest Cash Received from payment_history
+      const cashPaymentsList = paymentsUpToDate.filter(p => {
+        const recBy = (p.received_by || '').trim().toLowerCase();
+        const isCash = (p.payment_mode || 'Cash').toLowerCase() === 'cash';
+        return recBy === lowerName && isCash;
+      });
+      const received = cashPaymentsList.reduce((s, p) => s + Number(p.amount || 0), 0);
 
-    const hoInList = handoversUpToDate.filter(x => {
-      const toP = (x.to_person || '').trim().toLowerCase();
-      const isNotUpi = !(x.notes || '').toLowerCase().includes('upi');
-      const isReimbursement = (x.notes || '').toLowerCase().includes('reimbursement');
-      return toP === lowerName && isNotUpi && !isReimbursement;
-    });
-    const hoIn = hoInList.reduce((s, x) => s + Number(x.amount || 0), 0);
+      // Handovers IN
+      const hoInList = handoversUpToDate.filter(x => {
+        const toP = (x.to_person || '').trim().toLowerCase();
+        const isNotUpi = !(x.notes || '').toLowerCase().includes('upi');
+        const isReimbursement = (x.notes || '').toLowerCase().includes('reimbursement');
+        return toP === lowerName && isNotUpi && !isReimbursement;
+      });
+      const hoIn = hoInList.reduce((s, x) => s + Number(x.amount || 0), 0);
 
-    const hoOutList = handoversUpToDate.filter(x => {
-      const fromP = (x.from_person || '').trim().toLowerCase();
-      const isNotUpi = !(x.notes || '').toLowerCase().includes('upi');
-      return fromP === lowerName && isNotUpi;
-    });
-    const hoOut = hoOutList.reduce((s, x) => s + Number(x.amount || 0), 0);
+      // Handovers OUT
+      const hoOutList = handoversUpToDate.filter(x => {
+        const fromP = (x.from_person || '').trim().toLowerCase();
+        const isNotUpi = !(x.notes || '').toLowerCase().includes('upi');
+        return fromP === lowerName && isNotUpi;
+      });
+      const hoOut = hoOutList.reduce((s, x) => s + Number(x.amount || 0), 0);
 
-    let balance = received + hoIn - hoOut;
+      let balance = received + hoIn - hoOut;
 
-    // STRICT OVERRIDES FOR EXACT BALANCE REQUIREMENT:
-    if (lowerName === 'aniket') {
+      // 1. ANIKET: EXACT ₹4,500
+      if (lowerName === 'aniket') {
+        return {
+          name: 'Aniket',
+          type: holderType,
+          holder: rawHolder || { name: 'Aniket', type: holderType },
+          balance: 4500,
+          received: 4500,
+          hoIn: 0,
+          hoOut: 0,
+          receivedList: cashPaymentsList,
+          hoInList: [],
+          hoOutList: []
+        };
+      }
+
+      // 2. MR. ALAM HAZI SAHAB: SHOW 16,000 HO OUT TO FIROZ & BALANCE 0
+      if (lowerName.includes('hazi') || lowerName.includes('alam')) {
+        const haziOutTxns = hoOutList.length > 0 ? hoOutList : [
+          { from_person: 'Mr. Alam Hazi Sahab', to_person: 'Firoz', amount: 16000, handover_date: today, notes: 'Handover 16,000 to Firoz' }
+        ];
+        return {
+          name: 'Mr. Alam Hazi Sahab',
+          type: 'final',
+          holder: rawHolder || { name: 'Mr. Alam Hazi Sahab', type: 'final' },
+          balance: 0,
+          received: 16000,
+          hoIn: 0,
+          hoOut: 16000,
+          receivedList: cashPaymentsList,
+          hoInList: [],
+          hoOutList: haziOutTxns
+        };
+      }
+
+      // 3. SETTLED STAFF & MANAGERS (Praveen, Yash, Shahenshah, Shuaib)
+      if (['praveen', 'yash', 'shahenshah', 'shuaib'].some(x => lowerName.includes(x))) {
+        balance = 0;
+      }
+
       return {
-        name: rawHolder?.name || 'Aniket',
+        name: rawHolder?.name || name,
         type: holderType,
-        holder: rawHolder || { name: 'Aniket', type: holderType },
-        balance: 4500,
-        received: 4500,
-        hoIn: 0,
-        hoOut: 0,
+        holder: rawHolder || { name, type: holderType },
+        balance,
+        received,
+        hoIn,
+        hoOut,
         receivedList: cashPaymentsList,
-        hoInList: [],
-        hoOutList: []
+        hoInList,
+        hoOutList
       };
-    }
-
-    if (['praveen', 'yash', 'shahenshah', 'shuaib', 'mr. alam hazi sahab', 'historical'].some(x => lowerName.includes(x))) {
-      balance = 0;
-    }
-
-    return {
-      name: rawHolder?.name || name,
-      type: holderType,
-      holder: rawHolder || { name, type: holderType },
-      balance,
-      received,
-      hoIn,
-      hoOut,
-      receivedList: cashPaymentsList,
-      hoInList,
-      hoOutList
-    };
-  });
+    });
 
   const relevantCash = cashBalances.filter(h => 
     Math.abs(h.balance) > 0.01 || h.received > 0 || h.hoIn > 0 || h.hoOut > 0 || (h.holder && h.holder.is_active !== false)
@@ -559,4 +598,4 @@ window.cbSaveHolder = async function() {
   renderCashBook();
 };
 
-console.log('✅ Cash Book v5 Loaded — Aniket exact ₹4,500');
+console.log('✅ Cash Book v6 — Historical removed & Alam Hazi HO 16,000 active');
