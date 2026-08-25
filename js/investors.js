@@ -437,41 +437,40 @@ async function renderInvestorReport(investorId, roomId, month) {
   const pm = {};
   (payments || []).forEach(p => { if (bkIds.includes(p.booking_id)) pm[p.booking_id] = (pm[p.booking_id] || 0) + (p.amount || 0); });
 
-  // PURE HOSPITALITY PRORATION LOGIC FOR CROSS-MONTH BOOKINGS
+  // PURE HOSPITALITY NIGHT-DATE STRING PRORATION (100% AUTOMATIC FOR ALL MONTHS)
   function getProratedStats(b, totalPaid) {
     if (!b.check_in || !b.check_out) return { nights: 0, rev: 0 };
-        const getDays = (d1, d2) => {
-      if (!d1 || !d2) return 0;
-      const t1 = new Date(d1).getTime();
-      const t2 = new Date(d2).getTime();
-      if (isNaN(t1) || isNaN(t2) || t2 <= t1) return 0;
-      return Math.round((t2 - t1) / (1000 * 60 * 60 * 24));
-    };
-    const totalNights = Math.max(getDays(b.check_in, b.check_out), 1);
-    
-    // Calculate overlap dates with selected month [monthStart, monthEnd]
-    const cin = new Date(b.check_in);
-    const cout = new Date(b.check_out);
-    const mStart = new Date(monthStart);
-    const mEnd = new Date(monthEnd);
-    mEnd.setDate(mEnd.getDate() + 1); // Check-out day boundary
 
-    const overlapStart = cin < mStart ? mStart : cin;
-    const overlapEnd = cout > mEnd ? mEnd : cout;
+    const cinParts = b.check_in.split('-');
+    const coutParts = b.check_out.split('-');
+    if (cinParts.length < 3 || coutParts.length < 3) return { nights: 0, rev: 0 };
 
-    let overlapNights = 0;
-    if (overlapStart < overlapEnd) {
-      overlapNights = Math.round((overlapEnd - overlapStart) / (1000 * 60 * 60 * 24));
+    const cinDt = new Date(parseInt(cinParts[0]), parseInt(cinParts[1]) - 1, parseInt(cinParts[2]));
+    const coutDt = new Date(parseInt(coutParts[0]), parseInt(coutParts[1]) - 1, parseInt(coutParts[2]));
+
+    const totalNights = Math.max(Math.round((coutDt - cinDt) / 86400000), 1);
+
+    let monthNights = 0;
+    for (let i = 0; i < totalNights; i++) {
+      const nightDt = new Date(parseInt(cinParts[0]), parseInt(cinParts[1]) - 1, parseInt(cinParts[2]) + i);
+      const yyyy = nightDt.getFullYear();
+      const mm = String(nightDt.getMonth() + 1).padStart(2, '0');
+      const nightMonthStr = `${yyyy}-${mm}`;
+
+      if (nightMonthStr === selMonth) {
+        monthNights++;
+      }
     }
-    if (overlapNights <= 0) return { nights: 0, rev: 0 };
 
-    const proratedRev = Math.round((totalPaid || 0) * (overlapNights / totalNights));
-    return { nights: overlapNights, rev: proratedRev };
+    if (monthNights <= 0) return { nights: 0, rev: 0 };
+
+    const proratedRev = Math.round((totalPaid || 0) * (monthNights / totalNights));
+    return { nights: monthNights, rev: proratedRev };
   }
 
-  const reviewBks = activeBookings.filter(b => b.is_review_booking === true);
-  const onBks = activeBookings.filter(b => b.booking_mode === 'Online-Airbnb' && !b.is_review_booking);
-  const offBks = activeBookings.filter(b => b.booking_mode !== 'Online-Airbnb' && !b.is_review_booking);
+  const reviewBks = activeBookings.filter(b => b.is_review_booking === true && getProratedStats(b, pm[b.booking_id]||0).nights > 0);
+  const onBks = activeBookings.filter(b => b.booking_mode === 'Online-Airbnb' && !b.is_review_booking && getProratedStats(b, pm[b.booking_id]||0).nights > 0);
+  const offBks = activeBookings.filter(b => b.booking_mode !== 'Online-Airbnb' && !b.is_review_booking && getProratedStats(b, pm[b.booking_id]||0).nights > 0);
 
   let onNights = 0, onRev = 0;
   onBks.forEach(b => {
