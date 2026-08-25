@@ -6,6 +6,7 @@
 async function renderDailyReport(selectedDate) {
   const today = new Date().toISOString().slice(0, 10);
   const repDate = selectedDate || today;
+  const endDate = repDate;
   
   renderShell(`<div class="loading">Generating report for ${repDate}...</div>`, 'daily-report');
 
