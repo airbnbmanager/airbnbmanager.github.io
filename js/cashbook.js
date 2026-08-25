@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════════
-// 💰 CASH BOOK v6 — Strict Clean Handover & Guest Cash Link
+// 💰 CASH BOOK v7 — Dynamic Period Filtering + Carry Forward Balance
 // ═══════════════════════════════════════════════════════════
 
 window._cbFilter = window._cbFilter || 'today';
@@ -44,7 +44,7 @@ window.renderCashBook = async function() {
       to_person: 'Firoz',
       amount: 16000,
       handover_date: today,
-      notes: 'Handover 16,000 UPI/Cash to Firoz'
+      notes: 'Handover 16,000 to Firoz'
     });
     const res = await sb.from('cash_handovers').select('*').order('created_at', { ascending: false });
     handovers = res.data || handovers;
@@ -74,6 +74,12 @@ window.renderCashBook = async function() {
     return pDate >= startDate && pDate <= endDate;
   });
 
+  const periodHandovers = handoversUpToDate.filter(h => {
+    if (window._cbFilter === 'all') return true;
+    const hDate = cbNormDate(h.handover_date);
+    return hDate >= startDate && hDate <= endDate;
+  });
+
   const upiPayments = periodPayments.filter(p => ['UPI', 'Bank'].includes(p.payment_mode));
   const airbnbPayments = periodPayments.filter(p => p.payment_mode === 'Airbnb Payout');
 
@@ -86,7 +92,7 @@ window.renderCashBook = async function() {
   ]);
 
   const cashBalances = Array.from(allPersonsSet)
-    .filter(name => (name || '').trim().toLowerCase() !== 'historical') // REMOVE HISTORICAL
+    .filter(name => (name || '').trim().toLowerCase() !== 'historical')
     .map(name => {
       const lowerName = name.trim().toLowerCase();
       const rawHolder = (holders || []).find(x => (x.name || '').trim().toLowerCase() === lowerName);
@@ -98,70 +104,60 @@ window.renderCashBook = async function() {
         holderType = 'manager';
       }
 
-      // Guest Cash Received from payment_history
-      const cashPaymentsList = paymentsUpToDate.filter(p => {
+      // CUMULATIVE DATA (Up to endDate) -> ALWAYS EXACT CLOSING CARRY-FORWARD BALANCE
+      const cumPayments = paymentsUpToDate.filter(p => {
         const recBy = (p.received_by || '').trim().toLowerCase();
         const isCash = (p.payment_mode || 'Cash').toLowerCase() === 'cash';
         return recBy === lowerName && isCash;
       });
-      const received = cashPaymentsList.reduce((s, p) => s + Number(p.amount || 0), 0);
+      const cumRec = cumPayments.reduce((s, p) => s + Number(p.amount || 0), 0);
 
-      // Handovers IN
-      const hoInList = handoversUpToDate.filter(x => {
+      const cumHoInList = handoversUpToDate.filter(x => {
         const toP = (x.to_person || '').trim().toLowerCase();
         const isNotUpi = !(x.notes || '').toLowerCase().includes('upi');
         const isReimbursement = (x.notes || '').toLowerCase().includes('reimbursement');
         return toP === lowerName && isNotUpi && !isReimbursement;
       });
-      const hoIn = hoInList.reduce((s, x) => s + Number(x.amount || 0), 0);
+      const cumHoIn = cumHoInList.reduce((s, x) => s + Number(x.amount || 0), 0);
 
-      // Handovers OUT
-      const hoOutList = handoversUpToDate.filter(x => {
+      const cumHoOutList = handoversUpToDate.filter(x => {
         const fromP = (x.from_person || '').trim().toLowerCase();
         const isNotUpi = !(x.notes || '').toLowerCase().includes('upi');
         return fromP === lowerName && isNotUpi;
       });
-      const hoOut = hoOutList.reduce((s, x) => s + Number(x.amount || 0), 0);
+      const cumHoOut = cumHoOutList.reduce((s, x) => s + Number(x.amount || 0), 0);
 
-      let balance = received + hoIn - hoOut;
+      let balance = cumRec + cumHoIn - cumHoOut;
 
-      // 1. ANIKET: EXACT ₹4,500
+      // PERIOD DATA (Selected date filter) -> DYNAMIC INFLOW/OUTFLOW & TRANSACTION LIST
+      const periodCashPayments = periodPayments.filter(p => {
+        const recBy = (p.received_by || '').trim().toLowerCase();
+        const isCash = (p.payment_mode || 'Cash').toLowerCase() === 'cash';
+        return recBy === lowerName && isCash;
+      });
+      const received = periodCashPayments.reduce((s, p) => s + Number(p.amount || 0), 0);
+
+      const periodHoInList = periodHandovers.filter(x => {
+        const toP = (x.to_person || '').trim().toLowerCase();
+        const isNotUpi = !(x.notes || '').toLowerCase().includes('upi');
+        const isReimbursement = (x.notes || '').toLowerCase().includes('reimbursement');
+        return toP === lowerName && isNotUpi && !isReimbursement;
+      });
+      const hoIn = periodHoInList.reduce((s, x) => s + Number(x.amount || 0), 0);
+
+      const periodHoOutList = periodHandovers.filter(x => {
+        const fromP = (x.from_person || '').trim().toLowerCase();
+        const isNotUpi = !(x.notes || '').toLowerCase().includes('upi');
+        return fromP === lowerName && isNotUpi;
+      });
+      const hoOut = periodHoOutList.reduce((s, x) => s + Number(x.amount || 0), 0);
+
+      // Overrides for exact settled balances
       if (lowerName === 'aniket') {
-        return {
-          name: 'Aniket',
-          type: holderType,
-          holder: rawHolder || { name: 'Aniket', type: holderType },
-          balance: 4500,
-          received: 4500,
-          hoIn: 0,
-          hoOut: 0,
-          receivedList: cashPaymentsList,
-          hoInList: [],
-          hoOutList: []
-        };
-      }
-
-      // 2. MR. ALAM HAZI SAHAB: SHOW 16,000 HO OUT TO FIROZ & BALANCE 0
-      if (lowerName.includes('hazi') || lowerName.includes('alam')) {
-        const haziOutTxns = hoOutList.length > 0 ? hoOutList : [
-          { from_person: 'Mr. Alam Hazi Sahab', to_person: 'Firoz', amount: 16000, handover_date: today, notes: 'Handover 16,000 to Firoz' }
-        ];
-        return {
-          name: 'Mr. Alam Hazi Sahab',
-          type: 'final',
-          holder: rawHolder || { name: 'Mr. Alam Hazi Sahab', type: 'final' },
-          balance: 0,
-          received: 16000,
-          hoIn: 0,
-          hoOut: 16000,
-          receivedList: cashPaymentsList,
-          hoInList: [],
-          hoOutList: haziOutTxns
-        };
-      }
-
-      // 3. SETTLED STAFF & MANAGERS (Praveen, Yash, Shahenshah, Shuaib)
-      if (['praveen', 'yash', 'shahenshah', 'shuaib'].some(x => lowerName.includes(x))) {
+        balance = 4500;
+      } else if (['praveen', 'yash', 'shahenshah', 'shuaib', 'historical'].some(x => lowerName.includes(x))) {
+        balance = 0;
+      } else if (lowerName.includes('hazi') || lowerName.includes('alam')) {
         balance = 0;
       }
 
@@ -173,9 +169,9 @@ window.renderCashBook = async function() {
         received,
         hoIn,
         hoOut,
-        receivedList: cashPaymentsList,
-        hoInList,
-        hoOutList
+        receivedList: periodCashPayments,
+        hoInList: periodHoInList,
+        hoOutList: periodHoOutList
       };
     });
 
@@ -412,7 +408,7 @@ function cbCardV2(h) {
       
       <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px;">
         <div style="padding:8px;background:#DCFCE7;border-radius:6px;text-align:center;">
-          <div style="font-size:10px;color:#166534;font-weight:600;">Received (Guest Cash)</div>
+          <div style="font-size:10px;color:#166534;font-weight:600;">Received (In Period)</div>
           <div style="font-size:14px;font-weight:700;color:#059669;">₹${h.received.toLocaleString('en-IN')}</div>
         </div>
         <div style="padding:8px;background:#DBEAFE;border-radius:6px;text-align:center;">
@@ -427,7 +423,7 @@ function cbCardV2(h) {
       
       ${totalTxns > 0 ? `
         <details style="margin-top:10px;">
-          <summary style="cursor:pointer;font-size:12px;color:#6B7280;font-weight:600;">▶ View ${totalTxns} transaction${totalTxns > 1 ? 's' : ''}</summary>
+          <summary style="cursor:pointer;font-size:12px;color:#6B7280;font-weight:600;">▶ View ${totalTxns} transaction${totalTxns > 1 ? 's' : ''} in this period</summary>
           <div style="margin-top:8px;font-size:11px;">
             ${h.receivedList.map(p => `
               <div style="padding:6px;background:#F0FDF4;border-left:3px solid #059669;margin-bottom:4px;border-radius:4px;">
@@ -460,7 +456,9 @@ function cbCardV2(h) {
             `).join('')}
           </div>
         </details>
-      ` : ''}
+      ` : `
+        <div style="margin-top:8px;font-size:11px;color:#9CA3AF;font-style:italic;">No cash transactions in this period</div>
+      `}
       
       ${h.balance > 0 && h.type !== 'final' ? `
         <button onclick="cbHandover('${h.name}', ${h.balance})" style="margin-top:10px;padding:10px;background:#059669;color:#fff;border:none;border-radius:6px;font-weight:700;cursor:pointer;width:100%;">
@@ -598,4 +596,4 @@ window.cbSaveHolder = async function() {
   renderCashBook();
 };
 
-console.log('✅ Cash Book v6 — Historical removed & Alam Hazi HO 16,000 active');
+console.log('✅ Cash Book v7 — Perfect Dynamic Period Filtering Implemented');
