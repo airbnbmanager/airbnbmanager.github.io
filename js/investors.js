@@ -392,7 +392,9 @@ async function renderInvestorReport(investorId, roomId, month) {
   const monthName = monthDate.toLocaleString('en-IN', { month: 'long' }).toUpperCase();
   const monthYear = monthDate.toLocaleString('en-IN', { month: 'long', year: 'numeric' });
   const monthStart = selMonth + '-01';
-  const monthEnd = new Date(parseInt(selMonth.split('-')[0]), parseInt(selMonth.split('-')[1]), 0).toISOString().slice(0, 10);
+  const [mYear, mMonth] = selMonth.split('-').map(Number);
+  const lastDay = new Date(mYear, mMonth, 0).getDate();
+  const monthEnd = `${selMonth}-${String(lastDay).padStart(2, '0')}`;
   const monthShort = monthDate.toLocaleString('en-IN', { month: 'short', year: 'numeric' }).replace(' ', '-');
   const cn = b => (b && b.check_in && b.check_out) ? Math.max(Math.round((new Date(b.check_out) - new Date(b.check_in)) / 86400000), 0) : 0;
   const rev = b => (b && b.booking_id && pm) ? (pm[b.booking_id] || 0) : 0;
@@ -1271,7 +1273,9 @@ async function renderFriendsReport(investorId, roomId, month) {
   const monthDate = new Date(selMonth + '-01');
   const monthYear = monthDate.toLocaleString('en-IN', { month: 'long', year: 'numeric' });
   const monthStart = selMonth + '-01';
-  const monthEnd = new Date(parseInt(selMonth.split('-')[0]), parseInt(selMonth.split('-')[1]), 0).toISOString().slice(0, 10);
+  const [mYear, mMonth] = selMonth.split('-').map(Number);
+  const lastDay = new Date(mYear, mMonth, 0).getDate();
+  const monthEnd = `${selMonth}-${String(lastDay).padStart(2, '0')}`;
 
   const [{data:inv}, {data:room}, {data:bookings}] = await Promise.all([
     sb.from('investors').select('*').eq('investor_id', investorId).single(),
