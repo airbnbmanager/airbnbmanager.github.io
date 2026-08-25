@@ -635,7 +635,7 @@ async function renderInvestorReport(investorId, roomId, month) {
                 <td style="padding:6px;border:1px solid #ccc;">${b.guest_name || '-'}</td>
                 <td style="padding:6px;border:1px solid #ccc;">${b.check_in || '-'}</td>
                 <td style="padding:6px;border:1px solid #ccc;">${b.check_out || '-'}</td>
-                <td style="padding:6px;border:1px solid #ccc;text-align:center;">${cn(b)}</td>
+                <td style="padding:6px;border:1px solid #ccc;text-align:center;">${getProratedStats(b, pm[b.booking_id] || 0).nights}</td>
                 <td style="padding:6px;border:1px solid #ccc;text-align:right;">₹${rev(b).toLocaleString('en-IN')}</td>
               </tr>
             `).join('') || '<tr><td colspan="5" style="padding:8px;text-align:center;color:#999;border:1px solid #ccc;">No offline bookings</td></tr>'}
@@ -665,7 +665,7 @@ async function renderInvestorReport(investorId, roomId, month) {
                 <td style="padding:6px;border:1px solid #ccc;">${b.guest_name || '-'} <span style="background:#722ED1;color:#fff;padding:1px 4px;border-radius:3px;font-size:9px;">REVIEW</span></td>
                 <td style="padding:6px;border:1px solid #ccc;">${b.check_in || '-'}</td>
                 <td style="padding:6px;border:1px solid #ccc;">${b.check_out || '-'}</td>
-                <td style="padding:6px;border:1px solid #ccc;text-align:center;">${cn(b)}</td>
+                <td style="padding:6px;border:1px solid #ccc;text-align:center;">${getProratedStats(b, pm[b.booking_id] || 0).nights}</td>
                 <td style="padding:6px;border:1px solid #ccc;text-align:right;">₹${rev(b).toLocaleString('en-IN')}</td>
               </tr>
             `).join('')}
