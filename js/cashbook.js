@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════════
-// 💰 CASH BOOK v9 — 100% PURE DYNAMIC REAL-TIME BOOKING SYNC
+// 💰 CASH BOOK v10 — Pure Realtime Dynamic Booking Sync
 // ═══════════════════════════════════════════════════════════
 
 window._cbFilter = window._cbFilter || 'today';
@@ -70,7 +70,7 @@ window.renderCashBook = async function() {
   const upiPayments = periodPayments.filter(p => ['UPI', 'Bank'].includes(p.payment_mode));
   const airbnbPayments = periodPayments.filter(p => p.payment_mode === 'Airbnb Payout');
 
-  // ALL PERSONS IN SYSTEM
+  // ALL PERSONS LIST
   const allPersonsSet = new Set([
     ...(holders || []).map(h => h.name),
     ...(paymentsUpToDate || []).map(p => p.received_by).filter(Boolean),
@@ -92,7 +92,7 @@ window.renderCashBook = async function() {
         holderType = 'manager';
       }
 
-      // 1. CUMULATIVE GUEST CASH PAYMENTS RECEIVED FROM BOOKINGS PAGE (LIVE DB)
+      // 1. CUMULATIVE GUEST CASH RECEIVED FROM BOOKINGS PAGE (LIVE DB)
       const cumPayments = paymentsUpToDate.filter(p => {
         const recBy = (p.received_by || '').trim().toLowerCase();
         const isCash = (p.payment_mode || 'Cash').toLowerCase() === 'cash';
@@ -100,7 +100,7 @@ window.renderCashBook = async function() {
       });
       const cumRec = cumPayments.reduce((s, p) => s + Number(p.amount || 0), 0);
 
-      // 2. CUMULATIVE HANDOVERS IN (Excluding non-cash UPI transfers)
+      // 2. CUMULATIVE HANDOVERS IN
       const cumHoInList = handoversUpToDate.filter(x => {
         const toP = (x.to_person || '').trim().toLowerCase();
         const isNotUpi = !(x.notes || '').toLowerCase().includes('upi');
@@ -116,10 +116,10 @@ window.renderCashBook = async function() {
       });
       const cumHoOut = cumHoOutList.reduce((s, x) => s + Number(x.amount || 0), 0);
 
-      // PURE MATHEMATICAL BALANCE COMPUTATION (NO HARDCODING)
+      // PURE DYNAMIC MATHEMATICAL BALANCE (ZERO HARDCODING)
       const balance = cumRec + cumHoIn - cumHoOut;
 
-      // PERIOD DISPLAY DATA (FOR SELECTED DATE FILTER)
+      // PERIOD DISPLAY DATA FOR SELECTED FILTER
       const periodCashPayments = periodPayments.filter(p => {
         const recBy = (p.received_by || '').trim().toLowerCase();
         const isCash = (p.payment_mode || 'Cash').toLowerCase() === 'cash';
@@ -576,4 +576,4 @@ window.cbSaveHolder = async function() {
   renderCashBook();
 };
 
-console.log('✅ Cash Book v9 Loaded — Pure Dynamic Sync Active');
+console.log('✅ Master Dynamic Cashbook v10 Active');
