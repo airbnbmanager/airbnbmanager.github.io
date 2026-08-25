@@ -627,7 +627,7 @@ async function renderInvestorReport(investorId, roomId, month) {
                 <td style="padding:6px;border:1px solid #ccc;">${b.check_in || '-'}</td>
                 <td style="padding:6px;border:1px solid #ccc;">${b.check_out || '-'}</td>
                 <td style="padding:6px;border:1px solid #ccc;text-align:center;">${cn(b)}</td>
-                <td style="padding:6px;border:1px solid #ccc;text-align:right;">₹${(pm[b.booking_id] || 0).toLocaleString('en-IN')}</td>
+                <td style="padding:6px;border:1px solid #ccc;text-align:right;">₹${rev(b).toLocaleString('en-IN')}</td>
               </tr>
             `).join('') || '<tr><td colspan="5" style="padding:8px;text-align:center;color:#999;border:1px solid #ccc;">No offline bookings</td></tr>'}
             <tr style="background:#FFF0F0;font-weight:700;color:#484848;">
@@ -657,7 +657,7 @@ async function renderInvestorReport(investorId, roomId, month) {
                 <td style="padding:6px;border:1px solid #ccc;">${b.check_in || '-'}</td>
                 <td style="padding:6px;border:1px solid #ccc;">${b.check_out || '-'}</td>
                 <td style="padding:6px;border:1px solid #ccc;text-align:center;">${cn(b)}</td>
-                <td style="padding:6px;border:1px solid #ccc;text-align:right;">₹${(pm[b.booking_id] || 0).toLocaleString('en-IN')}</td>
+                <td style="padding:6px;border:1px solid #ccc;text-align:right;">₹${rev(b).toLocaleString('en-IN')}</td>
               </tr>
             `).join('')}
             <tr style="background:#F5F0FF;font-weight:700;">
@@ -969,7 +969,7 @@ async function renderInvestorView(range = 'Month') {
             <td><span class="channel-badge ${b.booking_mode === 'Online-Airbnb' ? 'channel-airbnb' : 'channel-direct'}">${b.booking_mode === 'Online-Airbnb' ? '🌐' : '🏠'}</span></td>
             <td>${b.check_in || '-'}</td>
             <td>${b.check_out || '-'}</td>
-            <td style="color:var(--green);">₹${(pm[b.booking_id] || 0).toLocaleString('en-IN')}</td>
+            <td style="color:var(--green);">₹${rev(b).toLocaleString('en-IN')}</td>
           </tr>`).join('') || '<tr><td colspan="6" class="sub">None</td></tr>'}</tbody>
         </table></div>
       </div>
