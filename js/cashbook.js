@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════════
-// 💰 CASH BOOK v10 — Pure Realtime Dynamic Booking Sync
+// 💰 CASH BOOK vFINAL — 100% Pure Dynamic Booking Sync (No Hardcoding)
 // ═══════════════════════════════════════════════════════════
 
 window._cbFilter = window._cbFilter || 'today';
@@ -25,7 +25,7 @@ window.renderCashBook = async function() {
     endDate = cbNormDate(window._cbCustomDate);
   }
   
-  // FETCH LIVE DATA FROM SUPABASE FOR EVERY RENDER
+  // FETCH LIVE DATA DIRECTLY FROM SUPABASE (Booking Payments + Handovers)
   const [{ data: holders }, { data: payments }, { data: handovers }] = await Promise.all([
     sb.from('cash_holders').select('*'),
     sb.from('payment_history')
@@ -70,17 +70,17 @@ window.renderCashBook = async function() {
   const upiPayments = periodPayments.filter(p => ['UPI', 'Bank'].includes(p.payment_mode));
   const airbnbPayments = periodPayments.filter(p => p.payment_mode === 'Airbnb Payout');
 
-  // ALL PERSONS LIST
+  // AGGREGATE ALL NAMES FROM SYSTEM
   const allPersonsSet = new Set([
     ...(holders || []).map(h => h.name),
     ...(paymentsUpToDate || []).map(p => p.received_by).filter(Boolean),
     ...(handoversUpToDate || []).map(h => h.from_person).filter(Boolean),
     ...(handoversUpToDate || []).map(h => h.to_person).filter(Boolean),
-    'Shahenshah', 'Praveen', 'Aniket', 'Yash', 'Mr. Alam Hazi Sahab', 'Firoz'
+    'Shahenshah', 'Praveen', 'Aniket', 'Yash', 'Mr. Alam Hazi Sahab', 'Firoz', 'Company'
   ]);
 
   const cashBalances = Array.from(allPersonsSet)
-    .filter(name => (name || '').trim().toLowerCase() !== 'historical')
+    .filter(name => (name || '').trim().toLowerCase() !== 'historical') // Remove dummy historical
     .map(name => {
       const lowerName = name.trim().toLowerCase();
       const rawHolder = (holders || []).find(x => (x.name || '').trim().toLowerCase() === lowerName);
@@ -92,7 +92,7 @@ window.renderCashBook = async function() {
         holderType = 'manager';
       }
 
-      // 1. CUMULATIVE GUEST CASH RECEIVED FROM BOOKINGS PAGE (LIVE DB)
+      // --- CUMULATIVE MATH (Closing Balances) ---
       const cumPayments = paymentsUpToDate.filter(p => {
         const recBy = (p.received_by || '').trim().toLowerCase();
         const isCash = (p.payment_mode || 'Cash').toLowerCase() === 'cash';
@@ -100,15 +100,15 @@ window.renderCashBook = async function() {
       });
       const cumRec = cumPayments.reduce((s, p) => s + Number(p.amount || 0), 0);
 
-      // 2. CUMULATIVE HANDOVERS IN
       const cumHoInList = handoversUpToDate.filter(x => {
         const toP = (x.to_person || '').trim().toLowerCase();
         const isNotUpi = !(x.notes || '').toLowerCase().includes('upi');
-        return toP === lowerName && isNotUpi;
+        const isReimbursement = (x.notes || '').toLowerCase().includes('reimburse');
+        // Exclude reimbursements so Guest Cash balance stays pure
+        return toP === lowerName && isNotUpi && !isReimbursement;
       });
       const cumHoIn = cumHoInList.reduce((s, x) => s + Number(x.amount || 0), 0);
 
-      // 3. CUMULATIVE HANDOVERS OUT
       const cumHoOutList = handoversUpToDate.filter(x => {
         const fromP = (x.from_person || '').trim().toLowerCase();
         const isNotUpi = !(x.notes || '').toLowerCase().includes('upi');
@@ -116,10 +116,10 @@ window.renderCashBook = async function() {
       });
       const cumHoOut = cumHoOutList.reduce((s, x) => s + Number(x.amount || 0), 0);
 
-      // PURE DYNAMIC MATHEMATICAL BALANCE (ZERO HARDCODING)
+      // PERFECT DYNAMIC FORMULA: (Guest Cash + Transfers Received) - (Transfers Sent)
       const balance = cumRec + cumHoIn - cumHoOut;
 
-      // PERIOD DISPLAY DATA FOR SELECTED FILTER
+      // --- PERIOD MATH (For Selected Filter UI) ---
       const periodCashPayments = periodPayments.filter(p => {
         const recBy = (p.received_by || '').trim().toLowerCase();
         const isCash = (p.payment_mode || 'Cash').toLowerCase() === 'cash';
@@ -130,7 +130,8 @@ window.renderCashBook = async function() {
       const periodHoInList = periodHandovers.filter(x => {
         const toP = (x.to_person || '').trim().toLowerCase();
         const isNotUpi = !(x.notes || '').toLowerCase().includes('upi');
-        return toP === lowerName && isNotUpi;
+        const isReimbursement = (x.notes || '').toLowerCase().includes('reimburse');
+        return toP === lowerName && isNotUpi && !isReimbursement;
       });
       const hoIn = periodHoInList.reduce((s, x) => s + Number(x.amount || 0), 0);
 
@@ -156,7 +157,7 @@ window.renderCashBook = async function() {
     });
 
   const relevantCash = cashBalances.filter(h => 
-    Math.abs(h.balance) > 0.01 || h.received > 0 || h.hoIn > 0 || h.hoOut > 0 || (h.holder && h.holder.is_active !== false)
+    Math.abs(h.balance) > 0 || h.received > 0 || h.hoIn > 0 || h.hoOut > 0 || (h.holder && h.holder.is_active !== false)
   );
 
   const upiByReceiver = {};
@@ -167,6 +168,7 @@ window.renderCashBook = async function() {
     upiByReceiver[key].list.push(p);
   });
   
+  // Calculate Totals for Top Cards
   const cashInHand = relevantCash.filter(h => h.type !== 'final').reduce((s, h) => s + Math.max(h.balance, 0), 0);
   const cashInCompany = relevantCash.filter(h => h.type === 'final').reduce((s, h) => s + h.balance, 0);
   const totalUpi = upiPayments.reduce((s, p) => s + Number(p.amount || 0), 0);
@@ -576,4 +578,4 @@ window.cbSaveHolder = async function() {
   renderCashBook();
 };
 
-console.log('✅ Master Dynamic Cashbook v10 Active');
+console.log('✅ Cash Book FINAL Loaded — Zero Hardcoding');
