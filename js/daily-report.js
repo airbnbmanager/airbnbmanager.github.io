@@ -52,9 +52,16 @@ async function renderDailyReport(selectedDate) {
     paidMapFull[p.booking_id] = (paidMapFull[p.booking_id] || 0) + (p.amount || 0);
   });
 
+  // PENDING DUES FIXED: Only calculate for currently active guests (Staying + Today Check-ins/outs)
+  const activeBookingIds = new Set([
+    ...(staying || []).map(b => b.booking_id),
+    ...(checkouts || []).map(b => b.booking_id),
+    ...(checkins || []).map(b => b.booking_id)
+  ]);
+
   const totalDueOverall = (allBks || []).reduce((s, b) => {
-    if (b.is_cancelled) return s;
-    if (b.check_in > repDate) return s;
+    if (b.is_cancelled || b.verification_status === 'rejected') return s;
+    if (!activeBookingIds.has(b.booking_id)) return s;
     const paid = paidMapFull[b.booking_id] || 0;
     const due = Math.max((b.total_amount || 0) - paid, 0);
     return s + (due > 1 ? due : 0);
