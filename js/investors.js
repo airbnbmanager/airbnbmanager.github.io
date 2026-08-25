@@ -394,6 +394,7 @@ async function renderInvestorReport(investorId, roomId, month) {
   const monthStart = selMonth + '-01';
   const monthEnd = new Date(parseInt(selMonth.split('-')[0]), parseInt(selMonth.split('-')[1]), 0).toISOString().slice(0, 10);
   const monthShort = monthDate.toLocaleString('en-IN', { month: 'short', year: 'numeric' }).replace(' ', '-');
+  const cn = b => (b && b.check_in && b.check_out) ? Math.max(Math.round((new Date(b.check_out) - new Date(b.check_in)) / 86400000), 0) : 0;
 
   const [{data:inv}, {data:room}, {data:bookings}, {data:defaults}, {data:expenses}, {data:payments}, {data:link}] = await Promise.all([
     sb.from('investors').select('*').eq('investor_id', investorId).single(),
