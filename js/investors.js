@@ -435,20 +435,57 @@ async function renderInvestorReport(investorId, roomId, month) {
   const pm = {};
   (payments || []).forEach(p => { if (bkIds.includes(p.booking_id)) pm[p.booking_id] = (pm[p.booking_id] || 0) + (p.amount || 0); });
 
-  const cn = b => b.check_in && b.check_out ? calcNights(b.check_in, b.check_out) : 0;
-  // NEW: 3-way split — Online, Offline, Review
+  // PURE HOSPITALITY PRORATION LOGIC FOR CROSS-MONTH BOOKINGS
+  function getProratedStats(b, totalPaid) {
+    if (!b.check_in || !b.check_out) return { nights: 0, rev: 0 };
+    const totalNights = Math.max(calcNights(b.check_in, b.check_out), 1);
+    
+    // Calculate overlap dates with selected month [monthStart, monthEnd]
+    const cin = new Date(b.check_in);
+    const cout = new Date(b.check_out);
+    const mStart = new Date(monthStart);
+    const mEnd = new Date(monthEnd);
+    mEnd.setDate(mEnd.getDate() + 1); // Check-out day boundary
+
+    const overlapStart = cin < mStart ? mStart : cin;
+    const overlapEnd = cout > mEnd ? mEnd : cout;
+
+    let overlapNights = 0;
+    if (overlapStart < overlapEnd) {
+      overlapNights = Math.round((overlapEnd - overlapStart) / (1000 * 60 * 60 * 24));
+    }
+    if (overlapNights <= 0) return { nights: 0, rev: 0 };
+
+    const proratedRev = Math.round((totalPaid || 0) * (overlapNights / totalNights));
+    return { nights: overlapNights, rev: proratedRev };
+  }
+
   const reviewBks = activeBookings.filter(b => b.is_review_booking === true);
   const onBks = activeBookings.filter(b => b.booking_mode === 'Online-Airbnb' && !b.is_review_booking);
   const offBks = activeBookings.filter(b => b.booking_mode !== 'Online-Airbnb' && !b.is_review_booking);
 
-  const onNights = onBks.reduce((s, b) => s + cn(b), 0);
-  const offNights = offBks.reduce((s, b) => s + cn(b), 0);
-  const reviewNights = reviewBks.reduce((s, b) => s + cn(b), 0);
-  const totalNights = onNights + offNights + reviewNights;
+  let onNights = 0, onRev = 0;
+  onBks.forEach(b => {
+    const p = getProratedStats(b, pm[b.booking_id] || 0);
+    onNights += p.nights;
+    onRev += p.rev;
+  });
 
-  const onRev = onBks.reduce((s, b) => s + (pm[b.booking_id] || 0), 0);
-  const offRev = offBks.reduce((s, b) => s + (pm[b.booking_id] || 0), 0);
-  const reviewRev = reviewBks.reduce((s, b) => s + (pm[b.booking_id] || 0), 0);
+  let offNights = 0, offRev = 0;
+  offBks.forEach(b => {
+    const p = getProratedStats(b, pm[b.booking_id] || 0);
+    offNights += p.nights;
+    offRev += p.rev;
+  });
+
+  let reviewNights = 0, reviewRev = 0;
+  reviewBks.forEach(b => {
+    const p = getProratedStats(b, pm[b.booking_id] || 0);
+    reviewNights += p.nights;
+    reviewRev += p.rev;
+  });
+
+  const totalNights = onNights + offNights + reviewNights;
   const totalRev = onRev + offRev + reviewRev;
 
   const useDefaults = (expenses || []).length === 0;
