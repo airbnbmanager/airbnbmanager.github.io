@@ -1,24 +1,17 @@
 // ═══════════════════════════════════════════════════════════
-// 💰 CASH BOOK v2 — Permanent Carry Forward & Universal Date Fix
+// 💰 CASH BOOK v3 — Guest Booking Cash Tracking & Clean Settle
 // ═══════════════════════════════════════════════════════════
 
 window._cbFilter = window._cbFilter || 'today';
 window._cbTab = window._cbTab || 'cash';
 window._cbCustomDate = window._cbCustomDate || null;
 
-// Universal Date Normalizer (Handles DD/MM/YYYY, YYYY-MM-DD, Timestamps)
 function cbNormDate(dStr) {
   if (!dStr) return '';
   dStr = String(dStr).trim();
   if (/^\d{1,2}\/\d{1,2}\/\d{4}/.test(dStr)) {
     const parts = dStr.split('/');
-    const day = parts[0].padStart(2, '0');
-    const month = parts[1].padStart(2, '0');
-    const year = parts[2].slice(0, 4);
-    return `${year}-${month}-${day}`;
-  }
-  if (/^\d{4}-\d{2}-\d{2}/.test(dStr)) {
-    return dStr.slice(0, 10);
+    return `${parts[2].slice(0,4)}-${parts[1].padStart(2,'0')}-${parts[0].padStart(2,'0')}`;
   }
   return dStr.slice(0, 10);
 }
@@ -26,14 +19,12 @@ function cbNormDate(dStr) {
 window.renderCashBook = async function() {
   renderShell('<div class="loading">Loading Cash Book...</div>', 'cashbook');
   
-  // Today's date in YYYY-MM-DD
   const today = new Date().toISOString().slice(0, 10);
   let endDate = today;
   if (window._cbFilter === 'custom' && window._cbCustomDate) {
     endDate = cbNormDate(window._cbCustomDate);
   }
   
-  // FETCH ALL DATA WITHOUT SUPABASE DATE FILTERING (TO PREVENT STRING MISMATCH)
   const [{ data: holders }, { data: payments }, { data: handovers }] = await Promise.all([
     sb.from('cash_holders').select('*'),
     sb.from('payment_history')
@@ -45,7 +36,6 @@ window.renderCashBook = async function() {
       .order('created_at', { ascending: false })
   ]);
 
-  // Filter payments & handovers up to endDate for Carry Forward calculation
   const paymentsUpToDate = (payments || []).filter(p => {
     const pDate = cbNormDate(p.payment_date);
     return !pDate || pDate <= endDate;
@@ -56,20 +46,14 @@ window.renderCashBook = async function() {
     return !hDate || hDate <= endDate;
   });
 
-  // Calculate startDate for period daybook activity (UPI / Airbnb tabs)
   let startDate = '2020-01-01';
-  if (window._cbFilter === 'today') {
-    startDate = today;
-  } else if (window._cbFilter === 'week') {
+  if (window._cbFilter === 'today') startDate = today;
+  else if (window._cbFilter === 'week') {
     const d = new Date(); d.setDate(d.getDate() - 7);
     startDate = d.toISOString().slice(0, 10);
-  } else if (window._cbFilter === 'month') {
-    startDate = today.slice(0, 7) + '-01';
-  } else if (window._cbFilter === 'custom' && window._cbCustomDate) {
-    startDate = endDate;
-  }
+  } else if (window._cbFilter === 'month') startDate = today.slice(0, 7) + '-01';
+  else if (window._cbFilter === 'custom' && window._cbCustomDate) startDate = endDate;
 
-  // Filter period payments for daybook tabs
   const periodPayments = paymentsUpToDate.filter(p => {
     if (window._cbFilter === 'all') return true;
     const pDate = cbNormDate(p.payment_date);
@@ -79,7 +63,6 @@ window.renderCashBook = async function() {
   const upiPayments = periodPayments.filter(p => ['UPI', 'Bank'].includes(p.payment_mode));
   const airbnbPayments = periodPayments.filter(p => p.payment_mode === 'Airbnb Payout');
 
-  // BUILD ALL PERSONS LIST
   const allPersonsSet = new Set([
     ...(holders || []).map(h => h.name),
     ...(paymentsUpToDate || []).map(p => p.received_by).filter(Boolean),
@@ -91,7 +74,6 @@ window.renderCashBook = async function() {
   const cashBalances = Array.from(allPersonsSet).map(name => {
     const rawHolder = (holders || []).find(x => (x.name || '').trim().toLowerCase() === name.trim().toLowerCase());
     
-    // Type classification
     let holderType = rawHolder ? (rawHolder.type || 'receiver').toLowerCase() : 'receiver';
     const lowerName = name.toLowerCase();
     if (['mr. alam hazi sahab', 'alam hazi', 'firoz', 'company'].some(x => lowerName.includes(x))) {
@@ -100,7 +82,7 @@ window.renderCashBook = async function() {
       holderType = 'manager';
     }
 
-    // ALL CASH RECEIVED UP TO END DATE
+    // GUEST CASH PAYMENTS RECEIVED FROM BOOKINGS PAGE ONLY
     const cashPaymentsList = paymentsUpToDate.filter(p => {
       const recBy = (p.received_by || '').trim().toLowerCase();
       const isCash = (p.payment_mode || 'Cash').toLowerCase() === 'cash';
@@ -108,11 +90,12 @@ window.renderCashBook = async function() {
     });
     const received = cashPaymentsList.reduce((s, p) => s + Number(p.amount || 0), 0);
 
-    // HANDOVERS IN
+    // HANDOVERS IN (Guest cash transfers)
     const hoInList = handoversUpToDate.filter(x => {
       const toP = (x.to_person || '').trim().toLowerCase();
       const isNotUpi = !(x.notes || '').toLowerCase().includes('upi');
-      return toP === lowerName && isNotUpi;
+      const isNotReimburse = !(x.notes || '').toLowerCase().includes('reimbursement');
+      return toP === lowerName && isNotUpi && isNotReimburse;
     });
     const hoIn = hoInList.reduce((s, x) => s + Number(x.amount || 0), 0);
 
@@ -124,7 +107,7 @@ window.renderCashBook = async function() {
     });
     const hoOut = hoOutList.reduce((s, x) => s + Number(x.amount || 0), 0);
 
-    // NET BALANCE
+    // NET GUEST CASH IN HAND
     const balance = received + hoIn - hoOut;
 
     return {
@@ -141,12 +124,11 @@ window.renderCashBook = async function() {
     };
   });
 
-  // Always include holders with balances or activity
+  // Always show active holders or anyone with activity
   const relevantCash = cashBalances.filter(h => 
     Math.abs(h.balance) > 0.01 || h.received > 0 || h.hoIn > 0 || h.hoOut > 0 || (h.holder && h.holder.is_active !== false)
   );
 
-  // UPI aggregation
   const upiByReceiver = {};
   upiPayments.forEach(p => {
     const key = p.received_by || 'Unknown';
@@ -155,13 +137,11 @@ window.renderCashBook = async function() {
     upiByReceiver[key].list.push(p);
   });
   
-  // Summary calculations
   const cashInHand = relevantCash.filter(h => h.type !== 'final').reduce((s, h) => s + Math.max(h.balance, 0), 0);
   const cashInCompany = relevantCash.filter(h => h.type === 'final').reduce((s, h) => s + h.balance, 0);
   const totalUpi = upiPayments.reduce((s, p) => s + Number(p.amount || 0), 0);
   const totalAirbnb = airbnbPayments.reduce((s, p) => s + Number(p.amount || 0), 0);
   
-  // Airbnb aggregation
   const airbnbByReceiver = {};
   airbnbPayments.forEach(p => {
     const key = p.received_by || 'Company';
@@ -170,9 +150,6 @@ window.renderCashBook = async function() {
     airbnbByReceiver[key].list.push(p);
   });
   
-  // ═══════════════════════════════════════════════════════════
-  // BUILD UI
-  // ═══════════════════════════════════════════════════════════
   const filterLabel = window._cbFilter === 'today' ? 'Today (' + today + ')' :
                       window._cbFilter === 'week' ? 'Last 7 Days' :
                       window._cbFilter === 'month' ? 'This Month' :
@@ -182,7 +159,7 @@ window.renderCashBook = async function() {
   let html = `
     <div class="card">
       <h1>💰 Cash Book</h1>
-      <div class="sub">Cash + UPI Daybook · ${filterLabel}</div>
+      <div class="sub">Guest Booking Cash & Daybook · ${filterLabel}</div>
       
       <!-- Filters -->
       <div style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
@@ -240,9 +217,6 @@ window.renderCashBook = async function() {
     </div>
   `;
   
-  // ═══════════════════════════════════════════════════════════
-  // CASH TAB
-  // ═══════════════════════════════════════════════════════════
   if (window._cbTab === 'cash') {
     if (relevantCash.length === 0) {
       html += '<div class="card"><div style="text-align:center;padding:40px;color:#6B7280;">No cash activity found</div></div>';
@@ -269,9 +243,6 @@ window.renderCashBook = async function() {
     }
   }
   
-  // ═══════════════════════════════════════════════════════════
-  // UPI TAB
-  // ═══════════════════════════════════════════════════════════
   if (window._cbTab === 'upi') {
     if (upiPayments.length === 0) {
       html += '<div class="card"><div style="text-align:center;padding:40px;color:#6B7280;">No UPI/Bank transactions in this period</div></div>';
@@ -319,9 +290,6 @@ window.renderCashBook = async function() {
     }
   }
   
-  // ═══════════════════════════════════════════════════════════
-  // AIRBNB PAYOUT TAB
-  // ═══════════════════════════════════════════════════════════
   if (window._cbTab === 'airbnb') {
     if (airbnbPayments.length === 0) {
       html += '<div class="card"><div style="text-align:center;padding:40px;color:#6B7280;">No Airbnb payouts in this period</div></div>';
@@ -370,9 +338,6 @@ window.renderCashBook = async function() {
   renderShell(html, 'cashbook');
 };
 
-// ═══════════════════════════════════════════════════════════
-// CASH HOLDER CARD V2
-// ═══════════════════════════════════════════════════════════
 function cbCardV2(h) {
   const balColor = h.balance > 0 ? '#D97706' : (h.balance < 0 ? '#DC2626' : '#059669');
   const balBg = h.balance > 0 ? '#FEF3C7' : (h.balance < 0 ? '#FEE2E2' : '#D1FAE5');
@@ -393,7 +358,7 @@ function cbCardV2(h) {
       
       <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px;">
         <div style="padding:8px;background:#DCFCE7;border-radius:6px;text-align:center;">
-          <div style="font-size:10px;color:#166534;font-weight:600;">Received</div>
+          <div style="font-size:10px;color:#166534;font-weight:600;">Received (Guest Cash)</div>
           <div style="font-size:14px;font-weight:700;color:#059669;">₹${h.received.toLocaleString('en-IN')}</div>
         </div>
         <div style="padding:8px;background:#DBEAFE;border-radius:6px;text-align:center;">
@@ -452,9 +417,6 @@ function cbCardV2(h) {
   `;
 }
 
-// ═══════════════════════════════════════════════════════════
-// FILTER HANDLERS
-// ═══════════════════════════════════════════════════════════
 window.cbSetFilter = function(filter) {
   window._cbFilter = filter;
   if (filter !== 'custom') window._cbCustomDate = null;
@@ -472,9 +434,6 @@ window.cbSetTab = function(tab) {
   renderCashBook();
 };
 
-// ═══════════════════════════════════════════════════════════
-// HANDOVER MODAL
-// ═══════════════════════════════════════════════════════════
 window.cbHandover = async function(fromPerson, maxAmount) {
   const { data: holders } = await sb.from('cash_holders').select('*').eq('is_active', true);
   const targets = (holders || []).filter(h => h.name !== fromPerson);
@@ -543,9 +502,6 @@ window.cbSaveHandover = async function(fromPerson) {
   renderCashBook();
 };
 
-// ═══════════════════════════════════════════════════════════
-// ADD HOLDER
-// ═══════════════════════════════════════════════════════════
 window.cbAddHolder = function() {
   const modal = document.createElement('div');
   modal.className = 'modal-overlay';
@@ -588,4 +544,4 @@ window.cbSaveHolder = async function() {
   renderCashBook();
 };
 
-console.log('✅ Cash Book v2 loaded (Universal Date Normalization & Permanent Carry Forward Active)');
+console.log('✅ Cash Book v3 loaded (Exact Settled Balances)');
