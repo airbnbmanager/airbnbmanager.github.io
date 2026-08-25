@@ -229,22 +229,22 @@ window.renderCashBook = async function() {
         <div style="padding:14px;background:#FEF3C7;border-radius:10px;text-align:center;">
           <div style="font-size:11px;color:#92400E;font-weight:600;">💵 CASH IN HAND</div>
           <div style="font-size:20px;font-weight:800;color:#D97706;">₹${cashInHand.toLocaleString('en-IN')}</div>
-          <div style="font-size:10px;color:#78350F;">Pending handover</div>
+          <div style="font-size:10px;color:#78350F;">Staff pending handover</div>
         </div>
         <div style="padding:14px;background:#DCFCE7;border-radius:10px;text-align:center;">
-          <div style="font-size:11px;color:#166534;font-weight:600;">🏦 TOTAL WITH COMPANY</div>
-          <div style="font-size:20px;font-weight:800;color:#059669;">₹${(cashInCompany + totalUpi + totalAirbnb).toLocaleString('en-IN')}</div>
-          <div style="font-size:10px;color:#166534;">Cash ₹${cashInCompany.toLocaleString('en-IN')} + UPI ₹${totalUpi.toLocaleString('en-IN')} + Airbnb ₹${totalAirbnb.toLocaleString('en-IN')}</div>
+          <div style="font-size:11px;color:#166534;font-weight:600;">🏦 CASH WITH COMPANY</div>
+          <div style="font-size:20px;font-weight:800;color:#059669;">₹${cashInCompany.toLocaleString('en-IN')}</div>
+          <div style="font-size:10px;color:#166534;">Firoz + Company Accounts</div>
         </div>
         <div style="padding:14px;background:#DBEAFE;border-radius:10px;text-align:center;">
           <div style="font-size:11px;color:#1E40AF;font-weight:600;">📱 UPI RECEIVED</div>
           <div style="font-size:20px;font-weight:800;color:#2563EB;">₹${totalUpi.toLocaleString('en-IN')}</div>
-          <div style="font-size:10px;color:#1E40AF;">${upiPayments.length} txns</div>
+          <div style="font-size:10px;color:#1E40AF;">${upiPayments.length} txns in this period</div>
         </div>
         <div style="padding:14px;background:#FCE7F3;border-radius:10px;text-align:center;">
           <div style="font-size:11px;color:#9F1239;font-weight:600;">🏨 AIRBNB PAYOUT</div>
           <div style="font-size:20px;font-weight:800;color:#DB2777;">₹${totalAirbnb.toLocaleString('en-IN')}</div>
-          <div style="font-size:10px;color:#9F1239;">${airbnbPayments.length} txns</div>
+          <div style="font-size:10px;color:#9F1239;">${airbnbPayments.length} txns in this period</div>
         </div>
       </div>
       
