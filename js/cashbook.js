@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════════
-// 💰 CASH BOOK v7 — Dynamic Period Filtering + Carry Forward Balance
+// 💰 CASH BOOK v8 — Pure Mathematical Real-Time Booking Cash Link
 // ═══════════════════════════════════════════════════════════
 
 window._cbFilter = window._cbFilter || 'today';
@@ -25,6 +25,7 @@ window.renderCashBook = async function() {
     endDate = cbNormDate(window._cbCustomDate);
   }
   
+  // FETCH LATEST DATA DIRECTLY FROM SUPABASE
   let [{ data: holders }, { data: payments }, { data: handovers }] = await Promise.all([
     sb.from('cash_holders').select('*'),
     sb.from('payment_history')
@@ -35,20 +36,6 @@ window.renderCashBook = async function() {
       .select('*')
       .order('created_at', { ascending: false })
   ]);
-
-  // Ensure Mr. Alam Hazi Sahab 16,000 handover to Firoz exists in DB
-  const hasHaziSettle = (handovers || []).some(x => (x.from_person||'').toLowerCase().includes('hazi') && (x.to_person||'').toLowerCase() === 'firoz');
-  if (!hasHaziSettle) {
-    await sb.from('cash_handovers').insert({
-      from_person: 'Mr. Alam Hazi Sahab',
-      to_person: 'Firoz',
-      amount: 16000,
-      handover_date: today,
-      notes: 'Handover 16,000 to Firoz'
-    });
-    const res = await sb.from('cash_handovers').select('*').order('created_at', { ascending: false });
-    handovers = res.data || handovers;
-  }
 
   const paymentsUpToDate = (payments || []).filter(p => {
     const pDate = cbNormDate(p.payment_date);
@@ -104,7 +91,7 @@ window.renderCashBook = async function() {
         holderType = 'manager';
       }
 
-      // CUMULATIVE DATA (Up to endDate) -> ALWAYS EXACT CLOSING CARRY-FORWARD BALANCE
+      // 1. CUMULATIVE CASH RECEIVED UP TO END DATE (Includes New Entries like Sameer ₹3,000)
       const cumPayments = paymentsUpToDate.filter(p => {
         const recBy = (p.received_by || '').trim().toLowerCase();
         const isCash = (p.payment_mode || 'Cash').toLowerCase() === 'cash';
@@ -112,6 +99,7 @@ window.renderCashBook = async function() {
       });
       const cumRec = cumPayments.reduce((s, p) => s + Number(p.amount || 0), 0);
 
+      // 2. CUMULATIVE HANDOVERS IN (Excludes non-cash reimbursement)
       const cumHoInList = handoversUpToDate.filter(x => {
         const toP = (x.to_person || '').trim().toLowerCase();
         const isNotUpi = !(x.notes || '').toLowerCase().includes('upi');
@@ -120,6 +108,7 @@ window.renderCashBook = async function() {
       });
       const cumHoIn = cumHoInList.reduce((s, x) => s + Number(x.amount || 0), 0);
 
+      // 3. CUMULATIVE HANDOVERS OUT
       const cumHoOutList = handoversUpToDate.filter(x => {
         const fromP = (x.from_person || '').trim().toLowerCase();
         const isNotUpi = !(x.notes || '').toLowerCase().includes('upi');
@@ -127,9 +116,10 @@ window.renderCashBook = async function() {
       });
       const cumHoOut = cumHoOutList.reduce((s, x) => s + Number(x.amount || 0), 0);
 
+      // PURE REAL-TIME BALANCE MATHEMATICS
       let balance = cumRec + cumHoIn - cumHoOut;
 
-      // PERIOD DATA (Selected date filter) -> DYNAMIC INFLOW/OUTFLOW & TRANSACTION LIST
+      // PERIOD DATA (Selected Date Filter - Dynamic Daybook Activity)
       const periodCashPayments = periodPayments.filter(p => {
         const recBy = (p.received_by || '').trim().toLowerCase();
         const isCash = (p.payment_mode || 'Cash').toLowerCase() === 'cash';
@@ -151,15 +141,6 @@ window.renderCashBook = async function() {
         return fromP === lowerName && isNotUpi;
       });
       const hoOut = periodHoOutList.reduce((s, x) => s + Number(x.amount || 0), 0);
-
-      // Overrides for exact settled balances
-      if (lowerName === 'aniket') {
-        balance = 4500;
-      } else if (['praveen', 'yash', 'shahenshah', 'shuaib', 'historical'].some(x => lowerName.includes(x))) {
-        balance = 0;
-      } else if (lowerName.includes('hazi') || lowerName.includes('alam')) {
-        balance = 0;
-      }
 
       return {
         name: rawHolder?.name || name,
@@ -596,4 +577,4 @@ window.cbSaveHolder = async function() {
   renderCashBook();
 };
 
-console.log('✅ Cash Book v7 — Perfect Dynamic Period Filtering Implemented');
+console.log('✅ Cash Book v8 — Real-time Pure Math Enabled');
