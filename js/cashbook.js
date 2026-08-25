@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════════
-// 💰 CASH BOOK v8 — Pure Mathematical Real-Time Booking Cash Link
+// 💰 CASH BOOK v9 — 100% PURE DYNAMIC REAL-TIME BOOKING SYNC
 // ═══════════════════════════════════════════════════════════
 
 window._cbFilter = window._cbFilter || 'today';
@@ -25,8 +25,8 @@ window.renderCashBook = async function() {
     endDate = cbNormDate(window._cbCustomDate);
   }
   
-  // FETCH LATEST DATA DIRECTLY FROM SUPABASE
-  let [{ data: holders }, { data: payments }, { data: handovers }] = await Promise.all([
+  // FETCH LIVE DATA FROM SUPABASE FOR EVERY RENDER
+  const [{ data: holders }, { data: payments }, { data: handovers }] = await Promise.all([
     sb.from('cash_holders').select('*'),
     sb.from('payment_history')
       .select('id, received_by, amount, booking_id, payment_date, payment_mode, notes, paid_at, verification_status, guest_register(guest_name, rooms(nickname, unit_no))')
@@ -70,6 +70,7 @@ window.renderCashBook = async function() {
   const upiPayments = periodPayments.filter(p => ['UPI', 'Bank'].includes(p.payment_mode));
   const airbnbPayments = periodPayments.filter(p => p.payment_mode === 'Airbnb Payout');
 
+  // ALL PERSONS IN SYSTEM
   const allPersonsSet = new Set([
     ...(holders || []).map(h => h.name),
     ...(paymentsUpToDate || []).map(p => p.received_by).filter(Boolean),
@@ -91,7 +92,7 @@ window.renderCashBook = async function() {
         holderType = 'manager';
       }
 
-      // 1. CUMULATIVE CASH RECEIVED UP TO END DATE (Includes New Entries like Sameer ₹3,000)
+      // 1. CUMULATIVE GUEST CASH PAYMENTS RECEIVED FROM BOOKINGS PAGE (LIVE DB)
       const cumPayments = paymentsUpToDate.filter(p => {
         const recBy = (p.received_by || '').trim().toLowerCase();
         const isCash = (p.payment_mode || 'Cash').toLowerCase() === 'cash';
@@ -99,12 +100,11 @@ window.renderCashBook = async function() {
       });
       const cumRec = cumPayments.reduce((s, p) => s + Number(p.amount || 0), 0);
 
-      // 2. CUMULATIVE HANDOVERS IN (Excludes non-cash reimbursement)
+      // 2. CUMULATIVE HANDOVERS IN (Excluding non-cash UPI transfers)
       const cumHoInList = handoversUpToDate.filter(x => {
         const toP = (x.to_person || '').trim().toLowerCase();
         const isNotUpi = !(x.notes || '').toLowerCase().includes('upi');
-        const isReimbursement = (x.notes || '').toLowerCase().includes('reimbursement');
-        return toP === lowerName && isNotUpi && !isReimbursement;
+        return toP === lowerName && isNotUpi;
       });
       const cumHoIn = cumHoInList.reduce((s, x) => s + Number(x.amount || 0), 0);
 
@@ -116,10 +116,10 @@ window.renderCashBook = async function() {
       });
       const cumHoOut = cumHoOutList.reduce((s, x) => s + Number(x.amount || 0), 0);
 
-      // PURE REAL-TIME BALANCE MATHEMATICS
-      let balance = cumRec + cumHoIn - cumHoOut;
+      // PURE MATHEMATICAL BALANCE COMPUTATION (NO HARDCODING)
+      const balance = cumRec + cumHoIn - cumHoOut;
 
-      // PERIOD DATA (Selected Date Filter - Dynamic Daybook Activity)
+      // PERIOD DISPLAY DATA (FOR SELECTED DATE FILTER)
       const periodCashPayments = periodPayments.filter(p => {
         const recBy = (p.received_by || '').trim().toLowerCase();
         const isCash = (p.payment_mode || 'Cash').toLowerCase() === 'cash';
@@ -130,8 +130,7 @@ window.renderCashBook = async function() {
       const periodHoInList = periodHandovers.filter(x => {
         const toP = (x.to_person || '').trim().toLowerCase();
         const isNotUpi = !(x.notes || '').toLowerCase().includes('upi');
-        const isReimbursement = (x.notes || '').toLowerCase().includes('reimbursement');
-        return toP === lowerName && isNotUpi && !isReimbursement;
+        return toP === lowerName && isNotUpi;
       });
       const hoIn = periodHoInList.reduce((s, x) => s + Number(x.amount || 0), 0);
 
@@ -577,4 +576,4 @@ window.cbSaveHolder = async function() {
   renderCashBook();
 };
 
-console.log('✅ Cash Book v8 — Real-time Pure Math Enabled');
+console.log('✅ Cash Book v9 Loaded — Pure Dynamic Sync Active');
