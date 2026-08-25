@@ -438,7 +438,14 @@ async function renderInvestorReport(investorId, roomId, month) {
   // PURE HOSPITALITY PRORATION LOGIC FOR CROSS-MONTH BOOKINGS
   function getProratedStats(b, totalPaid) {
     if (!b.check_in || !b.check_out) return { nights: 0, rev: 0 };
-    const totalNights = Math.max(calcNights(b.check_in, b.check_out), 1);
+        const getDays = (d1, d2) => {
+      if (!d1 || !d2) return 0;
+      const t1 = new Date(d1).getTime();
+      const t2 = new Date(d2).getTime();
+      if (isNaN(t1) || isNaN(t2) || t2 <= t1) return 0;
+      return Math.round((t2 - t1) / (1000 * 60 * 60 * 24));
+    };
+    const totalNights = Math.max(getDays(b.check_in, b.check_out), 1);
     
     // Calculate overlap dates with selected month [monthStart, monthEnd]
     const cin = new Date(b.check_in);
