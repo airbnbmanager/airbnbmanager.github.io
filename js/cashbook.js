@@ -1,101 +1,130 @@
 // ═══════════════════════════════════════════════════════════
-// 💰 CASH BOOK v2 — Cash + UPI Daybook with Carry Forward
+// 💰 CASH BOOK v2 — Permanent Carry Forward & Universal Date Fix
 // ═══════════════════════════════════════════════════════════
 
 window._cbFilter = window._cbFilter || 'today';
 window._cbTab = window._cbTab || 'cash';
 window._cbCustomDate = window._cbCustomDate || null;
 
+// Universal Date Normalizer (Handles DD/MM/YYYY, YYYY-MM-DD, Timestamps)
+function cbNormDate(dStr) {
+  if (!dStr) return '';
+  dStr = String(dStr).trim();
+  if (/^\d{1,2}\/\d{1,2}\/\d{4}/.test(dStr)) {
+    const parts = dStr.split('/');
+    const day = parts[0].padStart(2, '0');
+    const month = parts[1].padStart(2, '0');
+    const year = parts[2].slice(0, 4);
+    return `${year}-${month}-${day}`;
+  }
+  if (/^\d{4}-\d{2}-\d{2}/.test(dStr)) {
+    return dStr.slice(0, 10);
+  }
+  return dStr.slice(0, 10);
+}
+
 window.renderCashBook = async function() {
   renderShell('<div class="loading">Loading Cash Book...</div>', 'cashbook');
   
-  // Determine date range based on filter
+  // Today's date in YYYY-MM-DD
   const today = new Date().toISOString().slice(0, 10);
-  const now = new Date();
-  let startDate, endDate = today;
+  let endDate = today;
+  if (window._cbFilter === 'custom' && window._cbCustomDate) {
+    endDate = cbNormDate(window._cbCustomDate);
+  }
   
+  // FETCH ALL DATA WITHOUT SUPABASE DATE FILTERING (TO PREVENT STRING MISMATCH)
+  const [{ data: holders }, { data: payments }, { data: handovers }] = await Promise.all([
+    sb.from('cash_holders').select('*'),
+    sb.from('payment_history')
+      .select('id, received_by, amount, booking_id, payment_date, payment_mode, notes, paid_at, verification_status, guest_register(guest_name, rooms(nickname, unit_no))')
+      .neq('verification_status', 'rejected')
+      .order('paid_at', { ascending: false }),
+    sb.from('cash_handovers')
+      .select('*')
+      .order('created_at', { ascending: false })
+  ]);
+
+  // Filter payments & handovers up to endDate for Carry Forward calculation
+  const paymentsUpToDate = (payments || []).filter(p => {
+    const pDate = cbNormDate(p.payment_date);
+    return !pDate || pDate <= endDate;
+  });
+
+  const handoversUpToDate = (handovers || []).filter(h => {
+    const hDate = cbNormDate(h.handover_date);
+    return !hDate || hDate <= endDate;
+  });
+
+  // Calculate startDate for period daybook activity (UPI / Airbnb tabs)
+  let startDate = '2020-01-01';
   if (window._cbFilter === 'today') {
     startDate = today;
   } else if (window._cbFilter === 'week') {
-    const d = new Date(now);
-    d.setDate(d.getDate() - 7);
+    const d = new Date(); d.setDate(d.getDate() - 7);
     startDate = d.toISOString().slice(0, 10);
   } else if (window._cbFilter === 'month') {
     startDate = today.slice(0, 7) + '-01';
   } else if (window._cbFilter === 'custom' && window._cbCustomDate) {
-    startDate = window._cbCustomDate;
-    endDate = window._cbCustomDate;
-  } else if (window._cbFilter === 'all') {
-    startDate = '2020-01-01';
-  } else {
-    startDate = today;
+    startDate = endDate;
   }
-  
-  // Fetch all data up to endDate (for exact carry-forward closing balance)
-  const [{ data: holders }, { data: payments }, { data: handovers }] = await Promise.all([
-    sb.from('cash_holders').select('*').eq('is_active', true),
-    sb.from('payment_history')
-      .select('id, received_by, amount, booking_id, payment_date, payment_mode, notes, paid_at, guest_register(guest_name, rooms(nickname, unit_no))')
-      .neq('verification_status', 'rejected')
-      .lte('payment_date', endDate)
-      .order('paid_at', { ascending: false }),
-    sb.from('cash_handovers')
-      .select('*')
-      .lte('handover_date', endDate)
-      .order('created_at', { ascending: false })
-  ]);
-  
-  // Split payments by mode (for Daybook tables within the filtered date range)
-  const isAll = window._cbFilter === 'all';
-  const periodPayments = (payments || []).filter(p => isAll || (p.payment_date >= startDate && p.payment_date <= endDate));
+
+  // Filter period payments for daybook tabs
+  const periodPayments = paymentsUpToDate.filter(p => {
+    if (window._cbFilter === 'all') return true;
+    const pDate = cbNormDate(p.payment_date);
+    return pDate >= startDate && pDate <= endDate;
+  });
+
   const upiPayments = periodPayments.filter(p => ['UPI', 'Bank'].includes(p.payment_mode));
   const airbnbPayments = periodPayments.filter(p => p.payment_mode === 'Airbnb Payout');
-  
-  // Calculate CASH balances per holder (CUMULATIVE CARRY FORWARD UP TO END DATE)
+
+  // BUILD ALL PERSONS LIST
   const allPersonsSet = new Set([
     ...(holders || []).map(h => h.name),
-    ...(payments || []).map(p => p.received_by).filter(Boolean),
-    ...(handovers || []).map(h => h.from_person).filter(Boolean),
-    ...(handovers || []).map(h => h.to_person).filter(Boolean),
+    ...(paymentsUpToDate || []).map(p => p.received_by).filter(Boolean),
+    ...(handoversUpToDate || []).map(h => h.from_person).filter(Boolean),
+    ...(handoversUpToDate || []).map(h => h.to_person).filter(Boolean),
     'Shahenshah', 'Praveen', 'Aniket', 'Yash', 'Mr. Alam Hazi Sahab', 'Firoz'
   ]);
-  const allPersonNames = Array.from(allPersonsSet);
 
-  const cashBalances = allPersonNames.map(name => {
+  const cashBalances = Array.from(allPersonsSet).map(name => {
     const rawHolder = (holders || []).find(x => (x.name || '').trim().toLowerCase() === name.trim().toLowerCase());
-    const holderType = rawHolder ? (rawHolder.type || 'receiver').toLowerCase() : 
-      (['mr. alam hazi sahab', 'alam hazi', 'firoz', 'company'].some(x => name.toLowerCase().includes(x)) ? 'final' :
-       ['shahenshah', 'praveen'].some(x => name.toLowerCase().includes(x)) ? 'manager' : 'receiver');
+    
+    // Type classification
+    let holderType = rawHolder ? (rawHolder.type || 'receiver').toLowerCase() : 'receiver';
+    const lowerName = name.toLowerCase();
+    if (['mr. alam hazi sahab', 'alam hazi', 'firoz', 'company'].some(x => lowerName.includes(x))) {
+      holderType = 'final';
+    } else if (['shahenshah', 'praveen'].some(x => lowerName.includes(x))) {
+      holderType = 'manager';
+    }
 
-    // ALL CASH RECEIVED UP TO SELECTED DATE
-    const cashPaymentsList = (payments || []).filter(p => {
+    // ALL CASH RECEIVED UP TO END DATE
+    const cashPaymentsList = paymentsUpToDate.filter(p => {
       const recBy = (p.received_by || '').trim().toLowerCase();
-      const targetName = name.trim().toLowerCase();
       const isCash = (p.payment_mode || 'Cash').toLowerCase() === 'cash';
-      return recBy === targetName && isCash;
+      return recBy === lowerName && isCash;
     });
-
     const received = cashPaymentsList.reduce((s, p) => s + Number(p.amount || 0), 0);
 
-    // HANDOVERS IN (Excluding UPI notes)
-    const hoInList = (handovers || []).filter(x => {
+    // HANDOVERS IN
+    const hoInList = handoversUpToDate.filter(x => {
       const toP = (x.to_person || '').trim().toLowerCase();
-      const targetName = name.trim().toLowerCase();
       const isNotUpi = !(x.notes || '').toLowerCase().includes('upi');
-      return toP === targetName && isNotUpi;
+      return toP === lowerName && isNotUpi;
     });
     const hoIn = hoInList.reduce((s, x) => s + Number(x.amount || 0), 0);
 
-    // HANDOVERS OUT (Excluding UPI notes)
-    const hoOutList = (handovers || []).filter(x => {
+    // HANDOVERS OUT
+    const hoOutList = handoversUpToDate.filter(x => {
       const fromP = (x.from_person || '').trim().toLowerCase();
-      const targetName = name.trim().toLowerCase();
       const isNotUpi = !(x.notes || '').toLowerCase().includes('upi');
-      return fromP === targetName && isNotUpi;
+      return fromP === lowerName && isNotUpi;
     });
     const hoOut = hoOutList.reduce((s, x) => s + Number(x.amount || 0), 0);
 
-    // NET CARRY FORWARD BALANCE
+    // NET BALANCE
     const balance = received + hoIn - hoOut;
 
     return {
@@ -112,12 +141,12 @@ window.renderCashBook = async function() {
     };
   });
 
-  // Always show active holders or anyone with non-zero balance / activity
+  // Always include holders with balances or activity
   const relevantCash = cashBalances.filter(h => 
-    Math.abs(h.balance) > 0.01 || h.received > 0 || h.hoIn > 0 || h.hoOut > 0 || (h.holder && h.holder.is_active)
+    Math.abs(h.balance) > 0.01 || h.received > 0 || h.hoIn > 0 || h.hoOut > 0 || (h.holder && h.holder.is_active !== false)
   );
 
-  // UPI aggregation per receiver
+  // UPI aggregation
   const upiByReceiver = {};
   upiPayments.forEach(p => {
     const key = p.received_by || 'Unknown';
@@ -132,7 +161,7 @@ window.renderCashBook = async function() {
   const totalUpi = upiPayments.reduce((s, p) => s + Number(p.amount || 0), 0);
   const totalAirbnb = airbnbPayments.reduce((s, p) => s + Number(p.amount || 0), 0);
   
-  // Group airbnb by receiver
+  // Airbnb aggregation
   const airbnbByReceiver = {};
   airbnbPayments.forEach(p => {
     const key = p.received_by || 'Company';
@@ -199,7 +228,7 @@ window.renderCashBook = async function() {
     <div class="card" style="padding:0;overflow:hidden;">
       <div style="display:flex;border-bottom:2px solid #E5E7EB;">
         <button onclick="cbSetTab('cash')" style="flex:1;padding:14px;background:${window._cbTab==='cash'?'#FEF3C7':'#fff'};color:${window._cbTab==='cash'?'#D97706':'#6B7280'};border:none;font-weight:700;font-size:14px;cursor:pointer;border-bottom:${window._cbTab==='cash'?'3px solid #D97706':'none'};">
-          💵 CASH (${relevantCash.length} Holders)
+          💵 CASH (${relevantCash.length})
         </button>
         <button onclick="cbSetTab('upi')" style="flex:1;padding:14px;background:${window._cbTab==='upi'?'#DBEAFE':'#fff'};color:${window._cbTab==='upi'?'#2563EB':'#6B7280'};border:none;font-weight:700;font-size:14px;cursor:pointer;border-bottom:${window._cbTab==='upi'?'3px solid #2563EB':'none'};">
           📱 UPI / BANK (${upiPayments.length})
@@ -223,17 +252,17 @@ window.renderCashBook = async function() {
       const receivers = relevantCash.filter(h => h.type !== 'final' && h.type !== 'manager');
       
       if (finals.length > 0) {
-        html += '<div class="card" style="border-left:4px solid #059669;"><div class="section-title">🏦 Final Holders (Company)</div>';
+        html += '<div class="card" style="border-left:4px solid #059669;"><div class="section-title">🏦 FINAL HOLDERS (COMPANY)</div>';
         finals.forEach(h => html += cbCardV2(h));
         html += '</div>';
       }
       if (managers.length > 0) {
-        html += '<div class="card" style="border-left:4px solid #7C3AED;"><div class="section-title">👨‍💼 Manager</div>';
+        html += '<div class="card" style="border-left:4px solid #7C3AED;"><div class="section-title">👨‍💼 MANAGER</div>';
         managers.forEach(h => html += cbCardV2(h));
         html += '</div>';
       }
       if (receivers.length > 0) {
-        html += '<div class="card" style="border-left:4px solid #F59E0B;"><div class="section-title">👥 Staff (Cash Receivers)</div>';
+        html += '<div class="card" style="border-left:4px solid #F59E0B;"><div class="section-title">👥 STAFF (CASH RECEIVERS)</div>';
         receivers.forEach(h => html += cbCardV2(h));
         html += '</div>';
       }
@@ -342,7 +371,7 @@ window.renderCashBook = async function() {
 };
 
 // ═══════════════════════════════════════════════════════════
-// CASH HOLDER CARD V2 (with timestamps)
+// CASH HOLDER CARD V2
 // ═══════════════════════════════════════════════════════════
 function cbCardV2(h) {
   const balColor = h.balance > 0 ? '#D97706' : (h.balance < 0 ? '#DC2626' : '#059669');
@@ -559,4 +588,4 @@ window.cbSaveHolder = async function() {
   renderCashBook();
 };
 
-console.log('✅ Cash Book v2 loaded (Carry Forward, Tabs & Handover 100% Fixed)');
+console.log('✅ Cash Book v2 loaded (Universal Date Normalization & Permanent Carry Forward Active)');
