@@ -569,11 +569,28 @@ async function showBookingPopup(roomId, dateStr) {
 
       ${b.notes ? `<div style="margin-top:10px;padding:10px;background:var(--bg);border-radius:8px;font-size:13px;"><strong>Notes:</strong> ${b.notes}</div>` : ''}
 
-      <div class="btn-row" style="margin-top:14px;">
-        <button class="btn-sm" onclick="this.closest('.modal-overlay').remove(); editBooking('${b.booking_id}');">✏️ Edit</button>
-        <button class="btn-sm secondary" onclick="this.closest('.modal-overlay').remove(); showPaymentModal('${b.booking_id}');">💰 Pay</button>
-        <button class="btn-sm outline" onclick="this.closest('.modal-overlay').remove(); shareBookingWhatsApp('${b.booking_id}');">📱 Share</button>
-        <button class="btn-sm outline" onclick="this.closest('.modal-overlay').remove();">Close</button>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px;">
+        ${(b.guest_name && (b.guest_name.includes('Blocked') || b.booking_mode === 'Offline-Blocked')) ? `
+          <button onclick="this.closest('.modal-overlay').remove(); if(window.editBooking) editBooking('${b.booking_id}');" style="padding:10px;background:#059669;color:#fff;border:none;border-radius:6px;font-weight:700;cursor:pointer;grid-column:span 2;">
+            ➕ Convert & Fill Guest Details
+          </button>
+        ` : `
+          <button onclick="this.closest('.modal-overlay').remove(); if(window.editBooking) editBooking('${b.booking_id}');" style="padding:9px;background:#3B82F6;color:#fff;border:none;border-radius:6px;font-weight:600;cursor:pointer;">
+            ✏️ Edit Booking
+          </button>
+          <button onclick="this.closest('.modal-overlay').remove(); if(window.openAddPaymentModal) openAddPaymentModal('${b.booking_id}'); else if(window.showPaymentModal) showPaymentModal('${b.booking_id}');" style="padding:9px;background:#059669;color:#fff;border:none;border-radius:6px;font-weight:600;cursor:pointer;">
+            💵 Add Payment
+          </button>
+          <button onclick="this.closest('.modal-overlay').remove(); if(window.duplicateBooking) duplicateBooking('${b.booking_id}');" style="padding:9px;background:#7C3AED;color:#fff;border:none;border-radius:6px;font-weight:600;cursor:pointer;">
+            📋 Duplicate
+          </button>
+          <button onclick="this.closest('.modal-overlay').remove(); if(window.shareBookingWhatsApp) shareBookingWhatsApp('${b.booking_id}');" style="padding:9px;background:#25D366;color:#fff;border:none;border-radius:6px;font-weight:600;cursor:pointer;">
+            📱 WhatsApp
+          </button>
+        `}
+        <button onclick="if(confirm('Delete this booking/block?')){ this.closest('.modal-overlay').remove(); if(window.deleteBooking) deleteBooking('${b.booking_id}'); }" style="padding:9px;background:#DC2626;color:#fff;border:none;border-radius:6px;font-weight:600;cursor:pointer;grid-column:span 2;margin-top:2px;">
+          🗑️ Delete Booking / Block
+        </button>
       </div>
     </div>`;
 
