@@ -748,3 +748,107 @@ window.openBookingDetails = async function(bId) {
   `;
   document.body.appendChild(modal);
 };
+
+
+// ═══════════════════════════════════════════════════════════
+// 📆 SUPERCHARGED CALENDAR CLICK HANDLERS (BLOCK & BOOKING)
+// ═══════════════════════════════════════════════════════════
+
+window.calCreateBooking = function(roomId, dateStr) {
+  const allR = window._allRoomsCache || [];
+  const room = allR.find(r => r.room_id === roomId) || { room_id: roomId };
+  const nextDay = typeof dateAdd === 'function' ? dateAdd(dateStr, 1) : dateStr;
+
+  const modal = document.createElement('div');
+  modal.className = 'modal-overlay';
+  modal.onclick = e => { if (e.target === modal) modal.remove(); };
+
+  modal.innerHTML = `
+    <div class="modal-box" style="max-width:480px;padding:24px;">
+      <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">✕</button>
+      <h2 style="margin-top:0;margin-bottom:6px;">📅 Date Actions</h2>
+      <div style="font-size:13px;color:#6B7280;margin-bottom:16px;">
+        Property: <strong>${typeof propLabel === 'function' ? propLabel(room) : roomId}</strong><br>
+        Selected Date: <strong>${dateStr}</strong>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        <button onclick="this.closest('.modal-overlay').remove(); openQuickBlockModal('${roomId}', '${dateStr}', '${nextDay}');" style="padding:12px;background:#DC2626;color:#fff;border:none;border-radius:8px;font-weight:700;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;">
+          🛑 Block Dates (Maintenance / Offline Hold)
+        </button>
+
+        <button onclick="this.closest('.modal-overlay').remove(); if(window.renderAddBooking) renderAddBooking({ room_id: '${roomId}', check_in: '${dateStr}' });" style="padding:12px;background:#059669;color:#fff;border:none;border-radius:8px;font-weight:700;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;">
+          ➕ Add New Guest Booking
+        </button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+};
+
+window.openQuickBlockModal = function(roomId, cin, cout) {
+  const modal = document.createElement('div');
+  modal.className = 'modal-overlay';
+  modal.onclick = e => { if (e.target === modal) modal.remove(); };
+
+  modal.innerHTML = `
+    <div class="modal-box" style="max-width:440px;padding:24px;">
+      <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">✕</button>
+      <h2 style="margin-top:0;margin-bottom:12px;">🛑 Block Property Dates</h2>
+
+      <div class="form-group" style="margin-bottom:10px;">
+        <label>Check-in Date *</label>
+        <input type="date" id="blockCin" value="${cin}" style="width:100%;padding:8px;border:1px solid #ccc;border-radius:6px;" />
+      </div>
+
+      <div class="form-group" style="margin-bottom:10px;">
+        <label>Check-out Date *</label>
+        <input type="date" id="blockCout" value="${cout}" style="width:100%;padding:8px;border:1px solid #ccc;border-radius:6px;" />
+      </div>
+
+      <div class="form-group" style="margin-bottom:14px;">
+        <label>Reason / Notes</label>
+        <input id="blockNotes" placeholder="e.g., Owner Stay, Maintenance, Offline Hold" value="Offline Block / Owner Hold" style="width:100%;padding:8px;border:1px solid #ccc;border-radius:6px;" />
+      </div>
+
+      <button onclick="saveQuickBlock('${roomId}')" style="width:100%;padding:12px;background:#DC2626;color:#fff;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-size:14px;">
+        💾 Lock Dates on Calendar
+      </button>
+    </div>
+  `;
+  document.body.appendChild(modal);
+};
+
+window.saveQuickBlock = async function(roomId) {
+  const cin = document.getElementById('blockCin').value;
+  const cout = document.getElementById('blockCout').value;
+  const notes = document.getElementById('blockNotes').value.trim();
+
+  if (!cin || !cout || cout <= cin) {
+    alert('⚠️ Please select valid Check-in and Check-out dates (Check-out must be after Check-in).');
+    return;
+  }
+
+  const deterministicId = 'BLK_' + roomId + '_' + cin.replace(/-/g, '') + '_' + cout.replace(/-/g, '');
+
+  const { error } = await sb.from('guest_register').upsert({
+    booking_id: deterministicId,
+    guest_name: '🚫 Blocked / Unavailable',
+    room_id: roomId,
+    check_in: cin,
+    check_out: cout,
+    booking_mode: 'Offline',
+    payment_status: 'Unpaid',
+    total_amount: 0,
+    notes: notes || 'Offline Block'
+  }, { onConflict: 'booking_id' });
+
+  if (error) {
+    alert('❌ Error blocking dates: ' + error.message);
+    return;
+  }
+
+  document.querySelector('.modal-overlay')?.remove();
+  if (window.fsn?.success) fsn.success('Blocked', '✅ Dates blocked on calendar');
+  if (window.renderReports) renderReports();
+};
