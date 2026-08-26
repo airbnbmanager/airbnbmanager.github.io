@@ -57,9 +57,23 @@ window.HYBRID_SYNC = {
     try {
       if (!this.icalUrl) return;
 
-      const proxyUrl = 'https://corsproxy.io/?' + encodeURIComponent(this.icalUrl);
-      const res = await fetch(proxyUrl);
-      const text = await res.text();
+      const proxies = [
+        'https://vxxmigdzimnrbbmkjzoa.supabase.co/functions/v1/ical-proxy?url=',
+        'https://api.codetabs.com/v1/proxy?quest=',
+        'https://api.allorigins.win/raw?url=',
+        'https://corsproxy.io/?'
+      ];
+      let text = '';
+      for (let p of proxies) {
+        try {
+          const res = await fetch(p + encodeURIComponent(this.icalUrl));
+          if (res.ok) {
+            const t = await res.text();
+            if (t && t.includes('BEGIN:VCALENDAR')) { text = t; break; }
+          }
+        } catch (e) {}
+      }
+      if (!text) throw new Error('Could not fetch iCal feed from proxies');
 
       const icalBookings = this.parseICS(text);
 
