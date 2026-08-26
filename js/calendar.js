@@ -588,7 +588,7 @@ async function showBookingPopup(roomId, dateStr) {
             📱 WhatsApp
           </button>
         `}
-        <button onclick="if(confirm('Delete this booking/block?')){ this.closest('.modal-overlay').remove(); if(window.deleteBooking) deleteBooking('${b.booking_id}'); }" style="padding:9px;background:#DC2626;color:#fff;border:none;border-radius:6px;font-weight:600;cursor:pointer;grid-column:span 2;margin-top:2px;">
+        <button onclick="if(confirm('Delete this booking/block?')){ this.closest('.modal-overlay').remove(); if(window.delBooking) delBooking('${b.booking_id}', '${(b.guest_name||'Booking').replace(/'/g, "\'")}', '${b.room_id}'); else if(window.deleteBooking) deleteBooking('${b.booking_id}'); }" style="padding:9px;background:#DC2626;color:#fff;border:none;border-radius:6px;font-weight:600;cursor:pointer;grid-column:span 2;margin-top:2px;">
           🗑️ Delete Booking / Block
         </button>
       </div>
@@ -757,7 +757,7 @@ window.openBookingDetails = async function(bId) {
             📱 WhatsApp
           </button>
         `}
-        <button onclick="if(confirm('Delete this booking/block?')){ this.closest('.modal-overlay').remove(); if(window.deleteBooking) deleteBooking('${b.booking_id}'); }" style="padding:9px;background:#DC2626;color:#fff;border:none;border-radius:6px;font-weight:600;cursor:pointer;grid-column:span 2;margin-top:4px;">
+        <button onclick="if(confirm('Delete this booking/block?')){ this.closest('.modal-overlay').remove(); if(window.delBooking) delBooking('${b.booking_id}', '${(b.guest_name||'Booking').replace(/'/g, "\'")}', '${b.room_id}'); else if(window.deleteBooking) deleteBooking('${b.booking_id}'); }" style="padding:9px;background:#DC2626;color:#fff;border:none;border-radius:6px;font-weight:600;cursor:pointer;grid-column:span 2;margin-top:4px;">
           🗑️ Delete Booking / Block
         </button>
       </div>

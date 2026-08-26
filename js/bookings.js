@@ -5226,3 +5226,7 @@ window.checkGuestRating = async function(phone) {
 };
 
 console.log('✅ Guest Rating lookup module loaded');
+
+
+window.delBooking = delBooking;
+window.deleteBooking = delBooking;
