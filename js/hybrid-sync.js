@@ -1,18 +1,81 @@
 // ═══════════════════════════════════════════════════════════
-// 🔄 HYBRID SYNC — Celebrity Garden (LUL-402) Real-Time Sync
+// 🔄 HYBRID SYNC — All 17 Properties Real-Time iCal Sync
 // ═══════════════════════════════════════════════════════════
 
 window.HYBRID_SYNC = {
   properties: {
-    'LUL-402': {
-      name: 'Celebrity Garden',
-      ical_url: 'https://www.airbnb.co.in/calendar/ical/1606514664948608755.ics?s=e9df8a7bf2bec706ecda3cccb71d4e90'
-    }
+  "VIL-108": {
+    "name": "Pink Paradise Villa",
+    "ical_url": "https://www.airbnb.co.in/calendar/ical/1756799939825259443.ics?s=0ae34e2ae136b52e9626bd0e8d5f77e2"
   },
+  "VIL-105": {
+    "name": "The Yellow House",
+    "ical_url": "https://www.airbnb.co.in/calendar/ical/1592729918855637425.ics?s=efdbca3abd6eb75e26d2d8ae0c4fc6a0"
+  },
+  "VIL-106": {
+    "name": "Green forest View",
+    "ical_url": "https://www.airbnb.co.in/calendar/ical/1739254108962193705.ics?s=0df31e977e39a4929116e1b84473d6ff"
+  },
+  "LUL-402": {
+    "name": "Celebrity Garden",
+    "ical_url": "https://www.airbnb.co.in/calendar/ical/1606514664948608755.ics?s=e9df8a7bf2bec706ecda3cccb71d4e90"
+  },
+  "GOM-302": {
+    "name": "The Unique",
+    "ical_url": "https://www.airbnb.co.in/calendar/ical/1679190202218939181.ics?s=bfffccbbc6678da8ba895cd3bdd9711b"
+  },
+  "GOM-301": {
+    "name": "The Light Green",
+    "ical_url": "https://www.airbnb.co.in/calendar/ical/1679155811558485410.ics?s=2bf43a9a1a56e088ac3062552abd36c8"
+  },
+  "GOM-501": {
+    "name": "Starlight Blue PentHouse",
+    "ical_url": "https://www.airbnb.co.in/calendar/ical/1718385679817913835.ics?s=7460587d24c4e40f08c518663aef30bf"
+  },
+  "GOM-102": {
+    "name": "Black Beauty",
+    "ical_url": "https://www.airbnb.co.in/calendar/ical/1676840617430941240.ics?s=b9f88e5532d2c123f505d9f86342c507"
+  },
+  "GOM-401": {
+    "name": "The Nawabi Stay",
+    "ical_url": "https://www.airbnb.co.in/calendar/ical/1723434530455939144.ics?s=266526ac3d972903b4b77b48ff6078bd"
+  },
+  "VIL-101": {
+    "name": "Gomti Grand Villa",
+    "ical_url": "https://www.airbnb.co.in/calendar/ical/1721732716374002170.ics?s=5e0e5482fdc5df8bf8e5901724f66b84"
+  },
+  "VIL-104": {
+    "name": "The Green House",
+    "ical_url": "https://www.airbnb.co.in/calendar/ical/1593461780265937816.ics?s=cddde69eff396b304620f8fd1f59022c"
+  },
+  "VIL-103": {
+    "name": "The Pink House",
+    "ical_url": "https://www.airbnb.co.in/calendar/ical/1592729438969718723.ics?s=0b58c0d6a8111e27b1fa685ac48f5544"
+  },
+  "GOM-202": {
+    "name": "The Brown",
+    "ical_url": "https://www.airbnb.co.in/calendar/ical/1660898784168880636.ics?s=0eceacf4f9f48aeebe0b0f166cb21fa3"
+  },
+  "VIL-107": {
+    "name": "The Velvet House",
+    "ical_url": "https://www.airbnb.co.in/calendar/ical/1727830063287100082.ics?s=941e03cc0e52d3636e9835e2ec2b62be"
+  },
+  "VIL-102": {
+    "name": "Royal White House",
+    "ical_url": "https://www.airbnb.co.in/calendar/ical/1718315215180636685.ics?s=88c698fc4b8a4085ab6ad210daee7e8f"
+  },
+  "GOM-201": {
+    "name": "The Dark Blue",
+    "ical_url": "https://www.airbnb.co.in/calendar/ical/1655969170448425308.ics?s=f706b4312eaf30553e047c4cd74b8128"
+  },
+  "GOM-101": {
+    "name": "RedRose Palace",
+    "ical_url": "https://www.airbnb.co.in/calendar/ical/1654261872286835347.ics?s=dd04cdcc476495684a1e2c6a33040799"
+  }
+},
   mergedBookings: [],
   timerId: null,
 
-  // Parse iCal Feed
   parseICS: function(icsText, roomId) {
     const events = [];
     const blocks = icsText.split('BEGIN:VEVENT');
@@ -51,7 +114,7 @@ window.HYBRID_SYNC = {
           room_id: roomId,
           booking_mode: 'Online-Airbnb',
           payment_status: 'Paid',
-          notes: description || 'Real-time iCal sync for Celebrity Garden',
+          notes: description || 'Real-time iCal sync',
           source: 'iCal Real-Time'
         });
       }
@@ -59,88 +122,84 @@ window.HYBRID_SYNC = {
     return events;
   },
 
-  // Full Real-Time Sync
-  syncProperty: async function(roomId) {
-    const prop = this.properties[roomId];
-    if (!prop || !prop.ical_url) return [];
-
+  syncAllProperties: async function() {
     const proxies = [
       'https://vxxmigdzimnrbbmkjzoa.supabase.co/functions/v1/ical-proxy?url=',
       'https://api.codetabs.com/v1/proxy?quest=',
       'https://api.allorigins.win/raw?url='
     ];
 
-    let icsText = '';
-    for (const p of proxies) {
-      try {
-        const res = await fetch(p + encodeURIComponent(prop.ical_url));
-        if (res.ok) {
-          const text = await res.text();
-          if (text && text.includes('BEGIN:VCALENDAR')) {
-            icsText = text;
-            break;
+    const roomIds = Object.keys(this.properties);
+    console.log('🔄 Starting real-time iCal sync for all ' + roomIds.length + ' properties...');
+
+    for (const roomId of roomIds) {
+      const prop = this.properties[roomId];
+      if (!prop || !prop.ical_url) continue;
+
+      let icsText = '';
+      for (const p of proxies) {
+        try {
+          const res = await fetch(p + encodeURIComponent(prop.ical_url));
+          if (res.ok) {
+            const text = await res.text();
+            if (text && text.includes('BEGIN:VCALENDAR')) {
+              icsText = text;
+              break;
+            }
           }
-        }
-      } catch (e) {}
-    }
-
-    if (!icsText) {
-      console.warn(`⚠️ Could not fetch iCal for ${prop.name}`);
-      return [];
-    }
-
-    const icalEvents = this.parseICS(icsText, roomId);
-
-    // Merge with DB
-    const { data: dbBookings } = await sb.from('guest_register').select('*').eq('room_id', roomId);
-    const existingMap = new Set((dbBookings || []).map(b => `${b.room_id}_${b.check_in}`));
-
-    const newToInsert = [];
-    icalEvents.forEach(ev => {
-      if (!existingMap.has(`${ev.room_id}_${ev.check_in}`)) {
-        newToInsert.push({
-          booking_id: 'BK_' + Date.now() + '_' + Math.floor(Math.random()*1000),
-          guest_name: ev.guest_name,
-          check_in: ev.check_in,
-          check_out: ev.check_out,
-          room_id: roomId,
-          booking_mode: 'Online-Airbnb',
-          payment_status: 'Paid',
-          total_amount: 0,
-          notes: 'Auto-synced from Celebrity Garden iCal'
-        });
+        } catch (e) {}
       }
-    });
 
-    if (newToInsert.length > 0) {
-      await sb.from('guest_register').upsert(newToInsert, { onConflict: 'booking_id', ignoreDuplicates: true });
-      console.log(`✅ Celebrity Garden (${roomId}): Synced ${newToInsert.length} new bookings to DB!`);
-    } else {
-      console.log(`✅ Celebrity Garden (${roomId}): Up to date (No new bookings)`);
+      if (!icsText) continue;
+
+      const icalEvents = this.parseICS(icsText, roomId);
+      if (icalEvents.length === 0) continue;
+
+      const { data: dbBookings } = await sb.from('guest_register').select('booking_id, check_in, room_id').eq('room_id', roomId);
+      const existingMap = new Set((dbBookings || []).map(b => `${b.room_id}_${b.check_in}`));
+
+      const newToInsert = [];
+      icalEvents.forEach(ev => {
+        if (!existingMap.has(`${ev.room_id}_${ev.check_in}`)) {
+          newToInsert.push({
+            booking_id: 'BK_' + Date.now() + '_' + Math.floor(Math.random()*10000),
+            guest_name: ev.guest_name,
+            check_in: ev.check_in,
+            check_out: ev.check_out,
+            room_id: roomId,
+            booking_mode: 'Online-Airbnb',
+            payment_status: 'Paid',
+            total_amount: 0,
+            notes: 'Auto-synced from ' + prop.name + ' iCal'
+          });
+        }
+      });
+
+      if (newToInsert.length > 0) {
+        await sb.from('guest_register').upsert(newToInsert, { onConflict: 'booking_id', ignoreDuplicates: true });
+        console.log('✅ ' + prop.name + ' (' + roomId + '): Synced ' + newToInsert.length + ' new bookings!');
+      }
     }
 
-    this.mergedBookings = icalEvents;
-    return icalEvents;
+    console.log('🎉 All 17 Properties Real-Time iCal Sync Finished!');
   },
 
   startAutoSync: function() {
-    this.syncProperty('LUL-402');
+    this.syncAllProperties();
     if (this.timerId) clearInterval(this.timerId);
     this.timerId = setInterval(() => {
-      this.syncProperty('LUL-402');
-    }, 5 * 60 * 1000); // Every 5 minutes
+      this.syncAllProperties();
+    }, 5 * 60 * 1000);
   },
 
   getStatus: function() {
     return {
-      property: 'Celebrity Garden (LUL-402)',
-      auto_sync: !!this.timerId,
-      total_ical_events: this.mergedBookings.length
+      total_properties: Object.keys(this.properties).length,
+      auto_sync: !!this.timerId
     };
   }
 };
 
-// Auto-run on page load
 if (typeof window !== 'undefined') {
   window.addEventListener('DOMContentLoaded', () => {
     setTimeout(() => {
