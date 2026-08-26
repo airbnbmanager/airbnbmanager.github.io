@@ -148,8 +148,36 @@ window.ICAL_SYNC = {
         // Create placeholder booking (blocked vs real)
         const bookingId = 'BK' + Date.now() + Math.floor(Math.random() * 1000);
         const isBlocked = event.isBlocked;
+        
+        // Show blocked dates on calendar from Aug 1st onwards
         if (isBlocked) {
-          // Do NOT create DB rows for blocked dates — keep database clean for real offline/online bookings
+          if (event.checkIn < '2026-08-01') continue; // Skip old past blocks
+
+          // Check if there is already a real booking on this date
+          const { data: existingBks } = await sb.from('guest_register')
+            .select('booking_id, check_in, check_out, is_cancelled')
+            .eq('room_id', room.room_id)
+            .neq('is_cancelled', true);
+
+          const hasRealBooking = (existingBks || []).some(b => {
+            if (b.booking_id.startswith('BLK_')) return false;
+            return (b.check_in < event.checkOut && b.check_out > event.checkIn);
+          });
+
+          if (!hasRealBooking) {
+            const deterministicId = `BLK_${room.room_id}_${event.checkIn.replace(/-/g, '')}`;
+            await sb.from('guest_register').upsert({
+              booking_id: deterministicId,
+              guest_name: '🚫 Blocked (Fill Details)',
+              room_id: room.room_id,
+              check_in: event.checkIn,
+              check_out: event.checkOut,
+              booking_mode: 'Offline-Blocked',
+              payment_status: 'Unpaid',
+              total_amount: 0,
+              notes: `⚠️ BLOCKED on Airbnb (${event.summary}). Fill guest details when confirmed.`
+            }, { onConflict: 'booking_id', ignoreDuplicates: false });
+          }
           continue;
         }
         const isFuture = event.isFuture;
