@@ -680,3 +680,71 @@ function downloadFYData() {
   a.download = `Financial_${d.label}.csv`;
   a.click();
 }
+
+
+window.openBookingDetails = async function(bId) {
+  const { data: b } = await sb.from('guest_register')
+    .select('*, rooms(nickname, unit_no, property_name)')
+    .eq('booking_id', bId)
+    .single();
+
+  if (!b) { alert('Booking not found'); return; }
+
+  const { data: pays } = await sb.from('payment_history')
+    .select('amount')
+    .eq('booking_id', bId)
+    .neq('verification_status', 'rejected');
+
+  const totalPaid = (pays || []).reduce((s, p) => s + (p.amount || 0), 0);
+  const due = Math.max((b.total_amount || 0) - totalPaid, 0);
+  const nights = (b.check_in && b.check_out) ? Math.max(Math.round((new Date(b.check_out) - new Date(b.check_in)) / 86400000), 1) : 1;
+
+  const isBlocked = b.guest_name && (b.guest_name.includes('Blocked') || b.booking_mode === 'Offline-Blocked');
+
+  const modal = document.createElement('div');
+  modal.className = 'modal-overlay';
+  modal.onclick = e => { if (e.target === modal) modal.remove(); };
+  
+  modal.innerHTML = `
+    <div class="modal-box" style="max-width:520px;padding:24px;">
+      <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">✕</button>
+      <h2 style="margin-top:0;margin-bottom:12px;">${isBlocked ? '🚫 Airbnb Blocked Slot' : '📅 Booking Details'}</h2>
+
+      <div style="background:${isBlocked ? '#FEE2E2' : '#F3F4F6'};padding:12px;border-radius:8px;margin-bottom:14px;font-size:13px;line-height:1.8;">
+        <div><strong>Guest Name:</strong> ${b.guest_name || '-'}</div>
+        <div><strong>Phone:</strong> ${b.phone || '-'}</div>
+        <div><strong>Property:</strong> ${propLabel(b.rooms) || b.room_id}</div>
+        <div><strong>Channel Mode:</strong> <span style="font-weight:700;color:${b.booking_mode==='Online-Airbnb'?'#2563EB':'#D97706'}">${b.booking_mode}</span></div>
+        <div><strong>Dates:</strong> 🗓️ ${b.check_in} ➔ ${b.check_out} (${nights} Night${nights>1?'s':''})</div>
+        <div><strong>Total Amount:</strong> ₹${(b.total_amount||0).toLocaleString('en-IN')} | <strong>Paid:</strong> ₹${totalPaid.toLocaleString('en-IN')} | <strong style="color:${due>0?'#DC2626':'#059669'}">Due: ₹${due.toLocaleString('en-IN')}</strong></div>
+        ${b.notes ? `<div style="font-size:11px;color:#6B7280;margin-top:4px;"><strong>Notes:</strong> ${b.notes}</div>` : ''}
+      </div>
+
+      <!-- FULL ACTION BUTTONS (SAME AS BOOKINGS PAGE) -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+        ${isBlocked ? `
+          <button onclick="this.closest('.modal-overlay').remove(); if(window.editBooking) editBooking('${b.booking_id}');" style="padding:10px;background:#059669;color:#fff;border:none;border-radius:6px;font-weight:700;cursor:pointer;grid-column:span 2;">
+            ➕ Convert & Fill Guest Details
+          </button>
+        ` : `
+          <button onclick="this.closest('.modal-overlay').remove(); if(window.editBooking) editBooking('${b.booking_id}');" style="padding:9px;background:#3B82F6;color:#fff;border:none;border-radius:6px;font-weight:600;cursor:pointer;">
+            ✏️ Edit Booking
+          </button>
+          <button onclick="this.closest('.modal-overlay').remove(); if(window.openAddPaymentModal) openAddPaymentModal('${b.booking_id}');" style="padding:9px;background:#059669;color:#fff;border:none;border-radius:6px;font-weight:600;cursor:pointer;">
+            💵 Add Payment
+          </button>
+          <button onclick="this.closest('.modal-overlay').remove(); if(window.duplicateBooking) duplicateBooking('${b.booking_id}');" style="padding:9px;background:#7C3AED;color:#fff;border:none;border-radius:6px;font-weight:600;cursor:pointer;">
+            📋 Duplicate
+          </button>
+          <button onclick="this.closest('.modal-overlay').remove(); if(window.shareBookingWhatsApp) shareBookingWhatsApp('${b.booking_id}');" style="padding:9px;background:#25D366;color:#fff;border:none;border-radius:6px;font-weight:600;cursor:pointer;">
+            📱 WhatsApp
+          </button>
+        `}
+        <button onclick="if(confirm('Delete this booking/block?')){ this.closest('.modal-overlay').remove(); if(window.deleteBooking) deleteBooking('${b.booking_id}'); }" style="padding:9px;background:#DC2626;color:#fff;border:none;border-radius:6px;font-weight:600;cursor:pointer;grid-column:span 2;margin-top:4px;">
+          🗑️ Delete Booking / Block
+        </button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+};

@@ -49,21 +49,24 @@ window.HYBRID_SYNC = {
           return dStr;
         };
 
-        const isBlock = summary.toLowerCase().includes('not available') || summary.toLowerCase().includes('blocked');
-        const cleanName = isBlock ? '🚫 Airbnb Blocked' : summary.replace('Reserved', 'Airbnb Guest').trim();
+        const checkIn = formatDate(dtStart);
+        const checkOut = formatDate(dtEnd);
 
-        events.push({
-          booking_id: uid ? 'ICAL_' + uid : 'ICAL_' + Date.now() + '_' + i,
-          guest_name: cleanName || 'Airbnb Guest',
-          check_in: formatDate(dtStart),
-          check_out: formatDate(dtEnd),
-          room_id: roomId,
-          is_blocked: isBlock,
-          booking_mode: 'Online-Airbnb',
-          payment_status: 'Paid',
-          notes: description || 'Real-time iCal sync',
-          source: 'iCal Real-Time'
-        });
+        // Include from August 1st 2026 onwards
+        if (checkIn >= '2026-08-01') {
+          const isBlock = summary.toLowerCase().includes('not available') || summary.toLowerCase().includes('blocked');
+          events.push({
+            booking_id: uid ? 'ICAL_' + uid : 'ICAL_' + Date.now() + '_' + i,
+            guest_name: isBlock ? '🚫 Airbnb Blocked' : summary.replace('Reserved', 'Airbnb Guest').trim(),
+            check_in: checkIn,
+            check_out: checkOut,
+            room_id: roomId,
+            is_blocked: isBlock,
+            booking_mode: isBlock ? 'Offline-Blocked' : 'Online-Airbnb',
+            payment_status: 'Paid',
+            notes: description || (isBlock ? 'Airbnb Blocked date' : 'Real-time iCal sync')
+          });
+        }
       }
     }
     return events;
