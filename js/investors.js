@@ -402,7 +402,7 @@ async function renderInvestorReport(investorId, roomId, month) {
   const [{data:inv}, {data:room}, {data:bookings}, {data:defaults}, {data:expenses}, {data:payments}, {data:link}] = await Promise.all([
     sb.from('investors').select('*').eq('investor_id', investorId).single(),
     sb.from('rooms').select('*').eq('room_id', roomId).single(),
-    sb.from('guest_register').select('*').eq('room_id', roomId).lte('check_in', monthEnd).gte('check_out', monthStart).order('check_in'),
+    sb.from('guest_register').select('*').eq('room_id', roomId).lte('check_in', monthEnd + 'T23:59:59').gte('check_out', monthStart).order('check_in'),
     sb.from('property_default_expenses').select('*').eq('room_id', roomId).order('expense_name'),
     sb.from('expenses').select('*').eq('room_id', roomId).eq('month', monthShort),
     sb.from('payment_history').select('booking_id, amount'),
@@ -1280,7 +1280,7 @@ async function renderFriendsReport(investorId, roomId, month) {
   const [{data:inv}, {data:room}, {data:bookings}] = await Promise.all([
     sb.from('investors').select('*').eq('investor_id', investorId).single(),
     sb.from('rooms').select('*').eq('room_id', roomId).single(),
-    sb.from('guest_register').select('*').eq('room_id', roomId).lte('check_in', monthEnd).gte('check_out', monthStart).order('check_in'),
+    sb.from('guest_register').select('*').eq('room_id', roomId).lte('check_in', monthEnd + 'T23:59:59').gte('check_out', monthStart).order('check_in'),
   ]);
 
   // Only friends bookings
