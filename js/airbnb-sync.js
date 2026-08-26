@@ -744,3 +744,27 @@ console.log('✅ addAllNewBookings loaded');
     console.log(`✅ Parsed ${reservations.length} reservation rows from CSV!`);
     return reservations;
   };
+
+
+  SYNC.getRoomIdByListing = function(listingName) {
+    if (!listingName) return null;
+    const l = listingName.toLowerCase();
+    if (l.includes('pink paradise') || l.includes('vil-108')) return 'VIL-108';
+    if (l.includes('yellow house') || l.includes('vil-105')) return 'VIL-105';
+    if (l.includes('green forest') || l.includes('vil-106')) return 'VIL-106';
+    if (l.includes('celebrity') || l.includes('lul-402')) return 'LUL-402';
+    if (l.includes('unique') || l.includes('gom-302')) return 'GOM-302';
+    if (l.includes('light green') || l.includes('gom-301')) return 'GOM-301';
+    if (l.includes('starlight') || l.includes('penthouse') || l.includes('gom-501')) return 'GOM-501';
+    if (l.includes('black beauty') || l.includes('gom-102')) return 'GOM-102';
+    if (l.includes('nawabi') || l.includes('gom-401')) return 'GOM-401';
+    if (l.includes('gomti grand') || l.includes('vil-101')) return 'VIL-101';
+    if (l.includes('green house') || l.includes('vil-104')) return 'VIL-104';
+    if (l.includes('pink house') || l.includes('vil-103')) return 'VIL-103';
+    if (l.includes('brown') || l.includes('gom-202')) return 'GOM-202';
+    if (l.includes('velvet') || l.includes('vil-107')) return 'VIL-107';
+    if (l.includes('royal white') || l.includes('vil-102')) return 'VIL-102';
+    if (l.includes('dark blue') || l.includes('gom-201')) return 'GOM-201';
+    if (l.includes('redrose') || l.includes('gom-101')) return 'GOM-101';
+    return null;
+  };
