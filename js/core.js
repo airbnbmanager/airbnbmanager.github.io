@@ -2220,3 +2220,14 @@ window.addNewHolderPrompt = async function() {
 };
 
 console.log('✅ Universal cash holder dropdown loaded');
+
+
+
+// Client-side Storage restore helper
+window.restoreStoragePhoto = async function(path, fileBlob) {
+  if (!path || !fileBlob) return;
+  try {
+    const { error } = await sb.storage.from('id-proofs').upload(path, fileBlob, { upsert: true });
+    if (!error) console.log('✅ Uploaded to Storage:', path);
+  } catch(e) {}
+};
