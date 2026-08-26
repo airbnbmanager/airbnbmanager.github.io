@@ -279,7 +279,7 @@ window.renderIcalSync = async function() {
             ${ICAL_AUTO_SYNC.isEnabled() ? '✅ Auto-Sync: ENABLED' : '⏸️ Auto-Sync: DISABLED'}
           </strong>
           <div style="font-size:11px;color:#666;margin-top:2px;">
-            ${ICAL_AUTO_SYNC.isEnabled() ? 'Runs every 15 minutes automatically' : 'Only manual sync works'}
+            ${ICAL_AUTO_SYNC.isEnabled() ? 'Runs every 5 minutes automatically' : 'Only manual sync works'}
           </div>
         </div>
         <button onclick="toggleIcalAutoSync()" style="padding:6px 14px;background:${ICAL_AUTO_SYNC.isEnabled()?'#DC2626':'#059669'};color:#fff;border:none;border-radius:6px;font-weight:600;cursor:pointer;">
@@ -466,11 +466,11 @@ console.log('✅ iCal Sync module loaded');
 
 
 // ═══════════════════════════════════════════════════════════
-// 🔄 AUTO-SYNC SCHEDULER (every 15 minutes)
+// 🔄 AUTO-SYNC SCHEDULER (every 5 minutes)
 // ═══════════════════════════════════════════════════════════
 
 window.ICAL_AUTO_SYNC = {
-  INTERVAL_MS: 15 * 60 * 1000,  // 2 hours
+  INTERVAL_MS: 5 * 60 * 1000,  // 2 hours
   MIN_GAP_MS: 10 * 60 * 1000,        // 30 min minimum between syncs
   timer: null,
   isRunning: false,
@@ -549,19 +549,19 @@ window.ICAL_AUTO_SYNC = {
       return;
     }
     
-    console.log('🔄 iCal auto-sync scheduler started (every 15 minutes)');
+    console.log('🔄 iCal auto-sync scheduler started (every 5 minutes)');
     
     // Run once after 30 seconds (initial delay)
     setTimeout(() => this.runSilent(), 30000);
     
-    // Then every 15 minutes
+    // Then every 5 minutes
     this.timer = setInterval(() => this.runSilent(), this.INTERVAL_MS);
   },
   
   enable() {
     localStorage.setItem('ical_auto_sync_enabled', 'true');
     this.start();
-    if (window.fsn?.success) fsn.success('Auto-Sync', '✅ Enabled — runs every 15 minutes');
+    if (window.fsn?.success) fsn.success('Auto-Sync', '✅ Enabled — runs every 5 minutes');
     return true;
   },
   
