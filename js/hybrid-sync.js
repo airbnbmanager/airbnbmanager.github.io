@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════════
-// 🔄 HYBRID SYNC — Smart Range Overlap & Zero Duplicate Sync
+// 🔄 HYBRID SYNC — All 17 Properties Real-Time iCal + Calendar Lock
 // ═══════════════════════════════════════════════════════════
 
 window.HYBRID_SYNC = {
@@ -49,16 +49,8 @@ window.HYBRID_SYNC = {
           return dStr;
         };
 
-        const cleanName = summary
-          .replace('Reserved', 'Airbnb Guest')
-          .replace('Airbnb (Not available)', 'Airbnb Blocked')
-          .replace('Not available', 'Blocked')
-          .trim();
-
-        // Skip generic blocks or unavailable placeholders if user wants clean calendar
-        if (cleanName.includes('Blocked') || cleanName.includes('Not available')) {
-          continue;
-        }
+        const isBlock = summary.toLowerCase().includes('not available') || summary.toLowerCase().includes('blocked');
+        const cleanName = isBlock ? '🚫 Airbnb Blocked' : summary.replace('Reserved', 'Airbnb Guest').trim();
 
         events.push({
           booking_id: uid ? 'ICAL_' + uid : 'ICAL_' + Date.now() + '_' + i,
@@ -66,6 +58,7 @@ window.HYBRID_SYNC = {
           check_in: formatDate(dtStart),
           check_out: formatDate(dtEnd),
           room_id: roomId,
+          is_blocked: isBlock,
           booking_mode: 'Online-Airbnb',
           payment_status: 'Paid',
           notes: description || 'Real-time iCal sync',
@@ -108,25 +101,25 @@ window.HYBRID_SYNC = {
       const icalEvents = this.parseICS(icsText, roomId);
       if (icalEvents.length === 0) continue;
 
-      // FETCH ALL EXISTING BOOKINGS FOR THIS ROOM TO CHECK FULL DATE RANGE OVERLAP
+      // Fetch all existing bookings for this room in DB
       const { data: dbBookings } = await sb.from('guest_register')
-        .select('booking_id, check_in, check_out, room_id, is_cancelled')
+        .select('booking_id, check_in, check_out, room_id, is_cancelled, guest_name')
         .eq('room_id', roomId)
         .neq('is_cancelled', true);
 
       const newToInsert = [];
       icalEvents.forEach(ev => {
-        // STRICT RANGE OVERLAP CHECK:
-        // A booking overlaps if: existing.check_in < new.check_out AND existing.check_out > new.check_in
-        const hasOverlap = (dbBookings || []).some(dbB => {
+        // Range overlap check
+        const overlapBk = (dbBookings || []).find(dbB => {
           if (!dbB.check_in || !dbB.check_out) return false;
           return (dbB.check_in < ev.check_out && dbB.check_out > ev.check_in);
         });
 
-        // ONLY INSERT IF THERE IS ABSOLUTELY NO OVERLAP WITH ANY EXISTING OFFLINE/ONLINE BOOKING
-        if (!hasOverlap) {
+        // 1. If NO OVERLAP -> Insert new booking or block entry
+        if (!overlapBk) {
+          const deterministicId = ev.is_blocked ? `BLK_${roomId}_${ev.check_in.replace(/-/g, '')}` : 'BK_' + Date.now() + '_' + Math.floor(Math.random()*10000);
           newToInsert.push({
-            booking_id: 'BK_' + Date.now() + '_' + Math.floor(Math.random()*10000),
+            booking_id: deterministicId,
             guest_name: ev.guest_name,
             check_in: ev.check_in,
             check_out: ev.check_out,
@@ -134,14 +127,14 @@ window.HYBRID_SYNC = {
             booking_mode: 'Online-Airbnb',
             payment_status: 'Paid',
             total_amount: 0,
-            notes: 'Auto-synced from ' + prop.name + ' iCal'
+            notes: ev.is_blocked ? 'Airbnb Blocked date auto-synced' : ('Auto-synced from ' + prop.name + ' iCal')
           });
         }
       });
 
       if (newToInsert.length > 0) {
         await sb.from('guest_register').upsert(newToInsert, { onConflict: 'booking_id', ignoreDuplicates: true });
-        console.log(`✅ ${prop.name} (${roomId}): Synced ${newToInsert.length} new non-overlapping bookings!`);
+        console.log(`✅ ${prop.name} (${roomId}): Synced ${newToInsert.length} bookings/blocks!`);
       }
     }
   },
@@ -151,7 +144,7 @@ window.HYBRID_SYNC = {
     if (this.timerId) clearInterval(this.timerId);
     this.timerId = setInterval(() => {
       this.syncAllProperties();
-    }, 15 * 60 * 1000); // 15 min interval to avoid spam
+    }, 5 * 60 * 1000);
   },
 
   getStatus: function() {
