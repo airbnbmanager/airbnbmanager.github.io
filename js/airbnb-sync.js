@@ -18,10 +18,24 @@
 
   // ─── Date MM/DD/YYYY → YYYY-MM-DD ───
   function parseDate(str) {
-    if (!str || !str.includes('/')) return null;
-    const [m, d, y] = str.split('/');
-    if (!m || !d || !y) return null;
-    return y + '-' + m.padStart(2, '0') + '-' + d.padStart(2, '0');
+    if (!str) return null;
+    str = String(str).trim();
+    if (str.includes('/')) {
+      const parts = str.split('/');
+      if (parts.length === 3) {
+        let [d, m, y] = parts.map(p => p.trim());
+        if (y.length === 4) {
+          // If first number > 12, it's definitely DD/MM/YYYY
+          if (parseInt(d) > 12) {
+            return `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+          }
+          // Default Airbnb India export: DD/MM/YYYY
+          return `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+        }
+      }
+    }
+    if (/^\d{4}-\d{2}-\d{2}/.test(str)) return str.slice(0, 10);
+    return str;
   }
 
   function fmtNum(n) {
@@ -768,3 +782,64 @@ console.log('✅ addAllNewBookings loaded');
     if (l.includes('redrose') || l.includes('gom-101')) return 'GOM-101';
     return null;
   };
+
+
+  // RESERVATIONS CSV PARSER & AUTO-ENRICHER (Handles Airbnb India Reservations CSV)
+  SYNC.parseReservationsCSV = function(text) {
+    const rawRows = parseCSV(text);
+    if (!rawRows || rawRows.length === 0) return [];
+
+    const parsedList = [];
+    rawRows.forEach(row => {
+      const status = (row['Status'] || row['Type'] || '').trim();
+      
+      // Skip cancelled bookings
+      if (status.toLowerCase().includes('cancelled')) return;
+
+      const code = (row['Confirmation code'] || row['Confirmation Code'] || row['Code'] || '').trim();
+      const guest = (row['Guest name'] || row['Guest'] || '').trim();
+      const phone = (row['Contact'] || row['Phone'] || row['Guest Phone'] || '').trim();
+      const listing = (row['Listing'] || row['Property'] || '').trim();
+      const sDate = row['Start date'] || row['Start Date'] || row['Check-in'];
+      const eDate = row['End date'] || row['End Date'] || row['Check-out'];
+      const rawEarn = row['Earnings'] || row['Amount'] || row['Total Payout'] || '0';
+      const earnings = parseFloat(String(rawEarn).replace(/[^0-9\.]/g, '')) || 0;
+      
+      const adults = parseInt(row['# of adults'] || '1') || 1;
+      const children = parseInt(row['# of children'] || '0') || 0;
+      const guestCount = adults + children;
+
+      const checkIn = parseDate(sDate);
+      const checkOut = parseDate(eDate);
+      const roomId = SYNC.getRoomIdByListing ? SYNC.getRoomIdByListing(listing) : null;
+
+      if (checkIn && (code || guest)) {
+        parsedList.push({
+          confirmation_code: code,
+          guest_name: guest || 'Airbnb Guest',
+          phone: phone && phone.length > 5 ? phone : null,
+          check_in: checkIn,
+          check_out: checkOut,
+          room_id: roomId,
+          listing_name: listing,
+          total_amount: earnings,
+          guests: guestCount,
+          status: status
+        });
+      }
+    });
+
+    console.log(`✅ Parsed ${parsedList.length} valid confirmed bookings from reservations.csv!`);
+    return parsedList;
+  };
+
+  // OVERRIDE CSV PROCESSOR TO AUTOMATICALLY DETECT AND PARSE RESERVATIONS.CSV
+  if (!SYNC._origParseRows) {
+    SYNC._origParseRows = SYNC.parseRows;
+    SYNC.parseRows = function(text) {
+      if (text.includes('Confirmation code') || text.includes('# of adults') || text.includes('Earnings')) {
+        return SYNC.parseReservationsCSV(text);
+      }
+      return SYNC._origParseRows ? SYNC._origParseRows(text) : parseCSV(text);
+    };
+  }
