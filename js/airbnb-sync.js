@@ -224,65 +224,114 @@
 
     const reservationsByCode = {};
     const payouts = [];
-
-    // Sum "Amount" across ALL row-types sharing a Confirmation Code —
-    // Reservation + Tax Withholding for India Income + Host-Remitted Tax —
-    // for the TRUE net payout (reading only the Reservation row overstates it).
     const netAmountByCode = {};
+
+    // 1. Calculate net amounts or read direct Earnings/Amount
     rows.forEach(r => {
-      const type = r['Type'];
-      const code = r['Confirmation Code'];
-      if (type === 'Payout' || !code) return;
-      netAmountByCode[code] = (netAmountByCode[code] || 0) + (parseFloat(r['Amount']) || 0);
+      const type = (r['Type'] || r['Status'] || '').trim();
+      const code = (r['Confirmation Code'] || r['Confirmation code'] || r['Code'] || '').trim();
+      if (type.toLowerCase().includes('payout') || !code) return;
+
+      const rawAmt = r['Amount'] || r['Earnings'] || r['Total Payout'] || '0';
+      const numAmt = parseFloat(String(rawAmt).replace(/[^0-9\.]/g, '')) || 0;
+      netAmountByCode[code] = (netAmountByCode[code] || 0) + numAmt;
     });
 
+    // 2. Parse all reservation rows (Handles Reservation CSV & Transaction History CSV)
     rows.forEach(r => {
-      const type = r['Type'];
-      const code = r['Confirmation Code'];
+      const type = (r['Type'] || r['Status'] || 'Reservation').trim();
+      const code = (r['Confirmation Code'] || r['Confirmation code'] || r['Code'] || '').trim();
 
-      if (type === 'Payout') {
+      if (type.toLowerCase().includes('payout') && !code) {
         payouts.push({
-          date: parseDate(r['Date']),
-          amount: parseFloat(r['Paid out'] || 0),
-          reference: r['Details'] || ''
+          date: parseDate(r['Date'] || r['Start date']),
+          amount: parseFloat(String(r['Paid out'] || r['Amount'] || 0).replace(/[^0-9\.]/g, '')),
+          reference: r['Details'] || r['Reference code'] || ''
         });
         return;
       }
 
-      if (type === 'Reservation' && code) {
-        const listing = r['Listing'] || '';
-        const match = matchListing(listing);
-        const csvBk = {
+      // Skip cancelled
+      if (type.toLowerCase().includes('cancelled')) return;
+
+      const sDate = r['Start date'] || r['Start Date'] || r['Check-in'] || r['Check in'];
+      const eDate = r['End date'] || r['End Date'] || r['Check-out'] || r['Check out'];
+      const guest = (r['Guest'] || r['Guest name'] || r['Contact Name'] || '').trim();
+      const phone = (r['Contact'] || r['Phone'] || r['Guest Phone'] || '').trim();
+      const listing = r['Listing'] || r['Property'] || r['Room'] || '';
+
+      const checkIn = parseDate(sDate);
+      const checkOut = parseDate(eDate);
+
+      if (checkIn && (code || guest)) {
+        const matchedRoomId = SYNC.getRoomIdByListing ? SYNC.getRoomIdByListing(listing) : matchListing(listing);
+        const nights = checkIn && checkOut ? Math.max(Math.round((new Date(checkOut) - new Date(checkIn)) / 86400000), 1) : 1;
+        
+        const rawEarn = r['Earnings'] || r['Amount'] || r['Total Payout'] || '0';
+        const netAmt = netAmountByCode[code] || parseFloat(String(rawEarn).replace(/[^0-9\.]/g, '')) || 0;
+
+        const adults = parseInt(r['# of adults'] || '1') || 1;
+        const children = parseInt(r['# of children'] || '0') || 0;
+
+        reservationsByCode[code || ('NO_CODE_' + guest + '_' + checkIn)] = {
           confirmation_code: code,
-          date: parseDate(r['Date']),
-          booking_date: parseDate(r['Booking date']),
-          check_in: parseDate(r['Start date']),
-          check_out: parseDate(r['End date']),
-          nights: parseInt(r['Nights'] || 0),
-          guest_name: r['Guest'] || '',
-          listing: listing,
-          amount: Math.round((netAmountByCode[code] || parseFloat(r['Amount'] || 0)) * 100) / 100,
-          gross: parseFloat(r['Gross earnings'] || 0),
-          service_fee: parseFloat(r['Service fee'] || 0),
-          cleaning_fee: parseFloat(r['Cleaning fee'] || 0),
-          matched_room_id: match.room_id,
-          match_confidence: match.confidence,
+          guest_name: guest || 'Airbnb Guest',
+          phone: phone && phone.length > 5 ? phone : null,
+          check_in: checkIn,
+          check_out: checkOut,
+          nights: nights,
+          guests: adults + children,
+          matched_room_id: matchedRoomId,
+          listing_name: listing,
+          amount: netAmt,
+          raw: r
         };
-        const dbBk = SYNC.existingByCode[code];
-        const cmp = compareBooking(csvBk, dbBk);
-        csvBk.status = cmp.status;
-        csvBk.issues = cmp.issues;
-        csvBk.dbBk = cmp.dbBk;
-        reservationsByCode[code] = csvBk;
       }
     });
 
     SYNC.allReservations = Object.values(reservationsByCode);
-    // Auto date-range: 1 July → today. Editable below if needed.
-    applyDateFilter();
     SYNC.payouts = payouts;
 
-    computePossiblyCancelled();
+    // 3. AUTO-ENRICH SUPABASE DATABASE (Fill blank details in existing iCal bookings)
+    let autoFilledCount = 0;
+    for (let r of SYNC.allReservations) {
+      if (!r.check_in || !r.matched_room_id) continue;
+
+      // Find existing booking in DB for same room & check-in
+      const { data: matchedDb } = await sb.from('guest_register')
+        .select('booking_id, guest_name, phone, total_amount, airbnb_confirmation_code')
+        .eq('room_id', r.matched_room_id)
+        .eq('check_in', r.check_in)
+        .maybeSingle();
+
+      if (matchedDb) {
+        const isTempName = !matchedDb.guest_name || matchedDb.guest_name.includes('Airbnb Guest') || matchedDb.guest_name.includes('Blocked');
+        const isTempAmount = !matchedDb.total_amount || matchedDb.total_amount <= 0;
+        const missingPhone = !matchedDb.phone && r.phone;
+
+        if (isTempName || isTempAmount || missingPhone) {
+          const updates = {
+            guest_name: (isTempName && r.guest_name) ? r.guest_name : matchedDb.guest_name,
+            phone: (missingPhone && r.phone) ? r.phone : matchedDb.phone,
+            total_amount: (isTempAmount && r.amount > 0) ? r.amount : matchedDb.total_amount,
+            guests: r.guests || 1,
+            airbnb_confirmation_code: r.confirmation_code || matchedDb.airbnb_confirmation_code,
+            notes: 'CSV Enriched: Details & Payout Auto-filled'
+          };
+
+          await sb.from('guest_register').update(updates).eq('booking_id', matchedDb.booking_id);
+          autoFilledCount++;
+          console.log(`✅ Auto-filled DB details for ${r.guest_name} (${r.check_in})`);
+        }
+      }
+    }
+
+    if (autoFilledCount > 0 && window.fsn?.success) {
+      fsn.success('Auto-Filled', `✅ Auto-filled details for ${autoFilledCount} bookings in DB!`);
+    }
+
+    // Filter and render preview
+    filterReservations();
     renderPreview();
   };
 
