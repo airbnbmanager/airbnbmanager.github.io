@@ -148,6 +148,10 @@ window.ICAL_SYNC = {
         // Create placeholder booking (blocked vs real)
         const bookingId = 'BK' + Date.now() + Math.floor(Math.random() * 1000);
         const isBlocked = event.isBlocked;
+        if (isBlocked) {
+          // Do NOT create DB rows for blocked dates — keep database clean for real offline/online bookings
+          continue;
+        }
         const isFuture = event.isFuture;
         
         const guestName = isBlocked 
