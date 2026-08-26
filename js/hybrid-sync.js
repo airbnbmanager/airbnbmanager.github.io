@@ -1,78 +1,27 @@
 // ═══════════════════════════════════════════════════════════
-// 🔄 HYBRID SYNC — All 17 Properties Real-Time iCal Sync
+// 🔄 HYBRID SYNC — Smart Range Overlap & Zero Duplicate Sync
 // ═══════════════════════════════════════════════════════════
 
 window.HYBRID_SYNC = {
   properties: {
-  "VIL-108": {
-    "name": "Pink Paradise Villa",
-    "ical_url": "https://www.airbnb.co.in/calendar/ical/1756799939825259443.ics?s=0ae34e2ae136b52e9626bd0e8d5f77e2"
+    'VIL-108': { name: 'Pink Paradise Villa', ical_url: 'https://www.airbnb.co.in/calendar/ical/1756799939825259443.ics?s=0ae34e2ae136b52e9626bd0e8d5f77e2' },
+    'VIL-105': { name: 'The Yellow House', ical_url: 'https://www.airbnb.co.in/calendar/ical/1592729918855637425.ics?s=efdbca3abd6eb75e26d2d8ae0c4fc6a0' },
+    'VIL-106': { name: 'Green forest View', ical_url: 'https://www.airbnb.co.in/calendar/ical/1739254108962193705.ics?s=0df31e977e39a4929116e1b84473d6ff' },
+    'LUL-402': { name: 'Celebrity Garden', ical_url: 'https://www.airbnb.co.in/calendar/ical/1606514664948608755.ics?s=e9df8a7bf2bec706ecda3cccb71d4e90' },
+    'GOM-302': { name: 'The Unique', ical_url: 'https://www.airbnb.co.in/calendar/ical/1679190202218939181.ics?s=bfffccbbc6678da8ba895cd3bdd9711b' },
+    'GOM-301': { name: 'The Light Green', ical_url: 'https://www.airbnb.co.in/calendar/ical/1679155811558485410.ics?s=2bf43a9a1a56e088ac3062552abd36c8' },
+    'GOM-501': { name: 'Starlight Blue PentHouse', ical_url: 'https://www.airbnb.co.in/calendar/ical/1718385679817913835.ics?s=7460587d24c4e40f08c518663aef30bf' },
+    'GOM-102': { name: 'Black Beauty', ical_url: 'https://www.airbnb.co.in/calendar/ical/1676840617430941240.ics?s=b9f88e5532d2c123f505d9f86342c507' },
+    'GOM-401': { name: 'The Nawabi Stay', ical_url: 'https://www.airbnb.co.in/calendar/ical/1723434530455939144.ics?s=266526ac3d972903b4b77b48ff6078bd' },
+    'VIL-101': { name: 'Gomti Grand Villa', ical_url: 'https://www.airbnb.co.in/calendar/ical/1721732716374002170.ics?s=5e0e5482fdc5df8bf8e5901724f66b84' },
+    'VIL-104': { name: 'The Green House', ical_url: 'https://www.airbnb.co.in/calendar/ical/1593461780265937816.ics?s=cddde69eff396b304620f8fd1f59022c' },
+    'VIL-103': { name: 'The Pink House', ical_url: 'https://www.airbnb.co.in/calendar/ical/1592729438969718723.ics?s=0b58c0d6a8111e27b1fa685ac48f5544' },
+    'GOM-202': { name: 'The Brown', ical_url: 'https://www.airbnb.co.in/calendar/ical/1660898784168880636.ics?s=0eceacf4f9f48aeebe0b0f166cb21fa3' },
+    'VIL-107': { name: 'The Velvet House', ical_url: 'https://www.airbnb.co.in/calendar/ical/1727830063287100082.ics?s=941e03cc0e52d3636e9835e2ec2b62be' },
+    'VIL-102': { name: 'Royal White House', ical_url: 'https://www.airbnb.co.in/calendar/ical/1718315215180636685.ics?s=88c698fc4b8a4085ab6ad210daee7e8f' },
+    'GOM-201': { name: 'The Dark Blue', ical_url: 'https://www.airbnb.co.in/calendar/ical/1655969170448425308.ics?s=f706b4312eaf30553e047c4cd74b8128' },
+    'GOM-101': { name: 'RedRose Palace', ical_url: 'https://www.airbnb.co.in/calendar/ical/1654261872286835347.ics?s=dd04cdcc476495684a1e2c6a33040799' }
   },
-  "VIL-105": {
-    "name": "The Yellow House",
-    "ical_url": "https://www.airbnb.co.in/calendar/ical/1592729918855637425.ics?s=efdbca3abd6eb75e26d2d8ae0c4fc6a0"
-  },
-  "VIL-106": {
-    "name": "Green forest View",
-    "ical_url": "https://www.airbnb.co.in/calendar/ical/1739254108962193705.ics?s=0df31e977e39a4929116e1b84473d6ff"
-  },
-  "LUL-402": {
-    "name": "Celebrity Garden",
-    "ical_url": "https://www.airbnb.co.in/calendar/ical/1606514664948608755.ics?s=e9df8a7bf2bec706ecda3cccb71d4e90"
-  },
-  "GOM-302": {
-    "name": "The Unique",
-    "ical_url": "https://www.airbnb.co.in/calendar/ical/1679190202218939181.ics?s=bfffccbbc6678da8ba895cd3bdd9711b"
-  },
-  "GOM-301": {
-    "name": "The Light Green",
-    "ical_url": "https://www.airbnb.co.in/calendar/ical/1679155811558485410.ics?s=2bf43a9a1a56e088ac3062552abd36c8"
-  },
-  "GOM-501": {
-    "name": "Starlight Blue PentHouse",
-    "ical_url": "https://www.airbnb.co.in/calendar/ical/1718385679817913835.ics?s=7460587d24c4e40f08c518663aef30bf"
-  },
-  "GOM-102": {
-    "name": "Black Beauty",
-    "ical_url": "https://www.airbnb.co.in/calendar/ical/1676840617430941240.ics?s=b9f88e5532d2c123f505d9f86342c507"
-  },
-  "GOM-401": {
-    "name": "The Nawabi Stay",
-    "ical_url": "https://www.airbnb.co.in/calendar/ical/1723434530455939144.ics?s=266526ac3d972903b4b77b48ff6078bd"
-  },
-  "VIL-101": {
-    "name": "Gomti Grand Villa",
-    "ical_url": "https://www.airbnb.co.in/calendar/ical/1721732716374002170.ics?s=5e0e5482fdc5df8bf8e5901724f66b84"
-  },
-  "VIL-104": {
-    "name": "The Green House",
-    "ical_url": "https://www.airbnb.co.in/calendar/ical/1593461780265937816.ics?s=cddde69eff396b304620f8fd1f59022c"
-  },
-  "VIL-103": {
-    "name": "The Pink House",
-    "ical_url": "https://www.airbnb.co.in/calendar/ical/1592729438969718723.ics?s=0b58c0d6a8111e27b1fa685ac48f5544"
-  },
-  "GOM-202": {
-    "name": "The Brown",
-    "ical_url": "https://www.airbnb.co.in/calendar/ical/1660898784168880636.ics?s=0eceacf4f9f48aeebe0b0f166cb21fa3"
-  },
-  "VIL-107": {
-    "name": "The Velvet House",
-    "ical_url": "https://www.airbnb.co.in/calendar/ical/1727830063287100082.ics?s=941e03cc0e52d3636e9835e2ec2b62be"
-  },
-  "VIL-102": {
-    "name": "Royal White House",
-    "ical_url": "https://www.airbnb.co.in/calendar/ical/1718315215180636685.ics?s=88c698fc4b8a4085ab6ad210daee7e8f"
-  },
-  "GOM-201": {
-    "name": "The Dark Blue",
-    "ical_url": "https://www.airbnb.co.in/calendar/ical/1655969170448425308.ics?s=f706b4312eaf30553e047c4cd74b8128"
-  },
-  "GOM-101": {
-    "name": "RedRose Palace",
-    "ical_url": "https://www.airbnb.co.in/calendar/ical/1654261872286835347.ics?s=dd04cdcc476495684a1e2c6a33040799"
-  }
-},
   mergedBookings: [],
   timerId: null,
 
@@ -106,6 +55,11 @@ window.HYBRID_SYNC = {
           .replace('Not available', 'Blocked')
           .trim();
 
+        // Skip generic blocks or unavailable placeholders if user wants clean calendar
+        if (cleanName.includes('Blocked') || cleanName.includes('Not available')) {
+          continue;
+        }
+
         events.push({
           booking_id: uid ? 'ICAL_' + uid : 'ICAL_' + Date.now() + '_' + i,
           guest_name: cleanName || 'Airbnb Guest',
@@ -130,7 +84,6 @@ window.HYBRID_SYNC = {
     ];
 
     const roomIds = Object.keys(this.properties);
-    console.log('🔄 Starting real-time iCal sync for all ' + roomIds.length + ' properties...');
 
     for (const roomId of roomIds) {
       const prop = this.properties[roomId];
@@ -155,12 +108,23 @@ window.HYBRID_SYNC = {
       const icalEvents = this.parseICS(icsText, roomId);
       if (icalEvents.length === 0) continue;
 
-      const { data: dbBookings } = await sb.from('guest_register').select('booking_id, check_in, room_id').eq('room_id', roomId);
-      const existingMap = new Set((dbBookings || []).map(b => `${b.room_id}_${b.check_in}`));
+      // FETCH ALL EXISTING BOOKINGS FOR THIS ROOM TO CHECK FULL DATE RANGE OVERLAP
+      const { data: dbBookings } = await sb.from('guest_register')
+        .select('booking_id, check_in, check_out, room_id, is_cancelled')
+        .eq('room_id', roomId)
+        .neq('is_cancelled', true);
 
       const newToInsert = [];
       icalEvents.forEach(ev => {
-        if (!existingMap.has(`${ev.room_id}_${ev.check_in}`)) {
+        // STRICT RANGE OVERLAP CHECK:
+        // A booking overlaps if: existing.check_in < new.check_out AND existing.check_out > new.check_in
+        const hasOverlap = (dbBookings || []).some(dbB => {
+          if (!dbB.check_in || !dbB.check_out) return false;
+          return (dbB.check_in < ev.check_out && dbB.check_out > ev.check_in);
+        });
+
+        // ONLY INSERT IF THERE IS ABSOLUTELY NO OVERLAP WITH ANY EXISTING OFFLINE/ONLINE BOOKING
+        if (!hasOverlap) {
           newToInsert.push({
             booking_id: 'BK_' + Date.now() + '_' + Math.floor(Math.random()*10000),
             guest_name: ev.guest_name,
@@ -177,11 +141,9 @@ window.HYBRID_SYNC = {
 
       if (newToInsert.length > 0) {
         await sb.from('guest_register').upsert(newToInsert, { onConflict: 'booking_id', ignoreDuplicates: true });
-        console.log('✅ ' + prop.name + ' (' + roomId + '): Synced ' + newToInsert.length + ' new bookings!');
+        console.log(`✅ ${prop.name} (${roomId}): Synced ${newToInsert.length} new non-overlapping bookings!`);
       }
     }
-
-    console.log('🎉 All 17 Properties Real-Time iCal Sync Finished!');
   },
 
   startAutoSync: function() {
@@ -189,7 +151,7 @@ window.HYBRID_SYNC = {
     if (this.timerId) clearInterval(this.timerId);
     this.timerId = setInterval(() => {
       this.syncAllProperties();
-    }, 5 * 60 * 1000);
+    }, 15 * 60 * 1000); // 15 min interval to avoid spam
   },
 
   getStatus: function() {
