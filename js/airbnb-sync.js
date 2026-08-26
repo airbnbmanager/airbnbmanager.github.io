@@ -696,3 +696,51 @@ window.addAllNewBookings = async function() {
 };
 
 console.log('✅ addAllNewBookings loaded');
+
+
+  SYNC.parseRows = function(text) {
+    const rawRows = parseCSV(text);
+    if (!rawRows || rawRows.length === 0) return [];
+
+    const reservations = [];
+    rawRows.forEach(row => {
+      const type = (row['Type'] || row['Status'] || '').trim();
+
+      // In Transaction History CSV, skip Payout, Tax, etc. Keep only Reservation or Confirmed rows
+      if (type && !['Reservation', 'Confirmed', 'Currently hosting', 'Arriving', 'Review guest'].some(t => type.toLowerCase().includes(t.toLowerCase()))) {
+        return;
+      }
+
+      const code = (row['Confirmation Code'] || row['Confirmation code'] || row['Code'] || '').trim();
+      const guest = (row['Guest'] || row['Guest name'] || row['Contact Name'] || '').trim();
+      const phone = (row['Contact'] || row['Phone'] || row['Guest Phone'] || '').trim();
+      const listing = (row['Listing'] || row['Property'] || row['Room'] || '').trim();
+
+      const sDate = row['Start date'] || row['Start Date'] || row['Check-in'] || row['Check in'];
+      const eDate = row['End date'] || row['End Date'] || row['Check-out'] || row['Check out'];
+
+      const grossAmt = parseFloat((row['Gross earnings'] || row['Gross Earnings'] || row['Amount'] || row['Total Payout'] || '0').replace(/[^0-9\.]/g, '')) || 0;
+      const netAmt = parseFloat((row['Amount'] || row['Paid out'] || row['Total Payout'] || '0').replace(/[^0-9\.]/g, '')) || grossAmt;
+
+      const parsedStart = parseDate(sDate);
+      const parsedEnd = parseDate(eDate);
+
+      if (parsedStart && (guest || code)) {
+        reservations.push({
+          type: type || 'Reservation',
+          confirmation_code: code,
+          guest_name: guest || 'Airbnb Guest',
+          phone: phone || null,
+          listing_name: listing,
+          check_in: parsedStart,
+          check_out: parsedEnd,
+          amount: netAmt,
+          gross_amount: grossAmt,
+          raw: row
+        });
+      }
+    });
+
+    console.log(`✅ Parsed ${reservations.length} reservation rows from CSV!`);
+    return reservations;
+  };
