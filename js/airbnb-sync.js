@@ -331,7 +331,11 @@
     }
 
     // Filter and render preview
-    filterReservations();
+    if (typeof filterReservations === 'function') {
+      filterReservations();
+    } else {
+      SYNC.reservations = SYNC.allReservations || [];
+    }
     renderPreview();
   };
 
