@@ -164,6 +164,7 @@
         <div style="display:flex;gap:8px;">
           <button style="flex:1;">📁 CSV Import</button>
           <button onclick="renderIcalSync()" class="secondary" style="flex:1;">📅 iCal Auto-Sync</button>
+          <button onclick="clearDummyBlocks()" style="background:#EF4444;color:#fff;padding:8px 12px;border:none;border-radius:6px;font-weight:700;cursor:pointer;font-size:12px;flex:1;" title="Clear auto-generated dummy blocks">🧹 Clear Dummy Blocks</button>
         </div>
       </div>`;
     
@@ -896,3 +897,38 @@ console.log('✅ addAllNewBookings loaded');
       return SYNC._origParseRows ? SYNC._origParseRows(text) : parseCSV(text);
     };
   }
+
+
+
+// ==========================================
+// 1-CLICK CLEAR DUMMY BLOCKS FUNCTION
+// ==========================================
+window.clearDummyBlocks = async function() {
+  if (!confirm('Clear all auto-generated "Blocked (Fill Details)" slots from database?')) return;
+  try {
+    const { data: blocks } = await sb.from('guest_register')
+      .select('booking_id')
+      .or('booking_id.ilike.BLK_%,booking_mode.eq.Offline-Blocked,guest_name.ilike.%Blocked%');
+
+    if (!blocks || blocks.length === 0) {
+      if (window.fsn?.info) fsn.info('Clean', 'No dummy blocked slots found in database!');
+      else alert('ℹ️ No dummy blocked slots found in database!');
+      return;
+    }
+
+    let deleted = 0;
+    for (let b of blocks) {
+      await sb.from('guest_register').delete().eq('booking_id', b.booking_id);
+      deleted++;
+    }
+
+    if (window.fsn?.success) fsn.success('Cleared', `✅ Successfully cleared ${deleted} dummy blocked slots!`);
+    else alert(`✅ Successfully cleared ${deleted} dummy blocked slots!`);
+    
+    if (window.renderReports) renderReports();
+    if (window.renderManageBookings) renderManageBookings();
+    if (window.renderAirbnbSync) renderAirbnbSync();
+  } catch(e) {
+    alert('❌ Error clearing blocks: ' + e.message);
+  }
+};
