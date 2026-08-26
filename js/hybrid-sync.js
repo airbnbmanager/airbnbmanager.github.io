@@ -127,7 +127,7 @@ window.HYBRID_SYNC = {
             check_in: ev.check_in,
             check_out: ev.check_out,
             room_id: roomId,
-            booking_mode: isBlock ? 'Offline' : 'Online-Airbnb',
+            booking_mode: ev.is_blocked ? 'Offline' : 'Online-Airbnb',
             payment_status: 'Paid',
             total_amount: 0,
             notes: ev.is_blocked ? 'Airbnb Blocked date auto-synced' : ('Auto-synced from ' + prop.name + ' iCal')
