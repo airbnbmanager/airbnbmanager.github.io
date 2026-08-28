@@ -691,7 +691,8 @@ async function renderManageBookings() {
       <div class="search-bar">
         <span class="search-icon">🔍</span>
         <input type="text" id="bkSearch" placeholder="Search guest name or phone..." value="${sq}"
-          oninput="SESSION.bookingSearch=this.value; clearTimeout(window._searchTimer); window._searchTimer=setTimeout(()=>renderManageBookings(),600);" />
+          oninput="SESSION.bookingSearch=this.value;" onkeydown="if(event.key==='Enter'){renderManageBookings();}" />
+        <button class="btn-sm" onclick="renderManageBookings();" style="min-height:30px;padding:4px 10px;">🔍 Search</button>
         ${sq ? `<button class="outline btn-sm" onclick="SESSION.bookingSearch='';renderManageBookings();" style="min-height:30px;padding:4px 8px;">✕</button>` : ''}
       </div>
       <div class="section-title">Filters</div>
