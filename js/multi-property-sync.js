@@ -1,6 +1,6 @@
 /**
  * UHHS Multi-Property iCal Sync Manager
- * Real-time booking sync from all properties via Supabase proxy
+ * Real-time booking sync from all properties via CORS proxies (same as ical-sync.js)
  */
 
 (function() {
@@ -18,7 +18,14 @@
     syncInProgress: false,
     autoSyncInterval: null,
     syncFrequency: 30,
-    proxyUrl: 'https://uniquehavenhomesstay.com/.netlify/functions/ical-proxy', // Or your Supabase function URL
+
+    // Same proxies as ical-sync.js (with fallback)
+    CORS_PROXIES: [
+      'https://vxxmigdzimnrbbmkjzoa.supabase.co/functions/v1/ical-proxy?url=',
+      'https://corsproxy.io/?',
+      'https://api.codetabs.com/v1/proxy?quest=',
+      'https://api.allorigins.win/raw?url='
+    ],
 
     parseIcal(icalText) {
       const events = [];
@@ -129,30 +136,40 @@
       };
     },
 
+    // Use CORS proxies (same as ical-sync.js)
     async fetchPropertyIcal(property) {
-      try {
-        // Use Supabase proxy to bypass CORS
-        const proxyRequest = {
-          url: property.ical_url,
-          method: 'GET'
-        };
+      let lastError = null;
+      
+      for (let i = 0; i < this.CORS_PROXIES.length; i++) {
+        try {
+          const proxy = this.CORS_PROXIES[i];
+          const proxyUrl = proxy + encodeURIComponent(property.ical_url);
+          
+          const response = await fetch(proxyUrl, {
+            method: 'GET',
+            headers: { 'Accept': 'text/calendar, text/plain, */*' },
+          });
 
-        const response = await fetch('https://uniquehavenhomesstay.com/api/ical-proxy', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(proxyRequest)
-        });
+          if (!response.ok) {
+            lastError = `Proxy ${i + 1} returned ${response.status}`;
+            continue;
+          }
 
-        if (!response.ok) throw new Error(`Status ${response.status}`);
-        
-        const data = await response.json();
-        if (!data.ical) throw new Error('No iCal data in response');
-        
-        return this.parseIcal(data.ical);
-      } catch (err) {
-        console.warn(`⚠️ ${property.nickname}: ${err.message}`);
-        return [];
+          const icalText = await response.text();
+          
+          if (!icalText.includes('BEGIN:VCALENDAR')) {
+            lastError = `Proxy ${i + 1} returned invalid data`;
+            continue;
+          }
+
+          return this.parseIcal(icalText);
+        } catch (err) {
+          lastError = `Proxy ${i + 1}: ${err.message}`;
+          continue;
+        }
       }
+
+      throw new Error(`All proxies failed. Last: ${lastError}`);
     },
 
     async syncAllProperties() {
@@ -281,5 +298,5 @@
     }
   };
 
-  console.log('✅ Multi-Property Sync loaded (using proxy)');
+  console.log('✅ Multi-Property Sync loaded (using CORS proxies)');
 })();
