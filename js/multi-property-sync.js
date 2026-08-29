@@ -1,6 +1,6 @@
 /**
  * UHHS Multi-Property iCal Sync Manager
- * Real-time booking sync from all properties
+ * Real-time booking sync from all properties via Supabase proxy
  */
 
 (function() {
@@ -18,6 +18,7 @@
     syncInProgress: false,
     autoSyncInterval: null,
     syncFrequency: 30,
+    proxyUrl: 'https://uniquehavenhomesstay.com/.netlify/functions/ical-proxy', // Or your Supabase function URL
 
     parseIcal(icalText) {
       const events = [];
@@ -130,14 +131,24 @@
 
     async fetchPropertyIcal(property) {
       try {
-        const response = await fetch(property.ical_url, {
-          method: 'GET',
-          headers: { 'Accept': 'text/calendar' },
+        // Use Supabase proxy to bypass CORS
+        const proxyRequest = {
+          url: property.ical_url,
+          method: 'GET'
+        };
+
+        const response = await fetch('https://uniquehavenhomesstay.com/api/ical-proxy', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(proxyRequest)
         });
 
         if (!response.ok) throw new Error(`Status ${response.status}`);
-        const icalText = await response.text();
-        return this.parseIcal(icalText);
+        
+        const data = await response.json();
+        if (!data.ical) throw new Error('No iCal data in response');
+        
+        return this.parseIcal(data.ical);
       } catch (err) {
         console.warn(`⚠️ ${property.nickname}: ${err.message}`);
         return [];
@@ -270,5 +281,5 @@
     }
   };
 
-  console.log('✅ Multi-Property Sync loaded');
+  console.log('✅ Multi-Property Sync loaded (using proxy)');
 })();
