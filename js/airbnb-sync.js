@@ -233,7 +233,7 @@
       const code = (r['Confirmation Code'] || r['Confirmation code'] || r['Code'] || '').trim();
       if (type.toLowerCase().includes('payout') || !code) return;
 
-      const rawAmt = r['Amount'] || r['Earnings'] || r['Total Payout'] || '0';
+      const rawAmt = r['Earnings'] || r['Paid out'] || r['Paid Out'] || r['Net Earnings'] || r['Amount'] || r['Total Payout'] || '0';
       const numAmt = parseFloat(String(rawAmt).replace(/[^0-9\.]/g, '')) || 0;
       netAmountByCode[code] = (netAmountByCode[code] || 0) + numAmt;
     });
@@ -268,7 +268,7 @@
         const matchedRoomId = SYNC.getRoomIdByListing ? SYNC.getRoomIdByListing(listing) : matchListing(listing);
         const nights = checkIn && checkOut ? Math.max(Math.round((new Date(checkOut) - new Date(checkIn)) / 86400000), 1) : 1;
         
-        const rawEarn = r['Earnings'] || r['Amount'] || r['Total Payout'] || '0';
+        const rawEarn = r['Earnings'] || r['Paid out'] || r['Paid Out'] || r['Net Earnings'] || r['Amount'] || r['Total Payout'] || '0';
         const netAmt = netAmountByCode[code] || parseFloat(String(rawEarn).replace(/[^0-9\.]/g, '')) || 0;
 
         const adults = parseInt(r['# of adults'] || '1') || 1;
@@ -316,6 +316,7 @@
             phone: (missingPhone && r.phone) ? r.phone : matchedDb.phone,
             total_amount: (isTempAmount && r.amount > 0) ? r.amount : matchedDb.total_amount,
             guests: r.guests || 1,
+            booking_mode: 'Online-Airbnb',
             airbnb_confirmation_code: r.confirmation_code || matchedDb.airbnb_confirmation_code,
             notes: 'CSV Enriched: Details & Payout Auto-filled'
           };

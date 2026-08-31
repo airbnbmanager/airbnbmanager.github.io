@@ -160,23 +160,34 @@ window.ICAL_SYNC = {
             .neq('is_cancelled', true);
 
           const hasRealBooking = (existingBks || []).some(b => {
-            if (b.booking_id.startswith('BLK_')) return false;
+            if (b.booking_id.startsWith('BLK_')) return false;
             return (b.check_in < event.checkOut && b.check_out > event.checkIn);
           });
 
           if (!hasRealBooking) {
             const deterministicId = `BLK_${room.room_id}_${event.checkIn.replace(/-/g, '')}`;
-            await sb.from('guest_register').upsert({
-              booking_id: deterministicId,
-              guest_name: '🚫 Blocked (Fill Details)',
-              room_id: room.room_id,
-              check_in: event.checkIn,
-              check_out: event.checkOut,
-              booking_mode: 'Offline-Blocked',
-              payment_status: 'Unpaid',
-              total_amount: 0,
-              notes: `⚠️ BLOCKED on Airbnb (${event.summary}). Fill guest details when confirmed.`
-            }, { onConflict: 'booking_id', ignoreDuplicates: false });
+            // Safe Upsert: Check if already customized by user
+            const { data: existingEntry } = await sb.from('guest_register')
+              .select('booking_id, guest_name, total_amount')
+              .eq('booking_id', deterministicId)
+              .maybeSingle();
+
+            const isUntouchedOrEmpty = !existingEntry || 
+              (existingEntry.guest_name && (existingEntry.guest_name.includes('Blocked') || existingEntry.guest_name.includes('Airbnb Guest')) && (!existingEntry.total_amount || existingEntry.total_amount === 0));
+
+            if (isUntouchedOrEmpty) {
+              await sb.from('guest_register').upsert({
+                booking_id: deterministicId,
+                guest_name: '🚫 Blocked (Fill Details)',
+                room_id: room.room_id,
+                check_in: event.checkIn,
+                check_out: event.checkOut,
+                booking_mode: 'Offline-Blocked',
+                payment_status: 'Unpaid',
+                total_amount: 0,
+                notes: `⚠️ BLOCKED on Airbnb (${event.summary}). Fill guest details when confirmed.`
+              }, { onConflict: 'booking_id' });
+            }
           }
           continue;
         }
