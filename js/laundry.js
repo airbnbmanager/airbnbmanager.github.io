@@ -461,17 +461,23 @@ window.saveLaundry = async function() {
   let total = 0;
   
   rows.forEach(row => {
-    const itemId = row.querySelector('.laundry-item-select').value;
+    const itemIdRaw = row.querySelector('.laundry-item-select').value;
     const qty = parseInt(row.querySelector('.laundry-qty').value) || 0;
-    const rate = parseFloat(row.querySelector('.laundry-rate').value) || 0;
-    if (itemId && qty > 0 && rate > 0) {
-      items.push({ item_id: parseInt(itemId), quantity: qty, rate });
-      total += qty * rate;
+    let rate = parseFloat(row.querySelector('.laundry-rate').value) || 0;
+    const subtotalInput = parseFloat(row.querySelector('.laundry-subtotal').value) || 0;
+    // If user typed only subtotal (bill mode), derive rate
+    if (rate === 0 && qty > 0 && subtotalInput > 0) rate = subtotalInput / qty;
+    const subtotal = subtotalInput > 0 ? subtotalInput : (qty * rate);
+    if (itemIdRaw && itemIdRaw !== '__new__' && qty > 0 && subtotal > 0) {
+      items.push({ item_id: parseInt(itemIdRaw), quantity: qty, rate: rate, subtotal: subtotal });
+      total += subtotal;
     }
   });
   
+  console.log('[Laundry Save] items:', items, 'total:', total);
+  
   if (items.length === 0) {
-    document.getElementById('lErr').innerHTML = '<div class="error">Add at least 1 item</div>';
+    document.getElementById('lErr').innerHTML = '<div class="error">Add at least 1 valid item (item, qty, rate/total required)</div>';
     return;
   }
   
@@ -504,14 +510,19 @@ window.saveLaundry = async function() {
   }).select().single();
   
   if (e1) {
-    document.getElementById('lErr').innerHTML = '<div class="error">' + e1.message + '</div>';
+    console.error('[Laundry] record insert failed:', e1);
+    document.getElementById('lErr').innerHTML = '<div class="error">Record: ' + e1.message + '</div>';
     return;
   }
   
   const itemsToInsert = items.map(i => ({ ...i, record_id: rec.id }));
+  console.log('[Laundry] inserting items:', itemsToInsert);
   const { error: e2 } = await sb.from('laundry_record_items').insert(itemsToInsert);
   
   if (e2) {
+    console.error('[Laundry] items insert failed:', e2, itemsToInsert);
+    // rollback record so it doesn't orphan
+    await sb.from('laundry_records').delete().eq('id', rec.id);
     document.getElementById('lErr').innerHTML = '<div class="error">Items: ' + e2.message + '</div>';
     return;
   }
@@ -691,12 +702,15 @@ window.updateLaundry = async function() {
   let total = 0;
   
   rows.forEach(row => {
-    const itemId = row.querySelector('.laundry-item-select').value;
+    const itemIdRaw = row.querySelector('.laundry-item-select').value;
     const qty = parseInt(row.querySelector('.laundry-qty').value) || 0;
-    const rate = parseFloat(row.querySelector('.laundry-rate').value) || 0;
-    if (itemId && itemId !== '__new__' && qty > 0 && rate > 0) {
-      items.push({ record_id: id, item_id: parseInt(itemId), quantity: qty, rate });
-      total += qty * rate;
+    let rate = parseFloat(row.querySelector('.laundry-rate').value) || 0;
+    const subtotalInput = parseFloat(row.querySelector('.laundry-subtotal').value) || 0;
+    if (rate === 0 && qty > 0 && subtotalInput > 0) rate = subtotalInput / qty;
+    const subtotal = subtotalInput > 0 ? subtotalInput : (qty * rate);
+    if (itemIdRaw && itemIdRaw !== '__new__' && qty > 0 && subtotal > 0) {
+      items.push({ record_id: id, item_id: parseInt(itemIdRaw), quantity: qty, rate: rate, subtotal: subtotal });
+      total += subtotal;
     }
   });
   
