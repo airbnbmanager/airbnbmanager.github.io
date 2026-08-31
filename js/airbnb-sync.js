@@ -49,6 +49,16 @@
     return dt.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
   }
 
+
+  // CSV Earnings = after 3% host service fee, BEFORE 5% IN tax
+  // Tax is 5% of pre-service-fee amount, so:
+  // You earn = Earnings * 0.92 / 0.97
+  function csvEarningsToYouEarn(earnings) {
+    const e = Number(earnings) || 0;
+    if (e <= 0) return 0;
+    return Math.round(e * 0.92 / 0.97 * 100) / 100;
+  }
+
   // ─── CSV parser ───
   function parseCSV(text) {
     const lines = text.split(/\r?\n/).filter(l => l.trim());
@@ -144,8 +154,9 @@
     if (csvBk.check_out !== dbBk.check_out) {
       issues.push({ field: 'check_out', label: 'Check-out', csv: csvBk.check_out, db: dbBk.check_out });
     }
-    if (Math.abs((csvBk.amount || 0) - (dbBk.total_amount || 0)) > 10) {
-      issues.push({ field: 'amount', label: 'Amount', csv: csvBk.amount, db: dbBk.total_amount || 0 });
+    const csvYouEarn = csvEarningsToYouEarn(csvBk.amount || 0);
+    if (Math.abs(csvYouEarn - (dbBk.total_amount || 0)) > 10) {
+      issues.push({ field: 'amount', label: 'Amount', csv: csvYouEarn, db: dbBk.total_amount || 0 });
     }
     if (csvBk.matched_room_id && dbBk.room_id && csvBk.matched_room_id !== dbBk.room_id) {
       issues.push({ field: 'room', label: 'Property', csv: csvBk.matched_room_id, db: dbBk.room_id });
@@ -314,7 +325,7 @@
           const updates = {
             guest_name: (isTempName && r.guest_name) ? r.guest_name : matchedDb.guest_name,
             phone: (missingPhone && r.phone) ? r.phone : matchedDb.phone,
-            total_amount: (isTempAmount && r.amount > 0) ? Math.round(r.amount * 0.95 * 100) / 100 : matchedDb.total_amount,  // TDS applied
+            total_amount: (isTempAmount && r.amount > 0) ? csvEarningsToYouEarn(r.amount) : matchedDb.total_amount,  // You earn = Earnings*0.92/0.97
             guests: r.guests || 1,
             booking_mode: 'Online-Airbnb',
             airbnb_confirmation_code: r.confirmation_code || matchedDb.airbnb_confirmation_code,
@@ -397,13 +408,13 @@
       check_in_time: '14:00',
       check_out_time: '11:00',
       checkout_confirmed: true,
-      total_amount: Math.round(r.amount * 0.95 * 100) / 100,  // TDS: 5% deduction
+      total_amount: csvEarningsToYouEarn(r.amount),  // You earn = Earnings*0.92/0.97
       per_day_rate: r.nights > 0 ? Math.round(r.amount / r.nights) : r.amount,
       gross_amount: r.gross,
       platform_fee: (r.gross || 0) - (r.amount || 0),
       airbnb_service_fee: r.service_fee || 0,
       airbnb_cleaning_fee: r.cleaning_fee || 0,
-      airbnb_net_payout: r.amount,
+      airbnb_net_payout: csvEarningsToYouEarn(r.amount),
       payment_status: 'Paid',
       notes: noteBits.join(' | '),
       booking_id: bkId,
@@ -452,7 +463,7 @@
     if (field === 'check_in') updateFields.check_in = r.check_in;
     if (field === 'check_out') updateFields.check_out = r.check_out;
     if (field === 'amount') {
-      updateFields.total_amount = Math.round(r.amount * 0.95 * 100) / 100;  // TDS: 5% deduction
+      updateFields.total_amount = csvEarningsToYouEarn(r.amount);  // You earn = Earnings*0.92/0.97
       updateFields.per_day_rate = r.nights > 0 ? Math.round(r.amount / r.nights) : r.amount;
     }
     if (field === 'room') { updateFields.room_id = r.matched_room_id; updateFields.source_room_id = r.matched_room_id; }
@@ -675,7 +686,7 @@ window.addAllNewBookings = async function() {
         .in('booking_mode', ['Online-Airbnb', 'Offline-Blocked'])
         .limit(1);
       
-      const netAmount = r.amount || 0;
+      const netAmount = csvEarningsToYouEarn(r.amount);  // You earn = Earnings*0.92/0.97
       const grossAmount = r.gross || r.gross_earnings || netAmount;
       // Calculate per-day rate
       const checkInDate = new Date(r.check_in);
@@ -877,7 +888,7 @@ console.log('✅ addAllNewBookings loaded');
           check_out: checkOut,
           room_id: roomId,
           listing_name: listing,
-          total_amount: earnings,
+          total_amount: csvEarningsToYouEarn(earnings),
           guests: guestCount,
           status: status
         });
