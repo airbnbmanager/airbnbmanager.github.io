@@ -469,7 +469,7 @@ window.saveLaundry = async function() {
     if (rate === 0 && qty > 0 && subtotalInput > 0) rate = subtotalInput / qty;
     const subtotal = subtotalInput > 0 ? subtotalInput : (qty * rate);
     if (itemIdRaw && itemIdRaw !== '__new__' && qty > 0 && subtotal > 0) {
-      items.push({ item_id: parseInt(itemIdRaw), quantity: qty, rate: rate, subtotal: subtotal });
+      items.push({ item_id: parseInt(itemIdRaw), quantity: qty, rate: rate });
       total += subtotal;
     }
   });
@@ -709,7 +709,7 @@ window.updateLaundry = async function() {
     if (rate === 0 && qty > 0 && subtotalInput > 0) rate = subtotalInput / qty;
     const subtotal = subtotalInput > 0 ? subtotalInput : (qty * rate);
     if (itemIdRaw && itemIdRaw !== '__new__' && qty > 0 && subtotal > 0) {
-      items.push({ record_id: id, item_id: parseInt(itemIdRaw), quantity: qty, rate: rate, subtotal: subtotal });
+      items.push({ record_id: id, item_id: parseInt(itemIdRaw), quantity: qty, rate: rate });
       total += subtotal;
     }
   });
