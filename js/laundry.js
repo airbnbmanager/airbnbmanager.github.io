@@ -36,7 +36,9 @@ window.renderLaundry = async function() {
   
   const currentMonth = window._laundryMonth || new Date().toISOString().slice(0, 7);
   const monthStart = currentMonth + '-01';
-  const monthEnd = new Date(parseInt(currentMonth.split('-')[0]), parseInt(currentMonth.split('-')[1]), 0).toISOString().slice(0, 10);
+  const [lYear, lMon] = currentMonth.split('-').map(Number);
+  const lastDayNum = new Date(lYear, lMon, 0).getDate();
+  const monthEnd = `${currentMonth}-${String(lastDayNum).padStart(2, '0')}`;
   
   const [{ data: records }, { data: items }, { data: rooms }, { data: recItems }, { data: allPayments }] = await Promise.all([
     sb.from('laundry_records').select('*').gte('record_date', monthStart).lte('record_date', monthEnd).order('record_date', { ascending: false }),

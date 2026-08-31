@@ -56,7 +56,12 @@
   function csvEarningsToYouEarn(earnings) {
     const e = Number(earnings) || 0;
     if (e <= 0) return 0;
+    // UHHS Account (No tax info): 5% TDS deduction
     return Math.round(e * 0.92 / 0.97 * 100) / 100;
+  } else {
+      // Standard RR / Tax info provided: 0.1% TDS (e.g. 16765.14 -> 16746.41)
+      return Math.round((e - (e * 0.001117)) * 100) / 100; // ~0.1% TDS deduction
+    }
   }
 
   // ─── CSV parser ───
