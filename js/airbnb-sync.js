@@ -314,7 +314,7 @@
           const updates = {
             guest_name: (isTempName && r.guest_name) ? r.guest_name : matchedDb.guest_name,
             phone: (missingPhone && r.phone) ? r.phone : matchedDb.phone,
-            total_amount: (isTempAmount && r.amount > 0) ? r.amount : matchedDb.total_amount,
+            total_amount: (isTempAmount && r.amount > 0) ? Math.round(r.amount * 0.95 * 100) / 100 : matchedDb.total_amount,  // TDS applied
             guests: r.guests || 1,
             booking_mode: 'Online-Airbnb',
             airbnb_confirmation_code: r.confirmation_code || matchedDb.airbnb_confirmation_code,
@@ -397,7 +397,7 @@
       check_in_time: '14:00',
       check_out_time: '11:00',
       checkout_confirmed: true,
-      total_amount: r.amount,
+      total_amount: Math.round(r.amount * 0.95 * 100) / 100,  // TDS: 5% deduction
       per_day_rate: r.nights > 0 ? Math.round(r.amount / r.nights) : r.amount,
       gross_amount: r.gross,
       platform_fee: (r.gross || 0) - (r.amount || 0),
@@ -452,7 +452,7 @@
     if (field === 'check_in') updateFields.check_in = r.check_in;
     if (field === 'check_out') updateFields.check_out = r.check_out;
     if (field === 'amount') {
-      updateFields.total_amount = r.amount;
+      updateFields.total_amount = Math.round(r.amount * 0.95 * 100) / 100;  // TDS: 5% deduction
       updateFields.per_day_rate = r.nights > 0 ? Math.round(r.amount / r.nights) : r.amount;
     }
     if (field === 'room') { updateFields.room_id = r.matched_room_id; updateFields.source_room_id = r.matched_room_id; }
