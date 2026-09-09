@@ -170,19 +170,56 @@ window.renderAddReimbursement = async function() {
     </div>
     
     
+    <!-- 💳 Clean 3-Option Payment Source Dropdown -->
     <div class="card" style="padding:16px; margin-top:14px; border:1.5px solid #0d6efd; background:#f8fafc; border-radius:10px;">
       <div class="form-group" style="margin:0;">
         <label style="font-weight:700; font-size:14px; color:#1e293b; display:block; margin-bottom:8px;">
           💳 Payment Source / Account *
         </label>
-        <select id="reimbPaymentSource" style="width:100%; padding:10px 12px; font-size:14px; font-weight:600; border:1.5px solid #0d6efd; border-radius:8px; background:#ffffff; color:#0f172a;">
+        <select id="reimbPaymentSource" name="payment_source" style="width:100%; padding:10px 12px; font-size:14px; font-weight:600; border:1.5px solid #0d6efd; border-radius:8px; background:#ffffff; color:#0f172a;">
           <option value="COMPANY" selected>🏢 COMPANY (Guest Rent / Cash in Hand)</option>
           <option value="UHHS-OD">🏦 UHHS-OD (Overdraft Account)</option>
           <option value="FIROZ">👤 FIROZ (Direct Personal)</option>
         </select>
       </div>
     </div>
-iv>
+
+        <div style="margin-top:6px;" id="paySourceOptions">
+          <label style="display:flex;align-items:center;gap:6px;cursor:pointer;margin-bottom:6px;">
+            <input type="radio" name="paySource" value="own_money" checked onchange="onPaySourceChange()"> 
+            <span>💰 My Pocket (will claim later)</span>
+          </label>
+          <label style="display:flex;align-items:center;gap:6px;cursor:pointer;margin-bottom:6px;">
+            <input type="radio" name="paySource" value="uhhs_od" onchange="onPaySourceChange()"> 
+            <span>🏦 UHHS-OD Account (Online Balance)</span>
+          </label>
+          <label style="display:flex;align-items:center;gap:6px;cursor:pointer;margin-bottom:6px;" id="splitOption">
+            <input type="radio" name="paySource" value="split" onchange="onPaySourceChange()"> 
+            <span>🔀 Split: Company cash + Own money</span>
+          </label>
+          <label style="display:flex;align-items:center;gap:6px;cursor:pointer;margin-bottom:6px;" id="companyCashOption">
+            <input type="radio" name="paySource" value="company_cash" onchange="onPaySourceChange()"> 
+            <span>🏢 Company Cash (from my in-hand)</span>
+          </label>
+          <label style="display:flex;align-items:center;gap:6px;cursor:pointer;margin-bottom:6px;">
+            <input type="radio" name="paySource" value="company_upi" onchange="onPaySourceChange()"> 
+            <span>📱 Company UPI</span>
+          </label>
+          <label style="display:flex;align-items:center;gap:6px;cursor:pointer;">
+            <input type="radio" name="paySource" value="company_advance" onchange="onPaySourceChange()">
+            <span>🏦 Company Advance</span>
+          </label>
+        </div>
+        <div id="splitPreview" style="display:none;margin-top:10px;padding:10px;background:#FEF3C7;border-radius:6px;font-size:12px;"></div>
+        <div id="advanceDropdownWrap" style="display:none;margin-top:10px;">
+          <select id="rAdvanceId" style="width:100%;padding:8px;">
+            <option value="">-- Select active advance --</option>
+          </select>
+        </div>
+      </div>
+      <button onclick="saveReimbursement()" style="width:100%;">💾 Save Expense</button>
+      <div id="rErr"></div>
+    </div>
   `, 'reimbursements');
   
   setupReimbPhotoInput('rPhotoCam', 'rPhotoGal', 'rPhotoPreview');
@@ -309,7 +346,7 @@ window.saveReimbursement = async function() {
   }
   
   const { data: newR, error } = await sb.from('reimbursements').insert({
-    payment_source: document.getElementById('reimbPaymentSource')?.value || 'COMPANY',
+    payment_source: finalSource,
     company_advance_id: advanceId,
     consumed_payment_ids: paymentIdsToConsume.length > 0 ? paymentIdsToConsume.map(String) : null,
     company_portion: companyPortionAmt,
@@ -561,7 +598,7 @@ window.updateReimbursement = async function() {
   const advanceId = paySource === 'company_advance' ? (parseInt(document.getElementById('rAdvanceId')?.value) || null) : null;
   
   const updateObj = {
-    payment_source: document.getElementById('reimbPaymentSource')?.value || 'COMPANY',
+    payment_source: paySource,
     company_advance_id: advanceId,
     expense_date: date,
     category: cat,
