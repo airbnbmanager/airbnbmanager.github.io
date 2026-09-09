@@ -53,9 +53,9 @@ async function renderManageEmployees() {
         </div>
       </div>
       <div style="display:flex;gap:8px;margin-top:10px;">
-        <button class="${filter === 'Active' ? '' : 'secondary'} btn-sm" onclick="window._empFilterStatus='Active';renderManageEmployees()">🟢 Active (${activeCount})</button>
-        <button class="${filter === 'Inactive' ? '' : 'secondary'} btn-sm" onclick="window._empFilterStatus='Inactive';renderManageEmployees()">🔴 Disabled (${inactiveCount})</button>
-        <button class="${filter === 'All' ? '' : 'secondary'} btn-sm" onclick="window._empFilterStatus='All';renderManageEmployees()">📋 All (${(emps || []).length})</button>
+        <button class="${filter === 'Active' ? '' : 'secondary'} btn-sm" onclick="window._empFilterStatus='Active';renderManageEmployees()" style="${filter === 'Active' ? 'background:#059669;color:#fff;font-weight:700;' : ''}">🟢 Active (${activeCount})</button>
+        <button class="${filter === 'Inactive' ? '' : 'secondary'} btn-sm" onclick="window._empFilterStatus='Inactive';renderManageEmployees()" style="${filter === 'Inactive' ? 'background:#DC2626;color:#fff;font-weight:700;' : (inactiveCount > 0 ? 'border:1px solid #DC2626;color:#DC2626;font-weight:700;' : '')}">🔴 Disabled (${inactiveCount})</button>
+        <button class="${filter === 'All' ? '' : 'secondary'} btn-sm" onclick="window._empFilterStatus='All';renderManageEmployees()" style="${filter === 'All' ? 'background:#4F46E5;color:#fff;font-weight:700;' : ''}">📋 All (${(emps || []).length})</button>
       </div>
     </div>
     <div class="card"><div class="table-wrap"><table>
@@ -92,18 +92,15 @@ async function renderManageEmployees() {
 
 window.toggleEmpStatus = async function(empId, name, currentlyActive) {
   const newStatus = currentlyActive ? 'Inactive' : 'Active';
-  const newIsActive = !currentlyActive;
   const actionText = currentlyActive ? 'DISABLE' : 'ENABLE';
 
   if (!confirm(`Are you sure you want to ${actionText} employee "${name}"?\n\n${currentlyActive ? '• Will NOT show in Advance, Salary, Attendance, or Expense forms.\n• Past history will NOT be deleted.' : '• Will be visible again in all forms.'}`)) {
     return;
   }
 
+  // Safe update: Only update existing 'status' column
   const { error } = await sb.from('employees').update({
-    status: newStatus,
-    is_active: newIsActive,
-    disabled_at: currentlyActive ? new Date().toISOString() : null,
-    disabled_by: currentlyActive ? (SESSION.displayName || SESSION.role) : null
+    status: newStatus
   }).eq('emp_id', empId);
 
   if (error) {

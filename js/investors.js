@@ -404,7 +404,7 @@ async function renderInvestorReport(investorId, roomId, month) {
     sb.from('rooms').select('*').eq('room_id', roomId).single(),
     sb.from('guest_register').select('*').eq('room_id', roomId).lte('check_in', monthEnd + 'T23:59:59').gte('check_out', monthStart).order('check_in'),
     sb.from('property_default_expenses').select('*').eq('room_id', roomId).order('expense_name'),
-    sb.from('expenses').select('*').eq('room_id', roomId).eq('month', monthShort),
+    sb.from('expenses').select('*, expense_categories(category_name)').eq('room_id', roomId).eq('month', monthShort),
     sb.from('payment_history').select('booking_id, amount'),
     sb.from('investor_properties').select('share_percent').eq('investor_id', investorId).eq('room_id', roomId).maybeSingle(),
   ]);
@@ -743,7 +743,7 @@ async function renderInvestorReport(investorId, roomId, month) {
               `).join('')
               : (expenses || []).map(e => `
                 <tr>
-                  <td style="padding:8px;border:1px solid #ccc;">${e.expense_categories?.category_name || '-'}</td>
+                  <td style="padding:8px;border:1px solid #ccc;">${e.expense_categories?.category_name || e.notes || e.category_id || 'Expense'}</td>
                   <td style="padding:8px;border:1px solid #ccc;text-align:right;">₹${(e.amount || 0).toLocaleString('en-IN')}</td>
                 </tr>
               `).join('')}
@@ -843,7 +843,7 @@ async function renderInvestorReport(investorId, roomId, month) {
           <div><strong style="color:#fff;">Report Date:</strong> ${today}</div>
         </div>
         <div style="font-size:10px;color:rgba(255,255,255,0.5);margin-top:8px;">
-          🌐 uniquehavenhomesstay.com
+          🌐 uniquehavenhomesstay.com · Developed by Praveen Singh
         </div>
       </div>
     </div>
@@ -1184,7 +1184,6 @@ function printInvestorReport(investorName, propertyName, monthYear) {
   const cleanName = (str) => (str || '').replace(/[^a-zA-Z0-9]/g, '_');
   const filename = `${cleanName(investorName)}_${cleanName(propertyName)}_${cleanName(monthYear)}_Report`;
 
-  // Get the report element from current page
   const reportEl = document.querySelector('.report-doc');
   if (!reportEl) {
     alert('Report not found. Please try again.');
@@ -1194,23 +1193,30 @@ function printInvestorReport(investorName, propertyName, monthYear) {
   const reportHTML = reportEl.outerHTML;
   const today = new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
 
-  // Build clean HTML for new window
   const html = `<!DOCTYPE html>
 <html>
 <head>
   <meta charset="UTF-8">
   <title>${filename}</title>
   <style>
-    @page { size: A4; margin: 15mm 12mm; }
-    * { box-sizing: border-box; }
+    @page {
+      size: A4 portrait;
+      margin: 0; /* Hides default browser about:blank header/footer */
+    }
+    * {
+      box-sizing: border-box !important;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+      color-adjust: exact !important;
+    }
     body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
       margin: 0;
-      padding: 20px;
-      background: #fff;
-      color: #222;
-      -webkit-print-color-adjust: exact;
-      print-color-adjust: exact;
+      padding: 10mm 12mm;
+      background: #fff !important;
+      color: #111 !important;
+      font-size: 11px;
+      line-height: 1.35;
     }
     .report-doc {
       max-width: 100% !important;
@@ -1219,21 +1225,70 @@ function printInvestorReport(investorName, propertyName, monthYear) {
       box-shadow: none !important;
       border: none !important;
       background: #fff !important;
+      border-radius: 0 !important;
     }
-    table { width: 100%; border-collapse: collapse; page-break-inside: avoid; }
-    tr { page-break-inside: avoid; }
-    h1 { font-size: 20pt; margin: 0 0 8px; }
-    h2 { font-size: 14pt; margin: 12px 0 6px; }
+    .report-doc > div:first-child {
+      padding: 16px 14px !important;
+      margin: 0 0 12px 0 !important;
+      border-radius: 6px !important;
+    }
+    .report-doc > div:first-child h1 {
+      font-size: 16px !important;
+      margin: 2px 0 !important;
+    }
+    .report-doc > div:first-child img {
+      width: 42px !important;
+      height: 42px !important;
+      margin-bottom: 4px !important;
+    }
+    .report-doc > div {
+      margin-bottom: 10px !important;
+      page-break-inside: avoid;
+    }
+    .report-doc div[style*="font-size:15px"] {
+      font-size: 12px !important;
+      padding: 4px 8px !important;
+      margin-bottom: 6px !important;
+    }
+    .report-doc table {
+      width: 100% !important;
+      border-collapse: collapse !important;
+      font-size: 10.5px !important;
+      margin-top: 4px !important;
+      page-break-inside: avoid;
+    }
+    .report-doc th, .report-doc td {
+      padding: 4px 6px !important;
+    }
+    .report-doc p {
+      margin: 4px 0 !important;
+      font-size: 10.5px !important;
+      line-height: 1.4 !important;
+    }
+    .report-doc div[style*="line-height:2"], 
+    .report-doc div[style*="line-height:1.8"],
+    .report-doc div[style*="line-height: 1.8"],
+    .report-doc div[style*="line-height: 2"] {
+      line-height: 1.4 !important;
+      font-size: 10.5px !important;
+    }
+    .report-doc > div:last-child {
+      padding: 12px 14px !important;
+      margin: 12px 0 0 0 !important;
+      border-radius: 6px !important;
+      page-break-inside: avoid;
+    }
     .footer-brand {
-      margin-top: 30px;
-      padding-top: 12px;
-      border-top: 1px solid #ddd;
-      text-align: center;
-      font-size: 10pt;
-      color: #666;
+      margin-top: 10px !important;
+      padding-top: 6px !important;
+      border-top: 1px solid #ddd !important;
+      text-align: center !important;
+      font-size: 9px !important;
+      color: #666 !important;
+      page-break-inside: avoid;
     }
     @media print {
-      body { padding: 0; }
+      body { padding: 8mm 10mm !important; }
       .no-print { display: none !important; }
     }
   </style>
@@ -1241,13 +1296,13 @@ function printInvestorReport(investorName, propertyName, monthYear) {
 <body>
   ${reportHTML}
   <div class="footer-brand">
-    Report generated on ${today} · Website developed by Praveen Singh
+    Report generated on ${today} · uniquehavenhomesstay.com · Developed by Praveen Singh
   </div>
   <script>
     window.onload = function() {
       setTimeout(function() {
         window.print();
-      }, 400);
+      }, 300);
     };
   </script>
 </body>
@@ -1407,7 +1462,7 @@ async function renderFriendsReport(investorId, roomId, month) {
           <div><strong style="color:#fff;">Report Date:</strong> ${today}</div>
         </div>
         <div style="font-size:10px;color:rgba(255,255,255,0.5);margin-top:8px;">
-          🌐 uniquehavenhomesstay.com
+          🌐 uniquehavenhomesstay.com · Developed by Praveen Singh
         </div>
       </div>
     </div>
