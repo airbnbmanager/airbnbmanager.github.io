@@ -8,7 +8,7 @@ window._claimsState = {
   toDate: new Date().toISOString().slice(0, 10),
   toTime: '23:59',
   moduleFilter: 'all',
-  statusFilter: 'claimed',
+  statusFilter: 'unclaimed',
   paidByFilter: 'all',
   selectedIds: new Set(),
   allData: [],
@@ -120,8 +120,10 @@ async function renderClaims() {
         <div>
           <label style="font-size:11px;font-weight:600;color:#64748B;">👤 Paid By (Payer)</label>
           <select id="cfPaidBy" onchange="updateClaimsFilter()" style="padding:6px;font-size:12px;width:100%;">
-            <option value="all">All Payers</option>
-            <option value="praveen" selected>Praveen Only</option>
+            <option value="all" selected>All Payers / Sources</option>
+            <option value="UHHS-OD">🏦 UHHS-OD Account</option>
+            <option value="COMPANY">🏢 COMPANY</option>
+            <option value="FIROZ">👤 FIROZ</option>
           </select>
         </div>
         <div>
@@ -278,7 +280,7 @@ async function loadClaimsData() {
         dateStr: r.expense_date || (r.created_at || '').slice(0, 10),
         description: r.description || r.notes || 'Daily Expense',
         vendorOrStaff: r.paid_to || '-',
-        paidBy: r.paid_by || 'Praveen',
+        paidBy: r.payment_source || r.paid_by || 'COMPANY',
         amount: Number(r.amount || 0),
         status: mapReimbStatus(r.status),
         photo: r.receipt_photo,
@@ -297,7 +299,7 @@ async function loadClaimsData() {
         dateStr: m.reported_date || (m.created_at || '').slice(0, 10),
         description: `${m.issue_type || 'Repair'}: ${(m.description || '').slice(0, 80)}`,
         vendorOrStaff: m.vendor_name || m.assigned_to || '-',
-        paidBy: m.paid_by || 'Praveen',
+        paidBy: m.payment_source || m.paid_by || 'COMPANY',
         amount: Number(m.cost || 0),
         status: mapLaundryMaintStatus(m.claim_status),
         photo: m.payment_photo || m.photo_before,
@@ -317,7 +319,7 @@ async function loadClaimsData() {
         dateStr: lp.payment_date || (lp.created_at || '').slice(0, 10),
         description: `Laundry Payment (${vName})`,
         vendorOrStaff: vName,
-        paidBy: lp.paid_by || 'Praveen',
+        paidBy: lp.payment_source || lp.paid_by || 'COMPANY',
         amount: Number(lp.amount || 0),
         status: mapLaundryMaintStatus(lp.claim_status),
         photo: lp.payment_photo || lp.bill_photo,
@@ -345,7 +347,7 @@ async function loadClaimsData() {
         dateStr: adv.date_given || (adv.created_at || '').slice(0, 10),
         description: `Advance to ${realName}: ${adv.reason || adv.notes || 'Given'}`,
         vendorOrStaff: `👤 ${realName}`,
-        paidBy: adv.paid_by || 'Praveen',
+        paidBy: adv.payment_source || adv.paid_by || 'COMPANY',
         amount: -Math.abs(advAmt),
         status: st,
         photo: null,

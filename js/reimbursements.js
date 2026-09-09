@@ -169,65 +169,33 @@ window.renderAddReimbursement = async function() {
       </datalist>
     </div>
     
-    <div class="card">
+        <div class="card">
       <div class="form-group">
-        <label>💰 Paid By</label>
-        <div id="rPaidByWrap"></div>
+        <label style="font-weight:700;font-size:14px;color:#1e293b;">💳 Payment Source / Account *</label>
+        <select id="rPaymentSource" style="width:100%;padding:10px 12px;font-size:14px;font-weight:600;border:1.5px solid #0d6efd;border-radius:8px;background:#ffffff;color:#0f172a;">
+          <option value="COMPANY">🏢 COMPANY (Guest Rent / Cash in Hand)</option>
+          <option value="UHHS-OD" selected>🏦 UHHS-OD (Overdraft Account)</option>
+          <option value="FIROZ">👤 FIROZ (Direct Personal)</option>
+        </select>
       </div>
-      <div class="form-group">
-          <label>📸 Receipt Photo</label>
-          <div style="display:flex;gap:8px;margin-bottom:8px;">
-            <button type="button" class="btn-sm" style="background:#3B82F6;color:#fff;padding:8px 14px;" onclick="document.getElementById('rPhotoCam').click()">📷 Camera</button>
-            <button type="button" class="btn-sm" style="background:#6B7280;color:#fff;padding:8px 14px;" onclick="document.getElementById('rPhotoGal').click()">🖼️ Gallery</button>
-          </div>
-          <input id="rPhotoCam" type="file" accept="image/*" capture="environment" style="display:none;">
-          <input id="rPhotoGal" type="file" accept="image/*,image/heic,image/heif,.heic,.heif" style="display:none;">
+
+      <div class="form-group" style="margin-top:14px;">
+        <label>📸 Receipt Photo</label>
+        <div style="display:flex;gap:8px;margin-bottom:8px;">
+          <button type="button" class="btn-sm" style="background:#3B82F6;color:#fff;padding:8px 14px;" onclick="document.getElementById('rPhotoCam').click()">📷 Camera</button>
+          <button type="button" class="btn-sm" style="background:#6B7280;color:#fff;padding:8px 14px;" onclick="document.getElementById('rPhotoGal').click()">🖼️ Gallery</button>
+        </div>
+        <input id="rPhotoCam" type="file" accept="image/*" capture="environment" style="display:none;">
+        <input id="rPhotoGal" type="file" accept="image/*,image/heic,image/heif,.heic,.heif" style="display:none;">
         <div id="rPhotoPreview" style="margin-top:8px;"></div>
       </div>
+
       <div class="form-group">
         <label>Notes</label>
         <textarea id="rNotes" rows="2" placeholder="Optional notes..."></textarea>
       </div>
-      
-      <div id="cashAvailabilityBox" class="form-group" style="padding:12px;background:#F0F7FF;border-radius:8px;border:1px solid #3B82F6;">
-        <label style="font-weight:600;">💵 Payment Source Selection</label>
-        <div id="cashInfo" style="margin:8px 0;padding:10px;background:#fff;border-radius:6px;font-size:13px;">
-          <div style="color:#666;">Loading available cash...</div>
-        </div>
-        <div style="margin-top:6px;" id="paySourceOptions">
-          <label style="display:flex;align-items:center;gap:6px;cursor:pointer;margin-bottom:6px;">
-            <input type="radio" name="paySource" value="own_money" checked onchange="onPaySourceChange()"> 
-            <span>💰 My Pocket (will claim later)</span>
-          </label>
-          <label style="display:flex;align-items:center;gap:6px;cursor:pointer;margin-bottom:6px;">
-            <input type="radio" name="paySource" value="uhhs_od" onchange="onPaySourceChange()"> 
-            <span>🏦 UHHS-OD Account (Online Balance)</span>
-          </label>
-          <label style="display:flex;align-items:center;gap:6px;cursor:pointer;margin-bottom:6px;" id="splitOption">
-            <input type="radio" name="paySource" value="split" onchange="onPaySourceChange()"> 
-            <span>🔀 Split: Company cash + Own money</span>
-          </label>
-          <label style="display:flex;align-items:center;gap:6px;cursor:pointer;margin-bottom:6px;" id="companyCashOption">
-            <input type="radio" name="paySource" value="company_cash" onchange="onPaySourceChange()"> 
-            <span>🏢 Company Cash (from my in-hand)</span>
-          </label>
-          <label style="display:flex;align-items:center;gap:6px;cursor:pointer;margin-bottom:6px;">
-            <input type="radio" name="paySource" value="company_upi" onchange="onPaySourceChange()"> 
-            <span>📱 Company UPI</span>
-          </label>
-          <label style="display:flex;align-items:center;gap:6px;cursor:pointer;">
-            <input type="radio" name="paySource" value="company_advance" onchange="onPaySourceChange()">
-            <span>🏦 Company Advance</span>
-          </label>
-        </div>
-        <div id="splitPreview" style="display:none;margin-top:10px;padding:10px;background:#FEF3C7;border-radius:6px;font-size:12px;"></div>
-        <div id="advanceDropdownWrap" style="display:none;margin-top:10px;">
-          <select id="rAdvanceId" style="width:100%;padding:8px;">
-            <option value="">-- Select active advance --</option>
-          </select>
-        </div>
-      </div>
-      <button onclick="saveReimbursement()" style="width:100%;">💾 Save Expense</button>
+
+      <button onclick="saveReimbursement()" style="width:100%;margin-top:10px;">💾 Save Expense</button>
       <div id="rErr"></div>
     </div>
   `, 'reimbursements');
@@ -934,3 +902,6 @@ window.claimAllPending = async function() {
 };
 
 console.log('✅ Reimbursements module v7 loaded (UHHS-OD / Company Cash / UPI)');
+
+window.loadAvailableCash = function() { return; };
+window.updateCashInfo = function() { return; };
