@@ -39,6 +39,7 @@ async function renderExpenses() {
   window._currentML = ml;
 
   renderShell(`
+    <div id="uhhs-od-balance-display" style="margin-bottom:12px;"></div>
     <div class="card">
       <h1>💹 Expenses & P&L</h1>
       <div class="sub">${ml}</div>
@@ -88,6 +89,33 @@ async function renderExpenses() {
             ).join('')}
           </select>
         </div>
+                <div class="form-group">
+          <label>Payment Source / Account <span class="warn">*</span></label>
+          <select id="expSource" required style="border: 1.5px solid #0d6efd; font-weight: 600;">
+            <option value="COMPANY">🏢 COMPANY (Guest Rent / Cash in Hand)</option>
+            <option value="UHHS-OD">🏦 UHHS-OD (Overdraft Account)</option>
+            <option value="FIROZ">👤 FIROZ (Direct Personal)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Category</label>
+                  <div class="form-group">
+          <label>Account / Source</label>
+          <select id="expSourceFilter" onchange="applyExpenseFilters()">
+            <option value="">All Accounts</option>
+            <option value="COMPANY">🏢 COMPANY</option>
+            <option value="UHHS-OD">🏦 UHHS-OD</option>
+            <option value="FIROZ">👤 FIROZ</option>
+          </select>
+        </div>
+                <div class="form-group">
+          <label>Payment Source / Account <span class="warn">*</span></label>
+          <select id="expSource" required style="border: 1.5px solid #0d6efd; font-weight: 600;">
+            <option value="COMPANY">🏢 COMPANY (Guest Rent / Cash in Hand)</option>
+            <option value="UHHS-OD">🏦 UHHS-OD (Overdraft Account)</option>
+            <option value="FIROZ">👤 FIROZ (Direct Personal)</option>
+          </select>
+        </div>
         <div class="form-group">
           <label>Category</label>
           <select id="expCatFilter" onchange="applyExpenseFilters()">
@@ -122,6 +150,7 @@ async function renderExpenses() {
   `, 'expenses');
 
   // Render table with all expenses by default
+  if (window.UHHSODManager) { window.UHHSODManager.calculateBalance(sb); }
   applyExpenseFilters();
 }
 
@@ -1016,6 +1045,8 @@ async function saveDefaultExpense() {
     room_id: roomId,
     expense_name: name,
     default_amount: amount,
+    payment_source: expSourceEdit,
+    payment_source: expSource,
     is_fixed: isFixed
   });
 
@@ -1093,6 +1124,8 @@ async function updateDefaultExpense(id) {
     room_id: roomId,
     expense_name: name,
     default_amount: amount,
+    payment_source: expSourceEdit,
+    payment_source: expSource,
     is_fixed: isFixed
   }).eq('id', id);
 
@@ -1411,6 +1444,7 @@ async function saveMonthlyExpenses() {
         // Update existing
         await sb.from('expenses').update({
           amount,
+    payment_source: expSource,
           category_id: catId || null,
           month: d.monthLabel,
           room_id: d.selRoom
@@ -1423,6 +1457,7 @@ async function saveMonthlyExpenses() {
           room_id: d.selRoom,
           month: d.monthLabel,
           amount,
+    payment_source: expSource,
           entry_date: new Date().toISOString().slice(0, 10),
           notes: `Monthly bulk entry`,
           created_by: SESSION.userId
