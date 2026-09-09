@@ -94,6 +94,7 @@ async function renderCAActive(tabs) {
         <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
           <div>
             <strong>💵 ₹${Number(a.amount_given).toLocaleString('en-IN')} from ${a.given_by}</strong>
+            <div style="margin-top:4px;">${window.UHHSODManager ? UHHSODManager.getBadge(a.payment_source) : ''}</div>
             <div style="font-size:12px;color:#666;margin-top:2px;">
               📅 ${a.advance_date} · To: ${a.given_to}${a.purpose ? ' · ' + a.purpose : ''}
             </div>
@@ -154,6 +155,14 @@ async function renderCANew(tabs) {
           <input id="caDate" type="date" value="${new Date().toISOString().slice(0,10)}">
         </div>
       </div>
+            <div class="form-group">
+        <label>Payment Source / Account <span class="warn">*</span></label>
+        <select id="caPaymentSource" style="border: 1.5px solid #0d6efd; font-weight: 600;">
+          <option value="COMPANY">🏢 COMPANY (Guest Rent / Cash in Hand)</option>
+          <option value="UHHS-OD" selected>🏦 UHHS-OD (Overdraft Account)</option>
+          <option value="FIROZ">👤 FIROZ (Direct Personal)</option>
+        </select>
+      </div>
       <div class="form-group">
         <label>Purpose / Notes</label>
         <textarea id="caPurpose" rows="2" placeholder="e.g. Weekly expenses, Maintenance work, etc."></textarea>
@@ -189,7 +198,8 @@ window.saveNewAdvance = async function() {
     given_by: givenBy,
     given_to: givenTo,
     purpose: purpose || null,
-    status: 'Active'
+    status: 'Active',
+    payment_source: document.getElementById('caPaymentSource')?.value || 'COMPANY'
   });
   
   if (error) { document.getElementById('caErr').innerHTML = '<div class="error">'+error.message+'</div>'; return; }
@@ -270,12 +280,13 @@ async function renderCAHistory(tabs) {
       <div class="sub">All advances (${(advances||[]).length})</div>
     </div>
     <div class="card"><div class="table-wrap"><table>
-      <thead><tr><th>Date</th><th>From</th><th>To</th><th>Given ₹</th><th>Spent ₹</th><th>Returned ₹</th><th>Status</th><th>Actions</th></tr></thead>
+      <thead><tr><th>Date</th><th>From</th><th>Account</th><th>To</th><th>Given ₹</th><th>Spent ₹</th><th>Returned ₹</th><th>Status</th><th>Actions</th></tr></thead>
       <tbody>
         ${(advances||[]).length === 0 ? '<tr><td colspan="8" style="text-align:center;padding:20px;color:#999;">No history</td></tr>' : ''}
         ${(advances||[]).map(a => `<tr>
           <td>${a.advance_date}</td>
           <td><strong>${a.given_by}</strong></td>
+          <td>${window.UHHSODManager ? UHHSODManager.getBadge(a.payment_source) : (a.payment_source || 'COMPANY')}</td>
           <td>${a.given_to}</td>
           <td>₹${Number(a.amount_given).toLocaleString('en-IN')}</td>
           <td>₹${Number(a.amount_spent||0).toLocaleString('en-IN')}</td>

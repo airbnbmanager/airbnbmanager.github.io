@@ -268,6 +268,22 @@ window.renderAddLaundry = async function() {
     
     <div class="card">
       <div class="form-grid">
+                <div class="form-group">
+          <label>Payment Source / Account <span class="warn">*</span></label>
+          <select id="lPaymentSource" style="border: 1.5px solid #0d6efd; font-weight: 600;">
+            <option value="COMPANY">🏢 COMPANY (Guest Rent / Cash in Hand)</option>
+            <option value="UHHS-OD">🏦 UHHS-OD (Overdraft Account)</option>
+            <option value="FIROZ">👤 FIROZ (Direct Personal)</option>
+          </select>
+        </div>
+                <div class="form-group">
+          <label>Payment Source / Account <span class="warn">*</span></label>
+          <select id="lPaymentSourceEdit" style="border: 1.5px solid #0d6efd; font-weight: 600;">
+            <option value="COMPANY" ${rec.payment_source === 'COMPANY' || !rec.payment_source ? 'selected' : ''}>🏢 COMPANY (Guest Rent / Cash in Hand)</option>
+            <option value="UHHS-OD" ${rec.payment_source === 'UHHS-OD' ? 'selected' : ''}>🏦 UHHS-OD (Overdraft Account)</option>
+            <option value="FIROZ" ${rec.payment_source === 'FIROZ' ? 'selected' : ''}>👤 FIROZ (Direct Personal)</option>
+          </select>
+        </div>
         <div class="form-group">
           <label>Payment Mode</label>
           <select id="lPayMode">
@@ -506,6 +522,8 @@ window.saveLaundry = async function() {
     total_amount: total,
     payment_mode: payMode,
     payment_status: paymentStatus,
+    payment_source: document.getElementById('lPaymentSourceEdit')?.value || 'COMPANY',
+    payment_source: document.getElementById('lPaymentSource')?.value || 'COMPANY',
     paid_amount: paidAmt,
     notes: notes,
     bill_photo: billPhotoPath
@@ -611,6 +629,22 @@ window.editLaundry = async function(id) {
     
     <div class="card">
       <div class="form-grid">
+                <div class="form-group">
+          <label>Payment Source / Account <span class="warn">*</span></label>
+          <select id="lPaymentSource" style="border: 1.5px solid #0d6efd; font-weight: 600;">
+            <option value="COMPANY">🏢 COMPANY (Guest Rent / Cash in Hand)</option>
+            <option value="UHHS-OD">🏦 UHHS-OD (Overdraft Account)</option>
+            <option value="FIROZ">👤 FIROZ (Direct Personal)</option>
+          </select>
+        </div>
+                <div class="form-group">
+          <label>Payment Source / Account <span class="warn">*</span></label>
+          <select id="lPaymentSourceEdit" style="border: 1.5px solid #0d6efd; font-weight: 600;">
+            <option value="COMPANY" ${rec.payment_source === 'COMPANY' || !rec.payment_source ? 'selected' : ''}>🏢 COMPANY (Guest Rent / Cash in Hand)</option>
+            <option value="UHHS-OD" ${rec.payment_source === 'UHHS-OD' ? 'selected' : ''}>🏦 UHHS-OD (Overdraft Account)</option>
+            <option value="FIROZ" ${rec.payment_source === 'FIROZ' ? 'selected' : ''}>👤 FIROZ (Direct Personal)</option>
+          </select>
+        </div>
         <div class="form-group">
           <label>Payment Mode</label>
           <select id="lPayMode">
@@ -752,6 +786,8 @@ window.updateLaundry = async function() {
     total_amount: total,
     payment_mode: payMode,
     payment_status: paymentStatus,
+    payment_source: document.getElementById('lPaymentSourceEdit')?.value || 'COMPANY',
+    payment_source: document.getElementById('lPaymentSource')?.value || 'COMPANY',
     paid_amount: paidAmt,
     notes: notes,
     bill_photo: billPhotoPath
@@ -829,6 +865,13 @@ window.addLaundryPayment = async function(recordId, dueAmount) {
         <div><strong>${rec.vendor_name}</strong> — ${rec.record_date}</div>
         <div style="color:#DC2626;margin-top:4px;">Due: <strong>₹${dueAmount.toLocaleString('en-IN')}</strong></div>
       </div>
+            <div class="form-group"><label>Payment Source / Account *</label>
+        <select id="lpPaymentSource" style="border: 1.5px solid #0d6efd; font-weight: 600;">
+          <option value="COMPANY">🏢 COMPANY (Guest Rent / Cash in Hand)</option>
+          <option value="UHHS-OD" selected>🏦 UHHS-OD (Overdraft Account)</option>
+          <option value="FIROZ">👤 FIROZ (Direct Personal)</option>
+        </select>
+      </div>
       <div class="form-group"><label>Amount ₹ *</label><input id="lpAmt" type="number" value="${dueAmount}" min="0"></div>
       <div class="form-group"><label>Payment Date *</label><input id="lpDate" type="date" value="${new Date().toISOString().slice(0,10)}"></div>
       <div class="form-group"><label>Mode</label>
@@ -904,6 +947,7 @@ window.saveLaundryPayment = async function(recordId) {
   const { error } = await sb.from('laundry_payments').insert({
     record_id: recordId,
     amount, payment_date: date, payment_mode: mode, notes,
+    payment_source: document.getElementById('lpPaymentSource')?.value || 'COMPANY',
     payment_photo: paymentPhotoPath
   });
   
@@ -1012,6 +1056,13 @@ window.editLaundryPayment = async function(paymentId, recordId) {
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
         <h2 style="margin:0;">✏️ Edit Payment</h2>
         <button onclick="this.closest('.modal-overlay').remove();showLaundryPayments(${recordId});" style="background:none;border:none;font-size:22px;cursor:pointer;">✕</button>
+      </div>
+            <div class="form-group"><label>Payment Source / Account *</label>
+        <select id="lpPaymentSource" style="border: 1.5px solid #0d6efd; font-weight: 600;">
+          <option value="COMPANY">🏢 COMPANY (Guest Rent / Cash in Hand)</option>
+          <option value="UHHS-OD" selected>🏦 UHHS-OD (Overdraft Account)</option>
+          <option value="FIROZ">👤 FIROZ (Direct Personal)</option>
+        </select>
       </div>
       <div class="form-group"><label>Amount ₹ *</label><input id="lpEditAmt" type="number" value="${pay.amount}" min="0"></div>
       <div class="form-group"><label>Payment Date *</label><input id="lpEditDate" type="date" value="${pay.payment_date}"></div>

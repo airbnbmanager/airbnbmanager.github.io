@@ -17,6 +17,8 @@ function cbNormDate(dStr) {
 }
 
 window.renderCashBook = async function() {
+  // Trigger live UHHS-OD balance load
+  if (window.UHHSODManager) { window.UHHSODManager.calculateBalance(sb); }
   renderShell('<div class="loading">Loading Cash Book...</div>', 'cashbook');
   
   const today = new Date().toISOString().slice(0, 10);
@@ -212,6 +214,8 @@ window.renderCashBook = async function() {
         <input type="date" id="cbCustomDate" value="${window._cbCustomDate || today}" onchange="cbSetCustomDate(this.value)" style="padding:7px;border:1px solid #ddd;border-radius:6px;font-size:13px;" />
       </div>
       
+            <!-- Dynamic Live UHHS-OD Account Balance display -->
+      <div id="uhhs-od-balance-display" style="margin-bottom:14px;"></div>
       <!-- Summary Cards -->
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-top:14px;">
         <div style="padding:14px;background:#FEF3C7;border-radius:10px;text-align:center;">
@@ -238,7 +242,8 @@ window.renderCashBook = async function() {
       
       <!-- Actions -->
       <div style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap;">
-        <button onclick="cbAddHolder()" style="padding:10px 16px;background:#3B82F6;color:#fff;border:none;border-radius:6px;font-weight:600;cursor:pointer;">➕ Add Holder</button>
+                <button onclick="cbAddHolder()" style="padding:10px 16px;background:#3B82F6;color:#fff;border:none;border-radius:6px;font-weight:600;cursor:pointer;">➕ Add Holder</button>
+        <button onclick="cbDepositToODModal()" style="padding:10px 16px;background:#10B981;color:#fff;border:none;border-radius:6px;font-weight:700;cursor:pointer;">📥 Deposit to UHHS-OD Account</button>
         <button onclick="manageCashHolders()" style="padding:10px 16px;background:#7C3AED;color:#fff;border:none;border-radius:6px;font-weight:600;cursor:pointer;">⚙️ Manage Holders</button>
         <button onclick="cbBulkHandoverAllModal()" style="padding:10px 16px;background:#059669;color:#fff;border:none;border-radius:6px;font-weight:700;cursor:pointer;">⚡ Handover All Cash to Firoz/Company</button>
       </div>
