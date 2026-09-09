@@ -240,6 +240,7 @@ window.renderCashBook = async function() {
       <div style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap;">
         <button onclick="cbAddHolder()" style="padding:10px 16px;background:#3B82F6;color:#fff;border:none;border-radius:6px;font-weight:600;cursor:pointer;">➕ Add Holder</button>
         <button onclick="manageCashHolders()" style="padding:10px 16px;background:#7C3AED;color:#fff;border:none;border-radius:6px;font-weight:600;cursor:pointer;">⚙️ Manage Holders</button>
+        <button onclick="cbBulkHandoverAllModal()" style="padding:10px 16px;background:#059669;color:#fff;border:none;border-radius:6px;font-weight:700;cursor:pointer;">⚡ Handover All Cash to Firoz/Company</button>
       </div>
     </div>
     
@@ -452,9 +453,9 @@ function cbCardV2(h) {
         <div style="margin-top:8px;font-size:11px;color:#9CA3AF;font-style:italic;">No cash transactions in this period</div>
       `}
       
-      ${h.balance > 0 && h.type !== 'final' ? `
-        <button onclick="cbHandover('${h.name}', ${h.balance})" style="margin-top:10px;padding:10px;background:#059669;color:#fff;border:none;border-radius:6px;font-weight:700;cursor:pointer;width:100%;">
-          🤝 Handover ₹${h.balance.toLocaleString('en-IN')}
+      ${Math.abs(h.balance) > 0 && h.type !== 'final' ? `
+        <button onclick="cbHandover('${h.name}', ${h.balance})" style="margin-top:10px;padding:10px;background:${h.balance > 0 ? '#059669' : '#DC2626'};color:#fff;border:none;border-radius:6px;font-weight:700;cursor:pointer;width:100%;">
+          🤝 Handover ${h.balance > 0 ? '₹' + h.balance.toLocaleString('en-IN') : 'Balance (₹' + h.balance.toLocaleString('en-IN') + ')'}
         </button>
       ` : ''}
     </div>
@@ -503,7 +504,7 @@ window.cbHandover = async function(fromPerson, maxAmount) {
       
       <div class="form-group">
         <label>Amount ₹ *</label>
-        <input id="cbAmount" type="number" value="${maxAmount}" max="${maxAmount}" />
+        <input id="cbAmount" type="number" value="${maxAmount}"  />
       </div>
       
       <div class="form-group">
@@ -526,23 +527,35 @@ window.cbHandover = async function(fromPerson, maxAmount) {
 
 window.cbSaveHandover = async function(fromPerson) {
   const toPerson = document.getElementById('cbToPerson').value;
-  const amount = parseFloat(document.getElementById('cbAmount').value) || 0;
+  let rawAmount = parseFloat(document.getElementById('cbAmount').value) || 0;
   const date = document.getElementById('cbDate').value;
   const notes = document.getElementById('cbNotes').value.trim();
   
-  if (amount <= 0) { alert('⚠️ Amount required'); return; }
-  
+  if (rawAmount === 0 || isNaN(rawAmount)) { alert('⚠️ Valid non-zero amount required'); return; }
+
+  let actualFrom = fromPerson;
+  let actualTo = toPerson;
+  let posAmount = Math.abs(rawAmount);
+
+  // If negative amount (e.g. Praveen -500), flip direction so DB amount is positive!
+  if (rawAmount < 0) {
+    actualFrom = toPerson;
+    actualTo = fromPerson;
+  }
+
   const { error } = await sb.from('cash_handovers').insert({
-    from_person: fromPerson,
-    to_person: toPerson,
-    amount, handover_date: date, notes: notes ? ('Cash Transfer | ' + notes) : 'Cash Transfer',
+    from_person: actualFrom,
+    to_person: actualTo,
+    amount: posAmount,
+    handover_date: date,
+    notes: notes ? ('Cash Transfer | ' + notes) : 'Cash Settlement',
     created_by: SESSION?.userId || null
   });
-  
+
   if (error) { alert('❌ Error: ' + error.message); return; }
-  
+
   document.querySelector('.modal-overlay')?.remove();
-  if (window.fsn?.success) fsn.success('Saved', '✅ Handover recorded');
+  if (window.fsn?.success) fsn.success('Saved', '✅ Handover recorded & balance settled to ₹0');
   renderCashBook();
 };
 
