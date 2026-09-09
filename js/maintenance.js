@@ -115,7 +115,7 @@ async function renderMaintenanceLog() {
           const statusClass = status === 'Resolved' || status === 'Verified' ? 'green' : status === 'In Progress' ? 'yellow' : 'red';
           const priority = l.priority || 'Normal';
           return `<tr>
-                         <td><span class="badge" style="font-size:10px;">${priority.startsWith('🔴')?'🔴':priority.startsWith('🟡')?'🟡':priority.startsWith('🟢')?'🟢':'🔵'}</span></td>
+            <td><span class="badge" style="font-size:10px;">${priority.startsWith('🔴')?'🔴':priority.startsWith('🟡')?'🟡':priority.startsWith('🟢')?'🟢':'🔵'}</span></td>
             <td>${window.UHHSODManager ? UHHSODManager.getBadge(l.payment_source) : (l.payment_source || 'COMPANY')}</td>
             <td>${propLabel(roomMap[l.room_id]) || l.room_id || 'General'}</td>
             <td><span class="badge blue" style="font-size:10px;">${l.issue_type || '-'}</span></td>
@@ -427,8 +427,8 @@ async function saveMaintenance() {
   }
   
   const { data: newMaint, error } = await sb.from('maintenance_log').insert({
-        payment_source: document.getElementById('mPaymentSource')?.value || 'COMPANY',
-    room_id:
+    payment_source: document.getElementById('mPaymentSource')?.value || 'COMPANY',
+    room_id: document.getElementById('mRoom').value || null,
     issue_type: getMaintType(),
     priority: document.getElementById('mPriority').value,
     description: desc,
@@ -516,22 +516,6 @@ async function editMaintenance(id) {
       <div id="maintPaymentSection" style="display:${(m.cost || 0) > 0 ? 'block' : 'none'};padding:12px;background:#FFF9E6;border:1px solid #FCD34D;border-radius:8px;margin:8px 0;">
         <div style="font-weight:700;font-size:13px;margin-bottom:8px;color:#92400E;">💰 Payment Info</div>
         <div class="form-grid">
-                    <div class="form-group">
-            <label>Payment Source / Account <span class="warn">*</span></label>
-            <select id="mPaymentSource" style="border: 1.5px solid #0d6efd; font-weight: 600;">
-              <option value="COMPANY">🏢 COMPANY (Guest Rent / Cash in Hand)</option>
-              <option value="UHHS-OD">🏦 UHHS-OD (Overdraft Account)</option>
-              <option value="FIROZ">👤 FIROZ (Direct Personal)</option>
-            </select>
-          </div>
-                    <div class="form-group">
-            <label>Payment Source / Account <span class="warn">*</span></label>
-            <select id="mPaymentSourceEdit" style="border: 1.5px solid #0d6efd; font-weight: 600;">
-              <option value="COMPANY" ${m.payment_source === 'COMPANY' || !m.payment_source ? 'selected' : ''}>🏢 COMPANY (Guest Rent / Cash in Hand)</option>
-              <option value="UHHS-OD" ${m.payment_source === 'UHHS-OD' ? 'selected' : ''}>🏦 UHHS-OD (Overdraft Account)</option>
-              <option value="FIROZ" ${m.payment_source === 'FIROZ' ? 'selected' : ''}>👤 FIROZ (Direct Personal)</option>
-            </select>
-          </div>
           <div class="form-group">
             <label>Payment Mode</label>
             <select id="mPaymentMode" onchange="onMaintPayModeChange()">
@@ -705,8 +689,7 @@ async function updateMaintenance() {
   
   const status = document.getElementById('mStatus').value;
   const updateObj = {
-        payment_source: document.getElementById('mPaymentSource')?.value || 'COMPANY',
-    room_id:
+    room_id: document.getElementById('mRoom').value || null,
     issue_type: getMaintType(),
     priority: document.getElementById('mPriority').value,
     description: desc,
@@ -736,6 +719,7 @@ async function updateMaintenance() {
     updateObj.resolved_date = new Date().toISOString().slice(0, 10);
   }
   
+  updateObj.payment_source = document.getElementById('mPaymentSourceEdit')?.value || 'COMPANY';
   const { error } = await sb.from('maintenance_log').update(updateObj).eq('id', id);
   if (error) {
     document.getElementById('mErr').innerHTML = '<div class="error">' + error.message + '</div>';
