@@ -1,12 +1,9 @@
-
 // ============ STORAGE USAGE CHECK ============
 async function checkStorageUsage() {
   try {
     const { data, error } = await sb.storage.from('id-proofs').list('', { limit: 1000 });
     if (error) return { used: 0, total: 1073741824, error: error.message };
-    let totalSize = 0;
     const countFiles = (data || []).length;
-    // Supabase free = 1GB storage
     return { files: countFiles, total: 1073741824, label: '1 GB (Free Plan)' };
   } catch(e) {
     return { files: 0, total: 1073741824, label: '1 GB', error: e.message };
@@ -20,6 +17,8 @@ async function checkStorageUsage() {
  */
 
 // ============ EMPLOYEES ============
+window._empFilterStatus = window._empFilterStatus || 'Active';
+
 async function renderManageEmployees() {
   if (window.showLoadingSkeleton) window.showLoadingSkeleton('list');
 
@@ -29,20 +28,44 @@ async function renderManageEmployees() {
     checkStorageUsage()
   ]);
   const isO = ['owner','admin','moderator','developer'].includes(SESSION.role);
+  const filter = window._empFilterStatus;
+
+  const filteredEmps = (emps || []).filter(e => {
+    if (filter === 'All') return true;
+    if (filter === 'Active') return e.status === 'Active' || e.is_active === true || e.is_active === null;
+    if (filter === 'Inactive') return e.status === 'Inactive' || e.is_active === false;
+    return true;
+  });
+
+  const activeCount = (emps || []).filter(e => e.status === 'Active' || e.is_active === true || e.is_active === null).length;
+  const inactiveCount = (emps || []).filter(e => e.status === 'Inactive' || e.is_active === false).length;
 
   renderShell(`
     <div class="card">
-      <h1>👥 Employees</h1>
-      <div class="sub">${(emps || []).length} total</div>
-      ${SESSION.role === 'developer' ? `<div class="sub">ID Storage: ${(storageInfo?.files || 0)} files · Plan: ${storageInfo?.label || '1 GB'}</div>` : ''}
-      ${isO ? `<button onclick="renderAddEmp()">➕ Add Employee</button>` : ''}
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+        <div>
+          <h1>👥 Employees</h1>
+          <div class="sub">${activeCount} active · ${inactiveCount} disabled · ${(emps || []).length} total</div>
+          ${SESSION.role === 'developer' ? `<div class="sub">ID Storage: ${(storageInfo?.files || 0)} files · Plan: ${storageInfo?.label || '1 GB'}</div>` : ''}
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          ${isO ? `<button onclick="renderAddEmp()">➕ Add Employee</button>` : ''}
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:10px;">
+        <button class="${filter === 'Active' ? '' : 'secondary'} btn-sm" onclick="window._empFilterStatus='Active';renderManageEmployees()">🟢 Active (${activeCount})</button>
+        <button class="${filter === 'Inactive' ? '' : 'secondary'} btn-sm" onclick="window._empFilterStatus='Inactive';renderManageEmployees()">🔴 Disabled (${inactiveCount})</button>
+        <button class="${filter === 'All' ? '' : 'secondary'} btn-sm" onclick="window._empFilterStatus='All';renderManageEmployees()">📋 All (${(emps || []).length})</button>
+      </div>
     </div>
     <div class="card"><div class="table-wrap"><table>
       <thead><tr>
         <th>Name</th><th>Role</th><th>Phone</th><th>Properties</th>
         <th>Salary</th><th>ID</th><th>Status</th>${isO ? '<th>Actions</th>' : ''}
       </tr></thead>
-      <tbody>${(emps || []).map(e => `<tr>
+      <tbody>${filteredEmps.map(e => {
+        const isActive = e.status === 'Active' || e.is_active === true || e.is_active === null;
+        return `<tr>
         <td><strong>${e.name}</strong></td>
         <td>${e.role || '-'}</td>
         <td>${e.phone || '-'}</td>
@@ -53,30 +76,49 @@ async function renderManageEmployees() {
           ${e.id_proof_photo_back ? `<button class="btn-sm outline" onclick="dlIdPhoto('${e.id_proof_photo_back}')">📄 B</button>` : ''}
           ${!e.id_proof_photo_front && !e.id_proof_photo_back ? '-' : ''}
         </td>
-        <td><span class="badge ${e.status === 'Active' ? 'green' : 'red'}">${e.status || 'Active'}</span></td>
+        <td><span class="badge ${isActive ? 'green' : 'red'}">${isActive ? 'Active' : 'Disabled'}</span></td>
         ${isO ? `<td class="table-actions">
-          <button class="btn-sm" onclick="editEmp('${e.emp_id}')">✏️</button>
-          ${window.canDelete && window.canDelete() ? `<button class="btn-sm danger" onclick="delEmp('${e.emp_id}','${e.name}')">🗑️</button>` : ''}
+          <button class="btn-sm" onclick="editEmp('${e.emp_id}')" title="Edit">✏️</button>
+          <button class="btn-sm ${isActive ? 'danger' : 'green-btn'}" onclick="toggleEmpStatus('${e.emp_id}', '${e.name}', ${isActive})" title="${isActive ? 'Disable Employee' : 'Enable Employee'}">
+            ${isActive ? '🚫 Disable' : '🟢 Enable'}
+          </button>
+          ${window.canDelete && window.canDelete() ? `<button class="btn-sm danger" onclick="delEmp('${e.emp_id}','${e.name}')" title="Permanently Delete">🗑️</button>` : ''}
         </td>` : ''}
-      </tr>`).join('')}</tbody>
+      </tr>`;
+      }).join('')}</tbody>
     </table></div></div>
   `, 'employees');
 }
 
+window.toggleEmpStatus = async function(empId, name, currentlyActive) {
+  const newStatus = currentlyActive ? 'Inactive' : 'Active';
+  const newIsActive = !currentlyActive;
+  const actionText = currentlyActive ? 'DISABLE' : 'ENABLE';
+
+  if (!confirm(`Are you sure you want to ${actionText} employee "${name}"?\n\n${currentlyActive ? '• Will NOT show in Advance, Salary, Attendance, or Expense forms.\n• Past history will NOT be deleted.' : '• Will be visible again in all forms.'}`)) {
+    return;
+  }
+
+  const { error } = await sb.from('employees').update({
+    status: newStatus,
+    is_active: newIsActive,
+    disabled_at: currentlyActive ? new Date().toISOString() : null,
+    disabled_by: currentlyActive ? (SESSION.displayName || SESSION.role) : null
+  }).eq('emp_id', empId);
+
+  if (error) {
+    if (window.fsn) fsn.error('Error', error.message);
+    else alert('Error: ' + error.message);
+    return;
+  }
+
+  if (window.fsn) fsn.success('Success', `✅ ${name} marked as ${newStatus}`);
+  renderManageEmployees();
+};
+
 function employeeRoleOptions(selected = '') {
   const roles = [
-    'Caretaker',
-    'Check-in Manager',
-    'Cleaner',
-    'Housekeeping',
-    'Maid',
-    'Laundry',
-    'Maintenance',
-    'Inventory',
-    'Driver',
-    'Supervisor',
-    'Admin & Developer',
-    'Other'
+    'Caretaker', 'Check-in Manager', 'Cleaner', 'Housekeeping', 'Maid', 'Laundry', 'Maintenance', 'Inventory', 'Driver', 'Supervisor', 'Admin & Developer', 'Other'
   ];
   const list = roles.includes(selected) || !selected ? roles : [selected, ...roles];
   return list.map(r => `<option value="${r}" ${r === selected ? 'selected' : ''}>${r}</option>`).join('');
@@ -173,6 +215,8 @@ async function saveEmp() {
     } catch (e) { console.warn('Back upload failed', e); }
   }
 
+  const isActive = document.getElementById('eActive').checked;
+
   const { error } = await sb.from('employees').insert({
     emp_id: empId,
     name,
@@ -188,7 +232,8 @@ async function saveEmp() {
     emergency_contact: document.getElementById('eEmergency').value.trim() || null,
     id_proof_photo_front: frontPath,
     id_proof_photo_back: backPath,
-    status: document.getElementById('eActive').checked ? 'Active' : 'Inactive',
+    status: isActive ? 'Active' : 'Inactive',
+    is_active: isActive,
     notes: document.getElementById('eNotes').value.trim() || null,
   });
 
@@ -254,7 +299,7 @@ async function editEmp(id) {
         </div>
       </div>
       <label style="display:flex;align-items:center;gap:8px;margin:8px 0;">
-        <input type="checkbox" id="eActive" ${e.status === 'Active' ? 'checked' : ''} /> Active
+        <input type="checkbox" id="eActive" ${e.status === 'Active' || e.is_active === true || e.is_active === null ? 'checked' : ''} /> Active
       </label>
       <div class="form-group"><label>Notes</label><textarea id="eNotes">${e.notes || ''}</textarea></div>
       <button onclick="updEmp('${id}')" style="width:100%;">💾 Update</button>
@@ -271,6 +316,7 @@ async function updEmp(id) {
 
   const roomsSelect = document.getElementById('eRooms');
   const selectedRooms = roomsSelect ? Array.from(roomsSelect.selectedOptions).map(o => o.value).join(',') : '';
+  const isActive = document.getElementById('eActive').checked;
 
   const obj = {
     name,
@@ -284,7 +330,8 @@ async function updEmp(id) {
     id_proof_no: document.getElementById('eIdNo').value.trim() || null,
     address: document.getElementById('eAddr').value.trim() || null,
     emergency_contact: document.getElementById('eEmergency').value.trim() || null,
-    status: document.getElementById('eActive').checked ? 'Active' : 'Inactive',
+    status: isActive ? 'Active' : 'Inactive',
+    is_active: isActive,
     notes: document.getElementById('eNotes').value.trim() || null,
   };
 
@@ -309,11 +356,8 @@ async function updEmp(id) {
   }
 
   await sb.from('employees').update(obj).eq('emp_id', id);
-
-
   renderManageEmployees();
 }
-
 
 async function delEmp(id, name) {
   if (!confirm(`Delete "${name}" & all records?`)) return;
@@ -408,7 +452,7 @@ async function renderEmployeeTasks(viewMode) {
     tableHTML += '</tbody>';
   }
 
-  // ── Build By-Date view ──
+  // Build By-Date view
   let byDateHTML = '';
   if (viewMode === 'byDate') {
     const [yr, mo] = selectedMonth.split('-').map(Number);
@@ -428,12 +472,10 @@ async function renderEmployeeTasks(viewMode) {
       const dateStr = `${selectedMonth}-${String(day).padStart(2,'0')}`;
       const dTasks = tasksByDate[dateStr] || [];
       const count = dTasks.length;
-      // Skip dates with no tasks
       if (count === 0) continue;
       const dObj = new Date(dateStr);
       const dayName = dayNames[dObj.getDay()];
 
-      // Group tasks by employee for this date
       const empGroupsDate = {};
       dTasks.forEach(t => {
         const eName = empMap[t.emp_id] || t.emp_id;
@@ -505,6 +547,7 @@ window.toggleTaskDate = function(dateKey) {
     if (arrow) arrow.textContent = hidden ? '▼' : '▶';
   }
 };
+
 async function renderAddTask() {
   const [{ data: emps }, { data: rooms }] = await Promise.all([
     sb.from('employees').select('emp_id,name').eq('status', 'Active').order('name'),
@@ -643,7 +686,6 @@ async function delTask(id) {
 
 // ============ ATTENDANCE ============
 async function renderAttendance(selectedDate) {
-  // Tab switcher
   const _renderAttendanceTabs = (active) => `
     <div class="card" style="padding:8px;margin-bottom:12px;">
       <div style="display:flex;gap:8px;">
@@ -652,10 +694,6 @@ async function renderAttendance(selectedDate) {
       </div>
     </div>`;
   window._attTabsHtml = _renderAttendanceTabs('mark');
-
-  // 🎯 Dashboard filter support
-  const dashAttFilter = SESSION._filterAttendanceType || '';
-  SESSION._filterAttendanceType = null; // Clear after read
 
   renderShell(`${window._attTabsHtml || ""}
     <div class="loading">Loading...</div>`, 'attendance');
@@ -676,7 +714,6 @@ async function renderAttendance(selectedDate) {
   const isToday = attDate === today;
 
   renderShell(`${window._attTabsHtml || ""}
-    
     <div class="card">
       <h1>📋 Attendance</h1>
       <div class="sub">${dateLabel} ${isToday ? '(Today)' : '(Back-dated)'}</div>
@@ -758,7 +795,6 @@ async function renderAttendanceSummary() {
   });
 
   renderShell(`${window._attTabsHtmlRep || ""}
-    
     <div class="card">
       <h1>📊 Attendance Report — ${cm}</h1>
       <div class="sub">Days in month: ${daysInMonth}</div>
@@ -795,13 +831,11 @@ async function renderSalaryTracker() {
   ]);
   const isO = ['owner','admin','moderator','developer'].includes(SESSION.role);
 
-  // Advance per employee
   const advMap = {};
   (advs || []).forEach(a => {
     advMap[a.emp_id] = (advMap[a.emp_id] || 0) + ((a.advance_amount || 0) - (a.repaid_amount || 0));
   });
 
-  // General expense per employee
   const genMap = {};
   (genExps || []).forEach(e => {
     genMap[e.emp_id] = (genMap[e.emp_id] || 0) + (e.amount || 0);
@@ -1131,9 +1165,6 @@ async function renderEmpExpenses() {
   const roomMap = {};
   (rooms || []).forEach(r => { roomMap[r.room_id] = r.nickname; });
 
-  const total = (exps || []).reduce((s, e) => s + (e.amount || 0), 0);
-  const isO = ['owner','admin','moderator','developer'].includes(SESSION.role) || SESSION.role === 'manager';
-
   window._empExpData = exps || [];
   window._empExpEmpMap = empMap;
   window._empExpRoomMap = roomMap;
@@ -1315,8 +1346,6 @@ async function renderAddEmpExpense() {
 async function saveEmpExpense() {
   const _btn = document.querySelector('button[onclick="saveEmpExpense()"]');
   if (_btn) { if (_btn.disabled) return; _btn.disabled = true; _btn.textContent = '⏳ Saving...'; }
-  const btn = document.querySelector('button[onclick="saveEmpExpense()"]');
-  if (btn) { btn.disabled = true; btn.textContent = '⏳ Saving...'; }
 
   const empId = document.getElementById('eeEmp').value;
   const date  = document.getElementById('eeDate').value;
@@ -1327,7 +1356,7 @@ async function saveEmpExpense() {
   if (!empId || !date || !cat || amt <= 0 || !desc) {
     document.getElementById('eeErr').innerHTML =
       '<div class="error">Employee, Date, Category, Amount & Description required</div>';
-    if (btn) { btn.disabled = false; btn.textContent = '💾 Save Expense'; }
+    if (_btn) { _btn.disabled = false; _btn.textContent = '💾 Save Expense'; }
     return;
   }
 
@@ -1347,7 +1376,7 @@ async function saveEmpExpense() {
   if (error) {
     document.getElementById('eeErr').innerHTML =
       `<div class="error">${error.message}</div>`;
-    if (btn) { btn.disabled = false; btn.textContent = '💾 Save Expense'; }
+    if (_btn) { _btn.disabled = false; _btn.textContent = '💾 Save Expense'; }
     return;
   }
 
@@ -1487,10 +1516,8 @@ async function showEmpDetailModal(empId) {
 
   const presentDays = (att || []).filter(a => a.status === 'Present').length;
   const absentDays = (att || []).filter(a => a.status === 'Absent').length;
-  const halfDays = (att || []).filter(a => a.status === 'Half Day').length;
 
   const pendingTasks = (tasks || []).filter(t => t.status === 'Pending').length;
-  const completedTasks = (tasks || []).filter(t => t.status === 'Completed').length;
 
   const modal = document.createElement('div');
   modal.className = 'modal-overlay';
@@ -1500,7 +1527,7 @@ async function showEmpDetailModal(empId) {
     <div class="modal-box" style="max-width:700px;">
       <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">✕</button>
       <h2>👤 ${emp.name}</h2>
-      <div class="sub">${emp.role || '-'} · 📞 ${emp.phone || '-'}</div>
+      <div class="sub">${emp.role || '-'} · 📞 ${emp.phone || '-'} · <span class="badge ${(emp.status === 'Active' || emp.is_active === true) ? 'green' : 'red'}">${(emp.status === 'Active' || emp.is_active === true) ? 'Active' : 'Disabled'}</span></div>
 
       <div class="stat-grid" style="margin-top:12px;">
         <div class="stat-card" style="border-left:4px solid var(--red);">
@@ -1578,20 +1605,6 @@ async function showEmpDetailModal(empId) {
           `).join('')}</tbody>
         </table></div>`}
 
-      <div class="section-title" style="margin-top:14px;">🧰 Recent Tasks</div>
-      ${(tasks || []).length === 0 ? '<div class="sub">No tasks</div>' : `
-        <div class="table-wrap"><table>
-          <thead><tr><th>Date</th><th>Type</th><th>Task</th><th>Status</th></tr></thead>
-          <tbody>${tasks.slice(0, 10).map(t => `
-            <tr>
-              <td style="font-size:12px;">${t.assigned_date || '-'}</td>
-              <td><span class="badge blue">${t.task_type || 'Other'}</span></td>
-              <td style="font-size:12px;max-width:180px;">${t.task_description || '-'}</td>
-              <td><span class="badge ${t.status === 'Completed' ? 'green' : t.status === 'In Progress' ? 'yellow' : 'red'}">${t.status || 'Pending'}</span></td>
-            </tr>
-          `).join('')}</tbody>
-        </table></div>`}
-
       <div class="btn-row" style="margin-top:12px;">
         <button class="outline" onclick="this.closest('.modal-overlay').remove()">Close</button>
       </div>
@@ -1599,3 +1612,5 @@ async function showEmpDetailModal(empId) {
   `;
   document.body.appendChild(modal);
 }
+
+console.log("✅ Employees Module v7 loaded");

@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════════
-// 📤 CLAIMS MANAGER ENGINE v6 (Fixed Employee Table Select)
+// 📤 CLAIMS MANAGER ENGINE v7 (UHHS-OD Account Tracking)
 // ═══════════════════════════════════════════════════════════
 
 window._claimsState = {
@@ -12,7 +12,8 @@ window._claimsState = {
   paidByFilter: 'all',
   selectedIds: new Set(),
   allData: [],
-  empMap: {}
+  empMap: {},
+  uhhsBalance: 0
 };
 
 function claimsStatusBadge(st) {
@@ -35,19 +36,64 @@ function mapLaundryMaintStatus(raw) {
   return 'unclaimed';
 }
 
+// ─── UHHS-OD LIVE BALANCE CALCULATION ───
+async function fetchUhhsOdBalance() {
+  try {
+    const { data: txns, error } = await sb.from('account_transactions')
+      .select('amount, transaction_type')
+      .eq('account_type', 'UHHS_OD');
+    
+    if (error) throw error;
+    
+    let bal = 0;
+    (txns || []).forEach(t => {
+      const amt = Number(t.amount || 0);
+      if (t.transaction_type === 'DEPOSIT') bal += amt;
+      else if (t.transaction_type === 'EXPENSE' || t.transaction_type === 'TRANSFER') bal -= amt;
+    });
+    
+    window._claimsState.uhhsBalance = bal;
+    return bal;
+  } catch(e) {
+    console.warn('UHHS-OD balance fetch failed:', e);
+    return 0;
+  }
+}
+
 async function renderClaims() {
+  const uhhsBal = await fetchUhhsOdBalance();
+
   renderShell(`
     <div class="card">
       <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;">
         <div>
           <h1 style="margin:0;font-size:22px;">📤 Universal Claims Manager</h1>
           <div style="font-size:12px;color:var(--muted);margin-top:4px;">
-            Checkpoint: <strong>17-Aug-2026 8:35 PM</strong> · Auto Employee Lookup · Grouped Staff Advances
+            Checkpoint: <strong>17-Aug-2026 8:35 PM</strong> · Auto Employee Lookup · UHHS-OD Engine
           </div>
         </div>
         <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <button onclick="openUhhsDepositModal()" style="background:#0284C7;color:#fff;font-weight:700;">📥 Deposit Entry (UHHS-OD)</button>
+          <button onclick="showUhhsStatementModal()" style="background:#0F766E;color:#fff;font-weight:600;">📜 UHHS Ledger</button>
           <button onclick="generateClaimReport()" style="background:#8B5CF6;color:#fff;font-weight:600;">📊 Claim Report Statement</button>
           <button onclick="copyClaimWhatsAppText()" style="background:#25D366;color:#fff;font-weight:600;">📱 WhatsApp Summary</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- UHHS-OD LIVE ACCOUNT BANNER -->
+    <div class="card" style="background:${uhhsBal >= 0 ? '#F0FDF4' : '#FEF2F2'};border:1.5px solid ${uhhsBal >= 0 ? '#86EFAC' : '#FCA5A5'};">
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+        <div>
+          <strong style="font-size:15px;color:${uhhsBal >= 0 ? '#15803D' : '#B91C1C'};">🏦 UHHS-OD Account (Online Balance)</strong>
+          <div style="font-size:11px;color:#64748B;">Money received online from Firoz & spent via UHHS-OD</div>
+        </div>
+        <div style="text-align:right;">
+          <div style="font-size:11px;color:#64748B;">Running Balance</div>
+          <div style="font-size:24px;font-weight:900;color:${uhhsBal >= 0 ? '#15803D' : '#DC2626'};">
+            ${uhhsBal < 0 ? '-' : ''}₹${Math.abs(uhhsBal).toLocaleString('en-IN')}
+            ${uhhsBal < 0 ? '<span style="font-size:12px;color:#DC2626;font-weight:600;"> (Negative)</span>' : ''}
+          </div>
         </div>
       </div>
     </div>
@@ -187,7 +233,6 @@ async function loadClaimsData() {
   if (container) container.innerHTML = '<div style="text-align:center;padding:30px;color:#666;">Loading claims and advances data...</div>';
 
   try {
-    // ✅ Query employees table with correct columns: emp_id, name
     const [eRes, mRes, lRes, aRes, empRes] = await Promise.all([
       sb.from('reimbursements')
         .select('*')
@@ -213,7 +258,6 @@ async function loadClaimsData() {
       sb.from('employees').select('emp_id, name')
     ]);
 
-    // Build Employee Name Lookup Map
     const empMap = {};
     (empRes.data || []).forEach(e => {
       if (e.emp_id) empMap[e.emp_id] = e.name;
@@ -281,7 +325,7 @@ async function loadClaimsData() {
       });
     });
 
-    // 4. Staff Advances (advance_tracker with Real Employee Name)
+    // 4. Staff Advances
     (aRes.data || []).forEach(adv => {
       const realName = empMap[adv.emp_id] || adv.emp_id || 'Staff';
       const isDeducted = adv.is_deducted === true || adv.is_deducted === 'true';
@@ -331,7 +375,7 @@ async function loadClaimsData() {
     if (el('statAdvancesAmt')) el('statAdvancesAmt').textContent = '-₹' + advTotal.toLocaleString('en-IN');
     if (el('statNetPayableAmt')) el('statNetPayableAmt').textContent = '₹' + netDue.toLocaleString('en-IN');
 
-    // Render Staff Advances Breakdown Badges (with Real Names!)
+    // Render Staff Breakdown Badges
     const empBreakdownContainer = document.getElementById('staffAdvancesBreakdownContainer');
     if (empBreakdownContainer) {
       const empEntries = Object.entries(empAdvanceSum);
@@ -541,6 +585,175 @@ async function bulkUpdateClaims(targetStatus) {
   await loadClaimsData();
 }
 
+// ─── UHHS-OD DEPOSIT MODAL ───
+window.openUhhsDepositModal = function() {
+  const modal = document.createElement('div');
+  modal.className = 'modal-overlay';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);display:flex;align-items:center;justify-content:center;z-index:9999;padding:20px;';
+  
+  modal.innerHTML = `
+    <div style="background:#fff;border-radius:12px;padding:24px;max-width:480px;width:100%;font-family:sans-serif;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+        <h2 style="margin:0;font-size:18px;color:#0284C7;">📥 Add Deposit to UHHS-OD</h2>
+        <button onclick="this.closest('.modal-overlay').remove()" style="border:none;background:none;font-size:20px;cursor:pointer;">✕</button>
+      </div>
+
+      <div style="margin-bottom:12px;">
+        <label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px;">Received From *</label>
+        <select id="uDepSender" style="width:100%;padding:8px;border:1px solid #CBD5E1;border-radius:6px;font-size:13px;">
+          <option value="Firoz" selected>Firoz (Online Transfer)</option>
+          <option value="Shahenshah">Shahenshah</option>
+          <option value="Owner/Company">Owner / Company</option>
+          <option value="Other">Other</option>
+        </select>
+      </div>
+
+      <div style="margin-bottom:12px;">
+        <label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px;">Deposit Amount (₹) *</label>
+        <input id="uDepAmt" type="number" placeholder="e.g. 15000" style="width:100%;padding:8px;border:1px solid #CBD5E1;border-radius:6px;font-size:14px;font-weight:700;">
+      </div>
+
+      <div style="margin-bottom:12px;">
+        <label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px;">Date *</label>
+        <input id="uDepDate" type="date" value="${new Date().toISOString().slice(0, 10)}" style="width:100%;padding:8px;border:1px solid #CBD5E1;border-radius:6px;font-size:13px;">
+      </div>
+
+      <div style="margin-bottom:16px;">
+        <label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px;">Notes / Description</label>
+        <textarea id="uDepNotes" rows="2" placeholder="e.g. Online transfer for weekly running expenses" style="width:100%;padding:8px;border:1px solid #CBD5E1;border-radius:6px;font-size:13px;"></textarea>
+      </div>
+
+      <div id="uDepErr" style="margin-bottom:10px;"></div>
+
+      <div style="display:flex;gap:8px;">
+        <button onclick="saveUhhsDeposit(this)" style="flex:1;background:#0284C7;color:#fff;padding:10px;border:none;border-radius:6px;font-weight:700;cursor:pointer;">💾 Save Deposit</button>
+        <button onclick="this.closest('.modal-overlay').remove()" style="background:#64748B;color:#fff;padding:10px 16px;border:none;border-radius:6px;cursor:pointer;">Cancel</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+  setTimeout(() => document.getElementById('uDepAmt')?.focus(), 50);
+};
+
+window.saveUhhsDeposit = async function(btn) {
+  const sender = document.getElementById('uDepSender')?.value || 'Firoz';
+  const amt = parseFloat(document.getElementById('uDepAmt')?.value) || 0;
+  const date = document.getElementById('uDepDate')?.value || new Date().toISOString().slice(0, 10);
+  const notes = document.getElementById('uDepNotes')?.value.trim() || '';
+
+  if (amt <= 0) {
+    document.getElementById('uDepErr').innerHTML = '<div style="color:#DC2626;font-size:12px;">Please enter a valid deposit amount</div>';
+    return;
+  }
+
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Saving...'; }
+
+  const { error } = await sb.from('account_transactions').insert({
+    account_type: 'UHHS_OD',
+    transaction_type: 'DEPOSIT',
+    amount: amt,
+    txn_date: date,
+    received_from: sender,
+    description: notes || `Deposit received from ${sender}`,
+    created_by: SESSION.displayName || 'Praveen'
+  });
+
+  if (error) {
+    document.getElementById('uDepErr').innerHTML = `<div style="color:#DC2626;font-size:12px;">${error.message}</div>`;
+    if (btn) { btn.disabled = false; btn.textContent = '💾 Save Deposit'; }
+    return;
+  }
+
+  if (window.fsn) fsn.success('Success', `✅ ₹${amt.toLocaleString('en-IN')} deposited in UHHS-OD!`);
+  document.querySelector('.modal-overlay')?.remove();
+  renderClaims();
+};
+
+// ─── UHHS-OD STATEMENT / LEDGER POPUP ───
+window.showUhhsStatementModal = async function() {
+  const { data: txns, error } = await sb.from('account_transactions')
+    .select('*')
+    .eq('account_type', 'UHHS_OD')
+    .order('txn_date', { ascending: true })
+    .order('created_at', { ascending: true });
+
+  if (error) {
+    alert('Error loading ledger: ' + error.message);
+    return;
+  }
+
+  let runningBal = 0;
+  const rows = (txns || []).map(t => {
+    const isDep = t.transaction_type === 'DEPOSIT';
+    const amt = Number(t.amount || 0);
+    if (isDep) runningBal += amt;
+    else runningBal -= amt;
+
+    return { ...t, isDep, amt, runningBal };
+  });
+
+  rows.reverse(); // Latest first
+
+  const modal = document.createElement('div');
+  modal.className = 'modal-overlay';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);display:flex;align-items:center;justify-content:center;z-index:9999;padding:20px;';
+  
+  modal.innerHTML = `
+    <div style="background:#fff;border-radius:12px;padding:24px;max-width:750px;width:100%;max-height:85vh;overflow-y:auto;font-family:sans-serif;">
+      <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid #E2E8F0;padding-bottom:12px;margin-bottom:16px;">
+        <div>
+          <h2 style="margin:0;font-size:20px;color:#0F766E;">📜 UHHS-OD Account Statement</h2>
+          <div style="font-size:12px;color:#64748B;">All Online deposits & expenses with live running balance</div>
+        </div>
+        <button onclick="this.closest('.modal-overlay').remove()" style="border:none;background:none;font-size:22px;cursor:pointer;">✕</button>
+      </div>
+
+      <div style="background:#F0FDF4;border:1px solid #86EFAC;border-radius:8px;padding:12px;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center;">
+        <span style="font-weight:700;color:#166534;">Current UHHS-OD Balance:</span>
+        <strong style="font-size:20px;color:${runningBal >= 0 ? '#15803D' : '#DC2626'};">${runningBal < 0 ? '-' : ''}₹${Math.abs(runningBal).toLocaleString('en-IN')}</strong>
+      </div>
+
+      ${rows.length === 0 ? '<div style="text-align:center;padding:30px;color:#94A3B8;">No transactions found in UHHS-OD Account</div>' : `
+        <table style="width:100%;border-collapse:collapse;font-size:12px;">
+          <thead>
+            <tr style="background:#F1F5F9;text-align:left;">
+              <th style="padding:8px;">Date</th>
+              <th style="padding:8px;">Type</th>
+              <th style="padding:8px;">Description</th>
+              <th style="padding:8px;text-align:right;">Deposit (+)</th>
+              <th style="padding:8px;text-align:right;">Expense (-)</th>
+              <th style="padding:8px;text-align:right;">Balance (₹)</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${rows.map(r => `
+              <tr style="border-bottom:1px solid #E2E8F0;">
+                <td style="padding:8px;color:#64748B;">${r.txn_date || (r.created_at || '').slice(0,10)}</td>
+                <td style="padding:8px;">
+                  <span style="padding:2px 6px;border-radius:4px;font-size:10px;font-weight:700;background:${r.isDep ? '#DCFCE7' : '#FEE2E2'};color:${r.isDep ? '#15803D' : '#B91C1C'};">
+                    ${r.isDep ? '📥 DEPOSIT' : '📤 EXPENSE'}
+                  </span>
+                </td>
+                <td style="padding:8px;font-weight:600;color:#1E293B;">${r.description || (r.isDep ? `From ${r.received_from}` : 'Expense')}</td>
+                <td style="padding:8px;text-align:right;color:#16A34A;font-weight:700;">${r.isDep ? '+₹' + r.amt.toLocaleString('en-IN') : '-'}</td>
+                <td style="padding:8px;text-align:right;color:#DC2626;font-weight:700;">${!r.isDep ? '-₹' + r.amt.toLocaleString('en-IN') : '-'}</td>
+                <td style="padding:8px;text-align:right;font-weight:800;color:${r.runningBal >= 0 ? '#0F172A' : '#DC2626'};">
+                  ${r.runningBal < 0 ? '-' : ''}₹${Math.abs(r.runningBal).toLocaleString('en-IN')}
+                </td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      `}
+
+      <div style="display:flex;justify-content:flex-end;margin-top:16px;">
+        <button onclick="this.closest('.modal-overlay').remove()" style="background:#64748B;color:#fff;padding:8px 18px;border:none;border-radius:6px;cursor:pointer;">Close</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+};
+
 function getReportItems() {
   const { selectedIds, allData, statusFilter, moduleFilter, paidByFilter } = window._claimsState;
   if (selectedIds.size > 0) return allData.filter(i => selectedIds.has(i.uniqKey));
@@ -629,4 +842,4 @@ function copyClaimWhatsAppText() {
   navigator.clipboard.writeText(text).then(() => alert('✅ Copied! Paste in WhatsApp.'));
 }
 
-console.log('✅ Claims Manager v6 loaded (Fixed employee emp_id mapping)');
+console.log('✅ Claims Manager v7 loaded (with UHHS-OD balance tracking)');

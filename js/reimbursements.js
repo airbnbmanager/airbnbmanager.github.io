@@ -1,8 +1,8 @@
 // ═══════════════════════════════════════════════════════════
-// 💸 DAILY EXPENSES (REIMBURSEMENTS) MODULE
+// 💸 DAILY EXPENSES (REIMBURSEMENTS) MODULE v7
 // ═══════════════════════════════════════════════════════════
 
-const REIMB_CATEGORIES = ['🚚 Delivery/Transport', '🛒 Grocery/Food', '📦 Other'];
+const REIMB_CATEGORIES = ['🧹 Cleaning Supplies', '🚚 Delivery/Transport', '🛒 Grocery/Food', '🔧 Maintenance', '💡 Utilities', '📱 Recharge/Internet', '🎁 Guest Requests', '📦 Other'];
 
 window.renderReimbursements = async function() {
   if (!['owner', 'admin', 'moderator', 'developer', 'manager'].includes(SESSION.role)) {
@@ -34,21 +34,14 @@ window.renderReimbursements = async function() {
   const totalClaimed = (reimbs || []).filter(r => r.status === 'Claimed').reduce((s, r) => s + Number(r.amount || 0), 0);
   const totalReceived = (reimbs || []).filter(r => r.status === 'Received').reduce((s, r) => s + Number(r.amount || 0), 0);
   
-  // Category-wise
-  const catStats = {};
-  (reimbs || []).forEach(r => {
-    if (!catStats[r.category]) catStats[r.category] = 0;
-    catStats[r.category] += Number(r.amount || 0);
-  });
-  
   renderShell(`
     <div class="card">
       <h1>💸 Daily Expenses (Reimbursements)</h1>
       <div class="sub">${(reimbs||[]).length} entries — ${currentMonth}</div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;">
         <button onclick="renderAddReimbursement()">➕ Add Expense</button>
-          <button onclick="showReimbReport()" style="background:#7C3AED;color:#fff;">📊 Report</button>
-          <button onclick="claimAllPending()" style="background:#DC2626;color:#fff;">💰 Claim All Pending</button>
+        <button onclick="showReimbReport()" style="background:#7C3AED;color:#fff;">📊 Report</button>
+        <button onclick="claimAllPending()" style="background:#DC2626;color:#fff;">💰 Claim All Pending</button>
         <input type="month" value="${currentMonth}" onchange="window._reimbMonth=this.value;renderReimbursements()" style="padding:6px 8px;border-radius:6px;border:1px solid var(--border);">
         <select onchange="window._reimbStatus=this.value;renderReimbursements()" style="padding:6px 8px;border-radius:6px;border:1px solid var(--border);">
           <option value="All" ${statusFilter==='All'?'selected':''}>All Status</option>
@@ -80,39 +73,34 @@ window.renderReimbursements = async function() {
       </div>
     </div>
 
-    ${Object.keys(catStats).length > 0 ? `
-    <div class="card">
-      <div class="section-title">📊 Category Breakdown</div>
-      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;">
-        ${Object.entries(catStats).map(([cat, amt]) => `
-          <div style="padding:12px;background:#F9FAFB;border-radius:8px;text-align:center;">
-            <div style="font-size:13px;color:#666;">${cat}</div>
-            <div style="font-size:18px;font-weight:700;">₹${amt.toLocaleString('en-IN')}</div>
-          </div>
-        `).join('')}
-      </div>
-    </div>` : ''}
-
     <div class="card">
       <div class="section-title">📋 Records (${filtered.length})</div>
       <div class="table-wrap"><table>
         <thead><tr>
           <th>Date</th><th>Category</th><th>Description</th>
-          <th>Property</th><th style="text-align:right;">Amount</th>
+          <th>Property</th><th>Payment Source</th><th style="text-align:right;">Amount</th>
           <th>Receipt</th><th>Status</th><th>Actions</th>
         </tr></thead>
         <tbody>
-          ${filtered.length === 0 ? '<tr><td colspan="8" style="text-align:center;padding:20px;color:#999;">No expenses found</td></tr>' : ''}
+          ${filtered.length === 0 ? '<tr><td colspan="9" style="text-align:center;padding:20px;color:#999;">No expenses found</td></tr>' : ''}
           ${filtered.map(r => {
             const statusColor = r.status === 'Received' ? 'green' : (r.status === 'Claimed' ? 'yellow' : 'red');
             const fromLbl = r.from_property ? (roomMap[r.from_property] || r.from_property) : '';
             const toLbl = r.to_property ? (roomMap[r.to_property] || r.to_property) : '';
             const propLabel = fromLbl && toLbl ? `${fromLbl} → ${toLbl}` : (fromLbl || toLbl || 'General');
+            
+            let sourceBadge = '💰 Personal';
+            if (r.payment_source === 'uhhs_od') sourceBadge = '🏦 UHHS-OD';
+            else if (r.payment_source === 'company_cash') sourceBadge = '💵 Co. Cash';
+            else if (r.payment_source === 'company_upi') sourceBadge = '📱 Co. UPI';
+            else if (r.company_advance_id) sourceBadge = '🏦 Co. Advance';
+
             return `<tr>
               <td>${r.expense_date}</td>
               <td><span class="badge blue">${r.category}</span></td>
               <td style="max-width:200px;">${r.description || '-'}</td>
               <td style="font-size:11px;">${propLabel}</td>
+              <td><span class="badge ${r.payment_source === 'uhhs_od' ? 'blue' : (r.payment_source?.startsWith('company') ? 'yellow' : 'green')}">${sourceBadge}</span></td>
               <td style="text-align:right;"><strong>₹${Number(r.amount || 0).toLocaleString('en-IN')}</strong></td>
               <td>${r.receipt_photo ? `<button class="btn-sm" style="background:#3B82F6;color:#fff;padding:4px 10px;" onclick="dlIdPhoto('${r.receipt_photo.includes('/id-proofs/') ? r.receipt_photo.split('/id-proofs/')[1] : r.receipt_photo}')">📷 View</button>` : '-'}</td>
               <td><span class="badge ${statusColor}">${r.status}</span></td>
@@ -156,7 +144,7 @@ window.renderAddReimbursement = async function() {
       </div>
       <div class="form-group">
         <label>Description *</label>
-        <textarea id="rDesc" rows="2" placeholder="Kya kharcha kiya... e.g. Zepto se khana Aayush ke liye"></textarea>
+        <textarea id="rDesc" rows="2" placeholder="Kya kharcha kiya... e.g. Gas cylinder refill"></textarea>
       </div>
       <div class="form-group">
         <label>Amount ₹ *</label>
@@ -178,14 +166,7 @@ window.renderAddReimbursement = async function() {
       </div>
       <datalist id="propList">
         ${(rooms || []).map(r => `<option value="${r.nickname || r.unit_no}">`).join('')}
-        <option value="Big Bazaar">
-        <option value="Local Market">
-        <option value="Office">
-        <option value="Home">
       </datalist>
-      <div style="font-size:11px;color:#666;margin-top:4px;">
-        💡 Type property name OR any location (e.g. "Big Bazaar", "Local Market")
-      </div>
     </div>
     
     <div class="card">
@@ -207,32 +188,39 @@ window.renderAddReimbursement = async function() {
         <label>Notes</label>
         <textarea id="rNotes" rows="2" placeholder="Optional notes..."></textarea>
       </div>
+      
       <div id="cashAvailabilityBox" class="form-group" style="padding:12px;background:#F0F7FF;border-radius:8px;border:1px solid #3B82F6;">
-        <label style="font-weight:600;">💵 Payment Source</label>
+        <label style="font-weight:600;">💵 Payment Source Selection</label>
         <div id="cashInfo" style="margin:8px 0;padding:10px;background:#fff;border-radius:6px;font-size:13px;">
           <div style="color:#666;">Loading available cash...</div>
         </div>
         <div style="margin-top:6px;" id="paySourceOptions">
           <label style="display:flex;align-items:center;gap:6px;cursor:pointer;margin-bottom:6px;">
             <input type="radio" name="paySource" value="own_money" checked onchange="onPaySourceChange()"> 
-            <span>💰 My Money (will claim later)</span>
+            <span>💰 My Pocket (will claim later)</span>
           </label>
-          <label style="display:flex;align-items:center;gap:6px;cursor:pointer;margin-bottom:6px;" id="splitOption" style="display:none;">
+          <label style="display:flex;align-items:center;gap:6px;cursor:pointer;margin-bottom:6px;">
+            <input type="radio" name="paySource" value="uhhs_od" onchange="onPaySourceChange()"> 
+            <span>🏦 UHHS-OD Account (Online Balance)</span>
+          </label>
+          <label style="display:flex;align-items:center;gap:6px;cursor:pointer;margin-bottom:6px;" id="splitOption">
             <input type="radio" name="paySource" value="split" onchange="onPaySourceChange()"> 
             <span>🔀 Split: Company cash + Own money</span>
           </label>
-          <label style="display:flex;align-items:center;gap:6px;cursor:pointer;margin-bottom:6px;" id="companyCashOption" style="display:none;">
+          <label style="display:flex;align-items:center;gap:6px;cursor:pointer;margin-bottom:6px;" id="companyCashOption">
             <input type="radio" name="paySource" value="company_cash" onchange="onPaySourceChange()"> 
             <span>🏢 Company Cash (from my in-hand)</span>
+          </label>
+          <label style="display:flex;align-items:center;gap:6px;cursor:pointer;margin-bottom:6px;">
+            <input type="radio" name="paySource" value="company_upi" onchange="onPaySourceChange()"> 
+            <span>📱 Company UPI</span>
           </label>
           <label style="display:flex;align-items:center;gap:6px;cursor:pointer;">
             <input type="radio" name="paySource" value="company_advance" onchange="onPaySourceChange()">
             <span>🏦 Company Advance</span>
           </label>
         </div>
-        <div id="splitPreview" style="display:none;margin-top:10px;padding:10px;background:#FEF3C7;border-radius:6px;font-size:12px;">
-          <!-- Split calculation shown here -->
-        </div>
+        <div id="splitPreview" style="display:none;margin-top:10px;padding:10px;background:#FEF3C7;border-radius:6px;font-size:12px;"></div>
         <div id="advanceDropdownWrap" style="display:none;margin-top:10px;">
           <select id="rAdvanceId" style="width:100%;padding:8px;">
             <option value="">-- Select active advance --</option>
@@ -244,9 +232,7 @@ window.renderAddReimbursement = async function() {
     </div>
   `, 'reimbursements');
   
-  // Preview + compress on file select (mobile safe)
   setupReimbPhotoInput('rPhotoCam', 'rPhotoGal', 'rPhotoPreview');
-  // Init Paid By dropdown
   const defaultPaidBy = SESSION.displayName || SESSION.role || '';
   window.renderCashHolderDropdown('rPaidBy', defaultPaidBy).then(html => {
     const wrap = document.getElementById('rPaidByWrap');
@@ -254,26 +240,20 @@ window.renderAddReimbursement = async function() {
   });
 };
 
-// Image compression (max 800px width, 70% quality)
 async function compressImage(file, maxWidth = 800, quality = 0.7) {
   return new Promise((resolve, reject) => {
-    // Check file size (max 10MB before compression)
     if (file.size > 10 * 1024 * 1024) {
       reject(new Error('File too large (max 10MB)'));
       return;
     }
     
     const reader = new FileReader();
-    const timeout = setTimeout(() => {
-      reject(new Error('Read timeout — file may be corrupt'));
-    }, 30000);
+    const timeout = setTimeout(() => { reject(new Error('Read timeout')); }, 30000);
     
     reader.onload = e => {
       clearTimeout(timeout);
       const img = new Image();
-      const imgTimeout = setTimeout(() => {
-        reject(new Error('Image load timeout — HEIC not supported? Try JPEG'));
-      }, 15000);
+      const imgTimeout = setTimeout(() => { reject(new Error('Image load timeout')); }, 15000);
       
       img.onload = () => {
         clearTimeout(imgTimeout);
@@ -288,21 +268,12 @@ async function compressImage(file, maxWidth = 800, quality = 0.7) {
           ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
           canvas.toBlob(blob => {
             if (blob) resolve(blob);
-            else reject(new Error('Compression failed — try smaller image'));
+            else reject(new Error('Compression failed'));
           }, 'image/jpeg', quality);
-        } catch (err) {
-          reject(new Error('Canvas error: ' + err.message));
-        }
+        } catch (err) { reject(new Error('Canvas error: ' + err.message)); }
       };
-      img.onerror = () => {
-        clearTimeout(imgTimeout);
-        reject(new Error('Cannot read image (HEIC not supported in browser). Please convert to JPEG.'));
-      };
+      img.onerror = () => { clearTimeout(imgTimeout); reject(new Error('Image parse failed')); };
       img.src = e.target.result;
-    };
-    reader.onerror = () => {
-      clearTimeout(timeout);
-      reject(new Error('File read failed'));
     };
     reader.readAsDataURL(file);
   });
@@ -323,7 +294,6 @@ window.saveReimbursement = async function() {
     return;
   }
   
-  // Upload photo if any
   let photoUrl = null;
   if (window._reimbPhotoBlob) {
     try {
@@ -333,7 +303,7 @@ window.saveReimbursement = async function() {
         upsert: false
       });
       if (upErr) throw upErr;
-      photoUrl = path;  // Store path, not URL
+      photoUrl = path;
     } catch (err) {
       document.getElementById('rErr').innerHTML = '<div class="error">Photo upload: ' + err.message + '</div>';
       return;
@@ -344,12 +314,15 @@ window.saveReimbursement = async function() {
   const advanceId = paySource === 'company_advance' ? (parseInt(document.getElementById('rAdvanceId')?.value) || null) : null;
   const currentUser = SESSION.displayName || 'Praveen Singh';
   
-  // Handle company_cash and split sources
   let finalSource = paySource;
   let companyPortionAmt = 0;
   let ownPortionAmt = amt;
   let paymentIdsToConsume = [];
   
+  // Directly Paid sources (No Claim needed)
+  const isDirectCompanyFund = (paySource === 'uhhs_od' || paySource === 'company_upi');
+  const initialStatus = isDirectCompanyFund ? 'Received' : 'Pending';
+
   if (paySource === 'company_cash' || paySource === 'split') {
     const data = window._companyCashData;
     if (!data || data.netAvailable <= 0) {
@@ -371,16 +344,18 @@ window.saveReimbursement = async function() {
       finalSource = 'split';
     }
     
-    // FIFO consume payments
     let toConsume = companyPortionAmt;
     for (const pmt of data.payments) {
       if (toConsume <= 0) break;
       paymentIdsToConsume.push(pmt.id);
       toConsume -= Number(pmt.amount);
     }
+  } else if (isDirectCompanyFund) {
+    companyPortionAmt = amt;
+    ownPortionAmt = 0;
   }
   
-  const { error } = await sb.from('reimbursements').insert({
+  const { data: newR, error } = await sb.from('reimbursements').insert({
     payment_source: finalSource,
     company_advance_id: advanceId,
     consumed_payment_ids: paymentIdsToConsume.length > 0 ? paymentIdsToConsume.map(String) : null,
@@ -396,22 +371,42 @@ window.saveReimbursement = async function() {
     to_property: toProp,
     receipt_photo: photoUrl,
     notes,
-    status: 'Pending',
+    status: initialStatus,
     created_by: SESSION.empId || null
-  });
+  }).select().single();
   
   if (error) {
     document.getElementById('rErr').innerHTML = '<div class="error">' + error.message + '</div>';
     return;
   }
   
-  // Mark consumed payments as handed_over
+  // ── Auto-record transaction in account_transactions ──
+  if (paySource === 'uhhs_od') {
+    await sb.from('account_transactions').insert({
+      account_type: 'UHHS_OD',
+      transaction_type: 'EXPENSE',
+      amount: amt,
+      txn_date: date,
+      description: `Expense: ${desc} (${cat})`,
+      created_by: SESSION.displayName || 'Praveen'
+    });
+  } else if (paySource === 'company_upi') {
+    await sb.from('account_transactions').insert({
+      account_type: 'COMPANY_UPI',
+      transaction_type: 'EXPENSE',
+      amount: amt,
+      txn_date: date,
+      description: `UPI Spent: ${desc} (${cat})`,
+      created_by: SESSION.displayName || 'Praveen'
+    });
+  }
+  
+  // Handover state update for Smart cash
   if (paymentIdsToConsume.length > 0) {
     await sb.from('payment_history')
       .update({ handover_status: 'handed_over' })
       .in('id', paymentIdsToConsume);
     
-    // Create handover record
     await sb.from('cash_handovers').insert({
       handover_date: date,
       from_person: currentUser,
@@ -423,7 +418,7 @@ window.saveReimbursement = async function() {
   }
   
   window._reimbPhotoBlob = null;
-  fsn.success('Success', '✅ Expense saved!' + (companyPortionAmt>0?` (₹${companyPortionAmt} from company cash)`:''));
+  fsn.success('Success', '✅ Expense saved!' + (companyPortionAmt>0?` (₹${companyPortionAmt} from company funds)`:''));
   renderReimbursements();
 };
 
@@ -533,10 +528,13 @@ window.editReimbursement = async function(id) {
         <textarea id="rNotes" rows="2">${rec.notes || ''}</textarea>
       </div>
       <div class="form-group" style="padding:12px;background:#F0F7FF;border-radius:8px;border:1px solid #3B82F6;">
-        <label style="font-weight:600;">💵 Payment Source</label>
+        <label style="font-weight:600;">💵 Payment Source Selection</label>
         <div style="margin-top:6px;">
-          <label><input type="radio" name="paySource" value="own_money" ${!rec.company_advance_id ? 'checked':''} onchange="toggleAdvanceDropdown(false)"> 💰 My Money</label><br>
-          <label><input type="radio" name="paySource" value="company_advance" ${rec.company_advance_id ? 'checked':''} onchange="toggleAdvanceDropdown(true)"> 🏦 Company Advance</label>
+          <label><input type="radio" name="paySource" value="own_money" ${rec.payment_source === 'own_money' ? 'checked':''} onchange="onPaySourceChange()"> 💰 My Pocket</label><br>
+          <label><input type="radio" name="paySource" value="uhhs_od" ${rec.payment_source === 'uhhs_od' ? 'checked':''} onchange="onPaySourceChange()"> 🏦 UHHS-OD (Online)</label><br>
+          <label><input type="radio" name="paySource" value="company_cash" ${rec.payment_source === 'company_cash' ? 'checked':''} onchange="onPaySourceChange()"> 🏢 Company Cash</label><br>
+          <label><input type="radio" name="paySource" value="company_upi" ${rec.payment_source === 'company_upi' ? 'checked':''} onchange="onPaySourceChange()"> 📱 Company UPI</label><br>
+          <label><input type="radio" name="paySource" value="company_advance" ${rec.company_advance_id ? 'checked':''} onchange="onPaySourceChange()"> 🏦 Company Advance</label>
         </div>
         <div id="advanceDropdownWrap" style="display:${rec.company_advance_id?'block':'none'};margin-top:10px;">
           <select id="rAdvanceId" style="width:100%;padding:8px;"><option value="">-- Loading --</option></select>
@@ -547,9 +545,7 @@ window.editReimbursement = async function(id) {
     </div>
   `, 'reimbursements');
   
-  // Photo change handler (mobile safe)
   setupReimbPhotoInput('rPhotoCam', 'rPhotoGal', 'rPhotoPreview');
-  // Init Paid By dropdown
   window.renderCashHolderDropdown('rPaidBy', rec.paid_by || '').then(html => {
     const wrap = document.getElementById('rPaidByWrap');
     if (wrap) wrap.innerHTML = html;
@@ -561,7 +557,6 @@ window.removeExistingPhoto = async function() {
   const oldPath = window._reimbEditPhoto;
   window._reimbEditPhoto = null;
   window._reimbDeleteOldPhoto = oldPath;
-  // Hide preview immediately
   const previewImg = document.querySelector('[onclick*="removeExistingPhoto"]');
   if (previewImg) previewImg.parentElement.style.display = 'none';
   fsn.info('Info', '🗑️ Photo will be removed when you click Update');
@@ -584,19 +579,15 @@ window.updateReimbursement = async function() {
     return;
   }
   
-  // Delete old photo if user removed it
   if (window._reimbDeleteOldPhoto) {
     try {
       const oldUrl = window._reimbDeleteOldPhoto;
-      const oldPath = oldUrl.includes('/id-proofs/') 
-        ? oldUrl.split('/id-proofs/')[1]
-        : oldUrl;
+      const oldPath = oldUrl.includes('/id-proofs/') ? oldUrl.split('/id-proofs/')[1] : oldUrl;
       if (oldPath) await sb.storage.from('id-proofs').remove([oldPath]);
     } catch (e) { console.warn('Old photo delete failed:', e); }
     window._reimbDeleteOldPhoto = null;
   }
 
-  // Upload new photo if any
   let photoUrl = window._reimbEditPhoto;
   if (window._reimbPhotoBlob) {
     try {
@@ -606,16 +597,7 @@ window.updateReimbursement = async function() {
         upsert: false
       });
       if (upErr) throw upErr;
-      // Delete old photo if replacing
-      if (window._reimbEditPhoto) {
-        try {
-          const oldPath = window._reimbEditPhoto.includes('/id-proofs/') 
-            ? window._reimbEditPhoto.split('/id-proofs/')[1]
-            : window._reimbEditPhoto;
-          if (oldPath) await sb.storage.from('id-proofs').remove([oldPath]);
-        } catch (e) {}
-      }
-      photoUrl = path;  // Store path, not URL
+      photoUrl = path;
     } catch (err) {
       document.getElementById('rErr').innerHTML = '<div class="error">Photo upload failed: ' + err.message + '</div>';
       return;
@@ -624,6 +606,7 @@ window.updateReimbursement = async function() {
   
   const paySource = document.querySelector('input[name="paySource"]:checked')?.value || 'own_money';
   const advanceId = paySource === 'company_advance' ? (parseInt(document.getElementById('rAdvanceId')?.value) || null) : null;
+  
   const updateObj = {
     payment_source: paySource,
     company_advance_id: advanceId,
@@ -639,8 +622,7 @@ window.updateReimbursement = async function() {
     status
   };
   
-  // Auto-set claimed/received dates
-  if (status === 'Claimed' && !window._reimbEditPhoto) updateObj.claimed_date = new Date().toISOString().slice(0,10);
+  if (status === 'Claimed') updateObj.claimed_date = new Date().toISOString().slice(0,10);
   if (status === 'Received') updateObj.received_date = new Date().toISOString().slice(0,10);
   
   const { error } = await sb.from('reimbursements').update(updateObj).eq('id', id);
@@ -663,9 +645,6 @@ window.deleteReimbursement = async function(id) {
   renderReimbursements();
 };
 
-console.log('✅ Reimbursements module loaded');
-
-
 window.toggleAdvanceDropdown = async function(show) {
   const wrap = document.getElementById('advanceDropdownWrap');
   if (!wrap) return;
@@ -685,28 +664,21 @@ window.toggleAdvanceDropdown = async function(show) {
   }
 };
 
-
-
-// ═══════════════════════════════════════════════════════════
-// 💰 SMART CASH MANAGEMENT
-// ═══════════════════════════════════════════════════════════
-
+// ─── SMART CASH HANDOVER LOGIC ───
 window._companyCashData = null;
 
 window.loadAvailableCash = async function() {
   const currentUser = SESSION.displayName || 'Praveen Singh';
   
-  // Get all in_hand payments for current user
   const { data: payments } = await sb.from('payment_history')
     .select('id, amount, payment_date, payment_mode')
     .eq('received_by', currentUser)
     .eq('handover_status', 'in_hand')
     .neq('verification_status', 'rejected')
-    .order('payment_date', { ascending: true });  // FIFO - oldest first
+    .order('payment_date', { ascending: true });
   
   const totalCash = (payments || []).reduce((s, p) => s + Number(p.amount || 0), 0);
   
-  // Get pending own_money expenses (already claimed against this cash)
   const { data: pendingExp } = await sb.from('reimbursements')
     .select('amount')
     .eq('paid_by', currentUser)
@@ -732,18 +704,18 @@ window.updateCashInfo = function() {
   if (!data) return;
   
   const infoEl = document.getElementById('cashInfo');
-  const amtInput = document.getElementById('rAmount');
+  const amtInput = document.getElementById('rAmt');
   const enteredAmt = parseFloat(amtInput?.value) || 0;
   
   const shortBy = enteredAmt - data.netAvailable;
   
   let html = `
     <div style="display:flex;justify-content:space-between;align-items:center;">
-      <span>💰 <strong>${data.user}</strong> has:</span>
+      <span>💰 <strong>${data.user}</strong> has cash:</span>
       <strong style="color:${data.netAvailable>0?'#059669':'#999'};font-size:16px;">₹${data.netAvailable.toLocaleString('en-IN')}</strong>
     </div>
     <div style="font-size:11px;color:#666;margin-top:2px;">
-      (Received ₹${data.totalCash.toLocaleString('en-IN')} - Already claimed ₹${data.alreadySpent.toLocaleString('en-IN')})
+      (Received ₹${data.totalCash.toLocaleString('en-IN')} - Pending claims ₹${data.alreadySpent.toLocaleString('en-IN')})
     </div>
   `;
   
@@ -766,17 +738,14 @@ window.updateCashInfo = function() {
   
   infoEl.innerHTML = html;
   
-  // Show/hide options based on availability
   const companyCashOpt = document.getElementById('companyCashOption');
   const splitOpt = document.getElementById('splitOption');
   
   if (data.netAvailable > 0) {
     if (enteredAmt > 0 && enteredAmt <= data.netAvailable) {
-      // Full company cash available
       if (companyCashOpt) companyCashOpt.style.display = 'flex';
       if (splitOpt) splitOpt.style.display = 'none';
     } else if (enteredAmt > data.netAvailable) {
-      // Split needed
       if (companyCashOpt) companyCashOpt.style.display = 'none';
       if (splitOpt) splitOpt.style.display = 'flex';
     } else {
@@ -788,7 +757,6 @@ window.updateCashInfo = function() {
     if (splitOpt) splitOpt.style.display = 'none';
   }
   
-  // Update split preview
   updateSplitPreview();
 };
 
@@ -799,7 +767,7 @@ window.updateSplitPreview = function() {
   
   if (source === 'split') {
     const data = window._companyCashData;
-    const amt = parseFloat(document.getElementById('rAmount')?.value) || 0;
+    const amt = parseFloat(document.getElementById('rAmt')?.value) || 0;
     const fromCompany = Math.min(amt, data?.netAvailable || 0);
     const fromOwn = amt - fromCompany;
     
@@ -807,7 +775,7 @@ window.updateSplitPreview = function() {
     preview.innerHTML = `
       <strong>🔀 Split Payment Breakdown:</strong><br>
       🏢 From Company Cash: <strong>₹${fromCompany.toLocaleString('en-IN')}</strong><br>
-      💰 From Own Money: <strong>₹${fromOwn.toLocaleString('en-IN')}</strong> <span style="color:#666;">(will be added to reimbursement)</span>
+      💰 From Own Money: <strong>₹${fromOwn.toLocaleString('en-IN')}</strong>
     `;
   } else {
     preview.style.display = 'none';
@@ -819,25 +787,22 @@ window.onPaySourceChange = function() {
   const advWrap = document.getElementById('advanceDropdownWrap');
   
   if (advWrap) advWrap.style.display = source === 'company_advance' ? 'block' : 'none';
-  
   if (source === 'company_advance') {
     toggleAdvanceDropdown(true);
   }
   
+  const hint = document.getElementById('uhhsOdHint');
+  if (hint) hint.style.display = source === 'uhhs_od' ? 'block' : 'none';
+
   updateSplitPreview();
 };
 
-// Watch amount input changes
+// Amount input tracking
 document.addEventListener('input', e => {
-  if (e.target?.id === 'rAmount') {
+  if (e.target?.id === 'rAmt') {
     updateCashInfo();
   }
 });
-
-
-// ═══════════════════════════════════════════════════════════
-// 📷 MOBILE SAFE PHOTO UPLOAD HELPER
-// ═══════════════════════════════════════════════════════════
 
 function setupReimbPhotoInput(camId, galId, previewId) {
   const camEl = document.getElementById(camId);
@@ -847,14 +812,12 @@ function setupReimbPhotoInput(camId, galId, previewId) {
 
   function handleFile(file) {
     if (!file) return;
-    // Use booking's openCropModal
     if (typeof openCropModal === 'function') {
       openCropModal(file, (croppedFile) => {
         window._reimbPhotoBlob = croppedFile;
         showReimbPreview(croppedFile, previewEl);
       });
     } else {
-      // Fallback: no crop, just use file
       window._reimbPhotoBlob = file;
       showReimbPreview(file, previewEl);
     }
@@ -879,10 +842,6 @@ function showReimbPreview(file, previewEl) {
     </div>`;
 }
 
-// ═══════════════════════════════════════════════════════════
-// 📊 DAILY EXPENSES REPORT
-// ═══════════════════════════════════════════════════════════
-
 window.showReimbReport = async function() {
   const currentMonth = window._reimbMonth || new Date().toISOString().slice(0, 7);
   const monthStart = currentMonth + '-01';
@@ -903,47 +862,6 @@ window.showReimbReport = async function() {
   const totalPending = pending.reduce((s, r) => s + Number(r.amount || 0), 0);
   const totalClaimed = claimed.reduce((s, r) => s + Number(r.amount || 0), 0);
   const totalReceived = received.reduce((s, r) => s + Number(r.amount || 0), 0);
-
-  // Person wise
-  const byPerson = {};
-  all.forEach(r => {
-    const p = r.paid_by || 'Unknown';
-    if (!byPerson[p]) byPerson[p] = { pending: 0, claimed: 0, received: 0, total: 0 };
-    byPerson[p].total += Number(r.amount || 0);
-    if (r.status === 'Pending') byPerson[p].pending += Number(r.amount || 0);
-    else if (r.status === 'Claimed') byPerson[p].claimed += Number(r.amount || 0);
-    else if (r.status === 'Received') byPerson[p].received += Number(r.amount || 0);
-  });
-
-  // Category wise
-  const byCat = {};
-  all.forEach(r => {
-    const c = r.category || 'Other';
-    if (!byCat[c]) byCat[c] = 0;
-    byCat[c] += Number(r.amount || 0);
-  });
-
-  // WhatsApp text
-  const waText = `💸 *Daily Expenses Report — ${currentMonth}*
-━━━━━━━━━━━━━━━━━━━━
-📊 *Summary*
-Total Entries: ${all.length}
-Total Amount: ₹${totalAmt.toLocaleString('en-IN')}
-⏳ Pending: ₹${totalPending.toLocaleString('en-IN')} (${pending.length})
-📤 Claimed: ₹${totalClaimed.toLocaleString('en-IN')} (${claimed.length})
-✅ Received: ₹${totalReceived.toLocaleString('en-IN')} (${received.length})
-
-👤 *Person-wise Dues*
-${Object.entries(byPerson).map(([p, v]) => 
-  `${p}: ₹${v.total.toLocaleString('en-IN')} (Pending: ₹${v.pending.toLocaleString('en-IN')})`
-).join('\n')}
-
-📂 *Category-wise*
-${Object.entries(byCat).map(([c, a]) => 
-  `${c}: ₹${a.toLocaleString('en-IN')}`
-).join('\n')}
-━━━━━━━━━━━━━━━━━━━━
-UHHS — The Unique Haven Home Stay`;
 
   const modal = document.createElement('div');
   modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px;';
@@ -974,40 +892,14 @@ UHHS — The Unique Haven Home Stay`;
         </div>
       </div>
 
-      <div style="margin-bottom:16px;">
-        <div style="font-weight:700;margin-bottom:8px;">👤 Person-wise Dues</div>
-        ${Object.entries(byPerson).map(([p, v]) => `
-          <div style="display:flex;justify-content:space-between;padding:8px 12px;background:#F9FAFB;border-radius:6px;margin-bottom:4px;">
-            <span><strong>${p}</strong></span>
-            <span>₹${v.total.toLocaleString('en-IN')} <span style="color:#DC2626;">(Due: ₹${(v.pending + v.claimed).toLocaleString('en-IN')})</span></span>
-          </div>`).join('')}
-      </div>
-
-      <div style="margin-bottom:20px;">
-        <div style="font-weight:700;margin-bottom:8px;">📂 Category-wise</div>
-        ${Object.entries(byCat).map(([c, a]) => `
-          <div style="display:flex;justify-content:space-between;padding:8px 12px;background:#F9FAFB;border-radius:6px;margin-bottom:4px;">
-            <span>${c}</span>
-            <strong>₹${a.toLocaleString('en-IN')}</strong>
-          </div>`).join('')}
-      </div>
-
       <div style="display:flex;gap:10px;">
-        <button onclick="
-          navigator.clipboard.writeText(\`${waText.replace(/`/g, '\\`')}\`);
-          fsn.success('Copied!','📋 WhatsApp text copied');
-        " style="flex:1;background:#25D366;color:#fff;padding:10px;">📋 Copy WhatsApp</button>
-        <button onclick="window.print()" style="flex:1;background:#3B82F6;color:#fff;padding:10px;">🖨️ Print</button>
+        <button onclick="window.print()" style="flex:1;background:#3B82F6;color:#fff;padding:10px;border:none;border-radius:6px;cursor:pointer;">🖨️ Print</button>
+        <button onclick="this.closest('[style*=fixed]').remove()" style="flex:1;background:#64748B;color:#fff;padding:10px;border:none;border-radius:6px;cursor:pointer;">Close</button>
       </div>
     </div>
   `;
   document.body.appendChild(modal);
-  modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
 };
-
-// ═══════════════════════════════════════════════════════════
-// 💰 CLAIM ALL PENDING
-// ═══════════════════════════════════════════════════════════
 
 window.claimAllPending = async function() {
   const currentMonth = window._reimbMonth || new Date().toISOString().slice(0, 7);
@@ -1015,7 +907,7 @@ window.claimAllPending = async function() {
   const monthEnd = new Date(parseInt(currentMonth.split('-')[0]), parseInt(currentMonth.split('-')[1]), 0).toISOString().slice(0, 10);
 
   const { data: pending } = await sb.from('reimbursements')
-    .select('id, amount, paid_by, description')
+    .select('id, amount')
     .eq('status', 'Pending')
     .gte('expense_date', monthStart)
     .lte('expense_date', monthEnd);
@@ -1026,7 +918,6 @@ window.claimAllPending = async function() {
   }
 
   const total = pending.reduce((s, r) => s + Number(r.amount || 0), 0);
-
   if (!confirm(`💰 ${pending.length} pending expenses ko "Claimed" mark karein?\nTotal: ₹${total.toLocaleString('en-IN')}`)) return;
 
   const ids = pending.map(r => r.id);
@@ -1036,11 +927,10 @@ window.claimAllPending = async function() {
     .update({ status: 'Claimed', claimed_date: today })
     .in('id', ids);
 
-  if (error) {
-    fsn.error('Error', error.message);
-    return;
-  }
+  if (error) { fsn.error('Error', error.message); return; }
 
   fsn.success('Done!', `✅ ${pending.length} expenses claimed — ₹${total.toLocaleString('en-IN')}`);
   renderReimbursements();
 };
+
+console.log('✅ Reimbursements module v7 loaded (UHHS-OD / Company Cash / UPI)');
