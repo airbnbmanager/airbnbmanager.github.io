@@ -667,7 +667,7 @@ window.toggleAdvanceDropdown = async function(show) {
 // ─── SMART CASH HANDOVER LOGIC ───
 window._companyCashData = null;
 
-window.loadAvailableCash = function() { return; }; window._old_loadAvailableCash = async function() {
+window.loadAvailableCash = async function() {
   const currentUser = SESSION.displayName || 'Praveen Singh';
   
   const { data: payments } = await sb.from('payment_history')
@@ -699,7 +699,7 @@ window.loadAvailableCash = function() { return; }; window._old_loadAvailableCash
   updateCashInfo();
 };
 
-window.updateCashInfo = function() { return; }; window._old_updateCashInfo = function() {
+window.updateCashInfo = function() {
   const data = window._companyCashData;
   if (!data) return;
   
