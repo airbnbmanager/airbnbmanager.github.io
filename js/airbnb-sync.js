@@ -169,52 +169,121 @@
     const rows = parseCSV(text);
     SYNC.csvData = rows;
 
+    if (!rows || rows.length === 0) {
+      if (window.fsn?.error) fsn.error('Error', 'Invalid or empty CSV file');
+      return;
+    }
+
+    // Detect CSV Format by inspecting keys of first row
+    const sampleKeys = Object.keys(rows[0] || {}).map(k => k.toLowerCase());
+    const isNewTransactionCSV = sampleKeys.includes('gross earnings') || sampleKeys.includes('arriving by date') || sampleKeys.includes('paid out');
+    console.log("📊 Airbnb CSV Auto-Detected:", isNewTransactionCSV ? "NEW Transaction/Payout CSV" : "OLD Reservation CSV");
+
     const reservationsByCode = {};
     let autoEnrichedCount = 0;
 
-    rows.forEach(r => {
-      const status = (r['Status'] || r['Type'] || '').trim();
-      const code = (r['Confirmation code'] || r['Confirmation Code'] || r['Code'] || '').trim();
-      
-      // Skip cancelled
-      if (status.toLowerCase().includes('cancelled') || !code) return;
+    if (isNewTransactionCSV) {
+      // Pass 1: Aggregate Tax Withholdings per Confirmation Code
+      const taxWithholdingMap = {};
+      rows.forEach(r => {
+        const type = (r['Type'] || '').trim();
+        const code = (r['Confirmation Code'] || r['Confirmation code'] || '').trim();
+        const amtStr = (r['Amount'] || '0').replace(/,/g, '');
+        const amt = parseFloat(amtStr) || 0;
 
-      const sDate = r['Start date'] || r['Start Date'] || r['Check-in'] || r['Check in'];
-      const eDate = r['End date'] || r['End Date'] || r['Check-out'] || r['Check out'];
-      const guest = (r['Guest name'] || r['Guest'] || r['Contact Name'] || '').trim();
-      const phone = (r['Contact'] || r['Phone'] || r['Guest Phone'] || '').trim();
-      const listing = (r['Listing'] || r['Property'] || r['Room'] || '').trim();
+        if (code && type.toLowerCase().includes('tax withholding')) {
+          taxWithholdingMap[code] = (taxWithholdingMap[code] || 0) + amt;
+        }
+      });
 
-      const checkIn = parseDate(sDate);
-      const checkOut = parseDate(eDate);
+      // Pass 2: Parse Reservations
+      rows.forEach(r => {
+        const type = (r['Type'] || '').trim();
+        const code = (r['Confirmation Code'] || r['Confirmation code'] || '').trim();
 
-      const rawEarn = r['Earnings'] || r['Paid out'] || r['Paid Out'] || r['Net Earnings'] || r['Amount'] || r['Total Payout'] || '0';
-      const cleanEarn = parseFloat(String(rawEarn).replace(/[^0-9\.]/g, '')) || 0;
+        if (type !== 'Reservation' || !code) return;
 
-      const adults = parseInt(r['# of adults'] || '1') || 1;
-      const children = parseInt(r['# of children'] || '0') || 0;
-      const nights = parseInt(r['# of nights'] || '1') || (checkIn && checkOut ? Math.max(Math.round((new Date(checkOut) - new Date(checkIn)) / 86400000), 1) : 1);
+        const sDate = r['Start date'] || r['Start Date'];
+        const eDate = r['End date'] || r['End Date'];
+        const guest = (r['Guest'] || r['Guest name'] || 'Airbnb Guest').trim();
+        const listing = (r['Listing'] || r['Property'] || '').trim();
 
-      const matchedRoomId = SYNC.getRoomIdByListing(listing);
+        const checkIn = parseDate(sDate);
+        const checkOut = parseDate(eDate);
 
-      if (checkIn && code) {
-        reservationsByCode[code] = {
-          confirmation_code: code,
-          guest_name: guest || 'Airbnb Guest',
-          phone: phone && phone.length > 5 ? phone : null,
-          check_in: checkIn,
-          check_out: checkOut,
-          nights: nights,
-          guests: adults + children,
-          matched_room_id: matchedRoomId,
-          listing_name: listing,
-          amount: cleanEarn,
-          you_earn: csvEarningsToYouEarn(cleanEarn),
-          status: status,
-          raw: r
-        };
-      }
-    });
+        const gross = parseFloat((r['Gross earnings'] || '0').replace(/,/g, '')) || 0;
+        const amount = parseFloat((r['Amount'] || '0').replace(/,/g, '')) || 0;
+
+        const taxAdj = taxWithholdingMap[code] || 0;
+        const netPayout = amount + taxAdj > 0 ? (amount + taxAdj) : amount;
+        const finalYouEarn = netPayout > 0 ? netPayout : gross;
+
+        const nights = parseInt(r['Nights'] || '1') || (checkIn && checkOut ? Math.max(Math.round((new Date(checkOut) - new Date(checkIn)) / 86400000), 1) : 1);
+        const matchedRoomId = SYNC.getRoomIdByListing(listing);
+
+        if (checkIn && code) {
+          reservationsByCode[code] = {
+            confirmation_code: code,
+            guest_name: guest || 'Airbnb Guest',
+            phone: null,
+            check_in: checkIn,
+            check_out: checkOut,
+            nights: nights,
+            guests: 1,
+            matched_room_id: matchedRoomId,
+            listing_name: listing,
+            amount: gross > 0 ? gross : finalYouEarn,
+            you_earn: Math.round(finalYouEarn * 100) / 100,
+            status: 'Confirmed',
+            raw: r
+          };
+        }
+      });
+    } else {
+      // OLD RESERVATIONS CSV PARSING
+      rows.forEach(r => {
+        const status = (r['Status'] || r['Type'] || '').trim();
+        const code = (r['Confirmation code'] || r['Confirmation Code'] || r['Code'] || '').trim();
+        
+        if (status.toLowerCase().includes('cancelled') || !code) return;
+
+        const sDate = r['Start date'] || r['Start Date'] || r['Check-in'] || r['Check in'];
+        const eDate = r['End date'] || r['End Date'] || r['Check-out'] || r['Check out'];
+        const guest = (r['Guest name'] || r['Guest'] || r['Contact Name'] || '').trim();
+        const phone = (r['Contact'] || r['Phone'] || r['Guest Phone'] || '').trim();
+        const listing = (r['Listing'] || r['Property'] || r['Room'] || '').trim();
+
+        const checkIn = parseDate(sDate);
+        const checkOut = parseDate(eDate);
+
+        const rawEarn = r['Earnings'] || r['Paid out'] || r['Paid Out'] || r['Net Earnings'] || r['Amount'] || r['Total Payout'] || '0';
+        const cleanEarn = parseFloat(String(rawEarn).replace(/[^0-9\.]/g, '')) || 0;
+
+        const adults = parseInt(r['# of adults'] || '1') || 1;
+        const children = parseInt(r['# of children'] || '0') || 0;
+        const nights = parseInt(r['# of nights'] || '1') || (checkIn && checkOut ? Math.max(Math.round((new Date(checkOut) - new Date(checkIn)) / 86400000), 1) : 1);
+
+        const matchedRoomId = SYNC.getRoomIdByListing(listing);
+
+        if (checkIn && code) {
+          reservationsByCode[code] = {
+            confirmation_code: code,
+            guest_name: guest || 'Airbnb Guest',
+            phone: phone && phone.length > 5 ? phone : null,
+            check_in: checkIn,
+            check_out: checkOut,
+            nights: nights,
+            guests: adults + children,
+            matched_room_id: matchedRoomId,
+            listing_name: listing,
+            amount: cleanEarn,
+            you_earn: csvEarningsToYouEarn(cleanEarn),
+            status: status,
+            raw: r
+          };
+        }
+      });
+    }
 
     SYNC.allReservations = Object.values(reservationsByCode);
 
