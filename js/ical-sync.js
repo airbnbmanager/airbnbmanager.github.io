@@ -619,7 +619,7 @@ window.ICAL_AUTO_SYNC = {
     setTimeout(() => this.runSilent(), 30000);
     
     // Then every 5 minutes
-    this.timer = setInterval(() => this.runSilent(), this.INTERVAL_MS);
+    this.timer = // setInterval(() => this.runSilent(), this.INTERVAL_MS);
   },
   
   enable() {

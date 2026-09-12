@@ -256,7 +256,7 @@
 
       this.syncAllProperties();
 
-      this.autoSyncInterval = setInterval(() => {
+      this.autoSyncInterval = // setInterval(() => {
         console.log(`🤖 Auto-sync (every ${this.syncFrequency} mins)`);
         this.syncAllProperties();
       }, this.syncFrequency * 60 * 1000);

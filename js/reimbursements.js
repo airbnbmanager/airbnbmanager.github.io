@@ -667,7 +667,7 @@ window.loadAvailableCash = async function() {
   updateCashInfo();
 };
 
-window.updateCashInfo = function() {
+window.updateCashInfo = function() { return; }; window._disabled_updateCash = function() {
   const data = window._companyCashData;
   if (!data) return;
   
@@ -903,5 +903,5 @@ window.claimAllPending = async function() {
 
 console.log('✅ Reimbursements module v7 loaded (UHHS-OD / Company Cash / UPI)');
 
-window.loadAvailableCash = function() { return; };
-window.updateCashInfo = function() { return; };
+window.loadAvailableCash = function() { return; }; window._disabled_loadCash = function() { return; };
+window.updateCashInfo = function() { return; }; window._disabled_updateCash = function() { return; };

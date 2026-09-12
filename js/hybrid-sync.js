@@ -146,10 +146,11 @@ window.HYBRID_SYNC = {
     }
   },
 
-  startAutoSync: function() {
+  startAutoSync: function() { return; // DISABLED
+
     this.syncAllProperties();
     if (this.timerId) clearInterval(this.timerId);
-    this.timerId = setInterval(() => {
+    this.timerId = // setInterval(() => {
       this.syncAllProperties();
     }, 5 * 60 * 1000);
   },
