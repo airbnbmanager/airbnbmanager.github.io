@@ -131,10 +131,11 @@ async function renderCANew(tabs) {
       <div class="form-grid">
         <div class="form-group">
           <label>Given By (Source) *</label>
-          <select id="caGivenBy">
-            ${CA_OWNERS.map(o => `<option value="${o}">${o}</option>`).join('')}
-            <option value="__custom__">✏️ Other...</option>
-          </select>
+          <select id="caGivenBy" name="caGivenBy" style="width:100%; padding:10px; font-size:14px; font-weight:600; border:1.5px solid #0d6efd; border-radius:8px; background:#fff;">
+          <option value="COMPANY">🏢 COMPANY (Guest Rent / Cash in Hand)</option>
+          <option value="UHHS-OD" selected>🏦 UHHS-OD (Overdraft Account)</option>
+          <option value="FIROZ">👤 FIROZ (Direct Personal)</option>
+        </select>
           <input id="caGivenByCustom" type="text" placeholder="Type name..." style="display:none;margin-top:6px;">
         </div>
         <div class="form-group">
@@ -195,7 +196,8 @@ window.saveNewAdvance = async function() {
   const { error } = await sb.from('company_advances').insert({
     advance_date: date,
     amount_given: amount,
-    given_by: givenBy,
+    given_by: document.getElementById('caGivenBy')?.value || 'COMPANY',
+    payment_source: document.getElementById('caGivenBy')?.value || 'COMPANY',
     given_to: givenTo,
     purpose: purpose || null,
     status: 'Active',

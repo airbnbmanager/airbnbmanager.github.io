@@ -76,9 +76,9 @@ function mapLaundryMaintStatus(raw) {
 // ─── UHHS-OD LIVE BALANCE CALCULATION ───
 async function fetchUhhsOdBalance() {
   try {
-    const { data: txns, error } = await sb.from('account_transactions')
+    const { data: txns, error } = await sb.from('uhhs_od_account')
       .select('amount, transaction_type')
-      .eq('account_type', 'UHHS_OD');
+      ;
     
     if (error) throw error;
     
@@ -689,14 +689,14 @@ window.saveUhhsDeposit = async function(btn) {
 
   if (btn) { btn.disabled = true; btn.textContent = '⏳ Saving...'; }
 
-  const { error } = await sb.from('account_transactions').insert({
-    account_type: 'UHHS_OD',
-    transaction_type: 'DEPOSIT',
+    const { error } = await sb.from('uhhs_od_account').insert({
+    transaction_date: date || new Date().toISOString().slice(0, 10),
     amount: amt,
-    txn_date: date,
-    received_from: sender,
+    transaction_type: 'INFLOW',
+    payment_mode: 'UPI',
+    received_from: sender || 'Owner / Company',
     description: notes || `Deposit received from ${sender}`,
-    created_by: SESSION.displayName || 'Praveen'
+    reference_note: notes
   });
 
   if (error) {
@@ -712,9 +712,9 @@ window.saveUhhsDeposit = async function(btn) {
 
 // ─── UHHS-OD STATEMENT / LEDGER POPUP ───
 window.showUhhsStatementModal = async function() {
-  const { data: txns, error } = await sb.from('account_transactions')
+  const { data: txns, error } = await sb.from('uhhs_od_account')
     .select('*')
-    .eq('account_type', 'UHHS_OD')
+    
     .order('txn_date', { ascending: true })
     .order('created_at', { ascending: true });
 
