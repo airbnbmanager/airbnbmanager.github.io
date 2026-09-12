@@ -181,210 +181,9 @@ async function fetchUhhsOdBalance() {
       sb.from('reimbursements').select('amount, payment_source, paid_by'),
       sb.from('maintenance_log').select('cost, payment_source'),
       sb.from('laundry_payments').select('amount, payment_source'),
-      sb.from('company_advances').select('amount_given, payment_source, given_by, purpose')
-    ]);
-
-    const exOut = (exData || []).filter(e => normalizePaymentSource(e.payment_source || e.paid_by) === 'UHHS-OD')
-                                .reduce((sum, e) => sum + Number(e.amount || 0), 0);
-
-    const maintOut = (maints || []).filter(m => normalizePaymentSource(m.payment_source) === 'UHHS-OD')
-                                  .reduce((sum, m) => sum + Number(m.cost || 0), 0);
-
-    const laundOut = (launds || []).filter(l => normalizePaymentSource(l.payment_source) === 'UHHS-OD')
-                                  .reduce((sum, l) => sum + Number(l.amount || 0), 0);
-
-    const advOut = (advData || []).filter(a => normalizePaymentSource(a.payment_source || a.given_by) === 'UHHS-OD')
-                                  .reduce((sum, a) => sum + Number(a.amount_given || 0), 0);
-
-    return totalIn - (exOut + maintOut + laundOut + advOut);
-  } catch (err) {
-    console.warn('Error fetching UHHS-OD balance:', err);
-    return 0;
-  }
-}
-
-async function renderClaims() {
-  const uhhsBal = await fetchUhhsOdBalance();
-
-  renderShell(`
-    <div class="card">
-      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;">
-        <div>
-          <h1 style="margin:0;font-size:22px;">📤 Universal Claims Manager</h1>
-          <div style="font-size:12px;color:var(--muted);margin-top:4px;">
-            Checkpoint: <strong>11-Sep-2026 11:19 PM (Settled)</strong> · Auto Employee Lookup · UHHS-OD Engine
-          </div>
-        </div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;">
-          <button onclick="openUhhsDepositModal()" style="background:#0284C7;color:#fff;font-weight:700;">📥 Deposit Entry (UHHS-OD)</button>
-          <button onclick="showUhhsStatementModal()" style="background:#0F766E;color:#fff;font-weight:600;">📜 UHHS Ledger</button>
-          <button onclick="generateClaimReport()" style="background:#8B5CF6;color:#fff;font-weight:600;">📊 Claim Report Statement</button>
-          <button onclick="copyClaimWhatsAppText()" style="background:#25D366;color:#fff;font-weight:600;">📱 WhatsApp Summary</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- UHHS-OD LIVE ACCOUNT BANNER -->
-    <div class="card" style="background:${uhhsBal >= 0 ? '#F0FDF4' : '#FEF2F2'};border:1.5px solid ${uhhsBal >= 0 ? '#86EFAC' : '#FCA5A5'};">
-      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
-        <div>
-          <strong style="font-size:15px;color:${uhhsBal >= 0 ? '#15803D' : '#B91C1C'};">🏦 UHHS-OD Account (Online Balance)</strong>
-          <div style="font-size:11px;color:#64748B;">Money received online from Firoz & spent via UHHS-OD</div>
-        </div>
-        <div style="text-align:right;">
-          <div style="font-size:11px;color:#64748B;">Running Balance</div>
-          <div style="font-size:24px;font-weight:900;color:${uhhsBal >= 0 ? '#15803D' : '#DC2626'};">
-            ${uhhsBal < 0 ? '-' : ''}₹${Math.abs(uhhsBal).toLocaleString('en-IN')}
-            ${uhhsBal < 0 ? '<span style="font-size:12px;color:#DC2626;font-weight:600;"> (Negative)</span>' : ''}
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="card" style="background:#F8FAFC;border:1px solid #E2E8F0;">
-      <div style="font-size:13px;font-weight:700;margin-bottom:10px;color:#334155;">🔍 Filters</div>
-      <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(150px, 1fr));gap:10px;">
-        <div>
-          <label style="font-size:11px;font-weight:600;color:#64748B;">📅 FROM Date</label>
-          <input id="cfFromDate" type="date" value="${window._claimsState.fromDate}" onchange="updateClaimsFilter()" style="padding:6px;font-size:12px;width:100%;">
-        </div>
-        <div>
-          <label style="font-size:11px;font-weight:600;color:#64748B;">🕐 FROM Time</label>
-          <input id="cfFromTime" type="time" value="${window._claimsState.fromTime}" onchange="updateClaimsFilter()" style="padding:6px;font-size:12px;width:100%;">
-        </div>
-        <div>
-          <label style="font-size:11px;font-weight:600;color:#64748B;">📅 TO Date</label>
-          <input id="cfToDate" type="date" value="${window._claimsState.toDate}" onchange="updateClaimsFilter()" style="padding:6px;font-size:12px;width:100%;">
-        </div>
-        <div>
-          <label style="font-size:11px;font-weight:600;color:#64748B;">🕐 TO Time</label>
-          <input id="cfToTime" type="time" value="${window._claimsState.toTime}" onchange="updateClaimsFilter()" style="padding:6px;font-size:12px;width:100%;">
-        </div>
-        <div>
-          <label style="font-size:11px;font-weight:600;color:#64748B;">👤 Paid By (Payer)</label>
-          <select id="cfPaidBy" onchange="updateClaimsFilter()" style="padding:6px;font-size:12px;width:100%;">
-            <option value="all" selected>All Payers / Sources</option>
-            <option value="UHHS-OD">🏦 UHHS-OD Account</option>
-            <option value="COMPANY">🏢 COMPANY</option>
-            <option value="FIROZ">👤 FIROZ</option>
-          </select>
-        </div>
-        <div>
-          <label style="font-size:11px;font-weight:600;color:#64748B;">📁 Module</label>
-          <select id="cfModule" onchange="updateClaimsFilter()" style="padding:6px;font-size:12px;width:100%;">
-            <option value="all">All Modules</option>
-            <option value="reimbursements">💸 Daily Expenses</option>
-            <option value="maintenance">🔧 Maintenance</option>
-            <option value="laundry">🧺 Laundry</option>
-            <option value="advances">💰 Staff Advances</option>
-          </select>
-        </div>
-        <div>
-          <label style="font-size:11px;font-weight:600;color:#64748B;">🏷️ Status</label>
-          <select id="cfStatus" onchange="updateClaimsFilter()" style="padding:6px;font-size:12px;width:100%;">
-            <option value="unclaimed" selected>⏳ Pending (unclaimed)</option>
-            <option value="claimed">📤 Claimed (paisa lena baaki)</option>
-            <option value="received">✅ Received (settled)</option>
-            <option value="all">All Statuses</option>
-          </select>
-        </div>
-      </div>
-      <div style="margin-top:10px;">
-        <button onclick="loadClaimsData()" style="background:#4F46E5;color:#fff;padding:8px 16px;border:none;border-radius:6px;font-weight:600;cursor:pointer;">🔄 Refresh Data</button>
-      </div>
-    </div>
-
-    <!-- Summary cards -->
-    <div class="card" id="claimsStatCards">
-      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;">
-        <div style="text-align:center;padding:12px;background:#EEF2FF;border-radius:8px;">
-          <div id="statTotalAmt" style="font-size:20px;font-weight:800;color:#3730A3;">₹0</div>
-          <div style="font-size:11px;color:#666;">Total Expenses</div>
-        </div>
-        <div style="text-align:center;padding:12px;background:#FEF3C7;border-radius:8px;">
-          <div id="statClaimedAmt" style="font-size:20px;font-weight:800;color:#92400E;">₹0</div>
-          <div style="font-size:11px;color:#666;">📤 Claimed Expenses</div>
-        </div>
-        <div style="text-align:center;padding:12px;background:#FEE2E2;border-radius:8px;">
-          <div id="statAdvancesAmt" style="font-size:20px;font-weight:800;color:#991B1B;">-₹0</div>
-          <div style="font-size:11px;color:#666;">🔻 Less Staff Advances Given</div>
-        </div>
-        <div style="text-align:center;padding:12px;background:#D1FAE5;border-radius:8px;">
-          <div id="statNetPayableAmt" style="font-size:20px;font-weight:800;color:#065F46;">₹0</div>
-          <div style="font-size:11px;color:#666;">💵 NET PAYABLE TO PAYER</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- STAFF ADVANCES GROUPED BREAKDOWN CARD -->
-    <div class="card" style="background:#FFF5F5;border:1px solid #FECDD3;">
-      <div style="font-size:13px;font-weight:700;color:#991B1B;margin-bottom:8px;">👥 Staff Advances Breakdown (Grouped by Employee)</div>
-      <div id="staffAdvancesBreakdownContainer" style="display:flex;flex-wrap:wrap;gap:8px;font-size:12px;">
-        <div style="color:#666;">Loading staff advance totals...</div>
-      </div>
-    </div>
-
-    <div class="card" style="padding:12px 20px;background:#EEF2FF;border:1px solid #C7D2FE;">
-      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
-        <div style="font-size:13px;color:#3730A3;">
-          Selected: <strong id="selectedCountText">0 items</strong> · 
-          Net Payable: <strong id="selectedAmountText" style="font-size:16px;">₹0</strong>
-        </div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;">
-          <button onclick="bulkUpdateClaims('claimed')" class="btn-sm" style="background:#F59E0B;color:#fff;">📤 Mark Claimed</button>
-          <button onclick="bulkUpdateClaims('received')" class="btn-sm" style="background:#10B981;color:#fff;">✅ Mark Received (Settled)</button>
-          <button onclick="bulkUpdateClaims('unclaimed')" class="btn-sm" style="background:#6B7280;color:#fff;">↩️ Revert Pending</button>
-        </div>
-      </div>
-    </div>
-
-    <div class="card">
-      <div id="claimsTableContainer" style="overflow-x:auto;">
-        <div style="text-align:center;padding:30px;color:#666;">Loading...</div>
-      </div>
-    </div>
-  `, 'claims');
-
-  setTimeout(() => {
-    const m = document.getElementById('cfModule');
-    const s = document.getElementById('cfStatus');
-    const pb = document.getElementById('cfPaidBy');
-    if (m) m.value = window._claimsState.moduleFilter;
-    if (s) s.value = window._claimsState.statusFilter;
-    if (pb) pb.value = window._claimsState.paidByFilter;
-  }, 50);
-
-  await loadClaimsData();
-}
-
-function updateClaimsFilter() {
-  window._claimsState.fromDate = document.getElementById('cfFromDate').value;
-  window._claimsState.fromTime = document.getElementById('cfFromTime').value;
-  window._claimsState.toDate = document.getElementById('cfToDate').value;
-  window._claimsState.toTime = document.getElementById('cfToTime').value;
-  window._claimsState.moduleFilter = document.getElementById('cfModule').value;
-  window._claimsState.statusFilter = document.getElementById('cfStatus').value;
-  window._claimsState.paidByFilter = document.getElementById('cfPaidBy')?.value || 'all';
-  window._claimsState.selectedIds.clear();
-}
-
-async function loadClaimsData() {
-  updateTopODBanner();
-  updateClaimsFilter();
-  const st = window._claimsState;
-  const fromDate = st.fromDate;
-  const toDate = st.toDate;
-
-  const container = document.getElementById('claimsTableContainer');
-  if (container) container.innerHTML = '<div style="text-align:center;padding:30px;color:#666;">Loading claims and advances data...</div>';
-
-  try {
-    const [eRes, mRes, lRes, aRes, empRes] = await Promise.all([
-      sb.from('reimbursements')
+      sb.from('company_advances')
         .select('*')
-        .gte('expense_date', fromDate)
-        .lte('expense_date', toDate)
-        .order('expense_date', { ascending: false }),
+        .order('created_at', { ascending: false }),
       sb.from('maintenance_log')
         .select('*')
         .gte('reported_date', fromDate)
@@ -398,9 +197,7 @@ async function loadClaimsData() {
         .order('payment_date', { ascending: false }),
       sb.from('company_advances')
         .select('*')
-        .gte('date_given', fromDate)
-        .lte('date_given', toDate)
-        .order('date_given', { ascending: false }),
+        .order('created_at', { ascending: false }),
       sb.from('employees').select('emp_id, name')
     ]);
 
@@ -844,7 +641,7 @@ window.showUhhsStatementModal = async function() {
       sb.from('reimbursements').select('*').gte('expense_date', fDate).lte('expense_date', tDate),
       sb.from('maintenance_log').select('*').gte('reported_date', fDate).lte('reported_date', tDate),
       sb.from('laundry_payments').select('*').gte('payment_date', fDate).lte('payment_date', tDate),
-      sb.from('company_advances').select('*').gte('advance_date', fDate).lte('advance_date', tDate)
+      sb.from('company_advances').select('*')
     ]);
 
     const txns = [];
@@ -898,6 +695,9 @@ window.showUhhsStatementModal = async function() {
 
     // 5. Staff Advances Outflow (Include UHHS-OD advances)
     (allAdvs || []).filter(a => {
+      const aDate = a.advance_date || (a.created_at || '').slice(0, 10);
+      if (aDate && fDate && aDate < fDate) return false;
+      if (aDate && tDate && aDate > tDate) return false;
       const src = String(a.payment_source || '').toUpperCase();
       const gBy = String(a.given_by || '').toUpperCase();
       const purp = String(a.purpose || '').toUpperCase();
