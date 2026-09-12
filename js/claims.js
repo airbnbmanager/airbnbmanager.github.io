@@ -677,122 +677,173 @@ window.openUhhsDepositModal = function() {
 };
 
 window.saveUhhsDeposit = async function(btn) {
-  const sender = document.getElementById('uDepSender')?.value || 'Firoz';
   const amt = parseFloat(document.getElementById('uDepAmt')?.value) || 0;
   const date = document.getElementById('uDepDate')?.value || new Date().toISOString().slice(0, 10);
+  const sender = document.getElementById('uDepFrom')?.value.trim() || 'Owner / Company';
   const notes = document.getElementById('uDepNotes')?.value.trim() || '';
 
-  if (amt <= 0) {
-    document.getElementById('uDepErr').innerHTML = '<div style="color:#DC2626;font-size:12px;">Please enter a valid deposit amount</div>';
+  if (amt <= 0 || isNaN(amt)) {
+    if (document.getElementById('uDepErr')) {
+      document.getElementById('uDepErr').innerHTML = '<div style="color:#DC2626;font-size:12px;">Please enter a valid deposit amount</div>';
+    }
     return;
   }
 
-  if (btn) { btn.disabled = true; btn.textContent = '⏳ Saving...'; }
+  if (btn) { btn.disabled = true; btn.textContent = 'Saving...'; }
 
-    const { error } = await sb.from('uhhs_od_account').insert({
-    transaction_date: date || new Date().toISOString().slice(0, 10),
+  const { error } = await sb.from('uhhs_od_account').insert({
+    transaction_date: date,
     amount: amt,
     transaction_type: 'INFLOW',
     payment_mode: 'UPI',
-    received_from: sender || 'Owner / Company',
+    received_from: sender,
     description: notes || `Deposit received from ${sender}`,
     reference_note: notes
   });
 
   if (error) {
-    document.getElementById('uDepErr').innerHTML = `<div style="color:#DC2626;font-size:12px;">${error.message}</div>`;
     if (btn) { btn.disabled = false; btn.textContent = '💾 Save Deposit'; }
+    alert('Error saving deposit: ' + error.message);
     return;
   }
 
-  if (window.fsn) fsn.success('Success', `✅ ₹${amt.toLocaleString('en-IN')} deposited in UHHS-OD!`);
   document.querySelector('.modal-overlay')?.remove();
-  renderClaims();
+  if (window.fsn) fsn.success('Success', `✅ ₹${amt.toLocaleString('en-IN')} deposited in UHHS-OD!`);
+  
+  if (window.UHHSODManager) {
+    window.UHHSODManager.calculateBalance(sb);
+  }
+  if (typeof loadClaimsData === 'function') loadClaimsData();
 };
 
 // ─── UHHS-OD STATEMENT / LEDGER POPUP ───
 window.showUhhsStatementModal = async function() {
-  const { data: txns, error } = await sb.from('uhhs_od_account')
-    .select('*')
-    
-    .order('txn_date', { ascending: true })
-    .order('created_at', { ascending: true });
+  try {
+    const { data: deposits, error: depErr } = await sb.from('uhhs_od_account').select('*').order('transaction_date', { ascending: false });
+    if (depErr) throw depErr;
 
-  if (error) {
-    alert('Error loading ledger: ' + error.message);
-    return;
-  }
+    // Fetch outflows tagged as UHHS-OD
+    const [{ data: exps }, { data: maints }, { data: launds }, { data: advs }] = await Promise.all([
+      sb.from('reimbursements').select('*').eq('payment_source', 'UHHS-OD'),
+      sb.from('maintenance_log').select('*').eq('payment_source', 'UHHS-OD'),
+      sb.from('laundry_payments').select('*').eq('payment_source', 'UHHS-OD'),
+      sb.from('company_advances').select('*').eq('payment_source', 'UHHS-OD')
+    ]);
 
-  let runningBal = 0;
-  const rows = (txns || []).map(t => {
-    const isDep = t.transaction_type === 'DEPOSIT';
-    const amt = Number(t.amount || 0);
-    if (isDep) runningBal += amt;
-    else runningBal -= amt;
+    const txns = [];
+    (deposits || []).forEach(d => {
+      txns.push({
+        date: d.transaction_date,
+        type: 'DEPOSIT',
+        desc: d.description || `Deposit from ${d.received_from || 'Firoz/Owner'}`,
+        amount: Number(d.amount || 0),
+        isDep: true
+      });
+    });
 
-    return { ...t, isDep, amt, runningBal };
-  });
+    (exps || []).forEach(e => {
+      txns.push({
+        date: e.expense_date,
+        type: 'EXPENSE',
+        desc: `Expense: ${e.category || ''} - ${e.description || ''}`,
+        amount: Number(e.amount || 0),
+        isDep: false
+      });
+    });
 
-  rows.reverse(); // Latest first
+    (maints || []).forEach(m => {
+      txns.push({
+        date: m.reported_date,
+        type: 'EXPENSE',
+        desc: `Maintenance: ${m.issue_type || ''} - ${m.description || ''}`,
+        amount: Number(m.cost || 0),
+        isDep: false
+      });
+    });
 
-  const modal = document.createElement('div');
-  modal.className = 'modal-overlay';
-  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);display:flex;align-items:center;justify-content:center;z-index:9999;padding:20px;';
-  
-  modal.innerHTML = `
-    <div style="background:#fff;border-radius:12px;padding:24px;max-width:750px;width:100%;max-height:85vh;overflow-y:auto;font-family:sans-serif;">
-      <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid #E2E8F0;padding-bottom:12px;margin-bottom:16px;">
-        <div>
-          <h2 style="margin:0;font-size:20px;color:#0F766E;">📜 UHHS-OD Account Statement</h2>
-          <div style="font-size:12px;color:#64748B;">All Online deposits & expenses with live running balance</div>
+    (launds || []).forEach(l => {
+      txns.push({
+        date: l.payment_date,
+        type: 'EXPENSE',
+        desc: `Laundry Payment: ${l.notes || ''}`,
+        amount: Number(l.amount || 0),
+        isDep: false
+      });
+    });
+
+    (advs || []).forEach(a => {
+      txns.push({
+        date: a.advance_date,
+        type: 'EXPENSE',
+        desc: `Advance to ${a.given_to || ''}: ${a.purpose || ''}`,
+        amount: Number(a.amount_given || 0),
+        isDep: false
+      });
+    });
+
+    txns.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+    let totalInflow = txns.filter(t => t.isDep).reduce((s, t) => s + t.amount, 0);
+    let totalOutflow = txns.filter(t => !t.isDep).reduce((s, t) => s + t.amount, 0);
+    let netBalance = totalInflow - totalOutflow;
+
+    const modal = document.createElement('div');
+    modal.className = 'modal-overlay';
+    modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);display:flex;align-items:center;justify-content:center;z-index:99999;padding:20px;';
+    modal.onclick = e => { if (e.target === modal) modal.remove(); };
+
+    modal.innerHTML = `
+      <div class="modal-box" style="background:#fff;border-radius:12px;padding:24px;max-width:750px;width:100%;max-height:85vh;overflow-y:auto;" onclick="event.stopPropagation()">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;border-bottom:2px solid #eee;padding-bottom:10px;">
+          <div>
+            <h2 style="margin:0;color:#0F766E;">📜 UHHS-OD Account Statement / Ledger</h2>
+            <div style="font-size:12px;color:#64748B;margin-top:2px;">Live Deposits & Expenses with Running Balance</div>
+          </div>
+          <button onclick="this.closest('.modal-overlay').remove()" style="background:none;border:none;font-size:24px;cursor:pointer;">✕</button>
         </div>
-        <button onclick="this.closest('.modal-overlay').remove()" style="border:none;background:none;font-size:22px;cursor:pointer;">✕</button>
-      </div>
 
-      <div style="background:#F0FDF4;border:1px solid #86EFAC;border-radius:8px;padding:12px;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center;">
-        <span style="font-weight:700;color:#166534;">Current UHHS-OD Balance:</span>
-        <strong style="font-size:20px;color:${runningBal >= 0 ? '#15803D' : '#DC2626'};">${runningBal < 0 ? '-' : ''}₹${Math.abs(runningBal).toLocaleString('en-IN')}</strong>
-      </div>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px;">
+          <div style="padding:12px;background:#F0FDF4;border-radius:8px;text-align:center;">
+            <div style="font-size:11px;color:#166534;font-weight:700;">TOTAL DEPOSITED (+)</div>
+            <div style="font-size:20px;font-weight:800;color:#059669;margin-top:2px;">₹${totalInflow.toLocaleString('en-IN')}</div>
+          </div>
+          <div style="padding:12px;background:#FEF2F2;border-radius:8px;text-align:center;">
+            <div style="font-size:11px;color:#991B1B;font-weight:700;">TOTAL SPENT (-)</div>
+            <div style="font-size:20px;font-weight:800;color:#DC2626;margin-top:2px;">₹${totalOutflow.toLocaleString('en-IN')}</div>
+          </div>
+          <div style="padding:12px;background:${netBalance>=0?'#ECFDF5':'#FFF1F2'};border-radius:8px;text-align:center;">
+            <div style="font-size:11px;color:${netBalance>=0?'#065F46':'#9F1239'};font-weight:700;">NET RUNNING BALANCE</div>
+            <div style="font-size:20px;font-weight:800;color:${netBalance>=0?'#059669':'#DC2626'};margin-top:2px;">₹${netBalance.toLocaleString('en-IN')}</div>
+          </div>
+        </div>
 
-      ${rows.length === 0 ? '<div style="text-align:center;padding:30px;color:#94A3B8;">No transactions found in UHHS-OD Account</div>' : `
         <table style="width:100%;border-collapse:collapse;font-size:12px;">
           <thead>
             <tr style="background:#F1F5F9;text-align:left;">
               <th style="padding:8px;">Date</th>
               <th style="padding:8px;">Type</th>
               <th style="padding:8px;">Description</th>
-              <th style="padding:8px;text-align:right;">Deposit (+)</th>
-              <th style="padding:8px;text-align:right;">Expense (-)</th>
-              <th style="padding:8px;text-align:right;">Balance (₹)</th>
+              <th style="padding:8px;text-align:right;">Amount (₹)</th>
             </tr>
           </thead>
           <tbody>
-            ${rows.map(r => `
+            ${txns.length === 0 ? '<tr><td colspan="4" style="padding:20px;text-align:center;color:#94A3B8;">No transactions found in UHHS-OD</td></tr>' : ''}
+            ${txns.map(t => `
               <tr style="border-bottom:1px solid #E2E8F0;">
-                <td style="padding:8px;color:#64748B;">${r.txn_date || (r.created_at || '').slice(0,10)}</td>
-                <td style="padding:8px;">
-                  <span style="padding:2px 6px;border-radius:4px;font-size:10px;font-weight:700;background:${r.isDep ? '#DCFCE7' : '#FEE2E2'};color:${r.isDep ? '#15803D' : '#B91C1C'};">
-                    ${r.isDep ? '📥 DEPOSIT' : '📤 EXPENSE'}
-                  </span>
-                </td>
-                <td style="padding:8px;font-weight:600;color:#1E293B;">${r.description || (r.isDep ? `From ${r.received_from}` : 'Expense')}</td>
-                <td style="padding:8px;text-align:right;color:#16A34A;font-weight:700;">${r.isDep ? '+₹' + r.amt.toLocaleString('en-IN') : '-'}</td>
-                <td style="padding:8px;text-align:right;color:#DC2626;font-weight:700;">${!r.isDep ? '-₹' + r.amt.toLocaleString('en-IN') : '-'}</td>
-                <td style="padding:8px;text-align:right;font-weight:800;color:${r.runningBal >= 0 ? '#0F172A' : '#DC2626'};">
-                  ${r.runningBal < 0 ? '-' : ''}₹${Math.abs(r.runningBal).toLocaleString('en-IN')}
-                </td>
+                <td style="padding:8px;">${t.date || '-'}</td>
+                <td style="padding:8px;"><span style="padding:2px 6px;border-radius:4px;font-size:10px;font-weight:700;background:${t.isDep?'#DCFCE7':'#FEE2E2'};color:${t.isDep?'#15803D':'#B91C1C'};">${t.isDep ? '📥 DEPOSIT' : '📤 EXPENSE'}</span></td>
+                <td style="padding:8px;">${t.desc}</td>
+                <td style="padding:8px;text-align:right;font-weight:700;color:${t.isDep?'#15803D':'#B91C1C'};">${t.isDep ? '+' : '-'}₹${t.amount.toLocaleString('en-IN')}</td>
               </tr>
             `).join('')}
           </tbody>
         </table>
-      `}
-
-      <div style="display:flex;justify-content:flex-end;margin-top:16px;">
-        <button onclick="this.closest('.modal-overlay').remove()" style="background:#64748B;color:#fff;padding:8px 18px;border:none;border-radius:6px;cursor:pointer;">Close</button>
       </div>
-    </div>
-  `;
-  document.body.appendChild(modal);
+    `;
+    document.body.appendChild(modal);
+  } catch (err) {
+    alert('Error loading ledger: ' + err.message);
+  }
 };
 
 function getReportItems() {
