@@ -118,19 +118,23 @@ window.HYBRID_SYNC = {
           return (dbB.check_in < ev.check_out && dbB.check_out > ev.check_in);
         });
 
-        // 1. If NO OVERLAP -> Insert new booking or block entry
+        // 1. If NO OVERLAP -> Insert ONLY real bookings (SKIP BLOCKED DUMMY ROWS)
         if (!overlapBk) {
-          const deterministicId = ev.is_blocked ? `BLK_${roomId}_${ev.check_in.replace(/-/g, '')}` : 'BK_' + Date.now() + '_' + Math.floor(Math.random()*10000);
+          if (ev.is_blocked || (ev.guest_name && ev.guest_name.includes('Blocked'))) {
+            console.log(`⏭️ [Hybrid Sync] Skipping BLK_ blocked dummy insertion for ${roomId} (${ev.check_in})`);
+            return;
+          }
+          const deterministicId = 'BK_' + Date.now() + '_' + Math.floor(Math.random()*10000);
           newToInsert.push({
             booking_id: deterministicId,
             guest_name: ev.guest_name,
             check_in: ev.check_in,
             check_out: ev.check_out,
             room_id: roomId,
-            booking_mode: ev.is_blocked ? 'Offline' : 'Online-Airbnb',
+            booking_mode: 'Online-Airbnb',
             payment_status: 'Paid',
             total_amount: 0,
-            notes: ev.is_blocked ? 'Airbnb Blocked date auto-synced' : ('Auto-synced from ' + prop.name + ' iCal')
+            notes: 'Auto-synced from ' + prop.name + ' iCal'
           });
         }
       });
