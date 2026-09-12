@@ -396,7 +396,7 @@ async function loadClaimsData() {
         .gte('payment_date', fromDate)
         .lte('payment_date', toDate)
         .order('payment_date', { ascending: false }),
-      sb.from('advance_tracker')
+      sb.from('company_advances')
         .select('*')
         .gte('date_given', fromDate)
         .lte('date_given', toDate)
@@ -473,10 +473,10 @@ async function loadClaimsData() {
 
     // 4. Staff Advances
     (aRes.data || []).forEach(adv => {
-      const realName = empMap[adv.emp_id] || adv.emp_id || 'Staff';
-      const isDeducted = adv.is_deducted === true || adv.is_deducted === 'true';
-      const st = isDeducted ? 'received' : 'claimed';
-      const advAmt = Number(adv.advance_amount || 0);
+      const realName = empMap[adv.emp_id] || adv.given_to || 'Staff';
+      const isDeducted = adv.status === 'Reconciled' || adv.is_deducted === true;
+      const st = adv.claim_status || (isDeducted ? 'received' : 'unclaimed');
+      const advAmt = Number(adv.amount_given || adv.advance_amount || 0);
 
       if (!isDeducted) {
         empAdvanceSum[realName] = (empAdvanceSum[realName] || 0) + advAmt;
@@ -717,7 +717,7 @@ async function bulkUpdateClaims(targetStatus) {
         error = res.error;
       } else if (item.module === 'advances') {
         const isDed = targetStatus === 'received' ? true : false;
-        const res = await sb.from('advance_tracker').update({
+        const res = await sb.from('company_advances').update({
           is_deducted: isDed,
           repaid_date: targetStatus === 'received' ? todayDate : null
         }).eq('id', item.id);
