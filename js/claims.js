@@ -95,26 +95,13 @@ function normalizePaymentSource(rawVal) {
 // Async helper to update Top OD Banner Balance
 async function updateTopODBanner() {
   try {
-    const { data: depData } = await sb.from('uhhs_od_account').select('amount').eq('transaction_type', 'INFLOW');
-    const totalIn = (depData || []).reduce((sum, d) => sum + Number(d.amount || 0), 0);
-
-    const [{ data: exData }, { data: advData }] = await Promise.all([
-      sb.from('reimbursements').select('amount, payment_source, paid_by'),
-      sb.from('company_advances').select('amount_given, payment_source, given_by, purpose')
-    ]);
-
-    const exOut = (exData || []).filter(e => normalizePaymentSource(e.payment_source || e.paid_by) === 'UHHS-OD')
-                                .reduce((sum, e) => sum + Number(e.amount || 0), 0);
-
-    const advOut = (advData || []).filter(a => normalizePaymentSource(a.payment_source || a.given_by) === 'UHHS-OD')
-                                  .reduce((sum, a) => sum + Number(a.amount_given || 0), 0);
-
-    const netOD = totalIn - (exOut + advOut);
-
-    const bannerEl = document.querySelector('.claims-od-bal-value') || document.getElementById('claims-od-banner-bal');
-    if (bannerEl) {
-      bannerEl.innerText = `₹${netOD.toLocaleString('en-IN')}`;
-      bannerEl.style.color = netOD >= 0 ? '#059669' : '#DC2626';
+    if (window.UHHSODManager) {
+      const res = await window.UHHSODManager.calculateBalance(sb);
+      const bannerEl = document.querySelector('.claims-od-bal-value') || document.getElementById('claims-od-banner-bal');
+      if (bannerEl) {
+        bannerEl.innerText = `₹${res.balance.toLocaleString('en-IN')}`;
+        bannerEl.style.color = res.balance >= 0 ? '#059669' : '#DC2626';
+      }
     }
   } catch(err) { console.warn('Banner balance calc:', err); }
 }
@@ -874,7 +861,10 @@ window.showUhhsStatementModal = async function() {
     });
 
     // 2. Daily Expenses Outflow
-    (exps || []).filter(e => normalizePaymentSource(e.payment_source || e.paid_by) === 'UHHS-OD').forEach(e => {
+    (exps || []).filter(e => {
+      const s = String(e.payment_source || e.paid_by || '').toUpperCase();
+      return s.includes('OD') || s.includes('UHHS');
+    }).forEach(e => {
       txns.push({
         date: e.expense_date,
         type: 'EXPENSE',
@@ -885,7 +875,7 @@ window.showUhhsStatementModal = async function() {
     });
 
     // 3. Maintenance Outflow
-    (maints || []).filter(m => normalizePaymentSource(m.payment_source) === 'UHHS-OD').forEach(m => {
+    (maints || []).filter(m => String(m.payment_source || '').toUpperCase().includes('OD')).forEach(m => {
       txns.push({
         date: m.reported_date,
         type: 'EXPENSE',
@@ -896,7 +886,7 @@ window.showUhhsStatementModal = async function() {
     });
 
     // 4. Laundry Outflow
-    (launds || []).filter(l => normalizePaymentSource(l.payment_source) === 'UHHS-OD').forEach(l => {
+    (launds || []).filter(l => String(l.payment_source || '').toUpperCase().includes('OD')).forEach(l => {
       txns.push({
         date: l.payment_date,
         type: 'EXPENSE',
@@ -906,8 +896,14 @@ window.showUhhsStatementModal = async function() {
       });
     });
 
-    // 5. Staff Advances Outflow
-    (allAdvs || []).filter(a => normalizePaymentSource(a.payment_source || a.given_by) === 'UHHS-OD').forEach(a => {
+    // 5. Staff Advances Outflow (Include UHHS-OD advances)
+    (allAdvs || []).filter(a => {
+      const src = String(a.payment_source || '').toUpperCase();
+      const gBy = String(a.given_by || '').toUpperCase();
+      const purp = String(a.purpose || '').toUpperCase();
+      const isFiroz = src === 'FIROZ' || gBy.includes('FIROZ') || purp.includes('FIROZ');
+      return !isFiroz;
+    }).forEach(a => {
       txns.push({
         date: a.advance_date || a.created_at?.slice(0, 10),
         type: 'EXPENSE',

@@ -40,87 +40,112 @@ function getPaymentSourceBadge(source) {
 // 3. Live UHHS-OD Balance Calculator with EXACT DB Table Names
 async function calculateLiveODBalance(supabaseClient) {
     const client = supabaseClient || window.sb || window.supabaseClient || window.supabase;
-    if (!client) {
-        console.warn("Supabase client not ready for OD balance calculation");
-        return { inflow: 0, outflow: 0, balance: 0 };
-    }
+    if (!client) return { inflow: 0, outflow: 0, balance: 0 };
 
     try {
-        // A. Inflows into UHHS-OD account (from Firoz via UPI/Cash)
+        const startDate = "2026-09-12";
+
+        // A. Inflows from 12 Sep onwards
         const { data: odInflows } = await client
             .from('uhhs_od_account')
             .select('amount')
-            .eq('transaction_type', 'INFLOW');
+            .eq('transaction_type', 'INFLOW')
+            .gte('transaction_date', startDate);
 
         const totalInflow = (odInflows || []).reduce((sum, row) => sum + parseFloat(row.amount || 0), 0);
 
-        // B. Outflows spent using UHHS-OD across correct DB tables
+        // B. Outflows from 12 Sep onwards
         let totalOutflow = 0;
 
-        // 1. Expenses
+        // 1. Daily Expenses
         try {
-            const { data: r1 } = await client.from('expenses').select('amount').eq('payment_source', 'UHHS-OD');
-            if (r1) totalOutflow += r1.reduce((s, r) => s + parseFloat(r.amount || 0), 0);
+            const { data: r1 } = await client.from('reimbursements')
+                .select('amount, payment_source, paid_by')
+                .gte('expense_date', startDate);
+            if (r1) {
+                totalOutflow += r1.filter(e => {
+                    const s = String(e.payment_source || e.paid_by || '').toUpperCase();
+                    return s.includes('OD') || s.includes('UHHS');
+                }).reduce((s, r) => s + parseFloat(r.amount || 0), 0);
+            }
         } catch (e) {}
 
         // 2. Maintenance Log
         try {
-            const { data: r2 } = await client.from('maintenance_log').select('cost').eq('payment_source', 'UHHS-OD');
-            if (r2) totalOutflow += r2.reduce((s, r) => s + parseFloat(r.cost || 0), 0);
+            const { data: r2 } = await client.from('maintenance_log')
+                .select('cost, payment_source')
+                .gte('reported_date', startDate);
+            if (r2) {
+                totalOutflow += r2.filter(m => String(m.payment_source || '').toUpperCase().includes('OD'))
+                                  .reduce((s, r) => s + parseFloat(r.cost || 0), 0);
+            }
         } catch (e) {}
 
         // 3. Laundry Payments
         try {
-            const { data: r3 } = await client.from('laundry_payments').select('amount').eq('payment_source', 'UHHS-OD');
-            if (r3) totalOutflow += r3.reduce((s, r) => s + parseFloat(r.amount || 0), 0);
+            const { data: r3 } = await client.from('laundry_payments')
+                .select('amount, payment_source')
+                .gte('payment_date', startDate);
+            if (r3) {
+                totalOutflow += r3.filter(l => String(l.payment_source || '').toUpperCase().includes('OD'))
+                                  .reduce((s, r) => s + parseFloat(r.amount || 0), 0);
+            }
         } catch (e) {}
 
-        // 4. Company Advances (Smart Filter)
+        // 4. Company Advances (UHHS-OD Advances)
         try {
-            const { data: r4 } = await client.from('company_advances').select('amount_given, payment_source, given_by, purpose');
+            const { data: r4 } = await client.from('company_advances')
+                .select('amount_given, payment_source, given_by, purpose')
+                .gte('advance_date', startDate);
             if (r4) {
                 totalOutflow += r4.filter(a => {
                     const src = String(a.payment_source || '').toUpperCase();
                     const gBy = String(a.given_by || '').toUpperCase();
                     const purp = String(a.purpose || '').toUpperCase();
                     const isFiroz = src === 'FIROZ' || gBy.includes('FIROZ') || purp.includes('FIROZ');
-                    return src === 'UHHS-OD' || (!isFiroz && src !== 'COMPANY');
+                    return !isFiroz;
                 }).reduce((s, r) => s + parseFloat(r.amount_given || 0), 0);
             }
         } catch (e) {}
 
-        // 5. Reimbursements
-        try {
-            const { data: r5 } = await client.from('reimbursements').select('amount').or('payment_source.eq.UHHS-OD,paid_by.eq.UHHS-OD');
-            if (r5) totalOutflow += r5.reduce((s, r) => s + parseFloat(r.amount || 0), 0);
-        } catch (e) {}
-
         const netBalance = totalInflow - totalOutflow;
 
-        // C. Update UI Card on Dashboard / Cashbook / Expenses if element exists
-        const odCardEl = document.getElementById('uhhs-od-balance-display');
-        if (odCardEl) {
-            const isNegative = netBalance < 0;
-            odCardEl.innerHTML = `
-                <div style="padding:14px; border-radius:10px; background:${isNegative ? '#fff5f5' : '#f0fff4'}; border:1.5px solid ${isNegative ? '#dc3545' : '#198754'}; margin-bottom:12px;">
-                    <div style="display:flex; justify-content:space-between; align-items:center;">
-                        <div>
-                            <div style="font-size:12px; font-weight:700; color:#555; text-transform:uppercase; letter-spacing:0.5px;">🏦 UHHS-OD ACCOUNT BALANCE</div>
-                            <div style="font-size:24px; font-weight:800; color:${isNegative ? '#dc3545' : '#198754'}; margin-top:2px;">
-                                ₹${netBalance.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+        // Update Top Banner Elements across all pages
+        const bannerElements = [
+            document.getElementById('uhhs-od-balance-display'),
+            document.getElementById('claims-od-banner-bal'),
+            document.querySelector('.claims-od-bal-value')
+        ];
+
+        bannerElements.forEach(el => {
+            if (el) {
+                if (el.id === 'claims-od-banner-bal' || el.classList.contains('claims-od-bal-value')) {
+                    el.innerText = `₹${netBalance.toLocaleString('en-IN')}`;
+                    el.style.color = netBalance >= 0 ? '#059669' : '#DC2626';
+                } else {
+                    const isNegative = netBalance < 0;
+                    el.innerHTML = `
+                        <div style="padding:14px; border-radius:10px; background:${isNegative ? '#fff5f5' : '#f0fff4'}; border:1.5px solid ${isNegative ? '#dc3545' : '#198754'}; margin-bottom:12px;">
+                            <div style="display:flex; justify-content:space-between; align-items:center;">
+                                <div>
+                                    <div style="font-size:12px; font-weight:700; color:#555; text-transform:uppercase;">🏦 UHHS-OD ACCOUNT BALANCE</div>
+                                    <div style="font-size:24px; font-weight:800; color:${isNegative ? '#dc3545' : '#198754'}; margin-top:2px;">
+                                        ₹${netBalance.toLocaleString('en-IN', { minimumFractionDigits: 0 })}
+                                    </div>
+                                </div>
+                                <button onclick="window.cbDepositToODModal()" style="padding:8px 14px; background:#10B981; color:#fff; border:none; border-radius:6px; font-weight:700; font-size:12px; cursor:pointer;">
+                                    📥 + Deposit Funds
+                                </button>
+                            </div>
+                            <div style="font-size:11px; color:#666; margin-top:6px; border-top:1px solid ${isNegative ? '#fecdd3' : '#bbf7d0'}; padding-top:6px;">
+                                Inflow: <b>₹${totalInflow.toLocaleString('en-IN')}</b> | Outflow: <b>₹${totalOutflow.toLocaleString('en-IN')}</b>
+                                ${isNegative ? ' — <b style="color:#dc3545;">(OD Running in Minus)</b>' : ' — <b style="color:#198754;">(In Surplus)</b>'}
                             </div>
                         </div>
-                        <button onclick="window.cbDepositToODModal()" style="padding:8px 14px; background:#10B981; color:#fff; border:none; border-radius:6px; font-weight:700; font-size:12px; cursor:pointer;">
-                            📥 + Deposit Funds
-                        </button>
-                    </div>
-                    <div style="font-size:11px; color:#666; margin-top:6px; border-top:1px solid ${isNegative ? '#fecdd3' : '#bbf7d0'}; padding-top:6px;">
-                        Inflow: <b>₹${totalInflow.toLocaleString('en-IN')}</b> | Outflow: <b>₹${totalOutflow.toLocaleString('en-IN')}</b>
-                        ${isNegative ? ' — <b style="color:#dc3545;">(OD Running in Minus)</b>' : ' — <b style="color:#198754;">(In Surplus)</b>'}
-                    </div>
-                </div>
-            `;
-        }
+                    `;
+                }
+            }
+        });
 
         return { inflow: totalInflow, outflow: totalOutflow, balance: netBalance };
     } catch (error) {
