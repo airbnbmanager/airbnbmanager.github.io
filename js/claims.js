@@ -103,23 +103,31 @@ function mapLaundryMaintStatus(raw) {
 // ─── UHHS-OD LIVE BALANCE CALCULATION ───
 async function fetchUhhsOdBalance() {
   try {
-    const { data: txns, error } = await sb.from('uhhs_od_account')
-      .select('amount, transaction_type')
-      ;
-    
-    if (error) throw error;
-    
-    let bal = 0;
-    (txns || []).forEach(t => {
-      const amt = Number(t.amount || 0);
-      if (t.transaction_type === 'DEPOSIT') bal += amt;
-      else if (t.transaction_type === 'EXPENSE' || t.transaction_type === 'TRANSFER') bal -= amt;
-    });
-    
-    window._claimsState.uhhsBalance = bal;
-    return bal;
-  } catch(e) {
-    console.warn('UHHS-OD balance fetch failed:', e);
+    const { data: depData } = await sb.from('uhhs_od_account').select('amount').eq('transaction_type', 'INFLOW');
+    const totalIn = (depData || []).reduce((sum, d) => sum + Number(d.amount || 0), 0);
+
+    const [{ data: exData }, { data: maints }, { data: launds }, { data: advData }] = await Promise.all([
+      sb.from('reimbursements').select('amount, payment_source, paid_by'),
+      sb.from('maintenance_log').select('cost, payment_source'),
+      sb.from('laundry_payments').select('amount, payment_source'),
+      sb.from('company_advances').select('amount_given, payment_source, given_by, purpose')
+    ]);
+
+    const exOut = (exData || []).filter(e => normalizePaymentSource(e.payment_source || e.paid_by) === 'UHHS-OD')
+                                .reduce((sum, e) => sum + Number(e.amount || 0), 0);
+
+    const maintOut = (maints || []).filter(m => normalizePaymentSource(m.payment_source) === 'UHHS-OD')
+                                  .reduce((sum, m) => sum + Number(m.cost || 0), 0);
+
+    const laundOut = (launds || []).filter(l => normalizePaymentSource(l.payment_source) === 'UHHS-OD')
+                                  .reduce((sum, l) => sum + Number(l.amount || 0), 0);
+
+    const advOut = (advData || []).filter(a => normalizePaymentSource(a.payment_source || a.given_by) === 'UHHS-OD')
+                                  .reduce((sum, a) => sum + Number(a.amount_given || 0), 0);
+
+    return totalIn - (exOut + maintOut + laundOut + advOut);
+  } catch (err) {
+    console.warn('Error fetching UHHS-OD balance:', err);
     return 0;
   }
 }
@@ -203,8 +211,8 @@ async function renderClaims() {
         <div>
           <label style="font-size:11px;font-weight:600;color:#64748B;">🏷️ Status</label>
           <select id="cfStatus" onchange="updateClaimsFilter()" style="padding:6px;font-size:12px;width:100%;">
-            <option value="claimed" selected>📤 Claimed (paisa lena baaki)</option>
-            <option value="unclaimed">⏳ Pending (unclaimed)</option>
+            <option value="unclaimed" selected>⏳ Pending (unclaimed)</option>
+            <option value="claimed">📤 Claimed (paisa lena baaki)</option>
             <option value="received">✅ Received (settled)</option>
             <option value="all">All Statuses</option>
           </select>
@@ -750,19 +758,27 @@ window.saveUhhsDeposit = async function(btn) {
 // ─── UHHS-OD STATEMENT / LEDGER POPUP ───
 window.showUhhsStatementModal = async function() {
   try {
-    const { data: deposits, error: depErr } = await sb.from('uhhs_od_account').select('*').order('transaction_date', { ascending: false });
+    const { fromDate, toDate } = window._claimsState || {};
+    const fDate = fromDate || '2026-01-01';
+    const tDate = toDate || new Date().toISOString().slice(0, 10);
+
+    const { data: deposits, error: depErr } = await sb.from('uhhs_od_account')
+      .select('*')
+      .gte('transaction_date', fDate)
+      .lte('transaction_date', tDate)
+      .order('transaction_date', { ascending: false });
     if (depErr) throw depErr;
 
-    const [{ data: exps }, { data: maints }, { data: launds }, { data: advs }] = await Promise.all([
-      sb.from('reimbursements').select('*').or('payment_source.eq.UHHS-OD,paid_by.eq.UHHS-OD'),
-      sb.from('maintenance_log').select('*').eq('payment_source', 'UHHS-OD'),
-      sb.from('laundry_payments').select('*').eq('payment_source', 'UHHS-OD'),
-      sb.from('company_advances').select('*')
+    const [{ data: exps }, { data: maints }, { data: launds }, { data: allAdvs }] = await Promise.all([
+      sb.from('reimbursements').select('*').gte('expense_date', fDate).lte('expense_date', tDate),
+      sb.from('maintenance_log').select('*').gte('reported_date', fDate).lte('reported_date', tDate),
+      sb.from('laundry_payments').select('*').gte('payment_date', fDate).lte('payment_date', tDate),
+      sb.from('company_advances').select('*').gte('advance_date', fDate).lte('advance_date', tDate)
     ]);
 
     const txns = [];
 
-    // Deposits (+)
+    // 1. Deposits Inflow
     (deposits || []).forEach(d => {
       txns.push({
         date: d.transaction_date,
@@ -773,8 +789,8 @@ window.showUhhsStatementModal = async function() {
       });
     });
 
-    // Daily Expenses (-)
-    (exps || []).forEach(e => {
+    // 2. Daily Expenses Outflow
+    (exps || []).filter(e => normalizePaymentSource(e.payment_source || e.paid_by) === 'UHHS-OD').forEach(e => {
       txns.push({
         date: e.expense_date,
         type: 'EXPENSE',
@@ -784,8 +800,8 @@ window.showUhhsStatementModal = async function() {
       });
     });
 
-    // Maintenance (-)
-    (maints || []).forEach(m => {
+    // 3. Maintenance Outflow
+    (maints || []).filter(m => normalizePaymentSource(m.payment_source) === 'UHHS-OD').forEach(m => {
       txns.push({
         date: m.reported_date,
         type: 'EXPENSE',
@@ -795,8 +811,8 @@ window.showUhhsStatementModal = async function() {
       });
     });
 
-    // Laundry (-)
-    (launds || []).forEach(l => {
+    // 4. Laundry Outflow
+    (launds || []).filter(l => normalizePaymentSource(l.payment_source) === 'UHHS-OD').forEach(l => {
       txns.push({
         date: l.payment_date,
         type: 'EXPENSE',
@@ -806,22 +822,15 @@ window.showUhhsStatementModal = async function() {
       });
     });
 
-    // Staff Advances given from UHHS-OD (-)
-    (advs || []).forEach(a => {
-      const src = String(a.payment_source || '').toUpperCase();
-      const gBy = String(a.given_by || '').toUpperCase();
-      const purp = String(a.purpose || '').toUpperCase();
-      const isFiroz = src === 'FIROZ' || gBy.includes('FIROZ') || purp.includes('FIROZ');
-
-      if (!isFiroz) {
-        txns.push({
-          date: a.advance_date || a.created_at?.slice(0, 10),
-          type: 'EXPENSE',
-          desc: `💸 Staff Advance (${a.given_to || 'Staff'}): ${a.purpose || 'Given from OD'}`,
-          amount: Number(a.amount_given || 0),
-          isDep: false
-        });
-      }
+    // 5. Staff Advances Outflow
+    (allAdvs || []).filter(a => normalizePaymentSource(a.payment_source || a.given_by) === 'UHHS-OD').forEach(a => {
+      txns.push({
+        date: a.advance_date || a.created_at?.slice(0, 10),
+        type: 'EXPENSE',
+        desc: `💸 Staff Advance (${a.given_to || 'Staff'}): ${a.purpose || 'Given from OD'}`,
+        amount: Number(a.amount_given || 0),
+        isDep: false
+      });
     });
 
     txns.sort((a, b) => new Date(b.date) - new Date(a.date));
@@ -830,23 +839,22 @@ window.showUhhsStatementModal = async function() {
     let totalOutflow = txns.filter(t => !t.isDep).reduce((s, t) => s + t.amount, 0);
     let netBalance = totalInflow - totalOutflow;
 
-    // Update top UI banner card
-    const topCardEl = document.getElementById('claims-od-banner-bal');
-    if (topCardEl) topCardEl.innerText = `₹${netBalance.toLocaleString('en-IN')}`;
-
     const modal = document.createElement('div');
     modal.className = 'modal-overlay';
     modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);display:flex;align-items:center;justify-content:center;z-index:99999;padding:20px;';
     modal.onclick = e => { if (e.target === modal) modal.remove(); };
 
     modal.innerHTML = `
-      <div class="modal-box" style="background:#fff;border-radius:12px;padding:24px;max-width:750px;width:100%;max-height:85vh;overflow-y:auto;" onclick="event.stopPropagation()">
+      <div class="modal-box" style="background:#fff;border-radius:12px;padding:24px;max-width:800px;width:100%;max-height:85vh;overflow-y:auto;" onclick="event.stopPropagation()">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;border-bottom:2px solid #eee;padding-bottom:10px;">
           <div>
             <h2 style="margin:0;color:#0F766E;">📜 UHHS-OD Account Statement / Ledger</h2>
-            <div style="font-size:12px;color:#64748B;margin-top:2px;">Live Deposits & Expenses with Running Balance</div>
+            <div style="font-size:12px;color:#64748B;margin-top:2px;">Period: <strong>${fDate}</strong> → <strong>${tDate}</strong></div>
           </div>
-          <button onclick="this.closest('.modal-overlay').remove()" style="background:none;border:none;font-size:24px;cursor:pointer;">✕</button>
+          <div style="display:flex;gap:8px;">
+            <button onclick="window.print()" style="padding:6px 14px;background:#0F172A;color:#fff;border:none;border-radius:6px;font-weight:700;font-size:12px;cursor:pointer;">📄 Export PDF / Print</button>
+            <button onclick="this.closest('.modal-overlay').remove()" style="background:none;border:none;font-size:24px;cursor:pointer;">✕</button>
+          </div>
         </div>
 
         <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px;">
@@ -874,7 +882,7 @@ window.showUhhsStatementModal = async function() {
             </tr>
           </thead>
           <tbody>
-            ${txns.length === 0 ? '<tr><td colspan="4" style="padding:20px;text-align:center;color:#94A3B8;">No transactions found in UHHS-OD</td></tr>' : ''}
+            ${txns.length === 0 ? '<tr><td colspan="4" style="padding:20px;text-align:center;color:#94A3B8;">No transactions found in selected period</td></tr>' : ''}
             ${txns.map(t => `
               <tr style="border-bottom:1px solid #E2E8F0;">
                 <td style="padding:8px;">${t.date || '-'}</td>
