@@ -1,109 +1,11 @@
-// Dedicated Clean PDF/Print Export for UHHS-OD Ledger
-window.exportUhhsLedgerPDF = function(fDate, tDate, totalInflow, totalOutflow, netBalance, txnsJson) {
-  const txns = JSON.parse(decodeURIComponent(txnsJson));
-  const printWin = window.open('', '_blank');
-  
-  printWin.document.write(`
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <title>UHHS-OD Ledger Statement (${fDate} to ${tDate})</title>
-      <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 30px; color: #1e293b; background: #fff; }
-        .header { border-bottom: 2px solid #0f766e; padding-bottom: 12px; margin-bottom: 20px; }
-        h1 { margin: 0; color: #0f766e; font-size: 22px; font-weight: 800; }
-        .sub { color: #64748b; font-size: 12px; margin-top: 4px; }
-        .cards { display: flex; gap: 12px; margin-bottom: 22px; }
-        .card { flex: 1; padding: 14px; border-radius: 8px; text-align: center; border: 1px solid #cbd5e1; }
-        .card-in { background: #f0fdf4; border-color: #86efac; }
-        .card-out { background: #fef2f2; border-color: #fca5a5; }
-        .card-bal { background: ${netBalance >= 0 ? '#ecfdf5' : '#fff1f2'}; border-color: ${netBalance >= 0 ? '#6ee7b7' : '#fecdd3'}; }
-        .lbl { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
-        .val { font-size: 20px; font-weight: 800; margin-top: 4px; }
-        table { width: 100%; border-collapse: collapse; font-size: 11px; margin-top: 10px; }
-        th { background: #f1f5f9; padding: 9px; text-align: left; border-bottom: 2px solid #cbd5e1; font-weight: 700; color: #334155; }
-        td { padding: 8px 9px; border-bottom: 1px solid #e2e8f0; }
-        .dep { background: #dcfce7; color: #15803d; padding: 2px 6px; border-radius: 4px; font-weight: 700; font-size: 9px; display: inline-block; }
-        .exp { background: #fee2e2; color: #b91c1c; padding: 2px 6px; border-radius: 4px; font-weight: 700; font-size: 9px; display: inline-block; }
-        @media print {
-          body { padding: 0; }
-          .no-print { display: none; }
-        }
-      </style>
-    </head>
-    <body>
-      <div class="header">
-        <h1>📜 UHHS-OD Account Statement / Ledger</h1>
-        <div class="sub">Period: <strong>${fDate}</strong> → <strong>${tDate}</strong> | Generated on: ${new Date().toLocaleString('en-IN')}</div>
-      </div>
-
-      <div class="cards">
-        <div class="card card-in">
-          <div class="lbl" style="color:#166534;">TOTAL DEPOSITED (+)</div>
-          <div class="val" style="color:#059669;">₹${totalInflow.toLocaleString('en-IN')}</div>
-        </div>
-        <div class="card card-out">
-          <div class="lbl" style="color:#991b1b;">TOTAL SPENT (-)</div>
-          <div class="val" style="color:#dc2626;">₹${totalOutflow.toLocaleString('en-IN')}</div>
-        </div>
-        <div class="card card-bal">
-          <div class="lbl" style="color:${netBalance>=0?'#065f46':'#9f1239'};">NET RUNNING BALANCE</div>
-          <div class="val" style="color:${netBalance>=0?'#059669':'#dc2626'};">₹${netBalance.toLocaleString('en-IN')}</div>
-        </div>
-      </div>
-
-      <table>
-        <thead>
-          <tr>
-            <th>Date</th>
-            <th>Type</th>
-            <th>Description</th>
-            <th style="text-align:right;">Amount (₹)</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${txns.map(t => `
-            <tr>
-              <td>${t.date || '-'}</td>
-              <td><span class="${t.isDep ? 'dep' : 'exp'}">${t.isDep ? '📥 DEPOSIT' : '📤 EXPENSE'}</span></td>
-              <td>${t.desc}</td>
-              <td style="text-align:right;font-weight:700;color:${t.isDep?'#15803d':'#b91c1c'};">${t.isDep ? '+' : '-'}₹${t.amount.toLocaleString('en-IN')}</td>
-            </tr>
-          `).join('')}
-        </tbody>
-      </table>
-
-      <script>
-        window.onload = function() { window.print(); };
-      </script>
-    </body>
-    </html>
-  `);
-  printWin.document.close();
-};
-
 
 // Universal Payment Source Normalizer for Claims Module
 function normalizePaymentSource(rawVal) {
-  if (!rawVal) return 'UHHS-OD';
-  const s = String(rawVal).trim().toUpperCase();
-  if (s.includes('FIROZ')) return 'FIROZ';
-  if (s.includes('COMPANY') && !s.includes('PRAVEEN')) return 'COMPANY';
-  return 'UHHS-OD'; // Default Praveen / own_money / OD -> UHHS-OD
-}
-
-// Async helper to update Top OD Banner Balance
-async function updateTopODBanner() {
-  try {
-    if (window.UHHSODManager) {
-      const res = await window.UHHSODManager.calculateBalance(sb);
-      const bannerEl = document.querySelector('.claims-od-bal-value') || document.getElementById('claims-od-banner-bal');
-      if (bannerEl) {
-        bannerEl.innerText = `₹${res.balance.toLocaleString('en-IN')}`;
-        bannerEl.style.color = res.balance >= 0 ? '#059669' : '#DC2626';
-      }
-    }
-  } catch(err) { console.warn('Banner balance calc:', err); }
+  if (!rawVal) return 'COMPANY';
+  const s = String(rawVal).trim().toLowerCase();
+  if (s.includes('od') || s.includes('uhhs')) return 'UHHS-OD';
+  if (s.includes('firoz') || s.includes('own_money') || s.includes('praveen') || s.includes('pocket')) return 'FIROZ';
+  return 'COMPANY';
 }
 
 
@@ -138,7 +40,7 @@ async function fetchLastSettledClaimDate() {
 // ═══════════════════════════════════════════════════════════
 
 window._claimsState = {
-  fromDate: '2026-09-12',
+  fromDate: '2026-08-17',
   fromTime: '20:35',
   toDate: new Date().toISOString().slice(0, 10),
   toTime: '23:59',
@@ -174,16 +76,208 @@ function mapLaundryMaintStatus(raw) {
 // ─── UHHS-OD LIVE BALANCE CALCULATION ───
 async function fetchUhhsOdBalance() {
   try {
-    const { data: depData } = await sb.from('uhhs_od_account').select('amount').eq('transaction_type', 'INFLOW');
-    const totalIn = (depData || []).reduce((sum, d) => sum + Number(d.amount || 0), 0);
+    const { data: txns, error } = await sb.from('uhhs_od_account')
+      .select('amount, transaction_type')
+      ;
+    
+    if (error) throw error;
+    
+    let bal = 0;
+    (txns || []).forEach(t => {
+      const amt = Number(t.amount || 0);
+      if (t.transaction_type === 'DEPOSIT') bal += amt;
+      else if (t.transaction_type === 'EXPENSE' || t.transaction_type === 'TRANSFER') bal -= amt;
+    });
+    
+    window._claimsState.uhhsBalance = bal;
+    return bal;
+  } catch(e) {
+    console.warn('UHHS-OD balance fetch failed:', e);
+    return 0;
+  }
+}
 
-    const [{ data: exData }, { data: maints }, { data: launds }, { data: advData }] = await Promise.all([
-      sb.from('reimbursements').select('amount, payment_source, paid_by'),
-      sb.from('maintenance_log').select('cost, payment_source'),
-      sb.from('laundry_payments').select('amount, payment_source'),
-      sb.from('company_advances')
+async function renderClaims() {
+  const uhhsBal = await fetchUhhsOdBalance();
+
+  renderShell(`
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;">
+        <div>
+          <h1 style="margin:0;font-size:22px;">📤 Universal Claims Manager</h1>
+          <div style="font-size:12px;color:var(--muted);margin-top:4px;">
+            Checkpoint: <strong>17-Aug-2026 8:35 PM</strong> · Auto Employee Lookup · UHHS-OD Engine
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <button onclick="openUhhsDepositModal()" style="background:#0284C7;color:#fff;font-weight:700;">📥 Deposit Entry (UHHS-OD)</button>
+          <button onclick="showUhhsStatementModal()" style="background:#0F766E;color:#fff;font-weight:600;">📜 UHHS Ledger</button>
+          <button onclick="generateClaimReport()" style="background:#8B5CF6;color:#fff;font-weight:600;">📊 Claim Report Statement</button>
+          <button onclick="copyClaimWhatsAppText()" style="background:#25D366;color:#fff;font-weight:600;">📱 WhatsApp Summary</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- UHHS-OD LIVE ACCOUNT BANNER -->
+    <div class="card" style="background:${uhhsBal >= 0 ? '#F0FDF4' : '#FEF2F2'};border:1.5px solid ${uhhsBal >= 0 ? '#86EFAC' : '#FCA5A5'};">
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+        <div>
+          <strong style="font-size:15px;color:${uhhsBal >= 0 ? '#15803D' : '#B91C1C'};">🏦 UHHS-OD Account (Online Balance)</strong>
+          <div style="font-size:11px;color:#64748B;">Money received online from Firoz & spent via UHHS-OD</div>
+        </div>
+        <div style="text-align:right;">
+          <div style="font-size:11px;color:#64748B;">Running Balance</div>
+          <div style="font-size:24px;font-weight:900;color:${uhhsBal >= 0 ? '#15803D' : '#DC2626'};">
+            ${uhhsBal < 0 ? '-' : ''}₹${Math.abs(uhhsBal).toLocaleString('en-IN')}
+            ${uhhsBal < 0 ? '<span style="font-size:12px;color:#DC2626;font-weight:600;"> (Negative)</span>' : ''}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" style="background:#F8FAFC;border:1px solid #E2E8F0;">
+      <div style="font-size:13px;font-weight:700;margin-bottom:10px;color:#334155;">🔍 Filters</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(150px, 1fr));gap:10px;">
+        <div>
+          <label style="font-size:11px;font-weight:600;color:#64748B;">📅 FROM Date</label>
+          <input id="cfFromDate" type="date" value="${window._claimsState.fromDate}" onchange="updateClaimsFilter()" style="padding:6px;font-size:12px;width:100%;">
+        </div>
+        <div>
+          <label style="font-size:11px;font-weight:600;color:#64748B;">🕐 FROM Time</label>
+          <input id="cfFromTime" type="time" value="${window._claimsState.fromTime}" onchange="updateClaimsFilter()" style="padding:6px;font-size:12px;width:100%;">
+        </div>
+        <div>
+          <label style="font-size:11px;font-weight:600;color:#64748B;">📅 TO Date</label>
+          <input id="cfToDate" type="date" value="${window._claimsState.toDate}" onchange="updateClaimsFilter()" style="padding:6px;font-size:12px;width:100%;">
+        </div>
+        <div>
+          <label style="font-size:11px;font-weight:600;color:#64748B;">🕐 TO Time</label>
+          <input id="cfToTime" type="time" value="${window._claimsState.toTime}" onchange="updateClaimsFilter()" style="padding:6px;font-size:12px;width:100%;">
+        </div>
+        <div>
+          <label style="font-size:11px;font-weight:600;color:#64748B;">👤 Paid By (Payer)</label>
+          <select id="cfPaidBy" onchange="updateClaimsFilter()" style="padding:6px;font-size:12px;width:100%;">
+            <option value="all" selected>All Payers / Sources</option>
+            <option value="UHHS-OD">🏦 UHHS-OD Account</option>
+            <option value="COMPANY">🏢 COMPANY</option>
+            <option value="FIROZ">👤 FIROZ</option>
+          </select>
+        </div>
+        <div>
+          <label style="font-size:11px;font-weight:600;color:#64748B;">📁 Module</label>
+          <select id="cfModule" onchange="updateClaimsFilter()" style="padding:6px;font-size:12px;width:100%;">
+            <option value="all">All Modules</option>
+            <option value="reimbursements">💸 Daily Expenses</option>
+            <option value="maintenance">🔧 Maintenance</option>
+            <option value="laundry">🧺 Laundry</option>
+            <option value="advances">💰 Staff Advances</option>
+          </select>
+        </div>
+        <div>
+          <label style="font-size:11px;font-weight:600;color:#64748B;">🏷️ Status</label>
+          <select id="cfStatus" onchange="updateClaimsFilter()" style="padding:6px;font-size:12px;width:100%;">
+            <option value="claimed" selected>📤 Claimed (paisa lena baaki)</option>
+            <option value="unclaimed">⏳ Pending (unclaimed)</option>
+            <option value="received">✅ Received (settled)</option>
+            <option value="all">All Statuses</option>
+          </select>
+        </div>
+      </div>
+      <div style="margin-top:10px;">
+        <button onclick="loadClaimsData()" style="background:#4F46E5;color:#fff;padding:8px 16px;border:none;border-radius:6px;font-weight:600;cursor:pointer;">🔄 Refresh Data</button>
+      </div>
+    </div>
+
+    <!-- Summary cards -->
+    <div class="card" id="claimsStatCards">
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;">
+        <div style="text-align:center;padding:12px;background:#EEF2FF;border-radius:8px;">
+          <div id="statTotalAmt" style="font-size:20px;font-weight:800;color:#3730A3;">₹0</div>
+          <div style="font-size:11px;color:#666;">Total Expenses</div>
+        </div>
+        <div style="text-align:center;padding:12px;background:#FEF3C7;border-radius:8px;">
+          <div id="statClaimedAmt" style="font-size:20px;font-weight:800;color:#92400E;">₹0</div>
+          <div style="font-size:11px;color:#666;">📤 Claimed Expenses</div>
+        </div>
+        <div style="text-align:center;padding:12px;background:#FEE2E2;border-radius:8px;">
+          <div id="statAdvancesAmt" style="font-size:20px;font-weight:800;color:#991B1B;">-₹0</div>
+          <div style="font-size:11px;color:#666;">🔻 Less Staff Advances Given</div>
+        </div>
+        <div style="text-align:center;padding:12px;background:#D1FAE5;border-radius:8px;">
+          <div id="statNetPayableAmt" style="font-size:20px;font-weight:800;color:#065F46;">₹0</div>
+          <div style="font-size:11px;color:#666;">💵 NET PAYABLE TO PAYER</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- STAFF ADVANCES GROUPED BREAKDOWN CARD -->
+    <div class="card" style="background:#FFF5F5;border:1px solid #FECDD3;">
+      <div style="font-size:13px;font-weight:700;color:#991B1B;margin-bottom:8px;">👥 Staff Advances Breakdown (Grouped by Employee)</div>
+      <div id="staffAdvancesBreakdownContainer" style="display:flex;flex-wrap:wrap;gap:8px;font-size:12px;">
+        <div style="color:#666;">Loading staff advance totals...</div>
+      </div>
+    </div>
+
+    <div class="card" style="padding:12px 20px;background:#EEF2FF;border:1px solid #C7D2FE;">
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
+        <div style="font-size:13px;color:#3730A3;">
+          Selected: <strong id="selectedCountText">0 items</strong> · 
+          Net Payable: <strong id="selectedAmountText" style="font-size:16px;">₹0</strong>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <button onclick="bulkUpdateClaims('claimed')" class="btn-sm" style="background:#F59E0B;color:#fff;">📤 Mark Claimed</button>
+          <button onclick="bulkUpdateClaims('received')" class="btn-sm" style="background:#10B981;color:#fff;">✅ Mark Received (Settled)</button>
+          <button onclick="bulkUpdateClaims('unclaimed')" class="btn-sm" style="background:#6B7280;color:#fff;">↩️ Revert Pending</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div id="claimsTableContainer" style="overflow-x:auto;">
+        <div style="text-align:center;padding:30px;color:#666;">Loading...</div>
+      </div>
+    </div>
+  `, 'claims');
+
+  setTimeout(() => {
+    const m = document.getElementById('cfModule');
+    const s = document.getElementById('cfStatus');
+    const pb = document.getElementById('cfPaidBy');
+    if (m) m.value = window._claimsState.moduleFilter;
+    if (s) s.value = window._claimsState.statusFilter;
+    if (pb) pb.value = window._claimsState.paidByFilter;
+  }, 50);
+
+  await loadClaimsData();
+}
+
+function updateClaimsFilter() {
+  window._claimsState.fromDate = document.getElementById('cfFromDate').value;
+  window._claimsState.fromTime = document.getElementById('cfFromTime').value;
+  window._claimsState.toDate = document.getElementById('cfToDate').value;
+  window._claimsState.toTime = document.getElementById('cfToTime').value;
+  window._claimsState.moduleFilter = document.getElementById('cfModule').value;
+  window._claimsState.statusFilter = document.getElementById('cfStatus').value;
+  window._claimsState.paidByFilter = document.getElementById('cfPaidBy')?.value || 'all';
+  window._claimsState.selectedIds.clear();
+}
+
+async function loadClaimsData() {
+  updateClaimsFilter();
+  const st = window._claimsState;
+  const fromDate = st.fromDate;
+  const toDate = st.toDate;
+
+  const container = document.getElementById('claimsTableContainer');
+  if (container) container.innerHTML = '<div style="text-align:center;padding:30px;color:#666;">Loading claims and advances data...</div>';
+
+  try {
+    const [eRes, mRes, lRes, aRes, empRes] = await Promise.all([
+      sb.from('reimbursements')
         .select('*')
-        .order('created_at', { ascending: false }),
+        .gte('expense_date', fromDate)
+        .lte('expense_date', toDate)
+        .order('expense_date', { ascending: false }),
       sb.from('maintenance_log')
         .select('*')
         .gte('reported_date', fromDate)
@@ -197,6 +291,8 @@ async function fetchUhhsOdBalance() {
         .order('payment_date', { ascending: false }),
       sb.from('company_advances')
         .select('*')
+        
+        
         .order('created_at', { ascending: false }),
       sb.from('employees').select('emp_id, name')
     ]);
@@ -271,7 +367,7 @@ async function fetchUhhsOdBalance() {
     // 4. Staff Advances
     (aRes.data || []).forEach(adv => {
       const realName = empMap[adv.emp_id] || adv.given_to || 'Staff';
-      const isDeducted = adv.status === 'Reconciled' || adv.is_deducted === true;
+      const isDeducted = adv.is_deducted === true || adv.is_deducted === 'true';
       const st = adv.claim_status || (isDeducted ? 'received' : 'unclaimed');
       const advAmt = Number(adv.amount_given || adv.advance_amount || 0);
 
@@ -339,9 +435,6 @@ async function fetchUhhsOdBalance() {
     if (container) container.innerHTML = `<div class="error">Error: ${err.message}</div>`;
   }
 }
-
-
-    
 
 function renderClaimsTable() {
   const container = document.getElementById('claimsTableContainer');
@@ -626,21 +719,14 @@ window.saveUhhsDeposit = async function(btn) {
 // ─── UHHS-OD STATEMENT / LEDGER POPUP ───
 window.showUhhsStatementModal = async function() {
   try {
-    const { fromDate, toDate } = window._claimsState || {};
-    const fDate = fromDate || '2026-09-12';
-    const tDate = toDate || new Date().toISOString().slice(0, 10);
-
-    const { data: deposits, error: depErr } = await sb.from('uhhs_od_account')
-      .select('*')
-      .gte('transaction_date', fDate)
-      .lte('transaction_date', tDate)
-      .order('transaction_date', { ascending: false });
+    const { data: deposits, error: depErr } = await sb.from('uhhs_od_account').select('*').order('transaction_date', { ascending: false });
     if (depErr) throw depErr;
 
+    // Fetch outflows tagged as UHHS-OD or non-Firoz
     const [{ data: exps }, { data: maints }, { data: launds }, { data: allAdvs }] = await Promise.all([
-      sb.from('reimbursements').select('*').gte('expense_date', fDate).lte('expense_date', tDate),
-      sb.from('maintenance_log').select('*').gte('reported_date', fDate).lte('reported_date', tDate),
-      sb.from('laundry_payments').select('*').gte('payment_date', fDate).lte('payment_date', tDate),
+      sb.from('reimbursements').select('*').or('payment_source.eq.UHHS-OD,paid_by.eq.UHHS-OD'),
+      sb.from('maintenance_log').select('*').eq('payment_source', 'UHHS-OD'),
+      sb.from('laundry_payments').select('*').eq('payment_source', 'UHHS-OD'),
       sb.from('company_advances').select('*')
     ]);
 
@@ -658,21 +744,18 @@ window.showUhhsStatementModal = async function() {
     });
 
     // 2. Daily Expenses Outflow
-    (exps || []).filter(e => {
-      const s = String(e.payment_source || e.paid_by || '').toUpperCase();
-      return s.includes('OD') || s.includes('UHHS');
-    }).forEach(e => {
+    (exps || []).forEach(e => {
       txns.push({
         date: e.expense_date,
         type: 'EXPENSE',
-        desc: `Daily Expense: ${e.category || ''} - ${e.description || ''}`,
+        desc: `Expense: ${e.category || ''} - ${e.description || ''}`,
         amount: Number(e.amount || 0),
         isDep: false
       });
     });
 
     // 3. Maintenance Outflow
-    (maints || []).filter(m => String(m.payment_source || '').toUpperCase().includes('OD')).forEach(m => {
+    (maints || []).forEach(m => {
       txns.push({
         date: m.reported_date,
         type: 'EXPENSE',
@@ -683,34 +766,33 @@ window.showUhhsStatementModal = async function() {
     });
 
     // 4. Laundry Outflow
-    (launds || []).filter(l => String(l.payment_source || '').toUpperCase().includes('OD')).forEach(l => {
+    (launds || []).forEach(l => {
       txns.push({
         date: l.payment_date,
         type: 'EXPENSE',
-        desc: `Laundry: ${l.notes || ''}`,
+        desc: `Laundry Payment: ${l.notes || ''}`,
         amount: Number(l.amount || 0),
         isDep: false
       });
     });
 
-    // 5. Staff Advances Outflow (Include UHHS-OD advances)
-    (allAdvs || []).filter(a => {
-      const aDate = a.advance_date || (a.created_at || '').slice(0, 10);
-      if (aDate && fDate && aDate < fDate) return false;
-      if (aDate && tDate && aDate > tDate) return false;
+    // 5. Staff Advances Outflow (Exclude Firoz explicit advances)
+    (allAdvs || []).forEach(a => {
       const src = String(a.payment_source || '').toUpperCase();
       const gBy = String(a.given_by || '').toUpperCase();
       const purp = String(a.purpose || '').toUpperCase();
       const isFiroz = src === 'FIROZ' || gBy.includes('FIROZ') || purp.includes('FIROZ');
-      return !isFiroz;
-    }).forEach(a => {
-      txns.push({
-        date: a.advance_date || a.created_at?.slice(0, 10),
-        type: 'EXPENSE',
-        desc: `💸 Staff Advance (${a.given_to || 'Staff'}): ${a.purpose || 'Given from OD'}`,
-        amount: Number(a.amount_given || 0),
-        isDep: false
-      });
+      const isExplicitCompany = src === 'COMPANY' && !purp.includes('OD') && !gBy.includes('OD');
+
+      if (!isFiroz && !isExplicitCompany) {
+        txns.push({
+          date: a.advance_date || a.created_at?.slice(0, 10),
+          type: 'EXPENSE',
+          desc: `💸 Staff Advance (${a.given_to || 'Staff'}): ${a.purpose || 'Given from OD'}`,
+          amount: Number(a.amount_given || 0),
+          isDep: false
+        });
+      }
     });
 
     txns.sort((a, b) => new Date(b.date) - new Date(a.date));
@@ -725,16 +807,13 @@ window.showUhhsStatementModal = async function() {
     modal.onclick = e => { if (e.target === modal) modal.remove(); };
 
     modal.innerHTML = `
-      <div class="modal-box" style="background:#fff;border-radius:12px;padding:24px;max-width:800px;width:100%;max-height:85vh;overflow-y:auto;" onclick="event.stopPropagation()">
+      <div class="modal-box" style="background:#fff;border-radius:12px;padding:24px;max-width:750px;width:100%;max-height:85vh;overflow-y:auto;" onclick="event.stopPropagation()">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;border-bottom:2px solid #eee;padding-bottom:10px;">
           <div>
             <h2 style="margin:0;color:#0F766E;">📜 UHHS-OD Account Statement / Ledger</h2>
-            <div style="font-size:12px;color:#64748B;margin-top:2px;">Period: <strong>${fDate}</strong> → <strong>${tDate}</strong></div>
+            <div style="font-size:12px;color:#64748B;margin-top:2px;">Live Deposits & Expenses with Running Balance</div>
           </div>
-          <div style="display:flex;gap:8px;">
-            <button onclick="window.exportUhhsLedgerPDF('${fDate}', '${tDate}', ${totalInflow}, ${totalOutflow}, ${netBalance}, '${encodeURIComponent(JSON.stringify(txns))}')" style="padding:6px 14px;background:#0F172A;color:#fff;border:none;border-radius:6px;font-weight:700;font-size:12px;cursor:pointer;">📄 Export PDF / Print</button>
-            <button onclick="this.closest('.modal-overlay').remove()" style="background:none;border:none;font-size:24px;cursor:pointer;">✕</button>
-          </div>
+          <button onclick="this.closest('.modal-overlay').remove()" style="background:none;border:none;font-size:24px;cursor:pointer;">✕</button>
         </div>
 
         <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px;">
@@ -762,7 +841,7 @@ window.showUhhsStatementModal = async function() {
             </tr>
           </thead>
           <tbody>
-            ${txns.length === 0 ? '<tr><td colspan="4" style="padding:20px;text-align:center;color:#94A3B8;">No transactions found in selected period</td></tr>' : ''}
+            ${txns.length === 0 ? '<tr><td colspan="4" style="padding:20px;text-align:center;color:#94A3B8;">No transactions found in UHHS-OD</td></tr>' : ''}
             ${txns.map(t => `
               <tr style="border-bottom:1px solid #E2E8F0;">
                 <td style="padding:8px;">${t.date || '-'}</td>
