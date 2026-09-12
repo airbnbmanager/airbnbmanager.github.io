@@ -1,4 +1,14 @@
 
+// Universal Payment Source Normalizer for Claims Module
+function normalizePaymentSource(rawVal) {
+  if (!rawVal) return 'COMPANY';
+  const s = String(rawVal).trim().toLowerCase();
+  if (s.includes('od') || s.includes('uhhs')) return 'UHHS-OD';
+  if (s.includes('firoz') || s.includes('own_money') || s.includes('praveen') || s.includes('pocket')) return 'FIROZ';
+  return 'COMPANY';
+}
+
+
 // Helper to fetch last settled claim date from database
 async function fetchLastSettledClaimDate() {
   try {
@@ -307,7 +317,7 @@ async function loadClaimsData() {
         dateStr: r.expense_date || (r.created_at || '').slice(0, 10),
         description: r.description || r.notes || 'Daily Expense',
         vendorOrStaff: r.paid_to || '-',
-        paidBy: r.payment_source || r.paid_by || 'COMPANY',
+        paidBy: normalizePaymentSource(r.payment_source || r.paid_by),
         amount: Number(r.amount || 0),
         status: mapReimbStatus(r.status),
         photo: r.receipt_photo,
@@ -326,7 +336,7 @@ async function loadClaimsData() {
         dateStr: m.reported_date || (m.created_at || '').slice(0, 10),
         description: `${m.issue_type || 'Repair'}: ${(m.description || '').slice(0, 80)}`,
         vendorOrStaff: m.vendor_name || m.assigned_to || '-',
-        paidBy: m.payment_source || m.paid_by || 'COMPANY',
+        paidBy: normalizePaymentSource(m.payment_source || m.paid_by),
         amount: Number(m.cost || 0),
         status: mapLaundryMaintStatus(m.claim_status),
         photo: m.payment_photo || m.photo_before,
@@ -346,7 +356,7 @@ async function loadClaimsData() {
         dateStr: lp.payment_date || (lp.created_at || '').slice(0, 10),
         description: `Laundry Payment (${vName})`,
         vendorOrStaff: vName,
-        paidBy: lp.payment_source || lp.paid_by || 'COMPANY',
+        paidBy: normalizePaymentSource(lp.payment_source || lp.paid_by),
         amount: Number(lp.amount || 0),
         status: mapLaundryMaintStatus(lp.claim_status),
         photo: lp.payment_photo || lp.bill_photo,
@@ -374,7 +384,7 @@ async function loadClaimsData() {
         dateStr: adv.date_given || (adv.created_at || '').slice(0, 10),
         description: `Advance to ${realName}: ${adv.reason || adv.notes || 'Given'}`,
         vendorOrStaff: `👤 ${realName}`,
-        paidBy: adv.payment_source || adv.paid_by || 'COMPANY',
+        paidBy: normalizePaymentSource(adv.payment_source || adv.paid_by),
         amount: -Math.abs(advAmt),
         status: st,
         photo: null,
@@ -435,9 +445,11 @@ function renderClaimsTable() {
   const filtered = allData.filter(item => {
     if (moduleFilter !== 'all' && item.module !== moduleFilter) return false;
     
-    if (paidByFilter !== 'all') {
-      const p = (item.paidBy || '').toLowerCase();
-      if (!p.includes(paidByFilter.toLowerCase())) return false;
+    // Paid By Filter Matching with Normalization
+    if (paidByFilter && paidByFilter !== 'all') {
+      const rowSource = normalizePaymentSource(item.paidBy);
+      const targetFilter = normalizePaymentSource(paidByFilter);
+      if (rowSource !== targetFilter) return false;
     }
 
     if (item.module === 'advances' && statusFilter !== 'all') {
