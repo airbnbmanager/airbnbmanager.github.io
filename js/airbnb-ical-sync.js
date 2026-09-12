@@ -66,3 +66,9 @@ window.ICAL_SYNC = {
 };
 
 console.log('✅ Airbnb iCal Sync module loaded');
+
+
+// 🛑 SAFELY DISABLE AUTO-SYNC SCHEDULER
+if (typeof window !== 'undefined') {
+  if (window.ICAL_SYNC) window.ICAL_SYNC.startAutoSync = function() { console.log('iCal-sync disabled'); };
+}

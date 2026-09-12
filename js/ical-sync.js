@@ -127,28 +127,7 @@ window.ICAL_SYNC = {
       
       for (const event of events) {
         // Skip if UID already synced
-        
-      // 🛑 SMART DUP / OVERLAP SUPPRESSION
-      // Check if any real or manual booking already exists for this room & date range
-      const hasAnyOverlap = (allExisting || []).some(e => {
-        if (e.room_id !== roomId) return false;
-        if (e.is_cancelled || e.status === 'Cancelled') return false;
-        // Check date overlap
-        return (event.checkIn < e.check_out && event.checkOut > e.check_in);
-      });
-
-      if (hasAnyOverlap) {
-        console.log(`⏭️ [iCal Sync] Skipping ${event.summary} for ${roomId} (${event.checkIn}) — Overlaps with existing booking/block`);
-        continue;
-      }
-
-      // If event is just a Blocked/Unavailable date from Airbnb, DO NOT insert fake guest_register row!
-      if (event.isBlocked || (event.summary && event.summary.toLowerCase().includes('blocked'))) {
-        console.log(`⏭️ [iCal Sync] Skipping Airbnb Blocked Placeholder insertion for ${roomId} (${event.checkIn}) to prevent DB clutter`);
-        continue;
-      }
-
-      if (existingUids.has(event.uid)) {
+        if (existingUids.has(event.uid)) {
           result.skipped++;
           continue;
         }
@@ -619,7 +598,7 @@ window.ICAL_AUTO_SYNC = {
     setTimeout(() => this.runSilent(), 30000);
     
     // Then every 5 minutes
-    this.timer = // setInterval(() => this.runSilent(), this.INTERVAL_MS);
+    this.timer = setInterval(() => this.runSilent(), this.INTERVAL_MS);
   },
   
   enable() {
@@ -667,3 +646,9 @@ window.toggleIcalAutoSync = function() {
 };
 
 console.log('✅ iCal Auto-Sync module ready');
+
+
+// 🛑 SAFELY DISABLE AUTO-SYNC SCHEDULER
+if (typeof window !== 'undefined') {
+  if (window.ICAL_SYNC) window.ICAL_SYNC.startAutoSync = function() { console.log('iCal-sync disabled'); };
+}

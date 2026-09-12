@@ -118,43 +118,34 @@ window.HYBRID_SYNC = {
           return (dbB.check_in < ev.check_out && dbB.check_out > ev.check_in);
         });
 
-        // 1. If NO OVERLAP -> Insert ONLY real bookings (SKIP BLOCKED DUMMY ROWS)
+        // 1. If NO OVERLAP -> Insert new booking or block entry
         if (!overlapBk) {
-          if (ev.is_blocked || (ev.guest_name && ev.guest_name.includes('Blocked'))) return;
-          if (ev.is_blocked || (ev.guest_name && ev.guest_name.includes('Blocked'))) {
-            console.log(`⏭️ [Hybrid Sync] Skipping BLK_ blocked dummy insertion for ${roomId} (${ev.check_in})`);
-            return;
-          }
-          const deterministicId = 'BK_' + Date.now() + '_' + Math.floor(Math.random()*10000);
+          const deterministicId = ev.is_blocked ? `BLK_${roomId}_${ev.check_in.replace(/-/g, '')}` : 'BK_' + Date.now() + '_' + Math.floor(Math.random()*10000);
           newToInsert.push({
             booking_id: deterministicId,
             guest_name: ev.guest_name,
             check_in: ev.check_in,
             check_out: ev.check_out,
             room_id: roomId,
-            booking_mode: 'Online-Airbnb',
+            booking_mode: ev.is_blocked ? 'Offline' : 'Online-Airbnb',
             payment_status: 'Paid',
             total_amount: 0,
-            notes: 'Auto-synced from ' + prop.name + ' iCal'
+            notes: ev.is_blocked ? 'Airbnb Blocked date auto-synced' : ('Auto-synced from ' + prop.name + ' iCal')
           });
         }
       });
 
       if (newToInsert.length > 0) {
-        // DISABLED AUTO DB WRITE: await sb.from('guest_register').upsert(newToInsert, { onConflict: 'booking_id', ignoreDuplicates: true });
+        await sb.from('guest_register').upsert(newToInsert, { onConflict: 'booking_id', ignoreDuplicates: true });
         console.log(`✅ ${prop.name} (${roomId}): Synced ${newToInsert.length} bookings/blocks!`);
       }
     }
   },
 
   startAutoSync: function() {
-    console.log('Hybrid auto-sync disabled');
-    return;
- return; // DISABLED
-
     this.syncAllProperties();
     if (this.timerId) clearInterval(this.timerId);
-    this.timerId = // setInterval(() => {
+    this.timerId = setInterval(() => {
       this.syncAllProperties();
     }, 5 * 60 * 1000);
   },
@@ -173,4 +164,10 @@ if (typeof window !== 'undefined') {
       if (window.HYBRID_SYNC) window.HYBRID_SYNC.startAutoSync();
     }, 2000);
   });
+}
+
+
+// 🛑 SAFELY DISABLE AUTO-SYNC SCHEDULER
+if (typeof window !== 'undefined') {
+  if (window.HYBRID_SYNC) window.HYBRID_SYNC.startAutoSync = function() { console.log('Hybrid-sync disabled'); };
 }

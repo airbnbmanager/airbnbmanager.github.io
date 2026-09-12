@@ -256,7 +256,7 @@
 
       this.syncAllProperties();
 
-      this.autoSyncInterval = // setInterval(() => {
+      this.autoSyncInterval = setInterval(() => {
         console.log(`🤖 Auto-sync (every ${this.syncFrequency} mins)`);
         this.syncAllProperties();
       }, this.syncFrequency * 60 * 1000);
@@ -300,3 +300,9 @@
 
   console.log('✅ Multi-Property Sync loaded (using CORS proxies)');
 })();
+
+
+// 🛑 SAFELY DISABLE AUTO-SYNC SCHEDULER
+if (typeof window !== 'undefined') {
+  if (window.MULTI_SYNC) window.MULTI_SYNC.startAutoSync = function() { console.log('Multi-sync disabled'); };
+}
