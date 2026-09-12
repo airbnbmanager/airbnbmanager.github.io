@@ -140,7 +140,7 @@ window.HYBRID_SYNC = {
       });
 
       if (newToInsert.length > 0) {
-        await sb.from('guest_register').upsert(newToInsert, { onConflict: 'booking_id', ignoreDuplicates: true });
+        // DISABLED AUTO DB WRITE: await sb.from('guest_register').upsert(newToInsert, { onConflict: 'booking_id', ignoreDuplicates: true });
         console.log(`✅ ${prop.name} (${roomId}): Synced ${newToInsert.length} bookings/blocks!`);
       }
     }
