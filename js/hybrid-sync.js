@@ -120,6 +120,7 @@ window.HYBRID_SYNC = {
 
         // 1. If NO OVERLAP -> Insert ONLY real bookings (SKIP BLOCKED DUMMY ROWS)
         if (!overlapBk) {
+          if (ev.is_blocked || (ev.guest_name && ev.guest_name.includes('Blocked'))) return;
           if (ev.is_blocked || (ev.guest_name && ev.guest_name.includes('Blocked'))) {
             console.log(`⏭️ [Hybrid Sync] Skipping BLK_ blocked dummy insertion for ${roomId} (${ev.check_in})`);
             return;
@@ -146,7 +147,10 @@ window.HYBRID_SYNC = {
     }
   },
 
-  startAutoSync: function() { return; // DISABLED
+  startAutoSync: function() {
+    console.log('Hybrid auto-sync disabled');
+    return;
+ return; // DISABLED
 
     this.syncAllProperties();
     if (this.timerId) clearInterval(this.timerId);
