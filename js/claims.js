@@ -1,3 +1,30 @@
+
+// Helper to fetch last settled claim date from database
+async function fetchLastSettledClaimDate() {
+  try {
+    const [{ data: r }, { data: m }, { data: l }] = await Promise.all([
+      sb.from('reimbursements').select('claim_date, claim_received_date').eq('claim_status', 'received').order('claim_received_date', { ascending: false }).limit(1),
+      sb.from('maintenance_log').select('claim_date, claim_received_date').eq('claim_status', 'received').order('claim_received_date', { ascending: false }).limit(1),
+      sb.from('laundry_payments').select('claim_date, claim_received_date').eq('claim_status', 'received').order('claim_received_date', { ascending: false }).limit(1)
+    ]);
+
+    const dates = [];
+    if (r?.[0]?.claim_received_date || r?.[0]?.claim_date) dates.push(r[0].claim_received_date || r[0].claim_date);
+    if (m?.[0]?.claim_received_date || m?.[0]?.claim_date) dates.push(m[0].claim_received_date || m[0].claim_date);
+    if (l?.[0]?.claim_received_date || l?.[0]?.claim_date) dates.push(l[0].claim_received_date || l[0].claim_date);
+
+    if (dates.length > 0) {
+      dates.sort((a, b) => new Date(b) - new Date(a));
+      return dates[0];
+    }
+  } catch (err) {
+    console.warn('Could not auto-fetch last claim date:', err);
+  }
+  // Default to 1st of current month if no previous settled claim found
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
+}
+
 // ═══════════════════════════════════════════════════════════
 // 📤 CLAIMS MANAGER ENGINE v7 (UHHS-OD Account Tracking)
 // ═══════════════════════════════════════════════════════════
