@@ -724,7 +724,7 @@ window.showUhhsStatementModal = async function() {
 
     // Fetch outflows tagged as UHHS-OD
     const [{ data: exps }, { data: maints }, { data: launds }, { data: advs }] = await Promise.all([
-      sb.from('reimbursements').select('*').eq('payment_source', 'UHHS-OD'),
+      sb.from('reimbursements').select('*').or('payment_source.eq.UHHS-OD,paid_by.eq.UHHS-OD'),
       sb.from('maintenance_log').select('*').eq('payment_source', 'UHHS-OD'),
       sb.from('laundry_payments').select('*').eq('payment_source', 'UHHS-OD'),
       sb.from('company_advances').select('*').eq('payment_source', 'UHHS-OD')

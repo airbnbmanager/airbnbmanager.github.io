@@ -83,7 +83,7 @@ async function calculateLiveODBalance(supabaseClient) {
 
         // 5. Reimbursements
         try {
-            const { data: r5 } = await client.from('reimbursements').select('amount').eq('payment_source', 'UHHS-OD');
+            const { data: r5 } = await client.from('reimbursements').select('amount').or('payment_source.eq.UHHS-OD,paid_by.eq.UHHS-OD');
             if (r5) totalOutflow += r5.reduce((s, r) => s + parseFloat(r.amount || 0), 0);
         } catch (e) {}
 
