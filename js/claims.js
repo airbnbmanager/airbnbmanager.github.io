@@ -2,9 +2,9 @@
 // Universal Payment Source Normalizer for Claims Module
 function normalizePaymentSource(rawVal) {
   if (!rawVal) return 'COMPANY';
-  const s = String(rawVal).trim().toLowerCase();
-  if (s.includes('od') || s.includes('uhhs')) return 'UHHS-OD';
-  if (s.includes('firoz') || s.includes('own_money') || s.includes('praveen') || s.includes('pocket')) return 'FIROZ';
+  const s = String(rawVal).trim().toUpperCase();
+  if (s.includes('OD') || s.includes('UHHS')) return 'UHHS-OD';
+  if (s.includes('FIROZ') || s.includes('OWN_MONEY') || s.includes('PRAVEEN') || s.includes('POCKET')) return 'FIROZ';
   return 'COMPANY';
 }
 
@@ -722,8 +722,7 @@ window.showUhhsStatementModal = async function() {
     const { data: deposits, error: depErr } = await sb.from('uhhs_od_account').select('*').order('transaction_date', { ascending: false });
     if (depErr) throw depErr;
 
-    // Fetch outflows tagged as UHHS-OD or non-Firoz
-    const [{ data: exps }, { data: maints }, { data: launds }, { data: allAdvs }] = await Promise.all([
+    const [{ data: exps }, { data: maints }, { data: launds }, { data: advs }] = await Promise.all([
       sb.from('reimbursements').select('*').or('payment_source.eq.UHHS-OD,paid_by.eq.UHHS-OD'),
       sb.from('maintenance_log').select('*').eq('payment_source', 'UHHS-OD'),
       sb.from('laundry_payments').select('*').eq('payment_source', 'UHHS-OD'),
@@ -732,7 +731,7 @@ window.showUhhsStatementModal = async function() {
 
     const txns = [];
 
-    // 1. Deposits Inflow
+    // Deposits (+)
     (deposits || []).forEach(d => {
       txns.push({
         date: d.transaction_date,
@@ -743,18 +742,18 @@ window.showUhhsStatementModal = async function() {
       });
     });
 
-    // 2. Daily Expenses Outflow
+    // Daily Expenses (-)
     (exps || []).forEach(e => {
       txns.push({
         date: e.expense_date,
         type: 'EXPENSE',
-        desc: `Expense: ${e.category || ''} - ${e.description || ''}`,
+        desc: `Daily Expense: ${e.category || ''} - ${e.description || ''}`,
         amount: Number(e.amount || 0),
         isDep: false
       });
     });
 
-    // 3. Maintenance Outflow
+    // Maintenance (-)
     (maints || []).forEach(m => {
       txns.push({
         date: m.reported_date,
@@ -765,26 +764,25 @@ window.showUhhsStatementModal = async function() {
       });
     });
 
-    // 4. Laundry Outflow
+    // Laundry (-)
     (launds || []).forEach(l => {
       txns.push({
         date: l.payment_date,
         type: 'EXPENSE',
-        desc: `Laundry Payment: ${l.notes || ''}`,
+        desc: `Laundry: ${l.notes || ''}`,
         amount: Number(l.amount || 0),
         isDep: false
       });
     });
 
-    // 5. Staff Advances Outflow (Exclude Firoz explicit advances)
-    (allAdvs || []).forEach(a => {
+    // Staff Advances given from UHHS-OD (-)
+    (advs || []).forEach(a => {
       const src = String(a.payment_source || '').toUpperCase();
       const gBy = String(a.given_by || '').toUpperCase();
       const purp = String(a.purpose || '').toUpperCase();
       const isFiroz = src === 'FIROZ' || gBy.includes('FIROZ') || purp.includes('FIROZ');
-      const isExplicitCompany = src === 'COMPANY' && !purp.includes('OD') && !gBy.includes('OD');
 
-      if (!isFiroz && !isExplicitCompany) {
+      if (!isFiroz) {
         txns.push({
           date: a.advance_date || a.created_at?.slice(0, 10),
           type: 'EXPENSE',
@@ -800,6 +798,10 @@ window.showUhhsStatementModal = async function() {
     let totalInflow = txns.filter(t => t.isDep).reduce((s, t) => s + t.amount, 0);
     let totalOutflow = txns.filter(t => !t.isDep).reduce((s, t) => s + t.amount, 0);
     let netBalance = totalInflow - totalOutflow;
+
+    // Update top UI banner card
+    const topCardEl = document.getElementById('claims-od-banner-bal');
+    if (topCardEl) topCardEl.innerText = `₹${netBalance.toLocaleString('en-IN')}`;
 
     const modal = document.createElement('div');
     modal.className = 'modal-overlay';
