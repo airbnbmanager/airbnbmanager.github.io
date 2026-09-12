@@ -1,11 +1,11 @@
 
 // Universal Payment Source Normalizer for Claims Module
 function normalizePaymentSource(rawVal) {
-  if (!rawVal) return 'COMPANY';
+  if (!rawVal) return 'UHHS-OD';
   const s = String(rawVal).trim().toUpperCase();
-  if (s.includes('OD') || s.includes('UHHS')) return 'UHHS-OD';
-  if (s.includes('FIROZ') || s.includes('OWN_MONEY') || s.includes('PRAVEEN') || s.includes('POCKET')) return 'FIROZ';
-  return 'COMPANY';
+  if (s.includes('FIROZ')) return 'FIROZ';
+  if (s.includes('COMPANY') && !s.includes('PRAVEEN')) return 'COMPANY';
+  return 'UHHS-OD'; // Default Praveen / own_money / OD -> UHHS-OD
 }
 
 
@@ -435,6 +435,32 @@ async function loadClaimsData() {
     if (container) container.innerHTML = `<div class="error">Error: ${err.message}</div>`;
   }
 }
+
+
+    // Update Top Banner Card Live Running Balance
+    try {
+      const { data: depData } = await sb.from('uhhs_od_account').select('amount').eq('transaction_type', 'INFLOW');
+      const totalIn = (depData || []).reduce((sum, d) => sum + Number(d.amount || 0), 0);
+
+      const [{ data: exData }, { data: advData }] = await Promise.all([
+        sb.from('reimbursements').select('amount, payment_source, paid_by'),
+        sb.from('company_advances').select('amount_given, payment_source, given_by, purpose')
+      ]);
+
+      const exOut = (exData || []).filter(e => normalizePaymentSource(e.payment_source || e.paid_by) === 'UHHS-OD')
+                                  .reduce((sum, e) => sum + Number(e.amount || 0), 0);
+
+      const advOut = (advData || []).filter(a => normalizePaymentSource(a.payment_source || a.given_by) === 'UHHS-OD')
+                                    .reduce((sum, a) => sum + Number(a.amount_given || 0), 0);
+
+      const netOD = totalIn - (exOut + advOut);
+
+      const bannerEl = document.querySelector('.claims-od-bal-value') || document.getElementById('claims-od-banner-bal');
+      if (bannerEl) {
+        bannerEl.innerText = `₹${netOD.toLocaleString('en-IN')}`;
+        bannerEl.style.color = netOD >= 0 ? '#059669' : '#DC2626';
+      }
+    } catch(err) { console.warn('Banner balance calc:', err); }
 
 function renderClaimsTable() {
   const container = document.getElementById('claimsTableContainer');
