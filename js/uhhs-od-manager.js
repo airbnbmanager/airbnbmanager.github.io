@@ -75,10 +75,18 @@ async function calculateLiveODBalance(supabaseClient) {
             if (r3) totalOutflow += r3.reduce((s, r) => s + parseFloat(r.amount || 0), 0);
         } catch (e) {}
 
-        // 4. Company Advances
+        // 4. Company Advances (Smart Filter)
         try {
-            const { data: r4 } = await client.from('company_advances').select('amount_given').eq('payment_source', 'UHHS-OD');
-            if (r4) totalOutflow += r4.reduce((s, r) => s + parseFloat(r.amount_given || 0), 0);
+            const { data: r4 } = await client.from('company_advances').select('amount_given, payment_source, given_by, purpose');
+            if (r4) {
+                totalOutflow += r4.filter(a => {
+                    const src = String(a.payment_source || '').toUpperCase();
+                    const gBy = String(a.given_by || '').toUpperCase();
+                    const purp = String(a.purpose || '').toUpperCase();
+                    const isFiroz = src === 'FIROZ' || gBy.includes('FIROZ') || purp.includes('FIROZ');
+                    return src === 'UHHS-OD' || (!isFiroz && src !== 'COMPANY');
+                }).reduce((s, r) => s + parseFloat(r.amount_given || 0), 0);
+            }
         } catch (e) {}
 
         // 5. Reimbursements

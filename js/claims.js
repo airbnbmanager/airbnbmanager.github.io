@@ -771,14 +771,27 @@ window.showUhhsStatementModal = async function() {
       });
     });
 
+    // Fetch all staff advances and include non-Firoz advances as UHHS-OD outflows
+    const { data: advs } = await sb.from('company_advances').select('*');
     (advs || []).forEach(a => {
-      txns.push({
-        date: a.advance_date,
-        type: 'EXPENSE',
-        desc: `Advance to ${a.given_to || ''}: ${a.purpose || ''}`,
-        amount: Number(a.amount_given || 0),
-        isDep: false
-      });
+      const src = String(a.payment_source || '').toUpperCase();
+      const gBy = String(a.given_by || '').toUpperCase();
+      const purp = String(a.purpose || '').toUpperCase();
+      const isFiroz = src === 'FIROZ' || gBy.includes('FIROZ') || purp.includes('FIROZ');
+      
+      // If marked as UHHS-OD OR if it is not Firoz and not explicit COMPANY cash:
+      const isOD = src === 'UHHS-OD' || (!isFiroz && src !== 'COMPANY');
+      
+      if (isOD) {
+        txns.push({
+          date: a.advance_date || a.created_at?.slice(0, 10),
+          type: 'EXPENSE',
+          desc: `💸 Staff Advance (${a.given_to || 'Staff'}): ${a.purpose || 'Given from OD'}`,
+          amount: Number(a.amount_given || 0),
+          isDep: false
+        });
+      }
+    });
     });
 
     txns.sort((a, b) => new Date(b.date) - new Date(a.date));
