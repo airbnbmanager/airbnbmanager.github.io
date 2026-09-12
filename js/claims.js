@@ -722,15 +722,17 @@ window.showUhhsStatementModal = async function() {
     const { data: deposits, error: depErr } = await sb.from('uhhs_od_account').select('*').order('transaction_date', { ascending: false });
     if (depErr) throw depErr;
 
-    // Fetch outflows tagged as UHHS-OD
-    const [{ data: exps }, { data: maints }, { data: launds }, { data: advs }] = await Promise.all([
+    // Fetch outflows tagged as UHHS-OD or non-Firoz
+    const [{ data: exps }, { data: maints }, { data: launds }, { data: allAdvs }] = await Promise.all([
       sb.from('reimbursements').select('*').or('payment_source.eq.UHHS-OD,paid_by.eq.UHHS-OD'),
       sb.from('maintenance_log').select('*').eq('payment_source', 'UHHS-OD'),
       sb.from('laundry_payments').select('*').eq('payment_source', 'UHHS-OD'),
-      sb.from('company_advances').select('*').eq('payment_source', 'UHHS-OD')
+      sb.from('company_advances').select('*')
     ]);
 
     const txns = [];
+
+    // 1. Deposits Inflow
     (deposits || []).forEach(d => {
       txns.push({
         date: d.transaction_date,
@@ -741,6 +743,7 @@ window.showUhhsStatementModal = async function() {
       });
     });
 
+    // 2. Daily Expenses Outflow
     (exps || []).forEach(e => {
       txns.push({
         date: e.expense_date,
@@ -751,6 +754,7 @@ window.showUhhsStatementModal = async function() {
       });
     });
 
+    // 3. Maintenance Outflow
     (maints || []).forEach(m => {
       txns.push({
         date: m.reported_date,
@@ -761,6 +765,7 @@ window.showUhhsStatementModal = async function() {
       });
     });
 
+    // 4. Laundry Outflow
     (launds || []).forEach(l => {
       txns.push({
         date: l.payment_date,
@@ -771,18 +776,15 @@ window.showUhhsStatementModal = async function() {
       });
     });
 
-    // Fetch all staff advances and include non-Firoz advances as UHHS-OD outflows
-    const { data: advs } = await sb.from('company_advances').select('*');
-    (advs || []).forEach(a => {
+    // 5. Staff Advances Outflow (Exclude Firoz explicit advances)
+    (allAdvs || []).forEach(a => {
       const src = String(a.payment_source || '').toUpperCase();
       const gBy = String(a.given_by || '').toUpperCase();
       const purp = String(a.purpose || '').toUpperCase();
       const isFiroz = src === 'FIROZ' || gBy.includes('FIROZ') || purp.includes('FIROZ');
-      
-      // If marked as UHHS-OD OR if it is not Firoz and not explicit COMPANY cash:
-      const isOD = src === 'UHHS-OD' || (!isFiroz && src !== 'COMPANY');
-      
-      if (isOD) {
+      const isExplicitCompany = src === 'COMPANY' && !purp.includes('OD') && !gBy.includes('OD');
+
+      if (!isFiroz && !isExplicitCompany) {
         txns.push({
           date: a.advance_date || a.created_at?.slice(0, 10),
           type: 'EXPENSE',
@@ -791,7 +793,6 @@ window.showUhhsStatementModal = async function() {
           isDep: false
         });
       }
-    });
     });
 
     txns.sort((a, b) => new Date(b.date) - new Date(a.date));
