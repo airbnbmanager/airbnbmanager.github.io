@@ -635,7 +635,7 @@ window.toggleAdvanceDropdown = async function(show) {
 // ─── SMART CASH HANDOVER LOGIC ───
 window._companyCashData = null;
 
-window.loadAvailableCash = async function() {
+window.loadAvailableCash = function(){}; window._old_load = async function() {
   const currentUser = SESSION.displayName || 'Praveen Singh';
   
   const { data: payments } = await sb.from('payment_history')
@@ -667,7 +667,7 @@ window.loadAvailableCash = async function() {
   updateCashInfo();
 };
 
-window.updateCashInfo = function() { return; }; window._disabled_updateCash = function() {
+window.updateCashInfo = function(){}; window._old_upd = function() { return; }; window._disabled_updateCash = function() {
   const data = window._companyCashData;
   if (!data) return;
   
@@ -903,5 +903,5 @@ window.claimAllPending = async function() {
 
 console.log('✅ Reimbursements module v7 loaded (UHHS-OD / Company Cash / UPI)');
 
-window.loadAvailableCash = function() { return; }; window._disabled_loadCash = function() { return; };
-window.updateCashInfo = function() { return; }; window._disabled_updateCash = function() { return; };
+window.loadAvailableCash = function(){}; window._old_load = function() { return; }; window._disabled_loadCash = function() { return; };
+window.updateCashInfo = function(){}; window._old_upd = function() { return; }; window._disabled_updateCash = function() { return; };

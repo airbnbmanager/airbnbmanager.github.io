@@ -2048,41 +2048,19 @@ async function loadCashHolders(forceRefresh = false) {
  * @param {object} opts - { filterType: 'final'|'manager'|'receiver'|null (all), allowCustom: true, addNew: true }
  * @returns {string} - HTML string
  */
-window.renderCashHolderDropdown = async function(selectId, currentValue = '', opts = {}) {
-  const holders = await loadCashHolders();
-  const { filterType = null, allowCustom = true, addNew = true } = opts;
-  const filtered = filterType ? holders.filter(h => h.type === filterType) : holders;
-
-  const grouped = { final: [], manager: [], receiver: [] };
-  filtered.forEach(h => { if (grouped[h.type]) grouped[h.type].push(h); });
-
-  const groupLabels = { final: '💼 Final Holders', manager: '👔 Manager', receiver: '👤 Staff (Receivers)' };
-  let html = `<select id="${selectId}" style="width:100%;padding:8px;border-radius:6px;border:1px solid #ddd;">
-    <option value="">-- Select --</option>`;
-
-  for (const [type, list] of Object.entries(grouped)) {
-    if (list.length === 0) continue;
-    html += `<optgroup label="${groupLabels[type]}">`;
-    list.forEach(h => {
-      const sel = h.name === currentValue ? 'selected' : '';
-      html += `<option value="${h.name}" ${sel}>${h.name}</option>`;
-    });
-    html += `</optgroup>`;
-  }
-
-  if (allowCustom) {
-    html += `<option value="__custom__" style="color:#059669;font-weight:700;">✏️ Custom name...</option>`;
-  }
-  if (addNew) {
-    html += `<option value="__addnew__" style="color:#7C3AED;font-weight:700;">➕ Add new holder...</option>`;
-  }
-  html += `</select>`;
-
-  if (allowCustom) {
-    html += `<input id="${selectId}Custom" type="text" placeholder="Type name..." style="display:${currentValue && !filtered.find(h=>h.name===currentValue) ? 'block' : 'none'};margin-top:6px;width:100%;padding:8px;" value="${currentValue && !filtered.find(h=>h.name===currentValue) ? currentValue : ''}">`;
-  }
-
-  return html;
+// Master Universal 3-Option Payment Source Dropdown (Company, UHHS-OD, Firoz)
+window.renderCashHolderDropdown = async function(elementId, selectedVal) {
+  const s = String(selectedVal || 'COMPANY').toUpperCase();
+  const isOD = s.includes('OD') || s.includes('UHHS');
+  const isFiroz = s.includes('FIROZ');
+  
+  return `
+    <select id="${elementId}" name="${elementId}" class="form-select form-control" style="border: 1.5px solid #0d6efd; font-weight: 600; padding: 10px; border-radius: 8px; width: 100%; background: #ffffff; color: #0f172a;">
+      <option value="COMPANY" ${(!isOD && !isFiroz) ? 'selected' : ''}>🏢 COMPANY (Guest Rent / Cash in Hand)</option>
+      <option value="UHHS-OD" ${isOD ? 'selected' : ''}>🏦 UHHS-OD (Overdraft Account)</option>
+      <option value="FIROZ" ${isFiroz ? 'selected' : ''}>👤 FIROZ (Direct Personal)</option>
+    </select>
+  `;
 };
 
 /** Get final value from dropdown (handles custom + add new) */
