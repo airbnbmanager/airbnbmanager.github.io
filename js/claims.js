@@ -1,3 +1,87 @@
+// Dedicated Clean PDF/Print Export for UHHS-OD Ledger
+window.exportUhhsLedgerPDF = function(fDate, tDate, totalInflow, totalOutflow, netBalance, txnsJson) {
+  const txns = JSON.parse(decodeURIComponent(txnsJson));
+  const printWin = window.open('', '_blank');
+  
+  printWin.document.write(`
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <title>UHHS-OD Ledger Statement (${fDate} to ${tDate})</title>
+      <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 30px; color: #1e293b; background: #fff; }
+        .header { border-bottom: 2px solid #0f766e; padding-bottom: 12px; margin-bottom: 20px; }
+        h1 { margin: 0; color: #0f766e; font-size: 22px; font-weight: 800; }
+        .sub { color: #64748b; font-size: 12px; margin-top: 4px; }
+        .cards { display: flex; gap: 12px; margin-bottom: 22px; }
+        .card { flex: 1; padding: 14px; border-radius: 8px; text-align: center; border: 1px solid #cbd5e1; }
+        .card-in { background: #f0fdf4; border-color: #86efac; }
+        .card-out { background: #fef2f2; border-color: #fca5a5; }
+        .card-bal { background: ${netBalance >= 0 ? '#ecfdf5' : '#fff1f2'}; border-color: ${netBalance >= 0 ? '#6ee7b7' : '#fecdd3'}; }
+        .lbl { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
+        .val { font-size: 20px; font-weight: 800; margin-top: 4px; }
+        table { width: 100%; border-collapse: collapse; font-size: 11px; margin-top: 10px; }
+        th { background: #f1f5f9; padding: 9px; text-align: left; border-bottom: 2px solid #cbd5e1; font-weight: 700; color: #334155; }
+        td { padding: 8px 9px; border-bottom: 1px solid #e2e8f0; }
+        .dep { background: #dcfce7; color: #15803d; padding: 2px 6px; border-radius: 4px; font-weight: 700; font-size: 9px; display: inline-block; }
+        .exp { background: #fee2e2; color: #b91c1c; padding: 2px 6px; border-radius: 4px; font-weight: 700; font-size: 9px; display: inline-block; }
+        @media print {
+          body { padding: 0; }
+          .no-print { display: none; }
+        }
+      </style>
+    </head>
+    <body>
+      <div class="header">
+        <h1>📜 UHHS-OD Account Statement / Ledger</h1>
+        <div class="sub">Period: <strong>${fDate}</strong> → <strong>${tDate}</strong> | Generated on: ${new Date().toLocaleString('en-IN')}</div>
+      </div>
+
+      <div class="cards">
+        <div class="card card-in">
+          <div class="lbl" style="color:#166534;">TOTAL DEPOSITED (+)</div>
+          <div class="val" style="color:#059669;">₹${totalInflow.toLocaleString('en-IN')}</div>
+        </div>
+        <div class="card card-out">
+          <div class="lbl" style="color:#991b1b;">TOTAL SPENT (-)</div>
+          <div class="val" style="color:#dc2626;">₹${totalOutflow.toLocaleString('en-IN')}</div>
+        </div>
+        <div class="card card-bal">
+          <div class="lbl" style="color:${netBalance>=0?'#065f46':'#9f1239'};">NET RUNNING BALANCE</div>
+          <div class="val" style="color:${netBalance>=0?'#059669':'#dc2626'};">₹${netBalance.toLocaleString('en-IN')}</div>
+        </div>
+      </div>
+
+      <table>
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th style="text-align:right;">Amount (₹)</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${txns.map(t => `
+            <tr>
+              <td>${t.date || '-'}</td>
+              <td><span class="${t.isDep ? 'dep' : 'exp'}">${t.isDep ? '📥 DEPOSIT' : '📤 EXPENSE'}</span></td>
+              <td>${t.desc}</td>
+              <td style="text-align:right;font-weight:700;color:${t.isDep?'#15803d':'#b91c1c'};">${t.isDep ? '+' : '-'}₹${t.amount.toLocaleString('en-IN')}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+
+      <script>
+        window.onload = function() { window.print(); };
+      </script>
+    </body>
+    </html>
+  `);
+  printWin.document.close();
+};
+
 
 // Universal Payment Source Normalizer for Claims Module
 function normalizePaymentSource(rawVal) {
@@ -67,7 +151,7 @@ async function fetchLastSettledClaimDate() {
 // ═══════════════════════════════════════════════════════════
 
 window._claimsState = {
-  fromDate: '2026-08-17',
+  fromDate: '2026-09-12',
   fromTime: '20:35',
   toDate: new Date().toISOString().slice(0, 10),
   toTime: '23:59',
@@ -141,7 +225,7 @@ async function renderClaims() {
         <div>
           <h1 style="margin:0;font-size:22px;">📤 Universal Claims Manager</h1>
           <div style="font-size:12px;color:var(--muted);margin-top:4px;">
-            Checkpoint: <strong>17-Aug-2026 8:35 PM</strong> · Auto Employee Lookup · UHHS-OD Engine
+            Checkpoint: <strong>11-Sep-2026 11:19 PM (Settled)</strong> · Auto Employee Lookup · UHHS-OD Engine
           </div>
         </div>
         <div style="display:flex;gap:8px;flex-wrap:wrap;">
@@ -759,7 +843,7 @@ window.saveUhhsDeposit = async function(btn) {
 window.showUhhsStatementModal = async function() {
   try {
     const { fromDate, toDate } = window._claimsState || {};
-    const fDate = fromDate || '2026-01-01';
+    const fDate = fromDate || '2026-09-12';
     const tDate = toDate || new Date().toISOString().slice(0, 10);
 
     const { data: deposits, error: depErr } = await sb.from('uhhs_od_account')
@@ -852,7 +936,7 @@ window.showUhhsStatementModal = async function() {
             <div style="font-size:12px;color:#64748B;margin-top:2px;">Period: <strong>${fDate}</strong> → <strong>${tDate}</strong></div>
           </div>
           <div style="display:flex;gap:8px;">
-            <button onclick="window.print()" style="padding:6px 14px;background:#0F172A;color:#fff;border:none;border-radius:6px;font-weight:700;font-size:12px;cursor:pointer;">📄 Export PDF / Print</button>
+            <button onclick="window.exportUhhsLedgerPDF('${fDate}', '${tDate}', ${totalInflow}, ${totalOutflow}, ${netBalance}, '${encodeURIComponent(JSON.stringify(txns))}')" style="padding:6px 14px;background:#0F172A;color:#fff;border:none;border-radius:6px;font-weight:700;font-size:12px;cursor:pointer;">📄 Export PDF / Print</button>
             <button onclick="this.closest('.modal-overlay').remove()" style="background:none;border:none;font-size:24px;cursor:pointer;">✕</button>
           </div>
         </div>
