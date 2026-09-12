@@ -1,3 +1,11 @@
+
+function isEmployeeActive(e) {
+  if (!e) return false;
+  const st = String(e.status || '').trim().toLowerCase();
+  if (st === 'inactive' || st === 'disabled' || e.is_active === false) return false;
+  return true;
+}
+
 // ============ STORAGE USAGE CHECK ============
 async function checkStorageUsage() {
   try {
@@ -30,15 +38,15 @@ async function renderManageEmployees() {
   const isO = ['owner','admin','moderator','developer'].includes(SESSION.role);
   const filter = window._empFilterStatus;
 
+  const activeCount = (emps || []).filter(isEmployeeActive).length;
+  const inactiveCount = (emps || []).length - activeCount;
+
   const filteredEmps = (emps || []).filter(e => {
     if (filter === 'All') return true;
-    if (filter === 'Active') return e.status === 'Active' || e.is_active === true || e.is_active === null;
-    if (filter === 'Inactive') return e.status === 'Inactive' || e.is_active === false;
+    if (filter === 'Active') return isEmployeeActive(e);
+    if (filter === 'Inactive') return !isEmployeeActive(e);
     return true;
   });
-
-  const activeCount = (emps || []).filter(e => e.status === 'Active' || e.is_active === true || e.is_active === null).length;
-  const inactiveCount = (emps || []).filter(e => e.status === 'Inactive' || e.is_active === false).length;
 
   renderShell(`
     <div class="card">
@@ -64,7 +72,7 @@ async function renderManageEmployees() {
         <th>Salary</th><th>ID</th><th>Status</th>${isO ? '<th>Actions</th>' : ''}
       </tr></thead>
       <tbody>${filteredEmps.map(e => {
-        const isActive = e.status === 'Active' || e.is_active === true || e.is_active === null;
+        const isActive = isEmployeeActive(e);
         return `<tr>
         <td><strong>${e.name}</strong></td>
         <td>${e.role || '-'}</td>
