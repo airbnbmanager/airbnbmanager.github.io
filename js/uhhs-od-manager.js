@@ -45,7 +45,6 @@ async function calculateLiveODBalance(supabaseClient) {
     try {
         const startDate = "2026-09-12";
 
-        // A. Inflows from 12 Sep onwards
         const { data: odInflows } = await client
             .from('uhhs_od_account')
             .select('amount')
@@ -54,14 +53,11 @@ async function calculateLiveODBalance(supabaseClient) {
 
         const totalInflow = (odInflows || []).reduce((sum, row) => sum + parseFloat(row.amount || 0), 0);
 
-        // B. Outflows from 12 Sep onwards
         let totalOutflow = 0;
 
-        // 1. Daily Expenses
+        // Daily Expenses
         try {
-            const { data: r1 } = await client.from('reimbursements')
-                .select('amount, payment_source, paid_by')
-                .gte('expense_date', startDate);
+            const { data: r1 } = await client.from('reimbursements').select('amount, payment_source, paid_by').gte('expense_date', startDate);
             if (r1) {
                 totalOutflow += r1.filter(e => {
                     const s = String(e.payment_source || e.paid_by || '').toUpperCase();
@@ -70,35 +66,31 @@ async function calculateLiveODBalance(supabaseClient) {
             }
         } catch (e) {}
 
-        // 2. Maintenance Log
+        // Maintenance
         try {
-            const { data: r2 } = await client.from('maintenance_log')
-                .select('cost, payment_source')
-                .gte('reported_date', startDate);
+            const { data: r2 } = await client.from('maintenance_log').select('cost, payment_source').gte('reported_date', startDate);
             if (r2) {
                 totalOutflow += r2.filter(m => String(m.payment_source || '').toUpperCase().includes('OD'))
                                   .reduce((s, r) => s + parseFloat(r.cost || 0), 0);
             }
         } catch (e) {}
 
-        // 3. Laundry Payments
+        // Laundry
         try {
-            const { data: r3 } = await client.from('laundry_payments')
-                .select('amount, payment_source')
-                .gte('payment_date', startDate);
+            const { data: r3 } = await client.from('laundry_payments').select('amount, payment_source').gte('payment_date', startDate);
             if (r3) {
                 totalOutflow += r3.filter(l => String(l.payment_source || '').toUpperCase().includes('OD'))
                                   .reduce((s, r) => s + parseFloat(r.amount || 0), 0);
             }
         } catch (e) {}
 
-        // 4. Company Advances (UHHS-OD Advances)
+        // Staff Advances from OD
         try {
-            const { data: r4 } = await client.from('company_advances')
-                .select('amount_given, payment_source, given_by, purpose')
-                .gte('advance_date', startDate);
+            const { data: r4 } = await client.from('company_advances').select('amount_given, payment_source, given_by, purpose, advance_date, created_at');
             if (r4) {
                 totalOutflow += r4.filter(a => {
+                    const aDate = a.advance_date || (a.created_at || '').slice(0, 10);
+                    if (aDate < startDate) return false;
                     const src = String(a.payment_source || '').toUpperCase();
                     const gBy = String(a.given_by || '').toUpperCase();
                     const purp = String(a.purpose || '').toUpperCase();
@@ -110,7 +102,6 @@ async function calculateLiveODBalance(supabaseClient) {
 
         const netBalance = totalInflow - totalOutflow;
 
-        // Update Top Banner Elements across all pages
         const bannerElements = [
             document.getElementById('uhhs-od-balance-display'),
             document.getElementById('claims-od-banner-bal'),

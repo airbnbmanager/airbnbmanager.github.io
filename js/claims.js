@@ -1,3 +1,80 @@
+window.exportUhhsLedgerPDF = function(fDate, tDate, totalInflow, totalOutflow, netBalance, txnsJson) {
+  const txns = JSON.parse(decodeURIComponent(txnsJson));
+  const printWin = window.open('', '_blank');
+  
+  printWin.document.write(`
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <title>UHHS-OD Ledger Statement (${fDate} to ${tDate})</title>
+      <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 25px; color: #1e293b; background: #fff; }
+        .header { border-bottom: 2px solid #0f766e; padding-bottom: 10px; margin-bottom: 16px; }
+        h1 { margin: 0; color: #0f766e; font-size: 20px; font-weight: 800; }
+        .sub { color: #64748b; font-size: 11px; margin-top: 4px; }
+        .cards { display: flex; gap: 10px; margin-bottom: 18px; }
+        .card { flex: 1; padding: 12px; border-radius: 8px; text-align: center; border: 1px solid #cbd5e1; }
+        .card-in { background: #f0fdf4; border-color: #86efac; }
+        .card-out { background: #fef2f2; border-color: #fca5a5; }
+        .card-bal { background: ${netBalance >= 0 ? '#ecfdf5' : '#fff1f2'}; border-color: ${netBalance >= 0 ? '#6ee7b7' : '#fecdd3'}; }
+        .lbl { font-size: 10px; font-weight: 700; text-transform: uppercase; }
+        .val { font-size: 18px; font-weight: 800; margin-top: 2px; }
+        table { width: 100%; border-collapse: collapse; font-size: 11px; }
+        th { background: #f1f5f9; padding: 8px; text-align: left; border-bottom: 2px solid #cbd5e1; font-weight: 700; }
+        td { padding: 7px 8px; border-bottom: 1px solid #e2e8f0; }
+        .dep { background: #dcfce7; color: #15803d; padding: 2px 6px; border-radius: 4px; font-weight: 700; font-size: 9px; }
+        .exp { background: #fee2e2; color: #b91c1c; padding: 2px 6px; border-radius: 4px; font-weight: 700; font-size: 9px; }
+      </style>
+    </head>
+    <body>
+      <div class="header">
+        <h1>📜 UHHS-OD Account Statement / Ledger</h1>
+        <div class="sub">Period: <strong>${fDate}</strong> → <strong>${tDate}</strong> | Generated: ${new Date().toLocaleString('en-IN')}</div>
+      </div>
+
+      <div class="cards">
+        <div class="card card-in">
+          <div class="lbl" style="color:#166534;">TOTAL DEPOSITED (+)</div>
+          <div class="val" style="color:#059669;">₹${totalInflow.toLocaleString('en-IN')}</div>
+        </div>
+        <div class="card card-out">
+          <div class="lbl" style="color:#991b1b;">TOTAL SPENT (-)</div>
+          <div class="val" style="color:#dc2626;">₹${totalOutflow.toLocaleString('en-IN')}</div>
+        </div>
+        <div class="card card-bal">
+          <div class="lbl" style="color:${netBalance>=0?'#065f46':'#9f1239'};">NET RUNNING BALANCE</div>
+          <div class="val" style="color:${netBalance>=0?'#059669':'#dc2626'};">₹${netBalance.toLocaleString('en-IN')}</div>
+        </div>
+      </div>
+
+      <table>
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th style="text-align:right;">Amount (₹)</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${txns.map(t => `
+            <tr>
+              <td>${t.date || '-'}</td>
+              <td><span class="${t.isDep ? 'dep' : 'exp'}">${t.isDep ? '📥 DEPOSIT' : '📤 EXPENSE'}</span></td>
+              <td>${t.desc}</td>
+              <td style="text-align:right;font-weight:700;color:${t.isDep?'#15803d':'#b91c1c'};">${t.isDep ? '+' : '-'}₹${t.amount.toLocaleString('en-IN')}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+
+      <script>window.onload = function() { window.print(); };</script>
+    </body>
+    </html>
+  `);
+  printWin.document.close();
+};
+
 
 // Universal Payment Source Normalizer for Claims Module
 function normalizePaymentSource(rawVal) {
@@ -40,7 +117,7 @@ async function fetchLastSettledClaimDate() {
 // ═══════════════════════════════════════════════════════════
 
 window._claimsState = {
-  fromDate: '2026-08-17',
+  fromDate: '2026-09-12',
   fromTime: '20:35',
   toDate: new Date().toISOString().slice(0, 10),
   toTime: '23:59',
@@ -719,20 +796,27 @@ window.saveUhhsDeposit = async function(btn) {
 // ─── UHHS-OD STATEMENT / LEDGER POPUP ───
 window.showUhhsStatementModal = async function() {
   try {
-    const { data: deposits, error: depErr } = await sb.from('uhhs_od_account').select('*').order('transaction_date', { ascending: false });
+    const { fromDate, toDate } = window._claimsState || {};
+    let fDate = fromDate && fromDate >= '2026-09-12' ? fromDate : '2026-09-12';
+    let tDate = toDate || new Date().toISOString().slice(0, 10);
+
+    const { data: deposits, error: depErr } = await sb.from('uhhs_od_account')
+      .select('*')
+      .gte('transaction_date', fDate)
+      .lte('transaction_date', tDate)
+      .order('transaction_date', { ascending: false });
     if (depErr) throw depErr;
 
-    // Fetch outflows tagged as UHHS-OD or non-Firoz
     const [{ data: exps }, { data: maints }, { data: launds }, { data: allAdvs }] = await Promise.all([
-      sb.from('reimbursements').select('*').or('payment_source.eq.UHHS-OD,paid_by.eq.UHHS-OD'),
-      sb.from('maintenance_log').select('*').eq('payment_source', 'UHHS-OD'),
-      sb.from('laundry_payments').select('*').eq('payment_source', 'UHHS-OD'),
+      sb.from('reimbursements').select('*').gte('expense_date', fDate).lte('expense_date', tDate),
+      sb.from('maintenance_log').select('*').gte('reported_date', fDate).lte('reported_date', tDate),
+      sb.from('laundry_payments').select('*').gte('payment_date', fDate).lte('payment_date', tDate),
       sb.from('company_advances').select('*')
     ]);
 
     const txns = [];
 
-    // 1. Deposits Inflow
+    // Deposits (+)
     (deposits || []).forEach(d => {
       txns.push({
         date: d.transaction_date,
@@ -743,19 +827,22 @@ window.showUhhsStatementModal = async function() {
       });
     });
 
-    // 2. Daily Expenses Outflow
-    (exps || []).forEach(e => {
+    // Daily Expenses (-)
+    (exps || []).filter(e => {
+      const s = String(e.payment_source || e.paid_by || '').toUpperCase();
+      return s.includes('OD') || s.includes('UHHS');
+    }).forEach(e => {
       txns.push({
         date: e.expense_date,
         type: 'EXPENSE',
-        desc: `Expense: ${e.category || ''} - ${e.description || ''}`,
+        desc: `Daily Expense: ${e.category || ''} - ${e.description || ''}`,
         amount: Number(e.amount || 0),
         isDep: false
       });
     });
 
-    // 3. Maintenance Outflow
-    (maints || []).forEach(m => {
+    // Maintenance (-)
+    (maints || []).filter(m => String(m.payment_source || '').toUpperCase().includes('OD')).forEach(m => {
       txns.push({
         date: m.reported_date,
         type: 'EXPENSE',
@@ -765,34 +852,34 @@ window.showUhhsStatementModal = async function() {
       });
     });
 
-    // 4. Laundry Outflow
-    (launds || []).forEach(l => {
+    // Laundry (-)
+    (launds || []).filter(l => String(l.payment_source || '').toUpperCase().includes('OD')).forEach(l => {
       txns.push({
         date: l.payment_date,
         type: 'EXPENSE',
-        desc: `Laundry Payment: ${l.notes || ''}`,
+        desc: `Laundry: ${l.notes || ''}`,
         amount: Number(l.amount || 0),
         isDep: false
       });
     });
 
-    // 5. Staff Advances Outflow (Exclude Firoz explicit advances)
-    (allAdvs || []).forEach(a => {
+    // Staff Advances given from UHHS-OD (-)
+    (allAdvs || []).filter(a => {
+      const aDate = a.advance_date || (a.created_at || '').slice(0, 10);
+      if (aDate < fDate || aDate > tDate) return false;
       const src = String(a.payment_source || '').toUpperCase();
       const gBy = String(a.given_by || '').toUpperCase();
       const purp = String(a.purpose || '').toUpperCase();
       const isFiroz = src === 'FIROZ' || gBy.includes('FIROZ') || purp.includes('FIROZ');
-      const isExplicitCompany = src === 'COMPANY' && !purp.includes('OD') && !gBy.includes('OD');
-
-      if (!isFiroz && !isExplicitCompany) {
-        txns.push({
-          date: a.advance_date || a.created_at?.slice(0, 10),
-          type: 'EXPENSE',
-          desc: `💸 Staff Advance (${a.given_to || 'Staff'}): ${a.purpose || 'Given from OD'}`,
-          amount: Number(a.amount_given || 0),
-          isDep: false
-        });
-      }
+      return !isFiroz;
+    }).forEach(a => {
+      txns.push({
+        date: a.advance_date || a.created_at?.slice(0, 10),
+        type: 'EXPENSE',
+        desc: `💸 Staff Advance (${a.given_to || 'Staff'}): ${a.purpose || 'Given from OD'}`,
+        amount: Number(a.amount_given || 0),
+        isDep: false
+      });
     });
 
     txns.sort((a, b) => new Date(b.date) - new Date(a.date));
@@ -807,13 +894,16 @@ window.showUhhsStatementModal = async function() {
     modal.onclick = e => { if (e.target === modal) modal.remove(); };
 
     modal.innerHTML = `
-      <div class="modal-box" style="background:#fff;border-radius:12px;padding:24px;max-width:750px;width:100%;max-height:85vh;overflow-y:auto;" onclick="event.stopPropagation()">
+      <div class="modal-box" style="background:#fff;border-radius:12px;padding:24px;max-width:800px;width:100%;max-height:85vh;overflow-y:auto;" onclick="event.stopPropagation()">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;border-bottom:2px solid #eee;padding-bottom:10px;">
           <div>
             <h2 style="margin:0;color:#0F766E;">📜 UHHS-OD Account Statement / Ledger</h2>
-            <div style="font-size:12px;color:#64748B;margin-top:2px;">Live Deposits & Expenses with Running Balance</div>
+            <div style="font-size:12px;color:#64748B;margin-top:2px;">Period: <strong>${fDate}</strong> → <strong>${tDate}</strong></div>
           </div>
-          <button onclick="this.closest('.modal-overlay').remove()" style="background:none;border:none;font-size:24px;cursor:pointer;">✕</button>
+          <div style="display:flex;gap:8px;">
+            <button onclick="window.exportUhhsLedgerPDF('${fDate}', '${tDate}', ${totalInflow}, ${totalOutflow}, ${netBalance}, '${encodeURIComponent(JSON.stringify(txns))}')" style="padding:6px 14px;background:#0F172A;color:#fff;border:none;border-radius:6px;font-weight:700;font-size:12px;cursor:pointer;">📄 Export PDF / Print</button>
+            <button onclick="this.closest('.modal-overlay').remove()" style="background:none;border:none;font-size:24px;cursor:pointer;">✕</button>
+          </div>
         </div>
 
         <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px;">
@@ -841,7 +931,7 @@ window.showUhhsStatementModal = async function() {
             </tr>
           </thead>
           <tbody>
-            ${txns.length === 0 ? '<tr><td colspan="4" style="padding:20px;text-align:center;color:#94A3B8;">No transactions found in UHHS-OD</td></tr>' : ''}
+            ${txns.length === 0 ? '<tr><td colspan="4" style="padding:20px;text-align:center;color:#94A3B8;">No transactions found in selected period</td></tr>' : ''}
             ${txns.map(t => `
               <tr style="border-bottom:1px solid #E2E8F0;">
                 <td style="padding:8px;">${t.date || '-'}</td>
