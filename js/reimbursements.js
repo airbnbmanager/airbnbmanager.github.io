@@ -89,18 +89,14 @@ window.renderReimbursements = async function() {
             const toLbl = r.to_property ? (roomMap[r.to_property] || r.to_property) : '';
             const propLabel = fromLbl && toLbl ? `${fromLbl} → ${toLbl}` : (fromLbl || toLbl || 'General');
             
-            let sourceBadge = '💰 Personal';
-            if (r.payment_source === 'uhhs_od') sourceBadge = '🏦 UHHS-OD';
-            else if (r.payment_source === 'company_cash') sourceBadge = '💵 Co. Cash';
-            else if (r.payment_source === 'company_upi') sourceBadge = '📱 Co. UPI';
-            else if (r.company_advance_id) sourceBadge = '🏦 Co. Advance';
+            const sourceBadge = window.UHHSODManager ? UHHSODManager.getBadge(r.payment_source) : (r.payment_source || 'COMPANY');
 
             return `<tr>
               <td>${r.expense_date}</td>
               <td><span class="badge blue">${r.category}</span></td>
               <td style="max-width:200px;">${r.description || '-'}</td>
               <td style="font-size:11px;">${propLabel}</td>
-              <td><span class="badge ${r.payment_source === 'uhhs_od' ? 'blue' : (r.payment_source?.startsWith('company') ? 'yellow' : 'green')}">${sourceBadge}</span></td>
+              <td>${sourceBadge}</td>
               <td style="text-align:right;"><strong>₹${Number(r.amount || 0).toLocaleString('en-IN')}</strong></td>
               <td>${r.receipt_photo ? `<button class="btn-sm" style="background:#3B82F6;color:#fff;padding:4px 10px;" onclick="dlIdPhoto('${r.receipt_photo.includes('/id-proofs/') ? r.receipt_photo.split('/id-proofs/')[1] : r.receipt_photo}')">📷 View</button>` : '-'}</td>
               <td><span class="badge ${statusColor}">${r.status}</span></td>
@@ -119,9 +115,6 @@ window.renderReimbursements = async function() {
 };
 
 window.renderAddReimbursement = async function() {
-  window._companyCashData = null;
-  setTimeout(() => window.loadAvailableCash && window.loadAvailableCash(), 200);
-
   const { data: rooms } = await sb.from('rooms').select('room_id, nickname, unit_no').order('unit_no');
   
   renderShell(`
@@ -201,11 +194,6 @@ window.renderAddReimbursement = async function() {
   `, 'reimbursements');
   
   setupReimbPhotoInput('rPhotoCam', 'rPhotoGal', 'rPhotoPreview');
-  const defaultPaidBy = SESSION.displayName || SESSION.role || '';
-  window.renderCashHolderDropdown('rPaidBy', defaultPaidBy).then(html => {
-    const wrap = document.getElementById('rPaidByWrap');
-    if (wrap) wrap.innerHTML = html;
-  });
 };
 
 async function compressImage(file, maxWidth = 800, quality = 0.7) {
@@ -254,14 +242,14 @@ window.saveReimbursement = async function() {
   const amt = parseFloat(document.getElementById('rAmt').value) || 0;
   const fromProp = document.getElementById('rFromText').value.trim() || null;
   const toProp = document.getElementById('rToText').value.trim() || null;
-  const paidBy = await window.getCashHolderValue('rPaidBy');
   const notes = document.getElementById('rNotes').value.trim();
-  
+  const paymentSource = document.getElementById('rPaymentSource')?.value || 'COMPANY';
+
   if (!date || !cat || !desc || amt <= 0) {
     document.getElementById('rErr').innerHTML = '<div class="error">Date, Category, Description, Amount required</div>';
     return;
   }
-  
+
   let photoUrl = null;
   if (window._reimbPhotoBlob) {
     try {
@@ -277,63 +265,19 @@ window.saveReimbursement = async function() {
       return;
     }
   }
-  
-  const paySource = document.querySelector('input[name="paySource"]:checked')?.value || 'own_money';
-  const advanceId = paySource === 'company_advance' ? (parseInt(document.getElementById('rAdvanceId')?.value) || null) : null;
-  const currentUser = SESSION.displayName || 'Praveen Singh';
-  
-  let finalSource = paySource;
-  let companyPortionAmt = 0;
-  let ownPortionAmt = amt;
-  let paymentIdsToConsume = [];
-  
-  // Directly Paid sources (No Claim needed)
-  const isDirectCompanyFund = (paySource === 'uhhs_od' || paySource === 'company_upi');
-  const initialStatus = isDirectCompanyFund ? 'Received' : 'Pending';
 
-  if (paySource === 'company_cash' || paySource === 'split') {
-    const data = window._companyCashData;
-    if (!data || data.netAvailable <= 0) {
-      document.getElementById('rErr').innerHTML = '<div class="error">No company cash available</div>';
-      return;
-    }
-    
-    if (paySource === 'company_cash') {
-      if (amt > data.netAvailable) {
-        document.getElementById('rErr').innerHTML = `<div class="error">Amount ₹${amt} exceeds available ₹${data.netAvailable}. Use Split option.</div>`;
-        return;
-      }
-      companyPortionAmt = amt;
-      ownPortionAmt = 0;
-      finalSource = 'company_cash';
-    } else {
-      companyPortionAmt = Math.min(amt, data.netAvailable);
-      ownPortionAmt = amt - companyPortionAmt;
-      finalSource = 'split';
-    }
-    
-    let toConsume = companyPortionAmt;
-    for (const pmt of data.payments) {
-      if (toConsume <= 0) break;
-      paymentIdsToConsume.push(pmt.id);
-      toConsume -= Number(pmt.amount);
-    }
-  } else if (isDirectCompanyFund) {
-    companyPortionAmt = amt;
-    ownPortionAmt = 0;
-  }
-  
+  const currentUser = SESSION.displayName || 'Praveen Singh';
+  // COMPANY / UHHS-OD are already company funds spent directly -> no claim needed (Received).
+  // FIROZ is personal money paid on the company's behalf -> needs to be claimed back (Pending).
+  const initialStatus = (paymentSource === 'UHHS-OD' || paymentSource === 'COMPANY') ? 'Received' : 'Pending';
+
   const { data: newR, error } = await sb.from('reimbursements').insert({
-    payment_source: finalSource,
-    company_advance_id: advanceId,
-    consumed_payment_ids: paymentIdsToConsume.length > 0 ? paymentIdsToConsume.map(String) : null,
-    company_portion: companyPortionAmt,
-    own_portion: ownPortionAmt,
+    payment_source: paymentSource,
     expense_date: date,
     category: cat,
     description: desc,
     amount: amt,
-    paid_by: paidBy,
+    paid_by: currentUser,
     claim_from: 'Owner',
     from_property: fromProp,
     to_property: toProp,
@@ -342,14 +286,14 @@ window.saveReimbursement = async function() {
     status: initialStatus,
     created_by: SESSION.empId || null
   }).select().single();
-  
+
   if (error) {
     document.getElementById('rErr').innerHTML = '<div class="error">' + error.message + '</div>';
     return;
   }
-  
-  // ── Auto-record transaction in account_transactions ──
-  if (paySource === 'uhhs_od') {
+
+  // Auto-record transaction in account_transactions for UHHS-OD spends
+  if (paymentSource === 'UHHS-OD') {
     await sb.from('account_transactions').insert({
       account_type: 'UHHS_OD',
       transaction_type: 'EXPENSE',
@@ -358,35 +302,10 @@ window.saveReimbursement = async function() {
       description: `Expense: ${desc} (${cat})`,
       created_by: SESSION.displayName || 'Praveen'
     });
-  } else if (paySource === 'company_upi') {
-    await sb.from('account_transactions').insert({
-      account_type: 'COMPANY_UPI',
-      transaction_type: 'EXPENSE',
-      amount: amt,
-      txn_date: date,
-      description: `UPI Spent: ${desc} (${cat})`,
-      created_by: SESSION.displayName || 'Praveen'
-    });
   }
-  
-  // Handover state update for Smart cash
-  if (paymentIdsToConsume.length > 0) {
-    await sb.from('payment_history')
-      .update({ handover_status: 'handed_over' })
-      .in('id', paymentIdsToConsume);
-    
-    await sb.from('cash_handovers').insert({
-      handover_date: date,
-      from_person: currentUser,
-      to_person: 'Expense: ' + desc.substring(0,50),
-      amount: companyPortionAmt,
-      payment_ids: paymentIdsToConsume.map(String),
-      notes: 'Auto-created from expense: ' + cat
-    });
-  }
-  
+
   window._reimbPhotoBlob = null;
-  fsn.success('Success', '✅ Expense saved!' + (companyPortionAmt>0?` (₹${companyPortionAmt} from company funds)`:''));
+  fsn.success('Success', '✅ Expense saved!');
   renderReimbursements();
 };
 
@@ -465,8 +384,12 @@ window.editReimbursement = async function(id) {
     
     <div class="card">
       <div class="form-group">
-        <label>💰 Paid By</label>
-        <div id="rPaidByWrap"></div>
+        <label style="font-weight:700;font-size:14px;color:#1e293b;">💳 Payment Source / Account *</label>
+        <select id="rPaymentSource" style="width:100%;padding:10px 12px;font-size:14px;font-weight:600;border:1.5px solid #0d6efd;border-radius:8px;background:#ffffff;color:#0f172a;">
+          <option value="COMPANY" ${rec.payment_source === 'COMPANY' ? 'selected' : ''}>🏢 COMPANY (Guest Rent / Cash in Hand)</option>
+          <option value="UHHS-OD" ${rec.payment_source === 'UHHS-OD' || !rec.payment_source ? 'selected' : ''}>🏦 UHHS-OD (Overdraft Account)</option>
+          <option value="FIROZ" ${rec.payment_source === 'FIROZ' ? 'selected' : ''}>👤 FIROZ (Direct Personal)</option>
+        </select>
       </div>
       <div class="form-group">
         <label>Status</label>
@@ -495,29 +418,12 @@ window.editReimbursement = async function(id) {
         <label>Notes</label>
         <textarea id="rNotes" rows="2">${rec.notes || ''}</textarea>
       </div>
-      <div class="form-group" style="padding:12px;background:#F0F7FF;border-radius:8px;border:1px solid #3B82F6;">
-        <label style="font-weight:600;">💵 Payment Source Selection</label>
-        <div style="margin-top:6px;">
-          <label><input type="radio" name="paySource" value="own_money" ${rec.payment_source === 'own_money' ? 'checked':''} onchange="onPaySourceChange()"> 💰 My Pocket</label><br>
-          <label><input type="radio" name="paySource" value="uhhs_od" ${rec.payment_source === 'uhhs_od' ? 'checked':''} onchange="onPaySourceChange()"> 🏦 UHHS-OD (Online)</label><br>
-          <label><input type="radio" name="paySource" value="company_cash" ${rec.payment_source === 'company_cash' ? 'checked':''} onchange="onPaySourceChange()"> 🏢 Company Cash</label><br>
-          <label><input type="radio" name="paySource" value="company_upi" ${rec.payment_source === 'company_upi' ? 'checked':''} onchange="onPaySourceChange()"> 📱 Company UPI</label><br>
-          <label><input type="radio" name="paySource" value="company_advance" ${rec.company_advance_id ? 'checked':''} onchange="onPaySourceChange()"> 🏦 Company Advance</label>
-        </div>
-        <div id="advanceDropdownWrap" style="display:${rec.company_advance_id?'block':'none'};margin-top:10px;">
-          <select id="rAdvanceId" style="width:100%;padding:8px;"><option value="">-- Loading --</option></select>
-        </div>
-      </div>
       <button onclick="updateReimbursement()" style="width:100%;">💾 Update Expense</button>
       <div id="rErr"></div>
     </div>
   `, 'reimbursements');
   
   setupReimbPhotoInput('rPhotoCam', 'rPhotoGal', 'rPhotoPreview');
-  window.renderCashHolderDropdown('rPaidBy', rec.paid_by || '').then(html => {
-    const wrap = document.getElementById('rPaidByWrap');
-    if (wrap) wrap.innerHTML = html;
-  });
 };
 
 window.removeExistingPhoto = async function() {
@@ -538,15 +444,15 @@ window.updateReimbursement = async function() {
   const amt = parseFloat(document.getElementById('rAmt').value) || 0;
   const fromProp = document.getElementById('rFromText').value.trim() || null;
   const toProp = document.getElementById('rToText').value.trim() || null;
-  const paidBy = await window.getCashHolderValue('rPaidBy');
   const status = document.getElementById('rStatus').value;
   const notes = document.getElementById('rNotes').value.trim();
-  
+  const paymentSource = document.getElementById('rPaymentSource')?.value || 'COMPANY';
+
   if (!date || !cat || !desc || amt <= 0) {
     document.getElementById('rErr').innerHTML = '<div class="error">Date, Category, Description, Amount required</div>';
     return;
   }
-  
+
   if (window._reimbDeleteOldPhoto) {
     try {
       const oldUrl = window._reimbDeleteOldPhoto;
@@ -571,35 +477,30 @@ window.updateReimbursement = async function() {
       return;
     }
   }
-  
-  const paySource = document.querySelector('input[name="paySource"]:checked')?.value || 'own_money';
-  const advanceId = paySource === 'company_advance' ? (parseInt(document.getElementById('rAdvanceId')?.value) || null) : null;
-  
+
   const updateObj = {
-    payment_source: paySource,
-    company_advance_id: advanceId,
+    payment_source: paymentSource,
     expense_date: date,
     category: cat,
     description: desc,
     amount: amt,
-    paid_by: paidBy,
     from_property: fromProp,
     to_property: toProp,
     receipt_photo: photoUrl,
     notes,
     status
   };
-  
+
   if (status === 'Claimed') updateObj.claimed_date = new Date().toISOString().slice(0,10);
   if (status === 'Received') updateObj.received_date = new Date().toISOString().slice(0,10);
-  
+
   const { error } = await sb.from('reimbursements').update(updateObj).eq('id', id);
-  
+
   if (error) {
     document.getElementById('rErr').innerHTML = '<div class="error">' + error.message + '</div>';
     return;
   }
-  
+
   window._reimbPhotoBlob = null;
   window._reimbEditPhoto = null;
   fsn.success('Success', '✅ Updated!');
@@ -613,26 +514,7 @@ window.deleteReimbursement = async function(id) {
   renderReimbursements();
 };
 
-window.toggleAdvanceDropdown = async function(show) {
-  const wrap = document.getElementById('advanceDropdownWrap');
-  if (!wrap) return;
-  wrap.style.display = show ? 'block' : 'none';
-  if (show) {
-    const sel = document.getElementById('rAdvanceId');
-    if (sel && !sel.dataset.loaded) {
-      const { data: advances } = await sb.from('company_advances')
-        .select('*').eq('status', 'Active').order('advance_date', { ascending: false });
-      sel.innerHTML = '<option value="">-- Select active advance --</option>' + 
-        (advances || []).map(a => {
-          const bal = Number(a.amount_given) - Number(a.amount_spent||0);
-          return `<option value="${a.id}">₹${Number(a.amount_given).toLocaleString('en-IN')} from ${a.given_by} (${a.advance_date}) — Balance: ₹${bal.toLocaleString('en-IN')}</option>`;
-        }).join('');
-      sel.dataset.loaded = '1';
-    }
-  }
-};
-
-// ─── SMART CASH HANDOVER LOGIC ───
+// ─── SMART CASH HANDOVER LOGIC (legacy — no longer used by the payment-source form) ───
 window._companyCashData = null;
 
 window.loadAvailableCash = function(){}; window._old_load = async function() {

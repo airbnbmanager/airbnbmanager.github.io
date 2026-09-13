@@ -94,7 +94,7 @@ async function renderCAActive(tabs) {
         <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
           <div>
             <strong>💵 ₹${Number(a.amount_given).toLocaleString('en-IN')} from ${a.given_by}</strong>
-            <div style="margin-top:4px;">${window.UHHSODManager ? UHHSODManager.getBadge(a.payment_source) : ''}</div>
+            ${window.UHHSODManager ? ` ${UHHSODManager.getBadge(a.payment_source)}` : ''}
             <div style="font-size:12px;color:#666;margin-top:2px;">
               📅 ${a.advance_date} · To: ${a.given_to}${a.purpose ? ' · ' + a.purpose : ''}
             </div>
@@ -131,11 +131,10 @@ async function renderCANew(tabs) {
       <div class="form-grid">
         <div class="form-group">
           <label>Given By (Source) *</label>
-          <select id="caGivenBy" name="caGivenBy" style="width:100%; padding:10px; font-size:14px; font-weight:600; border:1.5px solid #0d6efd; border-radius:8px; background:#fff;">
-          <option value="COMPANY">🏢 COMPANY (Guest Rent / Cash in Hand)</option>
-          <option value="UHHS-OD" selected>🏦 UHHS-OD (Overdraft Account)</option>
-          <option value="FIROZ">👤 FIROZ (Direct Personal)</option>
-        </select>
+          <select id="caGivenBy">
+            ${CA_OWNERS.map(o => `<option value="${o}">${o}</option>`).join('')}
+            <option value="__custom__">✏️ Other...</option>
+          </select>
           <input id="caGivenByCustom" type="text" placeholder="Type name..." style="display:none;margin-top:6px;">
         </div>
         <div class="form-group">
@@ -146,6 +145,14 @@ async function renderCANew(tabs) {
           </select>
         </div>
       </div>
+      <div class="form-group">
+        <label>Payment Source / Account *</label>
+        <select id="caPaymentSource" style="border: 1.5px solid #0d6efd; font-weight: 600;">
+          <option value="COMPANY">🏢 COMPANY (Guest Rent / Cash in Hand)</option>
+          <option value="UHHS-OD" selected>🏦 UHHS-OD (Overdraft Account)</option>
+          <option value="FIROZ">👤 FIROZ (Direct Personal)</option>
+        </select>
+      </div>
       <div class="form-grid">
         <div class="form-group">
           <label>Amount ₹ *</label>
@@ -155,14 +162,6 @@ async function renderCANew(tabs) {
           <label>Date</label>
           <input id="caDate" type="date" value="${new Date().toISOString().slice(0,10)}">
         </div>
-      </div>
-            <div class="form-group">
-        <label>Payment Source / Account <span class="warn">*</span></label>
-        <select id="caPaymentSource" style="border: 1.5px solid #0d6efd; font-weight: 600;">
-          <option value="COMPANY">🏢 COMPANY (Guest Rent / Cash in Hand)</option>
-          <option value="UHHS-OD" selected>🏦 UHHS-OD (Overdraft Account)</option>
-          <option value="FIROZ">👤 FIROZ (Direct Personal)</option>
-        </select>
       </div>
       <div class="form-group">
         <label>Purpose / Notes</label>
@@ -193,15 +192,16 @@ window.saveNewAdvance = async function() {
     return;
   }
   
+  const paymentSource = document.getElementById('caPaymentSource')?.value || 'UHHS-OD';
+
   const { error } = await sb.from('company_advances').insert({
     advance_date: date,
     amount_given: amount,
-    given_by: document.getElementById('caGivenBy')?.value || 'COMPANY',
-    payment_source: document.getElementById('caGivenBy')?.value || 'COMPANY',
+    given_by: givenBy,
     given_to: givenTo,
     purpose: purpose || null,
-    status: 'Active',
-    payment_source: document.getElementById('caPaymentSource')?.value || 'COMPANY'
+    payment_source: paymentSource,
+    status: 'Active'
   });
   
   if (error) { document.getElementById('caErr').innerHTML = '<div class="error">'+error.message+'</div>'; return; }
@@ -284,11 +284,11 @@ async function renderCAHistory(tabs) {
     <div class="card"><div class="table-wrap"><table>
       <thead><tr><th>Date</th><th>From</th><th>Account</th><th>To</th><th>Given ₹</th><th>Spent ₹</th><th>Returned ₹</th><th>Status</th><th>Actions</th></tr></thead>
       <tbody>
-        ${(advances||[]).length === 0 ? '<tr><td colspan="8" style="text-align:center;padding:20px;color:#999;">No history</td></tr>' : ''}
+        ${(advances||[]).length === 0 ? '<tr><td colspan="9" style="text-align:center;padding:20px;color:#999;">No history</td></tr>' : ''}
         ${(advances||[]).map(a => `<tr>
           <td>${a.advance_date}</td>
           <td><strong>${a.given_by}</strong></td>
-          <td>${window.UHHSODManager ? UHHSODManager.getBadge(a.payment_source) : (a.payment_source || 'COMPANY')}</td>
+          <td>${window.UHHSODManager ? UHHSODManager.getBadge(a.payment_source) : (a.payment_source || '-')}</td>
           <td>${a.given_to}</td>
           <td>₹${Number(a.amount_given).toLocaleString('en-IN')}</td>
           <td>₹${Number(a.amount_spent||0).toLocaleString('en-IN')}</td>

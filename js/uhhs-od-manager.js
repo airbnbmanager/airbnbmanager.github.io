@@ -32,8 +32,10 @@ function getPaymentSourceBadge(source) {
         return `<span style="background-color:#dc3545; color:#ffffff; padding:3px 8px; border-radius:4px; font-size:11px; font-weight:700; display:inline-block;">🏦 UHHS-OD</span>`;
     } else if (s === 'FIROZ') {
         return `<span style="background-color:#0d6efd; color:#ffffff; padding:3px 8px; border-radius:4px; font-size:11px; font-weight:700; display:inline-block;">👤 FIROZ</span>`;
-    } else {
+    } else if (s === 'COMPANY') {
         return `<span style="background-color:#198754; color:#ffffff; padding:3px 8px; border-radius:4px; font-size:11px; font-weight:700; display:inline-block;">🏢 COMPANY</span>`;
+    } else {
+        return `<span style="background-color:#F59E0B; color:#ffffff; padding:3px 8px; border-radius:4px; font-size:11px; font-weight:700; display:inline-block;">⚠️ OTHER</span>`;
     }
 }
 
@@ -261,6 +263,142 @@ window.cbSaveODDeposit = async function() {
         if (typeof window.renderCashBook === 'function') window.renderCashBook();
     } catch (err) {
         errDiv.innerText = "❌ Exception: " + err.message;
+    }
+};
+
+// =========================================================================
+// ✏️ GLOBAL MODAL: Edit / Delete an existing UHHS-OD Deposit Entry
+// =========================================================================
+window.cbEditODDeposit = async function(id) {
+    const client = window.sb || window.supabaseClient || window.supabase;
+    const { data: d, error: fetchErr } = await client.from('uhhs_od_account').select('*').eq('id', id).single();
+    if (fetchErr || !d) {
+        alert('❌ Deposit entry not found: ' + (fetchErr?.message || ''));
+        return;
+    }
+
+    const oldModal = document.querySelector('.od-edit-modal-overlay');
+    if (oldModal) oldModal.remove();
+
+    const modal = document.createElement('div');
+    modal.className = 'modal-overlay od-edit-modal-overlay';
+    modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);display:flex;align-items:center;justify-content:center;z-index:100000;padding:20px;';
+    modal.onclick = e => { if (e.target === modal) modal.remove(); };
+
+    modal.innerHTML = `
+        <div class="modal-box" style="background:#fff;border-radius:12px;padding:22px;max-width:450px;width:100%;box-shadow:0 10px 25px rgba(0,0,0,0.2);" onclick="event.stopPropagation()">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;border-bottom:1px solid #eee;padding-bottom:10px;">
+                <h3 style="margin:0;font-size:18px;color:#3B82F6;font-weight:800;">✏️ Edit UHHS-OD Deposit</h3>
+                <button onclick="this.closest('.modal-overlay').remove()" style="background:none;border:none;font-size:22px;cursor:pointer;color:#888;">✕</button>
+            </div>
+
+            <div class="form-group" style="margin-bottom:12px;">
+                <label style="font-weight:600;font-size:13px;display:block;margin-bottom:4px;">Deposit Date *</label>
+                <input id="odEditDate" type="date" value="${d.transaction_date}" style="width:100%;padding:9px;border:1px solid #ccc;border-radius:6px;box-sizing:border-box;">
+            </div>
+
+            <div class="form-group" style="margin-bottom:12px;">
+                <label style="font-weight:600;font-size:13px;display:block;margin-bottom:4px;">Amount (₹) *</label>
+                <input id="odEditAmt" type="number" min="1" value="${d.amount}" style="width:100%;padding:9px;border:1px solid #ccc;border-radius:6px;font-size:16px;font-weight:700;box-sizing:border-box;">
+            </div>
+
+            <div class="form-group" style="margin-bottom:12px;">
+                <label style="font-weight:600;font-size:13px;display:block;margin-bottom:4px;">Payment Mode</label>
+                <select id="odEditMode" style="width:100%;padding:9px;border:1px solid #ccc;border-radius:6px;box-sizing:border-box;">
+                    <option value="UPI" ${d.payment_mode === 'UPI' ? 'selected' : ''}>UPI Transfer</option>
+                    <option value="CASH" ${d.payment_mode === 'CASH' ? 'selected' : ''}>Cash Deposit</option>
+                    <option value="BANK" ${d.payment_mode === 'BANK' ? 'selected' : ''}>Direct Net Banking / NEFT</option>
+                </select>
+            </div>
+
+            <div class="form-group" style="margin-bottom:12px;">
+                <label style="font-weight:600;font-size:13px;display:block;margin-bottom:4px;">Sender / Received From *</label>
+                <input id="odEditFrom" type="text" value="${(d.received_from || '').replace(/"/g, '&quot;')}" style="width:100%;padding:9px;border:1px solid #ccc;border-radius:6px;box-sizing:border-box;">
+            </div>
+
+            <div class="form-group" style="margin-bottom:16px;">
+                <label style="font-weight:600;font-size:13px;display:block;margin-bottom:4px;">Reference Note / Remarks</label>
+                <input id="odEditNote" value="${(d.reference_note || '').replace(/"/g, '&quot;')}" style="width:100%;padding:9px;border:1px solid #ccc;border-radius:6px;box-sizing:border-box;">
+            </div>
+
+            <div style="display:flex;gap:8px;">
+                <button onclick="window.cbSaveODEditDeposit(${id})" style="flex:1;padding:12px;background:#3B82F6;color:#fff;border:none;border-radius:8px;font-weight:700;font-size:15px;cursor:pointer;">💾 Save Changes</button>
+                <button onclick="window.cbDeleteODDeposit(${id})" style="flex:1;padding:12px;background:#DC2626;color:#fff;border:none;border-radius:8px;font-weight:700;font-size:15px;cursor:pointer;">🗑️ Delete</button>
+            </div>
+            <div id="odEditErr" style="margin-top:10px;color:#dc3545;font-size:12px;font-weight:600;text-align:center;"></div>
+        </div>
+    `;
+    document.body.appendChild(modal);
+};
+
+window.cbSaveODEditDeposit = async function(id) {
+    const client = window.sb || window.supabaseClient || window.supabase;
+    const date = document.getElementById('odEditDate').value;
+    const amount = parseFloat(document.getElementById('odEditAmt').value) || 0;
+    const mode = document.getElementById('odEditMode').value;
+    const sender = document.getElementById('odEditFrom').value.trim();
+    const note = document.getElementById('odEditNote').value.trim();
+    const errDiv = document.getElementById('odEditErr');
+
+    if (amount <= 0 || isNaN(amount)) {
+        errDiv.innerText = "⚠️ Please enter a valid positive amount!";
+        return;
+    }
+    if (!sender) {
+        errDiv.innerText = "⚠️ Sender name is required!";
+        return;
+    }
+
+    try {
+        const { error } = await client.from('uhhs_od_account').update({
+            transaction_date: date,
+            amount: amount,
+            payment_mode: mode,
+            received_from: sender,
+            description: `Funds added by ${sender} via ${mode}`,
+            reference_note: note || null
+        }).eq('id', id);
+
+        if (error) {
+            errDiv.innerText = "❌ DB Error: " + error.message;
+            return;
+        }
+
+        document.querySelectorAll('.modal-overlay').forEach(m => m.remove());
+        if (window.fsn?.success) {
+            fsn.success('Updated', '✅ Deposit updated!');
+        } else {
+            alert('✅ Deposit updated!');
+        }
+
+        if (window.UHHSODManager) window.UHHSODManager.calculateBalance(client);
+        if (typeof window.showUhhsStatementModal === 'function') window.showUhhsStatementModal();
+        if (typeof window.renderCashBook === 'function') window.renderCashBook();
+    } catch (err) {
+        errDiv.innerText = "❌ Exception: " + err.message;
+    }
+};
+
+window.cbDeleteODDeposit = async function(id) {
+    if (!confirm('🗑️ Delete this deposit entry? This cannot be undone.')) return;
+    const client = window.sb || window.supabaseClient || window.supabase;
+    try {
+        const { error } = await client.from('uhhs_od_account').delete().eq('id', id);
+        if (error) {
+            alert('❌ Error: ' + error.message);
+            return;
+        }
+        document.querySelectorAll('.modal-overlay').forEach(m => m.remove());
+        if (window.fsn?.success) {
+            fsn.success('Deleted', '✅ Deposit deleted!');
+        } else {
+            alert('✅ Deposit deleted!');
+        }
+        if (window.UHHSODManager) window.UHHSODManager.calculateBalance(client);
+        if (typeof window.showUhhsStatementModal === 'function') window.showUhhsStatementModal();
+        if (typeof window.renderCashBook === 'function') window.renderCashBook();
+    } catch (err) {
+        alert('❌ Exception: ' + err.message);
     }
 };
 

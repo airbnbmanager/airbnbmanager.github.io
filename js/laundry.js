@@ -522,7 +522,6 @@ window.saveLaundry = async function() {
     total_amount: total,
     payment_mode: payMode,
     payment_status: paymentStatus,
-    payment_source: document.getElementById('lPaymentSourceEdit')?.value || 'COMPANY',
     payment_source: document.getElementById('lPaymentSource')?.value || 'COMPANY',
     paid_amount: paidAmt,
     notes: notes,
@@ -787,7 +786,6 @@ window.updateLaundry = async function() {
     payment_mode: payMode,
     payment_status: paymentStatus,
     payment_source: document.getElementById('lPaymentSourceEdit')?.value || 'COMPANY',
-    payment_source: document.getElementById('lPaymentSource')?.value || 'COMPANY',
     paid_amount: paidAmt,
     notes: notes,
     bill_photo: billPhotoPath
@@ -1059,9 +1057,9 @@ window.editLaundryPayment = async function(paymentId, recordId) {
       </div>
             <div class="form-group"><label>Payment Source / Account *</label>
         <select id="lpPaymentSource" style="border: 1.5px solid #0d6efd; font-weight: 600;">
-          <option value="COMPANY">🏢 COMPANY (Guest Rent / Cash in Hand)</option>
-          <option value="UHHS-OD" selected>🏦 UHHS-OD (Overdraft Account)</option>
-          <option value="FIROZ">👤 FIROZ (Direct Personal)</option>
+          <option value="COMPANY" ${pay.payment_source === 'COMPANY' ? 'selected' : ''}>🏢 COMPANY (Guest Rent / Cash in Hand)</option>
+          <option value="UHHS-OD" ${pay.payment_source === 'UHHS-OD' || !pay.payment_source ? 'selected' : ''}>🏦 UHHS-OD (Overdraft Account)</option>
+          <option value="FIROZ" ${pay.payment_source === 'FIROZ' ? 'selected' : ''}>👤 FIROZ (Direct Personal)</option>
         </select>
       </div>
       <div class="form-group"><label>Amount ₹ *</label><input id="lpEditAmt" type="number" value="${pay.amount}" min="0"></div>
@@ -1095,8 +1093,11 @@ window.updateLaundryPayment = async function(paymentId, recordId) {
     return;
   }
   
+  const paymentSource = document.getElementById('lpPaymentSource')?.value || 'COMPANY';
+
   const { error } = await sb.from('laundry_payments').update({
-    amount, payment_date: date, payment_mode: mode, notes
+    amount, payment_date: date, payment_mode: mode, notes,
+    payment_source: paymentSource
   }).eq('id', paymentId);
   
   if (error) {

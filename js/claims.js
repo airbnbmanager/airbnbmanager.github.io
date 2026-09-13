@@ -18,11 +18,13 @@ window._claimsState = {
 
 // 1. Normalizers
 function normalizePaymentSource(rawVal) {
-  if (!rawVal) return 'UHHS-OD';
+  if (!rawVal) return 'OTHER';
   const s = String(rawVal).trim().toUpperCase();
-  if (s.includes('FIROZ')) return 'FIROZ';
-  if (s.includes('COMPANY') && !s.includes('PRAVEEN') && !s.includes('OD')) return 'COMPANY';
-  return 'UHHS-OD'; // Praveen, own_money, OD, UHHS -> UHHS-OD
+  if (s === 'FIROZ') return 'FIROZ';
+  if (s === 'COMPANY') return 'COMPANY';
+  if (s === 'UHHS-OD' || s === 'UHHS_OD' || s === 'UHHS OD') return 'UHHS-OD';
+  return 'OTHER'; // legacy/unmapped values (own_money, split, company_advance, Shahenshah, etc.)
+                   // — shown as OTHER instead of silently counted as UHHS-OD
 }
 
 function normalizeStatus(st) {
@@ -86,6 +88,7 @@ window.renderClaims = async function() {
             <option value="UHHS-OD" ${window._claimsState.paidByFilter==='UHHS-OD'?'selected':''}>🏦 UHHS-OD Account</option>
             <option value="COMPANY" ${window._claimsState.paidByFilter==='COMPANY'?'selected':''}>🏢 COMPANY</option>
             <option value="FIROZ" ${window._claimsState.paidByFilter==='FIROZ'?'selected':''}>👤 FIROZ</option>
+            <option value="OTHER" ${window._claimsState.paidByFilter==='OTHER'?'selected':''}>⚠️ OTHER / Unmapped (old data)</option>
           </select>
         </div>
         <div>
@@ -519,6 +522,7 @@ window.showUhhsStatementModal = async function() {
     // Deposits (+)
     (deposits || []).forEach(d => {
       txns.push({
+        id: d.id,
         date: d.transaction_date,
         type: 'DEPOSIT',
         desc: d.description || `Deposit from ${d.received_from || 'Firoz/Owner'}`,
@@ -621,16 +625,20 @@ window.showUhhsStatementModal = async function() {
               <th style="padding:8px;">Type</th>
               <th style="padding:8px;">Description</th>
               <th style="padding:8px;text-align:right;">Amount (₹)</th>
+              <th style="padding:8px;text-align:center;">Actions</th>
             </tr>
           </thead>
           <tbody>
-            ${txns.length === 0 ? '<tr><td colspan="4" style="padding:20px;text-align:center;color:#94A3B8;">No transactions found in selected period</td></tr>' : ''}
+            ${txns.length === 0 ? '<tr><td colspan="5" style="padding:20px;text-align:center;color:#94A3B8;">No transactions found in selected period</td></tr>' : ''}
             ${txns.map(t => `
               <tr style="border-bottom:1px solid #E2E8F0;">
                 <td style="padding:8px;">${t.date || '-'}</td>
                 <td style="padding:8px;"><span style="padding:2px 6px;border-radius:4px;font-size:10px;font-weight:700;background:${t.isDep?'#DCFCE7':'#FEE2E2'};color:${t.isDep?'#15803D':'#B91C1C'};">${t.isDep ? '📥 DEPOSIT' : '📤 EXPENSE'}</span></td>
                 <td style="padding:8px;">${t.desc}</td>
                 <td style="padding:8px;text-align:right;font-weight:700;color:${t.isDep?'#15803D':'#B91C1C'};">${t.isDep ? '+' : '-'}₹${t.amount.toLocaleString('en-IN')}</td>
+                <td style="padding:8px;text-align:center;">
+                  ${t.isDep ? `<button onclick="window.cbEditODDeposit(${t.id})" class="btn-sm" style="background:#3B82F6;color:#fff;padding:3px 8px;font-size:10px;border:none;border-radius:4px;cursor:pointer;">✏️ Edit</button>` : '<span style="color:#94A3B8;font-size:11px;">Auto</span>'}
+                </td>
               </tr>
             `).join('')}
           </tbody>
