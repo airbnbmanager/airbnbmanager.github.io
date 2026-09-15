@@ -306,6 +306,7 @@ window.saveReimbursement = async function() {
 
   window._reimbPhotoBlob = null;
   fsn.success('Success', '✅ Expense saved!');
+  if (window.notifyDataChanged) window.notifyDataChanged();
   renderReimbursements();
 };
 
@@ -315,6 +316,7 @@ window.markReimbClaimed = async function(id) {
     claimed_date: new Date().toISOString().slice(0,10)
   }).eq('id', id);
   fsn.success('Success', '📤 Marked as Claimed');
+  if (window.notifyDataChanged) window.notifyDataChanged();
   renderReimbursements();
 };
 
@@ -324,6 +326,7 @@ window.markReimbReceived = async function(id) {
     received_date: new Date().toISOString().slice(0,10)
   }).eq('id', id);
   fsn.success('Success', '✅ Marked as Received');
+  if (window.notifyDataChanged) window.notifyDataChanged();
   renderReimbursements();
 };
 
@@ -504,6 +507,7 @@ window.updateReimbursement = async function() {
   window._reimbPhotoBlob = null;
   window._reimbEditPhoto = null;
   fsn.success('Success', '✅ Updated!');
+  if (window.notifyDataChanged) window.notifyDataChanged();
   renderReimbursements();
 };
 
@@ -511,6 +515,7 @@ window.deleteReimbursement = async function(id) {
   if (!confirm('Delete this expense?')) return;
   await sb.from('reimbursements').delete().eq('id', id);
   fsn.success('Success', '✅ Deleted');
+  if (window.notifyDataChanged) window.notifyDataChanged();
   renderReimbursements();
 };
 
@@ -780,6 +785,7 @@ window.claimAllPending = async function() {
   if (error) { fsn.error('Error', error.message); return; }
 
   fsn.success('Done!', `✅ ${pending.length} expenses claimed — ₹${total.toLocaleString('en-IN')}`);
+  if (window.notifyDataChanged) window.notifyDataChanged();
   renderReimbursements();
 };
 

@@ -155,6 +155,17 @@ window.UHHSODManager = {
 };
 
 // =========================================================================
+// 📡 Cross-module "data changed" broadcaster — lets Claims Manager (and
+// Cash Book) auto-refresh whenever an expense/maintenance/laundry/advance/
+// deposit is saved, edited or deleted anywhere in the app.
+// =========================================================================
+window.notifyDataChanged = function() {
+    try {
+        window.dispatchEvent(new CustomEvent('uhhs:dataChanged'));
+    } catch (e) { /* no-op */ }
+};
+
+// =========================================================================
 // 📥 GLOBAL MODAL: Deposit Funds into UHHS-OD Account
 // =========================================================================
 window.cbDepositToODModal = function() {
@@ -261,6 +272,7 @@ window.cbSaveODDeposit = async function() {
         // Refresh UI & Balance
         if (window.UHHSODManager) window.UHHSODManager.calculateBalance(client);
         if (typeof window.renderCashBook === 'function') window.renderCashBook();
+        window.notifyDataChanged();
     } catch (err) {
         errDiv.innerText = "❌ Exception: " + err.message;
     }
@@ -374,6 +386,7 @@ window.cbSaveODEditDeposit = async function(id) {
         if (window.UHHSODManager) window.UHHSODManager.calculateBalance(client);
         if (typeof window.showUhhsStatementModal === 'function') window.showUhhsStatementModal();
         if (typeof window.renderCashBook === 'function') window.renderCashBook();
+        window.notifyDataChanged();
     } catch (err) {
         errDiv.innerText = "❌ Exception: " + err.message;
     }
@@ -397,6 +410,7 @@ window.cbDeleteODDeposit = async function(id) {
         if (window.UHHSODManager) window.UHHSODManager.calculateBalance(client);
         if (typeof window.showUhhsStatementModal === 'function') window.showUhhsStatementModal();
         if (typeof window.renderCashBook === 'function') window.renderCashBook();
+        window.notifyDataChanged();
     } catch (err) {
         alert('❌ Exception: ' + err.message);
     }

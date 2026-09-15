@@ -201,33 +201,18 @@ async function renderAddMaintenance() {
             <label>Payment Source / Account <span class="warn">*</span></label>
             <select id="mPaymentSource" style="border: 1.5px solid #0d6efd; font-weight: 600;">
               <option value="COMPANY">🏢 COMPANY (Guest Rent / Cash in Hand)</option>
-              <option value="UHHS-OD">🏦 UHHS-OD (Overdraft Account)</option>
+              <option value="UHHS-OD" selected>🏦 UHHS-OD (Overdraft Account)</option>
               <option value="FIROZ">👤 FIROZ (Direct Personal)</option>
-            </select>
-          </div>
-                    <div class="form-group">
-            <label>Payment Source / Account <span class="warn">*</span></label>
-            <select id="mPaymentSourceEdit" style="border: 1.5px solid #0d6efd; font-weight: 600;">
-              <option value="COMPANY" ${m.payment_source === 'COMPANY' || !m.payment_source ? 'selected' : ''}>🏢 COMPANY (Guest Rent / Cash in Hand)</option>
-              <option value="UHHS-OD" ${m.payment_source === 'UHHS-OD' ? 'selected' : ''}>🏦 UHHS-OD (Overdraft Account)</option>
-              <option value="FIROZ" ${m.payment_source === 'FIROZ' ? 'selected' : ''}>👤 FIROZ (Direct Personal)</option>
             </select>
           </div>
           <div class="form-group">
             <label>Payment Mode</label>
-            <select id="mPaymentMode" onchange="onMaintPayModeChange()">
+            <select id="mPaymentMode">
               <option value="">-- Select --</option>
               <option value="Cash">Cash</option>
               <option value="UPI">UPI</option>
               <option value="Bank">Bank</option>
             </select>
-          </div>
-          <div class="form-group">
-            <label id="mPaidByLabel">💵 Paid By *</label>
-            <select id="mPaidBy">
-              <option value="">-- Select --</option>
-            </select>
-            <input id="mPaidByCustom" type="text" placeholder="Custom name..." style="display:none;margin-top:6px;" />
           </div>
         </div>
         <div class="form-group">
@@ -416,18 +401,17 @@ async function saveMaintenance() {
   }
   
   const cost = parseFloat(document.getElementById('mCost').value) || 0;
-  const paidBy = getMaintPaidBy();
   const payMode = document.getElementById('mPaymentMode')?.value || null;
   const payDate = document.getElementById('mPaymentDate')?.value || null;
   
-  // Validation: if cost > 0, payment info required
-  if (cost > 0 && (!paidBy || !payMode)) {
-    document.getElementById('mErr').innerHTML = '<div class="error">⚠️ Payment Mode aur Paid By required hai (cost > 0)</div>';
+  // Validation: if cost > 0, payment mode required
+  if (cost > 0 && !payMode) {
+    document.getElementById('mErr').innerHTML = '<div class="error">⚠️ Payment Mode required hai (cost > 0)</div>';
     return;
   }
   
   const { data: newMaint, error } = await sb.from('maintenance_log').insert({
-    payment_source: document.getElementById('mPaymentSource')?.value || 'COMPANY',
+    payment_source: document.getElementById('mPaymentSource')?.value || 'UHHS-OD',
     room_id: document.getElementById('mRoom').value || null,
     issue_type: getMaintType(),
     priority: document.getElementById('mPriority').value,
@@ -440,7 +424,7 @@ async function saveMaintenance() {
     photo_before: billPhotoUrl,
     payment_photo: payPhotoUrl,
     notes: document.getElementById('mNotes').value.trim() || null,
-    paid_by: cost > 0 ? paidBy : null,
+    paid_by: cost > 0 ? (document.getElementById('mPaymentSource')?.value || 'UHHS-OD') : null,
     payment_mode: cost > 0 ? payMode : null,
     payment_date: cost > 0 ? (payDate || new Date().toISOString().slice(0,10)) : null
   }).select().single();
@@ -455,6 +439,7 @@ async function saveMaintenance() {
   window._maintBillBlob = null;
   window._maintPayBlob = null;
   fsn.success('Success', '✅ Issue saved!');
+  if (window.notifyDataChanged) window.notifyDataChanged();
   renderMaintenanceLog();
 }
 
@@ -517,20 +502,21 @@ async function editMaintenance(id) {
         <div style="font-weight:700;font-size:13px;margin-bottom:8px;color:#92400E;">💰 Payment Info</div>
         <div class="form-grid">
           <div class="form-group">
+            <label>Payment Source / Account <span class="warn">*</span></label>
+            <select id="mPaymentSourceEdit" style="border: 1.5px solid #0d6efd; font-weight: 600;">
+              <option value="COMPANY" ${m.payment_source === 'COMPANY' ? 'selected' : ''}>🏢 COMPANY (Guest Rent / Cash in Hand)</option>
+              <option value="UHHS-OD" ${m.payment_source === 'UHHS-OD' || !m.payment_source ? 'selected' : ''}>🏦 UHHS-OD (Overdraft Account)</option>
+              <option value="FIROZ" ${m.payment_source === 'FIROZ' ? 'selected' : ''}>👤 FIROZ (Direct Personal)</option>
+            </select>
+          </div>
+          <div class="form-group">
             <label>Payment Mode</label>
-            <select id="mPaymentMode" onchange="onMaintPayModeChange()">
+            <select id="mPaymentMode">
               <option value="">-- Select --</option>
               <option value="Cash" ${m.payment_mode === 'Cash' ? 'selected' : ''}>Cash</option>
               <option value="UPI" ${m.payment_mode === 'UPI' ? 'selected' : ''}>UPI</option>
               <option value="Bank" ${m.payment_mode === 'Bank' ? 'selected' : ''}>Bank</option>
             </select>
-          </div>
-          <div class="form-group">
-            <label id="mPaidByLabel">💵 Paid By *</label>
-            <select id="mPaidBy">
-              <option value="">-- Select --</option>
-            </select>
-            <input id="mPaidByCustom" type="text" placeholder="Custom name..." style="display:none;margin-top:6px;" />
           </div>
         </div>
         <div class="form-group">
@@ -702,15 +688,15 @@ async function updateMaintenance() {
     photo_after: photoAfterUrl,
     payment_photo: paymentPhotoUrl,
     notes: document.getElementById('mNotes').value.trim() || null,
-    paid_by: (parseFloat(document.getElementById('mCost').value) || 0) > 0 ? getMaintPaidBy() : null,
+    paid_by: (parseFloat(document.getElementById('mCost').value) || 0) > 0 ? (document.getElementById('mPaymentSourceEdit')?.value || 'UHHS-OD') : null,
     payment_mode: (parseFloat(document.getElementById('mCost').value) || 0) > 0 ? (document.getElementById('mPaymentMode')?.value || null) : null,
     payment_date: (parseFloat(document.getElementById('mCost').value) || 0) > 0 ? (document.getElementById('mPaymentDate')?.value || null) : null
   };
   
   // Validation
   const _cost = parseFloat(document.getElementById('mCost').value) || 0;
-  if (_cost > 0 && (!updateObj.paid_by || !updateObj.payment_mode)) {
-    document.getElementById('mErr').innerHTML = '<div class="error">⚠️ Payment Mode aur Paid By required hai (cost > 0)</div>';
+  if (_cost > 0 && !updateObj.payment_mode) {
+    document.getElementById('mErr').innerHTML = '<div class="error">⚠️ Payment Mode required hai (cost > 0)</div>';
     return;
   }
   
@@ -719,7 +705,7 @@ async function updateMaintenance() {
     updateObj.resolved_date = new Date().toISOString().slice(0, 10);
   }
   
-  updateObj.payment_source = document.getElementById('mPaymentSourceEdit')?.value || 'COMPANY';
+  updateObj.payment_source = document.getElementById('mPaymentSourceEdit')?.value || 'UHHS-OD';
   const { error } = await sb.from('maintenance_log').update(updateObj).eq('id', id);
   if (error) {
     document.getElementById('mErr').innerHTML = '<div class="error">' + error.message + '</div>';
@@ -730,27 +716,15 @@ async function updateMaintenance() {
   
   window._maintAfterPhotoBlob = null;
   fsn.success('Success', '✅ Updated!');
+  if (window.notifyDataChanged) window.notifyDataChanged();
   renderMaintenanceLog();
 }
-
-// Auto-init payment section on edit form open (delayed for DOM)
-window.addEventListener('load', () => {
-  const observer = new MutationObserver(() => {
-    const section = document.getElementById('maintPaymentSection');
-    const mode = document.getElementById('mPaymentMode');
-    if (section && mode && !section.dataset.inited) {
-      section.dataset.inited = '1';
-      const existingPaid = window._editMaintData?.paid_by || null;
-      setTimeout(() => window.initMaintPaymentSection(mode.value, existingPaid), 100);
-    }
-  });
-  observer.observe(document.body, { childList: true, subtree: true });
-});
 
 async function delMaintenance(id) {
   if (!confirm('Delete this maintenance record?')) return;
   await sb.from('maintenance_log').delete().eq('id', id);
   fsn.success('Success', '✅ Deleted');
+  if (window.notifyDataChanged) window.notifyDataChanged();
   renderMaintenanceLog();
 }
 
@@ -813,71 +787,6 @@ window.onMaintCostChange = function() {
   const cost = parseFloat(document.getElementById('mCost')?.value) || 0;
   const section = document.getElementById('maintPaymentSection');
   if (section) section.style.display = cost > 0 ? 'block' : 'none';
-};
-
-window.onMaintPayModeChange = async function() {
-  const mode = document.getElementById('mPaymentMode')?.value;
-  const dropdown = document.getElementById('mPaidBy');
-  const label = document.getElementById('mPaidByLabel');
-  const custom = document.getElementById('mPaidByCustom');
-  
-  if (!dropdown) return;
-  
-  // Update label
-  if (label) {
-    if (mode === 'Cash') label.innerHTML = '💵 Cash Paid By *';
-    else if (mode === 'UPI') label.innerHTML = '📱 UPI Paid From *';
-    else if (mode === 'Bank') label.innerHTML = '🏦 Bank Account *';
-    else label.innerHTML = '💵 Paid By *';
-  }
-  
-  // Load holders (cache)
-  // Only 2 options: Praveen + Company
-  let html = '<option value="">-- Select --</option>';
-  html += '<option value="Praveen">🔵 Praveen (my pocket)</option>';
-  html += '<option value="Company">🏢 Company (company account)</option>';
-  dropdown.innerHTML = html;
-  
-  // Auto-select Firoz for online modes
-  if (mode === 'UPI' || mode === 'Bank') {
-    if (finalH.includes('Firoz')) dropdown.value = 'Firoz';
-  }
-  
-  // Handle custom toggle
-  dropdown.onchange = function() {
-    if (custom) {
-      if (this.value === '__custom__') { custom.style.display = 'block'; setTimeout(() => custom.focus(), 50); }
-      else { custom.style.display = 'none'; custom.value = ''; }
-    }
-  };
-  
-  if (custom) { custom.style.display = 'none'; custom.value = ''; }
-};
-
-window.getMaintPaidBy = function() {
-  const dropdown = document.getElementById('mPaidBy');
-  if (!dropdown) return null;
-  if (dropdown.value === '__custom__') {
-    return document.getElementById('mPaidByCustom')?.value?.trim() || null;
-  }
-  return dropdown.value || null;
-};
-
-// Pre-populate on edit form load
-window.initMaintPaymentSection = async function(existingMode, existingPaidBy) {
-  const modeEl = document.getElementById('mPaymentMode');
-  if (modeEl && existingMode) modeEl.value = existingMode;
-  await window.onMaintPayModeChange();
-  const dropdown = document.getElementById('mPaidBy');
-  if (dropdown && existingPaidBy) {
-    const exists = Array.from(dropdown.options).some(o => o.value === existingPaidBy);
-    if (exists) dropdown.value = existingPaidBy;
-    else {
-      dropdown.value = '__custom__';
-      const custom = document.getElementById('mPaidByCustom');
-      if (custom) { custom.style.display = 'block'; custom.value = existingPaidBy; }
-    }
-  }
 };
 
 console.log('✅ Maintenance Paid-By module loaded');

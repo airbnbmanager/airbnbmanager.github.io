@@ -9,7 +9,7 @@ window._claimsState = {
   toDate: new Date().toISOString().slice(0, 10),
   toTime: '23:59',
   moduleFilter: 'all',
-  statusFilter: 'unclaimed',
+  statusFilter: 'all',
   paidByFilter: 'all',
   selectedIds: new Set(),
   allData: [],
@@ -36,6 +36,12 @@ function normalizeStatus(st) {
 }
 
 // 2. Main Claims Manager Render
+window.addEventListener('uhhs:dataChanged', () => {
+  if (document.getElementById('claimsTableContainer') && typeof loadClaimsData === 'function') {
+    loadClaimsData();
+  }
+});
+
 window.renderClaims = async function() {
   if (window.showLoadingSkeleton) window.showLoadingSkeleton('list');
 
@@ -637,7 +643,7 @@ window.showUhhsStatementModal = async function() {
                 <td style="padding:8px;">${t.desc}</td>
                 <td style="padding:8px;text-align:right;font-weight:700;color:${t.isDep?'#15803D':'#B91C1C'};">${t.isDep ? '+' : '-'}₹${t.amount.toLocaleString('en-IN')}</td>
                 <td style="padding:8px;text-align:center;">
-                  ${t.isDep ? `<button onclick="window.cbEditODDeposit(${t.id})" class="btn-sm" style="background:#3B82F6;color:#fff;padding:3px 8px;font-size:10px;border:none;border-radius:4px;cursor:pointer;">✏️ Edit</button>` : '<span style="color:#94A3B8;font-size:11px;">Auto</span>'}
+                  ${t.isDep ? `<button onclick="window.cbEditODDeposit(${t.id})" class="btn-sm" style="background:#3B82F6;color:#fff;padding:3px 8px;font-size:10px;border:none;border-radius:4px;cursor:pointer;margin-right:4px;">✏️ Edit</button><button onclick="window.cbDeleteODDeposit(${t.id})" class="btn-sm" style="background:#DC2626;color:#fff;padding:3px 8px;font-size:10px;border:none;border-radius:4px;cursor:pointer;">🗑️ Delete</button>` : '<span style="color:#94A3B8;font-size:11px;">Auto</span>'}
                 </td>
               </tr>
             `).join('')}

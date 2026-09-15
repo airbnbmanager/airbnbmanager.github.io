@@ -207,6 +207,7 @@ window.saveNewAdvance = async function() {
   if (error) { document.getElementById('caErr').innerHTML = '<div class="error">'+error.message+'</div>'; return; }
   
   fsn.success('Success', '✅ Advance recorded!');
+  if (window.notifyDataChanged) window.notifyDataChanged();
   window._caTab = 'active';
   renderCompanyAdvances();
 };
@@ -359,6 +360,7 @@ window.reconcileAdvance = async function(id) {
   }).eq('id', id);
   
   fsn.success('Reconciled', '✅ Advance closed');
+  if (window.notifyDataChanged) window.notifyDataChanged();
   renderCompanyAdvances();
 };
 
@@ -367,6 +369,7 @@ window.deleteAdvance = async function(id) {
   await sb.from('reimbursements').update({ company_advance_id: null }).eq('company_advance_id', id);
   await sb.from('company_advances').delete().eq('id', id);
   fsn.success('Deleted', '✅');
+  if (window.notifyDataChanged) window.notifyDataChanged();
   renderCompanyAdvances();
 };
 

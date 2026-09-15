@@ -272,16 +272,8 @@ window.renderAddLaundry = async function() {
           <label>Payment Source / Account <span class="warn">*</span></label>
           <select id="lPaymentSource" style="border: 1.5px solid #0d6efd; font-weight: 600;">
             <option value="COMPANY">🏢 COMPANY (Guest Rent / Cash in Hand)</option>
-            <option value="UHHS-OD">🏦 UHHS-OD (Overdraft Account)</option>
+            <option value="UHHS-OD" selected>🏦 UHHS-OD (Overdraft Account)</option>
             <option value="FIROZ">👤 FIROZ (Direct Personal)</option>
-          </select>
-        </div>
-                <div class="form-group">
-          <label>Payment Source / Account <span class="warn">*</span></label>
-          <select id="lPaymentSourceEdit" style="border: 1.5px solid #0d6efd; font-weight: 600;">
-            <option value="COMPANY" ${rec.payment_source === 'COMPANY' || !rec.payment_source ? 'selected' : ''}>🏢 COMPANY (Guest Rent / Cash in Hand)</option>
-            <option value="UHHS-OD" ${rec.payment_source === 'UHHS-OD' ? 'selected' : ''}>🏦 UHHS-OD (Overdraft Account)</option>
-            <option value="FIROZ" ${rec.payment_source === 'FIROZ' ? 'selected' : ''}>👤 FIROZ (Direct Personal)</option>
           </select>
         </div>
         <div class="form-group">
@@ -522,7 +514,7 @@ window.saveLaundry = async function() {
     total_amount: total,
     payment_mode: payMode,
     payment_status: paymentStatus,
-    payment_source: document.getElementById('lPaymentSource')?.value || 'COMPANY',
+    payment_source: document.getElementById('lPaymentSource')?.value || 'UHHS-OD',
     paid_amount: paidAmt,
     notes: notes,
     bill_photo: billPhotoPath
@@ -548,6 +540,7 @@ window.saveLaundry = async function() {
   
   window._laundryBillBlob = null;
   fsn.success('Success', '✅ Laundry saved!');
+  if (window.notifyDataChanged) window.notifyDataChanged();
   renderLaundry();
 };
 
@@ -555,6 +548,7 @@ window.deleteLaundry = async function(id) {
   if (!confirm('Delete this laundry record?')) return;
   await sb.from('laundry_records').delete().eq('id', id);
   fsn.success('Success', '✅ Deleted');
+  if (window.notifyDataChanged) window.notifyDataChanged();
   renderLaundry();
 };
 
@@ -630,17 +624,9 @@ window.editLaundry = async function(id) {
       <div class="form-grid">
                 <div class="form-group">
           <label>Payment Source / Account <span class="warn">*</span></label>
-          <select id="lPaymentSource" style="border: 1.5px solid #0d6efd; font-weight: 600;">
-            <option value="COMPANY">🏢 COMPANY (Guest Rent / Cash in Hand)</option>
-            <option value="UHHS-OD">🏦 UHHS-OD (Overdraft Account)</option>
-            <option value="FIROZ">👤 FIROZ (Direct Personal)</option>
-          </select>
-        </div>
-                <div class="form-group">
-          <label>Payment Source / Account <span class="warn">*</span></label>
           <select id="lPaymentSourceEdit" style="border: 1.5px solid #0d6efd; font-weight: 600;">
-            <option value="COMPANY" ${rec.payment_source === 'COMPANY' || !rec.payment_source ? 'selected' : ''}>🏢 COMPANY (Guest Rent / Cash in Hand)</option>
-            <option value="UHHS-OD" ${rec.payment_source === 'UHHS-OD' ? 'selected' : ''}>🏦 UHHS-OD (Overdraft Account)</option>
+            <option value="COMPANY" ${rec.payment_source === 'COMPANY' ? 'selected' : ''}>🏢 COMPANY (Guest Rent / Cash in Hand)</option>
+            <option value="UHHS-OD" ${rec.payment_source === 'UHHS-OD' || !rec.payment_source ? 'selected' : ''}>🏦 UHHS-OD (Overdraft Account)</option>
             <option value="FIROZ" ${rec.payment_source === 'FIROZ' ? 'selected' : ''}>👤 FIROZ (Direct Personal)</option>
           </select>
         </div>
@@ -785,7 +771,7 @@ window.updateLaundry = async function() {
     total_amount: total,
     payment_mode: payMode,
     payment_status: paymentStatus,
-    payment_source: document.getElementById('lPaymentSourceEdit')?.value || 'COMPANY',
+    payment_source: document.getElementById('lPaymentSourceEdit')?.value || 'UHHS-OD',
     paid_amount: paidAmt,
     notes: notes,
     bill_photo: billPhotoPath
@@ -808,6 +794,7 @@ window.updateLaundry = async function() {
   window._laundryBillBlob = null;
   window._laundryEditBillPath = null;
   fsn.success('Success', '✅ Updated!');
+  if (window.notifyDataChanged) window.notifyDataChanged();
   renderLaundry();
 };
 
@@ -945,7 +932,7 @@ window.saveLaundryPayment = async function(recordId) {
   const { error } = await sb.from('laundry_payments').insert({
     record_id: recordId,
     amount, payment_date: date, payment_mode: mode, notes,
-    payment_source: document.getElementById('lpPaymentSource')?.value || 'COMPANY',
+    payment_source: document.getElementById('lpPaymentSource')?.value || 'UHHS-OD',
     payment_photo: paymentPhotoPath
   });
   
@@ -969,6 +956,7 @@ window.saveLaundryPayment = async function(recordId) {
   document.querySelector('.modal-overlay')?.remove();
   window._laundryPayBlob = null;
   fsn.success('Success', '✅ Payment added!');
+  if (window.notifyDataChanged) window.notifyDataChanged();
   renderLaundry();
 };
 
@@ -1093,7 +1081,7 @@ window.updateLaundryPayment = async function(paymentId, recordId) {
     return;
   }
   
-  const paymentSource = document.getElementById('lpPaymentSource')?.value || 'COMPANY';
+  const paymentSource = document.getElementById('lpPaymentSource')?.value || 'UHHS-OD';
 
   const { error } = await sb.from('laundry_payments').update({
     amount, payment_date: date, payment_mode: mode, notes,
@@ -1119,6 +1107,7 @@ window.updateLaundryPayment = async function(paymentId, recordId) {
   
   document.querySelector('.modal-overlay')?.remove();
   fsn.success('Success', '✅ Payment updated!');
+  if (window.notifyDataChanged) window.notifyDataChanged();
   
   // Refresh main list AND reopen history
   await renderLaundry();
@@ -1143,6 +1132,7 @@ window.deleteLaundryPayment = async function(paymentId, recordId) {
   
   document.querySelector('.modal-overlay')?.remove();
   fsn.success('Success', '✅ Payment deleted');
+  if (window.notifyDataChanged) window.notifyDataChanged();
   await renderLaundry();
   // Reopen history modal
   const { data: remaining } = await sb.from('laundry_payments').select('*').eq('record_id', recordId).limit(1);
@@ -1164,6 +1154,7 @@ window.markLaundryClaimed = async function(paymentId, recordId) {
     .eq('id', paymentId);
   if (error) { fsn.error('Error', error.message); return; }
   fsn.success('Claimed', '📤 Marked as claimed');
+  if (window.notifyDataChanged) window.notifyDataChanged();
   document.querySelector('.modal-overlay')?.remove();
   setTimeout(() => showLaundryPayments(recordId), 200);
 };
@@ -1175,6 +1166,7 @@ window.markLaundryReceived = async function(paymentId, recordId) {
     .eq('id', paymentId);
   if (error) { fsn.error('Error', error.message); return; }
   fsn.success('Received', '✅ Marked as received');
+  if (window.notifyDataChanged) window.notifyDataChanged();
   document.querySelector('.modal-overlay')?.remove();
   setTimeout(() => { showLaundryPayments(recordId); renderLaundry(); }, 200);
 };
@@ -1186,6 +1178,7 @@ window.undoLaundryClaim = async function(paymentId, recordId) {
     .eq('id', paymentId);
   if (error) { fsn.error('Error', error.message); return; }
   fsn.success('Reverted', '↩️ Claim reverted');
+  if (window.notifyDataChanged) window.notifyDataChanged();
   document.querySelector('.modal-overlay')?.remove();
   setTimeout(() => { showLaundryPayments(recordId); renderLaundry(); }, 200);
 };
