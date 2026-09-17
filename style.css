@@ -1077,8 +1077,8 @@ code {
   }
   .modal-box {
     border-radius: 20px 20px 0 0;
-    max-height: 85vh;
-    padding: 20px 16px;
+    max-height: 88vh;
+    padding: 20px 16px calc(20px + env(safe-area-inset-bottom, 0px));
   }
 }
 .modal-close {
