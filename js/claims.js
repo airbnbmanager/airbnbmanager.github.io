@@ -4,7 +4,7 @@
  */
 
 window._claimsState = {
-  fromDate: '2026-09-12',
+  fromDate: '2026-09-17',
   fromTime: '00:00',
   toDate: '2026-09-30',
   toTime: '23:59',
@@ -50,7 +50,7 @@ window.renderClaims = async function() {
       <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
         <div>
           <h1>⚖️ Universal Claims Manager</h1>
-          <div class="sub">Checkpoint: <strong>11-Sep-2026 11:19 PM (Settled)</strong> · UHHS-OD Engine</div>
+          <div class="sub">Checkpoint: <strong>16-Sep-2026 11:59 PM (Settled)</strong> · UHHS-OD Engine</div>
         </div>
         <div style="display:flex;gap:8px;flex-wrap:wrap;">
           <button onclick="openUhhsDepositModal()" style="background:#0284C7;color:#fff;font-weight:700;">📥 Deposit Entry (UHHS-OD)</button>
@@ -70,7 +70,7 @@ window.renderClaims = async function() {
             <strong style="font-size:16px;color:#15803D;">UHHS-OD Account (Online Balance)</strong>
           </div>
           <div style="font-size:12px;color:#64748B;margin-top:2px;">
-            Money received online from Firoz &amp; spent via UHHS-OD (Post-Checkpoint: 12-Sep to Today)
+            Money received online from Firoz &amp; spent via UHHS-OD (Post-Checkpoint: 17-Sep onwards · Opening Balance: ₹0)
           </div>
         </div>
         <div style="display:flex;align-items:center;gap:18px;flex-wrap:wrap;">
@@ -138,9 +138,10 @@ window.renderClaims = async function() {
       <div style="margin-top:10px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
         <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
           <span style="font-size:11px;font-weight:700;color:#64748B;">Quick Presets:</span>
-          <button type="button" onclick="setClaimsQuickDate('2026-09-12', '2026-09-26')" style="background:#E0E7FF;color:#3730A3;border:1px solid #C7D2FE;padding:4px 10px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;">📅 12-Sep to 26-Sep</button>
+          <button type="button" onclick="setClaimsQuickDate('2026-09-17', '2026-09-17')" style="background:#E0E7FF;color:#3730A3;border:1px solid #C7D2FE;padding:4px 10px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;">⚡ Today (17-Sep)</button>
+          <button type="button" onclick="setClaimsQuickDate('2026-09-17', '${new Date().toISOString().slice(0, 10)}')" style="background:#E0E7FF;color:#3730A3;border:1px solid #C7D2FE;padding:4px 10px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;">🏁 Checkpoint (17-Sep) to Today</button>
+          <button type="button" onclick="setClaimsQuickDate('2026-09-12', '2026-09-16')" style="background:#E0E7FF;color:#3730A3;border:1px solid #C7D2FE;padding:4px 10px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;">📅 12-Sep to 16-Sep (Settled)</button>
           <button type="button" onclick="setClaimsQuickDate('2026-09-01', '2026-09-30')" style="background:#E0E7FF;color:#3730A3;border:1px solid #C7D2FE;padding:4px 10px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;">📅 Sep Full Month</button>
-          <button type="button" onclick="setClaimsQuickDate('2026-09-12', '${new Date().toISOString().slice(0, 10)}')" style="background:#E0E7FF;color:#3730A3;border:1px solid #C7D2FE;padding:4px 10px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;">📅 Checkpoint to Today</button>
           <button type="button" onclick="setClaimsQuickDate('', '')" style="background:#F1F5F9;color:#475569;border:1px solid #CBD5E1;padding:4px 10px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;">🌐 All Dates</button>
         </div>
         <button onclick="loadClaimsData()" style="background:#4F46E5;color:#fff;padding:8px 16px;border:none;border-radius:6px;font-weight:600;cursor:pointer;">🔄 Refresh Data</button>
@@ -788,7 +789,7 @@ window.openUhhsDepositModal = function() {
 window.showUhhsStatementModal = async function() {
   try {
     const { fromDate, toDate } = window._claimsState || {};
-    const fDate = fromDate || '2026-09-12';
+    const fDate = fromDate || '2026-09-17';
     const tDate = toDate || new Date().toISOString().slice(0, 10);
 
     const deposits = (window.UHHSODManager && window.UHHSODManager.getDeposits)

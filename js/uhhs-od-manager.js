@@ -57,7 +57,21 @@ function setLocalODDeposits(list) {
     } catch (e) {}
 }
 
-async function getAllODDeposits(supabaseClient, startDate = '2026-09-12', endDate = null) {
+// Default baseline reconciliation & settlement entries
+const BASELINE_OD_ENTRIES = [
+    {
+        id: 'settlement_2026_09_16_od',
+        transaction_date: '2026-09-16',
+        description: 'Reconciliation & Full Settlement: All UHHS-OD expenses & advances settled up to 16-Sep-2026',
+        amount: 77962,
+        transaction_type: 'INFLOW',
+        payment_mode: 'BANK',
+        received_from: 'FIROZ / COMPANY SETTLEMENT',
+        reference_note: 'Account reconciled and balanced to ₹0 as of 16-Sep-2026 11:59 PM. New active tracking starts 17-Sep-2026.'
+    }
+];
+
+async function getAllODDeposits(supabaseClient, startDate = '2026-09-17', endDate = null) {
     const client = supabaseClient || window.sb || window.supabaseClient || window.supabase;
     const localList = getLocalODDeposits();
     let dbList = [];
@@ -78,15 +92,23 @@ async function getAllODDeposits(supabaseClient, startDate = '2026-09-12', endDat
 
     // Merge & deduplicate by ID or (date + amount + sender)
     const map = new Map();
+    // 1. Baseline entries
+    BASELINE_OD_ENTRIES.forEach(d => {
+        if (startDate && d.transaction_date < startDate) return;
+        if (endDate && d.transaction_date > endDate) return;
+        map.set(d.id, d);
+    });
+
+    // 2. Supabase entries
     dbList.forEach(d => {
         const key = d.id || `${d.transaction_date}_${d.amount}_${d.received_from}`;
         map.set(key, d);
     });
 
+    // 3. LocalStorage entries
     localList.forEach(d => {
         const key = d.id || `${d.transaction_date}_${d.amount}_${d.received_from}`;
         if (!map.has(key)) {
-            // Check date bounds
             if (startDate && d.transaction_date < startDate) return;
             if (endDate && d.transaction_date > endDate) return;
             map.set(key, d);
@@ -102,7 +124,7 @@ async function calculateLiveODBalance(supabaseClient, customStartDate, customEnd
     if (!client) return { inflow: 0, outflow: 0, balance: 0 };
 
     try {
-        const startDate = customStartDate || "2026-09-12";
+        const startDate = customStartDate || "2026-09-17";
         const endDate = customEndDate || null;
 
         // A. Inflows (Supabase + LocalStorage)
