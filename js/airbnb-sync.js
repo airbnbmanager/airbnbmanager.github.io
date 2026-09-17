@@ -16,15 +16,26 @@
     toDate: new Date().toISOString().slice(0, 10)
   };
 
-  // ─── Date D/M/YYYY or DD/MM/YYYY → YYYY-MM-DD ───
+  // Persistent booking store — survives JS reloads, keyed by confirmation_code
+  window._csvBookings = window._csvBookings || {};
+
+  // ─── Date parser — handles DD/MM/YYYY and MM/DD/YYYY (Airbnb intl) ───
   function parseDate(str) {
     if (!str) return null;
     str = String(str).trim();
     if (str.includes('/')) {
       const parts = str.split('/');
       if (parts.length === 3) {
-        let [d, m, y] = parts.map(p => p.trim());
+        let [a, b, y] = parts.map(p => p.trim());
+        const aNum = parseInt(a), bNum = parseInt(b);
         if (y.length === 4) {
+          let d, m;
+          // If b > 12, the format must be MM/DD/YYYY (Airbnb international)
+          if (bNum > 12) { d = b; m = a; }
+          // If a > 12, the format must be DD/MM/YYYY (Indian)
+          else if (aNum > 12) { d = a; m = b; }
+          // Ambiguous (both <= 12) — assume DD/MM/YYYY (Indian default)
+          else { d = a; m = b; }
           return `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
         }
       }
@@ -110,7 +121,6 @@
         <div style="display:flex;gap:8px;">
           <button style="flex:1;">📁 CSV Import</button>
           <button onclick="renderIcalSync()" class="secondary" style="flex:1;">📅 iCal Auto-Sync</button>
-          <button onclick="clearDummyBlocks()" style="background:#EF4444;color:#fff;padding:8px 12px;border:none;border-radius:6px;font-weight:700;cursor:pointer;font-size:12px;flex:1;" title="Clear auto-generated dummy blocks">🧹 Clear Dummy Blocks</button>
         </div>
       </div>`;
     
@@ -323,6 +333,11 @@
 
     // Classify: New, Conflict, or Matched
     classifyReservations();
+
+    // Save new bookings to persistent map so Add buttons work after JS reload
+    window._csvBookings = {};
+    SYNC.reservations.forEach(r => { window._csvBookings[r.confirmation_code] = r; });
+
     renderPreview();
   };
 
@@ -448,8 +463,13 @@
   }
 
   window.instantAddBooking = async function(code) {
-    const r = SYNC.reservations.find(x => x.confirmation_code === code);
-    if (!r) return;
+    // Read from SYNC first, fallback to persistent _csvBookings map
+    let r = SYNC.reservations.find(x => x.confirmation_code === code);
+    if (!r) r = window._csvBookings?.[code];
+    if (!r) {
+      alert('Booking data not found. Please re-upload the CSV and try again.');
+      return;
+    }
 
     const roomSelect = document.getElementById('room-' + code);
     const roomId = roomSelect?.value || r.matched_room_id;
@@ -459,7 +479,14 @@
       return;
     }
 
-    const bookingId = 'AIR' + r.confirmation_code;
+    // Disable button to prevent double-click
+    const btn = document.querySelector(`button[onclick*="instantAddBooking('${code}')"]`);
+    if (btn) { btn.disabled = true; btn.textContent = '⏳...'; }
+
+    // Use same booking ID format as rest of app to avoid DB constraints
+    const bookingId = 'B' + Date.now();
+    console.log('📝 Adding booking:', code, 'as', bookingId, 'room:', roomId);
+
     const { error } = await sb.from('guest_register').insert({
       booking_id: bookingId,
       guest_name: r.guest_name,
@@ -483,12 +510,16 @@
     });
 
     if (error) {
-      alert('Error adding booking: ' + error.message);
+      console.error('❌ Add booking error:', code, error);
+      if (btn) { btn.disabled = false; btn.textContent = '➕ Add'; }
+      alert('Error adding booking:\n' + (error.message || JSON.stringify(error)));
       return;
     }
 
+    console.log('✅ Booking added:', bookingId);
+
     if (r.you_earn > 0) {
-      await sb.from('payment_history').insert({
+      const { error: payErr } = await sb.from('payment_history').insert({
         booking_id: bookingId,
         amount: r.you_earn,
         payment_mode: 'Airbnb Payout',
@@ -498,12 +529,20 @@
         verification_status: 'verified',
         notes: 'Auto-created from Airbnb CSV'
       });
+      if (payErr) console.warn('Payment history insert failed:', payErr);
     }
+
+    // Remove from persistent store so it won't re-appear
+    if (window._csvBookings) delete window._csvBookings[code];
 
     if (window.fsn) fsn.success('Added', `✅ ${r.guest_name} added successfully!`);
     SYNC.reservations = SYNC.reservations.filter(x => x.confirmation_code !== code);
-    renderPreview();
+
+    // Hide the row immediately without full re-render
+    const row = document.querySelector(`button[onclick*="instantAddBooking('${code}')"]`)?.closest('tr');
+    if (row) row.style.display = 'none';
   };
+
 
   window.instantFixField = async function(code, field) {
     const r = SYNC.reservations.find(x => x.confirmation_code === code);
@@ -555,20 +594,42 @@ window.clearDummyBlocks = async function() {
 };
 
 window.addAllNewBookings = async function() {
-  const newBookings = (window.SYNC?.reservations || []).filter(r => r.matchStatus === 'new');
+  // Read from SYNC first, fallback to persistent _csvBookings map
+  let newBookings = (window.SYNC?.reservations || []).filter(r => r.matchStatus === 'new');
+  if (!newBookings.length && window._csvBookings) {
+    newBookings = Object.values(window._csvBookings).filter(r => r.matchStatus === 'new');
+  }
+
   if (!newBookings.length) {
-    alert('No new bookings to add!');
+    alert('No new bookings to add!\n\nIf you see bookings listed above, please re-upload your CSV file (the data was cleared by a page reload).');
     return;
   }
 
-  if (!confirm(`Add all ${newBookings.length} bookings?`)) return;
+  if (!confirm(`Add all ${newBookings.length} bookings to database?`)) return;
+
+  // Disable the button
+  const addAllBtn = document.querySelector('button[onclick="addAllNewBookings()"]');
+  if (addAllBtn) { addAllBtn.disabled = true; addAllBtn.textContent = '⏳ Adding...'; }
 
   let added = 0;
-  for (let r of newBookings) {
-    const roomId = r.matched_room_id;
-    if (!roomId) continue;
+  let failed = 0;
+  const failedNames = [];
 
-    const bookingId = 'AIR' + r.confirmation_code;
+  for (let r of newBookings) {
+    // Check if dropdown has a selected room (user may have changed it)
+    const roomSelect = document.getElementById('room-' + r.confirmation_code);
+    const roomId = roomSelect?.value || r.matched_room_id;
+
+    if (!roomId) {
+      failed++;
+      failedNames.push(r.guest_name + ' (no property selected)');
+      continue;
+    }
+
+    // Use same booking ID format as rest of app to avoid DB constraints
+    const bookingId = 'B' + Date.now();
+    console.log('📝 Adding booking:', r.confirmation_code, 'as', bookingId, 'room:', roomId);
+
     const { error } = await sb.from('guest_register').insert({
       booking_id: bookingId,
       guest_name: r.guest_name,
@@ -592,6 +653,7 @@ window.addAllNewBookings = async function() {
     });
 
     if (!error) {
+      console.log('✅ Added:', r.confirmation_code);
       if (r.you_earn > 0) {
         await sb.from('payment_history').insert({
           booking_id: bookingId,
@@ -604,11 +666,25 @@ window.addAllNewBookings = async function() {
           notes: 'Auto-created from Airbnb CSV'
         });
       }
+      // Remove from persistent store
+      if (window._csvBookings) delete window._csvBookings[r.confirmation_code];
       added++;
+    } else {
+      console.error('❌ Failed:', r.confirmation_code, error);
+      failed++;
+      failedNames.push(r.guest_name + ': ' + error.message);
     }
+    // Ensure unique timestamps for each booking ID
+    await new Promise(res => setTimeout(res, 5));
   }
 
-  alert(`✅ Successfully added ${added} bookings!`);
+  if (addAllBtn) { addAllBtn.disabled = false; addAllBtn.textContent = '➕ Add All Bookings'; }
+
+  if (failed > 0) {
+    alert(`✅ Added ${added} bookings.\n❌ Failed ${failed}:\n${failedNames.join('\n')}`);
+  } else {
+    alert(`✅ Successfully added ${added} bookings!`);
+  }
   if (window.renderAirbnbSync) renderAirbnbSync();
 };
 
