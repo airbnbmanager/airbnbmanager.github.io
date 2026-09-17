@@ -1,6 +1,6 @@
 /**
  * Bookings Module
- * UNIQUE HAVEN HOMES STAY
+ * THE UNIQUE HAVEN HOMES PRIVATE LIMITED
  */
 
 // ═══ APPROVAL WORKFLOW HELPERS ═══
@@ -338,7 +338,7 @@ async function printGuestLedger(guestName) {
     '<table><thead><tr><th>Date</th><th style="text-align:right;">Amount</th><th>Mode</th><th>Notes</th></tr></thead>' +
     '<tbody>' + payRows + '</tbody></table>' +
     '<div class="due-alert">' + dueMsg + '</div>' +
-    '<div class="footer">' + BRAND + ' · Contact: Mr. Shahanshah 9450055554 · Mr. Firoz Khan 8299600709<br>Generated ' + dateStr + '</div>' +
+    '<div class="footer"><strong>' + (window.COMPANY_LEGAL_NAME || BRAND) + '</strong> · CIN: ' + (window.COMPANY_CIN || 'U55101UP2026PTC244637') + '<br>Reg. Off: ' + (window.COMPANY_REG_ADDRESS || 'Lucknow, Uttar Pradesh') + '<br>Contact: Mr. Shahanshah 9450055554 · Mr. Firoz Khan 8299600709 · Generated ' + dateStr + '</div>' +
     '<div class="no-print" style="text-align:center;margin-top:20px;">' +
     '<button onclick="window.print()" style="padding:12px 32px;background:#FF385C;color:#fff;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-size:15px;">🖨️ Print / Save as PDF</button>' +
     '</div>' +
@@ -402,7 +402,7 @@ async function whatsappGuestLedger(guestName) {
     ? NL + '*Kindly clear pending Rs.' + totalDue.toLocaleString('en-IN') + '*' + NL
     : NL + '*Fully Settled - Thank You!*' + NL;
 
-  const msg = '*UNIQUE HAVEN HOMES STAY*' + NL +
+  const msg = '*THE UNIQUE HAVEN HOMES PRIVATE LIMITED*' + NL +
     '*Guest Ledger - ' + guestName + '*' + NL + NL +
     '*Summary:*' + NL +
     '- Total Stays: ' + bookings.length + NL +
@@ -3609,8 +3609,9 @@ async function exportBookingsPDF() {
   </div>
 
   <div class="footer">
-    ${BRAND} · Contact: Mr. Shahanshah 9450055554 · Mr. Firoz Khan 8299600709<br>
-    Generated from UHHS Admin System
+    <strong>${window.COMPANY_LEGAL_NAME || BRAND}</strong> · CIN: ${window.COMPANY_CIN || 'U55101UP2026PTC244637'}<br>
+    Reg. Off: ${window.COMPANY_REG_ADDRESS || 'Lucknow, Uttar Pradesh'}<br>
+    Contact: Mr. Shahanshah 9450055554 · Mr. Firoz Khan 8299600709 · Generated from UHHS Admin System
   </div>
 
   <div class="no-print" style="text-align:center;margin-top:20px;">

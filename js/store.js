@@ -1,6 +1,6 @@
 /**
  * Store / Inventory Module
- * UNIQUE HAVEN HOMES STAY
+ * THE UNIQUE HAVEN HOMES PRIVATE LIMITED
  */
 
 async function renderStore() {

@@ -1,6 +1,6 @@
 /**
  * UHHS-OD & Payment Source Global Manager (v2 FIXED)
- * Unique Haven Homes Stay
+ * THE UNIQUE HAVEN HOMES PRIVATE LIMITED
  */
 
 const UHHS_PAYMENT_SOURCES = {

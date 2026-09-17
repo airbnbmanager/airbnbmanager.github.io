@@ -1,6 +1,6 @@
 /**
  * Daily Report Generator - UPGRADED
- * UNIQUE HAVEN HOMES STAY
+ * THE UNIQUE HAVEN HOMES PRIVATE LIMITED
  */
 
 async function renderDailyReport(selectedDate) {
@@ -80,7 +80,7 @@ async function renderDailyReport(selectedDate) {
     dates.push(d.toISOString().slice(0, 10));
   }
 
-  const brand = cfg?.company_name || 'UNIQUE HAVEN HOMES STAY';
+  const brand = cfg?.company_name || window.COMPANY_LEGAL_NAME || 'THE UNIQUE HAVEN HOMES PRIVATE LIMITED';
   const dateFormatted = new Date(repDate).toLocaleDateString('en-IN', { 
     weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' 
   });
@@ -448,7 +448,7 @@ async function whatsappDailyReport(date) {
   }
 
   msg += '━━━━━━━━━━━━━━━━━' + NL;
-  msg += '_UNIQUE HAVEN HOMES STAY_';
+  msg += '_THE UNIQUE HAVEN HOMES PRIVATE LIMITED_';
 
   const modal = document.createElement('div');
   modal.className = 'modal-overlay';

@@ -1,6 +1,6 @@
 /**
  * Expenses & P&L Module
- * UNIQUE HAVEN HOMES STAY
+ * THE UNIQUE HAVEN HOMES PRIVATE LIMITED
  */
 
 // ============ MAIN EXPENSES VIEW ============

@@ -1,6 +1,6 @@
 /**
  * Maintenance Module (v2)
- * UNIQUE HAVEN HOMES STAY
+ * THE UNIQUE HAVEN HOMES PRIVATE LIMITED
  */
 
 const MAINT_TYPES = [

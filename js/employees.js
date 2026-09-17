@@ -21,7 +21,7 @@ async function checkStorageUsage() {
 /**
  * Employees Module
  * Employees, Tasks, Attendance, Salary, Advance
- * UNIQUE HAVEN HOMES STAY
+ * THE UNIQUE HAVEN HOMES PRIVATE LIMITED
  */
 
 // ============ EMPLOYEES ============

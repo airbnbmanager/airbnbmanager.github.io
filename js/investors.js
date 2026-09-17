@@ -1,6 +1,6 @@
 /**
  * Investors Module
- * UNIQUE HAVEN HOMES STAY
+ * THE UNIQUE HAVEN HOMES PRIVATE LIMITED
  */
 
 // ============ MANAGE INVESTORS ============
@@ -1130,7 +1130,7 @@ window.whatsappInvestorReport = async function(investorId, roomId, monthYear) {
         '   Rs.' + (b.total_amount || 0).toLocaleString('en-IN') + NL + NL;
     });
 
-    const msg = '*UNIQUE HAVEN HOMES STAY*' + NL +
+    const msg = '*THE UNIQUE HAVEN HOMES PRIVATE LIMITED*' + NL +
       '*Investor Report — ' + monthName + '*' + NL + NL +
       '👤 Investor: *' + inv.name + '*' + NL +
       '🏠 Property: *' + roomName + '*' + NL + NL +
@@ -1646,7 +1646,7 @@ async function _originalQuickWhatsAppInvestor(investorId) {
     // Professional WhatsApp message
     const NL = String.fromCharCode(10);
     const message = 
-      '🏨 *UNIQUE HAVEN HOMES STAY*' + NL + NL +
+      '🏨 *THE UNIQUE HAVEN HOMES PRIVATE LIMITED*' + NL + NL +
       'Namaste ' + inv.name + ' ji 🙏' + NL + NL +
       'Umeed hai aap kushal honge.' + NL + NL +
       '📅 *' + monthName + '* ki monthly report attached hai (PDF).' + NL + NL +
@@ -1796,7 +1796,8 @@ window.sendPlainEmail = async function(investorId) {
       '───────────────────────\n' +
       'Warm regards,\n\n' +
       'Team UHHS\n' +
-      'UNIQUE HAVEN HOMES STAY\n' +
+      'THE UNIQUE HAVEN HOMES PRIVATE LIMITED\n' +
+      'CIN: U55101UP2026PTC244637\n' +
       '📞 +91 9450055554\n' +
       '📧 uniquehavenhomesstay@gmail.com\n' +
       '🌐 uniquehavenhomesstay.com\n' +

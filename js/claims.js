@@ -1,6 +1,6 @@
 /**
  * Universal Claims Manager (v8 MASTER FIXED)
- * Unique Haven Homes Stay
+ * THE UNIQUE HAVEN HOMES PRIVATE LIMITED
  */
 
 window._claimsState = {

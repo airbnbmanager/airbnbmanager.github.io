@@ -1,6 +1,6 @@
 /**
  * SOP Module — Quick Action Guide (v2 Compact)
- * UNIQUE HAVEN HOMES STAY
+ * THE UNIQUE HAVEN HOMES PRIVATE LIMITED
  */
 
 const SOP_SECTIONS = [

@@ -52,7 +52,7 @@ function computeAttention(checkinsToday, checkoutsToday) {
 
 /**
  * Dashboard Module
- * UNIQUE HAVEN HOMES STAY
+ * THE UNIQUE HAVEN HOMES PRIVATE LIMITED
  */
 
 // ═══════════════════════════════════════════════════════════
@@ -1094,7 +1094,7 @@ function buildIdPendingMessage(daysBack) {
   }
 
   msg += '━━━━━━━━━━━━━━━━━' + NL;
-  msg += '_UNIQUE HAVEN HOMES STAY_';
+  msg += '_THE UNIQUE HAVEN HOMES PRIVATE LIMITED_';
   return msg;
 }
 

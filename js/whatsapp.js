@@ -10,7 +10,7 @@ const OWNERS = [
 ];
 
 const BRAND_URL = 'https://uniquehavenhomesstay.com';
-const BRAND_NAME = 'The Unique Haven Homes Stay';
+const BRAND_NAME = 'The Unique Haven Homes';
 
 // ═══ Get property URL from nickname ═══
 window.getPropertyURL = function(nickname) {
@@ -144,7 +144,7 @@ function tplWelcome(d) {
   if (caretaker) contactLines += `📞 ${caretaker.phone} ${caretaker.name} (Caretaker)\n`;
   if (manager) contactLines += `${manager.phone} ${manager.name} (Manager)\n`;
 
-  return `Hii ${d.guestName} welcome to Unique Haven Home stay
+  return `Hii ${d.guestName} welcome to The Unique Haven Homes
 Thank you for booking your stay with us
 
 📍 Property Address:

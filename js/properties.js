@@ -1,6 +1,6 @@
 /**
  * Properties & Flats Module
- * UNIQUE HAVEN HOMES STAY
+ * THE UNIQUE HAVEN HOMES PRIVATE LIMITED
  */
 
 // ============ PROPERTIES (ROOMS) ============

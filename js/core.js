@@ -1,6 +1,6 @@
 /**
  * ===================================
- * UNIQUE HAVEN HOMES STAY — Core Module
+ * THE UNIQUE HAVEN HOMES PRIVATE LIMITED — Core Module
  * Developer: Praveen Singh
  * ===================================
  */
@@ -88,7 +88,16 @@ const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 window.sb = sb;
 
 const appEl = document.getElementById("app");
-const BRAND = "The UNIQUE HAVEN HOME STAY";
+const BRAND = "The Unique Haven Homes";
+const COMPANY_LEGAL_NAME = "THE UNIQUE HAVEN HOMES PRIVATE LIMITED";
+const COMPANY_CIN = "U55101UP2026PTC244637";
+const COMPANY_ROC = "ROC Kanpur";
+const COMPANY_REG_ADDRESS = "P NO 39 & 40 RADHIKAPURI, INDIRA NAGAR TAKROHI, Lucknow, Uttar Pradesh, 226016 - India";
+window.BRAND = BRAND;
+window.COMPANY_LEGAL_NAME = COMPANY_LEGAL_NAME;
+window.COMPANY_CIN = COMPANY_CIN;
+window.COMPANY_ROC = COMPANY_ROC;
+window.COMPANY_REG_ADDRESS = COMPANY_REG_ADDRESS;
 const APP_VERSION = "v20";
 
 let SESSION = {
@@ -304,7 +313,7 @@ function renderLogin() {
         <div style="width:68px;height:68px;margin:0 auto 16px;background:#F8FAFC;border:1px solid #E2E8F0;border-radius:18px;display:flex;align-items:center;justify-content:center;padding:8px;box-shadow:0 4px 12px rgba(0,0,0,0.06);">
           <img src="assets/logo.png" alt="Logo" style="width:100%;height:100%;object-fit:contain;border-radius:12px;" />
         </div>
-        <h1 style="font-size:20px;font-weight:800;color:#0F172A;margin-bottom:4px;letter-spacing:-0.3px;">Unique Haven Homestays</h1>
+        <h1 style="font-size:20px;font-weight:800;color:#0F172A;margin-bottom:4px;letter-spacing:-0.3px;">The Unique Haven Homes</h1>
         <div class="sub" style="font-size:13px;color:#64748B;margin-bottom:24px;">Hospitality Management & Booking CRM</div>
 
         <!-- Google Login -->
@@ -336,8 +345,9 @@ function renderLogin() {
 
         <div id="loginErr" style="margin-top:10px;"></div>
 
-        <div style="margin-top:24px;padding-top:16px;border-top:1px solid #F1F5F9;font-size:11.5px;color:#94A3B8;">
-          The Unique Haven Homes Pvt Ltd &bull; <strong style="color:#64748B;">Build ${APP_VERSION}</strong>
+        <div style="margin-top:24px;padding-top:16px;border-top:1px solid #F1F5F9;font-size:11px;color:#94A3B8;line-height:1.5;">
+          THE UNIQUE HAVEN HOMES PRIVATE LIMITED<br>
+          <span style="font-size:10px;color:#CBD5E1;">CIN: U55101UP2026PTC244637</span> &bull; <strong style="color:#64748B;">Build ${APP_VERSION}</strong>
         </div>
       </div>
     </div>`;
@@ -595,7 +605,7 @@ function renderShell(content, activePage = 'dashboard') {
     settings: { title: 'System Settings', sub: 'Global configuration & preferences', icon: '⚙️' },
   };
 
-  const pageMeta = PAGE_TITLES[activePage] || { title: activePage, sub: 'Unique Haven Homestay CRM', icon: '⚡' };
+  const pageMeta = PAGE_TITLES[activePage] || { title: activePage, sub: 'The Unique Haven Homes CRM', icon: '⚡' };
 
   appEl.innerHTML = `
     <div class="app-container">
@@ -608,7 +618,7 @@ function renderShell(content, activePage = 'dashboard') {
             <img src="assets/logo.png" alt="Logo" class="brand-logo" />
             <div class="brand-text">
               <span class="brand-name">UNIQUE HAVEN</span>
-              <span class="brand-sub">HOMESTAY CRM</span>
+              <span class="brand-sub">HOMES CRM</span>
             </div>
           </div>
           <button class="sidebar-close-btn" id="sidebarCloseBtn" aria-label="Close Sidebar">✕</button>

@@ -1,6 +1,6 @@
 /**
  * Calendar Module v2 — Airbnb-Style
- * UNIQUE HAVEN HOMES STAY
+ * THE UNIQUE HAVEN HOMES PRIVATE LIMITED
  */
 
 async function renderReports() {

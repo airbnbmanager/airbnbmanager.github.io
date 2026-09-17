@@ -1,7 +1,7 @@
 /**
  * Airbnb Reconciliation Module
  * Compare Airbnb CSV vs App bookings
- * UNIQUE HAVEN HOMES STAY
+ * THE UNIQUE HAVEN HOMES PRIVATE LIMITED
  */
 
 async function renderAirbnbSync() {
