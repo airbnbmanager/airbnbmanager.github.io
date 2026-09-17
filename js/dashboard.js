@@ -234,21 +234,63 @@ async function renderDashboard() {
     ${updateNoticeHTML()}
     ${['owner','admin'].includes(SESSION.role) ? syncInfoHTML() : ''}
 
-    <div class="card">
-      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+    <div class="card" style="background:linear-gradient(135deg, #FFFFFF 0%, #F8FAFC 100%);">
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;">
         <div>
-          <h1>📊 Dashboard</h1>
-          <div class="sub">${new Date().toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</div>
-        </div>
-        ${SESSION.role === 'developer' ? `
-        <div style="text-align:right;cursor:pointer;" onclick="showActiveUsersModal()" title="Click to see online users">
-          <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;">Online Now</div>
-          <div style="font-size:20px;font-weight:800;color:#00A699;display:flex;align-items:center;gap:6px;justify-content:flex-end;">
-            <span style="width:10px;height:10px;background:#00A699;border-radius:50%;display:inline-block;animation:pulse-dot 1.5s ease-in-out infinite;"></span>
-            ${activeUsers.length} ${activeUsers.length === 1 ? 'user' : 'users'}
+          <div style="font-size:12px;font-weight:700;color:var(--primary);text-transform:uppercase;letter-spacing:0.8px;">Overview & Live Status</div>
+          <div style="font-size:16px;font-weight:700;color:var(--dark);margin-top:2px;">
+            ${new Date().toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+          </div>
+          <div class="sub" style="margin-bottom:0;margin-top:2px;">
+            17 Properties &bull; <strong>${bookedNow.length} Booked</strong> &bull; <strong>${freeClean.length} Clean & Ready</strong> &bull; <strong>${dirty.length} Cleaning Needed</strong>
           </div>
         </div>
-        ` : ''}
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+          ${SESSION.role === 'developer' ? `
+          <div style="text-align:right;cursor:pointer;padding:6px 12px;background:#F0FDF4;border:1px solid #BBF7D0;border-radius:8px;" onclick="showActiveUsersModal()" title="Click to see online users">
+            <div style="font-size:9px;color:#166534;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;">Online Now</div>
+            <div style="font-size:14px;font-weight:800;color:#15803D;display:flex;align-items:center;gap:4px;justify-content:flex-end;">
+              <span style="width:8px;height:8px;background:#22C55E;border-radius:50%;display:inline-block;animation:pulse-dot 1.5s ease-in-out infinite;"></span>
+              ${activeUsers.length} online
+            </div>
+          </div>
+          ` : ''}
+          <button class="btn-sm outline" onclick="navigate('flats')" style="font-size:12px;">🛏️ Flats Status</button>
+          <button class="btn-sm outline" onclick="navigate('bookings')" style="font-size:12px;">📅 All Bookings</button>
+          ${canModerate() ? `<button class="btn-sm" onclick="renderAddBooking && renderAddBooking()" style="font-size:12px;">➕ New Booking</button>` : ''}
+        </div>
+      </div>
+
+      <!-- Quick Room Status Bar -->
+      <div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--border-light);">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+          <span style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;">All Properties At-A-Glance (${allFlats.length})</span>
+          <div style="display:flex;gap:12px;font-size:11px;color:var(--muted);flex-wrap:wrap;">
+            <span><span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#10B981;margin-right:4px;"></span>Ready (${freeClean.length})</span>
+            <span><span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#0EA5E9;margin-right:4px;"></span>Booked (${bookedNow.length})</span>
+            <span><span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#F59E0B;margin-right:4px;"></span>Dirty (${dirty.length})</span>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill, minmax(130px, 1fr));gap:8px;">
+          ${allFlats.map(fl => {
+            const isBooked = fl.status === 'Booked';
+            const isDirty = fl.cleaning_status === 'Dirty';
+            const isMaint = fl.status === 'Blocked-Maintenance';
+            let dotColor = '#10B981';
+            let bg = '#ECFDF5';
+            let text = '#065F46';
+            let label = 'Ready';
+            if (isMaint) { dotColor = '#EF4444'; bg = '#FEF2F2'; text = '#991B1B'; label = 'Maint'; }
+            else if (isBooked) { dotColor = '#0EA5E9'; bg = '#F0F9FF'; text = '#075985'; label = 'Booked'; }
+            else if (isDirty) { dotColor = '#F59E0B'; bg = '#FFFBEB'; text = '#92400E'; label = 'Dirty'; }
+            return `
+              <div onclick="navigate('flats')" title="${fName(fl)}: ${label}" style="cursor:pointer;padding:7px 10px;border-radius:8px;background:${bg};border:1px solid rgba(0,0,0,0.04);display:flex;align-items:center;justify-content:space-between;gap:6px;transition:all 0.15s ease;">
+                <span style="font-size:11.5px;font-weight:700;color:${text};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${fName(fl)}</span>
+                <span style="width:7px;height:7px;border-radius:50%;background:${dotColor};flex-shrink:0;"></span>
+              </div>
+            `;
+          }).join('')}
+        </div>
       </div>
     </div>
 

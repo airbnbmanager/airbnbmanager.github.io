@@ -299,33 +299,45 @@ async function logout() {
 // ============ LOGIN ============
 function renderLogin() {
   appEl.innerHTML = `
-    <div class="wrap">
-      <div class="card" style="text-align:center;">
-        <img src="assets/logo.png" alt="Logo" style="width:80px;height:80px;object-fit:contain;margin-bottom:10px;border-radius:14px;" />
-        <h1>${BRAND}</h1>
-        <div class="sub">Property Management System</div>
+    <div style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:radial-gradient(circle at 50% 0%, #1E1B4B 0%, #0F172A 100%);padding:20px;">
+      <div class="card" style="max-width:420px;width:100%;border-radius:20px;padding:36px 30px;box-shadow:0 25px 50px -12px rgba(0,0,0,0.5);border:1px solid rgba(255,255,255,0.1);background:#FFFFFF;text-align:center;">
+        <div style="width:68px;height:68px;margin:0 auto 16px;background:#F8FAFC;border:1px solid #E2E8F0;border-radius:18px;display:flex;align-items:center;justify-content:center;padding:8px;box-shadow:0 4px 12px rgba(0,0,0,0.06);">
+          <img src="assets/logo.png" alt="Logo" style="width:100%;height:100%;object-fit:contain;border-radius:12px;" />
+        </div>
+        <h1 style="font-size:20px;font-weight:800;color:#0F172A;margin-bottom:4px;letter-spacing:-0.3px;">Unique Haven Homestays</h1>
+        <div class="sub" style="font-size:13px;color:#64748B;margin-bottom:24px;">Hospitality Management & Booking CRM</div>
 
         <!-- Google Login -->
-        <button onclick="loginWithGoogle()" style="width:100%;margin-top:16px;padding:14px;background:#fff;color:#333;border:1.5px solid var(--border);font-size:15px;">
-          <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" style="width:20px;height:20px;vertical-align:middle;margin-right:8px;" />
-          Sign in with Google
+        <button onclick="loginWithGoogle()" style="width:100%;padding:11px 16px;background:#fff;color:#1E293B;border:1.5px solid #CBD5E1;font-size:13.5px;font-weight:600;border-radius:10px;display:flex;align-items:center;justify-content:center;gap:10px;box-shadow:0 1px 2px rgba(0,0,0,0.05);transition:all 0.15s;">
+          <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" style="width:18px;height:18px;" />
+          Continue with Google
         </button>
 
-        <div style="margin:16px 0;display:flex;align-items:center;gap:10px;">
-          <div style="flex:1;height:1px;background:var(--border);"></div>
-          <span style="font-size:12px;color:var(--muted);">OR</span>
-          <div style="flex:1;height:1px;background:var(--border);"></div>
+        <div style="margin:20px 0;display:flex;align-items:center;gap:12px;">
+          <div style="flex:1;height:1px;background:#E2E8F0;"></div>
+          <span style="font-size:11px;font-weight:600;color:#94A3B8;letter-spacing:0.5px;">OR SIGN IN WITH EMAIL</span>
+          <div style="flex:1;height:1px;background:#E2E8F0;"></div>
         </div>
 
-        <!-- Email Login -->
-        <input id="email" type="email" placeholder="Email" autocomplete="email" />
-        <input id="password" type="password" placeholder="Password" autocomplete="current-password" style="margin-top:8px;" />
-        <button id="loginBtn" onclick="loginWithEmail()" style="width:100%;margin-top:10px;padding:12px;">Login with Email</button>
+        <!-- Email Login Form -->
+        <div style="text-align:left;margin-bottom:12px;">
+          <label style="font-size:12px;font-weight:600;color:#475569;display:block;margin-bottom:6px;">Email Address</label>
+          <input id="email" type="email" placeholder="name@uniquehaven.com" autocomplete="email" style="padding:10px 14px;border-radius:10px;" />
+        </div>
 
-        <div id="loginErr"></div>
+        <div style="text-align:left;margin-bottom:18px;">
+          <label style="font-size:12px;font-weight:600;color:#475569;display:block;margin-bottom:6px;">Password</label>
+          <input id="password" type="password" placeholder="••••••••" autocomplete="current-password" style="padding:10px 14px;border-radius:10px;" onkeydown="if(event.key==='Enter'){loginWithEmail();}" />
+        </div>
 
-        <div style="margin-top:20px;padding-top:12px;border-top:1px solid var(--border);font-size:11px;color:#999;">
-          Developed by <strong style="color:#666;">Praveen Singh</strong> · Build ${APP_VERSION}
+        <button id="loginBtn" onclick="loginWithEmail()" style="width:100%;padding:11px;border-radius:10px;font-size:14px;font-weight:600;background:var(--primary);box-shadow:0 4px 12px rgba(79,70,229,0.3);">
+          Sign In to CRM
+        </button>
+
+        <div id="loginErr" style="margin-top:10px;"></div>
+
+        <div style="margin-top:24px;padding-top:16px;border-top:1px solid #F1F5F9;font-size:11.5px;color:#94A3B8;">
+          The Unique Haven Homes Pvt Ltd &bull; <strong style="color:#64748B;">Build ${APP_VERSION}</strong>
         </div>
       </div>
     </div>`;
@@ -438,53 +450,48 @@ function renderShell(content, activePage = 'dashboard') {
     ];
   } else if (isOwner) {
     nav = [
-      { section: 'MAIN' },
+      { section: 'OVERVIEW' },
       ['dashboard', '🏠 Dashboard'],
       ['reports', '📆 Calendar'],
-      ['pendingApprovals', '🟡 Pending Approvals'],
-      ['reminders', '🔔 Reminders'],
       ['analytics', '📊 Analytics'],
-      ['whatsapp-hub', '📱 Communication Hub'],
+      ['dailyReport', '📈 Daily Report'],
 
-      { section: 'GUESTS' },
+      { section: 'RESERVATIONS' },
       ['bookings', '📅 Bookings'],
       ['flats', '🛏️ Flats Status'],
-
-      { section: 'PROPERTIES' },
-      ['rooms', '🏠 Properties'],
-      ['shifts', '🕐 Shifts'],
-      ['property-setup', '🏗️ Property Setup'],
-      ['airbnb-sync', '🔄 Airbnb Sync'],
-
-      { section: 'TEAM (HRMS)' },
-      ['employees', '👥 Employees'],
-      ['tasks', '📋 Tasks'],
-      ['attendance', '📅 Attendance'],
-      ['advance', '🎁 Advance'],
-      ['employee-ledger', '📒 Employee Ledger'],
+      ['pendingApprovals', '🟡 Pending Approvals'],
+      ['shifts', '🔄 Shifts & Extensions'],
+      ['reminders', '🔔 Reminders'],
 
       { section: 'FINANCE' },
       ['cashbook', '💰 Cash Book'],
       ['reimbursements', '💸 Daily Expenses'],
-      ['expenses', '📊 Monthly Expenses & P&L'],
-      ['maintenance', '🔧 Maintenance'],
-      ['laundry', '🧺 Laundry'],
+      ['expenses', '📊 Monthly P&L'],
       ['claims', '📤 Claims Manager'],
-      ['dailyReport', '📊 Daily Report'],
       ['investors', '🧑‍💼 Investors'],
 
-      { section: 'STORE' },
+      { section: 'OPERATIONS & TEAM' },
+      ['employees', '👥 Employees'],
+      ['attendance', '📋 Attendance'],
+      ['advance', '🎁 Advance Tracker'],
+      ['employee-ledger', '📒 Employee Ledger'],
+      ['tasks', '🧰 Staff Tasks'],
+      ['maintenance', '🔧 Maintenance'],
+      ['laundry', '🧺 Laundry'],
       ['store', '📦 Inventory'],
 
-      { section: 'COMMUNICATION' },
-
-      { section: 'ADMIN' },
+      { section: 'CHANNELS & SETTINGS' },
+      ['airbnb-sync', '🔄 Airbnb Sync'],
+      ['rooms', '🏢 Properties'],
+      ['property-setup', '🏗️ Property Setup'],
+      ['whatsapp-hub', '📱 Communication Hub'],
+      ['sop', '📘 SOP Guide'],
       ...(isAdmin ? [['user-mgmt', '👤 User Management']] : []),
       ...(showSettings ? [['settings', '⚙️ Settings']] : []),
-      ['sop', '📘 SOP Guide'],
     ];
   } else if (isCheckin) {
     nav = [
+      { section: 'MAIN' },
       ['dashboard', '🏠 Dashboard'],
       ['reports', '📆 Calendar'],
       ['bookings', '📅 Bookings'],
@@ -494,64 +501,60 @@ function renderShell(content, activePage = 'dashboard') {
     ];
   } else {
     nav = [
-      { section: 'MAIN' },
+      { section: 'OVERVIEW' },
       ['dashboard', '🏠 Dashboard'],
       ['reports', '📆 Calendar'],
-      ['pendingApprovals', '🟡 Pending Approvals'],
       ['analytics', '📊 Analytics'],
-      ['whatsapp-hub', '📱 Communication Hub'],
+      ['dailyReport', '📈 Daily Report'],
 
-      { section: 'GUESTS' },
+      { section: 'RESERVATIONS' },
       ['bookings', '📅 Bookings'],
       ['flats', '🛏️ Flats Status'],
-
-      { section: 'PROPERTIES' },
-      ['maintenance', '🔧 Maintenance'],
-      ['property-setup', '🏗️ Property Setup'],
-      ['airbnb-sync', '🔄 Airbnb Sync'],
-
-      { section: 'TEAM (HRMS)' },
-      ['employees', '👥 Employees'],
-      ['tasks', '📋 Tasks'],
-      ['attendance', '📅 Attendance'],
-      ['advance', '🎁 Advance'],
-      ['employee-ledger', '📒 Employee Ledger'],
+      ['pendingApprovals', '🟡 Pending Approvals'],
+      ['shifts', '🔄 Shifts'],
+      ['reminders', '🔔 Reminders'],
 
       { section: 'FINANCE' },
       ['cashbook', '💰 Cash Book'],
       ['reimbursements', '💸 Daily Expenses'],
-      ['expenses', '📊 Monthly Expenses & P&L'],
-      ['maintenance', '🔧 Maintenance'],
-      ['laundry', '🧺 Laundry'],
+      ['expenses', '📊 Monthly P&L'],
       ['claims', '📤 Claims Manager'],
-      ['dailyReport', '📊 Daily Report'],
-      ['reminders', '🔔 Reminders'],
       ['investors', '🧑‍💼 Investors'],
 
-      { section: 'STORE' },
+      { section: 'OPERATIONS & TEAM' },
+      ['employees', '👥 Employees'],
+      ['attendance', '📋 Attendance'],
+      ['advance', '🎁 Advance Tracker'],
+      ['employee-ledger', '📒 Employee Ledger'],
+      ['tasks', '🧰 Tasks'],
+      ['maintenance', '🔧 Maintenance'],
+      ['laundry', '🧺 Laundry'],
       ['store', '📦 Inventory'],
 
-      { section: 'HELP' },
+      { section: 'CHANNELS & SETTINGS' },
+      ['airbnb-sync', '🔄 Airbnb Sync'],
+      ['rooms', '🏢 Properties'],
+      ['property-setup', '🏗️ Property Setup'],
+      ['whatsapp-hub', '📱 Communication Hub'],
       ['sop', '📘 SOP Guide'],
     ];
   }
 
   const roleLabel = ({
-    'developer': '🔴 Developer',
+    'developer': 'Developer',
     'admin': 'Admin',
-    'owner': '🟠 Owner',
-    'moderator': '🟡 Moderator',
-    'viewer': '👁️ Viewer',
-    'subowner': '🟢 Sub-owner',
+    'owner': 'Owner',
+    'moderator': 'Moderator',
+    'viewer': 'Viewer',
+    'subowner': 'Sub-owner',
     'booking_staff': 'Staff',
     'caretaker': 'Caretaker',
     'checkin_manager': 'Check-in Mgr',
-    'viewer': 'Viewer',
     'investor': 'Investor',
     'employee': 'Employee',
     'ca': 'CA'
   })[SESSION.role] || SESSION.role;
-  const shortName = (SESSION.displayName || '').split('(')[0].trim().split(' ')[0];
+  const shortName = (SESSION.displayName || '').split('(')[0].trim().split(' ')[0] || 'User';
 
   // Custom badge overrides (per user)
   const CUSTOM_BADGES = {
@@ -560,33 +563,72 @@ function renderShell(content, activePage = 'dashboard') {
   };
   const displayBadge = CUSTOM_BADGES[SESSION.userId] || roleLabel;
 
+  const PAGE_TITLES = {
+    dashboard: { title: 'Dashboard', sub: 'Overview & Key Performance Indicators', icon: '🏠' },
+    reports: { title: 'Calendar & Bookings', sub: 'Room reservations timeline', icon: '📆' },
+    bookings: { title: 'Bookings Management', sub: 'Guest check-ins, check-outs & payments', icon: '📅' },
+    flats: { title: 'Flats & Housekeeping', sub: 'Room readiness, cleaning & maintenance', icon: '🛏️' },
+    shifts: { title: 'Property Shifts', sub: 'Extended stays & room changeovers', icon: '🔄' },
+    pendingApprovals: { title: 'Pending Approvals', sub: 'Verification queue for bookings & payments', icon: '🟡' },
+    cashbook: { title: 'Cash Book', sub: 'Cash flow, handovers & safe balance', icon: '💰' },
+    reimbursements: { title: 'Daily Expenses', sub: 'Staff reimbursements & operational spends', icon: '💸' },
+    expenses: { title: 'Monthly Expenses & P&L', sub: 'Property-wise profit & loss reporting', icon: '📊' },
+    claims: { title: 'Claims Manager', sub: 'UHHS-OD settlements & reimbursements', icon: '📤' },
+    investors: { title: 'Investors Ledger', sub: 'Property investor shares & payouts', icon: '🧑‍💼' },
+    dailyReport: { title: 'Daily Operations Report', sub: 'End-of-day revenue, checkins & summaries', icon: '📈' },
+    analytics: { title: 'Business Analytics', sub: 'Occupancy rates & revenue metrics', icon: '📊' },
+    reminders: { title: 'Reminders & Follow-ups', sub: 'Checkout alarms & upcoming tasks', icon: '🔔' },
+    employees: { title: 'Team & Staff', sub: 'Employee profiles, roles & contacts', icon: '👥' },
+    attendance: { title: 'Staff Attendance', sub: 'Daily check-in logs & monthly summaries', icon: '📋' },
+    advance: { title: 'Salary Advances', sub: 'Staff advance tracking & deductions', icon: '🎁' },
+    'employee-ledger': { title: 'Employee Ledger', sub: 'Detailed salary & transaction history', icon: '📒' },
+    tasks: { title: 'Tasks Management', sub: 'Maintenance & staff assignments', icon: '🧰' },
+    maintenance: { title: 'Maintenance & Repairs', sub: 'Property repair tickets & status', icon: '🔧' },
+    laundry: { title: 'Laundry Management', sub: 'Linen dispatches & vendor tracking', icon: '🧺' },
+    store: { title: 'Inventory & Store', sub: 'Supplies, toiletries & stock levels', icon: '📦' },
+    'airbnb-sync': { title: 'Airbnb iCal Sync', sub: 'Channel manager & calendar synchronization', icon: '🔄' },
+    rooms: { title: 'Properties & Units', sub: '17 homestays details & amenities', icon: '🏢' },
+    'property-setup': { title: 'Property Setup', sub: 'Configure rooms, units & pricing', icon: '🏗️' },
+    'whatsapp-hub': { title: 'WhatsApp Communications', sub: 'Guest templates & automated messaging', icon: '📱' },
+    sop: { title: 'SOP Operational Guide', sub: 'Standard operating procedures for staff', icon: '📘' },
+    'user-mgmt': { title: 'User Management', sub: 'System users, roles & permissions', icon: '👤' },
+    settings: { title: 'System Settings', sub: 'Global configuration & preferences', icon: '⚙️' },
+  };
+
+  const pageMeta = PAGE_TITLES[activePage] || { title: activePage, sub: 'Unique Haven Homestay CRM', icon: '⚡' };
+
   appEl.innerHTML = `
     <div class="app-container">
+      <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+
+      <!-- ─── SIDEBAR ─── -->
       <aside class="sidebar" id="sidebarEl">
-        <!-- Row 1: Logo + User + Logout -->
         <div class="sidebar-top">
-          <div class="sidebar-brand" onclick="navigate('dashboard')" style="display:flex;align-items:center;gap:8px;cursor:pointer;">
-            <img src="assets/logo.png" alt="" style="width:28px;height:28px;border-radius:6px;object-fit:contain;" />
-            <span style="font-size:14px;font-weight:800;color:#fff;">UHHS</span>
-          </div>
-          <div class="sidebar-user" style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
-            <div style="display:flex;flex-direction:column;flex:1;min-width:0;">
-              <span class="sidebar-username" style="font-size:13px;font-weight:600;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${shortName}</span>
-              <span class="sidebar-role" style="font-size:9px;color:rgba(255,255,255,0.7);text-transform:uppercase;letter-spacing:0.5px;">${displayBadge}</span>
+          <div class="sidebar-brand" onclick="navigate('dashboard')">
+            <img src="assets/logo.png" alt="Logo" class="brand-logo" />
+            <div class="brand-text">
+              <span class="brand-name">UNIQUE HAVEN</span>
+              <span class="brand-sub">HOMESTAY CRM</span>
             </div>
-            <button class="sidebar-bell" id="notifBellBtn" onclick="event.stopPropagation();window.notifications&&window.notifications.openPanel();" style="background:transparent;border:none;color:#fff;padding:4px 6px;position:relative;cursor:pointer;font-size:16px;flex-shrink:0;">
-              🔔<span class="notif-bell-badge" style="display:none;position:absolute;top:0;right:0;background:#FF3B30;color:#fff;font-size:9px;font-weight:700;min-width:16px;height:16px;border-radius:8px;align-items:center;justify-content:center;padding:0 4px;"></span>
-            </button>
-            <button class="sidebar-logout" id="logoutBtn" style="background:#FF5A5F;color:#fff;border:none;padding:5px 12px;border-radius:14px;font-size:11px;font-weight:600;cursor:pointer;flex-shrink:0;white-space:nowrap;">Logout</button>
           </div>
+          <button class="sidebar-close-btn" id="sidebarCloseBtn" aria-label="Close Sidebar">✕</button>
         </div>
 
-        <!-- Row 2: Navigation -->
+        <div class="sidebar-user-card">
+          <div class="user-avatar">${shortName.charAt(0).toUpperCase()}</div>
+          <div class="user-info">
+            <span class="user-name">${shortName}</span>
+            <span class="user-role-badge">${displayBadge}</span>
+          </div>
+          <button class="user-notif-btn" id="notifBellBtn" onclick="event.stopPropagation();window.notifications&&window.notifications.openPanel();" title="Notifications">
+            🔔<span class="notif-bell-badge" style="display:none;"></span>
+          </button>
+        </div>
+
         <div class="drawer-search">
           <input type="text" id="drawerSearchInput" placeholder="🔍 Search menu..." />
-          <button onclick="window.openPreferences && window.openPreferences()" style="width:100%;margin-top:8px;padding:10px;background:rgba(255,255,255,0.08);color:rgba(255,255,255,0.85);border:none;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;">⚙️ Preferences</button>
         </div>
-        
+
         <nav class="sidebar-nav">
           ${nav.map(item => {
             if (item.section) {
@@ -596,80 +638,163 @@ function renderShell(content, activePage = 'dashboard') {
             return `<a href="#" data-page="${k}" class="${activePage === k ? 'active' : ''}">${l}</a>`;
           }).join('')}
         </nav>
+
+        <div class="sidebar-footer">
+          <button class="sidebar-action-btn pref-btn" onclick="window.openPreferences && window.openPreferences()">⚙️ Preferences</button>
+          <button class="sidebar-action-btn logout-btn" id="logoutBtn">🚪 Logout</button>
+        </div>
       </aside>
-      <main class="main-content" id="mainContent">${content}</main>
 
-      <!-- Mobile Bottom Navigation (Smart/Recent) -->
+      <!-- ─── MAIN WRAPPER ─── -->
+      <div class="app-main-wrapper">
+        <!-- Top App Bar -->
+        <header class="app-topbar">
+          <div class="topbar-left">
+            <button class="mobile-hamburger-btn" id="hamburgerBtn" aria-label="Toggle menu">
+              <span></span><span></span><span></span>
+            </button>
+            <div class="page-heading">
+              <div class="page-title-row">
+                <span class="page-icon">${pageMeta.icon}</span>
+                <h1 class="page-title">${pageMeta.title}</h1>
+              </div>
+              <span class="page-sub">${pageMeta.sub}</span>
+            </div>
+          </div>
+
+          <div class="topbar-right">
+            <div class="topbar-search">
+              <span class="search-icon">🔍</span>
+              <input type="text" id="topbarGlobalSearch" placeholder="Search guests, phone..." value="${SESSION.bookingSearch || ''}" />
+            </div>
+
+            ${typeof window.canModerate === 'function' && window.canModerate() ? `
+              <button class="topbar-cta-btn" id="topbarNewBookingBtn" onclick="window.renderAddBooking ? renderAddBooking() : (navigate('bookings'), setTimeout(() => window.renderAddBooking && renderAddBooking(), 400))">
+                <span>➕</span> <span class="btn-text">New Booking</span>
+              </button>
+            ` : ''}
+
+            <button class="topbar-icon-btn" id="topbarNotifBtn" onclick="window.notifications&&window.notifications.openPanel();" title="Notifications">
+              🔔<span class="notif-bell-badge" style="display:none;"></span>
+            </button>
+          </div>
+        </header>
+
+        <!-- Main Content View -->
+        <main class="main-content" id="mainContent">${content}</main>
+      </div>
+
+      <!-- ─── MOBILE BOTTOM NAV ─── -->
       <nav class="bottom-nav" id="bottomNav">
-        ${(() => {
-          // Page metadata: [key, icon, label]
-          const PAGES = {
-            dashboard:  ['🏠', 'Home'],
-            bookings:   ['📅', 'Bookings'],
-            flats:      ['🛏️', 'Flats'],
-            rooms:      ['🏘️', 'Property'],
-            shifts:     ['🕐', 'Shifts'],
-            reports:    ['📆', 'Calendar'],
-            maintenance:['🔧', 'Maintain'],
-            employees:  ['👥', 'Team'],
-            tasks:      ['🧰', 'Tasks'],
-            attendance: ['📋', 'Attend'],
-            'employee-ledger': ['📒', 'Emp Ledger'],
-            expenses:   ['💹', 'Expenses'],
-            store:      ['📦', 'Store'],
-            investors:  ['🧑‍💼', 'Invest'],
-            sop:        ['📘', 'SOP']
-          };
-          // Get 3 most-visited (or defaults)
-          let recent = (window.getRecentPages ? window.getRecentPages(3) : []);
-          const defaults = ['bookings', 'flats', 'rooms'];
-          // Fill with defaults if not enough recent
-          for (const d of defaults) {
-            if (recent.length >= 3) break;
-            if (!recent.includes(d)) recent.push(d);
-          }
-          recent = recent.slice(0, 3);
-
-          // Home first
-          let html = `<a href="#" data-page="dashboard" class="${activePage === 'dashboard' ? 'active' : ''}"><span class="bn-icon">🏠</span><span class="bn-label">Home</span></a>`;
-          // 3 recent
-          for (const p of recent) {
-            const meta = PAGES[p];
-            if (!meta) continue;
-            html += `<a href="#" data-page="${p}" class="${activePage === p ? 'active' : ''}"><span class="bn-icon">${meta[0]}</span><span class="bn-label">${meta[1]}</span></a>`;
-          }
-          // More last
-          html += `<a href="#" id="bottomNavMore"><span class="bn-icon">☰</span><span class="bn-label">More</span></a>`;
-          return html;
-        })()}
+        <a href="#" data-page="dashboard" class="${activePage === 'dashboard' ? 'active' : ''}">
+          <span class="bn-icon">🏠</span>
+          <span class="bn-label">Home</span>
+        </a>
+        <a href="#" data-page="bookings" class="${activePage === 'bookings' ? 'active' : ''}">
+          <span class="bn-icon">📅</span>
+          <span class="bn-label">Bookings</span>
+        </a>
+        <a href="#" data-page="flats" class="${activePage === 'flats' ? 'active' : ''}">
+          <span class="bn-icon">🛏️</span>
+          <span class="bn-label">Flats</span>
+        </a>
+        <a href="#" data-page="cashbook" class="${activePage === 'cashbook' ? 'active' : ''}">
+          <span class="bn-icon">💰</span>
+          <span class="bn-label">Cash</span>
+        </a>
+        <a href="#" id="bottomNavMore">
+          <span class="bn-icon">☰</span>
+          <span class="bn-label">Menu</span>
+        </a>
       </nav>
     </div>`;
 
-  document.querySelectorAll('.sidebar-nav a').forEach(a => {
-    a.onclick = e => { e.preventDefault(); navigate(a.dataset.page); };
+  // Attach nav handlers
+  document.querySelectorAll('.sidebar-nav a[data-page]').forEach(a => {
+    a.onclick = e => {
+      e.preventDefault();
+      closeMobileDrawer();
+      navigate(a.dataset.page);
+    };
   });
-  document.getElementById('logoutBtn').onclick = logout;
 
-  // Bottom Nav handlers (mobile only)
+  // Logout handler
+  const logoutBtn = document.getElementById('logoutBtn');
+  if (logoutBtn) logoutBtn.onclick = logout;
+
+  // Drawer helpers
+  const sidebarEl = document.getElementById('sidebarEl');
+  const backdropEl = document.getElementById('sidebarBackdrop');
+
+  function openMobileDrawer() {
+    if (sidebarEl) sidebarEl.classList.add('mobile-drawer-open');
+    if (backdropEl) backdropEl.classList.add('active');
+    setTimeout(() => {
+      if (typeof initDrawerSearch === 'function') initDrawerSearch();
+      const inp = document.getElementById('drawerSearchInput');
+      if (inp) { inp.value = ''; inp.focus(); }
+    }, 100);
+  }
+
+  function closeMobileDrawer() {
+    if (sidebarEl) sidebarEl.classList.remove('mobile-drawer-open');
+    if (backdropEl) backdropEl.classList.remove('active');
+  }
+
+  const hamburgerBtn = document.getElementById('hamburgerBtn');
+  if (hamburgerBtn) hamburgerBtn.onclick = openMobileDrawer;
+
+  const sidebarCloseBtn = document.getElementById('sidebarCloseBtn');
+  if (sidebarCloseBtn) sidebarCloseBtn.onclick = closeMobileDrawer;
+
+  if (backdropEl) backdropEl.onclick = closeMobileDrawer;
+
+  // Bottom Nav handlers (mobile)
   document.querySelectorAll('.bottom-nav a[data-page]').forEach(a => {
-    a.onclick = e => { e.preventDefault(); navigate(a.dataset.page); };
+    a.onclick = e => {
+      e.preventDefault();
+      closeMobileDrawer();
+      navigate(a.dataset.page);
+    };
   });
+
   const moreBtn = document.getElementById('bottomNavMore');
   if (moreBtn) {
     moreBtn.onclick = e => {
       e.preventDefault();
-      const sb = document.getElementById('sidebarEl');
-      if (sb) {
-        sb.classList.toggle('mobile-drawer-open');
-        if (sb.classList.contains('mobile-drawer-open')) {
-          setTimeout(() => {
-            if (typeof initDrawerSearch === 'function') initDrawerSearch();
-            const inp = document.getElementById('drawerSearchInput');
-            if (inp) inp.value = '';
-          }, 50);
+      if (sidebarEl && sidebarEl.classList.contains('mobile-drawer-open')) {
+        closeMobileDrawer();
+      } else {
+        openMobileDrawer();
+      }
+    };
+  }
+
+  // Global search input handling
+  const globalSearch = document.getElementById('topbarGlobalSearch');
+  if (globalSearch) {
+    globalSearch.oninput = () => {
+      SESSION.bookingSearch = globalSearch.value;
+      const bkInput = document.getElementById('bkSearch');
+      if (bkInput) {
+        bkInput.value = globalSearch.value;
+      }
+    };
+    globalSearch.onkeydown = e => {
+      if (e.key === 'Enter') {
+        SESSION.bookingSearch = globalSearch.value;
+        if (SESSION.currentPage !== 'bookings') {
+          navigate('bookings');
+        } else if (typeof renderManageBookings === 'function') {
+          renderManageBookings();
         }
       }
     };
+  }
+
+  // Init drawer search if drawer input present
+  if (typeof initDrawerSearch === 'function') {
+    initDrawerSearch();
   }
 }
 

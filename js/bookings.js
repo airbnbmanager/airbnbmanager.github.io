@@ -677,10 +677,17 @@ async function renderManageBookings() {
   const canD = ['developer'].includes(SESSION.role);
 
   renderShell(`
-    <div class="card">
-      <h1>📅 Bookings</h1>
-      <div class="sub">${f.length} bookings ${sq ? 'matching "' + sq + '"' : ''}</div>
-      ${canM ? `<button onclick="renderAddBooking()">➕ New Booking</button>` : ''}
+    <div class="card" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;">
+      <div>
+        <div style="font-size:16px;font-weight:700;color:var(--dark);">${f.length} Bookings</div>
+        <div class="sub" style="margin-bottom:0;">
+          ${sq ? `Filtered by search query: "<strong>${sq}</strong>"` : 'Real-time reservation records, payments, and guest management.'}
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+        ${canM ? `<button class="btn-sm" onclick="renderAddBooking()">➕ New Booking</button>` : ''}
+        <button class="btn-sm outline" onclick="exportBookingsPDF()">📄 Export PDF</button>
+      </div>
     </div>
 
     ${overlaps.length ? `<div class="card"><div class="error"><strong>⚠️ Overlapping (${overlaps.length})</strong><br>
