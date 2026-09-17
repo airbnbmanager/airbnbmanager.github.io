@@ -2660,13 +2660,15 @@ code {
 #splashScreen {
   position: fixed;
   inset: 0;
-  background: linear-gradient(135deg, #E2725B 0%, #d15a42 100%);
+  background: radial-gradient(circle at 50% 30%, #1E1B4B 0%, #0F172A 100%);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   z-index: 999999;
   transition: opacity 0.4s ease-out;
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
 #splashScreen.hide {
@@ -2675,12 +2677,12 @@ code {
 }
 
 #splashScreen .splash-logo {
-  width: 110px;
-  height: 110px;
-  border-radius: 24px;
+  width: 96px;
+  height: 96px;
+  border-radius: 22px;
   background: #fff;
-  padding: 14px;
-  box-shadow: 0 12px 40px rgba(0,0,0,0.25);
+  padding: 12px;
+  box-shadow: 0 20px 40px rgba(0,0,0,0.4);
   animation: splashPop 0.7s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
@@ -2693,26 +2695,27 @@ code {
 #splashScreen .splash-title {
   color: #fff;
   font-size: 22px;
-  font-weight: 700;
-  margin-top: 20px;
+  font-weight: 800;
+  margin-top: 18px;
   letter-spacing: 0.5px;
   animation: splashFade 0.6s ease-out 0.3s both;
 }
 
 #splashScreen .splash-tagline {
-  color: rgba(255,255,255,0.85);
+  color: rgba(255,255,255,0.7);
   font-size: 13px;
-  margin-top: 6px;
+  font-weight: 500;
+  margin-top: 4px;
   animation: splashFade 0.6s ease-out 0.5s both;
 }
 
 #splashScreen .splash-spinner {
   width: 28px;
   height: 28px;
-  border: 3px solid rgba(255,255,255,0.25);
-  border-top-color: #fff;
+  border: 3px solid rgba(255,255,255,0.15);
+  border-top-color: var(--primary);
   border-radius: 50%;
-  margin-top: 30px;
+  margin-top: 28px;
   animation: splashSpin 0.8s linear infinite;
 }
 
