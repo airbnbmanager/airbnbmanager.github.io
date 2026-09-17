@@ -542,6 +542,8 @@ window.showUhhsStatementModal = async function() {
     // Daily Expenses (-)
     (exps || []).filter(e => normalizePaymentSource(e.payment_source || e.paid_by) === 'UHHS-OD').forEach(e => {
       txns.push({
+        id: e.id,
+        source: 'reimbursements',
         date: e.expense_date,
         type: 'EXPENSE',
         desc: `Daily Expense: ${e.category || ''} - ${e.description || ''}`,
@@ -645,8 +647,14 @@ window.showUhhsStatementModal = async function() {
                 <td style="padding:8px;"><span style="padding:2px 6px;border-radius:4px;font-size:10px;font-weight:700;background:${t.isDep?'#DCFCE7':'#FEE2E2'};color:${t.isDep?'#15803D':'#B91C1C'};">${t.isDep ? '📥 DEPOSIT' : '📤 EXPENSE'}</span></td>
                 <td style="padding:8px;">${t.desc}</td>
                 <td style="padding:8px;text-align:right;font-weight:700;color:${t.isDep?'#15803D':'#B91C1C'};">${t.isDep ? '+' : '-'}₹${t.amount.toLocaleString('en-IN')}</td>
-                <td style="padding:8px;text-align:center;">
-                  ${t.isDep ? `<button onclick="window.cbEditODDeposit(${t.id})" class="btn-sm" style="background:#3B82F6;color:#fff;padding:3px 8px;font-size:10px;border:none;border-radius:4px;cursor:pointer;margin-right:4px;">✏️ Edit</button><button onclick="window.cbDeleteODDeposit(${t.id})" class="btn-sm" style="background:#DC2626;color:#fff;padding:3px 8px;font-size:10px;border:none;border-radius:4px;cursor:pointer;">🗑️ Delete</button>` : '<span style="color:#94A3B8;font-size:11px;">Auto</span>'}
+                <td style="padding:8px;text-align:center;white-space:nowrap;">
+                  ${t.isDep ? `
+                    <button onclick="window.cbEditODDeposit('${t.id}')" class="btn-sm" style="background:#3B82F6;color:#fff;padding:3px 8px;font-size:10px;border:none;border-radius:4px;cursor:pointer;margin-right:4px;">✏️ Edit</button>
+                    <button onclick="window.cbDeleteODDeposit('${t.id}')" class="btn-sm" style="background:#DC2626;color:#fff;padding:3px 8px;font-size:10px;border:none;border-radius:4px;cursor:pointer;">🗑️ Delete</button>
+                  ` : (t.source === 'reimbursements' && t.id ? `
+                    <button onclick="document.querySelectorAll('.modal-overlay').forEach(m=>m.remove());window.editReimbursement('${t.id}');" class="btn-sm" style="background:#3B82F6;color:#fff;padding:3px 8px;font-size:10px;border:none;border-radius:4px;cursor:pointer;margin-right:4px;" title="Edit Daily Expense">✏️ Edit</button>
+                    <button onclick="if(confirm('Delete this daily expense?')){window.deleteReimbursement('${t.id}');}" class="btn-sm" style="background:#DC2626;color:#fff;padding:3px 8px;font-size:10px;border:none;border-radius:4px;cursor:pointer;" title="Delete Daily Expense">🗑️ Delete</button>
+                  ` : '<span style="color:#94A3B8;font-size:11px;">Auto</span>')}
                 </td>
               </tr>
             `).join('')}

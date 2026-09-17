@@ -330,8 +330,8 @@ window.cbEditODDeposit = async function(id) {
             </div>
 
             <div style="display:flex;gap:8px;">
-                <button onclick="window.cbSaveODEditDeposit(${id})" style="flex:1;padding:12px;background:#3B82F6;color:#fff;border:none;border-radius:8px;font-weight:700;font-size:15px;cursor:pointer;">💾 Save Changes</button>
-                <button onclick="window.cbDeleteODDeposit(${id})" style="flex:1;padding:12px;background:#DC2626;color:#fff;border:none;border-radius:8px;font-weight:700;font-size:15px;cursor:pointer;">🗑️ Delete</button>
+                <button onclick="window.cbSaveODEditDeposit('${id}')" style="flex:1;padding:12px;background:#3B82F6;color:#fff;border:none;border-radius:8px;font-weight:700;font-size:15px;cursor:pointer;">💾 Save Changes</button>
+                <button onclick="window.cbDeleteODDeposit('${id}')" style="flex:1;padding:12px;background:#DC2626;color:#fff;border:none;border-radius:8px;font-weight:700;font-size:15px;cursor:pointer;">🗑️ Delete</button>
             </div>
             <div id="odEditErr" style="margin-top:10px;color:#dc3545;font-size:12px;font-weight:600;text-align:center;"></div>
         </div>
@@ -382,7 +382,7 @@ window.cbSaveODEditDeposit = async function(id) {
         if (window.UHHSODManager) window.UHHSODManager.calculateBalance(client);
         if (typeof window.showUhhsStatementModal === 'function') window.showUhhsStatementModal();
         if (typeof window.renderCashBook === 'function') window.renderCashBook();
-        window.notifyDataChanged();
+        if (typeof window.notifyDataChanged === 'function') window.notifyDataChanged();
     } catch (err) {
         errDiv.innerText = "❌ Exception: " + err.message;
     }
@@ -406,7 +406,7 @@ window.cbDeleteODDeposit = async function(id) {
         if (window.UHHSODManager) window.UHHSODManager.calculateBalance(client);
         if (typeof window.showUhhsStatementModal === 'function') window.showUhhsStatementModal();
         if (typeof window.renderCashBook === 'function') window.renderCashBook();
-        window.notifyDataChanged();
+        if (typeof window.notifyDataChanged === 'function') window.notifyDataChanged();
     } catch (err) {
         alert('❌ Exception: ' + err.message);
     }

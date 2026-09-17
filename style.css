@@ -306,7 +306,10 @@ html, body, #app {
 }
 
 .sidebar-nav a.filter-hidden,
-.nav-section-heading.filter-hidden {
+.nav-section-heading.filter-hidden,
+.sidebar .sidebar-nav a.filter-hidden,
+.sidebar .sidebar-nav .nav-section-heading.filter-hidden,
+.sidebar.mobile-drawer-open .nav-section-heading.filter-hidden {
   display: none !important;
 }
 
@@ -1917,7 +1920,7 @@ code {
     justify-content: flex-start;
   }
 
-  .sidebar.mobile-drawer-open .nav-section-heading {
+  .sidebar.mobile-drawer-open .nav-section-heading:not(.filter-hidden) {
     display: block !important;
     font-size: 10px;
     font-weight: 700;
@@ -1925,6 +1928,9 @@ code {
     letter-spacing: 1.5px;
     padding: 14px 12px 4px;
     text-transform: uppercase;
+  }
+  .sidebar.mobile-drawer-open .nav-section-heading.filter-hidden {
+    display: none !important;
   }
 }
 
@@ -2292,6 +2298,9 @@ code {
 @media (max-width: 768px) {
   .drawer-search {
     padding: 10px 14px !important;
+  }
+  .drawer-search input {
+    font-size: 16px !important;
   }
 }
 

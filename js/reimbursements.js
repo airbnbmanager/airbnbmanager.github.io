@@ -101,10 +101,10 @@ window.renderReimbursements = async function() {
               <td>${r.receipt_photo ? `<button class="btn-sm" style="background:#3B82F6;color:#fff;padding:4px 10px;" onclick="dlIdPhoto('${r.receipt_photo.includes('/id-proofs/') ? r.receipt_photo.split('/id-proofs/')[1] : r.receipt_photo}')">📷 View</button>` : '-'}</td>
               <td><span class="badge ${statusColor}">${r.status}</span></td>
               <td class="table-actions">
-                ${r.status === 'Pending' ? `<button class="btn-sm" style="background:#F59E0B;color:#fff;" onclick="markReimbClaimed(${r.id})" title="Mark as Claimed">📤</button>` : ''}
-                ${r.status !== 'Received' ? `<button class="btn-sm" style="background:#10B981;color:#fff;" onclick="markReimbReceived(${r.id})" title="Mark as Received">✅</button>` : ''}
-                <button class="btn-sm" onclick="editReimbursement(${r.id})">✏️</button>
-                <button class="btn-sm danger" onclick="deleteReimbursement(${r.id})">🗑️</button>
+                ${r.status === 'Pending' ? `<button class="btn-sm" style="background:#F59E0B;color:#fff;" onclick="markReimbClaimed('${r.id}')" title="Mark as Claimed">📤</button>` : ''}
+                ${r.status !== 'Received' ? `<button class="btn-sm" style="background:#10B981;color:#fff;" onclick="markReimbReceived('${r.id}')" title="Mark as Received">✅</button>` : ''}
+                <button class="btn-sm" onclick="editReimbursement('${r.id}')">✏️</button>
+                <button class="btn-sm danger" onclick="deleteReimbursement('${r.id}')">🗑️</button>
               </td>
             </tr>`;
           }).join('')}

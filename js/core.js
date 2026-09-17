@@ -732,7 +732,11 @@ function renderShell(content, activePage = 'dashboard') {
     setTimeout(() => {
       if (typeof initDrawerSearch === 'function') initDrawerSearch();
       const inp = document.getElementById('drawerSearchInput');
-      if (inp) { inp.value = ''; inp.focus(); }
+      if (inp) {
+        inp.value = '';
+        inp.dispatchEvent(new Event('input'));
+        inp.focus();
+      }
     }, 100);
   }
 
@@ -1522,9 +1526,9 @@ document.addEventListener('click', (e) => {
 function initDrawerSearch() {
   const input = document.getElementById('drawerSearchInput');
   if (!input) return;
-  input.addEventListener('input', () => {
+  const filterMenu = () => {
     const q = input.value.toLowerCase().trim();
-    const nav = document.querySelector('aside.sidebar.mobile-drawer-open .sidebar-nav');
+    const nav = document.querySelector('.sidebar .sidebar-nav');
     if (!nav) return;
     const items = nav.querySelectorAll('a[data-page]');
     const sections = nav.querySelectorAll('.nav-section-heading');
@@ -1548,7 +1552,17 @@ function initDrawerSearch() {
       if (!hasVisible && q) sec.classList.add('filter-hidden');
       else sec.classList.remove('filter-hidden');
     });
-  });
+  };
+
+  input.oninput = filterMenu;
+  input.onsearch = filterMenu;
+  input.onkeydown = e => {
+    if (e.key === 'Escape') {
+      input.value = '';
+      filterMenu();
+      input.blur();
+    }
+  };
 }
 window.initDrawerSearch = initDrawerSearch;
 
