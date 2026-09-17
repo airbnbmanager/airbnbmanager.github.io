@@ -6,7 +6,7 @@
 window._claimsState = {
   fromDate: '2026-09-12',
   fromTime: '00:00',
-  toDate: new Date().toISOString().slice(0, 10),
+  toDate: '2026-09-30',
   toTime: '23:59',
   moduleFilter: 'all',
   statusFilter: 'all',
@@ -117,7 +117,14 @@ window.renderClaims = async function() {
           </select>
         </div>
       </div>
-      <div style="margin-top:10px;">
+      <div style="margin-top:10px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+        <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
+          <span style="font-size:11px;font-weight:700;color:#64748B;">Quick Presets:</span>
+          <button type="button" onclick="setClaimsQuickDate('2026-09-12', '2026-09-26')" style="background:#E0E7FF;color:#3730A3;border:1px solid #C7D2FE;padding:4px 10px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;">📅 12-Sep to 26-Sep</button>
+          <button type="button" onclick="setClaimsQuickDate('2026-09-01', '2026-09-30')" style="background:#E0E7FF;color:#3730A3;border:1px solid #C7D2FE;padding:4px 10px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;">📅 Sep Full Month</button>
+          <button type="button" onclick="setClaimsQuickDate('2026-09-12', '${new Date().toISOString().slice(0, 10)}')" style="background:#E0E7FF;color:#3730A3;border:1px solid #C7D2FE;padding:4px 10px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;">📅 Checkpoint to Today</button>
+          <button type="button" onclick="setClaimsQuickDate('', '')" style="background:#F1F5F9;color:#475569;border:1px solid #CBD5E1;padding:4px 10px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;">🌐 All Dates</button>
+        </div>
         <button onclick="loadClaimsData()" style="background:#4F46E5;color:#fff;padding:8px 16px;border:none;border-radius:6px;font-weight:600;cursor:pointer;">🔄 Refresh Data</button>
       </div>
     </div>
@@ -152,17 +159,39 @@ window.renderClaims = async function() {
       </div>
     </div>
 
-    <!-- ACTIONS & TABLE -->
+    <!-- ⚡ ONE-CLICK BULK ACTIONS FOR FILTERED RANGE -->
+    <div class="card" style="background:linear-gradient(135deg, #1E1B4B 0%, #312E81 100%);color:#fff;padding:16px 20px;border-radius:12px;box-shadow:0 4px 15px rgba(49,46,129,0.2);">
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;">
+        <div>
+          <div style="font-size:11px;text-transform:uppercase;letter-spacing:1px;color:#A5B4FC;font-weight:700;">⚡ Bulk Action on All Items in Filtered Range</div>
+          <div style="font-size:16px;font-weight:800;margin-top:2px;">
+            Range: <span id="bulkRangeLabel" style="color:#FDE047;">${window._claimsState.fromDate || 'All'} to ${window._claimsState.toDate || 'All'}</span>
+            — <span id="bulkRangeCount" style="color:#67E8F9;">0</span> items (<span id="bulkRangePendingCount" style="color:#FCA5A5;">0 pending</span>) · Total: <span style="color:#86EFAC;">₹</span><span id="bulkRangeTotal" style="color:#86EFAC;">0</span>
+          </div>
+          <div style="font-size:11px;color:#C7D2FE;margin-top:2px;">Settle or claim all transactions matching the selected date range at once — no need to tick individual checkboxes!</div>
+        </div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;">
+          <button onclick="bulkUpdateRange('claimed')" style="background:#F59E0B;color:#fff;border:none;padding:10px 18px;border-radius:8px;font-weight:700;font-size:13px;cursor:pointer;display:flex;align-items:center;gap:6px;box-shadow:0 2px 6px rgba(0,0,0,0.2);transition:0.2s;">
+            📤 Claim All in Range
+          </button>
+          <button onclick="bulkUpdateRange('received')" style="background:#10B981;color:#fff;border:none;padding:10px 18px;border-radius:8px;font-weight:700;font-size:13px;cursor:pointer;display:flex;align-items:center;gap:6px;box-shadow:0 2px 6px rgba(0,0,0,0.2);transition:0.2s;">
+            ✅ Settle All in Range
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- SELECTION ACTIONS & TABLE -->
     <div class="card" style="padding:12px 20px;background:#EEF2FF;border:1px solid #C7D2FE;">
       <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
         <div style="font-size:13px;color:#3730A3;">
-          Selected: <strong id="selectedCountText">0 items</strong> · 
-          Net Payable: <strong id="selectedAmountText" style="font-size:16px;">₹0</strong>
+          Selected via Checkboxes: <strong id="selectedCountText">0 items</strong> · 
+          Payable: <strong id="selectedAmountText" style="font-size:16px;">₹0</strong>
         </div>
         <div style="display:flex;gap:8px;flex-wrap:wrap;">
-          <button onclick="bulkUpdateClaims('claimed')" class="btn-sm" style="background:#F59E0B;color:#fff;">📤 Mark Claimed</button>
-          <button onclick="bulkUpdateClaims('received')" class="btn-sm" style="background:#10B981;color:#fff;">✅ Mark Received (Settled)</button>
-          <button onclick="bulkUpdateClaims('unclaimed')" class="btn-sm" style="background:#6B7280;color:#fff;">↩️ Revert Pending</button>
+          <button onclick="bulkUpdateClaims('claimed')" class="btn-sm" style="background:#F59E0B;color:#fff;padding:6px 12px;font-weight:600;">📤 Mark Claimed (Selected)</button>
+          <button onclick="bulkUpdateClaims('received')" class="btn-sm" style="background:#10B981;color:#fff;padding:6px 12px;font-weight:600;">✅ Mark Settled (Selected)</button>
+          <button onclick="bulkUpdateClaims('unclaimed')" class="btn-sm" style="background:#6B7280;color:#fff;padding:6px 12px;font-weight:600;">↩️ Revert Pending</button>
         </div>
       </div>
     </div>
@@ -175,6 +204,19 @@ window.renderClaims = async function() {
   `, 'claims');
 
   await loadClaimsData();
+};
+
+window.setClaimsQuickDate = function(f, t) {
+  const fEl = document.getElementById('cfFromDate');
+  const tEl = document.getElementById('cfToDate');
+  if (fEl) fEl.value = f;
+  if (tEl) tEl.value = t;
+  window._claimsState.fromDate = f;
+  window._claimsState.toDate = t;
+  window._claimsState.statusFilter = 'all';
+  const sEl = document.getElementById('cfStatus');
+  if (sEl) sEl.value = 'all';
+  window.updateClaimsFilter();
 };
 
 window.updateClaimsFilter = function() {
@@ -273,7 +315,18 @@ async function loadClaimsData() {
     (aData || []).forEach(adv => {
       const realName = adv.employees?.name || empMap[adv.emp_id] || 'Staff';
       const bal = Number(adv.advance_amount || 0) - Number(adv.repaid_amount || 0);
-      const st = adv.claim_status || (bal <= 0 ? 'received' : 'unclaimed');
+      const nStr = String(adv.notes || '');
+
+      let st = 'unclaimed';
+      if (adv.claim_status) {
+        st = adv.claim_status;
+      } else if (nStr.includes('[CLAIM: received]') || nStr.includes('[CLAIM: settled]') || adv.is_deducted || (Number(adv.repaid_amount || 0) >= Number(adv.advance_amount || 0) && Number(adv.advance_amount || 0) > 0)) {
+        st = 'received';
+      } else if (nStr.includes('[CLAIM: claimed]')) {
+        st = 'claimed';
+      } else if (bal <= 0) {
+        st = 'received';
+      }
 
       combined.push({
         uniqKey: `adv_${adv.id}`,
@@ -364,6 +417,17 @@ function renderClaimsTable() {
   document.getElementById('statAdvancesAmt').innerText = `₹${totalAdvances.toLocaleString('en-IN')}`;
   document.getElementById('statNetPayableAmt').innerText = `₹${netPayable.toLocaleString('en-IN')}`;
 
+  // Update Bulk Banner Counters
+  const rLabel = document.getElementById('bulkRangeLabel');
+  const rCount = document.getElementById('bulkRangeCount');
+  const rPendingCount = document.getElementById('bulkRangePendingCount');
+  const rTotal = document.getElementById('bulkRangeTotal');
+  const pendingCount = filtered.filter(i => i.status !== 'received').length;
+  if (rLabel) rLabel.innerText = `${fromDate || 'All'} to ${toDate || 'All'}`;
+  if (rCount) rCount.innerText = `${filtered.length}`;
+  if (rPendingCount) rPendingCount.innerText = `${pendingCount} pending`;
+  if (rTotal) rTotal.innerText = `${totalExps.toLocaleString('en-IN')}`;
+
   // Update Staff Advances Breakdown Chips
   const advContainer = document.getElementById('staffAdvancesBreakdownContainer');
   if (advContainer) {
@@ -399,6 +463,7 @@ function renderClaimsTable() {
           <th style="padding:10px;text-align:right;">AMOUNT (₹)</th>
           <th style="padding:10px;text-align:center;">STATUS</th>
           <th style="padding:10px;text-align:center;">PROOF</th>
+          <th style="padding:10px;text-align:center;">ACTIONS</th>
         </tr>
       </thead>
       <tbody>
@@ -424,6 +489,17 @@ function renderClaimsTable() {
               </td>
               <td style="padding:10px;text-align:center;">
                 ${item.photo ? `<button onclick="dlIdPhoto('${item.photo.includes('/id-proofs/') ? item.photo.split('/id-proofs/')[1] : item.photo}')" class="btn-sm" style="background:#3B82F6;color:#fff;padding:2px 6px;font-size:10px;">💳 View</button>` : '-'}
+              </td>
+              <td style="padding:10px;text-align:center;white-space:nowrap;">
+                ${item.status !== 'claimed' ? `
+                  <button onclick="updateSingleClaim('${item.uniqKey}', 'claimed')" class="btn-sm" style="background:#F59E0B;color:#fff;padding:3px 8px;font-size:10px;border:none;border-radius:4px;cursor:pointer;margin-right:4px;" title="Mark as Claimed">📤 Claim</button>
+                ` : ''}
+                ${item.status !== 'received' ? `
+                  <button onclick="updateSingleClaim('${item.uniqKey}', 'received')" class="btn-sm" style="background:#10B981;color:#fff;padding:3px 8px;font-size:10px;border:none;border-radius:4px;cursor:pointer;margin-right:4px;" title="Mark as Settled (Received)">✅ Settle</button>
+                ` : ''}
+                ${item.status !== 'unclaimed' ? `
+                  <button onclick="updateSingleClaim('${item.uniqKey}', 'unclaimed')" class="btn-sm" style="background:#64748B;color:#fff;padding:3px 8px;font-size:10px;border:none;border-radius:4px;cursor:pointer;" title="Revert to Pending">↩️</button>
+                ` : ''}
               </td>
             </tr>
           `;
@@ -466,38 +542,209 @@ function updateSelectionText() {
   if (aEl) aEl.innerText = `₹${selAmt.toLocaleString('en-IN')}`;
 }
 
-// 6. Bulk Action Handlers (Mark Claimed, Mark Received, Revert Pending)
+// 6. Universal Updater and Bulk Handlers (Mark Claimed, Mark Received, Revert Pending)
+async function updateItemClaimStatus(item, targetStatus, today = new Date().toISOString().slice(0, 10)) {
+  const nowIso = new Date().toISOString();
+
+  if (item.module === 'reimbursements') {
+    const dbStatus = targetStatus === 'received' ? 'Received' : targetStatus === 'claimed' ? 'Claimed' : 'Pending';
+    const payload = { status: dbStatus };
+    if (targetStatus === 'claimed') {
+      payload.claimed_date = today;
+      payload.claimed_at = nowIso;
+    } else if (targetStatus === 'received') {
+      payload.received_date = today;
+      payload.received_at = nowIso;
+    } else {
+      payload.claimed_date = null;
+      payload.received_date = null;
+      payload.claimed_at = null;
+      payload.received_at = null;
+    }
+    const { error } = await sb.from('reimbursements').update(payload).eq('id', item.id);
+    if (error) throw error;
+    return true;
+  }
+
+  if (item.module === 'maintenance') {
+    const payload = { claim_status: targetStatus };
+    if (targetStatus === 'claimed') payload.claimed_at = nowIso;
+    else if (targetStatus === 'received') payload.received_at = nowIso;
+    else { payload.claimed_at = null; payload.received_at = null; }
+
+    const { error } = await sb.from('maintenance_log').update(payload).eq('id', item.id);
+    if (error) throw error;
+    return true;
+  }
+
+  if (item.module === 'laundry') {
+    const dbStatus = targetStatus === 'unclaimed' ? 'not_claimed' : targetStatus;
+    const payload = { claim_status: dbStatus };
+    if (targetStatus === 'claimed') {
+      payload.claim_date = today;
+      payload.claimed_at = nowIso;
+    } else if (targetStatus === 'received') {
+      payload.claim_received_date = today;
+      payload.received_at = nowIso;
+    } else {
+      payload.claim_date = null;
+      payload.claim_received_date = null;
+      payload.claimed_at = null;
+      payload.received_at = null;
+    }
+    const { error } = await sb.from('laundry_payments').update(payload).eq('id', item.id);
+    if (error) throw error;
+    return true;
+  }
+
+  if (item.module === 'advances') {
+    const oldNotes = (item.raw?.notes || '').replace(/\[CLAIM:\s*\w+\]/g, '').trim();
+    if (targetStatus === 'received') {
+      const newNotes = oldNotes ? `${oldNotes} [CLAIM: received]` : '[CLAIM: received]';
+      const { error } = await sb.from('advance_tracker').update({
+        is_deducted: true,
+        repaid_amount: Number(item.amount || 0),
+        repaid_date: today,
+        notes: newNotes
+      }).eq('id', item.id);
+      if (error) throw error;
+    } else if (targetStatus === 'claimed') {
+      const newNotes = oldNotes ? `${oldNotes} [CLAIM: claimed]` : '[CLAIM: claimed]';
+      const { error } = await sb.from('advance_tracker').update({
+        notes: newNotes
+      }).eq('id', item.id);
+      if (error) throw error;
+    } else {
+      const { error } = await sb.from('advance_tracker').update({
+        is_deducted: false,
+        repaid_amount: 0,
+        repaid_date: null,
+        notes: oldNotes || null
+      }).eq('id', item.id);
+      if (error) throw error;
+    }
+    return true;
+  }
+
+  return false;
+}
+
+// Single-item action toggle
+window.updateSingleClaim = async function(uniqKey, targetStatus) {
+  const item = (window._claimsState.allData || []).find(i => i.uniqKey === uniqKey);
+  if (!item) return;
+  const label = targetStatus === 'received' ? 'Settled (Received)' : targetStatus === 'claimed' ? 'Claimed' : 'Pending';
+  try {
+    await updateItemClaimStatus(item, targetStatus);
+    if (window.fsn?.success) {
+      fsn.success('Updated', `✅ Item marked as ${label}!`);
+    }
+    if (typeof window.notifyDataChanged === 'function') window.notifyDataChanged();
+    await loadClaimsData();
+  } catch (err) {
+    alert('❌ Error updating item: ' + err.message);
+  }
+};
+
+// Checkbox selection action handler
 window.bulkUpdateClaims = async function(targetStatus) {
   const { selectedIds, allData } = window._claimsState;
   if (selectedIds.size === 0) {
-    alert('⚠️ Please select at least 1 item to update!');
+    alert('⚠️ Please select at least 1 item using checkboxes, or click "Claim All in Range" / "Settle All in Range" above to update the whole date range at once!');
     return;
   }
 
+  const label = targetStatus === 'received' ? 'Settled (Received)' : targetStatus === 'claimed' ? 'Claimed' : 'Pending';
   const today = new Date().toISOString().slice(0, 10);
   let updatedCount = 0;
+  let failCount = 0;
 
   for (const item of allData) {
     if (selectedIds.has(item.uniqKey)) {
-      if (item.module === 'reimbursements') {
-        const dbStatus = targetStatus === 'received' ? 'Received' : targetStatus === 'claimed' ? 'Claimed' : 'Pending';
-        await sb.from('reimbursements').update({ status: dbStatus, claimed_date: today }).eq('id', item.id);
+      try {
+        await updateItemClaimStatus(item, targetStatus, today);
         updatedCount++;
-      } else if (item.module === 'maintenance') {
-        await sb.from('maintenance_log').update({ claim_status: targetStatus, claim_date: today }).eq('id', item.id);
-        updatedCount++;
-      } else if (item.module === 'laundry') {
-        await sb.from('laundry_payments').update({ claim_status: targetStatus, claim_date: today }).eq('id', item.id);
-        updatedCount++;
-      } else if (item.module === 'advances') {
-        await sb.from('advance_tracker').update({ claim_status: targetStatus }).eq('id', item.id);
-        updatedCount++;
+      } catch (err) {
+        console.error('Error updating item:', item, err);
+        failCount++;
       }
     }
   }
 
   selectedIds.clear();
-  if (window.fsn) fsn.success('Updated', `✅ Updated status for ${updatedCount} items!`);
+  if (window.fsn?.success) {
+    fsn.success('Updated', `✅ Updated status for ${updatedCount} selected items!`);
+  } else {
+    alert(`✅ Updated status for ${updatedCount} items!${failCount > 0 ? ` (${failCount} failed)` : ''}`);
+  }
+
+  if (typeof window.notifyDataChanged === 'function') window.notifyDataChanged();
+  await loadClaimsData();
+};
+
+// ⚡ Range Bulk Updater (Claim All / Settle All across selected date range)
+window.bulkUpdateRange = async function(targetStatus) {
+  const { fromDate, toDate, allData, moduleFilter, paidByFilter } = window._claimsState;
+
+  const matchingItems = (allData || []).filter(item => {
+    if (fromDate && item.dateStr < fromDate) return false;
+    if (toDate && item.dateStr > toDate) return false;
+    if (moduleFilter !== 'all' && item.module !== moduleFilter) return false;
+    if (paidByFilter !== 'all' && item.paidBy !== paidByFilter) return false;
+    return true;
+  });
+
+  if (matchingItems.length === 0) {
+    alert(`⚠️ No transactions found matching the selected range (${fromDate || 'all'} to ${toDate || 'all'})!`);
+    return;
+  }
+
+  const label = targetStatus === 'received' ? 'Settled (Received)' : targetStatus === 'claimed' ? 'Claimed' : 'Pending';
+  const totalAmt = matchingItems.reduce((s, i) => s + (Number(i.amount) || 0), 0);
+
+  const ok = confirm(
+    `⚡ BULK ACTION CONFIRMATION\n\n` +
+    `Mark ALL ${matchingItems.length} transactions in date range as "${label}"?\n\n` +
+    `📅 Date Range: ${fromDate || 'Start'} to ${toDate || 'End'}\n` +
+    `💰 Total Amount: ₹${totalAmt.toLocaleString('en-IN')}\n\n` +
+    `Click OK to proceed with bulk update.`
+  );
+  if (!ok) return;
+
+  const today = new Date().toISOString().slice(0, 10);
+  let successCount = 0;
+  let failCount = 0;
+
+  const container = document.getElementById('claimsTableContainer');
+  if (container) {
+    container.innerHTML = `
+      <div style="text-align:center;padding:50px 20px;">
+        <div style="font-size:32px;margin-bottom:12px;">⏳</div>
+        <h3 style="color:#312E81;margin:0 0 8px;font-size:18px;">Updating ${matchingItems.length} records to "${label}"...</h3>
+        <p style="color:#64748B;font-size:13px;margin:0;">Please wait while the database records are safely updated.</p>
+      </div>
+    `;
+  }
+
+  for (const item of matchingItems) {
+    try {
+      await updateItemClaimStatus(item, targetStatus, today);
+      successCount++;
+    } catch (err) {
+      console.error('Failed to update item in range:', item, err);
+      failCount++;
+    }
+  }
+
+  if (window._claimsState.selectedIds) window._claimsState.selectedIds.clear();
+
+  if (window.fsn?.success) {
+    fsn.success('Success', `✅ Successfully marked ${successCount} transactions as "${label}"!`);
+  } else {
+    alert(`✅ Successfully marked ${successCount} transactions as "${label}"!${failCount > 0 ? ` (${failCount} failed)` : ''}`);
+  }
+
+  if (typeof window.notifyDataChanged === 'function') window.notifyDataChanged();
   await loadClaimsData();
 };
 
