@@ -134,12 +134,12 @@ window.renderClaims = async function() {
           <div style="font-size:11px;color:#666;">📤 Claimed Expenses</div>
         </div>
         <div style="text-align:center;padding:12px;background:#FEE2E2;border-radius:8px;">
-          <div id="statAdvancesAmt" style="font-size:20px;font-weight:800;color:#991B1B;">-₹0</div>
-          <div style="font-size:11px;color:#666;">🔻 Less Staff Advances Given</div>
+          <div id="statAdvancesAmt" style="font-size:20px;font-weight:800;color:#991B1B;">₹0</div>
+          <div style="font-size:11px;color:#666;">👥 Staff Advances (included above)</div>
         </div>
         <div style="text-align:center;padding:12px;background:#D1FAE5;border-radius:8px;">
           <div id="statNetPayableAmt" style="font-size:20px;font-weight:800;color:#065F46;">₹0</div>
-          <div style="font-size:11px;color:#666;">💵 NET PAYABLE TO PAYER</div>
+          <div style="font-size:11px;color:#666;">💵 NET PAYABLE TO PAYER (all modules)</div>
         </div>
       </div>
     </div>
@@ -204,7 +204,7 @@ async function loadClaimsData() {
       sb.from('reimbursements').select('*').order('expense_date', { ascending: false }),
       sb.from('maintenance_log').select('*').gt('cost', 0).order('reported_date', { ascending: false }),
       sb.from('laundry_payments').select('*, laundry_records(vendor_name)').order('payment_date', { ascending: false }),
-      sb.from('company_advances').select('*').order('created_at', { ascending: false }),
+      sb.from('advance_tracker').select('*, employees(name)').order('date_given', { ascending: false }),
       sb.from('employees').select('emp_id, name')
     ]);
 
@@ -269,23 +269,22 @@ async function loadClaimsData() {
       });
     });
 
-    // D. Staff Advances
+    // D. Staff Advances (from advance_tracker — the module actually used under Advance)
     (aData || []).forEach(adv => {
-      const realName = empMap[adv.emp_id] || adv.given_to || 'Staff';
-      const isDeducted = adv.status === 'Reconciled' || adv.is_deducted === true;
-      const st = adv.claim_status || (isDeducted ? 'received' : 'unclaimed');
-      const advAmt = Number(adv.amount_given || adv.advance_amount || 0);
+      const realName = adv.employees?.name || empMap[adv.emp_id] || 'Staff';
+      const bal = Number(adv.advance_amount || 0) - Number(adv.repaid_amount || 0);
+      const st = adv.claim_status || (bal <= 0 ? 'received' : 'unclaimed');
 
       combined.push({
         uniqKey: `adv_${adv.id}`,
         module: 'advances',
         moduleLabel: '💰 Staff Advance',
         id: adv.id,
-        dateStr: adv.advance_date || (adv.created_at || '').slice(0, 10),
-        description: `Advance to ${realName}: ${adv.purpose || 'Given'}`,
+        dateStr: adv.date_given || (adv.created_at || '').slice(0, 10),
+        description: `Advance to ${realName}: ${adv.reason || 'Given'}`,
         vendorOrStaff: realName,
-        paidBy: normalizePaymentSource(adv.payment_source || adv.given_by),
-        amount: advAmt,
+        paidBy: normalizePaymentSource(adv.paid_by),
+        amount: Number(adv.advance_amount || 0),
         status: normalizeStatus(st),
         photo: null,
         raw: adv
@@ -335,31 +334,34 @@ function renderClaimsTable() {
     return true;
   });
 
-  // Calculate Summaries
+  window._claimsState.filteredKeys = filtered.map(item => item.uniqKey);
+
+  // Calculate Summaries — Staff Advances are also paid FROM the UHHS-OD account
+  // (just like expenses/maintenance/laundry), so they ADD to the claimable total,
+  // they are never subtracted from it.
   let totalExps = 0;
   let totalClaimed = 0;
   let totalAdvances = 0;
   const empAdvMap = {};
 
   filtered.forEach(item => {
+    totalExps += item.amount;
+    if (item.status === 'claimed' || item.status === 'received') {
+      totalClaimed += item.amount;
+    }
     if (item.module === 'advances') {
       totalAdvances += item.amount;
       const staffName = item.vendorOrStaff || 'Staff';
       empAdvMap[staffName] = (empAdvMap[staffName] || 0) + item.amount;
-    } else {
-      totalExps += item.amount;
-      if (item.status === 'claimed' || item.status === 'received') {
-        totalClaimed += item.amount;
-      }
     }
   });
 
-  const netPayable = totalExps - totalAdvances;
+  const netPayable = totalExps;
 
   // Update Stat Cards UI
   document.getElementById('statTotalAmt').innerText = `₹${totalExps.toLocaleString('en-IN')}`;
   document.getElementById('statClaimedAmt').innerText = `₹${totalClaimed.toLocaleString('en-IN')}`;
-  document.getElementById('statAdvancesAmt').innerText = `-₹${totalAdvances.toLocaleString('en-IN')}`;
+  document.getElementById('statAdvancesAmt').innerText = `₹${totalAdvances.toLocaleString('en-IN')}`;
   document.getElementById('statNetPayableAmt').innerText = `₹${netPayable.toLocaleString('en-IN')}`;
 
   // Update Staff Advances Breakdown Chips
@@ -414,8 +416,8 @@ function renderClaimsTable() {
               <td style="padding:10px;max-width:220px;">${item.description}</td>
               <td style="padding:10px;">${item.vendorOrStaff}</td>
               <td style="padding:10px;">${sourceBadge}</td>
-              <td style="padding:10px;text-align:right;font-weight:700;color:${item.module === 'advances' ? '#DC2626' : '#0F172A'};">
-                ${item.module === 'advances' ? '-' : ''}₹${item.amount.toLocaleString('en-IN')}
+              <td style="padding:10px;text-align:right;font-weight:700;color:#0F172A;">
+                ₹${item.amount.toLocaleString('en-IN')}
               </td>
               <td style="padding:10px;text-align:center;">
                 <span style="padding:3px 8px;border-radius:4px;font-size:10px;font-weight:700;${badgeClass}">${badgeLabel}</span>
@@ -442,11 +444,11 @@ window.toggleSelectClaim = function(uniqKey) {
 };
 
 window.toggleSelectAllClaims = function(masterCb) {
-  const { allData, selectedIds } = window._claimsState;
+  const { selectedIds, filteredKeys } = window._claimsState;
   if (masterCb.checked) {
-    allData.forEach(item => selectedIds.add(item.uniqKey));
+    (filteredKeys || []).forEach(k => selectedIds.add(k));
   } else {
-    selectedIds.clear();
+    (filteredKeys || []).forEach(k => selectedIds.delete(k));
   }
   renderClaimsTable();
 };
@@ -488,7 +490,7 @@ window.bulkUpdateClaims = async function(targetStatus) {
         await sb.from('laundry_payments').update({ claim_status: targetStatus, claim_date: today }).eq('id', item.id);
         updatedCount++;
       } else if (item.module === 'advances') {
-        await sb.from('company_advances').update({ claim_status: targetStatus }).eq('id', item.id);
+        await sb.from('advance_tracker').update({ claim_status: targetStatus }).eq('id', item.id);
         updatedCount++;
       }
     }
@@ -520,7 +522,7 @@ window.showUhhsStatementModal = async function() {
       sb.from('reimbursements').select('*').gte('expense_date', fDate).lte('expense_date', tDate),
       sb.from('maintenance_log').select('*').gte('reported_date', fDate).lte('reported_date', tDate),
       sb.from('laundry_payments').select('*').gte('payment_date', fDate).lte('payment_date', tDate),
-      sb.from('company_advances').select('*')
+      sb.from('advance_tracker').select('*, employees(name)')
     ]);
 
     const txns = [];
@@ -572,15 +574,16 @@ window.showUhhsStatementModal = async function() {
 
     // Staff Advances given from UHHS-OD (-)
     (allAdvs || []).filter(a => {
-      const aDate = a.advance_date || (a.created_at || '').slice(0, 10);
+      const aDate = a.date_given || (a.created_at || '').slice(0, 10);
       if (aDate < fDate || aDate > tDate) return false;
-      return normalizePaymentSource(a.payment_source || a.given_by) === 'UHHS-OD';
+      return normalizePaymentSource(a.paid_by) === 'UHHS-OD';
     }).forEach(a => {
+      const realName = a.employees?.name || 'Staff';
       txns.push({
-        date: a.advance_date || a.created_at?.slice(0, 10),
+        date: a.date_given || a.created_at?.slice(0, 10),
         type: 'EXPENSE',
-        desc: `💸 Staff Advance (${a.given_to || 'Staff'}): ${a.purpose || 'Given from OD'}`,
-        amount: Number(a.amount_given || 0),
+        desc: `💸 Staff Advance (${realName}): ${a.reason || 'Given from OD'}`,
+        amount: Number(a.advance_amount || 0),
         isDep: false
       });
     });

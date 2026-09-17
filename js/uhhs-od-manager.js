@@ -88,17 +88,13 @@ async function calculateLiveODBalance(supabaseClient) {
 
         // Staff Advances from OD
         try {
-            const { data: r4 } = await client.from('company_advances').select('amount_given, payment_source, given_by, purpose, advance_date, created_at');
+            const { data: r4 } = await client.from('advance_tracker').select('advance_amount, paid_by, date_given, created_at');
             if (r4) {
                 totalOutflow += r4.filter(a => {
-                    const aDate = a.advance_date || (a.created_at || '').slice(0, 10);
+                    const aDate = a.date_given || (a.created_at || '').slice(0, 10);
                     if (aDate < startDate) return false;
-                    const src = String(a.payment_source || '').toUpperCase();
-                    const gBy = String(a.given_by || '').toUpperCase();
-                    const purp = String(a.purpose || '').toUpperCase();
-                    const isFiroz = src === 'FIROZ' || gBy.includes('FIROZ') || purp.includes('FIROZ');
-                    return !isFiroz;
-                }).reduce((s, r) => s + parseFloat(r.amount_given || 0), 0);
+                    return String(a.paid_by || '').toUpperCase() === 'UHHS-OD';
+                }).reduce((s, r) => s + parseFloat(r.advance_amount || 0), 0);
             }
         } catch (e) {}
 

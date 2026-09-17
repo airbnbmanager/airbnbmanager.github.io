@@ -1016,7 +1016,7 @@ async function renderAdvanceTracker() {
       <thead><tr>
         <th>Employee</th><th>Date</th><th>Given ₹</th>
         <th>Repaid ₹</th><th>Repaid On</th><th>Balance ₹</th>
-        <th>Mode</th><th>Reason</th>
+        <th>Account</th><th>Mode</th><th>Reason</th>
         ${isO ? '<th>Actions</th>' : ''}
       </tr></thead>
       <tbody>${(advs || []).map(a => {
@@ -1028,6 +1028,7 @@ async function renderAdvanceTracker() {
           <td style="color:var(--green);">₹${(a.repaid_amount || 0).toLocaleString('en-IN')}</td>
           <td style="font-size:12px;">${a.repaid_date || '-'}</td>
           <td style="color:${bal > 0 ? 'var(--red)' : 'var(--green)'};">₹${bal.toLocaleString('en-IN')}</td>
+          <td>${window.UHHSODManager ? UHHSODManager.getBadge(a.paid_by) : (a.paid_by || '-')}</td>
           <td style="font-size:12px;">${a.payment_mode || '-'}</td>
           <td style="font-size:12px;">${a.reason || '-'}</td>
           ${isO ? `<td class="table-actions">
@@ -1062,11 +1063,11 @@ async function renderAddAdv() {
           </select>
         </div>
         <div class="form-group">
-          <label>Paid By (Payer)</label>
-          <select id="aPaidBy">
-            <option value="Praveen" selected>Praveen</option>
-            <option value="Company">Company / Owner</option>
-            <option value="Cash Holder">Cash Holder</option>
+          <label>Payment Source / Account *</label>
+          <select id="aPaidBy" style="border: 1.5px solid #0d6efd; font-weight: 600;">
+            <option value="COMPANY">🏢 COMPANY (Guest Rent / Cash in Hand)</option>
+            <option value="UHHS-OD" selected>🏦 UHHS-OD (Overdraft Account)</option>
+            <option value="FIROZ">👤 FIROZ (Direct Personal)</option>
           </select>
         </div>
       </div>
@@ -1083,7 +1084,7 @@ async function saveAdv() {
   const eid = document.getElementById('aEmp').value;
   const amt = parseFloat(document.getElementById('aAmt').value) || 0;
   if (!eid || amt <= 0) { document.getElementById('advErr').innerHTML = '<div class="error">Employee & amount required</div>'; return; }
-  const paidByVal = document.getElementById('aPaidBy')?.value || 'Praveen';
+  const paidByVal = document.getElementById('aPaidBy')?.value || 'UHHS-OD';
   const { error } = await sb.from('advance_tracker').insert({
     emp_id: eid,
     date_given: document.getElementById('aDate').value || null,
@@ -1094,6 +1095,7 @@ async function saveAdv() {
     reason: document.getElementById('aReason').value.trim() || null
   });
   if (error) { document.getElementById('advErr').innerHTML = `<div class="error">${error.message}</div>`; return; }
+  if (window.notifyDataChanged) window.notifyDataChanged();
   renderAdvanceTracker();
 }
 
@@ -1121,11 +1123,11 @@ async function editAdv(id) {
             <option ${a.payment_mode === 'Bank' ? 'selected' : ''}>Bank</option>
           </select>
         </div>
-        <div class="form-group"><label>Paid By (Payer)</label>
-          <select id="aPaidBy">
-            <option value="Praveen" ${(!a.paid_by || a.paid_by === 'Praveen') ? 'selected' : ''}>Praveen</option>
-            <option value="Company" ${a.paid_by === 'Company' ? 'selected' : ''}>Company / Owner</option>
-            <option value="Cash Holder" ${a.paid_by === 'Cash Holder' ? 'selected' : ''}>Cash Holder</option>
+        <div class="form-group"><label>Payment Source / Account *</label>
+          <select id="aPaidBy" style="border: 1.5px solid #0d6efd; font-weight: 600;">
+            <option value="COMPANY" ${a.paid_by === 'COMPANY' ? 'selected' : ''}>🏢 COMPANY (Guest Rent / Cash in Hand)</option>
+            <option value="UHHS-OD" ${a.paid_by === 'UHHS-OD' || !a.paid_by ? 'selected' : ''}>🏦 UHHS-OD (Overdraft Account)</option>
+            <option value="FIROZ" ${a.paid_by === 'FIROZ' ? 'selected' : ''}>👤 FIROZ (Direct Personal)</option>
           </select>
         </div>
       </div>
@@ -1142,14 +1144,19 @@ async function updAdv(id) {
     repaid_amount: parseFloat(document.getElementById('aRep').value) || 0,
     repaid_date: document.getElementById('aRepDate').value || null,
     payment_mode: document.getElementById('aMode').value || null,
-    paid_by: document.getElementById('aPaidBy')?.value || 'Praveen',
+    paid_by: document.getElementById('aPaidBy')?.value || 'UHHS-OD',
     reason: document.getElementById('aReason').value.trim() || null
   }).eq('id', id);
+  if (window.notifyDataChanged) window.notifyDataChanged();
   renderAdvanceTracker();
 }
 
 async function delAdv(id) {
-  if (confirm('Delete?')) { await sb.from('advance_tracker').delete().eq('id', id); renderAdvanceTracker(); }
+  if (confirm('Delete?')) {
+    await sb.from('advance_tracker').delete().eq('id', id);
+    if (window.notifyDataChanged) window.notifyDataChanged();
+    renderAdvanceTracker();
+  }
 }
 
 // ============ EMPLOYEE GENERAL EXPENSES ============
