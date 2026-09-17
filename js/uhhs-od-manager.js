@@ -39,27 +39,83 @@ function getPaymentSourceBadge(source) {
     }
 }
 
-// 3. Live UHHS-OD Balance Calculator with EXACT DB Table Names
-async function calculateLiveODBalance(supabaseClient) {
+// Dual-layer LocalStorage deposit persistence helper
+const OD_DEPOSITS_LOCAL_KEY = 'uhhs_od_deposits_v1';
+
+function getLocalODDeposits() {
+    try {
+        const raw = localStorage.getItem(OD_DEPOSITS_LOCAL_KEY);
+        return raw ? JSON.parse(raw) : [];
+    } catch (e) {
+        return [];
+    }
+}
+
+function setLocalODDeposits(list) {
+    try {
+        localStorage.setItem(OD_DEPOSITS_LOCAL_KEY, JSON.stringify(list || []));
+    } catch (e) {}
+}
+
+async function getAllODDeposits(supabaseClient, startDate = '2026-09-12', endDate = null) {
+    const client = supabaseClient || window.sb || window.supabaseClient || window.supabase;
+    const localList = getLocalODDeposits();
+    let dbList = [];
+
+    if (client) {
+        try {
+            let q = client.from('uhhs_od_account').select('*').eq('transaction_type', 'INFLOW');
+            if (startDate) q = q.gte('transaction_date', startDate);
+            if (endDate) q = q.lte('transaction_date', endDate);
+            const { data, error } = await q.order('transaction_date', { ascending: false });
+            if (!error && Array.isArray(data)) {
+                dbList = data;
+            }
+        } catch (e) {
+            console.warn('UHHS-OD Supabase read notice:', e.message);
+        }
+    }
+
+    // Merge & deduplicate by ID or (date + amount + sender)
+    const map = new Map();
+    dbList.forEach(d => {
+        const key = d.id || `${d.transaction_date}_${d.amount}_${d.received_from}`;
+        map.set(key, d);
+    });
+
+    localList.forEach(d => {
+        const key = d.id || `${d.transaction_date}_${d.amount}_${d.received_from}`;
+        if (!map.has(key)) {
+            // Check date bounds
+            if (startDate && d.transaction_date < startDate) return;
+            if (endDate && d.transaction_date > endDate) return;
+            map.set(key, d);
+        }
+    });
+
+    return Array.from(map.values()).sort((a, b) => new Date(b.transaction_date) - new Date(a.transaction_date));
+}
+
+// 3. Live UHHS-OD Balance Calculator with EXACT DB Table Names & Dual-Layer Inflows
+async function calculateLiveODBalance(supabaseClient, customStartDate, customEndDate) {
     const client = supabaseClient || window.sb || window.supabaseClient || window.supabase;
     if (!client) return { inflow: 0, outflow: 0, balance: 0 };
 
     try {
-        const startDate = "2026-09-12";
+        const startDate = customStartDate || "2026-09-12";
+        const endDate = customEndDate || null;
 
-        const { data: odInflows } = await client
-            .from('uhhs_od_account')
-            .select('amount')
-            .eq('transaction_type', 'INFLOW')
-            .gte('transaction_date', startDate);
-
+        // A. Inflows (Supabase + LocalStorage)
+        const odInflows = await getAllODDeposits(client, startDate, endDate);
         const totalInflow = (odInflows || []).reduce((sum, row) => sum + parseFloat(row.amount || 0), 0);
 
         let totalOutflow = 0;
 
         // Daily Expenses
         try {
-            const { data: r1 } = await client.from('reimbursements').select('amount, payment_source, paid_by').gte('expense_date', startDate);
+            let q1 = client.from('reimbursements').select('amount, payment_source, paid_by, expense_date').gte('expense_date', startDate);
+            if (endDate) q1 = q1.lte('expense_date', endDate);
+            const { data: r1 } = await q1;
             if (r1) {
                 totalOutflow += r1.filter(e => {
                     const s = String(e.payment_source || e.paid_by || '').toUpperCase();
@@ -70,7 +126,9 @@ async function calculateLiveODBalance(supabaseClient) {
 
         // Maintenance
         try {
-            const { data: r2 } = await client.from('maintenance_log').select('cost, payment_source').gte('reported_date', startDate);
+            let q2 = client.from('maintenance_log').select('cost, payment_source, reported_date').gte('reported_date', startDate);
+            if (endDate) q2 = q2.lte('reported_date', endDate);
+            const { data: r2 } = await q2;
             if (r2) {
                 totalOutflow += r2.filter(m => String(m.payment_source || '').toUpperCase().includes('OD'))
                                   .reduce((s, r) => s + parseFloat(r.cost || 0), 0);
@@ -79,7 +137,9 @@ async function calculateLiveODBalance(supabaseClient) {
 
         // Laundry
         try {
-            const { data: r3 } = await client.from('laundry_payments').select('amount, payment_source').gte('payment_date', startDate);
+            let q3 = client.from('laundry_payments').select('amount, payment_source, payment_date').gte('payment_date', startDate);
+            if (endDate) q3 = q3.lte('payment_date', endDate);
+            const { data: r3 } = await q3;
             if (r3) {
                 totalOutflow += r3.filter(l => String(l.payment_source || '').toUpperCase().includes('OD'))
                                   .reduce((s, r) => s + parseFloat(r.amount || 0), 0);
@@ -93,12 +153,20 @@ async function calculateLiveODBalance(supabaseClient) {
                 totalOutflow += r4.filter(a => {
                     const aDate = a.date_given || (a.created_at || '').slice(0, 10);
                     if (aDate < startDate) return false;
-                    return String(a.paid_by || '').toUpperCase() === 'UHHS-OD';
+                    if (endDate && aDate > endDate) return false;
+                    const s = String(a.paid_by || '').toUpperCase();
+                    return s.includes('OD') || s.includes('UHHS');
                 }).reduce((s, r) => s + parseFloat(r.advance_amount || 0), 0);
             }
         } catch (e) {}
 
         const netBalance = totalInflow - totalOutflow;
+
+        // Update Claims Manager Inflow / Outflow Sub-elements if present
+        const inEl = document.getElementById('claims-od-inflow');
+        if (inEl) inEl.innerText = `₹${totalInflow.toLocaleString('en-IN')}`;
+        const outEl = document.getElementById('claims-od-outflow');
+        if (outEl) outEl.innerText = `₹${totalOutflow.toLocaleString('en-IN')}`;
 
         const bannerElements = [
             document.getElementById('uhhs-od-balance-display'),
@@ -109,8 +177,10 @@ async function calculateLiveODBalance(supabaseClient) {
         bannerElements.forEach(el => {
             if (el) {
                 if (el.id === 'claims-od-banner-bal' || el.classList.contains('claims-od-bal-value')) {
-                    el.innerText = `₹${netBalance.toLocaleString('en-IN')}`;
-                    el.style.color = netBalance >= 0 ? '#059669' : '#DC2626';
+                    const prefix = netBalance < 0 ? '-₹' : '₹';
+                    const absVal = Math.abs(netBalance).toLocaleString('en-IN');
+                    el.innerText = `${prefix}${absVal}`;
+                    el.style.color = netBalance >= 0 ? '#15803D' : '#DC2626';
                 } else {
                     const isNegative = netBalance < 0;
                     el.innerHTML = `
@@ -119,7 +189,7 @@ async function calculateLiveODBalance(supabaseClient) {
                                 <div>
                                     <div style="font-size:12px; font-weight:700; color:#555; text-transform:uppercase;">🏦 UHHS-OD ACCOUNT BALANCE</div>
                                     <div style="font-size:24px; font-weight:800; color:${isNegative ? '#dc3545' : '#198754'}; margin-top:2px;">
-                                        ₹${netBalance.toLocaleString('en-IN', { minimumFractionDigits: 0 })}
+                                        ${netBalance < 0 ? '-₹' : '₹'}${Math.abs(netBalance).toLocaleString('en-IN', { minimumFractionDigits: 0 })}
                                     </div>
                                 </div>
                                 <button onclick="window.cbDepositToODModal()" style="padding:8px 14px; background:#10B981; color:#fff; border:none; border-radius:6px; font-weight:700; font-size:12px; cursor:pointer;">
@@ -128,7 +198,7 @@ async function calculateLiveODBalance(supabaseClient) {
                             </div>
                             <div style="font-size:11px; color:#666; margin-top:6px; border-top:1px solid ${isNegative ? '#fecdd3' : '#bbf7d0'}; padding-top:6px;">
                                 Inflow: <b>₹${totalInflow.toLocaleString('en-IN')}</b> | Outflow: <b>₹${totalOutflow.toLocaleString('en-IN')}</b>
-                                ${isNegative ? ' — <b style="color:#dc3545;">(OD Running in Minus)</b>' : ' — <b style="color:#198754;">(In Surplus)</b>'}
+                                ${isNegative ? ' — <b style="color:#dc3545;">(OD Running in Deficit)</b>' : ' — <b style="color:#198754;">(In Surplus)</b>'}
                             </div>
                         </div>
                     `;
@@ -136,7 +206,7 @@ async function calculateLiveODBalance(supabaseClient) {
             }
         });
 
-        return { inflow: totalInflow, outflow: totalOutflow, balance: netBalance };
+        return { inflow: totalInflow, outflow: totalOutflow, balance: netBalance, count: odInflows.length };
     } catch (error) {
         console.error("Error calculating OD balance:", error);
         return { inflow: 0, outflow: 0, balance: 0 };
@@ -147,7 +217,8 @@ async function calculateLiveODBalance(supabaseClient) {
 window.UHHSODManager = {
     getDropdownHTML: getPaymentSourceDropdownHTML,
     getBadge: getPaymentSourceBadge,
-    calculateBalance: calculateLiveODBalance
+    calculateBalance: calculateLiveODBalance,
+    getDeposits: getAllODDeposits
 };
 
 // =========================================================================
@@ -222,7 +293,7 @@ window.cbDepositToODModal = function() {
     document.body.appendChild(modal);
 };
 
-// Save OD Deposit Controller
+// Save OD Deposit Controller (Dual-Layer: LocalStorage + Supabase)
 window.cbSaveODDeposit = async function() {
     const client = window.sb || window.supabaseClient || window.supabase;
     const date = document.getElementById('odDepDate').value;
@@ -241,37 +312,57 @@ window.cbSaveODDeposit = async function() {
         return;
     }
 
-    try {
-        const { error } = await client.from('uhhs_od_account').insert([{
-            transaction_date: date,
-            description: `Funds added by ${sender} via ${mode}`,
-            amount: amount,
-            transaction_type: 'INFLOW',
-            payment_mode: mode,
-            received_from: sender,
-            reference_note: note || null
-        }]);
+    const newDep = {
+        id: 'dep_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7),
+        transaction_date: date,
+        description: `Funds added by ${sender} via ${mode}`,
+        amount: amount,
+        transaction_type: 'INFLOW',
+        payment_mode: mode,
+        received_from: sender,
+        reference_note: note || null,
+        created_at: new Date().toISOString()
+    };
 
-        if (error) {
-            errDiv.innerText = "❌ DB Error: " + error.message;
-            return;
+    // 1. Immediately save to LocalStorage so data is never lost
+    const localList = getLocalODDeposits();
+    localList.unshift(newDep);
+    setLocalODDeposits(localList);
+
+    // 2. Attempt saving to Supabase
+    if (client) {
+        try {
+            await client.from('uhhs_od_account').insert([{
+                transaction_date: date,
+                description: newDep.description,
+                amount: amount,
+                transaction_type: 'INFLOW',
+                payment_mode: mode,
+                received_from: sender,
+                reference_note: note || null
+            }]);
+        } catch (dbErr) {
+            console.warn('Supabase deposit insert notice (saved locally):', dbErr.message);
         }
-
-        // Close modal & notify
-        document.querySelector('.od-deposit-modal-overlay')?.remove();
-        if (window.fsn?.success) {
-            fsn.success('Success', `🏦 ₹${amount.toLocaleString('en-IN')} deposited to UHHS-OD!`);
-        } else {
-            alert(`✅ ₹${amount.toLocaleString('en-IN')} deposited to UHHS-OD!`);
-        }
-
-        // Refresh UI & Balance
-        if (window.UHHSODManager) window.UHHSODManager.calculateBalance(client);
-        if (typeof window.renderCashBook === 'function') window.renderCashBook();
-        window.notifyDataChanged();
-    } catch (err) {
-        errDiv.innerText = "❌ Exception: " + err.message;
     }
+
+    // Close modal & notify
+    document.querySelector('.od-deposit-modal-overlay')?.remove();
+    if (window.fsn?.success) {
+        fsn.success('Success', `🏦 ₹${amount.toLocaleString('en-IN')} deposited to UHHS-OD!`);
+    } else {
+        alert(`✅ ₹${amount.toLocaleString('en-IN')} deposited to UHHS-OD!`);
+    }
+
+    // Refresh UI & Balance
+    if (window.UHHSODManager) window.UHHSODManager.calculateBalance(client);
+    if (typeof window.loadClaimsData === 'function') window.loadClaimsData();
+    if (typeof window.renderCashBook === 'function') window.renderCashBook();
+    if (typeof window.showUhhsStatementModal === 'function') {
+        const modal = document.querySelector('.modal-overlay');
+        if (modal) { modal.remove(); window.showUhhsStatementModal(); }
+    }
+    window.notifyDataChanged();
 };
 
 // =========================================================================
@@ -279,9 +370,21 @@ window.cbSaveODDeposit = async function() {
 // =========================================================================
 window.cbEditODDeposit = async function(id) {
     const client = window.sb || window.supabaseClient || window.supabase;
-    const { data: d, error: fetchErr } = await client.from('uhhs_od_account').select('*').eq('id', id).single();
-    if (fetchErr || !d) {
-        alert('❌ Deposit entry not found: ' + (fetchErr?.message || ''));
+    let d = null;
+
+    // Check LocalStorage first
+    const localList = getLocalODDeposits();
+    d = localList.find(x => String(x.id) === String(id));
+
+    if (!d && client) {
+        try {
+            const { data } = await client.from('uhhs_od_account').select('*').eq('id', id).single();
+            if (data) d = data;
+        } catch (e) {}
+    }
+
+    if (!d) {
+        alert('❌ Deposit entry not found.');
         return;
     }
 
@@ -357,59 +460,74 @@ window.cbSaveODEditDeposit = async function(id) {
         return;
     }
 
-    try {
-        const { error } = await client.from('uhhs_od_account').update({
-            transaction_date: date,
-            amount: amount,
-            payment_mode: mode,
-            received_from: sender,
-            description: `Funds added by ${sender} via ${mode}`,
-            reference_note: note || null
-        }).eq('id', id);
-
-        if (error) {
-            errDiv.innerText = "❌ DB Error: " + error.message;
-            return;
-        }
-
-        document.querySelectorAll('.modal-overlay').forEach(m => m.remove());
-        if (window.fsn?.success) {
-            fsn.success('Updated', '✅ Deposit updated!');
-        } else {
-            alert('✅ Deposit updated!');
-        }
-
-        if (window.UHHSODManager) window.UHHSODManager.calculateBalance(client);
-        if (typeof window.showUhhsStatementModal === 'function') window.showUhhsStatementModal();
-        if (typeof window.renderCashBook === 'function') window.renderCashBook();
-        if (typeof window.notifyDataChanged === 'function') window.notifyDataChanged();
-    } catch (err) {
-        errDiv.innerText = "❌ Exception: " + err.message;
+    // Update LocalStorage
+    const localList = getLocalODDeposits();
+    const idx = localList.findIndex(x => String(x.id) === String(id));
+    if (idx >= 0) {
+        localList[idx].transaction_date = date;
+        localList[idx].amount = amount;
+        localList[idx].payment_mode = mode;
+        localList[idx].received_from = sender;
+        localList[idx].reference_note = note || null;
+        localList[idx].description = `Funds added by ${sender} via ${mode}`;
+        setLocalODDeposits(localList);
     }
+
+    // Update Supabase if possible
+    if (client) {
+        try {
+            await client.from('uhhs_od_account').update({
+                transaction_date: date,
+                amount: amount,
+                payment_mode: mode,
+                received_from: sender,
+                description: `Funds added by ${sender} via ${mode}`,
+                reference_note: note || null
+            }).eq('id', id);
+        } catch (e) {}
+    }
+
+    document.querySelectorAll('.modal-overlay').forEach(m => m.remove());
+    if (window.fsn?.success) {
+        fsn.success('Updated', '✅ Deposit updated!');
+    } else {
+        alert('✅ Deposit updated!');
+    }
+
+    if (window.UHHSODManager) window.UHHSODManager.calculateBalance(client);
+    if (typeof window.loadClaimsData === 'function') window.loadClaimsData();
+    if (typeof window.showUhhsStatementModal === 'function') window.showUhhsStatementModal();
+    if (typeof window.renderCashBook === 'function') window.renderCashBook();
+    if (typeof window.notifyDataChanged === 'function') window.notifyDataChanged();
 };
 
 window.cbDeleteODDeposit = async function(id) {
     if (!confirm('🗑️ Delete this deposit entry? This cannot be undone.')) return;
     const client = window.sb || window.supabaseClient || window.supabase;
-    try {
-        const { error } = await client.from('uhhs_od_account').delete().eq('id', id);
-        if (error) {
-            alert('❌ Error: ' + error.message);
-            return;
-        }
-        document.querySelectorAll('.modal-overlay').forEach(m => m.remove());
-        if (window.fsn?.success) {
-            fsn.success('Deleted', '✅ Deposit deleted!');
-        } else {
-            alert('✅ Deposit deleted!');
-        }
-        if (window.UHHSODManager) window.UHHSODManager.calculateBalance(client);
-        if (typeof window.showUhhsStatementModal === 'function') window.showUhhsStatementModal();
-        if (typeof window.renderCashBook === 'function') window.renderCashBook();
-        if (typeof window.notifyDataChanged === 'function') window.notifyDataChanged();
-    } catch (err) {
-        alert('❌ Exception: ' + err.message);
+
+    // Delete from LocalStorage
+    const localList = getLocalODDeposits();
+    const filtered = localList.filter(x => String(x.id) !== String(id));
+    setLocalODDeposits(filtered);
+
+    // Delete from Supabase
+    if (client) {
+        try {
+            await client.from('uhhs_od_account').delete().eq('id', id);
+        } catch (e) {}
     }
+
+    document.querySelectorAll('.modal-overlay').forEach(m => m.remove());
+    if (window.fsn?.success) {
+        fsn.success('Deleted', '✅ Deposit deleted!');
+    } else {
+        alert('✅ Deposit deleted!');
+    }
+    if (window.UHHSODManager) window.UHHSODManager.calculateBalance(client);
+    if (typeof window.loadClaimsData === 'function') window.loadClaimsData();
+    if (typeof window.showUhhsStatementModal === 'function') window.showUhhsStatementModal();
+    if (typeof window.renderCashBook === 'function') window.renderCashBook();
+    if (typeof window.notifyDataChanged === 'function') window.notifyDataChanged();
 };
 
 // Global Handover All Cash Modal Handler (Fallback Fix)

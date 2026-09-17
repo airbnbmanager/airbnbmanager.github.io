@@ -62,15 +62,33 @@ window.renderClaims = async function() {
     </div>
 
     <!-- UHHS-OD LIVE ACCOUNT BANNER -->
-    <div class="card" style="background:#F0FDF4;border:1.5px solid #86EFAC;">
-      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+    <div class="card" style="background:#F0FDF4;border:1.5px solid #86EFAC;padding:16px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:14px;">
         <div>
-          <strong style="font-size:15px;color:#15803D;">🏦 UHHS-OD Account (Online Balance)</strong>
-          <div style="font-size:11px;color:#64748B;">Money received online from Firoz & spent via UHHS-OD</div>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span style="font-size:20px;">🏦</span>
+            <strong style="font-size:16px;color:#15803D;">UHHS-OD Account (Online Balance)</strong>
+          </div>
+          <div style="font-size:12px;color:#64748B;margin-top:2px;">
+            Money received online from Firoz &amp; spent via UHHS-OD (Post-Checkpoint: 12-Sep to Today)
+          </div>
         </div>
-        <div style="text-align:right;">
-          <div style="font-size:11px;color:#64748B;">Running Balance</div>
-          <div style="font-size:24px;font-weight:900;color:#15803D;" id="claims-od-banner-bal" class="claims-od-bal-value">₹0</div>
+        <div style="display:flex;align-items:center;gap:18px;flex-wrap:wrap;">
+          <div style="text-align:right;">
+            <div style="font-size:11px;color:#64748B;font-weight:700;">📥 TOTAL DEPOSITED</div>
+            <div style="font-size:18px;font-weight:800;color:#059669;" id="claims-od-inflow">₹0</div>
+          </div>
+          <div style="text-align:right;">
+            <div style="font-size:11px;color:#64748B;font-weight:700;">📤 TOTAL SPENT</div>
+            <div style="font-size:18px;font-weight:800;color:#DC2626;" id="claims-od-outflow">₹0</div>
+          </div>
+          <div style="text-align:right;padding-left:14px;border-left:1.5px solid #CBD5E1;">
+            <div style="font-size:11px;color:#64748B;font-weight:700;">NET RUNNING BALANCE</div>
+            <div style="font-size:24px;font-weight:900;" id="claims-od-banner-bal" class="claims-od-bal-value">₹0</div>
+          </div>
+          <button onclick="openUhhsDepositModal()" style="padding:8px 14px;background:#10B981;color:#fff;border:none;border-radius:8px;font-weight:700;font-size:12.5px;cursor:pointer;display:inline-flex;align-items:center;gap:5px;box-shadow:0 2px 6px rgba(16,185,129,0.3);">
+            📥 + Deposit Funds
+          </button>
         </div>
       </div>
     </div>
@@ -146,7 +164,7 @@ window.renderClaims = async function() {
         </div>
         <div style="text-align:center;padding:12px;background:#D1FAE5;border-radius:8px;">
           <div id="statNetPayableAmt" style="font-size:20px;font-weight:800;color:#065F46;">₹0</div>
-          <div style="font-size:11px;color:#666;">💵 NET PAYABLE TO PAYER (all modules)</div>
+          <div style="font-size:11px;color:#666;" id="statNetPayableLabel">💵 Pending to Settle (Unpaid)</div>
         </div>
       </div>
     </div>
@@ -351,9 +369,15 @@ async function loadClaimsData() {
       const res = await window.UHHSODManager.calculateBalance(sb);
       const bEl = document.getElementById('claims-od-banner-bal');
       if (bEl) {
-        bEl.innerText = `₹${res.balance.toLocaleString('en-IN')}`;
+        const prefix = res.balance < 0 ? '-₹' : '₹';
+        const absVal = Math.abs(res.balance).toLocaleString('en-IN');
+        bEl.innerText = `${prefix}${absVal}`;
         bEl.style.color = res.balance >= 0 ? '#15803D' : '#DC2626';
       }
+      const inEl = document.getElementById('claims-od-inflow');
+      if (inEl) inEl.innerText = `₹${(res.inflow || 0).toLocaleString('en-IN')}`;
+      const outEl = document.getElementById('claims-od-outflow');
+      if (outEl) outEl.innerText = `₹${(res.outflow || 0).toLocaleString('en-IN')}`;
     }
 
     renderClaimsTable();
@@ -409,13 +433,21 @@ function renderClaimsTable() {
     }
   });
 
-  const netPayable = totalExps;
+  const pendingPayable = Math.max(0, totalExps - totalClaimed);
 
   // Update Stat Cards UI
   document.getElementById('statTotalAmt').innerText = `₹${totalExps.toLocaleString('en-IN')}`;
   document.getElementById('statClaimedAmt').innerText = `₹${totalClaimed.toLocaleString('en-IN')}`;
   document.getElementById('statAdvancesAmt').innerText = `₹${totalAdvances.toLocaleString('en-IN')}`;
-  document.getElementById('statNetPayableAmt').innerText = `₹${netPayable.toLocaleString('en-IN')}`;
+  const netEl = document.getElementById('statNetPayableAmt');
+  if (netEl) {
+    if (pendingPayable === 0) {
+      netEl.innerHTML = `<span style="color:#059669;">₹0 (All Settled)</span>`;
+    } else {
+      netEl.innerText = `₹${pendingPayable.toLocaleString('en-IN')}`;
+      netEl.style.color = '#B45309';
+    }
+  }
 
   // Update Bulk Banner Counters
   const rLabel = document.getElementById('bulkRangeLabel');
@@ -759,11 +791,9 @@ window.showUhhsStatementModal = async function() {
     const fDate = fromDate || '2026-09-12';
     const tDate = toDate || new Date().toISOString().slice(0, 10);
 
-    const { data: deposits } = await sb.from('uhhs_od_account')
-      .select('*')
-      .gte('transaction_date', fDate)
-      .lte('transaction_date', tDate)
-      .order('transaction_date', { ascending: false });
+    const deposits = (window.UHHSODManager && window.UHHSODManager.getDeposits)
+      ? await window.UHHSODManager.getDeposits(sb, fDate, tDate)
+      : [];
 
     const [{ data: exps }, { data: maints }, { data: launds }, { data: allAdvs }] = await Promise.all([
       sb.from('reimbursements').select('*').gte('expense_date', fDate).lte('expense_date', tDate),
@@ -825,7 +855,8 @@ window.showUhhsStatementModal = async function() {
     (allAdvs || []).filter(a => {
       const aDate = a.date_given || (a.created_at || '').slice(0, 10);
       if (aDate < fDate || aDate > tDate) return false;
-      return normalizePaymentSource(a.paid_by) === 'UHHS-OD';
+      const s = String(a.paid_by || '').toUpperCase();
+      return s.includes('OD') || s.includes('UHHS');
     }).forEach(a => {
       const realName = a.employees?.name || 'Staff';
       txns.push({
@@ -855,7 +886,8 @@ window.showUhhsStatementModal = async function() {
             <h2 style="margin:0;color:#0F766E;">📜 UHHS-OD Account Statement / Ledger</h2>
             <div style="font-size:12px;color:#64748B;margin-top:2px;">Period: <strong>${fDate}</strong> → <strong>${tDate}</strong></div>
           </div>
-          <div style="display:flex;gap:8px;">
+          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+            <button onclick="openUhhsDepositModal()" style="padding:6px 14px;background:#10B981;color:#fff;border:none;border-radius:6px;font-weight:700;font-size:12px;cursor:pointer;">📥 + Add Deposit</button>
             <button onclick="window.exportUhhsLedgerPDF('${fDate}', '${tDate}', ${totalInflow}, ${totalOutflow}, ${netBalance}, '${encodeURIComponent(JSON.stringify(txns))}')" style="padding:6px 14px;background:#0F172A;color:#fff;border:none;border-radius:6px;font-weight:700;font-size:12px;cursor:pointer;">📄 Export PDF / Print</button>
             <button onclick="this.closest('.modal-overlay').remove()" style="background:none;border:none;font-size:24px;cursor:pointer;">✕</button>
           </div>
