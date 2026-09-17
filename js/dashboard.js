@@ -271,7 +271,7 @@ async function renderDashboard() {
             <span><span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#F59E0B;margin-right:4px;"></span>Dirty (${dirty.length})</span>
           </div>
         </div>
-        <div style="display:grid;grid-template-columns:repeat(auto-fill, minmax(130px, 1fr));gap:8px;">
+        <div class="room-status-grid">
           ${allFlats.map(fl => {
             const isBooked = fl.status === 'Booked';
             const isDirty = fl.cleaning_status === 'Dirty';
