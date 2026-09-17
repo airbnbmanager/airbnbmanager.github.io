@@ -789,6 +789,343 @@ Chat with Owner Now →
       `© ${new Date().getFullYear()} THE UNIQUE HAVEN HOMES PRIVATE LIMITED · Developed by Praveen Singh`;
 </script>
 
+<!-- ─── SCRIPTS FOR AIRBNB SHOWCASE & DYNAMIC CMS ─── -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
+<script src="js/showcase-data.js"></script>
+
+<!-- ─── AIRBNB CATEGORIZED GALLERY MODAL ─── -->
+<div id="galleryModal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(15,23,42,0.92);backdrop-filter:blur(8px);z-index:99999;align-items:center;justify-content:center;padding:16px;">
+  <div style="background:#FFFFFF;border-radius:20px;max-width:960px;width:100%;max-height:92vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 25px 50px -12px rgba(0,0,0,0.5);">
+    <div style="padding:16px 20px;border-bottom:1px solid #E2E8F0;display:flex;justify-content:space-between;align-items:center;background:#F8FAFC;">
+      <div>
+        <h3 id="galleryModalTitle" style="margin:0;font-size:18px;font-weight:800;color:#0F172A;">Property Photo Gallery</h3>
+        <div id="galleryModalSub" style="font-size:12px;color:#64748B;">Explore bedrooms, bathrooms, hall &amp; video tour</div>
+      </div>
+      <button onclick="closeGalleryModal()" style="background:#E2E8F0;color:#334155;border:none;border-radius:50%;width:32px;height:32px;font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-weight:700;">✕</button>
+    </div>
+
+    <!-- Category Tabs -->
+    <div id="galleryTabsBar" style="display:flex;gap:8px;padding:10px 16px;background:#FFFFFF;border-bottom:1px solid #F1F5F9;overflow-x:auto;">
+    </div>
+
+    <!-- Gallery Photos / Video Grid -->
+    <div id="galleryModalBody" style="padding:16px;overflow-y:auto;flex:1;min-height:300px;">
+    </div>
+
+    <!-- Modal Footer -->
+    <div style="padding:12px 20px;border-top:1px solid #E2E8F0;background:#F8FAFC;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
+      <div id="galleryModalPricing" style="font-size:15px;font-weight:800;color:#0F172A;"></div>
+      <div style="display:flex;gap:8px;">
+        <a id="galleryModalWhatsAppBtn" href="#" target="_blank" style="background:#25D366;color:#fff;text-decoration:none;padding:9px 18px;border-radius:10px;font-weight:700;font-size:13px;display:inline-flex;align-items:center;gap:6px;box-shadow:0 4px 10px rgba(37,211,102,0.3);">
+          Book on WhatsApp
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ─── GOOGLE MAP MODAL ─── -->
+<div id="mapModal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(15,23,42,0.92);backdrop-filter:blur(8px);z-index:99999;align-items:center;justify-content:center;padding:16px;">
+  <div style="background:#FFFFFF;border-radius:20px;max-width:760px;width:100%;max-height:92vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 25px 50px -12px rgba(0,0,0,0.5);">
+    <div style="padding:16px 20px;border-bottom:1px solid #E2E8F0;display:flex;justify-content:space-between;align-items:center;background:#F8FAFC;">
+      <div>
+        <h3 id="mapModalTitle" style="margin:0;font-size:17px;font-weight:800;color:#0F172A;">📍 Location &amp; Landmarks</h3>
+        <div id="mapModalAddress" style="font-size:12px;color:#64748B;">Address</div>
+      </div>
+      <button onclick="closeMapModal()" style="background:#E2E8F0;color:#334155;border:none;border-radius:50%;width:32px;height:32px;font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-weight:700;">✕</button>
+    </div>
+    <div style="padding:16px;flex:1;overflow-y:auto;">
+      <div id="mapIframeWrap" style="width:100%;height:300px;border-radius:12px;overflow:hidden;border:1px solid #E2E8F0;background:#E2E8F0;margin-bottom:14px;"></div>
+      <div id="mapLandmarksList" style="font-size:13px;color:#334155;"></div>
+    </div>
+    <div style="padding:12px 20px;border-top:1px solid #E2E8F0;background:#F8FAFC;display:flex;justify-content:flex-end;gap:10px;">
+      <a id="mapExternalLink" href="#" target="_blank" style="background:#0F172A;color:#fff;text-decoration:none;padding:9px 18px;border-radius:10px;font-weight:700;font-size:13px;display:inline-flex;align-items:center;gap:6px;">
+        🧭 Open in Google Maps
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- ─── FULLSCREEN LIGHTBOX ─── -->
+<div id="lightboxModal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.95);z-index:100000;align-items:center;justify-content:center;padding:20px;" onclick="closeLightbox()">
+  <button onclick="closeLightbox()" style="position:absolute;top:20px;right:20px;background:rgba(255,255,255,0.25);color:#fff;border:none;border-radius:50%;width:40px;height:40px;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-weight:700;">✕</button>
+  <img id="lightboxImg" src="" alt="Full preview" style="max-width:95vw;max-height:90vh;object-fit:contain;border-radius:8px;" />
+</div>
+
+<script>
+  let activeShowcaseProp = null;
+  let activeGalleryCategory = 'all';
+
+  // Render Dynamic Cards from ShowcaseData
+  function initDynamicShowcase() {
+    if (!window.ShowcaseData) return;
+    const properties = window.ShowcaseData.getProperties();
+    const grid = document.getElementById('propertyGrid');
+    if (!grid) return;
+
+    const cardsHtml = Object.keys(properties).map(id => {
+      const p = properties[id];
+      const photosObj = p.photos || {};
+      let totalPhotos = 0;
+      Object.keys(photosObj).forEach(k => {
+        totalPhotos += (photosObj[k] || []).length;
+      });
+      if (totalPhotos === 0 && p.cover_image) totalPhotos = 1;
+
+      return `
+        <div class="property-card" data-area="${p.area || 'vikalp'}" data-type="${p.category || 'flat'}" id="card-${p.id}">
+          <div style="position:relative;overflow:hidden;border-radius:16px 16px 0 0;background:#E2E8F0;">
+            <a href="${p.slug ? p.slug + '.html' : '#'}" style="display:block;">
+              <img src="${p.cover_image || 'assets/logo.png'}" alt="${p.name}" loading="lazy" style="width:100%;height:220px;object-fit:cover;display:block;" onerror="this.src='assets/logo.png';" />
+            </a>
+            
+            <!-- Badges -->
+            <div style="position:absolute;top:10px;left:10px;display:flex;gap:6px;flex-wrap:wrap;">
+              <span style="background:rgba(15,23,42,0.85);backdrop-filter:blur(6px);color:#FBBF24;font-size:11.5px;font-weight:700;padding:3px 9px;border-radius:999px;border:1px solid rgba(251,191,36,0.3);display:flex;align-items:center;gap:4px;">
+                ★ ${p.rating || 4.9} <span style="color:#94A3B8;font-size:10.5px;">(${p.reviews || 40})</span>
+              </span>
+              <span style="background:#10B981;color:#fff;font-size:10.5px;font-weight:700;padding:3px 9px;border-radius:999px;box-shadow:0 2px 6px rgba(16,185,129,0.3);">
+                Direct: Save 15%
+              </span>
+            </div>
+
+            <button onclick="openGalleryModal('${p.id}')" style="position:absolute;bottom:10px;right:10px;background:rgba(255,255,255,0.95);color:#0F172A;border:none;border-radius:999px;padding:5px 12px;font-size:11.5px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:5px;box-shadow:0 3px 8px rgba(0,0,0,0.25);">
+              📸 ${totalPhotos} Photos ${p.video_url ? '· 🎥 Tour' : ''}
+            </button>
+          </div>
+
+          <div class="property-body" style="padding:16px 18px;">
+            <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.6px;color:#0D9488;margin-bottom:4px;">
+              ${p.type || 'Luxury Homestay'} &bull; ${p.area_name || ''}
+            </div>
+            
+            <div class="property-name" style="margin-bottom:6px;">
+              <a href="${p.slug ? p.slug + '.html' : '#'}" class="property-name-link" style="color:#0F172A;font-size:17px;font-weight:800;">
+                ${p.name}
+              </a>
+            </div>
+
+            <div class="property-location" style="font-size:12px;color:#64748B;margin-bottom:10px;">
+              📍 ${p.address || ''}
+            </div>
+
+            <!-- Specs -->
+            <div style="display:flex;gap:10px;padding:8px 0;border-top:1px solid #F1F5F9;border-bottom:1px solid #F1F5F9;margin-bottom:12px;font-size:12px;color:#475569;flex-wrap:wrap;">
+              <span>🛏️ <strong>${p.bedrooms || 3}</strong> Beds</span>
+              <span>🚿 <strong>${p.bathrooms || 3}</strong> Baths</span>
+              <span>👥 Up to <strong>${p.max_guests || 10}</strong></span>
+            </div>
+
+            <!-- Price -->
+            <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:14px;">
+              <div>
+                <span style="font-size:20px;font-weight:800;color:#0F172A;">₹${(p.base_price || 3499).toLocaleString('en-IN')}</span>
+                <span style="font-size:12px;color:#64748B;">/ night</span>
+              </div>
+              ${p.airbnb_price ? `
+                <div style="text-align:right;">
+                  <span style="font-size:11px;color:#94A3B8;text-decoration:line-through;">₹${p.airbnb_price.toLocaleString('en-IN')}</span>
+                  <span style="font-size:10px;font-weight:700;color:#059669;background:#ECFDF5;padding:2px 6px;border-radius:4px;margin-left:3px;">Save 15%</span>
+                </div>
+              ` : ''}
+            </div>
+
+            <!-- Action Buttons -->
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px;">
+              <button onclick="openGalleryModal('${p.id}')" style="background:#F8FAFC;color:#1E293B;border:1px solid #CBD5E1;border-radius:8px;padding:8px;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px;">
+                📸 Photos
+              </button>
+              <button onclick="openMapModal('${p.id}')" style="background:#F8FAFC;color:#1E293B;border:1px solid #CBD5E1;border-radius:8px;padding:8px;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px;">
+                📍 Map
+              </button>
+            </div>
+
+            <a href="https://wa.me/919450055554?text=Hi!%20I%20want%20to%20book%20${encodeURIComponent(p.name)}%20directly.%20Please%20share%20availability." target="_blank" style="display:flex;align-items:center;justify-content:center;gap:6px;background:linear-gradient(135deg,#25D366,#128C7E);color:#fff;text-decoration:none;padding:9px 14px;border-radius:8px;font-weight:700;font-size:13px;box-shadow:0 3px 8px rgba(37,211,102,0.25);">
+              <svg viewBox="0 0 32 32" fill="currentColor" style="width:16px;height:16px;"><path d="M16.001 3C9.373 3 4 8.373 4 15c0 2.634.86 5.08 2.32 7.06L4 29l7.2-2.28A11.93 11.93 0 0 0 16 27c6.627 0 12-5.373 12-12S22.628 3 16.001 3z"/></svg>
+              Book Direct on WhatsApp
+            </a>
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    grid.innerHTML = cardsHtml;
+  }
+
+  // Gallery Modal Functions
+  window.openGalleryModal = function(propId, category = 'all') {
+    const p = window.ShowcaseData.getProperty(propId);
+    if (!p) return;
+    activeShowcaseProp = p;
+    activeGalleryCategory = category;
+
+    document.getElementById('galleryModalTitle').textContent = p.name;
+    document.getElementById('galleryModalSub').textContent = `${p.type} • ${p.area_name} • Up to ${p.max_guests} Guests`;
+    document.getElementById('galleryModalPricing').innerHTML = `
+      ₹${(p.base_price || 3499).toLocaleString('en-IN')} <span style="font-size:12px;font-weight:400;color:#64748B;">/ night (Direct Booking Deal)</span>
+    `;
+    document.getElementById('galleryModalWhatsAppBtn').href = `https://wa.me/919450055554?text=Hi!%20I%20saw%20the%20photos%20of%20${encodeURIComponent(p.name)}%20and%20want%20to%20book%20directly.`;
+
+    renderGalleryTabs(p);
+    renderGalleryContent(p, category);
+
+    const modal = document.getElementById('galleryModal');
+    modal.style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+  };
+
+  function renderGalleryTabs(p) {
+    const photos = p.photos || {};
+    const tabsBar = document.getElementById('galleryTabsBar');
+
+    const categories = [
+      { key: 'all', label: '🌟 All Photos' },
+      { key: 'bedrooms', label: '🛏️ Bedrooms', count: (photos.bedrooms || []).length },
+      { key: 'bathrooms', label: '🚿 Bathrooms', count: (photos.bathrooms || []).length },
+      { key: 'living_hall', label: '🛋️ Living Hall', count: (photos.living_hall || []).length },
+      { key: 'kitchen', label: '🍳 Kitchen', count: (photos.kitchen || []).length },
+      { key: 'balcony', label: '🏞️ Balcony', count: (photos.balcony || []).length }
+    ];
+
+    if (p.video_url) {
+      categories.push({ key: 'video', label: '🎥 Video Tour' });
+    }
+
+    tabsBar.innerHTML = categories.map(cat => {
+      const active = activeGalleryCategory === cat.key;
+      const countLabel = cat.count !== undefined ? ` (${cat.count})` : '';
+      return `
+        <button onclick="switchGalleryCategory('${cat.key}')" style="white-space:nowrap;padding:7px 14px;border-radius:999px;font-size:12.5px;font-weight:700;cursor:pointer;border:${active ? '1.5px solid #0F172A' : '1px solid #E2E8F0'};background:${active ? '#0F172A' : '#F8FAFC'};color:${active ? '#FFFFFF' : '#475569'};transition:all 0.15s;">
+          ${cat.label}${countLabel}
+        </button>
+      `;
+    }).join('');
+  }
+
+  window.switchGalleryCategory = function(catKey) {
+    activeGalleryCategory = catKey;
+    if (activeShowcaseProp) {
+      renderGalleryTabs(activeShowcaseProp);
+      renderGalleryContent(activeShowcaseProp, catKey);
+    }
+  };
+
+  function renderGalleryContent(p, category) {
+    const body = document.getElementById('galleryModalBody');
+    const photos = p.photos || {};
+
+    if (category === 'video') {
+      if (p.video_url) {
+        body.innerHTML = `
+          <div style="background:#000;border-radius:12px;overflow:hidden;max-width:800px;margin:0 auto;">
+            <iframe src="${p.video_url}" style="width:100%;height:450px;border:none;" allowfullscreen></iframe>
+          </div>
+        `;
+      } else {
+        body.innerHTML = `<div style="text-align:center;padding:40px;color:#64748B;">No video tour linked yet.</div>`;
+      }
+      return;
+    }
+
+    let photoList = [];
+    if (category === 'all') {
+      if (p.cover_image) photoList.push(p.cover_image);
+      Object.keys(photos).forEach(k => {
+        (photos[k] || []).forEach(url => {
+          if (!photoList.includes(url)) photoList.push(url);
+        });
+      });
+    } else {
+      photoList = photos[category] || [];
+    }
+
+    if (photoList.length === 0) {
+      body.innerHTML = `<div style="text-align:center;padding:40px;color:#64748B;">No photos in this category yet.</div>`;
+      return;
+    }
+
+    body.innerHTML = `
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px;">
+        ${photoList.map(url => `
+          <div onclick="openLightbox('${url}')" style="height:200px;border-radius:12px;overflow:hidden;cursor:pointer;border:1px solid #E2E8F0;position:relative;background:#000;">
+            <img src="${url}" alt="Room photo" style="width:100%;height:100%;object-fit:cover;transition:transform 0.3s;" onmouseover="this.style.transform='scale(1.04)'" onmouseout="this.style.transform='scale(1)'" onerror="this.src='assets/logo.png';" />
+          </div>
+        `).join('')}
+      </div>
+    `;
+  }
+
+  window.closeGalleryModal = function() {
+    document.getElementById('galleryModal').style.display = 'none';
+    document.body.style.overflow = 'auto';
+  };
+
+  // Map Modal
+  window.openMapModal = function(propId) {
+    const p = window.ShowcaseData.getProperty(propId);
+    if (!p) return;
+
+    document.getElementById('mapModalTitle').textContent = `📍 ${p.name} Location`;
+    document.getElementById('mapModalAddress').textContent = p.address || '';
+    document.getElementById('mapExternalLink').href = p.map_link || 'https://maps.google.com/?q=' + encodeURIComponent(p.address || 'Lucknow');
+
+    const wrap = document.getElementById('mapIframeWrap');
+    if (p.map_embed) {
+      wrap.innerHTML = `<iframe src="${p.map_embed}" style="width:100%;height:100%;border:none;" loading="lazy"></iframe>`;
+    } else {
+      wrap.innerHTML = `<iframe src="https://www.google.com/maps?q=${encodeURIComponent(p.address || 'Gomti Nagar Lucknow')}&output=embed" style="width:100%;height:100%;border:none;" loading="lazy"></iframe>`;
+    }
+
+    const lmList = document.getElementById('mapLandmarksList');
+    const landmarks = p.landmarks || [
+      { name: 'Max Hospital', time: '5 min' },
+      { name: 'Lulu Mall', time: '15 min' },
+      { name: 'Ekana Stadium', time: '15 min' }
+    ];
+
+    lmList.innerHTML = `
+      <div style="font-weight:700;margin-bottom:8px;color:#0F172A;">🚗 Nearby Travel Distances:</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px;">
+        ${landmarks.map(lm => `
+          <div style="background:#F8FAFC;padding:8px 12px;border-radius:8px;border:1px solid #E2E8F0;font-size:12px;">
+            <strong>${lm.name}</strong>: <span style="color:#0D9488;font-weight:700;">${lm.time}</span>
+          </div>
+        `).join('')}
+      </div>
+    `;
+
+    document.getElementById('mapModal').style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+  };
+
+  window.closeMapModal = function() {
+    document.getElementById('mapModal').style.display = 'none';
+    document.body.style.overflow = 'auto';
+  };
+
+  // Lightbox
+  window.openLightbox = function(url) {
+    const lb = document.getElementById('lightboxModal');
+    document.getElementById('lightboxImg').src = url;
+    lb.style.display = 'flex';
+  };
+
+  window.closeLightbox = function() {
+    document.getElementById('lightboxModal').style.display = 'none';
+  };
+
+  // Initialize on load
+  document.addEventListener('DOMContentLoaded', () => {
+    initDynamicShowcase();
+    if (window.ShowcaseData && window.ShowcaseData.syncFromDatabase) {
+      window.ShowcaseData.syncFromDatabase().then(() => {
+        initDynamicShowcase();
+      });
+    }
+  });
+</script>
+
 <a href="https://wa.me/919450055554?text=Hi%21%20I%20want%20to%20book%20a%20luxury%20stay" target="_blank" class="floating-whatsapp" aria-label="Book on WhatsApp">
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="currentColor"><path d="M16.001 3C9.373 3 4 8.373 4 15c0 2.634.86 5.08 2.32 7.06L4 29l7.2-2.28A11.93 11.93 0 0 0 16 27c6.627 0 12-5.373 12-12S22.628 3 16.001 3zm0 21.6c-1.98 0-3.84-.55-5.43-1.5l-.39-.23-4.27 1.35 1.39-4.16-.25-.4A9.55 9.55 0 0 1 5.4 15c0-5.85 4.76-10.6 10.6-10.6S26.6 9.15 26.6 15 21.85 24.6 16 24.6zm5.86-7.9c-.32-.16-1.9-.94-2.19-1.05-.29-.11-.5-.16-.72.16-.21.32-.82 1.05-1.01 1.26-.19.21-.37.24-.69.08-.32-.16-1.34-.49-2.55-1.57-.94-.84-1.58-1.87-1.76-2.19-.19-.32-.02-.49.14-.65.14-.14.32-.37.48-.55.16-.19.21-.32.32-.53.11-.21.05-.4-.03-.55-.08-.16-.72-1.74-.98-2.38-.26-.63-.53-.54-.72-.55-.19-.01-.4-.01-.61-.01-.21 0-.55.08-.84.4-.29.32-1.1 1.08-1.1 2.63 0 1.55 1.13 3.05 1.29 3.26.16.21 2.22 3.39 5.39 4.76.75.32 1.34.51 1.8.66.76.24 1.44.21 1.99.13.61-.09 1.9-.78 2.17-1.53.27-.75.27-1.39.19-1.53-.08-.13-.29-.21-.61-.37z"/></svg>
 <span>Book on WhatsApp</span>

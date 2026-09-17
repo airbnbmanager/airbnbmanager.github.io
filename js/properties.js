@@ -22,7 +22,7 @@ async function renderManageRooms() {
     <div class="card">
       <h1>🏠 Properties</h1>
       <div class="sub">${(rooms || []).length} properties</div>
-      ${isO ? `<button onclick="renderAddRoom()">➕ Add Property</button>` : ''}
+      ${isO ? `<button onclick="renderAddRoom()">➕ Add Property</button> <button onclick="navigate('showcase-admin')" class="secondary" style="margin-left:8px;background:#0F766E;color:#fff;border-color:#0F766E;">🌐 Website Showcase &amp; Media CMS</button>` : ''}
     </div>
     <div class="card">
       <div class="table-wrap"><table>
