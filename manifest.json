@@ -1,7 +1,7 @@
 {
   "name": "The Unique Haven Homes",
-  "short_name": "Unique Haven Homes",
-  "description": "Property Management - Lucknow",
+  "short_name": "Unique Haven",
+  "description": "Luxury Homestays & Villas in Gomti Nagar, Lucknow",
   "start_url": "/admin.html",
   "scope": "/",
   "display": "standalone",

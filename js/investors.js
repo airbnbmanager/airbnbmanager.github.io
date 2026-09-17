@@ -1799,7 +1799,7 @@ window.sendPlainEmail = async function(investorId) {
       'THE UNIQUE HAVEN HOMES PRIVATE LIMITED\n' +
       'CIN: U55101UP2026PTC244637\n' +
       '📞 +91 9450055554\n' +
-      '📧 uniquehavenhomesstay@gmail.com\n' +
+      '📞 +91 9450055554 (WhatsApp)\n' +
       '🌐 uniquehavenhomesstay.com\n' +
       '───────────────────────';
     
