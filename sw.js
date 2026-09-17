@@ -1,5 +1,5 @@
-const CACHE_NAME = 'uhhs-live-v161';
-const RUNTIME_CACHE = 'uhhs-runtime-v51';
+const CACHE_NAME = 'uhhs-live-v162';
+const RUNTIME_CACHE = 'uhhs-runtime-v52';
 
 const CORE_ASSETS = [
   '/admin.html',
@@ -7,6 +7,8 @@ const CORE_ASSETS = [
   '/config.js',
   '/manifest.json',
   '/assets/logo.png',
+  '/assets/icon-192.png',
+  '/assets/icon-512.png',
   '/js/core.js',
   '/js/dashboard.js',
   '/js/calendar.js',
@@ -21,7 +23,11 @@ const CORE_ASSETS = [
   '/js/whatsapp.js',
   '/js/reconciliation.js',
   '/js/notifications.js',
-  '/js/chat.js'
+  '/js/claims.js',
+  '/js/uhhs-od-manager.js',
+  '/js/cashbook.js',
+  '/js/company-advances.js',
+  '/js/analytics.js'
 ];
 
 self.addEventListener('install', event => {
