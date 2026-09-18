@@ -1024,69 +1024,352 @@ function showPhotoViewer(url, path) {
 }
 
 // ============ USER MANAGEMENT (Admin Only) ============
-async function renderUserManagement() {
-  renderShell(`<div class="loading">Loading...</div>`, 'user-mgmt');
+window.getRoleBadgeHTML = function(role) {
+  const map = {
+    developer: { label: '🔴 Developer', bg: '#FEE2E2', color: '#991B1B', border: '#FCA5A5' },
+    admin: { label: '🔵 Admin', bg: '#EDE9FE', color: '#5B21B6', border: '#C4B5FD' },
+    owner: { label: '👑 Owner', bg: '#FEF3C7', color: '#92400E', border: '#FCD34D' },
+    manager: { label: '👔 Manager', bg: '#DBEAFE', color: '#1E40AF', border: '#93C5FD' },
+    moderator: { label: '🟡 Moderator', bg: '#FEF9C3', color: '#854D0E', border: '#FDE047' },
+    booking_staff: { label: '📋 Booking Staff', bg: '#E0E7FF', color: '#3730A3', border: '#A5B4FC' },
+    caretaker: { label: '🏠 Caretaker', bg: '#D1FAE5', color: '#065F46', border: '#6EE7B7' },
+    checkin_manager: { label: '🏠 Caretaker', bg: '#D1FAE5', color: '#065F46', border: '#6EE7B7' },
+    investor: { label: '📈 Investor', bg: '#ECFCCB', color: '#365314', border: '#BEF264' },
+    employee: { label: '👷 Employee', bg: '#F3E8FF', color: '#6B21A8', border: '#D8B4FE' },
+    ca: { label: '📑 CA / Audit', bg: '#CCFBF1', color: '#115E59', border: '#5EEAD4' },
+    viewer: { label: '👁️ Viewer', bg: '#F3F4F6', color: '#374151', border: '#D1D5DB' }
+  };
+  const r = map[role] || { label: role || 'Unknown', bg: '#F3F4F6', color: '#374151', border: '#D1D5DB' };
+  return `<span style="display:inline-flex;align-items:center;padding:3px 9px;border-radius:12px;font-size:11px;font-weight:700;background:${r.bg};color:${r.color};border:1px solid ${r.border};">${r.label}</span>`;
+};
 
-  const [{ data: profiles }, { data: pending }] = await Promise.all([
-    sb.from('profiles').select('user_id, role, display_name, auth_provider, is_approved, avatar_url').order('display_name'),
-    sb.from('pending_users').select('*').eq('status', 'Pending').order('requested_at', { ascending: false })
+window.setUserViewMode = function(mode) {
+  window._userViewMode = mode;
+  localStorage.setItem('user_mgmt_view_mode', mode);
+  renderUserManagement();
+};
+
+window.setUserFilter = function(filter) {
+  window._userFilter = filter;
+  renderUserManagement();
+};
+
+async function renderUserManagement() {
+  renderShell(`<div class="loading">Loading users & permissions...</div>`, 'user-mgmt');
+
+  const [{ data: profiles }, { data: allPending }] = await Promise.all([
+    sb.from('profiles').select('*').order('display_name'),
+    sb.from('pending_users').select('*').order('requested_at', { ascending: false })
   ]);
 
+  const userList = profiles || [];
+  const pendingRequests = (allPending || []).filter(p => p.status === 'Pending');
+
+  // Build user email map from pending_users and auth metadata
+  const emailMap = {};
+  (allPending || []).forEach(p => {
+    if (p.user_id && p.email) emailMap[p.user_id] = p.email;
+  });
+
+  // Calculate metrics
+  const totalUsers = userList.length;
+  const activeCount = userList.filter(u => u.is_approved).length;
+  const suspendedCount = userList.filter(u => !u.is_approved).length;
+  const pendingCount = pendingRequests.length;
+  const adminCount = userList.filter(u => ['developer', 'admin'].includes(u.role)).length;
+  const managerCount = userList.filter(u => ['manager', 'owner'].includes(u.role)).length;
+
+  const viewMode = window._userViewMode || localStorage.getItem('user_mgmt_view_mode') || (window.innerWidth <= 768 ? 'cards' : 'table');
+  const activeFilter = window._userFilter || 'all';
+  const sq = (window._userSearchQuery || '').toLowerCase().trim();
+
+  // Apply filters
+  let filtered = userList.filter(u => {
+    if (activeFilter === 'active') return u.is_approved;
+    if (activeFilter === 'suspended') return !u.is_approved;
+    if (activeFilter === 'admin') return ['developer', 'admin'].includes(u.role);
+    if (activeFilter === 'manager') return ['manager', 'owner'].includes(u.role);
+    if (activeFilter === 'staff') return ['booking_staff', 'caretaker', 'checkin_manager', 'moderator'].includes(u.role);
+    if (activeFilter === 'viewer') return u.role === 'viewer';
+    return true;
+  });
+
+  if (sq) {
+    filtered = filtered.filter(u => {
+      const name = (u.display_name || '').toLowerCase();
+      const email = (emailMap[u.user_id] || '').toLowerCase();
+      const role = (u.role || '').toLowerCase();
+      return name.includes(sq) || email.includes(sq) || role.includes(sq);
+    });
+  }
+
   renderShell(`
-    <div class="card">
-      <h1>👤 User Management</h1>
-      <div class="sub">Manage users, approve requests, assign roles</div>
+    <div class="card" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;">
+      <div>
+        <h1 style="margin:0;font-size:22px;">👤 User Management & Roles</h1>
+        <div class="sub" style="margin:4px 0 0;">
+          System users, security access, role permissions & pending approvals · <strong>${totalUsers} registered users</strong>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+        <button class="btn-sm outline" onclick="renderUserManagement()">
+          🔁 Refresh
+        </button>
+        <div style="display:inline-flex;background:var(--border);padding:2px;border-radius:8px;">
+          <button type="button" class="btn-sm" onclick="setUserViewMode('cards')"
+            style="min-height:28px;padding:4px 10px;font-size:12px;border-radius:6px;${viewMode === 'cards' ? 'background:#fff;color:var(--dark);box-shadow:0 1px 3px rgba(0,0,0,0.1);font-weight:700;' : 'background:transparent;color:var(--muted);border:none;'}">
+            📱 Cards
+          </button>
+          <button type="button" class="btn-sm" onclick="setUserViewMode('table')"
+            style="min-height:28px;padding:4px 10px;font-size:12px;border-radius:6px;${viewMode === 'table' ? 'background:#fff;color:var(--dark);box-shadow:0 1px 3px rgba(0,0,0,0.1);font-weight:700;' : 'background:transparent;color:var(--muted);border:none;'}">
+            📋 Table
+          </button>
+        </div>
+        ${window.canDelete && window.canDelete() ? `
+          <button class="btn-sm danger" onclick="forceLogoutAll()" style="background:#dc2626;color:#fff;" title="Force logout all other users">
+            🚪 Logout All
+          </button>
+        ` : ''}
+      </div>
     </div>
 
-    ${(pending || []).length ? `
-      <div class="card" style="border-left:4px solid var(--yellow);">
-        <div class="section-title">⏳ Pending Approval (${pending.length})</div>
-        <div class="table-wrap"><table>
-          <thead><tr><th>Name</th><th>Email</th><th>Provider</th><th>Requested</th><th>Actions</th></tr></thead>
-          <tbody>${pending.map(p => `<tr>
-            <td><strong>${p.full_name || '-'}</strong></td>
-            <td>${p.email || '-'}</td>
-            <td><span class="badge blue">${p.auth_provider || 'email'}</span></td>
-            <td>${p.requested_at ? new Date(p.requested_at).toLocaleDateString('en-IN') : '-'}</td>
-            <td class="table-actions">
-              <button class="btn-sm green-btn" onclick="approveUser('${p.user_id}','${(p.full_name || '').replace(/'/g, "\\'")}')">✅ Approve</button>
-              <button class="btn-sm danger" onclick="rejectUser('${p.user_id}')">❌ Reject</button>
-            </td>
-          </tr>`).join('')}</tbody>
-        </table></div>
+    <!-- Quick Filter KPI Ribbon -->
+    <div class="stat-grid" style="grid-template-columns:repeat(auto-fit, minmax(130px, 1fr));gap:10px;margin-bottom:12px;">
+      <div class="stat-card" onclick="setUserFilter('all')" style="cursor:pointer;border-left:4px solid #3B82F6;${activeFilter === 'all' ? 'background:#EFF6FF;box-shadow:0 0 0 2px #3B82F6;' : ''}">
+        <div class="stat-num" style="color:#1D4ED8;">${totalUsers}</div>
+        <div class="stat-label">👥 Total Users</div>
+      </div>
+      <div class="stat-card" onclick="setUserFilter('active')" style="cursor:pointer;border-left:4px solid #10B981;${activeFilter === 'active' ? 'background:#ECFDF5;box-shadow:0 0 0 2px #10B981;' : ''}">
+        <div class="stat-num" style="color:#047857;">${activeCount}</div>
+        <div class="stat-label">✅ Active Access</div>
+      </div>
+      ${pendingCount > 0 ? `
+        <div class="stat-card" onclick="setUserFilter('pending')" style="cursor:pointer;border-left:4px solid #F59E0B;background:#FFFBEB;box-shadow:0 0 0 2px #F59E0B;animation:pulse 2s infinite;">
+          <div class="stat-num" style="color:#B45309;">${pendingCount}</div>
+          <div class="stat-label">⏳ Pending Approvals</div>
+        </div>
+      ` : ''}
+      <div class="stat-card" onclick="setUserFilter('admin')" style="cursor:pointer;border-left:4px solid #8B5CF6;${activeFilter === 'admin' ? 'background:#F5F3FF;box-shadow:0 0 0 2px #8B5CF6;' : ''}">
+        <div class="stat-num" style="color:#6D28D9;">${adminCount}</div>
+        <div class="stat-label">🛡️ Admins & Devs</div>
+      </div>
+      <div class="stat-card" onclick="setUserFilter('manager')" style="cursor:pointer;border-left:4px solid #0EA5E9;${activeFilter === 'manager' ? 'background:#F0F9FF;box-shadow:0 0 0 2px #0EA5E9;' : ''}">
+        <div class="stat-num" style="color:#0369A1;">${managerCount}</div>
+        <div class="stat-label">👑 Owners & Mgrs</div>
+      </div>
+      <div class="stat-card" onclick="setUserFilter('suspended')" style="cursor:pointer;border-left:4px solid #EF4444;${activeFilter === 'suspended' ? 'background:#FEF2F2;box-shadow:0 0 0 2px #EF4444;' : ''}">
+        <div class="stat-num" style="color:#B91C1C;">${suspendedCount}</div>
+        <div class="stat-label">⏸️ Suspended</div>
+      </div>
+    </div>
+
+    <!-- PENDING APPROVAL SECTION -->
+    ${pendingRequests.length ? `
+      <div class="card" style="border-left:4px solid #F59E0B;background:#FFFDF7;margin-bottom:14px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+          <div style="font-weight:800;font-size:16px;color:#92400E;display:flex;align-items:center;gap:6px;">
+            <span>⏳</span> <span>Pending Access Requests (${pendingRequests.length})</span>
+          </div>
+          <span style="font-size:12px;color:#B45309;font-weight:600;">Assign role to grant access</span>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(280px, 1fr));gap:10px;">
+          ${pendingRequests.map(p => `
+            <div style="background:#fff;border:1px solid #FDE68A;border-radius:10px;padding:12px;display:flex;flex-direction:column;justify-content:space-between;box-shadow:0 1px 3px rgba(0,0,0,0.05);">
+              <div>
+                <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+                  <div style="width:38px;height:38px;border-radius:50%;background:#F3F4F6;color:#4B5563;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:15px;border:1px solid #E5E7EB;">
+                    ${(p.full_name || 'U').charAt(0).toUpperCase()}
+                  </div>
+                  <div style="min-width:0;">
+                    <div style="font-weight:700;font-size:14px;color:#111827;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+                      ${p.full_name || 'New User'}
+                    </div>
+                    <div style="font-size:12px;color:#6B7280;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+                      ${p.email || 'No email'}
+                    </div>
+                  </div>
+                </div>
+                <div style="font-size:11px;color:#9CA3AF;margin-bottom:10px;">
+                  Provider: <strong>${p.auth_provider || 'google'}</strong> · Requested: ${p.requested_at ? new Date(p.requested_at).toLocaleDateString('en-IN') : 'Recent'}
+                </div>
+              </div>
+              <div style="display:flex;gap:8px;">
+                <button class="btn-sm" onclick="approveUser('${p.user_id}','${(p.full_name || '').replace(/'/g, "\\'")}')" style="flex:1;background:#10B981;color:#fff;border:none;font-weight:700;">
+                  ✅ Approve & Role
+                </button>
+                <button class="btn-sm danger" onclick="rejectUser('${p.user_id}')" style="flex:1;">
+                  ❌ Reject
+                </button>
+              </div>
+            </div>
+          `).join('')}
+        </div>
       </div>
     ` : ''}
 
-    <div class="card">
-      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:12px;">
-        <div class="section-title" style="margin:0;">All Users (${(profiles || []).length})</div>
-        ${window.canDelete && window.canDelete() ? `
-          <button class="btn-sm danger" onclick="forceLogoutAll()" style="background:#dc2626;">🚪 Logout All Users</button>
-        ` : ''}
+    <!-- SEARCH & FILTER CONTROLS -->
+    <div class="card" style="margin-bottom:14px;padding:12px 14px;">
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+        <div style="position:relative;flex:1;min-width:220px;">
+          <input type="text" id="userSearchInput" value="${sq}" placeholder="🔍 Search user by name, email or role..."
+            oninput="window._userSearchQuery = this.value; renderUserManagement();"
+            style="width:100%;padding:8px 12px;border:1px solid #D1D5DB;border-radius:8px;font-size:14px;box-sizing:border-box;" />
+          ${sq ? `<span onclick="window._userSearchQuery='';renderUserManagement();" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);cursor:pointer;color:#999;font-weight:bold;">✕</span>` : ''}
+        </div>
+        <div style="display:flex;gap:6px;overflow-x:auto;padding-bottom:2px;">
+          <button type="button" class="btn-sm" onclick="setUserFilter('all')" style="${activeFilter === 'all' ? 'background:var(--primary);color:#fff;' : 'background:#F3F4F6;color:#374151;border:none;'}">All</button>
+          <button type="button" class="btn-sm" onclick="setUserFilter('active')" style="${activeFilter === 'active' ? 'background:var(--primary);color:#fff;' : 'background:#F3F4F6;color:#374151;border:none;'}">Active</button>
+          <button type="button" class="btn-sm" onclick="setUserFilter('admin')" style="${activeFilter === 'admin' ? 'background:var(--primary);color:#fff;' : 'background:#F3F4F6;color:#374151;border:none;'}">Admin/Dev</button>
+          <button type="button" class="btn-sm" onclick="setUserFilter('manager')" style="${activeFilter === 'manager' ? 'background:var(--primary);color:#fff;' : 'background:#F3F4F6;color:#374151;border:none;'}">Owner/Mgr</button>
+          <button type="button" class="btn-sm" onclick="setUserFilter('staff')" style="${activeFilter === 'staff' ? 'background:var(--primary);color:#fff;' : 'background:#F3F4F6;color:#374151;border:none;'}">Staff/Caretaker</button>
+          <button type="button" class="btn-sm" onclick="setUserFilter('suspended')" style="${activeFilter === 'suspended' ? 'background:var(--primary);color:#fff;' : 'background:#F3F4F6;color:#374151;border:none;'}">Suspended</button>
+        </div>
       </div>
-      <div class="table-wrap"><table>
-        <thead><tr><th>Name</th><th>Role</th><th>Provider</th><th>Status</th><th>Actions</th></tr></thead>
-        <tbody>${(profiles || []).map(p => `<tr>
-          <td>
-            ${p.avatar_url ? `<img src="${p.avatar_url}" style="width:24px;height:24px;border-radius:50%;vertical-align:middle;margin-right:6px;" />` : ''}
-            <strong>${p.display_name || '-'}</strong>
-          </td>
-          <td><span class="badge ${p.role === 'owner' ? 'green' : p.role === 'manager' ? 'blue' : 'yellow'}">${(({
-              'c6343844-a307-4668-9b16-1947a0c0f8fa': 'Manager',
-              'e3717cbd-da9a-495e-a940-2995021e8ca2': 'Developer'
-            })[p.user_id]) || p.role}</span></td>
-          <td>${p.auth_provider || 'email'}</td>
-          <td><span class="badge ${p.is_approved ? 'green' : 'yellow'}">${p.is_approved ? 'Active' : 'Pending'}</span></td>
-          <td class="table-actions">
-            <button class="btn-sm" onclick="changeUserRole('${p.user_id}','${p.display_name || ''}')">🔧 Role</button>
-            ${window.canDelete && window.canDelete() && p.user_id !== SESSION.userId ? `
-              <button class="btn-sm" style="background:#f59e0b;color:#fff;" onclick="forceLogoutUser('${p.user_id}','${p.display_name || ''}')" title="Force logout this user">🚪</button>
-            ` : ''}
-            ${window.canDelete && window.canDelete() ? `<button class="btn-sm danger" onclick="deleteUser('${p.user_id}','${p.display_name || ''}')">🗑️</button>` : ''}
-          </td>
-        </tr>`).join('')}</tbody>
-      </table></div>
     </div>
+
+    <!-- USERS CONTENT: CARDS OR TABLE -->
+    ${filtered.length === 0 ? `
+      <div class="card" style="text-align:center;padding:40px 20px;color:var(--muted);">
+        <div style="font-size:36px;margin-bottom:8px;">🔍</div>
+        <div style="font-size:16px;font-weight:700;color:#374151;">No users match your criteria</div>
+        <div style="font-size:13px;margin-top:4px;">Try clearing search or changing the filter chip.</div>
+        <button class="btn-sm" onclick="window._userSearchQuery='';window._userFilter='all';renderUserManagement();" style="margin-top:12px;">Reset Filters</button>
+      </div>
+    ` : viewMode === 'cards' ? `
+      <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(300px, 1fr));gap:12px;">
+        ${filtered.map(u => {
+          const userEmail = emailMap[u.user_id] || (u.auth_provider === 'google' ? 'Google Account' : 'Direct Email');
+          const isCurrentUser = u.user_id === SESSION.userId;
+          return `
+            <div class="card" style="margin-bottom:0;display:flex;flex-direction:column;justify-content:space-between;gap:12px;border:1px solid ${u.is_approved ? '#E5E7EB' : '#FCA5A5'};background:${u.is_approved ? '#fff' : '#FEF2F2'};border-radius:12px;box-shadow:0 1px 3px rgba(0,0,0,0.04);">
+              <div>
+                <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;">
+                  <div style="display:flex;align-items:center;gap:10px;">
+                    ${u.avatar_url ? `
+                      <img src="${u.avatar_url}" style="width:42px;height:42px;border-radius:50%;object-fit:cover;border:2px solid #E5E7EB;" />
+                    ` : `
+                      <div style="width:42px;height:42px;border-radius:50%;background:#E0E7FF;color:#4338CA;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:16px;border:1px solid #C7D2FE;">
+                        ${(u.display_name || 'U').charAt(0).toUpperCase()}
+                      </div>
+                    `}
+                    <div>
+                      <div style="font-weight:700;font-size:15px;color:#111827;display:flex;align-items:center;gap:6px;">
+                        <span>${u.display_name || 'User'}</span>
+                        ${isCurrentUser ? `<span style="background:#EFF6FF;color:#1D4ED8;font-size:10px;padding:2px 6px;border-radius:6px;font-weight:700;">YOU</span>` : ''}
+                      </div>
+                      <div style="font-size:12px;color:#6B7280;margin-top:2px;">
+                        ${userEmail}
+                      </div>
+                    </div>
+                  </div>
+                  <div>
+                    ${window.getRoleBadgeHTML(u.role)}
+                  </div>
+                </div>
+
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px;padding-top:10px;border-top:1px solid #F3F4F6;font-size:12px;">
+                  <div style="color:#6B7280;">
+                    Provider: <strong>${u.auth_provider || 'google'}</strong>
+                  </div>
+                  <div>
+                    <span class="badge ${u.is_approved ? 'green' : 'red'}" style="font-size:11px;">
+                      ${u.is_approved ? '● Active' : '✕ Suspended'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- ACTIONS -->
+              <div style="display:flex;gap:6px;align-items:center;padding-top:8px;border-top:1px solid #F3F4F6;">
+                <button class="btn-sm" onclick="changeUserRole('${u.user_id}','${(u.display_name || '').replace(/'/g, "\\'")}')" style="flex:1;background:#F3F4F6;color:#374151;border:1px solid #D1D5DB;font-weight:600;">
+                  🔧 Role
+                </button>
+                ${!isCurrentUser ? `
+                  <button class="btn-sm" onclick="toggleUserActive('${u.user_id}', ${u.is_approved ? 'true' : 'false'}, '${(u.display_name || '').replace(/'/g, "\\'")}')"
+                    style="flex:1;background:${u.is_approved ? '#FFFBEB;color:#B45309;border:1px solid #FCD34D;' : '#ECFDF5;color:#047857;border:1px solid #6EE7B7;'}font-weight:600;"
+                    title="${u.is_approved ? 'Suspend User' : 'Activate User'}">
+                    ${u.is_approved ? '⏸️ Suspend' : '▶️ Activate'}
+                  </button>
+                  ${window.canDelete && window.canDelete() ? `
+                    <button class="btn-sm" style="background:#FEE2E2;color:#991B1B;border:1px solid #FCA5A5;padding:6px 10px;" onclick="forceLogoutUser('${u.user_id}','${(u.display_name || '').replace(/'/g, "\\'")}')" title="Force Logout">
+                      🚪
+                    </button>
+                    <button class="btn-sm danger" onclick="deleteUser('${u.user_id}','${(u.display_name || '').replace(/'/g, "\\'")}')" style="padding:6px 10px;" title="Delete User">
+                      🗑️
+                    </button>
+                  ` : ''}
+                ` : ''}
+              </div>
+            </div>
+          `;
+        }).join('')}
+      </div>
+    ` : `
+      <div class="card" style="padding:0;overflow:hidden;">
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>User / Name</th>
+                <th>Role</th>
+                <th>Email / Provider</th>
+                <th>Access Status</th>
+                <th style="text-align:right;">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${filtered.map(u => {
+                const userEmail = emailMap[u.user_id] || (u.auth_provider === 'google' ? 'Google Account' : 'Direct Email');
+                const isCurrentUser = u.user_id === SESSION.userId;
+                return `
+                  <tr>
+                    <td>
+                      <div style="display:flex;align-items:center;gap:10px;">
+                        ${u.avatar_url ? `
+                          <img src="${u.avatar_url}" style="width:30px;height:30px;border-radius:50%;object-fit:cover;" />
+                        ` : `
+                          <div style="width:30px;height:30px;border-radius:50%;background:#E0E7FF;color:#4338CA;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;">
+                            ${(u.display_name || 'U').charAt(0).toUpperCase()}
+                          </div>
+                        `}
+                        <div>
+                          <strong>${u.display_name || 'User'}</strong>
+                          ${isCurrentUser ? ` <span style="background:#EFF6FF;color:#1D4ED8;font-size:10px;padding:1px 5px;border-radius:4px;font-weight:700;">YOU</span>` : ''}
+                        </div>
+                      </div>
+                    </td>
+                    <td>${window.getRoleBadgeHTML(u.role)}</td>
+                    <td>
+                      <div style="font-size:13px;">${userEmail}</div>
+                      <div style="font-size:11px;color:#9CA3AF;">${u.auth_provider || 'google'}</div>
+                    </td>
+                    <td>
+                      <span class="badge ${u.is_approved ? 'green' : 'red'}" style="cursor:pointer;" onclick="toggleUserActive('${u.user_id}', ${u.is_approved ? 'true' : 'false'}, '${(u.display_name || '').replace(/'/g, "\\'")}')" title="Click to toggle status">
+                        ${u.is_approved ? '● Active' : '✕ Suspended'}
+                      </span>
+                    </td>
+                    <td class="table-actions" style="text-align:right;">
+                      <button class="btn-sm" onclick="changeUserRole('${u.user_id}','${(u.display_name || '').replace(/'/g, "\\'")}')">🔧 Role</button>
+                      ${!isCurrentUser ? `
+                        <button class="btn-sm" onclick="toggleUserActive('${u.user_id}', ${u.is_approved ? 'true' : 'false'}, '${(u.display_name || '').replace(/'/g, "\\'")}')"
+                          style="${u.is_approved ? 'background:#FFFBEB;color:#B45309;border:1px solid #FCD34D;' : 'background:#ECFDF5;color:#047857;border:1px solid #6EE7B7;'}"
+                          title="${u.is_approved ? 'Suspend Access' : 'Restore Access'}">
+                          ${u.is_approved ? '⏸️ Suspend' : '▶️ Activate'}
+                        </button>
+                        ${window.canDelete && window.canDelete() ? `
+                          <button class="btn-sm" style="background:#f59e0b;color:#fff;" onclick="forceLogoutUser('${u.user_id}','${(u.display_name || '').replace(/'/g, "\\'")}')" title="Force Logout">🚪</button>
+                          <button class="btn-sm danger" onclick="deleteUser('${u.user_id}','${(u.display_name || '').replace(/'/g, "\\'")}')" title="Delete User Profile">🗑️</button>
+                        ` : ''}
+                      ` : ''}
+                    </td>
+                  </tr>
+                `;
+              }).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    `}
   `, 'user-mgmt');
 }
 
@@ -1096,48 +1379,63 @@ function showRolePickerModal(userId, name, callback) {
   modal.className = 'modal-overlay';
   modal.onclick = e => { if (e.target === modal) modal.remove(); };
   modal.innerHTML = `
-    <div class="modal-box">
+    <div class="modal-box" style="max-width:440px;">
       <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">✕</button>
-      <h2>🔧 Assign Role</h2>
-      <div class="sub">${name}</div>
-      <div class="form-group" style="margin-top:12px;">
-        <label>Select Role *</label>
-        <select id="rolePickerSel" style="font-size:15px;">
-          <option value="">-- Select Role --</option>
-          <option value="developer">🔴 Developer (Full + Delete)</option>
-          <option value="owner">🟠 Owner (Full, No Delete)</option>
-          <option value="moderator">🟡 Moderator (Booking + ID + WhatsApp)</option>
-          <option value="viewer">👁️ Viewer (View Only - 4 items)</option>
+      <h2 style="margin:0 0 4px;font-size:18px;">🔧 Assign System Role</h2>
+      <div class="sub" style="font-size:13px;color:var(--muted);">${name}</div>
+      <div class="form-group" style="margin-top:14px;">
+        <label style="font-weight:700;font-size:13px;display:block;margin-bottom:6px;">Select Role *</label>
+        <select id="rolePickerSel" style="width:100%;font-size:14px;padding:9px;border:1px solid #D1D5DB;border-radius:8px;background:#fff;">
+          <option value="">-- Choose Access Level --</option>
+          <option value="developer">🔴 Developer (Full Master Access + Delete)</option>
+          <option value="admin">🔵 Admin (Full Operations & Settings)</option>
+          <option value="owner">👑 Owner (Full Properties, Financials, Bookings)</option>
+          <option value="manager">👔 Manager (Operations, Turnarounds & Bookings)</option>
+          <option value="moderator">🟡 Moderator (Bookings, ID Proofs & WhatsApp)</option>
+          <option value="booking_staff">📋 Booking Staff (Guest Register & Check-ins)</option>
+          <option value="caretaker">🏠 Caretaker (Housekeeping & Assigned Flats)</option>
+          <option value="investor">📈 Investor (Assigned Property Occupancy & Share)</option>
+          <option value="employee">👷 Employee (Tasks, Attendance & Salary)</option>
+          <option value="ca">📑 CA / Auditor (Financial Reports & Statements)</option>
+          <option value="viewer">👁️ Viewer (View-Only Restricted Access)</option>
         </select>
       </div>
-      <div style="font-size:12px;color:var(--muted);margin-top:6px;padding:8px;background:var(--bg);border-radius:8px;" id="roleDesc"></div>
-      <button onclick="confirmRolePicker('${userId}','${name.replace(/'/g,"\\'")}',callback_${userId.replace(/-/g,'_')})" style="width:100%;margin-top:12px;">✅ Confirm Role</button>
-      <div id="rolePickerErr"></div>
+      <div style="font-size:12px;color:#4B5563;margin-top:8px;padding:10px;background:#F9FAFB;border:1px solid #E5E7EB;border-radius:8px;line-height:1.4;" id="roleDesc">
+        Role select karein to see exact permissions and accessible pages.
+      </div>
+      <button onclick="confirmRolePicker('${userId}','${name.replace(/'/g,"\\'")}',callback_${userId.replace(/-/g,'_')})" style="width:100%;margin-top:14px;background:#10B981;color:#fff;border:none;padding:10px;font-weight:700;border-radius:8px;font-size:14px;cursor:pointer;">
+        ✅ Confirm & Apply Role
+      </button>
+      <div id="rolePickerErr" style="margin-top:8px;"></div>
     </div>`;
   document.body.appendChild(modal);
 
-  // Store callback globally
   window[`callback_${userId.replace(/-/g,'_')}`] = callback;
 
-  // Role description on change
   document.getElementById('rolePickerSel').onchange = function() {
     const desc = {
-      admin: '🔧 Full access - can add, edit, delete everything. Only for developers/system admins.',
-      owner: '👑 Property owners - view all data, add/edit bookings & payments. Cannot delete.',
-      booking_staff: '📋 Trusted staff - book guests, upload IDs, edit bookings. Cannot delete.',
-      caretaker: '🏠 Caretaker - view own assigned property bookings, guests, checkins. Report to Manager.',
-      viewer: '👁️ Limited view - today\'s bookings, checkouts, payments status only.',
-      investor: '📊 Investor - only view their own linked property bookings and monthly reports.',
-      employee: '👷 Employee - only view own attendance, salary, advances, tasks.',
-      ca: '📋 CA/Accountant - financial reports and CSV downloads only.'
+      developer: '🔴 Developer: Master super-admin privileges including database record deletion, user management, and raw data access.',
+      admin: '🔵 Admin: Complete management permissions across bookings, calendars, flats status, staff, expenses, and system settings.',
+      owner: '👑 Owner: High-level property oversight, bookings, cash flow, payouts, WhatsApp dispatch, and full revenue visibility.',
+      manager: '👔 Manager: Daily operational lead: housekeeping turnarounds, booking verification, staff tasks, and guest communications.',
+      moderator: '🟡 Moderator: Bookings management, guest verification, ID proof uploads, and automated WhatsApp messaging.',
+      booking_staff: '📋 Booking Staff: Front-desk operations, adding new bookings, check-in flow, and collecting advance payments.',
+      caretaker: '🏠 Caretaker: Mobile housekeeping dashboard for assigned flats, cleaning checklist, and turnaround scheduling.',
+      investor: '📈 Investor: Restricted portal viewing only their designated investor flats, occupancy stats, and monthly statements.',
+      employee: '👷 Employee: Staff self-service portal for attendance, task logging, and salary advance records.',
+      ca: '📑 CA / Auditor: Read-only access to ledger statements, cashbook reconciliations, and financial CSV exports.',
+      viewer: '👁️ Viewer: Read-only access to today\'s general check-ins, check-outs, and basic occupancy matrix.'
     };
-    document.getElementById('roleDesc').textContent = desc[this.value] || '';
+    document.getElementById('roleDesc').textContent = desc[this.value] || 'Role select karein to see exact permissions.';
   };
 }
 
 async function confirmRolePicker(userId, name, callbackFn) {
   const role = document.getElementById('rolePickerSel').value;
-  if (!role) { document.getElementById('rolePickerErr').innerHTML = '<div class="error">Role select karo</div>'; return; }
+  if (!role) {
+    document.getElementById('rolePickerErr').innerHTML = '<div class="error" style="color:#DC2626;font-size:12px;font-weight:700;margin-top:4px;">⚠️ Please select a role</div>';
+    return;
+  }
   document.querySelector('.modal-overlay')?.remove();
   if (typeof callbackFn === 'function') callbackFn(role);
 }
@@ -1159,7 +1457,7 @@ async function approveUser(userId, name) {
       }
 
       await sb.from('pending_users').update({ status: 'Approved' }).eq('user_id', userId);
-      fsn.success(`Success`, `✅ ${displayName} approved as ${role}`);
+      fsn.success('Success', `✅ ${displayName} approved as ${role}`);
       renderUserManagement();
     } catch (err) {
       fsn.error('Error', '❌ Approve failed: ' + (err.message || err));
@@ -1173,7 +1471,7 @@ async function changeUserRole(userId, name) {
     try {
       const { error: updErr } = await sb.from('profiles').update({ role }).eq('user_id', userId);
       if (updErr) { fsn.error('Role Change Failed', updErr.message); return; }
-      fsn.success(`Success`, `✅ Role changed to ${role}`);
+      fsn.success('Success', `✅ Role updated to ${role}`);
       renderUserManagement();
     } catch (err) {
       fsn.error('Error', '❌ Role change failed: ' + (err.message || err));
@@ -1181,23 +1479,42 @@ async function changeUserRole(userId, name) {
   });
 }
 
+// ============ TOGGLE ACTIVE / SUSPEND ============
+window.toggleUserActive = async function(userId, isCurrentlyApproved, name) {
+  if (userId === SESSION.userId) {
+    if (window.fsn) fsn.warning('Cannot Suspend', 'You cannot suspend your own account.');
+    else alert('You cannot suspend your own account.');
+    return;
+  }
+  const newStatus = !isCurrentlyApproved;
+  const actionText = newStatus ? 'Activate & restore access for' : 'Suspend login access for';
+  if (!confirm(`${actionText} "${name}"?`)) return;
+
+  try {
+    const { error } = await sb.from('profiles').update({ is_approved: newStatus }).eq('user_id', userId);
+    if (error) throw error;
+    if (window.fsn) fsn.success('Status Updated', `✅ ${name} is now ${newStatus ? 'Active' : 'Suspended'}`);
+    renderUserManagement();
+  } catch(err) {
+    if (window.fsn) fsn.error('Error', err.message);
+  }
+};
+
 async function rejectUser(userId) {
-  if (!confirm('Reject this user?')) return;
+  if (!confirm('Reject this access request?')) return;
   await sb.from('pending_users').update({ status: 'Rejected' }).eq('user_id', userId);
   await sb.from('profiles').update({ is_approved: false }).eq('user_id', userId);
   renderUserManagement();
 }
 
-
-
 async function deleteUser(userId, name) {
-  if (window.canDelete && !window.canDelete()) { fsn.error('Denied', 'Only Super Admin can delete users'); return; }
+  if (window.canDelete && !window.canDelete()) { fsn.error('Denied', 'Only Super Admin / Developer can delete users'); return; }
   if (!confirm(`Delete user "${name}"?\n\nProfile + pending entry delete hogi. Auth user remain karega.`)) return;
   try {
     const { error: delErr } = await sb.from('profiles').delete().eq('user_id', userId);
     if (delErr) { fsn.error('Delete Failed', delErr.message); return; }
     await sb.from('pending_users').delete().eq('user_id', userId);
-    fsn.success(`Success`, `✅ ${name} deleted`);
+    fsn.success('Success', `✅ ${name} deleted`);
     renderUserManagement();
   } catch (err) {
     fsn.error('Error', '❌ Delete failed: ' + (err.message || err));
