@@ -1038,6 +1038,87 @@ window.saveQuickBlock = async function(roomId) {
 };
 
 // ═══════════════════════════════════════════════════════════
+// CALENDAR ACTION HELPERS: WHATSAPP MENU & DELETE
+// ═══════════════════════════════════════════════════════════
+window.calOpenWhatsApp = function(bkId, btn) {
+  // Close any open modal first so the WhatsApp menu displays cleanly
+  const currentModal = btn ? btn.closest('.modal-overlay') : document.querySelector('.modal-overlay');
+  if (currentModal) currentModal.remove();
+
+  if (typeof showWATemplatesMenu === 'function') {
+    showWATemplatesMenu(bkId, btn);
+  } else if (typeof shareBookingWhatsApp === 'function') {
+    shareBookingWhatsApp(bkId);
+  } else {
+    alert('WhatsApp menu is loading, please try again.');
+  }
+};
+
+window.calDeleteBooking = async function(bkId, guestName, roomId) {
+  if (!confirm(`Delete booking for "${guestName || 'Guest'}"?\n\nPayments and records for this booking will also be deleted.`)) return;
+
+  try {
+    // 1. Delete associated photos from storage if any
+    const { data: bk } = await sb.from('guest_register')
+      .select('room_id, id_proof_photo_paths, id_proof_photo_path, id_proof_front_paths, id_proof_back_paths, vehicle_photo_path')
+      .eq('booking_id', bkId).single();
+
+    const allPaths = [
+      bk?.id_proof_photo_paths,
+      bk?.id_proof_photo_path,
+      bk?.id_proof_front_paths,
+      bk?.id_proof_back_paths,
+      bk?.vehicle_photo_path
+    ].filter(Boolean).join(',').split(',').filter(Boolean);
+
+    const uniquePaths = [...new Set(allPaths)];
+    if (uniquePaths.length) {
+      try { await sb.storage.from('id-proofs').remove(uniquePaths); } catch (e) {}
+    }
+
+    // 2. Delete payment history & booking
+    await sb.from('payment_history').delete().eq('booking_id', bkId);
+    const { error } = await sb.from('guest_register').delete().eq('booking_id', bkId);
+    if (error) {
+      if (window.fsn) fsn.error('Error', '❌ Delete failed: ' + error.message);
+      else alert('❌ Delete failed: ' + error.message);
+      return;
+    }
+
+    // 3. Update room status if no remaining active bookings
+    const rid = roomId || bk?.room_id;
+    if (rid) {
+      const today = new Date().toISOString().slice(0, 10);
+      const { data: active } = await sb.from('guest_register')
+        .select('booking_id')
+        .eq('room_id', rid)
+        .gt('check_out', today);
+
+      if (!active || !active.length) {
+        await sb.from('flats_status').update({
+          status: 'Free',
+          cleaning_status: 'Dirty'
+        }).eq('room_id', rid);
+      }
+    }
+
+    // 4. Close any open modals
+    document.querySelectorAll('.modal-overlay').forEach(m => m.remove());
+
+    if (window.fsn) fsn.success('Success', `✅ Booking "${guestName || bkId}" deleted`);
+    else alert(`✅ Booking "${guestName || bkId}" deleted`);
+
+    // 5. Re-render calendar smoothly in place
+    if (typeof renderReports === 'function') {
+      await renderReports();
+    }
+  } catch (err) {
+    if (window.fsn) fsn.error('Error', '❌ Error: ' + (err.message || err));
+    else alert('❌ Error: ' + (err.message || err));
+  }
+};
+
+// ═══════════════════════════════════════════════════════════
 // MULTI-BOOKING LIST VIEW (FOR OVERLAPS ON SAME DATE)
 // ═══════════════════════════════════════════════════════════
 async function showMultiBookingList(bookings, roomId, dateStr) {
@@ -1097,7 +1178,8 @@ async function showMultiBookingList(bookings, roomId, dateStr) {
         <div style="display:flex;gap:6px;flex-wrap:wrap;">
           <button class="btn-sm" onclick="this.closest('.modal-overlay').remove(); if(window.editBooking) editBooking('${b.booking_id}');" style="flex:1;">✏️ Edit</button>
           <button class="btn-sm secondary" onclick="this.closest('.modal-overlay').remove(); if(window.openAddPaymentModal) openAddPaymentModal('${b.booking_id}'); else if(window.showPaymentModal) showPaymentModal('${b.booking_id}');" style="flex:1;">💰 Pay</button>
-          ${b.phone ? `<button class="btn-sm outline" onclick="this.closest('.modal-overlay').remove(); if(window.shareBookingWhatsApp) shareBookingWhatsApp('${b.booking_id}');" style="flex:1;">📱 WhatsApp</button>` : ''}
+          <button class="btn-sm" style="background:#25D366;color:#fff;flex:1;" onclick="calOpenWhatsApp('${b.booking_id}', this);">📱 WhatsApp</button>
+          <button class="btn-sm danger" onclick="calDeleteBooking('${b.booking_id}', '${(b.guest_name || 'Booking').replace(/'/g, "\\'")}', '${b.room_id}');" style="background:#DC2626;color:#fff;flex:1;">🗑️ Delete</button>
         </div>
       </div>
     `;
@@ -1112,7 +1194,7 @@ async function showMultiBookingList(bookings, roomId, dateStr) {
       </div>
 
       <div style="background:#FEF3C7;border-left:4px solid #F59E0B;padding:10px 12px;border-radius:8px;margin-bottom:14px;font-size:12px;color:#92400E;">
-        ⚠️ <strong>${bookings.length} bookings overlap on this date.</strong> This could be a back-to-back shift, Airbnb review placeholder, or scheduling clash.
+        ⚠️ <strong>${bookings.length} bookings overlap on this date.</strong> You can view, edit, send WhatsApp, or click <strong>Delete</strong> on any duplicate booking below.
       </div>
 
       ${bookingCards}
@@ -1220,11 +1302,11 @@ window.openBookingDetails = async function(bId) {
           <button onclick="this.closest('.modal-overlay').remove(); if(window.duplicateBooking) duplicateBooking('${b.booking_id}');" style="padding:10px;background:#7C3AED;color:#fff;border:none;border-radius:8px;font-weight:700;cursor:pointer;">
             📋 Duplicate
           </button>
-          <button onclick="this.closest('.modal-overlay').remove(); if(window.shareBookingWhatsApp) shareBookingWhatsApp('${b.booking_id}');" style="padding:10px;background:#25D366;color:#fff;border:none;border-radius:8px;font-weight:700;cursor:pointer;">
+          <button onclick="calOpenWhatsApp('${b.booking_id}', this);" style="padding:10px;background:#25D366;color:#fff;border:none;border-radius:8px;font-weight:700;cursor:pointer;">
             📱 WhatsApp
           </button>
         `}
-        <button onclick="if(confirm('Delete this booking/block?')){ this.closest('.modal-overlay').remove(); if(window.delBooking) delBooking('${b.booking_id}', '${(b.guest_name||'Booking').replace(/'/g, "\\'")}', '${b.room_id}'); else if(window.deleteBooking) deleteBooking('${b.booking_id}'); }" style="padding:9px;background:#DC2626;color:#fff;border:none;border-radius:8px;font-weight:700;cursor:pointer;grid-column:span 2;margin-top:2px;">
+        <button onclick="calDeleteBooking('${b.booking_id}', '${(b.guest_name||'Booking').replace(/'/g, "\\'")}', '${b.room_id}');" style="padding:10px;background:#DC2626;color:#fff;border:none;border-radius:8px;font-weight:700;cursor:pointer;grid-column:span 2;margin-top:2px;">
           🗑️ Delete Booking / Block
         </button>
       </div>
