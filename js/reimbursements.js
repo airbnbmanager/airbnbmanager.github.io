@@ -794,7 +794,13 @@ window.showReimbReport = async function() {
         </div>
       </div>
 
-      <div style="display:flex;gap:10px;">
+      <div style="margin:16px 0;padding-top:10px;border-top:1px solid #e2e8f0;text-align:center;font-size:11px;color:#64748b;">
+        <div style="font-weight:700;letter-spacing:0.5px;color:#1e293b;">THE UNIQUE HAVEN HOMES PRIVATE LIMITED</div>
+        <div style="font-size:10px;color:#64748b;margin-top:2px;">uniquehavenhomesstay.com</div>
+        <div style="font-weight:700;color:#0f172a;margin-top:4px;">⚡ Developed by Praveen Singh</div>
+      </div>
+
+      <div style="display:flex;gap:10px;" class="no-print">
         <button onclick="window.print()" style="flex:1;background:#3B82F6;color:#fff;padding:10px;border:none;border-radius:6px;cursor:pointer;">🖨️ Print</button>
         <button onclick="this.closest('[style*=fixed]').remove()" style="flex:1;background:#64748B;color:#fff;padding:10px;border:none;border-radius:6px;cursor:pointer;">Close</button>
       </div>

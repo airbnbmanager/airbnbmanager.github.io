@@ -349,13 +349,15 @@ async function renderDailyReport(selectedDate) {
 
       <div style="background:linear-gradient(135deg,#1F2937,#374151);color:#fff;padding:16px;margin:20px -30px -30px;border-radius:0 0 12px 12px;text-align:center;">
         <div style="font-size:11px;opacity:0.7;letter-spacing:2px;margin-bottom:6px;">${brand.toUpperCase()}</div>
-        <div style="font-size:12px;opacity:0.9;">Report generated: ${new Date().toLocaleString('en-IN')}</div>
+        <div style="font-size:12px;opacity:0.9;">Report generated: ${new Date().toLocaleString('en-IN')} &bull; 🌐 uniquehavenhomesstay.com</div>
+        <div style="font-size:11.5px;font-weight:700;margin-top:4px;color:#F8FAFC;">⚡ Developed by Praveen Singh</div>
       </div>
     </div>
 
     <style>
       @media print {
-        @page { size: A4; margin: 10mm; }
+        @page { size: A4; margin: 0; }
+        body { padding: 10mm 12mm !important; }
       }
     </style>
   `, 'daily-report');
@@ -366,20 +368,26 @@ function printDailyReportWindow() {
   if (!reportEl) { alert('Report not loaded'); return; }
   const html = reportEl.outerHTML;
   const w = window.open('', '_blank', 'width=1000,height=800');
+  if (!w) { alert('Popup blocked! Please allow popups.'); return; }
+  w.document.title = 'Daily Operations Report - The Unique Haven Homes';
   w.document.write(
-    '<!DOCTYPE html><html><head><title>Daily Report</title>' +
+    '<!DOCTYPE html><html><head><title>Daily Operations Report - The Unique Haven Homes</title>' +
     '<meta charset="utf-8">' +
     '<style>' +
+    '@page { size: A4; margin: 0; }' +
     '* { box-sizing: border-box; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; color-adjust: exact !important; }' +
-    'html, body { margin: 0; padding: 0; background: #fff; color: #111; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif; font-size: 13px; }' +
-    '.report-doc { max-width: 100% !important; margin: 0 !important; padding: 20px !important; box-shadow: none !important; border: none !important; background: #fff !important; display: block !important; visibility: visible !important; }' +
+    'html, body { margin: 0; padding: 10mm 12mm; background: #fff; color: #111; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif; font-size: 13px; }' +
+    '.report-doc { max-width: 100% !important; margin: 0 !important; padding: 0 !important; box-shadow: none !important; border: none !important; background: #fff !important; display: block !important; visibility: visible !important; }' +
     '.report-doc * { visibility: visible !important; }' +
     'table { width: 100%; border-collapse: collapse; }' +
     'th, td { padding: 6px 8px; }' +
     'h1, h2, h3 { margin: 6px 0; }' +
-    '@page { size: A4; margin: 8mm; }' +
     '</style></head><body>' +
     html +
+    '<div style="margin-top:20px;padding-top:10px;border-top:1px solid #CBD5E1;text-align:center;font-size:11px;color:#64748B;">' +
+      '<strong>THE UNIQUE HAVEN HOMES PRIVATE LIMITED</strong> &bull; uniquehavenhomesstay.com<br>' +
+      '⚡ Developed by Praveen Singh' +
+    '</div>' +
     '<script>window.onload = function(){ setTimeout(function(){ window.print(); }, 400); };<\/script>' +
     '</body></html>'
   );
@@ -448,7 +456,9 @@ async function whatsappDailyReport(date) {
   }
 
   msg += '━━━━━━━━━━━━━━━━━' + NL;
-  msg += '_THE UNIQUE HAVEN HOMES PRIVATE LIMITED_';
+  msg += '_THE UNIQUE HAVEN HOMES PRIVATE LIMITED_' + NL;
+  msg += '🌐 uniquehavenhomesstay.com' + NL;
+  msg += '⚡ Developed by Praveen Singh';
 
   const modal = document.createElement('div');
   modal.className = 'modal-overlay';

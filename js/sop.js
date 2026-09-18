@@ -359,6 +359,7 @@ function renderSOPPage() {
         <button onclick="window.print()" style="background:rgba(255,255,255,0.2);color:#fff;border:1px solid rgba(255,255,255,0.4);padding:6px 14px;border-radius:6px;cursor:pointer;font-size:12px;">🖨️ Print SOP</button>
       </div>
     </div>
+    ${typeof window.getOfficialReportFooterHTML === 'function' ? window.getOfficialReportFooterHTML() : ''}
   `, 'sop');
 }
 

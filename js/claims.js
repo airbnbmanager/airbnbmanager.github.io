@@ -1289,14 +1289,19 @@ window.showEmployeeAdvanceAnalysisModal = async function(preselectedEmp = null) 
 window.exportUhhsLedgerPDF = function(fDate, tDate, totalInflow, totalOutflow, netBalance, txnsJson) {
   const txns = JSON.parse(decodeURIComponent(txnsJson));
   const printWin = window.open('', '_blank');
+  if (!printWin) { alert('Popup blocked! Please allow popups.'); return; }
   
+  const title = `UHHS-OD Ledger Statement (${fDate} to ${tDate})`;
+  printWin.document.title = title;
   printWin.document.write(`
     <!DOCTYPE html>
     <html>
     <head>
-      <title>UHHS-OD Ledger Statement (${fDate} to ${tDate})</title>
+      <title>${title}</title>
       <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 25px; color: #1e293b; background: #fff; }
+        @page { size: A4; margin: 0; }
+        * { box-sizing: border-box; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 12mm 15mm; margin: 0; color: #1e293b; background: #fff; }
         .header { border-bottom: 2px solid #0f766e; padding-bottom: 10px; margin-bottom: 16px; }
         h1 { margin: 0; color: #0f766e; font-size: 20px; font-weight: 800; }
         .sub { color: #64748b; font-size: 11px; margin-top: 4px; }
@@ -1312,6 +1317,10 @@ window.exportUhhsLedgerPDF = function(fDate, tDate, totalInflow, totalOutflow, n
         td { padding: 7px 8px; border-bottom: 1px solid #e2e8f0; }
         .dep { background: #dcfce7; color: #15803d; padding: 2px 6px; border-radius: 4px; font-weight: 700; font-size: 9px; }
         .exp { background: #fee2e2; color: #b91c1c; padding: 2px 6px; border-radius: 4px; font-weight: 700; font-size: 9px; }
+        @media print {
+          body { padding: 8mm 10mm; }
+          .no-print { display: none; }
+        }
       </style>
     </head>
     <body>
@@ -1356,7 +1365,14 @@ window.exportUhhsLedgerPDF = function(fDate, tDate, totalInflow, totalOutflow, n
         </tbody>
       </table>
 
-      <script>window.onload = function() { window.print(); };</script>
+      ${window.getOfficialReportFooterHTML ? window.getOfficialReportFooterHTML() : `
+        <div style="margin-top:24px;padding-top:12px;border-top:1px solid #cbd5e1;text-align:center;font-size:11px;color:#64748b;">
+          <strong>THE UNIQUE HAVEN HOMES PRIVATE LIMITED</strong> &bull; uniquehavenhomesstay.com<br>
+          ⚡ Developed by Praveen Singh
+        </div>
+      `}
+
+      <script>window.onload = function() { setTimeout(function(){ window.print(); }, 400); };</script>
     </body>
     </html>
   `);

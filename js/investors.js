@@ -852,8 +852,9 @@ async function renderInvestorReport(investorId, roomId, month) {
       @media print {
         @page {
           size: A4;
-          margin: 15mm 12mm;
+          margin: 0;
         }
+        body { padding: 10mm 12mm !important; margin: 0 !important; background: #fff !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
         .sidebar, .no-print, button, .bottom-nav, #bottomNav, .top-bar, #topBar, .drawer, #drawer, nav[class*="bottom"] { display: none !important; }
         .app-container { display: block !important; }
         .main-content { margin: 0 !important; padding: 0 !important; }
@@ -1150,7 +1151,11 @@ window.whatsappInvestorReport = async function(investorId, roomId, monthYear) {
       '━━━━━━━━━━━━━━━━━━━━' + NL +
       '📞 Contact:' + NL +
       'Mr. Shahanshah - 9450055554' + NL +
-      'Mr. Firoz Khan - 8299600709';
+      'Mr. Firoz Khan - 8299600709' + NL +
+      '━━━━━━━━━━━━━━━━━━━━' + NL +
+      'THE UNIQUE HAVEN HOMES PRIVATE LIMITED' + NL +
+      'uniquehavenhomesstay.com' + NL +
+      '⚡ Developed by Praveen Singh';
 
     const phone = (inv.phone || '').replace(/[^0-9]/g, '');
     const shareModal = document.createElement('div');
@@ -1295,9 +1300,12 @@ function printInvestorReport(investorName, propertyName, monthYear) {
 </head>
 <body>
   ${reportHTML}
-  <div class="footer-brand">
-    Report generated on ${today} · uniquehavenhomesstay.com · Developed by Praveen Singh
-  </div>
+  ${window.getOfficialReportFooterHTML ? window.getOfficialReportFooterHTML(today) : `
+  <div class="footer-brand" style="margin-top:14px;padding-top:8px;border-top:1px solid #ddd;text-align:center;font-size:10px;color:#475569;font-family:sans-serif;">
+    <div style="font-weight:700;letter-spacing:0.5px;color:#1e293b;text-transform:uppercase;">THE UNIQUE HAVEN HOMES PRIVATE LIMITED</div>
+    <div style="font-size:9px;color:#64748b;margin-top:2px;">CIN: U55101UP2024PTC202863 · uniquehavenhomesstay.com</div>
+    <div style="margin-top:4px;font-weight:700;color:#0f172a;font-size:9.5px;">⚡ Developed by Praveen Singh</div>
+  </div>`}
   <script>
     window.onload = function() {
       setTimeout(function() {
@@ -1469,7 +1477,8 @@ async function renderFriendsReport(investorId, roomId, month) {
 
     <style>
       @media print {
-        @page { size: A4; margin: 15mm 12mm; }
+        @page { size: A4; margin: 0; }
+        body { padding: 10mm 12mm !important; margin: 0 !important; background: #fff !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
         .sidebar, .no-print, button, .bottom-nav, #bottomNav, .top-bar, #topBar, .drawer, #drawer, nav[class*="bottom"] { display: none !important; }
         .app-container { display: block !important; }
         .main-content { margin: 0 !important; padding: 0 !important; }

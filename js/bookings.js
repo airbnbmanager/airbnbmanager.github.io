@@ -299,8 +299,9 @@ async function printGuestLedger(guestName) {
 
   const html = '<!DOCTYPE html><html><head><title>Guest Ledger - ' + guestName + '</title>' +
     '<style>' +
-    '@page { size: A4; margin: 12mm; }' +
-    'body { font-family: -apple-system, sans-serif; color: #222; margin: 0; padding: 20px; }' +
+    '@page { size: A4; margin: 0; }' +
+    '* { box-sizing: border-box; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }' +
+    'body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; color: #222; margin: 0; padding: 12mm 15mm; }' +
     '.header { background: linear-gradient(135deg,#FF385C,#E00B41); color: #fff; padding: 20px; border-radius: 12px; margin-bottom: 20px; }' +
     '.header h1 { margin: 0 0 6px 0; font-size: 22px; }' +
     '.header .meta { font-size: 13px; opacity: 0.9; }' +
@@ -315,8 +316,7 @@ async function printGuestLedger(guestName) {
     'td { padding: 7px 8px; border-bottom: 1px solid #EBEBEB; }' +
     'tr:nth-child(even) { background: #FAFAFA; }' +
     '.due-alert { background: ' + dueBg + '; color: ' + dueColor + '; padding: 14px; border-radius: 8px; text-align: center; font-weight: 700; font-size: 15px; margin-top: 16px; }' +
-    '.footer { margin-top: 24px; text-align: center; font-size: 11px; color: #717171; border-top: 1px solid #EBEBEB; padding-top: 12px; }' +
-    '@media print { body { padding: 0; } .no-print { display: none; } }' +
+    '@media print { body { padding: 8mm 10mm; } .no-print { display: none; } }' +
     '</style></head><body>' +
     '<div class="header"><h1>👤 Guest Ledger — ' + guestName + '</h1>' +
     '<div class="meta">' + BRAND + ' · Generated ' + dateStr + '</div></div>' +
@@ -338,7 +338,7 @@ async function printGuestLedger(guestName) {
     '<table><thead><tr><th>Date</th><th style="text-align:right;">Amount</th><th>Mode</th><th>Notes</th></tr></thead>' +
     '<tbody>' + payRows + '</tbody></table>' +
     '<div class="due-alert">' + dueMsg + '</div>' +
-    '<div class="footer"><strong>' + (window.COMPANY_LEGAL_NAME || BRAND) + '</strong> · CIN: ' + (window.COMPANY_CIN || 'U55101UP2026PTC244637') + '<br>Reg. Off: ' + (window.COMPANY_REG_ADDRESS || 'Lucknow, Uttar Pradesh') + '<br>Contact: Mr. Shahanshah 9450055554 · Mr. Firoz Khan 8299600709 · Generated ' + dateStr + '</div>' +
+    (window.getOfficialReportFooterHTML ? window.getOfficialReportFooterHTML(dateStr) : '<div style="margin-top:24px;text-align:center;font-size:11px;color:#717171;border-top:1px solid #EBEBEB;padding-top:12px;"><strong>' + (window.COMPANY_LEGAL_NAME || BRAND) + '</strong><br>Developed by Praveen Singh</div>') +
     '<div class="no-print" style="text-align:center;margin-top:20px;">' +
     '<button onclick="window.print()" style="padding:12px 32px;background:#FF385C;color:#fff;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-size:15px;">🖨️ Print / Save as PDF</button>' +
     '</div>' +
@@ -346,8 +346,11 @@ async function printGuestLedger(guestName) {
     '</body></html>';
 
   const win = window.open('', '_blank');
-  win.document.write(html);
-  win.document.close();
+  if (win) {
+    win.document.title = 'Guest Ledger - ' + guestName;
+    win.document.write(html);
+    win.document.close();
+  }
 }
 
 // ============ WHATSAPP GUEST LEDGER ============
@@ -415,7 +418,8 @@ async function whatsappGuestLedger(guestName) {
     dueLine +
     '*Contact:*' + NL +
     'Mr. Shahanshah - 9450055554' + NL +
-    'Mr. Firoz Khan - 8299600709';
+    'Mr. Firoz Khan - 8299600709' + NL + NL +
+    (window.getOfficialReportFooterText ? window.getOfficialReportFooterText() : 'THE UNIQUE HAVEN HOMES PRIVATE LIMITED\nDeveloped by Praveen Singh');
 
   const shareModal = document.createElement('div');
   shareModal.className = 'modal-overlay';
@@ -3878,29 +3882,30 @@ async function exportBookingsPDF() {
   const html = `<!DOCTYPE html>
 <html>
 <head>
-<title>Bookings Report - ${dateStr}</title>
-<style>
-  @page { size: A4 landscape; margin: 12mm; }
-  body { font-family: -apple-system, sans-serif; color: #222; margin: 0; padding: 20px; }
-  .header { background: linear-gradient(135deg,#FF385C,#E00B41); color: #fff; padding: 20px; border-radius: 12px; margin-bottom: 20px; }
-  .header h1 { margin: 0 0 6px 0; font-size: 22px; }
-  .header .meta { font-size: 13px; opacity: 0.9; }
-  .filters { background: #FEF3C7; padding: 12px 16px; border-radius: 8px; margin-bottom: 16px; font-size: 12px; }
-  .filters strong { color: #B45309; }
-  table { width: 100%; border-collapse: collapse; font-size: 12px; }
-  th { background: #222; color: #fff; padding: 10px 8px; text-align: left; font-weight: 700; }
-  td { padding: 8px; border-bottom: 1px solid #EBEBEB; }
-  tr:nth-child(even) { background: #FAFAFA; }
-  .totals { margin-top: 20px; background: #F7F7F7; padding: 16px; border-radius: 8px; display: flex; justify-content: space-around; }
-  .totals div { text-align: center; }
-  .totals .label { font-size: 11px; color: #717171; text-transform: uppercase; letter-spacing: 1px; }
-  .totals .value { font-size: 20px; font-weight: 800; margin-top: 4px; }
-  .footer { margin-top: 30px; text-align: center; font-size: 11px; color: #717171; border-top: 1px solid #EBEBEB; padding-top: 12px; }
-  @media print {
-    body { padding: 0; }
-    .no-print { display: none; }
-  }
-</style>
+  <meta charset="UTF-8">
+  <title>Bookings Report - The Unique Haven Homes</title>
+  <style>
+    @page { size: A4; margin: 0; }
+    * { box-sizing: border-box; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; color: #222; margin: 0; padding: 12mm 15mm; }
+    .header { background: linear-gradient(135deg,#FF385C,#E00B41); color: #fff; padding: 20px; border-radius: 12px; margin-bottom: 20px; }
+    .header h1 { margin: 0 0 6px 0; font-size: 22px; }
+    .header .meta { font-size: 13px; opacity: 0.9; }
+    .filters { background: #FEF3C7; padding: 12px 16px; border-radius: 8px; margin-bottom: 16px; font-size: 12px; }
+    .filters strong { color: #B45309; }
+    table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    th { background: #222; color: #fff; padding: 10px 8px; text-align: left; font-weight: 700; }
+    td { padding: 8px; border-bottom: 1px solid #EBEBEB; }
+    tr:nth-child(even) { background: #FAFAFA; }
+    .totals { margin-top: 20px; background: #F7F7F7; padding: 16px; border-radius: 8px; display: flex; justify-content: space-around; }
+    .totals div { text-align: center; }
+    .totals .label { font-size: 11px; color: #717171; text-transform: uppercase; letter-spacing: 1px; }
+    .totals .value { font-size: 20px; font-weight: 800; margin-top: 4px; }
+    @media print {
+      body { padding: 8mm 10mm; }
+      .no-print { display: none; }
+    }
+  </style>
 </head>
 <body>
   <div class="header">
@@ -3951,11 +3956,12 @@ async function exportBookingsPDF() {
     </div>
   </div>
 
-  <div class="footer">
-    <strong>${window.COMPANY_LEGAL_NAME || BRAND}</strong> · CIN: ${window.COMPANY_CIN || 'U55101UP2026PTC244637'}<br>
-    Reg. Off: ${window.COMPANY_REG_ADDRESS || 'Lucknow, Uttar Pradesh'}<br>
-    Contact: Mr. Shahanshah 9450055554 · Mr. Firoz Khan 8299600709 · Generated from UHHS Admin System
-  </div>
+  ${window.getOfficialReportFooterHTML ? window.getOfficialReportFooterHTML(dateStr) : `
+    <div class="footer" style="margin-top:28px;text-align:center;font-size:11px;color:#717171;border-top:1px solid #EBEBEB;padding-top:12px;">
+      <strong>${window.COMPANY_LEGAL_NAME || BRAND}</strong><br>
+      Developed by Praveen Singh
+    </div>
+  `}
 
   <div class="no-print" style="text-align:center;margin-top:20px;">
     <button onclick="window.print()" style="padding:12px 32px;background:#FF385C;color:#fff;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-size:15px;">🖨️ Print / Save as PDF</button>

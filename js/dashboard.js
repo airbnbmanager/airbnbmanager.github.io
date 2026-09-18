@@ -1969,8 +1969,14 @@ function buildIdPendingMessage(daysBack) {
     });
   }
 
-  msg += '━━━━━━━━━━━━━━━━━' + NL;
-  msg += '_THE UNIQUE HAVEN HOMES PRIVATE LIMITED_';
+  if (typeof window.getOfficialReportFooterText === 'function') {
+    msg += window.getOfficialReportFooterText();
+  } else {
+    msg += '━━━━━━━━━━━━━━━━━' + NL;
+    msg += '_THE UNIQUE HAVEN HOMES PRIVATE LIMITED_' + NL;
+    msg += 'uniquehavenhomesstay.com' + NL;
+    msg += '*Developed by Praveen Singh*';
+  }
   return msg;
 }
 

@@ -185,7 +185,8 @@
     const insights = generateInsights(current, compare, propPerf, currentData, currentRange);
     const cashFlow = calculateCashFlow(currentData, payments, current);
 
-    const html = buildDashboardHTML(current, compare, currentRange, compareRange, propPerf, insights, cashFlow, currentData);
+    const html = buildDashboardHTML(current, compare, currentRange, compareRange, propPerf, insights, cashFlow, currentData) +
+      (typeof window.getOfficialReportFooterHTML === 'function' ? window.getOfficialReportFooterHTML() : '');
     renderShell(html, 'analytics');
   }
 

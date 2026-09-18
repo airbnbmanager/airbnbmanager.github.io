@@ -100,6 +100,33 @@ window.COMPANY_ROC = COMPANY_ROC;
 window.COMPANY_REG_ADDRESS = COMPANY_REG_ADDRESS;
 const APP_VERSION = "v20";
 
+// ============ OFFICIAL REPORT & EXPORT FOOTER HELPERS ============
+window.getOfficialReportFooterHTML = function(dateStr) {
+  const dt = dateStr || new Date().toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+  return `
+    <div class="report-official-footer" style="margin-top:28px;padding-top:14px;border-top:1.5px solid #CBD5E1;text-align:center;font-size:11px;color:#64748B;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;page-break-inside:avoid;">
+      <div style="font-weight:800;color:#1E293B;font-size:12px;letter-spacing:0.5px;">THE UNIQUE HAVEN HOMES PRIVATE LIMITED</div>
+      <div style="font-size:10px;color:#64748B;margin-top:3px;line-height:1.4;">
+        CIN: U55101UP2026PTC244637 &bull; Reg. Off: P NO 39 & 40 RADHIKAPURI, INDIRA NAGAR TAKROHI, Lucknow, UP - 226016
+      </div>
+      <div style="font-size:11px;color:#475569;margin-top:6px;font-weight:600;">
+        Report Generated: ${dt} &bull; 🌐 uniquehavenhomesstay.com
+      </div>
+      <div style="font-size:11.5px;color:#0F172A;font-weight:800;margin-top:4px;letter-spacing:0.3px;">
+        ⚡ Developed by Praveen Singh
+      </div>
+    </div>
+  `;
+};
+
+window.getOfficialReportFooterText = function() {
+  const NL = String.fromCharCode(10);
+  return '━━━━━━━━━━━━━━━━━' + NL +
+    'THE UNIQUE HAVEN HOMES PRIVATE LIMITED' + NL +
+    '🌐 uniquehavenhomesstay.com' + NL +
+    'Developed by Praveen Singh';
+};
+
 let SESSION = {
   userId: null,
   role: null,
@@ -678,7 +705,17 @@ function renderShell(content, activePage = 'dashboard') {
         </header>
 
         <!-- Main Content View -->
-        <main class="main-content" id="mainContent">${content}</main>
+        <main class="main-content" id="mainContent">
+          ${content}
+          <footer class="app-official-system-footer">
+            <div class="footer-legal">THE UNIQUE HAVEN HOMES PRIVATE LIMITED</div>
+            <div class="footer-meta">
+              <span>CIN: U55101UP2026PTC244637</span> &bull; 
+              <a href="https://uniquehavenhomesstay.com" target="_blank" rel="noopener">uniquehavenhomesstay.com</a>
+            </div>
+            <div class="footer-credit">⚡ Developed by <strong>Praveen Singh</strong></div>
+          </footer>
+        </main>
       </div>
 
       <!-- ─── MOBILE BOTTOM NAV ─── -->
