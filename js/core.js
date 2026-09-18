@@ -430,8 +430,6 @@ function renderShell(content, activePage = 'dashboard') {
       ['dashboard', '🏠 My Dashboard'],
       ['bookings', '📅 My Bookings'],
       ['flats', '🛏️ Flats Status'],
-      { section: 'HELP' },
-      ['sop', '📘 SOP Guide'],
     ];
   } else if (isViewer) {
     nav = [
@@ -440,8 +438,6 @@ function renderShell(content, activePage = 'dashboard') {
       ['bookings', '📅 Today Bookings'],
       ['flats', '🛏️ Flats Status'],
       ['reminders', '🔔 Reminders'],
-      { section: 'HELP' },
-      ['sop', '📘 SOP Guide'],
     ];
   } else if (isBookingStaff) {
     nav = [
@@ -455,8 +451,6 @@ function renderShell(content, activePage = 'dashboard') {
       { section: 'PROPERTIES' },
       ['rooms', '🏠 Properties'],
       ['shifts', '🕐 Shifts'],
-      { section: 'HELP' },
-      ['sop', '📘 SOP Guide'],
     ];
   } else if (isOwner) {
     nav = [
@@ -488,15 +482,12 @@ function renderShell(content, activePage = 'dashboard') {
       ['tasks', '🧰 Staff Tasks'],
       ['maintenance', '🔧 Maintenance'],
       ['laundry', '🧺 Laundry'],
-      ['store', '📦 Inventory'],
 
       { section: 'CHANNELS & SETTINGS' },
       ['airbnb-sync', '🔄 Airbnb Sync'],
       ['rooms', '🏢 Properties'],
       ['showcase-admin', '🌐 Website Showcase & Media'],
       ['property-setup', '🏗️ Property Setup'],
-      ['whatsapp-hub', '📱 Communication Hub'],
-      ['sop', '📘 SOP Guide'],
       ...(isAdmin ? [['user-mgmt', '👤 User Management']] : []),
       ...(showSettings ? [['settings', '⚙️ Settings']] : []),
     ];
@@ -508,7 +499,6 @@ function renderShell(content, activePage = 'dashboard') {
       ['bookings', '📅 Bookings'],
       ['flats', '🛏️ Flats Status'],
       ['reminders', '🔔 Reminders'],
-      ['sop', '📘 SOP Guide'],
     ];
   } else {
     nav = [
@@ -540,15 +530,12 @@ function renderShell(content, activePage = 'dashboard') {
       ['tasks', '🧰 Tasks'],
       ['maintenance', '🔧 Maintenance'],
       ['laundry', '🧺 Laundry'],
-      ['store', '📦 Inventory'],
 
       { section: 'CHANNELS & SETTINGS' },
       ['airbnb-sync', '🔄 Airbnb Sync'],
       ['rooms', '🏢 Properties'],
       ['showcase-admin', '🌐 Website Showcase & Media'],
       ['property-setup', '🏗️ Property Setup'],
-      ['whatsapp-hub', '📱 Communication Hub'],
-      ['sop', '📘 SOP Guide'],
     ];
   }
 
