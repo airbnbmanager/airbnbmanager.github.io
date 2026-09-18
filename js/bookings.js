@@ -521,6 +521,11 @@ async function renderManageBookings() {
 
   window._rawBookingsList = all || []; // for dupe check
 
+  // Auto-sync open-ended per-day booking amounts in background
+  if (typeof window.applyOpenBookingUpdates === 'function') {
+    window.applyOpenBookingUpdates(true).catch(e => console.warn('Per-day auto update:', e));
+  }
+
   let f = all || [];
   window._allBookings = f; // For duplicate detection
   // Filter for caretaker - only their properties
@@ -674,7 +679,7 @@ async function renderManageBookings() {
   const overlaps = findOverlappingBookings(all || []);
   const pm = await getPaidMap(f.map(b => b.booking_id));
   const canM = ['owner','admin','manager','moderator','developer'].includes(SESSION.role);
-  const canD = ['developer'].includes(SESSION.role);
+  const canD = ['developer','owner','admin'].includes(SESSION.role);
 
   renderShell(`
     <div class="card" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;">
@@ -754,17 +759,22 @@ async function renderManageBookings() {
       </tr></thead>
       <tbody>${f.map(b => {
         const pd = pm[b.booking_id] || 0;
-        const bal = (b.total_amount || 0) - pd;
-        const isActive = b.check_in <= today && b.check_out > today;
-        const isCheckoutToday = b.check_out === today;
-        const isPast = b.check_out < today;
         const isOpenEnded = b.checkout_confirmed === false;
+        const cin = b.check_in || today;
+        const elapsedDays = Math.max(1, Math.ceil((new Date(today) - new Date(cin)) / 86400000));
+        const dailyRate = b.per_day_rate || 0;
+        const dynamicTotal = (isOpenEnded && dailyRate > 0) ? (elapsedDays * dailyRate) : (b.total_amount || 0);
+        const bal = dynamicTotal - pd;
+
+        const isActive = b.check_in <= today && (isOpenEnded || b.check_out > today);
+        const isCheckoutToday = !isOpenEnded && b.check_out === today;
+        const isPast = !isOpenEnded && b.check_out < today;
 
         const statusBadge = isActive
-          ? (isOpenEnded ? '<span class="badge yellow">🔄 Open</span>' : '<span class="badge green">🟢 Active</span>')
+          ? (isOpenEnded ? `<span class="badge yellow" style="font-weight:700;"><i class="fas fa-sync-alt fa-fw"></i> Open (Day ${elapsedDays})</span>` : '<span class="badge green">🟢 Active</span>')
           : isCheckoutToday ? '<span class="badge yellow">📤 Today</span>'
           : isPast ? '<span class="badge" style="background:#F3F4F6;color:#6B7280;">Done</span>'
-          : '<span class="badge blue">Upcoming</span>';
+          : (isOpenEnded ? `<span class="badge yellow" style="font-weight:700;"><i class="fas fa-sync-alt fa-fw"></i> Open (Day ${elapsedDays})</span>` : '<span class="badge blue">Upcoming</span>');
 
         const rowBg = isActive ? 'background:#f0fff4;' : isCheckoutToday ? 'background:#fffbeb;' : '';
 
@@ -807,9 +817,13 @@ async function renderManageBookings() {
               ${(!b.linked_booking_id && !b.is_review_booking && !b.is_cancelled && !b.parent_booking_id && !b.stay_group_id && window.checkDuplicate && window.checkDuplicate(b, window._rawBookingsList || window._allBookings || [])) ? `<span class="badge" style="background:#F59E0B;color:#fff;font-size:9px;cursor:pointer;" title="Same room + date overlap detected" onclick="showDuplicateOptions('${b.booking_id}')">⚠️ DUPE</span>` : ''}
             </td>
           <td><small>${b.check_in || '-'}</small></td>
-          <td><small>${b.check_out || '-'}</small></td>
+          <td>${isOpenEnded
+            ? `<div><span class="badge yellow" style="font-size:10px;font-weight:700;"><i class="fas fa-clock"></i> Open Stay</span><br><small style="color:var(--muted);font-size:10px;">Day ${elapsedDays} so far</small></div>`
+            : `<small>${b.check_out || '-'}</small>`}</td>
           <td>${buildIdButtons(b)}</td>
-          <td><strong>₹${(b.total_amount || 0).toLocaleString('en-IN')}</strong></td>
+          <td>${isOpenEnded && dailyRate > 0
+            ? `<strong>₹${dynamicTotal.toLocaleString('en-IN')}</strong><br><small style="color:var(--muted);font-size:10px;">₹${dailyRate}/d · ${elapsedDays}d</small>`
+            : `<strong>₹${(b.total_amount || 0).toLocaleString('en-IN')}</strong>`}</td>
           <td style="color:var(--green);">₹${pd.toLocaleString('en-IN')}</td>
           <td><strong class="${bal > 0.99 ? 'metric-value warn' : ''}">₹${Math.abs(bal) < 1 ? '0' : bal.toLocaleString('en-IN')}</strong></td>
           ${canM ? `<td class="table-actions">
@@ -1055,11 +1069,14 @@ async function renderAddBooking() {
   let idSlots = '';
   for (let i = 1; i <= 8; i++) {
     idSlots += `
-      <div style="padding:10px;margin-bottom:8px;background:var(--bg);border:1px solid var(--border);border-radius:10px;">
-        <div style="font-weight:700;font-size:13px;margin-bottom:6px;">
-          👤 Guest ${i} ${i === 1 ? '(Primary)' : ''}
+      <div id="idSlot${i}" style="display:${i === 1 ? 'block' : 'none'};padding:12px;margin-bottom:10px;background:var(--bg);border:1px solid var(--border);border-radius:10px;transition:all 0.2s ease;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+          <div style="font-weight:700;font-size:13px;color:var(--dark);">
+            👤 Guest ${i} ${i === 1 ? '<span style="font-size:11px;color:var(--primary);font-weight:600;">(Primary)</span>' : ''}
+          </div>
+          ${i > 1 ? `<button type="button" class="btn-sm danger" style="padding:2px 8px;font-size:10px;min-height:22px;" onclick="hideGuestIdSlot(${i})" title="Remove this guest slot">✕ Hide</button>` : ''}
         </div>
-        <input type="text" id="gN${i}" placeholder="Guest ${i} naam"
+        <input type="text" id="gN${i}" placeholder="Guest ${i} name / naam"
           value="${i === 1 ? (pre.guestName || '') : ''}"
           style="font-size:13px;min-height:36px;margin-bottom:8px;width:100%;" />
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
@@ -1179,7 +1196,7 @@ async function renderAddBooking() {
       <div class="form-grid">
         <div class="form-group">
           <label>Checkout Type</label>
-          <select id="checkoutConfirmed">
+          <select id="checkoutConfirmed" onchange="onCheckoutTypeChg()">
             <option value="yes" ${(pre.checkoutConfirmed || 'yes') === 'yes' ? 'selected' : ''}>Fixed Date</option>
             <option value="no" ${pre.checkoutConfirmed === 'no' ? 'selected' : ''}>Open — Per Day</option>
           </select>
@@ -1188,6 +1205,10 @@ async function renderAddBooking() {
           <input id="guests" type="number" value="${pre.guests || 1}" min="1" max="8"
             onchange="showIdSlots()" oninput="showIdSlots()" />
         </div>
+      </div>
+      <div id="openStayNotice" style="display:${pre.checkoutConfirmed === 'no' ? 'flex' : 'none'};background:#FFF8E1;border:1px solid #FFC107;padding:10px 12px;border-radius:8px;font-size:12px;color:#856404;margin:4px 0 10px;align-items:center;gap:8px;">
+        <span style="font-size:16px;">🔄</span>
+        <div><strong>Open Stay (Per Day basis):</strong> Daily rate entered will automatically calculate nights and total bill day-by-day.</div>
       </div>
 
       <!-- OFFLINE: Total Amount + per day auto calc -->
@@ -1303,6 +1324,12 @@ async function renderAddBooking() {
           </div>
         </div>
         <div class="id-grid">${idSlots}</div>
+        <div id="addGuestIdBtnWrap" style="margin-top:10px;">
+          <button type="button" id="btnAddGuestId" class="outline btn-sm" onclick="addNextGuestIdSlot()"
+            style="width:100%;padding:10px 14px;border:1.5px dashed var(--primary);color:var(--primary);background:#fff5f6;border-radius:10px;font-weight:700;font-size:13px;display:flex;align-items:center;justify-content:center;gap:8px;cursor:pointer;">
+            <span style="font-size:16px;">➕</span> <span>Add Another Guest ID (Guest 2)</span>
+          </button>
+        </div>
       </div>
 
       <div class="form-group" style="margin-top:10px;">
@@ -1316,23 +1343,206 @@ async function renderAddBooking() {
     </div>
   `, 'bookings');
 
-  onModeChg(); onRoomChg(); showIdSlots();
+  onModeChg(); onRoomChg(); showIdSlots(); onCheckoutTypeChg();
 }
 
-// ============ BOOKING HELPERS ============
+// ============ BOOKING DYNAMIC ID & PER-DAY HELPERS ============
+window.addNextGuestIdSlot = function() {
+  for (let i = 2; i <= 8; i++) {
+    const el = document.getElementById(`idSlot${i}`);
+    if (el && (el.style.display === 'none' || getComputedStyle(el).display === 'none')) {
+      el.style.display = 'block';
+      const gInput = document.getElementById('guests');
+      if (gInput && parseInt(gInput.value || 1) < i) {
+        gInput.value = i;
+      }
+      window.updateAddGuestIdBtnState();
+      el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      return;
+    }
+  }
+  window.updateAddGuestIdBtnState();
+};
+
+window.hideGuestIdSlot = function(slotIdx) {
+  const el = document.getElementById(`idSlot${slotIdx}`);
+  if (el) {
+    el.style.display = 'none';
+    const nameEl = document.getElementById(`gN${slotIdx}`);
+    if (nameEl) nameEl.value = '';
+    ['idFrontCam', 'idFrontGal', 'idBackCam', 'idBackGal'].forEach(id => {
+      const inp = document.getElementById(`${id}${slotIdx}`);
+      if (inp) inp.value = '';
+    });
+    const pf = document.getElementById(`previewFront${slotIdx}`);
+    if (pf) pf.innerHTML = '';
+    const pb = document.getElementById(`previewBack${slotIdx}`);
+    if (pb) pb.innerHTML = '';
+  }
+  window.updateAddGuestIdBtnState();
+};
+
+window.updateAddGuestIdBtnState = function() {
+  const btn = document.getElementById('btnAddGuestId');
+  if (!btn) return;
+  let nextSlot = null;
+  for (let i = 2; i <= 8; i++) {
+    const el = document.getElementById(`idSlot${i}`);
+    if (el && (el.style.display === 'none' || getComputedStyle(el).display === 'none')) {
+      nextSlot = i;
+      break;
+    }
+  }
+  if (nextSlot) {
+    btn.style.display = 'flex';
+    btn.innerHTML = `<span style="font-size:16px;">➕</span> <span>Add Another Guest ID (Guest ${nextSlot})</span>`;
+  } else {
+    btn.style.display = 'none';
+  }
+};
+
 function showIdSlots() {
-  const n = Math.min(parseInt(document.getElementById('guests')?.value) || 1, 8);
+  const n = Math.min(Math.max(parseInt(document.getElementById('guests')?.value) || 1, 1), 8);
   for (let i = 1; i <= 8; i++) {
     const el = document.getElementById(`idSlot${i}`);
-    if (el) el.style.display = i <= n ? 'block' : 'none';
+    if (el) {
+      const hasContent = (document.getElementById(`gN${i}`)?.value?.trim()) ||
+        document.getElementById(`idFrontCam${i}`)?.files?.length ||
+        document.getElementById(`idFrontGal${i}`)?.files?.length ||
+        document.getElementById(`idBackCam${i}`)?.files?.length ||
+        document.getElementById(`idBackGal${i}`)?.files?.length;
+      if (i <= n || hasContent) {
+        el.style.display = 'block';
+      } else {
+        el.style.display = 'none';
+      }
+    }
   }
+  window.updateAddGuestIdBtnState();
 }
 
+function onCheckoutTypeChg() {
+  const isConfirmed = document.getElementById('checkoutConfirmed')?.value === 'yes';
+  const notice = document.getElementById('openStayNotice');
+  if (notice) notice.style.display = isConfirmed ? 'none' : 'flex';
+  const rateInput = document.getElementById('perDayRate');
+  if (rateInput) {
+    if (!isConfirmed) {
+      rateInput.removeAttribute('readonly');
+      rateInput.style.background = '#fff';
+      rateInput.style.color = 'inherit';
+      rateInput.placeholder = 'Daily rate ₹ (e.g. 2000)';
+      rateInput.oninput = function() {
+        const rate = parseFloat(this.value) || 0;
+        const ci = document.getElementById('checkIn')?.value;
+        const co = document.getElementById('checkOut')?.value;
+        const nights = Math.max(calcNights(ci, co), 1);
+        if (rate > 0) {
+          const totInput = document.getElementById('totalAmount');
+          if (totInput) totInput.value = rate * nights;
+          onAmtChg();
+        }
+      };
+    } else {
+      rateInput.setAttribute('readonly', 'readonly');
+      rateInput.style.background = '#f5f5f5';
+      rateInput.style.color = 'var(--muted)';
+      rateInput.placeholder = 'Auto from total ÷ nights';
+    }
+  }
+  onAmtChg();
+}
+
+window.addNextEditGuestIdSlot = function() {
+  for (let i = 2; i <= 8; i++) {
+    const el = document.getElementById(`editIdSlot${i}`);
+    if (el && (el.style.display === 'none' || getComputedStyle(el).display === 'none')) {
+      el.style.display = 'block';
+      const gInput = document.getElementById('guests');
+      if (gInput && parseInt(gInput.value || 1) < i) {
+        gInput.value = i;
+      }
+      window.updateEditAddGuestIdBtnState();
+      el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      return;
+    }
+  }
+  window.updateEditAddGuestIdBtnState();
+};
+
+window.hideEditGuestIdSlot = function(slotIdx) {
+  const el = document.getElementById(`editIdSlot${slotIdx}`);
+  if (el) {
+    el.style.display = 'none';
+    ['eFrontCam', 'eFrontGal', 'eBackCam', 'eBackGal'].forEach(id => {
+      const inp = document.getElementById(`${id}${slotIdx}`);
+      if (inp) inp.value = '';
+    });
+    const pf = document.getElementById(`ePreviewFront${slotIdx}`);
+    if (pf) pf.innerHTML = '';
+    const pb = document.getElementById(`ePreviewBack${slotIdx}`);
+    if (pb) pb.innerHTML = '';
+  }
+  window.updateEditAddGuestIdBtnState();
+};
+
+window.updateEditAddGuestIdBtnState = function() {
+  const btn = document.getElementById('btnEditAddGuestId');
+  if (!btn) return;
+  let nextSlot = null;
+  for (let i = 2; i <= 8; i++) {
+    const el = document.getElementById(`editIdSlot${i}`);
+    if (el && (el.style.display === 'none' || getComputedStyle(el).display === 'none')) {
+      nextSlot = i;
+      break;
+    }
+  }
+  if (nextSlot) {
+    btn.style.display = 'flex';
+    btn.innerHTML = `<span style="font-size:16px;">➕</span> <span>Add Another Guest ID (Guest ${nextSlot})</span>`;
+  } else {
+    btn.style.display = 'none';
+  }
+};
+
 function showEditIdSlots() {
-  const n = Math.min(parseInt(document.getElementById('guests')?.value) || 1, 8);
+  const n = Math.min(Math.max(parseInt(document.getElementById('guests')?.value) || 1, 1), 8);
   for (let i = 1; i <= 8; i++) {
     const el = document.getElementById(`editIdSlot${i}`);
-    if (el) el.style.display = i <= n ? 'block' : 'none';
+    if (el) {
+      const hasUploaded = el.querySelector('.green-btn') !== null;
+      const hasSelectedFile = document.getElementById(`eFrontCam${i}`)?.files?.length ||
+        document.getElementById(`eFrontGal${i}`)?.files?.length ||
+        document.getElementById(`eBackCam${i}`)?.files?.length ||
+        document.getElementById(`eBackGal${i}`)?.files?.length;
+      if (i <= n || hasUploaded || hasSelectedFile) {
+        el.style.display = 'block';
+      } else {
+        el.style.display = 'none';
+      }
+    }
+  }
+  window.updateEditAddGuestIdBtnState();
+}
+
+function onCheckoutTypeChgEdit() {
+  const isConfirmed = document.getElementById('checkoutConfirmed')?.value === 'yes';
+  const notice = document.getElementById('editOpenStayNotice');
+  if (notice) notice.style.display = isConfirmed ? 'none' : 'flex';
+  const rateInput = document.getElementById('perDayRate');
+  if (rateInput) {
+    rateInput.oninput = function() {
+      if (document.getElementById('checkoutConfirmed')?.value === 'no') {
+        const rate = parseFloat(this.value) || 0;
+        const ci = document.getElementById('checkIn')?.value;
+        const co = document.getElementById('checkOut')?.value;
+        const nights = Math.max(calcNights(ci, co), 1);
+        if (rate > 0) {
+          const totInput = document.getElementById('totalAmount');
+          if (totInput) totInput.value = rate * nights;
+        }
+      }
+    };
   }
 }
 
@@ -1730,15 +1940,22 @@ async function smartCompress(file, targetSizeKB = 300) {
 }
 
 async function uploadIdPhotos(bkId) {
-  const cnt = Math.min(parseInt(document.getElementById('guests')?.value) || 1, 8);
-  const frontPaths = Array(cnt).fill(null);
-  const backPaths = Array(cnt).fill(null);
+  let maxSlot = Math.min(Math.max(parseInt(document.getElementById('guests')?.value) || 1, 1), 8);
+  for (let i = 1; i <= 8; i++) {
+    const fF = document.getElementById(`idFrontCam${i}`)?.files?.[0] || document.getElementById(`idFrontGal${i}`)?.files?.[0];
+    const bF = document.getElementById(`idBackCam${i}`)?.files?.[0] || document.getElementById(`idBackGal${i}`)?.files?.[0];
+    if (fF || bF) {
+      if (i > maxSlot) maxSlot = i;
+    }
+  }
+  const frontPaths = Array(maxSlot).fill(null);
+  const backPaths = Array(maxSlot).fill(null);
   const allPaths = [];
   const failedUploads = [];
 
   // Collect all files to upload
   const uploadQueue = [];
-  for (let i = 1; i <= cnt; i++) {
+  for (let i = 1; i <= maxSlot; i++) {
     const guestName = (document.getElementById(`gN${i}`)?.value?.trim() || `Guest${i}`)
       .replace(/[^a-zA-Z0-9]/g, '_').substring(0, 20);
 
@@ -1913,7 +2130,12 @@ async function saveBooking() {
       : parseFloat(document.getElementById('totalAmount')?.value) || 0;
 
     // Per day rate
-    const perDayRate = nights > 0 && tot > 0 ? Math.round(tot / nights) : 0;
+    let perDayRate = parseFloat(document.getElementById(isOnline ? 'perDayRateOnline' : 'perDayRate')?.value) || 0;
+    if (!checkoutConfirmed && perDayRate > 0 && tot === 0) {
+      tot = Math.max(nights, 1) * perDayRate;
+    } else if (nights > 0 && tot > 0 && !perDayRate) {
+      perDayRate = Math.round(tot / nights);
+    }
 
     // Advance: online = tot, offline = whatever entered
     let adv = isOnline ? tot : (parseFloat(document.getElementById('advanceAmt').value) || 0);
@@ -2051,7 +2273,7 @@ async function saveBooking() {
 
     if (adv > 0) {
       // Compute current booking's remaining due (total - already-paid, though for new booking paid=0)
-      const currTotal = totalAmount || 0;
+      const currTotal = tot || 0;
       const currRemaining = currTotal; // new booking, no prior payments
       let payForCurrent = adv;
       let overflow = 0;
@@ -2376,14 +2598,25 @@ async function editBooking(bkId) {
   const frontPaths = parseIdPathArray(b.id_proof_front_paths);
   const backPaths = parseIdPathArray(b.id_proof_back_paths);
   const guestCountForUI = Math.min(Math.max(parseInt(b.guests || 1) || 1, 1), 8);
+  let maxSlotWithPhoto = 1;
+  for (let i = 1; i <= 8; i++) {
+    if (frontPaths[i - 1] || backPaths[i - 1]) maxSlotWithPhoto = Math.max(maxSlotWithPhoto, i);
+  }
+  const initialVisibleEditSlots = Math.max(guestCountForUI, maxSlotWithPhoto);
 
   let idSlots = '';
   for (let i = 1; i <= 8; i++) {
     const fp = frontPaths[i - 1] || null;
     const bp = backPaths[i - 1] || null;
+    const isVisible = i <= initialVisibleEditSlots;
     idSlots += `
-      <div style="padding:10px;margin-bottom:8px;background:var(--bg);border:1px solid var(--border);border-radius:10px;">
-        <div style="font-weight:700;font-size:13px;margin-bottom:6px;">👤 Guest ${i}</div>
+      <div id="editIdSlot${i}" style="display:${isVisible ? 'block' : 'none'};padding:12px;margin-bottom:10px;background:var(--bg);border:1px solid var(--border);border-radius:10px;transition:all 0.2s ease;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+          <div style="font-weight:700;font-size:13px;color:var(--dark);">
+            👤 Guest ${i} ${i === 1 ? '<span style="font-size:11px;color:var(--primary);font-weight:600;">(Primary)</span>' : ''}
+          </div>
+          ${i > 1 && !fp && !bp ? `<button type="button" class="btn-sm danger" style="padding:2px 8px;font-size:10px;min-height:22px;" onclick="hideEditGuestIdSlot(${i})" title="Hide this slot">✕ Hide</button>` : ''}
+        </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
           <div>
             <div style="font-size:11px;color:var(--muted);font-weight:600;margin-bottom:4px;">📄 Front</div>
@@ -2464,6 +2697,12 @@ async function editBooking(bkId) {
       <div style="background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:14px;margin:8px 0;">
         <div class="section-title">🪪 ID Photos (Front & Back)</div>
         <div class="id-grid">${idSlots}</div>
+        <div id="addEditGuestIdBtnWrap" style="margin-top:10px;">
+          <button type="button" id="btnEditAddGuestId" class="outline btn-sm" onclick="addNextEditGuestIdSlot()"
+            style="width:100%;padding:10px 14px;border:1.5px dashed var(--primary);color:var(--primary);background:#fff5f6;border-radius:10px;font-weight:700;font-size:13px;display:flex;align-items:center;justify-content:center;gap:8px;cursor:pointer;">
+            <span style="font-size:16px;">➕</span> <span>Add Another Guest ID (Guest ${Math.min(initialVisibleEditSlots + 1, 8)})</span>
+          </button>
+        </div>
       </div>
 
       <div class="form-grid">
@@ -2498,10 +2737,14 @@ async function editBooking(bkId) {
         <div class="form-group"><label>Check-out Time</label><input id="checkOutTime" type="time" value="${b.check_out_time || '11:00'}" /></div>
       </div>
       <div class="form-group"><label>Checkout Type</label>
-        <select id="checkoutConfirmed">
+        <select id="checkoutConfirmed" onchange="onCheckoutTypeChgEdit()">
           <option value="yes" ${b.checkout_confirmed !== false ? 'selected' : ''}>Fixed Date</option>
           <option value="no" ${b.checkout_confirmed === false ? 'selected' : ''}>Open — Per Day</option>
         </select>
+      </div>
+      <div id="editOpenStayNotice" style="display:${b.checkout_confirmed === false ? 'flex' : 'none'};background:#FFF8E1;border:1px solid #FFC107;padding:10px 12px;border-radius:8px;font-size:12px;color:#856404;margin:4px 0 10px;align-items:center;gap:8px;">
+        <span style="font-size:16px;">🔄</span>
+        <div><strong>Open Stay (Per Day basis):</strong> Total calculates dynamically day-by-day based on the daily rate.</div>
       </div>
       <div class="form-grid">
         <div class="form-group"><label>Guests</label><input id="guests" type="number" value="${guestCountForUI}" min="1" max="8" onchange="showEditIdSlots()" oninput="showEditIdSlots()" /></div>
@@ -2561,12 +2804,12 @@ async function editBooking(bkId) {
         </div>
         <div id="editHideReasonWrap" style="display:${b.show_to_investor === false ? 'block' : 'none'};margin-top:8px;">
           <label style="font-size:12px;color:#666;">📝 Reason for hiding (optional):</label>
-          <input id="editHideReason" value="${(b.hide_reason || '').replace(/"/g, '&quot;')}" placeholder="e.g. Complimentary stay, renovation team" style="width:100%;padding:8px;margin-top:4px;font-size:13px;" />
+          <input id="editHideReason" placeholder="e.g. Complimentary stay, personal use" value="${b.hide_reason || ''}" style="width:100%;padding:8px;margin-top:4px;font-size:13px;" />
         </div>
       </div>` : ''}
 
       <div class="form-group"><label>Notes</label><textarea id="bkNotes">${b.notes || ''}</textarea></div>
-      <button onclick="updateBooking('${bkId}','${b.parent_booking_id || ''}','${b.stay_group_id || b.booking_id}')">💾 Update</button>
+      <button id="updateBtn" onclick="updateBooking('${bkId}','${b.parent_booking_id || ''}','${b.stay_group_id || b.booking_id}')" style="width:100%;padding:14px;font-size:15px;margin-top:10px;">💾 Update Booking</button>
       <div id="editBkErr"></div>
     </div>
 
@@ -2596,6 +2839,10 @@ async function editBooking(bkId) {
       </div>
     </div>
   `, 'bookings');
+
+  showEditIdSlots();
+  toggleEditSourceBox();
+  onCheckoutTypeChgEdit();
 }
 
 function toggleEditSourceBox() {
@@ -2742,9 +2989,15 @@ async function updateBooking(bkId, parentBookingId = '', stayGroupId = '') {
   }
 
 
-  const totVal = parseFloat(document.getElementById('totalAmount').value) || 0;
+  let totVal = parseFloat(document.getElementById('totalAmount')?.value) || 0;
   const nights = calcNights(ci, co);
-  const perDay = nights > 0 && totVal > 0 ? Math.round(totVal / nights) : parseFloat(document.getElementById('perDayRate')?.value) || 0;
+  const isConfirmed = document.getElementById('checkoutConfirmed')?.value === 'yes';
+  let perDay = parseFloat(document.getElementById('perDayRate')?.value) || 0;
+  if (!isConfirmed && perDay > 0 && totVal === 0) {
+    totVal = Math.max(nights, 1) * perDay;
+  } else if (nights > 0 && totVal > 0 && !perDay) {
+    perDay = Math.round(totVal / nights);
+  }
 
   const obj = {
     guest_name: gn, phone: document.getElementById('guestPhone').value.trim() || null,
