@@ -611,7 +611,109 @@ function getSelectedRoomsFromUI() {
   return '';
 }
 
+// ============ ROBUST EMPLOYEE ID PROOF UPLOAD & PREVIEW ============
+window._empIdFrontBlob = null;
+window._empIdBackBlob = null;
+
+async function smartCompressEmpImage(file) {
+  let quality = 0.8;
+  let maxDim = 1200;
+  const sizeMB = file.size / 1024 / 1024;
+  if (sizeMB > 5) { quality = 0.6; maxDim = 1000; }
+  if (sizeMB > 10) { quality = 0.5; maxDim = 800; }
+
+  try {
+    return await compressImage(file, maxDim, quality);
+  } catch (e) {
+    console.warn('Compression fallback to original:', e);
+    return file;
+  }
+}
+
+async function robustUploadEmpId(path, fileOrBlob, maxRetries = 3) {
+  const compressed = await smartCompressEmpImage(fileOrBlob);
+  let lastError = null;
+
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      const { error } = await sb.storage.from('id-proofs').upload(path, compressed, {
+        contentType: 'image/jpeg',
+        upsert: true,
+        cacheControl: '3600'
+      });
+      if (!error) return { success: true, path };
+      lastError = error;
+      if (attempt < maxRetries) await new Promise(r => setTimeout(r, attempt * 800));
+    } catch (e) {
+      lastError = e;
+      if (attempt < maxRetries) await new Promise(r => setTimeout(r, attempt * 800));
+    }
+  }
+  return { success: false, error: lastError?.message || 'Upload failed after 3 attempts' };
+}
+
+window.handleEmpIdFileSelect = function(input, side) {
+  const file = input?.files?.[0];
+  if (!file) return;
+
+  const sideLabel = side === 'front' ? 'Front Side' : 'Back Side';
+
+  // Use global crop modal if available (from bookings.js)
+  if (typeof openCropModal === 'function') {
+    openCropModal(file, (croppedFile) => {
+      if (side === 'front') window._empIdFrontBlob = croppedFile;
+      else window._empIdBackBlob = croppedFile;
+      renderEmpIdPreview(croppedFile, side);
+    });
+  } else {
+    if (side === 'front') window._empIdFrontBlob = file;
+    else window._empIdBackBlob = file;
+    renderEmpIdPreview(file, side);
+  }
+};
+
+window.clearEmpIdFile = function(side) {
+  if (side === 'front') {
+    window._empIdFrontBlob = null;
+    const cam = document.getElementById('eIdFrontCam');
+    const gal = document.getElementById('eIdFrontGal');
+    if (cam) cam.value = '';
+    if (gal) gal.value = '';
+  } else {
+    window._empIdBackBlob = null;
+    const cam = document.getElementById('eIdBackCam');
+    const gal = document.getElementById('eIdBackGal');
+    if (cam) cam.value = '';
+    if (gal) gal.value = '';
+  }
+  const preview = document.getElementById(`eIdPreview_${side}`);
+  if (preview) preview.innerHTML = '';
+};
+
+window.renderEmpIdPreview = function(file, side) {
+  const preview = document.getElementById(`eIdPreview_${side}`);
+  if (!preview || !file) return;
+
+  const url = URL.createObjectURL(file);
+  const sizeMB = (file.size / 1024 / 1024).toFixed(2);
+  const label = side === 'front' ? 'Front' : 'Back';
+
+  preview.innerHTML = `
+    <div style="display:flex;align-items:center;gap:10px;padding:8px 12px;background:#F0FDF4;border:1.5px solid #10B981;border-radius:10px;margin-top:8px;">
+      <img src="${url}" style="width:60px;height:45px;object-fit:cover;border-radius:6px;border:1px solid #A7F3D0;cursor:pointer;" onclick="window.open('${url}','_blank')" title="Click to view full image" />
+      <div style="flex:1;">
+        <div style="font-size:12px;font-weight:700;color:#047857;">✅ ${label} Ready</div>
+        <div style="font-size:10.5px;color:#64748B;">${sizeMB} MB &bull; Auto-optimized for upload</div>
+      </div>
+      <button type="button" class="btn-sm danger" onclick="clearEmpIdFile('${side}')" style="padding:4px 8px;font-size:11px;min-height:26px;" title="Remove photo">✕</button>
+    </div>
+  `;
+};
+
 async function renderAddEmp() {
+  window._empIdFrontBlob = null;
+  window._empIdBackBlob = null;
+
   const { data: rooms } = await sb.from('rooms').select('room_id, nickname, unit_no').order('room_id');
 
   renderShell(`
@@ -706,14 +808,47 @@ async function renderAddEmp() {
         <input id="eEmergency" placeholder="e.g. Brother: 9876543210" />
       </div>
 
-      <div class="form-grid">
-        <div class="form-group">
-          <label>ID Proof (Front Photo)</label>
-          <input id="eIdFront" type="file" accept="image/*" />
+      <!-- High Reliability Camera / Gallery ID Proof Section -->
+      <div style="background:var(--card-sub-bg,#F8FAFC);padding:14px;border-radius:10px;border:1px solid var(--border,#CBD5E1);margin-bottom:14px;">
+        <div style="font-weight:700;font-size:13px;margin-bottom:4px;color:var(--text);">
+          📄 ID Proof Photos (Aadhar / PAN / Driving License)
         </div>
-        <div class="form-group">
-          <label>ID Proof (Back Photo)</label>
-          <input id="eIdBack" type="file" accept="image/*" />
+        <div style="font-size:11.5px;color:var(--muted);margin-bottom:12px;">
+          Upload clear front and back photos. Use 📷 Camera to snap or 🖼️ Gallery to choose from files.
+        </div>
+
+        <div class="form-grid">
+          <!-- Front Photo -->
+          <div class="form-group" style="background:#fff;padding:12px;border-radius:8px;border:1px solid var(--border,#E2E8F0);">
+            <label style="font-weight:700;display:block;margin-bottom:8px;">📄 Front Side Photo</label>
+            <div style="display:flex;gap:8px;">
+              <button type="button" class="btn-sm outline" onclick="document.getElementById('eIdFrontCam').click()" style="flex:1;padding:8px;font-size:12px;font-weight:700;">
+                📷 Camera
+              </button>
+              <button type="button" class="btn-sm outline" onclick="document.getElementById('eIdFrontGal').click()" style="flex:1;padding:8px;font-size:12px;font-weight:700;">
+                🖼️ Gallery
+              </button>
+            </div>
+            <input type="file" id="eIdFrontCam" accept="image/*" capture="environment" style="display:none;" onchange="handleEmpIdFileSelect(this, 'front')" />
+            <input type="file" id="eIdFrontGal" accept="image/*" style="display:none;" onchange="handleEmpIdFileSelect(this, 'front')" />
+            <div id="eIdPreview_front"></div>
+          </div>
+
+          <!-- Back Photo -->
+          <div class="form-group" style="background:#fff;padding:12px;border-radius:8px;border:1px solid var(--border,#E2E8F0);">
+            <label style="font-weight:700;display:block;margin-bottom:8px;">📄 Back Side Photo</label>
+            <div style="display:flex;gap:8px;">
+              <button type="button" class="btn-sm outline" onclick="document.getElementById('eIdBackCam').click()" style="flex:1;padding:8px;font-size:12px;font-weight:700;">
+                📷 Camera
+              </button>
+              <button type="button" class="btn-sm outline" onclick="document.getElementById('eIdBackGal').click()" style="flex:1;padding:8px;font-size:12px;font-weight:700;">
+                🖼️ Gallery
+              </button>
+            </div>
+            <input type="file" id="eIdBackCam" accept="image/*" capture="environment" style="display:none;" onchange="handleEmpIdFileSelect(this, 'back')" />
+            <input type="file" id="eIdBackGal" accept="image/*" style="display:none;" onchange="handleEmpIdFileSelect(this, 'back')" />
+            <div id="eIdPreview_back"></div>
+          </div>
         </div>
       </div>
 
@@ -726,7 +861,9 @@ async function renderAddEmp() {
         <textarea id="eNotes" placeholder="Additional background, uniforms, keys issued, bank details..."></textarea>
       </div>
 
-      <button onclick="saveEmp()" style="width:100%;padding:12px;font-size:15px;font-weight:700;border-radius:10px;background:var(--primary,#4F46E5);color:#fff;">
+      <div id="empUploadProgress"></div>
+
+      <button id="saveEmpBtn" onclick="saveEmp()" style="width:100%;padding:12px;font-size:15px;font-weight:700;border-radius:10px;background:var(--primary,#4F46E5);color:#fff;">
         💾 Save Staff Member
       </button>
       <div id="empErr" style="margin-top:10px;"></div>
@@ -735,76 +872,120 @@ async function renderAddEmp() {
 }
 
 async function saveEmp() {
-  const _btn = document.querySelector('button[onclick="saveEmp()"]');
-  if (_btn) { if (_btn.disabled) return; _btn.disabled = true; _btn.textContent = '⏳ Saving...'; }
-  const name = document.getElementById('eName').value.trim();
+  const _btn = document.getElementById('saveEmpBtn') || document.querySelector('button[onclick="saveEmp()"]');
+  const progEl = document.getElementById('empUploadProgress');
+  const errEl = document.getElementById('empErr');
+  if (errEl) errEl.innerHTML = '';
+
+  const name = document.getElementById('eName')?.value?.trim();
   if (!name) { 
-    document.getElementById('empErr').innerHTML = '<div class="error">Name is required</div>';
-    if (_btn) { _btn.disabled = false; _btn.textContent = '💾 Save Staff Member'; }
+    if (errEl) errEl.innerHTML = '<div class="error">Name is required</div>';
     return; 
   }
+
+  if (_btn) { _btn.disabled = true; _btn.textContent = '⏳ Saving staff member...'; }
 
   const selectedRooms = getSelectedRoomsFromUI();
   let frontPath = null, backPath = null;
   const empId = 'E' + Date.now();
 
-  const frontFile = document.getElementById('eIdFront')?.files?.[0];
-  if (frontFile) {
-    try {
-      const comp = await compressImage(frontFile);
-      const path = `employees/${empId}_front.jpg`;
-      const { error } = await sb.storage.from('id-proofs').upload(path, comp, { contentType: 'image/jpeg' });
-      if (!error) frontPath = path;
-    } catch (e) { console.warn('Front upload failed', e); }
+  // Upload Front Photo
+  if (window._empIdFrontBlob) {
+    if (_btn) _btn.textContent = '⏳ Uploading ID Front photo...';
+    if (progEl) progEl.innerHTML = '<div style="padding:8px 12px;background:#EFF6FF;border-radius:8px;color:#1D4ED8;font-size:12px;font-weight:600;margin-bottom:10px;">📤 Uploading Front ID Photo...</div>';
+    
+    const path = `employees/${empId}_front_${Date.now()}.jpg`;
+    const res = await robustUploadEmpId(path, window._empIdFrontBlob);
+    if (res.success) {
+      frontPath = path;
+    } else {
+      if (errEl) errEl.innerHTML = `<div class="error">❌ Front ID photo upload failed: ${res.error}. Please retry.</div>`;
+      if (_btn) { _btn.disabled = false; _btn.textContent = '💾 Save Staff Member'; }
+      if (progEl) progEl.innerHTML = '';
+      return;
+    }
   }
 
-  const backFile = document.getElementById('eIdBack')?.files?.[0];
-  if (backFile) {
-    try {
-      const comp = await compressImage(backFile);
-      const path = `employees/${empId}_back.jpg`;
-      const { error } = await sb.storage.from('id-proofs').upload(path, comp, { contentType: 'image/jpeg' });
-      if (!error) backPath = path;
-    } catch (e) { console.warn('Back upload failed', e); }
+  // Upload Back Photo
+  if (window._empIdBackBlob) {
+    if (_btn) _btn.textContent = '⏳ Uploading ID Back photo...';
+    if (progEl) progEl.innerHTML = '<div style="padding:8px 12px;background:#EFF6FF;border-radius:8px;color:#1D4ED8;font-size:12px;font-weight:600;margin-bottom:10px;">📤 Uploading Back ID Photo...</div>';
+    
+    const path = `employees/${empId}_back_${Date.now()}.jpg`;
+    const res = await robustUploadEmpId(path, window._empIdBackBlob);
+    if (res.success) {
+      backPath = path;
+    } else {
+      if (errEl) errEl.innerHTML = `<div class="error">❌ Back ID photo upload failed: ${res.error}. Please retry.</div>`;
+      if (_btn) { _btn.disabled = false; _btn.textContent = '💾 Save Staff Member'; }
+      if (progEl) progEl.innerHTML = '';
+      return;
+    }
   }
 
-  const isActive = document.getElementById('eActive').checked;
+  if (_btn) _btn.textContent = '⏳ Saving record...';
+  const isActive = document.getElementById('eActive')?.checked !== false;
 
   const { error } = await sb.from('employees').insert({
     emp_id: empId,
     name,
-    phone: document.getElementById('ePhone').value.trim() || null,
-    role: document.getElementById('eRole').value || null,
-    property_role: document.getElementById('ePropertyRole').value || 'Staff',
-    monthly_salary: parseFloat(document.getElementById('eSal').value) || 0,
-    joining_date: document.getElementById('eJoin').value || null,
+    phone: document.getElementById('ePhone')?.value?.trim() || null,
+    role: document.getElementById('eRole')?.value || null,
+    property_role: document.getElementById('ePropertyRole')?.value || 'Staff',
+    monthly_salary: parseFloat(document.getElementById('eSal')?.value) || 0,
+    joining_date: document.getElementById('eJoin')?.value || null,
     assigned_rooms: selectedRooms || null,
-    id_proof_type: document.getElementById('eIdType').value || null,
-    id_proof_no: document.getElementById('eIdNo').value.trim() || null,
-    address: document.getElementById('eAddr').value.trim() || null,
-    emergency_contact: document.getElementById('eEmergency').value.trim() || null,
+    id_proof_type: document.getElementById('eIdType')?.value || null,
+    id_proof_no: document.getElementById('eIdNo')?.value?.trim() || null,
+    address: document.getElementById('eAddr')?.value?.trim() || null,
+    emergency_contact: document.getElementById('eEmergency')?.value?.trim() || null,
     id_proof_photo_front: frontPath,
     id_proof_photo_back: backPath,
     status: isActive ? 'Active' : 'Inactive',
     is_active: isActive,
-    notes: document.getElementById('eNotes').value.trim() || null,
+    notes: document.getElementById('eNotes')?.value?.trim() || null,
   });
 
   if (error) { 
-    document.getElementById('empErr').innerHTML = `<div class="error">${error.message}</div>`;
+    if (errEl) errEl.innerHTML = `<div class="error">${error.message}</div>`;
     if (_btn) { _btn.disabled = false; _btn.textContent = '💾 Save Staff Member'; }
+    if (progEl) progEl.innerHTML = '';
     return; 
   }
   
-  if (window.fsn) fsn.success('Added', `Staff member ${name} added successfully`);
+  window._empIdFrontBlob = null;
+  window._empIdBackBlob = null;
+
+  if (window.fsn) fsn.success('Added', `Staff member ${name} added successfully with ID photos`);
   renderManageEmployees();
 }
 
 async function editEmp(id) {
-  const { data: e } = await sb.from('employees').select('*').eq('emp_id', id).single();
+  window._empIdFrontBlob = null;
+  window._empIdBackBlob = null;
+
+  const [{ data: e }, { data: rooms }] = await Promise.all([
+    sb.from('employees').select('*').eq('emp_id', id).single(),
+    sb.from('rooms').select('room_id, nickname, unit_no').order('room_id')
+  ]);
+
   if (!e) return;
-  const { data: rooms } = await sb.from('rooms').select('room_id, nickname, unit_no').order('room_id');
   const assignedArr = (e.assigned_rooms || '').split(',').map(s => s.trim()).filter(Boolean);
+
+  // Fetch signed URLs for current photos to display thumbnails
+  let currentFrontUrl = null, currentBackUrl = null;
+  if (e.id_proof_photo_front) {
+    try {
+      const { data } = await sb.storage.from('id-proofs').createSignedUrl(e.id_proof_photo_front, 600);
+      if (data?.signedUrl) currentFrontUrl = data.signedUrl;
+    } catch(err) {}
+  }
+  if (e.id_proof_photo_back) {
+    try {
+      const { data } = await sb.storage.from('id-proofs').createSignedUrl(e.id_proof_photo_back, 600);
+      if (data?.signedUrl) currentBackUrl = data.signedUrl;
+    } catch(err) {}
+  }
 
   renderShell(`
     <div class="card" style="margin-bottom:14px;">
@@ -912,28 +1093,70 @@ async function editEmp(id) {
         </select>
       </div>
 
-      <!-- ID Photos Section -->
+      <!-- High Reliability Camera / Gallery ID Proof Section (Edit Mode) -->
       <div style="background:var(--card-sub-bg,#F8FAFC);padding:14px;border-radius:10px;border:1px solid var(--border,#CBD5E1);margin-bottom:14px;">
-        <div style="font-weight:700;margin-bottom:10px;">📄 ID Document Photos</div>
+        <div style="font-weight:700;font-size:13px;margin-bottom:4px;color:var(--text);">
+          📄 ID Proof Photos (Aadhar / PAN / Driving License)
+        </div>
+        <div style="font-size:11.5px;color:var(--muted);margin-bottom:12px;">
+          View existing photos or snap new ones with Camera / Gallery to replace.
+        </div>
+
         <div class="form-grid">
-          <div class="form-group">
-            <label>Front Photo</label>
-            ${e.id_proof_photo_front ? `
-              <div style="margin-bottom:8px;">
-                <button type="button" class="btn-sm outline" onclick="dlIdPhoto('${e.id_proof_photo_front}')">📥 View Current Front</button>
+          <!-- Front Photo -->
+          <div class="form-group" style="background:#fff;padding:12px;border-radius:8px;border:1px solid var(--border,#E2E8F0);">
+            <label style="font-weight:700;display:block;margin-bottom:8px;">📄 Front Side Photo</label>
+            
+            ${currentFrontUrl ? `
+              <div style="display:flex;align-items:center;gap:10px;padding:8px;background:#F1F5F9;border-radius:8px;margin-bottom:8px;">
+                <img src="${currentFrontUrl}" style="width:55px;height:40px;object-fit:cover;border-radius:6px;border:1px solid #CBD5E1;cursor:pointer;" onclick="window.open('${currentFrontUrl}','_blank')" title="Click to view full image" />
+                <div style="flex:1;">
+                  <div style="font-size:11px;font-weight:700;color:#1E293B;">Current Front Photo</div>
+                  <a href="${currentFrontUrl}" target="_blank" style="font-size:10.5px;color:var(--primary);text-decoration:none;font-weight:600;">🔍 View Full Size</a>
+                </div>
               </div>
-            ` : '<div class="sub" style="margin-bottom:6px;">Not uploaded</div>'}
-            <input id="eIdFront" type="file" accept="image/*" />
+            ` : '<div class="sub" style="margin-bottom:8px;">No front photo uploaded</div>'}
+
+            <div style="font-size:11px;color:var(--muted);margin-bottom:6px;font-weight:600;">Replace with:</div>
+            <div style="display:flex;gap:8px;">
+              <button type="button" class="btn-sm outline" onclick="document.getElementById('eIdFrontCam').click()" style="flex:1;padding:8px;font-size:12px;font-weight:700;">
+                📷 Camera
+              </button>
+              <button type="button" class="btn-sm outline" onclick="document.getElementById('eIdFrontGal').click()" style="flex:1;padding:8px;font-size:12px;font-weight:700;">
+                🖼️ Gallery
+              </button>
+            </div>
+            <input type="file" id="eIdFrontCam" accept="image/*" capture="environment" style="display:none;" onchange="handleEmpIdFileSelect(this, 'front')" />
+            <input type="file" id="eIdFrontGal" accept="image/*" style="display:none;" onchange="handleEmpIdFileSelect(this, 'front')" />
+            <div id="eIdPreview_front"></div>
           </div>
 
-          <div class="form-group">
-            <label>Back Photo</label>
-            ${e.id_proof_photo_back ? `
-              <div style="margin-bottom:8px;">
-                <button type="button" class="btn-sm outline" onclick="dlIdPhoto('${e.id_proof_photo_back}')">📥 View Current Back</button>
+          <!-- Back Photo -->
+          <div class="form-group" style="background:#fff;padding:12px;border-radius:8px;border:1px solid var(--border,#E2E8F0);">
+            <label style="font-weight:700;display:block;margin-bottom:8px;">📄 Back Side Photo</label>
+
+            ${currentBackUrl ? `
+              <div style="display:flex;align-items:center;gap:10px;padding:8px;background:#F1F5F9;border-radius:8px;margin-bottom:8px;">
+                <img src="${currentBackUrl}" style="width:55px;height:40px;object-fit:cover;border-radius:6px;border:1px solid #CBD5E1;cursor:pointer;" onclick="window.open('${currentBackUrl}','_blank')" title="Click to view full image" />
+                <div style="flex:1;">
+                  <div style="font-size:11px;font-weight:700;color:#1E293B;">Current Back Photo</div>
+                  <a href="${currentBackUrl}" target="_blank" style="font-size:10.5px;color:var(--primary);text-decoration:none;font-weight:600;">🔍 View Full Size</a>
+                </div>
               </div>
-            ` : '<div class="sub" style="margin-bottom:6px;">Not uploaded</div>'}
-            <input id="eIdBack" type="file" accept="image/*" />
+            ` : '<div class="sub" style="margin-bottom:8px;">No back photo uploaded</div>'}
+
+            <div style="font-size:11px;color:var(--muted);margin-bottom:6px;font-weight:600;">Replace with:</div>
+            <div style="display:flex;gap:8px;">
+              <button type="button" class="btn-sm outline" onclick="document.getElementById('eIdBackCam').click()" style="flex:1;padding:8px;font-size:12px;font-weight:700;">
+                📷 Camera
+              </button>
+              <button type="button" class="btn-sm outline" onclick="document.getElementById('eIdBackGal').click()" style="flex:1;padding:8px;font-size:12px;font-weight:700;">
+                🖼️ Gallery
+              </button>
+            </div>
+            <input type="file" id="eIdBackCam" accept="image/*" capture="environment" style="display:none;" onchange="handleEmpIdFileSelect(this, 'back')" />
+            <input type="file" id="eIdBackGal" accept="image/*" style="display:none;" onchange="handleEmpIdFileSelect(this, 'back')" />
+            <div id="eIdPreview_back"></div>
           </div>
         </div>
       </div>
@@ -943,7 +1166,9 @@ async function editEmp(id) {
         <textarea id="eNotes">${escapeHtml(e.notes || '')}</textarea>
       </div>
 
-      <button onclick="updEmp('${id}')" style="width:100%;padding:12px;font-size:15px;font-weight:700;border-radius:10px;background:var(--primary,#4F46E5);color:#fff;">
+      <div id="empUploadProgress"></div>
+
+      <button id="updEmpBtn" onclick="updEmp('${id}')" style="width:100%;padding:12px;font-size:15px;font-weight:700;border-radius:10px;background:var(--primary,#4F46E5);color:#fff;">
         💾 Save & Update Staff Member
       </button>
       <div id="empErr" style="margin-top:10px;"></div>
@@ -952,14 +1177,18 @@ async function editEmp(id) {
 }
 
 async function updEmp(id) {
-  const _btn = document.querySelector('button[onclick^="updEmp"]');
-  if (_btn) { if (_btn.disabled) return; _btn.disabled = true; _btn.textContent = '⏳ Updating...'; }
-  const name = document.getElementById('eName').value.trim();
+  const _btn = document.getElementById('updEmpBtn') || document.querySelector('button[onclick^="updEmp"]');
+  const progEl = document.getElementById('empUploadProgress');
+  const errEl = document.getElementById('empErr');
+  if (errEl) errEl.innerHTML = '';
+
+  const name = document.getElementById('eName')?.value?.trim();
   if (!name) { 
-    document.getElementById('empErr').innerHTML = '<div class="error">Name is required</div>';
-    if (_btn) { _btn.disabled = false; _btn.textContent = '💾 Save & Update Staff Member'; }
+    if (errEl) errEl.innerHTML = '<div class="error">Name is required</div>';
     return; 
   }
+
+  if (_btn) { _btn.disabled = true; _btn.textContent = '⏳ Updating staff member...'; }
 
   const selectedRooms = getSelectedRoomsFromUI();
   const statusVal = document.getElementById('eStatus')?.value || 'Active';
@@ -967,50 +1196,70 @@ async function updEmp(id) {
 
   const obj = {
     name,
-    phone: document.getElementById('ePhone').value.trim() || null,
-    role: document.getElementById('eRole').value || null,
-    property_role: document.getElementById('ePropertyRole').value || 'Staff',
-    monthly_salary: parseFloat(document.getElementById('eSal').value) || 0,
-    joining_date: document.getElementById('eJoin').value || null,
+    phone: document.getElementById('ePhone')?.value?.trim() || null,
+    role: document.getElementById('eRole')?.value || null,
+    property_role: document.getElementById('ePropertyRole')?.value || 'Staff',
+    monthly_salary: parseFloat(document.getElementById('eSal')?.value) || 0,
+    joining_date: document.getElementById('eJoin')?.value || null,
     assigned_rooms: selectedRooms || null,
-    id_proof_type: document.getElementById('eIdType').value || null,
-    id_proof_no: document.getElementById('eIdNo').value.trim() || null,
-    address: document.getElementById('eAddr').value.trim() || null,
-    emergency_contact: document.getElementById('eEmergency').value.trim() || null,
+    id_proof_type: document.getElementById('eIdType')?.value || null,
+    id_proof_no: document.getElementById('eIdNo')?.value?.trim() || null,
+    address: document.getElementById('eAddr')?.value?.trim() || null,
+    emergency_contact: document.getElementById('eEmergency')?.value?.trim() || null,
     status: statusVal,
     is_active: isActive,
-    notes: document.getElementById('eNotes').value.trim() || null,
+    notes: document.getElementById('eNotes')?.value?.trim() || null,
   };
   if (!isActive) {
     obj.in_whatsapp_template = false;
   }
 
-  const frontFile = document.getElementById('eIdFront')?.files?.[0];
-  if (frontFile) {
-    try {
-      const comp = await compressImage(frontFile);
-      const path = `employees/${id}_front_${Date.now()}.jpg`;
-      const { error } = await sb.storage.from('id-proofs').upload(path, comp, { contentType: 'image/jpeg' });
-      if (!error) obj.id_proof_photo_front = path;
-    } catch (e) { console.warn('Front upload failed', e); }
+  // Upload New Front Photo if selected
+  if (window._empIdFrontBlob) {
+    if (_btn) _btn.textContent = '⏳ Uploading ID Front photo...';
+    if (progEl) progEl.innerHTML = '<div style="padding:8px 12px;background:#EFF6FF;border-radius:8px;color:#1D4ED8;font-size:12px;font-weight:600;margin-bottom:10px;">📤 Uploading New Front ID Photo...</div>';
+    
+    const path = `employees/${id}_front_${Date.now()}.jpg`;
+    const res = await robustUploadEmpId(path, window._empIdFrontBlob);
+    if (res.success) {
+      obj.id_proof_photo_front = path;
+    } else {
+      if (errEl) errEl.innerHTML = `<div class="error">❌ Front ID photo upload failed: ${res.error}. Please retry.</div>`;
+      if (_btn) { _btn.disabled = false; _btn.textContent = '💾 Save & Update Staff Member'; }
+      if (progEl) progEl.innerHTML = '';
+      return;
+    }
   }
 
-  const backFile = document.getElementById('eIdBack')?.files?.[0];
-  if (backFile) {
-    try {
-      const comp = await compressImage(backFile);
-      const path = `employees/${id}_back_${Date.now()}.jpg`;
-      const { error } = await sb.storage.from('id-proofs').upload(path, comp, { contentType: 'image/jpeg' });
-      if (!error) obj.id_proof_photo_back = path;
-    } catch (e) { console.warn('Back upload failed', e); }
+  // Upload New Back Photo if selected
+  if (window._empIdBackBlob) {
+    if (_btn) _btn.textContent = '⏳ Uploading ID Back photo...';
+    if (progEl) progEl.innerHTML = '<div style="padding:8px 12px;background:#EFF6FF;border-radius:8px;color:#1D4ED8;font-size:12px;font-weight:600;margin-bottom:10px;">📤 Uploading New Back ID Photo...</div>';
+    
+    const path = `employees/${id}_back_${Date.now()}.jpg`;
+    const res = await robustUploadEmpId(path, window._empIdBackBlob);
+    if (res.success) {
+      obj.id_proof_photo_back = path;
+    } else {
+      if (errEl) errEl.innerHTML = `<div class="error">❌ Back ID photo upload failed: ${res.error}. Please retry.</div>`;
+      if (_btn) { _btn.disabled = false; _btn.textContent = '💾 Save & Update Staff Member'; }
+      if (progEl) progEl.innerHTML = '';
+      return;
+    }
   }
 
+  if (_btn) _btn.textContent = '⏳ Saving updates...';
   const { error } = await sb.from('employees').update(obj).eq('emp_id', id);
+
   if (error) {
-    document.getElementById('empErr').innerHTML = `<div class="error">${error.message}</div>`;
+    if (errEl) errEl.innerHTML = `<div class="error">${error.message}</div>`;
     if (_btn) { _btn.disabled = false; _btn.textContent = '💾 Save & Update Staff Member'; }
+    if (progEl) progEl.innerHTML = '';
     return;
   }
+
+  window._empIdFrontBlob = null;
+  window._empIdBackBlob = null;
 
   if (window.fsn) fsn.success('Updated', `Staff member ${name} updated successfully`);
   renderManageEmployees();
