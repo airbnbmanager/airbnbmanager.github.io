@@ -426,6 +426,11 @@ async function renderFlatsStatus() {
         </div>
       </div>
       <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+        ${can ? `
+          <button class="btn-sm" onclick="cleanAllFlats(this)" style="background:#10B981;color:#fff;border:none;font-weight:700;display:inline-flex;align-items:center;gap:6px;box-shadow:0 1px 2px rgba(16,185,129,0.25);" title="Mark all dirty and in-progress flats as Clean">
+            <span>🧹</span> <span>Clean All ${dirtyCount + inProgressCount > 0 ? `(${dirtyCount + inProgressCount})` : ''}</span>
+          </button>
+        ` : ''}
         <button class="btn-sm" onclick="runAutoCheckoutSync(this)" title="Auto-detect clean/dirty status from booking checkout times">
           🔄 Auto-Sync
         </button>
@@ -741,6 +746,66 @@ window.setFlatsViewMode = function(mode) {
   window._flatsViewMode = mode;
   localStorage.setItem('flats_view_mode', mode);
   renderFlatsStatus();
+};
+
+window.cleanAllFlats = async function(btn) {
+  try {
+    let query = sb.from('flats_status')
+      .select('room_id, cleaning_status')
+      .or('cleaning_status.eq.Dirty,cleaning_status.eq.In Progress');
+
+    if (window._myAssignedRooms && window._myAssignedRooms.length) {
+      query = query.in('room_id', window._myAssignedRooms);
+    }
+
+    const { data: dirtyList, error: qErr } = await query;
+
+    if (qErr) {
+      if (window.fsn) fsn.error('Error', qErr.message);
+      else alert('Error: ' + qErr.message);
+      return;
+    }
+
+    if (!dirtyList || dirtyList.length === 0) {
+      if (window.fsn) fsn.info('All Clean', '✅ All flats are already marked Clean!');
+      else alert('✅ All flats are already marked Clean!');
+      return;
+    }
+
+    const count = dirtyList.length;
+    const ok = confirm(`Mark all ${count} flat(s) as Clean?\n\nThis will update status to "Clean" and record today as last cleaned.`);
+    if (!ok) return;
+
+    if (btn) {
+      btn.disabled = true;
+      btn.innerHTML = '<span>⏳</span> <span>Cleaning...</span>';
+    }
+
+    const today = new Date().toISOString().slice(0, 10);
+    const roomIds = dirtyList.map(d => d.room_id);
+
+    const { error: upErr } = await sb.from('flats_status').update({
+      cleaning_status: 'Clean',
+      last_cleaned: today,
+      cleaning_refused_reason: null,
+      cleaning_refused_by: null,
+      cleaning_refused_at: null
+    }).in('room_id', roomIds);
+
+    if (upErr) throw upErr;
+
+    if (window.fsn) fsn.success('All Cleaned', `✅ All ${count} flats marked Clean!`);
+    else alert(`✅ All ${count} flats marked Clean!`);
+
+    await renderFlatsStatus();
+  } catch (err) {
+    if (window.fsn) fsn.error('Error', err.message);
+    else alert('Failed: ' + err.message);
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = '<span>🧹</span> <span>Clean All</span>';
+    }
+  }
 };
 
 window.runAutoCheckoutSync = async function(btn) {
