@@ -707,6 +707,7 @@ function renderShell(content, activePage = 'dashboard') {
         <!-- Main Content View -->
         <main class="main-content" id="mainContent">
           ${content}
+          ${(typeof content === 'string' && (content.includes('Developed by Praveen Singh') || content.includes('report-doc') || content.includes('report-official-footer'))) ? '' : `
           <footer class="app-official-system-footer">
             <div class="footer-legal">THE UNIQUE HAVEN HOMES PRIVATE LIMITED</div>
             <div class="footer-meta">
@@ -714,7 +715,7 @@ function renderShell(content, activePage = 'dashboard') {
               <a href="https://uniquehavenhomesstay.com" target="_blank" rel="noopener">uniquehavenhomesstay.com</a>
             </div>
             <div class="footer-credit">⚡ Developed by <strong>Praveen Singh</strong></div>
-          </footer>
+          </footer>`}
         </main>
       </div>
 

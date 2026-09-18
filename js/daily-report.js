@@ -384,10 +384,6 @@ function printDailyReportWindow() {
     'h1, h2, h3 { margin: 6px 0; }' +
     '</style></head><body>' +
     html +
-    '<div style="margin-top:20px;padding-top:10px;border-top:1px solid #CBD5E1;text-align:center;font-size:11px;color:#64748B;">' +
-      '<strong>THE UNIQUE HAVEN HOMES PRIVATE LIMITED</strong> &bull; uniquehavenhomesstay.com<br>' +
-      '⚡ Developed by Praveen Singh' +
-    '</div>' +
     '<script>window.onload = function(){ setTimeout(function(){ window.print(); }, 400); };<\/script>' +
     '</body></html>'
   );

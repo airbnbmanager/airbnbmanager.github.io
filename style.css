@@ -1371,6 +1371,13 @@ code {
   font-size: 11.5px;
 }
 
+/* Suppress redundant system footer if page has an embedded report document */
+.main-content:has(.report-doc) .app-official-system-footer,
+.main-content:has(.report-official-footer) .app-official-system-footer,
+.main-content:has([class*="report-doc"]) .app-official-system-footer {
+  display: none !important;
+}
+
 
 /* ─── CALENDAR (Google/Apple Style) ─── */
 .cal-cell {

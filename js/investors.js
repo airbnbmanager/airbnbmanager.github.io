@@ -1250,14 +1250,15 @@ function getInvestorReportFilename(investorName, propertyName, monthYear) {
 
 function buildInvestorReportHTML(reportHTML, filename) {
   const today = new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
-  const footerHTML = (typeof window.getOfficialReportFooterHTML === 'function') 
+  const hasInnerFooter = (reportHTML || '').includes('Developed by Praveen Singh');
+  const footerHTML = hasInnerFooter ? '' : ((typeof window.getOfficialReportFooterHTML === 'function') 
     ? window.getOfficialReportFooterHTML(today) 
     : `
     <div class="footer-brand" style="margin-top:14px;padding-top:8px;border-top:1px solid #ddd;text-align:center;font-size:10px;color:#475569;font-family:sans-serif;">
       <div style="font-weight:700;letter-spacing:0.5px;color:#1e293b;text-transform:uppercase;">THE UNIQUE HAVEN HOMES PRIVATE LIMITED</div>
       <div style="font-size:9px;color:#64748b;margin-top:2px;">CIN: U55101UP2026PTC244637 · uniquehavenhomesstay.com</div>
       <div style="margin-top:4px;font-weight:700;color:#0f172a;font-size:9.5px;">⚡ Developed by Praveen Singh</div>
-    </div>`;
+    </div>`);
 
   return `<!DOCTYPE html>
 <html lang="en">
