@@ -112,8 +112,8 @@
       property_name: propName,
       flat_number: flat,
       key_info: room.key_number || 'Info shared separately',
-      wifi_ssid: room.wifi_ssid || 'Ask caretaker',
-      wifi_password: room.wifi_password || 'Ask caretaker',
+      wifi_ssid: room.wifi_ssid || 'UniqueHaven_WiFi',
+      wifi_password: room.wifi_password || 'Airbnb.in1',
       check_in: booking.check_in || '',
       check_out: booking.check_out || ''
     };
