@@ -1314,29 +1314,6 @@ async function renderDashboard() {
             </div>
           ` : ''}
 
-          ${allShifts.length > 0 ? `
-            <div class="dash-panel-card" style="border-left:4px solid var(--blue);">
-              <div class="dash-panel-head">
-                <div class="dash-panel-title">
-                  <span>🔁</span> Room Shifts (${allShifts.length})
-                </div>
-                <span class="badge blue">Last 30 Days</span>
-              </div>
-              <div style="max-height:260px;overflow-y:auto;">
-                ${allShifts.slice(0, 6).map(sh => `
-                  <div class="dash-guest-item">
-                    <div>
-                      <strong>${sh.guest}</strong>
-                      <div style="font-size:11.5px;color:var(--muted);margin-top:2px;">
-                        <span style="color:#DC2626;">${sh.fromRoom}</span> → <span style="color:#059669;font-weight:700;">${sh.toRoom}</span> &bull; ${sh.shiftDate}
-                      </div>
-                    </div>
-                    ${sh.phone ? `<a href="tel:${sh.phone}" class="dash-icon-btn" title="Call">📞</a>` : ''}
-                  </div>
-                `).join('')}
-              </div>
-            </div>
-          ` : ''}
         </div>
       </div>
 

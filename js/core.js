@@ -450,7 +450,6 @@ function renderShell(content, activePage = 'dashboard') {
       ['reminders', '🔔 Reminders'],
       { section: 'PROPERTIES' },
       ['rooms', '🏠 Properties'],
-      ['shifts', '🕐 Shifts'],
     ];
   } else if (isOwner) {
     nav = [
@@ -464,7 +463,6 @@ function renderShell(content, activePage = 'dashboard') {
       ['bookings', '📅 Bookings'],
       ['flats', '🛏️ Flats Status'],
       ['pendingApprovals', '🟡 Pending Approvals'],
-      ['shifts', '🔄 Shifts & Extensions'],
       ['reminders', '🔔 Reminders'],
 
       { section: 'FINANCE' },
@@ -512,7 +510,6 @@ function renderShell(content, activePage = 'dashboard') {
       ['bookings', '📅 Bookings'],
       ['flats', '🛏️ Flats Status'],
       ['pendingApprovals', '🟡 Pending Approvals'],
-      ['shifts', '🔄 Shifts'],
       ['reminders', '🔔 Reminders'],
 
       { section: 'FINANCE' },
