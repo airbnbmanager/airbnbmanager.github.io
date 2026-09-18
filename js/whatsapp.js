@@ -37,10 +37,11 @@ async function buildMessageData(bkId) {
 
   // Fetch staff for this property (assigned_rooms contains roomId)
   const { data: allStaff } = await sb.from('employees')
-    .select('name, phone, shift, whatsapp_display_role, assigned_rooms')
+    .select('name, phone, shift, whatsapp_display_role, assigned_rooms, status, is_active')
     .eq('in_whatsapp_template', true);
 
   const propertyStaff = (allStaff || []).filter(e => {
+    if (e.status === 'Inactive' || e.is_active === false) return false;
     const rooms = (e.assigned_rooms || '').split(',').map(r => r.trim());
     return rooms.includes(roomId);
   });
