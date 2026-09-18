@@ -268,7 +268,7 @@ async function renderReminders() {
     const time = new Date(r.reminder_time);
     const timeStr = time.toLocaleString('en-IN', {day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit'});
     return `
-      <div style="background:${isOverdue ? '#FEE2E2' : '#fff'};border:1px solid ${isOverdue ? '#DC2626' : '#E5E7EB'};padding:12px;border-radius:8px;margin-bottom:8px;">
+      <div class="reminder-row" data-reminder-id="${r.id}" id="reminder-${r.id}" style="background:${isOverdue ? '#FEE2E2' : '#fff'};border:1px solid ${isOverdue ? '#DC2626' : '#E5E7EB'};padding:12px;border-radius:8px;margin-bottom:8px;">
         <div style="display:flex;justify-content:space-between;align-items:start;gap:8px;">
           <div style="flex:1;">
             <div style="font-size:14px;font-weight:700;">

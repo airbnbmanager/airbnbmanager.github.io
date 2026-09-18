@@ -4693,3 +4693,39 @@ textarea:focus {
 .channel-value {
   font-size: 13px;
 }
+
+/* ═══════════════════════════════════════════════════════════
+   🎯 Notification Target Highlight & Pulse Animation
+   ═══════════════════════════════════════════════════════════ */
+@keyframes uhHighlightPulse {
+  0% {
+    background-color: #FEF3C7 !important;
+    box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.7), 0 4px 16px rgba(245, 158, 11, 0.3) !important;
+  }
+  50% {
+    background-color: #FDE68A !important;
+    box-shadow: 0 0 0 7px rgba(217, 119, 6, 0.9), 0 6px 20px rgba(217, 119, 6, 0.4) !important;
+  }
+  100% {
+    background-color: #FEF3C7 !important;
+    box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.7), 0 4px 16px rgba(245, 158, 11, 0.3) !important;
+  }
+}
+
+.uh-highlight-target {
+  animation: uhHighlightPulse 1s ease-in-out 3;
+  position: relative !important;
+  z-index: 30 !important;
+  outline: 2.5px solid #D97706 !important;
+  border-radius: 6px !important;
+  transition: all 0.3s ease !important;
+}
+
+.notif-toast {
+  cursor: pointer;
+}
+
+.notif-toast:hover {
+  transform: translateX(-4px) scale(1.01);
+  box-shadow: 0 12px 36px rgba(0,0,0,0.22);
+}

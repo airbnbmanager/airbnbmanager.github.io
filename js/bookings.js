@@ -542,7 +542,7 @@ async function renderManageBookings() {
   if (df) f = f.filter(b => b.check_in === df);
   if (d1) f = f.filter(b => b.check_in >= d1);
   if (d2) f = f.filter(b => b.check_in <= d2);
-  if (sq) f = f.filter(b => (b.guest_name || '').toLowerCase().includes(sq.toLowerCase()) || (b.phone || '').includes(sq));
+  if (sq) f = f.filter(b => (b.guest_name || '').toLowerCase().includes(sq.toLowerCase()) || (b.phone || '').includes(sq) || (b.booking_id && String(b.booking_id).toLowerCase().includes(sq.toLowerCase())));
 
   // Period filter
   const period = SESSION.bookingPeriod;

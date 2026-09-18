@@ -1341,7 +1341,7 @@ async function renderEmployeeTasks(viewMode) {
       filteredTasks.forEach(t => {
         const priC = t.priority==='Urgent'?'red':t.priority==='High'?'yellow':'green';
         const stC  = t.status==='Completed'?'green':t.status==='In Progress'?'yellow':'red';
-        tableHTML += `<tr>
+        tableHTML += `<tr data-task-id="${t.id}" id="task-${t.id}">
           <td><strong>${empMap[t.emp_id]||t.emp_id}</strong></td>
           <td>${roomMap2[t.room_id]||'-'}</td>
           <td><span class="badge blue">${t.task_type||'Other'}</span></td>
@@ -1395,7 +1395,7 @@ async function renderEmployeeTasks(viewMode) {
         arr.forEach(t => {
           const prop = roomMap2[t.room_id] || 'General/All';
           const stC = t.status==='Completed'?'green':t.status==='In Progress'?'yellow':'red';
-          expandHTML += `<div style="margin-left:32px;padding:4px 0;color:var(--muted);font-size:13px;">
+          expandHTML += `<div data-task-id="${t.id}" id="task-date-${t.id}" style="margin-left:32px;padding:4px 0;color:var(--muted);font-size:13px;">
             ↳ ${prop} — <span class="badge blue">${t.task_type||'Task'}</span>
             <span style="color:var(--fg);">${t.task_description||'-'}</span>
             <span class="badge ${stC}">${t.status||'Pending'}</span>
@@ -1528,6 +1528,7 @@ async function saveTask() {
 }
 
 async function editTask(id) {
+  window.editTask = editTask;
   const { data: t } = await sb.from('employee_tasks').select('*, employees(name)').eq('id', id).single();
   if (!t) return;
   const { data: rooms } = await sb.from('rooms').select('room_id,nickname').order('room_id');

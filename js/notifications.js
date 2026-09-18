@@ -60,7 +60,11 @@
         title: n.title || '',
         message: n.message || '',
         page: n.page || null,
-        data: n.sub ? { sub: n.sub } : null
+        data: {
+          sub: n.sub || null,
+          entityId: n.entityId || null,
+          entityType: n.entityType || null
+        }
       }).select('id').single();
       if (!error && data) {
         // Store DB id so we can update read status later
@@ -95,6 +99,8 @@
         message: d.message,
         page: d.page,
         sub: d.data?.sub,
+        entityId: d.data?.entityId || null,
+        entityType: d.data?.entityType || null,
         read: false,
         time: d.created_at
       }));
@@ -166,10 +172,14 @@
     };
     t.onclick = e => {
       if (e.target.classList.contains('notif-close')) { dismiss(); return; }
-      if (n.page && typeof navigate === 'function') try { navigate(n.page); } catch(e) {}
+      if (typeof window.openNotificationTarget === 'function') {
+        window.openNotificationTarget(n);
+      } else if (n.page && typeof navigate === 'function') {
+        try { navigate(n.page); } catch(err) {}
+      }
       dismiss();
     };
-    setTimeout(dismiss, 6000);
+    setTimeout(dismiss, 7000);
   }
 
   function notify(cfg) {
@@ -209,7 +219,7 @@
       const time = new Date(r.reminder_time);
       const timeStr = time.toLocaleString('en-IN', {day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit'});
       return `
-        <div class="notif-item unread" style="background:${isOverdue ? '#FEE2E2' : '#FEF3C7'};border-left:4px solid ${isOverdue ? '#DC2626' : '#F59E0B'};cursor:pointer;" data-rem-id="${r.id}">
+        <div class="notif-item unread" style="background:${isOverdue ? '#FEE2E2' : '#FEF3C7'};border-left:4px solid ${isOverdue ? '#DC2626' : '#F59E0B'};cursor:pointer;" data-rem-id="${r.id}" data-booking-id="${r.booking_id || ''}">
           <div class="notif-icon">${typeIcon(r.reminder_type)}</div>
           <div class="notif-body">
             <div class="notif-title" style="color:${isOverdue ? '#991B1B' : '#78350F'};">
@@ -263,17 +273,32 @@
       </div>`;
     document.body.appendChild(o);
     
-    // Reminder item click → open reminders page
+    const close = () => { o.classList.remove('show'); setTimeout(() => o.remove(), 250); };
+
+    // Reminder item click → open target
     o.querySelectorAll('[data-rem-id]').forEach(el => {
       el.onclick = () => {
-        o.classList.remove('show');
-        setTimeout(() => o.remove(), 250);
-        if (typeof navigate === 'function') navigate('reminders');
+        close();
+        const remId = el.dataset.remId;
+        const bkId = el.dataset.bookingId;
+        if (bkId) {
+          window.openNotificationTarget({
+            page: 'bookings',
+            entityId: bkId,
+            entityType: 'booking'
+          });
+        } else {
+          window.openNotificationTarget({
+            page: 'reminders',
+            entityId: remId,
+            entityType: 'reminder'
+          });
+        }
       };
     });
     
-    // Regular notification click → navigate to relevant page
-    o.querySelectorAll('.notif-item[data-page]').forEach(el => {
+    // Regular notification click → navigate to relevant page & open target
+    o.querySelectorAll('.notif-item').forEach(el => {
       if (el.dataset.remId) return; // Skip reminders (already handled)
       el.onclick = () => {
         const id = parseFloat(el.dataset.id);
@@ -284,22 +309,21 @@
         }
         localStorage.setItem('uh_notif_history', JSON.stringify(NOTIF.history));
         updateBadge();
-        const p = el.dataset.page;
-        const entityId = el.dataset.entityId;
-        const entityType = el.dataset.entityType;
+        close();
         
-        if (p && typeof navigate === 'function') navigate(p);
-        o.classList.remove('show');
-        setTimeout(() => o.remove(), 250);
-        
-        // 🎯 SMART HIGHLIGHT: scroll to entity + flash animation
-        if (entityId) {
-          setTimeout(() => highlightEntity(entityId, entityType), 1200);
+        if (n) {
+          window.openNotificationTarget(n);
+        } else {
+          window.openNotificationTarget({
+            page: el.dataset.page,
+            entityId: el.dataset.entityId,
+            entityType: el.dataset.entityType
+          });
         }
       };
     });
+
     setTimeout(() => o.classList.add('show'), 10);
-    const close = () => { o.classList.remove('show'); setTimeout(() => o.remove(), 250); };
     o.onclick = e => { if (e.target === o) close(); };
     o.querySelector('.notif-panel-close').onclick = close;
     o.querySelector('.notif-mark-all').onclick = () => {
@@ -316,21 +340,6 @@
       clearAllDB(); // background
       close();
     };
-    o.querySelectorAll('.notif-item').forEach(item => {
-      item.onclick = () => {
-        const id = parseFloat(item.dataset.id);
-        const n = NOTIF.history.find(x => x.id === id);
-        if (n) {
-          n.read = true;
-          if (n.dbId) markReadDB([n.dbId]); // background
-        }
-        localStorage.setItem('uh_notif_history', JSON.stringify(NOTIF.history));
-        updateBadge();
-        const p = item.dataset.page;
-        if (p && typeof navigate === 'function') try { navigate(p); } catch(e) {}
-        close();
-      };
-    });
   }
 
   function timeAgo(iso) {
@@ -443,7 +452,9 @@
               type: 'checkin', icon: '✅',
               title: 'Guest Checked In',
               message: n.guest_name || 'Guest',
-              page: 'bookings', sound: 'checkin'
+              page: 'bookings', sound: 'checkin',
+              entityId: n.booking_id,
+              entityType: 'booking'
             });
           }
           if (!o.check_out_time && n.check_out_time) {
@@ -451,7 +462,9 @@
               type: 'checkout', icon: '📤',
               title: 'Guest Checked Out',
               message: n.guest_name || 'Guest',
-              page: 'bookings', sound: 'checkout'
+              page: 'bookings', sound: 'checkout',
+              entityId: n.booking_id,
+              entityType: 'booking'
             });
           }
         })
@@ -608,28 +621,133 @@ window.notifSettings = (function() {
 
 
 // ═══════════════════════════════════════════════════════════
-// 🎯 HIGHLIGHT ENTITY (scroll + flash animation)
+// 🎯 OPEN NOTIFICATION TARGET (Smart Auto-Navigate, Highlight & Open)
+// ═══════════════════════════════════════════════════════════
+window.openNotificationTarget = function(n) {
+  if (!n) return;
+  const entityId = n.entityId || n.booking_id || n.id;
+  let entityType = n.entityType || (n.type === 'payment' ? 'payment' : (n.type === 'task' ? 'task' : (n.type === 'booking' || n.type === 'checkin' || n.type === 'checkout') ? 'booking' : (n.type === 'reminder' ? 'reminder' : null)));
+  
+  if (!entityType && entityId) {
+    if (String(entityId).startsWith('UH') || String(entityId).length >= 8) entityType = 'booking';
+  }
+
+  let targetPage = n.page;
+  if (!targetPage) {
+    if (entityType === 'task') targetPage = 'tasks';
+    else if (entityType === 'reminder') targetPage = 'reminders';
+    else if (entityType === 'booking' || entityType === 'payment') targetPage = 'bookings';
+  }
+
+  console.log('🚀 openNotificationTarget triggered:', { entityId, entityType, targetPage, raw: n });
+
+  // 1. Prepare filter states so target entry is definitely visible
+  if (entityType === 'task' && n.date) {
+    window._taskMonth = String(n.date).slice(0, 7);
+  }
+
+  if ((entityType === 'booking' || entityType === 'payment') && entityId) {
+    if (window.SESSION) {
+      window.SESSION.bookingSearch = String(entityId);
+      window.SESSION.bookingDateFilter = '';
+      window.SESSION.bookingDateFrom = '';
+      window.SESSION.bookingDateTo = '';
+      window.SESSION.bookingPeriod = '';
+    }
+  }
+
+  // 2. Navigate to target page if needed
+  if (targetPage && typeof window.navigate === 'function') {
+    try {
+      if (window.SESSION?.currentPage !== targetPage) {
+        window.navigate(targetPage);
+      } else {
+        // If already on the same page, re-render to reflect cleared search filters
+        if (targetPage === 'bookings' && typeof window.renderManageBookings === 'function') {
+          window.renderManageBookings();
+        } else if (targetPage === 'tasks' && typeof window.renderEmployeeTasks === 'function') {
+          window.renderEmployeeTasks();
+        }
+      }
+    } catch(e) { console.error('Navigation error in openNotificationTarget:', e); }
+  }
+
+  // 3. Highlight and open target modal
+  if (entityId) {
+    // Start highlighting entity
+    setTimeout(() => {
+      window.highlightEntity(entityId, entityType);
+    }, 400);
+
+    // Open corresponding modal/details if applicable
+    if (entityType === 'payment') {
+      let tries = 0;
+      const openPay = () => {
+        tries++;
+        if (typeof window.showPaymentModal === 'function') {
+          window.showPaymentModal(entityId);
+        } else if (typeof window.openAddPaymentModal === 'function') {
+          window.openAddPaymentModal(entityId);
+        } else if (tries < 20) {
+          setTimeout(openPay, 200);
+        }
+      };
+      setTimeout(openPay, 600);
+    } else if (entityType === 'booking') {
+      let tries = 0;
+      const openBk = () => {
+        tries++;
+        if (typeof window.editBooking === 'function') {
+          window.editBooking(entityId);
+        } else if (tries < 20) {
+          setTimeout(openBk, 200);
+        }
+      };
+      setTimeout(openBk, 600);
+    } else if (entityType === 'task') {
+      let tries = 0;
+      const openT = () => {
+        tries++;
+        if (typeof window.editTask === 'function') {
+          window.editTask(entityId);
+        } else if (tries < 20) {
+          setTimeout(openT, 200);
+        }
+      };
+      setTimeout(openT, 600);
+    }
+  }
+};
+
+// ═══════════════════════════════════════════════════════════
+// 🎯 HIGHLIGHT ENTITY (scroll + vibrant pulse animation)
 // ═══════════════════════════════════════════════════════════
 window.highlightEntity = function(entityId, entityType) {
   console.log('🎯 Attempting to highlight:', entityId, entityType);
   if (!entityId) return;
-  
-  // Try multiple times (page might still be loading)
+
+  const idStr = String(entityId).trim();
   let attempts = 0;
-  const maxAttempts = 10;
-  
+  const maxAttempts = 20; // 20 * 250ms = 5s polling while page renders
+
   const tryHighlight = () => {
     attempts++;
-    
+
     // Look for element with matching id/data-attribute
     const selectors = [
-      `[data-booking-id="${entityId}"]`,
-      `[data-id="${entityId}"]`,
-      `#booking-${entityId}`,
-      `[data-task-id="${entityId}"]`,
-      // Fallback: text content search
+      `[data-booking-id="${idStr}"]`,
+      `#booking-${idStr}`,
+      `tr[data-booking-id="${idStr}"]`,
+      `[data-task-id="${idStr}"]`,
+      `#task-${idStr}`,
+      `#task-date-${idStr}`,
+      `[data-reminder-id="${idStr}"]`,
+      `#reminder-${idStr}`,
+      `[data-id="${idStr}"]`,
+      `#row-${idStr}`,
+      `#item-${idStr}`
     ];
-    
+
     let el = null;
     for (const sel of selectors) {
       try {
@@ -637,51 +755,57 @@ window.highlightEntity = function(entityId, entityType) {
         if (el) break;
       } catch(e) {}
     }
-    
+
     // Text-based fallback: find row/card containing entityId text
     if (!el) {
-      const allElements = document.querySelectorAll('tr, .card, .booking-item');
+      const allElements = document.querySelectorAll('tr, .card, .booking-item, .task-item, .reminder-row, .notif-item');
       for (const e of allElements) {
-        if (e.textContent && e.textContent.includes(entityId)) {
+        if (e.textContent && e.textContent.includes(idStr)) {
           el = e;
           break;
         }
       }
     }
-    
+
     if (el) {
-      // Scroll into view
+      // Smooth scroll into view centered
       el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      
-      // Flash animation
+
+      // CSS Animation
+      el.classList.add('uh-highlight-target');
+
+      // Direct fallback styling
       const origBg = el.style.backgroundColor;
       const origTransition = el.style.transition;
-      el.style.transition = 'background-color 0.3s ease';
+      const origOutline = el.style.outline;
+      el.style.transition = 'all 0.3s ease';
       el.style.backgroundColor = '#FEF3C7';
-      el.style.boxShadow = '0 0 0 3px #F59E0B';
-      
-      // Pulse effect
+      el.style.outline = '3px solid #F59E0B';
+
       let pulses = 0;
       const pulse = () => {
         pulses++;
-        if (pulses > 6) {
+        if (pulses > 8) {
           el.style.backgroundColor = origBg;
-          el.style.boxShadow = '';
+          el.style.outline = origOutline;
           el.style.transition = origTransition;
+          el.classList.remove('uh-highlight-target');
           return;
         }
         el.style.backgroundColor = pulses % 2 === 0 ? '#FEF3C7' : '#FDE68A';
-        setTimeout(pulse, 400);
+        el.style.outline = pulses % 2 === 0 ? '3px solid #F59E0B' : '3px solid #D97706';
+        setTimeout(pulse, 350);
       };
       pulse();
-      
-      console.log('🎯 Highlighted entity:', entityId);
+
+      console.log('🎯 Successfully highlighted entity:', idStr);
     } else if (attempts < maxAttempts) {
-      setTimeout(tryHighlight, 300);
+      setTimeout(tryHighlight, 250);
     } else {
-      console.warn('⚠️ Entity not found for highlight:', entityId);
+      console.warn('⚠️ Entity not found for highlight after ' + maxAttempts + ' attempts:', idStr);
     }
   };
-  
+
   tryHighlight();
 };
+
