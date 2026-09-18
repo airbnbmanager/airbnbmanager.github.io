@@ -515,6 +515,9 @@ async function saveInlineCategory() {
 }
 
 async function saveExpEntry() {
+  if (window._isSavingExpEntry) return;
+  window._isSavingExpEntry = true;
+
   const btn = document.querySelector('button[onclick="saveExpEntry()"]');
   if (btn) { btn.disabled = true; btn.textContent = '⏳ Saving...'; }
 
@@ -529,6 +532,7 @@ async function saveExpEntry() {
     document.getElementById('exErr').innerHTML =
       '<div class="error">Category, month & amount required</div>';
     if (btn) { btn.disabled = false; btn.textContent = '💾 Save Expense'; }
+    window._isSavingExpEntry = false;
     return;
   }
 
@@ -537,30 +541,67 @@ async function saveExpEntry() {
   
   if (!paidBy || !payMode) {
     document.getElementById('exErr').innerHTML = '<div class="error">⚠️ Payment Mode aur Paid By required hain</div>';
-    return;
-  }
-  
-  const { data: newExp, error } = await sb.from('expenses').insert({
-    category_id: cid,
-    room_id: roomId,
-    month: mo,
-    amount: amt,
-    paid_by: paidBy,
-    payment_mode: payMode,
-    entry_date: date,
-    notes: notes,
-    created_by: SESSION.userId
-  });
-
-  if (error) {
-    document.getElementById('exErr').innerHTML =
-      `<div class="error">${error.message}</div>`;
     if (btn) { btn.disabled = false; btn.textContent = '💾 Save Expense'; }
+    window._isSavingExpEntry = false;
     return;
   }
 
-  fsn.success('Success', '✅ Expense saved!');
-  renderExpenses();
+  try {
+    // 🚨 DUPLICATE EXPENSE CHECK
+    let dupeQuery = sb.from('expenses')
+      .select('id, amount, month, category_id, entry_date, notes')
+      .eq('category_id', cid)
+      .eq('amount', amt)
+      .eq('month', mo);
+    if (roomId) dupeQuery = dupeQuery.eq('room_id', roomId);
+    if (date) dupeQuery = dupeQuery.eq('entry_date', date);
+
+    const { data: existingDupes } = await dupeQuery.limit(1);
+    if (existingDupes && existingDupes.length > 0) {
+      const ok = confirm(
+        `⚠️ DUPLICATE EXPENSE WARNING!\n\n` +
+        `Amount: ₹${amt.toLocaleString('en-IN')}\n` +
+        `Month: ${mo}\n` +
+        (date ? `Date: ${date}\n` : '') +
+        `Is category ke liye same amount (₹${amt.toLocaleString('en-IN')}) ka expense already saved hai.\n\n` +
+        `Kya aap sach me duplicate expense add karna chahte hain?`
+      );
+      if (!ok) {
+        if (btn) { btn.disabled = false; btn.textContent = '💾 Save Expense'; }
+        window._isSavingExpEntry = false;
+        return;
+      }
+    }
+    
+    const { data: newExp, error } = await sb.from('expenses').insert({
+      category_id: cid,
+      room_id: roomId,
+      month: mo,
+      amount: amt,
+      paid_by: paidBy,
+      payment_mode: payMode,
+      entry_date: date,
+      notes: notes,
+      created_by: SESSION.userId
+    });
+
+    if (error) {
+      document.getElementById('exErr').innerHTML =
+        `<div class="error">${error.message}</div>`;
+      if (btn) { btn.disabled = false; btn.textContent = '💾 Save Expense'; }
+      window._isSavingExpEntry = false;
+      return;
+    }
+
+    fsn.success('Success', '✅ Expense saved!');
+    renderExpenses();
+  } catch (err) {
+    if (window.fsn) fsn.error('Error', err.message);
+    else alert('Error: ' + err.message);
+    if (btn) { btn.disabled = false; btn.textContent = '💾 Save Expense'; }
+  } finally {
+    window._isSavingExpEntry = false;
+  }
 }
 
 // ============ EDIT EXPENSE ============

@@ -531,12 +531,23 @@ window.cbHandover = async function(fromPerson, maxAmount) {
 };
 
 window.cbSaveHandover = async function(fromPerson) {
+  if (window._isSavingHandover) return;
+  window._isSavingHandover = true;
+
+  const btn = document.querySelector('button[onclick*="cbSaveHandover"]');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Saving...'; }
+
   const toPerson = document.getElementById('cbToPerson').value;
   let rawAmount = parseFloat(document.getElementById('cbAmount').value) || 0;
   const date = document.getElementById('cbDate').value;
   const notes = document.getElementById('cbNotes').value.trim();
   
-  if (rawAmount === 0 || isNaN(rawAmount)) { alert('⚠️ Valid non-zero amount required'); return; }
+  if (rawAmount === 0 || isNaN(rawAmount)) {
+    alert('⚠️ Valid non-zero amount required');
+    if (btn) { btn.disabled = false; btn.textContent = '💾 Record Handover & Settle'; }
+    window._isSavingHandover = false;
+    return;
+  }
 
   let actualFrom = fromPerson;
   let actualTo = toPerson;
@@ -548,20 +559,57 @@ window.cbSaveHandover = async function(fromPerson) {
     actualTo = fromPerson;
   }
 
-  const { error } = await sb.from('cash_handovers').insert({
-    from_person: actualFrom,
-    to_person: actualTo,
-    amount: posAmount,
-    handover_date: date,
-    notes: notes ? ('Cash Transfer | ' + notes) : 'Cash Settlement',
-    created_by: SESSION?.userId || null
-  });
+  try {
+    // 🚨 DUPLICATE HANDOVER CHECK
+    const { data: existingHO } = await sb.from('cash_handovers')
+      .select('id, amount, handover_date, from_person, to_person')
+      .eq('handover_date', date)
+      .eq('amount', posAmount)
+      .eq('from_person', actualFrom)
+      .eq('to_person', actualTo)
+      .limit(1);
 
-  if (error) { alert('❌ Error: ' + error.message); return; }
+    if (existingHO && existingHO.length > 0) {
+      const ok = confirm(
+        `⚠️ DUPLICATE HANDOVER WARNING!\n\n` +
+        `Date: ${date}\n` +
+        `From: ${actualFrom} → To: ${actualTo}\n` +
+        `Amount: ₹${posAmount.toLocaleString('en-IN')}\n\n` +
+        `Is date par already ₹${posAmount.toLocaleString('en-IN')} ka handover record exist karta hai.\n\n` +
+        `Kya aap sach me duplicate handover record karna chahte hain?`
+      );
+      if (!ok) {
+        if (btn) { btn.disabled = false; btn.textContent = '💾 Record Handover & Settle'; }
+        window._isSavingHandover = false;
+        return;
+      }
+    }
 
-  document.querySelector('.modal-overlay')?.remove();
-  if (window.fsn?.success) fsn.success('Saved', '✅ Handover recorded & balance settled to ₹0');
-  renderCashBook();
+    const { error } = await sb.from('cash_handovers').insert({
+      from_person: actualFrom,
+      to_person: actualTo,
+      amount: posAmount,
+      handover_date: date,
+      notes: notes ? ('Cash Transfer | ' + notes) : 'Cash Settlement',
+      created_by: SESSION?.userId || null
+    });
+
+    if (error) {
+      alert('❌ Error: ' + error.message);
+      if (btn) { btn.disabled = false; btn.textContent = '💾 Record Handover & Settle'; }
+      window._isSavingHandover = false;
+      return;
+    }
+
+    document.querySelector('.modal-overlay')?.remove();
+    if (window.fsn?.success) fsn.success('Saved', '✅ Handover recorded & balance settled to ₹0');
+    renderCashBook();
+  } catch (err) {
+    alert('❌ Error: ' + err.message);
+    if (btn) { btn.disabled = false; btn.textContent = '💾 Record Handover & Settle'; }
+  } finally {
+    window._isSavingHandover = false;
+  }
 };
 
 window.cbAddHolder = function() {

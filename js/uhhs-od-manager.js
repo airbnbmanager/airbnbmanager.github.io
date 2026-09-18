@@ -317,6 +317,15 @@ window.cbDepositToODModal = function() {
 
 // Save OD Deposit Controller (Dual-Layer: LocalStorage + Supabase)
 window.cbSaveODDeposit = async function() {
+    if (window._isSavingODDeposit) return;
+    window._isSavingODDeposit = true;
+
+    const btn = document.querySelector('button[onclick*="cbSaveODDeposit"]');
+    if (btn) {
+        btn.disabled = true;
+        btn.innerText = "⏳ Saving Deposit...";
+    }
+
     const client = window.sb || window.supabaseClient || window.supabase;
     const date = document.getElementById('odDepDate').value;
     const amount = parseFloat(document.getElementById('odDepAmt').value) || 0;
@@ -326,12 +335,59 @@ window.cbSaveODDeposit = async function() {
     const errDiv = document.getElementById('odDepErr');
 
     if (amount <= 0 || isNaN(amount)) {
-        errDiv.innerText = "⚠️ Please enter a valid positive amount!";
+        if (errDiv) errDiv.innerText = "⚠️ Please enter a valid positive amount!";
+        if (btn) { btn.disabled = false; btn.innerText = "💾 Save Deposit & Update Balance"; }
+        window._isSavingODDeposit = false;
         return;
     }
     if (!sender) {
-        errDiv.innerText = "⚠️ Sender name is required!";
+        if (errDiv) errDiv.innerText = "⚠️ Sender name is required!";
+        if (btn) { btn.disabled = false; btn.innerText = "💾 Save Deposit & Update Balance"; }
+        window._isSavingODDeposit = false;
         return;
+    }
+
+    // 🚨 DUPLICATE DEPOSIT CHECK (Check both local storage and database)
+    const localList = getLocalODDeposits();
+    const localDupe = (localList || []).find(d => 
+        d.transaction_date === date && 
+        Math.abs((d.amount || 0) - amount) < 0.01 &&
+        d.transaction_type === 'INFLOW'
+    );
+
+    let dbDupe = null;
+    if (client) {
+        try {
+            const { data: dupes } = await client.from('uhhs_od_account')
+                .select('id, amount, transaction_date, received_from, created_at')
+                .eq('transaction_date', date)
+                .eq('amount', amount)
+                .eq('transaction_type', 'INFLOW')
+                .limit(1);
+            if (dupes && dupes.length > 0) dbDupe = dupes[0];
+        } catch(e) {
+            console.warn('DB duplicate check notice:', e.message);
+        }
+    }
+
+    if (localDupe || dbDupe) {
+        const dupeSource = localDupe ? (localDupe.received_from || sender) : (dbDupe.received_from || sender);
+        const ok = confirm(
+            `⚠️ DUPLICATE ENTRY WARNING!\n\n` +
+            `Date: ${date}\n` +
+            `Amount: ₹${amount.toLocaleString('en-IN')}\n` +
+            `From: ${dupeSource}\n\n` +
+            `UHHS-OD account me is date par already ₹${amount.toLocaleString('en-IN')} ka deposit exist karta hai.\n\n` +
+            `Kya aap sach me duplicate entry (dobara ₹${amount.toLocaleString('en-IN')}) add karna chahte hain?`
+        );
+        if (!ok) {
+            if (btn) {
+                btn.disabled = false;
+                btn.innerText = "💾 Save Deposit & Update Balance";
+            }
+            window._isSavingODDeposit = false;
+            return;
+        }
     }
 
     const newDep = {
@@ -346,45 +402,48 @@ window.cbSaveODDeposit = async function() {
         created_at: new Date().toISOString()
     };
 
-    // 1. Immediately save to LocalStorage so data is never lost
-    const localList = getLocalODDeposits();
-    localList.unshift(newDep);
-    setLocalODDeposits(localList);
+    try {
+        // 1. Immediately save to LocalStorage so data is never lost
+        localList.unshift(newDep);
+        setLocalODDeposits(localList);
 
-    // 2. Attempt saving to Supabase
-    if (client) {
-        try {
-            await client.from('uhhs_od_account').insert([{
-                transaction_date: date,
-                description: newDep.description,
-                amount: amount,
-                transaction_type: 'INFLOW',
-                payment_mode: mode,
-                received_from: sender,
-                reference_note: note || null
-            }]);
-        } catch (dbErr) {
-            console.warn('Supabase deposit insert notice (saved locally):', dbErr.message);
+        // 2. Attempt saving to Supabase
+        if (client) {
+            try {
+                await client.from('uhhs_od_account').insert([{
+                    transaction_date: date,
+                    description: newDep.description,
+                    amount: amount,
+                    transaction_type: 'INFLOW',
+                    payment_mode: mode,
+                    received_from: sender,
+                    reference_note: note || null
+                }]);
+            } catch (dbErr) {
+                console.warn('Supabase deposit insert notice (saved locally):', dbErr.message);
+            }
         }
-    }
 
-    // Close modal & notify
-    document.querySelector('.od-deposit-modal-overlay')?.remove();
-    if (window.fsn?.success) {
-        fsn.success('Success', `🏦 ₹${amount.toLocaleString('en-IN')} deposited to UHHS-OD!`);
-    } else {
-        alert(`✅ ₹${amount.toLocaleString('en-IN')} deposited to UHHS-OD!`);
-    }
+        // Close modal & notify
+        document.querySelector('.od-deposit-modal-overlay')?.remove();
+        if (window.fsn?.success) {
+            fsn.success('Success', `🏦 ₹${amount.toLocaleString('en-IN')} deposited to UHHS-OD!`);
+        } else {
+            alert(`✅ ₹${amount.toLocaleString('en-IN')} deposited to UHHS-OD!`);
+        }
 
-    // Refresh UI & Balance
-    if (window.UHHSODManager) window.UHHSODManager.calculateBalance(client);
-    if (typeof window.loadClaimsData === 'function') window.loadClaimsData();
-    if (typeof window.renderCashBook === 'function') window.renderCashBook();
-    if (typeof window.showUhhsStatementModal === 'function') {
-        const modal = document.querySelector('.modal-overlay');
-        if (modal) { modal.remove(); window.showUhhsStatementModal(); }
+        // Refresh UI & Balance
+        if (window.UHHSODManager) window.UHHSODManager.calculateBalance(client);
+        if (typeof window.loadClaimsData === 'function') window.loadClaimsData();
+        if (typeof window.renderCashBook === 'function') window.renderCashBook();
+        if (typeof window.showUhhsStatementModal === 'function') {
+            const modal = document.querySelector('.modal-overlay');
+            if (modal) { modal.remove(); window.showUhhsStatementModal(); }
+        }
+        window.notifyDataChanged();
+    } finally {
+        window._isSavingODDeposit = false;
     }
-    window.notifyDataChanged();
 };
 
 // =========================================================================

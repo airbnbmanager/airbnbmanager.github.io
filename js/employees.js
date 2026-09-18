@@ -1183,11 +1183,39 @@ async function saveAdv() {
   if (_btn) { if (_btn.disabled) return; _btn.disabled = true; _btn.textContent = '⏳ Saving...'; }
   const eid = document.getElementById('aEmp').value;
   const amt = parseFloat(document.getElementById('aAmt').value) || 0;
-  if (!eid || amt <= 0) { document.getElementById('advErr').innerHTML = '<div class="error">Employee & amount required</div>'; return; }
+  if (!eid || amt <= 0) {
+    document.getElementById('advErr').innerHTML = '<div class="error">Employee & amount required</div>';
+    if (_btn) { _btn.disabled = false; _btn.textContent = '💾 Save Advance'; }
+    return;
+  }
   const paidByVal = document.getElementById('aPaidBy')?.value || 'UHHS-OD';
+  const dateVal = document.getElementById('aDate').value || null;
+
+  // 🚨 DUPLICATE ADVANCE CHECK
+  if (dateVal) {
+    const { data: existingAdv } = await sb.from('advance_tracker')
+      .select('id, emp_id, advance_amount, date_given')
+      .eq('emp_id', eid)
+      .eq('advance_amount', amt)
+      .eq('date_given', dateVal)
+      .limit(1);
+
+    if (existingAdv && existingAdv.length > 0) {
+      const ok = confirm(
+        `⚠️ DUPLICATE ADVANCE WARNING!\n\n` +
+        `Is employee ke liye date ${dateVal} par already ₹${amt.toLocaleString('en-IN')} ka advance recorded hai.\n\n` +
+        `Kya aap sach me duplicate advance add karna chahte hain?`
+      );
+      if (!ok) {
+        if (_btn) { _btn.disabled = false; _btn.textContent = '💾 Save Advance'; }
+        return;
+      }
+    }
+  }
+
   const { error } = await sb.from('advance_tracker').insert({
     emp_id: eid,
-    date_given: document.getElementById('aDate').value || null,
+    date_given: dateVal,
     advance_amount: amt,
     repaid_amount: 0,
     payment_mode: document.getElementById('aMode').value || null,
@@ -1196,7 +1224,11 @@ async function saveAdv() {
     claim_status: 'unclaimed',
     is_deducted: false
   });
-  if (error) { document.getElementById('advErr').innerHTML = `<div class="error">${error.message}</div>`; return; }
+  if (error) {
+    document.getElementById('advErr').innerHTML = `<div class="error">${error.message}</div>`;
+    if (_btn) { _btn.disabled = false; _btn.textContent = '💾 Save Advance'; }
+    return;
+  }
   if (window.notifyDataChanged) window.notifyDataChanged();
   renderAdvanceTracker();
 }
@@ -1472,6 +1504,31 @@ async function saveEmpExpense() {
       '<div class="error">Employee, Date, Category, Amount & Description required</div>';
     if (_btn) { _btn.disabled = false; _btn.textContent = '💾 Save Expense'; }
     return;
+  }
+
+  // 🚨 DUPLICATE DAILY EXPENSE CHECK
+  const { data: existingEmpExps } = await sb.from('daily_expenses')
+    .select('id, emp_id, expense_date, category, amount, description')
+    .eq('emp_id', empId)
+    .eq('expense_date', date)
+    .eq('category', cat)
+    .eq('amount', amt)
+    .limit(1);
+
+  if (existingEmpExps && existingEmpExps.length > 0) {
+    const ok = confirm(
+      `⚠️ DUPLICATE EXPENSE WARNING!\n\n` +
+      `Date: ${date}\n` +
+      `Category: ${cat}\n` +
+      `Amount: ₹${amt.toLocaleString('en-IN')}\n` +
+      `Description: "${existingEmpExps[0].description || desc}"\n\n` +
+      `Is employee ke liye same date aur category me ₹${amt.toLocaleString('en-IN')} ka expense pehle se recorded hai.\n\n` +
+      `Kya aap sach me duplicate expense add karna chahte hain?`
+    );
+    if (!ok) {
+      if (_btn) { _btn.disabled = false; _btn.textContent = '💾 Save Expense'; }
+      return;
+    }
   }
 
   const { error } = await sb.from('daily_expenses').insert({

@@ -236,6 +236,15 @@ async function compressImage(file, maxWidth = 800, quality = 0.7) {
 }
 
 window.saveReimbursement = async function() {
+  if (window._isSavingReimb) return;
+  window._isSavingReimb = true;
+
+  const btn = document.querySelector('button[onclick*="saveReimbursement"]');
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = '⏳ Saving...';
+  }
+
   const date = document.getElementById('rDate').value;
   const cat = document.getElementById('rCat').value;
   const desc = document.getElementById('rDesc').value.trim();
@@ -247,66 +256,105 @@ window.saveReimbursement = async function() {
 
   if (!date || !cat || !desc || amt <= 0) {
     document.getElementById('rErr').innerHTML = '<div class="error">Date, Category, Description, Amount required</div>';
+    if (btn) { btn.disabled = false; btn.textContent = '💾 Save Expense'; }
+    window._isSavingReimb = false;
     return;
   }
 
-  let photoUrl = null;
-  if (window._reimbPhotoBlob) {
-    try {
-      const path = `reimbursements/${Date.now()}_${Math.random().toString(36).substr(2,6)}.jpg`;
-      const { error: upErr } = await sb.storage.from('id-proofs').upload(path, window._reimbPhotoBlob, {
-        contentType: window._reimbPhotoBlob.type || 'image/jpeg',
-        upsert: false
-      });
-      if (upErr) throw upErr;
-      photoUrl = path;
-    } catch (err) {
-      document.getElementById('rErr').innerHTML = '<div class="error">Photo upload: ' + err.message + '</div>';
+  try {
+    // 🚨 DUPLICATE DAILY EXPENSE CHECK
+    const { data: existingDupes } = await sb.from('reimbursements')
+      .select('id, expense_date, category, description, amount')
+      .eq('expense_date', date)
+      .eq('category', cat)
+      .eq('amount', amt)
+      .limit(3);
+
+    if (existingDupes && existingDupes.length > 0) {
+      const dupeDesc = existingDupes[0].description || cat;
+      const ok = confirm(
+        `⚠️ DUPLICATE EXPENSE WARNING!\n\n` +
+        `Date: ${date}\n` +
+        `Category: ${cat}\n` +
+        `Amount: ₹${amt.toLocaleString('en-IN')}\n` +
+        `Existing Entry: "${dupeDesc}"\n\n` +
+        `Is date aur category me pehle se ₹${amt.toLocaleString('en-IN')} ka expense recorded hai.\n\n` +
+        `Kya aap sach me duplicate entry save karna chahte hain?`
+      );
+      if (!ok) {
+        if (btn) { btn.disabled = false; btn.textContent = '💾 Save Expense'; }
+        window._isSavingReimb = false;
+        return;
+      }
+    }
+
+    let photoUrl = null;
+    if (window._reimbPhotoBlob) {
+      try {
+        const path = `reimbursements/${Date.now()}_${Math.random().toString(36).substr(2,6)}.jpg`;
+        const { error: upErr } = await sb.storage.from('id-proofs').upload(path, window._reimbPhotoBlob, {
+          contentType: window._reimbPhotoBlob.type || 'image/jpeg',
+          upsert: false
+        });
+        if (upErr) throw upErr;
+        photoUrl = path;
+      } catch (err) {
+        document.getElementById('rErr').innerHTML = '<div class="error">Photo upload: ' + err.message + '</div>';
+        if (btn) { btn.disabled = false; btn.textContent = '💾 Save Expense'; }
+        window._isSavingReimb = false;
+        return;
+      }
+    }
+
+    const currentUser = SESSION.displayName || 'Praveen Singh';
+    const initialStatus = 'Pending';
+
+    const { data: newR, error } = await sb.from('reimbursements').insert({
+      payment_source: paymentSource,
+      expense_date: date,
+      category: cat,
+      description: desc,
+      amount: amt,
+      paid_by: currentUser,
+      claim_from: 'Owner',
+      from_property: fromProp,
+      to_property: toProp,
+      receipt_photo: photoUrl,
+      notes,
+      status: initialStatus,
+      created_by: SESSION.empId || null
+    }).select().single();
+
+    if (error) {
+      document.getElementById('rErr').innerHTML = '<div class="error">' + error.message + '</div>';
+      if (btn) { btn.disabled = false; btn.textContent = '💾 Save Expense'; }
+      window._isSavingReimb = false;
       return;
     }
+
+    // Auto-record transaction in account_transactions for UHHS-OD spends
+    if (paymentSource === 'UHHS-OD') {
+      await sb.from('account_transactions').insert({
+        account_type: 'UHHS_OD',
+        transaction_type: 'EXPENSE',
+        amount: amt,
+        txn_date: date,
+        description: `Expense: ${desc} (${cat})`,
+        created_by: SESSION.displayName || 'Praveen'
+      });
+    }
+
+    window._reimbPhotoBlob = null;
+    fsn.success('Success', '✅ Expense saved!');
+    if (window.notifyDataChanged) window.notifyDataChanged();
+    renderReimbursements();
+  } catch (err) {
+    if (window.fsn) fsn.error('Error', err.message);
+    else alert('Error: ' + err.message);
+    if (btn) { btn.disabled = false; btn.textContent = '💾 Save Expense'; }
+  } finally {
+    window._isSavingReimb = false;
   }
-
-  const currentUser = SESSION.displayName || 'Praveen Singh';
-  // All new expenses default to Pending status so they can be verified and tracked
-  const initialStatus = 'Pending';
-
-  const { data: newR, error } = await sb.from('reimbursements').insert({
-    payment_source: paymentSource,
-    expense_date: date,
-    category: cat,
-    description: desc,
-    amount: amt,
-    paid_by: currentUser,
-    claim_from: 'Owner',
-    from_property: fromProp,
-    to_property: toProp,
-    receipt_photo: photoUrl,
-    notes,
-    status: initialStatus,
-    created_by: SESSION.empId || null
-  }).select().single();
-
-  if (error) {
-    document.getElementById('rErr').innerHTML = '<div class="error">' + error.message + '</div>';
-    return;
-  }
-
-  // Auto-record transaction in account_transactions for UHHS-OD spends
-  if (paymentSource === 'UHHS-OD') {
-    await sb.from('account_transactions').insert({
-      account_type: 'UHHS_OD',
-      transaction_type: 'EXPENSE',
-      amount: amt,
-      txn_date: date,
-      description: `Expense: ${desc} (${cat})`,
-      created_by: SESSION.displayName || 'Praveen'
-    });
-  }
-
-  window._reimbPhotoBlob = null;
-  fsn.success('Success', '✅ Expense saved!');
-  if (window.notifyDataChanged) window.notifyDataChanged();
-  renderReimbursements();
 };
 
 window.markReimbClaimed = async function(id) {

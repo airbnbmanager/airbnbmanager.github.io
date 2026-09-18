@@ -180,6 +180,12 @@ async function renderCANew(tabs) {
 }
 
 window.saveNewAdvance = async function() {
+  if (window._isSavingCompanyAdv) return;
+  window._isSavingCompanyAdv = true;
+
+  const btn = document.querySelector('button[onclick*="saveNewAdvance"]');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Saving...'; }
+
   let givenBy = document.getElementById('caGivenBy').value;
   if (givenBy === '__custom__') givenBy = document.getElementById('caGivenByCustom').value.trim();
   const givenTo = document.getElementById('caGivenTo').value;
@@ -189,27 +195,67 @@ window.saveNewAdvance = async function() {
   
   if (!givenBy || !givenTo || amount <= 0) {
     document.getElementById('caErr').innerHTML = '<div class="error">All required fields must be filled</div>';
+    if (btn) { btn.disabled = false; btn.textContent = '💾 Save Advance'; }
+    window._isSavingCompanyAdv = false;
     return;
   }
   
   const paymentSource = document.getElementById('caPaymentSource')?.value || 'UHHS-OD';
 
-  const { error } = await sb.from('company_advances').insert({
-    advance_date: date,
-    amount_given: amount,
-    given_by: givenBy,
-    given_to: givenTo,
-    purpose: purpose || null,
-    payment_source: paymentSource,
-    status: 'Active'
-  });
-  
-  if (error) { document.getElementById('caErr').innerHTML = '<div class="error">'+error.message+'</div>'; return; }
-  
-  fsn.success('Success', '✅ Advance recorded!');
-  if (window.notifyDataChanged) window.notifyDataChanged();
-  window._caTab = 'active';
-  renderCompanyAdvances();
+  try {
+    // 🚨 DUPLICATE ADVANCE CHECK
+    const { data: existingCA } = await sb.from('company_advances')
+      .select('id, amount_given, advance_date, given_to, purpose')
+      .eq('advance_date', date)
+      .eq('amount_given', amount)
+      .eq('given_to', givenTo)
+      .eq('status', 'Active')
+      .limit(1);
+
+    if (existingCA && existingCA.length > 0) {
+      const ok = confirm(
+        `⚠️ DUPLICATE ADVANCE WARNING!\n\n` +
+        `Date: ${date}\n` +
+        `Given To: ${givenTo}\n` +
+        `Amount: ₹${amount.toLocaleString('en-IN')}\n\n` +
+        `Is person (${givenTo}) ke liye date ${date} par already ₹${amount.toLocaleString('en-IN')} ka active advance exist karta hai.\n\n` +
+        `Kya aap sach me duplicate advance record karna chahte hain?`
+      );
+      if (!ok) {
+        if (btn) { btn.disabled = false; btn.textContent = '💾 Save Advance'; }
+        window._isSavingCompanyAdv = false;
+        return;
+      }
+    }
+
+    const { error } = await sb.from('company_advances').insert({
+      advance_date: date,
+      amount_given: amount,
+      given_by: givenBy,
+      given_to: givenTo,
+      purpose: purpose || null,
+      payment_source: paymentSource,
+      status: 'Active'
+    });
+    
+    if (error) {
+      document.getElementById('caErr').innerHTML = '<div class="error">'+error.message+'</div>';
+      if (btn) { btn.disabled = false; btn.textContent = '💾 Save Advance'; }
+      window._isSavingCompanyAdv = false;
+      return;
+    }
+    
+    fsn.success('Success', '✅ Advance recorded!');
+    if (window.notifyDataChanged) window.notifyDataChanged();
+    window._caTab = 'active';
+    renderCompanyAdvances();
+  } catch (err) {
+    if (window.fsn) fsn.error('Error', err.message);
+    else alert('Error: ' + err.message);
+    if (btn) { btn.disabled = false; btn.textContent = '💾 Save Advance'; }
+  } finally {
+    window._isSavingCompanyAdv = false;
+  }
 };
 
 // ═══ TAB 3: SPENDING REPORT ═══

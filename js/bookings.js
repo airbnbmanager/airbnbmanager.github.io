@@ -2148,6 +2148,7 @@ async function saveBooking() {
     if (adv > 0 && !receivedBy) {
       alert('⚠️ Please select who received the advance payment!');
       document.getElementById('advReceivedBy')?.focus();
+      btn.disabled = false; btn.textContent = '💾 Save Booking';
       return;
     }
     const advDate = document.getElementById('advDate')?.value || new Date().toISOString().slice(0, 10);
@@ -2174,6 +2175,33 @@ async function saveBooking() {
     if (tot === 0) {
       const proceed = confirm('⚠️ Total amount ₹0 hai. Save karna hai?');
       if (!proceed) { btn.disabled = false; btn.textContent = '💾 Save Booking'; return; }
+    }
+
+    // 🚨 EXACT DUPLICATE BOOKING CHECK (same guest, same property, same check-in)
+    if (gn && rid && ci) {
+      const { data: exactDupes } = await sb.from('guest_register')
+        .select('booking_id, guest_name, check_in, check_out, room_id')
+        .eq('room_id', rid)
+        .ilike('guest_name', gn)
+        .eq('check_in', ci)
+        .neq('is_cancelled', true)
+        .limit(1);
+
+      if (exactDupes && exactDupes.length > 0) {
+        const ok = confirm(
+          `⚠️ DUPLICATE BOOKING WARNING!\n\n` +
+          `Guest: "${gn}"\n` +
+          `Property: ${rid}\n` +
+          `Check-in: ${ci}\n\n` +
+          `Is guest ke liye is property me check-in date (${ci}) par already booking (${exactDupes[0].booking_id}) exist karti hai.\n\n` +
+          `Kya aap sach me duplicate booking add karna chahte hain?`
+        );
+        if (!ok) {
+          btn.disabled = false;
+          btn.textContent = '💾 Save Booking';
+          return;
+        }
+      }
     }
 
     // Clash check — WARN but allow (Phase 2 upgrade)
@@ -3368,6 +3396,15 @@ function showPaymentModal(bkId) {
 }
 
 async function savePaymentModal(bkId) {
+  if (window._isSavingPayment) return;
+  window._isSavingPayment = true;
+
+  const saveBtn = document.querySelector('button[onclick*="savePaymentModal"]');
+  if (saveBtn) {
+    saveBtn.disabled = true;
+    saveBtn.textContent = '⏳ Saving Payment...';
+  }
+
   const receivedByEl = document.getElementById('payReceivedBy');
   let receivedBy = receivedByEl?.value || '';
   if (receivedBy === '__custom__') {
@@ -3375,11 +3412,18 @@ async function savePaymentModal(bkId) {
   }
   if (!receivedBy) {
     document.getElementById('payErr').innerHTML = '<div class="error">Please select who received the payment</div>';
+    if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = '💾 Save Payment'; }
+    window._isSavingPayment = false;
     return;
   }
   
   const amt = parseFloat(document.getElementById('payAmt')?.value) || 0;
-  if (amt <= 0) { document.getElementById('payErr').innerHTML = '<div class="error">Amount required</div>'; return; }
+  if (amt <= 0) {
+    document.getElementById('payErr').innerHTML = '<div class="error">Amount required</div>';
+    if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = '💾 Save Payment'; }
+    window._isSavingPayment = false;
+    return;
+  }
 
   const mode = document.getElementById('payMode')?.value;
   if (mode === "Airbnb Payout") receivedBy = "Firoz";
@@ -3387,9 +3431,40 @@ async function savePaymentModal(bkId) {
   const payDate = document.getElementById('payDate')?.value;
   const userNotes = document.getElementById('payNotes')?.value?.trim() || null;
 
-  // Get current booking + guest info for auto-distribution
-  const { data: currBk } = await sb.from('guest_register')
-    .select('total_amount, guest_name, phone, room_id, check_in, check_out, booking_mode, is_review_booking, linked_booking_id').eq('booking_id', bkId).single();
+  try {
+    // 🚨 DUPLICATE PAYMENT CHECK (Check if same amount was already recorded on same date/mode)
+    if (!window._paymentConfirmedForDupe) {
+      const { data: existingPays } = await sb.from('payment_history')
+        .select('id, amount, payment_mode, payment_date')
+        .eq('booking_id', bkId)
+        .eq('amount', amt)
+        .neq('verification_status', 'rejected');
+
+      const sameDayPay = (existingPays || []).find(p => p.payment_date === payDate || p.payment_mode === mode);
+      if (sameDayPay) {
+        const ok = confirm(
+          `⚠️ DUPLICATE PAYMENT WARNING!\n\n` +
+          `Booking ID: ${bkId}\n` +
+          `Amount: ₹${amt.toLocaleString('en-IN')}\n` +
+          `Date: ${payDate}\n` +
+          `Mode: ${mode}\n\n` +
+          `Is booking ke liye pehle se ₹${amt.toLocaleString('en-IN')} ka payment (${sameDayPay.payment_mode || mode}, ${sameDayPay.payment_date || payDate}) recorded hai!\n\n` +
+          `Kya aap sach me duplicate payment add karna chahte hain?`
+        );
+        if (!ok) {
+          if (saveBtn) {
+            saveBtn.disabled = false;
+            saveBtn.textContent = '💾 Save Payment';
+          }
+          window._isSavingPayment = false;
+          return;
+        }
+      }
+    }
+
+    // Get current booking + guest info for auto-distribution
+    const { data: currBk } = await sb.from('guest_register')
+      .select('total_amount, guest_name, phone, room_id, check_in, check_out, booking_mode, is_review_booking, linked_booking_id').eq('booking_id', bkId).single();
 
   // 🚨 DUPLICATE BOOKING CHECK — Same room + overlapping dates
   if (currBk && !window._paymentConfirmedForDupe) {
@@ -3486,6 +3561,11 @@ async function savePaymentModal(bkId) {
         '</div>';
 
       document.getElementById('payErr').innerHTML = warningHtml;
+      if (saveBtn) {
+        saveBtn.disabled = false;
+        saveBtn.textContent = '💾 Save Payment';
+      }
+      window._isSavingPayment = false;
       return;
     }
   }
@@ -3600,6 +3680,16 @@ async function savePaymentModal(bkId) {
 
   if (document.getElementById('editBkErr')) editBooking(bkId);
   else renderManageBookings();
+  } catch (err) {
+    if (window.fsn) fsn.error('Error', err.message);
+    else alert('Error: ' + err.message);
+    if (saveBtn) {
+      saveBtn.disabled = false;
+      saveBtn.textContent = '💾 Save Payment';
+    }
+  } finally {
+    window._isSavingPayment = false;
+  }
 }
 
 async function addPaymentWithDate(bkId) { showPaymentModal(bkId); }
