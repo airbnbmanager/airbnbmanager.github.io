@@ -412,6 +412,8 @@ async function renderInvestorReport(investorId, roomId, month) {
   // Filter out complimentary/friends bookings + REVIEW bookings (fake Airbnb)
   const excludeKeywords = ['(friends)', '(complimentary)', '(comp)', '(free)', '(owner)', '(family)', 'friends)', 'complimentary)', 'comp)', 'free)', 'owner)', 'family)'];
   const isExcluded = (b) => {
+    if (b.is_cancelled === true) return true;
+    if (b.verification_status === 'rejected') return true;
     const name = (b.guest_name || '').toLowerCase().replace(/\s+/g, ' ');
     const notes = (b.notes || '').toLowerCase();
     // NEW: Only exclude if admin marked as hidden from investor
@@ -470,27 +472,37 @@ async function renderInvestorReport(investorId, roomId, month) {
     return { nights: monthNights, rev: proratedRev };
   }
 
-  const reviewBks = activeBookings.filter(b => b.is_review_booking === true && getProratedStats(b, pm[b.booking_id]||0).nights > 0);
-  const onBks = activeBookings.filter(b => b.booking_mode === 'Online-Airbnb' && !b.is_review_booking && getProratedStats(b, pm[b.booking_id]||0).nights > 0);
-  const offBks = activeBookings.filter(b => b.booking_mode !== 'Online-Airbnb' && !b.is_review_booking && getProratedStats(b, pm[b.booking_id]||0).nights > 0);
+  const isOnline = (b) => {
+    const m = (b.booking_mode || '').toLowerCase();
+    return m === 'online-airbnb' || m.includes('online') || m.includes('airbnb');
+  };
+
+  const getBookingPaid = (b) => {
+    if (pm[b.booking_id] !== undefined && pm[b.booking_id] > 0) return pm[b.booking_id];
+    return Number(b.total_amount) || 0;
+  };
+
+  const reviewBks = activeBookings.filter(b => b.is_review_booking === true && getProratedStats(b, getBookingPaid(b)).nights > 0);
+  const onBks = activeBookings.filter(b => isOnline(b) && !b.is_review_booking && getProratedStats(b, getBookingPaid(b)).nights > 0);
+  const offBks = activeBookings.filter(b => !isOnline(b) && !b.is_review_booking && getProratedStats(b, getBookingPaid(b)).nights > 0);
 
   let onNights = 0, onRev = 0;
   onBks.forEach(b => {
-    const p = getProratedStats(b, pm[b.booking_id] || 0);
+    const p = getProratedStats(b, getBookingPaid(b));
     onNights += p.nights;
     onRev += p.rev;
   });
 
   let offNights = 0, offRev = 0;
   offBks.forEach(b => {
-    const p = getProratedStats(b, pm[b.booking_id] || 0);
+    const p = getProratedStats(b, getBookingPaid(b));
     offNights += p.nights;
     offRev += p.rev;
   });
 
   let reviewNights = 0, reviewRev = 0;
   reviewBks.forEach(b => {
-    const p = getProratedStats(b, pm[b.booking_id] || 0);
+    const p = getProratedStats(b, getBookingPaid(b));
     reviewNights += p.nights;
     reviewRev += p.rev;
   });
@@ -550,10 +562,10 @@ async function renderInvestorReport(investorId, roomId, month) {
             ${months.map(m => `<option value="${m.val}" ${m.val === selMonth ? 'selected' : ''}>${m.lbl}</option>`).join('')}
           </select>
         </div>
-        <div class="form-group" style="justify-content:flex-end;">
+        <div class="form-group" style="justify-content:flex-end;gap:8px;flex-wrap:wrap;">
           <button class="btn-sm" onclick="printInvestorReport('${inv?.name || 'Investor'}','${room?.nickname || roomId}','${monthYear}')">🖨️ Print / Save PDF</button>
-          
-          ${excludedBookings.length > 0 ? `<button class="btn-sm outline" style="margin-left:6px;" onclick="renderFriendsReport('${investorId}','${roomId}','${selMonth}')">🎁 Friends Report (${excludedBookings.length})</button>` : ''}
+          <button class="btn-sm outline" onclick="downloadInvestorReport('${inv?.name || 'Investor'}','${room?.nickname || roomId}','${monthYear}')">📥 Download Report</button>
+          ${excludedBookings.length > 0 ? `<button class="btn-sm outline" onclick="renderFriendsReport('${investorId}','${roomId}','${selMonth}')">🎁 Friends Report (${excludedBookings.length})</button>` : ''}
         </div>
       </div>
     </div>
@@ -610,37 +622,76 @@ async function renderInvestorReport(investorId, roomId, month) {
       <div style="margin-bottom:20px;">
         <div style="font-size:15px;font-weight:700;margin-bottom:10px;padding:8px 12px;background:linear-gradient(90deg,#007A87,#00A699);color:#fff;border-radius:6px;">📈 Revenue Breakdown</div>
 
-        <div style="font-size:14px;font-weight:600;margin:10px 0 4px;">🌐 Online Bookings (Airbnb)</div>
-        <div style="font-size:13px;margin-left:12px;">
-          ${onBks.length === 0 
-            ? '<div style="padding:8px;color:#999;font-style:italic;">🌙 No online bookings this month</div>'
-            : `<div>Nights Booked: <strong>${onNights}</strong></div>
-               <div>Revenue: <strong>₹${onRev.toLocaleString('en-IN')}</strong></div>`}
+        <div style="font-size:14px;font-weight:600;margin:14px 0 6px;color:#FF5A5F;display:flex;align-items:center;gap:6px;">
+          <span>🌐 Online Bookings (Airbnb)</span>
+          <span style="font-size:11px;background:#FFF0F2;color:#FF385C;padding:2px 8px;border-radius:12px;border:1px solid #FFCDD2;font-weight:700;">${onBks.length} Bookings</span>
         </div>
-
-        <div style="font-size:14px;font-weight:600;margin:14px 0 4px;">🏠 Offline / Direct Bookings</div>
         <table style="width:100%;border-collapse:collapse;font-size:12px;margin-top:4px;">
           <thead>
-            <tr style="background:#F7F7F7;border-bottom:2px solid #FF5A5F;">
-              <th style="padding:6px;border:1px solid #ccc;">Guest</th>
-              <th style="padding:6px;border:1px solid #ccc;">Check-in</th>
-              <th style="padding:6px;border:1px solid #ccc;">Check-out</th>
-              <th style="padding:6px;border:1px solid #ccc;">Nights</th>
+            <tr style="background:#FFF0F2;border-bottom:2px solid #FF5A5F;">
+              <th style="padding:6px;border:1px solid #ccc;text-align:left;">Guest Name</th>
+              <th style="padding:6px;border:1px solid #ccc;text-align:center;">Check-in</th>
+              <th style="padding:6px;border:1px solid #ccc;text-align:center;">Check-out</th>
+              <th style="padding:6px;border:1px solid #ccc;text-align:center;">Nights</th>
+              <th style="padding:6px;border:1px solid #ccc;text-align:right;">Revenue</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${onBks.length === 0 ? '<tr><td colspan="5" style="padding:12px;border:1px solid #ccc;text-align:center;color:#999;font-style:italic;">🌙 No online bookings this month</td></tr>' : ''}
+            ${onBks.map(b => {
+              const p = getProratedStats(b, getBookingPaid(b));
+              const displayName = b.guest_name ? b.guest_name : 'Airbnb Guest';
+              return `
+              <tr>
+                <td style="padding:6px;border:1px solid #ccc;">
+                  <strong style="color:#111;">${displayName}</strong>
+                  ${b.booking_id ? `<span style="font-size:10px;color:#666;display:block;">Booking ID: ${b.booking_id}</span>` : ''}
+                </td>
+                <td style="padding:6px;border:1px solid #ccc;text-align:center;">${b.check_in || '-'}</td>
+                <td style="padding:6px;border:1px solid #ccc;text-align:center;">${b.check_out || '-'}</td>
+                <td style="padding:6px;border:1px solid #ccc;text-align:center;">${p.nights}</td>
+                <td style="padding:6px;border:1px solid #ccc;text-align:right;">₹${p.rev.toLocaleString('en-IN')}</td>
+              </tr>`;
+            }).join('')}
+            <tr style="background:#FFF0F2;font-weight:700;color:#B91C1C;">
+              <td colspan="3" style="padding:6px;border:1px solid #ccc;text-align:right;">Total Online (Airbnb):</td>
+              <td style="padding:6px;border:1px solid #ccc;text-align:center;">${onNights}</td>
+              <td style="padding:6px;border:1px solid #ccc;text-align:right;">₹${onRev.toLocaleString('en-IN')}</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div style="font-size:14px;font-weight:600;margin:18px 0 6px;color:#007A87;display:flex;align-items:center;gap:6px;">
+          <span>🏠 Offline / Direct Bookings</span>
+          <span style="font-size:11px;background:#E6F2F4;color:#007A87;padding:2px 8px;border-radius:12px;border:1px solid #B2DFDB;font-weight:700;">${offBks.length} Bookings</span>
+        </div>
+        <table style="width:100%;border-collapse:collapse;font-size:12px;margin-top:4px;">
+          <thead>
+            <tr style="background:#F7F7F7;border-bottom:2px solid #007A87;">
+              <th style="padding:6px;border:1px solid #ccc;text-align:left;">Guest Name</th>
+              <th style="padding:6px;border:1px solid #ccc;text-align:center;">Check-in</th>
+              <th style="padding:6px;border:1px solid #ccc;text-align:center;">Check-out</th>
+              <th style="padding:6px;border:1px solid #ccc;text-align:center;">Nights</th>
               <th style="padding:6px;border:1px solid #ccc;text-align:right;">Revenue</th>
             </tr>
           </thead>
           <tbody>
             ${offBks.length === 0 ? '<tr><td colspan="5" style="padding:12px;border:1px solid #ccc;text-align:center;color:#999;font-style:italic;">🌙 No offline bookings this month</td></tr>' : ''}
-            ${offBks.map(b => `
+            ${offBks.map(b => {
+              const p = getProratedStats(b, getBookingPaid(b));
+              return `
               <tr>
-                <td style="padding:6px;border:1px solid #ccc;">${b.guest_name || '-'}</td>
-                <td style="padding:6px;border:1px solid #ccc;">${b.check_in || '-'}</td>
-                <td style="padding:6px;border:1px solid #ccc;">${b.check_out || '-'}</td>
-                <td style="padding:6px;border:1px solid #ccc;text-align:center;">${getProratedStats(b, pm[b.booking_id] || 0).nights}</td>
-                <td style="padding:6px;border:1px solid #ccc;text-align:right;">₹${getProratedStats(b, pm[b.booking_id] || 0).rev.toLocaleString('en-IN')}</td>
-              </tr>
-            `).join('') || '<tr><td colspan="5" style="padding:8px;text-align:center;color:#999;border:1px solid #ccc;">No offline bookings</td></tr>'}
-            <tr style="background:#FFF0F0;font-weight:700;color:#484848;">
+                <td style="padding:6px;border:1px solid #ccc;">
+                  <strong style="color:#111;">${b.guest_name || 'Direct Guest'}</strong>
+                  ${b.booking_id ? `<span style="font-size:10px;color:#666;display:block;">Booking ID: ${b.booking_id}</span>` : ''}
+                </td>
+                <td style="padding:6px;border:1px solid #ccc;text-align:center;">${b.check_in || '-'}</td>
+                <td style="padding:6px;border:1px solid #ccc;text-align:center;">${b.check_out || '-'}</td>
+                <td style="padding:6px;border:1px solid #ccc;text-align:center;">${p.nights}</td>
+                <td style="padding:6px;border:1px solid #ccc;text-align:right;">₹${p.rev.toLocaleString('en-IN')}</td>
+              </tr>`;
+            }).join('') || '<tr><td colspan="5" style="padding:8px;text-align:center;color:#999;border:1px solid #ccc;">No offline bookings</td></tr>'}
+            <tr style="background:#F0FAF9;font-weight:700;color:#007A87;">
               <td colspan="3" style="padding:6px;border:1px solid #ccc;text-align:right;">Total Offline:</td>
               <td style="padding:6px;border:1px solid #ccc;text-align:center;">${offNights}</td>
               <td style="padding:6px;border:1px solid #ccc;text-align:right;">₹${offRev.toLocaleString('en-IN')}</td>
@@ -1185,24 +1236,37 @@ window.whatsappInvestorReport = async function(investorId, roomId, monthYear) {
   }
 };
 
-function printInvestorReport(investorName, propertyName, monthYear) {
-  const cleanName = (str) => (str || '').replace(/[^a-zA-Z0-9]/g, '_');
-  const filename = `${cleanName(investorName)}_${cleanName(propertyName)}_${cleanName(monthYear)}_Report`;
+function getInvestorReportFilename(investorName, propertyName, monthYear) {
+  const clean = (s) => (s || '')
+    .trim()
+    .replace(/[^a-zA-Z0-9]/g, '_')
+    .replace(/_+/g, '_')
+    .replace(/^_|_$/g, '');
+  const inv = clean(investorName) || 'Investor';
+  const prop = clean(propertyName) || 'Property';
+  const mon = clean(monthYear) || 'Report';
+  return `UHHS_${inv}_${prop}_${mon}_Earnings_Report`;
+}
 
-  const reportEl = document.querySelector('.report-doc');
-  if (!reportEl) {
-    alert('Report not found. Please try again.');
-    return;
-  }
-
-  const reportHTML = reportEl.outerHTML;
+function buildInvestorReportHTML(reportHTML, filename) {
   const today = new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+  const footerHTML = (typeof window.getOfficialReportFooterHTML === 'function') 
+    ? window.getOfficialReportFooterHTML(today) 
+    : `
+    <div class="footer-brand" style="margin-top:14px;padding-top:8px;border-top:1px solid #ddd;text-align:center;font-size:10px;color:#475569;font-family:sans-serif;">
+      <div style="font-weight:700;letter-spacing:0.5px;color:#1e293b;text-transform:uppercase;">THE UNIQUE HAVEN HOMES PRIVATE LIMITED</div>
+      <div style="font-size:9px;color:#64748b;margin-top:2px;">CIN: U55101UP2026PTC244637 · uniquehavenhomesstay.com</div>
+      <div style="margin-top:4px;font-weight:700;color:#0f172a;font-size:9.5px;">⚡ Developed by Praveen Singh</div>
+    </div>`;
 
-  const html = `<!DOCTYPE html>
-<html>
+  return `<!DOCTYPE html>
+<html lang="en">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>${filename}</title>
+  <meta name="title" content="${filename}">
+  <meta name="apple-mobile-web-app-title" content="${filename}">
   <style>
     @page {
       size: A4 portrait;
@@ -1283,48 +1347,148 @@ function printInvestorReport(investorName, propertyName, monthYear) {
       border-radius: 6px !important;
       page-break-inside: avoid;
     }
-    .footer-brand {
-      margin-top: 10px !important;
-      padding-top: 6px !important;
-      border-top: 1px solid #ddd !important;
-      text-align: center !important;
-      font-size: 9px !important;
-      color: #666 !important;
-      page-break-inside: avoid;
+    .mobile-action-bar {
+      position: sticky;
+      top: 0;
+      background: #0F172A;
+      color: #fff;
+      padding: 10px 16px;
+      margin: -10mm -12mm 14px -12mm;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      z-index: 9999;
+      flex-wrap: wrap;
+      gap: 8px;
     }
+    .mobile-action-bar .report-name {
+      font-size: 12px;
+      font-weight: 700;
+      color: #F8FAFC;
+      letter-spacing: 0.3px;
+    }
+    .mobile-action-bar .actions {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+    }
+    .mobile-action-bar button {
+      border: none;
+      padding: 7px 14px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .btn-print { background: #FF385C; color: #fff; }
+    .btn-download { background: #00A699; color: #fff; }
+    .btn-close { background: #475569; color: #fff; }
     @media print {
-      body { padding: 8mm 10mm !important; }
-      .no-print { display: none !important; }
+      body { padding: 10mm 12mm !important; }
+      .no-print, .mobile-action-bar { display: none !important; }
     }
   </style>
 </head>
 <body>
+  <div class="mobile-action-bar no-print">
+    <div class="report-name">📄 ${filename}</div>
+    <div class="actions">
+      <button class="btn-print" onclick="triggerPrint()">🖨️ Print / Save PDF</button>
+      <button class="btn-download" onclick="downloadHTML()">📥 Download Report</button>
+      <button class="btn-close" onclick="window.close()">✕ Close</button>
+    </div>
+  </div>
+
   ${reportHTML}
-  ${window.getOfficialReportFooterHTML ? window.getOfficialReportFooterHTML(today) : `
-  <div class="footer-brand" style="margin-top:14px;padding-top:8px;border-top:1px solid #ddd;text-align:center;font-size:10px;color:#475569;font-family:sans-serif;">
-    <div style="font-weight:700;letter-spacing:0.5px;color:#1e293b;text-transform:uppercase;">THE UNIQUE HAVEN HOMES PRIVATE LIMITED</div>
-    <div style="font-size:9px;color:#64748b;margin-top:2px;">CIN: U55101UP2024PTC202863 · uniquehavenhomesstay.com</div>
-    <div style="margin-top:4px;font-weight:700;color:#0f172a;font-size:9.5px;">⚡ Developed by Praveen Singh</div>
-  </div>`}
+
+  ${footerHTML}
+
   <script>
+    document.title = "${filename}";
+    function triggerPrint() {
+      document.title = "${filename}";
+      window.print();
+    }
+    function downloadHTML() {
+      const docClone = document.documentElement.cloneNode(true);
+      const bars = docClone.querySelectorAll('.no-print');
+      bars.forEach(b => b.remove());
+      const blob = new Blob(['<!DOCTYPE html>\\n' + docClone.outerHTML], { type: 'text/html;charset=utf-8' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = "${filename}.html";
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(() => a.remove(), 1000);
+    }
     window.onload = function() {
+      document.title = "${filename}";
+      try {
+        if (history.replaceState) {
+          history.replaceState(null, "${filename}", "#${filename}");
+        }
+      } catch(e) {}
       setTimeout(function() {
-        window.print();
-      }, 300);
+        document.title = "${filename}";
+        const isMobileOrTablet = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+        if (!isMobileOrTablet) {
+          window.print();
+        }
+      }, 400);
     };
   </script>
 </body>
 </html>`;
+}
+
+window.downloadInvestorReport = function(investorName, propertyName, monthYear) {
+  const reportEl = document.querySelector('.report-doc');
+  if (!reportEl) {
+    alert('Report not found. Please try again.');
+    return;
+  }
+  const filename = getInvestorReportFilename(investorName, propertyName, monthYear);
+  const reportHTML = reportEl.outerHTML;
+  const html = buildInvestorReportHTML(reportHTML, filename);
+  const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `${filename}.html`;
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(() => {
+    a.remove();
+    if (window.fsn) fsn.success('Downloaded', `Saved ${filename}.html`);
+  }, 500);
+};
+
+window.printInvestorReport = function(investorName, propertyName, monthYear) {
+  const reportEl = document.querySelector('.report-doc');
+  if (!reportEl) {
+    alert('Report not found. Please try again.');
+    return;
+  }
+  const filename = getInvestorReportFilename(investorName, propertyName, monthYear);
+  const reportHTML = reportEl.outerHTML;
+  const html = buildInvestorReportHTML(reportHTML, filename);
 
   const win = window.open('', '_blank');
   if (!win) {
     alert('Popup blocked! Please allow popups for this site.');
     return;
   }
-  win.document.title = filename;
+  win.document.open();
   win.document.write(html);
   win.document.close();
-}
+  win.document.title = filename;
+  setTimeout(() => {
+    try { win.document.title = filename; } catch(e) {}
+  }, 100);
+};
 
 
 // ============ FRIENDS/COMPLIMENTARY STAYS REPORT ============
@@ -1379,8 +1543,9 @@ async function renderFriendsReport(investorId, roomId, month) {
             ${months.map(m => `<option value="${m.val}" ${m.val === selMonth ? 'selected' : ''}>${m.lbl}</option>`).join('')}
           </select>
         </div>
-        <div class="form-group" style="justify-content:flex-end;">
+        <div class="form-group" style="justify-content:flex-end;gap:8px;flex-wrap:wrap;">
           <button class="btn-sm" onclick="printInvestorReport('${inv?.name || 'Investor'}','${room?.nickname || roomId}_Friends','${monthYear}')">🖨️ Print / Save PDF</button>
+          <button class="btn-sm outline" onclick="downloadInvestorReport('${inv?.name || 'Investor'}','${room?.nickname || roomId}_Friends','${monthYear}')">📥 Download Report</button>
         </div>
       </div>
     </div>
