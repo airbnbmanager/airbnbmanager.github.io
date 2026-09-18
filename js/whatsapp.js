@@ -41,7 +41,7 @@ async function buildMessageData(bkId) {
     .eq('in_whatsapp_template', true);
 
   const propertyStaff = (allStaff || []).filter(e => {
-    if (e.status === 'Inactive' || e.is_active === false) return false;
+    if (e.status !== 'Active' || e.is_active === false) return false;
     const rooms = (e.assigned_rooms || '').split(',').map(r => r.trim());
     return rooms.includes(roomId);
   });

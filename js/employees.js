@@ -2,8 +2,8 @@
 function isEmployeeActive(e) {
   if (!e) return false;
   const st = String(e.status || '').trim().toLowerCase();
-  if (st === 'inactive' || st === 'disabled' || e.is_active === false) return false;
-  return true;
+  if (st === 'inactive' || st === 'disabled' || st === 'fired' || st === 'terminated' || e.is_active === false) return false;
+  return st === 'active' || e.is_active === true;
 }
 
 // ============ STORAGE USAGE CHECK ============
@@ -62,7 +62,7 @@ async function renderManageEmployees() {
       </div>
       <div style="display:flex;gap:8px;margin-top:10px;">
         <button class="${filter === 'Active' ? '' : 'secondary'} btn-sm" onclick="window._empFilterStatus='Active';renderManageEmployees()" style="${filter === 'Active' ? 'background:#059669;color:#fff;font-weight:700;' : ''}">🟢 Active (${activeCount})</button>
-        <button class="${filter === 'Inactive' ? '' : 'secondary'} btn-sm" onclick="window._empFilterStatus='Inactive';renderManageEmployees()" style="${filter === 'Inactive' ? 'background:#DC2626;color:#fff;font-weight:700;' : (inactiveCount > 0 ? 'border:1px solid #DC2626;color:#DC2626;font-weight:700;' : '')}">🔴 Disabled (${inactiveCount})</button>
+        <button class="${filter === 'Inactive' ? '' : 'secondary'} btn-sm" onclick="window._empFilterStatus='Inactive';renderManageEmployees()" style="${filter === 'Inactive' ? 'background:#DC2626;color:#fff;font-weight:700;' : (inactiveCount > 0 ? 'border:1px solid #DC2626;color:#DC2626;font-weight:700;' : '')}">🔴 Inactive / Fired (${inactiveCount})</button>
         <button class="${filter === 'All' ? '' : 'secondary'} btn-sm" onclick="window._empFilterStatus='All';renderManageEmployees()" style="${filter === 'All' ? 'background:#4F46E5;color:#fff;font-weight:700;' : ''}">📋 All (${(emps || []).length})</button>
       </div>
     </div>
@@ -73,6 +73,7 @@ async function renderManageEmployees() {
       </tr></thead>
       <tbody>${filteredEmps.map(e => {
         const isActive = isEmployeeActive(e);
+        const statusBadge = isActive ? 'Active' : (e.status || 'Disabled');
         return `<tr>
         <td><strong>${e.name}</strong></td>
         <td>${e.role || '-'}</td>
@@ -84,11 +85,11 @@ async function renderManageEmployees() {
           ${e.id_proof_photo_back ? `<button class="btn-sm outline" onclick="dlIdPhoto('${e.id_proof_photo_back}')">📄 B</button>` : ''}
           ${!e.id_proof_photo_front && !e.id_proof_photo_back ? '-' : ''}
         </td>
-        <td><span class="badge ${isActive ? 'green' : 'red'}">${isActive ? 'Active' : 'Disabled'}</span></td>
+        <td><span class="badge ${isActive ? 'green' : 'red'}">${statusBadge}</span></td>
         ${isO ? `<td class="table-actions">
           <button class="btn-sm" onclick="editEmp('${e.emp_id}')" title="Edit">✏️</button>
-          <button class="btn-sm ${isActive ? 'danger' : 'green-btn'}" onclick="toggleEmpStatus('${e.emp_id}', '${e.name}', ${isActive})" title="${isActive ? 'Disable Employee' : 'Enable Employee'}">
-            ${isActive ? '🚫 Disable' : '🟢 Enable'}
+          <button class="btn-sm ${isActive ? 'danger' : 'green-btn'}" onclick="toggleEmpStatus('${e.emp_id}', '${e.name}', ${isActive})" title="${isActive ? 'Disable / Deactivate' : 'Enable / Activate'}">
+            ${isActive ? '🚫 Deactivate' : '🟢 Activate'}
           </button>
           ${window.canDelete && window.canDelete() ? `<button class="btn-sm danger" onclick="delEmp('${e.emp_id}','${e.name}')" title="Permanently Delete">🗑️</button>` : ''}
         </td>` : ''}
@@ -100,16 +101,22 @@ async function renderManageEmployees() {
 
 window.toggleEmpStatus = async function(empId, name, currentlyActive) {
   const newStatus = currentlyActive ? 'Inactive' : 'Active';
-  const actionText = currentlyActive ? 'DISABLE' : 'ENABLE';
+  const actionText = currentlyActive ? 'DEACTIVATE' : 'ACTIVATE';
 
-  if (!confirm(`Are you sure you want to ${actionText} employee "${name}"?\n\n${currentlyActive ? '• Will NOT show in Advance, Salary, Attendance, or Expense forms.\n• Past history will NOT be deleted.' : '• Will be visible again in all forms.'}`)) {
+  if (!confirm(`Are you sure you want to ${actionText} employee "${name}"?\n\n${currentlyActive ? '• Will NOT show in Advance, Salary, Attendance, or active property forms.\n• Past history and records will remain safely preserved.' : '• Will be active and visible again in all operational forms.'}`)) {
     return;
   }
 
-  // Safe update: Only update existing 'status' column
-  const { error } = await sb.from('employees').update({
-    status: newStatus
-  }).eq('emp_id', empId);
+  // Safe update: Update status, is_active, and whatsapp inclusion
+  const updatePayload = {
+    status: newStatus,
+    is_active: !currentlyActive
+  };
+  if (currentlyActive) {
+    updatePayload.in_whatsapp_template = false;
+  }
+
+  const { error } = await sb.from('employees').update(updatePayload).eq('emp_id', empId);
 
   if (error) {
     if (window.fsn) fsn.error('Error', error.message);
@@ -303,9 +310,13 @@ async function editEmp(id) {
           <input id="eIdBack" type="file" accept="image/*" />
         </div>
       </div>
-      <label style="display:flex;align-items:center;gap:8px;margin:8px 0;">
-        <input type="checkbox" id="eActive" ${e.status === 'Active' || e.is_active === true || e.is_active === null ? 'checked' : ''} /> Active
-      </label>
+      <div class="form-group"><label>Status</label>
+        <select id="eStatus">
+          <option value="Active" ${e.status === 'Active' ? 'selected' : ''}>🟢 Active</option>
+          <option value="Inactive" ${e.status === 'Inactive' ? 'selected' : ''}>🔴 Inactive (Disabled)</option>
+          <option value="Fired" ${e.status === 'Fired' ? 'selected' : ''}>⛔ Fired / Terminated</option>
+        </select>
+      </div>
       <div class="form-group"><label>Notes</label><textarea id="eNotes">${e.notes || ''}</textarea></div>
       <button onclick="updEmp('${id}')" style="width:100%;">💾 Update</button>
       <div id="empErr"></div>
@@ -321,7 +332,8 @@ async function updEmp(id) {
 
   const roomsSelect = document.getElementById('eRooms');
   const selectedRooms = roomsSelect ? Array.from(roomsSelect.selectedOptions).map(o => o.value).join(',') : '';
-  const isActive = document.getElementById('eActive').checked;
+  const statusVal = document.getElementById('eStatus')?.value || (document.getElementById('eActive')?.checked ? 'Active' : 'Inactive');
+  const isActive = statusVal === 'Active';
 
   const obj = {
     name,
@@ -335,10 +347,13 @@ async function updEmp(id) {
     id_proof_no: document.getElementById('eIdNo').value.trim() || null,
     address: document.getElementById('eAddr').value.trim() || null,
     emergency_contact: document.getElementById('eEmergency').value.trim() || null,
-    status: isActive ? 'Active' : 'Inactive',
+    status: statusVal,
     is_active: isActive,
     notes: document.getElementById('eNotes').value.trim() || null,
   };
+  if (!isActive) {
+    obj.in_whatsapp_template = false;
+  }
 
   const frontFile = document.getElementById('eIdFront')?.files?.[0];
   if (frontFile) {
