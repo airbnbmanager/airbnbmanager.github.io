@@ -267,9 +267,8 @@ window.saveReimbursement = async function() {
   }
 
   const currentUser = SESSION.displayName || 'Praveen Singh';
-  // COMPANY / UHHS-OD are already company funds spent directly -> no claim needed (Received).
-  // FIROZ is personal money paid on the company's behalf -> needs to be claimed back (Pending).
-  const initialStatus = (paymentSource === 'UHHS-OD' || paymentSource === 'COMPANY') ? 'Received' : 'Pending';
+  // All new expenses default to Pending status so they can be verified and tracked
+  const initialStatus = 'Pending';
 
   const { data: newR, error } = await sb.from('reimbursements').insert({
     payment_source: paymentSource,

@@ -193,20 +193,11 @@
     let autoEnrichedCount = 0;
 
     if (isNewTransactionCSV) {
-      // Pass 1: Aggregate Tax Withholdings per Confirmation Code
-      const taxWithholdingMap = {};
-      rows.forEach(r => {
-        const type = (r['Type'] || '').trim();
-        const code = (r['Confirmation Code'] || r['Confirmation code'] || '').trim();
-        const amtStr = (r['Amount'] || '0').replace(/,/g, '');
-        const amt = parseFloat(amtStr) || 0;
+      // NOTE: In Airbnb's Transaction/Payout CSV, the "Amount" column on a
+      // Reservation row is ALREADY the net you-earn after service fee AND TDS.
+      // Do NOT add taxWithholdingMap — that causes double-deduction of TDS.
 
-        if (code && type.toLowerCase().includes('tax withholding')) {
-          taxWithholdingMap[code] = (taxWithholdingMap[code] || 0) + amt;
-        }
-      });
-
-      // Pass 2: Parse Reservations
+      // Parse Reservations only
       rows.forEach(r => {
         const type = (r['Type'] || '').trim();
         const code = (r['Confirmation Code'] || r['Confirmation code'] || '').trim();
@@ -221,12 +212,13 @@
         const checkIn = parseDate(sDate);
         const checkOut = parseDate(eDate);
 
+        // Gross earnings = total guest paid (before Airbnb service fee & TDS)
         const gross = parseFloat((r['Gross earnings'] || '0').replace(/,/g, '')) || 0;
+        // Amount = net you-earn (already after service fee and TDS deduction)
         const amount = parseFloat((r['Amount'] || '0').replace(/,/g, '')) || 0;
 
-        const taxAdj = taxWithholdingMap[code] || 0;
-        const netPayout = amount + taxAdj > 0 ? (amount + taxAdj) : amount;
-        const finalYouEarn = netPayout > 0 ? netPayout : gross;
+        // Use Amount directly — it is what Airbnb pays out for this reservation
+        const finalYouEarn = amount > 0 ? amount : gross;
 
         const nights = parseInt(r['Nights'] || '1') || (checkIn && checkOut ? Math.max(Math.round((new Date(checkOut) - new Date(checkIn)) / 86400000), 1) : 1);
         const matchedRoomId = SYNC.getRoomIdByListing(listing);
@@ -419,12 +411,18 @@
     if (conflicts.length > 0) {
       conflictHtml = `
         <div class="card" style="margin-top:16px;border-left:4px solid #F59E0B;background:#FFFBEB;">
-          <div class="section-title" style="color:#92400E;">⚠️ Details Mismatch (${conflicts.length})</div>
+          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:12px;">
+            <div>
+              <strong style="font-size:16px;color:#92400E;">⚠️ Details Mismatch (${conflicts.length})</strong>
+              <div style="font-size:12px;color:#B45309;">These bookings have a different amount in your database vs the CSV.</div>
+            </div>
+            <button onclick="fixAllConflicts()" id="fixAllBtn" style="background:#3B82F6;color:#fff;padding:8px 18px;border:none;border-radius:6px;font-weight:700;cursor:pointer;font-size:14px;">✓ Fix All ${conflicts.length}</button>
+          </div>
           <div class="table-wrap"><table>
             <thead><tr><th>Code</th><th>Guest</th><th>Issue</th><th>Current (DB)</th><th>Correct (CSV)</th><th>Action</th></tr></thead>
             <tbody>
               ${conflicts.map(r => r.issues.map(i => `
-                <tr>
+                <tr id="conflict-row-${r.confirmation_code}-${i.field}">
                   <td><code>${r.confirmation_code}</code></td>
                   <td>${r.guest_name}</td>
                   <td><strong>${i.label}</strong></td>
@@ -564,6 +562,59 @@
     if (window.fsn) fsn.success('Fixed', '✅ Updated successfully!');
     r.issues = (r.issues || []).filter(i => i.field !== field);
     if (r.issues.length === 0) r.matchStatus = 'match';
+    renderPreview();
+  };
+
+  window.fixAllConflicts = async function() {
+    const conflicts = (window.SYNC?.reservations || []).filter(r => r.matchStatus === 'conflict');
+    if (!conflicts.length) {
+      alert('No conflicts to fix!');
+      return;
+    }
+
+    const totalIssues = conflicts.reduce((sum, r) => sum + (r.issues?.length || 0), 0);
+    if (!confirm(`Fix all ${totalIssues} mismatches across ${conflicts.length} bookings?`)) return;
+
+    const btn = document.getElementById('fixAllBtn');
+    if (btn) { btn.disabled = true; btn.textContent = '⏳ Fixing...'; }
+
+    let fixed = 0;
+    let failed = 0;
+
+    for (const r of conflicts) {
+      if (!r.dbBk) continue;
+      const updates = {};
+      for (const issue of (r.issues || [])) {
+        if (issue.field === 'guest_name') updates.guest_name = r.guest_name;
+        if (issue.field === 'amount') {
+          updates.total_amount = r.you_earn;
+          updates.per_day_rate = r.nights > 0 ? Math.round(r.you_earn / r.nights) : r.you_earn;
+        }
+      }
+      if (!Object.keys(updates).length) continue;
+
+      const { error } = await sb.from('guest_register').update(updates).eq('booking_id', r.dbBk.booking_id);
+      if (error) {
+        console.error('Fix all error for', r.confirmation_code, error);
+        failed++;
+      } else {
+        fixed++;
+        r.issues = [];
+        r.matchStatus = 'match';
+        // Hide fixed rows immediately
+        (r.raw ? [r] : []).forEach(() => {
+          const rows = document.querySelectorAll(`[id^="conflict-row-${r.confirmation_code}"]`);
+          rows.forEach(row => { row.style.background = '#F0FDF4'; row.style.opacity = '0.5'; });
+        });
+      }
+    }
+
+    if (failed === 0) {
+      if (window.fsn) fsn.success('Done', `✅ Fixed all ${fixed} mismatches!`);
+    } else {
+      if (window.fsn) fsn.warning('Partial', `✅ Fixed ${fixed}, ❌ Failed ${failed}`);
+    }
+
     renderPreview();
   };
 

@@ -11,8 +11,10 @@ window._claimsState = {
   moduleFilter: 'all',
   statusFilter: 'all',
   paidByFilter: 'all',
+  employeeFilter: 'all',
   selectedIds: new Set(),
   allData: [],
+  allAdvs: [],
   empMap: {}
 };
 
@@ -94,30 +96,62 @@ window.renderClaims = async function() {
     </div>
 
     <!-- FILTERS BAR -->
-    <div class="card" style="background:#F8FAFC;border:1px solid #E2E8F0;">
+    <div class="card" style="background:#F8FAFC;border:1px solid #E2E8F0;padding:14px;">
+      <style>
+        .claims-filter-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+          gap: 10px;
+        }
+        .claims-filter-grid > div {
+          min-width: 0;
+          box-sizing: border-box;
+        }
+        .claims-filter-grid select,
+        .claims-filter-grid input {
+          width: 100% !important;
+          max-width: 100% !important;
+          min-width: 0 !important;
+          box-sizing: border-box !important;
+          padding: 7px 8px !important;
+          font-size: 12px !important;
+          border-radius: 6px !important;
+          border: 1px solid #CBD5E1 !important;
+          background: #fff !important;
+        }
+        @media (max-width: 640px) {
+          .claims-filter-grid {
+            grid-template-columns: 1fr 1fr !important;
+            gap: 8px !important;
+          }
+          .claims-filter-grid > div {
+            width: 100% !important;
+          }
+        }
+      </style>
       <div style="font-size:13px;font-weight:700;margin-bottom:10px;color:#334155;">🔍 Filters</div>
-      <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(140px, 1fr));gap:10px;">
+      <div class="claims-filter-grid">
         <div>
-          <label style="font-size:11px;font-weight:600;color:#64748B;">📅 FROM Date</label>
-          <input id="cfFromDate" type="date" value="${window._claimsState.fromDate}" onchange="updateClaimsFilter()" style="padding:6px;font-size:12px;width:100%;">
+          <label style="font-size:11px;font-weight:700;color:#64748B;display:block;margin-bottom:3px;">📅 FROM Date</label>
+          <input id="cfFromDate" type="date" value="${window._claimsState.fromDate}" onchange="updateClaimsFilter()">
         </div>
         <div>
-          <label style="font-size:11px;font-weight:600;color:#64748B;">📅 TO Date</label>
-          <input id="cfToDate" type="date" value="${window._claimsState.toDate}" onchange="updateClaimsFilter()" style="padding:6px;font-size:12px;width:100%;">
+          <label style="font-size:11px;font-weight:700;color:#64748B;display:block;margin-bottom:3px;">📅 TO Date</label>
+          <input id="cfToDate" type="date" value="${window._claimsState.toDate}" onchange="updateClaimsFilter()">
         </div>
         <div>
-          <label style="font-size:11px;font-weight:600;color:#64748B;">👤 Paid By (Payer)</label>
-          <select id="cfPaidBy" onchange="updateClaimsFilter()" style="padding:6px;font-size:12px;width:100%;">
-            <option value="all" ${window._claimsState.paidByFilter==='all'?'selected':''}>All Payers / Sources</option>
-            <option value="UHHS-OD" ${window._claimsState.paidByFilter==='UHHS-OD'?'selected':''}>🏦 UHHS-OD Account</option>
+          <label style="font-size:11px;font-weight:700;color:#64748B;display:block;margin-bottom:3px;">👤 Paid By (Payer)</label>
+          <select id="cfPaidBy" onchange="updateClaimsFilter()">
+            <option value="all" ${window._claimsState.paidByFilter==='all'?'selected':''}>All Payers</option>
+            <option value="UHHS-OD" ${window._claimsState.paidByFilter==='UHHS-OD'?'selected':''}>🏦 UHHS-OD</option>
             <option value="COMPANY" ${window._claimsState.paidByFilter==='COMPANY'?'selected':''}>🏢 COMPANY</option>
             <option value="FIROZ" ${window._claimsState.paidByFilter==='FIROZ'?'selected':''}>👤 FIROZ</option>
-            <option value="OTHER" ${window._claimsState.paidByFilter==='OTHER'?'selected':''}>⚠️ OTHER / Unmapped (old data)</option>
+            <option value="OTHER" ${window._claimsState.paidByFilter==='OTHER'?'selected':''}>⚠️ OTHER</option>
           </select>
         </div>
         <div>
-          <label style="font-size:11px;font-weight:600;color:#64748B;">📁 Module</label>
-          <select id="cfModule" onchange="updateClaimsFilter()" style="padding:6px;font-size:12px;width:100%;">
+          <label style="font-size:11px;font-weight:700;color:#64748B;display:block;margin-bottom:3px;">📁 Module</label>
+          <select id="cfModule" onchange="updateClaimsFilter()">
             <option value="all" ${window._claimsState.moduleFilter==='all'?'selected':''}>All Modules</option>
             <option value="reimbursements" ${window._claimsState.moduleFilter==='reimbursements'?'selected':''}>💸 Daily Expenses</option>
             <option value="maintenance" ${window._claimsState.moduleFilter==='maintenance'?'selected':''}>🔧 Maintenance</option>
@@ -126,12 +160,18 @@ window.renderClaims = async function() {
           </select>
         </div>
         <div>
-          <label style="font-size:11px;font-weight:600;color:#64748B;">🏷️ Status</label>
-          <select id="cfStatus" onchange="updateClaimsFilter()" style="padding:6px;font-size:12px;width:100%;">
-            <option value="unclaimed" ${window._claimsState.statusFilter==='unclaimed'?'selected':''}>⏳ Pending (unclaimed)</option>
-            <option value="claimed" ${window._claimsState.statusFilter==='claimed'?'selected':''}>📤 Claimed (paisa lena baaki)</option>
-            <option value="received" ${window._claimsState.statusFilter==='received'?'selected':''}>✅ Received (settled)</option>
+          <label style="font-size:11px;font-weight:700;color:#64748B;display:block;margin-bottom:3px;">🏷️ Status</label>
+          <select id="cfStatus" onchange="updateClaimsFilter()">
+            <option value="unclaimed" ${window._claimsState.statusFilter==='unclaimed'?'selected':''}>⏳ Pending</option>
+            <option value="claimed" ${window._claimsState.statusFilter==='claimed'?'selected':''}>📤 Claimed</option>
+            <option value="received" ${window._claimsState.statusFilter==='received'?'selected':''}>✅ Settled</option>
             <option value="all" ${window._claimsState.statusFilter==='all'?'selected':''}>All Statuses</option>
+          </select>
+        </div>
+        <div>
+          <label style="font-size:11px;font-weight:700;color:#64748B;display:block;margin-bottom:3px;">🧑‍💼 Staff / Employee</label>
+          <select id="cfEmployee" onchange="updateClaimsFilter()">
+            <option value="all">All Staff / Anyone</option>
           </select>
         </div>
       </div>
@@ -171,8 +211,13 @@ window.renderClaims = async function() {
     </div>
 
     <!-- STAFF ADVANCES BREAKDOWN -->
-    <div class="card" style="background:#FFF5F5;border:1px solid #FECDD3;">
-      <div style="font-size:13px;font-weight:700;color:#991B1B;margin-bottom:8px;">👥 Staff Advances Breakdown</div>
+    <div class="card" style="background:#FFF5F5;border:1.5px solid #FECDD3;padding:14px;border-radius:10px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:8px;">
+        <div style="font-size:13px;font-weight:800;color:#991B1B;">👥 Staff Advances Breakdown &amp; Analysis</div>
+        <button type="button" onclick="window.showEmployeeAdvanceAnalysisModal()" style="background:#B91C1C;color:#fff;border:none;padding:6px 14px;border-radius:6px;font-weight:700;font-size:12px;cursor:pointer;display:inline-flex;align-items:center;gap:4px;box-shadow:0 1px 4px rgba(185,28,28,0.3);">
+          🔍 Detailed Advance Analysis (Total, Monthly &amp; Range)
+        </button>
+      </div>
       <div id="staffAdvancesBreakdownContainer" style="display:flex;flex-wrap:wrap;gap:8px;font-size:12px;">
         <div style="color:#666;">Loading staff advances...</div>
       </div>
@@ -244,12 +289,14 @@ window.updateClaimsFilter = function() {
   const mF = document.getElementById('cfModule')?.value;
   const sF = document.getElementById('cfStatus')?.value;
   const pF = document.getElementById('cfPaidBy')?.value;
+  const eF = document.getElementById('cfEmployee')?.value;
 
   if (fD) window._claimsState.fromDate = fD;
   if (tD) window._claimsState.toDate = tD;
   if (mF) window._claimsState.moduleFilter = mF;
   if (sF) window._claimsState.statusFilter = sF;
   if (pF) window._claimsState.paidByFilter = pF;
+  if (eF) window._claimsState.employeeFilter = eF;
 
   window._claimsState.selectedIds.clear();
   renderClaimsTable();
@@ -266,12 +313,22 @@ async function loadClaimsData() {
       sb.from('maintenance_log').select('*').gt('cost', 0).order('reported_date', { ascending: false }),
       sb.from('laundry_payments').select('*, laundry_records(vendor_name)').order('payment_date', { ascending: false }),
       sb.from('advance_tracker').select('*, employees(name)').order('date_given', { ascending: false }),
-      sb.from('employees').select('emp_id, name')
+      sb.from('employees').select('emp_id, name').order('name')
     ]);
 
     const empMap = {};
     (empData || []).forEach(e => { if (e.emp_id) empMap[e.emp_id] = e.name; });
     window._claimsState.empMap = empMap;
+    window._claimsState.empList = empData || [];
+    window._claimsState.allAdvs = aData || [];
+
+    // Populate Employee select dropdown if element exists
+    const empSelect = document.getElementById('cfEmployee');
+    if (empSelect) {
+      const currEmp = window._claimsState.employeeFilter || 'all';
+      empSelect.innerHTML = `<option value="all">All Staff / Anyone</option>` +
+        (empData || []).map(e => `<option value="${e.name}" ${currEmp === e.name ? 'selected' : ''}>👤 ${e.name}</option>`).join('');
+    }
 
     const combined = [];
 
@@ -285,6 +342,8 @@ async function loadClaimsData() {
         dateStr: r.expense_date || (r.created_at || '').slice(0, 10),
         description: r.description || r.notes || 'Daily Expense',
         vendorOrStaff: r.paid_to || '-',
+        staffName: r.paid_to || '-',
+        empId: r.created_by,
         paidBy: normalizePaymentSource(r.payment_source || r.paid_by),
         amount: Number(r.amount || 0),
         status: normalizeStatus(r.status),
@@ -295,6 +354,7 @@ async function loadClaimsData() {
 
     // B. Maintenance
     (mData || []).forEach(m => {
+      const staffName = empMap[m.assigned_to] || m.assigned_to || m.vendor_name || '-';
       combined.push({
         uniqKey: `maint_${m.id}`,
         module: 'maintenance',
@@ -302,7 +362,9 @@ async function loadClaimsData() {
         id: m.id,
         dateStr: m.reported_date || (m.created_at || '').slice(0, 10),
         description: `${m.issue_type || 'Repair'}: ${(m.description || '').slice(0, 80)}`,
-        vendorOrStaff: m.vendor_name || m.assigned_to || '-',
+        vendorOrStaff: m.vendor_name || staffName,
+        staffName: staffName,
+        empId: m.assigned_to,
         paidBy: normalizePaymentSource(m.payment_source || m.paid_by),
         amount: Number(m.cost || 0),
         status: normalizeStatus(m.claim_status || m.status),
@@ -322,6 +384,8 @@ async function loadClaimsData() {
         dateStr: lp.payment_date || (lp.created_at || '').slice(0, 10),
         description: `Laundry Payment (${vName})`,
         vendorOrStaff: vName,
+        staffName: vName,
+        empId: null,
         paidBy: normalizePaymentSource(lp.payment_source || lp.paid_by),
         amount: Number(lp.amount || 0),
         status: normalizeStatus(lp.claim_status),
@@ -355,6 +419,8 @@ async function loadClaimsData() {
         dateStr: adv.date_given || (adv.created_at || '').slice(0, 10),
         description: `Advance to ${realName}: ${adv.reason || 'Given'}`,
         vendorOrStaff: realName,
+        staffName: realName,
+        empId: adv.emp_id,
         paidBy: normalizePaymentSource(adv.paid_by),
         amount: Number(adv.advance_amount || 0),
         status: normalizeStatus(st),
@@ -392,7 +458,7 @@ function renderClaimsTable() {
   const container = document.getElementById('claimsTableContainer');
   if (!container) return;
 
-  const { fromDate, toDate, moduleFilter, statusFilter, paidByFilter, selectedIds, allData, empMap } = window._claimsState;
+  const { fromDate, toDate, moduleFilter, statusFilter, paidByFilter, employeeFilter, selectedIds, allData, empMap } = window._claimsState;
 
   // Filter items strictly
   const filtered = (allData || []).filter(item => {
@@ -408,6 +474,15 @@ function renderClaimsTable() {
 
     // Status filter
     if (statusFilter !== 'all' && item.status !== statusFilter) return false;
+
+    // Employee filter
+    if (employeeFilter && employeeFilter !== 'all') {
+      const matchEmp = (item.staffName === employeeFilter) ||
+                       (item.vendorOrStaff === employeeFilter) ||
+                       (item.empId === employeeFilter) ||
+                       (empMap[item.empId] === employeeFilter);
+      if (!matchEmp) return false;
+    }
 
     return true;
   });
@@ -469,8 +544,8 @@ function renderClaimsTable() {
       advContainer.innerHTML = '<span style="color:#059669;font-weight:600;">✅ No staff advances in selected filter.</span>';
     } else {
       advContainer.innerHTML = entries.map(([name, amt]) => `
-        <span style="background:#FFE4E6;color:#991B1B;padding:4px 10px;border-radius:6px;font-weight:700;">
-          👤 ${name}: ₹${amt.toLocaleString('en-IN')}
+        <span onclick="window.showEmployeeAdvanceAnalysisModal('${name.replace(/'/g, "\\'")}')" style="background:#FFE4E6;color:#991B1B;padding:6px 12px;border-radius:6px;font-weight:700;cursor:pointer;border:1px solid #FDA4AF;transition:0.15s;display:inline-flex;align-items:center;gap:5px;" title="Click to view Total, Monthly & Between-dates breakdown for ${name}">
+          👤 ${name}: ₹${amt.toLocaleString('en-IN')} <span style="font-size:10px;opacity:0.8;">📊 Click</span>
         </span>
       `).join('');
     }
@@ -786,6 +861,11 @@ window.openUhhsDepositModal = function() {
   if (window.cbDepositToODModal) window.cbDepositToODModal();
 };
 
+window.closeUhhsStatementModal = function() {
+  const m = document.getElementById('uhhsLedgerModalOverlay');
+  if (m) m.remove();
+};
+
 window.showUhhsStatementModal = async function() {
   try {
     const { fromDate, toDate } = window._claimsState || {};
@@ -875,76 +955,334 @@ window.showUhhsStatementModal = async function() {
     let totalOutflow = txns.filter(t => !t.isDep).reduce((s, t) => s + t.amount, 0);
     let netBalance = totalInflow - totalOutflow;
 
+    // Remove any existing instance
+    window.closeUhhsStatementModal();
+
     const modal = document.createElement('div');
+    modal.id = 'uhhsLedgerModalOverlay';
     modal.className = 'modal-overlay';
-    modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);display:flex;align-items:center;justify-content:center;z-index:99999;padding:20px;';
-    modal.onclick = e => { if (e.target === modal) modal.remove(); };
+    modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.65);display:flex;align-items:center;justify-content:center;z-index:999999;padding:12px;box-sizing:border-box;backdrop-filter:blur(2px);';
+    modal.onclick = e => { if (e.target === modal) window.closeUhhsStatementModal(); };
 
     modal.innerHTML = `
-      <div class="modal-box" style="background:#fff;border-radius:12px;padding:24px;max-width:800px;width:100%;max-height:85vh;overflow-y:auto;" onclick="event.stopPropagation()">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;border-bottom:2px solid #eee;padding-bottom:10px;">
+      <div class="modal-box" style="background:#fff;border-radius:12px;width:100%;max-width:850px;max-height:90vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 10px 30px rgba(0,0,0,0.35);margin:auto;" onclick="event.stopPropagation()">
+        <!-- STICKY HEADER -->
+        <div style="padding:14px 18px;border-bottom:1.5px solid #E2E8F0;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;background:#F8FAFC;">
           <div>
-            <h2 style="margin:0;color:#0F766E;">📜 UHHS-OD Account Statement / Ledger</h2>
-            <div style="font-size:12px;color:#64748B;margin-top:2px;">Period: <strong>${fDate}</strong> → <strong>${tDate}</strong></div>
+            <h2 style="margin:0;color:#0F766E;font-size:17px;font-weight:800;display:flex;align-items:center;gap:6px;">
+              📜 UHHS-OD Account Statement / Ledger
+            </h2>
+            <div style="font-size:11.5px;color:#64748B;margin-top:2px;">
+              Period: <strong>${fDate}</strong> → <strong>${tDate}</strong> · Total Transactions: <strong>${txns.length}</strong>
+            </div>
           </div>
-          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
-            <button onclick="openUhhsDepositModal()" style="padding:6px 14px;background:#10B981;color:#fff;border:none;border-radius:6px;font-weight:700;font-size:12px;cursor:pointer;">📥 + Add Deposit</button>
-            <button onclick="window.exportUhhsLedgerPDF('${fDate}', '${tDate}', ${totalInflow}, ${totalOutflow}, ${netBalance}, '${encodeURIComponent(JSON.stringify(txns))}')" style="padding:6px 14px;background:#0F172A;color:#fff;border:none;border-radius:6px;font-weight:700;font-size:12px;cursor:pointer;">📄 Export PDF / Print</button>
-            <button onclick="this.closest('.modal-overlay').remove()" style="background:none;border:none;font-size:24px;cursor:pointer;">✕</button>
-          </div>
-        </div>
-
-        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px;">
-          <div style="padding:12px;background:#F0FDF4;border-radius:8px;text-align:center;">
-            <div style="font-size:11px;color:#166534;font-weight:700;">TOTAL DEPOSITED (+)</div>
-            <div style="font-size:20px;font-weight:800;color:#059669;margin-top:2px;">₹${totalInflow.toLocaleString('en-IN')}</div>
-          </div>
-          <div style="padding:12px;background:#FEF2F2;border-radius:8px;text-align:center;">
-            <div style="font-size:11px;color:#991B1B;font-weight:700;">TOTAL SPENT (-)</div>
-            <div style="font-size:20px;font-weight:800;color:#DC2626;margin-top:2px;">₹${totalOutflow.toLocaleString('en-IN')}</div>
-          </div>
-          <div style="padding:12px;background:${netBalance>=0?'#ECFDF5':'#FFF1F2'};border-radius:8px;text-align:center;">
-            <div style="font-size:11px;color:${netBalance>=0?'#065F46':'#9F1239'};font-weight:700;">NET RUNNING BALANCE</div>
-            <div style="font-size:20px;font-weight:800;color:${netBalance>=0?'#059669':'#DC2626'};margin-top:2px;">₹${netBalance.toLocaleString('en-IN')}</div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
+            <button onclick="openUhhsDepositModal()" style="padding:6px 12px;background:#10B981;color:#fff;border:none;border-radius:6px;font-weight:700;font-size:11.5px;cursor:pointer;">📥 + Add Deposit</button>
+            <button onclick="window.exportUhhsLedgerPDF('${fDate}', '${tDate}', ${totalInflow}, ${totalOutflow}, ${netBalance}, '${encodeURIComponent(JSON.stringify(txns))}')" style="padding:6px 12px;background:#0F172A;color:#fff;border:none;border-radius:6px;font-weight:700;font-size:11.5px;cursor:pointer;">📄 Export PDF</button>
+            <button onclick="window.closeUhhsStatementModal()" style="background:#EF4444;color:#fff;border:none;padding:6px 14px;border-radius:6px;font-weight:800;font-size:12.5px;cursor:pointer;display:inline-flex;align-items:center;gap:4px;box-shadow:0 1px 3px rgba(239,68,68,0.3);">✕ Close</button>
           </div>
         </div>
 
-        <table style="width:100%;border-collapse:collapse;font-size:12px;">
-          <thead>
-            <tr style="background:#F1F5F9;text-align:left;">
-              <th style="padding:8px;">Date</th>
-              <th style="padding:8px;">Type</th>
-              <th style="padding:8px;">Description</th>
-              <th style="padding:8px;text-align:right;">Amount (₹)</th>
-              <th style="padding:8px;text-align:center;">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${txns.length === 0 ? '<tr><td colspan="5" style="padding:20px;text-align:center;color:#94A3B8;">No transactions found in selected period</td></tr>' : ''}
-            ${txns.map(t => `
-              <tr style="border-bottom:1px solid #E2E8F0;">
-                <td style="padding:8px;">${t.date || '-'}</td>
-                <td style="padding:8px;"><span style="padding:2px 6px;border-radius:4px;font-size:10px;font-weight:700;background:${t.isDep?'#DCFCE7':'#FEE2E2'};color:${t.isDep?'#15803D':'#B91C1C'};">${t.isDep ? '📥 DEPOSIT' : '📤 EXPENSE'}</span></td>
-                <td style="padding:8px;">${t.desc}</td>
-                <td style="padding:8px;text-align:right;font-weight:700;color:${t.isDep?'#15803D':'#B91C1C'};">${t.isDep ? '+' : '-'}₹${t.amount.toLocaleString('en-IN')}</td>
-                <td style="padding:8px;text-align:center;white-space:nowrap;">
-                  ${t.isDep ? `
-                    <button onclick="window.cbEditODDeposit('${t.id}')" class="btn-sm" style="background:#3B82F6;color:#fff;padding:3px 8px;font-size:10px;border:none;border-radius:4px;cursor:pointer;margin-right:4px;">✏️ Edit</button>
-                    <button onclick="window.cbDeleteODDeposit('${t.id}')" class="btn-sm" style="background:#DC2626;color:#fff;padding:3px 8px;font-size:10px;border:none;border-radius:4px;cursor:pointer;">🗑️ Delete</button>
-                  ` : (t.source === 'reimbursements' && t.id ? `
-                    <button onclick="document.querySelectorAll('.modal-overlay').forEach(m=>m.remove());window.editReimbursement('${t.id}');" class="btn-sm" style="background:#3B82F6;color:#fff;padding:3px 8px;font-size:10px;border:none;border-radius:4px;cursor:pointer;margin-right:4px;" title="Edit Daily Expense">✏️ Edit</button>
-                    <button onclick="if(confirm('Delete this daily expense?')){window.deleteReimbursement('${t.id}');}" class="btn-sm" style="background:#DC2626;color:#fff;padding:3px 8px;font-size:10px;border:none;border-radius:4px;cursor:pointer;" title="Delete Daily Expense">🗑️ Delete</button>
-                  ` : '<span style="color:#94A3B8;font-size:11px;">Auto</span>')}
-                </td>
-              </tr>
-            `).join('')}
-          </tbody>
-        </table>
+        <!-- SCROLLABLE BODY -->
+        <div style="padding:14px 18px;overflow-y:auto;overflow-x:auto;-webkit-overflow-scrolling:touch;flex:1;">
+          <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(140px, 1fr));gap:10px;margin-bottom:14px;">
+            <div style="padding:10px;background:#F0FDF4;border:1px solid #86EFAC;border-radius:8px;text-align:center;">
+              <div style="font-size:10px;color:#166534;font-weight:700;">TOTAL DEPOSITED (+)</div>
+              <div style="font-size:18px;font-weight:800;color:#059669;margin-top:2px;">₹${totalInflow.toLocaleString('en-IN')}</div>
+            </div>
+            <div style="padding:10px;background:#FEF2F2;border:1px solid #FECDD3;border-radius:8px;text-align:center;">
+              <div style="font-size:10px;color:#991B1B;font-weight:700;">TOTAL SPENT (-)</div>
+              <div style="font-size:18px;font-weight:800;color:#DC2626;margin-top:2px;">₹${totalOutflow.toLocaleString('en-IN')}</div>
+            </div>
+            <div style="padding:10px;background:${netBalance>=0?'#ECFDF5':'#FFF1F2'};border:1px solid ${netBalance>=0?'#A7F3D0':'#FDA4AF'};border-radius:8px;text-align:center;">
+              <div style="font-size:10px;color:${netBalance>=0?'#065F46':'#9F1239'};font-weight:700;">NET RUNNING BALANCE</div>
+              <div style="font-size:18px;font-weight:800;color:${netBalance>=0?'#059669':'#DC2626'};margin-top:2px;">₹${netBalance.toLocaleString('en-IN')}</div>
+            </div>
+          </div>
+
+          <div style="overflow-x:auto;-webkit-overflow-scrolling:touch;">
+            <table style="width:100%;border-collapse:collapse;font-size:12px;min-width:540px;">
+              <thead>
+                <tr style="background:#F1F5F9;text-align:left;">
+                  <th style="padding:8px;">Date</th>
+                  <th style="padding:8px;">Type</th>
+                  <th style="padding:8px;">Description</th>
+                  <th style="padding:8px;text-align:right;">Amount (₹)</th>
+                  <th style="padding:8px;text-align:center;">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${txns.length === 0 ? '<tr><td colspan="5" style="padding:24px;text-align:center;color:#94A3B8;">No transactions found in selected period</td></tr>' : ''}
+                ${txns.map(t => `
+                  <tr style="border-bottom:1px solid #E2E8F0;">
+                    <td style="padding:8px;white-space:nowrap;">${t.date || '-'}</td>
+                    <td style="padding:8px;"><span style="padding:2px 6px;border-radius:4px;font-size:10px;font-weight:700;background:${t.isDep?'#DCFCE7':'#FEE2E2'};color:${t.isDep?'#15803D':'#B91C1C'};">${t.isDep ? '📥 DEPOSIT' : '📤 EXPENSE'}</span></td>
+                    <td style="padding:8px;">${t.desc}</td>
+                    <td style="padding:8px;text-align:right;font-weight:700;color:${t.isDep?'#15803D':'#B91C1C'};white-space:nowrap;">${t.isDep ? '+' : '-'}₹${t.amount.toLocaleString('en-IN')}</td>
+                    <td style="padding:8px;text-align:center;white-space:nowrap;">
+                      ${t.isDep ? `
+                        <button onclick="window.cbEditODDeposit('${t.id}')" class="btn-sm" style="background:#3B82F6;color:#fff;padding:3px 8px;font-size:10px;border:none;border-radius:4px;cursor:pointer;margin-right:4px;">✏️ Edit</button>
+                        <button onclick="window.cbDeleteODDeposit('${t.id}')" class="btn-sm" style="background:#DC2626;color:#fff;padding:3px 8px;font-size:10px;border:none;border-radius:4px;cursor:pointer;">🗑️ Delete</button>
+                      ` : (t.source === 'reimbursements' && t.id ? `
+                        <button onclick="document.querySelectorAll('.modal-overlay').forEach(m=>m.remove());window.editReimbursement('${t.id}');" class="btn-sm" style="background:#3B82F6;color:#fff;padding:3px 8px;font-size:10px;border:none;border-radius:4px;cursor:pointer;margin-right:4px;" title="Edit Daily Expense">✏️ Edit</button>
+                        <button onclick="if(confirm('Delete this daily expense?')){window.deleteReimbursement('${t.id}');}" class="btn-sm" style="background:#DC2626;color:#fff;padding:3px 8px;font-size:10px;border:none;border-radius:4px;cursor:pointer;" title="Delete Daily Expense">🗑️ Delete</button>
+                      ` : '<span style="color:#94A3B8;font-size:11px;">Auto</span>')}
+                    </td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- STICKY FOOTER -->
+        <div style="padding:10px 18px;border-top:1px solid #E2E8F0;background:#F8FAFC;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+          <div style="font-size:12px;color:#64748B;">
+            Period Net Balance: <strong style="color:${netBalance>=0?'#059669':'#DC2626'};">₹${netBalance.toLocaleString('en-IN')}</strong>
+          </div>
+          <button type="button" onclick="window.closeUhhsStatementModal()" style="background:#64748B;color:#fff;border:none;padding:7px 16px;border-radius:6px;font-weight:700;font-size:12px;cursor:pointer;">
+            ✕ Close Ledger
+          </button>
+        </div>
       </div>
     `;
+
     document.body.appendChild(modal);
+
+    // Escape key handler
+    const escHandler = e => {
+      if (e.key === 'Escape') {
+        window.closeUhhsStatementModal();
+        window.removeEventListener('keydown', escHandler);
+      }
+    };
+    window.addEventListener('keydown', escHandler);
   } catch (err) {
     alert('Error loading ledger: ' + err.message);
+  }
+};
+
+// ══════════════════════════════════════════════════════════════════
+// 8. INTERACTIVE EMPLOYEE ADVANCE ANALYSIS MODAL (TOTAL, MONTHLY & BETWEEN)
+// ══════════════════════════════════════════════════════════════════
+window.closeEmployeeAdvanceModal = function() {
+  const m = document.getElementById('empAdvModalOverlay');
+  if (m) m.remove();
+};
+
+window.showEmployeeAdvanceAnalysisModal = async function(preselectedEmp = null) {
+  try {
+    let allAdvs = window._claimsState.allAdvs || [];
+    let empList = window._claimsState.empList || [];
+
+    // If not loaded yet, fetch from supabase
+    if (allAdvs.length === 0 || empList.length === 0) {
+      const [{ data: aData }, { data: eData }] = await Promise.all([
+        sb.from('advance_tracker').select('*, employees(name)').order('date_given', { ascending: false }),
+        sb.from('employees').select('emp_id, name').order('name')
+      ]);
+      allAdvs = aData || [];
+      empList = eData || [];
+      window._claimsState.allAdvs = allAdvs;
+      window._claimsState.empList = empList;
+    }
+
+    const modal = document.createElement('div');
+    modal.id = 'empAdvModalOverlay';
+    modal.className = 'modal-overlay';
+    modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.65);display:flex;align-items:center;justify-content:center;z-index:999999;padding:12px;box-sizing:border-box;backdrop-filter:blur(2px);';
+    modal.onclick = e => { if (e.target === modal) window.closeEmployeeAdvanceModal(); };
+
+    // Default dates from current filter state or current month
+    const curFrom = window._claimsState.fromDate || new Date().toISOString().slice(0, 7) + '-01';
+    const curTo = window._claimsState.toDate || new Date().toISOString().slice(0, 10);
+    const curMonth = new Date().toISOString().slice(0, 7); // YYYY-MM
+
+    modal.innerHTML = `
+      <div class="modal-box" style="background:#fff;border-radius:12px;width:100%;max-width:850px;max-height:90vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 10px 30px rgba(0,0,0,0.35);margin:auto;" onclick="event.stopPropagation()">
+        <!-- STICKY HEADER -->
+        <div style="padding:14px 18px;border-bottom:1.5px solid #E2E8F0;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;background:#FFF5F5;">
+          <div>
+            <h2 style="margin:0;color:#991B1B;font-size:17px;font-weight:800;display:flex;align-items:center;gap:6px;">
+              👥 Employee Advance Tracker &amp; Analysis
+            </h2>
+            <div style="font-size:11.5px;color:#64748B;margin-top:2px;">
+              Total, Monthly, and Between-Dates breakdown for staff advances
+            </div>
+          </div>
+          <button type="button" onclick="window.closeEmployeeAdvanceModal()" style="background:#EF4444;color:#fff;border:none;padding:6px 14px;border-radius:6px;font-weight:800;font-size:12.5px;cursor:pointer;display:inline-flex;align-items:center;gap:4px;box-shadow:0 1px 3px rgba(239,68,68,0.3);">
+            ✕ Close
+          </button>
+        </div>
+
+        <!-- CONTROLS: EMPLOYEE & BETWEEN DATES -->
+        <div style="padding:12px 18px;background:#F8FAFC;border-bottom:1px solid #E2E8F0;">
+          <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(160px, 1fr));gap:10px;align-items:end;">
+            <div>
+              <label style="font-size:11px;font-weight:700;color:#475569;display:block;margin-bottom:3px;">👤 Select Employee</label>
+              <select id="modalAdvEmp" onchange="updateEmpAdvModalView()" style="width:100%;padding:7px 8px;font-size:12px;border:1px solid #CBD5E1;border-radius:6px;background:#fff;">
+                <option value="all">👥 All Employees (Entire Staff)</option>
+                ${(empList || []).map(e => `<option value="${e.name}" ${preselectedEmp === e.name ? 'selected' : ''}>👤 ${e.name}</option>`).join('')}
+              </select>
+            </div>
+            <div>
+              <label style="font-size:11px;font-weight:700;color:#475569;display:block;margin-bottom:3px;">📅 Between: From Date</label>
+              <input id="modalAdvFrom" type="date" value="${curFrom}" onchange="updateEmpAdvModalView()" style="width:100%;padding:6px 8px;font-size:12px;border:1px solid #CBD5E1;border-radius:6px;box-sizing:border-box;">
+            </div>
+            <div>
+              <label style="font-size:11px;font-weight:700;color:#475569;display:block;margin-bottom:3px;">📅 Between: To Date</label>
+              <input id="modalAdvTo" type="date" value="${curTo}" onchange="updateEmpAdvModalView()" style="width:100%;padding:6px 8px;font-size:12px;border:1px solid #CBD5E1;border-radius:6px;box-sizing:border-box;">
+            </div>
+          </div>
+          <div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
+            <span style="font-size:10.5px;color:#64748B;font-weight:700;">Quick Date Range:</span>
+            <button type="button" onclick="setModalAdvRange('${curMonth}-01', '${curTo}')" style="background:#E0E7FF;color:#3730A3;border:1px solid #C7D2FE;padding:3px 8px;border-radius:4px;font-size:11px;font-weight:600;cursor:pointer;">📅 This Month (${curMonth})</button>
+            <button type="button" onclick="setModalAdvRange('2026-09-17', '${curTo}')" style="background:#E0E7FF;color:#3730A3;border:1px solid #C7D2FE;padding:3px 8px;border-radius:4px;font-size:11px;font-weight:600;cursor:pointer;">⚡ Post-Checkpoint (17-Sep Onwards)</button>
+            <button type="button" onclick="setModalAdvRange('', '')" style="background:#F1F5F9;color:#475569;border:1px solid #CBD5E1;padding:3px 8px;border-radius:4px;font-size:11px;font-weight:600;cursor:pointer;">🌐 All Time</button>
+          </div>
+        </div>
+
+        <!-- DYNAMIC STATS & TABLE CONTENT -->
+        <div id="modalAdvDynamicContent" style="padding:14px 18px;overflow-y:auto;overflow-x:auto;-webkit-overflow-scrolling:touch;flex:1;">
+          <!-- Rendered by updateEmpAdvModalView -->
+        </div>
+
+        <!-- FOOTER -->
+        <div style="padding:10px 18px;border-top:1px solid #E2E8F0;background:#F8FAFC;display:flex;justify-content:flex-end;">
+          <button type="button" onclick="window.closeEmployeeAdvanceModal()" style="background:#64748B;color:#fff;border:none;padding:7px 16px;border-radius:6px;font-weight:700;font-size:12px;cursor:pointer;">
+            ✕ Close
+          </button>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    window.setModalAdvRange = function(f, t) {
+      const fEl = document.getElementById('modalAdvFrom');
+      const tEl = document.getElementById('modalAdvTo');
+      if (fEl) fEl.value = f;
+      if (tEl) tEl.value = t;
+      updateEmpAdvModalView();
+    };
+
+    window.updateEmpAdvModalView = function() {
+      const empVal = document.getElementById('modalAdvEmp')?.value || 'all';
+      const fVal = document.getElementById('modalAdvFrom')?.value || '';
+      const tVal = document.getElementById('modalAdvTo')?.value || '';
+      const container = document.getElementById('modalAdvDynamicContent');
+      if (!container) return;
+
+      const currMonthPrefix = new Date().toISOString().slice(0, 7);
+
+      // Filter advances for selected employee
+      const matching = (allAdvs || []).filter(a => {
+        const aName = a.employees?.name || window._claimsState.empMap[a.emp_id] || 'Staff';
+        if (empVal !== 'all' && aName !== empVal) return false;
+        return true;
+      });
+
+      // 1. Total Advance (All-Time)
+      const totalAllTime = matching.reduce((s, a) => s + Number(a.advance_amount || 0), 0);
+      const totalRepaid = matching.reduce((s, a) => s + Number(a.repaid_amount || 0), 0);
+      const outstandingBal = totalAllTime - totalRepaid;
+
+      // 2. Monthly Advance (Current Month)
+      const monthlyTotal = matching
+        .filter(a => (a.date_given || (a.created_at || '')).slice(0, 7) === currMonthPrefix)
+        .reduce((s, a) => s + Number(a.advance_amount || 0), 0);
+
+      // 3. Between Dates Advance
+      const betweenMatching = matching.filter(a => {
+        const d = a.date_given || (a.created_at || '').slice(0, 10);
+        if (fVal && d < fVal) return false;
+        if (tVal && d > tVal) return false;
+        return true;
+      });
+      const betweenTotal = betweenMatching.reduce((s, a) => s + Number(a.advance_amount || 0), 0);
+
+      container.innerHTML = `
+        <!-- 4 SUMMARY CARDS -->
+        <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(150px, 1fr));gap:10px;margin-bottom:16px;">
+          <div style="padding:12px;background:#FEF2F2;border:1px solid #FECDD3;border-radius:8px;text-align:center;">
+            <div style="font-size:10.5px;color:#991B1B;font-weight:700;">💰 TOTAL ALL-TIME</div>
+            <div style="font-size:20px;font-weight:800;color:#991B1B;margin-top:2px;">₹${totalAllTime.toLocaleString('en-IN')}</div>
+            <div style="font-size:10px;color:#64748B;">All dates combined</div>
+          </div>
+          <div style="padding:12px;background:#EFF6FF;border:1px solid #BFDBFE;border-radius:8px;text-align:center;">
+            <div style="font-size:10.5px;color:#1E40AF;font-weight:700;">📅 MONTHLY (${currMonthPrefix})</div>
+            <div style="font-size:20px;font-weight:800;color:#1D4ED8;margin-top:2px;">₹${monthlyTotal.toLocaleString('en-IN')}</div>
+            <div style="font-size:10px;color:#64748B;">In current month</div>
+          </div>
+          <div style="padding:12px;background:#FFFBEB;border:1px solid #FDE68A;border-radius:8px;text-align:center;">
+            <div style="font-size:10.5px;color:#92400E;font-weight:700;">⏳ BETWEEN DATES</div>
+            <div style="font-size:20px;font-weight:800;color:#B45309;margin-top:2px;">₹${betweenTotal.toLocaleString('en-IN')}</div>
+            <div style="font-size:10px;color:#64748B;">${fVal || 'Start'} to ${tVal || 'End'}</div>
+          </div>
+          <div style="padding:12px;background:${outstandingBal > 0 ? '#FEF2F2' : '#F0FDF4'};border:1px solid ${outstandingBal > 0 ? '#FCA5A5' : '#86EFAC'};border-radius:8px;text-align:center;">
+            <div style="font-size:10.5px;color:${outstandingBal > 0 ? '#991B1B' : '#166534'};font-weight:700;">⚖️ NET OUTSTANDING</div>
+            <div style="font-size:20px;font-weight:800;color:${outstandingBal > 0 ? '#DC2626' : '#059669'};margin-top:2px;">₹${outstandingBal.toLocaleString('en-IN')}</div>
+            <div style="font-size:10px;color:#64748B;">Repaid: ₹${totalRepaid.toLocaleString('en-IN')}</div>
+          </div>
+        </div>
+
+        <!-- TRANSACTIONS TABLE -->
+        <div style="font-size:13px;font-weight:800;color:#334155;margin-bottom:8px;">
+          📋 Advance Records in Selected Range (${betweenMatching.length} items)
+        </div>
+        <div style="overflow-x:auto;-webkit-overflow-scrolling:touch;">
+          <table style="width:100%;border-collapse:collapse;font-size:12px;min-width:580px;">
+            <thead>
+              <tr style="background:#F1F5F9;text-align:left;">
+                <th style="padding:8px;">Date</th>
+                <th style="padding:8px;">Staff Name</th>
+                <th style="padding:8px;text-align:right;">Amount (₹)</th>
+                <th style="padding:8px;">Payment Source</th>
+                <th style="padding:8px;">Mode</th>
+                <th style="padding:8px;">Reason / Notes</th>
+                <th style="padding:8px;text-align:center;">Claim Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${betweenMatching.length === 0 ? '<tr><td colspan="7" style="padding:24px;text-align:center;color:#94A3B8;">No advance entries found in this date range</td></tr>' : ''}
+              ${betweenMatching.map(a => {
+                const sName = a.employees?.name || window._claimsState.empMap[a.emp_id] || 'Staff';
+                const st = a.claim_status || (a.is_deducted ? 'received' : 'unclaimed');
+                const stBadge = st === 'received' ? '<span style="background:#DCFCE7;color:#15803D;padding:2px 6px;border-radius:4px;font-weight:700;font-size:10px;">✅ Settled</span>'
+                  : st === 'claimed' ? '<span style="background:#FEF3C7;color:#92400E;padding:2px 6px;border-radius:4px;font-weight:700;font-size:10px;">📤 Claimed</span>'
+                  : '<span style="background:#FEE2E2;color:#B91C1C;padding:2px 6px;border-radius:4px;font-weight:700;font-size:10px;">⏳ Pending</span>';
+
+                return `
+                  <tr style="border-bottom:1px solid #E2E8F0;">
+                    <td style="padding:8px;white-space:nowrap;">${a.date_given || (a.created_at || '').slice(0, 10)}</td>
+                    <td style="padding:8px;font-weight:700;color:#1E293B;">${sName}</td>
+                    <td style="padding:8px;text-align:right;font-weight:800;color:#B91C1C;white-space:nowrap;">₹${Number(a.advance_amount || 0).toLocaleString('en-IN')}</td>
+                    <td style="padding:8px;">${window.UHHSODManager ? UHHSODManager.getBadge(a.paid_by) : (a.paid_by || '-')}</td>
+                    <td style="padding:8px;">${a.payment_mode || '-'}</td>
+                    <td style="padding:8px;max-width:200px;">${a.reason || '-'}</td>
+                    <td style="padding:8px;text-align:center;">${stBadge}</td>
+                  </tr>
+                `;
+              }).join('')}
+            </tbody>
+          </table>
+        </div>
+      `;
+    };
+
+    updateEmpAdvModalView();
+
+    // Escape handler
+    const escHandler = e => {
+      if (e.key === 'Escape') {
+        window.closeEmployeeAdvanceModal();
+        window.removeEventListener('keydown', escHandler);
+      }
+    };
+    window.addEventListener('keydown', escHandler);
+
+  } catch (err) {
+    alert('Error loading advance analysis: ' + err.message);
   }
 };
 

@@ -16,7 +16,7 @@ function getPaymentSourceDropdownHTML(selected = 'COMPANY', id = 'payment_source
             <label class="form-label fw-bold" style="font-size:13px; color:#333;">
                 💳 Payment Account / Source
             </label>
-            <select id="${id}" name="payment_source" class="form-select form-control" style="border: 1.5px solid #0d6efd; font-weight: 600;" required>
+            <select id="${id}" name="payment_source" class="form-select form-control" style="border: 1.5px solid #0d6efd; font-weight: 600; width: 100%; max-width: 100%; box-sizing: border-box;" required>
                 <option value="COMPANY" ${selected === 'COMPANY' ? 'selected' : ''}>🏢 COMPANY (Guest Rent / Cash in Hand)</option>
                 <option value="UHHS-OD" ${selected === 'UHHS-OD' ? 'selected' : ''}>🏦 UHHS-OD (Overdraft Account)</option>
                 <option value="FIROZ" ${selected === 'FIROZ' ? 'selected' : ''}>👤 FIROZ (Direct Personal)</option>

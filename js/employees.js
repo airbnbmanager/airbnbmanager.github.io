@@ -996,34 +996,106 @@ async function delSal(id) {
 }
 
 // ============ ADVANCE TRACKER ============
+window._advTrackerFilter = window._advTrackerFilter || { empId: 'all', fromDate: '', toDate: '' };
+
 async function renderAdvanceTracker() {
-  renderShell(`<div class="loading">Loading...</div>`, 'advance');
-  const { data: advs } = await sb.from('advance_tracker').select('*, employees(name)').order('date_given', { ascending: false });
+  renderShell(`<div class="loading">Loading advances...</div>`, 'advance');
+  const [{ data: advs }, { data: emps }] = await Promise.all([
+    sb.from('advance_tracker').select('*, employees(name)').order('date_given', { ascending: false }),
+    sb.from('employees').select('emp_id, name').order('name')
+  ]);
   const isO = ['owner','admin','moderator','developer'].includes(SESSION.role);
 
-  const totalGiven   = (advs || []).reduce((s, a) => s + (a.advance_amount || 0), 0);
-  const totalRepaid  = (advs || []).reduce((s, a) => s + (a.repaid_amount || 0), 0);
-  const totalBalance = totalGiven - totalRepaid;
+  const filter = window._advTrackerFilter;
+  const currMonth = new Date().toISOString().slice(0, 7);
+
+  // Filter advances
+  const filtered = (advs || []).filter(a => {
+    if (filter.empId && filter.empId !== 'all' && a.emp_id !== filter.empId) return false;
+    const d = a.date_given || (a.created_at || '').slice(0, 10);
+    if (filter.fromDate && d < filter.fromDate) return false;
+    if (filter.toDate && d > filter.toDate) return false;
+    return true;
+  });
+
+  // 1. Total All Time (for selected employee or all)
+  const empAllAdvs = (advs || []).filter(a => filter.empId === 'all' || a.emp_id === filter.empId);
+  const totalAllTimeGiven = empAllAdvs.reduce((s, a) => s + Number(a.advance_amount || 0), 0);
+  const totalAllTimeRepaid = empAllAdvs.reduce((s, a) => s + Number(a.repaid_amount || 0), 0);
+  const totalAllTimeBalance = totalAllTimeGiven - totalAllTimeRepaid;
+
+  // 2. Monthly Given (Current Month)
+  const totalMonthlyGiven = empAllAdvs
+    .filter(a => (a.date_given || (a.created_at || '')).slice(0, 7) === currMonth)
+    .reduce((s, a) => s + Number(a.advance_amount || 0), 0);
+
+  // 3. Between Range Given
+  const totalBetweenGiven = filtered.reduce((s, a) => s + Number(a.advance_amount || 0), 0);
+  const totalBetweenRepaid = filtered.reduce((s, a) => s + Number(a.repaid_amount || 0), 0);
+  const totalBetweenBalance = totalBetweenGiven - totalBetweenRepaid;
 
   renderShell(`
     <div class="card">
-      <h1>💵 Advances</h1>
-      <div class="sub">${(advs || []).length} records</div>
-      ${isO ? `<button onclick="renderAddAdv()">➕ Add</button>` : ''}
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
+        <div>
+          <h1 style="margin:0;">💵 Staff Advances Tracker</h1>
+          <div class="sub">${filtered.length} records shown (Total ${advs?.length || 0} in system)</div>
+        </div>
+        ${isO ? `<button onclick="renderAddAdv()" style="background:#0F766E;color:#fff;font-weight:700;">➕ Give Advance</button>` : ''}
+      </div>
     </div>
 
+    <!-- FILTER BAR -->
+    <div class="card" style="background:#F8FAFC;border:1px solid #E2E8F0;padding:14px;">
+      <div style="font-size:13px;font-weight:700;margin-bottom:8px;color:#334155;">🔍 Filter by Employee &amp; Date Range</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(160px, 1fr));gap:10px;align-items:end;">
+        <div>
+          <label style="font-size:11px;font-weight:700;color:#64748B;display:block;margin-bottom:3px;">👤 Employee</label>
+          <select id="advEmpFilter" onchange="updateAdvTrackerFilter()" style="width:100%;padding:7px;font-size:12px;border:1px solid #CBD5E1;border-radius:6px;background:#fff;">
+            <option value="all" ${filter.empId==='all'?'selected':''}>All Employees</option>
+            ${(emps || []).map(e => `<option value="${e.emp_id}" ${filter.empId===e.emp_id?'selected':''}>${e.name}</option>`).join('')}
+          </select>
+        </div>
+        <div>
+          <label style="font-size:11px;font-weight:700;color:#64748B;display:block;margin-bottom:3px;">📅 Between: From Date</label>
+          <input id="advFromDate" type="date" value="${filter.fromDate}" onchange="updateAdvTrackerFilter()" style="width:100%;padding:6px;font-size:12px;border:1px solid #CBD5E1;border-radius:6px;box-sizing:border-box;">
+        </div>
+        <div>
+          <label style="font-size:11px;font-weight:700;color:#64748B;display:block;margin-bottom:3px;">📅 Between: To Date</label>
+          <input id="advToDate" type="date" value="${filter.toDate}" onchange="updateAdvTrackerFilter()" style="width:100%;padding:6px;font-size:12px;border:1px solid #CBD5E1;border-radius:6px;box-sizing:border-box;">
+        </div>
+      </div>
+      <div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
+        <span style="font-size:10.5px;color:#64748B;font-weight:700;">Quick Presets:</span>
+        <button type="button" onclick="setAdvTrackerDates('${currMonth}-01', '${new Date().toISOString().slice(0, 10)}')" style="background:#E0E7FF;color:#3730A3;border:1px solid #C7D2FE;padding:3px 8px;border-radius:4px;font-size:11px;font-weight:600;cursor:pointer;">📅 This Month</button>
+        <button type="button" onclick="setAdvTrackerDates('2026-09-17', '${new Date().toISOString().slice(0, 10)}')" style="background:#E0E7FF;color:#3730A3;border:1px solid #C7D2FE;padding:3px 8px;border-radius:4px;font-size:11px;font-weight:600;cursor:pointer;">⚡ Post-Checkpoint (17-Sep)</button>
+        <button type="button" onclick="setAdvTrackerDates('', '')" style="background:#F1F5F9;color:#475569;border:1px solid #CBD5E1;padding:3px 8px;border-radius:4px;font-size:11px;font-weight:600;cursor:pointer;">🌐 All Dates</button>
+      </div>
+    </div>
+
+    <!-- METRICS BREAKDOWN -->
     <div class="card">
-      <div class="metric-row">
-        <span class="metric-label">Total Given</span>
-        <span class="metric-value" style="color:var(--red);">₹${totalGiven.toLocaleString('en-IN')}</span>
-      </div>
-      <div class="metric-row">
-        <span class="metric-label">Total Repaid</span>
-        <span class="metric-value" style="color:var(--green);">₹${totalRepaid.toLocaleString('en-IN')}</span>
-      </div>
-      <div class="metric-row">
-        <span class="metric-label">Outstanding</span>
-        <span class="metric-value" style="color:${totalBalance > 0 ? 'var(--red)' : 'var(--green)'};">₹${totalBalance.toLocaleString('en-IN')}</span>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(150px, 1fr));gap:10px;">
+        <div style="text-align:center;padding:12px;background:#FEF2F2;border:1px solid #FECDD3;border-radius:8px;">
+          <div style="font-size:11px;color:#991B1B;font-weight:700;">💰 TOTAL ALL-TIME</div>
+          <div style="font-size:20px;font-weight:800;color:#991B1B;margin-top:2px;">₹${totalAllTimeGiven.toLocaleString('en-IN')}</div>
+          <div style="font-size:10px;color:#666;">All historical advances</div>
+        </div>
+        <div style="text-align:center;padding:12px;background:#EFF6FF;border:1px solid #BFDBFE;border-radius:8px;">
+          <div style="font-size:11px;color:#1E40AF;font-weight:700;">📅 MONTHLY (${currMonth})</div>
+          <div style="font-size:20px;font-weight:800;color:#1D4ED8;margin-top:2px;">₹${totalMonthlyGiven.toLocaleString('en-IN')}</div>
+          <div style="font-size:10px;color:#666;">In current month</div>
+        </div>
+        <div style="text-align:center;padding:12px;background:#FFFBEB;border:1px solid #FDE68A;border-radius:8px;">
+          <div style="font-size:11px;color:#92400E;font-weight:700;">⏳ BETWEEN DATES</div>
+          <div style="font-size:20px;font-weight:800;color:#B45309;margin-top:2px;">₹${totalBetweenGiven.toLocaleString('en-IN')}</div>
+          <div style="font-size:10px;color:#666;">In selected date range</div>
+        </div>
+        <div style="text-align:center;padding:12px;background:${totalAllTimeBalance > 0 ? '#FEF2F2' : '#F0FDF4'};border:1px solid ${totalAllTimeBalance > 0 ? '#FCA5A5' : '#86EFAC'};border-radius:8px;">
+          <div style="font-size:11px;color:${totalAllTimeBalance > 0 ? '#991B1B' : '#166534'};font-weight:700;">⚖️ OUTSTANDING BALANCE</div>
+          <div style="font-size:20px;font-weight:800;color:${totalAllTimeBalance > 0 ? '#DC2626' : '#059669'};margin-top:2px;">₹${totalAllTimeBalance.toLocaleString('en-IN')}</div>
+          <div style="font-size:10px;color:#666;">Repaid: ₹${totalAllTimeRepaid.toLocaleString('en-IN')}</div>
+        </div>
       </div>
     </div>
 
@@ -1034,15 +1106,15 @@ async function renderAdvanceTracker() {
         <th>Account</th><th>Mode</th><th>Reason</th>
         ${isO ? '<th>Actions</th>' : ''}
       </tr></thead>
-      <tbody>${(advs || []).map(a => {
+      <tbody>${filtered.length === 0 ? '<tr><td colspan="10" style="text-align:center;padding:24px;color:#94A3B8;">No advance records found for this filter</td></tr>' : filtered.map(a => {
         const bal = (a.advance_amount || 0) - (a.repaid_amount || 0);
         return `<tr>
           <td><strong style="color:var(--primary);cursor:pointer;text-decoration:underline;" onclick="showEmpDetailModal('${a.emp_id}')">${a.employees?.name || a.emp_id}</strong></td>
           <td style="font-size:12px;">${a.date_given || '-'}</td>
-          <td style="color:var(--red);">₹${(a.advance_amount || 0).toLocaleString('en-IN')}</td>
+          <td style="color:var(--red);font-weight:700;">₹${(a.advance_amount || 0).toLocaleString('en-IN')}</td>
           <td style="color:var(--green);">₹${(a.repaid_amount || 0).toLocaleString('en-IN')}</td>
           <td style="font-size:12px;">${a.repaid_date || '-'}</td>
-          <td style="color:${bal > 0 ? 'var(--red)' : 'var(--green)'};">₹${bal.toLocaleString('en-IN')}</td>
+          <td style="color:${bal > 0 ? 'var(--red)' : 'var(--green)'};font-weight:700;">₹${bal.toLocaleString('en-IN')}</td>
           <td>${window.UHHSODManager ? UHHSODManager.getBadge(a.paid_by) : (a.paid_by || '-')}</td>
           <td style="font-size:12px;">${a.payment_mode || '-'}</td>
           <td style="font-size:12px;">${a.reason || '-'}</td>
@@ -1055,6 +1127,19 @@ async function renderAdvanceTracker() {
     </table></div></div>
   `, 'advance');
 }
+
+window.updateAdvTrackerFilter = function() {
+  window._advTrackerFilter.empId = document.getElementById('advEmpFilter')?.value || 'all';
+  window._advTrackerFilter.fromDate = document.getElementById('advFromDate')?.value || '';
+  window._advTrackerFilter.toDate = document.getElementById('advToDate')?.value || '';
+  renderAdvanceTracker();
+};
+
+window.setAdvTrackerDates = function(f, t) {
+  window._advTrackerFilter.fromDate = f;
+  window._advTrackerFilter.toDate = t;
+  renderAdvanceTracker();
+};
 
 async function renderAddAdv() {
   const { data: emps } = await sb.from('employees').select('emp_id,name').eq('status', 'Active').order('name');
@@ -1107,7 +1192,9 @@ async function saveAdv() {
     repaid_amount: 0,
     payment_mode: document.getElementById('aMode').value || null,
     paid_by: paidByVal,
-    reason: document.getElementById('aReason').value.trim() || null
+    reason: document.getElementById('aReason').value.trim() || null,
+    claim_status: 'unclaimed',
+    is_deducted: false
   });
   if (error) { document.getElementById('advErr').innerHTML = `<div class="error">${error.message}</div>`; return; }
   if (window.notifyDataChanged) window.notifyDataChanged();

@@ -933,7 +933,8 @@ window.saveLaundryPayment = async function(recordId) {
     record_id: recordId,
     amount, payment_date: date, payment_mode: mode, notes,
     payment_source: document.getElementById('lpPaymentSource')?.value || 'UHHS-OD',
-    payment_photo: paymentPhotoPath
+    payment_photo: paymentPhotoPath,
+    claim_status: 'unclaimed'
   });
   
   if (error) {
