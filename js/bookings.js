@@ -4331,61 +4331,115 @@ window.renderPendingApprovals = async function() {
   let bkRows = '';
   bkList.forEach(b => {
     const creator = b.booked_by || 'Unknown';
-    bkRows += '<tr>' +
-      '<td><strong>' + (b.guest_name || '-') + '</strong><br><small style="color:#888;">' + (b.phone || '') + '</small></td>' +
-      '<td>' + (propLabel(b.rooms) || b.room_id) + '</td>' +
-      '<td><small>' + (b.check_in || '') + ' → ' + (b.check_out || '') + '</small></td>' +
-      '<td><strong>₹' + (b.total_amount || 0).toLocaleString('en-IN') + '</strong></td>' +
-      '<td><small style="color:#F59E0B;">👤 ' + creator + '</small></td>' +
-      '<td>' +
-        '<button class="btn-sm green-btn" onclick="approveBooking(\'' + b.booking_id + '\')">✅ Approve</button> ' +
-        '<button class="btn-sm danger" onclick="rejectBooking(\'' + b.booking_id + '\')">❌ Reject</button> ' +
-        '<button class="btn-sm outline" onclick="editBooking(\'' + b.booking_id + '\')">✏️ View</button>' +
-      '</td>' +
-      '</tr>';
+    bkRows += `<tr class="approval-row" data-type="booking" data-search="${(b.guest_name||'') + ' ' + (b.phone||'') + ' ' + (propLabel(b.rooms)||b.room_id)}">
+      <td><strong style="color:var(--text);">${b.guest_name || '-'}</strong><br><small style="color:var(--muted);">${b.phone || ''}</small></td>
+      <td><span class="badge blue">${propLabel(b.rooms) || b.room_id}</span></td>
+      <td><small style="color:var(--text);">${b.check_in || ''} → ${b.check_out || ''}</small></td>
+      <td><strong style="color:var(--text);font-size:15px;">₹${(b.total_amount || 0).toLocaleString('en-IN')}</strong></td>
+      <td><small style="color:#F59E0B;font-weight:600;">👤 ${creator}</small></td>
+      <td>
+        <div style="display:flex;gap:4px;flex-wrap:wrap;">
+          <button class="btn-sm green-btn" onclick="approveBooking('${b.booking_id}')">✅ Approve</button>
+          <button class="btn-sm danger" onclick="rejectBooking('${b.booking_id}')">❌ Reject</button>
+          <button class="btn-sm outline" onclick="editBooking('${b.booking_id}')">✏️ View</button>
+        </div>
+      </td>
+    </tr>`;
   });
 
   let payRows = '';
   payList.forEach(p => {
     const guestName = p.guest?.guest_name || '-';
     const roomLabel = p.guest?.rooms ? (propLabel(p.guest.rooms) || p.guest.room_id) : (p.booking_id || '');
-    payRows += '<tr>' +
-      '<td><strong>' + guestName + '</strong><br><small style="color:#888;">' + (p.booking_id || '') + '</small></td>' +
-      '<td>' + roomLabel + '</td>' +
-      '<td><strong style="color:#0A7D1A;">₹' + (p.amount || 0).toLocaleString('en-IN') + '</strong><br><small>' + (p.payment_mode || '-') + '</small></td>' +
-      '<td><small>' + (p.payment_date || '-') + '</small><br><small style="color:#888;">' + (p.notes || '') + '</small></td>' +
-      '<td>' +
-        '<button class="btn-sm green-btn" onclick="approvePayment(' + p.id + ')">✅ Approve</button> ' +
-        '<button class="btn-sm danger" onclick="rejectPayment(' + p.id + ')">❌ Reject</button>' +
-      '</td>' +
-      '</tr>';
+    payRows += `<tr class="approval-row" data-type="payment" data-search="${guestName + ' ' + (p.booking_id||'') + ' ' + roomLabel}">
+      <td><strong style="color:var(--text);">${guestName}</strong><br><small style="color:var(--muted);">${p.booking_id || ''}</small></td>
+      <td><span class="badge blue">${roomLabel}</span></td>
+      <td><strong style="color:#10B981;font-size:15px;">₹${(p.amount || 0).toLocaleString('en-IN')}</strong><br><small style="color:var(--muted);">${p.payment_mode || '-'}</small></td>
+      <td><small style="color:var(--text);">${p.payment_date || '-'}</small><br><small style="color:var(--muted);">${p.notes || ''}</small></td>
+      <td>
+        <div style="display:flex;gap:4px;flex-wrap:wrap;">
+          <button class="btn-sm green-btn" onclick="approvePayment(${p.id})">✅ Approve</button>
+          <button class="btn-sm danger" onclick="rejectPayment(${p.id})">❌ Reject</button>
+        </div>
+      </td>
+    </tr>`;
   });
 
-  const html = '<div class="wrap">' +
-    '<h1>🟡 Pending Approvals <span style="background:#F59E0B;color:#fff;padding:4px 12px;border-radius:20px;font-size:14px;margin-left:8px;">' + totalPending + '</span></h1>' +
-    '<p style="color:#888;">Items created by moderators awaiting your verification</p>' +
-    '<div class="card" style="margin-top:16px;">' +
-      '<div class="section-title">📅 Pending Bookings (' + bkList.length + ')</div>' +
-      (bkList.length === 0
-        ? '<div style="text-align:center;padding:30px;color:#888;">✨ No pending bookings</div>'
-        : '<div class="table-wrap"><table>' +
-            '<thead><tr><th>Guest</th><th>Property</th><th>Dates</th><th>Amount</th><th>Created By</th><th>Actions</th></tr></thead>' +
-            '<tbody>' + bkRows + '</tbody>' +
-          '</table></div>') +
-    '</div>' +
-    '<div class="card" style="margin-top:16px;">' +
-      '<div class="section-title">💰 Pending Payments (' + payList.length + ')</div>' +
-      (payList.length === 0
-        ? '<div style="text-align:center;padding:30px;color:#888;">✨ No pending payments</div>'
-        : '<div class="table-wrap"><table>' +
-            '<thead><tr><th>Guest</th><th>Property</th><th>Amount</th><th>Date/Notes</th><th>Actions</th></tr></thead>' +
-            '<tbody>' + payRows + '</tbody>' +
-          '</table></div>') +
-    '</div>' +
-    '</div>';
+  const html = `
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;">
+        <div>
+          <h1 style="margin:0;font-size:24px;">
+            🟡 Pending Approvals 
+            <span style="background:#F59E0B;color:#fff;padding:2px 10px;border-radius:20px;font-size:13px;margin-left:6px;vertical-align:middle;">${totalPending}</span>
+          </h1>
+          <div class="sub">Items created by staff and moderators awaiting owner verification</div>
+        </div>
+        <div style="display:flex;gap:8px;">
+          <button class="btn-sm outline" onclick="renderPendingApprovals()">🔄 Refresh</button>
+        </div>
+      </div>
+
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-top:16px;">
+        <div class="segmented-control">
+          <button class="segmented-item active" id="filterTabAll" onclick="filterApprovals('all', this)">All (${totalPending})</button>
+          <button class="segmented-item" id="filterTabBk" onclick="filterApprovals('booking', this)">📅 Bookings (${bkList.length})</button>
+          <button class="segmented-item" id="filterTabPay" onclick="filterApprovals('payment', this)">💰 Payments (${payList.length})</button>
+        </div>
+        <input type="text" id="approvalSearch" placeholder="🔍 Search guest, phone, room..." onkeyup="searchApprovals(this.value)" style="max-width:240px;padding:6px 10px;font-size:12px;" />
+      </div>
+    </div>
+
+    <div class="card approval-section" id="sectionBookings" style="margin-top:16px;">
+      <div class="section-title">📅 Pending Bookings (${bkList.length})</div>
+      ${bkList.length === 0
+        ? '<div style="text-align:center;padding:30px;color:var(--muted);">✨ No pending bookings to approve</div>'
+        : `<div class="table-wrap"><table>
+            <thead><tr><th>Guest</th><th>Property</th><th>Dates</th><th>Amount</th><th>Created By</th><th>Actions</th></tr></thead>
+            <tbody>${bkRows}</tbody>
+          </table></div>`
+      }
+    </div>
+
+    <div class="card approval-section" id="sectionPayments" style="margin-top:16px;">
+      <div class="section-title">💰 Pending Payments (${payList.length})</div>
+      ${payList.length === 0
+        ? '<div style="text-align:center;padding:30px;color:var(--muted);">✨ No pending payments to approve</div>'
+        : `<div class="table-wrap"><table>
+            <thead><tr><th>Guest</th><th>Property</th><th>Amount</th><th>Date / Mode</th><th>Actions</th></tr></thead>
+            <tbody>${payRows}</tbody>
+          </table></div>`
+      }
+    </div>
+  `;
 
   renderShell(html, 'pendingApprovals');
   window._pendingCount = totalPending;
+};
+
+window.filterApprovals = function(type, btn) {
+  document.querySelectorAll('.segmented-item').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  const bkSec = document.getElementById('sectionBookings');
+  const paySec = document.getElementById('sectionPayments');
+  if (type === 'all') {
+    if (bkSec) bkSec.style.display = 'block';
+    if (paySec) paySec.style.display = 'block';
+  } else if (type === 'booking') {
+    if (bkSec) bkSec.style.display = 'block';
+    if (paySec) paySec.style.display = 'none';
+  } else if (type === 'payment') {
+    if (bkSec) bkSec.style.display = 'none';
+    if (paySec) paySec.style.display = 'block';
+  }
+};
+
+window.searchApprovals = function(query) {
+  query = (query || '').toLowerCase().trim();
+  document.querySelectorAll('.approval-row').forEach(row => {
+    const s = (row.getAttribute('data-search') || '').toLowerCase();
+    row.style.display = s.includes(query) ? '' : 'none';
+  });
 };
 
 // ═══ Fetch pending count for menu badge ═══

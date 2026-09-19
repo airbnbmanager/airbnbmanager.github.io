@@ -1277,88 +1277,274 @@ async function delEmp(id, name) {
 }
 
 // ============ TASKS ============
+// ═══════════════════════════════════════════════════════════
+// 🧰 STAFF TASKS — Modernized with KPIs, 1-Click Actions & WhatsApp
+// ═══════════════════════════════════════════════════════════
+
 async function renderEmployeeTasks(viewMode) {
-  viewMode = viewMode || 'list';
-  renderShell('<div class="loading">Loading...</div>', 'tasks');
+  viewMode = viewMode || window._taskViewMode || 'list';
+  window._taskViewMode = viewMode;
+  renderShell('<div class="loading">Loading staff tasks...</div>', 'tasks');
 
-  const { data: tasks } = await sb.from('employee_tasks')
-    .select('*').order('assigned_date', { ascending: false });
-  const { data: emps } = await sb.from('employees').select('emp_id, name');
-  const { data: rooms } = await sb.from('rooms').select('room_id, nickname');
+  const [{ data: tasks }, { data: emps }, { data: rooms }] = await Promise.all([
+    sb.from('employee_tasks').select('*').order('assigned_date', { ascending: false }),
+    sb.from('employees').select('emp_id, name, phone, status'),
+    sb.from('rooms').select('room_id, nickname, unit_no, property_name')
+  ]);
 
+  const allTasks = tasks || [];
   const empMap = {};
-  (emps || []).forEach(e => { empMap[e.emp_id] = e.name; });
-  const roomMap2 = {};
-  (rooms || []).forEach(r => { roomMap2[r.room_id] = r.nickname; });
+  const empPhoneMap = {};
+  (emps || []).forEach(e => { 
+    empMap[e.emp_id] = e.name; 
+    empPhoneMap[e.emp_id] = e.phone;
+  });
+
+  const roomMap = {};
+  (rooms || []).forEach(r => { 
+    roomMap[r.room_id] = r.nickname || r.unit_no || r.property_name || r.room_id; 
+  });
+
+  // Store globally for quick access
+  window._allStaffTasks = allTasks;
+  window._staffEmps = emps || [];
+  window._staffRooms = rooms || [];
 
   const isO = ['owner','admin','moderator','developer'].includes(SESSION.role);
-  const allMonths = [...new Set((tasks||[]).map(t => (t.assigned_date||'').slice(0,7)).filter(Boolean))].sort().reverse();
-  const currentMonth = new Date().toISOString().slice(0,7);
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const currentMonth = todayStr.slice(0, 7);
   const selectedMonth = window._taskMonth || currentMonth;
-  const filteredTasks = (tasks||[]).filter(t => (t.assigned_date||'').startsWith(selectedMonth));
-  const isByEmp = viewMode === 'byEmployee';
+  const statusFilter = window._taskStatusFilter || 'ALL';
+  const staffFilter = window._taskStaffFilter || 'ALL';
+  const propFilter = window._taskPropFilter || 'ALL';
 
+  // Month options
+  const allMonths = [...new Set(allTasks.map(t => (t.assigned_date||'').slice(0,7)).filter(Boolean))].sort().reverse();
+  if (!allMonths.includes(currentMonth)) allMonths.unshift(currentMonth);
+
+  // Filter tasks by month first for KPI calculations
+  const monthTasks = allTasks.filter(t => (t.assigned_date||'').startsWith(selectedMonth));
+
+  // KPIs for the selected month
+  const totalMonth = monthTasks.length;
+  const pendingCount = monthTasks.filter(t => t.status === 'Pending').length;
+  const inProgCount = monthTasks.filter(t => t.status === 'In Progress').length;
+  const doneCount = monthTasks.filter(t => t.status === 'Completed').length;
+  const urgentCount = monthTasks.filter(t => t.priority === 'Urgent' && t.status !== 'Completed').length;
+  const todayCount = monthTasks.filter(t => t.assigned_date === todayStr).length;
+
+  // Apply sub-filters
+  let displayTasks = monthTasks;
+  if (statusFilter === 'Pending') displayTasks = displayTasks.filter(t => t.status === 'Pending');
+  else if (statusFilter === 'In Progress') displayTasks = displayTasks.filter(t => t.status === 'In Progress');
+  else if (statusFilter === 'Completed') displayTasks = displayTasks.filter(t => t.status === 'Completed');
+  else if (statusFilter === 'Urgent') displayTasks = displayTasks.filter(t => t.priority === 'Urgent');
+  else if (statusFilter === 'Today') displayTasks = displayTasks.filter(t => t.assigned_date === todayStr);
+
+  if (staffFilter !== 'ALL') displayTasks = displayTasks.filter(t => t.emp_id === staffFilter);
+  if (propFilter !== 'ALL') displayTasks = displayTasks.filter(t => t.room_id === propFilter);
+
+  // Groupings for By-Employee view
+  const isByEmp = viewMode === 'byEmployee';
   const empGroups = {};
-  filteredTasks.forEach(t => {
+  displayTasks.forEach(t => {
     const eName = empMap[t.emp_id] || t.emp_id;
     if (!empGroups[eName]) empGroups[eName] = { tasks: [], props: {} };
     empGroups[eName].tasks.push(t);
-    const prop = roomMap2[t.room_id] || 'General/All';
+    const prop = roomMap[t.room_id] || 'General/All';
     empGroups[eName].props[prop] = (empGroups[eName].props[prop] || 0) + 1;
   });
 
-  const monthOpts = allMonths.map(m =>
-    `<option value="${m}" ${m===selectedMonth?'selected':''}>${m}</option>`
-  ).join('');
+  // Table view for Desktop
+  let tableHTML = `
+    <thead>
+      <tr>
+        <th>Employee</th>
+        <th>Property</th>
+        <th>Task & Type</th>
+        <th>Priority</th>
+        <th>Date</th>
+        <th>Status</th>
+        <th>Quick Action</th>
+        ${isO ? '<th>Manage</th>' : ''}
+      </tr>
+    </thead>
+    <tbody>
+  `;
 
-  let tableHTML = '';
-  if (isByEmp) {
-    tableHTML += '<thead><tr><th>Employee / Property</th><th>Total</th><th>Completed ✅</th><th>Pending ⏳</th><th>In Progress 🔄</th></tr></thead><tbody>';
-    Object.entries(empGroups).forEach(([eName, d]) => {
-      const done = d.tasks.filter(t => t.status==='Completed').length;
-      const pend = d.tasks.filter(t => t.status==='Pending').length;
-      const prog = d.tasks.filter(t => t.status==='In Progress').length;
-      tableHTML += `<tr style="background:var(--card-bg);border-top:2px solid var(--border)">
+  if (displayTasks.length) {
+    displayTasks.forEach(t => {
+      const priC = t.priority === 'Urgent' ? 'red' : t.priority === 'High' ? 'yellow' : 'blue';
+      const isDone = t.status === 'Completed';
+      const isInProg = t.status === 'In Progress';
+      const isPastPending = !isDone && t.assigned_date && t.assigned_date < todayStr;
+      const isToday = t.assigned_date === todayStr;
+
+      let quickBtn = '';
+      if (!isDone) {
+        if (!isInProg) {
+          quickBtn = `
+            <button class="btn-sm" style="background:#0284C7;color:#fff;padding:4px 8px;font-size:11px;font-weight:700;" onclick="quickUpdateTaskStatus(${t.id}, 'In Progress')">
+              🔄 Start
+            </button>
+            <button class="btn-sm" style="background:#059669;color:#fff;padding:4px 8px;font-size:11px;font-weight:700;margin-left:4px;" onclick="quickUpdateTaskStatus(${t.id}, 'Completed')">
+              ✅ Done
+            </button>
+          `;
+        } else {
+          quickBtn = `
+            <button class="btn-sm" style="background:#059669;color:#fff;padding:4px 10px;font-size:11px;font-weight:700;" onclick="quickUpdateTaskStatus(${t.id}, 'Completed')">
+              ✅ Mark Done
+            </button>
+          `;
+        }
+      } else {
+        quickBtn = `
+          <button class="btn-sm outline" style="padding:3px 8px;font-size:10.5px;color:var(--muted);" onclick="quickUpdateTaskStatus(${t.id}, 'Pending')" title="Reopen task">
+            ↩️ Reopen
+          </button>
+        `;
+      }
+
+      tableHTML += `
+        <tr data-task-id="${t.id}" id="task-${t.id}">
+          <td>
+            <strong>👤 ${empMap[t.emp_id] || t.emp_id}</strong>
+          </td>
+          <td>
+            <span style="font-size:12.5px;font-weight:600;color:var(--text-secondary);">${roomMap[t.room_id] || 'General'}</span>
+          </td>
+          <td>
+            <div style="font-weight:600;color:var(--dark);font-size:13px;">${t.task_description || '-'}</div>
+            <span class="badge blue" style="font-size:10px;margin-top:3px;">${t.task_type || 'Task'}</span>
+          </td>
+          <td><span class="badge ${priC}">${t.priority || 'Normal'}</span></td>
+          <td>
+            <span style="font-size:12.5px;">${t.assigned_date || '-'}</span>
+            ${isToday ? '<br><span class="badge yellow" style="font-size:9.5px;padding:1px 4px;">Today</span>' : ''}
+            ${isPastPending ? '<br><span class="badge red" style="font-size:9.5px;padding:1px 4px;">Overdue</span>' : ''}
+          </td>
+          <td>
+            <span class="badge ${isDone ? 'green' : isInProg ? 'yellow' : 'red'}">${t.status || 'Pending'}</span>
+          </td>
+          <td style="white-space:nowrap;">${quickBtn}</td>
+          ${isO ? `
+            <td class="table-actions" style="white-space:nowrap;">
+              <button class="btn-sm" style="background:#25D366;color:#fff;padding:4px 8px;font-size:11px;" onclick="shareTaskWhatsApp(${t.id})" title="Send to WhatsApp">📲</button>
+              <button class="btn-sm" style="padding:4px 8px;font-size:11px;" onclick="editTask(${t.id})" title="Edit Task">✏️</button>
+              ${window.canDelete && window.canDelete() ? `<button class="btn-sm danger" style="padding:4px 8px;font-size:11px;" onclick="delTask(${t.id})" title="Delete Task">🗑️</button>` : ''}
+            </td>
+          ` : ''}
+        </tr>
+      `;
+    });
+  } else {
+    tableHTML += '<tr><td colspan="8" class="sub" style="text-align:center;padding:24px;">No tasks found matching current filters</td></tr>';
+  }
+  tableHTML += '</tbody>';
+
+  // Responsive Mobile Cards View
+  let cardsHTML = '<div class="tasks-mobile-container" style="display:none;flex-direction:column;gap:10px;">';
+  if (displayTasks.length) {
+    displayTasks.forEach(t => {
+      const priC = t.priority === 'Urgent' ? 'red' : t.priority === 'High' ? 'yellow' : 'blue';
+      const isDone = t.status === 'Completed';
+      const isInProg = t.status === 'In Progress';
+      const isPastPending = !isDone && t.assigned_date && t.assigned_date < todayStr;
+      const isToday = t.assigned_date === todayStr;
+
+      cardsHTML += `
+        <div class="card" style="padding:12px;border-radius:12px;border-left:4px solid ${isDone ? '#10B981' : isInProg ? '#F59E0B' : t.priority === 'Urgent' ? '#DC2626' : 'var(--primary)'};margin-bottom:0;">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:6px;">
+            <div>
+              <div style="font-size:14px;font-weight:700;color:var(--dark);">👤 ${empMap[t.emp_id] || t.emp_id}</div>
+              <div style="font-size:12px;color:var(--muted);margin-top:1px;">🏨 ${roomMap[t.room_id] || 'General'}</div>
+            </div>
+            <div style="display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end;">
+              <span class="badge ${priC}" style="font-size:10px;">${t.priority || 'Normal'}</span>
+              <span class="badge ${isDone ? 'green' : isInProg ? 'yellow' : 'red'}" style="font-size:10px;">${t.status || 'Pending'}</span>
+            </div>
+          </div>
+
+          <div style="font-size:13px;font-weight:600;color:var(--dark);margin:8px 0;line-height:1.4;">
+            ${t.task_description || '-'}
+          </div>
+
+          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;padding-top:6px;border-top:1px solid var(--border);font-size:12px;">
+            <div>
+              <span class="badge blue" style="font-size:10px;">${t.task_type || 'Task'}</span>
+              <span style="color:var(--muted);margin-left:4px;">🗓️ ${t.assigned_date || '-'}</span>
+              ${isToday ? '<span class="badge yellow" style="font-size:9px;padding:1px 4px;margin-left:3px;">Today</span>' : ''}
+              ${isPastPending ? '<span class="badge red" style="font-size:9px;padding:1px 4px;margin-left:3px;">Overdue</span>' : ''}
+            </div>
+            <div style="display:flex;gap:5px;align-items:center;">
+              ${!isDone ? `
+                <button class="btn-sm" style="background:#059669;color:#fff;padding:5px 9px;font-size:11px;font-weight:700;" onclick="quickUpdateTaskStatus(${t.id}, 'Completed')">
+                  ✅ Done
+                </button>
+              ` : `
+                <button class="btn-sm outline" style="padding:4px 8px;font-size:10.5px;" onclick="quickUpdateTaskStatus(${t.id}, 'Pending')">
+                  ↩️ Reopen
+                </button>
+              `}
+              <button class="btn-sm" style="background:#25D366;color:#fff;padding:5px 9px;font-size:11px;" onclick="shareTaskWhatsApp(${t.id})" title="Share WhatsApp">
+                📲
+              </button>
+              ${isO ? `
+                <button class="btn-sm secondary" style="padding:5px 8px;font-size:11px;" onclick="editTask(${t.id})">
+                  ✏️
+                </button>
+              ` : ''}
+            </div>
+          </div>
+        </div>
+      `;
+    });
+  } else {
+    cardsHTML += '<div class="sub" style="text-align:center;padding:24px;">No tasks found matching current filters</div>';
+  }
+  cardsHTML += '</div>';
+
+  // By Employee view
+  let byEmpHTML = `
+    <thead>
+      <tr>
+        <th>Employee / Property</th>
+        <th>Total</th>
+        <th>Completed ✅</th>
+        <th>Pending ⏳</th>
+        <th>In Progress 🔄</th>
+      </tr>
+    </thead>
+    <tbody>
+  `;
+  Object.entries(empGroups).forEach(([eName, d]) => {
+    const done = d.tasks.filter(t => t.status==='Completed').length;
+    const pend = d.tasks.filter(t => t.status==='Pending').length;
+    const prog = d.tasks.filter(t => t.status==='In Progress').length;
+    byEmpHTML += `
+      <tr style="background:var(--card-bg);border-top:2px solid var(--border)">
         <td><strong>👤 ${eName}</strong></td>
         <td><span class="badge blue">${d.tasks.length}</span></td>
         <td><span class="badge green">${done}</span></td>
         <td><span class="badge ${pend>0?'red':'green'}">${pend}</span></td>
         <td><span class="badge ${prog>0?'yellow':'green'}">${prog}</span></td>
-      </tr>`;
-      Object.entries(d.props).forEach(([prop, cnt]) => {
-        tableHTML += `<tr style="background:var(--bg)">
+      </tr>
+    `;
+    Object.entries(d.props).forEach(([prop, cnt]) => {
+      byEmpHTML += `
+        <tr style="background:var(--bg)">
           <td style="padding-left:24px;color:var(--muted);font-size:13px">↳ ${prop}</td>
           <td><span class="badge blue">${cnt}</span></td>
           <td>-</td><td>-</td><td>-</td>
-        </tr>`;
-      });
+        </tr>
+      `;
     });
-    if (!Object.keys(empGroups).length) tableHTML += '<tr><td colspan="5" class="sub">No tasks this month</td></tr>';
-    tableHTML += '</tbody>';
-  } else {
-    tableHTML += `<thead><tr><th>Employee</th><th>Property</th><th>Type</th><th>Task</th><th>Priority</th><th>Date</th><th>Status</th>${isO?'<th>Actions</th>':''}</tr></thead><tbody>`;
-    if (filteredTasks.length) {
-      filteredTasks.forEach(t => {
-        const priC = t.priority==='Urgent'?'red':t.priority==='High'?'yellow':'green';
-        const stC  = t.status==='Completed'?'green':t.status==='In Progress'?'yellow':'red';
-        tableHTML += `<tr data-task-id="${t.id}" id="task-${t.id}">
-          <td><strong>${empMap[t.emp_id]||t.emp_id}</strong></td>
-          <td>${roomMap2[t.room_id]||'-'}</td>
-          <td><span class="badge blue">${t.task_type||'Other'}</span></td>
-          <td>${t.task_description||'-'}</td>
-          <td><span class="badge ${priC}">${t.priority||'Normal'}</span></td>
-          <td>${t.assigned_date||'-'}</td>
-          <td><span class="badge ${stC}">${t.status||'Pending'}</span></td>
-          ${isO?`<td class="table-actions"><button class="btn-sm" onclick="editTask(${t.id})">✏️</button>${window.canDelete&&window.canDelete()?`<button class="btn-sm danger" onclick="delTask(${t.id})">🗑️</button>`:''}</td>`:''}
-        </tr>`;
-      });
-    } else {
-      tableHTML += '<tr><td colspan="8" class="sub">No tasks this month</td></tr>';
-    }
-    tableHTML += '</tbody>';
-  }
+  });
+  if (!Object.keys(empGroups).length) byEmpHTML += '<tr><td colspan="5" class="sub">No tasks this month</td></tr>';
+  byEmpHTML += '</tbody>';
 
-  // Build By-Date view
+  // By Date View
   let byDateHTML = '';
   if (viewMode === 'byDate') {
     const [yr, mo] = selectedMonth.split('-').map(Number);
@@ -1366,7 +1552,7 @@ async function renderEmployeeTasks(viewMode) {
     const dayNames = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 
     const tasksByDate = {};
-    filteredTasks.forEach(t => {
+    displayTasks.forEach(t => {
       const d = t.assigned_date;
       if (!d) return;
       if (!tasksByDate[d]) tasksByDate[d] = [];
@@ -1382,67 +1568,247 @@ async function renderEmployeeTasks(viewMode) {
       const dObj = new Date(dateStr);
       const dayName = dayNames[dObj.getDay()];
 
-      const empGroupsDate = {};
+      let expandHTML = '';
       dTasks.forEach(t => {
         const eName = empMap[t.emp_id] || t.emp_id;
-        if (!empGroupsDate[eName]) empGroupsDate[eName] = [];
-        empGroupsDate[eName].push(t);
-      });
-
-      let expandHTML = '';
-      Object.entries(empGroupsDate).forEach(([eName, arr]) => {
-        expandHTML += `<div style="margin:8px 0 4px 12px;"><strong>👤 ${eName}</strong></div>`;
-        arr.forEach(t => {
-          const prop = roomMap2[t.room_id] || 'General/All';
-          const stC = t.status==='Completed'?'green':t.status==='In Progress'?'yellow':'red';
-          expandHTML += `<div data-task-id="${t.id}" id="task-date-${t.id}" style="margin-left:32px;padding:4px 0;color:var(--muted);font-size:13px;">
-            ↳ ${prop} — <span class="badge blue">${t.task_type||'Task'}</span>
-            <span style="color:var(--fg);">${t.task_description||'-'}</span>
-            <span class="badge ${stC}">${t.status||'Pending'}</span>
-          </div>`;
-        });
-      });
-
-      const isToday = dateStr === new Date().toISOString().slice(0,10);
-      const bgColor = isToday ? 'background:var(--primary-fade,rgba(100,150,255,0.1));' : '';
-
-      rows.push(`
-        <div style="border-bottom:1px solid var(--border);padding:12px;${bgColor}cursor:${count>0?'pointer':'default'};"
-             ${count>0 ? `onclick="toggleTaskDate('${dateStr}')"` : ''}>
-          <div style="display:flex;justify-content:space-between;align-items:center;">
+        const prop = roomMap[t.room_id] || 'General';
+        const stC = t.status==='Completed'?'green':t.status==='In Progress'?'yellow':'red';
+        expandHTML += `
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px dashed var(--border);font-size:12.5px;">
             <div>
-              <span id="arrow-${dateStr}" style="display:inline-block;width:20px;">${count>0?'▼':'·'}</span>
-              <strong>📅 ${dateStr} (${dayName})</strong>
-              ${isToday ? '<span class="badge yellow" style="margin-left:8px;">Today</span>' : ''}
+              <strong>👤 ${eName}</strong> &bull; 🏨 ${prop} &bull; <span class="badge blue" style="font-size:9.5px;">${t.task_type||'Task'}</span>
+              <div style="color:var(--dark);margin-top:2px;">${t.task_description || '-'}</div>
             </div>
-            <div>
-              <span class="badge ${count>0?'green':'red'}">${count} tasks</span>
+            <div style="display:flex;gap:4px;align-items:center;">
+              <span class="badge ${stC}">${t.status||'Pending'}</span>
+              ${t.status !== 'Completed' ? `
+                <button class="btn-sm" style="background:#059669;color:#fff;padding:3px 7px;font-size:10px;" onclick="quickUpdateTaskStatus(${t.id}, 'Completed')">✅</button>
+              ` : ''}
+              <button class="btn-sm" style="background:#25D366;color:#fff;padding:3px 7px;font-size:10px;" onclick="shareTaskWhatsApp(${t.id})">📲</button>
             </div>
           </div>
-          ${count>0 ? `<div id="date-${dateStr}" style="display:block;margin-top:8px;padding-top:8px;border-top:1px dashed var(--border);">${expandHTML}</div>` : ''}
+        `;
+      });
+
+      const isToday = dateStr === todayStr;
+      rows.push(`
+        <div style="border-bottom:1px solid var(--border);padding:10px;${isToday ? 'background:rgba(254,243,199,0.3);' : ''}">
+          <div style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;" onclick="toggleTaskDate('${dateStr}')">
+            <div>
+              <span id="arrow-${dateStr}" style="display:inline-block;width:18px;">▼</span>
+              <strong>📅 ${dateStr} (${dayName})</strong>
+              ${isToday ? '<span class="badge yellow" style="margin-left:6px;font-size:9.5px;">Today</span>' : ''}
+            </div>
+            <span class="badge ${count>0?'green':'secondary'}">${count} task${count>1?'s':''}</span>
+          </div>
+          <div id="date-${dateStr}" style="display:block;margin-top:8px;padding-top:6px;border-top:1px dashed var(--border);">
+            ${expandHTML}
+          </div>
         </div>
       `);
     }
-    byDateHTML = rows.join('');
+    byDateHTML = rows.join('') || '<div class="sub" style="padding:20px;text-align:center;">No tasks for this date filter</div>';
   }
 
+  // Render Shell
   renderShell(`
-    <div class="card">
-      <h1>🧰 Tasks</h1>
-      <div class="sub">${filteredTasks.length} tasks — ${selectedMonth}</div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;">
-        ${isO ? '<button onclick="renderAddTask()">➕ Add Task</button>' : ''}
-        <button class="${!isByEmp?'':'secondary'} btn-sm" onclick="window._taskMonth='${selectedMonth}';renderEmployeeTasks('list')">📋 All Tasks</button>
-        <button class="${isByEmp?'':'secondary'} btn-sm" onclick="window._taskMonth='${selectedMonth}';renderEmployeeTasks('byEmployee')">👤 By Employee</button>
-        <button class="${viewMode==='byDate'?'':'secondary'} btn-sm" onclick="window._taskMonth='${selectedMonth}';renderEmployeeTasks('byDate')">📅 By Date</button>
-        <select onchange="window._taskMonth=this.value;renderEmployeeTasks('${viewMode}')" style="padding:4px 8px;border-radius:6px;border:1px solid var(--border);">
-          ${monthOpts}
-        </select>
+    <style>
+      .task-kpi-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+        gap: 10px;
+        margin-bottom: 12px;
+      }
+      .task-kpi-card {
+        background: #fff;
+        border-radius: 12px;
+        padding: 12px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+        border: 1px solid var(--border);
+        cursor: pointer;
+        transition: transform 0.1s, box-shadow 0.1s;
+      }
+      .task-kpi-card:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 3px 8px rgba(0,0,0,0.1);
+      }
+      .task-kpi-num {
+        font-size: 20px;
+        font-weight: 800;
+        line-height: 1.2;
+      }
+      .task-kpi-label {
+        font-size: 11px;
+        font-weight: 700;
+        color: var(--muted);
+        text-transform: uppercase;
+        margin-top: 2px;
+      }
+      @media (max-width: 768px) {
+        .tasks-desktop-table { display: none !important; }
+        .tasks-mobile-container { display: flex !important; }
+      }
+    </style>
+
+    <!-- HEADER & ACTIONS -->
+    <div class="card" style="padding:14px;border-radius:14px;margin-bottom:12px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
+        <div>
+          <h1 style="margin:0;font-size:22px;font-weight:800;color:var(--dark);">🧰 Staff Tasks</h1>
+          <div class="sub" style="margin-top:2px;">Manage daily assignments, housekeeping, & team duties &bull; ${selectedMonth}</div>
+        </div>
+        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+          ${isO ? '<button class="btn-sm" style="background:#059669;color:#fff;" onclick="renderAddTask()">➕ Add Task</button>' : ''}
+          <button class="btn-sm outline" onclick="renderEmployeeTasks()" title="Refresh">🔄 Refresh</button>
+        </div>
+      </div>
+
+      <!-- KPI METRIC CARDS -->
+      <div class="task-kpi-grid" style="margin-top:14px;">
+        <div class="task-kpi-card" style="border-left:4px solid var(--primary);" onclick="window._taskStatusFilter='ALL';renderEmployeeTasks('${viewMode}');">
+          <div class="task-kpi-num" style="color:var(--primary);">${totalMonth}</div>
+          <div class="task-kpi-label">📋 Total Month</div>
+        </div>
+        <div class="task-kpi-card" style="border-left:4px solid #DC2626;" onclick="window._taskStatusFilter='Pending';renderEmployeeTasks('${viewMode}');">
+          <div class="task-kpi-num" style="color:#DC2626;">${pendingCount}</div>
+          <div class="task-kpi-label">⏳ Pending</div>
+        </div>
+        <div class="task-kpi-card" style="border-left:4px solid #F59E0B;" onclick="window._taskStatusFilter='In Progress';renderEmployeeTasks('${viewMode}');">
+          <div class="task-kpi-num" style="color:#F59E0B;">${inProgCount}</div>
+          <div class="task-kpi-label">🔄 In Progress</div>
+        </div>
+        <div class="task-kpi-card" style="border-left:4px solid #10B981;" onclick="window._taskStatusFilter='Completed';renderEmployeeTasks('${viewMode}');">
+          <div class="task-kpi-num" style="color:#10B981;">${doneCount}</div>
+          <div class="task-kpi-label">✅ Completed</div>
+        </div>
+        <div class="task-kpi-card" style="border-left:4px solid #991B1B;" onclick="window._taskStatusFilter='Urgent';renderEmployeeTasks('${viewMode}');">
+          <div class="task-kpi-num" style="color:#991B1B;">${urgentCount}</div>
+          <div class="task-kpi-label">🚨 Urgent</div>
+        </div>
+        <div class="task-kpi-card" style="border-left:4px solid #3B82F6;" onclick="window._taskStatusFilter='Today';renderEmployeeTasks('${viewMode}');">
+          <div class="task-kpi-num" style="color:#3B82F6;">${todayCount}</div>
+          <div class="task-kpi-label">📅 Today</div>
+        </div>
+      </div>
+
+      <!-- FILTER & VIEW CONTROLS -->
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:8px;padding-top:10px;border-top:1px solid var(--border);">
+        <div style="display:flex;gap:4px;flex-wrap:wrap;">
+          <button class="${viewMode==='list'?'':'secondary'} btn-sm" onclick="renderEmployeeTasks('list')">📋 List</button>
+          <button class="${viewMode==='byEmployee'?'':'secondary'} btn-sm" onclick="renderEmployeeTasks('byEmployee')">👤 By Employee</button>
+          <button class="${viewMode==='byDate'?'':'secondary'} btn-sm" onclick="renderEmployeeTasks('byDate')">📅 By Date</button>
+        </div>
+
+        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-left:auto;">
+          <!-- Status Dropdown Filter -->
+          <select onchange="window._taskStatusFilter=this.value;renderEmployeeTasks('${viewMode}')" style="padding:5px 9px;border-radius:8px;border:1px solid var(--border);font-size:12px;font-weight:600;">
+            <option value="ALL" ${statusFilter==='ALL'?'selected':''}>All Statuses</option>
+            <option value="Pending" ${statusFilter==='Pending'?'selected':''}>⏳ Pending</option>
+            <option value="In Progress" ${statusFilter==='In Progress'?'selected':''}>🔄 In Progress</option>
+            <option value="Completed" ${statusFilter==='Completed'?'selected':''}>✅ Completed</option>
+            <option value="Urgent" ${statusFilter==='Urgent'?'selected':''}>🚨 Urgent</option>
+            <option value="Today" ${statusFilter==='Today'?'selected':''}>📅 Today</option>
+          </select>
+
+          <!-- Staff Dropdown Filter -->
+          <select onchange="window._taskStaffFilter=this.value;renderEmployeeTasks('${viewMode}')" style="padding:5px 9px;border-radius:8px;border:1px solid var(--border);font-size:12px;font-weight:600;">
+            <option value="ALL">All Staff</option>
+            ${(emps||[]).map(e => `<option value="${e.emp_id}" ${staffFilter===e.emp_id?'selected':''}>${e.name}</option>`).join('')}
+          </select>
+
+          <!-- Property Filter -->
+          <select onchange="window._taskPropFilter=this.value;renderEmployeeTasks('${viewMode}')" style="padding:5px 9px;border-radius:8px;border:1px solid var(--border);font-size:12px;font-weight:600;">
+            <option value="ALL">All Properties</option>
+            ${(rooms||[]).map(r => `<option value="${r.room_id}" ${propFilter===r.room_id?'selected':''}>${r.nickname||r.unit_no}</option>`).join('')}
+          </select>
+
+          <!-- Month Selector -->
+          <select onchange="window._taskMonth=this.value;renderEmployeeTasks('${viewMode}')" style="padding:5px 9px;border-radius:8px;border:1px solid var(--border);font-size:12px;font-weight:600;">
+            ${allMonths.map(m => `<option value="${m}" ${m===selectedMonth?'selected':''}>${m}</option>`).join('')}
+          </select>
+        </div>
       </div>
     </div>
-    <div class="card">${viewMode==='byDate' ? byDateHTML : `<div class="table-wrap"><table>${tableHTML}</table></div>`}</div>
+
+    <!-- MAIN CONTENT VIEW -->
+    <div class="card" style="padding:12px;border-radius:14px;">
+      ${viewMode === 'byDate' 
+        ? byDateHTML 
+        : viewMode === 'byEmployee'
+          ? `<div class="table-wrap"><table>${byEmpHTML}</table></div>`
+          : `
+            <div class="table-wrap tasks-desktop-table">
+              <table>${tableHTML}</table>
+            </div>
+            ${cardsHTML}
+          `
+      }
+    </div>
   `, 'tasks');
 }
+
+// ═══════════════════════════════════════════════════════════
+// ⚡ QUICK TASK ACTIONS (1-CLICK STATUS UPDATE & WHATSAPP)
+// ═══════════════════════════════════════════════════════════
+
+window.quickUpdateTaskStatus = async function(id, newStatus) {
+  try {
+    const { error } = await sb.from('employee_tasks').update({
+      status: newStatus
+    }).eq('id', id);
+
+    if (error) {
+      alert('Error updating task: ' + error.message);
+      return;
+    }
+
+    // Refresh UI
+    if (typeof renderEmployeeTasks === 'function') {
+      renderEmployeeTasks();
+    }
+  } catch(e) {
+    console.error('Task update error:', e);
+  }
+};
+
+window.shareTaskWhatsApp = function(taskId) {
+  const tasks = window._allStaffTasks || [];
+  const t = tasks.find(x => x.id === taskId);
+  if (!t) { alert('Task not found'); return; }
+
+  const emps = window._staffEmps || [];
+  const rooms = window._staffRooms || [];
+  const emp = emps.find(e => e.emp_id === t.emp_id) || {};
+  const room = rooms.find(r => r.room_id === t.room_id) || {};
+
+  const empName = emp.name || t.emp_id;
+  const propName = room.nickname || room.unit_no || room.property_name || 'General/All Properties';
+  const cleanPhone = (emp.phone || '').replace(/[^0-9]/g, '');
+
+  const msg = 
+`🔔 *Task Assigned — The Unique Haven Homes*
+━━━━━━━━━━━━━━━━━━
+👤 *Staff Member:* ${empName}
+🏨 *Property:* ${propName}
+📌 *Task Type:* ${t.task_type || 'General'}
+🚨 *Priority:* ${t.priority || 'Normal'}
+📅 *Date:* ${t.assigned_date || new Date().toISOString().slice(0,10)}
+⚡ *Status:* ${t.status || 'Pending'}
+
+📝 *Task Details:*
+${t.task_description || '-'}
+
+Kripya task complete karke CRM me update karein ya reply karein.
+━━━━━━━━━━━━━━━━━━`;
+
+  if (cleanPhone && cleanPhone.length >= 10) {
+    const fullPhone = cleanPhone.startsWith('91') && cleanPhone.length === 12 ? cleanPhone : '91' + cleanPhone.slice(-10);
+    window.open(`https://api.whatsapp.com/send?phone=${fullPhone}&text=${encodeURIComponent(msg)}`, '_blank');
+  } else {
+    // If no phone stored, open generic WhatsApp share
+    window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(msg)}`, '_blank');
+  }
+};
 
 window.toggleTaskDate = function(dateKey) {
   const el = document.getElementById('date-' + dateKey);

@@ -57,7 +57,7 @@ window.HYBRID_SYNC = {
           const isBlock = summary.toLowerCase().includes('not available') || summary.toLowerCase().includes('blocked');
           events.push({
             booking_id: uid ? 'ICAL_' + uid : 'ICAL_' + Date.now() + '_' + i,
-            guest_name: isBlock ? '🚫 Airbnb Blocked' : summary.replace('Reserved', 'Airbnb Guest').trim(),
+            guest_name: isBlock ? '🔒 Blocked Slot' : summary.replace('Reserved', 'Airbnb Guest').trim(),
             check_in: checkIn,
             check_out: checkOut,
             room_id: roomId,
@@ -106,7 +106,7 @@ window.HYBRID_SYNC = {
 
       // Fetch all existing bookings for this room in DB
       const { data: dbBookings } = await sb.from('guest_register')
-        .select('booking_id, check_in, check_out, room_id, is_cancelled, guest_name')
+        .select('booking_id, check_in, check_out, room_id, is_cancelled, guest_name, booking_mode')
         .eq('room_id', roomId)
         .neq('is_cancelled', true);
 
@@ -127,7 +127,7 @@ window.HYBRID_SYNC = {
             check_in: ev.check_in,
             check_out: ev.check_out,
             room_id: roomId,
-            booking_mode: ev.is_blocked ? 'Offline' : 'Online-Airbnb',
+            booking_mode: ev.is_blocked ? 'Offline-Blocked' : 'Online-Airbnb',
             payment_status: 'Paid',
             total_amount: 0,
             notes: ev.is_blocked ? 'Airbnb Blocked date auto-synced' : ('Auto-synced from ' + prop.name + ' iCal')

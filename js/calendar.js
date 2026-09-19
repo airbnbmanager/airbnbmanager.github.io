@@ -27,11 +27,17 @@ async function renderReports() {
   const todayStr = new Date().toISOString().slice(0, 10);
 
   // ─── Monthly stats ───
+  const isBkBlocked = b => (b.booking_id && String(b.booking_id).startsWith('BLK_')) || 
+                           (b.guest_name || '').toLowerCase().includes('blocked') || 
+                           b.booking_mode === 'Offline-Blocked';
+
   const mb = allBks.filter(b => b.check_in?.startsWith(mp));
   const pm = await getPaidMap(mb.map(b => b.booking_id));
   const rev = mb.reduce((s, b) => s + (pm[b.booking_id] || 0), 0);
-  const onCount = mb.filter(b => b.booking_mode === 'Online-Airbnb').length;
-  const offCount = mb.length - onCount;
+  const realMb = mb.filter(b => !isBkBlocked(b));
+  const blockedMbCount = mb.length - realMb.length;
+  const onCount = realMb.filter(b => b.booking_mode === 'Online-Airbnb').length;
+  const offCount = realMb.length - onCount;
 
   // Occupancy for filtered rooms
   const displayRooms = selRoom === 'all' ? allRooms : allRooms.filter(r => r.room_id === selRoom);
@@ -45,6 +51,17 @@ async function renderReports() {
       bMap[_bkey].push(b);
       c = dateAdd(c, 1);
     }
+  });
+
+  // Prioritize real guest bookings over placeholder blocked slots
+  Object.keys(bMap).forEach(k => {
+    bMap[k].sort((a, b) => {
+      const aBlocked = isBkBlocked(a);
+      const bBlocked = isBkBlocked(b);
+      if (aBlocked && !bBlocked) return 1;
+      if (!aBlocked && bBlocked) return -1;
+      return 0;
+    });
   });
 
   const totalRoomNights = displayRooms.length * dim;
@@ -62,9 +79,9 @@ async function renderReports() {
     allRooms.map(r => `<option value="${r.room_id}"${r.room_id === selRoom ? ' selected' : ''}>${r.unit_no} — ${r.nickname || r.property_name || ''}</option>`).join('');
 
   // ─── Upcoming + Open stays ───
-  const upcoming7 = allBks.filter(b => b.check_in > todayStr && b.check_in <= dateAdd(todayStr, 7))
+  const upcoming7 = allBks.filter(b => !isBkBlocked(b) && b.check_in > todayStr && b.check_in <= dateAdd(todayStr, 7))
     .sort((a, b) => (a.check_in || '').localeCompare(b.check_in || ''));
-  const openStays = allBks.filter(b => b.check_in <= todayStr && (b.check_out >= todayStr || !b.check_out));
+  const openStays = allBks.filter(b => !isBkBlocked(b) && b.check_in <= todayStr && (b.check_out >= todayStr || !b.check_out));
 
   const bName = b => {
     const room = allRooms.find(r => r.room_id === b.room_id);
@@ -97,9 +114,9 @@ async function renderReports() {
     </div>
 
     <!-- KPI STAT CARDS -->
-    <div class="stat-grid" style="grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;">
+    <div class="stat-grid" style="grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;">
       <div class="stat-card" style="border-left:4px solid var(--primary);border-radius:12px;">
-        <div class="stat-num">${mb.length}</div>
+        <div class="stat-num">${realMb.length}</div>
         <div class="stat-label">Bookings</div>
       </div>
       <div class="stat-card" style="border-left:4px solid var(--green);border-radius:12px;">
@@ -113,6 +130,10 @@ async function renderReports() {
       <div class="stat-card" style="border-left:4px solid var(--yellow);border-radius:12px;">
         <div class="stat-num">${offCount}</div>
         <div class="stat-label">💵 Direct</div>
+      </div>
+      <div class="stat-card" style="border-left:4px solid #475569;border-radius:12px;">
+        <div class="stat-num" style="color:#475569;">${blockedMbCount}</div>
+        <div class="stat-label">🔒 Blocked</div>
       </div>
       <div class="stat-card" style="border-left:4px solid var(--purple, #8B5CF6);border-radius:12px;">
         <div class="stat-num" style="color:#8B5CF6;">${occ}%</div>
@@ -152,36 +173,38 @@ async function renderReports() {
         const isCheckIn = bk.check_in === ds;
         const isCheckOut = dateAdd(ds, 1) === bk.check_out;
         const isOnline = bk.booking_mode === 'Online-Airbnb';
-        const isBlocked = (bk.guest_name || '').toLowerCase().includes('blocked') || bk.booking_mode === 'Offline-Blocked';
+        const isBlocked = isBkBlocked(bk);
 
-        let bg = isOnline ? '#FF385C' : '#6C5CE0';
-        if (isBlocked) bg = '#DC2626';
+        // Airbnb = Red (#FF385C), Offline/Direct & Blocked = Slate/Charcoal (#475569)
+        let bg = isOnline ? '#FF385C' : 'linear-gradient(135deg, #475569 0%, #334155 100%)';
 
-        const guestInitial = (bk.guest_name || 'G').charAt(0).toUpperCase();
-        const nameParts = (bk.guest_name || 'Guest').trim().split(/\s+/);
-        let firstName = nameParts[0] || 'G';
-        if (firstName.length > 8) firstName = firstName.substring(0, 8);
+        const cleanGuestName = (bk.guest_name || (isBlocked ? 'Blocked' : 'Guest')).replace(/^🚫\s*/, '').trim();
+        const guestInitial = isBlocked ? '🔒' : cleanGuestName.charAt(0).toUpperCase();
+        const nameParts = cleanGuestName.split(/\s+/);
+        let firstName = isBlocked ? 'Blocked' : (nameParts[0] || 'Guest');
+        if (firstName.length > 7) firstName = firstName.substring(0, 7);
 
         const currentNight = calcNights(bk.check_in, ds);
         const showName = isCheckIn || isCheckOut || (currentNight > 0 && currentNight % 2 === 0);
-        const showAvatar = isCheckIn;
+        const showAvatar = isCheckIn || isBlocked;
 
         let borderRadius = '0';
-        if (isCheckIn && isCheckOut) borderRadius = '16px';
-        else if (isCheckIn) borderRadius = '16px 0 0 16px';
-        else if (isCheckOut) borderRadius = '0 16px 16px 0';
+        if (isCheckIn && isCheckOut) borderRadius = '14px';
+        else if (isCheckIn) borderRadius = '14px 0 0 14px';
+        else if (isCheckOut) borderRadius = '0 14px 14px 0';
 
         const overlapTitle = overlapCount > 1 
           ? bkArr.map(x => x.guest_name || 'Guest').join(' + ')
-          : (bk.guest_name || 'Booked');
+          : (bk.guest_name || (isBlocked ? 'Blocked Slot' : 'Booked'));
 
         cellsHtml += `
-          <div class="cal-day booked ${isToday ? 'today' : ''}" onclick="showBookingPopup('${r.room_id}','${ds}')" title="${overlapTitle}" style="position:relative;">
+          <div class="cal-day booked ${isToday ? 'today' : ''} ${isBlocked ? 'is-blocked-day' : ''}" onclick="showBookingPopup('${r.room_id}','${ds}')" title="${overlapTitle}" style="position:relative;">
             <div class="cal-date-num">${d}</div>
-            ${overlapCount > 1 ? `<div style="position:absolute;top:3px;right:3px;background:#DC2626;color:#fff;border-radius:50%;min-width:18px;height:18px;padding:0 4px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;box-shadow:0 2px 4px rgba(0,0,0,0.4);z-index:3;line-height:1;" title="${overlapCount} bookings on this date">${overlapCount}</div>` : ''}
-            <div class="cal-pill" style="background:${bg};border-radius:${borderRadius};">
+            ${overlapCount > 1 ? `<div style="position:absolute;top:2px;right:2px;background:#DC2626;color:#fff;border-radius:50%;min-width:16px;height:16px;padding:0 3px;display:flex;align-items:center;justify-content:center;font-size:9.5px;font-weight:800;box-shadow:0 1px 3px rgba(0,0,0,0.4);z-index:3;line-height:1;" title="${overlapCount} bookings on this date">${overlapCount}</div>` : ''}
+            <div class="cal-pill ${isBlocked ? 'blocked' : ''}" style="background:${bg};border-radius:${borderRadius};">
               ${showAvatar ? `<span class="cal-avatar">${guestInitial}</span>` : ''}
-              ${showName ? `<span class="cal-name">${firstName}</span>` : ''}
+              ${showName && !isBlocked ? `<span class="cal-name">${firstName}</span>` : ''}
+              ${isBlocked && showName && isCheckIn ? `<span class="cal-name">Blocked</span>` : ''}
             </div>
           </div>`;
       } else {
@@ -196,12 +219,12 @@ async function renderReports() {
 
     html += `
       <div class="card cal-room-card" style="padding:12px;border-radius:14px;margin-bottom:14px;">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-          <div>
-            <strong style="font-size:14.5px;color:var(--dark);">${r.unit_no}</strong>
-            <span style="color:var(--muted);font-size:12.5px;margin-left:6px;">${r.nickname || r.property_name || ''}</span>
+        <div class="cal-room-header" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;margin-bottom:8px;">
+          <div style="min-width:0;flex:1 1 auto;">
+            <strong style="font-size:14px;color:var(--dark);word-break:break-word;">${r.unit_no}</strong>
+            <span style="color:var(--muted);font-size:12.5px;margin-left:6px;word-break:break-word;">${r.nickname || r.property_name || ''}</span>
           </div>
-          ${r.rent_per_night ? `<span style="font-size:11.5px;color:#059669;font-weight:700;">Base: ₹${r.rent_per_night.toLocaleString('en-IN')}/night</span>` : ''}
+          ${r.rent_per_night ? `<span style="font-size:11.5px;color:#059669;font-weight:700;white-space:nowrap;flex-shrink:0;">Base: ₹${r.rent_per_night.toLocaleString('en-IN')}/night</span>` : ''}
         </div>
         <div class="cal-grid">${cellsHtml}</div>
       </div>`;
@@ -211,11 +234,11 @@ async function renderReports() {
   html += `
     <div class="card" style="padding:12px;text-align:center;border-radius:12px;margin-bottom:14px;">
       <div style="display:inline-flex;gap:14px;flex-wrap:wrap;justify-content:center;font-size:12px;font-weight:600;">
-        <span><span style="display:inline-block;width:14px;height:14px;background:#FF385C;border-radius:4px;vertical-align:middle;margin-right:4px;"></span> Airbnb</span>
-        <span><span style="display:inline-block;width:14px;height:14px;background:#6C5CE0;border-radius:4px;vertical-align:middle;margin-right:4px;"></span> Direct</span>
-        <span><span style="display:inline-block;width:14px;height:14px;background:#DC2626;border-radius:4px;vertical-align:middle;margin-right:4px;"></span> Blocked</span>
-        <span><span style="display:inline-block;width:14px;height:14px;background:#fff;border:1px solid #ccc;border-radius:4px;vertical-align:middle;margin-right:4px;"></span> Free</span>
-        <span><span style="display:inline-block;width:14px;height:14px;background:#FEE2E2;border:1px solid #FF385C;border-radius:4px;vertical-align:middle;margin-right:4px;"></span> Today</span>
+        <span><span style="display:inline-block;width:14px;height:14px;background:#FF385C;border-radius:4px;vertical-align:middle;margin-right:4px;"></span> 🌐 Airbnb</span>
+        <span><span style="display:inline-block;width:14px;height:14px;background:#475569;border-radius:4px;vertical-align:middle;margin-right:4px;"></span> 💵 Direct (Offline)</span>
+        <span><span style="display:inline-block;width:14px;height:14px;background:#334155;border:1px dashed #94A3B8;border-radius:4px;vertical-align:middle;margin-right:4px;"></span> 🔒 Blocked</span>
+        <span><span style="display:inline-block;width:14px;height:14px;background:#fff;border:1px solid #ccc;border-radius:4px;vertical-align:middle;margin-right:4px;"></span> ⚪ Free</span>
+        <span><span style="display:inline-block;width:14px;height:14px;background:#FEE2E2;border:1px solid #FF385C;border-radius:4px;vertical-align:middle;margin-right:4px;"></span> 📍 Today</span>
       </div>
     </div>
 
@@ -253,18 +276,21 @@ async function renderReports() {
   cssEl.textContent = `
     .cal-grid {
       display: grid;
-      grid-template-columns: repeat(7, 1fr);
+      grid-template-columns: repeat(7, minmax(0, 1fr));
       gap: 3px;
+      width: 100%;
+      box-sizing: border-box;
     }
     .cal-hdr {
-      font-size: 10.5px;
+      font-size: 11px;
       font-weight: 700;
       color: var(--muted);
       text-align: center;
-      padding: 5px 0;
+      padding: 6px 0;
       text-transform: uppercase;
       background: #F8FAFC;
       border-radius: 4px;
+      box-sizing: border-box;
     }
     .cal-empty {
       min-height: 56px;
@@ -281,6 +307,9 @@ async function renderReports() {
       justify-content: space-between;
       transition: transform 0.1s, box-shadow 0.1s;
       background: #fff;
+      box-sizing: border-box;
+      min-width: 0;
+      overflow: hidden;
     }
     .cal-day:hover {
       box-shadow: 0 3px 8px rgba(0,0,0,0.12);
@@ -309,11 +338,16 @@ async function renderReports() {
       background: transparent;
       padding: 0;
     }
+    .cal-day.booked.is-blocked-day {
+      border: 1px dashed rgba(71, 85, 105, 0.35);
+      background: #F8FAFC;
+    }
     .cal-date-num {
       font-size: 11.5px;
       font-weight: 700;
       color: #334155;
       padding: 3px 4px 0;
+      line-height: 1;
     }
     .cal-rate {
       font-size: 9.5px;
@@ -329,47 +363,93 @@ async function renderReports() {
       justify-content: center;
       gap: 3px;
       color: #fff;
-      font-size: 11px;
+      font-size: 10.5px;
       font-weight: 700;
-      padding: 3px 5px;
+      padding: 3px 4px;
       margin: 2px 0;
       overflow: hidden;
       min-width: 0;
+      box-sizing: border-box;
+    }
+    .cal-pill.blocked {
+      background: linear-gradient(135deg, #475569 0%, #334155 100%) !important;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.15);
     }
     .cal-avatar {
-      width: 18px;
-      height: 18px;
+      width: 17px;
+      height: 17px;
       border-radius: 50%;
       background: rgba(255,255,255,0.3);
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      font-size: 9.5px;
+      font-size: 9px;
       font-weight: 800;
       flex-shrink: 0;
+      line-height: 1;
     }
     .cal-name {
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
-      font-size: 10.5px;
+      font-size: 10px;
       color: #fff;
-      text-shadow: 0 1px 1px rgba(0,0,0,0.2);
+      text-shadow: 0 1px 1px rgba(0,0,0,0.25);
       max-width: 100%;
       font-weight: 700;
+      display: inline-block;
+      min-width: 0;
     }
-    .cal-room-card { overflow: hidden; }
+    .cal-room-card { 
+      overflow: hidden; 
+      box-sizing: border-box;
+    }
 
     @media (max-width: 640px) {
-      .cal-grid { gap: 2px; }
-      .cal-day { min-height: 48px; border-radius: 6px; }
-      .cal-date-num { font-size: 10px; padding: 2px 2px 0; }
-      .cal-rate { font-size: 8px; }
-      .cal-pill { font-size: 9px; padding: 2px 2px; margin: 1px 0; }
-      .cal-avatar { width: 14px; height: 14px; font-size: 8px; }
-      .cal-name { font-size: 9px; font-weight: 700; }
-      .cal-hdr { font-size: 9px; padding: 3px 0; }
-      .cal-room-card { padding: 10px 6px !important; border-radius: 12px; }
+      .cal-grid { 
+        gap: 2px; 
+      }
+      .cal-day { 
+        min-height: 46px; 
+        border-radius: 6px; 
+        padding: 1px 0;
+      }
+      .cal-date-num { 
+        font-size: 9.5px; 
+        padding: 2px 2px 0; 
+      }
+      .cal-rate { 
+        font-size: 7.5px; 
+        padding-bottom: 1px;
+      }
+      .cal-pill { 
+        font-size: 8.5px; 
+        padding: 2px 1px; 
+        margin: 1px 0; 
+        gap: 1.5px; 
+      }
+      .cal-avatar { 
+        width: 13px; 
+        height: 13px; 
+        font-size: 7.5px; 
+      }
+      .cal-name { 
+        font-size: 8px; 
+        font-weight: 700; 
+        max-width: calc(100% - 2px); 
+        letter-spacing: -0.2px;
+      }
+      .cal-hdr { 
+        font-size: 8.5px; 
+        padding: 3px 0; 
+      }
+      .cal-room-card { 
+        padding: 8px 4px !important; 
+        border-radius: 12px; 
+      }
+      .cal-room-header {
+        margin-bottom: 6px !important;
+      }
     }
   `;
 
@@ -622,7 +702,8 @@ window.openBookingDetails = async function(bId) {
   const nights = (b.check_in && b.check_out) ? Math.max(Math.round((new Date(b.check_out) - new Date(b.check_in)) / 86400000), 1) : 1;
   const idPaths = (b.id_proof_photo_paths || b.id_proof_photo_path || '').split(',').filter(Boolean);
 
-  const isBlocked = b.guest_name && (b.guest_name.includes('Blocked') || b.booking_mode === 'Offline-Blocked');
+  const isBlocked = (b.booking_id && String(b.booking_id).startsWith('BLK_')) || 
+                    (b.guest_name && (b.guest_name.includes('Blocked') || b.booking_mode === 'Offline-Blocked'));
 
   const modal = document.createElement('div');
   modal.className = 'modal-overlay';
@@ -631,15 +712,15 @@ window.openBookingDetails = async function(bId) {
   modal.innerHTML = `
     <div class="modal-box" style="max-width:520px;padding:22px;">
       <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">✕</button>
-      <h2 style="margin-top:0;margin-bottom:12px;font-size:18px;">${isBlocked ? '🛑 Airbnb Blocked Slot' : '📅 Booking Details'}</h2>
+      <h2 style="margin-top:0;margin-bottom:12px;font-size:18px;">${isBlocked ? '🔒 Blocked Date (Offline Slot)' : '📅 Booking Details'}</h2>
 
-      <div style="background:${isBlocked ? '#FEE2E2' : '#F8FAFC'};padding:14px;border-radius:12px;border:1px solid ${isBlocked ? '#FCA5A5' : 'var(--border)'};margin-bottom:14px;font-size:13px;line-height:1.8;">
-        <div><strong>Guest Name:</strong> ${b.guest_name || '-'} ${typeof getRatingBadge === 'function' ? getRatingBadge(b.client_rating) : ''}</div>
+      <div style="background:${isBlocked ? '#F1F5F9' : '#F8FAFC'};padding:14px;border-radius:12px;border:1px solid ${isBlocked ? '#CBD5E1' : 'var(--border)'};margin-bottom:14px;font-size:13px;line-height:1.8;">
+        <div><strong>Guest Name:</strong> ${isBlocked ? '🔒 Blocked Slot' : (b.guest_name || '-')} ${!isBlocked && typeof getRatingBadge === 'function' ? getRatingBadge(b.client_rating) : ''}</div>
         ${b.phone ? `<div><strong>Phone:</strong> <a href="tel:${b.phone}" style="color:var(--primary);text-decoration:none;">${b.phone}</a></div>` : ''}
         <div><strong>Property:</strong> ${propLabel(b.rooms) || b.room_id}</div>
-        <div><strong>Channel Mode:</strong> <span style="font-weight:700;color:${b.booking_mode==='Online-Airbnb'?'#2563EB':'#D97706'}">${b.booking_mode}</span></div>
+        <div><strong>Channel Mode:</strong> <span style="font-weight:700;color:${isBlocked ? '#475569' : (b.booking_mode==='Online-Airbnb'?'#2563EB':'#D97706')}">${isBlocked ? '🔒 Offline-Blocked' : b.booking_mode}</span></div>
         <div><strong>Dates:</strong> 🗓️ ${b.check_in} ➔ ${b.check_out} (<strong>${nights}</strong> Night${nights>1?'s':''})</div>
-        <div><strong>Total Amount:</strong> ₹${(b.total_amount||0).toLocaleString('en-IN')} | <strong>Paid:</strong> ₹${totalPaid.toLocaleString('en-IN')} | <strong style="color:${due>0?'#DC2626':'#059669'}">Due: ₹${due.toLocaleString('en-IN')}</strong></div>
+        ${!isBlocked ? `<div><strong>Total Amount:</strong> ₹${(b.total_amount||0).toLocaleString('en-IN')} | <strong>Paid:</strong> ₹${totalPaid.toLocaleString('en-IN')} | <strong style="color:${due>0?'#DC2626':'#059669'}">Due: ₹${due.toLocaleString('en-IN')}</strong></div>` : '<div style="color:var(--muted);font-size:12px;">This slot is blocked / unavailable on Airbnb. You can convert it to a real guest booking below.</div>'}
         ${b.has_vehicle ? `<div style="margin-top:2px;font-size:12px;color:var(--muted);">🚗 Vehicle: ${(b.vehicle_name || '') + ' ' + (b.vehicle_number || '')}</div>` : ''}
         ${b.notes ? `<div style="font-size:12px;color:#6B7280;margin-top:4px;"><strong>Notes:</strong> ${b.notes}</div>` : ''}
       </div>
@@ -657,7 +738,7 @@ window.openBookingDetails = async function(bId) {
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
         ${isBlocked ? `
           <button onclick="this.closest('.modal-overlay').remove(); if(window.editBooking) editBooking('${b.booking_id}');" style="padding:11px;background:#059669;color:#fff;border:none;border-radius:8px;font-weight:700;cursor:pointer;grid-column:span 2;">
-            ➕ Convert & Fill Guest Details
+            ➕ Convert to Direct / Offline Booking
           </button>
         ` : `
           <button onclick="this.closest('.modal-overlay').remove(); if(window.editBooking) editBooking('${b.booking_id}');" style="padding:10px;background:#3B82F6;color:#fff;border:none;border-radius:8px;font-weight:600;cursor:pointer;">

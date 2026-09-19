@@ -51,20 +51,20 @@ window.showReminderModal = async function(bookingId) {
     <div class="modal-box" style="max-width:550px;">
       <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">✕</button>
       <h2>🔔 Set Reminder</h2>
-      <div style="background:#F0F9FF;padding:10px;border-radius:6px;margin:12px 0;font-size:13px;">
+      <div style="background:var(--bg-tertiary);border:1px solid var(--border);padding:10px;border-radius:8px;margin:12px 0;font-size:13px;color:var(--text);">
         <strong>${bk.guest_name}</strong> — ${bk.room_id}<br>
-        <small>${bk.check_in} to ${bk.check_out || 'Open'}</small>
+        <small style="color:var(--muted);">${bk.check_in} to ${bk.check_out || 'Open'}</small>
         ${due > 0 ? `<br><strong style="color:#DC2626;">Due: ₹${due.toLocaleString('en-IN')}</strong>` : ''}
       </div>
 
       ${existing && existing.length > 0 ? `
-        <div style="background:#FEF3C7;padding:10px;border-radius:6px;margin:12px 0;">
-          <div style="font-weight:700;color:#B45309;font-size:12px;margin-bottom:6px;">⏰ Existing Reminders (${existing.length}):</div>
+        <div style="background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.3);padding:10px;border-radius:8px;margin:12px 0;">
+          <div style="font-weight:700;color:#D97706;font-size:12px;margin-bottom:6px;">⏰ Existing Reminders (${existing.length}):</div>
           ${existing.map(r => `
-            <div style="font-size:12px;padding:4px;background:#fff;border-radius:4px;margin-bottom:4px;display:flex;justify-content:space-between;align-items:center;">
-              <span>${r.reminder_type === 'payment' ? '💰' : r.reminder_type === 'id' ? '🪪' : r.reminder_type === 'checkout' ? '🚪' : '📌'} 
+            <div style="font-size:12px;padding:6px 8px;background:var(--card);border:1px solid var(--border);border-radius:6px;margin-bottom:4px;display:flex;justify-content:space-between;align-items:center;">
+              <span style="color:var(--text);">${r.reminder_type === 'payment' ? '💰' : r.reminder_type === 'id' ? '🪪' : r.reminder_type === 'checkout' ? '🚪' : '📌'} 
               ${r.reminder_note || r.reminder_type}${r.amount ? ' (₹' + r.amount + ')' : ''}<br>
-              <small style="color:#666;">${new Date(r.reminder_time).toLocaleString('en-IN')}</small></span>
+              <small style="color:var(--muted);">${new Date(r.reminder_time).toLocaleString('en-IN')}</small></span>
               <button onclick="resolveReminder(${r.id}, ${q}${bookingId}${q})" style="background:#059669;color:#fff;border:none;padding:4px 8px;border-radius:4px;cursor:pointer;font-size:11px;">✓ Done</button>
             </div>
           `).join('')}
@@ -268,31 +268,31 @@ async function renderReminders() {
     const time = new Date(r.reminder_time);
     const timeStr = time.toLocaleString('en-IN', {day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit'});
     return `
-      <div class="reminder-row" data-reminder-id="${r.id}" id="reminder-${r.id}" style="background:${isOverdue ? '#FEE2E2' : '#fff'};border:1px solid ${isOverdue ? '#DC2626' : '#E5E7EB'};padding:12px;border-radius:8px;margin-bottom:8px;">
+      <div class="rem-row-card ${isOverdue ? 'overdue' : ''}" data-reminder-id="${r.id}" id="reminder-${r.id}">
         <div style="display:flex;justify-content:space-between;align-items:start;gap:8px;">
           <div style="flex:1;">
-            <div style="font-size:14px;font-weight:700;">
+            <div style="font-size:14px;font-weight:700;color:var(--text);">
               ${typeIcon(r.reminder_type)} ${typeName(r.reminder_type)}
               ${r.amount > 0 ? ` — ₹${r.amount.toLocaleString('en-IN')}` : ''}
-              ${isOverdue ? '<span style="background:#DC2626;color:#fff;padding:2px 6px;border-radius:10px;font-size:10px;margin-left:6px;">OVERDUE</span>' : ''}
+              ${isOverdue ? '<span style="background:#DC2626;color:#fff;padding:2px 8px;border-radius:10px;font-size:10px;margin-left:6px;font-weight:700;">OVERDUE</span>' : ''}
             </div>
-            <div style="font-size:13px;color:#374151;margin-top:4px;">
-              <strong>${gr.guest_name || 'Unknown'}</strong> — ${gr.room_id || '-'}
+            <div style="font-size:13px;color:var(--text-secondary);margin-top:4px;">
+              <strong style="color:var(--text);">${gr.guest_name || 'Unknown'}</strong> — ${gr.room_id || '-'}
               ${gr.phone ? ` · 📞 ${gr.phone}` : ''}
             </div>
-            ${r.reminder_note ? `<div style="font-size:12px;color:#6B7280;margin-top:4px;font-style:italic;">"${r.reminder_note}"</div>` : ''}
-            ${(r.assigned_to && r.assigned_to.length > 0) ? `<div style="font-size:11px;color:#7C3AED;margin-top:4px;font-weight:600;">👥 Assigned: ${(r.assigned_to || []).map(id => (window._empMap && window._empMap[id]) || id).join(', ')}</div>` : ''}
-            <div style="font-size:11px;color:${isOverdue ? '#DC2626' : '#059669'};margin-top:6px;font-weight:600;">
+            ${r.reminder_note ? `<div style="font-size:12px;color:var(--muted);margin-top:4px;font-style:italic;">"${r.reminder_note}"</div>` : ''}
+            ${(r.assigned_to && r.assigned_to.length > 0) ? `<div style="font-size:11px;color:#8B5CF6;margin-top:4px;font-weight:600;">👥 Assigned: ${(r.assigned_to || []).map(id => (window._empMap && window._empMap[id]) || id).join(', ')}</div>` : ''}
+            <div style="font-size:11px;color:${isOverdue ? '#DC2626' : '#10B981'};margin-top:6px;font-weight:600;">
               ⏰ ${timeStr}
             </div>
           </div>
           <div style="display:flex;flex-direction:column;gap:4px;">
             <button onclick="resolveReminder(${r.id}, '${r.booking_id}')" 
-                    style="background:#059669;color:#fff;border:none;padding:6px 12px;border-radius:6px;cursor:pointer;font-size:12px;">
+                    style="background:#059669;color:#fff;border:none;padding:6px 12px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:600;">
               ✓ Done
             </button>
             ${gr.phone ? `<button onclick="window.open('https://wa.me/91${gr.phone.replace(/[^0-9]/g, '')}', '_blank')" 
-                    style="background:#25D366;color:#fff;border:none;padding:6px 12px;border-radius:6px;cursor:pointer;font-size:12px;">
+                    style="background:#25D366;color:#fff;border:none;padding:6px 12px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:600;">
               📱 WA
             </button>` : ''}
             ${window.canDelete && window.canDelete() ? `<button onclick="deleteReminder(${r.id})" 
@@ -308,18 +308,18 @@ async function renderReminders() {
   renderShell(`
     <div class="card">
       <h1>🔔 Reminders & Alarms</h1>
-      <div class="sub">Manage payment, ID collection & custom reminders</div>
+      <div class="sub">Manage payment collections, guest ID followups & checkout reminders</div>
     </div>
 
     ${overdue && overdue.length > 0 ? `
-      <div class="card" style="border-left:4px solid #DC2626;background:#FEF2F2;">
-        <div class="section-title" style="color:#DC2626;">🚨 Overdue (${overdue.length})</div>
+      <div class="card" style="border-left:4px solid #DC2626;background:rgba(239,68,68,0.06);">
+        <div class="section-title" style="color:#DC2626;">🚨 Overdue Reminders (${overdue.length})</div>
         ${overdue.map(r => renderRow(r, true)).join('')}
       </div>
     ` : ''}
 
     <div class="card">
-      <div class="section-title">⏰ Pending Reminders (${(pending || []).length})</div>
+      <div class="section-title">⏰ Upcoming Reminders (${(pending || []).length})</div>
       ${(pending || []).length === 0 
         ? '<div class="sub">No upcoming reminders ✅</div>' 
         : pending.map(r => renderRow(r, false)).join('')}
@@ -331,10 +331,13 @@ async function renderReminders() {
         ? '<div class="sub">None yet</div>' 
         : `<div style="max-height:300px;overflow-y:auto;">
             ${resolved.map(r => `
-              <div style="padding:8px;border-bottom:1px solid #E5E7EB;font-size:12px;">
-                ${typeIcon(r.reminder_type)} <strong>${r.guest_register?.guest_name || '-'}</strong> 
-                (${r.guest_register?.room_id || '-'}) 
-                — <span style="color:#059669;">Resolved ${new Date(r.resolved_at).toLocaleString('en-IN', {day:'2-digit', month:'short'})}</span>
+              <div style="padding:10px;border-bottom:1px solid var(--border);font-size:12px;display:flex;justify-content:space-between;align-items:center;">
+                <div>
+                  ${typeIcon(r.reminder_type)} <strong>${r.guest_register?.guest_name || '-'}</strong> 
+                  <span style="color:var(--muted);">(${r.guest_register?.room_id || '-'})</span>
+                  ${r.amount > 0 ? ` · ₹${r.amount.toLocaleString('en-IN')}` : ''}
+                </div>
+                <span style="color:#10B981;font-weight:600;">✓ Done ${new Date(r.resolved_at).toLocaleString('en-IN', {day:'2-digit', month:'short'})}</span>
               </div>
             `).join('')}
           </div>`}

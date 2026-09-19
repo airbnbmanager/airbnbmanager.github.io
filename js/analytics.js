@@ -422,33 +422,33 @@
   }
 
   function buildStyles() {
-    return '<style>@media print{.no-print{display:none!important;}body{background:#fff;}.card{break-inside:avoid;}}</style>';
+    return '<style>@media print{.no-print{display:none!important;}body{background:#fff;color:#111;}.card{break-inside:avoid;background:#fff;color:#111;border:1px solid #ccc;}}</style>';
   }
 
   function buildFilterCard(opts) {
     const btnStyle = 'margin:0;border-radius:0;padding:8px 14px;';
     return '<div class="card no-print">' +
       '<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:8px;">' +
-        '<h1 style="margin:0;font-size:24px;">📊 Analytics Dashboard</h1>' +
+        '<h1 style="margin:0;font-size:24px;color:var(--text);">📊 Analytics Dashboard</h1>' +
         '<div style="display:flex;gap:6px;">' +
           '<button class="btn-sm outline" onclick="renderAnalytics()">🔄 Refresh</button>' +
           '<button class="btn-sm" onclick="printAnalytics()">🖨️ Print</button>' +
         '</div>' +
       '</div>' +
-      '<div style="margin-top:16px;padding:14px;background:#F8F9FA;border-radius:8px;">' +
+      '<div style="margin-top:16px;padding:14px;background:var(--bg-tertiary);border:1px solid var(--border);border-radius:8px;">' +
         '<div style="display:flex;flex-wrap:wrap;gap:12px;align-items:end;">' +
-          '<div><label style="font-size:11px;color:#666;display:block;margin-bottom:4px;">📊 View By</label>' +
-            '<div style="display:inline-flex;background:#fff;border-radius:6px;border:1px solid #ddd;overflow:hidden;">' +
+          '<div><label style="font-size:11px;color:var(--muted);display:block;margin-bottom:4px;font-weight:600;">📊 View By</label>' +
+            '<div style="display:inline-flex;background:var(--card);border-radius:6px;border:1px solid var(--border);overflow:hidden;">' +
               '<button class="btn-sm ' + (AN.viewType === 'month' ? '' : 'outline') + '" onclick="setV2ViewType(\'month\')" style="' + btnStyle + '">Month</button>' +
               '<button class="btn-sm ' + (AN.viewType === 'quarter' ? '' : 'outline') + '" onclick="setV2ViewType(\'quarter\')" style="' + btnStyle + '">Quarter</button>' +
               '<button class="btn-sm ' + (AN.viewType === 'year' ? '' : 'outline') + '" onclick="setV2ViewType(\'year\')" style="' + btnStyle + '">Year</button>' +
             '</div></div>' +
-          '<div><label style="font-size:11px;color:#666;display:block;margin-bottom:4px;">📅 Period</label>' +
-            '<select onchange="setV2Period(this.value)" style="padding:8px 12px;border-radius:6px;border:1px solid #ddd;">' +
+          '<div><label style="font-size:11px;color:var(--muted);display:block;margin-bottom:4px;font-weight:600;">📅 Period</label>' +
+            '<select onchange="setV2Period(this.value)" style="padding:8px 12px;border-radius:6px;border:1px solid var(--border);background:var(--card);color:var(--text);">' +
               opts.map(o => '<option value="' + o.key + '" ' + (o.key === AN.periodKey ? 'selected' : '') + '>' + o.label + '</option>').join('') +
             '</select></div>' +
-          '<div><label style="font-size:11px;color:#666;display:block;margin-bottom:4px;">🔄 Compare With</label>' +
-            '<select onchange="setV2Compare(this.value)" style="padding:8px 12px;border-radius:6px;border:1px solid #ddd;">' +
+          '<div><label style="font-size:11px;color:var(--muted);display:block;margin-bottom:4px;font-weight:600;">🔄 Compare With</label>' +
+            '<select onchange="setV2Compare(this.value)" style="padding:8px 12px;border-radius:6px;border:1px solid var(--border);background:var(--card);color:var(--text);">' +
               opts.filter(o => o.key !== AN.periodKey).map(o => '<option value="' + o.key + '" ' + (o.key === AN.compareKey ? 'selected' : '') + '>' + o.label + '</option>').join('') +
             '</select></div>' +
         '</div></div></div>';
@@ -477,53 +477,53 @@
       healthIcon = '🟡';
     } else {
       overallHealth = 'Healthy';
-      healthColor = '#0A7D1A';
+      healthColor = '#10B981';
       healthIcon = '🟢';
     }
 
     const revGrowth = compare.totalRevenue > 100 ? ((current.totalRevenue - compare.totalRevenue) / compare.totalRevenue * 100) : 0;
 
-    return '<div class="card" style="background:linear-gradient(135deg,' + healthColor + '15,' + healthColor + '05);border-left:5px solid ' + healthColor + ';">' +
+    return '<div class="card" style="background:linear-gradient(135deg,' + healthColor + '18,' + healthColor + '08);border:1px solid ' + healthColor + '40;border-left:5px solid ' + healthColor + ';">' +
       '<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;">' +
-        '<div><div style="font-size:12px;color:#666;">💼 BUSINESS HEALTH</div>' +
+        '<div><div style="font-size:12px;color:var(--muted);font-weight:600;">💼 BUSINESS HEALTH</div>' +
           '<div style="font-size:24px;font-weight:800;color:' + healthColor + ';">' + healthIcon + ' ' + overallHealth + '</div></div>' +
         '<div style="display:flex;gap:20px;flex-wrap:wrap;">' +
-          '<div style="text-align:center;"><div style="font-size:11px;color:#666;">Revenue Growth</div><div style="font-size:20px;font-weight:700;color:' + (revGrowth >= 0 ? '#0A7D1A' : '#DC2626') + ';">' + (revGrowth >= 0 ? '📈 +' : '📉 ') + revGrowth.toFixed(1) + '%</div></div>' +
-          '<div style="text-align:center;"><div style="font-size:11px;color:#666;">Profit Margin</div><div style="font-size:20px;font-weight:700;color:' + (current.profitMargin >= 0 ? '#0A7D1A' : '#DC2626') + ';">' + current.profitMargin.toFixed(1) + '%</div></div>' +
-          '<div style="text-align:center;"><div style="font-size:11px;color:#666;">Occupancy</div><div style="font-size:20px;font-weight:700;color:#3B82F6;">' + Math.round(current.occupancy) + '%</div></div>' +
+          '<div style="text-align:center;"><div style="font-size:11px;color:var(--muted);">Revenue Growth</div><div style="font-size:20px;font-weight:700;color:' + (revGrowth >= 0 ? '#10B981' : '#DC2626') + ';">' + (revGrowth >= 0 ? '📈 +' : '📉 ') + revGrowth.toFixed(1) + '%</div></div>' +
+          '<div style="text-align:center;"><div style="font-size:11px;color:var(--muted);">Profit Margin</div><div style="font-size:20px;font-weight:700;color:' + (current.profitMargin >= 0 ? '#10B981' : '#DC2626') + ';">' + current.profitMargin.toFixed(1) + '%</div></div>' +
+          '<div style="text-align:center;"><div style="font-size:11px;color:var(--muted);">Occupancy</div><div style="font-size:20px;font-weight:700;color:#3B82F6;">' + Math.round(current.occupancy) + '%</div></div>' +
         '</div>' +
       '</div>' +
-      (isTemplateData ? '<div style="margin-top:10px;padding:8px 12px;background:#FEF3C7;border-radius:6px;font-size:11px;color:#92400E;">💡 <strong>Note:</strong> All properties currently show same expense value (template data). Update individual property expenses for accurate insights.</div>' : '') +
+      (isTemplateData ? '<div style="margin-top:10px;padding:8px 12px;background:rgba(245,158,11,0.12);border:1px solid rgba(245,158,11,0.3);border-radius:6px;font-size:11px;color:#F59E0B;">💡 <strong>Note:</strong> All properties currently show same expense value (template data). Update individual property expenses for accurate insights.</div>' : '') +
     '</div>';
   }
 
   function buildInsightsCard(insights) {
     if (insights.critical.length === 0 && insights.opportunities.length === 0 && insights.wins.length === 0) {
-      return '<div class="card"><div class="section-title">🎯 Smart Insights</div><div style="text-align:center;color:#999;padding:20px;">No insights available yet</div></div>';
+      return '<div class="card"><div class="section-title">🎯 Smart Insights</div><div style="text-align:center;color:var(--muted);padding:20px;">No insights available yet</div></div>';
     }
     let html = '<div class="card"><div class="section-title">🎯 Smart Insights (Auto-Generated)</div>';
     if (insights.critical.length > 0) {
       html += '<div style="color:#DC2626;font-weight:700;margin-top:8px;">🔴 CRITICAL (' + insights.critical.length + ')</div>';
       insights.critical.forEach(i => {
-        html += '<div style="background:#FEF2F2;border-left:3px solid #DC2626;padding:10px;margin:6px 0;border-radius:4px;">' +
-          '<div style="font-weight:600;font-size:13px;">' + i.icon + ' ' + i.text + '</div>' +
-          '<div style="font-size:11px;color:#666;">' + i.detail + '</div></div>';
+        html += '<div style="background:rgba(239,68,68,0.08);border-left:3px solid #DC2626;border:1px solid rgba(239,68,68,0.25);padding:10px;margin:6px 0;border-radius:6px;">' +
+          '<div style="font-weight:600;font-size:13px;color:var(--text);">' + i.icon + ' ' + i.text + '</div>' +
+          '<div style="font-size:11px;color:var(--muted);">' + i.detail + '</div></div>';
       });
     }
     if (insights.opportunities.length > 0) {
       html += '<div style="color:#F59E0B;font-weight:700;margin-top:12px;">💡 OPPORTUNITIES (' + insights.opportunities.length + ')</div>';
       insights.opportunities.forEach(i => {
-        html += '<div style="background:#FFFBEB;border-left:3px solid #F59E0B;padding:10px;margin:6px 0;border-radius:4px;">' +
-          '<div style="font-weight:600;font-size:13px;">' + i.icon + ' ' + i.text + '</div>' +
-          '<div style="font-size:11px;color:#666;">' + i.detail + '</div></div>';
+        html += '<div style="background:rgba(245,158,11,0.08);border-left:3px solid #F59E0B;border:1px solid rgba(245,158,11,0.25);padding:10px;margin:6px 0;border-radius:6px;">' +
+          '<div style="font-weight:600;font-size:13px;color:var(--text);">' + i.icon + ' ' + i.text + '</div>' +
+          '<div style="font-size:11px;color:var(--muted);">' + i.detail + '</div></div>';
       });
     }
     if (insights.wins.length > 0) {
-      html += '<div style="color:#0A7D1A;font-weight:700;margin-top:12px;">⭐ WINS (' + insights.wins.length + ')</div>';
+      html += '<div style="color:#10B981;font-weight:700;margin-top:12px;">⭐ WINS (' + insights.wins.length + ')</div>';
       insights.wins.forEach(i => {
-        html += '<div style="background:#F0FDF4;border-left:3px solid #22C55E;padding:10px;margin:6px 0;border-radius:4px;">' +
-          '<div style="font-weight:600;font-size:13px;">' + i.icon + ' ' + i.text + '</div>' +
-          '<div style="font-size:11px;color:#666;">' + i.detail + '</div></div>';
+        html += '<div style="background:rgba(16,185,129,0.08);border-left:3px solid #10B981;border:1px solid rgba(16,185,129,0.25);padding:10px;margin:6px 0;border-radius:6px;">' +
+          '<div style="font-weight:600;font-size:13px;color:var(--text);">' + i.icon + ' ' + i.text + '</div>' +
+          '<div style="font-size:11px;color:var(--muted);">' + i.detail + '</div></div>';
       });
     }
     html += '</div>';
@@ -533,14 +533,14 @@
   function buildComparisonCard(current, compare, currentRange, compareRange, isIncomplete, daysCompleted, projected) {
     return '<div class="card">' +
       '<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:12px;">' +
-        '<div><div style="font-size:18px;font-weight:700;color:#333;">📊 ' + currentRange.label + '</div>' +
-        '<div style="font-size:12px;color:#666;">vs ' + compareRange.label + '</div></div>' +
-        (isIncomplete ? '<div style="background:#FFF7E6;border:1px solid #F59E0B;padding:6px 12px;border-radius:6px;font-size:12px;color:#F59E0B;">⏳ ' + daysCompleted + '/' + currentRange.days + ' days • Projected: ' + (projected ? formatK(projected) : 'N/A') + ' • <strong>Expenses prorated</strong></div>' : '') +
+        '<div><div style="font-size:18px;font-weight:700;color:var(--text);">📊 ' + currentRange.label + '</div>' +
+        '<div style="font-size:12px;color:var(--muted);">vs ' + compareRange.label + '</div></div>' +
+        (isIncomplete ? '<div style="background:rgba(245,158,11,0.12);border:1px solid #F59E0B;padding:6px 12px;border-radius:6px;font-size:12px;color:#F59E0B;">⏳ ' + daysCompleted + '/' + currentRange.days + ' days • Projected: ' + (projected ? formatK(projected) : 'N/A') + ' • <strong>Expenses prorated</strong></div>' : '') +
       '</div>' +
       '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;">' +
         metricCard('💰 Total Revenue', current.totalRevenue, compare.totalRevenue, '#FF385C') +
         metricCardWithProration('💸 Total Expenses', current.totalExpenses, compare.totalExpenses, '#DC2626', current.isProrated, current.fullExpenses, current.daysCompleted, current.daysInPeriod) +
-        metricCard('📈 Net Profit', current.netProfit, compare.netProfit, current.netProfit >= 0 ? '#0A7D1A' : '#DC2626') +
+        metricCard('📈 Net Profit', current.netProfit, compare.netProfit, current.netProfit >= 0 ? '#10B981' : '#DC2626') +
         metricCard('🌐 Online (Airbnb)', current.onlineRev, compare.onlineRev, '#8B5CF6') +
         metricCard('🏠 Offline (Direct)', current.offlineRev, compare.offlineRev, '#F59E0B') +
         occupancyCard(current.occupancy, compare.occupancy, current.totalNights, current.totalRoomNights) +
@@ -549,65 +549,65 @@
         statBox('📅 Bookings', current.totalBookings, 'vs ' + compare.totalBookings) +
         statBox('🌙 Avg Nights', current.avgNights.toFixed(1), 'per booking') +
         statBox('💵 Avg Value', formatK(current.avgBookingValue), '') +
-        statBox('⭐ Review', current.reviewBks, formatK(current.reviewRev), '#722ED1') +
+        statBox('⭐ Review', current.reviewBks, formatK(current.reviewRev), '#8B5CF6') +
       '</div>' +
     '</div>';
   }
 
   function statBox(label, value, sub, color) {
-    return '<div style="padding:10px;background:#F8F9FA;border-radius:6px;text-align:center;">' +
-      '<div style="font-size:11px;color:#666;">' + label + '</div>' +
-      '<div style="font-size:18px;font-weight:700;color:' + (color || '#333') + ';">' + value + '</div>' +
-      (sub ? '<div style="font-size:10px;color:#888;">' + sub + '</div>' : '') +
+    return '<div style="padding:10px;background:var(--bg-tertiary);border:1px solid var(--border);border-radius:6px;text-align:center;">' +
+      '<div style="font-size:11px;color:var(--muted);">' + label + '</div>' +
+      '<div style="font-size:18px;font-weight:700;color:' + (color || 'var(--text)') + ';">' + value + '</div>' +
+      (sub ? '<div style="font-size:10px;color:var(--muted);">' + sub + '</div>' : '') +
     '</div>';
   }
 
   function metricCardWithProration(label, current, previous, color, isProrated, fullAmount, daysDone, daysTotal) {
     const change = changeDisplay(current, previous);
-    return '<div style="padding:14px;background:#fff;border:1px solid #eee;border-left:4px solid ' + color + ';border-radius:8px;">' +
-      '<div style="font-size:11px;color:#666;margin-bottom:4px;">' + label + (isProrated ? ' <span style="background:#F59E0B;color:#fff;padding:1px 5px;border-radius:3px;font-size:9px;">PRORATED</span>' : '') + '</div>' +
+    return '<div style="padding:14px;background:var(--card);border:1px solid var(--border);border-left:4px solid ' + color + ';border-radius:8px;">' +
+      '<div style="font-size:11px;color:var(--muted);margin-bottom:4px;">' + label + (isProrated ? ' <span style="background:#F59E0B;color:#fff;padding:1px 5px;border-radius:3px;font-size:9px;">PRORATED</span>' : '') + '</div>' +
       '<div style="font-size:22px;font-weight:800;color:' + color + ';">' + formatK(current) + '</div>' +
-      '<div style="font-size:11px;color:#888;margin-top:4px;">vs ' + formatK(previous) + ' <span style="color:' + change.color + ';font-weight:600;">' + change.icon + ' ' + change.text + '</span></div>' +
+      '<div style="font-size:11px;color:var(--muted);margin-top:4px;">vs ' + formatK(previous) + ' <span style="color:' + change.color + ';font-weight:600;">' + change.icon + ' ' + change.text + '</span></div>' +
       (isProrated ? '<div style="font-size:10px;color:#F59E0B;margin-top:2px;">📅 Full month: ' + formatK(fullAmount) + ' (' + daysDone + '/' + daysTotal + ' days)</div>' : '') +
     '</div>';
   }
 
   function metricCard(label, current, previous, color) {
     const change = changeDisplay(current, previous);
-    return '<div style="padding:14px;background:#fff;border:1px solid #eee;border-left:4px solid ' + color + ';border-radius:8px;">' +
-      '<div style="font-size:11px;color:#666;margin-bottom:4px;">' + label + '</div>' +
+    return '<div style="padding:14px;background:var(--card);border:1px solid var(--border);border-left:4px solid ' + color + ';border-radius:8px;">' +
+      '<div style="font-size:11px;color:var(--muted);margin-bottom:4px;">' + label + '</div>' +
       '<div style="font-size:22px;font-weight:800;color:' + color + ';">' + formatK(current) + '</div>' +
-      '<div style="font-size:11px;color:#888;margin-top:4px;">vs ' + formatK(previous) + ' <span style="color:' + change.color + ';font-weight:600;">' + change.icon + ' ' + change.text + '</span></div>' +
+      '<div style="font-size:11px;color:var(--muted);margin-top:4px;">vs ' + formatK(previous) + ' <span style="color:' + change.color + ';font-weight:600;">' + change.icon + ' ' + change.text + '</span></div>' +
     '</div>';
   }
 
   function occupancyCard(current, previous, nights, roomNights) {
     const change = changeDisplay(current, previous);
-    return '<div style="padding:14px;background:#fff;border:1px solid #eee;border-left:4px solid #3B82F6;border-radius:8px;">' +
-      '<div style="font-size:11px;color:#666;margin-bottom:4px;">📊 Occupancy</div>' +
+    return '<div style="padding:14px;background:var(--card);border:1px solid var(--border);border-left:4px solid #3B82F6;border-radius:8px;">' +
+      '<div style="font-size:11px;color:var(--muted);margin-bottom:4px;">📊 Occupancy</div>' +
       '<div style="font-size:22px;font-weight:800;color:#3B82F6;">' + Math.round(current) + '%</div>' +
-      '<div style="font-size:11px;color:#888;margin-top:4px;">vs ' + Math.round(previous) + '% <span style="color:' + change.color + ';font-weight:600;">' + change.icon + ' ' + change.text + '</span></div>' +
-      '<div style="font-size:10px;color:#999;margin-top:2px;">' + nights + '/' + roomNights + ' room-nights</div>' +
+      '<div style="font-size:11px;color:var(--muted);margin-top:4px;">vs ' + Math.round(previous) + '% <span style="color:' + change.color + ';font-weight:600;">' + change.icon + ' ' + change.text + '</span></div>' +
+      '<div style="font-size:10px;color:var(--muted);margin-top:2px;">' + nights + '/' + roomNights + ' room-nights</div>' +
     '</div>';
   }
 
   function buildCashFlowCard(cashFlow, current) {
     return '<div class="card"><div class="section-title">💰 Cash Flow</div>' +
       '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;">' +
-        '<div style="padding:14px;background:#F0FDF4;border-radius:8px;border-left:4px solid #22C55E;">' +
-          '<div style="font-size:11px;color:#666;">💵 Cash IN (Collected)</div>' +
-          '<div style="font-size:20px;font-weight:800;color:#0A7D1A;">' + formatK(cashFlow.cashIn) + '</div>' +
+        '<div style="padding:14px;background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.25);border-radius:8px;border-left:4px solid #10B981;">' +
+          '<div style="font-size:11px;color:var(--muted);">💵 Cash IN (Collected)</div>' +
+          '<div style="font-size:20px;font-weight:800;color:#10B981;">' + formatK(cashFlow.cashIn) + '</div>' +
         '</div>' +
-        '<div style="padding:14px;background:#FEF2F2;border-radius:8px;border-left:4px solid #DC2626;">' +
-          '<div style="font-size:11px;color:#666;">💸 Cash OUT (Expenses)</div>' +
+        '<div style="padding:14px;background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.25);border-radius:8px;border-left:4px solid #DC2626;">' +
+          '<div style="font-size:11px;color:var(--muted);">💸 Cash OUT (Expenses)</div>' +
           '<div style="font-size:20px;font-weight:800;color:#DC2626;">' + formatK(cashFlow.cashOut) + '</div>' +
         '</div>' +
-        '<div style="padding:14px;background:' + (cashFlow.netCash >= 0 ? '#F0FDF4' : '#FEF2F2') + ';border-radius:8px;border-left:4px solid ' + (cashFlow.netCash >= 0 ? '#22C55E' : '#DC2626') + ';">' +
-          '<div style="font-size:11px;color:#666;">📊 Net Cash Flow</div>' +
-          '<div style="font-size:20px;font-weight:800;color:' + (cashFlow.netCash >= 0 ? '#0A7D1A' : '#DC2626') + ';">' + formatK(cashFlow.netCash) + '</div>' +
+        '<div style="padding:14px;background:' + (cashFlow.netCash >= 0 ? 'rgba(16,185,129,0.08)' : 'rgba(239,68,68,0.08)') + ';border:1px solid ' + (cashFlow.netCash >= 0 ? 'rgba(16,185,129,0.25)' : 'rgba(239,68,68,0.25)') + ';border-radius:8px;border-left:4px solid ' + (cashFlow.netCash >= 0 ? '#10B981' : '#DC2626') + ';">' +
+          '<div style="font-size:11px;color:var(--muted);">📊 Net Cash Flow</div>' +
+          '<div style="font-size:20px;font-weight:800;color:' + (cashFlow.netCash >= 0 ? '#10B981' : '#DC2626') + ';">' + formatK(cashFlow.netCash) + '</div>' +
         '</div>' +
-        '<div style="padding:14px;background:#FFF7E6;border-radius:8px;border-left:4px solid #F59E0B;">' +
-          '<div style="font-size:11px;color:#666;">⏳ Pending Collection</div>' +
+        '<div style="padding:14px;background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.25);border-radius:8px;border-left:4px solid #F59E0B;">' +
+          '<div style="font-size:11px;color:var(--muted);">⏳ Pending Collection</div>' +
           '<div style="font-size:20px;font-weight:800;color:#F59E0B;">' + formatK(cashFlow.pending) + '</div>' +
         '</div>' +
       '</div></div>';
@@ -621,27 +621,27 @@
 
     let html = '<div class="card"><div class="section-title">🏠 Property Performance — ' + range.label + '</div>' +
       '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:16px;">' +
-        '<div style="background:#FEF2F2;border:2px solid #DC2626;padding:12px;border-radius:8px;text-align:center;"><div style="font-size:24px;font-weight:800;color:#DC2626;">' + critical.length + '</div><div style="font-size:11px;color:#666;">🔴 Loss Making</div></div>' +
-        '<div style="background:#FFFBEB;border:2px solid #F59E0B;padding:12px;border-radius:8px;text-align:center;"><div style="font-size:24px;font-weight:800;color:#F59E0B;">' + warning.length + '</div><div style="font-size:11px;color:#666;">🟡 Warning</div></div>' +
-        '<div style="background:#F0FDF4;border:2px solid #22C55E;padding:12px;border-radius:8px;text-align:center;"><div style="font-size:24px;font-weight:800;color:#0A7D1A;">' + healthy.length + '</div><div style="font-size:11px;color:#666;">🟢 Healthy</div></div>' +
-        '<div style="background:#F5F5F5;border:2px solid #999;padding:12px;border-radius:8px;text-align:center;"><div style="font-size:24px;font-weight:800;color:#666;">' + neutral.length + '</div><div style="font-size:11px;color:#666;">⚪ Neutral</div></div>' +
+        '<div style="background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.3);padding:12px;border-radius:8px;text-align:center;"><div style="font-size:24px;font-weight:800;color:#DC2626;">' + critical.length + '</div><div style="font-size:11px;color:var(--muted);">🔴 Loss Making</div></div>' +
+        '<div style="background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.3);padding:12px;border-radius:8px;text-align:center;"><div style="font-size:24px;font-weight:800;color:#F59E0B;">' + warning.length + '</div><div style="font-size:11px;color:var(--muted);">🟡 Warning</div></div>' +
+        '<div style="background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.3);padding:12px;border-radius:8px;text-align:center;"><div style="font-size:24px;font-weight:800;color:#10B981;">' + healthy.length + '</div><div style="font-size:11px;color:var(--muted);">🟢 Healthy</div></div>' +
+        '<div style="background:var(--bg-tertiary);border:1px solid var(--border);padding:12px;border-radius:8px;text-align:center;"><div style="font-size:24px;font-weight:800;color:var(--text);">' + neutral.length + '</div><div style="font-size:11px;color:var(--muted);">⚪ Neutral</div></div>' +
       '</div>';
 
     if (critical.length > 0) {
       html += '<div style="font-weight:700;color:#DC2626;margin:16px 0 8px;font-size:14px;">🚨 CRITICAL — Immediate Action (' + critical.length + ')</div>';
       html += critical.map(p =>
-        '<div style="background:#FEF2F2;border:2px solid #DC2626;border-radius:10px;padding:16px;margin-bottom:12px;">' +
+        '<div style="background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.35);border-left:5px solid #DC2626;border-radius:10px;padding:16px;margin-bottom:12px;">' +
           '<div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:10px;">' +
             '<div><div style="font-weight:700;font-size:16px;color:#DC2626;">🔴 ' + (p.room.nickname || p.room.unit_no) + '</div>' +
-            '<div style="font-size:12px;color:#666;">👤 ' + p.investorName + '</div></div>' +
+            '<div style="font-size:12px;color:var(--muted);">👤 ' + p.investorName + '</div></div>' +
             '<div style="text-align:right;"><div style="font-size:20px;font-weight:800;color:#DC2626;">LOSS: -₹' + Math.abs(p.profit).toLocaleString('en-IN') + '</div>' +
-            '<div style="font-size:11px;color:#666;">Occ: ' + Math.round(p.occupancyPct) + '% | Vacant: ' + p.vacantDays + 'd</div></div>' +
+            '<div style="font-size:11px;color:var(--muted);">Occ: ' + Math.round(p.occupancyPct) + '% | Vacant: ' + p.vacantDays + 'd</div></div>' +
           '</div>' +
           '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(100px,1fr));gap:8px;font-size:12px;margin-bottom:10px;">' +
-            '<div style="background:#fff;padding:8px;border-radius:6px;"><div style="color:#666;font-size:10px;">Revenue</div><div style="font-weight:700;">₹' + p.revenue.toLocaleString('en-IN') + '</div><div style="font-size:10px;color:#888;">🌐' + p.onlineBks + ' 🏠' + p.offlineBks + ' ⭐' + p.reviewBks + '</div></div>' +
-            '<div style="background:#fff;padding:8px;border-radius:6px;"><div style="color:#666;font-size:10px;">Expenses</div><div style="font-weight:700;color:#DC2626;">₹' + p.expenses.toLocaleString('en-IN') + '</div></div>' +
+            '<div style="background:var(--card);border:1px solid var(--border);padding:8px;border-radius:6px;"><div style="color:var(--muted);font-size:10px;">Revenue</div><div style="font-weight:700;color:var(--text);">₹' + p.revenue.toLocaleString('en-IN') + '</div><div style="font-size:10px;color:var(--muted);">🌐' + p.onlineBks + ' 🏠' + p.offlineBks + ' ⭐' + p.reviewBks + '</div></div>' +
+            '<div style="background:var(--card);border:1px solid var(--border);padding:8px;border-radius:6px;"><div style="color:var(--muted);font-size:10px;">Expenses</div><div style="font-weight:700;color:#DC2626;">₹' + p.expenses.toLocaleString('en-IN') + '</div></div>' +
           '</div>' +
-          '<div style="background:#FFF7E6;padding:10px;border-left:3px solid #F59E0B;border-radius:4px;font-size:12px;"><strong>💡 ACTION:</strong> ' + p.recommendation + '</div>' +
+          '<div style="background:rgba(245,158,11,0.12);border:1px solid rgba(245,158,11,0.3);padding:10px;border-left:3px solid #F59E0B;border-radius:4px;font-size:12px;color:var(--text);"><strong>💡 ACTION:</strong> ' + p.recommendation + '</div>' +
         '</div>'
       ).join('');
     }
@@ -649,25 +649,25 @@
     if (warning.length > 0) {
       html += '<div style="font-weight:700;color:#F59E0B;margin:16px 0 8px;font-size:14px;">⚠️ WARNING (' + warning.length + ')</div>';
       html += warning.map(p =>
-        '<div style="background:#FFFBEB;border:1px solid #F59E0B;border-radius:8px;padding:12px;margin-bottom:8px;">' +
+        '<div style="background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.3);border-left:4px solid #F59E0B;border-radius:8px;padding:12px;margin-bottom:8px;">' +
           '<div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;">' +
             '<div><strong style="color:#F59E0B;">🟡 ' + (p.room.nickname || p.room.unit_no) + '</strong>' +
-            '<span style="font-size:11px;color:#666;margin-left:8px;">👤 ' + p.investorName + '</span></div>' +
-            '<div style="font-size:13px;">Rev: <strong>₹' + p.revenue.toLocaleString('en-IN') + '</strong> | Profit: <strong style="color:' + (p.profit < 0 ? '#DC2626' : '#F59E0B') + ';">₹' + p.profit.toLocaleString('en-IN') + '</strong> | Occ: <strong>' + Math.round(p.occupancyPct) + '%</strong></div>' +
+            '<span style="font-size:11px;color:var(--muted);margin-left:8px;">👤 ' + p.investorName + '</span></div>' +
+            '<div style="font-size:13px;color:var(--text);">Rev: <strong>₹' + p.revenue.toLocaleString('en-IN') + '</strong> | Profit: <strong style="color:' + (p.profit < 0 ? '#DC2626' : '#F59E0B') + ';">₹' + p.profit.toLocaleString('en-IN') + '</strong> | Occ: <strong>' + Math.round(p.occupancyPct) + '%</strong></div>' +
           '</div>' +
-          '<div style="font-size:11px;color:#666;margin-top:4px;font-style:italic;">💡 ' + p.recommendation + '</div>' +
+          '<div style="font-size:11px;color:var(--muted);margin-top:4px;font-style:italic;">💡 ' + p.recommendation + '</div>' +
         '</div>'
       ).join('');
     }
 
     if (healthy.length > 0) {
-      html += '<div style="font-weight:700;color:#0A7D1A;margin:16px 0 8px;font-size:14px;">🏆 TOP PERFORMERS (Top 5)</div>';
+      html += '<div style="font-weight:700;color:#10B981;margin:16px 0 8px;font-size:14px;">🏆 TOP PERFORMERS (Top 5)</div>';
       html += healthy.slice(0, 5).map((p, i) =>
-        '<div style="background:#F0FDF4;border:1px solid #22C55E;border-radius:8px;padding:10px;margin-bottom:6px;">' +
+        '<div style="background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.3);border-left:4px solid #10B981;border-radius:8px;padding:10px;margin-bottom:6px;">' +
           '<div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;">' +
-            '<div><strong>' + (i === 0 ? '🏆' : i === 1 ? '🥈' : i === 2 ? '🥉' : '🟢') + ' ' + (p.room.nickname || p.room.unit_no) + '</strong>' +
-            '<span style="font-size:11px;color:#666;margin-left:6px;">👤 ' + p.investorName + '</span></div>' +
-            '<div style="font-size:13px;"><strong style="color:#0A7D1A;">₹' + p.profit.toLocaleString('en-IN') + '</strong> profit | <strong>' + Math.round(p.occupancyPct) + '%</strong> occ</div>' +
+            '<div><strong style="color:var(--text);">' + (i === 0 ? '🏆' : i === 1 ? '🥈' : i === 2 ? '🥉' : '🟢') + ' ' + (p.room.nickname || p.room.unit_no) + '</strong>' +
+            '<span style="font-size:11px;color:var(--muted);margin-left:6px;">👤 ' + p.investorName + '</span></div>' +
+            '<div style="font-size:13px;color:var(--text);"><strong style="color:#10B981;">₹' + p.profit.toLocaleString('en-IN') + '</strong> profit | <strong>' + Math.round(p.occupancyPct) + '%</strong> occ</div>' +
           '</div>' +
         '</div>'
       ).join('');
@@ -685,21 +685,31 @@
         const onlinePct = p.revenue > 0 ? (p.onlineRev / p.revenue * 100) : 0;
         const offlinePct = p.revenue > 0 ? (p.offlineRev / p.revenue * 100) : 0;
         const totalPct = (p.revenue / maxRev * 100);
-        return '<div style="padding:10px 0;border-bottom:1px solid #eee;">' +
+        return '<div style="padding:10px 0;border-bottom:1px solid var(--border);">' +
           '<div style="display:flex;justify-content:space-between;margin-bottom:6px;">' +
-            '<strong>' + (p.room.nickname || p.room.unit_no) + '</strong>' +
-            '<span style="font-weight:700;">' + formatK(p.revenue) + '</span></div>' +
-          '<div style="display:flex;height:8px;background:#F5F5F5;border-radius:4px;overflow:hidden;">' +
+            '<strong style="color:var(--text);">' + (p.room.nickname || p.room.unit_no) + '</strong>' +
+            '<span style="font-weight:700;color:var(--text);">' + formatK(p.revenue) + '</span></div>' +
+          '<div style="display:flex;height:8px;background:var(--bg-tertiary);border-radius:4px;overflow:hidden;">' +
             '<div style="background:#FF385C;width:' + (totalPct * onlinePct / 100) + '%;"></div>' +
             '<div style="background:#F59E0B;width:' + (totalPct * offlinePct / 100) + '%;"></div>' +
           '</div>' +
-          '<div style="display:flex;justify-content:space-between;font-size:10px;color:#888;margin-top:3px;">' +
+          '<div style="display:flex;justify-content:space-between;font-size:10px;color:var(--muted);margin-top:3px;">' +
             '<span>🌐 ' + formatK(p.onlineRev) + ' (' + p.onlineBks + ')</span>' +
             '<span>🏠 ' + formatK(p.offlineRev) + ' (' + p.offlineBks + ')</span>' +
           '</div>' +
         '</div>';
       }).join('') +
     '</div>';
+  }
+
+  // Auto-refresh analytics when theme changes if analytics is currently shown
+  if (typeof window !== 'undefined') {
+    window.addEventListener('themechanged', function() {
+      const activeNav = document.querySelector('.bottom-nav a.active, .nav-item.active');
+      if (activeNav && (activeNav.getAttribute('href') === '#analytics' || activeNav.textContent.toLowerCase().includes('analytics'))) {
+        renderAnalytics();
+      }
+    });
   }
 
   window.renderAnalytics = renderAnalytics;

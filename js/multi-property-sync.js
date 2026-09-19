@@ -72,9 +72,12 @@
     },
 
     classifyEvent(event, property) {
-      const summary = event.SUMMARY || '';
-      const isBlocked = summary.includes('Blocked') ||
-                        summary === property.property_name ||
+      const summary = (event.SUMMARY || '').toLowerCase();
+      const propName = (property.property_name || '').toLowerCase();
+      const isBlocked = summary.includes('blocked') ||
+                        summary.includes('not available') ||
+                        summary.includes('unavailable') ||
+                        (propName && summary === propName) ||
                         summary.includes('block');
       return { type: isBlocked ? 'BLOCKED' : 'BOOKING', isBlocked };
     },

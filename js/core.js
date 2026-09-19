@@ -425,8 +425,8 @@ function renderShell(content, activePage = 'dashboard') {
 
   let nav;
 
-  // Settings visible only to admin
-  const showSettings = isAdmin;
+  // Settings visible to owner, admin, and developer
+  const showSettings = isOwner || isAdmin;
 
   // Viewer: 5 items view-only (with chat)
   if (SESSION.role === 'viewer') {
@@ -560,6 +560,7 @@ function renderShell(content, activePage = 'dashboard') {
       ['rooms', '🏢 Properties'],
       ['showcase-admin', '🌐 Website Showcase & Media'],
       ['property-setup', '🏗️ Property Setup'],
+      ...(showSettings ? [['settings', '⚙️ Settings']] : []),
     ];
   }
 
@@ -1584,68 +1585,299 @@ function renderFinancialSheet() {
 init();
 
 // ============ APP SETTINGS ============
+// ============ APP SETTINGS ============
+window._settingsActiveTab = window._settingsActiveTab || 'themes';
+
+window.setSettingsTab = function(tabId) {
+  window._settingsActiveTab = tabId;
+  document.querySelectorAll('.settings-tab-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.getAttribute('data-tab') === tabId);
+  });
+  document.querySelectorAll('.settings-tab-content').forEach(panel => {
+    panel.style.display = panel.getAttribute('data-tab') === tabId ? 'block' : 'none';
+  });
+};
+
 async function renderSettings() {
   renderShell(`<div class="loading">Loading settings...</div>`, 'settings');
 
   const { data: settings } = await sb.from('app_settings').select('*').order('key');
+  const setMap = {};
+  (settings || []).forEach(s => { setMap[s.key] = s.value; });
+
+  const activeTab = window._settingsActiveTab || 'themes';
+  const currentTheme = window.themeManager?.get() || 'light';
+
+  // 1. Themes Tab Grid
+  const themeCardsHTML = window.THEMES_LIST.map(t => {
+    const isActive = t.id === currentTheme;
+    return `
+      <div class="theme-card ${isActive ? 'active' : ''}" data-theme-id="${t.id}" data-theme-tag="${t.tag}" onclick="window.themeManager.set('${t.id}')">
+        <div class="theme-preview-box" style="background:${t.bg};">
+          <div class="theme-preview-sidebar" style="background:${t.sidebar};border-right:1px solid rgba(255,255,255,0.08);"></div>
+          <div class="theme-preview-content" style="background:${t.card};">
+            <div style="height:6px;width:60%;background:${t.accent};border-radius:3px;"></div>
+            <div style="height:4px;width:90%;background:rgba(128,128,128,0.25);border-radius:2px;"></div>
+            <div style="height:4px;width:45%;background:rgba(128,128,128,0.2);border-radius:2px;"></div>
+          </div>
+        </div>
+        <div class="theme-card-title">
+          <span>${t.icon} ${t.name}</span>
+          <span class="theme-badge">${isActive ? 'Active ✅' : t.tag}</span>
+        </div>
+        <div style="font-size:11px;color:var(--muted);margin-top:4px;line-height:1.4;">${t.desc}</div>
+      </div>
+    `;
+  }).join('');
 
   renderShell(`
     <div class="card">
-      <h1>⚙️ App Settings</h1>
-      <div class="sub">Manage brand info, links, phone numbers, and defaults</div>
-    </div>
-
-    <div class="card">
-      <div class="section-title">🔧 All Settings</div>
-      <div class="table-wrap"><table>
-        <thead><tr>
-          <th style="width:200px;">Key</th>
-          <th>Value</th>
-          <th>Description</th>
-          <th style="width:100px;">Action</th>
-        </tr></thead>
-        <tbody>
-          ${(settings || []).map(s => `
-            <tr>
-              <td><strong>${s.key}</strong></td>
-              <td>
-                <input type="text" id="set_${s.key}" value="${(s.value || '').replace(/"/g, '&quot;')}"
-                  style="width:100%;font-size:12px;padding:6px 8px;" />
-              </td>
-              <td style="font-size:12px;color:var(--muted);">${s.description || '-'}</td>
-              <td>
-                <button class="btn-sm green-btn" onclick="saveSetting('${s.key}')">💾 Save</button>
-              </td>
-            </tr>
-          `).join('')}
-        </tbody>
-      </table></div>
-    </div>
-
-    <div class="card">
-      <div class="section-title">➕ Add New Setting</div>
-      <div class="form-grid">
-        <div class="form-group"><label>Key</label><input id="newSetKey" placeholder="e.g. instagram_url" /></div>
-        <div class="form-group"><label>Value</label><input id="newSetValue" placeholder="e.g. https://..." /></div>
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;">
+        <div>
+          <h1 style="margin:0;font-size:24px;">⚙️ Settings & Customization</h1>
+          <div class="sub">Themes, brand info, review links, automated alerts and database settings</div>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <div class="theme-toggle ${window.themeManager.isDark() ? 'active' : ''}" onclick="window.themeManager.toggle();this.classList.toggle('active');event.stopPropagation();" title="Quick toggle dark/light">
+            <div class="theme-toggle-switch"></div>
+          </div>
+          <button class="btn-sm outline" onclick="renderSettings()">🔄 Refresh</button>
+        </div>
       </div>
-      <div class="form-group"><label>Description</label><input id="newSetDesc" placeholder="Optional" /></div>
-      <button onclick="addSetting()" style="width:100%;margin-top:10px;">💾 Add Setting</button>
-      <div id="settingErr"></div>
+
+      <!-- Settings Navigation Tabs -->
+      <div class="settings-nav" style="margin-top:18px;">
+        <button class="settings-tab-btn ${activeTab === 'themes' ? 'active' : ''}" data-tab="themes" onclick="setSettingsTab('themes')">
+          🎨 Themes & Appearance
+        </button>
+        <button class="settings-tab-btn ${activeTab === 'brand' ? 'active' : ''}" data-tab="brand" onclick="setSettingsTab('brand')">
+          🏢 Brand & Contacts
+        </button>
+        <button class="settings-tab-btn ${activeTab === 'alerts' ? 'active' : ''}" data-tab="alerts" onclick="setSettingsTab('alerts')">
+          🔔 Alerts & Audio
+        </button>
+        <button class="settings-tab-btn ${activeTab === 'all' ? 'active' : ''}" data-tab="all" onclick="setSettingsTab('all')">
+          🔧 All System Keys (${(settings||[]).length})
+        </button>
+        <button class="settings-tab-btn ${activeTab === 'cache' ? 'active' : ''}" data-tab="cache" onclick="setSettingsTab('cache')">
+          💾 System & Cache
+        </button>
+      </div>
     </div>
 
-    <div class="card" style="background:#FFF9E6;border-left:4px solid #FFB800;">
-      <div class="section-title">💡 Where these are used:</div>
-      <ul style="font-size:13px;line-height:2;padding-left:20px;">
-        <li><strong>airbnb_review_link</strong> — Review request WhatsApp (Airbnb guests)</li>
-        <li><strong>google_review_link</strong> — Review request WhatsApp (Offline guests)</li>
-        <li><strong>owner_phone_1/2</strong> — All WhatsApp messages fallback contact</li>
-        <li><strong>checkin_time/checkout_time</strong> — Default times in new bookings</li>
-        <li><strong>website_url</strong> — Website link in all messages</li>
-        <li><strong>brand_name</strong> — Displayed everywhere as brand</li>
-      </ul>
+    <!-- TAB 1: THEMES & APPEARANCE -->
+    <div class="settings-tab-content" data-tab="themes" style="display:${activeTab === 'themes' ? 'block' : 'none'};">
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+          <div>
+            <div class="section-title" style="margin:0;">🎨 Select App Theme</div>
+            <div style="font-size:12px;color:var(--muted);margin-top:2px;">
+              Choose between classic Clean Light, dark editor themes (VS Code, Dracula, Nord, Monokai) or Midnight OLED.
+            </div>
+          </div>
+          <span style="font-size:12px;color:var(--muted);font-weight:600;">Live Preview • Auto Saved</span>
+        </div>
+
+        <div class="theme-grid">
+          ${themeCardsHTML}
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 2: BRAND & CONTACTS -->
+    <div class="settings-tab-content" data-tab="brand" style="display:${activeTab === 'brand' ? 'block' : 'none'};">
+      <div class="card">
+        <div class="section-title">🏢 Brand Identity & WhatsApp Fallbacks</div>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:16px;">
+          These details are automatically placed in booking confirmation vouchers, invoices, and guest WhatsApp messages.
+        </div>
+
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Brand Name</label>
+            <input type="text" id="brand_brand_name" value="${(setMap['brand_name'] || 'The Unique Haven').replace(/"/g, '&quot;')}" placeholder="e.g. The Unique Haven" />
+            <small style="color:var(--muted);">Used in page headers, invoices & WhatsApp signatures</small>
+          </div>
+          <div class="form-group">
+            <label>Website URL</label>
+            <input type="text" id="brand_website_url" value="${(setMap['website_url'] || 'https://theuniquehaven.com').replace(/"/g, '&quot;')}" placeholder="https://..." />
+            <small style="color:var(--muted);">Public website link included in messages</small>
+          </div>
+        </div>
+
+        <div class="form-grid" style="margin-top:10px;">
+          <div class="form-group">
+            <label>Primary Owner/Manager Phone</label>
+            <input type="text" id="brand_owner_phone_1" value="${(setMap['owner_phone_1'] || '').replace(/"/g, '&quot;')}" placeholder="+91..." />
+            <small style="color:var(--muted);">Guest escalation & WhatsApp contact</small>
+          </div>
+          <div class="form-group">
+            <label>Secondary / Supervisor Phone</label>
+            <input type="text" id="brand_owner_phone_2" value="${(setMap['owner_phone_2'] || '').replace(/"/g, '&quot;')}" placeholder="+91..." />
+            <small style="color:var(--muted);">Backup emergency contact</small>
+          </div>
+        </div>
+
+        <div class="form-grid" style="margin-top:10px;">
+          <div class="form-group">
+            <label>Default Check-in Time</label>
+            <input type="text" id="brand_checkin_time" value="${(setMap['checkin_time'] || '2:00 PM').replace(/"/g, '&quot;')}" placeholder="e.g. 2:00 PM" />
+          </div>
+          <div class="form-group">
+            <label>Default Check-out Time</label>
+            <input type="text" id="brand_checkout_time" value="${(setMap['checkout_time'] || '11:00 AM').replace(/"/g, '&quot;')}" placeholder="e.g. 11:00 AM" />
+          </div>
+        </div>
+
+        <div class="form-group" style="margin-top:10px;">
+          <label>⭐ Airbnb Review Link</label>
+          <input type="text" id="brand_airbnb_review_link" value="${(setMap['airbnb_review_link'] || '').replace(/"/g, '&quot;')}" placeholder="https://airbnb.com/..." />
+          <small style="color:var(--muted);">Auto sent in checkout WhatsApp message for Online-Airbnb guests</small>
+        </div>
+
+        <div class="form-group">
+          <label>🌟 Google / Direct Review Link</label>
+          <input type="text" id="brand_google_review_link" value="${(setMap['google_review_link'] || '').replace(/"/g, '&quot;')}" placeholder="https://g.page/r/..." />
+          <small style="color:var(--muted);">Auto sent in checkout WhatsApp message for Direct & Offline guests</small>
+        </div>
+
+        <button onclick="saveBrandSettingsGroup()" class="green-btn" style="padding:12px 24px;font-weight:700;margin-top:12px;">
+          💾 Save Brand Details
+        </button>
+      </div>
+    </div>
+
+    <!-- TAB 3: ALERTS & NOTIFICATIONS -->
+    <div class="settings-tab-content" data-tab="alerts" style="display:${activeTab === 'alerts' ? 'block' : 'none'};">
+      <div class="card">
+        <div class="section-title">🔔 Alerts, Sounds & Background Sync</div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(280px, 1fr));gap:14px;margin-top:12px;">
+          <div style="padding:16px;background:var(--bg-tertiary);border-radius:10px;border:1px solid var(--border);">
+            <div style="font-weight:700;font-size:14px;display:flex;align-items:center;gap:8px;">
+              <span>🔔</span> Notification Preferences
+            </div>
+            <div style="font-size:12px;color:var(--muted);margin:8px 0 14px;">
+              Configure which events trigger real-time bell badges and in-app toasts.
+            </div>
+            <button class="btn-sm" onclick="if(window.notifSettings){window.notifSettings.openSettings();}">
+              ⚙️ Open Notification Config
+            </button>
+          </div>
+
+          <div style="padding:16px;background:var(--bg-tertiary);border-radius:10px;border:1px solid var(--border);">
+            <div style="font-weight:700;font-size:14px;display:flex;align-items:center;gap:8px;">
+              <span>⏰</span> Reminders & Overdue Badges
+            </div>
+            <div style="font-size:12px;color:var(--muted);margin:8px 0 14px;">
+              Auto checks for overdue collections & pending room tasks every 60 seconds.
+            </div>
+            <button class="btn-sm outline" onclick="if(window.loadPendingRemindersBadge) window.loadPendingRemindersBadge(); fsn.info('Reminders Checked', 'Bell badge updated');">
+              🔄 Check Reminders Now
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 4: ALL SYSTEM KEYS -->
+    <div class="settings-tab-content" data-tab="all" style="display:${activeTab === 'all' ? 'block' : 'none'};">
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:12px;">
+          <div class="section-title" style="margin:0;">🔧 All Key-Value Settings</div>
+          <input type="text" id="settingsSearchInput" placeholder="🔍 Search key..." onkeyup="filterSettingsTable()" style="max-width:240px;padding:6px 10px;font-size:12px;" />
+        </div>
+
+        <div class="table-wrap"><table>
+          <thead><tr>
+            <th style="width:200px;">Key</th>
+            <th>Value</th>
+            <th>Description</th>
+            <th style="width:100px;text-align:center;">Action</th>
+          </tr></thead>
+          <tbody id="settingsTableBody">
+            ${(settings || []).map(s => `
+              <tr class="setting-row" data-key="${s.key.toLowerCase()}">
+                <td><strong style="color:var(--text);">${s.key}</strong></td>
+                <td>
+                  <input type="text" id="set_${s.key}" value="${(s.value || '').replace(/"/g, '&quot;')}"
+                    style="width:100%;font-size:12px;padding:6px 8px;" />
+                </td>
+                <td style="font-size:12px;color:var(--muted);">${s.description || '-'}</td>
+                <td style="text-align:center;">
+                  <button class="btn-sm green-btn" onclick="saveSetting('${s.key}')">💾 Save</button>
+                </td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table></div>
+      </div>
+
+      <div class="card">
+        <div class="section-title">➕ Add New Setting</div>
+        <div class="form-grid">
+          <div class="form-group"><label>Key</label><input id="newSetKey" placeholder="e.g. instagram_url" /></div>
+          <div class="form-group"><label>Value</label><input id="newSetValue" placeholder="e.g. https://..." /></div>
+        </div>
+        <div class="form-group"><label>Description</label><input id="newSetDesc" placeholder="Optional brief description" /></div>
+        <button onclick="addSetting()" style="width:100%;margin-top:10px;padding:12px;font-weight:700;">💾 Add Setting</button>
+        <div id="settingErr"></div>
+      </div>
+    </div>
+
+    <!-- TAB 5: SYSTEM & CACHE -->
+    <div class="settings-tab-content" data-tab="cache" style="display:${activeTab === 'cache' ? 'block' : 'none'};">
+      <div class="card">
+        <div class="section-title">💾 Local Cache & Performance</div>
+        <div style="font-size:13px;color:var(--muted);margin-bottom:14px;line-height:1.6;">
+          Cached properties, app settings, and booking history are stored locally for ultra-fast instant loading. If you updated database entries or iCal links, you can force refresh here.
+        </div>
+
+        <div style="display:flex;gap:12px;flex-wrap:wrap;">
+          <button onclick="clearAppCacheAndReload()" style="background:#EF4444;color:#fff;padding:12px 20px;font-weight:700;border:none;border-radius:8px;cursor:pointer;">
+            🧹 Clear Cache & Hard Reload
+          </button>
+          <button onclick="if(window.hybridSync){window.hybridSync.syncAll();fsn.info('iCal Sync', 'Syncing all calendars...');}" class="btn-sm outline" style="padding:12px 20px;">
+            🔄 Force iCal Resync
+          </button>
+        </div>
+      </div>
     </div>
   `, 'settings');
 }
+
+window.filterSettingsTable = function() {
+  const query = (document.getElementById('settingsSearchInput')?.value || '').toLowerCase().trim();
+  document.querySelectorAll('.setting-row').forEach(row => {
+    const key = row.getAttribute('data-key') || '';
+    row.style.display = key.includes(query) ? '' : 'none';
+  });
+};
+
+window.saveBrandSettingsGroup = async function() {
+  const keys = ['brand_name', 'website_url', 'owner_phone_1', 'owner_phone_2', 'checkin_time', 'checkout_time', 'airbnb_review_link', 'google_review_link'];
+  let savedCount = 0;
+  for (const key of keys) {
+    const el = document.getElementById('brand_' + key);
+    if (!el) continue;
+    const value = el.value.trim();
+    const { error } = await sb.from('app_settings').upsert({
+      key, value, updated_at: new Date().toISOString()
+    }, { onConflict: 'key' });
+    if (!error) savedCount++;
+  }
+  window._appSettings = null;
+  fsn.success('Brand Details Saved', `✅ Updated ${savedCount} settings successfully!`);
+};
+
+window.clearAppCacheAndReload = function() {
+  if (!confirm('Clear all local app cache and reload fresh data?')) return;
+  window._appSettings = null;
+  window._roomCache = null;
+  localStorage.removeItem('uh_cache_rooms');
+  localStorage.removeItem('uh_cache_bks');
+  sessionStorage.clear();
+  location.reload();
+};
 
 async function saveSetting(key) {
   const value = document.getElementById(`set_${key}`).value.trim();
@@ -1658,7 +1890,6 @@ async function saveSetting(key) {
     return;
   }
   fsn.success(`Success`, `✅ Updated: ${key}`);
-  // Clear cache so new value picks up
   window._appSettings = null;
 }
 
@@ -2027,56 +2258,92 @@ window.showLoadingSkeleton = function(type) {
 };
 
 // ═══════════════════════════════════════════════════════════
-// 🌙 DARK MODE MANAGER
 // ═══════════════════════════════════════════════════════════
+// 🌙 MULTI-THEME ENGINE (VS Code, Dracula, Nord, Monokai, etc.)
+// ═══════════════════════════════════════════════════════════
+window.THEMES_LIST = [
+  { id: 'light', name: 'Clean Light', type: 'light', icon: '☀️', desc: 'Modern high-contrast clean light', bg: '#F8FAFC', card: '#FFFFFF', sidebar: '#0F172A', accent: '#4F46E5', tag: 'Default Light' },
+  { id: 'dark', name: 'VS Code Dark+', type: 'dark', icon: '💻', desc: 'Classic Visual Studio Code dark editor', bg: '#1E1E1E', card: '#252526', sidebar: '#181818', accent: '#007ACC', tag: 'VS Code' },
+  { id: 'one-dark', name: 'One Dark Pro', type: 'dark', icon: '⚛️', desc: 'Atom iconic charcoal & cyan', bg: '#21252B', card: '#282C34', sidebar: '#1E2227', accent: '#61AFEF', tag: 'Atom' },
+  { id: 'dracula', name: 'Dracula', type: 'dark', icon: '🧛', desc: 'Vibrant purple & neon pastel dark palette', bg: '#1E1F29', card: '#282A36', sidebar: '#191A21', accent: '#BD93F9', tag: 'Popular' },
+  { id: 'nord', name: 'Nord Arctic', type: 'dark', icon: '❄️', desc: 'Arctic bluish clean slate minimalism', bg: '#2E3440', card: '#3B4252', sidebar: '#242933', accent: '#88C0D0', tag: 'Frost' },
+  { id: 'monokai', name: 'Monokai Pro', type: 'dark', icon: '⚡', desc: 'Sublime warmth with vivid amber & green', bg: '#1E1F1C', card: '#272822', sidebar: '#191A17', accent: '#FD971F', tag: 'Pro' },
+  { id: 'midnight', name: 'Midnight OLED', type: 'dark', icon: '🌌', desc: 'Pitch black OLED with indigo accents', bg: '#090D16', card: '#0F172A', sidebar: '#05070D', accent: '#6366F1', tag: 'Deep OLED' },
+  { id: 'github-light', name: 'GitHub Light', type: 'light', icon: '🐙', desc: 'Official GitHub clean white & slate', bg: '#F6F8FA', card: '#FFFFFF', sidebar: '#24292F', accent: '#0969DA', tag: 'Clean' }
+];
+
 window.themeManager = (function() {
   const KEY = 'uh_theme';
+  const VALID_THEMES = window.THEMES_LIST.map(t => t.id);
 
   function get() {
-    return localStorage.getItem(KEY) || 'light';
+    const saved = localStorage.getItem(KEY);
+    return VALID_THEMES.includes(saved) ? saved : 'light';
+  }
+
+  function isDark() {
+    const t = get();
+    return ['dark', 'one-dark', 'dracula', 'nord', 'monokai', 'midnight'].includes(t);
   }
 
   function apply(theme) {
-    // Only allow light/dark
-    if (theme !== 'light' && theme !== 'dark') {
-      theme = 'light';
-      localStorage.setItem(KEY, 'light');
-    }
+    if (!VALID_THEMES.includes(theme)) theme = 'light';
+    localStorage.setItem(KEY, theme);
     document.documentElement.setAttribute('data-theme', theme);
+
     // Update theme-color meta for status bar
     const meta = document.querySelector('meta[name="theme-color"]');
     if (meta) {
-      meta.setAttribute('content', theme === 'dark' ? '#0f1419' : '#E2725B');
+      const darkMeta = theme === 'midnight' ? '#090D16' : theme === 'dracula' ? '#1E1F29' : theme === 'nord' ? '#2E3440' : '#1E1E1E';
+      meta.setAttribute('content', isDark() ? darkMeta : '#4F46E5');
     }
+
     // Update all toggle UIs
     document.querySelectorAll('.theme-toggle').forEach(el => {
-      if (theme === 'dark') el.classList.add('active');
+      if (isDark()) el.classList.add('active');
       else el.classList.remove('active');
     });
+
+    // Update any active state on theme picker cards
+    document.querySelectorAll('.theme-card').forEach(card => {
+      const cardTheme = card.getAttribute('data-theme-id');
+      if (cardTheme === theme) {
+        card.classList.add('active');
+        const badge = card.querySelector('.theme-badge');
+        if (badge) badge.textContent = 'Active ✅';
+      } else {
+        card.classList.remove('active');
+        const badge = card.querySelector('.theme-badge');
+        if (badge) {
+          const originalTag = card.getAttribute('data-theme-tag') || '';
+          badge.textContent = originalTag;
+        }
+      }
+    });
+
+    window.dispatchEvent(new CustomEvent('themechanged', { detail: { theme, isDark: isDark() } }));
   }
 
   function toggle() {
     const current = get();
-    const next = current === 'dark' ? 'light' : 'dark';
-    localStorage.setItem(KEY, next);
+    const next = isDark() ? 'light' : 'dark';
     apply(next);
     if (window.haptic) window.haptic.medium();
     return next;
+  }
+
+  function set(theme) {
+    apply(theme);
+    if (window.haptic) window.haptic.medium();
   }
 
   function init() {
     apply(get());
   }
 
-  // Apply immediately on load
   init();
 
-  function set(theme) {
-    localStorage.setItem(KEY, theme);
-    apply(theme);
-    if (window.haptic) window.haptic.medium();
-  }
-  return { get, apply, toggle, init, set };
+  return { get, apply, toggle, init, set, isDark, list: window.THEMES_LIST };
 })();
 
 // ═══════════════════════════════════════════════════════════
@@ -2086,39 +2353,71 @@ window.openPreferences = function() {
   const overlay = document.createElement('div');
   overlay.className = 'notif-panel-overlay show';
   const currentTheme = window.themeManager?.get() || 'light';
+
+  const themeOptionsHTML = window.THEMES_LIST.map(t => {
+    const isActive = t.id === currentTheme;
+    return `
+      <div class="theme-card ${isActive ? 'active' : ''}" data-theme-id="${t.id}" data-theme-tag="${t.tag}" onclick="window.themeManager.set('${t.id}')" style="cursor:pointer;">
+        <div class="theme-preview-box" style="background:${t.bg};">
+          <div class="theme-preview-sidebar" style="background:${t.sidebar};border-right:1px solid rgba(255,255,255,0.08);"></div>
+          <div class="theme-preview-content" style="background:${t.card};">
+            <div style="height:6px;width:60%;background:${t.accent};border-radius:3px;"></div>
+            <div style="height:4px;width:90%;background:rgba(128,128,128,0.25);border-radius:2px;"></div>
+            <div style="height:4px;width:40%;background:rgba(128,128,128,0.2);border-radius:2px;"></div>
+          </div>
+        </div>
+        <div class="theme-card-title">
+          <span>${t.icon} ${t.name}</span>
+          <span class="theme-badge">${isActive ? 'Active ✅' : t.tag}</span>
+        </div>
+        <div style="font-size:11px;color:var(--muted);margin-top:4px;">${t.desc}</div>
+      </div>
+    `;
+  }).join('');
+
   overlay.innerHTML = `
-    <div class="notif-panel" style="max-width:420px;">
+    <div class="notif-panel" style="max-width:680px;max-height:90vh;display:flex;flex-direction:column;">
       <div class="notif-panel-header">
-        <h3>⚙️ Preferences</h3>
+        <h3>⚙️ Display & Themes Preferences</h3>
         <button class="notif-panel-close">×</button>
       </div>
-      <div style="padding:20px;">
-        <div style="font-size:11px;color:#888;text-transform:uppercase;letter-spacing:1.5px;font-weight:700;margin-bottom:12px;">Appearance</div>
-
-        <label style="display:flex;align-items:center;justify-content:space-between;padding:14px;background:var(--bg-tertiary,#f5f5f5);border-radius:10px;margin-bottom:8px;cursor:pointer;">
-          <span style="display:flex;align-items:center;gap:10px;">
-            <span style="font-size:22px;">${currentTheme === 'dark' ? '🌙' : '☀️'}</span>
-            <span>
-              <div style="font-weight:600;">Dark Mode</div>
-              <div style="font-size:12px;opacity:0.6;">Switch between light and dark themes</div>
-            </span>
-          </span>
-          <div class="theme-toggle ${currentTheme === 'dark' ? 'active' : ''}" onclick="window.themeManager.toggle();this.classList.toggle('active');event.stopPropagation();">
+      <div style="padding:20px;overflow-y:auto;flex:1;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+          <div>
+            <div style="font-weight:700;font-size:15px;color:var(--text);">🎨 Select Workspace Theme</div>
+            <div style="font-size:12px;color:var(--muted);">Personalize your CRM with modern VS Code editor themes</div>
+          </div>
+          <div class="theme-toggle ${window.themeManager.isDark() ? 'active' : ''}" onclick="window.themeManager.toggle();this.classList.toggle('active');event.stopPropagation();" title="Quick toggle dark/light">
             <div class="theme-toggle-switch"></div>
           </div>
-        </label>
+        </div>
 
-        <div style="font-size:11px;color:#888;text-transform:uppercase;letter-spacing:1.5px;font-weight:700;margin:24px 0 12px;">Notifications</div>
+        <div class="theme-grid" style="grid-template-columns:repeat(auto-fill, minmax(180px, 1fr));gap:12px;">
+          ${themeOptionsHTML}
+        </div>
 
-        <button onclick="if(window.notifSettings){window.notifSettings.openSettings();document.querySelector('.notif-panel-overlay')?.remove();}" style="width:100%;padding:14px;background:var(--bg-tertiary,#f5f5f5);border:none;border-radius:10px;text-align:left;cursor:pointer;font-size:14px;display:flex;align-items:center;gap:10px;">
-          <span style="font-size:22px;">🔔</span>
-          <span>
-            <div style="font-weight:600;">Notification Settings</div>
-            <div style="font-size:12px;opacity:0.6;">Choose what alerts to receive</div>
-          </span>
-        </button>
+        <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;font-weight:700;margin:24px 0 12px;">System & Alerts</div>
+
+        <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(240px, 1fr));gap:10px;">
+          <button onclick="if(window.notifSettings){window.notifSettings.openSettings();document.querySelector('.notif-panel-overlay')?.remove();}" style="padding:14px;background:var(--bg-tertiary);border:1px solid var(--border);border-radius:10px;text-align:left;cursor:pointer;display:flex;align-items:center;gap:12px;color:var(--text);">
+            <span style="font-size:24px;">🔔</span>
+            <span>
+              <div style="font-weight:600;font-size:13px;">Notification Alerts</div>
+              <div style="font-size:11px;color:var(--muted);">Sound, bell & overdue alarms</div>
+            </span>
+          </button>
+
+          <button onclick="navigate('settings');document.querySelector('.notif-panel-overlay')?.remove();" style="padding:14px;background:var(--bg-tertiary);border:1px solid var(--border);border-radius:10px;text-align:left;cursor:pointer;display:flex;align-items:center;gap:12px;color:var(--text);">
+            <span style="font-size:24px;">🏢</span>
+            <span>
+              <div style="font-weight:600;font-size:13px;">Full App Settings</div>
+              <div style="font-size:11px;color:var(--muted);">Brand info, numbers & rules</div>
+            </span>
+          </button>
+        </div>
       </div>
     </div>`;
+
   document.body.appendChild(overlay);
   const close = () => { overlay.classList.remove('show'); setTimeout(() => overlay.remove(), 250); };
   overlay.onclick = e => { if (e.target === overlay) close(); };
@@ -2168,7 +2467,6 @@ window.offlineManager = (function() {
     window.addEventListener('online', () => {
       console.log('📶 Back online');
       showOnline();
-      // Trigger current page refresh
       setTimeout(() => {
         try {
           if (typeof navigate === 'function' && SESSION.currentPage) {
@@ -2196,21 +2494,19 @@ if (document.readyState === 'complete') {
 
 // ═══════════════════════════════════════════════════════════
 // 📊 CHARTS HELPER (Chart.js)
-// Usage: renderChart('canvasId', 'bar', { labels: [...], values: [...] })
 // ═══════════════════════════════════════════════════════════
 window.renderChart = function(canvasId, type, data, options) {
   const canvas = document.getElementById(canvasId);
   if (!canvas || !window.Chart) return null;
 
-  // Destroy previous instance
   const existing = Chart.getChart(canvas);
   if (existing) existing.destroy();
 
-  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
-  const textColor = isDark ? '#f0f0f0' : '#333';
+  const isDark = window.themeManager?.isDark() || false;
+  const textColor = isDark ? '#E0E0E0' : '#334155';
   const gridColor = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)';
 
-  const defaultColors = ['#E2725B', '#16a34a', '#2563eb', '#d97706', '#8b5cf6', '#0891b2'];
+  const defaultColors = ['#4F46E5', '#10B981', '#0EA5E9', '#F59E0B', '#8B5CF6', '#EC4899', '#14B8A6'];
 
   const config = {
     type: type,
@@ -2219,10 +2515,10 @@ window.renderChart = function(canvasId, type, data, options) {
       datasets: [{
         label: data.label || '',
         data: data.values || [],
-        backgroundColor: type === 'line' ? 'rgba(226,114,91,0.15)' :
+        backgroundColor: type === 'line' ? 'rgba(79,70,229,0.15)' :
                           type === 'doughnut' || type === 'pie' ? defaultColors :
-                          '#E2725B',
-        borderColor: type === 'line' ? '#E2725B' : (type === 'doughnut' || type === 'pie' ? defaultColors : '#E2725B'),
+                          '#4F46E5',
+        borderColor: type === 'line' ? '#4F46E5' : (type === 'doughnut' || type === 'pie' ? defaultColors : '#4F46E5'),
         borderWidth: type === 'line' ? 3 : 1,
         fill: type === 'line',
         tension: 0.35,
@@ -2235,12 +2531,14 @@ window.renderChart = function(canvasId, type, data, options) {
       plugins: {
         legend: {
           display: type === 'doughnut' || type === 'pie',
-          labels: { color: textColor, font: { family: 'Inter', size: 12 } }
+          labels: { color: textColor, font: { family: 'Plus Jakarta Sans, Inter', size: 12 } }
         },
         tooltip: {
-          backgroundColor: isDark ? '#0f1419' : '#1a1a1a',
-          titleFont: { family: 'Inter', weight: 600 },
-          bodyFont: { family: 'Inter' },
+          backgroundColor: isDark ? '#1E293B' : '#0F172A',
+          titleColor: '#FFFFFF',
+          bodyColor: '#F1F5F9',
+          titleFont: { family: 'Plus Jakarta Sans, Inter', weight: 600 },
+          bodyFont: { family: 'Plus Jakarta Sans, Inter' },
           padding: 10,
           cornerRadius: 8
         }
@@ -2248,11 +2546,11 @@ window.renderChart = function(canvasId, type, data, options) {
       scales: (type === 'doughnut' || type === 'pie') ? {} : {
         y: {
           beginAtZero: true,
-          ticks: { color: textColor, font: { family: 'Inter' } },
+          ticks: { color: textColor, font: { family: 'Plus Jakarta Sans, Inter' } },
           grid: { color: gridColor }
         },
         x: {
-          ticks: { color: textColor, font: { family: 'Inter' } },
+          ticks: { color: textColor, font: { family: 'Plus Jakarta Sans, Inter' } },
           grid: { display: false }
         }
       }

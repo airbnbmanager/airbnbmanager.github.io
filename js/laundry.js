@@ -108,32 +108,30 @@ window.renderLaundry = async function() {
     </div>
 
     <div class="card">
-      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;">
-        <div style="text-align:center;padding:14px;background:#EFF6FF;border-radius:8px;">
-          <div style="font-size:22px;font-weight:800;color:#1E40AF;">₹${totalAmount.toLocaleString('en-IN')}</div>
-          <div style="font-size:11px;color:#666;">Total Amount</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;">
+        <div class="kpi-tile" style="border-left:4px solid #3B82F6;background:rgba(59,130,246,0.08);">
+          <div class="kpi-num" style="color:#3B82F6;">₹${totalAmount.toLocaleString('en-IN')}</div>
+          <div class="kpi-sub">Total Amount</div>
         </div>
-        <div style="text-align:center;padding:14px;background:#F0FDF4;border-radius:8px;">
-          <div style="font-size:22px;font-weight:800;color:#059669;">₹${totalPaid.toLocaleString('en-IN')}</div>
-          <div style="font-size:11px;color:#666;">Paid</div>
+        <div class="kpi-tile" style="border-left:4px solid #10B981;background:rgba(16,185,129,0.08);">
+          <div class="kpi-num" style="color:#10B981;">₹${totalPaid.toLocaleString('en-IN')}</div>
+          <div class="kpi-sub">Paid</div>
         </div>
-        <div style="text-align:center;padding:14px;background:#FEF2F2;border-radius:8px;">
-          <div style="font-size:22px;font-weight:800;color:${totalDue > 0 ? '#DC2626' : '#059669'};">₹${totalDue.toLocaleString('en-IN')}</div>
-          <div style="font-size:11px;color:#666;">Due</div>
+        <div class="kpi-tile" style="border-left:4px solid ${totalDue > 0 ? '#EF4444' : '#10B981'};background:${totalDue > 0 ? 'rgba(239,68,68,0.08)' : 'rgba(16,185,129,0.08)'};">
+          <div class="kpi-num" style="color:${totalDue > 0 ? '#EF4444' : '#10B981'};">₹${totalDue.toLocaleString('en-IN')}</div>
+          <div class="kpi-sub">Due</div>
         </div>
-      </div>
-      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:12px;">
-        <div style="text-align:center;padding:14px;background:#FFFBEB;border-radius:8px;border:1px solid #FDE68A;">
-          <div style="font-size:22px;font-weight:800;color:#92400E;">₹${totalUnclaimed.toLocaleString('en-IN')}</div>
-          <div style="font-size:11px;color:#666;">⏳ Unclaimed <span style="color:#999;">(${unclaimedPays.length})</span></div>
+        <div class="kpi-tile" style="border-left:4px solid #F59E0B;background:rgba(245,158,11,0.08);">
+          <div class="kpi-num" style="color:#F59E0B;">₹${totalUnclaimed.toLocaleString('en-IN')}</div>
+          <div class="kpi-sub">⏳ Unclaimed (${unclaimedPays.length})</div>
         </div>
-        <div style="text-align:center;padding:14px;background:#DBEAFE;border-radius:8px;border:1px solid #93C5FD;">
-          <div style="font-size:22px;font-weight:800;color:#1E40AF;">₹${totalClaimed.toLocaleString('en-IN')}</div>
-          <div style="font-size:11px;color:#666;">📤 Claimed <span style="color:#999;">(${claimedPays.length})</span></div>
+        <div class="kpi-tile" style="border-left:4px solid #6366F1;background:rgba(99,102,241,0.08);">
+          <div class="kpi-num" style="color:#6366F1;">₹${totalClaimed.toLocaleString('en-IN')}</div>
+          <div class="kpi-sub">📤 Claimed (${claimedPays.length})</div>
         </div>
-        <div style="text-align:center;padding:14px;background:#D1FAE5;border-radius:8px;border:1px solid #6EE7B7;">
-          <div style="font-size:22px;font-weight:800;color:#065F46;">₹${totalReceived.toLocaleString('en-IN')}</div>
-          <div style="font-size:11px;color:#666;">✅ Received <span style="color:#999;">(${receivedPays.length})</span></div>
+        <div class="kpi-tile" style="border-left:4px solid #059669;background:rgba(5,150,105,0.08);">
+          <div class="kpi-num" style="color:#059669;">₹${totalReceived.toLocaleString('en-IN')}</div>
+          <div class="kpi-sub">✅ Received (${receivedPays.length})</div>
         </div>
       </div>
     </div>
@@ -148,14 +146,17 @@ window.renderLaundry = async function() {
     </div>` : ''}
 
     <div class="card">
-      <div class="section-title">📋 Laundry Records</div>
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:12px;">
+        <div class="section-title" style="margin:0;">📋 Laundry Records</div>
+        <input type="text" id="laundrySearchInput" placeholder="🔍 Filter property, vendor, item..." onkeyup="filterLaundryRecords()" style="max-width:260px;padding:6px 10px;font-size:12px;" />
+      </div>
       <div class="table-wrap"><table>
         <thead><tr>
           <th>Date</th><th>Property</th><th>Vendor</th><th>Items</th>
           <th style="text-align:right;">Total</th><th>Status</th><th>📷 Photos</th><th>Actions</th>
         </tr></thead>
-        <tbody>
-          ${(records || []).length === 0 ? '<tr><td colspan="8" style="text-align:center;padding:20px;color:#999;">No laundry records this month</td></tr>' : ''}
+        <tbody id="laundryTableBody">
+          ${(records || []).length === 0 ? '<tr><td colspan="8" style="text-align:center;padding:20px;color:var(--muted);">No laundry records this month</td></tr>' : ''}
           ${(records || []).map(r => {
             const rItems = itemsByRecord[r.id] || [];
             const itemsSummary = rItems.map(ri => `${ri.quantity} ${ri.laundry_items?.item_name || '?'}`).join(', ');
@@ -165,7 +166,8 @@ window.renderLaundry = async function() {
             const due = total - recPaid;
             const status = due <= 0 ? 'green' : (recPaid > 0 ? 'yellow' : 'red');
             const statusText = due <= 0 ? 'Paid ✅' : (recPaid > 0 ? `Partial (₹${due.toLocaleString('en-IN')} due)` : 'Unpaid');
-            return `<tr>
+            const searchKey = `${r.record_date} ${roomMap[r.room_id] || ''} ${r.vendor_name || ''} ${itemsSummary}`.toLowerCase();
+            return `<tr class="laundry-row" data-search="${searchKey}">
               <td>${r.record_date}</td>
               <td>${roomMap[r.room_id] || 'General'}</td>
               <td><strong>${r.vendor_name || '-'}</strong></td>
@@ -213,6 +215,14 @@ window.renderLaundry = async function() {
       </table></div>
     </div>
   `, 'laundry');
+};
+
+window.filterLaundryRecords = function() {
+  const query = (document.getElementById('laundrySearchInput')?.value || '').toLowerCase().trim();
+  document.querySelectorAll('.laundry-row').forEach(row => {
+    const search = row.getAttribute('data-search') || '';
+    row.style.display = search.includes(query) ? '' : 'none';
+  });
 };
 
 window.renderAddLaundry = async function() {

@@ -63,7 +63,7 @@ window.ICAL_SYNC = {
         checkOut,
         summary,
         uid,
-        isBlocked: summary.toLowerCase().includes('not available') || summary.toLowerCase().includes('blocked'),
+        isBlocked: summary.toLowerCase().includes('not available') || summary.toLowerCase().includes('unavailable') || summary.toLowerCase().includes('blocked'),
         isFuture: checkIn > today,
         isBeforeMonth: checkIn < monthStart
       };
@@ -178,14 +178,14 @@ window.ICAL_SYNC = {
             if (isUntouchedOrEmpty) {
               await sb.from('guest_register').upsert({
                 booking_id: deterministicId,
-                guest_name: '🚫 Blocked (Fill Details)',
+                guest_name: '🔒 Blocked Slot',
                 room_id: room.room_id,
                 check_in: event.checkIn,
                 check_out: event.checkOut,
                 booking_mode: 'Offline-Blocked',
                 payment_status: 'Unpaid',
                 total_amount: 0,
-                notes: `⚠️ BLOCKED on Airbnb (${event.summary}). Fill guest details when confirmed.`
+                notes: `Blocked on Airbnb (${event.summary}). Offline slot reserved.`
               }, { onConflict: 'booking_id' });
             }
           }
