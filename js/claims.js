@@ -912,12 +912,12 @@ window.showUhhsStatementModal = async function() {
 
     const txns = [];
 
-    // Deposits (+) with strict signature deduplication guard
-    const depSigSeen = new Set();
+    // Deposits (+) with unique ID deduplication guard
+    const seenDepIds = new Set();
     (deposits || []).forEach(d => {
-      const sig = `${(d.transaction_date || '').slice(0, 10)}_${Math.round(Number(d.amount || 0))}`;
-      if (depSigSeen.has(sig)) return;
-      depSigSeen.add(sig);
+      const depKey = String(d.db_id || d.id);
+      if (seenDepIds.has(depKey)) return;
+      seenDepIds.add(depKey);
 
       txns.push({
         id: d.id,

@@ -529,8 +529,8 @@ console.log('✅ iCal Sync module loaded');
 // ═══════════════════════════════════════════════════════════
 
 window.ICAL_AUTO_SYNC = {
-  INTERVAL_MS: 5 * 60 * 1000,  // 2 hours
-  MIN_GAP_MS: 10 * 60 * 1000,        // 30 min minimum between syncs
+  INTERVAL_MS: 2.5 * 60 * 1000,  // Every 2.5 minutes
+  MIN_GAP_MS: 60 * 1000,         // 1 min minimum between syncs
   timer: null,
   isRunning: false,
   
@@ -552,8 +552,6 @@ window.ICAL_AUTO_SYNC = {
     const lastSync = this.getLastSync();
     const gap = Date.now() - lastSync;
     if (lastSync && gap < this.MIN_GAP_MS) {
-      const minsLeft = Math.round((this.MIN_GAP_MS - gap) / 60000);
-      console.log('⏭️ iCal sync too soon, next in ' + minsLeft + ' min');
       return;
     }
     
@@ -570,10 +568,13 @@ window.ICAL_AUTO_SYNC = {
       if (totalCreated > 0) {
         console.log('✅ iCal auto-sync: ' + totalCreated + ' new bookings');
         if (window.fsn?.success) {
-          fsn.success('iCal Sync', '✅ ' + totalCreated + ' new bookings imported');
+          fsn.success('Airbnb Sync', `✅ ${totalCreated} new booking(s) auto-imported!`);
         }
+        if (typeof window.notifyDataChanged === 'function') window.notifyDataChanged();
+        if (typeof window.renderCalendar === 'function' && window._currentView === 'calendar') window.renderCalendar();
+        if (typeof window.renderBookings === 'function' && window._currentView === 'bookings') window.renderBookings();
       } else {
-        console.log('✅ iCal auto-sync: no new bookings');
+        console.log('✅ iCal auto-sync: up to date');
       }
       
       if (totalErrors > 0) {
@@ -603,24 +604,36 @@ window.ICAL_AUTO_SYNC = {
     }
     
     // Only for admin/owner/developer
-    if (!['owner', 'admin', 'developer'].includes(window.SESSION?.role)) {
+    if (!['owner', 'admin', 'developer', 'manager'].includes(window.SESSION?.role)) {
       console.log('⏭️ iCal auto-sync: not authorized for role');
       return;
     }
     
-    console.log('🔄 iCal auto-sync scheduler started (every 5 minutes)');
+    console.log('🔄 iCal auto-sync scheduler started (every 2.5 minutes)');
     
-    // Run once after 30 seconds (initial delay)
-    setTimeout(() => this.runSilent(), 30000);
+    // Run once quickly after 3 seconds (initial startup sync)
+    setTimeout(() => this.runSilent(), 3000);
     
-    // Then every 5 minutes
+    // Then every 2.5 minutes
     this.timer = setInterval(() => this.runSilent(), this.INTERVAL_MS);
+
+    // Also auto-sync whenever user switches back to CRM tab if > 90s since last check
+    if (!this._focusBound && typeof window !== 'undefined') {
+      this._focusBound = true;
+      window.addEventListener('focus', () => {
+        const lastSync = this.getLastSync();
+        if (Date.now() - lastSync > 90 * 1000) {
+          console.log('🔄 Tab focused: running quick Airbnb sync check...');
+          this.runSilent();
+        }
+      });
+    }
   },
   
   enable() {
     localStorage.setItem('ical_auto_sync_enabled', 'true');
     this.start();
-    if (window.fsn?.success) fsn.success('Auto-Sync', '✅ Enabled — runs every 5 minutes');
+    if (window.fsn?.success) fsn.success('Auto-Sync', '✅ Enabled — runs every 2.5 minutes');
     return true;
   },
   
