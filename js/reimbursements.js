@@ -252,7 +252,7 @@ window.saveReimbursement = async function() {
   const fromProp = document.getElementById('rFromText').value.trim() || null;
   const toProp = document.getElementById('rToText').value.trim() || null;
   const notes = document.getElementById('rNotes').value.trim();
-  const paymentSource = document.getElementById('rPaymentSource')?.value || 'COMPANY';
+  const paymentSource = document.getElementById('rPaymentSource')?.value || 'UHHS-OD';
 
   if (!date || !cat || !desc || amt <= 0) {
     document.getElementById('rErr').innerHTML = '<div class="error">Date, Category, Description, Amount required</div>';
@@ -332,16 +332,20 @@ window.saveReimbursement = async function() {
       return;
     }
 
-    // Auto-record transaction in account_transactions for UHHS-OD spends
+    // Auto-record transaction in account_transactions for UHHS-OD spends (safe failsafe)
     if (paymentSource === 'UHHS-OD') {
-      await sb.from('account_transactions').insert({
-        account_type: 'UHHS_OD',
-        transaction_type: 'EXPENSE',
-        amount: amt,
-        txn_date: date,
-        description: `Expense: ${desc} (${cat})`,
-        created_by: SESSION.displayName || 'Praveen'
-      });
+      try {
+        await sb.from('account_transactions').insert({
+          account_type: 'UHHS_OD',
+          transaction_type: 'EXPENSE',
+          amount: amt,
+          txn_date: date,
+          description: `Expense: ${desc} (${cat})`,
+          created_by: SESSION.displayName || 'Praveen'
+        });
+      } catch (e) {
+        console.warn('account_transactions view insert skipped/unsupported:', e);
+      }
     }
 
     window._reimbPhotoBlob = null;
@@ -496,7 +500,7 @@ window.updateReimbursement = async function() {
   const toProp = document.getElementById('rToText').value.trim() || null;
   const status = document.getElementById('rStatus').value;
   const notes = document.getElementById('rNotes').value.trim();
-  const paymentSource = document.getElementById('rPaymentSource')?.value || 'COMPANY';
+  const paymentSource = document.getElementById('rPaymentSource')?.value || 'UHHS-OD';
 
   if (!date || !cat || !desc || amt <= 0) {
     document.getElementById('rErr').innerHTML = '<div class="error">Date, Category, Description, Amount required</div>';

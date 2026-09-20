@@ -1082,11 +1082,11 @@ async function saveDefaultExpense() {
     return;
   }
 
+  const expSource = document.getElementById('defPaymentSource')?.value || 'UHHS-OD';
   const { error } = await sb.from('property_default_expenses').insert({
     room_id: roomId,
     expense_name: name,
     default_amount: amount,
-    payment_source: expSourceEdit,
     payment_source: expSource,
     is_fixed: isFixed
   });
@@ -1161,11 +1161,11 @@ async function updateDefaultExpense(id) {
     return;
   }
 
+  const expSource = document.getElementById('editDefPaymentSource')?.value || 'UHHS-OD';
   const { error } = await sb.from('property_default_expenses').update({
     room_id: roomId,
     expense_name: name,
     default_amount: amount,
-    payment_source: expSourceEdit,
     payment_source: expSource,
     is_fixed: isFixed
   }).eq('id', id);
@@ -1464,6 +1464,7 @@ async function saveMonthlyExpenses() {
   const d = window._monthlyExpData;
   const inputs = document.querySelectorAll('input[id^="expInput_"]');
 
+  const expSource = document.getElementById('monthlyPaymentSource')?.value || 'UHHS-OD';
   const errors = [];
   let saved = 0;
 

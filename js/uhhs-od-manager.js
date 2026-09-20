@@ -10,15 +10,15 @@ const UHHS_PAYMENT_SOURCES = {
 };
 
 // 1. Payment Source Dropdown HTML Generator
-function getPaymentSourceDropdownHTML(selected = 'COMPANY', id = 'payment_source') {
+function getPaymentSourceDropdownHTML(selected = 'UHHS-OD', id = 'payment_source') {
     return `
         <div class="form-group mb-2">
             <label class="form-label fw-bold" style="font-size:13px; color:#333;">
                 💳 Payment Account / Source
             </label>
             <select id="${id}" name="payment_source" class="form-select form-control" style="border: 1.5px solid #0d6efd; font-weight: 600; width: 100%; max-width: 100%; box-sizing: border-box;" required>
-                <option value="COMPANY" ${selected === 'COMPANY' ? 'selected' : ''}>🏢 COMPANY (Guest Rent / Cash in Hand)</option>
                 <option value="UHHS-OD" ${selected === 'UHHS-OD' ? 'selected' : ''}>🏦 UHHS-OD (Overdraft Account)</option>
+                <option value="COMPANY" ${selected === 'COMPANY' ? 'selected' : ''}>🏢 COMPANY (Guest Rent / Cash in Hand)</option>
                 <option value="FIROZ" ${selected === 'FIROZ' ? 'selected' : ''}>👤 FIROZ (Direct Personal)</option>
             </select>
         </div>
@@ -178,23 +178,27 @@ async function calculateLiveODBalance(supabaseClient, customStartDate, customEnd
 
         // Maintenance
         try {
-            let q2 = client.from('maintenance_log').select('cost, payment_source, reported_date').gte('reported_date', startDate);
+            let q2 = client.from('maintenance_log').select('cost, payment_source, paid_by, reported_date').gte('reported_date', startDate);
             if (endDate) q2 = q2.lte('reported_date', endDate);
             const { data: r2 } = await q2;
             if (r2) {
-                totalOutflow += r2.filter(m => String(m.payment_source || '').toUpperCase().includes('OD'))
-                                  .reduce((s, r) => s + parseFloat(r.cost || 0), 0);
+                totalOutflow += r2.filter(m => {
+                    const s = String(m.payment_source || m.paid_by || '').toUpperCase();
+                    return s.includes('OD') || s.includes('UHHS');
+                }).reduce((s, r) => s + parseFloat(r.cost || 0), 0);
             }
         } catch (e) {}
 
         // Laundry
         try {
-            let q3 = client.from('laundry_payments').select('amount, payment_source, payment_date').gte('payment_date', startDate);
+            let q3 = client.from('laundry_payments').select('amount, payment_source, paid_by, payment_date').gte('payment_date', startDate);
             if (endDate) q3 = q3.lte('payment_date', endDate);
             const { data: r3 } = await q3;
             if (r3) {
-                totalOutflow += r3.filter(l => String(l.payment_source || '').toUpperCase().includes('OD'))
-                                  .reduce((s, r) => s + parseFloat(r.amount || 0), 0);
+                totalOutflow += r3.filter(l => {
+                    const s = String(l.payment_source || l.paid_by || '').toUpperCase();
+                    return s.includes('OD') || s.includes('UHHS');
+                }).reduce((s, r) => s + parseFloat(r.amount || 0), 0);
             }
         } catch (e) {}
 
@@ -293,7 +297,7 @@ window.cbDepositToODModal = function() {
 
     const modal = document.createElement('div');
     modal.className = 'modal-overlay od-deposit-modal-overlay';
-    modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);display:flex;align-items:center;justify-content:center;z-index:99999;padding:20px;';
+    modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);display:flex;align-items:center;justify-content:center;z-index:9999999;padding:20px;backdrop-filter:blur(2px);';
     modal.onclick = e => { if (e.target === modal) modal.remove(); };
     
     modal.innerHTML = `
@@ -470,7 +474,7 @@ window.cbEditODDeposit = async function(id) {
 
     const modal = document.createElement('div');
     modal.className = 'modal-overlay od-edit-modal-overlay';
-    modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);display:flex;align-items:center;justify-content:center;z-index:100000;padding:20px;';
+    modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);display:flex;align-items:center;justify-content:center;z-index:9999999;padding:20px;backdrop-filter:blur(2px);';
     modal.onclick = e => { if (e.target === modal) modal.remove(); };
 
     modal.innerHTML = `

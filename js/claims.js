@@ -24,9 +24,8 @@ function normalizePaymentSource(rawVal) {
   const s = String(rawVal).trim().toUpperCase();
   if (s === 'FIROZ') return 'FIROZ';
   if (s === 'COMPANY') return 'COMPANY';
-  if (s === 'UHHS-OD' || s === 'UHHS_OD' || s === 'UHHS OD') return 'UHHS-OD';
-  return 'OTHER'; // legacy/unmapped values (own_money, split, company_advance, Shahenshah, etc.)
-                   // — shown as OTHER instead of silently counted as UHHS-OD
+  if (s.includes('OD') || s.includes('UHHS') || s.includes('OVERDRAFT')) return 'UHHS-OD';
+  return 'OTHER';
 }
 
 function normalizeStatus(st) {
@@ -943,7 +942,7 @@ window.showUhhsStatementModal = async function() {
     });
 
     // Maintenance (-)
-    (maints || []).filter(m => normalizePaymentSource(m.payment_source) === 'UHHS-OD').forEach(m => {
+    (maints || []).filter(m => normalizePaymentSource(m.payment_source || m.paid_by) === 'UHHS-OD').forEach(m => {
       txns.push({
         date: m.reported_date,
         type: 'EXPENSE',
@@ -954,7 +953,7 @@ window.showUhhsStatementModal = async function() {
     });
 
     // Laundry (-)
-    (launds || []).filter(l => normalizePaymentSource(l.payment_source) === 'UHHS-OD').forEach(l => {
+    (launds || []).filter(l => normalizePaymentSource(l.payment_source || l.paid_by) === 'UHHS-OD').forEach(l => {
       txns.push({
         date: l.payment_date,
         type: 'EXPENSE',
@@ -993,7 +992,7 @@ window.showUhhsStatementModal = async function() {
     const modal = document.createElement('div');
     modal.id = 'uhhsLedgerModalOverlay';
     modal.className = 'modal-overlay';
-    modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.65);display:flex;align-items:center;justify-content:center;z-index:999999;padding:12px;box-sizing:border-box;backdrop-filter:blur(2px);';
+    modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.65);display:flex;align-items:center;justify-content:center;z-index:80000;padding:12px;box-sizing:border-box;backdrop-filter:blur(2px);';
     modal.onclick = e => { if (e.target === modal) window.closeUhhsStatementModal(); };
 
     modal.innerHTML = `
@@ -1056,8 +1055,8 @@ window.showUhhsStatementModal = async function() {
                         <button onclick="window.cbEditODDeposit('${t.id}')" class="btn-sm" style="background:#3B82F6;color:#fff;padding:3px 8px;font-size:10px;border:none;border-radius:4px;cursor:pointer;margin-right:4px;">✏️ Edit</button>
                         <button onclick="window.cbDeleteODDeposit('${t.id}')" class="btn-sm" style="background:#DC2626;color:#fff;padding:3px 8px;font-size:10px;border:none;border-radius:4px;cursor:pointer;">🗑️ Delete</button>
                       ` : (t.source === 'reimbursements' && t.id ? `
-                        <button onclick="document.querySelectorAll('.modal-overlay').forEach(m=>m.remove());window.editReimbursement('${t.id}');" class="btn-sm" style="background:#3B82F6;color:#fff;padding:3px 8px;font-size:10px;border:none;border-radius:4px;cursor:pointer;margin-right:4px;" title="Edit Daily Expense">✏️ Edit</button>
-                        <button onclick="if(confirm('Delete this daily expense?')){window.deleteReimbursement('${t.id}');}" class="btn-sm" style="background:#DC2626;color:#fff;padding:3px 8px;font-size:10px;border:none;border-radius:4px;cursor:pointer;" title="Delete Daily Expense">🗑️ Delete</button>
+                        <button onclick="window.openReimbursementEditModal('${t.id}')" class="btn-sm" style="background:#3B82F6;color:#fff;padding:3px 8px;font-size:10px;border:none;border-radius:4px;cursor:pointer;margin-right:4px;" title="Edit Daily Expense">✏️ Edit</button>
+                        <button onclick="window.deleteReimbursementFromLedger('${t.id}')" class="btn-sm" style="background:#DC2626;color:#fff;padding:3px 8px;font-size:10px;border:none;border-radius:4px;cursor:pointer;" title="Delete Daily Expense">🗑️ Delete</button>
                       ` : '<span style="color:#94A3B8;font-size:11px;">Auto</span>')}
                     </td>
                   </tr>
@@ -1091,6 +1090,153 @@ window.showUhhsStatementModal = async function() {
     window.addEventListener('keydown', escHandler);
   } catch (err) {
     alert('Error loading ledger: ' + err.message);
+  }
+};
+
+// 7b. In-Place Daily Expense Edit Modal for Ledger (z-index 9999999 so it never appears in background)
+window.openReimbursementEditModal = async function(id) {
+  const oldModal = document.getElementById('reimbEditModalOverlay');
+  if (oldModal) oldModal.remove();
+
+  try {
+    const { data: rec, error } = await sb.from('reimbursements').select('*').eq('id', id).single();
+    if (error || !rec) {
+      alert('❌ Expense record not found!');
+      return;
+    }
+
+    const modal = document.createElement('div');
+    modal.id = 'reimbEditModalOverlay';
+    modal.className = 'modal-overlay';
+    modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);display:flex;align-items:center;justify-content:center;z-index:9999999;padding:16px;box-sizing:border-box;backdrop-filter:blur(3px);';
+    modal.onclick = e => { if (e.target === modal) modal.remove(); };
+
+    modal.innerHTML = `
+      <div class="modal-box" style="background:#fff;border-radius:12px;padding:22px;max-width:480px;width:100%;box-shadow:0 12px 32px rgba(0,0,0,0.25);" onclick="event.stopPropagation()">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;border-bottom:1px solid #eee;padding-bottom:10px;">
+          <h3 style="margin:0;font-size:17px;color:#1E293B;font-weight:800;display:flex;align-items:center;gap:6px;">
+            ✏️ Edit Daily Expense (ID: ${rec.id})
+          </h3>
+          <button onclick="document.getElementById('reimbEditModalOverlay')?.remove()" style="background:none;border:none;font-size:22px;cursor:pointer;color:#888;">✕</button>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
+          <div>
+            <label style="font-weight:600;font-size:12px;display:block;margin-bottom:4px;">Date *</label>
+            <input id="ledgerEditDate" type="date" value="${rec.expense_date || ''}" style="width:100%;padding:8px;border:1px solid #ccc;border-radius:6px;box-sizing:border-box;">
+          </div>
+          <div>
+            <label style="font-weight:600;font-size:12px;display:block;margin-bottom:4px;">Amount (₹) *</label>
+            <input id="ledgerEditAmt" type="number" min="1" value="${rec.amount || ''}" style="width:100%;padding:8px;border:1px solid #ccc;border-radius:6px;font-size:15px;font-weight:700;box-sizing:border-box;">
+          </div>
+        </div>
+
+        <div style="margin-bottom:12px;">
+          <label style="font-weight:600;font-size:12px;display:block;margin-bottom:4px;">Category *</label>
+          <select id="ledgerEditCat" style="width:100%;padding:8px;border:1px solid #ccc;border-radius:6px;box-sizing:border-box;">
+            ${['🛒 Grocery/Food', '🧹 Cleaning Supplies', '🚚 Delivery/Transport', '💡 Utilities', '🎁 Guest Requests', '📦 Other'].map(c =>
+              `<option value="${c}" ${(rec.category || '').includes(c.slice(2).trim()) ? 'selected' : ''}>${c}</option>`
+            ).join('')}
+          </select>
+        </div>
+
+        <div style="margin-bottom:12px;">
+          <label style="font-weight:600;font-size:12px;display:block;margin-bottom:4px;">Description / Item Name *</label>
+          <input id="ledgerEditDesc" type="text" value="${(rec.description || '').replace(/"/g, '&quot;')}" placeholder="e.g. CNG, Breakfast, Groceries" style="width:100%;padding:8px;border:1px solid #ccc;border-radius:6px;box-sizing:border-box;">
+        </div>
+
+        <div style="margin-bottom:14px;">
+          <label style="font-weight:700;font-size:12.5px;color:#0F172A;display:block;margin-bottom:4px;">💳 Payment Account / Source *</label>
+          <select id="ledgerEditSource" style="width:100%;padding:8px;border:1.5px solid #0D6EFD;border-radius:6px;font-weight:600;background:#F8FAFC;box-sizing:border-box;">
+            <option value="UHHS-OD" ${rec.payment_source === 'UHHS-OD' || !rec.payment_source ? 'selected' : ''}>🏦 UHHS-OD (Overdraft Account)</option>
+            <option value="COMPANY" ${rec.payment_source === 'COMPANY' ? 'selected' : ''}>🏢 COMPANY (Guest Rent / Cash in Hand)</option>
+            <option value="FIROZ" ${rec.payment_source === 'FIROZ' ? 'selected' : ''}>👤 FIROZ (Direct Personal)</option>
+          </select>
+        </div>
+
+        <div style="margin-bottom:16px;">
+          <label style="font-weight:600;font-size:12px;display:block;margin-bottom:4px;">Notes / Remarks</label>
+          <input id="ledgerEditNotes" type="text" value="${(rec.notes || '').replace(/"/g, '&quot;')}" placeholder="Optional notes" style="width:100%;padding:8px;border:1px solid #ccc;border-radius:6px;box-sizing:border-box;">
+        </div>
+
+        <div style="display:flex;gap:10px;">
+          <button id="btnSaveLedgerEdit" onclick="window.saveReimbursementFromLedger('${rec.id}')" style="flex:2;padding:11px;background:#10B981;color:#fff;border:none;border-radius:8px;font-weight:700;font-size:14px;cursor:pointer;">
+            💾 Save Expense Changes
+          </button>
+          <button onclick="document.getElementById('reimbEditModalOverlay')?.remove()" style="flex:1;padding:11px;background:#64748B;color:#fff;border:none;border-radius:8px;font-weight:700;font-size:14px;cursor:pointer;">
+            Cancel
+          </button>
+        </div>
+        <div id="ledgerEditErr" style="margin-top:10px;color:#DC2626;font-size:12px;font-weight:600;text-align:center;"></div>
+      </div>
+    `;
+
+    document.body.appendChild(modal);
+  } catch (e) {
+    alert('Error loading expense: ' + e.message);
+  }
+};
+
+window.saveReimbursementFromLedger = async function(id) {
+  const btn = document.getElementById('btnSaveLedgerEdit');
+  const errEl = document.getElementById('ledgerEditErr');
+  const date = document.getElementById('ledgerEditDate')?.value;
+  const amt = parseFloat(document.getElementById('ledgerEditAmt')?.value) || 0;
+  const cat = document.getElementById('ledgerEditCat')?.value;
+  const desc = document.getElementById('ledgerEditDesc')?.value?.trim();
+  const paymentSource = document.getElementById('ledgerEditSource')?.value || 'UHHS-OD';
+  const notes = document.getElementById('ledgerEditNotes')?.value?.trim();
+
+  if (!date || amt <= 0 || !desc) {
+    if (errEl) errEl.innerText = '⚠️ Please fill date, positive amount, and description!';
+    return;
+  }
+
+  if (btn) { btn.disabled = true; btn.innerText = '⏳ Saving...'; }
+
+  try {
+    const { error } = await sb.from('reimbursements').update({
+      expense_date: date,
+      amount: amt,
+      category: cat,
+      description: desc,
+      payment_source: paymentSource,
+      notes: notes
+    }).eq('id', id);
+
+    if (error) throw error;
+
+    document.getElementById('reimbEditModalOverlay')?.remove();
+    if (window.fsn?.success) fsn.success('Saved', '✅ Expense updated!');
+    else alert('✅ Expense updated!');
+
+    // Refresh UI seamlessly
+    if (typeof window.showUhhsStatementModal === 'function') window.showUhhsStatementModal();
+    if (typeof window.loadClaimsData === 'function') window.loadClaimsData();
+    if (window.UHHSODManager) window.UHHSODManager.calculateBalance(sb);
+    if (typeof window.notifyDataChanged === 'function') window.notifyDataChanged();
+  } catch (err) {
+    if (errEl) errEl.innerText = '❌ ' + err.message;
+    if (btn) { btn.disabled = false; btn.innerText = '💾 Save Expense Changes'; }
+  }
+};
+
+window.deleteReimbursementFromLedger = async function(id) {
+  if (!confirm('🗑️ Are you sure you want to delete this daily expense record?')) return;
+  try {
+    const { error } = await sb.from('reimbursements').delete().eq('id', id);
+    if (error) throw error;
+
+    if (window.fsn?.success) fsn.success('Deleted', '✅ Expense deleted!');
+    else alert('✅ Expense deleted!');
+
+    // Refresh UI
+    if (typeof window.showUhhsStatementModal === 'function') window.showUhhsStatementModal();
+    if (typeof window.loadClaimsData === 'function') window.loadClaimsData();
+    if (window.UHHSODManager) window.UHHSODManager.calculateBalance(sb);
+    if (typeof window.notifyDataChanged === 'function') window.notifyDataChanged();
+  } catch (err) {
+    alert('❌ Error deleting expense: ' + err.message);
   }
 };
 

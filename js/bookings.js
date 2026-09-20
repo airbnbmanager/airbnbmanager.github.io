@@ -603,13 +603,11 @@ function buildIdButtons(b) {
   const seen = new Set();
   const allPhotos = [...fp, ...bp, ...ap].filter(p => { if (seen.has(p)) return false; seen.add(p); return true; });
 
-  if (!allPhotos.length) return '<small style="color:var(--red);">❌ No ID</small>';
+  if (!allPhotos.length) {
+    return `<button type="button" class="btn-sm" style="background:#EF4444;color:#fff;font-size:10px;padding:3px 8px;border-radius:5px;cursor:pointer;white-space:nowrap;font-weight:700;border:none;display:inline-flex;align-items:center;gap:3px;" onclick="window.openBookingIdUploadModal('${b.booking_id}')" title="Upload Guest ID Proof">❌ + Add ID</button>`;
+  }
 
   const count = allPhotos.length;
-  // Count front/back per guest
-  const frontCount = {};
-  const backCount = {};
-
   return `<span style="font-size:10px;color:var(--green);font-weight:600;">✅ ${count}</span> ` +
     allPhotos.map((p, i) => {
       let label;
@@ -622,9 +620,286 @@ function buildIdButtons(b) {
       } else {
         label = 'ID' + (i + 1);
       }
-      return `<button class="btn-sm outline" style="padding:1px 5px;font-size:9px;min-height:20px;margin:1px;" onclick="dlIdPhoto('${p}')">${label}</button>`;
-    }).join('');
+      return `<button type="button" class="btn-sm outline" style="padding:1px 5px;font-size:9px;min-height:20px;margin:1px;" onclick="dlIdPhoto('${p}')">${label}</button>`;
+    }).join('') +
+    ` <button type="button" class="btn-sm" style="background:#10B981;color:#fff;font-size:9.5px;padding:2px 6px;min-height:20px;margin-left:2px;border-radius:4px;border:none;cursor:pointer;font-weight:700;" onclick="window.openBookingIdUploadModal('${b.booking_id}')" title="Add another ID Proof">➕ ID</button>`;
 }
+
+// ============ MODAL: 1-CLICK GUEST ID UPLOAD & MANAGEMENT ============
+window.openBookingIdUploadModal = async function(bkId) {
+  const oldModal = document.getElementById('bookingIdUploadOverlay');
+  if (oldModal) oldModal.remove();
+
+  try {
+    const { data: b, error } = await sb.from('guest_register')
+      .select('booking_id, guest_name, phone, room_id, check_in, check_out, id_proof_type, id_proof_no, id_proof_front_paths, id_proof_back_paths, id_proof_photo_paths, rooms(nickname, unit_no)')
+      .eq('booking_id', bkId).single();
+
+    if (error || !b) {
+      alert('❌ Booking not found!');
+      return;
+    }
+
+    const fp = parseIdPathArray(b.id_proof_front_paths).filter(Boolean);
+    const bp = parseIdPathArray(b.id_proof_back_paths).filter(Boolean);
+    const ap = [...new Set((b.id_proof_photo_paths || '').split(',').filter(Boolean))];
+    const seen = new Set();
+    const allPhotos = [...fp, ...bp, ...ap].filter(p => { if (seen.has(p)) return false; seen.add(p); return true; });
+
+    const modal = document.createElement('div');
+    modal.id = 'bookingIdUploadOverlay';
+    modal.className = 'modal-overlay';
+    modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);display:flex;align-items:center;justify-content:center;z-index:9999999;padding:14px;box-sizing:border-box;backdrop-filter:blur(3px);';
+    modal.onclick = e => { if (e.target === modal) modal.remove(); };
+
+    modal.innerHTML = `
+      <div class="modal-box" style="background:#fff;border-radius:14px;padding:22px;max-width:520px;width:100%;box-shadow:0 12px 35px rgba(0,0,0,0.3);max-height:92vh;overflow-y:auto;" onclick="event.stopPropagation()">
+        <!-- HEADER -->
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;border-bottom:1.5px solid #F1F5F9;padding-bottom:10px;">
+          <div>
+            <h3 style="margin:0;font-size:17px;color:#0F766E;font-weight:800;display:flex;align-items:center;gap:6px;">
+              🪪 Upload / Manage Guest ID
+            </h3>
+            <div style="font-size:12px;color:#64748B;margin-top:2px;">
+              Guest: <strong style="color:#0F172A;">${b.guest_name || 'Guest'}</strong> · Room: <strong>${b.rooms?.nickname || b.rooms?.unit_no || b.room_id}</strong>
+            </div>
+          </div>
+          <button onclick="document.getElementById('bookingIdUploadOverlay')?.remove()" style="background:none;border:none;font-size:24px;cursor:pointer;color:#94A3B8;line-height:1;">✕</button>
+        </div>
+
+        <div style="font-size:11.5px;color:#475569;background:#F8FAFC;padding:8px 12px;border-radius:8px;border:1px solid #E2E8F0;margin-bottom:14px;">
+          📅 Stay: <strong>${b.check_in}</strong> → <strong>${b.check_out}</strong> | 🆔 Booking: <code>${b.booking_id}</code>
+        </div>
+
+        <!-- EXISTING ATTACHED IDS -->
+        ${allPhotos.length > 0 ? `
+          <div style="margin-bottom:16px;">
+            <div style="font-size:12px;font-weight:700;color:#1E293B;margin-bottom:8px;display:flex;align-items:center;gap:4px;">
+              ✅ Attached ID Documents (${allPhotos.length}):
+            </div>
+            <div style="display:flex;flex-wrap:wrap;gap:8px;">
+              ${allPhotos.map((p, idx) => {
+                let tag = 'ID ' + (idx + 1);
+                if (fp.includes(p)) tag = 'Front #' + (fp.indexOf(p) + 1);
+                else if (bp.includes(p)) tag = 'Back #' + (bp.indexOf(p) + 1);
+                return `
+                  <div style="display:inline-flex;align-items:center;gap:6px;background:#F1F5F9;border:1px solid #CBD5E1;border-radius:6px;padding:4px 8px;font-size:11px;">
+                    <span style="font-weight:600;">${tag}</span>
+                    <button type="button" class="btn-sm" style="background:#3B82F6;color:#fff;padding:2px 6px;font-size:10px;border:none;border-radius:3px;cursor:pointer;" onclick="dlIdPhoto('${p}')">👁️ View</button>
+                    <button type="button" class="btn-sm" style="background:#EF4444;color:#fff;padding:2px 6px;font-size:10px;border:none;border-radius:3px;cursor:pointer;" onclick="window.deleteBookingIdPhotoDirect('${b.booking_id}','${p}')">🗑️</button>
+                  </div>
+                `;
+              }).join('')}
+            </div>
+          </div>
+        ` : `
+          <div style="margin-bottom:14px;padding:10px;background:#FEF2F2;border:1px solid #FECDD3;border-radius:8px;color:#991B1B;font-size:12px;font-weight:600;">
+            ⚠️ No ID proof uploaded yet for this booking.
+          </div>
+        `}
+
+        <!-- UPLOAD NEW ID FORM -->
+        <div style="background:#F0FDF4;border:1.5px solid #BBF7D0;border-radius:10px;padding:14px;margin-bottom:14px;">
+          <div style="font-size:13px;font-weight:800;color:#166534;margin-bottom:10px;display:flex;align-items:center;gap:5px;">
+            📥 Add / Upload ID Document
+          </div>
+
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
+            <div>
+              <label style="font-weight:600;font-size:11.5px;color:#334155;display:block;margin-bottom:3px;">Guest #</label>
+              <select id="bIdGuestIdx" style="width:100%;padding:7px;border:1px solid #CBD5E1;border-radius:6px;font-size:12px;box-sizing:border-box;">
+                <option value="1">Guest 1 (Primary)</option>
+                <option value="2">Guest 2</option>
+                <option value="3">Guest 3</option>
+                <option value="4">Guest 4</option>
+                <option value="5">Guest 5</option>
+              </select>
+            </div>
+            <div>
+              <label style="font-weight:600;font-size:11.5px;color:#334155;display:block;margin-bottom:3px;">ID Type *</label>
+              <select id="bIdType" style="width:100%;padding:7px;border:1px solid #CBD5E1;border-radius:6px;font-size:12px;box-sizing:border-box;">
+                <option value="Aadhaar Card" ${b.id_proof_type==='Aadhaar Card'?'selected':''}>Aadhaar Card</option>
+                <option value="Driving License" ${b.id_proof_type==='Driving License'?'selected':''}>Driving License</option>
+                <option value="Passport" ${b.id_proof_type==='Passport'?'selected':''}>Passport</option>
+                <option value="PAN Card" ${b.id_proof_type==='PAN Card'?'selected':''}>PAN Card</option>
+                <option value="Voter ID" ${b.id_proof_type==='Voter ID'?'selected':''}>Voter ID</option>
+                <option value="Other Govt ID">Other Govt ID</option>
+              </select>
+            </div>
+          </div>
+
+          <div style="margin-bottom:12px;">
+            <label style="font-weight:600;font-size:11.5px;color:#334155;display:block;margin-bottom:3px;">ID Number / Last 4 Digits (Optional)</label>
+            <input id="bIdNo" type="text" value="${(b.id_proof_no || '').replace(/"/g, '&quot;')}" placeholder="e.g. 1234 5678 9012 or last 4 digits" style="width:100%;padding:7px 10px;border:1px solid #CBD5E1;border-radius:6px;font-size:12.5px;box-sizing:border-box;">
+          </div>
+
+          <!-- FRONT SIDE -->
+          <div style="margin-bottom:12px;background:#fff;padding:10px;border-radius:8px;border:1px solid #E2E8F0;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+              <label style="font-weight:700;font-size:12px;color:#0F172A;">📷 Front Side Photo *</label>
+              <span id="bIdFrontStatus" style="font-size:11px;color:#64748B;">No file chosen</span>
+            </div>
+            <div style="display:flex;gap:8px;">
+              <button type="button" class="btn-sm" style="flex:1;background:#0284C7;color:#fff;padding:7px 10px;font-size:12px;border:none;border-radius:6px;cursor:pointer;font-weight:600;" onclick="document.getElementById('bIdFrontCam').click()">📷 Camera</button>
+              <button type="button" class="btn-sm" style="flex:1;background:#475569;color:#fff;padding:7px 10px;font-size:12px;border:none;border-radius:6px;cursor:pointer;font-weight:600;" onclick="document.getElementById('bIdFrontGal').click()">🖼️ Gallery</button>
+            </div>
+            <input id="bIdFrontCam" type="file" accept="image/*" capture="environment" style="display:none;" onchange="window.previewBookingIdFile(this, 'bIdFrontPreview', 'bIdFrontStatus')">
+            <input id="bIdFrontGal" type="file" accept="image/*,image/heic,image/heif,.heic,.heif" style="display:none;" onchange="window.previewBookingIdFile(this, 'bIdFrontPreview', 'bIdFrontStatus')">
+            <div id="bIdFrontPreview" style="margin-top:6px;"></div>
+          </div>
+
+          <!-- BACK SIDE -->
+          <div style="margin-bottom:14px;background:#fff;padding:10px;border-radius:8px;border:1px solid #E2E8F0;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+              <label style="font-weight:700;font-size:12px;color:#0F172A;">📷 Back Side Photo (Optional)</label>
+              <span id="bIdBackStatus" style="font-size:11px;color:#64748B;">No file chosen</span>
+            </div>
+            <div style="display:flex;gap:8px;">
+              <button type="button" class="btn-sm" style="flex:1;background:#0284C7;color:#fff;padding:7px 10px;font-size:12px;border:none;border-radius:6px;cursor:pointer;font-weight:600;" onclick="document.getElementById('bIdBackCam').click()">📷 Camera</button>
+              <button type="button" class="btn-sm" style="flex:1;background:#475569;color:#fff;padding:7px 10px;font-size:12px;border:none;border-radius:6px;cursor:pointer;font-weight:600;" onclick="document.getElementById('bIdBackGal').click()">🖼️ Gallery</button>
+            </div>
+            <input id="bIdBackCam" type="file" accept="image/*" capture="environment" style="display:none;" onchange="window.previewBookingIdFile(this, 'bIdBackPreview', 'bIdBackStatus')">
+            <input id="bIdBackGal" type="file" accept="image/*,image/heic,image/heif,.heic,.heif" style="display:none;" onchange="window.previewBookingIdFile(this, 'bIdBackPreview', 'bIdBackStatus')">
+            <div id="bIdBackPreview" style="margin-top:6px;"></div>
+          </div>
+
+          <button id="btnSaveBookingId" type="button" onclick="window.saveBookingIdDirect('${b.booking_id}')" style="width:100%;padding:12px;background:#10B981;color:#fff;border:none;border-radius:8px;font-weight:800;font-size:14px;cursor:pointer;box-shadow:0 2px 8px rgba(16,185,129,0.35);">
+            💾 Upload & Save ID Proof
+          </button>
+          <div id="bookingIdUploadErr" style="margin-top:8px;color:#DC2626;font-size:12px;font-weight:600;text-align:center;"></div>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(modal);
+  } catch (err) {
+    alert('❌ Error loading ID modal: ' + err.message);
+  }
+};
+
+window.previewBookingIdFile = function(input, previewId, statusId) {
+  const file = input.files?.[0];
+  if (!file) return;
+  const statusEl = document.getElementById(statusId);
+  const previewEl = document.getElementById(previewId);
+  if (statusEl) statusEl.innerHTML = `<b style="color:#059669;">✓ Selected (${(file.size/1024).toFixed(0)} KB)</b>`;
+  if (previewEl) {
+    const reader = new FileReader();
+    reader.onload = e => {
+      previewEl.innerHTML = `
+        <div style="display:flex;align-items:center;gap:8px;margin-top:4px;">
+          <img src="${e.target.result}" style="width:60px;height:45px;object-fit:cover;border-radius:4px;border:1px solid #CBD5E1;">
+          <span style="font-size:11px;color:#059669;font-weight:600;">Image ready to upload</span>
+        </div>
+      `;
+    };
+    reader.readAsDataURL(file);
+  }
+};
+
+window.saveBookingIdDirect = async function(bkId) {
+  const btn = document.getElementById('btnSaveBookingId');
+  const errEl = document.getElementById('bookingIdUploadErr');
+  const frontFile = document.getElementById('bIdFrontCam')?.files?.[0] || document.getElementById('bIdFrontGal')?.files?.[0];
+  const backFile = document.getElementById('bIdBackCam')?.files?.[0] || document.getElementById('bIdBackGal')?.files?.[0];
+  const guestIdx = parseInt(document.getElementById('bIdGuestIdx')?.value || '1', 10);
+  const idType = document.getElementById('bIdType')?.value || 'Aadhaar Card';
+  const idNo = document.getElementById('bIdNo')?.value?.trim() || null;
+
+  if (!frontFile && !backFile) {
+    if (errEl) errEl.innerText = '⚠️ Please select at least one photo (Front side photo required)!';
+    return;
+  }
+
+  if (btn) { btn.disabled = true; btn.innerText = '⏳ Compressing & Uploading...'; }
+
+  try {
+    const { data: b } = await sb.from('guest_register')
+      .select('id_proof_front_paths, id_proof_back_paths, id_proof_photo_paths')
+      .eq('booking_id', bkId).single();
+
+    const fArr = parseIdPathArray(b?.id_proof_front_paths);
+    const bArr = parseIdPathArray(b?.id_proof_back_paths);
+    const aArr = [...new Set((b?.id_proof_photo_paths || '').split(',').filter(Boolean))];
+
+    // Upload front photo
+    if (frontFile) {
+      const cFront = await smartCompress(frontFile);
+      const pFront = `${bkId}/${Date.now()}_g${guestIdx}_front.jpg`;
+      const upRes = await robustUpload(pFront, cFront, 3);
+      if (!upRes.success) throw new Error('Front upload failed: ' + (upRes.error || 'Network error'));
+      while (fArr.length < guestIdx) fArr.push(null);
+      fArr[guestIdx - 1] = pFront;
+      aArr.push(pFront);
+    }
+
+    // Upload back photo if present
+    if (backFile) {
+      const cBack = await smartCompress(backFile);
+      const pBack = `${bkId}/${Date.now()}_g${guestIdx}_back.jpg`;
+      const upRes = await robustUpload(pBack, cBack, 3);
+      if (!upRes.success) throw new Error('Back upload failed: ' + (upRes.error || 'Network error'));
+      while (bArr.length < guestIdx) bArr.push(null);
+      bArr[guestIdx - 1] = pBack;
+      aArr.push(pBack);
+    }
+
+    const uniqueAll = [...new Set(aArr.filter(Boolean))];
+    const updateObj = {
+      id_proof_front_paths: stringifyIdPathArray(fArr),
+      id_proof_back_paths: stringifyIdPathArray(bArr),
+      id_proof_photo_paths: uniqueAll.join(',') || null,
+      id_proof_photo_path: uniqueAll[0] || null,
+      verification_status: 'verified'
+    };
+    if (idType) updateObj.id_proof_type = idType;
+    if (idNo) updateObj.id_proof_no = idNo;
+
+    const { error: upErr } = await sb.from('guest_register').update(updateObj).eq('booking_id', bkId);
+    if (upErr) throw upErr;
+
+    document.getElementById('bookingIdUploadOverlay')?.remove();
+    if (window.fsn?.success) fsn.success('Uploaded', '✅ ID proof uploaded and attached!');
+    else alert('✅ ID proof uploaded and attached!');
+
+    // Refresh bookings UI
+    if (typeof renderManageBookings === 'function') renderManageBookings();
+    else if (typeof renderBookings === 'function') renderBookings();
+    if (typeof window.notifyDataChanged === 'function') window.notifyDataChanged();
+  } catch (err) {
+    if (errEl) errEl.innerText = '❌ ' + err.message;
+    if (btn) { btn.disabled = false; btn.innerText = '💾 Upload & Save ID Proof'; }
+  }
+};
+
+window.deleteBookingIdPhotoDirect = async function(bkId, path) {
+  if (!confirm('🗑️ Delete this ID photo permanently?')) return;
+  try {
+    await sb.storage.from('id-proofs').remove([path]);
+    const { data: b } = await sb.from('guest_register')
+      .select('id_proof_front_paths, id_proof_back_paths, id_proof_photo_paths')
+      .eq('booking_id', bkId).single();
+
+    if (b) {
+      const fArr = parseIdPathArray(b.id_proof_front_paths).map(p => p === path ? null : p);
+      const bArr = parseIdPathArray(b.id_proof_back_paths).map(p => p === path ? null : p);
+      const aArr = (b.id_proof_photo_paths || '').split(',').filter(p => p && p !== path);
+      await sb.from('guest_register').update({
+        id_proof_front_paths: stringifyIdPathArray(fArr),
+        id_proof_back_paths: stringifyIdPathArray(bArr),
+        id_proof_photo_paths: aArr.join(',') || null,
+        id_proof_photo_path: aArr[0] || null
+      }).eq('booking_id', bkId);
+    }
+
+    if (window.fsn?.success) fsn.success('Deleted', '🗑️ Photo removed');
+    // Refresh modal to show updated IDs
+    window.openBookingIdUploadModal(bkId);
+    if (typeof renderManageBookings === 'function') renderManageBookings();
+  } catch (err) {
+    alert('❌ Error deleting photo: ' + err.message);
+  }
+};
 
 // ============ MANAGE BOOKINGS ============
 async function renderManageBookings() {
@@ -1015,6 +1290,7 @@ async function renderManageBookings() {
           <td>${((b.booking_mode === 'Online-Airbnb' || b.airbnb_confirmation_code) && (b.total_amount === 0 || b.payment_status === 'Pending CSV Payout')) ? '<span style="color:#94A3B8;">—</span>' : `<strong class="${bal > 0.99 ? 'metric-value warn' : ''}">₹${Math.abs(bal) < 1 ? '0' : bal.toLocaleString('en-IN')}</strong>`}</td>
           ${canM ? `<td class="table-actions">
             <button class="btn-sm" onclick="editBooking('${b.booking_id}')" title="Edit">✏️</button>
+            <button class="btn-sm" style="background:#0D9488;color:#fff;" onclick="window.openBookingIdUploadModal('${b.booking_id}')" title="Upload / Manage Guest ID">🪪 ID</button>
             <button class="btn-sm" style="background:#8B5CF6;color:#fff;" onclick="duplicateBooking('${b.booking_id}')" title="Duplicate this booking">📋</button>
             <button class="btn-sm secondary" onclick="showPaymentModal('${b.booking_id}')" title="Pay">💰</button>
             <button class="btn-sm" style="background:#0284C7;color:#fff;" onclick="showSecurityDepositModal('${b.booking_id}')" title="Security Deposit (सुरक्षा जमा)">🛡️</button>
