@@ -148,75 +148,138 @@ async function getAllODDeposits(supabaseClient, startDate = '2026-09-17', endDat
     return Array.from(itemsMap.values()).sort((a, b) => new Date(b.transaction_date) - new Date(a.transaction_date));
 }
 
-// 3. Live UHHS-OD Balance Calculator with EXACT DB Table Names & Dual-Layer Inflows
+// 3. Live UHHS-OD Ledger Engine & Single Source of Truth
+async function getLedgerData(supabaseClient, customStartDate, customEndDate) {
+    const client = supabaseClient || window.sb || window.supabaseClient || window.supabase;
+    if (!client) return { txns: [], totalInflow: 0, totalOutflow: 0, netBalance: 0 };
+
+    const startDate = customStartDate || "2026-09-17";
+    const endDate = customEndDate || null;
+
+    // 1. Deposits (Inflows)
+    const deposits = await getAllODDeposits(client, startDate, endDate);
+
+    // 2. Outflows (Parallel queries)
+    let qReimb = client.from('reimbursements').select('*').gte('expense_date', startDate);
+    if (endDate) qReimb = qReimb.lte('expense_date', endDate);
+
+    let qMaint = client.from('maintenance_log').select('*').gte('reported_date', startDate);
+    if (endDate) qMaint = qMaint.lte('reported_date', endDate);
+
+    let qLaund = client.from('laundry_payments').select('*').gte('payment_date', startDate);
+    if (endDate) qLaund = qLaund.lte('payment_date', endDate);
+
+    let qAdv = client.from('advance_tracker').select('*, employees(name)');
+
+    const [{ data: exps }, { data: maints }, { data: launds }, { data: allAdvs }] = await Promise.all([
+        qReimb, qMaint, qLaund, qAdv
+    ]);
+
+    const txns = [];
+
+    // Deduplicate Deposits
+    const seenDepIds = new Set();
+    (deposits || []).forEach(d => {
+        const depKey = String(d.db_id || d.id);
+        if (seenDepIds.has(depKey)) return;
+        seenDepIds.add(depKey);
+
+        txns.push({
+            id: d.id,
+            db_id: d.db_id,
+            source_table: d.source_table || 'company_advances',
+            date: d.transaction_date,
+            type: 'DEPOSIT',
+            desc: d.description || `Funds added by ${d.received_from || 'Firoz'} via ${d.payment_mode || 'UPI'}`,
+            amount: parseFloat(d.amount || 0),
+            isDep: true
+        });
+    });
+
+    function normalizePaymentSource(src) {
+        if (!src) return '';
+        const s = String(src).trim().toUpperCase();
+        if (s.includes('OD') || s.includes('UHHS')) return 'UHHS-OD';
+        return src;
+    }
+
+    // Daily Expenses (-)
+    (exps || []).filter(e => normalizePaymentSource(e.payment_source || e.paid_by) === 'UHHS-OD').forEach(e => {
+        txns.push({
+            id: e.id,
+            source: 'reimbursements',
+            date: e.expense_date,
+            type: 'EXPENSE',
+            desc: `Daily Expense: ${e.category || ''} - ${e.description || ''}`,
+            amount: parseFloat(e.amount || 0),
+            isDep: false
+        });
+    });
+
+    // Maintenance (-)
+    (maints || []).filter(m => normalizePaymentSource(m.payment_source || m.paid_by) === 'UHHS-OD').forEach(m => {
+        txns.push({
+            id: m.id,
+            source: 'maintenance_log',
+            date: m.reported_date,
+            type: 'EXPENSE',
+            desc: `Maintenance: ${m.issue_type || ''} - ${m.description || ''}`,
+            amount: parseFloat(m.cost || 0),
+            isDep: false
+        });
+    });
+
+    // Laundry (-)
+    (launds || []).filter(l => normalizePaymentSource(l.payment_source || l.payment_mode) === 'UHHS-OD').forEach(l => {
+        txns.push({
+            id: l.id,
+            source: 'laundry_payments',
+            date: l.payment_date,
+            type: 'EXPENSE',
+            desc: `Laundry: ${l.notes || ''}`,
+            amount: parseFloat(l.amount || 0),
+            isDep: false
+        });
+    });
+
+    // Staff Advances (-)
+    (allAdvs || []).filter(a => {
+        const aDate = a.date_given || '';
+        if (aDate < startDate) return false;
+        if (endDate && aDate > endDate) return false;
+        return normalizePaymentSource(a.paid_by) === 'UHHS-OD';
+    }).forEach(a => {
+        const realName = a.employees?.name || 'Staff';
+        txns.push({
+            id: a.id,
+            source: 'advance_tracker',
+            date: a.date_given,
+            type: 'EXPENSE',
+            desc: `Staff Advance (${realName}): ${a.reason || 'Advance'}`,
+            amount: parseFloat(a.advance_amount || 0),
+            isDep: false
+        });
+    });
+
+    txns.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+    const totalInflow = txns.filter(t => t.isDep).reduce((s, t) => s + t.amount, 0);
+    const totalOutflow = txns.filter(t => !t.isDep).reduce((s, t) => s + t.amount, 0);
+    const netBalance = totalInflow - totalOutflow;
+
+    return { txns, totalInflow, totalOutflow, netBalance };
+}
+
+// 4. Live UHHS-OD Balance Calculator & DOM Synchronizer
 async function calculateLiveODBalance(supabaseClient, customStartDate, customEndDate) {
     const client = supabaseClient || window.sb || window.supabaseClient || window.supabase;
     if (!client) return { inflow: 0, outflow: 0, balance: 0 };
 
     try {
-        const startDate = customStartDate || "2026-09-17";
-        const endDate = customEndDate || null;
+        const startDate = customStartDate || window._claimsState?.fromDate || "2026-09-17";
+        const endDate = customEndDate || window._claimsState?.toDate || null;
 
-        // A. Inflows (Supabase + LocalStorage)
-        const odInflows = await getAllODDeposits(client, startDate, endDate);
-        const totalInflow = (odInflows || []).reduce((sum, row) => sum + parseFloat(row.amount || 0), 0);
-
-        let totalOutflow = 0;
-
-        // Daily Expenses
-        try {
-            let q1 = client.from('reimbursements').select('amount, payment_source, paid_by, expense_date').gte('expense_date', startDate);
-            if (endDate) q1 = q1.lte('expense_date', endDate);
-            const { data: r1 } = await q1;
-            if (r1) {
-                totalOutflow += r1.filter(e => {
-                    const s = String(e.payment_source || e.paid_by || '').toUpperCase();
-                    return s.includes('OD') || s.includes('UHHS');
-                }).reduce((s, r) => s + parseFloat(r.amount || 0), 0);
-            }
-        } catch (e) {}
-
-        // Maintenance
-        try {
-            let q2 = client.from('maintenance_log').select('cost, payment_source, paid_by, reported_date').gte('reported_date', startDate);
-            if (endDate) q2 = q2.lte('reported_date', endDate);
-            const { data: r2 } = await q2;
-            if (r2) {
-                totalOutflow += r2.filter(m => {
-                    const s = String(m.payment_source || m.paid_by || '').toUpperCase();
-                    return s.includes('OD') || s.includes('UHHS');
-                }).reduce((s, r) => s + parseFloat(r.cost || 0), 0);
-            }
-        } catch (e) {}
-
-        // Laundry
-        try {
-            let q3 = client.from('laundry_payments').select('amount, payment_source, paid_by, payment_date').gte('payment_date', startDate);
-            if (endDate) q3 = q3.lte('payment_date', endDate);
-            const { data: r3 } = await q3;
-            if (r3) {
-                totalOutflow += r3.filter(l => {
-                    const s = String(l.payment_source || l.paid_by || '').toUpperCase();
-                    return s.includes('OD') || s.includes('UHHS');
-                }).reduce((s, r) => s + parseFloat(r.amount || 0), 0);
-            }
-        } catch (e) {}
-
-        // Staff Advances from OD
-        try {
-            const { data: r4 } = await client.from('advance_tracker').select('advance_amount, paid_by, date_given, created_at');
-            if (r4) {
-                totalOutflow += r4.filter(a => {
-                    const aDate = a.date_given || (a.created_at || '').slice(0, 10);
-                    if (aDate < startDate) return false;
-                    if (endDate && aDate > endDate) return false;
-                    const s = String(a.paid_by || '').toUpperCase();
-                    return s.includes('OD') || s.includes('UHHS');
-                }).reduce((s, r) => s + parseFloat(r.advance_amount || 0), 0);
-            }
-        } catch (e) {}
-
-        const netBalance = totalInflow - totalOutflow;
+        const { txns, totalInflow, totalOutflow, netBalance } = await getLedgerData(client, startDate, endDate);
 
         // Update Claims Manager Inflow / Outflow Sub-elements if present
         const inEl = document.getElementById('claims-od-inflow');
@@ -232,7 +295,7 @@ async function calculateLiveODBalance(supabaseClient, customStartDate, customEnd
 
         bannerElements.forEach(el => {
             if (el) {
-                if (el.id === 'claims-od-banner-bal' || el.classList.contains('claims-od-bal-value')) {
+                if (el.id === 'claims-od-banner-bal' || el.classList?.contains('claims-od-bal-value')) {
                     const prefix = netBalance < 0 ? '-₹' : '₹';
                     const absVal = Math.abs(netBalance).toLocaleString('en-IN');
                     el.innerText = `${prefix}${absVal}`;
@@ -262,10 +325,10 @@ async function calculateLiveODBalance(supabaseClient, customStartDate, customEnd
             }
         });
 
-        return { inflow: totalInflow, outflow: totalOutflow, balance: netBalance, count: odInflows.length };
+        return { inflow: totalInflow, outflow: totalOutflow, balance: netBalance, count: txns.length, txns };
     } catch (error) {
         console.error("Error calculating OD balance:", error);
-        return { inflow: 0, outflow: 0, balance: 0 };
+        return { inflow: 0, outflow: 0, balance: 0, txns: [] };
     }
 }
 
@@ -274,7 +337,8 @@ window.UHHSODManager = {
     getDropdownHTML: getPaymentSourceDropdownHTML,
     getBadge: getPaymentSourceBadge,
     calculateBalance: calculateLiveODBalance,
-    getDeposits: getAllODDeposits
+    getDeposits: getAllODDeposits,
+    getLedgerData: getLedgerData
 };
 
 // =========================================================================

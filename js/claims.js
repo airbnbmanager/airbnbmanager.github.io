@@ -299,6 +299,11 @@ window.updateClaimsFilter = function() {
 
   window._claimsState.selectedIds.clear();
   renderClaimsTable();
+
+  // Sync OD Top Banner to match active date range
+  if (window.UHHSODManager) {
+    window.UHHSODManager.calculateBalance(sb, window._claimsState.fromDate, window._claimsState.toDate);
+  }
 };
 
 // 3. Load All Data & Apply Filters Dynamically
@@ -432,18 +437,7 @@ async function loadClaimsData() {
 
     // Trigger OD Top Banner Balance Calculation
     if (window.UHHSODManager) {
-      const res = await window.UHHSODManager.calculateBalance(sb);
-      const bEl = document.getElementById('claims-od-banner-bal');
-      if (bEl) {
-        const prefix = res.balance < 0 ? '-₹' : '₹';
-        const absVal = Math.abs(res.balance).toLocaleString('en-IN');
-        bEl.innerText = `${prefix}${absVal}`;
-        bEl.style.color = res.balance >= 0 ? '#15803D' : '#DC2626';
-      }
-      const inEl = document.getElementById('claims-od-inflow');
-      if (inEl) inEl.innerText = `₹${(res.inflow || 0).toLocaleString('en-IN')}`;
-      const outEl = document.getElementById('claims-od-outflow');
-      if (outEl) outEl.innerText = `₹${(res.outflow || 0).toLocaleString('en-IN')}`;
+      await window.UHHSODManager.calculateBalance(sb, window._claimsState?.fromDate, window._claimsState?.toDate);
     }
 
     renderClaimsTable();
@@ -871,120 +865,28 @@ window.showUhhsStatementModal = async function() {
     const fDate = fromDate || '2026-09-17';
     const tDate = toDate || new Date().toISOString().slice(0, 10);
 
-    let deposits = (window.UHHSODManager && window.UHHSODManager.getDeposits)
-      ? await window.UHHSODManager.getDeposits(sb, fDate, tDate)
-      : [];
-
-    // Failsafe cloud fallback: If deposits returned empty, query company_advances directly
-    if (!deposits || deposits.length === 0) {
-      try {
-        let q = sb.from('company_advances').select('*').or('payment_source.eq.UHHS-OD,given_to.eq.UHHS-OD');
-        if (fDate) q = q.gte('advance_date', fDate);
-        if (tDate) q = q.lte('advance_date', tDate);
-        const { data: caData } = await q.order('advance_date', { ascending: false });
-        if (caData && caData.length > 0) {
-          deposits = caData.map(ca => ({
-            id: 'ca_' + ca.id,
-            db_id: ca.id,
-            source_table: 'company_advances',
-            transaction_date: ca.advance_date,
-            description: ca.purpose || `Funds added by ${ca.given_by || 'Firoz'} via UPI`,
-            amount: parseFloat(ca.amount_given || 0),
-            transaction_type: 'INFLOW',
-            payment_mode: 'UPI',
-            received_from: ca.given_by || 'Firoz',
-            reference_note: ca.notes || null,
-            created_at: ca.created_at
-          }));
-        }
-      } catch (e) {
-        console.warn('Direct company_advances fallback notice:', e);
-      }
+    let ledger = null;
+    if (window.UHHSODManager && window.UHHSODManager.getLedgerData) {
+      ledger = await window.UHHSODManager.getLedgerData(sb, fDate, tDate);
     }
 
-    const [{ data: exps }, { data: maints }, { data: launds }, { data: allAdvs }] = await Promise.all([
-      sb.from('reimbursements').select('*').gte('expense_date', fDate).lte('expense_date', tDate),
-      sb.from('maintenance_log').select('*').gte('reported_date', fDate).lte('reported_date', tDate),
-      sb.from('laundry_payments').select('*').gte('payment_date', fDate).lte('payment_date', tDate),
-      sb.from('advance_tracker').select('*, employees(name)')
-    ]);
+    const txns = ledger ? (ledger.txns || []) : [];
+    const totalInflow = ledger ? Number(ledger.totalInflow || 0) : 0;
+    const totalOutflow = ledger ? Number(ledger.totalOutflow || 0) : 0;
+    const netBalance = ledger ? Number(ledger.netBalance || 0) : 0;
 
-    const txns = [];
-
-    // Deposits (+) with unique ID deduplication guard
-    const seenDepIds = new Set();
-    (deposits || []).forEach(d => {
-      const depKey = String(d.db_id || d.id);
-      if (seenDepIds.has(depKey)) return;
-      seenDepIds.add(depKey);
-
-      txns.push({
-        id: d.id,
-        date: d.transaction_date,
-        type: 'DEPOSIT',
-        desc: d.description || `Deposit from ${d.received_from || 'Firoz/Owner'}`,
-        amount: Number(d.amount || 0),
-        isDep: true
-      });
-    });
-
-    // Daily Expenses (-)
-    (exps || []).filter(e => normalizePaymentSource(e.payment_source || e.paid_by) === 'UHHS-OD').forEach(e => {
-      txns.push({
-        id: e.id,
-        source: 'reimbursements',
-        date: e.expense_date,
-        type: 'EXPENSE',
-        desc: `Daily Expense: ${e.category || ''} - ${e.description || ''}`,
-        amount: Number(e.amount || 0),
-        isDep: false
-      });
-    });
-
-    // Maintenance (-)
-    (maints || []).filter(m => normalizePaymentSource(m.payment_source || m.paid_by) === 'UHHS-OD').forEach(m => {
-      txns.push({
-        date: m.reported_date,
-        type: 'EXPENSE',
-        desc: `Maintenance: ${m.issue_type || ''} - ${m.description || ''}`,
-        amount: Number(m.cost || 0),
-        isDep: false
-      });
-    });
-
-    // Laundry (-)
-    (launds || []).filter(l => normalizePaymentSource(l.payment_source || l.paid_by) === 'UHHS-OD').forEach(l => {
-      txns.push({
-        date: l.payment_date,
-        type: 'EXPENSE',
-        desc: `Laundry: ${l.notes || ''}`,
-        amount: Number(l.amount || 0),
-        isDep: false
-      });
-    });
-
-    // Staff Advances given from UHHS-OD (-)
-    (allAdvs || []).filter(a => {
-      const aDate = a.date_given || (a.created_at || '').slice(0, 10);
-      if (aDate < fDate || aDate > tDate) return false;
-      const s = String(a.paid_by || '').toUpperCase();
-      return s.includes('OD') || s.includes('UHHS');
-    }).forEach(a => {
-      const realName = a.employees?.name || 'Staff';
-      txns.push({
-        date: a.date_given || a.created_at?.slice(0, 10),
-        type: 'EXPENSE',
-        desc: `💸 Staff Advance (${realName}): ${a.reason || 'Given from OD'}`,
-        amount: Number(a.advance_amount || 0),
-        isDep: false
-      });
-    });
-
-    txns.sort((a, b) => new Date(b.date) - new Date(a.date));
-
-    let totalInflow = txns.filter(t => t.isDep).reduce((s, t) => s + t.amount, 0);
-    let totalOutflow = txns.filter(t => !t.isDep).reduce((s, t) => s + t.amount, 0);
-    let netBalance = totalInflow - totalOutflow;
+    // Immediately synchronize Claims Manager Top Banner with exact same numbers
+    const bEl = document.getElementById('claims-od-banner-bal');
+    if (bEl) {
+      const prefix = netBalance < 0 ? '-₹' : '₹';
+      const absVal = Math.abs(netBalance).toLocaleString('en-IN');
+      bEl.innerText = `${prefix}${absVal}`;
+      bEl.style.color = netBalance >= 0 ? '#15803D' : '#DC2626';
+    }
+    const inEl = document.getElementById('claims-od-inflow');
+    if (inEl) inEl.innerText = `₹${totalInflow.toLocaleString('en-IN')}`;
+    const outEl = document.getElementById('claims-od-outflow');
+    if (outEl) outEl.innerText = `₹${totalOutflow.toLocaleString('en-IN')}`;
 
     // Remove any existing instance
     window.closeUhhsStatementModal();
