@@ -611,10 +611,13 @@
       }
     } catch (err) {
       body.innerHTML = `
-        <div style="background:#FEF2F2;border:1.5px solid #F87171;padding:16px;border-radius:10px;color:#991B1B;font-size:12.5px;">
-          ❌ Could not reach WhatsApp Bot gateway at <code>${gatewayUrl}</code>.<br><br>
-          Please make sure the bot is running in your terminal:<br>
-          <code>cd whatsapp-bot && npm start</code>
+        <div style="background:#FEF2F2;border:1.5px solid #F87171;padding:16px;border-radius:10px;color:#991B1B;font-size:12.5px;text-align:left;">
+          <b>❌ Could not reach WhatsApp Bot gateway at:</b><br>
+          <code style="background:#FEE2E2;padding:2px 6px;border-radius:4px;display:inline-block;margin:4px 0;">${gatewayUrl}</code><br><br>
+          <b>📱 iPhone / iPad user?</b><br>
+          <button onclick="window.setQuickGatewayUrl('http://192.168.29.155:3000');checkAndRenderModalContent();" style="margin-top:6px;background:#0F766E;color:#fff;border:none;padding:7px 12px;border-radius:6px;font-weight:700;font-size:11.5px;cursor:pointer;width:100%;text-align:center;">
+            ⚡ Same Wi-Fi: Connect to Mac Mini (192.168.29.155:3000)
+          </button>
         </div>
       `;
     }
@@ -744,6 +747,20 @@
     await updateDeviceView();
   }
 
+  window.setQuickGatewayUrl = async function(newUrl) {
+    if (!newUrl) return;
+    const cleanUrl = newUrl.trim().replace(/\/+$/, '');
+    HUB.config = { ...(HUB.config || DEFAULT_WA_CONFIG), gateway_url: cleanUrl };
+    setLocalConfig(HUB.config);
+    try {
+      if (window.sb) {
+        await sb.from('whatsapp_config').upsert({ id: 1, gateway_url: cleanUrl, updated_at: new Date().toISOString() });
+      }
+    } catch (e) {}
+    if (window.fsn?.info) fsn.info('Gateway Updated', cleanUrl);
+    await updateDeviceView();
+  };
+
   async function updateDeviceView() {
     const container = document.getElementById('hubDeviceViewContent');
     if (!container) return;
@@ -788,14 +805,39 @@
       }
     } catch (err) {
       container.innerHTML = `
-        <div style="background:#FEF2F2;border:1.5px solid #F87171;padding:18px;border-radius:10px;color:#991B1B;font-size:13px;text-align:center;">
-          <div style="font-size:28px;margin-bottom:8px;">⚠️</div>
-          <b>Could not reach WhatsApp Gateway at <code>${gatewayUrl}</code></b><br>
-          <div style="font-size:12px;color:#7F1D1D;margin-top:8px;">
-            Please ensure the background service is running on port 3000:<br>
-            <code>cd whatsapp-bot && npm start</code>
+        <div style="background:#FEF2F2;border:1.5px solid #F87171;padding:18px;border-radius:12px;color:#991B1B;font-size:13px;text-align:center;">
+          <div style="font-size:28px;margin-bottom:6px;">⚠️</div>
+          <b style="font-size:15px;">Could not reach WhatsApp Gateway at:</b><br>
+          <code style="display:inline-block;background:#FEE2E2;padding:4px 8px;border-radius:6px;margin:6px 0;font-size:12px;color:#991B1B;">${gatewayUrl}</code>
+
+          <div style="margin-top:12px;background:#FFF;border:1px solid #FECDD3;padding:14px;border-radius:10px;text-align:left;color:#7F1D1D;font-size:12.5px;line-height:1.5;">
+            <div style="font-weight:800;color:#991B1B;font-size:13px;display:flex;align-items:center;gap:6px;margin-bottom:6px;">
+              📱 iPhone ya iPad par hain?
+            </div>
+            <code>localhost:3000</code> sirf Mac Mini ke andar chalta hai. iPhone/iPad se connect karne ke options:
+            
+            <div style="margin-top:10px;display:flex;flex-direction:column;gap:8px;">
+              <button onclick="window.setQuickGatewayUrl('http://192.168.29.155:3000')" style="background:#0F766E;color:#fff;border:none;padding:10px 14px;border-radius:8px;font-weight:700;font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;box-shadow:0 2px 5px rgba(15,118,110,0.25);">
+                <span>⚡ Same Wi-Fi: Connect to Mac Mini</span>
+                <span style="font-size:10.5px;background:rgba(255,255,255,0.2);padding:2px 6px;border-radius:4px;">192.168.29.155:3000</span>
+              </button>
+            </div>
+
+            <div style="margin-top:12px;border-top:1px dashed #FECDD3;padding-top:10px;">
+              <label style="font-size:11px;font-weight:700;display:block;margin-bottom:4px;color:#64748B;">🌐 Or Custom Cloud / Tunnel URL (24/7):</label>
+              <div style="display:flex;gap:6px;">
+                <input id="quickCustomGwUrl" type="text" placeholder="https://your-bot.onrender.com" value="${gatewayUrl}" style="flex:1;padding:7px 10px;font-size:12px;border:1px solid #CBD5E1;border-radius:6px;">
+                <button onclick="window.setQuickGatewayUrl(document.getElementById('quickCustomGwUrl').value)" style="background:#2563EB;color:#fff;border:none;padding:7px 14px;border-radius:6px;font-weight:700;font-size:12px;cursor:pointer;">
+                  Connect
+                </button>
+              </div>
+            </div>
           </div>
-          <button onclick="updateDeviceView()" style="margin-top:12px;padding:8px 16px;background:#991B1B;color:#fff;border:none;border-radius:6px;font-weight:700;cursor:pointer;">
+
+          <div style="font-size:11.5px;color:#7F1D1D;margin-top:12px;">
+            Mac Mini terminal me command: <code>cd whatsapp-bot && npm start</code>
+          </div>
+          <button onclick="updateDeviceView()" style="margin-top:10px;padding:8px 18px;background:#991B1B;color:#fff;border:none;border-radius:6px;font-weight:700;font-size:12px;cursor:pointer;">
             🔄 Retry Connection
           </button>
         </div>
