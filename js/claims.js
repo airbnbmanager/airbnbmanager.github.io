@@ -1459,4 +1459,307 @@ window.exportUhhsLedgerPDF = function(fDate, tDate, totalInflow, totalOutflow, n
   printWin.document.close();
 };
 
+// ══════════════════════════════════════════════════════════════════
+// 9. CLAIM REPORT STATEMENT & WHATSAPP SUMMARY
+// ══════════════════════════════════════════════════════════════════
+function getFilteredClaimsItems() {
+  const { fromDate, toDate, moduleFilter, statusFilter, paidByFilter, employeeFilter, allData, empMap } = window._claimsState || {};
+  return (allData || []).filter(item => {
+    if (fromDate && item.dateStr < fromDate) return false;
+    if (toDate && item.dateStr > toDate) return false;
+    if (moduleFilter && moduleFilter !== 'all' && item.module !== moduleFilter) return false;
+    if (paidByFilter && paidByFilter !== 'all' && item.paidBy !== paidByFilter) return false;
+    if (statusFilter && statusFilter !== 'all' && item.status !== statusFilter) return false;
+    if (employeeFilter && employeeFilter !== 'all') {
+      const matchEmp = (item.staffName === employeeFilter) ||
+                       (item.vendorOrStaff === employeeFilter) ||
+                       (item.empId === employeeFilter) ||
+                       (empMap && empMap[item.empId] === employeeFilter);
+      if (!matchEmp) return false;
+    }
+    return true;
+  });
+}
+
+window.generateClaimReport = function() {
+  const items = getFilteredClaimsItems();
+  if (!items || items.length === 0) {
+    if (window.fsn?.warn) fsn.warn('No Data', 'No claim items found matching current filters.');
+    else alert('No claim items found matching current filters.');
+    return;
+  }
+
+  const { fromDate, toDate, paidByFilter } = window._claimsState || {};
+  const fDate = fromDate || 'Start';
+  const tDate = toDate || 'Present';
+  const payerLabel = paidByFilter === 'all' ? 'All Payers' : paidByFilter;
+
+  let totalAmt = 0;
+  let claimedAmt = 0;
+  let advancesAmt = 0;
+
+  items.forEach(i => {
+    totalAmt += (i.amount || 0);
+    if (i.status === 'claimed' || i.status === 'received') {
+      claimedAmt += (i.amount || 0);
+    }
+    if (i.module === 'advances') {
+      advancesAmt += (i.amount || 0);
+    }
+  });
+
+  const pendingAmt = Math.max(0, totalAmt - claimedAmt);
+
+  // Remove existing modal if any
+  document.getElementById('claimReportModalOverlay')?.remove();
+
+  const modal = document.createElement('div');
+  modal.id = 'claimReportModalOverlay';
+  modal.className = 'modal-overlay';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.65);display:flex;align-items:center;justify-content:center;z-index:90000;padding:12px;box-sizing:border-box;backdrop-filter:blur(2px);';
+  modal.onclick = e => { if (e.target === modal) modal.remove(); };
+
+  modal.innerHTML = `
+    <div class="modal-box" style="background:#fff;border-radius:12px;width:100%;max-width:900px;max-height:90vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 10px 30px rgba(0,0,0,0.35);margin:auto;" onclick="event.stopPropagation()">
+      <!-- HEADER -->
+      <div style="padding:14px 18px;border-bottom:1.5px solid #E2E8F0;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;background:#F8FAFC;">
+        <div>
+          <h2 style="margin:0;color:#6D28D9;font-size:17px;font-weight:800;display:flex;align-items:center;gap:6px;">
+            📊 Claim Settlement Statement Report
+          </h2>
+          <div style="font-size:11.5px;color:#64748B;margin-top:2px;">
+            Payer: <strong>${payerLabel}</strong> · Period: <strong>${fDate}</strong> → <strong>${tDate}</strong> · Total Items: <strong>${items.length}</strong>
+          </div>
+        </div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
+          <button onclick="window.printClaimReportStatement()" style="padding:6px 12px;background:#0F172A;color:#fff;border:none;border-radius:6px;font-weight:700;font-size:11.5px;cursor:pointer;">🖨️ Print / PDF</button>
+          <button onclick="window.copyClaimWhatsAppText()" style="padding:6px 12px;background:#25D366;color:#fff;border:none;border-radius:6px;font-weight:700;font-size:11.5px;cursor:pointer;">📱 Copy WhatsApp</button>
+          <button onclick="document.getElementById('claimReportModalOverlay')?.remove()" style="background:#EF4444;color:#fff;border:none;padding:6px 14px;border-radius:6px;font-weight:800;font-size:12.5px;cursor:pointer;">✕ Close</button>
+        </div>
+      </div>
+
+      <!-- BODY -->
+      <div style="padding:14px 18px;overflow-y:auto;overflow-x:auto;-webkit-overflow-scrolling:touch;flex:1;">
+        <!-- METRICS -->
+        <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(140px, 1fr));gap:10px;margin-bottom:14px;">
+          <div style="padding:10px;background:#EEF2FF;border:1px solid #C7D2FE;border-radius:8px;text-align:center;">
+            <div style="font-size:10px;color:#4338CA;font-weight:700;">TOTAL EXPENSES</div>
+            <div style="font-size:18px;font-weight:800;color:#3730A3;margin-top:2px;">₹${totalAmt.toLocaleString('en-IN')}</div>
+          </div>
+          <div style="padding:10px;background:#FEF3C7;border:1px solid #FDE68A;border-radius:8px;text-align:center;">
+            <div style="font-size:10px;color:#92400E;font-weight:700;">CLAIMED / SETTLED</div>
+            <div style="font-size:18px;font-weight:800;color:#B45309;margin-top:2px;">₹${claimedAmt.toLocaleString('en-IN')}</div>
+          </div>
+          <div style="padding:10px;background:#FEE2E2;border:1px solid #FECDD3;border-radius:8px;text-align:center;">
+            <div style="font-size:10px;color:#991B1B;font-weight:700;">STAFF ADVANCES</div>
+            <div style="font-size:18px;font-weight:800;color:#DC2626;margin-top:2px;">₹${advancesAmt.toLocaleString('en-IN')}</div>
+          </div>
+          <div style="padding:10px;background:#ECFDF5;border:1px solid #A7F3D0;border-radius:8px;text-align:center;">
+            <div style="font-size:10px;color:#065F46;font-weight:700;">PENDING TO SETTLE</div>
+            <div style="font-size:18px;font-weight:800;color:#059669;margin-top:2px;">₹${pendingAmt.toLocaleString('en-IN')}</div>
+          </div>
+        </div>
+
+        <!-- ITEMS TABLE -->
+        <div style="overflow-x:auto;-webkit-overflow-scrolling:touch;">
+          <table style="width:100%;border-collapse:collapse;font-size:12px;min-width:600px;">
+            <thead>
+              <tr style="background:#F1F5F9;text-align:left;">
+                <th style="padding:8px;">Date</th>
+                <th style="padding:8px;">Module</th>
+                <th style="padding:8px;">Description</th>
+                <th style="padding:8px;">Staff / Vendor</th>
+                <th style="padding:8px;">Paid By</th>
+                <th style="padding:8px;text-align:right;">Amount (₹)</th>
+                <th style="padding:8px;text-align:center;">Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${items.map(i => `
+                <tr style="border-bottom:1px solid #E2E8F0;">
+                  <td style="padding:8px;white-space:nowrap;">${i.dateStr || '-'}</td>
+                  <td style="padding:8px;white-space:nowrap;"><span style="font-size:11px;font-weight:700;color:#475569;">${i.moduleLabel || i.module}</span></td>
+                  <td style="padding:8px;">${i.description || '-'}</td>
+                  <td style="padding:8px;white-space:nowrap;">${i.vendorOrStaff || '-'}</td>
+                  <td style="padding:8px;white-space:nowrap;"><span style="padding:2px 6px;border-radius:4px;font-size:10px;font-weight:700;background:#E0E7FF;color:#3730A3;">${i.paidBy}</span></td>
+                  <td style="padding:8px;text-align:right;font-weight:700;color:#0F172A;white-space:nowrap;">₹${(i.amount || 0).toLocaleString('en-IN')}</td>
+                  <td style="padding:8px;text-align:center;white-space:nowrap;">
+                    <span style="padding:2px 6px;border-radius:4px;font-size:10px;font-weight:700;background:${i.status==='received'?'#DCFCE7':i.status==='claimed'?'#FEF3C7':'#F1F5F9'};color:${i.status==='received'?'#15803D':i.status==='claimed'?'#92400E':'#475569'};">
+                      ${i.status.toUpperCase()}
+                    </span>
+                  </td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- FOOTER -->
+      <div style="padding:10px 18px;border-top:1px solid #E2E8F0;background:#F8FAFC;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+        <div style="font-size:12px;color:#64748B;">
+          Pending Payable: <strong style="color:${pendingAmt>0?'#B45309':'#059669'};">₹${pendingAmt.toLocaleString('en-IN')}</strong>
+        </div>
+        <button type="button" onclick="document.getElementById('claimReportModalOverlay')?.remove()" style="background:#64748B;color:#fff;border:none;padding:7px 16px;border-radius:6px;font-weight:700;font-size:12px;cursor:pointer;">
+          ✕ Close
+        </button>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(modal);
+};
+
+window.printClaimReportStatement = function() {
+  const items = getFilteredClaimsItems();
+  if (!items || items.length === 0) return;
+
+  const { fromDate, toDate, paidByFilter } = window._claimsState || {};
+  const fDate = fromDate || 'Start';
+  const tDate = toDate || 'Present';
+  const payerLabel = paidByFilter === 'all' ? 'All Payers' : paidByFilter;
+
+  let totalAmt = 0;
+  let claimedAmt = 0;
+  let advancesAmt = 0;
+
+  items.forEach(i => {
+    totalAmt += (i.amount || 0);
+    if (i.status === 'claimed' || i.status === 'received') claimedAmt += (i.amount || 0);
+    if (i.module === 'advances') advancesAmt += (i.amount || 0);
+  });
+  const pendingAmt = Math.max(0, totalAmt - claimedAmt);
+
+  const printWin = window.open('', '_blank');
+  if (!printWin) { alert('Popup blocked! Please allow popups.'); return; }
+
+  printWin.document.write(`
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <title>Claim Statement (${payerLabel} - ${fDate} to ${tDate})</title>
+      <style>
+        @page { size: A4; margin: 10mm; }
+        * { box-sizing: border-box; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 0; color: #1e293b; background: #fff; font-size: 11px; }
+        .header { border-bottom: 2px solid #6d28d9; padding-bottom: 8px; margin-bottom: 14px; }
+        h1 { margin: 0; color: #6d28d9; font-size: 18px; font-weight: 800; }
+        .sub { color: #64748b; font-size: 11px; margin-top: 3px; }
+        .cards { display: flex; gap: 8px; margin-bottom: 14px; }
+        .card { flex: 1; padding: 10px; border-radius: 6px; text-align: center; border: 1px solid #cbd5e1; }
+        .lbl { font-size: 9px; font-weight: 700; text-transform: uppercase; color: #64748b; }
+        .val { font-size: 16px; font-weight: 800; margin-top: 2px; }
+        table { width: 100%; border-collapse: collapse; font-size: 10.5px; }
+        th { background: #f1f5f9; padding: 6px 8px; text-align: left; border-bottom: 2px solid #cbd5e1; font-weight: 700; }
+        td { padding: 6px 8px; border-bottom: 1px solid #e2e8f0; }
+        @media print { .no-print { display: none; } }
+      </style>
+    </head>
+    <body>
+      <div class="header">
+        <h1>⚖️ UNIVERSAL CLAIM STATEMENT REPORT</h1>
+        <div class="sub">Payer: <strong>${payerLabel}</strong> | Period: <strong>${fDate}</strong> → <strong>${tDate}</strong> | Generated: ${new Date().toLocaleString('en-IN')}</div>
+      </div>
+      <div class="cards">
+        <div class="card" style="background:#eef2ff;">
+          <div class="lbl">Total Expenses</div>
+          <div class="val" style="color:#3730a3;">₹${totalAmt.toLocaleString('en-IN')}</div>
+        </div>
+        <div class="card" style="background:#fef3c7;">
+          <div class="lbl">Claimed / Settled</div>
+          <div class="val" style="color:#b45309;">₹${claimedAmt.toLocaleString('en-IN')}</div>
+        </div>
+        <div class="card" style="background:#fee2e2;">
+          <div class="lbl">Staff Advances</div>
+          <div class="val" style="color:#dc2626;">₹${advancesAmt.toLocaleString('en-IN')}</div>
+        </div>
+        <div class="card" style="background:#ecfdf5;">
+          <div class="lbl">Pending to Settle</div>
+          <div class="val" style="color:#059669;">₹${pendingAmt.toLocaleString('en-IN')}</div>
+        </div>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Module</th>
+            <th>Description</th>
+            <th>Staff / Vendor</th>
+            <th>Paid By</th>
+            <th style="text-align:right;">Amount (₹)</th>
+            <th style="text-align:center;">Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${items.map(i => `
+            <tr>
+              <td>${i.dateStr || '-'}</td>
+              <td>${i.moduleLabel || i.module}</td>
+              <td>${i.description || '-'}</td>
+              <td>${i.vendorOrStaff || '-'}</td>
+              <td>${i.paidBy}</td>
+              <td style="text-align:right;font-weight:700;">₹${(i.amount||0).toLocaleString('en-IN')}</td>
+              <td style="text-align:center;">${i.status.toUpperCase()}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+      ${window.getOfficialReportFooterHTML ? window.getOfficialReportFooterHTML() : `
+        <div style="margin-top:24px;padding-top:10px;border-top:1px solid #cbd5e1;text-align:center;font-size:10px;color:#64748b;">
+          <strong>THE UNIQUE HAVEN HOMES PRIVATE LIMITED</strong> &bull; uniquehavenhomesstay.com
+        </div>
+      `}
+      <script>window.onload = function() { setTimeout(function(){ window.print(); }, 400); };</script>
+    </body>
+    </html>
+  `);
+  printWin.document.close();
+};
+
+window.copyClaimWhatsAppText = function() {
+  const items = getFilteredClaimsItems();
+  if (!items || items.length === 0) {
+    alert('No claim items found to summarize.');
+    return;
+  }
+
+  const { fromDate, toDate, paidByFilter } = window._claimsState || {};
+  const fDate = fromDate || 'Start';
+  const tDate = toDate || 'Present';
+  const payerLabel = paidByFilter === 'all' ? 'ALL PAYERS' : paidByFilter.toUpperCase();
+
+  let totalAmt = 0;
+  let claimedAmt = 0;
+  let advancesAmt = 0;
+  let listText = '';
+
+  items.slice(0, 40).forEach((i, idx) => {
+    totalAmt += (i.amount || 0);
+    if (i.status === 'claimed' || i.status === 'received') claimedAmt += (i.amount || 0);
+    if (i.module === 'advances') advancesAmt += (i.amount || 0);
+    const emoji = i.module === 'reimbursements' ? '💸' : i.module === 'maintenance' ? '🔧' : i.module === 'laundry' ? '🧺' : '💰';
+    listText += `${idx + 1}. ${emoji} *${i.description || i.module}* (${i.dateStr})\n   👤 ${i.vendorOrStaff || i.paidBy} → ₹${(i.amount||0).toLocaleString('en-IN')}\n`;
+  });
+
+  if (items.length > 40) {
+    items.slice(40).forEach(i => {
+      totalAmt += (i.amount || 0);
+      if (i.status === 'claimed' || i.status === 'received') claimedAmt += (i.amount || 0);
+      if (i.module === 'advances') advancesAmt += (i.amount || 0);
+    });
+    listText += `\n...and ${items.length - 40} more items (see statement report)\n`;
+  }
+
+  const pendingAmt = Math.max(0, totalAmt - claimedAmt);
+
+  const text = `⚖️ *UNIVERSAL CLAIM STATEMENT (${payerLabel})*\n📅 Period: *${fDate}* → *${tDate}*\n📦 Total Items: *${items.length}*\n\n*ITEMIZED BREAKDOWN:*\n${listText}\n━━━━━━━━━━━━━━━━━━\n💰 *Total Expenses:* ₹${totalAmt.toLocaleString('en-IN')}\n✅ *Claimed / Settled:* ₹${claimedAmt.toLocaleString('en-IN')}\n👥 *Staff Advances:* ₹${advancesAmt.toLocaleString('en-IN')}\n💵 *NET PENDING TO SETTLE: ₹${pendingAmt.toLocaleString('en-IN')}*\n━━━━━━━━━━━━━━━━━━\n_The Unique Haven Homes CRM_`;
+
+  navigator.clipboard.writeText(text).then(() => {
+    if (window.fsn?.success) fsn.success('Copied', '📱 WhatsApp Claim Summary copied to clipboard!');
+    else alert('✅ Copied! WhatsApp Claim Summary copied to clipboard. Paste directly into WhatsApp.');
+  }).catch(err => {
+    prompt('Copy this summary:', text);
+  });
+};
+
 console.log("✅ Claims Manager v8 MASTER LOADED!");
