@@ -1,4 +1,4 @@
-const CACHE_NAME = 'uhhs-live-v185';
+const CACHE_NAME = 'uhhs-live-v186';
 const RUNTIME_CACHE = 'uhhs-runtime-v68';
 
 const CORE_ASSETS = [
@@ -21,6 +21,7 @@ const CORE_ASSETS = [
   '/js/investors.js',
   '/js/sop.js',
   '/js/whatsapp.js',
+  '/js/whatsapp-hub.js',
   '/js/reconciliation.js',
   '/js/notifications.js',
   '/js/claims.js',

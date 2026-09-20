@@ -864,6 +864,22 @@ function navigate(page) {
   SESSION.currentPage = page;
   try { localStorage.setItem('uh_last_page', page); } catch(e) {}
   if (window.trackPageVisit) window.trackPageVisit(page);
+
+  // Auto-close mobile drawer & backdrop on any navigation
+  const sidebarEl = document.getElementById('sidebarEl');
+  const backdropEl = document.getElementById('sidebarBackdrop');
+  if (sidebarEl) sidebarEl.classList.remove('mobile-drawer-open');
+  if (backdropEl) backdropEl.classList.remove('active');
+
+  // Update active state on bottom navigation
+  document.querySelectorAll('.bottom-nav a[data-page]').forEach(a => {
+    if (a.dataset.page === page) a.classList.add('active');
+    else a.classList.remove('active');
+  });
+
+  // Scroll page to top
+  try { window.scrollTo({ top: 0, behavior: 'instant' }); } catch(e) {}
+
   const map = {
     dashboard: renderDashboard,
     reports: renderReports,
@@ -2646,58 +2662,7 @@ window.chartCard = function(canvasId, title, height) {
   console.log('🔙 Back button handler ready');
 })();
 
-// ═══════════════════════════════════════════════════════════
-// 🔙 BACK BUTTON HANDLER (PWA)
-// Prevents app close on back press — navigates back through pages
-// ═══════════════════════════════════════════════════════════
-(function() {
-  const NAV_HISTORY = [];
 
-  // Wrap navigate() to track history
-  if (typeof navigate === 'function' && !window._navigateWrapped) {
-    const _origNavigate = window.navigate || navigate;
-    window.navigate = function(page) {
-      const current = SESSION.currentPage || 'dashboard';
-      if (current !== page) {
-        NAV_HISTORY.push(current);
-        // Push state to browser history
-        try {
-          history.pushState({ page: current }, '', '#' + page);
-        } catch(e) {}
-      }
-      return _origNavigate.apply(this, arguments);
-    };
-    window._navigateWrapped = true;
-  }
-
-  // Handle browser back button
-  window.addEventListener('popstate', function(e) {
-    if (NAV_HISTORY.length > 0) {
-      const prevPage = NAV_HISTORY.pop();
-      if (typeof _origNavigate === 'function') {
-        _origNavigate(prevPage);
-      } else if (typeof navigate === 'function') {
-        // Direct call without wrapping
-        SESSION.currentPage = prevPage;
-        const map = window._navigateMap;
-        if (map && map[prevPage]) map[prevPage]();
-      }
-    } else {
-      // No history — go to dashboard instead of closing
-      try { history.pushState({ page: 'dashboard' }, '', '#dashboard'); } catch(e) {}
-      if (typeof navigate === 'function' && SESSION.currentPage !== 'dashboard') {
-        navigate('dashboard');
-      }
-    }
-  });
-
-  // Push initial state
-  try {
-    history.replaceState({ page: 'dashboard' }, '', '#dashboard');
-  } catch(e) {}
-
-  console.log('🔙 Back button handler ready');
-})();
 
 // ═══════════════════════════════════════════════════════════
 // 📱 AUTO CARD LABELS — Add data-label from <th> to <td> for mobile card view

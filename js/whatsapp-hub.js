@@ -55,6 +55,14 @@
 
   window.setHubTab = function(tab) {
     HUB.activeTab = tab;
+    document.querySelectorAll('.hub-tab-pill').forEach(btn => {
+      if (btn.dataset.tab === tab) {
+        btn.classList.add('active');
+        try { btn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' }); } catch(e) {}
+      } else {
+        btn.classList.remove('active');
+      }
+    });
     renderHubBody();
   };
 
@@ -709,7 +717,7 @@
     if (!el) return;
 
     el.innerHTML = `
-      <div class="card" style="max-width:680px;margin:12px auto;padding:24px;border-radius:14px;box-shadow:0 4px 18px rgba(0,0,0,0.04);">
+      <div class="card hub-device-card">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;border-bottom:1.5px solid #F1F5F9;padding-bottom:12px;flex-wrap:wrap;gap:8px;">
           <div>
             <h3 style="margin:0;font-size:17px;color:#0F172A;display:flex;align-items:center;gap:8px;">
@@ -752,17 +760,17 @@
         const userName = data.user?.name || 'WhatsApp User';
 
         container.innerHTML = `
-          <div style="background:#F0FDF4;border:2px solid #86EFAC;border-radius:12px;padding:24px;text-align:center;margin-bottom:18px;">
-            <div style="font-size:44px;margin-bottom:8px;">🟢</div>
-            <div style="font-size:12px;font-weight:800;color:#15803D;letter-spacing:0.5px;text-transform:uppercase;">Active WhatsApp Account</div>
-            <div style="font-size:24px;font-weight:800;color:#0F172A;margin-top:4px;">+${phone}</div>
+          <div style="background:#F0FDF4;border:2px solid #86EFAC;border-radius:12px;padding:20px;text-align:center;margin-bottom:18px;">
+            <div style="font-size:40px;margin-bottom:8px;">🟢</div>
+            <div style="font-size:11.5px;font-weight:800;color:#15803D;letter-spacing:0.5px;text-transform:uppercase;">Active WhatsApp Account</div>
+            <div style="font-size:22px;font-weight:800;color:#0F172A;margin-top:4px;word-break:break-all;">+${phone}</div>
             <div style="font-size:13.5px;color:#475569;margin-top:4px;">Account: <b>${userName}</b></div>
-            <div style="font-size:12px;color:#16A34A;margin-top:8px;font-weight:600;">
+            <div style="font-size:12px;color:#16A34A;margin-top:8px;font-weight:600;line-height:1.4;">
               ✅ Ready! All automated booking alerts, guest passes & checkout reminders will be sent from this number.
             </div>
           </div>
 
-          <div style="background:#FFFBEB;border:1px solid #FDE68A;border-radius:10px;padding:16px;margin-bottom:18px;">
+          <div style="background:#FFFBEB;border:1px solid #FDE68A;border-radius:10px;padding:14px;margin-bottom:18px;">
             <div style="font-weight:700;font-size:13px;color:#92400E;margin-bottom:4px;display:flex;align-items:center;gap:6px;">
               💡 <span>Kisi aur number se bhejna chahte hain?</span>
             </div>
@@ -799,7 +807,7 @@
     if (data.qrImage) {
       container.innerHTML = `
         <div style="text-align:center;">
-          <div style="background:#EFF6FF;border:1.5px solid #BFDBFE;padding:14px 18px;border-radius:10px;margin-bottom:16px;text-align:left;">
+          <div style="background:#EFF6FF;border:1.5px solid #BFDBFE;padding:14px 16px;border-radius:10px;margin-bottom:16px;text-align:left;">
             <div style="font-weight:800;color:#1E40AF;font-size:13px;margin-bottom:6px;">
               📲 Scan with WhatsApp to Link Phone:
             </div>
@@ -811,8 +819,8 @@
             </ol>
           </div>
 
-          <div style="display:inline-block;padding:16px;background:#fff;border:2.5px solid #CBD5E1;border-radius:16px;box-shadow:0 6px 20px rgba(0,0,0,0.08);margin-bottom:12px;">
-            <img id="tabLiveQrImg" src="${data.qrImage}" style="width:280px;height:280px;display:block;border-radius:8px;" alt="WhatsApp QR Code" />
+          <div class="hub-qr-box" style="margin-bottom:12px;">
+            <img id="tabLiveQrImg" class="hub-qr-img" src="${data.qrImage}" alt="WhatsApp QR Code" />
           </div>
 
           <div style="font-size:12px;color:#64748B;margin-bottom:14px;">
@@ -874,21 +882,21 @@
     const failedToday = todayLogs.filter(l => l.status === 'failed').length;
 
     const html = `
-      <div class="wrap" style="max-width:1100px;margin:auto;">
-        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:14px;">
-          <div>
-            <h1 style="margin:0;font-size:22px;color:#0F172A;display:flex;align-items:center;gap:8px;">
+      <div class="wrap hub-wrapper">
+        <div class="hub-header-container">
+          <div class="hub-header-text">
+            <h1>
               📱 WhatsApp Automation Hub
             </h1>
-            <p style="color:#64748B;font-size:13px;margin:3px 0 0 0;">
+            <p>
               Zero-cost automated alerts for Booking Groups, Cleaning Staff, Investor Groups & Guests
             </p>
           </div>
-          <div style="display:flex;gap:8px;flex-wrap:wrap;">
-            <button onclick="setHubTab('device')" style="background:#2563EB;color:#fff;padding:8px 16px;border:none;border-radius:8px;font-weight:700;font-size:13px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;box-shadow:0 2px 6px rgba(37,99,235,0.25);">
+          <div class="hub-header-actions">
+            <button onclick="setHubTab('device')" style="background:#2563EB;color:#fff;padding:9px 16px;border:none;border-radius:8px;font-weight:700;font-size:13px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;box-shadow:0 2px 6px rgba(37,99,235,0.25);">
               📱 Link WhatsApp / Scan QR
             </button>
-            <button onclick="toggleAutoSend()" style="background:${enabled ? '#DC2626' : '#16A34A'};color:#fff;padding:8px 18px;border:none;border-radius:8px;font-weight:800;font-size:13px;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,0.15);">
+            <button onclick="toggleAutoSend()" style="background:${enabled ? '#DC2626' : '#16A34A'};color:#fff;padding:9px 18px;border:none;border-radius:8px;font-weight:800;font-size:13px;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,0.15);">
               ${enabled ? '⏸ Pause Master Automation' : '▶️ Resume Master Automation'}
             </button>
           </div>
@@ -896,38 +904,38 @@
 
         <!-- Master Status Banner -->
         <div class="card" style="border-left:5px solid ${enabled ? '#16A34A' : '#DC2626'};background:${enabled ? '#F0FDF4' : '#FEF2F2'};margin-bottom:14px;padding:14px 18px;">
-          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;">
-            <div>
-              <div style="font-size:10.5px;color:#64748B;font-weight:700;">MASTER AUTOMATION</div>
-              <div style="font-size:18px;font-weight:800;color:${enabled ? '#15803D' : '#DC2626'};margin-top:2px;">
+          <div class="hub-stats-grid">
+            <div class="hub-stat-tile">
+              <div class="hub-stat-label">MASTER AUTOMATION</div>
+              <div class="hub-stat-val" style="color:${enabled ? '#15803D' : '#DC2626'};">
                 ${enabled ? '🟢 ACTIVE (ON)' : '🔴 PAUSED (OFF)'}
               </div>
             </div>
-            <div>
-              <div style="font-size:10.5px;color:#64748B;font-weight:700;">EXECUTION MODE</div>
-              <div style="font-size:18px;font-weight:800;color:${dryRun ? '#D97706' : '#15803D'};margin-top:2px;">
+            <div class="hub-stat-tile">
+              <div class="hub-stat-label">EXECUTION MODE</div>
+              <div class="hub-stat-val" style="color:${dryRun ? '#D97706' : '#15803D'};">
                 ${dryRun ? '🧪 DRY RUN' : '📡 LIVE'}
               </div>
             </div>
-            <div>
-              <div style="font-size:10.5px;color:#64748B;font-weight:700;">WHATSAPP SENDER</div>
-              <div id="hubSenderHeaderBadge" style="font-size:15px;font-weight:800;color:#2563EB;margin-top:4px;">
+            <div class="hub-stat-tile">
+              <div class="hub-stat-label">WHATSAPP SENDER</div>
+              <div id="hubSenderHeaderBadge" class="hub-stat-val" style="color:#2563EB;font-size:15px;margin-top:4px;">
                 Checking...
               </div>
             </div>
-            <div>
-              <div style="font-size:10.5px;color:#64748B;font-weight:700;">SENT TODAY</div>
-              <div style="font-size:18px;font-weight:800;color:#0F172A;margin-top:2px;">${sentToday}</div>
+            <div class="hub-stat-tile">
+              <div class="hub-stat-label">SENT TODAY</div>
+              <div class="hub-stat-val" style="color:#0F172A;">${sentToday}</div>
             </div>
-            <div>
-              <div style="font-size:10.5px;color:#64748B;font-weight:700;">SCHEDULED (24h)</div>
-              <div style="font-size:18px;font-weight:800;color:#2563EB;margin-top:2px;">${HUB.scheduled.length}</div>
+            <div class="hub-stat-tile">
+              <div class="hub-stat-label">SCHEDULED (24h)</div>
+              <div class="hub-stat-val" style="color:#2563EB;">${HUB.scheduled.length}</div>
             </div>
           </div>
         </div>
 
-        <!-- Navigation Tabs -->
-        <div style="display:flex;gap:6px;margin:16px 0;border-bottom:2px solid #E2E8F0;flex-wrap:wrap;">
+        <!-- Scrollable Navigation Tabs -->
+        <div class="hub-tabs-scroller" id="hubTabsScroller">
           ${[
             { key: 'device', label: '📱 Link WhatsApp / Scan QR' },
             { key: 'auto', label: '🎯 Controls & Triggers' },
@@ -937,7 +945,7 @@
             { key: 'templates', label: '📝 Templates' }
           ].map(t => {
             const active = HUB.activeTab === t.key;
-            return `<button onclick="setHubTab('${t.key}')" style="padding:9px 18px;border:none;background:${active ? '#0F172A' : 'transparent'};color:${active ? '#fff' : '#475569'};border-radius:8px 8px 0 0;cursor:pointer;font-weight:700;font-size:13px;">${t.label}</button>`;
+            return `<button class="hub-tab-pill ${active ? 'active' : ''}" data-tab="${t.key}" onclick="setHubTab('${t.key}')">${t.label}</button>`;
           }).join('')}
         </div>
 
@@ -968,7 +976,7 @@
 
     return `
       <div class="card">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:8px;">
           <div>
             <h3 style="margin:0;font-size:16px;color:#0F172A;">⚡ Live Automation Triggers</h3>
             <p style="margin:2px 0 0 0;font-size:12px;color:#64748B;">Control what gets sent automatically vs on-demand.</p>
@@ -976,7 +984,7 @@
           <button onclick="setHubTab('settings')" class="btn-sm" style="background:#0F172A;color:#fff;">⚙️ Configure Groups & Toggles</button>
         </div>
 
-        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px;">
+        <div class="hub-trigger-grid">
           <!-- 1. Booking Group Alert -->
           <div style="border:1.5px solid ${c.send_booking_group ? '#86EFAC' : '#E2E8F0'};background:${c.send_booking_group ? '#F0FDF4' : '#F8FAFC'};border-radius:10px;padding:14px;">
             <div style="display:flex;justify-content:space-between;align-items:center;">
@@ -988,7 +996,7 @@
             <p style="font-size:12px;color:#64748B;margin:6px 0 10px 0;">
               Sends immediate alert to Ops / Booking group when a new booking is confirmed.
             </p>
-            <div style="font-size:11px;color:#334155;background:rgba(0,0,0,0.04);padding:6px 8px;border-radius:6px;">
+            <div style="font-size:11px;color:#334155;background:rgba(0,0,0,0.04);padding:6px 8px;border-radius:6px;word-break:break-all;">
               Target: <b>${c.booking_group_id || 'Not configured in Settings'}</b>
             </div>
           </div>
@@ -1004,9 +1012,9 @@
             <p style="font-size:12px;color:#64748B;margin:6px 0 10px 0;">
               Daily morning list of today's checkouts sent to cleaning staff to prepare rooms.
             </p>
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px;">
-              <small style="color:#64748B;">Target: <b>${c.housekeeping_group_id || 'Not configured'}</b></small>
-              <button onclick="triggerHousekeepingCheckoutAlert()" class="btn-sm green-btn" style="padding:3px 8px;font-size:11px;">🚀 Fire Now</button>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px;flex-wrap:wrap;gap:6px;">
+              <small style="color:#64748B;word-break:break-all;">Target: <b>${c.housekeeping_group_id || 'Not configured'}</b></small>
+              <button onclick="triggerHousekeepingCheckoutAlert()" class="btn-sm green-btn" style="padding:4px 10px;font-size:11.5px;">🚀 Fire Now</button>
             </div>
           </div>
 
@@ -1044,7 +1052,7 @@
         <!-- Dry Run Mode Banner -->
         <div style="background:#FFFBEB;border:1.5px solid #FDE68A;border-radius:10px;padding:14px;margin-bottom:18px;">
           <label style="display:flex;align-items:center;gap:10px;cursor:pointer;">
-            <input type="checkbox" id="cfgDryRun" ${c.dry_run_mode !== false ? 'checked' : ''} style="width:18px;height:18px;" />
+            <input type="checkbox" id="cfgDryRun" ${c.dry_run_mode !== false ? 'checked' : ''} style="width:20px;height:20px;accent-color:#D97706;flex-shrink:0;" />
             <div>
               <strong style="color:#92400E;font-size:13.5px;">🧪 Dry-Run Mode (Safe Testing)</strong>
               <div style="color:#B45309;font-size:12px;margin-top:2px;">
@@ -1055,26 +1063,26 @@
         </div>
 
         <h4 style="margin:0 0 10px 0;color:#0F172A;">🔘 Sub-Category Automation Toggles</h4>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:18px;">
-          <label style="display:flex;align-items:center;gap:8px;font-size:13px;">
+        <div class="hub-toggles-grid">
+          <label class="hub-toggle-card">
             <input type="checkbox" id="cfgSendBookingGroup" ${c.send_booking_group ? 'checked' : ''} />
-            🛎️ New Booking Alert to Booking Group
+            <span>🛎️ New Booking Alert to Booking Group</span>
           </label>
-          <label style="display:flex;align-items:center;gap:8px;font-size:13px;">
+          <label class="hub-toggle-card">
             <input type="checkbox" id="cfgSendHousekeeping" ${c.send_housekeeping_checkout ? 'checked' : ''} />
-            🧹 10:00 AM Checkout Alert to Housekeeping
+            <span>🧹 10:00 AM Checkout Alert to Housekeeping</span>
           </label>
-          <label style="display:flex;align-items:center;gap:8px;font-size:13px;">
+          <label class="hub-toggle-card">
             <input type="checkbox" id="cfgSendInvestor" ${c.send_investor_reports ? 'checked' : ''} />
-            📊 Monthly Report to Investor Groups
+            <span>📊 Monthly Report to Investor Groups</span>
           </label>
-          <label style="display:flex;align-items:center;gap:8px;font-size:13px;">
+          <label class="hub-toggle-card">
             <input type="checkbox" id="cfgSendWelcome" ${c.send_welcome ? 'checked' : ''} />
-            🔑 Guest Welcome & Check-In Details
+            <span>🔑 Guest Welcome & Check-In Details</span>
           </label>
-          <label style="display:flex;align-items:center;gap:8px;font-size:13px;">
+          <label class="hub-toggle-card">
             <input type="checkbox" id="cfgSendCheckout" ${c.send_checkout ? 'checked' : ''} />
-            👋 10:00 AM Checkout Reminder to Guest
+            <span>👋 10:00 AM Checkout Reminder to Guest</span>
           </label>
         </div>
 
@@ -1085,34 +1093,34 @@
 
         <div class="form-group" style="margin-bottom:12px;">
           <label style="font-weight:700;font-size:12.5px;display:block;margin-bottom:4px;">🛎️ Operations / Booking Group ID</label>
-          <input type="text" id="cfgBookingGroup" value="${c.booking_group_id || ''}" style="width:100%;font-family:monospace;" />
+          <input type="text" id="cfgBookingGroup" value="${c.booking_group_id || ''}" style="width:100%;box-sizing:border-box;font-family:monospace;" />
         </div>
 
         <div class="form-group" style="margin-bottom:12px;">
           <label style="font-weight:700;font-size:12.5px;display:block;margin-bottom:4px;">🧹 Cleaning / Housekeeping Group ID</label>
-          <input type="text" id="cfgHousekeepingGroup" value="${c.housekeeping_group_id || ''}" style="width:100%;font-family:monospace;" />
+          <input type="text" id="cfgHousekeepingGroup" value="${c.housekeeping_group_id || ''}" style="width:100%;box-sizing:border-box;font-family:monospace;" />
         </div>
 
         <div class="form-group" style="margin-bottom:16px;">
           <label style="font-weight:700;font-size:12.5px;display:block;margin-bottom:4px;">📊 Investor Groups Mapping (JSON)</label>
-          <textarea id="cfgInvestorGroups" style="width:100%;height:100px;font-family:monospace;font-size:12px;">${groupsJson}</textarea>
+          <textarea id="cfgInvestorGroups" style="width:100%;box-sizing:border-box;height:110px;font-family:monospace;font-size:12px;">${groupsJson}</textarea>
         </div>
 
         <h4 style="margin:0 0 10px 0;color:#0F172A;">📡 WhatsApp Gateway Connection</h4>
         <div class="form-group" style="margin-bottom:12px;">
           <label style="font-weight:700;font-size:12.5px;display:block;margin-bottom:4px;">Gateway Server URL (Baileys Service)</label>
-          <div style="display:flex;gap:8px;">
-            <button id="testGatewayBtn" onclick="testWhatsAppGateway()" style="padding:8px 14px;background:#0F172A;color:#fff;border:none;border-radius:6px;font-weight:700;cursor:pointer;white-space:nowrap;">
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <button id="testGatewayBtn" onclick="testWhatsAppGateway()" style="padding:9px 14px;background:#0F172A;color:#fff;border:none;border-radius:6px;font-weight:700;cursor:pointer;white-space:nowrap;flex:1 1 auto;">
               ⚡ Test Gateway Connection
             </button>
-            <button type="button" onclick="setHubTab('device')" style="padding:8px 14px;background:#2563EB;color:#fff;border:none;border-radius:6px;font-weight:700;cursor:pointer;white-space:nowrap;">
+            <button type="button" onclick="setHubTab('device')" style="padding:9px 14px;background:#2563EB;color:#fff;border:none;border-radius:6px;font-weight:700;cursor:pointer;white-space:nowrap;flex:1 1 auto;">
               📱 Scan QR / Switch Number
             </button>
           </div>
         </div>
         <div id="gatewayTestResult" style="margin-bottom:16px;"></div>
 
-        <button onclick="saveHubSettings()" style="width:100%;background:#16A34A;color:#fff;border:none;padding:12px;border-radius:8px;font-weight:800;font-size:14px;cursor:pointer;">
+        <button onclick="saveHubSettings()" style="width:100%;background:#16A34A;color:#fff;border:none;padding:12px;border-radius:8px;font-weight:800;font-size:14px;cursor:pointer;box-shadow:0 2px 6px rgba(22,163,74,0.3);">
           💾 Save Automation Settings
         </button>
       </div>
@@ -1189,15 +1197,15 @@
           const propName = s.booking.rooms?.property_name || s.booking.rooms?.nickname || s.booking.room_id;
 
           return `
-            <div style="border:1px solid #E2E8F0;border-radius:10px;padding:14px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;">
+            <div class="hub-scheduled-card">
               <div>
                 <div style="font-weight:700;color:#0F172A;">${s.type}</div>
-                <div style="font-size:13px;margin-top:2px;color:#334155;">${s.booking.guest_name} → ${propName}</div>
-                <div style="font-size:11px;color:#64748B;">📞 ${s.booking.phone || 'No phone'}</div>
+                <div style="font-size:13px;margin-top:2px;color:#334155;">${escapeHtml(s.booking.guest_name)} → ${escapeHtml(propName)}</div>
+                <div style="font-size:11.5px;color:#64748B;margin-top:2px;">📞 ${s.booking.phone || 'No phone'}</div>
               </div>
               <div style="text-align:right;">
                 <div style="font-size:12px;color:#2563EB;font-weight:700;">🕐 ${whenStr}</div>
-                <button onclick="hubSendNow('${s.template}','${s.booking.booking_id}')" class="btn-sm green-btn" style="margin-top:6px;">📤 Send Now</button>
+                <button onclick="hubSendNow('${s.template}','${s.booking.booking_id}')" class="btn-sm green-btn" style="margin-top:6px;padding:5px 12px;font-size:12px;">📤 Send Now</button>
               </div>
             </div>
           `;
@@ -1287,7 +1295,6 @@
         statusHtml = '<span class="badge yellow">⏳ Pending</span>';
       }
 
-      // Friendly Template Name
       const tNames = {
         'guest_confirmation': '🎉 Guest Confirmation',
         'new_booking_group': '🛎️ Booking Alert (Group)',
@@ -1298,31 +1305,30 @@
         'airbnb_review': '⭐ Airbnb Review Link'
       };
       const typeLabel = tNames[l.template_name] || l.template_name;
-
       const isGroup = String(l.phone || '').includes('@g.us');
       const cleanPhone = (l.phone || '').replace(/\D/g, '');
 
       return `
         <tr style="border-bottom:1px solid #F1F5F9;">
-          <td style="white-space:nowrap;font-size:12px;color:#64748B;">
+          <td data-label="Time" style="white-space:nowrap;font-size:12px;color:#64748B;">
             ${time}
           </td>
-          <td>
+          <td data-label="Status">
             ${statusHtml}
           </td>
-          <td>
+          <td data-label="Message Type">
             <strong style="font-size:12.5px;color:#0F172A;">${typeLabel}</strong>
           </td>
-          <td>
+          <td data-label="Guest / Recipient">
             <div style="font-weight:700;font-size:13px;color:#1E293B;">${escapeHtml(l.guest_name || 'Guest')}</div>
             <div style="font-size:11.5px;color:#64748B;">
               ${isGroup ? '<span style="color:#2563EB;">👥 Group</span>' : (cleanPhone ? `<a href="tel:${cleanPhone}" style="color:#64748B;text-decoration:none;">📞 +${cleanPhone}</a>` : '—')}
             </div>
           </td>
-          <td style="max-width:260px;font-size:12px;color:${l.error_message ? '#DC2626' : '#475569'};">
+          <td data-label="Preview / Result" style="max-width:260px;font-size:12px;color:${l.error_message ? '#DC2626' : '#475569'};">
             ${l.error_message ? `<b>Error:</b> ${escapeHtml(l.error_message)}` : escapeHtml((l.message_preview || '').substring(0, 65) + '...')}
           </td>
-          <td style="white-space:nowrap;text-align:right;">
+          <td data-label="Action" style="white-space:nowrap;text-align:right;">
             <button onclick="showFullMessageModal('${l.id}')" class="btn-sm" style="background:#F1F5F9;border:1px solid #CBD5E1;padding:4px 8px;font-size:11px;cursor:pointer;border-radius:6px;font-weight:600;" title="View exact message text">
               👁️ View
             </button>
@@ -1336,8 +1342,68 @@
       `;
     }).join('');
 
+    const mobileCards = filtered.map(l => {
+      const time = new Date(l.sent_at).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', hour12: true });
+      let statusHtml = '';
+      if (l.status === 'sent' && !l.is_dry_run) {
+        statusHtml = '<span class="badge" style="background:#DCFCE7;color:#15803D;font-weight:700;padding:3px 8px;">✅ Sent</span>';
+      } else if (l.status === 'failed') {
+        statusHtml = '<span class="badge" style="background:#FEE2E2;color:#DC2626;font-weight:700;padding:3px 8px;">❌ Failed</span>';
+      } else if (l.is_dry_run) {
+        statusHtml = '<span class="badge" style="background:#FEF3C7;color:#D97706;font-weight:700;padding:3px 8px;">🧪 Dry Run</span>';
+      } else {
+        statusHtml = '<span class="badge yellow">⏳ Pending</span>';
+      }
+
+      const tNames = {
+        'guest_confirmation': '🎉 Guest Confirmation',
+        'new_booking_group': '🛎️ Booking Alert (Group)',
+        'housekeeping_checkout': '🧹 Housekeeping Checkout',
+        'checkout_reminder': '👋 10 AM Checkout Reminder',
+        'arrival_details': '🔑 Check-in & WiFi Pass',
+        'investor_report': '📊 Investor Statement',
+        'airbnb_review': '⭐ Airbnb Review Link'
+      };
+      const typeLabel = tNames[l.template_name] || l.template_name;
+      const isGroup = String(l.phone || '').includes('@g.us');
+      const cleanPhone = (l.phone || '').replace(/\D/g, '');
+
+      return `
+        <div class="hub-mobile-log-card">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">
+            <div>
+              <div style="font-weight:800;font-size:14px;color:#0F172A;">${escapeHtml(l.guest_name || 'Guest')}</div>
+              <div style="font-size:12px;color:#64748B;margin-top:2px;">
+                ${isGroup ? '<span style="color:#2563EB;font-weight:600;">👥 Group</span>' : (cleanPhone ? `<a href="tel:${cleanPhone}" style="color:#2563EB;text-decoration:none;font-weight:600;">📞 +${cleanPhone}</a>` : '—')}
+              </div>
+            </div>
+            <div style="text-align:right;">
+              ${statusHtml}
+              <div style="font-size:11px;color:#94A3B8;margin-top:3px;">${time}</div>
+            </div>
+          </div>
+          <div style="display:inline-block;background:#F1F5F9;padding:3px 8px;border-radius:6px;font-size:11.5px;font-weight:700;color:#334155;width:fit-content;">
+            ${typeLabel}
+          </div>
+          <div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:8px;padding:8px 10px;font-size:12px;color:${l.error_message ? '#DC2626' : '#475569'};line-height:1.4;">
+            ${l.error_message ? `<b>Error:</b> ${escapeHtml(l.error_message)}` : escapeHtml((l.message_preview || '').substring(0, 110) + ((l.message_preview || '').length > 110 ? '...' : ''))}
+          </div>
+          <div style="display:flex;justify-content:flex-end;gap:6px;margin-top:2px;">
+            <button onclick="showFullMessageModal('${l.id}')" class="btn-sm" style="background:#F1F5F9;border:1px solid #CBD5E1;padding:6px 12px;font-size:12px;cursor:pointer;border-radius:6px;font-weight:600;">
+              👁️ View Full
+            </button>
+            ${(l.status === 'failed' || l.is_dry_run) ? `
+              <button onclick="retryFailedMessage('${l.id}')" class="btn-sm green-btn" style="padding:6px 12px;font-size:12px;border-radius:6px;font-weight:700;">
+                🔄 Send Now
+              </button>
+            ` : ''}
+          </div>
+        </div>
+      `;
+    }).join('');
+
     return `
-      <div class="card" style="padding:20px;">
+      <div class="card" style="padding:16px;">
         <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:16px;">
           <div>
             <h3 style="margin:0;font-size:17px;color:#0F172A;display:flex;align-items:center;gap:8px;">
@@ -1353,46 +1419,46 @@
         </div>
 
         <!-- Metric Ribbon -->
-        <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(130px, 1fr));gap:10px;margin-bottom:16px;">
+        <div class="hub-metric-grid">
           <div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:10px;padding:12px;text-align:center;">
-            <div style="font-size:11px;font-weight:700;color:#64748B;text-transform:uppercase;">TOTAL LOGGED</div>
+            <div style="font-size:10.5px;font-weight:700;color:#64748B;text-transform:uppercase;">TOTAL LOGGED</div>
             <div style="font-size:20px;font-weight:800;color:#0F172A;margin-top:2px;">${totalCount}</div>
           </div>
           <div style="background:#F0FDF4;border:1.5px solid #86EFAC;border-radius:10px;padding:12px;text-align:center;">
-            <div style="font-size:11px;font-weight:700;color:#15803D;text-transform:uppercase;">🟢 DELIVERED</div>
+            <div style="font-size:10.5px;font-weight:700;color:#15803D;text-transform:uppercase;">🟢 DELIVERED</div>
             <div style="font-size:20px;font-weight:800;color:#15803D;margin-top:2px;">${sentCount}</div>
           </div>
           <div style="background:#FEF2F2;border:1.5px solid #FCA5A5;border-radius:10px;padding:12px;text-align:center;">
-            <div style="font-size:11px;font-weight:700;color:#DC2626;text-transform:uppercase;">🔴 FAILED</div>
+            <div style="font-size:10.5px;font-weight:700;color:#DC2626;text-transform:uppercase;">🔴 FAILED</div>
             <div style="font-size:20px;font-weight:800;color:#DC2626;margin-top:2px;">${failedCount}</div>
           </div>
           <div style="background:#FFFBEB;border:1.5px solid #FDE68A;border-radius:10px;padding:12px;text-align:center;">
-            <div style="font-size:11px;font-weight:700;color:#D97706;text-transform:uppercase;">🧪 DRY RUN</div>
+            <div style="font-size:10.5px;font-weight:700;color:#D97706;text-transform:uppercase;">🧪 DRY RUN</div>
             <div style="font-size:20px;font-weight:800;color:#D97706;margin-top:2px;">${dryCount}</div>
           </div>
         </div>
 
         <!-- Search & Filters -->
-        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:14px;">
-          <div style="display:flex;gap:6px;flex-wrap:wrap;">
+        <div class="hub-log-toolbar">
+          <div class="hub-log-filters">
             <button onclick="filterHubLogs('all')" class="btn-sm ${filter === 'all' ? '' : 'secondary'}" style="${filter === 'all' ? 'background:#0F172A;color:#fff;font-weight:700;' : ''}">All (${totalCount})</button>
             <button onclick="filterHubLogs('sent')" class="btn-sm ${filter === 'sent' ? '' : 'secondary'}" style="${filter === 'sent' ? 'background:#16A34A;color:#fff;font-weight:700;' : ''}">🟢 Sent (${sentCount})</button>
             <button onclick="filterHubLogs('failed')" class="btn-sm ${filter === 'failed' ? '' : 'secondary'}" style="${filter === 'failed' ? 'background:#DC2626;color:#fff;font-weight:700;' : ''}">🔴 Failed (${failedCount})</button>
             <button onclick="filterHubLogs('dry')" class="btn-sm ${filter === 'dry' ? '' : 'secondary'}" style="${filter === 'dry' ? 'background:#D97706;color:#fff;font-weight:700;' : ''}">🧪 Dry Run (${dryCount})</button>
           </div>
 
-          <div style="min-width:220px;flex:1;max-width:350px;">
+          <div class="hub-log-search-box">
             <input 
               type="text" 
               placeholder="🔍 Search guest, phone, message..." 
               value="${escapeHtml(query)}"
               oninput="searchHubLogs(this.value)"
-              style="width:100%;padding:8px 12px;border:1px solid #CBD5E1;border-radius:8px;font-size:12.5px;" 
+              style="width:100%;box-sizing:border-box;padding:8px 12px;border:1px solid #CBD5E1;border-radius:8px;font-size:12.5px;" 
             />
           </div>
         </div>
 
-        <!-- Table -->
+        <!-- Table for Desktop/Tablet & Cards for Mobile -->
         ${filtered.length === 0 ? `
           <div style="text-align:center;padding:40px;color:#64748B;background:#F8FAFC;border-radius:10px;border:1px dashed #CBD5E1;">
             <div style="font-size:32px;margin-bottom:8px;">📭</div>
@@ -1400,8 +1466,9 @@
             <div style="font-size:12px;color:#94A3B8;margin-top:2px;">Try clearing filters or search box.</div>
           </div>
         ` : `
-          <div class="table-wrap" style="margin:0;">
-            <table style="width:100%;">
+          <!-- Desktop/Tablet Table -->
+          <div class="hub-desktop-table hub-table-responsive" style="margin:0;">
+            <table>
               <thead>
                 <tr style="background:#F8FAFC;color:#64748B;font-size:11.5px;text-align:left;">
                   <th style="padding:10px;">TIME</th>
@@ -1417,6 +1484,11 @@
               </tbody>
             </table>
           </div>
+
+          <!-- Mobile Cards View -->
+          <div class="hub-mobile-cards">
+            ${mobileCards}
+          </div>
         `}
       </div>
     `;
@@ -1431,32 +1503,32 @@
     modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
 
     modal.innerHTML = `
-      <div class="modal-box" style="max-width:540px;width:95vw;padding:22px;">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;border-bottom:1px solid #E2E8F0;padding-bottom:10px;">
+      <div class="modal-box" style="max-width:540px;width:95vw;max-height:85vh;padding:18px;box-sizing:border-box;display:flex;flex-direction:column;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;border-bottom:1px solid #E2E8F0;padding-bottom:8px;flex-shrink:0;">
           <h3 style="margin:0;font-size:16px;color:#0F172A;display:flex;align-items:center;gap:6px;">
             💬 WhatsApp Message Preview
           </h3>
-          <button onclick="this.closest('.modal-overlay').remove()" style="background:none;border:none;font-size:20px;cursor:pointer;">✕</button>
+          <button onclick="this.closest('.modal-overlay').remove()" style="background:none;border:none;font-size:20px;cursor:pointer;padding:4px 8px;">✕</button>
         </div>
 
-        <div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:8px;padding:12px;font-size:12.5px;margin-bottom:12px;display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+        <div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:8px;padding:10px;font-size:12px;margin-bottom:10px;display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:6px;flex-shrink:0;">
           <div><span style="color:#64748B;">Recipient:</span> <b>${escapeHtml(log.guest_name || 'Guest')}</b></div>
           <div><span style="color:#64748B;">Phone:</span> <code>${escapeHtml(log.phone || '-')}</code></div>
           <div><span style="color:#64748B;">Type:</span> <b>${escapeHtml(log.template_name || '-')}</b></div>
           <div><span style="color:#64748B;">Dispatched:</span> ${new Date(log.sent_at).toLocaleTimeString('en-IN', {hour:'2-digit',minute:'2-digit'})}</div>
         </div>
 
-        <div style="background:#fff;border:1.5px solid #CBD5E1;border-radius:10px;padding:14px;font-family:system-ui,-apple-system,sans-serif;font-size:13px;line-height:1.6;white-space:pre-wrap;max-height:360px;overflow-y:auto;color:#0F172A;box-shadow:inset 0 1px 4px rgba(0,0,0,0.03);">
+        <div style="background:#fff;border:1.5px solid #CBD5E1;border-radius:10px;padding:12px;font-family:system-ui,-apple-system,sans-serif;font-size:13px;line-height:1.6;white-space:pre-wrap;overflow-y:auto;flex:1 1 auto;color:#0F172A;box-shadow:inset 0 1px 4px rgba(0,0,0,0.03);min-height:120px;">
           ${escapeHtml(log.message_preview || 'No text stored')}
         </div>
 
         ${log.error_message ? `
-          <div style="margin-top:10px;background:#FEF2F2;border:1px solid #F87171;padding:10px;border-radius:8px;color:#991B1B;font-size:12px;">
+          <div style="margin-top:10px;background:#FEF2F2;border:1px solid #F87171;padding:10px;border-radius:8px;color:#991B1B;font-size:12px;flex-shrink:0;">
             <b>Failure Reason:</b> ${escapeHtml(log.error_message)}
           </div>
         ` : ''}
 
-        <div style="margin-top:14px;display:flex;justify-content:space-between;align-items:center;">
+        <div style="margin-top:14px;display:flex;justify-content:space-between;align-items:center;flex-shrink:0;gap:8px;">
           <button onclick="navigator.clipboard.writeText(\`${(log.message_preview || '').replace(/`/g, '\\`')}\`);if(window.fsn)fsn.success('Copied!','Text copied to clipboard');" style="background:#F1F5F9;border:1px solid #CBD5E1;padding:8px 14px;border-radius:6px;cursor:pointer;font-weight:600;font-size:12px;">
             📋 Copy Message
           </button>
