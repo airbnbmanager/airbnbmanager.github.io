@@ -29,3 +29,16 @@ supabase/.temp/
 # Backup files
 *.bak
 *.bak-*
+
+# Node & WhatsApp Bot credentials
+node_modules/
+**/node_modules/
+auth_session/
+**/auth_session/
+.env
+.env.*
+*.session*
+
+# Scratch & Temporary debug scripts
+scratch/
+

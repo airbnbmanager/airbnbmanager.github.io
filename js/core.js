@@ -5,6 +5,17 @@
  * ===================================
  */
 
+function escapeHtml(str) {
+  if (str == null) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+window.escapeHtml = escapeHtml;
+
 // ============ PROPERTY DISPLAY HELPER ============
 // Shows: "The Red (101)" instead of just "The Red"
 // Use everywhere: dashboards, filters, dropdowns, reports
@@ -446,6 +457,7 @@ function renderShell(content, activePage = 'dashboard') {
       ['reports', '📆 Calendar'],
       { section: 'GUESTS' },
       ['bookings', '📅 Bookings'],
+      ['whatsapp-hub', '📱 WhatsApp Hub'],
       ['flats', '🛏️ Flats Status'],
       { section: 'TEAM' },
       ['attendance', '📋 Attendance'],
@@ -456,6 +468,7 @@ function renderShell(content, activePage = 'dashboard') {
       { section: 'MY PROPERTIES' },
       ['dashboard', '🏠 My Dashboard'],
       ['bookings', '📅 My Bookings'],
+      ['whatsapp-hub', '📱 WhatsApp Hub'],
       ['flats', '🛏️ Flats Status'],
     ];
   } else if (isViewer) {
@@ -473,6 +486,7 @@ function renderShell(content, activePage = 'dashboard') {
       ['reports', '📆 Calendar'],
       { section: 'GUESTS' },
       ['bookings', '📅 Bookings'],
+      ['whatsapp-hub', '📱 WhatsApp Hub'],
       ['flats', '🛏️ Flats Status'],
       ['reminders', '🔔 Reminders'],
       { section: 'PROPERTIES' },
@@ -488,6 +502,7 @@ function renderShell(content, activePage = 'dashboard') {
 
       { section: 'RESERVATIONS' },
       ['bookings', '📅 Bookings'],
+      ['whatsapp-hub', '📱 WhatsApp Hub'],
       ['flats', '🛏️ Flats Status'],
       ['pendingApprovals', '🟡 Pending Approvals'],
       ['reminders', '🔔 Reminders'],
@@ -522,6 +537,7 @@ function renderShell(content, activePage = 'dashboard') {
       ['dashboard', '🏠 Dashboard'],
       ['reports', '📆 Calendar'],
       ['bookings', '📅 Bookings'],
+      ['whatsapp-hub', '📱 WhatsApp Hub'],
       ['flats', '🛏️ Flats Status'],
       ['reminders', '🔔 Reminders'],
     ];
@@ -535,6 +551,7 @@ function renderShell(content, activePage = 'dashboard') {
 
       { section: 'RESERVATIONS' },
       ['bookings', '📅 Bookings'],
+      ['whatsapp-hub', '📱 WhatsApp Hub'],
       ['flats', '🛏️ Flats Status'],
       ['pendingApprovals', '🟡 Pending Approvals'],
       ['reminders', '🔔 Reminders'],
@@ -556,6 +573,7 @@ function renderShell(content, activePage = 'dashboard') {
       ['laundry', '🧺 Laundry'],
 
       { section: 'CHANNELS & SETTINGS' },
+      ['whatsapp-hub', '📱 WhatsApp Hub'],
       ['airbnb-sync', '🔄 Airbnb Sync'],
       ['rooms', '🏢 Properties'],
       ['showcase-admin', '🌐 Website Showcase & Media'],
@@ -698,6 +716,10 @@ function renderShell(content, activePage = 'dashboard') {
                 <span>➕</span> <span class="btn-text">New Booking</span>
               </button>
             ` : ''}
+
+            <button class="topbar-icon-btn" onclick="navigate('whatsapp-hub')" title="WhatsApp Hub & QR Scanner" style="font-size:16px;">
+              📱
+            </button>
 
             <button class="topbar-icon-btn" id="topbarNotifBtn" onclick="window.notifications&&window.notifications.openPanel();" title="Notifications">
               🔔<span class="notif-bell-badge" style="display:none;"></span>

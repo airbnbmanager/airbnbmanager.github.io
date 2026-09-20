@@ -1,4 +1,15 @@
 
+function escapeHtml(str) {
+  if (str == null) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+window.escapeHtml = escapeHtml;
+
 function isEmployeeActive(e) {
   if (!e) return false;
   const st = String(e.status || '').trim().toLowerCase();
@@ -78,20 +89,22 @@ window._empSearchQuery = window._empSearchQuery || '';
 window._empViewMode = window._empViewMode || (window.innerWidth < 768 ? 'cards' : 'table');
 
 async function renderManageEmployees() {
-  if (window.showLoadingSkeleton) window.showLoadingSkeleton('list');
-
   renderShell(`<div class="loading">Loading staff directory...</div>`, 'employees');
-  
-  const [{ data: emps, error: empErr }, { data: rooms }, storageInfo] = await Promise.all([
-    sb.from("employees").select("*").order("name"),
-    sb.from("rooms").select("room_id, nickname, unit_no").order("room_id"),
-    checkStorageUsage()
-  ]);
 
-  if (empErr) {
-    renderShell(`<div class="card"><div class="error">Failed to load employees: ${empErr.message}</div></div>`, 'employees');
-    return;
-  }
+  try {
+    const [{ data: emps, error: empErr }, { data: rooms }] = await Promise.all([
+      sb.from("employees").select("*").order("name"),
+      sb.from("rooms").select("room_id, nickname, unit_no").order("room_id")
+    ]);
+
+    if (empErr) {
+      renderShell(`<div class="card"><div class="error">Failed to load employees: ${empErr.message}</div></div>`, 'employees');
+      return;
+    }
+
+    // Async storage check without blocking UI
+    let storageInfo = { files: 0, label: '1 GB' };
+    checkStorageUsage().then(s => { storageInfo = s; }).catch(() => {});
 
   window._allEmployees = emps || [];
   window._allRooms = rooms || [];
@@ -267,6 +280,17 @@ async function renderManageEmployees() {
       </div>
     ` : (viewMode === 'cards' ? renderEmployeeCardsView(filteredEmps, isO, roomMap) : renderEmployeeTableView(filteredEmps, isO, roomMap))}
   `, 'employees');
+  } catch (err) {
+    console.error('Error rendering employees directory:', err);
+    renderShell(`
+      <div class="card" style="padding:24px;text-align:center;">
+        <div style="font-size:36px;margin-bottom:10px;">⚠️</div>
+        <h3 style="margin:0 0 8px 0;color:#DC2626;">Failed to display staff directory</h3>
+        <p style="color:#64748B;font-size:13px;margin:0 0 16px 0;">${err.message || 'An unexpected error occurred while loading employees.'}</p>
+        <button onclick="renderManageEmployees()" class="btn-sm" style="background:#4F46E5;color:#fff;">🔄 Retry Loading</button>
+      </div>
+    `, 'employees');
+  }
 }
 
 // 📱 Responsive Cards View (Mobile & Grid friendly)
@@ -295,6 +319,11 @@ function renderEmployeeCardsView(emps, isO, roomMap) {
                     </h3>
                     <div style="display:flex;align-items:center;gap:6px;margin-top:4px;flex-wrap:wrap;">
                       ${getEmpRoleBadge(e.role)}
+                      ${(e.shift === 'night') 
+                        ? `<span class="badge" style="background:#312E81;color:#E0E7FF;font-size:10px;padding:2px 7px;">🌙 Night (9PM–9AM)</span>`
+                        : ((e.shift === 'full')
+                          ? `<span class="badge" style="background:#065F46;color:#D1FAE5;font-size:10px;padding:2px 7px;">🔄 24x7 Duty</span>`
+                          : `<span class="badge" style="background:#FEF3C7;color:#92400E;font-size:10px;padding:2px 7px;">☀️ Day (9AM–9PM)</span>`)}
                       <span class="badge ${isActive ? 'green' : 'red'}" style="font-size:10px;padding:2px 7px;">
                         ${isActive ? 'Active' : (e.status || 'Disabled')}
                       </span>
@@ -751,9 +780,27 @@ async function renderAddEmp() {
         </div>
       </div>
 
-      <div class="form-group">
-        <label>Monthly Salary ₹</label>
-        <input id="eSal" type="number" placeholder="e.g. 12000" />
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Monthly Salary ₹</label>
+          <input id="eSal" type="number" placeholder="e.g. 12000" />
+        </div>
+        <div class="form-group">
+          <label>Operational Shift (Duty Hours)</label>
+          <select id="eShift">
+            <option value="day" selected>☀️ Day Shift (9:00 AM – 9:00 PM)</option>
+            <option value="night">🌙 Night Shift (9:00 PM – 9:00 AM)</option>
+            <option value="full">🔄 24x7 / Full Day Duty (Sole Caretaker)</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-group" style="margin-bottom:12px;">
+        <label>Auto-pick for Guest WhatsApp Check-in Pass?</label>
+        <select id="eInWhatsApp">
+          <option value="true" selected>✅ Yes — Auto-pick as On-Duty Caretaker for assigned properties</option>
+          <option value="false">❌ No (Internal / Maintenance only)</option>
+        </select>
       </div>
 
       <!-- Touch-friendly Assigned Properties Picker -->
@@ -933,6 +980,9 @@ async function saveEmp() {
     role: document.getElementById('eRole')?.value || null,
     property_role: document.getElementById('ePropertyRole')?.value || 'Staff',
     monthly_salary: parseFloat(document.getElementById('eSal')?.value) || 0,
+    shift: document.getElementById('eShift')?.value || 'day',
+    in_whatsapp_template: document.getElementById('eInWhatsApp')?.value === 'true',
+    whatsapp_display_role: 'Caretaker',
     joining_date: document.getElementById('eJoin')?.value || null,
     assigned_rooms: selectedRooms || null,
     id_proof_type: document.getElementById('eIdType')?.value || null,
@@ -1022,9 +1072,27 @@ async function editEmp(id) {
         </div>
       </div>
 
-      <div class="form-group">
-        <label>Monthly Salary ₹</label>
-        <input id="eSal" type="number" value="${e.monthly_salary || 0}" />
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Monthly Salary ₹</label>
+          <input id="eSal" type="number" value="${e.monthly_salary || 0}" />
+        </div>
+        <div class="form-group">
+          <label>Operational Shift (Duty Hours)</label>
+          <select id="eShift">
+            <option value="day" ${e.shift === 'day' ? 'selected' : ''}>☀️ Day Shift (9:00 AM – 9:00 PM)</option>
+            <option value="night" ${e.shift === 'night' ? 'selected' : ''}>🌙 Night Shift (9:00 PM – 9:00 AM)</option>
+            <option value="full" ${e.shift === 'full' ? 'selected' : ''}>🔄 24x7 / Full Day Duty (Sole Caretaker)</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-group" style="margin-bottom:12px;">
+        <label>Auto-pick for Guest WhatsApp Check-in Pass?</label>
+        <select id="eInWhatsApp">
+          <option value="true" ${e.in_whatsapp_template !== false ? 'selected' : ''}>✅ Yes — Auto-pick as On-Duty Caretaker for assigned properties</option>
+          <option value="false" ${e.in_whatsapp_template === false ? 'selected' : ''}>❌ No (Internal / Maintenance only)</option>
+        </select>
       </div>
 
       <!-- Touch-friendly Assigned Properties Picker -->
@@ -1200,6 +1268,9 @@ async function updEmp(id) {
     role: document.getElementById('eRole')?.value || null,
     property_role: document.getElementById('ePropertyRole')?.value || 'Staff',
     monthly_salary: parseFloat(document.getElementById('eSal')?.value) || 0,
+    shift: document.getElementById('eShift')?.value || 'day',
+    in_whatsapp_template: document.getElementById('eInWhatsApp')?.value === 'true',
+    whatsapp_display_role: 'Caretaker',
     joining_date: document.getElementById('eJoin')?.value || null,
     assigned_rooms: selectedRooms || null,
     id_proof_type: document.getElementById('eIdType')?.value || null,
@@ -2474,7 +2545,6 @@ async function saveAdv() {
     payment_mode: document.getElementById('aMode').value || null,
     paid_by: paidByVal,
     reason: document.getElementById('aReason').value.trim() || null,
-    claim_status: 'unclaimed',
     is_deducted: false
   });
   if (error) {

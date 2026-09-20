@@ -88,104 +88,127 @@ async function renderDailyReport(selectedDate) {
   const checkoutsDue = checkouts.filter(b => Math.max((b.total_amount||0) - (paidMapFull[b.booking_id]||0), 0) > 0);
 
   renderShell(`
-    <div class="card no-print">
-      <h1>📊 Daily Report</h1>
-      <div class="form-grid" style="margin-top:12px;">
-        <div class="form-group">
-          <label>Select Date</label>
-          <select onchange="renderDailyReport(this.value)">
-            ${dates.map(d => `<option value="${d}" ${d === repDate ? 'selected' : ''}>${new Date(d).toLocaleDateString('en-IN', {day:'2-digit', month:'short', year:'numeric'})}${d === today ? ' (Today)' : ''}</option>`).join('')}
-          </select>
+    <div class="card no-print" style="margin-bottom:20px;padding:16px 22px;border:1px solid var(--border);box-shadow:var(--shadow-sm);border-radius:12px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:14px;">
+        <div style="display:flex;align-items:center;gap:12px;">
+          <div style="width:40px;height:40px;border-radius:10px;background:#EEF2FF;color:#4F46E5;display:flex;align-items:center;justify-content:center;font-size:20px;">
+            📊
+          </div>
+          <div>
+            <h1 style="font-size:18px;font-weight:800;color:var(--text);margin:0;line-height:1.2;">Daily Operations Report</h1>
+            <div style="font-size:12px;color:var(--muted);margin-top:2px;">Real-time check-ins, check-outs, collections & dues overview</div>
+          </div>
         </div>
-        <div class="form-group" style="justify-content:flex-end;">
-          <button onclick="printDailyReportWindow()" class="btn-sm">🖨️ Print / PDF</button>
-          <button onclick="whatsappDailyReport('${repDate}')" class="btn-sm" style="background:#25D366;color:#fff;margin-left:6px;">📱 WhatsApp</button>
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+          <div style="display:flex;align-items:center;gap:8px;">
+            <label style="font-size:12px;font-weight:600;color:var(--muted);">Select Date:</label>
+            <select onchange="renderDailyReport(this.value)" style="padding:7px 12px;font-size:13px;border-radius:8px;border:1px solid var(--border);background:#fff;min-width:180px;height:38px;font-weight:600;color:var(--text);">
+              ${dates.map(d => `<option value="${d}" ${d === repDate ? 'selected' : ''}>${new Date(d).toLocaleDateString('en-IN', {day:'2-digit', month:'short', year:'numeric'})}${d === today ? ' (Today)' : ''}</option>`).join('')}
+            </select>
+          </div>
+          <button onclick="printDailyReportWindow()" class="btn-sm" style="background:#0F172A;color:#fff;border:none;padding:8px 16px;border-radius:8px;font-size:12px;font-weight:700;display:inline-flex;align-items:center;gap:6px;cursor:pointer;height:38px;box-shadow:0 1px 3px rgba(15,23,42,0.15);">
+            🖨️ Print / PDF
+          </button>
+          <button onclick="whatsappDailyReport('${repDate}')" class="btn-sm" style="background:#059669;color:#fff;border:none;padding:8px 16px;border-radius:8px;font-size:12px;font-weight:700;display:inline-flex;align-items:center;gap:6px;cursor:pointer;height:38px;box-shadow:0 1px 3px rgba(5,150,105,0.2);">
+            📱 WhatsApp
+          </button>
         </div>
       </div>
     </div>
 
-    <div class="card report-doc" style="max-width:900px;margin:0 auto;padding:30px;">
+    <div class="card report-doc" style="max-width:920px;margin:0 auto;padding:32px;background:#fff;border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow-md);">
       
-      <div style="background:linear-gradient(135deg,#FF5A5F 0%,#FC642D 100%);color:#fff;padding:24px;border-radius:12px;text-align:center;margin:-30px -30px 20px;">
-        <div style="font-size:12px;letter-spacing:2px;opacity:0.9;">${brand.toUpperCase()}</div>
-        <h1 style="margin:8px 0;font-size:24px;">📊 DAILY REPORT</h1>
-        <div style="font-size:14px;opacity:0.95;">${dateFormatted}</div>
-      </div>
-
-      <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(160px, 1fr));gap:10px;margin-bottom:12px;">
-        <div style="background:rgba(59,130,246,0.08);border:1px solid rgba(59,130,246,0.25);border-left:4px solid #3B82F6;padding:14px;border-radius:8px;">
-          <div style="font-size:10px;color:var(--muted);text-transform:uppercase;font-weight:600;">Check-ins</div>
-          <div style="font-size:26px;font-weight:800;color:#3B82F6;">${checkins.length}</div>
-          <div style="font-size:11px;color:var(--muted);">₹${newBookingTotal.toLocaleString('en-IN')} value</div>
+      <!-- Executive Letterhead Header -->
+      <div style="background:linear-gradient(135deg, #0F172A 0%, #1E293B 100%);color:#fff;padding:26px 28px;border-radius:12px;text-align:center;margin:-32px -32px 24px -32px;border-bottom:3px solid #4F46E5;box-shadow:0 4px 15px rgba(15,23,42,0.08);">
+        <div style="display:inline-block;padding:3px 12px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);border-radius:20px;font-size:10.5px;letter-spacing:1.8px;font-weight:700;color:#94A3B8;margin-bottom:8px;text-transform:uppercase;">
+          ${brand.toUpperCase()}
         </div>
-        <div style="background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.25);border-left:4px solid #EF4444;padding:14px;border-radius:8px;">
-          <div style="font-size:10px;color:var(--muted);text-transform:uppercase;font-weight:600;">Check-outs</div>
-          <div style="font-size:26px;font-weight:800;color:#EF4444;">${checkouts.length}</div>
-          <div style="font-size:11px;color:var(--muted);">Rooms freeing up</div>
-        </div>
-        <div style="background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.25);border-left:4px solid #10B981;padding:14px;border-radius:8px;">
-          <div style="font-size:10px;color:var(--muted);text-transform:uppercase;font-weight:600;">Collections</div>
-          <div style="font-size:26px;font-weight:800;color:#10B981;">₹${totalPayments.toLocaleString('en-IN')}</div>
-          <div style="font-size:11px;color:var(--muted);">${todayPaymentTransactions} txn${todayPaymentTransactions===1?'':'s'}</div>
-        </div>
-        <div style="background:rgba(236,72,153,0.08);border:1px solid rgba(236,72,153,0.25);border-left:4px solid #EC4899;padding:14px;border-radius:8px;">
-          <div style="font-size:10px;color:var(--muted);text-transform:uppercase;font-weight:600;">Occupancy</div>
-          <div style="font-size:26px;font-weight:800;color:#EC4899;">${staying.length}/${totalRooms}</div>
-          <div style="font-size:11px;color:var(--muted);">${occupancyPct}% occupied</div>
+        <h1 style="margin:2px 0 6px;font-size:23px;font-weight:800;letter-spacing:0.5px;color:#FFFFFF;">
+          📊 DAILY OPERATIONS REPORT
+        </h1>
+        <div style="font-size:13px;color:#CBD5E1;font-weight:500;">
+          🗓️ ${dateFormatted}
         </div>
       </div>
 
-      <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(180px, 1fr));gap:10px;margin-bottom:20px;">
-        <div style="background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.25);border-left:4px solid #F59E0B;padding:14px;border-radius:8px;">
-          <div style="font-size:10px;color:var(--muted);text-transform:uppercase;font-weight:600;">Total Pending Dues</div>
-          <div style="font-size:22px;font-weight:800;color:#F59E0B;">₹${totalDueOverall.toLocaleString('en-IN')}</div>
-          <div style="font-size:11px;color:var(--muted);">All active bookings</div>
+      <!-- Primary Operational Highlights -->
+      <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(170px, 1fr));gap:12px;margin-bottom:12px;">
+        <div style="background:#fff;border:1px solid #E2E8F0;border-left:4px solid #4F46E5;padding:14px 16px;border-radius:8px;box-shadow:0 1px 3px rgba(0,0,0,0.03);">
+          <div style="font-size:10.5px;color:#64748B;text-transform:uppercase;font-weight:700;letter-spacing:0.5px;">📥 Check-ins</div>
+          <div style="font-size:24px;font-weight:800;color:#0F172A;margin-top:2px;">${checkins.length}</div>
+          <div style="font-size:11.5px;color:#64748B;margin-top:2px;">₹${newBookingTotal.toLocaleString('en-IN')} value</div>
         </div>
-        <div style="background:rgba(139,92,246,0.08);border:1px solid rgba(139,92,246,0.25);border-left:4px solid #8B5CF6;padding:14px;border-radius:8px;">
-          <div style="font-size:10px;color:var(--muted);text-transform:uppercase;font-weight:600;">Currently Staying</div>
-          <div style="font-size:22px;font-weight:800;color:#8B5CF6;">${staying.length} guests</div>
-          <div style="font-size:11px;color:var(--muted);">In-house right now</div>
+        <div style="background:#fff;border:1px solid #E2E8F0;border-left:4px solid #64748B;padding:14px 16px;border-radius:8px;box-shadow:0 1px 3px rgba(0,0,0,0.03);">
+          <div style="font-size:10.5px;color:#64748B;text-transform:uppercase;font-weight:700;letter-spacing:0.5px;">📤 Check-outs</div>
+          <div style="font-size:24px;font-weight:800;color:#0F172A;margin-top:2px;">${checkouts.length}</div>
+          <div style="font-size:11.5px;color:#64748B;margin-top:2px;">Rooms freeing up</div>
         </div>
-        <div style="background:rgba(14,165,233,0.08);border:1px solid rgba(14,165,233,0.25);border-left:4px solid #0EA5E9;padding:14px;border-radius:8px;">
-          <div style="font-size:10px;color:var(--muted);text-transform:uppercase;font-weight:600;">Available Rooms</div>
-          <div style="font-size:22px;font-weight:800;color:#0EA5E9;">${totalRooms - staying.length}</div>
-          <div style="font-size:11px;color:var(--muted);">Ready to book</div>
+        <div style="background:#fff;border:1px solid #E2E8F0;border-left:4px solid #059669;padding:14px 16px;border-radius:8px;box-shadow:0 1px 3px rgba(0,0,0,0.03);">
+          <div style="font-size:10.5px;color:#64748B;text-transform:uppercase;font-weight:700;letter-spacing:0.5px;">💰 Collections</div>
+          <div style="font-size:24px;font-weight:800;color:#059669;margin-top:2px;">₹${totalPayments.toLocaleString('en-IN')}</div>
+          <div style="font-size:11.5px;color:#64748B;margin-top:2px;">${todayPaymentTransactions} transaction${todayPaymentTransactions===1?'':'s'}</div>
+        </div>
+        <div style="background:#fff;border:1px solid #E2E8F0;border-left:4px solid #7C3AED;padding:14px 16px;border-radius:8px;box-shadow:0 1px 3px rgba(0,0,0,0.03);">
+          <div style="font-size:10.5px;color:#64748B;text-transform:uppercase;font-weight:700;letter-spacing:0.5px;">📈 Occupancy</div>
+          <div style="font-size:24px;font-weight:800;color:#0F172A;margin-top:2px;">${staying.length}/${totalRooms}</div>
+          <div style="font-size:11.5px;color:#7C3AED;font-weight:600;margin-top:2px;">${occupancyPct}% occupied</div>
+        </div>
+      </div>
+
+      <!-- Secondary Status Overview -->
+      <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(170px, 1fr));gap:12px;margin-bottom:22px;">
+        <div style="background:#fff;border:1px solid #E2E8F0;border-left:4px solid ${totalDueOverall > 0 ? '#DC2626' : '#059669'};padding:14px 16px;border-radius:8px;box-shadow:0 1px 3px rgba(0,0,0,0.03);">
+          <div style="font-size:10.5px;color:#64748B;text-transform:uppercase;font-weight:700;letter-spacing:0.5px;">⚠️ Total Pending Dues</div>
+          <div style="font-size:24px;font-weight:800;color:${totalDueOverall > 0 ? '#DC2626' : '#059669'};margin-top:2px;">₹${totalDueOverall.toLocaleString('en-IN')}</div>
+          <div style="font-size:11.5px;color:#64748B;margin-top:2px;">Active guest accounts</div>
+        </div>
+        <div style="background:#fff;border:1px solid #E2E8F0;border-left:4px solid #0284C7;padding:14px 16px;border-radius:8px;box-shadow:0 1px 3px rgba(0,0,0,0.03);">
+          <div style="font-size:10.5px;color:#64748B;text-transform:uppercase;font-weight:700;letter-spacing:0.5px;">🏠 Currently Staying</div>
+          <div style="font-size:24px;font-weight:800;color:#0F172A;margin-top:2px;">${staying.length} guests</div>
+          <div style="font-size:11.5px;color:#64748B;margin-top:2px;">In-house right now</div>
+        </div>
+        <div style="background:#fff;border:1px solid #E2E8F0;border-left:4px solid #0D9488;padding:14px 16px;border-radius:8px;box-shadow:0 1px 3px rgba(0,0,0,0.03);">
+          <div style="font-size:10.5px;color:#64748B;text-transform:uppercase;font-weight:700;letter-spacing:0.5px;">✨ Available Rooms</div>
+          <div style="font-size:24px;font-weight:800;color:#0F172A;margin-top:2px;">${totalRooms - staying.length}</div>
+          <div style="font-size:11.5px;color:#0D9488;font-weight:600;margin-top:2px;">Ready to book</div>
         </div>
       </div>
 
       ${checkoutsDue.length > 0 || totalDueOverall > 0 ? `
-      <div style="margin-bottom:20px;">
-        <div style="background:linear-gradient(90deg,#DC2626,#F59E0B);color:#fff;padding:8px 14px;border-radius:6px 6px 0 0;font-weight:700;">
-          ⚠️ Action Required
+      <div style="margin-bottom:22px;background:#FFFDF7;border:1px solid #FDE68A;border-left:4px solid #D97706;border-radius:8px;padding:14px 18px;box-shadow:0 1px 2px rgba(0,0,0,0.02);">
+        <div style="font-size:13px;font-weight:700;color:#92400E;display:flex;align-items:center;gap:6px;margin-bottom:8px;">
+          <span>⚠️</span> Priority Actions Required (Pending Settlements)
         </div>
-        <div style="border:1px solid rgba(239,68,68,0.3);border-top:none;border-radius:0 0 6px 6px;padding:12px;background:rgba(239,68,68,0.06);">
-          <ul style="margin:0;padding-left:20px;font-size:13px;line-height:1.8;color:var(--text);">
-            ${checkoutsDue.map(b => {
-              const due = Math.max((b.total_amount||0) - (paidMapFull[b.booking_id]||0), 0);
-              return `<li><strong style="color:#DC2626;">Collect ₹${due.toLocaleString('en-IN')}</strong> from <strong>${b.guest_name}</strong> (${b.rooms?.nickname || b.room_id}) — checking out today ${b.guest_phone ? '📞 '+b.guest_phone : ''}</li>`;
-            }).join('')}
-            ${totalDueOverall > 0 ? `<li>Total pending dues to follow up: <strong style="color:#F59E0B;">₹${totalDueOverall.toLocaleString('en-IN')}</strong></li>` : ''}
-          </ul>
-        </div>
+        <ul style="margin:0;padding-left:18px;font-size:12.5px;line-height:1.8;color:#78350F;">
+          ${checkoutsDue.map(b => {
+            const due = Math.max((b.total_amount||0) - (paidMapFull[b.booking_id]||0), 0);
+            return `<li><strong style="color:#DC2626;">Collect ₹${due.toLocaleString('en-IN')}</strong> from <strong>${b.guest_name}</strong> (${b.rooms?.nickname || b.room_id}) — checking out today ${b.guest_phone ? '📞 '+b.guest_phone : ''}</li>`;
+          }).join('')}
+          ${totalDueOverall > 0 ? `<li>Total pending balance across active guests: <strong style="color:#B45309;">₹${totalDueOverall.toLocaleString('en-IN')}</strong></li>` : ''}
+        </ul>
       </div>` : ''}
 
-      <div style="margin-bottom:20px;">
-        <div style="background:linear-gradient(90deg,#059669,#10B981);color:#fff;padding:8px 14px;border-radius:6px 6px 0 0;font-weight:700;">
-          📥 Check-ins Today (${checkins.length})
+      <!-- Section: Check-ins Today -->
+      <div style="margin-bottom:22px;border:1px solid #E2E8F0;border-radius:8px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.02);">
+        <div style="background:#0F172A;color:#fff;padding:10px 16px;font-weight:700;font-size:13px;display:flex;justify-content:space-between;align-items:center;">
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span>📥</span> Check-ins Today
+          </div>
+          <span style="background:rgba(255,255,255,0.16);padding:2px 10px;border-radius:12px;font-size:11px;font-weight:700;">${checkins.length}</span>
         </div>
-        <div style="border:1px solid var(--border);border-top:none;border-radius:0 0 6px 6px;padding:12px;">
-          ${checkins.length === 0 ? '<div style="color:var(--muted);text-align:center;padding:20px;">No check-ins today</div>' :
-            `<table style="width:100%;font-size:12px;">
-              <thead style="background:var(--bg-tertiary);color:var(--text);">
+        <div>
+          ${checkins.length === 0 ? '<div style="color:var(--muted);text-align:center;padding:24px;font-size:13px;">No check-ins scheduled for this date</div>' :
+            `<table style="width:100%;font-size:12.5px;border-collapse:collapse;">
+              <thead style="background:#F8FAFC;color:#475569;border-bottom:1px solid #E2E8F0;">
                 <tr>
-                  <th style="padding:8px;text-align:left;">Guest</th>
-                  <th style="padding:8px;text-align:left;">Property</th>
-                  <th style="padding:8px;text-align:center;">Nights</th>
-                  <th style="padding:8px;text-align:left;">Contact</th>
-                  <th style="padding:8px;text-align:left;">Time</th>
-                  <th style="padding:8px;text-align:right;">Total</th>
-                  <th style="padding:8px;text-align:right;">Paid</th>
-                  <th style="padding:8px;text-align:right;">Due</th>
+                  <th style="padding:9px 12px;text-align:left;font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;">Guest</th>
+                  <th style="padding:9px 12px;text-align:left;font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;">Property</th>
+                  <th style="padding:9px 12px;text-align:center;font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;">Nights</th>
+                  <th style="padding:9px 12px;text-align:left;font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;">Contact</th>
+                  <th style="padding:9px 12px;text-align:left;font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;">Time</th>
+                  <th style="padding:9px 12px;text-align:right;font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;">Total</th>
+                  <th style="padding:9px 12px;text-align:right;font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;">Paid</th>
+                  <th style="padding:9px 12px;text-align:right;font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;">Due</th>
                 </tr>
               </thead>
               <tbody>
@@ -193,15 +216,15 @@ async function renderDailyReport(selectedDate) {
                   const paid = paidMapFull[b.booking_id] || 0;
                   const due = Math.max((b.total_amount || 0) - paid, 0);
                   const nights = b.check_in && b.check_out ? Math.max(1, Math.ceil((new Date(b.check_out) - new Date(b.check_in))/86400000)) : '-';
-                  return `<tr style="border-top:1px solid var(--border);">
-                    <td style="padding:8px;"><strong>${b.guest_name}</strong>${b.is_review_booking ? ' <span style="background:#722ED1;color:#fff;padding:1px 6px;border-radius:8px;font-size:10px;">REVIEW</span>' : ''}</td>
-                    <td style="padding:8px;">${b.rooms?.nickname || b.room_id}</td>
-                    <td style="padding:8px;text-align:center;">${nights}</td>
-                    <td style="padding:8px;font-size:11px;">${b.guest_phone || '-'}</td>
-                    <td style="padding:8px;">${b.check_in_time || '2 PM'}</td>
-                    <td style="padding:8px;text-align:right;">₹${(b.total_amount || 0).toLocaleString('en-IN')}</td>
-                    <td style="padding:8px;text-align:right;color:#059669;">₹${paid.toLocaleString('en-IN')}</td>
-                    <td style="padding:8px;text-align:right;color:${due > 0 ? '#DC2626' : '#059669'};font-weight:700;">₹${due.toLocaleString('en-IN')}</td>
+                  return `<tr style="border-bottom:1px solid #F1F5F9;">
+                    <td style="padding:10px 12px;"><strong>${b.guest_name}</strong>${b.is_review_booking ? ' <span style="background:#7C3AED;color:#fff;padding:2px 7px;border-radius:10px;font-size:9.5px;font-weight:700;">REVIEW</span>' : ''}</td>
+                    <td style="padding:10px 12px;color:#334155;">${b.rooms?.nickname || b.room_id}</td>
+                    <td style="padding:10px 12px;text-align:center;color:#64748B;">${nights}</td>
+                    <td style="padding:10px 12px;font-size:11.5px;color:#64748B;">${b.guest_phone || '-'}</td>
+                    <td style="padding:10px 12px;color:#64748B;">${b.check_in_time || '2 PM'}</td>
+                    <td style="padding:10px 12px;text-align:right;font-weight:600;">₹${(b.total_amount || 0).toLocaleString('en-IN')}</td>
+                    <td style="padding:10px 12px;text-align:right;color:#059669;font-weight:600;">₹${paid.toLocaleString('en-IN')}</td>
+                    <td style="padding:10px 12px;text-align:right;color:${due > 0 ? '#DC2626' : '#059669'};font-weight:700;">₹${due.toLocaleString('en-IN')}</td>
                   </tr>`;
                 }).join('')}
               </tbody>
@@ -210,36 +233,40 @@ async function renderDailyReport(selectedDate) {
         </div>
       </div>
 
-      <div style="margin-bottom:20px;">
-        <div style="background:linear-gradient(90deg,#DC2626,#EF4444);color:#fff;padding:8px 14px;border-radius:6px 6px 0 0;font-weight:700;">
-          📤 Check-outs Today (${checkouts.length})
+      <!-- Section: Check-outs Today -->
+      <div style="margin-bottom:22px;border:1px solid #E2E8F0;border-radius:8px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.02);">
+        <div style="background:#0F172A;color:#fff;padding:10px 16px;font-weight:700;font-size:13px;display:flex;justify-content:space-between;align-items:center;">
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span>📤</span> Check-outs Today
+          </div>
+          <span style="background:rgba(255,255,255,0.16);padding:2px 10px;border-radius:12px;font-size:11px;font-weight:700;">${checkouts.length}</span>
         </div>
-        <div style="border:1px solid var(--border);border-top:none;border-radius:0 0 6px 6px;padding:12px;">
-          ${checkouts.length === 0 ? '<div style="color:var(--muted);text-align:center;padding:20px;">No check-outs today</div>' :
-            `<table style="width:100%;font-size:12px;">
-              <thead style="background:var(--bg-tertiary);color:var(--text);">
+        <div>
+          ${checkouts.length === 0 ? '<div style="color:var(--muted);text-align:center;padding:24px;font-size:13px;">No check-outs scheduled for this date</div>' :
+            `<table style="width:100%;font-size:12.5px;border-collapse:collapse;">
+              <thead style="background:#F8FAFC;color:#475569;border-bottom:1px solid #E2E8F0;">
                 <tr>
-                  <th style="padding:8px;text-align:left;">Guest</th>
-                  <th style="padding:8px;text-align:left;">Property</th>
-                  <th style="padding:8px;text-align:left;">Contact</th>
-                  <th style="padding:8px;text-align:left;">Time</th>
-                  <th style="padding:8px;text-align:right;">Total</th>
-                  <th style="padding:8px;text-align:right;">Paid</th>
-                  <th style="padding:8px;text-align:right;">Due</th>
+                  <th style="padding:9px 12px;text-align:left;font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;">Guest</th>
+                  <th style="padding:9px 12px;text-align:left;font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;">Property</th>
+                  <th style="padding:9px 12px;text-align:left;font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;">Contact</th>
+                  <th style="padding:9px 12px;text-align:left;font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;">Time</th>
+                  <th style="padding:9px 12px;text-align:right;font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;">Total</th>
+                  <th style="padding:9px 12px;text-align:right;font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;">Paid</th>
+                  <th style="padding:9px 12px;text-align:right;font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;">Due</th>
                 </tr>
               </thead>
               <tbody>
                 ${checkouts.map(b => {
                   const paid = paidMapFull[b.booking_id] || 0;
                   const due = Math.max((b.total_amount || 0) - paid, 0);
-                  return `<tr style="border-top:1px solid var(--border);${due > 0 ? 'background:rgba(239,68,68,0.06);' : ''}">
-                    <td style="padding:8px;"><strong>${b.guest_name}</strong></td>
-                    <td style="padding:8px;">${b.rooms?.nickname || b.room_id}</td>
-                    <td style="padding:8px;font-size:11px;">${b.guest_phone || '-'}</td>
-                    <td style="padding:8px;">${b.check_out_time || '11 AM'}</td>
-                    <td style="padding:8px;text-align:right;">₹${(b.total_amount || 0).toLocaleString('en-IN')}</td>
-                    <td style="padding:8px;text-align:right;color:#059669;">₹${paid.toLocaleString('en-IN')}</td>
-                    <td style="padding:8px;text-align:right;color:${due > 0 ? '#DC2626' : '#059669'};font-weight:700;">₹${due.toLocaleString('en-IN')}${due>0?' ⚠️':''}</td>
+                  return `<tr style="border-bottom:1px solid #F1F5F9;${due > 0 ? 'background:#FEF2F2;' : ''}">
+                    <td style="padding:10px 12px;"><strong>${b.guest_name}</strong></td>
+                    <td style="padding:10px 12px;color:#334155;">${b.rooms?.nickname || b.room_id}</td>
+                    <td style="padding:10px 12px;font-size:11.5px;color:#64748B;">${b.guest_phone || '-'}</td>
+                    <td style="padding:10px 12px;color:#64748B;">${b.check_out_time || '11 AM'}</td>
+                    <td style="padding:10px 12px;text-align:right;font-weight:600;">₹${(b.total_amount || 0).toLocaleString('en-IN')}</td>
+                    <td style="padding:10px 12px;text-align:right;color:#059669;font-weight:600;">₹${paid.toLocaleString('en-IN')}</td>
+                    <td style="padding:10px 12px;text-align:right;color:${due > 0 ? '#DC2626' : '#059669'};font-weight:700;">₹${due.toLocaleString('en-IN')}${due>0?' ⚠️':''}</td>
                   </tr>`;
                 }).join('')}
               </tbody>
@@ -248,34 +275,38 @@ async function renderDailyReport(selectedDate) {
         </div>
       </div>
 
-      <div style="margin-bottom:20px;">
-        <div style="background:linear-gradient(90deg,#7C3AED,#8B5CF6);color:#fff;padding:8px 14px;border-radius:6px 6px 0 0;font-weight:700;">
-          🏠 Currently In-House (${staying.length})
+      <!-- Section: Currently In-House -->
+      <div style="margin-bottom:22px;border:1px solid #E2E8F0;border-radius:8px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.02);">
+        <div style="background:#0F172A;color:#fff;padding:10px 16px;font-weight:700;font-size:13px;display:flex;justify-content:space-between;align-items:center;">
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span>🏠</span> Currently In-House
+          </div>
+          <span style="background:rgba(255,255,255,0.16);padding:2px 10px;border-radius:12px;font-size:11px;font-weight:700;">${staying.length}</span>
         </div>
-        <div style="border:1px solid var(--border);border-top:none;border-radius:0 0 6px 6px;padding:12px;">
-          ${staying.length === 0 ? '<div style="color:var(--muted);text-align:center;padding:20px;">No guests in-house</div>' :
-            `<table style="width:100%;font-size:12px;">
-              <thead style="background:var(--bg-tertiary);color:var(--text);">
+        <div>
+          ${staying.length === 0 ? '<div style="color:var(--muted);text-align:center;padding:24px;font-size:13px;">No guests currently in-house</div>' :
+            `<table style="width:100%;font-size:12.5px;border-collapse:collapse;">
+              <thead style="background:#F8FAFC;color:#475569;border-bottom:1px solid #E2E8F0;">
                 <tr>
-                  <th style="padding:8px;text-align:left;">Guest</th>
-                  <th style="padding:8px;text-align:left;">Property</th>
-                  <th style="padding:8px;text-align:left;">Check-in</th>
-                  <th style="padding:8px;text-align:left;">Check-out</th>
-                  <th style="padding:8px;text-align:left;">Contact</th>
-                  <th style="padding:8px;text-align:right;">Due</th>
+                  <th style="padding:9px 12px;text-align:left;font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;">Guest</th>
+                  <th style="padding:9px 12px;text-align:left;font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;">Property</th>
+                  <th style="padding:9px 12px;text-align:left;font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;">Check-in</th>
+                  <th style="padding:9px 12px;text-align:left;font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;">Check-out</th>
+                  <th style="padding:9px 12px;text-align:left;font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;">Contact</th>
+                  <th style="padding:9px 12px;text-align:right;font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;">Due</th>
                 </tr>
               </thead>
               <tbody>
                 ${staying.map(b => {
                   const paid = paidMapFull[b.booking_id] || 0;
                   const due = Math.max((b.total_amount || 0) - paid, 0);
-                  return `<tr style="border-top:1px solid var(--border);">
-                    <td style="padding:8px;"><strong>${b.guest_name}</strong></td>
-                    <td style="padding:8px;">${b.rooms?.nickname || b.room_id}</td>
-                    <td style="padding:8px;font-size:11px;">${b.check_in || '-'}</td>
-                    <td style="padding:8px;font-size:11px;">${b.check_out || '-'}</td>
-                    <td style="padding:8px;font-size:11px;">${b.guest_phone || '-'}</td>
-                    <td style="padding:8px;text-align:right;color:${due > 0 ? '#DC2626' : '#059669'};font-weight:700;">₹${due.toLocaleString('en-IN')}</td>
+                  return `<tr style="border-bottom:1px solid #F1F5F9;">
+                    <td style="padding:10px 12px;"><strong>${b.guest_name}</strong></td>
+                    <td style="padding:10px 12px;color:#334155;">${b.rooms?.nickname || b.room_id}</td>
+                    <td style="padding:10px 12px;font-size:11.5px;color:#64748B;">${b.check_in || '-'}</td>
+                    <td style="padding:10px 12px;font-size:11.5px;color:#64748B;">${b.check_out || '-'}</td>
+                    <td style="padding:10px 12px;font-size:11.5px;color:#64748B;">${b.guest_phone || '-'}</td>
+                    <td style="padding:10px 12px;text-align:right;color:${due > 0 ? '#DC2626' : '#059669'};font-weight:700;">₹${due.toLocaleString('en-IN')}</td>
                   </tr>`;
                 }).join('')}
               </tbody>
@@ -284,80 +315,93 @@ async function renderDailyReport(selectedDate) {
         </div>
       </div>
 
-      <div style="margin-bottom:20px;">
-        <div style="background:linear-gradient(90deg,#059669,#10B981);color:#fff;padding:8px 14px;border-radius:6px 6px 0 0;font-weight:700;">
-          💰 Payments Received (${(allPays || []).length}) — Total ₹${totalPayments.toLocaleString('en-IN')}
+      <!-- Section: Payments Received -->
+      <div style="margin-bottom:22px;border:1px solid #E2E8F0;border-radius:8px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.02);">
+        <div style="background:#0F172A;color:#fff;padding:10px 16px;font-weight:700;font-size:13px;display:flex;justify-content:space-between;align-items:center;">
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span>💰</span> Payments Received Today
+          </div>
+          <span style="background:rgba(255,255,255,0.16);padding:2px 10px;border-radius:12px;font-size:11px;font-weight:700;">₹${totalPayments.toLocaleString('en-IN')} (${(allPays || []).length} txn)</span>
         </div>
-        <div style="border:1px solid var(--border);border-top:none;border-radius:0 0 6px 6px;padding:12px;">
-          ${(allPays || []).length === 0 ? '<div style="color:var(--muted);text-align:center;padding:20px;">No payments today</div>' :
-            `<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;">
-              ${Object.entries(paymentByMode).map(([mode, amt]) => 
-                `<span style="display:inline-block;background:rgba(16,185,129,0.12);border:1px solid rgba(16,185,129,0.3);color:#10B981;padding:4px 10px;border-radius:20px;font-size:12px;font-weight:600;">${mode}: ₹${amt.toLocaleString('en-IN')}</span>`
-              ).join('')}
-            </div>
-            <table style="width:100%;font-size:12px;">
-              <thead style="background:var(--bg-tertiary);color:var(--text);">
-                <tr>
-                  <th style="padding:8px;text-align:left;">Guest</th>
-                  <th style="padding:8px;text-align:left;">Property</th>
-                  <th style="padding:8px;text-align:left;">Mode</th>
-                  <th style="padding:8px;text-align:left;">Ref/Notes</th>
-                  <th style="padding:8px;text-align:right;">Amount</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${(allPays || []).map(p => {
-                  const bk = (allBks || []).find(b => b.booking_id === p.booking_id);
-                  return `<tr style="border-top:1px solid var(--border);">
-                    <td style="padding:8px;">${bk?.guest_name || 'Unknown'}</td>
-                    <td style="padding:8px;">${bk?.rooms?.nickname || bk?.room_id || '-'}</td>
-                    <td style="padding:8px;">${p.payment_mode || '-'}</td>
-                    <td style="padding:8px;font-size:11px;color:var(--muted);">${p.reference_no || p.notes || '-'}</td>
-                    <td style="padding:8px;text-align:right;color:#059669;font-weight:700;">₹${(p.amount || 0).toLocaleString('en-IN')}</td>
-                  </tr>`;
-                }).join('')}
-              </tbody>
-            </table>`
+        <div style="padding:14px;">
+          ${(allPays || []).length === 0 ? '<div style="color:var(--muted);text-align:center;padding:16px;font-size:13px;">No payments recorded for this date</div>' :
+            `<div>
+              <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;">
+                ${Object.entries(paymentByMode).map(([mode, amt]) => 
+                  `<span style="display:inline-block;background:#ECFDF5;border:1px solid #A7F3D0;color:#065F46;padding:4px 10px;border-radius:16px;font-size:11.5px;font-weight:600;">${mode}: ₹${amt.toLocaleString('en-IN')}</span>`
+                ).join('')}
+              </div>
+              <table style="width:100%;font-size:12.5px;border-collapse:collapse;">
+                <thead style="background:#F8FAFC;color:#475569;border-bottom:1px solid #E2E8F0;">
+                  <tr>
+                    <th style="padding:9px 12px;text-align:left;font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;">Guest</th>
+                    <th style="padding:9px 12px;text-align:left;font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;">Property</th>
+                    <th style="padding:9px 12px;text-align:left;font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;">Mode</th>
+                    <th style="padding:9px 12px;text-align:left;font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;">Ref / Notes</th>
+                    <th style="padding:9px 12px;text-align:right;font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;">Amount</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${(allPays || []).map(p => {
+                    const bk = (allBks || []).find(b => b.booking_id === p.booking_id);
+                    return `<tr style="border-bottom:1px solid #F1F5F9;">
+                      <td style="padding:10px 12px;"><strong>${bk?.guest_name || 'Unknown'}</strong></td>
+                      <td style="padding:10px 12px;color:#334155;">${bk?.rooms?.nickname || bk?.room_id || '-'}</td>
+                      <td style="padding:10px 12px;"><span style="background:#F1F5F9;padding:2px 8px;border-radius:4px;font-size:11.5px;font-weight:600;color:#334155;">${p.payment_mode || '-'}</span></td>
+                      <td style="padding:10px 12px;font-size:11.5px;color:#64748B;">${p.reference_no || p.notes || '-'}</td>
+                      <td style="padding:10px 12px;text-align:right;color:#059669;font-weight:700;">₹${(p.amount || 0).toLocaleString('en-IN')}</td>
+                    </tr>`;
+                  }).join('')}
+                </tbody>
+              </table>
+            </div>`
           }
         </div>
       </div>
 
-      ${checkins.length > 0 ? `<div style="margin-bottom:20px;">
-        <div style="background:linear-gradient(90deg,#7C3AED,#8B5CF6);color:#fff;padding:8px 14px;border-radius:6px 6px 0 0;font-weight:700;">
-          📊 Today's Check-ins — Source Breakdown
+      ${checkins.length > 0 ? `
+      <!-- Section: Channel Source Breakdown -->
+      <div style="margin-bottom:22px;border:1px solid #E2E8F0;border-radius:8px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.02);">
+        <div style="background:#0F172A;color:#fff;padding:10px 16px;font-weight:700;font-size:13px;display:flex;justify-content:space-between;align-items:center;">
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span>📊</span> Check-in Channel Breakdown
+          </div>
+          <span style="background:rgba(255,255,255,0.16);padding:2px 10px;border-radius:12px;font-size:11px;font-weight:700;">${checkins.length} Total</span>
         </div>
-        <div style="border:1px solid var(--border);border-top:none;border-radius:0 0 6px 6px;padding:12px;">
-          <table style="width:100%;font-size:13px;">
-            <tr style="background:var(--bg-tertiary);">
-              <td style="padding:8px;"><strong>🌐 Online (Airbnb)</strong></td>
-              <td style="padding:8px;text-align:center;">${onlineBks.length} bookings</td>
-              <td style="padding:8px;text-align:right;">₹${onlineBks.reduce((s,b) => s+(b.total_amount||0), 0).toLocaleString('en-IN')}</td>
+        <div>
+          <table style="width:100%;font-size:13px;border-collapse:collapse;">
+            <tr style="border-bottom:1px solid #F1F5F9;">
+              <td style="padding:10px 14px;"><strong>🌐 Online (Airbnb)</strong></td>
+              <td style="padding:10px 14px;text-align:center;color:#64748B;">${onlineBks.length} bookings</td>
+              <td style="padding:10px 14px;text-align:right;font-weight:700;color:#0F172A;">₹${onlineBks.reduce((s,b) => s+(b.total_amount||0), 0).toLocaleString('en-IN')}</td>
             </tr>
-            <tr>
-              <td style="padding:8px;"><strong>🏠 Offline (Direct)</strong></td>
-              <td style="padding:8px;text-align:center;">${offlineBks.length} bookings</td>
-              <td style="padding:8px;text-align:right;">₹${offlineBks.reduce((s,b) => s+(b.total_amount||0), 0).toLocaleString('en-IN')}</td>
+            <tr style="border-bottom:1px solid #F1F5F9;">
+              <td style="padding:10px 14px;"><strong>🏠 Offline (Direct / Phone)</strong></td>
+              <td style="padding:10px 14px;text-align:center;color:#64748B;">${offlineBks.length} bookings</td>
+              <td style="padding:10px 14px;text-align:right;font-weight:700;color:#0F172A;">₹${offlineBks.reduce((s,b) => s+(b.total_amount||0), 0).toLocaleString('en-IN')}</td>
             </tr>
-            ${reviewBks.length > 0 ? `<tr style="background:rgba(124,58,237,0.1);">
-              <td style="padding:8px;"><strong>⭐ Review Bookings</strong></td>
-              <td style="padding:8px;text-align:center;">${reviewBks.length} bookings</td>
-              <td style="padding:8px;text-align:right;color:#8B5CF6;font-weight:700;">₹${reviewBks.reduce((s,b) => s+(b.total_amount||0), 0).toLocaleString('en-IN')} (own money)</td>
+            ${reviewBks.length > 0 ? `<tr style="background:#F5F3FF;">
+              <td style="padding:10px 14px;"><strong style="color:#6D28D9;">⭐ Review Bookings</strong></td>
+              <td style="padding:10px 14px;text-align:center;color:#6D28D9;">${reviewBks.length} bookings</td>
+              <td style="padding:10px 14px;text-align:right;color:#6D28D9;font-weight:700;">₹${reviewBks.reduce((s,b) => s+(b.total_amount||0), 0).toLocaleString('en-IN')} (own money)</td>
             </tr>` : ''}
           </table>
         </div>
       </div>` : ''}
 
-      <div style="background:linear-gradient(135deg,#1F2937,#374151);color:#fff;padding:16px;margin:20px -30px -30px;border-radius:0 0 12px 12px;text-align:center;">
-        <div style="font-size:11px;opacity:0.7;letter-spacing:2px;margin-bottom:6px;">${brand.toUpperCase()}</div>
-        <div style="font-size:12px;opacity:0.9;">Report generated: ${new Date().toLocaleString('en-IN')} &bull; 🌐 uniquehavenhomesstay.com</div>
-        <div style="font-size:11.5px;font-weight:700;margin-top:4px;color:#F8FAFC;">⚡ Developed by Praveen Singh</div>
+      <!-- Executive Footer -->
+      <div style="background:#0F172A;color:#94A3B8;padding:22px 24px;margin:24px -32px -32px -32px;border-radius:0 0 12px 12px;text-align:center;border-top:1px solid #1E293B;">
+        <div style="font-size:11px;letter-spacing:1.8px;color:#E2E8F0;font-weight:800;margin-bottom:4px;text-transform:uppercase;">${brand.toUpperCase()}</div>
+        <div style="font-size:11.5px;color:#94A3B8;">CIN: U68101UP2026PTC244837 &bull; GSTIN: 09ABECT9843K1Z7 &bull; Lucknow, Uttar Pradesh</div>
+        <div style="font-size:11px;color:#64748B;margin-top:4px;">Report Generated: ${new Date().toLocaleString('en-IN', {dateStyle:'medium', timeStyle:'short'})} &bull; 🌐 uniquehavenhomesstay.com</div>
+        <div style="font-size:11px;font-weight:600;margin-top:6px;color:#94A3B8;">⚡ Hospitality Operations Management System</div>
       </div>
     </div>
 
     <style>
       @media print {
         @page { size: A4; margin: 0; }
-        body { padding: 10mm 12mm !important; }
+        body { padding: 8mm 10mm !important; }
       }
     </style>
   `, 'daily-report');

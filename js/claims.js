@@ -872,9 +872,36 @@ window.showUhhsStatementModal = async function() {
     const fDate = fromDate || '2026-09-17';
     const tDate = toDate || new Date().toISOString().slice(0, 10);
 
-    const deposits = (window.UHHSODManager && window.UHHSODManager.getDeposits)
+    let deposits = (window.UHHSODManager && window.UHHSODManager.getDeposits)
       ? await window.UHHSODManager.getDeposits(sb, fDate, tDate)
       : [];
+
+    // Failsafe cloud fallback: If deposits returned empty, query company_advances directly
+    if (!deposits || deposits.length === 0) {
+      try {
+        let q = sb.from('company_advances').select('*').or('payment_source.eq.UHHS-OD,given_to.eq.UHHS-OD');
+        if (fDate) q = q.gte('advance_date', fDate);
+        if (tDate) q = q.lte('advance_date', tDate);
+        const { data: caData } = await q.order('advance_date', { ascending: false });
+        if (caData && caData.length > 0) {
+          deposits = caData.map(ca => ({
+            id: 'ca_' + ca.id,
+            db_id: ca.id,
+            source_table: 'company_advances',
+            transaction_date: ca.advance_date,
+            description: ca.purpose || `Funds added by ${ca.given_by || 'Firoz'} via UPI`,
+            amount: parseFloat(ca.amount_given || 0),
+            transaction_type: 'INFLOW',
+            payment_mode: 'UPI',
+            received_from: ca.given_by || 'Firoz',
+            reference_note: ca.notes || null,
+            created_at: ca.created_at
+          }));
+        }
+      } catch (e) {
+        console.warn('Direct company_advances fallback notice:', e);
+      }
+    }
 
     const [{ data: exps }, { data: maints }, { data: launds }, { data: allAdvs }] = await Promise.all([
       sb.from('reimbursements').select('*').gte('expense_date', fDate).lte('expense_date', tDate),
@@ -885,8 +912,13 @@ window.showUhhsStatementModal = async function() {
 
     const txns = [];
 
-    // Deposits (+)
+    // Deposits (+) with strict signature deduplication guard
+    const depSigSeen = new Set();
     (deposits || []).forEach(d => {
+      const sig = `${(d.transaction_date || '').slice(0, 10)}_${Math.round(Number(d.amount || 0))}`;
+      if (depSigSeen.has(sig)) return;
+      depSigSeen.add(sig);
+
       txns.push({
         id: d.id,
         date: d.transaction_date,

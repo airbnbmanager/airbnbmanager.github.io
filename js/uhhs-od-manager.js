@@ -77,45 +77,118 @@ async function getAllODDeposits(supabaseClient, startDate = '2026-09-17', endDat
     let dbList = [];
 
     if (client) {
+        // 1. Check account_transactions (primary UHHS-OD inflows)
         try {
-            let q = client.from('uhhs_od_account').select('*').eq('transaction_type', 'INFLOW');
-            if (startDate) q = q.gte('transaction_date', startDate);
-            if (endDate) q = q.lte('transaction_date', endDate);
-            const { data, error } = await q.order('transaction_date', { ascending: false });
-            if (!error && Array.isArray(data)) {
-                dbList = data;
+            let q1 = client.from('account_transactions')
+                .select('*')
+                .eq('account_type', 'UHHS_OD')
+                .eq('transaction_type', 'INFLOW');
+            if (startDate) q1 = q1.gte('created_at', startDate);
+            if (endDate) q1 = q1.lte('created_at', endDate);
+            const { data: atData, error: atErr } = await q1.order('created_at', { ascending: false });
+            if (!atErr && Array.isArray(atData)) {
+                atData.forEach(at => {
+                    dbList.push({
+                        id: at.id,
+                        db_id: at.id,
+                        source_table: 'account_transactions',
+                        transaction_date: (at.created_at || '').slice(0, 10),
+                        description: at.description || `Funds added by ${at.sender_name || 'Owner'} via ${at.payment_mode || 'UPI'}`,
+                        amount: parseFloat(at.amount || 0),
+                        transaction_type: 'INFLOW',
+                        payment_mode: at.payment_mode || 'UPI',
+                        received_from: at.sender_name || 'Owner',
+                        reference_note: null,
+                        created_at: at.created_at
+                    });
+                });
             }
         } catch (e) {
-            console.warn('UHHS-OD Supabase read notice:', e.message);
+            console.warn('account_transactions read notice:', e.message);
         }
+
+        // 2. Check company_advances (cloud database persistence with full RLS permissions)
+        try {
+            let q2 = client.from('company_advances').select('*').or('payment_source.eq.UHHS-OD,given_to.eq.UHHS-OD');
+            if (startDate) q2 = q2.gte('advance_date', startDate);
+            if (endDate) q2 = q2.lte('advance_date', endDate);
+            const { data: caData, error: caErr } = await q2.order('advance_date', { ascending: false });
+            if (!caErr && Array.isArray(caData)) {
+                caData.forEach(ca => {
+                    dbList.push({
+                        id: 'ca_' + ca.id,
+                        db_id: ca.id,
+                        source_table: 'company_advances',
+                        transaction_date: ca.advance_date,
+                        description: ca.purpose || `Funds added by ${ca.given_by || 'Firoz'} via UPI`,
+                        amount: parseFloat(ca.amount_given || 0),
+                        transaction_type: 'INFLOW',
+                        payment_mode: 'UPI',
+                        received_from: ca.given_by || 'Firoz',
+                        reference_note: ca.notes || null,
+                        created_at: ca.created_at
+                    });
+                });
+            }
+        } catch (e) {
+            console.warn('Company advances OD read notice:', e.message);
+        }
+
+        // 3. Check uhhs_od_account (if table exists)
+        try {
+            let q3 = client.from('uhhs_od_account').select('*').eq('transaction_type', 'INFLOW');
+            if (startDate) q3 = q3.gte('transaction_date', startDate);
+            if (endDate) q3 = q3.lte('transaction_date', endDate);
+            const { data, error } = await q3.order('transaction_date', { ascending: false });
+            if (!error && Array.isArray(data)) {
+                dbList.push(...data);
+            }
+        } catch (e) {}
     }
 
-    // Merge & deduplicate by ID or (date + amount + sender)
-    const map = new Map();
-    // 1. Baseline entries
+    // Merge & STRICTLY deduplicate by transaction signature (date + rounded amount)
+    // A deposit with the exact same date and amount is NEVER duplicated.
+    const sigMap = new Map();
+
+    // 1. Baseline entries (settlement on 2026-09-16)
     BASELINE_OD_ENTRIES.forEach(d => {
         if (startDate && d.transaction_date < startDate) return;
         if (endDate && d.transaction_date > endDate) return;
-        map.set(d.id, d);
+        const sig = `${d.transaction_date}_${Math.round(d.amount)}`;
+        sigMap.set(sig, d);
     });
 
-    // 2. Supabase entries
+    // 2. Database entries take supreme priority
     dbList.forEach(d => {
-        const key = d.id || `${d.transaction_date}_${d.amount}_${d.received_from}`;
-        map.set(key, d);
-    });
-
-    // 3. LocalStorage entries
-    localList.forEach(d => {
-        const key = d.id || `${d.transaction_date}_${d.amount}_${d.received_from}`;
-        if (!map.has(key)) {
-            if (startDate && d.transaction_date < startDate) return;
-            if (endDate && d.transaction_date > endDate) return;
-            map.set(key, d);
+        const dDate = (d.transaction_date || '').slice(0, 10);
+        const dAmt = Math.round(parseFloat(d.amount || 0));
+        const sig = `${dDate}_${dAmt}`;
+        if (!sigMap.has(sig)) {
+            sigMap.set(sig, d);
         }
     });
 
-    return Array.from(map.values()).sort((a, b) => new Date(b.transaction_date) - new Date(a.transaction_date));
+    // 3. LocalStorage entries: only include if NOT already in DB
+    const cleanedLocalList = [];
+    const localSigSeen = new Set();
+    localList.forEach(d => {
+        const dDate = (d.transaction_date || '').slice(0, 10);
+        const dAmt = Math.round(parseFloat(d.amount || 0));
+        const sig = `${dDate}_${dAmt}`;
+        if (localSigSeen.has(sig)) return;
+        localSigSeen.add(sig);
+
+        if (!sigMap.has(sig)) {
+            if (startDate && dDate < startDate) return;
+            if (endDate && dDate > endDate) return;
+            sigMap.set(sig, d);
+            cleanedLocalList.push(d);
+        }
+    });
+    // Auto-heal LocalStorage so phantom duplicates are purged
+    setLocalODDeposits(cleanedLocalList);
+
+    return Array.from(sigMap.values()).sort((a, b) => new Date(b.transaction_date) - new Date(a.transaction_date));
 }
 
 // 3. Live UHHS-OD Balance Calculator with EXACT DB Table Names & Dual-Layer Inflows
@@ -347,40 +420,25 @@ window.cbSaveODDeposit = async function() {
         return;
     }
 
-    // 🚨 DUPLICATE DEPOSIT CHECK (Check both local storage and database)
-    const localList = getLocalODDeposits();
-    const localDupe = (localList || []).find(d => 
-        d.transaction_date === date && 
-        Math.abs((d.amount || 0) - amount) < 0.01 &&
-        d.transaction_type === 'INFLOW'
-    );
+    // 🚨 STRICT DUPLICATE PREVENTION (NO DUPLICATES ALLOWED)
+    try {
+        const existing = await getAllODDeposits(client, date, date);
+        const isDupe = (existing || []).some(d => {
+            const dDate = (d.transaction_date || '').slice(0, 10);
+            const dAmt = Math.round(parseFloat(d.amount || 0));
+            return dDate === date && dAmt === Math.round(amount);
+        });
 
-    let dbDupe = null;
-    if (client) {
-        try {
-            const { data: dupes } = await client.from('uhhs_od_account')
-                .select('id, amount, transaction_date, received_from, created_at')
-                .eq('transaction_date', date)
-                .eq('amount', amount)
-                .eq('transaction_type', 'INFLOW')
-                .limit(1);
-            if (dupes && dupes.length > 0) dbDupe = dupes[0];
-        } catch(e) {
-            console.warn('DB duplicate check notice:', e.message);
-        }
-    }
-
-    if (localDupe || dbDupe) {
-        const dupeSource = localDupe ? (localDupe.received_from || sender) : (dbDupe.received_from || sender);
-        const ok = confirm(
-            `⚠️ DUPLICATE ENTRY WARNING!\n\n` +
-            `Date: ${date}\n` +
-            `Amount: ₹${amount.toLocaleString('en-IN')}\n` +
-            `From: ${dupeSource}\n\n` +
-            `UHHS-OD account me is date par already ₹${amount.toLocaleString('en-IN')} ka deposit exist karta hai.\n\n` +
-            `Kya aap sach me duplicate entry (dobara ₹${amount.toLocaleString('en-IN')}) add karna chahte hain?`
-        );
-        if (!ok) {
+        if (isDupe) {
+            const errorMsg = `❌ DUPLICATE NOT ALLOWED: ${date} par ₹${amount.toLocaleString('en-IN')} ka deposit already exist karta hai! Duplicate transaction allow nahi hai.`;
+            if (errDiv) {
+                errDiv.innerHTML = `<span style="color:#DC2626;font-weight:700;">${errorMsg}</span>`;
+            }
+            if (window.fsn?.error) {
+                fsn.error('Duplicate Blocked', errorMsg);
+            } else {
+                alert(errorMsg);
+            }
             if (btn) {
                 btn.disabled = false;
                 btn.innerText = "💾 Save Deposit & Update Balance";
@@ -388,6 +446,8 @@ window.cbSaveODDeposit = async function() {
             window._isSavingODDeposit = false;
             return;
         }
+    } catch (chkErr) {
+        console.warn('Duplicate check notice:', chkErr);
     }
 
     const newDep = {
@@ -403,12 +463,49 @@ window.cbSaveODDeposit = async function() {
     };
 
     try {
-        // 1. Immediately save to LocalStorage so data is never lost
+        // 1. Immediately save to LocalStorage as safety backup
         localList.unshift(newDep);
         setLocalODDeposits(localList);
 
-        // 2. Attempt saving to Supabase
+        // 2. Save to Supabase (primary cloud persistence)
         if (client) {
+            // A. company_advances
+            try {
+                const { data: caSaved } = await client.from('company_advances').insert([{
+                    advance_date: date,
+                    amount_given: amount,
+                    given_by: sender,
+                    given_to: 'UHHS-OD',
+                    purpose: `Funds added by ${sender} via ${mode}${note ? ' - ' + note : ''}`,
+                    payment_source: 'UHHS-OD',
+                    status: 'Active',
+                    notes: note || 'UHHS-OD Deposit'
+                }]).select();
+                if (caSaved && caSaved[0]) {
+                    newDep.id = 'ca_' + caSaved[0].id;
+                    newDep.db_id = caSaved[0].id;
+                    newDep.source_table = 'company_advances';
+                }
+            } catch (dbErr) {
+                console.warn('Company advances deposit insert notice:', dbErr.message);
+            }
+
+            // B. account_transactions
+            try {
+                await client.from('account_transactions').insert([{
+                    created_at: date,
+                    description: `Funds added by ${sender} via ${mode}`,
+                    amount: amount,
+                    transaction_type: 'INFLOW',
+                    payment_mode: mode,
+                    sender_name: sender,
+                    account_type: 'UHHS_OD'
+                }]);
+            } catch (dbErr) {
+                console.warn('account_transactions insert notice:', dbErr.message);
+            }
+
+            // C. uhhs_od_account
             try {
                 await client.from('uhhs_od_account').insert([{
                     transaction_date: date,
@@ -419,9 +516,7 @@ window.cbSaveODDeposit = async function() {
                     received_from: sender,
                     reference_note: note || null
                 }]);
-            } catch (dbErr) {
-                console.warn('Supabase deposit insert notice (saved locally):', dbErr.message);
-            }
+            } catch (dbErr) {}
         }
 
         // Close modal & notify
@@ -458,10 +553,28 @@ window.cbEditODDeposit = async function(id) {
     d = localList.find(x => String(x.id) === String(id));
 
     if (!d && client) {
-        try {
-            const { data } = await client.from('uhhs_od_account').select('*').eq('id', id).single();
-            if (data) d = data;
-        } catch (e) {}
+        if (String(id).startsWith('ca_')) {
+            const realId = id.replace('ca_', '');
+            try {
+                const { data } = await client.from('company_advances').select('*').eq('id', realId).single();
+                if (data) {
+                    d = {
+                        id: 'ca_' + data.id,
+                        transaction_date: data.advance_date,
+                        amount: data.amount_given,
+                        payment_mode: 'UPI',
+                        received_from: data.given_by || 'Firoz',
+                        reference_note: data.notes || '',
+                        description: data.purpose
+                    };
+                }
+            } catch (e) {}
+        } else {
+            try {
+                const { data } = await client.from('uhhs_od_account').select('*').eq('id', id).single();
+                if (data) d = data;
+            } catch (e) {}
+        }
     }
 
     if (!d) {
@@ -556,16 +669,29 @@ window.cbSaveODEditDeposit = async function(id) {
 
     // Update Supabase if possible
     if (client) {
-        try {
-            await client.from('uhhs_od_account').update({
-                transaction_date: date,
-                amount: amount,
-                payment_mode: mode,
-                received_from: sender,
-                description: `Funds added by ${sender} via ${mode}`,
-                reference_note: note || null
-            }).eq('id', id);
-        } catch (e) {}
+        if (String(id).startsWith('ca_')) {
+            const realId = id.replace('ca_', '');
+            try {
+                await client.from('company_advances').update({
+                    advance_date: date,
+                    amount_given: amount,
+                    given_by: sender,
+                    purpose: `Funds added by ${sender} via ${mode}${note ? ' - ' + note : ''}`,
+                    notes: note || 'UHHS-OD Deposit'
+                }).eq('id', realId);
+            } catch (e) {}
+        } else {
+            try {
+                await client.from('uhhs_od_account').update({
+                    transaction_date: date,
+                    amount: amount,
+                    payment_mode: mode,
+                    received_from: sender,
+                    description: `Funds added by ${sender} via ${mode}`,
+                    reference_note: note || null
+                }).eq('id', id);
+            } catch (e) {}
+        }
     }
 
     document.querySelectorAll('.modal-overlay').forEach(m => m.remove());
@@ -586,16 +712,51 @@ window.cbDeleteODDeposit = async function(id) {
     if (!confirm('🗑️ Delete this deposit entry? This cannot be undone.')) return;
     const client = window.sb || window.supabaseClient || window.supabase;
 
-    // Delete from LocalStorage
+    // Identify target date and amount
+    const all = await getAllODDeposits(client, null, null);
+    const target = all.find(x => String(x.id) === String(id));
+    const targetDate = target ? target.transaction_date : null;
+    const targetAmt = target ? Math.round(parseFloat(target.amount || 0)) : null;
+
+    // Delete from LocalStorage (both by id and by date + amount match)
     const localList = getLocalODDeposits();
-    const filtered = localList.filter(x => String(x.id) !== String(id));
+    const filtered = localList.filter(x => {
+        if (String(x.id) === String(id)) return false;
+        if (targetDate && targetAmt && x.transaction_date === targetDate && Math.round(parseFloat(x.amount || 0)) === targetAmt) return false;
+        return true;
+    });
     setLocalODDeposits(filtered);
 
     // Delete from Supabase
     if (client) {
-        try {
-            await client.from('uhhs_od_account').delete().eq('id', id);
-        } catch (e) {}
+        if (String(id).startsWith('ca_')) {
+            const realId = id.replace('ca_', '');
+            try { await client.from('company_advances').delete().eq('id', realId); } catch (e) {}
+        } else if (id && !String(id).startsWith('dep_')) {
+            try { await client.from('account_transactions').delete().eq('id', id); } catch (e) {}
+            try { await client.from('uhhs_od_account').delete().eq('id', id); } catch (e) {}
+        }
+
+        // Failsafe: purge any matching date + amount entries
+        if (targetDate && targetAmt) {
+            try {
+                await client.from('account_transactions').delete()
+                    .eq('account_type', 'UHHS_OD')
+                    .eq('created_at', targetDate)
+                    .eq('amount', targetAmt);
+            } catch (e) {}
+            try {
+                await client.from('company_advances').delete()
+                    .eq('advance_date', targetDate)
+                    .eq('amount_given', targetAmt)
+                    .or('payment_source.eq.UHHS-OD,given_to.eq.UHHS-OD');
+            } catch (e) {}
+            try {
+                await client.from('uhhs_od_account').delete()
+                    .eq('transaction_date', targetDate)
+                    .eq('amount', targetAmt);
+            } catch (e) {}
+        }
     }
 
     document.querySelectorAll('.modal-overlay').forEach(m => m.remove());

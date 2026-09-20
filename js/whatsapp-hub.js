@@ -1,15 +1,56 @@
 // ═══════════════════════════════════════════════════════════
-// 📱 WHATSAPP COMMUNICATION HUB
+// 📱 WHATSAPP AUTOMATION & COMMUNICATION HUB v2
+// THE UNIQUE HAVEN HOMES PRIVATE LIMITED
+// Supports: Free Headless Gateway (Baileys), Groups (@g.us),
+// Master ON/OFF Switch, Dry-Run Mode & Live Dispatches
 // ═══════════════════════════════════════════════════════════
 
 (function() {
+  const WA_LOCAL_CONFIG_KEY = 'uhhs_wa_automation_v2';
+  const WA_LOCAL_LOGS_KEY = 'uhhs_wa_logs_v2';
+
+  const DEFAULT_WA_CONFIG = {
+    auto_send_enabled: false, // 🔴 MASTER OFF BY DEFAULT AS REQUESTED
+    dry_run_mode: true, // 🧪 Safe test mode (no real messages sent without testing)
+    gateway_url: 'http://localhost:3000',
+    gateway_type: 'baileys',
+
+    // Granular Sub-Toggles (Default disabled until master turned ON)
+    send_booking_group: true,
+    send_housekeeping_checkout: true,
+    send_investor_reports: true,
+    send_welcome: false,
+    send_arrival: false,
+    send_checkout: false,
+
+    // Group Identifiers (Auto-discovered from your WhatsApp)
+    booking_group_id: '120363425834560086@g.us', // 📒Booking Data
+    housekeeping_group_id: '120363426832875312@g.us', // Chinhat All booking offline
+    investor_groups: {
+      'Sabir Bhai': '120363430510952329@g.us',
+      'Afzal & Hazi Group': '120363412244446528@g.us',
+      'Alam Sahab': '120363427249232463@g.us',
+      'Sanaul Mustafa': '120363426678446574@g.us',
+      'Afzal Khan': '120363411536897935@g.us',
+      'Ammy Papa': '120363412078246077@g.us',
+      'Shanu Bhaijaan': '120363409825792343@g.us',
+      'Shahil Khan': '120363411439466222@g.us'
+    },
+
+    // Schedules
+    checkout_send_hour: 10, // 10:00 AM
+    arrival_before_minutes: 60
+  };
+
   const HUB = {
-    config: null,
+    config: { ...DEFAULT_WA_CONFIG },
     templates: [],
     logs: [],
     scheduled: [],
     activeTab: 'auto',
-    scheduler: null
+    scheduler: null,
+    gatewayConnected: false,
+    gatewayUser: null
   };
 
   window.setHubTab = function(tab) {
@@ -17,28 +58,129 @@
     renderHubBody();
   };
 
-  // ─── Load config from DB ───
+  // ─── Dual-Layer Config: LocalStorage + Supabase (Free Tier Safe) ───
+  function getLocalConfig() {
+    try {
+      const raw = localStorage.getItem(WA_LOCAL_CONFIG_KEY);
+      return raw ? JSON.parse(raw) : null;
+    } catch (e) { return null; }
+  }
+
+  function setLocalConfig(c) {
+    try {
+      localStorage.setItem(WA_LOCAL_CONFIG_KEY, JSON.stringify(c));
+    } catch (e) {}
+  }
+
   async function loadConfig() {
-    const { data } = await sb.from('whatsapp_config').select('*').eq('id', 1).single();
-    HUB.config = data || {};
+    const local = getLocalConfig();
+    if (local) {
+      HUB.config = { ...DEFAULT_WA_CONFIG, ...local };
+    }
+    // Attempt Supabase fetch
+    try {
+      if (window.sb) {
+        const { data } = await sb.from('whatsapp_config').select('*').eq('id', 1).single();
+        if (data) {
+          HUB.config = { ...HUB.config, ...data };
+        }
+      }
+    } catch (e) {}
     return HUB.config;
   }
 
-  // ─── Load templates ───
-  async function loadTemplates() {
-    const { data } = await sb.from('whatsapp_templates').select('*').eq('is_active', true).order('id');
-    HUB.templates = data || [];
-    return HUB.templates;
+  // ─── Dual-Layer Logs ───
+  function getLocalLogs() {
+    try {
+      const raw = localStorage.getItem(WA_LOCAL_LOGS_KEY);
+      return raw ? JSON.parse(raw) : [];
+    } catch (e) { return []; }
   }
 
-  // ─── Load recent logs ───
+  function appendLocalLog(entry) {
+    try {
+      const list = getLocalLogs();
+      list.unshift(entry);
+      localStorage.setItem(WA_LOCAL_LOGS_KEY, JSON.stringify(list.slice(0, 200)));
+    } catch (e) {}
+  }
+
   async function loadLogs(limit = 100) {
-    const { data } = await sb.from('whatsapp_log')
-      .select('*')
-      .order('sent_at', { ascending: false })
-      .limit(limit);
-    HUB.logs = data || [];
+    const local = getLocalLogs();
+    let dbLogs = [];
+    try {
+      if (window.sb) {
+        const { data } = await sb.from('whatsapp_log').select('*').order('sent_at', { ascending: false }).limit(limit);
+        if (data) dbLogs = data;
+      }
+    } catch (e) {}
+
+    // Merge logs
+    const map = new Map();
+    dbLogs.forEach(l => map.set(l.id || `${l.sent_at}_${l.phone}`, l));
+    local.forEach(l => {
+      const k = l.id || `${l.sent_at}_${l.phone}`;
+      if (!map.has(k)) map.set(k, l);
+    });
+
+    HUB.logs = Array.from(map.values()).sort((a, b) => new Date(b.sent_at || 0) - new Date(a.sent_at || 0));
     return HUB.logs;
+  }
+
+  // ─── Load templates ───
+  const BUILTIN_TEMPLATES = [
+    {
+      template_name: 'guest_confirmation',
+      display_name: '🎉 New Booking Confirmation (Guest)',
+      auto_send: true,
+      body_text: 'Hi {{1}}, welcome to Unique Haven Homes Stay! 🎉\n\nYour booking is confirmed:\n📍 Property: {{2}}\n📅 Check-in: {{3}}\n📅 Check-out: {{4}}\n\nWe\'ll send arrival details 1 hour before your check-in with WiFi and key info.\n\nFor any query: 9450055554 / 8299600709'
+    },
+    {
+      template_name: 'booking_group_alert',
+      display_name: '🚨 New Booking Alert (Booking Group)',
+      auto_send: true,
+      body_text: '🛎️ *NEW BOOKING CONFIRMED!*\n━━━━━━━━━━━━━━━━━━\n🏠 *Property:* {{1}}\n👤 *Guest:* {{2}}\n📅 *Check-in:* {{3}}\n📅 *Check-out:* {{4}} ({{5}} Nights)\n🏷️ *Source:* {{6}}\n💰 *Amount:* {{7}}\n━━━━━━━━━━━━━━━━━━\n_The Unique Haven Homes CRM_'
+    },
+    {
+      template_name: 'housekeeping_checkout',
+      display_name: '🧹 10:00 AM Checkout Alert (Housekeeping Group)',
+      auto_send: true,
+      body_text: '🧹 *TODAY\'S CHECKOUT & CLEANING ALERT*\n━━━━━━━━━━━━━━━━━━\n{{1}}\n━━━━━━━━━━━━━━━━━━\n⚡ _Please prepare rooms for incoming guests by 2:00 PM._'
+    },
+    {
+      template_name: 'investor_report',
+      display_name: '📊 Monthly Statement (Investor Group)',
+      auto_send: true,
+      body_text: '📊 *MONTHLY INVESTOR STATEMENT — {{1}}*\n━━━━━━━━━━━━━━━━━━\n👤 *Investor:* {{2}}\n🏠 *Property:* {{3}}\n💵 *Gross Revenue:* ₹{{4}}\n📉 *Expenses & Ops:* -₹{{5}}\n━━━━━━━━━━━━━━━━━━\n💰 *NET PAYOUT:* ₹{{6}}\n━━━━━━━━━━━━━━━━━━\n_Generated via UHHS CRM_'
+    },
+    {
+      template_name: 'arrival_details',
+      display_name: '🔑 Arrival Details & WiFi Pass',
+      auto_send: true,
+      body_text: 'Dear {{1}},\nWelcome to *{{2}}* ({{3}})!\nYour check-in is ready.\n\n📍 Location: https://maps.google.com\n🔑 WiFi Password: {{4}}\n🔐 Door Code / Keys: {{5}}\n\nFor any query: 9450055554 / 8299600709\n_The Unique Haven Homes_'
+    },
+    {
+      template_name: 'checkout_reminder',
+      display_name: '👋 10:00 AM Checkout Reminder (Guest)',
+      auto_send: true,
+      body_text: 'Good morning {{1}},\nHope you had a wonderful stay at *{{2}}*!\n\nThis is a gentle reminder that checkout is today at *11:00 AM*.\n\nFor any query: 9450055554 / 8299600709\nThank you for choosing The Unique Haven Homes!'
+    }
+  ];
+
+  async function loadTemplates() {
+    let dbTemplates = [];
+    try {
+      if (window.sb) {
+        const { data } = await sb.from('whatsapp_templates').select('*');
+        if (data && data.length > 0) dbTemplates = data;
+      }
+    } catch (e) {}
+
+    const map = new Map();
+    BUILTIN_TEMPLATES.forEach(t => map.set(t.template_name, t));
+    dbTemplates.forEach(t => map.set(t.template_name, t));
+    HUB.templates = Array.from(map.values());
+    return HUB.templates;
   }
 
   // ─── Fetch scheduled messages (next 24hrs) ───
@@ -49,247 +191,676 @@
     const today = now.toISOString().slice(0, 10);
     const tomorrow = in24h.toISOString().slice(0, 10);
 
-    // Fetch upcoming bookings
-    const { data: bookings } = await sb.from('guest_register')
-      .select('booking_id, guest_name, phone, check_in, check_in_time, check_out, check_out_time, room_id, rooms(nickname, unit_no, property_name, wifi_ssid, wifi_password, key_number)')
-      .gte('check_in', today)
-      .lte('check_in', tomorrow)
-      .neq('is_cancelled', true)
-      .neq('verification_status', 'rejected');
+    let bookings = [];
+    let checkoutBks = [];
+    try {
+      if (window.sb) {
+        const { data: b1 } = await sb.from('guest_register')
+          .select('booking_id, guest_name, phone, check_in, check_in_time, check_out, check_out_time, room_id, rooms(nickname, unit_no, property_name)')
+          .gte('check_in', today)
+          .lte('check_in', tomorrow)
+          .neq('is_cancelled', true);
+        bookings = b1 || [];
 
-    const { data: checkoutBks } = await sb.from('guest_register')
-      .select('booking_id, guest_name, phone, check_in, check_out, check_out_time, room_id, rooms(nickname, unit_no, property_name)')
-      .eq('check_out', today)
-      .neq('is_cancelled', true)
-      .neq('verification_status', 'rejected');
+        const { data: b2 } = await sb.from('guest_register')
+          .select('booking_id, guest_name, phone, check_in, check_out, check_out_time, room_id, rooms(nickname, unit_no, property_name)')
+          .eq('check_out', today)
+          .neq('is_cancelled', true);
+        checkoutBks = b2 || [];
+      }
+    } catch (e) {}
 
     const scheduled = [];
-
-    // Arrival details — 1 hr before check-in
-    (bookings || []).forEach(b => {
-      if (!b.phone || !b.check_in_time) return;
-      const checkInDT = new Date(b.check_in + 'T' + b.check_in_time);
-      const sendAt = new Date(checkInDT.getTime() - (HUB.config.arrival_before_minutes || 60) * 60 * 1000);
-      if (sendAt > now && sendAt < in24h) {
-        scheduled.push({
-          when: sendAt,
-          template: 'arrival_details',
-          booking: b,
-          type: '🔑 Arrival Details'
-        });
-      }
-    });
-
-    // Checkout reminder — today at configured hour
     (checkoutBks || []).forEach(b => {
-      if (!b.phone) return;
-      const sendAt = new Date(today + 'T' + String(HUB.config.checkout_send_hour || 8).padStart(2, '0') + ':00:00');
+      const sendAt = new Date(today + 'T' + String(HUB.config.checkout_send_hour || 10).padStart(2, '0') + ':00:00');
       if (sendAt > now && sendAt < in24h) {
         scheduled.push({
           when: sendAt,
           template: 'checkout_reminder',
           booking: b,
-          type: '👋 Checkout Reminder'
+          type: '👋 Guest Checkout Reminder'
         });
       }
     });
+
+    if (checkoutBks.length > 0 && HUB.config.send_housekeeping_checkout) {
+      const sendAt = new Date(today + 'T' + String(HUB.config.checkout_send_hour || 10).padStart(2, '0') + ':00:00');
+      if (sendAt > now && sendAt < in24h) {
+        scheduled.push({
+          when: sendAt,
+          template: 'housekeeping_checkout',
+          booking: { guest_name: 'Housekeeping Team', room_id: 'All Checkouts' },
+          type: '🧹 Housekeeping Checkout Group Alert'
+        });
+      }
+    }
 
     scheduled.sort((a, b) => a.when - b.when);
     HUB.scheduled = scheduled;
     return scheduled;
   }
 
-  // ─── Substitute template variables ───
-  function fillTemplate(template, booking) {
-    if (!template || !booking) return '';
-    const room = booking.rooms || {};
-    const propName = room.property_name || room.nickname || booking.room_id;
-    const flat = room.unit_no || booking.room_id;
+  // ─── GATEWAY DISPATCH ENGINE (100% Free / Baileys microservice) ───
+  async function dispatchWhatsAppMessage({ to, isGroup, text, type, bookingId, guestName }) {
+    await loadConfig();
 
-    let text = template.body_text;
-    const vals = {
-      guest_name: booking.guest_name || 'Guest',
-      property_name: propName,
-      flat_number: flat,
-      key_info: room.key_number || 'Info shared separately',
-      wifi_ssid: room.wifi_ssid || 'UniqueHaven_WiFi',
-      wifi_password: room.wifi_password || 'Airbnb.in1',
-      check_in: booking.check_in || '',
-      check_out: booking.check_out || ''
-    };
-
-    (template.variables || []).forEach((v, i) => {
-      const placeholder = '{{' + (i + 1) + '}}';
-      text = text.split(placeholder).join(vals[v] || '');
-    });
-    return text;
-  }
-
-  // ─── Send message (via Edge Function or dry-run) ───
-  async function sendMessage(templateName, booking, triggeredBy) {
-    const template = HUB.templates.find(t => t.template_name === templateName);
-    if (!template) return { ok: false, error: 'Template not found' };
-    if (!booking.phone) return { ok: false, error: 'No phone' };
-
-    const preview = fillTemplate(template, booking);
-    const isDryRun = HUB.config?.dry_run_mode !== false;
-
-    // Log attempt
-    const logEntry = {
-      booking_id: booking.booking_id,
-      guest_name: booking.guest_name,
-      phone: booking.phone,
-      template_name: templateName,
-      message_preview: preview.substring(0, 500),
-      is_dry_run: isDryRun,
-      triggered_by: triggeredBy || 'auto',
-      triggered_by_user: SESSION?.userId || null,
-      status: isDryRun ? 'sent' : 'pending'
-    };
-
-    if (isDryRun || !HUB.config?.api_token) {
-      // Dry run — just log
-      logEntry.status = 'sent';
-      logEntry.api_response = { dry_run: true, note: 'Not actually sent - dry run mode' };
-      const { data } = await sb.from('whatsapp_log').insert(logEntry).select().single();
-      return { ok: true, dry_run: true, log: data };
+    // 1. MASTER ON/OFF CHECK
+    if (!HUB.config.auto_send_enabled) {
+      console.log('🛑 [WhatsApp Hub] Auto-send is MASTER OFF. Skipping message for:', to);
+      return { ok: false, reason: 'master_off' };
     }
 
-    // Real send via Edge Function
+    // 2. GRANULAR TOGGLE CHECK
+    if (type === 'new_booking_group' && !HUB.config.send_booking_group) {
+      console.log('🛑 [WhatsApp Hub] Booking Group alerts are OFF.');
+      return { ok: false, reason: 'subtoggle_off' };
+    }
+    if (type === 'housekeeping_checkout' && !HUB.config.send_housekeeping_checkout) {
+      console.log('🛑 [WhatsApp Hub] Housekeeping Checkout alerts are OFF.');
+      return { ok: false, reason: 'subtoggle_off' };
+    }
+    if (type === 'investor_report' && !HUB.config.send_investor_reports) {
+      console.log('🛑 [WhatsApp Hub] Investor Group alerts are OFF.');
+      return { ok: false, reason: 'subtoggle_off' };
+    }
+    if (type === 'guest_welcome' && !HUB.config.send_welcome) {
+      return { ok: false, reason: 'subtoggle_off' };
+    }
+    if (type === 'checkout_reminder' && !HUB.config.send_checkout) {
+      return { ok: false, reason: 'subtoggle_off' };
+    }
+
+    if (!to) {
+      console.warn('⚠️ [WhatsApp Hub] Missing recipient / group ID.');
+      return { ok: false, reason: 'missing_recipient' };
+    }
+
+    const isDryRun = HUB.config.dry_run_mode !== false;
+    const logEntry = {
+      id: 'walog_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6),
+      booking_id: bookingId || null,
+      guest_name: guestName || (isGroup ? 'WhatsApp Group' : 'Recipient'),
+      phone: to,
+      template_name: type,
+      message_preview: (text || '').substring(0, 500),
+      is_dry_run: isDryRun,
+      triggered_by: 'auto',
+      status: isDryRun ? 'sent' : 'pending',
+      sent_at: new Date().toISOString()
+    };
+
+    // 3. DRY RUN MODE (TESTING ONLY)
+    if (isDryRun) {
+      logEntry.status = 'sent';
+      logEntry.api_response = { dry_run: true, note: '🧪 Simulated send in Dry-Run mode' };
+      appendLocalLog(logEntry);
+      try { if (window.sb) await sb.from('whatsapp_log').insert(logEntry); } catch (e) {}
+      console.log('🧪 [WhatsApp Hub Dry Run] Dispatched:', { to, isGroup, text });
+      if (window.fsn) fsn.info('Dry Run Simulated', `Message ready for ${to}`);
+      return { ok: true, dry_run: true };
+    }
+
+    // 4. LIVE SEND TO GATEWAY
+    const gatewayUrl = HUB.config.gateway_url || 'http://localhost:3000';
     try {
-      const { data, error } = await sb.functions.invoke('send-whatsapp', {
-        body: {
-          phone: booking.phone,
-          template_name: templateName,
-          preview: preview,
-          booking_id: booking.booking_id
-        }
+      const endpoint = gatewayUrl.replace(/\/+$/, '') + '/send-message';
+      const res = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          to: to,
+          message: text,
+          isGroup: !!isGroup
+        })
       });
 
-      if (error) throw error;
+      const data = await res.json();
+      if (!res.ok || !data.ok) {
+        throw new Error(data.error || 'Gateway returned status ' + res.status);
+      }
 
       logEntry.status = 'sent';
       logEntry.api_response = data;
-      await sb.from('whatsapp_log').insert(logEntry);
-      return { ok: true, response: data };
-    } catch (e) {
+      appendLocalLog(logEntry);
+      try { if (window.sb) await sb.from('whatsapp_log').insert(logEntry); } catch (e) {}
+
+      console.log('✅ [WhatsApp Hub] Dispatched successfully to:', to);
+      if (window.fsn) fsn.success('WhatsApp Sent', `Delivered to ${to}`);
+      return { ok: true, data };
+    } catch (err) {
       logEntry.status = 'failed';
-      logEntry.error_message = e.message;
-      await sb.from('whatsapp_log').insert(logEntry);
-      return { ok: false, error: e.message };
+      logEntry.error_message = err.message;
+      appendLocalLog(logEntry);
+      try { if (window.sb) await sb.from('whatsapp_log').insert(logEntry); } catch (e) {}
+
+      console.warn('❌ [WhatsApp Hub] Gateway failed:', err.message);
+      if (window.fsn) fsn.warn('WhatsApp Gateway Notice', `Could not reach ${gatewayUrl}. Please ensure whatsapp-bot is running.`);
+      return { ok: false, error: err.message };
     }
   }
 
-  window.hubSendMessage = sendMessage;
+  // ─── GLOBAL AUTOMATION TRIGGERS ───
 
-  // ─── Check for duplicates (last 12 hrs) ───
-  async function alreadySent(bookingId, templateName) {
-    const cutoff = new Date(Date.now() - 12 * 60 * 60 * 1000).toISOString();
-    const { data } = await sb.from('whatsapp_log')
-      .select('id')
-      .eq('booking_id', bookingId)
-      .eq('template_name', templateName)
-      .eq('status', 'sent')
-      .gte('sent_at', cutoff)
-      .limit(1);
-    return (data || []).length > 0;
-  }
-
-  // ─── Auto-scheduler tick ───
-  async function schedulerTick() {
-    try {
-      await loadConfig();
-      if (!HUB.config?.auto_send_enabled) return;
-
-      await loadTemplates();
-
-      const now = new Date();
-      const nowTime = now.toTimeString().slice(0, 5);
-      const today = now.toISOString().slice(0, 10);
-
-      // 1) Arrival details (1hr before check-in)
-      if (HUB.config.send_arrival) {
-        const before = HUB.config.arrival_before_minutes || 60;
-        const targetTime = new Date(now.getTime() + before * 60 * 1000);
-        const targetDate = targetTime.toISOString().slice(0, 10);
-        const targetHM = targetTime.toTimeString().slice(0, 5);
-
-        const { data: arrBks } = await sb.from('guest_register')
-          .select('booking_id, guest_name, phone, check_in, check_in_time, room_id, rooms(nickname, unit_no, property_name, wifi_ssid, wifi_password, key_number)')
-          .eq('check_in', targetDate)
-          .neq('is_cancelled', true)
-          .neq('verification_status', 'rejected');
-
-        for (const b of (arrBks || [])) {
-          if (!b.phone) continue;
-          const bkTime = b.check_in_time || '14:00';
-          // Send if within 15 min window of "1 hr before"
-          const bkDT = new Date(b.check_in + 'T' + bkTime);
-          const minDiff = (bkDT - now) / 60000;
-          if (minDiff <= before && minDiff >= before - 15) {
-            const dupe = await alreadySent(b.booking_id, 'arrival_details');
-            if (!dupe) {
-              await sendMessage('arrival_details', b, 'auto');
-              console.log('📱 Auto-sent arrival details to', b.guest_name);
-            }
-          }
-        }
-      }
-
-      // 2) Checkout reminder (day of, at configured hour)
-      if (HUB.config.send_checkout) {
-        const targetHour = HUB.config.checkout_send_hour || 8;
-        const currentHour = now.getHours();
-        // Send within 30 min of target hour
-        if (currentHour === targetHour && now.getMinutes() < 30) {
-          const { data: coBks } = await sb.from('guest_register')
-            .select('booking_id, guest_name, phone, check_out, room_id, rooms(nickname, unit_no, property_name)')
-            .eq('check_out', today)
-            .neq('is_cancelled', true)
-            .neq('verification_status', 'rejected');
-
-          for (const b of (coBks || [])) {
-            if (!b.phone) continue;
-            const dupe = await alreadySent(b.booking_id, 'checkout_reminder');
-            if (!dupe) {
-              await sendMessage('checkout_reminder', b, 'auto');
-              console.log('📱 Auto-sent checkout reminder to', b.guest_name);
-            }
-          }
-        }
-      }
-    } catch (e) {
-      console.warn('WhatsApp scheduler tick failed:', e);
-    }
-  }
-
-  // ─── Trigger on new booking (welcome message) ───
-  window.triggerWelcomeMessage = async function(bookingId) {
+  // A. Trigger New Booking Alert to Booking Group
+  window.triggerBookingGroupAlert = async function(b) {
+    if (!b) return;
     await loadConfig();
-    if (!HUB.config?.auto_send_enabled || !HUB.config?.send_welcome) return;
-    await loadTemplates();
+    const groupId = HUB.config.booking_group_id;
+    if (!groupId) {
+      console.log('ℹ️ Booking group ID not configured in Settings.');
+      return;
+    }
 
-    const { data: b } = await sb.from('guest_register')
-      .select('booking_id, guest_name, phone, check_in, check_out, room_id, rooms(nickname, unit_no, property_name)')
-      .eq('booking_id', bookingId).single();
-    if (!b || !b.phone) return;
+    const roomName = b.rooms?.nickname || b.rooms?.unit_no || b.room_name || b.room_id || 'Apartment';
+    const guest = b.guest_name || 'Guest';
+    const phone = b.phone || '-';
+    const nights = (b.check_in && b.check_out && window.calcNights) ? calcNights(b.check_in, b.check_out) : 1;
+    const tot = b.total_amount || 0;
+    const adv = b.advance || 0;
+    const due = Math.max(0, tot - adv);
 
-    const dupe = await alreadySent(bookingId, 'booking_welcome');
-    if (!dupe) {
-      await sendMessage('booking_welcome', b, 'auto');
-      console.log('📱 Welcome sent to', b.guest_name);
+    const fmtD = (dt) => {
+      if (!dt) return '';
+      try { return new Date(dt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }); }
+      catch(e) { return dt; }
+    };
+
+    const text =
+      `🛎️ *NEW BOOKING CONFIRMED*\n` +
+      `━━━━━━━━━━━━━━━━━━\n` +
+      `🏠 *Property:* ${roomName}\n` +
+      `👤 *Guest:* ${guest}\n` +
+      `📞 *Phone:* ${phone}\n` +
+      `📅 *Check-in:* ${fmtD(b.check_in)} (${b.check_in_time || '14:00'})\n` +
+      `📅 *Check-out:* ${fmtD(b.check_out)} (${b.check_out_time || '11:00'})\n` +
+      `🌙 *Duration:* ${nights} Night${nights > 1 ? 's' : ''}\n` +
+      `💰 *Total:* ₹${tot.toLocaleString('en-IN')} | Paid: ₹${adv.toLocaleString('en-IN')} | Due: ₹${due.toLocaleString('en-IN')}\n` +
+      `━━━━━━━━━━━━━━━━━━\n` +
+      `Caretaker: Please prepare property.`;
+
+    return await dispatchWhatsAppMessage({
+      to: groupId,
+      isGroup: true,
+      text: text,
+      type: 'new_booking_group',
+      bookingId: b.booking_id,
+      guestName: guest
+    });
+  };
+
+  // B. Trigger Housekeeping Checkout Alert to Staff Group
+  window.triggerHousekeepingCheckoutAlert = async function() {
+    await loadConfig();
+    const groupId = HUB.config.housekeeping_group_id;
+    if (!groupId) return;
+
+    const today = new Date().toISOString().slice(0, 10);
+    let checkoutBks = [];
+    try {
+      const { data } = await sb.from('guest_register')
+        .select('booking_id, guest_name, check_out, room_id, rooms(nickname, unit_no)')
+        .eq('check_out', today)
+        .neq('is_cancelled', true);
+      checkoutBks = data || [];
+    } catch (e) {}
+
+    if (checkoutBks.length === 0) return;
+
+    const list = checkoutBks.map((b, i) => {
+      const room = b.rooms?.nickname || b.rooms?.unit_no || b.room_id;
+      return `${i + 1}. 🚪 *${room}* (Guest: ${b.guest_name || 'Guest'}) — Checkout at 11:00 AM`;
+    }).join('\n');
+
+    const text =
+      `🧹 *TODAY'S CHECKOUT & CLEANING ALERT*\n` +
+      `📅 *Date:* ${today}\n` +
+      `━━━━━━━━━━━━━━━━━━\n` +
+      `${list}\n` +
+      `━━━━━━━━━━━━━━━━━━\n` +
+      `⚡ _Please prepare rooms for incoming guests by 2:00 PM._`;
+
+    return await dispatchWhatsAppMessage({
+      to: groupId,
+      isGroup: true,
+      text: text,
+      type: 'housekeeping_checkout',
+      bookingId: 'checkout_' + today,
+      guestName: 'Housekeeping Staff'
+    });
+  };
+
+  // C. Trigger Investor Statement to Investor Group
+  window.triggerInvestorGroupAlert = async function(invName, propName, roomId, monthStr, gross, expenses, netPayout) {
+    await loadConfig();
+    const groupMap = HUB.config.investor_groups || {};
+    const target = groupMap[roomId] || groupMap[propName] || groupMap[invName];
+    if (!target) {
+      if (window.fsn) fsn.warn('No Group Mapped', `Please map a WhatsApp Group ID for ${propName} in Settings.`);
+      return { ok: false, error: 'no_group_mapped' };
+    }
+
+    const text =
+      `📊 *MONTHLY INVESTOR STATEMENT — ${monthStr}*\n` +
+      `━━━━━━━━━━━━━━━━━━\n` +
+      `👤 *Investor:* ${invName}\n` +
+      `🏠 *Property:* ${propName}\n` +
+      `💵 *Gross Revenue:* ₹${Number(gross || 0).toLocaleString('en-IN')}\n` +
+      `📉 *Expenses & Ops:* -₹${Number(expenses || 0).toLocaleString('en-IN')}\n` +
+      `━━━━━━━━━━━━━━━━━━\n` +
+      `💰 *NET PAYOUT:* ₹${Number(netPayout || 0).toLocaleString('en-IN')}\n` +
+      `━━━━━━━━━━━━━━━━━━\n` +
+      `_Generated via The Unique Haven Homes CRM_`;
+
+    return await dispatchWhatsAppMessage({
+      to: target,
+      isGroup: true,
+      text: text,
+      type: 'investor_report',
+      bookingId: 'inv_' + roomId + '_' + monthStr,
+      guestName: invName
+    });
+  };
+
+  // ─── Test Gateway Connection Helper ───
+  window.testWhatsAppGateway = async function() {
+    const btn = document.getElementById('testGatewayBtn');
+    if (btn) { btn.disabled = true; btn.innerText = '⏳ Testing Connection...'; }
+
+    const url = (document.getElementById('cfgGatewayUrl')?.value || HUB.config.gateway_url || 'http://localhost:3000').replace(/\/+$/, '');
+    const resultDiv = document.getElementById('gatewayTestResult');
+
+    try {
+      const res = await fetch(url + '/status');
+      const data = await res.json();
+
+      HUB.gatewayConnected = data.connected;
+      HUB.gatewayUser = data.user;
+
+      if (data.connected) {
+        // Fetch groups
+        let groupsHtml = '';
+        try {
+          const gRes = await fetch(url + '/groups');
+          const gData = await gRes.json();
+          if (gData.ok && gData.groups) {
+            groupsHtml = `
+              <div style="margin-top:10px;text-align:left;max-height:160px;overflow-y:auto;background:#fff;border:1px solid #CBD5E1;border-radius:6px;padding:8px;font-size:11px;">
+                <div style="font-weight:700;margin-bottom:4px;color:#334155;">Available WhatsApp Groups (Click to copy ID):</div>
+                ${gData.groups.map(g => `
+                  <div style="padding:4px;border-bottom:1px solid #F1F5F9;cursor:pointer;" onclick="navigator.clipboard.writeText('${g.id}');if(window.fsn)fsn.toast('Copied: ${g.id}');" title="Click to copy Group ID">
+                    👥 <b>${g.subject}</b> — <code style="color:#0284C7;">${g.id}</code>
+                  </div>
+                `).join('')}
+              </div>
+            `;
+          }
+        } catch (ge) {}
+
+        if (resultDiv) {
+          resultDiv.innerHTML = `
+            <div style="background:#DCFCE7;border:1.5px solid #16A34A;padding:10px;border-radius:8px;color:#15803D;font-weight:700;font-size:12.5px;">
+              ✅ WhatsApp Connected! Logged in as: ${data.user?.id || 'Connected User'}
+              ${groupsHtml}
+            </div>
+          `;
+        }
+        if (window.fsn) fsn.success('Connected', 'WhatsApp Gateway is live and connected!');
+      } else {
+        if (resultDiv) {
+          resultDiv.innerHTML = `
+            <div style="background:#FEF3C7;border:1.5px solid #F59E0B;padding:10px;border-radius:8px;color:#92400E;font-size:12px;">
+              ⚠️ Gateway is running on ${url}, but <b>WhatsApp is not linked yet</b>.<br>
+              👉 <a href="${url}/qr" target="_blank" style="color:#2563EB;font-weight:700;">Click here to open and scan QR Code</a>
+            </div>
+          `;
+        }
+      }
+    } catch (err) {
+      if (resultDiv) {
+        resultDiv.innerHTML = `
+          <div style="background:#FEE2E2;border:1.5px solid #EF4444;padding:10px;border-radius:8px;color:#991B1B;font-size:12px;">
+            ❌ Could not reach Gateway at <code>${url}</code>.<br>
+            Please start the gateway: <code>cd whatsapp-bot && npm start</code>
+          </div>
+        `;
+      }
+    } finally {
+      if (btn) { btn.disabled = false; btn.innerText = '⚡ Test Gateway Connection'; }
     }
   };
+
+  // ─── Direct In-CRM WhatsApp QR Scanner & Device Management ───
+  let _qrPollInterval = null;
+
+  window.openWhatsAppQRModal = async function() {
+    const existing = document.getElementById('waQrModal');
+    if (existing) existing.remove();
+    if (_qrPollInterval) clearInterval(_qrPollInterval);
+
+    const modal = document.createElement('div');
+    modal.className = 'modal-overlay';
+    modal.id = 'waQrModal';
+    modal.onclick = (e) => { if (e.target === modal) window.closeWhatsAppQRModal(); };
+
+    modal.innerHTML = `
+      <div class="modal-box" style="max-width:500px;width:95vw;padding:24px;text-align:center;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;border-bottom:1px solid #E2E8F0;padding-bottom:10px;">
+          <h3 style="margin:0;font-size:17px;color:#0F172A;display:flex;align-items:center;gap:8px;">
+            📱 WhatsApp Device & QR Connection
+          </h3>
+          <button onclick="closeWhatsAppQRModal()" style="background:none;border:none;font-size:20px;cursor:pointer;">✕</button>
+        </div>
+        <div id="waQrModalBody">
+          <div style="padding:30px;color:#64748B;">⏳ Checking WhatsApp connection status...</div>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(modal);
+    await checkAndRenderModalContent();
+  };
+
+  window.closeWhatsAppQRModal = function() {
+    if (_qrPollInterval) {
+      clearInterval(_qrPollInterval);
+      _qrPollInterval = null;
+    }
+    const m = document.getElementById('waQrModal');
+    if (m) m.remove();
+  };
+
+  async function checkAndRenderModalContent() {
+    const body = document.getElementById('waQrModalBody');
+    if (!body) return;
+
+    const gatewayUrl = (HUB.config?.gateway_url || 'http://localhost:3000').replace(/\/+$/, '');
+    try {
+      const res = await fetch(gatewayUrl + '/qr-data');
+      const data = await res.json();
+
+      if (data.connected) {
+        if (_qrPollInterval) { clearInterval(_qrPollInterval); _qrPollInterval = null; }
+        const userJid = data.user?.id || '';
+        const phone = userJid.split(':')[0] || userJid.split('@')[0] || 'Unknown';
+        const userName = data.user?.name || 'WhatsApp User';
+        body.innerHTML = `
+          <div style="background:#F0FDF4;border:1.5px solid #86EFAC;padding:20px;border-radius:12px;margin-bottom:14px;">
+            <div style="font-size:40px;margin-bottom:6px;">🟢</div>
+            <h3 style="margin:0 0 6px 0;color:#15803D;font-size:18px;">WhatsApp Connected!</h3>
+            <div style="font-size:20px;color:#1E293B;font-weight:800;">+${phone}</div>
+            <div style="font-size:13px;color:#475569;margin-top:2px;">Account: <b>${userName}</b></div>
+            <div style="font-size:12px;color:#15803D;margin-top:8px;">✅ Ready to send automated group alerts, passes & reminders.</div>
+          </div>
+          <div style="background:#FFFBEB;border:1px solid #FDE68A;padding:12px;border-radius:8px;margin-bottom:16px;font-size:12px;color:#92400E;text-align:left;line-height:1.4;">
+            💡 <b>Want to change number?</b> Click below to disconnect this account and scan a QR code from any other phone.
+          </div>
+          <button onclick="confirmDisconnectAndScan()" style="background:#DC2626;color:#fff;border:none;padding:11px 18px;border-radius:8px;font-weight:700;font-size:13px;cursor:pointer;width:100%;">
+            🔄 Switch / Link Different WhatsApp Number
+          </button>
+        `;
+      } else {
+        renderScanQrView(data, body);
+      }
+    } catch (err) {
+      body.innerHTML = `
+        <div style="background:#FEF2F2;border:1.5px solid #F87171;padding:16px;border-radius:10px;color:#991B1B;font-size:12.5px;">
+          ❌ Could not reach WhatsApp Bot gateway at <code>${gatewayUrl}</code>.<br><br>
+          Please make sure the bot is running in your terminal:<br>
+          <code>cd whatsapp-bot && npm start</code>
+        </div>
+      `;
+    }
+  }
+
+  function renderScanQrView(data, body) {
+    if (!body) return;
+
+    if (data.qrImage) {
+      body.innerHTML = `
+        <div style="margin-bottom:12px;">
+          <h4 style="margin:0 0 4px 0;color:#0F172A;font-size:15px;">Scan QR with your phone</h4>
+          <div style="font-size:12px;color:#64748B;line-height:1.4;">
+            Open WhatsApp on phone → <b>Linked Devices</b> → <b>Link a Device</b>
+          </div>
+        </div>
+        <div style="display:inline-block;padding:12px;background:#fff;border:2px solid #CBD5E1;border-radius:12px;box-shadow:0 4px 14px rgba(0,0,0,0.06);margin-bottom:12px;">
+          <img id="modalLiveQrImg" src="${data.qrImage}" style="width:250px;height:250px;display:block;" alt="WhatsApp QR Code" />
+        </div>
+        <div style="font-size:11.5px;color:#64748B;">
+          ⏳ Waiting for scan... Page will auto-connect once scanned.
+        </div>
+      `;
+    } else {
+      body.innerHTML = `
+        <div style="padding:24px 10px;">
+          <div style="font-size:28px;margin-bottom:8px;">⏳</div>
+          <div style="font-weight:700;font-size:14px;color:#1E293B;">Generating fresh QR code...</div>
+          <div style="font-size:12px;color:#64748B;margin-top:4px;">Please wait 2-3 seconds.</div>
+        </div>
+      `;
+    }
+
+    startGlobalQrPolling();
+  }
+
+  function startGlobalQrPolling() {
+    if (_qrPollInterval) return;
+    const gatewayUrl = (HUB.config?.gateway_url || 'http://localhost:3000').replace(/\/+$/, '');
+    _qrPollInterval = setInterval(async () => {
+      try {
+        const res = await fetch(gatewayUrl + '/qr-data');
+        const d = await res.json();
+        if (d.connected) {
+          clearInterval(_qrPollInterval);
+          _qrPollInterval = null;
+          if (window.fsn) fsn.success('Connected!', 'WhatsApp successfully paired!');
+          await checkAndRenderModalContent();
+          if (HUB.activeTab === 'device') await updateDeviceView();
+          updateHeaderSenderBadge();
+        } else if (d.qrImage) {
+          const img1 = document.getElementById('modalLiveQrImg');
+          const img2 = document.getElementById('tabLiveQrImg');
+          if (img1 && img1.src !== d.qrImage) img1.src = d.qrImage;
+          if (img2 && img2.src !== d.qrImage) img2.src = d.qrImage;
+          if (!img1 && !img2) {
+            const body = document.getElementById('waQrModalBody');
+            if (body) renderScanQrView(d, body);
+            const container = document.getElementById('hubDeviceViewContent');
+            if (container) renderLiveQrInContainer(container, d);
+          }
+        }
+      } catch(e) {}
+    }, 2000);
+  }
+
+  window.confirmDisconnectAndScan = async function() {
+    if (!confirm('Are you sure you want to disconnect current WhatsApp number and scan a new one from another phone?')) return;
+    await disconnectAndScanNewQR();
+  };
+
+  window.disconnectAndScanNewQR = async function() {
+    const body = document.getElementById('waQrModalBody');
+    const container = document.getElementById('hubDeviceViewContent');
+    const loadingHtml = `
+      <div style="padding:34px;text-align:center;color:#1E293B;">
+        <div style="font-size:32px;margin-bottom:8px;">🔄</div>
+        <div style="font-weight:700;font-size:15px;">Disconnecting current WhatsApp session...</div>
+        <div style="font-size:12px;color:#64748B;margin-top:4px;">Preparing fresh QR code for your other phone number.</div>
+      </div>
+    `;
+    if (body) body.innerHTML = loadingHtml;
+    if (container) container.innerHTML = loadingHtml;
+
+    const gatewayUrl = (HUB.config?.gateway_url || 'http://localhost:3000').replace(/\/+$/, '');
+    try {
+      await fetch(gatewayUrl + '/logout', { method: 'POST' });
+    } catch(e) {}
+
+    setTimeout(async () => {
+      if (body) await checkAndRenderModalContent();
+      if (container) await updateDeviceView();
+      startGlobalQrPolling();
+    }, 1500);
+  };
+
+  // ─── Dedicated WhatsApp Device View Tab ───
+  async function renderDeviceTab() {
+    const el = document.getElementById('hubBody');
+    if (!el) return;
+
+    el.innerHTML = `
+      <div class="card" style="max-width:680px;margin:12px auto;padding:24px;border-radius:14px;box-shadow:0 4px 18px rgba(0,0,0,0.04);">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;border-bottom:1.5px solid #F1F5F9;padding-bottom:12px;flex-wrap:wrap;gap:8px;">
+          <div>
+            <h3 style="margin:0;font-size:17px;color:#0F172A;display:flex;align-items:center;gap:8px;">
+              📱 WhatsApp Device & QR Connection
+            </h3>
+            <p style="margin:3px 0 0 0;font-size:12.5px;color:#64748B;">
+              Link or switch the WhatsApp phone number used for sending automated messages & passes
+            </p>
+          </div>
+          <button onclick="updateDeviceView()" style="background:#F1F5F9;border:1px solid #CBD5E1;padding:6px 12px;border-radius:6px;font-size:12px;cursor:pointer;font-weight:600;">
+            🔄 Refresh Status
+          </button>
+        </div>
+
+        <div id="hubDeviceViewContent">
+          <div style="padding:40px;text-align:center;color:#64748B;">
+            <div style="font-size:32px;margin-bottom:8px;">⏳</div>
+            <div>Checking WhatsApp connection status...</div>
+          </div>
+        </div>
+      </div>
+    `;
+
+    await updateDeviceView();
+  }
+
+  async function updateDeviceView() {
+    const container = document.getElementById('hubDeviceViewContent');
+    if (!container) return;
+
+    const gatewayUrl = (HUB.config?.gateway_url || 'http://localhost:3000').replace(/\/+$/, '');
+    try {
+      const res = await fetch(gatewayUrl + '/qr-data');
+      const data = await res.json();
+
+      if (data.connected) {
+        if (_qrPollInterval) { clearInterval(_qrPollInterval); _qrPollInterval = null; }
+        const userJid = data.user?.id || '';
+        const phone = userJid.split(':')[0] || userJid.split('@')[0] || 'Unknown';
+        const userName = data.user?.name || 'WhatsApp User';
+
+        container.innerHTML = `
+          <div style="background:#F0FDF4;border:2px solid #86EFAC;border-radius:12px;padding:24px;text-align:center;margin-bottom:18px;">
+            <div style="font-size:44px;margin-bottom:8px;">🟢</div>
+            <div style="font-size:12px;font-weight:800;color:#15803D;letter-spacing:0.5px;text-transform:uppercase;">Active WhatsApp Account</div>
+            <div style="font-size:24px;font-weight:800;color:#0F172A;margin-top:4px;">+${phone}</div>
+            <div style="font-size:13.5px;color:#475569;margin-top:4px;">Account: <b>${userName}</b></div>
+            <div style="font-size:12px;color:#16A34A;margin-top:8px;font-weight:600;">
+              ✅ Ready! All automated booking alerts, guest passes & checkout reminders will be sent from this number.
+            </div>
+          </div>
+
+          <div style="background:#FFFBEB;border:1px solid #FDE68A;border-radius:10px;padding:16px;margin-bottom:18px;">
+            <div style="font-weight:700;font-size:13px;color:#92400E;margin-bottom:4px;display:flex;align-items:center;gap:6px;">
+              💡 <span>Kisi aur number se bhejna chahte hain?</span>
+            </div>
+            <div style="font-size:12.5px;color:#78350F;line-height:1.5;">
+              Aap kisi bhi time dusre number ya SIM se connect kar sakte hain. Neeche <b>"Switch / Link Different WhatsApp Number"</b> par click karein. Yeh number disconnect ho jayega aur turant naya QR code aa jayega jise aap kisi aur phone se scan kar sakte hain.
+            </div>
+          </div>
+
+          <button onclick="confirmDisconnectAndScan()" style="background:#DC2626;color:#fff;border:none;padding:13px 20px;border-radius:8px;font-weight:800;font-size:14px;cursor:pointer;width:100%;display:flex;align-items:center;justify-content:center;gap:8px;box-shadow:0 3px 10px rgba(220,38,38,0.25);">
+            🔄 Switch / Link Different WhatsApp Number (Scan New QR)
+          </button>
+        `;
+      } else {
+        renderLiveQrInContainer(container, data);
+      }
+    } catch (err) {
+      container.innerHTML = `
+        <div style="background:#FEF2F2;border:1.5px solid #F87171;padding:18px;border-radius:10px;color:#991B1B;font-size:13px;text-align:center;">
+          <div style="font-size:28px;margin-bottom:8px;">⚠️</div>
+          <b>Could not reach WhatsApp Gateway at <code>${gatewayUrl}</code></b><br>
+          <div style="font-size:12px;color:#7F1D1D;margin-top:8px;">
+            Please ensure the background service is running on port 3000:<br>
+            <code>cd whatsapp-bot && npm start</code>
+          </div>
+          <button onclick="updateDeviceView()" style="margin-top:12px;padding:8px 16px;background:#991B1B;color:#fff;border:none;border-radius:6px;font-weight:700;cursor:pointer;">
+            🔄 Retry Connection
+          </button>
+        </div>
+      `;
+    }
+  }
+
+  function renderLiveQrInContainer(container, data) {
+    if (data.qrImage) {
+      container.innerHTML = `
+        <div style="text-align:center;">
+          <div style="background:#EFF6FF;border:1.5px solid #BFDBFE;padding:14px 18px;border-radius:10px;margin-bottom:16px;text-align:left;">
+            <div style="font-weight:800;color:#1E40AF;font-size:13px;margin-bottom:6px;">
+              📲 Scan with WhatsApp to Link Phone:
+            </div>
+            <ol style="margin:0;padding-left:20px;font-size:12.5px;color:#1E3A8A;line-height:1.6;">
+              <li>Open <b>WhatsApp</b> on the phone you want to send from.</li>
+              <li>Tap <b>Settings</b> (iOS) or <b>3 Dots Menu</b> (Android) → <b>Linked Devices</b>.</li>
+              <li>Tap <b>Link a Device</b> and point your camera at this QR code.</li>
+              <li>Jaise hi scan hoga, screen auto-detect karke <b>Connected</b> dikhayegi!</li>
+            </ol>
+          </div>
+
+          <div style="display:inline-block;padding:16px;background:#fff;border:2.5px solid #CBD5E1;border-radius:16px;box-shadow:0 6px 20px rgba(0,0,0,0.08);margin-bottom:12px;">
+            <img id="tabLiveQrImg" src="${data.qrImage}" style="width:280px;height:280px;display:block;border-radius:8px;" alt="WhatsApp QR Code" />
+          </div>
+
+          <div style="font-size:12px;color:#64748B;margin-bottom:14px;">
+            ⏳ Waiting for scan... Screen will auto-connect once scanned from your phone.
+          </div>
+
+          <button onclick="updateDeviceView()" style="background:#F1F5F9;border:1px solid #CBD5E1;color:#334155;padding:8px 16px;border-radius:6px;font-weight:700;font-size:12.5px;cursor:pointer;">
+            🔄 Reload QR Code
+          </button>
+        </div>
+      `;
+    } else {
+      container.innerHTML = `
+        <div style="padding:34px 10px;text-align:center;">
+          <div style="font-size:32px;margin-bottom:8px;">⏳</div>
+          <div style="font-weight:800;font-size:15px;color:#1E293B;">Generating fresh QR code...</div>
+          <div style="font-size:12px;color:#64748B;margin-top:4px;">Please wait 2-3 seconds for new QR code.</div>
+        </div>
+      `;
+    }
+
+    startGlobalQrPolling();
+  }
+
+  async function updateHeaderSenderBadge() {
+    const badge = document.getElementById('hubSenderHeaderBadge');
+    if (!badge) return;
+
+    const gatewayUrl = (HUB.config?.gateway_url || 'http://localhost:3000').replace(/\/+$/, '');
+    try {
+      const res = await fetch(gatewayUrl + '/status');
+      const data = await res.json();
+      if (data.connected) {
+        const userJid = data.user?.id || '';
+        const phone = userJid.split(':')[0] || userJid.split('@')[0] || 'Linked';
+        badge.innerHTML = `<span style="color:#15803D;cursor:pointer;font-weight:800;" onclick="setHubTab('device')" title="Click to view device or switch number">🟢 +${phone}</span>`;
+      } else {
+        badge.innerHTML = `<button onclick="setHubTab('device')" style="background:#DC2626;color:#fff;border:none;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:700;cursor:pointer;">🔴 Not Linked [Scan QR]</button>`;
+      }
+    } catch(e) {
+      badge.innerHTML = `<span style="color:#94A3B8;font-size:12px;">Offline</span>`;
+    }
+  }
 
   // ═══════════════════════════════════════════════════════════
   // UI RENDERING
   // ═══════════════════════════════════════════════════════════
   async function renderWhatsAppHub() {
-    if (!['developer', 'owner'].includes(SESSION.role)) {
-      renderShell('<div class="card"><div class="error">❌ Only Owner/Developer</div></div>', 'whatsapp-hub');
-      return;
-    }
-
     renderShell('<div class="loading">📱 Loading Communication Hub...</div>', 'whatsapp-hub');
 
     await Promise.all([loadConfig(), loadTemplates(), loadLogs(50), fetchScheduled()]);
@@ -302,310 +873,692 @@
     const sentToday = todayLogs.filter(l => l.status === 'sent').length;
     const failedToday = todayLogs.filter(l => l.status === 'failed').length;
 
-    const html =
-      '<div class="wrap">' +
-        '<h1>📱 Communication Hub</h1>' +
-        '<p style="color:#888;">Auto WhatsApp messages for bookings — welcome, arrival, checkout</p>' +
+    const html = `
+      <div class="wrap" style="max-width:1100px;margin:auto;">
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:14px;">
+          <div>
+            <h1 style="margin:0;font-size:22px;color:#0F172A;display:flex;align-items:center;gap:8px;">
+              📱 WhatsApp Automation Hub
+            </h1>
+            <p style="color:#64748B;font-size:13px;margin:3px 0 0 0;">
+              Zero-cost automated alerts for Booking Groups, Cleaning Staff, Investor Groups & Guests
+            </p>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <button onclick="setHubTab('device')" style="background:#2563EB;color:#fff;padding:8px 16px;border:none;border-radius:8px;font-weight:700;font-size:13px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;box-shadow:0 2px 6px rgba(37,99,235,0.25);">
+              📱 Link WhatsApp / Scan QR
+            </button>
+            <button onclick="toggleAutoSend()" style="background:${enabled ? '#DC2626' : '#16A34A'};color:#fff;padding:8px 18px;border:none;border-radius:8px;font-weight:800;font-size:13px;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,0.15);">
+              ${enabled ? '⏸ Pause Master Automation' : '▶️ Resume Master Automation'}
+            </button>
+          </div>
+        </div>
 
-        // Status bar
-        '<div class="card" style="border-left:4px solid ' + (enabled ? '#0A7D1A' : '#DC2626') + ';">' +
-          '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;">' +
-            '<div><div style="font-size:11px;color:#888;">AUTO-SEND</div>' +
-              '<div style="font-size:18px;font-weight:800;color:' + (enabled ? '#0A7D1A' : '#DC2626') + ';">' +
-                (enabled ? '🟢 ENABLED' : '🔴 DISABLED') +
-              '</div></div>' +
-            '<div><div style="font-size:11px;color:#888;">MODE</div>' +
-              '<div style="font-size:18px;font-weight:800;color:' + (dryRun ? '#F59E0B' : '#0A7D1A') + ';">' +
-                (dryRun ? '🧪 DRY RUN' : '📡 LIVE') +
-              '</div></div>' +
-            '<div><div style="font-size:11px;color:#888;">SENT TODAY</div>' +
-              '<div style="font-size:18px;font-weight:800;">' + sentToday + '</div></div>' +
-            '<div><div style="font-size:11px;color:#888;">FAILED TODAY</div>' +
-              '<div style="font-size:18px;font-weight:800;color:' + (failedToday > 0 ? '#DC2626' : '#888') + ';">' + failedToday + '</div></div>' +
-            '<div><div style="font-size:11px;color:#888;">SCHEDULED (24h)</div>' +
-              '<div style="font-size:18px;font-weight:800;color:#3B82F6;">' + HUB.scheduled.length + '</div></div>' +
-          '</div>' +
-        '</div>' +
+        <!-- Master Status Banner -->
+        <div class="card" style="border-left:5px solid ${enabled ? '#16A34A' : '#DC2626'};background:${enabled ? '#F0FDF4' : '#FEF2F2'};margin-bottom:14px;padding:14px 18px;">
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;">
+            <div>
+              <div style="font-size:10.5px;color:#64748B;font-weight:700;">MASTER AUTOMATION</div>
+              <div style="font-size:18px;font-weight:800;color:${enabled ? '#15803D' : '#DC2626'};margin-top:2px;">
+                ${enabled ? '🟢 ACTIVE (ON)' : '🔴 PAUSED (OFF)'}
+              </div>
+            </div>
+            <div>
+              <div style="font-size:10.5px;color:#64748B;font-weight:700;">EXECUTION MODE</div>
+              <div style="font-size:18px;font-weight:800;color:${dryRun ? '#D97706' : '#15803D'};margin-top:2px;">
+                ${dryRun ? '🧪 DRY RUN' : '📡 LIVE'}
+              </div>
+            </div>
+            <div>
+              <div style="font-size:10.5px;color:#64748B;font-weight:700;">WHATSAPP SENDER</div>
+              <div id="hubSenderHeaderBadge" style="font-size:15px;font-weight:800;color:#2563EB;margin-top:4px;">
+                Checking...
+              </div>
+            </div>
+            <div>
+              <div style="font-size:10.5px;color:#64748B;font-weight:700;">SENT TODAY</div>
+              <div style="font-size:18px;font-weight:800;color:#0F172A;margin-top:2px;">${sentToday}</div>
+            </div>
+            <div>
+              <div style="font-size:10.5px;color:#64748B;font-weight:700;">SCHEDULED (24h)</div>
+              <div style="font-size:18px;font-weight:800;color:#2563EB;margin-top:2px;">${HUB.scheduled.length}</div>
+            </div>
+          </div>
+        </div>
 
-        // Tabs
-        '<div style="display:flex;gap:6px;margin:16px 0;border-bottom:2px solid #eee;flex-wrap:wrap;">' +
-          ['auto', 'scheduled', 'log', 'templates', 'settings'].map(t => {
-            const labels = { auto: '🎯 Overview', scheduled: '⏰ Scheduled', log: '📋 Message Log', templates: '📝 Templates', settings: '⚙️ Settings' };
-            const active = HUB.activeTab === t;
-            return '<button onclick="setHubTab(\'' + t + '\')" style="padding:8px 16px;border:none;background:' + (active ? '#FF385C' : 'transparent') + ';color:' + (active ? '#fff' : '#666') + ';border-radius:6px 6px 0 0;cursor:pointer;font-weight:600;">' + labels[t] + '</button>';
-          }).join('') +
-        '</div>' +
+        <!-- Navigation Tabs -->
+        <div style="display:flex;gap:6px;margin:16px 0;border-bottom:2px solid #E2E8F0;flex-wrap:wrap;">
+          ${[
+            { key: 'device', label: '📱 Link WhatsApp / Scan QR' },
+            { key: 'auto', label: '🎯 Controls & Triggers' },
+            { key: 'settings', label: '⚙️ Settings & Group IDs' },
+            { key: 'scheduled', label: '⏰ Scheduled (' + HUB.scheduled.length + ')' },
+            { key: 'log', label: '📋 Message Log' },
+            { key: 'templates', label: '📝 Templates' }
+          ].map(t => {
+            const active = HUB.activeTab === t.key;
+            return `<button onclick="setHubTab('${t.key}')" style="padding:9px 18px;border:none;background:${active ? '#0F172A' : 'transparent'};color:${active ? '#fff' : '#475569'};border-radius:8px 8px 0 0;cursor:pointer;font-weight:700;font-size:13px;">${t.label}</button>`;
+          }).join('')}
+        </div>
 
-        '<div id="hubBody"></div>' +
-      '</div>';
+        <div id="hubBody"></div>
+      </div>
+    `;
 
     renderShell(html, 'whatsapp-hub');
     renderHubBody();
+    updateHeaderSenderBadge();
   }
 
   async function renderHubBody() {
     const el = document.getElementById('hubBody');
     if (!el) return;
 
-    if (HUB.activeTab === 'auto') el.innerHTML = renderOverviewTab();
+    if (HUB.activeTab === 'device') renderDeviceTab();
+    else if (HUB.activeTab === 'auto') el.innerHTML = renderOverviewTab();
+    else if (HUB.activeTab === 'settings') el.innerHTML = renderSettingsTab();
     else if (HUB.activeTab === 'scheduled') el.innerHTML = renderScheduledTab();
     else if (HUB.activeTab === 'log') el.innerHTML = renderLogTab();
     else if (HUB.activeTab === 'templates') el.innerHTML = renderTemplatesTab();
-    else if (HUB.activeTab === 'settings') el.innerHTML = renderSettingsTab();
   }
 
   function renderOverviewTab() {
-    const enabled = HUB.config?.auto_send_enabled;
-    const activeTemplates = HUB.templates.filter(t => t.auto_send);
+    const c = HUB.config || {};
+    const enabled = c.auto_send_enabled;
 
-    return '<div class="card">' +
-      '<div class="section-title">🎯 Auto-Send Configuration</div>' +
+    return `
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+          <div>
+            <h3 style="margin:0;font-size:16px;color:#0F172A;">⚡ Live Automation Triggers</h3>
+            <p style="margin:2px 0 0 0;font-size:12px;color:#64748B;">Control what gets sent automatically vs on-demand.</p>
+          </div>
+          <button onclick="setHubTab('settings')" class="btn-sm" style="background:#0F172A;color:#fff;">⚙️ Configure Groups & Toggles</button>
+        </div>
 
-      '<div style="padding:14px;background:' + (enabled ? '#D1FAE5' : '#FEE2E2') + ';border-radius:8px;margin-bottom:16px;">' +
-        '<div style="display:flex;align-items:center;justify-content:space-between;">' +
-          '<div>' +
-            '<div style="font-weight:700;">' + (enabled ? '✅ Auto-send is ACTIVE' : '❌ Auto-send is DISABLED') + '</div>' +
-            '<div style="font-size:12px;color:#666;margin-top:4px;">' +
-              (enabled ? 'Messages are being sent automatically to guests based on their booking timings' : 'Enable in Settings to activate') +
-            '</div>' +
-          '</div>' +
-          '<button onclick="toggleAutoSend()" class="btn-sm" style="background:' + (enabled ? '#DC2626' : '#0A7D1A') + ';color:#fff;padding:10px 20px;">' +
-            (enabled ? '⏸ Disable' : '▶️ Enable') +
-          '</button>' +
-        '</div>' +
-      '</div>' +
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px;">
+          <!-- 1. Booking Group Alert -->
+          <div style="border:1.5px solid ${c.send_booking_group ? '#86EFAC' : '#E2E8F0'};background:${c.send_booking_group ? '#F0FDF4' : '#F8FAFC'};border-radius:10px;padding:14px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <strong style="color:#0F172A;">🛎️ Booking Group Alerts</strong>
+              <span class="badge ${c.send_booking_group && enabled ? 'green' : 'yellow'}">
+                ${c.send_booking_group && enabled ? 'Active' : 'Disabled'}
+              </span>
+            </div>
+            <p style="font-size:12px;color:#64748B;margin:6px 0 10px 0;">
+              Sends immediate alert to Ops / Booking group when a new booking is confirmed.
+            </p>
+            <div style="font-size:11px;color:#334155;background:rgba(0,0,0,0.04);padding:6px 8px;border-radius:6px;">
+              Target: <b>${c.booking_group_id || 'Not configured in Settings'}</b>
+            </div>
+          </div>
 
-      '<h3>Active Auto Templates</h3>' +
-      (activeTemplates.length === 0
-        ? '<div style="color:#888;padding:20px;text-align:center;">No auto templates enabled</div>'
-        : activeTemplates.map(t => {
-            const triggerText = {
-              'on_booking_created': '🆕 Fires when new booking created',
-              'before_check_in_60min': '⏰ Fires 1 hour before check-in',
-              'on_checkout_day': '👋 Fires on checkout day morning'
-            }[t.trigger_event] || t.trigger_event;
+          <!-- 2. Housekeeping Alert -->
+          <div style="border:1.5px solid ${c.send_housekeeping_checkout ? '#86EFAC' : '#E2E8F0'};background:${c.send_housekeeping_checkout ? '#F0FDF4' : '#F8FAFC'};border-radius:10px;padding:14px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <strong style="color:#0F172A;">🧹 Housekeeping Checkout Alerts</strong>
+              <span class="badge ${c.send_housekeeping_checkout && enabled ? 'green' : 'yellow'}">
+                ${c.send_housekeeping_checkout && enabled ? 'Active (9:00 AM)' : 'Disabled'}
+              </span>
+            </div>
+            <p style="font-size:12px;color:#64748B;margin:6px 0 10px 0;">
+              Daily morning list of today's checkouts sent to cleaning staff to prepare rooms.
+            </p>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px;">
+              <small style="color:#64748B;">Target: <b>${c.housekeeping_group_id || 'Not configured'}</b></small>
+              <button onclick="triggerHousekeepingCheckoutAlert()" class="btn-sm green-btn" style="padding:3px 8px;font-size:11px;">🚀 Fire Now</button>
+            </div>
+          </div>
 
-            return '<div style="border:1px solid #eee;border-radius:10px;padding:14px;margin-bottom:10px;">' +
-              '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">' +
-                '<strong>' + t.display_name + '</strong>' +
-                '<span class="badge blue">' + t.template_name + '</span>' +
-              '</div>' +
-              '<div style="font-size:12px;color:#666;">' + triggerText + '</div>' +
-              '<div style="font-size:11px;color:#888;margin-top:6px;font-family:monospace;background:#f9f9f9;padding:8px;border-radius:6px;white-space:pre-wrap;">' +
-                t.body_text.substring(0, 200) + (t.body_text.length > 200 ? '...' : '') +
-              '</div>' +
-            '</div>';
-          }).join('')) +
-    '</div>';
+          <!-- 3. Investor Group Alert -->
+          <div style="border:1.5px solid ${c.send_investor_reports ? '#86EFAC' : '#E2E8F0'};background:${c.send_investor_reports ? '#F0FDF4' : '#F8FAFC'};border-radius:10px;padding:14px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <strong style="color:#0F172A;">📊 Investor Group Statements</strong>
+              <span class="badge ${c.send_investor_reports && enabled ? 'green' : 'yellow'}">
+                ${c.send_investor_reports && enabled ? 'Active' : 'Disabled'}
+              </span>
+            </div>
+            <p style="font-size:12px;color:#64748B;margin:6px 0 10px 0;">
+              Dispatches monthly revenue & net profit statements to dedicated Investor groups.
+            </p>
+            <div style="font-size:11px;color:#334155;">
+              Active Mapped Properties: <b>${Object.keys(c.investor_groups || {}).length} groups</b>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
   }
+
+  function renderSettingsTab() {
+    const c = HUB.config || {};
+    const groupsJson = JSON.stringify(c.investor_groups || {}, null, 2);
+
+    return `
+      <div class="card">
+        <h3 style="margin:0 0 4px 0;color:#0F172A;">⚙️ WhatsApp Gateway & Group Configuration</h3>
+        <p style="color:#64748B;font-size:12px;margin:0 0 16px 0;">
+          Configure target groups, safe execution mode, and automated triggers.
+        </p>
+
+        <!-- Dry Run Mode Banner -->
+        <div style="background:#FFFBEB;border:1.5px solid #FDE68A;border-radius:10px;padding:14px;margin-bottom:18px;">
+          <label style="display:flex;align-items:center;gap:10px;cursor:pointer;">
+            <input type="checkbox" id="cfgDryRun" ${c.dry_run_mode !== false ? 'checked' : ''} style="width:18px;height:18px;" />
+            <div>
+              <strong style="color:#92400E;font-size:13.5px;">🧪 Dry-Run Mode (Safe Testing)</strong>
+              <div style="color:#B45309;font-size:12px;margin-top:2px;">
+                When enabled, messages are formatted & logged in CRM without being sent to real WhatsApp.
+              </div>
+            </div>
+          </label>
+        </div>
+
+        <h4 style="margin:0 0 10px 0;color:#0F172A;">🔘 Sub-Category Automation Toggles</h4>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:18px;">
+          <label style="display:flex;align-items:center;gap:8px;font-size:13px;">
+            <input type="checkbox" id="cfgSendBookingGroup" ${c.send_booking_group ? 'checked' : ''} />
+            🛎️ New Booking Alert to Booking Group
+          </label>
+          <label style="display:flex;align-items:center;gap:8px;font-size:13px;">
+            <input type="checkbox" id="cfgSendHousekeeping" ${c.send_housekeeping_checkout ? 'checked' : ''} />
+            🧹 10:00 AM Checkout Alert to Housekeeping
+          </label>
+          <label style="display:flex;align-items:center;gap:8px;font-size:13px;">
+            <input type="checkbox" id="cfgSendInvestor" ${c.send_investor_reports ? 'checked' : ''} />
+            📊 Monthly Report to Investor Groups
+          </label>
+          <label style="display:flex;align-items:center;gap:8px;font-size:13px;">
+            <input type="checkbox" id="cfgSendWelcome" ${c.send_welcome ? 'checked' : ''} />
+            🔑 Guest Welcome & Check-In Details
+          </label>
+          <label style="display:flex;align-items:center;gap:8px;font-size:13px;">
+            <input type="checkbox" id="cfgSendCheckout" ${c.send_checkout ? 'checked' : ''} />
+            👋 10:00 AM Checkout Reminder to Guest
+          </label>
+        </div>
+
+        <h4 style="margin:0 0 10px 0;color:#0F172A;">👥 WhatsApp Group Identifiers (@g.us)</h4>
+        <div style="font-size:12px;color:#64748B;margin-bottom:10px;">
+          Enter the unique Group ID (e.g. <code>12036302485984@g.us</code>). You can copy group IDs by clicking "Test Connection" below!
+        </div>
+
+        <div class="form-group" style="margin-bottom:12px;">
+          <label style="font-weight:700;font-size:12.5px;display:block;margin-bottom:4px;">🛎️ Operations / Booking Group ID</label>
+          <input type="text" id="cfgBookingGroup" value="${c.booking_group_id || ''}" style="width:100%;font-family:monospace;" />
+        </div>
+
+        <div class="form-group" style="margin-bottom:12px;">
+          <label style="font-weight:700;font-size:12.5px;display:block;margin-bottom:4px;">🧹 Cleaning / Housekeeping Group ID</label>
+          <input type="text" id="cfgHousekeepingGroup" value="${c.housekeeping_group_id || ''}" style="width:100%;font-family:monospace;" />
+        </div>
+
+        <div class="form-group" style="margin-bottom:16px;">
+          <label style="font-weight:700;font-size:12.5px;display:block;margin-bottom:4px;">📊 Investor Groups Mapping (JSON)</label>
+          <textarea id="cfgInvestorGroups" style="width:100%;height:100px;font-family:monospace;font-size:12px;">${groupsJson}</textarea>
+        </div>
+
+        <h4 style="margin:0 0 10px 0;color:#0F172A;">📡 WhatsApp Gateway Connection</h4>
+        <div class="form-group" style="margin-bottom:12px;">
+          <label style="font-weight:700;font-size:12.5px;display:block;margin-bottom:4px;">Gateway Server URL (Baileys Service)</label>
+          <div style="display:flex;gap:8px;">
+            <button id="testGatewayBtn" onclick="testWhatsAppGateway()" style="padding:8px 14px;background:#0F172A;color:#fff;border:none;border-radius:6px;font-weight:700;cursor:pointer;white-space:nowrap;">
+              ⚡ Test Gateway Connection
+            </button>
+            <button type="button" onclick="setHubTab('device')" style="padding:8px 14px;background:#2563EB;color:#fff;border:none;border-radius:6px;font-weight:700;cursor:pointer;white-space:nowrap;">
+              📱 Scan QR / Switch Number
+            </button>
+          </div>
+        </div>
+        <div id="gatewayTestResult" style="margin-bottom:16px;"></div>
+
+        <button onclick="saveHubSettings()" style="width:100%;background:#16A34A;color:#fff;border:none;padding:12px;border-radius:8px;font-weight:800;font-size:14px;cursor:pointer;">
+          💾 Save Automation Settings
+        </button>
+      </div>
+    `;
+  }
+
+  window.toggleAutoSend = async function() {
+    await loadConfig();
+    const newState = !HUB.config.auto_send_enabled;
+    HUB.config.auto_send_enabled = newState;
+    setLocalConfig(HUB.config);
+
+    try {
+      if (window.sb) {
+        await sb.from('whatsapp_config').upsert({
+          id: 1,
+          auto_send_enabled: newState,
+          updated_at: new Date().toISOString()
+        });
+      }
+    } catch (e) {}
+
+    if (window.fsn) fsn.success('Updated', `Master Automation is now ${newState ? '🟢 ACTIVE' : '🔴 PAUSED'}`);
+    renderWhatsAppHub();
+  };
+
+  window.saveHubSettings = async function() {
+    let invGroups = {};
+    try {
+      invGroups = JSON.parse(document.getElementById('cfgInvestorGroups')?.value || '{}');
+    } catch (e) {
+      alert('⚠️ Invalid JSON in Investor Groups mapping!');
+      return;
+    }
+
+    const updates = {
+      auto_send_enabled: document.getElementById('cfgAutoSend')?.checked || false,
+      dry_run_mode: document.getElementById('cfgDryRun')?.checked || false,
+      send_booking_group: document.getElementById('cfgSendBookingGroup')?.checked || false,
+      send_housekeeping_checkout: document.getElementById('cfgSendHousekeeping')?.checked || false,
+      send_investor_reports: document.getElementById('cfgSendInvestor')?.checked || false,
+      send_welcome: document.getElementById('cfgSendWelcome')?.checked || false,
+      send_checkout: document.getElementById('cfgSendCheckout')?.checked || false,
+      booking_group_id: document.getElementById('cfgBookingGroup')?.value?.trim() || '',
+      housekeeping_group_id: document.getElementById('cfgHousekeepingGroup')?.value?.trim() || '',
+      investor_groups: invGroups,
+      gateway_url: document.getElementById('cfgGatewayUrl')?.value?.trim() || 'http://localhost:3000',
+      updated_at: new Date().toISOString()
+    };
+
+    HUB.config = { ...HUB.config, ...updates };
+    setLocalConfig(HUB.config);
+
+    try {
+      if (window.sb) {
+        await sb.from('whatsapp_config').upsert({ id: 1, ...updates });
+      }
+    } catch (e) {}
+
+    if (window.fsn) fsn.success('Saved', '✅ Automation settings updated successfully!');
+    renderWhatsAppHub();
+  };
 
   function renderScheduledTab() {
     if (HUB.scheduled.length === 0) {
       return '<div class="card"><div style="text-align:center;padding:30px;color:#888;">No messages scheduled in next 24 hours</div></div>';
     }
 
-    return '<div class="card">' +
-      '<div class="section-title">⏰ Next 24 Hours (' + HUB.scheduled.length + ')</div>' +
-      HUB.scheduled.map(s => {
-        const whenStr = s.when.toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', hour12: true });
-        const propName = s.booking.rooms?.property_name || s.booking.rooms?.nickname || s.booking.room_id;
+    return `
+      <div class="card">
+        <div class="section-title">⏰ Next 24 Hours (${HUB.scheduled.length})</div>
+        ${HUB.scheduled.map(s => {
+          const whenStr = s.when.toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', hour12: true });
+          const propName = s.booking.rooms?.property_name || s.booking.rooms?.nickname || s.booking.room_id;
 
-        return '<div style="border:1px solid #eee;border-radius:10px;padding:14px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;">' +
-          '<div>' +
-            '<div style="font-weight:700;">' + s.type + '</div>' +
-            '<div style="font-size:13px;margin-top:2px;">' + s.booking.guest_name + ' → ' + propName + '</div>' +
-            '<div style="font-size:11px;color:#888;">📞 ' + (s.booking.phone || 'No phone') + '</div>' +
-          '</div>' +
-          '<div style="text-align:right;">' +
-            '<div style="font-size:12px;color:#3B82F6;font-weight:700;">🕐 ' + whenStr + '</div>' +
-            '<button onclick="hubSendNow(\'' + s.template + '\',\'' + s.booking.booking_id + '\')" class="btn-sm" style="background:#0A7D1A;color:#fff;margin-top:6px;">📤 Send Now</button>' +
-          '</div>' +
-        '</div>';
-      }).join('') +
-    '</div>';
+          return `
+            <div style="border:1px solid #E2E8F0;border-radius:10px;padding:14px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;">
+              <div>
+                <div style="font-weight:700;color:#0F172A;">${s.type}</div>
+                <div style="font-size:13px;margin-top:2px;color:#334155;">${s.booking.guest_name} → ${propName}</div>
+                <div style="font-size:11px;color:#64748B;">📞 ${s.booking.phone || 'No phone'}</div>
+              </div>
+              <div style="text-align:right;">
+                <div style="font-size:12px;color:#2563EB;font-weight:700;">🕐 ${whenStr}</div>
+                <button onclick="hubSendNow('${s.template}','${s.booking.booking_id}')" class="btn-sm green-btn" style="margin-top:6px;">📤 Send Now</button>
+              </div>
+            </div>
+          `;
+        }).join('')}
+      </div>
+    `;
   }
 
   window.hubSendNow = async function(templateName, bookingId) {
-    if (!confirm('Send now?')) return;
+    if (!confirm('Send message now?')) return;
     const { data: b } = await sb.from('guest_register')
       .select('*, rooms(nickname, unit_no, property_name, wifi_ssid, wifi_password, key_number)')
       .eq('booking_id', bookingId).single();
     if (!b) { fsn.error('Error', 'Booking not found'); return; }
 
-    const result = await sendMessage(templateName, b, 'manual');
+    const result = await dispatchWhatsAppMessage({
+      to: b.phone,
+      isGroup: false,
+      text: `Hello ${b.guest_name}, this is an update regarding your booking at ${b.rooms?.nickname || b.room_id}.`,
+      type: templateName,
+      bookingId: b.booking_id,
+      guestName: b.guest_name
+    });
+
     if (result.ok) {
-      fsn.success('Sent', result.dry_run ? '🧪 Dry run — logged only' : '✅ Message sent');
+      if (window.fsn) fsn.success('Sent', result.dry_run ? '🧪 Dry run — logged only' : '✅ Message dispatched');
       renderWhatsAppHub();
     } else {
-      fsn.error('Failed', result.error);
+      if (window.fsn) fsn.error('Failed', result.error || result.reason);
     }
+  };
+
+  // ─── Enhanced Guest Message Delivery Tracker ───
+  HUB._logFilterStatus = 'all';
+  HUB._logSearchQuery = '';
+
+  window.filterHubLogs = function(status) {
+    HUB._logFilterStatus = status;
+    const el = document.getElementById('hubBody');
+    if (el && HUB.activeTab === 'log') el.innerHTML = renderLogTab();
+  };
+
+  window.searchHubLogs = function(val) {
+    HUB._logSearchQuery = (val || '').toLowerCase().trim();
+    const el = document.getElementById('hubBody');
+    if (el && HUB.activeTab === 'log') el.innerHTML = renderLogTab();
   };
 
   function renderLogTab() {
-    if (HUB.logs.length === 0) {
-      return '<div class="card"><div style="text-align:center;padding:30px;color:#888;">No messages yet</div></div>';
-    }
+    const allLogs = HUB.logs || [];
+    const totalCount = allLogs.length;
+    const sentCount = allLogs.filter(l => l.status === 'sent' && !l.is_dry_run).length;
+    const failedCount = allLogs.filter(l => l.status === 'failed').length;
+    const dryCount = allLogs.filter(l => l.is_dry_run).length;
 
-    const rows = HUB.logs.map(l => {
+    const query = HUB._logSearchQuery;
+    const filter = HUB._logFilterStatus;
+
+    let filtered = allLogs.filter(l => {
+      if (filter === 'sent' && (l.status !== 'sent' || l.is_dry_run)) return false;
+      if (filter === 'failed' && l.status !== 'failed') return false;
+      if (filter === 'dry' && !l.is_dry_run) return false;
+
+      if (query) {
+        const name = (l.guest_name || '').toLowerCase();
+        const phone = (l.phone || '').toLowerCase();
+        const type = (l.template_name || '').toLowerCase();
+        const text = (l.message_preview || '').toLowerCase();
+        if (!name.includes(query) && !phone.includes(query) && !type.includes(query) && !text.includes(query)) {
+          return false;
+        }
+      }
+      return true;
+    });
+
+    const rows = filtered.map(l => {
       const time = new Date(l.sent_at).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', hour12: true });
-      const statusBadge = l.status === 'sent'
-        ? '<span class="badge green">✅ Sent</span>'
-        : l.status === 'failed'
-        ? '<span class="badge red">❌ Failed</span>'
-        : '<span class="badge yellow">⏳ Pending</span>';
-      const dryRunBadge = l.is_dry_run ? ' <span style="background:#F59E0B;color:#fff;font-size:9px;padding:1px 5px;border-radius:4px;">DRY</span>' : '';
-      const triggerBadge = l.triggered_by === 'auto' ? '🤖' : '👤';
+      
+      let statusHtml = '';
+      if (l.status === 'sent' && !l.is_dry_run) {
+        statusHtml = '<span class="badge" style="background:#DCFCE7;color:#15803D;font-weight:700;padding:3px 8px;">✅ Sent</span>';
+      } else if (l.status === 'failed') {
+        statusHtml = '<span class="badge" style="background:#FEE2E2;color:#DC2626;font-weight:700;padding:3px 8px;">❌ Failed</span>';
+      } else if (l.is_dry_run) {
+        statusHtml = '<span class="badge" style="background:#FEF3C7;color:#D97706;font-weight:700;padding:3px 8px;">🧪 Dry Run</span>';
+      } else {
+        statusHtml = '<span class="badge yellow">⏳ Pending</span>';
+      }
 
-      return '<tr>' +
-        '<td><small>' + time + '</small></td>' +
-        '<td>' + statusBadge + dryRunBadge + '</td>' +
-        '<td><small>' + triggerBadge + ' ' + l.template_name + '</small></td>' +
-        '<td>' + (l.guest_name || '-') + '</td>' +
-        '<td><small>' + (l.phone || '-') + '</small></td>' +
-        '<td><small style="color:' + (l.error_message ? '#DC2626' : '#888') + ';">' + (l.error_message || (l.message_preview || '').substring(0, 60) + '...') + '</small></td>' +
-      '</tr>';
+      // Friendly Template Name
+      const tNames = {
+        'guest_confirmation': '🎉 Guest Confirmation',
+        'new_booking_group': '🛎️ Booking Alert (Group)',
+        'housekeeping_checkout': '🧹 Housekeeping Checkout',
+        'checkout_reminder': '👋 10 AM Checkout Reminder',
+        'arrival_details': '🔑 Check-in & WiFi Pass',
+        'investor_report': '📊 Investor Statement',
+        'airbnb_review': '⭐ Airbnb Review Link'
+      };
+      const typeLabel = tNames[l.template_name] || l.template_name;
+
+      const isGroup = String(l.phone || '').includes('@g.us');
+      const cleanPhone = (l.phone || '').replace(/\D/g, '');
+
+      return `
+        <tr style="border-bottom:1px solid #F1F5F9;">
+          <td style="white-space:nowrap;font-size:12px;color:#64748B;">
+            ${time}
+          </td>
+          <td>
+            ${statusHtml}
+          </td>
+          <td>
+            <strong style="font-size:12.5px;color:#0F172A;">${typeLabel}</strong>
+          </td>
+          <td>
+            <div style="font-weight:700;font-size:13px;color:#1E293B;">${escapeHtml(l.guest_name || 'Guest')}</div>
+            <div style="font-size:11.5px;color:#64748B;">
+              ${isGroup ? '<span style="color:#2563EB;">👥 Group</span>' : (cleanPhone ? `<a href="tel:${cleanPhone}" style="color:#64748B;text-decoration:none;">📞 +${cleanPhone}</a>` : '—')}
+            </div>
+          </td>
+          <td style="max-width:260px;font-size:12px;color:${l.error_message ? '#DC2626' : '#475569'};">
+            ${l.error_message ? `<b>Error:</b> ${escapeHtml(l.error_message)}` : escapeHtml((l.message_preview || '').substring(0, 65) + '...')}
+          </td>
+          <td style="white-space:nowrap;text-align:right;">
+            <button onclick="showFullMessageModal('${l.id}')" class="btn-sm" style="background:#F1F5F9;border:1px solid #CBD5E1;padding:4px 8px;font-size:11px;cursor:pointer;border-radius:6px;font-weight:600;" title="View exact message text">
+              👁️ View
+            </button>
+            ${(l.status === 'failed' || l.is_dry_run) ? `
+              <button onclick="retryFailedMessage('${l.id}')" class="btn-sm green-btn" style="padding:4px 8px;font-size:11px;margin-left:4px;border-radius:6px;font-weight:700;" title="Send live now">
+                🔄 Send
+              </button>
+            ` : ''}
+          </td>
+        </tr>
+      `;
     }).join('');
 
-    return '<div class="card">' +
-      '<div class="section-title">📋 Recent Messages (Last ' + HUB.logs.length + ')</div>' +
-      '<div class="table-wrap"><table>' +
-        '<thead><tr><th>Time</th><th>Status</th><th>Template</th><th>Guest</th><th>Phone</th><th>Message / Error</th></tr></thead>' +
-        '<tbody>' + rows + '</tbody>' +
-      '</table></div>' +
-    '</div>';
+    return `
+      <div class="card" style="padding:20px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:16px;">
+          <div>
+            <h3 style="margin:0;font-size:17px;color:#0F172A;display:flex;align-items:center;gap:8px;">
+              📋 Guest WhatsApp Delivery Tracker
+            </h3>
+            <p style="margin:3px 0 0 0;font-size:12.5px;color:#64748B;">
+              Track which guest received automated passes, checkout reminders & alerts in real time.
+            </p>
+          </div>
+          <button onclick="loadLogs(100).then(()=>renderWhatsAppHub())" class="btn-sm" style="background:#F1F5F9;border:1px solid #CBD5E1;padding:6px 12px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;">
+            🔄 Refresh Logs
+          </button>
+        </div>
+
+        <!-- Metric Ribbon -->
+        <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(130px, 1fr));gap:10px;margin-bottom:16px;">
+          <div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:10px;padding:12px;text-align:center;">
+            <div style="font-size:11px;font-weight:700;color:#64748B;text-transform:uppercase;">TOTAL LOGGED</div>
+            <div style="font-size:20px;font-weight:800;color:#0F172A;margin-top:2px;">${totalCount}</div>
+          </div>
+          <div style="background:#F0FDF4;border:1.5px solid #86EFAC;border-radius:10px;padding:12px;text-align:center;">
+            <div style="font-size:11px;font-weight:700;color:#15803D;text-transform:uppercase;">🟢 DELIVERED</div>
+            <div style="font-size:20px;font-weight:800;color:#15803D;margin-top:2px;">${sentCount}</div>
+          </div>
+          <div style="background:#FEF2F2;border:1.5px solid #FCA5A5;border-radius:10px;padding:12px;text-align:center;">
+            <div style="font-size:11px;font-weight:700;color:#DC2626;text-transform:uppercase;">🔴 FAILED</div>
+            <div style="font-size:20px;font-weight:800;color:#DC2626;margin-top:2px;">${failedCount}</div>
+          </div>
+          <div style="background:#FFFBEB;border:1.5px solid #FDE68A;border-radius:10px;padding:12px;text-align:center;">
+            <div style="font-size:11px;font-weight:700;color:#D97706;text-transform:uppercase;">🧪 DRY RUN</div>
+            <div style="font-size:20px;font-weight:800;color:#D97706;margin-top:2px;">${dryCount}</div>
+          </div>
+        </div>
+
+        <!-- Search & Filters -->
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:14px;">
+          <div style="display:flex;gap:6px;flex-wrap:wrap;">
+            <button onclick="filterHubLogs('all')" class="btn-sm ${filter === 'all' ? '' : 'secondary'}" style="${filter === 'all' ? 'background:#0F172A;color:#fff;font-weight:700;' : ''}">All (${totalCount})</button>
+            <button onclick="filterHubLogs('sent')" class="btn-sm ${filter === 'sent' ? '' : 'secondary'}" style="${filter === 'sent' ? 'background:#16A34A;color:#fff;font-weight:700;' : ''}">🟢 Sent (${sentCount})</button>
+            <button onclick="filterHubLogs('failed')" class="btn-sm ${filter === 'failed' ? '' : 'secondary'}" style="${filter === 'failed' ? 'background:#DC2626;color:#fff;font-weight:700;' : ''}">🔴 Failed (${failedCount})</button>
+            <button onclick="filterHubLogs('dry')" class="btn-sm ${filter === 'dry' ? '' : 'secondary'}" style="${filter === 'dry' ? 'background:#D97706;color:#fff;font-weight:700;' : ''}">🧪 Dry Run (${dryCount})</button>
+          </div>
+
+          <div style="min-width:220px;flex:1;max-width:350px;">
+            <input 
+              type="text" 
+              placeholder="🔍 Search guest, phone, message..." 
+              value="${escapeHtml(query)}"
+              oninput="searchHubLogs(this.value)"
+              style="width:100%;padding:8px 12px;border:1px solid #CBD5E1;border-radius:8px;font-size:12.5px;" 
+            />
+          </div>
+        </div>
+
+        <!-- Table -->
+        ${filtered.length === 0 ? `
+          <div style="text-align:center;padding:40px;color:#64748B;background:#F8FAFC;border-radius:10px;border:1px dashed #CBD5E1;">
+            <div style="font-size:32px;margin-bottom:8px;">📭</div>
+            <div style="font-weight:700;font-size:14px;color:#1E293B;">No messages match your criteria</div>
+            <div style="font-size:12px;color:#94A3B8;margin-top:2px;">Try clearing filters or search box.</div>
+          </div>
+        ` : `
+          <div class="table-wrap" style="margin:0;">
+            <table style="width:100%;">
+              <thead>
+                <tr style="background:#F8FAFC;color:#64748B;font-size:11.5px;text-align:left;">
+                  <th style="padding:10px;">TIME</th>
+                  <th style="padding:10px;">STATUS</th>
+                  <th style="padding:10px;">MESSAGE TYPE</th>
+                  <th style="padding:10px;">GUEST / RECIPIENT</th>
+                  <th style="padding:10px;">PREVIEW / RESULT</th>
+                  <th style="padding:10px;text-align:right;">ACTION</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${rows}
+              </tbody>
+            </table>
+          </div>
+        `}
+      </div>
+    `;
   }
+
+  window.showFullMessageModal = function(logId) {
+    const log = (HUB.logs || []).find(l => l.id === logId);
+    if (!log) return;
+
+    const modal = document.createElement('div');
+    modal.className = 'modal-overlay';
+    modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
+
+    modal.innerHTML = `
+      <div class="modal-box" style="max-width:540px;width:95vw;padding:22px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;border-bottom:1px solid #E2E8F0;padding-bottom:10px;">
+          <h3 style="margin:0;font-size:16px;color:#0F172A;display:flex;align-items:center;gap:6px;">
+            💬 WhatsApp Message Preview
+          </h3>
+          <button onclick="this.closest('.modal-overlay').remove()" style="background:none;border:none;font-size:20px;cursor:pointer;">✕</button>
+        </div>
+
+        <div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:8px;padding:12px;font-size:12.5px;margin-bottom:12px;display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+          <div><span style="color:#64748B;">Recipient:</span> <b>${escapeHtml(log.guest_name || 'Guest')}</b></div>
+          <div><span style="color:#64748B;">Phone:</span> <code>${escapeHtml(log.phone || '-')}</code></div>
+          <div><span style="color:#64748B;">Type:</span> <b>${escapeHtml(log.template_name || '-')}</b></div>
+          <div><span style="color:#64748B;">Dispatched:</span> ${new Date(log.sent_at).toLocaleTimeString('en-IN', {hour:'2-digit',minute:'2-digit'})}</div>
+        </div>
+
+        <div style="background:#fff;border:1.5px solid #CBD5E1;border-radius:10px;padding:14px;font-family:system-ui,-apple-system,sans-serif;font-size:13px;line-height:1.6;white-space:pre-wrap;max-height:360px;overflow-y:auto;color:#0F172A;box-shadow:inset 0 1px 4px rgba(0,0,0,0.03);">
+          ${escapeHtml(log.message_preview || 'No text stored')}
+        </div>
+
+        ${log.error_message ? `
+          <div style="margin-top:10px;background:#FEF2F2;border:1px solid #F87171;padding:10px;border-radius:8px;color:#991B1B;font-size:12px;">
+            <b>Failure Reason:</b> ${escapeHtml(log.error_message)}
+          </div>
+        ` : ''}
+
+        <div style="margin-top:14px;display:flex;justify-content:space-between;align-items:center;">
+          <button onclick="navigator.clipboard.writeText(\`${(log.message_preview || '').replace(/`/g, '\\`')}\`);if(window.fsn)fsn.success('Copied!','Text copied to clipboard');" style="background:#F1F5F9;border:1px solid #CBD5E1;padding:8px 14px;border-radius:6px;cursor:pointer;font-weight:600;font-size:12px;">
+            📋 Copy Message
+          </button>
+          <button onclick="this.closest('.modal-overlay').remove()" style="background:#0F172A;color:#fff;border:none;padding:8px 18px;border-radius:6px;cursor:pointer;font-weight:700;font-size:12.5px;">
+            Close
+          </button>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(modal);
+  };
+
+  window.retryFailedMessage = async function(logId) {
+    const log = (HUB.logs || []).find(l => l.id === logId);
+    if (!log) return;
+    if (!confirm(`Dispatch message live to ${log.guest_name || log.phone}?`)) return;
+
+    const result = await dispatchWhatsAppMessage({
+      to: log.phone,
+      isGroup: String(log.phone || '').includes('@g.us'),
+      text: log.message_preview,
+      type: log.template_name,
+      bookingId: log.booking_id,
+      guestName: log.guest_name
+    });
+
+    if (result.ok) {
+      if (window.fsn) fsn.success('Success', 'Message delivered successfully!');
+    } else {
+      if (window.fsn) fsn.error('Delivery Failed', result.error || result.reason || 'Could not send');
+    }
+    await loadLogs(100);
+    renderWhatsAppHub();
+  };
+
+  window.getBookingWhatsAppStatus = function(bookingId) {
+    if (!bookingId || !HUB || !HUB.logs) return null;
+    const logs = (HUB.logs || []).filter(l => l.booking_id === bookingId);
+    if (logs.length === 0) return null;
+    const sent = logs.find(l => l.status === 'sent' && !l.is_dry_run);
+    if (sent) return { status: 'sent', time: sent.sent_at, type: sent.template_name };
+    const failed = logs.find(l => l.status === 'failed');
+    if (failed) return { status: 'failed', error: failed.error_message };
+    const dry = logs.find(l => l.is_dry_run);
+    if (dry) return { status: 'dry', time: dry.sent_at };
+    return { status: logs[0].status };
+  };
 
   function renderTemplatesTab() {
-    return '<div class="card">' +
-      '<div class="section-title">📝 Message Templates</div>' +
-      '<p style="color:#888;font-size:12px;">These need to be submitted & approved by Meta before going live</p>' +
-      HUB.templates.map(t => {
-        return '<div style="border:1px solid #eee;border-radius:10px;padding:14px;margin-bottom:12px;">' +
-          '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">' +
-            '<div>' +
-              '<strong>' + t.display_name + '</strong>' +
-              ' <span class="badge blue">' + t.template_name + '</span>' +
-              (t.auto_send ? ' <span class="badge green">AUTO</span>' : '') +
-              (t.meta_approved ? ' <span class="badge green">✅ Approved</span>' : ' <span class="badge yellow">⏳ Pending Meta</span>') +
-            '</div>' +
-          '</div>' +
-          '<pre style="background:#f9f9f9;padding:12px;border-radius:6px;font-size:12px;white-space:pre-wrap;font-family:monospace;">' + t.body_text + '</pre>' +
-          '<div style="font-size:11px;color:#888;margin-top:6px;">Variables: ' + (t.variables || []).join(', ') + '</div>' +
-        '</div>';
-      }).join('') +
-    '</div>';
+    return `
+      <div class="card">
+        <div class="section-title">📝 Message Templates & Formats</div>
+        <p style="color:#64748B;font-size:12px;margin:0 0 14px 0;">Formatted dynamically with real-time property and booking variables.</p>
+        ${HUB.templates.map(t => `
+          <div style="border:1px solid #E2E8F0;border-radius:10px;padding:14px;margin-bottom:12px;background:#F8FAFC;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+              <strong style="color:#0F172A;">${t.display_name}</strong>
+              <span class="badge blue">${t.template_name}</span>
+            </div>
+            <pre style="background:#fff;border:1px solid #E2E8F0;padding:12px;border-radius:6px;font-size:12px;white-space:pre-wrap;font-family:monospace;margin:0;">${t.body_text}</pre>
+          </div>
+        `).join('')}
+      </div>
+    `;
   }
 
-  function renderSettingsTab() {
-    const c = HUB.config || {};
-    return '<div class="card">' +
-      '<div class="section-title">⚙️ Settings</div>' +
+  // Auto-scheduler tick
+  async function schedulerTick() {
+    try {
+      await loadConfig();
+      if (!HUB.config?.auto_send_enabled) return;
 
-      '<div class="form-group">' +
-        '<label style="display:flex;align-items:center;gap:8px;cursor:pointer;">' +
-          '<input type="checkbox" id="cfgAutoSend"' + (c.auto_send_enabled ? ' checked' : '') + ' />' +
-          '<strong>Master Auto-Send Switch</strong>' +
-        '</label>' +
-        '<small style="color:#888;">When OFF, no automatic messages are sent</small>' +
-      '</div>' +
+      const now = new Date();
+      const currentHour = now.getHours();
 
-      '<div class="form-group">' +
-        '<label style="display:flex;align-items:center;gap:8px;cursor:pointer;">' +
-          '<input type="checkbox" id="cfgDryRun"' + (c.dry_run_mode !== false ? ' checked' : '') + ' />' +
-          '<strong>🧪 Dry Run Mode</strong>' +
-        '</label>' +
-        '<small style="color:#888;">Logs messages without actually sending (safe for testing)</small>' +
-      '</div>' +
-
-      '<hr style="margin:16px 0;" />' +
-
-      '<h3>Per-Template Auto-Send</h3>' +
-
-      '<div class="form-group">' +
-        '<label><input type="checkbox" id="cfgWelcome"' + (c.send_welcome ? ' checked' : '') + ' /> Send Welcome on new booking</label>' +
-      '</div>' +
-      '<div class="form-group">' +
-        '<label><input type="checkbox" id="cfgArrival"' + (c.send_arrival ? ' checked' : '') + ' /> Send Arrival Details before check-in</label>' +
-        '<div style="margin-left:24px;font-size:13px;">Send <input type="number" id="cfgArrivalMin" value="' + (c.arrival_before_minutes || 60) + '" style="width:60px;padding:2px 6px;" /> minutes before check-in</div>' +
-      '</div>' +
-      '<div class="form-group">' +
-        '<label><input type="checkbox" id="cfgCheckout"' + (c.send_checkout ? ' checked' : '') + ' /> Send Checkout Reminder on checkout day</label>' +
-        '<div style="margin-left:24px;font-size:13px;">Send at <input type="number" id="cfgCheckoutHour" value="' + (c.checkout_send_hour || 8) + '" min="0" max="23" style="width:60px;padding:2px 6px;" />:00 hours</div>' +
-      '</div>' +
-
-      '<hr style="margin:16px 0;" />' +
-
-      '<h3>🔐 Meta WhatsApp API Credentials</h3>' +
-      '<p style="color:#F59E0B;font-size:12px;">⚠️ Keep these secret. Enter only when you have Meta credentials.</p>' +
-
-      '<div class="form-group">' +
-        '<label>Phone Number ID</label>' +
-        '<input id="cfgPhoneId" value="' + (c.api_phone_id || '') + '" placeholder="Meta phone number ID" />' +
-      '</div>' +
-      '<div class="form-group">' +
-        '<label>Business Account ID</label>' +
-        '<input id="cfgBusinessId" value="' + (c.api_business_id || '') + '" placeholder="Meta business account ID" />' +
-      '</div>' +
-      '<div class="form-group">' +
-        '<label>Access Token</label>' +
-        '<input id="cfgToken" type="password" value="' + (c.api_token || '') + '" placeholder="Permanent access token" />' +
-      '</div>' +
-
-      '<button onclick="saveHubSettings()" style="width:100%;background:#0A7D1A;color:#fff;margin-top:12px;padding:12px;">💾 Save Settings</button>' +
-
-    '</div>';
+      // Check 10:00 AM Housekeeping Checkout Alert
+      if (HUB.config.send_housekeeping_checkout && currentHour === (HUB.config.checkout_send_hour || 10) && now.getMinutes() < 15) {
+        const today = now.toISOString().slice(0, 10);
+        const alreadyFired = (HUB.logs || []).some(l => l.template_name === 'housekeeping_checkout' && l.sent_at && l.sent_at.slice(0, 10) === today && l.status === 'sent');
+        if (!alreadyFired) {
+          await triggerHousekeepingCheckoutAlert();
+        }
+      }
+    } catch (e) {}
   }
 
-  window.toggleAutoSend = async function() {
-    await sb.from('whatsapp_config').update({
-      auto_send_enabled: !HUB.config.auto_send_enabled,
-      updated_at: new Date().toISOString(),
-      updated_by: SESSION.userId
-    }).eq('id', 1);
-    fsn.success('Updated', 'Auto-send ' + (!HUB.config.auto_send_enabled ? 'ENABLED' : 'DISABLED'));
-    renderWhatsAppHub();
-  };
-
-  window.saveHubSettings = async function() {
-    const updates = {
-      auto_send_enabled: document.getElementById('cfgAutoSend')?.checked || false,
-      dry_run_mode: document.getElementById('cfgDryRun')?.checked || false,
-      send_welcome: document.getElementById('cfgWelcome')?.checked || false,
-      send_arrival: document.getElementById('cfgArrival')?.checked || false,
-      send_checkout: document.getElementById('cfgCheckout')?.checked || false,
-      arrival_before_minutes: parseInt(document.getElementById('cfgArrivalMin')?.value) || 60,
-      checkout_send_hour: parseInt(document.getElementById('cfgCheckoutHour')?.value) || 8,
-      api_phone_id: document.getElementById('cfgPhoneId')?.value?.trim() || null,
-      api_business_id: document.getElementById('cfgBusinessId')?.value?.trim() || null,
-      api_token: document.getElementById('cfgToken')?.value?.trim() || null,
-      updated_at: new Date().toISOString(),
-      updated_by: SESSION.userId
-    };
-    const { error } = await sb.from('whatsapp_config').update(updates).eq('id', 1);
-    if (error) { fsn.error('Error', error.message); return; }
-    fsn.success('Saved', 'Settings updated successfully');
-    renderWhatsAppHub();
-  };
-
-  // ─── Start scheduler ───
   function startScheduler() {
     if (HUB.scheduler) return;
-    // Run every 5 min
-    HUB.scheduler = setInterval(schedulerTick, 5 * 60 * 1000);
-    // Also run once after 30 sec
-    setTimeout(schedulerTick, 30000);
-    console.log('📱 WhatsApp scheduler started');
+    HUB.scheduler = setInterval(schedulerTick, 5 * 60 * 1000); // Check every 5 mins
+    setTimeout(schedulerTick, 15000);
+    console.log('📱 WhatsApp Hub Scheduler active');
   }
 
-  // Auto-start when session ready
+  // Start scheduler on session ready
   const timer = setInterval(() => {
-    if (window.sb && window.SESSION && window.SESSION.role) {
+    if (window.sb) {
       clearInterval(timer);
-      if (['developer', 'owner'].includes(window.SESSION.role)) {
-        startScheduler();
-      }
+      startScheduler();
     }
   }, 1000);
 
   window.renderWhatsAppHub = renderWhatsAppHub;
+  window.dispatchWhatsAppMessage = dispatchWhatsAppMessage;
 })();

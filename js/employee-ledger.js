@@ -453,7 +453,6 @@ window.saveGiveAdvance = async function(empId, empName) {
     reason: reason,
     payment_mode: mode,
     paid_by: paidBy,
-    claim_status: 'unclaimed',
     is_deducted: false
   });
   

@@ -64,18 +64,21 @@ window.renderLaundry = async function() {
     itemsByRecord[ri.record_id].push(ri);
   });
   
-  const totalAmount = (records || []).reduce((s, r) => s + Number(r.total_amount || 0), 0);
-  const totalPaid = Object.values(paymentsByRecord).flat().reduce((s, p) => s + Number(p.amount || 0), 0);
+  const monthRecordIds = new Set((records || []).map(r => r.id));
+  const monthPayments = (allPayments || []).filter(p => monthRecordIds.has(p.record_id));
   
-  // Claim totals
-  const allPays = Object.values(paymentsByRecord).flat();
-  const unclaimedPays = allPays.filter(p => (p.claim_status || 'not_claimed') === 'not_claimed');
-  const claimedPays = allPays.filter(p => p.claim_status === 'claimed');
-  const receivedPays = allPays.filter(p => p.claim_status === 'received');
+  const totalAmount = (records || []).reduce((s, r) => s + Number(r.total_amount || 0), 0);
+  const totalPaid = monthPayments.reduce((s, p) => s + Number(p.amount || 0), 0);
+  
+  // Claim totals for this month's records
+  const unclaimedPays = monthPayments.filter(p => !p.claim_status || p.claim_status === 'not_claimed' || p.claim_status === 'unclaimed');
+  const claimedPays = monthPayments.filter(p => p.claim_status === 'claimed');
+  const receivedPays = monthPayments.filter(p => p.claim_status === 'received');
   const totalUnclaimed = unclaimedPays.reduce((s, p) => s + Number(p.amount || 0), 0);
   const totalClaimed = claimedPays.reduce((s, p) => s + Number(p.amount || 0), 0);
   const totalReceived = receivedPays.reduce((s, p) => s + Number(p.amount || 0), 0);
-  const totalDue = totalAmount - totalPaid;
+  const totalDue = Math.max(0, totalAmount - totalPaid);
+  const totalAdvance = Math.max(0, totalPaid - totalAmount);
   
   // Item-wise consumption
   const itemStats = {};
@@ -95,6 +98,36 @@ window.renderLaundry = async function() {
       <td style="text-align:center;"><span class="badge blue">${s.qty}</span></td>
       <td style="text-align:right;">₹${s.amount.toLocaleString('en-IN')}</td>
     </tr>`).join('');
+
+  // Vendor-wise stats
+  const vendorStats = {};
+  (records || []).forEach(r => {
+    const v = (r.vendor_name || 'Unknown').trim();
+    if (!vendorStats[v]) vendorStats[v] = { count: 0, total: 0, paid: 0, due: 0 };
+    vendorStats[v].count++;
+    vendorStats[v].total += Number(r.total_amount || 0);
+    const rPaid = (paymentsByRecord[r.id] || []).reduce((s, p) => s + Number(p.amount || 0), 0);
+    vendorStats[v].paid += rPaid;
+    const rDue = Math.max(0, Number(r.total_amount || 0) - rPaid);
+    vendorStats[v].due += rDue;
+  });
+
+  const vendorStatsHTML = Object.entries(vendorStats)
+    .sort((a, b) => b[1].total - a[1].total)
+    .map(([name, s]) => `<tr>
+      <td><strong style="color:var(--dark);font-size:13px;">${name}</strong></td>
+      <td style="text-align:center;"><span class="badge blue">${s.count} orders</span></td>
+      <td style="text-align:right;font-weight:700;">₹${s.total.toLocaleString('en-IN')}</td>
+      <td style="text-align:right;color:#059669;font-weight:600;">₹${s.paid.toLocaleString('en-IN')}</td>
+      <td style="text-align:right;">
+        ${s.due > 0 ? `<span class="badge red" style="font-weight:700;">₹${s.due.toLocaleString('en-IN')} Due</span>` : `<span class="badge green">✓ Clear</span>`}
+      </td>
+      <td style="text-align:center;">
+        <button onclick="printVendorLaundryReport('${name}', '${currentMonth}')" class="dash-pill-btn" style="background:#2563EB;color:#fff;border:none;padding:4px 10px;font-size:11px;cursor:pointer;border-radius:6px;font-weight:600;">
+          📄 Print PDF
+        </button>
+      </td>
+    </tr>`).join('');
   
   renderShell(`
     <div class="card">
@@ -103,6 +136,7 @@ window.renderLaundry = async function() {
       <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;">
         <button onclick="renderAddLaundry()">➕ Add Laundry</button>
         <button onclick="showLaundryReport()" style="background:#8B5CF6;color:#fff;">📊 Report</button>
+        <button onclick="openVendorReportModal()" style="background:#059669;color:#fff;">📄 Vendor PDF</button>
         <input type="month" value="${currentMonth}" onchange="window._laundryMonth=this.value;renderLaundry()" style="padding:6px 8px;border-radius:6px;border:1px solid var(--border);">
       </div>
     </div>
@@ -117,10 +151,17 @@ window.renderLaundry = async function() {
           <div class="kpi-num" style="color:#10B981;">₹${totalPaid.toLocaleString('en-IN')}</div>
           <div class="kpi-sub">Paid</div>
         </div>
+        ${totalAdvance > 0 ? `
+        <div class="kpi-tile" style="border-left:4px solid #10B981;background:rgba(16,185,129,0.08);">
+          <div class="kpi-num" style="color:#10B981;">₹${totalAdvance.toLocaleString('en-IN')}</div>
+          <div class="kpi-sub">Advance to Vendor</div>
+        </div>
+        ` : `
         <div class="kpi-tile" style="border-left:4px solid ${totalDue > 0 ? '#EF4444' : '#10B981'};background:${totalDue > 0 ? 'rgba(239,68,68,0.08)' : 'rgba(16,185,129,0.08)'};">
           <div class="kpi-num" style="color:${totalDue > 0 ? '#EF4444' : '#10B981'};">₹${totalDue.toLocaleString('en-IN')}</div>
           <div class="kpi-sub">Due</div>
         </div>
+        `}
         <div class="kpi-tile" style="border-left:4px solid #F59E0B;background:rgba(245,158,11,0.08);">
           <div class="kpi-num" style="color:#F59E0B;">₹${totalUnclaimed.toLocaleString('en-IN')}</div>
           <div class="kpi-sub">⏳ Unclaimed (${unclaimedPays.length})</div>
@@ -136,14 +177,33 @@ window.renderLaundry = async function() {
       </div>
     </div>
 
-    ${Object.keys(itemStats).length > 0 ? `
-    <div class="card">
-      <div class="section-title">📊 Item-wise Consumption (${currentMonth})</div>
-      <div class="table-wrap"><table>
-        <thead><tr><th>Item</th><th style="text-align:center;">Qty</th><th style="text-align:right;">Amount</th></tr></thead>
-        <tbody>${itemStatsHTML}</tbody>
-      </table></div>
-    </div>` : ''}
+    <!-- VENDOR-WISE REPORT & ITEM-WISE CONSUMPTION DUAL GRID -->
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:16px;margin-bottom:16px;">
+      ${Object.keys(vendorStats).length > 0 ? `
+      <div class="card" style="margin-bottom:0;">
+        <div class="section-title">🏆 Vendor-wise Report (${currentMonth})</div>
+        <div class="table-wrap"><table>
+          <thead><tr>
+            <th>Vendor</th>
+            <th style="text-align:center;">Orders</th>
+            <th style="text-align:right;">Billed</th>
+            <th style="text-align:right;">Paid</th>
+            <th style="text-align:right;">Balance</th>
+            <th style="text-align:center;">Statement PDF</th>
+          </tr></thead>
+          <tbody>${vendorStatsHTML}</tbody>
+        </table></div>
+      </div>` : ''}
+
+      ${Object.keys(itemStats).length > 0 ? `
+      <div class="card" style="margin-bottom:0;">
+        <div class="section-title">📊 Item-wise Consumption (${currentMonth})</div>
+        <div class="table-wrap"><table>
+          <thead><tr><th>Item</th><th style="text-align:center;">Qty</th><th style="text-align:right;">Amount</th></tr></thead>
+          <tbody>${itemStatsHTML}</tbody>
+        </table></div>
+      </div>` : ''}
+    </div>
 
     <div class="card">
       <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:12px;">
@@ -1232,9 +1292,12 @@ window.showLaundryReport = async function() {
   const vendorMap = {};
   (records || []).forEach(r => {
     const v = r.vendor_name || 'Unknown';
-    if (!vendorMap[v]) vendorMap[v] = { count: 0, amount: 0 };
+    if (!vendorMap[v]) vendorMap[v] = { count: 0, amount: 0, paid: 0, due: 0 };
     vendorMap[v].count++;
     vendorMap[v].amount += Number(r.total_amount || 0);
+    const rPaid = (allPayments || []).filter(p => p.record_id === r.id).reduce((s, p) => s + Number(p.amount || 0), 0);
+    vendorMap[v].paid += rPaid;
+    vendorMap[v].due += Math.max(0, Number(r.total_amount || 0) - rPaid);
   });
   const vendorList = Object.entries(vendorMap).sort((a,b) => b[1].amount - a[1].amount);
   
@@ -1299,8 +1362,10 @@ window.showLaundryReport = async function() {
         <table style="width:100%;border-collapse:collapse;font-size:12px;">
           <thead><tr style="background:#f5f5f5;">
             <th style="padding:6px;text-align:left;">Vendor</th>
-            <th style="padding:6px;text-align:center;">Records</th>
-            <th style="padding:6px;text-align:right;">Total</th>
+            <th style="padding:6px;text-align:center;">Orders</th>
+            <th style="padding:6px;text-align:right;">Billed</th>
+            <th style="padding:6px;text-align:right;">Paid</th>
+            <th style="padding:6px;text-align:right;">Due</th>
             <th style="padding:6px;text-align:right;">%</th>
           </tr></thead>
           <tbody>
@@ -1308,10 +1373,14 @@ window.showLaundryReport = async function() {
               <tr style="border-bottom:1px solid #eee;">
                 <td style="padding:6px;"><strong>${name}</strong></td>
                 <td style="padding:6px;text-align:center;">${data.count}</td>
-                <td style="padding:6px;text-align:right;">₹${data.amount.toLocaleString('en-IN')}</td>
+                <td style="padding:6px;text-align:right;font-weight:700;">₹${data.amount.toLocaleString('en-IN')}</td>
+                <td style="padding:6px;text-align:right;color:#059669;font-weight:600;">₹${data.paid.toLocaleString('en-IN')}</td>
+                <td style="padding:6px;text-align:right;">
+                  ${data.due > 0 ? `<span style="color:#DC2626;font-weight:700;">₹${data.due.toLocaleString('en-IN')} Due</span>` : `<span style="color:#059669;">✓ Clear</span>`}
+                </td>
                 <td style="padding:6px;text-align:right;">${totalAmount > 0 ? Math.round(data.amount / totalAmount * 100) : 0}%</td>
               </tr>
-            `).join('') || '<tr><td colspan="4" style="padding:12px;text-align:center;color:#999;">No data</td></tr>'}
+            `).join('') || '<tr><td colspan="6" style="padding:12px;text-align:center;color:#999;">No data</td></tr>'}
           </tbody>
         </table>
       </div>
@@ -1354,4 +1423,361 @@ window.showLaundryReport = async function() {
   `;
   document.body.appendChild(modal);
 };
+
+// ═══════════════════════════════════════════════════════════
+// 📄 VENDOR-WISE DATE STATEMENT PDF GENERATOR
+// ═══════════════════════════════════════════════════════════
+
+window.openVendorReportModal = async function() {
+  const currentMonth = window._laundryMonth || new Date().toISOString().slice(0, 7);
+  const { data: records } = await sb.from('laundry_records').select('vendor_name').order('vendor_name');
+  const vendors = Array.from(new Set((records || []).map(r => (r.vendor_name || '').trim()).filter(Boolean))).sort();
+
+  const modal = document.createElement('div');
+  modal.className = 'modal-overlay';
+  modal.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:9999;padding:20px;';
+  modal.innerHTML = `
+    <div class="modal-box" style="background:#fff;border-radius:12px;padding:24px;max-width:440px;width:100%;box-shadow:0 10px 25px rgba(0,0,0,0.2);">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;border-bottom:1px solid #eee;padding-bottom:10px;">
+        <h3 style="margin:0;font-size:18px;color:#1F2937;">📄 Vendor Statement PDF</h3>
+        <button onclick="this.closest('.modal-overlay').remove()" style="background:none;border:none;font-size:22px;cursor:pointer;">✕</button>
+      </div>
+      <div style="margin-bottom:14px;">
+        <label style="display:block;font-size:12px;font-weight:700;color:#4B5563;margin-bottom:6px;">Select Vendor:</label>
+        <select id="vReportVendor" style="width:100%;padding:8px 10px;border-radius:6px;border:1px solid #D1D5DB;font-size:14px;">
+          <option value="All">All Vendors (Consolidated Statement)</option>
+          ${vendors.map(v => `<option value="${v}">${v}</option>`).join('')}
+        </select>
+      </div>
+      <div style="margin-bottom:18px;">
+        <label style="display:block;font-size:12px;font-weight:700;color:#4B5563;margin-bottom:6px;">Select Month:</label>
+        <input type="month" id="vReportMonth" value="${currentMonth}" style="width:100%;padding:8px 10px;border-radius:6px;border:1px solid #D1D5DB;font-size:14px;" />
+      </div>
+      <div style="display:flex;gap:10px;justify-content:flex-end;">
+        <button onclick="this.closest('.modal-overlay').remove()" style="background:#F3F4F6;color:#374151;border:none;padding:8px 16px;border-radius:6px;cursor:pointer;font-weight:600;">Cancel</button>
+        <button id="btnGenVReport" style="background:#059669;color:#fff;border:none;padding:8px 18px;border-radius:6px;cursor:pointer;font-weight:700;">
+          🖨️ Generate PDF
+        </button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+
+  modal.querySelector('#btnGenVReport').onclick = () => {
+    const vName = modal.querySelector('#vReportVendor').value;
+    const mStr = modal.querySelector('#vReportMonth').value;
+    modal.remove();
+    printVendorLaundryReport(vName, mStr);
+  };
+};
+
+window.printVendorLaundryReport = async function(vendorName, monthYear) {
+  const currentMonth = monthYear || window._laundryMonth || new Date().toISOString().slice(0, 7);
+  const monthStart = currentMonth + '-01';
+  const [lYear, lMon] = currentMonth.split('-').map(Number);
+  const lastDayNum = new Date(lYear, lMon, 0).getDate();
+  const monthEnd = `${currentMonth}-${String(lastDayNum).padStart(2, '0')}`;
+
+  let query = sb.from('laundry_records').select('*')
+    .gte('record_date', monthStart)
+    .lte('record_date', monthEnd)
+    .order('record_date', { ascending: true });
+  
+  if (vendorName && vendorName !== 'All') {
+    query = query.eq('vendor_name', vendorName);
+  }
+
+  const [{ data: records }, { data: recItems }, { data: allPayments }, { data: rooms }] = await Promise.all([
+    query,
+    sb.from('laundry_record_items').select('*, laundry_items(item_name)'),
+    sb.from('laundry_payments').select('*').order('payment_date', { ascending: true }),
+    sb.from('rooms').select('room_id, nickname, unit_no')
+  ]);
+
+  const roomMap = {};
+  (rooms || []).forEach(r => { roomMap[r.room_id] = r.nickname || r.unit_no; });
+
+  const recordIds = new Set((records || []).map(r => r.id));
+  const monthItemsByRec = {};
+  (recItems || []).forEach(ri => {
+    if (recordIds.has(ri.record_id)) {
+      if (!monthItemsByRec[ri.record_id]) monthItemsByRec[ri.record_id] = [];
+      monthItemsByRec[ri.record_id].push(ri);
+    }
+  });
+
+  const vendorPayments = (allPayments || []).filter(p => recordIds.has(p.record_id));
+  const paymentsByRec = {};
+  vendorPayments.forEach(p => {
+    if (!paymentsByRec[p.record_id]) paymentsByRec[p.record_id] = [];
+    paymentsByRec[p.record_id].push(p);
+  });
+
+  const totalBilled = (records || []).reduce((s, r) => s + Number(r.total_amount || 0), 0);
+  const totalPaid = vendorPayments.reduce((s, p) => s + Number(p.amount || 0), 0);
+  const totalDue = Math.max(0, totalBilled - totalPaid);
+  const totalAdvance = Math.max(0, totalPaid - totalBilled);
+
+  // Month date title
+  const monthDate = new Date(currentMonth + '-01');
+  const monthName = monthDate.toLocaleDateString('en-IN', { month: 'long', year: 'numeric' });
+  const todayStr = new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+  const vendorTitle = (vendorName && vendorName !== 'All') ? vendorName : 'All Laundry Vendors';
+
+  // WhatsApp summary text
+  const waText = encodeURIComponent(
+    `*The Unique Haven Homes — Laundry Vendor Statement*\n` +
+    `Vendor: ${vendorTitle}\n` +
+    `Period: ${monthName}\n` +
+    `Total Orders: ${(records||[]).length}\n` +
+    `Total Billed: ₹${totalBilled.toLocaleString('en-IN')}\n` +
+    `Total Paid: ₹${totalPaid.toLocaleString('en-IN')}\n` +
+    `Balance Due: ₹${totalDue.toLocaleString('en-IN')}\n` +
+    `Generated on: ${todayStr}`
+  );
+
+  const printHtml = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>${vendorTitle} - Laundry Statement (${monthName})</title>
+  <style>
+    * { box-sizing: border-box; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; margin: 0; padding: 20px; background: #f8fafc; color: #1e293b; line-height: 1.4; }
+    .page-container { max-width: 850px; margin: 0 auto; background: #fff; padding: 32px 36px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.06); }
+    
+    /* Letterhead Header */
+    .doc-head { border-bottom: 2px solid #0f172a; padding-bottom: 16px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: flex-start; }
+    .doc-brand h1 { margin: 0; font-size: 22px; font-weight: 800; color: #0f172a; letter-spacing: -0.5px; }
+    .doc-brand p { margin: 3px 0 0; font-size: 12px; color: #64748b; }
+    .doc-badge { background: #f1f5f9; padding: 8px 14px; border-radius: 6px; text-align: right; border: 1px solid #e2e8f0; }
+    .doc-badge .title { font-size: 13px; font-weight: 800; color: #0f172a; text-transform: uppercase; }
+    .doc-badge .meta { font-size: 11px; color: #64748b; margin-top: 2px; }
+    
+    /* Meta bar */
+    .meta-bar { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; background: #f8fafc; padding: 12px 16px; border-radius: 6px; border: 1px solid #e2e8f0; margin-bottom: 20px; }
+    .meta-item label { font-size: 10.5px; text-transform: uppercase; font-weight: 700; color: #64748b; display: block; margin-bottom: 2px; }
+    .meta-item span { font-size: 13px; font-weight: 700; color: #0f172a; }
+
+    /* KPI Strip */
+    .kpi-strip { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 24px; }
+    .kpi-box { padding: 12px 14px; border-radius: 6px; border-left: 4px solid #cbd5e1; background: #f8fafc; }
+    .kpi-box.blue { border-color: #2563eb; background: #eff6ff; }
+    .kpi-box.green { border-color: #059669; background: #ecfdf5; }
+    .kpi-box.red { border-color: #dc2626; background: #fef2f2; }
+    .kpi-box.amber { border-color: #d97706; background: #fffbeb; }
+    .kpi-box .val { font-size: 18px; font-weight: 800; color: #0f172a; }
+    .kpi-box .lbl { font-size: 11px; font-weight: 600; color: #64748b; text-transform: uppercase; margin-top: 2px; }
+
+    /* Tables */
+    .section-title { font-size: 13px; font-weight: 800; color: #0f172a; text-transform: uppercase; margin-bottom: 8px; display: flex; align-items: center; justify-content: space-between; border-left: 3px solid #2563eb; padding-left: 8px; }
+    table { width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 12px; }
+    th { background: #f1f5f9; padding: 8px 10px; text-align: left; font-size: 11px; font-weight: 700; color: #475569; text-transform: uppercase; border-bottom: 1px solid #cbd5e1; }
+    td { padding: 8px 10px; border-bottom: 1px solid #e2e8f0; color: #1e293b; vertical-align: top; }
+    tr:nth-child(even) { background: #fafafa; }
+    .badge { display: inline-block; padding: 2px 7px; border-radius: 4px; font-size: 10.5px; font-weight: 700; }
+    .badge.green { background: #dcfce7; color: #15803d; }
+    .badge.red { background: #fee2e2; color: #b91c1c; }
+    .badge.blue { background: #dbeafe; color: #1d4ed8; }
+
+    /* Signatures */
+    .sign-strip { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-top: 36px; padding-top: 20px; border-top: 1px solid #e2e8f0; }
+    .sign-box { border-top: 1px dashed #94a3b8; padding-top: 6px; text-align: center; font-size: 11.5px; color: #475569; }
+
+    /* Action bar */
+    .no-print { position: sticky; top: 10px; max-width: 850px; margin: 0 auto 16px; background: #0f172a; padding: 10px 16px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; z-index: 1000; box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+    .no-print .btn { background: #2563eb; color: #fff; border: none; padding: 8px 16px; border-radius: 6px; font-size: 12px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
+    .no-print .btn.green { background: #059669; }
+    .no-print .btn.gray { background: #475569; }
+
+    @media print {
+      body { background: #fff; padding: 0; }
+      .page-container { box-shadow: none; padding: 0; max-width: 100%; }
+      .no-print { display: none !important; }
+      @page { size: A4 portrait; margin: 12mm 15mm; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Action Bar -->
+  <div class="no-print">
+    <div style="color:#fff;font-size:13px;font-weight:700;">
+      📄 ${vendorTitle} — ${monthName} Statement
+    </div>
+    <div style="display:flex;gap:8px;">
+      <button class="btn" onclick="window.print()">🖨️ Print / Save as PDF</button>
+      <a class="btn green" href="https://api.whatsapp.com/send?text=${waText}" target="_blank" style="text-decoration:none;">📱 WhatsApp</a>
+      <button class="btn gray" onclick="window.close()">✕ Close</button>
+    </div>
+  </div>
+
+  <div class="page-container">
+    <!-- Header -->
+    <div class="doc-head">
+      <div class="doc-brand">
+        <h1>THE UNIQUE HAVEN HOMES</h1>
+        <p>Luxury Serviced Apartments & Villas &bull; Gomti Nagar & Shaheed Path, Lucknow</p>
+        <p style="font-size:11px;color:#94a3b8;">CIN: U68101UP2026PTC244837 | Caretaker & Laundry Management</p>
+      </div>
+      <div class="doc-badge">
+        <div class="title">LAUNDRY STATEMENT</div>
+        <div class="meta">${monthName}</div>
+      </div>
+    </div>
+
+    <!-- Metadata Bar -->
+    <div class="meta-bar">
+      <div class="meta-item">
+        <label>Vendor Name</label>
+        <span>${vendorTitle}</span>
+      </div>
+      <div class="meta-item">
+        <label>Billing Period</label>
+        <span>${monthName}</span>
+      </div>
+      <div class="meta-item">
+        <label>Statement Date</label>
+        <span>${todayStr}</span>
+      </div>
+      <div class="meta-item">
+        <label>Account Status</label>
+        <span style="color:${totalDue > 0 ? '#DC2626' : '#059669'};">${totalDue > 0 ? '₹' + totalDue.toLocaleString('en-IN') + ' Due' : 'All Clear ✓'}</span>
+      </div>
+    </div>
+
+    <!-- KPI Summary Strip -->
+    <div class="kpi-strip">
+      <div class="kpi-box blue">
+        <div class="val">${(records || []).length}</div>
+        <div class="lbl">Total Dispatches</div>
+      </div>
+      <div class="kpi-box">
+        <div class="val">₹${totalBilled.toLocaleString('en-IN')}</div>
+        <div class="lbl">Total Billed</div>
+      </div>
+      <div class="kpi-box green">
+        <div class="val">₹${totalPaid.toLocaleString('en-IN')}</div>
+        <div class="lbl">Amount Paid</div>
+      </div>
+      <div class="kpi-box ${totalDue > 0 ? 'red' : 'green'}">
+        <div class="val">₹${totalDue > 0 ? totalDue.toLocaleString('en-IN') : (totalAdvance > 0 ? totalAdvance.toLocaleString('en-IN') + ' (Adv)' : '0')}</div>
+        <div class="lbl">${totalDue > 0 ? 'Balance Due' : (totalAdvance > 0 ? 'Advance Paid' : 'Balance')}</div>
+      </div>
+    </div>
+
+    <!-- Table 1: Date-wise Linen Dispatches -->
+    <div class="section-title">
+      <span>📦 Date-wise Laundry Dispatches</span>
+      <span style="font-size:11px;font-weight:600;color:#64748b;">${(records||[]).length} orders</span>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th style="width:85px;">Date</th>
+          <th style="width:65px;">Order #</th>
+          <th>Property / Apartment</th>
+          <th>Linen Items Dispatched</th>
+          <th style="text-align:right;width:75px;">Billed</th>
+          <th style="text-align:right;width:75px;">Paid</th>
+          <th style="text-align:center;width:75px;">Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${(records || []).map(r => {
+          const rDate = new Date(r.record_date + 'T00:00:00').toLocaleDateString('en-IN', { day: '2-digit', month: 'short' });
+          const propName = roomMap[r.room_id] || 'General / Central';
+          const rItems = monthItemsByRec[r.id] || [];
+          const itemsDesc = rItems.map(ri => `${ri.quantity}x ${ri.laundry_items?.item_name || 'Item'}`).join(', ') || 'Standard linen wash';
+          const rPays = paymentsByRec[r.id] || [];
+          const rPaid = rPays.reduce((s, p) => s + Number(p.amount || 0), 0);
+          const rBilled = Number(r.total_amount || 0);
+          const isFullPaid = rPaid >= rBilled && rBilled > 0;
+          return `<tr>
+            <td><strong>${rDate}</strong></td>
+            <td>#${r.id}</td>
+            <td>${propName}</td>
+            <td style="color:#475569;font-size:11.5px;">${itemsDesc}</td>
+            <td style="text-align:right;font-weight:700;">₹${rBilled.toLocaleString('en-IN')}</td>
+            <td style="text-align:right;color:#059669;font-weight:600;">₹${rPaid.toLocaleString('en-IN')}</td>
+            <td style="text-align:center;">
+              <span class="badge ${isFullPaid ? 'green' : 'red'}">${isFullPaid ? 'Paid' : 'Pending'}</span>
+            </td>
+          </tr>`;
+        }).join('') || '<tr><td colspan="7" style="text-align:center;color:#94a3b8;padding:16px;">No dispatches found</td></tr>'}
+      </tbody>
+    </table>
+
+    <!-- Table 2: Date-wise Payment Settlements -->
+    ${vendorPayments.length > 0 ? `
+    <div class="section-title" style="margin-top:24px;">
+      <span>💳 Payment Settlements & Receipts</span>
+      <span style="font-size:11px;font-weight:600;color:#64748b;">${vendorPayments.length} payments &bull; ₹${totalPaid.toLocaleString('en-IN')}</span>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th style="width:90px;">Payment Date</th>
+          <th>Order Ref</th>
+          <th>Payment Mode</th>
+          <th style="text-align:right;">Amount Paid</th>
+          <th style="text-align:center;">Claim Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${vendorPayments.map(p => {
+          const pDate = new Date(p.payment_date + 'T00:00:00').toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+          const clm = p.claim_status === 'received' ? '✅ Received' : (p.claim_status === 'claimed' ? '📤 Claimed' : '⏳ Unclaimed');
+          return `<tr>
+            <td><strong>${pDate}</strong></td>
+            <td>Order #${p.record_id || 'Direct'}</td>
+            <td>${p.payment_mode || 'Cash'}</td>
+            <td style="text-align:right;font-weight:700;color:#059669;">₹${Number(p.amount || 0).toLocaleString('en-IN')}</td>
+            <td style="text-align:center;"><span class="badge ${p.claim_status === 'received' ? 'green' : 'blue'}">${clm}</span></td>
+          </tr>`;
+        }).join('')}
+      </tbody>
+    </table>
+    ` : ''}
+
+    <!-- Signatures Strip -->
+    <div class="sign-strip">
+      <div class="sign-box">
+        Vendor Signature / Stamp<br>
+        <strong>(${vendorTitle})</strong>
+      </div>
+      <div class="sign-box">
+        Authorized Signatory<br>
+        <strong>The Unique Haven Homes Pvt Ltd</strong>
+      </div>
+    </div>
+
+    <div style="text-align:center;font-size:10px;color:#94a3b8;margin-top:24px;">
+      This is an official computer-generated statement issued by The Unique Haven Homes Operations & Accounting.
+    </div>
+  </div>
+
+  <script>
+    window.onload = function() {
+      setTimeout(function() {
+        const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+        if (!isMobile) {
+          window.print();
+        }
+      }, 400);
+    };
+  </script>
+</body>
+</html>`;
+
+  const printWindow = window.open('', '_blank');
+  if (printWindow) {
+    printWindow.document.open();
+    printWindow.document.write(printHtml);
+    printWindow.document.close();
+  } else {
+    alert('Please allow popups in your browser to print the PDF statement.');
+  }
+};
+
 

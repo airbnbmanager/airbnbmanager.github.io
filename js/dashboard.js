@@ -145,6 +145,9 @@ async function renderDashboard() {
   const today = new Date().toISOString().slice(0, 10);
   const day7 = dateAdd(today, 7);
   const monthStart = today.slice(0, 7) + '-01';
+  const now = new Date();
+  const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+  const monthEnd = today.slice(0, 7) + '-' + String(lastDay).padStart(2, '0');
 
   const [
     { data: bookings },
@@ -211,7 +214,10 @@ async function renderDashboard() {
     .filter(p => p.payment_date === today)
     .reduce((s, p) => s + (p.amount || 0), 0);
 
-  const monthCheckinBookings = allBookings.filter(b => (b.check_in || '') >= monthStart);
+  const monthCheckinBookings = allBookings.filter(b => {
+    const ci = b.check_in || '';
+    return ci >= monthStart && ci <= monthEnd && !b.is_cancelled;
+  });
   const monthRevenue = monthCheckinBookings.reduce((s, b) => s + (b.total_amount || 0), 0);
   const monthCollected = monthCheckinBookings.reduce((s, b) => s + (paidMap[b.booking_id] || 0), 0);
 

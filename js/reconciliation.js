@@ -168,8 +168,8 @@ async function processAirbnbCSV(input) {
       : 100;
 
     document.getElementById('reconResults').innerHTML = `
-      <div class="card" style="background:linear-gradient(135deg,#FF385C,#E00B41);color:#fff;">
-        <div class="section-title" style="color:#fff;border:none;">
+      <div class="card" style="background:linear-gradient(135deg,#0F172A 0%,#1E293B 100%);color:#fff;border-left:4px solid #4F46E5;border-radius:12px;box-shadow:0 4px 15px rgba(15,23,42,0.1);">
+        <div class="section-title" style="color:#fff;border:none;font-weight:800;font-size:16px;">
           📊 ${monthName} — Sync Status
         </div>
         <div class="stat-grid" style="margin-top:12px;">

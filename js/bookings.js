@@ -140,13 +140,161 @@ window.rejectPayment = async function(payId) {
   if (window.renderPendingApprovals) renderPendingApprovals();
 };
 
+// Helper to catch missing native columns / PostgREST schema cache errors
+function isMissingColumnError(err) {
+  if (!err) return false;
+  const msg = (err.message || '').toLowerCase();
+  const code = String(err.code || '').toUpperCase();
+  return code === '42703' || 
+         code === 'PGRST204' || 
+         msg.includes('security_deposit') || 
+         (msg.includes('column') && msg.includes('schema cache')) ||
+         (msg.includes('could not find') && msg.includes('column'));
+}
+window.isMissingColumnError = isMissingColumnError;
+
+// ═══════════════════════════════════════════════════════════
+// 🛡️ SECURITY DEPOSIT HELPERS (सुरक्षा जमा राशि)
+// Isolated from stay revenue: not added to total_amount or payment_history
+// ═══════════════════════════════════════════════════════════
+function getSecurityDeposit(b) {
+  if (!b) return null;
+  // 1. Check native columns first
+  if (b.security_deposit_amount != null || b.security_deposit_status) {
+    const amt = parseFloat(b.security_deposit_amount) || 0;
+    const st = b.security_deposit_status || (amt > 0 ? 'collected' : 'none');
+    if (amt > 0 || (st && st !== 'none')) {
+      return {
+        amount: amt,
+        status: st, // 'none' | 'pending' | 'collected' | 'refunded' | 'partially_refunded' | 'retained'
+        mode: b.security_deposit_mode || 'UPI',
+        receivedBy: b.security_deposit_received_by || '',
+        receivedDate: b.security_deposit_received_date || '',
+        refundDate: b.security_deposit_refund_date || '',
+        refundAmount: parseFloat(b.security_deposit_refund_amount) || 0,
+        refundMode: b.security_deposit_refund_mode || 'UPI',
+        refundedBy: b.security_deposit_refunded_by || '',
+        deductedAmount: parseFloat(b.security_deposit_deducted_amount) || 0,
+        deductionReason: b.security_deposit_deduction_reason || '',
+        notes: b.security_deposit_notes || ''
+      };
+    }
+  }
+
+  // 2. Fallback: Parse embedded tag in notes [SECURITY_DEPOSIT:{...}]
+  if (b.notes && b.notes.includes('[SECURITY_DEPOSIT:')) {
+    try {
+      const match = b.notes.match(/\[SECURITY_DEPOSIT:(.*?)\]/);
+      if (match && match[1]) {
+        const p = JSON.parse(match[1]);
+        return {
+          amount: parseFloat(p.amount) || 0,
+          status: p.status || (parseFloat(p.amount) > 0 ? 'collected' : 'none'),
+          mode: p.mode || 'UPI',
+          receivedBy: p.receivedBy || '',
+          receivedDate: p.receivedDate || '',
+          refundDate: p.refundDate || '',
+          refundAmount: parseFloat(p.refundAmount) || 0,
+          refundMode: p.refundMode || 'UPI',
+          refundedBy: p.refundedBy || '',
+          deductedAmount: parseFloat(p.deductedAmount) || 0,
+          deductionReason: p.deductionReason || '',
+          notes: p.notes || ''
+        };
+      }
+    } catch(e) {
+      console.warn('Error parsing security deposit from notes:', e);
+    }
+  }
+
+  return {
+    amount: 0,
+    status: 'none',
+    mode: 'UPI',
+    receivedBy: '',
+    receivedDate: '',
+    refundDate: '',
+    refundAmount: 0,
+    refundMode: 'UPI',
+    refundedBy: '',
+    deductedAmount: 0,
+    deductionReason: '',
+    notes: ''
+  };
+}
+window.getSecurityDeposit = getSecurityDeposit;
+
+function cleanNotesForDisplay(notes) {
+  if (!notes) return '';
+  return notes
+    .replace(/\[SECURITY_DEPOSIT:.*?\]/g, '')
+    .replace(/\s*\|\s*\|\s*/g, ' | ')
+    .replace(/^\s*\|\s*/, '')
+    .replace(/\s*\|\s*$/, '')
+    .trim();
+}
+window.cleanNotesForDisplay = cleanNotesForDisplay;
+
+function encodeSecurityDepositInNotes(existingNotes, secData) {
+  const base = cleanNotesForDisplay(existingNotes);
+  if (!secData || secData.status === 'none' || (!secData.amount && secData.status !== 'pending')) {
+    return base;
+  }
+  const tag = `[SECURITY_DEPOSIT:${JSON.stringify(secData)}]`;
+  return base ? `${base} | ${tag}` : tag;
+}
+window.encodeSecurityDepositInNotes = encodeSecurityDepositInNotes;
+
+function getSecurityDepositBadge(b) {
+  const sec = getSecurityDeposit(b);
+  if (!sec || sec.status === 'none' || (!sec.amount && sec.status !== 'pending')) return '';
+
+  const amtStr = '₹' + (sec.amount || 0).toLocaleString('en-IN');
+  if (sec.status === 'collected') {
+    return ` <span class="badge" style="background:#0284C7;color:#fff;font-size:9.5px;font-weight:700;cursor:pointer;padding:2px 6px;border-radius:6px;display:inline-flex;align-items:center;gap:3px;" onclick="event.stopPropagation();showSecurityDepositModal('${b.booking_id}')" title="Security Deposit Held: ₹${sec.amount} — Click to manage/refund">🛡️ Sec: ${amtStr} (Held)</span>`;
+  } else if (sec.status === 'pending') {
+    return ` <span class="badge yellow" style="font-size:9.5px;font-weight:700;cursor:pointer;padding:2px 6px;border-radius:6px;display:inline-flex;align-items:center;gap:3px;" onclick="event.stopPropagation();showSecurityDepositModal('${b.booking_id}')" title="Security Deposit Pending Collection">🛡️ Sec: ${amtStr} (Pending)</span>`;
+  } else if (sec.status === 'refunded') {
+    return ` <span class="badge" style="background:#059669;color:#fff;font-size:9.5px;font-weight:700;cursor:pointer;padding:2px 6px;border-radius:6px;display:inline-flex;align-items:center;gap:3px;" onclick="event.stopPropagation();showSecurityDepositModal('${b.booking_id}')" title="Security Deposit Fully Refunded">🛡️ Sec: ${amtStr} (Refunded)</span>`;
+  } else if (sec.status === 'partially_refunded') {
+    const ded = (sec.deductedAmount || 0).toLocaleString('en-IN');
+    const ref = (sec.refundAmount || 0).toLocaleString('en-IN');
+    return ` <span class="badge" style="background:#7C3AED;color:#fff;font-size:9.5px;font-weight:700;cursor:pointer;padding:2px 6px;border-radius:6px;display:inline-flex;align-items:center;gap:3px;" onclick="event.stopPropagation();showSecurityDepositModal('${b.booking_id}')" title="Damage Deducted: ₹${ded}, Refunded: ₹${ref}">🛡️ Sec: ${amtStr} (-₹${ded})</span>`;
+  } else if (sec.status === 'retained') {
+    return ` <span class="badge red" style="font-size:9.5px;font-weight:700;cursor:pointer;padding:2px 6px;border-radius:6px;display:inline-flex;align-items:center;gap:3px;" onclick="event.stopPropagation();showSecurityDepositModal('${b.booking_id}')" title="Security Deposit Fully Retained for Damage">🛡️ Sec: ${amtStr} (Retained)</span>`;
+  }
+  return '';
+}
+window.getSecurityDepositBadge = getSecurityDepositBadge;
+
 
 // ============ GUEST LEDGER ============
-async function showGuestLedger(guestName) {
-  const {data:bookings} = await sb.from('guest_register')
+async function showGuestLedger(guestName, bookingId, phone, airbnbCode) {
+  let q = sb.from('guest_register')
     .select('*, rooms(nickname, unit_no)')
-    .eq('guest_name', guestName)
     .order('check_in', {ascending:false});
+
+  const cleanPhone = phone ? String(phone).replace(/\D/g, '') : '';
+
+  if (cleanPhone.length >= 10) {
+    // If guest has a clean phone number, match repeat stays by phone
+    q = q.eq('phone', phone);
+  } else if (bookingId) {
+    // Online or no verified phone: isolate to this specific stay so unrelated people with the same name never merge!
+    q = q.eq('booking_id', bookingId);
+  } else if (airbnbCode) {
+    q = q.eq('airbnb_confirmation_code', airbnbCode);
+  } else {
+    q = q.eq('guest_name', guestName);
+  }
+
+  const {data: rawBookings} = await q;
+  let bookings = rawBookings || [];
+
+  // Extra safety guard: If online booking or no verified phone, strictly isolate to this booking
+  if (bookingId && cleanPhone.length < 10) {
+    bookings = bookings.filter(b => b.booking_id === bookingId);
+  }
 
   if (!bookings || !bookings.length) { fsn.info('Info', 'No bookings found for: ' + guestName); return; }
 
@@ -161,7 +309,7 @@ async function showGuestLedger(guestName) {
 
   const totalAmount = bookings.reduce((s, b) => s + (b.total_amount || 0), 0);
   const totalPaid = bookings.reduce((s, b) => s + (payMap[b.booking_id] || 0), 0);
-  const totalDue = totalAmount - totalPaid;
+  const totalDue = Math.max(0, totalAmount - totalPaid);
   const totalNights = bookings.reduce((s, b) => {
     if (b.check_in && b.check_out) return s + calcNights(b.check_in, b.check_out);
     return s;
@@ -205,14 +353,17 @@ async function showGuestLedger(guestName) {
         <thead><tr><th>Property</th><th>Mode</th><th>In</th><th>Out</th><th>Total</th><th>Paid</th><th>Due</th></tr></thead>
         <tbody>${bookings.map(b => {
           const pd = payMap[b.booking_id] || 0;
-          const due = (b.total_amount || 0) - pd;
+          const isAirbnb = b.booking_mode === 'Online-Airbnb' || !!b.airbnb_confirmation_code;
+          const isPendingCsv = isAirbnb && (b.total_amount === 0 || b.payment_status === 'Pending CSV Payout');
+          const due = isPendingCsv ? 0 : Math.max(0, (b.total_amount || 0) - pd);
           return `<tr>
-            <td>${propLabel(b.rooms) || b.room_id || '-'}</td>
-            <td><span class="channel-badge ${b.booking_mode === 'Online-Airbnb' ? 'channel-airbnb' : 'channel-direct'}">${b.booking_mode === 'Online-Airbnb' ? 'Airbnb' : 'Direct'}</span></td>
-            <td>${b.check_in || '-'}</td><td>${b.check_out || '-'}</td>
-            <td>₹${(b.total_amount || 0).toLocaleString('en-IN')}</td>
-            <td style="color:var(--green);">₹${pd.toLocaleString('en-IN')}</td>
-            <td class="${due > 0 ? 'metric-value warn' : ''}">₹${due.toLocaleString('en-IN')}</td>
+            <td>${b.rooms?.nickname || b.room_id}</td>
+            <td><span class="channel-badge ${isAirbnb ? 'channel-airbnb' : 'channel-direct'}">${isAirbnb ? 'Airbnb' : 'Direct'}</span></td>
+            <td>${b.check_in || '-'}</td>
+            <td>${b.check_out || '-'}</td>
+            <td>${isPendingCsv ? '<span class="badge yellow" style="font-size:10px;">⏳ Pending CSV</span>' : '₹' + (b.total_amount || 0).toLocaleString('en-IN')}</td>
+            <td style="color:var(--green);">${isPendingCsv ? '-' : '₹' + pd.toLocaleString('en-IN')}</td>
+            <td style="${due > 0 ? 'color:var(--red);font-weight:700;' : ''}">${isPendingCsv ? '-' : (due > 0 ? '₹' + due.toLocaleString('en-IN') : '₹0')}</td>
           </tr>`;
         }).join('')}</tbody>
       </table></div>
@@ -542,7 +693,16 @@ async function renderManageBookings() {
   if (df) f = f.filter(b => b.check_in === df);
   if (d1) f = f.filter(b => b.check_in >= d1);
   if (d2) f = f.filter(b => b.check_in <= d2);
-  if (sq) f = f.filter(b => (b.guest_name || '').toLowerCase().includes(sq.toLowerCase()) || (b.phone || '').includes(sq) || (b.booking_id && String(b.booking_id).toLowerCase().includes(sq.toLowerCase())));
+  if (sq) {
+    const sLow = sq.toLowerCase();
+    f = f.filter(b => 
+      (b.guest_name || '').toLowerCase().includes(sLow) || 
+      (b.phone || '').includes(sq) || 
+      (b.booking_id && String(b.booking_id).toLowerCase().includes(sLow)) ||
+      (b.airbnb_confirmation_code && b.airbnb_confirmation_code.toLowerCase().includes(sLow)) ||
+      (b.notes && b.notes.toLowerCase().includes(sLow))
+    );
+  }
 
   // Period filter
   const period = SESSION.bookingPeriod;
@@ -664,8 +824,19 @@ async function renderManageBookings() {
         const total = b.total_amount || 0;
         return total > 0 && (total - paid) > 0;
       });
+    } else if (payFilter === 'security_held') {
+      f = f.filter(b => {
+        const sec = typeof getSecurityDeposit === 'function' ? getSecurityDeposit(b) : null;
+        return sec && sec.status === 'collected';
+      });
+    } else if (payFilter === 'security_all') {
+      f = f.filter(b => {
+        const sec = typeof getSecurityDeposit === 'function' ? getSecurityDeposit(b) : null;
+        return sec && sec.status !== 'none' && (sec.amount > 0 || sec.status === 'pending');
+      });
     }
   }
+
 
   const today = new Date().toISOString().slice(0, 10);
 
@@ -694,6 +865,7 @@ async function renderManageBookings() {
         </div>
       </div>
       <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+        <button class="btn-sm" onclick="navigate('whatsapp-hub')" style="background:#15803D;color:#fff;border:none;font-weight:700;">📱 WhatsApp Hub</button>
         ${canM ? `<button class="btn-sm" onclick="renderAddBooking()">➕ New Booking</button>` : ''}
         <button class="btn-sm outline" onclick="exportBookingsPDF()">📄 Export PDF</button>
       </div>
@@ -732,8 +904,11 @@ async function renderManageBookings() {
             <option value="paid" ${SESSION.bookingPayFilter === 'paid' ? 'selected' : ''}>✅ Fully Paid</option>
             <option value="zero" ${SESSION.bookingPayFilter === 'zero' ? 'selected' : ''}>🔴 ₹0 Amount</option>
             <option value="due" ${SESSION.bookingPayFilter === 'due' ? 'selected' : ''}>💰 Has Balance Due</option>
+            <option value="security_held" ${SESSION.bookingPayFilter === 'security_held' ? 'selected' : ''}>🛡️ Security Held (Active)</option>
+            <option value="security_all" ${SESSION.bookingPayFilter === 'security_all' ? 'selected' : ''}>🛡️ All with Security</option>
             <option value="duplicates" ${SESSION.bookingPayFilter === 'duplicates' ? 'selected' : ''}>⚠️ Duplicates Only</option>
           </select>
+
         </div>
         <div class="filter-item"><label>Mode</label><select id="fMode">
           <option value="All" ${mf === 'All' ? 'selected' : ''}>All</option>
@@ -786,17 +961,22 @@ async function renderManageBookings() {
           <td>${statusBadge}</td>
           <td>
             <strong style="cursor:pointer;text-decoration:underline;color:var(--blue);"
-              onclick="showGuestLedger('${(b.guest_name || '').replace(/'/g, "\\'")}')">${b.guest_name || '-'}</strong>${typeof window.getRatingBadge === 'function' ? window.getRatingBadge(b.client_rating) : ''}${typeof getGuestTierBadge === 'function' ? getGuestTierBadge(b) : ''}${b.is_cancelled ? ' <span class="badge red" style="font-size:9px;" title="' + (b.cancellation_reason || '').replace(/"/g,'&quot;') + '">🚫 CANCELLED</span>' : ''}${b.verification_status === 'pending' ? ' <span class="badge yellow" style="font-size:9px;">🟡 Pending</span>' : ''}${b.is_review_booking ? ' <span class="badge" style="font-size:9px;background:#8B5CF6;color:#fff;">👻 Review</span>' : ''}${b.show_to_investor === false ? ' <span class="badge" style="font-size:9px;background:#DC2626;color:#fff;" title="' + (b.hide_reason || 'Hidden from investor reports').replace(/"/g,'&quot;') + '">🚫 Hidden</span>' : ''}${b.verification_status === 'rejected' ? ' <span class="badge red" style="font-size:9px;" title="' + (b.rejection_reason || '').replace(/"/g,'&quot;') + '">❌ Rejected</span>' : ''}<br>
+              onclick="showGuestLedger('${(b.guest_name || '').replace(/'/g, "\\'")}', '${b.booking_id}', '${(b.phone || '').replace(/'/g, "\\'")}', '${(b.airbnb_confirmation_code || '').replace(/'/g, "\\'")}')">${b.guest_name || '-'}</strong>${typeof window.getRatingBadge === 'function' ? window.getRatingBadge(b.client_rating) : ''}${typeof getGuestTierBadge === 'function' ? getGuestTierBadge(b) : ''}${typeof getSecurityDepositBadge === 'function' ? getSecurityDepositBadge(b) : ''}${b.is_cancelled ? ' <span class="badge red" style="font-size:9px;" title="' + (b.cancellation_reason || '').replace(/"/g,'&quot;') + '">🚫 CANCELLED</span>' : ''}${b.verification_status === 'pending' ? ' <span class="badge yellow" style="font-size:9px;">🟡 Pending</span>' : ''}${b.is_review_booking ? ' <span class="badge" style="font-size:9px;background:#8B5CF6;color:#fff;">👻 Review</span>' : ''}${b.show_to_investor === false ? ' <span class="badge" style="font-size:9px;background:#DC2626;color:#fff;" title="' + (b.hide_reason || 'Hidden from investor reports').replace(/"/g,'&quot;') + '">🚫 Hidden</span>' : ''}${b.verification_status === 'rejected' ? ' <span class="badge red" style="font-size:9px;" title="' + (b.rejection_reason || '').replace(/"/g,'&quot;') + '">❌ Rejected</span>' : ''}<br>
             <small style="color:var(--muted);">${b.phone || ''}</small>
             ${b.created_by ? '<br><small style="color:#888;font-size:10px;">👤 ' + (window._userNameCache[b.created_by] || b.booked_by || 'User') + '</small>' : (b.booked_by ? '<br><small style="color:#888;font-size:10px;">👤 ' + b.booked_by + '</small>' : '')}
             ${b.verification_status === 'pending' && isTrustedUser() ? '<br><button class="btn-sm green-btn" style="padding:2px 8px;font-size:10px;margin-top:2px;" onclick="event.stopPropagation();approveBooking(\'' + b.booking_id + '\')">✅ Approve</button> <button class="btn-sm danger" style="padding:2px 8px;font-size:10px;" onclick="event.stopPropagation();rejectBooking(\'' + b.booking_id + '\')">❌ Reject</button>' : ''}
             ${(() => {
               const allBks = window._allBookings || [];
               const pm = window._bkPaidMap || {};
-              const sameGuest = allBks.filter(x =>
-                x.booking_id !== b.booking_id &&
-                ((b.phone && x.phone === b.phone) || x.guest_name === b.guest_name)
-              );
+              const isOnline = b.booking_mode === 'Online-Airbnb' || !!b.airbnb_confirmation_code;
+              const sameGuest = allBks.filter(x => {
+                if (x.booking_id === b.booking_id) return false;
+                if (b.phone && b.phone.length > 5) return x.phone === b.phone;
+                if (isOnline) {
+                  return b.airbnb_confirmation_code && x.airbnb_confirmation_code === b.airbnb_confirmation_code;
+                }
+                return x.booking_mode !== 'Online-Airbnb' && !x.airbnb_confirmation_code && x.guest_name === b.guest_name;
+              });
               const prevDue = sameGuest.reduce((s, x) => {
                 const due = (x.total_amount || 0) - (pm[x.booking_id] || 0);
                 return s + (due > 0 ? due : 0);
@@ -816,6 +996,7 @@ async function renderManageBookings() {
           </td>
           <td>
               <span class="channel-badge ${b.booking_mode === 'Online-Airbnb' ? 'channel-airbnb' : 'channel-direct'}">${b.booking_mode === 'Online-Airbnb' ? 'Airbnb' : 'Direct'}</span>
+              ${b.airbnb_confirmation_code ? `<br><code style="font-size:10px;font-weight:700;background:rgba(255,56,92,0.1);color:#FF385C;padding:2px 5px;border-radius:4px;display:inline-block;margin-top:3px;letter-spacing:0.5px;cursor:pointer;" title="Click to copy confirmation code" onclick="navigator.clipboard.writeText('${b.airbnb_confirmation_code}');if(window.fsn)fsn.toast('Copied: ${b.airbnb_confirmation_code}');">${b.airbnb_confirmation_code}</code>` : ''}
               ${b.is_review_booking ? '<span class="badge" style="background:#722ED1;color:#fff;font-size:9px;">⭐ REVIEW</span>' : ''}
               ${b.linked_booking_id ? `<span class="badge" style="background:#0EA5E9;color:#fff;font-size:9px;cursor:pointer;" title="Linked to booking ${b.linked_booking_id}" onclick="showLinkedBooking('${b.linked_booking_id}')">🔗 LINKED</span>` : ''}
               ${(!b.linked_booking_id && !b.is_review_booking && !b.is_cancelled && !b.parent_booking_id && !b.stay_group_id && window.checkDuplicate && window.checkDuplicate(b, window._rawBookingsList || window._allBookings || [])) ? `<span class="badge" style="background:#F59E0B;color:#fff;font-size:9px;cursor:pointer;" title="Same room + date overlap detected" onclick="showDuplicateOptions('${b.booking_id}')">⚠️ DUPE</span>` : ''}
@@ -827,18 +1008,29 @@ async function renderManageBookings() {
           <td>${buildIdButtons(b)}</td>
           <td>${isOpenEnded && dailyRate > 0
             ? `<strong>₹${dynamicTotal.toLocaleString('en-IN')}</strong><br><small style="color:var(--muted);font-size:10px;">₹${dailyRate}/d · ${elapsedDays}d</small>`
-            : `<strong>₹${(b.total_amount || 0).toLocaleString('en-IN')}</strong>`}</td>
-          <td style="color:var(--green);">₹${pd.toLocaleString('en-IN')}</td>
-          <td><strong class="${bal > 0.99 ? 'metric-value warn' : ''}">₹${Math.abs(bal) < 1 ? '0' : bal.toLocaleString('en-IN')}</strong></td>
+            : ((b.booking_mode === 'Online-Airbnb' || b.airbnb_confirmation_code) && (b.total_amount === 0 || b.payment_status === 'Pending CSV Payout')
+                ? `<span class="badge yellow" style="font-size:10.5px;font-weight:700;display:inline-block;padding:2px 7px;">⏳ Pending CSV</span>`
+                : `<strong>₹${(b.total_amount || 0).toLocaleString('en-IN')}</strong>`)}</td>
+          <td style="color:var(--green);">${((b.booking_mode === 'Online-Airbnb' || b.airbnb_confirmation_code) && (b.total_amount === 0 || b.payment_status === 'Pending CSV Payout')) ? '<span style="color:#94A3B8;">—</span>' : '₹' + pd.toLocaleString('en-IN')}</td>
+          <td>${((b.booking_mode === 'Online-Airbnb' || b.airbnb_confirmation_code) && (b.total_amount === 0 || b.payment_status === 'Pending CSV Payout')) ? '<span style="color:#94A3B8;">—</span>' : `<strong class="${bal > 0.99 ? 'metric-value warn' : ''}">₹${Math.abs(bal) < 1 ? '0' : bal.toLocaleString('en-IN')}</strong>`}</td>
           ${canM ? `<td class="table-actions">
             <button class="btn-sm" onclick="editBooking('${b.booking_id}')" title="Edit">✏️</button>
             <button class="btn-sm" style="background:#8B5CF6;color:#fff;" onclick="duplicateBooking('${b.booking_id}')" title="Duplicate this booking">📋</button>
             <button class="btn-sm secondary" onclick="showPaymentModal('${b.booking_id}')" title="Pay">💰</button>
+            <button class="btn-sm" style="background:#0284C7;color:#fff;" onclick="showSecurityDepositModal('${b.booking_id}')" title="Security Deposit (सुरक्षा जमा)">🛡️</button>
             <button class="btn-sm" style="background:var(--primary);color:#fff;" onclick="quickExtend('${b.booking_id}')" title="Extend">⏭️</button>
             <button class="btn-sm outline" onclick="createOfflineExtension('${b.booking_id}')" title="New Ext">➕</button>
             <button class="btn-sm" style="background:#8B5CF6;color:#fff;" onclick="showGroupBookingModal('${b.booking_id}')" title="Group">🎊</button>
             ${isActive ? `<button class="btn-sm secondary" onclick="quickCheckout('${b.booking_id}','${b.room_id}')" title="Checkout">📤</button>` : ''}
-            <button class="btn-sm" style="background:#25D366;color:#fff;display:inline-flex;align-items:center;justify-content:center;" onclick="showWATemplatesMenu('${b.booking_id}',this)" title="WhatsApp"><svg viewBox="0 0 24 24" width="15" height="15" fill="#fff"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.79.47 3.55 1.36 5.09L2 22l5.25-1.38c1.48.8 3.13 1.23 4.79 1.23h.01c5.46 0 9.9-4.45 9.9-9.91 0-2.65-1.03-5.14-2.9-7.01A9.82 9.82 0 0 0 12.04 2m.01 1.67c2.2 0 4.26.86 5.82 2.42a8.18 8.18 0 0 1 2.41 5.83c0 4.54-3.7 8.23-8.24 8.23-1.48 0-2.93-.39-4.19-1.15l-.3-.17-3.12.82.83-3.04-.2-.32a8.2 8.2 0 0 1-1.26-4.37c.01-4.54 3.7-8.23 8.25-8.23M8.53 6.98c-.16 0-.43.06-.65.31s-.85.83-.85 2.02.87 2.35.99 2.51c.12.17 1.71 2.75 4.28 3.72 2.12.8 2.55.64 3.01.6.46-.05 1.5-.61 1.71-1.2.21-.59.21-1.09.15-1.19s-.23-.16-.48-.28-1.5-.74-1.73-.82c-.23-.08-.4-.12-.57.13s-.65.82-.8.99c-.15.17-.29.19-.55.06-.26-.13-1.09-.4-2.08-1.29-.77-.68-1.29-1.53-1.44-1.79-.15-.26-.02-.4.11-.53.12-.12.26-.31.4-.47.13-.16.17-.27.26-.45.09-.18.04-.34-.02-.47-.06-.13-.57-1.37-.78-1.87s-.42-.42-.57-.43z"/></svg></button>
+            ${(() => {
+              const waStat = (typeof window.getBookingWhatsAppStatus === 'function') ? window.getBookingWhatsAppStatus(b.booking_id) : null;
+              const waDot = waStat?.status === 'sent'
+                ? `<span style="position:absolute;top:-4px;right:-4px;background:#15803D;color:#fff;border-radius:50%;width:12px;height:12px;font-size:8px;font-weight:900;display:flex;align-items:center;justify-content:center;border:1.5px solid #fff;" title="WhatsApp sent">✓</span>`
+                : (waStat?.status === 'failed'
+                  ? `<span style="position:absolute;top:-4px;right:-4px;background:#DC2626;color:#fff;border-radius:50%;width:12px;height:12px;font-size:8px;font-weight:900;display:flex;align-items:center;justify-content:center;border:1.5px solid #fff;" title="WhatsApp delivery failed">✕</span>`
+                  : '');
+              return `<button class="btn-sm" style="background:#25D366;color:#fff;display:inline-flex;align-items:center;justify-content:center;position:relative;" onclick="showWATemplatesMenu('${b.booking_id}',this)" title="WhatsApp Messages & Delivery Status"><svg viewBox="0 0 24 24" width="15" height="15" fill="#fff"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.79.47 3.55 1.36 5.09L2 22l5.25-1.38c1.48.8 3.13 1.23 4.79 1.23h.01c5.46 0 9.9-4.45 9.9-9.91 0-2.65-1.03-5.14-2.9-7.01A9.82 9.82 0 0 0 12.04 2m.01 1.67c2.2 0 4.26.86 5.82 2.42a8.18 8.18 0 0 1 2.41 5.83c0 4.54-3.7 8.23-8.24 8.23-1.48 0-2.93-.39-4.19-1.15l-.3-.17-3.12.82.83-3.04-.2-.32a8.2 8.2 0 0 1-1.26-4.37c.01-4.54 3.7-8.23 8.25-8.23M8.53 6.98c-.16 0-.43.06-.65.31s-.85.83-.85 2.02.87 2.35.99 2.51c.12.17 1.71 2.75 4.28 3.72 2.12.8 2.55.64 3.01.6.46-.05 1.5-.61 1.71-1.2.21-.59.21-1.09.15-1.19s-.23-.16-.48-.28-1.5-.74-1.73-.82c-.23-.08-.4-.12-.57.13s-.65.82-.8.99c-.15.17-.29.19-.55.06-.26-.13-1.09-.4-2.08-1.29-.77-.68-1.29-1.53-1.44-1.79-.15-.26-.02-.4.11-.53.12-.12.26-.31.4-.47.13-.16.17-.27.26-.45.09-.18.04-.34-.02-.47-.06-.13-.57-1.37-.78-1.87s-.42-.42-.57-.43z"/></svg>${waDot}</button>`;
+            })()}
             <button class="btn-sm" style="background:var(--primary);color:#fff;" onclick="showReminderModal('${b.booking_id}')" title="Set Reminder">🔔</button>
             ${!b.is_cancelled && canM ? `<button class="btn-sm" style="background:var(--yellow);color:#fff;" onclick="cancelBooking('${b.booking_id}','${(b.guest_name || '').replace(/'/g, "\\'")}')" title="Cancel">🚫</button>` : ''}
             ${b.is_cancelled && canM ? `<button class="btn-sm outline" onclick="uncancelBooking('${b.booking_id}')" title="Restore">↩️</button>` : ''}
@@ -1283,6 +1475,66 @@ async function renderAddBooking() {
         <input id="advDate" type="date" value="${new Date().toISOString().slice(0, 10)}" />
       </div>
       <div id="balInfo" style="font-size:13px;font-weight:600;margin:2px 0 8px;"></div>
+
+      <!-- 🛡️ SECURITY DEPOSIT -->
+      <div class="form-group" style="padding:14px;background:#F0F9FF;border-radius:10px;border:1.5px solid #0284C7;margin:12px 0;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;flex-wrap:wrap;gap:8px;">
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:700;font-size:14px;color:#0369A1;margin:0;">
+            <input type="checkbox" id="hasSecurityDeposit" onchange="toggleSecurityDepositBox()" style="width:18px;height:18px;" />
+            <span>🛡️ Collect Security Deposit? (सुरक्षा जमा राशि)</span>
+          </label>
+          <span style="font-size:11px;background:#E0F2FE;color:#0369A1;font-weight:700;padding:2px 8px;border-radius:12px;">Refundable Liability · Not Revenue</span>
+        </div>
+        <div style="font-size:11.5px;color:#0369A1;margin-bottom:6px;line-height:1.4;">
+          Offline / Direct guests se property damage security lene ke liye. <strong>⚠️ Stay revenue me add nahi hoga.</strong>
+        </div>
+
+        <div id="securityDepositBox" style="display:none;margin-top:10px;background:#ffffff;padding:12px;border-radius:8px;border:1px solid #BAE6FD;">
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Security Amount ₹ *</label>
+              <input id="secAmount" type="number" placeholder="e.g. 2000" value="${pre.secAmount || 2000}" />
+            </div>
+            <div class="form-group">
+              <label>Deposit Status</label>
+              <select id="secStatus">
+                <option value="collected" selected>✅ Received & Held (जमा हो गया)</option>
+                <option value="pending">⏳ Pending Collection (लेना बाकी है)</option>
+                <option value="refunded">💸 Already Refunded (वापस किया)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Received Date (कब मिला)</label>
+              <input id="secReceivedDate" type="date" value="${new Date().toISOString().slice(0, 10)}" />
+            </div>
+            <div class="form-group">
+              <label>Received Mode (कैसे मिला)</label>
+              <select id="secMode" onchange="if(window.onSecModeChange) onSecModeChange()">
+                <option value="UPI" selected>UPI</option>
+                <option value="Cash">Cash</option>
+                <option value="Bank">Bank Transfer</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-grid">
+            <div class="form-group">
+              <label id="secReceivedByLabel">Received By (किसने लिया)</label>
+              <select id="secReceivedBy" onchange="if(window.onReceiverDropdownChange) onReceiverDropdownChange(this, 'secReceivedByCustom')" style="width:100%;padding:8px;border-radius:6px;border:1px solid #CBD5E1;">
+                <option value="">-- Select Receiver --</option>
+              </select>
+              <input id="secReceivedByCustom" type="text" placeholder="Enter receiver name..." style="display:none;margin-top:6px;width:100%;padding:8px;border-radius:6px;border:1px solid #CBD5E1;" />
+            </div>
+            <div class="form-group">
+              <label>Note / UTR Reference</label>
+              <input id="secNotes" placeholder="e.g. UPI Ref / Cash in safe" />
+            </div>
+          </div>
+        </div>
+      </div>
 
       <!-- VEHICLE -->
       <div class="form-grid">
@@ -2272,11 +2524,39 @@ async function saveBooking() {
     if (isOnline && sourceRoomId && sourceRoomId !== rid) noteParts.push(`Airbnb booked on ${sourceRoomId}, shifted to ${rid}`);
     if (parentBookingId) noteParts.push(`Extension after previous stay (${parentBookingId})`);
     if (!checkoutConfirmed) noteParts.push('Open-ended stay — per day basis');
-    const finalNotes = noteParts.join(' | ');
+
+    // Extract Security Deposit (isolated from stay revenue)
+    const hasSec = document.getElementById('hasSecurityDeposit')?.checked;
+    const secAmt = hasSec ? (parseFloat(document.getElementById('secAmount')?.value) || 0) : 0;
+    const secStatus = hasSec ? (document.getElementById('secStatus')?.value || (secAmt > 0 ? 'collected' : 'none')) : 'none';
+    const secMode = hasSec ? (document.getElementById('secMode')?.value || 'UPI') : null;
+    const secReceivedBy = hasSec ? (typeof getReceiverValue === 'function' ? getReceiverValue('secReceivedBy', 'secReceivedByCustom') : (document.getElementById('secReceivedBy')?.value || null)) : null;
+    const secReceivedDate = hasSec ? (document.getElementById('secReceivedDate')?.value || new Date().toISOString().slice(0, 10)) : null;
+    const secNotes = hasSec ? (document.getElementById('secNotes')?.value?.trim() || null) : null;
+
+    const secData = hasSec && (secAmt > 0 || secStatus !== 'none') ? {
+      amount: secAmt,
+      status: secStatus,
+      mode: secMode,
+      receivedBy: secReceivedBy,
+      receivedDate: secReceivedDate,
+      refundDate: null,
+      refundAmount: 0,
+      refundMode: null,
+      refundedBy: null,
+      deductedAmount: 0,
+      deductionReason: null,
+      notes: secNotes
+    } : null;
+
+    let finalNotes = noteParts.join(' | ');
+    if (secData && typeof encodeSecurityDepositInNotes === 'function') {
+      finalNotes = encodeSecurityDepositInNotes(finalNotes, secData);
+    }
 
     const payStatus = isOnline ? 'Paid' : (adv >= tot && tot > 0 ? 'Paid' : (adv > 0 ? 'Partial' : 'Unpaid'));
 
-    const { error } = await sb.from('guest_register').insert({
+    const insertObj = {
       ...approvalMeta(),
       booking_id: bkId, guest_name: gn, phone: ph || null,
       is_review_booking: document.getElementById('isReviewBooking')?.checked || false,
@@ -2296,7 +2576,30 @@ async function saveBooking() {
       booked_by: SESSION.displayName || SESSION.role,
       show_to_investor: showToInvestor,
       hide_reason: hideReason
-    });
+    };
+
+    if (secData && secData.status !== 'none') {
+      insertObj.security_deposit_amount = secData.amount || 0;
+      insertObj.security_deposit_status = secData.status;
+      insertObj.security_deposit_mode = secData.mode;
+      insertObj.security_deposit_received_by = secData.receivedBy;
+      insertObj.security_deposit_received_date = secData.receivedDate;
+      insertObj.security_deposit_notes = secData.notes;
+    }
+
+    let { error } = await sb.from('guest_register').insert(insertObj);
+    if (isMissingColumnError(error)) {
+      console.warn('Native security deposit columns not yet migrated in Supabase, falling back to notes tag:', error.message);
+      delete insertObj.security_deposit_amount;
+      delete insertObj.security_deposit_status;
+      delete insertObj.security_deposit_mode;
+      delete insertObj.security_deposit_received_by;
+      delete insertObj.security_deposit_received_date;
+      delete insertObj.security_deposit_notes;
+      const retry = await sb.from('guest_register').insert(insertObj);
+      error = retry.error;
+    }
+
 
     if (error) {
       document.getElementById('addBkErr').innerHTML = `<div class="error">${error.message}</div>`;
@@ -2384,6 +2687,25 @@ async function saveBooking() {
 
     // Success feedback
     fsn.success('Success', '✅ Booking saved successfully!\n\nGuest: ' + gn + '\nProperty: ' + (document.getElementById('roomId').selectedOptions[0]?.text || rid));
+
+    // Automated WhatsApp Operations / Booking Group Alert
+    try {
+      if (typeof window.triggerBookingGroupAlert === 'function') {
+        window.triggerBookingGroupAlert({
+          booking_id: bkId,
+          guest_name: gn,
+          phone: ph,
+          room_id: rid,
+          room_name: document.getElementById('roomId').selectedOptions[0]?.text || rid,
+          booking_mode: mode,
+          check_in: ci,
+          check_out: co,
+          total_amount: tot,
+          advance: adv,
+          payment_status: payStatus
+        }).catch(err => console.warn('Booking group alert non-blocking error:', err));
+      }
+    } catch(e) { console.warn('Trigger error:', e); }
 
     // WhatsApp share option
     if (confirm('📱 WhatsApp message share karna hai?')) {
@@ -2500,7 +2822,7 @@ async function quickCheckout(bkId, roomId) {
   const today = new Date().toISOString().slice(0, 10);
   const nowTime = new Date().toTimeString().slice(0, 5);
   const { data: bk } = await sb.from('guest_register')
-    .select('guest_name,phone,check_in,per_day_rate,total_amount,notes').eq('booking_id', bkId).single();
+    .select('*, rooms(nickname, unit_no)').eq('booking_id', bkId).single();
   if (!bk) { fsn.error('Error', 'Not found'); return; }
   const nights = Math.max(calcNights(bk.check_in, today), 1);
   const calcTotal = bk.per_day_rate ? bk.per_day_rate * nights : bk.total_amount;
@@ -2511,6 +2833,20 @@ async function quickCheckout(bkId, roomId) {
 
 // Rating modal for checkout
 window.showCheckoutRatingModal = function(bkId, roomId, bk, nights, calcTotal, today, nowTime) {
+  const sec = typeof getSecurityDeposit === 'function' ? getSecurityDeposit(bk) : null;
+  const hasHeldSec = sec && sec.status === 'collected' && sec.amount > 0;
+  const secAlertHtml = hasHeldSec ? `
+    <div style="background:#FFFBEB;border:1.5px solid #F59E0B;border-radius:8px;padding:10px 12px;margin-bottom:12px;font-size:12.5px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <strong style="color:#B45309;">🛡️ Security Deposit Held: ₹${sec.amount.toLocaleString('en-IN')}</strong>
+        <button type="button" class="btn-sm" style="background:#0284C7;color:#fff;font-size:11px;padding:3px 8px;" onclick="showSecurityDepositModal('${bkId}')">⚡ Settle / Refund</button>
+      </div>
+      <div style="color:#78350F;margin-top:4px;font-size:11.5px;">
+        Guest is checking out. Check flat for any damages. If damage occurred, enter deduction and refund the balance.
+      </div>
+    </div>
+  ` : '';
+
   const modal = document.createElement('div');
   modal.className = 'modal-overlay';
   modal.onclick = e => { if (e.target === modal) modal.remove(); };
@@ -2519,6 +2855,8 @@ window.showCheckoutRatingModal = function(bkId, roomId, bk, nights, calcTotal, t
       <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">✕</button>
       <h2>✅ Checkout: ${bk.guest_name}</h2>
       
+      ${secAlertHtml}
+
       <div style="margin-bottom:14px;padding:12px;background:#F0F7FF;border-radius:8px;">
         <div style="font-size:12px;color:#1E40AF;">Nights: <strong>${nights}</strong> · Total: <strong>₹${calcTotal.toLocaleString('en-IN')}</strong></div>
       </div>
@@ -2626,6 +2964,7 @@ async function editBooking(bkId) {
   const { data: pays } = await sb.from('payment_history').select('*').eq('booking_id', bkId).order('paid_at', { ascending: false });
   const tp = (pays || []).reduce((s, p) => s + (p.amount || 0), 0);
   const bal = Math.round(((b.total_amount || 0) - tp) * 100) / 100;
+  const sec = typeof getSecurityDeposit === 'function' ? getSecurityDeposit(b) : null;
 
   const frontPaths = parseIdPathArray(b.id_proof_front_paths);
   const backPaths = parseIdPathArray(b.id_proof_back_paths);
@@ -2840,8 +3179,115 @@ async function editBooking(bkId) {
         </div>
       </div>` : ''}
 
-      <div class="form-group"><label>Notes</label><textarea id="bkNotes">${b.notes || ''}</textarea></div>
+      <!-- 🛡️ SECURITY DEPOSIT IN EDIT FORM -->
+      <div class="form-group" style="padding:14px;background:#F0F9FF;border-radius:10px;border:1.5px solid #0284C7;margin:14px 0;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;flex-wrap:wrap;gap:8px;">
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:700;font-size:14px;color:#0369A1;margin:0;">
+            <input type="checkbox" id="eHasSecDeposit" onchange="toggleEditSecBox()" style="width:18px;height:18px;" ${sec && sec.status !== 'none' && (sec.amount > 0 || sec.status === 'pending') ? 'checked' : ''} />
+            <span>🛡️ Security Deposit (सुरक्षा जमा राशि)</span>
+          </label>
+          <div style="display:flex;gap:6px;align-items:center;">
+            <span style="font-size:11px;background:#E0F2FE;color:#0369A1;font-weight:700;padding:2px 8px;border-radius:12px;">Not in Revenue</span>
+            <button type="button" class="btn-sm" style="background:#0284C7;color:#fff;font-size:11px;padding:3px 8px;" onclick="showSecurityDepositModal('${bkId}')">⚡ Open Settle Modal</button>
+          </div>
+        </div>
+
+        <div id="eSecBox" style="display:${sec && sec.status !== 'none' && (sec.amount > 0 || sec.status === 'pending') ? 'block' : 'none'};margin-top:10px;background:#fff;padding:12px;border-radius:8px;border:1px solid #BAE6FD;">
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Security Amount ₹</label>
+              <input id="eSecAmount" type="number" value="${sec ? (sec.amount || 0) : 0}" oninput="calcEditSecRefund()" />
+            </div>
+            <div class="form-group">
+              <label>Status</label>
+              <select id="eSecStatus" onchange="onEditSecStatusChange()">
+                <option value="none" ${!sec || sec.status === 'none' ? 'selected' : ''}>None / Not Applicable</option>
+                <option value="pending" ${sec && sec.status === 'pending' ? 'selected' : ''}>⏳ Pending Collection</option>
+                <option value="collected" ${sec && sec.status === 'collected' ? 'selected' : ''}>✅ Collected & Held (सुरक्षा जमा प्राप्त)</option>
+                <option value="refunded" ${sec && sec.status === 'refunded' ? 'selected' : ''}>💸 Fully Refunded (पूरा वापस किया)</option>
+                <option value="partially_refunded" ${sec && sec.status === 'partially_refunded' ? 'selected' : ''}>✂️ Partially Refunded (डैमेज काटकर वापस)</option>
+                <option value="retained" ${sec && sec.status === 'retained' ? 'selected' : ''}>🚫 Retained / Forfeited (पूरा डैमेज में जब्त)</option>
+              </select>
+            </div>
+          </div>
+
+          <div style="border-top:1px dashed #CBD5E1;margin:10px 0;padding-top:8px;">
+            <div style="font-size:12px;font-weight:700;color:#0369A1;margin-bottom:6px;">📥 Collection Details (कब मिला, कैसे मिला)</div>
+            <div class="form-grid">
+              <div class="form-group">
+                <label>Received Date</label>
+                <input id="eSecReceivedDate" type="date" value="${sec ? (sec.receivedDate || '') : ''}" />
+              </div>
+              <div class="form-group">
+                <label>Received Mode</label>
+                <select id="eSecMode" onchange="if(window.onEditSecModeChange) onEditSecModeChange()">
+                  <option value="UPI" ${!sec || sec.mode === 'UPI' ? 'selected' : ''}>UPI</option>
+                  <option value="Cash" ${sec && sec.mode === 'Cash' ? 'selected' : ''}>Cash</option>
+                  <option value="Bank" ${sec && sec.mode === 'Bank' ? 'selected' : ''}>Bank Transfer</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-grid">
+              <div class="form-group">
+                <label id="eSecReceivedByLabel">Received By (किसने लिया)</label>
+                <select id="eSecReceivedBy" onchange="if(window.onReceiverDropdownChange) onReceiverDropdownChange(this, 'eSecReceivedByCustom')" style="width:100%;padding:8px;border-radius:6px;border:1px solid #CBD5E1;">
+                  <option value="">Loading receivers...</option>
+                </select>
+                <input id="eSecReceivedByCustom" type="text" placeholder="Enter custom name..." style="display:none;margin-top:6px;width:100%;padding:8px;border-radius:6px;border:1px solid #CBD5E1;" />
+              </div>
+              <div class="form-group">
+                <label>Deposit Notes / UTR</label>
+                <input id="eSecNotes" value="${sec ? escapeHtml(sec.notes || '') : ''}" placeholder="UTR / Cash safe reference" />
+              </div>
+            </div>
+          </div>
+
+          <div id="eSecRefundSection" style="border-top:1px dashed #CBD5E1;margin:10px 0;padding-top:8px;">
+            <div style="font-size:12px;font-weight:700;color:#7C3AED;margin-bottom:6px;">📤 Settlement / Refund Details (डैमेज वसूली & रिफंड)</div>
+            <div class="form-grid">
+              <div class="form-group">
+                <label>Damage / Deduction Amount ₹</label>
+                <input id="eSecDeductedAmt" type="number" value="${sec ? (sec.deductedAmount || 0) : 0}" oninput="calcEditSecRefund()" placeholder="₹0 if no damage" />
+              </div>
+              <div class="form-group">
+                <label>Deduction Reason (डैमेज का कारण)</label>
+                <input id="eSecDeductionReason" value="${sec ? escapeHtml(sec.deductionReason || '') : ''}" placeholder="e.g. Broken wine glass, stained linen, late checkout penalty" />
+              </div>
+            </div>
+            <div class="form-grid">
+              <div class="form-group">
+                <label>Net Refund Amount ₹</label>
+                <input id="eSecRefundAmt" type="number" value="${sec ? (sec.refundAmount || 0) : 0}" placeholder="Auto calc: Deposit - Deduction" />
+              </div>
+              <div class="form-group">
+                <label>Refund Date (कब वापस किया)</label>
+                <input id="eSecRefundDate" type="date" value="${sec ? (sec.refundDate || '') : ''}" />
+              </div>
+            </div>
+            <div class="form-grid">
+              <div class="form-group">
+                <label>Refund Mode (कैसे वापस किया)</label>
+                <select id="eSecRefundMode" onchange="if(window.onEditSecRefModeChange) onEditSecRefModeChange()">
+                  <option value="UPI" ${!sec || sec.refundMode === 'UPI' ? 'selected' : ''}>UPI</option>
+                  <option value="Cash" ${sec && sec.refundMode === 'Cash' ? 'selected' : ''}>Cash</option>
+                  <option value="Bank" ${sec && sec.refundMode === 'Bank' ? 'selected' : ''}>Bank Transfer</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label id="eSecRefundedByLabel">Refunded By (किसने वापस किया)</label>
+                <select id="eSecRefundedBy" onchange="if(window.onReceiverDropdownChange) onReceiverDropdownChange(this, 'eSecRefundedByCustom')" style="width:100%;padding:8px;border-radius:6px;border:1px solid #CBD5E1;">
+                  <option value="">Loading receivers...</option>
+                </select>
+                <input id="eSecRefundedByCustom" type="text" placeholder="Enter custom name..." style="display:none;margin-top:6px;width:100%;padding:8px;border-radius:6px;border:1px solid #CBD5E1;" />
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-group"><label>Notes</label><textarea id="bkNotes">${typeof cleanNotesForDisplay === 'function' ? cleanNotesForDisplay(b.notes) : (b.notes || '')}</textarea></div>
       <button id="updateBtn" onclick="updateBooking('${bkId}','${b.parent_booking_id || ''}','${b.stay_group_id || b.booking_id}')" style="width:100%;padding:14px;font-size:15px;margin-top:10px;">💾 Update Booking</button>
+
       <div id="editBkErr"></div>
     </div>
 
@@ -2875,6 +3321,7 @@ async function editBooking(bkId) {
   showEditIdSlots();
   toggleEditSourceBox();
   onCheckoutTypeChgEdit();
+  if (typeof initEditSecDropdowns === 'function') initEditSecDropdowns(sec);
 }
 
 function toggleEditSourceBox() {
@@ -3050,6 +3497,55 @@ async function updateBooking(bkId, parentBookingId = '', stayGroupId = '') {
     vehicle_number: hasVehicle ? (document.getElementById('vehicleNumber')?.value.trim() || null) : null,
     notes: document.getElementById('bkNotes').value.trim() || null,
   };
+
+  // Extract Security Deposit fields from edit form
+  const eHasSec = document.getElementById('eHasSecDeposit')?.checked;
+  let secData = null;
+  if (eHasSec) {
+    const secAmt = parseFloat(document.getElementById('eSecAmount')?.value) || 0;
+    const secStatus = document.getElementById('eSecStatus')?.value || (secAmt > 0 ? 'collected' : 'none');
+    secData = {
+      amount: secAmt,
+      status: secStatus,
+      mode: document.getElementById('eSecMode')?.value || 'UPI',
+      receivedBy: (typeof getReceiverValue === 'function' ? getReceiverValue('eSecReceivedBy', 'editSecReceivedByCustom') : (document.getElementById('eSecReceivedBy')?.value?.trim() || null)) || null,
+      receivedDate: document.getElementById('eSecReceivedDate')?.value || null,
+      refundDate: document.getElementById('eSecRefundDate')?.value || null,
+      refundAmount: parseFloat(document.getElementById('eSecRefundAmt')?.value) || 0,
+      refundMode: document.getElementById('eSecRefundMode')?.value || 'UPI',
+      refundedBy: (typeof getReceiverValue === 'function' ? getReceiverValue('eSecRefundedBy', 'editSecRefundedByCustom') : (document.getElementById('eSecRefundedBy')?.value?.trim() || null)) || null,
+      deductedAmount: parseFloat(document.getElementById('eSecDeductedAmt')?.value) || 0,
+      deductionReason: document.getElementById('eSecDeductionReason')?.value?.trim() || null,
+      notes: document.getElementById('eSecNotes')?.value?.trim() || null
+    };
+  } else {
+    secData = { status: 'none', amount: 0 };
+  }
+
+  // Encode in notes as zero-downtime fallback
+  if (typeof encodeSecurityDepositInNotes === 'function') {
+    obj.notes = encodeSecurityDepositInNotes(obj.notes, secData) || null;
+  }
+
+  // Also set native columns
+  if (secData && secData.status !== 'none') {
+    obj.security_deposit_amount = secData.amount || 0;
+    obj.security_deposit_status = secData.status;
+    obj.security_deposit_mode = secData.mode;
+    obj.security_deposit_received_by = secData.receivedBy;
+    obj.security_deposit_received_date = secData.receivedDate;
+    obj.security_deposit_refund_date = secData.refundDate;
+    obj.security_deposit_refund_amount = secData.refundAmount || 0;
+    obj.security_deposit_refund_mode = secData.refundMode;
+    obj.security_deposit_refunded_by = secData.refundedBy;
+    obj.security_deposit_deducted_amount = secData.deductedAmount || 0;
+    obj.security_deposit_deduction_reason = secData.deductionReason;
+    obj.security_deposit_notes = secData.notes;
+  } else {
+    obj.security_deposit_amount = 0;
+    obj.security_deposit_status = 'none';
+  }
+
   obj.id_proof_front_paths = stringifyIdPathArray(fArr);
   obj.id_proof_back_paths  = stringifyIdPathArray(bArr);
   const uniqA = [...new Set(aArr.filter(Boolean))];
@@ -3133,7 +3629,25 @@ async function updateBooking(bkId, parentBookingId = '', stayGroupId = '') {
   });
 
 
-  const { error } = await sb.from('guest_register').update(obj).eq('booking_id', bkId);
+  let { error } = await sb.from('guest_register').update(obj).eq('booking_id', bkId);
+  if (isMissingColumnError(error)) {
+    console.warn('Native security deposit columns missing in Supabase, updating with notes fallback:', error.message);
+    delete obj.security_deposit_amount;
+    delete obj.security_deposit_status;
+    delete obj.security_deposit_mode;
+    delete obj.security_deposit_received_by;
+    delete obj.security_deposit_received_date;
+    delete obj.security_deposit_refund_date;
+    delete obj.security_deposit_refund_amount;
+    delete obj.security_deposit_refund_mode;
+    delete obj.security_deposit_refunded_by;
+    delete obj.security_deposit_deducted_amount;
+    delete obj.security_deposit_deduction_reason;
+    delete obj.security_deposit_notes;
+    const retry = await sb.from('guest_register').update(obj).eq('booking_id', bkId);
+    error = retry.error;
+  }
+
 
 
   // ═══ SEND NOTIFICATION if changes detected & non-trusted user ═══
@@ -3281,55 +3795,150 @@ async function loadReceiveByHolders() {
   return window._receiveHoldersCache;
 }
 
-// ═══ Cash Book: Payment Received By helpers (uses cash_holders DB) ═══
-window.onPayModeChange = async function() {
-  const mode = document.getElementById('payMode')?.value;
-  const receivedByEl = document.getElementById('payReceivedBy');
-  const custom = document.getElementById('payReceivedByCustom');
-  if (!receivedByEl) return;
-
-  // Load holders + employees (cached)
+// ═══ Unified Received By Dropdown (Identical to New Booking time) ═══
+window.populateReceivedByDropdown = async function(selectEl, mode, currentVal, customEl) {
+  if (!selectEl) return;
   const data = await loadReceiveByHolders();
-  const finalHolders = data.owners;
-  const managers = data.manager;
-  const receivers = data.employees;
+  const finalHolders = data.owners || [];
+  const managers = data.manager || [];
+  const receivers = data.employees || [];
 
-  let html = '<option value="">-- Select who received --</option>';
+  let html = '<option value="">-- Select Receiver --</option>';
 
   if (mode === 'Cash') {
-    // CASH: ALL holders can receive
-    html += '<optgroup label="Final (Company)">';
-    finalHolders.forEach(o => html += `<option value="${o}">${o}</option>`);
-    html += '</optgroup>';
-    html += '<optgroup label="Manager">';
-    managers.forEach(m => html += `<option value="${m}">${m}</option>`);
-    html += '</optgroup>';
-    html += '<optgroup label="Staff (Receivers)">';
-    receivers.forEach(s => html += `<option value="${s}">${s}</option>`);
-    html += '</optgroup>';
-    receivedByEl.innerHTML = html;
-    if (custom) { custom.style.display = 'none'; custom.value = ''; }
+    // CASH: Final (Company) + Manager + Staff / Receiver
+    if (finalHolders.length) {
+      html += '<optgroup label="🏢 Final (Company)">';
+      finalHolders.forEach(n => {
+        html += `<option value="${n}" ${currentVal === n ? 'selected' : ''}>${n}</option>`;
+      });
+      html += '</optgroup>';
+    }
+    if (managers.length) {
+      html += '<optgroup label="👨‍💼 Manager">';
+      managers.forEach(n => {
+        html += `<option value="${n}" ${currentVal === n ? 'selected' : ''}>${n}</option>`;
+      });
+      html += '</optgroup>';
+    }
+    if (receivers.length) {
+      html += '<optgroup label="👥 Staff / Receiver">';
+      receivers.forEach(n => {
+        html += `<option value="${n}" ${currentVal === n ? 'selected' : ''}>${n}</option>`;
+      });
+      html += '</optgroup>';
+    }
   } else {
-    // UPI / Bank / Airbnb Payout: ONLY final holders (company accounts)
-    html += '<optgroup label="Final Holders (Company Accounts)">';
-    finalHolders.forEach(o => html += `<option value="${o}">${o}</option>`);
+    // UPI / Bank / Airbnb Payout: Company accounts
+    if (finalHolders.length) {
+      html += '<optgroup label="🏢 Company Accounts">';
+      finalHolders.forEach(n => {
+        html += `<option value="${n}" ${currentVal === n ? 'selected' : ''}>${n}</option>`;
+      });
+      html += '</optgroup>';
+    }
+    if (managers.length || receivers.length) {
+      html += '<optgroup label="👥 Staff / Other Accounts">';
+      [...managers, ...receivers].forEach(n => {
+        html += `<option value="${n}" ${currentVal === n ? 'selected' : ''}>${n}</option>`;
+      });
+      html += '</optgroup>';
+    }
+  }
+
+  // Preserve existing value if not in list
+  const allKnown = [...finalHolders, ...managers, ...receivers];
+  if (currentVal && !allKnown.includes(currentVal) && currentVal !== '__custom__') {
+    html += '<optgroup label="Existing / Other">';
+    html += `<option value="${currentVal}" selected>${currentVal}</option>`;
     html += '</optgroup>';
-    receivedBy.innerHTML = html;
-    if (custom) { custom.style.display = 'none'; custom.value = ''; }
-    receivedBy.value = 'Firoz'; // auto-select
+  }
+
+  html += '<option value="__custom__">➕ Add New / Custom Name...</option>';
+  selectEl.innerHTML = html;
+
+  if (currentVal) {
+    selectEl.value = currentVal;
+    if (selectEl.value !== currentVal) {
+      selectEl.value = '__custom__';
+      if (customEl) { customEl.value = currentVal; customEl.style.display = 'block'; }
+    } else if (customEl) {
+      customEl.style.display = 'none';
+    }
+  } else if (mode === 'UPI' || mode === 'Bank') {
+    if (finalHolders.includes('Firoz')) selectEl.value = 'Firoz';
+    else if (finalHolders.length > 0) selectEl.value = finalHolders[0];
+    if (customEl) customEl.style.display = 'none';
+  } else if (customEl) {
+    customEl.style.display = 'none';
   }
 };
 
-// Handle custom name toggle
-document.addEventListener('change', e => {
-  if (e.target?.id === 'payReceivedBy') {
-    const custom = document.getElementById('payReceivedByCustom');
-    if (custom) custom.style.display = e.target.value === '__custom__' ? 'block' : 'none';
-    if (e.target.value === '__custom__') {
-      setTimeout(() => custom?.focus(), 50);
-    }
+window.onReceiverDropdownChange = function(selectEl, customInputId) {
+  const customEl = document.getElementById(customInputId);
+  if (!customEl) return;
+  if (selectEl.value === '__custom__') {
+    customEl.style.display = 'block';
+    customEl.value = '';
+    customEl.focus();
+  } else {
+    customEl.style.display = 'none';
+    customEl.value = '';
   }
-});
+};
+
+window.getReceiverValue = function(selectId, customInputId) {
+  const sel = document.getElementById(selectId);
+  if (!sel) return '';
+  if (sel.value === '__custom__') {
+    return document.getElementById(customInputId)?.value?.trim() || '';
+  }
+  return sel.value || '';
+};
+
+// ═══ Cash Book / Payment Modal helper ═══
+window.onPayModeChange = async function() {
+  const mode = document.getElementById('payMode')?.value || 'Cash';
+  const receivedByEl = document.getElementById('payReceivedBy');
+  const custom = document.getElementById('payReceivedByCustom');
+  if (!receivedByEl) return;
+  const curr = typeof getReceiverValue === 'function' ? getReceiverValue('payReceivedBy', 'payReceivedByCustom') : receivedByEl.value;
+  await window.populateReceivedByDropdown(receivedByEl, mode, curr, custom);
+};
+
+// ═══ Security Deposit Dropdown Handlers (New & Edit Booking) ═══
+window.onSecModeChange = async function() {
+  const mode = document.getElementById('secMode')?.value || 'UPI';
+  const sel = document.getElementById('secReceivedBy');
+  const custom = document.getElementById('secReceivedByCustom');
+  const curr = typeof getReceiverValue === 'function' ? getReceiverValue('secReceivedBy', 'secReceivedByCustom') : sel?.value;
+  await window.populateReceivedByDropdown(sel, mode, curr, custom);
+};
+
+window.onEditSecModeChange = async function() {
+  const mode = document.getElementById('eSecMode')?.value || 'UPI';
+  const sel = document.getElementById('eSecReceivedBy');
+  const custom = document.getElementById('editSecReceivedByCustom');
+  const curr = typeof getReceiverValue === 'function' ? getReceiverValue('eSecReceivedBy', 'editSecReceivedByCustom') : sel?.value;
+  await window.populateReceivedByDropdown(sel, mode, curr, custom);
+};
+
+window.onEditSecRefModeChange = async function() {
+  const mode = document.getElementById('eSecRefundMode')?.value || 'UPI';
+  const sel = document.getElementById('eSecRefundedBy');
+  const custom = document.getElementById('editSecRefundedByCustom');
+  const curr = typeof getReceiverValue === 'function' ? getReceiverValue('eSecRefundedBy', 'editSecRefundedByCustom') : sel?.value;
+  await window.populateReceivedByDropdown(sel, mode, curr, custom);
+};
+
+window.initEditSecDropdowns = function(sec) {
+  setTimeout(async () => {
+    const mode = document.getElementById('eSecMode')?.value || (sec && sec.mode) || 'Cash';
+    await window.populateReceivedByDropdown(document.getElementById('eSecReceivedBy'), mode, sec?.receivedBy || '', document.getElementById('editSecReceivedByCustom'));
+    const refMode = document.getElementById('eSecRefundMode')?.value || (sec && sec.refundMode) || 'UPI';
+    await window.populateReceivedByDropdown(document.getElementById('eSecRefundedBy'), refMode, sec?.refundedBy || '', document.getElementById('editSecRefundedByCustom'));
+  }, 30);
+};
 
 function showPaymentModal(bkId) {
   // Build previous due warning for this guest
@@ -3376,18 +3985,10 @@ function showPaymentModal(bkId) {
       </div>
       
       <div class="form-group"><label>💰 Received By *</label>
-        <select id="payReceivedBy" style="width:100%;padding:8px;">
+        <select id="payReceivedBy" onchange="if(window.onReceiverDropdownChange) onReceiverDropdownChange(this, 'payReceivedByCustom')" style="width:100%;padding:8px;border-radius:6px;border:1px solid #CBD5E1;">
           <option value="">-- Select who received --</option>
-          <optgroup label="Final Holders (UPI/Bank)">
-            <option value="Firoz">Firoz</option>
-            <option value="Shahenshah">Shahenshah</option>
-          </optgroup>
-          <optgroup label="Cash Receivers" id="payCashReceivers">
-            <!-- Populated dynamically -->
-          </optgroup>
-          <option value="__custom__" style="color:#059669;font-weight:700;">✏️ Custom name...</option>
         </select>
-        <input id="payReceivedByCustom" type="text" placeholder="Type name..." style="display:none;margin-top:6px;width:100%;padding:8px;">
+        <input id="payReceivedByCustom" type="text" placeholder="Type name..." style="display:none;margin-top:6px;width:100%;padding:8px;border-radius:6px;border:1px solid #CBD5E1;">
       </div>
       
       <div class="form-group"><label>Date</label><input id="payDate" type="date" value="${new Date().toISOString().slice(0, 10)}" /></div>
@@ -5642,3 +6243,422 @@ console.log('✅ Guest Rating lookup module loaded');
 
 window.delBooking = delBooking;
 window.deleteBooking = delBooking;
+
+// ═══════════════════════════════════════════════════════════
+// 🛡️ SECURITY DEPOSIT MANAGEMENT MODAL & HELPERS
+// ═══════════════════════════════════════════════════════════
+
+window.toggleSecurityDepositBox = function() {
+  const chk = document.getElementById('hasSecurityDeposit');
+  const box = document.getElementById('securityDepositBox');
+  if (box) box.style.display = chk && chk.checked ? 'block' : 'none';
+  if (chk && chk.checked && typeof loadReceiveByHolders === 'function') {
+    loadReceiveByHolders().then(data => {
+      const el = document.getElementById('secReceivedBy');
+      if (!el) return;
+      const curr = el.value || 'Firoz';
+      const allHolders = [...(data.owners || []), ...(data.manager || []), ...(data.employees || [])];
+      el.innerHTML = '<option value="">-- Select Receiver --</option>' +
+        allHolders.map(h => `<option value="${escapeHtml(h)}" ${h === curr ? 'selected' : ''}>${escapeHtml(h)}</option>`).join('');
+    });
+  }
+};
+
+window.toggleEditSecBox = function() {
+  const chk = document.getElementById('eHasSecDeposit');
+  const box = document.getElementById('eSecBox');
+  if (box) box.style.display = chk && chk.checked ? 'block' : 'none';
+};
+
+window.calcEditSecRefund = function() {
+  const deposit = parseFloat(document.getElementById('eSecAmount')?.value) || 0;
+  const ded = parseFloat(document.getElementById('eSecDeductedAmt')?.value) || 0;
+  const refundEl = document.getElementById('eSecRefundAmt');
+  if (refundEl) {
+    refundEl.value = Math.max(0, deposit - ded);
+  }
+};
+
+window.onEditSecStatusChange = function() {
+  const st = document.getElementById('eSecStatus')?.value;
+  const deposit = parseFloat(document.getElementById('eSecAmount')?.value) || 0;
+  const dedEl = document.getElementById('eSecDeductedAmt');
+  const refEl = document.getElementById('eSecRefundAmt');
+  const dateEl = document.getElementById('eSecRefundDate');
+  const today = new Date().toISOString().slice(0, 10);
+
+  if (st === 'refunded') {
+    if (dedEl) dedEl.value = 0;
+    if (refEl) refEl.value = deposit;
+    if (dateEl && !dateEl.value) dateEl.value = today;
+  } else if (st === 'retained') {
+    if (dedEl) dedEl.value = deposit;
+    if (refEl) refEl.value = 0;
+    if (dateEl && !dateEl.value) dateEl.value = today;
+  } else if (st === 'partially_refunded') {
+    if (dateEl && !dateEl.value) dateEl.value = today;
+    window.calcEditSecRefund();
+  }
+};
+
+// Main Security Deposit Modal (Quick Action)
+window.showSecurityDepositModal = async function(bkId) {
+  let b = (window._allBookings || []).find(x => x.booking_id === bkId);
+  if (!b) {
+    const { data } = await sb.from('guest_register').select('*, rooms(*)').eq('booking_id', bkId).single();
+    b = data;
+  }
+  if (!b) {
+    if (window.fsn) fsn.error('Error', 'Booking not found');
+    else alert('Booking not found');
+    return;
+  }
+
+  const sec = getSecurityDeposit(b);
+  const rooms = b.rooms || {};
+  const propName = propLabel(rooms) || b.room_id;
+
+  const modal = document.createElement('div');
+  modal.className = 'modal-overlay';
+  modal.onclick = e => { if (e.target === modal) modal.remove(); };
+
+  modal.innerHTML = `
+    <div class="modal-box" style="max-width:550px;max-height:90vh;overflow-y:auto;">
+      <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">✕</button>
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+        <span style="font-size:24px;">🛡️</span>
+        <div>
+          <h2 style="margin:0;font-size:18px;">Security Deposit (सुरक्षा जमा)</h2>
+          <div style="font-size:12px;color:var(--muted);">${escapeHtml(b.guest_name || 'Guest')} · ${escapeHtml(propName)}</div>
+        </div>
+      </div>
+
+      <div style="background:#F0F9FF;border:1px solid #BAE6FD;border-radius:8px;padding:10px 12px;margin-bottom:14px;font-size:12px;color:#0369A1;display:flex;justify-content:space-between;align-items:center;">
+        <div>
+          <strong>Stay Dates:</strong> ${b.check_in || '-'} ➔ ${b.check_out || '-'}<br>
+          <strong>Total Stay Bill:</strong> ₹${(b.total_amount || 0).toLocaleString('en-IN')} (Stay Revenue se alag)
+        </div>
+        <div style="text-align:right;">
+          <span style="font-size:11px;background:#E0F2FE;color:#0369A1;font-weight:700;padding:3px 8px;border-radius:12px;display:inline-block;">Not In Revenue</span>
+        </div>
+      </div>
+
+      <!-- Current Status Summary Card -->
+      <div id="secModalCurrentStatus" style="background:${sec.status === 'collected' ? '#EFF6FF' : (sec.status === 'refunded' ? '#F0FDF4' : (sec.status === 'partially_refunded' ? '#FAF5FF' : (sec.status === 'retained' ? '#FEF2F2' : '#FFFBEB')))};border:1.5px solid ${sec.status === 'collected' ? '#3B82F6' : (sec.status === 'refunded' ? '#22C55E' : (sec.status === 'partially_refunded' ? '#A855F7' : (sec.status === 'retained' ? '#EF4444' : '#F59E0B')))};border-radius:10px;padding:14px;margin-bottom:14px;">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+          <div>
+            <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:#64748B;">Current Status</div>
+            <div style="font-size:17px;font-weight:800;color:#1E293B;margin-top:2px;">
+              ${sec.status === 'collected' ? '🔵 Deposit Held (जमा है)' : (sec.status === 'refunded' ? '🟢 Fully Refunded (पूरा वापस किया)' : (sec.status === 'partially_refunded' ? '🟣 Partially Refunded (डैमेज काटकर वापस)' : (sec.status === 'retained' ? '🔴 Retained for Damage (पूरा जब्त)' : '🟡 Pending Collection (लेना बाकी)')))}
+            </div>
+          </div>
+          <div style="text-align:right;">
+            <div style="font-size:11px;color:#64748B;">Security Amount</div>
+            <div style="font-size:18px;font-weight:800;color:#0284C7;">₹${(sec.amount || 0).toLocaleString('en-IN')}</div>
+          </div>
+        </div>
+
+        ${sec.receivedDate || sec.receivedBy ? `
+          <div style="margin-top:8px;padding-top:8px;border-top:1px dashed rgba(0,0,0,0.1);font-size:12px;color:#475569;">
+            📥 <strong>Received:</strong> ${sec.receivedDate || '-'} via <strong>${sec.mode || 'UPI'}</strong>${sec.receivedBy ? ' by <strong>' + escapeHtml(sec.receivedBy) + '</strong>' : ''}${sec.notes ? ' · Note: ' + escapeHtml(sec.notes) : ''}
+          </div>
+        ` : ''}
+
+        ${sec.status === 'partially_refunded' || sec.status === 'retained' || sec.status === 'refunded' ? `
+          <div style="margin-top:8px;padding-top:8px;border-top:1px dashed rgba(0,0,0,0.1);font-size:12px;color:#475569;">
+            ${(sec.deductedAmount || 0) > 0 ? `⚠️ <strong>Damage Deducted:</strong> <span style="color:#DC2626;font-weight:700;">₹${sec.deductedAmount.toLocaleString('en-IN')}</span> (Reason: ${escapeHtml(sec.deductionReason || 'Damage')})<br>` : ''}
+            💸 <strong>Refund Processed:</strong> <span style="color:#16A34A;font-weight:700;">₹${(sec.refundAmount || 0).toLocaleString('en-IN')}</span> on ${sec.refundDate || '-'} via ${sec.refundMode || 'UPI'}${sec.refundedBy ? ' by ' + escapeHtml(sec.refundedBy) : ''}
+          </div>
+        ` : ''}
+      </div>
+
+      <!-- Action Tabs / Form -->
+      <div style="display:flex;gap:6px;border-bottom:2px solid var(--border);margin-bottom:12px;">
+        <button type="button" id="secTabCollect" class="dash-pill-btn active" style="border-radius:6px 6px 0 0;font-weight:700;padding:6px 14px;" onclick="switchSecTab('collect')">📥 1. Collection (कब/कैसे मिला)</button>
+        <button type="button" id="secTabRefund" class="dash-pill-btn" style="border-radius:6px 6px 0 0;font-weight:700;padding:6px 14px;" onclick="switchSecTab('refund')">📤 2. Refund & Damage (कटौती & वापसी)</button>
+      </div>
+
+      <!-- TAB 1: Collection Form -->
+      <div id="secViewCollect">
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Deposit Amount ₹ *</label>
+            <input id="mSecAmt" type="number" value="${sec.amount || 2000}" />
+          </div>
+          <div class="form-group">
+            <label>Collection Status</label>
+            <select id="mSecStatus">
+              <option value="collected" ${sec.status === 'collected' || sec.status === 'none' ? 'selected' : ''}>✅ Received & Held (जमा हो गया)</option>
+              <option value="pending" ${sec.status === 'pending' ? 'selected' : ''}>⏳ Pending (लेना बाकी है)</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Date Received (कब मिला) *</label>
+            <input id="mSecDate" type="date" value="${sec.receivedDate || new Date().toISOString().slice(0, 10)}" />
+          </div>
+          <div class="form-group">
+            <label>Mode (कैसे मिला)</label>
+            <select id="mSecMode" onchange="if(window.onModalSecModeChange) onModalSecModeChange()">
+              <option value="UPI" ${sec.mode === 'UPI' ? 'selected' : ''}>UPI</option>
+              <option value="Cash" ${sec.mode === 'Cash' ? 'selected' : ''}>Cash</option>
+              <option value="Bank" ${sec.mode === 'Bank' ? 'selected' : ''}>Bank Transfer</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label id="mSecReceivedByLabel">Received By (किसने लिया) *</label>
+            <select id="mSecReceivedBy" onchange="if(window.onReceiverDropdownChange) onReceiverDropdownChange(this, 'mSecReceivedByCustom')" style="width:100%;padding:8px;border-radius:6px;border:1px solid #CBD5E1;">
+              <option value="">Loading receivers...</option>
+            </select>
+            <input id="mSecReceivedByCustom" type="text" placeholder="Enter custom name..." style="display:none;margin-top:6px;width:100%;padding:8px;border-radius:6px;border:1px solid #CBD5E1;" />
+          </div>
+          <div class="form-group">
+            <label>Note / Transaction Ref</label>
+            <input id="mSecNotes" value="${escapeHtml(sec.notes || '')}" placeholder="e.g. UTR 4209... / In cash drawer" />
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:14px;">
+          <button type="button" class="outline" onclick="this.closest('.modal-overlay').remove()" style="flex:1;">Close</button>
+          <button type="button" style="background:#0284C7;color:#fff;font-weight:700;flex:2;" onclick="submitSecurityCollection('${bkId}')">💾 Save Collection Details</button>
+        </div>
+      </div>
+
+      <!-- TAB 2: Settlement / Damage & Refund Form -->
+      <div id="secViewRefund" style="display:none;">
+        <div style="background:#FAF5FF;border:1px solid #E9D5FF;border-radius:8px;padding:10px 12px;margin-bottom:12px;font-size:12px;color:#6B21A8;">
+          💡 <strong>Property Inspection & Damage Settlement:</strong><br>
+          Agar flat me koi nuksan ya damage hua hai to deduction amount enter karein. Net refund amount automatically calculate ho jayega (<code>Deposit - Damage</code>).
+        </div>
+
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Deposit Held ₹</label>
+            <input id="mSecHeldAmt" type="number" readonly value="${sec.amount || 0}" style="background:#F1F5F9;font-weight:700;color:#0F172A;" />
+          </div>
+          <div class="form-group">
+            <label>Damage / Penalty Deduction ₹</label>
+            <input id="mSecDedAmt" type="number" value="${sec.deductedAmount || 0}" oninput="calcModalSecRefund()" placeholder="₹0 agar koi nuksan nahi" />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Deduction Reason (डैमेज / नुक़सान का कारण)</label>
+          <input id="mSecDedReason" value="${escapeHtml(sec.deductionReason || '')}" placeholder="e.g. Broken bedside lamp, glass tabletop crack, sofa deep stain" />
+        </div>
+
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Net Refund Amount ₹ (auto-calculated)</label>
+            <input id="mSecNetRefund" type="number" value="${sec.refundAmount || sec.amount || 0}" style="background:#F0FDF4;font-weight:800;color:#166534;font-size:15px;" />
+          </div>
+          <div class="form-group">
+            <label>Refund Date (कब वापस किया) *</label>
+            <input id="mSecRefDate" type="date" value="${sec.refundDate || new Date().toISOString().slice(0, 10)}" />
+          </div>
+        </div>
+
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Refund Mode (कैसे वापस किया) *</label>
+            <select id="mSecRefMode" onchange="if(window.onModalSecRefModeChange) onModalSecRefModeChange()">
+              <option value="UPI" ${sec.refundMode === 'UPI' ? 'selected' : ''}>UPI (GPay / PhonePe / Paytm)</option>
+              <option value="Cash" ${sec.refundMode === 'Cash' ? 'selected' : ''}>Cash in Hand</option>
+              <option value="Bank" ${sec.refundMode === 'Bank' ? 'selected' : ''}>Bank IMPS / NEFT</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label id="mSecRefByLabel">Refunded By (किसने वापस किया)</label>
+            <select id="mSecRefBy" onchange="if(window.onReceiverDropdownChange) onReceiverDropdownChange(this, 'mSecRefByCustom')" style="width:100%;padding:8px;border-radius:6px;border:1px solid #CBD5E1;">
+              <option value="">Loading receivers...</option>
+            </select>
+            <input id="mSecRefByCustom" type="text" placeholder="Enter custom name..." style="display:none;margin-top:6px;width:100%;padding:8px;border-radius:6px;border:1px solid #CBD5E1;" />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Refund Transaction Reference / UTR</label>
+          <input id="mSecRefNotes" value="${escapeHtml(sec.notes || '')}" placeholder="e.g. UPI Ref: 421098234 / Cash returned at checkout" />
+        </div>
+
+        <div style="display:flex;gap:8px;margin-top:14px;">
+          <button type="button" class="outline" onclick="this.closest('.modal-overlay').remove()" style="flex:1;">Close</button>
+          <button type="button" style="background:#059669;color:#fff;font-weight:700;flex:2;" onclick="submitSecurityRefund('${bkId}')">✅ Save & Process Refund</button>
+        </div>
+      </div>
+
+      <!-- Quick WhatsApp Actions -->
+      <div style="border-top:1px solid var(--border);margin-top:16px;padding-top:12px;">
+        <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:8px;">📱 WhatsApp Notifications to Guest</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+          <button type="button" class="btn-sm" style="background:#F0F9FF;color:#0284C7;border:1px solid #BAE6FD;font-weight:600;display:flex;align-items:center;justify-content:center;gap:6px;" onclick="if(window.sendSecurityDepositReceipt) sendSecurityDepositReceipt('${bkId}')">
+            <span>🛡️</span> Send Deposit Receipt
+          </button>
+          <button type="button" class="btn-sm" style="background:#FAF5FF;color:#7C3AED;border:1px solid #DDD6FE;font-weight:600;display:flex;align-items:center;justify-content:center;gap:6px;" onclick="if(window.sendSecurityDepositRefund) sendSecurityDepositRefund('${bkId}')">
+            <span>💸</span> Send Refund Slip
+          </button>
+        </div>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(modal);
+
+  // Auto populate receivers into dropdowns using unified helper
+  setTimeout(async () => {
+    if (window.populateReceivedByDropdown) {
+      await window.populateReceivedByDropdown(document.getElementById('mSecReceivedBy'), sec.mode || 'UPI', sec.receivedBy || '', document.getElementById('mSecReceivedByCustom'));
+      await window.populateReceivedByDropdown(document.getElementById('mSecRefBy'), sec.refundMode || 'UPI', sec.refundedBy || '', document.getElementById('mSecRefByCustom'));
+    }
+  }, 30);
+};
+
+window.onModalSecModeChange = async function() {
+  const mode = document.getElementById('mSecMode')?.value || 'UPI';
+  const sel = document.getElementById('mSecReceivedBy');
+  const custom = document.getElementById('mSecReceivedByCustom');
+  const curr = typeof getReceiverValue === 'function' ? getReceiverValue('mSecReceivedBy', 'mSecReceivedByCustom') : sel?.value;
+  await window.populateReceivedByDropdown(sel, mode, curr, custom);
+};
+
+window.onModalSecRefModeChange = async function() {
+  const mode = document.getElementById('mSecRefMode')?.value || 'UPI';
+  const sel = document.getElementById('mSecRefBy');
+  const custom = document.getElementById('mSecRefByCustom');
+  const curr = typeof getReceiverValue === 'function' ? getReceiverValue('mSecRefBy', 'mSecRefByCustom') : sel?.value;
+  await window.populateReceivedByDropdown(sel, mode, curr, custom);
+};
+
+window.switchSecTab = function(tab) {
+  const tCol = document.getElementById('secTabCollect');
+  const tRef = document.getElementById('secTabRefund');
+  const vCol = document.getElementById('secViewCollect');
+  const vRef = document.getElementById('secViewRefund');
+  if (!tCol || !tRef || !vCol || !vRef) return;
+  if (tab === 'collect') {
+    tCol.classList.add('active');
+    tRef.classList.remove('active');
+    vCol.style.display = 'block';
+    vRef.style.display = 'none';
+  } else {
+    tRef.classList.add('active');
+    tCol.classList.remove('active');
+    vRef.style.display = 'block';
+    vCol.style.display = 'none';
+    window.calcModalSecRefund();
+  }
+};
+
+window.calcModalSecRefund = function() {
+  const held = parseFloat(document.getElementById('mSecHeldAmt')?.value) || 0;
+  const ded = parseFloat(document.getElementById('mSecDedAmt')?.value) || 0;
+  const net = Math.max(0, held - ded);
+  const netEl = document.getElementById('mSecNetRefund');
+  if (netEl) netEl.value = net;
+};
+
+window.saveSecurityDeposit = async function(bkId, secData) {
+  const updatePayload = {
+    security_deposit_amount: secData.amount || 0,
+    security_deposit_status: secData.status || 'none',
+    security_deposit_mode: secData.mode || null,
+    security_deposit_received_by: secData.receivedBy || null,
+    security_deposit_received_date: secData.receivedDate || null,
+    security_deposit_refund_date: secData.refundDate || null,
+    security_deposit_refund_amount: secData.refundAmount || 0,
+    security_deposit_refund_mode: secData.refundMode || null,
+    security_deposit_refunded_by: secData.refundedBy || null,
+    security_deposit_deducted_amount: secData.deductedAmount || 0,
+    security_deposit_deduction_reason: secData.deductionReason || null,
+    security_deposit_notes: secData.notes || null
+  };
+
+  const { data: currBk } = await sb.from('guest_register').select('notes').eq('booking_id', bkId).single();
+  const updatedNotes = encodeSecurityDepositInNotes(currBk?.notes || '', secData);
+  updatePayload.notes = updatedNotes;
+
+  let { error } = await sb.from('guest_register').update(updatePayload).eq('booking_id', bkId);
+  if (isMissingColumnError(error)) {
+    console.warn('Native security deposit columns missing, updating notes fallback:', error.message);
+    const retry = await sb.from('guest_register').update({ notes: updatedNotes }).eq('booking_id', bkId);
+    error = retry.error;
+  }
+  return error;
+};
+
+window.submitSecurityCollection = async function(bkId) {
+  const amt = parseFloat(document.getElementById('mSecAmt')?.value) || 0;
+  const st = document.getElementById('mSecStatus')?.value || (amt > 0 ? 'collected' : 'none');
+  const date = document.getElementById('mSecDate')?.value || new Date().toISOString().slice(0, 10);
+  const mode = document.getElementById('mSecMode')?.value || 'UPI';
+  const by = typeof getReceiverValue === 'function' ? getReceiverValue('mSecReceivedBy', 'mSecReceivedByCustom') : (document.getElementById('mSecReceivedBy')?.value || '');
+  const notes = document.getElementById('mSecNotes')?.value?.trim() || '';
+
+  const secData = {
+    amount: amt,
+    status: st,
+    mode: mode,
+    receivedBy: by,
+    receivedDate: date,
+    notes: notes
+  };
+
+  const err = await window.saveSecurityDeposit(bkId, secData);
+  if (err) {
+    if (window.fsn) fsn.error('Error', err.message);
+    else alert('Error: ' + err.message);
+    return;
+  }
+  if (window.fsn) fsn.success('Saved', '✅ Security Deposit details updated');
+  document.querySelector('.modal-overlay')?.remove();
+  if (window.renderManageBookings) renderManageBookings();
+};
+
+window.submitSecurityRefund = async function(bkId) {
+  const held = parseFloat(document.getElementById('mSecHeldAmt')?.value) || 0;
+  const ded = parseFloat(document.getElementById('mSecDedAmt')?.value) || 0;
+  const reason = document.getElementById('mSecDedReason')?.value?.trim() || '';
+  const net = parseFloat(document.getElementById('mSecNetRefund')?.value) || 0;
+  const refDate = document.getElementById('mSecRefDate')?.value || new Date().toISOString().slice(0, 10);
+  const refMode = document.getElementById('mSecRefMode')?.value || 'UPI';
+  const refBy = typeof getReceiverValue === 'function' ? getReceiverValue('mSecRefBy', 'mSecRefByCustom') : (document.getElementById('mSecRefBy')?.value || '');
+  const refNotes = document.getElementById('mSecRefNotes')?.value?.trim() || '';
+
+  let st = 'refunded';
+  if (net === 0 && ded >= held) {
+    st = 'retained';
+  } else if (ded > 0) {
+    st = 'partially_refunded';
+  }
+
+  const b = (window._allBookings || []).find(x => x.booking_id === bkId) || {};
+  const currentSec = getSecurityDeposit(b);
+
+  const secData = {
+    amount: held || currentSec.amount || 0,
+    status: st,
+    mode: currentSec.mode || 'UPI',
+    receivedBy: currentSec.receivedBy || '',
+    receivedDate: currentSec.receivedDate || '',
+    refundDate: refDate,
+    refundAmount: net,
+    refundMode: refMode,
+    refundedBy: refBy,
+    deductedAmount: ded,
+    deductionReason: reason,
+    notes: refNotes || currentSec.notes || ''
+  };
+
+  const err = await window.saveSecurityDeposit(bkId, secData);
+  if (err) {
+    if (window.fsn) fsn.error('Error', err.message);
+    else alert('Error: ' + err.message);
+    return;
+  }
+  if (window.fsn) fsn.success('Refunded', '✅ Security Deposit refund & settlement saved');
+  document.querySelector('.modal-overlay')?.remove();
+  if (window.renderManageBookings) renderManageBookings();
+};
+

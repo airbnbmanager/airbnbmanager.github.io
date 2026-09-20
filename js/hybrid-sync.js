@@ -52,20 +52,22 @@ window.HYBRID_SYNC = {
         const checkIn = formatDate(dtStart);
         const checkOut = formatDate(dtEnd);
 
-        // Include from August 1st 2026 onwards
+        // Include from August 1st 2026 onwards — ONLY sync blocked slots, NEVER insert reservation placeholders
         if (checkIn >= '2026-08-01') {
           const isBlock = summary.toLowerCase().includes('not available') || summary.toLowerCase().includes('blocked');
-          events.push({
-            booking_id: uid ? 'ICAL_' + uid : 'ICAL_' + Date.now() + '_' + i,
-            guest_name: isBlock ? '🔒 Blocked Slot' : summary.replace('Reserved', 'Airbnb Guest').trim(),
-            check_in: checkIn,
-            check_out: checkOut,
-            room_id: roomId,
-            is_blocked: isBlock,
-            booking_mode: isBlock ? 'Offline-Blocked' : 'Online-Airbnb',
-            payment_status: 'Paid',
-            notes: description || (isBlock ? 'Airbnb Blocked date' : 'Real-time iCal sync')
-          });
+          if (isBlock) {
+            events.push({
+              booking_id: `BLK_${roomId}_${checkIn.replace(/-/g, '')}`,
+              guest_name: '🔒 Blocked Slot',
+              check_in: checkIn,
+              check_out: checkOut,
+              room_id: roomId,
+              is_blocked: true,
+              booking_mode: 'Offline-Blocked',
+              payment_status: 'Paid',
+              notes: description || 'Airbnb Blocked date auto-synced'
+            });
+          }
         }
       }
     }

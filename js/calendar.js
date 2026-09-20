@@ -592,6 +592,8 @@ async function showMultiBookingList(bookings, roomId, dateStr) {
     const nights = b.check_in && b.check_out ? calcNights(b.check_in, b.check_out) : '-';
     const modeIcon = b.booking_mode === 'Online-Airbnb' ? '🌐' : '🏠';
     const modeText = b.booking_mode === 'Online-Airbnb' ? 'Airbnb' : 'Direct';
+    const secBadge = typeof getSecurityDepositBadge === 'function' ? getSecurityDepositBadge(b) : '';
+    const cleanNotes = typeof cleanNotesForDisplay === 'function' ? cleanNotesForDisplay(b.notes) : (b.notes || '');
     const statusBadges = [];
     if (b.is_review_booking) statusBadges.push('<span style="background:#8B5CF6;color:#fff;padding:2px 6px;border-radius:4px;font-size:10px;">⭐ REVIEW</span>');
     if (b.show_to_investor === false) statusBadges.push('<span style="background:#DC2626;color:#fff;padding:2px 6px;border-radius:4px;font-size:10px;">🚫 HIDDEN</span>');
@@ -603,7 +605,7 @@ async function showMultiBookingList(bookings, roomId, dateStr) {
           <div>
             <div style="font-weight:700;font-size:15px;">
               ${idx + 1}. ${modeIcon} ${b.guest_name || 'Guest'} 
-              ${statusBadges.join(' ')}
+              ${statusBadges.join(' ')} ${secBadge}
             </div>
             <div style="font-size:11px;color:#666;margin-top:2px;">
               📞 ${b.phone || 'No phone'} &bull; ${modeText}
@@ -624,13 +626,15 @@ async function showMultiBookingList(bookings, roomId, dateStr) {
           <div><strong>Guests:</strong><br>${b.guests || 1}</div>
         </div>
         
-        ${b.notes ? `<div style="font-size:11px;color:#666;padding:6px;background:#FEF3C7;border-radius:4px;margin-bottom:8px;"><strong>Notes:</strong> ${b.notes}</div>` : ''}
+        ${cleanNotes ? `<div style="font-size:11px;color:#666;padding:6px;background:#FEF3C7;border-radius:4px;margin-bottom:8px;"><strong>Notes:</strong> ${cleanNotes}</div>` : ''}
         
         <div style="display:flex;gap:6px;flex-wrap:wrap;">
           <button class="btn-sm" onclick="this.closest('.modal-overlay').remove(); if(window.editBooking) editBooking('${b.booking_id}');" style="flex:1;">✏️ Edit</button>
           <button class="btn-sm secondary" onclick="this.closest('.modal-overlay').remove(); if(window.openAddPaymentModal) openAddPaymentModal('${b.booking_id}'); else if(window.showPaymentModal) showPaymentModal('${b.booking_id}');" style="flex:1;">💰 Pay</button>
-          <button class="btn-sm" style="background:#25D366;color:#fff;flex:1;" onclick="calOpenWhatsApp('${b.booking_id}', this);">📱 WhatsApp</button>
-          <button class="btn-sm danger" onclick="calDeleteBooking('${b.booking_id}', '${(b.guest_name || 'Booking').replace(/'/g, "\\'")}', '${b.room_id}');" style="background:#DC2626;color:#fff;flex:1;">🗑️ Delete</button>
+          <button class="btn-sm" style="background:#0284C7;color:#fff;flex:1;" onclick="this.closest('.modal-overlay').remove(); if(window.showSecurityDepositModal) showSecurityDepositModal('${b.booking_id}');" title="Manage Security Deposit">🛡️ Deposit</button>
+          <button class="btn-sm" style="background:#7C3AED;color:#fff;flex:1;" onclick="this.closest('.modal-overlay').remove(); openExtractBookingModal('${b.booking_id}', '${dateStr}');">✂️ Shift</button>
+          <button class="btn-sm" style="background:#25D366;color:#fff;flex:1;" onclick="calOpenWhatsApp('${b.booking_id}', this);">📱 WA</button>
+          <button class="btn-sm danger" onclick="calDeleteBooking('${b.booking_id}', '${(b.guest_name || 'Booking').replace(/'/g, "\\'")}', '${b.room_id}');" style="background:#DC2626;color:#fff;flex:1;">🗑️ Del</button>
         </div>
       </div>
     `;
@@ -705,6 +709,10 @@ window.openBookingDetails = async function(bId) {
   const isBlocked = (b.booking_id && String(b.booking_id).startsWith('BLK_')) || 
                     (b.guest_name && (b.guest_name.includes('Blocked') || b.booking_mode === 'Offline-Blocked'));
 
+  const sec = typeof getSecurityDeposit === 'function' ? getSecurityDeposit(b) : null;
+  const secBadge = typeof getSecurityDepositBadge === 'function' ? getSecurityDepositBadge(b) : '';
+  const cleanNotes = typeof cleanNotesForDisplay === 'function' ? cleanNotesForDisplay(b.notes) : (b.notes || '');
+
   const modal = document.createElement('div');
   modal.className = 'modal-overlay';
   modal.onclick = e => { if (e.target === modal) modal.remove(); };
@@ -715,14 +723,25 @@ window.openBookingDetails = async function(bId) {
       <h2 style="margin-top:0;margin-bottom:12px;font-size:18px;">${isBlocked ? '🔒 Blocked Date (Offline Slot)' : '📅 Booking Details'}</h2>
 
       <div style="background:${isBlocked ? '#F1F5F9' : '#F8FAFC'};padding:14px;border-radius:12px;border:1px solid ${isBlocked ? '#CBD5E1' : 'var(--border)'};margin-bottom:14px;font-size:13px;line-height:1.8;">
-        <div><strong>Guest Name:</strong> ${isBlocked ? '🔒 Blocked Slot' : (b.guest_name || '-')} ${!isBlocked && typeof getRatingBadge === 'function' ? getRatingBadge(b.client_rating) : ''}</div>
+        <div><strong>Guest Name:</strong> ${isBlocked ? '🔒 Blocked Slot' : (b.guest_name || '-')} ${!isBlocked && typeof getRatingBadge === 'function' ? getRatingBadge(b.client_rating) : ''} ${secBadge}</div>
         ${b.phone ? `<div><strong>Phone:</strong> <a href="tel:${b.phone}" style="color:var(--primary);text-decoration:none;">${b.phone}</a></div>` : ''}
         <div><strong>Property:</strong> ${propLabel(b.rooms) || b.room_id}</div>
         <div><strong>Channel Mode:</strong> <span style="font-weight:700;color:${isBlocked ? '#475569' : (b.booking_mode==='Online-Airbnb'?'#2563EB':'#D97706')}">${isBlocked ? '🔒 Offline-Blocked' : b.booking_mode}</span></div>
         <div><strong>Dates:</strong> 🗓️ ${b.check_in} ➔ ${b.check_out} (<strong>${nights}</strong> Night${nights>1?'s':''})</div>
         ${!isBlocked ? `<div><strong>Total Amount:</strong> ₹${(b.total_amount||0).toLocaleString('en-IN')} | <strong>Paid:</strong> ₹${totalPaid.toLocaleString('en-IN')} | <strong style="color:${due>0?'#DC2626':'#059669'}">Due: ₹${due.toLocaleString('en-IN')}</strong></div>` : '<div style="color:var(--muted);font-size:12px;">This slot is blocked / unavailable on Airbnb. You can convert it to a real guest booking below.</div>'}
+        ${sec && sec.status !== 'none' && (sec.amount > 0 || sec.status === 'pending') ? `
+          <div style="background:#F0FDF4;border:1px solid #BBF7D0;padding:8px 12px;border-radius:8px;margin-top:6px;font-size:12.5px;color:#166534;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px;">
+            <div>
+              🛡️ <strong>Security Deposit:</strong> ₹${(sec.amount || 0).toLocaleString('en-IN')} 
+              <span style="text-transform:uppercase;font-size:10px;font-weight:700;padding:2px 6px;border-radius:4px;background:#DCFCE7;color:#15803D;margin-left:4px;">${sec.status}</span>
+              ${sec.deductedAmount > 0 ? `<span style="color:#DC2626;margin-left:4px;font-weight:700;">(Deducted: ₹${sec.deductedAmount.toLocaleString('en-IN')})</span>` : ''}
+              ${sec.refundAmount > 0 ? `<span style="color:#2563EB;margin-left:4px;">(Refunded: ₹${sec.refundAmount.toLocaleString('en-IN')})</span>` : ''}
+            </div>
+            <button onclick="this.closest('.modal-overlay').remove(); if(window.showSecurityDepositModal) showSecurityDepositModal('${b.booking_id}');" style="padding:4px 8px;font-size:11px;font-weight:700;background:#059669;color:#fff;border:none;border-radius:5px;cursor:pointer;">Manage / Refund</button>
+          </div>
+        ` : ''}
         ${b.has_vehicle ? `<div style="margin-top:2px;font-size:12px;color:var(--muted);">🚗 Vehicle: ${(b.vehicle_name || '') + ' ' + (b.vehicle_number || '')}</div>` : ''}
-        ${b.notes ? `<div style="font-size:12px;color:#6B7280;margin-top:4px;"><strong>Notes:</strong> ${b.notes}</div>` : ''}
+        ${cleanNotes ? `<div style="font-size:12px;color:#6B7280;margin-top:4px;"><strong>Notes:</strong> ${cleanNotes}</div>` : ''}
       </div>
 
       ${idPaths.length ? `
@@ -747,7 +766,13 @@ window.openBookingDetails = async function(bId) {
           <button onclick="this.closest('.modal-overlay').remove(); if(window.openAddPaymentModal) openAddPaymentModal('${b.booking_id}'); else if(window.showPaymentModal) showPaymentModal('${b.booking_id}');" style="padding:10px;background:#059669;color:#fff;border:none;border-radius:8px;font-weight:600;cursor:pointer;">
             💵 Add Payment
           </button>
-          <button onclick="this.closest('.modal-overlay').remove(); if(window.duplicateBooking) duplicateBooking('${b.booking_id}');" style="padding:10px;background:#7C3AED;color:#fff;border:none;border-radius:8px;font-weight:600;cursor:pointer;">
+          <button onclick="this.closest('.modal-overlay').remove(); if(window.showSecurityDepositModal) showSecurityDepositModal('${b.booking_id}');" style="padding:10px;background:#0284C7;color:#fff;border:none;border-radius:8px;font-weight:600;cursor:pointer;">
+            🛡️ Security Deposit
+          </button>
+          <button onclick="this.closest('.modal-overlay').remove(); openExtractBookingModal('${b.booking_id}', '${b.check_in}');" style="padding:10px;background:#7C3AED;color:#fff;border:none;border-radius:8px;font-weight:600;cursor:pointer;">
+            ✂️ Shift / Extract Dates
+          </button>
+          <button onclick="this.closest('.modal-overlay').remove(); if(window.duplicateBooking) duplicateBooking('${b.booking_id}');" style="padding:10px;background:#6366F1;color:#fff;border:none;border-radius:8px;font-weight:600;cursor:pointer;">
             📋 Duplicate
           </button>
           <button onclick="calOpenWhatsApp('${b.booking_id}', this);" style="padding:10px;background:#25D366;color:#fff;border:none;border-radius:8px;font-weight:600;cursor:pointer;">
@@ -761,6 +786,459 @@ window.openBookingDetails = async function(bId) {
     </div>
   `;
   document.body.appendChild(modal);
+};
+
+// ═══════════════════════════════════════════════════════════
+// ✂️ SHIFT / EXTRACT DATES MODAL (WITH PAYMENT PROTECTION)
+// ═══════════════════════════════════════════════════════════
+window.openExtractBookingModal = async function(bookingId, defaultDate) {
+  const { data: b, error } = await sb.from('guest_register')
+    .select('*, rooms(*)')
+    .eq('booking_id', bookingId)
+    .single();
+
+  if (error || !b) {
+    alert('Booking not found: ' + (error?.message || ''));
+    return;
+  }
+
+  const { data: pays } = await sb.from('payment_history')
+    .select('*')
+    .eq('booking_id', bookingId)
+    .neq('verification_status', 'rejected');
+
+  const totalPaid = (pays || []).reduce((s, p) => s + (Number(p.amount) || 0), 0);
+  const totalNights = Math.max(Math.round((new Date(b.check_out) - new Date(b.check_in)) / 86400000), 1);
+  const perDayRate = b.per_day_rate || (b.total_amount > 0 ? Math.round(b.total_amount / totalNights) : 0);
+  const perDayPaid = totalNights > 0 ? (totalPaid / totalNights) : 0;
+
+  const allRooms = window._allRoomsCache || [];
+  const otherRooms = allRooms.filter(r => r.room_id !== b.room_id);
+
+  let initStart = b.check_in;
+  if (defaultDate && defaultDate >= b.check_in && defaultDate < b.check_out) {
+    initStart = defaultDate;
+  }
+  let initEnd = b.check_out;
+  if (defaultDate && defaultDate >= b.check_in && defaultDate < b.check_out) {
+    const nextD = new Date(defaultDate);
+    nextD.setDate(nextD.getDate() + 1);
+    const nStr = nextD.toISOString().slice(0, 10);
+    if (nStr <= b.check_out) initEnd = nStr;
+  }
+
+  const modal = document.createElement('div');
+  modal.className = 'modal-overlay';
+  modal.onclick = e => { if (e.target === modal) modal.remove(); };
+
+  modal.innerHTML = `
+    <div class="modal-box" style="max-width:540px;padding:24px;border-radius:16px;">
+      <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">✕</button>
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+        <span style="font-size:24px;">✂️</span>
+        <div>
+          <h2 style="margin:0;font-size:18px;color:#1E293B;">Shift / Extract Dates to Another Room</h2>
+          <div style="font-size:12px;color:#64748B;">Guest: <strong>${b.guest_name || 'Guest'}</strong> &bull; From: <strong>${typeof propLabel === 'function' ? propLabel(b.rooms) : b.room_id}</strong></div>
+        </div>
+      </div>
+
+      <div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:10px;padding:12px;margin-bottom:14px;font-size:12.5px;line-height:1.6;">
+        <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+          <div>🗓️ <strong>Original Stay:</strong> ${b.check_in} ➔ ${b.check_out} (<strong>${totalNights}</strong> nights)</div>
+          <div>💰 <strong>Rate:</strong> ₹${perDayRate.toLocaleString('en-IN')}/night</div>
+        </div>
+        <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-top:4px;">
+          <div>💵 <strong>Total Amount:</strong> ₹${(b.total_amount || 0).toLocaleString('en-IN')}</div>
+          <div>✅ <strong>Total Paid:</strong> <span style="color:#059669;font-weight:700;">₹${totalPaid.toLocaleString('en-IN')}</span> ${totalPaid >= (b.total_amount || 0) && (b.total_amount || 0) > 0 ? '✓ (Fully Paid)' : ''}</div>
+        </div>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:12px;margin-bottom:14px;">
+        <div>
+          <label style="display:block;font-size:12px;font-weight:700;color:#475569;margin-bottom:4px;">🏢 Select Target Property (Shift To):</label>
+          <select id="extTargetRoom" style="width:100%;padding:9px 12px;border-radius:8px;border:1px solid #CBD5E1;font-size:13px;background:#fff;">
+            ${otherRooms.map(r => `
+              <option value="${r.room_id}">${typeof propLabel === 'function' ? propLabel(r) : (r.property_name || r.nickname || r.room_id)} (${r.room_id})</option>
+            `).join('')}
+          </select>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+          <div>
+            <label style="display:block;font-size:12px;font-weight:700;color:#475569;margin-bottom:4px;">🗓️ Extract From (Check-in):</label>
+            <input type="date" id="extStartDate" value="${initStart}" min="${b.check_in}" max="${b.check_out}" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid #CBD5E1;font-size:13px;box-sizing:border-box;">
+          </div>
+          <div>
+            <label style="display:block;font-size:12px;font-weight:700;color:#475569;margin-bottom:4px;">🗓️ Extract To (Check-out):</label>
+            <input type="date" id="extEndDate" value="${initEnd}" min="${b.check_in}" max="${b.check_out}" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid #CBD5E1;font-size:13px;box-sizing:border-box;">
+          </div>
+        </div>
+
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+          <button type="button" class="btn-sm" style="background:#F1F5F9;color:#475569;border:1px solid #CBD5E1;padding:4px 8px;font-size:11px;" onclick="document.getElementById('extStartDate').value='${b.check_in}'; document.getElementById('extEndDate').value='${b.check_out}'; window._updateExtPreview();">All Dates (Full Move)</button>
+          ${defaultDate && defaultDate >= b.check_in && defaultDate < b.check_out ? `
+            <button type="button" class="btn-sm" style="background:#EEF2FF;color:#4F46E5;border:1px solid #C7D2FE;padding:4px 8px;font-size:11px;" onclick="
+              document.getElementById('extStartDate').value='${defaultDate}';
+              const nd = new Date('${defaultDate}'); nd.setDate(nd.getDate()+1);
+              document.getElementById('extEndDate').value=nd.toISOString().slice(0,10);
+              window._updateExtPreview();
+            ">Selected Date Only (${defaultDate})</button>
+          ` : ''}
+        </div>
+      </div>
+
+      <div id="extPreviewBox" style="margin-bottom:16px;"></div>
+
+      <div style="display:flex;gap:10px;justify-content:flex-end;">
+        <button type="button" class="btn-sm outline" onclick="this.closest('.modal-overlay').remove();" style="padding:10px 18px;">Cancel</button>
+        <button type="button" id="extConfirmBtn" class="btn-sm" style="padding:10px 22px;background:#7C3AED;color:#fff;border:none;border-radius:8px;font-weight:700;cursor:pointer;">
+          ✓ Confirm & Shift Dates
+        </button>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(modal);
+
+  window._updateExtPreview = function() {
+    const sInput = document.getElementById('extStartDate');
+    const eInput = document.getElementById('extEndDate');
+    const tRoomSelect = document.getElementById('extTargetRoom');
+    const prevBox = document.getElementById('extPreviewBox');
+    const confBtn = document.getElementById('extConfirmBtn');
+
+    if (!sInput || !eInput || !prevBox || !confBtn) return;
+
+    const sVal = sInput.value;
+    const eVal = eInput.value;
+    const targetRoomId = tRoomSelect?.value;
+    const targetRoomObj = allRooms.find(r => r.room_id === targetRoomId) || { room_id: targetRoomId };
+    const targetName = typeof propLabel === 'function' ? propLabel(targetRoomObj) : targetRoomId;
+    const origName = typeof propLabel === 'function' ? propLabel(b.rooms) : b.room_id;
+
+    if (!sVal || !eVal || sVal >= eVal) {
+      prevBox.innerHTML = `<div style="background:#FEF2F2;color:#DC2626;padding:10px;border-radius:8px;font-size:12px;">⚠️ Please select valid check-in and check-out dates (Check-out must be after check-in).</div>`;
+      confBtn.disabled = true;
+      confBtn.style.opacity = '0.5';
+      return;
+    }
+
+    if (sVal < b.check_in || eVal > b.check_out) {
+      prevBox.innerHTML = `<div style="background:#FEF2F2;color:#DC2626;padding:10px;border-radius:8px;font-size:12px;">⚠️ Selected dates must be within original stay range (${b.check_in} to ${b.check_out}).</div>`;
+      confBtn.disabled = true;
+      confBtn.style.opacity = '0.5';
+      return;
+    }
+
+    const extNights = Math.round((new Date(eVal) - new Date(sVal)) / 86400000);
+    const isFullMove = (extNights === totalNights);
+    const isExtractFromStart = (sVal === b.check_in && eVal < b.check_out);
+    const isExtractFromEnd = (sVal > b.check_in && eVal === b.check_out);
+    const isExtractMiddle = (sVal > b.check_in && eVal < b.check_out);
+
+    const extAmount = Math.round(extNights * perDayRate);
+    const extPaid = Math.round(extNights * perDayPaid * 100) / 100;
+    const remPaid = Math.max(Math.round((totalPaid - extPaid) * 100) / 100, 0);
+    const remNights = totalNights - extNights;
+    const remAmount = Math.max((b.total_amount || 0) - extAmount, 0);
+
+    confBtn.disabled = false;
+    confBtn.style.opacity = '1';
+
+    let splitDesc = '';
+    if (isFullMove) {
+      splitDesc = `Entire booking (${totalNights} nights) will move from <strong>${origName}</strong> to <strong>${targetName}</strong>.`;
+    } else if (isExtractFromStart) {
+      splitDesc = `<strong>${extNights} nights (${sVal} → ${eVal})</strong> will move to <strong>${targetName}</strong>.<br>Remaining <strong>${remNights} nights (${eVal} → ${b.check_out})</strong> will stay in <strong>${origName}</strong>.`;
+    } else if (isExtractFromEnd) {
+      splitDesc = `<strong>${extNights} nights (${sVal} → ${eVal})</strong> will move to <strong>${targetName}</strong>.<br>Remaining <strong>${remNights} nights (${b.check_in} → ${sVal})</strong> will stay in <strong>${origName}</strong>.`;
+    } else if (isExtractMiddle) {
+      const p1N = Math.round((new Date(sVal) - new Date(b.check_in)) / 86400000);
+      const p3N = Math.round((new Date(b.check_out) - new Date(eVal)) / 86400000);
+      splitDesc = `Middle <strong>${extNights} night${extNights>1?'s':''} (${sVal} → ${eVal})</strong> will extract to <strong>${targetName}</strong>.<br>In <strong>${origName}</strong>: Part 1 (${b.check_in} → ${sVal}, ${p1N}n) and Part 2 (${eVal} → ${b.check_out}, ${p3N}n).`;
+    }
+
+    prevBox.innerHTML = `
+      <div style="background:#F0FDF4;border:1px solid #BBF7D0;border-radius:10px;padding:12px;font-size:12px;color:#166534;">
+        <div style="font-weight:700;margin-bottom:4px;font-size:13px;">📋 Preview of Changes:</div>
+        <div style="margin-bottom:8px;line-height:1.5;">${splitDesc}</div>
+        
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px;padding-top:8px;border-top:1px dashed #86EFAC;">
+          <div style="background:#fff;padding:8px;border-radius:6px;border:1px solid #DCFCE7;">
+            <div style="font-weight:700;color:#15803D;">🏢 New Segment (${targetRoomId}):</div>
+            <div>${extNights} Night${extNights>1?'s':''} &bull; ₹${extAmount.toLocaleString('en-IN')}</div>
+            <div style="color:#059669;font-weight:700;">💰 Paid Allocated: ₹${extPaid.toLocaleString('en-IN')}</div>
+          </div>
+          <div style="background:#fff;padding:8px;border-radius:6px;border:1px solid #DCFCE7;">
+            <div style="font-weight:700;color:#1E293B;">🏠 Remaining (${b.room_id}):</div>
+            <div>${remNights} Night${remNights>1?'s':''} &bull; ₹${remAmount.toLocaleString('en-IN')}</div>
+            <div style="color:#059669;font-weight:700;">💰 Paid Remaining: ₹${remPaid.toLocaleString('en-IN')}</div>
+          </div>
+        </div>
+
+        <div style="margin-top:8px;font-size:11px;color:#15803D;display:flex;align-items:center;gap:4px;">
+          🛡️ <strong>Zero Payment Loss Guarantee:</strong> Total Paid (₹${totalPaid.toLocaleString('en-IN')}) is 100% preserved.
+        </div>
+      </div>
+    `;
+  };
+
+  document.getElementById('extStartDate').oninput = window._updateExtPreview;
+  document.getElementById('extEndDate').oninput = window._updateExtPreview;
+  document.getElementById('extTargetRoom').onchange = window._updateExtPreview;
+  window._updateExtPreview();
+
+  document.getElementById('extConfirmBtn').onclick = async function() {
+    const sVal = document.getElementById('extStartDate').value;
+    const eVal = document.getElementById('extEndDate').value;
+    const targetRoomId = document.getElementById('extTargetRoom').value;
+
+    if (!targetRoomId) { alert('Please select a target room!'); return; }
+    if (!sVal || !eVal || sVal >= eVal) { alert('Please select valid dates!'); return; }
+
+    const extNights = Math.round((new Date(eVal) - new Date(sVal)) / 86400000);
+    const isFullMove = (extNights === totalNights);
+    const isExtractFromStart = (sVal === b.check_in && eVal < b.check_out);
+    const isExtractFromEnd = (sVal > b.check_in && eVal === b.check_out);
+    const isExtractMiddle = (sVal > b.check_in && eVal < b.check_out);
+
+    const extAmount = Math.round(extNights * perDayRate);
+    const extPaid = Math.round(extNights * perDayPaid * 100) / 100;
+    const remPaid = Math.max(Math.round((totalPaid - extPaid) * 100) / 100, 0);
+    const remAmount = Math.max((b.total_amount || 0) - extAmount, 0);
+
+    const btn = document.getElementById('extConfirmBtn');
+    btn.disabled = true;
+    btn.textContent = '⏳ Processing...';
+
+    try {
+      if (isFullMove) {
+        const { error: mErr } = await sb.from('guest_register').update({
+          room_id: targetRoomId,
+          source_room_id: targetRoomId,
+          notes: `Shifted to ${targetRoomId} on ${new Date().toLocaleDateString('en-IN')} | ${b.notes || ''}`
+        }).eq('booking_id', b.booking_id);
+        if (mErr) throw mErr;
+
+      } else if (isExtractFromStart) {
+        const extBookingId = 'B' + Date.now() + '_' + Math.random().toString(36).substring(2, 6);
+        const { error: insErr } = await sb.from('guest_register').insert({
+          booking_id: extBookingId,
+          guest_name: b.guest_name,
+          phone: b.phone,
+          room_id: targetRoomId,
+          source_room_id: targetRoomId,
+          check_in: sVal,
+          check_out: eVal,
+          check_in_time: b.check_in_time || '14:00',
+          check_out_time: b.check_out_time || '11:00',
+          checkout_confirmed: false,
+          total_amount: extAmount,
+          per_day_rate: perDayRate,
+          booking_mode: b.booking_mode || 'Offline',
+          payment_status: extPaid >= extAmount && extAmount > 0 ? 'Paid' : (extPaid > 0 ? 'Partial' : 'Paid'),
+          verification_status: 'verified',
+          guests: b.guests || 1,
+          notes: `Extracted (${sVal} to ${eVal}) from ${b.booking_id} (${b.room_id})`
+        });
+        if (insErr) throw insErr;
+
+        if (extPaid > 0) {
+          await sb.from('payment_history').insert({
+            booking_id: extBookingId,
+            amount: extPaid,
+            payment_date: sVal,
+            payment_mode: pays[0]?.payment_mode || 'UPI',
+            received_by: pays[0]?.received_by || 'Company',
+            received_by_type: 'employee',
+            handover_status: 'handed_over',
+            verification_status: 'verified',
+            notes: `Allocated payment from split stay (${b.booking_id})`
+          });
+        }
+
+        const { error: upErr } = await sb.from('guest_register').update({
+          check_in: eVal,
+          total_amount: remAmount,
+          payment_status: remPaid >= remAmount && remAmount > 0 ? 'Paid' : (remPaid > 0 ? 'Partial' : 'Paid'),
+          notes: `Dates adjusted: ${eVal} to ${b.check_out} (earlier dates shifted to ${targetRoomId})`
+        }).eq('booking_id', b.booking_id);
+        if (upErr) throw upErr;
+
+        if (pays && pays.length > 0) {
+          await sb.from('payment_history').update({
+            amount: remPaid,
+            notes: `Remaining payment after shifting dates to ${targetRoomId}`
+          }).eq('id', pays[0].id);
+        }
+
+      } else if (isExtractFromEnd) {
+        const extBookingId = 'B' + Date.now() + '_' + Math.random().toString(36).substring(2, 6);
+        const { error: insErr } = await sb.from('guest_register').insert({
+          booking_id: extBookingId,
+          guest_name: b.guest_name,
+          phone: b.phone,
+          room_id: targetRoomId,
+          source_room_id: targetRoomId,
+          check_in: sVal,
+          check_out: eVal,
+          check_in_time: b.check_in_time || '14:00',
+          check_out_time: b.check_out_time || '11:00',
+          checkout_confirmed: false,
+          total_amount: extAmount,
+          per_day_rate: perDayRate,
+          booking_mode: b.booking_mode || 'Offline',
+          payment_status: extPaid >= extAmount && extAmount > 0 ? 'Paid' : (extPaid > 0 ? 'Partial' : 'Paid'),
+          verification_status: 'verified',
+          guests: b.guests || 1,
+          notes: `Extracted (${sVal} to ${eVal}) from ${b.booking_id} (${b.room_id})`
+        });
+        if (insErr) throw insErr;
+
+        if (extPaid > 0) {
+          await sb.from('payment_history').insert({
+            booking_id: extBookingId,
+            amount: extPaid,
+            payment_date: sVal,
+            payment_mode: pays[0]?.payment_mode || 'UPI',
+            received_by: pays[0]?.received_by || 'Company',
+            received_by_type: 'employee',
+            handover_status: 'handed_over',
+            verification_status: 'verified',
+            notes: `Allocated payment from split stay (${b.booking_id})`
+          });
+        }
+
+        const { error: upErr } = await sb.from('guest_register').update({
+          check_out: sVal,
+          total_amount: remAmount,
+          payment_status: remPaid >= remAmount && remAmount > 0 ? 'Paid' : (remPaid > 0 ? 'Partial' : 'Paid'),
+          notes: `Dates adjusted: ${b.check_in} to ${sVal} (later dates shifted to ${targetRoomId})`
+        }).eq('booking_id', b.booking_id);
+        if (upErr) throw upErr;
+
+        if (pays && pays.length > 0) {
+          await sb.from('payment_history').update({
+            amount: remPaid,
+            notes: `Remaining payment after shifting dates to ${targetRoomId}`
+          }).eq('id', pays[0].id);
+        }
+
+      } else if (isExtractMiddle) {
+        const p1Nights = Math.round((new Date(sVal) - new Date(b.check_in)) / 86400000);
+        const p3Nights = Math.round((new Date(b.check_out) - new Date(eVal)) / 86400000);
+
+        const p1Amount = Math.round(p1Nights * perDayRate);
+        const p3Amount = Math.round(p3Nights * perDayRate);
+
+        const p1Paid = Math.round(p1Nights * perDayPaid * 100) / 100;
+        const p3Paid = Math.max(Math.round((totalPaid - p1Paid - extPaid) * 100) / 100, 0);
+
+        const { error: upErr1 } = await sb.from('guest_register').update({
+          check_out: sVal,
+          total_amount: p1Amount,
+          payment_status: p1Paid >= p1Amount && p1Amount > 0 ? 'Paid' : (p1Paid > 0 ? 'Partial' : 'Paid'),
+          notes: `Part 1 stay (${b.check_in} to ${sVal}) | Mid-stay shifted to ${targetRoomId}`
+        }).eq('booking_id', b.booking_id);
+        if (upErr1) throw upErr1;
+
+        if (pays && pays.length > 0) {
+          await sb.from('payment_history').update({
+            amount: p1Paid,
+            notes: `Payment for Part 1 stay (${b.check_in} to ${sVal})`
+          }).eq('id', pays[0].id);
+        }
+
+        const extBookingId = 'B' + Date.now() + '_' + Math.random().toString(36).substring(2, 6);
+        const { error: insErr2 } = await sb.from('guest_register').insert({
+          booking_id: extBookingId,
+          guest_name: b.guest_name,
+          phone: b.phone,
+          room_id: targetRoomId,
+          source_room_id: targetRoomId,
+          check_in: sVal,
+          check_out: eVal,
+          check_in_time: b.check_in_time || '14:00',
+          check_out_time: b.check_out_time || '11:00',
+          checkout_confirmed: false,
+          total_amount: extAmount,
+          per_day_rate: perDayRate,
+          booking_mode: b.booking_mode || 'Offline',
+          payment_status: extPaid >= extAmount && extAmount > 0 ? 'Paid' : (extPaid > 0 ? 'Partial' : 'Paid'),
+          verification_status: 'verified',
+          guests: b.guests || 1,
+          notes: `Extracted (${sVal} to ${eVal}) from ${b.booking_id} (${b.room_id})`
+        });
+        if (insErr2) throw insErr2;
+
+        if (extPaid > 0) {
+          await sb.from('payment_history').insert({
+            booking_id: extBookingId,
+            amount: extPaid,
+            payment_date: sVal,
+            payment_mode: pays[0]?.payment_mode || 'UPI',
+            received_by: pays[0]?.received_by || 'Company',
+            received_by_type: 'employee',
+            handover_status: 'handed_over',
+            verification_status: 'verified',
+            notes: `Allocated payment for middle extracted stay`
+          });
+        }
+
+        const part3BookingId = 'B' + (Date.now() + 50) + '_' + Math.random().toString(36).substring(2, 6);
+        const { error: insErr3 } = await sb.from('guest_register').insert({
+          booking_id: part3BookingId,
+          guest_name: b.guest_name,
+          phone: b.phone,
+          room_id: b.room_id,
+          source_room_id: b.room_id,
+          check_in: eVal,
+          check_out: b.check_out,
+          check_in_time: b.check_in_time || '14:00',
+          check_out_time: b.check_out_time || '11:00',
+          checkout_confirmed: false,
+          total_amount: p3Amount,
+          per_day_rate: perDayRate,
+          booking_mode: b.booking_mode || 'Offline',
+          payment_status: p3Paid >= p3Amount && p3Amount > 0 ? 'Paid' : (p3Paid > 0 ? 'Partial' : 'Paid'),
+          verification_status: 'verified',
+          guests: b.guests || 1,
+          notes: `Part 2 trailing stay (${eVal} to ${b.check_out}) continued in ${b.room_id}`
+        });
+        if (insErr3) throw insErr3;
+
+        if (p3Paid > 0) {
+          await sb.from('payment_history').insert({
+            booking_id: part3BookingId,
+            amount: p3Paid,
+            payment_date: eVal,
+            payment_mode: pays[0]?.payment_mode || 'UPI',
+            received_by: pays[0]?.received_by || 'Company',
+            received_by_type: 'employee',
+            handover_status: 'handed_over',
+            verification_status: 'verified',
+            notes: `Allocated payment for Part 2 trailing stay`
+          });
+        }
+      }
+
+      modal.remove();
+      if (window.fsn) {
+        fsn.success('Shifted', `✅ Successfully shifted dates to ${targetRoomId}! Payments balanced.`);
+      } else {
+        alert(`✅ Successfully shifted dates to ${targetRoomId}!\n\nAll payments have been balanced with zero loss.`);
+      }
+
+      if (window.notifyDataChanged) window.notifyDataChanged();
+      if (typeof renderCalendar === 'function') renderCalendar();
+
+    } catch (err) {
+      console.error('Extract error:', err);
+      btn.disabled = false;
+      btn.textContent = '✓ Confirm & Shift Dates';
+      alert('Failed to shift dates:\n' + (err.message || JSON.stringify(err)));
+    }
+  };
 };
 
 // ═══════════════════════════════════════════════════════════

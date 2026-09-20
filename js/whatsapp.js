@@ -35,22 +35,95 @@ async function buildMessageData(bkId) {
   const { data: cfg } = await sb.from('company_config').select('*').eq('id', 1).single();
   const config = cfg || {};
 
-  // Fetch staff for this property (assigned_rooms contains roomId)
-  const { data: allStaff } = await sb.from('employees')
-    .select('name, phone, shift, whatsapp_display_role, assigned_rooms, status, is_active')
-    .eq('in_whatsapp_template', true);
+  // Fetch active staff for this property
+  let propertyStaff = [];
+  const cleanPhone = p => (p || '').replace(/\D/g, '');
 
-  const propertyStaff = (allStaff || []).filter(e => {
-    if (e.status !== 'Active' || e.is_active === false) return false;
-    const rooms = (e.assigned_rooms || '').split(',').map(r => r.trim());
-    return rooms.includes(roomId);
-  });
+  try {
+    const { data: allStaff } = await sb.from('employees')
+      .select('name, phone, shift, role, property_role, whatsapp_display_role, assigned_rooms, status, is_active, in_whatsapp_template');
 
-  const dayStaff = propertyStaff.filter(e => e.shift === 'day' && e.phone);
-  const nightStaff = propertyStaff.filter(e => e.shift === 'night' && e.phone);
+    // Room tokens representing this property
+    const roomTokens = new Set([
+      (roomId || '').toLowerCase().trim(),
+      (room.room_id || '').toLowerCase().trim(),
+      (room.unit_no || '').toLowerCase().trim(),
+      (room.nickname || '').toLowerCase().trim()
+    ].filter(Boolean));
 
-  // Clean phone (remove spaces)
-  const cleanPhone = p => (p || '').replace(/\s+/g, '');
+    propertyStaff = (allStaff || []).filter(e => {
+      // 1. Must be active (not fired, inactive, terminated)
+      const st = String(e.status || '').trim().toLowerCase();
+      const isActive = (st === 'active' || e.is_active === true) && !['inactive', 'fired', 'terminated'].includes(st) && e.is_active !== false;
+      if (!isActive) return false;
+      if (e.in_whatsapp_template === false) return false;
+
+      // 2. Must have a valid phone number (at least 10 digits)
+      const p = cleanPhone(e.phone);
+      if (!p || p.length < 10) return false;
+
+      // 3. Must NOT be manager (Praveen Singh has dedicated Property Manager section)
+      const roleStr = String(e.role || '').toLowerCase();
+      const nameStr = String(e.name || '').toLowerCase();
+      if (nameStr.includes('praveen') || roleStr.includes('manager')) return false;
+
+      // 4. Must be Caretaker role
+      const propRole = String(e.property_role || '').toLowerCase();
+      const isCaretaker = roleStr.includes('caretaker') || propRole.includes('caretaker') || roleStr.includes('care taker') || e.whatsapp_display_role === 'Caretaker';
+      if (!isCaretaker) return false;
+
+      // 5. Must match assigned property room tokens
+      const assigned = String(e.assigned_rooms || '').split(',').map(r => r.trim().toLowerCase()).filter(Boolean);
+      if (assigned.length === 0) return false;
+
+      return assigned.some(a => roomTokens.has(a));
+    });
+  } catch(e) {
+    console.error('Error fetching propertyStaff:', e);
+  }
+
+  const dayCaretakers = propertyStaff.filter(e => e.shift === 'day' && cleanPhone(e.phone));
+  const nightCaretakers = propertyStaff.filter(e => e.shift === 'night' && cleanPhone(e.phone));
+
+  let caretakerBlock = '';
+  let primaryCaretaker = null;
+
+  // Scenario 1: Property has 2 separate caretakers (Day shift & Night shift)
+  if (dayCaretakers.length > 0 && nightCaretakers.length > 0) {
+    const dC = dayCaretakers[0];
+    const nC = nightCaretakers[0];
+    caretakerBlock = 
+      `☀️ *Day Caretaker (9 AM – 9 PM):* ${dC.name} (${cleanPhone(dC.phone)})\n` +
+      `🌙 *Night Caretaker (9 PM – 9 AM):* ${nC.name} (${cleanPhone(nC.phone)})`;
+    const nowH = new Date().getHours();
+    primaryCaretaker = (nowH >= 21 || nowH < 9) ? nC : dC;
+  } 
+  // Scenario 2: Property has a single 24x7 or assigned caretaker from employees
+  else if (propertyStaff.length > 0) {
+    const s = propertyStaff[0];
+    const shiftLabel = s.shift === 'night' ? 'Night 9 PM – 9 AM' : (s.shift === 'day' ? 'Day 9 AM – 9 PM' : '24x7 Duty');
+    caretakerBlock = `🛡️ *Caretaker (${shiftLabel}):* ${s.name} (${cleanPhone(s.phone)})`;
+    primaryCaretaker = s;
+  } 
+  // Scenario 3: Fallback to room's configured caretaker or default company caretaker
+  else {
+    let careName = room.caretaker_name;
+    let carePhone = cleanPhone(room.caretaker_phone);
+    if (!careName || careName === 'Pending' || !carePhone || carePhone === '9999999999' || carePhone.length < 10) {
+      careName = 'Arman Commandar';
+      carePhone = '8467080284';
+    }
+    caretakerBlock = `🛡️ *Caretaker (24x7):* ${careName} (${carePhone})`;
+    primaryCaretaker = { name: careName, phone: carePhone };
+  }
+
+  // Dedicated Property Manager: Praveen Singh (10 AM - 10 PM)
+  const manager = {
+    name: 'Praveen Singh',
+    phone: '8858564177',
+    hours: '10 AM – 10 PM',
+    role: 'Property Manager'
+  };
 
   // Calculate paid + due
   const { data: pays } = await sb.from('payment_history')
@@ -59,7 +132,7 @@ async function buildMessageData(bkId) {
   const totalDue = Math.max(0, (bk.total_amount || 0) - totalPaid);
   const nights = calcNights(bk.check_in, bk.check_out);
 
-  // Fetch investor(s) linked to this property — for the Investor Alert template
+  // Fetch investor(s) linked to this property
   const { data: invLinks } = await sb.from('investor_properties')
     .select('investor_id, investors(name, phone)')
     .eq('room_id', roomId);
@@ -75,12 +148,12 @@ async function buildMessageData(bkId) {
     propertyFullName: room.property_name || room.nickname || roomId,
     flat: room.unit_no || roomId,
     floor: room.floor || '',
-    address: room.address || 'Vikalp Khand, Gomtinagar, Chinhat, Lucknow',
+    address: room.address || 'Vikalp Khand, Gomti Nagar, Lucknow',
     mapLink: room.map_link || '',
     propertyURL: window.getPropertyURL(room.nickname),
     wifi: room.wifi_ssid || 'UniqueHaven_WiFi',
     wifiPass: room.wifi_password || 'Airbnb.in1',
-    keyNo: room.key_number || 'Ask caretaker',
+    keyNo: room.key_number || 'With Caretaker',
     lockType: room.lock_type || 'Physical',
     checkIn: bk.check_in || '',
     checkOut: bk.check_out || '',
@@ -91,38 +164,22 @@ async function buildMessageData(bkId) {
     paid: totalPaid,
     due: totalDue,
     vehicle: bk.has_vehicle ? ((bk.vehicle_name || '') + ' ' + (bk.vehicle_number || '')).trim() : null,
-    dayStaff: dayStaff.map(s => ({ name: s.name, phone: cleanPhone(s.phone), role: s.whatsapp_display_role || 'Caretaker' })),
-    nightStaff: nightStaff.map(s => ({ name: s.name, phone: cleanPhone(s.phone), role: s.whatsapp_display_role || 'Caretaker' })),
+    caretaker: primaryCaretaker,
+    caretakerBlock,
+    manager,
+    dayStaff: dayCaretakers.map(s => ({ name: s.name, phone: cleanPhone(s.phone), role: s.whatsapp_display_role || 'Caretaker' })),
+    nightStaff: nightCaretakers.map(s => ({ name: s.name, phone: cleanPhone(s.phone), role: s.whatsapp_display_role || 'Caretaker' })),
     owners: OWNERS,
     investors,
     websiteURL: config.website_url || BRAND_URL,
     googleReview: config.google_review_url || '',
     airbnbReview: config.airbnb_host_url || '',
+    airbnbReviewLink: bk.airbnb_confirmation_code
+      ? `https://www.airbnb.com/reviews/write?reservationId=${bk.airbnb_confirmation_code}`
+      : (room.airbnb_url || config.airbnb_host_url || 'https://www.airbnb.com/progress/reviews'),
     isAirbnb: bk.booking_mode === 'Online-Airbnb',
     discount: config.discount_percent || 15
   };
-}
-
-// ═══ Format contact list block ═══
-function fmtContacts(d) {
-  let out = '';
-  if (d.dayStaff.length > 0) {
-    out += '*Day (8 AM – 8 PM)*\n';
-    d.dayStaff.forEach(s => {
-      out += s.role + ': ' + s.name + ' — ' + s.phone + '\n';
-    });
-  }
-  if (d.nightStaff.length > 0) {
-    out += '\n*Night (8 PM – 8 AM)*\n';
-    d.nightStaff.forEach(s => {
-      out += s.role + ': ' + s.name + ' — ' + s.phone + '\n';
-    });
-  }
-  out += '\n*Escalation*\n';
-  d.owners.forEach(o => {
-    out += o.name + ' — ' + o.phone + '\n';
-  });
-  return out.trim();
 }
 
 function fmtDate(d) {
@@ -133,126 +190,115 @@ function fmtDate(d) {
 }
 
 // ═══════════════════════════════════════════════════════════
-// TEMPLATES (10 total — polished, short, marketing focus)
+// TEMPLATES (Short, Crisp, Professional with Emojis & Maps)
 // ═══════════════════════════════════════════════════════════
 
-// ═══ 1. WELCOME (New Booking) ═══
+// ═══ 0. NEW BOOKING CONFIRMATION (Guest) ═══
+function tplConfirmation(d) {
+  const checkInStr = `${fmtDate(d.checkIn)}${d.checkInTime ? ' (' + d.checkInTime + ')' : ''}`;
+  const checkOutStr = `${fmtDate(d.checkOut)}${d.checkOutTime ? ' (' + d.checkOutTime + ')' : ''}`;
+  const propStr = `${d.propertyName}${d.flat ? ' (' + d.flat + ')' : ''}`;
+
+  return `Hi ${d.guestName}, welcome to Unique Haven Homes Stay! 🎉\n\n` +
+    `Your booking is confirmed:\n` +
+    `📍 Property: ${propStr}\n` +
+    `📅 Check-in: ${checkInStr}\n` +
+    `📅 Check-out: ${checkOutStr}\n\n` +
+    `We'll send arrival details 1 hour before your check-in with WiFi and key info.\n\n` +
+    `For any query: 9450055554 / 8299600709`;
+}
+
+// ═══ 1. WELCOME (Check-in Pass) ═══
 function tplWelcome(d) {
-  const caretaker = d.dayStaff.find(s => /caretaker/i.test(s.role)) || d.dayStaff[0];
-  const manager = d.dayStaff.find(s => /manager/i.test(s.role));
+  const mapStr = d.mapLink ? `\n📍 *Map:* ${d.mapLink}` : '';
+  const floorStr = d.floor ? ` (${d.floor} floor)` : '';
 
-  let contactLines = '';
-  if (caretaker) contactLines += `📞 ${caretaker.phone} ${caretaker.name} (Caretaker)\n`;
-  if (manager) contactLines += `${manager.phone} ${manager.name} (Manager)\n`;
+  return `🏨 *THE UNIQUE HAVEN HOMES*
+Namaste *${d.guestName}* ji 🙏
+Thank you for booking with us!
 
-  return `Hii ${d.guestName} welcome to The Unique Haven Homes
-Thank you for booking your stay with us
+🏠 *Property:* ${d.propertyName}
+🚪 *Flat:* ${d.flat}${floorStr}
+📍 *Address:* ${d.address}${mapStr}
 
-📍 Property Address:
-${d.address}
-Flat No ${d.flat}${d.floor ? ' ' + d.floor + ' floor' : ''}
-${d.mapLink ? '📌Location pin:\n' + d.mapLink : ''}
+⏰ *Check-in:* ${fmtDate(d.checkIn)} at ${d.checkInTime}
+⏰ *Check-out:* ${fmtDate(d.checkOut)} at ${d.checkOutTime}
 
-Timings:
-Check-in: ${fmtDate(d.checkIn)}, at ${d.checkInTime}
-Check-out: ${fmtDate(d.checkOut)}, at ${d.checkOutTime}
+👤 *Manager:* ${d.manager.name} (${d.manager.phone}) — 10 AM to 10 PM
+${d.caretakerBlock}
 
-Check In Instructions:
-Our caretaker will assist you with the check-in and show you around the place:
-${contactLines.trim()}
+🔑 *Key / Lock:* ${d.keyNo} (${d.lockType} Lock)
+🔑 *WiFi Password:* ${d.wifiPass}
 
-House rules
-• No loud music after 11 PM
-•Early check in/late check out subject to Availability
-• No wild parties or disruptive gatherings
-We want to keep the neighbourhood peaceful for everyone.
+*Quick Rules:*
+• Govt ID required at check-in
+• Quiet hours after 11 PM
 
-Contact
-If you need anything, message me anytime or call directly
-📞${d.owners[0]?.name || 'Mr Shahansha'} ${d.owners[0]?.phone || '9450055554'}
-📞${d.owners[1]?.name || 'Mr Firoz khan'} ${d.owners[1]?.phone || '8299600709'}
-Happy to help whenever you need.`;
+*Escalation / Assistance:*
+📞 Mr. Shahanshah: 9450055554
+📞 Mr. Firoz Khan: 8299600709
+🌐 ${d.websiteURL}`;
 }
 
 // ═══ 2. REMINDER (Day Before Check-in) ═══
 function tplReminder(d) {
-  return `Hi ${d.guestName},
+  const mapStr = d.mapLink ? `\n📍 *Map:* ${d.mapLink}` : '';
 
-Your stay at *${d.propertyName}* begins tomorrow, ${fmtDate(d.checkIn)} at ${d.checkInTime}.
+  return `🏨 *THE UNIQUE HAVEN HOMES*
+Hi *${d.guestName}*, your stay at *${d.propertyName}* starts tomorrow (${fmtDate(d.checkIn)} at ${d.checkInTime}).
 
-Please carry Government ID (Aadhar / DL / Passport) for all guests.
+📍 *Address:* ${d.address}${mapStr}
+📄 *Reminder:* Please carry Govt IDs (Aadhar/DL/Passport) for all guests.
 
-Address: ${d.address}
-${d.mapLink ? 'Map: ' + d.mapLink : ''}
+👤 *Manager:* ${d.manager.name} (${d.manager.phone}) — 10 AM to 10 PM
+${d.caretakerBlock}
 
-Arrival contact: ${d.dayStaff[0]?.name || 'Caretaker'} — ${d.dayStaff[0]?.phone || d.owners[0].phone}
-
-Full arrival details (WiFi, key) will be shared 1 hour before check-in.
-
-— Team ${BRAND_NAME}
-${d.websiteURL}`;
+Full Wi-Fi & access details will be sent 1 hour before check-in.`;
 }
 
 // ═══ 3. ARRIVAL DETAILS (1 hr before) ═══
 function tplArrival(d) {
-  return `Hi ${d.guestName},
+  const mapStr = d.mapLink ? `\n📍 *Map:* ${d.mapLink}` : '';
 
-Your flat is ready. Details below.
+  return `🏨 *THE UNIQUE HAVEN HOMES*
+Hi *${d.guestName}*, your stay is ready!
 
-*${d.propertyName}*
-${d.address}${d.floor ? '\nFloor: ' + d.floor : ''}
-${d.mapLink ? 'Map: ' + d.mapLink : ''}
+🏠 *${d.propertyName}* (${d.flat})${mapStr}
+🔑 *Key:* ${d.keyNo} (${d.lockType} Lock)
+🔑 *WiFi Password:* ${d.wifiPass}
 
-*Access*
-Lock: ${d.lockType}
-Key: *${d.keyNo}*
-
-*WiFi*
-Network: *${d.wifi}*
-Password: *${d.wifiPass}*
-
-${fmtContacts(d)}
-
-${d.vehicle ? 'Parking assistance available — inform caretaker (' + d.vehicle + ').\n\n' : ''}Safe journey. See you soon.
-
-— Team ${BRAND_NAME}`;
+👤 *Manager:* ${d.manager.name} (${d.manager.phone}) — 10 AM to 10 PM
+${d.caretakerBlock}
+${d.vehicle ? '🚗 Parking: ' + d.vehicle + '\n' : ''}
+Safe journey & see you soon!`;
 }
 
 // ═══ 4. ID REQUEST (Manual) ═══
 function tplIdRequest(d) {
-  return `Hi ${d.guestName},
+  return `🏨 *THE UNIQUE HAVEN HOMES*
+Hi *${d.guestName}*,
 
-Government requires ID verification for all hotel guests.
+As per Govt hotel regulations, kindly share photo of Govt ID (Aadhar / DL / Passport) for all staying guests here on WhatsApp.
 
-Please share on WhatsApp:
-• Front + back photo of Aadhar / DL / Passport
-• One ID per guest
-
-Takes 2 minutes. Data stored securely, used only for legal compliance.
-
-Thank you for cooperation.
-
-— Team ${BRAND_NAME}`;
+Takes just 1 minute & ensures quick contactless check-in.
+Thank you! 🙏`;
 }
 
 // ═══ 5. CHECKOUT REMINDER ═══
 function tplCheckout(d) {
-  return `Hi ${d.guestName},
+  return `🏨 *THE UNIQUE HAVEN HOMES*
+Hi *${d.guestName}*, reminder that checkout is today at *${d.checkOutTime}* from *${d.propertyName}*.
 
-Gentle reminder — checkout is at *${d.checkOutTime}* today from *${d.propertyName}*.
+• Hand over keys to Caretaker:
+${d.caretakerBlock}
+• Please check all personal belongings
 
-Before leaving:
-• Hand keys to caretaker
-• Lock all doors and windows
-• Check personal belongings
+*Assistance / Queries:*
+📞 Mr. Shahanshah: 9450055554
+📞 Mr. Firoz Khan: 8299600709
 
-Want to *extend*? Reply here — we'll check availability.
-
-${fmtContacts(d)}
-
-Thank you for staying with us.
-
-— Team ${BRAND_NAME}`;
+Need an extension? Reply here to check availability.
+Thank you for staying with us! 🙏`;
 }
 
 // ═══ 6a. GOOGLE REVIEW REQUEST ═══
@@ -274,7 +320,7 @@ Save our number — we'd love to host you again.
 — Team ${BRAND_NAME}`;
 }
 
-// ═══ 6b. AIRBNB REVIEW REQUEST — manual only, send when guest was genuinely happy ═══
+// ═══ 6b. AIRBNB REVIEW REQUEST ═══
 function tplAirbnbReview(d) {
   return `Hi ${d.guestName},
 
@@ -282,7 +328,7 @@ Thank you for staying at *${d.propertyName}*. Hope you had a wonderful time with
 
 If you have a moment, a review on *Airbnb* means a lot for our small team.
 
-Review here: ${d.airbnbReview || 'https://www.airbnb.com'}
+Review here: ${d.airbnbReviewLink || 'https://www.airbnb.com/progress/reviews'}
 
 Save our number — we'd love to host you again.
 
@@ -303,22 +349,80 @@ Amount: ₹${d.total.toLocaleString('en-IN')}
 — Team ${BRAND_NAME}`;
 }
 
+// ═══ SECURITY DEPOSIT RECEIPT (On Collection) ═══
+function tplSecurityDepositReceipt(d) {
+  const sec = d.securityDeposit || {};
+  const amt = (sec.amount || 0).toLocaleString('en-IN');
+  return `🛡️ *SECURITY DEPOSIT RECEIPT*
+*${BRAND_NAME}*
+━━━━━━━━━━━━━━━━━━
+Dear *${d.guestName}*,
+
+We have safely received your refundable Security Deposit:
+💰 *Deposit Amount:* ₹${amt}
+📅 *Date Received:* ${sec.receivedDate || fmtDate(d.checkIn)}
+💳 *Payment Mode:* ${sec.mode || 'UPI'}${sec.receivedBy ? '\n👤 *Received By:* ' + sec.receivedBy : ''}${sec.notes ? '\n🔖 *Ref/Note:* ' + sec.notes : ''}
+
+🏠 *Property:* ${d.propertyName} (${d.flat})
+🗓️ *Stay Dates:* ${fmtDate(d.checkIn)} ➔ ${fmtDate(d.checkOut)}
+
+ℹ️ *Important Policy:*
+• This deposit is fully refundable at check-out after routine property inspection.
+• It protects against accidental damages, missing items, or policy violations.
+• We ensure a swift & smooth refund upon your departure.
+
+Thank you for choosing ${BRAND_NAME}!
+📞 Helpline: ${OWNERS[0].name} (${OWNERS[0].phone})`;
+}
+
+// ═══ SECURITY DEPOSIT REFUND & DAMAGE SETTLEMENT ═══
+function tplSecurityDepositRefund(d) {
+  const sec = d.securityDeposit || {};
+  const initial = (sec.amount || 0).toLocaleString('en-IN');
+  const deducted = (sec.deductedAmount || 0).toLocaleString('en-IN');
+  const netRefund = (sec.refundAmount || 0).toLocaleString('en-IN');
+  const hasDeduction = (sec.deductedAmount || 0) > 0;
+
+  return `🛡️ *SECURITY DEPOSIT SETTLEMENT & REFUND*
+*${BRAND_NAME}*
+━━━━━━━━━━━━━━━━━━
+Dear *${d.guestName}*,
+
+Here is the final settlement statement for your Security Deposit:
+
+🏠 *Property:* ${d.propertyName} (${d.flat})
+💰 *Initial Security Deposit:* ₹${initial}
+
+${hasDeduction ? `⚠️ *Damage / Penalty Deduction:* -₹${deducted}
+📝 *Reason for Deduction:* ${sec.deductionReason || 'Property damage / penalty'}
+━━━━━━━━━━━━━━━━━━
+💸 *NET REFUND PROCESSED:* ₹${netRefund}` : `✅ *Deduction:* ₹0 (No damage / Property in great condition!)
+━━━━━━━━━━━━━━━━━━
+💸 *FULL REFUND PROCESSED:* ₹${netRefund}`}
+
+📅 *Refund Date:* ${sec.refundDate || new Date().toISOString().slice(0, 10)}
+💳 *Refund Mode:* ${sec.refundMode || 'UPI'}${sec.refundedBy ? '\n👤 *Processed By:* ' + sec.refundedBy : ''}${sec.notes ? '\n🔖 *Reference / UTR:* ' + sec.notes : ''}
+
+It was a pleasure hosting you. We look forward to welcoming you again!
+${BRAND_URL}`;
+}
+
 // ═══════════════════════════════════════════════════════════
 // STAFF GROUP TEMPLATES (Internal)
 // ═══════════════════════════════════════════════════════════
 
-// ═══ 7. NEW BOOKING ALERT (Staff Group) ═══
+// ═══ 7. NEW BOOKING ALERT (Operations / Booking Group) ═══
 function tplStaffNewBooking(d) {
-  return `*NEW BOOKING*
-
-Guest: ${d.guestName}
-Phone: ${d.phone || '-'}
-Property: ${d.propertyName} (${d.flat})${d.floor ? ' | Floor: ' + d.floor : ''}
-Check-in: ${fmtDate(d.checkIn)}, ${d.checkInTime}
-Check-out: ${fmtDate(d.checkOut)}, ${d.checkOutTime}
-Nights: ${d.nights}
-Total: ₹${d.total.toLocaleString('en-IN')} | Paid: ₹${d.paid.toLocaleString('en-IN')} | Due: ₹${d.due.toLocaleString('en-IN')}
-${d.vehicle ? 'Vehicle: ' + d.vehicle + '\n' : ''}
+  return `🛎️ *NEW BOOKING CONFIRMED*
+━━━━━━━━━━━━━━━━━━
+🏠 *Property:* ${d.propertyName} (${d.flat})${d.floor ? ' | Flr ' + d.floor : ''}
+👤 *Guest:* ${d.guestName}
+📞 *Phone:* ${d.phone || '-'}
+📅 *Check-in:* ${fmtDate(d.checkIn)} (${d.checkInTime})
+📅 *Check-out:* ${fmtDate(d.checkOut)} (${d.checkOutTime})
+🌙 *Duration:* ${d.nights} Night${d.nights > 1 ? 's' : ''}
+💰 *Total:* ₹${d.total.toLocaleString('en-IN')} | Paid: ₹${d.paid.toLocaleString('en-IN')} | Due: ₹${d.due.toLocaleString('en-IN')}
+${d.vehicle ? '🚗 *Vehicle:* ' + d.vehicle + '\n' : ''}━━━━━━━━━━━━━━━━━━
 Caretaker: Please prepare property.`;
 }
 
@@ -388,6 +492,30 @@ IDs sending: __ of __
 // UI FUNCTIONS (Modal + Send)
 // ═══════════════════════════════════════════════════════════
 
+async function sendViaBotFromModal(toPhone, guestName) {
+  const text = document.getElementById('waMsg')?.value;
+  if (!text) return;
+  if (typeof window.dispatchWhatsAppMessage !== 'function') {
+    window.open(`https://wa.me/${toPhone}?text=${encodeURIComponent(text)}`, '_blank');
+    return;
+  }
+  const res = await window.dispatchWhatsAppMessage({
+    to: toPhone,
+    isGroup: false,
+    text,
+    type: 'guest_pass_manual',
+    bookingId: window._currentWaBookingId || null,
+    guestName: guestName
+  });
+  if (res.ok) {
+    if (window.fsn) fsn.success('Delivered!', res.dry_run ? '🧪 Dry-Run Simulated' : '✅ Dispatched via WhatsApp Gateway');
+  } else {
+    if (window.fsn) fsn.error('Gateway Error', res.error || 'Opening WhatsApp Web...');
+    window.open(`https://wa.me/${toPhone}?text=${encodeURIComponent(text)}`, '_blank');
+  }
+}
+window.sendViaBotFromModal = sendViaBotFromModal;
+
 function showWhatsAppModal(guestName, propertyName, phone, msg) {
   const cleanPhone = (phone || '').replace(/[^0-9]/g, '');
   const fullPhone = cleanPhone.length === 10 ? '91' + cleanPhone : cleanPhone;
@@ -400,14 +528,19 @@ function showWhatsAppModal(guestName, propertyName, phone, msg) {
       <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">✕</button>
       <h2>📱 WhatsApp — ${guestName}</h2>
       <p style="color:#666;font-size:12px;margin:0 0 8px;">${propertyName}${phone ? ' · ' + phone : ''}</p>
-      <textarea id="waMsg" style="width:100%;height:400px;font-family:monospace;font-size:12px;padding:10px;border:1px solid var(--border);border-radius:8px;">${msg}</textarea>
-      <div class="btn-row" style="margin-top:12px;flex-wrap:wrap;">
+      <textarea id="waMsg" style="width:100%;height:380px;font-family:monospace;font-size:12px;padding:10px;border:1px solid var(--border);border-radius:8px;">${msg}</textarea>
+      <div class="btn-row" style="margin-top:12px;flex-wrap:wrap;gap:8px;">
+        ${fullPhone ? `
+          <button style="background:#0F172A;color:#fff;font-weight:700;" onclick="sendViaBotFromModal('${fullPhone}','${guestName.replace(/'/g, "\\'")}')">
+            ⚡ Send via Bot (Auto)
+          </button>
+          <button class="secondary" onclick="window.open('https://wa.me/${fullPhone}?text='+encodeURIComponent(document.getElementById('waMsg').value),'_blank')">
+            📱 Open in WhatsApp
+          </button>
+        ` : ''}
         <button class="green-btn" onclick="window.open('https://wa.me/?text='+encodeURIComponent(document.getElementById('waMsg').value),'_blank')">
-          📤 Share (any contact)
+          📤 Share to Other
         </button>
-        ${phone ? `<button class="secondary" onclick="window.open('https://wa.me/${fullPhone}?text='+encodeURIComponent(document.getElementById('waMsg').value),'_blank')">
-          📱 Send to ${phone}
-        </button>` : ''}
         <button class="outline" onclick="navigator.clipboard.writeText(document.getElementById('waMsg').value);fsn.success('Copied','Message copied')">
           📋 Copy
         </button>
@@ -481,6 +614,18 @@ function showInvestorAlertModal(propertyName, investors, msg, groupLink, groupNa
 async function shareBookingWhatsApp(bkId) {
   const d = await buildMessageData(bkId);
   if (!d) { fsn.error('Error', 'Booking not found'); return; }
+  showWhatsAppModal(d.guestName, d.propertyName, d.phone, tplConfirmation(d));
+}
+
+async function sendBookingConfirmation(bkId) {
+  const d = await buildMessageData(bkId);
+  if (!d) { fsn.error('Error', 'Booking not found'); return; }
+  showWhatsAppModal(d.guestName, d.propertyName, d.phone, tplConfirmation(d));
+}
+
+async function sendWelcomePass(bkId) {
+  const d = await buildMessageData(bkId);
+  if (!d) { fsn.error('Error', 'Booking not found'); return; }
   showWhatsAppModal(d.guestName, d.propertyName, d.phone, tplWelcome(d));
 }
 
@@ -522,37 +667,81 @@ async function sendInvestorAlert(bkId) {
 
 // ═══ Single WhatsApp menu — all message types in one place ═══
 window.showWATemplatesMenu = function(bkId, btn) {
+  window._currentWaBookingId = bkId;
+  const waStat = (typeof window.getBookingWhatsAppStatus === 'function') ? window.getBookingWhatsAppStatus(bkId) : null;
   const menu = document.createElement('div');
   menu.className = 'modal-overlay';
   menu.onclick = e => { if (e.target === menu) menu.remove(); };
   menu.innerHTML = `
-    <div class="modal-box" style="max-width:400px;">
+    <div class="modal-box" style="max-width:420px;">
       <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">✕</button>
-      <h2>💬 WhatsApp Messages</h2>
-      <p style="color:#666;font-size:12px;">Choose message to send</p>
+      <h2 style="margin:0 0 4px 0;">💬 WhatsApp Dispatcher</h2>
+      <p style="color:#666;font-size:12px;margin:0 0 12px 0;">Send passes, alerts or reminders directly to this guest</p>
 
-      <div style="margin-top:16px;">
-        <div style="font-size:11px;color:#888;text-transform:uppercase;margin:12px 0 6px;">👥 Internal</div>
-        <button class="outline" style="width:100%;text-align:left;margin-bottom:6px;" onclick="this.closest('.modal-overlay').remove();sendBookingFormat('${bkId}')">📋 New Booking Alert (Staff)</button>
-        <button class="outline" style="width:100%;text-align:left;margin-bottom:6px;" onclick="this.closest('.modal-overlay').remove();sendInvestorAlert('${bkId}')">💼 Investor Alert</button>
+      ${waStat ? `
+        <div style="background:${waStat.status === 'sent' ? '#F0FDF4' : (waStat.status === 'failed' ? '#FEF2F2' : '#FFFBEB')};border:1px solid ${waStat.status === 'sent' ? '#86EFAC' : (waStat.status === 'failed' ? '#F87171' : '#FDE68A')};border-radius:8px;padding:8px 12px;margin-bottom:12px;font-size:12px;">
+          ${waStat.status === 'sent' 
+            ? `<b style="color:#15803D;">✅ Last Dispatched:</b> <span style="color:#166534;">Delivered (${waStat.type || 'Pass'}) on ${new Date(waStat.time).toLocaleDateString('en-IN', {day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})}</span>`
+            : (waStat.status === 'failed'
+              ? `<b style="color:#991B1B;">❌ Previous Failed:</b> <span style="color:#7F1D1D;">${waStat.error || 'Check WhatsApp Bot connection'}</span>`
+              : `<b style="color:#92400E;">🧪 Dry Run:</b> <span style="color:#78350F;">Simulated on ${new Date(waStat.time).toLocaleDateString('en-IN', {day:'numeric',month:'short'})}</span>`)}
+        </div>
+      ` : `
+        <div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:8px;padding:8px 12px;margin-bottom:12px;font-size:12px;color:#64748B;">
+          ℹ️ No automated WhatsApp messages logged yet for this booking.
+        </div>
+      `}
 
-        <div style="font-size:11px;color:#888;text-transform:uppercase;margin:16px 0 6px;">👤 To Guest</div>
-        <button class="outline" style="width:100%;text-align:left;margin-bottom:6px;" onclick="this.closest('.modal-overlay').remove();shareBookingWhatsApp('${bkId}')">📱 Welcome / Confirmation</button>
-        <button class="outline" style="width:100%;text-align:left;margin-bottom:6px;" onclick="this.closest('.modal-overlay').remove();sendArrivalDetails('${bkId}')">🔑 Arrival Details (WiFi, Keys)</button>
-        <button class="outline" style="width:100%;text-align:left;margin-bottom:6px;" onclick="this.closest('.modal-overlay').remove();sendCheckoutReminder('${bkId}')">🔔 Checkout Reminder</button>
+      <div style="margin-top:12px;">
+        <div style="font-size:11px;color:#888;text-transform:uppercase;margin:10px 0 6px;font-weight:700;">👤 Guest Communications</div>
+        <button class="outline" style="width:100%;text-align:left;margin-bottom:6px;font-weight:700;background:#F0FDF4;color:#15803D;border-color:#86EFAC;" onclick="this.closest('.modal-overlay').remove();sendBookingConfirmation('${bkId}')">🎉 Booking Confirmation (Guest)</button>
+        <button class="outline" style="width:100%;text-align:left;margin-bottom:6px;font-weight:600;" onclick="this.closest('.modal-overlay').remove();sendArrivalDetails('${bkId}')">📍 Arrival Directions (1 hr before)</button>
+        <button class="outline" style="width:100%;text-align:left;margin-bottom:6px;" onclick="this.closest('.modal-overlay').remove();sendWelcomePass('${bkId}')">🔑 Full Welcome Pass (Keys & Caretaker)</button>
+        <button class="outline" style="width:100%;text-align:left;margin-bottom:6px;" onclick="this.closest('.modal-overlay').remove();sendCheckoutReminder('${bkId}')">👋 10:00 AM Checkout Reminder</button>
+        <button class="outline" style="width:100%;text-align:left;margin-bottom:6px;background:#F0F9FF;color:#0284C7;border-color:#BAE6FD;" onclick="this.closest('.modal-overlay').remove();sendSecurityDepositReceipt('${bkId}')">🛡️ Security Deposit Receipt (Collected)</button>
+        <button class="outline" style="width:100%;text-align:left;margin-bottom:6px;background:#FAF5FF;color:#7C3AED;border-color:#DDD6FE;" onclick="this.closest('.modal-overlay').remove();sendSecurityDepositRefund('${bkId}')">💸 Security Deposit Refund & Damage Slip</button>
         <button class="outline" style="width:100%;text-align:left;margin-bottom:6px;" onclick="this.closest('.modal-overlay').remove();requestGoogleReview('${bkId}')">⭐ Google Review Request</button>
-        <button class="outline" style="width:100%;text-align:left;margin-bottom:6px;" onclick="this.closest('.modal-overlay').remove();requestAirbnbReview('${bkId}')">⭐ Airbnb Review Request <small style="color:#888;">(only if guest was happy)</small></button>
+        <button class="outline" style="width:100%;text-align:left;margin-bottom:6px;" onclick="this.closest('.modal-overlay').remove();requestAirbnbReview('${bkId}')">⭐ Airbnb Review Form Link</button>
+
+        <div style="font-size:11px;color:#888;text-transform:uppercase;margin:14px 0 6px;font-weight:700;">👥 Internal Alerts</div>
+        <button class="outline" style="width:100%;text-align:left;margin-bottom:6px;" onclick="this.closest('.modal-overlay').remove();sendBookingFormat('${bkId}')">📋 Booking Data Group Alert</button>
+        <button class="outline" style="width:100%;text-align:left;margin-bottom:6px;" onclick="this.closest('.modal-overlay').remove();sendInvestorAlert('${bkId}')">💼 Investor Group Statement</button>
       </div>
     </div>`;
   document.body.appendChild(menu);
 };
 
+// ═══ Security Deposit WhatsApp Send Triggers ═══
+async function sendSecurityDepositReceipt(bkId) {
+  const d = await buildMessageData(bkId);
+  if (!d) return;
+  if (typeof window.getSecurityDeposit === 'function') {
+    d.securityDeposit = window.getSecurityDeposit(d.bk);
+  }
+  showWhatsAppModal(d.guestName, d.phone, d.propertyName, tplSecurityDepositReceipt(d));
+}
+
+async function sendSecurityDepositRefund(bkId) {
+  const d = await buildMessageData(bkId);
+  if (!d) return;
+  if (typeof window.getSecurityDeposit === 'function') {
+    d.securityDeposit = window.getSecurityDeposit(d.bk);
+  }
+  showWhatsAppModal(d.guestName, d.phone, d.propertyName, tplSecurityDepositRefund(d));
+}
+
+
 // Expose all
 window.shareBookingWhatsApp = shareBookingWhatsApp;
+window.sendBookingConfirmation = sendBookingConfirmation;
+window.sendWelcomePass = sendWelcomePass;
 window.sendArrivalDetails = sendArrivalDetails;
 window.sendCheckoutReminder = sendCheckoutReminder;
 window.requestGoogleReview = requestGoogleReview;
 window.requestAirbnbReview = requestAirbnbReview;
+window.sendSecurityDepositReceipt = sendSecurityDepositReceipt;
+window.sendSecurityDepositRefund = sendSecurityDepositRefund;
 window.sendBookingFormat = sendBookingFormat;
 window.sendInvestorAlert = sendInvestorAlert;
 window.buildMessageData = buildMessageData;
+

@@ -34,7 +34,7 @@ window.renderCompanyAdvances = async function() {
 
 // Auto-update spent amounts from linked reimbursements
 async function refreshAdvanceSpending() {
-  const { data: advances } = await sb.from('company_advances').select('id, amount_given').eq('status', 'Active');
+  const { data: advances } = await sb.from('company_advances').select('id, amount_given').eq('status', 'Active').neq('given_to', 'UHHS-OD');
   for (const adv of (advances || [])) {
     const { data: exps } = await sb.from('reimbursements').select('amount').eq('company_advance_id', adv.id);
     const spent = (exps || []).reduce((s, e) => s + Number(e.amount || 0), 0);
@@ -51,6 +51,7 @@ async function renderCAActive(tabs) {
   const { data: advances } = await sb.from('company_advances')
     .select('*')
     .eq('status', 'Active')
+    .neq('given_to', 'UHHS-OD')
     .order('advance_date', { ascending: false });
   
   const totalGiven = (advances || []).reduce((s, a) => s + Number(a.amount_given || 0), 0);
@@ -260,7 +261,7 @@ window.saveNewAdvance = async function() {
 
 // ═══ TAB 3: SPENDING REPORT ═══
 async function renderCASpending(tabs) {
-  const { data: advances } = await sb.from('company_advances').select('*').order('advance_date', { ascending: false });
+  const { data: advances } = await sb.from('company_advances').select('*').neq('given_to', 'UHHS-OD').order('advance_date', { ascending: false });
   
   // Get all expenses linked to advances
   const advIds = (advances || []).map(a => a.id);
@@ -320,7 +321,7 @@ async function renderCASpending(tabs) {
 
 // ═══ TAB 4: HISTORY ═══
 async function renderCAHistory(tabs) {
-  const { data: advances } = await sb.from('company_advances').select('*').order('advance_date', { ascending: false });
+  const { data: advances } = await sb.from('company_advances').select('*').neq('given_to', 'UHHS-OD').order('advance_date', { ascending: false });
   
   renderShell(`
     ${tabs}

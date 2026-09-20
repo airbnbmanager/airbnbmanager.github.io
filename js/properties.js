@@ -22,13 +22,17 @@ async function renderManageRooms() {
     <div class="card">
       <h1>🏠 Properties</h1>
       <div class="sub">${(rooms || []).length} properties</div>
-      ${isO ? `<button onclick="renderAddRoom()">➕ Add Property</button> <button onclick="navigate('showcase-admin')" class="secondary" style="margin-left:8px;background:#0F766E;color:#fff;border-color:#0F766E;">🌐 Website Showcase &amp; Media CMS</button>` : ''}
+      ${isO ? `
+        <button onclick="renderAddRoom()">➕ Add Property</button>
+        <button onclick="renderQuickMapManager()" class="secondary" style="margin-left:8px;background:#2563EB;color:#fff;border-color:#2563EB;">🧭 Manage Map Pins</button>
+        <button onclick="navigate('showcase-admin')" class="secondary" style="margin-left:8px;background:#0F766E;color:#fff;border-color:#0F766E;">🌐 Website Showcase &amp; Media CMS</button>
+      ` : ''}
     </div>
     <div class="card">
       <div class="table-wrap"><table>
         <thead><tr>
           <th>ID</th><th>Property</th><th>Nickname</th><th>Unit</th>
-          <th>Contacts</th><th>Lock</th><th>Map</th><th>Status</th>
+          <th>Contacts</th><th>Lock</th><th>Map Pin</th><th>Status</th>
           ${isO ? '<th>Actions</th>' : ''}
         </tr></thead>
         <tbody>${(rooms || []).map(r => {
@@ -53,7 +57,7 @@ async function renderManageRooms() {
               <span class="badge ${r.lock_type === 'Smart' ? 'blue' : 'yellow'}">${r.lock_type || 'Physical'}</span>
               ${r.key_number ? `<br><small>🔑 ${r.key_number}</small>` : ''}
             </td>
-            <td>${r.map_link ? `<a href="${r.map_link}" target="_blank">📍</a>` : '-'}</td>
+            <td>${r.map_link ? `<a href="${r.map_link}" target="_blank" style="text-decoration:none;font-weight:700;color:#2563EB;display:inline-flex;align-items:center;gap:4px;">📍 View Pin</a>` : `<span style="color:#DC2626;font-size:11px;font-weight:700;cursor:pointer;background:#FEE2E2;padding:2px 6px;border-radius:4px;" onclick="renderQuickMapManager()">⚠️ Missing Pin</span>`}</td>
             <td><span class="badge ${r.bookable ? 'green' : 'red'}">${r.mode || 'On'}</span></td>
             ${isO ? `<td class="table-actions">
               <button class="btn-sm" onclick="editRoom('${r.room_id}')">✏️</button>
@@ -1413,3 +1417,117 @@ async function deleteShift(id, roomId) {
   fsn.success('Success', '✅ Shift removed');
   renderPropertyShifts(roomId);
 }
+
+// ═══════════════════════════════════════════════════════════
+// 🧭 QUICK GOOGLE MAP LINKS MANAGER
+// ═══════════════════════════════════════════════════════════
+window.renderQuickMapManager = async function() {
+  const { data: rooms, error } = await sb.from('rooms').select('room_id, property_name, nickname, unit_no, map_link').order('room_id');
+  if (error) { fsn.error('Error', error.message); return; }
+
+  const modal = document.createElement('div');
+  modal.className = 'modal-overlay';
+  modal.id = 'quickMapModal';
+  modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
+
+  modal.innerHTML = `
+    <div class="modal-box" style="max-width:850px;width:95vw;max-height:90vh;overflow-y:auto;padding:24px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;border-bottom:1px solid #E2E8F0;padding-bottom:12px;">
+        <div>
+          <h2 style="margin:0;font-size:18px;color:#0F172A;display:flex;align-items:center;gap:8px;">
+            🧭 Google Maps Location Pins
+          </h2>
+          <div style="font-size:12px;color:#64748B;margin-top:4px;">
+            Accurate Google Maps links are automatically sent to guests in WhatsApp Check-in passes & Arrival details.
+          </div>
+        </div>
+        <button class="modal-close" onclick="document.getElementById('quickMapModal').remove()" style="background:none;border:none;font-size:20px;cursor:pointer;">✕</button>
+      </div>
+
+      <div style="display:grid;gap:12px;">
+        ${(rooms || []).map(r => {
+          const hasMap = !!r.map_link;
+          const label = r.nickname || r.unit_no || r.room_id;
+          return `
+            <div style="display:flex;align-items:center;gap:10px;background:#F8FAFC;border:1px solid ${hasMap ? '#CBD5E1' : '#FCA5A5'};padding:10px 14px;border-radius:8px;">
+              <div style="width:140px;flex-shrink:0;">
+                <div style="font-weight:700;font-size:13px;color:#0F172A;">${label}</div>
+                <div style="font-size:11px;color:#64748B;">${r.room_id} (${r.unit_no || '-'})</div>
+              </div>
+              <div style="flex:1;">
+                <input 
+                  id="map_input_${r.room_id}" 
+                  value="${r.map_link || ''}" 
+                  placeholder="Paste Google Maps link (e.g. https://maps.app.goo.gl/...)" 
+                  style="width:100%;padding:8px 10px;font-size:12px;border:1px solid #CBD5E1;border-radius:6px;box-sizing:border-box;" 
+                />
+              </div>
+              <div style="display:flex;gap:6px;flex-shrink:0;">
+                <button 
+                  class="btn-sm" 
+                  onclick="testRoomMap('${r.room_id}')" 
+                  title="Test link in Google Maps"
+                  style="background:#0F172A;color:#fff;font-size:11px;padding:6px 10px;border-radius:6px;border:none;cursor:pointer;"
+                >
+                  🧭 Test
+                </button>
+                <button 
+                  class="btn-sm" 
+                  onclick="saveSingleRoomMap('${r.room_id}')" 
+                  title="Save this link"
+                  style="background:#16A34A;color:#fff;font-size:11px;padding:6px 10px;border-radius:6px;border:none;cursor:pointer;"
+                >
+                  💾 Save
+                </button>
+              </div>
+            </div>
+          `;
+        }).join('')}
+      </div>
+
+      <div style="margin-top:20px;display:flex;justify-content:flex-end;gap:10px;border-top:1px solid #E2E8F0;padding-top:16px;">
+        <button class="secondary" onclick="document.getElementById('quickMapModal').remove()" style="padding:8px 18px;">Close</button>
+        <button class="green-btn" onclick="saveAllRoomMaps()" style="padding:8px 20px;font-weight:700;">💾 Save All Changes</button>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(modal);
+};
+
+window.testRoomMap = function(roomId) {
+  const input = document.getElementById('map_input_' + roomId);
+  const url = input?.value?.trim();
+  if (!url) {
+    if (window.fsn) fsn.warn('No Link', 'Please enter a Google Maps URL first.');
+    return;
+  }
+  window.open(url, '_blank');
+};
+
+window.saveSingleRoomMap = async function(roomId) {
+  const input = document.getElementById('map_input_' + roomId);
+  const url = input?.value?.trim() || null;
+  const { error } = await sb.from('rooms').update({ map_link: url }).eq('room_id', roomId);
+  if (error) {
+    if (window.fsn) fsn.error('Error', error.message);
+  } else {
+    if (window.fsn) fsn.success('Saved', `Google Map link updated for ${roomId}!`);
+    renderProperties();
+  }
+};
+
+window.saveAllRoomMaps = async function() {
+  const inputs = document.querySelectorAll('input[id^="map_input_"]');
+  let count = 0;
+  for (const inp of inputs) {
+    const roomId = inp.id.replace('map_input_', '');
+    const url = inp.value.trim() || null;
+    await sb.from('rooms').update({ map_link: url }).eq('room_id', roomId);
+    count++;
+  }
+  if (window.fsn) fsn.success('Updated', `Successfully updated map links for all ${count} properties!`);
+  const modal = document.getElementById('quickMapModal');
+  if (modal) modal.remove();
+  renderProperties();
+};
