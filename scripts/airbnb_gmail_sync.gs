@@ -23,7 +23,7 @@ const ROOM_MAPPING = [
   { roomId: 'GOM-401', name: 'The Nawabi Stay', keywords: ['nawabi stay', 'nawabi'] },
   { roomId: 'GOM-101', name: 'RedRose Palace', keywords: ['redrose palace', 'redrose entire', 'red rose palace'] },
   { roomId: 'GOM-102', name: 'Black Beauty', keywords: ['black beauty'] },
-  { roomId: 'GOM-201', name: 'The Dark Blue', keywords: ['the dark blue', 'dark blue 3bhk'] },
+  { roomId: 'GOM-201', name: 'The Dark Blue', keywords: ['dark blue', 'the dark blue'] },
   { roomId: 'GOM-202', name: 'The Brown', keywords: ['the brown 3bhk', 'the brown'] },
   { roomId: 'GOM-301', name: 'The Light Green', keywords: ['the light green', 'light green 3bhk'] },
   { roomId: 'GOM-302', name: 'The Unique', keywords: ['the unique 3bhk', 'the unique'] },

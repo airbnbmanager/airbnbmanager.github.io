@@ -58,11 +58,19 @@ window.ICAL_SYNC = {
       const checkIn = fmt(start);
       const checkOut = fmt(end);
 
+      // Extract confirmation code and phone last 4 digits if present
+      const codeMatch = ev.match(/\b(HM[A-Z0-9]{8,12})\b/);
+      const confirmationCode = codeMatch ? codeMatch[1] : null;
+      const phoneMatch = ev.match(/Phone Number[^:]*:\s*([0-9]{4})/i);
+      const phoneEnd = phoneMatch ? phoneMatch[1] : null;
+
       return {
         checkIn,
         checkOut,
         summary,
         uid,
+        confirmationCode,
+        phoneEnd,
         isBlocked: summary.toLowerCase().includes('not available') || summary.toLowerCase().includes('unavailable') || summary.toLowerCase().includes('blocked'),
         isFuture: checkIn > today,
         isBeforeMonth: checkIn < monthStart
@@ -71,8 +79,6 @@ window.ICAL_SYNC = {
       // Must have valid dates + uid
       if (!e.checkIn || !e.checkOut || !e.uid) return false;
       // Import EVERYTHING: past + future + blocked
-      // Blocked dates → Pending booking (fill details later)
-      // Future bookings → advance planning
       return true;
     });
   },
@@ -104,13 +110,16 @@ window.ICAL_SYNC = {
       result.fetched = events.length;
       result.skippedFuture = totalEvents - events.length;
       
-      // Get existing UIDs AND date-range bookings to prevent duplicates
+      // Get existing UIDs, confirmation codes, and date-range bookings
       const { data: existing } = await sb.from('guest_register')
-        .select('ical_uid, check_in, check_out, booking_mode, is_cancelled')
+        .select('ical_uid, airbnb_confirmation_code, check_in, check_out, booking_mode, is_cancelled')
         .eq('room_id', room.room_id);
       const existingUids = new Set((existing || [])
         .filter(e => e.ical_uid)
         .map(e => e.ical_uid));
+      const existingCodes = new Set((existing || [])
+        .filter(e => e.airbnb_confirmation_code)
+        .map(e => e.airbnb_confirmation_code));
       
       // Also check by date+mode (Airbnb bookings on same dates = duplicate)
       const existingDateRanges = new Set(
@@ -131,14 +140,19 @@ window.ICAL_SYNC = {
           result.skipped++;
           continue;
         }
+        // Skip if confirmation code already synced
+        if (event.confirmationCode && existingCodes.has(event.confirmationCode)) {
+          result.skipped++;
+          continue;
+        }
         // Skip if manual Airbnb entry already exists for same dates
         if (existingDateRanges.has(`${event.checkIn}|${event.checkOut}`)) {
           result.skipped++;
           continue;
         }
-        // Skip if ANY overlap exists (manual block or booking)
+        // Skip if ANY real overlap exists (hotel check-out 11am, check-in 2pm; same-day turnover is NOT an overlap)
         const hasOverlap = (allExisting || []).some(e => 
-          e.check_in <= event.checkOut && e.check_out >= event.checkIn
+          e.check_in < event.checkOut && e.check_out > event.checkIn
         );
         if (hasOverlap) {
           result.skipped++;
@@ -195,11 +209,11 @@ window.ICAL_SYNC = {
         
         const guestName = isBlocked 
           ? '🚫 Blocked (Fill Details)' 
-          : '🏨 Airbnb Guest (Fill Details)';
+          : (event.confirmationCode ? `🏨 Airbnb Guest (${event.confirmationCode})` : '🏨 Airbnb Guest (Fill Details)');
         
         const bookingNotes = isBlocked
           ? `⚠️ BLOCKED on Airbnb (${event.summary}). Owner may have offline booking here. Fill guest details when confirmed.`
-          : `Airbnb reservation auto-synced. Original summary: ${event.summary}. Waiting for guest details (name, phone, amount).`;
+          : `Airbnb reservation auto-synced.${event.confirmationCode ? ` Confirmation: ${event.confirmationCode}.` : ''} Original summary: ${event.summary}. Waiting for guest details (name, phone, amount).`;
         
         const { error } = await sb.from('guest_register').insert({
           booking_id: bookingId,
@@ -209,10 +223,12 @@ window.ICAL_SYNC = {
           check_out: event.checkOut,
           total_amount: 0,
           booking_mode: isBlocked ? 'Offline-Blocked' : 'Online-Airbnb',
-          payment_status: 'Unpaid',
+          payment_status: isBlocked ? 'Unpaid' : 'Paid',
           verification_status: 'pending_details',
           guests: 1,
           ical_uid: event.uid,
+          airbnb_confirmation_code: event.confirmationCode || null,
+          phone: event.phoneEnd ? `+91 XXXXX ${event.phoneEnd}` : null,
           synced_from_ical: true,
           notes: bookingNotes
         });
