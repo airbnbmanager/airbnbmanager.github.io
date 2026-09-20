@@ -94,9 +94,21 @@ function formatJid(target) {
   return clean + '@s.whatsapp.net';
 }
 
-// ─── API ENDPOINTS ───
+// 0. Root & Health
+app.get('/', (req, res) => {
+  res.json({
+    name: 'UHHS WhatsApp Automation Gateway',
+    status: connectionStatus,
+    connected: connectionStatus === 'connected',
+    time: new Date().toISOString()
+  });
+});
 
-// 1. Health & Connection Status
+app.get('/health', (req, res) => {
+  res.json({ status: 'ok', connected: connectionStatus === 'connected' });
+});
+
+// 1. Connection Status
 app.get('/status', (req, res) => {
   res.json({
     status: connectionStatus,
