@@ -2179,3 +2179,122 @@ body.luxe-property-page .hero-frame {
 
 
 
+/* ══════════════════════════════════════════
+   AIRBNB PREVIEW POPUP — KEEPS USER ON PAGE
+   ══════════════════════════════════════════ */
+
+.luxe-airbnb-modal-card {
+  background: #ffffff;
+  border-radius: 24px;
+  max-width: 440px;
+  width: 100%;
+  overflow: hidden;
+  box-shadow: 0 32px 80px rgba(0, 0, 0, 0.28);
+  position: relative;
+}
+
+.luxe-airbnb-modal-close {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(0,0,0,0.07);
+  color: #475569;
+  font-size: 16px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s;
+  z-index: 1;
+}
+.luxe-airbnb-modal-close:hover { background: rgba(0,0,0,0.14); }
+
+.luxe-airbnb-modal-head {
+  padding: 22px 22px 16px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.luxe-airbnb-modal-compare {
+  padding: 16px 22px;
+}
+
+.luxe-airbnb-price-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  border-radius: 14px;
+  gap: 12px;
+}
+
+.luxe-airbnb-price-bad {
+  background: #fff5f5;
+  border: 1.5px solid #fecaca;
+}
+
+.luxe-airbnb-price-good {
+  background: #f0fdf4;
+  border: 1.5px solid #bbf7d0;
+}
+
+.luxe-airbnb-modal-actions {
+  padding: 16px 22px 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.luxe-airbnb-book-direct {
+  width: 100%;
+  background: linear-gradient(135deg, #059669, #047857);
+  color: #fff;
+  border: none;
+  border-radius: 14px;
+  padding: 15px 20px;
+  font-size: 15px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 6px 20px rgba(5, 150, 105, 0.35);
+}
+.luxe-airbnb-book-direct:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 28px rgba(5, 150, 105, 0.45);
+}
+
+.luxe-airbnb-view-btn {
+  width: 100%;
+  background: #fff;
+  color: #FF385C !important;
+  border: 2px solid #FF385C;
+  border-radius: 14px;
+  padding: 12px 20px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  text-align: center;
+  text-decoration: none !important;
+  display: block;
+  transition: all 0.2s;
+}
+.luxe-airbnb-view-btn:hover {
+  background: #fff5f5;
+}
+
+/* Mobile: bottom sheet style */
+@media (max-width: 480px) {
+  #luxe-airbnb-preview-overlay {
+    align-items: flex-end !important;
+    padding: 0 !important;
+  }
+  .luxe-airbnb-modal-card {
+    border-radius: 24px 24px 0 0;
+    max-width: 100%;
+    width: 100%;
+  }
+}
+

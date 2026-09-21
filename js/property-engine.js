@@ -938,9 +938,9 @@
             <a class="luxe-btn-card-sub" href="tel:+919450055554">
               📞 Call Host
             </a>
-            <a id="luxe-btn-airbnb-link" class="luxe-btn-card-sub" href="${p.airbnb_url || 'https://www.airbnb.co.in/users/profile/1592729439630759961'}" target="_blank">
+            <button type="button" id="luxe-btn-airbnb-link" class="luxe-btn-card-sub" onclick="window.luxeEngine.openAirbnbModal()">
               View on Airbnb ↗
-            </a>
+            </button>
           </div>
 
           <!-- Trust Badges -->
@@ -1271,6 +1271,89 @@ _Please confirm room allotment and send check-in details. Thank you!_`;
             </div>
           </div>
         </div>
+      `;
+    }
+
+    /* ─── AIRBNB PREVIEW POPUP (keeps user on page) ─── */
+    openAirbnbModal() {
+      const p = this.prop;
+      const airbnbUrl = p.airbnb_url || 'https://www.airbnb.co.in/users/profile/1592729439630759961';
+      const directPrice = p.base_price || 3499;
+      const airbnbPrice = p.airbnb_price || Math.round(directPrice * 1.18);
+      const savings = airbnbPrice - directPrice;
+      const rating = p.rating || '4.92';
+      const reviews = p.review_count || '120+';
+
+      let modal = document.getElementById('luxe-airbnb-preview-overlay');
+      if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'luxe-airbnb-preview-overlay';
+        document.body.appendChild(modal);
+      }
+
+      modal.innerHTML = `
+        <div class="luxe-airbnb-modal-card" onclick="event.stopPropagation()">
+          <!-- Close -->
+          <button type="button" class="luxe-airbnb-modal-close" onclick="document.getElementById('luxe-airbnb-preview-overlay').remove()">✕</button>
+
+          <!-- Header -->
+          <div class="luxe-airbnb-modal-head">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
+              <svg width="22" height="22" viewBox="0 0 32 32" fill="#FF385C" style="flex-shrink:0"><path d="M16 1C7.716 1 1 7.716 1 16s6.716 15 15 15 15-6.716 15-15S24.284 1 16 1zm0 4.5c1.38 0 2.5 1.12 2.5 2.5S17.38 10.5 16 10.5 13.5 9.38 13.5 8s1.12-2.5 2.5-2.5zm5.5 16.75h-4v-7.5h-3v7.5H10.5V15c0-1.38 1.12-2.5 2.5-2.5h6c1.38 0 2.5 1.12 2.5 2.5v7.25z"/></svg>
+              <div>
+                <div style="font-size:11px;font-weight:700;color:#FF385C;text-transform:uppercase;letter-spacing:1px;">Airbnb Listing Preview</div>
+                <div style="font-size:15px;font-weight:800;color:#141b24;">${p.name}</div>
+              </div>
+            </div>
+            <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+              <span style="background:#FFF1F0;color:#FF385C;border:1px solid #FFD6D0;padding:3px 10px;border-radius:999px;font-size:12px;font-weight:700;">⭐ ${rating} · ${reviews} reviews</span>
+              <span style="background:#f0fdf4;color:#166534;border:1px solid #bbf7d0;padding:3px 10px;border-radius:999px;font-size:12px;font-weight:700;">Superhost Verified</span>
+            </div>
+          </div>
+
+          <!-- Price Comparison -->
+          <div class="luxe-airbnb-modal-compare">
+            <div class="luxe-airbnb-price-row luxe-airbnb-price-bad">
+              <div>
+                <div style="font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:2px;">On Airbnb (with fees)</div>
+                <div style="font-size:22px;font-weight:800;color:#ef4444;text-decoration:line-through;">₹${airbnbPrice.toLocaleString('en-IN')}<span style="font-size:12px;font-weight:400;"> / night</span></div>
+              </div>
+              <div style="font-size:28px;">😟</div>
+            </div>
+            <div style="text-align:center;padding:6px 0;font-size:13px;color:#64748b;">vs</div>
+            <div class="luxe-airbnb-price-row luxe-airbnb-price-good">
+              <div>
+                <div style="font-size:11px;color:#166534;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:2px;">Book Direct with Us</div>
+                <div style="font-size:26px;font-weight:800;color:#166534;">₹${directPrice.toLocaleString('en-IN')}<span style="font-size:12px;font-weight:400;"> / night</span></div>
+              </div>
+              <div style="text-align:right;">
+                <div style="background:#22c55e;color:#fff;padding:4px 12px;border-radius:999px;font-size:13px;font-weight:800;">SAVE ₹${savings.toLocaleString('en-IN')}</div>
+                <div style="font-size:11px;color:#166534;margin-top:4px;">Zero commission · Zero fees</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- CTAs -->
+          <div class="luxe-airbnb-modal-actions">
+            <button type="button" class="luxe-airbnb-book-direct" onclick="document.getElementById('luxe-airbnb-preview-overlay').remove(); window.luxeEngine.openUpiPaymentModal();">
+              💳 Book Direct &amp; Save ₹${savings.toLocaleString('en-IN')} →
+            </button>
+            <a class="luxe-airbnb-view-btn" href="${airbnbUrl}" target="_blank" rel="noopener" onclick="setTimeout(()=>document.getElementById('luxe-airbnb-preview-overlay')?.remove(),300)">
+              Continue to Airbnb ↗
+            </a>
+          </div>
+        </div>
+      `;
+
+      // Overlay close on backdrop click
+      modal.onclick = () => modal.remove();
+      modal.style.cssText = `
+        position:fixed; inset:0; z-index:99999;
+        background:rgba(15,23,42,0.7);
+        backdrop-filter:blur(6px);
+        display:flex; align-items:center; justify-content:center;
+        padding:16px;
+        animation:luxeFadeIn 0.22s ease;
       `;
     }
 
