@@ -80,17 +80,20 @@ async function renderSmartManageBookings() {
     activeBookings = activeBookings.filter(b => window._myAssignedRooms.includes(b.room_id));
   }
 
+  const arrivalsCount = activeBookings.filter(b => b.check_in === today).length;
+  const departuresCount = activeBookings.filter(b => b.check_out === today && b.checkout_confirmed !== false).length;
+  // Real in-house stays: check_in <= today AND checkout is strictly in the future (or open-ended without checkout date)
+  const inHouseCount = activeBookings.filter(b => b.check_in <= today && (b.check_out > today || (!b.check_out && b.checkout_confirmed === false))).length;
+
+  // Active reservations for Today: Departures today + Arrivals today + Ongoing stays spanning today
   const todayCount = activeBookings.filter(b => {
     const isArrival = b.check_in === today;
     const isDeparture = b.check_out === today;
-    const isStaying = b.check_in <= today && (b.checkout_confirmed === false || b.check_out >= today);
+    const isStaying = b.check_in < today && (b.check_out > today || (!b.check_out && b.checkout_confirmed === false));
     return isArrival || isDeparture || isStaying;
   }).length;
 
   const upcomingCount = activeBookings.filter(b => b.check_in > today).length;
-  const inHouseCount = activeBookings.filter(b => b.check_in <= today && (b.checkout_confirmed === false || b.check_out > today)).length;
-  const arrivalsCount = activeBookings.filter(b => b.check_in === today).length;
-  const departuresCount = activeBookings.filter(b => b.check_out === today && b.checkout_confirmed !== false).length;
   
   let totalBalanceDue = 0;
   let dueCount = 0;
@@ -120,7 +123,7 @@ async function renderSmartManageBookings() {
       if (b.is_cancelled) return false;
       const isArrival = b.check_in === today;
       const isDeparture = b.check_out === today;
-      const isStaying = b.check_in <= today && (b.checkout_confirmed === false || b.check_out >= today);
+      const isStaying = b.check_in < today && (b.check_out > today || (!b.check_out && b.checkout_confirmed === false));
       return isArrival || isDeparture || isStaying;
     });
     // Sort today: Departures first (checkout at 11am), then In-House (all day), then Arrivals (2pm)
@@ -134,7 +137,7 @@ async function renderSmartManageBookings() {
     // Chronological ascending sort (nearest upcoming stay first)
     filtered.sort((a, b) => (a.check_in || '').localeCompare(b.check_in || ''));
   } else if (tab === 'inhouse') {
-    filtered = filtered.filter(b => b.check_in <= today && (b.checkout_confirmed === false || b.check_out > today) && !b.is_cancelled);
+    filtered = filtered.filter(b => b.check_in <= today && (b.check_out > today || (!b.check_out && b.checkout_confirmed === false)) && !b.is_cancelled);
     filtered.sort((a, b) => (a.check_out || '').localeCompare(b.check_out || ''));
   } else if (tab === 'all') {
     // All stays
@@ -331,6 +334,11 @@ async function renderSmartManageBookings() {
 
       <!-- Big Hero Headline (Identical to Airbnb) -->
       <h1 class="airbnb-hero-heading">${heroTitle}</h1>
+      ${tab === 'today' && !sq ? `
+        <div style="font-size:13.5px;color:#64748B;text-align:center;margin:-12px 0 22px 0;font-weight:500;">
+          ${departuresCount} check-outs • ${arrivalsCount} check-ins • ${Math.max(0, inHouseCount - arrivalsCount)} continuing stays
+        </div>
+      ` : ''}
 
       <!-- Clean Airbnb Search Input -->
       <div class="airbnb-search-bar">
@@ -429,10 +437,10 @@ function getAirbnbHeadline(b, today) {
   }
   
   const groupLabel = `${name}'s group of ${count}`;
-  const isOpenEnded = b.checkout_confirmed === false;
-  const isLeavingToday = !isOpenEnded && b.check_out === today;
+  const isOpenEnded = !b.check_out && b.checkout_confirmed === false;
+  const isLeavingToday = b.check_out === today;
   const isArrivingToday = b.check_in === today;
-  const isStaying = b.check_in < today && (isOpenEnded || b.check_out > today);
+  const isStaying = b.check_in < today && (b.check_out > today || isOpenEnded);
   
   if (isLeavingToday) {
     return `${groupLabel} checks out`;
@@ -499,16 +507,16 @@ function renderAirbnbReservationsHtml(bookings, paidMap, canM, today) {
     <div class="airbnb-reservations-list">
       ${bookings.map(b => {
         const pd = paidMap[b.booking_id] || 0;
-        const isOpenEnded = b.checkout_confirmed === false;
+        const isOpenEnded = !b.check_out && b.checkout_confirmed === false;
         const cin = b.check_in || today;
         const elapsedDays = Math.max(1, Math.ceil((new Date(today) - new Date(cin)) / 86400000));
         const dailyRate = b.per_day_rate || 0;
         const dynamicTotal = (isOpenEnded && dailyRate > 0) ? (elapsedDays * dailyRate) : (b.total_amount || 0);
         const bal = dynamicTotal - pd;
 
-        const isActive = b.check_in <= today && (isOpenEnded || b.check_out > today);
-        const isCheckoutToday = !isOpenEnded && b.check_out === today;
+        const isCheckoutToday = b.check_out === today;
         const isArrivalToday = b.check_in === today;
+        const isStayingAllDay = b.check_in < today && (b.check_out > today || isOpenEnded);
         const isUpcoming = b.check_in > today;
         const isOnline = b.booking_mode === 'Online-Airbnb' || !!b.airbnb_confirmation_code;
         const nights = (b.check_in && b.check_out) ? Math.max(calcNights(b.check_in, b.check_out), 1) : 1;
@@ -522,7 +530,7 @@ function renderAirbnbReservationsHtml(bookings, paidMap, canM, today) {
         } else if (isArrivalToday) {
           timeMain = b.check_in_time || '2:00 pm';
           timeSub = 'Check-in today';
-        } else if (isActive) {
+        } else if (isStayingAllDay) {
           timeMain = 'All day';
           timeSub = isOpenEnded ? `Day ${elapsedDays} (Open)` : 'In-House stay';
         } else if (isUpcoming) {
@@ -649,7 +657,7 @@ function renderAirbnbFollowupsHtml(allBookings, paidMap, canM, today) {
 
     // 3. Missing ID proof for in-house or today's arrivals
     const hasId = !!(b.id_proof_photo_paths || b.id_proof_photo_path);
-    const isTodayOrInHouse = (b.check_in === today) || (b.check_in < today && (b.checkout_confirmed === false || b.check_out >= today));
+    const isTodayOrInHouse = (b.check_in === today) || (b.check_in < today && (b.check_out > today || (!b.check_out && b.checkout_confirmed === false)));
     if (!hasId && isTodayOrInHouse && !b.guest_name?.toLowerCase().includes('blocked')) {
       followups.push({
         type: 'id',
@@ -659,11 +667,22 @@ function renderAirbnbFollowupsHtml(allBookings, paidMap, canM, today) {
         bookingId: b.booking_id
       });
     }
+
+    // 4. Overdue checkout (scheduled checkout date was in the past, but checkout wasn't confirmed)
+    if (b.check_out && b.check_out < today && b.checkout_confirmed === false) {
+      followups.push({
+        type: 'checkout',
+        title: `Confirm checkout for ${b.guest_name || 'Guest'}`,
+        subtitle: `${b.rooms?.nickname || b.room_id || 'Unit'} • Scheduled: ${b.check_out}`,
+        actionText: '📤 Checkout',
+        bookingId: b.booking_id
+      });
+    }
   });
 
   if (followups.length === 0) return '';
 
-  const displayFollowups = followups.slice(0, 4);
+  const displayFollowups = followups.slice(0, 6);
 
   return `
     <div class="airbnb-followups-section">
