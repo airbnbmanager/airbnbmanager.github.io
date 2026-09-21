@@ -13,7 +13,11 @@
     auto_send_enabled: false, // 🔴 MASTER OFF BY DEFAULT AS REQUESTED
     dry_run_mode: true, // 🧪 Safe test mode (no real messages sent without testing)
     gateway_url: 'http://localhost:3000',
-    gateway_type: 'baileys',
+    gateway_type: 'baileys', // 'meta_cloud_api' | 'baileys'
+    meta_phone_number_id: '',
+    meta_waba_id: '',
+    meta_access_token: '',
+    meta_verify_token: 'uhhs_meta_secure_2026',
 
     // Granular Sub-Toggles (Default disabled until master turned ON)
     send_booking_group: true,
@@ -308,7 +312,48 @@
       return { ok: true, dry_run: true };
     }
 
-    // 4. LIVE SEND TO GATEWAY
+    // 4. LIVE SEND TO META CLOUD API OR LOCAL GATEWAY
+    if (HUB.config.gateway_type === 'meta_cloud_api' && HUB.config.meta_phone_number_id && HUB.config.meta_access_token) {
+      try {
+        const cleanPhone = String(to).replace(/\D/g, '');
+        const recipientPhone = cleanPhone.length === 10 ? ('91' + cleanPhone) : cleanPhone;
+        const metaUrl = `https://graph.facebook.com/v21.0/${HUB.config.meta_phone_number_id}/messages`;
+        const res = await fetch(metaUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${HUB.config.meta_access_token}`
+          },
+          body: JSON.stringify({
+            messaging_product: 'whatsapp',
+            recipient_type: 'individual',
+            to: recipientPhone,
+            type: 'text',
+            text: { preview_url: true, body: text }
+          })
+        });
+        const metaRes = await res.json();
+        if (metaRes.error) throw new Error(metaRes.error.message || 'Meta Cloud API error');
+
+        logEntry.status = 'sent';
+        logEntry.api_response = metaRes;
+        appendLocalLog(logEntry);
+        try { if (window.sb) await sb.from('whatsapp_log').insert(logEntry); } catch (e) {}
+
+        console.log('✅ [WhatsApp Hub Meta API] Dispatched to:', recipientPhone);
+        if (window.fsn) fsn.success('Official WhatsApp Sent', `Delivered via Meta API to ${recipientPhone}`);
+        return { ok: true, data: metaRes };
+      } catch (err) {
+        logEntry.status = 'failed';
+        logEntry.error_message = err.message;
+        appendLocalLog(logEntry);
+        try { if (window.sb) await sb.from('whatsapp_log').insert(logEntry); } catch (e) {}
+        console.warn('❌ [WhatsApp Hub Meta API] Failed:', err.message);
+        if (window.fsn) fsn.error('Meta API Error', err.message);
+        return { ok: false, error: err.message };
+      }
+    }
+
     const gatewayUrl = HUB.config.gateway_url || 'http://localhost:3000';
     try {
       const endpoint = gatewayUrl.replace(/\/+$/, '') + '/send-message';
@@ -1148,14 +1193,57 @@
           <textarea id="cfgInvestorGroups" style="width:100%;box-sizing:border-box;height:110px;font-family:monospace;font-size:12px;">${groupsJson}</textarea>
         </div>
 
-        <h4 style="margin:0 0 10px 0;color:#0F172A;">📡 WhatsApp Gateway Connection</h4>
+        <h4 style="margin:0 0 10px 0;color:#0F172A;">🛡️ Official Meta Cloud API (100% Free & Ban-Proof)</h4>
+        <div style="font-size:12px;color:#64748B;margin-bottom:12px;background:#EFF6FF;padding:10px 14px;border-radius:8px;border:1px solid #BFDBFE;">
+          💡 <strong>Official Meta WhatsApp Cloud API</strong>: 1,000 free conversations/month provided by Meta. Zero phone disconnection, runs 24/7 in cloud. Grab credentials from <a href="https://developers.facebook.com" target="_blank" style="color:#2563EB;font-weight:700;">developers.facebook.com</a>.
+        </div>
+
         <div class="form-group" style="margin-bottom:12px;">
-          <label style="font-weight:700;font-size:12.5px;display:block;margin-bottom:4px;">Gateway Server URL (Baileys Service)</label>
+          <label style="font-weight:700;font-size:12.5px;display:block;margin-bottom:4px;">Gateway Engine</label>
+          <select id="cfgGatewayType" style="width:100%;box-sizing:border-box;padding:8px;border-radius:6px;border:1px solid #CBD5E1;font-weight:600;">
+            <option value="meta_cloud_api" ${c.gateway_type === 'meta_cloud_api' ? 'selected' : ''}>🛡️ Official Meta Cloud API (Recommended — Ban-Proof & Cloud 24/7)</option>
+            <option value="baileys" ${c.gateway_type === 'baileys' ? 'selected' : ''}>📱 Local Baileys Gateway (QR Code)</option>
+          </select>
+        </div>
+
+        <div class="form-group" style="margin-bottom:12px;">
+          <label style="font-weight:700;font-size:12.5px;display:block;margin-bottom:4px;">Meta Phone Number ID</label>
+          <input type="text" id="cfgMetaPhoneId" placeholder="e.g. 104829582910482" value="${c.meta_phone_number_id || ''}" style="width:100%;box-sizing:border-box;font-family:monospace;" />
+        </div>
+
+        <div class="form-group" style="margin-bottom:12px;">
+          <label style="font-weight:700;font-size:12.5px;display:block;margin-bottom:4px;">WhatsApp Business Account ID (WABA ID)</label>
+          <input type="text" id="cfgMetaWabaId" placeholder="e.g. 102948201948201" value="${c.meta_waba_id || ''}" style="width:100%;box-sizing:border-box;font-family:monospace;" />
+        </div>
+
+        <div class="form-group" style="margin-bottom:12px;">
+          <label style="font-weight:700;font-size:12.5px;display:block;margin-bottom:4px;">Meta Permanent Access Token (System User)</label>
+          <input type="password" id="cfgMetaToken" placeholder="EAAB..." value="${c.meta_access_token || ''}" style="width:100%;box-sizing:border-box;font-family:monospace;" />
+        </div>
+
+        <div class="form-group" style="margin-bottom:14px;">
+          <label style="font-weight:700;font-size:12.5px;display:block;margin-bottom:4px;">Meta Webhook Callback URL & Verify Token</label>
+          <div style="background:#F8FAFC;padding:8px 12px;border-radius:6px;border:1px solid #E2E8F0;font-family:monospace;font-size:12px;color:#334155;word-break:break-all;">
+            <strong>Callback URL:</strong> <code>https://&lt;your-domain&gt;/api/whatsapp/webhook</code><br>
+            <strong>Verify Token:</strong> <code>${c.meta_verify_token || 'uhhs_meta_secure_2026'}</code>
+          </div>
+        </div>
+
+        <div style="display:flex;gap:8px;margin-bottom:18px;">
+          <button type="button" onclick="testMetaWhatsApp()" style="padding:9px 14px;background:#2563EB;color:#fff;border:none;border-radius:6px;font-weight:700;cursor:pointer;flex:1;">
+            ⚡ Send Test Official WhatsApp via Meta API
+          </button>
+        </div>
+
+        <h4 style="margin:0 0 10px 0;color:#0F172A;">📡 Baileys QR Local Gateway (Alternative)</h4>
+        <div class="form-group" style="margin-bottom:12px;">
+          <label style="font-weight:700;font-size:12.5px;display:block;margin-bottom:4px;">Gateway Server URL (Local Bot)</label>
+          <input type="text" id="cfgGatewayUrl" value="${c.gateway_url || 'http://localhost:3000'}" style="width:100%;box-sizing:border-box;font-family:monospace;margin-bottom:8px;" />
           <div style="display:flex;gap:8px;flex-wrap:wrap;">
             <button id="testGatewayBtn" onclick="testWhatsAppGateway()" style="padding:9px 14px;background:#0F172A;color:#fff;border:none;border-radius:6px;font-weight:700;cursor:pointer;white-space:nowrap;flex:1 1 auto;">
               ⚡ Test Gateway Connection
             </button>
-            <button type="button" onclick="setHubTab('device')" style="padding:9px 14px;background:#2563EB;color:#fff;border:none;border-radius:6px;font-weight:700;cursor:pointer;white-space:nowrap;flex:1 1 auto;">
+            <button type="button" onclick="setHubTab('device')" style="padding:9px 14px;background:#475569;color:#fff;border:none;border-radius:6px;font-weight:700;cursor:pointer;white-space:nowrap;flex:1 1 auto;">
               📱 Scan QR / Switch Number
             </button>
           </div>
@@ -1209,6 +1297,11 @@
       booking_group_id: document.getElementById('cfgBookingGroup')?.value?.trim() || '',
       housekeeping_group_id: document.getElementById('cfgHousekeepingGroup')?.value?.trim() || '',
       investor_groups: invGroups,
+      gateway_type: document.getElementById('cfgGatewayType')?.value || 'meta_cloud_api',
+      meta_phone_number_id: document.getElementById('cfgMetaPhoneId')?.value?.trim() || '',
+      meta_waba_id: document.getElementById('cfgMetaWabaId')?.value?.trim() || '',
+      meta_access_token: document.getElementById('cfgMetaToken')?.value?.trim() || '',
+      meta_verify_token: 'uhhs_meta_secure_2026',
       gateway_url: document.getElementById('cfgGatewayUrl')?.value?.trim() || 'http://localhost:3000',
       updated_at: new Date().toISOString()
     };
@@ -1224,6 +1317,44 @@
 
     if (window.fsn) fsn.success('Saved', '✅ Automation settings updated successfully!');
     renderWhatsAppHub();
+  };
+
+  window.testMetaWhatsApp = async function() {
+    const phone = prompt('Enter recipient WhatsApp number with country code (e.g. 919876543210):', '91');
+    if (!phone) return;
+    const phoneId = document.getElementById('cfgMetaPhoneId')?.value?.trim() || HUB.config.meta_phone_number_id;
+    const token = document.getElementById('cfgMetaToken')?.value?.trim() || HUB.config.meta_access_token;
+    if (!phoneId || !token) {
+      alert('⚠️ Please enter Meta Phone Number ID and Permanent Access Token first!');
+      return;
+    }
+    const cleanPhone = phone.replace(/\D/g, '');
+    try {
+      if (window.fsn) fsn.info('Sending...', 'Dispatching Meta Cloud API message');
+      const url = `https://graph.facebook.com/v21.0/${phoneId}/messages`;
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          messaging_product: 'whatsapp',
+          recipient_type: 'individual',
+          to: cleanPhone,
+          type: 'text',
+          text: { preview_url: true, body: '👋 *Test Message from The Unique Haven Homes!*\n\nYour official Meta WhatsApp Cloud API is successfully configured and active! 🚀\n\n100% Free & Ban-Proof cloud connectivity.' }
+        })
+      });
+      const data = await res.json();
+      if (data.error) {
+        alert('❌ Meta API Error:\n' + data.error.message);
+      } else {
+        alert('✅ SUCCESS! Official Meta WhatsApp message delivered to ' + cleanPhone + '!\nMessage ID: ' + (data.messages?.[0]?.id || 'delivered'));
+      }
+    } catch (err) {
+      alert('❌ Failed: ' + err.message);
+    }
   };
 
   function renderScheduledTab() {

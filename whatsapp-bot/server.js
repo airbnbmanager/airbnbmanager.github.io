@@ -296,6 +296,125 @@ app.post('/send-group', async (req, res) => {
   }
 });
 
+// ═══════════════════════════════════════════════════════════
+// 🛡️ OFFICIAL META WHATSAPP CLOUD API (Ban-Proof & 100% Free)
+// ═══════════════════════════════════════════════════════════
+
+// 6. Meta Webhook Verification (Challenge from developers.facebook.com)
+app.get('/api/whatsapp/webhook', (req, res) => {
+  const mode = req.query['hub.mode'];
+  const token = req.query['hub.verify_token'];
+  const challenge = req.query['hub.challenge'];
+  const verifyToken = process.env.META_VERIFY_TOKEN || 'uhhs_meta_secure_2026';
+
+  if (mode === 'subscribe' && token === verifyToken) {
+    console.log('✅ Meta WhatsApp Webhook Verified Successfully!');
+    return res.status(200).send(challenge);
+  }
+  console.warn('⚠️ Meta Webhook verification failed. Token mismatch or invalid mode.');
+  return res.sendStatus(403);
+});
+
+// 7. Meta Incoming Webhook Receiver & 24/7 Smart Keyword Auto-Reply
+app.post('/api/whatsapp/webhook', async (req, res) => {
+  // Always return 200 OK immediately so Meta does not retry
+  res.sendStatus(200);
+
+  try {
+    const body = req.body;
+    if (body.object === 'whatsapp_business_account') {
+      const entry = body.entry?.[0];
+      const changes = entry?.changes?.[0];
+      const value = changes?.value;
+      const messages = value?.messages;
+
+      if (messages && messages.length > 0) {
+        const msg = messages[0];
+        const from = msg.from; // Sender phone number
+        const text = (msg.text?.body || msg.interactive?.button_reply?.title || '').trim();
+        console.log(`📩 [Meta Cloud API] Incoming WhatsApp from ${from}: "${text}"`);
+
+        // Smart keyword matcher
+        const lower = text.toLowerCase();
+        let autoReply = '';
+
+        if (lower.includes('wifi') || lower.includes('wi-fi') || lower.includes('internet')) {
+          autoReply = `📶 *The Unique Haven Homes — Wi-Fi Access*\n\nNetwork: *UHHS_Guest_HighSpeed*\nPassword: *Haven@Stay2026*\n\nIf you face any connection issues, feel free to ask here!`;
+        } else if (lower.includes('location') || lower.includes('map') || lower.includes('kaha hai') || lower.includes('address')) {
+          autoReply = `📍 *The Unique Haven Homes — Location Guide*\n\n🏢 *Apartments & Villas, Lucknow*\nGoogle Maps: https://maps.app.goo.gl/uniquehavenhomes\n\nNeed assistance with directions? Call our manager: +91 9214246820`;
+        } else if (lower.includes('checkin') || lower.includes('check in') || lower.includes('check-in')) {
+          autoReply = `🔑 *The Unique Haven Homes — Check-in Info*\n\n⏰ Standard Check-in Time: *02:00 PM*\n📝 Please keep a government ID ready for digital verification.\n\nOur caretaker will assist you at the property.`;
+        } else if (lower.includes('checkout') || lower.includes('check out') || lower.includes('check-out')) {
+          autoReply = `👋 *The Unique Haven Homes — Checkout Info*\n\n⏰ Standard Checkout Time: *11:00 AM*\nPlease leave keys with the on-ground caretaker.\n\nWe hope you enjoyed your stay with us! ⭐`;
+        } else if (lower.includes('hi') || lower.includes('hello') || lower.includes('namaste')) {
+          autoReply = `👋 *Hello & Welcome to The Unique Haven Homes!*\n\nHow can we help you today? Reply with:\n• *WiFi* for Wi-Fi details\n• *Location* for property map\n• *Checkin* for check-in procedure\n• *Caretaker* to connect with staff`;
+        }
+
+        if (autoReply && process.env.META_ACCESS_TOKEN && process.env.META_PHONE_NUMBER_ID) {
+          console.log(`🤖 Auto-replying to ${from} with keyword response...`);
+          await sendMetaCloudMessage({
+            phoneId: process.env.META_PHONE_NUMBER_ID,
+            token: process.env.META_ACCESS_TOKEN,
+            to: from,
+            text: autoReply
+          });
+        }
+      }
+    }
+  } catch (err) {
+    console.error('❌ Error processing Meta webhook:', err);
+  }
+});
+
+// Helper: Send Message via Meta Graph API
+async function sendMetaCloudMessage({ phoneId, token, to, text }) {
+  const cleanPhone = String(to).replace(/\D/g, '');
+  const url = `https://graph.facebook.com/v21.0/${phoneId}/messages`;
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`
+    },
+    body: JSON.stringify({
+      messaging_product: 'whatsapp',
+      recipient_type: 'individual',
+      to: cleanPhone,
+      type: 'text',
+      text: { preview_url: true, body: text }
+    })
+  });
+  return await response.json();
+}
+
+// 8. Send Message via Official Meta Cloud API (Direct Endpoint)
+app.post('/api/whatsapp/send-meta', async (req, res) => {
+  const { to, text, phoneId, token } = req.body;
+  const activePhoneId = phoneId || process.env.META_PHONE_NUMBER_ID;
+  const activeToken = token || process.env.META_ACCESS_TOKEN;
+
+  if (!to || !text) {
+    return res.status(400).json({ ok: false, error: 'Recipient "to" and "text" are required.' });
+  }
+  if (!activePhoneId || !activeToken) {
+    return res.status(400).json({ ok: false, error: 'Meta Phone Number ID and Access Token are required.' });
+  }
+
+  try {
+    const result = await sendMetaCloudMessage({
+      phoneId: activePhoneId,
+      token: activeToken,
+      to,
+      text
+    });
+    console.log('✅ Meta Cloud API Message Response:', result);
+    res.json({ ok: true, meta_response: result });
+  } catch (err) {
+    console.error('❌ Meta Cloud API send error:', err);
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
 // Start Server & Initialize WhatsApp
 app.listen(PORT, () => {
   console.log(`\n🚀 UHHS WhatsApp Gateway running on http://localhost:${PORT}`);
