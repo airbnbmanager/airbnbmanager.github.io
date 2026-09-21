@@ -175,7 +175,10 @@ window.renderCashBook = async function() {
 
   const upiByReceiver = {};
   upiPayments.forEach(p => {
-    const key = p.received_by || 'Unknown';
+    let key = (p.received_by || '').trim();
+    if (!key || key.toLowerCase() === 'unknown' || key.toLowerCase().includes('direct') || key.toLowerCase() === 'company') {
+      key = 'Firoz';
+    }
     if (!upiByReceiver[key]) upiByReceiver[key] = { total: 0, list: [] };
     upiByReceiver[key].total += Number(p.amount || 0);
     upiByReceiver[key].list.push(p);

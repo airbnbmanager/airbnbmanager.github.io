@@ -4063,8 +4063,13 @@ async function loadReceiveByHolders() {
     .filter(e => !excludeRoles.includes(e.role))
     .map(e => e.name);
   
+  const owners = (holders || []).filter(h => h.type === 'final').map(h => h.name);
+  if (!owners.some(o => (o || '').toLowerCase() === 'firoz')) {
+    owners.unshift('Firoz');
+  }
+
   window._receiveHoldersCache = {
-    owners: (holders || []).filter(h => h.type === 'final').map(h => h.name),
+    owners: owners,
     manager: (holders || []).filter(h => h.type === 'manager').map(h => h.name),
     employees: cashReceivers
   };
@@ -4178,8 +4183,17 @@ window.onPayModeChange = async function() {
   const receivedByEl = document.getElementById('payReceivedBy');
   const custom = document.getElementById('payReceivedByCustom');
   if (!receivedByEl) return;
-  const curr = typeof getReceiverValue === 'function' ? getReceiverValue('payReceivedBy', 'payReceivedByCustom') : receivedByEl.value;
+  let curr = typeof getReceiverValue === 'function' ? getReceiverValue('payReceivedBy', 'payReceivedByCustom') : receivedByEl.value;
+  if (mode === 'UPI') {
+    // When UPI is selected, auto-default to Firoz
+    if (!curr || curr === 'Cash' || curr === 'Shahenshah' || curr === 'Praveen') {
+      curr = 'Firoz';
+    }
+  }
   await window.populateReceivedByDropdown(receivedByEl, mode, curr, custom);
+  if (mode === 'UPI' && (!receivedByEl.value || receivedByEl.value === '')) {
+    receivedByEl.value = 'Firoz';
+  }
 };
 
 // ═══ Security Deposit Dropdown Handlers (New & Edit Booking) ═══
@@ -5964,6 +5978,9 @@ window.onAdvanceModeChange = async function() {
     }
   } else {
     // UPI/Bank/Airbnb: only company accounts (final)
+    if (!finalHolders.some(o => (o || '').toLowerCase() === 'firoz')) {
+      finalHolders.unshift('Firoz');
+    }
     if (finalHolders.length) {
       html += '<optgroup label="🏢 Company Accounts">';
       finalHolders.forEach(n => html += `<option value="${n}">${n}</option>`);
@@ -5977,9 +5994,8 @@ window.onAdvanceModeChange = async function() {
   // Auto-select for online modes
   if (mode === 'UPI') {
     // UPI hamesha Firoz ke account me
-    if (finalHolders.includes('Firoz')) {
-      dropdown.value = 'Firoz';
-    } else if (finalHolders.length > 0) {
+    dropdown.value = 'Firoz';
+    if (!dropdown.value && finalHolders.length > 0) {
       dropdown.value = finalHolders[0];
     }
   } else if (mode === 'Bank' || mode === 'Airbnb Payout') {

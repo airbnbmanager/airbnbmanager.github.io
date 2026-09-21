@@ -1006,7 +1006,7 @@
       const p = this.prop;
       const base = p.base_price || 3499;
       const amount = this.totalPayable || (base * this.nights);
-      const upiId = '9450055554@upi';
+      const upiId = '9450055554@apl';
       const upiString = `upi://pay?pa=${upiId}&pn=The%20Unique%20Haven%20Homes&am=${amount}&cu=INR&tn=Booking%20${encodeURIComponent(p.name)}%20${this.nights}N`;
       const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&margin=1&data=${encodeURIComponent(upiString)}`;
 
@@ -1176,8 +1176,8 @@
             amount: amount,
             payment_date: new Date().toISOString().slice(0, 10),
             payment_mode: 'UPI',
-            received_by: 'UPI Direct (Website)',
-            notes: `Direct UPI Website Booking - UTR: ${utr}`,
+            received_by: 'Firoz',
+            notes: `Direct UPI Website Booking (9450055554@apl) - UTR: ${utr}`,
             verification_status: 'pending'
           });
         } catch (err) {
