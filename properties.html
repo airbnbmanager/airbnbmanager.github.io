@@ -46,6 +46,10 @@
   <link href="css/property-luxe.css" rel="stylesheet"/>
   <link href="css/properties-directory.css" rel="stylesheet"/>
 
+  <!-- Supabase Client for Real-Time CRM Geolocation Sync -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="config.js"></script>
+
   <!-- Schema.org Structured Data -->
   <script type="application/ld+json">
   {
@@ -171,7 +175,7 @@
     <div class="dir-property-grid" id="propertiesList">
 
       <!-- 1. RedRose Palace -->
-      <article class="dir-card" data-slug="redrose-palace" data-type="flat" data-area="vikalp" data-name="redrose palace" data-rating="4.92">
+      <article class="dir-card" data-room-id="GOM-101" data-slug="redrose-palace" data-type="flat" data-area="vikalp" data-name="redrose palace" data-rating="4.92">
         <div class="dir-card-media">
           <img alt="RedRose Palace Homestay Lucknow" src="assets/properties/redrose-palace/cover.jpg" loading="lazy" decoding="async"/>
           <span class="dir-card-rating-badge">⭐ 4.92 (Airbnb)</span>
@@ -204,7 +208,7 @@
       </article>
 
       <!-- 2. Black Beauty -->
-      <article class="dir-card" data-slug="black-beauty" data-type="flat" data-area="vikalp" data-name="black beauty" data-rating="4.91">
+      <article class="dir-card" data-room-id="GOM-102" data-slug="black-beauty" data-type="flat" data-area="vikalp" data-name="black beauty" data-rating="4.91">
         <div class="dir-card-media">
           <img alt="Black Beauty Homestay Lucknow" src="assets/properties/black-beauty/cover.jpg" loading="lazy" decoding="async"/>
           <span class="dir-card-rating-badge">⭐ 4.91 (Airbnb)</span>
@@ -237,7 +241,7 @@
       </article>
 
       <!-- 3. The Dark Blue -->
-      <article class="dir-card" data-slug="the-dark-blue" data-type="flat" data-area="vikalp" data-name="the dark blue" data-rating="4.95">
+      <article class="dir-card" data-room-id="GOM-201" data-slug="the-dark-blue" data-type="flat" data-area="vikalp" data-name="the dark blue" data-rating="4.95">
         <div class="dir-card-media">
           <img alt="The Dark Blue Homestay Lucknow" src="assets/properties/the-dark-blue/cover.jpg" loading="lazy" decoding="async"/>
           <span class="dir-card-rating-badge">⭐ 4.95 (Guest Favorite)</span>
@@ -270,7 +274,7 @@
       </article>
 
       <!-- 4. The Brown -->
-      <article class="dir-card" data-slug="the-brown" data-type="flat" data-area="vikalp" data-name="the brown" data-rating="4.90">
+      <article class="dir-card" data-room-id="GOM-202" data-slug="the-brown" data-type="flat" data-area="vikalp" data-name="the brown" data-rating="4.90">
         <div class="dir-card-media">
           <img alt="The Brown Homestay Lucknow" src="assets/properties/the-brown/cover.jpg" loading="lazy" decoding="async"/>
           <span class="dir-card-rating-badge">⭐ 4.90 (Superhost)</span>
@@ -303,7 +307,7 @@
       </article>
 
       <!-- 5. The Light Green -->
-      <article class="dir-card" data-slug="the-light-green" data-type="flat" data-area="vikalp" data-name="the light green" data-rating="4.88">
+      <article class="dir-card" data-room-id="GOM-301" data-slug="the-light-green" data-type="flat" data-area="vikalp" data-name="the light green" data-rating="4.88">
         <div class="dir-card-media">
           <img alt="The Light Green Homestay Lucknow" src="assets/properties/the-light-green/cover.jpg" loading="lazy" decoding="async"/>
           <span class="dir-card-rating-badge">⭐ 4.88 (Superhost)</span>
@@ -336,7 +340,7 @@
       </article>
 
       <!-- 6. The Nawabi Stay -->
-      <article class="dir-card" data-slug="the-nawabi-stay" data-type="flat" data-area="vikalp" data-name="the nawabi stay" data-rating="4.92">
+      <article class="dir-card" data-room-id="GOM-401" data-slug="the-nawabi-stay" data-type="flat" data-area="vikalp" data-name="the nawabi stay" data-rating="4.92">
         <div class="dir-card-media">
           <img alt="The Nawabi Stay Homestay Lucknow" src="assets/properties/the-nawabi-stay/cover.jpg" loading="lazy" decoding="async"/>
           <span class="dir-card-rating-badge">⭐ 4.92 (Royal Decor)</span>
@@ -369,7 +373,7 @@
       </article>
 
       <!-- 7. Starlight Blue Penthouse -->
-      <article class="dir-card" data-slug="starlight-blue-penthouse" data-type="penthouse flat" data-area="vikalp" data-name="starlight blue penthouse" data-rating="4.96">
+      <article class="dir-card" data-room-id="GOM-501" data-slug="starlight-blue-penthouse" data-type="penthouse flat" data-area="vikalp" data-name="starlight blue penthouse" data-rating="4.96">
         <div class="dir-card-media">
           <img alt="Starlight Blue Penthouse Homestay Lucknow" src="assets/properties/starlight-blue/cover.jpg" loading="lazy" decoding="async"/>
           <span class="dir-card-rating-badge">⭐ 4.96 (Luxury Penthouse)</span>
@@ -402,7 +406,7 @@
       </article>
 
       <!-- 8. The Unique -->
-      <article class="dir-card" data-slug="the-unique" data-type="flat" data-area="vishesh" data-name="the unique" data-rating="4.93">
+      <article class="dir-card" data-room-id="GOM-302" data-slug="the-unique" data-type="flat" data-area="vishesh" data-name="the unique" data-rating="4.93">
         <div class="dir-card-media">
           <img alt="The Unique Homestay Lucknow" src="assets/properties/the-unique/cover.jpg" loading="lazy" decoding="async"/>
           <span class="dir-card-rating-badge">⭐ 4.93 (Flagship)</span>
@@ -435,7 +439,7 @@
       </article>
 
       <!-- 9. The Green House -->
-      <article class="dir-card" data-slug="the-green-house" data-type="flat" data-area="vishesh" data-name="the green house" data-rating="4.90">
+      <article class="dir-card" data-room-id="VIL-104" data-slug="the-green-house" data-type="flat" data-area="vishesh" data-name="the green house" data-rating="4.90">
         <div class="dir-card-media">
           <img alt="The Green House Homestay Lucknow" src="assets/properties/the-green-house/cover.jpg" loading="lazy" decoding="async"/>
           <span class="dir-card-rating-badge">⭐ 4.90 (Cozy Stay)</span>
@@ -468,7 +472,7 @@
       </article>
 
       <!-- 10. The Pink House -->
-      <article class="dir-card" data-slug="the-pink-house" data-type="flat" data-area="vishesh" data-name="the pink house" data-rating="4.89">
+      <article class="dir-card" data-room-id="VIL-103" data-slug="the-pink-house" data-type="flat" data-area="vishesh" data-name="the pink house" data-rating="4.89">
         <div class="dir-card-media">
           <img alt="The Pink House Homestay Lucknow" src="assets/properties/the-pink-house/cover.jpg" loading="lazy" decoding="async"/>
           <span class="dir-card-rating-badge">⭐ 4.89 (Superhost)</span>
@@ -501,7 +505,7 @@
       </article>
 
       <!-- 11. The Yellow House -->
-      <article class="dir-card" data-slug="the-yellow-house" data-type="flat" data-area="vishesh" data-name="the yellow house" data-rating="4.89">
+      <article class="dir-card" data-room-id="VIL-105" data-slug="the-yellow-house" data-type="flat" data-area="vishesh" data-name="the yellow house" data-rating="4.89">
         <div class="dir-card-media">
           <img alt="The Yellow House Homestay Lucknow" src="assets/properties/the-yellow-house/cover.jpg" loading="lazy" decoding="async"/>
           <span class="dir-card-rating-badge">⭐ 4.89 (Superhost)</span>
@@ -534,7 +538,7 @@
       </article>
 
       <!-- 12. Green Forest -->
-      <article class="dir-card" data-slug="green-forest" data-type="flat" data-area="gomti" data-name="green forest" data-rating="4.94">
+      <article class="dir-card" data-room-id="VIL-106" data-slug="green-forest" data-type="flat" data-area="gomti" data-name="green forest" data-rating="4.94">
         <div class="dir-card-media">
           <img alt="Green Forest Homestay Lucknow" src="assets/properties/green-forest/cover.jpg" loading="lazy" decoding="async"/>
           <span class="dir-card-rating-badge">⭐ 4.94 (Peaceful Oasis)</span>
@@ -567,7 +571,7 @@
       </article>
 
       <!-- 13. Pink Paradise -->
-      <article class="dir-card" data-slug="pink-paradise" data-type="flat" data-area="gomti" data-name="pink paradise" data-rating="4.91">
+      <article class="dir-card" data-room-id="VIL-108" data-slug="pink-paradise" data-type="flat" data-area="gomti" data-name="pink paradise" data-rating="4.91">
         <div class="dir-card-media">
           <img alt="Pink Paradise Homestay Lucknow" src="assets/properties/pink-paradise/cover.jpg" loading="lazy" decoding="async"/>
           <span class="dir-card-rating-badge">⭐ 4.91 (Boutique Stay)</span>
@@ -600,7 +604,7 @@
       </article>
 
       <!-- 14. Celebrity Garden -->
-      <article class="dir-card" data-slug="celebrity-garden" data-type="flat" data-area="lulu" data-name="celebrity garden" data-rating="4.94">
+      <article class="dir-card" data-room-id="LUL-402" data-slug="celebrity-garden" data-type="flat" data-area="lulu" data-name="celebrity garden" data-rating="4.94">
         <div class="dir-card-media">
           <img alt="Celebrity Garden Homestay Lucknow" src="assets/properties/celebrity-garden/cover.jpg" loading="lazy" decoding="async"/>
           <span class="dir-card-rating-badge">⭐ 4.94 (Lulu Mall & Medanta)</span>
@@ -633,7 +637,7 @@
       </article>
 
       <!-- 15. Gomti Grand Villa -->
-      <article class="dir-card" data-slug="gomti-grand-villa" data-type="villa" data-area="gomti" data-name="gomti grand villa" data-rating="4.97">
+      <article class="dir-card" data-room-id="VIL-101" data-slug="gomti-grand-villa" data-type="villa" data-area="gomti" data-name="gomti grand villa" data-rating="4.97">
         <div class="dir-card-media">
           <img alt="Gomti Grand Villa Lucknow" src="assets/properties/gomti-grand-villa/cover.jpg" loading="lazy" decoding="async"/>
           <span class="dir-card-rating-badge">⭐ 4.97 (Luxury Villa)</span>
@@ -666,7 +670,7 @@
       </article>
 
       <!-- 16. Royal White House -->
-      <article class="dir-card" data-slug="royal-white-house" data-type="villa" data-area="gomti" data-name="royal white house" data-rating="4.95">
+      <article class="dir-card" data-room-id="VIL-102" data-slug="royal-white-house" data-type="villa" data-area="gomti" data-name="royal white house" data-rating="4.95">
         <div class="dir-card-media">
           <img alt="Royal White House Homestay Lucknow" src="assets/properties/royal-white-house/cover.jpg" loading="lazy" decoding="async"/>
           <span class="dir-card-rating-badge">⭐ 4.95 (Exclusive Villa)</span>
@@ -699,7 +703,7 @@
       </article>
 
       <!-- 17. The Velvet House -->
-      <article class="dir-card" data-slug="the-velvet-house" data-type="villa" data-area="lulu" data-name="the velvet house" data-rating="4.93">
+      <article class="dir-card" data-room-id="VIL-107" data-slug="the-velvet-house" data-type="villa" data-area="lulu" data-name="the velvet house" data-rating="4.93">
         <div class="dir-card-media">
           <img alt="The Velvet House Lucknow" src="assets/properties/the-velvet-house/cover.jpg" loading="lazy" decoding="async"/>
           <span class="dir-card-rating-badge">⭐ 4.93 (Luxe Villa)</span>
@@ -898,6 +902,60 @@
     const yearEl = document.getElementById('footerYear');
     if (yearEl) {
       yearEl.innerHTML = `© ${new Date().getFullYear()} THE UNIQUE HAVEN HOMES PRIVATE LIMITED · Lucknow, Uttar Pradesh`;
+    }
+
+    // ── Real-time CRM Sync: Auto-pick Exact Pinpoint Map Location from Supabase ──
+    async function syncDirectoryFromCrm() {
+      try {
+        let sbClient = window.sb;
+        if (!sbClient && typeof supabase !== 'undefined' && window.SUPABASE_URL && window.SUPABASE_ANON_KEY) {
+          sbClient = window.sb = supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY);
+        }
+        if (!sbClient) return;
+
+        const { data: rooms, error } = await sbClient
+          .from('rooms')
+          .select('room_id, map_link, rent_per_night');
+
+        if (error || !rooms) return;
+
+        rooms.forEach(room => {
+          const card = document.querySelector(`.dir-card[data-room-id="${room.room_id}"]`);
+          if (!card) return;
+
+          // 1. Live Google Maps Pinpoint
+          if (room.map_link) {
+            const locEl = card.querySelector('.dir-card-location');
+            if (locEl && !locEl.querySelector('.dir-map-pin-link')) {
+              const currentLocText = locEl.textContent.trim().replace(/^📍\s*/, '');
+              locEl.innerHTML = `
+                <a href="${room.map_link}" target="_blank" rel="noopener" class="dir-map-pin-link" title="Open exact pinpoint on Google Maps">
+                  <span class="dir-map-icon">📍</span>
+                  <span class="dir-map-text">${currentLocText}</span>
+                  <span class="dir-map-badge">Exact Pin ↗</span>
+                </a>
+              `;
+            }
+          }
+
+          // 2. Live Rent Sync if modified in CRM
+          if (room.rent_per_night && !isNaN(Number(room.rent_per_night))) {
+            const liveRent = Number(room.rent_per_night);
+            const mainPriceEl = card.querySelector('.dir-card-price-main');
+            if (mainPriceEl) {
+              mainPriceEl.innerHTML = `₹${liveRent.toLocaleString('en-IN')} <small>/ night</small>`;
+            }
+          }
+        });
+      } catch (err) {
+        console.warn('CRM sync info:', err);
+      }
+    }
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', syncDirectoryFromCrm);
+    } else {
+      syncDirectoryFromCrm();
     }
   </script>
 </body>

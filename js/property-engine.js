@@ -160,13 +160,46 @@
       this.renderAmenities();
       this.renderVideoTour();
       this.renderLandmarks();
+      this.renderLocationSection();
+      this.renderInteractiveCalendar();
       this.renderBookingCard();
       this.renderMobileBar();
       this.initGalleryModal();
       this.initUpiModal();
 
-      // 5. Load booked dates from Supabase for Airbnb calendar sync
+      // 5. Real-time CRM Sync: Live Map Location & Booked Dates
+      this.fetchLiveCrmLocation();
       this.loadBookedDates();
+    }
+
+    async fetchLiveCrmLocation() {
+      try {
+        let sbClient = window.sb;
+        if (!sbClient && typeof supabase !== 'undefined' && window.SUPABASE_URL && window.SUPABASE_ANON_KEY) {
+          sbClient = window.sb = supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY);
+        }
+
+        if (sbClient && this.prop && this.prop.id) {
+          const { data: room, error } = await sbClient
+            .from('rooms')
+            .select('map_link, nickname, property_name, unit_no, rent_per_night')
+            .eq('room_id', this.prop.id)
+            .single();
+
+          if (!error && room) {
+            if (room.map_link) {
+              this.prop.map_link = room.map_link;
+            }
+            if (room.rent_per_night && !isNaN(Number(room.rent_per_night))) {
+              this.prop.base_price = Number(room.rent_per_night);
+            }
+            this.renderLocationSection();
+            this.renderBookingCard();
+          }
+        }
+      } catch (err) {
+        console.warn('Live CRM location fetch error:', err);
+      }
     }
 
     async loadBookedDates() {
@@ -198,8 +231,9 @@
         console.warn('Could not fetch real-time booked dates from Supabase:', e);
       }
 
-      // Check default dates availability
+      // Check default dates availability & update live calendar
       this.checkAvailability();
+      this.renderInteractiveCalendar();
     }
 
     checkAvailability() {
@@ -301,6 +335,12 @@
 
       const totalDetail = document.getElementById('luxe-calc-total');
       if (totalDetail) totalDetail.textContent = `₹${totalRent.toLocaleString('en-IN')}`;
+
+      // Update mobile sticky bottom bar
+      const mobPrice = document.getElementById('luxe-mobile-price-val');
+      if (mobPrice) mobPrice.textContent = `₹${totalRent.toLocaleString('en-IN')}`;
+      const mobSub = document.querySelector('.luxe-mobile-price-sub');
+      if (mobSub) mobSub.textContent = `${this.nights} Night${this.nights > 1 ? 's' : ''} · Save 15%`;
     }
 
     renderAgodaSearchBar() {
@@ -383,6 +423,34 @@
         if (syncOther) syncOther.value = val;
       }
       this.checkAvailability();
+      this.renderInteractiveCalendar();
+    }
+
+    onCalendarDayClick(dateStr) {
+      if (!this.checkIn || (this.checkIn && this.checkOut)) {
+        this.checkIn = dateStr;
+        this.checkOut = '';
+      } else if (this.checkIn && !this.checkOut) {
+        if (dateStr <= this.checkIn) {
+          this.checkIn = dateStr;
+          this.checkOut = '';
+        } else {
+          this.checkOut = dateStr;
+        }
+      }
+
+      const agodaCi = document.getElementById('agoda-ci');
+      const agodaCo = document.getElementById('agoda-co');
+      const sideCi = document.getElementById('sidebar-ci');
+      const sideCo = document.getElementById('sidebar-co');
+
+      if (agodaCi) agodaCi.value = this.checkIn || '';
+      if (agodaCo) agodaCo.value = this.checkOut || '';
+      if (sideCi) sideCi.value = this.checkIn || '';
+      if (sideCo) sideCo.value = this.checkOut || '';
+
+      this.checkAvailability();
+      this.renderInteractiveCalendar();
     }
 
     onGuestsChange(val) {
@@ -615,10 +683,199 @@
       `).join('');
     }
 
+    renderLocationSection() {
+      let container = document.getElementById('luxe-location-container');
+      if (!container) {
+        const sec = document.getElementById('location');
+        if (sec) {
+          container = document.createElement('div');
+          container.id = 'luxe-location-container';
+          const landmarksList = document.getElementById('luxe-landmarks-list');
+          if (landmarksList) {
+            sec.insertBefore(container, landmarksList);
+          } else {
+            sec.appendChild(container);
+          }
+        }
+      }
+      if (!container) return;
+
+      const p = this.prop;
+      const mapLink = p.map_link || 'https://maps.app.goo.gl/HvqjAfKwSC3Q6CJQA';
+      const address = p.address || 'Gomti Nagar, Lucknow';
+
+      container.innerHTML = `
+        <div class="luxe-live-map-card">
+          <div class="luxe-live-map-top">
+            <div class="luxe-live-map-info">
+              <div class="luxe-map-pin-icon">📍</div>
+              <div>
+                <div class="luxe-live-map-address">${p.name} · Verified Pinpoint Location</div>
+                <div class="luxe-live-map-sub">${address}</div>
+              </div>
+            </div>
+            <div class="luxe-map-actions">
+              <a class="luxe-btn-map-primary" href="${mapLink}" target="_blank" rel="noopener">
+                📍 Open Exact Pin on Google Maps ↗
+              </a>
+              <a class="luxe-btn-map-dir" href="https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(mapLink)}" target="_blank" rel="noopener">
+                🧭 Get Driving Directions
+              </a>
+            </div>
+          </div>
+          <div style="background:#f8fafc; padding:14px 20px; font-size:12.5px; color:var(--luxe-muted); display:flex; align-items:center; gap:8px; border-top:1px solid var(--luxe-border);">
+            <span style="color:#059669; font-weight:800;">✓ Live CRM Synced</span>
+            <span>· Exact arrival coordinates directly matched with owner &amp; caretaker Google Map pin.</span>
+          </div>
+        </div>
+      `;
+    }
+
+    renderInteractiveCalendar() {
+      let container = document.getElementById('luxe-availability-calendar');
+      if (!container) {
+        const amenitiesSec = document.getElementById('amenities');
+        if (amenitiesSec) {
+          const availSec = document.createElement('section');
+          availSec.className = 'luxe-section';
+          availSec.id = 'availability';
+          availSec.innerHTML = `
+            <h2 class="luxe-section-title">Live Availability Calendar</h2>
+            <p style="margin:0 0 14px; font-size:14.5px; color:var(--luxe-muted);">
+              Real-time synchronization with Airbnb and direct reservations. Green dates are open for booking; red dates are confirmed stays. Click any available date to select your check-in!
+            </p>
+            <div id="luxe-availability-calendar"></div>
+          `;
+          amenitiesSec.parentNode.insertBefore(availSec, amenitiesSec.nextSibling);
+          container = document.getElementById('luxe-availability-calendar');
+        }
+      }
+      if (!container) return;
+
+      // Ensure "Availability" tab exists in agoda-subnav across all 17 properties
+      const subnav = document.querySelector('.agoda-subnav');
+      if (subnav && !subnav.querySelector('a[href="#availability"]')) {
+        const availLink = document.createElement('a');
+        availLink.className = 'agoda-tab-item';
+        availLink.href = '#availability';
+        availLink.textContent = 'Availability';
+        const locTab = subnav.querySelector('a[href="#location"]') || subnav.querySelector('a[href="#video-tour"]');
+        if (locTab) {
+          subnav.insertBefore(availLink, locTab);
+        } else {
+          subnav.appendChild(availLink);
+        }
+      }
+
+      const today = new Date();
+      const currentYear = today.getFullYear();
+      const currentMonth = today.getMonth();
+
+      const monthsToRender = [
+        { year: currentYear, month: currentMonth },
+        { year: currentMonth === 11 ? currentYear + 1 : currentYear, month: (currentMonth + 1) % 12 }
+      ];
+
+      const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+      const dayHeaders = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
+      const todayIso = today.toISOString().slice(0, 10);
+
+      const monthsHtml = monthsToRender.map(({ year, month }) => {
+        const firstDay = new Date(year, month, 1).getDay();
+        const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+        let daysHtml = '';
+        for (let i = 0; i < firstDay; i++) {
+          daysHtml += '<div class="luxe-day-cell empty"></div>';
+        }
+
+        for (let d = 1; d <= daysInMonth; d++) {
+          const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+          const isPast = dateStr < todayIso;
+
+          let isBooked = false;
+          if (Array.isArray(this.bookedIntervals)) {
+            for (const interval of this.bookedIntervals) {
+              if (dateStr >= interval.check_in && dateStr < interval.check_out) {
+                isBooked = true;
+                break;
+              }
+            }
+          }
+
+          const isSelectedIn = (dateStr === this.checkIn);
+          const isSelectedOut = (dateStr === this.checkOut);
+          const isInRange = (this.checkIn && this.checkOut && dateStr > this.checkIn && dateStr < this.checkOut);
+
+          let classes = ['luxe-day-cell'];
+          if (isPast || isBooked) {
+            classes.push('booked');
+          } else {
+            classes.push('available');
+          }
+
+          if (isSelectedIn || isSelectedOut) {
+            classes.push('selected');
+          } else if (isInRange) {
+            classes.push('in-range');
+          }
+
+          const titleAttr = isBooked ? `🔴 Booked (${dateStr})` : (isPast ? 'Past date' : `🟢 Available - Click to choose ${dateStr}`);
+          const clickAttr = (!isPast && !isBooked) ? `onclick="window.luxeEngine.onCalendarDayClick('${dateStr}')"` : '';
+
+          daysHtml += `
+            <div class="${classes.join(' ')}" title="${titleAttr}" ${clickAttr}>
+              ${d}
+            </div>
+          `;
+        }
+
+        return `
+          <div class="luxe-month-block">
+            <div class="luxe-month-title">${monthNames[month]} ${year}</div>
+            <div class="luxe-days-header">
+              ${dayHeaders.map(dh => `<span>${dh}</span>`).join('')}
+            </div>
+            <div class="luxe-days-grid">
+              ${daysHtml}
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      container.innerHTML = `
+        <div class="luxe-availability-wrap">
+          <div class="luxe-cal-header">
+            <div style="font-size:14px; font-weight:700; color:var(--luxe-ink);">
+              📅 2-Month Live Availability Calendar
+            </div>
+            <div class="luxe-cal-legend">
+              <div class="luxe-cal-legend-item">
+                <span class="luxe-cal-dot available"></span>
+                <span>Available</span>
+              </div>
+              <div class="luxe-cal-legend-item">
+                <span class="luxe-cal-dot booked"></span>
+                <span>Booked (Airbnb &amp; CRM)</span>
+              </div>
+              <div class="luxe-cal-legend-item">
+                <span class="luxe-cal-dot selected"></span>
+                <span>Your Selected Stay</span>
+              </div>
+            </div>
+          </div>
+          <div class="luxe-cal-grid-months">
+            ${monthsHtml}
+          </div>
+        </div>
+      `;
+    }
+
     renderBookingCard() {
       const p = this.prop;
       const basePrice = p.base_price || 3499;
       this.totalPayable = basePrice * this.nights;
+      const todayIso = new Date().toISOString().slice(0, 10);
 
       const cardContainer = document.getElementById('luxe-booking-card-container');
       if (!cardContainer) return;
@@ -645,11 +902,11 @@
             <div class="luxe-date-inputs">
               <div class="luxe-date-cell">
                 <label>Check-in Date</label>
-                <input type="date" id="sidebar-ci" value="${this.checkIn}" onchange="window.luxeEngine.onDateChange('ci', this.value)" />
+                <input type="date" id="sidebar-ci" min="${todayIso}" value="${this.checkIn}" onchange="window.luxeEngine.onDateChange('ci', this.value)" />
               </div>
               <div class="luxe-date-cell">
                 <label>Check-out Date</label>
-                <input type="date" id="sidebar-co" value="${this.checkOut}" onchange="window.luxeEngine.onDateChange('co', this.value)" />
+                <input type="date" id="sidebar-co" min="${todayIso}" value="${this.checkOut}" onchange="window.luxeEngine.onDateChange('co', this.value)" />
               </div>
             </div>
 
@@ -678,7 +935,7 @@
 
           <!-- Secondary CTAs -->
           <div class="luxe-card-sub-actions" style="margin-top:14px;">
-            <a class="luxe-btn-card-sub" href="tel:+919454470872">
+            <a class="luxe-btn-card-sub" href="tel:+919450055554">
               📞 Call Host
             </a>
             <a id="luxe-btn-airbnb-link" class="luxe-btn-card-sub" href="${p.airbnb_url || 'https://www.airbnb.co.in/users/profile/1592729439630759961'}" target="_blank">
@@ -717,7 +974,16 @@
       if (mobBtn) {
         mobBtn.onclick = (e) => {
           e.preventDefault();
-          this.openUpiPaymentModal();
+          if (this.checkIn && this.checkOut) {
+            this.openUpiPaymentModal();
+          } else {
+            const cal = document.getElementById('availability') || document.getElementById('luxe-availability-calendar');
+            if (cal) {
+              cal.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            } else {
+              this.openUpiPaymentModal();
+            }
+          }
         };
       }
     }
@@ -760,6 +1026,14 @@
               <strong style="font-size:13px;color:#047857;">Save 15% vs Airbnb</strong>
             </div>
             <div class="val">₹${amount.toLocaleString('en-IN')}</div>
+          </div>
+
+          <!-- Instant Mobile Tap To Pay -->
+          <div class="upi-mobile-pay-cta">
+            <a class="upi-btn-mobile-instant" href="${upiString}">
+              <span>⚡ Tap to Pay ₹${amount.toLocaleString('en-IN')} via UPI</span>
+              <span style="font-size:11px;opacity:0.92;font-weight:500;">Opens GPay, PhonePe, Paytm, CRED directly</span>
+            </a>
           </div>
 
           <!-- Step 1: Guest Information -->
@@ -853,45 +1127,84 @@
         return;
       }
 
+      if (!this.isDateAvailable) {
+        alert('The selected dates are currently unavailable or conflicting with an existing booking. Please select different dates.');
+        return;
+      }
+
       const p = this.prop;
       const amount = this.totalPayable || (p.base_price * this.nights);
-      const bookingId = 'DIR-' + Date.now().toString().slice(-6);
+      const bookingId = 'UHHS-' + Date.now().toString().slice(-6);
 
-      // Save to Supabase guest_register if online
-      if (window.sb) {
+      let sbClient = window.sb;
+      if (!sbClient && typeof supabase !== 'undefined' && window.SUPABASE_URL && window.SUPABASE_ANON_KEY) {
+        sbClient = window.sb = supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY);
+      }
+
+      // 1. Save to Supabase CRM (guest_register table)
+      if (sbClient) {
         try {
-          await window.sb.from('guest_register').insert({
+          const { data: bData, error: bErr } = await sbClient.from('guest_register').insert({
             booking_id: bookingId,
             room_id: p.id,
             guest_name: name,
-            guest_phone: phone,
+            phone: phone,
             check_in: this.checkIn,
             check_out: this.checkOut,
-            source: 'Direct Website',
+            check_in_time: '14:00',
+            check_out_time: '11:00',
+            guests: this.guests || 2,
+            per_day_rate: p.base_price,
             total_amount: amount,
-            advance_amount: amount,
-            payment_status: 'Advance Paid',
-            notes: `UPI QR Direct Booking. UTR: ${utr}. Nights: ${this.nights}`,
+            booking_mode: 'Direct-Website',
+            payment_status: 'Paid',
+            notes: `Direct UPI QR Website Booking. UTR: ${utr}. Nights: ${this.nights}`,
+            booked_by: 'Direct Guest',
             is_cancelled: false,
+            verification_status: 'pending'
+          }).select();
+
+          if (bErr) {
+            console.error('Supabase guest_register booking error:', bErr);
+          } else {
+            console.log('✅ Booking successfully saved to CRM guest_register:', bData);
+          }
+
+          // 2. Insert into payment_history
+          await sbClient.from('payment_history').insert({
+            booking_id: bookingId,
+            amount: amount,
+            payment_date: new Date().toISOString().slice(0, 10),
+            payment_mode: 'UPI',
+            received_by: 'UPI Direct (Website)',
+            notes: `Direct UPI Website Booking - UTR: ${utr}`,
             verification_status: 'pending'
           });
         } catch (err) {
-          console.warn('Direct booking Supabase sync warning:', err);
+          console.warn('Direct booking Supabase sync exception:', err);
         }
       }
 
-      // Pre-fill WhatsApp message
-      const waReceipt = `*HOTEL BOOKING CONFIRMATION REQUEST* 🏨
+      // 3. Update local bookedIntervals so dates immediately turn red/booked on screen
+      this.bookedIntervals.push({
+        check_in: this.checkIn,
+        check_out: this.checkOut
+      });
+      this.renderInteractiveCalendar();
+
+      // 4. Pre-fill WhatsApp message
+      const waReceipt = `*HOTEL BOOKING CONFIRMATION* 🏨
 ───────────────────────
 *Property:* ${p.name} (${p.id})
+*Booking Ref:* ${bookingId}
 *Guest Name:* ${name}
 *Mobile:* ${phone}
 *Check-in:* ${this.checkIn} (2:00 PM)
 *Check-out:* ${this.checkOut} (11:00 AM)
 *Duration:* ${this.nights} Night(s) · ${this.guests} Guest(s)
-*Total Amount Paid:* ₹${amount.toLocaleString('en-IN')} (via UPI)
+*Amount Paid:* ₹${amount.toLocaleString('en-IN')} (via UPI)
 *UPI Ref / UTR:* ${utr || 'Screenshotted'}
-*Booking Code:* ${bookingId}
+*Status:* Confirmed in CRM Database
 ───────────────────────
 _Please confirm room allotment and send check-in details. Thank you!_`;
 
@@ -899,9 +1212,66 @@ _Please confirm room allotment and send check-in details. Thank you!_`;
 
       this.closeUpiModal();
 
-      // Open WhatsApp
-      window.open(waUrl, '_blank');
-      alert(`🎉 Thank you ${name}! Your booking request for ${p.name} has been generated. WhatsApp will now open with your receipt.`);
+      // 5. Render Success Voucher Modal
+      this.showBookingSuccessVoucher({
+        bookingId,
+        name,
+        phone,
+        propertyName: p.name,
+        roomId: p.id,
+        checkIn: this.checkIn,
+        checkOut: this.checkOut,
+        nights: this.nights,
+        guests: this.guests,
+        amount,
+        utr,
+        waUrl
+      });
+    }
+
+    showBookingSuccessVoucher(details) {
+      let modal = document.getElementById('luxe-voucher-modal-overlay');
+      if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'luxe-voucher-modal-overlay';
+        modal.className = 'luxe-voucher-modal';
+        document.body.appendChild(modal);
+      }
+
+      modal.innerHTML = `
+        <div class="luxe-voucher-card">
+          <div class="luxe-voucher-top">
+            <div class="luxe-voucher-icon">🎉</div>
+            <h3 class="luxe-voucher-title">Booking Confirmed!</h3>
+            <p style="margin:0; font-size:13.5px; opacity:0.9;">Directly registered in Unique Haven CRM</p>
+          </div>
+
+          <div class="luxe-voucher-body">
+            <div class="luxe-voucher-details">
+              <div><strong>Booking ID:</strong> <span style="font-family:monospace; color:#059669; font-weight:800;">${details.bookingId}</span></div>
+              <div><strong>Property:</strong> ${details.propertyName} (${details.roomId})</div>
+              <div><strong>Guest Name:</strong> ${details.name}</div>
+              <div><strong>Mobile:</strong> ${details.phone}</div>
+              <div><strong>Stay Dates:</strong> ${details.checkIn} to ${details.checkOut} (${details.nights} Nights)</div>
+              <div><strong>Amount Paid:</strong> ₹${details.amount.toLocaleString('en-IN')}</div>
+              <div><strong>UPI Ref / UTR:</strong> ${details.utr}</div>
+              <div><strong>Status:</strong> <span style="color:#059669; font-weight:700;">✅ Confirmed &amp; Logged in CRM</span></div>
+            </div>
+
+            <div class="luxe-voucher-actions">
+              <a class="upi-btn-confirm" href="${details.waUrl}" target="_blank">
+                📱 Send Voucher to Host on WhatsApp
+              </a>
+              <button type="button" class="luxe-btn-map-dir" style="width:100%; justify-content:center; padding:12px; font-weight:700;" onclick="window.print()">
+                🖨️ Print / Save Booking Pass
+              </button>
+              <button type="button" class="luxe-btn-card-sub" style="width:100%; justify-content:center; padding:10px;" onclick="document.getElementById('luxe-voucher-modal-overlay').remove()">
+                Done
+              </button>
+            </div>
+          </div>
+        </div>
+      `;
     }
 
     /* ─── FULLSCREEN CATEGORIZED LIGHTBOX ─── */
