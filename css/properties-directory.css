@@ -81,6 +81,91 @@ body.properties-directory-page .hero-frame {
   line-height: 1.6;
 }
 
+/* ─── 15% OFF ANIMATED DISCOUNT BADGE ─── */
+@keyframes discountPulse {
+  0%, 100% { transform: scale(1); text-shadow: 0 0 0px rgba(31,164,99,0); }
+  50%       { transform: scale(1.12); text-shadow: 0 0 18px rgba(31,164,99,0.55); }
+}
+
+@keyframes discountShimmer {
+  0%   { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+
+@keyframes discountGlow {
+  0%, 100% { box-shadow: 0 0 0px rgba(31,164,99,0), 0 2px 8px rgba(31,164,99,0.15); }
+  50%       { box-shadow: 0 0 20px rgba(31,164,99,0.45), 0 4px 16px rgba(31,164,99,0.25); }
+}
+
+@keyframes badgeBounce {
+  0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+  40%                      { transform: translateY(-6px); }
+  60%                      { transform: translateY(-3px); }
+}
+
+.discount-badge-animated {
+  display: inline-block;
+  font-family: 'Fraunces', serif;
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  padding: 4px 16px 4px 14px;
+  border-radius: 9999px;
+  border: 2px solid #1fa463;
+  position: relative;
+  cursor: default;
+  overflow: hidden;
+
+  /* Gradient shimmer text */
+  background: linear-gradient(
+    100deg,
+    #1fa463 20%,
+    #43d68a 45%,
+    #b8ffda 50%,
+    #43d68a 55%,
+    #1fa463 80%
+  );
+  background-size: 300% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+
+  /* Animations: shimmer runs always, pulse every 2.8s, glow every 2.8s */
+  animation:
+    discountShimmer 2.2s linear infinite,
+    discountPulse   2.8s ease-in-out infinite,
+    discountGlow    2.8s ease-in-out infinite;
+}
+
+/* Sparkle ::before sweep */
+.discount-badge-animated::before {
+  content: '';
+  position: absolute;
+  top: 0; left: -80%;
+  width: 60%;
+  height: 100%;
+  background: linear-gradient(
+    120deg,
+    transparent 30%,
+    rgba(255,255,255,0.55) 50%,
+    transparent 70%
+  );
+  animation: discountShimmer 2.2s linear infinite;
+  pointer-events: none;
+  border-radius: 9999px;
+}
+
+/* Hover: bounce + stronger glow */
+.discount-badge-animated:hover {
+  animation:
+    badgeBounce   0.7s ease,
+    discountGlow  0.5s ease-in-out;
+  border-color: #0d8c4f;
+  transform-origin: center bottom;
+}
+
+
+
 /* ─── SEARCH & FILTER TRAY (Clean, NON-STICKY OVERLAP) ─── */
 .dir-search-wrap {
   max-width: 1180px;
