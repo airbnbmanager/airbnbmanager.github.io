@@ -233,6 +233,9 @@ body.properties-directory-page .hero-frame {
   aspect-ratio: 16 / 10;
   overflow: hidden;
   background: #e2ded5;
+  display: block;
+  text-decoration: none;
+  cursor: pointer;
 }
 
 .dir-card-media img {
@@ -780,6 +783,55 @@ body.properties-directory-page .hero-frame {
   }
   .dir-btn-concierge-wa, .dir-btn-concierge-call {
     width: 100%;
+    justify-content: center;
+  }
+
+  /* Mobile Top Navbar Polish */
+  .luxe-nav {
+    position: sticky;
+    top: 0;
+    height: 58px;
+    background: rgba(255, 255, 255, 0.98);
+  }
+  .luxe-nav-container {
+    height: 58px;
+    padding: 0 16px;
+    gap: 8px;
+  }
+  .luxe-nav-brand img {
+    width: 34px;
+    height: 34px;
+  }
+  .luxe-brand-title {
+    font-size: 12.5px;
+    letter-spacing: 0.3px;
+    white-space: nowrap;
+  }
+  .luxe-brand-sub {
+    display: none;
+  }
+  .luxe-nav-links .luxe-nav-link {
+    display: none !important;
+  }
+  .luxe-btn-wa {
+    padding: 7px 12px;
+    font-size: 12px;
+    height: 34px;
+    gap: 4px;
+    white-space: nowrap;
+    border-radius: 9999px;
+  }
+}
+
+@media (max-width: 480px) {
+  .luxe-btn-wa span {
+    display: none;
+  }
+  .luxe-btn-wa {
+    padding: 7px;
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
     justify-content: center;
   }
 }
