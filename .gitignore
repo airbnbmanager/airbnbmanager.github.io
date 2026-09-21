@@ -42,4 +42,6 @@ auth_session/
 # Scratch & Temporary debug scripts
 scratch/
 *.log
+**/*.log
+whatsapp-bot/*.log
 

@@ -1,0 +1,12 @@
+module.exports = {
+  port: 5500,
+  ignore: [
+    'whatsapp-bot/**',
+    '**/*.log',
+    '*.log',
+    '.git/**',
+    'auth_session/**',
+    'node_modules/**',
+    'scratch/**'
+  ]
+};

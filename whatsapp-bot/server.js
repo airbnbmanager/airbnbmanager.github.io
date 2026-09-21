@@ -48,12 +48,7 @@ async function startWhatsApp() {
     if (qr) {
       lastQr = qr;
       connectionStatus = 'connecting';
-      console.log('\n═══════════════════════════════════════════════════════');
-      console.log('📱 SCAN THIS QR CODE WITH WHATSAPP ON YOUR PHONE:');
-      console.log('   (Open WhatsApp -> Linked Devices -> Link a Device)');
-      console.log('   Or view in browser: http://localhost:' + PORT + '/qr');
-      console.log('═══════════════════════════════════════════════════════\n');
-      qrcode.generate(qr, { small: true });
+      console.log('📱 [WhatsApp QR Ready] View in browser: http://localhost:' + PORT + '/qr');
     }
 
     if (connection === 'close') {

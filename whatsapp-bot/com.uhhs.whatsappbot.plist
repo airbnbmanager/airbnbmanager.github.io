@@ -16,9 +16,9 @@
     <key>KeepAlive</key>
     <true/>
     <key>StandardOutPath</key>
-    <string>/Users/praveen/Developer/airbnbmanager.github.io/whatsapp-bot/whatsapp-bot.log</string>
+    <string>/tmp/uhhs-whatsapp-bot.log</string>
     <key>StandardErrorPath</key>
-    <string>/Users/praveen/Developer/airbnbmanager.github.io/whatsapp-bot/whatsapp-bot.err.log</string>
+    <string>/tmp/uhhs-whatsapp-bot.err.log</string>
     <key>EnvironmentVariables</key>
     <dict>
         <key>PATH</key>
