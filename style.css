@@ -1029,11 +1029,30 @@ tr:last-child td { border-bottom: none; }
   border-radius: 8px;
 }
 .loading {
-  text-align: center;
-  padding: 60px 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 45vh;
+  padding: 40px 20px;
   font-size: 14px;
   font-weight: 600;
   color: var(--muted);
+  gap: 14px;
+  animation: fadeIn 0.2s ease-in-out;
+}
+.loading::before {
+  content: '';
+  width: 26px;
+  height: 26px;
+  border: 3px solid #E2E8F0;
+  border-top-color: var(--primary);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  display: block;
+}
+@keyframes spin {
+  to { transform: rotate(360deg); }
 }
 
 code {
@@ -6018,4 +6037,29 @@ textarea:focus {
   font-weight: 700;
   border-left: 3px solid var(--primary);
 }
+
+@media (max-width: 1024px) {
+  .hub-subnav-strip {
+    top: calc(56px + env(safe-area-inset-top, 0px));
+    padding: 8px 14px;
+    margin: -16px -16px 14px -16px;
+  }
+  .hub-subnav-tab {
+    padding: 6px 13px;
+    font-size: 12px;
+  }
+}
+
+@media (max-width: 640px) {
+  .hub-subnav-strip {
+    top: calc(52px + env(safe-area-inset-top, 0px));
+    padding: 6px 10px;
+    margin: -12px -12px 12px -12px;
+  }
+  .hub-subnav-tab {
+    padding: 5px 11px;
+    font-size: 11.5px;
+  }
+}
+
 
