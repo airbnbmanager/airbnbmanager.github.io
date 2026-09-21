@@ -268,12 +268,10 @@ async function loadProfile(userId) {
   else if (p.role === 'ca') renderFYSummary();
   else if (p.role === 'checkin_manager' || p.role === 'caretaker') renderCheckinManagerViewNew();
     else {
+    const hashPage = (window.location.hash || '').replace('#', '').trim();
     const lastPage = localStorage.getItem('uh_last_page');
-    if (lastPage && typeof window[`render${lastPage}`] !== 'undefined') {
-      navigate(lastPage);
-    } else {
-      renderDashboard();
-    }
+    const targetPage = hashPage || lastPage || 'dashboard';
+    navigate(targetPage);
   }
 }
 
@@ -658,6 +656,59 @@ function renderShell(content, activePage = 'dashboard') {
     }
   }
 
+  const footerHtml = (typeof content === 'string' && (content.includes('Developed by Praveen Singh') || content.includes('report-doc') || content.includes('report-official-footer'))) ? '' : `
+    <footer class="app-official-system-footer">
+      <div class="footer-legal">THE UNIQUE HAVEN HOMES PRIVATE LIMITED</div>
+      <div class="footer-meta">
+        <span>CIN: U55101UP2026PTC244637</span> &bull; 
+        <a href="https://uniquehavenhomesstay.com" target="_blank" rel="noopener">uniquehavenhomesstay.com</a>
+      </div>
+      <div class="footer-credit">⚡ Developed by <strong>Praveen Singh</strong></div>
+    </footer>`;
+
+  const existingMain = document.getElementById('mainContent');
+  if (existingMain && document.getElementById('sidebarEl')) {
+    // 1. In-place content update (Instant SPA transition, ZERO flicker/reload)
+    existingMain.innerHTML = `${hubSubNavHtml}${content}${footerHtml}`;
+
+    // 2. Update page header info in topbar
+    const pageIconEl = document.querySelector('.page-icon');
+    const pageTitleEl = document.querySelector('.page-title');
+    const pageSubEl = document.querySelector('.page-sub');
+    if (pageIconEl) pageIconEl.textContent = pageMeta.icon;
+    if (pageTitleEl) pageTitleEl.textContent = pageMeta.title;
+    if (pageSubEl) pageSubEl.textContent = pageMeta.sub;
+
+    // 3. Update sidebar active links
+    document.querySelectorAll('.sidebar-nav a[data-page]').forEach(a => {
+      const k = a.dataset.page;
+      const isItemActive = (activePage === k) || (currentHub && currentHub.pages.includes(activePage) && (currentHub.id === k || currentHub.page === k));
+      if (isItemActive) a.classList.add('active', 'active-hub');
+      else a.classList.remove('active', 'active-hub');
+    });
+
+    // 4. Update mobile bottom nav
+    document.querySelectorAll('.bottom-nav a[data-page]').forEach(a => {
+      if (a.dataset.page === activePage) a.classList.add('active');
+      else a.classList.remove('active');
+    });
+
+    // 5. Update URL hash without causing page reload
+    try {
+      if (window.location.hash !== '#' + activePage) {
+        history.replaceState(null, '', '#' + activePage);
+      }
+    } catch (e) {}
+
+    // 6. Close mobile drawer if open
+    const sidebarEl = document.getElementById('sidebarEl');
+    const backdropEl = document.getElementById('sidebarBackdrop');
+    if (sidebarEl) sidebarEl.classList.remove('mobile-drawer-open');
+    if (backdropEl) backdropEl.classList.remove('active');
+
+    return;
+  }
+
   appEl.innerHTML = `
     <div class="app-container">
       <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
@@ -750,15 +801,7 @@ function renderShell(content, activePage = 'dashboard') {
         <main class="main-content" id="mainContent">
           ${hubSubNavHtml}
           ${content}
-          ${(typeof content === 'string' && (content.includes('Developed by Praveen Singh') || content.includes('report-doc') || content.includes('report-official-footer'))) ? '' : `
-          <footer class="app-official-system-footer">
-            <div class="footer-legal">THE UNIQUE HAVEN HOMES PRIVATE LIMITED</div>
-            <div class="footer-meta">
-              <span>CIN: U55101UP2026PTC244637</span> &bull; 
-              <a href="https://uniquehavenhomesstay.com" target="_blank" rel="noopener">uniquehavenhomesstay.com</a>
-            </div>
-            <div class="footer-credit">⚡ Developed by <strong>Praveen Singh</strong></div>
-          </footer>`}
+          ${footerHtml}
         </main>
       </div>
 
@@ -901,50 +944,67 @@ function navigate(page) {
   try { window.scrollTo({ top: 0, behavior: 'instant' }); } catch(e) {}
 
   const map = {
-    dashboard: renderDashboard,
-    reports: renderReports,
-    rooms: renderManageRooms,
-    flats: renderFlatsStatus,
-    'daily-report': renderDailyReport,
-    'reminders': renderReminders,
-    bookings: renderManageBookings,
-    employees: renderManageEmployees,
-    tasks: renderEmployeeTasks,
-    attendance: renderAttendance,
-    'att-summary': renderAttendanceSummary,
-    salary: renderSalaryTracker,
-    advance: renderAdvanceTracker,
-    'emp-expenses': renderEmpExpenses,
-    'monthly-expenses': renderMonthlyExpenses,
-    store: renderStore,
-    expenses: renderExpenses,
-    'property-report': renderPropertyReport,
-    'shifts': renderPropertyShifts,
-    'pendingApprovals': renderPendingApprovals,
-    'financial': () => renderFYSummary('Month'),
-    'financial-sheet': renderFinancialSheet,
-    'airbnb-sync': renderAirbnbSync,
-    'ical-sync': renderIcalSync,
-    laundry: renderLaundry,
-    dailyReport: renderDailyReport,
-    claims: renderClaims,
-    reimbursements: renderReimbursements,
-    'property-setup': renderPropertySetup,
-    'showcase-admin': renderShowcaseAdmin,
-    'company-advances': renderCompanyAdvances,
-    cashbook: renderCashBook,
-    'my-ledger': renderMyLedger,
-    'employee-ledger': renderEmployeeLedger,
-    'analytics': renderAnalytics,
-    'whatsapp-hub': renderWhatsAppHub,
-    'settings': renderSettings,
-    investors: renderManageInvestors,
-    maintenance: renderMaintenanceLog,
-    'user-mgmt': renderUserManagement,
-    sop: renderSOPPage,
+    dashboard: () => (window.renderDashboard || renderDashboard)(),
+    reports: () => (window.renderReports || renderReports)(),
+    rooms: () => (window.renderManageRooms || renderManageRooms)(),
+    flats: () => (window.renderFlatsStatus || renderFlatsStatus)(),
+    'daily-report': () => (window.renderDailyReport || renderDailyReport)(),
+    reminders: () => (window.renderReminders || renderReminders)(),
+    bookings: () => (window.renderSmartManageBookings || window.renderManageBookings || renderManageBookings)(),
+    employees: () => (window.renderManageEmployees || renderManageEmployees)(),
+    tasks: () => (window.renderEmployeeTasks || renderEmployeeTasks)(),
+    attendance: () => (window.renderAttendance || renderAttendance)(),
+    'att-summary': () => (window.renderAttendanceSummary || renderAttendanceSummary)(),
+    salary: () => (window.renderSalaryTracker || renderSalaryTracker)(),
+    advance: () => (window.renderAdvanceTracker || renderAdvanceTracker)(),
+    'emp-expenses': () => (window.renderEmpExpenses || renderEmpExpenses)(),
+    'monthly-expenses': () => (window.renderMonthlyExpenses || renderMonthlyExpenses)(),
+    store: () => (window.renderStore || renderStore)(),
+    expenses: () => (window.renderExpenses || renderExpenses)(),
+    'property-report': () => (window.renderPropertyReport || renderPropertyReport)(),
+    shifts: () => (window.renderPropertyShifts || renderPropertyShifts)(),
+    pendingApprovals: () => (window.renderPendingApprovals || window.renderApprovals || (() => {}))(),
+    financial: () => (window.renderFYSummary ? window.renderFYSummary('Month') : (window.renderExpenses && window.renderExpenses())),
+    'financial-sheet': () => (window.renderFinancialSheet || renderFinancialSheet)(),
+    'airbnb-sync': () => (window.renderAirbnbSync || renderAirbnbSync)(),
+    'ical-sync': () => (window.renderIcalSync || renderIcalSync)(),
+    laundry: () => (window.renderLaundry || renderLaundry)(),
+    dailyReport: () => (window.renderDailyReport || renderDailyReport)(),
+    claims: () => (window.renderClaims || renderClaims)(),
+    reimbursements: () => (window.renderReimbursements || renderReimbursements)(),
+    'property-setup': () => (window.renderPropertySetup || renderPropertySetup)(),
+    'showcase-admin': () => (window.renderShowcaseAdmin || renderShowcaseAdmin)(),
+    'company-advances': () => (window.renderCompanyAdvances || renderCompanyAdvances)(),
+    cashbook: () => (window.renderCashBook || renderCashBook)(),
+    'my-ledger': () => (window.renderMyLedger || renderMyLedger)(),
+    'employee-ledger': () => (window.renderEmployeeLedger || renderEmployeeLedger)(),
+    analytics: () => (window.renderAnalytics || renderAnalytics)(),
+    'whatsapp-hub': () => (window.renderWhatsAppHub || renderWhatsAppHub)(),
+    settings: () => (window.renderSettings || renderSettings)(),
+    investors: () => (window.renderManageInvestors || renderManageInvestors)(),
+    maintenance: () => (window.renderMaintenanceLog || renderMaintenanceLog)(),
+    'user-mgmt': () => (window.renderUserManagement || renderUserManagement)(),
+    sop: () => (window.renderSOPPage || renderSOPPage)(),
   };
-  (map[page] || renderDashboard)();
+
+  const runner = map[page] || map['dashboard'];
+  try {
+    runner();
+  } catch (err) {
+    console.error('Navigation error for page:', page, err);
+    if (window.fsn) {
+      fsn.error('Page Error', 'Error loading ' + page + ': ' + err.message);
+    }
+  }
 }
+
+// Single Page App Hash Router
+window.addEventListener('hashchange', () => {
+  const hashPage = (window.location.hash || '').replace('#', '').trim();
+  if (hashPage && hashPage !== SESSION.currentPage) {
+    navigate(hashPage);
+  }
+});
 
 // ============ HELPERS ============
 async function getPaidMap(ids) {

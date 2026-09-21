@@ -36,25 +36,9 @@ async function checkStorageUsage() {
  */
 
 // ============ EMPLOYEE SUB-NAVIGATION ============
+// Replaced by unified top Hub sticky subnav
 function renderEmployeeSubNav(activeTab = 'employees') {
-  const tabs = [
-    { id: 'employees', label: '👥 Staff Directory', fn: 'navigate("employees")' },
-    { id: 'attendance', label: '📋 Attendance', fn: 'navigate("attendance")' },
-    { id: 'salary', label: '💵 Salary Tracker', fn: 'navigate("salary")' },
-    { id: 'advance', label: '🎁 Advances', fn: 'navigate("advance")' },
-    { id: 'employee-ledger', label: '📒 Staff Ledger', fn: 'navigate("employee-ledger")' },
-    { id: 'tasks', label: '🧰 Staff Tasks', fn: 'navigate("tasks")' },
-    { id: 'emp-expenses', label: '💸 Daily Spends', fn: 'navigate("emp-expenses")' },
-  ];
-  return `
-    <div style="display:flex;gap:8px;overflow-x:auto;padding-bottom:6px;margin-bottom:14px;-webkit-overflow-scrolling:touch;" class="hide-scrollbar">
-      ${tabs.map(t => `
-        <button class="${activeTab === t.id ? '' : 'secondary'} btn-sm" onclick="${t.fn}" style="white-space:nowrap;font-size:12.5px;padding:7px 14px;border-radius:20px;${activeTab === t.id ? 'font-weight:700;box-shadow:0 2px 8px rgba(79,70,229,0.25);' : ''}">
-          ${t.label}
-        </button>
-      `).join('')}
-    </div>
-  `;
+  return '';
 }
 window.renderEmployeeSubNav = renderEmployeeSubNav;
 

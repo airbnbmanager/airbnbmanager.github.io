@@ -56,7 +56,7 @@ async function renderSmartManageBookings() {
 
   // Fetch all bookings
   const { data: all, error } = await sb.from('guest_register')
-    .select('*, rooms(unit_no, nickname, property_name, base_price, rent_per_night)')
+    .select('*, rooms(unit_no, nickname, property_name)')
     .order('check_in', { ascending: false });
 
   if (error) {
@@ -65,7 +65,7 @@ async function renderSmartManageBookings() {
   }
 
   // Fetch rooms
-  const { data: rooms } = await sb.from('rooms').select('room_id, unit_no, nickname, property_name, base_price, rent_per_night').order('unit_no');
+  const { data: rooms } = await sb.from('rooms').select('room_id, unit_no, nickname, property_name, rent_per_night').order('unit_no');
   window._roomsCache = rooms || [];
   window._sbkState.cachedRooms = rooms || [];
   window._allBookings = all || [];
@@ -765,7 +765,7 @@ async function renderSmartAddBooking() {
 
   // Load rooms and recent bookings for conflict checking
   const [{ data: rooms }, { data: existingBookings }] = await Promise.all([
-    sb.from('rooms').select('room_id, unit_no, nickname, property_name, base_price, rent_per_night, bookable').order('unit_no'),
+    sb.from('rooms').select('room_id, unit_no, nickname, property_name, rent_per_night, bookable').order('unit_no'),
     sb.from('guest_register').select('booking_id, guest_name, phone, room_id, check_in, check_out, is_cancelled, booking_mode, total_amount')
       .gte('check_out', today).neq('is_cancelled', true)
   ]);
@@ -835,7 +835,7 @@ async function renderSmartAddBooking() {
               <option value="">-- Choose Homestay --</option>
               ${(rooms || []).map(r => `
                 <option value="${r.room_id}" ${defaultRoom === r.room_id ? 'selected' : ''}>
-                  ${propLabel(r)} (₹${r.base_price || r.rent_per_night || 3499}/night)
+                  ${propLabel(r)} (₹${r.rent_per_night || 3499}/night)
                 </option>
               `).join('')}
             </select>
@@ -1191,7 +1191,7 @@ window.suggestDefaultPrice = function() {
   if (!roomId || !totInput) return;
 
   const room = (window._roomsCache || []).find(r => r.room_id === roomId);
-  const baseRate = room?.base_price || room?.rent_per_night || 3499;
+  const baseRate = room?.rent_per_night || 3499;
 
   const ci = document.getElementById('checkIn')?.value;
   const co = document.getElementById('checkOut')?.value;
