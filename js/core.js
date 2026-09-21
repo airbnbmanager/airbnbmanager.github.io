@@ -439,37 +439,122 @@ function renderShell(content, activePage = 'dashboard') {
   // Settings visible to owner, admin, and developer
   const showSettings = isOwner || isAdmin;
 
-  // Viewer: 5 items view-only (with chat)
-  if (SESSION.role === 'viewer') {
+  // ═══════════════════════════════════════════════════════════
+  // 🏛️ UHHS CRM POWER HUBS CONFIGURATION (Hub & Tab Architecture)
+  // ═══════════════════════════════════════════════════════════
+  const UHHS_HUBS = [
+    {
+      id: 'dashboard',
+      label: '🏠 Dashboard',
+      page: 'dashboard',
+      pages: ['dashboard', 'analytics', 'dailyReport'],
+      tabs: [
+        { id: 'dashboard', label: '🏠 Overview' },
+        { id: 'analytics', label: '📊 Business Analytics' },
+        { id: 'dailyReport', label: '📈 Daily Operations' }
+      ]
+    },
+    {
+      id: 'bookings',
+      label: '📅 Stay & Bookings',
+      page: 'bookings',
+      pages: ['bookings', 'reports', 'flats', 'pendingApprovals', 'reminders'],
+      tabs: [
+        { id: 'bookings', label: '📅 Bookings Register' },
+        { id: 'reports', label: '📆 Calendar Timeline' },
+        { id: 'flats', label: '🛏️ Flats Status' },
+        { id: 'pendingApprovals', label: '🟡 Approvals' },
+        { id: 'reminders', label: '🔔 Reminders' }
+      ]
+    },
+    {
+      id: 'employees',
+      label: '👥 HRMS & Staff',
+      page: 'employees',
+      pages: ['employees', 'attendance', 'att-summary', 'advance', 'employee-ledger', 'tasks', 'sop'],
+      tabs: [
+        { id: 'employees', label: '👥 Employees Roster' },
+        { id: 'attendance', label: '📋 Attendance' },
+        { id: 'advance', label: '🎁 Advance Tracker' },
+        { id: 'employee-ledger', label: '📒 Employee Ledger' },
+        { id: 'tasks', label: '🧰 Staff Tasks & SOP' }
+      ]
+    },
+    {
+      id: 'cashbook',
+      label: '💰 Finance & Accounts',
+      page: 'cashbook',
+      pages: ['cashbook', 'reimbursements', 'claims', 'expenses', 'investors', 'financial', 'financial-sheet'],
+      tabs: [
+        { id: 'cashbook', label: '💰 Cash Book' },
+        { id: 'reimbursements', label: '💸 Daily Expenses' },
+        { id: 'claims', label: '📤 Claims Manager' },
+        { id: 'expenses', label: '📊 Monthly P&L' },
+        { id: 'investors', label: '🧑‍💼 Investors Ledger' }
+      ]
+    },
+    {
+      id: 'rooms',
+      label: '🏢 Properties & Ops',
+      page: 'rooms',
+      pages: ['rooms', 'property-setup', 'airbnb-sync', 'ical-sync', 'maintenance', 'laundry', 'showcase-admin'],
+      tabs: [
+        { id: 'rooms', label: '🏢 Units & Pricing' },
+        { id: 'airbnb-sync', label: '🔄 Airbnb Sync' },
+        { id: 'maintenance', label: '🔧 Maintenance' },
+        { id: 'laundry', label: '🧺 Laundry' },
+        { id: 'showcase-admin', label: '🌐 Website Showcase' }
+      ]
+    },
+    {
+      id: 'whatsapp-hub',
+      label: '📱 WhatsApp Hub',
+      page: 'whatsapp-hub',
+      pages: ['whatsapp-hub', 'whatsapp'],
+      tabs: [
+        { id: 'whatsapp-hub', label: '📱 WhatsApp Hub & Automations' }
+      ]
+    }
+  ];
+  window._UHHS_HUBS = UHHS_HUBS;
+
+  // Group into clean Hubs based on user role
+  if (isOwner) {
     nav = [
-      { section: 'MAIN' },
+      { section: 'CORE MODULES' },
       ['dashboard', '🏠 Dashboard'],
-      ['reports', '📆 Calendar'],
-      { section: 'GUESTS' },
-      ['bookings', '📅 Bookings'],
-      ['flats', '🛏️ Flats Status'],
-      { section: 'COMMUNICATION' },
+      ['bookings', '📅 Stay & Bookings'],
+      ['employees', '👥 HRMS & Staff'],
+      ['cashbook', '💰 Finance & Accounts'],
+      ['rooms', '🏢 Properties & Ops'],
+      ['whatsapp-hub', '📱 WhatsApp Hub'],
+      { section: 'SYSTEM & SETTINGS' },
+      ...(isAdmin ? [['user-mgmt', '👤 User Management']] : []),
+      ...(showSettings ? [['settings', '⚙️ Settings']] : []),
     ];
   } else if (SESSION.role === 'moderator') {
     nav = [
-      { section: 'MAIN' },
+      { section: 'CORE MODULES' },
       ['dashboard', '🏠 Dashboard'],
-      ['reports', '📆 Calendar'],
-      { section: 'GUESTS' },
-      ['bookings', '📅 Bookings'],
+      ['bookings', '📅 Stay & Bookings'],
+      ['employees', '👥 HRMS & Staff'],
       ['whatsapp-hub', '📱 WhatsApp Hub'],
-      ['flats', '🛏️ Flats Status'],
-      { section: 'TEAM' },
-      ['attendance', '📋 Attendance'],
-      { section: 'COMMUNICATION' },
     ];
-  } else if (isCheckinMgr) {
+  } else if (isCheckinMgr || isCheckin) {
     nav = [
       { section: 'MY PROPERTIES' },
       ['dashboard', '🏠 My Dashboard'],
       ['bookings', '📅 My Bookings'],
-      ['whatsapp-hub', '📱 WhatsApp Hub'],
       ['flats', '🛏️ Flats Status'],
+      ['whatsapp-hub', '📱 WhatsApp Hub'],
+    ];
+  } else if (isBookingStaff) {
+    nav = [
+      { section: 'CORE MODULES' },
+      ['dashboard', '🏠 Dashboard'],
+      ['bookings', '📅 Stay & Bookings'],
+      ['rooms', '🏢 Properties'],
+      ['whatsapp-hub', '📱 WhatsApp Hub'],
     ];
   } else if (isViewer) {
     nav = [
@@ -477,107 +562,16 @@ function renderShell(content, activePage = 'dashboard') {
       ['dashboard', '🏠 Dashboard'],
       ['bookings', '📅 Today Bookings'],
       ['flats', '🛏️ Flats Status'],
-      ['reminders', '🔔 Reminders'],
-    ];
-  } else if (isBookingStaff) {
-    nav = [
-      { section: 'MAIN' },
-      ['dashboard', '🏠 Dashboard'],
-      ['reports', '📆 Calendar'],
-      { section: 'GUESTS' },
-      ['bookings', '📅 Bookings'],
-      ['whatsapp-hub', '📱 WhatsApp Hub'],
-      ['flats', '🛏️ Flats Status'],
-      ['reminders', '🔔 Reminders'],
-      { section: 'PROPERTIES' },
-      ['rooms', '🏠 Properties'],
-    ];
-  } else if (isOwner) {
-    nav = [
-      { section: 'OVERVIEW' },
-      ['dashboard', '🏠 Dashboard'],
-      ['reports', '📆 Calendar'],
-      ['analytics', '📊 Analytics'],
-      ['dailyReport', '📈 Daily Report'],
-
-      { section: 'RESERVATIONS' },
-      ['bookings', '📅 Bookings'],
-      ['whatsapp-hub', '📱 WhatsApp Hub'],
-      ['flats', '🛏️ Flats Status'],
-      ['pendingApprovals', '🟡 Pending Approvals'],
-      ['reminders', '🔔 Reminders'],
-
-      { section: 'FINANCE' },
-      ['cashbook', '💰 Cash Book'],
-      ['reimbursements', '💸 Daily Expenses'],
-      ['expenses', '📊 Monthly P&L'],
-      ['claims', '📤 Claims Manager'],
-      ['investors', '🧑‍💼 Investors'],
-
-      { section: 'OPERATIONS & TEAM' },
-      ['employees', '👥 Employees'],
-      ['attendance', '📋 Attendance'],
-      ['advance', '🎁 Advance Tracker'],
-      ['employee-ledger', '📒 Employee Ledger'],
-      ['tasks', '🧰 Staff Tasks'],
-      ['maintenance', '🔧 Maintenance'],
-      ['laundry', '🧺 Laundry'],
-
-      { section: 'CHANNELS & SETTINGS' },
-      ['airbnb-sync', '🔄 Airbnb Sync'],
-      ['rooms', '🏢 Properties'],
-      ['showcase-admin', '🌐 Website Showcase & Media'],
-      ['property-setup', '🏗️ Property Setup'],
-      ...(isAdmin ? [['user-mgmt', '👤 User Management']] : []),
-      ...(showSettings ? [['settings', '⚙️ Settings']] : []),
-    ];
-  } else if (isCheckin) {
-    nav = [
-      { section: 'MAIN' },
-      ['dashboard', '🏠 Dashboard'],
-      ['reports', '📆 Calendar'],
-      ['bookings', '📅 Bookings'],
-      ['whatsapp-hub', '📱 WhatsApp Hub'],
-      ['flats', '🛏️ Flats Status'],
-      ['reminders', '🔔 Reminders'],
     ];
   } else {
     nav = [
-      { section: 'OVERVIEW' },
+      { section: 'CORE MODULES' },
       ['dashboard', '🏠 Dashboard'],
-      ['reports', '📆 Calendar'],
-      ['analytics', '📊 Analytics'],
-      ['dailyReport', '📈 Daily Report'],
-
-      { section: 'RESERVATIONS' },
-      ['bookings', '📅 Bookings'],
+      ['bookings', '📅 Stay & Bookings'],
+      ['employees', '👥 HRMS & Staff'],
+      ['cashbook', '💰 Finance & Accounts'],
+      ['rooms', '🏢 Properties & Ops'],
       ['whatsapp-hub', '📱 WhatsApp Hub'],
-      ['flats', '🛏️ Flats Status'],
-      ['pendingApprovals', '🟡 Pending Approvals'],
-      ['reminders', '🔔 Reminders'],
-
-      { section: 'FINANCE' },
-      ['cashbook', '💰 Cash Book'],
-      ['reimbursements', '💸 Daily Expenses'],
-      ['expenses', '📊 Monthly P&L'],
-      ['claims', '📤 Claims Manager'],
-      ['investors', '🧑‍💼 Investors'],
-
-      { section: 'OPERATIONS & TEAM' },
-      ['employees', '👥 Employees'],
-      ['attendance', '📋 Attendance'],
-      ['advance', '🎁 Advance Tracker'],
-      ['employee-ledger', '📒 Employee Ledger'],
-      ['tasks', '🧰 Tasks'],
-      ['maintenance', '🔧 Maintenance'],
-      ['laundry', '🧺 Laundry'],
-
-      { section: 'CHANNELS & SETTINGS' },
-      ['whatsapp-hub', '📱 WhatsApp Hub'],
-      ['airbnb-sync', '🔄 Airbnb Sync'],
-      ['rooms', '🏢 Properties'],
-      ['showcase-admin', '🌐 Website Showcase & Media'],
-      ['property-setup', '🏗️ Property Setup'],
       ...(showSettings ? [['settings', '⚙️ Settings']] : []),
     ];
   }
@@ -640,6 +634,30 @@ function renderShell(content, activePage = 'dashboard') {
 
   const pageMeta = PAGE_TITLES[activePage] || { title: activePage, sub: 'The Unique Haven Homes CRM', icon: '⚡' };
 
+  // Find which Hub the activePage belongs to
+  const currentHub = (UHHS_HUBS || []).find(h => h.pages.includes(activePage));
+
+  let hubSubNavHtml = '';
+  if (currentHub && currentHub.tabs && currentHub.tabs.length > 1) {
+    let visibleTabs = currentHub.tabs;
+    if (isViewer) {
+      visibleTabs = visibleTabs.filter(t => ['bookings', 'reports', 'flats'].includes(t.id));
+    }
+    if (visibleTabs.length > 1) {
+      hubSubNavHtml = `
+        <div class="hub-subnav-strip">
+          <div class="hub-subnav-scroll">
+            ${visibleTabs.map(tab => `
+              <button type="button" class="hub-subnav-tab ${activePage === tab.id ? 'active' : ''}" onclick="navigate('${tab.id}')">
+                ${tab.label}
+              </button>
+            `).join('')}
+          </div>
+        </div>
+      `;
+    }
+  }
+
   appEl.innerHTML = `
     <div class="app-container">
       <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
@@ -678,7 +696,8 @@ function renderShell(content, activePage = 'dashboard') {
               return `<div class="nav-section-heading">${item.section}</div>`;
             }
             const [k, l] = item;
-            return `<a href="#" data-page="${k}" class="${activePage === k ? 'active' : ''}">${l}</a>`;
+            const isItemActive = (activePage === k) || (currentHub && currentHub.pages.includes(activePage) && (currentHub.id === k || currentHub.page === k));
+            return `<a href="#" data-page="${k}" class="${isItemActive ? 'active active-hub' : ''}">${l}</a>`;
           }).join('')}
         </nav>
 
@@ -729,6 +748,7 @@ function renderShell(content, activePage = 'dashboard') {
 
         <!-- Main Content View -->
         <main class="main-content" id="mainContent">
+          ${hubSubNavHtml}
           ${content}
           ${(typeof content === 'string' && (content.includes('Developed by Praveen Singh') || content.includes('report-doc') || content.includes('report-official-footer'))) ? '' : `
           <footer class="app-official-system-footer">
