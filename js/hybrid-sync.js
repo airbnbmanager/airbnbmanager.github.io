@@ -161,15 +161,9 @@ window.HYBRID_SYNC = {
 };
 
 if (typeof window !== 'undefined') {
-  window.addEventListener('DOMContentLoaded', () => {
-    setTimeout(() => {
-      if (window.HYBRID_SYNC) window.HYBRID_SYNC.startAutoSync();
-    }, 2000);
-  });
-}
-
-
-// 🛑 SAFELY DISABLE AUTO-SYNC SCHEDULER
-if (typeof window !== 'undefined') {
-  if (window.HYBRID_SYNC) window.HYBRID_SYNC.startAutoSync = function() { console.log('Hybrid-sync disabled'); };
+  if (window.HYBRID_SYNC) {
+    window.HYBRID_SYNC.startAutoSync = function() {
+      console.log('ℹ️ Auto-sync disabled. Use manual refresh button to sync.');
+    };
+  }
 }

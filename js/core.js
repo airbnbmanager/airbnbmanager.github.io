@@ -781,6 +781,11 @@ function renderShell(content, activePage = 'dashboard') {
               <input type="text" id="topbarGlobalSearch" placeholder="Search guests, phone..." value="${SESSION.bookingSearch || ''}" />
             </div>
 
+            <!-- 🔄 UNIVERSAL REFRESH DATA BUTTON (ALL DEVICES) -->
+            <button type="button" class="topbar-refresh-btn" id="globalRefreshBtn" onclick="window.manualRefreshCurrentPage()" title="Refresh latest data without reloading page">
+              <span class="refresh-icon">🔄</span> <span class="btn-text">Refresh</span>
+            </button>
+
             ${typeof window.canModerate === 'function' && window.canModerate() ? `
               <button class="topbar-cta-btn" id="topbarNewBookingBtn" onclick="window.renderAddBooking ? renderAddBooking() : (navigate('bookings'), setTimeout(() => window.renderAddBooking && renderAddBooking(), 400))">
                 <span>➕</span> <span class="btn-text">New Booking</span>
@@ -1005,6 +1010,29 @@ window.addEventListener('hashchange', () => {
     navigate(hashPage);
   }
 });
+
+// 🔄 Manual Universal Refresh Function (Zero Browser Reload)
+window.manualRefreshCurrentPage = function() {
+  const btn = document.getElementById('globalRefreshBtn');
+  if (btn) {
+    btn.classList.add('spinning');
+    btn.disabled = true;
+  }
+  const cur = SESSION.currentPage || 'dashboard';
+  console.log('🔄 Manually refreshing page data:', cur);
+  try {
+    navigate(cur);
+  } catch(e) {
+    console.error('Manual refresh error:', e);
+  }
+  setTimeout(() => {
+    if (btn) {
+      btn.classList.remove('spinning');
+      btn.disabled = false;
+    }
+    if (window.fsn) fsn.info('Refreshed', '✅ Current view data updated');
+  }, 450);
+};
 
 // ============ HELPERS ============
 async function getPaidMap(ids) {
