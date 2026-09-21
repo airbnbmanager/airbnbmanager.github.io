@@ -1,117 +1,492 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
   <url>
     <loc>https://uniquehavenhomesstay.com/</loc>
-    <lastmod>2026-09-17</lastmod>
+    <lastmod>2026-09-22</lastmod>
     <changefreq>daily</changefreq>
     <priority>1.0</priority>
+    <image:image>
+      <image:loc>https://uniquehavenhomesstay.com/assets/logo.png</image:loc>
+      <image:title>The Unique Haven Homes - Luxury Homestays Lucknow</image:title>
+    </image:image>
   </url>
   <url>
     <loc>https://uniquehavenhomesstay.com/properties.html</loc>
-    <lastmod>2026-09-17</lastmod>
+    <lastmod>2026-09-22</lastmod>
     <changefreq>daily</changefreq>
-    <priority>0.9</priority>
+    <priority>0.95</priority>
   </url>
   <url>
     <loc>https://uniquehavenhomesstay.com/the-dark-blue.html</loc>
-    <lastmod>2026-09-17</lastmod>
+    <lastmod>2026-09-22</lastmod>
     <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
+    <priority>0.9</priority>
+    <image:image>
+      <image:loc>https://uniquehavenhomesstay.com/assets/properties/the-dark-blue/cover.jpg</image:loc>
+      <image:title>The Dark Blue - Luxury Homestay in Vikalp Khand, Gomti Nagar</image:title>
+      <image:caption>3BHK Luxury Flat in Vikalp Khand, Gomti Nagar with 100% AC, WiFi and 24/7 caretaker</image:caption>
+    </image:image>
+    <image:image>
+      <image:loc>https://images.unsplash.com/photo-1590490360182-c33d57733427?w=1200&q=80</image:loc>
+      <image:title>The Dark Blue - Luxury Homestay in Vikalp Khand, Gomti Nagar</image:title>
+      <image:caption>3BHK Luxury Flat in Vikalp Khand, Gomti Nagar with 100% AC, WiFi and 24/7 caretaker</image:caption>
+    </image:image>
+    <image:image>
+      <image:loc>https://images.unsplash.com/photo-1566665797739-1674de7a421a?w=1200&q=80</image:loc>
+      <image:title>The Dark Blue - Luxury Homestay in Vikalp Khand, Gomti Nagar</image:title>
+      <image:caption>3BHK Luxury Flat in Vikalp Khand, Gomti Nagar with 100% AC, WiFi and 24/7 caretaker</image:caption>
+    </image:image>
+    <image:image>
+      <image:loc>https://images.unsplash.com/photo-1584622650111-993a426fbf0a?w=1200&q=80</image:loc>
+      <image:title>The Dark Blue - Luxury Homestay in Vikalp Khand, Gomti Nagar</image:title>
+      <image:caption>3BHK Luxury Flat in Vikalp Khand, Gomti Nagar with 100% AC, WiFi and 24/7 caretaker</image:caption>
+    </image:image>
+    <image:image>
+      <image:loc>https://images.unsplash.com/photo-1552321554-5fefe8c9ef14?w=1200&q=80</image:loc>
+      <image:title>The Dark Blue - Luxury Homestay in Vikalp Khand, Gomti Nagar</image:title>
+      <image:caption>3BHK Luxury Flat in Vikalp Khand, Gomti Nagar with 100% AC, WiFi and 24/7 caretaker</image:caption>
+    </image:image>
+    <image:image>
+      <image:loc>https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?w=1200&q=80</image:loc>
+      <image:title>The Dark Blue - Luxury Homestay in Vikalp Khand, Gomti Nagar</image:title>
+      <image:caption>3BHK Luxury Flat in Vikalp Khand, Gomti Nagar with 100% AC, WiFi and 24/7 caretaker</image:caption>
+    </image:image>
+    <image:image>
+      <image:loc>https://images.unsplash.com/photo-1556911220-e15b29be8c8f?w=1200&q=80</image:loc>
+      <image:title>The Dark Blue - Luxury Homestay in Vikalp Khand, Gomti Nagar</image:title>
+      <image:caption>3BHK Luxury Flat in Vikalp Khand, Gomti Nagar with 100% AC, WiFi and 24/7 caretaker</image:caption>
+    </image:image>
+    <image:image>
+      <image:loc>https://images.unsplash.com/photo-1513694203232-719a280e022f?w=1200&q=80</image:loc>
+      <image:title>The Dark Blue - Luxury Homestay in Vikalp Khand, Gomti Nagar</image:title>
+      <image:caption>3BHK Luxury Flat in Vikalp Khand, Gomti Nagar with 100% AC, WiFi and 24/7 caretaker</image:caption>
+    </image:image>
   </url>
   <url>
     <loc>https://uniquehavenhomesstay.com/the-unique.html</loc>
-    <lastmod>2026-09-17</lastmod>
+    <lastmod>2026-09-22</lastmod>
     <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://uniquehavenhomesstay.com/the-brown.html</loc>
-    <lastmod>2026-09-17</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://uniquehavenhomesstay.com/the-light-green.html</loc>
-    <lastmod>2026-09-17</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://uniquehavenhomesstay.com/the-nawabi-stay.html</loc>
-    <lastmod>2026-09-17</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://uniquehavenhomesstay.com/the-green-house.html</loc>
-    <lastmod>2026-09-17</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://uniquehavenhomesstay.com/the-pink-house.html</loc>
-    <lastmod>2026-09-17</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://uniquehavenhomesstay.com/the-yellow-house.html</loc>
-    <lastmod>2026-09-17</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://uniquehavenhomesstay.com/the-velvet-house.html</loc>
-    <lastmod>2026-09-17</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
+    <priority>0.9</priority>
+    <image:image>
+      <image:loc>https://uniquehavenhomesstay.com/assets/properties/the-unique/cover.jpg</image:loc>
+      <image:title>The Unique - Luxury Homestay in Vikalp Khand, Gomti Nagar</image:title>
+      <image:caption>3BHK Luxury Flat in Vikalp Khand, Gomti Nagar with 100% AC, WiFi and 24/7 caretaker</image:caption>
+    </image:image>
+    <image:image>
+      <image:loc>https://images.unsplash.com/photo-1598928506311-c55ded91a20c?w=1200&q=80</image:loc>
+      <image:title>The Unique - Luxury Homestay in Vikalp Khand, Gomti Nagar</image:title>
+      <image:caption>3BHK Luxury Flat in Vikalp Khand, Gomti Nagar with 100% AC, WiFi and 24/7 caretaker</image:caption>
+    </image:image>
+    <image:image>
+      <image:loc>https://images.unsplash.com/photo-1584622650111-993a426fbf0a?w=1200&q=80</image:loc>
+      <image:title>The Unique - Luxury Homestay in Vikalp Khand, Gomti Nagar</image:title>
+      <image:caption>3BHK Luxury Flat in Vikalp Khand, Gomti Nagar with 100% AC, WiFi and 24/7 caretaker</image:caption>
+    </image:image>
+    <image:image>
+      <image:loc>https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=1200&q=80</image:loc>
+      <image:title>The Unique - Luxury Homestay in Vikalp Khand, Gomti Nagar</image:title>
+      <image:caption>3BHK Luxury Flat in Vikalp Khand, Gomti Nagar with 100% AC, WiFi and 24/7 caretaker</image:caption>
+    </image:image>
+    <image:image>
+      <image:loc>https://images.unsplash.com/photo-1556911220-e15b29be8c8f?w=1200&q=80</image:loc>
+      <image:title>The Unique - Luxury Homestay in Vikalp Khand, Gomti Nagar</image:title>
+      <image:caption>3BHK Luxury Flat in Vikalp Khand, Gomti Nagar with 100% AC, WiFi and 24/7 caretaker</image:caption>
+    </image:image>
+    <image:image>
+      <image:loc>https://images.unsplash.com/photo-1513694203232-719a280e022f?w=1200&q=80</image:loc>
+      <image:title>The Unique - Luxury Homestay in Vikalp Khand, Gomti Nagar</image:title>
+      <image:caption>3BHK Luxury Flat in Vikalp Khand, Gomti Nagar with 100% AC, WiFi and 24/7 caretaker</image:caption>
+    </image:image>
   </url>
   <url>
     <loc>https://uniquehavenhomesstay.com/black-beauty.html</loc>
-    <lastmod>2026-09-17</lastmod>
+    <lastmod>2026-09-22</lastmod>
     <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
+    <priority>0.9</priority>
+    <image:image>
+      <image:loc>https://uniquehavenhomesstay.com/assets/properties/black-beauty/cover.jpg</image:loc>
+      <image:title>Black Beauty - Luxury Homestay in Vikalp Khand, Gomti Nagar</image:title>
+      <image:caption>3BHK Luxury Flat in Vikalp Khand, Gomti Nagar with 100% AC, WiFi and 24/7 caretaker</image:caption>
+    </image:image>
+    <image:image>
+      <image:loc>https://images.unsplash.com/photo-1584622650111-993a426fbf0a?w=1200&q=80</image:loc>
+      <image:title>Black Beauty - Luxury Homestay in Vikalp Khand, Gomti Nagar</image:title>
+      <image:caption>3BHK Luxury Flat in Vikalp Khand, Gomti Nagar with 100% AC, WiFi and 24/7 caretaker</image:caption>
+    </image:image>
+    <image:image>
+      <image:loc>https://images.unsplash.com/photo-1556911220-e15b29be8c8f?w=1200&q=80</image:loc>
+      <image:title>Black Beauty - Luxury Homestay in Vikalp Khand, Gomti Nagar</image:title>
+      <image:caption>3BHK Luxury Flat in Vikalp Khand, Gomti Nagar with 100% AC, WiFi and 24/7 caretaker</image:caption>
+    </image:image>
+    <image:image>
+      <image:loc>https://images.unsplash.com/photo-1513694203232-719a280e022f?w=1200&q=80</image:loc>
+      <image:title>Black Beauty - Luxury Homestay in Vikalp Khand, Gomti Nagar</image:title>
+      <image:caption>3BHK Luxury Flat in Vikalp Khand, Gomti Nagar with 100% AC, WiFi and 24/7 caretaker</image:caption>
+    </image:image>
   </url>
   <url>
     <loc>https://uniquehavenhomesstay.com/redrose-palace.html</loc>
-    <lastmod>2026-09-17</lastmod>
+    <lastmod>2026-09-22</lastmod>
     <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
+    <priority>0.9</priority>
+    <image:image>
+      <image:loc>https://uniquehavenhomesstay.com/assets/properties/redrose-palace/cover.jpg</image:loc>
+      <image:title>RedRose Palace - Luxury Homestay in Vikalp Khand, Gomti Nagar</image:title>
+      <image:caption>3BHK Luxury Flat in Vikalp Khand, Gomti Nagar with 100% AC, WiFi and 24/7 caretaker</image:caption>
+    </image:image>
+    <image:image>
+      <image:loc>https://images.unsplash.com/photo-1584622650111-993a426fbf0a?w=1200&q=80</image:loc>
+      <image:title>RedRose Palace - Luxury Homestay in Vikalp Khand, Gomti Nagar</image:title>
+      <image:caption>3BHK Luxury Flat in Vikalp Khand, Gomti Nagar with 100% AC, WiFi and 24/7 caretaker</image:caption>
+    </image:image>
+    <image:image>
+      <image:loc>https://images.unsplash.com/photo-1556911220-e15b29be8c8f?w=1200&q=80</image:loc>
+      <image:title>RedRose Palace - Luxury Homestay in Vikalp Khand, Gomti Nagar</image:title>
+      <image:caption>3BHK Luxury Flat in Vikalp Khand, Gomti Nagar with 100% AC, WiFi and 24/7 caretaker</image:caption>
+    </image:image>
+    <image:image>
+      <image:loc>https://images.unsplash.com/photo-1513694203232-719a280e022f?w=1200&q=80</image:loc>
+      <image:title>RedRose Palace - Luxury Homestay in Vikalp Khand, Gomti Nagar</image:title>
+      <image:caption>3BHK Luxury Flat in Vikalp Khand, Gomti Nagar with 100% AC, WiFi and 24/7 caretaker</image:caption>
+    </image:image>
+  </url>
+  <url>
+    <loc>https://uniquehavenhomesstay.com/the-brown.html</loc>
+    <lastmod>2026-09-22</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+    <image:image>
+      <image:loc>https://uniquehavenhomesstay.com/assets/properties/the-brown/cover.jpg</image:loc>
+      <image:title>The Brown - Luxury Homestay in Vikalp Khand, Gomti Nagar</image:title>
+      <image:caption>3BHK Luxury Flat in Vikalp Khand, Gomti Nagar with 100% AC, WiFi and 24/7 caretaker</image:caption>
+    </image:image>
+    <image:image>
+      <image:loc>https://images.unsplash.com/photo-1584622650111-993a426fbf0a?w=1200&q=80</image:loc>
+      <image:title>The Brown - Luxury Homestay in Vikalp Khand, Gomti Nagar</image:title>
+      <image:caption>3BHK Luxury Flat in Vikalp Khand, Gomti Nagar with 100% AC, WiFi and 24/7 caretaker</image:caption>
+    </image:image>
+    <image:image>
+      <image:loc>https://images.unsplash.com/photo-1556911220-e15b29be8c8f?w=1200&q=80</image:loc>
+      <image:title>The Brown - Luxury Homestay in Vikalp Khand, Gomti Nagar</image:title>
+      <image:caption>3BHK Luxury Flat in Vikalp Khand, Gomti Nagar with 100% AC, WiFi and 24/7 caretaker</image:caption>
+    </image:image>
+    <image:image>
+      <image:loc>https://images.unsplash.com/photo-1513694203232-719a280e022f?w=1200&q=80</image:loc>
+      <image:title>The Brown - Luxury Homestay in Vikalp Khand, Gomti Nagar</image:title>
+      <image:caption>3BHK Luxury Flat in Vikalp Khand, Gomti Nagar with 100% AC, WiFi and 24/7 caretaker</image:caption>
+    </image:image>
+  </url>
+  <url>
+    <loc>https://uniquehavenhomesstay.com/the-light-green.html</loc>
+    <lastmod>2026-09-22</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+    <image:image>
+      <image:loc>https://uniquehavenhomesstay.com/assets/properties/the-light-green/cover.jpg</image:loc>
+      <image:title>The Light Green - Luxury Homestay in Vikalp Khand, Gomti Nagar</image:title>
+      <image:caption>3BHK Luxury Flat in Vikalp Khand, Gomti Nagar with 100% AC, WiFi and 24/7 caretaker</image:caption>
+    </image:image>
+    <image:image>
+      <image:loc>https://images.unsplash.com/photo-1584622650111-993a426fbf0a?w=1200&q=80</image:loc>
+      <image:title>The Light Green - Luxury Homestay in Vikalp Khand, Gomti Nagar</image:title>
+      <image:caption>3BHK Luxury Flat in Vikalp Khand, Gomti Nagar with 100% AC, WiFi and 24/7 caretaker</image:caption>
+    </image:image>
+    <image:image>
+      <image:loc>https://images.unsplash.com/photo-1556911220-e15b29be8c8f?w=1200&q=80</image:loc>
+      <image:title>The Light Green - Luxury Homestay in Vikalp Khand, Gomti Nagar</image:title>
+      <image:caption>3BHK Luxury Flat in Vikalp Khand, Gomti Nagar with 100% AC, WiFi and 24/7 caretaker</image:caption>
+    </image:image>
+    <image:image>
+      <image:loc>https://images.unsplash.com/photo-1513694203232-719a280e022f?w=1200&q=80</image:loc>
+      <image:title>The Light Green - Luxury Homestay in Vikalp Khand, Gomti Nagar</image:title>
+      <image:caption>3BHK Luxury Flat in Vikalp Khand, Gomti Nagar with 100% AC, WiFi and 24/7 caretaker</image:caption>
+    </image:image>
+  </url>
+  <url>
+    <loc>https://uniquehavenhomesstay.com/the-nawabi-stay.html</loc>
+    <lastmod>2026-09-22</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+    <image:image>
+      <image:loc>https://uniquehavenhomesstay.com/assets/properties/the-nawabi-stay/cover.jpg</image:loc>
+      <image:title>The Nawabi Stay - Luxury Homestay in Vikalp Khand, Gomti Nagar</image:title>
+      <image:caption>3BHK Luxury Flat in Vikalp Khand, Gomti Nagar with 100% AC, WiFi and 24/7 caretaker</image:caption>
+    </image:image>
+    <image:image>
+      <image:loc>https://images.unsplash.com/photo-1584622650111-993a426fbf0a?w=1200&q=80</image:loc>
+      <image:title>The Nawabi Stay - Luxury Homestay in Vikalp Khand, Gomti Nagar</image:title>
+      <image:caption>3BHK Luxury Flat in Vikalp Khand, Gomti Nagar with 100% AC, WiFi and 24/7 caretaker</image:caption>
+    </image:image>
+    <image:image>
+      <image:loc>https://images.unsplash.com/photo-1556911220-e15b29be8c8f?w=1200&q=80</image:loc>
+      <image:title>The Nawabi Stay - Luxury Homestay in Vikalp Khand, Gomti Nagar</image:title>
+      <image:caption>3BHK Luxury Flat in Vikalp Khand, Gomti Nagar with 100% AC, WiFi and 24/7 caretaker</image:caption>
+    </image:image>
+    <image:image>
+      <image:loc>https://images.unsplash.com/photo-1513694203232-719a280e022f?w=1200&q=80</image:loc>
+      <image:title>The Nawabi Stay - Luxury Homestay in Vikalp Khand, Gomti Nagar</image:title>
+      <image:caption>3BHK Luxury Flat in Vikalp Khand, Gomti Nagar with 100% AC, WiFi and 24/7 caretaker</image:caption>
+    </image:image>
   </url>
   <url>
     <loc>https://uniquehavenhomesstay.com/starlight-blue-penthouse.html</loc>
-    <lastmod>2026-09-17</lastmod>
+    <lastmod>2026-09-22</lastmod>
     <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
+    <priority>0.9</priority>
+    <image:image>
+      <image:loc>https://uniquehavenhomesstay.com/assets/properties/starlight-blue/cover.jpg</image:loc>
+      <image:title>Starlight Blue PentHouse - Luxury Homestay in Vikalp Khand, Gomti Nagar</image:title>
+      <image:caption>Luxury PentHouse in Vikalp Khand, Gomti Nagar with 100% AC, WiFi and 24/7 caretaker</image:caption>
+    </image:image>
+    <image:image>
+      <image:loc>https://images.unsplash.com/photo-1584622650111-993a426fbf0a?w=1200&q=80</image:loc>
+      <image:title>Starlight Blue PentHouse - Luxury Homestay in Vikalp Khand, Gomti Nagar</image:title>
+      <image:caption>Luxury PentHouse in Vikalp Khand, Gomti Nagar with 100% AC, WiFi and 24/7 caretaker</image:caption>
+    </image:image>
+    <image:image>
+      <image:loc>https://images.unsplash.com/photo-1556911220-e15b29be8c8f?w=1200&q=80</image:loc>
+      <image:title>Starlight Blue PentHouse - Luxury Homestay in Vikalp Khand, Gomti Nagar</image:title>
+      <image:caption>Luxury PentHouse in Vikalp Khand, Gomti Nagar with 100% AC, WiFi and 24/7 caretaker</image:caption>
+    </image:image>
+    <image:image>
+      <image:loc>https://images.unsplash.com/photo-1513694203232-719a280e022f?w=1200&q=80</image:loc>
+      <image:title>Starlight Blue PentHouse - Luxury Homestay in Vikalp Khand, Gomti Nagar</image:title>
+      <image:caption>Luxury PentHouse in Vikalp Khand, Gomti Nagar with 100% AC, WiFi and 24/7 caretaker</image:caption>
+    </image:image>
+  </url>
+  <url>
+    <loc>https://uniquehavenhomesstay.com/the-yellow-house.html</loc>
+    <lastmod>2026-09-22</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+    <image:image>
+      <image:loc>https://uniquehavenhomesstay.com/assets/properties/the-yellow-house/cover.jpg</image:loc>
+      <image:title>The Yellow House - Luxury Homestay in Vishesh Khand 3, Gomti Nagar</image:title>
+      <image:caption>Independent Villa in Vishesh Khand 3, Gomti Nagar with 100% AC, WiFi and 24/7 caretaker</image:caption>
+    </image:image>
+    <image:image>
+      <image:loc>https://images.unsplash.com/photo-1584622650111-993a426fbf0a?w=1200&q=80</image:loc>
+      <image:title>The Yellow House - Luxury Homestay in Vishesh Khand 3, Gomti Nagar</image:title>
+      <image:caption>Independent Villa in Vishesh Khand 3, Gomti Nagar with 100% AC, WiFi and 24/7 caretaker</image:caption>
+    </image:image>
+    <image:image>
+      <image:loc>https://images.unsplash.com/photo-1556911220-e15b29be8c8f?w=1200&q=80</image:loc>
+      <image:title>The Yellow House - Luxury Homestay in Vishesh Khand 3, Gomti Nagar</image:title>
+      <image:caption>Independent Villa in Vishesh Khand 3, Gomti Nagar with 100% AC, WiFi and 24/7 caretaker</image:caption>
+    </image:image>
+    <image:image>
+      <image:loc>https://images.unsplash.com/photo-1513694203232-719a280e022f?w=1200&q=80</image:loc>
+      <image:title>The Yellow House - Luxury Homestay in Vishesh Khand 3, Gomti Nagar</image:title>
+      <image:caption>Independent Villa in Vishesh Khand 3, Gomti Nagar with 100% AC, WiFi and 24/7 caretaker</image:caption>
+    </image:image>
+  </url>
+  <url>
+    <loc>https://uniquehavenhomesstay.com/the-green-house.html</loc>
+    <lastmod>2026-09-22</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+    <image:image>
+      <image:loc>https://uniquehavenhomesstay.com/assets/properties/the-green-house/cover.jpg</image:loc>
+      <image:title>The Green House - Luxury Homestay in Vishesh Khand 3, Gomti Nagar</image:title>
+      <image:caption>Independent Villa in Vishesh Khand 3, Gomti Nagar with 100% AC, WiFi and 24/7 caretaker</image:caption>
+    </image:image>
+    <image:image>
+      <image:loc>https://images.unsplash.com/photo-1584622650111-993a426fbf0a?w=1200&q=80</image:loc>
+      <image:title>The Green House - Luxury Homestay in Vishesh Khand 3, Gomti Nagar</image:title>
+      <image:caption>Independent Villa in Vishesh Khand 3, Gomti Nagar with 100% AC, WiFi and 24/7 caretaker</image:caption>
+    </image:image>
+    <image:image>
+      <image:loc>https://images.unsplash.com/photo-1556911220-e15b29be8c8f?w=1200&q=80</image:loc>
+      <image:title>The Green House - Luxury Homestay in Vishesh Khand 3, Gomti Nagar</image:title>
+      <image:caption>Independent Villa in Vishesh Khand 3, Gomti Nagar with 100% AC, WiFi and 24/7 caretaker</image:caption>
+    </image:image>
+    <image:image>
+      <image:loc>https://images.unsplash.com/photo-1513694203232-719a280e022f?w=1200&q=80</image:loc>
+      <image:title>The Green House - Luxury Homestay in Vishesh Khand 3, Gomti Nagar</image:title>
+      <image:caption>Independent Villa in Vishesh Khand 3, Gomti Nagar with 100% AC, WiFi and 24/7 caretaker</image:caption>
+    </image:image>
+  </url>
+  <url>
+    <loc>https://uniquehavenhomesstay.com/the-pink-house.html</loc>
+    <lastmod>2026-09-22</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+    <image:image>
+      <image:loc>https://uniquehavenhomesstay.com/assets/properties/the-pink-house/cover.jpg</image:loc>
+      <image:title>The Pink House - Luxury Homestay in Vishesh Khand 3, Gomti Nagar</image:title>
+      <image:caption>Grand Villa (5BR) in Vishesh Khand 3, Gomti Nagar with 100% AC, WiFi and 24/7 caretaker</image:caption>
+    </image:image>
+    <image:image>
+      <image:loc>https://images.unsplash.com/photo-1584622650111-993a426fbf0a?w=1200&q=80</image:loc>
+      <image:title>The Pink House - Luxury Homestay in Vishesh Khand 3, Gomti Nagar</image:title>
+      <image:caption>Grand Villa (5BR) in Vishesh Khand 3, Gomti Nagar with 100% AC, WiFi and 24/7 caretaker</image:caption>
+    </image:image>
+    <image:image>
+      <image:loc>https://images.unsplash.com/photo-1556911220-e15b29be8c8f?w=1200&q=80</image:loc>
+      <image:title>The Pink House - Luxury Homestay in Vishesh Khand 3, Gomti Nagar</image:title>
+      <image:caption>Grand Villa (5BR) in Vishesh Khand 3, Gomti Nagar with 100% AC, WiFi and 24/7 caretaker</image:caption>
+    </image:image>
+    <image:image>
+      <image:loc>https://images.unsplash.com/photo-1513694203232-719a280e022f?w=1200&q=80</image:loc>
+      <image:title>The Pink House - Luxury Homestay in Vishesh Khand 3, Gomti Nagar</image:title>
+      <image:caption>Grand Villa (5BR) in Vishesh Khand 3, Gomti Nagar with 100% AC, WiFi and 24/7 caretaker</image:caption>
+    </image:image>
   </url>
   <url>
     <loc>https://uniquehavenhomesstay.com/gomti-grand-villa.html</loc>
-    <lastmod>2026-09-17</lastmod>
+    <lastmod>2026-09-22</lastmod>
     <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
+    <priority>0.9</priority>
+    <image:image>
+      <image:loc>https://uniquehavenhomesstay.com/assets/properties/gomti-grand-villa/cover.jpg</image:loc>
+      <image:title>Gomti Grand Villa - Luxury Homestay in Geetapuri Colony, Near Lulu Mall</image:title>
+      <image:caption>Luxury Villa (4BHK) in Geetapuri Colony, Near Lulu Mall with 100% AC, WiFi and 24/7 caretaker</image:caption>
+    </image:image>
+    <image:image>
+      <image:loc>https://images.unsplash.com/photo-1584622650111-993a426fbf0a?w=1200&q=80</image:loc>
+      <image:title>Gomti Grand Villa - Luxury Homestay in Geetapuri Colony, Near Lulu Mall</image:title>
+      <image:caption>Luxury Villa (4BHK) in Geetapuri Colony, Near Lulu Mall with 100% AC, WiFi and 24/7 caretaker</image:caption>
+    </image:image>
+    <image:image>
+      <image:loc>https://images.unsplash.com/photo-1556911220-e15b29be8c8f?w=1200&q=80</image:loc>
+      <image:title>Gomti Grand Villa - Luxury Homestay in Geetapuri Colony, Near Lulu Mall</image:title>
+      <image:caption>Luxury Villa (4BHK) in Geetapuri Colony, Near Lulu Mall with 100% AC, WiFi and 24/7 caretaker</image:caption>
+    </image:image>
+    <image:image>
+      <image:loc>https://images.unsplash.com/photo-1513694203232-719a280e022f?w=1200&q=80</image:loc>
+      <image:title>Gomti Grand Villa - Luxury Homestay in Geetapuri Colony, Near Lulu Mall</image:title>
+      <image:caption>Luxury Villa (4BHK) in Geetapuri Colony, Near Lulu Mall with 100% AC, WiFi and 24/7 caretaker</image:caption>
+    </image:image>
   </url>
   <url>
     <loc>https://uniquehavenhomesstay.com/royal-white-house.html</loc>
-    <lastmod>2026-09-17</lastmod>
+    <lastmod>2026-09-22</lastmod>
     <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
+    <priority>0.9</priority>
+    <image:image>
+      <image:loc>https://uniquehavenhomesstay.com/assets/properties/royal-white-house/cover.jpg</image:loc>
+      <image:title>Royal White House - Luxury Homestay in Near Lulu Mall & Airport</image:title>
+      <image:caption>Royal Villa in Near Lulu Mall & Airport with 100% AC, WiFi and 24/7 caretaker</image:caption>
+    </image:image>
+    <image:image>
+      <image:loc>https://images.unsplash.com/photo-1584622650111-993a426fbf0a?w=1200&q=80</image:loc>
+      <image:title>Royal White House - Luxury Homestay in Near Lulu Mall & Airport</image:title>
+      <image:caption>Royal Villa in Near Lulu Mall & Airport with 100% AC, WiFi and 24/7 caretaker</image:caption>
+    </image:image>
+    <image:image>
+      <image:loc>https://images.unsplash.com/photo-1556911220-e15b29be8c8f?w=1200&q=80</image:loc>
+      <image:title>Royal White House - Luxury Homestay in Near Lulu Mall & Airport</image:title>
+      <image:caption>Royal Villa in Near Lulu Mall & Airport with 100% AC, WiFi and 24/7 caretaker</image:caption>
+    </image:image>
+    <image:image>
+      <image:loc>https://images.unsplash.com/photo-1513694203232-719a280e022f?w=1200&q=80</image:loc>
+      <image:title>Royal White House - Luxury Homestay in Near Lulu Mall & Airport</image:title>
+      <image:caption>Royal Villa in Near Lulu Mall & Airport with 100% AC, WiFi and 24/7 caretaker</image:caption>
+    </image:image>
   </url>
   <url>
     <loc>https://uniquehavenhomesstay.com/celebrity-garden.html</loc>
-    <lastmod>2026-09-17</lastmod>
+    <lastmod>2026-09-22</lastmod>
     <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
+    <priority>0.9</priority>
+    <image:image>
+      <image:loc>https://uniquehavenhomesstay.com/assets/properties/celebrity-garden/cover.jpg</image:loc>
+      <image:title>Celebrity Garden - Luxury Homestay in Near Lulu Mall, Shaheed Path</image:title>
+      <image:caption>3BHK Premium Flat in Near Lulu Mall, Shaheed Path with 100% AC, WiFi and 24/7 caretaker</image:caption>
+    </image:image>
+    <image:image>
+      <image:loc>https://images.unsplash.com/photo-1584622650111-993a426fbf0a?w=1200&q=80</image:loc>
+      <image:title>Celebrity Garden - Luxury Homestay in Near Lulu Mall, Shaheed Path</image:title>
+      <image:caption>3BHK Premium Flat in Near Lulu Mall, Shaheed Path with 100% AC, WiFi and 24/7 caretaker</image:caption>
+    </image:image>
+    <image:image>
+      <image:loc>https://images.unsplash.com/photo-1556911220-e15b29be8c8f?w=1200&q=80</image:loc>
+      <image:title>Celebrity Garden - Luxury Homestay in Near Lulu Mall, Shaheed Path</image:title>
+      <image:caption>3BHK Premium Flat in Near Lulu Mall, Shaheed Path with 100% AC, WiFi and 24/7 caretaker</image:caption>
+    </image:image>
+    <image:image>
+      <image:loc>https://images.unsplash.com/photo-1513694203232-719a280e022f?w=1200&q=80</image:loc>
+      <image:title>Celebrity Garden - Luxury Homestay in Near Lulu Mall, Shaheed Path</image:title>
+      <image:caption>3BHK Premium Flat in Near Lulu Mall, Shaheed Path with 100% AC, WiFi and 24/7 caretaker</image:caption>
+    </image:image>
+  </url>
+  <url>
+    <loc>https://uniquehavenhomesstay.com/the-velvet-house.html</loc>
+    <lastmod>2026-09-22</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+    <image:image>
+      <image:loc>https://uniquehavenhomesstay.com/assets/properties/the-velvet-house/cover.jpg</image:loc>
+      <image:title>The Velvet House - Luxury Homestay in Near Lulu Mall & Medanta</image:title>
+      <image:caption>Designer Villa in Near Lulu Mall & Medanta with 100% AC, WiFi and 24/7 caretaker</image:caption>
+    </image:image>
+    <image:image>
+      <image:loc>https://images.unsplash.com/photo-1584622650111-993a426fbf0a?w=1200&q=80</image:loc>
+      <image:title>The Velvet House - Luxury Homestay in Near Lulu Mall & Medanta</image:title>
+      <image:caption>Designer Villa in Near Lulu Mall & Medanta with 100% AC, WiFi and 24/7 caretaker</image:caption>
+    </image:image>
+    <image:image>
+      <image:loc>https://images.unsplash.com/photo-1556911220-e15b29be8c8f?w=1200&q=80</image:loc>
+      <image:title>The Velvet House - Luxury Homestay in Near Lulu Mall & Medanta</image:title>
+      <image:caption>Designer Villa in Near Lulu Mall & Medanta with 100% AC, WiFi and 24/7 caretaker</image:caption>
+    </image:image>
+    <image:image>
+      <image:loc>https://images.unsplash.com/photo-1513694203232-719a280e022f?w=1200&q=80</image:loc>
+      <image:title>The Velvet House - Luxury Homestay in Near Lulu Mall & Medanta</image:title>
+      <image:caption>Designer Villa in Near Lulu Mall & Medanta with 100% AC, WiFi and 24/7 caretaker</image:caption>
+    </image:image>
   </url>
   <url>
     <loc>https://uniquehavenhomesstay.com/green-forest.html</loc>
-    <lastmod>2026-09-17</lastmod>
+    <lastmod>2026-09-22</lastmod>
     <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
+    <priority>0.9</priority>
+    <image:image>
+      <image:loc>https://uniquehavenhomesstay.com/assets/properties/the-green-house/cover.jpg</image:loc>
+      <image:title>Green Forest View - Luxury Homestay in Vishesh Khand / Chinhat</image:title>
+      <image:caption>Boutique Villa in Vishesh Khand / Chinhat with 100% AC, WiFi and 24/7 caretaker</image:caption>
+    </image:image>
+    <image:image>
+      <image:loc>https://images.unsplash.com/photo-1584622650111-993a426fbf0a?w=1200&q=80</image:loc>
+      <image:title>Green Forest View - Luxury Homestay in Vishesh Khand / Chinhat</image:title>
+      <image:caption>Boutique Villa in Vishesh Khand / Chinhat with 100% AC, WiFi and 24/7 caretaker</image:caption>
+    </image:image>
+    <image:image>
+      <image:loc>https://images.unsplash.com/photo-1556911220-e15b29be8c8f?w=1200&q=80</image:loc>
+      <image:title>Green Forest View - Luxury Homestay in Vishesh Khand / Chinhat</image:title>
+      <image:caption>Boutique Villa in Vishesh Khand / Chinhat with 100% AC, WiFi and 24/7 caretaker</image:caption>
+    </image:image>
+    <image:image>
+      <image:loc>https://images.unsplash.com/photo-1513694203232-719a280e022f?w=1200&q=80</image:loc>
+      <image:title>Green Forest View - Luxury Homestay in Vishesh Khand / Chinhat</image:title>
+      <image:caption>Boutique Villa in Vishesh Khand / Chinhat with 100% AC, WiFi and 24/7 caretaker</image:caption>
+    </image:image>
   </url>
   <url>
     <loc>https://uniquehavenhomesstay.com/pink-paradise.html</loc>
-    <lastmod>2026-09-17</lastmod>
+    <lastmod>2026-09-22</lastmod>
     <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
+    <priority>0.9</priority>
+    <image:image>
+      <image:loc>https://uniquehavenhomesstay.com/assets/properties/the-pink-house/cover.jpg</image:loc>
+      <image:title>Pink Paradise Villa - Luxury Homestay in Vishesh Khand, Gomti Nagar</image:title>
+      <image:caption>Luxury Villa in Vishesh Khand, Gomti Nagar with 100% AC, WiFi and 24/7 caretaker</image:caption>
+    </image:image>
+    <image:image>
+      <image:loc>https://images.unsplash.com/photo-1584622650111-993a426fbf0a?w=1200&q=80</image:loc>
+      <image:title>Pink Paradise Villa - Luxury Homestay in Vishesh Khand, Gomti Nagar</image:title>
+      <image:caption>Luxury Villa in Vishesh Khand, Gomti Nagar with 100% AC, WiFi and 24/7 caretaker</image:caption>
+    </image:image>
+    <image:image>
+      <image:loc>https://images.unsplash.com/photo-1556911220-e15b29be8c8f?w=1200&q=80</image:loc>
+      <image:title>Pink Paradise Villa - Luxury Homestay in Vishesh Khand, Gomti Nagar</image:title>
+      <image:caption>Luxury Villa in Vishesh Khand, Gomti Nagar with 100% AC, WiFi and 24/7 caretaker</image:caption>
+    </image:image>
+    <image:image>
+      <image:loc>https://images.unsplash.com/photo-1513694203232-719a280e022f?w=1200&q=80</image:loc>
+      <image:title>Pink Paradise Villa - Luxury Homestay in Vishesh Khand, Gomti Nagar</image:title>
+      <image:caption>Luxury Villa in Vishesh Khand, Gomti Nagar with 100% AC, WiFi and 24/7 caretaker</image:caption>
+    </image:image>
   </url>
 </urlset>
