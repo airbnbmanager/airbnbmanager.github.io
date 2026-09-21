@@ -46,9 +46,12 @@
               Manage photos, video tours, Google Maps locations &amp; pricing like Airbnb for <strong>index.html</strong>
             </div>
           </div>
-          <div style="display:flex;gap:8px;align-items:center;">
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+            <a id="showcaseLiveLink" href="${prop.slug ? prop.slug + '.html' : 'the-dark-blue.html'}" target="_blank" class="btn" style="background:#b58d3d;color:#ffffff;padding:9px 16px;border-radius:10px;text-decoration:none;font-weight:700;font-size:13px;display:inline-flex;align-items:center;gap:6px;box-shadow:0 4px 12px rgba(181,141,61,0.3);">
+              ✨ View Live Property Page ↗
+            </a>
             <a href="index.html" target="_blank" class="btn secondary" style="padding:9px 16px;border-radius:10px;text-decoration:none;font-weight:600;font-size:13px;display:inline-flex;align-items:center;gap:6px;">
-              👁️ View Website
+              👁️ Homepage
             </a>
             <button onclick="saveCurrentShowcase()" style="background:#0F766E;padding:9px 20px;border-radius:10px;font-weight:700;font-size:13.5px;box-shadow:0 4px 12px rgba(15,118,110,0.3);">
               💾 Save &amp; Publish Live
@@ -197,7 +200,11 @@
             🌟 Primary Cover Photo (Shown on Homepage Card)
           </label>
           <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;">
-            <input type="text" id="propCover" value="${prop.cover_image || ''}" style="flex:1;min-width:280px;padding:9px 12px;border-radius:8px;border:1px solid #CBD5E1;" placeholder="assets/properties/the-dark-blue/cover.jpg or https://..." />
+            <input type="text" id="propCover" value="${prop.cover_image || ''}" style="flex:1;min-width:260px;padding:9px 12px;border-radius:8px;border:1px solid #CBD5E1;" placeholder="assets/properties/the-dark-blue/cover.jpg or https://..." />
+            <label style="background:#0F766E;color:#fff;padding:9px 14px;border-radius:8px;font-weight:600;font-size:12.5px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;">
+              📁 Upload from Device
+              <input type="file" accept="image/*" style="display:none;" onchange="window.uploadShowcaseCoverFile(this.files[0])"/>
+            </label>
             <img src="${prop.cover_image || 'assets/logo.png'}" alt="Cover Preview" style="width:60px;height:45px;border-radius:8px;object-fit:cover;border:1px solid #CBD5E1;" />
           </div>
         </div>
@@ -227,12 +234,16 @@
                 ${list.length === 0 ? `<div style="font-size:12px;color:#94A3B8;padding:10px;">No photos added yet in this category.</div>` : ''}
               </div>
 
-              <!-- Add Photo Input -->
-              <div style="display:flex;gap:8px;">
-                <input type="text" id="addPhoto_${cat.key}" placeholder="Paste Image URL (https://... or assets/...)" style="flex:1;padding:8px 12px;border-radius:8px;border:1px solid #CBD5E1;font-size:13px;" />
+              <!-- Add Photo Input & Upload -->
+              <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                <input type="text" id="addPhoto_${cat.key}" placeholder="Paste Image URL (https://... or assets/...)" style="flex:1;min-width:200px;padding:8px 12px;border-radius:8px;border:1px solid #CBD5E1;font-size:13px;" />
                 <button onclick="window.addShowcasePhoto('${cat.key}')" class="btn-sm" style="background:#4F46E5;color:#fff;padding:8px 16px;border-radius:8px;font-weight:600;">
-                  + Add Photo
+                  + Add URL
                 </button>
+                <label style="background:#0F766E;color:#fff;padding:8px 14px;border-radius:8px;font-weight:600;font-size:12.5px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;">
+                  📁 Upload Photo
+                  <input type="file" accept="image/*" style="display:none;" onchange="window.uploadShowcasePhotoFile('${cat.key}', this.files[0])"/>
+                </label>
               </div>
             </div>
           `;
@@ -243,8 +254,13 @@
 
   // 3. VIDEO TOUR TAB
   function renderVideoTab(prop) {
-    const videoUrl = prop.video_url || '';
-    const isEmbed = videoUrl.includes('youtube.com') || videoUrl.includes('youtu.be') || videoUrl.includes('vimeo.com');
+    let videoUrl = prop.video_url || '';
+    let embedUrl = videoUrl;
+    if (videoUrl.includes('watch?v=')) {
+      embedUrl = videoUrl.replace('watch?v=', 'embed/');
+    } else if (videoUrl.includes('youtu.be/')) {
+      embedUrl = videoUrl.replace('youtu.be/', 'www.youtube.com/embed/');
+    }
 
     return `
       <div class="card">
@@ -256,15 +272,15 @@
         </div>
 
         <div style="margin-bottom:16px;">
-          <label style="font-size:12px;font-weight:600;color:#475569;display:block;margin-bottom:4px;">Video Tour URL</label>
-          <input type="text" id="propVideo" value="${videoUrl}" placeholder="https://www.youtube.com/embed/... or https://...video.mp4" style="width:100%;padding:9px 12px;border-radius:8px;border:1px solid #CBD5E1;" />
-          <small style="font-size:11px;color:#64748B;">For YouTube, use embed URL format: <code>https://www.youtube.com/embed/VIDEO_ID</code></small>
+          <label style="font-size:12px;font-weight:600;color:#475569;display:block;margin-bottom:4px;">Video Tour URL (YouTube or MP4)</label>
+          <input type="text" id="propVideo" value="${videoUrl}" placeholder="https://www.youtube.com/watch?v=... or https://...video.mp4" style="width:100%;padding:9px 12px;border-radius:8px;border:1px solid #CBD5E1;" />
+          <small style="font-size:11px;color:#64748B;">Supports standard YouTube links (<code>https://www.youtube.com/watch?v=...</code>), short links (<code>https://youtu.be/...</code>), or direct MP4 links.</small>
         </div>
 
-        ${videoUrl ? `
+        ${embedUrl ? `
           <div style="margin-top:20px;border-radius:12px;overflow:hidden;background:#000;max-width:600px;border:1px solid #E2E8F0;">
             <div style="padding:8px 12px;background:#1E293B;color:#fff;font-size:12px;font-weight:600;">Video Preview</div>
-            <iframe src="${videoUrl}" style="width:100%;height:320px;border:none;" allowfullscreen></iframe>
+            <iframe src="${embedUrl}" style="width:100%;height:320px;border:none;" allowfullscreen></iframe>
           </div>
         ` : `
           <div style="padding:30px;background:#F8FAFC;border:1px dashed #CBD5E1;border-radius:12px;text-align:center;color:#94A3B8;">
@@ -369,6 +385,42 @@
 
     window.ShowcaseData.saveProperty(currentPropId, { photos: prop.photos });
     renderShowcaseAdmin();
+  };
+
+  // Device Photo File Upload
+  window.uploadShowcasePhotoFile = function(catKey, file) {
+    if (!file) return;
+    if (!file.type || !file.type.startsWith('image/')) {
+      alert('Please select an image file (JPG, PNG, WEBP).');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      const dataUrl = e.target.result;
+      const prop = window.ShowcaseData.getProperty(currentPropId) || {};
+      prop.photos = prop.photos || {};
+      prop.photos[catKey] = prop.photos[catKey] || [];
+      prop.photos[catKey].push(dataUrl);
+      window.ShowcaseData.saveProperty(currentPropId, { photos: prop.photos });
+      renderShowcaseAdmin();
+    };
+    reader.readAsDataURL(file);
+  };
+
+  // Device Cover File Upload
+  window.uploadShowcaseCoverFile = function(file) {
+    if (!file) return;
+    if (!file.type || !file.type.startsWith('image/')) {
+      alert('Please select an image file for the cover.');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      const dataUrl = e.target.result;
+      window.ShowcaseData.saveProperty(currentPropId, { cover_image: dataUrl });
+      renderShowcaseAdmin();
+    };
+    reader.readAsDataURL(file);
   };
 
   // Photo Remove

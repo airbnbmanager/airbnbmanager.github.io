@@ -618,9 +618,19 @@
     return merged;
   }
 
-  function getShowcaseProperty(id) {
+  function getShowcaseProperty(idOrSlug) {
+    if (!idOrSlug) return null;
     const all = getShowcaseProperties();
-    return all[id] || null;
+    if (all[idOrSlug]) return all[idOrSlug];
+    const clean = String(idOrSlug).toLowerCase().replace(/\.html$/, '').replace(/^\/+/, '');
+    const found = Object.values(all).find(p => {
+      if (!p) return false;
+      if (p.id && p.id.toLowerCase() === clean) return true;
+      if (p.slug && p.slug.toLowerCase() === clean) return true;
+      if (p.slug && clean.includes(p.slug.toLowerCase())) return true;
+      return false;
+    });
+    return found || null;
   }
 
   // Save property updates
