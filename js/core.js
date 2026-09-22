@@ -2560,14 +2560,7 @@ window.showLoadingSkeleton = function(type) {
 // 🌙 MULTI-THEME ENGINE (VS Code, Dracula, Nord, Monokai, etc.)
 // ═══════════════════════════════════════════════════════════
 window.THEMES_LIST = [
-  { id: 'light', name: 'Clean Light', type: 'light', icon: '☀️', desc: 'Modern high-contrast clean light', bg: '#F8FAFC', card: '#FFFFFF', sidebar: '#0F172A', accent: '#4F46E5', tag: 'Default Light' },
-  { id: 'dark', name: 'VS Code Dark+', type: 'dark', icon: '💻', desc: 'Classic Visual Studio Code dark editor', bg: '#1E1E1E', card: '#252526', sidebar: '#181818', accent: '#007ACC', tag: 'VS Code' },
-  { id: 'one-dark', name: 'One Dark Pro', type: 'dark', icon: '⚛️', desc: 'Atom iconic charcoal & cyan', bg: '#21252B', card: '#282C34', sidebar: '#1E2227', accent: '#61AFEF', tag: 'Atom' },
-  { id: 'dracula', name: 'Dracula', type: 'dark', icon: '🧛', desc: 'Vibrant purple & neon pastel dark palette', bg: '#1E1F29', card: '#282A36', sidebar: '#191A21', accent: '#BD93F9', tag: 'Popular' },
-  { id: 'nord', name: 'Nord Arctic', type: 'dark', icon: '❄️', desc: 'Arctic bluish clean slate minimalism', bg: '#2E3440', card: '#3B4252', sidebar: '#242933', accent: '#88C0D0', tag: 'Frost' },
-  { id: 'monokai', name: 'Monokai Pro', type: 'dark', icon: '⚡', desc: 'Sublime warmth with vivid amber & green', bg: '#1E1F1C', card: '#272822', sidebar: '#191A17', accent: '#FD971F', tag: 'Pro' },
-  { id: 'midnight', name: 'Midnight OLED', type: 'dark', icon: '🌌', desc: 'Pitch black OLED with indigo accents', bg: '#090D16', card: '#0F172A', sidebar: '#05070D', accent: '#6366F1', tag: 'Deep OLED' },
-  { id: 'github-light', name: 'GitHub Light', type: 'light', icon: '🐙', desc: 'Official GitHub clean white & slate', bg: '#F6F8FA', card: '#FFFFFF', sidebar: '#24292F', accent: '#0969DA', tag: 'Clean' }
+  { id: 'light', name: 'Clean Light', type: 'light', icon: '☀️', desc: 'Modern high-contrast clean light', bg: '#F8FAFC', card: '#FFFFFF', sidebar: '#0F172A', accent: '#4F46E5', tag: 'Active' }
 ];
 
 window.themeManager = (function() {
@@ -2580,8 +2573,7 @@ window.themeManager = (function() {
   }
 
   function isDark() {
-    const t = get();
-    return ['dark', 'one-dark', 'dracula', 'nord', 'monokai', 'midnight'].includes(t);
+    return false; // Only Clean Light theme is supported
   }
 
   function apply(theme) {
@@ -2592,8 +2584,7 @@ window.themeManager = (function() {
     // Update theme-color meta for status bar
     const meta = document.querySelector('meta[name="theme-color"]');
     if (meta) {
-      const darkMeta = theme === 'midnight' ? '#090D16' : theme === 'dracula' ? '#1E1F29' : theme === 'nord' ? '#2E3440' : '#1E1E1E';
-      meta.setAttribute('content', isDark() ? darkMeta : '#4F46E5');
+      meta.setAttribute('content', '#FFFFFF');
     }
 
     // Update all toggle UIs
