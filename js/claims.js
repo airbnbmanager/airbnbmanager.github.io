@@ -56,7 +56,7 @@ window.renderClaims = async function() {
         <div style="display:flex;gap:8px;flex-wrap:wrap;">
           <button onclick="openUhhsDepositModal()" style="background:#0284C7;color:#fff;font-weight:700;">📥 Deposit Entry (UHHS-OD)</button>
           <button onclick="showUhhsStatementModal()" style="background:#0F766E;color:#fff;font-weight:600;">📜 UHHS Ledger</button>
-          <button onclick="showCompanyLedgerModal()" style="background:#7C3AED;color:#fff;font-weight:600;">🏢 Company Ledger</button>
+          <button onclick="showCompanyLedgerModal()" style="background:#EA580C;color:#fff;font-weight:600;">🏢 Company Ledger</button>
           <button onclick="generateClaimReport()" style="background:#8B5CF6;color:#fff;font-weight:600;">📊 Claim Report Statement</button>
           <button onclick="copyClaimWhatsAppText()" style="background:#25D366;color:#fff;font-weight:600;">📱 WhatsApp Summary</button>
         </div>
@@ -1826,7 +1826,7 @@ window.showCompanyLedgerModal = function() {
 
   overlay.innerHTML = `
     <div style="background:#fff;border-radius:16px;width:100%;max-width:460px;box-shadow:0 20px 60px rgba(0,0,0,0.25);overflow:hidden;">
-      <div style="background:#7C3AED;color:#fff;padding:18px 20px;display:flex;justify-content:space-between;align-items:center;">
+      <div style="background:#EA580C;color:#fff;padding:18px 20px;display:flex;justify-content:space-between;align-items:center;">
         <div>
           <div style="font-size:17px;font-weight:800;">🏢 Company Ledger</div>
           <div style="font-size:12px;opacity:0.85;margin-top:2px;">Statement of all Company-paid expenses</div>
@@ -1844,11 +1844,11 @@ window.showCompanyLedgerModal = function() {
             <input type="date" id="compLedgerTo" value="${tDate}" style="width:100%;padding:8px;border:1.5px solid #E2E8F0;border-radius:8px;font-size:13px;">
           </div>
         </div>
-        <div style="background:#F5F3FF;border:1px solid #DDD6FE;border-radius:10px;padding:12px;margin-bottom:16px;font-size:12px;color:#5B21B6;">
+        <div style="background:#FFF7ED;border:1px solid #FED7AA;border-radius:10px;padding:12px;margin-bottom:16px;font-size:12px;color:#9A3412;">
           ℹ️ Generates a <strong>PDF statement</strong> of all expenses paid via <strong>Company funds</strong> (guest rent / cash in hand) in the selected period.
         </div>
         <div style="display:flex;gap:10px;">
-          <button onclick="window.exportCompanyLedgerPDF(document.getElementById('compLedgerFrom').value,document.getElementById('compLedgerTo').value)" style="flex:1;padding:12px;background:#7C3AED;color:#fff;border:none;border-radius:10px;font-weight:700;font-size:14px;cursor:pointer;">
+          <button onclick="window.exportCompanyLedgerPDF(document.getElementById('compLedgerFrom').value,document.getElementById('compLedgerTo').value)" style="flex:1;padding:12px;background:#EA580C;color:#fff;border:none;border-radius:10px;font-weight:700;font-size:14px;cursor:pointer;">
             📄 Generate PDF Statement
           </button>
           <button onclick="document.getElementById('companyLedgerModalOverlay').remove()" style="padding:12px 18px;background:#F1F5F9;color:#475569;border:1.5px solid #E2E8F0;border-radius:10px;font-weight:600;cursor:pointer;">
@@ -1895,21 +1895,21 @@ window.exportCompanyLedgerPDF = function(fDate, tDate) {
     '<!DOCTYPE html><html><head><meta charset="utf-8"><title>' + title + '</title><style>' +
     '@page{size:A4;margin:10mm}*{box-sizing:border-box;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}' +
     'body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;padding:10mm 14mm;margin:0;color:#1e293b;background:#fff}' +
-    '.toolbar{display:flex;justify-content:space-between;align-items:center;background:#7C3AED;color:#fff;padding:10px 16px;border-radius:8px;margin-bottom:20px}' +
-    '.toolbar button{background:#fff;color:#7C3AED;border:none;padding:8px 16px;border-radius:6px;font-weight:700;cursor:pointer;font-size:13px}' +
+    '.toolbar{display:flex;justify-content:space-between;align-items:center;background:#EA580C;color:#fff;padding:10px 16px;border-radius:8px;margin-bottom:20px}' +
+    '.toolbar button{background:#fff;color:#EA580C;border:none;padding:8px 16px;border-radius:6px;font-weight:700;cursor:pointer;font-size:13px}' +
     '.tbtn-close{background:#EF4444!important;color:#fff!important}' +
-    '.header{border-bottom:2px solid #7C3AED;padding-bottom:10px;margin-bottom:16px}' +
-    'h1{margin:0;color:#7C3AED;font-size:20px;font-weight:800}.sub{color:#64748b;font-size:11px;margin-top:4px}' +
+    '.header{border-bottom:2px solid #EA580C;padding-bottom:10px;margin-bottom:16px}' +
+    'h1{margin:0;color:#EA580C;font-size:20px;font-weight:800}.sub{color:#64748b;font-size:11px;margin-top:4px}' +
     '.cards{display:flex;gap:10px;margin-bottom:18px}.card{flex:1;padding:12px;border-radius:8px;text-align:center;border:1px solid #cbd5e1}' +
-    '.c-total{background:#F5F3FF;border-color:#C4B5FD}.c-settled{background:#f0fdf4;border-color:#86efac}.c-pending{background:#fef2f2;border-color:#fca5a5}' +
+    '.c-total{background:#FFF7ED;border-color:#FDBA74}.c-settled{background:#f0fdf4;border-color:#86efac}.c-pending{background:#fef2f2;border-color:#fca5a5}' +
     '.lbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px}.val{font-size:18px;font-weight:800;margin-top:2px}' +
-    '.cat-box{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:18px}.cat-chip{background:#F5F3FF;border:1px solid #DDD6FE;border-radius:20px;padding:4px 12px;font-size:11px;font-weight:600;color:#5B21B6}' +
-    'table{width:100%;border-collapse:collapse;font-size:11px}th{background:#F5F3FF;padding:8px;text-align:left;border-bottom:2px solid #C4B5FD;font-weight:700;color:#5B21B6}' +
+    '.cat-box{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:18px}.cat-chip{background:#FFF7ED;border:1px solid #FED7AA;border-radius:20px;padding:4px 12px;font-size:11px;font-weight:600;color:#9A3412}' +
+    'table{width:100%;border-collapse:collapse;font-size:11px}th{background:#FFF7ED;padding:8px;text-align:left;border-bottom:2px solid #C4B5FD;font-weight:700;color:#9A3412}' +
     'td{padding:7px 8px;border-bottom:1px solid #EDE9FE}' +
     '.bs{background:#dcfce7;color:#15803d;padding:2px 6px;border-radius:4px;font-weight:700;font-size:9px}' +
     '.bc{background:#fef9c3;color:#92400e;padding:2px 6px;border-radius:4px;font-weight:700;font-size:9px}' +
     '.bp{background:#fee2e2;color:#b91c1c;padding:2px 6px;border-radius:4px;font-weight:700;font-size:9px}' +
-    '.tr-total{background:#F5F3FF;font-weight:800}' +
+    '.tr-total{background:#FFF7ED;font-weight:800}' +
     '@media print{body{padding:0}.toolbar{display:none!important}}' +
     '</style></head><body>' +
     '<div class="toolbar"><span style="font-weight:700;">🏢 ' + title + '</span>' +
@@ -1918,11 +1918,11 @@ window.exportCompanyLedgerPDF = function(fDate, tDate) {
     '<div class="header"><h1>🏢 Company Payments Ledger</h1>' +
     '<div class="sub">Period: <strong>' + (fDate||'-') + '</strong> → <strong>' + (tDate||'-') + '</strong> · Paid via: COMPANY (Guest Rent / Cash in Hand) · Generated: ' + new Date().toLocaleString('en-IN') + '</div></div>' +
     '<div class="cards">' +
-    '<div class="card c-total"><div class="lbl" style="color:#5B21B6;">TOTAL COMPANY PAID</div><div class="val" style="color:#7C3AED;">₹' + totalAmt.toLocaleString('en-IN') + '</div><div style="font-size:10px;color:#64748b;margin-top:2px;">' + items.length + ' transactions</div></div>' +
+    '<div class="card c-total"><div class="lbl" style="color:#9A3412;">TOTAL COMPANY PAID</div><div class="val" style="color:#EA580C;">₹' + totalAmt.toLocaleString('en-IN') + '</div><div style="font-size:10px;color:#64748b;margin-top:2px;">' + items.length + ' transactions</div></div>' +
     '<div class="card c-settled"><div class="lbl" style="color:#166534;">SETTLED / RECEIVED</div><div class="val" style="color:#059669;">₹' + settledAmt.toLocaleString('en-IN') + '</div></div>' +
     '<div class="card c-pending"><div class="lbl" style="color:#991b1b;">PENDING TO SETTLE</div><div class="val" style="color:#dc2626;">₹' + pendingAmt.toLocaleString('en-IN') + '</div></div>' +
     '</div>' +
-    '<div style="font-size:11px;font-weight:700;color:#5B21B6;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;">Category Breakdown</div>' +
+    '<div style="font-size:11px;font-weight:700;color:#9A3412;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;">Category Breakdown</div>' +
     '<div class="cat-box">' + Object.entries(catMap).map(([c,a]) => '<div class="cat-chip">' + c + ': ₹' + a.toLocaleString('en-IN') + '</div>').join('') + '</div>' +
     '<table><thead><tr><th>#</th><th>Date</th><th>Type</th><th>Description</th><th>Vendor / Staff</th><th>Status</th><th style="text-align:right;">Amount (₹)</th></tr></thead><tbody>' +
     (items.length === 0
@@ -1935,11 +1935,11 @@ window.exportCompanyLedgerPDF = function(fDate, tDate) {
           '<td>' + esc(item.description) + '</td>' +
           '<td style="color:#475569;">' + esc(item.vendorOrStaff) + '</td>' +
           '<td><span class="' + (item.status==='received'?'bs':item.status==='claimed'?'bc':'bp') + '">' + (item.status==='received'?'✅ SETTLED':item.status==='claimed'?'⏳ CLAIMED':'🔴 PENDING') + '</span></td>' +
-          '<td style="text-align:right;font-weight:700;color:#7C3AED;">₹' + (Number(item.amount)||0).toLocaleString('en-IN') + '</td>' +
+          '<td style="text-align:right;font-weight:700;color:#EA580C;">₹' + (Number(item.amount)||0).toLocaleString('en-IN') + '</td>' +
           '</tr>'
         ).join('') +
         '<tr class="tr-total"><td colspan="6" style="text-align:right;padding:10px 8px;font-size:13px;">🏢 TOTAL COMPANY PAID</td>' +
-        '<td style="text-align:right;font-size:14px;font-weight:800;color:#7C3AED;padding:10px 8px;">₹' + totalAmt.toLocaleString('en-IN') + '</td></tr>'
+        '<td style="text-align:right;font-size:14px;font-weight:800;color:#EA580C;padding:10px 8px;">₹' + totalAmt.toLocaleString('en-IN') + '</td></tr>'
     ) +
     '</tbody></table>' +
     '<div style="margin-top:24px;padding-top:12px;border-top:1px solid #DDD6FE;text-align:center;font-size:11px;color:#64748b;">' +
