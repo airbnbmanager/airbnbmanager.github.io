@@ -277,9 +277,18 @@ async function renderDashboard() {
   const bName = b => `${propLabel(b.rooms) || b.room_id || '-'}`;
   const fName = fl => `${propLabel(fl.rooms) || fl.room_id || '-'}`;
 
-  // Time-aware greeting
+  // Time-aware greeting (handles midnight/late night correctly)
   const hour = new Date().getHours();
-  const greeting = hour < 12 ? 'Good Morning' : (hour < 17 ? 'Good Afternoon' : 'Good Evening');
+  let greeting, greetEmoji;
+  if (hour >= 0 && hour < 5) {
+    greeting = 'Good Night'; greetEmoji = '🌙';      // midnight – 4:59 AM
+  } else if (hour < 12) {
+    greeting = 'Good Morning'; greetEmoji = '🌅';    // 5 AM – 11:59 AM
+  } else if (hour < 17) {
+    greeting = 'Good Afternoon'; greetEmoji = '☀️';  // 12 PM – 4:59 PM
+  } else {
+    greeting = 'Good Evening'; greetEmoji = '🌆';    // 5 PM – 11:59 PM
+  }
   const userName = SESSION.name || (SESSION.role ? (SESSION.role.charAt(0).toUpperCase() + SESSION.role.slice(1)) : 'Host');
 
   // WhatsApp Tasks Computation
@@ -923,7 +932,7 @@ async function renderDashboard() {
         <div class="dash-hero-top">
           <div class="dash-title-group">
             <div class="dash-greeting">
-              <span>👋</span> ${greeting}, ${userName}
+              <span>${greetEmoji}</span> ${greeting}, ${userName}
             </div>
             <div class="dash-heading">Operations Dashboard</div>
             <div class="dash-date-str">
