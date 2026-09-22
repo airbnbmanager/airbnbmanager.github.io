@@ -854,9 +854,6 @@ function renderShell(content, activePage = 'dashboard') {
               📱
             </button>
 
-            <button class="topbar-icon-btn" id="topbarThemeToggleBtn" onclick="window.toggleHorillaTheme()" title="Switch Light / Cyber-Dark Mode" style="font-size:16px;">
-              ${document.documentElement.classList.contains('horilla-dark') ? '☀️' : '🌙'}
-            </button>
 
             <button class="topbar-icon-btn" id="topbarNotifBtn" onclick="window.notifications&&window.notifications.openPanel();" title="Notifications">
               🔔<span class="notif-bell-badge" style="display:none;"></span>
@@ -1856,9 +1853,6 @@ async function renderSettings() {
           <div class="sub">Themes, brand info, review links, automated alerts and database settings</div>
         </div>
         <div style="display:flex;gap:8px;align-items:center;">
-          <div class="theme-toggle ${window.themeManager.isDark() ? 'active' : ''}" onclick="window.themeManager.toggle();this.classList.toggle('active');event.stopPropagation();" title="Quick toggle dark/light">
-            <div class="theme-toggle-switch"></div>
-          </div>
           <button class="btn-sm outline" onclick="renderSettings()">🔄 Refresh</button>
         </div>
       </div>
@@ -1888,9 +1882,9 @@ async function renderSettings() {
       <div class="card">
         <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
           <div>
-            <div class="section-title" style="margin:0;">🎨 Select App Theme</div>
+            <div class="section-title" style="margin:0;">🎨 App Theme</div>
             <div style="font-size:12px;color:var(--muted);margin-top:2px;">
-              Choose between classic Clean Light, dark editor themes (VS Code, Dracula, Nord, Monokai) or Midnight OLED.
+              Clean Light is the active theme — modern, high-contrast professional design.
             </div>
           </div>
           <span style="font-size:12px;color:var(--muted);font-weight:600;">Live Preview • Auto Saved</span>
@@ -2673,11 +2667,8 @@ window.openPreferences = function() {
       <div style="padding:20px;overflow-y:auto;flex:1;">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
           <div>
-            <div style="font-weight:700;font-size:15px;color:var(--text);">🎨 Select Workspace Theme</div>
-            <div style="font-size:12px;color:var(--muted);">Personalize your CRM with modern VS Code editor themes</div>
-          </div>
-          <div class="theme-toggle ${window.themeManager.isDark() ? 'active' : ''}" onclick="window.themeManager.toggle();this.classList.toggle('active');event.stopPropagation();" title="Quick toggle dark/light">
-            <div class="theme-toggle-switch"></div>
+            <div style="font-weight:700;font-size:15px;color:var(--text);">🎨 App Theme</div>
+            <div style="font-size:12px;color:var(--muted);">Clean Light — modern, high-contrast professional design</div>
           </div>
         </div>
 
