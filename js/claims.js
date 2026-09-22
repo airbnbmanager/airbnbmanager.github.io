@@ -56,6 +56,7 @@ window.renderClaims = async function() {
         <div style="display:flex;gap:8px;flex-wrap:wrap;">
           <button onclick="openUhhsDepositModal()" style="background:#0284C7;color:#fff;font-weight:700;">📥 Deposit Entry (UHHS-OD)</button>
           <button onclick="showUhhsStatementModal()" style="background:#0F766E;color:#fff;font-weight:600;">📜 UHHS Ledger</button>
+          <button onclick="showCompanyLedgerModal()" style="background:#7C3AED;color:#fff;font-weight:600;">🏢 Company Ledger</button>
           <button onclick="generateClaimReport()" style="background:#8B5CF6;color:#fff;font-weight:600;">📊 Claim Report Statement</button>
           <button onclick="copyClaimWhatsAppText()" style="background:#25D366;color:#fff;font-weight:600;">📱 WhatsApp Summary</button>
         </div>
@@ -1806,3 +1807,145 @@ window.copyClaimWhatsAppText = function() {
 };
 
 console.log("✅ Claims Manager v8 MASTER LOADED!");
+
+// ═══════════════════════════════════════════════════════════
+// 🏢 COMPANY LEDGER — Statement of Company-Paid Expenses
+// ═══════════════════════════════════════════════════════════
+
+window.showCompanyLedgerModal = function() {
+  const old = document.getElementById('companyLedgerModalOverlay');
+  if (old) old.remove();
+
+  const state = window._claimsState || {};
+  const fDate = state.fromDate || new Date().toISOString().slice(0, 10);
+  const tDate = state.toDate || new Date().toISOString().slice(0, 10);
+
+  const overlay = document.createElement('div');
+  overlay.id = 'companyLedgerModalOverlay';
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(15,23,42,0.65);z-index:9000000;display:flex;align-items:center;justify-content:center;padding:16px;';
+
+  overlay.innerHTML = `
+    <div style="background:#fff;border-radius:16px;width:100%;max-width:460px;box-shadow:0 20px 60px rgba(0,0,0,0.25);overflow:hidden;">
+      <div style="background:#7C3AED;color:#fff;padding:18px 20px;display:flex;justify-content:space-between;align-items:center;">
+        <div>
+          <div style="font-size:17px;font-weight:800;">🏢 Company Ledger</div>
+          <div style="font-size:12px;opacity:0.85;margin-top:2px;">Statement of all Company-paid expenses</div>
+        </div>
+        <button onclick="document.getElementById('companyLedgerModalOverlay').remove()" style="background:rgba(255,255,255,0.15);border:none;color:#fff;width:30px;height:30px;border-radius:8px;cursor:pointer;font-size:16px;">✕</button>
+      </div>
+      <div style="padding:20px;">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;">
+          <div>
+            <label style="font-size:11px;font-weight:700;color:#64748B;display:block;margin-bottom:4px;">📅 FROM DATE</label>
+            <input type="date" id="compLedgerFrom" value="${fDate}" style="width:100%;padding:8px;border:1.5px solid #E2E8F0;border-radius:8px;font-size:13px;">
+          </div>
+          <div>
+            <label style="font-size:11px;font-weight:700;color:#64748B;display:block;margin-bottom:4px;">📅 TO DATE</label>
+            <input type="date" id="compLedgerTo" value="${tDate}" style="width:100%;padding:8px;border:1.5px solid #E2E8F0;border-radius:8px;font-size:13px;">
+          </div>
+        </div>
+        <div style="background:#F5F3FF;border:1px solid #DDD6FE;border-radius:10px;padding:12px;margin-bottom:16px;font-size:12px;color:#5B21B6;">
+          ℹ️ Generates a <strong>PDF statement</strong> of all expenses paid via <strong>Company funds</strong> (guest rent / cash in hand) in the selected period.
+        </div>
+        <div style="display:flex;gap:10px;">
+          <button onclick="window.exportCompanyLedgerPDF(document.getElementById('compLedgerFrom').value,document.getElementById('compLedgerTo').value)" style="flex:1;padding:12px;background:#7C3AED;color:#fff;border:none;border-radius:10px;font-weight:700;font-size:14px;cursor:pointer;">
+            📄 Generate PDF Statement
+          </button>
+          <button onclick="document.getElementById('companyLedgerModalOverlay').remove()" style="padding:12px 18px;background:#F1F5F9;color:#475569;border:1.5px solid #E2E8F0;border-radius:10px;font-weight:600;cursor:pointer;">
+            Cancel
+          </button>
+        </div>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(overlay);
+  overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+};
+
+window.exportCompanyLedgerPDF = function(fDate, tDate) {
+  document.getElementById('companyLedgerModalOverlay')?.remove();
+
+  const allData = window._claimsState?.allData || [];
+
+  // Filter: COMPANY paid, within date range
+  const items = allData.filter(item => {
+    if (item.paidBy !== 'COMPANY') return false;
+    if (fDate && item.dateStr && item.dateStr < fDate) return false;
+    if (tDate && item.dateStr && item.dateStr > tDate) return false;
+    return true;
+  }).sort((a, b) => (a.dateStr || '').localeCompare(b.dateStr || ''));
+
+  const totalAmt = items.reduce((s, i) => s + (Number(i.amount) || 0), 0);
+  const settledAmt = items.filter(i => i.status === 'received').reduce((s, i) => s + (Number(i.amount) || 0), 0);
+  const pendingAmt = totalAmt - settledAmt;
+
+  // Category breakdown
+  const catMap = {};
+  items.forEach(i => { const c = i.moduleLabel || 'Other'; catMap[c] = (catMap[c] || 0) + (Number(i.amount) || 0); });
+
+  const esc = s => String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const title = 'Company Payments Statement (' + (fDate||'-') + ' to ' + (tDate||'-') + ')';
+
+  const printWin = window.open('', '_blank');
+  if (!printWin) { alert('Popup blocked! Please allow popups.'); return; }
+
+  printWin.document.title = title;
+  printWin.document.write(
+    '<!DOCTYPE html><html><head><meta charset="utf-8"><title>' + title + '</title><style>' +
+    '@page{size:A4;margin:10mm}*{box-sizing:border-box;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}' +
+    'body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;padding:10mm 14mm;margin:0;color:#1e293b;background:#fff}' +
+    '.toolbar{display:flex;justify-content:space-between;align-items:center;background:#7C3AED;color:#fff;padding:10px 16px;border-radius:8px;margin-bottom:20px}' +
+    '.toolbar button{background:#fff;color:#7C3AED;border:none;padding:8px 16px;border-radius:6px;font-weight:700;cursor:pointer;font-size:13px}' +
+    '.tbtn-close{background:#EF4444!important;color:#fff!important}' +
+    '.header{border-bottom:2px solid #7C3AED;padding-bottom:10px;margin-bottom:16px}' +
+    'h1{margin:0;color:#7C3AED;font-size:20px;font-weight:800}.sub{color:#64748b;font-size:11px;margin-top:4px}' +
+    '.cards{display:flex;gap:10px;margin-bottom:18px}.card{flex:1;padding:12px;border-radius:8px;text-align:center;border:1px solid #cbd5e1}' +
+    '.c-total{background:#F5F3FF;border-color:#C4B5FD}.c-settled{background:#f0fdf4;border-color:#86efac}.c-pending{background:#fef2f2;border-color:#fca5a5}' +
+    '.lbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px}.val{font-size:18px;font-weight:800;margin-top:2px}' +
+    '.cat-box{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:18px}.cat-chip{background:#F5F3FF;border:1px solid #DDD6FE;border-radius:20px;padding:4px 12px;font-size:11px;font-weight:600;color:#5B21B6}' +
+    'table{width:100%;border-collapse:collapse;font-size:11px}th{background:#F5F3FF;padding:8px;text-align:left;border-bottom:2px solid #C4B5FD;font-weight:700;color:#5B21B6}' +
+    'td{padding:7px 8px;border-bottom:1px solid #EDE9FE}' +
+    '.bs{background:#dcfce7;color:#15803d;padding:2px 6px;border-radius:4px;font-weight:700;font-size:9px}' +
+    '.bc{background:#fef9c3;color:#92400e;padding:2px 6px;border-radius:4px;font-weight:700;font-size:9px}' +
+    '.bp{background:#fee2e2;color:#b91c1c;padding:2px 6px;border-radius:4px;font-weight:700;font-size:9px}' +
+    '.tr-total{background:#F5F3FF;font-weight:800}' +
+    '@media print{body{padding:0}.toolbar{display:none!important}}' +
+    '</style></head><body>' +
+    '<div class="toolbar"><span style="font-weight:700;">🏢 ' + title + '</span>' +
+    '<div style="display:flex;gap:8px;"><button onclick="window.print()">🖨️ Print / Save as PDF</button>' +
+    '<button class="tbtn-close" onclick="window.close()">✕ Close</button></div></div>' +
+    '<div class="header"><h1>🏢 Company Payments Ledger</h1>' +
+    '<div class="sub">Period: <strong>' + (fDate||'-') + '</strong> → <strong>' + (tDate||'-') + '</strong> · Paid via: COMPANY (Guest Rent / Cash in Hand) · Generated: ' + new Date().toLocaleString('en-IN') + '</div></div>' +
+    '<div class="cards">' +
+    '<div class="card c-total"><div class="lbl" style="color:#5B21B6;">TOTAL COMPANY PAID</div><div class="val" style="color:#7C3AED;">₹' + totalAmt.toLocaleString('en-IN') + '</div><div style="font-size:10px;color:#64748b;margin-top:2px;">' + items.length + ' transactions</div></div>' +
+    '<div class="card c-settled"><div class="lbl" style="color:#166534;">SETTLED / RECEIVED</div><div class="val" style="color:#059669;">₹' + settledAmt.toLocaleString('en-IN') + '</div></div>' +
+    '<div class="card c-pending"><div class="lbl" style="color:#991b1b;">PENDING TO SETTLE</div><div class="val" style="color:#dc2626;">₹' + pendingAmt.toLocaleString('en-IN') + '</div></div>' +
+    '</div>' +
+    '<div style="font-size:11px;font-weight:700;color:#5B21B6;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;">Category Breakdown</div>' +
+    '<div class="cat-box">' + Object.entries(catMap).map(([c,a]) => '<div class="cat-chip">' + c + ': ₹' + a.toLocaleString('en-IN') + '</div>').join('') + '</div>' +
+    '<table><thead><tr><th>#</th><th>Date</th><th>Type</th><th>Description</th><th>Vendor / Staff</th><th>Status</th><th style="text-align:right;">Amount (₹)</th></tr></thead><tbody>' +
+    (items.length === 0
+      ? '<tr><td colspan="7" style="text-align:center;padding:20px;color:#64748B;">No COMPANY-paid expenses found in this date range.</td></tr>'
+      : items.map((item, idx) =>
+          '<tr>' +
+          '<td style="color:#64748B;">' + (idx+1) + '</td>' +
+          '<td>' + (item.dateStr||'-') + '</td>' +
+          '<td>' + (item.moduleLabel||'-') + '</td>' +
+          '<td>' + esc(item.description) + '</td>' +
+          '<td style="color:#475569;">' + esc(item.vendorOrStaff) + '</td>' +
+          '<td><span class="' + (item.status==='received'?'bs':item.status==='claimed'?'bc':'bp') + '">' + (item.status==='received'?'✅ SETTLED':item.status==='claimed'?'⏳ CLAIMED':'🔴 PENDING') + '</span></td>' +
+          '<td style="text-align:right;font-weight:700;color:#7C3AED;">₹' + (Number(item.amount)||0).toLocaleString('en-IN') + '</td>' +
+          '</tr>'
+        ).join('') +
+        '<tr class="tr-total"><td colspan="6" style="text-align:right;padding:10px 8px;font-size:13px;">🏢 TOTAL COMPANY PAID</td>' +
+        '<td style="text-align:right;font-size:14px;font-weight:800;color:#7C3AED;padding:10px 8px;">₹' + totalAmt.toLocaleString('en-IN') + '</td></tr>'
+    ) +
+    '</tbody></table>' +
+    '<div style="margin-top:24px;padding-top:12px;border-top:1px solid #DDD6FE;text-align:center;font-size:11px;color:#64748b;">' +
+    '<strong>THE UNIQUE HAVEN HOMES PRIVATE LIMITED</strong> · uniquehavenhomesstay.com<br>⚡ Developed by Praveen Singh</div>' +
+    '<script>window.onload=function(){setTimeout(function(){window.print();},400);};<\/script>' +
+    '</body></html>'
+  );
+  printWin.document.close();
+};
