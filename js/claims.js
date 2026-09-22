@@ -897,6 +897,8 @@ window.showUhhsStatementModal = async function() {
     modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.65);display:flex;align-items:center;justify-content:center;z-index:80000;padding:12px;box-sizing:border-box;backdrop-filter:blur(2px);';
     modal.onclick = e => { if (e.target === modal) window.closeUhhsStatementModal(); };
 
+    window._currentUhhsStatementData = { fDate, tDate, totalInflow, totalOutflow, netBalance, txns };
+
     modal.innerHTML = `
       <div class="modal-box" style="background:#fff;border-radius:12px;width:100%;max-width:850px;max-height:90vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 10px 30px rgba(0,0,0,0.35);margin:auto;" onclick="event.stopPropagation()">
         <!-- STICKY HEADER -->
@@ -911,7 +913,7 @@ window.showUhhsStatementModal = async function() {
           </div>
           <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
             <button onclick="openUhhsDepositModal()" style="padding:6px 12px;background:#10B981;color:#fff;border:none;border-radius:6px;font-weight:700;font-size:11.5px;cursor:pointer;">📥 + Add Deposit</button>
-            <button onclick="window.exportUhhsLedgerPDF('${fDate}', '${tDate}', ${totalInflow}, ${totalOutflow}, ${netBalance}, '${encodeURIComponent(JSON.stringify(txns))}')" style="padding:6px 12px;background:#0F172A;color:#fff;border:none;border-radius:6px;font-weight:700;font-size:11.5px;cursor:pointer;">📄 Export PDF</button>
+            <button onclick="window.exportUhhsLedgerPDF()" style="padding:6px 12px;background:#0F172A;color:#fff;border:none;border-radius:6px;font-weight:700;font-size:11.5px;cursor:pointer;">📄 Export PDF</button>
             <button onclick="window.closeUhhsStatementModal()" style="background:#EF4444;color:#fff;border:none;padding:6px 14px;border-radius:6px;font-weight:800;font-size:12.5px;cursor:pointer;display:inline-flex;align-items:center;gap:4px;box-shadow:0 1px 3px rgba(239,68,68,0.3);">✕ Close</button>
           </div>
         </div>
@@ -1367,21 +1369,50 @@ window.showEmployeeAdvanceAnalysisModal = async function(preselectedEmp = null) 
 };
 
 window.exportUhhsLedgerPDF = function(fDate, tDate, totalInflow, totalOutflow, netBalance, txnsJson) {
-  const txns = JSON.parse(decodeURIComponent(txnsJson));
+  let txns = [];
+  if ((!fDate || typeof fDate !== 'string') && window._currentUhhsStatementData) {
+    fDate = window._currentUhhsStatementData.fDate;
+    tDate = window._currentUhhsStatementData.tDate;
+    totalInflow = window._currentUhhsStatementData.totalInflow;
+    totalOutflow = window._currentUhhsStatementData.totalOutflow;
+    netBalance = window._currentUhhsStatementData.netBalance;
+    txns = window._currentUhhsStatementData.txns || [];
+  } else if (Array.isArray(txnsJson)) {
+    txns = txnsJson;
+  } else if (typeof txnsJson === 'string') {
+    try {
+      txns = JSON.parse(decodeURIComponent(txnsJson));
+    } catch (e) {
+      try { txns = JSON.parse(txnsJson); } catch (e2) { txns = []; }
+    }
+  } else if (window._currentUhhsStatementData?.txns) {
+    txns = window._currentUhhsStatementData.txns;
+  }
+
+  const safeFDate = fDate || '-';
+  const safeTDate = tDate || '-';
+  const safeInflow = Number(totalInflow) || 0;
+  const safeOutflow = Number(totalOutflow) || 0;
+  const safeBalance = Number(netBalance) || 0;
+
   const printWin = window.open('', '_blank');
   if (!printWin) { alert('Popup blocked! Please allow popups.'); return; }
-  
-  const title = `UHHS-OD Ledger Statement (${fDate} to ${tDate})`;
+
+  const escapeHtml = str => String(str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  const title = `UHHS-OD Ledger Statement (${safeFDate} to ${safeTDate})`;
   printWin.document.title = title;
   printWin.document.write(`
     <!DOCTYPE html>
     <html>
     <head>
+      <meta charset="utf-8">
       <title>${title}</title>
       <style>
-        @page { size: A4; margin: 0; }
+        @page { size: A4; margin: 10mm; }
         * { box-sizing: border-box; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 12mm 15mm; margin: 0; color: #1e293b; background: #fff; }
+        .toolbar { display: flex; justify-content: space-between; align-items: center; background: #0F172A; color: #fff; padding: 10px 16px; border-radius: 8px; margin-bottom: 20px; }
+        .toolbar button { background: #10B981; color: #fff; border: none; padding: 8px 16px; border-radius: 6px; font-weight: 700; cursor: pointer; font-size: 13px; }
         .header { border-bottom: 2px solid #0f766e; padding-bottom: 10px; margin-bottom: 16px; }
         h1 { margin: 0; color: #0f766e; font-size: 20px; font-weight: 800; }
         .sub { color: #64748b; font-size: 11px; margin-top: 4px; }
@@ -1389,7 +1420,7 @@ window.exportUhhsLedgerPDF = function(fDate, tDate, totalInflow, totalOutflow, n
         .card { flex: 1; padding: 12px; border-radius: 8px; text-align: center; border: 1px solid #cbd5e1; }
         .card-in { background: #f0fdf4; border-color: #86efac; }
         .card-out { background: #fef2f2; border-color: #fca5a5; }
-        .card-bal { background: ${netBalance >= 0 ? '#ecfdf5' : '#fff1f2'}; border-color: ${netBalance >= 0 ? '#6ee7b7' : '#fecdd3'}; }
+        .card-bal { background: ${safeBalance >= 0 ? '#ecfdf5' : '#fff1f2'}; border-color: ${safeBalance >= 0 ? '#6ee7b7' : '#fecdd3'}; }
         .lbl { font-size: 10px; font-weight: 700; text-transform: uppercase; }
         .val { font-size: 18px; font-weight: 800; margin-top: 2px; }
         table { width: 100%; border-collapse: collapse; font-size: 11px; }
@@ -1398,29 +1429,37 @@ window.exportUhhsLedgerPDF = function(fDate, tDate, totalInflow, totalOutflow, n
         .dep { background: #dcfce7; color: #15803d; padding: 2px 6px; border-radius: 4px; font-weight: 700; font-size: 9px; }
         .exp { background: #fee2e2; color: #b91c1c; padding: 2px 6px; border-radius: 4px; font-weight: 700; font-size: 9px; }
         @media print {
-          body { padding: 8mm 10mm; }
-          .no-print { display: none; }
+          body { padding: 0; }
+          .toolbar { display: none !important; }
         }
       </style>
     </head>
     <body>
+      <div class="toolbar no-print">
+        <span style="font-weight:700;">📄 ${title}</span>
+        <div style="display:flex;gap:8px;">
+          <button onclick="window.print()">🖨️ Print / Save as PDF</button>
+          <button onclick="window.close()" style="background:#EF4444;">✕ Close</button>
+        </div>
+      </div>
+
       <div class="header">
         <h1>📜 UHHS-OD Account Statement / Ledger</h1>
-        <div class="sub">Period: <strong>${fDate}</strong> → <strong>${tDate}</strong> | Generated: ${new Date().toLocaleString('en-IN')}</div>
+        <div class="sub">Period: <strong>${safeFDate}</strong> → <strong>${safeTDate}</strong> | Generated: ${new Date().toLocaleString('en-IN')}</div>
       </div>
 
       <div class="cards">
         <div class="card card-in">
           <div class="lbl" style="color:#166534;">TOTAL DEPOSITED (+)</div>
-          <div class="val" style="color:#059669;">₹${totalInflow.toLocaleString('en-IN')}</div>
+          <div class="val" style="color:#059669;">₹${safeInflow.toLocaleString('en-IN')}</div>
         </div>
         <div class="card card-out">
           <div class="lbl" style="color:#991b1b;">TOTAL SPENT (-)</div>
-          <div class="val" style="color:#dc2626;">₹${totalOutflow.toLocaleString('en-IN')}</div>
+          <div class="val" style="color:#dc2626;">₹${safeOutflow.toLocaleString('en-IN')}</div>
         </div>
         <div class="card card-bal">
-          <div class="lbl" style="color:${netBalance>=0?'#065f46':'#9f1239'};">NET RUNNING BALANCE</div>
-          <div class="val" style="color:${netBalance>=0?'#059669':'#dc2626'};">₹${netBalance.toLocaleString('en-IN')}</div>
+          <div class="lbl" style="color:${safeBalance>=0?'#065f46':'#9f1239'};">NET RUNNING BALANCE</div>
+          <div class="val" style="color:${safeBalance>=0?'#059669':'#dc2626'};">₹${safeBalance.toLocaleString('en-IN')}</div>
         </div>
       </div>
 
@@ -1438,21 +1477,25 @@ window.exportUhhsLedgerPDF = function(fDate, tDate, totalInflow, totalOutflow, n
             <tr>
               <td>${t.date || '-'}</td>
               <td><span class="${t.isDep ? 'dep' : 'exp'}">${t.isDep ? '📥 DEPOSIT' : '📤 EXPENSE'}</span></td>
-              <td>${t.desc}</td>
-              <td style="text-align:right;font-weight:700;color:${t.isDep?'#15803d':'#b91c1c'};">${t.isDep ? '+' : '-'}₹${t.amount.toLocaleString('en-IN')}</td>
+              <td>${escapeHtml(t.desc)}</td>
+              <td style="text-align:right;font-weight:700;color:${t.isDep?'#15803d':'#b91c1c'};">${t.isDep ? '+' : '-'}₹${(Number(t.amount) || 0).toLocaleString('en-IN')}</td>
             </tr>
           `).join('')}
         </tbody>
       </table>
 
-      ${window.getOfficialReportFooterHTML ? window.getOfficialReportFooterHTML() : `
+      ${typeof window.getOfficialReportFooterHTML === 'function' ? window.getOfficialReportFooterHTML() : `
         <div style="margin-top:24px;padding-top:12px;border-top:1px solid #cbd5e1;text-align:center;font-size:11px;color:#64748b;">
           <strong>THE UNIQUE HAVEN HOMES PRIVATE LIMITED</strong> &bull; uniquehavenhomesstay.com<br>
           ⚡ Developed by Praveen Singh
         </div>
       `}
 
-      <script>window.onload = function() { setTimeout(function(){ window.print(); }, 400); };</script>
+      <script>
+        window.onload = function() {
+          setTimeout(function(){ window.print(); }, 400);
+        };
+      </script>
     </body>
     </html>
   `);

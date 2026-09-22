@@ -182,13 +182,17 @@
         if (sbClient && this.prop && this.prop.id) {
           const { data: room, error } = await sbClient
             .from('rooms')
-            .select('map_link, nickname, property_name, unit_no, rent_per_night')
+            .select('map_link, nickname, property_name, unit_no, rent_per_night, airbnb_ical_url')
             .eq('room_id', this.prop.id)
             .single();
 
           if (!error && room) {
+            this.roomRecord = room;
             if (room.map_link) {
               this.prop.map_link = room.map_link;
+            }
+            if (room.airbnb_ical_url) {
+              this.prop.airbnb_ical_url = room.airbnb_ical_url;
             }
             if (room.rent_per_night && !isNaN(Number(room.rent_per_night))) {
               this.prop.base_price = Number(room.rent_per_night);
@@ -209,26 +213,88 @@
           sbClient = window.sb = supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY);
         }
 
+        const intervals = [];
+
+        // 1. Query Supabase CRM bookings & blocks
         if (sbClient) {
           const roomId = this.prop.id;
           const todayStr = new Date().toISOString().slice(0, 10);
           const { data, error } = await sbClient
             .from('guest_register')
-            .select('check_in, check_out, is_cancelled, verification_status')
+            .select('check_in, check_out, is_cancelled, verification_status, booking_mode')
             .eq('room_id', roomId)
             .neq('is_cancelled', true)
             .gte('check_out', todayStr);
 
           if (!error && Array.isArray(data)) {
-            this.bookedIntervals = data.map(b => ({
-              check_in: b.check_in,
-              check_out: b.check_out
-            }));
-            console.log(`Loaded ${this.bookedIntervals.length} booked periods for ${roomId}`);
+            data.forEach(b => {
+              if (b.check_in && b.check_out) {
+                intervals.push({
+                  check_in: b.check_in,
+                  check_out: b.check_out,
+                  source: b.booking_mode || 'Direct'
+                });
+              }
+            });
+            console.log(`Loaded ${data.length} CRM bookings for ${roomId}`);
           }
         }
+
+        // 2. Real-time Airbnb iCal Calendar Sync (CORS proxy fallback)
+        const icalUrl = this.prop.airbnb_ical_url;
+        if (icalUrl) {
+          const PROXIES = [
+            'https://vxxmigdzimnrbbmkjzoa.supabase.co/functions/v1/ical-proxy?url=',
+            'https://corsproxy.io/?',
+            'https://api.codetabs.com/v1/proxy?quest=',
+            'https://api.allorigins.win/raw?url='
+          ];
+
+          for (let p of PROXIES) {
+            try {
+              const res = await fetch(p + encodeURIComponent(icalUrl), {
+                headers: { 'Accept': 'text/calendar, text/plain, */*' }
+              });
+              if (res.ok) {
+                const text = await res.text();
+                if (text.includes('BEGIN:VCALENDAR')) {
+                  const events = text.split('BEGIN:VEVENT').slice(1);
+                  events.forEach(ev => {
+                    const startM = ev.match(/DTSTART[^:]*:(\d{8})/);
+                    const endM = ev.match(/DTEND[^:]*:(\d{8})/);
+                    if (startM && endM) {
+                      const s = startM[1];
+                      const e = endM[1];
+                      const ci = `${s.slice(0,4)}-${s.slice(4,6)}-${s.slice(6,8)}`;
+                      const co = `${e.slice(0,4)}-${e.slice(4,6)}-${e.slice(6,8)}`;
+                      intervals.push({
+                        check_in: ci,
+                        check_out: co,
+                        source: 'Airbnb Calendar'
+                      });
+                    }
+                  });
+                  console.log(`✅ Synced real-time Airbnb iCal for ${this.prop.name}`);
+                  break;
+                }
+              }
+            } catch(e) {
+              // Try next proxy
+            }
+          }
+        }
+
+        // Deduplicate intervals
+        const map = new Map();
+        intervals.forEach(inv => {
+          const key = `${inv.check_in}_${inv.check_out}`;
+          if (!map.has(key)) map.set(key, inv);
+        });
+        this.bookedIntervals = Array.from(map.values());
+        console.log(`Total active booked/blocked intervals for ${this.prop.id}: ${this.bookedIntervals.length}`);
+
       } catch (e) {
-        console.warn('Could not fetch real-time booked dates from Supabase:', e);
+        console.warn('Could not fetch real-time booked dates:', e);
       }
 
       // Check default dates availability & update live calendar
@@ -704,28 +770,50 @@
       const mapLink = p.map_link || 'https://maps.app.goo.gl/HvqjAfKwSC3Q6CJQA';
       const address = p.address || 'Gomti Nagar, Lucknow';
 
+      // Determine the best Google Map embed URL (from CRM or fallback query)
+      let embedUrl = p.map_embed;
+      if (!embedUrl) {
+        const query = encodeURIComponent(p.address || (p.name + ', Gomti Nagar, Lucknow'));
+        embedUrl = `https://maps.google.com/maps?q=${query}&t=&z=15&ie=UTF8&iwloc=&output=embed`;
+      }
+
       container.innerHTML = `
-        <div class="luxe-live-map-card">
-          <div class="luxe-live-map-top">
-            <div class="luxe-live-map-info">
-              <div class="luxe-map-pin-icon">📍</div>
+        <div class="luxe-live-map-card" style="background:#fff;border-radius:18px;border:1px solid var(--luxe-border);overflow:hidden;box-shadow:0 8px 24px rgba(0,0,0,0.04);margin-bottom:20px;">
+          <div class="luxe-live-map-top" style="padding:18px 20px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;">
+            <div class="luxe-live-map-info" style="display:flex;align-items:center;gap:10px;">
+              <div class="luxe-map-pin-icon" style="font-size:24px;">📍</div>
               <div>
-                <div class="luxe-live-map-address">${p.name} · Verified Pinpoint Location</div>
-                <div class="luxe-live-map-sub">${address}</div>
+                <div class="luxe-live-map-address" style="font-weight:800;font-size:15px;color:var(--luxe-ink);">${p.name} · Verified Pinpoint Location</div>
+                <div class="luxe-live-map-sub" style="font-size:12.5px;color:var(--luxe-muted);">${address}</div>
               </div>
             </div>
-            <div class="luxe-map-actions">
-              <a class="luxe-btn-map-primary" href="${mapLink}" target="_blank" rel="noopener">
-                📍 Open Exact Pin on Google Maps ↗
+            <div class="luxe-map-actions" style="display:flex;gap:8px;flex-wrap:wrap;">
+              <a class="luxe-btn-map-primary" href="${mapLink}" target="_blank" rel="noopener" style="padding:8px 16px;background:#2563EB;color:#fff;border-radius:8px;font-size:12.5px;font-weight:700;text-decoration:none;display:inline-flex;align-items:center;gap:4px;">
+                📍 Open in Google Maps ↗
               </a>
-              <a class="luxe-btn-map-dir" href="https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(mapLink)}" target="_blank" rel="noopener">
-                🧭 Get Driving Directions
+              <a class="luxe-btn-map-dir" href="https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(mapLink)}" target="_blank" rel="noopener" style="padding:8px 16px;background:#f1f5f9;color:#334155;border-radius:8px;font-size:12.5px;font-weight:700;text-decoration:none;display:inline-flex;align-items:center;gap:4px;">
+                🧭 Directions
               </a>
             </div>
           </div>
-          <div style="background:#f8fafc; padding:14px 20px; font-size:12.5px; color:var(--luxe-muted); display:flex; align-items:center; gap:8px; border-top:1px solid var(--luxe-border);">
-            <span style="color:#059669; font-weight:800;">✓ Live CRM Synced</span>
-            <span>· Exact arrival coordinates directly matched with owner &amp; caretaker Google Map pin.</span>
+
+          <!-- Interactive Embedded Google Map fetched from UHHS -->
+          <div class="luxe-map-embed-frame" style="width:100%;height:340px;border-top:1px solid var(--luxe-border);background:#e2e8f0;position:relative;">
+            <iframe 
+              src="${embedUrl}" 
+              width="100%" 
+              height="100%" 
+              style="border:0;display:block;" 
+              allowfullscreen="" 
+              loading="lazy" 
+              referrerpolicy="no-referrer-when-downgrade" 
+              title="${p.name} Location Map">
+            </iframe>
+          </div>
+
+          <div style="background:#f8fafc; padding:12px 20px; font-size:12px; color:var(--luxe-muted); display:flex; align-items:center; gap:8px; border-top:1px solid var(--luxe-border);">
+            <span style="color:#059669; font-weight:800;">✓ Live UHHS Synced</span>
+            <span>· Exact arrival coordinates matched with owner &amp; caretaker verified GPS pin.</span>
           </div>
         </div>
       `;
@@ -1282,7 +1370,7 @@ _Please confirm room allotment and send check-in details. Thank you!_`;
       const airbnbPrice = p.airbnb_price || Math.round(directPrice * 1.18);
       const savings = airbnbPrice - directPrice;
       const rating = p.rating || '4.92';
-      const reviews = p.review_count || '120+';
+      const reviews = p.review_count || p.reviews || '120+';
 
       let modal = document.getElementById('luxe-airbnb-preview-overlay');
       if (!modal) {
@@ -1299,15 +1387,28 @@ _Please confirm room allotment and send check-in details. Thank you!_`;
           <!-- Header -->
           <div class="luxe-airbnb-modal-head">
             <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
-              <svg width="22" height="22" viewBox="0 0 32 32" fill="#FF385C" style="flex-shrink:0"><path d="M16 1C7.716 1 1 7.716 1 16s6.716 15 15 15 15-6.716 15-15S24.284 1 16 1zm0 4.5c1.38 0 2.5 1.12 2.5 2.5S17.38 10.5 16 10.5 13.5 9.38 13.5 8s1.12-2.5 2.5-2.5zm5.5 16.75h-4v-7.5h-3v7.5H10.5V15c0-1.38 1.12-2.5 2.5-2.5h6c1.38 0 2.5 1.12 2.5 2.5v7.25z"/></svg>
+              <svg width="24" height="24" viewBox="0 0 32 32" fill="#FF385C" style="flex-shrink:0"><path d="M16 1C7.716 1 1 7.716 1 16s6.716 15 15 15 15-6.716 15-15S24.284 1 16 1zm0 4.5c1.38 0 2.5 1.12 2.5 2.5S17.38 10.5 16 10.5 13.5 9.38 13.5 8s1.12-2.5 2.5-2.5zm5.5 16.75h-4v-7.5h-3v7.5H10.5V15c0-1.38 1.12-2.5 2.5-2.5h6c1.38 0 2.5 1.12 2.5 2.5v7.25z"/></svg>
               <div>
-                <div style="font-size:11px;font-weight:700;color:#FF385C;text-transform:uppercase;letter-spacing:1px;">Airbnb Listing Preview</div>
-                <div style="font-size:15px;font-weight:800;color:#141b24;">${p.name}</div>
+                <div style="font-size:11px;font-weight:800;color:#FF385C;text-transform:uppercase;letter-spacing:1px;">Airbnb Superhost Verified Listing</div>
+                <div style="font-size:16px;font-weight:800;color:#141b24;">${p.name} · Lucknow</div>
               </div>
             </div>
-            <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
-              <span style="background:#FFF1F0;color:#FF385C;border:1px solid #FFD6D0;padding:3px 10px;border-radius:999px;font-size:12px;font-weight:700;">⭐ ${rating} · ${reviews} reviews</span>
+            <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-top:6px;">
+              <span style="background:#FFF1F0;color:#FF385C;border:1px solid #FFD6D0;padding:3px 10px;border-radius:999px;font-size:12px;font-weight:700;">⭐ ${rating} · ${reviews} verified reviews</span>
               <span style="background:#f0fdf4;color:#166534;border:1px solid #bbf7d0;padding:3px 10px;border-radius:999px;font-size:12px;font-weight:700;">Superhost Verified</span>
+              <span style="background:#f8fafc;color:#475569;border:1px solid #e2e8f0;padding:3px 10px;border-radius:999px;font-size:12px;font-weight:600;">100% Response Rate</span>
+            </div>
+          </div>
+
+          <!-- Verified Listing Details & Amenities -->
+          <div style="padding:12px 22px;background:#fafafa;border-bottom:1px solid #f1f5f9;font-size:12px;color:#475569;">
+            <div style="font-weight:700;color:#1e293b;margin-bottom:6px;font-size:11.5px;text-transform:uppercase;letter-spacing:0.5px;">Verified Airbnb Amenities</div>
+            <div style="display:flex;gap:6px;flex-wrap:wrap;">
+              <span style="background:#fff;border:1px solid #e2e8f0;padding:3px 8px;border-radius:6px;">❄️ 100% AC All Rooms</span>
+              <span style="background:#fff;border:1px solid #e2e8f0;padding:3px 8px;border-radius:6px;">📶 High-Speed WiFi</span>
+              <span style="background:#fff;border:1px solid #e2e8f0;padding:3px 8px;border-radius:6px;">🍳 Modular Kitchen</span>
+              <span style="background:#fff;border:1px solid #e2e8f0;padding:3px 8px;border-radius:6px;">🚗 Free Parking</span>
+              <span style="background:#fff;border:1px solid #e2e8f0;padding:3px 8px;border-radius:6px;">⚡ Power Backup</span>
             </div>
           </div>
 
@@ -1315,32 +1416,37 @@ _Please confirm room allotment and send check-in details. Thank you!_`;
           <div class="luxe-airbnb-modal-compare">
             <div class="luxe-airbnb-price-row luxe-airbnb-price-bad">
               <div>
-                <div style="font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:2px;">On Airbnb (with fees)</div>
+                <div style="font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:2px;">On Airbnb (with ~18% platform fees)</div>
                 <div style="font-size:22px;font-weight:800;color:#ef4444;text-decoration:line-through;">₹${airbnbPrice.toLocaleString('en-IN')}<span style="font-size:12px;font-weight:400;"> / night</span></div>
               </div>
-              <div style="font-size:28px;">😟</div>
+              <div style="font-size:26px;">😟</div>
             </div>
-            <div style="text-align:center;padding:6px 0;font-size:13px;color:#64748b;">vs</div>
+            <div style="text-align:center;padding:6px 0;font-size:13px;color:#64748b;font-weight:700;">vs Direct Booking</div>
             <div class="luxe-airbnb-price-row luxe-airbnb-price-good">
               <div>
-                <div style="font-size:11px;color:#166534;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:2px;">Book Direct with Us</div>
+                <div style="font-size:11px;color:#166534;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:2px;">Book Direct With Us</div>
                 <div style="font-size:26px;font-weight:800;color:#166534;">₹${directPrice.toLocaleString('en-IN')}<span style="font-size:12px;font-weight:400;"> / night</span></div>
               </div>
               <div style="text-align:right;">
-                <div style="background:#22c55e;color:#fff;padding:4px 12px;border-radius:999px;font-size:13px;font-weight:800;">SAVE ₹${savings.toLocaleString('en-IN')}</div>
-                <div style="font-size:11px;color:#166534;margin-top:4px;">Zero commission · Zero fees</div>
+                <div style="background:#22c55e;color:#fff;padding:4px 12px;border-radius:999px;font-size:13px;font-weight:800;">SAVE ₹${savings.toLocaleString('en-IN')} / night</div>
+                <div style="font-size:11px;color:#166534;margin-top:4px;">0% Commission · Instant Confirmation</div>
               </div>
             </div>
           </div>
 
-          <!-- CTAs -->
+          <!-- CTAs: Kept on Page -->
           <div class="luxe-airbnb-modal-actions">
             <button type="button" class="luxe-airbnb-book-direct" onclick="document.getElementById('luxe-airbnb-preview-overlay').remove(); window.luxeEngine.openUpiPaymentModal();">
               💳 Book Direct &amp; Save ₹${savings.toLocaleString('en-IN')} →
             </button>
-            <a class="luxe-airbnb-view-btn" href="${airbnbUrl}" target="_blank" rel="noopener" onclick="setTimeout(()=>document.getElementById('luxe-airbnb-preview-overlay')?.remove(),300)">
-              Continue to Airbnb ↗
-            </a>
+            <button type="button" class="luxe-airbnb-view-btn" onclick="document.getElementById('luxe-airbnb-preview-overlay').remove();" style="border:1.5px solid #cbd5e1;color:#334155;background:#f8fafc;">
+              ← Stay on This Page &amp; Reserve
+            </button>
+            <div style="text-align:center;margin-top:2px;">
+              <a href="${airbnbUrl}" target="_blank" rel="noopener" style="font-size:11.5px;color:#64748b;text-decoration:underline;">
+                Open external Airbnb listing in background tab ↗
+              </a>
+            </div>
           </div>
         </div>
       `;

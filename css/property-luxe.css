@@ -1246,16 +1246,29 @@ body.luxe-property-page .hero-frame {
   }
 }
 
-@media (max-width: 480px) {
-  .luxe-btn-wa span {
-    display: none;
+@media (max-width: 640px) {
+  .luxe-btn-wa,
+  header a.luxe-btn-wa,
+  nav a.luxe-btn-wa {
+    width: 40px !important;
+    height: 40px !important;
+    min-width: 40px !important;
+    min-height: 40px !important;
+    padding: 0 !important;
+    border-radius: 50% !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    flex-shrink: 0 !important;
   }
-  .luxe-btn-wa {
-    padding: 7px;
-    width: 34px;
-    height: 34px;
-    border-radius: 50%;
-    justify-content: center;
+  .luxe-btn-wa .luxe-wa-text,
+  .luxe-btn-wa span {
+    display: none !important;
+  }
+  .luxe-btn-wa svg {
+    width: 20px !important;
+    height: 20px !important;
+    margin: 0 !important;
   }
 }
 
@@ -2016,6 +2029,24 @@ body.luxe-property-page .hero-frame {
   height: 320px;
   border: none;
   background: #f8fafc;
+}
+
+.luxe-map-embed-frame {
+  width: 100%;
+  height: 340px;
+  background: #f1f5f9;
+  position: relative;
+}
+.luxe-map-embed-frame iframe {
+  width: 100%;
+  height: 100%;
+  border: 0;
+  display: block;
+}
+@media (max-width: 640px) {
+  .luxe-map-embed-frame {
+    height: 260px;
+  }
 }
 
 /* ─── BOOKING SUCCESS VOUCHER MODAL ─── */

@@ -324,11 +324,11 @@ async function renderDashboard() {
     <style id="dash-custom-styles">
       .dash-wrap { max-width: 1360px; margin: 0 auto; padding: 0 4px; }
       .dash-hero {
-        background: linear-gradient(135deg, #FFFFFF 0%, #F8FAFC 100%);
+        background: var(--card);
         border: 1px solid var(--border);
         border-radius: 16px;
         padding: 20px;
-        box-shadow: 0 2px 8px -2px rgba(15, 23, 42, 0.05);
+        box-shadow: var(--shadow);
         margin-bottom: 20px;
       }
       .dash-hero-top {
@@ -352,7 +352,7 @@ async function renderDashboard() {
       .dash-heading {
         font-size: 22px;
         font-weight: 800;
-        color: var(--dark);
+        color: var(--text);
         margin: 4px 0 2px;
         letter-spacing: -0.3px;
       }
@@ -367,6 +367,37 @@ async function renderDashboard() {
         gap: 8px;
         flex-wrap: wrap;
       }
+      .dash-online-badge {
+        cursor: pointer;
+        padding: 6px 12px;
+        background: var(--green-light);
+        border: 1px solid var(--green);
+        border-radius: 10px;
+        transition: all 0.2s ease;
+      }
+      .dash-online-lbl {
+        font-size: 9px;
+        color: var(--green);
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+      .dash-online-val {
+        font-size: 13px;
+        font-weight: 800;
+        color: var(--green);
+        display: flex;
+        align-items: center;
+        gap: 5px;
+      }
+      .dash-online-dot {
+        width: 7px;
+        height: 7px;
+        background: var(--green);
+        border-radius: 50%;
+        display: inline-block;
+        animation: pulse-dot 1.5s ease-in-out infinite;
+      }
       .dash-pill-btn {
         display: inline-flex;
         align-items: center;
@@ -378,8 +409,8 @@ async function renderDashboard() {
         cursor: pointer;
         transition: all 0.2s ease;
         border: 1px solid var(--border);
-        background: #FFFFFF;
-        color: var(--dark);
+        background: var(--card);
+        color: var(--text);
         user-select: none;
       }
       .dash-pill-btn:hover {
@@ -392,7 +423,7 @@ async function renderDashboard() {
         background: var(--primary);
         color: #FFFFFF;
         border-color: var(--primary);
-        box-shadow: 0 2px 6px rgba(79, 70, 229, 0.25);
+        box-shadow: 0 2px 6px var(--primary-glow);
       }
       .dash-pill-btn.primary:hover {
         background: var(--primary-dark);
@@ -415,7 +446,7 @@ async function renderDashboard() {
         font-size: 12px;
         font-weight: 700;
         text-transform: uppercase;
-        color: var(--text-secondary);
+        color: var(--muted);
         letter-spacing: 0.5px;
       }
       .room-matrix-tabs {
@@ -432,20 +463,21 @@ async function renderDashboard() {
         font-size: 11px;
         font-weight: 600;
         border: 1px solid var(--border);
-        background: #FFFFFF;
+        background: var(--card);
         color: var(--muted);
         cursor: pointer;
         transition: all 0.15s ease;
         white-space: nowrap;
       }
       .room-matrix-tab:hover {
-        color: var(--dark);
-        border-color: var(--muted);
+        color: var(--text);
+        border-color: var(--primary);
       }
       .room-matrix-tab.active {
-        background: var(--dark);
+        background: var(--primary);
         color: #FFFFFF;
-        border-color: var(--dark);
+        border-color: var(--primary);
+        box-shadow: 0 0 10px var(--primary-glow);
       }
       .room-matrix-grid {
         display: grid;
@@ -456,17 +488,26 @@ async function renderDashboard() {
         cursor: pointer;
         padding: 8px 12px;
         border-radius: 10px;
-        border: 1px solid rgba(0,0,0,0.05);
+        border: 1px solid var(--border-light);
         display: flex;
         align-items: center;
         justify-content: space-between;
         gap: 8px;
         transition: all 0.2s ease;
+        background: var(--card);
       }
       .room-matrix-item:hover {
         transform: translateY(-2px);
         box-shadow: 0 4px 12px -2px rgba(0,0,0,0.08);
       }
+      .room-matrix-item.status-ready { background: #ECFDF5; border-color: #A7F3D0; }
+      .room-matrix-item.status-ready span { color: #065F46; }
+      .room-matrix-item.status-booked { background: #F0F9FF; border-color: #BAE6FD; }
+      .room-matrix-item.status-booked span { color: #075985; }
+      .room-matrix-item.status-dirty { background: #FFFBEB; border-color: #FDE68A; }
+      .room-matrix-item.status-dirty span { color: #92400E; }
+      .room-matrix-item.status-maint { background: #FEF2F2; border-color: #FECACA; }
+      .room-matrix-item.status-maint span { color: #991B1B; }
 
       /* Hero KPI Ribbon */
       .dash-kpi-ribbon {
@@ -476,11 +517,11 @@ async function renderDashboard() {
         margin-bottom: 22px;
       }
       .dash-kpi-card {
-        background: #FFFFFF;
+        background: var(--card);
         border-radius: 16px;
         padding: 16px 18px;
         border: 1px solid var(--border);
-        box-shadow: 0 2px 6px -1px rgba(15, 23, 42, 0.04);
+        box-shadow: var(--shadow);
         cursor: pointer;
         transition: all 0.2s ease;
         display: flex;
@@ -491,8 +532,8 @@ async function renderDashboard() {
       }
       .dash-kpi-card:hover {
         transform: translateY(-2px);
-        box-shadow: 0 8px 20px -4px rgba(15, 23, 42, 0.08);
-        border-color: rgba(79, 70, 229, 0.3);
+        box-shadow: var(--shadow-hover);
+        border-color: var(--primary);
       }
       .dash-kpi-card::before {
         content: '';
@@ -525,10 +566,15 @@ async function renderDashboard() {
         justify-content: center;
         font-size: 15px;
       }
+      .dash-kpi-icon.occupancy { background: var(--blue-light); color: var(--blue); }
+      .dash-kpi-icon.checkins { background: var(--green-light); color: var(--green); }
+      .dash-kpi-icon.checkouts { background: var(--primary-light); color: var(--primary); }
+      .dash-kpi-icon.revenue { background: var(--green-light); color: #10B981; }
+
       .dash-kpi-num {
         font-size: 26px;
         font-weight: 800;
-        color: var(--dark);
+        color: var(--text);
         line-height: 1.1;
         letter-spacing: -0.5px;
       }
@@ -545,7 +591,7 @@ async function renderDashboard() {
       }
       .dash-progress-bar {
         height: 5px;
-        background: #F1F5F9;
+        background: var(--border-light);
         border-radius: 4px;
         margin-top: 10px;
         overflow: hidden;
@@ -577,7 +623,7 @@ async function renderDashboard() {
         border-radius: 12px;
         font-size: 13.5px;
         font-weight: 700;
-        background: #FFFFFF;
+        background: var(--card);
         color: var(--muted);
         border: 1px solid var(--border);
         cursor: pointer;
@@ -586,14 +632,14 @@ async function renderDashboard() {
         user-select: none;
       }
       .dash-nav-tab:hover {
-        color: var(--dark);
-        border-color: var(--muted);
+        color: var(--text);
+        border-color: var(--primary);
       }
       .dash-nav-tab.active {
-        background: var(--dark);
+        background: var(--primary);
         color: #FFFFFF;
-        border-color: var(--dark);
-        box-shadow: 0 4px 12px -2px rgba(15, 23, 42, 0.2);
+        border-color: var(--primary);
+        box-shadow: 0 4px 14px var(--primary-glow);
       }
       .dash-tab-badge {
         font-size: 11px;
@@ -623,12 +669,18 @@ async function renderDashboard() {
 
       /* Attention Banner */
       .dash-attention-card {
-        background: #FFF7ED;
-        border: 1px solid #FFEDD5;
-        border-left: 5px solid #F97316;
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-left: 5px solid var(--primary);
         border-radius: 14px;
         padding: 16px;
         margin-bottom: 18px;
+        box-shadow: var(--shadow);
+      }
+      .dash-attention-card.all-clear {
+        border-left-color: var(--green);
+        background: var(--green-light);
+        border-color: var(--green);
       }
       .dash-attention-header {
         display: flex;
@@ -639,7 +691,7 @@ async function renderDashboard() {
       .dash-attention-title {
         font-size: 14px;
         font-weight: 800;
-        color: #9A3412;
+        color: var(--text);
         display: flex;
         align-items: center;
         gap: 8px;
@@ -653,11 +705,11 @@ async function renderDashboard() {
         margin-bottom: 20px;
       }
       .dash-panel-card {
-        background: #FFFFFF;
+        background: var(--card);
         border: 1px solid var(--border);
         border-radius: 16px;
         padding: 18px;
-        box-shadow: 0 2px 6px -1px rgba(15, 23, 42, 0.03);
+        box-shadow: var(--shadow);
       }
       .dash-panel-head {
         display: flex;
@@ -670,7 +722,7 @@ async function renderDashboard() {
       .dash-panel-title {
         font-size: 14px;
         font-weight: 800;
-        color: var(--dark);
+        color: var(--text);
         display: flex;
         align-items: center;
         gap: 8px;
@@ -680,7 +732,14 @@ async function renderDashboard() {
         font-weight: 700;
         padding: 3px 8px;
         border-radius: 20px;
+        background: var(--bg);
+        color: var(--muted);
       }
+      .dash-panel-count.green { background: var(--green-light); color: var(--green); }
+      .dash-panel-count.blue { background: var(--blue-light); color: var(--blue); }
+      .dash-panel-count.primary { background: var(--primary-light); color: var(--primary); }
+      .dash-panel-count.yellow { background: var(--yellow-light); color: var(--yellow); }
+      .dash-panel-count.red { background: var(--red-light); color: var(--red); }
 
       /* Guest Card Items */
       .dash-guest-item {
@@ -696,9 +755,9 @@ async function renderDashboard() {
         gap: 12px;
       }
       .dash-guest-item:hover {
-        background: #FFFFFF;
-        border-color: var(--border);
-        box-shadow: 0 4px 10px -2px rgba(15, 23, 42, 0.05);
+        background: var(--card);
+        border-color: var(--primary);
+        box-shadow: var(--shadow);
       }
       .dash-guest-info { flex: 1; min-width: 0; }
       .dash-guest-primary {
@@ -721,7 +780,7 @@ async function renderDashboard() {
         font-weight: 700;
         padding: 2px 7px;
         border-radius: 6px;
-        background: #EEF2FF;
+        background: var(--primary-light);
         color: var(--primary);
         white-space: nowrap;
       }
@@ -756,15 +815,15 @@ async function renderDashboard() {
         justify-content: center;
         font-size: 14px;
         border: 1px solid var(--border);
-        background: #FFFFFF;
-        color: var(--dark);
+        background: var(--card);
+        color: var(--text);
         cursor: pointer;
         text-decoration: none;
         transition: all 0.15s ease;
       }
       .dash-icon-btn:hover {
         background: var(--bg);
-        border-color: var(--muted);
+        border-color: var(--primary);
         transform: scale(1.05);
       }
       .dash-icon-btn.wa {
@@ -875,10 +934,10 @@ async function renderDashboard() {
 
           <div class="dash-hero-actions">
             ${SESSION.role === 'developer' ? `
-            <div style="cursor:pointer;padding:6px 12px;background:#F0FDF4;border:1px solid #BBF7D0;border-radius:10px;" onclick="showActiveUsersModal()" title="Click to see online users">
-              <div style="font-size:9px;color:#166534;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;">Online Now</div>
-              <div style="font-size:13px;font-weight:800;color:#15803D;display:flex;align-items:center;gap:5px;">
-                <span style="width:7px;height:7px;background:#22C55E;border-radius:50%;display:inline-block;animation:pulse-dot 1.5s ease-in-out infinite;"></span>
+            <div class="dash-online-badge" onclick="showActiveUsersModal()" title="Click to see online users">
+              <div class="dash-online-lbl">Online Now</div>
+              <div class="dash-online-val">
+                <span class="dash-online-dot"></span>
                 ${activeUsers.length} online
               </div>
             </div>
@@ -908,20 +967,18 @@ async function renderDashboard() {
             const isDirty = fl.cleaning_status === 'Dirty';
             const isMaint = fl.status === 'Blocked-Maintenance';
             let dotColor = '#10B981';
-            let bg = '#ECFDF5';
-            let text = '#065F46';
             let label = 'Ready';
             let filterType = 'ready';
 
-            if (isMaint) { dotColor = '#EF4444'; bg = '#FEF2F2'; text = '#991B1B'; label = 'Maint'; filterType = 'maint'; }
-            else if (isBooked) { dotColor = '#0EA5E9'; bg = '#F0F9FF'; text = '#075985'; label = 'Booked'; filterType = 'booked'; }
-            else if (isDirty) { dotColor = '#F59E0B'; bg = '#FFFBEB'; text = '#92400E'; label = 'Dirty'; filterType = 'dirty'; }
+            if (isMaint) { dotColor = '#EF4444'; label = 'Maint'; filterType = 'maint'; }
+            else if (isBooked) { dotColor = '#0EA5E9'; label = 'Booked'; filterType = 'booked'; }
+            else if (isDirty) { dotColor = '#F59E0B'; label = 'Dirty'; filterType = 'dirty'; }
 
             return `
-              <div class="room-matrix-item" data-status="${filterType}" onclick="navigate('flats')" title="${fName(fl)}: ${label}" style="background:${bg};">
-                <span style="font-size:11.5px;font-weight:700;color:${text};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${fName(fl)}</span>
+              <div class="room-matrix-item status-${filterType}" data-status="${filterType}" onclick="navigate('flats')" title="${fName(fl)}: ${label}">
+                <span style="font-size:11.5px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${fName(fl)}</span>
                 <span style="display:flex;align-items:center;gap:4px;">
-                  <span style="font-size:10px;font-weight:600;color:${text};opacity:0.8;">${label}</span>
+                  <span style="font-size:10px;font-weight:600;opacity:0.85;">${label}</span>
                   <span style="width:7px;height:7px;border-radius:50%;background:${dotColor};flex-shrink:0;"></span>
                 </span>
               </div>
@@ -936,7 +993,7 @@ async function renderDashboard() {
         <div class="dash-kpi-card occupancy" onclick="filterAndShowFlats('occupied')">
           <div class="dash-kpi-top">
             <span class="dash-kpi-label">Live Occupancy</span>
-            <div class="dash-kpi-icon" style="background:#F0F9FF;color:#0284C7;">🛏️</div>
+            <div class="dash-kpi-icon occupancy">🛏️</div>
           </div>
           <div class="dash-kpi-num">${occupancyPct}%</div>
           <div class="dash-kpi-sub">${bookedNow.length} of ${totalProps} flats booked</div>
@@ -949,7 +1006,7 @@ async function renderDashboard() {
         <div class="dash-kpi-card checkins" onclick="filterAndShowBookings('checkinToday')">
           <div class="dash-kpi-top">
             <span class="dash-kpi-label">Today's Check-ins</span>
-            <div class="dash-kpi-icon" style="background:#ECFDF5;color:#059669;">📥</div>
+            <div class="dash-kpi-icon checkins">📥</div>
           </div>
           <div class="dash-kpi-num">${realCheckins.length}</div>
           <div class="dash-kpi-sub">${realCheckins.filter(x => x.actual_checkin).length} already checked-in &bull; ${realCheckins.filter(x => !x.actual_checkin).length} pending</div>
@@ -959,7 +1016,7 @@ async function renderDashboard() {
         <div class="dash-kpi-card checkouts" onclick="filterAndShowBookings('checkoutToday')">
           <div class="dash-kpi-top">
             <span class="dash-kpi-label">Today's Check-outs</span>
-            <div class="dash-kpi-icon" style="background:#EEF2FF;color:#4F46E5;">📤</div>
+            <div class="dash-kpi-icon checkouts">📤</div>
           </div>
           <div class="dash-kpi-num">${realCheckouts.length}</div>
           <div class="dash-kpi-sub">${realCheckouts.filter(x => x.actual_checkout).length} departed &bull; ${realCheckouts.filter(x => !x.actual_checkout).length} remaining</div>
@@ -969,11 +1026,11 @@ async function renderDashboard() {
         <div class="dash-kpi-card revenue" onclick="filterAndShowBookings('todayRevenue')">
           <div class="dash-kpi-top">
             <span class="dash-kpi-label">Today's Booking Value</span>
-            <div class="dash-kpi-icon" style="background:#ECFDF5;color:#10B981;">💰</div>
+            <div class="dash-kpi-icon revenue">💰</div>
           </div>
           <div class="dash-kpi-num">₹${todayRevenue.toLocaleString('en-IN')}</div>
           <div class="dash-kpi-sub" style="color:var(--text-secondary);">
-            Collected: <strong style="color:#059669;">₹${todayCollected.toLocaleString('en-IN')}</strong> &bull; Due: <strong style="color:#DC2626;">₹${todayPending.toLocaleString('en-IN')}</strong>
+            Collected: <strong style="color:var(--green);">₹${todayCollected.toLocaleString('en-IN')}</strong> &bull; Due: <strong style="color:var(--red);">₹${todayPending.toLocaleString('en-IN')}</strong>
           </div>
         </div>
       </div>
@@ -997,28 +1054,28 @@ async function renderDashboard() {
       <!-- TAB 1: GUEST FLOW (CHECK-INS, CHECK-OUTS, ATTENTION, ACTIVE STAYS) -->
       <div class="dash-tab-pane ${window._activeDashTab === 'flow' ? 'active' : ''}" id="dash-tab-flow">
         <!-- Attention Needed Box (Late checkouts / Arriving soon / Laundry reminders) -->
-        <div class="dash-attention-card stat-card" id="dashAttentionCard" style="${totalAttention === 0 ? 'border-left-color:#10B981;background:#F0FDF4;' : ''}">
+        <div class="dash-attention-card ${totalAttention === 0 ? 'all-clear' : ''}" id="dashAttentionCard">
           <div class="dash-attention-header">
-            <div class="dash-attention-title stat-label" style="color:${totalAttention === 0 ? '#15803D' : '#9A3412'};">
-              <span>⏰</span> Attention Needed (<span class="stat-num">${totalAttention}</span>)
+            <div class="dash-attention-title">
+              <span>⏰</span> Attention Needed (<span style="color:var(--primary);font-weight:900;">${totalAttention}</span>)
             </div>
             ${totalAttention > 0 ? `<span class="badge yellow" style="font-size:11px;">Immediate Action Required</span>` : `<span class="badge green" style="font-size:11px;">All on track ✅</span>`}
           </div>
           <div id="dashAttentionContent" style="max-height:260px;overflow-y:auto;">
             ${lateCheckouts.length > 0 ? `
               <div style="margin-bottom:12px;">
-                <div style="font-size:12px;font-weight:800;color:#DC2626;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">
+                <div style="font-size:12px;font-weight:800;color:var(--red);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">
                   🚨 Late Check-outs (${lateCheckouts.length})
                 </div>
                 ${lateCheckouts.map(x => `
-                  <div class="dash-guest-item" style="background:#FEF2F2;border-color:#FCA5A5;">
+                  <div class="dash-guest-item alert-late">
                     <div class="dash-guest-info">
                       <div class="dash-guest-primary">
                         <span class="dash-guest-name" onclick="openBookingFromDashboard('${x.booking_id}')">${x.guest_name}</span>
                         ${getRatingBadge(x.client_rating)}
-                        <span class="dash-unit-chip" style="background:#FEE2E2;color:#991B1B;">${bName(x)}</span>
+                        <span class="dash-unit-chip">${bName(x)}</span>
                       </div>
-                      <div class="dash-guest-meta" style="color:#DC2626;">
+                      <div class="dash-guest-meta" style="color:var(--red);">
                         <strong>⚠️ ${x.delay} late</strong> &bull; Scheduled checkout: ${x.check_out_time || '11:00 AM'}
                         ${x.phone ? `&bull; 📞 <a href="tel:${x.phone}">${x.phone}</a>` : ''}
                       </div>
@@ -1035,18 +1092,18 @@ async function renderDashboard() {
 
             ${arrivingSoon.length > 0 ? `
               <div style="margin-top:8px;">
-                <div style="font-size:12px;font-weight:800;color:#0284C7;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">
+                <div style="font-size:12px;font-weight:800;color:var(--blue);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">
                   ⏳ Arriving Soon (${arrivingSoon.length})
                 </div>
                 ${arrivingSoon.map(x => `
-                  <div class="dash-guest-item" style="background:#F0F9FF;border-color:#BAE6FD;">
+                  <div class="dash-guest-item alert-arriving">
                     <div class="dash-guest-info">
                       <div class="dash-guest-primary">
                         <span class="dash-guest-name" onclick="openBookingFromDashboard('${x.booking_id}')">${x.guest_name}</span>
                         ${getRatingBadge(x.client_rating)}
                         <span class="dash-unit-chip">${bName(x)}</span>
                       </div>
-                      <div class="dash-guest-meta" style="color:#0369A1;">
+                      <div class="dash-guest-meta" style="color:var(--blue);">
                         <strong>🕐 Expected ${x.eta}</strong> (${x.check_in_time || '2:00 PM'})
                         ${x.phone ? `&bull; 📞 <a href="tel:${x.phone}">${x.phone}</a>` : ''}
                       </div>
@@ -1061,7 +1118,7 @@ async function renderDashboard() {
             ` : ''}
 
             ${totalAttention === 0 ? `
-              <div class="sub" style="margin:4px 0 0;color:#166534;font-size:13px;">✅ All check-ins and check-outs are running smoothly on schedule.</div>
+              <div class="sub" style="margin:4px 0 0;color:var(--green);font-size:13px;font-weight:600;">✅ All check-ins and check-outs are running smoothly on schedule.</div>
             ` : ''}
           </div>
         </div>
@@ -1074,7 +1131,7 @@ async function renderDashboard() {
               <div class="dash-panel-title">
                 <span>📥</span> Check-ins Today
               </div>
-              <span class="dash-panel-count" style="background:#ECFDF5;color:#059669;">${realCheckins.length} Expected</span>
+              <span class="dash-panel-count green">${realCheckins.length} Expected</span>
             </div>
             <div>
               ${realCheckins.length === 0 ? `<div class="dash-empty-state">No check-ins scheduled for today</div>` :
@@ -1110,7 +1167,7 @@ async function renderDashboard() {
               <div class="dash-panel-title">
                 <span>📤</span> Check-outs Today
               </div>
-              <span class="dash-panel-count" style="background:#EEF2FF;color:var(--primary);">${realCheckouts.length} Scheduled</span>
+              <span class="dash-panel-count primary">${realCheckouts.length} Scheduled</span>
             </div>
             <div>
               ${realCheckouts.length === 0 ? `<div class="dash-empty-state">No check-outs scheduled for today</div>` :
@@ -1183,15 +1240,15 @@ async function renderDashboard() {
               <div class="dash-panel-title">
                 <span>✅</span> Ready to Book
               </div>
-              <span class="dash-panel-count" style="background:#ECFDF5;color:#059669;">${freeClean.length} Clean & Free</span>
+              <span class="dash-panel-count green">${freeClean.length} Clean & Free</span>
             </div>
             <div style="max-height:300px;overflow-y:auto;">
               ${freeClean.length === 0 ? `<div class="dash-empty-state">No clean, free flats available right now</div>` :
                 freeClean.map(x => `
-                  <div class="dash-guest-item" onclick="navigate('flats')" style="cursor:pointer;background:#ECFDF5;border-color:#A7F3D0;">
+                  <div class="dash-guest-item status-ready" onclick="navigate('flats')" style="cursor:pointer;">
                     <div>
-                      <strong style="color:#065F46;font-size:13px;">${fName(x)}</strong>
-                      <div style="font-size:11px;color:#047857;">Clean & Ready for Guest</div>
+                      <strong style="color:var(--green);font-size:13px;">${fName(x)}</strong>
+                      <div style="font-size:11px;color:var(--muted);">Clean & Ready for Guest</div>
                     </div>
                     <span class="badge green">Ready</span>
                   </div>
@@ -1207,15 +1264,15 @@ async function renderDashboard() {
               <div class="dash-panel-title">
                 <span>🧹</span> Housekeeping Required
               </div>
-              <span class="dash-panel-count" style="background:#FFFBEB;color:#B45309;">${dirty.length} Dirty</span>
+              <span class="dash-panel-count yellow">${dirty.length} Dirty</span>
             </div>
             <div style="max-height:300px;overflow-y:auto;">
               ${dirty.length === 0 ? `<div class="dash-empty-state">All flats are sparkling clean! 🎉</div>` :
                 dirty.map(x => `
-                  <div class="dash-guest-item" onclick="navigate('flats')" style="cursor:pointer;background:#FFFBEB;border-color:#FDE68A;">
+                  <div class="dash-guest-item status-dirty" onclick="navigate('flats')" style="cursor:pointer;">
                     <div>
-                      <strong style="color:#92400E;font-size:13px;">${fName(x)}</strong>
-                      <div style="font-size:11px;color:#B45309;">Needs Turnover / Cleaning</div>
+                      <strong style="color:var(--yellow);font-size:13px;">${fName(x)}</strong>
+                      <div style="font-size:11px;color:var(--muted);">Needs Turnover / Cleaning</div>
                     </div>
                     <span class="badge yellow">Needs Cleaning</span>
                   </div>
@@ -1231,15 +1288,15 @@ async function renderDashboard() {
               <div class="dash-panel-title">
                 <span>🔧</span> Active Maintenance
               </div>
-              <span class="dash-panel-count" style="background:#FEF2F2;color:#DC2626;">${maintPending} Issues</span>
+              <span class="dash-panel-count red">${maintPending} Issues</span>
             </div>
             <div style="max-height:300px;overflow-y:auto;">
               ${(maint || []).length === 0 ? `<div class="dash-empty-state">No pending maintenance issues! ✅</div>` :
                 (maint || []).map(m => `
-                  <div class="dash-guest-item" onclick="navigate('maintenance')" style="cursor:pointer;background:#FEF2F2;border-color:#FECACA;">
+                  <div class="dash-guest-item status-maint" onclick="navigate('maintenance')" style="cursor:pointer;">
                     <div>
-                      <strong style="color:#991B1B;font-size:13px;">${m.room_id || 'General'}</strong>
-                      <div style="font-size:11.5px;color:#7F1D1D;margin-top:2px;">${m.description?.slice(0, 45) || '-'}</div>
+                      <strong style="color:var(--red);font-size:13px;">${m.room_id || 'General'}</strong>
+                      <div style="font-size:11.5px;color:var(--muted);margin-top:2px;">${m.description?.slice(0, 45) || '-'}</div>
                     </div>
                     <span class="badge red" style="font-size:10px;">${m.priority || 'Pending'}</span>
                   </div>
@@ -1260,10 +1317,10 @@ async function renderDashboard() {
               <div class="dash-panel-title">
                 <span>👥</span> Staff Attendance Today
               </div>
-              <span class="dash-panel-count" style="background:#ECFDF5;color:#059669;">${presentToday}/${totalEmps} Present</span>
+              <span class="dash-panel-count green">${presentToday}/${totalEmps} Present</span>
             </div>
             <div style="padding:14px 0;text-align:center;">
-              <div style="font-size:36px;font-weight:800;color:var(--dark);">${presentToday} <span style="font-size:18px;color:var(--muted);font-weight:500;">/ ${totalEmps}</span></div>
+              <div style="font-size:36px;font-weight:800;color:var(--text);">${presentToday} <span style="font-size:18px;color:var(--muted);font-weight:500;">/ ${totalEmps}</span></div>
               <div style="font-size:13px;color:var(--text-secondary);margin-top:4px;">Team members checked-in for duty today</div>
             </div>
             <button class="dash-pill-btn" style="width:100%;justify-content:center;" onclick="filterAndShowAttendance('present')">View Attendance Log →</button>
@@ -1275,14 +1332,14 @@ async function renderDashboard() {
               <div class="dash-panel-title">
                 <span>🧰</span> Pending Tasks
               </div>
-              <span class="dash-panel-count" style="background:#FFFBEB;color:#B45309;">${(tasks || []).length} Open</span>
+              <span class="dash-panel-count yellow">${(tasks || []).length} Open</span>
             </div>
             <div style="max-height:260px;overflow-y:auto;">
               ${(tasks || []).length === 0 ? `<div class="dash-empty-state">All tasks completed! 👍</div>` :
                 (tasks || []).slice(0, 5).map(t => `
                   <div class="dash-guest-item" onclick="navigate('tasks')" style="cursor:pointer;">
                     <div>
-                      <strong style="font-size:12.5px;color:var(--dark);">${t.employees?.name || 'Unassigned'}</strong>
+                      <strong style="font-size:12.5px;color:var(--text);">${t.employees?.name || 'Unassigned'}</strong>
                       <div style="font-size:11.5px;color:var(--muted);margin-top:2px;">${t.task_description?.slice(0, 45) || '-'}</div>
                     </div>
                     ${t.priority === 'Urgent' ? `<span class="badge red">Urgent</span>` : `<span class="badge yellow">Normal</span>`}
@@ -1310,10 +1367,10 @@ async function renderDashboard() {
                     <div>
                       <strong style="color:var(--primary);cursor:pointer;" onclick="openBookingFromDashboard('${ext.booking_id}')">${ext.guest_name}</strong>
                       <div style="font-size:11.5px;color:var(--muted);margin-top:2px;">
-                        ${propLabel(ext.rooms) || ext.room_id} &bull; Extended till: <strong style="color:#059669;">${ext.check_out || 'Open'}</strong>
+                        ${propLabel(ext.rooms) || ext.room_id} &bull; Extended till: <strong style="color:var(--green);">${ext.check_out || 'Open'}</strong>
                       </div>
                     </div>
-                    <div style="font-weight:700;color:#059669;font-size:12px;">₹${(ext.total_amount || 0).toLocaleString('en-IN')}</div>
+                    <div style="font-weight:700;color:var(--green);font-size:12px;">₹${(ext.total_amount || 0).toLocaleString('en-IN')}</div>
                   </div>
                 `).join('')}
               </div>
@@ -1336,7 +1393,7 @@ async function renderDashboard() {
           ${totalWATasks === 0 ? `
             <div class="dash-empty-state" style="padding:40px 20px;">
               <div style="font-size:32px;margin-bottom:8px;">🎉</div>
-              <div style="font-size:15px;font-weight:700;color:var(--dark);">All WhatsApp communications up to date!</div>
+              <div style="font-size:15px;font-weight:700;color:var(--text);">All WhatsApp communications up to date!</div>
               <div style="font-size:12.5px;color:var(--muted);margin-top:4px;">No pending reminders, key deliveries, or ID requests for today.</div>
             </div>
           ` : `
@@ -1350,9 +1407,9 @@ async function renderDashboard() {
                   📅 Check-in Reminders (${checkinReminders.length}) &bull; Guests arriving tomorrow
                 </div>
                 ${checkinReminders.map(b => `
-                  <div class="dash-guest-item" style="background:#FFFFFF;border-color:var(--border);">
+                  <div class="dash-guest-item">
                     <div class="dash-guest-info">
-                      <strong style="color:var(--dark);">${b.guest_name}</strong> — <span class="dash-unit-chip">${propLabel(b.rooms) || b.room_id}</span>
+                      <strong style="color:var(--text);">${b.guest_name}</strong> — <span class="dash-unit-chip">${propLabel(b.rooms) || b.room_id}</span>
                       <div class="dash-guest-meta" style="margin-top:2px;">
                         <span>📞 ${b.phone}</span> &bull; <span>Check-in: ${b.check_in} ${b.check_in_time || ''}</span>
                       </div>
@@ -1371,9 +1428,9 @@ async function renderDashboard() {
                   🔑 Arrival Details (${arrivingSoonWA.length}) &bull; Send WiFi & Key details
                 </div>
                 ${arrivingSoonWA.map(b => `
-                  <div class="dash-guest-item" style="background:#FFFFFF;border-color:var(--border);">
+                  <div class="dash-guest-item">
                     <div class="dash-guest-info">
-                      <strong style="color:var(--dark);">${b.guest_name}</strong> — <span class="dash-unit-chip">${propLabel(b.rooms) || b.room_id}</span>
+                      <strong style="color:var(--text);">${b.guest_name}</strong> — <span class="dash-unit-chip">${propLabel(b.rooms) || b.room_id}</span>
                       <div class="dash-guest-meta" style="margin-top:2px;">
                         <span>📞 ${b.phone}</span> &bull; <span>Check-in: ${b.check_in_time || '14:00'}</span>
                       </div>
@@ -1392,9 +1449,9 @@ async function renderDashboard() {
                   📤 Checkout Alerts (${checkoutReminders.length}) &bull; Leaving today
                 </div>
                 ${checkoutReminders.map(b => `
-                  <div class="dash-guest-item" style="background:#FFFFFF;border-color:var(--border);">
+                  <div class="dash-guest-item">
                     <div class="dash-guest-info">
-                      <strong style="color:var(--dark);">${b.guest_name}</strong> — <span class="dash-unit-chip">${propLabel(b.rooms) || b.room_id}</span>
+                      <strong style="color:var(--text);">${b.guest_name}</strong> — <span class="dash-unit-chip">${propLabel(b.rooms) || b.room_id}</span>
                       <div class="dash-guest-meta" style="margin-top:2px;">
                         <span>📞 ${b.phone}</span> &bull; <span>Checkout: ${b.check_out_time || '11:00 AM'}</span>
                       </div>
@@ -1413,9 +1470,9 @@ async function renderDashboard() {
                   🪪 ID Missing (${noIdBookings.length}) &bull; Currently staying without ID proof
                 </div>
                 ${noIdBookings.map(b => `
-                  <div class="dash-guest-item" style="background:#FFFFFF;border-color:var(--border);">
+                  <div class="dash-guest-item">
                     <div class="dash-guest-info">
-                      <strong style="color:var(--dark);">${b.guest_name}</strong> — <span class="dash-unit-chip">${propLabel(b.rooms) || b.room_id}</span>
+                      <strong style="color:var(--text);">${b.guest_name}</strong> — <span class="dash-unit-chip">${propLabel(b.rooms) || b.room_id}</span>
                       <div class="dash-guest-meta" style="margin-top:2px;">
                         <span>📞 ${b.phone}</span> &bull; <span>Guests: ${b.guests || 1}</span>
                       </div>
@@ -1434,9 +1491,9 @@ async function renderDashboard() {
                   ⭐ Review Requests (${reviewRequests.length}) &bull; Checked out recently
                 </div>
                 ${reviewRequests.map(b => `
-                  <div class="dash-guest-item" style="background:#FFFFFF;border-color:var(--border);">
+                  <div class="dash-guest-item">
                     <div class="dash-guest-info">
-                      <strong style="color:var(--dark);">${b.guest_name}</strong> — <span class="dash-unit-chip">${propLabel(b.rooms) || b.room_id}</span>
+                      <strong style="color:var(--text);">${b.guest_name}</strong> — <span class="dash-unit-chip">${propLabel(b.rooms) || b.room_id}</span>
                       <div class="dash-guest-meta" style="margin-top:2px;">
                         <span>📞 ${b.phone}</span> &bull; <span>Stayed: ${b.check_in} → ${b.check_out}</span>
                       </div>

@@ -29,6 +29,63 @@ function propLabel(r) {
 window.propLabel = propLabel;
 
 // ═══════════════════════════════════════════════════════════
+// 🎨 EXECUTIVE THEME SYSTEM (LIGHT FIRST / DEFAULT)
+// ═══════════════════════════════════════════════════════════
+window.initHorillaTheme = function() {
+  let saved = localStorage.getItem('uhhs_theme');
+  // Auto-migrate any stale forced dark setting to light mode
+  if (!saved || saved === 'dark' || saved === 'midnight') {
+    localStorage.setItem('uhhs_theme', 'light');
+    localStorage.setItem('uh_theme', 'light');
+    saved = 'light';
+  }
+  const isDark = (saved === 'dark' || saved === 'midnight');
+  if (isDark) {
+    document.documentElement.classList.add('horilla-dark');
+    document.documentElement.setAttribute('data-theme', 'dark');
+    if (document.body) {
+      document.body.classList.add('horilla-dark');
+      document.body.setAttribute('data-theme', 'dark');
+    }
+  } else {
+    document.documentElement.classList.remove('horilla-dark');
+    document.documentElement.setAttribute('data-theme', 'light');
+    if (document.body) {
+      document.body.classList.remove('horilla-dark');
+      document.body.setAttribute('data-theme', 'light');
+    }
+  }
+};
+
+window.toggleHorillaTheme = function() {
+  const cur = localStorage.getItem('uhhs_theme') || 'light';
+  const isNowDark = (cur === 'light');
+  const themeMode = isNowDark ? 'dark' : 'light';
+  
+  if (isNowDark) {
+    document.documentElement.classList.add('horilla-dark');
+    if (document.body) document.body.classList.add('horilla-dark');
+  } else {
+    document.documentElement.classList.remove('horilla-dark');
+    if (document.body) document.body.classList.remove('horilla-dark');
+  }
+
+  document.documentElement.setAttribute('data-theme', themeMode);
+  if (document.body) document.body.setAttribute('data-theme', themeMode);
+  localStorage.setItem('uhhs_theme', themeMode);
+  localStorage.setItem('uh_theme', themeMode);
+  
+  const btn = document.getElementById('topbarThemeToggleBtn');
+  if (btn) btn.innerHTML = isNowDark ? '☀️' : '🌙';
+  if (window.fsn?.info) {
+    window.fsn.info('Theme', isNowDark ? '🌙 Dark Mode' : '☀️ Modern Light Mode');
+  }
+};
+
+// Auto-run theme initializer
+window.initHorillaTheme();
+
+// ═══════════════════════════════════════════════════════════
 // 🔐 ROLE PERMISSION HELPERS
 // ═══════════════════════════════════════════════════════════
 window.canDelete = function() {
@@ -738,7 +795,8 @@ function renderShell(content, activePage = 'dashboard') {
         </div>
 
         <div class="drawer-search">
-          <input type="text" id="drawerSearchInput" placeholder="🔍 Search menu..." />
+          <input type="text" id="drawerSearchInput" placeholder="🔍 Search menu & tabs..." autocomplete="off" />
+          <div id="drawerSearchResults" style="display:none;margin-top:8px;"></div>
         </div>
 
         <nav class="sidebar-nav">
@@ -777,8 +835,8 @@ function renderShell(content, activePage = 'dashboard') {
 
           <div class="topbar-right">
             <div class="topbar-search">
-              <span class="search-icon">🔍</span>
-              <input type="text" id="topbarGlobalSearch" placeholder="Search guests, phone..." value="${SESSION.bookingSearch || ''}" />
+              <span class="search-icon" style="cursor:pointer;" onclick="window.triggerGlobalSearch && window.triggerGlobalSearch()" title="Click to Search">🔍</span>
+              <input type="text" id="topbarGlobalSearch" placeholder="Search guests, phone..." value="${SESSION.bookingSearch || ''}" onkeydown="if(event.key==='Enter'){window.triggerGlobalSearch&&window.triggerGlobalSearch();}" />
             </div>
 
             <!-- 🔄 UNIVERSAL REFRESH DATA BUTTON (ALL DEVICES) -->
@@ -796,6 +854,10 @@ function renderShell(content, activePage = 'dashboard') {
               📱
             </button>
 
+            <button class="topbar-icon-btn" id="topbarThemeToggleBtn" onclick="window.toggleHorillaTheme()" title="Switch Light / Cyber-Dark Mode" style="font-size:16px;">
+              ${document.documentElement.classList.contains('horilla-dark') ? '☀️' : '🌙'}
+            </button>
+
             <button class="topbar-icon-btn" id="topbarNotifBtn" onclick="window.notifications&&window.notifications.openPanel();" title="Notifications">
               🔔<span class="notif-bell-badge" style="display:none;"></span>
             </button>
@@ -810,26 +872,37 @@ function renderShell(content, activePage = 'dashboard') {
         </main>
       </div>
 
-      <!-- ─── MOBILE BOTTOM NAV ─── -->
+      <!-- ─── AIRBNB HOST MOBILE BOTTOM NAV ─── -->
       <nav class="bottom-nav" id="bottomNav">
-        <a href="#" data-page="dashboard" class="${activePage === 'dashboard' ? 'active' : ''}">
-          <span class="bn-icon">🏠</span>
-          <span class="bn-label">Home</span>
+        <a href="#" data-page="bookings" class="${(activePage === 'bookings' || activePage === 'dashboard') ? 'active' : ''}">
+          <span class="bn-icon">
+            <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><path d="M17 3H7c-1.1 0-1.99.9-1.99 2L5 21l7-3 7 3V5c0-1.1-.9-2-2-2zm0 15l-5-2.18L7 18V5h10v13z"/></svg>
+          </span>
+          <span class="bn-label">Today</span>
         </a>
-        <a href="#" data-page="bookings" class="${activePage === 'bookings' ? 'active' : ''}">
-          <span class="bn-icon">📅</span>
-          <span class="bn-label">Bookings</span>
+        <a href="#" data-page="calendar" class="${activePage === 'calendar' ? 'active' : ''}">
+          <span class="bn-icon">
+            <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><path d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20a2 2 0 0 0 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V9h14v11zM7 11h5v5H7z"/></svg>
+          </span>
+          <span class="bn-label">Calendar</span>
         </a>
-        <a href="#" data-page="flats" class="${activePage === 'flats' ? 'active' : ''}">
-          <span class="bn-icon">🛏️</span>
-          <span class="bn-label">Flats</span>
+        <a href="#" data-page="flats" class="${(activePage === 'flats' || activePage === 'properties') ? 'active' : ''}">
+          <span class="bn-icon">
+            <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-2 10H7v-2h10v2zm0-4H7V7h10v2z"/></svg>
+          </span>
+          <span class="bn-label">Listings</span>
         </a>
-        <a href="#" data-page="cashbook" class="${activePage === 'cashbook' ? 'active' : ''}">
-          <span class="bn-icon">💰</span>
-          <span class="bn-label">Cash</span>
+        <a href="#" data-page="whatsapp-hub" class="${activePage === 'whatsapp-hub' ? 'active' : ''}">
+          <span class="bn-icon" style="position:relative;display:inline-flex;">
+            <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H5.17L4 17.17V4h16v12z"/></svg>
+            <span style="position:absolute;top:0;right:-3px;width:7px;height:7px;background:#FF385C;border-radius:50%;"></span>
+          </span>
+          <span class="bn-label">Messages</span>
         </a>
         <a href="#" id="bottomNavMore">
-          <span class="bn-icon">☰</span>
+          <span class="bn-icon">
+            <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/></svg>
+          </span>
           <span class="bn-label">Menu</span>
         </a>
       </nav>
@@ -900,24 +973,23 @@ function renderShell(content, activePage = 'dashboard') {
     };
   }
 
-  // Global search input handling
+  // Global search input handling — manual trigger on Enter or 🔍 click
+  window.triggerGlobalSearch = function() {
+    const globalSearch = document.getElementById('topbarGlobalSearch');
+    if (!globalSearch) return;
+    SESSION.bookingSearch = globalSearch.value.trim();
+    if (SESSION.currentPage !== 'bookings') {
+      navigate('bookings');
+    } else if (typeof renderManageBookings === 'function') {
+      renderManageBookings();
+    }
+  };
+
   const globalSearch = document.getElementById('topbarGlobalSearch');
   if (globalSearch) {
-    globalSearch.oninput = () => {
-      SESSION.bookingSearch = globalSearch.value;
-      const bkInput = document.getElementById('bkSearch');
-      if (bkInput) {
-        bkInput.value = globalSearch.value;
-      }
-    };
     globalSearch.onkeydown = e => {
       if (e.key === 'Enter') {
-        SESSION.bookingSearch = globalSearch.value;
-        if (SESSION.currentPage !== 'bookings') {
-          navigate('bookings');
-        } else if (typeof renderManageBookings === 'function') {
-          renderManageBookings();
-        }
+        window.triggerGlobalSearch();
       }
     };
   }
@@ -2251,37 +2323,117 @@ document.addEventListener('click', (e) => {
 }, true);
 
 // ═══════════════════════════════════════════════════════════
-// 🎯 DRAWER SEARCH — Filter menu items live
+// 🎯 DRAWER SEARCH — Filter menu items & sub-tabs live
 // ═══════════════════════════════════════════════════════════
 function initDrawerSearch() {
   const input = document.getElementById('drawerSearchInput');
   if (!input) return;
+  const resultsContainer = document.getElementById('drawerSearchResults');
+  const nav = document.querySelector('.sidebar .sidebar-nav');
+
   const filterMenu = () => {
     const q = input.value.toLowerCase().trim();
-    const nav = document.querySelector('.sidebar .sidebar-nav');
     if (!nav) return;
-    const items = nav.querySelectorAll('a[data-page]');
-    const sections = nav.querySelectorAll('.nav-section-heading');
 
-    items.forEach(a => {
-      const txt = (a.textContent || '').toLowerCase();
-      if (!q || txt.includes(q)) a.classList.remove('filter-hidden');
-      else a.classList.add('filter-hidden');
-    });
-
-    // Hide section if all its items hidden
-    sections.forEach(sec => {
-      let next = sec.nextElementSibling;
-      let hasVisible = false;
-      while (next && !next.classList.contains('nav-section-heading')) {
-        if (next.tagName === 'A' && !next.classList.contains('filter-hidden')) {
-          hasVisible = true; break;
-        }
-        next = next.nextElementSibling;
+    if (!q) {
+      if (resultsContainer) {
+        resultsContainer.style.display = 'none';
+        resultsContainer.innerHTML = '';
       }
-      if (!hasVisible && q) sec.classList.add('filter-hidden');
-      else sec.classList.remove('filter-hidden');
+      nav.style.display = '';
+      nav.querySelectorAll('a[data-page], .nav-section-heading').forEach(el => el.classList.remove('filter-hidden'));
+      return;
+    }
+
+    // Collect all hubs and sub-tabs from UHHS_HUBS and PAGE_TITLES
+    const hubs = window._UHHS_HUBS || [];
+    const matchedTabs = [];
+    const seen = new Set();
+
+    hubs.forEach(hub => {
+      // Check sub-tabs
+      (hub.tabs || []).forEach(tab => {
+        if (seen.has(tab.id)) return;
+        const pageMeta = (typeof PAGE_TITLES !== 'undefined' && PAGE_TITLES[tab.id]) || {};
+        const titleStr = (pageMeta.title || '').toLowerCase();
+        const subStr = (pageMeta.sub || '').toLowerCase();
+        const tabLabel = (tab.label || '').toLowerCase();
+        const tabId = (tab.id || '').toLowerCase();
+
+        if (tabLabel.includes(q) || tabId.includes(q) || titleStr.includes(q) || subStr.includes(q)) {
+          seen.add(tab.id);
+          matchedTabs.push({
+            id: tab.id,
+            label: tab.label || pageMeta.title || tab.id,
+            icon: pageMeta.icon || '⚡',
+            hub: hub.label.replace(/^[^\w\s]+/, '').trim(),
+            sub: pageMeta.sub || ''
+          });
+        }
+      });
+      // Check hub itself
+      if (!seen.has(hub.id) && (hub.label.toLowerCase().includes(q) || hub.id.toLowerCase().includes(q))) {
+        seen.add(hub.id);
+        const pageMeta = (typeof PAGE_TITLES !== 'undefined' && PAGE_TITLES[hub.id]) || {};
+        matchedTabs.push({
+          id: hub.id,
+          label: hub.label,
+          icon: pageMeta.icon || '🏠',
+          hub: 'Hub',
+          sub: pageMeta.sub || ''
+        });
+      }
     });
+
+    // Check PAGE_TITLES for any standalone pages (e.g. settings, showcase-admin, etc.)
+    if (typeof PAGE_TITLES !== 'undefined') {
+      Object.keys(PAGE_TITLES).forEach(key => {
+        if (seen.has(key)) return;
+        const meta = PAGE_TITLES[key];
+        const t = (meta.title || '').toLowerCase();
+        const s = (meta.sub || '').toLowerCase();
+        if (key.toLowerCase().includes(q) || t.includes(q) || s.includes(q)) {
+          seen.add(key);
+          matchedTabs.push({
+            id: key,
+            label: `${meta.icon || '⚡'} ${meta.title}`,
+            icon: meta.icon || '⚡',
+            hub: 'Feature',
+            sub: meta.sub || ''
+          });
+        }
+      });
+    }
+
+    if (resultsContainer) {
+      resultsContainer.style.display = 'block';
+      if (matchedTabs.length === 0) {
+        resultsContainer.innerHTML = `
+          <div style="padding:14px 10px;font-size:12px;color:rgba(255,255,255,0.6);text-align:center;">
+            No menu tabs match "<strong>${q}</strong>"
+          </div>
+        `;
+      } else {
+        resultsContainer.innerHTML = `
+          <div style="padding:8px 6px 4px;font-size:11px;font-weight:700;color:rgba(255,255,255,0.5);text-transform:uppercase;letter-spacing:0.5px;">
+            Matching Tabs (${matchedTabs.length})
+          </div>
+          <div class="drawer-results-list" style="display:flex;flex-direction:column;gap:3px;max-height:360px;overflow-y:auto;padding-bottom:10px;">
+            ${matchedTabs.map(item => `
+              <a href="#" class="drawer-search-item" onclick="event.preventDefault();navigate('${item.id}');const d=document.getElementById('drawerSearchInput');if(d)d.value='';window.initDrawerSearch&&window.initDrawerSearch();const s=document.querySelector('.sidebar');if(s&&s.classList.contains('mobile-open')){s.classList.remove('mobile-open');const b=document.getElementById('mobileDrawerBackdrop');if(b)b.remove();}" 
+                style="display:flex;align-items:center;justify-content:space-between;padding:9px 12px;border-radius:8px;background:rgba(255,255,255,0.06);color:#fff;text-decoration:none;font-size:13px;font-weight:600;transition:background 0.15s;border:1px solid rgba(255,255,255,0.08);">
+                <span style="display:flex;align-items:center;gap:8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+                  <span>${item.label}</span>
+                </span>
+                <span style="font-size:10px;padding:2px 7px;border-radius:999px;background:rgba(108,92,224,0.3);color:#b3a7ff;border:1px solid rgba(108,92,224,0.4);white-space:nowrap;margin-left:6px;">
+                  ${item.hub}
+                </span>
+              </a>
+            `).join('')}
+          </div>
+        `;
+      }
+    }
   };
 
   input.oninput = filterMenu;
@@ -3095,3 +3247,42 @@ window.restoreStoragePhoto = async function(path, fileBlob) {
     if (!error) console.log('✅ Uploaded to Storage:', path);
   } catch(e) {}
 };
+
+// ═══════════════════════════════════════════════════════════
+// 🛡️ UNIVERSAL MODAL STACKING & Z-INDEX SENTINEL
+// Prevents modals from ever opening behind drawers or other overlays.
+// ═══════════════════════════════════════════════════════════
+(function() {
+  const BASE_MODAL_ZINDEX = 100000;
+  function updateModalZIndices() {
+    const overlays = document.querySelectorAll('.modal-overlay, .photo-viewer-overlay, .od-deposit-modal-overlay, .od-edit-modal-overlay, .upi-modal-overlay, .luxe-voucher-modal');
+    overlays.forEach((el, idx) => {
+      const targetZ = BASE_MODAL_ZINDEX + (idx * 100);
+      el.style.setProperty('z-index', String(targetZ), 'important');
+    });
+  }
+
+  const observer = new MutationObserver((mutations) => {
+    let shouldUpdate = false;
+    for (const m of mutations) {
+      if (m.addedNodes.length > 0) {
+        for (const n of m.addedNodes) {
+          if (n.nodeType === 1 && (n.classList?.contains('modal-overlay') || n.querySelector?.('.modal-overlay'))) {
+            shouldUpdate = true;
+            break;
+          }
+        }
+      }
+    }
+    if (shouldUpdate) updateModalZIndices();
+  });
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => observer.observe(document.body || document.documentElement, { childList: true, subtree: true }));
+  } else {
+    observer.observe(document.body || document.documentElement, { childList: true, subtree: true });
+  }
+
+  window.syncModalZIndex = updateModalZIndices;
+})();
+

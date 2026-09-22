@@ -238,27 +238,7 @@ async function renderSmartManageBookings() {
   // Render View HTML
   const html = `
     <div class="airbnb-host-wrap">
-      <!-- Top Account / System Notice (Matches Airbnb Account Banner) -->
-      <div class="airbnb-notice-card">
-        <div class="airbnb-notice-icon">✏️</div>
-        <div class="airbnb-notice-content">
-          <div class="airbnb-notice-title">Host Operations Hub</div>
-          <div class="airbnb-notice-desc">The Unique Haven Homes • 17 Homestays &amp; Luxury Villas</div>
-          <div class="airbnb-notice-sub">Real-time sync active • iCal channel manager &amp; WhatsApp automated</div>
-        </div>
-        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
-          <button class="btn-sm outline" onclick="navigate('whatsapp-hub')" style="border-radius:20px;font-weight:700;padding:6px 14px;">
-            📱 WhatsApp Hub
-          </button>
-          ${canM ? `
-            <button class="btn-sm" onclick="renderAddBooking()" style="background:#222222;color:#fff;border-radius:20px;font-weight:700;padding:6px 16px;border:none;">
-              + New Booking
-            </button>
-          ` : ''}
-        </div>
-      </div>
-
-      <!-- Centered Pill Bar & Filter Actions -->
+      <!-- Centered Pill Bar & Filter Actions (Matches Airbnb Mobile Header) -->
       <div class="airbnb-header-bar">
         <div class="airbnb-pills-center">
           <button class="airbnb-pill ${tab === 'today' ? 'active' : ''}" onclick="window.setBookingTab('today')">
@@ -268,7 +248,7 @@ async function renderSmartManageBookings() {
             Upcoming <span class="airbnb-pill-num">${upcomingCount}</span>
           </button>
           <button class="airbnb-pill ${tab === 'inhouse' ? 'active' : ''}" onclick="window.setBookingTab('inhouse')">
-            Currently Staying <span class="airbnb-pill-num">${inHouseCount}</span>
+            In-House <span class="airbnb-pill-num">${inHouseCount}</span>
           </button>
           <button class="airbnb-pill ${tab === 'all' ? 'active' : ''}" onclick="window.setBookingTab('all')">
             All <span class="airbnb-pill-num">${all?.length || 0}</span>
@@ -276,8 +256,12 @@ async function renderSmartManageBookings() {
         </div>
 
         <div class="airbnb-header-actions">
-          <button class="airbnb-filter-trigger ${window._sbkState.showFilters ? 'active' : ''}" onclick="window.toggleAirbnbFilter()">
-            <span>⚙</span> Filter ${activeFilterCount > 0 ? `(${activeFilterCount})` : ''}
+          <button class="airbnb-filter-trigger ${window._sbkState.showFilters ? 'active' : ''}" onclick="window.toggleAirbnbFilter()" title="Filter Bookings">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+              <path d="M10 18h4v-2h-4v2zM3 6v2h18V6H3zm3 7h12v-2H6v2z"/>
+            </svg>
+            <span class="airbnb-filter-text">Filter</span>
+            ${activeFilterCount > 0 ? `<span class="airbnb-pill-num">${activeFilterCount}</span>` : ''}
           </button>
 
           <div class="airbnb-view-switch">
@@ -340,15 +324,16 @@ async function renderSmartManageBookings() {
         </div>
       ` : ''}
 
-      <!-- Clean Airbnb Search Input -->
-      <div class="airbnb-search-bar">
+      <!-- Clean Airbnb Search Input with Manual Trigger -->
+      <div class="airbnb-search-bar" style="display:flex;align-items:center;gap:8px;">
         <span style="font-size:16px;color:#64748B;">🔍</span>
         <input type="text" id="sbkLiveSearch" placeholder="Search guest name, phone, reservation code, unit..."
           value="${escapeHtml(window._sbkState.searchQuery)}"
-          oninput="window.handleSearchInput(this.value)" />
+          onkeydown="if(event.key==='Enter'){window.handleManualSearch();}" />
+        <button type="button" class="btn-sm" onclick="window.handleManualSearch();" style="padding:6px 14px;background:#0F172A;color:#fff;border-radius:8px;font-weight:700;cursor:pointer;font-size:13px;border:none;flex-shrink:0;">Search</button>
         ${window._sbkState.searchQuery ? `
-          <button onclick="window.handleSearchInput('');document.getElementById('sbkLiveSearch').value='';" 
-            style="background:none;border:none;cursor:pointer;color:#64748B;font-weight:700;padding:2px 8px;font-size:14px;">✕</button>
+          <button type="button" onclick="window.clearSearch();" 
+            style="background:#F1F5F9;border:1px solid #CBD5E1;border-radius:8px;cursor:pointer;color:#64748B;font-weight:700;padding:6px 10px;font-size:13px;flex-shrink:0;">✕ Clear</button>
         ` : ''}
       </div>
 
@@ -372,6 +357,22 @@ async function renderSmartManageBookings() {
           </div>
         </div>
       ` : window._sbkState.viewMode === 'table' ? renderBookingTableHtml(filtered, paidMap, canM, today) : window._sbkState.viewMode === 'cards' ? renderBookingCardsHtml(filtered, paidMap, canM, today) : renderAirbnbReservationsHtml(filtered, paidMap, canM, today)}
+
+      <!-- Airbnb-Style Floating Operations Banner (Matches bottom banner in screenshot) -->
+      <div class="airbnb-notice-card" onclick="renderAddBooking()" style="cursor:pointer;">
+        <div class="airbnb-notice-icon">✏️</div>
+        <div class="airbnb-notice-content">
+          <div class="airbnb-notice-title" style="color:#222222;font-size:14px;font-weight:700;">Host Operations Hub</div>
+          <div class="airbnb-notice-desc" style="color:#717171;font-size:12.5px;font-weight:500;">17 Luxury Homestays &bull; iCal Channel Sync &amp; WhatsApp Active</div>
+        </div>
+        <div style="display:flex;gap:6px;align-items:center;">
+          ${canM ? `
+            <button class="btn-sm" onclick="event.stopPropagation();renderAddBooking()" style="background:#222222;color:#fff;border-radius:20px;font-weight:700;padding:6px 14px;border:none;font-size:12px;">
+              + New
+            </button>
+          ` : ''}
+        </div>
+      </div>
 
       <!-- Your follow-ups Section (like Airbnb screenshot) -->
       ${renderAirbnbFollowupsHtml(all, paidMap, canM, today)}
@@ -547,22 +548,41 @@ function renderAirbnbReservationsHtml(bookings, paidMap, canM, today) {
         const propThumb = getPropertyCoverThumb(b);
         const hasId = !!(b.id_proof_photo_paths || b.id_proof_photo_path);
 
+        const guestPhoto = b.guest_photo || (b.id_proof_photo_path && b.id_proof_photo_path.startsWith('http') ? b.id_proof_photo_path : null);
+
         return `
           <div class="airbnb-res-card" id="abCard_${b.booking_id}" onclick="window.openBookingDrawer('${b.booking_id}')">
-            <!-- Left: Time / Schedule -->
-            <div class="airbnb-card-time">
-              <div class="airbnb-time-main">${escapeHtml(timeMain)}</div>
-              <div class="airbnb-time-sub">${escapeHtml(timeSub)}</div>
+            <!-- Top Row: Time + Title on Left, Avatar Combo on Right -->
+            <div class="airbnb-card-top-header">
+              <div class="airbnb-card-title-col">
+                <div class="airbnb-card-time-line">
+                  <span class="airbnb-time-main">${escapeHtml(timeMain)}</span>
+                  ${timeSub ? `<span class="airbnb-time-sub">${escapeHtml(timeSub)}</span>` : ''}
+                </div>
+                <div class="airbnb-guest-headline" title="${escapeHtml(headline)}">
+                  ${escapeHtml(headline)}
+                </div>
+              </div>
+
+              <div class="airbnb-avatar-group" title="${escapeHtml(b.guest_name || 'Guest')}">
+                ${guestPhoto ? `
+                  <img src="${guestPhoto}" class="airbnb-guest-avatar-img" alt="${escapeHtml(b.guest_name || 'Guest')}" onerror="this.outerHTML='<div class=\\'airbnb-guest-avatar-img\\' style=\\'background:${avatarInfo.bg};color:${avatarInfo.text};\\'>${escapeHtml(avatarInfo.initial)}</div>';" />
+                ` : `
+                  <div class="airbnb-guest-avatar-img" style="background:${avatarInfo.bg};color:${avatarInfo.text};">
+                    ${escapeHtml(avatarInfo.initial)}
+                  </div>
+                `}
+                <img src="${propThumb}" class="airbnb-property-thumb-badge" alt="Property" onerror="this.src='assets/logo.png'"/>
+              </div>
             </div>
 
-            <!-- Center: Human Narrative & Property Subtitle -->
-            <div class="airbnb-card-info">
-              <div class="airbnb-guest-headline" title="${escapeHtml(headline)}">
-                ${escapeHtml(headline)}
-              </div>
-              <div class="airbnb-property-sub" title="${escapeHtml(propertySub)}">
-                ${escapeHtml(propertySub)}
-              </div>
+            <!-- Property Subtitle / Location -->
+            <div class="airbnb-property-sub" title="${escapeHtml(propertySub)}">
+              ${escapeHtml(propertySub)}
+            </div>
+
+            <!-- Card Bottom: Status Chips & Quick Actions -->
+            <div class="airbnb-card-footer-row">
               <div class="airbnb-chips-row">
                 ${isOnline ? `
                   <span class="airbnb-chip airbnb">
@@ -590,20 +610,10 @@ function renderAirbnbReservationsHtml(bookings, paidMap, canM, today) {
                   <span class="airbnb-chip pending">🟡 Verification Pending</span>
                 ` : ''}
               </div>
-            </div>
-
-            <!-- Right: Avatar with Property Badge & Actions -->
-            <div class="airbnb-card-right">
-              <div class="airbnb-avatar-group" title="${escapeHtml(b.guest_name || 'Guest')}">
-                <div class="airbnb-guest-avatar-img" style="background:${avatarInfo.bg};color:${avatarInfo.text};">
-                  ${escapeHtml(avatarInfo.initial)}
-                </div>
-                <img src="${propThumb}" class="airbnb-property-thumb-badge" alt="Property" onerror="this.src='assets/logo.png'"/>
-              </div>
 
               <div class="airbnb-card-actions" onclick="event.stopPropagation()">
                 ${b.phone ? `
-                  <button class="airbnb-action-circle wa" onclick="window.sendWhatsAppToGuest('${b.phone}', '${escapeHtml(b.guest_name)}', '${b.booking_id}')" title="Chat on WhatsApp">
+                  <button class="airbnb-action-circle wa" onclick="window.drawerOpenWhatsApp('${b.booking_id}', '${b.phone}', '${escapeHtml(b.guest_name)}', this)" title="Chat on WhatsApp">
                     💬
                   </button>
                   <a href="tel:${b.phone}" class="airbnb-action-circle call" title="Call Guest">
@@ -1000,12 +1010,13 @@ window.openBookingDrawer = async function(bookingId) {
               <div style="font-size:12px;color:var(--muted);font-weight:600;">Guest Phone</div>
               <div style="font-size:16px;font-weight:700;color:var(--dark);">${escapeHtml(b.phone || 'No phone')}</div>
             </div>
-            <div style="display:flex;gap:8px;">
+            <div style="display:flex;gap:8px;align-items:center;">
+              <button class="sbk-action-btn wa" onclick="window.drawerOpenWhatsApp('${b.booking_id}', '${escapeHtml(b.phone || '')}', '${escapeHtml(b.guest_name || '')}', this)" style="height:36px;padding:0 12px;border-radius:8px;font-size:12.5px;display:inline-flex;align-items:center;gap:6px;background:#25D366;color:#fff;border:none;cursor:pointer;font-weight:700;" title="WhatsApp Guest">
+                <svg viewBox="0 0 24 24" width="15" height="15" fill="#fff"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.79.47 3.55 1.36 5.09L2 22l5.25-1.38c1.48.8 3.13 1.23 4.79 1.23h.01c5.46 0 9.9-4.45 9.9-9.91 0-2.65-1.03-5.14-2.9-7.01A9.82 9.82 0 0 0 12.04 2m.01 1.67c2.2 0 4.26.86 5.82 2.42a8.18 8.18 0 0 1 2.41 5.83c0 4.54-3.7 8.23-8.24 8.23-1.48 0-2.93-.39-4.19-1.15l-.3-.17-3.12.82.83-3.04-.2-.32a8.2 8.2 0 0 1-1.26-4.37c.01-4.54 3.7-8.23 8.25-8.23M8.53 6.98c-.16 0-.43.06-.65.31s-.85.83-.85 2.02.87 2.35.99 2.51c.12.17 1.71 2.75 4.28 3.72 2.12.8 2.55.64 3.01.6.46-.05 1.5-.61 1.71-1.2.21-.59.21-1.09.15-1.19s-.23-.16-.48-.28-1.5-.74-1.73-.82c-.23-.08-.4-.12-.57.13s-.65.82-.8.99c-.15.17-.29.19-.55.06-.26-.13-1.09-.4-2.08-1.29-.77-.68-1.29-1.53-1.44-1.79-.15-.26-.02-.4.11-.53.12-.12.26-.31.4-.47.13-.16.17-.27.26-.45.09-.18.04-.34-.02-.47-.06-.13-.57-1.37-.78-1.87s-.42-.42-.57-.43z"/></svg>
+                ${b.phone ? 'WhatsApp' : 'Add Phone & WA'}
+              </button>
               ${b.phone ? `
-                <button class="sbk-action-btn wa" onclick="window.sendWhatsAppToGuest('${b.phone}', '${escapeHtml(b.guest_name)}', '${b.booking_id}')" style="width:40px;height:40px;border-radius:10px;font-size:18px;">
-                  💬
-                </button>
-                <a href="tel:${b.phone}" class="sbk-action-btn call" style="width:40px;height:40px;border-radius:10px;font-size:18px;">
+                <a href="tel:${b.phone}" class="sbk-action-btn call" style="width:36px;height:36px;border-radius:8px;font-size:16px;display:inline-flex;align-items:center;justify-content:center;background:#E2E8F0;text-decoration:none;" title="Call Guest">
                   📞
                 </a>
               ` : ''}
@@ -1097,6 +1108,13 @@ window.openBookingDrawer = async function(bookingId) {
 
           <!-- Operational Actions Group -->
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:4px;">
+            <button class="btn-sm" style="background:#25D366;color:#fff;padding:10px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;gap:6px;" onclick="window.drawerOpenWhatsApp('${b.booking_id}', '${escapeHtml(b.phone || '')}', '${escapeHtml(b.guest_name || '')}', this)" title="Open WhatsApp Menu &amp; Templates">
+              <svg viewBox="0 0 24 24" width="15" height="15" fill="#fff"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.79.47 3.55 1.36 5.09L2 22l5.25-1.38c1.48.8 3.13 1.23 4.79 1.23h.01c5.46 0 9.9-4.45 9.9-9.91 0-2.65-1.03-5.14-2.9-7.01A9.82 9.82 0 0 0 12.04 2m.01 1.67c2.2 0 4.26.86 5.82 2.42a8.18 8.18 0 0 1 2.41 5.83c0 4.54-3.7 8.23-8.24 8.23-1.48 0-2.93-.39-4.19-1.15l-.3-.17-3.12.82.83-3.04-.2-.32a8.2 8.2 0 0 1-1.26-4.37c.01-4.54 3.7-8.23 8.25-8.23M8.53 6.98c-.16 0-.43.06-.65.31s-.85.83-.85 2.02.87 2.35.99 2.51c.12.17 1.71 2.75 4.28 3.72 2.12.8 2.55.64 3.01.6.46-.05 1.5-.61 1.71-1.2.21-.59.21-1.09.15-1.19s-.23-.16-.48-.28-1.5-.74-1.73-.82c-.23-.08-.4-.12-.57.13s-.65.82-.8.99c-.15.17-.29.19-.55.06-.26-.13-1.09-.4-2.08-1.29-.77-.68-1.29-1.53-1.44-1.79-.15-.26-.02-.4.11-.53.12-.12.26-.31.4-.47.13-.16.17-.27.26-.45.09-.18.04-.34-.02-.47-.06-.13-.57-1.37-.78-1.87s-.42-.42-.57-.43z"/></svg>
+              💬 WhatsApp
+            </button>
+            <button class="btn-sm" style="background:#6366F1;color:#fff;padding:10px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;gap:6px;" onclick="window.drawerDuplicateBooking('${b.booking_id}')" title="Duplicate this booking">
+              📋 Duplicate
+            </button>
             <button class="btn-sm" style="background:#0284C7;color:#fff;padding:10px;" onclick="showSecurityDepositModal('${b.booking_id}')">
               🛡️ Security Deposit
             </button>
@@ -1118,6 +1136,49 @@ window.openBookingDrawer = async function(bookingId) {
   `;
 };
 
+window.drawerDuplicateBooking = function(bookingId) {
+  window.closeBookingDrawer();
+  if (typeof window.duplicateBooking === 'function') {
+    window.duplicateBooking(bookingId);
+  } else {
+    alert('Duplicate booking function is unavailable.');
+  }
+};
+
+window.drawerOpenWhatsApp = async function(bookingId, phone, guestName, btn) {
+  if (phone && phone.trim()) {
+    if (typeof showWATemplatesMenu === 'function') {
+      showWATemplatesMenu(bookingId, btn);
+    } else if (typeof shareBookingWhatsApp === 'function') {
+      shareBookingWhatsApp(bookingId);
+    } else {
+      window.sendWhatsAppToGuest(phone, guestName, bookingId);
+    }
+    return;
+  }
+  // Phone is missing
+  const entered = prompt(`Guest "${guestName || 'Guest'}" ka phone number enter karein WhatsApp send karne ke liye:`, '');
+  if (!entered || !entered.trim()) return;
+  const clean = entered.replace(/[^0-9]/g, '');
+  if (clean.length < 10) {
+    alert('Kripya valid 10-digit mobile number enter karein.');
+    return;
+  }
+  try {
+    if (window.sb) {
+      await window.sb.from('guest_register').update({ phone: clean }).eq('booking_id', bookingId);
+      if (window.fsn?.success) window.fsn.success('Saved', 'Phone number updated successfully');
+    }
+  } catch (e) {
+    console.warn('Could not update phone in db:', e);
+  }
+  if (typeof showWATemplatesMenu === 'function') {
+    showWATemplatesMenu(bookingId, btn);
+  } else {
+    window.sendWhatsAppToGuest(clean, guestName, bookingId);
+  }
+};
+
 window.closeBookingDrawer = function() {
   const container = document.getElementById('sbkDrawerContainer');
   if (container) container.innerHTML = '';
@@ -1131,9 +1192,23 @@ window.setBookingTab = function(tab) {
   renderSmartManageBookings();
 };
 
-window.handleSearchInput = function(val) {
+window.handleManualSearch = function() {
+  const input = document.getElementById('sbkLiveSearch');
+  const val = input ? input.value.trim() : '';
   window._sbkState.searchQuery = val;
   renderSmartManageBookings();
+};
+
+window.clearSearch = function() {
+  const input = document.getElementById('sbkLiveSearch');
+  if (input) input.value = '';
+  window._sbkState.searchQuery = '';
+  renderSmartManageBookings();
+};
+
+window.handleSearchInput = function(val) {
+  // Sets query without instant re-render; manual click triggers render
+  window._sbkState.searchQuery = (val || '').trim();
 };
 
 window.handlePropertyFilter = function(propId) {
