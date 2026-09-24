@@ -1608,6 +1608,44 @@ _Please confirm room allotment and issue official GST Tax Invoice. Thank you!_`;
 
       const waUrl = `https://wa.me/9194109911?text=${encodeURIComponent(waReceipt)}`;
 
+      // Save this booking to local booking history so it always shows in Guest Profile
+      const myBookingItem = {
+        bookingId,
+        name,
+        phone,
+        email,
+        propertyName: p.name,
+        roomId: p.id,
+        mapLink: p.map_link || 'https://maps.google.com/?q=Gomti+Nagar+Lucknow',
+        checkIn: this.checkIn,
+        checkOut: this.checkOut,
+        nights: this.nights,
+        guests: this.guests || 2,
+        baseTariff: baseTotal,
+        gstRate,
+        gstAmount,
+        cgstAmount,
+        sgstAmount,
+        totalPayable: amount,
+        isB2B,
+        companyName,
+        companyGstin,
+        utr,
+        waUrl,
+        propertyCover: p.cover_image || (this.catalog.all[0] ? this.catalog.all[0].url : 'assets/logo.png'),
+        paymentMode: this.currentPaymentTab === 'bank' ? 'Bank Transfer (SBI)' : 'UPI Instant',
+        bookedAt: new Date().toISOString()
+      };
+
+      try {
+        const bookingsList = JSON.parse(localStorage.getItem('uhhs_my_bookings') || '[]');
+        // Don't add duplicate
+        if (!bookingsList.some(b => b.bookingId === bookingId)) {
+          bookingsList.unshift(myBookingItem);
+          localStorage.setItem('uhhs_my_bookings', JSON.stringify(bookingsList));
+        }
+      } catch (err) {}
+
       this.closeUpiModal();
 
       // 5. Render Success Voucher Modal
@@ -1997,6 +2035,7 @@ _Please confirm room allotment and issue official GST Tax Invoice. Thank you!_`;
 
       // 2. Render badge in navbar
       this.renderUserNavBadge();
+      this.syncSupabaseBookings();
     }
 
     syncGoogleUser(user) {
@@ -2013,6 +2052,71 @@ _Please confirm room allotment and issue official GST Tax Invoice. Thank you!_`;
         localStorage.setItem('uhhs_guest_profile', JSON.stringify(this.guestProfile));
       } catch (e) {}
       this.renderUserNavBadge();
+      this.syncSupabaseBookings();
+    }
+
+    async syncSupabaseBookings() {
+      if (!this.guestProfile) return;
+      let sbClient = window.sb;
+      if (!sbClient && typeof supabase !== 'undefined' && window.SUPABASE_URL && window.SUPABASE_ANON_KEY) {
+        sbClient = window.sb = supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY);
+      }
+      if (sbClient) {
+        try {
+          const ph = this.guestProfile.phone || '';
+          const nm = this.guestProfile.name || '';
+          if (!ph && !nm) return;
+
+          let query = sbClient.from('guest_register').select('*');
+          if (ph && nm) {
+            query = query.or(`phone.eq.${ph},guest_name.eq.${nm}`);
+          } else if (ph) {
+            query = query.eq('phone', ph);
+          } else {
+            query = query.eq('guest_name', nm);
+          }
+
+          const { data, error } = await query.order('created_at', { ascending: false });
+
+          if (!error && data && data.length > 0) {
+            const local = this.getMyBookings();
+            let added = false;
+            data.forEach(crmB => {
+              if (!local.some(l => l.bookingId === crmB.booking_id)) {
+                local.push({
+                  bookingId: crmB.booking_id,
+                  name: crmB.guest_name,
+                  phone: crmB.phone,
+                  email: this.guestProfile.email,
+                  propertyName: crmB.property_name || 'The Unique Haven Homes Stay',
+                  roomId: crmB.room_id,
+                  mapLink: 'https://maps.google.com/?q=Gomti+Nagar+Lucknow',
+                  checkIn: crmB.check_in,
+                  checkOut: crmB.check_out,
+                  nights: 1,
+                  guests: crmB.guests || 2,
+                  baseTariff: crmB.total_amount ? Math.round(crmB.total_amount / 1.05) : 3499,
+                  gstRate: 5,
+                  gstAmount: crmB.total_amount ? Math.round(crmB.total_amount - (crmB.total_amount / 1.05)) : 175,
+                  cgstAmount: 88,
+                  sgstAmount: 87,
+                  totalPayable: crmB.total_amount || 3674,
+                  propertyCover: 'assets/properties/redrose-palace/cover.jpg',
+                  paymentMode: 'Verified in CRM',
+                  bookedAt: crmB.created_at || new Date().toISOString()
+                });
+                added = true;
+              }
+            });
+            if (added) {
+              localStorage.setItem('uhhs_my_bookings', JSON.stringify(local));
+              if (this.currentProfileTab === 'bookings') {
+                this.renderProfileTabContent();
+              }
+            }
+          }
+        } catch (err) {}
+      }
     }
 
     renderUserNavBadge() {
@@ -2062,7 +2166,23 @@ _Please confirm room allotment and issue official GST Tax Invoice. Thank you!_`;
       }
     }
 
-    openProfileModal() {
+    getMyBookings() {
+      try {
+        const raw = localStorage.getItem('uhhs_my_bookings');
+        return raw ? JSON.parse(raw) : [];
+      } catch (e) {
+        return [];
+      }
+    }
+
+    getMyReviews() {
+      const p = this.guestProfile;
+      if (!p || !p.name) return [];
+      const allStored = this.getStoredReviews();
+      return allStored.filter(r => r.name && r.name.toLowerCase() === p.name.toLowerCase());
+    }
+
+    openProfileModal(initialTab) {
       let modal = document.getElementById('luxe-profile-modal-overlay');
       if (!modal) {
         modal = document.createElement('div');
@@ -2073,76 +2193,124 @@ _Please confirm room allotment and issue official GST Tax Invoice. Thank you!_`;
 
       const p = this.guestProfile || {};
       const isLoggedIn = !!(p.name || p.email);
+      const myBookings = this.getMyBookings();
+      const myReviews = this.getMyReviews();
 
-      modal.innerHTML = `
-        <div class="luxe-rev-modal-card" onclick="event.stopPropagation()">
-          <button type="button" class="luxe-airbnb-modal-close" onclick="window.luxeEngine.closeProfileModal()">✕</button>
-          
-          <div style="text-align:center; margin-bottom:18px;">
-            <div style="font-size:32px; margin-bottom:6px;">👤</div>
-            <h3 style="font-size:20px; font-weight:800; color:#0f172a; margin:0 0 4px;">
-              ${isLoggedIn ? 'Guest Profile &amp; GST Details' : 'Instant Sign In &amp; Profile'}
-            </h3>
-            <p style="font-size:12.5px; color:#64748b; margin:0;">
-              Auto-fills legal check-in details &amp; delivers your GST Tax Invoice to your email.
-            </p>
-          </div>
+      this.currentProfileTab = initialTab || (myBookings.length > 0 ? 'bookings' : (isLoggedIn ? 'personal' : 'login'));
 
-          <!-- Google 1-Tap OAuth -->
-          <button type="button" class="luxe-auth-btn-google" onclick="window.luxeEngine.loginWithGoogle()">
-            <svg width="18" height="18" viewBox="0 0 24 24"><path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.8-2.4 3.66v3.05h3.88c2.27-2.09 3.665-5.17 3.665-9.15z"/><path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.25v3.15C3.26 21.36 7.33 24 12 24z"/><path fill="#FBBC05" d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.25C.45 8.18 0 9.98 0 12s.45 3.82 1.25 5.42l4.03-3.15z"/><path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.33 0 3.26 2.64 1.25 6.58l4.03 3.15c.95-2.83 3.6-4.98 6.72-4.98z"/></svg>
-            <span>Continue with Google</span>
-          </button>
+      if (!isLoggedIn) {
+        // Quick Sign In / Onboarding View
+        modal.innerHTML = `
+          <div class="airbnb-profile-modal-card" style="max-width:520px;" onclick="event.stopPropagation()">
+            <button type="button" class="luxe-airbnb-modal-close" onclick="window.luxeEngine.closeProfileModal()">✕</button>
+            <div style="padding:32px 28px;">
+              <div style="text-align:center; margin-bottom:20px;">
+                <div style="width:58px; height:58px; border-radius:50%; background:#f8fafc; border:1px solid #e2e8f0; display:flex; align-items:center; justify-content:center; margin:0 auto 12px; font-size:26px;">👤</div>
+                <h3 style="font-size:22px; font-weight:800; color:#0f172a; margin:0 0 6px;">Sign In to Your Profile</h3>
+                <p style="font-size:13px; color:#64748b; margin:0;">
+                  Access your upcoming trips, download official GST tax invoices, and manage 1-tap bookings.
+                </p>
+              </div>
 
-          <div class="luxe-auth-divider"><span>OR ENTER LEGAL DETAILS</span></div>
+              <!-- Google 1-Tap OAuth -->
+              <button type="button" class="luxe-auth-btn-google" onclick="window.luxeEngine.loginWithGoogle()">
+                <svg width="18" height="18" viewBox="0 0 24 24"><path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.8-2.4 3.66v3.05h3.88c2.27-2.09 3.665-5.17 3.665-9.15z"/><path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.25v3.15C3.26 21.36 7.33 24 12 24z"/><path fill="#FBBC05" d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.25C.45 8.18 0 9.98 0 12s.45 3.82 1.25 5.42l4.03-3.15z"/><path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.33 0 3.26 2.64 1.25 6.58l4.03 3.15c.95-2.83 3.6-4.98 6.72-4.98z"/></svg>
+                <span>Continue with Google</span>
+              </button>
 
-          <form id="luxe-profile-form" onsubmit="window.luxeEngine.saveGuestProfile(event)">
-            <div class="upi-form-group">
-              <label>Full Legal Name (as on Govt ID / Aadhaar) *</label>
-              <input type="text" id="luxe-profile-name" value="${p.name || ''}" placeholder="e.g. Rahul Sharma" required />
-            </div>
+              <div class="luxe-auth-divider"><span>OR SETUP GUEST PROFILE</span></div>
 
-            <div class="upi-form-group">
-              <label>WhatsApp Phone Number *</label>
-              <input type="tel" id="luxe-profile-phone" value="${p.phone || ''}" placeholder="e.g. 9876543210" required />
-            </div>
-
-            <div class="upi-form-group">
-              <label>Email Address (For Official GST Tax Bill) *</label>
-              <input type="email" id="luxe-profile-email" value="${p.email || ''}" placeholder="e.g. rahul.sharma@gmail.com" required />
-            </div>
-
-            <!-- Optional Corporate GST Fields -->
-            <div class="gst-b2b-card" style="margin-top:10px;">
-              <label class="gst-b2b-check-label">
-                <input type="checkbox" id="luxe-profile-b2b" ${p.isB2B ? 'checked' : ''} onchange="document.getElementById('luxe-profile-b2b-box').style.display = this.checked ? 'block' : 'none';" />
-                <span>🏢 I represent a Company / Business (Need GST ITC Bill)</span>
-              </label>
-              <div id="luxe-profile-b2b-box" style="display:${p.isB2B ? 'block' : 'none'}; margin-top:10px;">
+              <form id="luxe-profile-form" onsubmit="window.luxeEngine.saveGuestProfile(event)">
                 <div class="upi-form-group">
-                  <label>Company Legal Name</label>
-                  <input type="text" id="luxe-profile-cname" value="${p.companyName || ''}" placeholder="e.g. Infosys Ltd" />
+                  <label>Full Legal Name (as on Govt ID) *</label>
+                  <input type="text" id="luxe-profile-name" placeholder="e.g. Rahul Sharma" required />
                 </div>
-                <div class="upi-form-group" style="margin-bottom:0;">
-                  <label>15-Digit Company GSTIN</label>
-                  <input type="text" id="luxe-profile-cgstin" value="${p.companyGstin || ''}" placeholder="e.g. 09AAACI1234A1Z5" maxlength="15" style="text-transform:uppercase; font-family:monospace;" />
+
+                <div class="upi-form-group">
+                  <label>WhatsApp Phone Number *</label>
+                  <input type="tel" id="luxe-profile-phone" placeholder="e.g. 9876543210" required />
                 </div>
+
+                <div class="upi-form-group">
+                  <label>Email Address (For GST Tax Invoices) *</label>
+                  <input type="email" id="luxe-profile-email" placeholder="e.g. rahul.sharma@gmail.com" required />
+                </div>
+
+                <button type="submit" class="upi-btn-confirm" style="width:100%; justify-content:center; margin-top:16px;">
+                  🚀 Activate Profile &amp; Continue
+                </button>
+              </form>
+            </div>
+          </div>
+        `;
+      } else {
+        // Full Airbnb Profile & Trips Hub
+        const initial = p.name ? p.name.charAt(0).toUpperCase() : 'U';
+
+        modal.innerHTML = `
+          <div class="airbnb-profile-modal-card" onclick="event.stopPropagation()">
+            <button type="button" class="luxe-airbnb-modal-close" onclick="window.luxeEngine.closeProfileModal()">✕</button>
+
+            <!-- Airbnb Profile Header Card -->
+            <div class="airbnb-profile-header">
+              <div class="airbnb-profile-user-info">
+                <div class="airbnb-profile-avatar-big">
+                  ${p.avatar ? `<img src="${p.avatar}" alt="${p.name}" />` : initial}
+                  <span class="airbnb-profile-avatar-check">✓</span>
+                </div>
+                <div class="airbnb-profile-name-wrap">
+                  <h3>
+                    <span>${p.name || 'Verified Guest'}</span>
+                    <span class="airbnb-profile-badge-pill">🛡️ Identity Verified</span>
+                  </h3>
+                  <div class="airbnb-profile-subtext">
+                    <span>📱 +91 ${p.phone || '94109911'}</span>
+                    <span>✉️ ${p.email || 'guest@uniquehavenhomesstay.com'}</span>
+                    <span>📅 Joined 2026</span>
+                  </div>
+                  <div class="airbnb-profile-badges-row">
+                    <span class="airbnb-verif-tag">✓ Govt ID Registered</span>
+                    <span class="airbnb-verif-tag">✓ Email Confirmed</span>
+                    <span class="airbnb-verif-tag">✓ WhatsApp Connected</span>
+                    ${p.isB2B ? '<span class="airbnb-verif-tag" style="background:#f0fdf4; border-color:#86efac; color:#166534;">🏢 Corporate ITC Active</span>' : ''}
+                  </div>
+                </div>
+              </div>
+
+              <div class="airbnb-profile-header-actions">
+                <button type="button" class="airbnb-btn-profile-signout" onclick="window.luxeEngine.logoutGuest()">
+                  Sign Out
+                </button>
               </div>
             </div>
 
-            <div style="display:flex; gap:10px; margin-top:20px;">
-              <button type="submit" class="upi-btn-confirm" style="flex:1; justify-content:center;">
-                💾 Save Profile
+            <!-- Airbnb Profile Navigation Tabs -->
+            <nav class="airbnb-profile-tabs">
+              <button type="button" class="airbnb-profile-tab-btn ${this.currentProfileTab === 'bookings' ? 'active' : ''}" onclick="window.luxeEngine.switchProfileTab('bookings')">
+                <span>🧳 My Bookings &amp; Trips</span>
+                <span class="tab-count">${myBookings.length}</span>
               </button>
-              ${isLoggedIn ? `
-                <button type="button" onclick="window.luxeEngine.logoutGuest()" style="background:#fee2e2; border:1px solid #fecaca; color:#dc2626; border-radius:12px; padding:0 16px; font-weight:700; cursor:pointer;">
-                  Sign Out
-                </button>
-              ` : ''}
+              <button type="button" class="airbnb-profile-tab-btn ${this.currentProfileTab === 'personal' ? 'active' : ''}" onclick="window.luxeEngine.switchProfileTab('personal')">
+                <span>👤 Personal &amp; Legal Info</span>
+              </button>
+              <button type="button" class="airbnb-profile-tab-btn ${this.currentProfileTab === 'gst' ? 'active' : ''}" onclick="window.luxeEngine.switchProfileTab('gst')">
+                <span>🏢 Business &amp; GST Details</span>
+              </button>
+              <button type="button" class="airbnb-profile-tab-btn ${this.currentProfileTab === 'reviews' ? 'active' : ''}" onclick="window.luxeEngine.switchProfileTab('reviews')">
+                <span>⭐ My Reviews</span>
+                <span class="tab-count">${myReviews.length}</span>
+              </button>
+            </nav>
+
+            <!-- Dynamic Profile Tab Content -->
+            <div class="airbnb-profile-content" id="airbnb-profile-tab-content">
+              <!-- Injected by renderProfileTabContent() -->
             </div>
-          </form>
-        </div>
-      `;
+          </div>
+        `;
+
+        this.renderProfileTabContent();
+      }
 
       modal.onclick = (e) => {
         if (e.target === modal) this.closeProfileModal();
@@ -2155,6 +2323,318 @@ _Please confirm room allotment and issue official GST Tax Invoice. Thank you!_`;
       const modal = document.getElementById('luxe-profile-modal-overlay');
       if (modal) modal.classList.remove('active');
       document.body.style.overflow = '';
+    }
+
+    switchProfileTab(tabName) {
+      this.currentProfileTab = tabName;
+      const tabBtns = document.querySelectorAll('.airbnb-profile-tab-btn');
+      tabBtns.forEach(btn => {
+        if (btn.innerText.toLowerCase().includes(tabName.toLowerCase())) {
+          btn.classList.add('active');
+        } else {
+          btn.classList.remove('active');
+        }
+      });
+      this.renderProfileTabContent();
+    }
+
+    renderProfileTabContent() {
+      const container = document.getElementById('airbnb-profile-tab-content');
+      if (!container) return;
+
+      const p = this.guestProfile || {};
+      const tab = this.currentProfileTab;
+
+      if (tab === 'bookings') {
+        const bookings = this.getMyBookings();
+        if (bookings.length === 0) {
+          container.innerHTML = `
+            <div class="airbnb-empty-bookings">
+              <div class="airbnb-empty-bookings-icon">🧳</div>
+              <h4>No Upcoming Bookings Yet</h4>
+              <p>When you book a luxury homestay with us, your reservations, stay passes, and downloadable official GST tax invoices will appear right here.</p>
+              <button type="button" class="agoda-btn-search" style="padding:10px 24px; border-radius:999px; margin:0 auto;" onclick="window.luxeEngine.closeProfileModal(); window.location.href='properties.html#properties';">
+                Explore Lucknow Homestays (15% Off) →
+              </button>
+            </div>
+          `;
+        } else {
+          container.innerHTML = `
+            <div style="margin-bottom:16px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+              <div>
+                <h4 style="font-size:17px; font-weight:800; color:#0f172a; margin:0;">Your Confirmed Stays (${bookings.length})</h4>
+                <p style="font-size:12.5px; color:#64748b; margin:2px 0 0;">Official GST tax receipts and check-in passes for all your stays.</p>
+              </div>
+              <button type="button" class="airbnb-btn-action-sm" onclick="window.luxeEngine.closeProfileModal(); window.location.href='properties.html#properties';">
+                + Book Another Stay
+              </button>
+            </div>
+
+            ${bookings.map(b => `
+              <div class="airbnb-booking-card">
+                <img src="${b.propertyCover || 'assets/properties/redrose-palace/cover.jpg'}" alt="${b.propertyName}" class="airbnb-booking-thumb" />
+                <div class="airbnb-booking-details">
+                  <div class="airbnb-booking-top-row">
+                    <div>
+                      <h4 class="airbnb-booking-prop-name">${b.propertyName}</h4>
+                      <div style="font-size:11.5px; color:#64748b; font-family:monospace; margin-top:2px;">Booking Ref: <strong>${b.bookingId}</strong></div>
+                    </div>
+                    <span class="airbnb-booking-status-tag">✓ Confirmed &amp; Paid</span>
+                  </div>
+
+                  <div class="airbnb-booking-dates">
+                    🗓️ ${b.checkIn} (from 14:00) → ${b.checkOut} (by 11:00)
+                  </div>
+
+                  <div class="airbnb-booking-meta-row">
+                    <span>🌙 ${b.nights} Night(s) · 👥 ${b.guests} Guests</span>
+                    <span>💰 <strong>₹${b.totalPayable.toLocaleString('en-IN')}</strong> (incl. ${b.gstRate || 5}% GST · SAC 996311)</span>
+                    <span>💳 ${b.paymentMode || 'UPI Instant'}</span>
+                  </div>
+
+                  <div class="airbnb-booking-actions">
+                    <button type="button" class="airbnb-btn-action-sm primary" onclick="window.luxeEngine.downloadBookingTaxPdf('${b.bookingId}')">
+                      🧾 View / Print GST Invoice
+                    </button>
+                    <button type="button" class="airbnb-btn-action-sm" onclick="window.luxeEngine.resendBookingTaxEmail('${b.bookingId}')">
+                      📧 Email GST Tax Bill
+                    </button>
+                    <a class="airbnb-btn-action-sm whatsapp" href="${b.waUrl || `https://wa.me/9194109911?text=Namaste!%20My%20Booking%20Ref%20is%20${b.bookingId}`}" target="_blank">
+                      📱 Manager WhatsApp Pass
+                    </a>
+                    <a class="airbnb-btn-action-sm" href="${b.mapLink || 'https://maps.google.com/?q=Gomti+Nagar+Lucknow'}" target="_blank">
+                      🗺️ Map Directions
+                    </a>
+                  </div>
+                </div>
+              </div>
+            `).join('')}
+          `;
+        }
+      } else if (tab === 'personal') {
+        container.innerHTML = `
+          <form onsubmit="window.luxeEngine.savePersonalDetails(event)">
+            <div style="margin-bottom:18px;">
+              <h4 style="font-size:17px; font-weight:800; color:#0f172a; margin:0 0 4px;">Personal &amp; Legal Identity</h4>
+              <p style="font-size:12.5px; color:#64748b; margin:0;">Used for hotel register compliance (Form C) and zero-waiting check-in.</p>
+            </div>
+
+            <div class="airbnb-profile-form-grid">
+              <div class="upi-form-group">
+                <label>Full Legal Name (as on Govt ID) *</label>
+                <input type="text" id="prof-legal-name" value="${p.name || ''}" placeholder="e.g. Rahul Sharma" required />
+              </div>
+
+              <div class="upi-form-group">
+                <label>Preferred Name / Nickname</label>
+                <input type="text" id="prof-nickname" value="${p.nickname || ''}" placeholder="e.g. Rahul" />
+              </div>
+
+              <div class="upi-form-group">
+                <label>WhatsApp Phone Number *</label>
+                <input type="tel" id="prof-phone" value="${p.phone || ''}" placeholder="e.g. 9876543210" required />
+              </div>
+
+              <div class="upi-form-group">
+                <label>Email Address (For GST Tax Invoices) *</label>
+                <input type="email" id="prof-email" value="${p.email || ''}" placeholder="e.g. rahul.sharma@gmail.com" required />
+              </div>
+
+              <div class="upi-form-group">
+                <label>Home City &amp; State</label>
+                <input type="text" id="prof-city" value="${p.city || ''}" placeholder="e.g. New Delhi, Delhi" />
+              </div>
+
+              <div class="upi-form-group">
+                <label>Govt ID Last 4 Digits (Aadhaar / Passport)</label>
+                <input type="text" id="prof-govid" maxlength="4" value="${p.govIdLast4 || ''}" placeholder="e.g. 8492" />
+              </div>
+
+              <div class="upi-form-group" style="grid-column: 1 / -1;">
+                <label>Emergency Contact Name &amp; Phone (Optional)</label>
+                <input type="text" id="prof-emergency" value="${p.emergencyContact || ''}" placeholder="e.g. Sunita Sharma (+91 9876543211)" />
+              </div>
+            </div>
+
+            <div style="margin-top:20px; display:flex; gap:12px;">
+              <button type="submit" class="upi-btn-confirm" style="padding:12px 24px;">
+                💾 Save Personal Details
+              </button>
+            </div>
+          </form>
+        `;
+      } else if (tab === 'gst') {
+        container.innerHTML = `
+          <form onsubmit="window.luxeEngine.saveGstDetails(event)">
+            <div style="margin-bottom:18px;">
+              <h4 style="font-size:17px; font-weight:800; color:#0f172a; margin:0 0 4px;">Business Invoicing &amp; GST Settings</h4>
+              <p style="font-size:12.5px; color:#64748b; margin:0;">Receive B2B Tax Invoices with SAC 996311 to claim Input Tax Credit (ITC).</p>
+            </div>
+
+            <div style="margin-bottom:16px;">
+              <label class="gst-b2b-check-label">
+                <input type="checkbox" id="prof-b2b-toggle" ${p.isB2B ? 'checked' : ''} onchange="document.getElementById('prof-gst-fields-wrap').style.display = this.checked ? 'grid' : 'none';" />
+                <span style="font-size:13.5px; font-weight:700;">🏢 Enable Business Invoicing for All Stays</span>
+              </label>
+            </div>
+
+            <div id="prof-gst-fields-wrap" class="airbnb-profile-form-grid" style="display:${p.isB2B ? 'grid' : 'none'};">
+              <div class="upi-form-group">
+                <label>Company Legal Registered Name *</label>
+                <input type="text" id="prof-cname" value="${p.companyName || ''}" placeholder="e.g. Video Editor Lucknow Pvt Ltd" />
+              </div>
+
+              <div class="upi-form-group">
+                <label>15-Digit Company GSTIN *</label>
+                <input type="text" id="prof-cgstin" maxlength="15" value="${p.companyGstin || ''}" placeholder="e.g. 09AAACT1234A1Z5" style="text-transform:uppercase; font-family:monospace;" />
+              </div>
+
+              <div class="upi-form-group" style="grid-column: 1 / -1;">
+                <label>Registered Company Billing Address</label>
+                <input type="text" id="prof-caddress" value="${p.companyAddress || ''}" placeholder="e.g. 101 Corporate Park, Gomti Nagar, Lucknow" />
+              </div>
+
+              <div class="upi-form-group">
+                <label>State</label>
+                <input type="text" id="prof-cstate" value="${p.companyState || 'Uttar Pradesh'}" placeholder="e.g. Uttar Pradesh" />
+              </div>
+
+              <div class="upi-form-group">
+                <label>PIN Code</label>
+                <input type="text" id="prof-cpincode" maxlength="6" value="${p.companyPin || '226010'}" placeholder="e.g. 226010" />
+              </div>
+            </div>
+
+            <div style="margin-top:20px;">
+              <button type="submit" class="upi-btn-confirm" style="padding:12px 24px;">
+                💾 Save Corporate GST Settings
+              </button>
+            </div>
+          </form>
+        `;
+      } else if (tab === 'reviews') {
+        const reviews = this.getMyReviews();
+        if (reviews.length === 0) {
+          container.innerHTML = `
+            <div class="airbnb-empty-bookings">
+              <div class="airbnb-empty-bookings-icon">⭐</div>
+              <h4>No Reviews Written Yet</h4>
+              <p>Reviews you write for our homestays help other travellers. Share your thoughts on your next stay!</p>
+              <button type="button" class="airbnb-btn-action-sm" onclick="window.luxeEngine.closeProfileModal(); window.luxeEngine.openWriteReviewModal();">
+                ✍️ Write a Review Now
+              </button>
+            </div>
+          `;
+        } else {
+          container.innerHTML = `
+            <div style="margin-bottom:16px;">
+              <h4 style="font-size:17px; font-weight:800; color:#0f172a; margin:0 0 4px;">Reviews Written by You (${reviews.length})</h4>
+              <p style="font-size:12.5px; color:#64748b; margin:0;">Public verified feedback shared on our website.</p>
+            </div>
+            <div class="airbnb-reviews-grid" style="grid-template-columns:1fr;">
+              ${reviews.map(r => `
+                <div class="airbnb-review-card">
+                  <div class="airbnb-reviewer-head">
+                    <div class="airbnb-reviewer-avatar">${(r.name || 'G').charAt(0).toUpperCase()}</div>
+                    <div class="airbnb-reviewer-meta">
+                      <h4 class="airbnb-reviewer-name">${r.name}</h4>
+                      <p class="airbnb-reviewer-sub">${r.tenure || 'Verified Guest'}</p>
+                    </div>
+                  </div>
+                  <div class="airbnb-review-stars-date">
+                    <span class="airbnb-review-stars">${'★'.repeat(r.rating || 5)}</span>
+                    <span class="airbnb-review-dot">·</span>
+                    <span class="airbnb-review-date">${r.date || 'Recent stay'}</span>
+                  </div>
+                  <p class="airbnb-review-text">${r.comment}</p>
+                </div>
+              `).join('')}
+            </div>
+          `;
+        }
+      }
+    }
+
+    savePersonalDetails(e) {
+      if (e) e.preventDefault();
+      const n = document.getElementById('prof-legal-name')?.value.trim();
+      const nick = document.getElementById('prof-nickname')?.value.trim();
+      const ph = document.getElementById('prof-phone')?.value.trim();
+      const em = document.getElementById('prof-email')?.value.trim();
+      const city = document.getElementById('prof-city')?.value.trim();
+      const govId = document.getElementById('prof-govid')?.value.trim();
+      const emContact = document.getElementById('prof-emergency')?.value.trim();
+
+      if (!n || !ph || !em) {
+        alert('Please fill out all required fields.');
+        return;
+      }
+
+      this.guestProfile = {
+        ...(this.guestProfile || {}),
+        name: n,
+        nickname: nick,
+        phone: ph,
+        email: em,
+        city: city,
+        govIdLast4: govId,
+        emergencyContact: emContact
+      };
+
+      try {
+        localStorage.setItem('uhhs_guest_profile', JSON.stringify(this.guestProfile));
+      } catch (err) {}
+
+      this.renderUserNavBadge();
+      alert('✅ Personal & Legal details updated successfully!');
+      this.renderProfileTabContent();
+    }
+
+    saveGstDetails(e) {
+      if (e) e.preventDefault();
+      const b2b = document.getElementById('prof-b2b-toggle')?.checked;
+      const cn = document.getElementById('prof-cname')?.value.trim();
+      const cg = document.getElementById('prof-cgstin')?.value.trim().toUpperCase();
+      const cAddr = document.getElementById('prof-caddress')?.value.trim();
+      const cState = document.getElementById('prof-cstate')?.value.trim();
+      const cPin = document.getElementById('prof-cpincode')?.value.trim();
+
+      if (b2b && (!cn || !cg || cg.length < 15)) {
+        alert('Please enter a valid Company Name and 15-digit GSTIN.');
+        return;
+      }
+
+      this.guestProfile = {
+        ...(this.guestProfile || {}),
+        isB2B: b2b,
+        companyName: cn,
+        companyGstin: cg,
+        companyAddress: cAddr,
+        companyState: cState,
+        companyPin: cPin
+      };
+
+      try {
+        localStorage.setItem('uhhs_guest_profile', JSON.stringify(this.guestProfile));
+      } catch (err) {}
+
+      alert('✅ Corporate GST details saved! Your GST Tax Invoices will be generated under this entity.');
+      this.renderProfileTabContent();
+    }
+
+    downloadBookingTaxPdf(bookingId) {
+      const b = this.getMyBookings().find(x => x.bookingId === bookingId);
+      if (b) {
+        this.closeProfileModal();
+        this.showBookingSuccessVoucher(b);
+      }
+    }
+
+    resendBookingTaxEmail(bookingId) {
+      const b = this.getMyBookings().find(x => x.bookingId === bookingId);
+      if (b) {
+        this.emailGstInvoice(b);
+      }
     }
 
     saveGuestProfile(e) {
@@ -2193,7 +2673,7 @@ _Please confirm room allotment and issue official GST Tax Invoice. Thank you!_`;
       } catch (err) {}
 
       this.renderUserNavBadge();
-      this.closeProfileModal();
+      this.openProfileModal('bookings');
       alert(`✅ Profile saved! Welcome, ${n}. Your details will auto-fill on all bookings.`);
     }
 
