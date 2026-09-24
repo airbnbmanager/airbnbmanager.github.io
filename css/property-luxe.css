@@ -2959,3 +2959,179 @@ body.luxe-property-page .hero-frame {
   }
 }
 
+/* ─── GST BILLING & DIRECT BOOKING ENHANCEMENTS ─── */
+.luxe-gst-badge-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: #f0fdf4;
+  color: #166534;
+  border: 1px solid #bbf7d0;
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.luxe-gst-tax-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12.5px;
+  color: #0369a1;
+  background: #f0f9ff;
+  border: 1px solid #e0f2fe;
+  padding: 8px 12px;
+  border-radius: 8px;
+  margin: 6px 0;
+}
+
+/* Payment Method Tabs in Booking Modal */
+.upi-pay-tabs {
+  display: flex;
+  background: #f1f5f9;
+  padding: 4px;
+  border-radius: 12px;
+  gap: 4px;
+  margin-bottom: 16px;
+}
+
+.upi-pay-tab-btn {
+  flex: 1;
+  padding: 9px 12px;
+  border: none;
+  background: transparent;
+  border-radius: 8px;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.upi-pay-tab-btn.active {
+  background: #ffffff;
+  color: #0f172a;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+}
+
+/* Bank Transfer Box */
+.bank-transfer-box {
+  background: #f8fafc;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 16px;
+  margin-bottom: 18px;
+}
+
+.bank-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px dashed #e2e8f0;
+  font-size: 13px;
+}
+
+.bank-row:last-child {
+  border-bottom: none;
+}
+
+.bank-label {
+  color: #64748b;
+  font-weight: 500;
+}
+
+.bank-val {
+  color: #0f172a;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.bank-copy-btn {
+  background: #e2e8f0;
+  border: none;
+  color: #334155;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.bank-copy-btn:hover {
+  background: #0284c7;
+  color: #ffffff;
+}
+
+/* B2B / Corporate GST Toggle Box */
+.gst-b2b-card {
+  background: #fdfdfd;
+  border: 1px solid #cbd5e1;
+  border-radius: 12px;
+  padding: 12px 14px;
+  margin-bottom: 16px;
+}
+
+.gst-b2b-check-label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  user-select: none;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.gst-b2b-check-label input[type="checkbox"] {
+  width: 17px;
+  height: 17px;
+  accent-color: #059669;
+  cursor: pointer;
+}
+
+.gst-b2b-fields {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #e2e8f0;
+}
+
+/* Tax Print Styling for A4 Receipt */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  #luxe-voucher-modal-overlay,
+  #luxe-voucher-modal-overlay * {
+    visibility: visible;
+  }
+  #luxe-voucher-modal-overlay {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: auto;
+    background: transparent !important;
+    padding: 0 !important;
+  }
+  .luxe-voucher-card {
+    box-shadow: none !important;
+    border: 1px solid #cbd5e1 !important;
+    max-width: 100% !important;
+    width: 100% !important;
+    margin: 0 !important;
+  }
+  .luxe-voucher-actions {
+    display: none !important;
+  }
+}
+
+

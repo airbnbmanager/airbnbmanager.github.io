@@ -377,10 +377,28 @@
     }
 
     updatePriceCalculations() {
-      const base = this.prop.base_price || 3499;
-      const totalRent = base * this.nights;
+      const p = this.prop;
+      const base = p.base_price || 3499;
+      const baseTotal = base * this.nights;
+
+      // Indian GST Council Rules (SAC 996311 - Accommodation Services):
+      // Per night rate <= 7500 -> 5% GST (2.5% CGST + 2.5% SGST)
+      // Per night rate > 7500 -> 18% GST (9% CGST + 9% SGST)
+      const gstRate = base <= 7500 ? 5 : 18;
+      const gstAmount = Math.round(baseTotal * (gstRate / 100));
+      const cgstAmount = Math.round(gstAmount / 2);
+      const sgstAmount = gstAmount - cgstAmount;
+      const totalRent = baseTotal + gstAmount;
+
+      this.baseTariff = baseTotal;
+      this.gstRate = gstRate;
+      this.gstAmount = gstAmount;
+      this.cgstAmount = cgstAmount;
+      this.sgstAmount = sgstAmount;
       this.totalPayable = totalRent;
-      const airbnbBase = this.prop.airbnb_price || Math.round(base * 1.2);
+
+      // Airbnb comparison (Airbnb charges ~18-20% extra guest & platform commissions)
+      const airbnbBase = p.airbnb_price || Math.round(base * 1.2);
       const airbnbTotal = airbnbBase * this.nights;
       const savings = airbnbTotal - totalRent;
 
@@ -388,7 +406,7 @@
       if (priceValEl) priceValEl.textContent = `₹${totalRent.toLocaleString('en-IN')}`;
 
       const nightsLabel = document.getElementById('luxe-nights-label');
-      if (nightsLabel) nightsLabel.textContent = `for ${this.nights} night${this.nights > 1 ? 's' : ''} (₹${base.toLocaleString('en-IN')}/night)`;
+      if (nightsLabel) nightsLabel.textContent = `for ${this.nights} night${this.nights > 1 ? 's' : ''} (incl. ${gstRate}% GST)`;
 
       const strikeEl = document.getElementById('luxe-airbnb-strike');
       if (strikeEl) strikeEl.textContent = `₹${airbnbTotal.toLocaleString('en-IN')} on Airbnb`;
@@ -399,6 +417,15 @@
       const nightsDetail = document.getElementById('luxe-calc-nights');
       if (nightsDetail) nightsDetail.textContent = `${this.nights} Night${this.nights > 1 ? 's' : ''}`;
 
+      const baseDetail = document.getElementById('luxe-calc-base');
+      if (baseDetail) baseDetail.textContent = `₹${baseTotal.toLocaleString('en-IN')}`;
+
+      const gstDetail = document.getElementById('luxe-calc-gst');
+      if (gstDetail) gstDetail.textContent = `+₹${gstAmount.toLocaleString('en-IN')}`;
+
+      const gstLabel = document.getElementById('luxe-calc-gst-label');
+      if (gstLabel) gstLabel.textContent = `GST (${gstRate}% · SAC 996311):`;
+
       const totalDetail = document.getElementById('luxe-calc-total');
       if (totalDetail) totalDetail.textContent = `₹${totalRent.toLocaleString('en-IN')}`;
 
@@ -406,7 +433,14 @@
       const mobPrice = document.getElementById('luxe-mobile-price-val');
       if (mobPrice) mobPrice.textContent = `₹${totalRent.toLocaleString('en-IN')}`;
       const mobSub = document.querySelector('.luxe-mobile-price-sub');
-      if (mobSub) mobSub.textContent = `${this.nights} Night${this.nights > 1 ? 's' : ''} · Save 15%`;
+      if (mobSub) mobSub.textContent = `${this.nights} Night${this.nights > 1 ? 's' : ''} · Incl. ${gstRate}% GST`;
+
+      // Update sidebar WhatsApp link with prefilled booking enquiry
+      const waBtn = document.getElementById('luxe-btn-wa-direct');
+      if (waBtn) {
+        const waText = `Namaste Praveen ji! I want to book ${p.name} directly from ${this.checkIn} to ${this.checkOut} (${this.nights} Nights, ${this.guests} Guests).\nTariff: ₹${base}/night + ${gstRate}% GST = Total: ₹${totalRent.toLocaleString('en-IN')}.\nPlease confirm availability and share check-in pass.`;
+        waBtn.href = `https://wa.me/9194109911?text=${encodeURIComponent(waText)}`;
+      }
     }
 
     renderAgodaSearchBar() {
@@ -720,7 +754,7 @@
             <p style="margin:0 0 20px; font-size:14px; color:rgba(255,255,255,0.75); max-width:440px;">
               Want a detailed video walkthrough before you book? We will share an instant 60-second video tour directly with you.
             </p>
-            <a href="https://wa.me/919450055554?text=${waMsg}" target="_blank" class="luxe-btn-wa" style="font-size:14px; padding:12px 24px;">
+            <a href="https://wa.me/9194109911?text=${waMsg}" target="_blank" class="luxe-btn-wa" style="font-size:14px; padding:12px 24px;">
               ${ICONS.whatsapp} Get Video on WhatsApp
             </a>
           </div>
@@ -962,7 +996,20 @@
     renderBookingCard() {
       const p = this.prop;
       const basePrice = p.base_price || 3499;
-      this.totalPayable = basePrice * this.nights;
+      const baseTotal = basePrice * this.nights;
+      const gstRate = basePrice <= 7500 ? 5 : 18;
+      const gstAmount = Math.round(baseTotal * (gstRate / 100));
+      const cgstAmount = Math.round(gstAmount / 2);
+      const sgstAmount = gstAmount - cgstAmount;
+      const totalRent = baseTotal + gstAmount;
+
+      this.baseTariff = baseTotal;
+      this.gstRate = gstRate;
+      this.gstAmount = gstAmount;
+      this.cgstAmount = cgstAmount;
+      this.sgstAmount = sgstAmount;
+      this.totalPayable = totalRent;
+
       const todayIso = new Date().toISOString().slice(0, 10);
 
       const cardContainer = document.getElementById('luxe-booking-card-container');
@@ -970,18 +1017,18 @@
 
       cardContainer.innerHTML = `
         <div class="luxe-booking-card">
-          <div class="luxe-card-top-tag">⚡ Direct Booking Benefit · No Middleman Fees</div>
+          <div class="luxe-card-top-tag">⚡ Direct Booking Benefit · 15% Off vs Airbnb</div>
           
           <div class="luxe-price-header">
             <div>
-              <span id="luxe-price-amount" class="luxe-price-amount">₹${this.totalPayable.toLocaleString('en-IN')}</span>
-              <span id="luxe-nights-label" class="luxe-price-unit"> / night</span>
+              <span id="luxe-price-amount" class="luxe-price-amount">₹${totalRent.toLocaleString('en-IN')}</span>
+              <span id="luxe-nights-label" class="luxe-price-unit"> / stay (incl. ${gstRate}% GST)</span>
             </div>
             <div style="font-size:13px; font-weight:700; color:#b58d3d;">★ ${p.rating ? p.rating.toFixed(1) : '4.9'} (${p.reviews || 46})</div>
           </div>
 
           <div class="luxe-airbnb-comparison">
-            <span id="luxe-airbnb-strike" class="luxe-airbnb-strike">₹${(p.airbnb_price || 4199).toLocaleString('en-IN')} on Airbnb</span>
+            <span id="luxe-airbnb-strike" class="luxe-airbnb-strike">₹${((p.airbnb_price || Math.round(basePrice * 1.2)) * this.nights).toLocaleString('en-IN')} on Airbnb</span>
             <span id="luxe-save-tag" class="luxe-save-tag">Save 15% Direct</span>
           </div>
 
@@ -1003,28 +1050,40 @@
 
             <div class="luxe-nights-calc">
               <span>Duration:</span>
-              <b id="luxe-calc-nights">${this.nights} Night</b>
+              <b id="luxe-calc-nights">${this.nights} Night${this.nights > 1 ? 's' : ''}</b>
             </div>
-            <div class="luxe-nights-calc" style="border-top:1px dashed #cbd5e1; padding-top:6px;">
-              <span>Total Direct Payable:</span>
-              <b id="luxe-calc-total" style="color:#059669; font-size:15px;">₹${this.totalPayable.toLocaleString('en-IN')}</b>
+            <div class="luxe-nights-calc">
+              <span>Base Room Tariff:</span>
+              <b id="luxe-calc-base">₹${baseTotal.toLocaleString('en-IN')}</b>
+            </div>
+            <div class="luxe-nights-calc" style="color:#0369a1;">
+              <span id="luxe-calc-gst-label">GST (${gstRate}% · SAC 996311):</span>
+              <b id="luxe-calc-gst">+₹${gstAmount.toLocaleString('en-IN')}</b>
+            </div>
+            <div class="luxe-nights-calc" style="border-top:1px dashed #cbd5e1; padding-top:8px; margin-top:4px;">
+              <span style="font-weight:700; color:#0f172a; font-size:14px;">Total Amount (with GST):</span>
+              <b id="luxe-calc-total" style="color:#059669; font-size:17px;">₹${totalRent.toLocaleString('en-IN')}</b>
+            </div>
+            <div style="font-size:11.5px; color:#166534; margin-top:8px; background:#f0fdf4; border:1px solid #bbf7d0; padding:6px 10px; border-radius:8px; display:flex; align-items:center; gap:6px;">
+              <span>🛡️</span>
+              <span>Official GST Invoice provided upon check-in. Corporate ITC supported.</span>
             </div>
           </div>
 
-          <!-- Primary Direct Booking CTA with UPI QR -->
+          <!-- Primary Direct Booking CTA with UPI QR / Bank -->
           <button type="button" id="luxe-btn-book-primary" class="luxe-btn-book-primary" onclick="window.luxeEngine.openUpiPaymentModal()">
-            💳 Reserve &amp; Pay via UPI QR (Save 15%)
+            💳 Reserve &amp; Pay Direct (Save 15%)
           </button>
 
-          <!-- Secondary WhatsApp Direct link -->
-          <a id="luxe-btn-wa-direct" class="luxe-btn-book-primary" style="background:#25d366; margin-top:8px;" href="https://wa.me/919450055554" target="_blank">
+          <!-- Secondary WhatsApp Direct link (Praveen Singh Manager 9194109911) -->
+          <a id="luxe-btn-wa-direct" class="luxe-btn-book-primary" style="background:#25d366; margin-top:8px;" href="https://wa.me/9194109911?text=${encodeURIComponent(`Namaste Praveen ji! I want to book ${p.name} directly from ${this.checkIn} to ${this.checkOut} (${this.nights} Nights, ${this.guests} Guests).\nTariff: ₹${basePrice}/night + ${gstRate}% GST = Total: ₹${totalRent.toLocaleString('en-IN')}.\nPlease confirm availability.`)}" target="_blank">
             ${ICONS.whatsapp} Instant WhatsApp Booking
           </a>
 
           <!-- Secondary CTAs -->
           <div class="luxe-card-sub-actions" style="margin-top:14px;">
-            <a class="luxe-btn-card-sub" href="tel:+919450055554">
-              📞 Call Host
+            <a class="luxe-btn-card-sub" href="tel:+919194109911">
+              📞 Call Manager
             </a>
             <button type="button" id="luxe-btn-airbnb-link" class="luxe-btn-card-sub" onclick="window.luxeEngine.openAirbnbModal()">
               View on Airbnb ↗
@@ -1035,15 +1094,19 @@
           <ul class="luxe-trust-list" style="margin-top:18px;">
             <li>
               ${ICONS.check}
-              <span>Instant confirmation directly with owner</span>
+              <span>Direct reservation with property owner &amp; host</span>
             </li>
             <li>
               ${ICONS.check}
-              <span>Zero middleman commission or hidden guest fees</span>
+              <span>Official GST Tax Invoice (SAC 996311) for ITC claim</span>
             </li>
             <li>
               ${ICONS.check}
-              <span>Airbnb calendar dates synchronized</span>
+              <span>Zero hidden platform charges or guest service fees</span>
+            </li>
+            <li>
+              ${ICONS.check}
+              <span>Real-time Airbnb &amp; CRM calendar synchronization</span>
             </li>
           </ul>
         </div>
@@ -1054,9 +1117,12 @@
 
     renderMobileBar() {
       const basePrice = this.prop.base_price || 3499;
+      const baseTotal = basePrice * this.nights;
+      const gstRate = basePrice <= 7500 ? 5 : 18;
+      const totalRent = baseTotal + Math.round(baseTotal * (gstRate / 100));
 
       const mobPrice = document.getElementById('luxe-mobile-price-val');
-      if (mobPrice) mobPrice.textContent = `₹${basePrice.toLocaleString('en-IN')}`;
+      if (mobPrice) mobPrice.textContent = `₹${totalRent.toLocaleString('en-IN')}`;
 
       const mobBtn = document.getElementById('luxe-mobile-btn-wa');
       if (mobBtn) {
@@ -1076,7 +1142,7 @@
       }
     }
 
-    /* ─── UPI QR PAYMENT & DIRECT BOOKING MODAL ─── */
+    /* ─── UPI QR & BANK TRANSFER PAYMENT MODAL WITH GST ─── */
     initUpiModal() {
       let modal = document.getElementById('upi-modal-overlay');
       if (!modal) {
@@ -1087,41 +1153,89 @@
       }
     }
 
+    switchPaymentTab(mode) {
+      this.currentPaymentTab = mode;
+      const tabUpi = document.getElementById('tab-btn-upi');
+      const tabBank = document.getElementById('tab-btn-bank');
+      const paneUpi = document.getElementById('pay-pane-upi');
+      const paneBank = document.getElementById('pay-pane-bank');
+
+      if (mode === 'upi') {
+        if (tabUpi) tabUpi.classList.add('active');
+        if (tabBank) tabBank.classList.remove('active');
+        if (paneUpi) paneUpi.style.display = 'block';
+        if (paneBank) paneBank.style.display = 'none';
+      } else {
+        if (tabBank) tabBank.classList.add('active');
+        if (tabUpi) tabUpi.classList.remove('active');
+        if (paneBank) paneBank.style.display = 'block';
+        if (paneUpi) paneUpi.style.display = 'none';
+      }
+    }
+
+    toggleB2bGst(show) {
+      const box = document.getElementById('upi-b2b-fields');
+      if (box) {
+        box.style.display = show ? 'block' : 'none';
+      }
+    }
+
+    copyText(text, label) {
+      navigator.clipboard.writeText(text).then(() => {
+        alert(`✅ Copied ${label}: ${text}`);
+      }).catch(() => {
+        prompt(`Copy ${label}:`, text);
+      });
+    }
+
     openUpiPaymentModal() {
       const modal = document.getElementById('upi-modal-overlay');
       if (!modal) return;
 
       const p = this.prop;
       const base = p.base_price || 3499;
-      const amount = this.totalPayable || (base * this.nights);
-      const upiId = 'firozkhan85429189871@axl';
+      const baseTotal = this.baseTariff || (base * this.nights);
+      const gstRate = this.gstRate || (base <= 7500 ? 5 : 18);
+      const gstAmount = this.gstAmount || Math.round(baseTotal * (gstRate / 100));
+      const cgstAmount = this.cgstAmount || Math.round(gstAmount / 2);
+      const sgstAmount = this.sgstAmount || (gstAmount - cgstAmount);
+      const amount = this.totalPayable || (baseTotal + gstAmount);
+
+      const upiId = '8299600709@ybl';
+      const upiAltId = 'firozkhan85429189871@axl';
       const upiString = `upi://pay?pa=${upiId}&pn=The%20Unique%20Haven%20Homes&am=${amount}&cu=INR&tn=Booking%20${encodeURIComponent(p.name)}%20${this.nights}N`;
       const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&margin=1&data=${encodeURIComponent(upiString)}`;
 
       modal.innerHTML = `
         <div class="upi-modal-card">
-          <button type="button" class="upi-modal-close" onclick="window.luxeEngine.closeUpiModal()">✕</button>
+          <button type="button" class="upi-modal-close" onclick="window.luxeEngine.closeUpiModal()" aria-label="Close">✕</button>
           
           <div class="upi-header">
-            <div class="upi-header-icon">💳</div>
-            <h3 class="upi-title">Confirm Stay &amp; Pay via UPI</h3>
+            <div class="upi-header-icon">🏨</div>
+            <h3 class="upi-title">Direct Booking &amp; GST Tax Bill</h3>
             <p class="upi-sub">${p.name} · ${this.nights} Night${this.nights > 1 ? 's' : ''} (${this.checkIn} to ${this.checkOut})</p>
           </div>
 
-          <div class="upi-price-highlight">
-            <div>
-              <span style="font-size:12px;color:#64748b;display:block;">Direct Booking Amount</span>
-              <strong style="font-size:13px;color:#047857;">Save 15% vs Airbnb</strong>
+          <!-- Price & GST Tax Summary Box -->
+          <div class="upi-price-highlight" style="display:block; padding:14px 16px;">
+            <div style="display:flex; justify-content:space-between; margin-bottom:6px; font-size:13px;">
+              <span style="color:#64748b;">Base Room Tariff (${this.nights}N × ₹${base.toLocaleString('en-IN')}):</span>
+              <strong style="color:#0f172a;">₹${baseTotal.toLocaleString('en-IN')}</strong>
             </div>
-            <div class="val">₹${amount.toLocaleString('en-IN')}</div>
-          </div>
-
-          <!-- Instant Mobile Tap To Pay -->
-          <div class="upi-mobile-pay-cta">
-            <a class="upi-btn-mobile-instant" href="${upiString}">
-              <span>⚡ Tap to Pay ₹${amount.toLocaleString('en-IN')} via UPI</span>
-              <span style="font-size:11px;opacity:0.92;font-weight:500;">Opens GPay, PhonePe, Paytm, CRED directly</span>
-            </a>
+            <div style="display:flex; justify-content:space-between; margin-bottom:6px; font-size:12.5px; color:#0369a1;">
+              <span>GST (${gstRate}% · SAC 996311):</span>
+              <strong>+₹${gstAmount.toLocaleString('en-IN')}</strong>
+            </div>
+            <div style="font-size:11px; color:#64748b; margin-bottom:8px; padding-bottom:8px; border-bottom:1px dashed #cbd5e1;">
+              Breakup: CGST (${gstRate/2}%): ₹${cgstAmount.toLocaleString('en-IN')} | SGST (${gstRate/2}%): ₹${sgstAmount.toLocaleString('en-IN')}
+            </div>
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <div>
+                <span style="font-size:11px; color:#64748b; text-transform:uppercase; letter-spacing:0.5px; display:block;">Total Payable (with GST)</span>
+                <span class="luxe-gst-badge-pill">Save 15% vs Airbnb</span>
+              </div>
+              <div class="val">₹${amount.toLocaleString('en-IN')}</div>
+            </div>
           </div>
 
           <!-- Step 1: Guest Information -->
@@ -1135,50 +1249,139 @@
             <input type="tel" id="upi-guest-phone" placeholder="e.g. 9876543210" required />
           </div>
 
-          <!-- Step 2: UPI QR Code Frame -->
-          <div class="upi-qr-frame">
-            <div style="font-size:12px;font-weight:700;color:#047857;margin-bottom:8px;">
-              Scan with any UPI App (GPay, PhonePe, Paytm)
-            </div>
-            <img src="${qrUrl}" alt="UPI QR Code" />
-            <div class="upi-id-badge" onclick="navigator.clipboard.writeText('${upiId}'); alert('UPI ID copied: ${upiId}');">
-              <span>UPI ID: <strong>${upiId}</strong></span>
-              <span style="color:#0b63e5;font-size:11px;">(Copy)</span>
+          <!-- Step 2: Corporate / Business GSTIN (Optional) -->
+          <div class="gst-b2b-card">
+            <label class="gst-b2b-check-label">
+              <input type="checkbox" id="upi-b2b-check" onchange="window.luxeEngine.toggleB2bGst(this.checked)" />
+              <span>🏢 Booking for a Company? (Need GST Tax Invoice for ITC)</span>
+            </label>
+            <div id="upi-b2b-fields" class="gst-b2b-fields" style="display:none;">
+              <div class="upi-form-group">
+                <label>Company / Firm Legal Name *</label>
+                <input type="text" id="upi-company-name" placeholder="e.g. Tata Consultancy Services Ltd" />
+              </div>
+              <div class="upi-form-group" style="margin-bottom:4px;">
+                <label>15-Digit Company GSTIN *</label>
+                <input type="text" id="upi-company-gstin" placeholder="e.g. 09AAACT1234A1Z5" maxlength="15" style="text-transform:uppercase; font-family:monospace; letter-spacing:1px;" />
+              </div>
+              <small style="color:#64748b; font-size:11px; display:block;">Enter valid 15-digit GSTIN for Input Tax Credit claim.</small>
             </div>
           </div>
 
-          <!-- Direct Mobile UPI App Triggers -->
-          <div class="upi-app-grid">
-            <a class="upi-app-btn" href="${upiString}">
-              <span>🟢</span>
-              <span>GPay</span>
-            </a>
-            <a class="upi-app-btn" href="${upiString}">
-              <span>🟣</span>
-              <span>PhonePe</span>
-            </a>
-            <a class="upi-app-btn" href="${upiString}">
-              <span>🔵</span>
-              <span>Paytm</span>
-            </a>
-            <a class="upi-app-btn" href="${upiString}">
-              <span>🟠</span>
-              <span>BHIM UPI</span>
-            </a>
+          <!-- Step 3: Choose Payment Method Tabs -->
+          <div class="upi-pay-tabs">
+            <button type="button" id="tab-btn-upi" class="upi-pay-tab-btn active" onclick="window.luxeEngine.switchPaymentTab('upi')">
+              📱 UPI QR &amp; Apps (Instant)
+            </button>
+            <button type="button" id="tab-btn-bank" class="upi-pay-tab-btn" onclick="window.luxeEngine.switchPaymentTab('bank')">
+              🏦 Bank Transfer (NEFT/IMPS)
+            </button>
           </div>
 
-          <!-- Step 3: Transaction Ref / UTR -->
+          <!-- Pane 1: UPI QR & Apps -->
+          <div id="pay-pane-upi">
+            <div class="upi-mobile-pay-cta" style="margin-bottom:12px;">
+              <a class="upi-btn-mobile-instant" href="${upiString}">
+                <span>⚡ Tap to Pay ₹${amount.toLocaleString('en-IN')} via UPI</span>
+                <span style="font-size:11px; opacity:0.92; font-weight:500;">Directly opens PhonePe, GPay, Paytm, CRED</span>
+              </a>
+            </div>
+
+            <div class="upi-qr-frame">
+              <div style="font-size:12px; font-weight:700; color:#047857; margin-bottom:8px;">
+                Scan with any UPI App (PhonePe, GPay, Paytm)
+              </div>
+              <img src="${qrUrl}" alt="UPI QR Code for ₹${amount}" />
+              <div style="display:flex; justify-content:center; gap:8px; flex-wrap:wrap; margin-top:10px;">
+                <div class="upi-id-badge" onclick="window.luxeEngine.copyText('${upiId}', 'PhonePe UPI ID')">
+                  <span>PhonePe: <strong>${upiId}</strong></span>
+                  <span style="color:#0b63e5; font-size:11px;">(Copy)</span>
+                </div>
+                <div class="upi-id-badge" onclick="window.luxeEngine.copyText('${upiAltId}', 'Axis UPI ID')">
+                  <span>Axis: <strong>${upiAltId}</strong></span>
+                  <span style="color:#0b63e5; font-size:11px;">(Copy)</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="upi-app-grid">
+              <a class="upi-app-btn" href="${upiString}">
+                <span>🟣</span>
+                <span>PhonePe</span>
+              </a>
+              <a class="upi-app-btn" href="${upiString}">
+                <span>🟢</span>
+                <span>GPay</span>
+              </a>
+              <a class="upi-app-btn" href="${upiString}">
+                <span>🔵</span>
+                <span>Paytm</span>
+              </a>
+              <a class="upi-app-btn" href="${upiString}">
+                <span>🟠</span>
+                <span>BHIM UPI</span>
+              </a>
+            </div>
+          </div>
+
+          <!-- Pane 2: Bank Transfer (Firoz Ahmad SBI Details) -->
+          <div id="pay-pane-bank" style="display:none;">
+            <div class="bank-transfer-box">
+              <div style="font-size:13px; font-weight:800; color:#0f172a; margin-bottom:10px; display:flex; align-items:center; gap:6px;">
+                <span>🏛️</span>
+                <span>State Bank of India (Official Current Account)</span>
+              </div>
+              <div class="bank-row">
+                <span class="bank-label">Beneficiary Name</span>
+                <span class="bank-val">Firoz Ahmad</span>
+              </div>
+              <div class="bank-row">
+                <span class="bank-label">Account Number</span>
+                <span class="bank-val">
+                  <span style="font-family:monospace; font-size:14px; letter-spacing:0.5px;">20292764916</span>
+                  <button type="button" class="bank-copy-btn" onclick="window.luxeEngine.copyText('20292764916', 'Account Number')">Copy</button>
+                </span>
+              </div>
+              <div class="bank-row">
+                <span class="bank-label">IFSC Code</span>
+                <span class="bank-val">
+                  <span style="font-family:monospace; font-size:14px; letter-spacing:0.5px;">SBIN0018189</span>
+                  <button type="button" class="bank-copy-btn" onclick="window.luxeEngine.copyText('SBIN0018189', 'IFSC Code')">Copy</button>
+                </span>
+              </div>
+              <div class="bank-row">
+                <span class="bank-label">Bank Name</span>
+                <span class="bank-val">State Bank of India (SBI)</span>
+              </div>
+              <div class="bank-row">
+                <span class="bank-label">Branch</span>
+                <span class="bank-val">Takrohi, Lucknow</span>
+              </div>
+              <div class="bank-row">
+                <span class="bank-label">PhonePe / UPI Linked</span>
+                <span class="bank-val">
+                  <span>8299600709</span>
+                  <button type="button" class="bank-copy-btn" onclick="window.luxeEngine.copyText('8299600709', 'PhonePe Number')">Copy</button>
+                </span>
+              </div>
+            </div>
+            <p style="font-size:11.5px; color:#64748b; margin: -10px 0 14px 4px;">
+              * Transfer ₹${amount.toLocaleString('en-IN')} via IMPS, NEFT, or RTGS and enter the UTR / Ref No below.
+            </p>
+          </div>
+
+          <!-- Step 4: Transaction Ref / UTR -->
           <div class="upi-form-group">
-            <label>UPI Transaction ID / 12-Digit UTR (Optional)</label>
-            <input type="text" id="upi-utr" placeholder="Paste UTR or Txn Ref here" />
+            <label>Payment UTR / 12-Digit Reference No (Optional)</label>
+            <input type="text" id="upi-utr" placeholder="e.g. 426819283741 or Paid via UPI" />
           </div>
 
           <!-- Confirm & WhatsApp Trigger Button -->
           <button type="button" class="upi-btn-confirm" onclick="window.luxeEngine.confirmUpiPayment()">
-            ${ICONS.whatsapp} Confirm Booking &amp; Send Receipt
+            ${ICONS.whatsapp} Confirm Booking &amp; Generate GST Pass
           </button>
-          <div style="text-align:center;font-size:11px;color:#94a3b8;margin-top:10px;">
-            🔒 100% Verified Stay with The Unique Haven Homes Private Limited
+          <div style="text-align:center; font-size:11px; color:#94a3b8; margin-top:10px;">
+            🔒 100% Verified Stay with THE UNIQUE HAVEN HOMES PRIVATE LIMITED (CIN: U55101UP2026PTC244637)
           </div>
         </div>
       `;
@@ -1198,10 +1401,17 @@
       const nameInput = document.getElementById('upi-guest-name');
       const phoneInput = document.getElementById('upi-guest-phone');
       const utrInput = document.getElementById('upi-utr');
+      const b2bCheck = document.getElementById('upi-b2b-check');
+      const compNameInput = document.getElementById('upi-company-name');
+      const compGstinInput = document.getElementById('upi-company-gstin');
 
       const name = nameInput ? nameInput.value.trim() : '';
       const phone = phoneInput ? phoneInput.value.trim() : '';
-      const utr = utrInput ? utrInput.value.trim() : 'Paid via UPI';
+      const utr = utrInput ? utrInput.value.trim() : 'Paid via UPI / Direct';
+
+      const isB2B = b2bCheck ? b2bCheck.checked : false;
+      const companyName = isB2B && compNameInput ? compNameInput.value.trim() : '';
+      const companyGstin = isB2B && compGstinInput ? compGstinInput.value.trim().toUpperCase() : '';
 
       if (!name) {
         alert('Please enter your full name.');
@@ -1209,9 +1419,16 @@
         return;
       }
 
-      if (!phone || phone.length < 10) {
+      if (!phone || phone.replace(/\D/g, '').length < 10) {
         alert('Please enter a valid 10-digit WhatsApp phone number.');
         if (phoneInput) phoneInput.focus();
+        return;
+      }
+
+      if (isB2B && (!companyName || !companyGstin || companyGstin.length < 15)) {
+        alert('For Business GST Invoice, please enter both Company Legal Name and valid 15-digit GSTIN.');
+        if (!companyName && compNameInput) compNameInput.focus();
+        else if (compGstinInput) compGstinInput.focus();
         return;
       }
 
@@ -1221,13 +1438,21 @@
       }
 
       const p = this.prop;
-      const amount = this.totalPayable || (p.base_price * this.nights);
+      const base = p.base_price || 3499;
+      const baseTotal = this.baseTariff || (base * this.nights);
+      const gstRate = this.gstRate || (base <= 7500 ? 5 : 18);
+      const gstAmount = this.gstAmount || Math.round(baseTotal * (gstRate / 100));
+      const cgstAmount = this.cgstAmount || Math.round(gstAmount / 2);
+      const sgstAmount = this.sgstAmount || (gstAmount - cgstAmount);
+      const amount = this.totalPayable || (baseTotal + gstAmount);
       const bookingId = 'UHHS-' + Date.now().toString().slice(-6);
 
       let sbClient = window.sb;
       if (!sbClient && typeof supabase !== 'undefined' && window.SUPABASE_URL && window.SUPABASE_ANON_KEY) {
         sbClient = window.sb = supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY);
       }
+
+      const notes = `Direct Website Booking (with GST). Base: ₹${baseTotal}, GST ${gstRate}% (SAC 996311): ₹${gstAmount} [CGST: ₹${cgstAmount}, SGST: ₹${sgstAmount}]. Nights: ${this.nights}. UTR: ${utr}.${isB2B ? ` [B2B Corporate Invoice]: Company: ${companyName} | GSTIN: ${companyGstin}` : ' [B2C Guest]'}`;
 
       // 1. Save to Supabase CRM (guest_register table)
       if (sbClient) {
@@ -1242,11 +1467,11 @@
             check_in_time: '14:00',
             check_out_time: '11:00',
             guests: this.guests || 2,
-            per_day_rate: p.base_price,
+            per_day_rate: base,
             total_amount: amount,
             booking_mode: 'Direct-Website',
             payment_status: 'Paid',
-            notes: `Direct UPI QR Website Booking. UTR: ${utr}. Nights: ${this.nights}`,
+            notes: notes,
             booked_by: 'Direct Guest',
             is_cancelled: false,
             verification_status: 'pending'
@@ -1263,9 +1488,9 @@
             booking_id: bookingId,
             amount: amount,
             payment_date: new Date().toISOString().slice(0, 10),
-            payment_mode: 'UPI',
-            received_by: 'Firoz',
-            notes: `Direct UPI Website Booking (firozkhan85429189871@axl) - UTR: ${utr}`,
+            payment_mode: this.currentPaymentTab === 'bank' ? 'Bank Transfer' : 'UPI',
+            received_by: 'Firoz Ahmad',
+            notes: `Website Booking (${bookingId}) - ${utr}.${isB2B ? ' GSTIN: ' + companyGstin : ''}`,
             verification_status: 'pending'
           });
         } catch (err) {
@@ -1280,23 +1505,31 @@
       });
       this.renderInteractiveCalendar();
 
-      // 4. Pre-fill WhatsApp message
-      const waReceipt = `*HOTEL BOOKING CONFIRMATION* 🏨
+      // 4. Pre-fill WhatsApp message for Official Manager (Praveen Singh 9194109911)
+      const waReceipt = `🏨 *THE UNIQUE HAVEN HOMES*
+*DIRECT WEBSITE BOOKING CONFIRMATION*
 ───────────────────────
-*Property:* ${p.name} (${p.id})
-*Booking Ref:* ${bookingId}
-*Guest Name:* ${name}
-*Mobile:* ${phone}
-*Check-in:* ${this.checkIn} (2:00 PM)
-*Check-out:* ${this.checkOut} (11:00 AM)
-*Duration:* ${this.nights} Night(s) · ${this.guests} Guest(s)
-*Amount Paid:* ₹${amount.toLocaleString('en-IN')} (via UPI)
-*UPI Ref / UTR:* ${utr || 'Screenshotted'}
-*Status:* Confirmed in CRM Database
-───────────────────────
-_Please confirm room allotment and send check-in details. Thank you!_`;
+🏠 *Property:* ${p.name} (${p.id})
+🆔 *Booking Ref:* ${bookingId}
+👤 *Guest Name:* ${name}
+📞 *Mobile:* ${phone}
+⏰ *Check-in:* ${this.checkIn} at 14:00
+⏰ *Check-out:* ${this.checkOut} at 11:00
+🌙 *Duration:* ${this.nights} Night(s) · ${this.guests || 2} Guest(s)
 
-      const waUrl = `https://wa.me/919450055554?text=${encodeURIComponent(waReceipt)}`;
+🧾 *BILLING BREAKDOWN (with GST)*:
+• Base Room Tariff: ₹${baseTotal.toLocaleString('en-IN')}
+• GST (${gstRate}% · SAC 996311): ₹${gstAmount.toLocaleString('en-IN')} (CGST: ₹${cgstAmount} + SGST: ₹${sgstAmount})
+• *Total Amount Paid:* ₹${amount.toLocaleString('en-IN')}
+• Payment Mode: ${this.currentPaymentTab === 'bank' ? 'Bank Transfer (SBI)' : 'UPI (PhonePe)'}
+• UTR / Txn Ref: ${utr}
+${isB2B ? `\n🏢 *CORPORATE GST INVOICE REQUIRED:*
+• Company: ${companyName}
+• GSTIN: ${companyGstin}` : ''}
+───────────────────────
+_Please confirm room allotment and issue official GST Tax Invoice. Thank you!_`;
+
+      const waUrl = `https://wa.me/9194109911?text=${encodeURIComponent(waReceipt)}`;
 
       this.closeUpiModal();
 
@@ -1307,11 +1540,20 @@ _Please confirm room allotment and send check-in details. Thank you!_`;
         phone,
         propertyName: p.name,
         roomId: p.id,
+        mapLink: p.map_link || 'https://maps.google.com/?q=Gomti+Nagar+Lucknow',
         checkIn: this.checkIn,
         checkOut: this.checkOut,
         nights: this.nights,
-        guests: this.guests,
-        amount,
+        guests: this.guests || 2,
+        baseTariff: baseTotal,
+        gstRate,
+        gstAmount,
+        cgstAmount,
+        sgstAmount,
+        totalPayable: amount,
+        isB2B,
+        companyName,
+        companyGstin,
         utr,
         waUrl
       });
@@ -1327,36 +1569,92 @@ _Please confirm room allotment and send check-in details. Thank you!_`;
       }
 
       modal.innerHTML = `
-        <div class="luxe-voucher-card">
-          <div class="luxe-voucher-top">
-            <div class="luxe-voucher-icon">🎉</div>
-            <h3 class="luxe-voucher-title">Booking Confirmed!</h3>
-            <p style="margin:0; font-size:13.5px; opacity:0.9;">Directly registered in Unique Haven CRM</p>
+        <div class="luxe-voucher-card" style="max-width:580px; padding:28px;">
+          <!-- Corporate Letterhead -->
+          <div style="display:flex; justify-content:space-between; align-items:flex-start; border-bottom:2px solid #0f172a; padding-bottom:12px; margin-bottom:16px;">
+            <div>
+              <div style="font-size:16px; font-weight:800; color:#0f172a; letter-spacing:0.5px;">THE UNIQUE HAVEN HOMES PRIVATE LIMITED</div>
+              <div style="font-size:11px; color:#64748b; margin-top:2px;">
+                CIN: U55101UP2026PTC244637 · ROC Kanpur<br>
+                Reg. Off: P NO 39 &amp; 40 Radhikapuri, Indira Nagar Takrohi, Lucknow, UP 226016<br>
+                SAC Code: <strong>996311</strong> (Short-Stay Accommodation Services)
+              </div>
+            </div>
+            <img src="assets/logo.png" alt="Logo" style="width:48px; height:48px; border-radius:10px; object-fit:contain;" />
           </div>
 
-          <div class="luxe-voucher-body">
-            <div class="luxe-voucher-details">
-              <div><strong>Booking ID:</strong> <span style="font-family:monospace; color:#059669; font-weight:800;">${details.bookingId}</span></div>
-              <div><strong>Property:</strong> ${details.propertyName} (${details.roomId})</div>
-              <div><strong>Guest Name:</strong> ${details.name}</div>
-              <div><strong>Mobile:</strong> ${details.phone}</div>
-              <div><strong>Stay Dates:</strong> ${details.checkIn} to ${details.checkOut} (${details.nights} Nights)</div>
-              <div><strong>Amount Paid:</strong> ₹${details.amount.toLocaleString('en-IN')}</div>
-              <div><strong>UPI Ref / UTR:</strong> ${details.utr}</div>
-              <div><strong>Status:</strong> <span style="color:#059669; font-weight:700;">✅ Confirmed &amp; Logged in CRM</span></div>
+          <div style="text-align:center; background:#f0fdf4; border:1px solid #bbf7d0; border-radius:10px; padding:10px; margin-bottom:16px;">
+            <div style="font-size:18px; font-weight:800; color:#166534;">🎉 Booking Confirmed &amp; GST Pass</div>
+            <div style="font-size:12px; color:#15803d; margin-top:2px;">Booking Ref: <strong>${details.bookingId}</strong> · Status: <span style="font-weight:700;">Confirmed in CRM</span></div>
+          </div>
+
+          <!-- Stay & Guest Details Table -->
+          <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:12px; padding:14px; margin-bottom:16px; font-size:13px; line-height:1.6;">
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+              <div><strong style="color:#64748b;">Guest Name:</strong><br><span style="font-weight:700; color:#0f172a;">${details.name}</span></div>
+              <div><strong style="color:#64748b;">WhatsApp Mobile:</strong><br><span style="font-weight:700; color:#0f172a;">${details.phone}</span></div>
+              <div><strong style="color:#64748b;">Property:</strong><br><span style="font-weight:700; color:#0f172a;">${details.propertyName} (${details.roomId})</span></div>
+              <div><strong style="color:#64748b;">Duration:</strong><br><span style="font-weight:700; color:#0f172a;">${details.nights} Night(s) · ${details.guests} Guest(s)</span></div>
+              <div><strong style="color:#64748b;">Check-in:</strong><br><span style="font-weight:700; color:#0f172a;">${details.checkIn} (from 14:00)</span></div>
+              <div><strong style="color:#64748b;">Check-out:</strong><br><span style="font-weight:700; color:#0f172a;">${details.checkOut} (by 11:00)</span></div>
             </div>
 
-            <div class="luxe-voucher-actions">
-              <a class="upi-btn-confirm" href="${details.waUrl}" target="_blank">
-                📱 Send Voucher to Host on WhatsApp
-              </a>
-              <button type="button" class="luxe-btn-map-dir" style="width:100%; justify-content:center; padding:12px; font-weight:700;" onclick="window.print()">
-                🖨️ Print / Save Booking Pass
-              </button>
-              <button type="button" class="luxe-btn-card-sub" style="width:100%; justify-content:center; padding:10px;" onclick="document.getElementById('luxe-voucher-modal-overlay').remove()">
-                Done
-              </button>
-            </div>
+            ${details.isB2B ? `
+              <div style="margin-top:10px; padding-top:10px; border-top:1px dashed #cbd5e1; font-size:12px; color:#1e293b;">
+                <strong>🏢 Corporate GST Invoice Details:</strong><br>
+                Company: <strong>${details.companyName}</strong> | GSTIN: <strong style="font-family:monospace; color:#059669;">${details.companyGstin}</strong>
+              </div>
+            ` : ''}
+          </div>
+
+          <!-- Itemized Tax Invoice Table -->
+          <table style="width:100%; border-collapse:collapse; font-size:12.5px; margin-bottom:16px;">
+            <thead>
+              <tr style="background:#f1f5f9; border-bottom:1.5px solid #cbd5e1; text-align:left;">
+                <th style="padding:8px 10px; color:#475569;">Description</th>
+                <th style="padding:8px 10px; color:#475569; text-align:center;">SAC</th>
+                <th style="padding:8px 10px; color:#475569; text-align:right;">Amount</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr style="border-bottom:1px solid #f1f5f9;">
+                <td style="padding:8px 10px;">Room Accommodation (${details.nights} Nights)</td>
+                <td style="padding:8px 10px; text-align:center;">996311</td>
+                <td style="padding:8px 10px; text-align:right; font-weight:600;">₹${details.baseTariff.toLocaleString('en-IN')}</td>
+              </tr>
+              <tr style="border-bottom:1px solid #f1f5f9; color:#0369a1;">
+                <td style="padding:8px 10px;">Central GST (CGST @ ${details.gstRate/2}%)</td>
+                <td style="padding:8px 10px; text-align:center;">996311</td>
+                <td style="padding:8px 10px; text-align:right; font-weight:600;">₹${details.cgstAmount.toLocaleString('en-IN')}</td>
+              </tr>
+              <tr style="border-bottom:1px solid #e2e8f0; color:#0369a1;">
+                <td style="padding:8px 10px;">State GST (SGST @ ${details.gstRate/2}%)</td>
+                <td style="padding:8px 10px; text-align:center;">996311</td>
+                <td style="padding:8px 10px; text-align:right; font-weight:600;">₹${details.sgstAmount.toLocaleString('en-IN')}</td>
+              </tr>
+              <tr style="background:#f8fafc; font-size:14px; font-weight:800;">
+                <td style="padding:10px; color:#0f172a;" colspan="2">Total Paid (Inclusive of GST)</td>
+                <td style="padding:10px; text-align:right; color:#059669;">₹${details.totalPayable.toLocaleString('en-IN')}</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <div style="font-size:11.5px; color:#64748b; margin-bottom:18px; line-height:1.5;">
+            📍 <strong>Property Location:</strong> <a href="${details.mapLink}" target="_blank" style="color:#0284c7; text-decoration:underline;">Open Pinpoint on Google Maps ↗</a><br>
+            👤 <strong>Host &amp; Manager:</strong> Praveen Singh (+91 91941 09911) · Office: 10:00 AM – 09:00 PM<br>
+            📞 <strong>Helplines:</strong> 9450055554 / 8299600709
+          </div>
+
+          <div class="luxe-voucher-actions" style="display:flex; flex-direction:column; gap:10px;">
+            <a class="upi-btn-confirm" href="${details.waUrl}" target="_blank">
+              📱 Send Voucher to Manager on WhatsApp
+            </a>
+            <button type="button" class="luxe-btn-map-dir" style="width:100%; justify-content:center; padding:12px; font-weight:700;" onclick="window.print()">
+              🖨️ Print / Download Tax Invoice (PDF)
+            </button>
+            <button type="button" class="luxe-btn-card-sub" style="width:100%; justify-content:center; padding:10px;" onclick="document.getElementById('luxe-voucher-modal-overlay').remove()">
+              Done
+            </button>
           </div>
         </div>
       `;
