@@ -98,11 +98,10 @@ async function buildMessageData(bkId) {
     const nowH = new Date().getHours();
     primaryCaretaker = (nowH >= 21 || nowH < 9) ? nC : dC;
   } 
-  // Scenario 2: Property has a single 24x7 or assigned caretaker from employees
+  // Scenario 2: Property has a single caretaker from employees (Single caretaker: NO shift name, 24h duty)
   else if (propertyStaff.length > 0) {
     const s = propertyStaff[0];
-    const shiftLabel = s.shift === 'night' ? 'Night 9 PM – 9 AM' : (s.shift === 'day' ? 'Day 9 AM – 9 PM' : '24x7 Duty');
-    caretakerBlock = `🛡️ *Caretaker (${shiftLabel}):* ${s.name} (${cleanPhone(s.phone)})`;
+    caretakerBlock = `🛡️ *Caretaker:* ${s.name} (${cleanPhone(s.phone)})`;
     primaryCaretaker = s;
   } 
   // Scenario 3: Fallback to room's configured caretaker or default company caretaker
@@ -113,16 +112,16 @@ async function buildMessageData(bkId) {
       careName = 'Arman Commandar';
       carePhone = '8467080284';
     }
-    caretakerBlock = `🛡️ *Caretaker (24x7):* ${careName} (${carePhone})`;
+    caretakerBlock = `🛡️ *Caretaker:* ${careName} (${carePhone})`;
     primaryCaretaker = { name: careName, phone: carePhone };
   }
 
-  // Dedicated Property Manager: Praveen Singh (10 AM - 10 PM)
+  // Dedicated Property Manager: Praveen Singh (9194109911) — 10 AM to 09 PM
   const manager = {
     name: 'Praveen Singh',
-    phone: '8858564177',
-    hours: '10 AM – 10 PM',
-    role: 'Property Manager'
+    phone: '9194109911',
+    hours: '10 AM to 09 PM',
+    role: 'Manager'
   };
 
   // Calculate paid + due
@@ -193,25 +192,11 @@ function fmtDate(d) {
 // TEMPLATES (Short, Crisp, Professional with Emojis & Maps)
 // ═══════════════════════════════════════════════════════════
 
-// ═══ 0. NEW BOOKING CONFIRMATION (Guest) ═══
+// ═══ 0. ALL-IN-ONE BOOKING CONFIRMATION & WELCOME PASS ═══
 function tplConfirmation(d) {
-  const checkInStr = `${fmtDate(d.checkIn)}${d.checkInTime ? ' (' + d.checkInTime + ')' : ''}`;
-  const checkOutStr = `${fmtDate(d.checkOut)}${d.checkOutTime ? ' (' + d.checkOutTime + ')' : ''}`;
-  const propStr = `${d.propertyName}${d.flat ? ' (' + d.flat + ')' : ''}`;
-
-  return `Hi ${d.guestName}, welcome to Unique Haven Homes Stay! 🎉\n\n` +
-    `Your booking is confirmed:\n` +
-    `📍 Property: ${propStr}\n` +
-    `📅 Check-in: ${checkInStr}\n` +
-    `📅 Check-out: ${checkOutStr}\n\n` +
-    `We'll send arrival details 1 hour before your check-in with WiFi and key info.\n\n` +
-    `For any query: 9450055554 / 8299600709`;
-}
-
-// ═══ 1. WELCOME (Check-in Pass) ═══
-function tplWelcome(d) {
   const mapStr = d.mapLink ? `\n📍 *Map:* ${d.mapLink}` : '';
   const floorStr = d.floor ? ` (${d.floor} floor)` : '';
+  const lockStr = d.lockType ? ` (${d.lockType} Lock)` : '';
 
   return `🏨 *THE UNIQUE HAVEN HOMES*
 Namaste *${d.guestName}* ji 🙏
@@ -221,23 +206,33 @@ Thank you for booking with us!
 🚪 *Flat:* ${d.flat}${floorStr}
 📍 *Address:* ${d.address}${mapStr}
 
-⏰ *Check-in:* ${fmtDate(d.checkIn)} at ${d.checkInTime}
-⏰ *Check-out:* ${fmtDate(d.checkOut)} at ${d.checkOutTime}
+⏰ *Check-in:* ${fmtDate(d.checkIn)} at ${d.checkInTime || '14:00'}
+⏰ *Check-out:* ${fmtDate(d.checkOut)} at ${d.checkOutTime || '11:00'}
 
-👤 *Manager:* ${d.manager.name} (${d.manager.phone}) — 10 AM to 10 PM
+👤 *Manager:* ${d.manager.name} (${d.manager.phone}) — ${d.manager.hours}
 ${d.caretakerBlock}
 
-🔑 *Key / Lock:* ${d.keyNo} (${d.lockType} Lock)
+🔑 *Key / Lock:* ${d.keyNo}${lockStr}
 🔑 *WiFi Password:* ${d.wifiPass}
 
 *Quick Rules:*
 • Govt ID required at check-in
-• Quiet hours after 11 PM
+
+House Rules⚠️
+• No loud music after 11 PM
+• Early check in/late check out subject to Availability
+• No wild parties or disruptive gatherings
+We want to keep the neighbourhood peaceful for everyone.
 
 *Escalation / Assistance:*
 📞 Mr. Shahanshah: 9450055554
 📞 Mr. Firoz Khan: 8299600709
-🌐 ${d.websiteURL}`;
+🌐 ${d.websiteURL || 'https://uniquehavenhomesstay.com'}`;
+}
+
+// Alias for backwards compatibility
+function tplWelcome(d) {
+  return tplConfirmation(d);
 }
 
 // ═══ 2. REMINDER (Day Before Check-in) ═══
@@ -694,12 +689,10 @@ window.showWATemplatesMenu = function(bkId, btn) {
 
       <div style="margin-top:12px;">
         <div style="font-size:11px;color:#888;text-transform:uppercase;margin:10px 0 6px;font-weight:700;">👤 Guest Communications</div>
-        <button class="outline" style="width:100%;text-align:left;margin-bottom:6px;font-weight:700;background:#F0FDF4;color:#15803D;border-color:#86EFAC;" onclick="this.closest('.modal-overlay').remove();sendBookingConfirmation('${bkId}')">🎉 Booking Confirmation (Guest)</button>
-        <button class="outline" style="width:100%;text-align:left;margin-bottom:6px;font-weight:600;" onclick="this.closest('.modal-overlay').remove();sendArrivalDetails('${bkId}')">📍 Arrival Directions (1 hr before)</button>
-        <button class="outline" style="width:100%;text-align:left;margin-bottom:6px;" onclick="this.closest('.modal-overlay').remove();sendWelcomePass('${bkId}')">🔑 Full Welcome Pass (Keys & Caretaker)</button>
-        <button class="outline" style="width:100%;text-align:left;margin-bottom:6px;" onclick="this.closest('.modal-overlay').remove();sendCheckoutReminder('${bkId}')">👋 10:00 AM Checkout Reminder</button>
+        <button class="outline" style="width:100%;text-align:left;margin-bottom:6px;font-weight:700;background:#F0FDF4;color:#15803D;border-color:#86EFAC;" onclick="this.closest('.modal-overlay').remove();sendBookingConfirmation('${bkId}')">🎉 Booking Confirmation &amp; Check-in Pass</button>
+        <button class="outline" style="width:100%;text-align:left;margin-bottom:6px;font-weight:600;" onclick="this.closest('.modal-overlay').remove();sendCheckoutReminder('${bkId}')">👋 11:00 AM Checkout Reminder</button>
         <button class="outline" style="width:100%;text-align:left;margin-bottom:6px;background:#F0F9FF;color:#0284C7;border-color:#BAE6FD;" onclick="this.closest('.modal-overlay').remove();sendSecurityDepositReceipt('${bkId}')">🛡️ Security Deposit Receipt (Collected)</button>
-        <button class="outline" style="width:100%;text-align:left;margin-bottom:6px;background:#FAF5FF;color:#7C3AED;border-color:#DDD6FE;" onclick="this.closest('.modal-overlay').remove();sendSecurityDepositRefund('${bkId}')">💸 Security Deposit Refund & Damage Slip</button>
+        <button class="outline" style="width:100%;text-align:left;margin-bottom:6px;background:#FAF5FF;color:#7C3AED;border-color:#DDD6FE;" onclick="this.closest('.modal-overlay').remove();sendSecurityDepositRefund('${bkId}')">💸 Security Deposit Refund &amp; Damage Slip</button>
         <button class="outline" style="width:100%;text-align:left;margin-bottom:6px;" onclick="this.closest('.modal-overlay').remove();requestGoogleReview('${bkId}')">⭐ Google Review Request</button>
         <button class="outline" style="width:100%;text-align:left;margin-bottom:6px;" onclick="this.closest('.modal-overlay').remove();requestAirbnbReview('${bkId}')">⭐ Airbnb Review Form Link</button>
 
