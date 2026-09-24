@@ -42,6 +42,9 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
+  <!-- Leaflet Map -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+
   <!-- Core Luxe & Directory Stylesheets -->
   <link href="css/property-luxe.css" rel="stylesheet"/>
   <link href="css/properties-directory.css" rel="stylesheet"/>
@@ -96,6 +99,8 @@
       </a>
       <div class="luxe-nav-links">
         <a class="luxe-nav-link" href="#directory-grid">All Stays</a>
+        <a class="luxe-nav-link" href="#property-map">Map</a>
+        <a class="luxe-nav-link" href="calendar.html">📅 Availability</a>
         <a class="luxe-nav-link" href="#why-us">Why Us</a>
         <a class="luxe-nav-link" href="#concierge">Direct Booking</a>
         <a class="luxe-btn-wa" href="https://wa.me/919450055554?text=Hi%2C%20I%20am%20looking%20to%20book%20a%20luxury%20homestay%20in%20Lucknow.%20Please%20share%20availability%20and%20best%20direct%20rates." target="_blank">
@@ -179,7 +184,7 @@
         <a class="dir-card-media" href="redrose-palace.html" aria-label="Explore redrose-palace">
           <img alt="RedRose Palace Homestay Lucknow" src="assets/properties/redrose-palace/cover.jpg" loading="lazy" decoding="async"/>
           <span class="dir-card-rating-badge">⭐ 4.92 (Airbnb)</span>
-          <span class="dir-card-save-badge">SAVE 15% DIRECT</span>
+          <span class="dir-avail-badge dir-avail-loading">⏳ Checking...</span>
         </a>
         <div class="dir-card-body">
           <div class="dir-card-eyebrow">3BHK Luxury Flat · Vikalp Khand</div>
@@ -212,7 +217,7 @@
         <a class="dir-card-media" href="black-beauty.html" aria-label="Explore black-beauty">
           <img alt="Black Beauty Homestay Lucknow" src="assets/properties/black-beauty/cover.jpg" loading="lazy" decoding="async"/>
           <span class="dir-card-rating-badge">⭐ 4.91 (Airbnb)</span>
-          <span class="dir-card-save-badge">SAVE 15% DIRECT</span>
+          <span class="dir-avail-badge dir-avail-loading">⏳ Checking...</span>
         </a>
         <div class="dir-card-body">
           <div class="dir-card-eyebrow">3BHK Luxury Flat · Vikalp Khand</div>
@@ -245,7 +250,7 @@
         <a class="dir-card-media" href="the-dark-blue.html" aria-label="Explore the-dark-blue">
           <img alt="The Dark Blue Homestay Lucknow" src="assets/properties/the-dark-blue/cover.jpg" loading="lazy" decoding="async"/>
           <span class="dir-card-rating-badge">⭐ 4.95 (Guest Favorite)</span>
-          <span class="dir-card-save-badge">SAVE 15% DIRECT</span>
+          <span class="dir-avail-badge dir-avail-loading">⏳ Checking...</span>
         </a>
         <div class="dir-card-body">
           <div class="dir-card-eyebrow">3BHK Luxury Flat · Vikalp Khand</div>
@@ -278,7 +283,7 @@
         <a class="dir-card-media" href="the-brown.html" aria-label="Explore the-brown">
           <img alt="The Brown Homestay Lucknow" src="assets/properties/the-brown/cover.jpg" loading="lazy" decoding="async"/>
           <span class="dir-card-rating-badge">⭐ 4.90 (Superhost)</span>
-          <span class="dir-card-save-badge">SAVE 15% DIRECT</span>
+          <span class="dir-avail-badge dir-avail-loading">⏳ Checking...</span>
         </a>
         <div class="dir-card-body">
           <div class="dir-card-eyebrow">3BHK Luxury Flat · Vikalp Khand</div>
@@ -311,7 +316,7 @@
         <a class="dir-card-media" href="the-light-green.html" aria-label="Explore the-light-green">
           <img alt="The Light Green Homestay Lucknow" src="assets/properties/the-light-green/cover.jpg" loading="lazy" decoding="async"/>
           <span class="dir-card-rating-badge">⭐ 4.88 (Superhost)</span>
-          <span class="dir-card-save-badge">SAVE 15% DIRECT</span>
+          <span class="dir-avail-badge dir-avail-loading">⏳ Checking...</span>
         </a>
         <div class="dir-card-body">
           <div class="dir-card-eyebrow">3BHK Luxury Flat · Vikalp Khand</div>
@@ -344,7 +349,7 @@
         <a class="dir-card-media" href="the-nawabi-stay.html" aria-label="Explore the-nawabi-stay">
           <img alt="The Nawabi Stay Homestay Lucknow" src="assets/properties/the-nawabi-stay/cover.jpg" loading="lazy" decoding="async"/>
           <span class="dir-card-rating-badge">⭐ 4.92 (Royal Decor)</span>
-          <span class="dir-card-save-badge">SAVE 15% DIRECT</span>
+          <span class="dir-avail-badge dir-avail-loading">⏳ Checking...</span>
         </a>
         <div class="dir-card-body">
           <div class="dir-card-eyebrow">3BHK Luxury Flat · Vikalp Khand</div>
@@ -377,7 +382,7 @@
         <a class="dir-card-media" href="starlight-blue-penthouse.html" aria-label="Explore starlight-blue-penthouse">
           <img alt="Starlight Blue Penthouse Homestay Lucknow" src="assets/properties/starlight-blue/cover.jpg" loading="lazy" decoding="async"/>
           <span class="dir-card-rating-badge">⭐ 4.96 (Luxury Penthouse)</span>
-          <span class="dir-card-save-badge">SAVE 15% DIRECT</span>
+          <span class="dir-avail-badge dir-avail-loading">⏳ Checking...</span>
         </a>
         <div class="dir-card-body">
           <div class="dir-card-eyebrow">4BHK Penthouse · Vikalp Khand</div>
@@ -410,7 +415,7 @@
         <a class="dir-card-media" href="the-unique.html" aria-label="Explore the-unique">
           <img alt="The Unique Homestay Lucknow" src="assets/properties/the-unique/cover.jpg" loading="lazy" decoding="async"/>
           <span class="dir-card-rating-badge">⭐ 4.93 (Flagship)</span>
-          <span class="dir-card-save-badge">SAVE 15% DIRECT</span>
+          <span class="dir-avail-badge dir-avail-loading">⏳ Checking...</span>
         </a>
         <div class="dir-card-body">
           <div class="dir-card-eyebrow">3BHK Luxury Flat · Vishesh Khand</div>
@@ -443,7 +448,7 @@
         <a class="dir-card-media" href="the-green-house.html" aria-label="Explore the-green-house">
           <img alt="The Green House Homestay Lucknow" src="assets/properties/the-green-house/cover.jpg" loading="lazy" decoding="async"/>
           <span class="dir-card-rating-badge">⭐ 4.90 (Cozy Stay)</span>
-          <span class="dir-card-save-badge">SAVE 15% DIRECT</span>
+          <span class="dir-avail-badge dir-avail-loading">⏳ Checking...</span>
         </a>
         <div class="dir-card-body">
           <div class="dir-card-eyebrow">3BHK Luxury Flat · Vishesh Khand</div>
@@ -476,7 +481,7 @@
         <a class="dir-card-media" href="the-pink-house.html" aria-label="Explore the-pink-house">
           <img alt="The Pink House Homestay Lucknow" src="assets/properties/the-pink-house/cover.jpg" loading="lazy" decoding="async"/>
           <span class="dir-card-rating-badge">⭐ 4.89 (Superhost)</span>
-          <span class="dir-card-save-badge">SAVE 15% DIRECT</span>
+          <span class="dir-avail-badge dir-avail-loading">⏳ Checking...</span>
         </a>
         <div class="dir-card-body">
           <div class="dir-card-eyebrow">3BHK Luxury Flat · Vishesh Khand</div>
@@ -509,7 +514,7 @@
         <a class="dir-card-media" href="the-yellow-house.html" aria-label="Explore the-yellow-house">
           <img alt="The Yellow House Homestay Lucknow" src="assets/properties/the-yellow-house/cover.jpg" loading="lazy" decoding="async"/>
           <span class="dir-card-rating-badge">⭐ 4.89 (Superhost)</span>
-          <span class="dir-card-save-badge">SAVE 15% DIRECT</span>
+          <span class="dir-avail-badge dir-avail-loading">⏳ Checking...</span>
         </a>
         <div class="dir-card-body">
           <div class="dir-card-eyebrow">3BHK Luxury Flat · Vishesh Khand</div>
@@ -542,7 +547,7 @@
         <a class="dir-card-media" href="green-forest.html" aria-label="Explore green-forest">
           <img alt="Green Forest Homestay Lucknow" src="assets/properties/green-forest/cover.jpg" loading="lazy" decoding="async"/>
           <span class="dir-card-rating-badge">⭐ 4.94 (Peaceful Oasis)</span>
-          <span class="dir-card-save-badge">SAVE 15% DIRECT</span>
+          <span class="dir-avail-badge dir-avail-loading">⏳ Checking...</span>
         </a>
         <div class="dir-card-body">
           <div class="dir-card-eyebrow">3BHK Luxury Flat · Gomti Nagar</div>
@@ -575,7 +580,7 @@
         <a class="dir-card-media" href="pink-paradise.html" aria-label="Explore pink-paradise">
           <img alt="Pink Paradise Homestay Lucknow" src="assets/properties/pink-paradise/cover.jpg" loading="lazy" decoding="async"/>
           <span class="dir-card-rating-badge">⭐ 4.91 (Boutique Stay)</span>
-          <span class="dir-card-save-badge">SAVE 15% DIRECT</span>
+          <span class="dir-avail-badge dir-avail-loading">⏳ Checking...</span>
         </a>
         <div class="dir-card-body">
           <div class="dir-card-eyebrow">3BHK Luxury Flat · Gomti Nagar</div>
@@ -608,7 +613,7 @@
         <a class="dir-card-media" href="celebrity-garden.html" aria-label="Explore celebrity-garden">
           <img alt="Celebrity Garden Homestay Lucknow" src="assets/properties/celebrity-garden/cover.jpg" loading="lazy" decoding="async"/>
           <span class="dir-card-rating-badge">⭐ 4.94 (Lulu Mall & Medanta)</span>
-          <span class="dir-card-save-badge">SAVE 15% DIRECT</span>
+          <span class="dir-avail-badge dir-avail-loading">⏳ Checking...</span>
         </a>
         <div class="dir-card-body">
           <div class="dir-card-eyebrow">5-Bed Luxury Flat · Near Lulu Mall</div>
@@ -641,7 +646,7 @@
         <a class="dir-card-media" href="gomti-grand-villa.html" aria-label="Explore gomti-grand-villa">
           <img alt="Gomti Grand Villa Lucknow" src="assets/properties/gomti-grand-villa/cover.jpg" loading="lazy" decoding="async"/>
           <span class="dir-card-rating-badge">⭐ 4.97 (Luxury Villa)</span>
-          <span class="dir-card-save-badge">SAVE 15% DIRECT</span>
+          <span class="dir-avail-badge dir-avail-loading">⏳ Checking...</span>
         </a>
         <div class="dir-card-body">
           <div class="dir-card-eyebrow">Private Villa · Gomti Nagar</div>
@@ -674,7 +679,7 @@
         <a class="dir-card-media" href="royal-white-house.html" aria-label="Explore royal-white-house">
           <img alt="Royal White House Homestay Lucknow" src="assets/properties/royal-white-house/cover.jpg" loading="lazy" decoding="async"/>
           <span class="dir-card-rating-badge">⭐ 4.95 (Exclusive Villa)</span>
-          <span class="dir-card-save-badge">SAVE 15% DIRECT</span>
+          <span class="dir-avail-badge dir-avail-loading">⏳ Checking...</span>
         </a>
         <div class="dir-card-body">
           <div class="dir-card-eyebrow">Luxury Villa · Gomti Nagar</div>
@@ -707,7 +712,7 @@
         <a class="dir-card-media" href="the-velvet-house.html" aria-label="Explore the-velvet-house">
           <img alt="The Velvet House Lucknow" src="assets/properties/the-velvet-house/cover.jpg" loading="lazy" decoding="async"/>
           <span class="dir-card-rating-badge">⭐ 4.93 (Luxe Villa)</span>
-          <span class="dir-card-save-badge">SAVE 15% DIRECT</span>
+          <span class="dir-avail-badge dir-avail-loading">⏳ Checking...</span>
         </a>
         <div class="dir-card-body">
           <div class="dir-card-eyebrow">Luxury Villa · Near Lulu Mall & Medanta</div>
@@ -737,6 +742,43 @@
 
     </div>
   </main>
+
+  <!-- ─── PROPERTY LOCATIONS MAP ─── -->
+  <section class="dir-map-section" id="property-map">
+    <div class="dir-map-section-header">
+      <div>
+        <h2 class="dir-map-section-title">📍 Find Our Properties</h2>
+        <p class="dir-map-section-sub">All 17 luxury stays in Gomti Nagar & near Lulu Mall — click any pin for details</p>
+      </div>
+      <a href="calendar.html" style="display:inline-flex;align-items:center;gap:8px;background:#181d24;color:#fff;text-decoration:none;padding:10px 18px;border-radius:10px;font-size:13px;font-weight:700;transition:all 0.2s;">
+        📅 View Availability Calendar ↗
+      </a>
+    </div>
+    <div class="dir-map-container">
+      <div id="propertyMap"></div>
+    </div>
+  </section>
+
+  <!-- ─── VIDEO TOUR SECTION ─── -->
+  <section class="dir-video-section" id="video-tour">
+    <div class="dir-video-section-inner">
+      <div class="dir-video-eyebrow">🎬 Property Tour</div>
+      <h2 class="dir-video-title">See Our Stays in Action</h2>
+      <p class="dir-video-sub">An exclusive walkthrough of our handpicked luxury homestays in Gomti Nagar, Lucknow</p>
+      <!-- VIDEO PLAYER — add class 'has-video' to .dir-video-player-wrap when ready, and add <iframe> inside -->
+      <div class="dir-video-player-wrap" id="videoPlayerWrap">
+        <div class="dir-video-placeholder">
+          <div class="dir-video-play-icon" onclick="alert('Video tour coming soon! Contact us on WhatsApp for a live virtual tour.')">
+            <svg viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+          </div>
+          <div class="dir-video-placeholder-text">Unique Haven Homes — Property Tour</div>
+          <div class="dir-video-placeholder-sub">An immersive walkthrough of our luxury stays</div>
+          <div class="dir-video-coming-soon-badge">🎬 Video Tour Coming Soon</div>
+        </div>
+        <!-- When ready, add: <iframe src="https://www.youtube.com/embed/YOUR_VIDEO_ID" allowfullscreen></iframe> -->
+      </div>
+    </div>
+  </section>
 
   <!-- ─── WHY CHOOSE US (CLEAN LUXURY, NO TACKY PINK BORDERS) ─── -->
   <section class="dir-why-section" id="why-us">
@@ -830,6 +872,8 @@
 
     <div class="dir-footer-nav">
       <a href="#directory-grid">All Properties</a> ·
+      <a href="#property-map">Map</a> ·
+      <a href="calendar.html">📅 Availability</a> ·
       <a href="#why-us">Why Us</a> ·
       <a href="#concierge">Direct Booking</a> ·
       <a href="https://www.airbnb.co.in/users/profile/1592729439630759961" target="_blank" rel="noopener">Host Profile on Airbnb ↗</a>
@@ -961,5 +1005,11 @@
       syncDirectoryFromCrm();
     }
   </script>
+
+  <!-- Leaflet JS -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV/XN/WLs=" crossorigin=""></script>
+
+  <!-- Website Sync: Map + Availability -->
+  <script src="js/website-sync.js?v=1"></script>
 </body>
 </html>

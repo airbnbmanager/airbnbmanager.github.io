@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+  <title>Availability Calendar | The Unique Haven Homes</title>
+  <meta name="description" content="Check real-time availability of all 17 luxury homestays in Gomti Nagar, Lucknow. Live booking calendar synced with UHHS CRM."/>
+  <link rel="icon" href="assets/logo.png" type="image/png"/>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="css/property-luxe.css" rel="stylesheet"/>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="config.js"></script>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; padding: 0; background: #fcfbf9; font-family: 'Manrope', sans-serif; }
+  </style>
+</head>
+<body class="cal-page">
+
+  <!-- ─── HEADER ─── -->
+  <header class="cal-header">
+    <div class="cal-header-left">
+      <a href="index.html">
+        <img src="assets/logo.png" alt="UHH Logo" class="cal-logo"/>
+      </a>
+      <div>
+        <div class="cal-title">📅 Availability Calendar</div>
+        <div class="cal-sub">Live bookings — synced from UHHS CRM · <span id="calLastSync">Loading...</span></div>
+      </div>
+    </div>
+
+    <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
+      <!-- Month navigation -->
+      <div class="cal-nav">
+        <button onclick="changeMonth(-1)" title="Previous month">‹</button>
+        <div class="cal-month-label" id="calMonthLabel">—</div>
+        <button onclick="changeMonth(1)" title="Next month">›</button>
+      </div>
+
+      <!-- Legend -->
+      <div class="cal-legend">
+        <div class="cal-legend-item"><div class="cal-legend-dot booked"></div> Booked</div>
+        <div class="cal-legend-item"><div class="cal-legend-dot available"></div> Available</div>
+        <div class="cal-legend-item"><div class="cal-legend-dot today"></div> Today</div>
+      </div>
+
+      <a href="index.html" style="background:#181d24;color:#fff;text-decoration:none;padding:8px 16px;border-radius:8px;font-size:12px;font-weight:700;">← Back to Stays</a>
+    </div>
+  </header>
+
+  <!-- ─── MAIN CONTENT ─── -->
+  <div class="cal-container">
+
+    <!-- Filter tabs -->
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:16px;">
+      <div class="cal-filter-tabs" id="calFilterTabs">
+        <button class="cal-tab active" onclick="setCalView('month', this)">📅 Month View</button>
+        <button class="cal-tab" onclick="setCalView('week', this)">📆 Week View (All Properties)</button>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <select class="cal-property-select" id="calPropertyFilter" onchange="renderCalendar()">
+          <option value="all">All Properties (17)</option>
+        </select>
+        <button onclick="loadCalendarData()" style="background:#f1f5f9;border:1px solid #e2e8f0;border-radius:8px;padding:8px 14px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;">🔄 Refresh</button>
+      </div>
+    </div>
+
+    <!-- Month view -->
+    <div id="calMonthView">
+      <div class="cal-month-grid" id="calMonthGrid">
+        <!-- Day headers -->
+        <div class="cal-month-day-header">Sun</div>
+        <div class="cal-month-day-header">Mon</div>
+        <div class="cal-month-day-header">Tue</div>
+        <div class="cal-month-day-header">Wed</div>
+        <div class="cal-month-day-header">Thu</div>
+        <div class="cal-month-day-header">Fri</div>
+        <div class="cal-month-day-header">Sat</div>
+        <!-- Days rendered by JS -->
+      </div>
+    </div>
+
+    <!-- Week / All-property view -->
+    <div id="calWeekView" style="display:none;">
+      <div class="cal-grid-wrap">
+        <div class="cal-grid" id="calWeekGrid">
+          <!-- Rendered by JS -->
+        </div>
+      </div>
+    </div>
+
+    <!-- Booking detail panel (shown when day clicked) -->
+    <div id="calDayPanel" style="display:none;margin-top:20px;background:#fff;border:1px solid #e8e5df;border-radius:14px;padding:20px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+        <div style="font-weight:800;font-size:16px;" id="calDayPanelTitle">Bookings for —</div>
+        <button onclick="document.getElementById('calDayPanel').style.display='none'" style="background:#f1f5f9;border:none;border-radius:8px;width:32px;height:32px;cursor:pointer;font-size:16px;">✕</button>
+      </div>
+      <div id="calDayPanelContent">Loading...</div>
+    </div>
+  </div>
+
+  <script>
+    // ── State ──
+    let calCurrentDate = new Date();
+    let calView = 'month';
+    let calBookings = [];
+    let calRooms = [];
+    let isLoading = false;
+
+    const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+    const DAYS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+
+    // ── Property list for filter ──
+    const ALL_PROPS = [
+      {id:'GOM-101',name:'RedRose Palace',slug:'redrose-palace',img:'assets/properties/redrose-palace/cover.jpg',type:'3BHK Flat'},
+      {id:'GOM-102',name:'Black Beauty',slug:'black-beauty',img:'assets/properties/black-beauty/cover.jpg',type:'3BHK Flat'},
+      {id:'GOM-201',name:'The Dark Blue',slug:'the-dark-blue',img:'assets/properties/the-dark-blue/cover.jpg',type:'3BHK Flat'},
+      {id:'GOM-202',name:'The Brown',slug:'the-brown',img:'assets/properties/the-brown/cover.jpg',type:'3BHK Flat'},
+      {id:'GOM-301',name:'The Light Green',slug:'the-light-green',img:'assets/properties/the-light-green/cover.jpg',type:'3BHK Flat'},
+      {id:'GOM-401',name:'The Nawabi Stay',slug:'the-nawabi-stay',img:'assets/properties/the-nawabi-stay/cover.jpg',type:'3BHK Flat'},
+      {id:'GOM-501',name:'Starlight Blue Penthouse',slug:'starlight-blue-penthouse',img:'assets/properties/starlight-blue/cover.jpg',type:'Penthouse'},
+      {id:'VISH-101',name:'The Pink House',slug:'the-pink-house',img:'assets/properties/the-pink-house/cover.jpg',type:'3BHK Flat'},
+      {id:'VISH-102',name:'The Yellow House',slug:'the-yellow-house',img:'assets/properties/the-yellow-house/cover.jpg',type:'3BHK Flat'},
+      {id:'VISH-201',name:'Green Forest',slug:'green-forest',img:'assets/properties/green-forest/cover.jpg',type:'3BHK Flat'},
+      {id:'VISH-301',name:'Blossom Skyline',slug:'blossom-skyline',img:'assets/properties/blossom-skyline/cover.jpg',type:'Boutique'},
+      {id:'LULU-001',name:'Celebrity Garden',slug:'celebrity-garden',img:'assets/properties/celebrity-garden/cover.jpg',type:'5-Bed Luxury'},
+      {id:'LULU-002',name:'The Medanta Suite',slug:'the-medanta-suite',img:'assets/properties/the-medanta-suite/cover.jpg',type:'3BHK Flat'},
+      {id:'LULU-003',name:'The Velvet House',slug:'the-velvet-house',img:'assets/properties/the-velvet-house/cover.jpg',type:'Luxury Villa'},
+      {id:'COMP-001',name:'Gomti Grand Villa',slug:'gomti-grand-villa',img:'assets/properties/gomti-grand-villa/cover.jpg',type:'Private Villa'},
+      {id:'COMP-002',name:'Royal White House',slug:'royal-white-house',img:'assets/properties/royal-white-house/cover.jpg',type:'Luxury Villa'},
+      {id:'COMP-003',name:'Pink Paradise',slug:'pink-paradise',img:'assets/properties/pink-paradise/cover.jpg',type:'3BHK Flat'}
+    ];
+
+    // ── Init ──
+    function init() {
+      populatePropertyFilter();
+      updateMonthLabel();
+      loadCalendarData();
+    }
+
+    function populatePropertyFilter() {
+      const sel = document.getElementById('calPropertyFilter');
+      ALL_PROPS.forEach(function(p) {
+        const opt = document.createElement('option');
+        opt.value = p.id;
+        opt.textContent = p.name;
+        sel.appendChild(opt);
+      });
+    }
+
+    function updateMonthLabel() {
+      document.getElementById('calMonthLabel').textContent =
+        MONTHS[calCurrentDate.getMonth()] + ' ' + calCurrentDate.getFullYear();
+    }
+
+    function changeMonth(delta) {
+      calCurrentDate = new Date(calCurrentDate.getFullYear(), calCurrentDate.getMonth() + delta, 1);
+      updateMonthLabel();
+      renderCalendar();
+    }
+
+    function setCalView(view, btn) {
+      calView = view;
+      document.querySelectorAll('.cal-tab').forEach(function(t){ t.classList.remove('active'); });
+      btn.classList.add('active');
+      document.getElementById('calMonthView').style.display = view === 'month' ? 'block' : 'none';
+      document.getElementById('calWeekView').style.display = view === 'week' ? 'block' : 'none';
+      renderCalendar();
+    }
+
+    // ── Load from Supabase ──
+    async function loadCalendarData() {
+      const syncEl = document.getElementById('calLastSync');
+      syncEl.textContent = 'Syncing...';
+
+      try {
+        let sb = window.sb;
+        if (!sb && typeof supabase !== 'undefined' && window.SUPABASE_URL && window.SUPABASE_ANON_KEY) {
+          sb = window.sb = supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY);
+        }
+        if (!sb) { syncEl.textContent = 'Offline mode'; renderCalendar(); return; }
+
+        // Fetch bookings for a 3-month window (prev + current + next)
+        const from = new Date(calCurrentDate.getFullYear(), calCurrentDate.getMonth() - 1, 1).toISOString().slice(0,10);
+        const to   = new Date(calCurrentDate.getFullYear(), calCurrentDate.getMonth() + 2, 0).toISOString().slice(0,10);
+
+        const { data, error } = await sb.from('bookings')
+          .select('id, room_id, guest_name, check_in, check_out, status, source')
+          .gte('check_out', from)
+          .lte('check_in', to)
+          .order('check_in', { ascending: true });
+
+        if (error) throw error;
+        calBookings = data || [];
+        syncEl.textContent = 'Synced ' + new Date().toLocaleTimeString('en-IN');
+        renderCalendar();
+      } catch(err) {
+        syncEl.textContent = 'Sync error — showing cached data';
+        renderCalendar();
+      }
+    }
+
+    // ── Render ──
+    function renderCalendar() {
+      if (calView === 'month') renderMonthView();
+      else renderWeekView();
+    }
+
+    function getBookingsForDay(dateStr, roomId) {
+      const filter = document.getElementById('calPropertyFilter').value;
+      return calBookings.filter(function(b) {
+        if (filter !== 'all' && b.room_id !== filter) return false;
+        if (roomId && b.room_id !== roomId) return false;
+        return b.check_in <= dateStr && b.check_out >= dateStr;
+      });
+    }
+
+    function dateStr(y, m, d) {
+      return y + '-' + String(m+1).padStart(2,'0') + '-' + String(d).padStart(2,'0');
+    }
+
+    function renderMonthView() {
+      const grid = document.getElementById('calMonthGrid');
+      // Remove old day cells (keep headers)
+      const headers = Array.from(grid.querySelectorAll('.cal-month-day-header'));
+      grid.innerHTML = '';
+      headers.forEach(function(h){ grid.appendChild(h); });
+
+      const y = calCurrentDate.getFullYear();
+      const m = calCurrentDate.getMonth();
+      const firstDay = new Date(y, m, 1).getDay();
+      const daysInMonth = new Date(y, m+1, 0).getDate();
+      const today = new Date().toISOString().slice(0,10);
+
+      // Empty cells before first day
+      for (let i = 0; i < firstDay; i++) {
+        const empty = document.createElement('div');
+        empty.className = 'cal-month-day empty';
+        empty.innerHTML = '<div class="cal-month-day-num"></div>';
+        grid.appendChild(empty);
+      }
+
+      for (let d = 1; d <= daysInMonth; d++) {
+        const ds = dateStr(y, m, d);
+        const bookingsOnDay = getBookingsForDay(ds, null);
+        const isToday = ds === today;
+
+        const cell = document.createElement('div');
+        cell.className = 'cal-month-day' + (isToday ? ' is-today' : '');
+        cell.onclick = function(){ showDayPanel(ds, bookingsOnDay); };
+
+        let inner = '<div class="cal-month-day-num">' + d + '</div>';
+        bookingsOnDay.slice(0,3).forEach(function(b) {
+          const prop = ALL_PROPS.find(function(p){ return p.id === b.room_id; });
+          const label = prop ? prop.name.split(' ')[0] : b.room_id;
+          inner += '<span class="cal-month-event booked">' + label + (b.guest_name ? ' · '+b.guest_name.split(' ')[0] : '') + '</span>';
+        });
+        if (bookingsOnDay.length > 3) {
+          inner += '<span class="cal-month-event" style="color:#64748b;background:#f1f5f9;">+' + (bookingsOnDay.length-3) + ' more</span>';
+        }
+
+        cell.innerHTML = inner;
+        grid.appendChild(cell);
+      }
+    }
+
+    function renderWeekView() {
+      const grid = document.getElementById('calWeekGrid');
+      grid.innerHTML = '';
+
+      // Show 7 days from today
+      const days = [];
+      const base = new Date(calCurrentDate.getFullYear(), calCurrentDate.getMonth(), 1);
+      for (let i = 0; i < 7; i++) {
+        const d = new Date(base);
+        d.setDate(base.getDate() + i);
+        days.push(d.toISOString().slice(0,10));
+      }
+
+      const today = new Date().toISOString().slice(0,10);
+      const filter = document.getElementById('calPropertyFilter').value;
+      const props = filter === 'all' ? ALL_PROPS : ALL_PROPS.filter(function(p){ return p.id === filter; });
+
+      // Header row
+      const headerRow = document.createElement('div');
+      headerRow.className = 'cal-grid-header';
+      headerRow.innerHTML = '<div class="cal-grid-header-cell prop-col">Property</div>';
+      days.forEach(function(ds) {
+        const d = new Date(ds + 'T00:00:00');
+        headerRow.innerHTML += '<div class="cal-grid-header-cell' + (ds === today ? '" style="background:#b58d3d;' : '') + '">' +
+          DAYS[d.getDay()] + '<br><span style="font-size:14px;font-weight:800;">' + d.getDate() + '</span></div>';
+      });
+      grid.appendChild(headerRow);
+
+      // Body
+      const body = document.createElement('div');
+      body.className = 'cal-body';
+
+      props.forEach(function(prop) {
+        const row = document.createElement('div');
+        row.className = 'cal-row';
+
+        // Property name cell
+        row.innerHTML = '<div class="cal-prop-cell"><img class="cal-prop-thumb" src="'+prop.img+'" onerror="this.src=\'assets/logo.png\'"/><div><div class="cal-prop-name">'+prop.name+'</div><div class="cal-prop-type">'+prop.type+'</div></div></div>';
+
+        days.forEach(function(ds) {
+          const bookings = getBookingsForDay(ds, prop.id);
+          const isBooked = bookings.length > 0;
+          const isToday = ds === today;
+          const cell = document.createElement('div');
+          cell.className = 'cal-day-cell' + (isBooked ? ' is-booked' : ' is-available') + (isToday ? ' today-col' : '');
+          const dayNum = '<div class="cal-day-num">' + new Date(ds+'T00:00:00').getDate() + '</div>';
+          if (isBooked) {
+            const b = bookings[0];
+            cell.innerHTML = dayNum + '<span class="cal-booking-pill booked">' + (b.guest_name ? b.guest_name.split(' ')[0] : 'Booked') + '</span>';
+          } else {
+            cell.innerHTML = dayNum + '<span class="cal-booking-pill available">Free</span>';
+          }
+          cell.onclick = function(){ showDayPanel(ds, bookings, prop); };
+          row.appendChild(cell);
+        });
+
+        body.appendChild(row);
+      });
+
+      grid.appendChild(body);
+    }
+
+    function showDayPanel(ds, bookings, prop) {
+      const panel = document.getElementById('calDayPanel');
+      const title = document.getElementById('calDayPanelTitle');
+      const content = document.getElementById('calDayPanelContent');
+
+      const d = new Date(ds+'T00:00:00');
+      title.textContent = (prop ? prop.name + ' — ' : '') + d.toLocaleDateString('en-IN', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
+
+      if (!bookings || bookings.length === 0) {
+        content.innerHTML = '<div style="color:#15803d;font-weight:700;padding:12px;background:#f0fdf4;border-radius:8px;">✅ No bookings — Property Available</div>';
+      } else {
+        content.innerHTML = bookings.map(function(b) {
+          const propInfo = ALL_PROPS.find(function(p){ return p.id === b.room_id; });
+          const statusColor = b.status === 'confirmed' ? '#0284C7' : b.status === 'checked_in' ? '#15803d' : '#64748b';
+          return '<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:14px;margin-bottom:10px;">' +
+            '<div style="display:flex;justify-content:space-between;align-items:flex-start;">' +
+            '<div><div style="font-weight:800;font-size:14px;">' + (b.guest_name || 'Guest') + '</div>' +
+            '<div style="font-size:12px;color:#64748b;margin-top:2px;">' + (propInfo ? propInfo.name : b.room_id) + '</div>' +
+            '<div style="font-size:12px;color:#64748b;margin-top:2px;">📅 ' + b.check_in + ' → ' + b.check_out + '</div></div>' +
+            '<span style="background:'+statusColor+'20;color:'+statusColor+';padding:3px 10px;border-radius:6px;font-size:11px;font-weight:700;text-transform:uppercase;">' + b.status + '</span>' +
+            '</div></div>';
+        }).join('');
+      }
+
+      panel.style.display = 'block';
+      panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+
+    // ── Boot ──
+    init();
+  </script>
+
+</body>
+</html>

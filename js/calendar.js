@@ -7,7 +7,7 @@ async function renderReports() {
   renderShell(`<div class="loading">📅 Loading calendar...</div>`, 'reports');
 
   const [rooms, bookings] = await Promise.all([
-    sb.from('rooms').select('room_id, unit_no, nickname, rent_per_night, property_name').order('unit_no'),
+    sb.from('rooms').select('room_id, unit_no, nickname, rent_per_night, property_name, slug').order('unit_no'),
     sb.from('guest_register').select('booking_id, room_id, check_in, check_out, check_in_time, check_out_time, guest_name, phone, booking_mode, total_amount, is_cancelled, verification_status, notes, has_vehicle, vehicle_name, vehicle_number, client_rating')
       .neq('is_cancelled', true).neq('verification_status', 'rejected')
   ]);
@@ -217,14 +217,34 @@ async function renderReports() {
       }
     }
 
+    // Resolve cover image path: prefer slug from DB, fallback to room_id-based slug map
+    const ROOM_SLUG_MAP = {
+      'GOM-101': 'redrose-palace', 'GOM-102': 'black-beauty',
+      'GOM-201': 'the-dark-blue',  'GOM-202': 'the-brown',
+      'GOM-301': 'the-light-green','GOM-401': 'the-nawabi-stay',
+      'GOM-501': 'starlight-blue', 'GOM-302': 'the-unique',
+      'VIL-104': 'the-green-house','VIL-103': 'the-pink-house',
+      'VIL-105': 'the-yellow-house','VIL-106': 'green-forest',
+      'VIL-108': 'pink-paradise',  'LUL-402': 'celebrity-garden',
+      'VIL-101': 'gomti-grand-villa','VIL-102': 'royal-white-house',
+      'VIL-107': 'the-velvet-house'
+    };
+    const slug = r.slug || ROOM_SLUG_MAP[r.room_id] || '';
+    const thumbSrc = slug ? `assets/properties/${slug}/cover.jpg` : '';
+    const thumbHtml = thumbSrc
+      ? `<img src="${thumbSrc}" alt="${r.nickname || r.room_id}" onerror="this.style.display='none'" style="width:40px;height:40px;border-radius:8px;object-fit:cover;flex-shrink:0;border:1px solid #E2E8F0;">` 
+      : `<div style="width:40px;height:40px;border-radius:8px;background:linear-gradient(135deg,#b58d3d,#8c6a23);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">🏠</div>`;
+
     html += `
       <div class="card cal-room-card" style="padding:12px;border-radius:14px;margin-bottom:14px;">
-        <div class="cal-room-header" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;margin-bottom:8px;">
-          <div style="min-width:0;flex:1 1 auto;">
-            <strong style="font-size:14px;color:var(--dark);word-break:break-word;">${r.unit_no}</strong>
-            <span style="color:var(--muted);font-size:12.5px;margin-left:6px;word-break:break-word;">${r.nickname || r.property_name || ''}</span>
+        <div class="cal-room-header" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:8px;">
+          <div style="display:flex;align-items:center;gap:10px;min-width:0;flex:1 1 auto;">
+            ${thumbHtml}
+            <div style="min-width:0;">
+              <strong style="font-size:14px;color:var(--dark);word-break:break-word;display:block;line-height:1.2;">${r.nickname || r.property_name || r.unit_no}</strong>
+              <span style="color:var(--muted);font-size:11.5px;word-break:break-word;">${r.unit_no}${r.rent_per_night ? ' · <span style="color:#059669;font-weight:700;">₹' + r.rent_per_night.toLocaleString('en-IN') + '/night</span>' : ''}</span>
+            </div>
           </div>
-          ${r.rent_per_night ? `<span style="font-size:11.5px;color:#059669;font-weight:700;white-space:nowrap;flex-shrink:0;">Base: ₹${r.rent_per_night.toLocaleString('en-IN')}/night</span>` : ''}
         </div>
         <div class="cal-grid">${cellsHtml}</div>
       </div>`;
@@ -707,7 +727,8 @@ window.openBookingDetails = async function(bId) {
   const idPaths = (b.id_proof_photo_paths || b.id_proof_photo_path || '').split(',').filter(Boolean);
 
   const isBlocked = (b.booking_id && String(b.booking_id).startsWith('BLK_')) || 
-                    (b.guest_name && (b.guest_name.includes('Blocked') || b.booking_mode === 'Offline-Blocked'));
+                    b.booking_mode === 'Offline-Blocked' ||
+                    (b.guest_name && b.guest_name.toLowerCase().includes('blocked'));
 
   const sec = typeof getSecurityDeposit === 'function' ? getSecurityDeposit(b) : null;
   const secBadge = typeof getSecurityDepositBadge === 'function' ? getSecurityDepositBadge(b) : '';
@@ -756,8 +777,8 @@ window.openBookingDetails = async function(bId) {
       <!-- FULL ACTION BUTTONS (SAME AS BOOKINGS PAGE) -->
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
         ${isBlocked ? `
-          <button onclick="this.closest('.modal-overlay').remove(); if(window.editBooking) editBooking('${b.booking_id}');" style="padding:11px;background:#059669;color:#fff;border:none;border-radius:8px;font-weight:700;cursor:pointer;grid-column:span 2;">
-            ➕ Convert to Direct / Offline Booking
+          <button onclick="calConvertBlockToBooking('${b.booking_id}', '${b.room_id}', '${b.check_in}', '${b.check_out}', this);" style="padding:11px;background:#059669;color:#fff;border:none;border-radius:8px;font-weight:700;cursor:pointer;grid-column:span 2;">
+            ➕ Convert to Real Guest Booking
           </button>
         ` : `
           <button onclick="this.closest('.modal-overlay').remove(); if(window.editBooking) editBooking('${b.booking_id}');" style="padding:10px;background:#3B82F6;color:#fff;border:none;border-radius:8px;font-weight:600;cursor:pointer;">
@@ -783,9 +804,44 @@ window.openBookingDetails = async function(bId) {
           🗑️ Delete Booking / Block
         </button>
       </div>
+
     </div>
   `;
   document.body.appendChild(modal);
+};
+
+// ═══════════════════════════════════════════════════════════
+// 🔄 CONVERT BLOCKED SLOT → FRESH NEW BOOKING
+// Deletes the BLK_ record, then opens renderAddBooking with
+// room + dates pre-filled so the new booking_id is never BLK_
+// ═══════════════════════════════════════════════════════════
+window.calConvertBlockToBooking = async function(blkId, roomId, checkIn, checkOut, btn) {
+  // Close the popup immediately
+  const overlay = btn?.closest('.modal-overlay');
+  if (overlay) overlay.remove();
+
+  // Confirm intent
+  const ok = confirm(`Convert blocked dates ${checkIn} → ${checkOut} to a real guest booking?\n\nThe block will be removed and a fresh booking form will open.`);
+  if (!ok) return;
+
+  try {
+    // Delete the blocked slot from DB
+    await sb.from('guest_register').delete().eq('booking_id', blkId);
+  } catch (e) {
+    console.warn('[UHH] Could not delete block before convert:', e);
+    // Continue anyway — user can delete it manually
+  }
+
+  // Open Add Booking form with room + dates pre-filled
+  if (window.renderAddBooking) {
+    renderAddBooking({ room_id: roomId, check_in: checkIn, check_out: checkOut });
+  } else {
+    // Fallback: navigate to bookings tab then open form
+    if (typeof navigate === 'function') navigate('bookings');
+    setTimeout(() => {
+      if (window.renderAddBooking) renderAddBooking({ room_id: roomId, check_in: checkIn, check_out: checkOut });
+    }, 500);
+  }
 };
 
 // ═══════════════════════════════════════════════════════════
@@ -1323,12 +1379,13 @@ window.saveQuickBlock = async function(roomId) {
 
   const { error } = await sb.from('guest_register').upsert({
     booking_id: deterministicId,
-    guest_name: '🚫 Blocked / Unavailable',
+    guest_name: '🚫 Blocked',
     room_id: roomId,
     check_in: cin,
     check_out: cout,
-    booking_mode: 'Offline',
-    payment_status: 'Unpaid',
+    booking_mode: 'Offline-Blocked',
+    verification_status: 'approved',
+    payment_status: 'N/A',
     total_amount: 0,
     notes: notes || 'Offline Block'
   }, { onConflict: 'booking_id' });
