@@ -116,12 +116,12 @@ async function buildMessageData(bkId) {
     primaryCaretaker = { name: careName, phone: carePhone };
   }
 
-  // Dedicated Host & Operations: Shahanshah (9450055554) & Firoz (8299600709)
+  // Dedicated Property Manager: Praveen Singh (9194109911)
   const manager = {
-    name: 'Shahanshah',
-    phone: '9450055554',
+    name: 'Praveen Singh',
+    phone: '9194109911',
     hours: '10 AM to 09 PM',
-    role: 'Host'
+    role: 'Manager'
   };
 
   // Calculate paid + due
@@ -224,9 +224,11 @@ House Rules⚠️
 • No wild parties or disruptive gatherings
 We want to keep the neighbourhood peaceful for everyone.
 
-*Escalation / Assistance:*
-📞 Mr. Shahanshah: 9450055554
-📞 Mr. Firoz Khan: 8299600709
+*Contact*
+If you need anything, message me anytime or call directly
+📞Mr Shahansha 9450055554
+📞Mr Firoz khan 8299600709
+Happy to help whenever you need.
 🌐 ${d.websiteURL || 'https://uniquehavenhomesstay.com'}`;
 }
 

@@ -476,9 +476,12 @@
         `📅 *Check-in:* ${fmtD(b.check_in)} (From 02:00 PM)\n` +
         `📅 *Check-out:* ${fmtD(b.check_out)} (By 11:00 AM)\n` +
         `💰 *Total Amount:* ₹${(b.total_amount || 0).toLocaleString('en-IN')}\n\n` +
-        `📞 *Concierge Support:*\n` +
-        `• Mr. Shahanshah: +91 94500 55554\n` +
-        `• Mr. Firoz Khan: +91 82996 00709\n` +
+        `👤 *Manager:* Praveen Singh (9194109911)\n\n` +
+        `*Contact*\n` +
+        `If you need anything, message me anytime or call directly\n` +
+        `📞Mr Shahansha 9450055554\n` +
+        `📞Mr Firoz khan 8299600709\n` +
+        `Happy to help whenever you need.\n` +
         `━━━━━━━━━━━━━━━━━━\n` +
         `_The Unique Haven Homes Luxury Stays_`;
     }
