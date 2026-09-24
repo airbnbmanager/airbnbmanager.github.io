@@ -88,17 +88,29 @@
   <script src="js/my-ledger.js"></script>
   <script src="js/employee-ledger.js"></script>
   <script src="js/analytics.js"></script>
-  <script src="js/whatsapp-hub.js?v=207"></script>
+  <script src="js/whatsapp-hub.js?v=210"></script>
   <script src="js/showcase-data.js"></script>
   <script src="js/showcase-admin.js"></script>
 
-  <!-- Service Worker -->
+  <!-- Automatic Cache & SW Cleaner (Guarantees Realtime Admin Code) -->
   <script>
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/sw.js')
-        .then(() => console.log('✅ SW registered'))
-        .catch(err => console.log('❌ SW failed:', err));
+      navigator.serviceWorker.getRegistrations().then(regs => {
+        for (let r of regs) {
+          r.unregister();
+          console.log('🧹 Stale SW unregistered');
+        }
+      });
+      if (window.caches) {
+        caches.keys().then(keys => {
+          for (let k of keys) caches.delete(k);
+        });
+      }
     }
+    // Clean up stale dry-run localStorage keys
+    ['uhhs_wa_automation_v1', 'uhhs_wa_automation_v2', 'uhhs_wa_automation_v3', 'uhhs_wa_automation_v4'].forEach(k => {
+      try { localStorage.removeItem(k); } catch(e) {}
+    });
   </script>
   <!-- PWA Install Button -->
   <div id="pwa-install-bar" style="display:none;position:fixed;bottom:20px;left:50%;transform:translateX(-50%);z-index:99999;background:#6C5CE0;color:white;padding:14px 28px;border-radius:50px;font-size:15px;font-weight:600;box-shadow:0 4px 20px rgba(0,0,0,0.3);cursor:pointer;align-items:center;gap:10px;font-family:sans-serif;">

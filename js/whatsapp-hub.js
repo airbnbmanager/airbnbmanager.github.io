@@ -85,21 +85,32 @@
   }
 
   async function loadConfig() {
+    HUB.config = { ...DEFAULT_WA_CONFIG };
     const local = getLocalConfig();
     if (local) {
-      HUB.config = { ...DEFAULT_WA_CONFIG, ...local };
+      HUB.config = { ...HUB.config, ...local };
     }
-    // Attempt Supabase fetch
-    try {
-      if (window.sb) {
-        const { data } = await sb.from('whatsapp_config').select('*').eq('id', 1).single();
-        if (data) {
-          HUB.config = { ...HUB.config, ...data };
-        }
-      }
-    } catch (e) {}
+    // Hard guarantee: dry_run_mode is strictly false unless explicitly saved as true
+    if (HUB.config.dry_run_mode !== true) {
+      HUB.config.dry_run_mode = false;
+    }
+    if (HUB.config.auto_send_enabled !== false) {
+      HUB.config.auto_send_enabled = true;
+    }
     return HUB.config;
   }
+
+  window.toggleHubDryRunDirectly = async function() {
+    await loadConfig();
+    const cur = HUB.config.dry_run_mode === true;
+    HUB.config.dry_run_mode = !cur;
+    setLocalConfig(HUB.config);
+    if (window.fsn) {
+      if (HUB.config.dry_run_mode) fsn.info('Dry Run Active', 'Simulation mode — messages logged in CRM only.');
+      else fsn.success('LIVE Mode Active', '⚡ Real WhatsApp messages will now be dispatched!');
+    }
+    renderWhatsAppHub();
+  };
 
   // ─── Dual-Layer Logs ───
   function getLocalLogs() {
@@ -1055,9 +1066,24 @@
               </div>
             </div>
             <div class="hub-stat-tile">
-              <div class="hub-stat-label">EXECUTION MODE</div>
-              <div class="hub-stat-val" style="color:${dryRun ? '#D97706' : '#15803D'};">
-                ${dryRun ? '🧪 DRY RUN' : '⚡ LIVE'}
+              <div class="hub-stat-label">EXECUTION MODE (CLICK TO TOGGLE)</div>
+              <div class="hub-stat-val" style="margin-top:3px;">
+                <button onclick="toggleHubDryRunDirectly()" style="
+                  background:${dryRun ? '#FEF3C7' : '#DCFCE7'};
+                  color:${dryRun ? '#B45309' : '#15803D'};
+                  border:1.5px solid ${dryRun ? '#FDE68A' : '#86EFAC'};
+                  padding:4px 12px;
+                  border-radius:20px;
+                  font-size:12px;
+                  font-weight:800;
+                  cursor:pointer;
+                  display:inline-flex;
+                  align-items:center;
+                  gap:6px;
+                  box-shadow:0 1px 3px rgba(0,0,0,0.06);
+                " title="Click to toggle between LIVE and DRY RUN">
+                  ${dryRun ? '🧪 DRY RUN (Click for LIVE ⚡)' : '⚡ LIVE (Real WhatsApp)'}
+                </button>
               </div>
             </div>
             <div class="hub-stat-tile">
