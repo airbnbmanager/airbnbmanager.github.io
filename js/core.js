@@ -545,7 +545,8 @@ function renderShell(content, activePage = 'dashboard') {
         { id: 'reimbursements', label: '💸 Daily Expenses' },
         { id: 'claims', label: '📤 Claims Manager' },
         { id: 'expenses', label: '📊 Monthly P&L' },
-        { id: 'investors', label: '🧑‍💼 Investors Ledger' }
+        { id: 'investors', label: '🧑‍💼 Investors Ledger' },
+        { id: 'billing', label: '🧾 GST Billing', externalUrl: 'billing.html' }
       ]
     },
     {
@@ -703,7 +704,7 @@ function renderShell(content, activePage = 'dashboard') {
         <div class="hub-subnav-strip">
           <div class="hub-subnav-scroll">
             ${visibleTabs.map(tab => `
-              <button type="button" class="hub-subnav-tab ${activePage === tab.id ? 'active' : ''}" onclick="navigate('${tab.id}')">
+              <button type="button" class="hub-subnav-tab ${activePage === tab.id ? 'active' : ''}" onclick="${tab.externalUrl ? 'window.open(\'' + tab.externalUrl + '\',\'_blank\')' : 'navigate(\'' + tab.id + '\')'}">
                 ${tab.label}
               </button>
             `).join('')}
