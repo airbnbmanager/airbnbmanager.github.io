@@ -441,6 +441,61 @@
     });
   };
 
+  // A2. Trigger Direct Booking Confirmation Pass to Guest Mobile
+  window.triggerGuestBookingPass = async function(b) {
+    if (!b || !b.phone) return;
+    await loadConfig();
+    if (!HUB.config.master_automation) {
+      console.log('ℹ️ Master automation is PAUSED in WhatsApp Hub.');
+      return;
+    }
+    if (HUB.config.send_welcome === false) {
+      console.log('ℹ️ Guest booking pass toggle is OFF in WhatsApp Hub.');
+      return;
+    }
+
+    let text = '';
+    if (typeof window.buildMessageData === 'function' && typeof window.tplConfirmation === 'function' && b.booking_id) {
+      try {
+        const d = await window.buildMessageData(b.booking_id);
+        if (d) text = window.tplConfirmation(d);
+      } catch(e) { console.warn('buildMessageData fallback:', e); }
+    }
+
+    if (!text) {
+      const roomName = b.rooms?.nickname || b.rooms?.unit_no || b.room_name || b.room_id || 'Apartment';
+      const guest = b.guest_name || 'Guest';
+      const fmtD = (dt) => {
+        if (!dt) return '';
+        try { return new Date(dt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }); }
+        catch(e) { return dt; }
+      };
+      text =
+        `🎉 *BOOKING CONFIRMED — THE UNIQUE HAVEN HOMES*\n` +
+        `━━━━━━━━━━━━━━━━━━\n` +
+        `Dear *${guest}*,\n` +
+        `Thank you for choosing The Unique Haven Homes! Your stay is confirmed.\n\n` +
+        `🏠 *Property:* ${roomName}\n` +
+        `📅 *Check-in:* ${fmtD(b.check_in)} (From 02:00 PM)\n` +
+        `📅 *Check-out:* ${fmtD(b.check_out)} (By 11:00 AM)\n` +
+        `💰 *Total Amount:* ₹${(b.total_amount || 0).toLocaleString('en-IN')}\n\n` +
+        `📞 *Concierge Support:*\n` +
+        `• Mr. Shahanshah: +91 94500 55554\n` +
+        `• Mr. Firoz Khan: +91 82996 00709\n` +
+        `━━━━━━━━━━━━━━━━━━\n` +
+        `_The Unique Haven Homes Luxury Stays_`;
+    }
+
+    return await dispatchWhatsAppMessage({
+      to: b.phone,
+      isGroup: false,
+      text: text,
+      type: 'guest_welcome',
+      bookingId: b.booking_id,
+      guestName: b.guest_name || 'Guest'
+    });
+  };
+
   // B. Trigger Housekeeping Checkout Alert to Staff Group
   window.triggerHousekeepingCheckoutAlert = async function() {
     await loadConfig();

@@ -2966,22 +2966,26 @@ async function saveBooking() {
     // Success feedback
     fsn.success('Success', '✅ Booking saved successfully!\n\nGuest: ' + gn + '\nProperty: ' + (document.getElementById('roomId').selectedOptions[0]?.text || rid));
 
-    // Automated WhatsApp Operations / Booking Group Alert
+    // Automated WhatsApp Operations: Direct Guest Booking Pass & Booking Group Alert
     try {
+      const bkPayload = {
+        booking_id: bkId,
+        guest_name: gn,
+        phone: ph,
+        room_id: rid,
+        room_name: document.getElementById('roomId').selectedOptions[0]?.text || rid,
+        booking_mode: mode,
+        check_in: ci,
+        check_out: co,
+        total_amount: tot,
+        advance: adv,
+        payment_status: payStatus
+      };
+      if (typeof window.triggerGuestBookingPass === 'function') {
+        window.triggerGuestBookingPass(bkPayload).catch(err => console.warn('Guest booking pass error:', err));
+      }
       if (typeof window.triggerBookingGroupAlert === 'function') {
-        window.triggerBookingGroupAlert({
-          booking_id: bkId,
-          guest_name: gn,
-          phone: ph,
-          room_id: rid,
-          room_name: document.getElementById('roomId').selectedOptions[0]?.text || rid,
-          booking_mode: mode,
-          check_in: ci,
-          check_out: co,
-          total_amount: tot,
-          advance: adv,
-          payment_status: payStatus
-        }).catch(err => console.warn('Booking group alert non-blocking error:', err));
+        window.triggerBookingGroupAlert(bkPayload).catch(err => console.warn('Booking group alert error:', err));
       }
     } catch(e) { console.warn('Trigger error:', e); }
 

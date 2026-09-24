@@ -737,4 +737,4 @@ window.sendSecurityDepositRefund = sendSecurityDepositRefund;
 window.sendBookingFormat = sendBookingFormat;
 window.sendInvestorAlert = sendInvestorAlert;
 window.buildMessageData = buildMessageData;
-
+window.tplConfirmation = tplConfirmation;
