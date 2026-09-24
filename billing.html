@@ -3,653 +3,707 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>GST Billing System | The Unique Haven Homes</title>
+  <title>Direct Booking — GST Invoice | The Unique Haven Homes</title>
   <link rel="icon" href="assets/logo.png" type="image/png"/>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="config.js"></script>
   <style>
     *{box-sizing:border-box;margin:0;padding:0}
     :root{
-      --ink:#0f172a;--ink2:#334155;--muted:#64748b;--border:#e2e8f0;--bg:#f8fafc;
-      --surface:#fff;--primary:#0f172a;--gold:#b58d3d;--success:#059669;--danger:#dc2626;
-      --warning:#d97706;--info:#0284c7;--radius:12px;
+      --ink:#0f172a;--muted:#64748b;--border:#e2e8f0;--bg:#f1f5f9;
+      --gold:#b58d3d;--gold-light:#f9f3e7;--success:#059669;--danger:#dc2626;
+      --info:#0284c7;--radius:12px;
     }
     body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--ink);min-height:100vh;}
-    a{text-decoration:none;}
+    input,select,button{font-family:'Inter',sans-serif;}
 
     /* ── Topbar ── */
-    .bill-topbar{background:var(--primary);color:#fff;padding:0 24px;height:60px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;}
-    .bill-topbar-left{display:flex;align-items:center;gap:14px;}
-    .bill-topbar img{width:38px;height:38px;border-radius:8px;background:#fff;padding:2px;object-fit:contain;}
-    .bill-topbar-title{font-size:16px;font-weight:800;letter-spacing:0.3px;}
-    .bill-topbar-sub{font-size:11px;opacity:0.65;margin-top:1px;}
-    .bill-topbar-right{display:flex;align-items:center;gap:10px;}
-    .bill-topbar-btn{padding:7px 14px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;border:none;font-family:inherit;}
-    .btn-light{background:rgba(255,255,255,0.12);color:#fff;}
-    .btn-light:hover{background:rgba(255,255,255,0.2);}
+    .topbar{background:#0f172a;color:#fff;height:58px;padding:0 20px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;box-shadow:0 2px 10px rgba(0,0,0,0.3);}
+    .topbar-left{display:flex;align-items:center;gap:12px;}
+    .topbar-logo{width:36px;height:36px;border-radius:8px;object-fit:contain;background:#fff;padding:2px;border:1.5px solid rgba(255,255,255,0.15);}
+    .topbar-title{font-size:15px;font-weight:800;}
+    .topbar-sub{font-size:10px;color:rgba(255,255,255,0.55);margin-top:1px;}
+    .topbar-right{display:flex;gap:8px;}
+    .tbtn{padding:6px 13px;border-radius:7px;font-size:12px;font-weight:700;cursor:pointer;border:none;background:rgba(255,255,255,0.1);color:#fff;transition:background 0.15s;}
+    .tbtn:hover{background:rgba(255,255,255,0.18);}
+    .tbtn.gold{background:var(--gold);color:#fff;}
+    .tbtn.gold:hover{background:#9a7630;}
 
     /* ── Layout ── */
-    .bill-layout{display:grid;grid-template-columns:380px 1fr;min-height:calc(100vh - 60px);}
-    .bill-sidebar{background:#fff;border-right:1px solid var(--border);overflow-y:auto;padding:20px;}
-    .bill-main{padding:24px;overflow-y:auto;}
+    .layout{display:grid;grid-template-columns:360px 1fr;height:calc(100vh - 58px);}
+    .sidebar{background:#fff;border-right:1px solid var(--border);overflow-y:auto;display:flex;flex-direction:column;}
+    .sidebar-head{padding:16px;border-bottom:1px solid var(--border);flex-shrink:0;}
+    .sidebar-head-title{font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:0.6px;color:var(--muted);margin-bottom:10px;}
+    .info-pill{background:#dbeafe;color:#1d4ed8;border-radius:8px;padding:10px 12px;font-size:11px;line-height:1.6;margin-bottom:10px;}
+    .info-pill strong{display:block;margin-bottom:2px;font-size:12px;}
+    .filter-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;}
+    .finput{width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:12px;color:var(--ink);outline:none;}
+    .finput:focus{border-color:#0f172a;}
+    .load-btn{width:100%;padding:9px;background:#0f172a;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;margin-top:4px;}
+    .load-btn:hover{background:#1e293b;}
+    .search-row{margin-top:8px;}
 
-    /* ── Sidebar filters ── */
-    .sidebar-title{font-size:13px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:12px;}
-    .filter-group{margin-bottom:16px;}
-    .filter-label{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.4px;display:block;margin-bottom:6px;}
-    .filter-input{width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit;color:var(--ink);outline:none;transition:border 0.2s;}
-    .filter-input:focus{border-color:var(--primary);}
-    .filter-btn{width:100%;padding:10px;background:var(--primary);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;margin-top:4px;}
-    .filter-btn:hover{background:#1e293b;}
+    /* Booking list */
+    .blist{flex:1;overflow-y:auto;padding:12px;}
+    .bcount{font-size:11px;color:var(--muted);margin-bottom:8px;}
+    .bcard{border:1.5px solid var(--border);border-radius:10px;padding:11px 13px;margin-bottom:8px;cursor:pointer;transition:all 0.15s;background:#fff;}
+    .bcard:hover{border-color:#0f172a;background:#f8fafc;}
+    .bcard.sel{border-color:#0f172a;background:#f0f9ff;box-shadow:0 0 0 3px rgba(15,23,42,0.07);}
+    .bcard-name{font-size:13px;font-weight:800;margin-bottom:2px;}
+    .bcard-prop{font-size:11px;color:var(--muted);margin-bottom:5px;}
+    .bcard-row{display:flex;justify-content:space-between;align-items:center;}
+    .bcard-amt{font-size:14px;font-weight:800;color:var(--success);}
+    .bcard-dates{font-size:11px;color:var(--muted);}
+    .badge{display:inline-flex;align-items:center;gap:3px;padding:2px 7px;border-radius:5px;font-size:10px;font-weight:700;}
+    .badge-inv{background:#dcfce7;color:#15803d;}
+    .badge-draft{background:#fef9c3;color:#854d0e;}
+    .badge-direct{background:#dbeafe;color:#1d4ed8;}
 
-    /* ── Booking cards in sidebar ── */
-    .booking-list{margin-top:8px;}
-    .booking-card{background:var(--bg);border:1.5px solid var(--border);border-radius:10px;padding:12px;margin-bottom:10px;cursor:pointer;transition:all 0.15s;}
-    .booking-card:hover{border-color:var(--primary);background:#f1f5f9;}
-    .booking-card.selected{border-color:var(--primary);background:#f0f9ff;box-shadow:0 0 0 3px rgba(15,23,42,0.08);}
-    .booking-card-name{font-size:13px;font-weight:800;color:var(--ink);margin-bottom:2px;}
-    .booking-card-prop{font-size:11px;color:var(--muted);margin-bottom:6px;}
-    .booking-card-row{display:flex;justify-content:space-between;align-items:center;}
-    .booking-card-amount{font-size:14px;font-weight:800;color:var(--success);}
-    .booking-card-dates{font-size:11px;color:var(--muted);}
-    .badge-sm{display:inline-block;padding:2px 7px;border-radius:4px;font-size:10px;font-weight:700;}
-    .badge-airbnb{background:#ff5a5f20;color:#ff5a5f;}
-    .badge-direct{background:#06b6d420;color:#0284c7;}
-    .badge-invoiced{background:#dcfce7;color:#15803d;}
-    .badge-pending{background:#fef9c3;color:#854d0e;}
-    .bill-empty{text-align:center;padding:40px 20px;color:var(--muted);}
-    .bill-empty-icon{font-size:40px;margin-bottom:12px;}
-    .bill-loader{text-align:center;padding:30px;color:var(--muted);font-size:13px;}
+    /* ── Main area ── */
+    .main-area{overflow-y:auto;padding:20px 24px;background:var(--bg);}
+    .placeholder{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;text-align:center;color:var(--muted);}
+    .placeholder-icon{font-size:56px;margin-bottom:14px;opacity:0.35;}
+    .placeholder-title{font-size:18px;font-weight:700;color:var(--ink);margin-bottom:6px;}
+    .placeholder-sub{font-size:13px;max-width:380px;line-height:1.6;}
 
-    /* ── Main invoice area ── */
-    .bill-main-placeholder{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;color:var(--muted);text-align:center;padding:40px;}
-    .bill-main-placeholder-icon{font-size:64px;margin-bottom:16px;opacity:0.4;}
-    .bill-main-placeholder-text{font-size:20px;font-weight:700;color:var(--ink);margin-bottom:8px;}
-    .bill-main-placeholder-sub{font-size:14px;max-width:400px;}
+    /* Action bar */
+    .action-bar{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;align-items:center;}
+    .abtn{display:inline-flex;align-items:center;gap:6px;padding:9px 18px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;border:1.5px solid var(--border);background:#fff;transition:all 0.15s;}
+    .abtn:hover{background:#f1f5f9;}
+    .abtn.primary{background:#0f172a;color:#fff;border-color:#0f172a;}
+    .abtn.primary:hover{background:#1e293b;}
+    .abtn.green{background:#059669;color:#fff;border-color:#059669;}
+    .abtn.green:hover{background:#047857;}
 
-    /* ── Invoice preview ── */
-    .invoice-preview-card{background:#fff;border:1px solid var(--border);border-radius:16px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,0.06);}
-    .invoice-actions{display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;}
-    .invoice-action-btn{padding:10px 20px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;border:1.5px solid var(--border);background:#fff;font-family:inherit;display:flex;align-items:center;gap:6px;transition:all 0.2s;}
-    .invoice-action-btn:hover{background:var(--bg);}
-    .invoice-action-btn.primary{background:var(--primary);color:#fff;border-color:var(--primary);}
-    .invoice-action-btn.primary:hover{background:#1e293b;}
-    .invoice-action-btn.success{background:#059669;color:#fff;border-color:#059669;}
-    .invoice-action-btn.success:hover{background:#047857;}
-    .invoice-action-btn.danger{background:#dc2626;color:#fff;border-color:#dc2626;}
+    /* Invoice meta strip */
+    .inv-meta-strip{display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap;align-items:center;}
+    .inv-meta-label{font-size:11px;font-weight:700;color:var(--muted);}
+    .inv-meta-input{padding:8px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;font-weight:700;color:var(--ink);outline:none;background:#fff;}
+    .inv-meta-input:focus{border-color:#0f172a;}
 
-    /* ── GST breakdown box ── */
-    .gst-info-box{background:linear-gradient(135deg,#f0f9ff,#e0f2fe);border:1px solid #bae6fd;border-radius:10px;padding:14px;margin-bottom:16px;}
-    .gst-info-row{display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px;}
-    .gst-info-row:last-child{margin-bottom:0;font-weight:800;font-size:14px;border-top:1px dashed #bae6fd;padding-top:8px;margin-top:4px;}
-    .gst-rate-badge{background:#0284c7;color:#fff;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;}
-    .gst-warning{background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:10px 14px;font-size:12px;color:#854d0e;margin-bottom:12px;}
+    /* GST breakdown card */
+    .gst-card{background:#fff;border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:14px;display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+    .gst-stat{background:#f8fafc;border-radius:8px;padding:10px 14px;}
+    .gst-stat-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;color:var(--muted);margin-bottom:4px;}
+    .gst-stat-value{font-size:18px;font-weight:800;color:var(--ink);}
+    .gst-stat-sub{font-size:10px;color:var(--muted);margin-top:2px;}
+    .gst-stat.highlight{background:linear-gradient(135deg,#0f172a,#1e293b);color:#fff;}
+    .gst-stat.highlight .gst-stat-label{color:rgba(255,255,255,0.6);}
+    .gst-stat.highlight .gst-stat-value{color:#b58d3d;}
+    .gst-stat.highlight .gst-stat-sub{color:rgba(255,255,255,0.5);}
+    .itc-note{grid-column:1/-1;background:#fff7ed;border:1px solid #fed7aa;border-radius:8px;padding:8px 12px;font-size:11px;color:#9a3412;font-weight:600;}
+    .itc-note.itc-ok{background:#f0fdf4;border-color:#86efac;color:#15803d;}
 
-    /* ── Invoice number field ── */
-    .invoice-no-row{display:flex;gap:10px;align-items:center;margin-bottom:16px;}
-    .invoice-no-input{flex:1;padding:10px 14px;border:1.5px solid var(--border);border-radius:8px;font-size:14px;font-weight:700;font-family:inherit;color:var(--ink);}
-    .invoice-no-input:focus{outline:none;border-color:var(--primary);}
+    /* ── THE INVOICE DOCUMENT ── */
+    .invoice-doc{background:#fff;border:1px solid #d1d5db;border-radius:14px;overflow:hidden;box-shadow:0 8px 30px rgba(0,0,0,0.08);}
 
-    /* Responsive */
-    @media(max-width:768px){
-      .bill-layout{grid-template-columns:1fr;}
-      .bill-sidebar{border-right:none;border-bottom:1px solid var(--border);max-height:50vh;}
+    @media(max-width:900px){
+      .layout{grid-template-columns:1fr;height:auto;}
+      .sidebar{height:50vh;}
+      .gst-card{grid-template-columns:1fr;}
+    }
+    @media print{
+      .topbar,.action-bar,.inv-meta-strip,.gst-card,.sidebar,.topbar-right{display:none!important;}
+      .layout{display:block;}
+      .main-area{padding:0;}
+      .invoice-doc{border:none;box-shadow:none;border-radius:0;}
+      body{background:#fff;}
     }
   </style>
 </head>
 <body>
 
-  <!-- ── Topbar ── -->
-  <div class="bill-topbar">
-    <div class="bill-topbar-left">
-      <a href="admin.html"><img src="assets/logo.png" alt="UHH"/></a>
-      <div>
-        <div class="bill-topbar-title">🧾 GST Billing System</div>
-        <div class="bill-topbar-sub">THE UNIQUE HAVEN HOMES PVT. LTD. · GSTIN: 09ABECT9843K1Z7</div>
-      </div>
+<!-- ── Topbar ── -->
+<div class="topbar">
+  <div class="topbar-left">
+    <a href="admin.html"><img src="assets/logo.png" class="topbar-logo" alt="UHH"/></a>
+    <div>
+      <div class="topbar-title">🧾 GST Invoice — Direct Bookings</div>
+      <div class="topbar-sub">THE UNIQUE HAVEN HOMES PVT. LTD. · GSTIN: 09ABECT9843K1Z7</div>
     </div>
-    <div class="bill-topbar-right">
-      <button class="bill-topbar-btn btn-light" onclick="loadEligibleBookings()">🔄 Refresh</button>
-      <a href="admin.html" class="bill-topbar-btn btn-light">← Admin</a>
+  </div>
+  <div class="topbar-right">
+    <button class="tbtn" onclick="loadBookings()">🔄 Refresh</button>
+    <button class="tbtn gold" onclick="printInvoice()">🖨️ Print PDF</button>
+    <a href="admin.html" class="tbtn">← Admin</a>
+  </div>
+</div>
+
+<!-- ── Layout ── -->
+<div class="layout">
+
+  <!-- ── SIDEBAR ── -->
+  <div class="sidebar">
+    <div class="sidebar-head">
+      <div class="sidebar-head-title">Select Direct Booking</div>
+      <div class="info-pill">
+        <strong>📋 Direct Bookings Only</strong>
+        Airbnb bookings excluded. Only bookings made directly (phone/WhatsApp/walk-in) with collected payment qualify.<br>
+        <span style="margin-top:4px;display:block;">
+          GST: <b>≤₹7,500/night → 5%</b> &nbsp;|&nbsp; <b>&gt;₹7,500/night → 18%</b>
+        </span>
+      </div>
+      <div class="filter-row">
+        <input type="date" id="fFrom" class="finput" title="Check-in from"/>
+        <input type="date" id="fTo" class="finput" title="Check-in to"/>
+      </div>
+      <div class="search-row">
+        <input type="text" id="fSearch" class="finput" placeholder="Search guest name or phone…" oninput="applyFilter()"/>
+      </div>
+      <button class="load-btn" onclick="loadBookings()">🔍 Load Direct Bookings</button>
+    </div>
+    <div class="blist" id="blist">
+      <div style="text-align:center;padding:30px;color:var(--muted);font-size:13px;">Click "Load Direct Bookings" to begin</div>
     </div>
   </div>
 
-  <!-- ── Layout ── -->
-  <div class="bill-layout">
-
-    <!-- ── SIDEBAR: Eligible Bookings ── -->
-    <div class="bill-sidebar">
-      <div class="sidebar-title">Eligible Bookings</div>
-      <div class="gst-warning">⚠️ Only bookings with <strong>full online payment</strong> qualify for GST invoice.<br><span style="font-size:11px;">Rates (56th GST Council, Sep 2025): ≤₹7,500/night = <strong>5%</strong> (No ITC) | >₹7,500/night = <strong>18%</strong> (ITC available)</span></div>
-
-      <!-- Filters -->
-      <div class="filter-group">
-        <span class="filter-label">Date Range</span>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-          <input type="date" id="filterFrom" class="filter-input"/>
-          <input type="date" id="filterTo" class="filter-input"/>
-        </div>
-      </div>
-      <div class="filter-group">
-        <span class="filter-label">Search Guest</span>
-        <input type="text" id="filterSearch" class="filter-input" placeholder="Name, phone, Airbnb code…" oninput="applyBookingFilter()"/>
-      </div>
-      <div class="filter-group">
-        <span class="filter-label">Source</span>
-        <select id="filterSource" class="filter-input" onchange="applyBookingFilter()">
-          <option value="all">All Online Payments</option>
-          <option value="airbnb">Airbnb Only</option>
-          <option value="direct">Direct Online (UPI/Bank)</option>
-        </select>
-      </div>
-      <button class="filter-btn" onclick="loadEligibleBookings()">🔍 Load Bookings</button>
-
-      <div id="bookingListWrap" class="booking-list">
-        <div class="bill-empty"><div class="bill-empty-icon">📋</div><div style="font-size:13px;">Click "Load Bookings" to fetch eligible invoices</div></div>
-      </div>
-    </div>
-
-    <!-- ── MAIN: Invoice Preview ── -->
-    <div class="bill-main" id="billMain">
-      <div class="bill-main-placeholder">
-        <div class="bill-main-placeholder-icon">🧾</div>
-        <div class="bill-main-placeholder-text">Select a Booking to Generate Invoice</div>
-        <div class="bill-main-placeholder-sub">Choose an eligible booking from the left panel. Only full online payment bookings qualify for GST invoice.</div>
-      </div>
+  <!-- ── MAIN ── -->
+  <div class="main-area" id="mainArea">
+    <div class="placeholder">
+      <div class="placeholder-icon">🧾</div>
+      <div class="placeholder-title">Select a Direct Booking</div>
+      <div class="placeholder-sub">Choose a booking from the left panel to generate its GST tax invoice. Only direct (non-Airbnb) bookings with payment are shown.</div>
     </div>
   </div>
+</div>
 
-  <script>
-  // ══════════════════════════════════════════
-  // COMPANY DETAILS
-  // ══════════════════════════════════════════
-  const COMPANY = {
-    name: 'THE UNIQUE HAVEN HOMES PRIVATE LIMITED',
-    gstin: '09ABECT9843K1Z7',
-    cin: 'U68101UP2026PTC244837',
-    pan: 'ABECT9843K',
-    address: 'P NO 39 & 40 Radhikapuri, Indira Nagar Takrohi, Lucknow, UP 226016',
-    state: 'Uttar Pradesh',
-    stateCode: '09',
-    phone: '+91 94500 55554',
-    email: 'uniquehavenhomestay@gmail.com',
-    website: 'uniquehavenhomesstay.com',
-    sacCode: '996311',
-    sacDesc: 'Room or unit accommodation services provided by Homestays / Short-stay accommodations'
-  };
+<script>
+// ══════════════════════════════════
+// COMPANY MASTER DATA
+// ══════════════════════════════════
+const CO = {
+  name:    'THE UNIQUE HAVEN HOMES PRIVATE LIMITED',
+  gstin:   '09ABECT9843K1Z7',
+  pan:     'ABECT9843K',
+  cin:     'U68101UP2026PTC244837',
+  sac:     '996311',
+  address: 'P NO 39 & 40 Radhikapuri, Indira Nagar Takrohi, Lucknow, Uttar Pradesh – 226016',
+  state:   'Uttar Pradesh',
+  code:    '09',
+  phone:   '+91 94500 55554',
+  email:   'uniquehavenhomestay@gmail.com',
+  web:     'uniquehavenhomesstay.com'
+};
 
-  // GST rate logic — as per 56th GST Council (September 2025)
-  // ≤ ₹7,500/night → 5% (CGST 2.5% + SGST 2.5%) — NO ITC
-  // > ₹7,500/night → 18% (CGST 9% + SGST 9%) — ITC available
-  // Note: ₹1,000 exemption was REMOVED in July 2022 — all rooms taxable
-  // Rate based on ACTUAL transaction value (not declared tariff) — per GST law 2018
-  function getGstRate(perNightRate) {
-    return perNightRate <= 7500 ? 5 : 18;
-  }
+// GST — 56th GST Council (Sep 2025)
+function gstRate(perNight) { return perNight <= 7500 ? 5 : 18; }
+function gstHalf(perNight) { return gstRate(perNight) / 2; }
 
-  // Invoice serial: UHH/2526/XXXX
-  function getFY() {
-    const now = new Date();
-    const y = now.getFullYear();
-    const m = now.getMonth() + 1;
-    return m >= 4 ? (String(y).slice(2) + String(y+1).slice(2)) : (String(y-1).slice(2) + String(y).slice(2));
-  }
+// Invoice numbering
+function getFY() {
+  const d = new Date(); const m = d.getMonth()+1; const y = d.getFullYear();
+  return m>=4 ? String(y).slice(2)+String(y+1).slice(2) : String(y-1).slice(2)+String(y).slice(2);
+}
+let invSeq = parseInt(localStorage.getItem('uhh_inv_seq')||'0') + 1;
+function nextInvNo() { return 'UHH/'+getFY()+'/'+String(invSeq).padStart(4,'0'); }
 
-  let allEligibleBookings = [];
-  let selectedBooking = null;
-  let invoiceCounter = parseInt(localStorage.getItem('uhh_inv_counter') || '0') + 1;
+let allBookings = [], selBooking = null;
 
-  function nextInvoiceNo() {
-    return 'UHH/' + getFY() + '/' + String(invoiceCounter).padStart(4, '0');
-  }
+// ══════════════════════════════════
+// LOAD DIRECT BOOKINGS FROM SUPABASE
+// ══════════════════════════════════
+async function loadBookings() {
+  const el = document.getElementById('blist');
+  el.innerHTML = '<div style="text-align:center;padding:30px;color:var(--muted);font-size:13px;">⏳ Loading direct bookings…</div>';
+  try {
+    let sb = window.sb;
+    if (!sb && typeof supabase!=='undefined' && window.SUPABASE_URL && window.SUPABASE_ANON_KEY)
+      sb = window.sb = supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY);
+    if (!sb) throw new Error('No Supabase connection');
 
-  // ══════════════════════════════════════════
-  // LOAD ELIGIBLE BOOKINGS
-  // ══════════════════════════════════════════
-  async function loadEligibleBookings() {
-    const wrap = document.getElementById('bookingListWrap');
-    wrap.innerHTML = '<div class="bill-loader">⏳ Fetching eligible bookings…</div>';
+    const from = document.getElementById('fFrom').value;
+    const to   = document.getElementById('fTo').value;
 
+    let q = sb.from('bookings')
+      .select('booking_id,guest_name,phone,room_id,check_in,check_out,total_amount,booking_mode,airbnb_confirmation_code,status,payment_status,rooms(nickname,unit_no,rent_per_night)')
+      .eq('is_cancelled', false)
+      .is('airbnb_confirmation_code', null)        // NO Airbnb
+      .neq('booking_mode','Online-Airbnb')         // NO Airbnb mode
+      .order('check_in',{ascending:false})
+      .limit(300);
+    if (from) q = q.gte('check_in', from);
+    if (to)   q = q.lte('check_in', to);
+
+    const {data:bookings, error} = await q;
+    if (error) throw error;
+
+    // Fetch payments
+    const ids = (bookings||[]).map(b=>b.booking_id);
+    let payMap = {};
+    if (ids.length) {
+      const {data:pays} = await sb.from('payment_history')
+        .select('booking_id,amount,payment_mode').in('booking_id',ids);
+      (pays||[]).forEach(p=>{ payMap[p.booking_id]=(payMap[p.booking_id]||0)+(p.amount||0); });
+    }
+
+    // Fetch existing invoices
+    let invSet = new Set();
     try {
-      let sb = window.sb;
-      if (!sb && typeof supabase !== 'undefined' && window.SUPABASE_URL && window.SUPABASE_ANON_KEY) {
-        sb = window.sb = supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY);
-      }
-      if (!sb) throw new Error('No Supabase connection');
+      const {data:invs} = await sb.from('gst_invoices').select('booking_id').in('booking_id',ids);
+      (invs||[]).forEach(i=>invSet.add(i.booking_id));
+    } catch(e){}
 
-      const fromDate = document.getElementById('filterFrom').value;
-      const toDate = document.getElementById('filterTo').value;
+    // Only bookings with some payment recorded OR payment_status=Paid
+    allBookings = (bookings||[])
+      .filter(b => {
+        const paid = payMap[b.booking_id]||0;
+        const total = b.total_amount||0;
+        // Include if: has any payment, OR marked as Paid/Settled, OR total > 0 (for on-demand)
+        return total > 0 || paid > 0;
+      })
+      .map(b=>({...b, _paid:payMap[b.booking_id]||0, _inv:invSet.has(b.booking_id)}));
 
-      let query = sb.from('bookings')
-        .select('booking_id, guest_name, phone, room_id, check_in, check_out, total_amount, booking_mode, airbnb_confirmation_code, status, payment_status, rooms(nickname, unit_no, rent_per_night)')
-        .eq('is_cancelled', false)
-        .order('check_in', { ascending: false })
-        .limit(200);
-
-      if (fromDate) query = query.gte('check_in', fromDate);
-      if (toDate) query = query.lte('check_in', toDate);
-
-      const { data: bookings, error } = await query;
-      if (error) throw error;
-
-      // Also fetch payment_history to verify full payment
-      const bkIds = (bookings || []).map(b => b.booking_id);
-      let payMap = {};
-      if (bkIds.length > 0) {
-        const { data: payments } = await sb.from('payment_history')
-          .select('booking_id, amount, payment_mode')
-          .in('booking_id', bkIds);
-        (payments || []).forEach(p => {
-          payMap[p.booking_id] = (payMap[p.booking_id] || 0) + (p.amount || 0);
-        });
-      }
-
-      // Also fetch existing invoices
-      let invoicedSet = new Set();
-      try {
-        const { data: invs } = await sb.from('gst_invoices')
-          .select('booking_id')
-          .in('booking_id', bkIds);
-        (invs || []).forEach(i => invoicedSet.add(i.booking_id));
-      } catch(e) { /* table may not exist yet */ }
-
-      // Filter: only online full-payment bookings
-      allEligibleBookings = (bookings || []).filter(b => {
-        const isOnline = b.booking_mode === 'Online-Airbnb' || !!b.airbnb_confirmation_code;
-        const isFullyPaid = (b.total_amount > 0) &&
-          ((payMap[b.booking_id] || 0) >= b.total_amount * 0.95 || // 95% tolerance
-           b.payment_status === 'Paid' || b.payment_status === 'Settled' ||
-           b.booking_mode === 'Online-Airbnb'); // Airbnb always fully paid
-        return isOnline && isFullyPaid;
-      }).map(b => ({ ...b, _isInvoiced: invoicedSet.has(b.booking_id), _paidAmt: payMap[b.booking_id] || 0 }));
-
-      applyBookingFilter();
-    } catch(err) {
-      wrap.innerHTML = '<div class="bill-empty"><div class="bill-empty-icon">❌</div><div>Error: ' + err.message + '</div></div>';
-    }
+    applyFilter();
+  } catch(err) {
+    el.innerHTML = '<div style="text-align:center;padding:20px;color:#dc2626;font-size:12px;">❌ '+err.message+'</div>';
   }
+}
 
-  function applyBookingFilter() {
-    const search = (document.getElementById('filterSearch').value || '').toLowerCase();
-    const source = document.getElementById('filterSource').value;
+function applyFilter() {
+  const s = (document.getElementById('fSearch').value||'').toLowerCase();
+  const list = allBookings.filter(b=> {
+    if (!s) return true;
+    return ((b.guest_name||'')+(b.phone||'')).toLowerCase().includes(s);
+  });
+  renderList(list);
+}
 
-    let filtered = allEligibleBookings.filter(b => {
-      if (source === 'airbnb' && !(b.booking_mode === 'Online-Airbnb' || b.airbnb_confirmation_code)) return false;
-      if (source === 'direct' && (b.booking_mode === 'Online-Airbnb' || b.airbnb_confirmation_code)) return false;
-      if (search) {
-        const text = ((b.guest_name||'') + (b.phone||'') + (b.airbnb_confirmation_code||'')).toLowerCase();
-        if (!text.includes(search)) return false;
-      }
-      return true;
-    });
+function nights(b) {
+  if (!b.check_in||!b.check_out) return 1;
+  return Math.max(1, Math.round((new Date(b.check_out)-new Date(b.check_in))/86400000));
+}
 
-    renderBookingList(filtered);
+function renderList(list) {
+  const el = document.getElementById('blist');
+  if (!list.length) {
+    el.innerHTML = '<div style="text-align:center;padding:30px;color:var(--muted);font-size:12px;">📭 No direct bookings found.<br>Check date range and try again.</div>';
+    return;
   }
+  el.innerHTML = '<div class="bcount">'+list.length+' direct booking(s)</div>' +
+    list.map(b=>{
+      const n = nights(b);
+      const prop = b.rooms?.nickname||b.room_id||'Property';
+      const paidPct = b.total_amount>0 ? Math.round((b._paid/b.total_amount)*100) : 0;
+      return `<div class="bcard${selBooking?.booking_id===b.booking_id?' sel':''}" onclick="selectBooking('${b.booking_id}')">
+        <div class="bcard-name">${b.guest_name||'Guest'} ${b._inv?'<span class="badge badge-inv">✅ Invoiced</span>':'<span class="badge badge-draft">Draft</span>'}</div>
+        <div class="bcard-prop">${prop} · ${n} night${n>1?'s':''}</div>
+        <div class="bcard-row">
+          <div class="bcard-amt">₹${(b.total_amount||0).toLocaleString('en-IN')}</div>
+          <span class="badge badge-direct">💳 Direct</span>
+        </div>
+        <div class="bcard-dates">${b.check_in||'-'} → ${b.check_out||'-'}</div>
+        ${b._paid>0?'<div style="margin-top:5px;font-size:10px;color:var(--success);font-weight:700;">✔ ₹'+b._paid.toLocaleString('en-IN')+' paid ('+paidPct+'%)</div>':''}
+      </div>`;
+    }).join('');
+}
 
-  function renderBookingList(list) {
-    const wrap = document.getElementById('bookingListWrap');
-    if (!list.length) {
-      wrap.innerHTML = '<div class="bill-empty"><div class="bill-empty-icon">📭</div><div style="font-size:13px;">No eligible bookings found.<br><small>Set date range and click Load Bookings.</small></div></div>';
-      return;
-    }
-    const nights = (b) => {
-      if (!b.check_in || !b.check_out) return 1;
-      return Math.max(1, Math.round((new Date(b.check_out) - new Date(b.check_in)) / 86400000));
-    };
-    wrap.innerHTML = '<div style="font-size:11px;color:var(--muted);margin-bottom:8px;">' + list.length + ' eligible booking(s) found</div>' +
-      list.map(b => {
-        const isAirbnb = b.booking_mode === 'Online-Airbnb' || !!b.airbnb_confirmation_code;
-        const propName = b.rooms?.nickname || b.room_id;
-        const n = nights(b);
-        return `<div class="booking-card${selectedBooking?.booking_id === b.booking_id ? ' selected' : ''}" onclick="selectBooking('${b.booking_id}')">
-          <div class="booking-card-name">${b.guest_name || 'Guest'} ${b._isInvoiced ? '<span class="badge-sm badge-invoiced">✅ Invoiced</span>' : '<span class="badge-sm badge-pending">Draft</span>'}</div>
-          <div class="booking-card-prop">${propName} · ${n} night${n>1?'s':''}</div>
-          <div class="booking-card-row">
-            <div class="booking-card-amount">₹${(b.total_amount||0).toLocaleString('en-IN')}</div>
-            <span class="badge-sm ${isAirbnb ? 'badge-airbnb' : 'badge-direct'}">${isAirbnb ? '🏠 Airbnb' : '💳 Direct'}</span>
-          </div>
-          <div class="booking-card-dates">${b.check_in||'-'} → ${b.check_out||'-'}</div>
-        </div>`;
-      }).join('');
-  }
+function selectBooking(id) {
+  selBooking = allBookings.find(b=>b.booking_id===id);
+  applyFilter(); // re-render to show selection
+  renderInvoice();
+}
 
-  function selectBooking(bookingId) {
-    selectedBooking = allEligibleBookings.find(b => b.booking_id === bookingId);
-    // Re-render list to show selection
-    applyBookingFilter();
-    renderInvoicePreview();
-  }
+// ══════════════════════════════════
+// RENDER INVOICE SCREEN
+// ══════════════════════════════════
+function renderInvoice() {
+  const b = selBooking; if (!b) return;
+  const n = nights(b);
+  const total = b.total_amount||0;
+  const perNight = total/n;
+  const rate = gstRate(perNight);
+  const half = rate/2;
+  const base = Math.round(total/(1+rate/100));
+  const gstAmt = total - base;
+  const cgst = Math.round(gstAmt/2);
+  const sgst = gstAmt - cgst;
+  const invNo = nextInvNo();
+  const today = new Date().toISOString().slice(0,10);
 
-  // ══════════════════════════════════════════
-  // INVOICE PREVIEW
-  // ══════════════════════════════════════════
-  function renderInvoicePreview() {
-    const b = selectedBooking;
-    if (!b) return;
+  // Store for print/save
+  window._inv = {b,n,total,perNight,rate,half,base,gstAmt,cgst,sgst,invNo};
 
-    const nights = b.check_in && b.check_out
-      ? Math.max(1, Math.round((new Date(b.check_out) - new Date(b.check_in)) / 86400000)) : 1;
+  const mainArea = document.getElementById('mainArea');
+  mainArea.innerHTML = `
+    <!-- Action Bar -->
+    <div class="action-bar">
+      <button class="abtn primary" onclick="printInvoice()">🖨️ Print / Save PDF</button>
+      <button class="abtn green" onclick="saveInvoice()">💾 Save Invoice</button>
+      <button class="abtn" onclick="copyText()">📋 Copy Text</button>
+      <span style="margin-left:auto;font-size:11px;color:var(--muted);">${b._inv?'✅ Already saved':'📝 Draft — not saved'}</span>
+    </div>
 
-    const propName = b.rooms?.nickname || b.room_id || 'Property';
-    const totalAmount = b.total_amount || 0;
-    const perNight = totalAmount / nights;
-    const gstRate = getGstRate(perNight);
-    const halfRate = gstRate / 2;
+    <!-- Invoice Number & Date strip -->
+    <div class="inv-meta-strip">
+      <span class="inv-meta-label">Invoice No.</span>
+      <input class="inv-meta-input" id="invNoInp" value="${invNo}" style="width:180px;"/>
+      <span class="inv-meta-label">Date</span>
+      <input type="date" class="inv-meta-input" id="invDateInp" value="${today}" style="width:150px;"/>
+      <span class="inv-meta-label">Place of Supply</span>
+      <input class="inv-meta-input" value="Uttar Pradesh (09)" readonly style="width:200px;background:#f8fafc;color:var(--muted);"/>
+    </div>
 
-    // Back-calculate base from total (total = base + GST)
-    // total = base * (1 + gstRate/100)  → base = total / (1 + gstRate/100)
-    const baseAmount = Math.round(totalAmount / (1 + gstRate / 100));
-    const gstAmount = totalAmount - baseAmount;
-    const cgst = Math.round(gstAmount / 2);
-    const sgst = gstAmount - cgst;
-
-    const invNo = nextInvoiceNo();
-    const invDate = new Date().toLocaleDateString('en-IN', {day:'2-digit', month:'2-digit', year:'numeric'});
-    const isAirbnb = b.booking_mode === 'Online-Airbnb' || !!b.airbnb_confirmation_code;
-    const payMode = isAirbnb ? 'Online via Airbnb Platform' : 'Online Payment (UPI / Bank Transfer)';
-
-    const html = `
-      <div class="invoice-actions">
-        <button class="invoice-action-btn primary" onclick="printInvoice()">🖨️ Print / Save PDF</button>
-        <button class="invoice-action-btn success" onclick="saveInvoice('${b.booking_id}', '${invNo}')">💾 Save Invoice</button>
-        <button class="invoice-action-btn" onclick="copyInvoiceText()">📋 Copy Invoice Text</button>
-        <span style="margin-left:auto;font-size:12px;color:var(--muted);display:flex;align-items:center;">${b._isInvoiced ? '✅ Already invoiced' : '📝 Draft — not saved yet'}</span>
+    <!-- GST breakdown card -->
+    <div class="gst-card">
+      <div class="gst-stat">
+        <div class="gst-stat-label">Taxable Value (Base)</div>
+        <div class="gst-stat-value">₹${base.toLocaleString('en-IN')}</div>
+        <div class="gst-stat-sub">${n} nights × ₹${Math.round(base/n).toLocaleString('en-IN')}</div>
       </div>
-
-      <div class="invoice-no-row">
-        <span style="font-size:12px;font-weight:700;color:var(--muted);">Invoice No.:</span>
-        <input type="text" class="invoice-no-input" id="invNoInput" value="${invNo}" placeholder="e.g. UHH/2526/0001"/>
-        <span style="font-size:12px;font-weight:700;color:var(--muted);">Date:</span>
-        <input type="date" class="invoice-no-input" id="invDateInput" value="${new Date().toISOString().slice(0,10)}" style="max-width:150px;"/>
+      <div class="gst-stat">
+        <div class="gst-stat-label">GST Slab</div>
+        <div class="gst-stat-value">${rate}%</div>
+        <div class="gst-stat-sub">${perNight<=7500?'≤ ₹7,500/night':'> ₹7,500/night'} · CGST ${half}% + SGST ${half}%</div>
       </div>
-
-      <div class="gst-info-box">
-        <div class="gst-info-row"><span>Total Amount Received</span><span style="font-weight:700;">₹${totalAmount.toLocaleString('en-IN')}</span></div>
-        <div class="gst-info-row"><span>Rate / Night (Actual Transaction Value)</span><span>₹${Math.round(perNight).toLocaleString('en-IN')}</span></div>
-        <div class="gst-info-row" style="font-size:11px;"><span style="color:${gstRate===5?'#dc2626':'#059669'};font-weight:700;">${gstRate===5 ? '⚠️ 5% slab — Input Tax Credit (ITC) NOT available' : '✅ 18% slab — Input Tax Credit (ITC) available on business inputs'}</span></div>
-        <div class="gst-info-row"><span>Applicable GST <span class="gst-rate-badge">${gstRate}% (CGST ${halfRate}% + SGST ${halfRate}%)</span></span><span style="color:var(--info);">${perNight < 7500 ? '< ₹7,500/night' : '≥ ₹7,500/night'}</span></div>
-        <div class="gst-info-row"><span>Taxable Value (Base)</span><span>₹${baseAmount.toLocaleString('en-IN')}</span></div>
-        <div class="gst-info-row"><span>CGST @ ${halfRate}%</span><span>₹${cgst.toLocaleString('en-IN')}</span></div>
-        <div class="gst-info-row"><span>SGST @ ${halfRate}%</span><span>₹${sgst.toLocaleString('en-IN')}</span></div>
-        <div class="gst-info-row"><span>TOTAL INVOICE VALUE</span><span style="color:var(--success);">₹${totalAmount.toLocaleString('en-IN')}</span></div>
+      <div class="gst-stat">
+        <div class="gst-stat-label">CGST + SGST</div>
+        <div class="gst-stat-value">₹${cgst.toLocaleString('en-IN')} + ₹${sgst.toLocaleString('en-IN')}</div>
+        <div class="gst-stat-sub">Total GST = ₹${gstAmt.toLocaleString('en-IN')}</div>
       </div>
-
-      <div class="invoice-preview-card" id="invoiceDoc">
-        ${generateInvoiceHTML(b, invNo, invDate, baseAmount, cgst, sgst, gstAmount, gstRate, halfRate, nights, propName, payMode, totalAmount)}
+      <div class="gst-stat highlight">
+        <div class="gst-stat-label">Invoice Total</div>
+        <div class="gst-stat-value">₹${total.toLocaleString('en-IN')}</div>
+        <div class="gst-stat-sub">All-inclusive</div>
       </div>
-    `;
+      <div class="itc-note ${rate===5?'':'itc-ok'}">
+        ${rate===5
+          ? '⚠️ 5% GST slab — Input Tax Credit (ITC) is NOT available on this invoice (per GST Council rules).'
+          : '✅ 18% GST slab — Input Tax Credit (ITC) is available on business inputs.'}
+      </div>
+    </div>
 
-    document.getElementById('billMain').innerHTML = html;
-    window._currentInvoiceData = { b, invNo, invDate, baseAmount, cgst, sgst, gstAmount, gstRate, halfRate, nights, propName, payMode, totalAmount };
-  }
+    <!-- THE INVOICE -->
+    <div class="invoice-doc" id="invoiceDoc">
+      ${buildInvoiceHTML(b,n,total,perNight,rate,half,base,cgst,sgst,gstAmt,invNo,today)}
+    </div>
+  `;
+}
 
-  function generateInvoiceHTML(b, invNo, invDate, baseAmount, cgst, sgst, gstAmount, gstRate, halfRate, nights, propName, payMode, totalAmount) {
-    const isAirbnb = b.booking_mode === 'Online-Airbnb' || !!b.airbnb_confirmation_code;
-    const checkInFmt = b.check_in ? new Date(b.check_in + 'T00:00:00').toLocaleDateString('en-IN', {day:'2-digit', month:'short', year:'numeric'}) : '-';
-    const checkOutFmt = b.check_out ? new Date(b.check_out + 'T00:00:00').toLocaleDateString('en-IN', {day:'2-digit', month:'short', year:'numeric'}) : '-';
-    const totalWords = numberToWords(totalAmount);
+// ══════════════════════════════════
+// BUILD INVOICE HTML (PRINT-READY)
+// ══════════════════════════════════
+function buildInvoiceHTML(b,n,total,perNight,rate,half,base,cgst,sgst,gstAmt,invNo,invDate) {
+  const invNoFinal = document.getElementById('invNoInp')?.value || invNo;
+  const invDateFinal = document.getElementById('invDateInp')?.value || invDate;
+  const invDateFmt = new Date(invDateFinal+'T00:00:00').toLocaleDateString('en-IN',{day:'2-digit',month:'long',year:'numeric'});
+  const checkInFmt = b.check_in ? new Date(b.check_in+'T00:00:00').toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'}) : '-';
+  const checkOutFmt = b.check_out ? new Date(b.check_out+'T00:00:00').toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'}) : '-';
+  const propName = b.rooms?.nickname || b.room_id || 'Property';
+  const words = numToWords(total);
+  const basePerNight = Math.round(base/n);
 
-    return `
-    <div style="font-family:'Inter',Arial,sans-serif;color:#0f172a;background:#fff;">
-      <!-- Invoice Header -->
-      <div style="background:#0f172a;padding:24px 28px;display:flex;align-items:flex-start;justify-content:space-between;gap:20px;">
-        <div style="display:flex;align-items:center;gap:14px;">
-          <img src="assets/logo.png" alt="Logo" style="width:52px;height:52px;border-radius:10px;background:#fff;padding:3px;object-fit:contain;"/>
+  return `<div style="font-family:'Inter',Arial,sans-serif;color:#0f172a;background:#fff;">
+
+    <!-- ── INVOICE HEADER ── -->
+    <div style="padding:0;background:#fff;">
+
+      <!-- Gold top rule -->
+      <div style="height:5px;background:linear-gradient(90deg,#b58d3d,#d4aa5e,#b58d3d);"></div>
+
+      <!-- Header: Logo left + Title right -->
+      <div style="padding:24px 28px 20px;display:flex;align-items:flex-start;justify-content:space-between;gap:16px;border-bottom:1px solid #e2e8f0;">
+
+        <!-- Company Info -->
+        <div style="display:flex;align-items:flex-start;gap:14px;">
+          <img src="assets/logo.png" alt="UHH Logo" style="width:56px;height:56px;border-radius:10px;object-fit:contain;background:#f8fafc;border:1.5px solid #e2e8f0;padding:3px;flex-shrink:0;"/>
           <div>
-            <div style="color:#fff;font-size:13px;font-weight:800;letter-spacing:0.5px;line-height:1.4;">THE UNIQUE HAVEN HOMES</div>
-            <div style="color:#fff;font-size:13px;font-weight:800;letter-spacing:0.5px;">PRIVATE LIMITED</div>
-            <div style="color:#94a3b8;font-size:10px;margin-top:3px;">GSTIN: ${COMPANY.gstin} | SAC: ${COMPANY.sacCode}</div>
-            <div style="color:#94a3b8;font-size:10px;">CIN: ${COMPANY.cin}</div>
+            <div style="font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#b58d3d;margin-bottom:3px;">The Unique Haven Homes</div>
+            <div style="font-size:17px;font-weight:900;letter-spacing:0.2px;color:#0f172a;line-height:1.2;">PRIVATE LIMITED</div>
+            <div style="font-size:11px;color:#64748b;margin-top:5px;line-height:1.7;">
+              ${CO.address}<br/>
+              📞 ${CO.phone} &nbsp;|&nbsp; ✉️ ${CO.email}
+            </div>
           </div>
         </div>
-        <div style="text-align:right;">
-          <div style="color:#b58d3d;font-size:22px;font-weight:800;letter-spacing:1px;">TAX INVOICE</div>
-          <div style="color:#94a3b8;font-size:11px;margin-top:4px;">Invoice No: <span style="color:#fff;font-weight:700;">${document.getElementById('invNoInput')?.value || invNo}</span></div>
-          <div style="color:#94a3b8;font-size:11px;">Date: <span style="color:#fff;font-weight:700;">${new Date(document.getElementById('invDateInput')?.value || new Date()).toLocaleDateString('en-IN', {day:'2-digit', month:'short', year:'numeric'})}</span></div>
-          <div style="color:#94a3b8;font-size:11px;">Place of Supply: <span style="color:#fff;font-weight:700;">UP (${COMPANY.stateCode})</span></div>
+
+        <!-- Invoice Info -->
+        <div style="text-align:right;flex-shrink:0;">
+          <div style="font-size:24px;font-weight:900;letter-spacing:2px;text-transform:uppercase;color:#0f172a;">TAX INVOICE</div>
+          <div style="display:inline-block;background:#b58d3d;color:#fff;padding:3px 12px;border-radius:5px;font-size:10px;font-weight:800;letter-spacing:1px;margin:4px 0 10px;">GST COMPLIANT</div>
+          <table style="margin-left:auto;border-collapse:collapse;font-size:12px;">
+            <tr><td style="padding:2px 8px 2px 0;color:#64748b;font-weight:600;">Invoice No.</td><td style="padding:2px 0;font-weight:800;">${invNoFinal}</td></tr>
+            <tr><td style="padding:2px 8px 2px 0;color:#64748b;font-weight:600;">Invoice Date</td><td style="padding:2px 0;font-weight:700;">${invDateFmt}</td></tr>
+            <tr><td style="padding:2px 8px 2px 0;color:#64748b;font-weight:600;">GSTIN</td><td style="padding:2px 0;font-weight:700;color:#0f172a;">${CO.gstin}</td></tr>
+            <tr><td style="padding:2px 8px 2px 0;color:#64748b;font-weight:600;">PAN</td><td style="padding:2px 0;font-weight:700;">${CO.pan}</td></tr>
+            <tr><td style="padding:2px 8px 2px 0;color:#64748b;font-weight:600;">State</td><td style="padding:2px 0;font-weight:700;">${CO.state} (${CO.code})</td></tr>
+          </table>
         </div>
       </div>
 
-      <!-- Supplier + Recipient -->
-      <div style="display:grid;grid-template-columns:1fr 1fr;border-bottom:1px solid #e2e8f0;">
+      <!-- ── Billed By / Billed To ── -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;background:#f8fafc;">
+
+        <!-- Supplier -->
         <div style="padding:16px 20px;border-right:1px solid #e2e8f0;">
-          <div style="font-size:10px;font-weight:800;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">Billed By (Supplier)</div>
-          <div style="font-size:13px;font-weight:800;margin-bottom:4px;">${COMPANY.name}</div>
-          <div style="font-size:12px;color:#475569;line-height:1.6;">${COMPANY.address}</div>
-          <div style="font-size:12px;color:#475569;">State: ${COMPANY.state} | Code: ${COMPANY.stateCode}</div>
-          <div style="font-size:12px;color:#475569;margin-top:4px;">📞 ${COMPANY.phone}</div>
-          <div style="font-size:12px;color:#475569;">✉️ ${COMPANY.email}</div>
-          <div style="margin-top:6px;"><span style="background:#0f172a;color:#fff;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;">GSTIN: ${COMPANY.gstin}</span></div>
+          <div style="font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:1px;color:#b58d3d;margin-bottom:8px;">▸ Supplier Details</div>
+          <div style="font-size:13px;font-weight:800;margin-bottom:4px;">${CO.name}</div>
+          <div style="font-size:11px;color:#475569;line-height:1.7;">
+            GSTIN: <strong>${CO.gstin}</strong><br/>
+            PAN: <strong>${CO.pan}</strong><br/>
+            CIN: ${CO.cin}<br/>
+            SAC Code: <strong>${CO.sac}</strong>
+          </div>
         </div>
+
+        <!-- Recipient -->
         <div style="padding:16px 20px;">
-          <div style="font-size:10px;font-weight:800;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">Billed To (Recipient)</div>
-          <div style="font-size:13px;font-weight:800;margin-bottom:4px;">${b.guest_name || 'Guest'}</div>
-          <div style="font-size:12px;color:#475569;">📞 ${b.phone || 'N/A'}</div>
-          ${b.airbnb_confirmation_code ? '<div style="font-size:11px;color:#64748b;margin-top:4px;">Airbnb Code: <strong>' + b.airbnb_confirmation_code + '</strong></div>' : ''}
-          <div style="font-size:12px;color:#475569;margin-top:4px;">State: Uttar Pradesh | Code: 09</div>
-          <div style="margin-top:6px;"><span style="background:${isAirbnb ? '#ff5a5f' : '#0284c7'};color:#fff;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;">${isAirbnb ? '🏠 Airbnb Booking' : '💳 Direct Booking'}</span></div>
+          <div style="font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:1px;color:#0f172a;margin-bottom:8px;">▸ Billed To (Guest)</div>
+          <div style="font-size:15px;font-weight:900;margin-bottom:6px;">${b.guest_name||'Guest'}</div>
+          <div style="font-size:11px;color:#475569;line-height:1.7;">
+            ${b.phone?'📞 <strong>'+b.phone+'</strong><br/>':''}
+            State: Uttar Pradesh (09)<br/>
+            Booking Type: <strong style="color:#0284c7;">Direct / Walk-in</strong>
+          </div>
         </div>
       </div>
 
-      <!-- Booking Details Table -->
-      <div style="padding:0 20px;">
-        <table style="width:100%;border-collapse:collapse;font-size:12px;margin-top:16px;">
+      <!-- ── Service Table ── -->
+      <div style="padding:0 20px 0;">
+        <table style="width:100%;border-collapse:collapse;margin-top:16px;font-size:12px;">
           <thead>
-            <tr style="background:#f8fafc;">
-              <th style="padding:10px 8px;text-align:left;border-bottom:2px solid #e2e8f0;font-weight:800;color:#475569;font-size:11px;text-transform:uppercase;letter-spacing:0.3px;">#</th>
-              <th style="padding:10px 8px;text-align:left;border-bottom:2px solid #e2e8f0;font-weight:800;color:#475569;font-size:11px;text-transform:uppercase;letter-spacing:0.3px;">Description of Service</th>
-              <th style="padding:10px 8px;text-align:center;border-bottom:2px solid #e2e8f0;font-weight:800;color:#475569;font-size:11px;text-transform:uppercase;letter-spacing:0.3px;">SAC</th>
-              <th style="padding:10px 8px;text-align:center;border-bottom:2px solid #e2e8f0;font-weight:800;color:#475569;font-size:11px;text-transform:uppercase;letter-spacing:0.3px;">Nights</th>
-              <th style="padding:10px 8px;text-align:right;border-bottom:2px solid #e2e8f0;font-weight:800;color:#475569;font-size:11px;text-transform:uppercase;letter-spacing:0.3px;">Rate/Night</th>
-              <th style="padding:10px 8px;text-align:right;border-bottom:2px solid #e2e8f0;font-weight:800;color:#475569;font-size:11px;text-transform:uppercase;letter-spacing:0.3px;">Taxable Value</th>
+            <tr style="background:#0f172a;color:#fff;">
+              <th style="padding:10px 10px;text-align:left;font-weight:700;font-size:10px;letter-spacing:0.5px;text-transform:uppercase;border-radius:0;">#</th>
+              <th style="padding:10px 10px;text-align:left;font-weight:700;font-size:10px;letter-spacing:0.5px;text-transform:uppercase;">Description of Service</th>
+              <th style="padding:10px 8px;text-align:center;font-weight:700;font-size:10px;letter-spacing:0.5px;text-transform:uppercase;">SAC</th>
+              <th style="padding:10px 8px;text-align:center;font-weight:700;font-size:10px;letter-spacing:0.5px;text-transform:uppercase;">Nights</th>
+              <th style="padding:10px 8px;text-align:right;font-weight:700;font-size:10px;letter-spacing:0.5px;text-transform:uppercase;">Rate / Night</th>
+              <th style="padding:10px 10px;text-align:right;font-weight:700;font-size:10px;letter-spacing:0.5px;text-transform:uppercase;">Taxable Value</th>
             </tr>
           </thead>
           <tbody>
-            <tr>
-              <td style="padding:12px 8px;border-bottom:1px solid #f1f5f9;color:#64748b;">01</td>
-              <td style="padding:12px 8px;border-bottom:1px solid #f1f5f9;">
-                <div style="font-weight:700;font-size:13px;">${propName} — Accommodation Service</div>
-                <div style="color:#64748b;font-size:11px;margin-top:2px;">${COMPANY.sacDesc}</div>
-                <div style="color:#475569;font-size:11px;margin-top:4px;">Check-in: <strong>${checkInFmt}</strong> | Check-out: <strong>${checkOutFmt}</strong></div>
-                <div style="color:#475569;font-size:11px;">Booking Mode: ${payMode}</div>
+            <tr style="background:#fff;">
+              <td style="padding:14px 10px;border-bottom:1px solid #f1f5f9;color:#64748b;font-weight:600;">01</td>
+              <td style="padding:14px 10px;border-bottom:1px solid #f1f5f9;">
+                <div style="font-weight:800;font-size:13px;margin-bottom:3px;">${propName}</div>
+                <div style="font-size:11px;color:#475569;line-height:1.6;">
+                  Short-stay Accommodation Service<br/>
+                  Check-in: <strong>${checkInFmt}</strong> &nbsp;→&nbsp; Check-out: <strong>${checkOutFmt}</strong><br/>
+                  <span style="color:#0284c7;font-weight:600;">Direct Booking · Full Payment Received</span>
+                </div>
               </td>
-              <td style="padding:12px 8px;border-bottom:1px solid #f1f5f9;text-align:center;">${COMPANY.sacCode}</td>
-              <td style="padding:12px 8px;border-bottom:1px solid #f1f5f9;text-align:center;font-weight:700;">${nights}</td>
-              <td style="padding:12px 8px;border-bottom:1px solid #f1f5f9;text-align:right;">₹${Math.round(baseAmount/nights).toLocaleString('en-IN')}</td>
-              <td style="padding:12px 8px;border-bottom:1px solid #f1f5f9;text-align:right;font-weight:700;">₹${baseAmount.toLocaleString('en-IN')}</td>
+              <td style="padding:14px 8px;border-bottom:1px solid #f1f5f9;text-align:center;font-weight:700;">${CO.sac}</td>
+              <td style="padding:14px 8px;border-bottom:1px solid #f1f5f9;text-align:center;font-weight:800;font-size:14px;">${n}</td>
+              <td style="padding:14px 8px;border-bottom:1px solid #f1f5f9;text-align:right;font-weight:700;">₹${basePerNight.toLocaleString('en-IN')}</td>
+              <td style="padding:14px 10px;border-bottom:1px solid #f1f5f9;text-align:right;font-weight:800;font-size:13px;">₹${base.toLocaleString('en-IN')}</td>
             </tr>
           </tbody>
         </table>
       </div>
 
-      <!-- GST Summary -->
-      <div style="display:grid;grid-template-columns:1fr 300px;gap:0;margin:16px 20px 0;border:1px solid #e2e8f0;border-radius:10px;overflow:hidden;">
-        <div style="padding:16px;background:#f8fafc;font-size:12px;color:#64748b;line-height:1.8;">
-          <div style="font-weight:700;color:#0f172a;margin-bottom:8px;">Payment Information</div>
-          <div>Mode: <strong>${payMode}</strong></div>
-          ${b.airbnb_confirmation_code ? '<div>Airbnb Ref: <strong>' + b.airbnb_confirmation_code + '</strong></div>' : ''}
-          <div>Status: <strong style="color:#059669;">✅ FULLY PAID</strong></div>
-          <div style="margin-top:10px;padding:8px;background:#dcfce7;border-radius:6px;color:#15803d;font-weight:700;font-size:11px;">
-            Amount in Words: ${totalWords} Only
+      <!-- ── Totals + Payment ── -->
+      <div style="display:grid;grid-template-columns:1fr 280px;margin:0 20px 0;border:1px solid #e2e8f0;border-radius:10px;overflow:hidden;margin-top:14px;">
+
+        <!-- Left: Payment info -->
+        <div style="padding:16px;border-right:1px solid #e2e8f0;background:#fafafa;">
+          <div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:0.5px;color:#64748b;margin-bottom:10px;">Payment Information</div>
+          <table style="font-size:12px;border-collapse:collapse;width:100%;">
+            <tr><td style="padding:3px 0;color:#64748b;width:120px;">Mode</td><td style="font-weight:700;">Direct Payment (Cash / UPI / Bank Transfer)</td></tr>
+            <tr><td style="padding:3px 0;color:#64748b;">Amount Received</td><td style="font-weight:700;color:#059669;">₹${(b._paid||total).toLocaleString('en-IN')}</td></tr>
+            <tr><td style="padding:3px 0;color:#64748b;">Status</td><td><span style="background:#dcfce7;color:#15803d;padding:2px 8px;border-radius:5px;font-size:11px;font-weight:700;">✅ PAID</span></td></tr>
+          </table>
+          <div style="margin-top:12px;padding:10px;background:#f0fdf4;border-radius:8px;border:1px solid #bbf7d0;">
+            <div style="font-size:10px;font-weight:700;color:#15803d;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">Amount in Words</div>
+            <div style="font-size:12px;font-weight:700;color:#0f172a;">${words} Only</div>
+          </div>
+          <div style="margin-top:8px;padding:8px;background:#fffbeb;border-radius:6px;border:1px solid #fde68a;">
+            <div style="font-size:10px;color:#92400e;font-weight:600;">
+              ${rate===5
+                ? '⚠️ GST @ 5% — ITC not available on this supply (56th GST Council, Sep 2025)'
+                : '✅ GST @ 18% — ITC available on business inputs'}
+            </div>
           </div>
         </div>
-        <div style="border-left:1px solid #e2e8f0;">
-          <table style="width:100%;font-size:12px;">
-            <tr><td style="padding:8px 12px;color:#475569;">Sub-Total</td><td style="padding:8px 12px;text-align:right;font-weight:700;">₹${baseAmount.toLocaleString('en-IN')}</td></tr>
-            <tr style="background:#f8fafc;"><td style="padding:8px 12px;color:#475569;">CGST @ ${halfRate}%</td><td style="padding:8px 12px;text-align:right;font-weight:700;">₹${cgst.toLocaleString('en-IN')}</td></tr>
-            <tr><td style="padding:8px 12px;color:#475569;">SGST @ ${halfRate}%</td><td style="padding:8px 12px;text-align:right;font-weight:700;">₹${sgst.toLocaleString('en-IN')}</td></tr>
-            <tr style="background:#0f172a;"><td style="padding:10px 12px;color:#fff;font-weight:800;font-size:13px;">TOTAL</td><td style="padding:10px 12px;text-align:right;color:#b58d3d;font-weight:800;font-size:15px;">₹${totalAmount.toLocaleString('en-IN')}</td></tr>
+
+        <!-- Right: GST summary table -->
+        <div>
+          <table style="width:100%;border-collapse:collapse;font-size:12px;height:100%;">
+            <tr style="background:#f8fafc;"><td style="padding:10px 14px;color:#475569;font-weight:600;">Sub-Total (Taxable)</td><td style="padding:10px 14px;text-align:right;font-weight:700;">₹${base.toLocaleString('en-IN')}</td></tr>
+            <tr><td style="padding:10px 14px;color:#475569;font-weight:600;">CGST @ ${half}%</td><td style="padding:10px 14px;text-align:right;font-weight:700;">₹${cgst.toLocaleString('en-IN')}</td></tr>
+            <tr style="background:#f8fafc;"><td style="padding:10px 14px;color:#475569;font-weight:600;">SGST @ ${half}%</td><td style="padding:10px 14px;text-align:right;font-weight:700;">₹${sgst.toLocaleString('en-IN')}</td></tr>
+            <tr><td style="padding:10px 14px;color:#475569;font-weight:600;">Round Off</td><td style="padding:10px 14px;text-align:right;font-weight:700;">₹0.00</td></tr>
+            <tr style="background:#0f172a;">
+              <td style="padding:12px 14px;font-weight:900;color:#fff;font-size:14px;">GRAND TOTAL</td>
+              <td style="padding:12px 14px;text-align:right;font-weight:900;color:#b58d3d;font-size:16px;">₹${total.toLocaleString('en-IN')}</td>
+            </tr>
           </table>
         </div>
       </div>
 
-      <!-- Footer -->
-      <div style="margin:16px 20px;padding:14px;background:#f8fafc;border-radius:8px;font-size:11px;color:#64748b;line-height:1.8;">
-        <strong style="color:#0f172a;">Terms & Conditions:</strong>
-        1. This is a computer-generated GST invoice.
-        2. Service rendered: Short-stay accommodation — SAC ${COMPANY.sacCode}.
-        3. GST applicable under Section 9 of CGST Act, 2017. Rate as per 56th GST Council (Sep 2025): 5% for ≤₹7,500/night, 18% for >₹7,500/night. SAC 996311. Place of supply: Location of property (CGST+SGST applicable).
-        4. This invoice is valid subject to realisation of payment.
-        5. All disputes subject to Lucknow jurisdiction. | Per GST law: Place of Supply for accommodation = property location (UP-09). CGST+SGST applies even for outstation guests — IGST is NOT applicable. | ₹1,000/night exemption removed w.e.f. July 18, 2022.
+      <!-- ── Terms ── -->
+      <div style="margin:14px 20px 0;padding:12px 16px;background:#f8fafc;border-radius:8px;border:1px solid #e2e8f0;font-size:10.5px;color:#64748b;line-height:2;">
+        <strong style="color:#0f172a;display:block;margin-bottom:4px;">📋 Terms & Conditions</strong>
+        1. This is a system-generated GST Tax Invoice. &nbsp;|&nbsp;
+        2. Service: Short-stay Accommodation — SAC ${CO.sac}. &nbsp;|&nbsp;
+        3. GST applicable under CGST Act 2017, Section 9. &nbsp;|&nbsp;
+        4. Rate per 56th GST Council (Sep 2025): 5% for ≤₹7,500/night | 18% for >₹7,500/night. &nbsp;|&nbsp;
+        5. Place of Supply: ${CO.state} (${CO.code}) — CGST+SGST applicable. &nbsp;|&nbsp;
+        6. ₹1,000/night exemption removed w.e.f. 18 July 2022. &nbsp;|&nbsp;
+        7. All disputes subject to Lucknow jurisdiction only.
       </div>
 
-      <div style="background:#0f172a;padding:14px 20px;display:flex;align-items:center;justify-content:space-between;">
-        <div style="font-size:11px;color:#64748b;">GSTIN: ${COMPANY.gstin} | PAN: ${COMPANY.pan} | SAC: ${COMPANY.sacCode}</div>
+      <!-- ── Footer ── -->
+      <div style="margin:14px 20px 20px;display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+        <div style="font-size:10px;color:#94a3b8;line-height:1.8;">
+          <div style="font-weight:700;color:#475569;margin-bottom:4px;">THE UNIQUE HAVEN HOMES PRIVATE LIMITED</div>
+          GSTIN: ${CO.gstin} &nbsp;|&nbsp; PAN: ${CO.pan}<br/>
+          CIN: ${CO.cin}<br/>
+          ${CO.web}
+        </div>
         <div style="text-align:right;">
-          <div style="font-size:10px;color:#64748b;margin-bottom:2px;">Authorised Signatory</div>
-          <div style="font-size:11px;font-weight:700;color:#fff;">For ${COMPANY.name}</div>
+          <div style="height:48px;border-bottom:1px dashed #cbd5e1;width:180px;margin-left:auto;"></div>
+          <div style="font-size:10px;color:#64748b;margin-top:4px;">Authorised Signatory</div>
+          <div style="font-size:11px;font-weight:700;color:#0f172a;">For ${CO.name}</div>
         </div>
       </div>
-    </div>`;
-  }
 
-  // ══════════════════════════════════════════
-  // ACTIONS
-  // ══════════════════════════════════════════
-  function printInvoice() {
-    // Refresh invoice with current input values
-    renderInvoicePreview();
+      <!-- Bottom gold rule -->
+      <div style="height:4px;background:linear-gradient(90deg,#b58d3d,#d4aa5e,#b58d3d);"></div>
+    </div>
+  </div>`;
+}
 
-    const invoiceEl = document.getElementById('invoiceDoc');
-    if (!invoiceEl) return;
+// ══════════════════════════════════
+// ACTIONS
+// ══════════════════════════════════
+function printInvoice() {
+  // Rebuild with current input values
+  if (!selBooking) { alert('Select a booking first'); return; }
+  const d = window._inv;
+  const invNoFinal = document.getElementById('invNoInp')?.value || d.invNo;
+  const invDateFinal = document.getElementById('invDateInp')?.value;
 
-    const printWin = window.open('', '_blank');
-    printWin.document.write('<!DOCTYPE html><html><head><meta charset="utf-8"><title>GST Invoice</title>' +
-      '<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">' +
-      '<style>@page{size:A4;margin:8mm}*{box-sizing:border-box;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}body{margin:0;padding:0;font-family:"Inter",Arial,sans-serif;}</style>' +
-      '</head><body>' + invoiceEl.innerHTML + '</body></html>');
-    printWin.document.close();
-    setTimeout(() => printWin.print(), 600);
-  }
+  // Inject fresh
+  const doc = document.getElementById('invoiceDoc');
+  if (doc) doc.innerHTML = buildInvoiceHTML(d.b,d.n,d.total,d.perNight,d.rate,d.half,d.base,d.cgst,d.sgst,d.gstAmt,invNoFinal,invDateFinal);
 
-  async function saveInvoice(bookingId, invNo) {
-    const finalNo = document.getElementById('invNoInput')?.value || invNo;
-    const finalDate = document.getElementById('invDateInput')?.value || new Date().toISOString().slice(0,10);
+  const invoiceEl = document.getElementById('invoiceDoc');
+  if (!invoiceEl) return;
+  const w = window.open('','_blank','width=900,height=700');
+  w.document.write('<!DOCTYPE html><html><head><meta charset="utf-8"><title>Invoice '+invNoFinal+'</title>' +
+    '<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">' +
+    '<style>@page{size:A4;margin:6mm}*{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}body{margin:0;padding:0;font-family:Inter,Arial,sans-serif;}</style>' +
+    '</head><body>'+invoiceEl.innerHTML+'</body></html>');
+  w.document.close();
+  setTimeout(()=>w.print(), 700);
+}
 
-    try {
-      let sb = window.sb;
-      if (!sb) { alert('No DB connection'); return; }
-
-      const d = window._currentInvoiceData;
-      if (!d) return;
-
-      const invoiceData = {
-        booking_id: bookingId,
-        invoice_no: finalNo,
-        invoice_date: finalDate,
-        guest_name: d.b.guest_name,
-        room_id: d.b.room_id,
-        check_in: d.b.check_in,
-        check_out: d.b.check_out,
-        nights: d.nights,
-        total_amount: d.totalAmount,
-        taxable_value: d.baseAmount,
-        cgst: d.cgst,
-        sgst: d.sgst,
-        gst_rate: d.gstRate,
-        sac_code: COMPANY.sacCode,
-        payment_mode: d.payMode,
-        booking_mode: d.b.booking_mode,
-        airbnb_code: d.b.airbnb_confirmation_code || null,
-        created_at: new Date().toISOString()
-      };
-
-      const { error } = await sb.from('gst_invoices').upsert(invoiceData, { onConflict: 'booking_id' });
-      if (error) throw error;
-
-      // Update counter
-      invoiceCounter++;
-      localStorage.setItem('uhh_inv_counter', String(invoiceCounter));
-
-      alert('✅ Invoice ' + finalNo + ' saved successfully!');
-      // Reload bookings to refresh invoiced status
-      loadEligibleBookings();
-    } catch(err) {
-      if (err.message && err.message.includes('does not exist')) {
-        alert('⚠️ gst_invoices table not yet created in Supabase.\n\nRun this SQL in Supabase:\n\nCREATE TABLE gst_invoices (\n  id SERIAL PRIMARY KEY,\n  booking_id TEXT UNIQUE,\n  invoice_no TEXT,\n  invoice_date DATE,\n  guest_name TEXT,\n  room_id TEXT,\n  check_in DATE, check_out DATE,\n  nights INTEGER,\n  total_amount NUMERIC,\n  taxable_value NUMERIC,\n  cgst NUMERIC, sgst NUMERIC,\n  gst_rate INTEGER,\n  sac_code TEXT,\n  payment_mode TEXT,\n  booking_mode TEXT,\n  airbnb_code TEXT,\n  created_at TIMESTAMPTZ DEFAULT NOW()\n);');
-      } else {
-        alert('Error saving: ' + err.message);
-      }
+async function saveInvoice() {
+  if (!selBooking) { alert('Select a booking first'); return; }
+  const d = window._inv;
+  const invNo = document.getElementById('invNoInp')?.value || d.invNo;
+  const invDate = document.getElementById('invDateInp')?.value;
+  try {
+    let sb = window.sb;
+    if (!sb) throw new Error('No DB connection');
+    const {error} = await sb.from('gst_invoices').upsert({
+      booking_id: d.b.booking_id, invoice_no: invNo, invoice_date: invDate,
+      guest_name: d.b.guest_name, room_id: d.b.room_id,
+      check_in: d.b.check_in, check_out: d.b.check_out,
+      nights: d.n, total_amount: d.total, taxable_value: d.base,
+      cgst: d.cgst, sgst: d.sgst, gst_rate: d.rate, sac_code: CO.sac,
+      booking_mode: 'Direct', airbnb_code: null,
+      created_at: new Date().toISOString()
+    }, {onConflict:'booking_id'});
+    if (error) throw error;
+    invSeq++; localStorage.setItem('uhh_inv_seq', String(invSeq));
+    selBooking._inv = true;
+    alert('✅ Invoice '+invNo+' saved!');
+    loadBookings();
+  } catch(err) {
+    if ((err.message||'').includes('does not exist')) {
+      const sql = `CREATE TABLE IF NOT EXISTS gst_invoices (
+  id SERIAL PRIMARY KEY,
+  booking_id TEXT UNIQUE NOT NULL,
+  invoice_no TEXT,
+  invoice_date DATE,
+  guest_name TEXT,
+  room_id TEXT,
+  check_in DATE,
+  check_out DATE,
+  nights INTEGER,
+  total_amount NUMERIC,
+  taxable_value NUMERIC,
+  cgst NUMERIC,
+  sgst NUMERIC,
+  gst_rate INTEGER,
+  sac_code TEXT DEFAULT '996311',
+  booking_mode TEXT DEFAULT 'Direct',
+  airbnb_code TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);`;
+      alert('⚠️ Run this SQL in Supabase first:\n\n'+sql);
+    } else {
+      alert('Error: '+err.message);
     }
   }
+}
 
-  function copyInvoiceText() {
-    const d = window._currentInvoiceData;
-    if (!d) return;
-    const invNo = document.getElementById('invNoInput')?.value || d.invNo;
-    const invDate = document.getElementById('invDateInput')?.value || d.invDate;
+function copyText() {
+  const d = window._inv; if (!d) return;
+  const invNo = document.getElementById('invNoInp')?.value||d.invNo;
+  const invDate = document.getElementById('invDateInp')?.value||'';
+  const text = `GST TAX INVOICE
+════════════════════════════════════
+Invoice No : ${invNo}
+Date       : ${invDate}
+GSTIN      : ${CO.gstin}
 
-    const text = `GST TAX INVOICE
-Invoice No: ${invNo}
-Date: ${invDate}
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SUPPLIER: ${CO.name}
+${CO.address}
+📞 ${CO.phone}
 
-SUPPLIER: ${COMPANY.name}
-GSTIN: ${COMPANY.gstin}
-Address: ${COMPANY.address}
+GUEST: ${d.b.guest_name||'Guest'}  |  📞 ${d.b.phone||'N/A'}
+Booking: Direct (Non-Airbnb)
 
-RECIPIENT: ${d.b.guest_name || 'Guest'}
-Phone: ${d.b.phone || 'N/A'}
-${d.b.airbnb_confirmation_code ? 'Airbnb Code: ' + d.b.airbnb_confirmation_code : ''}
+════════════════════════════════════
+Property  : ${d.b.rooms?.nickname||d.b.room_id}
+Check-in  : ${d.b.check_in}
+Check-out : ${d.b.check_out}
+Nights    : ${d.n}
+SAC Code  : ${CO.sac}
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-SERVICE: ${d.propName} — Accommodation
-SAC Code: ${COMPANY.sacCode}
-Check-in:  ${d.b.check_in}
-Check-out: ${d.b.check_out}
-Nights:    ${d.nights}
+════════════════════════════════════
+Taxable Value  : ₹${d.base.toLocaleString('en-IN')}
+CGST @ ${d.half}%    : ₹${d.cgst.toLocaleString('en-IN')}
+SGST @ ${d.half}%    : ₹${d.sgst.toLocaleString('en-IN')}
+════════════════════════════════════
+GRAND TOTAL    : ₹${d.total.toLocaleString('en-IN')}
+════════════════════════════════════
+${numToWords(d.total)} Only
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Taxable Value:  ₹${d.baseAmount.toLocaleString('en-IN')}
-CGST @ ${d.halfRate}%:   ₹${d.cgst.toLocaleString('en-IN')}
-SGST @ ${d.halfRate}%:   ₹${d.sgst.toLocaleString('en-IN')}
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-TOTAL:          ₹${d.totalAmount.toLocaleString('en-IN')}
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Payment: FULLY PAID — ${d.payMode}
+Status: PAID — Direct Payment
+${CO.name}`;
+  navigator.clipboard.writeText(text).then(()=>alert('✅ Copied!'));
+}
 
-THE UNIQUE HAVEN HOMES PVT. LTD.`;
-    navigator.clipboard.writeText(text).then(() => alert('✅ Invoice text copied to clipboard!'));
+// Number to Words (Indian)
+function numToWords(n) {
+  if(!n||n===0) return 'Zero Rupees';
+  const o=['','One','Two','Three','Four','Five','Six','Seven','Eight','Nine','Ten','Eleven','Twelve','Thirteen','Fourteen','Fifteen','Sixteen','Seventeen','Eighteen','Nineteen'];
+  const t=['','','Twenty','Thirty','Forty','Fifty','Sixty','Seventy','Eighty','Ninety'];
+  function c(x){
+    if(x<20) return o[x];
+    if(x<100) return t[Math.floor(x/10)]+(x%10?' '+o[x%10]:'');
+    if(x<1000) return o[Math.floor(x/100)]+' Hundred'+(x%100?' '+c(x%100):'');
+    if(x<100000) return c(Math.floor(x/1000))+' Thousand'+(x%1000?' '+c(x%1000):'');
+    if(x<10000000) return c(Math.floor(x/100000))+' Lakh'+(x%100000?' '+c(x%100000):'');
+    return c(Math.floor(x/10000000))+' Crore'+(x%10000000?' '+c(x%10000000):'');
   }
+  const r=Math.floor(n), p=Math.round((n-r)*100);
+  return 'Rupees '+c(r)+(p?' and '+c(p)+' Paise':'');
+}
 
-  // ══════════════════════════════════════════
-  // UTILITY: Number to Words (Indian system)
-  // ══════════════════════════════════════════
-  function numberToWords(n) {
-    if (n === 0) return 'Zero Rupees';
-    const ones = ['','One','Two','Three','Four','Five','Six','Seven','Eight','Nine','Ten','Eleven','Twelve','Thirteen','Fourteen','Fifteen','Sixteen','Seventeen','Eighteen','Nineteen'];
-    const tens = ['','','Twenty','Thirty','Forty','Fifty','Sixty','Seventy','Eighty','Ninety'];
-    function convert(num) {
-      if (num < 20) return ones[num];
-      if (num < 100) return tens[Math.floor(num/10)] + (num%10 ? ' ' + ones[num%10] : '');
-      if (num < 1000) return ones[Math.floor(num/100)] + ' Hundred' + (num%100 ? ' ' + convert(num%100) : '');
-      if (num < 100000) return convert(Math.floor(num/1000)) + ' Thousand' + (num%1000 ? ' ' + convert(num%1000) : '');
-      if (num < 10000000) return convert(Math.floor(num/100000)) + ' Lakh' + (num%100000 ? ' ' + convert(num%100000) : '');
-      return convert(Math.floor(num/10000000)) + ' Crore' + (num%10000000 ? ' ' + convert(num%10000000) : '');
-    }
-    const rupees = Math.floor(n);
-    const paise = Math.round((n - rupees) * 100);
-    let result = 'Rupees ' + convert(rupees);
-    if (paise > 0) result += ' and ' + convert(paise) + ' Paise';
-    return result;
-  }
-
-  // ══════════════════════════════════════════
-  // INIT
-  // ══════════════════════════════════════════
-  (function init() {
-    // Set default date range: last 3 months
-    const today = new Date();
-    const from = new Date(today);
-    from.setMonth(from.getMonth() - 3);
-    document.getElementById('filterFrom').value = from.toISOString().slice(0,10);
-    document.getElementById('filterTo').value = today.toISOString().slice(0,10);
-    // Auto-load
-    loadEligibleBookings();
-  })();
-  </script>
+// Init
+(function(){
+  const today = new Date();
+  const from = new Date(today); from.setMonth(from.getMonth()-3);
+  document.getElementById('fFrom').value = from.toISOString().slice(0,10);
+  document.getElementById('fTo').value = today.toISOString().slice(0,10);
+  loadBookings();
+})();
+</script>
 </body>
 </html>
