@@ -1072,36 +1072,35 @@
         </div>
 
         <div class="hub-trigger-grid">
-          <!-- 1. Booking Group Alert -->
+          <!-- 1. Direct Guest Booking Pass & GST Invoice -->
+          <div style="border:1.5px solid ${c.send_welcome ? '#86EFAC' : '#E2E8F0'};background:${c.send_welcome ? '#F0FDF4' : '#F8FAFC'};border-radius:10px;padding:14px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <strong style="color:#0F172A;">📱 Guest Booking Pass &amp; Invoice</strong>
+              <span class="badge ${c.send_welcome && enabled ? 'green' : 'yellow'}">
+                ${c.send_welcome && enabled ? 'Active' : 'Disabled'}
+              </span>
+            </div>
+            <p style="font-size:12px;color:#64748B;margin:6px 0 10px 0;">
+              Instant check-in pass, Google Maps directions, and GST tax invoice sent directly to guest WhatsApp.
+            </p>
+            <div style="font-size:11px;color:#334155;background:rgba(0,0,0,0.04);padding:6px 8px;border-radius:6px;">
+              Target: <b>Guest WhatsApp Number (Auto-detected from Booking)</b>
+            </div>
+          </div>
+
+          <!-- 2. Booking Alert to Hosts & Team -->
           <div style="border:1.5px solid ${c.send_booking_group ? '#86EFAC' : '#E2E8F0'};background:${c.send_booking_group ? '#F0FDF4' : '#F8FAFC'};border-radius:10px;padding:14px;">
             <div style="display:flex;justify-content:space-between;align-items:center;">
-              <strong style="color:#0F172A;">🛎️ Booking Group Alerts</strong>
+              <strong style="color:#0F172A;">🛎️ Owner &amp; Team Booking Alerts</strong>
               <span class="badge ${c.send_booking_group && enabled ? 'green' : 'yellow'}">
                 ${c.send_booking_group && enabled ? 'Active' : 'Disabled'}
               </span>
             </div>
             <p style="font-size:12px;color:#64748B;margin:6px 0 10px 0;">
-              Sends immediate alert to Ops / Booking group when a new booking is confirmed.
+              Sends immediate alert to Shahanshah &amp; Firoz / Booking Group when a new booking arrives.
             </p>
             <div style="font-size:11px;color:#334155;background:rgba(0,0,0,0.04);padding:6px 8px;border-radius:6px;word-break:break-all;">
-              Target: <b>${c.booking_group_id || 'Not configured in Settings'}</b>
-            </div>
-          </div>
-
-          <!-- 2. Housekeeping Alert -->
-          <div style="border:1.5px solid ${c.send_housekeeping_checkout ? '#86EFAC' : '#E2E8F0'};background:${c.send_housekeeping_checkout ? '#F0FDF4' : '#F8FAFC'};border-radius:10px;padding:14px;">
-            <div style="display:flex;justify-content:space-between;align-items:center;">
-              <strong style="color:#0F172A;">🧹 Housekeeping Checkout Alerts</strong>
-              <span class="badge ${c.send_housekeeping_checkout && enabled ? 'green' : 'yellow'}">
-                ${c.send_housekeeping_checkout && enabled ? 'Active (9:00 AM)' : 'Disabled'}
-              </span>
-            </div>
-            <p style="font-size:12px;color:#64748B;margin:6px 0 10px 0;">
-              Daily morning list of today's checkouts sent to cleaning staff to prepare rooms.
-            </p>
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px;flex-wrap:wrap;gap:6px;">
-              <small style="color:#64748B;word-break:break-all;">Target: <b>${c.housekeeping_group_id || 'Not configured'}</b></small>
-              <button onclick="triggerHousekeepingCheckoutAlert()" class="btn-sm green-btn" style="padding:4px 10px;font-size:11.5px;">🚀 Fire Now</button>
+              Target: <b>${c.booking_group_id || '9450055554 / Booking Group'}</b>
             </div>
           </div>
 
@@ -1114,7 +1113,7 @@
               </span>
             </div>
             <p style="font-size:12px;color:#64748B;margin:6px 0 10px 0;">
-              Dispatches monthly revenue & net profit statements to dedicated Investor groups.
+              Dispatches monthly revenue &amp; net profit statements to dedicated Investor groups.
             </p>
             <div style="font-size:11px;color:#334155;">
               Active Mapped Properties: <b>${Object.keys(c.investor_groups || {}).length} groups</b>
@@ -1149,43 +1148,34 @@
           </label>
         </div>
 
-        <h4 style="margin:0 0 10px 0;color:#0F172A;">🔘 Sub-Category Automation Toggles</h4>
+        <h4 style="margin:0 0 10px 0;color:#0F172A;">🔘 Automation Toggles</h4>
         <div class="hub-toggles-grid">
           <label class="hub-toggle-card">
             <input type="checkbox" id="cfgSendBookingGroup" ${c.send_booking_group ? 'checked' : ''} />
-            <span>🛎️ New Booking Alert to Booking Group</span>
+            <span>🛎️ New Booking Alert to Hosts &amp; Team</span>
           </label>
           <label class="hub-toggle-card">
-            <input type="checkbox" id="cfgSendHousekeeping" ${c.send_housekeeping_checkout ? 'checked' : ''} />
-            <span>🧹 10:00 AM Checkout Alert to Housekeeping</span>
+            <input type="checkbox" id="cfgSendWelcome" ${c.send_welcome ? 'checked' : ''} />
+            <span>🔑 Guest Booking Pass &amp; Check-In Details</span>
           </label>
           <label class="hub-toggle-card">
             <input type="checkbox" id="cfgSendInvestor" ${c.send_investor_reports ? 'checked' : ''} />
             <span>📊 Monthly Report to Investor Groups</span>
           </label>
           <label class="hub-toggle-card">
-            <input type="checkbox" id="cfgSendWelcome" ${c.send_welcome ? 'checked' : ''} />
-            <span>🔑 Guest Welcome & Check-In Details</span>
-          </label>
-          <label class="hub-toggle-card">
             <input type="checkbox" id="cfgSendCheckout" ${c.send_checkout ? 'checked' : ''} />
-            <span>👋 10:00 AM Checkout Reminder to Guest</span>
+            <span>👋 Checkout Review &amp; Feedback Message</span>
           </label>
         </div>
 
         <h4 style="margin:0 0 10px 0;color:#0F172A;">👥 WhatsApp Group Identifiers (@g.us)</h4>
         <div style="font-size:12px;color:#64748B;margin-bottom:10px;">
-          Enter the unique Group ID (e.g. <code>12036302485984@g.us</code>). You can copy group IDs by clicking "Test Connection" below!
+          Enter the unique Group ID (e.g. <code>12036302485984@g.us</code>) or Phone Number to receive booking alerts.
         </div>
 
         <div class="form-group" style="margin-bottom:12px;">
-          <label style="font-weight:700;font-size:12.5px;display:block;margin-bottom:4px;">🛎️ Operations / Booking Group ID</label>
+          <label style="font-weight:700;font-size:12.5px;display:block;margin-bottom:4px;">🛎️ Operations / Booking Group ID or Phone</label>
           <input type="text" id="cfgBookingGroup" value="${c.booking_group_id || ''}" style="width:100%;box-sizing:border-box;font-family:monospace;" />
-        </div>
-
-        <div class="form-group" style="margin-bottom:12px;">
-          <label style="font-weight:700;font-size:12.5px;display:block;margin-bottom:4px;">🧹 Cleaning / Housekeeping Group ID</label>
-          <input type="text" id="cfgHousekeepingGroup" value="${c.housekeeping_group_id || ''}" style="width:100%;box-sizing:border-box;font-family:monospace;" />
         </div>
 
         <div class="form-group" style="margin-bottom:16px;">
@@ -1290,12 +1280,12 @@
       auto_send_enabled: document.getElementById('cfgAutoSend')?.checked || false,
       dry_run_mode: document.getElementById('cfgDryRun')?.checked || false,
       send_booking_group: document.getElementById('cfgSendBookingGroup')?.checked || false,
-      send_housekeeping_checkout: document.getElementById('cfgSendHousekeeping')?.checked || false,
+      send_housekeeping_checkout: false,
       send_investor_reports: document.getElementById('cfgSendInvestor')?.checked || false,
       send_welcome: document.getElementById('cfgSendWelcome')?.checked || false,
       send_checkout: document.getElementById('cfgSendCheckout')?.checked || false,
       booking_group_id: document.getElementById('cfgBookingGroup')?.value?.trim() || '',
-      housekeeping_group_id: document.getElementById('cfgHousekeepingGroup')?.value?.trim() || '',
+      housekeeping_group_id: '',
       investor_groups: invGroups,
       gateway_type: document.getElementById('cfgGatewayType')?.value || 'meta_cloud_api',
       meta_phone_number_id: document.getElementById('cfgMetaPhoneId')?.value?.trim() || '',
