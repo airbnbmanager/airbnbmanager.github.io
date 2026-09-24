@@ -6,13 +6,26 @@
 async function renderReports() {
   renderShell(`<div class="loading">📅 Loading calendar...</div>`, 'reports');
 
-  const [rooms, bookings] = await Promise.all([
-    sb.from('rooms').select('room_id, unit_no, nickname, rent_per_night, property_name, slug').order('unit_no'),
-    sb.from('guest_register').select('booking_id, room_id, check_in, check_out, check_in_time, check_out_time, guest_name, phone, booking_mode, total_amount, is_cancelled, verification_status, notes, has_vehicle, vehicle_name, vehicle_number, client_rating')
-      .neq('is_cancelled', true).neq('verification_status', 'rejected')
-  ]);
+  let roomsData = [];
+  try {
+    const res = await sb.from('rooms').select('*').order('unit_no');
+    if (!res.error && res.data && res.data.length > 0) {
+      roomsData = res.data;
+    } else {
+      const fallback = await sb.from('rooms').select('room_id, unit_no, nickname, property_name');
+      roomsData = fallback.data || [];
+    }
+  } catch (e) {
+    console.warn('Rooms query fallback:', e);
+    const fallback = await sb.from('rooms').select('room_id, unit_no, nickname');
+    roomsData = fallback.data || [];
+  }
 
-  const allRooms = rooms.data || [];
+  const bookings = await sb.from('guest_register')
+    .select('booking_id, room_id, check_in, check_out, check_in_time, check_out_time, guest_name, phone, booking_mode, total_amount, is_cancelled, verification_status, notes, has_vehicle, vehicle_name, vehicle_number, client_rating')
+    .neq('is_cancelled', true).neq('verification_status', 'rejected');
+
+  const allRooms = roomsData;
   const allBks = bookings.data || [];
 
   window._allRoomsCache = allRooms;
