@@ -2,30 +2,29 @@
 // 📱 WHATSAPP AUTOMATION & COMMUNICATION HUB v2
 // THE UNIQUE HAVEN HOMES PRIVATE LIMITED
 // Supports: Free Headless Gateway (Baileys), Groups (@g.us),
-// Master ON/OFF Switch, Dry-Run Mode & Live Dispatches
+// Master ON/OFF Switch & Live Automated Dispatches
 // ═══════════════════════════════════════════════════════════
 
 (function() {
-  const WA_LOCAL_CONFIG_KEY = 'uhhs_wa_automation_v5';
+  const WA_LOCAL_CONFIG_KEY = 'uhhs_wa_clean_v8';
   const WA_LOCAL_LOGS_KEY = 'uhhs_wa_logs_v2';
 
   const DEFAULT_WA_CONFIG = {
-    auto_send_enabled: true, // MASTER ACTIVE
-    dry_run_mode: false, // ⚡ LIVE DISPATCH BY DEFAULT (Real WhatsApp)
+    auto_send_enabled: true, // 🟢 1-BUTTON MASTER AUTOMATION (ON/OFF)
     gateway_url: 'https://uhhs-whatsapp-bot.onrender.com',
-    gateway_type: 'baileys', // 'meta_cloud_api' | 'baileys'
+    gateway_type: 'baileys',
     meta_phone_number_id: '',
     meta_waba_id: '',
     meta_access_token: '',
     meta_verify_token: 'uhhs_meta_secure_2026',
 
-    // Granular Sub-Toggles
-    send_booking_group: true,
-    send_housekeeping_checkout: false,
-    send_investor_reports: true,
-    send_welcome: true, // Guest booking pass ON
-    send_arrival: false,
-    send_checkout: false,
+    // Only Booking Message is ON, all others OFF by default
+    send_welcome: true, // 🔑 Direct Guest Booking Pass (Active)
+    send_booking_group: false, // OFF
+    send_housekeeping_checkout: false, // OFF
+    send_investor_reports: false, // OFF
+    send_arrival: false, // OFF
+    send_checkout: false, // OFF
 
     // Group Identifiers (Auto-discovered from your WhatsApp)
     booking_group_id: '120363425834560086@g.us', // 📒Booking Data
@@ -90,27 +89,13 @@
     if (local) {
       HUB.config = { ...HUB.config, ...local };
     }
-    // Hard guarantee: dry_run_mode is strictly false unless explicitly saved as true
-    if (HUB.config.dry_run_mode !== true) {
-      HUB.config.dry_run_mode = false;
-    }
+    // Dry-run mode is completely removed — always LIVE dispatches
+    delete HUB.config.dry_run_mode;
     if (HUB.config.auto_send_enabled !== false) {
       HUB.config.auto_send_enabled = true;
     }
     return HUB.config;
   }
-
-  window.toggleHubDryRunDirectly = async function() {
-    await loadConfig();
-    const cur = HUB.config.dry_run_mode === true;
-    HUB.config.dry_run_mode = !cur;
-    setLocalConfig(HUB.config);
-    if (window.fsn) {
-      if (HUB.config.dry_run_mode) fsn.info('Dry Run Active', 'Simulation mode — messages logged in CRM only.');
-      else fsn.success('LIVE Mode Active', '⚡ Real WhatsApp messages will now be dispatched!');
-    }
-    renderWhatsAppHub();
-  };
 
   // ─── Dual-Layer Logs ───
   function getLocalLogs() {
@@ -298,36 +283,28 @@
       return { ok: false, reason: 'missing_recipient' };
     }
 
-    const isDryRun = HUB.config.dry_run_mode === true;
+    let targetPhone = String(to).trim();
+    if (!isGroup) {
+      const digitsOnly = targetPhone.replace(/\D/g, '');
+      if (digitsOnly.length === 10) targetPhone = '91' + digitsOnly;
+      else if (digitsOnly.length > 10) targetPhone = digitsOnly;
+    }
+
     const logEntry = {
       id: 'walog_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6),
       booking_id: bookingId || null,
       guest_name: guestName || (isGroup ? 'WhatsApp Group' : 'Recipient'),
-      phone: to,
+      phone: targetPhone,
       template_name: type,
       message_preview: (text || '').substring(0, 500),
-      is_dry_run: isDryRun,
       triggered_by: 'auto',
-      status: isDryRun ? 'sent' : 'pending',
+      status: 'pending',
       sent_at: new Date().toISOString()
     };
 
-    // 3. DRY RUN MODE (TESTING ONLY)
-    if (isDryRun) {
-      logEntry.status = 'sent';
-      logEntry.api_response = { dry_run: true, note: '🧪 Simulated send in Dry-Run mode' };
-      appendLocalLog(logEntry);
-      try { if (window.sb) await sb.from('whatsapp_log').insert(logEntry); } catch (e) {}
-      console.log('🧪 [WhatsApp Hub Dry Run] Dispatched:', { to, isGroup, text });
-      if (window.fsn) fsn.info('Dry Run Simulated', `Message ready for ${to}`);
-      return { ok: true, dry_run: true };
-    }
-
-    // 4. LIVE SEND TO META CLOUD API OR LOCAL GATEWAY
+    // 3. LIVE SEND TO META CLOUD API OR RENDER / BAILEYS GATEWAY
     if (HUB.config.gateway_type === 'meta_cloud_api' && HUB.config.meta_phone_number_id && HUB.config.meta_access_token) {
       try {
-        const cleanPhone = String(to).replace(/\D/g, '');
-        const recipientPhone = cleanPhone.length === 10 ? ('91' + cleanPhone) : cleanPhone;
         const metaUrl = `https://graph.facebook.com/v21.0/${HUB.config.meta_phone_number_id}/messages`;
         const res = await fetch(metaUrl, {
           method: 'POST',
@@ -338,7 +315,7 @@
           body: JSON.stringify({
             messaging_product: 'whatsapp',
             recipient_type: 'individual',
-            to: recipientPhone,
+            to: targetPhone,
             type: 'text',
             text: { preview_url: true, body: text }
           })
@@ -351,8 +328,8 @@
         appendLocalLog(logEntry);
         try { if (window.sb) await sb.from('whatsapp_log').insert(logEntry); } catch (e) {}
 
-        console.log('✅ [WhatsApp Hub Meta API] Dispatched to:', recipientPhone);
-        if (window.fsn) fsn.success('Official WhatsApp Sent', `Delivered via Meta API to ${recipientPhone}`);
+        console.log('✅ [WhatsApp Hub Meta API] Dispatched to:', targetPhone);
+        if (window.fsn) fsn.success('Official WhatsApp Sent', `Delivered via Meta API to ${targetPhone}`);
         return { ok: true, data: metaRes };
       } catch (err) {
         logEntry.status = 'failed';
@@ -365,14 +342,14 @@
       }
     }
 
-    const gatewayUrl = HUB.config.gateway_url || 'http://localhost:3000';
+    const gatewayUrl = HUB.config.gateway_url || 'https://uhhs-whatsapp-bot.onrender.com';
     try {
       const endpoint = gatewayUrl.replace(/\/+$/, '') + '/send-message';
       const res = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          to: to,
+          to: targetPhone,
           message: text,
           isGroup: !!isGroup
         })
@@ -388,8 +365,8 @@
       appendLocalLog(logEntry);
       try { if (window.sb) await sb.from('whatsapp_log').insert(logEntry); } catch (e) {}
 
-      console.log('✅ [WhatsApp Hub] Dispatched successfully to:', to);
-      if (window.fsn) fsn.success('WhatsApp Sent', `Delivered to ${to}`);
+      console.log('✅ [WhatsApp Hub] Dispatched successfully to:', targetPhone);
+      if (window.fsn) fsn.success('WhatsApp Sent', `Delivered to ${targetPhone}`);
       return { ok: true, data };
     } catch (err) {
       logEntry.status = 'failed';
@@ -398,7 +375,7 @@
       try { if (window.sb) await sb.from('whatsapp_log').insert(logEntry); } catch (e) {}
 
       console.warn('❌ [WhatsApp Hub] Gateway failed:', err.message);
-      if (window.fsn) fsn.warn('WhatsApp Gateway Notice', `Could not reach ${gatewayUrl}. Please ensure whatsapp-bot is running.`);
+      if (window.fsn) fsn.warn('WhatsApp Gateway Notice', `Could not reach ${gatewayUrl}. Error: ${err.message}`);
       return { ok: false, error: err.message };
     }
   }
@@ -1027,8 +1004,7 @@
 
     await Promise.all([loadConfig(), loadTemplates(), loadLogs(50), fetchScheduled()]);
 
-    const enabled = HUB.config?.auto_send_enabled;
-    const dryRun = HUB.config?.dry_run_mode === true;
+    const enabled = HUB.config?.auto_send_enabled !== false;
 
     const todayStr = new Date().toISOString().slice(0, 10);
     const todayLogs = HUB.logs.filter(l => l.sent_at && l.sent_at.slice(0, 10) === todayStr);
@@ -1061,18 +1037,12 @@
           <div class="hub-stats-grid">
             <div class="hub-stat-tile">
               <div class="hub-stat-label">MASTER AUTOMATION</div>
-              <div class="hub-stat-val" style="color:${enabled ? '#15803D' : '#DC2626'};">
-                ${enabled ? '🟢 ACTIVE (ON)' : '🔴 PAUSED (OFF)'}
-              </div>
-            </div>
-            <div class="hub-stat-tile">
-              <div class="hub-stat-label">EXECUTION MODE (CLICK TO TOGGLE)</div>
               <div class="hub-stat-val" style="margin-top:3px;">
-                <button onclick="toggleHubDryRunDirectly()" style="
-                  background:${dryRun ? '#FEF3C7' : '#DCFCE7'};
-                  color:${dryRun ? '#B45309' : '#15803D'};
-                  border:1.5px solid ${dryRun ? '#FDE68A' : '#86EFAC'};
-                  padding:4px 12px;
+                <button onclick="toggleAutoSend()" style="
+                  background:${enabled ? '#DCFCE7' : '#FEE2E2'};
+                  color:${enabled ? '#15803D' : '#991B1B'};
+                  border:1.5px solid ${enabled ? '#86EFAC' : '#FCA5A5'};
+                  padding:5px 14px;
                   border-radius:20px;
                   font-size:12px;
                   font-weight:800;
@@ -1081,14 +1051,20 @@
                   align-items:center;
                   gap:6px;
                   box-shadow:0 1px 3px rgba(0,0,0,0.06);
-                " title="Click to toggle between LIVE and DRY RUN">
-                  ${dryRun ? '🧪 DRY RUN (Click for LIVE ⚡)' : '⚡ LIVE (Real WhatsApp)'}
+                " title="Click to toggle Master Automation ON / OFF">
+                  ${enabled ? '🟢 AUTOMATION ON' : '🔴 AUTOMATION OFF'}
                 </button>
               </div>
             </div>
             <div class="hub-stat-tile">
-              <div class="hub-stat-label">WHATSAPP SENDER</div>
-              <div id="hubSenderHeaderBadge" class="hub-stat-val" style="color:#2563EB;font-size:15px;margin-top:4px;">
+              <div class="hub-stat-label">ACTIVE SUB-AUTOMATION</div>
+              <div class="hub-stat-val" style="color:#15803D;font-size:13.5px;font-weight:700;margin-top:5px;">
+                🔑 Guest Booking Pass Only
+              </div>
+            </div>
+            <div class="hub-stat-tile">
+              <div class="hub-stat-label">CONNECTED SENDER</div>
+              <div id="hubSenderHeaderBadge" class="hub-stat-val" style="color:#2563EB;font-size:14.5px;margin-top:4px;">
                 Checking...
               </div>
             </div>
@@ -1097,8 +1073,8 @@
               <div class="hub-stat-val" style="color:#0F172A;">${sentToday}</div>
             </div>
             <div class="hub-stat-tile">
-              <div class="hub-stat-label">SCHEDULED (24h)</div>
-              <div class="hub-stat-val" style="color:#2563EB;">${HUB.scheduled.length}</div>
+              <div class="hub-stat-label">TOTAL DELIVERED</div>
+              <div class="hub-stat-val" style="color:#2563EB;">${HUB.logs.filter(l => l.status === 'sent').length}</div>
             </div>
           </div>
         </div>
@@ -1206,45 +1182,16 @@
     `;
   }
 
-  function renderSwitchCard({ id, checked, title, subtitle, isDryRunCard = false }) {
+  function renderSwitchCard({ id, checked, title, subtitle }) {
     const isChecked = !!checked;
-    let bg = '#FFFFFF';
-    let borderColor = '#E2E8F0';
-    let knobBg = '#CBD5E1';
-    let knobLeft = '3px';
-    let badgeText = isChecked ? '🟢 ON (ACTIVE)' : '⚪ OFF (DISABLED)';
-    let badgeBg = isChecked ? '#DCFCE7' : '#F1F5F9';
-    let badgeColor = isChecked ? '#15803D' : '#64748B';
-    let badgeBorder = isChecked ? '#86EFAC' : '#CBD5E1';
-
-    if (isDryRunCard) {
-      if (isChecked) {
-        bg = '#FFFBEB';
-        borderColor = '#F59E0B';
-        knobBg = '#D97706';
-        knobLeft = '25px';
-        badgeText = '🧪 DRY-RUN (SIMULATION ONLY)';
-        badgeBg = '#FEF3C7';
-        badgeColor = '#B45309';
-        badgeBorder = '#FDE68A';
-      } else {
-        bg = '#ECFDF5';
-        borderColor = '#10B981';
-        knobBg = '#10B981';
-        knobLeft = '25px';
-        badgeText = '⚡ LIVE DISPATCH (REAL WHATSAPP)';
-        badgeBg = '#DCFCE7';
-        badgeColor = '#15803D';
-        badgeBorder = '#86EFAC';
-      }
-    } else {
-      if (isChecked) {
-        bg = '#ECFDF5';
-        borderColor = '#10B981';
-        knobBg = '#10B981';
-        knobLeft = '25px';
-      }
-    }
+    const bg = isChecked ? '#ECFDF5' : '#FFFFFF';
+    const borderColor = isChecked ? '#10B981' : '#E2E8F0';
+    const knobBg = isChecked ? '#10B981' : '#CBD5E1';
+    const knobLeft = isChecked ? '25px' : '3px';
+    const badgeText = isChecked ? '🟢 ON (ACTIVE)' : '⚪ OFF (DISABLED)';
+    const badgeBg = isChecked ? '#DCFCE7' : '#F1F5F9';
+    const badgeColor = isChecked ? '#15803D' : '#64748B';
+    const badgeBorder = isChecked ? '#86EFAC' : '#CBD5E1';
 
     return `
       <div id="card_${id}" onclick="toggleHubSwitch('${id}', event)" style="
@@ -1315,53 +1262,27 @@
     const thumb = document.getElementById('knob_thumb_' + id);
     if (!card || !badge || !knob || !thumb) return;
 
-    const isDryRun = id === 'cfgDryRun';
     const isChecked = input.checked;
-
-    if (isDryRun) {
-      if (isChecked) {
-        card.style.background = '#FFFBEB';
-        card.style.borderColor = '#F59E0B';
-        card.style.boxShadow = '0 3px 12px rgba(245,158,11,0.15)';
-        badge.innerText = '🧪 DRY-RUN (SIMULATION ONLY)';
-        badge.style.background = '#FEF3C7';
-        badge.style.color = '#B45309';
-        badge.style.borderColor = '#FDE68A';
-        knob.style.background = '#D97706';
-        thumb.style.left = '25px';
-      } else {
-        card.style.background = '#ECFDF5';
-        card.style.borderColor = '#10B981';
-        card.style.boxShadow = '0 3px 12px rgba(16,185,129,0.15)';
-        badge.innerText = '⚡ LIVE DISPATCH (REAL WHATSAPP)';
-        badge.style.background = '#DCFCE7';
-        badge.style.color = '#15803D';
-        badge.style.borderColor = '#86EFAC';
-        knob.style.background = '#10B981';
-        thumb.style.left = '25px';
-      }
+    if (isChecked) {
+      card.style.background = '#ECFDF5';
+      card.style.borderColor = '#10B981';
+      card.style.boxShadow = '0 3px 12px rgba(16,185,129,0.15)';
+      badge.innerText = '🟢 ON (ACTIVE)';
+      badge.style.background = '#DCFCE7';
+      badge.style.color = '#15803D';
+      badge.style.borderColor = '#86EFAC';
+      knob.style.background = '#10B981';
+      thumb.style.left = '25px';
     } else {
-      if (isChecked) {
-        card.style.background = '#ECFDF5';
-        card.style.borderColor = '#10B981';
-        card.style.boxShadow = '0 3px 12px rgba(16,185,129,0.15)';
-        badge.innerText = '🟢 ON (ACTIVE)';
-        badge.style.background = '#DCFCE7';
-        badge.style.color = '#15803D';
-        badge.style.borderColor = '#86EFAC';
-        knob.style.background = '#10B981';
-        thumb.style.left = '25px';
-      } else {
-        card.style.background = '#FFFFFF';
-        card.style.borderColor = '#E2E8F0';
-        card.style.boxShadow = '0 1px 3px rgba(0,0,0,0.04)';
-        badge.innerText = '⚪ OFF (DISABLED)';
-        badge.style.background = '#F1F5F9';
-        badge.style.color = '#64748B';
-        badge.style.borderColor = '#CBD5E1';
-        knob.style.background = '#CBD5E1';
-        thumb.style.left = '3px';
-      }
+      card.style.background = '#FFFFFF';
+      card.style.borderColor = '#E2E8F0';
+      card.style.boxShadow = '0 1px 3px rgba(0,0,0,0.04)';
+      badge.innerText = '⚪ OFF (DISABLED)';
+      badge.style.background = '#F1F5F9';
+      badge.style.color = '#64748B';
+      badge.style.borderColor = '#CBD5E1';
+      knob.style.background = '#CBD5E1';
+      thumb.style.left = '3px';
     }
   };
 
@@ -1373,21 +1294,20 @@
       <div class="card">
         <h3 style="margin:0 0 4px 0;color:#0F172A;">⚙️ WhatsApp Gateway & Group Configuration</h3>
         <p style="color:#64748B;font-size:12px;margin:0 0 16px 0;">
-          Configure target groups, safe execution mode, and automated triggers.
+          Configure master automation, sub-automation triggers, and WhatsApp connection.
         </p>
 
-        <!-- Dry Run Mode Banner with ultra-clear switch -->
+        <!-- 1-Button Master Automation Switch -->
         <div style="margin-bottom:18px;">
           ${renderSwitchCard({
-            id: 'cfgDryRun',
-            checked: c.dry_run_mode === true,
-            title: '🧪 Safe Testing Mode (Dry-Run)',
-            subtitle: 'Jab ye ON rahega to real WhatsApp message nahi jayega. REAL message bhejne ke liye isko click karke OFF (Live Dispatch) karein.',
-            isDryRunCard: true
+            id: 'cfgAutoSend',
+            checked: HUB.config.auto_send_enabled !== false,
+            title: '⚡ Master WhatsApp Automation Switch',
+            subtitle: 'New booking confirm hote hi real WhatsApp pass guest mobile par automatic dispatch hoga.'
           })}
         </div>
 
-        <h4 style="margin:0 0 10px 0;color:#0F172A;">🔘 Automation Triggers (Click card to Turn ON / OFF)</h4>
+        <h4 style="margin:0 0 10px 0;color:#0F172A;">🔘 Sub-Automations (Guest Booking is ON, others OFF)</h4>
         <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px;margin-bottom:18px;">
           ${renderSwitchCard({
             id: 'cfgSendWelcome',
@@ -1417,7 +1337,7 @@
 
         <h4 style="margin:0 0 10px 0;color:#0F172A;">👥 WhatsApp Group Identifiers (@g.us)</h4>
         <div style="font-size:12px;color:#64748B;margin-bottom:10px;">
-          Enter the unique Group ID (e.g. <code>12036302485984@g.us</code>) or Phone Number to receive booking alerts.
+          Enter the unique Group ID (e.g. <code>120363425834560086@g.us</code>) or Phone Number to receive booking alerts.
         </div>
 
         <div class="form-group" style="margin-bottom:12px;">
@@ -1474,8 +1394,8 @@
 
         <h4 style="margin:0 0 10px 0;color:#0F172A;">📡 Baileys QR Local Gateway (Alternative)</h4>
         <div class="form-group" style="margin-bottom:12px;">
-          <label style="font-weight:700;font-size:12.5px;display:block;margin-bottom:4px;">Gateway Server URL (Local Bot)</label>
-          <input type="text" id="cfgGatewayUrl" value="${c.gateway_url || 'http://localhost:3000'}" style="width:100%;box-sizing:border-box;font-family:monospace;margin-bottom:8px;" />
+          <label style="font-weight:700;font-size:12.5px;display:block;margin-bottom:4px;">Gateway Server URL (Render Bot)</label>
+          <input type="text" id="cfgGatewayUrl" value="${c.gateway_url || 'https://uhhs-whatsapp-bot.onrender.com'}" style="width:100%;box-sizing:border-box;font-family:monospace;margin-bottom:8px;" />
           <div style="display:flex;gap:8px;flex-wrap:wrap;">
             <button id="testGatewayBtn" onclick="testWhatsAppGateway()" style="padding:9px 14px;background:#0F172A;color:#fff;border:none;border-radius:6px;font-weight:700;cursor:pointer;white-space:nowrap;flex:1 1 auto;">
               ⚡ Test Gateway Connection
@@ -1498,6 +1418,7 @@
     await loadConfig();
     const newState = !HUB.config.auto_send_enabled;
     HUB.config.auto_send_enabled = newState;
+    delete HUB.config.dry_run_mode;
     setLocalConfig(HUB.config);
 
     try {
@@ -1524,12 +1445,11 @@
     }
 
     const updates = {
-      auto_send_enabled: HUB.config.auto_send_enabled !== false,
-      dry_run_mode: document.getElementById('cfgDryRun')?.checked === true,
-      send_booking_group: document.getElementById('cfgSendBookingGroup')?.checked !== false,
+      auto_send_enabled: document.getElementById('cfgAutoSend') ? document.getElementById('cfgAutoSend').checked : (HUB.config.auto_send_enabled !== false),
+      send_welcome: document.getElementById('cfgSendWelcome') ? document.getElementById('cfgSendWelcome').checked : true,
+      send_booking_group: document.getElementById('cfgSendBookingGroup')?.checked === true,
       send_housekeeping_checkout: false,
-      send_investor_reports: document.getElementById('cfgSendInvestor')?.checked !== false,
-      send_welcome: document.getElementById('cfgSendWelcome')?.checked !== false,
+      send_investor_reports: document.getElementById('cfgSendInvestor')?.checked === true,
       send_checkout: document.getElementById('cfgSendCheckout')?.checked === true,
       booking_group_id: document.getElementById('cfgBookingGroup')?.value?.trim() || '120363425834560086@g.us',
       housekeeping_group_id: '',
@@ -1544,6 +1464,7 @@
     };
 
     HUB.config = { ...HUB.config, ...updates };
+    delete HUB.config.dry_run_mode;
     setLocalConfig(HUB.config);
 
     try {
@@ -1641,7 +1562,7 @@
     });
 
     if (result.ok) {
-      if (window.fsn) fsn.success('Sent', result.dry_run ? '🧪 Dry run — logged only' : '✅ Message dispatched');
+      if (window.fsn) fsn.success('Sent', '✅ Message dispatched successfully');
       renderWhatsAppHub();
     } else {
       if (window.fsn) fsn.error('Failed', result.error || result.reason);
@@ -1667,17 +1588,15 @@
   function renderLogTab() {
     const allLogs = HUB.logs || [];
     const totalCount = allLogs.length;
-    const sentCount = allLogs.filter(l => l.status === 'sent' && !l.is_dry_run).length;
+    const sentCount = allLogs.filter(l => l.status === 'sent').length;
     const failedCount = allLogs.filter(l => l.status === 'failed').length;
-    const dryCount = allLogs.filter(l => l.is_dry_run).length;
 
     const query = HUB._logSearchQuery;
     const filter = HUB._logFilterStatus;
 
     let filtered = allLogs.filter(l => {
-      if (filter === 'sent' && (l.status !== 'sent' || l.is_dry_run)) return false;
+      if (filter === 'sent' && l.status !== 'sent') return false;
       if (filter === 'failed' && l.status !== 'failed') return false;
-      if (filter === 'dry' && !l.is_dry_run) return false;
 
       if (query) {
         const name = (l.guest_name || '').toLowerCase();
@@ -1695,12 +1614,10 @@
       const time = new Date(l.sent_at).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', hour12: true });
       
       let statusHtml = '';
-      if (l.status === 'sent' && !l.is_dry_run) {
+      if (l.status === 'sent') {
         statusHtml = '<span class="badge" style="background:#DCFCE7;color:#15803D;font-weight:700;padding:3px 8px;">✅ Sent</span>';
       } else if (l.status === 'failed') {
         statusHtml = '<span class="badge" style="background:#FEE2E2;color:#DC2626;font-weight:700;padding:3px 8px;">❌ Failed</span>';
-      } else if (l.is_dry_run) {
-        statusHtml = '<span class="badge" style="background:#FEF3C7;color:#D97706;font-weight:700;padding:3px 8px;">🧪 Dry Run</span>';
       } else {
         statusHtml = '<span class="badge yellow">⏳ Pending</span>';
       }
@@ -1742,9 +1659,9 @@
             <button onclick="showFullMessageModal('${l.id}')" class="btn-sm" style="background:#F1F5F9;border:1px solid #CBD5E1;padding:4px 8px;font-size:11px;cursor:pointer;border-radius:6px;font-weight:600;" title="View exact message text">
               👁️ View
             </button>
-            ${(l.status === 'failed' || l.is_dry_run) ? `
-              <button onclick="retryFailedMessage('${l.id}')" class="btn-sm green-btn" style="padding:4px 8px;font-size:11px;margin-left:4px;border-radius:6px;font-weight:700;" title="Send live now">
-                🔄 Send
+            ${l.status === 'failed' ? `
+              <button onclick="retryFailedMessage('${l.id}')" class="btn-sm green-btn" style="padding:4px 8px;font-size:11px;margin-left:4px;border-radius:6px;font-weight:700;" title="Retry live send">
+                🔄 Retry
               </button>
             ` : ''}
           </td>
@@ -1755,12 +1672,10 @@
     const mobileCards = filtered.map(l => {
       const time = new Date(l.sent_at).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', hour12: true });
       let statusHtml = '';
-      if (l.status === 'sent' && !l.is_dry_run) {
+      if (l.status === 'sent') {
         statusHtml = '<span class="badge" style="background:#DCFCE7;color:#15803D;font-weight:700;padding:3px 8px;">✅ Sent</span>';
       } else if (l.status === 'failed') {
         statusHtml = '<span class="badge" style="background:#FEE2E2;color:#DC2626;font-weight:700;padding:3px 8px;">❌ Failed</span>';
-      } else if (l.is_dry_run) {
-        statusHtml = '<span class="badge" style="background:#FEF3C7;color:#D97706;font-weight:700;padding:3px 8px;">🧪 Dry Run</span>';
       } else {
         statusHtml = '<span class="badge yellow">⏳ Pending</span>';
       }
@@ -1802,9 +1717,9 @@
             <button onclick="showFullMessageModal('${l.id}')" class="btn-sm" style="background:#F1F5F9;border:1px solid #CBD5E1;padding:6px 12px;font-size:12px;cursor:pointer;border-radius:6px;font-weight:600;">
               👁️ View Full
             </button>
-            ${(l.status === 'failed' || l.is_dry_run) ? `
+            ${l.status === 'failed' ? `
               <button onclick="retryFailedMessage('${l.id}')" class="btn-sm green-btn" style="padding:6px 12px;font-size:12px;border-radius:6px;font-weight:700;">
-                🔄 Send Now
+                🔄 Retry
               </button>
             ` : ''}
           </div>
@@ -1829,7 +1744,7 @@
         </div>
 
         <!-- Metric Ribbon -->
-        <div class="hub-metric-grid">
+        <div class="hub-metric-grid" style="grid-template-columns:repeat(auto-fit,minmax(140px,1fr));">
           <div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:10px;padding:12px;text-align:center;">
             <div style="font-size:10.5px;font-weight:700;color:#64748B;text-transform:uppercase;">TOTAL LOGGED</div>
             <div style="font-size:20px;font-weight:800;color:#0F172A;margin-top:2px;">${totalCount}</div>
@@ -1842,10 +1757,6 @@
             <div style="font-size:10.5px;font-weight:700;color:#DC2626;text-transform:uppercase;">🔴 FAILED</div>
             <div style="font-size:20px;font-weight:800;color:#DC2626;margin-top:2px;">${failedCount}</div>
           </div>
-          <div style="background:#FFFBEB;border:1.5px solid #FDE68A;border-radius:10px;padding:12px;text-align:center;">
-            <div style="font-size:10.5px;font-weight:700;color:#D97706;text-transform:uppercase;">🧪 DRY RUN</div>
-            <div style="font-size:20px;font-weight:800;color:#D97706;margin-top:2px;">${dryCount}</div>
-          </div>
         </div>
 
         <!-- Search & Filters -->
@@ -1854,7 +1765,6 @@
             <button onclick="filterHubLogs('all')" class="btn-sm ${filter === 'all' ? '' : 'secondary'}" style="${filter === 'all' ? 'background:#0F172A;color:#fff;font-weight:700;' : ''}">All (${totalCount})</button>
             <button onclick="filterHubLogs('sent')" class="btn-sm ${filter === 'sent' ? '' : 'secondary'}" style="${filter === 'sent' ? 'background:#16A34A;color:#fff;font-weight:700;' : ''}">🟢 Sent (${sentCount})</button>
             <button onclick="filterHubLogs('failed')" class="btn-sm ${filter === 'failed' ? '' : 'secondary'}" style="${filter === 'failed' ? 'background:#DC2626;color:#fff;font-weight:700;' : ''}">🔴 Failed (${failedCount})</button>
-            <button onclick="filterHubLogs('dry')" class="btn-sm ${filter === 'dry' ? '' : 'secondary'}" style="${filter === 'dry' ? 'background:#D97706;color:#fff;font-weight:700;' : ''}">🧪 Dry Run (${dryCount})</button>
           </div>
 
           <div class="hub-log-search-box">
@@ -1979,12 +1889,10 @@
     if (!bookingId || !HUB || !HUB.logs) return null;
     const logs = (HUB.logs || []).filter(l => l.booking_id === bookingId);
     if (logs.length === 0) return null;
-    const sent = logs.find(l => l.status === 'sent' && !l.is_dry_run);
+    const sent = logs.find(l => l.status === 'sent');
     if (sent) return { status: 'sent', time: sent.sent_at, type: sent.template_name };
     const failed = logs.find(l => l.status === 'failed');
     if (failed) return { status: 'failed', error: failed.error_message };
-    const dry = logs.find(l => l.is_dry_run);
-    if (dry) return { status: 'dry', time: dry.sent_at };
     return { status: logs[0].status };
   };
 
