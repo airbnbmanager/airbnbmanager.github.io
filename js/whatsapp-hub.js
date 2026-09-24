@@ -1179,6 +1179,165 @@
     `;
   }
 
+  function renderSwitchCard({ id, checked, title, subtitle, isDryRunCard = false }) {
+    const isChecked = !!checked;
+    let bg = '#FFFFFF';
+    let borderColor = '#E2E8F0';
+    let knobBg = '#CBD5E1';
+    let knobLeft = '3px';
+    let badgeText = isChecked ? '🟢 ON (ACTIVE)' : '⚪ OFF (DISABLED)';
+    let badgeBg = isChecked ? '#DCFCE7' : '#F1F5F9';
+    let badgeColor = isChecked ? '#15803D' : '#64748B';
+    let badgeBorder = isChecked ? '#86EFAC' : '#CBD5E1';
+
+    if (isDryRunCard) {
+      if (isChecked) {
+        bg = '#FFFBEB';
+        borderColor = '#F59E0B';
+        knobBg = '#D97706';
+        knobLeft = '25px';
+        badgeText = '🧪 DRY-RUN (SIMULATION ONLY)';
+        badgeBg = '#FEF3C7';
+        badgeColor = '#B45309';
+        badgeBorder = '#FDE68A';
+      } else {
+        bg = '#ECFDF5';
+        borderColor = '#10B981';
+        knobBg = '#10B981';
+        knobLeft = '25px';
+        badgeText = '⚡ LIVE DISPATCH (REAL WHATSAPP)';
+        badgeBg = '#DCFCE7';
+        badgeColor = '#15803D';
+        badgeBorder = '#86EFAC';
+      }
+    } else {
+      if (isChecked) {
+        bg = '#ECFDF5';
+        borderColor = '#10B981';
+        knobBg = '#10B981';
+        knobLeft = '25px';
+      }
+    }
+
+    return `
+      <div id="card_${id}" onclick="toggleHubSwitch('${id}', event)" style="
+        display:flex;
+        align-items:center;
+        justify-content:space-between;
+        gap:14px;
+        background:${bg};
+        border:2px solid ${borderColor};
+        border-radius:12px;
+        padding:14px 16px;
+        cursor:pointer;
+        transition:all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        user-select:none;
+        box-shadow:${isChecked ? '0 3px 12px rgba(16,185,129,0.12)' : '0 1px 3px rgba(0,0,0,0.04)'};
+      ">
+        <input type="checkbox" id="${id}" ${isChecked ? 'checked' : ''} style="display:none;" />
+        <div style="flex:1;min-width:0;">
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:4px;">
+            <strong style="font-size:14px;color:#0F172A;">${title}</strong>
+            <span id="badge_${id}" style="
+              font-size:11px;
+              font-weight:800;
+              letter-spacing:0.3px;
+              padding:3px 10px;
+              border-radius:20px;
+              background:${badgeBg};
+              color:${badgeColor};
+              border:1.5px solid ${badgeBorder};
+            ">${badgeText}</span>
+          </div>
+          ${subtitle ? `<div style="font-size:12px;color:#64748B;line-height:1.4;">${subtitle}</div>` : ''}
+        </div>
+        <div id="knob_${id}" style="
+          width:50px;
+          height:28px;
+          background:${knobBg};
+          border-radius:28px;
+          position:relative;
+          flex-shrink:0;
+          transition:background 0.2s ease;
+        ">
+          <div id="knob_thumb_${id}" style="
+            width:22px;
+            height:22px;
+            background:#FFFFFF;
+            border-radius:50%;
+            position:absolute;
+            top:3px;
+            left:${knobLeft};
+            box-shadow:0 2px 5px rgba(0,0,0,0.25);
+            transition:left 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+          "></div>
+        </div>
+      </div>
+    `;
+  }
+
+  window.toggleHubSwitch = function(id, event) {
+    if (event && event.target && event.target.tagName === 'INPUT') return;
+    const input = document.getElementById(id);
+    if (!input) return;
+    input.checked = !input.checked;
+
+    const card = document.getElementById('card_' + id);
+    const badge = document.getElementById('badge_' + id);
+    const knob = document.getElementById('knob_' + id);
+    const thumb = document.getElementById('knob_thumb_' + id);
+    if (!card || !badge || !knob || !thumb) return;
+
+    const isDryRun = id === 'cfgDryRun';
+    const isChecked = input.checked;
+
+    if (isDryRun) {
+      if (isChecked) {
+        card.style.background = '#FFFBEB';
+        card.style.borderColor = '#F59E0B';
+        card.style.boxShadow = '0 3px 12px rgba(245,158,11,0.15)';
+        badge.innerText = '🧪 DRY-RUN (SIMULATION ONLY)';
+        badge.style.background = '#FEF3C7';
+        badge.style.color = '#B45309';
+        badge.style.borderColor = '#FDE68A';
+        knob.style.background = '#D97706';
+        thumb.style.left = '25px';
+      } else {
+        card.style.background = '#ECFDF5';
+        card.style.borderColor = '#10B981';
+        card.style.boxShadow = '0 3px 12px rgba(16,185,129,0.15)';
+        badge.innerText = '⚡ LIVE DISPATCH (REAL WHATSAPP)';
+        badge.style.background = '#DCFCE7';
+        badge.style.color = '#15803D';
+        badge.style.borderColor = '#86EFAC';
+        knob.style.background = '#10B981';
+        thumb.style.left = '25px';
+      }
+    } else {
+      if (isChecked) {
+        card.style.background = '#ECFDF5';
+        card.style.borderColor = '#10B981';
+        card.style.boxShadow = '0 3px 12px rgba(16,185,129,0.15)';
+        badge.innerText = '🟢 ON (ACTIVE)';
+        badge.style.background = '#DCFCE7';
+        badge.style.color = '#15803D';
+        badge.style.borderColor = '#86EFAC';
+        knob.style.background = '#10B981';
+        thumb.style.left = '25px';
+      } else {
+        card.style.background = '#FFFFFF';
+        card.style.borderColor = '#E2E8F0';
+        card.style.boxShadow = '0 1px 3px rgba(0,0,0,0.04)';
+        badge.innerText = '⚪ OFF (DISABLED)';
+        badge.style.background = '#F1F5F9';
+        badge.style.color = '#64748B';
+        badge.style.borderColor = '#CBD5E1';
+        knob.style.background = '#CBD5E1';
+        thumb.style.left = '3px';
+      }
+    }
+  };
+
   function renderSettingsTab() {
     const c = HUB.config || {};
     const groupsJson = JSON.stringify(c.investor_groups || {}, null, 2);
@@ -1190,37 +1349,43 @@
           Configure target groups, safe execution mode, and automated triggers.
         </p>
 
-        <!-- Dry Run Mode Banner -->
-        <div style="background:#FFFBEB;border:1.5px solid #FDE68A;border-radius:10px;padding:14px;margin-bottom:18px;">
-          <label style="display:flex;align-items:center;gap:10px;cursor:pointer;">
-            <input type="checkbox" id="cfgDryRun" ${c.dry_run_mode !== false ? 'checked' : ''} style="width:20px;height:20px;accent-color:#D97706;flex-shrink:0;" />
-            <div>
-              <strong style="color:#92400E;font-size:13.5px;">🧪 Dry-Run Mode (Safe Testing)</strong>
-              <div style="color:#B45309;font-size:12px;margin-top:2px;">
-                When enabled, messages are formatted & logged in CRM without being sent to real WhatsApp.
-              </div>
-            </div>
-          </label>
+        <!-- Dry Run Mode Banner with ultra-clear switch -->
+        <div style="margin-bottom:18px;">
+          ${renderSwitchCard({
+            id: 'cfgDryRun',
+            checked: c.dry_run_mode !== false,
+            title: '🧪 Safe Testing Mode (Dry-Run)',
+            subtitle: 'Jab ye ON rahega to real WhatsApp message nahi jayega. REAL message bhejne ke liye isko click karke OFF (Live Dispatch) karein.',
+            isDryRunCard: true
+          })}
         </div>
 
-        <h4 style="margin:0 0 10px 0;color:#0F172A;">🔘 Automation Toggles</h4>
-        <div class="hub-toggles-grid">
-          <label class="hub-toggle-card">
-            <input type="checkbox" id="cfgSendBookingGroup" ${c.send_booking_group ? 'checked' : ''} />
-            <span>🛎️ New Booking Alert to Hosts &amp; Team</span>
-          </label>
-          <label class="hub-toggle-card">
-            <input type="checkbox" id="cfgSendWelcome" ${c.send_welcome ? 'checked' : ''} />
-            <span>🔑 Guest Booking Pass &amp; Check-In Details</span>
-          </label>
-          <label class="hub-toggle-card">
-            <input type="checkbox" id="cfgSendInvestor" ${c.send_investor_reports ? 'checked' : ''} />
-            <span>📊 Monthly Report to Investor Groups</span>
-          </label>
-          <label class="hub-toggle-card">
-            <input type="checkbox" id="cfgSendCheckout" ${c.send_checkout ? 'checked' : ''} />
-            <span>👋 Checkout Review &amp; Feedback Message</span>
-          </label>
+        <h4 style="margin:0 0 10px 0;color:#0F172A;">🔘 Automation Triggers (Click card to Turn ON / OFF)</h4>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px;margin-bottom:18px;">
+          ${renderSwitchCard({
+            id: 'cfgSendWelcome',
+            checked: c.send_welcome !== false,
+            title: '🔑 Guest Booking Pass & Check-In Details',
+            subtitle: 'New booking aate hi guest ke WhatsApp mobile par instant luxury pass bhejta hai.'
+          })}
+          ${renderSwitchCard({
+            id: 'cfgSendBookingGroup',
+            checked: !!c.send_booking_group,
+            title: '🛎️ New Booking Alert to Hosts & Team',
+            subtitle: 'Booking confirm hote hi staff / caretaker WhatsApp group me booking summary alert bhejta hai.'
+          })}
+          ${renderSwitchCard({
+            id: 'cfgSendInvestor',
+            checked: !!c.send_investor_reports,
+            title: '📊 Monthly Report to Investor Groups',
+            subtitle: 'Har mahine revenue aur net profit report dedicated investor group me send karta hai.'
+          })}
+          ${renderSwitchCard({
+            id: 'cfgSendCheckout',
+            checked: !!c.send_checkout,
+            title: '👋 Checkout Review & Feedback Message',
+            subtitle: 'Checkout ke baad guest se feedback aur Google review request karta hai.'
+          })}
         </div>
 
         <h4 style="margin:0 0 10px 0;color:#0F172A;">👥 WhatsApp Group Identifiers (@g.us)</h4>
