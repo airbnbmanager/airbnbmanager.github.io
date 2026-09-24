@@ -687,7 +687,10 @@ window.GST_ENGINE = (function() {
                     <td style="padding:9px 12px;text-align:right;color:#B45309;font-weight:700;">₹${(Number(i.cgst || 0) + Number(i.sgst || 0)).toLocaleString('en-IN')}</td>
                     <td style="padding:9px 12px;text-align:right;font-weight:800;color:var(--dark);">₹${Number(i.total_amount || 0).toLocaleString('en-IN')}</td>
                     <td style="padding:9px 12px;text-align:center;">
-                      <button class="btn-sm outline" style="padding:4px 8px;font-size:11px;" onclick="window.GST_ENGINE.printStoredInvoice('${i.booking_id}')">🖨️ PDF</button>
+                      <div style="display:flex;gap:4px;justify-content:center;align-items:center;">
+                        <button class="btn-sm outline" style="padding:4px 8px;font-size:11px;" onclick="window.GST_ENGINE.printStoredInvoice('${i.booking_id}')">🖨️ PDF</button>
+                        <button class="btn-sm outline" style="padding:4px 8px;font-size:11px;color:#DC2626;border-color:#FCA5A5;" onclick="window.GST_ENGINE.deleteInvoice('${i.booking_id}', '${escapeHtml(i.invoice_no)}')">🗑️ Delete</button>
+                      </div>
                     </td>
                   </tr>
                 `;
@@ -709,6 +712,43 @@ window.GST_ENGINE = (function() {
     `;
 
     document.body.appendChild(modal);
+  }
+
+  // DELETE INVOICE (CA REGISTRY + SUPABASE + LOCALSTORAGE)
+  async function deleteInvoice(bookingId, invoiceNo) {
+    const invLabel = invoiceNo || bookingId;
+    if (!confirm(`⚠️ Kya aap Invoice "${invLabel}" ko delete karna chahte hain?\n\nYeh invoice CA Register aur database se permanently remove ho jayega.`)) {
+      return;
+    }
+
+    // 1. Remove from LocalStorage
+    const list = getLocalInvoices().filter(x => x.booking_id !== bookingId && x.invoice_no !== invoiceNo);
+    localStorage.setItem(LS_INVOICES_KEY, JSON.stringify(list));
+
+    // 2. Remove from Supabase
+    if (typeof sb !== 'undefined' && sb) {
+      try {
+        await sb.from('gst_invoices').delete().eq('booking_id', bookingId);
+      } catch (e) {
+        console.warn('DB delete error:', e);
+      }
+    }
+
+    alert(`✅ Invoice "${invLabel}" delete kar diya gaya.`);
+
+    // 3. Refresh CA Modal if open
+    const openModals = document.querySelectorAll('.modal-overlay');
+    openModals.forEach(m => {
+      if (m.innerText.includes('GST Sales Register')) {
+        m.remove();
+        openCARegisterModal();
+      }
+    });
+
+    // 4. Refresh booking drawer if open
+    if (window._sbkState && window._sbkState.drawerBookingId === bookingId && typeof window.openBookingDrawer === 'function') {
+      window.openBookingDrawer(bookingId);
+    }
   }
 
   function copyCASummaryText() {
@@ -1054,6 +1094,11 @@ Generated automatically via UHHS Management Portal.`;
             <button class="btn-sm" style="background:#25D366;color:#fff;padding:10px 14px;font-weight:700;display:inline-flex;align-items:center;gap:6px;" onclick="window._gstWhatsApp()">
               💬 WhatsApp Bill
             </button>
+            ${state.existing ? `
+              <button class="btn-sm outline" style="padding:10px 14px;color:#DC2626;border-color:#FCA5A5;font-weight:700;display:inline-flex;align-items:center;gap:4px;" onclick="window._gstDeleteCurrent()">
+                🗑️ Delete Invoice
+              </button>
+            ` : ''}
             <button class="btn-sm outline" style="margin-left:auto;padding:10px 14px;" onclick="this.closest('.modal-overlay').remove()">
               Close
             </button>
@@ -1129,6 +1174,14 @@ Generated automatically via UHHS Management Portal.`;
       });
     };
 
+    window._gstDeleteCurrent = async function() {
+      if (!confirm(`⚠️ Kya aap is booking (${state.booking_id}) ka invoice delete karna chahte hain?`)) {
+        return;
+      }
+      await deleteInvoice(state.booking_id, state.invoice_no);
+      modal.remove();
+    };
+
     renderModalContent();
     document.body.appendChild(modal);
   }
@@ -1141,6 +1194,7 @@ Generated automatically via UHHS Management Portal.`;
     exportCAGSTReportCSV: exportCAGSTReportCSV,
     copyCASummaryText: copyCASummaryText,
     printStoredInvoice: printStoredInvoice,
+    deleteInvoice: deleteInvoice,
     getInvoice: getInvoice,
     getLocalInvoices: getLocalInvoices,
     calculateGST: calculateGST,
@@ -1154,3 +1208,4 @@ Generated automatically via UHHS Management Portal.`;
 window.openGSTInvoiceModal = window.GST_ENGINE.openGSTInvoiceModal;
 window.openCARegisterModal = window.GST_ENGINE.openCARegisterModal;
 window.exportCAGSTReportCSV = window.GST_ENGINE.exportCAGSTReportCSV;
+window.deleteGSTInvoice = window.GST_ENGINE.deleteInvoice;
