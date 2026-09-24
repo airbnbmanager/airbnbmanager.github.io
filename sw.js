@@ -7,6 +7,7 @@ const CORE_ASSETS = [
   '/config.js',
   '/manifest.json',
   '/assets/logo.png',
+  '/assets/signature-stamp.svg',
   '/assets/icon-192.png',
   '/assets/icon-512.png',
   '/js/core.js',

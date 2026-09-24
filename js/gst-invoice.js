@@ -24,6 +24,31 @@ window.GST_ENGINE = (function() {
     web:        'uniquehavenhomesstay.com'
   };
 
+  // Signature & Stamp Source Helper
+  function getSignatureStampSrc() {
+    return localStorage.getItem('uhh_custom_signature_stamp') || 'assets/signature-stamp.svg';
+  }
+
+  function handleSignatureUpload(input) {
+    if (!input.files || !input.files[0]) return;
+    const file = input.files[0];
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      localStorage.setItem('uhh_custom_signature_stamp', e.target.result);
+      alert('✅ Real Signature & Stamp uploaded! Ab se yeh aapke sabhi bills aur print par automatically aayega.');
+      if (typeof window._gstRecompute === 'function') window._gstRecompute();
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function resetSignatureStamp() {
+    if (confirm('Kya aap default digital signature stamp par reset karna chahte hain?')) {
+      localStorage.removeItem('uhh_custom_signature_stamp');
+      alert('Default digital seal & signature restored.');
+      if (typeof window._gstRecompute === 'function') window._gstRecompute();
+    }
+  }
+
   // 2. HELPER: FINANCIAL YEAR
   function getFY(d) {
     const date = d ? new Date(d) : new Date();
@@ -411,9 +436,12 @@ window.GST_ENGINE = (function() {
             ${CO.web}
           </div>
           <div style="text-align:right;">
-            <div style="height:42px;border-bottom:1px dashed #CBD5E1;width:170px;margin-left:auto;"></div>
-            <div style="font-size:9.5px;color:#64748B;margin-top:4px;">Authorised Signatory</div>
-            <div style="font-size:10.5px;font-weight:800;color:#0F172A;">For ${CO.name}</div>
+            <div style="position:relative;display:inline-block;text-align:right;min-height:56px;">
+              <img src="${getSignatureStampSrc()}" alt="Stamp & Signature" style="height:62px;max-width:210px;object-fit:contain;margin-bottom:-12px;display:block;margin-left:auto;"/>
+              <div style="height:1px;border-bottom:1px dashed #CBD5E1;width:170px;margin-left:auto;"></div>
+              <div style="font-size:9.5px;color:#64748B;margin-top:4px;">Authorised Signatory</div>
+              <div style="font-size:10.5px;font-weight:800;color:#0F172A;">For ${CO.name}</div>
+            </div>
           </div>
         </div>
 
@@ -982,6 +1010,26 @@ Generated automatically via UHHS Management Portal.`;
                 </div>
               </div>
 
+              <!-- Digital Signature & Company Seal Bar -->
+              <div style="margin-top:14px;padding:12px 14px;background:#F8FAFC;border:1px dashed var(--border);border-radius:10px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
+                <div style="display:flex;align-items:center;gap:12px;">
+                  <img src="${getSignatureStampSrc()}" style="height:36px;max-width:110px;object-fit:contain;background:#fff;border:1px solid #E2E8F0;border-radius:6px;padding:2px;" alt="Stamp & Signature"/>
+                  <div>
+                    <div style="font-size:12px;font-weight:800;color:var(--dark);">🖋️ Digital Seal &amp; Authorised Signature</div>
+                    <div style="font-size:11px;color:var(--muted);">Currently attached on invoice. You can upload real scanned image anytime.</div>
+                  </div>
+                </div>
+                <div style="display:flex;gap:6px;align-items:center;">
+                  <label class="btn-sm" style="background:#0F172A;color:#fff;padding:6px 12px;font-size:11.5px;font-weight:700;cursor:pointer;border-radius:6px;display:inline-flex;align-items:center;gap:6px;">
+                    📷 Upload Real Stamp / Sign
+                    <input type="file" accept="image/*" style="display:none;" onchange="window.GST_ENGINE.handleSignatureUpload(this)"/>
+                  </label>
+                  ${localStorage.getItem('uhh_custom_signature_stamp') ? `
+                    <button class="btn-sm outline" style="padding:6px 10px;font-size:11.5px;color:#DC2626;" onclick="window.GST_ENGINE.resetSignatureStamp()">Reset</button>
+                  ` : ''}
+                </div>
+              </div>
+
             ` : `
               <!-- A4 PREVIEW TAB -->
               <div style="padding:10px 0;">
@@ -1095,7 +1143,10 @@ Generated automatically via UHHS Management Portal.`;
     printStoredInvoice: printStoredInvoice,
     getInvoice: getInvoice,
     getLocalInvoices: getLocalInvoices,
-    calculateGST: calculateGST
+    calculateGST: calculateGST,
+    getSignatureStampSrc: getSignatureStampSrc,
+    handleSignatureUpload: handleSignatureUpload,
+    resetSignatureStamp: resetSignatureStamp
   };
 })();
 

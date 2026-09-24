@@ -1,0 +1,62 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 120" width="240" height="120">
+  <defs>
+    <!-- Circular text paths -->
+    <path id="topArc" d="M 30,70 A 42,42 0 1,1 114,70" fill="none" />
+    <path id="botArc" d="M 114,70 A 42,42 0 0,1 30,70" fill="none" />
+  </defs>
+
+  <!-- Group 1: Company Seal (Slightly tilted) -->
+  <g transform="rotate(-6 72 65)">
+    <!-- Outer Double Ring -->
+    <circle cx="72" cy="65" r="46" fill="none" stroke="#1E3A8A" stroke-width="2.5" stroke-dasharray="0" opacity="0.88"/>
+    <circle cx="72" cy="65" r="41" fill="none" stroke="#1E3A8A" stroke-width="1" stroke-dasharray="2,2" opacity="0.8"/>
+    <circle cx="72" cy="65" r="27" fill="none" stroke="#1E3A8A" stroke-width="1.2" opacity="0.85"/>
+
+    <!-- Seal Inner Text -->
+    <text font-family="'Inter', Arial, sans-serif" font-size="6.5" font-weight="800" fill="#1E3A8A" letter-spacing="0.8" opacity="0.9">
+      <textPath href="#topArc" startOffset="50%" text-anchor="middle">
+        THE UNIQUE HAVEN HOMES PVT LTD
+      </textPath>
+    </text>
+    <text font-family="'Inter', Arial, sans-serif" font-size="5.5" font-weight="700" fill="#1E3A8A" letter-spacing="0.5" opacity="0.85">
+      <textPath href="#botArc" startOffset="50%" text-anchor="middle">
+        ★ LUCKNOW (U.P.) ★
+      </textPath>
+    </text>
+
+    <!-- Center Seal Core -->
+    <text x="72" y="62" font-family="'Inter', Arial, sans-serif" font-size="5.5" font-weight="900" fill="#1E3A8A" text-anchor="middle" letter-spacing="0.5" opacity="0.9">
+      DIRECTOR
+    </text>
+    <text x="72" y="70" font-family="'Inter', Arial, sans-serif" font-size="4.5" font-weight="700" fill="#1E3A8A" text-anchor="middle" opacity="0.8">
+      AUTHENTICATED
+    </text>
+  </g>
+
+  <!-- Group 2: Artistic Cursive Signature in Blue Royal Ink -->
+  <g stroke="#0369A1" fill="none" stroke-linecap="round" stroke-linejoin="round" opacity="0.95">
+    <!-- P & flourish -->
+    <path d="M 85,75 C 92,55 98,35 104,22 C 105,20 100,38 98,58 C 96,78 95,92 94,98" stroke-width="2.6"/>
+    <path d="M 98,32 C 104,24 122,23 125,34 C 127,44 112,50 100,52" stroke-width="2.2"/>
+    
+    <!-- r-a-v-e-e-n cursive flow -->
+    <path d="M 115,55 Q 120,48 124,53 Q 127,58 132,48 Q 135,42 138,55 Q 141,60 146,50 Q 149,44 153,52 Q 157,48 162,50 Q 166,45 170,54" stroke-width="2.0"/>
+
+    <!-- S & flourish -->
+    <path d="M 155,62 C 158,40 170,25 178,28 C 184,30 178,48 165,58 C 158,64 165,72 178,68 C 188,65 198,58 208,52" stroke-width="2.4"/>
+
+    <!-- Underline sweep flourish -->
+    <path d="M 92,82 C 125,86 168,82 215,62 C 220,60 210,68 185,76 C 160,84 120,88 95,85" stroke-width="1.8" stroke="#0284C7"/>
+    <!-- Small dots -->
+    <circle cx="218" cy="62" r="1.5" fill="#0369A1"/>
+    <circle cx="224" cy="60" r="1.2" fill="#0369A1"/>
+  </g>
+
+  <!-- Small Digital Certificate Stamp Badge -->
+  <g transform="translate(145, 96)">
+    <rect x="0" y="0" width="85" height="15" rx="3" fill="#F0FDF4" stroke="#86EFAC" stroke-width="0.8"/>
+    <text x="6" y="11" font-family="'Inter', Arial, sans-serif" font-size="7" font-weight="700" fill="#15803D">
+      ✔ Digitally Verified
+    </text>
+  </g>
+</svg>
