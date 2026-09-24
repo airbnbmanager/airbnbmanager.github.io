@@ -6,12 +6,12 @@
 // ═══════════════════════════════════════════════════════════
 
 (function() {
-  const WA_LOCAL_CONFIG_KEY = 'uhhs_wa_automation_v2';
+  const WA_LOCAL_CONFIG_KEY = 'uhhs_wa_automation_v5';
   const WA_LOCAL_LOGS_KEY = 'uhhs_wa_logs_v2';
 
   const DEFAULT_WA_CONFIG = {
     auto_send_enabled: true, // MASTER ACTIVE
-    dry_run_mode: false, // LIVE DISPATCH (Real WhatsApp)
+    dry_run_mode: false, // ⚡ LIVE DISPATCH BY DEFAULT (Real WhatsApp)
     gateway_url: 'https://uhhs-whatsapp-bot.onrender.com',
     gateway_type: 'baileys', // 'meta_cloud_api' | 'baileys'
     meta_phone_number_id: '',
@@ -287,7 +287,7 @@
       return { ok: false, reason: 'missing_recipient' };
     }
 
-    const isDryRun = HUB.config.dry_run_mode !== false;
+    const isDryRun = HUB.config.dry_run_mode === true;
     const logEntry = {
       id: 'walog_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6),
       booking_id: bookingId || null,
@@ -1017,7 +1017,7 @@
     await Promise.all([loadConfig(), loadTemplates(), loadLogs(50), fetchScheduled()]);
 
     const enabled = HUB.config?.auto_send_enabled;
-    const dryRun = HUB.config?.dry_run_mode !== false;
+    const dryRun = HUB.config?.dry_run_mode === true;
 
     const todayStr = new Date().toISOString().slice(0, 10);
     const todayLogs = HUB.logs.filter(l => l.sent_at && l.sent_at.slice(0, 10) === todayStr);
@@ -1057,7 +1057,7 @@
             <div class="hub-stat-tile">
               <div class="hub-stat-label">EXECUTION MODE</div>
               <div class="hub-stat-val" style="color:${dryRun ? '#D97706' : '#15803D'};">
-                ${dryRun ? '🧪 DRY RUN' : '📡 LIVE'}
+                ${dryRun ? '🧪 DRY RUN' : '⚡ LIVE'}
               </div>
             </div>
             <div class="hub-stat-tile">
@@ -1354,7 +1354,7 @@
         <div style="margin-bottom:18px;">
           ${renderSwitchCard({
             id: 'cfgDryRun',
-            checked: c.dry_run_mode !== false,
+            checked: c.dry_run_mode === true,
             title: '🧪 Safe Testing Mode (Dry-Run)',
             subtitle: 'Jab ye ON rahega to real WhatsApp message nahi jayega. REAL message bhejne ke liye isko click karke OFF (Live Dispatch) karein.',
             isDryRunCard: true
@@ -1498,22 +1498,22 @@
     }
 
     const updates = {
-      auto_send_enabled: document.getElementById('cfgAutoSend')?.checked || false,
-      dry_run_mode: document.getElementById('cfgDryRun')?.checked || false,
-      send_booking_group: document.getElementById('cfgSendBookingGroup')?.checked || false,
+      auto_send_enabled: HUB.config.auto_send_enabled !== false,
+      dry_run_mode: document.getElementById('cfgDryRun')?.checked === true,
+      send_booking_group: document.getElementById('cfgSendBookingGroup')?.checked !== false,
       send_housekeeping_checkout: false,
-      send_investor_reports: document.getElementById('cfgSendInvestor')?.checked || false,
-      send_welcome: document.getElementById('cfgSendWelcome')?.checked || false,
-      send_checkout: document.getElementById('cfgSendCheckout')?.checked || false,
-      booking_group_id: document.getElementById('cfgBookingGroup')?.value?.trim() || '',
+      send_investor_reports: document.getElementById('cfgSendInvestor')?.checked !== false,
+      send_welcome: document.getElementById('cfgSendWelcome')?.checked !== false,
+      send_checkout: document.getElementById('cfgSendCheckout')?.checked === true,
+      booking_group_id: document.getElementById('cfgBookingGroup')?.value?.trim() || '120363425834560086@g.us',
       housekeeping_group_id: '',
       investor_groups: invGroups,
-      gateway_type: document.getElementById('cfgGatewayType')?.value || 'meta_cloud_api',
+      gateway_type: 'baileys',
       meta_phone_number_id: document.getElementById('cfgMetaPhoneId')?.value?.trim() || '',
       meta_waba_id: document.getElementById('cfgMetaWabaId')?.value?.trim() || '',
       meta_access_token: document.getElementById('cfgMetaToken')?.value?.trim() || '',
       meta_verify_token: 'uhhs_meta_secure_2026',
-      gateway_url: document.getElementById('cfgGatewayUrl')?.value?.trim() || 'http://localhost:3000',
+      gateway_url: document.getElementById('cfgGatewayUrl')?.value?.trim() || 'https://uhhs-whatsapp-bot.onrender.com',
       updated_at: new Date().toISOString()
     };
 
