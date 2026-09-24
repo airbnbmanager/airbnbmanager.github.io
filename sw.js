@@ -1,5 +1,5 @@
-const CACHE_NAME = 'uhhs-live-v190';
-const RUNTIME_CACHE = 'uhhs-runtime-v69';
+const CACHE_NAME = 'uhhs-live-v195';
+const RUNTIME_CACHE = 'uhhs-runtime-v75';
 
 const CORE_ASSETS = [
   '/admin.html',
@@ -96,7 +96,25 @@ self.addEventListener('fetch', event => {
     return;
   }
 
-  // Static assets: cache first
+  // JS Scripts & Versioned assets: Network-first to always run latest logic
+  if (url.pathname.endsWith('.js') || url.search.includes('v=')) {
+    event.respondWith(
+      fetch(req)
+        .then(res => {
+          if (res && res.status === 200) {
+            const clone = res.clone();
+            caches.open(CACHE_NAME).then(cache => {
+              try { cache.put(req, clone); } catch(e) {}
+            });
+          }
+          return res;
+        })
+        .catch(() => caches.match(req).then(cached => cached || new Response('Offline', { status: 503 })))
+    );
+    return;
+  }
+
+  // Other static assets (images, css): cache first
   event.respondWith(
     caches.match(req).then(cached => {
       const fetchPromise = fetch(req)

@@ -17,8 +17,26 @@ async function renderReports() {
     }
   } catch (e) {
     console.warn('Rooms query fallback:', e);
-    const fallback = await sb.from('rooms').select('room_id, unit_no, nickname');
-    roomsData = fallback.data || [];
+  }
+
+  // Fallback to cached or UHHS_PROPERTIES if query ever fails
+  if (!roomsData || roomsData.length === 0) {
+    if (window._allRoomsCache && window._allRoomsCache.length > 0) {
+      roomsData = window._allRoomsCache;
+    } else if (window.UHHS_PROPERTIES && window.UHHS_PROPERTIES.length > 0) {
+      const UNIT_TO_ROOM = {
+        '101': 'VIL-108', '102': 'VIL-105', '103': 'VIL-106', '104': 'LUL-402',
+        '105': 'GOM-302', '106': 'GOM-301', '107': 'GOM-501', '108': 'GOM-102',
+        '109': 'GOM-401', '110': 'VIL-101', '111': 'GOM-202', '112': 'VIL-103',
+        '114': 'VIL-102', '115': 'GOM-201', '116': 'VIL-107', '117': 'GOM-101'
+      };
+      roomsData = window.UHHS_PROPERTIES.map(p => ({
+        room_id: p.room_id || UNIT_TO_ROOM[p.unit_no] || ('UHHS-' + p.unit_no),
+        unit_no: p.unit_no,
+        nickname: p.nickname || p.property_name,
+        property_name: p.property_name
+      }));
+    }
   }
 
   const bookings = await sb.from('guest_register')
