@@ -1967,6 +1967,31 @@ window.saveSmartBooking = async function() {
       });
     }
 
+    // Automated WhatsApp Operations: Direct Guest Booking Pass & Booking Group Alert
+    try {
+      const roomSelectEl = document.getElementById('roomId');
+      const roomText = roomSelectEl?.selectedOptions[0]?.text || insertObj.room_id;
+      const bkPayload = {
+        booking_id: bkId,
+        guest_name: insertObj.guest_name,
+        phone: insertObj.phone,
+        room_id: insertObj.room_id,
+        room_name: roomText,
+        booking_mode: insertObj.booking_mode,
+        check_in: insertObj.check_in,
+        check_out: insertObj.check_out,
+        total_amount: insertObj.total_amount,
+        advance: adv,
+        payment_status: insertObj.payment_status
+      };
+      if (typeof window.triggerGuestBookingPass === 'function') {
+        window.triggerGuestBookingPass(bkPayload).catch(err => console.warn('Guest booking pass error:', err));
+      }
+      if (typeof window.triggerBookingGroupAlert === 'function') {
+        window.triggerBookingGroupAlert(bkPayload).catch(err => console.warn('Booking group alert error:', err));
+      }
+    } catch(e) { console.warn('WhatsApp trigger error in smart bookings:', e); }
+
     if (window.fsn?.toast) {
       fsn.toast('🎉 Booking Saved Successfully!');
     } else {

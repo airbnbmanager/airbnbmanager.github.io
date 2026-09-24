@@ -429,9 +429,17 @@
     });
   };
 
+  window._dispatchedBkPasses = window._dispatchedBkPasses || new Set();
+
   // A2. Trigger Direct Booking Confirmation Pass to Guest Mobile
   window.triggerGuestBookingPass = async function(b) {
     if (!b || !b.phone) return;
+    if (b.booking_id && window._dispatchedBkPasses.has(b.booking_id)) {
+      console.log('ℹ️ Guest booking pass already dispatched for:', b.booking_id);
+      return;
+    }
+    if (b.booking_id) window._dispatchedBkPasses.add(b.booking_id);
+
     await loadConfig();
     const isMasterOn = HUB.config.auto_send_enabled !== false;
     if (!isMasterOn) {

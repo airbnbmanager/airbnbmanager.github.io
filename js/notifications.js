@@ -400,6 +400,11 @@
             entityId: b.booking_id,
             entityType: 'booking'
           });
+
+          // Fail-safe WhatsApp confirmation pass trigger
+          if (b && b.phone && typeof window.triggerGuestBookingPass === 'function') {
+            window.triggerGuestBookingPass(b).catch(err => console.warn('Realtime booking pass error:', err));
+          }
         })
       .subscribe((s) => console.log('🔔 Bookings channel:', s));
 
