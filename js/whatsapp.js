@@ -116,12 +116,12 @@ async function buildMessageData(bkId) {
     primaryCaretaker = { name: careName, phone: carePhone };
   }
 
-  // Dedicated Property Manager: Praveen Singh (9194109911) — 10 AM to 09 PM
+  // Dedicated Host & Operations: Shahanshah (9450055554) & Firoz (8299600709)
   const manager = {
-    name: 'Praveen Singh',
-    phone: '9194109911',
+    name: 'Shahanshah',
+    phone: '9450055554',
     hours: '10 AM to 09 PM',
-    role: 'Manager'
+    role: 'Host'
   };
 
   // Calculate paid + due

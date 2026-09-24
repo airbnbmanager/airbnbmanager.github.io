@@ -304,14 +304,190 @@
         console.warn('Could not fetch real-time booked dates:', e);
       }
 
-      // Check default dates availability & update live calendar
+      // If initial default dates conflict with real-time booked dates, auto-switch to next available dates
+      if (this.isDateBooked(this.checkIn) || this.getBookingConflict(this.checkIn, this.checkOut)) {
+        const nextSlot = this.findNextAvailableSlot(1);
+        if (nextSlot) {
+          this.checkIn = nextSlot.checkIn;
+          this.checkOut = nextSlot.checkOut;
+        } else {
+          this.checkIn = '';
+          this.checkOut = '';
+        }
+      }
+
+      this.syncDateInputs();
       this.checkAvailability();
       this.renderInteractiveCalendar();
     }
 
+    isDateBooked(dateStr) {
+      if (!dateStr || !Array.isArray(this.bookedIntervals) || !this.bookedIntervals.length) return false;
+      return this.bookedIntervals.some(inv => {
+        return dateStr >= inv.check_in && dateStr < inv.check_out;
+      });
+    }
+
+    getBookingConflict(ciStr, coStr) {
+      if (!ciStr || !coStr || !Array.isArray(this.bookedIntervals) || !this.bookedIntervals.length) return null;
+      if (ciStr >= coStr) return null;
+      const ci = new Date(ciStr);
+      const co = new Date(coStr);
+      for (const inv of this.bookedIntervals) {
+        const bIn = new Date(inv.check_in);
+        const bOut = new Date(inv.check_out);
+        // Overlap: ci < bOut && co > bIn
+        if (ci < bOut && co > bIn) {
+          return inv;
+        }
+      }
+      return null;
+    }
+
+    getNextBookedStartDate(afterDateStr) {
+      if (!afterDateStr || !Array.isArray(this.bookedIntervals)) return null;
+      let earliest = null;
+      for (const inv of this.bookedIntervals) {
+        if (inv.check_in >= afterDateStr) {
+          if (!earliest || inv.check_in < earliest) {
+            earliest = inv.check_in;
+          }
+        }
+      }
+      return earliest;
+    }
+
+    findNextAvailableSlot(nights = 1) {
+      const cur = new Date();
+      cur.setDate(cur.getDate() + 1); // Start tomorrow
+      for (let i = 0; i < 90; i++) {
+        const ciStr = cur.toISOString().slice(0, 10);
+        const coDate = new Date(cur);
+        coDate.setDate(coDate.getDate() + nights);
+        const coStr = coDate.toISOString().slice(0, 10);
+        if (!this.isDateBooked(ciStr) && !this.getBookingConflict(ciStr, coStr)) {
+          return { checkIn: ciStr, checkOut: coStr };
+        }
+        cur.setDate(cur.getDate() + 1);
+      }
+      return null;
+    }
+
+    formatDisplayDate(dateStr) {
+      if (!dateStr) return '';
+      const parts = dateStr.split('-');
+      if (parts.length !== 3) return dateStr;
+      const [y, m, d] = parts;
+      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      return `${parseInt(d, 10)} ${months[parseInt(m, 10) - 1]} ${y}`;
+    }
+
+    clearDates() {
+      this.checkIn = '';
+      this.checkOut = '';
+      this.syncDateInputs();
+      this.checkAvailability();
+      this.renderInteractiveCalendar();
+      this.showToast('ℹ️ Dates reset. Kripya naye check-in aur check-out dates chunein.', 'info');
+    }
+
+    showToast(message, type = 'info') {
+      let toast = document.getElementById('luxe-floating-toast');
+      if (!toast) {
+        toast = document.createElement('div');
+        toast.id = 'luxe-floating-toast';
+        toast.className = 'luxe-floating-toast';
+        document.body.appendChild(toast);
+      }
+      toast.innerHTML = message;
+      toast.className = `luxe-floating-toast show ${type}`;
+      clearTimeout(this._toastTimeout);
+      this._toastTimeout = setTimeout(() => {
+        toast.className = 'luxe-floating-toast';
+      }, 4500);
+    }
+
+    highlightCalendar() {
+      const cal = document.getElementById('availability') || document.getElementById('luxe-availability-calendar');
+      if (cal) {
+        cal.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        cal.classList.add('luxe-pulse-attention');
+        setTimeout(() => cal.classList.remove('luxe-pulse-attention'), 1500);
+      }
+    }
+
+    syncDateInputs() {
+      const todayIso = new Date().toISOString().slice(0, 10);
+      const agodaCi = document.getElementById('agoda-ci');
+      const agodaCo = document.getElementById('agoda-co');
+      const sideCi = document.getElementById('sidebar-ci');
+      const sideCo = document.getElementById('sidebar-co');
+
+      // 1. Check-in min & values
+      [agodaCi, sideCi].forEach(el => {
+        if (el) {
+          el.min = todayIso;
+          el.value = this.checkIn || '';
+        }
+      });
+
+      // 2. Check-out min & max bounds
+      let minCo = todayIso;
+      let maxCo = '';
+
+      if (this.checkIn) {
+        const ciDate = new Date(this.checkIn);
+        ciDate.setDate(ciDate.getDate() + 1);
+        minCo = ciDate.toISOString().slice(0, 10);
+
+        // Max checkout allowed is earliest booking starting after checkIn
+        const nextBookingStart = this.getNextBookedStartDate(this.checkIn);
+        if (nextBookingStart) {
+          maxCo = nextBookingStart;
+        }
+      }
+
+      [agodaCo, sideCo].forEach(el => {
+        if (el) {
+          el.min = minCo;
+          if (maxCo) {
+            el.max = maxCo;
+          } else {
+            el.removeAttribute('max');
+          }
+          el.value = this.checkOut || '';
+        }
+      });
+    }
+
     checkAvailability() {
+      const conflictAlert = document.getElementById('luxe-date-conflict');
+      const successAlert = document.getElementById('luxe-date-success');
+      const primaryBtn = document.getElementById('luxe-btn-book-primary');
+      const waBtn = document.getElementById('luxe-btn-wa-direct');
+
       if (!this.checkIn || !this.checkOut) {
         this.isDateAvailable = false;
+        if (conflictAlert) {
+          if (this.checkIn && !this.checkOut) {
+            conflictAlert.innerHTML = `ℹ️ Check-in selected: <strong>${this.formatDisplayDate(this.checkIn)}</strong>. Kripya Check-out date chunein.`;
+            conflictAlert.style.display = 'flex';
+            conflictAlert.style.background = '#f0f9ff';
+            conflictAlert.style.border = '1px solid #bae6fd';
+            conflictAlert.style.color = '#0369a1';
+          } else {
+            conflictAlert.style.display = 'none';
+          }
+        }
+        if (successAlert) successAlert.style.display = 'none';
+        if (primaryBtn) {
+          primaryBtn.style.opacity = '0.45';
+          primaryBtn.style.pointerEvents = 'none';
+        }
+        if (waBtn) {
+          waBtn.style.opacity = '0.45';
+          waBtn.style.pointerEvents = 'none';
+        }
         return;
       }
 
@@ -320,20 +496,23 @@
       const diffTime = co - ci;
       const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
 
-      const conflictAlert = document.getElementById('luxe-date-conflict');
-      const successAlert = document.getElementById('luxe-date-success');
-      const primaryBtn = document.getElementById('luxe-btn-book-primary');
-
       if (diffDays <= 0) {
         this.isDateAvailable = false;
         if (conflictAlert) {
           conflictAlert.innerHTML = '⚠️ Check-out date must be at least 1 day after check-in.';
           conflictAlert.style.display = 'flex';
+          conflictAlert.style.background = '#fffbeb';
+          conflictAlert.style.border = '1px solid #fde68a';
+          conflictAlert.style.color = '#92400e';
         }
         if (successAlert) successAlert.style.display = 'none';
         if (primaryBtn) {
-          primaryBtn.style.opacity = '0.5';
+          primaryBtn.style.opacity = '0.45';
           primaryBtn.style.pointerEvents = 'none';
+        }
+        if (waBtn) {
+          waBtn.style.opacity = '0.45';
+          waBtn.style.pointerEvents = 'none';
         }
         return;
       }
@@ -341,31 +520,25 @@
       this.nights = diffDays;
 
       // Check conflict with bookedIntervals
-      let hasConflict = false;
-      let conflictPeriod = null;
+      const conflictPeriod = this.getBookingConflict(this.checkIn, this.checkOut);
 
-      for (const interval of this.bookedIntervals) {
-        const bIn = new Date(interval.check_in);
-        const bOut = new Date(interval.check_out);
-
-        // Overlap condition: start < bOut AND end > bIn
-        if (ci < bOut && co > bIn) {
-          hasConflict = true;
-          conflictPeriod = interval;
-          break;
-        }
-      }
-
-      if (hasConflict) {
+      if (conflictPeriod) {
         this.isDateAvailable = false;
         if (conflictAlert) {
           conflictAlert.innerHTML = `🚫 <strong>Dates Unavailable:</strong> Booked from ${conflictPeriod.check_in} to ${conflictPeriod.check_out} on Airbnb / Direct. Please select other dates.`;
           conflictAlert.style.display = 'flex';
+          conflictAlert.style.background = '#fee2e2';
+          conflictAlert.style.border = '1px solid #fca5a5';
+          conflictAlert.style.color = '#991b1b';
         }
         if (successAlert) successAlert.style.display = 'none';
         if (primaryBtn) {
-          primaryBtn.style.opacity = '0.5';
+          primaryBtn.style.opacity = '0.45';
           primaryBtn.style.pointerEvents = 'none';
+        }
+        if (waBtn) {
+          waBtn.style.opacity = '0.45';
+          waBtn.style.pointerEvents = 'none';
         }
       } else {
         this.isDateAvailable = true;
@@ -373,10 +546,17 @@
         if (successAlert) {
           successAlert.innerHTML = `✅ <strong>Dates Available!</strong> ${this.nights} Night${this.nights > 1 ? 's' : ''} Stay confirmed.`;
           successAlert.style.display = 'flex';
+          successAlert.style.background = '#f0fdf4';
+          successAlert.style.border = '1px solid #bbf7d0';
+          successAlert.style.color = '#166534';
         }
         if (primaryBtn) {
           primaryBtn.style.opacity = '1';
           primaryBtn.style.pointerEvents = 'auto';
+        }
+        if (waBtn) {
+          waBtn.style.opacity = '1';
+          waBtn.style.pointerEvents = 'auto';
         }
       }
 
@@ -445,8 +625,8 @@
       // Update sidebar WhatsApp link with prefilled booking enquiry
       const waBtn = document.getElementById('luxe-btn-wa-direct');
       if (waBtn) {
-        const waText = `Namaste Praveen ji! I want to book ${p.name} directly from ${this.checkIn} to ${this.checkOut} (${this.nights} Nights, ${this.guests} Guests).\nTariff: ₹${base}/night + ${gstRate}% GST = Total: ₹${totalRent.toLocaleString('en-IN')}.\nPlease confirm availability and share check-in pass.`;
-        waBtn.href = `https://wa.me/9194109911?text=${encodeURIComponent(waText)}`;
+        const waText = `Namaste! I want to book ${p.name} directly from ${this.checkIn} to ${this.checkOut} (${this.nights} Nights, ${this.guests} Guests).\nTariff: ₹${base}/night + ${gstRate}% GST = Total: ₹${totalRent.toLocaleString('en-IN')}.\nPlease confirm availability and share check-in pass.`;
+        waBtn.href = `https://wa.me/919450055554?text=${encodeURIComponent(waText)}`;
       }
     }
 
@@ -493,6 +673,7 @@
           </button>
         </div>
       `;
+      this.syncDateInputs();
     }
 
     renderAgodaScoreCard() {
@@ -520,44 +701,123 @@
     }
 
     onDateChange(type, val) {
+      const todayIso = new Date().toISOString().slice(0, 10);
+
       if (type === 'ci') {
+        if (!val) {
+          this.checkIn = '';
+          this.checkOut = '';
+          this.syncDateInputs();
+          this.checkAvailability();
+          this.renderInteractiveCalendar();
+          return;
+        }
+
+        if (val < todayIso) {
+          this.showToast('⚠️ Past date select nahi kar sakte. Kripya aaj ya aage ki date chunein.', 'warning');
+          this.syncDateInputs();
+          return;
+        }
+
+        // STRICT BLOCK: Booked check-in date
+        if (this.isDateBooked(val)) {
+          this.showToast(`🚫 <strong>${val} Already Booked!</strong> Property is occupied on this date. Kripya available date chunein.`, 'error');
+          this.syncDateInputs();
+          this.highlightCalendar();
+          return;
+        }
+
         this.checkIn = val;
-        const syncOther = document.getElementById('sidebar-ci');
-        if (syncOther) syncOther.value = val;
-      } else {
+
+        // Clear checkout if invalid or conflicting
+        if (this.checkOut && (this.checkOut <= this.checkIn || this.getBookingConflict(this.checkIn, this.checkOut))) {
+          this.checkOut = '';
+        }
+
+        this.syncDateInputs();
+        this.checkAvailability();
+        this.renderInteractiveCalendar();
+
+        if (!this.checkOut) {
+          this.showToast(`✅ Check-in set: <strong>${this.formatDisplayDate(val)}</strong>. Ab Check-out date chunein.`, 'info');
+        }
+      } else if (type === 'co') {
+        if (!val) {
+          this.checkOut = '';
+          this.syncDateInputs();
+          this.checkAvailability();
+          this.renderInteractiveCalendar();
+          return;
+        }
+
+        if (!this.checkIn) {
+          this.showToast('⚠️ Kripya pehle Check-in date select karein.', 'warning');
+          this.syncDateInputs();
+          return;
+        }
+
+        if (val <= this.checkIn) {
+          this.showToast(`⚠️ Check-out date Check-in (${this.formatDisplayDate(this.checkIn)}) ke baad honi chahiye.`, 'warning');
+          this.syncDateInputs();
+          return;
+        }
+
+        // STRICT BLOCK: Interval overlaps any booked block
+        const conflict = this.getBookingConflict(this.checkIn, val);
+        if (conflict) {
+          this.showToast(`🚫 <strong>Dates Unavailable:</strong> Selected dates ke beech property already booked hai (${conflict.check_in} se ${conflict.check_out}). Kripya ${conflict.check_in} se pehle check-out karein ya naya slot chunein.`, 'error');
+          this.syncDateInputs();
+          this.highlightCalendar();
+          return;
+        }
+
         this.checkOut = val;
-        const syncOther = document.getElementById('sidebar-co');
-        if (syncOther) syncOther.value = val;
+        this.syncDateInputs();
+        this.checkAvailability();
+        this.renderInteractiveCalendar();
+        this.showToast(`✅ <strong>Dates Confirmed!</strong> ${this.nights} Night${this.nights > 1 ? 's' : ''} stay available.`, 'success');
       }
-      this.checkAvailability();
-      this.renderInteractiveCalendar();
     }
 
     onCalendarDayClick(dateStr) {
+      const todayIso = new Date().toISOString().slice(0, 10);
+      if (dateStr < todayIso) return;
+
+      // STRICT BLOCK: Cannot click booked dates
+      if (this.isDateBooked(dateStr)) {
+        this.showToast(`🚫 <strong>${dateStr} already booked hai!</strong> Kripya green/available date chunein.`, 'error');
+        return;
+      }
+
       if (!this.checkIn || (this.checkIn && this.checkOut)) {
         this.checkIn = dateStr;
         this.checkOut = '';
+        this.syncDateInputs();
+        this.checkAvailability();
+        this.renderInteractiveCalendar();
+        this.showToast(`✅ Check-in: <strong>${this.formatDisplayDate(dateStr)}</strong>. Ab Check-out date click karein.`, 'info');
       } else if (this.checkIn && !this.checkOut) {
         if (dateStr <= this.checkIn) {
           this.checkIn = dateStr;
           this.checkOut = '';
+          this.syncDateInputs();
+          this.checkAvailability();
+          this.renderInteractiveCalendar();
+          this.showToast(`✅ Check-in updated: <strong>${this.formatDisplayDate(dateStr)}</strong>. Ab Check-out date click karein.`, 'info');
         } else {
+          // Check for conflicts between this.checkIn and dateStr
+          const conflict = this.getBookingConflict(this.checkIn, dateStr);
+          if (conflict) {
+            this.showToast(`🚫 <strong>Conflict:</strong> Selected dates ke beech property booked hai (${conflict.check_in} se ${conflict.check_out}). Kripya ${conflict.check_in} se pehle check-out karein.`, 'error');
+            return;
+          }
           this.checkOut = dateStr;
+          this.syncDateInputs();
+          this.checkAvailability();
+          this.renderInteractiveCalendar();
+          this.showToast(`✅ <strong>Stay Confirmed!</strong> ${this.nights} Night${this.nights > 1 ? 's' : ''} stay available.`, 'success');
         }
       }
-
-      const agodaCi = document.getElementById('agoda-ci');
-      const agodaCo = document.getElementById('agoda-co');
-      const sideCi = document.getElementById('sidebar-ci');
-      const sideCo = document.getElementById('sidebar-co');
-
-      if (agodaCi) agodaCi.value = this.checkIn || '';
-      if (agodaCo) agodaCo.value = this.checkOut || '';
-      if (sideCi) sideCi.value = this.checkIn || '';
-      if (sideCo) sideCo.value = this.checkOut || '';
-
-      this.checkAvailability();
-      this.renderInteractiveCalendar();
     }
 
     onGuestsChange(val) {
@@ -753,7 +1013,7 @@
           </div>
         `;
       } else {
-        const waMsg = encodeURIComponent(`Hi Praveen, please share the full walkthrough video of ${this.prop.name} on WhatsApp.`);
+        const waMsg = encodeURIComponent(`Hi Mr. Shahanshah, please share the full walkthrough video of ${this.prop.name} on WhatsApp.`);
         container.innerHTML = `
           <div class="luxe-video-box" style="background: linear-gradient(135deg, #18202d 0%, #28364b 100%); display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:30px; color:#fff;">
             <div style="font-size:44px; margin-bottom:12px;">🎬</div>
@@ -761,7 +1021,7 @@
             <p style="margin:0 0 20px; font-size:14px; color:rgba(255,255,255,0.75); max-width:440px;">
               Want a detailed video walkthrough before you book? We will share an instant 60-second video tour directly with you.
             </p>
-            <a href="https://wa.me/9194109911?text=${waMsg}" target="_blank" class="luxe-btn-wa" style="font-size:14px; padding:12px 24px;">
+            <a href="https://wa.me/919450055554?text=${waMsg}" target="_blank" class="luxe-btn-wa" style="font-size:14px; padding:12px 24px;">
               ${ICONS.whatsapp} Get Video on WhatsApp
             </a>
           </div>
@@ -921,14 +1181,13 @@
         for (let d = 1; d <= daysInMonth; d++) {
           const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
           const isPast = dateStr < todayIso;
+          const isBooked = this.isDateBooked(dateStr);
 
-          let isBooked = false;
-          if (Array.isArray(this.bookedIntervals)) {
-            for (const interval of this.bookedIntervals) {
-              if (dateStr >= interval.check_in && dateStr < interval.check_out) {
-                isBooked = true;
-                break;
-              }
+          // If check-in is selected but not check-out, can this date be selected as check-out?
+          let isCrossingBooked = false;
+          if (this.checkIn && !this.checkOut && dateStr > this.checkIn) {
+            if (this.getBookingConflict(this.checkIn, dateStr)) {
+              isCrossingBooked = true;
             }
           }
 
@@ -937,8 +1196,9 @@
           const isInRange = (this.checkIn && this.checkOut && dateStr > this.checkIn && dateStr < this.checkOut);
 
           let classes = ['luxe-day-cell'];
-          if (isPast || isBooked) {
+          if (isPast || isBooked || isCrossingBooked) {
             classes.push('booked');
+            if (isCrossingBooked) classes.push('blocked-conflict');
           } else {
             classes.push('available');
           }
@@ -949,11 +1209,20 @@
             classes.push('in-range');
           }
 
-          const titleAttr = isBooked ? `🔴 Booked (${dateStr})` : (isPast ? 'Past date' : `🟢 Available - Click to choose ${dateStr}`);
-          const clickAttr = (!isPast && !isBooked) ? `onclick="window.luxeEngine.onCalendarDayClick('${dateStr}')"` : '';
+          let titleAttr = `🟢 Available - Click to choose ${dateStr}`;
+          if (isBooked) {
+            titleAttr = `🔴 Booked (${dateStr}) - Not Available`;
+          } else if (isPast) {
+            titleAttr = 'Past date';
+          } else if (isCrossingBooked) {
+            titleAttr = `🚫 Cannot checkout here (Crosses booked dates)`;
+          }
+
+          const isClickable = !isPast && !isBooked && !isCrossingBooked;
+          const clickAttr = isClickable ? `onclick="window.luxeEngine.onCalendarDayClick('${dateStr}')"` : '';
 
           daysHtml += `
-            <div class="${classes.join(' ')}" title="${titleAttr}" ${clickAttr}>
+            <div class="${classes.join(' ')}" title="${titleAttr}" ${clickAttr} data-date="${dateStr}">
               ${d}
             </div>
           `;
@@ -975,8 +1244,9 @@
       container.innerHTML = `
         <div class="luxe-availability-wrap">
           <div class="luxe-cal-header">
-            <div style="font-size:14px; font-weight:700; color:var(--luxe-ink);">
-              📅 2-Month Live Availability Calendar
+            <div style="font-size:14px; font-weight:700; color:var(--luxe-ink); display:flex; align-items:center; gap:10px;">
+              <span>📅 2-Month Live Availability Calendar</span>
+              ${(this.checkIn || this.checkOut) ? `<button type="button" class="luxe-btn-clear-dates" onclick="window.luxeEngine.clearDates()" title="Reset selected dates">Reset Dates ✕</button>` : ''}
             </div>
             <div class="luxe-cal-legend">
               <div class="luxe-cal-legend-item">
@@ -1082,15 +1352,15 @@
             💳 Reserve &amp; Pay Direct (Save 15%)
           </button>
 
-          <!-- Secondary WhatsApp Direct link (Praveen Singh Manager 9194109911) -->
-          <a id="luxe-btn-wa-direct" class="luxe-btn-book-primary" style="background:#25d366; margin-top:8px;" href="https://wa.me/9194109911?text=${encodeURIComponent(`Namaste Praveen ji! I want to book ${p.name} directly from ${this.checkIn} to ${this.checkOut} (${this.nights} Nights, ${this.guests} Guests).\nTariff: ₹${basePrice}/night + ${gstRate}% GST = Total: ₹${totalRent.toLocaleString('en-IN')}.\nPlease confirm availability.`)}" target="_blank">
+          <!-- Secondary WhatsApp Direct link (Mr. Shahanshah 9450055554) -->
+          <a id="luxe-btn-wa-direct" class="luxe-btn-book-primary" style="background:#25d366; margin-top:8px;" href="https://wa.me/919450055554?text=${encodeURIComponent(`Namaste! I want to book ${p.name} directly from ${this.checkIn} to ${this.checkOut} (${this.nights} Nights, ${this.guests} Guests).\nTariff: ₹${basePrice}/night + ${gstRate}% GST = Total: ₹${totalRent.toLocaleString('en-IN')}.\nPlease confirm availability.`)}" target="_blank">
             ${ICONS.whatsapp} Instant WhatsApp Booking
           </a>
 
           <!-- Secondary CTAs -->
           <div class="luxe-card-sub-actions" style="margin-top:14px;">
-            <a class="luxe-btn-card-sub" href="tel:+919194109911">
-              📞 Call Manager
+            <a class="luxe-btn-card-sub" href="tel:+919450055554">
+              📞 Call Host (Shahanshah)
             </a>
             <button type="button" id="luxe-btn-airbnb-link" class="luxe-btn-card-sub" onclick="window.luxeEngine.openAirbnbModal()">
               View on Airbnb ↗
@@ -1582,7 +1852,7 @@
       });
       this.renderInteractiveCalendar();
 
-      // 4. Pre-fill WhatsApp message for Official Manager (Praveen Singh 9194109911)
+      // 4. Pre-fill WhatsApp message for Host Mr. Shahanshah (9450055554)
       const waReceipt = `🏨 *THE UNIQUE HAVEN HOMES*
 *DIRECT WEBSITE BOOKING CONFIRMATION*
 ───────────────────────
@@ -1606,7 +1876,7 @@ ${isB2B ? `\n🏢 *CORPORATE GST INVOICE REQUIRED:*
 ───────────────────────
 _Please confirm room allotment and issue official GST Tax Invoice. Thank you!_`;
 
-      const waUrl = `https://wa.me/9194109911?text=${encodeURIComponent(waReceipt)}`;
+      const waUrl = `https://wa.me/919450055554?text=${encodeURIComponent(waReceipt)}`;
 
       // Save this booking to local booking history so it always shows in Guest Profile
       const myBookingItem = {
@@ -2399,8 +2669,8 @@ _Please confirm room allotment and issue official GST Tax Invoice. Thank you!_`;
                     <button type="button" class="airbnb-btn-action-sm" onclick="window.luxeEngine.resendBookingTaxEmail('${b.bookingId}')">
                       📧 Email GST Tax Bill
                     </button>
-                    <a class="airbnb-btn-action-sm whatsapp" href="${b.waUrl || `https://wa.me/9194109911?text=Namaste!%20My%20Booking%20Ref%20is%20${b.bookingId}`}" target="_blank">
-                      📱 Manager WhatsApp Pass
+                    <a class="airbnb-btn-action-sm whatsapp" href="${b.waUrl || `https://wa.me/919450055554?text=Namaste!%20My%20Booking%20Ref%20is%20${b.bookingId}`}" target="_blank">
+                      📱 Host WhatsApp Pass
                     </a>
                     <a class="airbnb-btn-action-sm" href="${b.mapLink || 'https://maps.google.com/?q=Gomti+Nagar+Lucknow'}" target="_blank">
                       🗺️ Map Directions
@@ -3146,8 +3416,7 @@ _Please confirm room allotment and issue official GST Tax Invoice. Thank you!_`;
 CIN: U55101UP2026PTC244637 · ROC Kanpur
 Registered Office: P NO 39 & 40 Radhikapuri, Indira Nagar Takrohi, Lucknow, UP 226016 - India
 GST SAC Code: 996311 (Short-Stay Accommodation Services)
-Helplines: +91 9450055554 / +91 8299600709
-Manager: Praveen Singh (+91 9194109911)
+Hosts & Helpline: +91 9450055554 (Shahanshah) / +91 8299600709 (Firoz)
 
 ==================================================
 OFFICIAL GST TAX INVOICE & BOOKING PASS
