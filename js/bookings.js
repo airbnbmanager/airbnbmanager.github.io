@@ -350,7 +350,7 @@ async function showGuestLedger(guestName, bookingId, phone, airbnbCode) {
       </div>
       <div class="section-title">Booking History</div>
       <div class="table-wrap"><table>
-        <thead><tr><th>Property</th><th>Mode</th><th>In</th><th>Out</th><th>Total</th><th>Paid</th><th>Due</th></tr></thead>
+        <thead><tr><th>Property</th><th>Mode</th><th>In</th><th>Out</th><th>Total</th><th>Paid</th><th>Due</th><th style="text-align:center;">GST</th></tr></thead>
         <tbody>${bookings.map(b => {
           const pd = payMap[b.booking_id] || 0;
           const isAirbnb = b.booking_mode === 'Online-Airbnb' || !!b.airbnb_confirmation_code;
@@ -364,6 +364,7 @@ async function showGuestLedger(guestName, bookingId, phone, airbnbCode) {
             <td>${isPendingCsv ? '<span class="badge yellow" style="font-size:10px;">⏳ Pending CSV</span>' : '₹' + (b.total_amount || 0).toLocaleString('en-IN')}</td>
             <td style="color:var(--green);">${isPendingCsv ? '-' : '₹' + pd.toLocaleString('en-IN')}</td>
             <td style="${due > 0 ? 'color:var(--red);font-weight:700;' : ''}">${isPendingCsv ? '-' : (due > 0 ? '₹' + due.toLocaleString('en-IN') : '₹0')}</td>
+            <td style="text-align:center;"><button class="btn-sm" style="background:#B45309;color:#fff;padding:2px 7px;font-size:10.5px;font-weight:700;border:none;border-radius:4px;cursor:pointer;" onclick="window.openGSTInvoiceModal('${b.booking_id}')" title="Generate or View GST Bill">🧾 Bill</button></td>
           </tr>`;
         }).join('')}</tbody>
       </table></div>
@@ -379,6 +380,7 @@ async function showGuestLedger(guestName, bookingId, phone, airbnbCode) {
       <div class="btn-row" style="margin-top:12px;">
         <button onclick="printGuestLedger('${guestName.replace(/'/g, "\\'")}')" style="background:#00A699;color:#fff;">🖨️ Print Ledger</button>
         <button onclick="whatsappGuestLedger('${guestName.replace(/'/g, "\\'")}')" style="background:#25D366;color:#fff;">📱 WhatsApp</button>
+        <button onclick="window.openGSTInvoiceModal('${bookings[0]?.booking_id || ''}')" style="background:#B45309;color:#fff;font-weight:700;">🧾 GST Invoice</button>
         <button class="outline" onclick="this.closest('.modal-overlay').remove()">Close</button>
       </div>
     </div>`;

@@ -10,6 +10,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="config.js"></script>
+  <script src="js/gst-invoice.js"></script>
   <style>
     *{box-sizing:border-box;margin:0;padding:0}
     :root{
@@ -126,6 +127,7 @@
     </div>
   </div>
   <div class="topbar-right">
+    <button class="tbtn" onclick="window.openCARegisterModal()">📊 CA Register</button>
     <button class="tbtn" onclick="loadBookings()">🔄 Refresh</button>
     <button class="tbtn gold" onclick="printInvoice()">🖨️ Print PDF</button>
     <a href="admin.html" class="tbtn">← Admin</a>
@@ -210,9 +212,21 @@ async function loadBookings() {
   el.innerHTML = '<div style="text-align:center;padding:30px;color:var(--muted);font-size:13px;">⏳ Loading direct bookings…</div>';
   try {
     let sb = window.sb;
-    if (!sb && typeof supabase!=='undefined' && window.SUPABASE_URL && window.SUPABASE_ANON_KEY)
-      sb = window.sb = supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY);
-    if (!sb) throw new Error('No Supabase connection');
+    const url = (typeof SUPABASE_URL !== 'undefined' ? SUPABASE_URL : window.SUPABASE_URL);
+    const key = (typeof SUPABASE_ANON_KEY !== 'undefined' ? SUPABASE_ANON_KEY : window.SUPABASE_ANON_KEY);
+    if (!sb && typeof supabase !== 'undefined' && url && key) {
+      sb = window.sb = supabase.createClient(url, key);
+    }
+    if (!sb) {
+      // Fallback: check if local storage invoices exist
+      const localList = window.GST_ENGINE ? window.GST_ENGINE.getLocalInvoices() : [];
+      if (localList.length) {
+        allBookings = localList.map(b => ({ ...b, _paid: b.total_amount, _inv: true }));
+        applyFilter();
+        return;
+      }
+      throw new Error('No Supabase connection. Please verify config.js credentials or run on server.');
+    }
 
     const from = document.getElementById('fFrom').value;
     const to   = document.getElementById('fTo').value;
@@ -596,21 +610,41 @@ async function saveInvoice() {
   const invNo = document.getElementById('invNoInp')?.value || d.invNo;
   const invDate = document.getElementById('invDateInp')?.value;
   try {
+    // Always mirror to local registry
+    try {
+      const list = JSON.parse(localStorage.getItem('uhh_gst_invoices_registry') || '[]');
+      const idx = list.findIndex(x => x.booking_id === d.b.booking_id);
+      const rec = {
+        booking_id: d.b.booking_id, invoice_no: invNo, invoice_date: invDate,
+        guest_name: d.b.guest_name, guest_phone: d.b.phone, room_id: d.b.room_id,
+        room_name: d.b.rooms?.nickname || d.b.room_id,
+        check_in: d.b.check_in, check_out: d.b.check_out,
+        nights: d.n, total_amount: d.total, taxable_value: d.base,
+        cgst: d.cgst, sgst: d.sgst, gst_rate: d.rate, sac_code: CO.sac,
+        booking_mode: 'Direct', is_gst_invoice: true, status: 'Recorded for CA',
+        updated_at: new Date().toISOString()
+      };
+      if (idx >= 0) list[idx] = { ...list[idx], ...rec };
+      else list.unshift({ ...rec, created_at: new Date().toISOString() });
+      localStorage.setItem('uhh_gst_invoices_registry', JSON.stringify(list));
+    } catch(e){}
+
     let sb = window.sb;
-    if (!sb) throw new Error('No DB connection');
-    const {error} = await sb.from('gst_invoices').upsert({
-      booking_id: d.b.booking_id, invoice_no: invNo, invoice_date: invDate,
-      guest_name: d.b.guest_name, room_id: d.b.room_id,
-      check_in: d.b.check_in, check_out: d.b.check_out,
-      nights: d.n, total_amount: d.total, taxable_value: d.base,
-      cgst: d.cgst, sgst: d.sgst, gst_rate: d.rate, sac_code: CO.sac,
-      booking_mode: 'Direct', airbnb_code: null,
-      created_at: new Date().toISOString()
-    }, {onConflict:'booking_id'});
-    if (error) throw error;
+    if (sb) {
+      const {error} = await sb.from('gst_invoices').upsert({
+        booking_id: d.b.booking_id, invoice_no: invNo, invoice_date: invDate,
+        guest_name: d.b.guest_name, room_id: d.b.room_id,
+        check_in: d.b.check_in, check_out: d.b.check_out,
+        nights: d.n, total_amount: d.total, taxable_value: d.base,
+        cgst: d.cgst, sgst: d.sgst, gst_rate: d.rate, sac_code: CO.sac,
+        booking_mode: 'Direct', is_gst_invoice: true, airbnb_code: null,
+        created_at: new Date().toISOString()
+      }, {onConflict:'booking_id'});
+      if (error) console.warn('Supabase save error:', error);
+    }
     invSeq++; localStorage.setItem('uhh_inv_seq', String(invSeq));
     selBooking._inv = true;
-    alert('✅ Invoice '+invNo+' saved!');
+    alert('✅ Invoice '+invNo+' saved successfully!');
     loadBookings();
   } catch(err) {
     if ((err.message||'').includes('does not exist')) {
