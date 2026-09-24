@@ -10,20 +10,20 @@
   const WA_LOCAL_LOGS_KEY = 'uhhs_wa_logs_v2';
 
   const DEFAULT_WA_CONFIG = {
-    auto_send_enabled: false, // 🔴 MASTER OFF BY DEFAULT AS REQUESTED
-    dry_run_mode: true, // 🧪 Safe test mode (no real messages sent without testing)
-    gateway_url: 'http://localhost:3000',
+    auto_send_enabled: true, // MASTER ACTIVE
+    dry_run_mode: false, // LIVE DISPATCH (Real WhatsApp)
+    gateway_url: 'https://uhhs-whatsapp-bot.onrender.com',
     gateway_type: 'baileys', // 'meta_cloud_api' | 'baileys'
     meta_phone_number_id: '',
     meta_waba_id: '',
     meta_access_token: '',
     meta_verify_token: 'uhhs_meta_secure_2026',
 
-    // Granular Sub-Toggles (Default disabled until master turned ON)
+    // Granular Sub-Toggles
     send_booking_group: true,
-    send_housekeeping_checkout: true,
+    send_housekeeping_checkout: false,
     send_investor_reports: true,
-    send_welcome: false,
+    send_welcome: true, // Guest booking pass ON
     send_arrival: false,
     send_checkout: false,
 
@@ -445,7 +445,8 @@
   window.triggerGuestBookingPass = async function(b) {
     if (!b || !b.phone) return;
     await loadConfig();
-    if (!HUB.config.master_automation) {
+    const isMasterOn = HUB.config.auto_send_enabled !== false;
+    if (!isMasterOn) {
       console.log('ℹ️ Master automation is PAUSED in WhatsApp Hub.');
       return;
     }
