@@ -15,7 +15,8 @@ const {
   default: makeWASocket,
   useMultiFileAuthState,
   DisconnectReason,
-  fetchLatestBaileysVersion
+  fetchLatestBaileysVersion,
+  Browsers
 } = require('@whiskeysockets/baileys');
 
 const app = express();
@@ -30,6 +31,12 @@ let connectionStatus = 'disconnected'; // 'disconnected' | 'connecting' | 'conne
 let lastQr = null;
 
 async function startWhatsApp() {
+  if (sock) {
+    try { sock.ev.removeAllListeners(); } catch (e) {}
+    try { sock.end(undefined); } catch (e) {}
+    sock = null;
+  }
+
   const { state, saveCreds } = await useMultiFileAuthState(AUTH_FOLDER);
   const { version, isLatest } = await fetchLatestBaileysVersion();
   console.log(`📡 Starting WhatsApp Client (Baileys v${version.join('.')}, isLatest: ${isLatest})...`);
@@ -39,7 +46,13 @@ async function startWhatsApp() {
     auth: state,
     logger: pino({ level: 'silent' }),
     printQRInTerminal: false,
-    browser: ['UHHS CRM Gateway', 'Chrome', '1.0.0']
+    browser: Browsers.macOS('Desktop'),
+    keepAliveIntervalMs: 25_000,
+    connectTimeoutMs: 60_000,
+    defaultQueryTimeoutMs: 60_000,
+    emitOwnEvents: false,
+    syncFullHistory: false,
+    markOnlineOnConnect: false
   });
 
   sock.ev.on('connection.update', (update) => {
@@ -58,7 +71,8 @@ async function startWhatsApp() {
       connectionStatus = 'disconnected';
       lastQr = null;
       if (shouldReconnect) {
-        setTimeout(startWhatsApp, 3000);
+        const delay = (statusCode === 515 || statusCode === 408) ? 1500 : 3000;
+        setTimeout(startWhatsApp, delay);
       } else {
         console.log('🚪 Logged out. Delete auth_session folder and restart to scan new QR.');
       }
@@ -415,4 +429,13 @@ app.listen(PORT, () => {
   console.log(`\n🚀 UHHS WhatsApp Gateway running on http://localhost:${PORT}`);
   console.log(`👉 Open http://localhost:${PORT}/qr to scan QR code in browser\n`);
   startWhatsApp().catch(err => console.error('Startup error:', err));
+
+  // ─── 24/7 Keep-Alive Engine (Prevents Render Free Tier from Sleeping) ───
+  const PING_TARGET = process.env.RENDER_EXTERNAL_URL || 'https://uhhs-whatsapp-bot.onrender.com';
+  setInterval(async () => {
+    try {
+      await fetch(`${PING_TARGET}/health`);
+      console.log('💓 [Keep-Alive] 24/7 pulse sent successfully.');
+    } catch (e) {}
+  }, 4 * 60 * 1000); // Pulse every 4 minutes (Render idle limit is 15 mins)
 });

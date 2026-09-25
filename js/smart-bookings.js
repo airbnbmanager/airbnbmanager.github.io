@@ -971,6 +971,7 @@ window.openBookingDrawer = async function(bookingId) {
   const all = window._sbkState.cachedBookings || [];
   const b = all.find(x => x.booking_id === bookingId);
   if (!b) return;
+  window._currentDrawerBooking = b;
 
   const pd = (window._sbkState.cachedPaidMap || {})[b.booking_id] || 0;
   const tot = b.total_amount || 0;
@@ -1135,6 +1136,11 @@ window.openBookingDrawer = async function(bookingId) {
             <button class="btn-sm" style="background:#B45309;color:#fff;padding:10px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;gap:6px;" onclick="window.openGSTInvoiceModal('${b.booking_id}')" title="Generate GST Tax Invoice">
               🧾 GST Invoice
             </button>
+            ${canM ? `
+              <button class="btn-sm" style="background:#EF4444;color:#fff;padding:10px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;gap:6px;" onclick="window.drawerDeleteBooking()" title="Delete this booking">
+                🗑️ Delete Booking
+              </button>
+            ` : ''}
           </div>
         </div>
       </div>
@@ -1148,6 +1154,25 @@ window.drawerDuplicateBooking = function(bookingId) {
     window.duplicateBooking(bookingId);
   } else {
     alert('Duplicate booking function is unavailable.');
+  }
+};
+
+window.drawerDeleteBooking = async function() {
+  const b = window._currentDrawerBooking;
+  if (!b) return;
+  const bookingId = b.booking_id;
+  const guestName = b.guest_name || 'Guest';
+  const roomId = b.room_id || '';
+
+  const fn = window.delBooking || window.deleteBooking || (typeof delBooking === 'function' ? delBooking : null);
+  if (typeof fn === 'function') {
+    await fn(bookingId, guestName, roomId);
+    window.closeBookingDrawer();
+    if (typeof window.renderManageBookings === 'function') {
+      window.renderManageBookings();
+    }
+  } else {
+    alert('Delete booking function is unavailable.');
   }
 };
 
@@ -1980,6 +2005,8 @@ window.saveSmartBooking = async function() {
         booking_mode: insertObj.booking_mode,
         check_in: insertObj.check_in,
         check_out: insertObj.check_out,
+        check_in_time: insertObj.check_in_time || '14:00',
+        check_out_time: insertObj.check_out_time || '11:00',
         total_amount: insertObj.total_amount,
         advance: adv,
         payment_status: insertObj.payment_status
@@ -1989,6 +2016,9 @@ window.saveSmartBooking = async function() {
       }
       if (typeof window.triggerBookingGroupAlert === 'function') {
         window.triggerBookingGroupAlert(bkPayload).catch(err => console.warn('Booking group alert error:', err));
+      }
+      if (typeof window.triggerInvestorBookingAlert === 'function') {
+        window.triggerInvestorBookingAlert(bkPayload).catch(err => console.warn('Investor booking alert error:', err));
       }
     } catch(e) { console.warn('WhatsApp trigger error in smart bookings:', e); }
 

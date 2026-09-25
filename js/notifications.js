@@ -401,9 +401,15 @@
             entityType: 'booking'
           });
 
-          // Fail-safe WhatsApp confirmation pass trigger
+          // Fail-safe WhatsApp confirmation pass & group triggers
           if (b && b.phone && typeof window.triggerGuestBookingPass === 'function') {
             window.triggerGuestBookingPass(b).catch(err => console.warn('Realtime booking pass error:', err));
+          }
+          if (b && typeof window.triggerBookingGroupAlert === 'function') {
+            window.triggerBookingGroupAlert(b).catch(err => console.warn('Realtime booking group alert error:', err));
+          }
+          if (b && typeof window.triggerInvestorBookingAlert === 'function') {
+            window.triggerInvestorBookingAlert(b).catch(err => console.warn('Realtime investor alert error:', err));
           }
         })
       .subscribe((s) => console.log('🔔 Bookings channel:', s));

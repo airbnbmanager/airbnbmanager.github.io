@@ -2977,6 +2977,8 @@ async function saveBooking() {
         booking_mode: mode,
         check_in: ci,
         check_out: co,
+        check_in_time: insertObj.check_in_time || '14:00',
+        check_out_time: insertObj.check_out_time || '11:00',
         total_amount: tot,
         advance: adv,
         payment_status: payStatus
@@ -2986,6 +2988,9 @@ async function saveBooking() {
       }
       if (typeof window.triggerBookingGroupAlert === 'function') {
         window.triggerBookingGroupAlert(bkPayload).catch(err => console.warn('Booking group alert error:', err));
+      }
+      if (typeof window.triggerInvestorBookingAlert === 'function') {
+        window.triggerInvestorBookingAlert(bkPayload).catch(err => console.warn('Investor booking alert error:', err));
       }
     } catch(e) { console.warn('Trigger error:', e); }
 

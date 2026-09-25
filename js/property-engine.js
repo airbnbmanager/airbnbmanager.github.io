@@ -100,6 +100,25 @@
     users: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>'
   };
 
+  // Razorpay Checkout SDK Lazy Loader
+  function loadRazorpayScript(callback) {
+    if (window.Razorpay) {
+      if (typeof callback === 'function') callback();
+      return;
+    }
+    const existing = document.querySelector('script[src="https://checkout.razorpay.com/v1/checkout.js"]');
+    if (existing) {
+      existing.addEventListener('load', () => { if (typeof callback === 'function') callback(); });
+      return;
+    }
+    const script = document.createElement('script');
+    script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+    script.async = true;
+    script.onload = () => { if (typeof callback === 'function') callback(); };
+    script.onerror = () => { console.warn('Failed to load Razorpay script.'); };
+    document.head.appendChild(script);
+  }
+
   class LuxePropertyEngine {
     constructor() {
       this.identifier = detectPropertyIdentifier();
@@ -173,6 +192,7 @@
       this.renderMobileBar();
       this.initGalleryModal();
       this.initUpiModal();
+      loadRazorpayScript(); // Asynchronously pre-fetch Razorpay Checkout SDK
 
       // 5. Real-time CRM Sync: Live Map Location & Booked Dates
       this.fetchLiveCrmLocation();
@@ -1432,21 +1452,30 @@
 
     switchPaymentTab(mode) {
       this.currentPaymentTab = mode;
+      const tabRzp = document.getElementById('tab-btn-razorpay');
       const tabUpi = document.getElementById('tab-btn-upi');
       const tabBank = document.getElementById('tab-btn-bank');
+      const paneRzp = document.getElementById('pay-pane-razorpay');
       const paneUpi = document.getElementById('pay-pane-upi');
       const paneBank = document.getElementById('pay-pane-bank');
+      const manualSec = document.getElementById('manual-verify-section');
 
-      if (mode === 'upi') {
-        if (tabUpi) tabUpi.classList.add('active');
-        if (tabBank) tabBank.classList.remove('active');
-        if (paneUpi) paneUpi.style.display = 'block';
-        if (paneBank) paneBank.style.display = 'none';
-      } else {
+      [tabRzp, tabUpi, tabBank].forEach(t => t && t.classList.remove('active'));
+      [paneRzp, paneUpi, paneBank].forEach(p => p && (p.style.display = 'none'));
+
+      if (mode === 'razorpay') {
+        if (tabRzp) tabRzp.classList.add('active');
+        if (paneRzp) paneRzp.style.display = 'block';
+        if (manualSec) manualSec.style.display = 'none';
+      } else if (mode === 'bank') {
         if (tabBank) tabBank.classList.add('active');
-        if (tabUpi) tabUpi.classList.remove('active');
         if (paneBank) paneBank.style.display = 'block';
-        if (paneUpi) paneUpi.style.display = 'none';
+        if (manualSec) manualSec.style.display = 'block';
+      } else {
+        this.currentPaymentTab = 'upi';
+        if (tabUpi) tabUpi.classList.add('active');
+        if (paneUpi) paneUpi.style.display = 'block';
+        if (manualSec) manualSec.style.display = 'block';
       }
     }
 
@@ -1483,6 +1512,8 @@
       const upiString = `upi://pay?pa=${upiId}&pn=The%20Unique%20Haven%20Homes&am=${amount}&cu=INR&tn=Booking%20${encodeURIComponent(p.name)}%20${this.nights}N`;
       const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&margin=1&data=${encodeURIComponent(upiString)}`;
 
+      this.currentPaymentTab = 'razorpay';
+
       modal.innerHTML = `
         <div class="upi-modal-card">
           <button type="button" class="upi-modal-close" onclick="window.luxeEngine.closeUpiModal()" aria-label="Close">✕</button>
@@ -1515,7 +1546,7 @@
             </div>
           </div>
 
-          <!-- Quick Google Login / Profile Auto-Fill Bar -->
+          <!-- Quick Guest Profile Autofill -->
           ${this.guestProfile ? `
             <div style="background:#f0fdf4; border:1px solid #bbf7d0; border-radius:10px; padding:10px 14px; margin-bottom:14px; display:flex; align-items:center; justify-content:space-between;">
               <div style="font-size:12.5px; color:#166534; font-weight:700;">
@@ -1528,10 +1559,10 @@
           ` : `
             <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:10px 14px; margin-bottom:14px; display:flex; align-items:center; justify-content:space-between; gap:10px;">
               <div style="font-size:12px; color:#475569;">
-                ⚡ <strong>1-Tap Booking:</strong> Sign in with Google to pre-fill name &amp; GST email
+                ⚡ <strong>Quick Booking:</strong> Details saved securely for your stay
               </div>
               <button type="button" onclick="window.luxeEngine.openProfileModal()" style="background:#0f172a; color:#fff; border:none; border-radius:6px; padding:5px 10px; font-size:11.5px; font-weight:700; cursor:pointer; flex-shrink:0;">
-                Quick Login
+                Quick Profile
               </button>
             </div>
           `}
@@ -1573,16 +1604,41 @@
 
           <!-- Step 3: Choose Payment Method Tabs -->
           <div class="upi-pay-tabs">
-            <button type="button" id="tab-btn-upi" class="upi-pay-tab-btn active" onclick="window.luxeEngine.switchPaymentTab('upi')">
-              📱 UPI QR &amp; Apps (Instant)
+            <button type="button" id="tab-btn-razorpay" class="upi-pay-tab-btn active" onclick="window.luxeEngine.switchPaymentTab('razorpay')">
+              💳 Pay Online (Card / UPI)
+            </button>
+            <button type="button" id="tab-btn-upi" class="upi-pay-tab-btn" onclick="window.luxeEngine.switchPaymentTab('upi')">
+              📱 QR &amp; Apps (0% Fee)
             </button>
             <button type="button" id="tab-btn-bank" class="upi-pay-tab-btn" onclick="window.luxeEngine.switchPaymentTab('bank')">
-              🏦 Bank Transfer (NEFT/IMPS)
+              🏦 Bank (NEFT)
             </button>
           </div>
 
-          <!-- Pane 1: UPI QR & Apps -->
-          <div id="pay-pane-upi">
+          <!-- Pane 1: Razorpay Online Payment -->
+          <div id="pay-pane-razorpay">
+            <div style="background:#f0fdf4; border:1px solid #bbf7d0; border-radius:12px; padding:12px 14px; margin-bottom:14px;">
+              <div style="font-size:12.5px; font-weight:800; color:#166534; display:flex; align-items:center; gap:6px; margin-bottom:4px;">
+                <span>🔒</span> Instant Online Checkout (Automatic Confirmation)
+              </div>
+              <div style="font-size:11.5px; color:#15803d; line-height:1.4;">
+                Pay securely with Debit/Credit Card (Visa, Mastercard, RuPay), Google Pay, PhonePe, Paytm, or NetBanking. Booking is instantly confirmed in CRM.
+              </div>
+            </div>
+            <button type="button" class="razorpay-cta-btn" onclick="window.luxeEngine.initiateRazorpayPayment()" style="width:100%; background:linear-gradient(135deg, #0284c7 0%, #0369a1 100%); color:#fff; border:none; border-radius:12px; padding:15px; font-size:14.5px; font-weight:800; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px; box-shadow:0 4px 14px rgba(2, 132, 199, 0.35);">
+              <span>💳 Pay ₹${amount.toLocaleString('en-IN')} Online Now</span>
+            </button>
+            <div style="display:flex; justify-content:center; align-items:center; gap:10px; margin-top:10px; font-size:11px; color:#64748b;">
+              <span>⚡ Auto-Confirmed</span>
+              <span>•</span>
+              <span>🛡️ 256-Bit Bank Security</span>
+              <span>•</span>
+              <span>Razorpay Secured</span>
+            </div>
+          </div>
+
+          <!-- Pane 2: UPI QR & Apps -->
+          <div id="pay-pane-upi" style="display:none;">
             <div class="upi-mobile-pay-cta" style="margin-bottom:12px;">
               <a class="upi-btn-mobile-instant" href="${upiString}">
                 <span>⚡ Tap to Pay ₹${amount.toLocaleString('en-IN')} via UPI</span>
@@ -1627,7 +1683,7 @@
             </div>
           </div>
 
-          <!-- Pane 2: Bank Transfer (Firoz Ahmad SBI Details) -->
+          <!-- Pane 3: Bank Transfer (SBI Details) -->
           <div id="pay-pane-bank" style="display:none;">
             <div class="bank-transfer-box">
               <div style="font-size:13px; font-weight:800; color:#0f172a; margin-bottom:10px; display:flex; align-items:center; gap:6px;">
@@ -1673,17 +1729,20 @@
             </p>
           </div>
 
-          <!-- Step 4: Transaction Ref / UTR -->
-          <div class="upi-form-group">
-            <label>Payment UTR / 12-Digit Reference No (Optional)</label>
-            <input type="text" id="upi-utr" placeholder="e.g. 426819283741 or Paid via UPI" />
+          <!-- Section for UPI / Bank Transfer Manual Confirmation -->
+          <div id="manual-verify-section" style="display:none;">
+            <div class="upi-form-group">
+              <label>Payment UTR / 12-Digit Reference No (Optional)</label>
+              <input type="text" id="upi-utr" placeholder="e.g. 426819283741 or Paid via UPI" />
+            </div>
+
+            <!-- Confirm & WhatsApp Trigger Button -->
+            <button type="button" class="upi-btn-confirm" onclick="window.luxeEngine.confirmUpiPayment()">
+              ${ICONS.whatsapp} Confirm Booking &amp; Generate GST Pass
+            </button>
           </div>
 
-          <!-- Confirm & WhatsApp Trigger Button -->
-          <button type="button" class="upi-btn-confirm" onclick="window.luxeEngine.confirmUpiPayment()">
-            ${ICONS.whatsapp} Confirm Booking &amp; Generate GST Pass
-          </button>
-          <div style="text-align:center; font-size:11px; color:#94a3b8; margin-top:10px;">
+          <div style="text-align:center; font-size:11px; color:#94a3b8; margin-top:12px;">
             🔒 100% Verified Stay with THE UNIQUE HAVEN HOMES PRIVATE LIMITED (CIN: U55101UP2026PTC244637)
           </div>
         </div>
@@ -1721,11 +1780,10 @@
       document.body.style.overflow = '';
     }
 
-    async confirmUpiPayment() {
+    getValidatedGuestData() {
       const nameInput = document.getElementById('upi-guest-name');
       const phoneInput = document.getElementById('upi-guest-phone');
       const emailInput = document.getElementById('upi-guest-email');
-      const utrInput = document.getElementById('upi-utr');
       const b2bCheck = document.getElementById('upi-b2b-check');
       const compNameInput = document.getElementById('upi-company-name');
       const compGstinInput = document.getElementById('upi-company-gstin');
@@ -1733,7 +1791,6 @@
       const name = nameInput ? nameInput.value.trim() : '';
       const phone = phoneInput ? phoneInput.value.trim() : '';
       const email = emailInput ? emailInput.value.trim() : (this.guestProfile?.email || '');
-      const utr = utrInput ? utrInput.value.trim() : 'Paid via UPI / Direct';
 
       const isB2B = b2bCheck ? b2bCheck.checked : false;
       const companyName = isB2B && compNameInput ? compNameInput.value.trim() : '';
@@ -1742,19 +1799,31 @@
       if (!name) {
         alert('Please enter your full legal name.');
         if (nameInput) nameInput.focus();
-        return;
+        return null;
       }
 
       if (!phone || phone.replace(/\D/g, '').length < 10) {
         alert('Please enter a valid 10-digit WhatsApp phone number.');
         if (phoneInput) phoneInput.focus();
-        return;
+        return null;
       }
 
       if (!email || !email.includes('@')) {
         alert('Please enter a valid email address so we can deliver your official GST tax bill.');
         if (emailInput) emailInput.focus();
-        return;
+        return null;
+      }
+
+      if (isB2B && (!companyName || !companyGstin || companyGstin.length < 15)) {
+        alert('For Business GST Invoice, please enter both Company Legal Name and valid 15-digit GSTIN.');
+        if (!companyName && compNameInput) compNameInput.focus();
+        else if (compGstinInput) compGstinInput.focus();
+        return null;
+      }
+
+      if (!this.isDateAvailable) {
+        alert('The selected dates are currently unavailable or conflicting with an existing booking. Please select different dates.');
+        return null;
       }
 
       // Persist profile in localStorage for instant 1-tap booking next time
@@ -1772,18 +1841,106 @@
         this.renderUserNavBadge();
       } catch(e) {}
 
-      if (isB2B && (!companyName || !companyGstin || companyGstin.length < 15)) {
-        alert('For Business GST Invoice, please enter both Company Legal Name and valid 15-digit GSTIN.');
-        if (!companyName && compNameInput) compNameInput.focus();
-        else if (compGstinInput) compGstinInput.focus();
+      return { name, phone, email, isB2B, companyName, companyGstin };
+    }
+
+    initiateRazorpayPayment() {
+      const data = this.getValidatedGuestData();
+      if (!data) return;
+
+      const keyId = window.RAZORPAY_KEY_ID;
+      if (!keyId || keyId.includes('placeholder') || keyId.trim() === '') {
+        alert('ℹ️ Razorpay Payment Gateway company owner ke dwara activate kiya ja raha hai.\n\nTab tak aap turant "📱 QR & Apps (0% Fee)" tab se PhonePe / GPay ya Bank Transfer se direct book kar sakte hain!');
+        this.switchPaymentTab('upi');
         return;
       }
 
-      if (!this.isDateAvailable) {
-        alert('The selected dates are currently unavailable or conflicting with an existing booking. Please select different dates.');
-        return;
-      }
+      const p = this.prop;
+      const base = p.base_price || 3499;
+      const baseTotal = this.baseTariff || (base * this.nights);
+      const gstRate = this.gstRate || (base <= 7500 ? 5 : 18);
+      const gstAmount = this.gstAmount || Math.round(baseTotal * (gstRate / 100));
+      const amount = this.totalPayable || (baseTotal + gstAmount);
+      const bookingRef = 'UHHS-' + Date.now().toString().slice(-6);
 
+      loadRazorpayScript(() => {
+        if (typeof Razorpay === 'undefined') {
+          alert('Unable to load Razorpay checkout SDK. Please use the UPI QR tab.');
+          this.switchPaymentTab('upi');
+          return;
+        }
+
+        const options = {
+          key: keyId,
+          amount: Math.round(amount * 100),
+          currency: 'INR',
+          name: 'The Unique Haven Homes',
+          description: `${p.name} (${this.nights} Nights)`,
+          image: 'assets/logo.png',
+          prefill: {
+            name: data.name,
+            contact: data.phone,
+            email: data.email
+          },
+          notes: {
+            booking_ref: bookingRef,
+            property_id: String(p.id),
+            property_name: p.name,
+            check_in: this.checkIn,
+            check_out: this.checkOut,
+            nights: String(this.nights)
+          },
+          theme: {
+            color: '#0f172a'
+          },
+          handler: async (response) => {
+            console.log('Razorpay Payment Successful:', response);
+            const paymentId = response.razorpay_payment_id || 'Razorpay-' + Date.now();
+            await this.processBookingRecord({
+              ...data,
+              paymentMode: 'Razorpay Online',
+              utr: paymentId,
+              receivedBy: 'Razorpay PG'
+            });
+          },
+          modal: {
+            ondismiss: () => {
+              console.log('Razorpay checkout closed by user');
+            }
+          }
+        };
+
+        try {
+          const rzpInstance = new Razorpay(options);
+          rzpInstance.on('payment.failed', (errResp) => {
+            alert('Payment Failed: ' + (errResp?.error?.description || 'Transaction could not be completed. Please try again or use UPI.'));
+          });
+          rzpInstance.open();
+        } catch(err) {
+          console.error('Razorpay invocation error:', err);
+          alert('Error launching Razorpay. Switching to UPI QR tab.');
+          this.switchPaymentTab('upi');
+        }
+      });
+    }
+
+    async confirmUpiPayment() {
+      const data = this.getValidatedGuestData();
+      if (!data) return;
+
+      const utrInput = document.getElementById('upi-utr');
+      const utr = utrInput && utrInput.value.trim() ? utrInput.value.trim() : 'Paid via UPI / Direct';
+      const paymentMode = this.currentPaymentTab === 'bank' ? 'Bank Transfer' : 'UPI';
+
+      await this.processBookingRecord({
+        ...data,
+        paymentMode,
+        utr,
+        receivedBy: 'Firoz Ahmad'
+      });
+    }
+
+    async processBookingRecord({ name, phone, email, isB2B, companyName, companyGstin, paymentMode, utr, receivedBy }) {
       const p = this.prop;
       const base = p.base_price || 3499;
       const baseTotal = this.baseTariff || (base * this.nights);
@@ -1799,9 +1956,9 @@
         sbClient = window.sb = supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY);
       }
 
-      const notes = `Direct Website Booking (with GST). Base: ₹${baseTotal}, GST ${gstRate}% (SAC 996311): ₹${gstAmount} [CGST: ₹${cgstAmount}, SGST: ₹${sgstAmount}]. Nights: ${this.nights}. UTR: ${utr}.${isB2B ? ` [B2B Corporate Invoice]: Company: ${companyName} | GSTIN: ${companyGstin}` : ' [B2C Guest]'}`;
+      const notes = `Direct Website Booking (with GST). Base: ₹${baseTotal}, GST ${gstRate}% (SAC 996311): ₹${gstAmount} [CGST: ₹${cgstAmount}, SGST: ₹${sgstAmount}]. Nights: ${this.nights}. Payment: ${paymentMode} (${utr}).${isB2B ? ` [B2B Corporate Invoice]: Company: ${companyName} | GSTIN: ${companyGstin}` : ' [B2C Guest]'}`;
 
-      // 1. Save to Supabase CRM (guest_register table)
+      // 1. Save to Supabase CRM (guest_register table) - ONLY INSERT, NO DELETIONS/UPDATES TO EXISTING
       if (sbClient) {
         try {
           const { data: bData, error: bErr } = await sbClient.from('guest_register').insert({
@@ -1821,7 +1978,7 @@
             notes: notes,
             booked_by: 'Direct Guest',
             is_cancelled: false,
-            verification_status: 'pending'
+            verification_status: paymentMode.includes('Razorpay') ? 'verified' : 'pending'
           }).select();
 
           if (bErr) {
@@ -1830,15 +1987,15 @@
             console.log('✅ Booking successfully saved to CRM guest_register:', bData);
           }
 
-          // 2. Insert into payment_history
+          // 2. Insert into payment_history - ONLY INSERT
           await sbClient.from('payment_history').insert({
             booking_id: bookingId,
             amount: amount,
             payment_date: new Date().toISOString().slice(0, 10),
-            payment_mode: this.currentPaymentTab === 'bank' ? 'Bank Transfer' : 'UPI',
-            received_by: 'Firoz Ahmad',
+            payment_mode: paymentMode,
+            received_by: receivedBy || 'Firoz Ahmad',
             notes: `Website Booking (${bookingId}) - ${utr}.${isB2B ? ' GSTIN: ' + companyGstin : ''}`,
-            verification_status: 'pending'
+            verification_status: paymentMode.includes('Razorpay') ? 'verified' : 'pending'
           });
         } catch (err) {
           console.warn('Direct booking Supabase sync exception:', err);
@@ -1868,7 +2025,7 @@
 • Base Room Tariff: ₹${baseTotal.toLocaleString('en-IN')}
 • GST (${gstRate}% · SAC 996311): ₹${gstAmount.toLocaleString('en-IN')} (CGST: ₹${cgstAmount} + SGST: ₹${sgstAmount})
 • *Total Amount Paid:* ₹${amount.toLocaleString('en-IN')}
-• Payment Mode: ${this.currentPaymentTab === 'bank' ? 'Bank Transfer (SBI)' : 'UPI (PhonePe)'}
+• Payment Mode: ${paymentMode}
 • UTR / Txn Ref: ${utr}
 ${isB2B ? `\n🏢 *CORPORATE GST INVOICE REQUIRED:*
 • Company: ${companyName}
@@ -1903,13 +2060,12 @@ _Please confirm room allotment and issue official GST Tax Invoice. Thank you!_`;
         utr,
         waUrl,
         propertyCover: p.cover_image || (this.catalog.all[0] ? this.catalog.all[0].url : 'assets/logo.png'),
-        paymentMode: this.currentPaymentTab === 'bank' ? 'Bank Transfer (SBI)' : 'UPI Instant',
+        paymentMode,
         bookedAt: new Date().toISOString()
       };
 
       try {
         const bookingsList = JSON.parse(localStorage.getItem('uhhs_my_bookings') || '[]');
-        // Don't add duplicate
         if (!bookingsList.some(b => b.bookingId === bookingId)) {
           bookingsList.unshift(myBookingItem);
           localStorage.setItem('uhhs_my_bookings', JSON.stringify(bookingsList));
@@ -1941,6 +2097,7 @@ _Please confirm room allotment and issue official GST Tax Invoice. Thank you!_`;
         companyName,
         companyGstin,
         utr,
+        paymentMode,
         waUrl
       });
     }

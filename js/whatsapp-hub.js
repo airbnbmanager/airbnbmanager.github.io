@@ -18,9 +18,10 @@
     meta_access_token: '',
     meta_verify_token: 'uhhs_meta_secure_2026',
 
-    // Only Booking Message is ON, all others OFF by default
+    // 3 Essential Auto-Dispatches for New Bookings
     send_welcome: true, // 🔑 Direct Guest Booking Pass (Active)
-    send_booking_group: false, // OFF
+    send_booking_group: true, // 🛎️ 📒Booking Data Group Alert (Active)
+    send_investor_booking: true, // 💼 Property Investor Group Alert (Active)
     send_housekeeping_checkout: false, // OFF
     send_investor_reports: false, // OFF
     send_arrival: false, // OFF
@@ -30,13 +31,44 @@
     booking_group_id: '120363425834560086@g.us', // 📒Booking Data
     housekeeping_group_id: '120363426832875312@g.us', // Chinhat All booking offline
     investor_groups: {
+      // Room IDs
+      'VIL-105': '120363427551867491@g.us', // The Yellow House -> UHHS Owners Group
+      'VIL-103': '120363427551867491@g.us', // The Pink House -> UHHS Owners Group
+      'VIL-104': '120363427551867491@g.us', // The Green House -> UHHS Owners Group
+      'VIL-106': '120363427551867491@g.us', // Green forest View -> UHHS Owners Group
+      'VIL-107': '120363427551867491@g.us', // The Velvet House -> UHHS Owners Group
+      'LUL-402': '120363427551867491@g.us', // Celebrity Garden -> UHHS Owners Group
+      'VIL-101': '120363412244446528@g.us', // Gomti Grand Villa -> Afzal & Hazi Group
+      'VIL-102': '120363412244446528@g.us', // Royal White House -> Afzal & Hazi Group
+      'GOM-102': '120363427249232463@g.us', // Black Beauty -> Alam Sahab
+      'GOM-302': '120363427249232463@g.us', // The Unique -> Alam Sahab
+      'GOM-201': '120363430510952329@g.us', // The Dark Blue -> Sabir Bhai
+      'GOM-101': '120363411536897935@g.us', // RedRose Palace -> Afzal Khan
+      'GOM-202': '120363412078246077@g.us', // The Brown -> Ammy Papa
+      'GOM-301': '120363409825792343@g.us', // The Light Green -> Shanu Bhaijaan
+      'GOM-401': '120363426678446574@g.us', // The Nawabi Stay -> Sanaul Mustafa
+      'GOM-501': '120363411439466222@g.us', // Starlight Blue PentHouse -> Shahil Khan
+
+      // Property & Group Names
+      'UHHS Owners Group': '120363427551867491@g.us',
+      'The Yellow House': '120363427551867491@g.us',
+      'Yellow House': '120363427551867491@g.us',
+      'Firoz& Shahenshah': '120363427551867491@g.us',
+      'UHHS — Sabir Bhai': '120363430510952329@g.us',
       'Sabir Bhai': '120363430510952329@g.us',
+      'UHHS — Afzal & Hazi Group': '120363412244446528@g.us',
       'Afzal & Hazi Group': '120363412244446528@g.us',
+      'UHHS — Alam Sahab': '120363427249232463@g.us',
       'Alam Sahab': '120363427249232463@g.us',
+      'UHHS — Sanaul Mustafa': '120363426678446574@g.us',
       'Sanaul Mustafa': '120363426678446574@g.us',
+      'UHHS — Afzal Khan': '120363411536897935@g.us',
       'Afzal Khan': '120363411536897935@g.us',
+      'UHHS — Ammy Papa': '120363412078246077@g.us',
       'Ammy Papa': '120363412078246077@g.us',
+      'UHHS — Shanu Bhaijaan': '120363409825792343@g.us',
       'Shanu Bhaijaan': '120363409825792343@g.us',
+      'UHHS — Shahil Khan': '120363411439466222@g.us',
       'Shahil Khan': '120363411439466222@g.us'
     },
 
@@ -87,14 +119,43 @@
     HUB.config = { ...DEFAULT_WA_CONFIG };
     const local = getLocalConfig();
     if (local) {
-      HUB.config = { ...HUB.config, ...local };
+      HUB.config = {
+        ...HUB.config,
+        ...local,
+        investor_groups: {
+          ...DEFAULT_WA_CONFIG.investor_groups,
+          ...(local.investor_groups || {})
+        }
+      };
+    }
+    // Auto-migrate: ensure booking_group and investor_booking default to ON
+    if (HUB.config.send_booking_group === undefined || HUB.config.send_booking_group === false) {
+      HUB.config.send_booking_group = true;
+    }
+    if (HUB.config.send_investor_booking === undefined) {
+      HUB.config.send_investor_booking = true;
+    }
+    if (!HUB.config.booking_group_id) {
+      HUB.config.booking_group_id = DEFAULT_WA_CONFIG.booking_group_id;
     }
     // Dry-run mode is completely removed — always LIVE dispatches
     delete HUB.config.dry_run_mode;
     if (HUB.config.auto_send_enabled !== false) {
       HUB.config.auto_send_enabled = true;
     }
+    startGatewayKeepAlive();
     return HUB.config;
+  }
+
+  // ─── 24/7 Gateway Heartbeat Keeper (Prevents Render Free Tier from Sleeping) ───
+  function startGatewayKeepAlive() {
+    if (window._waGatewayPingInterval) return;
+    window._waGatewayPingInterval = setInterval(async () => {
+      try {
+        const gwUrl = (HUB.config?.gateway_url || 'https://uhhs-whatsapp-bot.onrender.com').replace(/\/+$/, '');
+        await fetch(gwUrl + '/health');
+      } catch (e) {}
+    }, 4 * 60 * 1000);
   }
 
   // ─── Dual-Layer Logs ───
@@ -160,6 +221,12 @@
       display_name: '📊 Monthly Statement (Investor Group)',
       auto_send: true,
       body_text: '📊 *MONTHLY INVESTOR STATEMENT — {{1}}*\n━━━━━━━━━━━━━━━━━━\n👤 *Investor:* {{2}}\n🏠 *Property:* {{3}}\n💵 *Gross Revenue:* ₹{{4}}\n📉 *Expenses & Ops:* -₹{{5}}\n━━━━━━━━━━━━━━━━━━\n💰 *NET PAYOUT:* ₹{{6}}\n━━━━━━━━━━━━━━━━━━\n_Generated via UHHS CRM_'
+    },
+    {
+      template_name: 'new_booking_investor',
+      display_name: '💼 Investor Booking Update (Short & Private)',
+      auto_send: true,
+      body_text: 'Booking Update\n\nProperty: {{1}}\nBooking: {{2}}\nCheck-in: {{3}}\nCheck-out: {{4}}\nNights: {{5}}\nAmount: ₹{{6}}\n\nThe Unique Haven Homes Property Management'
     },
     {
       template_name: 'arrival_details',
@@ -259,8 +326,12 @@
     }
 
     // 2. GRANULAR TOGGLE CHECK
-    if (type === 'new_booking_group' && !HUB.config.send_booking_group) {
+    if (type === 'new_booking_group' && HUB.config.send_booking_group === false) {
       console.log('🛑 [WhatsApp Hub] Booking Group alerts are OFF.');
+      return { ok: false, reason: 'subtoggle_off' };
+    }
+    if (type === 'new_booking_investor' && HUB.config.send_investor_booking === false) {
+      console.log('🛑 [WhatsApp Hub] Investor Booking alerts are OFF.');
       return { ok: false, reason: 'subtoggle_off' };
     }
     if (type === 'housekeeping_checkout' && !HUB.config.send_housekeeping_checkout) {
@@ -268,10 +339,10 @@
       return { ok: false, reason: 'subtoggle_off' };
     }
     if (type === 'investor_report' && !HUB.config.send_investor_reports) {
-      console.log('🛑 [WhatsApp Hub] Investor Group alerts are OFF.');
+      console.log('🛑 [WhatsApp Hub] Investor Group monthly reports are OFF.');
       return { ok: false, reason: 'subtoggle_off' };
     }
-    if (type === 'guest_welcome' && !HUB.config.send_welcome) {
+    if (type === 'guest_welcome' && HUB.config.send_welcome === false) {
       return { ok: false, reason: 'subtoggle_off' };
     }
     if (type === 'checkout_reminder' && !HUB.config.send_checkout) {
@@ -382,15 +453,33 @@
 
   // ─── GLOBAL AUTOMATION TRIGGERS ───
 
-  // A. Trigger New Booking Alert to Booking Group
+  window._dispatchedGroupAlerts = window._dispatchedGroupAlerts || new Set();
+
+  // A. Trigger New Booking Alert to Booking Group (📒Booking Data)
   window.triggerBookingGroupAlert = async function(b) {
     if (!b) return;
+    if (b.booking_id && window._dispatchedGroupAlerts.has(b.booking_id)) {
+      console.log('ℹ️ Booking group alert already dispatched for:', b.booking_id);
+      return;
+    }
     await loadConfig();
-    const groupId = HUB.config.booking_group_id;
+
+    if (!HUB.config.auto_send_enabled) {
+      console.log('ℹ️ Master automation is PAUSED in WhatsApp Hub.');
+      return;
+    }
+    if (HUB.config.send_booking_group === false) {
+      console.log('ℹ️ Booking group alert toggle is OFF in WhatsApp Hub.');
+      return;
+    }
+
+    const groupId = HUB.config.booking_group_id || '120363425834560086@g.us';
     if (!groupId) {
       console.log('ℹ️ Booking group ID not configured in Settings.');
       return;
     }
+
+    if (b.booking_id) window._dispatchedGroupAlerts.add(b.booking_id);
 
     const roomName = b.rooms?.nickname || b.rooms?.unit_no || b.room_name || b.room_id || 'Apartment';
     const guest = b.guest_name || 'Guest';
@@ -407,7 +496,7 @@
     };
 
     const text =
-      `🛎️ *NEW BOOKING CONFIRMED*\n` +
+      `🛎️ *NEW BOOKING CONFIRMED — 📒BOOKING DATA*\n` +
       `━━━━━━━━━━━━━━━━━━\n` +
       `🏠 *Property:* ${roomName}\n` +
       `👤 *Guest:* ${guest}\n` +
@@ -416,6 +505,7 @@
       `📅 *Check-out:* ${fmtD(b.check_out)} (${b.check_out_time || '11:00'})\n` +
       `🌙 *Duration:* ${nights} Night${nights > 1 ? 's' : ''}\n` +
       `💰 *Total:* ₹${tot.toLocaleString('en-IN')} | Paid: ₹${adv.toLocaleString('en-IN')} | Due: ₹${due.toLocaleString('en-IN')}\n` +
+      `🌐 *Source:* ${b.booking_mode || 'Direct'}\n` +
       `━━━━━━━━━━━━━━━━━━\n` +
       `Caretaker: Please prepare property.`;
 
@@ -426,6 +516,133 @@
       type: 'new_booking_group',
       bookingId: b.booking_id,
       guestName: guest
+    });
+  };
+
+  window._dispatchedInvestorAlerts = window._dispatchedInvestorAlerts || new Set();
+
+  // A1. Trigger New Booking Alert to Dedicated Property Investor Group
+  window.triggerInvestorBookingAlert = async function(b) {
+    if (!b) return;
+    if (b.booking_id && window._dispatchedInvestorAlerts.has(b.booking_id)) {
+      console.log('ℹ️ Investor booking alert already dispatched for:', b.booking_id);
+      return;
+    }
+    await loadConfig();
+
+    if (!HUB.config.auto_send_enabled) {
+      console.log('ℹ️ Master automation is PAUSED in WhatsApp Hub.');
+      return;
+    }
+    if (HUB.config.send_investor_booking === false) {
+      console.log('ℹ️ Investor booking alert toggle is OFF in WhatsApp Hub.');
+      return;
+    }
+
+    const roomId = b.room_id || '';
+    let roomNickname = b.rooms?.nickname || '';
+    let unitNo = b.rooms?.unit_no || '';
+
+    // Check cached rooms / properties if unit_no or nickname missing
+    if ((!roomNickname || !unitNo) && window.UHHS_PROPERTIES) {
+      const p = window.UHHS_PROPERTIES.find(x => x.unit_no === roomId || (x.nickname && (b.room_name || '').includes(x.nickname)));
+      if (p) {
+        if (!roomNickname) roomNickname = p.nickname;
+        if (!unitNo) unitNo = p.unit_no;
+      }
+    }
+
+    let propDisplay = '';
+    if (roomNickname && unitNo) {
+      propDisplay = `${roomNickname} (${unitNo})`;
+    } else if (b.room_name) {
+      propDisplay = b.room_name;
+    } else if (roomNickname) {
+      propDisplay = roomNickname;
+    } else {
+      propDisplay = roomId || 'Property';
+    }
+
+    const groupMap = HUB.config.investor_groups || {};
+
+    // Match target: Room ID -> Room Nickname -> DB Group Name
+    let target = groupMap[roomId] ||
+                 groupMap[roomNickname] ||
+                 groupMap[b.rooms?.whatsapp_group_name] ||
+                 groupMap[b.rooms?.nickname];
+
+    if (!target) {
+      for (const [key, gid] of Object.entries(groupMap)) {
+        if (key && ((b.room_name && b.room_name.toLowerCase().includes(key.toLowerCase())) ||
+                    (roomNickname && roomNickname.toLowerCase().includes(key.toLowerCase())) ||
+                    (roomId && roomId.toLowerCase() === key.toLowerCase()))) {
+          target = gid;
+          break;
+        }
+      }
+    }
+
+    // Special fallback for Yellow House / Villas (Firoz & Shahenshah -> UHHS Owners Group)
+    if (!target && (roomId === 'VIL-105' || propDisplay.toLowerCase().includes('yellow') || roomId.startsWith('VIL-'))) {
+      target = '120363427551867491@g.us';
+    }
+
+    if (!target) {
+      console.warn('⚠️ No Investor Group mapped for property:', roomId, propDisplay);
+      return { ok: false, reason: 'no_investor_group_mapped' };
+    }
+
+    if (b.booking_id) window._dispatchedInvestorAlerts.add(b.booking_id);
+
+    const isGroup = String(target).includes('@g.us');
+    const nights = (b.check_in && b.check_out && window.calcNights) ? calcNights(b.check_in, b.check_out) : 1;
+    const tot = b.total_amount || 0;
+
+    const fmtD = (dt) => {
+      if (!dt) return '';
+      try {
+        const parts = String(dt).split('-');
+        if (parts.length === 3) {
+          const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+          const yr = parts[0];
+          const m = months[parseInt(parts[1], 10) - 1] || parts[1];
+          const d = parseInt(parts[2], 10);
+          return `${d} ${m} ${yr}`;
+        }
+        const dtObj = new Date(dt);
+        return dtObj.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+      } catch(e) { return dt; }
+    };
+
+    const ciDate = fmtD(b.check_in);
+    const coDate = fmtD(b.check_out);
+    const ciTime = b.check_in_time || '14:00';
+    const coTime = b.check_out_time || '11:00';
+
+    let bookingMode = b.booking_mode || 'Offline (Direct)';
+    if (bookingMode.toLowerCase() === 'direct' || bookingMode.toLowerCase() === 'offline') {
+      bookingMode = 'Offline (Direct)';
+    }
+
+    const text =
+`Booking Update
+
+Property: ${propDisplay}
+Booking: ${bookingMode}
+Check-in: ${ciDate}, ${ciTime}
+Check-out: ${coDate}, ${coTime}
+Nights: ${nights}
+Amount: ₹${tot.toLocaleString('en-IN')}
+
+The Unique Haven Homes Property Management`;
+
+    return await dispatchWhatsAppMessage({
+      to: target,
+      isGroup: isGroup,
+      text: text,
+      type: 'new_booking_investor',
+      bookingId: b.booking_id,
+      guestName: 'Investor Alert'
     });
   };
 
@@ -1068,9 +1285,15 @@
               </div>
             </div>
             <div class="hub-stat-tile">
-              <div class="hub-stat-label">ACTIVE SUB-AUTOMATION</div>
-              <div class="hub-stat-val" style="color:#15803D;font-size:13.5px;font-weight:700;margin-top:5px;">
-                🔑 Guest Booking Pass Only
+              <div class="hub-stat-label">ACTIVE SUB-AUTOMATIONS</div>
+              <div class="hub-stat-val" style="color:#15803D;font-size:12.5px;font-weight:700;margin-top:5px;line-height:1.3;">
+                ${
+                  [
+                    c.send_welcome !== false ? '🔑 Guest Pass' : null,
+                    c.send_booking_group !== false ? '📒 Booking Group' : null,
+                    c.send_investor_booking !== false ? '💼 Investor' : null
+                  ].filter(Boolean).join(' • ') || 'None Active'
+                }
               </div>
             </div>
             <div class="hub-stat-tile">
@@ -1157,26 +1380,42 @@
             </div>
           </div>
 
-          <!-- 2. Booking Alert to Hosts & Team -->
-          <div style="border:1.5px solid ${c.send_booking_group ? '#86EFAC' : '#E2E8F0'};background:${c.send_booking_group ? '#F0FDF4' : '#F8FAFC'};border-radius:10px;padding:14px;">
+          <!-- 2. Booking Alert to Booking Data Group -->
+          <div style="border:1.5px solid ${c.send_booking_group !== false ? '#86EFAC' : '#E2E8F0'};background:${c.send_booking_group !== false ? '#F0FDF4' : '#F8FAFC'};border-radius:10px;padding:14px;">
             <div style="display:flex;justify-content:space-between;align-items:center;">
-              <strong style="color:#0F172A;">🛎️ Owner &amp; Team Booking Alerts</strong>
-              <span class="badge ${c.send_booking_group && enabled ? 'green' : 'yellow'}">
-                ${c.send_booking_group && enabled ? 'Active' : 'Disabled'}
+              <strong style="color:#0F172A;">📒 Booking Data Group Alert</strong>
+              <span class="badge ${c.send_booking_group !== false && enabled ? 'green' : 'yellow'}">
+                ${c.send_booking_group !== false && enabled ? 'Active' : 'Disabled'}
               </span>
             </div>
             <p style="font-size:12px;color:#64748B;margin:6px 0 10px 0;">
-              Sends immediate alert to Shahanshah &amp; Firoz / Booking Group when a new booking arrives.
+              Sends immediate booking summary to 📒Booking Data group when a booking is confirmed.
             </p>
             <div style="font-size:11px;color:#334155;background:rgba(0,0,0,0.04);padding:6px 8px;border-radius:6px;word-break:break-all;">
-              Target: <b>${c.booking_group_id || '9450055554 / Booking Group'}</b>
+              Target: <b>${c.booking_group_id || '120363425834560086@g.us (📒Booking Data)'}</b>
             </div>
           </div>
 
-          <!-- 3. Investor Group Alert -->
+          <!-- 3. Investor Booking Alert -->
+          <div style="border:1.5px solid ${c.send_investor_booking !== false ? '#86EFAC' : '#E2E8F0'};background:${c.send_investor_booking !== false ? '#F0FDF4' : '#F8FAFC'};border-radius:10px;padding:14px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <strong style="color:#0F172A;">💼 Investor Booking Alerts</strong>
+              <span class="badge ${c.send_investor_booking !== false && enabled ? 'green' : 'yellow'}">
+                ${c.send_investor_booking !== false && enabled ? 'Active' : 'Disabled'}
+              </span>
+            </div>
+            <p style="font-size:12px;color:#64748B;margin:6px 0 10px 0;">
+              Dispatches new booking details directly to that property's dedicated Investor WhatsApp Group.
+            </p>
+            <div style="font-size:11px;color:#334155;background:rgba(0,0,0,0.04);padding:6px 8px;border-radius:6px;">
+              Mapped Groups: <b>${Object.keys(c.investor_groups || {}).length} properties/groups</b>
+            </div>
+          </div>
+
+          <!-- 4. Investor Monthly Statement -->
           <div style="border:1.5px solid ${c.send_investor_reports ? '#86EFAC' : '#E2E8F0'};background:${c.send_investor_reports ? '#F0FDF4' : '#F8FAFC'};border-radius:10px;padding:14px;">
             <div style="display:flex;justify-content:space-between;align-items:center;">
-              <strong style="color:#0F172A;">📊 Investor Group Statements</strong>
+              <strong style="color:#0F172A;">📊 Investor Monthly Statements</strong>
               <span class="badge ${c.send_investor_reports && enabled ? 'green' : 'yellow'}">
                 ${c.send_investor_reports && enabled ? 'Active' : 'Disabled'}
               </span>
@@ -1318,7 +1557,7 @@
           })}
         </div>
 
-        <h4 style="margin:0 0 10px 0;color:#0F172A;">🔘 Sub-Automations (Guest Booking is ON, others OFF)</h4>
+        <h4 style="margin:0 0 10px 0;color:#0F172A;">🔘 Sub-Automations (Guest + Booking Group + Investor)</h4>
         <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px;margin-bottom:18px;">
           ${renderSwitchCard({
             id: 'cfgSendWelcome',
@@ -1328,9 +1567,15 @@
           })}
           ${renderSwitchCard({
             id: 'cfgSendBookingGroup',
-            checked: !!c.send_booking_group,
-            title: '🛎️ New Booking Alert to Hosts & Team',
-            subtitle: 'Booking confirm hote hi staff / caretaker WhatsApp group me booking summary alert bhejta hai.'
+            checked: c.send_booking_group !== false,
+            title: '🛎️ 📒Booking Data Group Alert',
+            subtitle: 'Booking confirm hote hi 📒Booking Data WhatsApp group me instant booking alert bhejta hai.'
+          })}
+          ${renderSwitchCard({
+            id: 'cfgSendInvestorBooking',
+            checked: c.send_investor_booking !== false,
+            title: '💼 Investor Group Booking Alert',
+            subtitle: 'New booking confirm hote hi us property ke Investor WhatsApp group me alert bhejta hai.'
           })}
           ${renderSwitchCard({
             id: 'cfgSendInvestor',
@@ -1458,7 +1703,8 @@
     const updates = {
       auto_send_enabled: document.getElementById('cfgAutoSend') ? document.getElementById('cfgAutoSend').checked : (HUB.config.auto_send_enabled !== false),
       send_welcome: document.getElementById('cfgSendWelcome') ? document.getElementById('cfgSendWelcome').checked : true,
-      send_booking_group: document.getElementById('cfgSendBookingGroup')?.checked === true,
+      send_booking_group: document.getElementById('cfgSendBookingGroup') ? document.getElementById('cfgSendBookingGroup').checked : true,
+      send_investor_booking: document.getElementById('cfgSendInvestorBooking') ? document.getElementById('cfgSendInvestorBooking').checked : true,
       send_housekeeping_checkout: false,
       send_investor_reports: document.getElementById('cfgSendInvestor')?.checked === true,
       send_checkout: document.getElementById('cfgSendCheckout')?.checked === true,
