@@ -85,6 +85,66 @@ async function startWhatsApp() {
   });
 
   sock.ev.on('creds.update', saveCreds);
+
+  // ─── Incoming Message Smart Bot (Catalog & Direct Booking) ───
+  sock.ev.on('messages.upsert', async ({ messages, type }) => {
+    if (type !== 'notify') return;
+    for (const msg of messages) {
+      if (!msg.message || msg.key.fromMe) continue;
+      const from = msg.key.remoteJid;
+      if (from.endsWith('@g.us')) continue; // Ignore group chats for catalog auto-replies
+
+      const text = (msg.message.conversation || msg.message.extendedTextMessage?.text || '').trim();
+      if (!text) continue;
+
+      const lower = text.toLowerCase();
+      // Match keywords: hi, hello, book, property, villa, rooms, catalog, list, rates
+      if (lower === 'hi' || lower === 'hello' || lower === 'namaste' || lower.includes('book') || lower.includes('property') || lower.includes('villa') || lower.includes('catalog') || lower.includes('kaha') || lower.includes('rates') || lower.includes('flat') || lower.includes('yellow')) {
+        const catalogMsg =
+`🏨 *Welcome to The Unique Haven Homes!*
+Luxury Homestays & Independent Villas in Lucknow ✨
+
+Aap hamari sabhi verified luxury properties yahan dekh aur direct book kar sakte hain:
+
+🏡 *TOP LUXURY VILLAS:*
+1. *The Yellow House* (3BHK Villa, Gomti Nagar) — ₹3,999/night
+👉 https://airbnbmanager.github.io/the-yellow-house.html
+
+2. *The Pink House* (5BR Villa, Near Lulu Mall) — ₹4,999/night
+👉 https://airbnbmanager.github.io/the-pink-house.html
+
+3. *The Green House* (3BR Villa, Gomti Nagar) — ₹3,999/night
+👉 https://airbnbmanager.github.io/the-green-house.html
+
+4. *Gomti Grand Villa* (4BHK Villa, Lulu/Ekana) — ₹4,999/night
+👉 https://airbnbmanager.github.io/gomti-grand-villa.html
+
+🏢 *LUXURY 3BHK APARTMENTS:*
+• *Black Beauty* (3BHK Luxury Flat, Chinhat) — ₹3,499/night
+👉 https://airbnbmanager.github.io/black-beauty.html
+
+• *The Dark Blue* (3BHK Luxury Flat, Gomti Nagar) — ₹3,499/night
+👉 https://airbnbmanager.github.io/the-dark-blue.html
+
+• *Starlight Blue PentHouse* (Max Hospital) — ₹3,999/night
+👉 https://airbnbmanager.github.io/starlight-blue.html
+
+🌐 *Browse All 17 Properties & Live Calendar:*
+https://airbnbmanager.github.io/properties.html
+
+📞 *Instant Manager Support:*
+Call / WhatsApp: 9450055554 / 8299600709
+_The Unique Haven Homes Property Management_`;
+
+        try {
+          await sock.sendMessage(from, { text: catalogMsg });
+          console.log(`🤖 Auto-replied with Digital Property Catalog to ${from}`);
+        } catch (e) {
+          console.warn('Auto-reply error:', e.message);
+        }
+      }
+    }
+  });
 }
 
 // ─── HELPER: Format recipient JID ───
