@@ -108,29 +108,29 @@ Aap hamari sabhi verified luxury properties yahan dekh aur direct book kar sakte
 
 🏡 *TOP LUXURY VILLAS:*
 1. *The Yellow House* (3BHK Villa, Gomti Nagar) — ₹3,999/night
-👉 https://airbnbmanager.github.io/the-yellow-house.html
+👉 https://uniquehavenhomesstay.com/the-yellow-house.html
 
 2. *The Pink House* (5BR Villa, Near Lulu Mall) — ₹4,999/night
-👉 https://airbnbmanager.github.io/the-pink-house.html
+👉 https://uniquehavenhomesstay.com/the-pink-house.html
 
 3. *The Green House* (3BR Villa, Gomti Nagar) — ₹3,999/night
-👉 https://airbnbmanager.github.io/the-green-house.html
+👉 https://uniquehavenhomesstay.com/the-green-house.html
 
 4. *Gomti Grand Villa* (4BHK Villa, Lulu/Ekana) — ₹4,999/night
-👉 https://airbnbmanager.github.io/gomti-grand-villa.html
+👉 https://uniquehavenhomesstay.com/gomti-grand-villa.html
 
 🏢 *LUXURY 3BHK APARTMENTS:*
 • *Black Beauty* (3BHK Luxury Flat, Chinhat) — ₹3,499/night
-👉 https://airbnbmanager.github.io/black-beauty.html
+👉 https://uniquehavenhomesstay.com/black-beauty.html
 
 • *The Dark Blue* (3BHK Luxury Flat, Gomti Nagar) — ₹3,499/night
-👉 https://airbnbmanager.github.io/the-dark-blue.html
+👉 https://uniquehavenhomesstay.com/the-dark-blue.html
 
 • *Starlight Blue PentHouse* (Max Hospital) — ₹3,999/night
-👉 https://airbnbmanager.github.io/starlight-blue.html
+👉 https://uniquehavenhomesstay.com/starlight-blue.html
 
 🌐 *Browse All 17 Properties & Live Calendar:*
-https://airbnbmanager.github.io/properties.html
+https://uniquehavenhomesstay.com/properties.html
 
 📞 *Instant Manager Support:*
 Call / WhatsApp: 9450055554 / 8299600709
