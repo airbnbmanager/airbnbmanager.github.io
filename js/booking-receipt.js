@@ -23,7 +23,7 @@ window.BOOKING_RECEIPT_ENGINE = (function() {
       { name: 'Mr. Shahanshah', phone: '+91 94500 55554' },
       { name: 'Mr. Firoz Khan', phone: '+91 82996 00709' }
     ],
-    email:      'uniquehavenhomestay@gmail.com',
+    email:      'theuniquehavenhomes@gmail.com',
     web:        'uniquehavenhomesstay.com'
   };
 

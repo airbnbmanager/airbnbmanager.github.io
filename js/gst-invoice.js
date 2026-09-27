@@ -20,7 +20,7 @@ window.GST_ENGINE = (function() {
     state:      'Uttar Pradesh',
     stateCode:  '09',
     phone:      '+91 94500 55554',
-    email:      'uniquehavenhomestay@gmail.com',
+    email:      'theuniquehavenhomes@gmail.com',
     web:        'uniquehavenhomesstay.com'
   };
 
