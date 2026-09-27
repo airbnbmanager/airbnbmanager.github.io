@@ -1225,6 +1225,316 @@ The Unique Haven Homes Property Management`;
   }
 
   // ═══════════════════════════════════════════════════════════
+  // 🤖 AI AGENT & LIVE CHAT DASHBOARD
+  // ═══════════════════════════════════════════════════════════
+  let _aiChatPollInterval = null;
+  let _selectedChatPhone = null;
+  let _aiChatFilterText = '';
+  let _cachedChats = [];
+
+  async function renderAiChatTab() {
+    const el = document.getElementById('hubBody');
+    if (!el) return;
+
+    if (_aiChatPollInterval) {
+      clearInterval(_aiChatPollInterval);
+      _aiChatPollInterval = null;
+    }
+
+    el.innerHTML = `
+      <div class="card" style="padding:0;overflow:hidden;border:1px solid #E2E8F0;border-radius:14px;box-shadow:0 4px 14px rgba(0,0,0,0.06);background:#fff;">
+        <div style="display:grid;grid-template-columns:320px 1fr;height:680px;max-height:80vh;">
+          
+          <!-- Left Column: Conversations List -->
+          <div style="border-right:1px solid #E2E8F0;background:#F8FAFC;display:flex;flex-direction:column;height:100%;">
+            <div style="padding:14px;border-bottom:1px solid #E2E8F0;background:#fff;">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+                <h4 style="margin:0;font-size:15px;color:#0F172A;display:flex;align-items:center;gap:6px;">
+                  💬 WhatsApp Chats <span id="aiChatTotalBadge" style="background:#E2E8F0;color:#334155;padding:1px 6px;border-radius:10px;font-size:11px;">0</span>
+                </h4>
+                <button onclick="refreshAiChatsList()" style="background:none;border:none;cursor:pointer;font-size:14px;" title="Refresh Chats">🔄</button>
+              </div>
+              <input type="text" id="aiChatSearchInput" placeholder="🔍 Search phone or name..." value="${escapeHtml(_aiChatFilterText)}" oninput="window.filterAiChats(this.value)" style="width:100%;box-sizing:border-box;padding:8px 10px;border:1px solid #CBD5E1;border-radius:8px;font-size:12px;outline:none;" />
+            </div>
+
+            <!-- Conversations List Items Container -->
+            <div id="aiChatsListContainer" style="flex:1;overflow-y:auto;padding:8px;">
+              <div style="text-align:center;padding:30px;color:#64748B;font-size:12.5px;">⏳ Loading conversations...</div>
+            </div>
+          </div>
+
+          <!-- Right Column: Live Conversation Stream -->
+          <div id="aiChatMainPane" style="display:flex;flex-direction:column;height:100%;background:#F1F5F9;">
+            <div style="display:flex;align-items:center;justify-content:center;height:100%;color:#64748B;text-align:center;padding:20px;">
+              <div>
+                <div style="font-size:42px;margin-bottom:10px;">🤖</div>
+                <div style="font-weight:700;font-size:16px;color:#0F172A;">UHHS WhatsApp AI Agent Dashboard</div>
+                <div style="font-size:13px;color:#64748B;margin-top:6px;max-width:380px;line-height:1.5;">
+                  Select an active guest chat on the left to see live messages, toggle between <b>AI Mode</b> and <b>Human Mode</b>, or send a manual reply.
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    `;
+
+    await refreshAiChatsList();
+
+    // Start live auto-polling every 3.5s
+    _aiChatPollInterval = setInterval(async () => {
+      if (HUB.activeTab !== 'ai-chat') {
+        clearInterval(_aiChatPollInterval);
+        _aiChatPollInterval = null;
+        return;
+      }
+      await refreshAiChatsList(true); // background silent update
+      if (_selectedChatPhone) {
+        await refreshSelectedChatMessages(true);
+      }
+    }, 3500);
+  }
+
+  async function refreshAiChatsList(isSilent = false) {
+    const listEl = document.getElementById('aiChatsListContainer');
+    const badgeEl = document.getElementById('aiChatTotalBadge');
+    if (!listEl) return;
+
+    const gatewayUrl = (HUB.config?.gateway_url || 'http://localhost:3000').replace(/\/+$/, '');
+    try {
+      const res = await fetch(gatewayUrl + '/api/chats');
+      const data = await res.json();
+      if (!data.ok) throw new Error(data.error || 'Failed');
+
+      _cachedChats = data.chats || [];
+      if (badgeEl) badgeEl.textContent = _cachedChats.length;
+
+      renderChatsListItems();
+    } catch(err) {
+      if (!isSilent && listEl) {
+        listEl.innerHTML = `
+          <div style="text-align:center;padding:24px 12px;color:#DC2626;font-size:12px;">
+            ⚠️ Gateway Offline or Disconnected.<br>
+            <span style="color:#64748B;font-size:11px;">Make sure WhatsApp Bot is running on http://localhost:3000.</span>
+            <div style="margin-top:10px;">
+              <button onclick="setHubTab('device')" class="btn-sm" style="background:#0F172A;color:#fff;">📱 Link Device / Scan QR</button>
+            </div>
+          </div>
+        `;
+      }
+    }
+  }
+
+  window.filterAiChats = function(val) {
+    _aiChatFilterText = (val || '').toLowerCase().trim();
+    renderChatsListItems();
+  };
+
+  function renderChatsListItems() {
+    const listEl = document.getElementById('aiChatsListContainer');
+    if (!listEl) return;
+
+    let filtered = _cachedChats;
+    if (_aiChatFilterText) {
+      filtered = filtered.filter(c => 
+        (c.phone && c.phone.includes(_aiChatFilterText)) ||
+        (c.name && c.name.toLowerCase().includes(_aiChatFilterText)) ||
+        (c.lastMessage && c.lastMessage.toLowerCase().includes(_aiChatFilterText))
+      );
+    }
+
+    if (filtered.length === 0) {
+      listEl.innerHTML = `
+        <div style="text-align:center;padding:30px 10px;color:#64748B;font-size:12px;">
+          📭 No WhatsApp conversations recorded yet.<br>
+          <span style="font-size:11px;color:#94A3B8;">When a guest messages your WhatsApp, it will appear here instantly!</span>
+        </div>
+      `;
+      return;
+    }
+
+    listEl.innerHTML = filtered.map(c => {
+      const isSel = _selectedChatPhone === c.phone;
+      const isAi = c.mode !== 'human';
+      const timeStr = c.lastTime ? formatTimeAgo(c.lastTime) : '';
+
+      return `
+        <div onclick="window.selectAiChat('${c.phone}')" style="background:${isSel ? '#E2E8F0' : '#fff'};border:1px solid ${isSel ? '#94A3B8' : '#E2E8F0'};border-radius:10px;padding:10px 12px;margin-bottom:8px;cursor:pointer;transition:all 0.15s ease;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px;">
+            <div style="font-weight:700;font-size:13px;color:#0F172A;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:170px;">
+              ${escapeHtml(c.name || 'Guest')}
+            </div>
+            <span style="font-size:10px;padding:2px 6px;border-radius:12px;font-weight:800;background:${isAi ? '#DEF7EC' : '#FEF3C7'};color:${isAi ? '#03543F' : '#92400E'};">
+              ${isAi ? '🤖 AI' : '👤 Human'}
+            </span>
+          </div>
+          <div style="font-size:11px;color:#64748B;margin-bottom:4px;">+${escapeHtml(c.phone)}</div>
+          <div style="display:flex;justify-content:space-between;align-items:center;font-size:11.5px;color:#334155;">
+            <div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:210px;color:#475569;">
+              ${escapeHtml(c.lastMessage || 'No message')}
+            </div>
+            <div style="font-size:10px;color:#94A3B8;flex-shrink:0;">${timeStr}</div>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  window.selectAiChat = async function(phone) {
+    _selectedChatPhone = phone;
+    renderChatsListItems();
+    await refreshSelectedChatMessages();
+  };
+
+  async function refreshSelectedChatMessages(isSilent = false) {
+    const pane = document.getElementById('aiChatMainPane');
+    if (!pane || !_selectedChatPhone) return;
+
+    const gatewayUrl = (HUB.config?.gateway_url || 'http://localhost:3000').replace(/\/+$/, '');
+    try {
+      const res = await fetch(`${gatewayUrl}/api/chat/${_selectedChatPhone}`);
+      const data = await res.json();
+      if (!data.ok) return;
+
+      const chat = data.chat;
+      const isAi = chat.mode !== 'human';
+
+      // Keep scroll position if already scrolled
+      const prevBox = document.getElementById('aiChatHistoryBox');
+      const shouldScrollBottom = prevBox ? (prevBox.scrollHeight - prevBox.scrollTop - prevBox.clientHeight < 60) : true;
+
+      pane.innerHTML = `
+        <!-- Chat Header -->
+        <div style="background:#fff;padding:12px 18px;border-bottom:1px solid #E2E8F0;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+          <div>
+            <div style="font-weight:800;font-size:15px;color:#0F172A;display:flex;align-items:center;gap:6px;">
+              👤 ${escapeHtml(chat.name || 'Guest')}
+              <span style="font-size:11px;color:#64748B;font-weight:normal;">(+${chat.phone})</span>
+            </div>
+            <div style="font-size:11px;color:#64748B;margin-top:2px;">
+              Current Status: <strong>${isAi ? '🤖 Auto-responding via Homestay AI Agent' : '👤 Human Mode Active (AI Auto-Reply Paused)'}</strong>
+            </div>
+          </div>
+
+          <!-- Mode Switch Toggle -->
+          <div style="display:flex;align-items:center;gap:8px;">
+            <button onclick="window.toggleChatMode('${chat.phone}', '${chat.mode || 'ai'}')" style="background:${isAi ? '#059669' : '#D97706'};color:#fff;border:none;padding:8px 14px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:6px;box-shadow:0 2px 4px rgba(0,0,0,0.1);">
+              ${isAi ? '🤖 AI Mode: ON · Click to Takeover' : '👤 Human Mode: ON · Click to Resume AI'}
+            </button>
+          </div>
+        </div>
+
+        <!-- Chat History Messages Stream -->
+        <div id="aiChatHistoryBox" style="flex:1;overflow-y:auto;padding:16px 20px;display:flex;flex-direction:column;gap:10px;">
+          ${(chat.history && chat.history.length > 0) ? chat.history.map(m => {
+            const isMe = m.fromMe;
+            return `
+              <div style="display:flex;flex-direction:column;align-items:${isMe ? 'flex-end' : 'flex-start'};">
+                <div style="max-width:70%;background:${isMe ? '#DCF8C6' : '#fff'};color:#0F172A;padding:10px 14px;border-radius:${isMe ? '14px 14px 2px 14px' : '14px 14px 14px 2px'};box-shadow:0 1px 2px rgba(0,0,0,0.08);border:1px solid ${isMe ? '#C7E7A6' : '#E2E8F0'};font-size:12.5px;line-height:1.5;white-space:pre-wrap;word-break:break-word;">
+                  ${escapeHtml(m.text || '')}
+                </div>
+                <div style="font-size:9.5px;color:#94A3B8;margin-top:3px;padding:0 4px;">
+                  ${m.time ? new Date(m.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''} ${isMe ? '· Delivered' : ''}
+                </div>
+              </div>
+            `;
+          }).join('') : `
+            <div style="text-align:center;padding:40px;color:#64748B;font-size:12.5px;">
+              No messages recorded yet in this session.
+            </div>
+          `}
+        </div>
+
+        <!-- Send Manual Reply Bar -->
+        <div style="background:#fff;padding:12px 16px;border-top:1px solid #E2E8F0;">
+          <form onsubmit="event.preventDefault(); window.sendManualAiReply('${chat.phone}');" style="display:flex;gap:10px;align-items:center;">
+            <input type="text" id="aiManualReplyInput" placeholder="Type a manual WhatsApp message to ${escapeHtml(chat.name)}..." style="flex:1;padding:10px 14px;border:1.5px solid #CBD5E1;border-radius:8px;font-size:12.5px;outline:none;" />
+            <button type="submit" id="btnSendManualReply" style="background:#25D366;color:#fff;border:none;padding:10px 18px;border-radius:8px;font-weight:700;font-size:12.5px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;">
+              Send 📤
+            </button>
+          </form>
+          <div style="font-size:11px;color:#64748B;margin-top:6px;display:flex;justify-content:space-between;align-items:center;">
+            <span>💡 Sending a manual message automatically maintains Human Mode so the AI won't interfere.</span>
+            <a href="https://wa.me/${chat.phone}" target="_blank" style="color:#0284C7;text-decoration:none;font-weight:600;">Open in WhatsApp App ↗</a>
+          </div>
+        </div>
+      `;
+
+      const box = document.getElementById('aiChatHistoryBox');
+      if (box && shouldScrollBottom) {
+        box.scrollTop = box.scrollHeight;
+      }
+    } catch(err) {
+      console.warn('Error refreshing selected chat:', err);
+    }
+  }
+
+  window.toggleChatMode = async function(phone, currentMode) {
+    const newMode = currentMode === 'human' ? 'ai' : 'human';
+    const gatewayUrl = (HUB.config?.gateway_url || 'http://localhost:3000').replace(/\/+$/, '');
+    try {
+      const res = await fetch(`${gatewayUrl}/api/chat/mode`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone, mode: newMode })
+      });
+      const data = await res.json();
+      if (data.ok) {
+        if (window.fsn?.success) fsn.success('Mode Updated', `Switched to ${newMode.toUpperCase()} Mode!`);
+        await refreshAiChatsList(true);
+        await refreshSelectedChatMessages();
+      }
+    } catch(err) {
+      alert('Failed to update mode: ' + err.message);
+    }
+  };
+
+  window.sendManualAiReply = async function(phone) {
+    const input = document.getElementById('aiManualReplyInput');
+    const btn = document.getElementById('btnSendManualReply');
+    if (!input || !input.value.trim()) return;
+
+    const message = input.value.trim();
+    const gatewayUrl = (HUB.config?.gateway_url || 'http://localhost:3000').replace(/\/+$/, '');
+
+    try {
+      if (btn) { btn.disabled = true; btn.textContent = 'Sending...'; }
+      const res = await fetch(`${gatewayUrl}/api/chat/send`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ to: phone, message })
+      });
+      const data = await res.json();
+      if (data.ok) {
+        input.value = '';
+        await refreshSelectedChatMessages();
+        await refreshAiChatsList(true);
+      } else {
+        alert('Failed sending message: ' + (data.error || 'Unknown error'));
+      }
+    } catch(err) {
+      alert('Error sending reply: ' + err.message);
+    } finally {
+      if (btn) { btn.disabled = false; btn.textContent = 'Send 📤'; }
+    }
+  };
+
+  function formatTimeAgo(isoDate) {
+    try {
+      const diffMs = Date.now() - new Date(isoDate).getTime();
+      const mins = Math.floor(diffMs / 60000);
+      if (mins < 1) return 'Just now';
+      if (mins < 60) return `${mins}m ago`;
+      const hrs = Math.floor(mins / 60);
+      if (hrs < 24) return `${hrs}h ago`;
+      return `${Math.floor(hrs / 24)}d ago`;
+    } catch(e) {
+      return '';
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════
   // UI RENDERING
   // ═══════════════════════════════════════════════════════════
   async function renderWhatsAppHub() {
@@ -1232,7 +1542,8 @@ The Unique Haven Homes Property Management`;
 
     await Promise.all([loadConfig(), loadTemplates(), loadLogs(50), fetchScheduled()]);
 
-    const enabled = HUB.config?.auto_send_enabled !== false;
+    const c = HUB.config || {};
+    const enabled = c.auto_send_enabled !== false;
 
     const todayStr = new Date().toISOString().slice(0, 10);
     const todayLogs = HUB.logs.filter(l => l.sent_at && l.sent_at.slice(0, 10) === todayStr);
@@ -1316,6 +1627,7 @@ The Unique Haven Homes Property Management`;
         <!-- Scrollable Navigation Tabs -->
         <div class="hub-tabs-scroller" id="hubTabsScroller">
           ${[
+            { key: 'ai-chat', label: '🤖 AI Agent & Live Chat' },
             { key: 'device', label: '📱 Link WhatsApp / Scan QR' },
             { key: 'auto', label: '🎯 Controls & Triggers' },
             { key: 'settings', label: '⚙️ Settings & Group IDs' },
@@ -1341,7 +1653,8 @@ The Unique Haven Homes Property Management`;
     const el = document.getElementById('hubBody');
     if (!el) return;
 
-    if (HUB.activeTab === 'device') renderDeviceTab();
+    if (HUB.activeTab === 'ai-chat') renderAiChatTab();
+    else if (HUB.activeTab === 'device') renderDeviceTab();
     else if (HUB.activeTab === 'auto') el.innerHTML = renderOverviewTab();
     else if (HUB.activeTab === 'settings') el.innerHTML = renderSettingsTab();
     else if (HUB.activeTab === 'scheduled') el.innerHTML = renderScheduledTab();

@@ -769,6 +769,15 @@ async function sendSecurityDepositRefund(bkId) {
   showWhatsAppModal(d.guestName, d.phone, d.propertyName, tplSecurityDepositRefund(d));
 }
 
+async function sendBookingReceipt(bkId) {
+  if (window.openBookingReceiptModal) {
+    window.openBookingReceiptModal(bkId);
+    return;
+  }
+  const d = await buildMessageData(bkId);
+  if (!d) return;
+  showWhatsAppModal(d.guestName, d.phone, d.propertyName, tplBookingReceipt(d));
+}
 
 // Expose all
 window.shareBookingWhatsApp = shareBookingWhatsApp;

@@ -1,7 +1,7 @@
 /**
- * UHHS WhatsApp Automation Gateway
- * THE UNIQUE HAVEN HOMES PRIVATE LIMITED
- * Powered by Baileys (Headless WhatsApp Web Protocol - 100% Free, Zero Meta API Cost)
+ * UHHS WhatsApp Automation Gateway & AI Agent
+ * THE UNIQUE HAVEN HOMES PRIVATE LIMITED (Lucknow)
+ * Powered by Baileys (Headless WhatsApp Web Protocol)
  */
 
 const express = require('express');
@@ -25,126 +25,408 @@ app.use(express.json());
 
 const PORT = process.env.PORT || 3000;
 const AUTH_FOLDER = path.join(__dirname, 'auth_session');
+const CHATS_FILE = path.join(AUTH_FOLDER, 'chats_store.json');
 
 let sock = null;
 let connectionStatus = 'disconnected'; // 'disconnected' | 'connecting' | 'connected'
 let lastQr = null;
+let isStarting = false;
+let botBootTimestamp = Math.floor(Date.now() / 1000); // 🛡️ Timestamp barrier: ignores ALL previous/backlog messages!
 
-async function startWhatsApp() {
+// ─── CHAT SESSIONS & AI/HUMAN MODE STORE ───
+const chatsStore = new Map(); // phone -> { phone, name, mode: 'ai'|'human', lastMessage, lastTime, history: [] }
+const userLastReply = new Map(); // phone -> timestamp of last auto-reply (anti-spam cooldown)
+
+function loadChatsStore() {
+  try {
+    if (fs.existsSync(CHATS_FILE)) {
+      const data = JSON.parse(fs.readFileSync(CHATS_FILE, 'utf8'));
+      for (const c of data) {
+        chatsStore.set(c.phone, c);
+      }
+      console.log(`📂 Loaded ${chatsStore.size} saved WhatsApp conversation(s).`);
+    }
+  } catch (err) {
+    console.warn('⚠️ Could not load chats store:', err.message);
+  }
+}
+
+function saveChatsStore() {
+  try {
+    if (!fs.existsSync(AUTH_FOLDER)) {
+      fs.mkdirSync(AUTH_FOLDER, { recursive: true });
+    }
+    const arr = Array.from(chatsStore.values()).slice(-200); // keep last 200 active chats
+    fs.writeFileSync(CHATS_FILE, JSON.stringify(arr, null, 2));
+  } catch (err) {
+    console.warn('⚠️ Could not save chats store:', err.message);
+  }
+}
+
+loadChatsStore();
+
+// ─── HELPER: Clean & Close Socket ───
+async function cleanupSocket() {
   if (sock) {
-    try { sock.ev.removeAllListeners(); } catch (e) {}
-    try { sock.end(undefined); } catch (e) {}
+    try {
+      sock.ev.removeAllListeners();
+      sock.end(undefined);
+    } catch (e) {}
     sock = null;
   }
+  // Wait a short moment to release WebSocket handles & file locks
+  await new Promise(r => setTimeout(r, 400));
+}
 
-  const { state, saveCreds } = await useMultiFileAuthState(AUTH_FOLDER);
-  const { version, isLatest } = await fetchLatestBaileysVersion();
-  console.log(`📡 Starting WhatsApp Client (Baileys v${version.join('.')}, isLatest: ${isLatest})...`);
+// ─── START BAILEYS WHATSAPP CLIENT ───
+async function startWhatsApp() {
+  if (isStarting) {
+    console.log('⏳ startWhatsApp already in progress, skipping duplicate call.');
+    return;
+  }
+  isStarting = true;
 
-  sock = makeWASocket({
-    version,
-    auth: state,
-    logger: pino({ level: 'silent' }),
-    printQRInTerminal: false,
-    browser: Browsers.macOS('Desktop'),
-    keepAliveIntervalMs: 25_000,
-    connectTimeoutMs: 60_000,
-    defaultQueryTimeoutMs: 60_000,
-    emitOwnEvents: false,
-    syncFullHistory: false,
-    markOnlineOnConnect: false
-  });
+  try {
+    await cleanupSocket();
 
-  sock.ev.on('connection.update', (update) => {
-    const { connection, lastDisconnect, qr } = update;
-
-    if (qr) {
-      lastQr = qr;
-      connectionStatus = 'connecting';
-      console.log('📱 [WhatsApp QR Ready] View in browser: http://localhost:' + PORT + '/qr');
+    if (!fs.existsSync(AUTH_FOLDER)) {
+      fs.mkdirSync(AUTH_FOLDER, { recursive: true });
     }
 
-    if (connection === 'close') {
-      const statusCode = lastDisconnect?.error?.output?.statusCode;
-      const shouldReconnect = statusCode !== DisconnectReason.loggedOut;
-      console.log(`❌ WhatsApp connection closed (Reason: ${statusCode}). Reconnecting: ${shouldReconnect}`);
-      connectionStatus = 'disconnected';
-      lastQr = null;
-      if (shouldReconnect) {
-        const delay = (statusCode === 515 || statusCode === 408) ? 1500 : 3000;
-        setTimeout(startWhatsApp, delay);
-      } else {
-        console.log('🚪 Logged out. Delete auth_session folder and restart to scan new QR.');
+    const { state, saveCreds } = await useMultiFileAuthState(AUTH_FOLDER);
+    const { version, isLatest } = await fetchLatestBaileysVersion();
+    console.log(`📡 Starting WhatsApp Client (Baileys v${version.join('.')}, isLatest: ${isLatest})...`);
+
+    sock = makeWASocket({
+      version,
+      auth: state,
+      logger: pino({ level: 'silent' }),
+      printQRInTerminal: false,
+      // 🛡️ Use standard stable Chrome browser tuple (prevents WhatsApp desktop protocol drops)
+      browser: Browsers.ubuntu('Chrome'),
+      keepAliveIntervalMs: 15_000,
+      connectTimeoutMs: 90_000,
+      defaultQueryTimeoutMs: 90_000,
+      emitOwnEvents: false,
+      syncFullHistory: false,
+      markOnlineOnConnect: true,
+      retryRequestDelayMs: 250,
+      generateHighQualityLinkPreview: false,
+      getMessage: async (key) => {
+        return { conversation: '' };
       }
-    } else if (connection === 'open') {
-      connectionStatus = 'connected';
-      lastQr = null;
-      console.log('✅ WHATSAPP CONNECTED SUCCESSFULLY!');
-      console.log('👤 Connected as:', sock.user?.id || sock.user?.name);
-    }
+    });
+
+    sock.ev.on('connection.update', async (update) => {
+      const { connection, lastDisconnect, qr } = update;
+
+      if (qr) {
+        lastQr = qr;
+        connectionStatus = 'connecting';
+        console.log('📱 [WhatsApp QR Ready] Scan via browser: http://localhost:' + PORT + '/qr');
+      }
+
+      if (connection === 'close') {
+        const statusCode = lastDisconnect?.error?.output?.statusCode;
+        const isLoggedOut = statusCode === DisconnectReason.loggedOut;
+        console.log(`❌ WhatsApp connection closed (Reason: ${statusCode}). Logged out: ${isLoggedOut}`);
+
+        connectionStatus = 'disconnected';
+        lastQr = null;
+
+        if (isLoggedOut) {
+          console.log('🚪 Session logged out. Clearing auth_session to prepare fresh QR...');
+          try {
+            fs.rmSync(AUTH_FOLDER, { recursive: true, force: true });
+          } catch(e) {}
+          setTimeout(() => startWhatsApp(), 1500);
+        } else {
+          // Reconnect with safe backoff
+          const delay = (statusCode === 515 || statusCode === 408) ? 3000 : 5000;
+          console.log(`🔄 Reconnecting WhatsApp in ${delay}ms...`);
+          setTimeout(() => startWhatsApp(), delay);
+        }
+      } else if (connection === 'open') {
+        connectionStatus = 'connected';
+        lastQr = null;
+        // 🛡️ CRITICAL: Set boot timestamp right at connection so NO historical backlog messages get replied to!
+        botBootTimestamp = Math.floor(Date.now() / 1000);
+        console.log('✅ WHATSAPP CONNECTED SUCCESSFULLY!');
+        console.log('👤 Connected as:', sock.user?.id || sock.user?.name);
+      }
+    });
+
+    sock.ev.on('creds.update', async () => {
+      try {
+        await saveCreds();
+      } catch (err) {
+        console.warn('⚠️ Error saving WhatsApp creds:', err.message);
+      }
+    });
+
+    // ─── Incoming Message Smart Bot & AI Handler ───
+    sock.ev.on('messages.upsert', async ({ messages, type }) => {
+      if (type !== 'notify') return;
+
+      for (const msg of messages) {
+        if (!msg.message || msg.key.fromMe) continue;
+        const from = msg.key.remoteJid;
+        if (!from || from === 'status@broadcast' || from.endsWith('@g.us')) continue; // Ignore groups and status
+
+        // 🛡️ STRICT RULE 1: Never reply to any message timestamped BEFORE the bot booted!
+        const msgTime = Number(msg.messageTimestamp || 0);
+        if (msgTime < botBootTimestamp) {
+          // Past synced message from phone history — skip completely!
+          continue;
+        }
+
+        // 🛡️ STRICT RULE 2: Ignore stale messages older than 90 seconds
+        const nowSec = Math.floor(Date.now() / 1000);
+        if (nowSec - msgTime > 90) {
+          continue;
+        }
+
+        // Extract message text
+        const text = (
+          msg.message.conversation ||
+          msg.message.extendedTextMessage?.text ||
+          msg.message.imageMessage?.caption ||
+          ''
+        ).trim();
+
+        if (!text) continue;
+
+        const senderPhone = from.replace(/[^0-9]/g, '');
+        const senderName = msg.pushName || ('Guest ' + senderPhone.slice(-4));
+
+        await handleGuestMessage(from, senderPhone, senderName, text, msgTime);
+      }
+    });
+
+  } catch (err) {
+    console.error('❌ startWhatsApp error:', err);
+    setTimeout(() => startWhatsApp(), 5000);
+  } finally {
+    isStarting = false;
+  }
+}
+
+// ─── SMART AI AGENT FOR THE UNIQUE HAVEN HOMES ───
+async function handleGuestMessage(fromJid, phone, name, text, msgTime) {
+  console.log(`📩 Incoming WhatsApp from ${phone} (${name}): "${text}"`);
+
+  // 1. Get or create conversation record
+  let chat = chatsStore.get(phone);
+  if (!chat) {
+    chat = {
+      phone,
+      name,
+      mode: 'ai', // default is 'ai' mode!
+      lastMessage: text,
+      lastTime: new Date(msgTime * 1000).toISOString(),
+      history: []
+    };
+    chatsStore.set(phone, chat);
+  } else {
+    chat.name = name || chat.name;
+    chat.lastMessage = text;
+    chat.lastTime = new Date(msgTime * 1000).toISOString();
+  }
+
+  // Record incoming message to history
+  chat.history.push({
+    id: 'in_' + Date.now(),
+    fromMe: false,
+    text,
+    time: new Date().toISOString()
   });
+  if (chat.history.length > 50) chat.history.shift(); // keep last 50 messages
+  saveChatsStore();
 
-  sock.ev.on('creds.update', saveCreds);
+  // 2. CHECK MODE: If in Human Mode, DO NOT AUTO-REPLY!
+  if (chat.mode === 'human') {
+    console.log(`👤 [Human Mode Active] AI reply muted for ${phone}. Waiting for staff reply in CRM.`);
+    return;
+  }
 
-  // ─── Incoming Message Smart Bot (Catalog & Direct Booking) ───
-  sock.ev.on('messages.upsert', async ({ messages, type }) => {
-    if (type !== 'notify') return;
-    for (const msg of messages) {
-      if (!msg.message || msg.key.fromMe) continue;
-      const from = msg.key.remoteJid;
-      if (from.endsWith('@g.us')) continue; // Ignore group chats for catalog auto-replies
+  // 3. Debounce rapid identical messages (2 seconds debounce to prevent accidental double-tap)
+  const lastReply = userLastReply.get(phone) || 0;
+  const now = Date.now();
+  const lower = text.toLowerCase();
 
-      const text = (msg.message.conversation || msg.message.extendedTextMessage?.text || '').trim();
-      if (!text) continue;
+  if (now - lastReply < 2000) {
+    console.log(`⏳ Rapid message debounce active for ${phone}. Skipping.`);
+    return;
+  }
 
-      const lower = text.toLowerCase();
-      // Match keywords: hi, hello, book, property, villa, rooms, catalog, list, rates
-      if (lower === 'hi' || lower === 'hello' || lower === 'namaste' || lower.includes('book') || lower.includes('property') || lower.includes('villa') || lower.includes('catalog') || lower.includes('kaha') || lower.includes('rates') || lower.includes('flat') || lower.includes('yellow')) {
-        const catalogMsg =
-`🏨 *Welcome to The Unique Haven Homes!*
-Luxury Homestays & Independent Villas in Lucknow ✨
+  // 4. GENERATE AI RESPONSE (Homestay Master Knowledge)
+  let replyText = '';
 
-Aap hamari sabhi verified luxury properties yahan dekh aur direct book kar sakte hain:
+  // Trigger Human Takeover via message
+  if (lower.includes('human') || lower.includes('agent') || lower.includes('manager se baat') || lower.includes('praveen')) {
+    chat.mode = 'human';
+    saveChatsStore();
+    replyText =
+`👤 *Switched to Human Support Mode!*
 
-🏡 *TOP LUXURY VILLAS:*
+Aapki chat ko hamare live property manager ko assign kar diya gaya hai.
+
+📞 *Direct Support Contacts:*
+• *Property Manager:* Praveen Singh — +91 9194109911
+• *Company Owners:* Mr. Shahanshah (+91 94500 55554) | Mr. Firoz Khan (+91 82996 00709)
+
+Hamari team aapse turant connect karegi. Aap apna requirement yahan likh sakte hain. 🙏`;
+
+  } else if (lower.includes('availab') || lower.includes('booking') || lower.includes('chahiye') || lower.includes('khali') || lower.includes('book')) {
+    replyText =
+`🏡 *Haanji! The Unique Haven Homes me luxury villas aur apartments available hain!* ✨
+
+Hum Lucknow me 100% verified, fully furnished private serviced stays provide karte hain:
+• *3BHK Luxury Flats:* ₹3,499 – ₹3,999/night
+• *3BHK Private Independent Villas:* ₹3,999 – ₹4,499/night
+• *4BHK/5BHK Grand Villas:* ₹4,999 – ₹6,999/night
+
+📅 *Aapki stay details kya hain?*
+1. Check-in Date & Check-out Date?
+2. Total kitne guests (adults/kids) hain?
+3. Kaunsi location pasand hai (Gomti Nagar / Lulu Mall / Shaheed Path)?
+
+Aap yahan dates batayein ya direct call karein:
+📞 *Manager Praveen Singh:* +91 9194109911
+🌐 *Live Property Showcase:* https://uniquehavenhomesstay.com/properties.html`;
+
+  } else if (lower === '1' || lower.includes('villa') || lower.includes('flat') || lower.includes('property') || lower.includes('photos') || lower.includes('room') || lower.includes('catalog')) {
+    replyText =
+`🏨 *The Unique Haven Homes — Verified Homestays in Lucknow* ✨
+
+🏡 *TOP LUXURY INDEPENDENT VILLAS:*
 1. *The Yellow House* (3BHK Villa, Gomti Nagar) — ₹3,999/night
 👉 https://uniquehavenhomesstay.com/the-yellow-house.html
 
-2. *The Pink House* (5BR Villa, Near Lulu Mall) — ₹4,999/night
+2. *The Pink House* (5BR Luxury Villa, Lulu Mall) — ₹4,999/night
 👉 https://uniquehavenhomesstay.com/the-pink-house.html
 
-3. *The Green House* (3BR Villa, Gomti Nagar) — ₹3,999/night
+3. *The Green House* (3BR Private Villa, Gomti Nagar) — ₹3,999/night
 👉 https://uniquehavenhomesstay.com/the-green-house.html
 
-4. *Gomti Grand Villa* (4BHK Villa, Lulu/Ekana) — ₹4,999/night
+4. *Gomti Grand Villa* (4BHK Villa, Ekana Stadium) — ₹4,999/night
 👉 https://uniquehavenhomesstay.com/gomti-grand-villa.html
 
-🏢 *LUXURY 3BHK APARTMENTS:*
+🏢 *PREMIUM 3BHK APARTMENTS:*
 • *Black Beauty* (3BHK Luxury Flat, Chinhat) — ₹3,499/night
 👉 https://uniquehavenhomesstay.com/black-beauty.html
 
-• *The Dark Blue* (3BHK Luxury Flat, Gomti Nagar) — ₹3,499/night
+• *The Dark Blue* (3BHK Flat, Gomti Nagar) — ₹3,499/night
 👉 https://uniquehavenhomesstay.com/the-dark-blue.html
 
-• *Starlight Blue PentHouse* (Max Hospital) — ₹3,999/night
-👉 https://uniquehavenhomesstay.com/starlight-blue.html
+• *Starlight Blue PentHouse* (Near Max Hospital) — ₹3,999/night
+👉 https://uniquehavenhomesstay.com/starlight-blue-penthouse.html
 
-🌐 *Browse All 17 Properties & Live Calendar:*
+🌐 *Browse All 14+ Properties & Photos:*
 https://uniquehavenhomesstay.com/properties.html
 
-📞 *Instant Manager Support:*
-Call / WhatsApp: 9450055554 / 8299600709
-_The Unique Haven Homes Property Management_`;
+_Reply *2* for Pricing, *3* for Check-in Rules, or *5* to speak with Manager._`;
 
-        try {
-          await sock.sendMessage(from, { text: catalogMsg });
-          console.log(`🤖 Auto-replied with Digital Property Catalog to ${from}`);
-        } catch (e) {
-          console.warn('Auto-reply error:', e.message);
-        }
-      }
-    }
-  });
+  } else if (lower === '2' || lower.includes('rate') || lower.includes('price') || lower.includes('cost') || lower.includes('charges') || lower.includes('kitne ka')) {
+    replyText =
+`💰 *The Unique Haven Homes — Transparent Pricing Guide:*
+
+• *3BHK Luxury Apartments:* ₹3,499 – ₹3,999 per night
+• *3BHK Independent Villas:* ₹3,999 – ₹4,499 per night
+• *4BHK & 5BHK Grand Villas:* ₹4,999 – ₹6,999 per night
+
+✨ *Included Amenities:*
+✔ High-Speed Wi-Fi
+✔ Fully Equipped Kitchen & Gas
+✔ Air-Conditioned Bedrooms
+✔ 100% Power Backup & Geyser
+✔ Caretaker Support & Daily Housekeeping
+
+💳 *Booking Policy:* ₹2,000 to ₹5,000 advance payment secures your dates. Remaining balance payable at check-in.
+
+Direct booking ke liye reply karein ya call karein: 📞 +91 9450055554`;
+
+  } else if (lower === '3' || lower.includes('checkin') || lower.includes('check-in') || lower.includes('checkout') || lower.includes('rules') || lower.includes('id')) {
+    replyText =
+`📋 *Check-in Guidelines & Important House Rules:*
+
+⏰ *Standard Timings:*
+• Check-in Time: *02:00 PM*
+• Check-out Time: *11:00 AM*
+_(Early check-in subject to availability)_
+
+🪪 *Mandatory Requirements:*
+1. Original Govt ID (Aadhaar / Passport / DL) strictly required for all adult guests.
+2. Quiet hours: Residential quiet hours after 11:00 PM.
+3. Balance settlement: Any remaining balance is payable at check-in before key handover.`;
+
+  } else if (lower === '4' || lower.includes('location') || lower.includes('map') || lower.includes('kaha') || lower.includes('address') || lower.includes('kahan')) {
+    replyText =
+`📍 *The Unique Haven Homes — Prime Lucknow Locations:*
+
+🏢 Properties available at:
+• *Gomti Nagar & Gomti Nagar Extension* (Near Shaheed Path)
+• *Near Lulu Mall & Medanta Hospital*
+• *Near Ekana International Cricket Stadium*
+• *Chinhat & Faizabad Road*
+
+📍 *Central Location Link:*
+https://maps.google.com/?q=Lucknow+Homestays+Unique+Haven+Homes
+
+Exact property pin drop check-in ke time manager dwara share ki jati hai.
+📞 Need help with directions? Call: +91 9194109911`;
+
+  } else if (lower === '5' || lower.includes('call') || lower.includes('owner') || lower.includes('contact') || lower.includes('number')) {
+    replyText =
+`📞 *Direct Management & Owner Contacts:*
+
+👤 *Property Manager:*
+• Praveen Singh: 📞 +91 9194109911
+
+👑 *Company Owners:*
+• Mr. Shahanshah: 📞 +91 94500 55554
+• Mr. Firoz Khan: 📞 +91 82996 00709
+
+Office: The Unique Haven Homes Pvt. Ltd., Lucknow
+Website: https://uniquehavenhomesstay.com`;
+
+  } else {
+    // Default Warm Welcome Menu
+    replyText =
+`👋 *Hello ${name}! Welcome to The Unique Haven Homes.* 🏨✨
+Luxury Serviced Homestays & Independent Villas in Lucknow.
+
+Main aapka AI assistant hoon. Main aapki kya madad kar sakta hoon?
+
+Reply with a number:
+*1* 🏡 View Luxury Villas & Flats
+*2* 💰 Pricing & Advance Booking
+*3* 🔑 Check-in & House Rules
+*4* 📍 Locations & Directions
+*5* 👤 Speak with Property Manager
+
+_Direct website: https://uniquehavenhomesstay.com_`;
+  }
+
+  // 5. Send AI Reply via Baileys
+  try {
+    const sent = await sock.sendMessage(fromJid, { text: replyText });
+    userLastReply.set(phone, now);
+
+    // Record AI reply in history
+    chat.history.push({
+      id: sent?.key?.id || ('out_' + Date.now()),
+      fromMe: true,
+      text: replyText,
+      time: new Date().toISOString()
+    });
+    if (chat.history.length > 50) chat.history.shift();
+    saveChatsStore();
+
+    console.log(`🤖 AI Auto-Replied to ${phone} successfully!`);
+  } catch (err) {
+    console.error(`❌ Failed to send AI auto-reply to ${phone}:`, err.message);
+  }
 }
 
 // ─── HELPER: Format recipient JID ───
@@ -153,22 +435,26 @@ function formatJid(target) {
   if (clean.includes('@g.us') || clean.includes('@s.whatsapp.net')) {
     return clean;
   }
-  // Group pattern (digits followed by hyphen or long digits)
   if (clean.includes('-') || clean.length >= 18) {
     return clean + '@g.us';
   }
-  // Standard phone number
   clean = clean.replace(/\D/g, '');
   if (clean.length === 10) clean = '91' + clean;
   return clean + '@s.whatsapp.net';
 }
 
+// ═══════════════════════════════════════════════════════════
+// 🌐 REST API ENDPOINTS
+// ═══════════════════════════════════════════════════════════
+
 // 0. Root & Health
 app.get('/', (req, res) => {
   res.json({
-    name: 'UHHS WhatsApp Automation Gateway',
+    name: 'UHHS WhatsApp AI & Automation Gateway',
     status: connectionStatus,
     connected: connectionStatus === 'connected',
+    activeChats: chatsStore.size,
+    bootTime: new Date(botBootTimestamp * 1000).toISOString(),
     time: new Date().toISOString()
   });
 });
@@ -183,11 +469,12 @@ app.get('/status', (req, res) => {
     status: connectionStatus,
     connected: connectionStatus === 'connected',
     user: sock?.user || null,
+    activeChats: chatsStore.size,
     authExists: fs.existsSync(AUTH_FOLDER)
   });
 });
 
-// 2. JSON QR Status & Data (For CRM Embedded QR modal / tab)
+// 2. JSON QR Status & Data (For In-CRM QR Modal)
 app.get('/qr-data', async (req, res) => {
   let qrImage = null;
   if (lastQr) {
@@ -206,25 +493,21 @@ app.get('/qr-data', async (req, res) => {
   });
 });
 
-// 2b. Disconnect / Switch WhatsApp Number
+// 3. Disconnect / Switch WhatsApp Number
 app.post('/logout', async (req, res) => {
   try {
     console.log('🔄 Logout requested. Disconnecting and clearing auth session...');
     lastQr = null;
     connectionStatus = 'disconnected';
-    if (sock) {
-      try { await sock.logout(); } catch(e) {}
-      try { sock.end(undefined); } catch(e) {}
-      sock = null;
-    }
-    // Delete auth session folder
+    await cleanupSocket();
+
     if (fs.existsSync(AUTH_FOLDER)) {
       fs.rmSync(AUTH_FOLDER, { recursive: true, force: true });
     }
-    // Restart WhatsApp client to generate a fresh QR code
     setTimeout(() => {
       startWhatsApp().catch(err => console.error('Restart after logout error:', err));
     }, 1200);
+
     res.json({ ok: true, message: 'Logged out successfully. Fresh QR code is generating...' });
   } catch (err) {
     console.error('Logout error:', err);
@@ -232,7 +515,7 @@ app.post('/logout', async (req, res) => {
   }
 });
 
-// 2c. Web QR Code Viewer (if viewing via browser)
+// 4. Web QR Code Viewer
 app.get('/qr', async (req, res) => {
   if (connectionStatus === 'connected') {
     const userJid = sock?.user?.id || '';
@@ -242,11 +525,11 @@ app.get('/qr', async (req, res) => {
         <div style="font-size:48px;margin-bottom:12px;">✅</div>
         <h2 style="color:#15803D;margin:0 0 8px 0;">WhatsApp Connected!</h2>
         <p style="font-size:16px;color:#1E293B;">Connected Number: <b>+${phone}</b></p>
-        <p style="color:#64748B;font-size:13px;">Ready to send automated messages from UHHS CRM.</p>
+        <p style="color:#64748B;font-size:13px;">AI Agent &amp; Gateway are LIVE 24x7.</p>
         <div style="margin-top:24px;">
           <form method="POST" action="/logout" onsubmit="return confirm('Disconnect this number to scan a different one?');">
             <button type="submit" style="background:#DC2626;color:#fff;border:none;padding:10px 20px;border-radius:8px;font-weight:700;cursor:pointer;">
-              🔄 Disconnect & Switch Number
+              🔄 Disconnect &amp; Switch Number
             </button>
           </form>
         </div>
@@ -288,7 +571,181 @@ app.get('/qr', async (req, res) => {
   `);
 });
 
-// 3. List All WhatsApp Groups (Helps owner copy Group IDs easily!)
+// ═══════════════════════════════════════════════════════════
+// 🤖 AI & HUMAN CHAT DASHBOARD API (As shown in video!)
+// ═══════════════════════════════════════════════════════════
+
+// 5. Get All Conversations (with Mode: 'ai' or 'human')
+app.get('/api/chats', (req, res) => {
+  const list = Array.from(chatsStore.values()).map(c => ({
+    phone: c.phone,
+    name: c.name,
+    mode: c.mode || 'ai',
+    lastMessage: c.lastMessage || '',
+    lastTime: c.lastTime || '',
+    messageCount: c.history?.length || 0
+  })).sort((a, b) => new Date(b.lastTime) - new Date(a.lastTime));
+
+  res.json({ ok: true, count: list.length, chats: list });
+});
+
+// 6. Get Chat History for a Specific Guest
+app.get('/api/chat/:phone', (req, res) => {
+  const phone = req.params.phone.replace(/\D/g, '');
+  const chat = chatsStore.get(phone);
+  if (!chat) {
+    return res.status(404).json({ ok: false, error: 'Chat not found for this phone' });
+  }
+  res.json({ ok: true, chat });
+});
+
+// 7. Toggle Mode: AI Mode vs Human Mode!
+app.post('/api/chat/mode', (req, res) => {
+  const { phone, mode } = req.body;
+  if (!phone || !['ai', 'human'].includes(mode)) {
+    return res.status(400).json({ ok: false, error: 'Valid phone and mode ("ai" | "human") required.' });
+  }
+  const cleanPhone = String(phone).replace(/\D/g, '');
+  let chat = chatsStore.get(cleanPhone);
+  if (!chat) {
+    chat = {
+      phone: cleanPhone,
+      name: 'Guest ' + cleanPhone.slice(-4),
+      mode,
+      lastMessage: '',
+      lastTime: new Date().toISOString(),
+      history: []
+    };
+    chatsStore.set(cleanPhone, chat);
+  } else {
+    chat.mode = mode;
+  }
+  saveChatsStore();
+  console.log(`🔀 Switched chat for ${cleanPhone} to [${mode.toUpperCase()} MODE]`);
+  res.json({ ok: true, phone: cleanPhone, mode: chat.mode });
+});
+
+// 8. Staff Manual Reply from Dashboard (Human Mode)
+app.post('/api/chat/send', async (req, res) => {
+  if (connectionStatus !== 'connected' || !sock) {
+    return res.status(503).json({ ok: false, error: 'WhatsApp is not connected.' });
+  }
+  const { to, message, keepAIMode } = req.body;
+  if (!to || !message) {
+    return res.status(400).json({ ok: false, error: 'Recipient "to" and "message" are required.' });
+  }
+
+  const cleanPhone = String(to).replace(/\D/g, '');
+  const jid = formatJid(cleanPhone);
+
+  try {
+    const result = await sock.sendMessage(jid, { text: message });
+
+    // Update chat history
+    let chat = chatsStore.get(cleanPhone);
+    if (!chat) {
+      chat = {
+        phone: cleanPhone,
+        name: 'Guest ' + cleanPhone.slice(-4),
+        mode: keepAIMode ? 'ai' : 'human',
+        lastMessage: message,
+        lastTime: new Date().toISOString(),
+        history: []
+      };
+      chatsStore.set(cleanPhone, chat);
+    } else {
+      if (!keepAIMode) chat.mode = 'human'; // Staff replied manually, switch to human mode
+      chat.lastMessage = message;
+      chat.lastTime = new Date().toISOString();
+    }
+
+    chat.history.push({
+      id: result?.key?.id || ('out_' + Date.now()),
+      fromMe: true,
+      text: message,
+      time: new Date().toISOString()
+    });
+    if (chat.history.length > 50) chat.history.shift();
+    saveChatsStore();
+
+    res.json({
+      ok: true,
+      messageId: result?.key?.id,
+      phone: cleanPhone,
+      mode: chat.mode
+    });
+  } catch (err) {
+    console.error(`❌ Error sending manual reply to ${to}:`, err);
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+// 9. Standard Send Message API
+app.post('/send-message', async (req, res) => {
+  if (connectionStatus !== 'connected' || !sock) {
+    return res.status(503).json({ ok: false, error: 'WhatsApp is not connected. Please scan QR first.' });
+  }
+
+  const { to, message, isGroup } = req.body;
+  if (!to || !message) {
+    return res.status(400).json({ ok: false, error: 'Target (to) and message text are required.' });
+  }
+
+  try {
+    const jid = formatJid(to);
+    const result = await sock.sendMessage(jid, { text: message });
+
+    const cleanPhone = String(to).replace(/\D/g, '');
+    let chat = chatsStore.get(cleanPhone);
+    if (chat) {
+      chat.history.push({
+        id: result?.key?.id || ('out_' + Date.now()),
+        fromMe: true,
+        text: message,
+        time: new Date().toISOString()
+      });
+      if (chat.history.length > 50) chat.history.shift();
+      saveChatsStore();
+    }
+
+    res.json({
+      ok: true,
+      messageId: result?.key?.id,
+      recipient: jid,
+      timestamp: new Date().toISOString()
+    });
+  } catch (err) {
+    console.error(`❌ Failed sending message to ${to}:`, err);
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+// 10. Send Group Message
+app.post('/send-group', async (req, res) => {
+  const { groupId, message } = req.body;
+  if (!groupId || !message) {
+    return res.status(400).json({ ok: false, error: 'groupId and message are required.' });
+  }
+  if (connectionStatus !== 'connected' || !sock) {
+    return res.status(503).json({ ok: false, error: 'WhatsApp is not connected.' });
+  }
+
+  const to = groupId.includes('@g.us') ? groupId : (groupId + '@g.us');
+  try {
+    const result = await sock.sendMessage(to, { text: message });
+    res.json({
+      ok: true,
+      messageId: result?.key?.id,
+      recipient: to,
+      timestamp: new Date().toISOString()
+    });
+  } catch (err) {
+    console.error(`❌ Failed sending group message to ${to}:`, err);
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+// 11. List WhatsApp Groups
 app.get('/groups', async (req, res) => {
   if (connectionStatus !== 'connected' || !sock) {
     return res.status(503).json({ ok: false, error: 'WhatsApp is not connected yet.' });
@@ -308,194 +765,9 @@ app.get('/groups', async (req, res) => {
   }
 });
 
-// 4. Send Message (Direct chat or Group chat)
-app.post('/send-message', async (req, res) => {
-  if (connectionStatus !== 'connected' || !sock) {
-    return res.status(503).json({ ok: false, error: 'WhatsApp is not connected. Please scan QR first.' });
-  }
-
-  const { to, message, isGroup } = req.body;
-  if (!to || !message) {
-    return res.status(400).json({ ok: false, error: 'Target (to) and message text are required.' });
-  }
-
-  try {
-    const jid = formatJid(to);
-    console.log(`📤 Sending message to ${jid} (isGroup: ${!!isGroup})...`);
-
-    const result = await sock.sendMessage(jid, { text: message });
-    console.log(`✅ Message delivered to ${jid}! Message ID: ${result?.key?.id}`);
-
-    res.json({
-      ok: true,
-      messageId: result?.key?.id,
-      recipient: jid,
-      timestamp: new Date().toISOString()
-    });
-  } catch (err) {
-    console.error(`❌ Failed sending message to ${to}:`, err);
-    res.status(500).json({ ok: false, error: err.message });
-  }
-});
-
-// 5. Send Specifically to a Group
-app.post('/send-group', async (req, res) => {
-  const { groupId, message } = req.body;
-  if (!groupId || !message) {
-    return res.status(400).json({ ok: false, error: 'groupId and message are required.' });
-  }
-  if (connectionStatus !== 'connected' || !sock) {
-    return res.status(503).json({ ok: false, error: 'WhatsApp is not connected. Please scan QR first.' });
-  }
-
-  const to = groupId.includes('@g.us') ? groupId : (groupId + '@g.us');
-  try {
-    console.log(`📤 Sending group message to ${to}...`);
-    const result = await sock.sendMessage(to, { text: message });
-    console.log(`✅ Group message delivered to ${to}! Message ID: ${result?.key?.id}`);
-    res.json({
-      ok: true,
-      messageId: result?.key?.id,
-      recipient: to,
-      timestamp: new Date().toISOString()
-    });
-  } catch (err) {
-    console.error(`❌ Failed sending group message to ${to}:`, err);
-    res.status(500).json({ ok: false, error: err.message });
-  }
-});
-
-// ═══════════════════════════════════════════════════════════
-// 🛡️ OFFICIAL META WHATSAPP CLOUD API (Ban-Proof & 100% Free)
-// ═══════════════════════════════════════════════════════════
-
-// 6. Meta Webhook Verification (Challenge from developers.facebook.com)
-app.get('/api/whatsapp/webhook', (req, res) => {
-  const mode = req.query['hub.mode'];
-  const token = req.query['hub.verify_token'];
-  const challenge = req.query['hub.challenge'];
-  const verifyToken = process.env.META_VERIFY_TOKEN || 'uhhs_meta_secure_2026';
-
-  if (mode === 'subscribe' && token === verifyToken) {
-    console.log('✅ Meta WhatsApp Webhook Verified Successfully!');
-    return res.status(200).send(challenge);
-  }
-  console.warn('⚠️ Meta Webhook verification failed. Token mismatch or invalid mode.');
-  return res.sendStatus(403);
-});
-
-// 7. Meta Incoming Webhook Receiver & 24/7 Smart Keyword Auto-Reply
-app.post('/api/whatsapp/webhook', async (req, res) => {
-  // Always return 200 OK immediately so Meta does not retry
-  res.sendStatus(200);
-
-  try {
-    const body = req.body;
-    if (body.object === 'whatsapp_business_account') {
-      const entry = body.entry?.[0];
-      const changes = entry?.changes?.[0];
-      const value = changes?.value;
-      const messages = value?.messages;
-
-      if (messages && messages.length > 0) {
-        const msg = messages[0];
-        const from = msg.from; // Sender phone number
-        const text = (msg.text?.body || msg.interactive?.button_reply?.title || '').trim();
-        console.log(`📩 [Meta Cloud API] Incoming WhatsApp from ${from}: "${text}"`);
-
-        // Smart keyword matcher
-        const lower = text.toLowerCase();
-        let autoReply = '';
-
-        if (lower.includes('wifi') || lower.includes('wi-fi') || lower.includes('internet')) {
-          autoReply = `📶 *The Unique Haven Homes — Wi-Fi Access*\n\nNetwork: *UHHS_Guest_HighSpeed*\nPassword: *Haven@Stay2026*\n\nIf you face any connection issues, feel free to ask here!`;
-        } else if (lower.includes('location') || lower.includes('map') || lower.includes('kaha hai') || lower.includes('address')) {
-          autoReply = `📍 *The Unique Haven Homes — Location Guide*\n\n🏢 *Apartments & Villas, Lucknow*\nGoogle Maps: https://maps.app.goo.gl/uniquehavenhomes\n\nNeed assistance with directions? Call our manager: +91 9214246820`;
-        } else if (lower.includes('checkin') || lower.includes('check in') || lower.includes('check-in')) {
-          autoReply = `🔑 *The Unique Haven Homes — Check-in Info*\n\n⏰ Standard Check-in Time: *02:00 PM*\n📝 Please keep a government ID ready for digital verification.\n\nOur caretaker will assist you at the property.`;
-        } else if (lower.includes('checkout') || lower.includes('check out') || lower.includes('check-out')) {
-          autoReply = `👋 *The Unique Haven Homes — Checkout Info*\n\n⏰ Standard Checkout Time: *11:00 AM*\nPlease leave keys with the on-ground caretaker.\n\nWe hope you enjoyed your stay with us! ⭐`;
-        } else if (lower.includes('hi') || lower.includes('hello') || lower.includes('namaste')) {
-          autoReply = `👋 *Hello & Welcome to The Unique Haven Homes!*\n\nHow can we help you today? Reply with:\n• *WiFi* for Wi-Fi details\n• *Location* for property map\n• *Checkin* for check-in procedure\n• *Caretaker* to connect with staff`;
-        }
-
-        if (autoReply && process.env.META_ACCESS_TOKEN && process.env.META_PHONE_NUMBER_ID) {
-          console.log(`🤖 Auto-replying to ${from} with keyword response...`);
-          await sendMetaCloudMessage({
-            phoneId: process.env.META_PHONE_NUMBER_ID,
-            token: process.env.META_ACCESS_TOKEN,
-            to: from,
-            text: autoReply
-          });
-        }
-      }
-    }
-  } catch (err) {
-    console.error('❌ Error processing Meta webhook:', err);
-  }
-});
-
-// Helper: Send Message via Meta Graph API
-async function sendMetaCloudMessage({ phoneId, token, to, text }) {
-  const cleanPhone = String(to).replace(/\D/g, '');
-  const url = `https://graph.facebook.com/v21.0/${phoneId}/messages`;
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`
-    },
-    body: JSON.stringify({
-      messaging_product: 'whatsapp',
-      recipient_type: 'individual',
-      to: cleanPhone,
-      type: 'text',
-      text: { preview_url: true, body: text }
-    })
-  });
-  return await response.json();
-}
-
-// 8. Send Message via Official Meta Cloud API (Direct Endpoint)
-app.post('/api/whatsapp/send-meta', async (req, res) => {
-  const { to, text, phoneId, token } = req.body;
-  const activePhoneId = phoneId || process.env.META_PHONE_NUMBER_ID;
-  const activeToken = token || process.env.META_ACCESS_TOKEN;
-
-  if (!to || !text) {
-    return res.status(400).json({ ok: false, error: 'Recipient "to" and "text" are required.' });
-  }
-  if (!activePhoneId || !activeToken) {
-    return res.status(400).json({ ok: false, error: 'Meta Phone Number ID and Access Token are required.' });
-  }
-
-  try {
-    const result = await sendMetaCloudMessage({
-      phoneId: activePhoneId,
-      token: activeToken,
-      to,
-      text
-    });
-    console.log('✅ Meta Cloud API Message Response:', result);
-    res.json({ ok: true, meta_response: result });
-  } catch (err) {
-    console.error('❌ Meta Cloud API send error:', err);
-    res.status(500).json({ ok: false, error: err.message });
-  }
-});
-
-// Start Server & Initialize WhatsApp
+// ─── START SERVER & DAEMON ───
 app.listen(PORT, () => {
-  console.log(`\n🚀 UHHS WhatsApp Gateway running on http://localhost:${PORT}`);
+  console.log(`\n🚀 UHHS WhatsApp AI Gateway running on http://localhost:${PORT}`);
   console.log(`👉 Open http://localhost:${PORT}/qr to scan QR code in browser\n`);
   startWhatsApp().catch(err => console.error('Startup error:', err));
-
-  // ─── 24/7 Keep-Alive Engine (Prevents Render Free Tier from Sleeping) ───
-  const PING_TARGET = process.env.RENDER_EXTERNAL_URL || 'https://uhhs-whatsapp-bot.onrender.com';
-  setInterval(async () => {
-    try {
-      await fetch(`${PING_TARGET}/health`);
-      console.log('💓 [Keep-Alive] 24/7 pulse sent successfully.');
-    } catch (e) {}
-  }, 4 * 60 * 1000); // Pulse every 4 minutes (Render idle limit is 15 mins)
 });
