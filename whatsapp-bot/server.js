@@ -33,8 +33,41 @@ let lastQr = null;
 let isStarting = false;
 let botBootTimestamp = Math.floor(Date.now() / 1000); // 🛡️ Timestamp barrier: ignores ALL previous/backlog messages!
 
+// ─── META OFFICIAL CLOUD API CONFIGURATION ───
+let META_WABA_ID = process.env.META_WABA_ID || '2158082111408544';
+let META_PHONE_NUMBER_ID = process.env.META_PHONE_NUMBER_ID || '1340519029145106';
+let META_ACCESS_TOKEN = process.env.META_ACCESS_TOKEN || 'EAAYuuQ2ylIABSknXkM9nXYpzZBB8IY2QRwpZB2kyKo0NGWweLYAZB39xs7lNN5KtcDgBBsGk1HqYK18iaECErnMcsZAoz9eqoOwobYvNppUZCtraxlXj4ip0imB8HEiAlo3LXgdcnO6yxCLphWW159cQGnxWilG4ZBvzXFaZA1FSH3rpSLZCny23rguDBoVGy2ZCrddoIRT7YMTeZBsGIc3iVMcCOTgjOtaDTvvjYVXvypWvtBID0tZAN9mZC8FZBpepkM4i7QHV3nw7Fvu8jZAuQLM16sVs9fAQZDZD';
+let META_VERIFY_TOKEN = process.env.META_VERIFY_TOKEN || 'uhhs_meta_secure_2026';
+
+async function sendMetaMessage(to, text) {
+  if (!META_ACCESS_TOKEN || !META_PHONE_NUMBER_ID) {
+    throw new Error('Meta Cloud API credentials missing');
+  }
+  const cleanPhone = String(to).replace(/\D/g, '');
+  const url = `https://graph.facebook.com/v21.0/${META_PHONE_NUMBER_ID}/messages`;
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${META_ACCESS_TOKEN}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      messaging_product: 'whatsapp',
+      recipient_type: 'individual',
+      to: cleanPhone,
+      type: 'text',
+      text: { preview_url: true, body: text }
+    })
+  });
+  const data = await res.json();
+  if (data.error) {
+    throw new Error(data.error.message || 'Failed sending via Meta API');
+  }
+  return data;
+}
+
 // ─── CHAT SESSIONS & AI/HUMAN MODE STORE ───
-const chatsStore = new Map(); // phone -> { phone, name, mode: 'ai'|'human', lastMessage, lastTime, history: [] }
+const chatsStore = new Map(); // phone -> { phone, name, mode: 'ai'|'human', channel: 'meta'|'baileys', lastMessage, lastTime, history: [] }
 const userLastReply = new Map(); // phone -> timestamp of last auto-reply (anti-spam cooldown)
 
 function loadChatsStore() {
@@ -212,8 +245,8 @@ async function startWhatsApp() {
 }
 
 // ─── SMART AI AGENT FOR THE UNIQUE HAVEN HOMES ───
-async function handleGuestMessage(fromJid, phone, name, text, msgTime) {
-  console.log(`📩 Incoming WhatsApp from ${phone} (${name}): "${text}"`);
+async function handleGuestMessage(fromJid, phone, name, text, msgTime, channel = 'baileys') {
+  console.log(`📩 Incoming WhatsApp from ${phone} (${name}) via ${channel.toUpperCase()}: "${text}"`);
 
   // 1. Get or create conversation record
   let chat = chatsStore.get(phone);
@@ -222,6 +255,7 @@ async function handleGuestMessage(fromJid, phone, name, text, msgTime) {
       phone,
       name,
       mode: 'ai', // default is 'ai' mode!
+      channel,
       lastMessage: text,
       lastTime: new Date(msgTime * 1000).toISOString(),
       history: []
@@ -229,6 +263,7 @@ async function handleGuestMessage(fromJid, phone, name, text, msgTime) {
     chatsStore.set(phone, chat);
   } else {
     chat.name = name || chat.name;
+    chat.channel = channel || chat.channel;
     chat.lastMessage = text;
     chat.lastTime = new Date(msgTime * 1000).toISOString();
   }
@@ -408,14 +443,21 @@ Reply with a number:
 _Direct website: https://uniquehavenhomesstay.com_`;
   }
 
-  // 5. Send AI Reply via Baileys
+  // 5. Send AI Reply (Meta Cloud API or Baileys)
   try {
-    const sent = await sock.sendMessage(fromJid, { text: replyText });
+    let sentId = null;
+    if (channel === 'meta') {
+      const metaRes = await sendMetaMessage(phone, replyText);
+      sentId = metaRes?.messages?.[0]?.id;
+    } else if (sock) {
+      const sent = await sock.sendMessage(fromJid, { text: replyText });
+      sentId = sent?.key?.id;
+    }
     userLastReply.set(phone, now);
 
     // Record AI reply in history
     chat.history.push({
-      id: sent?.key?.id || ('out_' + Date.now()),
+      id: sentId || ('out_' + Date.now()),
       fromMe: true,
       text: replyText,
       time: new Date().toISOString()
@@ -423,9 +465,9 @@ _Direct website: https://uniquehavenhomesstay.com_`;
     if (chat.history.length > 50) chat.history.shift();
     saveChatsStore();
 
-    console.log(`🤖 AI Auto-Replied to ${phone} successfully!`);
+    console.log(`🤖 AI Auto-Replied to ${phone} via ${channel.toUpperCase()} successfully!`);
   } catch (err) {
-    console.error(`❌ Failed to send AI auto-reply to ${phone}:`, err.message);
+    console.error(`❌ Failed to send AI auto-reply to ${phone} via ${channel}:`, err.message);
   }
 }
 
@@ -450,9 +492,12 @@ function formatJid(target) {
 // 0. Root & Health
 app.get('/', (req, res) => {
   res.json({
-    name: 'UHHS WhatsApp AI & Automation Gateway',
+    name: 'UHHS WhatsApp AI & Automation Gateway (Dual: Meta Cloud API + Baileys)',
     status: connectionStatus,
     connected: connectionStatus === 'connected',
+    metaConfigured: !!(META_ACCESS_TOKEN && META_PHONE_NUMBER_ID),
+    metaPhoneNumberId: META_PHONE_NUMBER_ID,
+    metaWabaId: META_WABA_ID,
     activeChats: chatsStore.size,
     bootTime: new Date(botBootTimestamp * 1000).toISOString(),
     time: new Date().toISOString()
@@ -627,19 +672,36 @@ app.post('/api/chat/mode', (req, res) => {
 
 // 8. Staff Manual Reply from Dashboard (Human Mode)
 app.post('/api/chat/send', async (req, res) => {
-  if (connectionStatus !== 'connected' || !sock) {
-    return res.status(503).json({ ok: false, error: 'WhatsApp is not connected.' });
-  }
-  const { to, message, keepAIMode } = req.body;
+  const { to, message, keepAIMode, channel } = req.body;
   if (!to || !message) {
     return res.status(400).json({ ok: false, error: 'Recipient "to" and "message" are required.' });
   }
 
   const cleanPhone = String(to).replace(/\D/g, '');
-  const jid = formatJid(cleanPhone);
+  let sentVia = 'baileys';
+  let messageId = null;
 
   try {
-    const result = await sock.sendMessage(jid, { text: message });
+    // Determine channel: send via Meta if requested, or if Baileys is not connected, or if channel is meta
+    const existingChat = chatsStore.get(cleanPhone);
+    const targetChannel = channel || existingChat?.channel || (META_ACCESS_TOKEN && connectionStatus !== 'connected' ? 'meta' : 'baileys');
+
+    if (targetChannel === 'meta' && META_ACCESS_TOKEN) {
+      const resMeta = await sendMetaMessage(cleanPhone, message);
+      sentVia = 'meta';
+      messageId = resMeta?.messages?.[0]?.id;
+    } else if (sock && connectionStatus === 'connected') {
+      const jid = formatJid(cleanPhone);
+      const result = await sock.sendMessage(jid, { text: message });
+      sentVia = 'baileys';
+      messageId = result?.key?.id;
+    } else if (META_ACCESS_TOKEN) {
+      const resMeta = await sendMetaMessage(cleanPhone, message);
+      sentVia = 'meta';
+      messageId = resMeta?.messages?.[0]?.id;
+    } else {
+      return res.status(503).json({ ok: false, error: 'Neither Meta WhatsApp Cloud API nor QR connection is active.' });
+    }
 
     // Update chat history
     let chat = chatsStore.get(cleanPhone);
@@ -648,6 +710,7 @@ app.post('/api/chat/send', async (req, res) => {
         phone: cleanPhone,
         name: 'Guest ' + cleanPhone.slice(-4),
         mode: keepAIMode ? 'ai' : 'human',
+        channel: sentVia,
         lastMessage: message,
         lastTime: new Date().toISOString(),
         history: []
@@ -655,12 +718,13 @@ app.post('/api/chat/send', async (req, res) => {
       chatsStore.set(cleanPhone, chat);
     } else {
       if (!keepAIMode) chat.mode = 'human'; // Staff replied manually, switch to human mode
+      chat.channel = sentVia;
       chat.lastMessage = message;
       chat.lastTime = new Date().toISOString();
     }
 
     chat.history.push({
-      id: result?.key?.id || ('out_' + Date.now()),
+      id: messageId || ('out_' + Date.now()),
       fromMe: true,
       text: message,
       time: new Date().toISOString()
@@ -670,12 +734,76 @@ app.post('/api/chat/send', async (req, res) => {
 
     res.json({
       ok: true,
-      messageId: result?.key?.id,
+      messageId,
       phone: cleanPhone,
-      mode: chat.mode
+      mode: chat.mode,
+      sentVia
     });
   } catch (err) {
     console.error(`❌ Error sending manual reply to ${to}:`, err);
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+// ─── META WEBHOOK VERIFICATION (GET) ───
+app.get(['/api/whatsapp/webhook', '/webhook'], (req, res) => {
+  const mode = req.query['hub.mode'];
+  const token = req.query['hub.verify_token'];
+  const challenge = req.query['hub.challenge'];
+  if (mode === 'subscribe' && token === META_VERIFY_TOKEN) {
+    console.log('✅ Meta Webhook challenge verified successfully!');
+    return res.status(200).send(challenge);
+  }
+  return res.sendStatus(403);
+});
+
+// ─── META INCOMING MESSAGE WEBHOOK (POST) ───
+app.post(['/api/whatsapp/webhook', '/webhook'], async (req, res) => {
+  res.sendStatus(200); // Meta expects 200 fast
+
+  try {
+    const entry = req.body?.entry?.[0];
+    const change = entry?.changes?.[0];
+    const val = change?.value;
+    const messages = val?.messages;
+    if (!messages || !messages.length) return;
+
+    for (const m of messages) {
+      const from = m.from; // Sender phone number
+      const contact = val?.contacts?.find(c => c.wa_id === from);
+      const name = contact?.profile?.name || ('Guest ' + from.slice(-4));
+      const msgTime = parseInt(m.timestamp, 10) || Math.floor(Date.now() / 1000);
+
+      let text = '';
+      if (m.type === 'text') {
+        text = m.text?.body || '';
+      } else if (m.type === 'interactive') {
+        text = m.interactive?.button_reply?.title || m.interactive?.list_reply?.title || '';
+      } else if (m.type === 'button') {
+        text = m.button?.text || '';
+      }
+
+      text = text.trim();
+      if (!text) continue;
+
+      console.log(`📡 [Meta Webhook] Incoming message from ${from} (${name}): "${text}"`);
+      await handleGuestMessage(`meta_${from}`, from, name, text, msgTime, 'meta');
+    }
+  } catch (err) {
+    console.error('❌ Error handling Meta webhook message:', err);
+  }
+});
+
+// ─── META DIRECT SEND API ───
+app.post('/api/whatsapp/send-meta', async (req, res) => {
+  const { to, message } = req.body;
+  if (!to || !message) {
+    return res.status(400).json({ ok: false, error: 'Recipient "to" and "message" are required.' });
+  }
+  try {
+    const result = await sendMetaMessage(to, message);
+    res.json({ ok: true, result });
+  } catch (err) {
     res.status(500).json({ ok: false, error: err.message });
   }
 });
