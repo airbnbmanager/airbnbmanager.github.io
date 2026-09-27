@@ -815,15 +815,34 @@ app.post('/api/whatsapp/send-meta', async (req, res) => {
   }
 });
 
-// 9. Standard Send Message API
+// 9. Standard Send Message API (With Smart Dual-Engine Fallback)
 app.post('/send-message', async (req, res) => {
-  if (connectionStatus !== 'connected' || !sock) {
-    return res.status(503).json({ ok: false, error: 'WhatsApp is not connected. Please scan QR first.' });
-  }
-
   const { to, message, isGroup } = req.body;
   if (!to || !message) {
     return res.status(400).json({ ok: false, error: 'Target (to) and message text are required.' });
+  }
+
+  const isGroupMsg = !!isGroup || String(to).includes('@g.us') || String(to).includes('-');
+
+  // 🛡️ DUAL-ENGINE FALLBACK: If Baileys is offline and recipient is a guest/individual phone:
+  if (!isGroupMsg && (connectionStatus !== 'connected' || !sock) && META_ACCESS_TOKEN) {
+    try {
+      console.log(`🔀 Baileys offline. Smart failover: Sending guest message to ${to} via Meta Cloud API...`);
+      const metaRes = await sendMetaMessage(to, message);
+      return res.json({
+        ok: true,
+        messageId: metaRes?.messages?.[0]?.id,
+        sentVia: 'meta_fallback',
+        recipient: to,
+        timestamp: new Date().toISOString()
+      });
+    } catch(mErr) {
+      console.warn('⚠️ Meta fallback attempt error:', mErr.message);
+    }
+  }
+
+  if (connectionStatus !== 'connected' || !sock) {
+    return res.status(503).json({ ok: false, error: 'WhatsApp sender is not connected. Please scan QR in WhatsApp Hub.' });
   }
 
   try {
@@ -851,6 +870,22 @@ app.post('/send-message', async (req, res) => {
     });
   } catch (err) {
     console.error(`❌ Failed sending message to ${to}:`, err);
+
+    // Secondary fallback for individual phone if Baileys threw socket error
+    if (!isGroupMsg && META_ACCESS_TOKEN) {
+      try {
+        console.log(`🔀 Secondary fallback: Retrying ${to} via Meta Cloud API...`);
+        const metaRes = await sendMetaMessage(to, message);
+        return res.json({
+          ok: true,
+          messageId: metaRes?.messages?.[0]?.id,
+          sentVia: 'meta_fallback',
+          recipient: to,
+          timestamp: new Date().toISOString()
+        });
+      } catch (e) {}
+    }
+
     res.status(500).json({ ok: false, error: err.message });
   }
 });
