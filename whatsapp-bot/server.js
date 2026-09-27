@@ -765,6 +765,13 @@ app.post(['/api/whatsapp/webhook', '/webhook'], async (req, res) => {
     const entry = req.body?.entry?.[0];
     const change = entry?.changes?.[0];
     const val = change?.value;
+    const statuses = val?.statuses;
+    if (statuses && statuses.length) {
+      for (const s of statuses) {
+        console.log(`📊 [Meta Delivery Status] ID: ${s.id} | Status: ${s.status} | Recipient: ${s.recipient_id}`, s.errors ? JSON.stringify(s.errors) : '');
+      }
+    }
+
     const messages = val?.messages;
     if (!messages || !messages.length) return;
 
