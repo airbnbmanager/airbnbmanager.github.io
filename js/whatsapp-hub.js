@@ -1250,15 +1250,16 @@ The Unique Haven Homes Property Management`;
         .ai-chat-split-container {
           display: grid;
           grid-template-columns: 320px 1fr;
-          height: 700px;
-          max-height: 80vh;
+          height: 560px;
+          max-height: 72vh;
+          min-height: 460px;
         }
         @media (max-width: 768px) {
           .ai-chat-split-container {
             display: flex !important;
             flex-direction: column !important;
-            height: calc(100vh - 190px) !important;
-            max-height: 85vh !important;
+            height: calc(100vh - 220px) !important;
+            max-height: 80vh !important;
           }
           .ai-chat-left-col {
             width: 100% !important;
@@ -1275,29 +1276,29 @@ The Unique Haven Homes Property Management`;
         }
       </style>
 
-      <div class="card" style="padding:0;overflow:hidden;border:1px solid #E2E8F0;border-radius:14px;box-shadow:0 4px 14px rgba(0,0,0,0.06);background:#fff;">
+      <div class="card" style="padding:0;overflow:hidden;border:1px solid #E2E8F0;border-radius:14px;box-shadow:0 4px 14px rgba(0,0,0,0.06);background:#fff;margin-bottom:20px;">
         <div class="ai-chat-split-container">
           
           <!-- Left Column: Conversations List -->
-          <div id="aiChatLeftPane" class="ai-chat-left-col ${hideLeftOnMobile ? 'ai-mobile-hidden' : ''}" style="border-right:1px solid #E2E8F0;background:#F8FAFC;display:flex;flex-direction:column;height:100%;">
-            <div style="padding:14px;border-bottom:1px solid #E2E8F0;background:#fff;">
-              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-                <h4 style="margin:0;font-size:15px;color:#0F172A;display:flex;align-items:center;gap:6px;">
+          <div id="aiChatLeftPane" class="ai-chat-left-col ${hideLeftOnMobile ? 'ai-mobile-hidden' : ''}" style="border-right:1px solid #E2E8F0;background:#F8FAFC;display:flex;flex-direction:column;height:100%;min-height:0;overflow:hidden;">
+            <div style="padding:12px 14px;border-bottom:1px solid #E2E8F0;background:#fff;flex-shrink:0;">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+                <h4 style="margin:0;font-size:14px;color:#0F172A;display:flex;align-items:center;gap:6px;">
                   💬 WhatsApp Chats <span id="aiChatTotalBadge" style="background:#E2E8F0;color:#334155;padding:1px 6px;border-radius:10px;font-size:11px;">0</span>
                 </h4>
                 <button onclick="refreshAiChatsList()" style="background:none;border:none;cursor:pointer;font-size:14px;" title="Refresh Chats">🔄</button>
               </div>
-              <input type="text" id="aiChatSearchInput" placeholder="🔍 Search phone or name..." value="${escapeHtml(_aiChatFilterText)}" oninput="window.filterAiChats(this.value)" style="width:100%;box-sizing:border-box;padding:8px 10px;border:1px solid #CBD5E1;border-radius:8px;font-size:12px;outline:none;" />
+              <input type="text" id="aiChatSearchInput" placeholder="🔍 Search phone or name..." value="${escapeHtml(_aiChatFilterText)}" oninput="window.filterAiChats(this.value)" style="width:100%;box-sizing:border-box;padding:7px 10px;border:1px solid #CBD5E1;border-radius:8px;font-size:12px;outline:none;" />
             </div>
 
             <!-- Conversations List Items Container -->
-            <div id="aiChatsListContainer" style="flex:1;overflow-y:auto;padding:8px;">
+            <div id="aiChatsListContainer" style="flex:1 1 auto;min-height:0;overflow-y:auto;padding:8px;">
               <div style="text-align:center;padding:30px;color:#64748B;font-size:12.5px;">⏳ Loading conversations...</div>
             </div>
           </div>
 
           <!-- Right Column: Live Conversation Stream -->
-          <div id="aiChatMainPane" class="ai-chat-right-col ${hideRightOnMobile ? 'ai-mobile-hidden' : ''}" style="display:flex;flex-direction:column;height:100%;background:#F1F5F9;">
+          <div id="aiChatMainPane" class="ai-chat-right-col ${hideRightOnMobile ? 'ai-mobile-hidden' : ''}" style="display:flex;flex-direction:column;height:100%;min-height:0;overflow:hidden;background:#F1F5F9;">
             <div style="display:flex;align-items:center;justify-content:center;height:100%;color:#64748B;text-align:center;padding:20px;">
               <div>
                 <div style="font-size:42px;margin-bottom:10px;">🤖</div>
@@ -1486,7 +1487,7 @@ The Unique Haven Homes Property Management`;
         </div>
 
         <!-- Chat History Messages Stream -->
-        <div id="aiChatHistoryBox" style="flex:1;overflow-y:auto;padding:14px 16px;display:flex;flex-direction:column;gap:10px;">
+        <div id="aiChatHistoryBox" style="flex:1 1 auto;min-height:0;overflow-y:auto;padding:14px 16px;display:flex;flex-direction:column;gap:10px;">
           ${(chat.history && chat.history.length > 0) ? chat.history.map(m => {
             const isMe = m.fromMe;
             return `
@@ -1506,17 +1507,17 @@ The Unique Haven Homes Property Management`;
           `}
         </div>
 
-        <!-- Send Manual Reply Bar -->
-        <div style="background:#fff;padding:10px 14px;border-top:1px solid #E2E8F0;">
-          <form onsubmit="event.preventDefault(); window.sendManualAiReply('${chat.phone}');" style="display:flex;gap:8px;align-items:center;">
-            <input type="text" id="aiManualReplyInput" placeholder="Reply to ${escapeHtml(chat.name)}..." style="flex:1;padding:8px 12px;border:1.5px solid #CBD5E1;border-radius:8px;font-size:12px;outline:none;" />
-            <button type="submit" id="btnSendManualReply" style="background:#25D366;color:#fff;border:none;padding:8px 14px;border-radius:8px;font-weight:700;font-size:12px;cursor:pointer;display:inline-flex;align-items:center;gap:4px;">
+        <!-- Send Manual Reply Bar (Always Pinned at Bottom) -->
+        <div style="flex-shrink:0;background:#fff;padding:12px 16px;border-top:2px solid #E2E8F0;box-shadow:0 -4px 12px rgba(0,0,0,0.04);z-index:5;">
+          <form onsubmit="event.preventDefault(); window.sendManualAiReply('${chat.phone}');" style="display:flex;gap:10px;align-items:center;">
+            <input type="text" id="aiManualReplyInput" placeholder="💬 Type your message here to ${escapeHtml(chat.name)}..." style="flex:1;padding:10px 14px;border:2px solid #CBD5E1;border-radius:8px;font-size:13px;outline:none;background:#F8FAFC;transition:border-color 0.2s;" onfocus="this.style.borderColor='#2563EB';this.style.background='#fff';" onblur="this.style.borderColor='#CBD5E1';this.style.background='#F8FAFC';" />
+            <button type="submit" id="btnSendManualReply" style="background:#16A34A;color:#fff;border:none;padding:10px 20px;border-radius:8px;font-weight:700;font-size:13px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;box-shadow:0 2px 6px rgba(22,163,74,0.3);flex-shrink:0;">
               Send 📤
             </button>
           </form>
-          <div style="font-size:10.5px;color:#64748B;margin-top:4px;display:flex;justify-content:space-between;align-items:center;">
-            <span>💡 Click mode button above to toggle between AI & Human.</span>
-            <a href="https://wa.me/${chat.phone}" target="_blank" style="color:#0284C7;text-decoration:none;font-weight:600;">Open WhatsApp ↗</a>
+          <div style="font-size:11px;color:#64748B;margin-top:6px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:4px;">
+            <span>💡 Click <b>AI Mode: ON</b> above anytime to let AI handle guest questions.</span>
+            <a href="https://wa.me/${chat.phone}" target="_blank" style="color:#0284C7;text-decoration:none;font-weight:600;">Open WhatsApp App ↗</a>
           </div>
         </div>
       `;
