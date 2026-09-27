@@ -364,7 +364,10 @@ async function showGuestLedger(guestName, bookingId, phone, airbnbCode) {
             <td>${isPendingCsv ? '<span class="badge yellow" style="font-size:10px;">⏳ Pending CSV</span>' : '₹' + (b.total_amount || 0).toLocaleString('en-IN')}</td>
             <td style="color:var(--green);">${isPendingCsv ? '-' : '₹' + pd.toLocaleString('en-IN')}</td>
             <td style="${due > 0 ? 'color:var(--red);font-weight:700;' : ''}">${isPendingCsv ? '-' : (due > 0 ? '₹' + due.toLocaleString('en-IN') : '₹0')}</td>
-            <td style="text-align:center;"><button class="btn-sm" style="background:#B45309;color:#fff;padding:2px 7px;font-size:10.5px;font-weight:700;border:none;border-radius:4px;cursor:pointer;" onclick="window.openGSTInvoiceModal('${b.booking_id}')" title="Generate or View GST Bill">🧾 Bill</button></td>
+            <td style="text-align:center;white-space:nowrap;">
+              <button class="btn-sm" style="background:#0F172A;color:#fff;padding:2px 7px;font-size:10.5px;font-weight:700;border:none;border-radius:4px;cursor:pointer;margin-right:3px;" onclick="window.openBookingReceiptModal('${b.booking_id}')" title="Booking Receipt (No GST)">📄 Receipt</button>
+              <button class="btn-sm" style="background:#B45309;color:#fff;padding:2px 7px;font-size:10.5px;font-weight:700;border:none;border-radius:4px;cursor:pointer;" onclick="window.openGSTInvoiceModal('${b.booking_id}')" title="Generate or View GST Bill">🧾 Bill</button>
+            </td>
           </tr>`;
         }).join('')}</tbody>
       </table></div>
@@ -380,6 +383,7 @@ async function showGuestLedger(guestName, bookingId, phone, airbnbCode) {
       <div class="btn-row" style="margin-top:12px;">
         <button onclick="printGuestLedger('${guestName.replace(/'/g, "\\'")}')" style="background:#00A699;color:#fff;">🖨️ Print Ledger</button>
         <button onclick="whatsappGuestLedger('${guestName.replace(/'/g, "\\'")}')" style="background:#25D366;color:#fff;">📱 WhatsApp</button>
+        <button onclick="window.openBookingReceiptModal('${bookings[0]?.booking_id || ''}')" style="background:#0F172A;color:#fff;font-weight:700;">📄 Booking Receipt</button>
         <button onclick="window.openGSTInvoiceModal('${bookings[0]?.booking_id || ''}')" style="background:#B45309;color:#fff;font-weight:700;">🧾 GST Invoice</button>
         <button class="outline" onclick="this.closest('.modal-overlay').remove()">Close</button>
       </div>
@@ -1291,6 +1295,7 @@ async function renderManageBookings() {
           <td style="color:var(--green);">${((b.booking_mode === 'Online-Airbnb' || b.airbnb_confirmation_code) && (b.total_amount === 0 || b.payment_status === 'Pending CSV Payout')) ? '<span style="color:#94A3B8;">—</span>' : '₹' + pd.toLocaleString('en-IN')}</td>
           <td>${((b.booking_mode === 'Online-Airbnb' || b.airbnb_confirmation_code) && (b.total_amount === 0 || b.payment_status === 'Pending CSV Payout')) ? '<span style="color:#94A3B8;">—</span>' : `<strong class="${bal > 0.99 ? 'metric-value warn' : ''}">₹${Math.abs(bal) < 1 ? '0' : bal.toLocaleString('en-IN')}</strong>`}</td>
           ${canM ? `<td class="table-actions">
+            <button class="btn-sm" style="background:#0F172A;color:#fff;" onclick="window.openBookingReceiptModal('${b.booking_id}')" title="Booking Receipt & Advance Voucher (No GST)">📄</button>
             <button class="btn-sm" onclick="editBooking('${b.booking_id}')" title="Edit">✏️</button>
             <button class="btn-sm" style="background:#0D9488;color:#fff;" onclick="window.openBookingIdUploadModal('${b.booking_id}')" title="Upload / Manage Guest ID">🪪 ID</button>
             <button class="btn-sm" style="background:#8B5CF6;color:#fff;" onclick="duplicateBooking('${b.booking_id}')" title="Duplicate this booking">📋</button>

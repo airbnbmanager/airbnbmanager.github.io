@@ -10,6 +10,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="config.js"></script>
+  <script src="js/booking-receipt.js?v=1"></script>
   <script src="js/gst-invoice.js"></script>
   <style>
     *{box-sizing:border-box;margin:0;padding:0}
@@ -107,11 +108,15 @@
       .gst-card{grid-template-columns:1fr;}
     }
     @media print{
-      .topbar,.action-bar,.inv-meta-strip,.gst-card,.sidebar,.topbar-right{display:none!important;}
-      .layout{display:block;}
-      .main-area{padding:0;}
-      .invoice-doc{border:none;box-shadow:none;border-radius:0;}
-      body{background:#fff;}
+      @page {
+        size: A4 portrait;
+        margin: 0 !important;
+      }
+      .topbar,.action-bar,.inv-meta-strip,.gst-card,.sidebar,.topbar-right,#receiptWaPreviewCard,.modal-overlay,#uhhBookingPickerModal{display:none!important;}
+      .layout{display:block!important;}
+      .main-area{padding:0!important;margin:0!important;width:100%!important;}
+      .invoice-doc,.uhh-receipt-container{border:none!important;box-shadow:none!important;border-radius:0!important;padding:6mm 10mm!important;margin:0 auto!important;}
+      body{background:#fff!important;margin:0!important;padding:0!important;}
     }
   </style>
 </head>
@@ -122,14 +127,18 @@
   <div class="topbar-left">
     <a href="admin.html"><img src="assets/logo.png" class="topbar-logo" alt="UHH"/></a>
     <div>
-      <div class="topbar-title">🧾 GST Invoice — Direct Bookings</div>
-      <div class="topbar-sub">THE UNIQUE HAVEN HOMES PVT. LTD. · GSTIN: 09ABECT9843K1Z7</div>
+      <div class="topbar-title" id="pageHeaderTitle">📄 Booking Receipt &amp; Advance Voucher (No GST)</div>
+      <div class="topbar-sub">THE UNIQUE HAVEN HOMES PVT. LTD. · Lucknow Homestays</div>
     </div>
   </div>
+  <div style="display:flex;align-items:center;gap:6px;background:rgba(255,255,255,0.12);padding:3px 4px;border-radius:9px;">
+    <button id="btnModeReceipt" class="tbtn" style="background:#fff;color:#0f172a;font-weight:800;" onclick="setDocMode('receipt')">📄 Booking Receipt (No GST)</button>
+    <button id="btnModeGST" class="tbtn" style="background:transparent;color:#fff;" onclick="setDocMode('gst')">🧾 GST Tax Invoice</button>
+  </div>
   <div class="topbar-right">
-    <button class="tbtn" onclick="window.openCARegisterModal()">📊 CA Register</button>
+    <button class="tbtn" id="caBtn" style="display:none;" onclick="window.openCARegisterModal()">📊 CA Register</button>
     <button class="tbtn" onclick="loadBookings()">🔄 Refresh</button>
-    <button class="tbtn gold" onclick="printInvoice()">🖨️ Print PDF</button>
+    <button class="tbtn gold" onclick="printCurrentDoc()">🖨️ Print PDF</button>
     <a href="admin.html" class="tbtn">← Admin</a>
   </div>
 </div>
@@ -203,6 +212,45 @@ let invSeq = parseInt(localStorage.getItem('uhh_inv_seq')||'0') + 1;
 function nextInvNo() { return 'UHH/'+getFY()+'/'+String(invSeq).padStart(4,'0'); }
 
 let allBookings = [], selBooking = null;
+let currentDocMode = 'receipt'; // 'receipt' (No GST) or 'gst' (Tax Invoice)
+
+function setDocMode(mode) {
+  currentDocMode = mode;
+  const btnR = document.getElementById('btnModeReceipt');
+  const btnG = document.getElementById('btnModeGST');
+  const title = document.getElementById('pageHeaderTitle');
+  const caBtn = document.getElementById('caBtn');
+  const infoPill = document.querySelector('.info-pill');
+
+  if (mode === 'receipt') {
+    if (btnR) { btnR.style.background = '#fff'; btnR.style.color = '#0f172a'; btnR.style.fontWeight = '800'; }
+    if (btnG) { btnG.style.background = 'transparent'; btnG.style.color = '#fff'; btnG.style.fontWeight = '500'; }
+    if (title) title.innerHTML = '📄 Booking Receipt &amp; Advance Voucher (No GST)';
+    if (caBtn) caBtn.style.display = 'none';
+    if (infoPill) {
+      infoPill.innerHTML = `
+        <strong>📄 Direct Booking Receipt &amp; Voucher</strong>
+        Shows Total Booking, Advance Paid, and Remaining Balance Due without GST output taxes. Ideal for direct guest confirmation.
+      `;
+    }
+  } else {
+    if (btnG) { btnG.style.background = '#b58d3d'; btnG.style.color = '#fff'; btnG.style.fontWeight = '800'; }
+    if (btnR) { btnR.style.background = 'transparent'; btnR.style.color = '#fff'; btnR.style.fontWeight = '500'; }
+    if (title) title.innerHTML = '🧾 GST Tax Invoice — Direct Bookings';
+    if (caBtn) caBtn.style.display = 'inline-block';
+    if (infoPill) {
+      infoPill.innerHTML = `
+        <strong>📋 GST Tax Invoice (Direct Bookings)</strong>
+        SAC Code: 996311 · GST: <b>≤₹7,500/night → 5%</b> &nbsp;|&nbsp; <b>&gt;₹7,500/night → 18%</b><br>
+        Records output tax for CA GSTR-1 filings.
+      `;
+    }
+  }
+
+  if (selBooking) {
+    renderCurrentDoc();
+  }
+}
 
 // ══════════════════════════════════
 // LOAD DIRECT BOOKINGS FROM SUPABASE
@@ -218,10 +266,9 @@ async function loadBookings() {
       sb = window.sb = supabase.createClient(url, key);
     }
     if (!sb) {
-      // Fallback: check if local storage invoices exist
       const localList = window.GST_ENGINE ? window.GST_ENGINE.getLocalInvoices() : [];
       if (localList.length) {
-        allBookings = localList.map(b => ({ ...b, _paid: b.total_amount, _inv: true }));
+        allBookings = localList.map(b => ({ ...b, _paid: b.total_amount, _due: 0, _payments: [], _inv: true }));
         applyFilter();
         return;
       }
@@ -231,26 +278,48 @@ async function loadBookings() {
     const from = document.getElementById('fFrom').value;
     const to   = document.getElementById('fTo').value;
 
-    let q = sb.from('bookings')
-      .select('booking_id,guest_name,phone,room_id,check_in,check_out,total_amount,booking_mode,airbnb_confirmation_code,status,payment_status,rooms(nickname,unit_no,rent_per_night)')
-      .eq('is_cancelled', false)
-      .is('airbnb_confirmation_code', null)        // NO Airbnb
-      .neq('booking_mode','Online-Airbnb')         // NO Airbnb mode
-      .order('check_in',{ascending:false})
-      .limit(300);
-    if (from) q = q.gte('check_in', from);
-    if (to)   q = q.lte('check_in', to);
+    // Use primary guest_register table (with fallback to bookings if needed)
+    let bookings = [];
+    try {
+      let q = sb.from('guest_register')
+        .select('booking_id,guest_name,phone,room_id,check_in,check_out,total_amount,booking_mode,airbnb_confirmation_code,status,payment_status,guests,check_in_time,check_out_time,notes,booked_by,id_proof_type,rooms(*)')
+        .eq('is_cancelled', false)
+        .is('airbnb_confirmation_code', null)
+        .neq('booking_mode','Online-Airbnb')
+        .order('check_in',{ascending:false})
+        .limit(300);
+      if (from) q = q.gte('check_in', from);
+      if (to)   q = q.lte('check_in', to);
 
-    const {data:bookings, error} = await q;
-    if (error) throw error;
+      const { data, error } = await q;
+      if (error) throw error;
+      bookings = data || [];
+    } catch(err1) {
+      console.warn('Fallback to bookings table:', err1);
+      let q2 = sb.from('bookings')
+        .select('booking_id,guest_name,phone,room_id,check_in,check_out,total_amount,booking_mode,airbnb_confirmation_code,status,payment_status,rooms(*)')
+        .eq('is_cancelled', false)
+        .is('airbnb_confirmation_code', null)
+        .neq('booking_mode','Online-Airbnb')
+        .order('check_in',{ascending:false})
+        .limit(300);
+      if (from) q2 = q2.gte('check_in', from);
+      if (to)   q2 = q2.lte('check_in', to);
+      const { data: b2, error: err2 } = await q2;
+      if (err2) throw err2;
+      bookings = b2 || [];
+    }
 
     // Fetch payments
     const ids = (bookings||[]).map(b=>b.booking_id);
     let payMap = {};
     if (ids.length) {
       const {data:pays} = await sb.from('payment_history')
-        .select('booking_id,amount,payment_mode').in('booking_id',ids);
-      (pays||[]).forEach(p=>{ payMap[p.booking_id]=(payMap[p.booking_id]||0)+(p.amount||0); });
+        .select('*').in('booking_id',ids).neq('verification_status', 'rejected');
+      (pays||[]).forEach(p=>{
+        if (!payMap[p.booking_id]) payMap[p.booking_id] = [];
+        payMap[p.booking_id].push(p);
+      });
     }
 
     // Fetch existing invoices
@@ -260,27 +329,56 @@ async function loadBookings() {
       (invs||[]).forEach(i=>invSet.add(i.booking_id));
     } catch(e){}
 
-    // Only bookings with some payment recorded OR payment_status=Paid
     allBookings = (bookings||[])
       .filter(b => {
-        const paid = payMap[b.booking_id]||0;
-        const total = b.total_amount||0;
-        // Include if: has any payment, OR marked as Paid/Settled, OR total > 0 (for on-demand)
+        const bPays = payMap[b.booking_id] || [];
+        const paid = bPays.reduce((sum, p) => sum + (p.amount || 0), 0);
+        const total = b.total_amount || 0;
         return total > 0 || paid > 0;
       })
-      .map(b=>({...b, _paid:payMap[b.booking_id]||0, _inv:invSet.has(b.booking_id)}));
+      .map(b => {
+        const bPays = payMap[b.booking_id] || [];
+        const paid = bPays.reduce((sum, p) => sum + (p.amount || 0), 0);
+        const total = b.total_amount || 0;
+        const due = Math.max(0, total - paid);
+        return {
+          ...b,
+          _paid: paid,
+          _due: due,
+          _payments: bPays,
+          _inv: invSet.has(b.booking_id)
+        };
+      });
 
     applyFilter();
+
+    // Auto-select if requested by URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const pPhone = urlParams.get('phone') || '';
+    const pBkId = urlParams.get('booking_id') || urlParams.get('id') || '';
+    if (pBkId) {
+      const found = allBookings.find(b => b.booking_id === pBkId);
+      if (found) selectBooking(found.booking_id);
+    } else if (pPhone) {
+      const cleanP = pPhone.replace(/\D/g, '');
+      const found = allBookings.find(b => (b.phone || '').includes(cleanP));
+      if (found) selectBooking(found.booking_id);
+    }
   } catch(err) {
     el.innerHTML = '<div style="text-align:center;padding:20px;color:#dc2626;font-size:12px;">❌ '+err.message+'</div>';
   }
 }
 
 function applyFilter() {
-  const s = (document.getElementById('fSearch').value||'').toLowerCase();
-  const list = allBookings.filter(b=> {
+  const s = (document.getElementById('fSearch').value||'').trim().toLowerCase();
+  const list = allBookings.filter(b => {
     if (!s) return true;
-    return ((b.guest_name||'')+(b.phone||'')).toLowerCase().includes(s);
+    const cleanS = s.replace(/\D/g, '');
+    const phone = (b.phone || '').replace(/\D/g, '');
+    const nameMatch = (b.guest_name || '').toLowerCase().includes(s);
+    const idMatch = (b.booking_id || '').toLowerCase().includes(s);
+    const phoneMatch = cleanS.length >= 3 && phone.includes(cleanS);
+    return nameMatch || idMatch || phoneMatch;
   });
   renderList(list);
 }
@@ -293,37 +391,134 @@ function nights(b) {
 function renderList(list) {
   const el = document.getElementById('blist');
   if (!list.length) {
-    el.innerHTML = '<div style="text-align:center;padding:30px;color:var(--muted);font-size:12px;">📭 No direct bookings found.<br>Check date range and try again.</div>';
+    el.innerHTML = '<div style="text-align:center;padding:30px;color:var(--muted);font-size:12px;">📭 No direct bookings found.<br>Try adjusting the search or dates.</div>';
     return;
   }
   el.innerHTML = '<div class="bcount">'+list.length+' direct booking(s)</div>' +
-    list.map(b=>{
+    list.map(b => {
       const n = nights(b);
-      const prop = b.rooms?.nickname||b.room_id||'Property';
-      const paidPct = b.total_amount>0 ? Math.round((b._paid/b.total_amount)*100) : 0;
+      const prop = b.rooms?.nickname || b.rooms?.property_name || b.room_id || 'Property';
+      const isSettled = b._due === 0 && (b.total_amount > 0 || b._paid > 0);
+      const isAdvance = b._paid > 0 && b._due > 0;
       return `<div class="bcard${selBooking?.booking_id===b.booking_id?' sel':''}" onclick="selectBooking('${b.booking_id}')">
-        <div class="bcard-name">${b.guest_name||'Guest'} ${b._inv?'<span class="badge badge-inv">✅ Invoiced</span>':'<span class="badge badge-draft">Draft</span>'}</div>
-        <div class="bcard-prop">${prop} · ${n} night${n>1?'s':''}</div>
+        <div class="bcard-name">
+          ${escapeHtml(b.guest_name||'Guest')}
+          ${isSettled 
+            ? '<span class="badge badge-inv">✔ Settled</span>' 
+            : (isAdvance ? '<span class="badge" style="background:#fef3c7;color:#854d0e;">⚠️ Advance</span>' : '<span class="badge" style="background:#fee2e2;color:#991b1b;">Due</span>')}
+        </div>
+        <div class="bcard-prop">${escapeHtml(prop)} · ${n} night${n>1?'s':''} · 👥 ${b.guests||1}</div>
         <div class="bcard-row">
           <div class="bcard-amt">₹${(b.total_amount||0).toLocaleString('en-IN')}</div>
-          <span class="badge badge-direct">💳 Direct</span>
+          <span style="font-size:11px;font-weight:700;color:${b._due>0?'#dc2626':'#059669'};">
+            ${b._due > 0 ? 'Due: ₹'+b._due.toLocaleString('en-IN') : '✔ Cleared'}
+          </span>
         </div>
-        <div class="bcard-dates">${b.check_in||'-'} → ${b.check_out||'-'}</div>
-        ${b._paid>0?'<div style="margin-top:5px;font-size:10px;color:var(--success);font-weight:700;">✔ ₹'+b._paid.toLocaleString('en-IN')+' paid ('+paidPct+'%)</div>':''}
+        <div class="bcard-dates">📅 ${b.check_in||'-'} → ${b.check_out||'-'}</div>
+        ${b._paid>0 ? '<div style="margin-top:5px;font-size:10.5px;color:var(--success);font-weight:700;">✔ Advance: ₹'+b._paid.toLocaleString('en-IN')+'</div>' : ''}
       </div>`;
     }).join('');
 }
 
 function selectBooking(id) {
   selBooking = allBookings.find(b=>b.booking_id===id);
-  applyFilter(); // re-render to show selection
-  renderInvoice();
+  applyFilter(); // re-render list selection highlight
+  renderCurrentDoc();
+}
+
+function renderCurrentDoc() {
+  if (currentDocMode === 'receipt') {
+    renderReceiptScreen();
+  } else {
+    renderInvoiceScreen();
+  }
 }
 
 // ══════════════════════════════════
-// RENDER INVOICE SCREEN
+// RENDER RECEIPT SCREEN (NO GST)
 // ══════════════════════════════════
-function renderInvoice() {
+function renderReceiptScreen() {
+  const b = selBooking; if (!b) return;
+  const n = nights(b);
+  const mainArea = document.getElementById('mainArea');
+
+  const receiptData = {
+    booking: b,
+    payments: b._payments || [],
+    totalAmount: b.total_amount || 0,
+    paidAmount: b._paid || 0,
+    balanceDue: b._due || 0,
+    nights: n
+  };
+
+  const receiptHtml = window.BOOKING_RECEIPT_ENGINE ? window.BOOKING_RECEIPT_ENGINE.buildReceiptHTML(receiptData) : '';
+  const waText = window.BOOKING_RECEIPT_ENGINE ? window.BOOKING_RECEIPT_ENGINE.buildReceiptWhatsAppText(receiptData) : '';
+  const cleanP = (b.phone || '').replace(/\D/g, '');
+  const fullP = cleanP.length === 10 ? '91' + cleanP : cleanP;
+
+  mainArea.innerHTML = `
+    <!-- Action Bar -->
+    <div class="action-bar">
+      <button class="abtn primary" onclick="printReceiptDoc()">🖨️ Print / Save PDF</button>
+      ${fullP ? `
+        <button class="abtn green" onclick="window.open('https://wa.me/${fullP}?text='+encodeURIComponent(document.getElementById('receiptWaTextarea').value),'_blank')">
+          💬 WhatsApp to Guest
+        </button>
+      ` : ''}
+      <button class="abtn" onclick="copyReceiptWhatsAppText()">📋 Copy WhatsApp Text</button>
+      <button class="abtn" onclick="setDocMode('gst')" style="border-color:#b58d3d;color:#b58d3d;font-weight:700;">
+        🧾 Switch to GST Tax Invoice
+      </button>
+      <span style="margin-left:auto;font-size:11px;color:var(--muted);">
+        Status: <strong>${b._due === 0 ? '✅ Fully Paid' : '⚠️ Advance Paid (₹' + b._due.toLocaleString('en-IN') + ' Balance Due)'}</strong>
+      </span>
+    </div>
+
+    <textarea id="receiptWaTextarea" style="display:none;">${escapeHtml(waText)}</textarea>
+
+    <!-- THE RECEIPT DOCUMENT -->
+    <div class="invoice-doc" id="receiptDocArea" style="background:#fff;border:1px solid #d1d5db;border-radius:14px;overflow:hidden;box-shadow:0 8px 30px rgba(0,0,0,0.08);">
+      ${receiptHtml}
+    </div>
+  `;
+}
+
+function copyReceiptWhatsAppText() {
+  const el = document.getElementById('receiptWaTextarea');
+  if (el) {
+    navigator.clipboard.writeText(el.value).then(() => {
+      alert('✅ Booking receipt text copied to clipboard!');
+    });
+  }
+}
+
+function printReceiptDoc() {
+  const b = selBooking;
+  const docTitle = b
+    ? (window.getReceiptDocTitle ? window.getReceiptDocTitle(b) : `Booking Receipt — ${b.guest_name || 'Guest'} - ${b.check_in || ''}`)
+    : 'Booking Receipt — The Unique Haven Homes';
+  if (window.printBookingReceipt) {
+    window.printBookingReceipt('receiptDocArea', docTitle);
+  } else {
+    const orig = document.title;
+    document.title = docTitle;
+    window.print();
+    setTimeout(() => { document.title = orig; }, 1000);
+  }
+}
+
+function printCurrentDoc() {
+  if (currentDocMode === 'receipt') {
+    printReceiptDoc();
+  } else {
+    printInvoice();
+  }
+}
+
+// ══════════════════════════════════
+// RENDER GST INVOICE SCREEN
+// ══════════════════════════════════
+function renderInvoiceScreen() {
   const b = selBooking; if (!b) return;
   const n = nights(b);
   const total = b.total_amount||0;
@@ -347,7 +542,10 @@ function renderInvoice() {
       <button class="abtn primary" onclick="printInvoice()">🖨️ Print / Save PDF</button>
       <button class="abtn green" onclick="saveInvoice()">💾 Save Invoice</button>
       <button class="abtn" onclick="copyText()">📋 Copy Text</button>
-      <span style="margin-left:auto;font-size:11px;color:var(--muted);">${b._inv?'✅ Already saved':'📝 Draft — not saved'}</span>
+      <button class="abtn" onclick="setDocMode('receipt')" style="border-color:#0f172a;color:#0f172a;font-weight:700;">
+        📄 Switch to Booking Receipt (No GST)
+      </button>
+      <span style="margin-left:auto;font-size:11px;color:var(--muted);">${b._inv?'✅ Already saved for CA':'📝 Draft — not saved'}</span>
     </div>
 
     <!-- Invoice Number & Date strip -->
@@ -596,15 +794,15 @@ function printInvoice() {
   const doc = document.getElementById('invoiceDoc');
   if (doc) doc.innerHTML = buildInvoiceHTML(d.b,d.n,d.total,d.perNight,d.rate,d.half,d.base,d.cgst,d.sgst,d.gstAmt,invNoFinal,invDateFinal);
 
-  const invoiceEl = document.getElementById('invoiceDoc');
-  if (!invoiceEl) return;
-  const w = window.open('','_blank','width=900,height=700');
-  w.document.write('<!DOCTYPE html><html><head><meta charset="utf-8"><title>Invoice '+invNoFinal+'</title>' +
-    '<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">' +
-    '<style>@page{size:A4;margin:6mm}*{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}body{margin:0;padding:0;font-family:Inter,Arial,sans-serif;}</style>' +
-    '</head><body>'+invoiceEl.innerHTML+'</body></html>');
-  w.document.close();
-  setTimeout(()=>w.print(), 700);
+  const docTitle = `GST Tax Invoice — ${d.b.guest_name || 'Guest'} - ${invNoFinal}`;
+  if (window.printBookingReceipt) {
+    window.printBookingReceipt('invoiceDoc', docTitle);
+  } else {
+    const orig = document.title;
+    document.title = docTitle;
+    window.print();
+    setTimeout(() => { document.title = orig; }, 1000);
+  }
 }
 
 async function saveInvoice() {
@@ -737,8 +935,18 @@ function numToWords(n) {
 (function(){
   const today = new Date();
   const from = new Date(today); from.setMonth(from.getMonth()-3);
+  const future = new Date(today); future.setMonth(future.getMonth()+6);
   document.getElementById('fFrom').value = from.toISOString().slice(0,10);
-  document.getElementById('fTo').value = today.toISOString().slice(0,10);
+  document.getElementById('fTo').value = future.toISOString().slice(0,10);
+
+  const urlParams = new URLSearchParams(window.location.search);
+  const pPhone = urlParams.get('phone') || '';
+  const pMode = urlParams.get('mode') || urlParams.get('type') || 'receipt';
+  if (pPhone) {
+    const sEl = document.getElementById('fSearch');
+    if (sEl) sEl.value = pPhone;
+  }
+  setDocMode(pMode === 'gst' ? 'gst' : 'receipt');
   loadBookings();
 })();
 </script>

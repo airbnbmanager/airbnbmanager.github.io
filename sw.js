@@ -1,8 +1,9 @@
-const CACHE_NAME = 'uhhs-live-v195';
-const RUNTIME_CACHE = 'uhhs-runtime-v75';
+const CACHE_NAME = 'uhhs-live-v196';
+const RUNTIME_CACHE = 'uhhs-runtime-v76';
 
 const CORE_ASSETS = [
   '/admin.html',
+  '/billing.html',
   '/style.css',
   '/config.js',
   '/manifest.json',
@@ -15,6 +16,7 @@ const CORE_ASSETS = [
   '/js/calendar.js',
   '/js/bookings.js',
   '/js/smart-bookings.js',
+  '/js/booking-receipt.js',
   '/js/gst-invoice.js',
   '/js/properties.js',
   '/js/employees.js',

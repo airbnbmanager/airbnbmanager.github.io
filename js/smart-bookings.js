@@ -1059,6 +1059,7 @@ window.openBookingDrawer = async function(bookingId) {
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
               <div style="font-size:13px;font-weight:700;color:var(--dark);">💰 Payment Ledger</div>
               <div style="display:flex;gap:6px;align-items:center;">
+                <button class="btn-sm" onclick="window.openBookingReceiptModal('${b.booking_id}')" style="background:#0F172A;color:#fff;border:none;padding:4px 9px;font-size:11.5px;font-weight:700;border-radius:6px;cursor:pointer;" title="Booking Confirmation & Advance Voucher (No GST)">📄 Receipt</button>
                 <button class="btn-sm" onclick="window.openGSTInvoiceModal('${b.booking_id}')" style="background:#B45309;color:#fff;border:none;padding:4px 9px;font-size:11.5px;font-weight:700;border-radius:6px;cursor:pointer;" title="Generate or View GST Invoice">🧾 GST Bill</button>
                 ${canM ? `<button class="btn-sm" onclick="showPaymentModal('${b.booking_id}')" style="background:#10B981;color:#fff;border:none;padding:4px 10px;font-size:11.5px;">+ Add Payment</button>` : ''}
               </div>
@@ -1132,6 +1133,9 @@ window.openBookingDrawer = async function(bookingId) {
             ` : ''}
             <button class="btn-sm outline" style="padding:10px;" onclick="showGuestLedger('${escapeHtml(b.guest_name || '')}', '${b.booking_id}', '${b.phone || ''}', '${b.airbnb_confirmation_code || ''}')">
               📑 Guest Ledger
+            </button>
+            <button class="btn-sm" style="background:#0F172A;color:#fff;padding:10px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;gap:6px;" onclick="window.openBookingReceiptModal('${b.booking_id}')" title="Generate Booking Confirmation & Advance Receipt (Without GST)">
+              📄 Booking Receipt
             </button>
             <button class="btn-sm" style="background:#B45309;color:#fff;padding:10px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;gap:6px;" onclick="window.openGSTInvoiceModal('${b.booking_id}')" title="Generate GST Tax Invoice">
               🧾 GST Invoice

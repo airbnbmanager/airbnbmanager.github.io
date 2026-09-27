@@ -237,6 +237,49 @@ function tplWelcome(d) {
   return tplConfirmation(d);
 }
 
+// ═══ 0B. BOOKING CONFIRMATION & ADVANCE PAYMENT RECEIPT (NO GST) ═══
+function tplBookingReceipt(d) {
+  const mapStr = d.mapLink ? `\n📍 *Map:* ${d.mapLink}` : '';
+  const floorStr = d.floor ? ` (${d.floor} floor)` : '';
+  const total = Number(d.total || 0);
+  const paid = Number(d.paid || 0);
+  const due = Math.max(0, total - paid);
+
+  return `🏨 *THE UNIQUE HAVEN HOMES*
+*BOOKING CONFIRMATION & ADVANCE RECEIPT*
+Namaste *${d.guestName}* ji 🙏
+
+Thank you for choosing *The Unique Haven Homes*. Your direct reservation has been confirmed:
+
+📋 *Booking ID:* ${d.bk?.booking_id || '-'}
+🏠 *Property:* ${d.propertyName} (${d.flat}${floorStr})
+📍 *Address:* ${d.address}${mapStr}
+
+📅 *Check-in:* ${fmtDate(d.checkIn)} at ${d.checkInTime || '14:00'}
+📅 *Check-out:* ${fmtDate(d.checkOut)} at ${d.checkOutTime || '11:00'}
+🌙 *Duration:* ${d.nights} Night(s) · ${d.bk?.guests || 1} Guest(s)
+
+💰 *PAYMENT BREAKDOWN:*
+━━━━━━━━━━━━━━━━━━━━
+▪️ *Total Booking Amount:* ₹${total.toLocaleString('en-IN')}
+▪️ *Advance Paid:* ₹${paid.toLocaleString('en-IN')} ✅
+▪️ *Balance Due:* ₹${due.toLocaleString('en-IN')} ${due > 0 ? '⚠️ (Payable at Check-in)' : '✅ (Fully Cleared)'}
+━━━━━━━━━━━━━━━━━━━━
+
+👤 *Property Manager:* ${d.manager.name} (${d.manager.phone})
+
+👑 *Company Owners:*
+• Mr. Shahanshah: 9450055554
+• Mr. Firoz Khan: 8299600709
+
+📋 *Key Check-in Instructions:*
+• Original Govt ID (Aadhaar/Passport/DL) mandatory for all guests.
+• Standard Check-in: 02:00 PM | Check-out: 11:00 AM.
+• Quiet hours post 11:00 PM.
+
+🌐 ${d.websiteURL || 'https://uniquehavenhomesstay.com'}`;
+}
+
 // ═══ 2. REMINDER (Day Before Check-in) ═══
 function tplReminder(d) {
   const mapStr = d.mapLink ? `\n📍 *Map:* ${d.mapLink}` : '';
@@ -691,6 +734,7 @@ window.showWATemplatesMenu = function(bkId, btn) {
 
       <div style="margin-top:12px;">
         <div style="font-size:11px;color:#888;text-transform:uppercase;margin:10px 0 6px;font-weight:700;">👤 Guest Communications</div>
+        <button class="outline" style="width:100%;text-align:left;margin-bottom:6px;font-weight:700;background:#0F172A;color:#fff;border-color:#0F172A;" onclick="this.closest('.modal-overlay').remove();sendBookingReceipt('${bkId}')">📄 Booking &amp; Advance Payment Receipt (No GST)</button>
         <button class="outline" style="width:100%;text-align:left;margin-bottom:6px;font-weight:700;background:#F0FDF4;color:#15803D;border-color:#86EFAC;" onclick="this.closest('.modal-overlay').remove();sendBookingConfirmation('${bkId}')">🎉 Booking Confirmation &amp; Check-in Pass</button>
         <button class="outline" style="width:100%;text-align:left;margin-bottom:6px;font-weight:600;" onclick="this.closest('.modal-overlay').remove();sendCheckoutReminder('${bkId}')">👋 11:00 AM Checkout Reminder</button>
         <button class="outline" style="width:100%;text-align:left;margin-bottom:6px;background:#F0F9FF;color:#0284C7;border-color:#BAE6FD;" onclick="this.closest('.modal-overlay').remove();sendSecurityDepositReceipt('${bkId}')">🛡️ Security Deposit Receipt (Collected)</button>
@@ -729,6 +773,8 @@ async function sendSecurityDepositRefund(bkId) {
 // Expose all
 window.shareBookingWhatsApp = shareBookingWhatsApp;
 window.sendBookingConfirmation = sendBookingConfirmation;
+window.sendBookingReceipt = sendBookingReceipt;
+window.tplBookingReceipt = tplBookingReceipt;
 window.sendWelcomePass = sendWelcomePass;
 window.sendArrivalDetails = sendArrivalDetails;
 window.sendCheckoutReminder = sendCheckoutReminder;
