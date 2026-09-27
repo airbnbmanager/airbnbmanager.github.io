@@ -4082,6 +4082,9 @@ async function loadReceiveByHolders() {
     .map(e => e.name);
   
   const owners = (holders || []).filter(h => h.type === 'final').map(h => h.name);
+  if (!owners.includes('UHHS-OD')) {
+    owners.unshift('UHHS-OD');
+  }
   if (!owners.some(o => (o || '').toLowerCase() === 'firoz')) {
     owners.unshift('Firoz');
   }
@@ -6290,6 +6293,9 @@ window.onAdvanceModeChange = async function() {
   const receivers = data.employees;
   
   let html = '<option value="">-- Select --</option>';
+  html += '<optgroup label="🏦 Overdraft Account">';
+  html += '<option value="UHHS-OD">🏦 UHHS-OD (Praveen / Overdraft)</option>';
+  html += '</optgroup>';
   
   if (mode === 'Cash') {
     // Cash: sabhi le sakte hain
