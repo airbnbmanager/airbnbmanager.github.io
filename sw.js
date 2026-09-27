@@ -3,7 +3,6 @@ const RUNTIME_CACHE = 'uhhs-runtime-v76';
 
 const CORE_ASSETS = [
   '/admin.html',
-  '/billing.html',
   '/style.css',
   '/config.js',
   '/manifest.json',

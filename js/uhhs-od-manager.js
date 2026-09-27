@@ -91,6 +91,8 @@ async function getAllODDeposits(supabaseClient, startDate = '2026-09-17', endDat
             const { data: caData, error: caErr } = await q.order('advance_date', { ascending: false });
             if (!caErr && Array.isArray(caData)) {
                 caData.forEach(ca => {
+                    // Exclude returns/handovers (which are outflows)
+                    if (ca.given_by === 'UHHS-OD' || ca.status === 'Returned' || ca.status === 'Handover') return;
                     const uniqueKey = 'ca_' + ca.id;
                     itemsMap.set(uniqueKey, {
                         id: uniqueKey,
@@ -109,6 +111,42 @@ async function getAllODDeposits(supabaseClient, startDate = '2026-09-17', endDat
             }
         } catch (e) {
             console.warn('Company advances OD read error:', e.message);
+        }
+
+        // 2b. Auto-synced Guest Payments directly received into UHHS-OD
+        try {
+            let qPay = client.from('payment_history')
+                .select('id, amount, payment_date, payment_mode, received_by, notes, booking_id, guest_register(guest_name, rooms(nickname, unit_no))')
+                .or('received_by.eq.UHHS-OD,received_by.ilike.%UHHS-OD%')
+                .neq('verification_status', 'rejected');
+            if (startDate) qPay = qPay.gte('payment_date', startDate);
+            if (endDate) qPay = qPay.lte('payment_date', endDate);
+            const { data: payData, error: payErr } = await qPay.order('payment_date', { ascending: false });
+            if (!payErr && Array.isArray(payData)) {
+                payData.forEach(p => {
+                    const uniqueKey = 'pay_' + p.id;
+                    const guestName = p.guest_register?.guest_name || 'Guest';
+                    const r = p.guest_register?.rooms;
+                    const roomStr = r ? (r.nickname ? `${r.nickname} (${r.unit_no || ''})` : (r.unit_no || '')) : '';
+                    const desc = `Guest Payment: ${guestName}${roomStr ? ' - ' + roomStr : ''} [Booking #${p.booking_id || ''}]`;
+                    itemsMap.set(uniqueKey, {
+                        id: uniqueKey,
+                        db_id: p.id,
+                        booking_id: p.booking_id,
+                        source_table: 'payment_history',
+                        transaction_date: p.payment_date,
+                        description: desc,
+                        amount: parseFloat(p.amount || 0),
+                        transaction_type: 'INFLOW',
+                        payment_mode: p.payment_mode || 'UPI',
+                        received_from: guestName,
+                        reference_note: p.notes || `Booking #${p.booking_id}`,
+                        created_at: p.payment_date
+                    });
+                });
+            }
+        } catch (e) {
+            console.warn('UHHS-OD payment_history auto-sync read error:', e.message);
         }
 
         // 3. Historical account_transactions prior to 2026-09-17
@@ -151,15 +189,76 @@ async function getAllODDeposits(supabaseClient, startDate = '2026-09-17', endDat
 // 3. Live UHHS-OD Ledger Engine & Single Source of Truth
 async function getLedgerData(supabaseClient, customStartDate, customEndDate) {
     const client = supabaseClient || window.sb || window.supabaseClient || window.supabase;
-    if (!client) return { txns: [], totalInflow: 0, totalOutflow: 0, netBalance: 0 };
+    if (!client) return { txns: [], totalInflow: 0, totalOutflow: 0, netBalance: 0, openingBalance: 0 };
 
-    const startDate = customStartDate || "2026-09-17";
+    const CHECKPOINT_START = "2026-09-17";
+    const startDate = customStartDate || CHECKPOINT_START;
     const endDate = customEndDate || null;
 
-    // 1. Deposits (Inflows)
+    function normalizePaymentSource(src) {
+        if (!src) return '';
+        const s = String(src).trim().toUpperCase();
+        if (s.includes('OD') || s.includes('UHHS')) return 'UHHS-OD';
+        return src;
+    }
+
+    // ─── 0. CALCULATE OPENING BALANCE B/F (If startDate is after Checkpoint 17-Sep) ───
+    let openingBalance = 0;
+    let openingInflow = 0;
+    let openingOutflow = 0;
+
+    if (startDate > CHECKPOINT_START) {
+        const d = new Date(startDate);
+        d.setDate(d.getDate() - 1);
+        const dayBefore = d.toISOString().slice(0, 10);
+
+        const priorDeposits = await getAllODDeposits(client, CHECKPOINT_START, dayBefore);
+        const [
+            { data: pExps },
+            { data: pMaints },
+            { data: pLaunds },
+            { data: pAdvs },
+            { data: pReturns }
+        ] = await Promise.all([
+            client.from('reimbursements').select('*').gte('expense_date', CHECKPOINT_START).lte('expense_date', dayBefore),
+            client.from('maintenance_log').select('*').gte('reported_date', CHECKPOINT_START).lte('reported_date', dayBefore),
+            client.from('laundry_payments').select('*').gte('payment_date', CHECKPOINT_START).lte('payment_date', dayBefore),
+            client.from('advance_tracker').select('*').gte('date_given', CHECKPOINT_START).lte('date_given', dayBefore),
+            client.from('company_advances').select('*').or('given_by.eq.UHHS-OD,status.eq.Returned,status.eq.Handover').gte('advance_date', CHECKPOINT_START).lte('advance_date', dayBefore)
+        ]);
+
+        const seenPrior = new Set();
+        (priorDeposits || []).forEach(d => {
+            const k = String(d.db_id || d.id);
+            if (!seenPrior.has(k)) {
+                seenPrior.add(k);
+                openingInflow += parseFloat(d.amount || 0);
+            }
+        });
+
+        (pExps || []).filter(e => normalizePaymentSource(e.payment_source || e.paid_by) === 'UHHS-OD').forEach(e => {
+            openingOutflow += parseFloat(e.amount || 0);
+        });
+        (pMaints || []).filter(m => normalizePaymentSource(m.payment_source || m.paid_by) === 'UHHS-OD').forEach(m => {
+            openingOutflow += parseFloat(m.cost || 0);
+        });
+        (pLaunds || []).filter(l => normalizePaymentSource(l.payment_source || l.payment_mode) === 'UHHS-OD').forEach(l => {
+            openingOutflow += parseFloat(l.amount || 0);
+        });
+        (pAdvs || []).filter(a => normalizePaymentSource(a.paid_by) === 'UHHS-OD').forEach(a => {
+            openingOutflow += parseFloat(a.advance_amount || 0);
+        });
+        (pReturns || []).forEach(r => {
+            openingOutflow += parseFloat(r.amount_given || 0);
+        });
+
+        openingBalance = openingInflow - openingOutflow;
+    }
+
+    // 1. Deposits (Inflows in period)
     const deposits = await getAllODDeposits(client, startDate, endDate);
 
-    // 2. Outflows (Parallel queries)
+    // 2. Outflows (Parallel queries in period)
     let qReimb = client.from('reimbursements').select('*').gte('expense_date', startDate);
     if (endDate) qReimb = qReimb.lte('expense_date', endDate);
 
@@ -171,8 +270,11 @@ async function getLedgerData(supabaseClient, customStartDate, customEndDate) {
 
     let qAdv = client.from('advance_tracker').select('*, employees(name)');
 
-    const [{ data: exps }, { data: maints }, { data: launds }, { data: allAdvs }] = await Promise.all([
-        qReimb, qMaint, qLaund, qAdv
+    let qReturns = client.from('company_advances').select('*').or('given_by.eq.UHHS-OD,status.eq.Returned,status.eq.Handover').gte('advance_date', startDate);
+    if (endDate) qReturns = qReturns.lte('advance_date', endDate);
+
+    const [{ data: exps }, { data: maints }, { data: launds }, { data: allAdvs }, { data: returns }] = await Promise.all([
+        qReimb, qMaint, qLaund, qAdv, qReturns
     ]);
 
     const txns = [];
@@ -195,13 +297,6 @@ async function getLedgerData(supabaseClient, customStartDate, customEndDate) {
             isDep: true
         });
     });
-
-    function normalizePaymentSource(src) {
-        if (!src) return '';
-        const s = String(src).trim().toUpperCase();
-        if (s.includes('OD') || s.includes('UHHS')) return 'UHHS-OD';
-        return src;
-    }
 
     // Daily Expenses (-)
     (exps || []).filter(e => normalizePaymentSource(e.payment_source || e.paid_by) === 'UHHS-OD').forEach(e => {
@@ -261,25 +356,53 @@ async function getLedgerData(supabaseClient, customStartDate, customEndDate) {
         });
     });
 
+    // Funds Returned to Company (-)
+    (returns || []).forEach(r => {
+        txns.push({
+            id: 'ret_' + r.id,
+            db_id: r.id,
+            source: 'company_advances',
+            date: r.advance_date,
+            type: 'EXPENSE',
+            desc: `💸 Return to Company: ${r.purpose || 'Funds returned to ' + (r.given_to || 'Company')}`,
+            amount: parseFloat(r.amount_given || 0),
+            isDep: false,
+            isReturn: true
+        });
+    });
+
+    // Add Opening Balance row if openingBalance exists
+    if (openingBalance !== 0) {
+        txns.push({
+            id: 'op_bal_' + startDate,
+            db_id: null,
+            date: startDate,
+            type: 'OPENING_BAL',
+            desc: `💼 Opening Balance B/F (accumulated from 17-Sep to ${startDate})`,
+            amount: Math.abs(openingBalance),
+            isDep: openingBalance >= 0,
+            isOpening: true
+        });
+    }
+
     txns.sort((a, b) => new Date(b.date) - new Date(a.date));
 
-    const totalInflow = txns.filter(t => t.isDep).reduce((s, t) => s + t.amount, 0);
-    const totalOutflow = txns.filter(t => !t.isDep).reduce((s, t) => s + t.amount, 0);
-    const netBalance = totalInflow - totalOutflow;
+    const totalInflow = txns.filter(t => t.isDep && !t.isOpening).reduce((s, t) => s + t.amount, 0);
+    const totalOutflow = txns.filter(t => !t.isDep && !t.isOpening).reduce((s, t) => s + t.amount, 0);
+    const netBalance = openingBalance + totalInflow - totalOutflow;
 
-    return { txns, totalInflow, totalOutflow, netBalance };
+    return { txns, totalInflow, totalOutflow, netBalance, openingBalance };
 }
 
 // 4. Live UHHS-OD Balance Calculator & DOM Synchronizer
-async function calculateLiveODBalance(supabaseClient, customStartDate, customEndDate) {
+async function calculateLiveODBalance(supabaseClient) {
     const client = supabaseClient || window.sb || window.supabaseClient || window.supabase;
     if (!client) return { inflow: 0, outflow: 0, balance: 0 };
 
     try {
-        const startDate = customStartDate || window._claimsState?.fromDate || "2026-09-17";
-        const endDate = customEndDate || window._claimsState?.toDate || null;
-
-        const { txns, totalInflow, totalOutflow, netBalance } = await getLedgerData(client, startDate, endDate);
+        // 🏦 CRITICAL RULE: Top Banner ALWAYS calculates from the Checkpoint (2026-09-17) onwards,
+        // so filtering the table below never distorts the true bank running balance!
+        const { txns, totalInflow, totalOutflow, netBalance } = await getLedgerData(client, "2026-09-17", null);
 
         // Update Claims Manager Inflow / Outflow Sub-elements if present
         const inEl = document.getElementById('claims-od-inflow');
@@ -304,16 +427,21 @@ async function calculateLiveODBalance(supabaseClient, customStartDate, customEnd
                     const isNegative = netBalance < 0;
                     el.innerHTML = `
                         <div style="padding:14px; border-radius:10px; background:${isNegative ? '#fff5f5' : '#f0fff4'}; border:1.5px solid ${isNegative ? '#dc3545' : '#198754'}; margin-bottom:12px;">
-                            <div style="display:flex; justify-content:space-between; align-items:center;">
+                            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
                                 <div>
                                     <div style="font-size:12px; font-weight:700; color:#555; text-transform:uppercase;">🏦 UHHS-OD ACCOUNT BALANCE</div>
                                     <div style="font-size:24px; font-weight:800; color:${isNegative ? '#dc3545' : '#198754'}; margin-top:2px;">
                                         ${netBalance < 0 ? '-₹' : '₹'}${Math.abs(netBalance).toLocaleString('en-IN', { minimumFractionDigits: 0 })}
                                     </div>
                                 </div>
-                                <button onclick="window.cbDepositToODModal()" style="padding:8px 14px; background:#10B981; color:#fff; border:none; border-radius:6px; font-weight:700; font-size:12px; cursor:pointer;">
-                                    📥 + Deposit Funds
-                                </button>
+                                <div style="display:flex; gap:8px; align-items:center;">
+                                    <button onclick="window.cbDepositToODModal()" style="padding:8px 12px; background:#10B981; color:#fff; border:none; border-radius:6px; font-weight:700; font-size:12px; cursor:pointer;">
+                                        📥 + Deposit Funds
+                                    </button>
+                                    <button onclick="window.cbReturnFromODModal()" style="padding:8px 12px; background:#EF4444; color:#fff; border:none; border-radius:6px; font-weight:700; font-size:12px; cursor:pointer;">
+                                        💸 Return to Company
+                                    </button>
+                                </div>
                             </div>
                             <div style="font-size:11px; color:#666; margin-top:6px; border-top:1px solid ${isNegative ? '#fecdd3' : '#bbf7d0'}; padding-top:6px;">
                                 Inflow: <b>₹${totalInflow.toLocaleString('en-IN')}</b> | Outflow: <b>₹${totalOutflow.toLocaleString('en-IN')}</b>
@@ -493,11 +621,178 @@ window.cbSaveODDeposit = async function() {
 };
 
 // =========================================================================
+// 💸 GLOBAL MODAL: Return / Handover Funds to Company (from UHHS-OD)
+// =========================================================================
+window.cbReturnFromODModal = function() {
+    const oldModal = document.querySelector('.od-return-modal-overlay');
+    if (oldModal) oldModal.remove();
+
+    const modal = document.createElement('div');
+    modal.className = 'modal-overlay od-return-modal-overlay';
+    modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);display:flex;align-items:center;justify-content:center;z-index:9999999;padding:20px;backdrop-filter:blur(2px);';
+    modal.onclick = e => { if (e.target === modal) modal.remove(); };
+
+    modal.innerHTML = `
+        <div class="modal-box" style="background:#fff;border-radius:12px;padding:22px;max-width:450px;width:100%;box-shadow:0 10px 25px rgba(0,0,0,0.2);" onclick="event.stopPropagation()">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;border-bottom:1px solid #eee;padding-bottom:10px;">
+                <h3 style="margin:0;font-size:18px;color:#EF4444;font-weight:800;">💸 Return Funds to Company</h3>
+                <button onclick="this.closest('.modal-overlay').remove()" style="background:none;border:none;font-size:22px;cursor:pointer;color:#888;">✕</button>
+            </div>
+
+            <div style="background:#fef2f2;padding:10px;border-radius:8px;font-size:12px;color:#991b1b;margin-bottom:14px;border:1px solid #fecaca;">
+                Record funds returned / transferred from UHHS-OD back to Company or Firoz. This will reduce your UHHS-OD running balance.
+            </div>
+
+            <div class="form-group" style="margin-bottom:12px;">
+                <label style="font-weight:600;font-size:13px;display:block;margin-bottom:4px;">Date *</label>
+                <input id="odRetDate" type="date" value="${new Date().toISOString().slice(0,10)}" style="width:100%;padding:9px;border:1px solid #ccc;border-radius:6px;box-sizing:border-box;">
+            </div>
+
+            <div class="form-group" style="margin-bottom:12px;">
+                <label style="font-weight:600;font-size:13px;display:block;margin-bottom:4px;">Amount (₹) *</label>
+                <input id="odRetAmt" type="number" min="1" placeholder="e.g. 10000" style="width:100%;padding:9px;border:1px solid #ccc;border-radius:6px;font-size:16px;font-weight:700;box-sizing:border-box;">
+            </div>
+
+            <div class="form-group" style="margin-bottom:12px;">
+                <label style="font-weight:600;font-size:13px;display:block;margin-bottom:4px;">Transfer Mode *</label>
+                <select id="odRetMode" style="width:100%;padding:9px;border:1px solid #ccc;border-radius:6px;box-sizing:border-box;">
+                    <option value="UPI">UPI Transfer</option>
+                    <option value="BANK">Bank Transfer / NEFT</option>
+                    <option value="CASH">Cash Handover</option>
+                </select>
+            </div>
+
+            <div class="form-group" style="margin-bottom:12px;">
+                <label style="font-weight:600;font-size:13px;display:block;margin-bottom:4px;">Returned To *</label>
+                <select id="odRetTo" style="width:100%;padding:9px;border:1px solid #ccc;border-radius:6px;box-sizing:border-box;">
+                    <option value="FIROZ">👤 Firoz Ahmad</option>
+                    <option value="COMPANY">🏢 Company Bank Account</option>
+                </select>
+            </div>
+
+            <div class="form-group" style="margin-bottom:16px;">
+                <label style="font-weight:600;font-size:13px;display:block;margin-bottom:4px;">Reference Note / Remarks</label>
+                <input id="odRetNote" placeholder="e.g. Returned guest excess / rent funds" style="width:100%;padding:9px;border:1px solid #ccc;border-radius:6px;box-sizing:border-box;">
+            </div>
+
+            <button onclick="window.cbSaveODReturn()" style="width:100%;padding:12px;background:#EF4444;color:#fff;border:none;border-radius:8px;font-weight:700;font-size:15px;cursor:pointer;transition:0.2s;">
+                💾 Save Return & Update Balance
+            </button>
+            <div id="odRetErr" style="margin-top:10px;color:#dc3545;font-size:12px;font-weight:600;text-align:center;"></div>
+        </div>
+    `;
+    document.body.appendChild(modal);
+};
+
+window.cbSaveODReturn = async function() {
+    if (window._isSavingODReturn) return;
+    window._isSavingODReturn = true;
+
+    const btn = document.querySelector('button[onclick*="cbSaveODReturn"]');
+    if (btn) {
+        btn.disabled = true;
+        btn.innerText = "⏳ Saving Return...";
+    }
+
+    const client = window.sb || window.supabaseClient || window.supabase;
+    const date = document.getElementById('odRetDate').value;
+    const amount = parseFloat(document.getElementById('odRetAmt').value) || 0;
+    const mode = document.getElementById('odRetMode').value;
+    const target = document.getElementById('odRetTo').value.trim();
+    const note = document.getElementById('odRetNote').value.trim();
+    const errDiv = document.getElementById('odRetErr');
+
+    if (amount <= 0 || isNaN(amount)) {
+        if (errDiv) errDiv.innerText = "⚠️ Please enter a valid positive amount!";
+        if (btn) { btn.disabled = false; btn.innerText = "💾 Save Return & Update Balance"; }
+        window._isSavingODReturn = false;
+        return;
+    }
+
+    try {
+        if (client) {
+            // 1. Insert into company_advances as a Return
+            const { error: dbErr } = await client.from('company_advances').insert([{
+                advance_date: date,
+                amount_given: amount,
+                given_by: 'UHHS-OD',
+                given_to: target || 'Company',
+                purpose: `Funds returned to ${target || 'Company'} via ${mode}${note ? ' - ' + note : ''}`,
+                payment_source: 'UHHS-OD',
+                status: 'Returned',
+                notes: note || 'Funds returned to company'
+            }]);
+
+            if (dbErr) throw dbErr;
+
+            // 2. If mode is CASH, also log in cash_handovers for Cash Book transparency
+            if (mode === 'CASH') {
+                try {
+                    await client.from('cash_handovers').insert([{
+                        from_person: 'UHHS-OD',
+                        to_person: target === 'FIROZ' ? 'Firoz' : 'Company',
+                        amount: amount,
+                        handover_date: date,
+                        notes: `Cash return from UHHS-OD | ${note || ''}`,
+                        created_by: window.SESSION?.userId || null
+                    }]);
+                } catch (e) {
+                    console.warn('cash_handovers sync note:', e.message);
+                }
+            }
+        }
+
+        document.querySelector('.od-return-modal-overlay')?.remove();
+        if (window.fsn?.success) {
+            fsn.success('Success', `💸 ₹${amount.toLocaleString('en-IN')} returned to ${target}!`);
+        } else {
+            alert(`✅ ₹${amount.toLocaleString('en-IN')} returned to ${target}!`);
+        }
+
+        // Refresh UI & Balance
+        if (window.UHHSODManager) window.UHHSODManager.calculateBalance(client);
+        if (typeof window.loadClaimsData === 'function') window.loadClaimsData();
+        if (typeof window.renderCashBook === 'function') window.renderCashBook();
+        if (typeof window.showUhhsStatementModal === 'function') {
+            const modal = document.querySelector('#uhhsLedgerModalOverlay');
+            if (modal) { modal.remove(); window.showUhhsStatementModal(); }
+        }
+        if (typeof window.notifyDataChanged === 'function') window.notifyDataChanged();
+    } catch (saveErr) {
+        console.error('Error saving return:', saveErr);
+        if (errDiv) errDiv.innerText = "❌ Save failed: " + (saveErr.message || saveErr);
+        if (btn) { btn.disabled = false; btn.innerText = "💾 Save Return & Update Balance"; }
+    } finally {
+        window._isSavingODReturn = false;
+    }
+};
+
+// =========================================================================
 // ✏️ GLOBAL MODAL: Edit / Delete an existing UHHS-OD Deposit Entry
 // =========================================================================
 window.cbEditODDeposit = async function(id) {
     const client = window.sb || window.supabaseClient || window.supabase;
     let d = null;
+
+    if (String(id).startsWith('pay_')) {
+        alert('ℹ️ This is an auto-synced Guest Booking Payment. Any changes to this payment or booking (or deleting the booking) in the Bookings manager will automatically sync with UHHS-OD.');
+        return;
+    }
+
+    if (String(id).startsWith('ret_')) {
+        const retId = id.replace('ret_', '');
+        if (confirm('Delete this Return to Company record? The amount will be added back to your UHHS-OD balance.')) {
+            await client.from('company_advances').delete().eq('id', retId);
+            if (window.fsn?.success) fsn.success('Deleted', 'Return record deleted');
+            if (window.UHHSODManager) window.UHHSODManager.calculateBalance(client);
+            if (typeof window.showUhhsStatementModal === 'function') {
+                const m = document.querySelector('#uhhsLedgerModalOverlay');
+                if (m) { m.remove(); window.showUhhsStatementModal(); }
+            }
+            if (typeof window.notifyDataChanged === 'function') window.notifyDataChanged();
+        }
+        return;
+    }
 
     // Check LocalStorage first
     const localList = getLocalODDeposits();

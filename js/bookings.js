@@ -4055,6 +4055,8 @@ async function delBooking(bkId, guestName, roomId) {
     }
 
     fsn.success('Success', '✅ Booking deleted');
+    if (window.UHHSODManager && window.UHHSODManager.calculateBalance) window.UHHSODManager.calculateBalance();
+    if (typeof window.notifyDataChanged === 'function') window.notifyDataChanged();
     renderManageBookings();
   } catch (err) {
     fsn.error('Error', '❌ Error: ' + (err.message || err));
@@ -4102,6 +4104,11 @@ window.populateReceivedByDropdown = async function(selectEl, mode, currentVal, c
 
   let html = '<option value="">-- Select Receiver --</option>';
 
+  const isOD = (currentVal || '').toUpperCase().includes('OD') || (currentVal || '').toUpperCase().includes('UHHS');
+  html += '<optgroup label="🏦 Overdraft Account">';
+  html += `<option value="UHHS-OD" ${isOD ? 'selected' : ''}>🏦 UHHS-OD (Praveen / Overdraft)</option>`;
+  html += '</optgroup>';
+
   if (mode === 'Cash') {
     // CASH: Final (Company) + Manager + Staff / Receiver
     if (finalHolders.length) {
@@ -4144,8 +4151,8 @@ window.populateReceivedByDropdown = async function(selectEl, mode, currentVal, c
   }
 
   // Preserve existing value if not in list
-  const allKnown = [...finalHolders, ...managers, ...receivers];
-  if (currentVal && !allKnown.includes(currentVal) && currentVal !== '__custom__') {
+  const allKnown = ['UHHS-OD', ...finalHolders, ...managers, ...receivers];
+  if (currentVal && !allKnown.includes(currentVal) && currentVal !== '__custom__' && !isOD) {
     html += '<optgroup label="Existing / Other">';
     html += `<option value="${currentVal}" selected>${currentVal}</option>`;
     html += '</optgroup>';
@@ -4155,12 +4162,17 @@ window.populateReceivedByDropdown = async function(selectEl, mode, currentVal, c
   selectEl.innerHTML = html;
 
   if (currentVal) {
-    selectEl.value = currentVal;
-    if (selectEl.value !== currentVal) {
-      selectEl.value = '__custom__';
-      if (customEl) { customEl.value = currentVal; customEl.style.display = 'block'; }
-    } else if (customEl) {
-      customEl.style.display = 'none';
+    if (isOD) {
+      selectEl.value = 'UHHS-OD';
+      if (customEl) customEl.style.display = 'none';
+    } else {
+      selectEl.value = currentVal;
+      if (selectEl.value !== currentVal) {
+        selectEl.value = '__custom__';
+        if (customEl) { customEl.value = currentVal; customEl.style.display = 'block'; }
+      } else if (customEl) {
+        customEl.style.display = 'none';
+      }
     }
   } else if (mode === 'UPI' || mode === 'Bank') {
     if (finalHolders.includes('Firoz')) selectEl.value = 'Firoz';
@@ -4589,6 +4601,8 @@ async function savePaymentModal(bkId) {
     }
   }
 
+  if (window.UHHSODManager && window.UHHSODManager.calculateBalance) window.UHHSODManager.calculateBalance();
+  if (typeof window.notifyDataChanged === 'function') window.notifyDataChanged();
   if (document.getElementById('editBkErr')) editBooking(bkId);
   else renderManageBookings();
   } catch (err) {
@@ -4691,6 +4705,8 @@ async function saveEditPayment(payId, bkId) {
   Object.assign(payPatch, approvalUpdateMeta());
   await sb.from('payment_history').update(payPatch).eq('id', payId);
   await recalcPaymentStatus(bkId);
+  if (window.UHHSODManager && window.UHHSODManager.calculateBalance) window.UHHSODManager.calculateBalance();
+  if (typeof window.notifyDataChanged === 'function') window.notifyDataChanged();
   document.querySelector('.modal-overlay')?.remove();
   editBooking(bkId);
 }
@@ -4699,6 +4715,8 @@ async function delPayment(payId, bkId) {
   if (!confirm('Delete this payment?')) return;
   await sb.from('payment_history').delete().eq('id', payId);
   await recalcPaymentStatus(bkId);
+  if (window.UHHSODManager && window.UHHSODManager.calculateBalance) window.UHHSODManager.calculateBalance();
+  if (typeof window.notifyDataChanged === 'function') window.notifyDataChanged();
   editBooking(bkId);
 }
 
@@ -5974,6 +5992,9 @@ window.onAdvanceModeChange = async function() {
   const receivers = data.employees;
   
   let html = '<option value="">-- Select --</option>';
+  html += '<optgroup label="🏦 Overdraft Account">';
+  html += '<option value="UHHS-OD">🏦 UHHS-OD (Praveen / Overdraft)</option>';
+  html += '</optgroup>';
   
   if (mode === 'Cash') {
     // Cash: sabhi le sakte hain
@@ -6121,6 +6142,9 @@ window.onAdvanceModeChange = async function() {
   const receivers = data.employees;
   
   let html = '<option value="">-- Select --</option>';
+  html += '<optgroup label="🏦 Overdraft Account">';
+  html += '<option value="UHHS-OD">🏦 UHHS-OD (Praveen / Overdraft)</option>';
+  html += '</optgroup>';
   
   if (mode === 'Cash') {
     // Cash: sabhi le sakte hain
@@ -6400,6 +6424,9 @@ window.onEditPayModeChange = async function() {
   const recvH = dataE.employees;
   
   let html = '<option value="">-- Select --</option>';
+  html += '<optgroup label="🏦 Overdraft Account">';
+  html += '<option value="UHHS-OD">🏦 UHHS-OD (Praveen / Overdraft)</option>';
+  html += '</optgroup>';
   
   if (mode === 'Cash') {
     if (finalH.length) {

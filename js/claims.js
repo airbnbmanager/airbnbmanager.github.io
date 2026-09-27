@@ -91,6 +91,9 @@ window.renderClaims = async function() {
           <button onclick="openUhhsDepositModal()" style="padding:8px 14px;background:#10B981;color:#fff;border:none;border-radius:8px;font-weight:700;font-size:12.5px;cursor:pointer;display:inline-flex;align-items:center;gap:5px;box-shadow:0 2px 6px rgba(16,185,129,0.3);">
             📥 + Deposit Funds
           </button>
+          <button onclick="openUhhsReturnModal()" style="padding:8px 14px;background:#EF4444;color:#fff;border:none;border-radius:8px;font-weight:700;font-size:12.5px;cursor:pointer;display:inline-flex;align-items:center;gap:5px;box-shadow:0 2px 6px rgba(239,68,68,0.3);">
+            💸 Return to Company
+          </button>
         </div>
       </div>
     </div>
@@ -301,9 +304,9 @@ window.updateClaimsFilter = function() {
   window._claimsState.selectedIds.clear();
   renderClaimsTable();
 
-  // Sync OD Top Banner to match active date range
+  // Keep OD Top Banner showing true live account balance
   if (window.UHHSODManager) {
-    window.UHHSODManager.calculateBalance(sb, window._claimsState.fromDate, window._claimsState.toDate);
+    window.UHHSODManager.calculateBalance(sb);
   }
 };
 
@@ -436,9 +439,9 @@ async function loadClaimsData() {
 
     window._claimsState.allData = combined;
 
-    // Trigger OD Top Banner Balance Calculation
+    // Trigger OD Top Banner Balance Calculation (Live Running Balance from 17-Sep Checkpoint)
     if (window.UHHSODManager) {
-      await window.UHHSODManager.calculateBalance(sb, window._claimsState?.fromDate, window._claimsState?.toDate);
+      await window.UHHSODManager.calculateBalance(sb);
     }
 
     renderClaimsTable();
@@ -855,6 +858,10 @@ window.openUhhsDepositModal = function() {
   if (window.cbDepositToODModal) window.cbDepositToODModal();
 };
 
+window.openUhhsReturnModal = function() {
+  if (window.cbReturnFromODModal) window.cbReturnFromODModal();
+};
+
 window.closeUhhsStatementModal = function() {
   const m = document.getElementById('uhhsLedgerModalOverlay');
   if (m) m.remove();
@@ -914,6 +921,7 @@ window.showUhhsStatementModal = async function() {
           </div>
           <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
             <button onclick="openUhhsDepositModal()" style="padding:6px 12px;background:#10B981;color:#fff;border:none;border-radius:6px;font-weight:700;font-size:11.5px;cursor:pointer;">📥 + Add Deposit</button>
+            <button onclick="openUhhsReturnModal()" style="padding:6px 12px;background:#EF4444;color:#fff;border:none;border-radius:6px;font-weight:700;font-size:11.5px;cursor:pointer;">💸 Return to Company</button>
             <button onclick="window.exportUhhsLedgerPDF()" style="padding:6px 12px;background:#0F172A;color:#fff;border:none;border-radius:6px;font-weight:700;font-size:11.5px;cursor:pointer;">📄 Export PDF</button>
             <button onclick="window.closeUhhsStatementModal()" style="background:#EF4444;color:#fff;border:none;padding:6px 14px;border-radius:6px;font-weight:800;font-size:12.5px;cursor:pointer;display:inline-flex;align-items:center;gap:4px;box-shadow:0 1px 3px rgba(239,68,68,0.3);">✕ Close</button>
           </div>

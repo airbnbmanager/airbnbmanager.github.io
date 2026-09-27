@@ -545,8 +545,7 @@ function renderShell(content, activePage = 'dashboard') {
         { id: 'reimbursements', label: '💸 Daily Expenses' },
         { id: 'claims', label: '📤 Claims Manager' },
         { id: 'expenses', label: '📊 Monthly P&L' },
-        { id: 'investors', label: '🧑‍💼 Investors Ledger' },
-        { id: 'billing', label: '📄 Receipts & Invoices', externalUrl: 'billing.html' }
+        { id: 'investors', label: '🧑‍💼 Investors Ledger' }
       ]
     },
     {
