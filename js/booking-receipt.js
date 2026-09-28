@@ -496,9 +496,21 @@ Thank you for choosing *The Unique Haven Homes*. Your direct reservation has bee
 🌐 https://${CO.web}`;
   }
 
-  // Helper: PDF / Document filename as requested: Booking Receipt — Guestname - short date or month
+  // Helper: Sanitize string for clean cross-platform filenames (Mobile/iOS/Android/Windows/Mac)
+  function sanitizeFilename(str) {
+    return String(str || '')
+      .trim()
+      .replace(/[\/\\:*?"<>|]/g, '-')
+      .replace(/\s+/g, '_')
+      .replace(/-+/g, '-')
+      .replace(/_+/g, '_')
+      .replace(/^[_\-]+|[_\-]+$/g, '');
+  }
+
+  // Helper: PDF / Document title as requested: UHHS Receipt — Guest — Room (Date)
   function getReceiptDocTitle(booking) {
     const guest = (booking?.guest_name || 'Guest').trim();
+    const room = (booking?.rooms?.nickname || booking?.rooms?.unit_no || booking?.room_id || '').trim();
     let datePart = '';
     if (booking?.check_in) {
       try {
@@ -508,7 +520,21 @@ Thank you for choosing *The Unique Haven Homes*. Your direct reservation has bee
         datePart = booking.check_in;
       }
     }
-    return `Booking Receipt — ${guest}${datePart ? ' - ' + datePart : ''}`;
+    const roomPart = room ? ` — ${room}` : '';
+    const dateStr = datePart ? ` (${datePart})` : '';
+    return `UHHS Receipt — ${guest}${roomPart}${dateStr}`;
+  }
+
+  function getReceiptFilename(booking) {
+    const guest = sanitizeFilename(booking?.guest_name || 'Guest');
+    const room = sanitizeFilename(booking?.rooms?.nickname || booking?.rooms?.unit_no || booking?.room_id || '');
+    const checkIn = sanitizeFilename(booking?.check_in || '');
+    const bId = sanitizeFilename(booking?.booking_id || 'Booking');
+    const parts = ['UHHS_Receipt', guest];
+    if (room) parts.push(room);
+    if (checkIn) parts.push(checkIn);
+    parts.push(bId);
+    return parts.join('_') + '.pdf';
   }
 
   // 4. Print Booking Receipt Function (Zero-margin @page to completely suppress 'about:blank' footer/header)
@@ -519,7 +545,9 @@ Thank you for choosing *The Unique Haven Homes*. Your direct reservation has bee
       return;
     }
 
-    const title = customTitle || 'Booking Receipt — The Unique Haven Homes';
+    const title = customTitle || 'UHHS Receipt — The Unique Haven Homes';
+    const origDocTitle = document.title;
+    try { document.title = title; } catch(e) {}
 
     // Remove any previous print iframe
     let old = document.getElementById('uhhReceiptPrintFrame');
@@ -605,6 +633,7 @@ Thank you for choosing *The Unique Haven Homes*. Your direct reservation has bee
       try {
         if (iframe && iframe.parentNode) iframe.remove();
       } catch(e) {}
+      try { document.title = origDocTitle; } catch(e) {}
     };
 
     // Safely remove iframe ONLY after printing completes, never on an aggressive 2-second timer
@@ -680,11 +709,12 @@ Thank you for choosing *The Unique Haven Homes*. Your direct reservation has bee
     // Target the clean inner receipt container if available (avoids modal wrappers/borders/scrollbars)
     const targetEl = el.querySelector('.uhh-receipt-container') || el.querySelector('.invoice-doc') || el;
 
-    const filename = options.filename || 'UHHS_Booking_Voucher.pdf';
+    const rawFilename = (options.filename || 'UHHS_Booking_Receipt.pdf').replace(/\.pdf$/i, '');
+    const filename = sanitizeFilename(rawFilename) + '.pdf';
     const cleanP = options.phone ? String(options.phone).replace(/\D/g, '') : '';
     const fullPhone = cleanP.length === 10 ? '91' + cleanP : cleanP;
     const message = options.message || '';
-    const title = options.title || 'Booking Voucher - UHHS';
+    const title = options.title || 'Booking Voucher — UHHS';
 
     // Show indicator on button if provided
     let triggerBtn = options.triggerBtn || null;
@@ -1335,10 +1365,25 @@ ${propertiesList}
     const guest = (data?.guestName || 'Guest').trim();
     const count = data?.bookings?.length || 1;
     let datePart = '';
-    if (data?.minCheckIn) {
+    if (data?.minCheckIn && data?.maxCheckOut) {
+      datePart = `${formatDate(data.minCheckIn)} to ${formatDate(data.maxCheckOut)}`;
+    } else if (data?.minCheckIn) {
       datePart = formatDate(data.minCheckIn);
     }
-    return `Multi-Property Booking Receipt — ${guest} (${count} Homestays)${datePart ? ' - ' + datePart : ''}`;
+    return `UHHS Group Receipt — ${guest} (${count} Homestays)${datePart ? ' — ' + datePart : ''}`;
+  }
+
+  function getMultiReceiptFilename(data) {
+    const guest = sanitizeFilename(data?.guestName || 'Guest');
+    const count = data?.bookings?.length || 1;
+    const minD = sanitizeFilename(data?.minCheckIn || '');
+    const maxD = sanitizeFilename(data?.maxCheckOut || '');
+    const dateRange = (minD && maxD) ? `${minD}_to_${maxD}` : (minD || '');
+    const grpId = sanitizeFilename(data?.stayGroupId || 'Group');
+    const parts = ['UHHS_Group_Receipt', guest, `${count}Properties`];
+    if (dateRange) parts.push(dateRange);
+    parts.push(grpId);
+    return parts.join('_') + '.pdf';
   }
 
   // 5B. Open Multi-Property Receipt Interactive Modal
@@ -1388,6 +1433,7 @@ ${propertiesList}
     const guestPhone = cleanPhone(data.phone);
     const fullPhone = guestPhone.length === 10 ? '91' + guestPhone : guestPhone;
     const docTitle = getMultiReceiptDocTitle(data);
+    const pdfFilename = getMultiReceiptFilename(data);
 
     modal.innerHTML = `
       <div class="modal-box" style="max-width:960px;width:96%;max-height:94vh;display:flex;flex-direction:column;padding:20px;border-radius:14px;background:#F1F5F9;box-shadow:0 25px 50px -12px rgba(0,0,0,0.25);position:relative;">
@@ -1415,7 +1461,7 @@ ${propertiesList}
             <button type="button" class="btn-sm" style="background:#B45309;color:#fff;font-weight:700;border:none;padding:7px 14px;border-radius:6px;cursor:pointer;display:inline-flex;align-items:center;gap:5px;" onclick="window.printBookingReceipt('multiReceiptPrintArea', '${escapeHtml(docTitle).replace(/'/g, "\\'")}')">
               🖨️ Print / Save PDF
             </button>
-            <button type="button" class="btn-sm" style="background:#25D366;color:#fff;font-weight:800;border:none;padding:7px 14px;border-radius:6px;cursor:pointer;display:inline-flex;align-items:center;gap:5px;" onclick="window.sharePdfViaWhatsApp('multiReceiptPrintArea', { filename: 'UHHS_Multi_Booking_Voucher_${escapeHtml(data.stayGroupId)}.pdf', phone: '${escapeHtml(data.phone || '')}', message: document.getElementById('multiReceiptWaHidden').value, title: 'Multi-Property Booking Confirmation - UHHS', triggerBtn: this })">
+            <button type="button" class="btn-sm" style="background:#25D366;color:#fff;font-weight:800;border:none;padding:7px 14px;border-radius:6px;cursor:pointer;display:inline-flex;align-items:center;gap:5px;" onclick="window.sharePdfViaWhatsApp('multiReceiptPrintArea', { filename: '${pdfFilename}', phone: '${escapeHtml(data.phone || '')}', message: document.getElementById('multiReceiptWaHidden').value, title: '${escapeHtml(docTitle).replace(/'/g, "\\'")}', triggerBtn: this })">
               📱 WhatsApp (with PDF)
             </button>
             <button type="button" class="btn-sm" style="background:#334155;color:#fff;font-weight:700;border:none;padding:7px 12px;border-radius:6px;cursor:pointer;" onclick="navigator.clipboard.writeText(document.getElementById('multiReceiptWaHidden').value);if(window.fsn?.success) fsn.success('Copied','Consolidated receipt text copied to clipboard!'); else alert('Receipt text copied!');">
@@ -1539,6 +1585,7 @@ ${propertiesList}
     const fullPhone = guestPhone.length === 10 ? '91' + guestPhone : guestPhone;
 
     const docTitle = getReceiptDocTitle(data.booking);
+    const pdfFilename = getReceiptFilename(data.booking);
 
     modal.innerHTML = `
       <div class="modal-box" style="max-width:920px;width:96%;max-height:94vh;display:flex;flex-direction:column;padding:20px;border-radius:14px;background:#F1F5F9;box-shadow:0 25px 50px -12px rgba(0,0,0,0.25);position:relative;">
@@ -1565,7 +1612,7 @@ ${propertiesList}
             <button type="button" class="btn-sm" style="background:#B45309;color:#fff;font-weight:700;border:none;padding:7px 14px;border-radius:6px;cursor:pointer;display:inline-flex;align-items:center;gap:5px;" onclick="window.printBookingReceipt('receiptPrintArea', '${escapeHtml(docTitle).replace(/'/g, "\\'")}')">
               🖨️ Print / Save PDF
             </button>
-            <button type="button" class="btn-sm" style="background:#25D366;color:#fff;font-weight:800;border:none;padding:7px 14px;border-radius:6px;cursor:pointer;display:inline-flex;align-items:center;gap:5px;" onclick="window.sharePdfViaWhatsApp('receiptPrintArea', { filename: 'UHHS_Booking_Receipt_${data.booking.booking_id}.pdf', phone: '${escapeHtml(data.booking.phone || '')}', message: document.getElementById('receiptWaHidden').value, title: 'Booking Confirmation & Voucher - UHHS', triggerBtn: this })">
+            <button type="button" class="btn-sm" style="background:#25D366;color:#fff;font-weight:800;border:none;padding:7px 14px;border-radius:6px;cursor:pointer;display:inline-flex;align-items:center;gap:5px;" onclick="window.sharePdfViaWhatsApp('receiptPrintArea', { filename: '${pdfFilename}', phone: '${escapeHtml(data.booking.phone || '')}', message: document.getElementById('receiptWaHidden').value, title: '${escapeHtml(docTitle).replace(/'/g, "\\'")}', triggerBtn: this })">
               📱 WhatsApp (with PDF)
             </button>
             <button type="button" class="btn-sm" style="background:#334155;color:#fff;font-weight:700;border:none;padding:7px 12px;border-radius:6px;cursor:pointer;" onclick="navigator.clipboard.writeText(document.getElementById('receiptWaHidden').value);if(window.fsn?.success) fsn.success('Copied','Receipt text copied to clipboard!'); else alert('Receipt text copied!');">
@@ -1617,6 +1664,7 @@ ${propertiesList}
 
   // Public API
   return {
+    sanitizeFilename,
     openBookingReceiptModal,
     openMultiPropertyReceiptModal,
     fetchBookingReceiptData,
@@ -1626,7 +1674,9 @@ ${propertiesList}
     buildReceiptWhatsAppText,
     buildMultiPropertyWhatsAppText,
     getReceiptDocTitle,
+    getReceiptFilename,
     getMultiReceiptDocTitle,
+    getMultiReceiptFilename,
     printBookingReceipt,
     sharePdfViaWhatsApp
   };
@@ -1634,6 +1684,7 @@ ${propertiesList}
 })();
 
 // Global aliases
+window.sanitizeFilename = window.BOOKING_RECEIPT_ENGINE.sanitizeFilename;
 window.openBookingReceiptModal = window.BOOKING_RECEIPT_ENGINE.openBookingReceiptModal;
 window.openMultiPropertyReceiptModal = window.BOOKING_RECEIPT_ENGINE.openMultiPropertyReceiptModal;
 window.buildMultiPropertyReceiptHTML = window.BOOKING_RECEIPT_ENGINE.buildMultiPropertyReceiptHTML;
@@ -1641,5 +1692,7 @@ window.buildMultiPropertyWhatsAppText = window.BOOKING_RECEIPT_ENGINE.buildMulti
 window.fetchMultiBookingReceiptData = window.BOOKING_RECEIPT_ENGINE.fetchMultiBookingReceiptData;
 window.printBookingReceipt = window.BOOKING_RECEIPT_ENGINE.printBookingReceipt;
 window.getReceiptDocTitle = window.BOOKING_RECEIPT_ENGINE.getReceiptDocTitle;
+window.getReceiptFilename = window.BOOKING_RECEIPT_ENGINE.getReceiptFilename;
 window.getMultiReceiptDocTitle = window.BOOKING_RECEIPT_ENGINE.getMultiReceiptDocTitle;
+window.getMultiReceiptFilename = window.BOOKING_RECEIPT_ENGINE.getMultiReceiptFilename;
 window.sharePdfViaWhatsApp = window.BOOKING_RECEIPT_ENGINE.sharePdfViaWhatsApp;

@@ -459,11 +459,15 @@ window.GST_ENGINE = (function() {
       alert('Pop-up blocked. Please allow pop-ups for this website to print the GST Invoice.');
       return;
     }
+    const cleanInvNo = String(inv.invoice_no || '').replace(/[\/\\:*?"<>|]/g, '-');
+    const cleanGuest = String(inv.guest_name || 'Guest').trim().replace(/[\/\\:*?"<>|]/g, '-').replace(/\s+/g, '_');
+    const docTitle = `UHHS ${inv.is_gst ? 'GST Tax Invoice' : 'Bill'} — ${cleanInvNo} — ${inv.guest_name || 'Guest'}`;
+
     win.document.write(`<!DOCTYPE html>
       <html>
       <head>
         <meta charset="utf-8">
-        <title>Invoice - ${escapeHtml(inv.invoice_no)}</title>
+        <title>${escapeHtml(docTitle)}</title>
         <link rel="preconnect" href="https://fonts.googleapis.com">
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
@@ -482,7 +486,7 @@ window.GST_ENGINE = (function() {
         <div class="no-print" style="position:sticky;top:0;left:0;right:0;background:#0F172A;color:#fff;padding:12px 18px;display:flex;justify-content:space-between;align-items:center;z-index:999999;box-shadow:0 4px 14px rgba(0,0,0,0.25);margin:-10px -10px 14px -10px;border-bottom:3px solid #b58d3d;">
           <div style="font-weight:800;font-size:14px;display:flex;align-items:center;gap:8px;">
             <span style="font-size:18px;">🧾</span>
-            <span>GST Tax Invoice — ${escapeHtml(inv.invoice_no)}</span>
+            <span>${escapeHtml(docTitle)}</span>
           </div>
           <div style="display:flex;gap:10px;align-items:center;">
             <button onclick="window.print()" style="background:#2563EB;color:#fff;border:none;padding:8px 16px;border-radius:8px;font-weight:800;font-size:13px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;">
@@ -1221,13 +1225,18 @@ The Unique Haven Homes Property Management`;
         targetContainer = tempDiv;
       }
 
-      const filename = (isGST ? 'GST_Invoice_' : 'Booking_Receipt_') + state.invoice_no + '.pdf';
+      const cleanInvNo = String(state.invoice_no || '').replace(/[\/\\:*?"<>|]/g, '-');
+      const cleanGuest = String(state.guest_name || 'Guest').trim().replace(/[\/\\:*?"<>|]/g, '-').replace(/\s+/g, '_');
+      const invDate = state.invoice_date || state.check_in || '';
+      const filename = `UHHS_${isGST ? 'GST_Invoice' : 'Bill'}_${cleanGuest}_${cleanInvNo}${invDate ? '_' + invDate : ''}.pdf`;
+      const docTitle = `UHHS ${isGST ? 'GST Tax Invoice' : 'Bill'} — ${cleanInvNo} — ${state.guest_name || 'Guest'}`;
+
       if (typeof window.sharePdfViaWhatsApp === 'function') {
         await window.sharePdfViaWhatsApp(targetContainer, {
           filename: filename,
           phone: state.guest_phone,
           message: shortMsg,
-          title: (isGST ? 'GST Tax Invoice' : 'Booking Receipt') + ' - UHHS'
+          title: docTitle
         });
       } else {
         shareInvoiceWhatsApp({

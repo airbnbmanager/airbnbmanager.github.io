@@ -356,12 +356,19 @@ function renderSOPPage() {
       <div style="font-size:14px;font-weight:600;margin-bottom:6px;">🎯 Need Help?</div>
       <div style="font-size:12px;opacity:0.9;">Contact Admin or check Notifications 🔔 for updates</div>
       <div style="margin-top:10px;">
-        <button onclick="window.print()" style="background:rgba(255,255,255,0.2);color:#fff;border:1px solid rgba(255,255,255,0.4);padding:6px 14px;border-radius:6px;cursor:pointer;font-size:12px;">🖨️ Print SOP</button>
+        <button onclick="window.printSOP()" style="background:rgba(255,255,255,0.2);color:#fff;border:1px solid rgba(255,255,255,0.4);padding:6px 14px;border-radius:6px;cursor:pointer;font-size:12px;">🖨️ Print / Save SOP as PDF</button>
       </div>
     </div>
     ${typeof window.getOfficialReportFooterHTML === 'function' ? window.getOfficialReportFooterHTML() : ''}
   `, 'sop');
 }
+
+window.printSOP = function() {
+  const orig = document.title;
+  document.title = 'UHHS_Standard_Operating_Procedures_SOP';
+  window.print();
+  setTimeout(() => { document.title = orig; }, 1000);
+};
 
 // Backward compatibility
 window.renderSOPTab = function(page) {

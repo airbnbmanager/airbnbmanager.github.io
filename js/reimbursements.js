@@ -805,12 +805,20 @@ window.showReimbReport = async function() {
       </div>
 
       <div style="display:flex;gap:10px;" class="no-print">
-        <button onclick="window.print()" style="flex:1;background:#3B82F6;color:#fff;padding:10px;border:none;border-radius:6px;cursor:pointer;">🖨️ Print</button>
+        <button onclick="window.printReimbursementReport('${currentMonth}')" style="flex:1;background:#3B82F6;color:#fff;padding:10px;border:none;border-radius:6px;cursor:pointer;">🖨️ Print / Save as PDF</button>
         <button onclick="this.closest('[style*=fixed]').remove()" style="flex:1;background:#64748B;color:#fff;padding:10px;border:none;border-radius:6px;cursor:pointer;">Close</button>
       </div>
     </div>
   `;
   document.body.appendChild(modal);
+};
+
+window.printReimbursementReport = function(month) {
+  const orig = document.title;
+  const m = String(month || window._reimbMonth || new Date().toISOString().slice(0, 7)).replace(/[\/\\:*?"<>|]/g, '-');
+  document.title = `UHHS_Expenses_Reimbursement_Report_${m}`;
+  window.print();
+  setTimeout(() => { document.title = orig; }, 1000);
 };
 
 window.claimAllPending = async function() {

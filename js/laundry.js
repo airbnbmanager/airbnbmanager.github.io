@@ -1535,12 +1535,15 @@ window.printVendorLaundryReport = async function(vendorName, monthYear) {
     `Balance Due: ₹${totalDue.toLocaleString('en-IN')}\n` +
     `Generated on: ${todayStr}`
   );
+  const cleanVendor = String(vendorTitle || 'Vendor').trim().replace(/[\/\\:*?"<>|]/g, '-').replace(/\s+/g, '_');
+  const cleanMonth = String(monthName || 'Statement').trim().replace(/[\/\\:*?"<>|]/g, '-').replace(/\s+/g, '_');
+  const pdfTitle = `UHHS_Laundry_Statement_${cleanVendor}_${cleanMonth}`;
 
   const printHtml = `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>${vendorTitle} - Laundry Statement (${monthName})</title>
+  <title>${pdfTitle}</title>
   <style>
     * { box-sizing: border-box; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
     body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; margin: 0; padding: 20px; background: #f8fafc; color: #1e293b; line-height: 1.4; }
@@ -1775,6 +1778,7 @@ window.printVendorLaundryReport = async function(vendorName, monthYear) {
     printWindow.document.open();
     printWindow.document.write(printHtml);
     printWindow.document.close();
+    printWindow.document.title = pdfTitle;
   } else {
     alert('Please allow popups in your browser to print the PDF statement.');
   }

@@ -6,6 +6,7 @@
 async function renderDailyReport(selectedDate) {
   const today = new Date().toISOString().slice(0, 10);
   const repDate = selectedDate || today;
+  window._dailyReportDate = repDate;
   const endDate = repDate;
   
   renderShell(`<div class="loading">Generating report for ${repDate}...</div>`, 'daily-report');
@@ -413,9 +414,11 @@ function printDailyReportWindow() {
   const html = reportEl.outerHTML;
   const w = window.open('', '_blank', 'width=1000,height=800');
   if (!w) { alert('Popup blocked! Please allow popups.'); return; }
-  w.document.title = 'Daily Operations Report - The Unique Haven Homes';
+  const repDate = window._dailyReportDate || new Date().toISOString().slice(0, 10);
+  const pdfTitle = `UHHS_Daily_Operations_Report_${repDate}`;
+  w.document.title = pdfTitle;
   w.document.write(
-    '<!DOCTYPE html><html><head><title>Daily Operations Report - The Unique Haven Homes</title>' +
+    '<!DOCTYPE html><html><head><title>' + pdfTitle + '</title>' +
     '<meta charset="utf-8">' +
     '<style>' +
     '@page { size: A4; margin: 0; }' +

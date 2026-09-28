@@ -2195,7 +2195,7 @@ _Please confirm room allotment and issue official GST Tax Invoice. Thank you!_`;
             <a class="upi-btn-confirm" href="${details.waUrl}" target="_blank">
               📱 Send Voucher to Manager on WhatsApp
             </a>
-            <button type="button" class="luxe-btn-map-dir" style="width:100%; justify-content:center; padding:12px; font-weight:700;" onclick="window.print()">
+            <button type="button" class="luxe-btn-map-dir" style="width:100%; justify-content:center; padding:12px; font-weight:700;" onclick="window.luxeEngine.printTaxInvoice()">
               🖨️ Print / Download Tax Invoice (PDF)
             </button>
             <button type="button" class="luxe-btn-card-sub" style="width:100%; justify-content:center; padding:10px;" onclick="document.getElementById('luxe-voucher-modal-overlay').remove()">
@@ -2205,6 +2205,16 @@ _Please confirm room allotment and issue official GST Tax Invoice. Thank you!_`;
         </div>
       `;
       this.lastBookingDetails = details;
+    }
+
+    printTaxInvoice() {
+      const b = this.lastBookingDetails || {};
+      const guest = String(b.name || 'Guest').trim().replace(/[\/\\:*?"<>|]/g, '-').replace(/\s+/g, '_');
+      const bkId = String(b.bookingId || new Date().toISOString().slice(0, 10)).replace(/[\/\\:*?"<>|]/g, '-');
+      const orig = document.title;
+      document.title = `UHHS_Booking_Tax_Invoice_${guest}_${bkId}`;
+      window.print();
+      setTimeout(() => { document.title = orig; }, 1000);
     }
 
     /* ─── AIRBNB PREVIEW POPUP (keeps user on page) ─── */

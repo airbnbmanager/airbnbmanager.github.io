@@ -454,7 +454,11 @@ async function printGuestLedger(guestName) {
     ? '⚠️ Balance Due: ₹' + totalDue.toLocaleString('en-IN') + ' — Kindly clear at earliest'
     : '✅ Fully Settled — Thank You!';
 
-  const html = '<!DOCTYPE html><html><head><title>Guest Ledger - ' + guestName + '</title>' +
+  const cleanGuest = String(guestName || 'Guest').trim().replace(/[\/\\:*?"<>|]/g, '-').replace(/\s+/g, '_');
+  const todayDate = new Date().toISOString().slice(0, 10);
+  const pdfTitle = 'UHHS_Guest_Ledger_' + cleanGuest + '_' + todayDate;
+
+  const html = '<!DOCTYPE html><html><head><title>' + pdfTitle + '</title>' +
     '<style>' +
     '@page { size: A4; margin: 0; }' +
     '* { box-sizing: border-box; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }' +
@@ -504,7 +508,7 @@ async function printGuestLedger(guestName) {
 
   const win = window.open('', '_blank');
   if (win) {
-    win.document.title = 'Guest Ledger - ' + guestName;
+    win.document.title = pdfTitle;
     win.document.write(html);
     win.document.close();
   }
@@ -4807,11 +4811,16 @@ async function exportBookingsPDF() {
       </tr>`;
   });
 
+  const todayIso = new Date().toISOString().slice(0, 10);
+  const propClean = prop ? '_' + String(prop).replace(/[\/\\:*?"<>|]/g, '-').replace(/\s+/g, '_') : '';
+  const periodClean = (!propClean && period) ? '_' + String(period).replace(/[\/\\:*?"<>|]/g, '-').replace(/\s+/g, '_') : '';
+  const pdfDocTitle = `UHHS_Bookings_Report${propClean || periodClean}_${todayIso}`;
+
   const html = `<!DOCTYPE html>
 <html>
 <head>
   <meta charset="UTF-8">
-  <title>Bookings Report - The Unique Haven Homes</title>
+  <title>${pdfDocTitle}</title>
   <style>
     @page { size: A4; margin: 0; }
     * { box-sizing: border-box; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
@@ -4902,8 +4911,11 @@ async function exportBookingsPDF() {
 </html>`;
 
   const win = window.open('', '_blank');
-  win.document.write(html);
-  win.document.close();
+  if (win) {
+    win.document.title = pdfDocTitle;
+    win.document.write(html);
+    win.document.close();
+  }
 }
 
 

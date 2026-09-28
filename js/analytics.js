@@ -149,7 +149,14 @@
     renderAnalytics();
   };
 
-  window.printAnalytics = function() { window.print(); };
+  window.printAnalytics = function() {
+    const orig = document.title;
+    const pKey = String(AN.periodKey || 'Current').replace(/[\/\\:*?"<>|]/g, '-').replace(/\s+/g, '_');
+    const todayDate = new Date().toISOString().slice(0, 10);
+    document.title = `UHHS_Business_Analytics_Report_${pKey}_${todayDate}`;
+    window.print();
+    setTimeout(() => { document.title = orig; }, 1000);
+  };
 
   // ═══ MAIN RENDER ═══
   async function renderAnalytics() {

@@ -1408,7 +1408,9 @@ window.exportUhhsLedgerPDF = function(fDate, tDate, totalInflow, totalOutflow, n
   if (!printWin) { alert('Popup blocked! Please allow popups.'); return; }
 
   const escapeHtml = str => String(str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-  const title = `UHHS-OD Ledger Statement (${safeFDate} to ${safeTDate})`;
+  const cleanFDate = String(safeFDate || 'Start').replace(/[\/\\:*?"<>|]/g, '-');
+  const cleanTDate = String(safeTDate || 'End').replace(/[\/\\:*?"<>|]/g, '-');
+  const title = `UHHS_OD_Ledger_Statement_${cleanFDate}_to_${cleanTDate}`;
   printWin.document.title = title;
   printWin.document.write(`
     <!DOCTYPE html>
@@ -1682,14 +1684,20 @@ window.printClaimReportStatement = function() {
   });
   const pendingAmt = Math.max(0, totalAmt - claimedAmt);
 
+  const cleanPayer = String(payerLabel || 'All').trim().replace(/[\/\\:*?"<>|]/g, '-').replace(/\s+/g, '_');
+  const cleanFDate = String(fDate || 'Start').replace(/[\/\\:*?"<>|]/g, '-');
+  const cleanTDate = String(tDate || 'End').replace(/[\/\\:*?"<>|]/g, '-');
+  const pdfTitle = `UHHS_Claim_Statement_${cleanPayer}_${cleanFDate}_to_${cleanTDate}`;
+
   const printWin = window.open('', '_blank');
   if (!printWin) { alert('Popup blocked! Please allow popups.'); return; }
+  printWin.document.title = pdfTitle;
 
   printWin.document.write(`
     <!DOCTYPE html>
     <html>
     <head>
-      <title>Claim Statement (${payerLabel} - ${fDate} to ${tDate})</title>
+      <title>${pdfTitle}</title>
       <style>
         @page { size: A4; margin: 10mm; }
         * { box-sizing: border-box; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
@@ -1893,7 +1901,10 @@ window.exportCompanyLedgerPDF = function(fDate, tDate) {
   items.forEach(i => { const c = i.moduleLabel || 'Other'; catMap[c] = (catMap[c] || 0) + (Number(i.amount) || 0); });
 
   const esc = s => String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-  const title = 'Company Payments Statement (' + (fDate||'-') + ' to ' + (tDate||'-') + ')';
+  const cleanFDate = String(fDate || 'Start').replace(/[\/\\:*?"<>|]/g, '-');
+  const cleanTDate = String(tDate || 'End').replace(/[\/\\:*?"<>|]/g, '-');
+  const title = `UHHS_Company_Payments_Ledger_${cleanFDate}_to_${cleanTDate}`;
+  const displayTitle = 'Company Payments Statement (' + (fDate||'-') + ' to ' + (tDate||'-') + ')';
 
   const printWin = window.open('', '_blank');
   if (!printWin) { alert('Popup blocked! Please allow popups.'); return; }
