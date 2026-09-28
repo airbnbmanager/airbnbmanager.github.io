@@ -2586,7 +2586,21 @@ The Unique Haven Homes Property Management`;
   // ─── 15. DATE-RANGE INVESTOR BOOKING BROADCAST & DISPATCHER ───
   async function openInvestorBookingBroadcastModal(initialParams = {}) {
     await loadConfig();
-    const today = new Date().toISOString().slice(0, 10);
+
+    const getLocalDateStr = (d = new Date()) => {
+      const offset = d.getTimezoneOffset() * 60000;
+      return new Date(d.getTime() - offset).toISOString().slice(0, 10);
+    };
+
+    const getDays = (ci, co) => {
+      if (!ci || !co) return 1;
+      try {
+        const diff = (new Date(co) - new Date(ci)) / (1000 * 60 * 60 * 24);
+        return Math.max(1, Math.round(diff));
+      } catch(e) { return 1; }
+    };
+
+    const today = getLocalDateStr();
     const startDefault = initialParams.startDate || '2026-09-01'; // User's requested backlog start
     const endDefault = initialParams.endDate || today;
 
@@ -2607,65 +2621,164 @@ The Unique Haven Homes Property Management`;
     if (!rooms.length && window.UHHS_PROPERTIES) rooms = window.UHHS_PROPERTIES;
 
     modal.innerHTML = `
-      <div class="modal-box" style="max-width:960px;width:96%;max-height:92vh;display:flex;flex-direction:column;padding:22px;border-radius:16px;background:#fff;box-shadow:0 25px 50px -12px rgba(0,0,0,0.25);position:relative;">
+      <style>
+        #uhhInvestorBroadcastModal .ib-modal-box {
+          max-width: 960px;
+          width: 96%;
+          max-height: 92vh;
+          display: flex;
+          flex-direction: column;
+          padding: 22px;
+          border-radius: 16px;
+          background: #fff;
+          box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);
+          position: relative;
+          box-sizing: border-box;
+        }
+        #uhhInvestorBroadcastModal .ib-presets-bar {
+          display: flex;
+          gap: 8px;
+          align-items: center;
+          overflow-x: auto;
+          white-space: nowrap;
+          -webkit-overflow-scrolling: touch;
+          padding-bottom: 6px;
+          margin-bottom: 10px;
+        }
+        #uhhInvestorBroadcastModal .ib-filter-grid {
+          display: grid;
+          grid-template-columns: 1fr 1fr 1.5fr 110px;
+          gap: 10px;
+          align-items: flex-end;
+        }
+        #uhhInvestorBroadcastModal .ib-card-actions {
+          display: flex;
+          gap: 8px;
+          align-items: center;
+          flex-wrap: wrap;
+        }
+        #uhhInvestorBroadcastModal .ib-mobile-bks {
+          display: none;
+        }
+        #uhhInvestorBroadcastModal .ib-desktop-bks {
+          display: block;
+        }
+        @media (max-width: 640px) {
+          #uhhInvestorBroadcastModal .ib-modal-box {
+            width: 98% !important;
+            max-height: 96vh !important;
+            padding: 14px 10px !important;
+            border-radius: 12px !important;
+          }
+          #uhhInvestorBroadcastModal .ib-header-title {
+            font-size: 16px !important;
+          }
+          #uhhInvestorBroadcastModal .ib-filter-grid {
+            grid-template-columns: 1fr 1fr !important;
+            gap: 8px !important;
+          }
+          #uhhInvestorBroadcastModal .ib-filter-prop {
+            grid-column: span 2 !important;
+          }
+          #uhhInvestorBroadcastModal .ib-filter-btn {
+            grid-column: span 2 !important;
+          }
+          #uhhInvestorBroadcastModal .ib-dispatch-wrap {
+            flex-direction: column !important;
+            align-items: stretch !important;
+          }
+          #uhhInvestorBroadcastModal .ib-dispatch-wrap button {
+            width: 100% !important;
+            justify-content: center !important;
+          }
+          #uhhInvestorBroadcastModal .ib-card-header {
+            flex-direction: column !important;
+            align-items: stretch !important;
+          }
+          #uhhInvestorBroadcastModal .ib-card-actions {
+            width: 100% !important;
+            margin-top: 8px !important;
+            display: grid !important;
+            grid-template-columns: 1fr 1fr !important;
+            gap: 6px !important;
+          }
+          #uhhInvestorBroadcastModal .ib-card-actions button {
+            width: 100% !important;
+            justify-content: center !important;
+            font-size: 11px !important;
+            padding: 8px 4px !important;
+          }
+          #uhhInvestorBroadcastModal .ib-card-actions button:last-child {
+            grid-column: span 2 !important;
+          }
+          #uhhInvestorBroadcastModal .ib-mobile-bks {
+            display: block !important;
+          }
+          #uhhInvestorBroadcastModal .ib-desktop-bks {
+            display: none !important;
+          }
+        }
+      </style>
+
+      <div class="ib-modal-box modal-box">
         
         <!-- Sticky Prominent Close Button -->
-        <button type="button" class="modal-close-prominent" onclick="this.closest('.modal-overlay').remove()" title="Close (ESC)" style="position:absolute;top:14px;right:14px;background:#EF4444;color:#fff;border:none;border-radius:50%;width:34px;height:34px;font-size:16px;font-weight:900;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 10px rgba(239,68,68,0.35);z-index:10000;">✕</button>
+        <button type="button" class="modal-close-prominent" onclick="this.closest('.modal-overlay').remove()" title="Close (ESC)" style="position:absolute;top:12px;right:12px;background:#EF4444;color:#fff;border:none;border-radius:50%;width:34px;height:34px;font-size:16px;font-weight:900;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 10px rgba(239,68,68,0.35);z-index:10000;">✕</button>
 
         <!-- Top Header -->
-        <div style="border-bottom:1px solid #E2E8F0;padding-bottom:14px;margin-bottom:14px;padding-right:45px;">
+        <div style="border-bottom:1px solid #E2E8F0;padding-bottom:12px;margin-bottom:12px;padding-right:45px;">
           <div style="display:flex;align-items:center;gap:10px;">
             <span style="font-size:24px;">📢</span>
             <div>
-              <h2 style="margin:0;font-size:19px;font-weight:900;color:#0F172A;">
-                Investor Booking Broadcast &amp; Date-Range Dispatcher
+              <h2 class="ib-header-title" style="margin:0;font-size:18px;font-weight:900;color:#0F172A;">
+                Investor Booking Broadcast &amp; Dispatcher
               </h2>
-              <div style="font-size:12px;color:#64748B;margin-top:2px;">
-                Select custom date range (e.g. from 1 Sep) and send date-wise booking updates to all property investors or individual homestays.
+              <div style="font-size:11.5px;color:#64748B;margin-top:2px;">
+                Select custom date range (e.g. from 1 Sep) and dispatch date-wise booking updates to property investors.
               </div>
             </div>
           </div>
         </div>
 
         <!-- Filter Bar -->
-        <div style="background:#F8FAFC;border:1.5px solid #E2E8F0;border-radius:12px;padding:14px;margin-bottom:14px;">
+        <div style="background:#F8FAFC;border:1.5px solid #E2E8F0;border-radius:12px;padding:12px;margin-bottom:12px;">
           
           <!-- Quick Preset Chips -->
-          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px;">
-            <span style="font-size:11px;font-weight:700;color:#64748B;text-transform:uppercase;">Quick Presets:</span>
-            <button type="button" class="btn-sm" style="background:#EEF2FF;color:#4F46E5;border:1px solid #C7D2FE;font-weight:700;font-size:11.5px;cursor:pointer;" onclick="window._setIbPreset('2026-09-01', '${today}')">
+          <div class="ib-presets-bar">
+            <span style="font-size:11px;font-weight:700;color:#64748B;text-transform:uppercase;flex-shrink:0;">Presets:</span>
+            <button type="button" class="btn-sm" style="background:#EEF2FF;color:#4F46E5;border:1px solid #C7D2FE;font-weight:700;font-size:11px;cursor:pointer;flex-shrink:0;" onclick="window._setIbPreset('2026-09-01', '${today}')">
               📅 1 Sep – Today (Backlog)
             </button>
-            <button type="button" class="btn-sm" style="background:#F0FDF4;color:#15803D;border:1px solid #BBF7D0;font-weight:700;font-size:11.5px;cursor:pointer;" onclick="window._setIbPreset('${today}', '${today}')">
+            <button type="button" class="btn-sm" style="background:#F0FDF4;color:#15803D;border:1px solid #BBF7D0;font-weight:700;font-size:11px;cursor:pointer;flex-shrink:0;" onclick="window._setIbPreset('${today}', '${today}')">
               📅 Today Only
             </button>
-            <button type="button" class="btn-sm" style="background:#FFFBEB;color:#B45309;border:1px solid #FDE68A;font-weight:700;font-size:11.5px;cursor:pointer;" onclick="window._setIbPreset('${new Date(Date.now() - 86400000).toISOString().slice(0,10)}', '${new Date(Date.now() - 86400000).toISOString().slice(0,10)}')">
+            <button type="button" class="btn-sm" style="background:#FFFBEB;color:#B45309;border:1px solid #FDE68A;font-weight:700;font-size:11px;cursor:pointer;flex-shrink:0;" onclick="window._setIbPreset('${getLocalDateStr(new Date(Date.now() - 86400000))}', '${getLocalDateStr(new Date(Date.now() - 86400000))}')">
               📅 Yesterday Only
             </button>
-            <button type="button" class="btn-sm" style="background:#F1F5F9;color:#334155;border:1px solid #CBD5E1;font-weight:700;font-size:11.5px;cursor:pointer;" onclick="window._setIbPreset('${new Date(Date.now() - 6*86400000).toISOString().slice(0,10)}', '${today}')">
+            <button type="button" class="btn-sm" style="background:#F1F5F9;color:#334155;border:1px solid #CBD5E1;font-weight:700;font-size:11px;cursor:pointer;flex-shrink:0;" onclick="window._setIbPreset('${getLocalDateStr(new Date(Date.now() - 6*86400000))}', '${today}')">
               📅 Last 7 Days
             </button>
           </div>
 
           <!-- Date & Property Selectors -->
-          <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(180px, 1fr)) 120px;gap:10px;align-items:flex-end;">
+          <div class="ib-filter-grid">
             <div>
-              <label style="font-size:11px;font-weight:700;color:#475569;display:block;margin-bottom:4px;">From Date (Check-in)</label>
-              <input type="date" id="ibStartDate" value="${startDefault}" style="width:100%;padding:8px 10px;border:1.5px solid #CBD5E1;border-radius:8px;font-size:13px;font-weight:600;" onchange="window._loadInvestorBroadcastData()"/>
+              <label style="font-size:11px;font-weight:700;color:#475569;display:block;margin-bottom:4px;">From Date</label>
+              <input type="date" id="ibStartDate" value="${startDefault}" style="width:100%;box-sizing:border-box;padding:8px;border:1.5px solid #CBD5E1;border-radius:8px;font-size:12.5px;font-weight:600;" onchange="window._loadInvestorBroadcastData()"/>
             </div>
             <div>
-              <label style="font-size:11px;font-weight:700;color:#475569;display:block;margin-bottom:4px;">To Date (Check-in)</label>
-              <input type="date" id="ibEndDate" value="${endDefault}" style="width:100%;padding:8px 10px;border:1.5px solid #CBD5E1;border-radius:8px;font-size:13px;font-weight:600;" onchange="window._loadInvestorBroadcastData()"/>
+              <label style="font-size:11px;font-weight:700;color:#475569;display:block;margin-bottom:4px;">To Date</label>
+              <input type="date" id="ibEndDate" value="${endDefault}" style="width:100%;box-sizing:border-box;padding:8px;border:1.5px solid #CBD5E1;border-radius:8px;font-size:12.5px;font-weight:600;" onchange="window._loadInvestorBroadcastData()"/>
             </div>
-            <div>
-              <label style="font-size:11px;font-weight:700;color:#475569;display:block;margin-bottom:4px;">Filter Property</label>
-              <select id="ibPropertyFilter" style="width:100%;padding:8px 10px;border:1.5px solid #CBD5E1;border-radius:8px;font-size:12.5px;font-weight:600;" onchange="window._loadInvestorBroadcastData()">
+            <div class="ib-filter-prop">
+              <label style="font-size:11px;font-weight:700;color:#475569;display:block;margin-bottom:4px;">Property</label>
+              <select id="ibPropertyFilter" style="width:100%;box-sizing:border-box;padding:8px;border:1.5px solid #CBD5E1;border-radius:8px;font-size:12px;font-weight:600;" onchange="window._loadInvestorBroadcastData()">
                 <option value="">🏢 All Properties (All Investors)</option>
                 ${rooms.map(r => `<option value="${r.room_id}">${r.nickname || r.property_name || r.room_id} (${r.unit_no || '-'})</option>`).join('')}
               </select>
             </div>
-            <div>
-              <button type="button" class="btn-sm" style="width:100%;padding:9px;background:#0F172A;color:#fff;border:none;border-radius:8px;font-weight:800;cursor:pointer;" onclick="window._loadInvestorBroadcastData()">
+            <div class="ib-filter-btn">
+              <button type="button" class="btn-sm" style="width:100%;box-sizing:border-box;padding:9px;background:#0F172A;color:#fff;border:none;border-radius:8px;font-weight:800;cursor:pointer;" onclick="window._loadInvestorBroadcastData()">
                 🔍 Refresh
               </button>
             </div>
@@ -2673,18 +2786,18 @@ The Unique Haven Homes Property Management`;
         </div>
 
         <!-- Master Dispatch Action & Progress Bar -->
-        <div id="ibDispatchBanner" style="display:none;background:#EEF2FF;border:1.5px solid #818CF8;border-radius:12px;padding:14px 18px;margin-bottom:14px;">
-          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
+        <div id="ibDispatchBanner" style="display:none;background:#EEF2FF;border:1.5px solid #818CF8;border-radius:12px;padding:12px 16px;margin-bottom:12px;">
+          <div class="ib-dispatch-wrap" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
             <div>
-              <div style="font-size:14px;font-weight:900;color:#1E1B4B;" id="ibSummaryTitle">
+              <div style="font-size:13.5px;font-weight:900;color:#1E1B4B;" id="ibSummaryTitle">
                 Found Bookings Across 0 Properties
               </div>
-              <div style="font-size:12px;color:#4338CA;" id="ibSummarySub">
+              <div style="font-size:11.5px;color:#4338CA;margin-top:2px;" id="ibSummarySub">
                 Ready to dispatch date-wise booking summaries to investors.
               </div>
             </div>
-            <div style="display:flex;gap:10px;align-items:center;">
-              <button type="button" id="ibBtnSendAll" style="padding:10px 18px;background:#4F46E5;color:#fff;border:none;border-radius:10px;font-weight:900;font-size:14px;cursor:pointer;display:inline-flex;align-items:center;gap:8px;box-shadow:0 4px 12px rgba(79,70,229,0.35);" onclick="window._dispatchAllInvestorReports()">
+            <div>
+              <button type="button" id="ibBtnSendAll" style="padding:10px 16px;background:#4F46E5;color:#fff;border:none;border-radius:10px;font-weight:900;font-size:13.5px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;box-shadow:0 4px 12px rgba(79,70,229,0.35);" onclick="window._dispatchAllInvestorReports()">
                 🚀 Send All to All Investors
               </button>
             </div>
@@ -2699,7 +2812,7 @@ The Unique Haven Homes Property Management`;
         </div>
 
         <!-- Results Container (Scrollable Property Cards) -->
-        <div style="flex:1;overflow-y:auto;padding-right:4px;" id="ibResultsArea">
+        <div style="flex:1;overflow-y:auto;padding-right:2px;" id="ibResultsArea">
           <div style="text-align:center;padding:40px;color:#64748B;">
             <div style="font-size:32px;margin-bottom:8px;">⏳</div>
             <div>Loading bookings for selected period...</div>
@@ -2719,8 +2832,10 @@ The Unique Haven Homes Property Management`;
     };
 
     window._loadInvestorBroadcastData = async function() {
-      const sDate = document.getElementById('ibStartDate')?.value || startDefault;
-      const eDate = document.getElementById('ibEndDate')?.value || endDefault;
+      const sInp = document.getElementById('ibStartDate');
+      const eInp = document.getElementById('ibEndDate');
+      const sDate = (sInp && sInp.value) ? sInp.value : startDefault;
+      const eDate = (eInp && eInp.value) ? eInp.value : endDefault;
       const propFilter = document.getElementById('ibPropertyFilter')?.value || '';
       const resultsArea = document.getElementById('ibResultsArea');
       const banner = document.getElementById('ibDispatchBanner');
@@ -2734,30 +2849,60 @@ The Unique Haven Homes Property Management`;
       `;
 
       try {
-        let query = sb.from('guest_register')
+        let client = window.sb || window.supabaseClient;
+        if (!client) {
+          for (let i = 0; i < 8; i++) {
+            await new Promise(r => setTimeout(r, 250));
+            client = window.sb || window.supabaseClient;
+            if (client) break;
+          }
+        }
+        if (!client) throw new Error('Database client not loaded. Please refresh page.');
+
+        if (!rooms || rooms.length === 0) {
+          try {
+            const { data } = await client.from('rooms').select('room_id, unit_no, nickname, property_name, whatsapp_group_name').order('unit_no');
+            if (data && data.length) rooms = data;
+          } catch(e) {}
+          if (!rooms.length && window.UHHS_PROPERTIES) rooms = window.UHHS_PROPERTIES;
+        }
+
+        let query = client.from('guest_register')
           .select('booking_id, guest_name, phone, room_id, check_in, check_out, check_in_time, check_out_time, guests, total_amount, payment_status, booking_mode, is_cancelled, is_review_booking, rooms(nickname, unit_no, property_name, whatsapp_group_name)')
           .gte('check_in', sDate)
           .lte('check_in', eDate)
-          .or('is_cancelled.is.null,is_cancelled.eq.false')
+          .range(0, 4999)
           .order('check_in', { ascending: true });
 
         if (propFilter) {
           query = query.eq('room_id', propFilter);
         }
 
-        const { data: bks, error } = await query;
-        if (error) throw error;
+        let { data: bks, error } = await query;
+        if (error) {
+          console.warn('Rooms relation query failed, falling back to direct table:', error);
+          let fallbackQ = client.from('guest_register')
+            .select('booking_id, guest_name, phone, room_id, check_in, check_out, check_in_time, check_out_time, guests, total_amount, payment_status, booking_mode, is_cancelled, is_review_booking')
+            .gte('check_in', sDate)
+            .lte('check_in', eDate)
+            .range(0, 4999)
+            .order('check_in', { ascending: true });
+          if (propFilter) fallbackQ = fallbackQ.eq('room_id', propFilter);
+          const fbRes = await fallbackQ;
+          if (fbRes.error) throw fbRes.error;
+          bks = fbRes.data;
+        }
 
-        const validBookings = (bks || []).filter(b => !b.is_review_booking);
+        const validBookings = (bks || []).filter(b => !b.is_review_booking && b.is_cancelled !== true && b.is_cancelled !== 'true');
 
         if (!validBookings.length) {
           if (banner) banner.style.display = 'none';
           resultsArea.innerHTML = `
-            <div style="text-align:center;padding:40px;background:#F8FAFC;border:1.5px dashed #CBD5E1;border-radius:12px;">
+            <div style="text-align:center;padding:36px;background:#F8FAFC;border:1.5px dashed #CBD5E1;border-radius:12px;">
               <div style="font-size:36px;margin-bottom:8px;">📭</div>
               <div style="font-size:15px;font-weight:800;color:#0F172A;">No Bookings Found</div>
               <div style="font-size:12px;color:#64748B;margin-top:4px;">
-                No confirmed bookings found check-in between <strong>${sDate}</strong> and <strong>${eDate}</strong>.
+                No confirmed bookings found with check-in between <strong>${sDate}</strong> and <strong>${eDate}</strong>.
               </div>
             </div>
           `;
@@ -2831,58 +2976,85 @@ The Unique Haven Homes Property Management`;
         // Render Property Cards
         resultsArea.innerHTML = propList.map((p, pIdx) => {
           const propTotal = p.bookings.reduce((s, b) => s + Number(b.total_amount || 0), 0);
-          const totalNights = p.bookings.reduce((s, b) => s + (b.check_in && b.check_out && window.calcNights ? calcNights(b.check_in, b.check_out) : 1), 0);
+          const totalNights = p.bookings.reduce((s, b) => s + getDays(b.check_in, b.check_out), 0);
           const msgText = window._buildInvestorPropMessage(p, sDate, eDate);
 
           return `
-            <div id="propGroupCard_${pIdx}" style="background:#fff;border:1.5px solid #E2E8F0;border-radius:12px;padding:16px;margin-bottom:12px;box-shadow:0 2px 6px rgba(0,0,0,0.04);transition:all 0.15s;">
+            <div id="propGroupCard_${pIdx}" style="background:#fff;border:1.5px solid #E2E8F0;border-radius:12px;padding:14px;margin-bottom:12px;box-shadow:0 2px 6px rgba(0,0,0,0.04);box-sizing:border-box;">
               
               <!-- Card Header -->
-              <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:10px;margin-bottom:12px;">
+              <div class="ib-card-header" style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px;margin-bottom:10px;">
                 <div>
-                  <div style="display:flex;align-items:center;gap:8px;">
+                  <div style="display:flex;align-items:center;gap:6px;">
                     <span style="font-size:16px;">🏠</span>
-                    <strong style="font-size:15px;color:#0F172A;">${escapeHtml(p.roomNickname)} ${p.unitNo ? `(${escapeHtml(p.unitNo)})` : ''}</strong>
-                    <span class="badge" style="background:#EEF2FF;color:#4F46E5;font-size:10.5px;font-weight:800;">${p.roomId}</span>
+                    <strong style="font-size:14.5px;color:#0F172A;">${escapeHtml(p.roomNickname)} ${p.unitNo ? `(${escapeHtml(p.unitNo)})` : ''}</strong>
+                    <span class="badge" style="background:#EEF2FF;color:#4F46E5;font-size:10px;font-weight:800;">${p.roomId}</span>
                   </div>
                   <div style="font-size:11.5px;color:#64748B;margin-top:2px;">
                     Investor: <strong>${escapeHtml(p.investorName)}</strong> · 
-                    Target: <code style="font-size:11px;color:${p.targetGroup ? '#059669' : '#DC2626'};">${p.targetGroup || '⚠️ Group Not Mapped'}</code>
+                    Target: <code style="font-size:10.5px;color:${p.targetGroup ? '#059669' : '#DC2626'};">${p.targetGroup || '⚠️ Group Not Mapped'}</code>
                   </div>
                 </div>
 
                 <!-- Per-Property Action Buttons -->
-                <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
-                  <button type="button" id="btnSendProp_${pIdx}" class="btn-sm" style="background:#4F46E5;color:#fff;border:none;padding:7px 14px;border-radius:8px;font-weight:800;font-size:12px;cursor:pointer;display:inline-flex;align-items:center;gap:5px;" onclick="window._sendSinglePropertyToInvestor(${pIdx})">
+                <div class="ib-card-actions">
+                  <button type="button" id="btnSendProp_${pIdx}" class="btn-sm" style="background:#4F46E5;color:#fff;border:none;padding:7px 12px;border-radius:8px;font-weight:800;font-size:11.5px;cursor:pointer;display:inline-flex;align-items:center;gap:4px;" onclick="window._sendSinglePropertyToInvestor(${pIdx})">
                     📤 Send to Investor
                   </button>
-                  <button type="button" class="btn-sm" style="background:#25D366;color:#fff;border:none;padding:7px 12px;border-radius:8px;font-weight:800;font-size:12px;cursor:pointer;" onclick="window._openPropInWhatsAppWeb(${pIdx})">
-                    📱 WhatsApp Web
+                  <button type="button" class="btn-sm" style="background:#25D366;color:#fff;border:none;padding:7px 10px;border-radius:8px;font-weight:800;font-size:11.5px;cursor:pointer;" onclick="window._openPropInWhatsAppWeb(${pIdx})">
+                    📱 WhatsApp
                   </button>
-                  <button type="button" class="btn-sm outline" style="padding:7px 10px;font-size:12px;" onclick="window._toggleMsgPreview(${pIdx})">
-                    👁️ Preview Message
+                  <button type="button" class="btn-sm outline" style="padding:7px 8px;font-size:11.5px;" onclick="window._toggleMsgPreview(${pIdx})">
+                    👁️ Preview
                   </button>
                 </div>
               </div>
 
               <!-- Stats Pill Strip -->
-              <div style="display:flex;gap:16px;background:#F8FAFC;border:1px solid #E2E8F0;border-radius:8px;padding:8px 12px;font-size:12px;margin-bottom:12px;flex-wrap:wrap;">
-                <div>📅 Total Bookings: <strong style="color:#0F172A;">${p.bookings.length}</strong></div>
-                <div>🌙 Total Nights: <strong style="color:#0F172A;">${totalNights}</strong></div>
-                <div>💰 Gross Revenue: <strong style="color:#059669;">₹${propTotal.toLocaleString('en-IN')}</strong></div>
+              <div style="display:flex;gap:12px;background:#F8FAFC;border:1px solid #E2E8F0;border-radius:8px;padding:8px 10px;font-size:11.5px;margin-bottom:10px;flex-wrap:wrap;align-items:center;">
+                <div>📅 Bookings: <strong style="color:#0F172A;">${p.bookings.length}</strong></div>
+                <div>🌙 Nights: <strong style="color:#0F172A;">${totalNights}</strong></div>
+                <div>💰 Revenue: <strong style="color:#059669;">₹${propTotal.toLocaleString('en-IN')}</strong></div>
                 <div id="propStatus_${pIdx}" style="margin-left:auto;font-weight:700;color:#64748B;">Ready to send</div>
               </div>
 
               <!-- Collapsible Message Preview -->
-              <div id="msgPreviewBox_${pIdx}" style="display:none;background:#F1F5F9;border:1px dashed #CBD5E1;border-radius:8px;padding:12px;margin-bottom:12px;position:relative;">
+              <div id="msgPreviewBox_${pIdx}" style="display:none;background:#F1F5F9;border:1px dashed #CBD5E1;border-radius:8px;padding:12px;margin-bottom:10px;position:relative;">
                 <div style="font-size:11px;font-weight:800;color:#475569;text-transform:uppercase;margin-bottom:6px;">Message Preview:</div>
                 <pre style="white-space:pre-wrap;font-family:sans-serif;font-size:11.5px;color:#1E293B;margin:0;line-height:1.5;">${escapeHtml(msgText)}</pre>
                 <button type="button" class="btn-sm" style="position:absolute;top:8px;right:8px;background:#fff;border:1px solid #CBD5E1;font-size:10.5px;cursor:pointer;" onclick="navigator.clipboard.writeText(decodeURIComponent('${encodeURIComponent(msgText)}'));alert('Copied to clipboard!');">📋 Copy</button>
               </div>
 
-              <!-- Date-Wise Bookings Table -->
-              <div style="border:1px solid #E2E8F0;border-radius:8px;overflow:hidden;">
-                <table style="width:100%;border-collapse:collapse;font-size:11.5px;">
+              <!-- 1. Mobile Cards View (shown on screen <= 640px) -->
+              <div class="ib-mobile-bks" style="border:1px solid #E2E8F0;border-radius:8px;background:#fff;overflow:hidden;">
+                ${p.bookings.map((b, bIdx) => {
+                  const n = getDays(b.check_in, b.check_out);
+                  return `
+                    <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 12px;border-bottom:1px solid #F1F5F9;background:${bIdx % 2 === 0 ? '#fff' : '#FAFAFA'};">
+                      <div>
+                        <div style="font-weight:800;color:#0F172A;font-size:12px;display:flex;align-items:center;gap:6px;">
+                          <span>📅 ${b.check_in} → ${b.check_out}</span>
+                          <span style="background:#E2E8F0;color:#334155;font-size:10px;font-weight:700;padding:1px 5px;border-radius:4px;">${n}N</span>
+                        </div>
+                        <div style="color:#475569;font-size:11.5px;margin-top:3px;display:flex;align-items:center;gap:6px;">
+                          <span>👤 <strong>${escapeHtml(b.guest_name || 'Guest')}</strong></span>
+                          <span class="badge" style="background:${b.booking_mode === 'Online-Airbnb' ? '#FEF3C7' : '#F1F5F9'};color:${b.booking_mode === 'Online-Airbnb' ? '#B45309' : '#334155'};font-size:9.5px;padding:1px 5px;">
+                            ${escapeHtml(b.booking_mode || 'Direct')}
+                          </span>
+                        </div>
+                      </div>
+                      <div style="text-align:right;">
+                        <div style="font-weight:900;color:#059669;font-size:13.5px;">₹${Number(b.total_amount || 0).toLocaleString('en-IN')}</div>
+                        <div style="font-size:9.5px;color:#94A3B8;">#${bIdx + 1}</div>
+                      </div>
+                    </div>
+                  `;
+                }).join('')}
+              </div>
+
+              <!-- 2. Desktop Table View (shown on screen > 640px) -->
+              <div class="ib-desktop-bks" style="border:1px solid #E2E8F0;border-radius:8px;overflow-x:auto;-webkit-overflow-scrolling:touch;">
+                <table style="width:100%;min-width:520px;border-collapse:collapse;font-size:11.5px;">
                   <thead>
                     <tr style="background:#F8FAFC;border-bottom:1px solid #E2E8F0;color:#475569;text-align:left;">
                       <th style="padding:6px 10px;width:30px;">#</th>
@@ -2894,7 +3066,7 @@ The Unique Haven Homes Property Management`;
                   </thead>
                   <tbody>
                     ${p.bookings.map((b, bIdx) => {
-                      const n = (b.check_in && b.check_out && window.calcNights) ? calcNights(b.check_in, b.check_out) : 1;
+                      const n = getDays(b.check_in, b.check_out);
                       return `
                         <tr style="border-bottom:1px solid #F1F5F9;background:${bIdx % 2 === 0 ? '#fff' : '#FAFAFA'};">
                           <td style="padding:6px 10px;color:#64748B;">${bIdx + 1}</td>
@@ -2904,7 +3076,7 @@ The Unique Haven Homes Property Management`;
                           <td style="padding:6px 10px;color:#334155;">${escapeHtml(b.guest_name || 'Guest')}</td>
                           <td style="padding:6px 10px;">
                             <span class="badge" style="background:${b.booking_mode === 'Online-Airbnb' ? '#FEF3C7' : '#F1F5F9'};color:${b.booking_mode === 'Online-Airbnb' ? '#B45309' : '#334155'};font-size:10px;">
-                              ${b.booking_mode || 'Direct'}
+                              ${escapeHtml(b.booking_mode || 'Direct')}
                             </span>
                           </td>
                           <td style="padding:6px 10px;text-align:right;font-weight:800;color:#059669;">
@@ -2973,11 +3145,21 @@ The Unique Haven Homes Property Management`;
 
       let target = p.targetGroup || '';
       let url = '';
-      if (target.includes('@g.us')) {
-        url = `https://web.whatsapp.com/send?text=${encodeURIComponent(msg)}`;
+      const isMobile = /Android|iPhone|iPad|iPod|webOS/i.test(navigator.userAgent || '');
+      const cleanP = target.includes('@') ? '' : target.replace(/\D/g, '');
+
+      if (isMobile) {
+        if (cleanP) {
+          url = `https://api.whatsapp.com/send?phone=${cleanP}&text=${encodeURIComponent(msg)}`;
+        } else {
+          url = `whatsapp://send?text=${encodeURIComponent(msg)}`;
+        }
       } else {
-        const cleanP = target.replace(/\D/g, '');
-        url = cleanP ? `https://wa.me/${cleanP}?text=${encodeURIComponent(msg)}` : `https://web.whatsapp.com/send?text=${encodeURIComponent(msg)}`;
+        if (cleanP) {
+          url = `https://web.whatsapp.com/send?phone=${cleanP}&text=${encodeURIComponent(msg)}`;
+        } else {
+          url = `https://web.whatsapp.com/send?text=${encodeURIComponent(msg)}`;
+        }
       }
       window.open(url, '_blank');
     };
