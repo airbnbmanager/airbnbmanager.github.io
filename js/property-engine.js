@@ -31,12 +31,20 @@
       categories: {}
     };
 
+    const normalizeUrl = (u) => {
+      if (!u || typeof u !== 'string') return '';
+      return u.split('?')[0].trim().toLowerCase();
+    };
+
     const addPhoto = (url, categoryName) => {
       if (!url || typeof url !== 'string') return;
       url = url.trim();
       if (!url) return;
+      // Strictly ignore any Unsplash placeholder or generic dummy images
+      if (url.includes('images.unsplash.com')) return;
 
-      if (!catalog.all.some(item => item.url === url)) {
+      const norm = normalizeUrl(url);
+      if (!catalog.all.some(item => normalizeUrl(item.url) === norm)) {
         const item = { url, category: categoryName };
         catalog.all.push(item);
         if (!catalog.categories[categoryName]) {
@@ -46,44 +54,58 @@
       }
     };
 
-    // Primary cover
+    // 1. Primary cover
     if (prop.cover_image) {
       addPhoto(prop.cover_image, 'Cover & Highlights');
     }
 
-    // Categorized photos
-    if (prop.photos && typeof prop.photos === 'object') {
-      const catMap = {
-        living_hall: 'Living & Dining',
-        bedrooms: 'Bedrooms',
-        bathrooms: 'Bathrooms',
-        kitchen: 'Kitchen',
-        balcony: 'Balcony & Views',
-        all: 'All Listing Photos'
-      };
-
-      Object.keys(catMap).forEach(key => {
-        const list = prop.photos[key];
-        const label = catMap[key];
-        if (Array.isArray(list)) {
-          list.forEach(u => addPhoto(u, label));
-        }
-      });
+    // 2. Curate diverse initial 5 mosaic items (Cover + Bedroom + Living + Bathroom + Kitchen/Balcony)
+    if (prop.photos && typeof prop.photos === 'object' && !Array.isArray(prop.photos)) {
+      if (Array.isArray(prop.photos.bedrooms) && prop.photos.bedrooms[0]) {
+        addPhoto(prop.photos.bedrooms[0], 'Bedrooms');
+      }
+      if (Array.isArray(prop.photos.living_hall) && prop.photos.living_hall[0]) {
+        addPhoto(prop.photos.living_hall[0], 'Living & Dining');
+      }
+      if (Array.isArray(prop.photos.bathrooms) && prop.photos.bathrooms[0]) {
+        addPhoto(prop.photos.bathrooms[0], 'Bathrooms');
+      }
+      if (Array.isArray(prop.photos.kitchen) && prop.photos.kitchen[0]) {
+        addPhoto(prop.photos.kitchen[0], 'Kitchen');
+      } else if (Array.isArray(prop.photos.balcony) && prop.photos.balcony[0]) {
+        addPhoto(prop.photos.balcony[0], 'Balcony & Views');
+      }
     }
 
-    // Fallback if less than 5 photos
-    const luxuryFallbacks = [
-      'https://images.unsplash.com/photo-1590490360182-c33d57733427?w=1200&q=80',
-      'https://images.unsplash.com/photo-1566665797739-1674de7a421a?w=1200&q=80',
-      'https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?w=1200&q=80',
-      'https://images.unsplash.com/photo-1584622650111-993a426fbf0a?w=1200&q=80',
-      'https://images.unsplash.com/photo-1556911220-e15b29be8c8f?w=1200&q=80'
-    ];
+    // 3. Categorized photos
+    if (prop.photos && typeof prop.photos === 'object') {
+      if (Array.isArray(prop.photos)) {
+        prop.photos.forEach(u => addPhoto(u, 'Listing Photos'));
+      } else {
+        const catMap = {
+          living_hall: 'Living & Dining',
+          bedrooms: 'Bedrooms',
+          bathrooms: 'Bathrooms',
+          kitchen: 'Kitchen',
+          balcony: 'Balcony & Views',
+          all: 'All Listing Photos'
+        };
 
-    let fbIdx = 0;
-    while (catalog.all.length < 5 && fbIdx < luxuryFallbacks.length) {
-      addPhoto(luxuryFallbacks[fbIdx], 'Interior Views');
-      fbIdx++;
+        Object.keys(catMap).forEach(key => {
+          const list = prop.photos[key];
+          const label = catMap[key];
+          if (Array.isArray(list)) {
+            list.forEach(u => addPhoto(u, label));
+          }
+        });
+
+        // Also check any other array properties
+        Object.keys(prop.photos).forEach(key => {
+          if (!catMap[key] && Array.isArray(prop.photos[key])) {
+            prop.photos[key].forEach(u => addPhoto(u, 'Listing Photos'));
+          }
+        });
+      }
     }
 
     return catalog;

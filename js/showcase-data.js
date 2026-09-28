@@ -6,7 +6,15 @@
 (function(window) {
   'use strict';
 
-  const STORAGE_KEY = 'uhhs_showcase_data_v1';
+  const STORAGE_KEY = 'tuhh_showcase_data_v208';
+
+  // Proactively invalidate legacy cache containing dummy Unsplash photos
+  try {
+    if (typeof localStorage !== 'undefined') {
+      localStorage.removeItem('uhhs_showcase_data_v1');
+      localStorage.removeItem('uhhs_showcase_data_v2');
+    }
+  } catch (e) {}
 
   // Baseline Curated Data for All 17 Properties
   const BASELINE_PROPERTIES = {
@@ -2422,7 +2430,18 @@
 
     const merged = {};
     Object.keys(BASELINE_PROPERTIES).forEach(id => {
-      merged[id] = Object.assign({}, BASELINE_PROPERTIES[id], custom[id] || {});
+      const base = BASELINE_PROPERTIES[id];
+      const cust = custom[id] || {};
+      const prop = Object.assign({}, base, cust);
+
+      // Strictly ensure real Airbnb photos and cover from baseline are preserved
+      if (!cust.photos || JSON.stringify(cust.photos).includes('unsplash') || (Array.isArray(cust.photos) && cust.photos.length === 0)) {
+        prop.photos = base.photos;
+      }
+      if (!prop.cover_image || prop.cover_image.includes('unsplash')) {
+        prop.cover_image = base.cover_image;
+      }
+      merged[id] = prop;
     });
     // Add any completely new custom properties
     Object.keys(custom).forEach(id => {
