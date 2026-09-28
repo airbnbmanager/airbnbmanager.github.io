@@ -68,7 +68,8 @@ async function renderReports() {
   const realMb = mb.filter(b => !isBkBlocked(b));
   const blockedMbCount = mb.length - realMb.length;
   const onCount = realMb.filter(b => b.booking_mode === 'Online-Airbnb').length;
-  const offCount = realMb.length - onCount;
+  const bcomCount = realMb.filter(b => b.booking_mode === 'Online-Booking.com' || (b.booking_mode || '').toLowerCase().includes('booking.com')).length;
+  const offCount = Math.max(0, realMb.length - onCount - bcomCount);
 
   // Occupancy for filtered rooms
   const displayRooms = selRoom === 'all' ? allRooms : allRooms.filter(r => r.room_id === selRoom);
@@ -158,6 +159,10 @@ async function renderReports() {
         <div class="stat-num" style="color:#FF385C;">${onCount}</div>
         <div class="stat-label">🌐 Airbnb</div>
       </div>
+      <div class="stat-card" style="border-left:4px solid #003580;border-radius:12px;">
+        <div class="stat-num" style="color:#003580;">${bcomCount}</div>
+        <div class="stat-label">🔵 Booking.com</div>
+      </div>
       <div class="stat-card" style="border-left:4px solid var(--yellow);border-radius:12px;">
         <div class="stat-num">${offCount}</div>
         <div class="stat-label">💵 Direct</div>
@@ -203,11 +208,15 @@ async function renderReports() {
       if (bk) {
         const isCheckIn = bk.check_in === ds;
         const isCheckOut = dateAdd(ds, 1) === bk.check_out;
-        const isOnline = bk.booking_mode === 'Online-Airbnb';
+        const isAirbnb = bk.booking_mode === 'Online-Airbnb';
+        const isBookingCom = bk.booking_mode === 'Online-Booking.com' || (bk.booking_mode || '').toLowerCase().includes('booking.com');
         const isBlocked = isBkBlocked(bk);
 
-        // Airbnb = Red (#FF385C), Offline/Direct & Blocked = Slate/Charcoal (#475569)
-        let bg = isOnline ? '#FF385C' : 'linear-gradient(135deg, #475569 0%, #334155 100%)';
+        // Airbnb = Red (#FF385C), Booking.com = Navy Blue (#003580), Direct = Green (#059669), Blocked = Slate (#475569)
+        let bg = isBlocked ? 'linear-gradient(135deg, #475569 0%, #334155 100%)' 
+               : (isAirbnb ? '#FF385C' 
+               : (isBookingCom ? '#003580' 
+               : 'linear-gradient(135deg, #059669 0%, #047857 100%)'));
 
         const cleanGuestName = (bk.guest_name || (isBlocked ? 'Blocked' : 'Guest')).replace(/^🚫\s*/, '').trim();
         const guestInitial = isBlocked ? '🔒' : cleanGuestName.charAt(0).toUpperCase();

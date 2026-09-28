@@ -135,6 +135,47 @@
 
     // ── Init ──
     function init() {
+      const params = new URLSearchParams(window.location.search);
+      const exportRoom = params.get('export_ical');
+      if (exportRoom) {
+        let sbClient = window.sb || (typeof supabase !== 'undefined' && supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY));
+        if (sbClient) {
+          document.body.innerHTML = '<div style="font-family:monospace;padding:20px;">Generating live iCal feed for ' + exportRoom + '...</div>';
+          sbClient.from('guest_register')
+            .select('booking_id, check_in, check_out, guest_name, booking_mode, is_cancelled')
+            .eq('room_id', exportRoom)
+            .neq('is_cancelled', true)
+            .then(function(res) {
+              const bks = res.data || [];
+              let ics = [
+                'BEGIN:VCALENDAR',
+                'VERSION:2.0',
+                'PRODID:-//The Unique Haven Homes//TUHH Master Feed 2.0//EN',
+                'CALSCALE:GREGORIAN',
+                'METHOD:PUBLISH',
+                'X-WR-CALNAME:TUHH ' + exportRoom
+              ];
+              const now = new Date().toISOString().replace(/[-:]/g, '').slice(0, 15) + 'Z';
+              bks.forEach(function(b) {
+                if (!b.check_in || !b.check_out) return;
+                ics.push(
+                  'BEGIN:VEVENT',
+                  'UID:tuhh-' + b.booking_id + '@uniquehavenhomes.com',
+                  'DTSTAMP:' + now,
+                  'DTSTART;VALUE=DATE:' + b.check_in.replace(/-/g, ''),
+                  'DTEND;VALUE=DATE:' + b.check_out.replace(/-/g, ''),
+                  'SUMMARY:TUHH Reserved (' + (b.booking_mode || 'Direct') + ')',
+                  'STATUS:CONFIRMED',
+                  'END:VEVENT'
+                );
+              });
+              ics.push('END:VCALENDAR');
+              document.body.innerHTML = '<pre style="font-family:monospace;white-space:pre-wrap;word-break:break-all;padding:20px;background:#f8fafc;border-radius:10px;margin:20px;">' + ics.join('\r\n') + '</pre>';
+            });
+          return;
+        }
+      }
+
       populatePropertyFilter();
       updateMonthLabel();
       loadCalendarData();

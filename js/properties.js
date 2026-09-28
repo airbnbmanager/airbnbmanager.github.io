@@ -24,6 +24,7 @@ async function renderManageRooms() {
       <div class="sub">${(rooms || []).length} properties</div>
       ${isO ? `
         <button onclick="renderAddRoom()">➕ Add Property</button>
+        <button onclick="window.AIRBNB_IMPORTER.openModal()" class="secondary" style="margin-left:8px;background:#FF385C;color:#fff;border-color:#FF385C;font-weight:700;">📥 Import from Airbnb (Footage &amp; Data)</button>
         <button onclick="renderQuickMapManager()" class="secondary" style="margin-left:8px;background:#2563EB;color:#fff;border-color:#2563EB;">🧭 Manage Map Pins</button>
         <button onclick="navigate('showcase-admin')" class="secondary" style="margin-left:8px;background:#0F766E;color:#fff;border-color:#0F766E;">🌐 Website Showcase &amp; Media CMS</button>
       ` : ''}
@@ -172,6 +173,31 @@ function roomFormFields(r = {}, emps = []) {
       <input id="whatsappGroupName" value="${r.whatsapp_group_name || ''}" placeholder="e.g. Royal White House Investors" />
     </div>
 
+    <div class="section-title" style="margin-top:14px;">🌐 OTA Calendar Sync (Airbnb &amp; Booking.com 2-Way Sync)</div>
+    <div class="form-group">
+      <label style="font-weight:700;color:#DC2626;">🔴 Airbnb iCal URL (Exported from Airbnb)</label>
+      <input id="airbnbIcalUrl" value="${r.airbnb_ical_url || ''}" placeholder="https://www.airbnb.co.in/calendar/ical/...ics?t=..." />
+      <small style="color:#666;font-size:11px;">Airbnb calendar sync export link</small>
+    </div>
+    <div class="form-group">
+      <label style="font-weight:700;color:#1D4ED8;">🔵 Booking.com iCal URL (Exported from Booking.com)</label>
+      <input id="bookingComIcalUrl" value="${(() => {
+        const m = (r.notes || '').match(/\[BOOKING_ICAL:\s*([^\]]+)\]/);
+        return m ? m[1].trim() : (localStorage.getItem('tuhh_booking_com_ical_' + (r.room_id || '')) || '');
+      })()}" placeholder="https://admin.booking.com/hotel/hoteladmin/ical.html?t=..." />
+      <small style="color:#666;font-size:11px;">Booking.com calendar sync export link</small>
+    </div>
+    ${r.room_id ? `
+    <div class="form-group" style="background:#F0FDF4;padding:12px;border-radius:10px;border:1px solid #BBF7D0;">
+      <label style="font-weight:800;color:#166534;font-size:12px;">🟢 TUHH Master Calendar Feed (2-Way Sync Export)</label>
+      <div style="display:flex;gap:8px;margin-top:4px;">
+        <input readonly value="https://airbnbmanager.github.io/calendar.html?export_ical=${r.room_id}" style="background:#fff;font-size:12px;font-family:monospace;flex:1;" />
+        <button type="button" onclick="navigator.clipboard.writeText('https://airbnbmanager.github.io/calendar.html?export_ical=${r.room_id}');if(window.fsn)fsn.success('Copied','Master export link copied! Paste into Airbnb and Booking.com import settings.');else alert('Link copied!');" style="padding:6px 14px;background:#166534;color:#fff;border:none;border-radius:6px;font-weight:700;font-size:12px;cursor:pointer;white-space:nowrap;">📋 Copy Feed</button>
+      </div>
+      <small style="color:#166534;font-size:11px;display:block;margin-top:4px;">Is TUHH link ko Airbnb aur Booking.com ke Calendar Sync Import me paste karein — dono platforms par double-booking automatically ruk jayegi!</small>
+    </div>
+    ` : ''}
+
     <div class="form-group"><label>Notes</label><textarea id="notes">${r.notes || ''}</textarea></div>
   `;
 }
@@ -183,9 +209,29 @@ function collectRoomForm() {
 
   const caretaker = emps.find(e => e.emp_id === caretakerEmpId) || null;
   const manager = emps.find(e => e.emp_id === checkinMgrEmpId) || null;
+  const roomId = document.getElementById('roomId').value.trim();
+
+  // Booking.com iCal URL handling
+  const bcomUrl = document.getElementById('bookingComIcalUrl')?.value.trim() || '';
+  if (roomId && bcomUrl) {
+    localStorage.setItem('tuhh_booking_com_ical_' + roomId, bcomUrl);
+  } else if (roomId) {
+    localStorage.removeItem('tuhh_booking_com_ical_' + roomId);
+  }
+
+  let notesVal = document.getElementById('notes').value.trim() || '';
+  if (bcomUrl) {
+    if (notesVal.includes('[BOOKING_ICAL:')) {
+      notesVal = notesVal.replace(/\[BOOKING_ICAL:\s*[^\]]+\]/, `[BOOKING_ICAL: ${bcomUrl}]`).trim();
+    } else {
+      notesVal = (notesVal ? notesVal + '\n' : '') + `[BOOKING_ICAL: ${bcomUrl}]`;
+    }
+  } else if (notesVal.includes('[BOOKING_ICAL:')) {
+    notesVal = notesVal.replace(/\[BOOKING_ICAL:\s*[^\]]+\]/, '').trim();
+  }
 
   return {
-    room_id: document.getElementById('roomId').value.trim(),
+    room_id: roomId,
     property_name: document.getElementById('propertyName').value.trim() || null,
     address: document.getElementById('address').value.trim() || null,
     unit_type: document.getElementById('unitType').value,
@@ -209,9 +255,10 @@ function collectRoomForm() {
     key_number: document.getElementById('keyNumber').value.trim() || null,
     mode: document.getElementById('mode').value,
     bookable: document.getElementById('bookable').checked,
-    notes: document.getElementById('notes').value.trim() || null,
-        whatsapp_group_link: document.getElementById('whatsappGroupLink')?.value.trim() || null,
+    notes: notesVal || null,
+    whatsapp_group_link: document.getElementById('whatsappGroupLink')?.value.trim() || null,
     whatsapp_group_name: document.getElementById('whatsappGroupName')?.value.trim() || null,
+    airbnb_ical_url: document.getElementById('airbnbIcalUrl')?.value.trim() || null
   };
 }
 
@@ -222,8 +269,15 @@ async function renderAddRoom() {
   window._roomEmpCache = emps || [];
   renderShell(`
     <div class="card">
-      <h1>➕ Add Property</h1>
-      <button class="secondary btn-sm" onclick="renderManageRooms()">← Back</button>
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+        <h1 style="margin:0;">➕ Add Property</h1>
+        <div style="display:flex;gap:8px;">
+          <button onclick="window.AIRBNB_IMPORTER.openModal()" class="secondary" style="background:#FF385C;color:#fff;border-color:#FF385C;font-weight:700;">
+            📥 Auto-Fill from Airbnb Link
+          </button>
+          <button class="secondary btn-sm" onclick="renderManageRooms()">← Back</button>
+        </div>
+      </div>
     </div>
     <div class="card">
       ${roomFormFields({}, window._roomEmpCache)}

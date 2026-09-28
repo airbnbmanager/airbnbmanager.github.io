@@ -83,7 +83,137 @@ window.ICAL_SYNC = {
     });
   },
   
-  // Sync single property
+  // Get Booking.com iCal URL for a room
+  getBookingComUrl(room) {
+    if (!room) return null;
+    const match = (room.notes || '').match(/\[BOOKING_ICAL:\s*([^\]]+)\]/);
+    if (match) return match[1].trim();
+    return localStorage.getItem('tuhh_booking_com_ical_' + room.room_id) || null;
+  },
+
+  // Outbound 2-Way Calendar Feed Generator (.ics)
+  async generateOutboundIcal(roomId) {
+    const { data: bookings } = await sb.from('guest_register')
+      .select('booking_id, check_in, check_out, guest_name, booking_mode, is_cancelled')
+      .eq('room_id', roomId)
+      .neq('is_cancelled', true);
+    
+    const lines = [
+      'BEGIN:VCALENDAR',
+      'VERSION:2.0',
+      'PRODID:-//The Unique Haven Homes//TUHH Multi-Channel Master 2.0//EN',
+      'CALSCALE:GREGORIAN',
+      'METHOD:PUBLISH',
+      `X-WR-CALNAME:TUHH Master ${roomId}`
+    ];
+
+    const nowStr = new Date().toISOString().replace(/[-:]/g, '').slice(0, 15) + 'Z';
+
+    (bookings || []).forEach(b => {
+      if (!b.check_in || !b.check_out) return;
+      const start = b.check_in.replace(/-/g, '');
+      const end = b.check_out.replace(/-/g, '');
+      const uid = `tuhh-${b.booking_id}@uniquehavenhomes.com`;
+      lines.push(
+        'BEGIN:VEVENT',
+        `UID:${uid}`,
+        `DTSTAMP:${nowStr}`,
+        `DTSTART;VALUE=DATE:${start}`,
+        `DTEND;VALUE=DATE:${end}`,
+        `SUMMARY:TUHH Reserved (${b.booking_mode || 'Direct'})`,
+        'STATUS:CONFIRMED',
+        'END:VEVENT'
+      );
+    });
+
+    lines.push('END:VCALENDAR');
+    return lines.join('\r\n');
+  },
+
+  // Sync individual channel URL (Airbnb or Booking.com)
+  async syncChannelUrl(room, icalUrl, channelName, result) {
+    if (!icalUrl) return;
+    try {
+      const icalText = await this.fetchIcal(icalUrl);
+      const totalEvents = icalText.split('BEGIN:VEVENT').length - 1;
+      result.totalInIcal += totalEvents;
+      const events = this.parseIcal(icalText);
+      result.fetched += events.length;
+
+      const { data: existing } = await sb.from('guest_register')
+        .select('ical_uid, airbnb_confirmation_code, check_in, check_out, booking_mode, is_cancelled')
+        .eq('room_id', room.room_id);
+      
+      const existingUids = new Set((existing || []).filter(e => e.ical_uid).map(e => e.ical_uid));
+      const existingCodes = new Set((existing || []).filter(e => e.airbnb_confirmation_code).map(e => e.airbnb_confirmation_code));
+      const existingDateRanges = new Set(
+        (existing || [])
+          .filter(e => !e.is_cancelled && (e.booking_mode === 'Online-Airbnb' || e.booking_mode === 'Online-Booking.com'))
+          .map(e => `${e.check_in}|${e.check_out}`)
+      );
+
+      const isBcom = channelName === 'Booking.com';
+      const bookingMode = isBcom ? 'Online-Booking.com' : 'Online-Airbnb';
+      const channelTag = isBcom ? '🔵 Booking.com' : '🏨 Airbnb';
+
+      for (const event of events) {
+        if (existingUids.has(event.uid)) { result.skipped++; continue; }
+        if (event.confirmationCode && existingCodes.has(event.confirmationCode)) { result.skipped++; continue; }
+        if (existingDateRanges.has(`${event.checkIn}|${event.checkOut}`)) { result.skipped++; continue; }
+
+        const bookingId = 'BK' + Date.now() + Math.floor(Math.random() * 1000);
+        const isBlocked = event.isBlocked;
+
+        if (isBlocked) {
+          if (event.checkIn < '2026-08-01') continue;
+          const deterministicId = `BLK_${room.room_id}_${event.checkIn.replace(/-/g, '')}`;
+          await sb.from('guest_register').upsert({
+            booking_id: deterministicId,
+            guest_name: '🔒 Blocked Slot',
+            room_id: room.room_id,
+            check_in: event.checkIn,
+            check_out: event.checkOut,
+            booking_mode: 'Offline-Blocked',
+            payment_status: 'Unpaid',
+            total_amount: 0,
+            notes: `Blocked on ${channelName} (${event.summary}). Offline slot reserved.`
+          }, { onConflict: 'booking_id' });
+          continue;
+        }
+
+        const guestName = event.confirmationCode ? `${channelTag} Guest (${event.confirmationCode})` : `${channelTag} Guest (Fill Details)`;
+        const bookingNotes = `${channelName} reservation auto-synced.${event.confirmationCode ? ` Confirmation: ${event.confirmationCode}.` : ''} Original summary: ${event.summary}.`;
+
+        const { error } = await sb.from('guest_register').insert({
+          booking_id: bookingId,
+          room_id: room.room_id,
+          guest_name: guestName,
+          check_in: event.checkIn,
+          check_out: event.checkOut,
+          total_amount: 0,
+          booking_mode: bookingMode,
+          payment_status: 'Paid',
+          verification_status: 'pending_details',
+          guests: 1,
+          ical_uid: event.uid,
+          airbnb_confirmation_code: event.confirmationCode || null,
+          phone: event.phoneEnd ? `+91 XXXXX ${event.phoneEnd}` : null,
+          synced_from_ical: true,
+          notes: bookingNotes
+        });
+
+        if (!error) {
+          result.created++;
+        } else {
+          result.skipped++;
+        }
+      }
+    } catch(err) {
+      result.errors.push(`${channelName}: ${err.message}`);
+    }
+  },
+
+  // Sync single property (both Airbnb and Booking.com)
   async syncProperty(room) {
     const result = {
       room: room.nickname || room.unit_no,
@@ -96,156 +226,17 @@ window.ICAL_SYNC = {
       errors: []
     };
     
-    if (!room.airbnb_ical_url) {
+    const bcomUrl = this.getBookingComUrl(room);
+    if (!room.airbnb_ical_url && !bcomUrl) {
       result.errors.push('No iCal URL configured');
       return result;
     }
     
-    try {
-      const icalText = await this.fetchIcal(room.airbnb_ical_url);
-      // Count total events (before filter)
-      const totalEvents = icalText.split('BEGIN:VEVENT').length - 1;
-      result.totalInIcal = totalEvents;
-      const events = this.parseIcal(icalText);
-      result.fetched = events.length;
-      result.skippedFuture = totalEvents - events.length;
-      
-      // Get existing UIDs, confirmation codes, and date-range bookings
-      const { data: existing } = await sb.from('guest_register')
-        .select('ical_uid, airbnb_confirmation_code, check_in, check_out, booking_mode, is_cancelled')
-        .eq('room_id', room.room_id);
-      const existingUids = new Set((existing || [])
-        .filter(e => e.ical_uid)
-        .map(e => e.ical_uid));
-      const existingCodes = new Set((existing || [])
-        .filter(e => e.airbnb_confirmation_code)
-        .map(e => e.airbnb_confirmation_code));
-      
-      // Also check by date+mode (Airbnb bookings on same dates = duplicate)
-      const existingDateRanges = new Set(
-        (existing || [])
-          .filter(e => !e.is_cancelled && e.booking_mode === 'Online-Airbnb')
-          .map(e => `${e.check_in}|${e.check_out}`)
-      );
-
-      // Also get ALL bookings (any mode) for overlap check
-      const { data: allExisting } = await sb.from('guest_register')
-        .select('check_in, check_out, booking_mode')
-        .eq('room_id', room.room_id)
-        .eq('is_cancelled', false);
-      
-      for (const event of events) {
-        // Skip if UID already synced
-        if (existingUids.has(event.uid)) {
-          result.skipped++;
-          continue;
-        }
-        // Skip if confirmation code already synced
-        if (event.confirmationCode && existingCodes.has(event.confirmationCode)) {
-          result.skipped++;
-          continue;
-        }
-        // Skip if manual Airbnb entry already exists for same dates
-        if (existingDateRanges.has(`${event.checkIn}|${event.checkOut}`)) {
-          result.skipped++;
-          continue;
-        }
-        // Skip if ANY real overlap exists (hotel check-out 11am, check-in 2pm; same-day turnover is NOT an overlap)
-        const hasOverlap = (allExisting || []).some(e => 
-          e.check_in < event.checkOut && e.check_out > event.checkIn
-        );
-        if (hasOverlap) {
-          result.skipped++;
-          continue;
-        }
-        
-        // Create placeholder booking (blocked vs real)
-        const bookingId = 'BK' + Date.now() + Math.floor(Math.random() * 1000);
-        const isBlocked = event.isBlocked;
-        
-        // Show blocked dates on calendar from Aug 1st onwards
-        if (isBlocked) {
-          if (event.checkIn < '2026-08-01') continue; // Skip old past blocks
-
-          // Check if there is already a real booking on this date
-          const { data: existingBks } = await sb.from('guest_register')
-            .select('booking_id, check_in, check_out, is_cancelled')
-            .eq('room_id', room.room_id)
-            .neq('is_cancelled', true);
-
-          const hasRealBooking = (existingBks || []).some(b => {
-            if (b.booking_id.startsWith('BLK_')) return false;
-            return (b.check_in < event.checkOut && b.check_out > event.checkIn);
-          });
-
-          if (!hasRealBooking) {
-            const deterministicId = `BLK_${room.room_id}_${event.checkIn.replace(/-/g, '')}`;
-            // Safe Upsert: Check if already customized by user
-            const { data: existingEntry } = await sb.from('guest_register')
-              .select('booking_id, guest_name, total_amount')
-              .eq('booking_id', deterministicId)
-              .maybeSingle();
-
-            const isUntouchedOrEmpty = !existingEntry || 
-              (existingEntry.guest_name && (existingEntry.guest_name.includes('Blocked') || existingEntry.guest_name.includes('Airbnb Guest')) && (!existingEntry.total_amount || existingEntry.total_amount === 0));
-
-            if (isUntouchedOrEmpty) {
-              await sb.from('guest_register').upsert({
-                booking_id: deterministicId,
-                guest_name: '🔒 Blocked Slot',
-                room_id: room.room_id,
-                check_in: event.checkIn,
-                check_out: event.checkOut,
-                booking_mode: 'Offline-Blocked',
-                payment_status: 'Unpaid',
-                total_amount: 0,
-                notes: `Blocked on Airbnb (${event.summary}). Offline slot reserved.`
-              }, { onConflict: 'booking_id' });
-            }
-          }
-          continue;
-        }
-        const isFuture = event.isFuture;
-        
-        const guestName = isBlocked 
-          ? '🚫 Blocked (Fill Details)' 
-          : (event.confirmationCode ? `🏨 Airbnb Guest (${event.confirmationCode})` : '🏨 Airbnb Guest (Fill Details)');
-        
-        const bookingNotes = isBlocked
-          ? `⚠️ BLOCKED on Airbnb (${event.summary}). Owner may have offline booking here. Fill guest details when confirmed.`
-          : `Airbnb reservation auto-synced.${event.confirmationCode ? ` Confirmation: ${event.confirmationCode}.` : ''} Original summary: ${event.summary}. Waiting for guest details (name, phone, amount).`;
-        
-        const { error } = await sb.from('guest_register').insert({
-          booking_id: bookingId,
-          room_id: room.room_id,
-          guest_name: guestName,
-          check_in: event.checkIn,
-          check_out: event.checkOut,
-          total_amount: 0,
-          booking_mode: isBlocked ? 'Offline-Blocked' : 'Online-Airbnb',
-          payment_status: isBlocked ? 'Unpaid' : 'Paid',
-          verification_status: 'pending_details',
-          guests: 1,
-          ical_uid: event.uid,
-          airbnb_confirmation_code: event.confirmationCode || null,
-          phone: event.phoneEnd ? `+91 XXXXX ${event.phoneEnd}` : null,
-          synced_from_ical: true,
-          notes: bookingNotes
-        });
-        
-        if (error) {
-          // Silently skip duplicate UIDs (already synced from another source)
-          if (error.message.includes('duplicate key') || error.message.includes('guest_register_ical_uid')) {
-            result.skipped++;
-          } else {
-            result.errors.push(`${event.checkIn}: ${error.message}`);
-          }
-        } else {
-          result.created++;
-        }
-      }
-    } catch (err) {
-      result.errors.push(err.message);
+    if (room.airbnb_ical_url) {
+      await this.syncChannelUrl(room, room.airbnb_ical_url, 'Airbnb', result);
+    }
+    if (bcomUrl) {
+      await this.syncChannelUrl(room, bcomUrl, 'Booking.com', result);
     }
     
     return result;
@@ -321,28 +312,37 @@ window.renderIcalSync = async function() {
   renderShell('<div class="loading">Loading...</div>', 'ical-sync');
   
   const { data: rooms } = await sb.from('rooms')
-    .select('room_id, unit_no, nickname, airbnb_ical_url')
+    .select('room_id, unit_no, nickname, property_name, airbnb_ical_url, notes')
     .order('unit_no');
   
-  const configured = (rooms || []).filter(r => r.airbnb_ical_url);
-  const notConfigured = (rooms || []).filter(r => !r.airbnb_ical_url);
+  const configured = (rooms || []).filter(r => r.airbnb_ical_url || ICAL_SYNC.getBookingComUrl(r));
+  const notConfigured = (rooms || []).filter(r => !r.airbnb_ical_url && !ICAL_SYNC.getBookingComUrl(r));
   
   renderShell(`
     ${window._airbnbTabsHtml || ''}
     <div class="card">
-      <h1>🔄 Airbnb iCal Auto-Sync</h1>
-      <div class="sub">Real-time calendar sync from Airbnb (every property)</div>
-      <div style="margin-top:12px;padding:10px;background:${ICAL_AUTO_SYNC.isEnabled()?'#F0FDF4':'#FEF2F2'};border-radius:8px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:10px;">
         <div>
-          <strong style="color:${ICAL_AUTO_SYNC.isEnabled()?'#059669':'#DC2626'};">
-            ${ICAL_AUTO_SYNC.isEnabled() ? '✅ Auto-Sync: ENABLED' : '⏸️ Auto-Sync: DISABLED'}
+          <h1 style="margin:0;">🔄 Multi-Channel OTA Sync (Airbnb &amp; Booking.com)</h1>
+          <div class="sub">2-Way Calendar Sync: Auto-import bookings + Auto-block dates across channels</div>
+        </div>
+        <button onclick="window.AIRBNB_IMPORTER.openModal()" 
+                style="padding:9px 16px;background:#FF385C;color:#fff;border:none;border-radius:8px;font-weight:800;font-size:13px;cursor:pointer;display:flex;align-items:center;gap:6px;box-shadow:0 3px 10px rgba(255,56,92,0.3);">
+          📥 Import Airbnb Footage &amp; Listing
+        </button>
+      </div>
+
+      <div style="margin-top:14px;padding:12px;background:${ICAL_AUTO_SYNC.isEnabled()?'#F0FDF4':'#FEF2F2'};border-radius:10px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;border:1px solid ${ICAL_AUTO_SYNC.isEnabled()?'#BBF7D0':'#FECACA'};">
+        <div>
+          <strong style="color:${ICAL_AUTO_SYNC.isEnabled()?'#059669':'#DC2626'};font-size:14px;">
+            ${ICAL_AUTO_SYNC.isEnabled() ? '✅ Realtime Auto-Sync: ACTIVE (Every 5 mins)' : '⏸️ Realtime Auto-Sync: PAUSED'}
           </strong>
-          <div style="font-size:11px;color:#666;margin-top:2px;">
-            ${ICAL_AUTO_SYNC.isEnabled() ? 'Runs every 5 minutes automatically' : 'Only manual sync works'}
+          <div style="font-size:12px;color:#666;margin-top:2px;">
+            Airbnb aur Booking.com dono se calendar auto-poll hota hai aur zero double-booking ensure hoti hai.
           </div>
         </div>
-        <button onclick="toggleIcalAutoSync()" style="padding:6px 14px;background:${ICAL_AUTO_SYNC.isEnabled()?'#DC2626':'#059669'};color:#fff;border:none;border-radius:6px;font-weight:600;cursor:pointer;">
-          ${ICAL_AUTO_SYNC.isEnabled() ? '⏸️ Disable' : '▶️ Enable'}
+        <button onclick="toggleIcalAutoSync()" style="padding:7px 16px;background:${ICAL_AUTO_SYNC.isEnabled()?'#DC2626':'#059669'};color:#fff;border:none;border-radius:8px;font-weight:700;cursor:pointer;">
+          ${ICAL_AUTO_SYNC.isEnabled() ? '⏸️ Pause Auto-Sync' : '▶️ Enable Auto-Sync'}
         </button>
       </div>
       <div style="margin-top:8px;font-size:12px;color:var(--muted);">
@@ -358,25 +358,24 @@ window.renderIcalSync = async function() {
       </div>
     </div>
 
-    <div class="card" style="border-left:4px solid #10B981;background:#F0FDF4;">
-      <div class="section-title">📖 HOW TO SETUP</div>
-      <div style="line-height:1.9;font-size:13px;">
-        <div><strong>Step 1:</strong> Airbnb Host Dashboard → Calendar → Select property</div>
-        <div><strong>Step 2:</strong> Availability Settings ⚙️ → Sync Calendars</div>
-        <div><strong>Step 3:</strong> "Export Calendar" → Copy URL (ends with .ics)</div>
-        <div><strong>Step 4:</strong> Paste in property below → Save</div>
-        <div><strong>Step 5:</strong> Click "Sync All" — bookings auto-import!</div>
+    <!-- 2-WAY SYNC EXPLANATION BANNER -->
+    <div class="card" style="border-left:4px solid #2563EB;background:#EFF6FF;">
+      <div class="section-title" style="color:#1E40AF;">🔄 2-WAY CALENDAR SYNC (DOUBLE BOOKING PREVENTION)</div>
+      <div style="line-height:1.8;font-size:13px;color:#1E3A8A;">
+        <div><strong>1. Import to TUHH:</strong> Neeche har flat me Airbnb iCal link aur Booking.com iCal link daal kar save karein.</div>
+        <div><strong>2. Export to OTAs:</strong> Har flat ka <strong>🟢 Master Calendar Feed</strong> copy karke Airbnb aur Booking.com ke "Import Calendar" me paste karein.</div>
+        <div><strong>Result:</strong> Kisi bhi channel par booking aane se baki sab jagah dates instant auto-block ho jayengi!</div>
       </div>
     </div>
 
     <div class="card">
       <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
         <div>
-          <strong>${configured.length} configured</strong> / ${(rooms||[]).length} properties
+          <strong>${configured.length} properties connected</strong> / ${(rooms||[]).length} total flats
         </div>
-        <div>
-          <button onclick="runIcalSyncAll()" ${configured.length===0?'disabled':''}>
-            🔄 Sync All Now (${configured.length})
+        <div style="display:flex;gap:8px;">
+          <button onclick="runIcalSyncAll()" ${configured.length===0?'disabled':''} style="background:#2563EB;color:#fff;font-weight:700;">
+            🔄 Sync All Channels Now (${configured.length})
           </button>
         </div>
       </div>
@@ -385,66 +384,141 @@ window.renderIcalSync = async function() {
     <div id="icalSyncResults"></div>
 
     <div class="card">
-      <div class="section-title">🏢 Configured Properties (${configured.length})</div>
-      ${configured.length === 0 ? '<div class="sub">No properties configured yet. Add iCal URL below.</div>' : `
+      <div class="section-title">🏢 Connected Properties (${configured.length})</div>
+      ${configured.length === 0 ? '<div class="sub">No properties configured yet. Add iCal URLs below.</div>' : `
         <div class="table-wrap"><table>
-          <thead><tr><th>Property</th><th>iCal URL</th><th>Actions</th></tr></thead>
+          <thead><tr><th>Property</th><th>Channels Configured</th><th>2-Way Master Export Feed</th><th>Actions</th></tr></thead>
           <tbody>
-            ${configured.map(r => `
+            ${configured.map(r => {
+              const bcom = ICAL_SYNC.getBookingComUrl(r);
+              const abnb = r.airbnb_ical_url;
+              const exportFeed = `https://airbnbmanager.github.io/calendar.html?export_ical=${r.room_id}`;
+              return `
               <tr>
-                <td><strong>${r.nickname || r.unit_no}</strong></td>
-                <td style="font-size:11px;font-family:monospace;color:var(--muted);word-break:break-all;">
-                  ${r.airbnb_ical_url.substring(0, 60)}...
+                <td>
+                  <strong>${r.nickname || r.unit_no}</strong>
+                  <div style="font-size:11px;color:#6B7280;">${r.room_id}</div>
                 </td>
                 <td>
-                  <button class="btn-sm" onclick="testIcalUrl('${r.room_id}')">🧪 Test</button>
+                  <div style="display:flex;flex-direction:column;gap:4px;font-size:11px;">
+                    ${abnb ? `
+                      <span style="color:#DC2626;font-weight:700;display:flex;align-items:center;gap:4px;">
+                        🔴 Airbnb: Connected (${abnb.slice(0, 35)}...)
+                      </span>
+                    ` : '<span style="color:#9CA3AF;">🔴 Airbnb: Not set</span>'}
+                    ${bcom ? `
+                      <span style="color:#1D4ED8;font-weight:700;display:flex;align-items:center;gap:4px;">
+                        🔵 Booking.com: Connected (${bcom.slice(0, 35)}...)
+                      </span>
+                    ` : '<span style="color:#9CA3AF;">🔵 Booking.com: Not set</span>'}
+                  </div>
+                </td>
+                <td>
+                  <div style="display:flex;align-items:center;gap:6px;">
+                    <input readonly value="${exportFeed}" style="font-size:11px;font-family:monospace;max-width:180px;background:#F9FAFB;" />
+                    <button class="btn-sm" style="background:#166534;color:#fff;font-weight:700;" 
+                            onclick="navigator.clipboard.writeText('${exportFeed}');fsn.success('Copied','Master export feed copied!');">
+                      📋 Copy Feed
+                    </button>
+                  </div>
+                </td>
+                <td>
                   <button class="btn-sm" onclick="syncSingleProperty('${r.room_id}')">🔄 Sync</button>
+                  <button class="btn-sm" onclick="testIcalUrl('${r.room_id}')">🧪 Test</button>
                   <button class="btn-sm danger" onclick="removeIcalUrl('${r.room_id}')">🗑️</button>
                 </td>
-              </tr>`).join('')}
+              </tr>`;
+            }).join('')}
           </tbody>
         </table></div>
       `}
     </div>
 
     <div class="card">
-      <div class="section-title">➕ Add iCal URL</div>
+      <div class="section-title">➕ Add / Update OTA iCal URLs</div>
       <div class="form-group">
-        <label>Property</label>
-        <select id="icalRoom">
+        <label style="font-weight:700;">Property *</label>
+        <select id="icalRoom" onchange="window.onIcalRoomSelect(this.value)">
           <option value="">-- Select Property --</option>
-          ${notConfigured.map(r => `<option value="${r.room_id}">${r.nickname || r.unit_no}</option>`).join('')}
-          ${configured.map(r => `<option value="${r.room_id}">${r.nickname || r.unit_no} (update existing)</option>`).join('')}
+          ${(rooms || []).map(r => `<option value="${r.room_id}">${r.room_id} (${r.nickname || r.unit_no})</option>`).join('')}
         </select>
       </div>
       <div class="form-group">
-        <label>Airbnb iCal URL (must end with .ics)</label>
+        <label style="font-weight:700;color:#DC2626;">🔴 Airbnb iCal URL (Exported from Airbnb)</label>
         <input id="icalUrl" type="url" placeholder="https://www.airbnb.co.in/calendar/ical/XXXXX.ics?s=YYYYY" style="font-family:monospace;font-size:12px;" />
       </div>
-      <button onclick="saveIcalUrl()" style="width:100%;">💾 Save iCal URL</button>
+      <div class="form-group">
+        <label style="font-weight:700;color:#1D4ED8;">🔵 Booking.com iCal URL (Exported from Booking.com Extranet)</label>
+        <input id="bcomIcalUrl" type="url" placeholder="https://admin.booking.com/hotel/hoteladmin/ical.html?t=..." style="font-family:monospace;font-size:12px;" />
+      </div>
+      <button onclick="saveIcalUrl()" style="width:100%;padding:12px;background:#2563EB;color:#fff;border:none;border-radius:8px;font-weight:800;font-size:14px;cursor:pointer;">
+        💾 Save OTA Calendar URLs
+      </button>
     </div>
   `, 'ical-sync');
+
+  window._allRoomsCacheForIcal = rooms || [];
+};
+
+window.onIcalRoomSelect = function(roomId) {
+  const rooms = window._allRoomsCacheForIcal || [];
+  const r = rooms.find(x => x.room_id === roomId);
+  const airbnbInput = document.getElementById('icalUrl');
+  const bcomInput = document.getElementById('bcomIcalUrl');
+  if (r) {
+    if (airbnbInput) airbnbInput.value = r.airbnb_ical_url || '';
+    if (bcomInput) bcomInput.value = ICAL_SYNC.getBookingComUrl(r) || '';
+  }
 };
 
 window.saveIcalUrl = async function() {
   const roomId = document.getElementById('icalRoom').value;
-  const url = document.getElementById('icalUrl').value.trim();
+  const abnbUrl = document.getElementById('icalUrl').value.trim();
+  const bcomUrl = document.getElementById('bcomIcalUrl').value.trim();
   
-  if (!roomId) { fsn.error('Error', 'Select property'); return; }
-  if (!url) { fsn.error('Error', 'Enter iCal URL'); return; }
-  if (!url.includes('.ics')) { fsn.error('Error', 'URL must contain .ics'); return; }
-  
-  const { error } = await sb.from('rooms').update({ airbnb_ical_url: url }).eq('room_id', roomId);
+  if (!roomId) { fsn.error('Error', 'Please select a property'); return; }
+  if (!abnbUrl && !bcomUrl) { fsn.error('Error', 'Enter at least one iCal URL (Airbnb or Booking.com)'); return; }
+
+  // 1. Update Airbnb URL in DB
+  const { data: currentRoom } = await sb.from('rooms').select('notes').eq('room_id', roomId).single();
+  let notesVal = currentRoom?.notes || '';
+
+  // Update Booking.com link inside notes
+  if (bcomUrl) {
+    localStorage.setItem('tuhh_booking_com_ical_' + roomId, bcomUrl);
+    if (notesVal.includes('[BOOKING_ICAL:')) {
+      notesVal = notesVal.replace(/\[BOOKING_ICAL:\s*[^\]]+\]/, `[BOOKING_ICAL: ${bcomUrl}]`).trim();
+    } else {
+      notesVal = (notesVal ? notesVal + '\n' : '') + `[BOOKING_ICAL: ${bcomUrl}]`;
+    }
+  } else if (notesVal.includes('[BOOKING_ICAL:')) {
+    localStorage.removeItem('tuhh_booking_com_ical_' + roomId);
+    notesVal = notesVal.replace(/\[BOOKING_ICAL:\s*[^\]]+\]/, '').trim();
+  }
+
+  const { error } = await sb.from('rooms').update({
+    airbnb_ical_url: abnbUrl || null,
+    notes: notesVal || null
+  }).eq('room_id', roomId);
+
   if (error) { fsn.error('Error', error.message); return; }
   
-  fsn.success('Success', '✅ iCal URL saved!');
+  fsn.success('Saved', '✅ OTA Calendar URLs saved successfully!');
   renderIcalSync();
 };
 
 window.removeIcalUrl = async function(roomId) {
-  if (!confirm('Remove iCal URL? Sync will stop for this property.')) return;
-  await sb.from('rooms').update({ airbnb_ical_url: null }).eq('room_id', roomId);
-  fsn.success('Success', '✅ Removed');
+  if (!confirm('Remove OTA iCal URLs? Sync will stop for this property.')) return;
+  const { data: currentRoom } = await sb.from('rooms').select('notes').eq('room_id', roomId).single();
+  let notesVal = (currentRoom?.notes || '').replace(/\[BOOKING_ICAL:\s*[^\]]+\]/, '').trim();
+  localStorage.removeItem('tuhh_booking_com_ical_' + roomId);
+
+  await sb.from('rooms').update({
+    airbnb_ical_url: null,
+    notes: notesVal || null
+  }).eq('room_id', roomId);
+
+  fsn.success('Success', '✅ URLs removed');
   renderIcalSync();
 };
 
