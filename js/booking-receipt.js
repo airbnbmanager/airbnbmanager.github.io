@@ -522,7 +522,7 @@ Thank you for choosing *The Unique Haven Homes*. Your direct reservation has bee
     }
     const roomPart = room ? ` — ${room}` : '';
     const dateStr = datePart ? ` (${datePart})` : '';
-    return `UHHS Receipt — ${guest}${roomPart}${dateStr}`;
+    return `TUHH Receipt — ${guest}${roomPart}${dateStr}`;
   }
 
   function getReceiptFilename(booking) {
@@ -530,7 +530,7 @@ Thank you for choosing *The Unique Haven Homes*. Your direct reservation has bee
     const room = sanitizeFilename(booking?.rooms?.nickname || booking?.rooms?.unit_no || booking?.room_id || '');
     const checkIn = sanitizeFilename(booking?.check_in || '');
     const bId = sanitizeFilename(booking?.booking_id || 'Booking');
-    const parts = ['UHHS_Receipt', guest];
+    const parts = ['TUHH_Receipt', guest];
     if (room) parts.push(room);
     if (checkIn) parts.push(checkIn);
     parts.push(bId);
@@ -545,7 +545,7 @@ Thank you for choosing *The Unique Haven Homes*. Your direct reservation has bee
       return;
     }
 
-    const title = customTitle || 'UHHS Receipt — The Unique Haven Homes';
+    const title = customTitle || 'TUHH Receipt — The Unique Haven Homes';
     const origDocTitle = document.title;
     try { document.title = title; } catch(e) {}
 
@@ -709,12 +709,12 @@ Thank you for choosing *The Unique Haven Homes*. Your direct reservation has bee
     // Target the clean inner receipt container if available (avoids modal wrappers/borders/scrollbars)
     const targetEl = el.querySelector('.uhh-receipt-container') || el.querySelector('.invoice-doc') || el;
 
-    const rawFilename = (options.filename || 'UHHS_Booking_Receipt.pdf').replace(/\.pdf$/i, '');
+    const rawFilename = (options.filename || 'TUHH_Booking_Receipt.pdf').replace(/\.pdf$/i, '');
     const filename = sanitizeFilename(rawFilename) + '.pdf';
     const cleanP = options.phone ? String(options.phone).replace(/\D/g, '') : '';
     const fullPhone = cleanP.length === 10 ? '91' + cleanP : cleanP;
     const message = options.message || '';
-    const title = options.title || 'Booking Voucher — UHHS';
+    const title = options.title || 'Booking Voucher — TUHH';
 
     // Show indicator on button if provided
     let triggerBtn = options.triggerBtn || null;
@@ -1370,7 +1370,7 @@ ${propertiesList}
     } else if (data?.minCheckIn) {
       datePart = formatDate(data.minCheckIn);
     }
-    return `UHHS Group Receipt — ${guest} (${count} Homestays)${datePart ? ' — ' + datePart : ''}`;
+    return `TUHH Group Receipt — ${guest} (${count} Homestays)${datePart ? ' — ' + datePart : ''}`;
   }
 
   function getMultiReceiptFilename(data) {
@@ -1380,7 +1380,7 @@ ${propertiesList}
     const maxD = sanitizeFilename(data?.maxCheckOut || '');
     const dateRange = (minD && maxD) ? `${minD}_to_${maxD}` : (minD || '');
     const grpId = sanitizeFilename(data?.stayGroupId || 'Group');
-    const parts = ['UHHS_Group_Receipt', guest, `${count}Properties`];
+    const parts = ['TUHH_Group_Receipt', guest, `${count}Properties`];
     if (dateRange) parts.push(dateRange);
     parts.push(grpId);
     return parts.join('_') + '.pdf';

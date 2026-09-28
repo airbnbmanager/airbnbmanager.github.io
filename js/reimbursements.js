@@ -816,7 +816,7 @@ window.showReimbReport = async function() {
 window.printReimbursementReport = function(month) {
   const orig = document.title;
   const m = String(month || window._reimbMonth || new Date().toISOString().slice(0, 7)).replace(/[\/\\:*?"<>|]/g, '-');
-  document.title = `UHHS_Expenses_Reimbursement_Report_${m}`;
+  document.title = `TUHH_Expenses_Reimbursement_Report_${m}`;
   window.print();
   setTimeout(() => { document.title = orig; }, 1000);
 };

@@ -2212,7 +2212,7 @@ _Please confirm room allotment and issue official GST Tax Invoice. Thank you!_`;
       const guest = String(b.name || 'Guest').trim().replace(/[\/\\:*?"<>|]/g, '-').replace(/\s+/g, '_');
       const bkId = String(b.bookingId || new Date().toISOString().slice(0, 10)).replace(/[\/\\:*?"<>|]/g, '-');
       const orig = document.title;
-      document.title = `UHHS_Booking_Tax_Invoice_${guest}_${bkId}`;
+      document.title = `TUHH_Booking_Tax_Invoice_${guest}_${bkId}`;
       window.print();
       setTimeout(() => { document.title = orig; }, 1000);
     }

@@ -461,7 +461,7 @@ window.GST_ENGINE = (function() {
     }
     const cleanInvNo = String(inv.invoice_no || '').replace(/[\/\\:*?"<>|]/g, '-');
     const cleanGuest = String(inv.guest_name || 'Guest').trim().replace(/[\/\\:*?"<>|]/g, '-').replace(/\s+/g, '_');
-    const docTitle = `UHHS ${inv.is_gst ? 'GST Tax Invoice' : 'Bill'} — ${cleanInvNo} — ${inv.guest_name || 'Guest'}`;
+    const docTitle = `TUHH ${inv.is_gst ? 'GST Tax Invoice' : 'Bill'} — ${cleanInvNo} — ${inv.guest_name || 'Guest'}`;
 
     win.document.write(`<!DOCTYPE html>
       <html>
@@ -1228,8 +1228,8 @@ The Unique Haven Homes Property Management`;
       const cleanInvNo = String(state.invoice_no || '').replace(/[\/\\:*?"<>|]/g, '-');
       const cleanGuest = String(state.guest_name || 'Guest').trim().replace(/[\/\\:*?"<>|]/g, '-').replace(/\s+/g, '_');
       const invDate = state.invoice_date || state.check_in || '';
-      const filename = `UHHS_${isGST ? 'GST_Invoice' : 'Bill'}_${cleanGuest}_${cleanInvNo}${invDate ? '_' + invDate : ''}.pdf`;
-      const docTitle = `UHHS ${isGST ? 'GST Tax Invoice' : 'Bill'} — ${cleanInvNo} — ${state.guest_name || 'Guest'}`;
+      const filename = `TUHH_${isGST ? 'GST_Invoice' : 'Bill'}_${cleanGuest}_${cleanInvNo}${invDate ? '_' + invDate : ''}.pdf`;
+      const docTitle = `TUHH ${isGST ? 'GST Tax Invoice' : 'Bill'} — ${cleanInvNo} — ${state.guest_name || 'Guest'}`;
 
       if (typeof window.sharePdfViaWhatsApp === 'function') {
         await window.sharePdfViaWhatsApp(targetContainer, {

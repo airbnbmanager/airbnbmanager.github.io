@@ -1537,7 +1537,7 @@ window.printVendorLaundryReport = async function(vendorName, monthYear) {
   );
   const cleanVendor = String(vendorTitle || 'Vendor').trim().replace(/[\/\\:*?"<>|]/g, '-').replace(/\s+/g, '_');
   const cleanMonth = String(monthName || 'Statement').trim().replace(/[\/\\:*?"<>|]/g, '-').replace(/\s+/g, '_');
-  const pdfTitle = `UHHS_Laundry_Statement_${cleanVendor}_${cleanMonth}`;
+  const pdfTitle = `TUHH_Laundry_Statement_${cleanVendor}_${cleanMonth}`;
 
   const printHtml = `<!DOCTYPE html>
 <html lang="en">

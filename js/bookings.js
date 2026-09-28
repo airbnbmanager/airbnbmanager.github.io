@@ -456,7 +456,7 @@ async function printGuestLedger(guestName) {
 
   const cleanGuest = String(guestName || 'Guest').trim().replace(/[\/\\:*?"<>|]/g, '-').replace(/\s+/g, '_');
   const todayDate = new Date().toISOString().slice(0, 10);
-  const pdfTitle = 'UHHS_Guest_Ledger_' + cleanGuest + '_' + todayDate;
+  const pdfTitle = 'TUHH_Guest_Ledger_' + cleanGuest + '_' + todayDate;
 
   const html = '<!DOCTYPE html><html><head><title>' + pdfTitle + '</title>' +
     '<style>' +
@@ -4814,7 +4814,7 @@ async function exportBookingsPDF() {
   const todayIso = new Date().toISOString().slice(0, 10);
   const propClean = prop ? '_' + String(prop).replace(/[\/\\:*?"<>|]/g, '-').replace(/\s+/g, '_') : '';
   const periodClean = (!propClean && period) ? '_' + String(period).replace(/[\/\\:*?"<>|]/g, '-').replace(/\s+/g, '_') : '';
-  const pdfDocTitle = `UHHS_Bookings_Report${propClean || periodClean}_${todayIso}`;
+  const pdfDocTitle = `TUHH_Bookings_Report${propClean || periodClean}_${todayIso}`;
 
   const html = `<!DOCTYPE html>
 <html>

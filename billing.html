@@ -457,10 +457,10 @@ function renderReceiptScreen() {
   const fullP = cleanP.length === 10 ? '91' + cleanP : cleanP;
   const receiptFilename = (window.getReceiptFilename)
     ? window.getReceiptFilename(b)
-    : `UHHS_Receipt_${String(b.guest_name||'Guest').replace(/[^a-zA-Z0-9]/g,'_')}_${b.booking_id}.pdf`;
+    : `TUHH_Receipt_${String(b.guest_name||'Guest').replace(/[^a-zA-Z0-9]/g,'_')}_${b.booking_id}.pdf`;
   const receiptTitle = (window.getReceiptDocTitle)
     ? window.getReceiptDocTitle(b)
-    : `UHHS Receipt — ${b.guest_name || 'Guest'}`;
+    : `TUHH Receipt — ${b.guest_name || 'Guest'}`;
 
   mainArea.innerHTML = `
     <!-- Action Bar -->
@@ -545,8 +545,8 @@ function renderInvoiceScreen() {
   const today = new Date().toISOString().slice(0,10);
   const cleanInvNo = String(invNo || '').replace(/[\/\\:*?"<>|]/g, '-');
   const cleanGuest = String(b.guest_name || 'Guest').trim().replace(/[\/\\:*?"<>|]/g, '-').replace(/\s+/g, '_');
-  const invFilename = `UHHS_GST_Invoice_${cleanGuest}_${cleanInvNo}_${today}.pdf`;
-  const invDocTitle = `UHHS GST Invoice — ${cleanInvNo} — ${b.guest_name || 'Guest'}`;
+  const invFilename = `TUHH_GST_Invoice_${cleanGuest}_${cleanInvNo}_${today}.pdf`;
+  const invDocTitle = `TUHH GST Invoice — ${cleanInvNo} — ${b.guest_name || 'Guest'}`;
 
   // Store for print/save
   window._inv = {b,n,total,perNight,rate,half,base,gstAmt,cgst,sgst,invNo};
@@ -817,7 +817,7 @@ function printInvoice() {
   if (doc) doc.innerHTML = buildInvoiceHTML(d.b,d.n,d.total,d.perNight,d.rate,d.half,d.base,d.cgst,d.sgst,d.gstAmt,invNoFinal,invDateFinal);
 
   const cleanInvNoFinal = String(invNoFinal || '').replace(/[\/\\:*?"<>|]/g, '-');
-  const docTitle = `UHHS GST Invoice — ${cleanInvNoFinal} — ${d.b.guest_name || 'Guest'}`;
+  const docTitle = `TUHH GST Invoice — ${cleanInvNoFinal} — ${d.b.guest_name || 'Guest'}`;
   if (window.printBookingReceipt) {
     window.printBookingReceipt('invoiceDoc', docTitle);
   } else {

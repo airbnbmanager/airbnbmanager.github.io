@@ -365,7 +365,7 @@ function renderSOPPage() {
 
 window.printSOP = function() {
   const orig = document.title;
-  document.title = 'UHHS_Standard_Operating_Procedures_SOP';
+  document.title = 'TUHH_Standard_Operating_Procedures_SOP';
   window.print();
   setTimeout(() => { document.title = orig; }, 1000);
 };

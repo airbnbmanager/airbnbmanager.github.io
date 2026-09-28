@@ -415,7 +415,7 @@ function printDailyReportWindow() {
   const w = window.open('', '_blank', 'width=1000,height=800');
   if (!w) { alert('Popup blocked! Please allow popups.'); return; }
   const repDate = window._dailyReportDate || new Date().toISOString().slice(0, 10);
-  const pdfTitle = `UHHS_Daily_Operations_Report_${repDate}`;
+  const pdfTitle = `TUHH_Daily_Operations_Report_${repDate}`;
   w.document.title = pdfTitle;
   w.document.write(
     '<!DOCTYPE html><html><head><title>' + pdfTitle + '</title>' +

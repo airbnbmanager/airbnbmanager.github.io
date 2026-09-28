@@ -1245,7 +1245,7 @@ function getInvestorReportFilename(investorName, propertyName, monthYear) {
   const inv = clean(investorName) || 'Investor';
   const prop = clean(propertyName) || 'Property';
   const mon = clean(monthYear) || 'Report';
-  return `UHHS_${inv}_${prop}_${mon}_Earnings_Report`;
+  return `TUHH_${inv}_${prop}_${mon}_Earnings_Report`;
 }
 
 function buildInvestorReportHTML(reportHTML, filename) {
