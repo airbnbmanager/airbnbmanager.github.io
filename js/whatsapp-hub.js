@@ -2735,7 +2735,7 @@ The Unique Haven Homes Property Management`;
 
       try {
         let query = sb.from('guest_register')
-          .select('booking_id, guest_name, phone, room_id, check_in, check_out, check_in_time, check_out_time, guests, total_amount, advance_amount, payment_status, booking_mode, is_cancelled, is_review_booking, rooms(nickname, unit_no, property_name, whatsapp_group_name)')
+          .select('booking_id, guest_name, phone, room_id, check_in, check_out, check_in_time, check_out_time, guests, total_amount, payment_status, booking_mode, is_cancelled, is_review_booking, rooms(nickname, unit_no, property_name, whatsapp_group_name)')
           .gte('check_in', sDate)
           .lte('check_in', eDate)
           .or('is_cancelled.is.null,is_cancelled.eq.false')

@@ -1572,11 +1572,11 @@ ${propertiesList}
               📋 Copy Text
             </button>
             ${data.booking.stay_group_id ? `
-              <button type="button" class="btn-sm" style="background:#4F46E5;color:#fff;font-weight:700;border:none;padding:7px 12px;border-radius:6px;cursor:pointer;" onclick="modal.remove();window.openMultiPropertyReceiptModal('${data.booking.stay_group_id}')" title="View Combined Multi-Property Receipt">
+              <button type="button" class="btn-sm" style="background:#4F46E5;color:#fff;font-weight:700;border:none;padding:7px 12px;border-radius:6px;cursor:pointer;" onclick="this.closest('.modal-overlay').remove();window.openMultiPropertyReceiptModal('${data.booking.stay_group_id}')" title="View Combined Multi-Property Receipt">
                 🏢 Combined Receipt
               </button>
             ` : ''}
-            <button type="button" class="btn-sm outline" style="background:transparent;color:#CBD5E1;border:1px solid #475569;padding:7px 10px;font-size:11.5px;" onclick="if(window.openGSTInvoiceModal) { modal.remove(); window.openGSTInvoiceModal('${data.booking.booking_id}'); }">
+            <button type="button" class="btn-sm outline" style="background:transparent;color:#CBD5E1;border:1px solid #475569;padding:7px 10px;font-size:11.5px;" onclick="const m=this.closest('.modal-overlay');if(m)m.remove();if(window.openGSTInvoiceModal){window.openGSTInvoiceModal('${data.booking.booking_id}');}">
               🧾 Need GST Invoice?
             </button>
           </div>
@@ -1587,7 +1587,7 @@ ${propertiesList}
             <div style="font-size:12px;color:#3730A3;font-weight:700;">
               🏢 This booking belongs to Multi-Property Group: <code>${escapeHtml(data.booking.stay_group_id)}</code>
             </div>
-            <button type="button" class="btn-sm" style="background:#4F46E5;color:#fff;border:none;padding:5px 12px;border-radius:6px;font-size:11px;font-weight:800;cursor:pointer;" onclick="modal.remove();window.openMultiPropertyReceiptModal('${escapeHtml(data.booking.stay_group_id)}')">
+            <button type="button" class="btn-sm" style="background:#4F46E5;color:#fff;border:none;padding:5px 12px;border-radius:6px;font-size:11px;font-weight:800;cursor:pointer;" onclick="this.closest('.modal-overlay').remove();window.openMultiPropertyReceiptModal('${escapeHtml(data.booking.stay_group_id)}')">
               📑 View Consolidated Multi-Property Receipt →
             </button>
           </div>
