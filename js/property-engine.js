@@ -54,11 +54,12 @@
     // Categorized photos
     if (prop.photos && typeof prop.photos === 'object') {
       const catMap = {
-        bedrooms: 'Bedrooms',
         living_hall: 'Living & Dining',
+        bedrooms: 'Bedrooms',
         bathrooms: 'Bathrooms',
         kitchen: 'Kitchen',
-        balcony: 'Balcony & Views'
+        balcony: 'Balcony & Views',
+        all: 'All Listing Photos'
       };
 
       Object.keys(catMap).forEach(key => {
