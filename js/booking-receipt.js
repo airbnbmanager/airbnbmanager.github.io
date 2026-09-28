@@ -28,8 +28,10 @@ window.BOOKING_RECEIPT_ENGINE = (function() {
   };
 
   function getSignatureStampSrc() {
-    const custom = localStorage.getItem('uhh_custom_signature_stamp');
-    if (custom && custom.trim()) return custom;
+    try {
+      const custom = typeof localStorage !== 'undefined' ? localStorage.getItem('uhh_custom_signature_stamp') : null;
+      if (custom && custom.trim()) return custom;
+    } catch(e) {}
     try {
       return new URL('assets/signature-stamp.svg', window.location.href).href;
     } catch(e) {
@@ -216,35 +218,34 @@ window.BOOKING_RECEIPT_ENGINE = (function() {
     } catch(e) {}
 
     return `
-      <div class="uhh-receipt-container" style="background:#fff;color:#0F172A;font-family:'Inter',system-ui,-apple-system,BlinkMacSystemFont,sans-serif;padding:20px 24px;max-width:850px;margin:0 auto;box-sizing:border-box;page-break-inside:avoid;break-inside:avoid;">
+      <div class="uhh-receipt-container" style="background:#fff;color:#0F172A;font-family:'Inter',system-ui,-apple-system,BlinkMacSystemFont,sans-serif;padding:12px 16px;max-width:760px;margin:0 auto;box-sizing:border-box;page-break-inside:avoid;break-inside:avoid;line-height:1.35;font-size:10.5px;">
         
         <!-- Header Strip -->
-        <div style="display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #0F172A;padding-bottom:12px;margin-bottom:12px;gap:16px;">
-          <div style="display:flex;align-items:center;gap:12px;">
-            <img src="${logoSrc}" alt="UHH Logo" style="width:54px;height:54px;object-fit:contain;border-radius:10px;background:#FAF8F5;border:1.5px solid #E2E8F0;padding:3px;flex-shrink:0;" />
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;border-bottom:1.5px solid #0F172A;padding-bottom:6px;margin-bottom:6px;gap:12px;">
+          <div style="display:flex;align-items:center;gap:10px;">
+            <img src="${logoSrc}" alt="UHH Logo" style="width:40px;height:40px;object-fit:contain;border-radius:8px;background:#FAF8F5;border:1px solid #E2E8F0;padding:2px;flex-shrink:0;" />
             <div>
-              <div style="font-size:10.5px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:#B45309;margin-bottom:1px;">
+              <div style="font-size:9px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:#B45309;margin-bottom:1px;">
                 The Unique Haven Homes Homestays
               </div>
-              <div style="font-size:16px;font-weight:900;color:#0F172A;line-height:1.2;">
+              <div style="font-size:14px;font-weight:900;color:#0F172A;line-height:1.15;">
                 ${CO.name}
               </div>
-              <div style="font-size:10.5px;color:#64748B;margin-top:3px;line-height:1.5;">
-                📍 ${CO.address}<br>
-                📞 ${CO.phone} | ${CO.phone2} &nbsp;|&nbsp; ✉️ ${CO.email}
+              <div style="font-size:9px;color:#64748B;margin-top:2px;line-height:1.35;">
+                📍 ${CO.address} &nbsp;|&nbsp; 📞 ${CO.phone} &nbsp;|&nbsp; ✉️ ${CO.email}
               </div>
             </div>
           </div>
 
           <div style="text-align:right;flex-shrink:0;">
-            <div style="display:inline-block;background:#0F172A;color:#fff;padding:3px 10px;border-radius:5px;font-size:10.5px;font-weight:800;letter-spacing:0.8px;text-transform:uppercase;margin-bottom:4px;">
+            <div style="display:inline-block;background:#0F172A;color:#fff;padding:2px 8px;border-radius:4px;font-size:9.5px;font-weight:800;letter-spacing:0.6px;text-transform:uppercase;margin-bottom:2px;">
               Booking Voucher &amp; Receipt
             </div>
-            <div style="font-size:9.5px;font-weight:700;color:#64748B;letter-spacing:0.4px;text-transform:uppercase;">
+            <div style="font-size:8.5px;font-weight:700;color:#64748B;letter-spacing:0.3px;text-transform:uppercase;">
               Official Guest Receipt (Without GST)
             </div>
-            <div style="margin-top:5px;font-size:11px;line-height:1.6;">
-              <span style="color:#64748B;">Receipt No:</span> <strong style="color:#0F172A;">${escapeHtml(receiptNo)}</strong><br>
+            <div style="margin-top:3px;font-size:9.5px;line-height:1.4;">
+              <span style="color:#64748B;">Receipt No:</span> <strong style="color:#0F172A;">${escapeHtml(receiptNo)}</strong> &nbsp;|&nbsp;
               <span style="color:#64748B;">Date:</span> <strong>${todayStr}</strong><br>
               <span style="color:#64748B;">Booking ID:</span> <strong style="color:#0284C7;">${escapeHtml(booking.booking_id)}</strong>
             </div>
@@ -252,60 +253,57 @@ window.BOOKING_RECEIPT_ENGINE = (function() {
         </div>
 
         <!-- Status Banner -->
-        <div style="background:${statusBg};border:1.5px solid ${statusColor};color:${statusColor};border-radius:8px;padding:7px 14px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;">
-          <div style="font-weight:800;font-size:12px;letter-spacing:0.4px;text-transform:uppercase;">
+        <div style="background:${statusBg};border:1px solid ${statusColor};color:${statusColor};border-radius:6px;padding:4px 10px;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:4px;">
+          <div style="font-weight:800;font-size:11px;letter-spacing:0.3px;text-transform:uppercase;">
             ${statusBadgeText}
           </div>
-          <div style="font-size:11.5px;font-weight:600;">
+          <div style="font-size:10px;font-weight:600;">
             Channel: <strong>${escapeHtml(booking.booking_mode || 'Direct')}</strong> · Stay: <strong>${nights} Night${nights > 1 ? 's' : ''}</strong>
           </div>
         </div>
 
         <!-- 2 Column Overview: Guest & Stay -->
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:12px;">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:6px;">
           
           <!-- Guest Details Card -->
-          <div style="border:1.5px solid #E2E8F0;border-radius:8px;padding:12px 14px;background:#F8FAFC;">
-            <div style="font-size:10.5px;font-weight:800;letter-spacing:0.8px;text-transform:uppercase;color:#B45309;margin-bottom:6px;">
+          <div style="border:1px solid #E2E8F0;border-radius:6px;padding:6px 10px;background:#F8FAFC;">
+            <div style="font-size:9px;font-weight:800;letter-spacing:0.5px;text-transform:uppercase;color:#B45309;margin-bottom:2px;">
               👤 Guest Details
             </div>
-            <div style="font-size:14.5px;font-weight:900;color:#0F172A;margin-bottom:4px;">
+            <div style="font-size:13px;font-weight:900;color:#0F172A;margin-bottom:2px;">
               ${escapeHtml(booking.guest_name || 'Valued Guest')}
             </div>
-            <div style="font-size:11.5px;color:#334155;line-height:1.7;">
-              📱 Phone: <strong>${escapeHtml(booking.phone || 'N/A')}</strong><br>
-              👥 Number of Guests: <strong>${booking.guests || 1} Person${(booking.guests || 1) > 1 ? 's' : ''}</strong><br>
-              ${booking.booked_by ? `✍️ Booked By: <strong>${escapeHtml(booking.booked_by)}</strong><br>` : ''}
+            <div style="font-size:10px;color:#334155;line-height:1.5;">
+              📱 Phone: <strong>${escapeHtml(booking.phone || 'N/A')}</strong> &nbsp;|&nbsp; 👥 Guests: <strong>${booking.guests || 1} Person${(booking.guests || 1) > 1 ? 's' : ''}</strong><br>
+              ${booking.booked_by ? `✍️ Booked By: <strong>${escapeHtml(booking.booked_by)}</strong> &nbsp;|&nbsp; ` : ''}
               ${booking.id_proof_type ? `🪪 ID Type: <strong>${escapeHtml(booking.id_proof_type)}</strong>` : ''}
             </div>
           </div>
 
           <!-- Property & Stay Card -->
-          <div style="border:1.5px solid #E2E8F0;border-radius:8px;padding:12px 14px;background:#F8FAFC;">
-            <div style="font-size:10.5px;font-weight:800;letter-spacing:0.8px;text-transform:uppercase;color:#B45309;margin-bottom:6px;">
+          <div style="border:1px solid #E2E8F0;border-radius:6px;padding:6px 10px;background:#F8FAFC;">
+            <div style="font-size:9px;font-weight:800;letter-spacing:0.5px;text-transform:uppercase;color:#B45309;margin-bottom:2px;">
               🏠 Property &amp; Stay Schedule
             </div>
-            <div style="font-size:14.5px;font-weight:900;color:#0F172A;margin-bottom:4px;">
+            <div style="font-size:13px;font-weight:900;color:#0F172A;margin-bottom:2px;">
               ${escapeHtml(propName)}${escapeHtml(unitNo)}
             </div>
-            <div style="font-size:11.5px;color:#334155;line-height:1.7;">
+            <div style="font-size:10px;color:#334155;line-height:1.5;">
               📍 <strong>${escapeHtml(address)}</strong> ${mapLink ? `<a href="${mapLink}" target="_blank" style="color:#0284C7;text-decoration:none;font-weight:700;">[📍 Map]</a>` : ''}<br>
-              📅 Check-in: <strong>${checkInDate}</strong> &nbsp;🕒 <strong>${checkInTime}</strong><br>
-              📅 Check-out: <strong>${checkOutDate}</strong> &nbsp;🕒 <strong>${checkOutTime}</strong><br>
-              🌙 Duration: <strong>${nights} Night${nights > 1 ? 's' : ''} Stay</strong>
+              📅 <strong>${checkInDate}</strong> (${checkInTime}) → <strong>${checkOutDate}</strong> (${checkOutTime}) · <strong>${nights}N</strong>
             </div>
           </div>
 
         </div>
 
-        <!-- 💰 Financial & Advance Payment Tracker (Centerpiece) -->
-        <div style="border:1.5px solid #0F172A;border-radius:10px;overflow:hidden;margin-bottom:12px;">
+        <!-- 💰 Financial & Advance Payment Tracker -->
+        <div style="border:1px solid #0F172A;border-radius:6px;overflow:hidden;margin-bottom:6px;">
           
-          <div style="background:#0F172A;color:#fff;padding:9px 14px;display:flex;justify-content:space-between;align-items:center;">
-            <div style="font-size:11.5px;font-weight:800;letter-spacing:0.6px;text-transform:uppercase;">
+          <div style="background:#0F172A;color:#fff;padding:4px 10px;display:flex;justify-content:space-between;align-items:center;">
+            <div style="font-size:10px;font-weight:800;letter-spacing:0.5px;text-transform:uppercase;">
               💰 Payment Breakdown &amp; Balance Statement
             </div>
-            <div style="font-size:10px;color:#94A3B8;">
+            <div style="font-size:9px;color:#94A3B8;">
               All amounts in Indian Rupees (INR)
             </div>
           </div>
@@ -313,38 +311,38 @@ window.BOOKING_RECEIPT_ENGINE = (function() {
           <!-- 3 Highlight Boxes -->
           <div style="display:grid;grid-template-columns:1fr 1fr 1fr;background:#F8FAFC;border-bottom:1px solid #E2E8F0;text-align:center;">
             
-            <div style="padding:10px;border-right:1px solid #E2E8F0;">
-              <div style="font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;margin-bottom:2px;">
+            <div style="padding:6px;border-right:1px solid #E2E8F0;">
+              <div style="font-size:9px;font-weight:700;color:#64748B;text-transform:uppercase;margin-bottom:1px;">
                 Total Booking Amount
               </div>
-              <div style="font-size:18px;font-weight:900;color:#0F172A;">
+              <div style="font-size:15px;font-weight:900;color:#0F172A;">
                 ₹${totalAmount.toLocaleString('en-IN')}
               </div>
-              <div style="font-size:9.5px;color:#64748B;margin-top:2px;">
-                ₹${Math.round(totalAmount / nights).toLocaleString('en-IN')} / night
+              <div style="font-size:8.5px;color:#64748B;">
+                ₹${Math.round(totalAmount / (nights || 1)).toLocaleString('en-IN')} / night
               </div>
             </div>
 
-            <div style="padding:10px;border-right:1px solid #E2E8F0;background:#F0FDF4;">
-              <div style="font-size:10px;font-weight:800;color:#15803D;text-transform:uppercase;margin-bottom:2px;">
+            <div style="padding:6px;border-right:1px solid #E2E8F0;background:#F0FDF4;">
+              <div style="font-size:9px;font-weight:800;color:#15803D;text-transform:uppercase;margin-bottom:1px;">
                 ✔ Advance / Amount Paid
               </div>
-              <div style="font-size:18px;font-weight:900;color:#059669;">
+              <div style="font-size:15px;font-weight:900;color:#059669;">
                 ₹${paidAmount.toLocaleString('en-IN')}
               </div>
-              <div style="font-size:9.5px;color:#15803D;margin-top:2px;font-weight:700;">
+              <div style="font-size:8.5px;color:#15803D;font-weight:700;">
                 ${totalAmount > 0 ? Math.round((paidAmount / totalAmount) * 100) : 0}% Paid
               </div>
             </div>
 
-            <div style="padding:10px;background:${balanceDue > 0 ? '#FEF2F2' : '#F0FDF4'};">
-              <div style="font-size:10px;font-weight:800;color:${balanceDue > 0 ? '#DC2626' : '#15803D'};text-transform:uppercase;margin-bottom:2px;">
+            <div style="padding:6px;background:${balanceDue > 0 ? '#FEF2F2' : '#F0FDF4'};">
+              <div style="font-size:9px;font-weight:800;color:${balanceDue > 0 ? '#DC2626' : '#15803D'};text-transform:uppercase;margin-bottom:1px;">
                 ${balanceDue > 0 ? '⚠️ Balance Due at Check-in' : '✅ Balance Remaining'}
               </div>
-              <div style="font-size:18px;font-weight:900;color:${balanceDue > 0 ? '#DC2626' : '#059669'};">
+              <div style="font-size:15px;font-weight:900;color:${balanceDue > 0 ? '#DC2626' : '#059669'};">
                 ₹${balanceDue.toLocaleString('en-IN')}
               </div>
-              <div style="font-size:9.5px;color:${balanceDue > 0 ? '#B91C1C' : '#15803D'};margin-top:2px;font-weight:700;">
+              <div style="font-size:8.5px;color:${balanceDue > 0 ? '#B91C1C' : '#15803D'};font-weight:700;">
                 ${balanceDue > 0 ? 'Payable upon arrival' : 'Clear &amp; Settled'}
               </div>
             </div>
@@ -352,110 +350,88 @@ window.BOOKING_RECEIPT_ENGINE = (function() {
           </div>
 
           <!-- Payment Transactions Table -->
-          <div style="padding:10px 14px;">
-            <div style="font-size:10px;font-weight:800;color:#475569;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">
-              📋 Received Payment Transactions
-            </div>
-
+          <div style="padding:5px 8px;">
             ${payments && payments.length > 0 ? `
-              <table style="width:100%;border-collapse:collapse;font-size:11px;">
+              <table style="width:100%;border-collapse:collapse;font-size:9.5px;margin-bottom:3px;">
                 <thead>
                   <tr style="background:#F1F5F9;color:#475569;text-align:left;border-bottom:1px solid #CBD5E1;">
-                    <th style="padding:5px 8px;font-weight:800;width:24px;">#</th>
-                    <th style="padding:5px 8px;font-weight:800;">Date</th>
-                    <th style="padding:5px 8px;font-weight:800;">Mode</th>
-                    <th style="padding:5px 8px;font-weight:800;">Notes / Reference</th>
-                    <th style="padding:5px 8px;font-weight:800;">Received By</th>
-                    <th style="padding:5px 8px;font-weight:800;text-align:right;">Amount (₹)</th>
+                    <th style="padding:2px 4px;font-weight:800;width:18px;">#</th>
+                    <th style="padding:2px 4px;font-weight:800;">Date</th>
+                    <th style="padding:2px 4px;font-weight:800;">Mode</th>
+                    <th style="padding:2px 4px;font-weight:800;">Notes / Reference</th>
+                    <th style="padding:2px 4px;font-weight:800;">Received By</th>
+                    <th style="padding:2px 4px;font-weight:800;text-align:right;">Amount (₹)</th>
                   </tr>
                 </thead>
                 <tbody>
                   ${payments.map((p, idx) => `
                     <tr style="border-bottom:1px solid #E2E8F0;">
-                      <td style="padding:5px 8px;color:#64748B;">${String(idx + 1).padStart(2, '0')}</td>
-                      <td style="padding:5px 8px;font-weight:700;">${formatDate(p.payment_date || p.paid_at)}</td>
-                      <td style="padding:5px 8px;"><span style="background:#E2E8F0;padding:1px 6px;border-radius:4px;font-size:10px;font-weight:700;">${escapeHtml(p.payment_mode || 'Direct')}</span></td>
-                      <td style="padding:5px 8px;color:#475569;">${escapeHtml(p.notes || '-')}</td>
-                      <td style="padding:5px 8px;color:#475569;">${escapeHtml(p.received_by || 'UHH Team')}</td>
-                      <td style="padding:5px 8px;text-align:right;font-weight:900;color:#059669;">₹${Number(p.amount || 0).toLocaleString('en-IN')}</td>
+                      <td style="padding:2px 4px;color:#64748B;">${String(idx + 1).padStart(2, '0')}</td>
+                      <td style="padding:2px 4px;font-weight:700;">${formatDate(p.payment_date || p.paid_at)}</td>
+                      <td style="padding:2px 4px;"><span style="background:#E2E8F0;padding:1px 4px;border-radius:3px;font-size:8.5px;font-weight:700;">${escapeHtml(p.payment_mode || 'Direct')}</span></td>
+                      <td style="padding:2px 4px;color:#475569;">${escapeHtml(p.notes || '-')}</td>
+                      <td style="padding:2px 4px;color:#475569;">${escapeHtml(p.received_by || 'UHH Team')}</td>
+                      <td style="padding:2px 4px;text-align:right;font-weight:900;color:#059669;">₹${Number(p.amount || 0).toLocaleString('en-IN')}</td>
                     </tr>
                   `).join('')}
                 </tbody>
               </table>
             ` : `
-              <div style="font-size:11px;color:#64748B;font-style:italic;padding:4px 0;">
+              <div style="font-size:9.5px;color:#64748B;font-style:italic;padding:2px 0;">
                 No payment transactions recorded yet. Balance of ₹${totalAmount.toLocaleString('en-IN')} is due on check-in.
               </div>
             `}
 
             <!-- Words Summary -->
-            <div style="margin-top:8px;padding:7px 10px;background:#F8FAFC;border:1px dashed #CBD5E1;border-radius:6px;font-size:10.5px;color:#334155;line-height:1.6;">
-              <strong>Advance Paid in Words:</strong> ${wordsPaid}<br>
-              ${balanceDue > 0 ? `<strong>Remaining Balance in Words:</strong> <span style="color:#DC2626;font-weight:700;">${wordsBalance}</span> (Due at Check-in)` : '<strong>Status:</strong> <span style="color:#059669;font-weight:700;">Full payment received with thanks!</span>'}
+            <div style="padding:3px 6px;background:#F8FAFC;border:1px dashed #CBD5E1;border-radius:4px;font-size:9px;color:#334155;line-height:1.4;">
+              <strong>Advance Paid in Words:</strong> ${wordsPaid} &nbsp;|&nbsp;
+              ${balanceDue > 0 ? `<strong>Remaining Balance:</strong> <span style="color:#DC2626;font-weight:700;">${wordsBalance}</span> (Due at Check-in)` : '<strong>Status:</strong> <span style="color:#059669;font-weight:700;">Full payment received with thanks!</span>'}
             </div>
 
           </div>
 
         </div>
 
-        <!-- 📞 Management & Company Owner Contacts -->
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:12px;">
-          
-          <!-- Property Manager -->
-          <div style="border:1.5px solid #E2E8F0;border-radius:8px;padding:10px 12px;background:#F8FAFC;">
-            <div style="font-size:10.5px;font-weight:800;letter-spacing:0.6px;text-transform:uppercase;color:#0284C7;margin-bottom:4px;">
-              👤 Property Manager
-            </div>
-            <div style="font-size:11px;line-height:1.7;color:#334155;">
-              Manager: <strong>${CO.managerName}</strong><br>
-              Phone: 📞 <a href="tel:${CO.managerPhone}" style="color:#0F172A;text-decoration:none;font-weight:700;">${CO.managerPhone}</a><br>
-              Available: <strong>10:00 AM – 09:00 PM</strong>
-            </div>
+        <!-- 📞 Management & Support Contacts Strip -->
+        <div style="border:1px solid #E2E8F0;border-radius:5px;padding:3px 8px;background:#F8FAFC;margin-bottom:5px;display:flex;justify-content:space-between;align-items:center;font-size:9px;flex-wrap:wrap;gap:4px;">
+          <div>
+            👤 <strong>Property Manager:</strong> ${CO.managerName} (📞 <a href="tel:${CO.managerPhone}" style="color:#0F172A;text-decoration:none;font-weight:700;">${CO.managerPhone}</a>)
           </div>
-
-          <!-- Company Owners -->
-          <div style="border:1.5px solid #E2E8F0;border-radius:8px;padding:10px 12px;background:#F8FAFC;">
-            <div style="font-size:10.5px;font-weight:800;letter-spacing:0.6px;text-transform:uppercase;color:#B45309;margin-bottom:4px;">
-              👑 Company Owners
-            </div>
-            <div style="font-size:11px;line-height:1.7;color:#334155;">
-              ${CO.owners.map(o => `<strong>${o.name}:</strong> 📞 <a href="tel:${o.phone.replace(/[^0-9+]/g,'')}" style="color:#0F172A;text-decoration:none;font-weight:700;">${o.phone}</a>`).join('<br>')}
-            </div>
+          <div>
+            👑 <strong>Company Owners:</strong> ${CO.owners.map(o => `<strong>${o.name}:</strong> 📞 <a href="tel:${o.phone.replace(/[^0-9+]/g,'')}" style="color:#0F172A;text-decoration:none;font-weight:700;">${o.phone}</a>`).join(' &nbsp;|&nbsp; ')}
           </div>
-
         </div>
 
         ${customNotes ? `
           <!-- Special Notes -->
-          <div style="background:#FFFBEB;border:1.5px solid #FDE68A;border-radius:6px;padding:7px 12px;margin-bottom:10px;font-size:10.5px;color:#92400E;">
+          <div style="background:#FFFBEB;border:1px solid #FDE68A;border-radius:4px;padding:3px 8px;margin-bottom:5px;font-size:9px;color:#92400E;">
             <strong>📝 Note:</strong> ${escapeHtml(customNotes)}
           </div>
         ` : ''}
 
         <!-- 📜 Terms & House Rules -->
-        <div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:8px;padding:8px 12px;margin-bottom:12px;font-size:9.5px;color:#64748B;line-height:1.6;">
-          <strong style="color:#0F172A;display:block;margin-bottom:2px;font-size:10px;">📋 Stay Guidelines &amp; Important Terms:</strong>
-          1. <strong>Govt ID Mandatory:</strong> Original government-issued photo ID (Aadhaar / Passport / Voter ID / DL) is strictly required for all adult guests at check-in.<br>
-          2. <strong>Timings:</strong> Standard Check-in time is 02:00 PM; Standard Check-out time is 11:00 AM. Early check-in or late checkout is subject to availability and prior confirmation.<br>
-          3. <strong>Peaceful Neighbourhood:</strong> Loud music or disruptive noise is prohibited after 11:00 PM to respect residential quiet hours.<br>
-          4. <strong>Balance Settlement:</strong> Outstanding balance (if any) must be settled at the time of check-in before room handover.<br>
-          5. <strong>Non-GST Slip:</strong> This receipt is an official booking voucher and payment confirmation without GST output tax credit.
+        <div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:5px;padding:4px 8px;margin-bottom:5px;font-size:8px;color:#64748B;line-height:1.35;">
+          <strong style="color:#0F172A;font-size:8.5px;">📋 Stay Guidelines &amp; Important Terms:</strong>
+          1. <strong>Govt ID Mandatory:</strong> Original government photo ID required for all adult guests at check-in. &nbsp;•&nbsp;
+          2. <strong>Timings:</strong> Check-in: 02:00 PM | Check-out: 11:00 AM (early/late subject to availability). &nbsp;•&nbsp;
+          3. <strong>Peaceful Neighbourhood:</strong> Loud music/noise prohibited after 11:00 PM. &nbsp;•&nbsp;
+          4. <strong>Balance Settlement:</strong> Outstanding balance must be settled upon arrival before room handover. &nbsp;•&nbsp;
+          5. <strong>Non-GST Slip:</strong> Official booking voucher &amp; payment confirmation without GST output tax credit.
         </div>
 
         <!-- Signature & Seal -->
-        <div style="display:flex;justify-content:space-between;align-items:flex-end;padding-top:6px;border-top:1.5px solid #E2E8F0;">
-          <div style="font-size:9.5px;color:#94A3B8;line-height:1.5;">
+        <div style="display:flex;justify-content:space-between;align-items:flex-end;padding-top:3px;border-top:1px solid #CBD5E1;">
+          <div style="font-size:8px;color:#94A3B8;line-height:1.35;">
             <strong style="color:#475569;">${CO.name}</strong><br>
-            CIN: ${CO.cin} · PAN: ${CO.pan}<br>
-            Website: <a href="https://${CO.web}" style="color:#64748B;text-decoration:none;">${CO.web}</a>
+            CIN: ${CO.cin} · PAN: ${CO.pan} · Website: <a href="https://${CO.web}" style="color:#64748B;text-decoration:none;">${CO.web}</a>
           </div>
 
           <div style="text-align:right;">
             <div style="display:inline-block;text-align:right;">
-              <img src="${getSignatureStampSrc()}" alt="Stamp & Signature" style="height:50px;max-width:180px;object-fit:contain;margin-bottom:-8px;display:block;margin-left:auto;" />
-              <div style="height:1px;border-bottom:1px dashed #CBD5E1;width:150px;margin-left:auto;"></div>
-              <div style="font-size:9.5px;color:#64748B;margin-top:3px;">Authorised Signatory</div>
-              <div style="font-size:10.5px;font-weight:800;color:#0F172A;">For ${CO.name}</div>
+              <img src="${getSignatureStampSrc()}" alt="Stamp & Signature" style="height:34px;max-width:140px;object-fit:contain;margin-bottom:-4px;display:block;margin-left:auto;" />
+              <div style="height:1px;border-bottom:1px dashed #CBD5E1;width:120px;margin-left:auto;"></div>
+              <div style="font-size:8px;color:#64748B;margin-top:1px;">Authorised Signatory</div>
+              <div style="font-size:9px;font-weight:800;color:#0F172A;">For ${CO.name}</div>
             </div>
           </div>
         </div>
@@ -590,12 +566,12 @@ Thank you for choosing *The Unique Haven Homes*. Your direct reservation has bee
             background: #ffffff !important;
             color: #0F172A !important;
             font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
-            font-size: 11px;
+            font-size: 10px;
             width: 100% !important;
             height: auto !important;
           }
           .uhh-receipt-container, .invoice-doc {
-            padding: 6mm 10mm !important;
+            padding: 4mm 6mm !important;
             max-width: 100% !important;
             margin: 0 auto !important;
             border: none !important;
@@ -701,6 +677,9 @@ Thank you for choosing *The Unique Haven Homes*. Your direct reservation has bee
       return;
     }
 
+    // Target the clean inner receipt container if available (avoids modal wrappers/borders/scrollbars)
+    const targetEl = el.querySelector('.uhh-receipt-container') || el.querySelector('.invoice-doc') || el;
+
     const filename = options.filename || 'UHHS_Booking_Voucher.pdf';
     const cleanP = options.phone ? String(options.phone).replace(/\D/g, '') : '';
     const fullPhone = cleanP.length === 10 ? '91' + cleanP : cleanP;
@@ -723,11 +702,19 @@ Thank you for choosing *The Unique Haven Homes*. Your direct reservation has bee
         margin: [4, 4, 4, 4],
         filename: filename,
         image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: { scale: 2, useCORS: true, logging: false },
-        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+        html2canvas: {
+          scale: 2,
+          useCORS: true,
+          logging: false,
+          scrollY: 0,
+          scrollX: 0,
+          windowWidth: 760
+        },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+        pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
       };
 
-      const pdfBlob = await window.html2pdf().set(opt).from(el).outputPdf('blob');
+      const pdfBlob = await window.html2pdf().set(opt).from(targetEl).outputPdf('blob');
       const pdfFile = new File([pdfBlob], filename, { type: 'application/pdf' });
 
       // Native Mobile Web Share (Android Chrome, iOS Safari, macOS Safari)
@@ -952,7 +939,7 @@ Thank you for choosing *The Unique Haven Homes*. Your direct reservation has bee
     };
   }
 
-  // 2B. Build Print-Ready Combined Multi-Property Receipt HTML
+  // 2B. Build Print-Ready Combined Multi-Property Receipt HTML (Compact Single-Page A4)
   function buildMultiPropertyReceiptHTML(data, options = {}) {
     const {
       stayGroupId,
@@ -1002,108 +989,104 @@ Thank you for choosing *The Unique Haven Homes*. Your direct reservation has bee
     } catch(e) {}
 
     return `
-      <div class="uhh-receipt-container" style="background:#fff;color:#0F172A;font-family:'Inter',system-ui,-apple-system,BlinkMacSystemFont,sans-serif;padding:20px 24px;max-width:880px;margin:0 auto;box-sizing:border-box;page-break-inside:avoid;break-inside:avoid;">
+      <div class="uhh-receipt-container" style="background:#fff;color:#0F172A;font-family:'Inter',system-ui,-apple-system,BlinkMacSystemFont,sans-serif;padding:12px 16px;max-width:760px;margin:0 auto;box-sizing:border-box;page-break-inside:avoid;break-inside:avoid;line-height:1.35;font-size:10.5px;">
         
         <!-- Header Strip -->
-        <div style="display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #0F172A;padding-bottom:12px;margin-bottom:12px;gap:16px;">
-          <div style="display:flex;align-items:center;gap:12px;">
-            <img src="${logoSrc}" alt="UHH Logo" style="width:54px;height:54px;object-fit:contain;border-radius:10px;background:#FAF8F5;border:1.5px solid #E2E8F0;padding:3px;flex-shrink:0;" />
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;border-bottom:1.5px solid #0F172A;padding-bottom:6px;margin-bottom:6px;gap:12px;">
+          <div style="display:flex;align-items:center;gap:10px;">
+            <img src="${logoSrc}" alt="UHH Logo" style="width:40px;height:40px;object-fit:contain;border-radius:8px;background:#FAF8F5;border:1px solid #E2E8F0;padding:2px;flex-shrink:0;" />
             <div>
-              <div style="font-size:10.5px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:#B45309;margin-bottom:1px;">
+              <div style="font-size:9px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:#B45309;margin-bottom:1px;">
                 The Unique Haven Homes Homestays
               </div>
-              <div style="font-size:16px;font-weight:900;color:#0F172A;line-height:1.2;">
+              <div style="font-size:14px;font-weight:900;color:#0F172A;line-height:1.15;">
                 ${CO.name}
               </div>
-              <div style="font-size:10.5px;color:#64748B;margin-top:3px;line-height:1.5;">
-                📍 ${CO.address}<br>
-                📞 ${CO.phone} | ${CO.phone2} &nbsp;|&nbsp; ✉️ ${CO.email}
+              <div style="font-size:9px;color:#64748B;margin-top:2px;line-height:1.35;">
+                📍 ${CO.address} &nbsp;|&nbsp; 📞 ${CO.phone} &nbsp;|&nbsp; ✉️ ${CO.email}
               </div>
             </div>
           </div>
 
           <div style="text-align:right;flex-shrink:0;">
-            <div style="display:inline-block;background:#0F172A;color:#fff;padding:3px 10px;border-radius:5px;font-size:10.5px;font-weight:800;letter-spacing:0.8px;text-transform:uppercase;margin-bottom:4px;">
+            <div style="display:inline-block;background:#0F172A;color:#fff;padding:2px 8px;border-radius:4px;font-size:9.5px;font-weight:800;letter-spacing:0.6px;text-transform:uppercase;margin-bottom:2px;">
               🏢 Consolidated Multi-Property Voucher
             </div>
-            <div style="font-size:9.5px;font-weight:700;color:#64748B;letter-spacing:0.4px;text-transform:uppercase;">
+            <div style="font-size:8.5px;font-weight:700;color:#64748B;letter-spacing:0.3px;text-transform:uppercase;">
               Official Combined Guest Receipt (Without GST)
             </div>
-            <div style="margin-top:5px;font-size:11px;line-height:1.6;">
-              <span style="color:#64748B;">Receipt No:</span> <strong style="color:#0F172A;">${escapeHtml(receiptNo)}</strong><br>
+            <div style="margin-top:3px;font-size:9.5px;line-height:1.4;">
+              <span style="color:#64748B;">Receipt No:</span> <strong style="color:#0F172A;">${escapeHtml(receiptNo)}</strong> &nbsp;|&nbsp;
               <span style="color:#64748B;">Date:</span> <strong>${todayStr}</strong><br>
               <span style="color:#64748B;">Group Ref:</span> <strong style="color:#4F46E5;">${escapeHtml(stayGroupId)}</strong>
             </div>
           </div>
         </div>
 
-        <!-- Status Banner -->
-        <div style="background:${statusBg};border:1.5px solid ${statusColor};color:${statusColor};border-radius:8px;padding:7px 14px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;">
-          <div style="font-weight:800;font-size:12px;letter-spacing:0.4px;text-transform:uppercase;">
+        <!-- Status & Stay Overview Banner -->
+        <div style="background:${statusBg};border:1px solid ${statusColor};color:${statusColor};border-radius:6px;padding:4px 10px;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:4px;">
+          <div style="font-weight:800;font-size:11px;letter-spacing:0.3px;text-transform:uppercase;">
             ${statusBadgeText}
           </div>
-          <div style="font-size:11.5px;font-weight:600;">
-            Properties Booked: <strong>${bookings.length} Homestays</strong> · Total Stay: <strong>${formatDate(minCheckIn)} → ${formatDate(maxCheckOut)} (${totalNights} Night${totalNights > 1 ? 's' : ''})</strong>
+          <div style="font-size:10px;font-weight:600;">
+            Properties: <strong>${bookings.length} Homestays</strong> · Schedule: <strong>${formatDate(minCheckIn)} → ${formatDate(maxCheckOut)} (${totalNights} Night${totalNights > 1 ? 's' : ''})</strong>
           </div>
         </div>
 
-        <!-- 2 Column Overview: Guest & Master Stay -->
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:12px;">
+        <!-- 2 Column Overview Grid: Guest & Group Schedule -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:6px;">
           
           <!-- Guest Details Card -->
-          <div style="border:1.5px solid #E2E8F0;border-radius:8px;padding:12px 14px;background:#F8FAFC;">
-            <div style="font-size:10.5px;font-weight:800;letter-spacing:0.8px;text-transform:uppercase;color:#B45309;margin-bottom:6px;">
-              👤 Guest / Group Details
+          <div style="border:1px solid #E2E8F0;border-radius:6px;padding:6px 10px;background:#F8FAFC;">
+            <div style="font-size:9px;font-weight:800;letter-spacing:0.5px;text-transform:uppercase;color:#B45309;margin-bottom:2px;">
+              👤 Primary Guest &amp; Group
             </div>
-            <div style="font-size:15px;font-weight:900;color:#0F172A;margin-bottom:4px;">
+            <div style="font-size:13px;font-weight:900;color:#0F172A;margin-bottom:2px;">
               ${escapeHtml(guestName)}
             </div>
-            <div style="font-size:11.5px;color:#334155;line-height:1.7;">
-              📱 Phone: <strong>${escapeHtml(phone || 'N/A')}</strong><br>
-              👥 Total Guests: <strong>${totalGuests} Person${totalGuests > 1 ? 's' : ''}</strong><br>
-              🏢 Total Homestays: <strong>${bookings.length} Properties</strong><br>
-              ${primaryBooking?.booked_by ? `✍️ Booked By: <strong>${escapeHtml(primaryBooking.booked_by)}</strong>` : ''}
+            <div style="font-size:10px;color:#334155;line-height:1.5;">
+              📱 Phone: <strong>${escapeHtml(phone || 'N/A')}</strong> &nbsp;|&nbsp; 👥 Total Guests: <strong>${totalGuests}</strong><br>
+              🏢 Total Homestays: <strong>${bookings.length} Properties</strong>
+              ${primaryBooking?.booked_by ? ` &nbsp;|&nbsp; ✍️ Booked By: <strong>${escapeHtml(primaryBooking.booked_by)}</strong>` : ''}
             </div>
           </div>
 
           <!-- Schedule & Group Reference Card -->
-          <div style="border:1.5px solid #E2E8F0;border-radius:8px;padding:12px 14px;background:#F8FAFC;">
-            <div style="font-size:10.5px;font-weight:800;letter-spacing:0.8px;text-transform:uppercase;color:#B45309;margin-bottom:6px;">
-              📅 Consolidated Schedule
+          <div style="border:1px solid #E2E8F0;border-radius:6px;padding:6px 10px;background:#F8FAFC;">
+            <div style="font-size:9px;font-weight:800;letter-spacing:0.5px;text-transform:uppercase;color:#B45309;margin-bottom:2px;">
+              📅 Reservation Timeline
             </div>
-            <div style="font-size:15px;font-weight:900;color:#4F46E5;margin-bottom:4px;">
-              ${bookings.length} Homestays Reserved Together
+            <div style="font-size:13px;font-weight:900;color:#4F46E5;margin-bottom:2px;">
+              ${bookings.length} Homestays Booked Together
             </div>
-            <div style="font-size:11.5px;color:#334155;line-height:1.7;">
-              📅 Check-in From: <strong>${formatDate(minCheckIn)}</strong><br>
-              📅 Final Check-out: <strong>${formatDate(maxCheckOut)}</strong><br>
-              🌙 Overall Duration: <strong>${totalNights} Night${totalNights > 1 ? 's' : ''} Stay</strong><br>
-              🏷️ Group ID: <strong style="font-family:monospace;color:#0F172A;">${escapeHtml(stayGroupId)}</strong>
+            <div style="font-size:10px;color:#334155;line-height:1.5;">
+              📅 Check-in From: <strong>${formatDate(minCheckIn)}</strong> → Check-out: <strong>${formatDate(maxCheckOut)}</strong><br>
+              🌙 Duration: <strong>${totalNights} Night${totalNights > 1 ? 's' : ''}</strong> &nbsp;|&nbsp; 🏷️ Group Ref: <strong style="font-family:monospace;color:#0F172A;">${escapeHtml(stayGroupId)}</strong>
             </div>
           </div>
 
         </div>
 
         <!-- 🏠 ALL BOOKED PROPERTIES BREAKDOWN TABLE (Centerpiece) -->
-        <div style="border:1.5px solid #0F172A;border-radius:10px;overflow:hidden;margin-bottom:12px;">
-          <div style="background:#0F172A;color:#fff;padding:9px 14px;display:flex;justify-content:space-between;align-items:center;">
-            <div style="font-size:11.5px;font-weight:800;letter-spacing:0.6px;text-transform:uppercase;">
-              🏠 Reserved Properties &amp; Allocation Details (${bookings.length})
+        <div style="border:1px solid #0F172A;border-radius:6px;overflow:hidden;margin-bottom:6px;">
+          <div style="background:#0F172A;color:#fff;padding:4px 10px;display:flex;justify-content:space-between;align-items:center;">
+            <div style="font-size:10px;font-weight:800;letter-spacing:0.5px;text-transform:uppercase;">
+              🏠 Booked Properties &amp; Allocation Details (${bookings.length} Homestays)
             </div>
-            <div style="font-size:10px;color:#94A3B8;">
+            <div style="font-size:9px;color:#94A3B8;">
               All rates in Indian Rupees (INR)
             </div>
           </div>
 
-          <table style="width:100%;border-collapse:collapse;font-size:11px;">
+          <table style="width:100%;border-collapse:collapse;font-size:10px;">
             <thead>
               <tr style="background:#F1F5F9;color:#475569;text-align:left;border-bottom:1px solid #CBD5E1;">
-                <th style="padding:7px 10px;font-weight:800;width:24px;">#</th>
-                <th style="padding:7px 10px;font-weight:800;">Property &amp; Unit</th>
-                <th style="padding:7px 10px;font-weight:800;">Dates &amp; Timings</th>
-                <th style="padding:7px 10px;font-weight:800;text-align:center;">Nights</th>
-                <th style="padding:7px 10px;font-weight:800;text-align:center;">Guests</th>
-                <th style="padding:7px 10px;font-weight:800;text-align:right;">Amount (₹)</th>
+                <th style="padding:4px 6px;font-weight:800;width:20px;text-align:center;">#</th>
+                <th style="padding:4px 6px;font-weight:800;">Property &amp; Location</th>
+                <th style="padding:4px 6px;font-weight:800;">Stay Dates &amp; Timings</th>
+                <th style="padding:4px 6px;font-weight:800;text-align:center;">Nights</th>
+                <th style="padding:4px 6px;font-weight:800;text-align:center;">Guests</th>
+                <th style="padding:4px 8px;font-weight:800;text-align:right;">Amount (₹)</th>
               </tr>
             </thead>
             <tbody>
@@ -1119,27 +1102,27 @@ Thank you for choosing *The Unique Haven Homes*. Your direct reservation has bee
 
                 return `
                   <tr style="border-bottom:1px solid #E2E8F0;background:${idx % 2 === 0 ? '#fff' : '#F8FAFC'};">
-                    <td style="padding:8px 10px;color:#64748B;font-weight:700;">${String(idx + 1).padStart(2, '0')}</td>
-                    <td style="padding:8px 10px;">
-                      <strong style="color:#0F172A;font-size:12px;">${escapeHtml(prop)}${escapeHtml(unit)}</strong>${mapLink}
-                      <div style="font-size:10px;color:#64748B;">ID: ${escapeHtml(b.booking_id)} · ${escapeHtml(room.address || 'Lucknow, UP')}</div>
+                    <td style="padding:4px 6px;color:#64748B;font-weight:700;text-align:center;">${String(idx + 1).padStart(2, '0')}</td>
+                    <td style="padding:4px 6px;">
+                      <strong style="color:#0F172A;font-size:10.5px;">${escapeHtml(prop)}${escapeHtml(unit)}</strong>${mapLink}
+                      <span style="font-size:9px;color:#64748B;"> · ID: ${escapeHtml(b.booking_id)} · ${escapeHtml(room.address || 'Lucknow')}</span>
                     </td>
-                    <td style="padding:8px 10px;">
+                    <td style="padding:4px 6px;">
                       <strong>${formatDate(b.check_in)}</strong> (${ciTime}) → <strong>${formatDate(b.check_out)}</strong> (${coTime})
                     </td>
-                    <td style="padding:8px 10px;text-align:center;font-weight:700;">${n}N</td>
-                    <td style="padding:8px 10px;text-align:center;">👥 ${b.guests || 1}</td>
-                    <td style="padding:8px 10px;text-align:right;font-weight:900;font-size:13px;color:#0F172A;">₹${amt.toLocaleString('en-IN')}</td>
+                    <td style="padding:4px 6px;text-align:center;font-weight:700;">${n}N</td>
+                    <td style="padding:4px 6px;text-align:center;">👥 ${b.guests || 1}</td>
+                    <td style="padding:4px 8px;text-align:right;font-weight:900;font-size:11px;color:#0F172A;">₹${amt.toLocaleString('en-IN')}</td>
                   </tr>
                 `;
               }).join('')}
             </tbody>
             <tfoot>
-              <tr style="background:#F1F5F9;border-top:2px solid #0F172A;font-weight:900;">
-                <td colspan="5" style="padding:9px 10px;text-align:right;text-transform:uppercase;letter-spacing:0.5px;">
-                  Grand Combined Stay Total:
+              <tr style="background:#F1F5F9;border-top:1.5px solid #0F172A;font-weight:900;">
+                <td colspan="5" style="padding:5px 6px;text-align:right;text-transform:uppercase;letter-spacing:0.4px;font-size:10px;">
+                  Grand Combined Stay Total (${bookings.length} Homestays):
                 </td>
-                <td style="padding:9px 10px;text-align:right;font-size:15px;color:#0F172A;">
+                <td style="padding:5px 8px;text-align:right;font-size:12.5px;color:#0F172A;">
                   ₹${totalAmount.toLocaleString('en-IN')}
                 </td>
               </tr>
@@ -1148,165 +1131,125 @@ Thank you for choosing *The Unique Haven Homes*. Your direct reservation has bee
         </div>
 
         <!-- 💰 Financial & Advance Payment Tracker -->
-        <div style="border:1.5px solid #0F172A;border-radius:10px;overflow:hidden;margin-bottom:12px;">
+        <div style="border:1px solid #0F172A;border-radius:6px;overflow:hidden;margin-bottom:6px;">
           
-          <div style="background:#0F172A;color:#fff;padding:9px 14px;display:flex;justify-content:space-between;align-items:center;">
-            <div style="font-size:11.5px;font-weight:800;letter-spacing:0.6px;text-transform:uppercase;">
-              💰 Consolidated Payment Breakdown &amp; Balance Statement
-            </div>
-            <div style="font-size:10px;color:#94A3B8;">
-              Combined Multi-Property Account
-            </div>
-          </div>
-
-          <!-- 3 Highlight Boxes -->
+          <!-- 3 Highlight Stat Boxes -->
           <div style="display:grid;grid-template-columns:1fr 1fr 1fr;background:#F8FAFC;border-bottom:1px solid #E2E8F0;text-align:center;">
             
-            <div style="padding:10px;border-right:1px solid #E2E8F0;">
-              <div style="font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;margin-bottom:2px;">
-                Total Group Bill (${bookings.length} Homestays)
+            <div style="padding:6px;border-right:1px solid #E2E8F0;">
+              <div style="font-size:9px;font-weight:700;color:#64748B;text-transform:uppercase;margin-bottom:1px;">
+                Total Group Bill (${bookings.length} Stays)
               </div>
-              <div style="font-size:18px;font-weight:900;color:#0F172A;">
+              <div style="font-size:15px;font-weight:900;color:#0F172A;">
                 ₹${totalAmount.toLocaleString('en-IN')}
               </div>
-              <div style="font-size:9.5px;color:#64748B;margin-top:2px;">
-                ${bookings.length} properties reserved together
-              </div>
             </div>
 
-            <div style="padding:10px;border-right:1px solid #E2E8F0;background:#F0FDF4;">
-              <div style="font-size:10px;font-weight:800;color:#15803D;text-transform:uppercase;margin-bottom:2px;">
-                ✔ Advance / Total Amount Paid
+            <div style="padding:6px;border-right:1px solid #E2E8F0;background:#F0FDF4;">
+              <div style="font-size:9px;font-weight:800;color:#15803D;text-transform:uppercase;margin-bottom:1px;">
+                ✔ Advance / Amount Paid
               </div>
-              <div style="font-size:18px;font-weight:900;color:#059669;">
+              <div style="font-size:15px;font-weight:900;color:#059669;">
                 ₹${paidAmount.toLocaleString('en-IN')}
               </div>
-              <div style="font-size:9.5px;color:#15803D;margin-top:2px;font-weight:700;">
-                ${totalAmount > 0 ? Math.round((paidAmount / totalAmount) * 100) : 0}% Paid
-              </div>
             </div>
 
-            <div style="padding:10px;background:${balanceDue > 0 ? '#FEF2F2' : '#F0FDF4'};">
-              <div style="font-size:10px;font-weight:800;color:${balanceDue > 0 ? '#DC2626' : '#15803D'};text-transform:uppercase;margin-bottom:2px;">
-                ${balanceDue > 0 ? '⚠️ Total Balance Due at Check-in' : '✅ Balance Remaining'}
+            <div style="padding:6px;background:${balanceDue > 0 ? '#FEF2F2' : '#F0FDF4'};">
+              <div style="font-size:9px;font-weight:800;color:${balanceDue > 0 ? '#DC2626' : '#15803D'};text-transform:uppercase;margin-bottom:1px;">
+                ${balanceDue > 0 ? '⚠️ Balance Due at Check-in' : '✅ Balance Remaining'}
               </div>
-              <div style="font-size:18px;font-weight:900;color:${balanceDue > 0 ? '#DC2626' : '#059669'};">
+              <div style="font-size:15px;font-weight:900;color:${balanceDue > 0 ? '#DC2626' : '#059669'};">
                 ₹${balanceDue.toLocaleString('en-IN')}
-              </div>
-              <div style="font-size:9.5px;color:${balanceDue > 0 ? '#B91C1C' : '#15803D'};margin-top:2px;font-weight:700;">
-                ${balanceDue > 0 ? 'Payable upon arrival' : 'Clear &amp; Settled'}
               </div>
             </div>
 
           </div>
 
-          <!-- Payment Transactions Table -->
-          <div style="padding:10px 14px;">
-            <div style="font-size:10px;font-weight:800;color:#475569;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">
-              📋 Received Payment Transactions (All Properties)
-            </div>
-
+          <!-- Payment Transactions Table (if any) -->
+          <div style="padding:5px 8px;">
             ${payments && payments.length > 0 ? `
-              <table style="width:100%;border-collapse:collapse;font-size:11px;">
+              <table style="width:100%;border-collapse:collapse;font-size:9.5px;margin-bottom:3px;">
                 <thead>
                   <tr style="background:#F1F5F9;color:#475569;text-align:left;border-bottom:1px solid #CBD5E1;">
-                    <th style="padding:5px 8px;font-weight:800;width:24px;">#</th>
-                    <th style="padding:5px 8px;font-weight:800;">Date</th>
-                    <th style="padding:5px 8px;font-weight:800;">Ref Booking ID</th>
-                    <th style="padding:5px 8px;font-weight:800;">Mode</th>
-                    <th style="padding:5px 8px;font-weight:800;">Notes</th>
-                    <th style="padding:5px 8px;font-weight:800;">Received By</th>
-                    <th style="padding:5px 8px;font-weight:800;text-align:right;">Amount (₹)</th>
+                    <th style="padding:2px 4px;font-weight:800;width:18px;">#</th>
+                    <th style="padding:2px 4px;font-weight:800;">Date</th>
+                    <th style="padding:2px 4px;font-weight:800;">Ref Booking ID</th>
+                    <th style="padding:2px 4px;font-weight:800;">Mode</th>
+                    <th style="padding:2px 4px;font-weight:800;">Notes</th>
+                    <th style="padding:2px 4px;font-weight:800;">Received By</th>
+                    <th style="padding:2px 4px;font-weight:800;text-align:right;">Amount (₹)</th>
                   </tr>
                 </thead>
                 <tbody>
                   ${payments.map((p, idx) => `
                     <tr style="border-bottom:1px solid #E2E8F0;">
-                      <td style="padding:5px 8px;color:#64748B;">${String(idx + 1).padStart(2, '0')}</td>
-                      <td style="padding:5px 8px;font-weight:700;">${formatDate(p.payment_date || p.paid_at)}</td>
-                      <td style="padding:5px 8px;font-family:monospace;font-size:10px;color:#0284C7;">${escapeHtml(p.booking_id)}</td>
-                      <td style="padding:5px 8px;"><span style="background:#E2E8F0;padding:1px 6px;border-radius:4px;font-size:10px;font-weight:700;">${escapeHtml(p.payment_mode || 'Direct')}</span></td>
-                      <td style="padding:5px 8px;color:#475569;">${escapeHtml(p.notes || '-')}</td>
-                      <td style="padding:5px 8px;color:#475569;">${escapeHtml(p.received_by || 'UHH Team')}</td>
-                      <td style="padding:5px 8px;text-align:right;font-weight:900;color:#059669;">₹${Number(p.amount || 0).toLocaleString('en-IN')}</td>
+                      <td style="padding:2px 4px;color:#64748B;">${String(idx + 1).padStart(2, '0')}</td>
+                      <td style="padding:2px 4px;font-weight:700;">${formatDate(p.payment_date || p.paid_at)}</td>
+                      <td style="padding:2px 4px;font-family:monospace;font-size:9px;color:#0284C7;">${escapeHtml(p.booking_id)}</td>
+                      <td style="padding:2px 4px;"><span style="background:#E2E8F0;padding:1px 4px;border-radius:3px;font-size:8.5px;font-weight:700;">${escapeHtml(p.payment_mode || 'Direct')}</span></td>
+                      <td style="padding:2px 4px;color:#475569;">${escapeHtml(p.notes || '-')}</td>
+                      <td style="padding:2px 4px;color:#475569;">${escapeHtml(p.received_by || 'UHH Team')}</td>
+                      <td style="padding:2px 4px;text-align:right;font-weight:900;color:#059669;">₹${Number(p.amount || 0).toLocaleString('en-IN')}</td>
                     </tr>
                   `).join('')}
                 </tbody>
               </table>
             ` : `
-              <div style="font-size:11px;color:#64748B;font-style:italic;padding:4px 0;">
-                No payment transactions recorded yet. Balance of ₹${totalAmount.toLocaleString('en-IN')} is due on check-in.
+              <div style="font-size:9.5px;color:#64748B;font-style:italic;padding:2px 0;">
+                No advance transactions recorded yet. Balance of ₹${totalAmount.toLocaleString('en-IN')} is due on check-in.
               </div>
             `}
 
             <!-- Words Summary -->
-            <div style="margin-top:8px;padding:7px 10px;background:#F8FAFC;border:1px dashed #CBD5E1;border-radius:6px;font-size:10.5px;color:#334155;line-height:1.6;">
-              <strong>Combined Advance Paid in Words:</strong> ${wordsPaid}<br>
-              ${balanceDue > 0 ? `<strong>Remaining Group Balance in Words:</strong> <span style="color:#DC2626;font-weight:700;">${wordsBalance}</span> (Due at Check-in)` : '<strong>Status:</strong> <span style="color:#059669;font-weight:700;">Full combined payment received with thanks!</span>'}
+            <div style="padding:3px 6px;background:#F8FAFC;border:1px dashed #CBD5E1;border-radius:4px;font-size:9px;color:#334155;line-height:1.4;">
+              <strong>Advance Paid in Words:</strong> ${wordsPaid} &nbsp;|&nbsp;
+              ${balanceDue > 0 ? `<strong>Remaining Balance:</strong> <span style="color:#DC2626;font-weight:700;">${wordsBalance}</span> (Due at Check-in)` : '<strong>Status:</strong> <span style="color:#059669;font-weight:700;">Full combined payment settled with thanks!</span>'}
             </div>
 
           </div>
 
         </div>
 
-        <!-- 📞 Management & Company Owner Contacts -->
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:12px;">
-          
-          <!-- Property Manager -->
-          <div style="border:1.5px solid #E2E8F0;border-radius:8px;padding:10px 12px;background:#F8FAFC;">
-            <div style="font-size:10.5px;font-weight:800;letter-spacing:0.6px;text-transform:uppercase;color:#0284C7;margin-bottom:4px;">
-              👤 Property Manager
-            </div>
-            <div style="font-size:11px;line-height:1.7;color:#334155;">
-              Manager: <strong>${CO.managerName}</strong><br>
-              Phone: 📞 <a href="tel:${CO.managerPhone}" style="color:#0F172A;text-decoration:none;font-weight:700;">${CO.managerPhone}</a><br>
-              Available: <strong>10:00 AM – 09:00 PM</strong>
-            </div>
+        <!-- 📞 Management & Support Contacts Strip -->
+        <div style="border:1px solid #E2E8F0;border-radius:5px;padding:3px 8px;background:#F8FAFC;margin-bottom:5px;display:flex;justify-content:space-between;align-items:center;font-size:9px;flex-wrap:wrap;gap:4px;">
+          <div>
+            👤 <strong>Property Manager:</strong> ${CO.managerName} (📞 <a href="tel:${CO.managerPhone}" style="color:#0F172A;text-decoration:none;font-weight:700;">${CO.managerPhone}</a>)
           </div>
-
-          <!-- Company Owners -->
-          <div style="border:1.5px solid #E2E8F0;border-radius:8px;padding:10px 12px;background:#F8FAFC;">
-            <div style="font-size:10.5px;font-weight:800;letter-spacing:0.6px;text-transform:uppercase;color:#B45309;margin-bottom:4px;">
-              👑 Company Owners
-            </div>
-            <div style="font-size:11px;line-height:1.7;color:#334155;">
-              ${CO.owners.map(o => `<strong>${o.name}:</strong> 📞 <a href="tel:${o.phone.replace(/[^0-9+]/g,'')}" style="color:#0F172A;text-decoration:none;font-weight:700;">${o.phone}</a>`).join('<br>')}
-            </div>
+          <div>
+            👑 <strong>Company Owners:</strong> ${CO.owners.map(o => `<strong>${o.name}:</strong> 📞 <a href="tel:${o.phone.replace(/[^0-9+]/g,'')}" style="color:#0F172A;text-decoration:none;font-weight:700;">${o.phone}</a>`).join(' &nbsp;|&nbsp; ')}
           </div>
-
         </div>
 
         ${customNotes ? `
           <!-- Special Notes -->
-          <div style="background:#FFFBEB;border:1.5px solid #FDE68A;border-radius:6px;padding:7px 12px;margin-bottom:10px;font-size:10.5px;color:#92400E;">
+          <div style="background:#FFFBEB;border:1px solid #FDE68A;border-radius:4px;padding:3px 8px;margin-bottom:5px;font-size:9px;color:#92400E;">
             <strong>📝 Note:</strong> ${escapeHtml(customNotes)}
           </div>
         ` : ''}
 
-        <!-- 📜 Terms & House Rules -->
-        <div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:8px;padding:8px 12px;margin-bottom:12px;font-size:9.5px;color:#64748B;line-height:1.6;">
-          <strong style="color:#0F172A;display:block;margin-bottom:2px;font-size:10px;">📋 Stay Guidelines &amp; Important Terms:</strong>
-          1. <strong>Govt ID Mandatory:</strong> Original government-issued photo ID (Aadhaar / Passport / Voter ID / DL) is strictly required for all adult guests at check-in for each homestay.<br>
-          2. <strong>Timings:</strong> Standard Check-in is 02:00 PM; Standard Check-out is 11:00 AM. Early check-in or late checkout is subject to prior confirmation.<br>
-          3. <strong>Peaceful Neighbourhood:</strong> Loud music or disruptive noise is strictly prohibited after 11:00 PM in residential premises.<br>
-          4. <strong>Balance Settlement:</strong> Outstanding group balance must be settled at the time of check-in before keys handover.<br>
-          5. <strong>Non-GST Slip:</strong> This receipt is an official booking voucher and payment confirmation without GST output tax credit.
+        <!-- 📜 Terms & House Rules (Compact) -->
+        <div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:5px;padding:4px 8px;margin-bottom:5px;font-size:8px;color:#64748B;line-height:1.35;">
+          <strong style="color:#0F172A;font-size:8.5px;">📋 Stay Guidelines &amp; Important Terms:</strong>
+          1. <strong>Govt ID Mandatory:</strong> Original government photo ID required for all adult guests at check-in. &nbsp;•&nbsp;
+          2. <strong>Timings:</strong> Check-in: 02:00 PM | Check-out: 11:00 AM (early/late subject to availability). &nbsp;•&nbsp;
+          3. <strong>Peaceful Neighbourhood:</strong> Loud music/noise prohibited after 11:00 PM. &nbsp;•&nbsp;
+          4. <strong>Balance Settlement:</strong> Outstanding balance must be settled upon arrival before key handover. &nbsp;•&nbsp;
+          5. <strong>Non-GST Slip:</strong> Official booking voucher &amp; payment confirmation without GST output tax credit.
         </div>
 
         <!-- Signature & Seal -->
-        <div style="display:flex;justify-content:space-between;align-items:flex-end;padding-top:6px;border-top:1.5px solid #E2E8F0;">
-          <div style="font-size:9.5px;color:#94A3B8;line-height:1.5;">
+        <div style="display:flex;justify-content:space-between;align-items:flex-end;padding-top:3px;border-top:1px solid #CBD5E1;">
+          <div style="font-size:8px;color:#94A3B8;line-height:1.35;">
             <strong style="color:#475569;">${CO.name}</strong><br>
-            CIN: ${CO.cin} · PAN: ${CO.pan}<br>
-            Website: <a href="https://${CO.web}" style="color:#64748B;text-decoration:none;">${CO.web}</a>
+            CIN: ${CO.cin} · PAN: ${CO.pan} · Website: <a href="https://${CO.web}" style="color:#64748B;text-decoration:none;">${CO.web}</a>
           </div>
 
           <div style="text-align:right;">
             <div style="display:inline-block;text-align:right;">
-              <img src="${getSignatureStampSrc()}" alt="Stamp & Signature" style="height:50px;max-width:180px;object-fit:contain;margin-bottom:-8px;display:block;margin-left:auto;" />
-              <div style="height:1px;border-bottom:1px dashed #CBD5E1;width:150px;margin-left:auto;"></div>
-              <div style="font-size:9.5px;color:#64748B;margin-top:3px;">Authorised Signatory</div>
-              <div style="font-size:10.5px;font-weight:800;color:#0F172A;">For ${CO.name}</div>
+              <img src="${getSignatureStampSrc()}" alt="Stamp & Signature" style="height:34px;max-width:140px;object-fit:contain;margin-bottom:-4px;display:block;margin-left:auto;" />
+              <div style="height:1px;border-bottom:1px dashed #CBD5E1;width:120px;margin-left:auto;"></div>
+              <div style="font-size:8px;color:#64748B;margin-top:1px;">Authorised Signatory</div>
+              <div style="font-size:9px;font-weight:800;color:#0F172A;">For ${CO.name}</div>
             </div>
           </div>
         </div>
