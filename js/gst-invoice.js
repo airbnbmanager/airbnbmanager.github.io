@@ -472,9 +472,27 @@ window.GST_ENGINE = (function() {
           * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; box-sizing: border-box; }
           body { margin: 0; padding: 10px; background: #fff; font-family: 'Inter', Arial, sans-serif; }
           .uhh-invoice-document { box-shadow: none !important; border: 1px solid #D1D5DB !important; }
+          @media print {
+            .no-print { display: none !important; }
+          }
         </style>
       </head>
       <body>
+        <!-- Top Sticky Action Bar (Hidden during print) -->
+        <div class="no-print" style="position:sticky;top:0;left:0;right:0;background:#0F172A;color:#fff;padding:12px 18px;display:flex;justify-content:space-between;align-items:center;z-index:999999;box-shadow:0 4px 14px rgba(0,0,0,0.25);margin:-10px -10px 14px -10px;border-bottom:3px solid #b58d3d;">
+          <div style="font-weight:800;font-size:14px;display:flex;align-items:center;gap:8px;">
+            <span style="font-size:18px;">🧾</span>
+            <span>GST Tax Invoice — ${escapeHtml(inv.invoice_no)}</span>
+          </div>
+          <div style="display:flex;gap:10px;align-items:center;">
+            <button onclick="window.print()" style="background:#2563EB;color:#fff;border:none;padding:8px 16px;border-radius:8px;font-weight:800;font-size:13px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;">
+              🖨️ Print / Save PDF
+            </button>
+            <button onclick="window.close()" style="background:#DC2626;color:#fff;border:none;padding:8px 16px;border-radius:8px;font-weight:800;font-size:13px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;">
+              ✕ Close Window
+            </button>
+          </div>
+        </div>
         ${html}
       </body>
       </html>`);
@@ -872,10 +890,13 @@ Generated automatically via UHHS Management Portal.`;
       const isAirbnb = state.booking_mode === 'Online-Airbnb' || !!booking.airbnb_confirmation_code;
 
       modal.innerHTML = `
-        <div class="modal-box" style="max-width:820px;width:95%;max-height:92vh;display:flex;flex-direction:column;padding:22px;border-radius:14px;background:#fff;box-shadow:0 20px 40px rgba(0,0,0,0.2);">
+        <div class="modal-box" style="max-width:820px;width:95%;max-height:92vh;display:flex;flex-direction:column;padding:22px;border-radius:14px;background:#fff;box-shadow:0 20px 40px rgba(0,0,0,0.2);position:relative;">
           
+          <!-- Sticky Prominent Floating Close Button -->
+          <button type="button" class="modal-close-prominent" onclick="this.closest('.modal-overlay').remove()" title="Close (ESC)" style="position:absolute;top:14px;right:14px;background:#EF4444;color:#fff;border:none;border-radius:50%;width:34px;height:34px;font-size:16px;font-weight:900;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 10px rgba(239,68,68,0.35);z-index:10000;">✕</button>
+
           <!-- Top Header -->
-          <div style="display:flex;justify-content:space-between;align-items:flex-start;border-bottom:1px solid var(--border);padding-bottom:12px;margin-bottom:14px;">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;border-bottom:1px solid var(--border);padding-bottom:12px;margin-bottom:14px;padding-right:40px;">
             <div>
               <div style="display:flex;align-items:center;gap:8px;">
                 <span style="font-size:18px;">🧾</span>
@@ -892,7 +913,6 @@ Generated automatically via UHHS Management Portal.`;
               <button class="btn-sm outline" style="padding:6px 10px;font-size:11.5px;font-weight:700;" onclick="window.GST_ENGINE.openCARegisterModal()">
                 📊 View All CA Records
               </button>
-              <button class="modal-close" onclick="this.closest('.modal-overlay').remove()" style="font-size:20px;background:none;border:none;cursor:pointer;padding:4px 8px;">✕</button>
             </div>
           </div>
 
@@ -1164,14 +1184,61 @@ Generated automatically via UHHS Management Portal.`;
       printInvoiceDocument(state);
     };
 
-    window._gstWhatsApp = function() {
+    window._gstWhatsApp = async function() {
       const calc = calculateGST(state.total_amount, state.nights, state.gst_rate);
-      shareInvoiceWhatsApp({
-        ...state,
-        taxable_value: calc.base,
-        cgst: calc.cgst,
-        sgst: calc.sgst
-      });
+      const isGST = state.is_gst_invoice;
+      const shortMsg = `🧾 *THE UNIQUE HAVEN HOMES PVT. LTD.*
+${isGST ? '*OFFICIAL GST TAX INVOICE*' : '*BOOKING RECEIPT*'}
+Namaste *${state.guest_name || 'Guest'}* ji 🙏
+
+📄 *Invoice No:* ${state.invoice_no}
+📅 *Date:* ${state.invoice_date}
+🏠 *Property:* ${state.room_name}
+📅 *Stay:* ${state.check_in} to ${state.check_out} (${state.nights} Night${state.nights > 1 ? 's' : ''})
+💰 *Total Amount:* ₹${Number(state.total_amount || 0).toLocaleString('en-IN')}
+${isGST ? `📊 *Base Value:* ₹${Number(calc.base).toLocaleString('en-IN')} | *GST (${state.gst_rate}%):* ₹${Number(calc.cgst + calc.sgst).toLocaleString('en-IN')}` : ''}
+✅ *Payment Status:* Paid
+
+_Official ${isGST ? 'GST Tax Invoice' : 'Receipt'} attached in PDF._
+The Unique Haven Homes Property Management`;
+
+      // Render printable doc into a temporary offscreen container if in edit tab
+      let targetContainer = modal.querySelector('.uhh-invoice-document');
+      let tempDiv = null;
+      if (!targetContainer) {
+        tempDiv = document.createElement('div');
+        tempDiv.style.position = 'fixed';
+        tempDiv.style.left = '-9999px';
+        tempDiv.style.top = '0';
+        tempDiv.style.width = '800px';
+        tempDiv.innerHTML = buildPrintableInvoiceHTML({
+          ...state,
+          taxable_value: calc.base,
+          cgst: calc.cgst,
+          sgst: calc.sgst
+        });
+        document.body.appendChild(tempDiv);
+        targetContainer = tempDiv;
+      }
+
+      const filename = (isGST ? 'GST_Invoice_' : 'Booking_Receipt_') + state.invoice_no + '.pdf';
+      if (typeof window.sharePdfViaWhatsApp === 'function') {
+        await window.sharePdfViaWhatsApp(targetContainer, {
+          filename: filename,
+          phone: state.guest_phone,
+          message: shortMsg,
+          title: (isGST ? 'GST Tax Invoice' : 'Booking Receipt') + ' - UHHS'
+        });
+      } else {
+        shareInvoiceWhatsApp({
+          ...state,
+          taxable_value: calc.base,
+          cgst: calc.cgst,
+          sgst: calc.sgst
+        });
+      }
+
+      if (tempDiv) tempDiv.remove();
     };
 
     window._gstDeleteCurrent = async function() {
@@ -1181,6 +1248,15 @@ Generated automatically via UHHS Management Portal.`;
       await deleteInvoice(state.booking_id, state.invoice_no);
       modal.remove();
     };
+
+    // Close on Escape key press
+    const escListener = (e) => {
+      if (e.key === 'Escape' || e.keyCode === 27) {
+        modal.remove();
+        window.removeEventListener('keydown', escListener);
+      }
+    };
+    window.addEventListener('keydown', escListener);
 
     renderModalContent();
     document.body.appendChild(modal);

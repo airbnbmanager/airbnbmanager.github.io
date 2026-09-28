@@ -1781,8 +1781,11 @@ The Unique Haven Homes Property Management`;
             <p style="font-size:12px;color:#64748B;margin:6px 0 10px 0;">
               Dispatches new booking details directly to that property's dedicated Investor WhatsApp Group.
             </p>
-            <div style="font-size:11px;color:#334155;background:rgba(0,0,0,0.04);padding:6px 8px;border-radius:6px;">
-              Mapped Groups: <b>${Object.keys(c.investor_groups || {}).length} properties/groups</b>
+            <div style="font-size:11px;color:#334155;background:rgba(0,0,0,0.04);padding:6px 8px;border-radius:6px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;">
+              <span>Mapped Groups: <b>${Object.keys(c.investor_groups || {}).length} properties/groups</b></span>
+              <button type="button" class="btn-sm" style="background:#4F46E5;color:#fff;border:none;padding:5px 12px;border-radius:6px;font-weight:800;font-size:11px;cursor:pointer;" onclick="window.openInvestorBookingBroadcastModal()">
+                📢 Date-Range Dispatcher
+              </button>
             </div>
           </div>
 
@@ -2580,6 +2583,540 @@ The Unique Haven Homes Property Management`;
     }
   }, 1000);
 
+  // ─── 15. DATE-RANGE INVESTOR BOOKING BROADCAST & DISPATCHER ───
+  async function openInvestorBookingBroadcastModal(initialParams = {}) {
+    await loadConfig();
+    const today = new Date().toISOString().slice(0, 10);
+    const startDefault = initialParams.startDate || '2026-09-01'; // User's requested backlog start
+    const endDefault = initialParams.endDate || today;
+
+    const modal = document.createElement('div');
+    modal.className = 'modal-overlay';
+    modal.id = 'uhhInvestorBroadcastModal';
+    modal.style.zIndex = '99999';
+    modal.onclick = e => { if (e.target === modal) modal.remove(); };
+
+    // Fetch properties from cache or DB
+    let rooms = [];
+    try {
+      if (window.sb) {
+        const { data } = await sb.from('rooms').select('room_id, unit_no, nickname, property_name').order('unit_no');
+        if (data) rooms = data;
+      }
+    } catch(e) {}
+    if (!rooms.length && window.UHHS_PROPERTIES) rooms = window.UHHS_PROPERTIES;
+
+    modal.innerHTML = `
+      <div class="modal-box" style="max-width:960px;width:96%;max-height:92vh;display:flex;flex-direction:column;padding:22px;border-radius:16px;background:#fff;box-shadow:0 25px 50px -12px rgba(0,0,0,0.25);position:relative;">
+        
+        <!-- Sticky Prominent Close Button -->
+        <button type="button" class="modal-close-prominent" onclick="this.closest('.modal-overlay').remove()" title="Close (ESC)" style="position:absolute;top:14px;right:14px;background:#EF4444;color:#fff;border:none;border-radius:50%;width:34px;height:34px;font-size:16px;font-weight:900;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 10px rgba(239,68,68,0.35);z-index:10000;">✕</button>
+
+        <!-- Top Header -->
+        <div style="border-bottom:1px solid #E2E8F0;padding-bottom:14px;margin-bottom:14px;padding-right:45px;">
+          <div style="display:flex;align-items:center;gap:10px;">
+            <span style="font-size:24px;">📢</span>
+            <div>
+              <h2 style="margin:0;font-size:19px;font-weight:900;color:#0F172A;">
+                Investor Booking Broadcast &amp; Date-Range Dispatcher
+              </h2>
+              <div style="font-size:12px;color:#64748B;margin-top:2px;">
+                Select custom date range (e.g. from 1 Sep) and send date-wise booking updates to all property investors or individual homestays.
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Filter Bar -->
+        <div style="background:#F8FAFC;border:1.5px solid #E2E8F0;border-radius:12px;padding:14px;margin-bottom:14px;">
+          
+          <!-- Quick Preset Chips -->
+          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px;">
+            <span style="font-size:11px;font-weight:700;color:#64748B;text-transform:uppercase;">Quick Presets:</span>
+            <button type="button" class="btn-sm" style="background:#EEF2FF;color:#4F46E5;border:1px solid #C7D2FE;font-weight:700;font-size:11.5px;cursor:pointer;" onclick="window._setIbPreset('2026-09-01', '${today}')">
+              📅 1 Sep – Today (Backlog)
+            </button>
+            <button type="button" class="btn-sm" style="background:#F0FDF4;color:#15803D;border:1px solid #BBF7D0;font-weight:700;font-size:11.5px;cursor:pointer;" onclick="window._setIbPreset('${today}', '${today}')">
+              📅 Today Only
+            </button>
+            <button type="button" class="btn-sm" style="background:#FFFBEB;color:#B45309;border:1px solid #FDE68A;font-weight:700;font-size:11.5px;cursor:pointer;" onclick="window._setIbPreset('${new Date(Date.now() - 86400000).toISOString().slice(0,10)}', '${new Date(Date.now() - 86400000).toISOString().slice(0,10)}')">
+              📅 Yesterday Only
+            </button>
+            <button type="button" class="btn-sm" style="background:#F1F5F9;color:#334155;border:1px solid #CBD5E1;font-weight:700;font-size:11.5px;cursor:pointer;" onclick="window._setIbPreset('${new Date(Date.now() - 6*86400000).toISOString().slice(0,10)}', '${today}')">
+              📅 Last 7 Days
+            </button>
+          </div>
+
+          <!-- Date & Property Selectors -->
+          <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(180px, 1fr)) 120px;gap:10px;align-items:flex-end;">
+            <div>
+              <label style="font-size:11px;font-weight:700;color:#475569;display:block;margin-bottom:4px;">From Date (Check-in)</label>
+              <input type="date" id="ibStartDate" value="${startDefault}" style="width:100%;padding:8px 10px;border:1.5px solid #CBD5E1;border-radius:8px;font-size:13px;font-weight:600;" onchange="window._loadInvestorBroadcastData()"/>
+            </div>
+            <div>
+              <label style="font-size:11px;font-weight:700;color:#475569;display:block;margin-bottom:4px;">To Date (Check-in)</label>
+              <input type="date" id="ibEndDate" value="${endDefault}" style="width:100%;padding:8px 10px;border:1.5px solid #CBD5E1;border-radius:8px;font-size:13px;font-weight:600;" onchange="window._loadInvestorBroadcastData()"/>
+            </div>
+            <div>
+              <label style="font-size:11px;font-weight:700;color:#475569;display:block;margin-bottom:4px;">Filter Property</label>
+              <select id="ibPropertyFilter" style="width:100%;padding:8px 10px;border:1.5px solid #CBD5E1;border-radius:8px;font-size:12.5px;font-weight:600;" onchange="window._loadInvestorBroadcastData()">
+                <option value="">🏢 All Properties (All Investors)</option>
+                ${rooms.map(r => `<option value="${r.room_id}">${r.nickname || r.property_name || r.room_id} (${r.unit_no || '-'})</option>`).join('')}
+              </select>
+            </div>
+            <div>
+              <button type="button" class="btn-sm" style="width:100%;padding:9px;background:#0F172A;color:#fff;border:none;border-radius:8px;font-weight:800;cursor:pointer;" onclick="window._loadInvestorBroadcastData()">
+                🔍 Refresh
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Master Dispatch Action & Progress Bar -->
+        <div id="ibDispatchBanner" style="display:none;background:#EEF2FF;border:1.5px solid #818CF8;border-radius:12px;padding:14px 18px;margin-bottom:14px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
+            <div>
+              <div style="font-size:14px;font-weight:900;color:#1E1B4B;" id="ibSummaryTitle">
+                Found Bookings Across 0 Properties
+              </div>
+              <div style="font-size:12px;color:#4338CA;" id="ibSummarySub">
+                Ready to dispatch date-wise booking summaries to investors.
+              </div>
+            </div>
+            <div style="display:flex;gap:10px;align-items:center;">
+              <button type="button" id="ibBtnSendAll" style="padding:10px 18px;background:#4F46E5;color:#fff;border:none;border-radius:10px;font-weight:900;font-size:14px;cursor:pointer;display:inline-flex;align-items:center;gap:8px;box-shadow:0 4px 12px rgba(79,70,229,0.35);" onclick="window._dispatchAllInvestorReports()">
+                🚀 Send All to All Investors
+              </button>
+            </div>
+          </div>
+          <!-- Live progress bar -->
+          <div id="ibProgressWrap" style="display:none;margin-top:10px;">
+            <div style="font-size:11.5px;font-weight:700;color:#4338CA;margin-bottom:4px;" id="ibProgressLabel">Dispatching 1 of X...</div>
+            <div style="height:8px;background:#C7D2FE;border-radius:4px;overflow:hidden;">
+              <div id="ibProgressBar" style="height:100%;width:0%;background:#4F46E5;transition:width 0.3s;"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Results Container (Scrollable Property Cards) -->
+        <div style="flex:1;overflow-y:auto;padding-right:4px;" id="ibResultsArea">
+          <div style="text-align:center;padding:40px;color:#64748B;">
+            <div style="font-size:32px;margin-bottom:8px;">⏳</div>
+            <div>Loading bookings for selected period...</div>
+          </div>
+        </div>
+
+      </div>
+    `;
+
+    // Global callbacks for the modal
+    window._setIbPreset = function(s, e) {
+      const sInp = document.getElementById('ibStartDate');
+      const eInp = document.getElementById('ibEndDate');
+      if (sInp) sInp.value = s;
+      if (eInp) eInp.value = e;
+      window._loadInvestorBroadcastData();
+    };
+
+    window._loadInvestorBroadcastData = async function() {
+      const sDate = document.getElementById('ibStartDate')?.value || startDefault;
+      const eDate = document.getElementById('ibEndDate')?.value || endDefault;
+      const propFilter = document.getElementById('ibPropertyFilter')?.value || '';
+      const resultsArea = document.getElementById('ibResultsArea');
+      const banner = document.getElementById('ibDispatchBanner');
+      if (!resultsArea) return;
+
+      resultsArea.innerHTML = `
+        <div style="text-align:center;padding:40px;color:#64748B;">
+          <div style="font-size:32px;margin-bottom:8px;">⏳</div>
+          <div style="font-weight:700;">Fetching bookings from ${sDate} to ${eDate}...</div>
+        </div>
+      `;
+
+      try {
+        let query = sb.from('guest_register')
+          .select('booking_id, guest_name, phone, room_id, check_in, check_out, check_in_time, check_out_time, guests, total_amount, advance_amount, payment_status, booking_mode, is_cancelled, is_review_booking, rooms(nickname, unit_no, property_name, whatsapp_group_name)')
+          .gte('check_in', sDate)
+          .lte('check_in', eDate)
+          .or('is_cancelled.is.null,is_cancelled.eq.false')
+          .order('check_in', { ascending: true });
+
+        if (propFilter) {
+          query = query.eq('room_id', propFilter);
+        }
+
+        const { data: bks, error } = await query;
+        if (error) throw error;
+
+        const validBookings = (bks || []).filter(b => !b.is_review_booking);
+
+        if (!validBookings.length) {
+          if (banner) banner.style.display = 'none';
+          resultsArea.innerHTML = `
+            <div style="text-align:center;padding:40px;background:#F8FAFC;border:1.5px dashed #CBD5E1;border-radius:12px;">
+              <div style="font-size:36px;margin-bottom:8px;">📭</div>
+              <div style="font-size:15px;font-weight:800;color:#0F172A;">No Bookings Found</div>
+              <div style="font-size:12px;color:#64748B;margin-top:4px;">
+                No confirmed bookings found check-in between <strong>${sDate}</strong> and <strong>${eDate}</strong>.
+              </div>
+            </div>
+          `;
+          return;
+        }
+
+        // Group by property
+        const groupMap = HUB.config?.investor_groups || DEFAULT_WA_CONFIG.investor_groups || {};
+        const propertyGroups = new Map();
+
+        validBookings.forEach(b => {
+          const rid = b.room_id || 'Unknown';
+          if (!propertyGroups.has(rid)) {
+            const roomObj = b.rooms || rooms.find(r => r.room_id === rid) || {};
+            const nick = roomObj.nickname || roomObj.property_name || rid;
+            const unit = roomObj.unit_no || '';
+
+            // Find target group
+            let targetGroup = groupMap[rid] || groupMap[nick] || groupMap[roomObj.whatsapp_group_name];
+            if (!targetGroup) {
+              for (const [k, gid] of Object.entries(groupMap)) {
+                if (k && nick.toLowerCase().includes(k.toLowerCase())) {
+                  targetGroup = gid;
+                  break;
+                }
+              }
+            }
+            if (!targetGroup && (rid === 'VIL-105' || nick.toLowerCase().includes('yellow') || rid.startsWith('VIL-'))) {
+              targetGroup = '120363427551867491@g.us';
+            }
+
+            // Find friendly investor name
+            let investorName = 'Investor Group';
+            for (const [k, gid] of Object.entries(groupMap)) {
+              if (gid === targetGroup && !k.startsWith('VIL-') && !k.startsWith('GOM-') && !k.startsWith('LUL-')) {
+                investorName = k;
+                break;
+              }
+            }
+
+            propertyGroups.set(rid, {
+              roomId: rid,
+              roomNickname: nick,
+              unitNo: unit,
+              targetGroup: targetGroup || null,
+              investorName: investorName,
+              bookings: []
+            });
+          }
+
+          propertyGroups.get(rid).bookings.push(b);
+        });
+
+        const propList = Array.from(propertyGroups.values());
+        window._currentInvestorProps = propList;
+
+        const totalBksCount = validBookings.length;
+        const totalRevenueAll = validBookings.reduce((s, b) => s + Number(b.total_amount || 0), 0);
+
+        // Update top banner
+        if (banner) {
+          banner.style.display = 'block';
+          const titleEl = document.getElementById('ibSummaryTitle');
+          const subEl = document.getElementById('ibSummarySub');
+          const btnAll = document.getElementById('ibBtnSendAll');
+          if (titleEl) titleEl.textContent = `Found ${totalBksCount} Bookings Across ${propList.length} Properties`;
+          if (subEl) subEl.textContent = `Period: ${sDate} to ${eDate} · Total Revenue: ₹${totalRevenueAll.toLocaleString('en-IN')}`;
+          if (btnAll) btnAll.textContent = `🚀 Send All to All Investors (${propList.length} Properties)`;
+        }
+
+        // Render Property Cards
+        resultsArea.innerHTML = propList.map((p, pIdx) => {
+          const propTotal = p.bookings.reduce((s, b) => s + Number(b.total_amount || 0), 0);
+          const totalNights = p.bookings.reduce((s, b) => s + (b.check_in && b.check_out && window.calcNights ? calcNights(b.check_in, b.check_out) : 1), 0);
+          const msgText = window._buildInvestorPropMessage(p, sDate, eDate);
+
+          return `
+            <div id="propGroupCard_${pIdx}" style="background:#fff;border:1.5px solid #E2E8F0;border-radius:12px;padding:16px;margin-bottom:12px;box-shadow:0 2px 6px rgba(0,0,0,0.04);transition:all 0.15s;">
+              
+              <!-- Card Header -->
+              <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:10px;margin-bottom:12px;">
+                <div>
+                  <div style="display:flex;align-items:center;gap:8px;">
+                    <span style="font-size:16px;">🏠</span>
+                    <strong style="font-size:15px;color:#0F172A;">${escapeHtml(p.roomNickname)} ${p.unitNo ? `(${escapeHtml(p.unitNo)})` : ''}</strong>
+                    <span class="badge" style="background:#EEF2FF;color:#4F46E5;font-size:10.5px;font-weight:800;">${p.roomId}</span>
+                  </div>
+                  <div style="font-size:11.5px;color:#64748B;margin-top:2px;">
+                    Investor: <strong>${escapeHtml(p.investorName)}</strong> · 
+                    Target: <code style="font-size:11px;color:${p.targetGroup ? '#059669' : '#DC2626'};">${p.targetGroup || '⚠️ Group Not Mapped'}</code>
+                  </div>
+                </div>
+
+                <!-- Per-Property Action Buttons -->
+                <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+                  <button type="button" id="btnSendProp_${pIdx}" class="btn-sm" style="background:#4F46E5;color:#fff;border:none;padding:7px 14px;border-radius:8px;font-weight:800;font-size:12px;cursor:pointer;display:inline-flex;align-items:center;gap:5px;" onclick="window._sendSinglePropertyToInvestor(${pIdx})">
+                    📤 Send to Investor
+                  </button>
+                  <button type="button" class="btn-sm" style="background:#25D366;color:#fff;border:none;padding:7px 12px;border-radius:8px;font-weight:800;font-size:12px;cursor:pointer;" onclick="window._openPropInWhatsAppWeb(${pIdx})">
+                    📱 WhatsApp Web
+                  </button>
+                  <button type="button" class="btn-sm outline" style="padding:7px 10px;font-size:12px;" onclick="window._toggleMsgPreview(${pIdx})">
+                    👁️ Preview Message
+                  </button>
+                </div>
+              </div>
+
+              <!-- Stats Pill Strip -->
+              <div style="display:flex;gap:16px;background:#F8FAFC;border:1px solid #E2E8F0;border-radius:8px;padding:8px 12px;font-size:12px;margin-bottom:12px;flex-wrap:wrap;">
+                <div>📅 Total Bookings: <strong style="color:#0F172A;">${p.bookings.length}</strong></div>
+                <div>🌙 Total Nights: <strong style="color:#0F172A;">${totalNights}</strong></div>
+                <div>💰 Gross Revenue: <strong style="color:#059669;">₹${propTotal.toLocaleString('en-IN')}</strong></div>
+                <div id="propStatus_${pIdx}" style="margin-left:auto;font-weight:700;color:#64748B;">Ready to send</div>
+              </div>
+
+              <!-- Collapsible Message Preview -->
+              <div id="msgPreviewBox_${pIdx}" style="display:none;background:#F1F5F9;border:1px dashed #CBD5E1;border-radius:8px;padding:12px;margin-bottom:12px;position:relative;">
+                <div style="font-size:11px;font-weight:800;color:#475569;text-transform:uppercase;margin-bottom:6px;">Message Preview:</div>
+                <pre style="white-space:pre-wrap;font-family:sans-serif;font-size:11.5px;color:#1E293B;margin:0;line-height:1.5;">${escapeHtml(msgText)}</pre>
+                <button type="button" class="btn-sm" style="position:absolute;top:8px;right:8px;background:#fff;border:1px solid #CBD5E1;font-size:10.5px;cursor:pointer;" onclick="navigator.clipboard.writeText(decodeURIComponent('${encodeURIComponent(msgText)}'));alert('Copied to clipboard!');">📋 Copy</button>
+              </div>
+
+              <!-- Date-Wise Bookings Table -->
+              <div style="border:1px solid #E2E8F0;border-radius:8px;overflow:hidden;">
+                <table style="width:100%;border-collapse:collapse;font-size:11.5px;">
+                  <thead>
+                    <tr style="background:#F8FAFC;border-bottom:1px solid #E2E8F0;color:#475569;text-align:left;">
+                      <th style="padding:6px 10px;width:30px;">#</th>
+                      <th style="padding:6px 10px;">Check-In → Check-Out</th>
+                      <th style="padding:6px 10px;">Guest</th>
+                      <th style="padding:6px 10px;">Mode</th>
+                      <th style="padding:6px 10px;text-align:right;">Amount (₹)</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    ${p.bookings.map((b, bIdx) => {
+                      const n = (b.check_in && b.check_out && window.calcNights) ? calcNights(b.check_in, b.check_out) : 1;
+                      return `
+                        <tr style="border-bottom:1px solid #F1F5F9;background:${bIdx % 2 === 0 ? '#fff' : '#FAFAFA'};">
+                          <td style="padding:6px 10px;color:#64748B;">${bIdx + 1}</td>
+                          <td style="padding:6px 10px;font-weight:700;color:#0F172A;">
+                            ${b.check_in} → ${b.check_out} <span style="font-weight:400;color:#64748B;">(${n}N)</span>
+                          </td>
+                          <td style="padding:6px 10px;color:#334155;">${escapeHtml(b.guest_name || 'Guest')}</td>
+                          <td style="padding:6px 10px;">
+                            <span class="badge" style="background:${b.booking_mode === 'Online-Airbnb' ? '#FEF3C7' : '#F1F5F9'};color:${b.booking_mode === 'Online-Airbnb' ? '#B45309' : '#334155'};font-size:10px;">
+                              ${b.booking_mode || 'Direct'}
+                            </span>
+                          </td>
+                          <td style="padding:6px 10px;text-align:right;font-weight:800;color:#059669;">
+                            ₹${Number(b.total_amount || 0).toLocaleString('en-IN')}
+                          </td>
+                        </tr>
+                      `;
+                    }).join('')}
+                  </tbody>
+                </table>
+              </div>
+
+            </div>
+          `;
+        }).join('');
+
+      } catch(err) {
+        console.error('Error loading investor broadcast bookings:', err);
+        resultsArea.innerHTML = `<div class="error" style="color:#DC2626;background:#FEF2F2;padding:16px;border-radius:10px;">❌ Error loading bookings: ${escapeHtml(err.message)}</div>`;
+      }
+    };
+
+    // Format Date-wise Message
+    window._buildInvestorPropMessage = function(p, sDate, eDate) {
+      const propTotal = p.bookings.reduce((s, b) => s + Number(b.total_amount || 0), 0);
+      const totalNights = p.bookings.reduce((s, b) => s + (b.check_in && b.check_out && window.calcNights ? calcNights(b.check_in, b.check_out) : 1), 0);
+
+      const items = p.bookings.map((b, i) => {
+        const n = (b.check_in && b.check_out && window.calcNights) ? calcNights(b.check_in, b.check_out) : 1;
+        const ci = b.check_in;
+        const co = b.check_out;
+        const mode = b.booking_mode || 'Offline (Direct)';
+        const amt = Number(b.total_amount || 0).toLocaleString('en-IN');
+        return `${i + 1}. 📅 *${ci}* to *${co}* (${n}N)\n   • Booking: ${mode}\n   • Amount: ₹${amt}`;
+      }).join('\n\n');
+
+      return `Booking Update — Investor Statement
+
+Property: ${p.roomNickname} ${p.unitNo ? `(${p.unitNo})` : ''}
+Period: ${sDate} to ${eDate}
+
+Date-wise Bookings (${p.bookings.length}):
+
+${items}
+
+━━━━━━━━━━━━━━━━━━━━━━
+📈 Total Bookings: ${p.bookings.length}
+🌙 Total Nights: ${totalNights} Nights
+💰 Total Revenue: ₹${propTotal.toLocaleString('en-IN')}
+━━━━━━━━━━━━━━━━━━━━━━
+
+The Unique Haven Homes Property Management`;
+    };
+
+    window._toggleMsgPreview = function(idx) {
+      const box = document.getElementById(`msgPreviewBox_${idx}`);
+      if (box) box.style.display = box.style.display === 'none' ? 'block' : 'none';
+    };
+
+    window._openPropInWhatsAppWeb = function(idx) {
+      const p = window._currentInvestorProps?.[idx];
+      if (!p) return;
+      const sDate = document.getElementById('ibStartDate')?.value || startDefault;
+      const eDate = document.getElementById('ibEndDate')?.value || endDefault;
+      const msg = window._buildInvestorPropMessage(p, sDate, eDate);
+
+      let target = p.targetGroup || '';
+      let url = '';
+      if (target.includes('@g.us')) {
+        url = `https://web.whatsapp.com/send?text=${encodeURIComponent(msg)}`;
+      } else {
+        const cleanP = target.replace(/\D/g, '');
+        url = cleanP ? `https://wa.me/${cleanP}?text=${encodeURIComponent(msg)}` : `https://web.whatsapp.com/send?text=${encodeURIComponent(msg)}`;
+      }
+      window.open(url, '_blank');
+    };
+
+    window._sendSinglePropertyToInvestor = async function(idx) {
+      const p = window._currentInvestorProps?.[idx];
+      if (!p) return;
+      const sDate = document.getElementById('ibStartDate')?.value || startDefault;
+      const eDate = document.getElementById('ibEndDate')?.value || endDefault;
+      const msg = window._buildInvestorPropMessage(p, sDate, eDate);
+
+      const btn = document.getElementById(`btnSendProp_${idx}`);
+      const statusEl = document.getElementById(`propStatus_${idx}`);
+      if (btn) { btn.disabled = true; btn.textContent = '⏳ Sending...'; }
+      if (statusEl) statusEl.innerHTML = '<span style="color:#4F46E5;">⏳ Sending...</span>';
+
+      if (!p.targetGroup) {
+        alert(`⚠️ No target WhatsApp group mapped for property: ${p.roomNickname}.\nPlease send manually via WhatsApp Web or map the group in WhatsApp Hub.`);
+        if (btn) { btn.disabled = false; btn.textContent = '📤 Send to Investor'; }
+        if (statusEl) statusEl.innerHTML = '<span style="color:#DC2626;">❌ Group not mapped</span>';
+        return;
+      }
+
+      try {
+        const res = await dispatchWhatsAppMessage({
+          to: p.targetGroup,
+          isGroup: p.targetGroup.includes('@g.us'),
+          text: msg,
+          type: 'new_booking_investor',
+          guestName: `Investor Statement (${p.roomNickname})`
+        });
+
+        if (res && res.ok) {
+          if (btn) { btn.disabled = false; btn.textContent = '✅ Sent'; btn.style.background = '#059669'; }
+          if (statusEl) statusEl.innerHTML = '<span style="color:#059669;font-weight:800;">✅ Dispatched</span>';
+        } else {
+          throw new Error(res?.error || 'Failed to dispatch via gateway');
+        }
+      } catch(err) {
+        console.warn('Dispatch failed:', err);
+        if (btn) { btn.disabled = false; btn.textContent = '⚠️ Retry Send'; btn.style.background = '#DC2626'; }
+        if (statusEl) statusEl.innerHTML = `<span style="color:#DC2626;">❌ Failed: ${escapeHtml(err.message)}</span>`;
+        alert(`❌ Could not send automatically: ${err.message}\nOpening WhatsApp Web as fallback...`);
+        window._openPropInWhatsAppWeb(idx);
+      }
+    };
+
+    window._dispatchAllInvestorReports = async function() {
+      const props = window._currentInvestorProps || [];
+      if (!props.length) return;
+
+      const ok = confirm(`🚀 Kya aap sabhi (${props.length}) properties ke investors ko date-wise booking updates send karna chahte hain?`);
+      if (!ok) return;
+
+      const pWrap = document.getElementById('ibProgressWrap');
+      const pLabel = document.getElementById('ibProgressLabel');
+      const pBar = document.getElementById('ibProgressBar');
+      const btnAll = document.getElementById('ibBtnSendAll');
+
+      if (pWrap) pWrap.style.display = 'block';
+      if (btnAll) { btnAll.disabled = true; btnAll.textContent = '⏳ Dispatching All...'; }
+
+      let successCount = 0;
+      let failCount = 0;
+
+      for (let i = 0; i < props.length; i++) {
+        const p = props[i];
+        const pct = Math.round(((i + 1) / props.length) * 100);
+        if (pLabel) pLabel.textContent = `Dispatching ${i + 1} of ${props.length}: ${p.roomNickname}...`;
+        if (pBar) pBar.style.width = pct + '%';
+
+        const btn = document.getElementById(`btnSendProp_${i}`);
+        const statusEl = document.getElementById(`propStatus_${i}`);
+        if (btn) { btn.disabled = true; btn.textContent = '⏳ Sending...'; }
+
+        if (!p.targetGroup) {
+          failCount++;
+          if (statusEl) statusEl.innerHTML = '<span style="color:#DC2626;">❌ Group not mapped</span>';
+          continue;
+        }
+
+        const sDate = document.getElementById('ibStartDate')?.value || startDefault;
+        const eDate = document.getElementById('ibEndDate')?.value || endDefault;
+        const msg = window._buildInvestorPropMessage(p, sDate, eDate);
+
+        try {
+          const res = await dispatchWhatsAppMessage({
+            to: p.targetGroup,
+            isGroup: p.targetGroup.includes('@g.us'),
+            text: msg,
+            type: 'new_booking_investor',
+            guestName: `Investor Statement (${p.roomNickname})`
+          });
+
+          if (res && res.ok) {
+            successCount++;
+            if (btn) { btn.disabled = false; btn.textContent = '✅ Sent'; btn.style.background = '#059669'; }
+            if (statusEl) statusEl.innerHTML = '<span style="color:#059669;font-weight:800;">✅ Dispatched</span>';
+          } else {
+            throw new Error(res?.error || 'Failed');
+          }
+        } catch(err) {
+          failCount++;
+          if (btn) { btn.disabled = false; btn.textContent = '⚠️ Retry'; }
+          if (statusEl) statusEl.innerHTML = `<span style="color:#DC2626;">❌ ${escapeHtml(err.message)}</span>`;
+        }
+
+        // 1-second delay between dispatches
+        await new Promise(r => setTimeout(r, 1000));
+      }
+
+      if (btnAll) {
+        btnAll.disabled = false;
+        btnAll.textContent = `✅ Completed (${successCount} Sent, ${failCount} Failed)`;
+      }
+      if (pLabel) {
+        pLabel.textContent = `Completed! ${successCount} sent successfully${failCount > 0 ? `, ${failCount} failed/unmapped` : ''}.`;
+      }
+      alert(`🎉 Dispatch Completed!\n✅ Successfully sent to ${successCount} property investors.\n${failCount > 0 ? `⚠️ ${failCount} properties could not be sent (group unmapped or offline).` : ''}`);
+    };
+
+    // Close on Escape key press
+    const escIb = (e) => {
+      if (e.key === 'Escape' || e.keyCode === 27) {
+        modal.remove();
+        window.removeEventListener('keydown', escIb);
+      }
+    };
+    window.addEventListener('keydown', escIb);
+
+    document.body.appendChild(modal);
+
+    // Initial load
+    setTimeout(() => {
+      window._loadInvestorBroadcastData();
+    }, 100);
+  }
+
   window.renderWhatsAppHub = renderWhatsAppHub;
   window.dispatchWhatsAppMessage = dispatchWhatsAppMessage;
+  window.openInvestorBookingBroadcastModal = openInvestorBookingBroadcastModal;
 })();

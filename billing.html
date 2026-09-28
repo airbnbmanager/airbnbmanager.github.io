@@ -460,14 +460,20 @@ function renderReceiptScreen() {
     <!-- Action Bar -->
     <div class="action-bar">
       <button class="abtn primary" onclick="printReceiptDoc()">🖨️ Print / Save PDF</button>
-      ${fullP ? `
-        <button class="abtn green" onclick="window.open('https://wa.me/${fullP}?text='+encodeURIComponent(document.getElementById('receiptWaTextarea').value),'_blank')">
-          💬 WhatsApp to Guest
+      <button class="abtn green" onclick="window.sharePdfViaWhatsApp('receiptDocArea', { filename: 'UHHS_Receipt_${b.booking_id}.pdf', phone: '${b.phone || ''}', message: document.getElementById('receiptWaTextarea').value, title: 'Booking Receipt - UHHS', triggerBtn: this })">
+        📱 WhatsApp (with PDF)
+      </button>
+      <button class="abtn" onclick="copyReceiptWhatsAppText()">📋 Copy Text</button>
+      ${(b.stay_group_id || (allBookings.filter(x => x.phone && x.phone === b.phone).length > 1)) ? `
+        <button class="abtn" onclick="if(window.openMultiPropertyReceiptModal) window.openMultiPropertyReceiptModal('${b.stay_group_id || b.phone}')" style="border-color:#4F46E5;color:#4F46E5;font-weight:700;">
+          🏢 Combined Group Receipt
         </button>
       ` : ''}
-      <button class="abtn" onclick="copyReceiptWhatsAppText()">📋 Copy WhatsApp Text</button>
       <button class="abtn" onclick="setDocMode('gst')" style="border-color:#b58d3d;color:#b58d3d;font-weight:700;">
         🧾 Switch to GST Tax Invoice
+      </button>
+      <button class="abtn" onclick="if(window.history.length>1){window.history.back();}else{window.location.href='index.html';}" style="border-color:#DC2626;color:#DC2626;font-weight:700;">
+        ✕ Close
       </button>
       <span style="margin-left:auto;font-size:11px;color:var(--muted);">
         Status: <strong>${b._due === 0 ? '✅ Fully Paid' : '⚠️ Advance Paid (₹' + b._due.toLocaleString('en-IN') + ' Balance Due)'}</strong>
@@ -541,9 +547,15 @@ function renderInvoiceScreen() {
     <div class="action-bar">
       <button class="abtn primary" onclick="printInvoice()">🖨️ Print / Save PDF</button>
       <button class="abtn green" onclick="saveInvoice()">💾 Save Invoice</button>
+      <button class="abtn" style="background:#25D366;color:#fff;font-weight:700;border:none;" onclick="window.sharePdfViaWhatsApp('invoiceDoc', { filename: 'UHHS_GST_Invoice_${invNo}.pdf', phone: '${b.phone || ''}', message: '🧾 *GST Tax Invoice* for your stay at The Unique Haven Homes.%0AInvoice: ' + (document.getElementById('invNoInp')?.value || '${invNo}') + '%0AAmount: ₹${total.toLocaleString('en-IN')}', title: 'GST Tax Invoice - UHHS', triggerBtn: this })">
+        📱 WhatsApp (with PDF)
+      </button>
       <button class="abtn" onclick="copyText()">📋 Copy Text</button>
       <button class="abtn" onclick="setDocMode('receipt')" style="border-color:#0f172a;color:#0f172a;font-weight:700;">
         📄 Switch to Booking Receipt (No GST)
+      </button>
+      <button class="abtn" onclick="if(window.history.length>1){window.history.back();}else{window.location.href='index.html';}" style="border-color:#DC2626;color:#DC2626;font-weight:700;">
+        ✕ Close
       </button>
       <span style="margin-left:auto;font-size:11px;color:var(--muted);">${b._inv?'✅ Already saved for CA':'📝 Draft — not saved'}</span>
     </div>

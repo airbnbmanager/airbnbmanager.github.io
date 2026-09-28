@@ -365,10 +365,16 @@ async function renderSmartManageBookings() {
           <div class="airbnb-notice-title" style="color:#222222;font-size:14px;font-weight:700;">Host Operations Hub</div>
           <div class="airbnb-notice-desc" style="color:#717171;font-size:12.5px;font-weight:500;">17 Luxury Homestays &bull; iCal Channel Sync &amp; WhatsApp Active</div>
         </div>
-        <div style="display:flex;gap:6px;align-items:center;">
+        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
           ${canM ? `
-            <button class="btn-sm" onclick="event.stopPropagation();renderAddBooking()" style="background:#222222;color:#fff;border-radius:20px;font-weight:700;padding:6px 14px;border:none;font-size:12px;">
-              + New
+            <button class="btn-sm" onclick="event.stopPropagation();if(window.openInvestorBookingBroadcastModal)window.openInvestorBookingBroadcastModal();else if(window.renderWhatsAppHub)window.renderWhatsAppHub();" style="background:#0F172A;color:#fff;border-radius:20px;font-weight:700;padding:6px 14px;border:none;font-size:12px;cursor:pointer;" title="Send date-wise booking updates to all property investors for any date range (from 1 Sep to today or custom)">
+              📢 Broadcast to Investors
+            </button>
+            <button class="btn-sm" onclick="event.stopPropagation();window.renderMultiPropertyBooking()" style="background:#4F46E5;color:#fff;border-radius:20px;font-weight:700;padding:6px 14px;border:none;font-size:12px;cursor:pointer;" title="Book multiple homestays in one go for groups, family or wedding stays">
+              🏢 + Multi-Property
+            </button>
+            <button class="btn-sm" onclick="event.stopPropagation();window.switchBookingWizardMode('single');renderAddBooking()" style="background:#222222;color:#fff;border-radius:20px;font-weight:700;padding:6px 14px;border:none;font-size:12px;cursor:pointer;">
+              + New Single
             </button>
           ` : ''}
         </div>
@@ -597,6 +603,12 @@ function renderAirbnbReservationsHtml(bookings, paidMap, canM, today) {
                 ` : `
                   <span class="airbnb-chip paid">✅ Paid ₹${dynamicTotal.toLocaleString('en-IN')}</span>
                 `}
+
+                ${b.stay_group_id ? `
+                  <span class="airbnb-chip" style="background:#EEF2FF;color:#4F46E5;font-weight:800;cursor:pointer;" onclick="event.stopPropagation();window.openMultiPropertyReceiptModal('${b.stay_group_id}')" title="Multi-Property Group Booking: ${b.stay_group_id} · Click to view combined receipt">
+                    🏢 Group Stay
+                  </span>
+                ` : ''}
 
                 ${hasId ? `
                   <span class="airbnb-chip id">🪪 ID Verified</span>
@@ -1137,6 +1149,11 @@ window.openBookingDrawer = async function(bookingId) {
             <button class="btn-sm" style="background:#0F172A;color:#fff;padding:10px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;gap:6px;" onclick="window.openBookingReceiptModal('${b.booking_id}')" title="Generate Booking Confirmation & Advance Receipt (Without GST)">
               📄 Booking Receipt
             </button>
+            ${b.stay_group_id ? `
+              <button class="btn-sm" style="background:#4F46E5;color:#fff;padding:10px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;gap:6px;" onclick="window.openMultiPropertyReceiptModal('${b.stay_group_id}')" title="View Combined Multi-Property Receipt for this group">
+                🏢 Group Receipt
+              </button>
+            ` : ''}
             <button class="btn-sm" style="background:#B45309;color:#fff;padding:10px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;gap:6px;" onclick="window.openGSTInvoiceModal('${b.booking_id}')" title="Generate GST Tax Invoice">
               🧾 GST Invoice
             </button>
@@ -1310,16 +1327,17 @@ async function renderSmartAddBooking() {
   // Load rooms and recent bookings for conflict checking
   const [{ data: rooms }, { data: existingBookings }] = await Promise.all([
     sb.from('rooms').select('room_id, unit_no, nickname, property_name, rent_per_night, bookable').order('unit_no'),
-    sb.from('guest_register').select('booking_id, guest_name, phone, room_id, check_in, check_out, is_cancelled, booking_mode, total_amount')
-      .gte('check_out', today).neq('is_cancelled', true)
+    sb.from('guest_register').select('booking_id, room_id, check_in, check_out, guest_name, is_cancelled').gte('check_out', today).order('check_in', { ascending: true })
   ]);
 
-  window._roomsCache = rooms || [];
-  window._smartRecentBookings = existingBookings || [];
+  window._cachedRooms = rooms || [];
+  window._cachedBookings = existingBookings || [];
 
   const defaultRoom = pre.roomId || (rooms && rooms[0]?.room_id) || '';
   const defaultCheckIn = pre.checkIn || today;
   const defaultCheckOut = pre.checkOut || tomorrow;
+  const wizardMode = window._sbkWizardMode || 'single';
+  const nDays = Math.max(calcNights(defaultCheckIn, defaultCheckOut), 1);
 
   const html = `
     <div class="card" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:14px;">
@@ -1328,18 +1346,31 @@ async function renderSmartAddBooking() {
           <span>⚡ Fast &amp; Zero-Error Booking</span>
         </h1>
         <div style="font-size:12.5px;color:var(--muted);margin-top:2px;">
-          Instant availability radar, repeat guest lookup &amp; live rate calculator.
+          ${wizardMode === 'multi' ? 'Book multiple properties in one go with unified advance receipt &amp; WhatsApp statement.' : 'Instant availability radar, repeat guest lookup &amp; live rate calculator.'}
         </div>
       </div>
-      <button class="secondary btn-sm" onclick="window._bookingPrefill=null;renderSmartManageBookings()">
-        ← Back to Bookings
-      </button>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <button class="secondary btn-sm" onclick="window._bookingPrefill=null;window._sbkWizardMode='single';renderSmartManageBookings()">
+          ← Back to Bookings
+        </button>
+      </div>
     </div>
 
-    <div class="card" style="max-width:880px;margin:0 auto;">
+    <div class="card" style="max-width:900px;margin:0 auto;">
       <!-- Hidden inputs for parent booking / group -->
       <input type="hidden" id="parentBookingId" value="${pre.parentBookingId || ''}" />
       <input type="hidden" id="stayGroupId" value="${pre.stayGroupId || ''}" />
+
+      <!-- 🏢 BOOKING MODE SWITCHER TABS -->
+      <div style="background:#F1F5F9;padding:6px;border-radius:12px;display:flex;gap:6px;margin-bottom:18px;border:1.5px solid #E2E8F0;">
+        <button type="button" class="btn-sm" style="flex:1;padding:10px 14px;font-weight:800;border-radius:8px;border:none;background:${wizardMode === 'single' ? '#0F172A' : 'transparent'};color:${wizardMode === 'single' ? '#fff' : '#64748B'};cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;transition:all 0.15s;" onclick="window.switchBookingWizardMode('single')">
+          <span>🏠 Single Homestay Stay</span>
+        </button>
+        <button type="button" class="btn-sm" style="flex:1;padding:10px 14px;font-weight:800;border-radius:8px;border:none;background:${wizardMode === 'multi' ? '#4F46E5' : 'transparent'};color:${wizardMode === 'multi' ? '#fff' : '#64748B'};cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;transition:all 0.15s;" onclick="window.switchBookingWizardMode('multi')">
+          <span>🏢 Multi-Property / Group Booking (एक साथ कई प्रॉपर्टी)</span>
+          <span style="background:${wizardMode === 'multi' ? '#F59E0B' : '#E2E8F0'};color:${wizardMode === 'multi' ? '#0F172A' : '#475569'};font-size:10px;padding:2px 7px;border-radius:10px;">PRO</span>
+        </button>
+      </div>
 
       <!-- SECTION 1: GUEST DETAILS & SMART PHONE LOOKUP -->
       <div style="margin-bottom:18px;">
@@ -1350,15 +1381,28 @@ async function renderSmartAddBooking() {
         <div class="form-grid">
           <div class="form-group">
             <label style="font-weight:700;">Mobile Phone * <small style="color:var(--muted);">(10 Digits)</small></label>
-            <input id="guestPhone" type="tel" placeholder="e.g. 9876543210" value="${pre.guestPhone || ''}"
+            <input id="guestPhone" type="tel" placeholder="e.g. 9560172711" value="${pre.guestPhone || ''}"
               oninput="window.onSmartPhoneInput(this.value)" style="font-size:14px;font-weight:600;" />
           </div>
           <div class="form-group">
             <label style="font-weight:700;">Guest Name *</label>
-            <input id="guestName" placeholder="Full name of guest" value="${pre.guestName || ''}"
+            <input id="guestName" placeholder="Full name of guest (e.g. Neelkamal)" value="${pre.guestName || ''}"
               style="font-size:14px;font-weight:600;" />
           </div>
         </div>
+
+        ${wizardMode === 'multi' ? `
+          <div class="form-group" style="margin-top:10px;">
+            <label style="font-weight:600;font-size:12.5px;">Occasion / Group Tag (Optional)</label>
+            <select id="groupTag" style="font-size:13px;padding:8px 10px;">
+              <option value="Family Trip" ${pre.groupTag === 'Family Trip' ? 'selected' : ''}>👨‍👩‍👧 Family Trip / Holiday</option>
+              <option value="Wedding" ${pre.groupTag === 'Wedding' ? 'selected' : ''}>💒 Wedding / Celebration Guests</option>
+              <option value="Corporate" ${pre.groupTag === 'Corporate' ? 'selected' : ''}>💼 Corporate / Business Group</option>
+              <option value="Friends" ${pre.groupTag === 'Friends' ? 'selected' : ''}>👥 Friends Group</option>
+              <option value="Multi-Stay" ${!pre.groupTag || pre.groupTag === 'Multi-Stay' ? 'selected' : ''}>🏢 Multi-Property Reservation</option>
+            </select>
+          </div>
+        ` : ''}
 
         <!-- Repeat Guest Detected Banner (Dynamic) -->
         <div id="repeatGuestBanner"></div>
@@ -1366,127 +1410,294 @@ async function renderSmartAddBooking() {
 
       <hr style="border:none;border-top:1px solid var(--border);margin:16px 0;">
 
-      <!-- SECTION 2: STAY DATES & LIVE ROOM RADAR -->
-      <div style="margin-bottom:18px;">
-        <div style="font-size:14px;font-weight:800;color:var(--dark);margin-bottom:10px;display:flex;align-items:center;gap:6px;">
-          <span>🏠 2. Property &amp; Dates</span>
+      ${wizardMode === 'multi' ? `
+        <!-- ════════════ MULTI-PROPERTY MODE ════════════ -->
+
+        <!-- SECTION 2: MASTER STAY SCHEDULE -->
+        <div style="margin-bottom:18px;">
+          <div style="font-size:14px;font-weight:800;color:var(--dark);margin-bottom:10px;display:flex;align-items:center;gap:6px;">
+            <span>📅 2. Stay Dates &amp; Times (All Selected Homestays)</span>
+          </div>
+
+          <div class="form-grid">
+            <div class="form-group">
+              <label style="font-weight:700;">Check-In Date *</label>
+              <input id="checkIn" type="date" value="${defaultCheckIn}" onchange="window.onMultiDateChange()" />
+            </div>
+            <div class="form-group">
+              <label style="font-weight:700;">Check-Out Date *</label>
+              <input id="checkOut" type="date" value="${defaultCheckOut}" onchange="window.onMultiDateChange()" />
+            </div>
+          </div>
+
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Check-In Time</label>
+              <input id="checkInTime" type="time" value="${pre.checkInTime || '14:00'}" />
+            </div>
+            <div class="form-group">
+              <label>Check-Out Time</label>
+              <input id="checkOutTime" type="time" value="${pre.checkOutTime || '11:00'}" />
+            </div>
+          </div>
         </div>
 
-        <div class="form-grid">
+        <hr style="border:none;border-top:1px solid var(--border);margin:16px 0;">
+
+        <!-- SECTION 3: MULTI-PROPERTY SELECTOR -->
+        <div style="margin-bottom:18px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px;">
+            <div>
+              <div style="font-size:14px;font-weight:800;color:var(--dark);display:flex;align-items:center;gap:6px;">
+                <span>🏢 3. Select Homestays (${rooms?.length || 0} Total Available)</span>
+              </div>
+              <div style="font-size:11.5px;color:var(--muted);margin-top:2px;">
+                Check all homestays needed for this guest. Guests count and stay amounts are customizable per unit.
+              </div>
+            </div>
+            <div style="display:flex;gap:6px;">
+              <button type="button" class="btn-sm" style="background:#EEF2FF;color:#4F46E5;border:1px solid #C7D2FE;font-weight:700;font-size:11.5px;" onclick="window.selectAllAvailableRooms()">
+                ✔ Select All Free
+              </button>
+              <button type="button" class="btn-sm outline" style="font-size:11.5px;font-weight:700;" onclick="window.clearMultiRoomsSelection()">
+                ✕ Clear
+              </button>
+            </div>
+          </div>
+
+          <!-- Property Cards Grid -->
+          <div style="display:grid;grid-template-columns:repeat(auto-fill, minmax(260px, 1fr));gap:10px;" id="multiPropertyCardsGrid">
+            ${(rooms || []).map(r => {
+              const clash = (existingBookings || []).find(b => b.room_id === r.room_id && !b.is_cancelled && b.check_in && b.check_out && b.check_in < defaultCheckOut && b.check_out > defaultCheckIn);
+              const isClash = !!clash;
+              const standardAmt = (r.rent_per_night || 3499) * nDays;
+
+              return `
+                <div id="propCard_${r.room_id}" class="multi-prop-card" style="border:1.5px solid ${isClash ? '#FECACA' : '#E2E8F0'};border-radius:10px;padding:11px 13px;background:#fff;transition:all 0.15s;position:relative;">
+                  <div style="display:flex;align-items:flex-start;gap:10px;">
+                    <input type="checkbox" class="multi-room-cb" id="cb_${r.room_id}" data-rid="${r.room_id}" onchange="window.onMultiRoomCheckChange('${r.room_id}')" style="width:19px;height:19px;margin-top:2px;cursor:pointer;" />
+                    <div style="flex:1;">
+                      <div style="font-weight:800;font-size:13px;color:#0F172A;line-height:1.3;">
+                        ${escapeHtml(r.nickname || r.property_name || r.room_id)}
+                      </div>
+                      <div style="font-size:11px;color:var(--muted);margin-top:2px;">
+                        Unit ${escapeHtml(r.unit_no || '-')} · ₹${(r.rent_per_night || 3499).toLocaleString('en-IN')}/night
+                      </div>
+                      <div style="margin-top:5px;">
+                        <span id="radarBadge_${r.room_id}" style="font-size:10px;font-weight:800;padding:2px 7px;border-radius:10px;background:${isClash ? '#FEF2F2' : '#F0FDF4'};color:${isClash ? '#DC2626' : '#15803D'};display:inline-block;">
+                          ${isClash ? `⚠️ Busy (${escapeHtml(clash.guest_name || 'Booked')})` : '✅ Available'}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Custom config when selected -->
+                  <div id="config_${r.room_id}" style="display:none;margin-top:10px;padding-top:8px;border-top:1px dashed #CBD5E1;gap:8px;align-items:center;">
+                    <div style="flex:1;">
+                      <label style="font-size:10px;font-weight:700;color:var(--muted);display:block;margin-bottom:2px;">Guests</label>
+                      <input id="guests_${r.room_id}" type="number" min="1" max="8" value="2" oninput="window.recalcMultiTotals()" style="width:100%;padding:4px 6px;font-size:12px;border:1px solid #CBD5E1;border-radius:6px;" />
+                    </div>
+                    <div style="flex:1.5;">
+                      <label style="font-size:10px;font-weight:700;color:var(--muted);display:block;margin-bottom:2px;">Rate ₹</label>
+                      <input id="amt_${r.room_id}" type="number" value="${standardAmt}" oninput="this.dataset.customized='true';window.recalcMultiTotals(true)" style="width:100%;padding:4px 6px;font-size:12px;font-weight:700;border:1px solid #CBD5E1;border-radius:6px;" />
+                    </div>
+                  </div>
+                </div>
+              `;
+            }).join('')}
+          </div>
+
+          <!-- Sticky live selection summary pill -->
+          <div style="background:#F8FAFC;border:1.5px solid #CBD5E1;border-radius:10px;padding:10px 14px;margin-top:12px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+            <div style="display:flex;align-items:center;gap:12px;font-size:12.5px;">
+              <span>🏢 <strong id="multiSummaryCount" style="color:#4F46E5;">0 Homestays</strong></span>
+              <span>👥 <strong id="multiSummaryGuests">0 Guests</strong></span>
+              <span>🌙 <strong id="multiSummaryNights">${nDays} Nights</strong></span>
+            </div>
+            <div style="font-size:12px;color:var(--muted);">
+              Check properties above to add them to this reservation
+            </div>
+          </div>
+        </div>
+
+        <hr style="border:none;border-top:1px solid var(--border);margin:16px 0;">
+
+        <!-- SECTION 4: CONSOLIDATED FINANCIALS & ADVANCE -->
+        <div style="margin-bottom:18px;">
+          <div style="font-size:14px;font-weight:800;color:var(--dark);margin-bottom:10px;display:flex;align-items:center;gap:6px;">
+            <span>💰 4. Consolidated Financials &amp; Advance Payment</span>
+          </div>
+
+          <div class="form-grid">
+            <div class="form-group">
+              <label style="font-weight:700;">Grand Total Stay Amount ₹ *</label>
+              <input id="multiTotalAmount" type="number" placeholder="0" value="0" oninput="window.recalcMultiTotals(true)" style="font-size:16px;font-weight:800;" />
+            </div>
+            <div class="form-group">
+              <label style="font-weight:700;">Total Advance Received ₹</label>
+              <input id="multiAdvanceAmt" type="number" placeholder="0" value="${pre.advanceAmt || 0}" oninput="window.recalcMultiTotals(true)" style="font-size:16px;font-weight:800;color:#059669;" />
+            </div>
+          </div>
+
+          <div class="form-grid">
+            <div class="form-group">
+              <label style="font-weight:700;">Advance Payment Mode *</label>
+              <select id="advMode" onchange="window.onSmartAdvModeChange(this.value)">
+                <option value="UPI" ${pre.advMode === 'UPI' ? 'selected' : ''}>📱 UPI</option>
+                <option value="Cash" ${pre.advMode === 'Cash' ? 'selected' : ''}>💵 Cash</option>
+                <option value="Bank" ${pre.advMode === 'Bank' ? 'selected' : ''}>🏦 Bank Account</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label style="font-weight:700;" id="smartAdvReceivedByLabel">💰 Received By *</label>
+              <select id="advReceivedBy" style="font-weight:600;">
+                <option value="">-- Select Team Member --</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Consolidated Price Breakdown Card -->
+          <div class="sbk-price-summary-box" style="margin-top:10px;">
+            <div class="sbk-price-row">
+              <span style="color:var(--muted);">Total Group Bill:</span>
+              <strong id="multiSummaryTotal">₹0</strong>
+            </div>
+            <div class="sbk-price-row">
+              <span style="color:var(--muted);">Total Advance Paid:</span>
+              <strong id="multiSummaryAdvance" style="color:#059669;">₹0</strong>
+            </div>
+            <div class="sbk-price-row balance" id="multiBalanceRow">
+              <span>Balance Due at Check-in:</span>
+              <strong id="multiSummaryBalance" style="color:#DC2626;">₹0</strong>
+            </div>
+          </div>
+        </div>
+
+      ` : `
+        <!-- ════════════ SINGLE PROPERTY MODE ════════════ -->
+
+        <!-- SECTION 2: STAY DATES & LIVE ROOM RADAR -->
+        <div style="margin-bottom:18px;">
+          <div style="font-size:14px;font-weight:800;color:var(--dark);margin-bottom:10px;display:flex;align-items:center;gap:6px;">
+            <span>🏠 2. Property &amp; Dates</span>
+          </div>
+
+          <div class="form-grid">
+            <div class="form-group">
+              <label style="font-weight:700;">Select Property *</label>
+              <select id="roomId" onchange="window.triggerLiveRadarCheck()" style="font-weight:700;font-size:14px;">
+                <option value="">-- Choose Homestay --</option>
+                ${(rooms || []).map(r => `
+                  <option value="${r.room_id}" ${defaultRoom === r.room_id ? 'selected' : ''}>
+                    ${propLabel(r)} (₹${r.rent_per_night || 3499}/night)
+                  </option>
+                `).join('')}
+              </select>
+            </div>
+            <div class="form-group">
+              <label style="font-weight:700;">Number of Guests</label>
+              <input id="guests" type="number" min="1" max="8" value="${pre.guests || 2}" />
+            </div>
+          </div>
+
+          <div class="form-grid">
+            <div class="form-group">
+              <label style="font-weight:700;">Check-In Date *</label>
+              <input id="checkIn" type="date" value="${defaultCheckIn}" onchange="window.onSmartDateChange('checkIn')" />
+            </div>
+            <div class="form-group">
+              <label style="font-weight:700;">Check-Out Date *</label>
+              <input id="checkOut" type="date" value="${defaultCheckOut}" onchange="window.onSmartDateChange('checkOut')" />
+            </div>
+          </div>
+
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Check-In Time</label>
+              <input id="checkInTime" type="time" value="${pre.checkInTime || '14:00'}" />
+            </div>
+            <div class="form-group">
+              <label>Check-Out Time</label>
+              <input id="checkOutTime" type="time" value="${pre.checkOutTime || '11:00'}" />
+            </div>
+          </div>
+
           <div class="form-group">
-            <label style="font-weight:700;">Select Property *</label>
-            <select id="roomId" onchange="window.triggerLiveRadarCheck()" style="font-weight:700;font-size:14px;">
-              <option value="">-- Choose Homestay --</option>
-              ${(rooms || []).map(r => `
-                <option value="${r.room_id}" ${defaultRoom === r.room_id ? 'selected' : ''}>
-                  ${propLabel(r)} (₹${r.rent_per_night || 3499}/night)
-                </option>
-              `).join('')}
+            <label style="font-weight:600;">Stay Type</label>
+            <select id="checkoutConfirmed" onchange="window.onSmartCheckoutTypeChange(this.value)">
+              <option value="yes" ${pre.checkoutConfirmed !== 'no' ? 'selected' : ''}>Fixed Date (Standard Stay)</option>
+              <option value="no" ${pre.checkoutConfirmed === 'no' ? 'selected' : ''}>Open-Ended Stay (Per Day Basis)</option>
             </select>
           </div>
-          <div class="form-group">
-            <label style="font-weight:700;">Number of Guests</label>
-            <input id="guests" type="number" min="1" max="8" value="${pre.guests || 2}" />
-          </div>
+
+          <!-- ⚡ LIVE ROOM AVAILABILITY RADAR BANNER -->
+          <div id="liveRadarBanner"></div>
         </div>
 
-        <div class="form-grid">
-          <div class="form-group">
-            <label style="font-weight:700;">Check-In Date *</label>
-            <input id="checkIn" type="date" value="${defaultCheckIn}" onchange="window.onSmartDateChange('checkIn')" />
+        <hr style="border:none;border-top:1px solid var(--border);margin:16px 0;">
+
+        <!-- SECTION 3: PRICING & ADVANCE PAYMENT (AUTO-CALCULATED) -->
+        <div style="margin-bottom:18px;">
+          <div style="font-size:14px;font-weight:800;color:var(--dark);margin-bottom:10px;display:flex;align-items:center;gap:6px;">
+            <span>💰 3. Financials &amp; Payments</span>
           </div>
-          <div class="form-group">
-            <label style="font-weight:700;">Check-Out Date *</label>
-            <input id="checkOut" type="date" value="${defaultCheckOut}" onchange="window.onSmartDateChange('checkOut')" />
+
+          <div class="form-grid">
+            <div class="form-group">
+              <label style="font-weight:700;">Total Stay Amount ₹ *</label>
+              <input id="totalAmount" type="number" placeholder="Enter total amount"
+                value="${pre.totalAmount || ''}" oninput="window.recalcSmartPrice()" style="font-size:15px;font-weight:700;" />
+            </div>
+            <div class="form-group">
+              <label style="font-weight:700;">Advance Paid ₹</label>
+              <input id="advanceAmt" type="number" placeholder="0" value="${pre.advanceAmt || 0}"
+                oninput="window.recalcSmartPrice()" style="font-size:15px;font-weight:700;color:#059669;" />
+            </div>
+          </div>
+
+          <!-- Advance details (Mode & Receiver) -->
+          <div class="form-grid" id="smartAdvDetailsRow" style="display:${(pre.advanceAmt || 0) > 0 ? 'grid' : 'none'};">
+            <div class="form-group">
+              <label style="font-weight:700;">Advance Payment Mode *</label>
+              <select id="advMode" onchange="window.onSmartAdvModeChange(this.value)">
+                <option value="UPI" ${pre.advMode === 'UPI' ? 'selected' : ''}>📱 UPI</option>
+                <option value="Cash" ${pre.advMode === 'Cash' ? 'selected' : ''}>💵 Cash</option>
+                <option value="Bank" ${pre.advMode === 'Bank' ? 'selected' : ''}>🏦 Bank Account</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label style="font-weight:700;" id="smartAdvReceivedByLabel">💰 Received By *</label>
+              <select id="advReceivedBy" style="font-weight:600;">
+                <option value="">-- Select Team Member --</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Live Price & Balance Breakdown Box -->
+          <div class="sbk-price-summary-box">
+            <div class="sbk-price-row">
+              <span style="color:var(--muted);">Calculated Duration:</span>
+              <strong id="smartNightsSummary">1 Night</strong>
+            </div>
+            <div class="sbk-price-row">
+              <span style="color:var(--muted);">Advance Received:</span>
+              <strong id="smartAdvanceSummary" style="color:#059669;">₹0</strong>
+            </div>
+            <div class="sbk-price-row total">
+              <span>Total Bill:</span>
+              <span id="smartTotalSummary">₹0</span>
+            </div>
+            <div class="sbk-price-row balance" id="smartBalanceRow">
+              <span>Balance to Collect at Check-in:</span>
+              <span id="smartBalanceSummary">₹0</span>
+            </div>
           </div>
         </div>
-
-        <div class="form-grid">
-          <div class="form-group">
-            <label>Check-In Time</label>
-            <input id="checkInTime" type="time" value="${pre.checkInTime || '14:00'}" />
-          </div>
-          <div class="form-group">
-            <label>Check-Out Time</label>
-            <input id="checkOutTime" type="time" value="${pre.checkOutTime || '11:00'}" />
-          </div>
-        </div>
-
-        <div class="form-group">
-          <label style="font-weight:600;">Stay Type</label>
-          <select id="checkoutConfirmed" onchange="window.onSmartCheckoutTypeChange(this.value)">
-            <option value="yes" ${pre.checkoutConfirmed !== 'no' ? 'selected' : ''}>Fixed Date (Standard Stay)</option>
-            <option value="no" ${pre.checkoutConfirmed === 'no' ? 'selected' : ''}>Open-Ended Stay (Per Day Basis)</option>
-          </select>
-        </div>
-
-        <!-- ⚡ LIVE ROOM AVAILABILITY RADAR BANNER -->
-        <div id="liveRadarBanner"></div>
-      </div>
+      `}
 
       <hr style="border:none;border-top:1px solid var(--border);margin:16px 0;">
 
-      <!-- SECTION 3: PRICING & ADVANCE PAYMENT (AUTO-CALCULATED) -->
-      <div style="margin-bottom:18px;">
-        <div style="font-size:14px;font-weight:800;color:var(--dark);margin-bottom:10px;display:flex;align-items:center;gap:6px;">
-          <span>💰 3. Financials &amp; Payments</span>
-        </div>
-
-        <div class="form-grid">
-          <div class="form-group">
-            <label style="font-weight:700;">Total Stay Amount ₹ *</label>
-            <input id="totalAmount" type="number" placeholder="Enter total amount"
-              value="${pre.totalAmount || ''}" oninput="window.recalcSmartPrice()" style="font-size:15px;font-weight:700;" />
-          </div>
-          <div class="form-group">
-            <label style="font-weight:700;">Advance Paid ₹</label>
-            <input id="advanceAmt" type="number" placeholder="0" value="${pre.advanceAmt || 0}"
-              oninput="window.recalcSmartPrice()" style="font-size:15px;font-weight:700;color:#059669;" />
-          </div>
-        </div>
-
-        <!-- Advance details (Mode & Receiver) -->
-        <div class="form-grid" id="smartAdvDetailsRow" style="display:${(pre.advanceAmt || 0) > 0 ? 'grid' : 'none'};">
-          <div class="form-group">
-            <label style="font-weight:700;">Advance Payment Mode *</label>
-            <select id="advMode" onchange="window.onSmartAdvModeChange(this.value)">
-              <option value="UPI" ${pre.advMode === 'UPI' ? 'selected' : ''}>📱 UPI</option>
-              <option value="Cash" ${pre.advMode === 'Cash' ? 'selected' : ''}>💵 Cash</option>
-              <option value="Bank" ${pre.advMode === 'Bank' ? 'selected' : ''}>🏦 Bank Account</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label style="font-weight:700;" id="smartAdvReceivedByLabel">💰 Received By *</label>
-            <select id="advReceivedBy" style="font-weight:600;">
-              <option value="">-- Select Team Member --</option>
-            </select>
-          </div>
-        </div>
-
-        <!-- Live Price & Balance Breakdown Box -->
-        <div class="sbk-price-summary-box">
-          <div class="sbk-price-row">
-            <span style="color:var(--muted);">Calculated Duration:</span>
-            <strong id="smartNightsSummary">1 Night</strong>
-          </div>
-          <div class="sbk-price-row">
-            <span style="color:var(--muted);">Advance Received:</span>
-            <strong id="smartAdvanceSummary" style="color:#059669;">₹0</strong>
-          </div>
-          <div class="sbk-price-row total">
-            <span>Total Bill:</span>
-            <span id="smartTotalSummary">₹0</span>
-          </div>
-          <div class="sbk-price-row balance" id="smartBalanceRow">
-            <span>Balance to Collect at Check-in:</span>
-            <span id="smartBalanceSummary">₹0</span>
-          </div>
-        </div>
-      </div>
-
-      <hr style="border:none;border-top:1px solid var(--border);margin:16px 0;">
-
-      <!-- SECTION 4: PROGRESSIVE DISCLOSURE ACCORDIONS (Clean & Uncluttered) -->
+      <!-- SECTION 5: PROGRESSIVE DISCLOSURE ACCORDIONS -->
       <div>
         <!-- Accordion 1: ID Proofs -->
         <div class="sbk-accordion-card">
@@ -1513,7 +1724,7 @@ async function renderSmartAddBooking() {
 
             <!-- Guest 1 Front & Back upload -->
             <div style="background:#F8FAFC;border:1px solid var(--border);border-radius:10px;padding:12px;margin-top:10px;">
-              <div style="font-weight:700;font-size:13px;margin-bottom:8px;">Guest 1 Photo ID</div>
+              <div style="font-weight:700;font-size:13px;margin-bottom:8px;">Primary Guest Photo ID</div>
               <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
                 <div>
                   <div style="font-size:11px;font-weight:600;color:var(--muted);margin-bottom:4px;">Front Side</div>
@@ -1580,7 +1791,7 @@ async function renderSmartAddBooking() {
             <div class="form-grid">
               <div class="form-group">
                 <label>Vehicle Name / Model</label>
-                <input id="vehicleName" placeholder="e.g. Swift Dzire / Creta" />
+                <input id="vehicleName" placeholder="e.g. Swift Dzire / Innova" />
               </div>
               <div class="form-group">
                 <label>Vehicle Registration No.</label>
@@ -1594,51 +1805,66 @@ async function renderSmartAddBooking() {
           </div>
         </div>
 
-        <!-- Accordion 4: Booking Channel & Channel Code (Airbnb / OTA) -->
-        <div class="sbk-accordion-card">
-          <div class="sbk-accordion-header" onclick="window.toggleAccordion('accChannel')">
-            <span>🌐 Booking Channel (Direct vs Airbnb)</span>
-            <span id="accChannelIcon">▼</span>
-          </div>
-          <div class="sbk-accordion-body" id="accChannel" style="display:none;">
-            <div class="form-grid">
-              <div class="form-group">
-                <label>Channel</label>
-                <select id="bookingMode" onchange="document.getElementById('airbnbCodeRow').style.display=(this.value==='Online-Airbnb')?'block':'none'">
-                  <option value="Offline">Direct / Phone / Walk-in</option>
-                  <option value="Online-Airbnb">Online (Airbnb)</option>
-                </select>
+        ${wizardMode === 'single' ? `
+          <!-- Accordion 4: Booking Channel (Direct vs Airbnb) -->
+          <div class="sbk-accordion-card">
+            <div class="sbk-accordion-header" onclick="window.toggleAccordion('accChannel')">
+              <span>🌐 Booking Channel (Direct vs Airbnb)</span>
+              <span id="accChannelIcon">▼</span>
+            </div>
+            <div class="sbk-accordion-body" id="accChannel" style="display:none;">
+              <div class="form-grid">
+                <div class="form-group">
+                  <label>Channel</label>
+                  <select id="bookingMode" onchange="document.getElementById('airbnbCodeRow').style.display=(this.value==='Online-Airbnb')?'block':'none'">
+                    <option value="Offline">Direct / Phone / Walk-in</option>
+                    <option value="Online-Airbnb">Online (Airbnb)</option>
+                  </select>
+                </div>
+                <div class="form-group" id="airbnbCodeRow" style="display:none;">
+                  <label>Airbnb Confirmation Code</label>
+                  <input id="airbnbCode" placeholder="e.g. HMXYZ12345" />
+                </div>
               </div>
-              <div class="form-group" id="airbnbCodeRow" style="display:none;">
-                <label>Airbnb Confirmation Code</label>
-                <input id="airbnbCode" placeholder="e.g. HMXYZ12345" />
+              <div style="margin-top:8px;">
+                <label style="display:flex;align-items:center;gap:8px;font-size:12.5px;cursor:pointer;">
+                  <input type="checkbox" id="isReviewBooking" />
+                  <span>Review / Duplicate stay (skip revenue calculations)</span>
+                </label>
               </div>
             </div>
-            <div style="margin-top:8px;">
-              <label style="display:flex;align-items:center;gap:8px;font-size:12.5px;cursor:pointer;">
-                <input type="checkbox" id="isReviewBooking" />
-                <span>Review / Duplicate stay (skip revenue calculations)</span>
-              </label>
-            </div>
           </div>
-        </div>
+        ` : ''}
       </div>
 
       <!-- Action Button & Errors -->
       <div id="smartAddBkErr" style="margin-top:14px;"></div>
-      <button id="smartSaveBtn" onclick="window.saveSmartBooking()" 
-        style="width:100%;padding:14px;font-size:16px;font-weight:800;background:var(--primary);color:#fff;border:none;border-radius:12px;cursor:pointer;margin-top:10px;box-shadow:0 4px 14px rgba(79,70,229,0.35);">
-        💾 Confirm &amp; Save Booking
-      </button>
+
+      ${wizardMode === 'multi' ? `
+        <button id="btnSaveMultiBooking" onclick="window.saveMultiSmartBooking()" 
+          style="width:100%;padding:14px;font-size:16px;font-weight:800;background:#4F46E5;color:#fff;border:none;border-radius:12px;cursor:pointer;margin-top:10px;box-shadow:0 4px 14px rgba(79,70,229,0.35);">
+          💾 Confirm &amp; Save Multi-Property Booking (0 Homestays)
+        </button>
+      ` : `
+        <button id="smartSaveBtn" onclick="window.saveSmartBooking()" 
+          style="width:100%;padding:14px;font-size:16px;font-weight:800;background:var(--primary);color:#fff;border:none;border-radius:12px;cursor:pointer;margin-top:10px;box-shadow:0 4px 14px rgba(79,70,229,0.35);">
+          💾 Confirm &amp; Save Booking
+        </button>
+      `}
     </div>
   `;
 
   renderShell(html, 'bookings');
 
   // Initialize helpers
-  window.triggerLiveRadarCheck();
-  window.recalcSmartPrice();
-  window.loadSmartReceivers();
+  if (wizardMode === 'multi') {
+    window.onMultiDateChange();
+    window.loadSmartReceivers();
+  } else {
+    window.triggerLiveRadarCheck();
+    window.recalcSmartPrice();
+    window.loadSmartReceivers();
+  }
 }
 
 // =====================================================================
@@ -2042,6 +2268,441 @@ window.saveSmartBooking = async function() {
     btn.disabled = false;
     btn.textContent = '💾 Confirm & Save Booking';
   }
+};
+
+// =====================================================================
+// 7.5 MULTI-PROPERTY WIZARD CONTROLLER & COMBINED RECEIPT GENERATOR
+// =====================================================================
+
+window.switchBookingWizardMode = function(mode) {
+  window._sbkWizardMode = mode;
+  const currentData = {
+    guestName: document.getElementById('guestName')?.value || '',
+    guestPhone: document.getElementById('guestPhone')?.value || '',
+    checkIn: document.getElementById('checkIn')?.value || '',
+    checkOut: document.getElementById('checkOut')?.value || '',
+    checkInTime: document.getElementById('checkInTime')?.value || '14:00',
+    checkOutTime: document.getElementById('checkOutTime')?.value || '11:00',
+    advanceAmt: Number(document.getElementById(mode === 'multi' ? 'advanceAmt' : 'multiAdvanceAmt')?.value || 0),
+    advMode: document.getElementById('advMode')?.value || 'UPI',
+    advReceivedBy: document.getElementById('advReceivedBy')?.value || '',
+    idType: document.getElementById('idType')?.value || 'Aadhar',
+    idNo: document.getElementById('idNo')?.value || ''
+  };
+  renderSmartAddBooking(currentData);
+};
+
+window.renderMultiPropertyBooking = function(prefill = {}) {
+  window._sbkWizardMode = 'multi';
+  renderSmartAddBooking(prefill);
+};
+
+window.onMultiDateChange = function() {
+  const ciEl = document.getElementById('checkIn');
+  const coEl = document.getElementById('checkOut');
+  if (!ciEl || !coEl) return;
+  const ci = ciEl.value;
+  const co = coEl.value;
+  if (!ci || !co) return;
+
+  const d1 = new Date(ci);
+  const d2 = new Date(co);
+  const diffDays = Math.max(1, Math.round((d2 - d1) / (1000 * 60 * 60 * 24)));
+
+  const nightsEl = document.getElementById('multiSummaryNights');
+  if (nightsEl) nightsEl.textContent = `${diffDays} Night${diffDays > 1 ? 's' : ''}`;
+
+  const bookings = window._cachedBookings || [];
+  const rooms = window._cachedRooms || [];
+
+  rooms.forEach(r => {
+    const card = document.getElementById(`propCard_${r.room_id}`);
+    const badge = document.getElementById(`radarBadge_${r.room_id}`);
+    const amtInput = document.getElementById(`amt_${r.room_id}`);
+
+    const clash = bookings.find(b => b.room_id === r.room_id && !b.is_cancelled && b.check_in && b.check_out && b.check_in < co && b.check_out > ci);
+    const isClash = !!clash;
+
+    if (badge) {
+      badge.style.background = isClash ? '#FEF2F2' : '#F0FDF4';
+      badge.style.color = isClash ? '#DC2626' : '#15803D';
+      badge.textContent = isClash ? `⚠️ Busy (${escapeHtml(clash.guest_name || 'Booked')})` : '✅ Available';
+    }
+
+    if (card) {
+      const cb = document.getElementById(`cb_${r.room_id}`);
+      if (!cb || !cb.checked) {
+        card.style.borderColor = isClash ? '#FECACA' : '#E2E8F0';
+        card.style.background = isClash ? '#FFFDFD' : '#FFFFFF';
+      }
+    }
+
+    if (amtInput && !amtInput.dataset.customized) {
+      amtInput.value = (r.rent_per_night || 3499) * diffDays;
+    }
+  });
+
+  window.recalcMultiTotals();
+};
+
+window.onMultiRoomCheckChange = function(rid) {
+  const cb = document.getElementById(`cb_${rid}`);
+  const card = document.getElementById(`propCard_${rid}`);
+  const config = document.getElementById(`config_${rid}`);
+  if (!cb || !card) return;
+
+  if (cb.checked) {
+    card.style.borderColor = '#4F46E5';
+    card.style.background = '#F5F3FF';
+    card.style.boxShadow = '0 4px 12px rgba(79, 70, 229, 0.12)';
+    if (config) config.style.display = 'flex';
+  } else {
+    card.style.borderColor = '#E2E8F0';
+    card.style.background = '#FFFFFF';
+    card.style.boxShadow = 'none';
+    if (config) config.style.display = 'none';
+  }
+
+  window.recalcMultiTotals();
+};
+
+window.recalcMultiTotals = function(manualTotal = false) {
+  const checkedBoxes = Array.from(document.querySelectorAll('.multi-room-cb:checked'));
+  const count = checkedBoxes.length;
+
+  let totalGuests = 0;
+  let autoCalculatedTotal = 0;
+
+  checkedBoxes.forEach(cb => {
+    const rid = cb.dataset.rid;
+    const gVal = Number(document.getElementById(`guests_${rid}`)?.value || 2);
+    const aVal = Number(document.getElementById(`amt_${rid}`)?.value || 0);
+    totalGuests += gVal;
+    autoCalculatedTotal += aVal;
+  });
+
+  const countEl = document.getElementById('multiSummaryCount');
+  if (countEl) countEl.textContent = `${count} Homestay${count !== 1 ? 's' : ''}`;
+
+  const guestsEl = document.getElementById('multiSummaryGuests');
+  if (guestsEl) guestsEl.textContent = `${totalGuests} Guests`;
+
+  const totalInput = document.getElementById('multiTotalAmount');
+  if (totalInput && !manualTotal) {
+    totalInput.value = autoCalculatedTotal;
+  }
+
+  const grandTotal = Number(totalInput?.value || 0);
+  const advInput = document.getElementById('multiAdvanceAmt');
+  const advance = Number(advInput?.value || 0);
+  const balance = Math.max(0, grandTotal - advance);
+
+  const sumTotalEl = document.getElementById('multiSummaryTotal');
+  if (sumTotalEl) sumTotalEl.textContent = `₹${grandTotal.toLocaleString('en-IN')}`;
+
+  const sumAdvEl = document.getElementById('multiSummaryAdvance');
+  if (sumAdvEl) sumAdvEl.textContent = `₹${advance.toLocaleString('en-IN')}`;
+
+  const sumBalEl = document.getElementById('multiSummaryBalance');
+  if (sumBalEl) sumBalEl.textContent = `₹${balance.toLocaleString('en-IN')}`;
+
+  const btn = document.getElementById('btnSaveMultiBooking');
+  if (btn) {
+    btn.textContent = `💾 Confirm & Save Multi-Property Booking (${count} Homestay${count !== 1 ? 's' : ''})`;
+  }
+};
+
+window.selectAllAvailableRooms = function() {
+  const ci = document.getElementById('checkIn')?.value;
+  const co = document.getElementById('checkOut')?.value;
+  const bookings = window._cachedBookings || [];
+
+  document.querySelectorAll('.multi-room-cb').forEach(cb => {
+    const rid = cb.dataset.rid;
+    const clash = bookings.find(b => b.room_id === rid && !b.is_cancelled && b.check_in && b.check_out && b.check_in < co && b.check_out > ci);
+    if (!clash) {
+      cb.checked = true;
+      window.onMultiRoomCheckChange(rid);
+    }
+  });
+  window.recalcMultiTotals();
+};
+
+window.clearMultiRoomsSelection = function() {
+  document.querySelectorAll('.multi-room-cb').forEach(cb => {
+    cb.checked = false;
+    window.onMultiRoomCheckChange(cb.dataset.rid);
+  });
+  window.recalcMultiTotals();
+};
+
+window.saveMultiSmartBooking = async function() {
+  const errDiv = document.getElementById('smartAddBkErr');
+  const btn = document.getElementById('btnSaveMultiBooking');
+  if (errDiv) errDiv.innerHTML = '';
+
+  const guestName = document.getElementById('guestName')?.value?.trim();
+  const rawPhone = document.getElementById('guestPhone')?.value?.trim();
+  const cleanPhone = (rawPhone || '').replace(/\D/g, '').slice(-10);
+  const ci = document.getElementById('checkIn')?.value;
+  const co = document.getElementById('checkOut')?.value;
+  const checkInTime = document.getElementById('checkInTime')?.value || '14:00';
+  const checkOutTime = document.getElementById('checkOutTime')?.value || '11:00';
+
+  if (!guestName) {
+    errDiv.innerHTML = '<div class="error" style="color:#DC2626;background:#FEF2F2;padding:10px;border-radius:8px;">⚠️ Please enter the Guest Name.</div>';
+    document.getElementById('guestName')?.focus();
+    return;
+  }
+  if (!cleanPhone || cleanPhone.length !== 10) {
+    errDiv.innerHTML = '<div class="error" style="color:#DC2626;background:#FEF2F2;padding:10px;border-radius:8px;">⚠️ Please enter a valid 10-digit mobile number for WhatsApp receipts.</div>';
+    document.getElementById('guestPhone')?.focus();
+    return;
+  }
+  if (!ci || !co) {
+    errDiv.innerHTML = '<div class="error" style="color:#DC2626;background:#FEF2F2;padding:10px;border-radius:8px;">⚠️ Please select Check-in and Check-out dates.</div>';
+    return;
+  }
+
+  const checkedBoxes = Array.from(document.querySelectorAll('.multi-room-cb:checked'));
+  if (checkedBoxes.length === 0) {
+    errDiv.innerHTML = '<div class="error" style="color:#DC2626;background:#FEF2F2;padding:10px;border-radius:8px;">⚠️ Please select at least one homestay property for this booking.</div>';
+    return;
+  }
+
+  // Clash check confirmation
+  const bookings = window._cachedBookings || [];
+  const clashedNames = [];
+  checkedBoxes.forEach(cb => {
+    const rid = cb.dataset.rid;
+    const clash = bookings.find(b => b.room_id === rid && !b.is_cancelled && b.check_in && b.check_out && b.check_in < co && b.check_out > ci);
+    if (clash) {
+      const room = (window._cachedRooms || []).find(r => r.room_id === rid);
+      clashedNames.push(room?.nickname || room?.property_name || rid);
+    }
+  });
+
+  if (clashedNames.length > 0) {
+    const ok = confirm(`⚠️ Warning: The following homestay(s) already have existing bookings during these dates:\n• ${clashedNames.join('\n• ')}\n\nDo you want to proceed and save anyway?`);
+    if (!ok) return;
+  }
+
+  const grandTotal = Number(document.getElementById('multiTotalAmount')?.value || 0);
+  const totalAdvance = Number(document.getElementById('multiAdvanceAmt')?.value || 0);
+  const advMode = document.getElementById('advMode')?.value || 'UPI';
+  const advReceivedBy = document.getElementById('advReceivedBy')?.value || '';
+
+  if (totalAdvance > 0 && !advReceivedBy) {
+    errDiv.innerHTML = '<div class="error" style="color:#DC2626;background:#FEF2F2;padding:10px;border-radius:8px;">⚠️ Since advance payment was received, please select who received it.</div>';
+    document.getElementById('advReceivedBy')?.focus();
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = '⏳ Creating Multi-Property Reservation...';
+
+  try {
+    const cleanGuestSlug = guestName.replace(/[^A-Za-z0-9]/g, '').toUpperCase().slice(0, 8);
+    const stayGroupId = `GRP-${cleanGuestSlug}-${cleanPhone.slice(-4)}-${Math.floor(1000 + Math.random() * 9000)}`;
+
+    const idType = document.getElementById('idType')?.value || 'Aadhar';
+    const idNo = document.getElementById('idNo')?.value?.trim() || null;
+    const vehicleName = document.getElementById('vehicleName')?.value?.trim() || null;
+    const vehicleNumber = document.getElementById('vehicleNumber')?.value?.trim() || null;
+    const notes = document.getElementById('bkNotes')?.value?.trim() || '';
+
+    // Calculate individual properties and advance allocation
+    const roomItems = checkedBoxes.map(cb => {
+      const rid = cb.dataset.rid;
+      const room = (window._cachedRooms || []).find(r => r.room_id === rid);
+      const guests = parseInt(document.getElementById(`guests_${rid}`)?.value) || 2;
+      const amt = Number(document.getElementById(`amt_${rid}`)?.value || 0);
+      return {
+        room_id: rid,
+        room_name: room?.nickname || room?.property_name || rid,
+        unit_no: room?.unit_no || '',
+        guests: guests,
+        total_amount: amt
+      };
+    });
+
+    const sumRoomTotals = roomItems.reduce((acc, r) => acc + r.total_amount, 0);
+
+    // Proportionate advance split
+    let remainingAdv = totalAdvance;
+    const roomInserts = roomItems.map((r, idx) => {
+      let roomAdv = 0;
+      if (totalAdvance > 0) {
+        if (idx === roomItems.length - 1) {
+          roomAdv = remainingAdv;
+        } else if (sumRoomTotals > 0) {
+          roomAdv = Math.round(totalAdvance * (r.total_amount / sumRoomTotals));
+          remainingAdv -= roomAdv;
+        }
+      }
+
+      const bkId = 'B' + Date.now() + '_' + (idx + 1);
+      const payStatus = totalAdvance >= grandTotal && grandTotal > 0 ? 'Paid' : (roomAdv > 0 ? 'Partial' : 'Unpaid');
+
+      return {
+        booking_id: bkId,
+        guest_name: guestName,
+        phone: cleanPhone,
+        room_id: r.room_id,
+        check_in: ci,
+        check_out: co,
+        check_in_time: checkInTime,
+        check_out_time: checkOutTime,
+        checkout_confirmed: 'yes',
+        guests: r.guests,
+        booking_mode: 'Offline',
+        total_amount: r.total_amount,
+        payment_status: payStatus,
+        stay_group_id: stayGroupId,
+        id_proof_type: idType,
+        id_proof_no: idNo,
+        has_vehicle: !!vehicleNumber,
+        vehicle_name: vehicleName,
+        vehicle_number: vehicleNumber,
+        notes: `Multi-Property Booking (${roomItems.length} Homestays: ${roomItems.map(x => x.room_name).join(', ')}). ${notes}`.trim(),
+        booked_by: SESSION?.displayName || SESSION?.role || 'Staff'
+      };
+    });
+
+    // Batch insert bookings
+    const { data: createdBookings, error: insErr } = await sb.from('guest_register').insert(roomInserts).select();
+    if (insErr) throw insErr;
+
+    // Update flats status
+    for (const r of roomItems) {
+      try {
+        await sb.from('flats_status').upsert({
+          room_id: r.room_id,
+          status: 'Booked',
+          updated_at: new Date().toISOString()
+        });
+      } catch (fsErr) {
+        console.warn('Flats status update warning:', fsErr);
+      }
+    }
+
+    // Record total advance in payment_history linked to primary booking
+    if (totalAdvance > 0 && createdBookings && createdBookings.length > 0) {
+      const primaryBk = createdBookings[0];
+      try {
+        await sb.from('payment_history').insert({
+          booking_id: primaryBk.booking_id,
+          amount: totalAdvance,
+          payment_type: 'advance',
+          payment_mode: advMode,
+          received_by: advReceivedBy,
+          payment_date: ci,
+          handover_status: advMode === 'Cash' ? 'in_hand' : 'handed_over',
+          notes: `Consolidated advance for ${roomItems.length} homestays (${stayGroupId})`,
+          created_by: SESSION?.userId || null
+        });
+      } catch (payErr) {
+        console.warn('Payment history insert warning:', payErr);
+      }
+    }
+
+    // Show celebratory multi-booking success modal with instant receipts
+    window.showMultiBookingSuccessModal({
+      guestName: guestName,
+      phone: cleanPhone,
+      stayGroupId: stayGroupId,
+      checkIn: ci,
+      checkOut: co,
+      rooms: roomItems,
+      grandTotal: grandTotal,
+      advancePaid: totalAdvance,
+      balanceDue: Math.max(0, grandTotal - totalAdvance),
+      advMode: advMode,
+      advReceivedBy: advReceivedBy
+    });
+
+  } catch (err) {
+    console.error('Error saving multi-property booking:', err);
+    errDiv.innerHTML = `<div class="error" style="color:#DC2626;background:#FEF2F2;padding:10px;border-radius:8px;">❌ Failed to save multi-property booking: ${escapeHtml(err.message)}</div>`;
+    btn.disabled = false;
+    btn.textContent = `💾 Confirm & Save Multi-Property Booking (${checkedBoxes.length} Homestays)`;
+  }
+};
+
+window.showMultiBookingSuccessModal = function(data) {
+  const modal = document.createElement('div');
+  modal.className = 'modal-overlay';
+  modal.style.zIndex = '99999';
+  modal.onclick = e => { if (e.target === modal) modal.remove(); };
+
+  modal.innerHTML = `
+    <div class="modal-box" style="max-width:560px;border-radius:18px;text-align:center;padding:28px 24px;box-shadow:0 25px 50px -12px rgba(0,0,0,0.25);">
+      <div style="font-size:46px;margin-bottom:8px;">🎉</div>
+      <h2 style="font-size:22px;font-weight:900;color:#0F172A;margin:0 0 6px;">Multi-Property Booking Confirmed!</h2>
+      <div style="font-size:13px;color:#64748B;margin-bottom:18px;">
+        Successfully booked <strong>${data.rooms.length} homestays</strong> for <strong>${escapeHtml(data.guestName)}</strong>
+      </div>
+
+      <!-- Details Summary Card -->
+      <div style="background:#F8FAFC;border:1.5px solid #E2E8F0;border-radius:14px;padding:16px;text-align:left;margin-bottom:20px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;padding-bottom:10px;border-bottom:1px dashed #CBD5E1;">
+          <div>
+            <div style="font-size:11px;font-weight:700;color:#64748B;text-transform:uppercase;">Group ID</div>
+            <code style="font-size:13px;font-weight:800;color:#4F46E5;">${escapeHtml(data.stayGroupId)}</code>
+          </div>
+          <div style="text-align:right;">
+            <div style="font-size:11px;font-weight:700;color:#64748B;text-transform:uppercase;">Dates</div>
+            <div style="font-size:13px;font-weight:800;color:#0F172A;">${data.checkIn} → ${data.checkOut}</div>
+          </div>
+        </div>
+
+        <div style="font-size:11px;font-weight:700;color:#64748B;text-transform:uppercase;margin-bottom:6px;">Homestays Included:</div>
+        <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:14px;">
+          ${data.rooms.map((r, i) => `
+            <div style="display:flex;justify-content:space-between;align-items:center;background:#fff;border:1px solid #E2E8F0;border-radius:8px;padding:8px 12px;font-size:12.5px;">
+              <span style="font-weight:700;color:#0F172A;">${i + 1}. ${escapeHtml(r.room_name)} ${r.unit_no ? `(Unit ${escapeHtml(r.unit_no)})` : ''}</span>
+              <span style="font-weight:800;color:#059669;">₹${r.total_amount.toLocaleString('en-IN')}</span>
+            </div>
+          `).join('')}
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;background:#EEF2FF;border-radius:10px;padding:12px;text-align:center;">
+          <div>
+            <div style="font-size:11px;color:#4338CA;font-weight:600;">Total Bill</div>
+            <div style="font-size:15px;font-weight:900;color:#312E81;">₹${data.grandTotal.toLocaleString('en-IN')}</div>
+          </div>
+          <div>
+            <div style="font-size:11px;color:#047857;font-weight:600;">Advance Paid</div>
+            <div style="font-size:15px;font-weight:900;color:#065F46;">₹${data.advancePaid.toLocaleString('en-IN')}</div>
+          </div>
+          <div>
+            <div style="font-size:11px;color:#B91C1C;font-weight:600;">Balance Due</div>
+            <div style="font-size:15px;font-weight:900;color:#991B1B;">₹${data.balanceDue.toLocaleString('en-IN')}</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        <button type="button" style="width:100%;padding:14px;background:#4F46E5;color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;box-shadow:0 4px 14px rgba(79,70,229,0.35);"
+          onclick="this.closest('.modal-overlay').remove(); window.openMultiPropertyReceiptModal('${escapeHtml(data.stayGroupId)}');">
+          🏢 View / Print Combined Group Receipt
+        </button>
+
+        <button type="button" style="width:100%;padding:12px;background:#25D366;color:#fff;border:none;border-radius:12px;font-size:14.5px;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;"
+          onclick="this.closest('.modal-overlay').remove(); window.openMultiPropertyReceiptModal('${escapeHtml(data.stayGroupId)}');">
+          📱 Send WhatsApp Multi-Property Voucher
+        </button>
+
+        <button type="button" class="outline" style="width:100%;padding:11px;border-radius:10px;font-weight:700;font-size:13px;"
+          onclick="this.closest('.modal-overlay').remove(); renderSmartManageBookings();">
+          📋 Back to Bookings List
+        </button>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(modal);
 };
 
 // =====================================================================

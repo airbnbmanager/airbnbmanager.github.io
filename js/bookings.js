@@ -5736,8 +5736,13 @@ window.showGroupBookingModal = async function(bookingId) {
         <textarea id="grpNotes" placeholder="e.g. Wedding - 35 guests - Full building" style="width:100%;padding:10px;border-radius:8px;border:1.5px solid var(--border);margin-top:4px;min-height:60px;">${currBk.notes || ''}</textarea>
       </div>
       
-      <div class="btn-row" style="margin-top:16px;">
+      <div class="btn-row" style="margin-top:16px;flex-wrap:wrap;gap:8px;">
         <button onclick="this.closest('.modal-overlay').remove()" class="outline">Cancel</button>
+        ${existingGroupId ? `
+          <button type="button" style="background:#4F46E5;color:#fff;font-weight:700;" onclick="this.closest('.modal-overlay').remove(); window.openMultiPropertyReceiptModal('${existingGroupId}')">
+            🏢 Combined Group Receipt
+          </button>
+        ` : ''}
         <button style="background:#8B5CF6;color:#fff;" onclick="saveGroupBooking('${bookingId}')">
           🎊 ${existingGroupId ? 'Update Group' : 'Create Group'}
         </button>
