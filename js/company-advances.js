@@ -5,9 +5,9 @@
  */
 
 // Advance can come from:
-// 1. Company (UHHS PVT LTD - business fund)
+// 1. Company (TUHH PVT LTD - business fund)
 // 2-4. Personal (owner/manager's own money)
-const CA_OWNERS = ['🏢 Company (UHHS PVT LTD)', 'Firoz', 'Shahenshah', 'Praveen'];
+const CA_OWNERS = ['🏢 Company (TUHH PVT LTD)', 'Firoz', 'Shahenshah', 'Praveen'];
 
 window.renderCompanyAdvances = async function() {
   if (!['owner', 'admin', 'developer', 'manager'].includes(SESSION.role)) {
@@ -150,7 +150,7 @@ async function renderCANew(tabs) {
         <label>Payment Source / Account *</label>
         <select id="caPaymentSource" style="border: 1.5px solid #0d6efd; font-weight: 600;">
           <option value="COMPANY">🏢 COMPANY (Guest Rent / Cash in Hand)</option>
-          <option value="UHHS-OD" selected>🏦 UHHS-OD (Overdraft Account)</option>
+          <option value="UHHS-OD" selected>🏦 TUHH-OD (Overdraft Account)</option>
           <option value="FIROZ">👤 FIROZ (Direct Personal)</option>
         </select>
       </div>

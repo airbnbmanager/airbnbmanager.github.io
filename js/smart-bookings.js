@@ -31,7 +31,7 @@ async function renderSmartManageBookings() {
   }
 
   const today = new Date().toISOString().slice(0, 10);
-  renderShell(`<div class="loading" style="padding:40px;text-align:center;"><div class="spinner"></div><div style="margin-top:10px;font-weight:600;color:var(--muted);">Loading UHHS Bookings Command Center...</div></div>`, 'bookings');
+  renderShell(`<div class="loading" style="padding:40px;text-align:center;"><div class="spinner"></div><div style="margin-top:10px;font-weight:600;color:var(--muted);">Loading TUHH Bookings Command Center...</div></div>`, 'bookings');
 
   // Preload helpers
   if (typeof preloadUserNames === 'function') await preloadUserNames();
@@ -1310,7 +1310,7 @@ window.toggleClassicBookingView = function() {
 window.sendWhatsAppToGuest = function(phone, name, bookingId) {
   const cleanPhone = (phone || '').replace(/[^0-9]/g, '');
   const target = cleanPhone.length === 10 ? '91' + cleanPhone : cleanPhone;
-  const msg = encodeURIComponent(`Hi ${name || 'Guest'}, greetings from The Unique Haven Homes (UHHS Lucknow)! We are pleased to host you. Please let us know if you need any assistance with your stay.`);
+  const msg = encodeURIComponent(`Hi ${name || 'Guest'}, greetings from The Unique Haven Homes (TUHH Lucknow)! We are pleased to host you. Please let us know if you need any assistance with your stay.`);
   window.open(`https://wa.me/${target}?text=${msg}`, '_blank');
 };
 
@@ -2037,7 +2037,7 @@ window.onSmartPhoneInput = async function(val) {
             <div>
               <strong style="color:var(--primary);font-size:13.5px;">🌟 Repeat Guest: ${escapeHtml(mostRecent.guest_name)}</strong>
               <div style="font-size:12px;color:var(--text-secondary);margin-top:2px;">
-                Stayed ${pastStays.length} time${pastStays.length > 1 ? 's' : ''} previously at UHHS homestays.
+                Stayed ${pastStays.length} time${pastStays.length > 1 ? 's' : ''} previously at TUHH homestays.
               </div>
             </div>
             ${mostRecent.id_proof_photo_paths ? `

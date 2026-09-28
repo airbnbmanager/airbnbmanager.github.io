@@ -201,7 +201,7 @@ async function renderAddMaintenance() {
             <label>Payment Source / Account <span class="warn">*</span></label>
             <select id="mPaymentSource" style="border: 1.5px solid #0d6efd; font-weight: 600;">
               <option value="COMPANY">🏢 COMPANY (Guest Rent / Cash in Hand)</option>
-              <option value="UHHS-OD" selected>🏦 UHHS-OD (Overdraft Account)</option>
+              <option value="UHHS-OD" selected>🏦 TUHH-OD (Overdraft Account)</option>
               <option value="FIROZ">👤 FIROZ (Direct Personal)</option>
             </select>
           </div>
@@ -506,7 +506,7 @@ async function editMaintenance(id) {
             <label>Payment Source / Account <span class="warn">*</span></label>
             <select id="mPaymentSourceEdit" style="border: 1.5px solid #0d6efd; font-weight: 600;">
               <option value="COMPANY" ${m.payment_source === 'COMPANY' ? 'selected' : ''}>🏢 COMPANY (Guest Rent / Cash in Hand)</option>
-              <option value="UHHS-OD" ${m.payment_source === 'UHHS-OD' || !m.payment_source ? 'selected' : ''}>🏦 UHHS-OD (Overdraft Account)</option>
+              <option value="UHHS-OD" ${m.payment_source === 'UHHS-OD' || !m.payment_source ? 'selected' : ''}>🏦 TUHH-OD (Overdraft Account)</option>
               <option value="FIROZ" ${m.payment_source === 'FIROZ' ? 'selected' : ''}>👤 FIROZ (Direct Personal)</option>
             </select>
           </div>

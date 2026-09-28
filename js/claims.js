@@ -51,11 +51,11 @@ window.renderClaims = async function() {
       <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
         <div>
           <h1>⚖️ Universal Claims Manager</h1>
-          <div class="sub">Checkpoint: <strong>16-Sep-2026 11:59 PM (Settled)</strong> · UHHS-OD Engine</div>
+          <div class="sub">Checkpoint: <strong>16-Sep-2026 11:59 PM (Settled)</strong> · TUHH-OD Engine</div>
         </div>
         <div style="display:flex;gap:8px;flex-wrap:wrap;">
-          <button onclick="openUhhsDepositModal()" style="background:#0284C7;color:#fff;font-weight:700;">📥 Deposit Entry (UHHS-OD)</button>
-          <button onclick="showUhhsStatementModal()" style="background:#0F766E;color:#fff;font-weight:600;">📜 UHHS Ledger</button>
+          <button onclick="openUhhsDepositModal()" style="background:#0284C7;color:#fff;font-weight:700;">📥 Deposit Entry (TUHH-OD)</button>
+          <button onclick="showUhhsStatementModal()" style="background:#0F766E;color:#fff;font-weight:600;">📜 TUHH Ledger</button>
           <button onclick="showCompanyLedgerModal()" style="background:#EA580C;color:#fff;font-weight:600;">🏢 Company Ledger</button>
           <button onclick="generateClaimReport()" style="background:#8B5CF6;color:#fff;font-weight:600;">📊 Claim Report Statement</button>
           <button onclick="copyClaimWhatsAppText()" style="background:#25D366;color:#fff;font-weight:600;">📱 WhatsApp Summary</button>
@@ -69,10 +69,10 @@ window.renderClaims = async function() {
         <div>
           <div style="display:flex;align-items:center;gap:8px;">
             <span style="font-size:20px;">🏦</span>
-            <strong style="font-size:16px;color:#15803D;">UHHS-OD Account (Online Balance)</strong>
+            <strong style="font-size:16px;color:#15803D;">TUHH-OD Account (Online Balance)</strong>
           </div>
           <div style="font-size:12px;color:#64748B;margin-top:2px;">
-            Money received online from Firoz &amp; spent via UHHS-OD (Post-Checkpoint: 17-Sep onwards · Opening Balance: ₹0)
+            Money received online from Firoz &amp; spent via TUHH-OD (Post-Checkpoint: 17-Sep onwards · Opening Balance: ₹0)
           </div>
         </div>
         <div style="display:flex;align-items:center;gap:18px;flex-wrap:wrap;">
@@ -146,7 +146,7 @@ window.renderClaims = async function() {
           <label style="font-size:11px;font-weight:700;color:#64748B;display:block;margin-bottom:3px;">👤 Paid By (Payer)</label>
           <select id="cfPaidBy" onchange="updateClaimsFilter()">
             <option value="all" ${window._claimsState.paidByFilter==='all'?'selected':''}>All Payers</option>
-            <option value="UHHS-OD" ${window._claimsState.paidByFilter==='UHHS-OD'?'selected':''}>🏦 UHHS-OD</option>
+            <option value="UHHS-OD" ${window._claimsState.paidByFilter==='UHHS-OD'?'selected':''}>🏦 TUHH-OD</option>
             <option value="COMPANY" ${window._claimsState.paidByFilter==='COMPANY'?'selected':''}>🏢 COMPANY</option>
             <option value="FIROZ" ${window._claimsState.paidByFilter==='FIROZ'?'selected':''}>👤 FIROZ</option>
             <option value="OTHER" ${window._claimsState.paidByFilter==='OTHER'?'selected':''}>⚠️ OTHER</option>
@@ -913,7 +913,7 @@ window.showUhhsStatementModal = async function() {
         <div style="padding:14px 18px;border-bottom:1.5px solid #E2E8F0;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;background:#F8FAFC;">
           <div>
             <h2 style="margin:0;color:#0F766E;font-size:17px;font-weight:800;display:flex;align-items:center;gap:6px;">
-              📜 UHHS-OD Account Statement / Ledger
+              📜 TUHH-OD Account Statement / Ledger
             </h2>
             <div style="font-size:11.5px;color:#64748B;margin-top:2px;">
               Period: <strong>${fDate}</strong> → <strong>${tDate}</strong> · Total Transactions: <strong>${txns.length}</strong>
@@ -1061,7 +1061,7 @@ window.openReimbursementEditModal = async function(id) {
         <div style="margin-bottom:14px;">
           <label style="font-weight:700;font-size:12.5px;color:#0F172A;display:block;margin-bottom:4px;">💳 Payment Account / Source *</label>
           <select id="ledgerEditSource" style="width:100%;padding:8px;border:1.5px solid #0D6EFD;border-radius:6px;font-weight:600;background:#F8FAFC;box-sizing:border-box;">
-            <option value="UHHS-OD" ${rec.payment_source === 'UHHS-OD' || !rec.payment_source ? 'selected' : ''}>🏦 UHHS-OD (Overdraft Account)</option>
+            <option value="UHHS-OD" ${rec.payment_source === 'UHHS-OD' || !rec.payment_source ? 'selected' : ''}>🏦 TUHH-OD (Overdraft Account)</option>
             <option value="COMPANY" ${rec.payment_source === 'COMPANY' ? 'selected' : ''}>🏢 COMPANY (Guest Rent / Cash in Hand)</option>
             <option value="FIROZ" ${rec.payment_source === 'FIROZ' ? 'selected' : ''}>👤 FIROZ (Direct Personal)</option>
           </select>
@@ -1455,7 +1455,7 @@ window.exportUhhsLedgerPDF = function(fDate, tDate, totalInflow, totalOutflow, n
       </div>
 
       <div class="header">
-        <h1>📜 UHHS-OD Account Statement / Ledger</h1>
+        <h1>📜 TUHH-OD Account Statement / Ledger</h1>
         <div class="sub">Period: <strong>${safeFDate}</strong> → <strong>${safeTDate}</strong> | Generated: ${new Date().toLocaleString('en-IN')}</div>
       </div>
 

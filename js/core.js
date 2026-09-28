@@ -664,7 +664,7 @@ function renderShell(content, activePage = 'dashboard') {
     cashbook: { title: 'Cash Book', sub: 'Cash flow, handovers & safe balance', icon: '💰' },
     reimbursements: { title: 'Daily Expenses', sub: 'Staff reimbursements & operational spends', icon: '💸' },
     expenses: { title: 'Monthly Expenses & P&L', sub: 'Property-wise profit & loss reporting', icon: '📊' },
-    claims: { title: 'Claims Manager', sub: 'UHHS-OD settlements & reimbursements', icon: '📤' },
+    claims: { title: 'Claims Manager', sub: 'TUHH-OD settlements & reimbursements', icon: '📤' },
     investors: { title: 'Investors Ledger', sub: 'Property investor shares & payouts', icon: '🧑‍💼' },
     dailyReport: { title: 'Daily Operations Report', sub: 'End-of-day revenue, checkins & summaries', icon: '📈' },
     analytics: { title: 'Business Analytics', sub: 'Occupancy rates & revenue metrics', icon: '📊' },
@@ -3067,17 +3067,16 @@ async function loadCashHolders(forceRefresh = false) {
  * @param {object} opts - { filterType: 'final'|'manager'|'receiver'|null (all), allowCustom: true, addNew: true }
  * @returns {string} - HTML string
  */
-// Master Universal 3-Option Payment Source Dropdown (Company, UHHS-OD, Firoz)
-// Master Universal 3-Option Payment Source Dropdown (Company, UHHS-OD, Firoz)
+// Master Universal 3-Option Payment Source Dropdown (Company, TUHH-OD, Firoz)
 window.renderCashHolderDropdown = async function(elementId, selectedVal) {
   const s = String(selectedVal || 'COMPANY').toUpperCase();
-  const isOD = s.includes('OD') || s.includes('UHHS');
+  const isOD = s.includes('OD') || s.includes('UHHS') || s.includes('TUHH');
   const isFiroz = s.includes('FIROZ');
   
   return `
     <select id="${elementId}" name="${elementId}" class="form-select form-control" style="border: 1.5px solid #0d6efd; font-weight: 600; padding: 10px; border-radius: 8px; width: 100%; background: #ffffff; color: #0f172a;">
       <option value="COMPANY" ${(!isOD && !isFiroz) ? 'selected' : ''}>🏢 COMPANY (Guest Rent / Cash in Hand)</option>
-      <option value="UHHS-OD" ${isOD ? 'selected' : ''}>🏦 UHHS-OD (Overdraft Account)</option>
+      <option value="UHHS-OD" ${isOD ? 'selected' : ''}>🏦 TUHH-OD (Overdraft Account)</option>
       <option value="FIROZ" ${isFiroz ? 'selected' : ''}>👤 FIROZ (Direct Personal)</option>
     </select>
   `;

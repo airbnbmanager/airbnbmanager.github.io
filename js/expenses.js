@@ -93,7 +93,7 @@ async function renderExpenses() {
           <label>Payment Source / Account <span class="warn">*</span></label>
           <select id="expSource" required style="border: 1.5px solid #0d6efd; font-weight: 600;">
             <option value="COMPANY">🏢 COMPANY (Guest Rent / Cash in Hand)</option>
-            <option value="UHHS-OD">🏦 UHHS-OD (Overdraft Account)</option>
+            <option value="UHHS-OD">🏦 TUHH-OD (Overdraft Account)</option>
             <option value="FIROZ">👤 FIROZ (Direct Personal)</option>
           </select>
         </div>
@@ -104,7 +104,7 @@ async function renderExpenses() {
           <select id="expSourceFilter" onchange="applyExpenseFilters()">
             <option value="">All Accounts</option>
             <option value="COMPANY">🏢 COMPANY</option>
-            <option value="UHHS-OD">🏦 UHHS-OD</option>
+            <option value="UHHS-OD">🏦 TUHH-OD</option>
             <option value="FIROZ">👤 FIROZ</option>
           </select>
         </div>
@@ -112,7 +112,7 @@ async function renderExpenses() {
           <label>Payment Source / Account <span class="warn">*</span></label>
           <select id="expSource" required style="border: 1.5px solid #0d6efd; font-weight: 600;">
             <option value="COMPANY">🏢 COMPANY (Guest Rent / Cash in Hand)</option>
-            <option value="UHHS-OD">🏦 UHHS-OD (Overdraft Account)</option>
+            <option value="UHHS-OD">🏦 TUHH-OD (Overdraft Account)</option>
             <option value="FIROZ">👤 FIROZ (Direct Personal)</option>
           </select>
         </div>

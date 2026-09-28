@@ -1,5 +1,5 @@
 /**
- * UHHS WhatsApp Automation Gateway & AI Agent
+ * TUHH WhatsApp Automation Gateway & AI Agent
  * THE UNIQUE HAVEN HOMES PRIVATE LIMITED (Lucknow)
  * Powered by Baileys (Headless WhatsApp Web Protocol)
  */
@@ -492,7 +492,7 @@ function formatJid(target) {
 // 0. Root & Health
 app.get('/', (req, res) => {
   res.json({
-    name: 'UHHS WhatsApp AI & Automation Gateway (Dual: Meta Cloud API + Baileys)',
+    name: 'TUHH WhatsApp AI & Automation Gateway (Dual: Meta Cloud API + Baileys)',
     status: connectionStatus,
     connected: connectionStatus === 'connected',
     metaConfigured: !!(META_ACCESS_TOKEN && META_PHONE_NUMBER_ID),
@@ -599,7 +599,7 @@ app.get('/qr', async (req, res) => {
   }
   res.send(`
     <div style="font-family:system-ui,sans-serif;text-align:center;padding:40px;max-width:500px;margin:auto;">
-      <h2 style="color:#0F172A;margin-bottom:6px;">📱 Link WhatsApp with UHHS CRM</h2>
+      <h2 style="color:#0F172A;margin-bottom:6px;">📱 Link WhatsApp with TUHH CRM</h2>
       <p style="color:#64748B;font-size:13px;margin-top:0;">Open WhatsApp on phone → <b>Linked Devices</b> → <b>Link a Device</b></p>
       <div style="display:inline-block;padding:16px;background:#fff;border:2px solid #CBD5E1;border-radius:14px;box-shadow:0 4px 14px rgba(0,0,0,0.08);margin:14px 0;">
         <img src="${qrDataUrl}" alt="WhatsApp QR Code" style="width:280px;height:280px;display:block;" />
@@ -937,7 +937,7 @@ app.get('/groups', async (req, res) => {
 
 // ─── START SERVER & DAEMON ───
 app.listen(PORT, () => {
-  console.log(`\n🚀 UHHS WhatsApp AI Gateway running on http://localhost:${PORT}`);
+  console.log(`\n🚀 TUHH WhatsApp AI Gateway running on http://localhost:${PORT}`);
   console.log(`👉 Open http://localhost:${PORT}/qr to scan QR code in browser\n`);
   startWhatsApp().catch(err => console.error('Startup error:', err));
 });

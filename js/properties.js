@@ -558,7 +558,7 @@ async function renderFlatsStatus() {
           const ctName = f.rooms?.checkin_manager || 'Staff';
           const ctPhone = (f.rooms?.caretaker_phone || '').replace(/[^0-9]/g, '');
           const propTitle = propLabel(f.rooms) || f.room_id;
-          const waMsg = encodeURIComponent(`*UHHS Housekeeping Update*\nFlat: ${propTitle} (Unit ${f.rooms?.unit_no || f.room_id})\nCleaning Status: ${f.cleaning_status || 'Dirty'}\nPlease inspect and prepare.`);
+          const waMsg = encodeURIComponent(`*TUHH Housekeeping Update*\nFlat: ${propTitle} (Unit ${f.rooms?.unit_no || f.room_id})\nCleaning Status: ${f.cleaning_status || 'Dirty'}\nPlease inspect and prepare.`);
           const waLink = ctPhone ? `https://wa.me/91${ctPhone.slice(-10)}?text=${waMsg}` : `https://wa.me/?text=${waMsg}`;
 
           return `

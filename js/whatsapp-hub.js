@@ -220,7 +220,7 @@
       template_name: 'investor_report',
       display_name: '📊 Monthly Statement (Investor Group)',
       auto_send: true,
-      body_text: '📊 *MONTHLY INVESTOR STATEMENT — {{1}}*\n━━━━━━━━━━━━━━━━━━\n👤 *Investor:* {{2}}\n🏠 *Property:* {{3}}\n💵 *Gross Revenue:* ₹{{4}}\n📉 *Expenses & Ops:* -₹{{5}}\n━━━━━━━━━━━━━━━━━━\n💰 *NET PAYOUT:* ₹{{6}}\n━━━━━━━━━━━━━━━━━━\n_Generated via UHHS CRM_'
+      body_text: '📊 *MONTHLY INVESTOR STATEMENT — {{1}}*\n━━━━━━━━━━━━━━━━━━\n👤 *Investor:* {{2}}\n🏠 *Property:* {{3}}\n💵 *Gross Revenue:* ₹{{4}}\n📉 *Expenses & Ops:* -₹{{5}}\n━━━━━━━━━━━━━━━━━━\n💰 *NET PAYOUT:* ₹{{6}}\n━━━━━━━━━━━━━━━━━━\n_Generated via TUHH CRM_'
     },
     {
       template_name: 'new_booking_investor',
@@ -1302,7 +1302,7 @@ The Unique Haven Homes Property Management`;
             <div style="display:flex;align-items:center;justify-content:center;height:100%;color:#64748B;text-align:center;padding:20px;">
               <div>
                 <div style="font-size:42px;margin-bottom:10px;">🤖</div>
-                <div style="font-weight:700;font-size:16px;color:#0F172A;">UHHS WhatsApp AI Agent Dashboard</div>
+                <div style="font-weight:700;font-size:16px;color:#0F172A;">TUHH WhatsApp AI Agent Dashboard</div>
                 <div style="font-size:13px;color:#64748B;margin-top:6px;max-width:380px;line-height:1.5;">
                   Select an active guest chat on the left to see live messages, toggle between <b>AI Mode</b> and <b>Human Mode</b>, or send a manual reply.
                 </div>

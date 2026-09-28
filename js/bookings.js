@@ -4111,9 +4111,9 @@ window.populateReceivedByDropdown = async function(selectEl, mode, currentVal, c
 
   let html = '<option value="">-- Select Receiver --</option>';
 
-  const isOD = (currentVal || '').toUpperCase().includes('OD') || (currentVal || '').toUpperCase().includes('UHHS');
+  const isOD = (currentVal || '').toUpperCase().includes('OD') || (currentVal || '').toUpperCase().includes('UHHS') || (currentVal || '').toUpperCase().includes('TUHH');
   html += '<optgroup label="🏦 Overdraft Account">';
-  html += `<option value="UHHS-OD" ${isOD ? 'selected' : ''}>🏦 UHHS-OD (Praveen / Overdraft)</option>`;
+  html += `<option value="UHHS-OD" ${isOD ? 'selected' : ''}>🏦 TUHH-OD (Praveen / Overdraft)</option>`;
   html += '</optgroup>';
 
   if (mode === 'Cash') {
@@ -6013,7 +6013,7 @@ window.onAdvanceModeChange = async function() {
   
   let html = '<option value="">-- Select --</option>';
   html += '<optgroup label="🏦 Overdraft Account">';
-  html += '<option value="UHHS-OD">🏦 UHHS-OD (Praveen / Overdraft)</option>';
+  html += '<option value="UHHS-OD">🏦 TUHH-OD (Praveen / Overdraft)</option>';
   html += '</optgroup>';
   
   if (mode === 'Cash') {
@@ -6163,7 +6163,7 @@ window.onAdvanceModeChange = async function() {
   
   let html = '<option value="">-- Select --</option>';
   html += '<optgroup label="🏦 Overdraft Account">';
-  html += '<option value="UHHS-OD">🏦 UHHS-OD (Praveen / Overdraft)</option>';
+  html += '<option value="UHHS-OD">🏦 TUHH-OD (Praveen / Overdraft)</option>';
   html += '</optgroup>';
   
   if (mode === 'Cash') {
@@ -6311,7 +6311,7 @@ window.onAdvanceModeChange = async function() {
   
   let html = '<option value="">-- Select --</option>';
   html += '<optgroup label="🏦 Overdraft Account">';
-  html += '<option value="UHHS-OD">🏦 UHHS-OD (Praveen / Overdraft)</option>';
+  html += '<option value="UHHS-OD">🏦 TUHH-OD (Praveen / Overdraft)</option>';
   html += '</optgroup>';
   
   if (mode === 'Cash') {
@@ -6448,7 +6448,7 @@ window.onEditPayModeChange = async function() {
   
   let html = '<option value="">-- Select --</option>';
   html += '<optgroup label="🏦 Overdraft Account">';
-  html += '<option value="UHHS-OD">🏦 UHHS-OD (Praveen / Overdraft)</option>';
+  html += '<option value="UHHS-OD">🏦 TUHH-OD (Praveen / Overdraft)</option>';
   html += '</optgroup>';
   
   if (mode === 'Cash') {

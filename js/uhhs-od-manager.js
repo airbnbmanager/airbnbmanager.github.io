@@ -17,7 +17,7 @@ function getPaymentSourceDropdownHTML(selected = 'UHHS-OD', id = 'payment_source
                 💳 Payment Account / Source
             </label>
             <select id="${id}" name="payment_source" class="form-select form-control" style="border: 1.5px solid #0d6efd; font-weight: 600; width: 100%; max-width: 100%; box-sizing: border-box;" required>
-                <option value="UHHS-OD" ${selected === 'UHHS-OD' ? 'selected' : ''}>🏦 UHHS-OD (Overdraft Account)</option>
+                <option value="UHHS-OD" ${selected === 'UHHS-OD' ? 'selected' : ''}>🏦 TUHH-OD (Overdraft Account)</option>
                 <option value="COMPANY" ${selected === 'COMPANY' ? 'selected' : ''}>🏢 COMPANY (Guest Rent / Cash in Hand)</option>
                 <option value="FIROZ" ${selected === 'FIROZ' ? 'selected' : ''}>👤 FIROZ (Direct Personal)</option>
             </select>
@@ -28,8 +28,8 @@ function getPaymentSourceDropdownHTML(selected = 'UHHS-OD', id = 'payment_source
 // 2. Badge UI Helper for Table Display
 function getPaymentSourceBadge(source) {
     const s = (source || 'COMPANY').toUpperCase();
-    if (s === 'UHHS-OD') {
-        return `<span style="background-color:#dc3545; color:#ffffff; padding:3px 8px; border-radius:4px; font-size:11px; font-weight:700; display:inline-block;">🏦 UHHS-OD</span>`;
+    if (s === 'UHHS-OD' || s === 'TUHH-OD') {
+        return `<span style="background-color:#dc3545; color:#ffffff; padding:3px 8px; border-radius:4px; font-size:11px; font-weight:700; display:inline-block;">🏦 TUHH-OD</span>`;
     } else if (s === 'FIROZ') {
         return `<span style="background-color:#0d6efd; color:#ffffff; padding:3px 8px; border-radius:4px; font-size:11px; font-weight:700; display:inline-block;">👤 FIROZ</span>`;
     } else if (s === 'COMPANY') {
@@ -198,7 +198,7 @@ async function getLedgerData(supabaseClient, customStartDate, customEndDate) {
     function normalizePaymentSource(src) {
         if (!src) return '';
         const s = String(src).trim().toUpperCase();
-        if (s.includes('OD') || s.includes('UHHS')) return 'UHHS-OD';
+        if (s.includes('OD') || s.includes('UHHS') || s.includes('TUHH')) return 'UHHS-OD';
         return src;
     }
 
@@ -429,7 +429,7 @@ async function calculateLiveODBalance(supabaseClient) {
                         <div style="padding:14px; border-radius:10px; background:${isNegative ? '#fff5f5' : '#f0fff4'}; border:1.5px solid ${isNegative ? '#dc3545' : '#198754'}; margin-bottom:12px;">
                             <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
                                 <div>
-                                    <div style="font-size:12px; font-weight:700; color:#555; text-transform:uppercase;">🏦 UHHS-OD ACCOUNT BALANCE</div>
+                                    <div style="font-size:12px; font-weight:700; color:#555; text-transform:uppercase;">🏦 TUHH-OD ACCOUNT BALANCE</div>
                                     <div style="font-size:24px; font-weight:800; color:${isNegative ? '#dc3545' : '#198754'}; margin-top:2px;">
                                         ${netBalance < 0 ? '-₹' : '₹'}${Math.abs(netBalance).toLocaleString('en-IN', { minimumFractionDigits: 0 })}
                                     </div>
@@ -495,7 +495,7 @@ window.cbDepositToODModal = function() {
     modal.innerHTML = `
         <div class="modal-box" style="background:#fff;border-radius:12px;padding:22px;max-width:450px;width:100%;box-shadow:0 10px 25px rgba(0,0,0,0.2);" onclick="event.stopPropagation()">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;border-bottom:1px solid #eee;padding-bottom:10px;">
-                <h3 style="margin:0;font-size:18px;color:#10B981;font-weight:800;">🏦 Deposit to UHHS-OD Account</h3>
+                <h3 style="margin:0;font-size:18px;color:#10B981;font-weight:800;">🏦 Deposit to TUHH-OD Account</h3>
                 <button onclick="this.closest('.modal-overlay').remove()" style="background:none;border:none;font-size:22px;cursor:pointer;color:#888;">✕</button>
             </div>
             
@@ -599,9 +599,9 @@ window.cbSaveODDeposit = async function() {
         // Close deposit modal & notify
         document.querySelector('.od-deposit-modal-overlay')?.remove();
         if (window.fsn?.success) {
-            fsn.success('Success', `🏦 ₹${amount.toLocaleString('en-IN')} deposited to UHHS-OD!`);
+            fsn.success('Success', `🏦 ₹${amount.toLocaleString('en-IN')} deposited to TUHH-OD!`);
         } else {
-            alert(`✅ ₹${amount.toLocaleString('en-IN')} deposited to UHHS-OD!`);
+            alert(`✅ ₹${amount.toLocaleString('en-IN')} deposited to TUHH-OD!`);
         }
 
         // Refresh UI & Balance
@@ -640,7 +640,7 @@ window.cbReturnFromODModal = function() {
             </div>
 
             <div style="background:#fef2f2;padding:10px;border-radius:8px;font-size:12px;color:#991b1b;margin-bottom:14px;border:1px solid #fecaca;">
-                Record funds returned / transferred from UHHS-OD back to Company or Firoz. This will reduce your UHHS-OD running balance.
+                Record funds returned / transferred from TUHH-OD back to Company or Firoz. This will reduce your TUHH-OD running balance.
             </div>
 
             <div class="form-group" style="margin-bottom:12px;">
@@ -781,7 +781,7 @@ window.cbEditODDeposit = async function(id) {
 
     if (String(id).startsWith('ret_')) {
         const retId = id.replace('ret_', '');
-        if (confirm('Delete this Return to Company record? The amount will be added back to your UHHS-OD balance.')) {
+        if (confirm('Delete this Return to Company record? The amount will be added back to your TUHH-OD balance.')) {
             await client.from('company_advances').delete().eq('id', retId);
             if (window.fsn?.success) fsn.success('Deleted', 'Return record deleted');
             if (window.UHHSODManager) window.UHHSODManager.calculateBalance(client);
@@ -839,7 +839,7 @@ window.cbEditODDeposit = async function(id) {
     modal.innerHTML = `
         <div class="modal-box" style="background:#fff;border-radius:12px;padding:22px;max-width:450px;width:100%;box-shadow:0 10px 25px rgba(0,0,0,0.2);" onclick="event.stopPropagation()">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;border-bottom:1px solid #eee;padding-bottom:10px;">
-                <h3 style="margin:0;font-size:18px;color:#3B82F6;font-weight:800;">✏️ Edit UHHS-OD Deposit</h3>
+                <h3 style="margin:0;font-size:18px;color:#3B82F6;font-weight:800;">✏️ Edit TUHH-OD Deposit</h3>
                 <button onclick="this.closest('.modal-overlay').remove()" style="background:none;border:none;font-size:22px;cursor:pointer;color:#888;">✕</button>
             </div>
 

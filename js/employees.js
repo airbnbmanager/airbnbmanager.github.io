@@ -2474,7 +2474,7 @@ async function renderAddAdv() {
           <label>Payment Source / Account *</label>
           <select id="aPaidBy" style="border: 1.5px solid #0d6efd; font-weight: 600;">
             <option value="COMPANY">🏢 COMPANY (Guest Rent / Cash in Hand)</option>
-            <option value="UHHS-OD" selected>🏦 UHHS-OD (Overdraft Account)</option>
+            <option value="UHHS-OD" selected>🏦 TUHH-OD (Overdraft Account)</option>
             <option value="FIROZ">👤 FIROZ (Direct Personal)</option>
           </select>
         </div>
@@ -2567,7 +2567,7 @@ async function editAdv(id) {
         <div class="form-group"><label>Payment Source / Account *</label>
           <select id="aPaidBy" style="border: 1.5px solid #0d6efd; font-weight: 600;">
             <option value="COMPANY" ${a.paid_by === 'COMPANY' ? 'selected' : ''}>🏢 COMPANY (Guest Rent / Cash in Hand)</option>
-            <option value="UHHS-OD" ${a.paid_by === 'UHHS-OD' || !a.paid_by ? 'selected' : ''}>🏦 UHHS-OD (Overdraft Account)</option>
+            <option value="UHHS-OD" ${a.paid_by === 'UHHS-OD' || !a.paid_by ? 'selected' : ''}>🏦 TUHH-OD (Overdraft Account)</option>
             <option value="FIROZ" ${a.paid_by === 'FIROZ' ? 'selected' : ''}>👤 FIROZ (Direct Personal)</option>
           </select>
         </div>
