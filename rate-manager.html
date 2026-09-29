@@ -1,0 +1,834 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Rate Manager — Unique Haven Homes CRM</title>
+  <link rel="icon" href="favicon.ico" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg:         #0d0f14;
+      --surface:    #161920;
+      --surface2:   #1e2230;
+      --border:     rgba(255,255,255,0.08);
+      --gold:       #d4a84b;
+      --gold-light: #f0c96b;
+      --gold-dim:   rgba(212,168,75,0.12);
+      --text:       #f0f2f7;
+      --muted:      #8892a4;
+      --green:      #22c55e;
+      --red:        #ef4444;
+      --blue:       #3b82f6;
+      --radius:     14px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Inter', 'Plus Jakarta Sans', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    /* ── LOGIN SCREEN ── */
+    #login-screen {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      background: radial-gradient(ellipse at 50% 0%, rgba(212,168,75,0.15) 0%, transparent 60%), var(--bg);
+    }
+
+    .login-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      padding: 48px 40px;
+      width: 100%;
+      max-width: 400px;
+      text-align: center;
+      box-shadow: 0 32px 80px rgba(0,0,0,0.6);
+    }
+
+    .login-logo {
+      font-size: 48px;
+      margin-bottom: 16px;
+    }
+
+    .login-title {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 22px;
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+
+    .login-sub {
+      color: var(--muted);
+      font-size: 14px;
+      margin-bottom: 32px;
+    }
+
+    .login-input {
+      width: 100%;
+      padding: 14px 18px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      color: var(--text);
+      font-size: 15px;
+      outline: none;
+      margin-bottom: 16px;
+      transition: border-color 0.2s;
+    }
+
+    .login-input:focus { border-color: var(--gold); }
+
+    .login-btn {
+      width: 100%;
+      padding: 14px;
+      background: linear-gradient(135deg, var(--gold), #b58d3d);
+      color: #1a1200;
+      font-weight: 700;
+      font-size: 15px;
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: transform 0.15s, box-shadow 0.2s;
+    }
+
+    .login-btn:hover { transform: translateY(-1px); box-shadow: 0 8px 24px rgba(212,168,75,0.35); }
+    .login-btn:active { transform: translateY(0); }
+
+    .login-err {
+      color: var(--red);
+      font-size: 13px;
+      margin-top: 12px;
+      display: none;
+    }
+
+    /* ── MAIN APP ── */
+    #app { display: none; }
+
+    /* Header */
+    .crm-header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 0 24px;
+      height: 64px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .crm-logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .crm-logo-icon {
+      width: 38px; height: 38px;
+      background: linear-gradient(135deg, var(--gold), #8c6a23);
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px;
+    }
+
+    .crm-logo-text {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-weight: 700;
+      font-size: 15px;
+    }
+
+    .crm-logo-sub {
+      font-size: 11px;
+      color: var(--muted);
+      letter-spacing: 0.5px;
+    }
+
+    .crm-header-right {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .sync-status {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      color: var(--muted);
+      padding: 6px 12px;
+      background: var(--surface2);
+      border-radius: 20px;
+    }
+
+    .sync-dot {
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      background: var(--green);
+      animation: pulse-green 2s infinite;
+    }
+
+    @keyframes pulse-green {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+
+    .header-btn {
+      padding: 8px 16px;
+      border-radius: 10px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      border: 1px solid var(--border);
+      background: var(--surface2);
+      color: var(--text);
+      transition: all 0.15s;
+    }
+
+    .header-btn:hover { background: var(--surface); border-color: var(--gold); color: var(--gold); }
+
+    .header-btn.primary {
+      background: linear-gradient(135deg, var(--gold), #b58d3d);
+      color: #1a1200;
+      border-color: transparent;
+    }
+
+    .header-btn.primary:hover { box-shadow: 0 4px 16px rgba(212,168,75,0.35); }
+
+    /* Main content */
+    .crm-main {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 32px 24px;
+    }
+
+    /* Stats bar */
+    .stats-bar {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 16px;
+      margin-bottom: 32px;
+    }
+
+    .stat-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+    }
+
+    .stat-label {
+      font-size: 12px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      margin-bottom: 8px;
+    }
+
+    .stat-value {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 26px;
+      font-weight: 700;
+      color: var(--gold);
+    }
+
+    /* Section */
+    .section-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 20px;
+    }
+
+    .section-title {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 18px;
+      font-weight: 700;
+    }
+
+    .search-box {
+      padding: 9px 14px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      color: var(--text);
+      font-size: 14px;
+      outline: none;
+      width: 220px;
+      transition: border-color 0.2s;
+    }
+
+    .search-box:focus { border-color: var(--gold); }
+
+    /* Property table */
+    .rate-table {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+
+    .rate-row {
+      display: grid;
+      grid-template-columns: 2fr 1fr 1fr 1fr 90px;
+      gap: 0;
+      align-items: center;
+      padding: 0 20px;
+      border-bottom: 1px solid var(--border);
+      transition: background 0.15s;
+    }
+
+    .rate-row:last-child { border-bottom: none; }
+
+    .rate-row:hover { background: var(--surface2); }
+
+    .rate-row.header {
+      background: var(--surface2);
+      padding: 12px 20px;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.7px;
+      color: var(--muted);
+    }
+
+    .rate-row.header:hover { background: var(--surface2); }
+
+    .rate-cell { padding: 16px 8px; }
+
+    .prop-name {
+      font-weight: 600;
+      font-size: 14px;
+    }
+
+    .prop-id {
+      font-size: 11px;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+
+    .price-input {
+      width: 100%;
+      padding: 8px 12px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-size: 14px;
+      font-weight: 600;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    .price-input:focus {
+      border-color: var(--gold);
+      box-shadow: 0 0 0 3px rgba(212,168,75,0.15);
+    }
+
+    .price-input.changed {
+      border-color: var(--gold);
+      background: var(--gold-dim);
+    }
+
+    .price-input.saving {
+      opacity: 0.6;
+      pointer-events: none;
+    }
+
+    .save-row-btn {
+      padding: 7px 14px;
+      background: var(--gold-dim);
+      border: 1px solid rgba(212,168,75,0.4);
+      color: var(--gold);
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+      white-space: nowrap;
+    }
+
+    .save-row-btn:hover {
+      background: var(--gold);
+      color: #1a1200;
+    }
+
+    .save-row-btn.saved {
+      background: rgba(34,197,94,0.12);
+      border-color: rgba(34,197,94,0.4);
+      color: var(--green);
+    }
+
+    .save-row-btn.error {
+      background: rgba(239,68,68,0.12);
+      border-color: rgba(239,68,68,0.4);
+      color: var(--red);
+    }
+
+    /* Toast notifications */
+    #toast-container {
+      position: fixed;
+      bottom: 28px;
+      right: 28px;
+      z-index: 9999;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .toast {
+      padding: 14px 20px;
+      border-radius: 12px;
+      font-size: 14px;
+      font-weight: 500;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+      animation: slide-in 0.3s ease;
+      max-width: 320px;
+    }
+
+    .toast.success {
+      background: #14532d;
+      border: 1px solid rgba(34,197,94,0.3);
+      color: #86efac;
+    }
+
+    .toast.error {
+      background: #450a0a;
+      border: 1px solid rgba(239,68,68,0.3);
+      color: #fca5a5;
+    }
+
+    .toast.info {
+      background: #1e3a5f;
+      border: 1px solid rgba(59,130,246,0.3);
+      color: #93c5fd;
+    }
+
+    @keyframes slide-in {
+      from { transform: translateX(120%); opacity: 0; }
+      to   { transform: translateX(0);    opacity: 1; }
+    }
+
+    /* Loading state */
+    .loading-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--muted);
+    }
+
+    .spinner {
+      width: 36px; height: 36px;
+      border: 3px solid var(--border);
+      border-top-color: var(--gold);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin: 0 auto 16px;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Last updated badge */
+    .last-updated {
+      font-size: 12px;
+      color: var(--muted);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 16px;
+    }
+
+    /* Responsive */
+    @media (max-width: 700px) {
+      .rate-row {
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+        padding: 12px 16px;
+      }
+      .rate-row.header { display: none; }
+      .rate-cell { padding: 6px 0; }
+      .rate-cell:nth-child(3) { display: none; } /* hide airbnb col on mobile */
+      .crm-main { padding: 16px 12px; }
+      .stats-bar { grid-template-columns: 1fr 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── LOGIN ── -->
+<div id="login-screen">
+  <div class="login-card">
+    <div class="login-logo">🏡</div>
+    <div class="login-title">Rate Manager</div>
+    <div class="login-sub">Unique Haven Homes · CRM</div>
+    <input id="login-email" class="login-input" type="email" placeholder="Admin email" autocomplete="email" />
+    <input id="login-pass" class="login-input" type="password" placeholder="Password" autocomplete="current-password" />
+    <button class="login-btn" id="login-btn" onclick="doLogin()">Sign In →</button>
+    <div id="login-err" class="login-err">Invalid credentials. Try again.</div>
+  </div>
+</div>
+
+<!-- ── MAIN APP ── -->
+<div id="app">
+  <!-- Header -->
+  <header class="crm-header">
+    <div class="crm-logo">
+      <div class="crm-logo-icon">🏡</div>
+      <div>
+        <div class="crm-logo-text">Rate Manager</div>
+        <div class="crm-logo-sub">UNIQUE HAVEN HOMES · CRM</div>
+      </div>
+    </div>
+    <div class="crm-header-right">
+      <div class="sync-status">
+        <div class="sync-dot"></div>
+        <span id="sync-label">Live</span>
+      </div>
+      <button class="header-btn" onclick="loadRates()">🔄 Refresh</button>
+      <button class="header-btn primary" id="save-all-btn" onclick="saveAll()">💾 Save All Changes</button>
+      <button class="header-btn" onclick="doLogout()">Sign Out</button>
+    </div>
+  </header>
+
+  <!-- Main -->
+  <main class="crm-main">
+
+    <!-- Stats -->
+    <div class="stats-bar" id="stats-bar">
+      <div class="stat-card">
+        <div class="stat-label">Properties</div>
+        <div class="stat-value" id="stat-count">—</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Avg. Base Price</div>
+        <div class="stat-value" id="stat-avg">—</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Lowest Rate</div>
+        <div class="stat-value" id="stat-min">—</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Highest Rate</div>
+        <div class="stat-value" id="stat-max">—</div>
+      </div>
+    </div>
+
+    <!-- Table -->
+    <div class="section-header">
+      <div class="section-title">Property Rates</div>
+      <input type="search" class="search-box" id="search-box" placeholder="🔍 Search property…" oninput="filterRows(this.value)" />
+    </div>
+
+    <div class="rate-table">
+      <!-- Header row -->
+      <div class="rate-row header">
+        <div class="rate-cell">Property</div>
+        <div class="rate-cell">Base / Night</div>
+        <div class="rate-cell">Airbnb / Night</div>
+        <div class="rate-cell">Max Guests</div>
+        <div class="rate-cell"></div>
+      </div>
+      <!-- Data rows injected here -->
+      <div id="rate-rows">
+        <div class="loading-state">
+          <div class="spinner"></div>
+          Loading rates…
+        </div>
+      </div>
+    </div>
+
+    <div class="last-updated" id="last-updated"></div>
+
+  </main>
+</div>
+
+<!-- Toast container -->
+<div id="toast-container"></div>
+
+<!-- Supabase SDK -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
+
+<script>
+// ═══════════════════════════════════════════════════════════
+//  RATE MANAGER — CRM Admin Script
+// ═══════════════════════════════════════════════════════════
+
+let _sb = null;
+let _rates = [];
+let _pendingChanges = {}; // roomId → { base_price, airbnb_price, max_guests }
+
+function getSB() {
+  if (_sb) return _sb;
+  _sb = supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY);
+  return _sb;
+}
+
+// ── AUTH ──────────────────────────────────────────────────
+async function doLogin() {
+  const email = document.getElementById('login-email').value.trim();
+  const pass  = document.getElementById('login-pass').value;
+  const btn   = document.getElementById('login-btn');
+  const err   = document.getElementById('login-err');
+
+  if (!email || !pass) { err.textContent = 'Enter email and password.'; err.style.display = 'block'; return; }
+
+  btn.textContent = 'Signing in…';
+  btn.disabled = true;
+  err.style.display = 'none';
+
+  const { error } = await getSB().auth.signInWithPassword({ email, password: pass });
+
+  if (error) {
+    err.textContent = error.message || 'Login failed.';
+    err.style.display = 'block';
+    btn.textContent = 'Sign In →';
+    btn.disabled = false;
+    return;
+  }
+
+  // Success
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('app').style.display = 'block';
+  loadRates();
+}
+
+async function doLogout() {
+  await getSB().auth.signOut();
+  location.reload();
+}
+
+// Allow Enter key on login
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && document.getElementById('login-screen').style.display !== 'none') {
+    doLogin();
+  }
+});
+
+// Auto-restore session if already logged in
+(async () => {
+  const { data: { session } } = await getSB().auth.getSession();
+  if (session) {
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
+    loadRates();
+  }
+})();
+
+// ── LOAD RATES ────────────────────────────────────────────
+async function loadRates() {
+  document.getElementById('rate-rows').innerHTML = `
+    <div class="loading-state"><div class="spinner"></div>Loading rates…</div>`;
+
+  const { data, error } = await getSB()
+    .from('property_rates')
+    .select('*')
+    .order('room_id');
+
+  if (error) {
+    document.getElementById('rate-rows').innerHTML =
+      `<div class="loading-state" style="color:#ef4444">❌ ${error.message}</div>`;
+    return;
+  }
+
+  _rates = data;
+  _pendingChanges = {};
+  renderRates(data);
+  updateStats(data);
+
+  const ts = new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+  document.getElementById('last-updated').innerHTML =
+    `<span>🕐 Last fetched: ${ts}</span>`;
+}
+
+// ── RENDER ────────────────────────────────────────────────
+function renderRates(rates) {
+  const container = document.getElementById('rate-rows');
+  container.innerHTML = '';
+
+  rates.forEach(r => {
+    const row = document.createElement('div');
+    row.className = 'rate-row';
+    row.setAttribute('data-room-id', r.room_id);
+    row.innerHTML = `
+      <div class="rate-cell">
+        <div class="prop-name">${r.property_name}</div>
+        <div class="prop-id">${r.room_id} · ${r.slug}</div>
+      </div>
+      <div class="rate-cell">
+        <input class="price-input" id="base_${r.room_id}" type="number" min="500" max="99999" step="100"
+          value="${r.base_price}"
+          onchange="markChanged('${r.room_id}', 'base_price', this)"
+          oninput="markChanged('${r.room_id}', 'base_price', this)" />
+      </div>
+      <div class="rate-cell">
+        <input class="price-input" id="airbnb_${r.room_id}" type="number" min="500" max="99999" step="100"
+          value="${r.airbnb_price || ''}"
+          placeholder="—"
+          onchange="markChanged('${r.room_id}', 'airbnb_price', this)"
+          oninput="markChanged('${r.room_id}', 'airbnb_price', this)" />
+      </div>
+      <div class="rate-cell">
+        <input class="price-input" id="guests_${r.room_id}" type="number" min="1" max="30" step="1"
+          value="${r.max_guests || 6}"
+          onchange="markChanged('${r.room_id}', 'max_guests', this)"
+          oninput="markChanged('${r.room_id}', 'max_guests', this)" />
+      </div>
+      <div class="rate-cell">
+        <button class="save-row-btn" id="savebtn_${r.room_id}" onclick="saveRow('${r.room_id}')">Save</button>
+      </div>
+    `;
+    container.appendChild(row);
+  });
+}
+
+// ── STATS ─────────────────────────────────────────────────
+function updateStats(rates) {
+  const prices = rates.map(r => r.base_price).filter(Boolean);
+  document.getElementById('stat-count').textContent = rates.length;
+  document.getElementById('stat-avg').textContent = prices.length
+    ? '₹' + Math.round(prices.reduce((a, b) => a + b, 0) / prices.length).toLocaleString('en-IN')
+    : '—';
+  document.getElementById('stat-min').textContent = prices.length
+    ? '₹' + Math.min(...prices).toLocaleString('en-IN') : '—';
+  document.getElementById('stat-max').textContent = prices.length
+    ? '₹' + Math.max(...prices).toLocaleString('en-IN') : '—';
+}
+
+// ── CHANGE TRACKING ───────────────────────────────────────
+function markChanged(roomId, field, input) {
+  if (!_pendingChanges[roomId]) _pendingChanges[roomId] = {};
+  const val = parseInt(input.value, 10);
+  if (!isNaN(val)) _pendingChanges[roomId][field] = val;
+
+  input.classList.add('changed');
+
+  const saveBtn = document.getElementById('savebtn_' + roomId);
+  if (saveBtn) {
+    saveBtn.textContent = 'Save ●';
+    saveBtn.className = 'save-row-btn';
+  }
+}
+
+// ── SAVE SINGLE ROW ───────────────────────────────────────
+async function saveRow(roomId) {
+  const changes = _pendingChanges[roomId];
+  if (!changes || Object.keys(changes).length === 0) {
+    toast('No changes to save for this row.', 'info');
+    return;
+  }
+
+  const btn = document.getElementById('savebtn_' + roomId);
+  btn.textContent = '⏳';
+  btn.disabled = true;
+
+  const { error } = await getSB()
+    .from('property_rates')
+    .update({ ...changes, updated_at: new Date().toISOString(), updated_by: 'admin-crm' })
+    .eq('room_id', roomId);
+
+  if (error) {
+    btn.textContent = '❌ Error';
+    btn.className = 'save-row-btn error';
+    btn.disabled = false;
+    toast('Failed to save ' + roomId + ': ' + error.message, 'error');
+    return;
+  }
+
+  // Clear pending for this row
+  delete _pendingChanges[roomId];
+
+  // Clear changed styling on inputs
+  ['base_', 'airbnb_', 'guests_'].forEach(prefix => {
+    const el = document.getElementById(prefix + roomId);
+    if (el) el.classList.remove('changed');
+  });
+
+  btn.textContent = '✓ Saved';
+  btn.className = 'save-row-btn saved';
+  btn.disabled = false;
+
+  setTimeout(() => {
+    btn.textContent = 'Save';
+    btn.className = 'save-row-btn';
+  }, 2500);
+
+  toast('✅ ' + roomId + ' updated — website will reflect in ~1 minute.', 'success');
+}
+
+// ── SAVE ALL ──────────────────────────────────────────────
+async function saveAll() {
+  const roomIds = Object.keys(_pendingChanges);
+  if (roomIds.length === 0) {
+    toast('No changes detected.', 'info');
+    return;
+  }
+
+  const btn = document.getElementById('save-all-btn');
+  btn.textContent = `⏳ Saving ${roomIds.length}…`;
+  btn.disabled = true;
+
+  let saved = 0, failed = 0;
+
+  for (const roomId of roomIds) {
+    const changes = _pendingChanges[roomId];
+    const { error } = await getSB()
+      .from('property_rates')
+      .update({ ...changes, updated_at: new Date().toISOString(), updated_by: 'admin-crm' })
+      .eq('room_id', roomId);
+
+    if (error) {
+      failed++;
+      toast('❌ ' + roomId + ': ' + error.message, 'error');
+    } else {
+      saved++;
+      delete _pendingChanges[roomId];
+      const savebtn = document.getElementById('savebtn_' + roomId);
+      if (savebtn) { savebtn.textContent = '✓'; savebtn.className = 'save-row-btn saved'; }
+      ['base_', 'airbnb_', 'guests_'].forEach(p => {
+        const el = document.getElementById(p + roomId);
+        if (el) el.classList.remove('changed');
+      });
+    }
+  }
+
+  btn.textContent = '💾 Save All Changes';
+  btn.disabled = false;
+
+  if (saved > 0) toast(`✅ ${saved} propert${saved > 1 ? 'ies' : 'y'} saved — website updates live!`, 'success');
+  if (failed > 0) toast(`⚠️ ${failed} failed. Check errors above.`, 'error');
+
+  // Update stats
+  const { data } = await getSB().from('property_rates').select('base_price').eq('is_active', true);
+  if (data) updateStats(data);
+}
+
+// ── SEARCH / FILTER ───────────────────────────────────────
+function filterRows(query) {
+  const q = query.toLowerCase();
+  document.querySelectorAll('.rate-row[data-room-id]').forEach(row => {
+    const text = row.textContent.toLowerCase();
+    row.style.display = text.includes(q) ? '' : 'none';
+  });
+}
+
+// ── TOAST ─────────────────────────────────────────────────
+function toast(msg, type = 'info') {
+  const el = document.createElement('div');
+  el.className = `toast ${type}`;
+  el.textContent = msg;
+  document.getElementById('toast-container').appendChild(el);
+  setTimeout(() => el.remove(), 4000);
+}
+</script>
+</body>
+</html>
