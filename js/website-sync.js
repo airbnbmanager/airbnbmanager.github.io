@@ -9,103 +9,103 @@ const PROPERTY_PINS = [
   {
     roomId: 'GOM-101', slug: 'redrose-palace',
     name: 'RedRose Palace', type: '3BHK Luxury Flat',
-    price: '₹3,499', lat: 26.8721, lng: 80.9997,
+    price: '₹4,500', lat: 26.8721, lng: 80.9997,
     url: 'redrose-palace.html'
   },
   {
     roomId: 'GOM-102', slug: 'black-beauty',
     name: 'Black Beauty', type: '3BHK Luxury Flat',
-    price: '₹3,499', lat: 26.8718, lng: 80.9993,
+    price: '₹4,500', lat: 26.8718, lng: 80.9993,
     url: 'black-beauty.html'
   },
   {
     roomId: 'GOM-201', slug: 'the-dark-blue',
     name: 'The Dark Blue', type: '3BHK Luxury Flat',
-    price: '₹3,499', lat: 26.8725, lng: 81.0003,
+    price: '₹4,500', lat: 26.8725, lng: 81.0003,
     url: 'the-dark-blue.html'
   },
   {
     roomId: 'GOM-202', slug: 'the-brown',
     name: 'The Brown', type: '3BHK Luxury Flat',
-    price: '₹3,399', lat: 26.8730, lng: 81.0009,
+    price: '₹4,500', lat: 26.8730, lng: 81.0009,
     url: 'the-brown.html'
   },
   {
     roomId: 'GOM-301', slug: 'the-light-green',
     name: 'The Light Green', type: '3BHK Luxury Flat',
-    price: '₹3,399', lat: 26.8715, lng: 80.9989,
+    price: '₹4,500', lat: 26.8715, lng: 80.9989,
     url: 'the-light-green.html'
   },
   {
     roomId: 'GOM-401', slug: 'the-nawabi-stay',
     name: 'The Nawabi Stay', type: '3BHK Luxury Flat',
-    price: '₹3,699', lat: 26.8728, lng: 80.9985,
+    price: '₹4,500', lat: 26.8728, lng: 80.9985,
     url: 'the-nawabi-stay.html'
   },
   {
     roomId: 'GOM-501', slug: 'starlight-blue-penthouse',
     name: 'Starlight Blue Penthouse', type: '4BHK Penthouse',
-    price: '₹4,199', lat: 26.8736, lng: 81.0014,
+    price: '₹6,000', lat: 26.8736, lng: 81.0014,
     url: 'starlight-blue-penthouse.html'
   },
   {
     roomId: 'GOM-302', slug: 'the-unique',
     name: 'The Unique', type: '3BHK Luxury Flat',
-    price: '₹3,599', lat: 26.8640, lng: 81.0070,
+    price: '₹5,500', lat: 26.8640, lng: 81.0070,
     url: 'the-unique.html'
   },
   {
     roomId: 'VIL-104', slug: 'the-green-house',
     name: 'The Green House', type: '3BHK Luxury Flat',
-    price: '₹3,899', lat: 26.8635, lng: 81.0065,
+    price: '₹5,500', lat: 26.8635, lng: 81.0065,
     url: 'the-green-house.html'
   },
   {
     roomId: 'VIL-103', slug: 'the-pink-house',
     name: 'The Pink House', type: '3BHK Luxury Flat',
-    price: '₹6,499', lat: 26.8645, lng: 81.0075,
+    price: '₹9,000', lat: 26.8645, lng: 81.0075,
     url: 'the-pink-house.html'
   },
   {
     roomId: 'VIL-105', slug: 'the-yellow-house',
     name: 'The Yellow House', type: '3BHK Luxury Flat',
-    price: '₹3,999', lat: 26.8648, lng: 81.0080,
+    price: '₹5,500', lat: 26.8648, lng: 81.0080,
     url: 'the-yellow-house.html'
   },
   {
     roomId: 'VIL-106', slug: 'green-forest',
     name: 'Green Forest', type: '3BHK Luxury Flat',
-    price: '₹3,499', lat: 26.8586, lng: 81.0120,
+    price: '₹4,500', lat: 26.8586, lng: 81.0120,
     url: 'green-forest.html'
   },
   {
     roomId: 'VIL-108', slug: 'pink-paradise',
     name: 'Pink Paradise', type: '3BHK Luxury Flat',
-    price: '₹3,799', lat: 26.8590, lng: 81.0128,
+    price: '₹4,500', lat: 26.8590, lng: 81.0128,
     url: 'pink-paradise.html'
   },
   {
     roomId: 'LUL-402', slug: 'celebrity-garden',
-    name: 'Celebrity Garden', type: '5-Bed Luxury Flat',
-    price: '₹3,699', lat: 26.8330, lng: 80.9820,
+    name: 'Celebrity Garden', type: '4BHK Grand Homestay',
+    price: '₹10,000', lat: 26.8330, lng: 80.9820,
     url: 'celebrity-garden.html'
   },
   {
     roomId: 'VIL-101', slug: 'gomti-grand-villa',
     name: 'Gomti Grand Villa', type: 'Private Villa',
-    price: '₹5,499', lat: 26.8583, lng: 81.0100,
+    price: '₹8,000', lat: 26.8583, lng: 81.0100,
     url: 'gomti-grand-villa.html'
   },
   {
     roomId: 'VIL-102', slug: 'royal-white-house',
     name: 'Royal White House', type: 'Luxury Villa',
-    price: '₹5,199', lat: 26.8578, lng: 81.0115,
+    price: '₹12,000', lat: 26.8578, lng: 81.0115,
     url: 'royal-white-house.html'
   },
   {
     roomId: 'VIL-107', slug: 'the-velvet-house',
     name: 'The Velvet House', type: 'Luxury Villa',
-    price: '₹4,899', lat: 26.8325, lng: 80.9810,
+    price: '₹4,500', lat: 26.8325, lng: 80.9810,
     url: 'the-velvet-house.html'
   }
 ];

@@ -64,7 +64,7 @@ INSERT INTO public.property_rates (room_id, slug, property_name, base_price, air
   ('VIL-106', 'green-forest',            'Green Forest',              4500, 5499, 6),
   ('VIL-108', 'pink-paradise',           'Pink Paradise',             4500, 5499, 6),
   ('LUL-402', 'celebrity-garden',        'Celebrity Garden',         10000,11999,10),
-  ('VIL-101', 'gomti-grand-villa',       'Gomti Grand Villa',         5499, 6499, 6),
+  ('VIL-101', 'gomti-grand-villa',       'Gomti Grand Villa',         8000, 9499, 6),
   ('VIL-102', 'royal-white-house',       'Royal White House',        12000,14999,12),
   ('VIL-107', 'the-velvet-house',        'The Velvet House',          4500, 5499, 6)
 ON CONFLICT (room_id) DO UPDATE SET

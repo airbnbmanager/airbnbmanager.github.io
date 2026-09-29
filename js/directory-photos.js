@@ -4,8 +4,8 @@ window.UHH_PHOTO_DB = {
     "name": "The Dark Blue",
     "type": "3BHK Luxury Flat",
     "area": "Vikalp Khand, Gomti Nagar",
-    "base_price": 3499,
-    "airbnb_price": 4199,
+    "base_price": 4500,
+    "airbnb_price": 5499,
     "rating": 4.93,
     "reviews": 46,
     "localCover": "assets/properties/the-dark-blue/cover.jpg",
@@ -121,15 +121,16 @@ window.UHH_PHOTO_DB = {
         "https://a0.muscache.com/im/pictures/hosting/Hosting-1655969170448425308/original/201effd8-a277-4942-8a7e-bfd9fbabc298.jpeg",
         "https://a0.muscache.com/im/pictures/hosting/Hosting-1655969170448425308/original/6b0af19d-eab3-41b4-956c-362245fe3af2.jpeg"
       ]
-    }
+    },
+    "max_guests": 6
   },
   "the-unique": {
     "id": "GOM-302",
     "name": "The Unique",
     "type": "3BHK Luxury Flat",
     "area": "Vikalp Khand, Gomti Nagar",
-    "base_price": 3599,
-    "airbnb_price": 4299,
+    "base_price": 5500,
+    "airbnb_price": 6599,
     "rating": 4.92,
     "reviews": 39,
     "localCover": "assets/properties/the-unique/cover.jpg",
@@ -261,15 +262,16 @@ window.UHH_PHOTO_DB = {
         "https://a0.muscache.com/im/pictures/hosting/Hosting-1679190202218939181/original/9afd0abe-a7f0-4000-94e0-abfb59602bd5.jpeg",
         "https://a0.muscache.com/im/pictures/hosting/Hosting-1679190202218939181/original/2bf2330b-1582-4dc8-add1-cc0712dfa507.jpeg"
       ]
-    }
+    },
+    "max_guests": 6
   },
   "black-beauty": {
     "id": "GOM-102",
     "name": "Black Beauty",
     "type": "3BHK Luxury Flat",
     "area": "Vikalp Khand, Gomti Nagar",
-    "base_price": 3499,
-    "airbnb_price": 4199,
+    "base_price": 4500,
+    "airbnb_price": 5499,
     "rating": 4.92,
     "reviews": 38,
     "localCover": "assets/properties/black-beauty/cover.jpg",
@@ -365,15 +367,16 @@ window.UHH_PHOTO_DB = {
         "https://a0.muscache.com/im/pictures/hosting/Hosting-1676840617430941240/original/855cdc0b-9518-422c-901b-55eb52fcd17e.jpeg",
         "https://a0.muscache.com/im/pictures/hosting/Hosting-1676840617430941240/original/4f935963-2d42-4902-8518-059fff4745b9.jpeg"
       ]
-    }
+    },
+    "max_guests": 6
   },
   "redrose-palace": {
     "id": "GOM-101",
     "name": "RedRose Palace",
     "type": "3BHK Luxury Flat",
     "area": "Vikalp Khand, Gomti Nagar",
-    "base_price": 3499,
-    "airbnb_price": 4199,
+    "base_price": 4500,
+    "airbnb_price": 5499,
     "rating": 4.9,
     "reviews": 41,
     "localCover": "assets/properties/redrose-palace/cover.jpg",
@@ -514,15 +517,16 @@ window.UHH_PHOTO_DB = {
         "https://a0.muscache.com/im/pictures/hosting/Hosting-1654261872286835347/original/90f34c70-3a26-4182-9f04-eb6c6dd829be.jpeg"
       ],
       "balcony": []
-    }
+    },
+    "max_guests": 6
   },
   "the-brown": {
     "id": "GOM-202",
     "name": "The Brown",
     "type": "3BHK Luxury Flat",
     "area": "Vikalp Khand, Gomti Nagar",
-    "base_price": 3399,
-    "airbnb_price": 3999,
+    "base_price": 4500,
+    "airbnb_price": 5499,
     "rating": 4.89,
     "reviews": 34,
     "localCover": "assets/properties/the-brown/cover.jpg",
@@ -667,15 +671,16 @@ window.UHH_PHOTO_DB = {
         "https://a0.muscache.com/im/pictures/hosting/Hosting-1660898784168880636/original/8f95f497-8e1c-4307-9e8d-b1119f76ae86.jpeg"
       ],
       "balcony": []
-    }
+    },
+    "max_guests": 6
   },
   "the-light-green": {
     "id": "GOM-301",
     "name": "The Light Green",
     "type": "3BHK Luxury Flat",
     "area": "Vikalp Khand, Gomti Nagar",
-    "base_price": 3399,
-    "airbnb_price": 3999,
+    "base_price": 4500,
+    "airbnb_price": 5499,
     "rating": 4.89,
     "reviews": 27,
     "localCover": "assets/properties/the-light-green/cover.jpg",
@@ -812,15 +817,16 @@ window.UHH_PHOTO_DB = {
         "https://a0.muscache.com/im/pictures/hosting/Hosting-1679155811558485410/original/e6865d38-9de8-45b0-a516-5bce52b48259.jpeg",
         "https://a0.muscache.com/im/pictures/hosting/Hosting-1679155811558485410/original/919aa939-2160-408c-8ce5-c4b577eb61d4.jpeg"
       ]
-    }
+    },
+    "max_guests": 6
   },
   "the-nawabi-stay": {
     "id": "GOM-401",
     "name": "The Nawabi Stay",
     "type": "3BHK Luxury Flat",
     "area": "Vikalp Khand, Gomti Nagar",
-    "base_price": 3699,
-    "airbnb_price": 4399,
+    "base_price": 4500,
+    "airbnb_price": 5499,
     "rating": 4.96,
     "reviews": 48,
     "localCover": "assets/properties/the-nawabi-stay/cover.jpg",
@@ -889,15 +895,16 @@ window.UHH_PHOTO_DB = {
         "https://a0.muscache.com/im/pictures/hosting/Hosting-1723434530455939144/original/02a5bfa7-1007-47be-ac17-884d2b18ed2d.jpeg"
       ],
       "balcony": []
-    }
+    },
+    "max_guests": 6
   },
   "starlight-blue-penthouse": {
     "id": "GOM-501",
     "name": "Starlight Blue PentHouse",
     "type": "Luxury PentHouse",
     "area": "Vikalp Khand, Gomti Nagar",
-    "base_price": 4199,
-    "airbnb_price": 4999,
+    "base_price": 6000,
+    "airbnb_price": 7499,
     "rating": 4.91,
     "reviews": 29,
     "localCover": "assets/properties/starlight-blue-penthouse/cover.jpg",
@@ -1022,15 +1029,16 @@ window.UHH_PHOTO_DB = {
         "https://a0.muscache.com/im/pictures/hosting/Hosting-1718385679817913835/original/da083687-ae9c-4788-9cd7-a19786543809.jpeg"
       ],
       "balcony": []
-    }
+    },
+    "max_guests": 6
   },
   "the-yellow-house": {
     "id": "VIL-105",
     "name": "The Yellow House",
     "type": "Independent Villa",
     "area": "Vishesh Khand 3, Gomti Nagar",
-    "base_price": 3999,
-    "airbnb_price": 4799,
+    "base_price": 5500,
+    "airbnb_price": 6599,
     "rating": 4.87,
     "reviews": 39,
     "localCover": "assets/properties/the-yellow-house/cover.jpg",
@@ -1192,15 +1200,16 @@ window.UHH_PHOTO_DB = {
         "https://a0.muscache.com/im/pictures/hosting/Hosting-1592729918855637425/original/8a96b42d-a3c3-4c51-ac3d-3924f290df16.jpeg",
         "https://a0.muscache.com/im/pictures/hosting/Hosting-1592729918855637425/original/cbd59055-a1ba-41b3-aa80-fdcb0a044e03.jpeg"
       ]
-    }
+    },
+    "max_guests": 6
   },
   "the-green-house": {
     "id": "VIL-104",
     "name": "The Green House",
     "type": "Independent Villa",
     "area": "Vishesh Khand 3, Gomti Nagar",
-    "base_price": 3899,
-    "airbnb_price": 4599,
+    "base_price": 5500,
+    "airbnb_price": 6599,
     "rating": 4.87,
     "reviews": 31,
     "localCover": "assets/properties/the-green-house/cover.jpg",
@@ -1360,15 +1369,16 @@ window.UHH_PHOTO_DB = {
         "https://a0.muscache.com/im/pictures/hosting/Hosting-1593461780265937816/original/3b537b39-8fb0-4b36-9773-052d1bf6cce1.jpeg",
         "https://a0.muscache.com/im/pictures/hosting/Hosting-1593461780265937816/original/fe83c739-e7d9-459b-bd43-3f1ececacc42.jpeg"
       ]
-    }
+    },
+    "max_guests": 6
   },
   "the-pink-house": {
     "id": "VIL-103",
     "name": "The Pink House",
     "type": "Grand Villa (5BR)",
     "area": "Vishesh Khand 3, Gomti Nagar",
-    "base_price": 6499,
-    "airbnb_price": 7699,
+    "base_price": 9000,
+    "airbnb_price": 10999,
     "rating": 4.88,
     "reviews": 33,
     "localCover": "assets/properties/the-pink-house/cover.jpg",
@@ -1602,15 +1612,16 @@ window.UHH_PHOTO_DB = {
         "https://a0.muscache.com/im/pictures/hosting/Hosting-1592729438969718723/original/1f6a22c6-d53f-4690-86d0-e042934332b5.jpeg",
         "https://a0.muscache.com/im/pictures/hosting/Hosting-1592729438969718723/original/67c69613-6e5a-44d0-ae4d-a432bff394d2.jpeg"
       ]
-    }
+    },
+    "max_guests": 10
   },
   "gomti-grand-villa": {
     "id": "VIL-101",
     "name": "Gomti Grand Villa",
     "type": "Luxury Villa (4BHK)",
     "area": "Geetapuri Colony, Near Lulu Mall",
-    "base_price": 5499,
-    "airbnb_price": 6499,
+    "base_price": 8000,
+    "airbnb_price": 9499,
     "rating": 4.95,
     "reviews": 52,
     "localCover": "assets/properties/gomti-grand-villa/cover.jpg",
@@ -1788,15 +1799,16 @@ window.UHH_PHOTO_DB = {
         "https://a0.muscache.com/im/pictures/hosting/Hosting-1721732716374002170/original/af89dd1d-5eb9-4afc-9ad2-8546ffcaa597.jpeg",
         "https://a0.muscache.com/im/pictures/hosting/Hosting-1721732716374002170/original/8f66bcca-6715-47b3-a992-f2a8893d618b.jpeg"
       ]
-    }
+    },
+    "max_guests": 10
   },
   "royal-white-house": {
     "id": "VIL-102",
     "name": "Royal White House",
     "type": "Royal Villa",
     "area": "Near Lulu Mall & Airport",
-    "base_price": 5199,
-    "airbnb_price": 6199,
+    "base_price": 12000,
+    "airbnb_price": 14999,
     "rating": 4.94,
     "reviews": 36,
     "localCover": "assets/properties/royal-white-house/cover.jpg",
@@ -2046,15 +2058,16 @@ window.UHH_PHOTO_DB = {
         "https://a0.muscache.com/im/pictures/hosting/Hosting-1718315215180636685/original/20a17bf7-1354-4834-9b9b-df361be07cec.jpeg",
         "https://a0.muscache.com/im/pictures/hosting/Hosting-1718315215180636685/original/50c970f6-036a-4bf8-a9ba-526286cd5a18.jpeg"
       ]
-    }
+    },
+    "max_guests": 12
   },
   "celebrity-garden": {
     "id": "LUL-402",
     "name": "Celebrity Garden",
     "type": "3BHK Premium Flat",
     "area": "Near Lulu Mall, Shaheed Path",
-    "base_price": 3699,
-    "airbnb_price": 4399,
+    "base_price": 10000,
+    "airbnb_price": 12499,
     "rating": 4.88,
     "reviews": 45,
     "localCover": "assets/properties/celebrity-garden/cover.jpg",
@@ -2241,15 +2254,16 @@ window.UHH_PHOTO_DB = {
         "https://a0.muscache.com/im/pictures/hosting/Hosting-1606514664948608755/original/d5c53429-a175-470d-bc7e-2262c318975b.jpeg"
       ],
       "balcony": []
-    }
+    },
+    "max_guests": 10
   },
   "the-velvet-house": {
     "id": "VIL-107",
     "name": "The Velvet House",
     "type": "Designer Villa",
     "area": "Near Lulu Mall & Medanta",
-    "base_price": 4899,
-    "airbnb_price": 5799,
+    "base_price": 4500,
+    "airbnb_price": 5499,
     "rating": 4.91,
     "reviews": 35,
     "localCover": "assets/properties/the-velvet-house/cover.jpg",
@@ -2381,15 +2395,16 @@ window.UHH_PHOTO_DB = {
         "https://a0.muscache.com/im/pictures/hosting/Hosting-1727830063287100082/original/86d87e7a-1c45-43ba-8c20-d4966a591dbd.jpeg",
         "https://a0.muscache.com/im/pictures/hosting/Hosting-1727830063287100082/original/a2041d40-e783-4938-ab6c-f92a74dfd383.jpeg"
       ]
-    }
+    },
+    "max_guests": 6
   },
   "green-forest": {
     "id": "VIL-106",
     "name": "Green Forest View",
     "type": "Boutique Villa",
     "area": "Vishesh Khand / Chinhat",
-    "base_price": 3499,
-    "airbnb_price": 4199,
+    "base_price": 4500,
+    "airbnb_price": 5499,
     "rating": 4.9,
     "reviews": 28,
     "localCover": "assets/properties/green-forest/cover.jpg",
@@ -2527,15 +2542,16 @@ window.UHH_PHOTO_DB = {
         "https://a0.muscache.com/im/pictures/hosting/Hosting-1739254108962193705/original/01a1cf8d-713c-4051-8968-ae5293aa0cc2.jpeg",
         "https://a0.muscache.com/im/pictures/hosting/Hosting-1739254108962193705/original/51129757-627f-4da7-af35-3f71543390eb.jpeg"
       ]
-    }
+    },
+    "max_guests": 6
   },
   "pink-paradise": {
     "id": "VIL-108",
     "name": "Pink Paradise Villa",
     "type": "Luxury Villa",
     "area": "Vishesh Khand, Gomti Nagar",
-    "base_price": 3799,
-    "airbnb_price": 4499,
+    "base_price": 4500,
+    "airbnb_price": 5499,
     "rating": 4.91,
     "reviews": 26,
     "localCover": "assets/properties/pink-paradise/cover.jpg",
@@ -2652,6 +2668,7 @@ window.UHH_PHOTO_DB = {
         "https://a0.muscache.com/im/pictures/hosting/Hosting-1756799939825259443/original/61128ebc-0865-460d-835b-986dae4e67ef.jpeg"
       ],
       "balcony": []
-    }
+    },
+    "max_guests": 6
   }
 };

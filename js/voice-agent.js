@@ -32,7 +32,7 @@
     { room_id:'VIL-106', property_name:'Green Forest',              base_price:4500,  max_guests:6,  area:'Madhya Kunj, Mahanagar' },
     { room_id:'VIL-108', property_name:'Pink Paradise',             base_price:4500,  max_guests:6,  area:'Madhya Kunj, Mahanagar' },
     { room_id:'LUL-402', property_name:'Celebrity Garden',          base_price:10000, max_guests:10, area:'Lullanpur, Lucknow' },
-    { room_id:'VIL-101', property_name:'Gomti Grand Villa',         base_price:5499,  max_guests:6,  area:'Madhya Kunj, Mahanagar' },
+    { room_id:'VIL-101', property_name:'Gomti Grand Villa',         base_price:8000,  max_guests:6,  area:'Madhya Kunj, Mahanagar' },
     { room_id:'VIL-102', property_name:'Royal White House',         base_price:12000, max_guests:12, area:'Madhya Kunj, Mahanagar' },
     { room_id:'VIL-107', property_name:'The Velvet House',          base_price:4500,  max_guests:6,  area:'Madhya Kunj, Mahanagar' },
   ];
@@ -113,7 +113,7 @@ VISHESH KHAND / GOMTI NAGAR:
 
 MADHYA KUNJ / MAHANAGAR AREA:
 • Green Forest, Pink Paradise, The Velvet House → 3BHK, 6 guests, ₹4,500/night
-• Gomti Grand Villa → Private Villa, 6 guests, ₹5,499/night
+• Gomti Grand Villa → Private Villa, 6 guests, ₹8,000/night
 • Royal White House → Luxury Villa, 12 guests max, ₹12,000/night (ideal for big families/events)
 
 LULLANPUR:
