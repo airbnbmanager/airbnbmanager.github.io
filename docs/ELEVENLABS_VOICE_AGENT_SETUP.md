@@ -159,7 +159,7 @@ Best for: Ekana Stadium matches, Medanta Hospital visits, Airport transit (15 mi
 === LEADERSHIP & DIRECT BOOKING CONTACTS ===
 - Mr. Firoz Khan (Superhost & Co-Founder): +91 82996 00709
 - Mr. Shahanshah (Co-Founder & Host): +91 94500 55554
-- Praveen Singh (Co-Host): +91 94500 55554
+- Praveen Singh (Co-Host): +91 91941 09911
 - Official Website: https://uniquehavenhomesstay.com
 - Direct Booking Benefit: Flat 15% OFF compared to Airbnb/MakeMyTrip platforms.
 ```
