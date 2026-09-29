@@ -122,6 +122,40 @@ window.AIRBNB_IMPORTER = {
     // Main Cover Photo
     const mainCover = html.match(/<meta property="og:image" content="([^"]+)"/)?.[1] || uniquePhotos[0] || '';
 
+    // 4. Extract categorized room photos from Airbnb photo tour
+    const categorized = {
+      living_hall: [],
+      bedrooms: [],
+      bathrooms: [],
+      kitchen: [],
+      balcony: [],
+      all: []
+    };
+
+    const labelMatches = [...html.matchAll(/"accessibilityLabel":"([^"]+)","baseUrl":"([^"]+)"/g)];
+    labelMatches.forEach(m => {
+      const label = m[1].toLowerCase();
+      const url = m[2];
+      if (!url.includes(`Hosting-${listingId}`)) return;
+      const cleanUrl = url.split('?')[0];
+
+      if (!categorized.all.includes(cleanUrl)) categorized.all.push(cleanUrl);
+
+      if (label.includes('bedroom') || label.includes('bed')) {
+        if (!categorized.bedrooms.includes(cleanUrl)) categorized.bedrooms.push(cleanUrl);
+      } else if (label.includes('bathroom') || label.includes('bath') || label.includes('toilet') || label.includes('washroom')) {
+        if (!categorized.bathrooms.includes(cleanUrl)) categorized.bathrooms.push(cleanUrl);
+      } else if (label.includes('kitchen') || label.includes('cooking')) {
+        if (!categorized.kitchen.includes(cleanUrl)) categorized.kitchen.push(cleanUrl);
+      } else if (label.includes('living') || label.includes('dining') || label.includes('hall')) {
+        if (!categorized.living_hall.includes(cleanUrl)) categorized.living_hall.push(cleanUrl);
+      } else {
+        if (!categorized.balcony.includes(cleanUrl)) categorized.balcony.push(cleanUrl);
+      }
+    });
+
+    const finalPhotos = uniquePhotos.length > 0 ? uniquePhotos : categorized.all;
+
     // Detected amenities
     const commonAmenities = [
       { name: 'Air Conditioning', icon: '❄️', keys: ['air conditioning', 'ac', 'climate'] },
@@ -153,7 +187,8 @@ window.AIRBNB_IMPORTER = {
       maxGuests,
       rating,
       mainCover,
-      photos: uniquePhotos,
+      photos: finalPhotos,
+      categorizedPhotos: categorized,
       amenities: detectedAmenities
     };
   },
@@ -426,11 +461,15 @@ window.AIRBNB_IMPORTER = {
     try {
       if (window.ShowcaseData && window.ShowcaseData.saveProperty) {
         const prop = (window.ShowcaseData.getAllProperties() || []).find(p => p.id === targetRoomId || p.roomId === targetRoomId) || {};
-        prop.photos = prop.photos || {};
-        prop.photos['living'] = selected.slice(0, 10);
-        prop.photos['bedroom'] = selected.slice(10, 25);
-        prop.photos['bathroom'] = selected.slice(25, 35);
-        prop.photos['all'] = selected;
+        const cat = data.categorizedPhotos || {};
+        prop.photos = {
+          living_hall: (cat.living_hall && cat.living_hall.length > 0) ? cat.living_hall : selected.slice(0, 10),
+          bedrooms: (cat.bedrooms && cat.bedrooms.length > 0) ? cat.bedrooms : selected.slice(10, 25),
+          bathrooms: (cat.bathrooms && cat.bathrooms.length > 0) ? cat.bathrooms : selected.slice(25, 35),
+          kitchen: (cat.kitchen && cat.kitchen.length > 0) ? cat.kitchen : [],
+          balcony: (cat.balcony && cat.balcony.length > 0) ? cat.balcony : [],
+          all: selected
+        };
         window.ShowcaseData.saveProperty(targetRoomId, { photos: prop.photos, title: data.title });
       }
 

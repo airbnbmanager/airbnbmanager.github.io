@@ -24,7 +24,7 @@
     return 'the-dark-blue';
   }
 
-  // Flatten & categorize photos
+  // Flatten & accurately categorize photos for 5-star gallery presentation
   function preparePhotoCatalog(prop) {
     const catalog = {
       all: [],
@@ -36,77 +36,81 @@
       return u.split('?')[0].trim().toLowerCase();
     };
 
-    const addPhoto = (url, categoryName) => {
-      if (!url || typeof url !== 'string') return;
-      url = url.trim();
-      if (!url) return;
-      // Strictly ignore any Unsplash placeholder or generic dummy images
-      if (url.includes('images.unsplash.com')) return;
-
-      const norm = normalizeUrl(url);
-      if (!catalog.all.some(item => normalizeUrl(item.url) === norm)) {
-        const item = { url, category: categoryName };
-        catalog.all.push(item);
-        if (!catalog.categories[categoryName]) {
-          catalog.categories[categoryName] = [];
-        }
-        catalog.categories[categoryName].push(item);
-      }
+    const isDummy = (u) => {
+      return !u || typeof u !== 'string' || u.includes('images.unsplash.com') || u.includes('adafb11b');
     };
 
-    // 1. Primary cover
-    if (prop.cover_image) {
-      addPhoto(prop.cover_image, 'Cover & Highlights');
-    }
+    // Standard ordered categories
+    const categoryDefs = [
+      { key: 'bedrooms', label: 'Bedrooms' },
+      { key: 'bathrooms', label: 'Bathrooms' },
+      { key: 'kitchen', label: 'Kitchen' },
+      { key: 'living_hall', label: 'Living & Dining' },
+      { key: 'balcony', label: 'Balcony & Views' }
+    ];
 
-    // 2. Curate diverse initial 5 mosaic items (Cover + Bedroom + Living + Bathroom + Kitchen/Balcony)
-    if (prop.photos && typeof prop.photos === 'object' && !Array.isArray(prop.photos)) {
-      if (Array.isArray(prop.photos.bedrooms) && prop.photos.bedrooms[0]) {
-        addPhoto(prop.photos.bedrooms[0], 'Bedrooms');
-      }
-      if (Array.isArray(prop.photos.living_hall) && prop.photos.living_hall[0]) {
-        addPhoto(prop.photos.living_hall[0], 'Living & Dining');
-      }
-      if (Array.isArray(prop.photos.bathrooms) && prop.photos.bathrooms[0]) {
-        addPhoto(prop.photos.bathrooms[0], 'Bathrooms');
-      }
-      if (Array.isArray(prop.photos.kitchen) && prop.photos.kitchen[0]) {
-        addPhoto(prop.photos.kitchen[0], 'Kitchen');
-      } else if (Array.isArray(prop.photos.balcony) && prop.photos.balcony[0]) {
-        addPhoto(prop.photos.balcony[0], 'Balcony & Views');
-      }
-    }
+    categoryDefs.forEach(def => {
+      catalog.categories[def.label] = [];
+    });
 
-    // 3. Categorized photos
+    const seenInAll = new Set();
+
+    // 1. Map categorized photos from prop.photos
     if (prop.photos && typeof prop.photos === 'object') {
-      if (Array.isArray(prop.photos)) {
-        prop.photos.forEach(u => addPhoto(u, 'Listing Photos'));
-      } else {
-        const catMap = {
-          living_hall: 'Living & Dining',
-          bedrooms: 'Bedrooms',
-          bathrooms: 'Bathrooms',
-          kitchen: 'Kitchen',
-          balcony: 'Balcony & Views',
-          all: 'All Listing Photos'
-        };
+      categoryDefs.forEach(({ key, label }) => {
+        const list = prop.photos[key];
+        if (Array.isArray(list)) {
+          list.forEach(url => {
+            if (isDummy(url)) return;
+            const norm = normalizeUrl(url);
+            const cleanUrl = url.trim();
+            const item = { url: cleanUrl, category: label };
 
-        Object.keys(catMap).forEach(key => {
-          const list = prop.photos[key];
-          const label = catMap[key];
-          if (Array.isArray(list)) {
-            list.forEach(u => addPhoto(u, label));
-          }
-        });
+            if (!catalog.categories[label].some(x => normalizeUrl(x.url) === norm)) {
+              catalog.categories[label].push(item);
+            }
+            if (!seenInAll.has(norm)) {
+              seenInAll.add(norm);
+              catalog.all.push(item);
+            }
+          });
+        }
+      });
 
-        // Also check any other array properties
-        Object.keys(prop.photos).forEach(key => {
-          if (!catMap[key] && Array.isArray(prop.photos[key])) {
-            prop.photos[key].forEach(u => addPhoto(u, 'Listing Photos'));
+      // Also check prop.photos.all for any extra photos
+      if (Array.isArray(prop.photos.all)) {
+        prop.photos.all.forEach(url => {
+          if (isDummy(url)) return;
+          const norm = normalizeUrl(url);
+          if (!seenInAll.has(norm)) {
+            seenInAll.add(norm);
+            const cleanUrl = url.trim();
+            const item = { url: cleanUrl, category: 'Balcony & Views' };
+            catalog.all.push(item);
+            catalog.categories['Balcony & Views'].push(item);
           }
         });
       }
     }
+
+    // 2. Ensure cover_image is at index 0 of catalog.all
+    if (prop.cover_image && !isDummy(prop.cover_image)) {
+      const coverNorm = normalizeUrl(prop.cover_image);
+      const existingIdx = catalog.all.findIndex(x => normalizeUrl(x.url) === coverNorm);
+      if (existingIdx > 0) {
+        const [cov] = catalog.all.splice(existingIdx, 1);
+        catalog.all.unshift(cov);
+      } else if (existingIdx === -1) {
+        catalog.all.unshift({ url: prop.cover_image.trim(), category: 'Living & Dining' });
+      }
+    }
+
+    // 3. Purge empty categories
+    Object.keys(catalog.categories).forEach(cat => {
+      if (catalog.categories[cat].length === 0) {
+        delete catalog.categories[cat];
+      }
+    });
 
     return catalog;
   }
@@ -200,6 +204,7 @@
       this.renderAirbnbSubnav();
       this.renderMetaHeader();
       this.renderHeroMosaic();
+      this.renderCategoryStrip();
       this.renderAgodaScoreCard();
       this.renderSpecBar();
       this.renderHighlights();
@@ -891,27 +896,118 @@
       const container = document.getElementById('luxe-photo-mosaic');
       if (!container) return;
 
-      const photos = this.catalog.all;
-      const count = photos.length;
+      const mosaicPhotos = [];
+      const usedUrls = new Set();
+      const normalizeUrl = (u) => (u || '').split('?')[0].trim().toLowerCase();
+
+      const addMosaic = (url, label, category) => {
+        if (!url) return;
+        const norm = normalizeUrl(url);
+        if (!usedUrls.has(norm)) {
+          usedUrls.add(norm);
+          mosaicPhotos.push({ url, label, category });
+        }
+      };
+
+      // 1. Cover / Lead photo
+      if (this.prop.cover_image) {
+        addMosaic(this.prop.cover_image, `${this.prop.name} Lead Photo`, 'all');
+      } else if (this.catalog.all[0]) {
+        addMosaic(this.catalog.all[0].url, `${this.prop.name} Lead Photo`, 'all');
+      }
+
+      // 2. Living & Dining
+      const living = this.catalog.categories['Living & Dining'];
+      if (living && living[0]) {
+        addMosaic(living[0].url, `${this.prop.name} Living & Dining`, 'Living & Dining');
+      }
+
+      // 3. Bedroom
+      const beds = this.catalog.categories['Bedrooms'];
+      if (beds && beds[0]) {
+        addMosaic(beds[0].url, `${this.prop.name} Bedroom`, 'Bedrooms');
+      }
+
+      // 4. Bathroom
+      const baths = this.catalog.categories['Bathrooms'];
+      if (baths && baths[0]) {
+        addMosaic(baths[0].url, `${this.prop.name} Bathroom`, 'Bathrooms');
+      }
+
+      // 5. Balcony or Kitchen
+      const balcony = this.catalog.categories['Balcony & Views'];
+      const kitchen = this.catalog.categories['Kitchen'];
+      if (balcony && balcony[0]) {
+        addMosaic(balcony[0].url, `${this.prop.name} Balcony & Views`, 'Balcony & Views');
+      } else if (kitchen && kitchen[0]) {
+        addMosaic(kitchen[0].url, `${this.prop.name} Kitchen`, 'Kitchen');
+      }
+
+      // Fallback: fill up to 5 from catalog.all if any were missing
+      for (let i = 0; i < this.catalog.all.length && mosaicPhotos.length < 5; i++) {
+        const item = this.catalog.all[i];
+        addMosaic(item.url, `${this.prop.name} Photo ${i + 1}`, item.category || 'all');
+      }
 
       let html = '';
-      for (let i = 0; i < Math.min(count, 5); i++) {
+      for (let i = 0; i < Math.min(mosaicPhotos.length, 5); i++) {
         const isMain = i === 0;
-        const photo = photos[i];
+        const p = mosaicPhotos[i];
         html += `
-          <div class="luxe-photo-item ${isMain ? 'luxe-photo-main' : ''}" onclick="window.luxeEngine.openGallery(${i})">
-            <img src="${photo.url}" alt="${this.prop.name} photo ${i + 1}" loading="${i === 0 ? 'eager' : 'lazy'}"/>
+          <div class="luxe-photo-item ${isMain ? 'luxe-photo-main' : ''}" 
+               onclick="window.luxeEngine.openGallery(0, '${p.category}')" 
+               title="View ${p.category === 'all' ? 'All Photos' : p.category}">
+            <img src="${p.url}" alt="${p.label}" loading="${i === 0 ? 'eager' : 'lazy'}"/>
           </div>
         `;
       }
 
       html += `
-        <button type="button" class="luxe-btn-show-all" onclick="window.luxeEngine.openGallery(0)">
-          ${ICONS.camera} Show all ${count} photos
+        <button type="button" class="luxe-btn-show-all" onclick="window.luxeEngine.openGallery(0, 'all')">
+          ${ICONS.camera} Show all ${this.catalog.all.length} photos
         </button>
       `;
 
       container.innerHTML = html;
+    }
+
+    renderCategoryStrip() {
+      const mosaic = document.getElementById('luxe-photo-mosaic');
+      if (!mosaic) return;
+
+      let strip = document.getElementById('luxe-category-strip');
+      if (!strip) {
+        strip = document.createElement('div');
+        strip.id = 'luxe-category-strip';
+        strip.className = 'luxe-category-strip';
+        mosaic.parentNode.insertBefore(strip, mosaic.nextSibling);
+      }
+
+      const categoryIcons = {
+        'Bedrooms': '🛏️',
+        'Bathrooms': '🚿',
+        'Kitchen': '🍳',
+        'Living & Dining': '🛋️',
+        'Balcony & Views': '🌿'
+      };
+
+      let html = `
+        <button type="button" class="luxe-category-chip active" onclick="window.luxeEngine.openGallery(0, 'all')">
+          <span>📷</span> <span>All Photos</span> <span class="chip-count">(${this.catalog.all.length})</span>
+        </button>
+      `;
+
+      Object.keys(this.catalog.categories).forEach(cat => {
+        const count = this.catalog.categories[cat].length;
+        const icon = categoryIcons[cat] || '📸';
+        html += `
+          <button type="button" class="luxe-category-chip" onclick="window.luxeEngine.openGallery(0, '${cat}')">
+            <span>${icon}</span> <span>${cat}</span> <span class="chip-count">(${count})</span>
+          </button>
+        `;
+      });
+
+      strip.innerHTML = html;
     }
 
     renderSpecBar() {
@@ -983,19 +1079,21 @@
       let html = '';
       for (let i = 1; i <= numRooms; i++) {
         html += `
-          <div class="luxe-room-card">
+          <div class="luxe-room-card" onclick="window.luxeEngine && window.luxeEngine.openGallery(0, 'Bedrooms')" style="cursor:pointer;" title="Click to view Bedroom photos">
             <span class="luxe-room-card-icon">🛏️</span>
             <div class="luxe-room-card-title">Bedroom ${i}</div>
             <div class="luxe-room-card-sub">1 King Bed · AC · Attached Bath</div>
+            <div style="font-size:11.5px;color:var(--luxe-gold-dark);font-weight:700;margin-top:6px;">📷 View Bedroom Photos →</div>
           </div>
         `;
       }
 
       html += `
-        <div class="luxe-room-card">
+        <div class="luxe-room-card" onclick="window.luxeEngine && window.luxeEngine.openGallery(0, 'Living & Dining')" style="cursor:pointer;" title="Click to view Living Hall photos">
           <span class="luxe-room-card-icon">🛋️</span>
           <div class="luxe-room-card-title">Living Hall</div>
           <div class="luxe-room-card-sub">L-shape Sofa + Extra Bedding</div>
+          <div style="font-size:11.5px;color:var(--luxe-gold-dark);font-weight:700;margin-top:6px;">📷 View Living Photos →</div>
         </div>
       `;
 
@@ -1021,12 +1119,23 @@
         'Couple & Family Friendly'
       ];
 
-      el.innerHTML = list.map(item => `
-        <div class="luxe-amenity-item">
-          ${ICONS.check}
-          <span>${item}</span>
-        </div>
-      `).join('');
+      el.innerHTML = list.map(item => {
+        let action = '';
+        const itemLower = item.toLowerCase();
+        if (itemLower.includes('kitchen')) {
+          action = `<span style="font-size:11.5px;color:var(--luxe-gold-dark);font-weight:700;margin-left:6px;cursor:pointer;" onclick="window.luxeEngine && window.luxeEngine.openGallery(0, 'Kitchen')">(View Photos ↗)</span>`;
+        } else if (itemLower.includes('balcony')) {
+          action = `<span style="font-size:11.5px;color:var(--luxe-gold-dark);font-weight:700;margin-left:6px;cursor:pointer;" onclick="window.luxeEngine && window.luxeEngine.openGallery(0, 'Balcony & Views')">(View Photos ↗)</span>`;
+        } else if (itemLower.includes('geyser') || itemLower.includes('bath')) {
+          action = `<span style="font-size:11.5px;color:var(--luxe-gold-dark);font-weight:700;margin-left:6px;cursor:pointer;" onclick="window.luxeEngine && window.luxeEngine.openGallery(0, 'Bathrooms')">(View Photos ↗)</span>`;
+        }
+        return `
+          <div class="luxe-amenity-item">
+            ${ICONS.check}
+            <span>${item} ${action}</span>
+          </div>
+        `;
+      }).join('');
     }
 
     renderVideoTour() {
@@ -2348,10 +2457,10 @@ _Please confirm room allotment and issue official GST Tax Invoice. Thank you!_`;
 
       const tabsContainer = document.getElementById('luxe-modal-tabs');
       if (tabsContainer) {
-        let tabsHtml = `<button type="button" class="luxe-modal-tab active" onclick="window.luxeEngine.filterGallery('all', this)">All Photos (${this.catalog.all.length})</button>`;
+        let tabsHtml = `<button type="button" class="luxe-modal-tab active" data-cat="all" onclick="window.luxeEngine.filterGallery('all', this)">All Photos (${this.catalog.all.length})</button>`;
         Object.keys(this.catalog.categories).forEach(cat => {
           const count = this.catalog.categories[cat].length;
-          tabsHtml += `<button type="button" class="luxe-modal-tab" onclick="window.luxeEngine.filterGallery('${cat}', this)">${cat} (${count})</button>`;
+          tabsHtml += `<button type="button" class="luxe-modal-tab" data-cat="${cat}" onclick="window.luxeEngine.filterGallery('${cat}', this)">${cat} (${count})</button>`;
         });
         tabsContainer.innerHTML = tabsHtml;
       }
@@ -2364,17 +2473,24 @@ _Please confirm room allotment and issue official GST Tax Invoice. Thank you!_`;
       });
     }
 
-    openGallery(initialIndex = 0) {
+    openGallery(initialIndex = 0, initialCategory = 'all') {
       const modal = document.getElementById('luxe-gallery-modal');
       if (!modal) return;
 
-      this.currentFilter = 'all';
-      this.filteredList = this.catalog.all;
+      if (initialCategory && initialCategory !== 'all' && this.catalog.categories[initialCategory]) {
+        this.currentFilter = initialCategory;
+        this.filteredList = this.catalog.categories[initialCategory];
+      } else {
+        this.currentFilter = 'all';
+        this.filteredList = this.catalog.all;
+      }
+
       this.currentIndex = Math.max(0, Math.min(initialIndex, this.filteredList.length - 1));
 
       const tabs = document.querySelectorAll('.luxe-modal-tab');
-      tabs.forEach((t, i) => {
-        if (i === 0) t.classList.add('active');
+      tabs.forEach(t => {
+        const cat = t.getAttribute('data-cat') || 'all';
+        if (cat === this.currentFilter) t.classList.add('active');
         else t.classList.remove('active');
       });
 
@@ -2401,7 +2517,12 @@ _Please confirm room allotment and issue official GST Tax Invoice. Thank you!_`;
 
       const tabs = document.querySelectorAll('.luxe-modal-tab');
       tabs.forEach(t => t.classList.remove('active'));
-      if (tabBtn) tabBtn.classList.add('active');
+      if (tabBtn) {
+        tabBtn.classList.add('active');
+      } else {
+        const matching = document.querySelector(`.luxe-modal-tab[data-cat="${category}"]`);
+        if (matching) matching.classList.add('active');
+      }
 
       this.updateGalleryView();
     }
@@ -2420,7 +2541,8 @@ _Please confirm room allotment and issue official GST Tax Invoice. Thank you!_`;
       }
 
       if (counterEl) {
-        counterEl.textContent = `${this.currentIndex + 1} / ${this.filteredList.length} (${currentItem.category})`;
+        const catLabel = this.currentFilter === 'all' ? 'All Photos' : this.currentFilter;
+        counterEl.textContent = `${this.currentIndex + 1} / ${this.filteredList.length} (${catLabel})`;
       }
 
       if (ribbonEl) {
