@@ -15,7 +15,7 @@ This guide contains everything you need to create your 100% FREE AI Voice Concie
 
 ## 1. Agent Name & First Message
 
-- **Agent Name:** `Nisha - Unique Haven Concierge`
+- **Agent Name:** `Nisha - Unique Haven Homes`
 - **First Message (Greeting):**
 ```text
 नमस्ते! The Unique Haven Homes में आपका स्वागत है। मैं निशा हूँ, आपकी पर्सनल लक्ज़री स्टे कंसीयर्ज। लखनऊ में गोमती नगर या लुलु मॉल के पास किस तरह का स्टे या विला आप देख रहे हैं?
