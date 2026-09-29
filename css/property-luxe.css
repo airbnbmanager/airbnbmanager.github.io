@@ -917,6 +917,8 @@ body.luxe-property-page .hero-frame {
   display: flex;
   align-items: center;
   gap: 16px;
+  flex-shrink: 0;
+  z-index: 10;
 }
 
 .luxe-modal-counter {
@@ -1221,17 +1223,17 @@ body.luxe-property-page .hero-frame {
     font-size: 12px;
   }
 
-  /* 7. Clean Responsive 16:10 Photo Showcase */
+  /* 7. Clean Responsive 4:3 Photo Showcase (Preserves Full Room Framing) */
   .luxe-photo-mosaic {
     display: block !important;
     position: relative;
-    border-radius: 16px;
+    border-radius: 18px;
     overflow: hidden;
-    margin-bottom: 20px;
-    aspect-ratio: 16 / 10;
-    max-height: 260px;
+    margin-bottom: 24px;
+    aspect-ratio: 4 / 3;
+    max-height: 340px;
     width: 100%;
-    background: #e2ded5;
+    background: #0f172a;
   }
   .luxe-photo-main {
     display: block !important;
