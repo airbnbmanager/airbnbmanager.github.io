@@ -1,0 +1,403 @@
+/* ══════════════════════════════════════════════════════════════════
+   UNIQUE HAVEN HOMES — Mobile-First Enhancement Layer
+   
+   Targets: phones (< 480px), small phones (< 380px), tablets (< 768px)
+   Goal: Smooth, premium experience for the 90% mobile user base
+   ══════════════════════════════════════════════════════════════════ */
+
+/* ── 1. FLOATING BUTTON LAYOUT ───────────────────────────────────
+   Voice agent: bottom-right
+   Chat widget: bottom-left
+   Both clear the mobile sticky bar (80px)
+   ─────────────────────────────────────────────────────────────── */
+#uhh-voice-btn,
+.uhh-voice-float {
+  bottom: 90px !important;
+  right: 16px !important;
+  z-index: 9995 !important;
+}
+#uhh-chat-btn {
+  bottom: 90px !important;
+  left: 16px !important;
+  z-index: 9997 !important;
+}
+@media (max-width: 480px) {
+  #uhh-voice-btn,
+  .uhh-voice-float  { bottom: 86px !important; right: 12px !important; width: 50px !important; height: 50px !important; }
+  #uhh-chat-btn     { bottom: 86px !important; left: 12px !important;  width: 50px !important; height: 50px !important; font-size: 20px !important; }
+}
+
+/* ── 2. HERO SECTION ─────────────────────────────────────────────
+   Large headline → readable on phones
+   ─────────────────────────────────────────────────────────────── */
+@media (max-width: 480px) {
+  .dir-hero {
+    padding: 28px 14px 24px;
+    text-align: center;
+  }
+  .dir-hero-badge {
+    font-size: 11px;
+    padding: 5px 12px;
+  }
+  .dir-hero-title {
+    font-size: clamp(22px, 7vw, 30px) !important;
+    line-height: 1.2;
+    margin-bottom: 10px;
+  }
+  .dir-hero-sub {
+    font-size: 13px !important;
+    margin-bottom: 18px;
+  }
+}
+
+/* ── 3. SEARCH BAR ───────────────────────────────────────────────
+   Full-width, tap-friendly inputs
+   ─────────────────────────────────────────────────────────────── */
+@media (max-width: 480px) {
+  .dir-search-wrap {
+    padding: 12px !important;
+    gap: 8px !important;
+    border-radius: 16px !important;
+  }
+  .dir-search-input-box input,
+  .dir-search-select-box select {
+    font-size: 15px !important; /* iOS zoom prevention */
+    min-height: 44px;
+  }
+  .dir-search-btn {
+    width: 44px !important;
+    height: 44px !important;
+    min-width: 44px !important;
+  }
+}
+
+/* ── 4. CATEGORY FILTER PILLS ────────────────────────────────────
+   Horizontal scroll, no text wrap, clear tap targets
+   ─────────────────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .airnest-cat-scroll,
+  .dir-filter-bar {
+    display: flex;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scroll-snap-type: x mandatory;
+    gap: 8px;
+    padding: 4px 0 10px;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    mask-image: linear-gradient(to right, transparent 0, black 16px, black calc(100% - 16px), transparent 100%);
+  }
+  .airnest-cat-scroll::-webkit-scrollbar,
+  .dir-filter-bar::-webkit-scrollbar { display: none; }
+
+  .airnest-cat-btn,
+  .dir-filter-btn {
+    flex-shrink: 0;
+    scroll-snap-align: start;
+    min-height: 36px;
+    padding: 7px 14px !important;
+    font-size: 13px !important;
+    white-space: nowrap;
+  }
+}
+
+/* ── 5. PROPERTY CARDS ───────────────────────────────────────────
+   Single column on mobile, full-width tap zone
+   ─────────────────────────────────────────────────────────────── */
+@media (max-width: 600px) {
+  .dir-property-grid,
+  .dir-cards-grid {
+    grid-template-columns: 1fr !important;
+    gap: 18px !important;
+    padding: 0 2px !important;
+  }
+
+  .dir-card {
+    border-radius: 16px !important;
+  }
+
+  .dir-card-media {
+    height: 220px !important; /* Taller image on mobile */
+  }
+
+  .dir-card-media img {
+    object-position: center 30%; /* Better crop for property photos */
+  }
+
+  .dir-card-body {
+    padding: 14px 14px 12px !important;
+  }
+
+  .dir-card-title {
+    font-size: 16px !important;
+    margin-bottom: 6px !important;
+  }
+
+  .dir-card-location {
+    font-size: 12px !important;
+  }
+
+  .dir-card-specs {
+    gap: 6px !important;
+    margin: 8px 0 !important;
+  }
+
+  .dir-card-spec-item {
+    font-size: 11px !important;
+    padding: 3px 8px !important;
+  }
+
+  .dir-card-price-main {
+    font-size: 18px !important;
+  }
+
+  .dir-card-price-strike {
+    font-size: 12px !important;
+  }
+
+  .dir-btn-details {
+    font-size: 13px !important;
+    padding: 10px 16px !important;
+    min-height: 42px;
+  }
+}
+
+/* ── 6. NAVIGATION HEADER ────────────────────────────────────────
+   Compact, no overflow
+   ─────────────────────────────────────────────────────────────── */
+@media (max-width: 480px) {
+  .dir-logo-wrap img,
+  .luxe-logo img { max-height: 36px !important; }
+
+  .dir-nav-bar,
+  .luxe-nav {
+    padding: 0 12px !important;
+    height: 58px !important;
+  }
+
+  /* Hide nav links on small mobile, keep logo + CTA */
+  .luxe-nav-links,
+  .dir-nav-links { display: none !important; }
+
+  /* Show hamburger or compact nav CTA */
+  .dir-nav-cta,
+  .luxe-nav-cta {
+    font-size: 12px !important;
+    padding: 8px 12px !important;
+  }
+}
+
+/* ── 7. MOBILE STICKY BOTTOM BAR ─────────────────────────────────
+   Ensure it doesn't overlap floating buttons
+   ─────────────────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .mobile-sticky-bar {
+    padding: 8px 12px 10px !important;
+    /* Safe area support for notch phones */
+    padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px)) !important;
+  }
+
+  .mobile-bar-btn-wa,
+  .mobile-bar-btn-call {
+    font-size: 13px !important;
+    padding: 11px 10px !important;
+    border-radius: 12px !important;
+  }
+}
+
+/* ── 8. REVIEW CARDS (Mobile carousel) ──────────────────────────
+   ─────────────────────────────────────────────────────────────── */
+@media (max-width: 480px) {
+  #uhh-reviews-section {
+    padding: 48px 0 40px !important;
+  }
+
+  .uhh-rev-container {
+    padding: 0 12px !important;
+  }
+
+  .uhh-rev-title {
+    font-size: 24px !important;
+  }
+
+  .uhh-rev-card {
+    flex: 0 0 88vw !important;
+    padding: 20px 18px 16px !important;
+  }
+
+  .uhh-rev-text {
+    font-size: 13.5px !important;
+    -webkit-line-clamp: 4 !important;
+  }
+
+  .uhh-rev-nav { display: none !important; }
+
+  .uhh-rev-track-wrapper { gap: 0 !important; }
+}
+
+/* ── 9. MAP SECTION ──────────────────────────────────────────────
+   Shorter map on phones, don't dominate the screen
+   ─────────────────────────────────────────────────────────────── */
+@media (max-width: 480px) {
+  #propertyMap {
+    height: 300px !important;
+  }
+
+  .dir-map-section-title {
+    font-size: 20px !important;
+  }
+}
+
+/* ── 10. TRUST STRIP ─────────────────────────────────────────────
+   2-column grid on mobile
+   ─────────────────────────────────────────────────────────────── */
+@media (max-width: 480px) {
+  .airnest-trust-strip {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 12px !important;
+    padding: 0 12px !important;
+  }
+
+  .airnest-trust-item {
+    text-align: center;
+    padding: 14px 10px !important;
+  }
+
+  .airnest-trust-icon-box {
+    font-size: 22px !important;
+    margin-bottom: 6px !important;
+  }
+
+  .airnest-trust-label {
+    font-size: 12px !important;
+  }
+}
+
+/* ── 11. FOOTER ──────────────────────────────────────────────────
+   Stack layout, larger tap targets
+   ─────────────────────────────────────────────────────────────── */
+@media (max-width: 480px) {
+  .dir-footer {
+    padding: 32px 16px 90px !important; /* bottom padding for sticky bar */
+    text-align: center;
+  }
+
+  .dir-footer-nav {
+    flex-direction: column !important;
+    gap: 10px !important;
+    align-items: center !important;
+  }
+
+  .dir-footer-nav a {
+    font-size: 14px !important;
+    min-height: 36px;
+    display: flex;
+    align-items: center;
+  }
+}
+
+/* ── 12. GRID COUNT / SORT BAR ───────────────────────────────────
+   ─────────────────────────────────────────────────────────────── */
+@media (max-width: 480px) {
+  .dir-grid-header {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 8px !important;
+    margin-bottom: 14px !important;
+  }
+
+  .dir-grid-count {
+    font-size: 14px !important;
+  }
+}
+
+/* ── 13. BACK TO TOP ─────────────────────────────────────────────
+   Position above floating buttons
+   ─────────────────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .dir-back-to-top {
+    bottom: 160px !important; /* Above both floating buttons + sticky bar */
+    right: 16px !important;
+    left: auto !important;
+  }
+}
+
+/* ── 14. TOUCH IMPROVEMENTS ──────────────────────────────────────
+   Tap targets min 44x44px per Apple HIG / Google Material
+   ─────────────────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  a, button, [role="button"], input[type="submit"], select {
+    -webkit-tap-highlight-color: rgba(212,168,75,0.15);
+  }
+
+  /* Ensure all interactive elements have min tap size */
+  .dir-filter-btn,
+  .dir-btn-details,
+  .dir-btn-share-icon,
+  .airnest-cat-btn {
+    min-height: 40px;
+    min-width: 40px;
+  }
+
+  /* Remove hover transforms on touch (they cause sticky states) */
+  .dir-card:hover {
+    transform: none !important;
+  }
+}
+
+/* ── 15. SCROLL PERFORMANCE ──────────────────────────────────────
+   ─────────────────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .dir-card-media img {
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+  }
+  
+  /* Smooth momentum scroll everywhere */
+  * {
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+/* ── 16. TYPOGRAPHY SCALING ──────────────────────────────────────
+   Prevent iOS auto-zoom on inputs (font-size < 16px)
+   ─────────────────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  input, select, textarea {
+    font-size: 16px !important; /* Prevents iOS auto-zoom */
+  }
+}
+
+/* ── 17. VOICE CHAT PANEL MOBILE FIXES ───────────────────────────
+   ─────────────────────────────────────────────────────────────── */
+@media (max-width: 480px) {
+  #uhh-chat-panel {
+    bottom: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    width: 100vw !important;
+    height: 72vh !important;
+    border-radius: 20px 20px 0 0 !important;
+    /* Safe area */
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  .uhh-chat-input-row {
+    padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px)) !important;
+  }
+}
+
+/* ── 18. PWA / HOME-SCREEN STANDALONE ───────────────────────────
+   ─────────────────────────────────────────────────────────────── */
+@media (display-mode: standalone) {
+  .dir-nav-bar,
+  .luxe-nav {
+    padding-top: env(safe-area-inset-top, 0px) !important;
+  }
+  .dir-footer,
+  .mobile-sticky-bar {
+    padding-bottom: env(safe-area-inset-bottom, 0px) !important;
+  }
+}
