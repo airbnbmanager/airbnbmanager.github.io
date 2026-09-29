@@ -1636,20 +1636,7 @@ body.properties-directory-page {
   }
 }
 
-/* ─── ELEVENLABS AI VOICE CONCIERGE (NISHA WIDGET) ─── */
-elevenlabs-convai {
-  position: fixed !important;
-  bottom: 84px !important;
-  right: 20px !important;
-  z-index: 99999 !important;
-}
 
-@media (max-width: 768px) {
-  elevenlabs-convai {
-    bottom: 72px !important;
-    right: 12px !important;
-  }
-}
 
 .dir-footer-nav a:hover {
   color: var(--dir-gold);
