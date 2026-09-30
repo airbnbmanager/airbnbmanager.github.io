@@ -98,26 +98,118 @@
     setTimeout(() => notif.remove(), 25000);
   }
 
+  // ── ENTITY EXTRACTOR (DATES, GUESTS, PROPERTIES, NAMES, PHONES) ──
+  function parseBookingEntities(raw) {
+    const msg = raw.toLowerCase();
+    const info = {
+      phone: null,
+      dates: null,
+      guests: null,
+      property: null,
+      rate: null,
+      name: null,
+      isBookingIntent: false,
+      isAdvanceQuery: false,
+      isCancelQuery: false,
+      isAvailQuery: false
+    };
+
+    // Phone
+    const phoneMatch = raw.match(/(\+?\d{1,4}[-.\s]?)?([6-9]\d{9})/);
+    if (phoneMatch) info.phone = phoneMatch[2];
+
+    // Property
+    if (/royal white|white house|shaadi|wedding|18 guest|badi villa/i.test(msg)) {
+      info.property = 'Royal White House';
+      info.rate = '₹12,000 / night';
+    } else if (/gomti grand|grand villa|gomti villa/i.test(msg)) {
+      info.property = 'Gomti Grand Villa';
+      info.rate = '₹8,000 / night';
+    } else if (/celebrity/i.test(msg)) {
+      info.property = 'Celebrity Garden';
+      info.rate = '₹10,000 / night';
+    } else if (/pink house/i.test(msg)) {
+      info.property = 'The Pink House';
+      info.rate = '₹9,000 / night';
+    } else if (/starlight|penthouse|blue penthouse|skyline|rooftop/i.test(msg)) {
+      info.property = 'Starlight Blue PentHouse';
+      info.rate = '₹6,000 / night';
+    } else if (/unique|green house|yellow house/i.test(msg)) {
+      info.property = 'Vishesh Khand 3BHK';
+      info.rate = '₹5,500 / night';
+    } else if (/redrose|black beauty|dark blue|brown|light green|nawabi|velvet|3bhk|flat|apartment/i.test(msg)) {
+      info.property = '3BHK Serviced Flat (Gomti Nagar)';
+      info.rate = '₹4,500 / night';
+    } else if (/villa/i.test(msg)) {
+      info.property = 'Luxury Villa';
+      info.rate = '₹8,000 – ₹12,000 / night';
+    }
+
+    // Guests
+    const guestMatch = msg.match(/(\d{1,2})\s*(?:log|people|guests?|persons?|members?|pax|aadmi)/i) || msg.match(/\b(couple|family|friends|group)\b/i);
+    if (guestMatch) {
+      if (guestMatch[1]) info.guests = `${guestMatch[1]} guests`;
+      else if (guestMatch[0]) info.guests = guestMatch[0];
+    }
+
+    // Dates
+    const dateMatch = msg.match(/(\d{1,2}(?:st|nd|rd|th)?\s*(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*|\d{1,2}[-/.]\d{1,2}(?:[-/.]\d{2,4})?|\b(?:today|tonight|tomorrow|kal|parso|aaj|weekend|next week|diwali|new year)\b)/i);
+    if (dateMatch) info.dates = dateMatch[0];
+
+    // Name
+    const nameMatch = raw.match(/(?:mera naam|my name is|i am|this is|naam)\s+([A-Za-z]+(?:\s+[A-Za-z]+)?)/i);
+    if (nameMatch) {
+      info.name = nameMatch[1];
+    }
+
+    // Intent flags
+    if (/book|booking|reserve|chahiye|stay karna|staying|check in|available|booking karna|book karo/i.test(msg)) {
+      info.isBookingIntent = true;
+    }
+    if (/advance|token|advance kitna|payment method|upi|qr|card|cash|kitna dena/i.test(msg)) {
+      info.isAdvanceQuery = true;
+    }
+    if (/refund|cancel|cancellation|reschedule|plan change/i.test(msg)) {
+      info.isCancelQuery = true;
+    }
+    if (/available|free hai|khali hai|availability/i.test(msg)) {
+      info.isAvailQuery = true;
+    }
+
+    return info;
+  }
+
   // ── SMART KNOWLEDGE ENGINE (COMPREHENSIVE TRAINING) ──────────────
   async function getReply(userMsg) {
     const raw = userMsg.trim();
     const msg = raw.toLowerCase();
     const rates = await getRates();
+    const parsed = parseBookingEntities(raw);
 
     // 0. DETECT PHONE NUMBER ANYWHERE (Direct Lead Capture)
-    const phoneMatch = raw.match(/(\+?\d{1,4}[-.\s]?)?(\d{10})/);
-    if (phoneMatch && (_step === 'ask_phone' || _step === 'ask_name' || /phone|number|whatsapp|call|contact/i.test(msg) || raw.length <= 15)) {
-      const phoneClean = phoneMatch[2];
+    if (parsed.phone && (_step === 'ask_phone' || _step === 'ask_name' || _step === 'booking_flow' || /phone|number|whatsapp|call|contact/i.test(msg) || raw.length <= 15)) {
+      const phoneClean = parsed.phone;
       const guestName = _leadData.name || 'Valued Guest';
       _leadData.phone = phoneClean;
       _step = 'done';
-      await saveLead(guestName, phoneClean, _leadData.interest || 'Chat booking enquiry');
+      await saveLead(guestName, phoneClean, _leadData.interest || _leadData.property || 'Chat booking enquiry');
       
-      const waMsg = encodeURIComponent(`Namaste Praveen ji! I'm ${guestName} (${phoneClean}). I want to book a stay at Unique Haven Homes. Please share details.`);
+      const propText = _leadData.property ? ` for ${_leadData.property}` : '';
+      const datesText = _leadData.dates ? ` (${_leadData.dates})` : '';
+      const waMsg = encodeURIComponent(`Namaste Praveen ji! I'm ${guestName} (${phoneClean}). I want to book a stay${propText}${datesText} at Unique Haven Homes. Please share confirmation.`);
       return {
-        text: `✅ **Bahut shukriya ${guestName} ji!** 🙏\n\nHamaare host **Praveen Singh** aapko WhatsApp number **${phoneClean}** par abhi contact kar rahe hain.\n\nAap chahein to seedha WhatsApp par bhi baat kar sakte hain:`,
+        text: `✅ **Bahut shukriya ${guestName} ji!** 🙏\n\nHamaare host **Praveen Singh** aapko WhatsApp number **${phoneClean}** par abhi live details aur confirmation voucher bhej rahe hain.\n\nAap chahein to turant WhatsApp par bhi connect kar sakte hain:`,
         actions: [{ label: '📲 Message Praveen on WhatsApp', url: `https://wa.me/${ADMIN_WA}?text=${waMsg}` }],
-        quickReplies: ['Check-in time?', 'Location details', 'Aur options dikhao']
+        quickReplies: ['Check-in time kya hai?', 'Advance policy?', 'Other options dikhao']
+      };
+    }
+
+    // 0B. GUEST EXPLICITLY INTRODUCES NAME
+    if (parsed.name) {
+      _leadData.name = parsed.name;
+      return {
+        text: `Namaste **${parsed.name} ji**! 🙏 Unique Haven Homes me aapka swaagat hai.\n\nAap aane ki **Dates** aur **Kitne Log** hain bata dijiye, ya property select karein:`,
+        quickReplies: ['Gomti Grand Villa ₹8k', 'Royal White House ₹12k', '3BHK Flat ₹4.5k', 'Advance policy']
       };
     }
 
@@ -546,24 +638,104 @@
       };
     }
 
-    // 30. BOOKING INTENT / CONTACT HOST
-    if (/book|booking|reserve|confirm|baat karni|praveen/i.test(msg)) {
-      _step = 'ask_name';
+    // 30A. RICH BOOKING REQUEST (Dates, Property, or Guests specified by user)
+    if (parsed.isBookingIntent && (parsed.property || parsed.dates || parsed.guests)) {
+      if (parsed.property) _leadData.property = parsed.property;
+      if (parsed.dates) _leadData.dates = parsed.dates;
+      if (parsed.guests) _leadData.guests = parsed.guests;
+      _step = 'booking_flow';
+
+      const propLabel = _leadData.property || parsed.property || 'Luxury Homestay / Villa';
+      const rateLabel = parsed.rate ? ` (${parsed.rate})` : '';
+      const datesLabel = _leadData.dates || parsed.dates || 'Aapki dates';
+      const guestsLabel = _leadData.guests || parsed.guests || 'Aapke guests';
+
+      const waText = encodeURIComponent(`Namaste Praveen ji! I want to book ${propLabel} for ${datesLabel} (${guestsLabel}). Please confirm availability & advance token details.`);
+
       return {
-        text: `📅 **Booking confirm karne ke liye main aapko host se turant connect kar rahi hoon!**\n\n` +
-              `Kripya **Aapka Naam** aur **Aane ki Tareekh (Dates)** bata dijiye:`,
-        actions: [{ label: '📲 WhatsApp Host Directly', url: `https://wa.me/${ADMIN_WA}?text=Namaste! I want to book a stay at Unique Haven Homes.` }],
-        quickReplies: ['Praveen Singh', 'Gomti Grand Villa book karo', 'Rates batao pehle']
+        text: `✨ **Booking Request Note Kar Li Hai!**\n\n` +
+              `• 🏡 **Stay:** **${propLabel}**${rateLabel}\n` +
+              `• 🗓️ **Dates:** **${datesLabel}**\n` +
+              `• 👥 **Guests:** **${guestsLabel}**\n\n` +
+              `💎 **Direct Booking Benefits:**\n` +
+              `✅ Airbnb ke mukable **15% Flat Discount** (Zero platform commission)\n` +
+              `✅ 100% Private, Split AC, Full Modular Kitchen, 100+ Mbps WiFi & Gated Parking\n` +
+              `✅ 100% Couple Friendly (Unmarried couples welcome with valid Govt ID)\n\n` +
+              `🔒 Booking confirm karne ke liye bas **30% advance token** lagta hai.\n` +
+              `Kripya apna **10-digit WhatsApp number** type karein ya direct WhatsApp par voucher lock karein:`,
+        actions: [{ label: '📲 WhatsApp Pe Voucher Lock Karein', url: `https://wa.me/${ADMIN_WA}?text=${waText}` }],
+        quickReplies: ['💳 Advance payment rule', '📍 Location pin bhejo', 'Check-in timing', 'Host se call pe baat']
       };
     }
 
-    // 31. IF WAITING FOR NAME IN LEAD FLOW
-    if (_step === 'ask_name' && raw.length > 2 && !raw.includes('?')) {
+    // 30B. INTERACTIVE BOOKING GUIDE (User asks how to book or clicks 'Book karna hai')
+    if (/book|booking|reserve|how to book|kaise book|stay karna|chahiye/i.test(msg)) {
+      _step = 'booking_flow';
+      return {
+        text: `📅 **Booking Concierge — Unique Haven Homes**\n\n` +
+              `Hum 3 simple steps me direct booking confirm karte hain:\n` +
+              `1️⃣ **Property choose karein** (Grand Villa, Penthouse ya 3BHK Flat)\n` +
+              `2️⃣ **Dates & Guests confirm karein**\n` +
+              `3️⃣ **30% advance token** se instant WhatsApp booking voucher & gate pass receive karein!\n\n` +
+              `👉 **Neeche diye options me se select karein**, ya\n` +
+              `👉 **Seedha type karein** (Jaise: *"10 Oct ko 4 log Gomti Grand Villa"*):`,
+        actions: [{ label: '📲 Direct WhatsApp Host (Praveen Singh)', url: `https://wa.me/${ADMIN_WA}?text=Namaste Praveen ji! I want to book a stay at Unique Haven Homes. Please share available options.` }],
+        quickReplies: [
+          '🏡 Gomti Grand Villa (₹8k)',
+          '👑 Royal White House (₹12k)',
+          '🏢 3BHK Flat (₹4.5k)',
+          '✨ Starlight Penthouse (₹6k)',
+          '💳 Advance kitna lagega?',
+          'Couple friendly hai? ❤️'
+        ]
+      };
+    }
+
+    // 30C. ADVANCE TOKEN & PAYMENT METHODS
+    if (parsed.isAdvanceQuery || /advance|token|payment|upi|qr|card|cash|kitna dena/i.test(msg)) {
+      return {
+        text: `💳 **Booking Advance & Payment Policy:**\n\n` +
+              `• **Advance Token:** Booking lock karne ke liye sirf **30% se 50% token amount** lagta hai.\n` +
+              `• **Payment Modes:** UPI (PhonePe, Google Pay, Paytm), Bank Transfer (IMPS/NEFT) ya Cash.\n` +
+              `• **Instant Voucher:** Advance transfer hote hi digital booking receipt, check-in instructions aur caretaker pin WhatsApp par aa jata hai.\n` +
+              `• **Balance Payment:** Baaki bacha payment aap property check-in ke time de sakte hain.\n` +
+              `• **Zero Security Deposit:** Hum koi security deposit nahi lete!`,
+        actions: [{ label: '📲 Pay Advance & Lock Dates', url: `https://wa.me/${ADMIN_WA}?text=Namaste Praveen ji! I want to pay advance token and confirm my booking.` }],
+        quickReplies: ['Book karna hai 📅', 'Cancellation refund policy?', 'Gomti Grand Villa ₹8k']
+      };
+    }
+
+    // 30D. CANCELLATION & RESCHEDULING
+    if (parsed.isCancelQuery || /refund|cancel|reschedule|plan change/i.test(msg)) {
+      return {
+        text: `🔄 **Cancellation & Rescheduling Policy:**\n\n` +
+              `• **100% Free Rescheduling:** Agar aapka plan change hota hai aur aap check-in se **48 hours pehle** inform karte hain, to bina kisi deduction ke aapki dates aage badha di jaati hain!\n` +
+              `• **Safe Token Guarantee:** Aapka advance amount future stay me 100% adjust hota hai.\n` +
+              `• **Zero Hidden Charges:** Full transparency aur guest-first hospitality policy.`,
+        actions: [{ label: '📲 Chat with Host on WhatsApp', url: `https://wa.me/${ADMIN_WA}?text=Namaste Praveen ji! I have a question regarding cancellation/rescheduling.` }],
+        quickReplies: ['Advance payment rule', 'Check-in timing', 'Book karna hai 📅']
+      };
+    }
+
+    // 30E. AVAILABILITY CHECK
+    if (parsed.isAvailQuery || /available|free hai|khali hai|availability/i.test(msg)) {
+      return {
+        text: `🗓️ **Live Availability & Slot Check:**\n\n` +
+              `• Hamaare sabhi 17 homestays ka calendar real-time Supabase database se synced rehta hai.\n` +
+              `• Aap apni **Dates (Jaise: 15 to 17 Oct)** aur **Property Name** yahan type karein, hum turant bata denge!\n` +
+              `• Ya aap seedha WhatsApp par instant calendar slot check karwa sakte hain:`,
+        actions: [{ label: '📲 Check Live Slots on WhatsApp', url: `https://wa.me/${ADMIN_WA}?text=Namaste! Please check availability for my dates.` }],
+        quickReplies: ['Gomti Grand Villa ₹8k', '3BHK Flat ₹4.5k', 'Advance policy']
+      };
+    }
+
+    // 31. SAFE NAME COLLECTION (Only when actually typing a human name)
+    if (_step === 'ask_name' && /^[a-zA-Z\s]{3,20}$/.test(raw) && !/villa|flat|book|rate|house|price|room|help|hi|hello|check|food|wifi/i.test(raw)) {
       _leadData.name = raw;
       _step = 'ask_phone';
       return {
         text: `Bahut achha ${_leadData.name} ji! 🙏\n\nBas aapka **10-digit WhatsApp Number** dijiye taaki hamaare manager aapko photos, live location pin aur booking voucher bhej sakein:`,
-        quickReplies: ['Seedha WhatsApp karo', 'Gomti Grand Villa']
+        quickReplies: ['Seedha WhatsApp karo', 'Gomti Grand Villa ₹8k', '3BHK Flat ₹4.5k']
       };
     }
 
