@@ -208,5 +208,26 @@ DROP POLICY IF EXISTS "Auth users can manage leads" ON public.leads;
 CREATE POLICY "Auth users can manage leads"
   ON public.leads FOR ALL USING (auth.role() = 'authenticated');
 
+-- ─────────────────────────────────────────────────────────────────
+-- 5. ROOMS BASE RATES SYNC (Force Website & CRM Consistency)
+-- ─────────────────────────────────────────────────────────────────
+UPDATE public.rooms SET rent_per_night = 8000 WHERE room_id = 'gomti_grand_villa';
+UPDATE public.rooms SET rent_per_night = 2500 WHERE room_id = 'the_white_house';
+UPDATE public.rooms SET rent_per_night = 2500 WHERE room_id = 'the_white_house_studio';
+UPDATE public.rooms SET rent_per_night = 1800 WHERE room_id = 'the_white_house_deluxe';
+UPDATE public.rooms SET rent_per_night = 2200 WHERE room_id = 'the_white_house_suite';
+UPDATE public.rooms SET rent_per_night = 2400 WHERE room_id = 'the_amber';
+UPDATE public.rooms SET rent_per_night = 2200 WHERE room_id = 'the_green_villa';
+UPDATE public.rooms SET rent_per_night = 2800 WHERE room_id = 'the_coral';
+UPDATE public.rooms SET rent_per_night = 3200 WHERE room_id = 'the_emerald';
+UPDATE public.rooms SET rent_per_night = 2600 WHERE room_id = 'the_sapphire';
+UPDATE public.rooms SET rent_per_night = 3000 WHERE room_id = 'the_ruby';
+UPDATE public.rooms SET rent_per_night = 2500 WHERE room_id = 'the_pearl';
+UPDATE public.rooms SET rent_per_night = 2700 WHERE room_id = 'the_topaz';
+UPDATE public.rooms SET rent_per_night = 2900 WHERE room_id = 'the_onyx';
+UPDATE public.rooms SET rent_per_night = 3100 WHERE room_id = 'the_quartz';
+UPDATE public.rooms SET rent_per_night = 2300 WHERE room_id = 'the_opal';
+UPDATE public.rooms SET rent_per_night = 2600 WHERE room_id = 'the_jade';
+
 -- Confirmation
-SELECT 'All tables (property_rates, property_reviews, leads) created and seeded successfully!' AS status;
+SELECT 'All tables, rates, reviews, and room standard rates synced successfully!' AS status;

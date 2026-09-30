@@ -227,228 +227,272 @@ window.GST_ENGINE = (function() {
     };
   }
 
-  // 9. BUILD FULL A4 PRINTABLE INVOICE HTML
+  // 9. BUILD FULL A4 PRINTABLE INVOICE HTML (Exact match to hotel GST sample receipt)
   function buildPrintableInvoiceHTML(inv) {
     const isGST = inv.is_gst_invoice === true;
-    const invDateFmt = inv.invoice_date
-      ? new Date(inv.invoice_date + 'T00:00:00').toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
-      : new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+    
+    // Format dates as DD/MM/YYYY
+    function fmtDate(dStr) {
+      if (!dStr) return '-';
+      try {
+        const parts = String(dStr).split('T')[0].split('-');
+        if (parts.length === 3) return `${parts[2]}/${parts[1]}/${parts[0]}`;
+        const d = new Date(dStr);
+        return isNaN(d.getTime()) ? dStr : d.toLocaleDateString('en-GB');
+      } catch (e) { return dStr; }
+    }
 
-    const checkInFmt = inv.check_in
-      ? new Date(inv.check_in + 'T00:00:00').toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
-      : '-';
-    const checkOutFmt = inv.check_out
-      ? new Date(inv.check_out + 'T00:00:00').toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
-      : '-';
+    const invDateFmt = fmtDate(inv.invoice_date);
+    const checkInFmt = fmtDate(inv.check_in);
+    const checkOutFmt = fmtDate(inv.check_out);
 
-    const words = numToWords(inv.total_amount);
-    const basePerNight = inv.nights ? Math.round(inv.taxable_value / inv.nights) : inv.taxable_value;
+    const now = new Date();
+    const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+
+    const totalNum = Number(inv.total_amount || 0);
+    const taxableNum = Number(inv.taxable_value || 0);
+    const gstRateNum = Number(inv.gst_rate || 5);
+    const cgstNum = Number(inv.cgst || (totalNum - taxableNum) / 2);
+    const sgstNum = Number(inv.sgst || (totalNum - taxableNum) / 2);
+    const taxAmtNum = cgstNum + sgstNum;
+    const halfRate = (gstRateNum / 2).toFixed(1).replace('.0', '');
+    const ratePerNight = inv.nights ? (taxableNum / inv.nights) : taxableNum;
+    const words = numToWords(totalNum);
+
+    const serviceDesc = inv.room_name || inv.room_id || 'Premium Luxury Homestay Room';
+    const stampSrc = getSignatureStampSrc();
 
     return `
-      <div class="uhh-invoice-document" style="font-family:'Inter',Arial,Helvetica,sans-serif;color:#0F172A;background:#fff;max-width:800px;margin:0 auto;border:1px solid #E2E8F0;border-radius:12px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,0.06);">
-        <!-- Top Gold Rule -->
-        <div style="height:6px;background:linear-gradient(90deg,#B45309,#D97706,#F59E0B,#D97706,#B45309);"></div>
+  <div style="width:100%;max-width:210mm;margin:0 auto;padding:4mm;font-family:Arial,Helvetica,sans-serif;color:#000;background:#fff;box-sizing:border-box;">
+    
+    <!-- Top Header Bar outside box (Sample match) -->
+    <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:4px;font-size:11px;font-weight:700;">
+      <div>
+        <span style="font-size:13px;font-weight:900;letter-spacing:0.5px;">TAX INVOICE</span>
+        <span style="border:1px solid #000;padding:1px 6px;margin-left:6px;font-size:9.5px;font-weight:700;border-radius:2px;">ORIGINAL FOR RECIPIENT</span>
+      </div>
+      <div style="font-size:10px;color:#222;font-weight:700;">
+        Homestay || Luxury Suites || Villa
+      </div>
+    </div>
 
-        <!-- Header -->
-        <div style="padding:22px 26px 18px;display:flex;justify-content:space-between;align-items:flex-start;border-bottom:1px solid #E2E8F0;background:#fff;">
-          <div style="display:flex;align-items:flex-start;gap:14px;">
-            <img src="assets/logo.png" alt="UHH Logo" style="width:58px;height:58px;border-radius:10px;object-fit:contain;background:#F8FAFC;border:1.5px solid #E2E8F0;padding:3px;flex-shrink:0;"/>
-            <div>
-              <div style="font-size:11px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:#B45309;margin-bottom:2px;">The Unique Haven Homes</div>
-              <div style="font-size:16px;font-weight:900;letter-spacing:0.2px;color:#0F172A;line-height:1.2;">PRIVATE LIMITED</div>
-              <div style="font-size:11px;color:#64748B;margin-top:4px;line-height:1.6;">
-                ${CO.address}<br/>
-                📞 ${CO.phone} &nbsp;|&nbsp; ✉️ ${CO.email}
-              </div>
-            </div>
-          </div>
+    <!-- MAIN BORDERED CONTAINER -->
+    <div style="border:1.5px solid #000;border-bottom:1.5px solid #000;background:#fff;">
 
-          <div style="text-align:right;flex-shrink:0;">
-            <div style="font-size:22px;font-weight:900;letter-spacing:1.5px;text-transform:uppercase;color:#0F172A;">
-              ${isGST ? 'TAX INVOICE' : 'BOOKING RECEIPT'}
+      <!-- 1. Header Grid: Company Left | 2x2 Meta Grid Right -->
+      <div style="display:flex;border-bottom:1.5px solid #000;">
+        
+        <!-- Left: Company Info -->
+        <div style="flex:1.25;padding:8px 10px;border-right:1.5px solid #000;display:flex;gap:10px;align-items:flex-start;">
+          <img src="https://uniquehavenhomesstay.com/assets/logo.png" alt="Logo" style="width:58px;height:58px;object-fit:contain;flex-shrink:0;" onerror="this.onerror=null;this.src='assets/logo.png';"/>
+          <div style="font-size:10px;line-height:1.45;">
+            <div style="font-size:13.5px;font-weight:900;color:#000;margin-bottom:2px;letter-spacing:0.2px;">
+              ${CO.name}
             </div>
-            <div style="display:inline-block;background:${isGST ? '#B45309' : '#0284C7'};color:#fff;padding:2px 10px;border-radius:5px;font-size:10px;font-weight:800;letter-spacing:0.8px;margin:4px 0 8px;">
-              ${isGST ? 'GST COMPLIANT (B2C/B2B)' : 'CUSTOMER ESTIMATE / RECEIPT'}
+            <div style="color:#222;font-weight:600;font-size:9.5px;">
+              ${CO.address}
             </div>
-            <table style="margin-left:auto;border-collapse:collapse;font-size:11.5px;">
-              <tr>
-                <td style="padding:2px 8px 2px 0;color:#64748B;font-weight:600;">Invoice No:</td>
-                <td style="padding:2px 0;font-weight:800;color:#0F172A;">${escapeHtml(inv.invoice_no)}</td>
-              </tr>
-              <tr>
-                <td style="padding:2px 8px 2px 0;color:#64748B;font-weight:600;">Date:</td>
-                <td style="padding:2px 0;font-weight:700;">${invDateFmt}</td>
-              </tr>
-              ${isGST ? `
-              <tr>
-                <td style="padding:2px 8px 2px 0;color:#64748B;font-weight:600;">GSTIN:</td>
-                <td style="padding:2px 0;font-weight:800;color:#0F172A;">${CO.gstin}</td>
-              </tr>
-              <tr>
-                <td style="padding:2px 8px 2px 0;color:#64748B;font-weight:600;">State:</td>
-                <td style="padding:2px 0;font-weight:700;">${CO.state} (${CO.stateCode})</td>
-              </tr>
-              ` : ''}
-              <tr>
-                <td style="padding:2px 8px 2px 0;color:#64748B;font-weight:600;">Booking Ref:</td>
-                <td style="padding:2px 0;font-weight:700;color:#2563EB;">${escapeHtml(inv.booking_id)}</td>
-              </tr>
-            </table>
-          </div>
-        </div>
-
-        <!-- Supplier & Recipient Strip -->
-        <div style="display:grid;grid-template-columns:1fr 1fr;background:#F8FAFC;border-bottom:1px solid #E2E8F0;">
-          <!-- Supplier -->
-          <div style="padding:14px 22px;border-right:1px solid #E2E8F0;">
-            <div style="font-size:9.5px;font-weight:800;text-transform:uppercase;letter-spacing:1px;color:#B45309;margin-bottom:6px;">▸ Supplier (Billed By)</div>
-            <div style="font-size:12.5px;font-weight:800;margin-bottom:3px;">${CO.name}</div>
-            <div style="font-size:11px;color:#475569;line-height:1.6;">
-              GSTIN: <strong>${CO.gstin}</strong><br/>
-              PAN: <strong>${CO.pan}</strong> &nbsp;|&nbsp; CIN: ${CO.cin}<br/>
-              SAC Code: <strong>${CO.sac}</strong> (Homestay Accommodation)
+            <div style="margin-top:3px;color:#000;">
+              <strong>Mobile:</strong> ${CO.phone} | <strong>Email:</strong> ${CO.email}
             </div>
-          </div>
-
-          <!-- Guest -->
-          <div style="padding:14px 22px;">
-            <div style="font-size:9.5px;font-weight:800;text-transform:uppercase;letter-spacing:1px;color:#0F172A;margin-bottom:6px;">▸ Recipient (Billed To)</div>
-            <div style="font-size:14px;font-weight:900;color:#0F172A;margin-bottom:3px;">${escapeHtml(inv.guest_name || 'Guest')}</div>
-            <div style="font-size:11px;color:#475569;line-height:1.6;">
-              ${inv.guest_phone ? `📞 Phone: <strong>${escapeHtml(inv.guest_phone)}</strong><br/>` : ''}
-              ${inv.guest_gstin ? `<span style="background:#DCFCE7;color:#15803D;padding:1px 6px;border-radius:4px;font-weight:800;font-size:10px;">Guest GSTIN: ${escapeHtml(inv.guest_gstin)}</span><br/>` : 'Type: <strong>Consumer / B2C</strong><br/>'}
-              ${inv.guest_company ? `Company: <strong>${escapeHtml(inv.guest_company)}</strong><br/>` : ''}
-              ${inv.guest_address ? `Address: ${escapeHtml(inv.guest_address)}<br/>` : ''}
-              Place of Supply: <strong>${CO.state} (${CO.stateCode})</strong>
+            <div style="color:#000;margin-top:2px;">
+              <strong>GSTIN (18%):</strong> ${CO.gstin} &nbsp;|&nbsp; <strong>GSTIN (5%):</strong> ${CO.gstin}
+            </div>
+            <div style="color:#444;font-size:9px;">
+              <strong>CIN:</strong> ${CO.cin} &nbsp;|&nbsp; <strong>PAN:</strong> ${CO.pan}
             </div>
           </div>
         </div>
 
-        <!-- Service Line Items Table -->
-        <div style="padding:16px 22px 0;">
-          <table style="width:100%;border-collapse:collapse;font-size:11.5px;">
-            <thead>
-              <tr style="background:#0F172A;color:#fff;">
-                <th style="padding:9px 10px;text-align:left;font-weight:700;font-size:10px;letter-spacing:0.5px;text-transform:uppercase;">#</th>
-                <th style="padding:9px 10px;text-align:left;font-weight:700;font-size:10px;letter-spacing:0.5px;text-transform:uppercase;">Description of Service</th>
-                <th style="padding:9px 8px;text-align:center;font-weight:700;font-size:10px;letter-spacing:0.5px;text-transform:uppercase;">SAC</th>
-                <th style="padding:9px 8px;text-align:center;font-weight:700;font-size:10px;letter-spacing:0.5px;text-transform:uppercase;">Nights</th>
-                <th style="padding:9px 8px;text-align:right;font-weight:700;font-size:10px;letter-spacing:0.5px;text-transform:uppercase;">Rate/Night</th>
-                <th style="padding:9px 10px;text-align:right;font-weight:700;font-size:10px;letter-spacing:0.5px;text-transform:uppercase;">Taxable Value</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td style="padding:12px 10px;border-bottom:1px solid #E2E8F0;color:#64748B;font-weight:700;">01</td>
-                <td style="padding:12px 10px;border-bottom:1px solid #E2E8F0;">
-                  <div style="font-weight:800;font-size:12.5px;color:#0F172A;margin-bottom:3px;">
-                    ${escapeHtml(inv.room_name || inv.room_id || 'Short-Stay Accommodation')}
-                  </div>
-                  <div style="font-size:10.5px;color:#475569;line-height:1.6;">
-                    Short-Stay Homestay Living Service<br/>
-                    Check-in: <strong>${checkInFmt}</strong> &nbsp;→&nbsp; Check-out: <strong>${checkOutFmt}</strong><br/>
-                    Channel: <strong>${escapeHtml(inv.booking_mode || 'Direct Booking')}</strong>
-                  </div>
-                </td>
-                <td style="padding:12px 8px;border-bottom:1px solid #E2E8F0;text-align:center;font-weight:700;">${CO.sac}</td>
-                <td style="padding:12px 8px;border-bottom:1px solid #E2E8F0;text-align:center;font-weight:800;font-size:13px;">${inv.nights}</td>
-                <td style="padding:12px 8px;border-bottom:1px solid #E2E8F0;text-align:right;font-weight:700;">₹${basePerNight.toLocaleString('en-IN')}</td>
-                <td style="padding:12px 10px;border-bottom:1px solid #E2E8F0;text-align:right;font-weight:800;font-size:13px;">₹${Number(inv.taxable_value || 0).toLocaleString('en-IN')}</td>
-              </tr>
-            </tbody>
+        <!-- Right: 2x2 Metadata Box -->
+        <div style="flex:0.85;display:flex;flex-direction:column;font-size:10px;">
+          <!-- Top Row -->
+          <div style="display:flex;border-bottom:1px solid #000;flex:1;">
+            <div style="flex:1;padding:6px 8px;border-right:1px solid #000;">
+              <div style="color:#444;font-size:9px;">Invoice No.</div>
+              <div style="font-weight:900;color:#000;font-size:11px;margin-top:2px;">${escapeHtml(inv.invoice_no)}</div>
+            </div>
+            <div style="flex:1;padding:6px 8px;">
+              <div style="color:#444;font-size:9px;">Invoice Date</div>
+              <div style="font-weight:900;color:#000;font-size:11px;margin-top:2px;">${invDateFmt}</div>
+            </div>
+          </div>
+          <!-- Bottom Row -->
+          <div style="display:flex;flex:1;">
+            <div style="flex:1;padding:6px 8px;border-right:1px solid #000;">
+              <div style="color:#444;font-size:9px;">Guest Name:</div>
+              <div style="font-weight:800;color:#000;font-size:11px;margin-top:2px;">${escapeHtml(inv.guest_name || 'Guest')}</div>
+            </div>
+            <div style="flex:1;padding:6px 8px;">
+              <div style="color:#444;font-size:9px;">Time:</div>
+              <div style="font-weight:800;color:#000;font-size:11px;margin-top:2px;">${timeStr}</div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- 2. BILL TO SECTION -->
+      <div style="padding:6px 10px;border-bottom:1.5px solid #000;font-size:10px;line-height:1.45;background:#fff;">
+        <div style="font-weight:900;font-size:10px;color:#000;letter-spacing:0.5px;">BILL TO</div>
+        <div style="font-weight:900;font-size:12px;color:#000;margin-top:1px;">
+          ${escapeHtml(inv.guest_company || inv.guest_name || 'Guest')}
+        </div>
+        <div style="color:#222;font-size:9.5px;margin-top:1px;">
+          <strong>Address:</strong> ${escapeHtml(inv.guest_address || 'Lucknow, Uttar Pradesh, India')}
+        </div>
+        <div style="display:flex;gap:18px;margin-top:2px;font-size:9.5px;">
+          <div><strong>GSTIN:</strong> ${inv.guest_gstin ? escapeHtml(inv.guest_gstin) : 'URP / Consumer (Unregistered)'}</div>
+          <div><strong>Mobile:</strong> ${escapeHtml(inv.guest_phone || '-')}</div>
+          <div><strong>PAN Number:</strong> ${inv.guest_gstin ? escapeHtml(inv.guest_gstin.substring(2, 12)) : CO.pan}</div>
+        </div>
+      </div>
+
+      <!-- 3. SERVICES TABLE (8 Columns exactly like sample) -->
+      <table style="width:100%;border-collapse:collapse;font-size:10px;text-align:left;">
+        <thead>
+          <tr style="border-bottom:1.5px solid #000;background:#f5f5f5;font-weight:800;font-size:9.5px;text-align:center;">
+            <th style="padding:5px 4px;border-right:1px solid #000;width:38px;">S.NO.</th>
+            <th style="padding:5px 6px;border-right:1px solid #000;text-align:left;">SERVICES</th>
+            <th style="padding:5px 4px;border-right:1px solid #000;width:75px;">CHECK OUT</th>
+            <th style="padding:5px 4px;border-right:1px solid #000;width:75px;">CHECK IN</th>
+            <th style="padding:5px 4px;border-right:1px solid #000;width:50px;">QTY.</th>
+            <th style="padding:5px 6px;border-right:1px solid #000;width:75px;text-align:right;">RATE</th>
+            <th style="padding:5px 4px;border-right:1px solid #000;width:68px;text-align:right;">TAX</th>
+            <th style="padding:5px 6px;width:85px;text-align:right;">AMOUNT</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- Item Row 1 -->
+          <tr style="vertical-align:top;font-size:10px;">
+            <td style="padding:6px 4px;border-right:1px solid #000;text-align:center;font-weight:700;">1</td>
+            <td style="padding:6px 6px;border-right:1px solid #000;">
+              <div style="font-weight:700;color:#000;">Room Type</div>
+              <div style="color:#222;font-size:9.5px;margin-top:1px;">${escapeHtml(serviceDesc)}</div>
+              <div style="color:#555;font-size:8.5px;margin-top:2px;">Booking Ref: ${escapeHtml(inv.booking_id || '-')}</div>
+            </td>
+            <td style="padding:6px 4px;border-right:1px solid #000;text-align:center;">${checkOutFmt}</td>
+            <td style="padding:6px 4px;border-right:1px solid #000;text-align:center;">${checkInFmt}</td>
+            <td style="padding:6px 4px;border-right:1px solid #000;text-align:center;font-weight:700;">${inv.nights || 1} DAY</td>
+            <td style="padding:6px 6px;border-right:1px solid #000;text-align:right;">${ratePerNight.toLocaleString('en-IN', {minimumFractionDigits:2, maximumFractionDigits:2})}</td>
+            <td style="padding:6px 4px;border-right:1px solid #000;text-align:right;">
+              ${taxAmtNum.toLocaleString('en-IN', {minimumFractionDigits:2, maximumFractionDigits:2})}<br/>
+              <span style="font-size:8.5px;color:#555;">(${gstRateNum}%)</span>
+            </td>
+            <td style="padding:6px 6px;text-align:right;font-weight:800;">
+              ${totalNum.toLocaleString('en-IN', {minimumFractionDigits:2, maximumFractionDigits:2})}
+            </td>
+          </tr>
+
+          <!-- Spacer Row to replicate physical pre-printed form height -->
+          <tr style="height:110px;">
+            <td style="border-right:1px solid #000;"></td>
+            <td style="border-right:1px solid #000;"></td>
+            <td style="border-right:1px solid #000;"></td>
+            <td style="border-right:1px solid #000;"></td>
+            <td style="border-right:1px solid #000;"></td>
+            <td style="border-right:1px solid #000;"></td>
+            <td style="border-right:1px solid #000;"></td>
+            <td></td>
+          </tr>
+
+          <!-- TOTAL ROW -->
+          <tr style="border-top:1px solid #000;border-bottom:1px solid #000;font-weight:800;font-size:10px;background:#fafafa;">
+            <td colspan="4" style="padding:5px 8px;border-right:1px solid #000;text-align:right;letter-spacing:0.5px;">TOTAL</td>
+            <td style="padding:5px 4px;border-right:1px solid #000;text-align:center;">${inv.nights || 1}</td>
+            <td style="padding:5px 4px;border-right:1px solid #000;"></td>
+            <td style="padding:5px 4px;border-right:1px solid #000;text-align:right;">₹ ${taxAmtNum.toLocaleString('en-IN', {minimumFractionDigits:2, maximumFractionDigits:2})}</td>
+            <td style="padding:5px 6px;text-align:right;font-weight:900;">₹ ${totalNum.toLocaleString('en-IN', {minimumFractionDigits:2, maximumFractionDigits:2})}</td>
+          </tr>
+
+          <!-- RECEIVED AMOUNT ROW -->
+          <tr style="border-bottom:1px solid #000;font-weight:800;font-size:10px;">
+            <td colspan="4" style="padding:5px 8px;border-right:1px solid #000;text-align:right;letter-spacing:0.5px;">RECEIVED AMOUNT</td>
+            <td style="border-right:1px solid #000;"></td>
+            <td style="border-right:1px solid #000;"></td>
+            <td style="border-right:1px solid #000;"></td>
+            <td style="padding:5px 6px;text-align:right;font-weight:900;">₹ ${totalNum.toLocaleString('en-IN', {minimumFractionDigits:2, maximumFractionDigits:2})}</td>
+          </tr>
+
+          <!-- BALANCE AMOUNT ROW -->
+          <tr style="border-bottom:1.5px solid #000;font-weight:800;font-size:10px;">
+            <td colspan="4" style="padding:5px 8px;border-right:1px solid #000;text-align:right;letter-spacing:0.5px;">BALANCE AMOUNT</td>
+            <td style="border-right:1px solid #000;"></td>
+            <td style="border-right:1px solid #000;"></td>
+            <td style="border-right:1px solid #000;"></td>
+            <td style="padding:5px 6px;text-align:right;font-weight:900;">₹ 0</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <!-- 4. TAX BREAKDOWN TABLE (HSN/SAC Grid exactly like sample) -->
+      <table style="width:100%;border-collapse:collapse;font-size:9.5px;text-align:center;">
+        <thead>
+          <tr style="border-bottom:1px solid #000;background:#f5f5f5;font-weight:800;">
+            <th rowspan="2" style="padding:5px 4px;border-right:1px solid #000;width:90px;">HSN/SAC</th>
+            <th rowspan="2" style="padding:5px 6px;border-right:1px solid #000;width:110px;text-align:right;">Taxable Value</th>
+            <th colspan="2" style="padding:3px 4px;border-right:1px solid #000;">CGST</th>
+            <th colspan="2" style="padding:3px 4px;border-right:1px solid #000;">SGST</th>
+            <th rowspan="2" style="padding:5px 6px;text-align:right;width:115px;">Total Tax Amount</th>
+          </tr>
+          <tr style="border-bottom:1.5px solid #000;background:#f5f5f5;font-weight:800;">
+            <th style="padding:3px 4px;border-right:1px solid #000;width:55px;">Rate</th>
+            <th style="padding:3px 4px;border-right:1px solid #000;width:75px;text-align:right;">Amount</th>
+            <th style="padding:3px 4px;border-right:1px solid #000;width:55px;">Rate</th>
+            <th style="padding:3px 4px;border-right:1px solid #000;width:75px;text-align:right;">Amount</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td style="padding:6px 4px;border-right:1px solid #000;">${CO.sac}</td>
+            <td style="padding:6px 6px;border-right:1px solid #000;text-align:right;">${taxableNum.toLocaleString('en-IN', {minimumFractionDigits:2, maximumFractionDigits:2})}</td>
+            <td style="padding:6px 4px;border-right:1px solid #000;">${halfRate}%</td>
+            <td style="padding:6px 6px;border-right:1px solid #000;text-align:right;">${cgstNum.toLocaleString('en-IN', {minimumFractionDigits:2, maximumFractionDigits:2})}</td>
+            <td style="padding:6px 4px;border-right:1px solid #000;">${halfRate}%</td>
+            <td style="padding:6px 6px;border-right:1px solid #000;text-align:right;">${sgstNum.toLocaleString('en-IN', {minimumFractionDigits:2, maximumFractionDigits:2})}</td>
+            <td style="padding:6px 6px;text-align:right;font-weight:800;">₹ ${taxAmtNum.toLocaleString('en-IN', {minimumFractionDigits:2, maximumFractionDigits:2})}</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <!-- 5. Total Amount (in words) -->
+      <div style="padding:6px 10px;border-bottom:1.5px solid #000;background:#fff;font-size:10px;">
+        <div style="font-weight:800;color:#444;font-size:9.5px;">Total Amount (in words)</div>
+        <div style="font-weight:900;color:#000;font-size:11.5px;margin-top:2px;">${words}</div>
+      </div>
+
+      <!-- 6. Bottom Footer Grid (Bank Details Left | Signature & Stamp Right) -->
+      <div style="display:flex;">
+        
+        <!-- Left: Bank Details -->
+        <div style="flex:1.2;padding:8px 10px;border-right:1.5px solid #000;font-size:10px;line-height:1.6;">
+          <div style="font-weight:900;font-size:11px;color:#000;margin-bottom:4px;">Bank Details</div>
+          <table style="font-size:10px;border-collapse:collapse;width:100%;">
+            <tr><td style="color:#444;width:95px;padding:1px 0;">Name:</td><td style="font-weight:800;color:#000;">${CO.name}</td></tr>
+            <tr><td style="color:#444;padding:1px 0;">IFSC Code:</td><td style="font-weight:800;color:#000;font-family:monospace;">SBIN0018189</td></tr>
+            <tr><td style="color:#444;padding:1px 0;">Account No:</td><td style="font-weight:800;color:#000;font-family:monospace;">20292764916</td></tr>
+            <tr><td style="color:#444;padding:1px 0;">Bank:</td><td style="font-weight:700;color:#000;">State Bank of India ,Takrohi, Lucknow</td></tr>
+            <tr><td style="color:#444;padding:1px 0;">UPI / PhonePe:</td><td style="font-weight:700;color:#000;">8299600709</td></tr>
           </table>
         </div>
 
-        <!-- Totals & Payment Summary Box -->
-        <div style="display:grid;grid-template-columns:1fr 280px;margin:14px 22px 0;border:1px solid #E2E8F0;border-radius:10px;overflow:hidden;">
-          <!-- Left: Payment info & Words -->
-          <div style="padding:14px 16px;border-right:1px solid #E2E8F0;background:#FAFAFA;display:flex;flex-direction:column;justify-content:space-between;">
-            <div>
-              <div style="font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:0.5px;color:#64748B;margin-bottom:8px;">Payment & Settlement</div>
-              <div style="font-size:11.5px;color:#334155;line-height:1.8;">
-                Payment Mode: <strong>${escapeHtml(inv.payment_mode || 'Direct (UPI / Cash / Bank)')}</strong><br/>
-                Payment Status: <span style="background:#DCFCE7;color:#15803D;padding:1px 7px;border-radius:4px;font-weight:800;font-size:10.5px;">✅ FULLY PAID</span>
-              </div>
-              <div style="margin-top:10px;padding:8px 10px;background:#F0FDF4;border-radius:6px;border:1px solid #BBF7D0;">
-                <div style="font-size:9.5px;font-weight:800;color:#15803D;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:2px;">Amount in Words</div>
-                <div style="font-size:11.5px;font-weight:800;color:#0F172A;">${words}</div>
-              </div>
-            </div>
-
-            ${isGST ? `
-            <div style="margin-top:10px;font-size:10px;color:#B45309;background:#FEF3C7;padding:6px 10px;border-radius:6px;border:1px solid #FDE68A;">
-              ${inv.gst_rate === 5
-                ? '⚠️ GST @ 5% slab: Input Tax Credit (ITC) is NOT admissible on this supply (Notification No. 11/2017-CT(R)).'
-                : '✅ GST @ 18% slab: Input Tax Credit (ITC) is admissible for eligible registered B2B entities.'}
-            </div>
-            ` : `
-            <div style="margin-top:10px;font-size:10px;color:#0284C7;background:#E0F2FE;padding:6px 10px;border-radius:6px;border:1px solid #BAE6FD;">
-              ℹ️ Guest receipt / estimate generated for accommodation records.
-            </div>
-            `}
-          </div>
-
-          <!-- Right: GST calculation box -->
-          <div>
-            <table style="width:100%;border-collapse:collapse;font-size:11.5px;height:100%;">
-              <tr style="background:#F8FAFC;">
-                <td style="padding:8px 12px;color:#475569;font-weight:600;">Taxable Value</td>
-                <td style="padding:8px 12px;text-align:right;font-weight:700;">₹${Number(inv.taxable_value || 0).toLocaleString('en-IN')}</td>
-              </tr>
-              ${isGST ? `
-              <tr>
-                <td style="padding:8px 12px;color:#475569;font-weight:600;">CGST @ ${(inv.gst_rate / 2)}%</td>
-                <td style="padding:8px 12px;text-align:right;font-weight:700;">₹${Number(inv.cgst || 0).toLocaleString('en-IN')}</td>
-              </tr>
-              <tr style="background:#F8FAFC;">
-                <td style="padding:8px 12px;color:#475569;font-weight:600;">SGST @ ${(inv.gst_rate / 2)}%</td>
-                <td style="padding:8px 12px;text-align:right;font-weight:700;">₹${Number(inv.sgst || 0).toLocaleString('en-IN')}</td>
-              </tr>
-              ` : `
-              <tr>
-                <td style="padding:8px 12px;color:#64748B;font-weight:600;">GST / Taxes</td>
-                <td style="padding:8px 12px;text-align:right;font-weight:700;color:#64748B;">Included</td>
-              </tr>
-              `}
-              <tr style="background:#0F172A;">
-                <td style="padding:11px 12px;font-weight:900;color:#fff;font-size:13px;">GRAND TOTAL</td>
-                <td style="padding:11px 12px;text-align:right;font-weight:900;color:#F59E0B;font-size:15px;">₹${Number(inv.total_amount || 0).toLocaleString('en-IN')}</td>
-              </tr>
-            </table>
+        <!-- Right: Authorised Signatory with Official Seal/Stamp -->
+        <div style="flex:1;padding:8px 10px;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;text-align:center;position:relative;min-height:90px;">
+          <img src="${stampSrc}" alt="Company Stamp" style="position:absolute;top:4px;right:25px;width:130px;height:65px;object-fit:contain;pointer-events:none;opacity:0.9;" onerror="this.style.display='none';"/>
+          <div style="position:relative;z-index:2;margin-top:auto;">
+            <div style="font-size:10.5px;font-weight:800;color:#000;">Authorised Signatory For</div>
+            <div style="font-size:9.5px;font-weight:700;color:#222;margin-top:1px;">${CO.name}</div>
           </div>
         </div>
-
-        <!-- Terms & Notes -->
-        <div style="margin:12px 22px 0;padding:10px 14px;background:#F8FAFC;border-radius:8px;border:1px solid #E2E8F0;font-size:9.5px;color:#64748B;line-height:1.7;">
-          <strong style="color:#0F172A;display:block;margin-bottom:2px;">📜 Statutory Declarations &amp; Terms:</strong>
-          1. This is a computer-generated ${isGST ? 'GST Tax Invoice' : 'Homestay Receipt'}. &nbsp;|&nbsp;
-          2. Short-stay Accommodation Service (SAC Code: ${CO.sac}). &nbsp;|&nbsp;
-          3. Place of Supply: ${CO.state} (${CO.stateCode}) — CGST &amp; SGST applicable under CGST Act, 2017. &nbsp;|&nbsp;
-          4. All guest check-in &amp; ID documents are verified as per local tourist regulations. &nbsp;|&nbsp;
-          5. Jurisdiction: All disputes subject to Lucknow, UP jurisdiction only.
-        </div>
-
-        <!-- Footer Signature Strip -->
-        <div style="margin:14px 22px 18px;display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:flex-end;">
-          <div style="font-size:9.5px;color:#94A3B8;line-height:1.6;">
-            <div style="font-weight:800;color:#475569;margin-bottom:2px;">${CO.name}</div>
-            CIN: ${CO.cin} &nbsp;|&nbsp; PAN: ${CO.pan}<br/>
-            ${CO.web}
-          </div>
-          <div style="text-align:right;">
-            <div style="position:relative;display:inline-block;text-align:right;min-height:56px;">
-              <img src="${getSignatureStampSrc()}" alt="Stamp & Signature" style="height:62px;max-width:210px;object-fit:contain;margin-bottom:-12px;display:block;margin-left:auto;"/>
-              <div style="height:1px;border-bottom:1px dashed #CBD5E1;width:170px;margin-left:auto;"></div>
-              <div style="font-size:9.5px;color:#64748B;margin-top:4px;">Authorised Signatory</div>
-              <div style="font-size:10.5px;font-weight:800;color:#0F172A;">For ${CO.name}</div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Bottom Gold Rule -->
-        <div style="height:5px;background:linear-gradient(90deg,#B45309,#D97706,#F59E0B,#D97706,#B45309);"></div>
       </div>
-    `;
+
+    </div> <!-- End of Bordered Frame -->
+
+    <div style="font-size:9px;color:#666;text-align:center;margin-top:4px;">
+      This is a computer-generated tax invoice under GST Act. All disputes subject to Lucknow jurisdiction only.
+    </div>
+
+  </div>`;
   }
 
   // 10. PRINT / PDF TRIGGER

@@ -2158,20 +2158,36 @@ function onRoomChg() {
   const co = document.getElementById('checkOut')?.value;
   const room = (window._roomsCache || []).find(r => r.room_id === rid);
   const rInfo = document.getElementById('roomInfo');
-  if (room) rInfo.innerHTML = `${room.bookable ? '✅' : '⚠️'} · ${room.checkin_manager || 'No manager'}`;
-  else if (rInfo) rInfo.innerHTML = '';
+  if (room) {
+    const rateText = room.rent_per_night ? ` · 🏷️ <strong>₹${Number(room.rent_per_night).toLocaleString('en-IN')}/night</strong>` : '';
+    rInfo.innerHTML = `${room.bookable ? '✅' : '⚠️'} · ${room.checkin_manager || 'No manager'}${rateText}`;
+  } else if (rInfo) {
+    rInfo.innerHTML = '';
+  }
 
   const mode = document.getElementById('bookingMode')?.value;
   const src = document.getElementById('sourceRoomId');
   if (mode === 'Online-Airbnb' && src && !src.value && rid) src.value = rid;
 
   const nInfo = document.getElementById('nightsInfo');
+  let nights = 0;
   if (ci && co) {
-    const nights = calcNights(ci, co);
+    nights = calcNights(ci, co);
     if (nInfo) nInfo.innerHTML = nights > 0
       ? `🌙 <strong>${nights} night(s)</strong>`
       : `<span style="color:var(--red);">Invalid dates</span>`;
-  } else if (nInfo) nInfo.innerHTML = '';
+  } else if (nInfo) {
+    nInfo.innerHTML = '';
+  }
+
+  if (room && room.rent_per_night && mode !== 'Online-Airbnb') {
+    const totInp = document.getElementById('totalAmount');
+    const sugInfo = document.getElementById('sugInfo');
+    const effNights = nights > 0 ? nights : 1;
+    if (sugInfo && (!totInp || !totInp.value || parseFloat(totInp.value) === 0)) {
+      sugInfo.innerHTML = `💡 Official Rate: <strong>₹${Number(room.rent_per_night).toLocaleString('en-IN')}/night</strong> (${effNights} night${effNights > 1 ? 's' : ''} = ₹${(Number(room.rent_per_night) * effNights).toLocaleString('en-IN')})`;
+    }
+  }
 
   onAmtChg();
 }

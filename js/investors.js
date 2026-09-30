@@ -572,7 +572,7 @@ async function renderInvestorReport(investorId, roomId, month) {
 
     <div class="card report-doc" style="max-width:850px;margin:0 auto;padding:30px;background:#fff;box-shadow:0 4px 20px rgba(15,23,42,0.08);border:1px solid #E2E8F0;border-radius:12px;overflow:hidden;">
       <div style="background:linear-gradient(135deg,#0F172A 0%,#1E293B 100%);color:#fff;padding:28px 20px;border-radius:12px 12px 0 0;text-align:center;margin:-30px -30px 20px -30px;border-bottom:3px solid #4F46E5;">
-        <img src="assets/logo.png" alt="Logo" style="width:52px;height:52px;border-radius:10px;background:#fff;padding:4px;margin-bottom:8px;" />
+        <img src="https://uniquehavenhomesstay.com/assets/logo.png" onerror="this.src='assets/logo.png'" alt="Logo" style="width:52px;height:52px;border-radius:10px;background:#fff;padding:4px;margin-bottom:8px;" />
         <div style="font-size:11px;letter-spacing:2px;color:#94A3B8;font-weight:700;margin-bottom:4px;text-transform:uppercase;">${BRAND.toUpperCase()}</div>
         <h1 style="font-size:22px;margin:4px 0;letter-spacing:1px;color:#fff;font-weight:800;">MONTHLY INVESTOR EARNINGS</h1>
         <div style="font-size:13px;color:#CBD5E1;margin-top:6px;">${monthYear}</div>
@@ -886,7 +886,7 @@ async function renderInvestorReport(investorId, roomId, month) {
       </div>
 
       <div style="background:#0F172A;color:#94A3B8;padding:22px 24px;margin:24px -30px -30px -30px;border-radius:0 0 12px 12px;text-align:center;border-top:1px solid #1E293B;">
-        <img src="assets/logo.png" alt="Logo" style="width:40px;height:40px;border-radius:8px;background:#fff;padding:3px;margin-bottom:6px;" />
+        <img src="https://uniquehavenhomesstay.com/assets/logo.png" onerror="this.src='assets/logo.png'" alt="Logo" style="width:40px;height:40px;border-radius:8px;background:#fff;padding:3px;margin-bottom:6px;" />
         <div style="font-size:11px;color:#E2E8F0;letter-spacing:2px;font-weight:800;margin-bottom:6px;text-transform:uppercase;">${BRAND.toUpperCase()}</div>
         <div style="font-size:12px;line-height:1.8;color:#94A3B8;">
           <div><strong style="color:#fff;">Prepared By:</strong> NISHA KHAN</div>
@@ -1248,7 +1248,11 @@ function getInvestorReportFilename(investorName, propertyName, monthYear) {
   return `TUHH_${inv}_${prop}_${mon}_Earnings_Report`;
 }
 
+const UHH_LOGO_CANONICAL = 'https://uniquehavenhomesstay.com/assets/logo.png';
+
 function buildInvestorReportHTML(reportHTML, filename) {
+  // Ensure all relative logo paths become absolute canonical URLs so downloaded reports never show '?'
+  reportHTML = (reportHTML || '').replace(/src=["']assets\/logo\.png["']/g, `src="${UHH_LOGO_CANONICAL}" onerror="this.src='assets/logo.png'"`);
   const today = new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
   const hasInnerFooter = (reportHTML || '').includes('Developed by Praveen Singh');
   const footerHTML = hasInnerFooter ? '' : ((typeof window.getOfficialReportFooterHTML === 'function') 
@@ -1554,7 +1558,7 @@ async function renderFriendsReport(investorId, roomId, month) {
     <div class="card report-doc" style="max-width:850px;margin:0 auto;padding:30px;background:#fff;box-shadow:0 4px 20px rgba(15,23,42,0.08);border:1px solid #E2E8F0;border-radius:12px;overflow:hidden;">
 
       <div style="background:linear-gradient(135deg,#0F172A 0%,#1E293B 100%);color:#fff;padding:28px 20px;border-radius:12px 12px 0 0;text-align:center;margin:-30px -30px 20px -30px;border-bottom:3px solid #4F46E5;">
-        <img src="assets/logo.png" alt="Logo" style="width:52px;height:52px;border-radius:10px;background:#fff;padding:4px;margin-bottom:8px;" />
+        <img src="https://uniquehavenhomesstay.com/assets/logo.png" onerror="this.src='assets/logo.png'" alt="Logo" style="width:52px;height:52px;border-radius:10px;background:#fff;padding:4px;margin-bottom:8px;" />
         <div style="font-size:11px;letter-spacing:2px;color:#94A3B8;font-weight:700;margin-bottom:4px;text-transform:uppercase;">${BRAND.toUpperCase()}</div>
         <h1 style="font-size:22px;margin:4px 0;letter-spacing:1px;color:#fff;font-weight:800;">🎁 COMPLIMENTARY STAYS REPORT</h1>
         <div style="font-size:13px;color:#CBD5E1;margin-top:6px;">${monthYear}</div>
@@ -1628,7 +1632,7 @@ async function renderFriendsReport(investorId, roomId, month) {
       ` : ''}
 
       <div style="background:#0F172A;color:#94A3B8;padding:22px 24px;margin:20px -30px -30px -30px;border-radius:0 0 12px 12px;text-align:center;border-top:1px solid #1E293B;">
-        <img src="assets/logo.png" alt="Logo" style="width:40px;height:40px;border-radius:8px;background:#fff;padding:3px;margin-bottom:6px;" />
+        <img src="https://uniquehavenhomesstay.com/assets/logo.png" onerror="this.src='assets/logo.png'" alt="Logo" style="width:40px;height:40px;border-radius:8px;background:#fff;padding:3px;margin-bottom:6px;" />
         <div style="font-size:11px;color:#E2E8F0;letter-spacing:2px;font-weight:800;margin-bottom:6px;text-transform:uppercase;">${BRAND.toUpperCase()}</div>
         <div style="font-size:12px;line-height:1.8;color:#94A3B8;">
           <div><strong style="color:#fff;">Prepared By:</strong> NISHA KHAN</div>
