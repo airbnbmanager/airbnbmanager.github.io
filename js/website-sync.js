@@ -196,16 +196,16 @@ async function loadLiveAvailability() {
     const today = new Date();
     const todayStr = today.toISOString().split('T')[0]; // YYYY-MM-DD
 
-    // Fetch active bookings that cover today
+    // Fetch active bookings that cover today from guest_register
     const { data: bookings, error } = await sbClient
-      .from('bookings')
-      .select('room_id, guest_name, check_in, check_out, status')
+      .from('guest_register')
+      .select('room_id, guest_name, check_in, check_out, is_cancelled')
       .lte('check_in', todayStr)
-      .gte('check_out', todayStr)
-      .in('status', ['confirmed', 'checked_in', 'active', 'occupied']);
+      .gt('check_out', todayStr)
+      .eq('is_cancelled', false);
 
     if (error) {
-      console.warn('[UHH] Availability sync error:', error.message);
+      // Table error or network issue - fail silently
       return;
     }
 

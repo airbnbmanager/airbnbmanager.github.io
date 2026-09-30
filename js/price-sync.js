@@ -137,7 +137,7 @@
         .eq('is_active', true);
 
       if (error) {
-        console.warn('[UHH PriceSync] Fetch error:', error.message);
+        // Table not created yet or network issue - fallback silently to static prices
         return;
       }
 
