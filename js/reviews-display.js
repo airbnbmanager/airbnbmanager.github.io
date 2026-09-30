@@ -244,7 +244,8 @@
     if (!track) return;
     const cards = track.querySelectorAll('.uhh-rev-card');
     if (!cards[idx]) return;
-    cards[idx].scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+    const targetLeft = cards[idx].offsetLeft - track.offsetLeft;
+    track.scrollTo({ left: targetLeft, behavior: 'smooth' });
     _currentIdx = idx;
     updateDots(idx);
   }
@@ -330,12 +331,14 @@
 
       /* ── Review CARD ── */
       .uhh-rev-card {
-        flex: 0 0 min(360px, 85vw);
-        scroll-snap-align: center;
+        flex: 0 0 calc((100% - 40px) / 3);
+        max-width: calc((100% - 40px) / 3);
+        box-sizing: border-box;
+        scroll-snap-align: start;
         background: linear-gradient(135deg, rgba(22,25,38,0.9) 0%, rgba(18,21,30,0.95) 100%);
-        border: 1px solid rgba(212,168,75,0.12);
+        border: 1px solid rgba(212,168,75,0.14);
         border-radius: 20px;
-        padding: 28px 26px 22px;
+        padding: 26px 24px 20px;
         position: relative; overflow: hidden;
         transition: transform 0.35s cubic-bezier(0.34,1.56,0.64,1),
                     box-shadow 0.3s ease,
@@ -344,6 +347,21 @@
         /* Entry animation */
         opacity: 0;
         transform: translateY(24px) scale(0.97);
+      }
+      @media (max-width: 1024px) and (min-width: 641px) {
+        .uhh-rev-card {
+          flex: 0 0 calc((100% - 20px) / 2);
+          max-width: calc((100% - 20px) / 2);
+          scroll-snap-align: start;
+        }
+      }
+      @media (max-width: 640px) {
+        .uhh-rev-card {
+          flex: 0 0 calc(100% - 8px);
+          max-width: calc(100% - 8px);
+          scroll-snap-align: center;
+          padding: 22px 18px 18px;
+        }
       }
       .uhh-rev-card.uhh-rev-visible {
         opacity: 1;
