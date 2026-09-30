@@ -121,188 +121,393 @@
       };
     }
 
-    // 1. SPECIFIC: GOMTI GRAND VILLA
+    // 1. SPECIFIC VILLA: GOMTI GRAND VILLA (VIL-101)
     if (/gomti grand|grand villa|gomti villa/i.test(msg)) {
       return {
         text: `🏡 **Gomti Grand Villa — Luxury Private Villa**\n\n` +
-              `💰 **Rate:** **₹8,000 / night**\n` +
+              `💰 **Rate:** **₹8,000 / night** (Direct Booking — Save 15%)\n` +
               `👥 **Capacity:** Up to 10 Guests\n` +
               `📍 **Location:** Near Lulu Mall & Shaheed Path (Central Lucknow)\n\n` +
-              `✨ **Special Features:**\n` +
-              `• 100% Private Standalone Villa with private lawn & terrace\n` +
-              `• Fully equipped modern modular kitchen & dining hall\n` +
-              `• 100% AC bedrooms, high-speed WiFi, smart LED TVs\n` +
-              `• Safe private gated car parking inside the villa premises\n` +
-              `• Ideal for family vacations, intimate get-togethers & peaceful stays.\n\n` +
-              `Kya aap iski availability check karna chahte hain?`,
-        actions: [{ label: '📲 Book Gomti Grand Villa', url: `https://wa.me/${ADMIN_WA}?text=Hi! I want to book Gomti Grand Villa (₹8,000/night). Please check availability.` }],
+              `✨ **Highlights & Amenities:**\n` +
+              `• 100% Private Standalone Villa with private green lawn & terrace\n` +
+              `• Fully equipped modern modular kitchen (Gas, Fridge, RO water, Cookware)\n` +
+              `• All bedrooms 100% Split AC, High-speed optical fiber WiFi & Smart LED TV\n` +
+              `• Gated private parking inside premises (2-3 cars safely)\n` +
+              `• Pet-friendly (prior notice required)\n` +
+              `• Ideal for family holidays, intimate celebrations & Medanta/Ekana visits.`,
+        actions: [{ label: '📲 Book Gomti Grand Villa', url: `https://wa.me/${ADMIN_WA}?text=Namaste! I want to book Gomti Grand Villa (₹8,000/night). Please share availability.` }],
         quickReplies: ['Book karna hai 📅', 'Advance policy?', 'Other villas dikhao']
       };
     }
 
-    // 2. CHECK-IN / CHECK-OUT TIMINGS
-    if (/check in|check out|check-in|check-out|timing|time|samay|kab aana|early check|late check/i.test(msg)) {
+    // 2. SPECIFIC VILLA: ROYAL WHITE HOUSE (VIL-102)
+    if (/royal white|white house|royal villa|18 guest|badi villa|wedding villa|shaadi/i.test(msg)) {
       return {
-        text: `🕐 **Standard Timings:**\n\n` +
-              `• **Check-in:** **12:00 PM** (Noon)\n` +
-              `• **Check-out:** **11:00 AM** (Morning)\n\n` +
-              `✨ **Early Check-in / Late Check-out Policy:**\n` +
-              `Subject to availability! Agar pehle se koi booking nahi hai to hum guest convenience ke mutabiq 1–2 ghante adjust kar dete hain. Advance me inform karna zaroori hai.`,
-        quickReplies: ['ID proof kya chahiye?', 'Advance kitna lagega?', 'Book karna hai']
+        text: `👑 **Royal White House — Grand Luxury Estate**\n\n` +
+              `💰 **Rate:** **₹12,000 / night** (Best Value for Large Groups)\n` +
+              `👥 **Capacity:** Up to 18 Guests (4-5 Spacious Bedrooms)\n` +
+              `📍 **Location:** Near Shaheed Path & Mahanagar connectivity\n\n` +
+              `✨ **Highlights & Amenities:**\n` +
+              `• Palatial white exterior with royal architecture & massive private lawn\n` +
+              `• Huge living & dining hall, grand open terrace with panoramic views\n` +
+              `• Full modular kitchen for self-cooking or catering service\n` +
+              `• Gated parking for 4+ cars inside premises\n` +
+              `• Perfect for: Wedding stays (Haldi, Mehndi, Barat stay), Family reunions, Corporate offsites.`,
+        actions: [{ label: '📲 Inquire Royal White House', url: `https://wa.me/${ADMIN_WA}?text=Namaste! I want to book Royal White House (₹12,000/night) for large group/event.` }],
+        quickReplies: ['Gomti Grand Villa ₹8,000', 'Celebrity Garden ₹10,000', 'Book karna hai 📅']
       };
     }
 
-    // 3. COUPLE FRIENDLY / UNMARRIED COUPLES / SAFETY
+    // 3. SPECIFIC VILLA: CELEBRITY GARDEN (LUL-402)
+    if (/celebrity garden|celebrity|lul-402|garden villa/i.test(msg)) {
+      return {
+        text: `🌴 **Celebrity Garden — Sprawling Green Luxury Villa**\n\n` +
+              `💰 **Rate:** **₹10,000 / night**\n` +
+              `👥 **Capacity:** Up to 8–10 Guests\n` +
+              `📍 **Location:** Near Lulu Mall & Medanta Hospital\n\n` +
+              `✨ **Highlights:**\n` +
+              `• Lush sprawling landscaped garden & private sit-out patio\n` +
+              `• Super high-end luxury interiors, 100% split AC in all rooms\n` +
+              `• Full modern kitchen & rapid delivery from Swiggy/Zomato/Blinkit\n` +
+              `• 5 mins to Lulu Mall & 7 mins to Ekana Stadium.`,
+        actions: [{ label: '📲 Book Celebrity Garden', url: `https://wa.me/${ADMIN_WA}?text=Namaste! I want to book Celebrity Garden (₹10,000/night).` }],
+        quickReplies: ['Book karna hai 📅', 'Lulu Mall distance?', 'Villas rates']
+      };
+    }
+
+    // 4. SPECIFIC VILLA: THE PINK HOUSE (VIL-103)
+    if (/pink house|pink villa|aesthetic villa/i.test(msg)) {
+      return {
+        text: `🌸 **The Pink House — Aesthetic Designer Villa**\n\n` +
+              `💰 **Rate:** **₹9,000 / night**\n` +
+              `👥 **Capacity:** Up to 10 Guests\n` +
+              `📍 **Location:** Vishesh Khand, Gomti Nagar\n\n` +
+              `✨ **Highlights:**\n` +
+              `• Gorgeous pastel aesthetic theme with Instagram-worthy interiors\n` +
+              `• Private terrace garden, full modular kitchen, high-speed WiFi\n` +
+              `• Located in upscale quiet VIP colony of Gomti Nagar\n` +
+              `• Pet friendly (prior approval needed).`,
+        actions: [{ label: '📲 Book The Pink House', url: `https://wa.me/${ADMIN_WA}?text=Namaste! I want to book The Pink House (₹9,000/night).` }],
+        quickReplies: ['Book karna hai 📅', 'Check-in time?', 'Rates list']
+      };
+    }
+
+    // 5. SPECIFIC PENTHOUSE: STARLIGHT BLUE PENTHOUSE (GOM-501)
+    if (/starlight|penthouse|blue penthouse|rooftop|skyline/i.test(msg)) {
+      return {
+        text: `✨ **Starlight Blue PentHouse — Open Sky Skyline Living**\n\n` +
+              `💰 **Rate:** **₹6,000 / night**\n` +
+              `👥 **Capacity:** Up to 10 Guests\n` +
+              `📍 **Location:** Vikalp Khand, Gomti Nagar\n\n` +
+              `✨ **Highlights:**\n` +
+              `• Top floor penthouse with huge private open-sky terrace\n` +
+              `• Breathtaking night skyline view of Lucknow city lights\n` +
+              `• Designer blue & gold luxury mood lighting\n` +
+              `• 3 AC Bedrooms + Large Living Space + Full Kitchen\n` +
+              `• Perfect for romantic getaways, family birthdays & relaxing evenings.`,
+        actions: [{ label: '📲 Book Starlight Penthouse', url: `https://wa.me/${ADMIN_WA}?text=Namaste! I want to book Starlight Blue Penthouse (₹6,000/night).` }],
+        quickReplies: ['Book karna hai 📅', 'Couples allowed?', '3BHK flats dikhao']
+      };
+    }
+
+    // 6. SPECIFIC BOUTIQUE FLATS: THE UNIQUE / GREEN HOUSE / YELLOW HOUSE
+    if (/the unique|green house|yellow house|vil-104|vil-105|gom-302/i.test(msg)) {
+      return {
+        text: `🏡 **Designer Serviced Stays — Vishesh Khand, Gomti Nagar**\n\n` +
+              `• **The Unique:** ₹5,500/night (Contemporary luxury styling)\n` +
+              `• **The Green House:** ₹5,500/night (Lush nature-inspired interior)\n` +
+              `• **The Yellow House:** ₹5,500/night (Warm vibrant sunshine aesthetic)\n\n` +
+              `✨ All units feature 3 fully AC bedrooms, modular kitchen with gas stove & RO, high-speed WiFi, dedicated parking and 100% privacy.`,
+        actions: [{ label: '📲 Book Vishesh Khand Flat', url: `https://wa.me/${ADMIN_WA}?text=Namaste! I am interested in The Unique / Green / Yellow House (₹5,500).` }],
+        quickReplies: ['Book karna hai 📅', '₹4,500 flats dikhao', 'Check-in rules']
+      };
+    }
+
+    // 7. SPECIFIC 3BHK SERVICED FLATS (₹4,500 / NIGHT): REDROSE, BLACK BEAUTY, DARK BLUE, ETC.
+    if (/redrose|black beauty|dark blue|the brown|light green|nawabi stay|velvet house|4500|3bhk/i.test(msg)) {
+      return {
+        text: `🏢 **Luxury 3BHK Serviced Flats (₹4,500 / night):**\n\n` +
+              `1️⃣ **Black Beauty:** Ultra-luxurious Black & Gold royal theme\n` +
+              `2️⃣ **RedRose Palace:** Rich crimson floral luxury interiors\n` +
+              `3️⃣ **The Dark Blue:** Calming oceanic navy blue aesthetic\n` +
+              `4️⃣ **The Nawabi Stay:** Classic royal Lucknowi heritage decor\n` +
+              `5️⃣ **The Brown:** Warm earthen walnut wood cozy interior\n` +
+              `6️⃣ **The Light Green:** Mint & sage green fresh botanical theme\n` +
+              `7️⃣ **The Velvet House:** Plush velvet decor near Lulu Mall\n\n` +
+              `✨ **Every flat includes:** 3 AC Bedrooms, Full Kitchen, Refrigerator, RO water, High-speed WiFi, 24/7 Security & CCTV parking. 100% Couple Friendly!`,
+        actions: [{ label: '📲 Book 3BHK Flat @ ₹4,500', url: `https://wa.me/${ADMIN_WA}?text=Namaste! I want to book a 3BHK luxury flat at ₹4,500/night.` }],
+        quickReplies: ['Couples allowed?', 'Kitchen facility?', 'Book karna hai 📅']
+      };
+    }
+
+    // 8. CHECK-IN / CHECK-OUT TIMINGS & EARLY/LATE
+    if (/check in|check out|check-in|check-out|timing|time|samay|kab aana|early check|late check|luggage/i.test(msg)) {
+      return {
+        text: `🕐 **Standard Check-in & Check-out Timings:**\n\n` +
+              `• **Check-in Time:** **12:00 PM** (Noon)\n` +
+              `• **Check-out Time:** **11:00 AM** (Morning)\n\n` +
+              `✨ **Early Check-in & Luggage Drop:**\n` +
+              `• Agar aap subah jaldi aa rahe hain aur property pehle se free hai, to hum **complimentary early check-in (1-2 hours)** accommodate kar dete hain!\n` +
+              `• Agar room occupied hai, to aap check-in se pehle apna luggage safely drop kar sakte hain.\n` +
+              `• Late check-out bhi next booking ke schedule ke hisaab se flexible rehta hai.`,
+        quickReplies: ['ID proof kya chahiye?', 'Advance kitna lagega?', 'Book karna hai 📅']
+      };
+    }
+
+    // 9. COUPLE FRIENDLY / UNMARRIED COUPLES / SAFETY / PRIVACY
     if (/couple|unmarried|girlfriend|boyfriend|safe|privacy|ladka ladki|couples allowed/i.test(msg)) {
       return {
-        text: `❤️ **100% Couple Friendly & Safe!**\n\n` +
-              `• Unmarried couples bilkul welcome hain.\n` +
-              `• **Complete privacy and zero disturbance** guaranteed.\n` +
-              `• No intrusive questioning at check-in.\n` +
-              `• Sabhi adult guests (18+) ke paas original Govt Photo ID (Aadhaar / Driving License / Voter ID / Passport) hona zaroori hai.`,
-        quickReplies: ['ID rules?', 'Private Flats dikhao', 'Book karna hai']
+        text: `❤️ **100% Couple Friendly & Completely Safe!**\n\n` +
+              `• **Unmarried couples are warmly welcomed** with zero moral policing or intrusive questioning.\n` +
+              `• **Complete privacy guaranteed:** Private entrance, digital self/in-person check-in, zero staff interference during your stay.\n` +
+              `• **Safety:** Gated secure societies, 24/7 exterior security cameras (zero cameras inside living/bedroom spaces).\n` +
+              `• **Rule:** Sabhi 18+ adult guests ke paas valid original Government Photo ID (Aadhaar / Driving License / Passport / Voter ID) hona anivarya hai.`,
+        quickReplies: ['ID rules?', 'Private Flats ₹4,500', 'Book karna hai 📅']
       };
     }
 
-    // 4. ID PROOF & DOCUMENTATION
+    // 10. ID PROOF & VERIFICATION
     if (/id proof|aadhaar|aadhar|id chahiye|document|passport|pan card|age/i.test(msg)) {
       return {
         text: `📋 **Check-in ID Guidelines:**\n\n` +
-              `• Sabhi 18+ adult guests ke paas valid **Government Photo ID** hona anivarya hai:\n` +
-              `  ✅ **Aadhaar Card**\n` +
+              `• Sabhi 18+ adult guests ke paas valid **Government Photo ID** hona zaroori hai:\n` +
+              `  ✅ **Aadhaar Card** (Original or digital Digilocker)\n` +
               `  ✅ **Driving License**\n` +
               `  ✅ **Passport**\n` +
               `  ✅ **Voter ID Card**\n` +
-              `• *(Note: Income Tax PAN Card address proof ke roop me maanya nahi hota).*\n` +
+              `• *(Note: Income Tax PAN Card address proof nahi hota, isliye Aadhaar/DL preferred hai).*\n` +
               `• Check-in par hamare manager verification ke baad contactless digital register me entry karte hain.`,
-        quickReplies: ['Check-in time?', 'Couples allowed?', 'Rates dikhao']
+        quickReplies: ['Check-in time?', 'Couples allowed?', 'Rates dikhao 💰']
       };
     }
 
-    // 5. PARTY / GATHERING / BIRTHDAY / CELEBRATION / MUSIC
-    if (/party|celebrat|birthday|anniversary|gathering|get together|dj|music|loud|function/i.test(msg)) {
+    // 11. SMOKING & ALCOHOL / DRINKING POLICY
+    if (/smoke|smoking|cigarette|cigar|beedi|hookah|hukkah|drink|alcohol|wine|beer|sharab|daaru/i.test(msg)) {
       return {
-        text: `🎉 **Parties & Celebrations Policy:**\n\n` +
-              `• **Villas me Allowed:** Small family gatherings, birthdays aur peaceful celebrations hamari private villas jaise **Gomti Grand Villa (₹8,000)**, **Celebrity Garden (₹10,000)** aur **Royal White House (₹12,000)** me allow hain.\n` +
-              `• **Music Rule:** Indoor soft music anytime. Raat **10:00 PM** ke baad outdoor loud DJ/speakers strictly restricted hain taaki residential colony ke rules follow hon.\n` +
-              `• Cleanliness aur decor coordination ke liye advance notification zaroori hai.`,
-        quickReplies: ['Gomti Grand Villa', 'Royal White House', 'Host se baat karein']
+        text: `🚬 **Smoking & Drinking Policy:**\n\n` +
+              `• **Smoking:** Open balconies, private terraces aur outdoor garden lawns me smoking **100% allowed** hai. Rooms ke andar AC fragrance fresh rakhne ke liye indoor smoking avoid karein.\n` +
+              `• **Drinking:** Legal drinking age adults ke liye private villa/flat ke andar responsible alcohol consumption **100% allowed** hai.\n` +
+              `• Kripya dhyan rakhein ki kisi bhi tarah ka public nuisance ya loud disturbance na ho.`,
+        quickReplies: ['Parties allowed?', 'Villas rates', 'Book karna hai 📅']
       };
     }
 
-    // 6. FOOD, COOKING & KITCHEN FACILITIES
-    if (/kitchen|cook|khana|food|gas|stove|swiggy|zomato|blinkit|fridge|refrigerator|bartan|utensil|ro water/i.test(msg)) {
+    // 12. FOOD, COOKING & KITCHEN FACILITIES
+    if (/kitchen|cook|khana|food|gas|stove|swiggy|zomato|blinkit|zepto|fridge|refrigerator|bartan|utensil|ro water/i.test(msg)) {
       return {
         text: `🍳 **Kitchen & Food Facilities:**\n\n` +
-              `• **Full Modular Kitchen:** Gas stove, Refrigerator, RO Water Filter, Microwave, aur complete cookware & dinner set uplabdh hai.\n` +
-              `• **Self Cooking:** Aap apna khana khud bana sakte hain (chai, breakfast, meals).\n` +
-              `• **Superfast Delivery:** **Swiggy, Zomato, Blinkit, Zepto, Instamart** sabhi properties par 15–20 minutes me deliver karte hain.\n` +
-              `• Aas-paas famous Lucknowi restaurants (Awadhi, Mughlai, Pure Veg) bhi walking/short drive par hain.`,
-        quickReplies: ['WiFi kaisa hai?', 'Rates list', 'Book karna hai']
+              `• **Full Modular Kitchen in Every Unit:** Gas stove, Refrigerator, RO Water Filter, Microwave, cookware, frying pans, plates, spoons & tea set.\n` +
+              `• **Self Cooking:** Aap apna khana, chai, breakfast khud bina kisi extra charge ke bana sakte hain.\n` +
+              `• **Instant Grocery & Food Delivery:** **Swiggy, Zomato, Blinkit, Zepto, Instamart** sabhi properties par 10–15 minutes me deliver karte hain.\n` +
+              `• Dastarkhwan, Tunday Kababi, Royal Cafe, Bikanervala jaise top restaurants paas me hi hain.`,
+        quickReplies: ['WiFi speed?', 'Rates list', 'Book karna hai 📅']
       };
     }
 
-    // 7. LOCATION & DISTANCE QUERIES
-    if (/location|address|kahan|where|distance|door|airport|station|charbagh|lulu|ekana|medanta|palassio|summit/i.test(msg)) {
+    // 13. PARTIES, EVENTS, WEDDINGS & CELEBRATIONS
+    if (/party|celebrat|birthday|anniversary|gathering|event|dj|music|loud|function|shaadi|wedding|haldi|mehndi/i.test(msg)) {
       return {
-        text: `📍 **Unique Haven Homes Locations in Lucknow:**\n\n` +
-              `1️⃣ **Gomti Nagar Prime (Vikalp & Vishesh Khand):**\n` +
-              `   • 5 mins to Summit Building, Wave Mall, Husariya, Cinepolis\n` +
-              `   • Near Gomti Nagar Railway Station\n\n` +
-              `2️⃣ **Near Lulu Mall & Shaheed Path (Villas Hub):**\n` +
-              `   • 5 mins to Lulu Mall & Phoenix Palassio\n` +
-              `   • 7 mins to Ekana International Cricket Stadium\n` +
-              `   • 5 mins to Medanta Hospital\n\n` +
-              `🚗 **Connectivity:**\n` +
-              `• **CCS Airport (Amausi):** 20–25 mins via Shaheed Path bypass\n` +
-              `• **Charbagh Railway Station:** 20–25 mins\n\n` +
-              `Aapko kis area me property chahiye?`,
-        quickReplies: ['Gomti Nagar Flats', 'Lulu Mall Villas', 'Airport connectivity']
+        text: `🎉 **Parties, Events & Wedding Stays:**\n\n` +
+              `• **Permitted Venues:** Small family gatherings, birthdays, anniversaries, Haldi & Mehndi events hamari private villas me allow hain:\n` +
+              `  👑 **Royal White House (₹12,000)** — Up to 18 Guests, massive lawn & terrace\n` +
+              `  🏡 **Gomti Grand Villa (₹8,000)** — Up to 10 Guests, private garden lawn\n` +
+              `  🌴 **Celebrity Garden (₹10,000)** — Up to 10 Guests, expansive lawn\n\n` +
+              `• **Music Rules:** Indoor music/bluetooth speakers anytime. Raat **10:00 PM** ke baad outdoor high-bass DJ strictly prohibited hai taaki colony norms follow hon.\n` +
+              `• Event setup ya catering coordination ke liye booking ke samay inform karein.`,
+        actions: [{ label: '📲 Coordinate Event on WhatsApp', url: `https://wa.me/${ADMIN_WA}?text=Namaste! I want to plan an event/wedding stay at Unique Haven Homes.` }],
+        quickReplies: ['Royal White House', 'Gomti Grand Villa', 'Direct Call Host']
       };
     }
 
-    // 8. PARKING & VEHICLE SAFETY
+    // 14. WIFI, AC, WORK FROM HOME & POWER BACKUP
+    if (/wifi|internet|speed|wfh|work|ac|air condition|power backup|generator|inverter|tv|smart tv/i.test(msg)) {
+      return {
+        text: `📶 **Amenities & Comfort Standards:**\n\n` +
+              `• **100+ Mbps Fiber WiFi:** Unlimited optical fiber internet (seamless for WFH, Zoom conferences, 4K streaming).\n` +
+              `• **100% Air Conditioned:** Sabhi bedrooms aur living halls fully split-AC equipped hain.\n` +
+              `• **Uninterrupted Power Backup:** Inverter / generator backup taaki lights, fans aur WiFi bina rukaawat chalein.\n` +
+              `• **Smart 43"–55" LED TVs:** Netflix, Prime Video, YouTube ready.`,
+        quickReplies: ['Kitchen facility?', 'Rates list', 'Book now 📅']
+      };
+    }
+
+    // 15. PARKING & VEHICLE SAFETY
     if (/parking|car|vehicle|gaadi|bike|safe parking/i.test(msg)) {
       return {
         text: `🅿️ **Parking & Vehicle Safety:**\n\n` +
-              `• **100% Free & Safe Parking** uplabdh hai!\n` +
-              `• **Villas me:** Dedicated private parking inside closed gate boundary (2-3 cars aaram se park ho sakti hain).\n` +
-              `• **Flats me:** Dedicated building parking with 24/7 CCTV surveillance & security guard.\n` +
-              `• Sedan, SUV aur bikes sabhi safely park ho sakti hain.`,
-        quickReplies: ['Check-in timing?', 'Gomti Grand Villa', 'Book karna hai']
+              `• **100% Free & Secure Parking!**\n` +
+              `• **Villas me:** Dedicated private parking inside closed boundary gate (2-4 cars safely).\n` +
+              `• **Flats me:** Dedicated building parking with 24/7 CCTV surveillance and security guards.\n` +
+              `• Sedans, Fortuner/Scorpio/SUVs aur two-wheelers aaram se park ho sakti hain.`,
+        quickReplies: ['Check-in timing?', 'Gomti Grand Villa', 'Book karna hai 📅']
       };
     }
 
-    // 9. WIFI, AC & WORK FROM HOME
-    if (/wifi|internet|speed|wfh|work|ac|air condition|power backup|generator|inverter/i.test(msg)) {
+    // 16. PET POLICY
+    if (/pet|dog|cat|kutta|billi|animals/i.test(msg)) {
       return {
-        text: `📶 **Amenities & Comfort:**\n\n` +
-              `• **High-Speed Fiber WiFi:** 100+ Mbps unlimited optical fiber internet (ideal for Work From Home, Zoom meetings, streaming).\n` +
-              `• **100% Air Conditioned:** Sabhi bedrooms aur living room fully AC hain.\n` +
-              `• **Power Backup:** Inverter / generator backup taaki lights aur fans continuous chalein.\n` +
-              `• **Smart TV:** Netflix, YouTube, Prime ready smart screens.`,
-        quickReplies: ['Kitchen facility?', 'Rates list', 'Book now']
+        text: `🐾 **Pet-Friendly Policy:**\n\n` +
+              `• Hamari select private villas (**Gomti Grand Villa**, **The Pink House**) me trained pets **allowed** hain!\n` +
+              `• Booking se pehle inform karna anivarya hai taaki garden aur cleaning arrangement ho sake.\n` +
+              `• Society flats/apartments me building norms ki wajah se pets restricted hain.`,
+        quickReplies: ['Gomti Grand Villa ₹8,000', 'Host se WhatsApp karein', 'Check-in time']
       };
     }
 
-    // 10. ADVANCE PAYMENT, TOKEN & HOW TO BOOK
-    if (/advance|token|booking process|kaise book|payment method|upi|qr|card|cash|refund|cancellation/i.test(msg)) {
+    // 17. EXTRA BED, MATTRESS & CHILDREN
+    if (/extra bed|extra mattress|mattress|gadda|blanket|bed|bache|child|kids|baby/i.test(msg)) {
+      return {
+        text: `🛏️ **Extra Bedding & Children Policy:**\n\n` +
+              `• **Extra Mattresses:** Comfortable premium floor mattresses with fresh bedsheets, pillows, and clean blankets available on request for extra guests.\n` +
+              `• **Kids Policy:** 6 saal se chhote bachon ke liye stay **100% Free** hai!\n` +
+              `• Extra guest charge flat bookings me nominal rehta hai.`,
+        quickReplies: ['Rates list dikhao', 'Gomti Grand Villa', 'Book karna hai 📅']
+      };
+    }
+
+    // 18. CLEANING, HOUSEKEEPING & HYGIENE
+    if (/clean|cleaning|housekeeping|maid|safai|towel|soap|shampoo|geyser|hot water/i.test(msg)) {
+      return {
+        text: `🧼 **5-Star Hygiene & Housekeeping:**\n\n` +
+              `• **Fresh Linens:** Every check-in par 100% sanitized, fresh washed bedsheets, pillow covers, and fresh towels provide kiye jaate hain.\n` +
+              `• **Daily Housekeeping:** Long stays ke liye daily trash removal & cleaning available on request between 11:00 AM – 2:00 PM.\n` +
+              `• **Toiletries:** Branded handwash, soaps, geyser hot water in all bathrooms.\n` +
+              `• Hum Airbnb Superhost standards strictly follow karte hain.`,
+        quickReplies: ['Couples allowed?', 'Kitchen facility?', 'Rates list']
+      };
+    }
+
+    // 19. GST INVOICE & CORPORATE TRAVEL
+    if (/gst|invoice|bill|tax invoice|company|corporate|reimbursement|receipt/i.test(msg)) {
+      return {
+        text: `📄 **Official GST Tax Invoice:**\n\n` +
+              `• Hum **The Unique Haven Homes Pvt Ltd** ke official registered GSTIN ke saath GST Tax Invoice provide karte hain.\n` +
+              `• Corporate expense claims, IT reimbursement aur business travel ke liye 100% compliant bill WhatsApp / Email par check-out ke time generate ho jata hai.\n` +
+              `• Booking karte samay bas aapka Company Name aur GST number share karein.`,
+        quickReplies: ['Advance payment method', '3BHK Flat ₹4,500', 'Book karna hai 📅']
+      };
+    }
+
+    // 20. SECURITY DEPOSIT / CAUTION MONEY
+    if (/deposit|security deposit|caution money|security amount/i.test(msg)) {
+      return {
+        text: `🛡️ **Zero Security Deposit Policy:**\n\n` +
+              `• Direct bookings par hum **Zero / No Security Deposit** charge karte hain!\n` +
+              `• Sirf standard booking advance token pay karke dates confirm ki jaati hain.\n` +
+              `• Balance payment property check-in ke time pay karna hota hai.`,
+        quickReplies: ['Advance payment process', 'Rates list', 'Book now 📅']
+      };
+    }
+
+    // 21. ADVANCE PAYMENT, TOKEN & HOW TO BOOK
+    if (/advance|token|booking process|kaise book|payment method|upi|qr|card|cash|refund|cancellation|cancel/i.test(msg)) {
       return {
         text: `💳 **Booking & Payment Process:**\n\n` +
-              `1️⃣ **Dates Block:** Dates confirm karne ke liye ek chhota sa advance token (typically 30% to 50%) pay karna hota hai.\n` +
-              `2️⃣ **Payment Modes:** UPI (PhonePe, GPay, Paytm), Bank Transfer (IMPS/NEFT), ya QR code.\n` +
-              `3️⃣ **Instant Confirmation:** Advance receive hote hi official GST Tax Invoice / Booking Voucher aur caretaker ka location pin WhatsApp par turant send ho jata hai.\n` +
-              `4️⃣ **Balance Amount:** Baaki bacha payment aap check-in ke time property pahunch kar pay kar sakte hain.\n\n` +
-              `Book karne ke liye apna naam aur dates bataiye!`,
+              `1️⃣ **Dates Block:** Dates lock karne ke liye ek chhota advance token (typically 30% to 50%) pay karna hota hai.\n` +
+              `2️⃣ **Payment Modes:** UPI (PhonePe, Google Pay, Paytm), Bank Transfer (IMPS/NEFT), ya official QR code.\n` +
+              `3️⃣ **Instant Confirmation:** Advance confirm hote hi official Booking Voucher, Check-in details aur Caretaker Location Pin WhatsApp par instant bhej di jaati hai.\n` +
+              `4️⃣ **Balance Amount:** Baaki bacha payment aap check-in ke samay property pahunch kar pay kar sakte hain.\n` +
+              `5️⃣ **Cancellation:** Check-in se 48 hours pehle tak full reschedule / flexible cancellation policy available hai.`,
         actions: [{ label: '📲 Pay Advance & Block Dates', url: `https://wa.me/${ADMIN_WA}?text=Namaste! I want to pay advance token and confirm my booking.` }],
-        quickReplies: ['Mera naam...', 'Direct WhatsApp call', 'Rates dikhao']
+        quickReplies: ['Mera naam...', 'Host se baat karein', 'Rates dikhao 💰']
       };
     }
 
-    // 11. DISCOUNTS & LONG STAY OFFERS
+    // 22. DIRECT BOOKING VS AIRBNB / WHY BOOK DIRECT
+    if (/airbnb|booking.com|makemytrip|goibibo|direct booking|fayda|why direct|commission/i.test(msg)) {
+      return {
+        text: `💎 **Direct Booking Ka Fayda (Save 15%):**\n\n` +
+              `• **15% Flat Savings:** Airbnb aur OTAs 14%–18% guest service fee add karte hain. Direct booking me zero platform fee hoti hai!\n` +
+              `• **Verified Superhost Stays:** Same luxury properties, same 4.9★ hospitality standards.\n` +
+              `• **Flexible Timings:** Early check-in & late checkout me maximum flexibility.\n` +
+              `• **Personal Host Contact:** Direct founders Praveen Singh, Firoz Khan aur Shahanshah ji se round-the-clock support.`,
+        actions: [{ label: '📲 Book Direct & Save 15%', url: `https://wa.me/${ADMIN_WA}?text=Namaste! I want to book direct to save platform fees.` }],
+        quickReplies: ['Rates list dikhao 💰', 'Gomti Grand Villa ₹8,000', 'Book now 📅']
+      };
+    }
+
+    // 23. DISCOUNTS & LONG STAY OFFERS
     if (/discount|offer|sasta|kam karo|bargain|weekly|monthly|long stay|corporate/i.test(msg)) {
       return {
         text: `🎁 **Discounts & Extended Stay Offers:**\n\n` +
               `• **Weekly Stay (7+ nights):** Flat **10% to 15% Discount**\n` +
               `• **Monthly Stay (30+ nights):** Up to **25% Super Saver Discount**\n` +
-              `• **Corporate / Medical Stay (Medanta):** Special discounted packages available.\n\n` +
-              `Best discounted offer ke liye seedha host Praveen ji se baat karein!`,
+              `• **Medanta Medical Stays:** Special subsidized packages for patient families.\n` +
+              `• **Direct Booking Bonus:** 15% less than Airbnb rates.\n\n` +
+              `Best custom quote ke liye seedha host Praveen ji se baat karein!`,
         actions: [{ label: '📲 Claim Best Discount on WhatsApp', url: `https://wa.me/${ADMIN_WA}?text=Hi Praveen ji! I need a special discount for stay at Unique Haven Homes.` }],
-        quickReplies: ['Book karna hai', 'Flats ke rates', 'Villas ke rates']
+        quickReplies: ['Book karna hai 📅', 'Flats ke rates', 'Villas ke rates']
       };
     }
 
-    // 12. PET FRIENDLY
-    if (/pet|dog|cat|kutta|billi|animals/i.test(msg)) {
+    // 24. LOCATIONS, LANDMARKS & DISTANCES (LULU, EKANA, MEDANTA, AIRPORT)
+    if (/location|address|kahan|where|distance|door|airport|station|charbagh|lulu|ekana|medanta|palassio|summit/i.test(msg)) {
       return {
-        text: `🐾 **Pet Policy:**\n\n` +
-              `• Hamari select private villas (jaise **Gomti Grand Villa**, **The Pink House**) me trained pets allowed hain!\n` +
-              `• Booking se pehle inform karna anivarya hai taaki proper arrangements kiye ja sakein.\n` +
-              `• Apartments/flats me building norms ke karan pets restricted hain.`,
-        quickReplies: ['Gomti Grand Villa', 'Host se baat karein', 'Check-in time']
+        text: `📍 **Unique Haven Homes Locations in Lucknow:**\n\n` +
+              `1️⃣ **Near Lulu Mall & Shaheed Path (Villas & Luxury Stays):**\n` +
+              `   • 5 mins to Lulu Mall & Phoenix Palassio\n` +
+              `   • 7 mins to Ekana International Cricket Stadium\n` +
+              `   • 5 mins to Medanta Hospital\n` +
+              `   • Properties: Gomti Grand Villa, Celebrity Garden, The Velvet House\n\n` +
+              `2️⃣ **Gomti Nagar Prime (Vikalp & Vishesh Khand):**\n` +
+              `   • 5 mins to Summit Building, Wave Mall, Husariya, Cinepolis\n` +
+              `   • Near Gomti Nagar Railway Station\n` +
+              `   • Properties: Starlight Blue Penthouse, Black Beauty, RedRose Palace, The Dark Blue, The Pink House, The Unique\n\n` +
+              `🚗 **City Connectivity:**\n` +
+              `• **CCS Airport (Amausi):** 20–25 mins via Shaheed Path elevated expressway\n` +
+              `• **Charbagh Railway Station:** 20–25 mins`,
+        quickReplies: ['Lulu Mall ke paas 📍', 'Gomti Nagar Flats 🏢', 'Book karna hai 📅']
       };
     }
 
-    // 13. RATES & COMPLETE PRICING LIST
+    // 25. HOSTS, FOUNDERS & CONTACT DETAILS
+    if (/host|owner|firoz|shahanshah|praveen|contact|phone|number|call|baat karni/i.test(msg)) {
+      return {
+        text: `📞 **Unique Haven Homes — Founder & Host Contacts:**\n\n` +
+              `• 🛡️ **Praveen Singh (Co-Host & Operations):**\n` +
+              `  📱 **+91 91941 09911**\n\n` +
+              `• ⭐ **Mr. Firoz Khan (Superhost & Co-Founder):**\n` +
+              `  📱 **+91 82996 00709**\n\n` +
+              `• 👑 **Mr. Shahanshah (Co-Founder & Host):**\n` +
+              `  📱 **+91 94500 55554**\n\n` +
+              `🏢 **Company:** THE UNIQUE HAVEN HOMES PRIVATE LIMITED\n` +
+              `📍 **Office:** Radhikapuri, Indira Nagar, Lucknow`,
+        actions: [{ label: '📲 Call / WhatsApp Praveen', url: `https://wa.me/${ADMIN_WA}?text=Namaste Praveen ji! I want to inquire about Unique Haven Homes booking.` }],
+        quickReplies: ['Rates list dikhao 💰', 'Gomti Grand Villa ₹8,000', 'Book now 📅']
+      };
+    }
+
+    // 26. PHOTOS, VIDEOS & WALKTHROUGHS
+    if (/photo|photos|video|tasveer|image|pic|pics|dekhna/i.test(msg)) {
+      return {
+        text: `📸 **Property Photos & Walkthrough Videos:**\n\n` +
+              `• Aap website par sabhi **17 properties ki HD photo galleries** explore kar sakte hain.\n` +
+              `• Agar aapko kisi specific property ka detailed video tour ya bathroom/kitchen photos chahiye, to WhatsApp par hum instant album bhej denge!`,
+        actions: [{ label: '📲 Get HD Photos on WhatsApp', url: `https://wa.me/${ADMIN_WA}?text=Namaste! Please share HD photos and video tour of available properties.` }],
+        quickReplies: ['Gomti Grand Villa photos', '3BHK Flat photos', 'Rates list']
+      };
+    }
+
+    // 27. RATES & COMPLETE PRICING LIST
     if (/rate|price|cost|kitna|charge|per night|rent|pricing|list/i.test(msg)) {
       return {
-        text: `💰 **Official Property Rates (Verified):**\n\n` +
-              `🏡 **Grand Private Villas (Big Groups & Families):**\n` +
-              `• **Royal White House:** ₹12,000 / night (Up to 18 Guests)\n` +
-              `• **Celebrity Garden:** ₹10,000 / night (Up to 8–10 Guests)\n` +
-              `• **The Pink House:** ₹9,000 / night (Up to 10 Guests)\n` +
-              `• **Gomti Grand Villa:** ₹8,000 / night (Up to 10 Guests)\n\n` +
+        text: `💰 **Official Property Rates (Verified Direct Rates):**\n\n` +
+              `🏡 **Grand Private Standalone Villas:**\n` +
+              `• **Royal White House:** ₹12,000 / night (Up to 18 Guests, Royal Estate)\n` +
+              `• **Celebrity Garden:** ₹10,000 / night (Up to 8–10 Guests, Sprawling Lawn)\n` +
+              `• **The Pink House:** ₹9,000 / night (Up to 10 Guests, Aesthetic Luxury)\n` +
+              `• **Gomti Grand Villa:** ₹8,000 / night (Up to 10 Guests, Private Lawn)\n\n` +
               `🏙️ **Penthouse & Boutique Stays:**\n` +
-              `• **Starlight Blue PentHouse:** ₹6,000 / night (Open Sky View)\n` +
+              `• **Starlight Blue PentHouse:** ₹6,000 / night (Private Open-Sky Terrace)\n` +
               `• **The Unique / Green House / Yellow House:** ₹5,500 / night\n\n` +
               `🏢 **Luxury 3BHK Serviced Flats (₹4,500 / night):**\n` +
-              `• RedRose Palace • Black Beauty • The Dark Blue • The Brown • The Light Green • The Nawabi Stay • The Velvet House\n\n` +
-              `Aap kitne logon ke liye dekh rahe hain?`,
+              `• Black Beauty • RedRose Palace • The Dark Blue • The Brown • The Light Green • The Nawabi Stay • The Velvet House\n\n` +
+              `✨ *All prices include full kitchen, AC in all rooms, high-speed WiFi & parking.*`,
         quickReplies: ['Gomti Grand Villa ₹8,000', '3BHK Flat ₹4,500', 'Book karna hai 📅']
       };
     }
 
-    // 14. GUEST CAPACITY / NUMBER OF PEOPLE
+    // 28. GUEST CAPACITY / NUMBER OF PEOPLE
     const guestMatch = msg.match(/(\d+)\s*(log|person|guest|people|adult|member|aadmi)/i) || msg.match(/(2|3|4|5|6|7|8|9|10|12|15|18)\s*(?:log|people)?/);
     if (guestMatch) {
       const count = parseInt(guestMatch[1], 10);
@@ -310,17 +515,17 @@
       if (count > 8) {
         return {
           text: `👥 **${count} Logon ke liye Best Luxury Villas:**\n\n` +
-                `1️⃣ **Royal White House** — ₹12,000/night (Up to 18 Guests, Royal Estate)\n` +
-                `2️⃣ **Celebrity Garden** — ₹10,000/night (Huge Garden & Lawn)\n` +
+                `1️⃣ **Royal White House** — ₹12,000/night (Up to 18 Guests, Royal Estate with huge lawn)\n` +
+                `2️⃣ **Celebrity Garden** — ₹10,000/night (Huge Garden & Lawn near Lulu Mall)\n` +
                 `3️⃣ **Gomti Grand Villa** — ₹8,000/night (Private Villa with Lawn)\n` +
                 `4️⃣ **The Pink House** — ₹9,000/night (Aesthetic 10-Guest Villa)\n\n` +
-                `Konsi villa pasand aayi aapko?`,
-          quickReplies: ['Gomti Grand Villa', 'Royal White House', 'Book karna hai']
+                `Konsi villa aapki family/group ke liye check karein?`,
+          quickReplies: ['Gomti Grand Villa ₹8,000', 'Royal White House ₹12,000', 'Book karna hai 📅']
         };
       } else {
         return {
           text: `👥 **${count} Logon ke liye Perfect Options:**\n\n` +
-                `• **Luxury 3BHK Flats:** ₹4,500/night (The Dark Blue, RedRose Palace, Black Beauty) — 3 AC Bedrooms, Full Kitchen, Living Room.\n` +
+                `• **Luxury 3BHK Flats:** ₹4,500/night (Black Beauty, RedRose, Dark Blue) — 3 AC Bedrooms, Full Kitchen, Living Room.\n` +
                 `• **Private Villa:** **Gomti Grand Villa (₹8,000/night)** — standalone luxury property.\n` +
                 `• **Penthouse:** **Starlight Blue (₹6,000/night)** — romantic skyline terrace.\n\n` +
                 `Aapki dates kab ki hain?`,
@@ -329,18 +534,30 @@
       }
     }
 
-    // 15. BOOKING INTENT / CONTACT HOST
-    if (/book|booking|reserve|confirm|baat karni|number|call|contact|praveen/i.test(msg)) {
+    // 29. WEBSITE & SOFTWARE / HOW THE PLATFORM WORKS
+    if (/software|crm|system|website|platform|tech|sync|app/i.test(msg)) {
+      return {
+        text: `💻 **Unique Haven Homes Platform & Software:**\n\n` +
+              `• **Direct Booking Engine:** Hum live rates aur instant booking enable karte hain without 3rd-party commission.\n` +
+              `• **Real-Time Database:** Property availability aur dynamic rates Supabase database se direct connected hain.\n` +
+              `• **Instant WhatsApp Dispatch:** Booking confirm hote hi guest ko WhatsApp invoice, gate pass aur caretaker location pin auto-deliver hota hai.\n` +
+              `• **Digital Guest Register:** Aadhaar/ID verification contactless digital portal ke zariye hoti hai.`,
+        quickReplies: ['Rates list dikhao 💰', 'Gomti Grand Villa', 'Book now 📅']
+      };
+    }
+
+    // 30. BOOKING INTENT / CONTACT HOST
+    if (/book|booking|reserve|confirm|baat karni|praveen/i.test(msg)) {
       _step = 'ask_name';
       return {
-        text: `📅 **Booking ke liye main aapko host se turant connect kar rahi hoon!**\n\n` +
+        text: `📅 **Booking confirm karne ke liye main aapko host se turant connect kar rahi hoon!**\n\n` +
               `Kripya **Aapka Naam** aur **Aane ki Tareekh (Dates)** bata dijiye:`,
         actions: [{ label: '📲 WhatsApp Host Directly', url: `https://wa.me/${ADMIN_WA}?text=Namaste! I want to book a stay at Unique Haven Homes.` }],
         quickReplies: ['Praveen Singh', 'Gomti Grand Villa book karo', 'Rates batao pehle']
       };
     }
 
-    // 16. IF WAITING FOR NAME IN LEAD FLOW
+    // 31. IF WAITING FOR NAME IN LEAD FLOW
     if (_step === 'ask_name' && raw.length > 2 && !raw.includes('?')) {
       _leadData.name = raw;
       _step = 'ask_phone';
@@ -350,30 +567,30 @@
       };
     }
 
-    // 17. GREETINGS
+    // 32. GREETINGS
     if (/^(hi|hello|hii|hey|helo|namaste|namaskar|pranam|good morning|good evening|kya haal)\b/i.test(msg) || raw.length < 3) {
       return {
         text: `Namaste! 🙏 Main **Nisha** hoon, **Unique Haven Homes, Lucknow** ki verified AI concierge.\n\n` +
               `Main aapki turant sahayata kar sakti hoon:\n` +
-              `• 🏡 **Gomti Grand Villa (₹8,000)** & Luxury Villas\n` +
-              `• 🏢 **3BHK Luxury Flats (₹4,500/night)**\n` +
+              `• 🏡 **Gomti Grand Villa (₹8,000)** & Royal White House (₹12,000)\n` +
+              `• 🏢 **3BHK Luxury Flats (₹4,500/night)** in Gomti Nagar\n` +
               `• 🕐 **Check-in / Check-out & Rules (100% Couple Friendly)**\n` +
-              `• 📍 **Locations (Gomti Nagar, Lulu Mall, Ekana)**\n\n` +
+              `• 📍 **Locations (Gomti Nagar, Lulu Mall, Ekana, Medanta)**\n\n` +
               `Aap kis baare me jaanna chahte hain?`,
         quickReplies: ['Rates & Prices 💰', 'Gomti Grand Villa 🏡', 'Couples allowed? ❤️', 'Book karna hai 📅']
       };
     }
 
-    // 18. INTELLIGENT DEFAULT
+    // 33. INTELLIGENT DEFAULT
     return {
-      text: `Ji bilkul! Unique Haven Homes me hum luxury living, 100% privacy aur seamless hospitality provide karte hain.\n\n` +
-            `Aap humse pooch sakte hain:\n` +
+      text: `Ji bilkul! Unique Haven Homes me hum luxury stays, 100% privacy aur verified 4.9★ hospitality provide karte hain.\n\n` +
+            `Aap mujhse pooch sakte hain:\n` +
             `• **Property Rates & Availability** (Gomti Grand Villa ₹8,000, 3BHK Flats ₹4,500)\n` +
             `• **Check-in (12 PM) / Check-out (11 AM)**\n` +
-            `• **Kitchen, WiFi, Parking & Couples Policy**\n\n` +
-            `Ya aap direct host se WhatsApp par baat kar sakte hain:`,
+            `• **Kitchen, WiFi, Parking, Food & Couples Safety Policy**\n\n` +
+            `Ya aap seedha host se WhatsApp par baat kar sakte hain:`,
       actions: [{ label: '📲 Chat with Host on WhatsApp', url: `https://wa.me/${ADMIN_WA}?text=Namaste! I have a question about Unique Haven Homes.` }],
-      quickReplies: ['Gomti Grand Villa ₹8,000', 'Rates list dikhao', 'Couple friendly?', 'Book now']
+      quickReplies: ['Gomti Grand Villa ₹8,000', 'Rates list dikhao 💰', 'Couple friendly? ❤️', 'Book now 📅']
     };
   }
 
