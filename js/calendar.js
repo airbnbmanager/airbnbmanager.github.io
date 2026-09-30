@@ -200,8 +200,9 @@ async function renderReports() {
       const ds = `${yr}-${String(mo + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
       const k = `${r.room_id}_${ds}`;
       const bkArr = bMap[k] || [];
-      const bk = bkArr[0];
-      const overlapCount = bkArr.length;
+      const realBks = bkArr.filter(x => !isBkBlocked(x));
+      const bk = realBks.length > 0 ? realBks[0] : bkArr[0];
+      const overlapCount = realBks.length > 0 ? realBks.length : bkArr.length;
       const isToday = ds === todayStr;
       const isPast = ds < todayStr;
 

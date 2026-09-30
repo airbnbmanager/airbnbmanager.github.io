@@ -9,25 +9,68 @@
    Voice agent: bottom-right
    Chat widget: bottom-left
    Both clear the mobile sticky bar (80px)
+   Desktop: bottom: 24px (clearing content, no sticky bar on desktop)
+   Mobile: bottom: 74px (compact, clearing mobile sticky bar without covering cards)
    ─────────────────────────────────────────────────────────────── */
-#uhh-voice-widget,
-#uhh-voice-btn,
-.uhh-voice-float {
-  bottom: 90px !important;
-  right: 16px !important;
+#uhh-voice-widget {
+  bottom: 24px !important;
+  right: 24px !important;
   z-index: 9998 !important;
 }
+#uhh-voice-btn {
+  position: relative !important;
+  bottom: auto !important;
+  right: auto !important;
+}
 #uhh-chat-btn {
-  bottom: 90px !important;
-  left: 16px !important;
+  bottom: 24px !important;
+  left: 24px !important;
   z-index: 9997 !important;
 }
-@media (max-width: 480px) {
-  #uhh-voice-widget,
-  #uhh-voice-btn,
-  .uhh-voice-float  { bottom: 86px !important; right: 12px !important; }
-  #uhh-voice-btn    { width: 50px !important; height: 50px !important; }
-  #uhh-chat-btn     { bottom: 86px !important; left: 12px !important;  width: 50px !important; height: 50px !important; font-size: 20px !important; }
+.dir-back-to-top {
+  bottom: 92px !important;
+  left: 24px !important;
+  z-index: 9990 !important;
+}
+
+@media (max-width: 768px) {
+  #uhh-voice-widget {
+    bottom: 74px !important;
+    right: 12px !important;
+    z-index: 9998 !important;
+  }
+  #uhh-voice-btn {
+    width: 46px !important;
+    height: 46px !important;
+  }
+  #uhh-voice-label {
+    display: none !important; /* Hide long pill label on mobile to stop covering cards */
+  }
+  #uhh-chat-btn {
+    bottom: 74px !important;
+    left: 12px !important;
+    width: 46px !important;
+    height: 46px !important;
+    font-size: 19px !important;
+    z-index: 9997 !important;
+  }
+  .dir-back-to-top {
+    bottom: 130px !important;
+    left: 12px !important;
+    right: auto !important;
+    padding: 6px 11px !important;
+    font-size: 11px !important;
+    z-index: 9990 !important;
+  }
+  #uhh-chat-panel {
+    bottom: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    width: 100vw !important;
+    height: 82vh !important;
+    border-radius: 20px 20px 0 0 !important;
+    z-index: 100000 !important;
+  }
 }
 
 /* ── 2. HERO SECTION ─────────────────────────────────────────────
@@ -316,16 +359,6 @@
   }
 }
 
-/* ── 13. BACK TO TOP ─────────────────────────────────────────────
-   Position above floating buttons
-   ─────────────────────────────────────────────────────────────── */
-@media (max-width: 768px) {
-  .dir-back-to-top {
-    bottom: 160px !important; /* Above both floating buttons + sticky bar */
-    right: 16px !important;
-    left: auto !important;
-  }
-}
 
 /* ── 14. TOUCH IMPROVEMENTS ──────────────────────────────────────
    Tap targets min 44x44px per Apple HIG / Google Material

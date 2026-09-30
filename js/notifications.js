@@ -386,6 +386,9 @@
         async (payload) => {
           console.log('🔔 New booking event:', payload.new);
           const b = payload.new;
+          if (!b || b.is_cancelled || b.booking_mode === 'Offline-Blocked' || b.guest_name === '🔒 Blocked Slot' || String(b.booking_id || '').startsWith('BLK_') || Number(b.total_amount || 0) === 0) {
+            return; // Skip dummy block slots from spamming notifications or alerts
+          }
           let roomName = b.room_id;
           try {
             const { data: r } = await sb.from('rooms').select('nickname, unit_no').eq('room_id', b.room_id).single();
