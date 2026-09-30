@@ -14,7 +14,7 @@
   'use strict';
 
   const AGENT_ID   = 'agent_7401m3qdd9edenhr91tej83z3t7y';
-  const ADMIN_WA   = '919194109911'; // Praveen - WhatsApp number (no +)
+  const ADMIN_WA   = '919450055554'; // Mr. Shahanshah - WhatsApp number (no +)
 
   // ── Fallback rates (used if Supabase is unreachable) ──────────────
   const FALLBACK_RATES = [
@@ -134,7 +134,7 @@ LULLANPUR:
 - Direct Discount: Booking directly with us saves 15% to 20% compared to Airbnb/MakeMyTrip.
 - Group & Events: Grand Villas like Royal White House (up to 18 guests) and Gomti Grand Villa are perfect for weddings, birthdays, and family get-togethers.
 - Key Landmarks: 5 mins to Lulu Mall & Phoenix Palassio, 5 mins to Medanta Hospital, 7 mins to Ekana Stadium, 20 mins to CCS International Airport.
-- Direct WhatsApp & Calling: +91 91941 09911 (Praveen Singh), +91 82996 00709 (Firoz Khan), +91 94500 55554 (Shahanshah)
+- Direct WhatsApp & Calling: +91 94500 55554 (Mr. Shahanshah - Host & Co-Founder), +91 82996 00709 (Firoz Khan), +91 91941 09911 (Praveen Singh)
 
 ═══ LEAD CAPTURE — CRITICAL INSTRUCTIONS ═══
 When a guest: asks about any specific property, inquires about availability, mentions dates, or asks how to book — you MUST:
@@ -156,7 +156,7 @@ DO NOT end the call without attempting to collect contact info if the guest show
   Parameters: {} (no parameters needed)
 
 ═══ FOR CUSTOM REQUESTS ═══
-- For instant dates lock or special corporate discount rates, guide them warmly to WhatsApp +91 91941 09911.
+- For instant dates lock or special corporate discount rates, guide them warmly to WhatsApp +91 94500 55554.
 
 Remember: Your goal is to make guests fall in love with Unique Haven Homes and get their contact info so our team can close the booking. Be genuine, be warm, be helpful!`;
   }

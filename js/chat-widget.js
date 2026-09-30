@@ -12,7 +12,7 @@
 (function () {
   'use strict';
 
-  const ADMIN_WA   = '919194109911';
+  const ADMIN_WA   = '919450055554'; // Mr. Shahanshah (+91 94500 55554)
   const CHAT_KEY   = 'uhh_chat_history';
   const LEAD_KEY   = 'uhh_chat_lead';
 
@@ -196,10 +196,10 @@
       
       const propText = _leadData.property ? ` for ${_leadData.property}` : '';
       const datesText = _leadData.dates ? ` (${_leadData.dates})` : '';
-      const waMsg = encodeURIComponent(`Namaste Praveen ji! I'm ${guestName} (${phoneClean}). I want to book a stay${propText}${datesText} at Unique Haven Homes. Please share confirmation.`);
+      const waMsg = encodeURIComponent(`Namaste Shahanshah ji! I'm ${guestName} (${phoneClean}). I want to book a stay${propText}${datesText} at Unique Haven Homes. Please share confirmation.`);
       return {
-        text: `✅ **Bahut shukriya ${guestName} ji!** 🙏\n\nHamaare host **Praveen Singh** aapko WhatsApp number **${phoneClean}** par abhi live details aur confirmation voucher bhej rahe hain.\n\nAap chahein to turant WhatsApp par bhi connect kar sakte hain:`,
-        actions: [{ label: '📲 Message Praveen on WhatsApp', url: `https://wa.me/${ADMIN_WA}?text=${waMsg}` }],
+        text: `✅ **Bahut shukriya ${guestName} ji!** 🙏\n\nHamaare host **Mr. Shahanshah (+91 94500 55554)** aapko WhatsApp number **${phoneClean}** par abhi live details aur confirmation voucher bhej rahe hain.\n\nAap chahein to turant WhatsApp par bhi connect kar sakte hain:`,
+        actions: [{ label: '📲 Message Shahanshah on WhatsApp', url: `https://wa.me/${ADMIN_WA}?text=${waMsg}` }],
         quickReplies: ['Check-in time kya hai?', 'Advance policy?', 'Other options dikhao']
       };
     }
@@ -512,8 +512,8 @@
               `• **15% Flat Savings:** Airbnb aur OTAs 14%–18% guest service fee add karte hain. Direct booking me zero platform fee hoti hai!\n` +
               `• **Verified Superhost Stays:** Same luxury properties, same 4.9★ hospitality standards.\n` +
               `• **Flexible Timings:** Early check-in & late checkout me maximum flexibility.\n` +
-              `• **Personal Host Contact:** Direct founders Praveen Singh, Firoz Khan aur Shahanshah ji se round-the-clock support.`,
-        actions: [{ label: '📲 Book Direct & Save 15%', url: `https://wa.me/${ADMIN_WA}?text=Namaste! I want to book direct to save platform fees.` }],
+              `• **Personal Host Contact:** Direct co-founder & host Mr. Shahanshah (+91 94500 55554) se round-the-clock support.`,
+        actions: [{ label: '📲 Book Direct & Save 15%', url: `https://wa.me/${ADMIN_WA}?text=Namaste Shahanshah ji! I want to book direct to save platform fees.` }],
         quickReplies: ['Rates list dikhao 💰', 'Gomti Grand Villa ₹8,000', 'Book now 📅']
       };
     }
@@ -526,8 +526,8 @@
               `• **Monthly Stay (30+ nights):** Up to **25% Super Saver Discount**\n` +
               `• **Medanta Medical Stays:** Special subsidized packages for patient families.\n` +
               `• **Direct Booking Bonus:** 15% less than Airbnb rates.\n\n` +
-              `Best custom quote ke liye seedha host Praveen ji se baat karein!`,
-        actions: [{ label: '📲 Claim Best Discount on WhatsApp', url: `https://wa.me/${ADMIN_WA}?text=Hi Praveen ji! I need a special discount for stay at Unique Haven Homes.` }],
+              `Best custom quote ke liye seedha host Mr. Shahanshah ji se baat karein!`,
+        actions: [{ label: '📲 Claim Best Discount on WhatsApp', url: `https://wa.me/${ADMIN_WA}?text=Hi Shahanshah ji! I need a special discount for stay at Unique Haven Homes.` }],
         quickReplies: ['Book karna hai 📅', 'Flats ke rates', 'Villas ke rates']
       };
     }
@@ -556,15 +556,15 @@
     if (/host|owner|firoz|shahanshah|praveen|contact|phone|number|call|baat karni/i.test(msg)) {
       return {
         text: `📞 **Unique Haven Homes — Founder & Host Contacts:**\n\n` +
-              `• 🛡️ **Praveen Singh (Co-Host & Operations):**\n` +
-              `  📱 **+91 91941 09911**\n\n` +
+              `• 👑 **Mr. Shahanshah (Co-Founder & Host):**\n` +
+              `  📱 **+91 94500 55554** (Direct Calls & WhatsApp)\n\n` +
               `• ⭐ **Mr. Firoz Khan (Superhost & Co-Founder):**\n` +
               `  📱 **+91 82996 00709**\n\n` +
-              `• 👑 **Mr. Shahanshah (Co-Founder & Host):**\n` +
-              `  📱 **+91 94500 55554**\n\n` +
+              `• 🛡️ **Praveen Singh (Operations & Support):**\n` +
+              `  📱 **+91 91941 09911**\n\n` +
               `🏢 **Company:** THE UNIQUE HAVEN HOMES PRIVATE LIMITED\n` +
               `📍 **Office:** Radhikapuri, Indira Nagar, Lucknow`,
-        actions: [{ label: '📲 Call / WhatsApp Praveen', url: `https://wa.me/${ADMIN_WA}?text=Namaste Praveen ji! I want to inquire about Unique Haven Homes booking.` }],
+        actions: [{ label: '📲 Call / WhatsApp Shahanshah (+91 94500 55554)', url: `https://wa.me/${ADMIN_WA}?text=Namaste Shahanshah ji! I want to inquire about Unique Haven Homes booking.` }],
         quickReplies: ['Rates list dikhao 💰', 'Gomti Grand Villa ₹8,000', 'Book now 📅']
       };
     }
@@ -650,7 +650,7 @@
       const datesLabel = _leadData.dates || parsed.dates || 'Aapki dates';
       const guestsLabel = _leadData.guests || parsed.guests || 'Aapke guests';
 
-      const waText = encodeURIComponent(`Namaste Praveen ji! I want to book ${propLabel} for ${datesLabel} (${guestsLabel}). Please confirm availability & advance token details.`);
+      const waText = encodeURIComponent(`Namaste Shahanshah ji! I want to book ${propLabel} for ${datesLabel} (${guestsLabel}). Please confirm availability & advance token details.`);
 
       return {
         text: `✨ **Booking Request Note Kar Li Hai!**\n\n` +
@@ -679,7 +679,7 @@
               `3️⃣ **30% advance token** se instant WhatsApp booking voucher & gate pass receive karein!\n\n` +
               `👉 **Neeche diye options me se select karein**, ya\n` +
               `👉 **Seedha type karein** (Jaise: *"10 Oct ko 4 log Gomti Grand Villa"*):`,
-        actions: [{ label: '📲 Direct WhatsApp Host (Praveen Singh)', url: `https://wa.me/${ADMIN_WA}?text=Namaste Praveen ji! I want to book a stay at Unique Haven Homes. Please share available options.` }],
+        actions: [{ label: '📲 Direct WhatsApp Host (Mr. Shahanshah)', url: `https://wa.me/${ADMIN_WA}?text=Namaste Shahanshah ji! I want to book a stay at Unique Haven Homes. Please share available options.` }],
         quickReplies: [
           '🏡 Gomti Grand Villa (₹8k)',
           '👑 Royal White House (₹12k)',
@@ -700,7 +700,7 @@
               `• **Instant Voucher:** Advance transfer hote hi digital booking receipt, check-in instructions aur caretaker pin WhatsApp par aa jata hai.\n` +
               `• **Balance Payment:** Baaki bacha payment aap property check-in ke time de sakte hain.\n` +
               `• **Zero Security Deposit:** Hum koi security deposit nahi lete!`,
-        actions: [{ label: '📲 Pay Advance & Lock Dates', url: `https://wa.me/${ADMIN_WA}?text=Namaste Praveen ji! I want to pay advance token and confirm my booking.` }],
+        actions: [{ label: '📲 Pay Advance & Lock Dates', url: `https://wa.me/${ADMIN_WA}?text=Namaste Shahanshah ji! I want to pay advance token and confirm my booking.` }],
         quickReplies: ['Book karna hai 📅', 'Cancellation refund policy?', 'Gomti Grand Villa ₹8k']
       };
     }
@@ -712,7 +712,7 @@
               `• **100% Free Rescheduling:** Agar aapka plan change hota hai aur aap check-in se **48 hours pehle** inform karte hain, to bina kisi deduction ke aapki dates aage badha di jaati hain!\n` +
               `• **Safe Token Guarantee:** Aapka advance amount future stay me 100% adjust hota hai.\n` +
               `• **Zero Hidden Charges:** Full transparency aur guest-first hospitality policy.`,
-        actions: [{ label: '📲 Chat with Host on WhatsApp', url: `https://wa.me/${ADMIN_WA}?text=Namaste Praveen ji! I have a question regarding cancellation/rescheduling.` }],
+        actions: [{ label: '📲 Chat with Host on WhatsApp', url: `https://wa.me/${ADMIN_WA}?text=Namaste Shahanshah ji! I have a question regarding cancellation/rescheduling.` }],
         quickReplies: ['Advance payment rule', 'Check-in timing', 'Book karna hai 📅']
       };
     }
