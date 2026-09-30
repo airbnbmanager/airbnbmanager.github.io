@@ -194,27 +194,16 @@ window.ICAL_SYNC = {
         if (existingUids.has(event.uid)) { result.skipped++; continue; }
         if (event.confirmationCode && existingCodes.has(event.confirmationCode)) { result.skipped++; continue; }
 
-        // 3. Handle Blocked slots (ONLY when NO real booking exists)
+        // 3. Skip Blocked / Unavailable slots completely
+        // USER DIRECTIVE: ONLY sync real Online bookings, NEVER insert offline/blocked slots into DB!
         if (event.isBlocked) {
-          if (event.checkIn < '2026-08-01') continue;
-          const deterministicId = `BLK_${room.room_id}_${event.checkIn.replace(/-/g, '')}`;
-          
-          // Check if this exact block already exists
-          const existingBlock = (existing || []).find(b => b.booking_id === deterministicId);
-          if (existingBlock) { result.skipped++; continue; }
+          result.skipped++;
+          continue;
+        }
 
-          await sb.from('guest_register').upsert({
-            booking_id: deterministicId,
-            guest_name: '🔒 Blocked Slot',
-            room_id: room.room_id,
-            check_in: event.checkIn,
-            check_out: event.checkOut,
-            booking_mode: 'Offline-Blocked',
-            payment_status: 'Unpaid',
-            total_amount: 0,
-            notes: `Blocked on ${channelName} (${event.summary}). Offline slot reserved.`
-          }, { onConflict: 'booking_id' });
-          result.created++;
+        // Must NOT be an unavailable/blocked placeholder
+        if (!event.confirmationCode && (!event.summary || event.summary.toLowerCase().includes('not available') || event.summary.toLowerCase().includes('blocked'))) {
+          result.skipped++;
           continue;
         }
 

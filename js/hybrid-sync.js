@@ -52,123 +52,20 @@ window.HYBRID_SYNC = {
         const checkIn = formatDate(dtStart);
         const checkOut = formatDate(dtEnd);
 
-        // Include from August 1st 2026 onwards — ONLY sync blocked slots, NEVER insert reservation placeholders
-        if (checkIn >= '2026-08-01') {
-          const isBlock = summary.toLowerCase().includes('not available') || summary.toLowerCase().includes('blocked');
-          if (isBlock) {
-            events.push({
-              booking_id: `BLK_${roomId}_${checkIn.replace(/-/g, '')}`,
-              guest_name: '🔒 Blocked Slot',
-              check_in: checkIn,
-              check_out: checkOut,
-              room_id: roomId,
-              is_blocked: true,
-              booking_mode: 'Offline-Blocked',
-              payment_status: 'Paid',
-              notes: description || 'Airbnb Blocked date auto-synced'
-            });
-          }
-        }
+        // Blocked slot syncing disabled per user request: Only real online bookings allowed, NO offline/blocked slots!
+        // Do not add blocked events to events array
       }
     }
     return events;
   },
 
   syncAllProperties: async function() {
-    const proxies = [
-      'https://vxxmigdzimnrbbmkjzoa.supabase.co/functions/v1/ical-proxy?url=',
-      'https://api.codetabs.com/v1/proxy?quest=',
-      'https://api.allorigins.win/raw?url='
-    ];
-
-    const roomIds = Object.keys(this.properties);
-
-    for (const roomId of roomIds) {
-      const prop = this.properties[roomId];
-      if (!prop || !prop.ical_url) continue;
-
-      let icsText = '';
-      for (const p of proxies) {
-        try {
-          const res = await fetch(p + encodeURIComponent(prop.ical_url));
-          if (res.ok) {
-            const text = await res.text();
-            if (text && text.includes('BEGIN:VCALENDAR')) {
-              icsText = text;
-              break;
-            }
-          }
-        } catch (e) {}
-      }
-
-      if (!icsText) continue;
-
-      const icalEvents = this.parseICS(icsText, roomId);
-      if (icalEvents.length === 0) continue;
-
-      // Fetch all existing bookings for this room in DB
-      const { data: dbBookings } = await sb.from('guest_register')
-        .select('booking_id, check_in, check_out, room_id, is_cancelled, guest_name, booking_mode, total_amount')
-        .eq('room_id', roomId)
-        .neq('is_cancelled', true);
-
-      const newToInsert = [];
-      for (const ev of icalEvents) {
-        // Range overlap check with ANY real booking (manual / offline / confirmed online)
-        const realOverlap = (dbBookings || []).find(dbB => {
-          if (!dbB.check_in || !dbB.check_out) return false;
-          const isReal = (Number(dbB.total_amount) > 0 || (dbB.guest_name && !dbB.guest_name.includes('Blocked') && !dbB.guest_name.includes('Fill Details')));
-          return isReal && (dbB.check_in < ev.check_out && dbB.check_out > ev.check_in);
-        });
-
-        // If a real booking already exists for these dates:
-        if (realOverlap) {
-          // If this event is a block, purge any lingering dummy block for this date
-          if (ev.is_blocked) {
-            const dummyToPurge = (dbBookings || []).find(dbB => 
-              (dbB.booking_id.startsWith('BLK_') || dbB.booking_mode === 'Offline-Blocked' || dbB.guest_name === '🔒 Blocked Slot') &&
-              (dbB.check_in < ev.check_out && dbB.check_out > ev.check_in)
-            );
-            if (dummyToPurge) {
-              await sb.from('guest_register').delete().eq('booking_id', dummyToPurge.booking_id);
-            }
-          }
-          continue; // NEVER insert a block over a real booking!
-        }
-
-        // If NO real booking overlaps:
-        if (ev.is_blocked) {
-          const deterministicId = `BLK_${roomId}_${ev.check_in.replace(/-/g, '')}`;
-          const existingBlock = (dbBookings || []).find(b => b.booking_id === deterministicId);
-          if (existingBlock) continue; // Skip duplicate
-
-          newToInsert.push({
-            booking_id: deterministicId,
-            guest_name: '🔒 Blocked Slot',
-            check_in: ev.check_in,
-            check_out: ev.check_out,
-            room_id: roomId,
-            booking_mode: 'Offline-Blocked',
-            payment_status: 'Paid',
-            total_amount: 0,
-            notes: 'Airbnb Blocked date auto-synced'
-          });
-        }
-      }
-
-      if (newToInsert.length > 0) {
-        await sb.from('guest_register').upsert(newToInsert, { onConflict: 'booking_id', ignoreDuplicates: true });
-        console.log(`✅ ${prop.name} (${roomId}): Synced ${newToInsert.length} blocks safely (zero clash with real bookings)!`);
-      }
-    }
+    console.log('ℹ️ Hybrid Sync: Blocked slots creation is permanently disabled. Only real online bookings are synced via ical-sync.');
+    return;
   },
 
   startAutoSync: function() {
-    this.syncAllProperties();
-    if (this.timerId) clearInterval(this.timerId);
-    this.timerId = setInterval(() => {
-      this.syncAllProperties();
-    }, 5 * 60 * 1000);
+    console.log('ℹ️ Hybrid Sync auto-sync is disabled.');
   },
 
   getStatus: function() {
