@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Showcase Data & Dynamic CMS Layer
  * THE UNIQUE HAVEN HOMES PRIVATE LIMITED
  */
@@ -18,7 +18,28 @@
 
   // Baseline Curated Data for All 17 Properties
   const BASELINE_PROPERTIES = {
-    photos: {
+    'GOM-201': {
+      id: 'GOM-201',
+      slug: 'the-dark-blue',
+      name: 'The Dark Blue',
+      type: '3BHK Luxury Flat',
+      category: 'flat',
+      area: 'vikalp',
+      area_name: 'Vikalp Khand, Gomti Nagar',
+      address: 'Flat 201, 2nd Floor, Vikalp Khand, Gomti Nagar, Chinhat, Lucknow',
+      rating: 4.93,
+      reviews: 46,
+      max_guests: 10,
+      bedrooms: 3,
+      bathrooms: 3,
+      beds: '3 King Beds + Extra Mattresses on request',
+      base_price: 3499,
+      airbnb_price: 4199,
+      cover_image: 'https://a0.muscache.com/im/pictures/hosting/Hosting-1655969170448425308/original/3a24b7e0-b326-4061-8762-5b19ca4aa009.jpeg?im_w=720&width=720&quality=70&auto=webp',
+      video_url: 'https://www.youtube.com/embed/dQw4w9WgXcQ', // customizable
+      map_link: 'https://maps.google.com/?q=Vikalp+Khand+Gomti+Nagar+Lucknow',
+      map_embed: 'https://www.google.com/maps?q=Vikalp+Khand+Gomti+Nagar+Lucknow&output=embed',
+      photos: {
         bedrooms: [
           "https://a0.muscache.com/im/pictures/hosting/Hosting-1655969170448425308/original/b7c18bba-6858-4a28-9b7c-e3e4b82bf286.jpeg",
           "https://a0.muscache.com/im/pictures/hosting/Hosting-1655969170448425308/original/fbf2311b-453f-43e1-9bb2-c84d0fa21f5a.jpeg",
@@ -141,7 +162,28 @@
       description: 'A serene, blue-accented luxury 3BHK flat in prime Vikalp Khand, Gomti Nagar. Complete with spacious air-conditioned bedrooms, modular kitchen, smart entertainment, and 24/7 on-site caretaker assistance.'
     },
 
-    photos: {
+    'GOM-302': {
+      id: 'GOM-302',
+      slug: 'the-unique',
+      name: 'The Unique',
+      type: '3BHK Luxury Flat',
+      category: 'flat',
+      area: 'vikalp',
+      area_name: 'Vikalp Khand, Gomti Nagar',
+      address: 'Flat 302, 3rd Floor, Vikalp Khand, Gomti Nagar, Lucknow',
+      rating: 4.92,
+      reviews: 39,
+      max_guests: 10,
+      bedrooms: 3,
+      bathrooms: 3,
+      beds: '3 King Beds',
+      base_price: 3599,
+      airbnb_price: 4299,
+      cover_image: 'https://a0.muscache.com/im/pictures/hosting/Hosting-1679190202218939181/original/e7e05026-ef33-4d97-bc0c-67d6511ec019.jpeg?im_w=720&width=720&quality=70&auto=webp',
+      video_url: '',
+      map_link: 'https://maps.google.com/?q=Vikalp+Khand+Gomti+Nagar+Lucknow',
+      map_embed: 'https://www.google.com/maps?q=Vikalp+Khand+Gomti+Nagar+Lucknow&output=embed',
+      photos: {
         bedrooms: [
           "https://a0.muscache.com/im/pictures/hosting/Hosting-1679190202218939181/original/b24326d2-da74-4ede-a819-03c13711978c.jpeg",
           "https://a0.muscache.com/im/pictures/hosting/Hosting-1679190202218939181/original/7c4c5b8e-bb36-42d8-b66e-0f01fe126206.jpeg",
@@ -278,7 +320,28 @@
       description: 'Signature luxury flat with curated golden and velvet aesthetics, private balcony overlooking green foliage, and complete home comforts.'
     },
 
-    photos: {
+    'GOM-102': {
+      id: 'GOM-102',
+      slug: 'black-beauty',
+      name: 'Black Beauty',
+      type: '3BHK Luxury Flat',
+      category: 'flat',
+      area: 'vikalp',
+      area_name: 'Vikalp Khand, Gomti Nagar',
+      address: 'Flat 102, 1st Floor, Vikalp Khand, Gomti Nagar, Lucknow',
+      rating: 4.92,
+      reviews: 38,
+      max_guests: 10,
+      bedrooms: 3,
+      bathrooms: 3,
+      beds: '3 King Beds',
+      base_price: 3499,
+      airbnb_price: 4199,
+      cover_image: 'https://a0.muscache.com/im/pictures/hosting/Hosting-1676840617430941240/original/326ef6d2-fcf2-4f91-816a-324b20f17c90.jpeg?im_w=720&width=720&quality=70&auto=webp',
+      video_url: '',
+      map_link: 'https://maps.google.com/?q=Vikalp+Khand+Gomti+Nagar+Lucknow',
+      map_embed: 'https://www.google.com/maps?q=Vikalp+Khand+Gomti+Nagar+Lucknow&output=embed',
+      photos: {
         bedrooms: [
           "https://a0.muscache.com/im/pictures/hosting/Hosting-1676840617430941240/original/40a7542e-49e3-4795-9c52-722ece22d507.jpeg",
           "https://a0.muscache.com/im/pictures/hosting/Hosting-1676840617430941240/original/54e75f1f-f1d0-4d26-a837-6456d65733e0.jpeg",
@@ -375,7 +438,28 @@
       description: 'Bold modern interiors with monochrome touches, spacious rooms, and peaceful residential ambience in Gomti Nagar.'
     },
 
-    photos: {
+    'GOM-101': {
+      id: 'GOM-101',
+      slug: 'redrose-palace',
+      name: 'RedRose Palace',
+      type: '3BHK Luxury Flat',
+      category: 'flat',
+      area: 'vikalp',
+      area_name: 'Vikalp Khand, Gomti Nagar',
+      address: 'Flat 101, 1st Floor, Vikalp Khand, Gomti Nagar, Lucknow',
+      rating: 4.90,
+      reviews: 41,
+      max_guests: 10,
+      bedrooms: 3,
+      bathrooms: 3,
+      beds: '3 King Beds',
+      base_price: 3499,
+      airbnb_price: 4199,
+      cover_image: 'https://a0.muscache.com/im/pictures/hosting/Hosting-1654261872286835347/original/01091d14-4426-434f-813d-879e7644601a.jpeg?im_w=720&width=720&quality=70&auto=webp',
+      video_url: '',
+      map_link: 'https://maps.google.com/?q=Vikalp+Khand+Gomti+Nagar+Lucknow',
+      map_embed: 'https://www.google.com/maps?q=Vikalp+Khand+Gomti+Nagar+Lucknow&output=embed',
+      photos: {
         bedrooms: [
           "https://a0.muscache.com/im/pictures/hosting/Hosting-1654261872286835347/original/c1c97684-85a2-4cfd-91ad-a4b9bde801e2.jpeg",
           "https://a0.muscache.com/im/pictures/hosting/Hosting-1654261872286835347/original/830194ad-c826-4256-be97-b95e378a43e7.jpeg",
@@ -518,7 +602,28 @@
       description: 'Elegantly furnished 3BHK flat featuring rosewood tones, warm ambient lighting, and welcoming family atmosphere.'
     },
 
-    photos: {
+    'GOM-202': {
+      id: 'GOM-202',
+      slug: 'the-brown',
+      name: 'The Brown',
+      type: '3BHK Luxury Flat',
+      category: 'flat',
+      area: 'vikalp',
+      area_name: 'Vikalp Khand, Gomti Nagar',
+      address: 'Flat 202, 2nd Floor, Vikalp Khand, Gomti Nagar, Lucknow',
+      rating: 4.89,
+      reviews: 34,
+      max_guests: 10,
+      bedrooms: 3,
+      bathrooms: 3,
+      beds: '3 King Beds',
+      base_price: 3399,
+      airbnb_price: 3999,
+      cover_image: 'https://a0.muscache.com/im/pictures/hosting/Hosting-1660898784168880636/original/607ac848-e36e-467b-b476-36d273fff7a3.jpeg?im_w=720&width=720&quality=70&auto=webp',
+      video_url: '',
+      map_link: 'https://maps.google.com/?q=Vikalp+Khand+Gomti+Nagar+Lucknow',
+      map_embed: 'https://www.google.com/maps?q=Vikalp+Khand+Gomti+Nagar+Lucknow&output=embed',
+      photos: {
         bedrooms: [
           "https://a0.muscache.com/im/pictures/hosting/Hosting-1660898784168880636/original/34ae28d7-de47-4692-be5c-2cdd24191f8f.jpeg",
           "https://a0.muscache.com/im/pictures/hosting/Hosting-1660898784168880636/original/a1609d3d-630e-4ac4-9195-9d8b397182e9.jpeg",
@@ -665,7 +770,28 @@
       description: 'Earthy brown decor, serene bedrooms with plush mattresses, and hassle-free self check-in assistance.'
     },
 
-    photos: {
+    'GOM-301': {
+      id: 'GOM-301',
+      slug: 'the-light-green',
+      name: 'The Light Green',
+      type: '3BHK Luxury Flat',
+      category: 'flat',
+      area: 'vikalp',
+      area_name: 'Vikalp Khand, Gomti Nagar',
+      address: 'Flat 301, 3rd Floor, Vikalp Khand, Gomti Nagar, Lucknow',
+      rating: 4.89,
+      reviews: 27,
+      max_guests: 10,
+      bedrooms: 3,
+      bathrooms: 3,
+      beds: '3 King Beds',
+      base_price: 3399,
+      airbnb_price: 3999,
+      cover_image: 'https://a0.muscache.com/im/pictures/hosting/Hosting-1679155811558485410/original/449695a8-7535-445c-8d6d-c2d521b559cb.jpeg?im_w=720&width=720&quality=70&auto=webp',
+      video_url: '',
+      map_link: 'https://maps.google.com/?q=Vikalp+Khand+Gomti+Nagar+Lucknow',
+      map_embed: 'https://www.google.com/maps?q=Vikalp+Khand+Gomti+Nagar+Lucknow&output=embed',
+      photos: {
         bedrooms: [
           "https://a0.muscache.com/im/pictures/hosting/Hosting-1679155811558485410/original/fdd3f5b8-bc23-4f63-af9b-c211e2bd56db.jpeg",
           "https://a0.muscache.com/im/pictures/hosting/Hosting-1679155811558485410/original/5eebbf39-3db8-4f9f-8c2d-bf30aa316c44.jpeg",
@@ -803,7 +929,28 @@
       description: 'Fresh light green pastel accents, airy open balconies, and quiet surroundings for peaceful workcations or family visits.'
     },
 
-    photos: {
+    'GOM-401': {
+      id: 'GOM-401',
+      slug: 'the-nawabi-stay',
+      name: 'The Nawabi Stay',
+      type: '3BHK Luxury Flat',
+      category: 'flat',
+      area: 'vikalp',
+      area_name: 'Vikalp Khand, Gomti Nagar',
+      address: 'Flat 401, 4th Floor, Vikalp Khand, Gomti Nagar, Lucknow',
+      rating: 4.96,
+      reviews: 48,
+      max_guests: 10,
+      bedrooms: 3,
+      bathrooms: 3,
+      beds: '3 King Beds',
+      base_price: 3699,
+      airbnb_price: 4399,
+      cover_image: 'https://a0.muscache.com/im/pictures/hosting/Hosting-1723434530455939144/original/8dfc31d8-eaf8-4e6f-b904-479c7470e41b.jpeg?im_w=720&width=720&quality=70&auto=webp',
+      video_url: '',
+      map_link: 'https://maps.google.com/?q=Vikalp+Khand+Gomti+Nagar+Lucknow',
+      map_embed: 'https://www.google.com/maps?q=Vikalp+Khand+Gomti+Nagar+Lucknow&output=embed',
+      photos: {
         bedrooms: [
           "https://a0.muscache.com/im/pictures/hosting/Hosting-1723434530455939144/original/19d0bbce-0c98-492e-952b-c10553d393cb.jpeg",
           "https://a0.muscache.com/im/pictures/hosting/Hosting-1723434530455939144/original/d52d2aca-344d-4ea4-a0e6-f5eb65d8f70d.jpeg",
@@ -874,7 +1021,28 @@
       description: 'Awadhi royal hospitality infused with modern luxury conveniences. Elevator access and panoramic skyline views.'
     },
 
-    photos: {
+    'GOM-501': {
+      id: 'GOM-501',
+      slug: 'starlight-blue-penthouse',
+      name: 'Starlight Blue PentHouse',
+      type: 'Luxury PentHouse',
+      category: 'penthouse',
+      area: 'vikalp',
+      area_name: 'Vikalp Khand, Gomti Nagar',
+      address: 'Penthouse 501, 5th Floor, Vikalp Khand, Gomti Nagar, Lucknow',
+      rating: 4.91,
+      reviews: 29,
+      max_guests: 12,
+      bedrooms: 3,
+      bathrooms: 3,
+      beds: '3 King Beds + Terrace Lounge',
+      base_price: 4199,
+      airbnb_price: 4999,
+      cover_image: 'https://a0.muscache.com/im/pictures/hosting/Hosting-1718385679817913835/original/8b8fa9c5-732e-464f-8542-b4f122bae158.jpeg?im_w=720&width=720&quality=70&auto=webp',
+      video_url: '',
+      map_link: 'https://maps.google.com/?q=Vikalp+Khand+Gomti+Nagar+Lucknow',
+      map_embed: 'https://www.google.com/maps?q=Vikalp+Khand+Gomti+Nagar+Lucknow&output=embed',
+      photos: {
         bedrooms: [
           "https://a0.muscache.com/im/pictures/hosting/Hosting-1718385679817913835/original/ba78dacc-e830-43e4-814b-9b61f69aa30f.jpeg",
           "https://a0.muscache.com/im/pictures/hosting/Hosting-1718385679817913835/original/1de3151e-4017-4e66-931a-bf5c6d82e279.jpeg",
@@ -1001,7 +1169,28 @@
       description: 'Exclusive top-floor penthouse featuring a private open-air terrace, night skyline views of Lucknow, and lavish lounge furnishings.'
     },
 
-    photos: {
+    'VIL-105': {
+      id: 'VIL-105',
+      slug: 'the-yellow-house',
+      name: 'The Yellow House',
+      type: 'Independent Villa',
+      category: 'villa',
+      area: 'vishesh',
+      area_name: 'Vishesh Khand 3, Gomti Nagar',
+      address: 'Villa 105, Vishesh Khand 3, Gomti Nagar, Lucknow',
+      rating: 4.87,
+      reviews: 39,
+      max_guests: 10,
+      bedrooms: 3,
+      bathrooms: 3,
+      beds: '3 King Beds + Lawn',
+      base_price: 3999,
+      airbnb_price: 4799,
+      cover_image: 'https://a0.muscache.com/im/pictures/hosting/Hosting-1592729918855637425/original/f9826cd1-b559-468f-bc68-754a745af7a2.jpeg?im_w=720&width=720&quality=70&auto=webp',
+      video_url: '',
+      map_link: 'https://maps.google.com/?q=Vishesh+Khand+3+Gomti+Nagar+Lucknow',
+      map_embed: 'https://www.google.com/maps?q=Vishesh+Khand+3+Gomti+Nagar+Lucknow&output=embed',
+      photos: {
         bedrooms: [
           "https://a0.muscache.com/im/pictures/hosting/Hosting-1592729918855637425/original/b7b73c4b-426f-449e-9425-69512952e4f0.jpeg",
           "https://a0.muscache.com/im/pictures/hosting/Hosting-1592729918855637425/original/0755b1e1-a906-4580-8e58-22a60483dbd7.jpeg",
@@ -1164,7 +1353,28 @@
       description: 'Charming standalone 3BHK villa with sunlit lawn, quiet upscale neighborhood, and direct garden access.'
     },
 
-    photos: {
+    'VIL-104': {
+      id: 'VIL-104',
+      slug: 'the-green-house',
+      name: 'The Green House',
+      type: 'Independent Villa',
+      category: 'villa',
+      area: 'vishesh',
+      area_name: 'Vishesh Khand 3, Gomti Nagar',
+      address: 'Villa 104, Vishesh Khand 3, Gomti Nagar, Lucknow',
+      rating: 4.87,
+      reviews: 31,
+      max_guests: 10,
+      bedrooms: 3,
+      bathrooms: 3,
+      beds: '3 King Beds',
+      base_price: 3899,
+      airbnb_price: 4599,
+      cover_image: 'https://a0.muscache.com/im/pictures/hosting/Hosting-1593461780265937816/original/8c02a328-fdc2-487f-bba7-2acc4abb3a76.jpeg?im_w=720&width=720&quality=70&auto=webp',
+      video_url: '',
+      map_link: 'https://maps.google.com/?q=Vishesh+Khand+3+Gomti+Nagar+Lucknow',
+      map_embed: 'https://www.google.com/maps?q=Vishesh+Khand+3+Gomti+Nagar+Lucknow&output=embed',
+      photos: {
         bedrooms: [
           "https://a0.muscache.com/im/pictures/hosting/Hosting-1593461780265937816/original/d3b5c132-d78c-4f77-bbf8-9a732284c534.jpeg",
           "https://a0.muscache.com/im/pictures/hosting/Hosting-1593461780265937816/original/5dc1db8f-c752-4bbf-914e-559035d2c438.jpeg",
@@ -1325,7 +1535,28 @@
       description: 'Lush greenery and serene tranquility right in the heart of Vishesh Khand. Ideal for long-term stays and private family events.'
     },
 
-    photos: {
+    'VIL-103': {
+      id: 'VIL-103',
+      slug: 'the-pink-house',
+      name: 'The Pink House',
+      type: 'Grand Villa (5BR)',
+      category: 'villa',
+      area: 'vishesh',
+      area_name: 'Vishesh Khand 3, Gomti Nagar',
+      address: 'Villa 103, Vishesh Khand 3, Gomti Nagar, Lucknow',
+      rating: 4.88,
+      reviews: 33,
+      max_guests: 15,
+      bedrooms: 5,
+      bathrooms: 5,
+      beds: '5 King Beds',
+      base_price: 6499,
+      airbnb_price: 7699,
+      cover_image: 'https://a0.muscache.com/im/pictures/hosting/Hosting-1592729438969718723/original/d23c4f29-1df9-4eac-adbe-c5b2c4b293b2.jpeg?im_w=720&width=720&quality=70&auto=webp',
+      video_url: '',
+      map_link: 'https://maps.google.com/?q=Vishesh+Khand+3+Gomti+Nagar+Lucknow',
+      map_embed: 'https://www.google.com/maps?q=Vishesh+Khand+3+Gomti+Nagar+Lucknow&output=embed',
+      photos: {
         bedrooms: [
           "https://a0.muscache.com/im/pictures/hosting/Hosting-1592729438969718723/original/09bcdb15-c559-42a5-885e-2c50cfb23729.jpeg",
           "https://a0.muscache.com/im/pictures/hosting/Hosting-1592729438969718723/original/246d18d9-17c8-4621-84e3-91b1f2267320.jpeg",
@@ -1560,7 +1791,28 @@
       description: 'Expansive 5-bedroom luxury estate built for wedding families, delegates, and VIP group gatherings with expansive halls.'
     },
 
-    photos: {
+    'VIL-101': {
+      id: 'VIL-101',
+      slug: 'gomti-grand-villa',
+      name: 'Gomti Grand Villa',
+      type: 'Luxury Villa (4BHK)',
+      category: 'villa',
+      area: 'shaheed',
+      area_name: 'Geetapuri Colony, Near Lulu Mall',
+      address: 'Villa One, Geetapuri Colony, Near Lulu & Palassio Mall, Lucknow',
+      rating: 4.95,
+      reviews: 52,
+      max_guests: 14,
+      bedrooms: 4,
+      bathrooms: 4,
+      beds: '4 King Beds',
+      base_price: 5499,
+      airbnb_price: 6499,
+      cover_image: 'https://a0.muscache.com/im/pictures/hosting/Hosting-1721732716374002170/original/0439ab5c-25e2-4ae8-aa07-a48dd516d41f.jpeg?im_w=720&width=720&quality=70&auto=webp',
+      video_url: '',
+      map_link: 'https://maps.google.com/?q=Geetapuri+Colony+Lucknow',
+      map_embed: 'https://www.google.com/maps?q=Geetapuri+Colony+Lucknow&output=embed',
+      photos: {
         bedrooms: [
           "https://a0.muscache.com/im/pictures/hosting/Hosting-1721732716374002170/original/b691bd0f-5484-4072-8f72-a27f291245fe.jpeg",
           "https://a0.muscache.com/im/pictures/hosting/Hosting-1721732716374002170/original/10d718f9-00e1-4b21-83cb-3dfdaaf9716d.jpeg",
@@ -1739,7 +1991,28 @@
       description: 'Prime 4BHK villa located seconds away from Lulu Mall & Shaheed Path expressway. Ultimate luxury for shopping & match weekends.'
     },
 
-    photos: {
+    'VIL-102': {
+      id: 'VIL-102',
+      slug: 'royal-white-house',
+      name: 'Royal White House',
+      type: 'Royal Villa',
+      category: 'villa',
+      area: 'shaheed',
+      area_name: 'Near Lulu Mall & Airport',
+      address: 'Omaxe City / Shaheed Path, Lucknow',
+      rating: 4.94,
+      reviews: 36,
+      max_guests: 12,
+      bedrooms: 4,
+      bathrooms: 4,
+      beds: '4 King Beds',
+      base_price: 5199,
+      airbnb_price: 6199,
+      cover_image: 'https://a0.muscache.com/im/pictures/hosting/Hosting-1718315215180636685/original/337e80df-7720-48c6-8066-95390e6dcabd.jpeg?im_w=720&width=720&quality=70&auto=webp',
+      video_url: '',
+      map_link: 'https://maps.google.com/?q=Shaheed+Path+Lucknow',
+      map_embed: 'https://www.google.com/maps?q=Shaheed+Path+Lucknow&output=embed',
+      photos: {
         bedrooms: [
           "https://a0.muscache.com/im/pictures/hosting/Hosting-1718315215180636685/original/b0aaece7-bd13-44a2-a040-1af26e035314.jpeg",
           "https://a0.muscache.com/im/pictures/hosting/Hosting-1718315215180636685/original/000de00d-6a12-43af-b11b-7fee2265d162.jpeg",
@@ -1990,7 +2263,28 @@
       description: 'Immaculate white-marble villa with modern classical interiors, opulent living areas, and direct airport highway connectivity.'
     },
 
-    photos: {
+    'LUL-402': {
+      id: 'LUL-402',
+      slug: 'celebrity-garden',
+      name: 'Celebrity Garden',
+      type: '3BHK Premium Flat',
+      category: 'flat',
+      area: 'shaheed',
+      area_name: 'Near Lulu Mall, Shaheed Path',
+      address: 'Celebrity Greens, Sushant Golf City, Near Lulu Mall, Lucknow',
+      rating: 4.88,
+      reviews: 45,
+      max_guests: 10,
+      bedrooms: 3,
+      bathrooms: 3,
+      beds: '3 King Beds',
+      base_price: 3699,
+      airbnb_price: 4399,
+      cover_image: 'https://a0.muscache.com/im/pictures/hosting/Hosting-1606514664948608755/original/2af43354-2ddd-4517-bc22-eabe3918c757.jpeg?im_w=720&width=720&quality=70&auto=webp',
+      video_url: '',
+      map_link: 'https://maps.google.com/?q=Sushant+Golf+City+Lucknow',
+      map_embed: 'https://www.google.com/maps?q=Sushant+Golf+City+Lucknow&output=embed',
+      photos: {
         bedrooms: [
           "https://a0.muscache.com/im/pictures/hosting/Hosting-1606514664948608755/original/2af43354-2ddd-4517-bc22-eabe3918c757.jpeg",
           "https://a0.muscache.com/im/pictures/hosting/Hosting-1606514664948608755/original/ae60a91c-7f09-45a5-b90a-435ecdcb1586.jpeg",
@@ -2179,7 +2473,28 @@
       description: 'Resort-style gated highrise apartment overlooking manicured gardens, with full access to secure complex amenities.'
     },
 
-    photos: {
+    'VIL-107': {
+      id: 'VIL-107',
+      slug: 'the-velvet-house',
+      name: 'The Velvet House',
+      type: 'Designer Villa',
+      category: 'villa',
+      area: 'shaheed',
+      area_name: 'Near Lulu Mall & Medanta',
+      address: 'Shaheed Path, Near Medanta Hospital, Lucknow',
+      rating: 4.91,
+      reviews: 35,
+      max_guests: 12,
+      bedrooms: 4,
+      bathrooms: 4,
+      beds: '4 King Beds',
+      base_price: 4899,
+      airbnb_price: 5799,
+      cover_image: 'https://a0.muscache.com/im/pictures/hosting/Hosting-1727830063287100082/original/5b61ab54-ed1d-4610-90b7-91a9ae4390a3.jpeg?im_w=720&width=720&quality=70&auto=webp',
+      video_url: '',
+      map_link: 'https://maps.google.com/?q=Medanta+Hospital+Lucknow',
+      map_embed: 'https://www.google.com/maps?q=Medanta+Hospital+Lucknow&output=embed',
+      photos: {
         bedrooms: [
           "https://a0.muscache.com/im/pictures/hosting/Hosting-1727830063287100082/original/e3213846-072d-45fb-9c3b-4d01825ed1d6.jpeg",
           "https://a0.muscache.com/im/pictures/hosting/Hosting-1727830063287100082/original/499e1288-0607-44aa-90d1-549a1cc27af3.jpeg",
@@ -2312,7 +2627,28 @@
       description: 'Plush velvet textures, custom ambient lighting, and bespoke interior finishes crafted for guests seeking refined opulence.'
     },
 
-    photos: {
+    'VIL-106': {
+      id: 'VIL-106',
+      slug: 'green-forest',
+      name: 'Green Forest View',
+      type: 'Boutique Villa',
+      category: 'villa',
+      area: 'vishesh',
+      area_name: 'Vishesh Khand / Chinhat',
+      address: 'Vishesh Khand, Gomti Nagar, Lucknow',
+      rating: 4.90,
+      reviews: 28,
+      max_guests: 8,
+      bedrooms: 3,
+      bathrooms: 3,
+      beds: '3 King Beds',
+      base_price: 3499,
+      airbnb_price: 4199,
+      cover_image: 'https://a0.muscache.com/im/pictures/hosting/Hosting-1739254108962193705/original/835271f3-f1dc-45e9-a9d7-c6f725fdaa0d.jpeg?im_w=720&width=720&quality=70&auto=webp',
+      video_url: '',
+      map_link: 'https://maps.google.com/?q=Vishesh+Khand+Lucknow',
+      map_embed: 'https://www.google.com/maps?q=Vishesh+Khand+Lucknow&output=embed',
+      photos: {
         bedrooms: [
           "https://a0.muscache.com/im/pictures/hosting/Hosting-1739254108962193705/original/ca222e0a-c45b-498d-ad12-d498cad8f27c.jpeg",
           "https://a0.muscache.com/im/pictures/hosting/Hosting-1739254108962193705/original/05f853fb-9c77-40e9-9d10-6c318bbbcc1e.jpeg",
@@ -2451,7 +2787,28 @@
       description: 'Surrounded by tranquil greenery, a peaceful boutique villa designed for quiet relaxation and family downtime.'
     },
 
-    photos: {
+    'VIL-108': {
+      id: 'VIL-108',
+      slug: 'pink-paradise',
+      name: 'Pink Paradise Villa',
+      type: 'Luxury Villa',
+      category: 'villa',
+      area: 'vishesh',
+      area_name: 'Vishesh Khand, Gomti Nagar',
+      address: 'Vishesh Khand, Gomti Nagar, Lucknow',
+      rating: 4.91,
+      reviews: 26,
+      max_guests: 10,
+      bedrooms: 3,
+      bathrooms: 3,
+      beds: '3 King Beds',
+      base_price: 3799,
+      airbnb_price: 4499,
+      cover_image: 'https://a0.muscache.com/im/pictures/hosting/Hosting-1756799939825259443/original/cf33ca9f-2804-443e-a37c-9518c596c502.jpeg?im_w=720&width=720&quality=70&auto=webp',
+      video_url: '',
+      map_link: 'https://maps.google.com/?q=Vishesh+Khand+Lucknow',
+      map_embed: 'https://www.google.com/maps?q=Vishesh+Khand+Lucknow&output=embed',
+      photos: {
         bedrooms: [
           "https://a0.muscache.com/im/pictures/hosting/Hosting-1756799939825259443/original/7cb934c8-1e83-4e07-b6a9-d0ba8ca10dd5.jpeg",
           "https://a0.muscache.com/im/pictures/hosting/Hosting-1756799939825259443/original/326708dd-c9e6-42d6-9a3d-d02fee8593c8.jpeg",
@@ -2725,4 +3082,3 @@
   };
 
 })(window);
-

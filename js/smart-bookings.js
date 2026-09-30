@@ -501,10 +501,40 @@ function getGuestAvatarInfo(guestName) {
   return { initial, bg: color.bg, text: color.text };
 }
 
+const ROOM_COVER_FALLBACKS = {
+  'GOM-201': 'https://a0.muscache.com/im/pictures/hosting/Hosting-1655969170448425308/original/3a24b7e0-b326-4061-8762-5b19ca4aa009.jpeg?im_w=720&width=720&quality=70&auto=webp',
+  'GOM-302': 'https://a0.muscache.com/im/pictures/hosting/Hosting-1679190202218939181/original/2b71df14-f53a-42d4-88e7-44dc6c9542fe.jpeg?im_w=720&width=720&quality=70&auto=webp',
+  'GOM-102': 'https://a0.muscache.com/im/pictures/hosting/Hosting-1676840617430941243/original/6c857410-b98a-40a2-aa55-e408ec21360d.jpeg?im_w=720&width=720&quality=70&auto=webp',
+  'GOM-101': 'https://a0.muscache.com/im/pictures/hosting/Hosting-1654261872286835345/original/40c49740-4cb6-411a-85d7-e075ebf91fc1.jpeg?im_w=720&width=720&quality=70&auto=webp',
+  'GOM-202': 'https://a0.muscache.com/im/pictures/hosting/Hosting-1660898784168880630/original/ee9f92dc-201b-4171-888e-aee6e6bb2552.jpeg?im_w=720&width=720&quality=70&auto=webp',
+  'GOM-301': 'https://a0.muscache.com/im/pictures/hosting/Hosting-1679155811558485419/original/40cf20ea-d2f1-4dfd-b0fc-40ff15f8c85c.jpeg?im_w=720&width=720&quality=70&auto=webp',
+  'GOM-401': 'https://a0.muscache.com/im/pictures/hosting/Hosting-1723434530455939148/original/9157436b-67ee-45a0-9753-4876ec438965.jpeg?im_w=720&width=720&quality=70&auto=webp',
+  'GOM-501': 'https://a0.muscache.com/im/pictures/hosting/Hosting-1718385679817913833/original/d69e46a7-d86b-4e60-84a2-e64e528b18ec.jpeg?im_w=720&width=720&quality=70&auto=webp',
+  'VIL-105': 'https://a0.muscache.com/im/pictures/hosting/Hosting-1592729918855637425/original/f9826cd1-b559-468f-bc68-754a745af7a2.jpeg?im_w=720&width=720&quality=70&auto=webp',
+  'VIL-104': 'https://a0.muscache.com/im/pictures/hosting/Hosting-1593461780265937810/original/71a2e9b0-96f3-4d40-beec-df0df57e1c16.jpeg?im_w=720&width=720&quality=70&auto=webp',
+  'VIL-103': 'https://a0.muscache.com/im/pictures/hosting/Hosting-1592729438969718728/original/6ea4b638-31ea-42f0-911e-ec2136e053f3.jpeg?im_w=720&width=720&quality=70&auto=webp',
+  'VIL-101': 'https://a0.muscache.com/im/pictures/hosting/Hosting-1721732716374002179/original/d2a3330d-85fa-44a6-9818-bc1c271ea048.jpeg?im_w=720&width=720&quality=70&auto=webp',
+  'VIL-102': 'https://a0.muscache.com/im/pictures/hosting/Hosting-1718315215180636687/original/3aa9bf2b-8a20-4389-a292-b88d3ca34015.jpeg?im_w=720&width=720&quality=70&auto=webp',
+  'LUL-402': 'https://a0.muscache.com/im/pictures/hosting/Hosting-1606514664948608757/original/ce8c48a7-e74f-4d0d-bc01-9f939e6a9f02.jpeg?im_w=720&width=720&quality=70&auto=webp',
+  'VIL-107': 'https://a0.muscache.com/im/pictures/hosting/Hosting-1727830063287100080/original/8cf7a521-5a21-419b-ab00-e79ecb059db6.jpeg?im_w=720&width=720&quality=70&auto=webp',
+  'VIL-106': 'https://a0.muscache.com/im/pictures/hosting/Hosting-1739254108962193708/original/b3c7cf4c-5f6d-495d-b2a1-1c3905cbb206.jpeg?im_w=720&width=720&quality=70&auto=webp',
+  'VIL-108': 'https://a0.muscache.com/im/pictures/hosting/Hosting-1756799939825259445/original/606da0ba-d28f-4aa7-920d-e2518e3881df.jpeg?im_w=720&width=720&quality=70&auto=webp'
+};
+
 function getPropertyCoverThumb(b) {
+  const roomId = (b?.room_id || b?.source_room_id || '').trim();
   if (window.ShowcaseData && typeof window.ShowcaseData.getProperty === 'function') {
-    const p = window.ShowcaseData.getProperty(b.room_id);
+    const p = window.ShowcaseData.getProperty(roomId) ||
+              (b.rooms?.nickname && window.ShowcaseData.getProperty(b.rooms.nickname)) ||
+              (b.rooms?.property_name && window.ShowcaseData.getProperty(b.rooms.property_name));
     if (p && p.cover_image) return p.cover_image;
+  }
+  if (roomId && ROOM_COVER_FALLBACKS[roomId]) {
+    return ROOM_COVER_FALLBACKS[roomId];
+  }
+  const nick = (b?.rooms?.nickname || b?.rooms?.property_name || '').toLowerCase();
+  for (const [rid, url] of Object.entries(ROOM_COVER_FALLBACKS)) {
+    if (nick && nick.includes(rid.toLowerCase())) return url;
   }
   return 'assets/logo.png';
 }
@@ -553,6 +583,7 @@ function renderAirbnbReservationsHtml(bookings, paidMap, canM, today) {
         const avatarInfo = getGuestAvatarInfo(b.guest_name);
         const propThumb = getPropertyCoverThumb(b);
         const hasId = !!(b.id_proof_photo_paths || b.id_proof_photo_path);
+        const isBlocked = b.booking_mode === 'Offline-Blocked' || b.guest_name === '🔒 Blocked Slot';
 
         const guestPhoto = b.guest_photo || (b.id_proof_photo_path && b.id_proof_photo_path.startsWith('http') ? b.id_proof_photo_path : null);
 
@@ -570,15 +601,22 @@ function renderAirbnbReservationsHtml(bookings, paidMap, canM, today) {
                 </div>
               </div>
 
-              <div class="airbnb-avatar-group" title="${escapeHtml(b.guest_name || 'Guest')}">
-                ${guestPhoto ? `
-                  <img src="${guestPhoto}" class="airbnb-guest-avatar-img" alt="${escapeHtml(b.guest_name || 'Guest')}" onerror="this.outerHTML='<div class=\\'airbnb-guest-avatar-img\\' style=\\'background:${avatarInfo.bg};color:${avatarInfo.text};\\'>${escapeHtml(avatarInfo.initial)}</div>';" />
-                ` : `
-                  <div class="airbnb-guest-avatar-img" style="background:${avatarInfo.bg};color:${avatarInfo.text};">
-                    ${escapeHtml(avatarInfo.initial)}
+              <div class="airbnb-avatar-group" title="${isBlocked ? 'Blocked Slot' : escapeHtml(b.guest_name || 'Guest')} · ${escapeHtml(propertySub)}">
+                ${isBlocked ? `
+                  <img src="${propThumb}" class="airbnb-guest-avatar-img" alt="Property" onerror="this.outerHTML='<div class=\\'airbnb-guest-avatar-img\\' style=\\'background:#F3E8FF;color:#7E22CE;\\'>🔒</div>';" />
+                  <div class="airbnb-property-thumb-badge" style="background:#0F172A;color:#ffffff;display:flex;align-items:center;justify-content:center;font-size:12px;" title="Blocked Slot">
+                    🔒
                   </div>
+                ` : `
+                  ${guestPhoto ? `
+                    <img src="${guestPhoto}" class="airbnb-guest-avatar-img" alt="${escapeHtml(b.guest_name || 'Guest')}" onerror="this.outerHTML='<div class=\\'airbnb-guest-avatar-img\\' style=\\'background:${avatarInfo.bg};color:${avatarInfo.text};\\'>${escapeHtml(avatarInfo.initial)}</div>';" />
+                  ` : `
+                    <div class="airbnb-guest-avatar-img" style="background:${avatarInfo.bg};color:${avatarInfo.text};">
+                      ${escapeHtml(avatarInfo.initial)}
+                    </div>
+                  `}
+                  <img src="${propThumb}" class="airbnb-property-thumb-badge" alt="${escapeHtml(propertySub)}" title="${escapeHtml(propertySub)}" onerror="this.src='assets/logo.png'"/>
                 `}
-                <img src="${propThumb}" class="airbnb-property-thumb-badge" alt="Property" onerror="this.src='assets/logo.png'"/>
               </div>
             </div>
 
