@@ -6,7 +6,7 @@
 (function(window) {
   'use strict';
 
-  const STORAGE_KEY = 'tuhh_showcase_data_v210';
+  const STORAGE_KEY = 'tuhh_showcase_data_v212';
 
   // Proactively invalidate legacy cache containing dummy Unsplash photos
   try {
@@ -2633,9 +2633,9 @@
       name: 'Green Forest View',
       type: 'Boutique Villa',
       category: 'villa',
-      area: 'vishesh',
-      area_name: 'Vishesh Khand / Chinhat',
-      address: 'Vishesh Khand, Gomti Nagar, Lucknow',
+      area: 'lulu',
+      area_name: 'Near Lulu Mall, Ansal & Ekana',
+      address: 'Ansal Golf City / Shaheed Path, Near Lulu Mall, Lucknow',
       rating: 4.90,
       reviews: 28,
       max_guests: 8,
@@ -2646,8 +2646,8 @@
       airbnb_price: 4199,
       cover_image: 'https://a0.muscache.com/im/pictures/hosting/Hosting-1739254108962193705/original/835271f3-f1dc-45e9-a9d7-c6f725fdaa0d.jpeg?im_w=720&width=720&quality=70&auto=webp',
       video_url: '',
-      map_link: 'https://maps.google.com/?q=Vishesh+Khand+Lucknow',
-      map_embed: 'https://www.google.com/maps?q=Vishesh+Khand+Lucknow&output=embed',
+      map_link: 'https://maps.google.com/?q=Ansal+Golf+City+Lulu+Mall+Lucknow',
+      map_embed: 'https://www.google.com/maps?q=Ansal+Golf+City+Lulu+Mall+Lucknow&output=embed',
       photos: {
         bedrooms: [
           "https://a0.muscache.com/im/pictures/hosting/Hosting-1739254108962193705/original/ca222e0a-c45b-498d-ad12-d498cad8f27c.jpeg",
@@ -2793,9 +2793,9 @@
       name: 'Pink Paradise Villa',
       type: 'Luxury Villa',
       category: 'villa',
-      area: 'vishesh',
-      area_name: 'Vishesh Khand, Gomti Nagar',
-      address: 'Vishesh Khand, Gomti Nagar, Lucknow',
+      area: 'lulu',
+      area_name: 'Near Lulu Mall & Medanta',
+      address: 'Near Medanta Hospital, Shaheed Path, Near Lulu Mall, Lucknow',
       rating: 4.91,
       reviews: 26,
       max_guests: 10,
@@ -2806,8 +2806,8 @@
       airbnb_price: 4499,
       cover_image: 'https://a0.muscache.com/im/pictures/hosting/Hosting-1756799939825259443/original/cf33ca9f-2804-443e-a37c-9518c596c502.jpeg?im_w=720&width=720&quality=70&auto=webp',
       video_url: '',
-      map_link: 'https://maps.google.com/?q=Vishesh+Khand+Lucknow',
-      map_embed: 'https://www.google.com/maps?q=Vishesh+Khand+Lucknow&output=embed',
+      map_link: 'https://maps.google.com/?q=Medanta+Hospital+Lulu+Mall+Lucknow',
+      map_embed: 'https://www.google.com/maps?q=Medanta+Hospital+Lulu+Mall+Lucknow&output=embed',
       photos: {
         bedrooms: [
           "https://a0.muscache.com/im/pictures/hosting/Hosting-1756799939825259443/original/7cb934c8-1e83-4e07-b6a9-d0ba8ca10dd5.jpeg",

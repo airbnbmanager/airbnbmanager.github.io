@@ -6,119 +6,147 @@
 
 // ─── PROPERTY DATA: All 17 Properties with GPS Coordinates ───
 const PROPERTY_PINS = [
+  // ─── 8 FLATS IN VIKALP KHAND (GOMTI NAGAR / CHINHAT) ───
   {
     roomId: 'GOM-101', slug: 'redrose-palace',
     name: 'RedRose Palace', type: '3BHK Luxury Flat',
-    price: '₹4,500', lat: 26.8721, lng: 80.9997,
+    area: 'Vikalp Khand, Gomti Nagar',
+    price: '₹4,500', lat: 26.8732, lng: 81.0012,
     url: 'redrose-palace.html'
   },
   {
     roomId: 'GOM-102', slug: 'black-beauty',
     name: 'Black Beauty', type: '3BHK Luxury Flat',
-    price: '₹4,500', lat: 26.8718, lng: 80.9993,
+    area: 'Vikalp Khand, Gomti Nagar',
+    price: '₹4,500', lat: 26.8720, lng: 80.9992,
     url: 'black-beauty.html'
   },
   {
     roomId: 'GOM-201', slug: 'the-dark-blue',
     name: 'The Dark Blue', type: '3BHK Luxury Flat',
-    price: '₹4,500', lat: 26.8725, lng: 81.0003,
+    area: 'Vikalp Khand, Gomti Nagar',
+    price: '₹4,500', lat: 26.8744, lng: 81.0028,
     url: 'the-dark-blue.html'
   },
   {
     roomId: 'GOM-202', slug: 'the-brown',
     name: 'The Brown', type: '3BHK Luxury Flat',
-    price: '₹4,500', lat: 26.8730, lng: 81.0009,
+    area: 'Vikalp Khand, Gomti Nagar',
+    price: '₹4,500', lat: 26.8753, lng: 81.0006,
     url: 'the-brown.html'
   },
   {
     roomId: 'GOM-301', slug: 'the-light-green',
     name: 'The Light Green', type: '3BHK Luxury Flat',
-    price: '₹4,500', lat: 26.8715, lng: 80.9989,
+    area: 'Vikalp Khand, Gomti Nagar',
+    price: '₹4,500', lat: 26.8715, lng: 81.0024,
     url: 'the-light-green.html'
+  },
+  {
+    roomId: 'GOM-302', slug: 'the-unique',
+    name: 'The Unique', type: '3BHK Luxury Flat',
+    area: 'Vikalp Khand, Gomti Nagar',
+    price: '₹5,500', lat: 26.8738, lng: 80.9978,
+    url: 'the-unique.html'
   },
   {
     roomId: 'GOM-401', slug: 'the-nawabi-stay',
     name: 'The Nawabi Stay', type: '3BHK Luxury Flat',
-    price: '₹4,500', lat: 26.8728, lng: 80.9985,
+    area: 'Vikalp Khand, Gomti Nagar',
+    price: '₹4,500', lat: 26.8702, lng: 81.0038,
     url: 'the-nawabi-stay.html'
   },
   {
     roomId: 'GOM-501', slug: 'starlight-blue-penthouse',
     name: 'Starlight Blue Penthouse', type: '4BHK Penthouse',
-    price: '₹6,000', lat: 26.8736, lng: 81.0014,
+    area: 'Vikalp Khand, Gomti Nagar',
+    price: '₹6,000', lat: 26.8762, lng: 81.0022,
     url: 'starlight-blue-penthouse.html'
   },
-  {
-    roomId: 'GOM-302', slug: 'the-unique',
-    name: 'The Unique', type: '3BHK Luxury Flat',
-    price: '₹5,500', lat: 26.8640, lng: 81.0070,
-    url: 'the-unique.html'
-  },
-  {
-    roomId: 'VIL-104', slug: 'the-green-house',
-    name: 'The Green House', type: '3BHK Luxury Flat',
-    price: '₹5,500', lat: 26.8635, lng: 81.0065,
-    url: 'the-green-house.html'
-  },
+
+  // ─── 3 FLATS / VILLAS IN VISHESH KHAND (GOMTI NAGAR) ───
   {
     roomId: 'VIL-103', slug: 'the-pink-house',
-    name: 'The Pink House', type: '3BHK Luxury Flat',
-    price: '₹9,000', lat: 26.8645, lng: 81.0075,
+    name: 'The Pink House', type: '5BR Luxury Villa',
+    area: 'Vishesh Khand 3, Gomti Nagar',
+    price: '₹9,000', lat: 26.8546, lng: 81.0015,
     url: 'the-pink-house.html'
   },
   {
+    roomId: 'VIL-104', slug: 'the-green-house',
+    name: 'The Green House', type: '3BHK Luxury Villa',
+    area: 'Vishesh Khand 3, Gomti Nagar',
+    price: '₹5,500', lat: 26.8532, lng: 80.9988,
+    url: 'the-green-house.html'
+  },
+  {
     roomId: 'VIL-105', slug: 'the-yellow-house',
-    name: 'The Yellow House', type: '3BHK Luxury Flat',
-    price: '₹5,500', lat: 26.8648, lng: 81.0080,
+    name: 'The Yellow House', type: '3BHK Luxury Villa',
+    area: 'Vishesh Khand 3, Gomti Nagar',
+    price: '₹5,500', lat: 26.8562, lng: 81.0038,
     url: 'the-yellow-house.html'
   },
-  {
-    roomId: 'VIL-106', slug: 'green-forest',
-    name: 'Green Forest', type: '3BHK Luxury Flat',
-    price: '₹4,500', lat: 26.8586, lng: 81.0120,
-    url: 'green-forest.html'
-  },
-  {
-    roomId: 'VIL-108', slug: 'pink-paradise',
-    name: 'Pink Paradise', type: '3BHK Luxury Flat',
-    price: '₹4,500', lat: 26.8590, lng: 81.0128,
-    url: 'pink-paradise.html'
-  },
+
+  // ─── 6 PROPERTIES NEAR LULU MALL / SHAHEED PATH / MEDANTA / EKANA ───
   {
     roomId: 'LUL-402', slug: 'celebrity-garden',
     name: 'Celebrity Garden', type: '4BHK Grand Homestay',
-    price: '₹10,000', lat: 26.8330, lng: 80.9820,
+    area: 'Sushant Golf City, Near Lulu Mall',
+    price: '₹10,000', lat: 26.7792, lng: 81.0028,
     url: 'celebrity-garden.html'
+  },
+  {
+    roomId: 'VIL-107', slug: 'the-velvet-house',
+    name: 'The Velvet House', type: 'Luxury Villa',
+    area: 'Shaheed Path, Near Medanta & Lulu Mall',
+    price: '₹4,500', lat: 26.7918, lng: 80.9865,
+    url: 'the-velvet-house.html'
   },
   {
     roomId: 'VIL-101', slug: 'gomti-grand-villa',
     name: 'Gomti Grand Villa', type: 'Private Villa',
-    price: '₹8,000', lat: 26.8583, lng: 81.0100,
+    area: 'Geetapuri Colony, Near Lulu & Palassio',
+    price: '₹8,000', lat: 26.8042, lng: 81.0048,
     url: 'gomti-grand-villa.html'
   },
   {
     roomId: 'VIL-102', slug: 'royal-white-house',
     name: 'Royal White House', type: 'Luxury Villa',
-    price: '₹12,000', lat: 26.8578, lng: 81.0115,
+    area: 'Omaxe City, Near Lulu Mall & Airport',
+    price: '₹12,000', lat: 26.7854, lng: 80.9825,
     url: 'royal-white-house.html'
   },
   {
-    roomId: 'VIL-107', slug: 'the-velvet-house',
-    name: 'The Velvet House', type: 'Luxury Villa',
-    price: '₹4,500', lat: 26.8325, lng: 80.9810,
-    url: 'the-velvet-house.html'
+    roomId: 'VIL-106', slug: 'green-forest',
+    name: 'Green Forest View', type: '3BHK Boutique Villa',
+    area: 'Ansal Golf City, Near Lulu & Ekana',
+    price: '₹4,500', lat: 26.7885, lng: 81.0115,
+    url: 'green-forest.html'
+  },
+  {
+    roomId: 'VIL-108', slug: 'pink-paradise',
+    name: 'Pink Paradise Villa', type: '3BHK Boutique Villa',
+    area: 'Shaheed Path, Near Lulu Mall & Medanta',
+    price: '₹4,500', lat: 26.7958, lng: 80.9912,
+    url: 'pink-paradise.html'
   }
 ];
+
+// Expose on window for price-sync.js and other modules
+window.PROPERTY_PINS = PROPERTY_PINS;
 
 // ─── 1. INIT LEAFLET MAP ───────────────────────────────────────
 function initMapSection() {
   const mapEl = document.getElementById('propertyMap');
   if (!mapEl || typeof L === 'undefined') return;
 
-  // Center on Gomti Nagar, Lucknow
+  // Avoid duplicate initialization
+  if (mapEl._leaflet_id) return;
+
+  // Initial center on Lucknow Gomti Nagar - Shaheed Path corridor
   const map = L.map('propertyMap', {
-    center: [26.862, 81.000],
-    zoom: 13,
+    center: [26.828, 81.000],
+    zoom: 12,
     scrollWheelZoom: false,
     zoomControl: true
   });
@@ -129,7 +157,7 @@ function initMapSection() {
     attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
   }).addTo(map);
 
-  // Custom gold marker icon
+  // Custom gold marker icon (Flats)
   const goldIcon = L.divIcon({
     className: 'uhh-map-marker',
     html: `<div style="
@@ -140,16 +168,17 @@ function initMapSection() {
       border: 2px solid #fff;
       box-shadow: 0 3px 12px rgba(0,0,0,0.3);
       display: flex; align-items: center; justify-content: center;
-    "><span style="transform: rotate(45deg); color: #fff; font-size: 14px; display: block; line-height: 1;">🏠</span></div>`,
+    "><span style="transform: rotate(45deg); color: #fff; font-size: 14px; display: block; line-height: 1;">🏢</span></div>`,
     iconSize: [34, 34],
     iconAnchor: [17, 34],
     popupAnchor: [0, -38]
   });
 
+  // Custom green marker icon (Villas)
   const villaIcon = L.divIcon({
     className: 'uhh-map-marker',
     html: `<div style="
-      width: 40px; height: 40px;
+      width: 38px; height: 38px;
       background: linear-gradient(135deg, #1fa463, #166a42);
       border-radius: 50% 50% 50% 0;
       transform: rotate(-45deg);
@@ -157,30 +186,57 @@ function initMapSection() {
       box-shadow: 0 3px 14px rgba(0,0,0,0.3);
       display: flex; align-items: center; justify-content: center;
     "><span style="transform: rotate(45deg); color: #fff; font-size: 16px; display: block; line-height: 1;">🏡</span></div>`,
-    iconSize: [40, 40],
-    iconAnchor: [20, 40],
-    popupAnchor: [0, -44]
+    iconSize: [38, 38],
+    iconAnchor: [19, 38],
+    popupAnchor: [0, -42]
   });
+
+  // Custom purple marker icon (Penthouse)
+  const penthouseIcon = L.divIcon({
+    className: 'uhh-map-marker',
+    html: `<div style="
+      width: 38px; height: 38px;
+      background: linear-gradient(135deg, #6366f1, #4338ca);
+      border-radius: 50% 50% 50% 0;
+      transform: rotate(-45deg);
+      border: 2px solid #fff;
+      box-shadow: 0 3px 14px rgba(0,0,0,0.3);
+      display: flex; align-items: center; justify-content: center;
+    "><span style="transform: rotate(45deg); color: #fff; font-size: 16px; display: block; line-height: 1;">🌟</span></div>`,
+    iconSize: [38, 38],
+    iconAnchor: [19, 38],
+    popupAnchor: [0, -42]
+  });
+
+  const markers = [];
+  window._propertyMarkers = window._propertyMarkers || {};
 
   PROPERTY_PINS.forEach(prop => {
     const isVilla = prop.type.toLowerCase().includes('villa');
-    const icon = isVilla ? villaIcon : goldIcon;
+    const isPenthouse = prop.type.toLowerCase().includes('penthouse');
+    const icon = isPenthouse ? penthouseIcon : (isVilla ? villaIcon : goldIcon);
 
     const marker = L.marker([prop.lat, prop.lng], { icon }).addTo(map);
+    markers.push(marker);
 
     marker.bindPopup(`
       <div class="map-popup-card">
+        <div class="map-popup-area" style="display:inline-block;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:#b58d3d;background:#fbf7ee;border:1px solid rgba(181,141,61,0.25);padding:2px 6px;border-radius:4px;margin-bottom:5px;">📍 ${prop.area}</div>
         <div class="map-popup-name">${prop.name}</div>
         <div class="map-popup-type">${prop.type}</div>
         <div class="map-popup-price">${prop.price} / night</div>
         <a class="map-popup-link" href="${prop.url}">Explore ↗</a>
       </div>
-    `, { maxWidth: 220 });
+    `, { maxWidth: 240 });
 
-    // Store marker reference on window for availability updates
-    window._propertyMarkers = window._propertyMarkers || {};
     window._propertyMarkers[prop.roomId] = { marker, prop };
   });
+
+  // Fit bounds nicely so all 17 properties across Lucknow are framed cleanly
+  if (markers.length > 0) {
+    const group = L.featureGroup(markers);
+    map.fitBounds(group.getBounds().pad(0.1));
+  }
 }
 
 // ─── 2. LIVE AVAILABILITY SYNC FROM SUPABASE ──────────────────
@@ -237,6 +293,7 @@ async function loadLiveAvailability() {
         const statusText = isBooked ? '🔴 Booked Today' : '🟢 Available Now';
         marker.getPopup().setContent(`
           <div class="map-popup-card">
+            <div class="map-popup-area" style="display:inline-block;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:#b58d3d;background:#fbf7ee;border:1px solid rgba(181,141,61,0.25);padding:2px 6px;border-radius:4px;margin-bottom:5px;">📍 ${prop.area}</div>
             <div class="map-popup-name">${prop.name}</div>
             <div class="map-popup-type">${prop.type}</div>
             <div style="font-size:12px;font-weight:700;margin:4px 0;color:${isBooked ? '#dc2626' : '#16a34a'};">${statusText}</div>

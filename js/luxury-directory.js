@@ -430,12 +430,12 @@
     'the-dark-blue',
     'the-brown',
     'the-light-green',
+    'the-unique',
     'the-nawabi-stay',
     'starlight-blue-penthouse'
   ]);
 
   const VISHESH_SLUGS = new Set([
-    'the-unique',
     'the-green-house',
     'the-pink-house',
     'the-yellow-house'
