@@ -513,7 +513,7 @@ function renderShell(content, activePage = 'dashboard') {
       id: 'bookings',
       label: '📅 Stay & Bookings',
       page: 'bookings',
-      pages: ['bookings', 'reports', 'flats', 'pendingApprovals', 'reminders'],
+      pages: ['bookings', 'reports', 'calendar', 'flats', 'pendingApprovals', 'reminders'],
       tabs: [
         { id: 'bookings', label: '📅 Bookings Register' },
         { id: 'reports', label: '📆 Calendar Timeline' },
@@ -657,6 +657,7 @@ function renderShell(content, activePage = 'dashboard') {
   const PAGE_TITLES = {
     dashboard: { title: 'Dashboard', sub: 'Overview & Key Performance Indicators', icon: '🏠' },
     reports: { title: 'Calendar & Bookings', sub: 'Room reservations timeline', icon: '📆' },
+    calendar: { title: 'Calendar & Bookings', sub: 'Room reservations timeline', icon: '📆' },
     bookings: { title: 'Bookings Management', sub: 'Guest check-ins, check-outs & payments', icon: '📅' },
     flats: { title: 'Flats & Housekeeping', sub: 'Room readiness, cleaning & maintenance', icon: '🛏️' },
     shifts: { title: 'Property Shifts', sub: 'Extended stays & room changeovers', icon: '🔄' },
@@ -696,17 +697,19 @@ function renderShell(content, activePage = 'dashboard') {
   if (currentHub && currentHub.tabs && currentHub.tabs.length > 1) {
     let visibleTabs = currentHub.tabs;
     if (isViewer) {
-      visibleTabs = visibleTabs.filter(t => ['bookings', 'reports', 'flats'].includes(t.id));
+      visibleTabs = visibleTabs.filter(t => ['bookings', 'reports', 'calendar', 'flats'].includes(t.id));
     }
     if (visibleTabs.length > 1) {
       hubSubNavHtml = `
         <div class="hub-subnav-strip">
           <div class="hub-subnav-scroll">
-            ${visibleTabs.map(tab => `
-              <button type="button" class="hub-subnav-tab ${activePage === tab.id ? 'active' : ''}" onclick="${tab.externalUrl ? 'window.open(\'' + tab.externalUrl + '\',\'_blank\')' : 'navigate(\'' + tab.id + '\')'}">
+            ${visibleTabs.map(tab => {
+              const isTabActive = (activePage === tab.id) || (tab.id === 'reports' && (activePage === 'calendar' || activePage === 'reports'));
+              return `
+              <button type="button" class="hub-subnav-tab ${isTabActive ? 'active' : ''}" onclick="${tab.externalUrl ? 'window.open(\'' + tab.externalUrl + '\',\'_blank\')' : 'navigate(\'' + tab.id + '\')'}">
                 ${tab.label}
               </button>
-            `).join('')}
+            `;}).join('')}
           </div>
         </div>
       `;
@@ -739,14 +742,20 @@ function renderShell(content, activePage = 'dashboard') {
     // 3. Update sidebar active links
     document.querySelectorAll('.sidebar-nav a[data-page]').forEach(a => {
       const k = a.dataset.page;
-      const isItemActive = (activePage === k) || (currentHub && currentHub.pages.includes(activePage) && (currentHub.id === k || currentHub.page === k));
+      const isItemActive = (activePage === k) ||
+        ((activePage === 'calendar' || activePage === 'reports') && (k === 'calendar' || k === 'reports')) ||
+        (currentHub && currentHub.pages.includes(activePage) && (currentHub.id === k || currentHub.page === k));
       if (isItemActive) a.classList.add('active', 'active-hub');
       else a.classList.remove('active', 'active-hub');
     });
 
     // 4. Update mobile bottom nav
     document.querySelectorAll('.bottom-nav a[data-page]').forEach(a => {
-      if (a.dataset.page === activePage) a.classList.add('active');
+      const isAct = (a.dataset.page === activePage) ||
+        (a.dataset.page === 'calendar' && (activePage === 'calendar' || activePage === 'reports')) ||
+        (a.dataset.page === 'bookings' && (activePage === 'dashboard' || activePage === 'bookings')) ||
+        (a.dataset.page === 'flats' && (activePage === 'flats' || activePage === 'properties'));
+      if (isAct) a.classList.add('active');
       else a.classList.remove('active');
     });
 
@@ -877,7 +886,7 @@ function renderShell(content, activePage = 'dashboard') {
           </span>
           <span class="bn-label">Today</span>
         </a>
-        <a href="#" data-page="calendar" class="${activePage === 'calendar' ? 'active' : ''}">
+        <a href="#" data-page="calendar" class="${(activePage === 'calendar' || activePage === 'reports') ? 'active' : ''}">
           <span class="bn-icon">
             <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><path d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20a2 2 0 0 0 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V9h14v11zM7 11h5v5H7z"/></svg>
           </span>
@@ -1010,7 +1019,11 @@ function navigate(page) {
 
   // Update active state on bottom navigation
   document.querySelectorAll('.bottom-nav a[data-page]').forEach(a => {
-    if (a.dataset.page === page) a.classList.add('active');
+    const isAct = (a.dataset.page === page) ||
+      (a.dataset.page === 'calendar' && (page === 'calendar' || page === 'reports')) ||
+      (a.dataset.page === 'bookings' && (page === 'dashboard' || page === 'bookings')) ||
+      (a.dataset.page === 'flats' && (page === 'flats' || page === 'properties'));
+    if (isAct) a.classList.add('active');
     else a.classList.remove('active');
   });
 
@@ -1020,6 +1033,7 @@ function navigate(page) {
   const map = {
     dashboard: () => (window.renderDashboard || renderDashboard)(),
     reports: () => (window.renderReports || renderReports)(),
+    calendar: () => (window.renderReports || renderReports)(),
     rooms: () => (window.renderManageRooms || renderManageRooms)(),
     flats: () => (window.renderFlatsStatus || renderFlatsStatus)(),
     'daily-report': () => (window.renderDailyReport || renderDailyReport)(),
@@ -3266,4 +3280,14 @@ window.restoreStoragePhoto = async function(path, fileBlob) {
 
   window.syncModalZIndex = updateModalZIndices;
 })();
+
+window.renderCalendar = function() {
+  if (typeof window.renderReports === 'function') {
+    window.renderReports();
+  } else if (typeof renderReports === 'function') {
+    renderReports();
+  } else {
+    navigate('reports');
+  }
+};
 

@@ -4,7 +4,8 @@
  */
 
 async function renderReports() {
-  renderShell(`<div class="loading">📅 Loading calendar...</div>`, 'reports');
+  const currentKey = (window.SESSION && SESSION.currentPage === 'calendar') ? 'calendar' : 'reports';
+  renderShell(`<div class="loading">📅 Loading calendar...</div>`, currentKey);
 
   let roomsData = [];
   try {
@@ -514,7 +515,7 @@ async function renderReports() {
     }
   `;
 
-  renderShell(html, 'reports');
+  renderShell(html, currentKey);
   window._calM = mo;
   window._calY = yr;
 }
@@ -1544,5 +1545,8 @@ function downloadFYData() {
   a.download = `Financial_${d.label}.csv`;
   a.click();
 }
+
+window.renderReports = renderReports;
+window.renderCalendar = renderReports;
 
 console.log('✅ Airbnb-Style Calendar module loaded');
