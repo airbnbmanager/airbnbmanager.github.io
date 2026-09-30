@@ -311,7 +311,8 @@
         bookingsOnDay.slice(0,3).forEach(function(b) {
           const prop = ALL_PROPS.find(function(p){ return p.id === b.room_id; });
           const label = prop ? prop.name.split(' ')[0] : b.room_id;
-          inner += '<span class="cal-month-event booked">' + label + (b.guest_name ? ' · '+b.guest_name.split(' ')[0] : '') + '</span>';
+          // NOTE: guest names are intentionally hidden on public calendar for privacy
+          inner += '<span class="cal-month-event booked">' + label + ' · Reserved</span>';
         });
         if (bookingsOnDay.length > 3) {
           inner += '<span class="cal-month-event" style="color:#64748b;background:#f1f5f9;">+' + (bookingsOnDay.length-3) + ' more</span>';
@@ -369,8 +370,7 @@
           cell.className = 'cal-day-cell' + (isBooked ? ' is-booked' : ' is-available') + (isToday ? ' today-col' : '');
           const dayNum = '<div class="cal-day-num">' + new Date(ds+'T00:00:00').getDate() + '</div>';
           if (isBooked) {
-            const b = bookings[0];
-            cell.innerHTML = dayNum + '<span class="cal-booking-pill booked">' + (b.guest_name ? b.guest_name.split(' ')[0] : 'Booked') + '</span>';
+            cell.innerHTML = dayNum + '<span class="cal-booking-pill booked">Reserved</span>';
           } else {
             cell.innerHTML = dayNum + '<span class="cal-booking-pill available">Free</span>';
           }
@@ -397,13 +397,13 @@
       } else {
         content.innerHTML = bookings.map(function(b) {
           const propInfo = ALL_PROPS.find(function(p){ return p.id === b.room_id; });
-          const statusColor = b.status === 'confirmed' ? '#0284C7' : b.status === 'checked_in' ? '#15803d' : '#64748b';
+          // Guest names/details intentionally hidden — public calendar shows availability only
           return '<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:14px;margin-bottom:10px;">' +
             '<div style="display:flex;justify-content:space-between;align-items:flex-start;">' +
-            '<div><div style="font-weight:800;font-size:14px;">' + (b.guest_name || 'Guest') + '</div>' +
+            '<div><div style="font-weight:800;font-size:14px;color:#0f172a;">🔒 Reserved</div>' +
             '<div style="font-size:12px;color:#64748b;margin-top:2px;">' + (propInfo ? propInfo.name : b.room_id) + '</div>' +
             '<div style="font-size:12px;color:#64748b;margin-top:2px;">📅 ' + b.check_in + ' → ' + b.check_out + '</div></div>' +
-            '<span style="background:'+statusColor+'20;color:'+statusColor+';padding:3px 10px;border-radius:6px;font-size:11px;font-weight:700;text-transform:uppercase;">' + b.status + '</span>' +
+            '<span style="background:#fee2e220;color:#b91c1c;padding:3px 10px;border-radius:6px;font-size:11px;font-weight:700;">BOOKED</span>' +
             '</div></div>';
         }).join('');
       }
