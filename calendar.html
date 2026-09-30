@@ -224,21 +224,35 @@
         if (!sb) { syncEl.textContent = 'Offline mode'; renderCalendar(); return; }
 
         // Fetch bookings for a 3-month window (prev + current + next)
-        const from = new Date(calCurrentDate.getFullYear(), calCurrentDate.getMonth() - 1, 1).toISOString().slice(0,10);
-        const to   = new Date(calCurrentDate.getFullYear(), calCurrentDate.getMonth() + 2, 0).toISOString().slice(0,10);
+        // NOTE: actual table is guest_register not bookings
+        const fromDate = new Date(calCurrentDate.getFullYear(), calCurrentDate.getMonth() - 1, 1).toISOString().slice(0,10);
+        const toDate   = new Date(calCurrentDate.getFullYear(), calCurrentDate.getMonth() + 2, 0).toISOString().slice(0,10);
 
-        const { data, error } = await sb.from('bookings')
-          .select('id, room_id, guest_name, check_in, check_out, status, source')
-          .gte('check_out', from)
-          .lte('check_in', to)
+        const { data, error } = await sb.from('guest_register')
+          .select('booking_id, room_id, guest_name, check_in, check_out, booking_mode, is_cancelled')
+          .gte('check_out', fromDate)
+          .lte('check_in', toDate)
+          .neq('is_cancelled', true)
           .order('check_in', { ascending: true });
 
         if (error) throw error;
-        calBookings = data || [];
-        syncEl.textContent = 'Synced ' + new Date().toLocaleTimeString('en-IN');
+        // Normalize field names so rendering code works
+        calBookings = (data || []).map(function(b) {
+          return {
+            id: b.booking_id,
+            room_id: b.room_id,
+            guest_name: b.guest_name,
+            check_in: b.check_in,
+            check_out: b.check_out,
+            status: 'confirmed',
+            source: b.booking_mode || 'Direct'
+          };
+        });
+        syncEl.textContent = 'Synced · ' + calBookings.length + ' bookings · ' + new Date().toLocaleTimeString('en-IN');
         renderCalendar();
       } catch(err) {
-        syncEl.textContent = 'Sync error — showing cached data';
+        console.error('Calendar sync error:', err);
+        syncEl.textContent = 'Sync error — ' + (err.message || 'check console');
         renderCalendar();
       }
     }
@@ -254,7 +268,8 @@
       return calBookings.filter(function(b) {
         if (filter !== 'all' && b.room_id !== filter) return false;
         if (roomId && b.room_id !== roomId) return false;
-        return b.check_in <= dateStr && b.check_out >= dateStr;
+        // A booking covers this day if check_in <= dateStr < check_out
+        return b.check_in <= dateStr && b.check_out > dateStr;
       });
     }
 

@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Book Your Stay | The Unique Haven Homes — Luxury Homestays Lucknow</title>
+  <meta name="description" content="Book a luxury homestay in Lucknow directly. Check real-time availability, choose dates, and confirm your stay instantly via WhatsApp."/>
+  <link rel="icon" href="assets/logo.png" type="image/png"/>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet"/>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="config.js"></script>
+  <link rel="stylesheet" href="book.css"/>
+</head>
+<body>
+<nav class="nav">
+  <a class="nav-brand" href="index.html">
+    <img src="assets/logo.png" alt="TUHH"/>
+    <span>Unique Haven Homes</span>
+  </a>
+  <div class="nav-links">
+    <a href="index.html">Home</a>
+    <a href="calendar.html">Availability</a>
+    <a href="properties.html">All Properties</a>
+    <a class="nav-wa" href="https://wa.me/919450055554?text=Namaste!%20I%20want%20to%20book%20a%20stay." target="_blank">💬 WhatsApp</a>
+  </div>
+</nav>
+
+<section class="hero">
+  <div class="hero-badge">✨ Direct Booking — Best Price Guaranteed</div>
+  <h1>Book Your <em>Luxury Stay</em> in Lucknow</h1>
+  <p>17 premium homestays · Instant WhatsApp confirmation · Save up to 20% vs Airbnb</p>
+</section>
+
+<div class="booking-wrap">
+  <div class="booking-grid">
+    <div class="left-col">
+      <!-- Property -->
+      <div class="card">
+        <div class="card-hd"><div class="card-icon">🏠</div><div><div class="card-title">Choose Your Property</div><div class="card-sub">Select the homestay you want to book</div></div></div>
+        <div class="card-body">
+          <div class="fg">
+            <label class="flabel">Property <span class="req">*</span></label>
+            <select id="propSelect" class="finput fselect" onchange="onPropertyChange()">
+              <option value="">— Select a Property —</option>
+            </select>
+          </div>
+          <div id="propInfo" class="prop-info" style="display:none;">
+            <img id="propThumb" src="" alt="" onerror="this.src='assets/logo.png'"/>
+            <div>
+              <div id="propName" class="prop-name"></div>
+              <div id="propType" class="prop-type"></div>
+              <div id="propPrice" class="prop-price"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Dates -->
+      <div class="card">
+        <div class="card-hd"><div class="card-icon">📅</div><div><div class="card-title">Select Your Dates</div><div class="card-sub">Red = booked · Click to select your check-in/out</div></div></div>
+        <div class="card-body">
+          <div class="mini-cal-nav">
+            <button onclick="changeCalMonth(-1)">‹</button>
+            <div class="mini-cal-label" id="miniCalLabel">—</div>
+            <button onclick="changeCalMonth(1)">›</button>
+          </div>
+          <div class="mini-cal-grid" id="miniCalGrid"></div>
+          <div class="cal-legend">
+            <span class="cl-item"><i class="cl-dot booked"></i>Booked</span>
+            <span class="cl-item"><i class="cl-dot avail"></i>Available</span>
+            <span class="cl-item"><i class="cl-dot sel"></i>Your stay</span>
+          </div>
+          <div class="frow" style="margin-top:16px;">
+            <div class="fg"><label class="flabel">Check-in <span class="req">*</span></label><input id="checkIn" type="date" class="finput" onchange="onDateChange()"/></div>
+            <div class="fg"><label class="flabel">Check-out <span class="req">*</span></label><input id="checkOut" type="date" class="finput" onchange="onDateChange()"/></div>
+          </div>
+          <div id="availStatus" class="avail-status" style="display:none;"></div>
+        </div>
+      </div>
+
+      <!-- Guest Details -->
+      <div class="card">
+        <div class="card-hd"><div class="card-icon">👤</div><div><div class="card-title">Your Details</div><div class="card-sub">We'll confirm on WhatsApp instantly</div></div></div>
+        <div class="card-body">
+          <div class="frow">
+            <div class="fg"><label class="flabel">Full Name <span class="req">*</span></label><input id="guestName" type="text" class="finput" placeholder="Your full name"/></div>
+            <div class="fg"><label class="flabel">WhatsApp Number <span class="req">*</span></label><input id="guestPhone" type="tel" class="finput" placeholder="10-digit mobile" maxlength="15"/></div>
+          </div>
+          <div class="frow">
+            <div class="fg">
+              <label class="flabel">Guests <span class="req">*</span></label>
+              <select id="guestCount" class="finput fselect">
+                <option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option><option>7</option><option>8</option><option>9</option><option value="10">10+</option>
+              </select>
+            </div>
+            <div class="fg">
+              <label class="flabel">Purpose</label>
+              <select id="stayPurpose" class="finput fselect">
+                <option value="leisure">Leisure / Vacation</option>
+                <option value="family">Family Visit</option>
+                <option value="business">Business Trip</option>
+                <option value="wedding">Wedding / Function</option>
+                <option value="medical">Medical Visit</option>
+                <option value="other">Other</option>
+              </select>
+            </div>
+          </div>
+          <div class="fg"><label class="flabel">Special Requests</label><textarea id="specialReq" class="finput" rows="2" placeholder="Early check-in, extra beds, diet, etc..."></textarea></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="right-col">
+      <div class="card summary-card">
+        <div class="card-hd"><div class="card-icon">🧾</div><div><div class="card-title">Booking Summary</div></div></div>
+        <div class="card-body">
+          <div id="summaryEmpty" class="summary-empty">
+            <div>📋</div>Select property &amp; dates to see estimate
+          </div>
+          <div id="summaryContent" style="display:none;">
+            <div class="price-box">
+              <div class="prow"><span id="sumNights">—</span><span id="sumNightlyTotal">₹—</span></div>
+              <div class="prow"><span>Direct Discount</span><span id="sumDiscount" class="discount">—</span></div>
+              <div class="prow total"><span>Total (Estimate)</span><span id="sumTotal">₹—</span></div>
+            </div>
+            <div class="price-note">Final price confirmed by host on WhatsApp. No payment now.</div>
+          </div>
+
+          <button class="btn-wa" id="bookBtn" onclick="submitBookingRequest()" disabled>
+            <svg width="20" height="20" viewBox="0 0 32 32" fill="currentColor"><path d="M16 3C8.832 3 3 8.832 3 16c0 2.66.784 5.13 2.133 7.21L3 29l6.055-2.101A12.937 12.937 0 0 0 16 29c7.168 0 13-5.832 13-13S23.168 3 16 3zm0 23.6a10.54 10.54 0 0 1-5.32-1.435l-.38-.223-4.02 1.27 1.31-3.89-.247-.39A10.55 10.55 0 0 1 5.4 16C5.4 9.708 10.708 4.4 17 4.4S28.6 9.708 28.6 16 23.292 26.6 17 26.6z"/></svg>
+            Confirm via WhatsApp
+          </button>
+          <a class="btn-call" href="tel:+919450055554">📞 Call: +91 94500 55554</a>
+
+          <div class="trust-row">
+            <div class="trust-badge"><span>✅</span> No payment now</div>
+            <div class="trust-badge"><span>⚡</span> Instant confirm</div>
+            <div class="trust-badge"><span>💰</span> Best rates</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card why-card">
+        <div class="card-hd"><div class="card-icon">⭐</div><div><div class="card-title">Why Book Direct?</div></div></div>
+        <div class="card-body">
+          <div class="why-item"><div class="why-ico">💰</div><div><div class="why-t">Save 15–20% vs Airbnb</div><div class="why-d">No platform fees. Cheapest guaranteed.</div></div></div>
+          <div class="why-item"><div class="why-ico">⚡</div><div><div class="why-t">Reply in Minutes</div><div class="why-d">WhatsApp confirmation, not email.</div></div></div>
+          <div class="why-item"><div class="why-ico">🤝</div><div><div class="why-t">Personal Host Line</div><div class="why-d">Direct to Shahanshah, Firoz & team.</div></div></div>
+          <div class="why-item"><div class="why-ico">🏆</div><div><div class="why-t">4.9★ · 300+ Reviews</div><div class="why-d">Top-rated on all platforms.</div></div></div>
+        </div>
+      </div>
+
+      <div class="card hosts-card">
+        <div class="card-hd"><div class="card-icon">👋</div><div><div class="card-title">Talk to a Host</div><div class="card-sub">Daily 9AM–10PM IST</div></div></div>
+        <div class="card-body">
+          <div class="host-item">
+            <div class="host-av">S</div>
+            <div><div class="host-name">Shahanshah</div><div class="host-role">Managing Director</div></div>
+            <a class="host-wa" href="https://wa.me/919450055554?text=Namaste!" target="_blank">💬</a>
+          </div>
+          <div class="host-item">
+            <div class="host-av">F</div>
+            <div><div class="host-name">Firoz</div><div class="host-role">Operations</div></div>
+            <a class="host-wa" href="https://wa.me/918299600709?text=Namaste!" target="_blank">💬</a>
+          </div>
+          <div class="host-item">
+            <div class="host-av">P</div>
+            <div><div class="host-name">Praveen</div><div class="host-role">Tech & Support</div></div>
+            <a class="host-wa" href="https://wa.me/919194109911?text=Namaste!" target="_blank">💬</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SUCCESS MODAL -->
+<div class="modal-ov" id="successModal">
+  <div class="modal-box">
+    <div class="modal-ico">🎉</div>
+    <div class="modal-title">Request Sent!</div>
+    <div class="modal-msg" id="successMsg">Your booking inquiry has been sent. Our team will confirm on WhatsApp within minutes!</div>
+    <button class="modal-btn" onclick="document.getElementById('successModal').style.display='none'">Close</button>
+  </div>
+</div>
+
+<script src="book.js"></script>
+</body>
+</html>
