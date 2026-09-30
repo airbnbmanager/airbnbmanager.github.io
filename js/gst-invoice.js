@@ -583,8 +583,8 @@ window.GST_ENGINE = (function() {
       `Thank you for choosing The Unique Haven Homes! 🙏`;
 
     const url = cleanPhone
-      ? `https://api.whatsapp.com/send?phone=${cleanPhone}&text=${text}`
-      : `https://api.whatsapp.com/send?text=${text}`;
+      ? `https://wa.me/${cleanPhone}?text=${text}`
+      : `https://wa.me/?text=${text}`;
 
     window.open(url, '_blank');
   }
@@ -1140,7 +1140,7 @@ Generated automatically via UHHS Management Portal.`;
 
             ` : `
               <!-- A4 PREVIEW TAB -->
-              <div style="padding:10px 0;">
+              <div class="uhh-invoice-document invoice-doc" style="padding:10px 0;background:#fff;">
                 ${buildPrintableInvoiceHTML({
                   ...state,
                   taxable_value: calc.base,
@@ -1159,7 +1159,7 @@ Generated automatically via UHHS Management Portal.`;
             <button class="btn-sm" style="background:#059669;color:#fff;padding:10px 18px;font-weight:800;display:inline-flex;align-items:center;gap:6px;" onclick="window._gstSaveOnly()">
               💾 Save Invoice &amp; CA Record
             </button>
-            <button class="btn-sm" style="background:#25D366;color:#fff;padding:10px 14px;font-weight:700;display:inline-flex;align-items:center;gap:6px;" onclick="window._gstWhatsApp()">
+            <button class="btn-sm" style="background:#25D366;color:#fff;padding:10px 14px;font-weight:700;display:inline-flex;align-items:center;gap:6px;" onclick="window._gstWhatsApp(this)">
               💬 WhatsApp Bill
             </button>
             ${state.existing ? `
@@ -1232,42 +1232,94 @@ Generated automatically via UHHS Management Portal.`;
       printInvoiceDocument(state);
     };
 
-    window._gstWhatsApp = async function() {
+    window._gstWhatsApp = async function(triggerBtn) {
+      // 1. Sync all active form inputs from the modal DOM into state immediately
+      const noInp = document.getElementById('gstInpInvNo');
+      const dtInp = document.getElementById('gstInpInvDate');
+      const nameInp = document.getElementById('gstInpName');
+      const phInp = document.getElementById('gstInpPhone');
+      const gstinInp = document.getElementById('gstInpGSTIN');
+      const compInp = document.getElementById('gstInpCompany');
+      const totInp = document.getElementById('gstInpTotal');
+      const nInp = document.getElementById('gstInpNights');
+      const rInp = document.getElementById('gstInpRate');
+      const posInp = document.getElementById('gstInpPOS');
+
+      if (noInp && noInp.value.trim()) state.invoice_no = noInp.value.trim();
+      if (dtInp && dtInp.value) state.invoice_date = dtInp.value;
+      if (nameInp && nameInp.value.trim()) state.guest_name = nameInp.value.trim();
+      if (phInp && phInp.value.trim()) state.guest_phone = phInp.value.trim();
+      if (gstinInp) state.guest_gstin = gstinInp.value.trim();
+      if (compInp) state.guest_company = compInp.value.trim();
+      if (totInp && parseFloat(totInp.value)) state.total_amount = parseFloat(totInp.value);
+      if (nInp && parseInt(nInp.value, 10)) state.nights = parseInt(nInp.value, 10);
+      if (rInp && parseFloat(rInp.value) !== undefined) state.gst_rate = parseFloat(rInp.value);
+      if (posInp && posInp.value.trim()) state.place_of_supply = posInp.value.trim();
+
       const calc = calculateGST(state.total_amount, state.nights, state.gst_rate);
+      state.taxable_value = calc.base;
+      state.cgst = calc.cgst;
+      state.sgst = calc.sgst;
+
+      // Auto-save the invoice record silently
+      try {
+        await persistInvoice(state);
+        commitNextInvoiceSeq(state.invoice_date);
+        state.existing = state;
+      } catch (e) {
+        console.warn('Auto-save notice:', e);
+      }
+
       const isGST = state.is_gst_invoice;
+      const cleanPhone = (state.guest_phone || '').replace(/\D/g, '');
+      const fullPhone = cleanPhone.length === 10 ? '91' + cleanPhone : cleanPhone;
+
       const shortMsg = `🧾 *THE UNIQUE HAVEN HOMES PVT. LTD.*
-${isGST ? '*OFFICIAL GST TAX INVOICE*' : '*BOOKING RECEIPT*'}
+${isGST ? '*OFFICIAL GST TAX INVOICE*' : '*BOOKING BILL / RECEIPT*'}
 Namaste *${state.guest_name || 'Guest'}* ji 🙏
 
 📄 *Invoice No:* ${state.invoice_no}
 📅 *Date:* ${state.invoice_date}
-🏠 *Property:* ${state.room_name}
-📅 *Stay:* ${state.check_in} to ${state.check_out} (${state.nights} Night${state.nights > 1 ? 's' : ''})
+🏠 *Property:* ${state.room_name || state.room_id || 'Luxury Stay'}
+📅 *Stay Dates:* ${state.check_in || '-'} to ${state.check_out || '-'} (${state.nights || 1} Night${(state.nights || 1) > 1 ? 's' : ''})
 💰 *Total Amount:* ₹${Number(state.total_amount || 0).toLocaleString('en-IN')}
-${isGST ? `📊 *Base Value:* ₹${Number(calc.base).toLocaleString('en-IN')} | *GST (${state.gst_rate}%):* ₹${Number(calc.cgst + calc.sgst).toLocaleString('en-IN')}` : ''}
-✅ *Payment Status:* Paid
+${isGST ? `📊 *Taxable Base:* ₹${Number(calc.base).toLocaleString('en-IN')} | *GST (${state.gst_rate}%):* ₹${Number(calc.cgst + calc.sgst).toLocaleString('en-IN')}
+🏢 *GSTIN:* ${CO.gstin} | *SAC:* ${CO.sac}` : ''}
+✅ *Payment Status:* FULLY PAID
 
-_Official ${isGST ? 'GST Tax Invoice' : 'Receipt'} attached in PDF._
-The Unique Haven Homes Property Management`;
+_Official ${isGST ? 'GST Tax Invoice' : 'Receipt'} PDF document attached._
+✨ *The Unique Haven Homes Property Management*`;
 
-      // Render printable doc into a temporary offscreen container if in edit tab
-      let targetContainer = modal.querySelector('.uhh-invoice-document');
-      let tempDiv = null;
-      if (!targetContainer) {
-        tempDiv = document.createElement('div');
-        tempDiv.style.position = 'fixed';
-        tempDiv.style.left = '-9999px';
-        tempDiv.style.top = '0';
-        tempDiv.style.width = '800px';
-        tempDiv.innerHTML = buildPrintableInvoiceHTML({
-          ...state,
-          taxable_value: calc.base,
-          cgst: calc.cgst,
-          sgst: calc.sgst
-        });
-        document.body.appendChild(tempDiv);
-        targetContainer = tempDiv;
+      // Visual button loading state
+      const btn = triggerBtn || document.querySelector('.modal-overlay button[onclick*="_gstWhatsApp"]');
+      let origBtnText = '';
+      if (btn) {
+        origBtnText = btn.innerHTML;
+        btn.innerHTML = '⏳ Generating PDF...';
+        btn.disabled = true;
       }
+
+      // Render printable doc into a safe offscreen container with real pixel dimensions
+      // CRITICAL: Must be at top:0; left:0; width:794px; z-index:-99999 (NOT left:-9999px)
+      // because html2canvas captures relative to screen (0,0) and left:-9999px results in a completely blank canvas!
+      let tempDiv = document.createElement('div');
+      tempDiv.id = 'gstPdfCaptureHost';
+      tempDiv.className = 'uhh-invoice-document invoice-doc';
+      tempDiv.style.position = 'fixed';
+      tempDiv.style.left = '0px';
+      tempDiv.style.top = '0px';
+      tempDiv.style.width = '794px';
+      tempDiv.style.zIndex = '-99999';
+      tempDiv.style.background = '#ffffff';
+      tempDiv.style.boxSizing = 'border-box';
+      tempDiv.style.pointerEvents = 'none';
+      tempDiv.innerHTML = buildPrintableInvoiceHTML({
+        ...state,
+        taxable_value: calc.base,
+        cgst: calc.cgst,
+        sgst: calc.sgst
+      });
+      document.body.appendChild(tempDiv);
 
       const cleanInvNo = String(state.invoice_no || '').replace(/[\/\\:*?"<>|]/g, '-');
       const cleanGuest = String(state.guest_name || 'Guest').trim().replace(/[\/\\:*?"<>|]/g, '-').replace(/\s+/g, '_');
@@ -1275,23 +1327,38 @@ The Unique Haven Homes Property Management`;
       const filename = `TUHH_${isGST ? 'GST_Invoice' : 'Bill'}_${cleanGuest}_${cleanInvNo}${invDate ? '_' + invDate : ''}.pdf`;
       const docTitle = `TUHH ${isGST ? 'GST Tax Invoice' : 'Bill'} — ${cleanInvNo} — ${state.guest_name || 'Guest'}`;
 
-      if (typeof window.sharePdfViaWhatsApp === 'function') {
-        await window.sharePdfViaWhatsApp(targetContainer, {
-          filename: filename,
-          phone: state.guest_phone,
-          message: shortMsg,
-          title: docTitle
-        });
-      } else {
+      try {
+        if (typeof window.sharePdfViaWhatsApp === 'function') {
+          await window.sharePdfViaWhatsApp(tempDiv, {
+            filename: filename,
+            phone: state.guest_phone,
+            message: shortMsg,
+            title: docTitle,
+            triggerBtn: btn
+          });
+        } else {
+          shareInvoiceWhatsApp({
+            ...state,
+            taxable_value: calc.base,
+            cgst: calc.cgst,
+            sgst: calc.sgst
+          });
+        }
+      } catch (err) {
+        console.error('WhatsApp Bill generation error:', err);
         shareInvoiceWhatsApp({
           ...state,
           taxable_value: calc.base,
           cgst: calc.cgst,
           sgst: calc.sgst
         });
+      } finally {
+        if (tempDiv) tempDiv.remove();
+        if (btn) {
+          btn.innerHTML = origBtnText;
+          btn.disabled = false;
+        }
       }
-
-      if (tempDiv) tempDiv.remove();
     };
 
     window._gstDeleteCurrent = async function() {

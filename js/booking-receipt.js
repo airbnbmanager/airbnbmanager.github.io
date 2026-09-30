@@ -728,6 +728,21 @@ Thank you for choosing *The Unique Haven Homes*. Your direct reservation has bee
     try {
       await ensureHtml2Pdf();
 
+      // Ensure all images inside targetEl are complete before html2canvas capture
+      const imgs = Array.from(targetEl.querySelectorAll('img'));
+      if (imgs.length > 0) {
+        await Promise.all(imgs.map(img => {
+          if (img.complete) return Promise.resolve();
+          return new Promise(res => {
+            img.onload = res;
+            img.onerror = res;
+            setTimeout(res, 600);
+          });
+        }));
+      }
+
+      const captureWidth = Math.max(780, targetEl.scrollWidth || 780);
+
       const opt = {
         margin: [4, 4, 4, 4],
         filename: filename,
@@ -735,10 +750,11 @@ Thank you for choosing *The Unique Haven Homes*. Your direct reservation has bee
         html2canvas: {
           scale: 2,
           useCORS: true,
+          allowTaint: true,
           logging: false,
           scrollY: 0,
           scrollX: 0,
-          windowWidth: 760
+          windowWidth: captureWidth
         },
         jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
         pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
@@ -781,19 +797,20 @@ Thank you for choosing *The Unique Haven Homes*. Your direct reservation has bee
       // 3. Open WhatsApp Web / App
       const waUrl = fullPhone 
         ? `https://wa.me/${fullPhone}?text=${encodeURIComponent(message)}`
-        : `https://web.whatsapp.com/`;
+        : `https://wa.me/?text=${encodeURIComponent(message)}`;
       window.open(waUrl, '_blank');
 
-      alert(`✅ PDF Voucher downloaded: "${filename}"\n📱 WhatsApp is opening with the message pre-filled.\n👉 Simply attach the downloaded PDF into WhatsApp!`);
+      if (window.fsn?.toast) {
+        fsn.toast(`✅ PDF Bill downloaded: "${filename}"`);
+      }
 
     } catch (err) {
       console.warn('PDF share notice:', err);
       // Fallback: direct WhatsApp URL
-      if (fullPhone) {
-        window.open(`https://wa.me/${fullPhone}?text=${encodeURIComponent(message)}`, '_blank');
-      } else {
-        alert('Could not generate PDF: ' + err.message);
-      }
+      const fallbackUrl = fullPhone
+        ? `https://wa.me/${fullPhone}?text=${encodeURIComponent(message)}`
+        : `https://wa.me/?text=${encodeURIComponent(message)}`;
+      window.open(fallbackUrl, '_blank');
     } finally {
       if (triggerBtn) {
         triggerBtn.innerHTML = origText;
