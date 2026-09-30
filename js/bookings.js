@@ -2770,9 +2770,16 @@ async function saveBooking() {
         .select('booking_id,guest_name,check_in,check_out,booking_mode,total_amount,is_cancelled')
         .eq('room_id', rid);
       const isReviewBk = document.getElementById('isReviewBooking')?.checked;
-      const clashes = isReviewBk ? [] : (ex || []).filter(b =>
+      const allClashes = isReviewBk ? [] : (ex || []).filter(b =>
         !b.is_cancelled && b.check_in && b.check_out && b.check_in < co && b.check_out > ci
       );
+
+      // Distinguish real revenue bookings from auto-synced dummy 0-amount blocks
+      const dummyBlocksToClean = allClashes.filter(c => 
+        (c.total_amount === 0 || c.total_amount === null) &&
+        (c.booking_id.startsWith('BLK_') || c.booking_mode === 'Offline-Blocked' || (c.guest_name && c.guest_name.includes('Blocked')))
+      );
+      const clashes = allClashes.filter(c => !dummyBlocksToClean.some(d => d.booking_id === c.booking_id));
 
       if (clashes.length > 0) {
         const clashList = clashes.map(c => {
@@ -2781,7 +2788,7 @@ async function saveBooking() {
         }).join('\n');
 
         const warningMsg = `⚠️ DOUBLE BOOKING WARNING\n\n` +
-          `Ye slot pe pehle se ${clashes.length} booking hai:\n\n${clashList}\n\n` +
+          `Ye slot pe pehle se ${clashes.length} real booking hai:\n\n${clashList}\n\n` +
           `Kya fir bhi save karna hai?\n\n` +
           `✅ OK = Save Anyway (audit note add hoga)\n` +
           `❌ Cancel = Booking cancel karo`;
@@ -2799,6 +2806,14 @@ async function saveBooking() {
         const userName = SESSION.displayName || SESSION.role || 'Unknown';
         const clashNames = clashes.map(c => c.guest_name).join(', ');
         doubleBookingNote = `⚠️ Double booking approved by ${userName} on ${new Date().toISOString().slice(0,10)} — clashes with: ${clashNames}`;
+      }
+
+      // Auto-purge any dummy blocks on this slot so they never duplicate with the new real booking
+      if (dummyBlocksToClean.length > 0) {
+        for (const db of dummyBlocksToClean) {
+          await sb.from('guest_register').delete().eq('booking_id', db.booking_id);
+          console.log(`🧹 Auto-purged obsolete dummy block ${db.booking_id} in favor of new booking`);
+        }
       }
     }
 

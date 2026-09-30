@@ -140,33 +140,69 @@ window.ICAL_SYNC = {
       const events = this.parseIcal(icalText);
       result.fetched += events.length;
 
+      // Fetch ALL active bookings for this room in DB (not just online channels)
       const { data: existing } = await sb.from('guest_register')
-        .select('ical_uid, airbnb_confirmation_code, check_in, check_out, booking_mode, is_cancelled')
-        .eq('room_id', room.room_id);
+        .select('booking_id, ical_uid, airbnb_confirmation_code, check_in, check_out, booking_mode, is_cancelled, guest_name, total_amount')
+        .eq('room_id', room.room_id)
+        .neq('is_cancelled', true);
       
       const existingUids = new Set((existing || []).filter(e => e.ical_uid).map(e => e.ical_uid));
       const existingCodes = new Set((existing || []).filter(e => e.airbnb_confirmation_code).map(e => e.airbnb_confirmation_code));
-      const existingDateRanges = new Set(
-        (existing || [])
-          .filter(e => !e.is_cancelled && (e.booking_mode === 'Online-Airbnb' || e.booking_mode === 'Online-Booking.com'))
-          .map(e => `${e.check_in}|${e.check_out}`)
-      );
 
       const isBcom = channelName === 'Booking.com';
       const bookingMode = isBcom ? 'Online-Booking.com' : 'Online-Airbnb';
       const channelTag = isBcom ? '🔵 Booking.com' : '🏨 Airbnb';
 
       for (const event of events) {
+        if (!event.checkIn || !event.checkOut) continue;
+
+        // 1. Check if ANY REAL BOOKING (with revenue or real guest details) overlaps this date range
+        const realOverlap = (existing || []).find(b => {
+          if (!b.check_in || !b.check_out) return false;
+          const isReal = (Number(b.total_amount) > 0 || (b.guest_name && !b.guest_name.includes('Blocked') && !b.guest_name.includes('Fill Details')));
+          return isReal && (b.check_in < event.checkOut && b.check_out > event.checkIn);
+        });
+
+        // If a REAL booking already exists for these dates:
+        if (realOverlap) {
+          // If this iCal event is a block, DO NOT insert dummy block over a real booking!
+          if (event.isBlocked) {
+            // Also clean up any lingering dummy block for this date if present
+            const dummyToPurge = (existing || []).find(b => 
+              (b.booking_id.startsWith('BLK_') || b.booking_mode === 'Offline-Blocked' || b.guest_name === '🔒 Blocked Slot') &&
+              (b.check_in < event.checkOut && b.check_out > event.checkIn)
+            );
+            if (dummyToPurge) {
+              await sb.from('guest_register').delete().eq('booking_id', dummyToPurge.booking_id);
+            }
+            result.skipped++;
+            continue;
+          }
+
+          // If this is an actual online reservation, link the confirmation code to the real booking if missing
+          if (event.confirmationCode && !realOverlap.airbnb_confirmation_code) {
+            await sb.from('guest_register').update({
+              airbnb_confirmation_code: event.confirmationCode,
+              ical_uid: event.uid || realOverlap.ical_uid
+            }).eq('booking_id', realOverlap.booking_id);
+          }
+          result.skipped++;
+          continue;
+        }
+
+        // 2. Already synced check
         if (existingUids.has(event.uid)) { result.skipped++; continue; }
         if (event.confirmationCode && existingCodes.has(event.confirmationCode)) { result.skipped++; continue; }
-        if (existingDateRanges.has(`${event.checkIn}|${event.checkOut}`)) { result.skipped++; continue; }
 
-        const bookingId = 'BK' + Date.now() + Math.floor(Math.random() * 1000);
-        const isBlocked = event.isBlocked;
-
-        if (isBlocked) {
+        // 3. Handle Blocked slots (ONLY when NO real booking exists)
+        if (event.isBlocked) {
           if (event.checkIn < '2026-08-01') continue;
           const deterministicId = `BLK_${room.room_id}_${event.checkIn.replace(/-/g, '')}`;
+          
+          // Check if this exact block already exists
+          const existingBlock = (existing || []).find(b => b.booking_id === deterministicId);
+          if (existingBlock) { result.skipped++; continue; }
+
           await sb.from('guest_register').upsert({
             booking_id: deterministicId,
             guest_name: '🔒 Blocked Slot',
@@ -178,32 +214,46 @@ window.ICAL_SYNC = {
             total_amount: 0,
             notes: `Blocked on ${channelName} (${event.summary}). Offline slot reserved.`
           }, { onConflict: 'booking_id' });
+          result.created++;
           continue;
         }
 
-        const guestName = event.confirmationCode ? `${channelTag} Guest (${event.confirmationCode})` : `${channelTag} Guest (Fill Details)`;
-        const bookingNotes = `${channelName} reservation auto-synced.${event.confirmationCode ? ` Confirmation: ${event.confirmationCode}.` : ''} Original summary: ${event.summary}.`;
+        // 4. Handle REALTIME Online Booking (Fill with real room rate instead of ₹0!)
+        const nights = Math.max(1, Math.round((new Date(event.checkOut) - new Date(event.checkIn)) / (1000 * 60 * 60 * 24)));
+        const rentPerNight = Number(room.rent_per_night) || 4500;
+        const totalAmount = rentPerNight * nights;
 
-        const { error } = await sb.from('guest_register').insert({
+        // Use deterministic booking ID so repeat syncs NEVER create duplicate rows!
+        const bookingId = event.confirmationCode 
+          ? `BK_ABNB_${event.confirmationCode}`
+          : `BK_SYNC_${room.room_id}_${event.checkIn.replace(/-/g, '')}`;
+
+        const guestName = event.confirmationCode ? `${channelTag} (${event.confirmationCode})` : `${channelTag} Guest`;
+        const bookingNotes = `${channelName} reservation auto-synced.${event.confirmationCode ? ` Code: ${event.confirmationCode}.` : ''} Rate: ₹${rentPerNight}/night × ${nights} nights.`;
+
+        const { error } = await sb.from('guest_register').upsert({
           booking_id: bookingId,
           room_id: room.room_id,
           guest_name: guestName,
           check_in: event.checkIn,
           check_out: event.checkOut,
-          total_amount: 0,
+          total_amount: totalAmount,
+          per_day_rate: rentPerNight,
           booking_mode: bookingMode,
           payment_status: 'Paid',
-          verification_status: 'pending_details',
-          guests: 1,
+          verification_status: 'approved',
+          guests: room.max_guests || 6,
           ical_uid: event.uid,
           airbnb_confirmation_code: event.confirmationCode || null,
           phone: event.phoneEnd ? `+91 XXXXX ${event.phoneEnd}` : null,
           synced_from_ical: true,
           notes: bookingNotes
-        });
+        }, { onConflict: 'booking_id' });
 
         if (!error) {
           result.created++;
+          existingCodes.add(event.confirmationCode);
+          existingUids.add(event.uid);
         } else {
           result.skipped++;
         }

@@ -108,38 +108,57 @@ window.HYBRID_SYNC = {
 
       // Fetch all existing bookings for this room in DB
       const { data: dbBookings } = await sb.from('guest_register')
-        .select('booking_id, check_in, check_out, room_id, is_cancelled, guest_name, booking_mode')
+        .select('booking_id, check_in, check_out, room_id, is_cancelled, guest_name, booking_mode, total_amount')
         .eq('room_id', roomId)
         .neq('is_cancelled', true);
 
       const newToInsert = [];
-      icalEvents.forEach(ev => {
-        // Range overlap check
-        const overlapBk = (dbBookings || []).find(dbB => {
+      for (const ev of icalEvents) {
+        // Range overlap check with ANY real booking (manual / offline / confirmed online)
+        const realOverlap = (dbBookings || []).find(dbB => {
           if (!dbB.check_in || !dbB.check_out) return false;
-          return (dbB.check_in < ev.check_out && dbB.check_out > ev.check_in);
+          const isReal = (Number(dbB.total_amount) > 0 || (dbB.guest_name && !dbB.guest_name.includes('Blocked') && !dbB.guest_name.includes('Fill Details')));
+          return isReal && (dbB.check_in < ev.check_out && dbB.check_out > ev.check_in);
         });
 
-        // 1. If NO OVERLAP -> Insert new booking or block entry
-        if (!overlapBk) {
-          const deterministicId = ev.is_blocked ? `BLK_${roomId}_${ev.check_in.replace(/-/g, '')}` : 'BK_' + Date.now() + '_' + Math.floor(Math.random()*10000);
+        // If a real booking already exists for these dates:
+        if (realOverlap) {
+          // If this event is a block, purge any lingering dummy block for this date
+          if (ev.is_blocked) {
+            const dummyToPurge = (dbBookings || []).find(dbB => 
+              (dbB.booking_id.startsWith('BLK_') || dbB.booking_mode === 'Offline-Blocked' || dbB.guest_name === '🔒 Blocked Slot') &&
+              (dbB.check_in < ev.check_out && dbB.check_out > ev.check_in)
+            );
+            if (dummyToPurge) {
+              await sb.from('guest_register').delete().eq('booking_id', dummyToPurge.booking_id);
+            }
+          }
+          continue; // NEVER insert a block over a real booking!
+        }
+
+        // If NO real booking overlaps:
+        if (ev.is_blocked) {
+          const deterministicId = `BLK_${roomId}_${ev.check_in.replace(/-/g, '')}`;
+          const existingBlock = (dbBookings || []).find(b => b.booking_id === deterministicId);
+          if (existingBlock) continue; // Skip duplicate
+
           newToInsert.push({
             booking_id: deterministicId,
-            guest_name: ev.guest_name,
+            guest_name: '🔒 Blocked Slot',
             check_in: ev.check_in,
             check_out: ev.check_out,
             room_id: roomId,
-            booking_mode: ev.is_blocked ? 'Offline-Blocked' : 'Online-Airbnb',
+            booking_mode: 'Offline-Blocked',
             payment_status: 'Paid',
             total_amount: 0,
-            notes: ev.is_blocked ? 'Airbnb Blocked date auto-synced' : ('Auto-synced from ' + prop.name + ' iCal')
+            notes: 'Airbnb Blocked date auto-synced'
           });
         }
-      });
+      }
 
       if (newToInsert.length > 0) {
         await sb.from('guest_register').upsert(newToInsert, { onConflict: 'booking_id', ignoreDuplicates: true });
-        console.log(`✅ ${prop.name} (${roomId}): Synced ${newToInsert.length} bookings/blocks!`);
+        console.log(`✅ ${prop.name} (${roomId}): Synced ${newToInsert.length} blocks safely (zero clash with real bookings)!`);
       }
     }
   },
