@@ -957,43 +957,6 @@ async function renderDashboard() {
             ${canModerate() ? `<button class="dash-pill-btn primary" onclick="renderAddBooking && renderAddBooking()">➕ New Booking</button>` : ''}
           </div>
         </div>
-
-        <!-- QUICK ROOM STATUS MATRIX -->
-        <div class="dash-matrix-header">
-          <div class="dash-matrix-title">All Properties At-A-Glance (${allFlats.length})</div>
-          <div class="room-matrix-tabs">
-            <button class="room-matrix-tab active" onclick="filterRoomMatrix('all', this)">All (${allFlats.length})</button>
-            <button class="room-matrix-tab" onclick="filterRoomMatrix('ready', this)">Ready (${freeClean.length})</button>
-            <button class="room-matrix-tab" onclick="filterRoomMatrix('booked', this)">Booked (${bookedNow.length})</button>
-            <button class="room-matrix-tab" onclick="filterRoomMatrix('dirty', this)">Cleaning (${dirty.length})</button>
-            ${maintUnits.length > 0 ? `<button class="room-matrix-tab" onclick="filterRoomMatrix('maint', this)">Maint (${maintUnits.length})</button>` : ''}
-          </div>
-        </div>
-
-        <div class="room-matrix-grid" id="dashRoomMatrix">
-          ${allFlats.map(fl => {
-            const isBooked = fl.status === 'Booked';
-            const isDirty = fl.cleaning_status === 'Dirty';
-            const isMaint = fl.status === 'Blocked-Maintenance';
-            let dotColor = '#10B981';
-            let label = 'Ready';
-            let filterType = 'ready';
-
-            if (isMaint) { dotColor = '#EF4444'; label = 'Maint'; filterType = 'maint'; }
-            else if (isBooked) { dotColor = '#0EA5E9'; label = 'Booked'; filterType = 'booked'; }
-            else if (isDirty) { dotColor = '#F59E0B'; label = 'Dirty'; filterType = 'dirty'; }
-
-            return `
-              <div class="room-matrix-item status-${filterType}" data-status="${filterType}" onclick="navigate('flats')" title="${fName(fl)}: ${label}">
-                <span style="font-size:11.5px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${fName(fl)}</span>
-                <span style="display:flex;align-items:center;gap:4px;">
-                  <span style="font-size:10px;font-weight:600;opacity:0.85;">${label}</span>
-                  <span style="width:7px;height:7px;border-radius:50%;background:${dotColor};flex-shrink:0;"></span>
-                </span>
-              </div>
-            `;
-          }).join('')}
-        </div>
       </div>
 
       <!-- HERO KPI RIBBON (4 CORE METRICS) -->
