@@ -409,24 +409,45 @@ async function renderInvestorReport(investorId, roomId, month) {
     sb.from('investor_properties').select('share_percent').eq('investor_id', investorId).eq('room_id', roomId).maybeSingle(),
   ]);
 
-  // Filter out complimentary/friends bookings + REVIEW bookings (fake Airbnb)
+  // Filter out blocked fill slots, complimentary/friends bookings, and cancelled bookings
   const excludeKeywords = ['(friends)', '(complimentary)', '(comp)', '(free)', '(owner)', '(family)', 'friends)', 'complimentary)', 'comp)', 'free)', 'owner)', 'family)'];
+  
+  const isBlockedSlot = (b) => {
+    if (!b) return false;
+    const bId = String(b.booking_id || '');
+    const bMode = (b.booking_mode || '').toLowerCase();
+    const name = (b.guest_name || '').toLowerCase();
+    const notes = (b.notes || '').toLowerCase();
+    return bId.startsWith('BLK_') || 
+           bMode === 'offline-blocked' || 
+           bMode.includes('blocked') || 
+           name.includes('blocked') || 
+           name.includes('🔒') || 
+           notes.includes('offline slot reserved') || 
+           notes.includes('(not available)') ||
+           (Number(b.total_amount || 0) === 0 && (bMode.includes('block') || bId.startsWith('BLK_')));
+  };
+
   const isExcluded = (b) => {
+    if (!b) return true;
     if (b.is_cancelled === true) return true;
     if (b.verification_status === 'rejected') return true;
+    if (isBlockedSlot(b)) return true; // Strictly exclude blocked fill bookings
+
     const name = (b.guest_name || '').toLowerCase().replace(/\s+/g, ' ');
     const notes = (b.notes || '').toLowerCase();
-    // NEW: Only exclude if admin marked as hidden from investor
+    // Only exclude if admin marked as hidden from investor
     if (b.show_to_investor === false) return true;
     // Legacy: Also exclude if guest name contains "friends", "complimentary" etc.
     return excludeKeywords.some(k => name.includes(k) || notes.includes(k));
   };
 
-  const excludedBookings = (bookings || []).filter(b => isExcluded(b));
+  // Only real friends/complimentary stays go into excludedBookings for the Friends Report
+  const excludedBookings = (bookings || []).filter(b => !isBlockedSlot(b) && isExcluded(b));
   const activeBookings = (bookings || []).filter(b => !isExcluded(b));
   
-  // NEW: Count hidden bookings (for footer transparency)
-  const hiddenCount = (bookings || []).filter(b => b.show_to_investor === false).length;
+  // Count hidden bookings (for footer transparency)
+  const hiddenCount = (bookings || []).filter(b => !isBlockedSlot(b) && b.show_to_investor === false).length;
 
   // NEW MULTI-INVESTOR FORMULA:
   // Company: FIXED 30%
@@ -962,8 +983,14 @@ async function renderInvestorView(range = 'Month') {
         .select('booking_id, guest_name, room_id, booking_mode, check_in, check_out, total_amount, rooms(unit_no, nickname)')
         .in('room_id', rids).order('check_in', { ascending: false })
     : { data: [] };
+  const cleanAllBk = (allBk || []).filter(b => {
+    const bId = String(b.booking_id || '');
+    const bMode = (b.booking_mode || '').toLowerCase();
+    const name = (b.guest_name || '').toLowerCase();
+    return !bId.startsWith('BLK_') && bMode !== 'offline-blocked' && !bMode.includes('blocked') && !name.includes('blocked') && !name.includes('🔒') && Number(b.total_amount || 0) > 0;
+  });
 
-  const bks = filterByRange(allBk || [], range);
+  const bks = filterByRange(cleanAllBk, range);
   const pm = await getPaidMap(bks.map(b => b.booking_id));
   const rev = bks.reduce((s, b) => s + (pm[b.booking_id] || 0), 0);
   
@@ -1141,7 +1168,12 @@ window.whatsappInvestorReport = async function(investorId, roomId, monthYear) {
       .neq('is_cancelled', true)
       .neq('verification_status', 'rejected');
 
-    const bks = bookings || [];
+    const bks = (bookings || []).filter(b => {
+      const bId = String(b.booking_id || '');
+      const bMode = (b.booking_mode || '').toLowerCase();
+      const name = (b.guest_name || '').toLowerCase();
+      return !bId.startsWith('BLK_') && bMode !== 'offline-blocked' && !bMode.includes('blocked') && !name.includes('blocked') && !name.includes('🔒') && Number(b.total_amount || 0) > 0;
+    });
     const totalRevenue = bks.reduce((s, b) => s + (b.total_amount || 0), 0);
     
     // NEW MULTI-INVESTOR FORMULA
@@ -1515,11 +1547,14 @@ async function renderFriendsReport(investorId, roomId, month) {
     sb.from('guest_register').select('*').eq('room_id', roomId).lte('check_in', monthEnd + 'T23:59:59').gte('check_out', monthStart).order('check_in'),
   ]);
 
-  // Only friends bookings
+  // Only friends bookings (strictly excluding dummy blocked slots)
   const excludeKeywords = ['(friends)', '(complimentary)', '(comp)', '(free)', '(owner)', '(family)'];
   const friendsBookings = (bookings || []).filter(b => {
+    const bId = String(b.booking_id || '');
+    const bMode = (b.booking_mode || '').toLowerCase();
     const name = (b.guest_name || '').toLowerCase();
     const notes = (b.notes || '').toLowerCase();
+    if (bId.startsWith('BLK_') || bMode === 'offline-blocked' || bMode.includes('blocked') || name.includes('blocked') || name.includes('🔒')) return false;
     return excludeKeywords.some(k => name.includes(k) || notes.includes(k));
   });
 
