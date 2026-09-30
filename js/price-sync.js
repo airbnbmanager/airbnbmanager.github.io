@@ -131,14 +131,34 @@
         return;
       }
 
-      const { data: rates, error } = await sb
-        .from('property_rates')
-        .select('room_id, slug, property_name, base_price, airbnb_price, max_guests, updated_at')
-        .eq('is_active', true);
+      let rates = null;
 
-      if (error) {
-        // Table not created yet or network issue - fallback silently to static prices
-        return;
+      // 1. Primary: Query the live 'rooms' table which exists and has rent_per_night
+      try {
+        const { data: roomsData, error: roomsErr } = await sb
+          .from('rooms')
+          .select('room_id, property_name, nickname, rent_per_night, max_guests')
+          .order('room_id');
+        
+        if (!roomsErr && roomsData && roomsData.length > 0) {
+          rates = roomsData.map(r => ({
+            room_id: r.room_id,
+            property_name: r.nickname || r.property_name,
+            base_price: Number(r.rent_per_night) || 4500,
+            max_guests: r.max_guests || 6
+          }));
+        }
+      } catch (_) {}
+
+      // 2. Secondary fallback: property_rates if available
+      if (!rates || rates.length === 0) {
+        try {
+          const { data, error } = await sb
+            .from('property_rates')
+            .select('room_id, slug, property_name, base_price, airbnb_price, max_guests, updated_at')
+            .eq('is_active', true);
+          if (!error && data && data.length > 0) rates = data;
+        } catch (_) {}
       }
 
       if (!rates || rates.length === 0) return;

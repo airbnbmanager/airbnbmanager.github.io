@@ -22,9 +22,9 @@
   let _step        = 'init'; // init | greet | ask_requirement | show_props | ask_name | ask_phone | done
   let _history     = [];
 
-  // ── GET LIVE RATES ──────────────────────────────────────────────
+  // ── GET LIVE RATES FROM SUPABASE ROOMS TABLE (SOURCE OF TRUTH) ────
   async function getRates() {
-    if (_rates) return _rates;
+    if (_rates && _rates.length > 0) return _rates;
     try {
       const cached = JSON.parse(sessionStorage.getItem('uhh_price_cache') || 'null');
       if (cached && cached.data && (Date.now() - cached.ts) < 15 * 60 * 1000) {
@@ -33,29 +33,42 @@
       const sb = window.sb || (typeof supabase !== 'undefined' && window.SUPABASE_URL
         ? supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY) : null);
       if (sb) {
-        const { data } = await sb.from('property_rates').select('*').eq('is_active', true).order('base_price');
-        if (data && data.length > 0) { _rates = data; return _rates; }
+        // Query live rooms table
+        const { data, error } = await sb
+          .from('rooms')
+          .select('room_id, property_name, nickname, rent_per_night, max_guests')
+          .order('room_id');
+        if (!error && data && data.length > 0) {
+          _rates = data.map(r => ({
+            room_id: r.room_id,
+            property_name: r.nickname || r.property_name,
+            base_price: Number(r.rent_per_night) || 4500,
+            max_guests: r.max_guests || 6
+          }));
+          return _rates;
+        }
       }
     } catch (_) {}
-    // Fallback
+
+    // Fallback: Exact verified rates (Gomti Grand Villa = ₹8,000)
     _rates = [
-      { room_id:'GOM-101', slug:'redrose-palace',           property_name:'RedRose Palace',           base_price:4500,  max_guests:6  },
-      { room_id:'GOM-102', slug:'black-beauty',             property_name:'Black Beauty',             base_price:4500,  max_guests:6  },
-      { room_id:'GOM-201', slug:'the-dark-blue',            property_name:'The Dark Blue',            base_price:4500,  max_guests:6  },
-      { room_id:'GOM-202', slug:'the-brown',                property_name:'The Brown',                base_price:4500,  max_guests:6  },
-      { room_id:'GOM-301', slug:'the-light-green',          property_name:'The Light Green',          base_price:4500,  max_guests:6  },
-      { room_id:'GOM-401', slug:'the-nawabi-stay',          property_name:'The Nawabi Stay',          base_price:4500,  max_guests:6  },
-      { room_id:'GOM-501', slug:'starlight-blue-penthouse', property_name:'Starlight Blue Penthouse', base_price:6000,  max_guests:6  },
-      { room_id:'GOM-302', slug:'the-unique',               property_name:'The Unique',               base_price:5500,  max_guests:6  },
-      { room_id:'VIL-104', slug:'the-green-house',          property_name:'The Green House',          base_price:5500,  max_guests:6  },
-      { room_id:'VIL-103', slug:'the-pink-house',           property_name:'The Pink House',           base_price:9000,  max_guests:10 },
-      { room_id:'VIL-105', slug:'the-yellow-house',         property_name:'The Yellow House',         base_price:5500,  max_guests:6  },
-      { room_id:'VIL-106', slug:'green-forest',             property_name:'Green Forest',             base_price:4500,  max_guests:6  },
-      { room_id:'VIL-108', slug:'pink-paradise',            property_name:'Pink Paradise',            base_price:4500,  max_guests:6  },
-      { room_id:'LUL-402', slug:'celebrity-garden',         property_name:'Celebrity Garden',         base_price:10000, max_guests:10 },
-      { room_id:'VIL-101', slug:'gomti-grand-villa',        property_name:'Gomti Grand Villa',        base_price:8000,  max_guests:6  },
-      { room_id:'VIL-102', slug:'royal-white-house',        property_name:'Royal White House',        base_price:12000, max_guests:12 },
-      { room_id:'VIL-107', slug:'the-velvet-house',         property_name:'The Velvet House',         base_price:4500,  max_guests:6  },
+      { room_id:'VIL-101', property_name:'Gomti Grand Villa',         base_price:8000,  max_guests:10, type:'villa', area:'Near Lulu Mall / Shaheed Path' },
+      { room_id:'VIL-102', property_name:'Royal White House',        base_price:12000, max_guests:18, type:'villa', area:'Near Shaheed Path / Mahanagar' },
+      { room_id:'LUL-402', property_name:'Celebrity Garden',         base_price:10000, max_guests:8,  type:'villa', area:'Near Lulu Mall' },
+      { room_id:'VIL-103', property_name:'The Pink House',           base_price:9000,  max_guests:10, type:'villa', area:'Vishesh Khand, Gomti Nagar' },
+      { room_id:'GOM-501', property_name:'Starlight Blue PentHouse', base_price:6000,  max_guests:10, type:'penthouse', area:'Vikalp Khand, Gomti Nagar' },
+      { room_id:'GOM-302', property_name:'The Unique',               base_price:5500,  max_guests:10, type:'flat',  area:'Vishesh Khand, Gomti Nagar' },
+      { room_id:'VIL-104', property_name:'The Green House',          base_price:5500,  max_guests:10, type:'flat',  area:'Vishesh Khand, Gomti Nagar' },
+      { room_id:'VIL-105', property_name:'The Yellow House',         base_price:5500,  max_guests:10, type:'flat',  area:'Vishesh Khand, Gomti Nagar' },
+      { room_id:'GOM-101', property_name:'RedRose Palace',           base_price:4500,  max_guests:10, type:'flat',  area:'Vikalp Khand, Gomti Nagar' },
+      { room_id:'GOM-102', property_name:'Black Beauty',             base_price:4500,  max_guests:10, type:'flat',  area:'Vikalp Khand, Gomti Nagar' },
+      { room_id:'GOM-201', property_name:'The Dark Blue',            base_price:4500,  max_guests:10, type:'flat',  area:'Vikalp Khand, Gomti Nagar' },
+      { room_id:'GOM-202', property_name:'The Brown',                base_price:4500,  max_guests:10, type:'flat',  area:'Vikalp Khand, Gomti Nagar' },
+      { room_id:'GOM-301', property_name:'The Light Green',          base_price:4500,  max_guests:10, type:'flat',  area:'Vikalp Khand, Gomti Nagar' },
+      { room_id:'GOM-401', property_name:'The Nawabi Stay',          base_price:4500,  max_guests:10, type:'flat',  area:'Vikalp Khand, Gomti Nagar' },
+      { room_id:'VIL-107', property_name:'The Velvet House',         base_price:4500,  max_guests:5,  type:'flat',  area:'Near Lulu Mall' },
+      { room_id:'VIL-106', property_name:'Green Forest View',        base_price:4500,  max_guests:6,  type:'flat',  area:'Near Mahanagar' },
+      { room_id:'VIL-108', property_name:'Pink Paradise Villa',      base_price:4500,  max_guests:6,  type:'villa', area:'Near Shaheed Path' },
     ];
     return _rates;
   }
@@ -72,142 +85,295 @@
         });
       }
     } catch (_) {}
-    // Show notification popup (reuse voice-agent notification style)
-    if (window.UHH_VoiceAgent) return;
-    const msg = encodeURIComponent(`🔔 *New Chat Lead*\n👤 ${name}\n📱 ${phone}\n💬 ${note || 'Chat widget'}`);
+    // Popup notification for admin
+    const msg = encodeURIComponent(`🔔 *New Chat Lead*\n👤 ${name}\n📱 ${phone}\n💬 ${note || 'Chat enquiry'}`);
     const notif = document.createElement('div');
-    notif.innerHTML = `<div style="position:fixed;bottom:100px;left:24px;z-index:99999;background:#1a2e1a;border:1px solid rgba(34,197,94,0.4);border-radius:16px;padding:18px 20px;max-width:280px;font-family:sans-serif;color:#f0f2f7;box-shadow:0 16px 48px rgba(0,0,0,.5)">
-      <div style="font-size:13px;color:#86efac;font-weight:700;margin-bottom:8px">🎉 New Lead!</div>
+    notif.innerHTML = `<div style="position:fixed;bottom:100px;left:24px;z-index:99999;background:#1a2e1a;border:1px solid rgba(34,197,94,0.4);border-radius:16px;padding:16px 20px;max-width:290px;font-family:sans-serif;color:#f0f2f7;box-shadow:0 16px 48px rgba(0,0,0,.5)">
+      <div style="font-size:13px;color:#86efac;font-weight:700;margin-bottom:6px">🎉 New Booking Lead!</div>
       <div style="font-size:14px;font-weight:700">${name}</div>
       <div style="font-size:13px;color:#d4d4d8">📱 ${phone}</div>
-      <a href="https://wa.me/${ADMIN_WA}?text=${msg}" target="_blank" style="display:block;margin-top:12px;background:#22c55e;color:#000;text-align:center;padding:8px;border-radius:8px;text-decoration:none;font-size:12px;font-weight:700">📲 WhatsApp Alert</a>
+      <a href="https://wa.me/${ADMIN_WA}?text=${msg}" target="_blank" style="display:block;margin-top:10px;background:#22c55e;color:#000;text-align:center;padding:8px;border-radius:8px;text-decoration:none;font-size:12px;font-weight:700">📲 WhatsApp Guest</a>
     </div>`;
     document.body.appendChild(notif);
-    setTimeout(() => notif.remove(), 30000);
+    setTimeout(() => notif.remove(), 25000);
   }
 
-  // ── SMART RESPONSE ENGINE ───────────────────────────────────────
+  // ── SMART KNOWLEDGE ENGINE (COMPREHENSIVE TRAINING) ──────────────
   async function getReply(userMsg) {
-    const msg  = userMsg.toLowerCase().trim();
+    const raw = userMsg.trim();
+    const msg = raw.toLowerCase();
     const rates = await getRates();
-    
-    // ── Booking / Contact intent
-    if (/book|booking|reserve|confirm|payment|advance|pay|availab/i.test(msg)) {
-      _step = 'ask_name';
-      return {
-        text: '🏠 Bookings ke liye main aapko hamare team se directly connect karta hoon!\n\nPehle aapka naam bata dijiye?',
-        quickReplies: []
-      };
-    }
 
-    // ── Price / Rate queries
-    if (/rate|price|cost|kitna|charge|per night|night|rs|rupee|₹/i.test(msg)) {
-      const cheap = rates.filter(r => r.base_price <= 5000).slice(0, 3);
-      const mid   = rates.filter(r => r.base_price > 5000 && r.base_price <= 8000).slice(0, 2);
-      const prem  = rates.filter(r => r.base_price > 8000).slice(0, 2);
-      
-      let reply = '💰 **Current Rates (Tonight):**\n\n';
-      if (cheap.length) reply += `**₹4,500–₹5,000/night:**\n${cheap.map(r=>`• ${r.property_name} (${r.max_guests} guests)`).join('\n')}\n\n`;
-      if (mid.length)   reply += `**₹5,500–₹8,000/night:**\n${mid.map(r=>`• ${r.property_name} — ₹${r.base_price.toLocaleString('en-IN')} (${r.max_guests} guests)`).join('\n')}\n\n`;
-      if (prem.length)  reply += `**Premium ₹9,000+:**\n${prem.map(r=>`• ${r.property_name} — ₹${r.base_price.toLocaleString('en-IN')} (${r.max_guests} guests)`).join('\n')}\n\n`;
-      reply += '📅 Aapki dates kab ki hain? Main check karta hoon availability!';
-      return { text: reply, quickReplies: ['3–4 log', '6 log', '10+ log', 'Book karna hai'] };
-    }
-
-    // ── Guest count
-    const guestMatch = msg.match(/(\d+)\s*(log|person|guest|people|adult|member)/i) || msg.match(/(3|4|5|6|7|8|9|10|11|12)\s*(?:log|people)?/);
-    if (guestMatch || /kitne log|how many|group|family|friends/i.test(msg)) {
-      const count = guestMatch ? parseInt(guestMatch[1]) : 0;
-      const suitable = count > 0 
-        ? rates.filter(r => r.max_guests >= count)
-        : rates.filter(r => r.max_guests >= 6);
-      const topPicks = suitable.sort((a,b) => a.base_price - b.base_price).slice(0, 4);
-      
-      let reply = count > 0 
-        ? `👥 ${count} logon ke liye perfect options:\n\n`
-        : '👥 Hamare popular options:\n\n';
-      
-      topPicks.forEach(r => {
-        reply += `🏠 **${r.property_name}**\n   ₹${r.base_price.toLocaleString('en-IN')}/night · Max ${r.max_guests} guests\n\n`;
-      });
-      reply += 'Koi specific property chahiye ya dates confirm karni hain?';
-      return { text: reply, quickReplies: ['Book karna hai', 'More options', 'WhatsApp karo'] };
-    }
-
-    // ── Specific property queries
-    const propMatch = rates.find(r => 
-      msg.includes(r.property_name.toLowerCase()) || 
-      msg.includes(r.slug.replace(/-/g,' '))
-    );
-    if (propMatch) {
-      return {
-        text: `🏠 **${propMatch.property_name}**\n\n💰 ₹${propMatch.base_price.toLocaleString('en-IN')} / night\n👥 Max ${propMatch.max_guests} guests\n✅ AC, WiFi, Full Kitchen, Parking\n🕐 Check-in: 12 PM | Check-out: 11 AM\n\nIs property mein interested hain? Booking ke liye naam aur number dijiye!`,
-        quickReplies: ['Haan, book karna hai!', 'Aur options dikhao', 'WhatsApp karo']
-      };
-    }
-
-    // ── Location queries  
-    if (/location|address|kahan|where|lulu|gomti|airport|medanta|map/i.test(msg)) {
-      return {
-        text: '📍 Hamare properties mainly 3 areas mein hain:\n\n🏘️ **Vikalp Khand, Gomti Nagar** — 7 properties (₹4,500–₹6,000)\n🏘️ **Vishesh Khand, Gomti Nagar** — 5 properties (₹5,500–₹9,000)\n🏡 **Near Lulu Mall / Mahanagar** — 5 villas (₹4,500–₹12,000)\n\nKis area mein chahiye?',
-        quickReplies: ['Gomti Nagar', 'Lulu Mall ke paas', 'Sab dikhao']
-      };
-    }
-
-    // ── WhatsApp request
-    if (/whatsapp|call|contact|phone|number|rang|speak/i.test(msg)) {
-      return {
-        text: '📲 Bilkul! Hamare team se directly baat karein:\n\n👤 **Praveen Singh** (Owner)\n📱 +91 91941 09911',
-        actions: [{ label: '📲 WhatsApp Now', url: `https://wa.me/${ADMIN_WA}?text=Hi! I'm interested in booking a property.` }],
-        quickReplies: []
-      };
-    }
-
-    // ── Amenities
-    if (/ameniti|facility|wifi|ac|kitchen|parking|pool|tv|gym|clean/i.test(msg)) {
-      return {
-        text: '✅ Sabhi properties mein ye facilities hain:\n\n❄️ 100% AC\n📶 High-Speed WiFi\n📺 Smart TV (Netflix ready)\n🍳 Fully Equipped Kitchen\n🅿️ Free Parking\n🧹 Professional Cleaning\n📞 24/7 Caretaker\n\nKoi specific property dekhni hai?',
-        quickReplies: ['Rates dikhao', 'Book karna hai', '6 logon ke liye']
-      };
-    }
-
-    // ── Lead capture flow
-    if (_step === 'ask_name') {
-      _leadData.name = userMsg.trim();
-      _step = 'ask_phone';
-      return { text: `Shukriya ${_leadData.name} ji! 🙏\n\nAapka WhatsApp number dijiye — hamaari team aapko abhi contact karegi:`, quickReplies: [] };
-    }
-
-    if (_step === 'ask_phone') {
-      const phoneClean = userMsg.replace(/[^0-9+]/g, '');
-      if (phoneClean.length < 10) {
-        return { text: '📱 Sahi number dijiye (10 digits), please:', quickReplies: [] };
-      }
+    // 0. DETECT PHONE NUMBER ANYWHERE (Direct Lead Capture)
+    const phoneMatch = raw.match(/(\+?\d{1,4}[-.\s]?)?(\d{10})/);
+    if (phoneMatch && (_step === 'ask_phone' || _step === 'ask_name' || /phone|number|whatsapp|call|contact/i.test(msg) || raw.length <= 15)) {
+      const phoneClean = phoneMatch[2];
+      const guestName = _leadData.name || 'Valued Guest';
       _leadData.phone = phoneClean;
       _step = 'done';
+      await saveLead(guestName, phoneClean, _leadData.interest || 'Chat booking enquiry');
       
-      await saveLead(_leadData.name, _leadData.phone, _leadData.interest || 'Chat enquiry');
-      
-      const waMsg = encodeURIComponent(`Namaste! I'm ${_leadData.name}. I'm interested in booking a property at Unique Haven Homes, Lucknow. Please share availability and details.`);
+      const waMsg = encodeURIComponent(`Namaste Praveen ji! I'm ${guestName} (${phoneClean}). I want to book a stay at Unique Haven Homes. Please share details.`);
       return {
-        text: `✅ Shukriya ${_leadData.name} ji!\n\nHamaari team aapko ${_leadData.phone} pe bahut jaldi WhatsApp karegi! 🙏\n\nYa aap directly hamare host ko WhatsApp kar sakte hain:`,
-        actions: [{ label: '📲 WhatsApp Team Now', url: `https://wa.me/${ADMIN_WA}?text=${waMsg}` }],
-        quickReplies: ['Aur sawaal hain', 'Dhanyawad! 🙏']
+        text: `✅ **Bahut shukriya ${guestName} ji!** 🙏\n\nHamaare host **Praveen Singh** aapko WhatsApp number **${phoneClean}** par abhi contact kar rahe hain.\n\nAap chahein to seedha WhatsApp par bhi baat kar sakte hain:`,
+        actions: [{ label: '📲 Message Praveen on WhatsApp', url: `https://wa.me/${ADMIN_WA}?text=${waMsg}` }],
+        quickReplies: ['Check-in time?', 'Location details', 'Aur options dikhao']
       };
     }
 
-    // ── General greetings
-    if (/^(hi|hello|hii|hey|helo|namaste|namaskar|hy|haai)\b/i.test(msg) || msg.length < 4) {
+    // 1. SPECIFIC: GOMTI GRAND VILLA
+    if (/gomti grand|grand villa|gomti villa/i.test(msg)) {
       return {
-        text: 'Namaste! 🙏 Main Nisha hoon, Unique Haven Homes ki AI assistant.\n\nMain aapki help kar sakti hoon:\n• 🏠 Property recommendations\n• 💰 Rates & availability\n• 📍 Location info\n• 📅 Booking assistance\n\nAap kya jaanna chahte hain?',
-        quickReplies: ['Rates dikhao', '6 logon ke liye', 'Lulu Mall ke paas', 'Book karna hai']
+        text: `🏡 **Gomti Grand Villa — Luxury Private Villa**\n\n` +
+              `💰 **Rate:** **₹8,000 / night**\n` +
+              `👥 **Capacity:** Up to 10 Guests\n` +
+              `📍 **Location:** Near Lulu Mall & Shaheed Path (Central Lucknow)\n\n` +
+              `✨ **Special Features:**\n` +
+              `• 100% Private Standalone Villa with private lawn & terrace\n` +
+              `• Fully equipped modern modular kitchen & dining hall\n` +
+              `• 100% AC bedrooms, high-speed WiFi, smart LED TVs\n` +
+              `• Safe private gated car parking inside the villa premises\n` +
+              `• Ideal for family vacations, intimate get-togethers & peaceful stays.\n\n` +
+              `Kya aap iski availability check karna chahte hain?`,
+        actions: [{ label: '📲 Book Gomti Grand Villa', url: `https://wa.me/${ADMIN_WA}?text=Hi! I want to book Gomti Grand Villa (₹8,000/night). Please check availability.` }],
+        quickReplies: ['Book karna hai 📅', 'Advance policy?', 'Other villas dikhao']
       };
     }
 
-    // ── Default
+    // 2. CHECK-IN / CHECK-OUT TIMINGS
+    if (/check in|check out|check-in|check-out|timing|time|samay|kab aana|early check|late check/i.test(msg)) {
+      return {
+        text: `🕐 **Standard Timings:**\n\n` +
+              `• **Check-in:** **12:00 PM** (Noon)\n` +
+              `• **Check-out:** **11:00 AM** (Morning)\n\n` +
+              `✨ **Early Check-in / Late Check-out Policy:**\n` +
+              `Subject to availability! Agar pehle se koi booking nahi hai to hum guest convenience ke mutabiq 1–2 ghante adjust kar dete hain. Advance me inform karna zaroori hai.`,
+        quickReplies: ['ID proof kya chahiye?', 'Advance kitna lagega?', 'Book karna hai']
+      };
+    }
+
+    // 3. COUPLE FRIENDLY / UNMARRIED COUPLES / SAFETY
+    if (/couple|unmarried|girlfriend|boyfriend|safe|privacy|ladka ladki|couples allowed/i.test(msg)) {
+      return {
+        text: `❤️ **100% Couple Friendly & Safe!**\n\n` +
+              `• Unmarried couples bilkul welcome hain.\n` +
+              `• **Complete privacy and zero disturbance** guaranteed.\n` +
+              `• No intrusive questioning at check-in.\n` +
+              `• Sabhi adult guests (18+) ke paas original Govt Photo ID (Aadhaar / Driving License / Voter ID / Passport) hona zaroori hai.`,
+        quickReplies: ['ID rules?', 'Private Flats dikhao', 'Book karna hai']
+      };
+    }
+
+    // 4. ID PROOF & DOCUMENTATION
+    if (/id proof|aadhaar|aadhar|id chahiye|document|passport|pan card|age/i.test(msg)) {
+      return {
+        text: `📋 **Check-in ID Guidelines:**\n\n` +
+              `• Sabhi 18+ adult guests ke paas valid **Government Photo ID** hona anivarya hai:\n` +
+              `  ✅ **Aadhaar Card**\n` +
+              `  ✅ **Driving License**\n` +
+              `  ✅ **Passport**\n` +
+              `  ✅ **Voter ID Card**\n` +
+              `• *(Note: Income Tax PAN Card address proof ke roop me maanya nahi hota).*\n` +
+              `• Check-in par hamare manager verification ke baad contactless digital register me entry karte hain.`,
+        quickReplies: ['Check-in time?', 'Couples allowed?', 'Rates dikhao']
+      };
+    }
+
+    // 5. PARTY / GATHERING / BIRTHDAY / CELEBRATION / MUSIC
+    if (/party|celebrat|birthday|anniversary|gathering|get together|dj|music|loud|function/i.test(msg)) {
+      return {
+        text: `🎉 **Parties & Celebrations Policy:**\n\n` +
+              `• **Villas me Allowed:** Small family gatherings, birthdays aur peaceful celebrations hamari private villas jaise **Gomti Grand Villa (₹8,000)**, **Celebrity Garden (₹10,000)** aur **Royal White House (₹12,000)** me allow hain.\n` +
+              `• **Music Rule:** Indoor soft music anytime. Raat **10:00 PM** ke baad outdoor loud DJ/speakers strictly restricted hain taaki residential colony ke rules follow hon.\n` +
+              `• Cleanliness aur decor coordination ke liye advance notification zaroori hai.`,
+        quickReplies: ['Gomti Grand Villa', 'Royal White House', 'Host se baat karein']
+      };
+    }
+
+    // 6. FOOD, COOKING & KITCHEN FACILITIES
+    if (/kitchen|cook|khana|food|gas|stove|swiggy|zomato|blinkit|fridge|refrigerator|bartan|utensil|ro water/i.test(msg)) {
+      return {
+        text: `🍳 **Kitchen & Food Facilities:**\n\n` +
+              `• **Full Modular Kitchen:** Gas stove, Refrigerator, RO Water Filter, Microwave, aur complete cookware & dinner set uplabdh hai.\n` +
+              `• **Self Cooking:** Aap apna khana khud bana sakte hain (chai, breakfast, meals).\n` +
+              `• **Superfast Delivery:** **Swiggy, Zomato, Blinkit, Zepto, Instamart** sabhi properties par 15–20 minutes me deliver karte hain.\n` +
+              `• Aas-paas famous Lucknowi restaurants (Awadhi, Mughlai, Pure Veg) bhi walking/short drive par hain.`,
+        quickReplies: ['WiFi kaisa hai?', 'Rates list', 'Book karna hai']
+      };
+    }
+
+    // 7. LOCATION & DISTANCE QUERIES
+    if (/location|address|kahan|where|distance|door|airport|station|charbagh|lulu|ekana|medanta|palassio|summit/i.test(msg)) {
+      return {
+        text: `📍 **Unique Haven Homes Locations in Lucknow:**\n\n` +
+              `1️⃣ **Gomti Nagar Prime (Vikalp & Vishesh Khand):**\n` +
+              `   • 5 mins to Summit Building, Wave Mall, Husariya, Cinepolis\n` +
+              `   • Near Gomti Nagar Railway Station\n\n` +
+              `2️⃣ **Near Lulu Mall & Shaheed Path (Villas Hub):**\n` +
+              `   • 5 mins to Lulu Mall & Phoenix Palassio\n` +
+              `   • 7 mins to Ekana International Cricket Stadium\n` +
+              `   • 5 mins to Medanta Hospital\n\n` +
+              `🚗 **Connectivity:**\n` +
+              `• **CCS Airport (Amausi):** 20–25 mins via Shaheed Path bypass\n` +
+              `• **Charbagh Railway Station:** 20–25 mins\n\n` +
+              `Aapko kis area me property chahiye?`,
+        quickReplies: ['Gomti Nagar Flats', 'Lulu Mall Villas', 'Airport connectivity']
+      };
+    }
+
+    // 8. PARKING & VEHICLE SAFETY
+    if (/parking|car|vehicle|gaadi|bike|safe parking/i.test(msg)) {
+      return {
+        text: `🅿️ **Parking & Vehicle Safety:**\n\n` +
+              `• **100% Free & Safe Parking** uplabdh hai!\n` +
+              `• **Villas me:** Dedicated private parking inside closed gate boundary (2-3 cars aaram se park ho sakti hain).\n` +
+              `• **Flats me:** Dedicated building parking with 24/7 CCTV surveillance & security guard.\n` +
+              `• Sedan, SUV aur bikes sabhi safely park ho sakti hain.`,
+        quickReplies: ['Check-in timing?', 'Gomti Grand Villa', 'Book karna hai']
+      };
+    }
+
+    // 9. WIFI, AC & WORK FROM HOME
+    if (/wifi|internet|speed|wfh|work|ac|air condition|power backup|generator|inverter/i.test(msg)) {
+      return {
+        text: `📶 **Amenities & Comfort:**\n\n` +
+              `• **High-Speed Fiber WiFi:** 100+ Mbps unlimited optical fiber internet (ideal for Work From Home, Zoom meetings, streaming).\n` +
+              `• **100% Air Conditioned:** Sabhi bedrooms aur living room fully AC hain.\n` +
+              `• **Power Backup:** Inverter / generator backup taaki lights aur fans continuous chalein.\n` +
+              `• **Smart TV:** Netflix, YouTube, Prime ready smart screens.`,
+        quickReplies: ['Kitchen facility?', 'Rates list', 'Book now']
+      };
+    }
+
+    // 10. ADVANCE PAYMENT, TOKEN & HOW TO BOOK
+    if (/advance|token|booking process|kaise book|payment method|upi|qr|card|cash|refund|cancellation/i.test(msg)) {
+      return {
+        text: `💳 **Booking & Payment Process:**\n\n` +
+              `1️⃣ **Dates Block:** Dates confirm karne ke liye ek chhota sa advance token (typically 30% to 50%) pay karna hota hai.\n` +
+              `2️⃣ **Payment Modes:** UPI (PhonePe, GPay, Paytm), Bank Transfer (IMPS/NEFT), ya QR code.\n` +
+              `3️⃣ **Instant Confirmation:** Advance receive hote hi official GST Tax Invoice / Booking Voucher aur caretaker ka location pin WhatsApp par turant send ho jata hai.\n` +
+              `4️⃣ **Balance Amount:** Baaki bacha payment aap check-in ke time property pahunch kar pay kar sakte hain.\n\n` +
+              `Book karne ke liye apna naam aur dates bataiye!`,
+        actions: [{ label: '📲 Pay Advance & Block Dates', url: `https://wa.me/${ADMIN_WA}?text=Namaste! I want to pay advance token and confirm my booking.` }],
+        quickReplies: ['Mera naam...', 'Direct WhatsApp call', 'Rates dikhao']
+      };
+    }
+
+    // 11. DISCOUNTS & LONG STAY OFFERS
+    if (/discount|offer|sasta|kam karo|bargain|weekly|monthly|long stay|corporate/i.test(msg)) {
+      return {
+        text: `🎁 **Discounts & Extended Stay Offers:**\n\n` +
+              `• **Weekly Stay (7+ nights):** Flat **10% to 15% Discount**\n` +
+              `• **Monthly Stay (30+ nights):** Up to **25% Super Saver Discount**\n` +
+              `• **Corporate / Medical Stay (Medanta):** Special discounted packages available.\n\n` +
+              `Best discounted offer ke liye seedha host Praveen ji se baat karein!`,
+        actions: [{ label: '📲 Claim Best Discount on WhatsApp', url: `https://wa.me/${ADMIN_WA}?text=Hi Praveen ji! I need a special discount for stay at Unique Haven Homes.` }],
+        quickReplies: ['Book karna hai', 'Flats ke rates', 'Villas ke rates']
+      };
+    }
+
+    // 12. PET FRIENDLY
+    if (/pet|dog|cat|kutta|billi|animals/i.test(msg)) {
+      return {
+        text: `🐾 **Pet Policy:**\n\n` +
+              `• Hamari select private villas (jaise **Gomti Grand Villa**, **The Pink House**) me trained pets allowed hain!\n` +
+              `• Booking se pehle inform karna anivarya hai taaki proper arrangements kiye ja sakein.\n` +
+              `• Apartments/flats me building norms ke karan pets restricted hain.`,
+        quickReplies: ['Gomti Grand Villa', 'Host se baat karein', 'Check-in time']
+      };
+    }
+
+    // 13. RATES & COMPLETE PRICING LIST
+    if (/rate|price|cost|kitna|charge|per night|rent|pricing|list/i.test(msg)) {
+      return {
+        text: `💰 **Official Property Rates (Verified):**\n\n` +
+              `🏡 **Grand Private Villas (Big Groups & Families):**\n` +
+              `• **Royal White House:** ₹12,000 / night (Up to 18 Guests)\n` +
+              `• **Celebrity Garden:** ₹10,000 / night (Up to 8–10 Guests)\n` +
+              `• **The Pink House:** ₹9,000 / night (Up to 10 Guests)\n` +
+              `• **Gomti Grand Villa:** ₹8,000 / night (Up to 10 Guests)\n\n` +
+              `🏙️ **Penthouse & Boutique Stays:**\n` +
+              `• **Starlight Blue PentHouse:** ₹6,000 / night (Open Sky View)\n` +
+              `• **The Unique / Green House / Yellow House:** ₹5,500 / night\n\n` +
+              `🏢 **Luxury 3BHK Serviced Flats (₹4,500 / night):**\n` +
+              `• RedRose Palace • Black Beauty • The Dark Blue • The Brown • The Light Green • The Nawabi Stay • The Velvet House\n\n` +
+              `Aap kitne logon ke liye dekh rahe hain?`,
+        quickReplies: ['Gomti Grand Villa ₹8,000', '3BHK Flat ₹4,500', 'Book karna hai 📅']
+      };
+    }
+
+    // 14. GUEST CAPACITY / NUMBER OF PEOPLE
+    const guestMatch = msg.match(/(\d+)\s*(log|person|guest|people|adult|member|aadmi)/i) || msg.match(/(2|3|4|5|6|7|8|9|10|12|15|18)\s*(?:log|people)?/);
+    if (guestMatch) {
+      const count = parseInt(guestMatch[1], 10);
+      _leadData.interest = `${count} guests`;
+      if (count > 8) {
+        return {
+          text: `👥 **${count} Logon ke liye Best Luxury Villas:**\n\n` +
+                `1️⃣ **Royal White House** — ₹12,000/night (Up to 18 Guests, Royal Estate)\n` +
+                `2️⃣ **Celebrity Garden** — ₹10,000/night (Huge Garden & Lawn)\n` +
+                `3️⃣ **Gomti Grand Villa** — ₹8,000/night (Private Villa with Lawn)\n` +
+                `4️⃣ **The Pink House** — ₹9,000/night (Aesthetic 10-Guest Villa)\n\n` +
+                `Konsi villa pasand aayi aapko?`,
+          quickReplies: ['Gomti Grand Villa', 'Royal White House', 'Book karna hai']
+        };
+      } else {
+        return {
+          text: `👥 **${count} Logon ke liye Perfect Options:**\n\n` +
+                `• **Luxury 3BHK Flats:** ₹4,500/night (The Dark Blue, RedRose Palace, Black Beauty) — 3 AC Bedrooms, Full Kitchen, Living Room.\n` +
+                `• **Private Villa:** **Gomti Grand Villa (₹8,000/night)** — standalone luxury property.\n` +
+                `• **Penthouse:** **Starlight Blue (₹6,000/night)** — romantic skyline terrace.\n\n` +
+                `Aapki dates kab ki hain?`,
+          quickReplies: ['₹4,500 wale flats', 'Gomti Grand Villa', 'Direct WhatsApp']
+        };
+      }
+    }
+
+    // 15. BOOKING INTENT / CONTACT HOST
+    if (/book|booking|reserve|confirm|baat karni|number|call|contact|praveen/i.test(msg)) {
+      _step = 'ask_name';
+      return {
+        text: `📅 **Booking ke liye main aapko host se turant connect kar rahi hoon!**\n\n` +
+              `Kripya **Aapka Naam** aur **Aane ki Tareekh (Dates)** bata dijiye:`,
+        actions: [{ label: '📲 WhatsApp Host Directly', url: `https://wa.me/${ADMIN_WA}?text=Namaste! I want to book a stay at Unique Haven Homes.` }],
+        quickReplies: ['Praveen Singh', 'Gomti Grand Villa book karo', 'Rates batao pehle']
+      };
+    }
+
+    // 16. IF WAITING FOR NAME IN LEAD FLOW
+    if (_step === 'ask_name' && raw.length > 2 && !raw.includes('?')) {
+      _leadData.name = raw;
+      _step = 'ask_phone';
+      return {
+        text: `Bahut achha ${_leadData.name} ji! 🙏\n\nBas aapka **10-digit WhatsApp Number** dijiye taaki hamaare manager aapko photos, live location pin aur booking voucher bhej sakein:`,
+        quickReplies: ['Seedha WhatsApp karo', 'Gomti Grand Villa']
+      };
+    }
+
+    // 17. GREETINGS
+    if (/^(hi|hello|hii|hey|helo|namaste|namaskar|pranam|good morning|good evening|kya haal)\b/i.test(msg) || raw.length < 3) {
+      return {
+        text: `Namaste! 🙏 Main **Nisha** hoon, **Unique Haven Homes, Lucknow** ki verified AI concierge.\n\n` +
+              `Main aapki turant sahayata kar sakti hoon:\n` +
+              `• 🏡 **Gomti Grand Villa (₹8,000)** & Luxury Villas\n` +
+              `• 🏢 **3BHK Luxury Flats (₹4,500/night)**\n` +
+              `• 🕐 **Check-in / Check-out & Rules (100% Couple Friendly)**\n` +
+              `• 📍 **Locations (Gomti Nagar, Lulu Mall, Ekana)**\n\n` +
+              `Aap kis baare me jaanna chahte hain?`,
+        quickReplies: ['Rates & Prices 💰', 'Gomti Grand Villa 🏡', 'Couples allowed? ❤️', 'Book karna hai 📅']
+      };
+    }
+
+    // 18. INTELLIGENT DEFAULT
     return {
-      text: 'Aapka sawaal samajh aaya! 😊 Main aapki help ke liye hoon.\n\nKya aap bata sakte hain — kitne log hain aur kab ke liye chahiye?',
-      quickReplies: ['Rates dikhao', '4 log', '6 log', '10+ log', 'Book karna hai']
+      text: `Ji bilkul! Unique Haven Homes me hum luxury living, 100% privacy aur seamless hospitality provide karte hain.\n\n` +
+            `Aap humse pooch sakte hain:\n` +
+            `• **Property Rates & Availability** (Gomti Grand Villa ₹8,000, 3BHK Flats ₹4,500)\n` +
+            `• **Check-in (12 PM) / Check-out (11 AM)**\n` +
+            `• **Kitchen, WiFi, Parking & Couples Policy**\n\n` +
+            `Ya aap direct host se WhatsApp par baat kar sakte hain:`,
+      actions: [{ label: '📲 Chat with Host on WhatsApp', url: `https://wa.me/${ADMIN_WA}?text=Namaste! I have a question about Unique Haven Homes.` }],
+      quickReplies: ['Gomti Grand Villa ₹8,000', 'Rates list dikhao', 'Couple friendly?', 'Book now']
     };
   }
 
@@ -551,5 +717,6 @@
       if (input) { input.value = text; sendUserMessage(); }
     }
   };
+  window.UHH_ChatWidget = window.UHH_Chat;
 
 })();

@@ -54,7 +54,7 @@
       }
     } catch (_) {}
 
-    // Fetch fresh from Supabase
+    // Fetch fresh from Supabase rooms table (source of truth)
     try {
       const sb = window.sb ||
         (typeof supabase !== 'undefined' && window.SUPABASE_URL && window.SUPABASE_ANON_KEY
@@ -63,12 +63,16 @@
 
       if (sb) {
         const { data } = await sb
-          .from('property_rates')
-          .select('room_id, property_name, base_price, airbnb_price, max_guests, is_active')
-          .eq('is_active', true)
+          .from('rooms')
+          .select('room_id, property_name, nickname, rent_per_night, max_guests')
           .order('room_id');
         if (data && data.length > 0) {
-          _cachedRates = data;
+          _cachedRates = data.map(r => ({
+            room_id: r.room_id,
+            property_name: r.nickname || r.property_name,
+            base_price: Number(r.rent_per_night) || 4500,
+            max_guests: r.max_guests || 6
+          }));
           return _cachedRates;
         }
       }
@@ -567,10 +571,25 @@ Remember: Your goal is to make guests fall in love with Unique Haven Homes and g
       });
 
     } catch (err) {
-      console.error('[Nisha] Start session failed:', err);
-      setStatus('error', '⚠️ Failed to connect');
+      console.warn('[Nisha Voice] Start session notice:', err.message);
+      setStatus('error', '⚠️ Voice offline — use Chat');
       const waveArea = document.getElementById('uhh-wave-area');
-      if (waveArea) waveArea.innerHTML = `<span style="font-size:12px;color:#ef4444;">Error: ${err.message}</span>`;
+      if (waveArea) {
+        waveArea.innerHTML = `
+          <div style="font-size:12px;color:#f0f2f7;line-height:1.5;margin-bottom:10px;">
+            🎙️ Voice server currently busy or token limit reached.<br/>
+            Aap turant hamare <strong>Smart Text Chat</strong> ya <strong>WhatsApp</strong> se sawaal pooch sakte hain!
+          </div>
+          <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;">
+            <button onclick="if(window.UHH_ChatWidget){window.UHH_ChatWidget.open();const vp=document.getElementById('uhh-voice-panel');if(vp)vp.style.display='none';}" style="background:#22c55e;color:#000;border:none;padding:7px 12px;border-radius:8px;font-size:11.5px;font-weight:700;cursor:pointer;">
+              💬 Open Text Chat
+            </button>
+            <a href="https://wa.me/${ADMIN_WA}?text=Namaste! I want details about booking a property at Unique Haven Homes." target="_blank" style="background:#25D366;color:#000;text-decoration:none;padding:7px 12px;border-radius:8px;font-size:11.5px;font-weight:700;display:inline-flex;align-items:center;gap:4px;">
+              📲 WhatsApp Host
+            </a>
+          </div>
+        `;
+      }
     }
   }
 
