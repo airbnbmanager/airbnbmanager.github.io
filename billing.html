@@ -10,8 +10,8 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="config.js"></script>
-  <script src="js/booking-receipt.js?v=1"></script>
-  <script src="js/gst-invoice.js"></script>
+  <script src="js/booking-receipt.js?v=237"></script>
+  <script src="js/gst-invoice.js?v=237"></script>
   <style>
     *{box-sizing:border-box;margin:0;padding:0}
     :root{
@@ -466,8 +466,8 @@ function renderReceiptScreen() {
     <!-- Action Bar -->
     <div class="action-bar">
       <button class="abtn primary" onclick="printReceiptDoc()">🖨️ Print / Save PDF</button>
-      <button class="abtn green" onclick="window.sharePdfViaWhatsApp('receiptDocArea', { filename: '${receiptFilename}', phone: '${b.phone || ''}', message: document.getElementById('receiptWaTextarea').value, title: '${escapeHtml(receiptTitle).replace(/'/g, "\\'")}', triggerBtn: this })">
-        📱 WhatsApp (with PDF)
+      <button class="abtn green" onclick="window.sendReceiptWhatsApp ? window.sendReceiptWhatsApp('${b.phone || ''}', document.getElementById('receiptWaTextarea').value) : window.shareReceiptWhatsApp('${b.booking_id}')">
+        💬 Send on WhatsApp
       </button>
       <button class="abtn" onclick="copyReceiptWhatsAppText()">📋 Copy Text</button>
       ${(b.stay_group_id || (allBookings.filter(x => x.phone && x.phone === b.phone).length > 1)) ? `
@@ -557,8 +557,8 @@ function renderInvoiceScreen() {
     <div class="action-bar">
       <button class="abtn primary" onclick="printInvoice()">🖨️ Print / Save PDF</button>
       <button class="abtn green" onclick="saveInvoice()">💾 Save Invoice</button>
-      <button class="abtn" style="background:#25D366;color:#fff;font-weight:700;border:none;" onclick="window.sharePdfViaWhatsApp('invoiceDoc', { filename: '${invFilename}', phone: '${b.phone || ''}', message: '🧾 *GST Tax Invoice* for your stay at The Unique Haven Homes.%0AInvoice: ' + (document.getElementById('invNoInp')?.value || '${invNo}') + '%0AAmount: ₹${total.toLocaleString('en-IN')}', title: '${escapeHtml(invDocTitle).replace(/'/g, "\\'")}', triggerBtn: this })">
-        📱 WhatsApp (with PDF)
+      <button class="abtn" style="background:#25D366;color:#fff;font-weight:700;border:none;" onclick="window.sendReceiptWhatsApp ? window.sendReceiptWhatsApp('${b.phone || ''}', '🧾 *GST Tax Invoice* for your stay at The Unique Haven Homes.\nInvoice: ' + (document.getElementById('invNoInp')?.value || '${invNo}') + '\nAmount: ₹${total.toLocaleString('en-IN')}') : (window.shareInvoiceWhatsApp ? window.shareInvoiceWhatsApp(_inv) : null)">
+        💬 Send on WhatsApp
       </button>
       <button class="abtn" onclick="copyText()">📋 Copy Text</button>
       <button class="abtn" onclick="setDocMode('receipt')" style="border-color:#0f172a;color:#0f172a;font-weight:700;">

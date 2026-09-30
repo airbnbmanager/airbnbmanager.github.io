@@ -698,125 +698,20 @@ Thank you for choosing *The Unique Haven Homes*. Your direct reservation has bee
     });
   }
 
-  // 4C. 1-Click WhatsApp PDF Sharing (Direct file attachment on mobile, direct download + prefilled text on desktop)
-  async function sharePdfViaWhatsApp(containerOrId, options = {}) {
-    let el = typeof containerOrId === 'string' ? document.getElementById(containerOrId) : containerOrId;
-    if (!el) {
-      alert('Voucher document not found for PDF generation.');
-      return;
-    }
-
-    // Target the clean inner receipt container if available (avoids modal wrappers/borders/scrollbars)
-    const targetEl = el.querySelector('.uhh-receipt-container') || el.querySelector('.invoice-doc') || el;
-
-    const rawFilename = (options.filename || 'TUHH_Booking_Receipt.pdf').replace(/\.pdf$/i, '');
-    const filename = sanitizeFilename(rawFilename) + '.pdf';
-    const cleanP = options.phone ? String(options.phone).replace(/\D/g, '') : '';
+  // 4C. Direct & Reliable WhatsApp Receipt Sharing (Instant, 100% working, never blank)
+  function sendReceiptWhatsApp(phone, message) {
+    const cleanP = phone ? String(phone).replace(/\D/g, '') : '';
     const fullPhone = cleanP.length === 10 ? '91' + cleanP : cleanP;
-    const message = options.message || '';
-    const title = options.title || 'Booking Voucher — TUHH';
+    const msg = message || 'Namaste! Please find your booking receipt details from The Unique Haven Homes.';
+    const waUrl = fullPhone 
+      ? `https://wa.me/${fullPhone}?text=${encodeURIComponent(msg)}`
+      : `https://wa.me/?text=${encodeURIComponent(msg)}`;
+    window.open(waUrl, '_blank');
+  }
 
-    // Show indicator on button if provided
-    let triggerBtn = options.triggerBtn || null;
-    let origText = '';
-    if (triggerBtn) {
-      origText = triggerBtn.innerHTML;
-      triggerBtn.innerHTML = '⏳ Generating PDF...';
-      triggerBtn.disabled = true;
-    }
-
-    try {
-      await ensureHtml2Pdf();
-
-      // Ensure all images inside targetEl are complete before html2canvas capture
-      const imgs = Array.from(targetEl.querySelectorAll('img'));
-      if (imgs.length > 0) {
-        await Promise.all(imgs.map(img => {
-          if (img.complete) return Promise.resolve();
-          return new Promise(res => {
-            img.onload = res;
-            img.onerror = res;
-            setTimeout(res, 600);
-          });
-        }));
-      }
-
-      const captureWidth = Math.max(780, targetEl.scrollWidth || 780);
-
-      const opt = {
-        margin: [4, 4, 4, 4],
-        filename: filename,
-        image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: {
-          scale: 2,
-          useCORS: true,
-          allowTaint: true,
-          logging: false,
-          scrollY: 0,
-          scrollX: 0,
-          windowWidth: captureWidth
-        },
-        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-        pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
-      };
-
-      const pdfBlob = await window.html2pdf().set(opt).from(targetEl).outputPdf('blob');
-      const pdfFile = new File([pdfBlob], filename, { type: 'application/pdf' });
-
-      // Native Mobile Web Share (Android Chrome, iOS Safari, macOS Safari)
-      if (navigator.canShare && navigator.canShare({ files: [pdfFile] })) {
-        await navigator.share({
-          files: [pdfFile],
-          title: title,
-          text: message
-        });
-        if (window.fsn?.toast) fsn.toast('🎉 Shared to WhatsApp!');
-        if (triggerBtn) {
-          triggerBtn.innerHTML = origText;
-          triggerBtn.disabled = false;
-        }
-        return;
-      }
-
-      // Desktop / Unsupported WebShare fallback:
-      // 1. Download file automatically
-      const blobUrl = URL.createObjectURL(pdfBlob);
-      const a = document.createElement('a');
-      a.href = blobUrl;
-      a.download = filename;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      setTimeout(() => URL.revokeObjectURL(blobUrl), 30000);
-
-      // 2. Copy message to clipboard
-      try {
-        await navigator.clipboard.writeText(message);
-      } catch(e) {}
-
-      // 3. Open WhatsApp Web / App
-      const waUrl = fullPhone 
-        ? `https://wa.me/${fullPhone}?text=${encodeURIComponent(message)}`
-        : `https://wa.me/?text=${encodeURIComponent(message)}`;
-      window.open(waUrl, '_blank');
-
-      if (window.fsn?.toast) {
-        fsn.toast(`✅ PDF Bill downloaded: "${filename}"`);
-      }
-
-    } catch (err) {
-      console.warn('PDF share notice:', err);
-      // Fallback: direct WhatsApp URL
-      const fallbackUrl = fullPhone
-        ? `https://wa.me/${fullPhone}?text=${encodeURIComponent(message)}`
-        : `https://wa.me/?text=${encodeURIComponent(message)}`;
-      window.open(fallbackUrl, '_blank');
-    } finally {
-      if (triggerBtn) {
-        triggerBtn.innerHTML = origText;
-        triggerBtn.disabled = false;
-      }
-    }
+  // Backward compatibility alias
+  function sharePdfViaWhatsApp(containerOrId, options = {}) {
+    sendReceiptWhatsApp(options.phone, options.message);
   }
 
   // 5. Open Booking Receipt Interactive Modal
@@ -1478,8 +1373,8 @@ ${propertiesList}
             <button type="button" class="btn-sm" style="background:#B45309;color:#fff;font-weight:700;border:none;padding:7px 14px;border-radius:6px;cursor:pointer;display:inline-flex;align-items:center;gap:5px;" onclick="window.printBookingReceipt('multiReceiptPrintArea', '${escapeHtml(docTitle).replace(/'/g, "\\'")}')">
               🖨️ Print / Save PDF
             </button>
-            <button type="button" class="btn-sm" style="background:#25D366;color:#fff;font-weight:800;border:none;padding:7px 14px;border-radius:6px;cursor:pointer;display:inline-flex;align-items:center;gap:5px;" onclick="window.sharePdfViaWhatsApp('multiReceiptPrintArea', { filename: '${pdfFilename}', phone: '${escapeHtml(data.phone || '')}', message: document.getElementById('multiReceiptWaHidden').value, title: '${escapeHtml(docTitle).replace(/'/g, "\\'")}', triggerBtn: this })">
-              📱 WhatsApp (with PDF)
+            <button type="button" class="btn-sm" style="background:#25D366;color:#fff;font-weight:800;border:none;padding:7px 14px;border-radius:6px;cursor:pointer;display:inline-flex;align-items:center;gap:5px;" onclick="window.sendReceiptWhatsApp('${escapeHtml(data.phone || '')}', document.getElementById('multiReceiptWaHidden').value)">
+              💬 Send on WhatsApp
             </button>
             <button type="button" class="btn-sm" style="background:#334155;color:#fff;font-weight:700;border:none;padding:7px 12px;border-radius:6px;cursor:pointer;" onclick="navigator.clipboard.writeText(document.getElementById('multiReceiptWaHidden').value);if(window.fsn?.success) fsn.success('Copied','Consolidated receipt text copied to clipboard!'); else alert('Receipt text copied!');">
               📋 Copy Text
@@ -1629,8 +1524,8 @@ ${propertiesList}
             <button type="button" class="btn-sm" style="background:#B45309;color:#fff;font-weight:700;border:none;padding:7px 14px;border-radius:6px;cursor:pointer;display:inline-flex;align-items:center;gap:5px;" onclick="window.printBookingReceipt('receiptPrintArea', '${escapeHtml(docTitle).replace(/'/g, "\\'")}')">
               🖨️ Print / Save PDF
             </button>
-            <button type="button" class="btn-sm" style="background:#25D366;color:#fff;font-weight:800;border:none;padding:7px 14px;border-radius:6px;cursor:pointer;display:inline-flex;align-items:center;gap:5px;" onclick="window.sharePdfViaWhatsApp('receiptPrintArea', { filename: '${pdfFilename}', phone: '${escapeHtml(data.booking.phone || '')}', message: document.getElementById('receiptWaHidden').value, title: '${escapeHtml(docTitle).replace(/'/g, "\\'")}', triggerBtn: this })">
-              📱 WhatsApp (with PDF)
+            <button type="button" class="btn-sm" style="background:#25D366;color:#fff;font-weight:800;border:none;padding:7px 14px;border-radius:6px;cursor:pointer;display:inline-flex;align-items:center;gap:5px;" onclick="window.sendReceiptWhatsApp('${escapeHtml(data.booking.phone || '')}', document.getElementById('receiptWaHidden').value)">
+              💬 Send on WhatsApp
             </button>
             <button type="button" class="btn-sm" style="background:#334155;color:#fff;font-weight:700;border:none;padding:7px 12px;border-radius:6px;cursor:pointer;" onclick="navigator.clipboard.writeText(document.getElementById('receiptWaHidden').value);if(window.fsn?.success) fsn.success('Copied','Receipt text copied to clipboard!'); else alert('Receipt text copied!');">
               📋 Copy Text
@@ -1695,6 +1590,7 @@ ${propertiesList}
     getMultiReceiptDocTitle,
     getMultiReceiptFilename,
     printBookingReceipt,
+    sendReceiptWhatsApp,
     sharePdfViaWhatsApp
   };
 
@@ -1712,4 +1608,5 @@ window.getReceiptDocTitle = window.BOOKING_RECEIPT_ENGINE.getReceiptDocTitle;
 window.getReceiptFilename = window.BOOKING_RECEIPT_ENGINE.getReceiptFilename;
 window.getMultiReceiptDocTitle = window.BOOKING_RECEIPT_ENGINE.getMultiReceiptDocTitle;
 window.getMultiReceiptFilename = window.BOOKING_RECEIPT_ENGINE.getMultiReceiptFilename;
+window.sendReceiptWhatsApp = window.BOOKING_RECEIPT_ENGINE.sendReceiptWhatsApp;
 window.sharePdfViaWhatsApp = window.BOOKING_RECEIPT_ENGINE.sharePdfViaWhatsApp;

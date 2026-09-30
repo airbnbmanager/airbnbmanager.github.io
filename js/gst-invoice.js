@@ -1160,7 +1160,7 @@ Generated automatically via UHHS Management Portal.`;
               💾 Save Invoice &amp; CA Record
             </button>
             <button class="btn-sm" style="background:#25D366;color:#fff;padding:10px 14px;font-weight:700;display:inline-flex;align-items:center;gap:6px;" onclick="window._gstWhatsApp(this)">
-              💬 WhatsApp Bill
+              💬 Send on WhatsApp
             </button>
             ${state.existing ? `
               <button class="btn-sm outline" style="padding:10px 14px;color:#DC2626;border-color:#FCA5A5;font-weight:700;display:inline-flex;align-items:center;gap:4px;" onclick="window._gstDeleteCurrent()">
@@ -1232,7 +1232,7 @@ Generated automatically via UHHS Management Portal.`;
       printInvoiceDocument(state);
     };
 
-    window._gstWhatsApp = async function(triggerBtn) {
+    window._gstWhatsApp = function(triggerBtn) {
       // 1. Sync all active form inputs from the modal DOM into state immediately
       const noInp = document.getElementById('gstInpInvNo');
       const dtInp = document.getElementById('gstInpInvDate');
@@ -1261,14 +1261,11 @@ Generated automatically via UHHS Management Portal.`;
       state.cgst = calc.cgst;
       state.sgst = calc.sgst;
 
-      // Auto-save the invoice record silently
-      try {
-        await persistInvoice(state);
+      // Auto-save the invoice record silently in background (non-blocking)
+      persistInvoice(state).then(() => {
         commitNextInvoiceSeq(state.invoice_date);
         state.existing = state;
-      } catch (e) {
-        console.warn('Auto-save notice:', e);
-      }
+      }).catch(e => console.warn('Auto-save notice:', e));
 
       const isGST = state.is_gst_invoice;
       const cleanPhone = (state.guest_phone || '').replace(/\D/g, '');
@@ -1284,80 +1281,19 @@ Namaste *${state.guest_name || 'Guest'}* ji 🙏
 📅 *Stay Dates:* ${state.check_in || '-'} to ${state.check_out || '-'} (${state.nights || 1} Night${(state.nights || 1) > 1 ? 's' : ''})
 💰 *Total Amount:* ₹${Number(state.total_amount || 0).toLocaleString('en-IN')}
 ${isGST ? `📊 *Taxable Base:* ₹${Number(calc.base).toLocaleString('en-IN')} | *GST (${state.gst_rate}%):* ₹${Number(calc.cgst + calc.sgst).toLocaleString('en-IN')}
-🏢 *GSTIN:* ${CO.gstin} | *SAC:* ${CO.sac}` : ''}
-✅ *Payment Status:* FULLY PAID
+🏢 *GSTIN:* ${CO.gstin} | *SAC:* ${CO.sac}
+` : ''}✅ *Payment Status:* FULLY PAID
 
-_Official ${isGST ? 'GST Tax Invoice' : 'Receipt'} PDF document attached._
 ✨ *The Unique Haven Homes Property Management*`;
 
-      // Visual button loading state
-      const btn = triggerBtn || document.querySelector('.modal-overlay button[onclick*="_gstWhatsApp"]');
-      let origBtnText = '';
-      if (btn) {
-        origBtnText = btn.innerHTML;
-        btn.innerHTML = '⏳ Generating PDF...';
-        btn.disabled = true;
-      }
+      const waUrl = fullPhone 
+        ? `https://wa.me/${fullPhone}?text=${encodeURIComponent(shortMsg)}`
+        : `https://wa.me/?text=${encodeURIComponent(shortMsg)}`;
 
-      // Render printable doc into a safe offscreen container with real pixel dimensions
-      // CRITICAL: Must be at top:0; left:0; width:794px; z-index:-99999 (NOT left:-9999px)
-      // because html2canvas captures relative to screen (0,0) and left:-9999px results in a completely blank canvas!
-      let tempDiv = document.createElement('div');
-      tempDiv.id = 'gstPdfCaptureHost';
-      tempDiv.className = 'uhh-invoice-document invoice-doc';
-      tempDiv.style.position = 'fixed';
-      tempDiv.style.left = '0px';
-      tempDiv.style.top = '0px';
-      tempDiv.style.width = '794px';
-      tempDiv.style.zIndex = '-99999';
-      tempDiv.style.background = '#ffffff';
-      tempDiv.style.boxSizing = 'border-box';
-      tempDiv.style.pointerEvents = 'none';
-      tempDiv.innerHTML = buildPrintableInvoiceHTML({
-        ...state,
-        taxable_value: calc.base,
-        cgst: calc.cgst,
-        sgst: calc.sgst
-      });
-      document.body.appendChild(tempDiv);
-
-      const cleanInvNo = String(state.invoice_no || '').replace(/[\/\\:*?"<>|]/g, '-');
-      const cleanGuest = String(state.guest_name || 'Guest').trim().replace(/[\/\\:*?"<>|]/g, '-').replace(/\s+/g, '_');
-      const invDate = state.invoice_date || state.check_in || '';
-      const filename = `TUHH_${isGST ? 'GST_Invoice' : 'Bill'}_${cleanGuest}_${cleanInvNo}${invDate ? '_' + invDate : ''}.pdf`;
-      const docTitle = `TUHH ${isGST ? 'GST Tax Invoice' : 'Bill'} — ${cleanInvNo} — ${state.guest_name || 'Guest'}`;
-
-      try {
-        if (typeof window.sharePdfViaWhatsApp === 'function') {
-          await window.sharePdfViaWhatsApp(tempDiv, {
-            filename: filename,
-            phone: state.guest_phone,
-            message: shortMsg,
-            title: docTitle,
-            triggerBtn: btn
-          });
-        } else {
-          shareInvoiceWhatsApp({
-            ...state,
-            taxable_value: calc.base,
-            cgst: calc.cgst,
-            sgst: calc.sgst
-          });
-        }
-      } catch (err) {
-        console.error('WhatsApp Bill generation error:', err);
-        shareInvoiceWhatsApp({
-          ...state,
-          taxable_value: calc.base,
-          cgst: calc.cgst,
-          sgst: calc.sgst
-        });
-      } finally {
-        if (tempDiv) tempDiv.remove();
-        if (btn) {
-          btn.innerHTML = origBtnText;
-          btn.disabled = false;
-        }
+      // Open WhatsApp synchronously on user click to prevent about:blank or popup block
+      window.open(waUrl, '_blank');
+      if (window.fsn?.success) {
+        fsn.success('WhatsApp Opened', 'Bill ready to send on WhatsApp!');
       }
     };
 
