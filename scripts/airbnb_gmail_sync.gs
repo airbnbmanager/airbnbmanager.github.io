@@ -16,8 +16,8 @@ const CONFIG = {
   SUPABASE_URL: "https://vxxmigdzimnrbbmkjzoa.supabase.co",
   SUPABASE_KEY: "sb_publishable_ZgssvBczAg9TPv4ihN8IfQ_FPcEnq1F",
   PROCESSED_LABEL: "Airbnb-Synced",
-  // Scan un-synced emails from the last 2 days
-  SEARCH_QUERY: 'from:airbnb.com ("Reservation confirmed" OR "booking confirmed" OR "Reservation cancelled" OR "Reservation canceled") newer_than:2d -label:Airbnb-Synced'
+  // Scan un-synced emails from the last 14 days (expanded so past bookings are caught)
+  SEARCH_QUERY: 'from:airbnb.com (reservation OR booking OR "confirmation code" OR HM) newer_than:14d -label:Airbnb-Synced'
 };
 
 // 17 Properties with STRICT unique keywords
@@ -26,8 +26,8 @@ const ROOM_MAPPING = [
   { roomId: 'GOM-101', name: 'RedRose Palace', keywords: ['redrose palace', 'redrose entire', 'red rose palace'] },
   { roomId: 'GOM-102', name: 'Black Beauty', keywords: ['black beauty'] },
   { roomId: 'GOM-201', name: 'The Dark Blue', keywords: ['dark blue', 'the dark blue'] },
-  { roomId: 'GOM-202', name: 'The Brown', keywords: ['the brown 3bhk', 'the brown'] },
-  { roomId: 'GOM-301', name: 'The Light Green', keywords: ['the light green', 'light green 3bhk'] },
+  { roomId: 'GOM-202', name: 'The Brown', keywords: ['the brown', 'brown 3bhk', 'the brown 3bhk', 'brown'] },
+  { roomId: 'GOM-301', name: 'The Light Green', keywords: ['the light green', 'light green 3bhk', 'light green'] },
   { roomId: 'GOM-302', name: 'The Unique', keywords: ['the unique 3bhk', 'the unique'] },
   { roomId: 'GOM-501', name: 'Starlight Blue PentHouse', keywords: ['starlight blue', 'starlight penthouse'] },
   { roomId: 'LUL-402', name: 'Celebrity Garden', keywords: ['celebrity garden'] },
@@ -40,6 +40,27 @@ const ROOM_MAPPING = [
   { roomId: 'VIL-107', name: 'The Velvet House', keywords: ['the velvet house'] },
   { roomId: 'VIL-108', name: 'Pink Paradise Villa', keywords: ['pink paradise villa', 'pink paradise'] }
 ];
+
+/**
+ * 🔍 DEBUG TOOL: Run this function to see all Airbnb emails found in your inbox
+ */
+function debugRecentAirbnbEmails() {
+  Logger.log("=== CHECKING INBOX FOR AIRBNB EMAILS ===");
+  const testQueries = [
+    'from:airbnb.com newer_than:14d',
+    'airbnb newer_than:14d',
+    CONFIG.SEARCH_QUERY
+  ];
+
+  testQueries.forEach(q => {
+    const threads = GmailApp.search(q, 0, 10);
+    Logger.log(`Query: [${q}] -> Found ${threads.length} threads`);
+    threads.forEach((t, i) => {
+      const msg = t.getMessages()[0];
+      Logger.log(`  [#${i+1}] Subject: "${msg.getSubject()}" | Date: ${msg.getDate()}`);
+    });
+  });
+}
 
 function syncAirbnbReservations() {
   const lock = LockService.getScriptLock();
