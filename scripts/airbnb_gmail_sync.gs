@@ -323,41 +323,14 @@ function pushBookingToCRM(bk) {
     'Prefer': 'return=representation'
   };
 
-  // 🛡️ LAYER 1 DUPLICATE CHECK: Confirmation Code Match
+  // 🛡️ ZERO-DUPLICATE CHECK: Confirmation Code Match
+  // Every Airbnb booking has a globally unique code (e.g. HMX59TAJQA). If it exists in DB, NEVER insert again!
   const checkCodeUrl = `${CONFIG.SUPABASE_URL}/rest/v1/guest_register?airbnb_confirmation_code=eq.${bk.confirmationCode}&select=booking_id,guest_name`;
   const checkCodeResp = UrlFetchApp.fetch(checkCodeUrl, { method: 'get', headers: headers, muteHttpExceptions: true });
   const existingCode = JSON.parse(checkCodeResp.getContentText() || '[]');
 
   if (existingCode && existingCode.length > 0) {
     Logger.log(`DUPLICATE PREVENTED: Booking ${bk.confirmationCode} already exists in DB as ${existingCode[0].booking_id}. Skipping.`);
-    return true;
-  }
-
-  // 🛡️ LAYER 2 DUPLICATE CHECK: Same Room + Same Check-in Date Match
-  // If the reservation already exists (e.g. entered manually), link the confirmation code rather than creating duplicate row!
-  const checkRoomDateUrl = `${CONFIG.SUPABASE_URL}/rest/v1/guest_register?room_id=eq.${bk.roomId}&check_in=eq.${bk.checkIn}&select=booking_id,guest_name,airbnb_confirmation_code`;
-  const checkRoomDateResp = UrlFetchApp.fetch(checkRoomDateUrl, { method: 'get', headers: headers, muteHttpExceptions: true });
-  const existingRoomDate = JSON.parse(checkRoomDateResp.getContentText() || '[]');
-
-  if (existingRoomDate && existingRoomDate.length > 0) {
-    const matched = existingRoomDate[0];
-    Logger.log(`EXISTING RECORD FOUND: Room ${bk.roomId} on ${bk.checkIn} already booked by ${matched.guest_name} (${matched.booking_id}).`);
-
-    // If confirmation code was missing on the existing record, attach it without creating duplicate
-    if (!matched.airbnb_confirmation_code) {
-      const patchUrl = `${CONFIG.SUPABASE_URL}/rest/v1/guest_register?booking_id=eq.${matched.booking_id}`;
-      UrlFetchApp.fetch(patchUrl, {
-        method: 'patch',
-        headers: headers,
-        payload: JSON.stringify({
-          airbnb_confirmation_code: bk.confirmationCode,
-          booking_mode: 'Online-Airbnb',
-          gross_amount: bk.totalAmount || null
-        }),
-        muteHttpExceptions: true
-      });
-      Logger.log(`Updated existing booking ${matched.booking_id} with confirmation code ${bk.confirmationCode}.`);
-    }
     return true;
   }
 
