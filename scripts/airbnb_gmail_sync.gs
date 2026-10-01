@@ -1,23 +1,22 @@
 /**
  * ═════════════════════════════════════════════════════════════════════
- * 🏨 AIRBNB TO CRM REAL-TIME GMAIL AUTO-SYNC (V5 — ROCK SOLID PARSING)
+ * 🏨 AIRBNB TO CRM REAL-TIME GMAIL AUTO-SYNC (V6 — ROCK SOLID PARSING)
  * ═════════════════════════════════════════════════════════════════════
  * 
- * 🛡️ 4-Layer Zero-Duplicate Protection:
- * 1. LockService: Script runs strictly one instance at a time. No parallel trigger overlaps.
- * 2. Gmail Labeling: Processes each email once, tags with 'Airbnb-Synced', and excludes it forever.
- * 3. Supabase Confirmation Code Check: If HM code exists in DB, it NEVER inserts again.
- * 4. Room & Date Overlap Check: If a reservation already exists for that room on that check-in date,
- *    it links the confirmation code to the existing row instead of creating a second row!
- * 5. Cancellation Sync: Detects Airbnb cancellations and marks the booking as cancelled automatically.
+ * 🛡️ 100% Authentic Gmail Data Guarantee:
+ * - NO fake / hardcoded / estimated rates (₹0 if payout not in email -> Pending CSV Payout).
+ * - Exact guest count extracted (e.g. "10 adults" -> 10 guests).
+ * - Booked By strictly set to 'Gmail Sync'.
+ * - Auto-approved ('verified') — never stuck in Pending Approvals.
+ * - Auto-recovers deleted bookings: Even if a booking is deleted to test re-sync,
+ *   the script automatically re-fetches and restores it from Gmail!
+ * - One-click trigger installer: Run setupAutoSyncTrigger() once for 24/7 auto sync.
  */
 
 const CONFIG = {
   SUPABASE_URL: "https://vxxmigdzimnrbbmkjzoa.supabase.co",
   SUPABASE_KEY: "sb_publishable_ZgssvBczAg9TPv4ihN8IfQ_FPcEnq1F",
-  PROCESSED_LABEL: "Airbnb-Synced",
-  // Scan un-synced booking emails from 1st September onwards
-  SEARCH_QUERY: 'from:airbnb.com (reservation OR booking OR "confirmation code" OR HM) after:2024/08/31 -label:Airbnb-Synced'
+  PROCESSED_LABEL: "Airbnb-Synced"
 };
 
 // 17 Properties with STRICT unique keywords
@@ -54,61 +53,62 @@ function formatYMD(year, month, day) {
   return `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
 }
 
-/**
- * 🔄 RUN THIS ONCE: Clears any prematurely tagged 'Airbnb-Synced' labels
- * and runs a full sync on all reservations from 1st Sep!
- */
-function resetAndSyncAll() {
-  Logger.log("=== RESETTING LABELS & SYNCING ALL BOOKINGS FROM 1ST SEP ===");
-  const label = GmailApp.getUserLabelByName(CONFIG.PROCESSED_LABEL);
-  if (label) {
-    const threads = label.getThreads(0, 100);
-    Logger.log(`Found ${threads.length} previously tagged threads. Removing label...`);
-    threads.forEach(t => t.removeLabel(label));
-  }
-  Logger.log("Labels cleared! Starting full sync now...");
-  syncAirbnbReservations();
+function getHeaders() {
+  return {
+    'apikey': CONFIG.SUPABASE_KEY,
+    'Authorization': `Bearer ${CONFIG.SUPABASE_KEY}`,
+    'Content-Type': 'application/json',
+    'Prefer': 'return=representation'
+  };
 }
 
 /**
- * 🔍 DEBUG TOOL: Run this function to see all Airbnb emails found in your inbox from 1st September
+ * ⚡ MAIN AUTO-SYNC FUNCTION
+ * Searches recent emails (last 30 days) and any un-synced emails.
+ * Compares against Supabase so even if a booking was deleted, it is automatically restored!
  */
-function debugRecentAirbnbEmails() {
-  Logger.log("=== CHECKING INBOX FOR AIRBNB EMAILS FROM 1ST SEP ===");
-  const testQueries = [
-    CONFIG.SEARCH_QUERY,
-    'from:airbnb.com after:2024/08/31',
-    'airbnb after:2024/08/31'
-  ];
-
-  testQueries.forEach(q => {
-    const threads = GmailApp.search(q, 0, 15);
-    Logger.log(`Query: [${q}] -> Found ${threads.length} threads`);
-    threads.forEach((t, i) => {
-      const msg = t.getMessages()[0];
-      Logger.log(`  [#${i+1}] Subject: "${msg.getSubject()}" | Date: ${msg.getDate()}`);
-    });
-  });
-}
-
 function syncAirbnbReservations() {
   const lock = LockService.getScriptLock();
   if (!lock.tryLock(10000)) {
-    Logger.log("Another sync is currently in progress. Skipping execution to prevent duplicate processing.");
+    Logger.log("Another sync is running. Skipping execution.");
     return;
   }
 
   try {
     const label = getOrCreateLabel(CONFIG.PROCESSED_LABEL);
-    const threads = GmailApp.search(CONFIG.SEARCH_QUERY, 0, 50);
-    Logger.log(`Found ${threads.length} Airbnb threads from 1st Sep to process.`);
+
+    // 1. Fetch current bookings from Supabase (1 fast network call)
+    const existingMap = getExistingAirbnbBookingsMap();
+    Logger.log(`Loaded ${Object.keys(existingMap).length} existing Airbnb bookings from CRM.`);
+
+    // 2. Search Gmail:
+    // Query A: Recent 30 days (even if tagged, to catch deleted bookings or updates)
+    // Query B: Older un-synced emails
+    const threadMap = new Map();
+    const queries = [
+      'from:airbnb.com (reservation OR booking OR "confirmation code" OR HM) newer_than:30d',
+      'from:airbnb.com (reservation OR booking OR "confirmation code" OR HM) -label:Airbnb-Synced after:2024/08/31'
+    ];
+
+    for (const q of queries) {
+      const batch = GmailApp.search(q, 0, 40);
+      for (const t of batch) {
+        if (!threadMap.has(t.getId())) {
+          threadMap.set(t.getId(), t);
+        }
+      }
+    }
+
+    const threads = Array.from(threadMap.values());
+    Logger.log(`Found ${threads.length} total Airbnb threads to evaluate.`);
+
+    let createdCount = 0;
+    let enrichedCount = 0;
 
     for (const thread of threads) {
       const messages = thread.getMessages();
       const threadSubject = thread.getFirstMessageSubject();
-      let threadHandled = false;
 
-      // Extract all text and HTML across the thread for complete context
       let combinedThreadText = threadSubject + '\n';
       let latestDate = new Date();
       for (const m of messages) {
@@ -118,31 +118,47 @@ function syncAirbnbReservations() {
 
       const textLower = combinedThreadText.toLowerCase();
 
-      // 1. Check for Cancellation
+      // Check for Cancellation
       if (textLower.includes('reservation cancelled') || textLower.includes('reservation canceled') || textLower.includes('booking cancelled')) {
         const codeMatch = combinedThreadText.match(/\b(HM[A-Z0-9]{8,12})\b/);
         if (codeMatch) {
-          handleCancellation(codeMatch[1]);
-          threadHandled = true;
+          handleCancellation(codeMatch[1], existingMap);
+          thread.addLabel(label);
         }
+        continue;
       }
-      // 2. Check for New Reservation Confirmation
-      else if (textLower.includes('reservation confirmed') || textLower.includes('booking confirmed') || textLower.includes('confirmation code') || textLower.includes('reservation for')) {
+
+      // Check for Reservation Confirmation
+      if (textLower.includes('reservation confirmed') || textLower.includes('booking confirmed') || textLower.includes('confirmation code') || textLower.includes('reservation for')) {
         const bookingData = parseAirbnbEmail(threadSubject, combinedThreadText, latestDate);
         if (bookingData && bookingData.confirmationCode && bookingData.checkIn && bookingData.checkOut) {
-          Logger.log(`Valid booking parsed: ${bookingData.guestName} (${bookingData.confirmationCode}) for ${bookingData.checkIn} to ${bookingData.checkOut} in ${bookingData.roomId}`);
-          const success = pushBookingToCRM(bookingData);
-          if (success) {
-            threadHandled = true;
+          const code = bookingData.confirmationCode;
+          const existing = existingMap[code];
+
+          if (!existing) {
+            // New or deleted booking -> Insert into CRM!
+            const ok = insertBookingToCRM(bookingData);
+            if (ok) {
+              createdCount++;
+              existingMap[code] = bookingData;
+              thread.addLabel(label);
+            }
+          } else {
+            // Already in DB -> Enrich if name was generic or guest count was missing
+            const needsNameEnrich = existing.guest_name && (existing.guest_name.includes('Airbnb') || existing.guest_name.includes('Guest') || existing.guest_name.length < 3);
+            const needsGuestsEnrich = bookingData.guests && (!existing.guests || existing.guests !== bookingData.guests);
+
+            if (needsNameEnrich || needsGuestsEnrich) {
+              const enriched = enrichBookingInCRM(existing.booking_id, bookingData);
+              if (enriched) enrichedCount++;
+            }
+            thread.addLabel(label);
           }
         }
       }
-
-      // ONLY label thread as synced if it was successfully parsed and handled!
-      if (threadHandled) {
-        thread.addLabel(label);
-      }
     }
+
+    Logger.log(`Sync finished. Created: ${createdCount}, Enriched: ${enrichedCount}`);
   } catch (err) {
     Logger.log(`Fatal Error in syncAirbnbReservations: ${err.message}`);
   } finally {
@@ -150,43 +166,40 @@ function syncAirbnbReservations() {
   }
 }
 
-function handleCancellation(code) {
-  if (!code) return false;
-  const headers = {
-    'apikey': CONFIG.SUPABASE_KEY,
-    'Authorization': `Bearer ${CONFIG.SUPABASE_KEY}`,
-    'Content-Type': 'application/json',
-    'Prefer': 'return=representation'
-  };
-
-  const checkUrl = `${CONFIG.SUPABASE_URL}/rest/v1/guest_register?airbnb_confirmation_code=eq.${code}&select=booking_id,guest_name`;
-  const checkResp = UrlFetchApp.fetch(checkUrl, { method: 'get', headers: headers, muteHttpExceptions: true });
-  const existing = JSON.parse(checkResp.getContentText() || '[]');
-
-  if (existing && existing.length > 0) {
-    const updateUrl = `${CONFIG.SUPABASE_URL}/rest/v1/guest_register?airbnb_confirmation_code=eq.${code}`;
-    UrlFetchApp.fetch(updateUrl, {
-      method: 'patch',
-      headers: headers,
-      payload: JSON.stringify({
-        is_cancelled: true,
-        cancellation_reason: 'Cancelled on Airbnb'
-      }),
+/**
+ * 📥 Fetch existing Airbnb bookings from Supabase
+ */
+function getExistingAirbnbBookingsMap() {
+  const map = {};
+  try {
+    const url = `${CONFIG.SUPABASE_URL}/rest/v1/guest_register?check_in=gte.2024-09-01&select=booking_id,airbnb_confirmation_code,guest_name,guests,total_amount,payment_status,booked_by,is_cancelled`;
+    const resp = UrlFetchApp.fetch(url, {
+      method: 'get',
+      headers: getHeaders(),
       muteHttpExceptions: true
     });
-    Logger.log(`Marked booking ${code} (${existing[0].guest_name}) as CANCELLED.`);
-    return true;
+    const data = JSON.parse(resp.getContentText() || '[]');
+    for (const b of data) {
+      if (b.airbnb_confirmation_code) {
+        map[b.airbnb_confirmation_code] = b;
+      }
+    }
+  } catch (e) {
+    Logger.log("Error loading existing bookings: " + e.message);
   }
-  return false;
+  return map;
 }
 
+/**
+ * 📧 PARSE AIRBNB EMAIL (Supports all formats, extracts real data only)
+ */
 function parseAirbnbEmail(subject, textContent, emailDate) {
   try {
     const cleanSearchText = textContent
       .replace(/[\u200B-\u200D\uFEFF\u00A0\u2009]/g, ' ')
       .replace(/[\u2010-\u2015\u2212\uFE58\uFE63\uFF0D–—]/g, '-');
 
-    // 1. Confirmation Code (HM followed by 8-10 alphanumeric characters)
+    // 1. Confirmation Code (HM followed by 8-12 alphanumeric characters)
     let confirmationCode = null;
     const codeMatch = cleanSearchText.match(/\b(HM[A-Z0-9]{8,12})\b/);
     if (codeMatch) confirmationCode = codeMatch[1];
@@ -206,90 +219,111 @@ function parseAirbnbEmail(subject, textContent, emailDate) {
       return null;
     }
 
-    // 3. Robust Dates Parsing (Deterministic YYYY-MM-DD formatting)
+    // 3. Robust Dates Parsing (Supports both MMM DD and DD MMM formats)
     let checkIn = null;
     let checkOut = null;
     const currentYear = emailDate ? emailDate.getFullYear() : new Date().getFullYear();
 
-    // Pattern 1: Same month: "Oct 2-3", "Oct 2 – 3", "Oct 2–3, 2026", "October 2-3"
-    const sameMonthMatch = cleanSearchText.match(/\b(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s*(\d{1,2})\s*[-/to]+\s*(\d{1,2})(?:,?\s*(\d{4}))?\b/i);
-    if (sameMonthMatch) {
-      const yr = sameMonthMatch[4] || currentYear;
-      checkIn = formatYMD(yr, sameMonthMatch[1], sameMonthMatch[2]);
-      checkOut = formatYMD(yr, sameMonthMatch[1], sameMonthMatch[3]);
+    // Check-in / Checkout explicit labels
+    const mCin = cleanSearchText.match(/Check-?in[:\s]+(?:[A-Za-z]{3},?\s*)?(?:(\d{1,2})\s+)?([A-Za-z]{3})[a-z]*(?:\s+(\d{1,2}))?(?:,?\s*(\d{4}))?/i);
+    const mCout = cleanSearchText.match(/Check-?out[:\s]+(?:[A-Za-z]{3},?\s*)?(?:(\d{1,2})\s+)?([A-Za-z]{3})[a-z]*(?:\s+(\d{1,2}))?(?:,?\s*(\d{4}))?/i);
+    if (mCin && mCout && (mCin[1] || mCin[3]) && (mCout[1] || mCout[3])) {
+      const d1 = mCin[1] || mCin[3];
+      const d2 = mCout[1] || mCout[3];
+      const y1 = mCin[4] || currentYear;
+      const y2 = mCout[4] || currentYear;
+      checkIn = formatYMD(y1, mCin[2], d1);
+      checkOut = formatYMD(y2, mCout[2], d2);
     }
 
-    // Pattern 2: Different months: "Sep 30 - Oct 1", "Oct 31 - Nov 2, 2026"
+    // Range pattern: "Oct 2 - 3, 2026" or "Oct 2-3"
     if (!checkIn || !checkOut) {
-      const diffMonthMatch = cleanSearchText.match(/\b(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s*(\d{1,2})\s*[-/to]+\s*(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s*(\d{1,2})(?:,?\s*(\d{4}))?\b/i);
-      if (diffMonthMatch) {
-        const yr = diffMonthMatch[5] || currentYear;
-        checkIn = formatYMD(yr, diffMonthMatch[1], diffMonthMatch[2]);
-        checkOut = formatYMD(yr, diffMonthMatch[3], diffMonthMatch[4]);
+      const mR1 = cleanSearchText.match(/\b([A-Za-z]{3})[a-z]*\s*(\d{1,2})\s*[-/to]+\s*(\d{1,2})(?:,?\s*(\d{4}))?\b/i);
+      if (mR1) {
+        const y = mR1[4] || currentYear;
+        checkIn = formatYMD(y, mR1[1], mR1[2]);
+        checkOut = formatYMD(y, mR1[1], mR1[3]);
       }
     }
 
-    // Pattern 3: Explicit Check-in and Checkout lines
+    // Range pattern: "2 - 3 Oct 2026" or "2-3 Oct" (UK/India)
     if (!checkIn || !checkOut) {
-      const cinMatch = cleanSearchText.match(/Check-?in[:\s]+(?:[A-Za-z]{3},?\s*)?(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s*(\d{1,2})(?:,?\s*(\d{4}))?/i);
-      const coutMatch = cleanSearchText.match(/Check-?out[:\s]+(?:[A-Za-z]{3},?\s*)?(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s*(\d{1,2})(?:,?\s*(\d{4}))?/i);
-      if (cinMatch && coutMatch) {
-        const yIn = cinMatch[3] || currentYear;
-        const yOut = coutMatch[3] || currentYear;
-        checkIn = formatYMD(yIn, cinMatch[1], cinMatch[2]);
-        checkOut = formatYMD(yOut, coutMatch[1], coutMatch[2]);
+      const mR2 = cleanSearchText.match(/\b(\d{1,2})\s*[-/to]+\s*(\d{1,2})\s+([A-Za-z]{3})[a-z]*(?:,?\s*(\d{4}))?\b/i);
+      if (mR2) {
+        const y = mR2[4] || currentYear;
+        checkIn = formatYMD(y, mR2[3], mR2[1]);
+        checkOut = formatYMD(y, mR2[3], mR2[2]);
       }
     }
 
-    // Pattern 4: Subject "arrives Oct 2" + nights calculation
+    // Range pattern: "Sep 30 - Oct 2, 2026"
     if (!checkIn || !checkOut) {
-      const arrivesMatch = cleanSearchText.match(/arrives\s+(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s*(\d{1,2})(?:,?\s*(\d{4}))?/i);
-      if (arrivesMatch) {
-        const yr = arrivesMatch[3] || currentYear;
-        checkIn = formatYMD(yr, arrivesMatch[1], arrivesMatch[2]);
+      const mR3 = cleanSearchText.match(/\b([A-Za-z]{3})[a-z]*\s*(\d{1,2})\s*[-/to]+\s*([A-Za-z]{3})[a-z]*\s*(\d{1,2})(?:,?\s*(\d{4}))?\b/i);
+      if (mR3) {
+        const y = mR3[5] || currentYear;
+        checkIn = formatYMD(y, mR3[1], mR3[2]);
+        checkOut = formatYMD(y, mR3[3], mR3[4]);
+      }
+    }
+
+    // Range pattern: "30 Sep - 2 Oct 2026"
+    if (!checkIn || !checkOut) {
+      const mR4 = cleanSearchText.match(/\b(\d{1,2})\s+([A-Za-z]{3})[a-z]*\s*[-/to]+\s*(\d{1,2})\s+([A-Za-z]{3})[a-z]*(?:,?\s*(\d{4}))?\b/i);
+      if (mR4) {
+        const y = mR4[5] || currentYear;
+        checkIn = formatYMD(y, mR4[2], mR4[1]);
+        checkOut = formatYMD(y, mR4[4], mR4[3]);
+      }
+    }
+
+    // Fallback: "arrives Oct 2" + nights
+    if (!checkIn || !checkOut) {
+      const arrivesMatch = cleanSearchText.match(/arrives\s+(?:(\d{1,2})\s+)?([A-Za-z]{3})[a-z]*(?:\s+(\d{1,2}))?(?:,?\s*(\d{4}))?/i);
+      if (arrivesMatch && (arrivesMatch[1] || arrivesMatch[3])) {
+        const d = arrivesMatch[1] || arrivesMatch[3];
+        const yr = arrivesMatch[4] || currentYear;
+        checkIn = formatYMD(yr, arrivesMatch[2], d);
         const nightsMatch = cleanSearchText.match(/(\d+)\s+nights?/i);
         const nights = nightsMatch ? parseInt(nightsMatch[1], 10) : 1;
-        const inDate = new Date(yr, MONTH_MAP[arrivesMatch[1].toLowerCase().slice(0, 3)] - 1, parseInt(arrivesMatch[2], 10));
+        const inDate = new Date(yr, MONTH_MAP[arrivesMatch[2].toLowerCase().slice(0, 3)] - 1, parseInt(d, 10));
         inDate.setDate(inDate.getDate() + nights);
         checkOut = `${inDate.getFullYear()}-${String(inDate.getMonth() + 1).padStart(2, '0')}-${String(inDate.getDate()).padStart(2, '0')}`;
       }
     }
 
-    // SAFETY CHECK: Valid Check-in and Check-out
     if (!checkIn || !checkOut || checkIn >= checkOut) {
       Logger.log(`Dates could not be verified for ${confirmationCode}. Aborting.`);
       return null;
     }
 
-    // 4. Guest Name (Full name preferred over single first name)
+    // 4. Guest Name Extraction
     let guestName = 'Airbnb Guest';
     const subGuestMatch = cleanSearchText.match(/Reservation confirmed (?:-|for) ([^,–\-]+?)(?: arrives| booked| -|$)/i);
     if (subGuestMatch) {
       guestName = subGuestMatch[1].trim();
     }
-    
-    // Check inside body if needed
-    const bodyFullNameMatch = cleanSearchText.match(/(?:Guest(?:\s*name)?|Contact|Message|Reservation for)[:\s]+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)/i);
-    if (bodyFullNameMatch && bodyFullNameMatch[1]) {
-      const full = bodyFullNameMatch[1].trim();
+
+    // Look for explicit contact / message patterns in email body
+    const bodyNameMatch = cleanSearchText.match(/(?:Guest(?:\s*name)?|Contact|Message|Send\s+(?:a\s+)?message\s+to)[:\s]+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)/i);
+    if (bodyNameMatch && bodyNameMatch[1]) {
+      const full = bodyNameMatch[1].trim();
       if (!guestName || guestName === 'Airbnb Guest' || guestName.split(/\s+/).length === 1) {
         guestName = full;
       }
     }
 
-    // 5. Total Payout Amount (ONLY from email, NO hardcoded fallback)
+    // 5. Total Payout Amount (STRICTLY FROM EMAIL ONLY - NO ESTIMATED / HARDCODED RATES)
     let totalAmount = 0;
     const netMatch = cleanSearchText.match(/(?:You(?:'ll)?\s*earn(?:ed)?|Total\s*payout|Host\s*payout|Net\s*payout):\s*(?:₹|INR|Rs\.?)\s*([\d,]+(?:\.\d{2})?)/i);
     const payoutMatch = cleanSearchText.match(/(?:Payout|Total\s*\(INR\)):\s*(?:₹|INR|Rs\.?)\s*([\d,]+(?:\.\d{2})?)/i);
-    const genericTotalMatch = cleanSearchText.match(/(?:Total|Subtotal):\s*(?:₹|INR|Rs\.?)\s*([\d,]+(?:\.\d{2})?)/i);
 
-    const matchToUse = netMatch || payoutMatch || genericTotalMatch;
+    const matchToUse = netMatch || payoutMatch;
     if (matchToUse) {
       const cleanAmt = parseFloat(matchToUse[1].replace(/,/g, ''));
       if (cleanAmt > 0) totalAmount = cleanAmt;
     }
 
-    // 6. Guests count: Specifically target "Guests\n10 adults" or "10 adults" from email
+    // 6. Guests count: Specifically match "Guests\n10 adults" or "10 adults"
     let guests = null;
     const guestsSectionMatch = cleanSearchText.match(/Guests?[\s:]+(\d+)\s*(?:adults?|guests?)/i);
     if (guestsSectionMatch) {
@@ -306,10 +340,13 @@ function parseAirbnbEmail(subject, textContent, emailDate) {
       if (generalMatch) guests = parseInt(generalMatch[1], 10);
     }
 
-    // 7. Door Code / Phone digits
+    // 7. Door Code / Phone digits (if provided by Airbnb)
     let doorCode = '';
-    const codeDigits = cleanSearchText.match(/(?:door code|suggested door code|code|phone number \(last 4 digits\))[:\s]*(\d{4})/i);
+    const codeDigits = cleanSearchText.match(/(?:door code|suggested door code|phone number \(last 4 digits\))[:\s]*(\d{4})/i);
     if (codeDigits) doorCode = codeDigits[1];
+
+    const nights = Math.max(1, Math.round((new Date(checkOut) - new Date(checkIn)) / (1000 * 60 * 60 * 24)));
+    const perDayRate = totalAmount > 0 ? Math.round(totalAmount / nights) : 0;
 
     return {
       confirmationCode: confirmationCode,
@@ -319,6 +356,7 @@ function parseAirbnbEmail(subject, textContent, emailDate) {
       checkOut: checkOut,
       guests: guests,
       totalAmount: totalAmount,
+      perDayRate: perDayRate,
       doorCode: doorCode
     };
   } catch (err) {
@@ -327,51 +365,11 @@ function parseAirbnbEmail(subject, textContent, emailDate) {
   }
 }
 
-function pushBookingToCRM(bk) {
-  const headers = {
-    'apikey': CONFIG.SUPABASE_KEY,
-    'Authorization': `Bearer ${CONFIG.SUPABASE_KEY}`,
-    'Content-Type': 'application/json',
-    'Prefer': 'return=representation'
-  };
-
-  // 🛡️ ZERO-DUPLICATE CHECK & ENRICHMENT
-  // Every Airbnb booking has a globally unique code (e.g. HMX59TAJQA).
-  const checkCodeUrl = `${CONFIG.SUPABASE_URL}/rest/v1/guest_register?airbnb_confirmation_code=eq.${bk.confirmationCode}&select=booking_id,guest_name,guests,total_amount`;
-  const checkCodeResp = UrlFetchApp.fetch(checkCodeUrl, { method: 'get', headers: headers, muteHttpExceptions: true });
-  const existingCode = JSON.parse(checkCodeResp.getContentText() || '[]');
-
-  if (existingCode && existingCode.length > 0) {
-    const existing = existingCode[0];
-    // If existing booking was synced from iCal (generic name or incorrect guest count), enrich with authentic Gmail data!
-    if ((existing.guest_name && existing.guest_name.includes('Airbnb')) || existing.guests !== bk.guests) {
-      const patchPayload = {
-        guest_name: bk.guestName,
-        booked_by: 'Gmail Sync',
-        verification_status: 'verified',
-        notes: `Synced from Gmail Airbnb Confirmation | Code: ${bk.confirmationCode}${bk.guests ? ' | Guests: ' + bk.guests : ''}`
-      };
-      if (bk.guests) patchPayload.guests = bk.guests;
-      if (bk.totalAmount > 0 && (!existing.total_amount || existing.total_amount === 0)) {
-        patchPayload.total_amount = bk.totalAmount;
-        patchPayload.gross_amount = bk.totalAmount;
-      }
-      const patchUrl = `${CONFIG.SUPABASE_URL}/rest/v1/guest_register?booking_id=eq.${existing.booking_id}`;
-      UrlFetchApp.fetch(patchUrl, {
-        method: 'patch',
-        headers: headers,
-        payload: JSON.stringify(patchPayload),
-        muteHttpExceptions: true
-      });
-      Logger.log(`ENRICHED booking ${existing.booking_id} with Real Name: ${bk.guestName}, Guests: ${bk.guests}`);
-    } else {
-      Logger.log(`DUPLICATE PREVENTED: Booking ${bk.confirmationCode} already exists in DB as ${existing.booking_id}. Skipping.`);
-    }
-    return true;
-  }
-
-  // 🚀 INSERT: Brand new verified booking (Strictly Gmail data only)
-  const bookingId = `BK_${Date.now()}_${bk.confirmationCode}`;
+/**
+ * ➕ Insert verified booking into Supabase
+ */
+function insertBookingToCRM(bk) {
+  const bookingId = `BK_ABNB_${bk.confirmationCode}`;
   const payload = [{
     booking_id: bookingId,
     guest_name: bk.guestName,
@@ -380,12 +378,12 @@ function pushBookingToCRM(bk) {
     check_in: bk.checkIn,
     check_out: bk.checkOut,
     guests: bk.guests || null,
-    total_amount: bk.totalAmount || 0,
-    per_day_rate: bk.totalAmount || 0,
-    gross_amount: bk.totalAmount || null,
-    payment_status: 'Paid',
+    total_amount: bk.totalAmount,
+    per_day_rate: bk.perDayRate,
+    gross_amount: bk.totalAmount > 0 ? bk.totalAmount : null,
+    payment_status: bk.totalAmount > 0 ? 'Paid' : 'Pending CSV Payout',
     airbnb_confirmation_code: bk.confirmationCode,
-    phone: bk.doorCode || null,
+    phone: bk.doorCode ? `+91 XXXXX ${bk.doorCode}` : null,
     booked_by: 'Gmail Sync',
     verification_status: 'verified',
     checkout_confirmed: true,
@@ -395,13 +393,13 @@ function pushBookingToCRM(bk) {
   const insertUrl = `${CONFIG.SUPABASE_URL}/rest/v1/guest_register`;
   const resp = UrlFetchApp.fetch(insertUrl, {
     method: 'post',
-    headers: headers,
+    headers: getHeaders(),
     payload: JSON.stringify(payload),
     muteHttpExceptions: true
   });
 
   if (resp.getResponseCode() >= 200 && resp.getResponseCode() < 300) {
-    Logger.log(`SUCCESS: Created new booking ${bookingId} for ${bk.guestName} (${bk.roomId}, ${bk.checkIn} to ${bk.checkOut})`);
+    Logger.log(`SUCCESS: Created booking ${bookingId} for ${bk.guestName} (${bk.roomId}, ${bk.checkIn} to ${bk.checkOut}, Guests: ${bk.guests})`);
     return true;
   } else {
     Logger.log(`ERROR inserting booking: ${resp.getContentText()}`);
@@ -409,8 +407,106 @@ function pushBookingToCRM(bk) {
   }
 }
 
+/**
+ * 🔄 Enrich existing booking with authentic Gmail details
+ */
+function enrichBookingInCRM(existingBookingId, bk) {
+  const patchPayload = {
+    guest_name: bk.guestName,
+    booked_by: 'Gmail Sync',
+    verification_status: 'verified',
+    notes: `Synced from Gmail Airbnb Confirmation | Code: ${bk.confirmationCode}${bk.guests ? ' | Guests: ' + bk.guests : ''}`
+  };
+  if (bk.guests) patchPayload.guests = bk.guests;
+  if (bk.totalAmount > 0) {
+    patchPayload.total_amount = bk.totalAmount;
+    patchPayload.per_day_rate = bk.perDayRate;
+    patchPayload.payment_status = 'Paid';
+  }
+
+  const patchUrl = `${CONFIG.SUPABASE_URL}/rest/v1/guest_register?booking_id=eq.${existingBookingId}`;
+  const resp = UrlFetchApp.fetch(patchUrl, {
+    method: 'patch',
+    headers: getHeaders(),
+    payload: JSON.stringify(patchPayload),
+    muteHttpExceptions: true
+  });
+
+  if (resp.getResponseCode() >= 200 && resp.getResponseCode() < 300) {
+    Logger.log(`ENRICHED booking ${existingBookingId} -> Guest: ${bk.guestName}, Guests: ${bk.guests}`);
+    return true;
+  }
+  return false;
+}
+
+/**
+ * ❌ Handle Cancellation
+ */
+function handleCancellation(code, existingMap) {
+  if (!code) return false;
+  const existing = existingMap[code];
+  if (existing && !existing.is_cancelled) {
+    const updateUrl = `${CONFIG.SUPABASE_URL}/rest/v1/guest_register?airbnb_confirmation_code=eq.${code}`;
+    UrlFetchApp.fetch(updateUrl, {
+      method: 'patch',
+      headers: getHeaders(),
+      payload: JSON.stringify({
+        is_cancelled: true,
+        cancellation_reason: 'Cancelled on Airbnb'
+      }),
+      muteHttpExceptions: true
+    });
+    Logger.log(`Marked booking ${code} as CANCELLED.`);
+    return true;
+  }
+  return false;
+}
+
+/**
+ * 🏷️ Helper: Get or create Gmail label
+ */
 function getOrCreateLabel(labelName) {
   let label = GmailApp.getUserLabelByName(labelName);
   if (!label) label = GmailApp.createLabel(labelName);
   return label;
+}
+
+/**
+ * ⚙️ 24/7 AUTO-SYNC TRIGGER SETUP
+ * Run this function ONCE inside Google Apps Script editor.
+ * It sets up an automatic trigger to sync Gmail every 10 minutes!
+ */
+function setupAutoSyncTrigger() {
+  // Clear any existing triggers for this function to prevent duplicate schedules
+  const allTriggers = ScriptApp.getProjectTriggers();
+  for (const t of allTriggers) {
+    if (t.getHandlerFunction() === 'syncAirbnbReservations') {
+      ScriptApp.deleteTrigger(t);
+    }
+  }
+
+  // Create recurring 10-minute trigger
+  ScriptApp.newTrigger('syncAirbnbReservations')
+    .timeBased()
+    .everyMinutes(10)
+    .create();
+
+  Logger.log("✅ Automatic 10-minute sync trigger installed successfully!");
+}
+
+/**
+ * 🔄 Reset labels & re-sync all
+ */
+function resetAndSyncAll() {
+  Logger.log("=== RESETTING LABELS & RUNNING FULL SYNC ===");
+  const label = GmailApp.getUserLabelByName(CONFIG.PROCESSED_LABEL);
+  if (label) {
+    let threads = label.getThreads(0, 100);
+    while (threads.length > 0) {
+      threads.forEach(t => t.removeLabel(label));
+      threads = label.getThreads(0, 100);
+    }
+    Logger.log("All labels cleared.");
+  }
+  syncAirbnbReservations();
 }
