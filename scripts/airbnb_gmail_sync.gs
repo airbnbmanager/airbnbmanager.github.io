@@ -366,6 +366,7 @@ function pushBookingToCRM(bk) {
 
   // 🚀 INSERT: Brand new verified booking (Auto-verified since it is already confirmed on Airbnb)
   const bookingId = `BK_${Date.now()}_${bk.confirmationCode}`;
+  const finalAmount = bk.totalAmount > 0 ? bk.totalAmount : 4500;
   const payload = [{
     booking_id: bookingId,
     guest_name: bk.guestName,
@@ -374,10 +375,10 @@ function pushBookingToCRM(bk) {
     check_in: bk.checkIn,
     check_out: bk.checkOut,
     guests: bk.guests,
-    total_amount: 0, // Pending CSV Payout: Amount is reconciled when imported from official Airbnb CSV
-    per_day_rate: 0,
-    gross_amount: bk.totalAmount || null, // Store email gross/tentative value as reference only
-    payment_status: 'Pending CSV Payout',
+    total_amount: finalAmount,
+    per_day_rate: finalAmount,
+    gross_amount: finalAmount,
+    payment_status: 'Paid', // Airbnb reservations are already paid by guest online!
     airbnb_confirmation_code: bk.confirmationCode,
     phone: bk.doorCode || null,
     booked_by: 'Airbnb Sync',
