@@ -16,8 +16,8 @@ const CONFIG = {
   SUPABASE_URL: "https://vxxmigdzimnrbbmkjzoa.supabase.co",
   SUPABASE_KEY: "sb_publishable_ZgssvBczAg9TPv4ihN8IfQ_FPcEnq1F",
   PROCESSED_LABEL: "Airbnb-Synced",
-  // Scan un-synced emails from the last 14 days (expanded so past bookings are caught)
-  SEARCH_QUERY: 'from:airbnb.com (reservation OR booking OR "confirmation code" OR HM) newer_than:14d -label:Airbnb-Synced'
+  // Scan un-synced booking emails from 1st September onwards
+  SEARCH_QUERY: 'from:airbnb.com (reservation OR booking OR "confirmation code" OR HM) after:2024/08/31 -label:Airbnb-Synced'
 };
 
 // 17 Properties with STRICT unique keywords
@@ -42,18 +42,18 @@ const ROOM_MAPPING = [
 ];
 
 /**
- * 🔍 DEBUG TOOL: Run this function to see all Airbnb emails found in your inbox
+ * 🔍 DEBUG TOOL: Run this function to see all Airbnb emails found in your inbox from 1st September
  */
 function debugRecentAirbnbEmails() {
-  Logger.log("=== CHECKING INBOX FOR AIRBNB EMAILS ===");
+  Logger.log("=== CHECKING INBOX FOR AIRBNB EMAILS FROM 1ST SEP ===");
   const testQueries = [
-    'from:airbnb.com newer_than:14d',
-    'airbnb newer_than:14d',
-    CONFIG.SEARCH_QUERY
+    CONFIG.SEARCH_QUERY,
+    'from:airbnb.com after:2024/08/31',
+    'airbnb after:2024/08/31'
   ];
 
   testQueries.forEach(q => {
-    const threads = GmailApp.search(q, 0, 10);
+    const threads = GmailApp.search(q, 0, 15);
     Logger.log(`Query: [${q}] -> Found ${threads.length} threads`);
     threads.forEach((t, i) => {
       const msg = t.getMessages()[0];
@@ -72,8 +72,9 @@ function syncAirbnbReservations() {
 
   try {
     const label = getOrCreateLabel(CONFIG.PROCESSED_LABEL);
-    const threads = GmailApp.search(CONFIG.SEARCH_QUERY, 0, 10);
-    Logger.log(`Found ${threads.length} new Airbnb threads to process.`);
+    // Batch scan up to 50 threads from 1st Sep
+    const threads = GmailApp.search(CONFIG.SEARCH_QUERY, 0, 50);
+    Logger.log(`Found ${threads.length} Airbnb threads from 1st Sep to process.`);
 
     for (const thread of threads) {
       const messages = thread.getMessages();
