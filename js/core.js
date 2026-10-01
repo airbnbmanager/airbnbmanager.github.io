@@ -815,7 +815,10 @@ function renderShell(content, activePage = 'dashboard') {
             }
             const [k, l] = item;
             const isItemActive = (activePage === k) || (currentHub && currentHub.pages.includes(activePage) && (currentHub.id === k || currentHub.page === k));
-            return `<a href="#" data-page="${k}" class="${isItemActive ? 'active active-hub' : ''}">${l}</a>`;
+            const badgeHtml = (k === 'bookings' && (window._pendingCount || 0) > 0)
+              ? `<span style="background:#F59E0B;color:#fff;border-radius:12px;padding:1px 7px;font-size:11px;font-weight:800;margin-left:auto;">${window._pendingCount}</span>`
+              : '';
+            return `<a href="#" data-page="${k}" class="${isItemActive ? 'active active-hub' : ''}" style="display:flex;align-items:center;"><span>${l}</span>${badgeHtml}</a>`;
           }).join('')}
         </nav>
 

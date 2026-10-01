@@ -938,19 +938,19 @@ body.properties-directory-page {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  background: var(--dir-whatsapp);
+  background: linear-gradient(135deg, #059669, #10b981);
   color: #ffffff;
   font-size: 13px;
   font-weight: 700;
   text-decoration: none;
-  padding: 8px 16px;
+  padding: 8px 18px;
   border-radius: var(--dir-radius-full);
-  box-shadow: 0 4px 12px rgba(37, 211, 102, 0.35);
+  box-shadow: 0 4px 14px rgba(5, 150, 105, 0.4);
   transition: all 0.2s;
 }
 
 .lux-lb-wa-btn:hover {
-  background: var(--dir-whatsapp-hover);
+  background: linear-gradient(135deg, #047857, #059669);
   transform: translateY(-1px);
 }
 

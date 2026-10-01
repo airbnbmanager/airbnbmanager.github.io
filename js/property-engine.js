@@ -647,7 +647,7 @@
       if (strikeEl) strikeEl.textContent = `₹${airbnbTotal.toLocaleString('en-IN')} on Airbnb`;
 
       const saveTagEl = document.getElementById('luxe-save-tag');
-      if (saveTagEl) saveTagEl.textContent = `Save ₹${savings.toLocaleString('en-IN')} (15%) Direct`;
+      if (saveTagEl) saveTagEl.textContent = `For up to 15% discount, WhatsApp us`;
 
       const nightsDetail = document.getElementById('luxe-calc-nights');
       if (nightsDetail) nightsDetail.textContent = `${this.nights} Night${this.nights > 1 ? 's' : ''}`;
@@ -680,48 +680,7 @@
 
     renderAgodaSearchBar() {
       const container = document.getElementById('agoda-search-strip');
-      if (!container) return;
-
-      container.innerHTML = `
-        <div class="agoda-search-container">
-          <div class="agoda-search-group">
-            ${ICONS.search}
-            <div class="agoda-search-inner">
-              <label>Stay &amp; Destination</label>
-              <input type="text" value="${this.prop.name}, ${this.prop.area_name || 'Gomti Nagar'}" readonly />
-            </div>
-          </div>
-          <div class="agoda-search-group">
-            ${ICONS.calendar}
-            <div class="agoda-search-inner">
-              <label>Check-in</label>
-              <input type="date" id="agoda-ci" value="${this.checkIn}" onchange="window.luxeEngine.onDateChange('ci', this.value)" />
-            </div>
-          </div>
-          <div class="agoda-search-group">
-            ${ICONS.calendar}
-            <div class="agoda-search-inner">
-              <label>Check-out</label>
-              <input type="date" id="agoda-co" value="${this.checkOut}" onchange="window.luxeEngine.onDateChange('co', this.value)" />
-            </div>
-          </div>
-          <div class="agoda-search-group" style="max-width:200px;">
-            ${ICONS.users}
-            <div class="agoda-search-inner">
-              <label>Guests</label>
-              <select id="agoda-guests" onchange="window.luxeEngine.onGuestsChange(this.value)">
-                ${Array.from({ length: this.prop.max_guests || 10 }, (_, i) => i + 1).map(num => `
-                  <option value="${num}" ${num === 2 ? 'selected' : ''}>${num} Guest${num > 1 ? 's' : ''}</option>
-                `).join('')}
-              </select>
-            </div>
-          </div>
-          <button type="button" class="agoda-btn-search" onclick="window.luxeEngine.checkAvailability()">
-            ${ICONS.check} Check Dates
-          </button>
-        </div>
-      `;
-      this.syncDateInputs();
+      if (container) container.style.display = 'none';
     }
 
     renderAgodaScoreCard() {
@@ -1014,7 +973,7 @@
       const p = this.prop;
       const titleEl = document.getElementById('luxe-spec-title');
       if (titleEl) {
-        titleEl.textContent = `${p.type || 'Luxury Homestay'} · Hosted by Praveen & Team`;
+        titleEl.textContent = `${p.type || 'Luxury Homestay'} · Superhosts & Owners: Firoz & Shahanshah · Manager: Praveen Singh`;
       }
 
       const pillsEl = document.getElementById('luxe-spec-pills');
@@ -1446,7 +1405,7 @@
 
       cardContainer.innerHTML = `
         <div class="luxe-booking-card">
-          <div class="luxe-card-top-tag">⚡ Direct Booking Benefit · 15% Off vs Airbnb</div>
+          <div class="luxe-card-top-tag">⚡ Direct Booking · Up to 15% Discount — WhatsApp for Code</div>
           
           <div class="luxe-price-header">
             <div>
@@ -1458,7 +1417,7 @@
 
           <div class="luxe-airbnb-comparison">
             <span id="luxe-airbnb-strike" class="luxe-airbnb-strike">₹${((p.airbnb_price || Math.round(basePrice * 1.2)) * this.nights).toLocaleString('en-IN')} on Airbnb</span>
-            <span id="luxe-save-tag" class="luxe-save-tag">Save 15% Direct</span>
+            <span id="luxe-save-tag" class="luxe-save-tag">Up to 15% Off — WhatsApp for Code</span>
           </div>
 
           <!-- Interactive Date Range Selector with Blockout Detection -->
@@ -1499,14 +1458,14 @@
             </div>
           </div>
 
-          <!-- Primary Direct Booking CTA with UPI QR / Bank -->
-          <button type="button" id="luxe-btn-book-primary" class="luxe-btn-book-primary" onclick="window.luxeEngine.openUpiPaymentModal()">
-            💳 Reserve &amp; Pay Direct (Save 15%)
-          </button>
+          <!-- Primary Direct Booking CTA — redirects to book.html -->
+          <a id="luxe-btn-book-primary" class="luxe-btn-book-primary" href="book.html?property=${p.id}" style="text-decoration:none; display:flex; align-items:center; justify-content:center; gap:8px;">
+            📋 Book Now
+          </a>
 
-          <!-- Secondary WhatsApp Direct link (Mr. Shahanshah 9450055554) -->
-          <a id="luxe-btn-wa-direct" class="luxe-btn-book-primary" style="background:#25d366; margin-top:8px;" href="https://wa.me/919450055554?text=${encodeURIComponent(`Namaste! I want to book ${p.name} directly from ${this.checkIn} to ${this.checkOut} (${this.nights} Nights, ${this.guests} Guests).\nTariff: ₹${basePrice}/night + ${gstRate}% GST = Total: ₹${totalRent.toLocaleString('en-IN')}.\nPlease confirm availability.`)}" target="_blank">
-            ${ICONS.whatsapp} Instant WhatsApp Booking
+          <!-- Secondary WhatsApp Inquiry link (Mr. Shahanshah 9450055554) -->
+          <a id="luxe-btn-wa-direct" class="luxe-btn-book-primary" style="background:#25d366; margin-top:8px;" href="https://wa.me/919450055554?text=${encodeURIComponent(`Namaste! I have an inquiry about booking ${p.name} from ${this.checkIn} to ${this.checkOut}. Please share details.`)}" target="_blank">
+            ${ICONS.whatsapp} Have Questions? WhatsApp Us
           </a>
 
           <!-- Secondary CTAs -->
@@ -1555,18 +1514,13 @@
 
       const mobBtn = document.getElementById('luxe-mobile-btn-wa');
       if (mobBtn) {
+        mobBtn.innerHTML = '📋 Book Now';
+        mobBtn.style.background = 'linear-gradient(135deg, #059669, #10b981)';
+        mobBtn.style.color = '#fff';
+        mobBtn.href = `book.html?property=${this.prop.id}`;
         mobBtn.onclick = (e) => {
           e.preventDefault();
-          if (this.checkIn && this.checkOut) {
-            this.openUpiPaymentModal();
-          } else {
-            const cal = document.getElementById('availability') || document.getElementById('luxe-availability-calendar');
-            if (cal) {
-              cal.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            } else {
-              this.openUpiPaymentModal();
-            }
-          }
+          window.location.href = `book.html?property=${this.prop.id}`;
         };
       }
     }
@@ -1672,7 +1626,7 @@
             <div style="display:flex; justify-content:space-between; align-items:center;">
               <div>
                 <span style="font-size:11px; color:#64748b; text-transform:uppercase; letter-spacing:0.5px; display:block;">Total Payable (with GST)</span>
-                <span class="luxe-gst-badge-pill">Save 15% vs Airbnb</span>
+                <span class="luxe-gst-badge-pill">Up to 15% Off — WhatsApp for Code</span>
               </div>
               <div class="val">₹${amount.toLocaleString('en-IN')}</div>
             </div>
@@ -2316,8 +2270,8 @@ _Please confirm room allotment and issue official GST Tax Invoice. Thank you!_`;
 
           <div style="font-size:11.5px; color:#64748b; margin-bottom:18px; line-height:1.5;">
             📍 <strong>Property Location:</strong> <a href="${details.mapLink}" target="_blank" style="color:#0284c7; text-decoration:underline;">Open Pinpoint on Google Maps ↗</a><br>
-            👤 <strong>Host &amp; Manager:</strong> Praveen Singh (+91 91941 09911) · Office: 10:00 AM – 09:00 PM<br>
-            📞 <strong>Helplines:</strong> 9450055554 / 8299600709
+            👑 <strong>Superhosts &amp; Owners:</strong> Firoz Khan (+91 82996 00709) &amp; Shahanshah (+91 94500 55554)<br>
+            👤 <strong>Manager:</strong> Praveen Singh (+91 91941 09911) · Office: 10:00 AM – 09:00 PM
           </div>
 
           <div class="luxe-voucher-actions" style="display:flex; flex-direction:column; gap:10px;">
@@ -2465,6 +2419,19 @@ _Please confirm room allotment and issue official GST Tax Invoice. Thank you!_`;
         tabsContainer.innerHTML = tabsHtml;
       }
 
+      // Add floating "Book Now" button inside the gallery modal
+      let galleryBookBtn = modal.querySelector('.luxe-gallery-book-btn');
+      if (!galleryBookBtn) {
+        galleryBookBtn = document.createElement('a');
+        galleryBookBtn.className = 'luxe-gallery-book-btn';
+        galleryBookBtn.href = `book.html?property=${this.prop.id}`;
+        galleryBookBtn.innerHTML = '📋 Book Now';
+        galleryBookBtn.style.cssText = 'position:fixed; bottom:24px; right:24px; z-index:100002; background:linear-gradient(135deg,#059669,#10b981); color:#fff; padding:14px 28px; border-radius:50px; font-weight:700; font-size:15px; text-decoration:none; box-shadow:0 4px 20px rgba(5,150,105,0.4); display:none; align-items:center; gap:8px; transition:transform 0.2s, box-shadow 0.2s;';
+        galleryBookBtn.onmouseenter = function() { this.style.transform = 'scale(1.05)'; this.style.boxShadow = '0 6px 28px rgba(5,150,105,0.5)'; };
+        galleryBookBtn.onmouseleave = function() { this.style.transform = 'scale(1)'; this.style.boxShadow = '0 4px 20px rgba(5,150,105,0.4)'; };
+        modal.appendChild(galleryBookBtn);
+      }
+
       window.addEventListener('keydown', (e) => {
         if (!modal.classList.contains('active')) return;
         if (e.key === 'Escape') this.closeGallery();
@@ -2497,6 +2464,10 @@ _Please confirm room allotment and issue official GST Tax Invoice. Thank you!_`;
       this.updateGalleryView();
       modal.classList.add('active');
       document.body.style.overflow = 'hidden';
+
+      // Show the floating Book Now button in gallery
+      const galleryBookBtn = modal.querySelector('.luxe-gallery-book-btn');
+      if (galleryBookBtn) galleryBookBtn.style.display = 'flex';
     }
 
     closeGallery() {
@@ -2504,6 +2475,10 @@ _Please confirm room allotment and issue official GST Tax Invoice. Thank you!_`;
       if (!modal) return;
       modal.classList.remove('active');
       document.body.style.overflow = '';
+
+      // Hide the floating Book Now button
+      const galleryBookBtn = modal.querySelector('.luxe-gallery-book-btn');
+      if (galleryBookBtn) galleryBookBtn.style.display = 'none';
     }
 
     filterGallery(category, tabBtn) {
@@ -2936,7 +2911,7 @@ _Please confirm room allotment and issue official GST Tax Invoice. Thank you!_`;
               <h4>No Upcoming Bookings Yet</h4>
               <p>When you book a luxury homestay with us, your reservations, stay passes, and downloadable official GST tax invoices will appear right here.</p>
               <button type="button" class="agoda-btn-search" style="padding:10px 24px; border-radius:999px; margin:0 auto;" onclick="window.luxeEngine.closeProfileModal(); window.location.href='properties.html#properties';">
-                Explore Lucknow Homestays (15% Off) →
+                Explore Lucknow Homestays →
               </button>
             </div>
           `;
@@ -3303,42 +3278,7 @@ _Please confirm room allotment and issue official GST Tax Invoice. Thank you!_`;
     /* ─── AIRBNB-STYLE STICKY SUBNAV & MINI RESERVE PILL ─── */
     renderAirbnbSubnav() {
       let subnav = document.querySelector('.agoda-subnav');
-      if (!subnav) return;
-
-      const p = this.prop;
-      const basePrice = p.base_price || 3499;
-      const rating = p.rating ? p.rating.toFixed(1) : '5.0';
-      const reviews = p.reviews || p.review_count || '46';
-
-      subnav.innerHTML = `
-        <a class="agoda-tab-item active" href="#overview">Overview</a>
-        <a class="agoda-tab-item" href="#luxe-photo-mosaic">Photos</a>
-        <a class="agoda-tab-item" href="#sleeping">Rooms</a>
-        <a class="agoda-tab-item" href="#amenities">Amenities</a>
-        <a class="agoda-tab-item" href="#video-tour">Video Tour</a>
-        <a class="agoda-tab-item" href="#reviews">Reviews</a>
-        <a class="agoda-tab-item" href="#location">Location</a>
-        <a class="agoda-tab-item" href="#house-rules">Policies</a>
-
-        <div class="agoda-subnav-reserve-pill" id="agoda-subnav-reserve-pill">
-          <div class="agoda-mini-price">₹${basePrice.toLocaleString('en-IN')} <span style="font-size:11px; font-weight:400; color:#64748b;">for 1 night</span></div>
-          <div class="agoda-mini-rating">★ ${rating} · ${reviews} reviews</div>
-          <button type="button" class="agoda-btn-mini-reserve" onclick="window.luxeEngine.openUpiPaymentModal()">Reserve</button>
-        </div>
-      `;
-
-      // Scroll listener to toggle sticky pill when scrolled past hero mosaic
-      window.removeEventListener('scroll', this._onSubnavScroll);
-      this._onSubnavScroll = () => {
-        const pill = document.getElementById('agoda-subnav-reserve-pill');
-        if (!pill) return;
-        if (window.scrollY > 480) {
-          pill.classList.add('show');
-        } else {
-          pill.classList.remove('show');
-        }
-      };
-      window.addEventListener('scroll', this._onSubnavScroll, { passive: true });
+      if (subnav) subnav.style.display = 'none';
     }
 
     /* ─── AIRBNB 5.0 LAUREL HERO & REVIEWS SYSTEM ─── */

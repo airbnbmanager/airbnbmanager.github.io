@@ -227,6 +227,8 @@ async function renderSmartManageBookings() {
     heroTitle = `You have ${count} check-in${count === 1 ? '' : 's'} today`;
   } else if (tab === 'departures') {
     heroTitle = `You have ${count} checkout${count === 1 ? '' : 's'} today`;
+  } else if (tab === 'pending') {
+    heroTitle = `You have ${count} pending booking${count === 1 ? '' : 's'} awaiting approval`;
   } else if (tab === 'airbnb') {
     heroTitle = `You have ${count} Airbnb reservation${count === 1 ? '' : 's'}`;
   } else if (tab === 'direct') {
@@ -238,6 +240,24 @@ async function renderSmartManageBookings() {
   // Render View HTML
   const html = `
     <div class="airbnb-host-wrap">
+      ${pendingApprovalsCount > 0 ? `
+        <div class="website-pending-alert-banner" onclick="window.setBookingTab ? window.setBookingTab('pending') : navigate('pendingApprovals')" style="cursor:pointer;background:linear-gradient(135deg, #FFFBEB 0%, #FEF3C7 100%);border:2px solid #F59E0B;border-radius:14px;padding:12px 18px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;box-shadow:0 3px 12px rgba(245,158,11,0.15);">
+          <div style="display:flex;align-items:center;gap:12px;">
+            <div style="font-size:26px;line-height:1;">🌐</div>
+            <div>
+              <div style="font-weight:800;color:#92400E;font-size:14px;">
+                🔔 ${pendingApprovalsCount} Website Booking Request${pendingApprovalsCount > 1 ? 's' : ''} Awaiting Approval!
+              </div>
+              <div style="font-size:12px;color:#78350F;margin-top:2px;">
+                Direct booking from website — Click to review guest details, verify & approve.
+              </div>
+            </div>
+          </div>
+          <button class="btn-sm" style="background:#0F172A;color:#fff;border-radius:20px;font-weight:700;padding:6px 16px;border:none;cursor:pointer;font-size:12px;" onclick="event.stopPropagation();navigate('pendingApprovals')">
+            🟡 Open Approvals (${pendingApprovalsCount}) ➔
+          </button>
+        </div>
+      ` : ''}
       <!-- Centered Pill Bar & Filter Actions (Matches Airbnb Mobile Header) -->
       <div class="airbnb-header-bar">
         <div class="airbnb-pills-center">
@@ -249,6 +269,9 @@ async function renderSmartManageBookings() {
           </button>
           <button class="airbnb-pill ${tab === 'inhouse' ? 'active' : ''}" onclick="window.setBookingTab('inhouse')">
             In-House <span class="airbnb-pill-num">${inHouseCount}</span>
+          </button>
+          <button class="airbnb-pill ${tab === 'pending' ? 'active' : ''}" onclick="window.setBookingTab('pending')" style="${pendingApprovalsCount > 0 ? 'background:#FEF3C7;color:#92400E;border-color:#F59E0B;font-weight:700;' : ''}">
+            🟡 Pending <span class="airbnb-pill-num" style="${pendingApprovalsCount > 0 ? 'background:#F59E0B;color:#fff;' : ''}">${pendingApprovalsCount}</span>
           </button>
           <button class="airbnb-pill ${tab === 'all' ? 'active' : ''}" onclick="window.setBookingTab('all')">
             All <span class="airbnb-pill-num">${all?.length || 0}</span>
@@ -337,6 +360,9 @@ async function renderSmartManageBookings() {
         ` : ''}
       </div>
 
+      <!-- Your follow-ups Section (Placed Prominently at Top) -->
+      ${renderAirbnbFollowupsHtml(all, paidMap, canM, today)}
+
       <!-- Reservation Presentation -->
       ${filtered.length === 0 ? `
         <div style="background:#ffffff;border:1px solid #E2E8F0;border-radius:16px;text-align:center;padding:50px 20px;max-width:560px;margin:0 auto;">
@@ -379,9 +405,6 @@ async function renderSmartManageBookings() {
           ` : ''}
         </div>
       </div>
-
-      <!-- Your follow-ups Section (like Airbnb screenshot) -->
-      ${renderAirbnbFollowupsHtml(all, paidMap, canM, today)}
 
       <!-- Slide-Over Drawer Container (Dynamic) -->
       <div id="sbkDrawerContainer"></div>
@@ -684,7 +707,9 @@ function renderAirbnbReservationsHtml(bookings, paidMap, canM, today) {
 }
 
 function renderAirbnbFollowupsHtml(allBookings, paidMap, canM, today) {
-  const followups = [];
+  const approvals = [];
+  const urgentOps = [];
+  const balanceDue = [];
 
   (allBookings || []).forEach(b => {
     if (b.is_cancelled) return;
@@ -693,33 +718,22 @@ function renderAirbnbFollowupsHtml(allBookings, paidMap, canM, today) {
     const bal = tot - pd;
     const isOnline = b.booking_mode === 'Online-Airbnb' || !!b.airbnb_confirmation_code;
 
-    // 1. Balance Due
-    if (bal > 0.99 && (!isOnline || tot > 0)) {
-      followups.push({
-        type: 'due',
-        title: `Collect ₹${Math.round(bal).toLocaleString('en-IN')} balance`,
-        subtitle: `${b.guest_name || 'Guest'} • ${b.rooms?.nickname || b.room_id || 'Room'}`,
-        actionText: '💰 Collect',
-        bookingId: b.booking_id
-      });
-    }
-
-    // 2. Pending Verification
+    // 1. Pending Verification (Top Priority — Direct Website & Staff Bookings)
     if (b.verification_status === 'pending') {
-      followups.push({
+      approvals.push({
         type: 'approval',
         title: `Pending booking approval`,
-        subtitle: `${b.guest_name || 'Guest'} • ${b.check_in || 'Upcoming'}`,
+        subtitle: `${b.guest_name || 'Guest'} • ${b.rooms?.nickname || b.room_id || 'Room'} • Check-in: ${b.check_in || 'Upcoming'}`,
         actionText: '🟡 Verify',
         bookingId: b.booking_id
       });
     }
 
-    // 3. Missing ID proof for in-house or today's arrivals
+    // 2. Missing ID proof for in-house or today's arrivals
     const hasId = !!(b.id_proof_photo_paths || b.id_proof_photo_path);
     const isTodayOrInHouse = (b.check_in === today) || (b.check_in < today && (b.check_out > today || (!b.check_out && b.checkout_confirmed === false)));
     if (!hasId && isTodayOrInHouse && !b.guest_name?.toLowerCase().includes('blocked')) {
-      followups.push({
+      urgentOps.push({
         type: 'id',
         title: `Upload ID proof for ${b.guest_name || 'Guest'}`,
         subtitle: `${b.rooms?.nickname || b.room_id || 'Unit'} • Arrived / In-house`,
@@ -728,9 +742,9 @@ function renderAirbnbFollowupsHtml(allBookings, paidMap, canM, today) {
       });
     }
 
-    // 4. Overdue checkout (scheduled checkout date was in the past, but checkout wasn't confirmed)
+    // 3. Overdue checkout (scheduled checkout date was in the past, but checkout wasn't confirmed)
     if (b.check_out && b.check_out < today && b.checkout_confirmed === false) {
-      followups.push({
+      urgentOps.push({
         type: 'checkout',
         title: `Confirm checkout for ${b.guest_name || 'Guest'}`,
         subtitle: `${b.rooms?.nickname || b.room_id || 'Unit'} • Scheduled: ${b.check_out}`,
@@ -738,11 +752,23 @@ function renderAirbnbFollowupsHtml(allBookings, paidMap, canM, today) {
         bookingId: b.booking_id
       });
     }
+
+    // 4. Balance Due
+    if (bal > 0.99 && (!isOnline || tot > 0)) {
+      balanceDue.push({
+        type: 'due',
+        title: `Collect ₹${Math.round(bal).toLocaleString('en-IN')} balance`,
+        subtitle: `${b.guest_name || 'Guest'} • ${b.rooms?.nickname || b.room_id || 'Room'}`,
+        actionText: '💰 Collect',
+        bookingId: b.booking_id
+      });
+    }
   });
 
+  const followups = [...approvals, ...urgentOps, ...balanceDue];
   if (followups.length === 0) return '';
 
-  const displayFollowups = followups.slice(0, 6);
+  const displayFollowups = followups.slice(0, 8);
 
   return `
     <div class="airbnb-followups-section">
@@ -772,7 +798,7 @@ function renderBookingCardsHtml(bookings, paidMap, canM, today) {
     <div class="sbk-cards-grid">
       ${bookings.map(b => {
         const pd = paidMap[b.booking_id] || 0;
-        const isOpenEnded = b.checkout_confirmed === false;
+        const isOpenEnded = !b.check_out && b.checkout_confirmed === false;
         const cin = b.check_in || today;
         const elapsedDays = Math.max(1, Math.ceil((new Date(today) - new Date(cin)) / 86400000));
         const dailyRate = b.per_day_rate || 0;
@@ -934,7 +960,7 @@ function renderBookingTableHtml(bookings, paidMap, canM, today) {
           <tbody>
             ${bookings.map(b => {
               const pd = paidMap[b.booking_id] || 0;
-              const isOpenEnded = b.checkout_confirmed === false;
+              const isOpenEnded = !b.check_out && b.checkout_confirmed === false;
               const cin = b.check_in || today;
               const elapsedDays = Math.max(1, Math.ceil((new Date(today) - new Date(cin)) / 86400000));
               const dailyRate = b.per_day_rate || 0;

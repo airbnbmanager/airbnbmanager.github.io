@@ -394,12 +394,15 @@
             const { data: r } = await sb.from('rooms').select('nickname, unit_no').eq('room_id', b.room_id).single();
             if (r) roomName = (r.nickname || '') + (r.unit_no ? ' (' + r.unit_no + ')' : '');
           } catch(e) {}
+          const isWeb = b.booked_by === 'Website' || b.booking_mode === 'Direct-Website' || b.verification_status === 'pending';
           notify({
-            type: 'booking', icon: '📅',
-            title: 'New Booking!',
+            type: 'booking',
+            icon: isWeb ? '🌐' : '📅',
+            title: isWeb ? '🌐 New Website Booking!' : 'New Booking!',
             message: (b.guest_name || 'Guest') + ' — ' + roomName,
-            sub: 'Check-in: ' + (b.check_in || '-') + ' • ₹' + (b.total_amount || 0),
-            page: 'bookings',
+            sub: 'Check-in: ' + (b.check_in || '-') + ' • ₹' + (b.total_amount || 0) + (isWeb ? ' • Awaiting Approval' : ''),
+            page: isWeb ? 'pendingApprovals' : 'bookings',
+            sound: 'booking',
             entityId: b.booking_id,
             entityType: 'booking'
           });

@@ -961,10 +961,10 @@ async function renderManageBookings() {
 
   window._rawBookingsList = all || []; // for dupe check
 
-  // Auto-sync open-ended per-day booking amounts in background
-  if (typeof window.applyOpenBookingUpdates === 'function') {
-    window.applyOpenBookingUpdates(true).catch(e => console.warn('Per-day auto update:', e));
-  }
+  // Disabled auto-sync of per-day booking amounts to prevent unwanted automatic changes
+  // if (typeof window.applyOpenBookingUpdates === 'function') {
+  //   window.applyOpenBookingUpdates(true).catch(e => console.warn('Per-day auto update:', e));
+  // }
 
   let f = all || [];
   window._allBookings = f; // For duplicate detection
@@ -3436,11 +3436,11 @@ async function editBooking(bkId) {
       </div>
       <div class="form-group"><label>Checkout Type</label>
         <select id="checkoutConfirmed" onchange="onCheckoutTypeChgEdit()">
-          <option value="yes" ${b.checkout_confirmed !== false ? 'selected' : ''}>Fixed Date</option>
-          <option value="no" ${b.checkout_confirmed === false ? 'selected' : ''}>Open — Per Day</option>
+          <option value="yes" ${(b.checkout_confirmed !== false || b.check_out) ? 'selected' : ''}>Fixed Date</option>
+          <option value="no" ${(b.checkout_confirmed === false && !b.check_out) ? 'selected' : ''}>Open — Per Day</option>
         </select>
       </div>
-      <div id="editOpenStayNotice" style="display:${b.checkout_confirmed === false ? 'flex' : 'none'};background:#FFF8E1;border:1px solid #FFC107;padding:10px 12px;border-radius:8px;font-size:12px;color:#856404;margin:4px 0 10px;align-items:center;gap:8px;">
+      <div id="editOpenStayNotice" style="display:${(b.checkout_confirmed === false && !b.check_out) ? 'flex' : 'none'};background:#FFF8E1;border:1px solid #FFC107;padding:10px 12px;border-radius:8px;font-size:12px;color:#856404;margin:4px 0 10px;align-items:center;gap:8px;">
         <span style="font-size:16px;">🔄</span>
         <div><strong>Open Stay (Per Day basis):</strong> Total calculates dynamically day-by-day based on the daily rate.</div>
       </div>
@@ -5303,6 +5303,7 @@ window.renderPendingApprovals = async function() {
   bkList.forEach(b => {
     const creator = b.booked_by || 'Unknown';
     bkRows += `<tr class="approval-row" data-type="booking" data-search="${(b.guest_name||'') + ' ' + (b.phone||'') + ' ' + (propLabel(b.rooms)||b.room_id)}">
+      <td style="width:40px;text-align:center;"><input type="checkbox" class="bk-approval-cb" value="${b.booking_id}" onchange="updateBulkApprovalToolbar('booking')" style="width:17px;height:17px;cursor:pointer;" /></td>
       <td><strong style="color:var(--text);">${b.guest_name || '-'}</strong><br><small style="color:var(--muted);">${b.phone || ''}</small></td>
       <td><span class="badge blue">${propLabel(b.rooms) || b.room_id}</span></td>
       <td><small style="color:var(--text);">${b.check_in || ''} → ${b.check_out || ''}</small></td>
@@ -5323,6 +5324,7 @@ window.renderPendingApprovals = async function() {
     const guestName = p.guest?.guest_name || '-';
     const roomLabel = p.guest?.rooms ? (propLabel(p.guest.rooms) || p.guest.room_id) : (p.booking_id || '');
     payRows += `<tr class="approval-row" data-type="payment" data-search="${guestName + ' ' + (p.booking_id||'') + ' ' + roomLabel}">
+      <td style="width:40px;text-align:center;"><input type="checkbox" class="pay-approval-cb" value="${p.id}" onchange="updateBulkApprovalToolbar('payment')" style="width:17px;height:17px;cursor:pointer;" /></td>
       <td><strong style="color:var(--text);">${guestName}</strong><br><small style="color:var(--muted);">${p.booking_id || ''}</small></td>
       <td><span class="badge blue">${roomLabel}</span></td>
       <td><strong style="color:#10B981;font-size:15px;">₹${(p.amount || 0).toLocaleString('en-IN')}</strong><br><small style="color:var(--muted);">${p.payment_mode || '-'}</small></td>
@@ -5362,22 +5364,44 @@ window.renderPendingApprovals = async function() {
     </div>
 
     <div class="card approval-section" id="sectionBookings" style="margin-top:16px;">
-      <div class="section-title">📅 Pending Bookings (${bkList.length})</div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:10px;">
+        <div class="section-title" style="margin:0;">📅 Pending Bookings (${bkList.length})</div>
+        <div id="bulkBookingToolbar" style="display:none;align-items:center;gap:8px;background:#F1F5F9;padding:6px 12px;border-radius:10px;border:1px solid #CBD5E1;">
+          <span style="font-size:13px;font-weight:700;color:#0F172A;">Selected: <strong id="selectedBkCount" style="color:#2563EB;">0</strong></span>
+          <button class="btn-sm green-btn" style="padding:4px 10px;font-size:12px;font-weight:700;" onclick="bulkApproveBookings()">✅ Approve Selected</button>
+          <button class="btn-sm danger" style="padding:4px 10px;font-size:12px;font-weight:700;" onclick="bulkRejectBookings()">❌ Reject Selected</button>
+          <button class="btn-sm outline" style="padding:4px 8px;font-size:11px;" onclick="clearBulkApprovals('booking')">✕ Clear</button>
+        </div>
+      </div>
       ${bkList.length === 0
         ? '<div style="text-align:center;padding:30px;color:var(--muted);">✨ No pending bookings to approve</div>'
         : `<div class="table-wrap"><table>
-            <thead><tr><th>Guest</th><th>Property</th><th>Dates</th><th>Amount</th><th>Created By</th><th>Actions</th></tr></thead>
+            <thead><tr>
+              <th style="width:40px;text-align:center;"><input type="checkbox" id="selectAllBkApprovals" onchange="toggleSelectAllApprovals('booking', this.checked)" title="Select All" style="width:17px;height:17px;cursor:pointer;" /></th>
+              <th>Guest</th><th>Property</th><th>Dates</th><th>Amount</th><th>Created By</th><th>Actions</th>
+            </tr></thead>
             <tbody>${bkRows}</tbody>
           </table></div>`
       }
     </div>
 
     <div class="card approval-section" id="sectionPayments" style="margin-top:16px;">
-      <div class="section-title">💰 Pending Payments (${payList.length})</div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:10px;">
+        <div class="section-title" style="margin:0;">💰 Pending Payments (${payList.length})</div>
+        <div id="bulkPaymentToolbar" style="display:none;align-items:center;gap:8px;background:#F1F5F9;padding:6px 12px;border-radius:10px;border:1px solid #CBD5E1;">
+          <span style="font-size:13px;font-weight:700;color:#0F172A;">Selected: <strong id="selectedPayCount" style="color:#2563EB;">0</strong></span>
+          <button class="btn-sm green-btn" style="padding:4px 10px;font-size:12px;font-weight:700;" onclick="bulkApprovePayments()">✅ Approve Selected</button>
+          <button class="btn-sm danger" style="padding:4px 10px;font-size:12px;font-weight:700;" onclick="bulkRejectPayments()">❌ Reject Selected</button>
+          <button class="btn-sm outline" style="padding:4px 8px;font-size:11px;" onclick="clearBulkApprovals('payment')">✕ Clear</button>
+        </div>
+      </div>
       ${payList.length === 0
         ? '<div style="text-align:center;padding:30px;color:var(--muted);">✨ No pending payments to approve</div>'
         : `<div class="table-wrap"><table>
-            <thead><tr><th>Guest</th><th>Property</th><th>Amount</th><th>Date / Mode</th><th>Actions</th></tr></thead>
+            <thead><tr>
+              <th style="width:40px;text-align:center;"><input type="checkbox" id="selectAllPayApprovals" onchange="toggleSelectAllApprovals('payment', this.checked)" title="Select All" style="width:17px;height:17px;cursor:pointer;" /></th>
+              <th>Guest</th><th>Property</th><th>Amount</th><th>Date / Mode</th><th>Actions</th>
+            </tr></thead>
             <tbody>${payRows}</tbody>
           </table></div>`
       }
@@ -5386,6 +5410,122 @@ window.renderPendingApprovals = async function() {
 
   renderShell(html, 'pendingApprovals');
   window._pendingCount = totalPending;
+};
+
+window.toggleSelectAllApprovals = function(type, isChecked) {
+  const cls = type === 'booking' ? '.bk-approval-cb' : '.pay-approval-cb';
+  document.querySelectorAll(cls).forEach(cb => {
+    const row = cb.closest('tr');
+    if (row && row.style.display !== 'none') {
+      cb.checked = isChecked;
+    }
+  });
+  window.updateBulkApprovalToolbar(type);
+};
+
+window.updateBulkApprovalToolbar = function(type) {
+  const cls = type === 'booking' ? '.bk-approval-cb' : '.pay-approval-cb';
+  const cbs = Array.from(document.querySelectorAll(cls));
+  const checked = cbs.filter(c => c.checked);
+  const toolbar = document.getElementById(type === 'booking' ? 'bulkBookingToolbar' : 'bulkPaymentToolbar');
+  const countEl = document.getElementById(type === 'booking' ? 'selectedBkCount' : 'selectedPayCount');
+  const selectAll = document.getElementById(type === 'booking' ? 'selectAllBkApprovals' : 'selectAllPayApprovals');
+
+  if (countEl) countEl.textContent = checked.length;
+  if (toolbar) toolbar.style.display = checked.length > 0 ? 'inline-flex' : 'none';
+  if (selectAll) selectAll.checked = cbs.length > 0 && checked.length === cbs.length;
+};
+
+window.clearBulkApprovals = function(type) {
+  const cls = type === 'booking' ? '.bk-approval-cb' : '.pay-approval-cb';
+  document.querySelectorAll(cls).forEach(c => c.checked = false);
+  const selectAll = document.getElementById(type === 'booking' ? 'selectAllBkApprovals' : 'selectAllPayApprovals');
+  if (selectAll) selectAll.checked = false;
+  window.updateBulkApprovalToolbar(type);
+};
+
+window.bulkApproveBookings = async function() {
+  if (!isTrustedUser()) { fsn.error('Denied', 'Only owner/developer can approve'); return; }
+  const selectedIds = Array.from(document.querySelectorAll('.bk-approval-cb:checked')).map(c => c.value);
+  if (selectedIds.length === 0) { alert('Please select at least one booking to approve.'); return; }
+
+  if (!confirm(`Are you sure you want to approve ${selectedIds.length} booking(s)?`)) return;
+
+  const { error } = await sb.from('guest_register').update({
+    verification_status: 'verified',
+    verified_by: SESSION.userId,
+    verified_at: new Date().toISOString(),
+    rejection_reason: null
+  }).in('booking_id', selectedIds);
+
+  if (error) { fsn.error('Error', error.message); return; }
+  fsn.success('Approved', `✅ ${selectedIds.length} booking(s) approved`);
+  if (window.renderPendingApprovals) renderPendingApprovals();
+  if (window.renderManageBookings) renderManageBookings();
+  if (window.renderSmartManageBookings) renderSmartManageBookings();
+};
+
+window.bulkRejectBookings = async function() {
+  if (!isTrustedUser()) { fsn.error('Denied', 'Only owner/developer can reject'); return; }
+  const selectedIds = Array.from(document.querySelectorAll('.bk-approval-cb:checked')).map(c => c.value);
+  if (selectedIds.length === 0) { alert('Please select at least one booking to reject.'); return; }
+
+  const reason = prompt(`Enter rejection reason for ${selectedIds.length} booking(s):`);
+  if (!reason || !reason.trim()) return;
+
+  const { error } = await sb.from('guest_register').update({
+    verification_status: 'rejected',
+    verified_by: SESSION.userId,
+    verified_at: new Date().toISOString(),
+    rejection_reason: reason.trim()
+  }).in('booking_id', selectedIds);
+
+  if (error) { fsn.error('Error', error.message); return; }
+  fsn.warning('Rejected', `${selectedIds.length} booking(s) marked rejected`);
+  if (window.renderPendingApprovals) renderPendingApprovals();
+  if (window.renderManageBookings) renderManageBookings();
+  if (window.renderSmartManageBookings) renderSmartManageBookings();
+};
+
+window.bulkApprovePayments = async function() {
+  if (!isTrustedUser()) { fsn.error('Denied', 'Only owner/developer can approve'); return; }
+  const selectedIds = Array.from(document.querySelectorAll('.pay-approval-cb:checked')).map(c => parseInt(c.value, 10));
+  if (selectedIds.length === 0) { alert('Please select at least one payment to approve.'); return; }
+
+  if (!confirm(`Are you sure you want to approve ${selectedIds.length} payment(s)?`)) return;
+
+  const { error } = await sb.from('payment_history').update({
+    verification_status: 'verified',
+    verified_by: SESSION.userId,
+    verified_at: new Date().toISOString(),
+    rejection_reason: null
+  }).in('id', selectedIds);
+
+  if (error) { fsn.error('Error', error.message); return; }
+  fsn.success('Approved', `✅ ${selectedIds.length} payment(s) approved`);
+  if (window.renderPendingApprovals) renderPendingApprovals();
+  if (window.renderManageBookings) renderManageBookings();
+};
+
+window.bulkRejectPayments = async function() {
+  if (!isTrustedUser()) { fsn.error('Denied', 'Only owner/developer can reject'); return; }
+  const selectedIds = Array.from(document.querySelectorAll('.pay-approval-cb:checked')).map(c => parseInt(c.value, 10));
+  if (selectedIds.length === 0) { alert('Please select at least one payment to reject.'); return; }
+
+  const reason = prompt(`Enter rejection reason for ${selectedIds.length} payment(s):`);
+  if (!reason || !reason.trim()) return;
+
+  const { error } = await sb.from('payment_history').update({
+    verification_status: 'rejected',
+    verified_by: SESSION.userId,
+    verified_at: new Date().toISOString(),
+    rejection_reason: reason.trim()
+  }).in('id', selectedIds);
+
+  if (error) { fsn.error('Error', error.message); return; }
+  fsn.warning('Rejected', `${selectedIds.length} payment(s) marked rejected`);
+  if (window.renderPendingApprovals) renderPendingApprovals();
+  if (window.renderManageBookings) renderManageBookings();
 };
 
 window.filterApprovals = function(type, btn) {

@@ -1402,13 +1402,10 @@ body.luxe-property-page .hero-frame {
    AGODA & TAJ HOTEL LUXURY SEARCH, CALENDAR SYNC & UPI QR SYSTEM
    ══════════════════════════════════════════════════════════════ */
 
-/* Universal Agoda-style Search Strip */
-.agoda-search-strip {
-  background: #ffffff;
-  border-bottom: 1px solid var(--luxe-border);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
-  position: relative;
-  z-index: 990;
+/* Universal Agoda-style Search Strip & Subnav - hidden for simplified clean layout */
+.agoda-search-strip,
+.agoda-subnav {
+  display: none !important;
 }
 
 .agoda-search-container {

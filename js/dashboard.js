@@ -168,6 +168,8 @@ async function renderDashboard() {
   ]);
 
   const allBookings = bookings || [];
+  const pendingWebsiteBookings = allBookings.filter(x => !x.is_cancelled && x.verification_status === 'pending');
+  window._pendingCount = pendingWebsiteBookings.length;
   const allFlats = flats || [];
   const allPayments = payments || [];
 
@@ -926,6 +928,27 @@ async function renderDashboard() {
     <div class="dash-wrap">
       ${updateNoticeHTML()}
       ${['owner','admin'].includes(SESSION.role) ? syncInfoHTML() : ''}
+      ${pendingWebsiteBookings.length > 0 ? `
+        <div class="website-pending-alert-banner" onclick="navigate('pendingApprovals')" style="cursor:pointer;background:linear-gradient(135deg, #FEF3C7 0%, #FDE68A 100%);border:2px solid #F59E0B;border-radius:14px;padding:14px 20px;margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;box-shadow:0 4px 14px rgba(245,158,11,0.18);">
+          <div style="display:flex;align-items:center;gap:14px;">
+            <div style="font-size:30px;line-height:1;">🌐</div>
+            <div>
+              <div style="font-weight:800;color:#92400E;font-size:15px;display:flex;align-items:center;gap:8px;">
+                <span>Website Booking Alert!</span>
+                <span style="background:#F59E0B;color:#fff;padding:2px 8px;border-radius:12px;font-size:11.5px;font-weight:700;">${pendingWebsiteBookings.length} Awaiting Approval</span>
+              </div>
+              <div style="font-size:13px;color:#78350F;margin-top:3px;">
+                ${pendingWebsiteBookings.map(b => `<strong>${escapeHtml(b.guest_name || 'Guest')}</strong> (${escapeHtml(b.rooms?.nickname || b.room_id || 'Room')} • Check-in: ${b.check_in || 'Dates'})`).join(', ')}
+              </div>
+            </div>
+          </div>
+          <div style="display:flex;gap:8px;align-items:center;">
+            <button class="btn-sm" style="background:#0F172A;color:#fff;border-radius:20px;font-weight:700;padding:7px 16px;border:none;cursor:pointer;font-size:12.5px;">
+              🟡 Review & Approve ➔
+            </button>
+          </div>
+        </div>
+      ` : ''}
 
       <!-- HERO HEADER -->
       <div class="dash-hero">

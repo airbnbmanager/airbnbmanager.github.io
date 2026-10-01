@@ -21,7 +21,6 @@
   </a>
   <div class="nav-links">
     <a href="index.html">Home</a>
-    <a href="calendar.html">Availability</a>
     <a href="properties.html">All Properties</a>
     <a class="nav-wa" href="https://wa.me/919450055554?text=Namaste!%20I%20want%20to%20book%20a%20stay." target="_blank">💬 WhatsApp</a>
   </div>
@@ -30,7 +29,7 @@
 <section class="hero">
   <div class="hero-badge">✨ Direct Booking — Best Price Guaranteed</div>
   <h1>Book Your <em>Luxury Stay</em> in Lucknow</h1>
-  <p>17 premium homestays · Instant WhatsApp confirmation · Save up to 20% vs Airbnb</p>
+  <p>17 premium homestays · Instant WhatsApp confirmation · For up to 15% discount, reach us on WhatsApp</p>
 </section>
 
 <div class="booking-wrap">
@@ -122,10 +121,23 @@
           <div id="summaryContent" style="display:none;">
             <div class="price-box">
               <div class="prow"><span id="sumNights">—</span><span id="sumNightlyTotal">₹—</span></div>
-              <div class="prow"><span>Direct Discount</span><span id="sumDiscount" class="discount">—</span></div>
+              <div id="couponDiscountRow" class="prow" style="display:none;">
+                <span>Coupon Discount <button type="button" onclick="removeCoupon()" style="background:none; border:none; color:#ef4444; font-size:11.5px; font-weight:700; text-decoration:underline; cursor:pointer; padding:0 4px;">(Remove)</button></span>
+                <span id="sumDiscount" class="discount">—</span>
+              </div>
               <div class="prow total"><span>Total (Estimate)</span><span id="sumTotal">₹—</span></div>
             </div>
-            <div class="price-note">Final price confirmed by host on WhatsApp. No payment now.</div>
+            <!-- Coupon / Discount Code -->
+            <div style="margin-top:12px; padding:12px; background:#f0fdf4; border:1px solid #bbf7d0; border-radius:10px;">
+              <label style="font-size:12.5px; font-weight:600; color:#166534; display:block; margin-bottom:6px;">🏷️ Have a Discount Code?</label>
+              <div style="display:flex; gap:8px;">
+                <input id="couponCode" type="text" class="finput" placeholder="Enter coupon code" style="flex:1; font-size:13px; text-transform:uppercase; letter-spacing:1px;"/>
+                <button id="couponApplyBtn" type="button" onclick="applyCoupon()" style="padding:8px 16px; background:#059669; color:#fff; border:none; border-radius:8px; font-weight:700; font-size:12.5px; cursor:pointer; white-space:nowrap;">Apply</button>
+                <button id="couponRemoveBtn" type="button" onclick="removeCoupon()" style="display:none; padding:8px 14px; background:#ef4444; color:#fff; border:none; border-radius:8px; font-weight:700; font-size:12.5px; cursor:pointer; white-space:nowrap;">✕ Remove</button>
+              </div>
+              <div id="couponMsg" style="font-size:11.5px; color:#6b7280; margin-top:6px;">For discount codes, WhatsApp Superhosts &amp; Owners <a href="https://wa.me/919450055554?text=Namaste!%20Please%20share%20a%20discount%20code%20for%20my%20booking." target="_blank" style="color:#059669; font-weight:600;">Shahanshah</a> / <a href="https://wa.me/918299600709?text=Namaste!%20Please%20share%20a%20discount%20code%20for%20my%20booking." target="_blank" style="color:#059669; font-weight:600;">Firoz</a> or Manager <a href="https://wa.me/919194109911?text=Namaste!%20Please%20share%20a%20discount%20code%20for%20my%20booking." target="_blank" style="color:#059669; font-weight:600;">Praveen Singh</a></div>
+            </div>
+            <div class="price-note" style="margin-top:10px;">Final price confirmed by host on WhatsApp. No payment now.</div>
           </div>
 
           <button class="btn-wa" id="bookBtn" onclick="submitBookingRequest()" disabled>
@@ -145,29 +157,29 @@
       <div class="card why-card">
         <div class="card-hd"><div class="card-icon">⭐</div><div><div class="card-title">Why Book Direct?</div></div></div>
         <div class="card-body">
-          <div class="why-item"><div class="why-ico">💰</div><div><div class="why-t">Save 15–20% vs Airbnb</div><div class="why-d">No platform fees. Cheapest guaranteed.</div></div></div>
+          <div class="why-item"><div class="why-ico">💰</div><div><div class="why-t">Up to 15% Discount</div><div class="why-d">WhatsApp Shahanshah or Firoz for exclusive discount codes.</div></div></div>
           <div class="why-item"><div class="why-ico">⚡</div><div><div class="why-t">Reply in Minutes</div><div class="why-d">WhatsApp confirmation, not email.</div></div></div>
-          <div class="why-item"><div class="why-ico">🤝</div><div><div class="why-t">Personal Host Line</div><div class="why-d">Direct to Shahanshah, Firoz & team.</div></div></div>
+          <div class="why-item"><div class="why-ico">🤝</div><div><div class="why-t">Personal Host Line</div><div class="why-d">Direct to Owners Shahanshah, Firoz &amp; Manager Praveen.</div></div></div>
           <div class="why-item"><div class="why-ico">🏆</div><div><div class="why-t">4.9★ · 300+ Reviews</div><div class="why-d">Top-rated on all platforms.</div></div></div>
         </div>
       </div>
 
       <div class="card hosts-card">
-        <div class="card-hd"><div class="card-icon">👋</div><div><div class="card-title">Talk to a Host</div><div class="card-sub">Daily 9AM–10PM IST</div></div></div>
+        <div class="card-hd"><div class="card-icon">👋</div><div><div class="card-title">Talk to Host &amp; Manager</div><div class="card-sub">Daily 9AM–10PM IST</div></div></div>
         <div class="card-body">
           <div class="host-item">
             <div class="host-av">S</div>
-            <div><div class="host-name">Shahanshah</div><div class="host-role">Managing Director</div></div>
+            <div><div class="host-name">Shahanshah</div><div class="host-role">Superhost &amp; Owner</div></div>
             <a class="host-wa" href="https://wa.me/919450055554?text=Namaste!" target="_blank">💬</a>
           </div>
           <div class="host-item">
             <div class="host-av">F</div>
-            <div><div class="host-name">Firoz</div><div class="host-role">Operations</div></div>
+            <div><div class="host-name">Firoz Khan</div><div class="host-role">Superhost &amp; Owner</div></div>
             <a class="host-wa" href="https://wa.me/918299600709?text=Namaste!" target="_blank">💬</a>
           </div>
           <div class="host-item">
             <div class="host-av">P</div>
-            <div><div class="host-name">Praveen</div><div class="host-role">Tech & Support</div></div>
+            <div><div class="host-name">Praveen Singh</div><div class="host-role">Manager</div></div>
             <a class="host-wa" href="https://wa.me/919194109911?text=Namaste!" target="_blank">💬</a>
           </div>
         </div>
@@ -186,6 +198,6 @@
   </div>
 </div>
 
-<script src="book.js"></script>
+<script src="book.js?v=215"></script>
 </body>
 </html>
