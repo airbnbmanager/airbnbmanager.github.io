@@ -3,10 +3,25 @@
  * THE UNIQUE HAVEN HOMES PRIVATE LIMITED
  */
 
+function getClaimsDefaultFromDate() {
+  const d = new Date();
+  const yr = d.getFullYear();
+  const mo = String(d.getMonth() + 1).padStart(2, '0');
+  return `${yr}-${mo}-01`;
+}
+
+function getClaimsDefaultToDate() {
+  const d = new Date();
+  const yr = d.getFullYear();
+  const mo = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${yr}-${mo}-${day}`;
+}
+
 window._claimsState = {
-  fromDate: '2026-09-17',
+  fromDate: getClaimsDefaultFromDate(),
   fromTime: '00:00',
-  toDate: '2026-09-30',
+  toDate: getClaimsDefaultToDate(),
   toTime: '23:59',
   moduleFilter: 'all',
   statusFilter: 'all',
@@ -45,6 +60,21 @@ window.addEventListener('uhhs:dataChanged', () => {
 
 window.renderClaims = async function() {
   if (window.showLoadingSkeleton) window.showLoadingSkeleton('list');
+
+  const nowD = new Date();
+  const todayStr = `${nowD.getFullYear()}-${String(nowD.getMonth() + 1).padStart(2, '0')}-${String(nowD.getDate()).padStart(2, '0')}`;
+  const monthStartStr = `${nowD.getFullYear()}-${String(nowD.getMonth() + 1).padStart(2, '0')}-01`;
+  const lastDayVal = new Date(nowD.getFullYear(), nowD.getMonth() + 1, 0).getDate();
+  const monthEndStr = `${nowD.getFullYear()}-${String(nowD.getMonth() + 1).padStart(2, '0')}-${String(lastDayVal).padStart(2, '0')}`;
+  const monthName = nowD.toLocaleString('en-IN', { month: 'short' });
+
+  // Default to 1st of current running month and today
+  if (!window._claimsState.fromDate) {
+    window._claimsState.fromDate = monthStartStr;
+  }
+  if (!window._claimsState.toDate) {
+    window._claimsState.toDate = todayStr;
+  }
 
   renderShell(`
     <div class="card">
@@ -181,10 +211,10 @@ window.renderClaims = async function() {
       <div style="margin-top:10px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
         <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
           <span style="font-size:11px;font-weight:700;color:#64748B;">Quick Presets:</span>
-          <button type="button" onclick="setClaimsQuickDate('2026-09-17', '2026-09-17')" style="background:#E0E7FF;color:#3730A3;border:1px solid #C7D2FE;padding:4px 10px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;">⚡ Today (17-Sep)</button>
-          <button type="button" onclick="setClaimsQuickDate('2026-09-17', '${new Date().toISOString().slice(0, 10)}')" style="background:#E0E7FF;color:#3730A3;border:1px solid #C7D2FE;padding:4px 10px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;">🏁 Checkpoint (17-Sep) to Today</button>
-          <button type="button" onclick="setClaimsQuickDate('2026-09-12', '2026-09-16')" style="background:#E0E7FF;color:#3730A3;border:1px solid #C7D2FE;padding:4px 10px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;">📅 12-Sep to 16-Sep (Settled)</button>
-          <button type="button" onclick="setClaimsQuickDate('2026-09-01', '2026-09-30')" style="background:#E0E7FF;color:#3730A3;border:1px solid #C7D2FE;padding:4px 10px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;">📅 Sep Full Month</button>
+          <button type="button" onclick="setClaimsQuickDate('${todayStr}', '${todayStr}')" style="background:#E0E7FF;color:#3730A3;border:1px solid #C7D2FE;padding:4px 10px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;">⚡ Today</button>
+          <button type="button" onclick="setClaimsQuickDate('${monthStartStr}', '${todayStr}')" style="background:#E0E7FF;color:#3730A3;border:1px solid #C7D2FE;padding:4px 10px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;">📅 ${monthName} (1st to Today)</button>
+          <button type="button" onclick="setClaimsQuickDate('${monthStartStr}', '${monthEndStr}')" style="background:#E0E7FF;color:#3730A3;border:1px solid #C7D2FE;padding:4px 10px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;">📅 ${monthName} Full Month</button>
+          <button type="button" onclick="setClaimsQuickDate('2026-09-17', '${todayStr}')" style="background:#E0E7FF;color:#3730A3;border:1px solid #C7D2FE;padding:4px 10px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;">🏁 Checkpoint (17-Sep) to Today</button>
           <button type="button" onclick="setClaimsQuickDate('', '')" style="background:#F1F5F9;color:#475569;border:1px solid #CBD5E1;padding:4px 10px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;">🌐 All Dates</button>
         </div>
         <button onclick="loadClaimsData()" style="background:#4F46E5;color:#fff;padding:8px 16px;border:none;border-radius:6px;font-weight:600;cursor:pointer;">🔄 Refresh Data</button>
