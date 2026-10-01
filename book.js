@@ -555,8 +555,23 @@ async function submitBookingRequest() {
   const successEl = document.getElementById('successMsg');
   if (successEl) {
     successEl.innerHTML =
-      'Booking Request <strong>' + bookingId + '</strong> for <strong>' + selectedProp.name + '</strong> (' + nights + ' nights) has been confirmed and saved to our database. Our team has received your request and will reach out to you on WhatsApp!';
+      'Thank you <strong>' + (name || 'Guest') + '</strong>! Your booking for <strong>' + selectedProp.name + '</strong> (' + nights + ' night' + (nights > 1 ? 's' : '') + ') is confirmed with Booking ID <span style="display:inline-block; background:#e0f2fe; color:#0369a1; padding:2px 8px; border-radius:6px; font-weight:700;">' + bookingId + '</span>.';
   }
+
+  // Set direct WhatsApp links with booking context
+  const waShahanshah = document.getElementById('modalWaShahanshah');
+  if (waShahanshah) {
+    waShahanshah.href = 'https://wa.me/919450055554?text=' + encodeURIComponent('Namaste Shahanshah ji, I have booked ' + selectedProp.name + ' (Booking ID: ' + bookingId + ').');
+  }
+  const waFiroz = document.getElementById('modalWaFiroz');
+  if (waFiroz) {
+    waFiroz.href = 'https://wa.me/918299600709?text=' + encodeURIComponent('Namaste Firoz ji, I have booked ' + selectedProp.name + ' (Booking ID: ' + bookingId + ').');
+  }
+  const waPraveen = document.getElementById('modalWaPraveen');
+  if (waPraveen) {
+    waPraveen.href = 'https://wa.me/919194109911?text=' + encodeURIComponent('Namaste Praveen ji, I have booked ' + selectedProp.name + ' (Booking ID: ' + bookingId + ').');
+  }
+
   document.getElementById('successModal').style.display = 'flex';
 }
 
