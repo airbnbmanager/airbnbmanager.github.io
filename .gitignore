@@ -45,3 +45,4 @@ scratch/
 **/*.log
 whatsapp-bot/*.log
 
+scratch_online_bookings_backup.json
