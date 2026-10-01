@@ -289,10 +289,23 @@ function parseAirbnbEmail(subject, textContent, emailDate) {
       if (cleanAmt > 500) totalAmount = cleanAmt;
     }
 
-    // 6. Guests count (Matches "10 adults", "Guests\n10 adults", "4 guests")
-    let guests = 2;
-    const guestMatch = cleanSearchText.match(/(?:guests?[:\s]+)?(\d+)\s*(?:adults?|guests?)/i) || cleanSearchText.match(/(\d+)\s+(?:adults?|guests?)/i);
-    if (guestMatch) guests = parseInt(guestMatch[1], 10);
+    // 6. Guests count: Specifically target "Guests\n10 adults" or "10 adults"
+    let guests = null;
+    const guestsSectionMatch = cleanSearchText.match(/Guests?[\s:]+(\d+)\s*(?:adults?|guests?)/i);
+    if (guestsSectionMatch) {
+      guests = parseInt(guestsSectionMatch[1], 10);
+      const childMatch = cleanSearchText.match(/Guests?[\s:]+\d+\s*adults?,?\s*(\d+)\s*child/i);
+      if (childMatch) guests += parseInt(childMatch[1], 10);
+    }
+    if (!guests) {
+      const adultsMatch = cleanSearchText.match(/(\d+)\s+adults?/i);
+      if (adultsMatch) guests = parseInt(adultsMatch[1], 10);
+    }
+    if (!guests) {
+      const generalMatch = cleanSearchText.match(/(\d+)\s+guests?/i);
+      if (generalMatch) guests = parseInt(generalMatch[1], 10);
+    }
+    if (!guests || isNaN(guests)) guests = 2;
 
     // 7. Door Code / Phone digits
     let doorCode = '';
@@ -323,14 +336,31 @@ function pushBookingToCRM(bk) {
     'Prefer': 'return=representation'
   };
 
-  // 🛡️ ZERO-DUPLICATE CHECK: Confirmation Code Match
-  // Every Airbnb booking has a globally unique code (e.g. HMX59TAJQA). If it exists in DB, NEVER insert again!
-  const checkCodeUrl = `${CONFIG.SUPABASE_URL}/rest/v1/guest_register?airbnb_confirmation_code=eq.${bk.confirmationCode}&select=booking_id,guest_name`;
+  // 🛡️ ZERO-DUPLICATE CHECK & ENRICHMENT
+  // Every Airbnb booking has a globally unique code (e.g. HMX59TAJQA).
+  const checkCodeUrl = `${CONFIG.SUPABASE_URL}/rest/v1/guest_register?airbnb_confirmation_code=eq.${bk.confirmationCode}&select=booking_id,guest_name,guests`;
   const checkCodeResp = UrlFetchApp.fetch(checkCodeUrl, { method: 'get', headers: headers, muteHttpExceptions: true });
   const existingCode = JSON.parse(checkCodeResp.getContentText() || '[]');
 
   if (existingCode && existingCode.length > 0) {
-    Logger.log(`DUPLICATE PREVENTED: Booking ${bk.confirmationCode} already exists in DB as ${existingCode[0].booking_id}. Skipping.`);
+    const existing = existingCode[0];
+    // If existing booking was synced from iCal (generic name or incorrect guest count), enrich it!
+    if ((existing.guest_name && existing.guest_name.includes('Airbnb')) || existing.guests !== bk.guests) {
+      const patchUrl = `${CONFIG.SUPABASE_URL}/rest/v1/guest_register?booking_id=eq.${existing.booking_id}`;
+      UrlFetchApp.fetch(patchUrl, {
+        method: 'patch',
+        headers: headers,
+        payload: JSON.stringify({
+          guest_name: bk.guestName,
+          guests: bk.guests,
+          verification_status: 'verified'
+        }),
+        muteHttpExceptions: true
+      });
+      Logger.log(`ENRICHED booking ${existing.booking_id} with Real Name: ${bk.guestName} and Guests: ${bk.guests}`);
+    } else {
+      Logger.log(`DUPLICATE PREVENTED: Booking ${bk.confirmationCode} already exists in DB as ${existing.booking_id}. Skipping.`);
+    }
     return true;
   }
 
