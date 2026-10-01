@@ -207,37 +207,45 @@ window.ICAL_SYNC = {
           continue;
         }
 
-        // 4. Handle REALTIME Online Booking (Fill with real room rate instead of ₹0!)
-        const nights = Math.max(1, Math.round((new Date(event.checkOut) - new Date(event.checkIn)) / (1000 * 60 * 60 * 24)));
-        const rentPerNight = Number(room.rent_per_night) || 4500;
-        const totalAmount = rentPerNight * nights;
-
+        // 4. Handle REALTIME Online Booking
         // Use deterministic booking ID so repeat syncs NEVER create duplicate rows!
         const bookingId = event.confirmationCode 
           ? `BK_ABNB_${event.confirmationCode}`
           : `BK_SYNC_${room.room_id}_${event.checkIn.replace(/-/g, '')}`;
 
-        const guestName = event.confirmationCode ? `${channelTag} (${event.confirmationCode})` : `${channelTag} Guest`;
-        const bookingNotes = `${channelName} reservation auto-synced.${event.confirmationCode ? ` Code: ${event.confirmationCode}.` : ''} Rate: ₹${rentPerNight}/night × ${nights} nights.`;
+        // SAFETY: If booking already exists (e.g. from Gmail Sync), DO NOT overwrite authentic guest details!
+        const { data: existingBooking } = await sb.from('guest_register')
+          .select('booking_id, guest_name, guests, booked_by')
+          .eq('booking_id', bookingId)
+          .maybeSingle();
 
-        const { error } = await sb.from('guest_register').upsert({
+        if (existingBooking) {
+          result.skipped++;
+          continue;
+        }
+
+        const guestName = event.confirmationCode ? `${channelTag} (${event.confirmationCode})` : `${channelTag} Guest`;
+        const bookingNotes = `${channelName} reservation auto-synced.${event.confirmationCode ? ` Code: ${event.confirmationCode}.` : ''} Pending payout confirmation.`;
+
+        const { error } = await sb.from('guest_register').insert({
           booking_id: bookingId,
           room_id: room.room_id,
           guest_name: guestName,
           check_in: event.checkIn,
           check_out: event.checkOut,
-          total_amount: totalAmount,
-          per_day_rate: rentPerNight,
+          total_amount: 0, // No fake amounts: iCal has no price data, exact payout comes from CSV or Gmail
+          per_day_rate: 0,
           booking_mode: bookingMode,
-          payment_status: 'Paid',
+          payment_status: 'Pending CSV Payout',
           verification_status: 'approved',
-          guests: room.max_guests || 6,
+          guests: null,
           ical_uid: event.uid,
           airbnb_confirmation_code: event.confirmationCode || null,
           phone: event.phoneEnd ? `+91 XXXXX ${event.phoneEnd}` : null,
           synced_from_ical: true,
+          booked_by: 'iCal Sync',
           notes: bookingNotes
-        }, { onConflict: 'booking_id' });
+        });
 
         if (!error) {
           result.created++;
