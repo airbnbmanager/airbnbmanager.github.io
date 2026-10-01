@@ -277,8 +277,8 @@ function parseAirbnbEmail(subject, textContent, emailDate) {
       }
     }
 
-    // 5. Total Payout Amount (Prioritize Net Host Payout / You Earn over gross Total)
-    let totalAmount = 3200;
+    // 5. Total Payout Amount (ONLY from email, NO hardcoded fallback)
+    let totalAmount = 0;
     const netMatch = cleanSearchText.match(/(?:You(?:'ll)?\s*earn(?:ed)?|Total\s*payout|Host\s*payout|Net\s*payout):\s*(?:₹|INR|Rs\.?)\s*([\d,]+(?:\.\d{2})?)/i);
     const payoutMatch = cleanSearchText.match(/(?:Payout|Total\s*\(INR\)):\s*(?:₹|INR|Rs\.?)\s*([\d,]+(?:\.\d{2})?)/i);
     const genericTotalMatch = cleanSearchText.match(/(?:Total|Subtotal):\s*(?:₹|INR|Rs\.?)\s*([\d,]+(?:\.\d{2})?)/i);
@@ -286,10 +286,10 @@ function parseAirbnbEmail(subject, textContent, emailDate) {
     const matchToUse = netMatch || payoutMatch || genericTotalMatch;
     if (matchToUse) {
       const cleanAmt = parseFloat(matchToUse[1].replace(/,/g, ''));
-      if (cleanAmt > 500) totalAmount = cleanAmt;
+      if (cleanAmt > 0) totalAmount = cleanAmt;
     }
 
-    // 6. Guests count: Specifically target "Guests\n10 adults" or "10 adults"
+    // 6. Guests count: Specifically target "Guests\n10 adults" or "10 adults" from email
     let guests = null;
     const guestsSectionMatch = cleanSearchText.match(/Guests?[\s:]+(\d+)\s*(?:adults?|guests?)/i);
     if (guestsSectionMatch) {
@@ -305,7 +305,6 @@ function parseAirbnbEmail(subject, textContent, emailDate) {
       const generalMatch = cleanSearchText.match(/(\d+)\s+guests?/i);
       if (generalMatch) guests = parseInt(generalMatch[1], 10);
     }
-    if (!guests || isNaN(guests)) guests = 2;
 
     // 7. Door Code / Phone digits
     let doorCode = '';
@@ -338,35 +337,41 @@ function pushBookingToCRM(bk) {
 
   // 🛡️ ZERO-DUPLICATE CHECK & ENRICHMENT
   // Every Airbnb booking has a globally unique code (e.g. HMX59TAJQA).
-  const checkCodeUrl = `${CONFIG.SUPABASE_URL}/rest/v1/guest_register?airbnb_confirmation_code=eq.${bk.confirmationCode}&select=booking_id,guest_name,guests`;
+  const checkCodeUrl = `${CONFIG.SUPABASE_URL}/rest/v1/guest_register?airbnb_confirmation_code=eq.${bk.confirmationCode}&select=booking_id,guest_name,guests,total_amount`;
   const checkCodeResp = UrlFetchApp.fetch(checkCodeUrl, { method: 'get', headers: headers, muteHttpExceptions: true });
   const existingCode = JSON.parse(checkCodeResp.getContentText() || '[]');
 
   if (existingCode && existingCode.length > 0) {
     const existing = existingCode[0];
-    // If existing booking was synced from iCal (generic name or incorrect guest count), enrich it!
+    // If existing booking was synced from iCal (generic name or incorrect guest count), enrich with authentic Gmail data!
     if ((existing.guest_name && existing.guest_name.includes('Airbnb')) || existing.guests !== bk.guests) {
+      const patchPayload = {
+        guest_name: bk.guestName,
+        booked_by: 'Gmail Sync',
+        verification_status: 'verified',
+        notes: `Synced from Gmail Airbnb Confirmation | Code: ${bk.confirmationCode}${bk.guests ? ' | Guests: ' + bk.guests : ''}`
+      };
+      if (bk.guests) patchPayload.guests = bk.guests;
+      if (bk.totalAmount > 0 && (!existing.total_amount || existing.total_amount === 0)) {
+        patchPayload.total_amount = bk.totalAmount;
+        patchPayload.gross_amount = bk.totalAmount;
+      }
       const patchUrl = `${CONFIG.SUPABASE_URL}/rest/v1/guest_register?booking_id=eq.${existing.booking_id}`;
       UrlFetchApp.fetch(patchUrl, {
         method: 'patch',
         headers: headers,
-        payload: JSON.stringify({
-          guest_name: bk.guestName,
-          guests: bk.guests,
-          verification_status: 'verified'
-        }),
+        payload: JSON.stringify(patchPayload),
         muteHttpExceptions: true
       });
-      Logger.log(`ENRICHED booking ${existing.booking_id} with Real Name: ${bk.guestName} and Guests: ${bk.guests}`);
+      Logger.log(`ENRICHED booking ${existing.booking_id} with Real Name: ${bk.guestName}, Guests: ${bk.guests}`);
     } else {
       Logger.log(`DUPLICATE PREVENTED: Booking ${bk.confirmationCode} already exists in DB as ${existing.booking_id}. Skipping.`);
     }
     return true;
   }
 
-  // 🚀 INSERT: Brand new verified booking (Auto-verified since it is already confirmed on Airbnb)
+  // 🚀 INSERT: Brand new verified booking (Strictly Gmail data only)
   const bookingId = `BK_${Date.now()}_${bk.confirmationCode}`;
-  const finalAmount = bk.totalAmount > 0 ? bk.totalAmount : 4500;
   const payload = [{
     booking_id: bookingId,
     guest_name: bk.guestName,
@@ -374,17 +379,17 @@ function pushBookingToCRM(bk) {
     booking_mode: 'Online-Airbnb',
     check_in: bk.checkIn,
     check_out: bk.checkOut,
-    guests: bk.guests,
-    total_amount: finalAmount,
-    per_day_rate: finalAmount,
-    gross_amount: finalAmount,
-    payment_status: 'Paid', // Airbnb reservations are already paid by guest online!
+    guests: bk.guests || null,
+    total_amount: bk.totalAmount || 0,
+    per_day_rate: bk.totalAmount || 0,
+    gross_amount: bk.totalAmount || null,
+    payment_status: 'Paid',
     airbnb_confirmation_code: bk.confirmationCode,
     phone: bk.doorCode || null,
-    booked_by: 'Airbnb Sync',
-    verification_status: 'verified', // Pre-verified! No manual owner approval needed for Airbnb!
+    booked_by: 'Gmail Sync',
+    verification_status: 'verified',
     checkout_confirmed: true,
-    notes: `Live Airbnb Booking | Code: ${bk.confirmationCode} | Door code / phone: ${bk.doorCode || 'N/A'} | ${bk.guests} Guests`
+    notes: `Synced from Gmail Airbnb Confirmation | Code: ${bk.confirmationCode}${bk.guests ? ' | Guests: ' + bk.guests : ''}`
   }];
 
   const insertUrl = `${CONFIG.SUPABASE_URL}/rest/v1/guest_register`;
