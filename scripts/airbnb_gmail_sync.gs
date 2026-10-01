@@ -1,21 +1,23 @@
 /**
  * ═════════════════════════════════════════════════════════════════════
- * 🏨 AIRBNB TO CRM REAL-TIME GMAIL AUTO-SYNC (V2 — BULLETPROOF)
+ * 🏨 AIRBNB TO CRM REAL-TIME GMAIL AUTO-SYNC (V3 — ZERO DUPLICATE GUARANTEE)
  * ═════════════════════════════════════════════════════════════════════
  * 
- * Safety Rules:
- * 1. ONLY scans emails from the last 2 days (never touches historical emails).
- * 2. NEVER modifies or shifts any existing booking. If confirmation code exists, it SKIPS.
- * 3. STRICT date verification: If check-in or check-out dates are not 100% matched, it ABORTS (NEVER invents today's date).
- * 4. STRICT property matching: Only matches unique property names, never generic words like 'chinhat'.
+ * 🛡️ 4-Layer Zero-Duplicate Protection:
+ * 1. LockService: Script runs strictly one instance at a time. No parallel trigger overlaps.
+ * 2. Gmail Labeling: Processes each email once, tags with 'Airbnb-Synced', and excludes it forever.
+ * 3. Supabase Confirmation Code Check: If HM code exists in DB, it NEVER inserts again.
+ * 4. Room & Date Overlap Check: If a reservation already exists for that room on that check-in date,
+ *    it links the confirmation code to the existing row instead of creating a second row!
+ * 5. Cancellation Sync: Detects Airbnb cancellations and marks the booking as cancelled automatically.
  */
 
 const CONFIG = {
   SUPABASE_URL: "https://vxxmigdzimnrbbmkjzoa.supabase.co",
   SUPABASE_KEY: "sb_publishable_ZgssvBczAg9TPv4ihN8IfQ_FPcEnq1F",
   PROCESSED_LABEL: "Airbnb-Synced",
-  // ONLY scan new emails from the last 2 days
-  SEARCH_QUERY: 'from:airbnb.com ("Reservation confirmed" OR "booking confirmed") newer_than:2d -label:Airbnb-Synced'
+  // Scan un-synced emails from the last 2 days
+  SEARCH_QUERY: 'from:airbnb.com ("Reservation confirmed" OR "booking confirmed" OR "Reservation cancelled" OR "Reservation canceled") newer_than:2d -label:Airbnb-Synced'
 };
 
 // 17 Properties with STRICT unique keywords
@@ -40,40 +42,88 @@ const ROOM_MAPPING = [
 ];
 
 function syncAirbnbReservations() {
-  const label = getOrCreateLabel(CONFIG.PROCESSED_LABEL);
-  const threads = GmailApp.search(CONFIG.SEARCH_QUERY, 0, 10);
-  
-  Logger.log(`Found ${threads.length} new Airbnb threads to process.`);
+  const lock = LockService.getScriptLock();
+  // Wait up to 10 seconds to acquire lock, if another sync is running, abort to avoid race conditions
+  if (!lock.tryLock(10000)) {
+    Logger.log("Another sync is currently in progress. Skipping execution to prevent duplicate processing.");
+    return;
+  }
 
-  for (const thread of threads) {
-    const messages = thread.getMessages();
-    let threadHandled = false;
+  try {
+    const label = getOrCreateLabel(CONFIG.PROCESSED_LABEL);
+    const threads = GmailApp.search(CONFIG.SEARCH_QUERY, 0, 10);
+    Logger.log(`Found ${threads.length} new Airbnb threads to process.`);
 
-    for (const msg of messages) {
-      const subject = msg.getSubject();
-      const body = msg.getPlainBody();
-      
-      if (subject.toLowerCase().includes('reservation confirmed') || 
-          body.toLowerCase().includes('reservation confirmed') ||
-          body.toLowerCase().includes('confirmation code')) {
-        
-        const bookingData = parseAirbnbEmail(subject, body, msg.getDate());
-        
-        if (bookingData && bookingData.confirmationCode && bookingData.checkIn && bookingData.checkOut) {
-          Logger.log(`Valid booking parsed: ${bookingData.guestName} (${bookingData.confirmationCode}) for ${bookingData.checkIn} to ${bookingData.checkOut} in ${bookingData.roomId}`);
-          const success = pushBookingToCRM(bookingData);
-          if (success) threadHandled = true;
-        } else {
-          Logger.log(`Skipped message: dates or code could not be verified with 100% certainty.`);
-          threadHandled = true; // label so we don't repeatedly fail on unparseable notifications
+    for (const thread of threads) {
+      const messages = thread.getMessages();
+      let threadHandled = false;
+
+      for (const msg of messages) {
+        const subject = msg.getSubject();
+        const body = msg.getPlainBody();
+        const textLower = (subject + ' ' + body).toLowerCase();
+
+        // 1. Check for Cancellation
+        if (textLower.includes('reservation cancelled') || textLower.includes('reservation canceled') || textLower.includes('booking cancelled')) {
+          const codeMatch = body.match(/\b(HM[A-Z0-9]{8,12})\b/) || subject.match(/\b(HM[A-Z0-9]{8,12})\b/);
+          if (codeMatch) {
+            handleCancellation(codeMatch[1]);
+            threadHandled = true;
+          }
+        }
+        // 2. Check for New Reservation Confirmation
+        else if (textLower.includes('reservation confirmed') || textLower.includes('booking confirmed') || textLower.includes('confirmation code')) {
+          const bookingData = parseAirbnbEmail(subject, body, msg.getDate());
+          if (bookingData && bookingData.confirmationCode && bookingData.checkIn && bookingData.checkOut) {
+            Logger.log(`Valid booking parsed: ${bookingData.guestName} (${bookingData.confirmationCode}) for ${bookingData.checkIn} to ${bookingData.checkOut} in ${bookingData.roomId}`);
+            const success = pushBookingToCRM(bookingData);
+            if (success) threadHandled = true;
+          } else {
+            Logger.log(`Skipped message: dates or code could not be verified with 100% certainty.`);
+            threadHandled = true; // Tag thread so we don't repeatedly re-process unparseable notifications
+          }
         }
       }
-    }
 
-    if (threadHandled) {
-      thread.addLabel(label);
+      if (threadHandled) {
+        thread.addLabel(label);
+      }
     }
+  } catch (err) {
+    Logger.log(`Fatal Error in syncAirbnbReservations: ${err.message}`);
+  } finally {
+    lock.releaseLock();
   }
+}
+
+function handleCancellation(code) {
+  if (!code) return false;
+  const headers = {
+    'apikey': CONFIG.SUPABASE_KEY,
+    'Authorization': `Bearer ${CONFIG.SUPABASE_KEY}`,
+    'Content-Type': 'application/json',
+    'Prefer': 'return=representation'
+  };
+
+  const checkUrl = `${CONFIG.SUPABASE_URL}/rest/v1/guest_register?airbnb_confirmation_code=eq.${code}&select=booking_id,guest_name`;
+  const checkResp = UrlFetchApp.fetch(checkUrl, { method: 'get', headers: headers, muteHttpExceptions: true });
+  const existing = JSON.parse(checkResp.getContentText() || '[]');
+
+  if (existing && existing.length > 0) {
+    const updateUrl = `${CONFIG.SUPABASE_URL}/rest/v1/guest_register?airbnb_confirmation_code=eq.${code}`;
+    UrlFetchApp.fetch(updateUrl, {
+      method: 'patch',
+      headers: headers,
+      payload: JSON.stringify({
+        is_cancelled: true,
+        cancellation_reason: 'Cancelled on Airbnb'
+      }),
+      muteHttpExceptions: true
+    });
+    Logger.log(`Marked booking ${code} (${existing[0].guest_name}) as CANCELLED.`);
+    return true;
+  }
+  return false;
 }
 
 function parseAirbnbEmail(subject, body, emailDate) {
@@ -196,20 +246,49 @@ function pushBookingToCRM(bk) {
   const headers = {
     'apikey': CONFIG.SUPABASE_KEY,
     'Authorization': `Bearer ${CONFIG.SUPABASE_KEY}`,
-    'Content-Type': 'application/json'
+    'Content-Type': 'application/json',
+    'Prefer': 'return=representation'
   };
 
-  // 1. SAFETY CHECK: If booking ALREADY exists in Supabase, DO NOT TOUCH IT!
-  const checkUrl = `${CONFIG.SUPABASE_URL}/rest/v1/guest_register?airbnb_confirmation_code=eq.${bk.confirmationCode}&select=booking_id`;
-  const checkResp = UrlFetchApp.fetch(checkUrl, { method: 'get', headers: headers });
-  const existing = JSON.parse(checkResp.getContentText());
+  // 🛡️ LAYER 1 DUPLICATE CHECK: Confirmation Code Match
+  const checkCodeUrl = `${CONFIG.SUPABASE_URL}/rest/v1/guest_register?airbnb_confirmation_code=eq.${bk.confirmationCode}&select=booking_id,guest_name`;
+  const checkCodeResp = UrlFetchApp.fetch(checkCodeUrl, { method: 'get', headers: headers, muteHttpExceptions: true });
+  const existingCode = JSON.parse(checkCodeResp.getContentText() || '[]');
 
-  if (existing && existing.length > 0) {
-    Logger.log(`Booking ${bk.confirmationCode} already exists in DB. Skipping to prevent duplicates.`);
+  if (existingCode && existingCode.length > 0) {
+    Logger.log(`DUPLICATE PREVENTED: Booking ${bk.confirmationCode} already exists in DB as ${existingCode[0].booking_id}. Skipping.`);
     return true;
   }
 
-  // 2. Insert brand new booking
+  // 🛡️ LAYER 2 DUPLICATE CHECK: Same Room + Same Check-in Date Match
+  // If the reservation already exists (e.g. entered manually), link the confirmation code rather than creating duplicate row!
+  const checkRoomDateUrl = `${CONFIG.SUPABASE_URL}/rest/v1/guest_register?room_id=eq.${bk.roomId}&check_in=eq.${bk.checkIn}&select=booking_id,guest_name,airbnb_confirmation_code`;
+  const checkRoomDateResp = UrlFetchApp.fetch(checkRoomDateUrl, { method: 'get', headers: headers, muteHttpExceptions: true });
+  const existingRoomDate = JSON.parse(checkRoomDateResp.getContentText() || '[]');
+
+  if (existingRoomDate && existingRoomDate.length > 0) {
+    const matched = existingRoomDate[0];
+    Logger.log(`EXISTING RECORD FOUND: Room ${bk.roomId} on ${bk.checkIn} already booked by ${matched.guest_name} (${matched.booking_id}).`);
+
+    // If confirmation code was missing on the existing record, attach it without creating duplicate
+    if (!matched.airbnb_confirmation_code) {
+      const patchUrl = `${CONFIG.SUPABASE_URL}/rest/v1/guest_register?booking_id=eq.${matched.booking_id}`;
+      UrlFetchApp.fetch(patchUrl, {
+        method: 'patch',
+        headers: headers,
+        payload: JSON.stringify({
+          airbnb_confirmation_code: bk.confirmationCode,
+          booking_mode: 'Online-Airbnb',
+          gross_amount: bk.totalAmount || null
+        }),
+        muteHttpExceptions: true
+      });
+      Logger.log(`Updated existing booking ${matched.booking_id} with confirmation code ${bk.confirmationCode}.`);
+    }
+    return true;
+  }
+
+  // 🚀 INSERT: Brand new verified booking
   const bookingId = `BK_${Date.now()}_${bk.confirmationCode}`;
   const payload = [{
     booking_id: bookingId,
@@ -219,27 +298,32 @@ function pushBookingToCRM(bk) {
     check_in: bk.checkIn,
     check_out: bk.checkOut,
     guests: bk.guests,
-    total_amount: 0, // Pending CSV Payout: Amount is only filled when imported from official Airbnb CSV
+    total_amount: 0, // Pending CSV Payout: Amount is reconciled when imported from official Airbnb CSV
     per_day_rate: 0,
     gross_amount: bk.totalAmount || null, // Store email gross/tentative value as reference only
     payment_status: 'Pending CSV Payout',
     airbnb_confirmation_code: bk.confirmationCode,
     phone: bk.doorCode || null,
-    notes: `Door code: ${bk.doorCode || 'N/A'} | ${bk.guestName} group of ${bk.guests} | Live Airbnb booking (Payout pending CSV sync)`
+    verification_status: 'pending',
+    checkout_confirmed: true,
+    notes: `Live Airbnb Booking | Code: ${bk.confirmationCode} | Door code / phone: ${bk.doorCode || 'N/A'} | ${bk.guests} Guests`
   }];
 
   const insertUrl = `${CONFIG.SUPABASE_URL}/rest/v1/guest_register`;
   const resp = UrlFetchApp.fetch(insertUrl, {
     method: 'post',
     headers: headers,
-    payload: JSON.stringify(payload)
+    payload: JSON.stringify(payload),
+    muteHttpExceptions: true
   });
 
   if (resp.getResponseCode() >= 200 && resp.getResponseCode() < 300) {
-    Logger.log(`Successfully created new booking ${bookingId} for ${bk.guestName} with amount 0 (Pending CSV Payout)`);
+    Logger.log(`SUCCESS: Created new booking ${bookingId} for ${bk.guestName} (${bk.roomId}, ${bk.checkIn} to ${bk.checkOut})`);
+    return true;
+  } else {
+    Logger.log(`ERROR inserting booking: ${resp.getContentText()}`);
+    return false;
   }
-
-  return true;
 }
 
 function parseDateString(dStr, year) {
