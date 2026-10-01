@@ -1,6 +1,6 @@
 /**
  * ═════════════════════════════════════════════════════════════════════
- * 🏨 AIRBNB TO CRM REAL-TIME GMAIL AUTO-SYNC (V4 — BULLETPROOF PARSING)
+ * 🏨 AIRBNB TO CRM REAL-TIME GMAIL AUTO-SYNC (V5 — ROCK SOLID PARSING)
  * ═════════════════════════════════════════════════════════════════════
  * 
  * 🛡️ 4-Layer Zero-Duplicate Protection:
@@ -41,6 +41,19 @@ const ROOM_MAPPING = [
   { roomId: 'VIL-108', name: 'Pink Paradise Villa', keywords: ['pink paradise villa', 'pink paradise'] }
 ];
 
+const MONTH_MAP = {
+  jan: 1, feb: 2, mar: 3, apr: 4, may: 5, jun: 6,
+  jul: 7, aug: 8, sep: 9, oct: 10, nov: 11, dec: 12
+};
+
+function formatYMD(year, month, day) {
+  const y = parseInt(year, 10);
+  const m = typeof month === 'number' ? month : MONTH_MAP[String(month).toLowerCase().slice(0, 3)];
+  const d = parseInt(day, 10);
+  if (!y || !m || !d || isNaN(y) || isNaN(m) || isNaN(d)) return null;
+  return `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+}
+
 /**
  * 🔄 RUN THIS ONCE: Clears any prematurely tagged 'Airbnb-Synced' labels
  * and runs a full sync on all reservations from 1st Sep!
@@ -80,7 +93,6 @@ function debugRecentAirbnbEmails() {
 
 function syncAirbnbReservations() {
   const lock = LockService.getScriptLock();
-  // Wait up to 10 seconds to acquire lock, if another sync is running, abort to avoid race conditions
   if (!lock.tryLock(10000)) {
     Logger.log("Another sync is currently in progress. Skipping execution to prevent duplicate processing.");
     return;
@@ -88,7 +100,6 @@ function syncAirbnbReservations() {
 
   try {
     const label = getOrCreateLabel(CONFIG.PROCESSED_LABEL);
-    // Batch scan up to 50 threads from 1st Sep
     const threads = GmailApp.search(CONFIG.SEARCH_QUERY, 0, 50);
     Logger.log(`Found ${threads.length} Airbnb threads from 1st Sep to process.`);
 
@@ -97,28 +108,32 @@ function syncAirbnbReservations() {
       const threadSubject = thread.getFirstMessageSubject();
       let threadHandled = false;
 
-      for (const msg of messages) {
-        const subject = msg.getSubject();
-        const body = msg.getPlainBody();
-        const textLower = (subject + ' ' + threadSubject + ' ' + body).toLowerCase();
+      // Extract all text and HTML across the thread for complete context
+      let combinedThreadText = threadSubject + '\n';
+      let latestDate = new Date();
+      for (const m of messages) {
+        combinedThreadText += m.getSubject() + '\n' + m.getPlainBody() + '\n';
+        latestDate = m.getDate();
+      }
 
-        // 1. Check for Cancellation
-        if (textLower.includes('reservation cancelled') || textLower.includes('reservation canceled') || textLower.includes('booking cancelled')) {
-          const codeMatch = body.match(/\b(HM[A-Z0-9]{8,12})\b/) || subject.match(/\b(HM[A-Z0-9]{8,12})\b/);
-          if (codeMatch) {
-            handleCancellation(codeMatch[1]);
-            threadHandled = true;
-          }
+      const textLower = combinedThreadText.toLowerCase();
+
+      // 1. Check for Cancellation
+      if (textLower.includes('reservation cancelled') || textLower.includes('reservation canceled') || textLower.includes('booking cancelled')) {
+        const codeMatch = combinedThreadText.match(/\b(HM[A-Z0-9]{8,12})\b/);
+        if (codeMatch) {
+          handleCancellation(codeMatch[1]);
+          threadHandled = true;
         }
-        // 2. Check for New Reservation Confirmation
-        else if (textLower.includes('reservation confirmed') || textLower.includes('booking confirmed') || textLower.includes('confirmation code')) {
-          const bookingData = parseAirbnbEmail(subject, body, msg.getDate(), threadSubject);
-          if (bookingData && bookingData.confirmationCode && bookingData.checkIn && bookingData.checkOut) {
-            Logger.log(`Valid booking parsed: ${bookingData.guestName} (${bookingData.confirmationCode}) for ${bookingData.checkIn} to ${bookingData.checkOut} in ${bookingData.roomId}`);
-            const success = pushBookingToCRM(bookingData);
-            if (success) {
-              threadHandled = true;
-            }
+      }
+      // 2. Check for New Reservation Confirmation
+      else if (textLower.includes('reservation confirmed') || textLower.includes('booking confirmed') || textLower.includes('confirmation code') || textLower.includes('reservation for')) {
+        const bookingData = parseAirbnbEmail(threadSubject, combinedThreadText, latestDate);
+        if (bookingData && bookingData.confirmationCode && bookingData.checkIn && bookingData.checkOut) {
+          Logger.log(`Valid booking parsed: ${bookingData.guestName} (${bookingData.confirmationCode}) for ${bookingData.checkIn} to ${bookingData.checkOut} in ${bookingData.roomId}`);
+          const success = pushBookingToCRM(bookingData);
+          if (success) {
+            threadHandled = true;
           }
         }
       }
@@ -165,12 +180,11 @@ function handleCancellation(code) {
   return false;
 }
 
-function parseAirbnbEmail(subject, body, emailDate, threadSubject = '') {
+function parseAirbnbEmail(subject, textContent, emailDate) {
   try {
-    const combinedContent = (subject + ' ' + threadSubject + ' ' + body);
-    const cleanSearchText = combinedContent
+    const cleanSearchText = textContent
       .replace(/[\u200B-\u200D\uFEFF\u00A0\u2009]/g, ' ')
-      .replace(/[\u2013\u2014]/g, '-');
+      .replace(/[\u2010-\u2015\u2212\uFE58\uFE63\uFF0D–—]/g, '-');
 
     // 1. Confirmation Code (HM followed by 8-10 alphanumeric characters)
     let confirmationCode = null;
@@ -192,52 +206,56 @@ function parseAirbnbEmail(subject, body, emailDate, threadSubject = '') {
       return null;
     }
 
-    // 3. Strict Dates Parsing (Must find valid Check-in AND Check-out)
+    // 3. Robust Dates Parsing (Deterministic YYYY-MM-DD formatting)
     let checkIn = null;
     let checkOut = null;
     const currentYear = emailDate ? emailDate.getFullYear() : new Date().getFullYear();
 
-    // Pattern 1: Same month: "Oct 2 - 3, 2026" or "Oct 2 - 3" or "Oct 2 – 3"
-    const sameMonthMatch = cleanSearchText.match(/\b([A-Za-z]{3})\s+(\d{1,2})\s*-\s*(\d{1,2})(?:,?\s*(\d{4}))?\b/);
+    // Pattern 1: Same month: "Oct 2-3", "Oct 2 – 3", "Oct 2–3, 2026", "October 2-3"
+    const sameMonthMatch = cleanSearchText.match(/\b(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s*(\d{1,2})\s*[-/to]+\s*(\d{1,2})(?:,?\s*(\d{4}))?\b/i);
     if (sameMonthMatch) {
-      const mon = sameMonthMatch[1];
-      const d1 = sameMonthMatch[2];
-      const d2 = sameMonthMatch[3];
       const yr = sameMonthMatch[4] || currentYear;
-      checkIn = parseDateString(`${mon} ${d1}, ${yr}`, yr);
-      checkOut = parseDateString(`${mon} ${d2}, ${yr}`, yr);
+      checkIn = formatYMD(yr, sameMonthMatch[1], sameMonthMatch[2]);
+      checkOut = formatYMD(yr, sameMonthMatch[1], sameMonthMatch[3]);
     }
 
-    // Pattern 2: Different months: "Sep 30 - Oct 1, 2026" or "Sep 30 - Oct 1"
+    // Pattern 2: Different months: "Sep 30 - Oct 1", "Oct 31 - Nov 2, 2026"
     if (!checkIn || !checkOut) {
-      const diffMonthMatch = cleanSearchText.match(/\b([A-Za-z]{3})\s+(\d{1,2})\s*-\s*([A-Za-z]{3})\s+(\d{1,2})(?:,?\s*(\d{4}))?\b/);
+      const diffMonthMatch = cleanSearchText.match(/\b(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s*(\d{1,2})\s*[-/to]+\s*(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s*(\d{1,2})(?:,?\s*(\d{4}))?\b/i);
       if (diffMonthMatch) {
         const yr = diffMonthMatch[5] || currentYear;
-        checkIn = parseDateString(`${diffMonthMatch[1]} ${diffMonthMatch[2]}, ${yr}`, yr);
-        checkOut = parseDateString(`${diffMonthMatch[3]} ${diffMonthMatch[4]}, ${yr}`, yr);
+        checkIn = formatYMD(yr, diffMonthMatch[1], diffMonthMatch[2]);
+        checkOut = formatYMD(yr, diffMonthMatch[3], diffMonthMatch[4]);
       }
     }
 
-    // Pattern 3: Full dates: "Sep 20, 2026 - Sep 21, 2026"
+    // Pattern 3: Explicit Check-in and Checkout lines
     if (!checkIn || !checkOut) {
-      const rangeMatch = cleanSearchText.match(/([A-Z][a-z]{2}\s+\d{1,2}(?:,?\s+\d{4})?)\s*(?:–|-|to)\s*([A-Z][a-z]{2}\s+\d{1,2},?\s+\d{4})/i);
-      if (rangeMatch) {
-        checkIn = parseDateString(rangeMatch[1], currentYear);
-        checkOut = parseDateString(rangeMatch[2], currentYear);
-      }
-    }
-
-    // Pattern 4: "Check-in: ... Check-out: ..."
-    if (!checkIn || !checkOut) {
-      const cinMatch = body.match(/Check-?in:?\s*(?:[A-Za-z]{3},?\s*)?([A-Za-z]{3}\s+\d{1,2}(?:,?\s+\d{4})?)/i);
-      const coutMatch = body.match(/Check-?out:?\s*(?:[A-Za-z]{3},?\s*)?([A-Za-z]{3}\s+\d{1,2}(?:,?\s+\d{4})?)/i);
+      const cinMatch = cleanSearchText.match(/Check-?in[:\s]+(?:[A-Za-z]{3},?\s*)?(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s*(\d{1,2})(?:,?\s*(\d{4}))?/i);
+      const coutMatch = cleanSearchText.match(/Check-?out[:\s]+(?:[A-Za-z]{3},?\s*)?(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s*(\d{1,2})(?:,?\s*(\d{4}))?/i);
       if (cinMatch && coutMatch) {
-        checkIn = parseDateString(cinMatch[1], currentYear);
-        checkOut = parseDateString(coutMatch[1], currentYear);
+        const yIn = cinMatch[3] || currentYear;
+        const yOut = coutMatch[3] || currentYear;
+        checkIn = formatYMD(yIn, cinMatch[1], cinMatch[2]);
+        checkOut = formatYMD(yOut, coutMatch[1], coutMatch[2]);
       }
     }
 
-    // SAFETY CHECK: If dates are not cleanly found, DO NOT INVENT DATES!
+    // Pattern 4: Subject "arrives Oct 2" + nights calculation
+    if (!checkIn || !checkOut) {
+      const arrivesMatch = cleanSearchText.match(/arrives\s+(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s*(\d{1,2})(?:,?\s*(\d{4}))?/i);
+      if (arrivesMatch) {
+        const yr = arrivesMatch[3] || currentYear;
+        checkIn = formatYMD(yr, arrivesMatch[1], arrivesMatch[2]);
+        const nightsMatch = cleanSearchText.match(/(\d+)\s+nights?/i);
+        const nights = nightsMatch ? parseInt(nightsMatch[1], 10) : 1;
+        const inDate = new Date(yr, MONTH_MAP[arrivesMatch[1].toLowerCase().slice(0, 3)] - 1, parseInt(arrivesMatch[2], 10));
+        inDate.setDate(inDate.getDate() + nights);
+        checkOut = `${inDate.getFullYear()}-${String(inDate.getMonth() + 1).padStart(2, '0')}-${String(inDate.getDate()).padStart(2, '0')}`;
+      }
+    }
+
+    // SAFETY CHECK: Valid Check-in and Check-out
     if (!checkIn || !checkOut || checkIn >= checkOut) {
       Logger.log(`Dates could not be verified for ${confirmationCode}. Aborting.`);
       return null;
@@ -245,13 +263,13 @@ function parseAirbnbEmail(subject, body, emailDate, threadSubject = '') {
 
     // 4. Guest Name (Full name preferred over single first name)
     let guestName = 'Airbnb Guest';
-    const subGuestMatch = (subject + ' ' + threadSubject).match(/Reservation confirmed (?:-|for) ([^,–\-]+?)(?: arrives| booked| -|$)/i);
+    const subGuestMatch = cleanSearchText.match(/Reservation confirmed (?:-|for) ([^,–\-]+?)(?: arrives| booked| -|$)/i);
     if (subGuestMatch) {
       guestName = subGuestMatch[1].trim();
     }
     
     // Check inside body if needed
-    const bodyFullNameMatch = body.match(/(?:Guest(?:\s*name)?|Contact|Message|Reservation for)[:\s]+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)/i);
+    const bodyFullNameMatch = cleanSearchText.match(/(?:Guest(?:\s*name)?|Contact|Message|Reservation for)[:\s]+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)/i);
     if (bodyFullNameMatch && bodyFullNameMatch[1]) {
       const full = bodyFullNameMatch[1].trim();
       if (!guestName || guestName === 'Airbnb Guest' || guestName.split(/\s+/).length === 1) {
@@ -261,9 +279,9 @@ function parseAirbnbEmail(subject, body, emailDate, threadSubject = '') {
 
     // 5. Total Payout Amount (Prioritize Net Host Payout / You Earn over gross Total)
     let totalAmount = 3200;
-    const netMatch = body.match(/(?:You(?:'ll)?\s*earn(?:ed)?|Total\s*payout|Host\s*payout|Net\s*payout):\s*(?:₹|INR|Rs\.?)\s*([\d,]+(?:\.\d{2})?)/i);
-    const payoutMatch = body.match(/(?:Payout|Total\s*\(INR\)):\s*(?:₹|INR|Rs\.?)\s*([\d,]+(?:\.\d{2})?)/i);
-    const genericTotalMatch = body.match(/(?:Total|Subtotal):\s*(?:₹|INR|Rs\.?)\s*([\d,]+(?:\.\d{2})?)/i);
+    const netMatch = cleanSearchText.match(/(?:You(?:'ll)?\s*earn(?:ed)?|Total\s*payout|Host\s*payout|Net\s*payout):\s*(?:₹|INR|Rs\.?)\s*([\d,]+(?:\.\d{2})?)/i);
+    const payoutMatch = cleanSearchText.match(/(?:Payout|Total\s*\(INR\)):\s*(?:₹|INR|Rs\.?)\s*([\d,]+(?:\.\d{2})?)/i);
+    const genericTotalMatch = cleanSearchText.match(/(?:Total|Subtotal):\s*(?:₹|INR|Rs\.?)\s*([\d,]+(?:\.\d{2})?)/i);
 
     const matchToUse = netMatch || payoutMatch || genericTotalMatch;
     if (matchToUse) {
@@ -273,12 +291,12 @@ function parseAirbnbEmail(subject, body, emailDate, threadSubject = '') {
 
     // 6. Guests count
     let guests = 6;
-    const guestCountMatch = body.match(/(\d+)\s+guests?/i);
+    const guestCountMatch = cleanSearchText.match(/(\d+)\s+guests?/i);
     if (guestCountMatch) guests = parseInt(guestCountMatch[1], 10);
 
     // 7. Door Code / Phone digits
     let doorCode = '';
-    const codeDigits = body.match(/(?:door code|suggested door code|code|phone number \(last 4 digits\))[:\s]*(\d{4})/i);
+    const codeDigits = cleanSearchText.match(/(?:door code|suggested door code|code|phone number \(last 4 digits\))[:\s]*(\d{4})/i);
     if (codeDigits) doorCode = codeDigits[1];
 
     return {
@@ -379,20 +397,6 @@ function pushBookingToCRM(bk) {
     Logger.log(`ERROR inserting booking: ${resp.getContentText()}`);
     return false;
   }
-}
-
-function parseDateString(dStr, year) {
-  try {
-    dStr = dStr.trim();
-    if (!dStr.includes(year.toString())) {
-      dStr = `${dStr}, ${year}`;
-    }
-    const d = new Date(dStr);
-    if (!isNaN(d.getTime())) {
-      return Utilities.formatDate(d, Session.getScriptTimeZone(), 'yyyy-MM-dd');
-    }
-  } catch (e) {}
-  return null;
 }
 
 function getOrCreateLabel(labelName) {
