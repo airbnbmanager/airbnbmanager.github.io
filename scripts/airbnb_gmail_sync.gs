@@ -289,10 +289,10 @@ function parseAirbnbEmail(subject, textContent, emailDate) {
       if (cleanAmt > 500) totalAmount = cleanAmt;
     }
 
-    // 6. Guests count
-    let guests = 6;
-    const guestCountMatch = cleanSearchText.match(/(\d+)\s+guests?/i);
-    if (guestCountMatch) guests = parseInt(guestCountMatch[1], 10);
+    // 6. Guests count (Matches "10 adults", "Guests\n10 adults", "4 guests")
+    let guests = 2;
+    const guestMatch = cleanSearchText.match(/(?:guests?[:\s]+)?(\d+)\s*(?:adults?|guests?)/i) || cleanSearchText.match(/(\d+)\s+(?:adults?|guests?)/i);
+    if (guestMatch) guests = parseInt(guestMatch[1], 10);
 
     // 7. Door Code / Phone digits
     let doorCode = '';
@@ -334,7 +334,7 @@ function pushBookingToCRM(bk) {
     return true;
   }
 
-  // 🚀 INSERT: Brand new verified booking
+  // 🚀 INSERT: Brand new verified booking (Auto-verified since it is already confirmed on Airbnb)
   const bookingId = `BK_${Date.now()}_${bk.confirmationCode}`;
   const payload = [{
     booking_id: bookingId,
@@ -350,7 +350,8 @@ function pushBookingToCRM(bk) {
     payment_status: 'Pending CSV Payout',
     airbnb_confirmation_code: bk.confirmationCode,
     phone: bk.doorCode || null,
-    verification_status: 'pending',
+    booked_by: 'Airbnb Sync',
+    verification_status: 'verified', // Pre-verified! No manual owner approval needed for Airbnb!
     checkout_confirmed: true,
     notes: `Live Airbnb Booking | Code: ${bk.confirmationCode} | Door code / phone: ${bk.doorCode || 'N/A'} | ${bk.guests} Guests`
   }];
