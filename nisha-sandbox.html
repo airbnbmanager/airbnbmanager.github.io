@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Nisha AI Voice & Chat Concierge — Sandbox Testing</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Plus Jakarta Sans', -apple-system, sans-serif;
+      background: #0B0F17;
+      color: #E2E8F0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 24px 16px;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 840px;
+    }
+
+    .header {
+      background: linear-gradient(135deg, #1E293B, #0F172A);
+      border: 1px solid #334155;
+      border-radius: 16px;
+      padding: 22px 24px;
+      margin-bottom: 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+
+    .brand-title {
+      font-size: 20px;
+      font-weight: 800;
+      color: #F8FAFC;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .badge-free {
+      background: rgba(34, 197, 94, 0.15);
+      border: 1px solid rgba(34, 197, 94, 0.35);
+      color: #4ADE80;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 3px 10px;
+      border-radius: 20px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .api-card {
+      background: #131A26;
+      border: 1px solid #1E293B;
+      border-radius: 12px;
+      padding: 14px 18px;
+      margin-bottom: 20px;
+    }
+
+    .api-row {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+      margin-top: 8px;
+    }
+
+    .api-input {
+      flex: 1;
+      min-width: 260px;
+      padding: 10px 14px;
+      background: #0B0F17;
+      border: 1px solid #334155;
+      border-radius: 8px;
+      color: #F8FAFC;
+      font-size: 13.5px;
+      outline: none;
+    }
+    .api-input:focus { border-color: #6366F1; }
+
+    .btn {
+      padding: 10px 18px;
+      border-radius: 8px;
+      font-weight: 700;
+      font-size: 13px;
+      cursor: pointer;
+      border: none;
+      transition: all 0.2s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .btn-primary { background: #4F46E5; color: #fff; }
+    .btn-primary:hover { background: #4338CA; }
+    .btn-success { background: #16A34A; color: #fff; }
+    .btn-voice {
+      width: 72px;
+      height: 72px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #D4A84B, #9A7426);
+      box-shadow: 0 10px 30px rgba(212, 168, 75, 0.4);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 32px;
+      cursor: pointer;
+      border: none;
+      transition: all 0.25s ease;
+    }
+    .btn-voice:hover { transform: scale(1.06); }
+    .btn-voice.listening {
+      background: linear-gradient(135deg, #EF4444, #B91C1C);
+      box-shadow: 0 0 0 12px rgba(239, 68, 68, 0.25);
+      animation: pulse 1.5s infinite;
+    }
+    .btn-voice.speaking {
+      background: linear-gradient(135deg, #3B82F6, #1D4ED8);
+      box-shadow: 0 0 0 12px rgba(59, 130, 246, 0.25);
+    }
+
+    @keyframes pulse {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.08); }
+      100% { transform: scale(1); }
+    }
+
+    .voice-hub {
+      background: #131A26;
+      border: 1px solid #1E293B;
+      border-radius: 16px;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    .status-text {
+      font-size: 15px;
+      font-weight: 700;
+      color: #94A3B8;
+      margin-top: 14px;
+    }
+
+    .chat-box {
+      background: #131A26;
+      border: 1px solid #1E293B;
+      border-radius: 16px;
+      display: flex;
+      flex-direction: column;
+      height: 440px;
+      overflow: hidden;
+    }
+
+    .chat-messages {
+      flex: 1;
+      padding: 16px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .msg {
+      max-width: 82%;
+      padding: 11px 16px;
+      border-radius: 14px;
+      font-size: 13.5px;
+      line-height: 1.45;
+    }
+    .msg-user {
+      background: #4F46E5;
+      color: #FFFFFF;
+      align-self: flex-end;
+      border-bottom-right-radius: 3px;
+    }
+    .msg-ai {
+      background: #1E293B;
+      color: #F1F5F9;
+      align-self: flex-start;
+      border-bottom-left-radius: 3px;
+      border: 1px solid #334155;
+    }
+
+    .chat-input-bar {
+      display: flex;
+      padding: 12px 14px;
+      background: #0B0F17;
+      border-top: 1px solid #1E293B;
+      gap: 10px;
+    }
+
+    .quick-chips {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 14px;
+    }
+    .chip {
+      background: #1E293B;
+      border: 1px solid #334155;
+      color: #CBD5E1;
+      font-size: 12px;
+      font-weight: 600;
+      padding: 6px 12px;
+      border-radius: 20px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .chip:hover {
+      background: #4F46E5;
+      border-color: #4F46E5;
+      color: #FFFFFF;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <!-- Header -->
+    <div class="header">
+      <div>
+        <div class="brand-title">
+          <span>🎙️</span> Nisha AI Concierge — Sandbox Testing
+        </div>
+        <div style="font-size:12.5px;color:#94A3B8;margin-top:4px;">
+          The Unique Haven Homes • 100% Free 24/7 AI Concierge with Natural Indian Hindi Accent
+        </div>
+      </div>
+      <div>
+        <span class="badge-free">⚡ 100% Free 24/7</span>
+      </div>
+    </div>
+
+    <!-- Gemini API Key Setup -->
+    <div class="api-card">
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+        <strong style="font-size:13px;color:#F8FAFC;">🔑 Google Gemini Free API Key:</strong>
+        <a href="https://aistudio.google.com/app/apikey" target="_blank" style="color:#818CF8;font-size:12px;text-decoration:none;">
+          Get free key from Google AI Studio ↗
+        </a>
+      </div>
+      <div class="api-row">
+        <input type="password" id="geminiKeyInput" class="api-input" placeholder="Paste your AI Studio Gemini API Key here...">
+        <button type="button" class="btn btn-primary" onclick="saveGeminiKey()">💾 Save Key</button>
+      </div>
+      <div id="keyStatus" style="font-size:11.5px;color:#94A3B8;margin-top:6px;"></div>
+    </div>
+
+    <!-- Voice Concierge Interaction Hub -->
+    <div class="voice-hub">
+      <button id="voiceBtn" class="btn-voice" onclick="toggleVoice()" title="Tap to Speak with Nisha">
+        🎙️
+      </button>
+      <div id="statusText" class="status-text">Tap mic to speak with Nisha (Hindi / English)</div>
+      <div style="font-size:12px;color:#64748B;margin-top:6px;">
+        Real-time Voice: Speaks back in sweet natural Indian Hindi accent
+      </div>
+    </div>
+
+    <!-- Quick Question Chips -->
+    <div class="quick-chips">
+      <span style="font-size:12px;color:#64748B;align-self:center;font-weight:600;">Sample Prompts:</span>
+      <button class="chip" onclick="askPreset('Namaste! Lucknow me aapke pass kitne flats aur villas hain?')">🏡 Properties count?</button>
+      <button class="chip" onclick="askPreset('Gomti Nagar me 3BHK flat ka kya rate hai?')">💰 Gomti Nagar Rate?</button>
+      <button class="chip" onclick="askPreset('Kya couples allowed hain aur kya rules hain?')">👫 Couple Friendly?</button>
+      <button class="chip" onclick="askPreset('15 logo ke liye koi badi villa milegi shaadi ya party ke liye?')">🏰 Big Villa for 15 guests?</button>
+      <button class="chip" onclick="askPreset('Kitchen me kya kya saman rehta hai?')">🍳 Kitchen Amenities?</button>
+      <button class="chip" onclick="askPreset('Mera naam Amit hai aur mera number 9876543210 hai, kal ke liye room chahiye')">📲 Test Lead Capture</button>
+    </div>
+
+    <!-- Live Chat Box -->
+    <div class="chat-box">
+      <div id="chatMessages" class="chat-messages">
+        <div class="msg msg-ai">
+          <strong>Nisha (AI Concierge):</strong><br>
+          Namaste! 🙏 Main Nisha hoon — The Unique Haven Homes ki AI concierge. Aap Lucknow me homestay booking, property rates, ya amenities ke baare me kuch bhi pooch sakte hain. Kya main aapki koi madad kar sakti hoon?
+        </div>
+      </div>
+      <div class="chat-input-bar">
+        <input type="text" id="chatInput" class="api-input" placeholder="Type in Hindi or English (e.g. 3BHK flat available hai?)..." onkeydown="if(event.key==='Enter') sendChat();">
+        <button type="button" class="btn btn-primary" onclick="sendChat()">Send ➤</button>
+      </div>
+    </div>
+
+    <div style="text-align:center;font-size:12px;color:#64748B;margin-top:16px;">
+      ✅ Standalone Sandbox Engine • Does not impact main site • Developed by Praveen Singh
+    </div>
+  </div>
+
+  <!-- Load Standalone Nisha AI Engine -->
+  <script src="js/nisha-ai.js"></script>
+
+  <script>
+    const voiceBtn = document.getElementById('voiceBtn');
+    const statusText = document.getElementById('statusText');
+    const chatMessages = document.getElementById('chatMessages');
+    const chatInput = document.getElementById('chatInput');
+    const geminiKeyInput = document.getElementById('geminiKeyInput');
+    const keyStatus = document.getElementById('keyStatus');
+
+    // Init API Key on load
+    if (window.nishaAI.apiKey) {
+      geminiKeyInput.value = window.nishaAI.apiKey;
+      keyStatus.innerHTML = '<span style="color:#4ADE80;">✅ Active Gemini API Key detected! Ready for testing.</span>';
+    } else {
+      keyStatus.innerHTML = '<span style="color:#FBBF24;">⚠️ Please paste your Gemini API key above to enable real-time AI responses.</span>';
+    }
+
+    function saveGeminiKey() {
+      const k = geminiKeyInput.value.trim();
+      if (!k) {
+        alert('Please enter a valid key');
+        return;
+      }
+      window.nishaAI.setApiKey(k);
+      keyStatus.innerHTML = '<span style="color:#4ADE80;">✅ Key saved successfully!</span>';
+    }
+
+    // Voice State Listener
+    window.nishaAI.onStateChange = (state) => {
+      voiceBtn.className = 'btn-voice';
+      if (state === 'listening') {
+        voiceBtn.classList.add('listening');
+        statusText.innerHTML = '<span style="color:#F87171;">🔴 Listening to you... (Bolna shuru karein)</span>';
+      } else if (state === 'speaking') {
+        voiceBtn.classList.add('speaking');
+        statusText.innerHTML = '<span style="color:#60A5FA;">🔊 Nisha is speaking...</span>';
+      } else if (state === 'processing') {
+        statusText.innerHTML = '<span style="color:#FBBF24;">⏳ Thinking...</span>';
+      } else {
+        statusText.textContent = 'Tap mic to speak with Nisha (Hindi / English)';
+      }
+    };
+
+    function appendMessage(role, text) {
+      const msgDiv = document.createElement('div');
+      msgDiv.className = `msg ${role === 'user' ? 'msg-user' : 'msg-ai'}`;
+      msgDiv.innerHTML = role === 'user' ? `<strong>You:</strong><br>${escapeHtml(text)}` : `<strong>Nisha (AI):</strong><br>${escapeHtml(text)}`;
+      chatMessages.appendChild(msgDiv);
+      chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+
+    function escapeHtml(str) {
+      return (str || '').replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[m]);
+    }
+
+    async function sendChat(customText) {
+      const text = customText || chatInput.value.trim();
+      if (!text) return;
+      if (!customText) chatInput.value = '';
+
+      appendMessage('user', text);
+
+      if (!window.nishaAI.hasApiKey()) {
+        appendMessage('ai', 'Namaste! Please save your Gemini API key in the box above so I can answer intelligently.');
+        return;
+      }
+
+      const reply = await window.nishaAI.sendMessage(text);
+      appendMessage('ai', reply);
+      return reply;
+    }
+
+    async function askPreset(text) {
+      await sendChat(text);
+    }
+
+    function toggleVoice() {
+      if (window.nishaAI.isSpeaking) {
+        window.nishaAI.stopSpeaking();
+        return;
+      }
+      if (window.nishaAI.isListening) {
+        window.nishaAI.stopListening();
+        return;
+      }
+
+      window.nishaAI.startListening(async (transcript) => {
+        if (!transcript) return;
+        const reply = await sendChat(transcript);
+        if (reply) {
+          window.nishaAI.speak(reply);
+        }
+      }, (err) => {
+        console.warn('Voice error:', err);
+      });
+    }
+  </script>
+</body>
+</html>
