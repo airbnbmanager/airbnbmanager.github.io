@@ -268,243 +268,796 @@ function getSecurityDepositBadge(b) {
 window.getSecurityDepositBadge = getSecurityDepositBadge;
 
 
-// ============ GUEST LEDGER ============
-async function showGuestLedger(guestName, bookingId, phone, airbnbCode) {
+// ============ GUEST LEDGER & DATE-WISE STATEMENT ============
+function formatDateDisplay(dStr) {
+  if (!dStr) return '-';
+  const clean = String(dStr).split('T')[0];
+  const parts = clean.split('-');
+  if (parts.length === 3) {
+    const y = parseInt(parts[0], 10);
+    const m = parseInt(parts[1], 10) - 1;
+    const d = parseInt(parts[2], 10);
+    const dateObj = new Date(y, m, d);
+    if (!isNaN(dateObj)) {
+      return dateObj.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+    }
+  }
+  return clean;
+}
+
+async function showGuestLedger(guestName, bookingId, phone, airbnbCode, initialFromDate, initialToDate) {
+  let cleanPhone = phone ? String(phone).replace(/\D/g, '').replace(/^91/, '').replace(/^0/, '') : '';
+  
   let q = sb.from('guest_register')
-    .select('*, rooms(nickname, unit_no)')
-    .order('check_in', {ascending:false});
+    .select('*, rooms(nickname, unit_no, property_name)')
+    .order('check_in', { ascending: true }); // chronological order for statement
 
-  const cleanPhone = phone ? String(phone).replace(/\D/g, '') : '';
-
-  if (cleanPhone.length >= 10) {
-    // If guest has a clean phone number, match repeat stays by phone
-    q = q.eq('phone', phone);
-  } else if (bookingId) {
-    // Online or no verified phone: isolate to this specific stay so unrelated people with the same name never merge!
+  if (cleanPhone.length >= 10 && guestName) {
+    q = q.or(`phone.eq.${cleanPhone},phone.eq.91${cleanPhone},phone.eq.+91${cleanPhone},guest_name.eq.${guestName}`);
+  } else if (cleanPhone.length >= 10) {
+    q = q.or(`phone.eq.${cleanPhone},phone.eq.91${cleanPhone},phone.eq.+91${cleanPhone}`);
+  } else if (bookingId && !guestName) {
     q = q.eq('booking_id', bookingId);
   } else if (airbnbCode) {
     q = q.eq('airbnb_confirmation_code', airbnbCode);
-  } else {
+  } else if (guestName) {
     q = q.eq('guest_name', guestName);
   }
 
-  const {data: rawBookings} = await q;
-  let bookings = rawBookings || [];
+  const { data: rawBookings } = await q;
+  let allBookings = rawBookings || [];
 
-  // Extra safety guard: If online booking or no verified phone, strictly isolate to this booking
-  if (bookingId && cleanPhone.length < 10) {
-    bookings = bookings.filter(b => b.booking_id === bookingId);
+  // Fallback: If no exact match and guestName exists, try ilike
+  if (!allBookings.length && guestName) {
+    const { data: fallbackBookings } = await sb.from('guest_register')
+      .select('*, rooms(nickname, unit_no, property_name)')
+      .ilike('guest_name', `%${guestName.trim()}%`)
+      .order('check_in', { ascending: true });
+    allBookings = fallbackBookings || [];
   }
 
-  if (!bookings || !bookings.length) { fsn.info('Info', 'No bookings found for: ' + guestName); return; }
+  // Extra safety guard: If online booking or no verified phone, strictly isolate to this booking if explicitly specified
+  if (bookingId && cleanPhone.length < 10 && !guestName) {
+    allBookings = allBookings.filter(b => b.booking_id === bookingId);
+  }
 
-  const bkIds = bookings.map(b => b.booking_id);
-  const {data:payments} = await sb.from('payment_history')
-    .select('booking_id, amount, payment_mode, payment_date, verification_status')
+  if (!allBookings.length) {
+    fsn.info('Info', 'No bookings found for: ' + (guestName || phone || bookingId));
+    return;
+  }
+
+  // Derive resolved guest name and clean phone
+  const resolvedGuestName = allBookings[0]?.guest_name || guestName || 'Guest';
+  if (!cleanPhone) {
+    const foundWithPhone = allBookings.find(b => b.phone && String(b.phone).replace(/\D/g, '').length >= 10);
+    if (foundWithPhone) {
+      cleanPhone = String(foundWithPhone.phone).replace(/\D/g, '').replace(/^91/, '').replace(/^0/, '');
+    }
+  }
+  const displayPhone = cleanPhone || (allBookings[0]?.phone || '');
+
+  // Fetch all payments for these bookings
+  const bkIds = allBookings.map(b => b.booking_id);
+  const { data: rawPayments } = await sb.from('payment_history')
+    .select('booking_id, amount, payment_mode, payment_date, verification_status, notes')
     .in('booking_id', bkIds)
     .neq('verification_status', 'rejected');
+  const allPayments = rawPayments || [];
 
   const payMap = {};
-  (payments || []).forEach(p => { payMap[p.booking_id] = (payMap[p.booking_id] || 0) + (p.amount || 0); });
+  allPayments.forEach(p => {
+    payMap[p.booking_id] = (payMap[p.booking_id] || 0) + (p.amount || 0);
+  });
+
+  // Calculate distinct months present in guest stays for quick filter chips
+  const distinctMonths = [];
+  allBookings.forEach(b => {
+    if (b.check_in && b.check_in.length >= 7) {
+      const ym = b.check_in.slice(0, 7);
+      if (!distinctMonths.includes(ym)) distinctMonths.push(ym);
+    }
+    if (b.check_out && b.check_out.length >= 7) {
+      const ym = b.check_out.slice(0, 7);
+      if (!distinctMonths.includes(ym)) distinctMonths.push(ym);
+    }
+  });
+  distinctMonths.sort();
+
+  // Create Modal
+  const modal = document.createElement('div');
+  modal.className = 'modal-overlay';
+  modal.id = 'guestLedgerModal';
+  modal.onclick = e => { if (e.target === modal) modal.remove(); };
+
+  modal.innerHTML = `
+    <div class="modal-box" style="max-width:960px;width:95vw;max-height:92vh;overflow-y:auto;padding:24px;border-radius:14px;box-shadow:0 25px 50px -12px rgba(0,0,0,0.25);">
+      <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">✕</button>
+      
+      <!-- Guest Header -->
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;margin-bottom:12px;border-bottom:1px solid #E2E8F0;padding-bottom:12px;">
+        <div>
+          <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+            <h2 style="margin:0;font-size:22px;color:var(--dark);">👤 Guest Ledger & Statement</h2>
+            <span style="font-size:18px;font-weight:700;color:#1E293B;">— ${escapeHtml(resolvedGuestName)}</span>
+          </div>
+          <div style="margin-top:6px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;font-size:13px;color:#64748B;">
+            ${displayPhone ? `
+              <span style="display:inline-flex;align-items:center;gap:5px;background:#F1F5F9;padding:3px 9px;border-radius:6px;font-weight:600;color:#334155;">
+                📞 ${displayPhone}
+              </span>
+              <a href="https://wa.me/${displayPhone.length === 10 ? '91' + displayPhone : displayPhone}" target="_blank" style="color:#16A34A;text-decoration:none;font-weight:700;">
+                💬 WhatsApp
+              </a>
+              <a href="tel:${displayPhone}" style="color:#2563EB;text-decoration:none;font-weight:600;">
+                📱 Call
+              </a>
+            ` : '<span style="color:#94A3B8;">No phone recorded</span>'}
+            <span style="color:#CBD5E1;">•</span>
+            <span>Total Stays on record: <strong>${allBookings.length}</strong></span>
+          </div>
+        </div>
+        <div style="display:flex;gap:6px;align-items:center;">
+          ${(() => {
+            const t = getLoyaltyTier(allBookings.length);
+            return `<div style="display:inline-flex;align-items:center;gap:6px;padding:6px 12px;background:linear-gradient(135deg, ${t.color}, #334155);color:#fff;border-radius:20px;font-size:12px;font-weight:700;">
+              <span>${t.icon}</span> <span>${t.tier} Member</span>
+            </div>`;
+          })()}
+        </div>
+      </div>
+
+      <!-- Date Range Filter Card -->
+      <div style="background:#F8FAFC;border:1.5px solid #E2E8F0;border-radius:12px;padding:14px 16px;margin-bottom:16px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:10px;">
+          <div style="font-weight:700;font-size:13px;color:#1E293B;display:flex;align-items:center;gap:6px;">
+            <span>📅</span> <span>Filter Statement by Date (किसी भी तारीख से तारीख तक विवरण):</span>
+          </div>
+          <div id="glActiveFilterBanner" style="font-size:12px;color:#475569;font-weight:600;"></div>
+        </div>
+
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+          <div style="display:flex;align-items:center;gap:6px;">
+            <label style="font-size:12px;font-weight:600;color:#64748B;">From Date:</label>
+            <input type="date" id="glFromDate" value="${initialFromDate || ''}" style="padding:6px 10px;border:1px solid #CBD5E1;border-radius:6px;font-size:13px;">
+          </div>
+          <div style="display:flex;align-items:center;gap:6px;">
+            <label style="font-size:12px;font-weight:600;color:#64748B;">To Date:</label>
+            <input type="date" id="glToDate" value="${initialToDate || ''}" style="padding:6px 10px;border:1px solid #CBD5E1;border-radius:6px;font-size:13px;">
+          </div>
+          <button type="button" class="btn-sm" style="background:#4F46E5;color:#fff;font-weight:700;padding:6px 14px;" onclick="window._glApplyFilter()">
+            🔍 Filter Period
+          </button>
+          <button type="button" class="btn-sm outline" style="padding:6px 12px;" onclick="window._glResetFilter()">
+            All Time
+          </button>
+        </div>
+
+        <!-- Quick Preset Pills -->
+        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:10px;padding-top:10px;border-top:1px dashed #E2E8F0;">
+          <span style="font-size:11px;color:#64748B;font-weight:600;text-transform:uppercase;">Quick Presets:</span>
+          <button type="button" class="gl-preset-pill" onclick="window._glSetPreset('this-month')">This Month</button>
+          <button type="button" class="gl-preset-pill" onclick="window._glSetPreset('last-month')">Last Month</button>
+          <button type="button" class="gl-preset-pill" onclick="window._glSetPreset('last-30')">Last 30 Days</button>
+          <button type="button" class="gl-preset-pill" onclick="window._glSetPreset('all')">All Stays</button>
+          ${distinctMonths.map(ym => {
+            const [y, m] = ym.split('-');
+            const mName = new Date(parseInt(y), parseInt(m) - 1, 1).toLocaleString('en-US', { month: 'short' });
+            return `<button type="button" class="gl-preset-pill" onclick="window._glSetMonth('${ym}')">${mName} ${y}</button>`;
+          }).join('')}
+        </div>
+      </div>
+
+      <!-- Dynamic Content Wrapper -->
+      <div id="glDynamicContent"></div>
+
+      <!-- Bottom Action Row -->
+      <div id="glActionButtons" class="btn-row" style="margin-top:16px;border-top:1px solid #E2E8F0;padding-top:14px;flex-wrap:wrap;"></div>
+    </div>
+  `;
+
+  // Attach quick pill styling
+  const styleEl = document.createElement('style');
+  styleEl.textContent = `
+    .gl-preset-pill {
+      background: #FFFFFF;
+      border: 1px solid #CBD5E1;
+      color: #334155;
+      font-size: 11.5px;
+      font-weight: 600;
+      padding: 3px 10px;
+      border-radius: 14px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .gl-preset-pill:hover {
+      background: #EEF2FF;
+      border-color: #6366F1;
+      color: #4338CA;
+    }
+    .gl-preset-pill.active {
+      background: #4F46E5;
+      border-color: #4F46E5;
+      color: #FFFFFF;
+    }
+  `;
+  modal.appendChild(styleEl);
+
+  // Active filter state
+  let currentFrom = initialFromDate || '';
+  let currentTo = initialToDate || '';
+
+  // Function to render statement content based on date window
+  function renderStatement(fromDate, toDate) {
+    currentFrom = fromDate || '';
+    currentTo = toDate || '';
+
+    // Filter bookings: stay overlaps [fromDate, toDate]
+    let filteredBookings = allBookings;
+    if (fromDate || toDate) {
+      filteredBookings = allBookings.filter(b => {
+        const ci = b.check_in || '';
+        const co = b.check_out || b.check_in || '';
+        if (fromDate && toDate) return ci <= toDate && co >= fromDate;
+        if (fromDate) return co >= fromDate;
+        if (toDate) return ci <= toDate;
+        return true;
+      });
+    }
+
+    // Filter payments: belongs to filtered stays or payment_date in range
+    const fBkIds = new Set(filteredBookings.map(b => b.booking_id));
+    let filteredPayments = allPayments.filter(p => fBkIds.has(p.booking_id));
+    if (fromDate || toDate) {
+      allPayments.forEach(p => {
+        if (p.payment_date) {
+          const inWindow = (!fromDate || p.payment_date >= fromDate) && (!toDate || p.payment_date <= toDate);
+          if (inWindow && !filteredPayments.includes(p)) filteredPayments.push(p);
+        }
+      });
+    }
+
+    // Totals for filtered window
+    const totalAmount = filteredBookings.reduce((s, b) => s + (b.total_amount || 0), 0);
+    const totalPaid = filteredBookings.reduce((s, b) => s + (payMap[b.booking_id] || 0), 0);
+    const totalDue = Math.max(0, totalAmount - totalPaid);
+    const totalNights = filteredBookings.reduce((s, b) => {
+      if (b.check_in && b.check_out) return s + calcNights(b.check_in, b.check_out);
+      return s;
+    }, 0);
+
+    // Filter Banner Text
+    const bannerEl = modal.querySelector('#glActiveFilterBanner');
+    if (bannerEl) {
+      if (fromDate || toDate) {
+        const fTxt = fromDate ? formatDateDisplay(fromDate) : 'Start';
+        const tTxt = toDate ? formatDateDisplay(toDate) : 'Present';
+        bannerEl.innerHTML = `<span style="background:#EEF2FF;color:#4338CA;padding:3px 8px;border-radius:4px;border:1px solid #C7D2FE;">📌 Showing: <strong>${fTxt}</strong> to <strong>${tTxt}</strong> (${filteredBookings.length} of ${allBookings.length} stays)</span>`;
+      } else {
+        bannerEl.innerHTML = `<span style="color:#64748B;">Showing all ${allBookings.length} stays (Complete History)</span>`;
+      }
+    }
+
+    // Dynamic Content HTML
+    const contentEl = modal.querySelector('#glDynamicContent');
+    if (!contentEl) return;
+
+    contentEl.innerHTML = `
+      <!-- Stat Cards -->
+      <div class="stat-grid" style="grid-template-columns:repeat(auto-fit, minmax(140px, 1fr));gap:10px;margin-bottom:14px;">
+        <div class="stat-card" style="border-left:4px solid #3B82F6;padding:10px 14px;">
+          <div class="stat-num" style="font-size:22px;color:#1E293B;">${filteredBookings.length}</div>
+          <div class="stat-label" style="font-size:11px;color:#64748B;font-weight:700;text-transform:uppercase;">Stays in Period</div>
+        </div>
+        <div class="stat-card" style="border-left:4px solid #06B6D4;padding:10px 14px;">
+          <div class="stat-num" style="font-size:22px;color:#1E293B;">${totalNights}</div>
+          <div class="stat-label" style="font-size:11px;color:#64748B;font-weight:700;text-transform:uppercase;">Nights</div>
+        </div>
+        <div class="stat-card" style="border-left:4px solid #8B5CF6;padding:10px 14px;">
+          <div class="stat-num" style="font-size:22px;color:#1E293B;">₹${totalAmount.toLocaleString('en-IN')}</div>
+          <div class="stat-label" style="font-size:11px;color:#64748B;font-weight:700;text-transform:uppercase;">Total Billed</div>
+        </div>
+        <div class="stat-card" style="border-left:4px solid #10B981;padding:10px 14px;">
+          <div class="stat-num" style="font-size:22px;color:#059669;">₹${totalPaid.toLocaleString('en-IN')}</div>
+          <div class="stat-label" style="font-size:11px;color:#64748B;font-weight:700;text-transform:uppercase;">Total Paid</div>
+        </div>
+        <div class="stat-card" style="border-left:4px solid ${totalDue > 0 ? '#EF4444' : '#10B981'};padding:10px 14px;background:${totalDue > 0 ? '#FEF2F2' : '#F0FDF4'};">
+          <div class="stat-num" style="font-size:22px;color:${totalDue > 0 ? '#DC2626' : '#059669'};font-weight:800;">₹${totalDue.toLocaleString('en-IN')}</div>
+          <div class="stat-label" style="font-size:11px;color:${totalDue > 0 ? '#DC2626' : '#059669'};font-weight:700;text-transform:uppercase;">Balance Due</div>
+        </div>
+      </div>
+
+      <!-- Pending Alert Banner if due > 0 -->
+      ${totalDue > 0 ? `
+        <div style="background:#FEE2E2;border:1px solid #F87171;color:#991B1B;padding:10px 14px;border-radius:8px;font-size:13px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:14px;">
+          <div>
+            <strong>⚠️ Outstanding Balance Due: ₹${totalDue.toLocaleString('en-IN')}</strong>
+            <span style="font-size:12px;opacity:0.9;margin-left:6px;">for selected period</span>
+          </div>
+          <div style="font-size:12px;font-weight:600;">
+            Bank / UPI: <strong>9450055554@upi</strong> (THE UNIQUE HAVEN HOMES)
+          </div>
+        </div>
+      ` : `
+        <div style="background:#DCFCE7;border:1px solid #86EFAC;color:#166534;padding:8px 14px;border-radius:8px;font-size:12px;font-weight:600;margin-bottom:14px;">
+          ✅ All stays in this period are fully settled!
+        </div>
+      `}
+
+      <!-- Date-wise Stays Table -->
+      <div style="display:flex;justify-content:space-between;align-items:center;margin:12px 0 6px;">
+        <div class="section-title" style="margin:0;font-size:14px;font-weight:700;color:#1E293B;">
+          🗓️ Date-wise Stay Records (${filteredBookings.length})
+        </div>
+        <span style="font-size:11px;color:#64748B;">Sorted chronologically date-wise</span>
+      </div>
+
+      <div class="table-wrap" style="border:1px solid #E2E8F0;border-radius:8px;overflow-x:auto;">
+        <table style="width:100%;font-size:12.5px;">
+          <thead style="background:#F1F5F9;">
+            <tr>
+              <th style="padding:8px 10px;text-align:center;width:30px;">#</th>
+              <th style="padding:8px 10px;">Check-In</th>
+              <th style="padding:8px 10px;">Check-Out</th>
+              <th style="padding:8px 10px;">Property / Unit</th>
+              <th style="padding:8px 10px;text-align:center;">Mode</th>
+              <th style="padding:8px 10px;text-align:center;">Nights</th>
+              <th style="padding:8px 10px;text-align:right;">Billed</th>
+              <th style="padding:8px 10px;text-align:right;">Paid</th>
+              <th style="padding:8px 10px;text-align:right;">Balance Due</th>
+              <th style="padding:8px 10px;text-align:center;">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${filteredBookings.length ? filteredBookings.map((b, idx) => {
+              const pd = payMap[b.booking_id] || 0;
+              const isAirbnb = b.booking_mode === 'Online-Airbnb' || !!b.airbnb_confirmation_code;
+              const isPendingCsv = isAirbnb && (b.total_amount === 0 || b.payment_status === 'Pending CSV Payout');
+              const due = isPendingCsv ? 0 : Math.max(0, (b.total_amount || 0) - pd);
+              const nights = (b.check_in && b.check_out) ? calcNights(b.check_in, b.check_out) : 1;
+              const unitTitle = propLabel(b.rooms) || b.room_id || '-';
+
+              return `
+                <tr style="border-bottom:1px solid #F1F5F9;${due > 0 ? 'background:#FFFDFD;' : ''}">
+                  <td style="text-align:center;color:#64748B;font-size:11px;">${idx + 1}</td>
+                  <td style="font-weight:600;white-space:nowrap;color:#1E293B;">${formatDateDisplay(b.check_in)}</td>
+                  <td style="white-space:nowrap;color:#475569;">${formatDateDisplay(b.check_out)}</td>
+                  <td><strong>${unitTitle}</strong></td>
+                  <td style="text-align:center;"><span class="channel-badge ${isAirbnb ? 'channel-airbnb' : 'channel-direct'}" style="font-size:10px;">${isAirbnb ? 'Airbnb' : 'Direct'}</span></td>
+                  <td style="text-align:center;color:#475569;">${nights}N</td>
+                  <td style="text-align:right;font-weight:600;">${isPendingCsv ? '<span class="badge yellow" style="font-size:10px;">⏳ Pending CSV</span>' : '₹' + (b.total_amount || 0).toLocaleString('en-IN')}</td>
+                  <td style="text-align:right;color:#059669;font-weight:600;">${isPendingCsv ? '-' : '₹' + pd.toLocaleString('en-IN')}</td>
+                  <td style="text-align:right;font-weight:700;${due > 0 ? 'color:#DC2626;' : 'color:#059669;'}">${isPendingCsv ? '-' : (due > 0 ? '₹' + due.toLocaleString('en-IN') : '₹0')}</td>
+                  <td style="text-align:center;white-space:nowrap;">
+                    <button class="btn-sm" style="background:#0F172A;color:#fff;padding:2px 7px;font-size:10.5px;font-weight:700;border:none;border-radius:4px;cursor:pointer;margin-right:3px;" onclick="window.openBookingReceiptModal('${b.booking_id}')" title="Receipt">📄 Receipt</button>
+                    <button class="btn-sm" style="background:#B45309;color:#fff;padding:2px 7px;font-size:10.5px;font-weight:700;border:none;border-radius:4px;cursor:pointer;" onclick="window.openGSTInvoiceModal('${b.booking_id}')" title="GST Bill">🧾 Bill</button>
+                  </td>
+                </tr>
+              `;
+            }).join('') : '<tr><td colspan="10" style="text-align:center;padding:16px;color:#94A3B8;">No stays found in the selected date range.</td></tr>'}
+          </tbody>
+          ${filteredBookings.length ? `
+            <tfoot style="background:#F8FAFC;font-weight:700;border-top:2px solid #CBD5E1;">
+              <tr>
+                <td colspan="5" style="padding:9px 10px;text-align:right;color:#475569;">Totals for Selected Period:</td>
+                <td style="padding:9px 10px;text-align:center;color:#1E293B;">${totalNights}N</td>
+                <td style="padding:9px 10px;text-align:right;color:#1E293B;">₹${totalAmount.toLocaleString('en-IN')}</td>
+                <td style="padding:9px 10px;text-align:right;color:#059669;">₹${totalPaid.toLocaleString('en-IN')}</td>
+                <td style="padding:9px 10px;text-align:right;color:${totalDue > 0 ? '#DC2626' : '#059669'};">₹${totalDue.toLocaleString('en-IN')}</td>
+                <td></td>
+              </tr>
+            </tfoot>
+          ` : ''}
+        </table>
+      </div>
+
+      <!-- Payment Log -->
+      <div class="section-title" style="margin:16px 0 6px;font-size:13px;font-weight:700;color:#1E293B;">
+        💳 Payment Receipts Log (${filteredPayments.length})
+      </div>
+      <div class="table-wrap" style="border:1px solid #E2E8F0;border-radius:8px;overflow-x:auto;">
+        <table style="width:100%;font-size:12px;">
+          <thead style="background:#F1F5F9;">
+            <tr>
+              <th style="padding:6px 10px;">Date</th>
+              <th style="padding:6px 10px;text-align:right;">Amount</th>
+              <th style="padding:6px 10px;">Mode</th>
+              <th style="padding:6px 10px;">Related Stay Unit</th>
+              <th style="padding:6px 10px;">Notes / Remarks</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${filteredPayments.length ? filteredPayments.sort((a, b) => (b.payment_date || '').localeCompare(a.payment_date || '')).map(p => {
+              const matchedBk = allBookings.find(b => b.booking_id === p.booking_id);
+              const roomName = matchedBk ? (propLabel(matchedBk.rooms) || matchedBk.room_id) : '-';
+              return `
+                <tr style="border-bottom:1px solid #F1F5F9;">
+                  <td style="font-weight:600;color:#334155;">${formatDateDisplay(p.payment_date)}</td>
+                  <td style="text-align:right;color:#059669;font-weight:700;">₹${(p.amount || 0).toLocaleString('en-IN')}</td>
+                  <td><span class="badge" style="background:#F1F5F9;color:#334155;font-size:10.5px;">${p.payment_mode || '-'}</span></td>
+                  <td>${roomName}</td>
+                  <td style="color:#64748B;">${p.notes || '-'}</td>
+                </tr>
+              `;
+            }).join('') : '<tr><td colspan="5" style="text-align:center;padding:12px;color:#94A3B8;">No payments recorded in this period</td></tr>'}
+          </tbody>
+        </table>
+      </div>
+    `;
+
+    // Render Action Buttons
+    const actionEl = modal.querySelector('#glActionButtons');
+    if (actionEl) {
+      actionEl.innerHTML = `
+        <button type="button" onclick="window._glPrintStatement()" style="background:#00A699;color:#fff;font-weight:700;padding:8px 16px;border:none;border-radius:8px;cursor:pointer;">
+          🖨️ Print / PDF Statement
+        </button>
+        <button type="button" onclick="window._glWhatsAppStatement()" style="background:#25D366;color:#fff;font-weight:700;padding:8px 16px;border:none;border-radius:8px;cursor:pointer;">
+          📱 WhatsApp Statement
+        </button>
+        <button type="button" onclick="window._glCopyStatement()" style="background:#3B82F6;color:#fff;font-weight:700;padding:8px 16px;border:none;border-radius:8px;cursor:pointer;">
+          📋 Copy Statement
+        </button>
+        ${filteredBookings.length ? `
+          <button type="button" onclick="window.openBookingReceiptModal('${filteredBookings[filteredBookings.length - 1]?.booking_id}')" style="background:#0F172A;color:#fff;font-weight:700;padding:8px 14px;border:none;border-radius:8px;cursor:pointer;">
+            📄 Latest Receipt
+          </button>
+        ` : ''}
+        <button type="button" class="outline" onclick="this.closest('.modal-overlay').remove()" style="margin-left:auto;padding:8px 16px;">
+          Close
+        </button>
+      `;
+    }
+  }
+
+  // Window bridge functions for modal interactions
+  window._glApplyFilter = () => {
+    const f = modal.querySelector('#glFromDate')?.value || '';
+    const t = modal.querySelector('#glToDate')?.value || '';
+    renderStatement(f, t);
+  };
+
+  window._glResetFilter = () => {
+    const fIn = modal.querySelector('#glFromDate');
+    const tIn = modal.querySelector('#glToDate');
+    if (fIn) fIn.value = '';
+    if (tIn) tIn.value = '';
+    renderStatement('', '');
+  };
+
+  window._glSetMonth = (ym) => {
+    const [y, m] = ym.split('-').map(Number);
+    const startDate = `${ym}-01`;
+    const lastDay = new Date(y, m, 0).getDate();
+    const endDate = `${ym}-${String(lastDay).padStart(2, '0')}`;
+    const fIn = modal.querySelector('#glFromDate');
+    const tIn = modal.querySelector('#glToDate');
+    if (fIn) fIn.value = startDate;
+    if (tIn) tIn.value = endDate;
+    renderStatement(startDate, endDate);
+  };
+
+  window._glSetPreset = (preset) => {
+    const today = new Date();
+    const curYear = today.getFullYear();
+    const curMonth = today.getMonth(); // 0-indexed
+
+    let s = '', e = '';
+    if (preset === 'this-month') {
+      s = `${curYear}-${String(curMonth + 1).padStart(2, '0')}-01`;
+      const lastDay = new Date(curYear, curMonth + 1, 0).getDate();
+      e = `${curYear}-${String(curMonth + 1).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
+    } else if (preset === 'last-month') {
+      const prevDate = new Date(curYear, curMonth - 1, 1);
+      const py = prevDate.getFullYear();
+      const pm = prevDate.getMonth();
+      s = `${py}-${String(pm + 1).padStart(2, '0')}-01`;
+      const lastDay = new Date(py, pm + 1, 0).getDate();
+      e = `${py}-${String(pm + 1).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
+    } else if (preset === 'last-30') {
+      const past = new Date(today);
+      past.setDate(past.getDate() - 30);
+      s = past.toISOString().slice(0, 10);
+      e = today.toISOString().slice(0, 10);
+    } else if (preset === 'all') {
+      s = '';
+      e = '';
+    }
+
+    const fIn = modal.querySelector('#glFromDate');
+    const tIn = modal.querySelector('#glToDate');
+    if (fIn) fIn.value = s;
+    if (tIn) tIn.value = e;
+    renderStatement(s, e);
+  };
+
+  window._glPrintStatement = () => {
+    const curBookings = allBookings.filter(b => {
+      const ci = b.check_in || '';
+      const co = b.check_out || b.check_in || '';
+      if (currentFrom && currentTo) return ci <= currentTo && co >= currentFrom;
+      if (currentFrom) return co >= currentFrom;
+      if (currentTo) return ci <= currentTo;
+      return true;
+    });
+    const fBkIds = new Set(curBookings.map(b => b.booking_id));
+    const curPays = allPayments.filter(p => fBkIds.has(p.booking_id));
+    printGuestLedger(resolvedGuestName, displayPhone, curBookings, curPays, currentFrom, currentTo);
+  };
+
+  window._glWhatsAppStatement = () => {
+    const curBookings = allBookings.filter(b => {
+      const ci = b.check_in || '';
+      const co = b.check_out || b.check_in || '';
+      if (currentFrom && currentTo) return ci <= currentTo && co >= currentFrom;
+      if (currentFrom) return co >= currentFrom;
+      if (currentTo) return ci <= currentTo;
+      return true;
+    });
+    const fBkIds = new Set(curBookings.map(b => b.booking_id));
+    const curPays = allPayments.filter(p => fBkIds.has(p.booking_id));
+    whatsappGuestLedger(resolvedGuestName, displayPhone, curBookings, curPays, currentFrom, currentTo);
+  };
+
+  window._glCopyStatement = () => {
+    const curBookings = allBookings.filter(b => {
+      const ci = b.check_in || '';
+      const co = b.check_out || b.check_in || '';
+      if (currentFrom && currentTo) return ci <= currentTo && co >= currentFrom;
+      if (currentFrom) return co >= currentFrom;
+      if (currentTo) return ci <= currentTo;
+      return true;
+    });
+    const totAmt = curBookings.reduce((s, b) => s + (b.total_amount || 0), 0);
+    const totPd = curBookings.reduce((s, b) => s + (payMap[b.booking_id] || 0), 0);
+    const totDue = Math.max(0, totAmt - totPd);
+    const periodStr = (currentFrom && currentTo) ? `${formatDateDisplay(currentFrom)} to ${formatDateDisplay(currentTo)}` : 'All Time';
+
+    let txt = `THE UNIQUE HAVEN HOMES - GUEST STATEMENT\n`;
+    txt += `Guest: ${resolvedGuestName} | Phone: ${displayPhone || '-'}\n`;
+    txt += `Period: ${periodStr}\n`;
+    txt += `Stays: ${curBookings.length} | Billed: Rs.${totAmt.toLocaleString('en-IN')} | Paid: Rs.${totPd.toLocaleString('en-IN')} | Due: Rs.${totDue.toLocaleString('en-IN')}\n\n`;
+    txt += `Stay Breakdown:\n`;
+    curBookings.forEach((b, i) => {
+      const pd = payMap[b.booking_id] || 0;
+      const d = Math.max(0, (b.total_amount || 0) - pd);
+      txt += `${i + 1}. ${formatDateDisplay(b.check_in)} -> ${formatDateDisplay(b.check_out)} (${propLabel(b.rooms) || b.room_id}) | Billed: Rs.${(b.total_amount || 0).toLocaleString('en-IN')} | Paid: Rs.${pd.toLocaleString('en-IN')} | Due: Rs.${d.toLocaleString('en-IN')}\n`;
+    });
+    txt += `\nNet Balance Due: Rs.${totDue.toLocaleString('en-IN')}\n`;
+    txt += `UPI: 9450055554@upi | Contact: 9450055554 / 8299600709\n`;
+
+    navigator.clipboard.writeText(txt).then(() => {
+      fsn.success('Copied', 'Guest statement copied to clipboard!');
+    }).catch(() => {
+      fsn.info('Copy', 'Could not access clipboard.');
+    });
+  };
+
+  // Initial render
+  renderStatement(initialFromDate || '', initialToDate || '');
+  document.body.appendChild(modal);
+}
+
+// ============ PRINT GUEST LEDGER / STATEMENT ============
+async function printGuestLedger(guestName, phone, passedBookings, passedPayments, fromDate, toDate) {
+  let bookings = passedBookings;
+  let payments = passedPayments;
+  const cleanPhone = phone ? String(phone).replace(/\D/g, '').replace(/^91/, '').replace(/^0/, '') : '';
+
+  if (!bookings || !bookings.length) {
+    let q = sb.from('guest_register')
+      .select('*, rooms(nickname, unit_no, property_name)')
+      .order('check_in', { ascending: true });
+    if (cleanPhone.length >= 10 && guestName) {
+      q = q.or(`phone.eq.${cleanPhone},phone.eq.91${cleanPhone},phone.eq.+91${cleanPhone},guest_name.eq.${guestName}`);
+    } else if (cleanPhone.length >= 10) {
+      q = q.or(`phone.eq.${cleanPhone},phone.eq.91${cleanPhone},phone.eq.+91${cleanPhone}`);
+    } else {
+      q = q.eq('guest_name', guestName);
+    }
+    const { data: dbBks } = await q;
+    bookings = dbBks || [];
+
+    if (!bookings.length) {
+      fsn.info('Info', 'No bookings found to print statement.');
+      return;
+    }
+
+    if (fromDate || toDate) {
+      bookings = bookings.filter(b => {
+        const ci = b.check_in || '';
+        const co = b.check_out || b.check_in || '';
+        if (fromDate && toDate) return ci <= toDate && co >= fromDate;
+        if (fromDate) return co >= fromDate;
+        if (toDate) return ci <= toDate;
+        return true;
+      });
+    }
+
+    const bkIds = bookings.map(b => b.booking_id);
+    const { data: dbPays } = await sb.from('payment_history').select('*').in('booking_id', bkIds);
+    payments = dbPays || [];
+  }
+
+  const payMap = {};
+  (payments || []).forEach(p => {
+    payMap[p.booking_id] = (payMap[p.booking_id] || 0) + (p.amount || 0);
+  });
 
   const totalAmount = bookings.reduce((s, b) => s + (b.total_amount || 0), 0);
   const totalPaid = bookings.reduce((s, b) => s + (payMap[b.booking_id] || 0), 0);
   const totalDue = Math.max(0, totalAmount - totalPaid);
-  const totalNights = bookings.reduce((s, b) => {
-    if (b.check_in && b.check_out) return s + calcNights(b.check_in, b.check_out);
-    return s;
-  }, 0);
+  const totalNights = bookings.reduce((s, b) => (b.check_in && b.check_out ? s + calcNights(b.check_in, b.check_out) : s), 0);
 
-  const modal = document.createElement('div');
-  modal.className = 'modal-overlay';
-  modal.onclick = e => { if (e.target === modal) modal.remove(); };
-  modal.innerHTML = `
-    <div class="modal-box" style="max-width:600px;">
-      <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">✕</button>
-      <h2>👤 Guest Ledger — ${guestName}</h2>
-      ${(() => {
-        const t = getLoyaltyTier(bookings.length);
-        const nextTier = bookings.length < 2 ? { tier: 'Silver', at: 2 } :
-                         bookings.length < 4 ? { tier: 'Gold', at: 4 } :
-                         bookings.length < 7 ? { tier: 'Platinum', at: 7 } : null;
-        return '<div style="display:flex;align-items:center;gap:12px;padding:12px;background:linear-gradient(135deg,' + t.color + ',rgba(0,0,0,0.1));color:#fff;border-radius:10px;margin-bottom:12px;">' +
-          '<div style="font-size:32px;">' + t.icon + '</div>' +
-          '<div style="flex:1;">' +
-            '<div style="font-weight:700;font-size:16px;">' + t.tier + ' Member</div>' +
-            '<div style="font-size:12px;opacity:0.9;">' + bookings.length + ' stay(s) · ' + t.discount + '% loyalty discount available</div>' +
-            (nextTier ? '<div style="font-size:11px;margin-top:4px;opacity:0.8;">🎯 ' + (nextTier.at - bookings.length) + ' more stay(s) to reach ' + nextTier.tier + '</div>' : '<div style="font-size:11px;margin-top:4px;">🏆 Top tier reached!</div>') +
-          '</div>' +
-        '</div>';
-      })()}
-      <div class="stat-grid" style="grid-template-columns:repeat(2,1fr);margin:12px 0;">
-        <div class="stat-card" style="border-left:4px solid var(--blue);"><div class="stat-num">${bookings.length}</div><div class="stat-label">Stays</div></div>
-        <div class="stat-card" style="border-left:4px solid var(--green);"><div class="stat-num">${totalNights}</div><div class="stat-label">Nights</div></div>
-      </div>
-      <div class="card" style="box-shadow:none;border:1px solid var(--border);margin:0 0 12px;">
-        <div class="metric-row"><span class="metric-label">Total Billed</span><span class="metric-value">₹${totalAmount.toLocaleString('en-IN')}</span></div>
-        <div class="metric-row"><span class="metric-label">Total Paid</span><span class="metric-value" style="color:var(--green);">₹${totalPaid.toLocaleString('en-IN')}</span></div>
-        <div class="metric-row"><span class="metric-label">Total Due</span><span class="metric-value${totalDue > 0 ? ' warn' : ''}">₹${totalDue.toLocaleString('en-IN')}</span></div>
-        ${totalDue > 0
-          ? `<div style="margin-top:8px;padding:8px;background:#FDE8E8;border-radius:8px;font-size:12px;color:var(--red);">⚠️ ₹${totalDue.toLocaleString('en-IN')} pending</div>`
-          : `<div style="margin-top:8px;padding:8px;background:#DEF7EC;border-radius:8px;font-size:12px;color:var(--green);">✅ All clear</div>`}
-      </div>
-      <div class="section-title">Booking History</div>
-      <div class="table-wrap"><table>
-        <thead><tr><th>Property</th><th>Mode</th><th>In</th><th>Out</th><th>Total</th><th>Paid</th><th>Due</th><th style="text-align:center;">GST</th></tr></thead>
-        <tbody>${bookings.map(b => {
-          const pd = payMap[b.booking_id] || 0;
-          const isAirbnb = b.booking_mode === 'Online-Airbnb' || !!b.airbnb_confirmation_code;
-          const isPendingCsv = isAirbnb && (b.total_amount === 0 || b.payment_status === 'Pending CSV Payout');
-          const due = isPendingCsv ? 0 : Math.max(0, (b.total_amount || 0) - pd);
-          return `<tr>
-            <td>${b.rooms?.nickname || b.room_id}</td>
-            <td><span class="channel-badge ${isAirbnb ? 'channel-airbnb' : 'channel-direct'}">${isAirbnb ? 'Airbnb' : 'Direct'}</span></td>
-            <td>${b.check_in || '-'}</td>
-            <td>${b.check_out || '-'}</td>
-            <td>${isPendingCsv ? '<span class="badge yellow" style="font-size:10px;">⏳ Pending CSV</span>' : '₹' + (b.total_amount || 0).toLocaleString('en-IN')}</td>
-            <td style="color:var(--green);">${isPendingCsv ? '-' : '₹' + pd.toLocaleString('en-IN')}</td>
-            <td style="${due > 0 ? 'color:var(--red);font-weight:700;' : ''}">${isPendingCsv ? '-' : (due > 0 ? '₹' + due.toLocaleString('en-IN') : '₹0')}</td>
-            <td style="text-align:center;white-space:nowrap;">
-              <button class="btn-sm" style="background:#0F172A;color:#fff;padding:2px 7px;font-size:10.5px;font-weight:700;border:none;border-radius:4px;cursor:pointer;margin-right:3px;" onclick="window.openBookingReceiptModal('${b.booking_id}')" title="Booking Receipt (No GST)">📄 Receipt</button>
-              <button class="btn-sm" style="background:#B45309;color:#fff;padding:2px 7px;font-size:10.5px;font-weight:700;border:none;border-radius:4px;cursor:pointer;" onclick="window.openGSTInvoiceModal('${b.booking_id}')" title="Generate or View GST Bill">🧾 Bill</button>
-            </td>
-          </tr>`;
-        }).join('')}</tbody>
-      </table></div>
-      <div class="section-title" style="margin-top:12px;">Payment Log</div>
-      <div class="table-wrap"><table>
-        <thead><tr><th>Date</th><th>Amount</th><th>Mode</th></tr></thead>
-        <tbody>${(payments || []).sort((a, b) => (b.payment_date || '').localeCompare(a.payment_date || '')).map(p => `<tr>
-          <td>${p.payment_date || '-'}</td>
-          <td>₹${(p.amount || 0).toLocaleString('en-IN')}</td>
-          <td>${p.payment_mode || '-'}</td>
-        </tr>`).join('') || '<tr><td colspan="3" class="sub">No payments</td></tr>'}</tbody>
-      </table></div>
-      <div class="btn-row" style="margin-top:12px;">
-        <button onclick="printGuestLedger('${guestName.replace(/'/g, "\\'")}')" style="background:#00A699;color:#fff;">🖨️ Print Ledger</button>
-        <button onclick="whatsappGuestLedger('${guestName.replace(/'/g, "\\'")}')" style="background:#25D366;color:#fff;">📱 WhatsApp</button>
-        <button onclick="window.openBookingReceiptModal('${bookings[0]?.booking_id || ''}')" style="background:#0F172A;color:#fff;font-weight:700;">📄 Booking Receipt</button>
-        <button onclick="window.openGSTInvoiceModal('${bookings[0]?.booking_id || ''}')" style="background:#B45309;color:#fff;font-weight:700;">🧾 GST Invoice</button>
-        <button class="outline" onclick="this.closest('.modal-overlay').remove()">Close</button>
-      </div>
-    </div>`;
-  document.body.appendChild(modal);
-}
-
-
-
-// ============ PRINT GUEST LEDGER ============
-async function printGuestLedger(guestName) {
-  const {data:bookings} = await sb.from('guest_register')
-    .select('*, rooms(nickname, unit_no, property_name)')
-    .eq('guest_name', guestName)
-    .order('check_in', {ascending:false});
-  if (!bookings || !bookings.length) { fsn.info('Info', 'No bookings'); return; }
-
-  const bkIds = bookings.map(b => b.booking_id);
-  const {data:payments} = await sb.from('payment_history').select('*').in('booking_id', bkIds);
-  const payMap = {};
-  (payments || []).forEach(p => { payMap[p.booking_id] = (payMap[p.booking_id] || 0) + (p.amount || 0); });
-
-  const totalAmount = bookings.reduce((s, b) => s + (b.total_amount || 0), 0);
-  const totalPaid = bookings.reduce((s, b) => s + (payMap[b.booking_id] || 0), 0);
-  const totalDue = totalAmount - totalPaid;
-  const totalNights = bookings.reduce((s, b) => {
-    if (b.check_in && b.check_out) return s + calcNights(b.check_in, b.check_out);
-    return s;
-  }, 0);
-
-  const firstBk = bookings[0];
-  const dateStr = new Date().toLocaleDateString('en-IN');
-  const dueColor = totalDue > 0 ? '#FF385C' : '#0A7D1A';
-  const dueBg = totalDue > 0 ? '#FDE8E8' : '#DEF7EC';
+  const displayGuestPhone = phone || bookings[0]?.phone || '-';
+  const periodLabel = (fromDate && toDate)
+    ? `${formatDateDisplay(fromDate)} to ${formatDateDisplay(toDate)}`
+    : (fromDate ? `From ${formatDateDisplay(fromDate)}` : (toDate ? `Up to ${formatDateDisplay(toDate)}` : 'Complete Stay History (All Time)'));
+  const todayDateStr = new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 
   let bkRows = '';
-  bookings.forEach(b => {
+  bookings.forEach((b, idx) => {
     const pd = payMap[b.booking_id] || 0;
-    const due = (b.total_amount || 0) - pd;
-    const dc = due > 0 ? '#FF385C' : '#0A7D1A';
-    bkRows += '<tr>' +
-      '<td>' + (propLabel(b.rooms) || b.room_id || '-') + '</td>' +
-      '<td>' + (b.booking_mode === 'Online-Airbnb' ? 'Online' : 'Offline') + '</td>' +
-      '<td>' + (b.check_in || '-') + '</td>' +
-      '<td>' + (b.check_out || '-') + '</td>' +
-      '<td style="text-align:right;">₹' + (b.total_amount || 0).toLocaleString('en-IN') + '</td>' +
-      '<td style="text-align:right;color:#0A7D1A;">₹' + pd.toLocaleString('en-IN') + '</td>' +
-      '<td style="text-align:right;color:' + dc + ';font-weight:700;">₹' + due.toLocaleString('en-IN') + '</td>' +
-      '</tr>';
+    const isAirbnb = b.booking_mode === 'Online-Airbnb' || !!b.airbnb_confirmation_code;
+    const isPendingCsv = isAirbnb && (b.total_amount === 0 || b.payment_status === 'Pending CSV Payout');
+    const due = isPendingCsv ? 0 : Math.max(0, (b.total_amount || 0) - pd);
+    const nights = (b.check_in && b.check_out) ? calcNights(b.check_in, b.check_out) : 1;
+    const roomName = propLabel(b.rooms) || b.room_id || '-';
+
+    bkRows += `<tr>
+      <td style="text-align:center;">${idx + 1}</td>
+      <td><strong>${formatDateDisplay(b.check_in)}</strong></td>
+      <td>${formatDateDisplay(b.check_out)}</td>
+      <td>${roomName}</td>
+      <td style="text-align:center;">${isAirbnb ? 'Airbnb' : 'Direct'}</td>
+      <td style="text-align:center;">${nights}N</td>
+      <td style="text-align:right;">${isPendingCsv ? 'Pending CSV' : '₹' + (b.total_amount || 0).toLocaleString('en-IN')}</td>
+      <td style="text-align:right;color:#0A7D1A;">${isPendingCsv ? '-' : '₹' + pd.toLocaleString('en-IN')}</td>
+      <td style="text-align:right;font-weight:700;color:${due > 0 ? '#DC2626' : '#0A7D1A'};">${isPendingCsv ? '-' : (due > 0 ? '₹' + due.toLocaleString('en-IN') : '₹0')}</td>
+    </tr>`;
   });
 
   let payRows = '';
-  const sortedPays = (payments || []).sort((a, b) => (b.payment_date || '').localeCompare(a.payment_date || ''));
-  if (sortedPays.length === 0) {
-    payRows = '<tr><td colspan="4" style="text-align:center;color:#717171;">No payments recorded</td></tr>';
+  const sortedPays = (payments || []).slice().sort((a, b) => (b.payment_date || '').localeCompare(a.payment_date || ''));
+  if (!sortedPays.length) {
+    payRows = '<tr><td colspan="5" style="text-align:center;color:#717171;padding:12px;">No payment receipts recorded in this period</td></tr>';
   } else {
     sortedPays.forEach(p => {
-      payRows += '<tr>' +
-        '<td>' + (p.payment_date || '-') + '</td>' +
-        '<td style="text-align:right;">₹' + (p.amount || 0).toLocaleString('en-IN') + '</td>' +
-        '<td>' + (p.payment_mode || '-') + '</td>' +
-        '<td>' + (p.notes || '-') + '</td>' +
-        '</tr>';
+      const relatedStay = bookings.find(b => b.booking_id === p.booking_id);
+      const stayRoom = relatedStay ? (propLabel(relatedStay.rooms) || relatedStay.room_id) : '-';
+      payRows += `<tr>
+        <td>${formatDateDisplay(p.payment_date)}</td>
+        <td style="text-align:right;font-weight:700;color:#0A7D1A;">₹${(p.amount || 0).toLocaleString('en-IN')}</td>
+        <td>${p.payment_mode || '-'}</td>
+        <td>${stayRoom}</td>
+        <td>${p.notes || '-'}</td>
+      </tr>`;
     });
   }
 
-  const dueMsg = totalDue > 0
-    ? '⚠️ Balance Due: ₹' + totalDue.toLocaleString('en-IN') + ' — Kindly clear at earliest'
-    : '✅ Fully Settled — Thank You!';
+  const cleanGuestName = String(guestName || 'Guest').trim().replace(/[\/\\:*?"<>|]/g, '-').replace(/\s+/g, '_');
+  const pdfTitle = `TUHH_Statement_${cleanGuestName}_${new Date().toISOString().slice(0, 10)}`;
 
-  const cleanGuest = String(guestName || 'Guest').trim().replace(/[\/\\:*?"<>|]/g, '-').replace(/\s+/g, '_');
-  const todayDate = new Date().toISOString().slice(0, 10);
-  const pdfTitle = 'TUHH_Guest_Ledger_' + cleanGuest + '_' + todayDate;
+  const html = `<!DOCTYPE html><html><head><title>${pdfTitle}</title>
+    <style>
+      @page { size: A4; margin: 12mm 15mm; }
+      * { box-sizing: border-box; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+      body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; color: #1E293B; margin: 0; padding: 12mm 15mm; }
+      .header-card { background: linear-gradient(135deg, #1E293B, #0F172A); color: #fff; padding: 22px 24px; border-radius: 12px; margin-bottom: 20px; }
+      .company-title { font-size: 20px; font-weight: 800; letter-spacing: 0.5px; }
+      .doc-subtitle { font-size: 14px; opacity: 0.9; margin-top: 4px; color: #94A3B8; }
+      .meta-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; background: #F8FAFC; border: 1px solid #E2E8F0; padding: 14px 18px; border-radius: 10px; margin-bottom: 18px; font-size: 13px; }
+      .summary-cards { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin-bottom: 22px; }
+      .summary-card { background: #FAFAFA; border: 1px solid #E2E8F0; padding: 10px 12px; border-radius: 8px; text-align: center; }
+      .summary-card .label { font-size: 10px; text-transform: uppercase; color: #64748B; font-weight: 700; }
+      .summary-card .val { font-size: 18px; font-weight: 800; margin-top: 4px; color: #0F172A; }
+      .section-heading { font-size: 13.5px; font-weight: 700; color: #0F172A; border-bottom: 2px solid #3B82F6; padding-bottom: 5px; margin: 20px 0 10px; }
+      table { width: 100%; border-collapse: collapse; font-size: 11.5px; margin-bottom: 12px; }
+      th { background: #1E293B; color: #fff; padding: 7px 8px; text-align: left; font-size: 11px; }
+      td { padding: 6.5px 8px; border-bottom: 1px solid #E2E8F0; }
+      tr:nth-child(even) { background: #F8FAFC; }
+      tfoot tr td { background: #F1F5F9; font-weight: 700; border-top: 2px solid #CBD5E1; }
+      .alert-box { padding: 14px; border-radius: 8px; text-align: center; font-size: 14px; font-weight: 700; margin-top: 18px; }
+      .alert-due { background: #FEF2F2; color: #DC2626; border: 1.5px solid #F87171; }
+      .alert-clear { background: #F0FDF4; color: #166534; border: 1.5px solid #86EFAC; }
+      .bank-details { background: #F8FAFC; border: 1px dashed #CBD5E1; border-radius: 8px; padding: 12px 16px; margin-top: 16px; font-size: 11.5px; }
+      @media print { body { padding: 0; } .no-print { display: none !important; } }
+    </style>
+  </head><body>
+    <div class="header-card">
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <div>
+          <div class="company-title">THE UNIQUE HAVEN HOMES PRIVATE LIMITED</div>
+          <div class="doc-subtitle">Official Guest Statement of Account & Ledger (खाता विवरण)</div>
+        </div>
+        <div style="text-align:right;font-size:12px;opacity:0.85;">
+          TUHH / ACCOUNTS<br>Govt. Registered Homestay
+        </div>
+      </div>
+    </div>
 
-  const html = '<!DOCTYPE html><html><head><title>' + pdfTitle + '</title>' +
-    '<style>' +
-    '@page { size: A4; margin: 0; }' +
-    '* { box-sizing: border-box; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }' +
-    'body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; color: #222; margin: 0; padding: 12mm 15mm; }' +
-    '.header { background: linear-gradient(135deg,#FF385C,#E00B41); color: #fff; padding: 20px; border-radius: 12px; margin-bottom: 20px; }' +
-    '.header h1 { margin: 0 0 6px 0; font-size: 22px; }' +
-    '.header .meta { font-size: 13px; opacity: 0.9; }' +
-    '.guest-info { background: #F7F7F7; padding: 14px 18px; border-radius: 8px; margin-bottom: 16px; font-size: 13px; }' +
-    '.summary { display: grid; grid-template-columns: repeat(4,1fr); gap: 10px; margin-bottom: 20px; }' +
-    '.summary-card { background: #FAFAFA; padding: 12px; border-radius: 8px; text-align: center; border: 1px solid #EBEBEB; }' +
-    '.summary-card .label { font-size: 10px; color: #717171; text-transform: uppercase; }' +
-    '.summary-card .value { font-size: 18px; font-weight: 800; margin-top: 4px; }' +
-    '.section-title { font-size: 14px; font-weight: 700; margin: 18px 0 8px; color: #222; border-bottom: 2px solid #FF385C; padding-bottom: 4px; }' +
-    'table { width: 100%; border-collapse: collapse; font-size: 12px; margin-bottom: 10px; }' +
-    'th { background: #222; color: #fff; padding: 8px; text-align: left; font-size: 11px; }' +
-    'td { padding: 7px 8px; border-bottom: 1px solid #EBEBEB; }' +
-    'tr:nth-child(even) { background: #FAFAFA; }' +
-    '.due-alert { background: ' + dueBg + '; color: ' + dueColor + '; padding: 14px; border-radius: 8px; text-align: center; font-weight: 700; font-size: 15px; margin-top: 16px; }' +
-    '@media print { body { padding: 8mm 10mm; } .no-print { display: none; } }' +
-    '</style></head><body>' +
-    '<div class="header"><h1>👤 Guest Ledger — ' + guestName + '</h1>' +
-    '<div class="meta">' + BRAND + ' · Generated ' + dateStr + '</div></div>' +
-    '<div class="guest-info"><strong>Guest:</strong> ' + guestName + ' &nbsp;·&nbsp; ' +
-    '<strong>Phone:</strong> ' + (firstBk.phone || '-') + ' &nbsp;·&nbsp; ' +
-    '<strong>Stays:</strong> ' + bookings.length + ' &nbsp;·&nbsp; ' +
-    '<strong>Nights:</strong> ' + totalNights + '</div>' +
-    '<div class="summary">' +
-    '<div class="summary-card"><div class="label">Stays</div><div class="value">' + bookings.length + '</div></div>' +
-    '<div class="summary-card"><div class="label">Total Billed</div><div class="value">₹' + totalAmount.toLocaleString('en-IN') + '</div></div>' +
-    '<div class="summary-card"><div class="label">Total Paid</div><div class="value" style="color:#0A7D1A;">₹' + totalPaid.toLocaleString('en-IN') + '</div></div>' +
-    '<div class="summary-card"><div class="label">Balance Due</div><div class="value" style="color:' + dueColor + ';">₹' + totalDue.toLocaleString('en-IN') + '</div></div>' +
-    '</div>' +
-    '<div class="section-title">📅 Booking History</div>' +
-    '<table><thead><tr><th>Property</th><th>Mode</th><th>Check-in</th><th>Check-out</th>' +
-    '<th style="text-align:right;">Total</th><th style="text-align:right;">Paid</th><th style="text-align:right;">Due</th></tr></thead>' +
-    '<tbody>' + bkRows + '</tbody></table>' +
-    '<div class="section-title">💰 Payment Log</div>' +
-    '<table><thead><tr><th>Date</th><th style="text-align:right;">Amount</th><th>Mode</th><th>Notes</th></tr></thead>' +
-    '<tbody>' + payRows + '</tbody></table>' +
-    '<div class="due-alert">' + dueMsg + '</div>' +
-    (window.getOfficialReportFooterHTML ? window.getOfficialReportFooterHTML(dateStr) : '<div style="margin-top:24px;text-align:center;font-size:11px;color:#717171;border-top:1px solid #EBEBEB;padding-top:12px;"><strong>' + (window.COMPANY_LEGAL_NAME || BRAND) + '</strong><br>Developed by Praveen Singh</div>') +
-    '<div class="no-print" style="text-align:center;margin-top:20px;">' +
-    '<button onclick="window.print()" style="padding:12px 32px;background:#FF385C;color:#fff;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-size:15px;">🖨️ Print / Save as PDF</button>' +
-    '</div>' +
-    '<script>setTimeout(function(){window.print();}, 500);<\/script>' +
-    '</body></html>';
+    <div class="meta-grid">
+      <div><strong>Guest Name:</strong> ${guestName}</div>
+      <div><strong>Phone / Mobile:</strong> ${displayGuestPhone}</div>
+      <div><strong>Statement Period:</strong> <span style="color:#2563EB;font-weight:700;">${periodLabel}</span></div>
+      <div><strong>Date Generated:</strong> ${todayDateStr}</div>
+    </div>
+
+    <div class="summary-cards">
+      <div class="summary-card"><div class="label">Stays</div><div class="val">${bookings.length}</div></div>
+      <div class="summary-card"><div class="label">Total Nights</div><div class="val">${totalNights}N</div></div>
+      <div class="summary-card"><div class="label">Total Billed</div><div class="val">₹${totalAmount.toLocaleString('en-IN')}</div></div>
+      <div class="summary-card"><div class="label">Total Paid</div><div class="val" style="color:#0A7D1A;">₹${totalPaid.toLocaleString('en-IN')}</div></div>
+      <div class="summary-card" style="${totalDue > 0 ? 'border-color:#F87171;background:#FEF2F2;' : ''}">
+        <div class="label" style="${totalDue > 0 ? 'color:#DC2626;' : ''}">Balance Due</div>
+        <div class="val" style="color:${totalDue > 0 ? '#DC2626' : '#0A7D1A'};">₹${totalDue.toLocaleString('en-IN')}</div>
+      </div>
+    </div>
+
+    <div class="section-heading">🗓️ Date-wise Stays Breakdown (${bookings.length})</div>
+    <table>
+      <thead>
+        <tr>
+          <th style="width:30px;text-align:center;">#</th>
+          <th>Check-In</th>
+          <th>Check-Out</th>
+          <th>Property / Room</th>
+          <th style="text-align:center;">Mode</th>
+          <th style="text-align:center;">Nights</th>
+          <th style="text-align:right;">Billed (₹)</th>
+          <th style="text-align:right;">Paid (₹)</th>
+          <th style="text-align:right;">Balance Due (₹)</th>
+        </tr>
+      </thead>
+      <tbody>${bkRows}</tbody>
+      <tfoot>
+        <tr>
+          <td colspan="5" style="text-align:right;">Total for Selected Period:</td>
+          <td style="text-align:center;">${totalNights}N</td>
+          <td style="text-align:right;">₹${totalAmount.toLocaleString('en-IN')}</td>
+          <td style="text-align:right;color:#0A7D1A;">₹${totalPaid.toLocaleString('en-IN')}</td>
+          <td style="text-align:right;color:${totalDue > 0 ? '#DC2626' : '#0A7D1A'};">₹${totalDue.toLocaleString('en-IN')}</td>
+        </tr>
+      </tfoot>
+    </table>
+
+    <div class="section-heading">💳 Payment Receipts Log (${(payments || []).length})</div>
+    <table>
+      <thead>
+        <tr>
+          <th>Payment Date</th>
+          <th style="text-align:right;">Amount (₹)</th>
+          <th>Payment Mode</th>
+          <th>Related Stay Unit</th>
+          <th>Remarks / Notes</th>
+        </tr>
+      </thead>
+      <tbody>${payRows}</tbody>
+    </table>
+
+    <div class="alert-box ${totalDue > 0 ? 'alert-due' : 'alert-clear'}">
+      ${totalDue > 0
+        ? `⚠️ Outstanding Balance Due: ₹${totalDue.toLocaleString('en-IN')} — Kindly clear at your earliest convenience.`
+        : '✅ Account Statement is Fully Settled — Thank You for Choosing TUHH!'}
+    </div>
+
+    <div class="bank-details">
+      <div style="font-weight:700;font-size:12px;margin-bottom:4px;color:#0F172A;">Bank & UPI Payment Details:</div>
+      <div><strong>Beneficiary:</strong> THE UNIQUE HAVEN HOMES PRIVATE LIMITED &nbsp;|&nbsp; <strong>UPI ID:</strong> 9450055554@upi</div>
+      <div><strong>Helpline Contacts:</strong> Mr. Shahanshah: 9450055554 &nbsp;|&nbsp; Mr. Firoz Khan: 8299600709</div>
+    </div>
+
+    <div style="margin-top:24px;text-align:center;font-size:11px;color:#717171;border-top:1px solid #E2E8F0;padding-top:12px;">
+      <strong>${window.COMPANY_LEGAL_NAME || 'THE UNIQUE HAVEN HOMES PRIVATE LIMITED'}</strong><br>
+      Developed by Praveen Singh · Generated from Airbnb Manager System
+    </div>
+
+    <div class="no-print" style="text-align:center;margin-top:20px;">
+      <button onclick="window.print()" style="padding:12px 32px;background:#4F46E5;color:#fff;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-size:15px;">
+        🖨️ Print / Save as PDF
+      </button>
+    </div>
+    <script>setTimeout(function(){ window.print(); }, 500);<\/script>
+  </body></html>`;
 
   const win = window.open('', '_blank');
   if (win) {
@@ -514,96 +1067,309 @@ async function printGuestLedger(guestName) {
   }
 }
 
-// ============ WHATSAPP GUEST LEDGER ============
-async function whatsappGuestLedger(guestName) {
-  const {data:bookings} = await sb.from('guest_register')
-    .select('*, rooms(nickname, unit_no, property_name)')
-    .eq('guest_name', guestName)
-    .order('check_in', {ascending:false});
-  if (!bookings || !bookings.length) { fsn.info('Info', 'No bookings'); return; }
+// ============ WHATSAPP GUEST STATEMENT ============
+async function whatsappGuestLedger(guestName, phone, passedBookings, passedPayments, fromDate, toDate) {
+  let bookings = passedBookings;
+  let payments = passedPayments;
+  const cleanPhone = phone ? String(phone).replace(/\D/g, '').replace(/^91/, '').replace(/^0/, '') : '';
 
-  const bkIds = bookings.map(b => b.booking_id);
-  const {data:payments} = await sb.from('payment_history').select('*').in('booking_id', bkIds);
+  if (!bookings || !bookings.length) {
+    let q = sb.from('guest_register')
+      .select('*, rooms(nickname, unit_no, property_name)')
+      .order('check_in', { ascending: true });
+    if (cleanPhone.length >= 10 && guestName) {
+      q = q.or(`phone.eq.${cleanPhone},phone.eq.91${cleanPhone},phone.eq.+91${cleanPhone},guest_name.eq.${guestName}`);
+    } else if (cleanPhone.length >= 10) {
+      q = q.or(`phone.eq.${cleanPhone},phone.eq.91${cleanPhone},phone.eq.+91${cleanPhone}`);
+    } else {
+      q = q.eq('guest_name', guestName);
+    }
+    const { data: dbBks } = await q;
+    bookings = dbBks || [];
+
+    if (!bookings.length) {
+      fsn.info('Info', 'No bookings found.');
+      return;
+    }
+
+    if (fromDate || toDate) {
+      bookings = bookings.filter(b => {
+        const ci = b.check_in || '';
+        const co = b.check_out || b.check_in || '';
+        if (fromDate && toDate) return ci <= toDate && co >= fromDate;
+        if (fromDate) return co >= fromDate;
+        if (toDate) return ci <= toDate;
+        return true;
+      });
+    }
+
+    const bkIds = bookings.map(b => b.booking_id);
+    const { data: dbPays } = await sb.from('payment_history').select('*').in('booking_id', bkIds);
+    payments = dbPays || [];
+  }
+
   const payMap = {};
-  (payments || []).forEach(p => { payMap[p.booking_id] = (payMap[p.booking_id] || 0) + (p.amount || 0); });
+  (payments || []).forEach(p => {
+    payMap[p.booking_id] = (payMap[p.booking_id] || 0) + (p.amount || 0);
+  });
 
   const totalAmount = bookings.reduce((s, b) => s + (b.total_amount || 0), 0);
   const totalPaid = bookings.reduce((s, b) => s + (payMap[b.booking_id] || 0), 0);
-  const totalDue = totalAmount - totalPaid;
-  const totalNights = bookings.reduce((s, b) => {
-    if (b.check_in && b.check_out) return s + calcNights(b.check_in, b.check_out);
-    return s;
-  }, 0);
+  const totalDue = Math.max(0, totalAmount - totalPaid);
+  const totalNights = bookings.reduce((s, b) => (b.check_in && b.check_out ? s + calcNights(b.check_in, b.check_out) : s), 0);
 
-  const firstBk = bookings[0];
-  const phone = (firstBk.phone || '').replace(/[^0-9]/g, '');
-  const NL = String.fromCharCode(10);
+  const displayGuestPhone = cleanPhone || (bookings.find(b => b.phone)?.phone || '').replace(/\D/g, '');
+  const periodLabel = (fromDate && toDate)
+    ? `${formatDateDisplay(fromDate)} to ${formatDateDisplay(toDate)}`
+    : (fromDate ? `From ${formatDateDisplay(fromDate)}` : (toDate ? `Up to ${formatDateDisplay(toDate)}` : 'Complete Stay History (All Time)'));
 
+  const NL = '\n';
   let bkList = '';
   bookings.forEach((b, i) => {
     const pd = payMap[b.booking_id] || 0;
-    const due = (b.total_amount || 0) - pd;
-    const prop = propLabel(b.rooms) || b.room_id;
-    bkList += (i + 1) + '. ' + prop + NL +
-      '   ' + (b.check_in || '-') + ' -> ' + (b.check_out || '-') + NL +
-      '   Total: Rs.' + (b.total_amount || 0).toLocaleString('en-IN') +
-      ' | Paid: Rs.' + pd.toLocaleString('en-IN') +
-      ' | Due: Rs.' + due.toLocaleString('en-IN') + NL + NL;
+    const due = Math.max(0, (b.total_amount || 0) - pd);
+    const prop = propLabel(b.rooms) || b.room_id || 'Room';
+    const nights = (b.check_in && b.check_out) ? calcNights(b.check_in, b.check_out) : 1;
+    bkList += `${i + 1}. *${formatDateDisplay(b.check_in)}* ➔ *${formatDateDisplay(b.check_out)}* (${nights}N)${NL}` +
+      `   Unit: ${prop} | Billed: ₹${(b.total_amount || 0).toLocaleString('en-IN')}${NL}` +
+      `   Paid: ₹${pd.toLocaleString('en-IN')} | *Due: ₹${due.toLocaleString('en-IN')}*${NL}${NL}`;
   });
 
   let payList = '';
-  const sortedPays = (payments || []).sort((a, b) => (b.payment_date || '').localeCompare(a.payment_date || ''));
-  if (sortedPays.length === 0) {
-    payList = '- No payments recorded';
+  const sortedPays = (payments || []).slice().sort((a, b) => (b.payment_date || '').localeCompare(a.payment_date || ''));
+  if (!sortedPays.length) {
+    payList = `• No payment receipts recorded in this period${NL}`;
   } else {
     sortedPays.forEach(p => {
-      payList += '- ' + (p.payment_date || '-') + ' Rs.' + (p.amount || 0).toLocaleString('en-IN') +
-        ' (' + (p.payment_mode || '-') + ')' + NL;
+      payList += `• ${formatDateDisplay(p.payment_date)}: ₹${(p.amount || 0).toLocaleString('en-IN')} (${p.payment_mode || 'UPI'})${NL}`;
     });
   }
 
   const dueLine = totalDue > 0
-    ? NL + '*Kindly clear pending Rs.' + totalDue.toLocaleString('en-IN') + '*' + NL
-    : NL + '*Fully Settled - Thank You!*' + NL;
+    ? `⚠️ *TOTAL BALANCE DUE: ₹${totalDue.toLocaleString('en-IN')}*${NL}Kindly clear the outstanding dues at your earliest convenience.${NL}`
+    : `✅ *Account Status: Fully Settled - Thank You!*${NL}`;
 
-  const msg = '*THE UNIQUE HAVEN HOMES PRIVATE LIMITED*' + NL +
-    '*Guest Ledger - ' + guestName + '*' + NL + NL +
-    '*Summary:*' + NL +
-    '- Total Stays: ' + bookings.length + NL +
-    '- Total Nights: ' + totalNights + NL +
-    '- Total Billed: Rs.' + totalAmount.toLocaleString('en-IN') + NL +
-    '- Total Paid: Rs.' + totalPaid.toLocaleString('en-IN') + NL +
-    '- *Balance Due: Rs.' + totalDue.toLocaleString('en-IN') + '*' + NL + NL +
-    '*Booking History:*' + NL + bkList +
-    '*Payment Log:*' + NL + payList +
-    dueLine +
-    '*Contact:*' + NL +
-    'Mr. Shahanshah - 9450055554' + NL +
-    'Mr. Firoz Khan - 8299600709' + NL + NL +
-    (window.getOfficialReportFooterText ? window.getOfficialReportFooterText() : 'THE UNIQUE HAVEN HOMES PRIVATE LIMITED\nDeveloped by Praveen Singh');
+  const msg = `*THE UNIQUE HAVEN HOMES PRIVATE LIMITED*${NL}` +
+    `*GUEST STATEMENT / KHATA (खाता विवरण)*${NL}` +
+    `━━━━━━━━━━━━━━━━━━━━━━━━━━${NL}` +
+    `👤 *Guest:* ${guestName}${NL}` +
+    (displayGuestPhone ? `📱 *Phone:* ${displayGuestPhone}${NL}` : '') +
+    `📅 *Period:* ${periodLabel}${NL}${NL}` +
+    `📊 *SUMMARY:*${NL}` +
+    `• Total Stays: ${bookings.length}${NL}` +
+    `• Total Nights: ${totalNights}${NL}` +
+    `• Total Billed: ₹${totalAmount.toLocaleString('en-IN')}${NL}` +
+    `• Total Paid: ₹${totalPaid.toLocaleString('en-IN')}${NL}` +
+    `• *Net Balance Due: ₹${totalDue.toLocaleString('en-IN')}*${NL}` +
+    `━━━━━━━━━━━━━━━━━━━━━━━━━━${NL}` +
+    `🗓️ *DATE-WISE STAYS:*${NL}${NL}` +
+    bkList +
+    `━━━━━━━━━━━━━━━━━━━━━━━━━━${NL}` +
+    `💳 *PAYMENT RECEIPTS:*${NL}` +
+    payList +
+    `━━━━━━━━━━━━━━━━━━━━━━━━━━${NL}` +
+    dueLine + `${NL}` +
+    `*Payment Account:*${NL}` +
+    `• UPI ID: 9450055554@upi${NL}` +
+    `• A/C: THE UNIQUE HAVEN HOMES PRIVATE LIMITED${NL}${NL}` +
+    `*Contact Helpline:*${NL}` +
+    `• Mr. Shahanshah: 9450055554${NL}` +
+    `• Mr. Firoz Khan: 8299600709${NL}${NL}` +
+    `THE UNIQUE HAVEN HOMES PRIVATE LIMITED\nDeveloped by Praveen Singh`;
 
   const shareModal = document.createElement('div');
   shareModal.className = 'modal-overlay';
   shareModal.onclick = e => { if (e.target === shareModal) shareModal.remove(); };
 
-  const q = String.fromCharCode(39);
-  const sendBtn = phone
-    ? '<button style="background:#25D366;color:#fff;" onclick="window.open(' + q + 'https://wa.me/' + phone + '?text=' + q + '+encodeURIComponent(document.getElementById(' + q + 'waLedgerMsg' + q + ').value),' + q + '_blank' + q + ')">Send to ' + phone + '</button>'
+  const waTargetPhone = displayGuestPhone.length === 10 ? '91' + displayGuestPhone : displayGuestPhone;
+  const sendBtn = waTargetPhone
+    ? `<button style="background:#25D366;color:#fff;font-weight:700;padding:8px 16px;border:none;border-radius:8px;cursor:pointer;" onclick="window.open('https://wa.me/${waTargetPhone}?text=' + encodeURIComponent(document.getElementById('waLedgerMsg').value), '_blank')">📲 Send to ${displayGuestPhone}</button>`
     : '';
-  const shareBtn = '<button style="background:#128C7E;color:#fff;" onclick="window.open(' + q + 'https://wa.me/?text=' + q + '+encodeURIComponent(document.getElementById(' + q + 'waLedgerMsg' + q + ').value),' + q + '_blank' + q + ')">Share</button>';
-  const copyBtn = '<button class="outline" onclick="navigator.clipboard.writeText(document.getElementById(' + q + 'waLedgerMsg' + q + ').value);fsn.success(' + q + 'Copied' + q + ',' + q + 'Message copied' + q + ')">Copy</button>';
-  const closeBtn = '<button class="outline" onclick="this.closest(' + q + '.modal-overlay' + q + ').remove()">Close</button>';
+  const shareBtn = `<button style="background:#128C7E;color:#fff;font-weight:700;padding:8px 16px;border:none;border-radius:8px;cursor:pointer;" onclick="window.open('https://wa.me/?text=' + encodeURIComponent(document.getElementById('waLedgerMsg').value), '_blank')">Share via WhatsApp</button>`;
+  const copyBtn = `<button class="outline" style="padding:8px 16px;" onclick="navigator.clipboard.writeText(document.getElementById('waLedgerMsg').value);fsn.success('Copied', 'WhatsApp statement message copied!');">📋 Copy</button>`;
+  const closeBtn = `<button class="outline" style="padding:8px 16px;" onclick="this.closest('.modal-overlay').remove()">Close</button>`;
 
-  shareModal.innerHTML =
-    '<div class="modal-box" style="max-width:600px;">' +
-    '<button class="modal-close" onclick="this.closest(' + q + '.modal-overlay' + q + ').remove()">X</button>' +
-    '<h2>WhatsApp Ledger - ' + guestName + '</h2>' +
-    '<textarea id="waLedgerMsg" style="width:100%;height:400px;font-family:monospace;font-size:12px;padding:10px;border:1px solid var(--border);border-radius:8px;">' + msg + '</textarea>' +
-    '<div class="btn-row" style="margin-top:12px;">' +
-    sendBtn + shareBtn + copyBtn + closeBtn +
-    '</div></div>';
+  shareModal.innerHTML = `
+    <div class="modal-box" style="max-width:680px;width:95vw;padding:24px;border-radius:14px;">
+      <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">✕</button>
+      <h2 style="margin:0 0 12px;font-size:18px;">📱 WhatsApp Statement — ${guestName}</h2>
+      <div style="font-size:12px;color:#64748B;margin-bottom:8px;">You can review, edit, or copy the date-wise statement message below:</div>
+      <textarea id="waLedgerMsg" style="width:100%;height:380px;font-family:monospace;font-size:12px;padding:12px;border:1px solid #CBD5E1;border-radius:8px;line-height:1.45;"></textarea>
+      <div class="btn-row" style="margin-top:14px;flex-wrap:wrap;gap:8px;">
+        ${sendBtn} ${shareBtn} ${copyBtn} ${closeBtn}
+      </div>
+    </div>
+  `;
   document.body.appendChild(shareModal);
+  const ta = shareModal.querySelector('#waLedgerMsg');
+  if (ta) ta.value = msg;
 }
+
+// ============ GUEST STATEMENT QUICK LAUNCHER MODAL ============
+async function openGuestStatementModal(prefillGuestName, prefillPhone) {
+  const allBks = window._allBookings || [];
+  let pendingGuests = [];
+
+  // Group by guest to calculate pending amounts
+  const guestSummary = {};
+  allBks.forEach(b => {
+    const key = (b.phone ? String(b.phone).replace(/\D/g, '') : '') || b.guest_name;
+    if (!key) return;
+    if (!guestSummary[key]) {
+      guestSummary[key] = {
+        name: b.guest_name || 'Guest',
+        phone: b.phone ? String(b.phone).replace(/\D/g, '') : '',
+        total: 0,
+        paid: 0,
+        count: 0
+      };
+    }
+    const pm = (window._bkPaidMap && window._bkPaidMap[b.booking_id]) || 0;
+    guestSummary[key].total += (b.total_amount || 0);
+    guestSummary[key].paid += pm;
+    guestSummary[key].count++;
+  });
+
+  pendingGuests = Object.values(guestSummary)
+    .filter(g => (g.total - g.paid) > 0)
+    .sort((a, b) => (b.total - b.paid) - (a.total - a.paid))
+    .slice(0, 8);
+
+  const modal = document.createElement('div');
+  modal.className = 'modal-overlay';
+  modal.onclick = e => { if (e.target === modal) modal.remove(); };
+
+  modal.innerHTML = `
+    <div class="modal-box" style="max-width:580px;width:95vw;padding:24px;border-radius:14px;box-shadow:0 25px 50px -12px rgba(0,0,0,0.25);">
+      <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">✕</button>
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
+        <span style="font-size:24px;">📑</span>
+        <h2 style="margin:0;font-size:20px;color:#0F172A;">Guest Statement / Khata (खाता विवरण)</h2>
+      </div>
+      <div style="font-size:13px;color:#64748B;margin-bottom:16px;">
+        Search any guest to view, print, or WhatsApp date-wise stay and payment statements.
+      </div>
+
+      <!-- Guest Input -->
+      <div style="margin-bottom:14px;">
+        <label style="display:block;font-size:12px;font-weight:700;color:#334155;margin-bottom:5px;">
+          Guest Name or Phone Number:
+        </label>
+        <div style="position:relative;">
+          <input type="text" id="gsmGuestInput" placeholder="e.g. Rohit Singh or 9415973110..."
+            value="${prefillPhone || prefillGuestName || ''}"
+            style="width:100%;padding:10px 14px;border:1.5px solid #CBD5E1;border-radius:8px;font-size:14px;font-weight:600;"
+            onkeydown="if(event.key==='Enter') window._gsmSubmit();">
+        </div>
+      </div>
+
+      <!-- Quick Chips for Pending Guests -->
+      ${pendingGuests.length ? `
+        <div style="margin-bottom:16px;">
+          <div style="font-size:11px;font-weight:700;color:#64748B;text-transform:uppercase;margin-bottom:6px;">
+            ⚠️ Guests with Pending Balance (Click to Select):
+          </div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;">
+            ${pendingGuests.map(pg => {
+              const due = pg.total - pg.paid;
+              return `<button type="button" class="btn-sm" style="background:#FEF2F2;border:1px solid #FECACA;color:#991B1B;font-size:11.5px;padding:4px 9px;border-radius:6px;cursor:pointer;font-weight:600;"
+                onclick="document.getElementById('gsmGuestInput').value='${(pg.phone || pg.name).replace(/'/g, "\\'")}';window._gsmSubmit();">
+                ${pg.name} (₹${due.toLocaleString('en-IN')})
+              </button>`;
+            }).join('')}
+          </div>
+        </div>
+      ` : ''}
+
+      <!-- Date Range Inputs -->
+      <div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:10px;padding:12px 14px;margin-bottom:18px;">
+        <div style="font-size:12px;font-weight:700;color:#334155;margin-bottom:8px;">
+          📅 Statement Date Range (Optional — Leave blank for all-time):
+        </div>
+        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:10px;">
+          <div style="flex:1;min-width:130px;">
+            <label style="display:block;font-size:11px;color:#64748B;font-weight:600;margin-bottom:3px;">From Date:</label>
+            <input type="date" id="gsmFromDate" style="width:100%;padding:7px 10px;border:1px solid #CBD5E1;border-radius:6px;font-size:13px;">
+          </div>
+          <div style="flex:1;min-width:130px;">
+            <label style="display:block;font-size:11px;color:#64748B;font-weight:600;margin-bottom:3px;">To Date:</label>
+            <input type="date" id="gsmToDate" style="width:100%;padding:7px 10px;border:1px solid #CBD5E1;border-radius:6px;font-size:13px;">
+          </div>
+        </div>
+        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+          <span style="font-size:10.5px;color:#64748B;font-weight:700;text-transform:uppercase;">Quick Presets:</span>
+          <button type="button" class="gl-preset-pill" onclick="window._gsmSetPreset('this-month')">This Month</button>
+          <button type="button" class="gl-preset-pill" onclick="window._gsmSetPreset('last-month')">Last Month</button>
+          <button type="button" class="gl-preset-pill" onclick="window._gsmSetPreset('last-30')">Last 30 Days</button>
+          <button type="button" class="gl-preset-pill" onclick="window._gsmSetPreset('all')">All Time</button>
+        </div>
+      </div>
+
+      <!-- Action Button -->
+      <div style="display:flex;gap:10px;justify-content:flex-end;">
+        <button type="button" class="outline" onclick="this.closest('.modal-overlay').remove()" style="padding:10px 18px;">
+          Cancel
+        </button>
+        <button type="button" onclick="window._gsmSubmit()" style="background:#4F46E5;color:#fff;font-weight:700;padding:10px 22px;border:none;border-radius:8px;cursor:pointer;font-size:14px;">
+          📊 Open Date-wise Statement
+        </button>
+      </div>
+    </div>
+  `;
+
+  window._gsmSetPreset = (preset) => {
+    const today = new Date();
+    const curYear = today.getFullYear();
+    const curMonth = today.getMonth();
+    let s = '', e = '';
+    if (preset === 'this-month') {
+      s = `${curYear}-${String(curMonth + 1).padStart(2, '0')}-01`;
+      const lastDay = new Date(curYear, curMonth + 1, 0).getDate();
+      e = `${curYear}-${String(curMonth + 1).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
+    } else if (preset === 'last-month') {
+      const prevDate = new Date(curYear, curMonth - 1, 1);
+      const py = prevDate.getFullYear();
+      const pm = prevDate.getMonth();
+      s = `${py}-${String(pm + 1).padStart(2, '0')}-01`;
+      const lastDay = new Date(py, pm + 1, 0).getDate();
+      e = `${py}-${String(pm + 1).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
+    } else if (preset === 'last-30') {
+      const past = new Date(today);
+      past.setDate(past.getDate() - 30);
+      s = past.toISOString().slice(0, 10);
+      e = today.toISOString().slice(0, 10);
+    }
+    const fIn = modal.querySelector('#gsmFromDate');
+    const tIn = modal.querySelector('#gsmToDate');
+    if (fIn) fIn.value = s;
+    if (tIn) tIn.value = e;
+  };
+
+  window._gsmSubmit = () => {
+    const val = (modal.querySelector('#gsmGuestInput')?.value || '').trim();
+    const fromDate = modal.querySelector('#gsmFromDate')?.value || '';
+    const toDate = modal.querySelector('#gsmToDate')?.value || '';
+
+    if (!val) {
+      fsn.info('Input required', 'Please enter a guest name or phone number.');
+      return;
+    }
+
+    modal.remove();
+
+    const isNum = /^[0-9+ -]{7,}$/.test(val);
+    if (isNum) {
+      const clean = val.replace(/\D/g, '');
+      showGuestLedger(null, null, clean, null, fromDate, toDate);
+    } else {
+      showGuestLedger(val, null, null, null, fromDate, toDate);
+    }
+  };
+
+  document.body.appendChild(modal);
+  setTimeout(() => { modal.querySelector('#gsmGuestInput')?.focus(); }, 100);
+}
+window.openGuestStatementModal = openGuestStatementModal;
 
 // ============ ID BUTTON BUILDER ============
 function buildIdButtons(b) {
@@ -1150,6 +1916,7 @@ async function renderManageBookings() {
         </div>
       </div>
       <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+        <button class="btn-sm" onclick="openGuestStatementModal()" style="background:#4F46E5;color:#fff;border:none;font-weight:700;">📑 Guest Statement / Khata</button>
         <button class="btn-sm" onclick="navigate('whatsapp-hub')" style="background:#15803D;color:#fff;border:none;font-weight:700;">📱 WhatsApp Hub</button>
         ${canM ? `<button class="btn-sm" onclick="renderAddBooking()">➕ New Booking</button>` : ''}
         <button class="btn-sm outline" onclick="exportBookingsPDF()">📄 Export PDF</button>
