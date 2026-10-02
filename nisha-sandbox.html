@@ -330,8 +330,27 @@
       </div>
     </div>
 
+    <!-- Sarvam AI (Ultra-Realistic Neural Hindi Voice) Setup -->
+    <div class="api-card" style="margin-top:20px;border-color:rgba(236,72,153,0.35);background:linear-gradient(135deg, #18122B, #131A26);">
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+        <strong style="font-size:13.5px;color:#F472B6;">🌸 Sarvam AI (Bulbul Ultra-Realistic Sweet Hindi Voice):</strong>
+        <a href="https://dashboard.sarvam.ai/" target="_blank" style="color:#F472B6;font-size:12px;text-decoration:none;font-weight:700;">
+          Get Free Key from dashboard.sarvam.ai ↗
+        </a>
+      </div>
+      <div style="font-size:12px;color:#CBD5E1;margin-top:4px;">
+        Bulbul-v3 Neural Voice: 100% natural, sweet Indian female voice ("Ritu") with real human emotion & breath. No robotic sound!
+      </div>
+      <div class="api-row">
+        <input type="password" id="sarvamKeyInput" class="api-input" placeholder="Paste your Sarvam AI Subscription Key here...">
+        <button type="button" class="btn" style="background:#EC4899;color:#fff;" onclick="saveSarvamKey()">💾 Save Voice Key</button>
+        <button type="button" class="btn" style="background:#831843;border:1px solid #EC4899;color:#FDF2F8;" onclick="testSarvamVoice()">🌸 Test Bulbul Voice</button>
+      </div>
+      <div id="sarvamStatus" style="font-size:11.5px;color:#94A3B8;margin-top:6px;"></div>
+    </div>
+
     <!-- Optional Gemini API Key Setup -->
-    <div class="api-card" style="margin-top:20px;">
+    <div class="api-card" style="margin-top:16px;">
       <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
         <strong style="font-size:13px;color:#F8FAFC;">🔑 Google Gemini Free API Key (Optional Upgrade):</strong>
         <a href="https://aistudio.google.com/app/apikey" target="_blank" style="color:#818CF8;font-size:12px;text-decoration:none;">
@@ -364,10 +383,53 @@
     const chatInput = document.getElementById('chatInput');
     const geminiKeyInput = document.getElementById('geminiKeyInput');
     const keyStatus = document.getElementById('keyStatus');
+    const sarvamKeyInput = document.getElementById('sarvamKeyInput');
+    const sarvamStatus = document.getElementById('sarvamStatus');
     const pillBrain = document.getElementById('pillBrain');
     const pillMic = document.getElementById('pillMic');
+    const pillSpeaker = document.getElementById('pillSpeaker');
 
     let lastAiResponseText = "Namaste! Main Nisha hoon — The Unique Haven Homes ki AI concierge.";
+
+    // Init Sarvam AI Voice on load
+    function refreshSarvamPill() {
+      if (window.nishaAI.hasSarvamApiKey()) {
+        pillSpeaker.innerHTML = '<span>🔊 Speaker:</span> <strong style="color:#EC4899;">🌸 Sarvam Bulbul (Ultra-Sweet Neural Hindi)</strong>';
+      } else {
+        pillSpeaker.innerHTML = '<span>🔊 Speaker:</span> <strong style="color:#4ADE80;">Browser Native (Default)</strong>';
+      }
+    }
+
+    if (window.nishaAI.hasSarvamApiKey()) {
+      sarvamKeyInput.value = window.nishaAI.sarvamApiKey;
+      sarvamStatus.innerHTML = '<span style="color:#EC4899;">✅ Sarvam AI Neural Voice is active! Tap "🌸 Test Bulbul Voice" to hear Nisha.</span>';
+    } else {
+      sarvamStatus.innerHTML = '<span style="color:#94A3B8;">ℹ️ Currently using browser local voice. Paste Sarvam AI key above for human-grade sweet voice!</span>';
+    }
+    refreshSarvamPill();
+
+    async function saveSarvamKey() {
+      const k = sarvamKeyInput.value.trim();
+      window.nishaAI.setSarvamApiKey(k);
+      refreshSarvamPill();
+      if (!k) {
+        sarvamStatus.innerHTML = '<span style="color:#94A3B8;">Cleared. Using browser local voice.</span>';
+        return;
+      }
+      sarvamStatus.innerHTML = '<span style="color:#60A5FA;">⏳ Testing Sarvam Bulbul Neural Voice...</span>';
+      const success = await testSarvamVoice();
+      if (success) {
+        sarvamStatus.innerHTML = '<span style="color:#EC4899;">✅ Connected! Sarvam AI Bulbul Neural Voice is responding with 100% natural human tone.</span>';
+      } else {
+        sarvamStatus.innerHTML = '<span style="color:#FBBF24;">⚠️ Key saved! (If sound didn\'t play, please check key validity on dashboard.sarvam.ai).</span>';
+      }
+    }
+
+    async function testSarvamVoice() {
+      window.nishaAI.unlockAudio();
+      const sampleText = "Namaste ji! Main Nisha hoon, The Unique Haven Homes Lucknow se. Meri aawaz ab aapko kaisi lag rahi hai?";
+      return await window.nishaAI.speakSarvam(sampleText);
+    }
 
     // Init API Key on load
     if (window.nishaAI.hasApiKey()) {

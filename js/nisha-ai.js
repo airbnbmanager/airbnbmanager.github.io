@@ -20,7 +20,9 @@
   // Default Host Contacts
   const HOST_SHAHANSHAH = '919450055554'; // Co-founder & Host
   const HOST_FIROZ      = '918299600709'; // Superhost & Co-founder
+  // Storage Keys
   const GEMINI_KEY_STORAGE = 'uhh_gemini_api_key';
+  const SARVAM_KEY_STORAGE = 'uhh_sarvam_api_key';
 
   // 17 Verified Luxury Properties (Source of Truth)
   const VERIFIED_PROPERTIES = [
@@ -46,6 +48,7 @@
   class NishaAIEngine {
     constructor() {
       this.apiKey = this.loadApiKey();
+      this.sarvamApiKey = this.loadSarvamApiKey();
       this.properties = VERIFIED_PROPERTIES;
       this.conversationHistory = [];
       this.isListening = false;
@@ -55,6 +58,7 @@
       this.selectedVoice = null;
       this.onStateChange = null;
       this.lastAudioUnlocked = false;
+      this.currentAudio = null;
 
       this.initVoiceSynthesis();
     }
@@ -96,6 +100,31 @@
 
     hasApiKey() {
       return Boolean(this.apiKey && this.apiKey.length > 15);
+    }
+
+    // ── Sarvam AI Key Management (Ultra-Realistic Neural Hindi Voice) ──
+    loadSarvamApiKey() {
+      return (
+        (typeof window !== 'undefined' && window.SARVAM_API_KEY) ||
+        (typeof localStorage !== 'undefined' && localStorage.getItem(SARVAM_KEY_STORAGE)) ||
+        (typeof sessionStorage !== 'undefined' && sessionStorage.getItem(SARVAM_KEY_STORAGE)) ||
+        ''
+      );
+    }
+
+    setSarvamApiKey(key) {
+      this.sarvamApiKey = (key || '').trim();
+      if (typeof localStorage !== 'undefined') {
+        if (this.sarvamApiKey) {
+          localStorage.setItem(SARVAM_KEY_STORAGE, this.sarvamApiKey);
+        } else {
+          localStorage.removeItem(SARVAM_KEY_STORAGE);
+        }
+      }
+    }
+
+    hasSarvamApiKey() {
+      return Boolean(this.sarvamApiKey && this.sarvamApiKey.length > 10);
     }
 
     // ── 1. Fetch Dynamic Room Rates from Supabase ──
@@ -569,9 +598,110 @@ Whenever guest asks for dates or rates, warmly recommend the best stay and ask f
       }
     }
 
-    speak(text, onEnd) {
+    // ── 9. Ultra-Realistic Neural Voice via Sarvam AI (Bulbul) ──
+    async speakSarvam(text, onEnd) {
+      if (!this.sarvamApiKey || !text) return false;
+      try {
+        const cleanSpeech = text
+          .replace(/https?:\/\/\S+/gi, '')
+          .replace(/[*#_~`]/g, '')
+          .replace(/[•→➔➜]/g, ', ')
+          .replace(/₹\s*(\d+)/g, 'Rupees $1')
+          .replace(/\bRs\.?\s*(\d+)/gi, 'Rupees $1')
+          .replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F1E0}-\u{1F1FF}]/gu, '')
+          .trim()
+          .slice(0, 1000);
+
+        if (!cleanSpeech) {
+          if (onEnd) onEnd();
+          return false;
+        }
+
+        if (this.onStateChange) this.onStateChange('speaking', 'Sarvam Neural Voice');
+        this.isSpeaking = true;
+
+        // Try Bulbul v3 first
+        let res = await fetch('https://api.sarvam.ai/text-to-speech', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'api-subscription-key': this.sarvamApiKey
+          },
+          body: JSON.stringify({
+            text: cleanSpeech,
+            language_code: 'hi-IN',
+            speaker: 'ritu', // Sweet Indian female hospitality voice
+            model: 'bulbul:v3',
+            pace: 0.95
+          })
+        });
+
+        // Fallback to Bulbul v1/v2 payload format if v3 format returns non-200
+        if (!res.ok) {
+          res = await fetch('https://api.sarvam.ai/text-to-speech', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'api-subscription-key': this.sarvamApiKey
+            },
+            body: JSON.stringify({
+              inputs: [cleanSpeech],
+              target_language_code: 'hi-IN',
+              speaker: 'meera',
+              model: 'bulbul:v1'
+            })
+          });
+        }
+
+        if (res.ok) {
+          const data = await res.json();
+          const base64Audio = (data.audios && data.audios[0]) || data.audio;
+          if (base64Audio) {
+            if (this.currentAudio) {
+              this.currentAudio.pause();
+              this.currentAudio = null;
+            }
+
+            const audio = new Audio('data:audio/wav;base64,' + base64Audio);
+            this.currentAudio = audio;
+
+            audio.onended = () => {
+              this.isSpeaking = false;
+              if (this.onStateChange && !this.isListening) this.onStateChange('idle');
+              if (onEnd) onEnd();
+            };
+
+            audio.onerror = () => {
+              this.isSpeaking = false;
+              if (this.onStateChange && !this.isListening) this.onStateChange('idle');
+              if (onEnd) onEnd();
+            };
+
+            await audio.play();
+            return true;
+          }
+        }
+      } catch (err) {
+        console.warn('[NishaAI] Sarvam AI speech error, falling back to Web Speech:', err);
+      }
+      this.isSpeaking = false;
+      return false;
+    }
+
+    async speak(text, onEnd) {
       this.unlockAudio();
 
+      // 1. Try Sarvam AI Ultra-Realistic Neural Voice if key is provided
+      if (this.hasSarvamApiKey()) {
+        const played = await this.speakSarvam(text, onEnd);
+        if (played) return;
+      }
+
+      // 2. Fallback to Browser Native Web Speech API
+      this.speakBrowser(text, onEnd);
+    }
+
+    speakBrowser(text, onEnd) {
       if (!this.synthesis || !text) {
         if (onEnd) onEnd();
         return;
@@ -649,6 +779,10 @@ Whenever guest asks for dates or rates, warmly recommend the best stay and ask f
     }
 
     stopSpeaking() {
+      if (this.currentAudio) {
+        try { this.currentAudio.pause(); } catch (_) {}
+        this.currentAudio = null;
+      }
       if (this.synthesis) {
         try { this.synthesis.cancel(); } catch (_) {}
       }
@@ -664,4 +798,5 @@ Whenever guest asks for dates or rates, warmly recommend the best stay and ask f
   window.nishaAI = new NishaAIEngine();
 
 })(typeof window !== 'undefined' ? window : this);
+
 
