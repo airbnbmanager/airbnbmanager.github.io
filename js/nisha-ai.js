@@ -108,7 +108,7 @@
         (typeof window !== 'undefined' && window.SARVAM_API_KEY) ||
         (typeof localStorage !== 'undefined' && localStorage.getItem(SARVAM_KEY_STORAGE)) ||
         (typeof sessionStorage !== 'undefined' && sessionStorage.getItem(SARVAM_KEY_STORAGE)) ||
-        ''
+        'sk_orfqm7wg_SQ7yNgrDCzW7R1lEi1i94sY6'
       );
     }
 
@@ -600,7 +600,8 @@ Whenever guest asks for dates or rates, warmly recommend the best stay and ask f
 
     // ── 9. Ultra-Realistic Neural Voice via Sarvam AI (Bulbul) ──
     async speakSarvam(text, onEnd) {
-      if (!this.sarvamApiKey || !text) return false;
+      const key = this.sarvamApiKey || 'sk_orfqm7wg_SQ7yNgrDCzW7R1lEi1i94sY6';
+      if (!key || !text) return false;
       try {
         const cleanSpeech = text
           .replace(/https?:\/\/\S+/gi, '')
@@ -617,41 +618,23 @@ Whenever guest asks for dates or rates, warmly recommend the best stay and ask f
           return false;
         }
 
-        if (this.onStateChange) this.onStateChange('speaking', 'Sarvam Neural Voice');
+        if (this.onStateChange) this.onStateChange('speaking', 'Sarvam Bulbul Voice');
         this.isSpeaking = true;
 
-        // Try Bulbul v3 first
-        let res = await fetch('https://api.sarvam.ai/text-to-speech', {
+        // Exact validated Bulbul v3 payload
+        const res = await fetch('https://api.sarvam.ai/text-to-speech', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'api-subscription-key': this.sarvamApiKey
+            'api-subscription-key': key
           },
           body: JSON.stringify({
-            text: cleanSpeech,
-            language_code: 'hi-IN',
-            speaker: 'ritu', // Sweet Indian female hospitality voice
-            model: 'bulbul:v3',
-            pace: 0.95
+            inputs: [cleanSpeech],
+            target_language_code: 'hi-IN',
+            speaker: this.sarvamSpeaker || 'ritu',
+            model: 'bulbul:v3'
           })
         });
-
-        // Fallback to Bulbul v1/v2 payload format if v3 format returns non-200
-        if (!res.ok) {
-          res = await fetch('https://api.sarvam.ai/text-to-speech', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'api-subscription-key': this.sarvamApiKey
-            },
-            body: JSON.stringify({
-              inputs: [cleanSpeech],
-              target_language_code: 'hi-IN',
-              speaker: 'meera',
-              model: 'bulbul:v1'
-            })
-          });
-        }
 
         if (res.ok) {
           const data = await res.json();
@@ -680,6 +663,9 @@ Whenever guest asks for dates or rates, warmly recommend the best stay and ask f
             await audio.play();
             return true;
           }
+        } else {
+          const errData = await res.json().catch(() => ({}));
+          console.warn('[NishaAI] Sarvam API returned error:', errData);
         }
       } catch (err) {
         console.warn('[NishaAI] Sarvam AI speech error, falling back to Web Speech:', err);

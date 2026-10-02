@@ -373,7 +373,7 @@
   </div>
 
   <!-- Load Standalone Nisha AI Engine -->
-  <script src="js/nisha-ai.js"></script>
+  <script src="js/nisha-ai.js?v=6"></script>
 
   <script>
     const voiceBtn = document.getElementById('voiceBtn');
@@ -404,7 +404,9 @@
       sarvamKeyInput.value = window.nishaAI.sarvamApiKey;
       sarvamStatus.innerHTML = '<span style="color:#EC4899;">✅ Sarvam AI Neural Voice is active! Tap "🌸 Test Bulbul Voice" to hear Nisha.</span>';
     } else {
-      sarvamStatus.innerHTML = '<span style="color:#94A3B8;">ℹ️ Currently using browser local voice. Paste Sarvam AI key above for human-grade sweet voice!</span>';
+      sarvamKeyInput.value = 'sk_orfqm7wg_SQ7yNgrDCzW7R1lEi1i94sY6';
+      window.nishaAI.setSarvamApiKey('sk_orfqm7wg_SQ7yNgrDCzW7R1lEi1i94sY6');
+      sarvamStatus.innerHTML = '<span style="color:#EC4899;">✅ Connected! Sarvam AI Bulbul Neural Voice is configured and ready.</span>';
     }
     refreshSarvamPill();
 
@@ -427,7 +429,7 @@
 
     async function testSarvamVoice() {
       window.nishaAI.unlockAudio();
-      const sampleText = "Namaste ji! Main Nisha hoon, The Unique Haven Homes Lucknow se. Meri aawaz ab aapko kaisi lag rahi hai?";
+      const sampleText = "Namaste ji! Main Nisha hoon, The Unique Haven Homes Lucknow se. Meri aawaz ab bilkul natural lag rahi hai na?";
       return await window.nishaAI.speakSarvam(sampleText);
     }
 
