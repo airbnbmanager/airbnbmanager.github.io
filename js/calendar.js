@@ -220,10 +220,16 @@ async function renderReports() {
                : (isBookingCom ? '#003580' 
                : 'linear-gradient(135deg, #059669 0%, #047857 100%)'));
 
-        const cleanGuestName = (bk.guest_name || (isBlocked ? 'Blocked' : 'Guest')).replace(/^🚫\s*/, '').trim();
+        const cleanGuestName = (bk.guest_name || (isBlocked ? 'Blocked' : 'Guest'))
+          .replace(/^🚫\s*/, '')
+          .replace(/^(Send|Message|Contact)\s+/i, '')
+          .trim();
         const guestInitial = isBlocked ? '🔒' : cleanGuestName.charAt(0).toUpperCase();
         const nameParts = cleanGuestName.split(/\s+/);
         let firstName = isBlocked ? 'Blocked' : (nameParts[0] || 'Guest');
+        if (/^(Send|Message|Contact)$/i.test(firstName) && nameParts.length > 1) {
+          firstName = nameParts[1];
+        }
         if (firstName.length > 7) firstName = firstName.substring(0, 7);
 
         const currentNight = calcNights(bk.check_in, ds);

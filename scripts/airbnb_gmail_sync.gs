@@ -89,10 +89,9 @@ function syncAirbnbReservations() {
     // Searches Gmail specifically by confirmation code (HM...)
     // ─────────────────────────────────────────────────────────────
     const needsEnrichment = existingList.filter(b => {
-      const isGeneric = !b.guest_name || b.guest_name.includes('Airbnb') || b.guest_name.includes('Guest') || b.guest_name.startsWith('🏨') || b.guest_name.length <= 2;
+      const isGeneric = !b.guest_name || b.guest_name.includes('Airbnb') || b.guest_name.includes('Guest') || b.guest_name.startsWith('🏨') || b.guest_name.length <= 2 || /^Send\s+/i.test(b.guest_name) || /cancels?/i.test(b.guest_name);
       const isMissingGuests = !b.guests;
-      const isZeroAmount = !b.total_amount || b.total_amount === 0;
-      return (isGeneric || isMissingGuests || isZeroAmount) && b.airbnb_confirmation_code;
+      return (isGeneric || isMissingGuests) && b.airbnb_confirmation_code;
     });
 
     Logger.log(`Found ${needsEnrichment.length} bookings needing detail enrichment in CRM.`);
@@ -118,7 +117,6 @@ function syncAirbnbReservations() {
               enrichedCount++;
               b.guest_name = parsed.guestName;
               b.guests = parsed.guests;
-              b.total_amount = parsed.totalAmount;
               t.addLabel(label);
             }
           }
@@ -316,14 +314,26 @@ function parseAirbnbEmail(subject, textContent, emailDate, existingBooking) {
       }
     }
 
-    // 4. Guest Name Extraction
+    // 4. Guest Name Extraction (Authentic guest name, strictly excluding email UI button words)
     let guestName = null;
-    const subMatch = cleanSearchText.match(/(?:Reservation|Booking)\s+confirmed\s*(?:-|–|:|for)\s*([A-Za-z\s.'’]+?)(?:\s+arrives|\s+booked|\s+is|\s+-|\s+–|$|\n)/i);
-    if (subMatch && subMatch[1].trim().length > 1) {
-      guestName = subMatch[1].trim();
+
+    // A) First priority: Subject line (Highest accuracy: "Reservation confirmed - Rajat arrives Oct 2")
+    if (subject) {
+      const subjMatch = subject.match(/(?:Reservation|Booking)\s+confirmed\s*[-–:]\s*([A-Za-z\s.'’]+?)(?:\s+arrives|\s+booked|\s+is|\s+-|\s+–|$)/i);
+      if (subjMatch && subjMatch[1].trim().length > 1) {
+        guestName = subjMatch[1].trim();
+      }
     }
 
-    // Only if not found in subject, check explicit "Guest: Name" or "Guest name: Name"
+    // B) Fallback: Email body confirmation header line
+    if (!guestName || guestName.toLowerCase() === 'airbnb guest') {
+      const subMatch = cleanSearchText.match(/(?:Reservation|Booking)\s+confirmed\s*[-–:]\s*([A-Za-z\s.'’]+?)(?:\s+arrives|\s+booked|\s+is|\s+-|\s+–|$|\n)/i);
+      if (subMatch && subMatch[1].trim().length > 1) {
+        guestName = subMatch[1].trim();
+      }
+    }
+
+    // C) Fallback: Explicit "Guest name: Name" or "Guest: Name"
     if (!guestName || guestName.toLowerCase() === 'airbnb guest') {
       const guestLabelMatch = cleanSearchText.match(/Guest(?:\s*name)?[:\s]+([A-Za-z\s.'’]+?)(?:\n|$)/i);
       if (guestLabelMatch && guestLabelMatch[1].trim().length > 1) {
@@ -331,24 +341,24 @@ function parseAirbnbEmail(subject, textContent, emailDate, existingBooking) {
       }
     }
 
-    // Safety: ensure no accidental UI button words leak into name
+    // Safety: ensure no accidental UI button words or verbs leak into name
     if (guestName) {
-      guestName = guestName.replace(/^(Send|Message|Contact)\s+/i, '').trim();
+      guestName = guestName.replace(/^(Send|Message|Contact|Guest)\s+/i, '').trim();
+      if (/^(Send|Message|Contact|cancels?|cancelled|booking|reservation|guest|airbnb|paid)$/i.test(guestName)) {
+        guestName = null;
+      }
     }
 
     if (!guestName) {
-      guestName = existingBooking && existingBooking.guest_name && !existingBooking.guest_name.startsWith('🏨')
+      guestName = existingBooking && existingBooking.guest_name && !existingBooking.guest_name.startsWith('🏨') && !/^Send\s+/i.test(existingBooking.guest_name) && !/cancels?/i.test(existingBooking.guest_name)
         ? existingBooking.guest_name
         : 'Airbnb Guest';
     }
 
-    // 5. Total Payout (Net payout to host from email)
+    // 5. Total Payout: STRICTLY DO NOT IMPORT FROM EMAIL
+    // All Airbnb financials are reconciled with 100% precision from official Airbnb CSV.
     let totalAmount = 0;
-    const netMatch = cleanSearchText.match(/(?:Total\s*payout|Host\s*payout|Net\s*payout|You(?:'ll)?\s*earn(?:ed)?|Payout|Total\s*\(INR\))[:\s]*(?:₹|INR|Rs\.?)\s*([\d,]+(?:\.\d{2})?)/i);
-    if (netMatch) {
-      const cleanAmt = parseFloat(netMatch[1].replace(/,/g, ''));
-      if (cleanAmt > 0) totalAmount = cleanAmt;
-    }
+    let perDayRate = 0;
 
     // 6. Guests count
     let guests = null;
@@ -372,12 +382,6 @@ function parseAirbnbEmail(subject, textContent, emailDate, existingBooking) {
     const codeDigits = cleanSearchText.match(/(?:door code|suggested door code|phone number \(last 4 digits\))[:\s]*(\d{4})/i);
     if (codeDigits) doorCode = codeDigits[1];
 
-    let perDayRate = 0;
-    if (checkIn && checkOut && totalAmount > 0) {
-      const nights = Math.max(1, Math.round((new Date(checkOut) - new Date(checkIn)) / (1000 * 60 * 60 * 24)));
-      perDayRate = Math.round(totalAmount / nights);
-    }
-
     return {
       confirmationCode: confirmationCode,
       guestName: guestName,
@@ -385,8 +389,8 @@ function parseAirbnbEmail(subject, textContent, emailDate, existingBooking) {
       checkIn: checkIn,
       checkOut: checkOut,
       guests: guests,
-      totalAmount: totalAmount,
-      perDayRate: perDayRate,
+      totalAmount: 0,
+      perDayRate: 0,
       doorCode: doorCode
     };
   } catch (err) {
@@ -408,10 +412,10 @@ function insertBookingToCRM(bk) {
     check_in: bk.checkIn,
     check_out: bk.checkOut,
     guests: bk.guests || null,
-    total_amount: bk.totalAmount,
-    per_day_rate: bk.perDayRate,
-    gross_amount: bk.totalAmount > 0 ? bk.totalAmount : null,
-    payment_status: bk.totalAmount > 0 ? 'Paid' : 'Pending CSV Payout',
+    total_amount: 0,
+    per_day_rate: 0,
+    gross_amount: null,
+    payment_status: 'Pending CSV Payout',
     airbnb_confirmation_code: bk.confirmationCode,
     phone: bk.doorCode ? `+91 XXXXX ${bk.doorCode}` : null,
     booked_by: 'Gmail Sync',
@@ -449,11 +453,6 @@ function enrichBookingInCRM(existingBookingId, bk) {
   };
   if (bk.guests) patchPayload.guests = bk.guests;
   if (bk.doorCode) patchPayload.phone = `+91 XXXXX ${bk.doorCode}`;
-  if (bk.totalAmount > 0) {
-    patchPayload.total_amount = bk.totalAmount;
-    patchPayload.per_day_rate = bk.perDayRate;
-    patchPayload.payment_status = 'Paid';
-  }
 
   const patchUrl = `${CONFIG.SUPABASE_URL}/rest/v1/guest_register?booking_id=eq.${existingBookingId}`;
   const resp = UrlFetchApp.fetch(patchUrl, {
@@ -464,7 +463,7 @@ function enrichBookingInCRM(existingBookingId, bk) {
   });
 
   if (resp.getResponseCode() >= 200 && resp.getResponseCode() < 300) {
-    Logger.log(`ENRICHED booking ${existingBookingId} -> Guest: ${bk.guestName}, Guests: ${bk.guests}, Amount: ${bk.totalAmount}`);
+    Logger.log(`ENRICHED booking ${existingBookingId} -> Guest: ${bk.guestName}, Guests: ${bk.guests}`);
     return true;
   }
   return false;
