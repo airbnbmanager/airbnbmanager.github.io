@@ -289,19 +289,67 @@ LEAD CAPTURE:
 Whenever guest asks for dates or rates, warmly recommend the best stay and ask for their WhatsApp number so the team can confirm their booking!`;
     }
 
-    // ── 5. Validate Gemini API Key ──
+    // ── 5. Dynamic Model Discovery & Validation ──
+    async discoverAvailableModels(apiKeyToUse) {
+      const k = apiKeyToUse || this.apiKey;
+      if (!k) return [];
+      try {
+        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${k}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data && Array.isArray(data.models)) {
+            const supported = data.models
+              .filter(m => Array.isArray(m.supportedGenerationMethods) && m.supportedGenerationMethods.includes('generateContent'))
+              .map(m => m.name.replace(/^models\//, ''));
+            if (supported.length > 0) {
+              this.availableModels = supported;
+              // Priority: 2.5-flash -> 2.0-flash -> flash -> gemini -> first available
+              this.discoveredModel =
+                supported.find(m => /2\.5.*flash/i.test(m)) ||
+                supported.find(m => /2\.0.*flash/i.test(m)) ||
+                supported.find(m => /flash/i.test(m) && !/8b|embedding/i.test(m)) ||
+                supported.find(m => /flash/i.test(m)) ||
+                supported.find(m => /gemini/i.test(m)) ||
+                supported[0];
+              console.log('[NishaAI] Discovered supported models:', supported, 'Selected:', this.discoveredModel);
+              return supported;
+            }
+          }
+        }
+      } catch (err) {
+        console.warn('[NishaAI] Model discovery error:', err.message);
+      }
+      return [];
+    }
+
+    async getBestModel() {
+      if (this.discoveredModel) return this.discoveredModel;
+      await this.discoverAvailableModels();
+      return this.discoveredModel || 'gemini-2.5-flash';
+    }
+
     async validateApiKey(keyToTest) {
       const k = (keyToTest || this.apiKey || '').trim();
       if (!k) return { valid: false, message: 'No API key provided' };
       try {
-        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${k}`, {
+        // 1. Discover models available for this specific API key
+        const models = await this.discoverAvailableModels(k);
+        if (models.length === 0) {
+          // If listModels didn't return, fallback test
+          this.discoveredModel = 'gemini-2.5-flash';
+        }
+
+        const modelToTest = this.discoveredModel || 'gemini-2.5-flash';
+
+        // 2. Test generation with the discovered model
+        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modelToTest}:generateContent?key=${k}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ contents: [{ parts: [{ text: 'Hello' }] }] })
         });
         const data = await res.json();
         if (res.ok && data.candidates?.[0]?.content?.parts?.[0]?.text) {
-          return { valid: true, message: 'Gemini AI is active & verified!' };
+          return { valid: true, message: `Connected to Google AI Studio! (Active Model: ${modelToTest})` };
         }
         return { valid: false, message: data.error?.message || `Status ${res.status}` };
       } catch (e) {
@@ -332,9 +380,10 @@ Whenever guest asks for dates or rates, warmly recommend the best stay and ask f
         return offlineReply;
       }
 
-      // IF API KEY EXISTS: Try Gemini 1.5/2.0 Flash
+      // IF API KEY EXISTS: Use Dynamically Discovered Model
       try {
         await this.fetchLiveProperties();
+        const primaryModel = await this.getBestModel();
         const systemInstruction = this.buildSystemInstruction();
 
         this.conversationHistory.push({ role: 'user', parts: [{ text: userMessage }] });
@@ -350,8 +399,18 @@ Whenever guest asks for dates or rates, warmly recommend the best stay and ask f
           }
         };
 
-        const models = ['gemini-1.5-flash', 'gemini-2.0-flash', 'gemini-1.5-pro'];
-        for (const model of models) {
+        const candidateModels = [
+          primaryModel,
+          ...(this.availableModels || []).filter(m => m !== primaryModel),
+          'gemini-2.5-flash',
+          'gemini-2.0-flash',
+          'gemini-1.5-flash-latest'
+        ];
+
+        // Deduplicate
+        const uniqueModels = [...new Set(candidateModels)];
+
+        for (const model of uniqueModels) {
           try {
             const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${this.apiKey}`;
             const res = await fetch(url, {
@@ -364,6 +423,7 @@ Whenever guest asks for dates or rates, warmly recommend the best stay and ask f
               const data = await res.json();
               const reply = data.candidates?.[0]?.content?.parts?.[0]?.text;
               if (reply && reply.trim()) {
+                this.discoveredModel = model; // Lock into working model
                 this.conversationHistory.push({ role: 'model', parts: [{ text: reply }] });
                 return reply.trim();
               }

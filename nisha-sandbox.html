@@ -360,13 +360,13 @@
     // Init API Key on load
     if (window.nishaAI.hasApiKey()) {
       geminiKeyInput.value = window.nishaAI.apiKey;
-      keyStatus.innerHTML = '<span style="color:#60A5FA;">⏳ Verifying saved API key...</span>';
+      keyStatus.innerHTML = '<span style="color:#60A5FA;">⏳ Verifying saved API key with Google AI Studio...</span>';
       window.nishaAI.validateApiKey().then(check => {
         if (check.valid) {
-          keyStatus.innerHTML = '<span style="color:#4ADE80;">✅ Active Gemini API Key verified & connected!</span>';
-          pillBrain.innerHTML = '<span>🧠 Brain:</span> <strong style="color:#4ADE80;">Gemini 1.5 Cloud AI (Active)</strong>';
+          keyStatus.innerHTML = `<span style="color:#4ADE80;">✅ ${check.message}</span>`;
+          pillBrain.innerHTML = `<span>🧠 Brain:</span> <strong style="color:#4ADE80;">Google AI (${window.nishaAI.discoveredModel || 'Active'})</strong>`;
         } else {
-          keyStatus.innerHTML = `<span style="color:#FBBF24;">⚡ Gemini API Notice: ${check.message}. (Using Instant Knowledge Base fallback).</span>`;
+          keyStatus.innerHTML = `<span style="color:#FBBF24;">⚡ Google Notice: ${check.message}. (Engine will use instant Knowledge Base fallback).</span>`;
         }
       });
     } else {
@@ -386,8 +386,8 @@
 
       const check = await window.nishaAI.validateApiKey(k);
       if (check.valid) {
-        keyStatus.innerHTML = '<span style="color:#4ADE80;">✅ Verified & Connected! Gemini AI is responding live.</span>';
-        pillBrain.innerHTML = '<span>🧠 Brain:</span> <strong style="color:#4ADE80;">Gemini 1.5 Cloud AI (Active)</strong>';
+        keyStatus.innerHTML = `<span style="color:#4ADE80;">✅ ${check.message}</span>`;
+        pillBrain.innerHTML = `<span>🧠 Brain:</span> <strong style="color:#4ADE80;">Google AI (${window.nishaAI.discoveredModel || 'Active'})</strong>`;
       } else {
         keyStatus.innerHTML = `<span style="color:#FBBF24;">⚡ Google Notice: ${check.message}. (Engine will use instant Knowledge Base fallback).</span>`;
       }
