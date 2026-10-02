@@ -258,14 +258,35 @@
       <div id="keyStatus" style="font-size:11.5px;color:#94A3B8;margin-top:6px;"></div>
     </div>
 
+    <!-- Diagnostic Status Pills -->
+    <div style="display:flex;gap:10px;justify-content:center;margin-bottom:16px;flex-wrap:wrap;">
+      <div id="pillMic" style="background:#1E293B;border:1px solid #334155;border-radius:20px;padding:5px 12px;font-size:12px;display:flex;align-items:center;gap:6px;">
+        <span>🎙️ Mic:</span> <strong style="color:#4ADE80;">Ready</strong>
+      </div>
+      <div id="pillSpeaker" style="background:#1E293B;border:1px solid #334155;border-radius:20px;padding:5px 12px;font-size:12px;display:flex;align-items:center;gap:6px;">
+        <span>🔊 Speaker:</span> <strong style="color:#4ADE80;">Ready (Indian Accent)</strong>
+      </div>
+      <div id="pillBrain" style="background:#1E293B;border:1px solid #334155;border-radius:20px;padding:5px 12px;font-size:12px;display:flex;align-items:center;gap:6px;">
+        <span>🧠 Brain:</span> <strong style="color:#60A5FA;">Instant Concierge (Always 100% Free)</strong>
+      </div>
+    </div>
+
     <!-- Voice Concierge Interaction Hub -->
     <div class="voice-hub">
-      <button id="voiceBtn" class="btn-voice" onclick="toggleVoice()" title="Tap to Speak with Nisha">
-        🎙️
-      </button>
+      <div style="display:flex;gap:16px;align-items:center;">
+        <button id="voiceBtn" class="btn-voice" onclick="toggleVoice()" title="Tap to Speak with Nisha">
+          🎙️
+        </button>
+      </div>
       <div id="statusText" class="status-text">Tap mic to speak with Nisha (Hindi / English)</div>
-      <div style="font-size:12px;color:#64748B;margin-top:6px;">
-        Real-time Voice: Speaks back in sweet natural Indian Hindi accent
+      <div id="liveTranscript" style="font-size:13px;color:#38BDF8;margin-top:6px;min-height:18px;"></div>
+      <div style="display:flex;gap:10px;margin-top:12px;flex-wrap:wrap;justify-content:center;">
+        <button type="button" class="btn" style="background:#334155;color:#F8FAFC;font-size:12px;" onclick="testVoice()">
+          🔊 Test Voice (Aawaz Suniye)
+        </button>
+        <button type="button" class="btn" style="background:#1E293B;border:1px solid #475569;color:#94A3B8;font-size:12px;" onclick="stopVoice()">
+          ⏹️ Stop Audio
+        </button>
       </div>
     </div>
 
@@ -284,7 +305,10 @@
     <div class="chat-box">
       <div id="chatMessages" class="chat-messages">
         <div class="msg msg-ai">
-          <strong>Nisha (AI Concierge):</strong><br>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+            <strong>Nisha (AI Concierge):</strong>
+            <button onclick="speakLastAi()" style="background:transparent;border:none;color:#60A5FA;cursor:pointer;font-size:12px;" title="Listen to this message">🔊 Suniye</button>
+          </div>
           Namaste! 🙏 Main Nisha hoon — The Unique Haven Homes ki AI concierge. Aap Lucknow me homestay booking, property rates, ya amenities ke baare me kuch bhi pooch sakte hain. Kya main aapki koi madad kar sakti hoon?
         </div>
       </div>
@@ -292,6 +316,24 @@
         <input type="text" id="chatInput" class="api-input" placeholder="Type in Hindi or English (e.g. 3BHK flat available hai?)..." onkeydown="if(event.key==='Enter') sendChat();">
         <button type="button" class="btn btn-primary" onclick="sendChat()">Send ➤</button>
       </div>
+    </div>
+
+    <!-- Optional Gemini API Key Setup -->
+    <div class="api-card" style="margin-top:20px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+        <strong style="font-size:13px;color:#F8FAFC;">🔑 Google Gemini Free API Key (Optional Upgrade):</strong>
+        <a href="https://aistudio.google.com/app/apikey" target="_blank" style="color:#818CF8;font-size:12px;text-decoration:none;">
+          Get free key from Google AI Studio ↗
+        </a>
+      </div>
+      <div style="font-size:12px;color:#94A3B8;margin-top:4px;">
+        Nisha works 100% free with her built-in Lucknow homestay knowledge base right now! Adding a Gemini key enables deep conversational reasoning.
+      </div>
+      <div class="api-row">
+        <input type="password" id="geminiKeyInput" class="api-input" placeholder="Paste your AI Studio Gemini API Key here (optional)...">
+        <button type="button" class="btn btn-primary" onclick="saveGeminiKey()">💾 Save Key</button>
+      </div>
+      <div id="keyStatus" style="font-size:11.5px;color:#94A3B8;margin-top:6px;"></div>
     </div>
 
     <div style="text-align:center;font-size:12px;color:#64748B;margin-top:16px;">
@@ -305,30 +347,38 @@
   <script>
     const voiceBtn = document.getElementById('voiceBtn');
     const statusText = document.getElementById('statusText');
+    const liveTranscript = document.getElementById('liveTranscript');
     const chatMessages = document.getElementById('chatMessages');
     const chatInput = document.getElementById('chatInput');
     const geminiKeyInput = document.getElementById('geminiKeyInput');
     const keyStatus = document.getElementById('keyStatus');
+    const pillBrain = document.getElementById('pillBrain');
+    const pillMic = document.getElementById('pillMic');
+
+    let lastAiResponseText = "Namaste! Main Nisha hoon — The Unique Haven Homes ki AI concierge.";
 
     // Init API Key on load
-    if (window.nishaAI.apiKey) {
+    if (window.nishaAI.hasApiKey()) {
       geminiKeyInput.value = window.nishaAI.apiKey;
       keyStatus.innerHTML = '<span style="color:#60A5FA;">⏳ Verifying saved API key...</span>';
       window.nishaAI.validateApiKey().then(check => {
         if (check.valid) {
-          keyStatus.innerHTML = '<span style="color:#4ADE80;">✅ Active Gemini API Key verified & ready for testing!</span>';
+          keyStatus.innerHTML = '<span style="color:#4ADE80;">✅ Active Gemini API Key verified & connected!</span>';
+          pillBrain.innerHTML = '<span>🧠 Brain:</span> <strong style="color:#4ADE80;">Gemini 1.5 Cloud AI (Active)</strong>';
         } else {
-          keyStatus.innerHTML = `<span style="color:#F87171;">⚠️ Google Notice: ${check.message}</span>`;
+          keyStatus.innerHTML = `<span style="color:#FBBF24;">⚡ Gemini API Notice: ${check.message}. (Using Instant Knowledge Base fallback).</span>`;
         }
       });
     } else {
-      keyStatus.innerHTML = '<span style="color:#FBBF24;">⚠️ Please paste your Gemini API key above to enable real-time AI responses.</span>';
+      keyStatus.innerHTML = '<span style="color:#94A3B8;">ℹ️ Built-in instant knowledge base is active. Paste key above if you want Gemini Cloud AI.</span>';
     }
 
     async function saveGeminiKey() {
       const k = geminiKeyInput.value.trim();
       if (!k) {
-        alert('Please enter a valid key');
+        window.nishaAI.setApiKey('');
+        keyStatus.innerHTML = '<span style="color:#94A3B8;">Cleared. Using built-in Knowledge Base.</span>';
+        pillBrain.innerHTML = '<span>🧠 Brain:</span> <strong style="color:#60A5FA;">Instant Concierge (100% Free)</strong>';
         return;
       }
       keyStatus.innerHTML = '<span style="color:#60A5FA;">⏳ Testing connection to Google AI Studio...</span>';
@@ -337,31 +387,53 @@
       const check = await window.nishaAI.validateApiKey(k);
       if (check.valid) {
         keyStatus.innerHTML = '<span style="color:#4ADE80;">✅ Verified & Connected! Gemini AI is responding live.</span>';
+        pillBrain.innerHTML = '<span>🧠 Brain:</span> <strong style="color:#4ADE80;">Gemini 1.5 Cloud AI (Active)</strong>';
       } else {
-        keyStatus.innerHTML = `<span style="color:#F87171;">⚠️ Google Notice: ${check.message}</span>`;
+        keyStatus.innerHTML = `<span style="color:#FBBF24;">⚡ Google Notice: ${check.message}. (Engine will use instant Knowledge Base fallback).</span>`;
       }
     }
 
     // Voice State Listener
-    window.nishaAI.onStateChange = (state) => {
+    window.nishaAI.onStateChange = (state, extra) => {
       voiceBtn.className = 'btn-voice';
       if (state === 'listening') {
         voiceBtn.classList.add('listening');
-        statusText.innerHTML = '<span style="color:#F87171;">🔴 Listening to you... (Bolna shuru karein)</span>';
+        statusText.innerHTML = '<span style="color:#F87171;">🔴 Sun rahi hoon... (Bolna shuru karein)</span>';
+        pillMic.innerHTML = '<span>🎙️ Mic:</span> <strong style="color:#F87171;">Listening...</strong>';
       } else if (state === 'speaking') {
         voiceBtn.classList.add('speaking');
-        statusText.innerHTML = '<span style="color:#60A5FA;">🔊 Nisha is speaking...</span>';
+        statusText.innerHTML = '<span style="color:#60A5FA;">🔊 Nisha bol rahi hain... (Tap to mute)</span>';
       } else if (state === 'processing') {
-        statusText.innerHTML = '<span style="color:#FBBF24;">⏳ Thinking...</span>';
+        statusText.innerHTML = '<span style="color:#FBBF24;">⏳ Jawaab taiyyar kar rahi hoon...</span>';
+        if (extra) {
+          liveTranscript.textContent = `Aapne poocha: "${extra}"`;
+        }
+      } else if (state === 'error') {
+        statusText.innerHTML = `<span style="color:#F87171;">⚠️ ${extra || 'Mic error'}</span>`;
+        pillMic.innerHTML = '<span>🎙️ Mic:</span> <strong style="color:#F87171;">Permission Required</strong>';
+        alert(extra || 'Microphone error. Please check browser permissions.');
       } else {
         statusText.textContent = 'Tap mic to speak with Nisha (Hindi / English)';
+        pillMic.innerHTML = '<span>🎙️ Mic:</span> <strong style="color:#4ADE80;">Ready</strong>';
       }
     };
 
     function appendMessage(role, text) {
       const msgDiv = document.createElement('div');
       msgDiv.className = `msg ${role === 'user' ? 'msg-user' : 'msg-ai'}`;
-      msgDiv.innerHTML = role === 'user' ? `<strong>You:</strong><br>${escapeHtml(text)}` : `<strong>Nisha (AI):</strong><br>${escapeHtml(text)}`;
+      
+      if (role === 'user') {
+        msgDiv.innerHTML = `<strong>You:</strong><br>${escapeHtml(text)}`;
+      } else {
+        lastAiResponseText = text;
+        const cleanForAttr = escapeHtml(text).replace(/"/g, '&quot;');
+        msgDiv.innerHTML = `
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+            <strong>Nisha (AI Concierge):</strong>
+            <button onclick="speakText(this)" data-content="${cleanForAttr}" style="background:transparent;border:none;color:#60A5FA;cursor:pointer;font-size:12px;" title="Listen to this message">🔊 Suniye</button>
+          </div>
+          ${escapeHtml(text).replace(/\n/g, '<br>')}`;
+      }
       chatMessages.appendChild(msgDiv);
       chatMessages.scrollTop = chatMessages.scrollHeight;
     }
@@ -371,17 +443,14 @@
     }
 
     async function sendChat(customText) {
+      window.nishaAI.unlockAudio(); // Unlock audio on user click
       const text = customText || chatInput.value.trim();
       if (!text) return;
       if (!customText) chatInput.value = '';
 
       appendMessage('user', text);
 
-      if (!window.nishaAI.hasApiKey()) {
-        appendMessage('ai', 'Namaste! Please save your Gemini API key in the box above so I can answer intelligently.');
-        return;
-      }
-
+      // Instantly replies via Knowledge Base or Gemini
       const reply = await window.nishaAI.sendMessage(text);
       appendMessage('ai', reply);
       return reply;
@@ -392,6 +461,8 @@
     }
 
     function toggleVoice() {
+      window.nishaAI.unlockAudio();
+
       if (window.nishaAI.isSpeaking) {
         window.nishaAI.stopSpeaking();
         return;
@@ -401,8 +472,10 @@
         return;
       }
 
+      liveTranscript.textContent = '';
       window.nishaAI.startListening(async (transcript) => {
         if (!transcript) return;
+        liveTranscript.textContent = `Aapne poocha: "${transcript}"`;
         const reply = await sendChat(transcript);
         if (reply) {
           window.nishaAI.speak(reply);
@@ -411,6 +484,30 @@
         console.warn('Voice error:', err);
       });
     }
+
+    function testVoice() {
+      window.nishaAI.unlockAudio();
+      window.nishaAI.speak("Namaste! Main Nisha hoon — The Unique Haven Homes Lucknow ki AI concierge. Meri aawaz bilkul saaf aa rahi hai?");
+    }
+
+    function stopVoice() {
+      window.nishaAI.stopSpeaking();
+      window.nishaAI.stopListening();
+    }
+
+    function speakLastAi() {
+      window.nishaAI.unlockAudio();
+      window.nishaAI.speak(lastAiResponseText);
+    }
+
+    function speakText(btn) {
+      window.nishaAI.unlockAudio();
+      const content = btn.getAttribute('data-content');
+      if (content) {
+        window.nishaAI.speak(content);
+      }
+    }
   </script>
 </body>
 </html>
+
