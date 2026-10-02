@@ -485,6 +485,7 @@ async function showGuestLedger(guestName, bookingId, phone, airbnbCode, initialF
   // Active filter state
   let currentFrom = initialFromDate || '';
   let currentTo = initialToDate || '';
+  const excludedBkIds = new Set(); // Stays the owner chooses not to send for payment recovery (without deleting)
 
   // Function to render statement content based on date window
   function renderStatement(fromDate, toDate) {
@@ -504,9 +505,12 @@ async function showGuestLedger(guestName, bookingId, phone, airbnbCode, initialF
       });
     }
 
-    // Filter payments: belongs to filtered stays or payment_date in range
-    const fBkIds = new Set(filteredBookings.map(b => b.booking_id));
-    let filteredPayments = allPayments.filter(p => fBkIds.has(p.booking_id));
+    // Active stays included in statement (excluding any stays unticked by owner for recovery)
+    const activeBookings = filteredBookings.filter(b => !excludedBkIds.has(b.booking_id));
+
+    // Filter payments: belongs to active stays or payment_date in range
+    const activeBkIds = new Set(activeBookings.map(b => b.booking_id));
+    let filteredPayments = allPayments.filter(p => activeBkIds.has(p.booking_id));
     if (fromDate || toDate) {
       allPayments.forEach(p => {
         if (p.payment_date) {
@@ -516,11 +520,11 @@ async function showGuestLedger(guestName, bookingId, phone, airbnbCode, initialF
       });
     }
 
-    // Totals for filtered window
-    const totalAmount = filteredBookings.reduce((s, b) => s + (b.total_amount || 0), 0);
-    const totalPaid = filteredBookings.reduce((s, b) => s + (payMap[b.booking_id] || 0), 0);
+    // Totals for active (included) window
+    const totalAmount = activeBookings.reduce((s, b) => s + (b.total_amount || 0), 0);
+    const totalPaid = activeBookings.reduce((s, b) => s + (payMap[b.booking_id] || 0), 0);
     const totalDue = Math.max(0, totalAmount - totalPaid);
-    const totalNights = filteredBookings.reduce((s, b) => {
+    const totalNights = activeBookings.reduce((s, b) => {
       if (b.check_in && b.check_out) return s + calcNights(b.check_in, b.check_out);
       return s;
     }, 0);
@@ -531,9 +535,9 @@ async function showGuestLedger(guestName, bookingId, phone, airbnbCode, initialF
       if (fromDate || toDate) {
         const fTxt = fromDate ? formatDateDisplay(fromDate) : 'Start';
         const tTxt = toDate ? formatDateDisplay(toDate) : 'Present';
-        bannerEl.innerHTML = `<span style="background:#EEF2FF;color:#4338CA;padding:3px 8px;border-radius:4px;border:1px solid #C7D2FE;">📌 Showing: <strong>${fTxt}</strong> to <strong>${tTxt}</strong> (${filteredBookings.length} of ${allBookings.length} stays)</span>`;
+        bannerEl.innerHTML = `<span style="background:#EEF2FF;color:#4338CA;padding:3px 8px;border-radius:4px;border:1px solid #C7D2FE;">📌 Showing: <strong>${fTxt}</strong> to <strong>${tTxt}</strong> (${activeBookings.length} of ${allBookings.length} stays included)</span>`;
       } else {
-        bannerEl.innerHTML = `<span style="color:#64748B;">Showing all ${allBookings.length} stays (Complete History)</span>`;
+        bannerEl.innerHTML = `<span style="color:#64748B;">Showing ${activeBookings.length} active stay(s) of ${allBookings.length} total</span>`;
       }
     }
 
@@ -542,11 +546,23 @@ async function showGuestLedger(guestName, bookingId, phone, airbnbCode, initialF
     if (!contentEl) return;
 
     contentEl.innerHTML = `
+      <!-- Exclusion alert banner if any booking is excluded -->
+      ${excludedBkIds.size > 0 ? `
+        <div style="background:#FFFBEB;border:1.5px solid #FCD34D;color:#92400E;padding:8px 14px;border-radius:8px;font-size:12px;font-weight:600;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:12px;">
+          <div>
+            ⚠️ <strong>${excludedBkIds.size} booking(s) excluded from recovery statement</strong>. Unselected stays are skipped from totals and WhatsApp/PDF statement, but remain 100% saved in the system.
+          </div>
+          <button type="button" class="btn-sm" style="background:#D97706;color:#fff;padding:2px 10px;font-size:11px;font-weight:700;border:none;border-radius:4px;cursor:pointer;" onclick="window._glResetExcluded()">
+            🔄 Include All Stays
+          </button>
+        </div>
+      ` : ''}
+
       <!-- Stat Cards -->
       <div class="stat-grid" style="grid-template-columns:repeat(auto-fit, minmax(140px, 1fr));gap:10px;margin-bottom:14px;">
         <div class="stat-card" style="border-left:4px solid #3B82F6;padding:10px 14px;">
-          <div class="stat-num" style="font-size:22px;color:#1E293B;">${filteredBookings.length}</div>
-          <div class="stat-label" style="font-size:11px;color:#64748B;font-weight:700;text-transform:uppercase;">Stays in Period</div>
+          <div class="stat-num" style="font-size:22px;color:#1E293B;">${activeBookings.length}${excludedBkIds.size > 0 ? ` <span style="font-size:12px;color:#94A3B8;">(${allBookings.length})</span>` : ''}</div>
+          <div class="stat-label" style="font-size:11px;color:#64748B;font-weight:700;text-transform:uppercase;">Stays for Recovery</div>
         </div>
         <div class="stat-card" style="border-left:4px solid #06B6D4;padding:10px 14px;">
           <div class="stat-num" style="font-size:22px;color:#1E293B;">${totalNights}</div>
@@ -554,7 +570,7 @@ async function showGuestLedger(guestName, bookingId, phone, airbnbCode, initialF
         </div>
         <div class="stat-card" style="border-left:4px solid #8B5CF6;padding:10px 14px;">
           <div class="stat-num" style="font-size:22px;color:#1E293B;">₹${totalAmount.toLocaleString('en-IN')}</div>
-          <div class="stat-label" style="font-size:11px;color:#64748B;font-weight:700;text-transform:uppercase;">Total Billed</div>
+          <div class="stat-label" style="font-size:11px;color:#64748B;font-weight:700;text-transform:uppercase;">Statement Billed</div>
         </div>
         <div class="stat-card" style="border-left:4px solid #10B981;padding:10px 14px;">
           <div class="stat-num" style="font-size:22px;color:#059669;">₹${totalPaid.toLocaleString('en-IN')}</div>
@@ -571,7 +587,7 @@ async function showGuestLedger(guestName, bookingId, phone, airbnbCode, initialF
         <div style="background:#FEE2E2;border:1px solid #F87171;color:#991B1B;padding:10px 14px;border-radius:8px;font-size:13px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:14px;">
           <div>
             <strong>⚠️ Outstanding Balance Due: ₹${totalDue.toLocaleString('en-IN')}</strong>
-            <span style="font-size:12px;opacity:0.9;margin-left:6px;">for selected period</span>
+            <span style="font-size:12px;opacity:0.9;margin-left:6px;">for selected stays</span>
           </div>
           <div style="font-size:12px;font-weight:600;">
             Bank / UPI: <strong>9450055554@upi</strong> (THE UNIQUE HAVEN HOMES)
@@ -579,7 +595,7 @@ async function showGuestLedger(guestName, bookingId, phone, airbnbCode, initialF
         </div>
       ` : `
         <div style="background:#DCFCE7;border:1px solid #86EFAC;color:#166534;padding:8px 14px;border-radius:8px;font-size:12px;font-weight:600;margin-bottom:14px;">
-          ✅ All stays in this period are fully settled!
+          ✅ All included stays are fully settled!
         </div>
       `}
 
@@ -588,14 +604,17 @@ async function showGuestLedger(guestName, bookingId, phone, airbnbCode, initialF
         <div class="section-title" style="margin:0;font-size:14px;font-weight:700;color:#1E293B;">
           🗓️ Date-wise Stay Records (${filteredBookings.length})
         </div>
-        <span style="font-size:11px;color:#64748B;">Sorted chronologically date-wise</span>
+        <div style="font-size:11.5px;color:#64748B;">
+          💡 <em>Untick checkbox on any row to exclude from statement without deleting booking</em>
+        </div>
       </div>
 
       <div class="table-wrap" style="border:1px solid #E2E8F0;border-radius:8px;overflow-x:auto;">
         <table style="width:100%;font-size:12.5px;">
           <thead style="background:#F1F5F9;">
             <tr>
-              <th style="padding:8px 10px;text-align:center;width:30px;">#</th>
+              <th style="padding:8px 6px;text-align:center;width:75px;" title="Include in Statement & Payment Recovery?">Recovery</th>
+              <th style="padding:8px 8px;text-align:center;width:25px;">#</th>
               <th style="padding:8px 10px;">Check-In</th>
               <th style="padding:8px 10px;">Check-Out</th>
               <th style="padding:8px 10px;">Property / Unit</th>
@@ -609,6 +628,7 @@ async function showGuestLedger(guestName, bookingId, phone, airbnbCode, initialF
           </thead>
           <tbody>
             ${filteredBookings.length ? filteredBookings.map((b, idx) => {
+              const isExcluded = excludedBkIds.has(b.booking_id);
               const pd = payMap[b.booking_id] || 0;
               const isAirbnb = b.booking_mode === 'Online-Airbnb' || !!b.airbnb_confirmation_code;
               const isPendingCsv = isAirbnb && (b.total_amount === 0 || b.payment_status === 'Pending CSV Payout');
@@ -616,29 +636,46 @@ async function showGuestLedger(guestName, bookingId, phone, airbnbCode, initialF
               const nights = (b.check_in && b.check_out) ? calcNights(b.check_in, b.check_out) : 1;
               const unitTitle = propLabel(b.rooms) || b.room_id || '-';
 
+              const rowStyle = isExcluded
+                ? 'background:#F8FAFC;opacity:0.6;border-bottom:1px solid #E2E8F0;'
+                : `border-bottom:1px solid #F1F5F9;${due > 0 ? 'background:#FFFDFD;' : ''}`;
+
               return `
-                <tr style="border-bottom:1px solid #F1F5F9;${due > 0 ? 'background:#FFFDFD;' : ''}">
+                <tr style="${rowStyle}">
+                  <td style="text-align:center;">
+                    <label style="cursor:pointer;display:inline-flex;align-items:center;gap:3px;font-size:10.5px;font-weight:700;">
+                      <input type="checkbox" ${isExcluded ? '' : 'checked'}
+                        onchange="window._glToggleExclude('${b.booking_id}', this.checked)"
+                        style="width:16px;height:16px;cursor:pointer;accent-color:#4F46E5;">
+                      <span style="color:${isExcluded ? '#DC2626' : '#16A34A'};">${isExcluded ? '🚫 Skip' : '✅ Send'}</span>
+                    </label>
+                  </td>
                   <td style="text-align:center;color:#64748B;font-size:11px;">${idx + 1}</td>
                   <td style="font-weight:600;white-space:nowrap;color:#1E293B;">${formatDateDisplay(b.check_in)}</td>
                   <td style="white-space:nowrap;color:#475569;">${formatDateDisplay(b.check_out)}</td>
                   <td><strong>${unitTitle}</strong></td>
                   <td style="text-align:center;"><span class="channel-badge ${isAirbnb ? 'channel-airbnb' : 'channel-direct'}" style="font-size:10px;">${isAirbnb ? 'Airbnb' : 'Direct'}</span></td>
                   <td style="text-align:center;color:#475569;">${nights}N</td>
-                  <td style="text-align:right;font-weight:600;">${isPendingCsv ? '<span class="badge yellow" style="font-size:10px;">⏳ Pending CSV</span>' : '₹' + (b.total_amount || 0).toLocaleString('en-IN')}</td>
-                  <td style="text-align:right;color:#059669;font-weight:600;">${isPendingCsv ? '-' : '₹' + pd.toLocaleString('en-IN')}</td>
-                  <td style="text-align:right;font-weight:700;${due > 0 ? 'color:#DC2626;' : 'color:#059669;'}">${isPendingCsv ? '-' : (due > 0 ? '₹' + due.toLocaleString('en-IN') : '₹0')}</td>
+                  <td style="text-align:right;font-weight:600;${isExcluded ? 'text-decoration:line-through;color:#94A3B8;' : ''}">${isPendingCsv ? '<span class="badge yellow" style="font-size:10px;">⏳ Pending CSV</span>' : '₹' + (b.total_amount || 0).toLocaleString('en-IN')}</td>
+                  <td style="text-align:right;color:#059669;font-weight:600;${isExcluded ? 'text-decoration:line-through;' : ''}">${isPendingCsv ? '-' : '₹' + pd.toLocaleString('en-IN')}</td>
+                  <td style="text-align:right;font-weight:700;">
+                    ${isPendingCsv ? '-' : (isExcluded
+                      ? `<span style="color:#94A3B8;text-decoration:line-through;font-size:11px;">₹${due.toLocaleString('en-IN')}</span> <span class="badge" style="font-size:9px;background:#F1F5F9;color:#64748B;">🚫 Skipped</span>`
+                      : (due > 0 ? `<span style="color:#DC2626;">₹${due.toLocaleString('en-IN')}</span>` : '<span style="color:#059669;">₹0</span>')
+                    )}
+                  </td>
                   <td style="text-align:center;white-space:nowrap;">
                     <button class="btn-sm" style="background:#0F172A;color:#fff;padding:2px 7px;font-size:10.5px;font-weight:700;border:none;border-radius:4px;cursor:pointer;margin-right:3px;" onclick="window.openBookingReceiptModal('${b.booking_id}')" title="Receipt">📄 Receipt</button>
                     <button class="btn-sm" style="background:#B45309;color:#fff;padding:2px 7px;font-size:10.5px;font-weight:700;border:none;border-radius:4px;cursor:pointer;" onclick="window.openGSTInvoiceModal('${b.booking_id}')" title="GST Bill">🧾 Bill</button>
                   </td>
                 </tr>
               `;
-            }).join('') : '<tr><td colspan="10" style="text-align:center;padding:16px;color:#94A3B8;">No stays found in the selected date range.</td></tr>'}
+            }).join('') : '<tr><td colspan="11" style="text-align:center;padding:16px;color:#94A3B8;">No stays found in the selected date range.</td></tr>'}
           </tbody>
-          ${filteredBookings.length ? `
+          ${activeBookings.length ? `
             <tfoot style="background:#F8FAFC;font-weight:700;border-top:2px solid #CBD5E1;">
               <tr>
-                <td colspan="5" style="padding:9px 10px;text-align:right;color:#475569;">Totals for Selected Period:</td>
+                <td colspan="6" style="padding:9px 10px;text-align:right;color:#475569;">Active Statement Totals (${activeBookings.length} stays):</td>
                 <td style="padding:9px 10px;text-align:center;color:#1E293B;">${totalNights}N</td>
                 <td style="padding:9px 10px;text-align:right;color:#1E293B;">₹${totalAmount.toLocaleString('en-IN')}</td>
                 <td style="padding:9px 10px;text-align:right;color:#059669;">₹${totalPaid.toLocaleString('en-IN')}</td>
@@ -689,16 +726,16 @@ async function showGuestLedger(guestName, bookingId, phone, airbnbCode, initialF
     if (actionEl) {
       actionEl.innerHTML = `
         <button type="button" onclick="window._glPrintStatement()" style="background:#00A699;color:#fff;font-weight:700;padding:8px 16px;border:none;border-radius:8px;cursor:pointer;">
-          🖨️ Print / PDF Statement
+          🖨️ Print / PDF Statement (${activeBookings.length})
         </button>
         <button type="button" onclick="window._glWhatsAppStatement()" style="background:#25D366;color:#fff;font-weight:700;padding:8px 16px;border:none;border-radius:8px;cursor:pointer;">
-          📱 WhatsApp Statement
+          📱 WhatsApp Statement (${activeBookings.length})
         </button>
         <button type="button" onclick="window._glCopyStatement()" style="background:#3B82F6;color:#fff;font-weight:700;padding:8px 16px;border:none;border-radius:8px;cursor:pointer;">
           📋 Copy Statement
         </button>
-        ${filteredBookings.length ? `
-          <button type="button" onclick="window.openBookingReceiptModal('${filteredBookings[filteredBookings.length - 1]?.booking_id}')" style="background:#0F172A;color:#fff;font-weight:700;padding:8px 14px;border:none;border-radius:8px;cursor:pointer;">
+        ${activeBookings.length ? `
+          <button type="button" onclick="window.openBookingReceiptModal('${activeBookings[activeBookings.length - 1]?.booking_id}')" style="background:#0F172A;color:#fff;font-weight:700;padding:8px 14px;border:none;border-radius:8px;cursor:pointer;">
             📄 Latest Receipt
           </button>
         ` : ''}
@@ -722,6 +759,20 @@ async function showGuestLedger(guestName, bookingId, phone, airbnbCode, initialF
     if (fIn) fIn.value = '';
     if (tIn) tIn.value = '';
     renderStatement('', '');
+  };
+
+  window._glToggleExclude = (bkId, isIncluded) => {
+    if (!isIncluded) {
+      excludedBkIds.add(bkId);
+    } else {
+      excludedBkIds.delete(bkId);
+    }
+    renderStatement(currentFrom, currentTo);
+  };
+
+  window._glResetExcluded = () => {
+    excludedBkIds.clear();
+    renderStatement(currentFrom, currentTo);
   };
 
   window._glSetMonth = (ym) => {
@@ -772,6 +823,7 @@ async function showGuestLedger(guestName, bookingId, phone, airbnbCode, initialF
 
   window._glPrintStatement = () => {
     const curBookings = allBookings.filter(b => {
+      if (excludedBkIds.has(b.booking_id)) return false;
       const ci = b.check_in || '';
       const co = b.check_out || b.check_in || '';
       if (currentFrom && currentTo) return ci <= currentTo && co >= currentFrom;
@@ -786,6 +838,7 @@ async function showGuestLedger(guestName, bookingId, phone, airbnbCode, initialF
 
   window._glWhatsAppStatement = () => {
     const curBookings = allBookings.filter(b => {
+      if (excludedBkIds.has(b.booking_id)) return false;
       const ci = b.check_in || '';
       const co = b.check_out || b.check_in || '';
       if (currentFrom && currentTo) return ci <= currentTo && co >= currentFrom;
@@ -800,6 +853,7 @@ async function showGuestLedger(guestName, bookingId, phone, airbnbCode, initialF
 
   window._glCopyStatement = () => {
     const curBookings = allBookings.filter(b => {
+      if (excludedBkIds.has(b.booking_id)) return false;
       const ci = b.check_in || '';
       const co = b.check_out || b.check_in || '';
       if (currentFrom && currentTo) return ci <= currentTo && co >= currentFrom;
