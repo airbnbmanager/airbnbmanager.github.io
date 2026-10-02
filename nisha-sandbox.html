@@ -288,6 +288,18 @@
           ⏹️ Stop Audio
         </button>
       </div>
+
+      <!-- Voice Persona & Speed Control -->
+      <div style="margin-top:14px;background:#0B0F17;padding:10px 14px;border-radius:10px;border:1px solid #334155;display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:center;">
+        <label for="voiceSelect" style="font-size:12px;color:#94A3B8;font-weight:600;">🎙️ Voice Persona:</label>
+        <select id="voiceSelect" onchange="onVoiceChange()" style="background:#1E293B;color:#F8FAFC;border:1px solid #475569;border-radius:6px;padding:5px 10px;font-size:12px;outline:none;max-width:240px;">
+          <option value="auto">🌟 Auto (Best Natural Voice)</option>
+        </select>
+        <span style="font-size:11.5px;color:#64748B;">|</span>
+        <label for="rateSlider" style="font-size:12px;color:#94A3B8;">Speed:</label>
+        <input type="range" id="rateSlider" min="0.75" max="1.15" step="0.05" value="0.9" oninput="onRateChange(this.value)" style="width:75px;">
+        <span id="rateLabel" style="font-size:11.5px;color:#38BDF8;font-weight:700;">0.90x</span>
+      </div>
     </div>
 
     <!-- Quick Question Chips -->
@@ -506,6 +518,48 @@
       if (content) {
         window.nishaAI.speak(content);
       }
+    }
+
+    function populateVoices() {
+      const select = document.getElementById('voiceSelect');
+      if (!window.speechSynthesis || !select) return;
+      const voices = window.speechSynthesis.getVoices() || [];
+      if (voices.length === 0) return;
+
+      select.innerHTML = '<option value="auto">🌟 Auto (Best Natural Voice)</option>';
+      voices.forEach(v => {
+        // List Hindi, Indian English, or English female voices for selection
+        if (v.lang.startsWith('hi') || v.lang.includes('IN') || /female|samantha|siri|google/i.test(v.name)) {
+          const opt = document.createElement('option');
+          opt.value = v.name;
+          const isLekha = /lekha/i.test(v.name) ? ' [Mac Default]' : '';
+          const isGoogle = /google/i.test(v.name) ? ' ⭐ Google' : '';
+          opt.textContent = `${v.name} (${v.lang})${isGoogle}${isLekha}`;
+          select.appendChild(opt);
+        }
+      });
+    }
+
+    if (typeof window !== 'undefined' && window.speechSynthesis) {
+      populateVoices();
+      if (window.speechSynthesis.onvoiceschanged !== undefined) {
+        window.speechSynthesis.onvoiceschanged = populateVoices;
+      }
+    }
+
+    function onVoiceChange() {
+      const select = document.getElementById('voiceSelect');
+      if (select.value === 'auto') {
+        window.nishaAI.initVoiceSynthesis();
+      } else {
+        window.nishaAI.setCustomVoice(select.value);
+      }
+      testVoice();
+    }
+
+    function onRateChange(val) {
+      window.nishaAI.speechRate = parseFloat(val);
+      document.getElementById('rateLabel').textContent = `${parseFloat(val).toFixed(2)}x`;
     }
   </script>
 </body>

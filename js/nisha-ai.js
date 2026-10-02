@@ -528,21 +528,44 @@ Whenever guest asks for dates or rates, warmly recommend the best stay and ask f
           const voices = this.synthesis.getVoices() || [];
           if (!voices || voices.length === 0) return;
 
-          // Priority: Indian Hindi Female -> Indian English Female -> Hindi -> English India
+          // Priority for Natural Sounding Voices:
+          // 1. Google Hindi (Natural Neural Web Voice)
+          // 2. Microsoft Swara / Madhur
+          // 3. Indian English Female (Neerja, Heera, Priya - sounds very natural for Hinglish hospitality)
+          // 4. Enhanced / Natural female voices (Samantha, Siri, Karen)
+          // 5. Avoid legacy compact robotic Mac 'Lekha' unless nothing else exists!
+          const nonRoboticHindi = voices.find(v => (v.lang === 'hi-IN' || v.lang.startsWith('hi')) && !/lekha/i.test(v.name));
+          const naturalIndianEng = voices.find(v => (v.lang === 'en-IN' || v.lang.includes('IN')) && /female|neerja|heera|aditi|priya|google/i.test(v.name));
+          const googleHindi = voices.find(v => /google/i.test(v.name) && (v.lang === 'hi-IN' || v.lang.startsWith('hi')));
+          const enhancedEng = voices.find(v => /enhanced|natural/i.test(v.name) && /female|samantha/i.test(v.name));
+          const genericIndian = voices.find(v => v.lang === 'en-IN' || v.lang === 'hi-IN');
+
           this.selectedVoice =
-            voices.find(v => (v.lang === 'hi-IN' || v.lang.startsWith('hi')) && /female|swara|kalpana|geeta|lekha/i.test(v.name)) ||
-            voices.find(v => (v.lang === 'en-IN' || v.lang.includes('IN')) && /female|neerja|heera|aditi|priya/i.test(v.name)) ||
-            voices.find(v => v.lang === 'hi-IN' || v.lang.startsWith('hi')) ||
-            voices.find(v => v.lang === 'en-IN') ||
-            voices.find(v => /india/i.test(v.name)) ||
+            googleHindi ||
+            nonRoboticHindi ||
+            naturalIndianEng ||
+            enhancedEng ||
+            genericIndian ||
             voices.find(v => /female/i.test(v.name)) ||
             voices[0];
+
+          console.log('[NishaAI] Selected Voice:', this.selectedVoice?.name, 'Lang:', this.selectedVoice?.lang);
         } catch (_) {}
       };
 
       pickVoice();
       if (this.synthesis.onvoiceschanged !== undefined) {
         this.synthesis.onvoiceschanged = pickVoice;
+      }
+    }
+
+    setCustomVoice(voiceName) {
+      if (!this.synthesis) return;
+      const voices = this.synthesis.getVoices() || [];
+      const match = voices.find(v => v.name === voiceName);
+      if (match) {
+        this.selectedVoice = match;
+        console.log('[NishaAI] Custom voice set to:', match.name);
       }
     }
 
@@ -585,8 +608,8 @@ Whenever guest asks for dates or rates, warmly recommend the best stay and ask f
           utterance.lang = 'hi-IN';
         }
 
-        utterance.pitch = 1.05;
-        utterance.rate = 1.0;
+        utterance.pitch = 1.0;
+        utterance.rate = this.speechRate || 0.90; // Slower, calmer, less robotic rate
 
         utterance.onstart = () => {
           this.isSpeaking = true;
