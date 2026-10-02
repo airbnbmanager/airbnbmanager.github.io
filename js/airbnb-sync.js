@@ -657,7 +657,7 @@
                         ` : (isMatch ? `
                           <span style="color:#059669;font-weight:700;font-size:11px;">✓ Synced</span>
                         ` : `
-                          <button class="btn-sm" style="background:#059669;color:#fff;font-weight:700;" onclick="instantFixField('${r.confirmation_code}', 'amount')">⚡ Update Payment</button>
+                          <button class="btn-sm" style="background:#059669;color:#fff;font-weight:700;" onclick="instantFixField('${r.confirmation_code}', 'amount', this)">⚡ Update Payment</button>
                         `)}
                       </td>
                     </tr>
@@ -891,9 +891,14 @@
     renderPreview();
   };
 
-  window.instantFixField = async function(code, field) {
+  window.instantFixField = async function(code, field, btn) {
     const r = SYNC.reservations.find(x => x.confirmation_code === code);
     if (!r || !r.dbBk) return;
+
+    if (btn) {
+      btn.disabled = true;
+      btn.textContent = '⏳ Updating...';
+    }
 
     const updates = {};
     let syncPay = false;
@@ -918,37 +923,66 @@
 
     const { error } = await sb.from('guest_register').update(updates).eq('booking_id', r.dbBk.booking_id);
     if (error) {
+      if (btn) {
+        btn.disabled = false;
+        btn.textContent = '⚡ Update Payment';
+      }
       alert('Fix failed: ' + error.message);
       return;
     }
 
     if (syncPay && r.you_earn > 0) {
-      const { data: payList } = await sb.from('payment_history').select('id, amount').eq('booking_id', r.dbBk.booking_id);
-      if (payList && payList.length > 0) {
-        await sb.from('payment_history').update({
-          amount: r.you_earn,
-          payment_mode: 'Online-Airbnb',
-          notes: `Net payout synced from Airbnb CSV (${r.confirmation_code})`
-        }).eq('id', payList[0].id);
-      } else {
-        await sb.from('payment_history').insert({
-          booking_id: r.dbBk.booking_id,
-          amount: r.you_earn,
-          payment_mode: 'Online-Airbnb',
-          payment_date: r.check_out || r.check_in,
-          received_by: 'Firoz',
-          received_by_type: 'employee',
-          handover_status: 'handed_over',
-          verification_status: 'verified',
-          notes: `Net payout synced from Airbnb CSV (${r.confirmation_code})`
-        });
+      try {
+        const { data: payList } = await sb.from('payment_history').select('id, amount').eq('booking_id', r.dbBk.booking_id);
+        if (payList && payList.length > 0) {
+          await sb.from('payment_history').update({
+            amount: r.you_earn,
+            payment_mode: 'Online-Airbnb',
+            notes: `Net payout synced from Airbnb CSV (${r.confirmation_code})`
+          }).eq('id', payList[0].id);
+        } else {
+          await sb.from('payment_history').insert({
+            booking_id: r.dbBk.booking_id,
+            amount: r.you_earn,
+            payment_mode: 'Online-Airbnb',
+            payment_date: r.check_out || r.check_in,
+            received_by: 'Firoz',
+            received_by_type: 'employee',
+            handover_status: 'handed_over',
+            verification_status: 'verified',
+            notes: `Net payout synced from Airbnb CSV (${r.confirmation_code})`
+          });
+        }
+      } catch (payErr) {
+        console.warn('Payment history sync error:', payErr);
       }
     }
 
-    if (window.fsn) fsn.success('Fixed', '✅ Updated successfully!');
-    if (window.notifyDataChanged) window.notifyDataChanged();
-    r.issues = (r.issues || []).filter(i => i.field !== field);
+    // ⚡ CRITICAL: Update in-memory models so table instantly reflects the fix!
+    if (r.dbBk) {
+      Object.assign(r.dbBk, updates);
+      if (field === 'amount') {
+        r.dbBk.total_amount = r.you_earn;
+        r.dbBk.payment_status = 'Paid';
+      }
+    }
+    if (SYNC.existingByCode && SYNC.existingByCode[code]) {
+      Object.assign(SYNC.existingByCode[code], updates);
+      if (field === 'amount') {
+        SYNC.existingByCode[code].total_amount = r.you_earn;
+        SYNC.existingByCode[code].payment_status = 'Paid';
+      }
+    }
+
+    if (field === 'amount') {
+      r.issues = (r.issues || []).filter(i => i.field !== 'amount' && i.field !== 'payment_status');
+    } else {
+      r.issues = (r.issues || []).filter(i => i.field !== field);
+    }
     if (r.issues.length === 0) r.matchStatus = 'match';
+
+    if (window.fsn?.success) fsn.success('Fixed', '✅ Payment updated successfully!');
+    if (typeof window.notifyDataChanged === 'function') window.notifyDataChanged();
     renderPreview();
   };
 
@@ -1000,26 +1034,41 @@
         failed++;
       } else {
         if (needsPaySync && r.you_earn > 0) {
-          const { data: payList } = await sb.from('payment_history').select('id, amount').eq('booking_id', r.dbBk.booking_id);
-          if (payList && payList.length > 0) {
-            await sb.from('payment_history').update({
-              amount: r.you_earn,
-              payment_mode: 'Online-Airbnb',
-              notes: `Net payout synced from Airbnb CSV (${r.confirmation_code})`
-            }).eq('id', payList[0].id);
-          } else {
-            await sb.from('payment_history').insert({
-              booking_id: r.dbBk.booking_id,
-              amount: r.you_earn,
-              payment_mode: 'Online-Airbnb',
-              payment_date: r.check_out || r.check_in,
-              received_by: 'Firoz',
-              received_by_type: 'employee',
-              handover_status: 'handed_over',
-              verification_status: 'verified',
-              notes: `Net payout synced from Airbnb CSV (${r.confirmation_code})`
-            });
+          try {
+            const { data: payList } = await sb.from('payment_history').select('id, amount').eq('booking_id', r.dbBk.booking_id);
+            if (payList && payList.length > 0) {
+              await sb.from('payment_history').update({
+                amount: r.you_earn,
+                payment_mode: 'Online-Airbnb',
+                notes: `Net payout synced from Airbnb CSV (${r.confirmation_code})`
+              }).eq('id', payList[0].id);
+            } else {
+              await sb.from('payment_history').insert({
+                booking_id: r.dbBk.booking_id,
+                amount: r.you_earn,
+                payment_mode: 'Online-Airbnb',
+                payment_date: r.check_out || r.check_in,
+                received_by: 'Firoz',
+                received_by_type: 'employee',
+                handover_status: 'handed_over',
+                verification_status: 'verified',
+                notes: `Net payout synced from Airbnb CSV (${r.confirmation_code})`
+              });
+            }
+          } catch (payErr) {
+            console.warn('Payment history sync error:', payErr);
           }
+        }
+        // ⚡ Update in-memory models
+        if (r.dbBk) {
+          Object.assign(r.dbBk, updates);
+          r.dbBk.total_amount = r.you_earn;
+          r.dbBk.payment_status = 'Paid';
+        }
+        if (SYNC.existingByCode && SYNC.existingByCode[r.confirmation_code]) {
+          Object.assign(SYNC.existingByCode[r.confirmation_code], updates);
+          SYNC.existingByCode[r.confirmation_code].total_amount = r.you_earn;
+          SYNC.existingByCode[r.confirmation_code].payment_status = 'Paid';
         }
         fixed++;
         r.issues = [];
@@ -1030,11 +1079,11 @@
     }
 
     if (failed === 0) {
-      if (window.fsn) fsn.success('Done', `✅ Fixed all ${fixed} mismatches!`);
+      if (window.fsn?.success) fsn.success('Done', `✅ Fixed all ${fixed} mismatches!`);
     } else {
-      if (window.fsn) fsn.warning('Partial', `✅ Fixed ${fixed}, ❌ Failed ${failed}`);
+      if (window.fsn?.warning) fsn.warning('Partial', `✅ Fixed ${fixed}, ❌ Failed ${failed}`);
     }
-    if (window.notifyDataChanged) window.notifyDataChanged();
+    if (typeof window.notifyDataChanged === 'function') window.notifyDataChanged();
     renderPreview();
   };
 
