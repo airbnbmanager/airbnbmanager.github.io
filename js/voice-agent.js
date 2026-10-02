@@ -480,126 +480,102 @@ Remember: Your goal is to make guests fall in love with Unique Haven Homes and g
     el.scrollTop = el.scrollHeight;
   }
 
-  // ── 8. START CONVERSATION ──────────────────────────────────────────
+  // ── 8. START CONVERSATION (Powered by Sarvam AI Bulbul + Nisha Engine) ──
+  let _isActiveVoiceSession = false;
+
   async function startConversation() {
     const panel = document.getElementById('uhh-voice-panel');
     if (panel) panel.style.display = 'block';
 
-    setStatus('connecting', '⏳ Connecting to Nisha…');
+    if (window.nishaAI) {
+      window.nishaAI.unlockAudio();
+    }
+
+    _isActiveVoiceSession = true;
+    setStatus('connecting', '⏳ Nisha se connect ho rahe hain…');
 
     try {
-      // Request microphone permission
+      // Request mic permission
       await navigator.mediaDevices.getUserMedia({ audio: true });
     } catch (_) {
-      setStatus('error', '🎙️ Microphone access denied');
+      setStatus('error', '🎙️ Microphone permission required');
       const waveArea = document.getElementById('uhh-wave-area');
-      if (waveArea) waveArea.innerHTML = '<span style="font-size:12px;color:#ef4444;">Please allow microphone to use voice chat</span>';
+      if (waveArea) {
+        waveArea.innerHTML = '<span style="font-size:12px;color:#ef4444;">Please allow microphone access in your browser</span>';
+      }
       return;
     }
 
-    try {
-      // Fetch live rates for prompt injection
-      const rates = await getRates();
-      const systemPrompt = buildSystemPrompt(rates);
+    // Pre-fetch live rates
+    await getRates();
 
-      // Dynamically import ElevenLabs client SDK
-      const { Conversation } = await import('https://esm.sh/@elevenlabs/client@latest');
+    const welcomeMsg = 'Namaste! Main Nisha hoon — The Unique Haven Homes Lucknow ki AI concierge. Lucknow me luxury 3BHK flat ya grand private villa booking ke baare me pooch sakte hain. Main aapki kya madad kar sakti hoon?';
 
-      _conversation = await Conversation.startSession({
-        agentId: AGENT_ID,
+    appendTranscript('agent', welcomeMsg);
 
-        // Override system prompt with live rates
-        overrides: {
-          agent: {
-            prompt: { prompt: systemPrompt },
-            firstMessage: 'Namaste! Main Nisha hoon — Unique Haven Homes ki AI concierge. Kya main aapki koi madad kar sakti hoon? Kisi property ke baare mein jaanna chahte hain ya koi sawaal hai?'
-          }
-        },
+    const speakAndListen = async (textToSpeak) => {
+      if (!_isActiveVoiceSession) return;
+      setStatus('speaking', '🔊 Nisha is speaking…');
 
-        // ── CLIENT TOOLS ──────────────────────────────────────────
-        clientTools: {
+      const onDone = () => {
+        if (!_isActiveVoiceSession) return;
+        listenToGuest();
+      };
 
-          // Tool 1: Capture lead (name + phone + property)
-          capture_lead: async (params) => {
-            console.log('[Nisha] capture_lead called:', params);
-            const { name, phone, interested_property, notes } = params || {};
-            const result = await saveLead({ name, phone, interested_property, notes });
-            return JSON.stringify(result);
-          },
-
-          // Tool 2: Get freshest rates on demand
-          get_property_rates: async () => {
-            _cachedRates = null; // Force fresh fetch
-            const freshRates = await getRates();
-            const rateList = freshRates.map(r =>
-              `${r.property_name}: ₹${Number(r.base_price).toLocaleString('en-IN')}/night (max ${r.max_guests} guests)`
-            ).join(', ');
-            return JSON.stringify({ rates: rateList, updated: new Date().toLocaleTimeString('en-IN') });
-          }
-        },
-
-        // ── LIFECYCLE EVENTS ──────────────────────────────────────
-        onConnect: () => {
-          console.log('[Nisha] Connected');
-          setStatus('listening', '🎙️ Nisha is listening…');
-        },
-
-        onDisconnect: () => {
-          console.log('[Nisha] Disconnected');
-          _conversation = null;
-          setStatus('idle', '🎙️ Talk to Nisha');
-          const endBtn = document.getElementById('uhh-end-btn');
-          if (endBtn) endBtn.style.display = 'none';
-        },
-
-        onModeChange: ({ mode }) => {
-          if (mode.mode === 'speaking') {
-            setStatus('speaking', '🔊 Nisha is speaking…');
-          } else if (mode.mode === 'listening') {
-            setStatus('listening', '🎙️ Listening…');
-          } else {
-            setStatus('listening', '🎙️ Active…');
-          }
-        },
-
-        onMessage: ({ message, source }) => {
-          appendTranscript(source === 'user' ? 'user' : 'agent', message);
-        },
-
-        onError: (msg) => {
-          console.error('[Nisha] Error:', msg);
-          setStatus('error', '⚠️ Connection error');
-        }
-      });
-
-    } catch (err) {
-      console.warn('[Nisha Voice] Start session notice:', err.message);
-      setStatus('error', '⚠️ Voice offline — use Chat');
-      const waveArea = document.getElementById('uhh-wave-area');
-      if (waveArea) {
-        waveArea.innerHTML = `
-          <div style="font-size:12px;color:#f0f2f7;line-height:1.5;margin-bottom:10px;">
-            🎙️ Voice server currently busy or token limit reached.<br/>
-            Aap turant hamare <strong>Smart Text Chat</strong> ya <strong>WhatsApp</strong> se sawaal pooch sakte hain!
-          </div>
-          <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;">
-            <button onclick="if(window.UHH_ChatWidget){window.UHH_ChatWidget.open();const vp=document.getElementById('uhh-voice-panel');if(vp)vp.style.display='none';}" style="background:#22c55e;color:#000;border:none;padding:7px 12px;border-radius:8px;font-size:11.5px;font-weight:700;cursor:pointer;">
-              💬 Open Text Chat
-            </button>
-            <a href="https://wa.me/${ADMIN_WA}?text=Namaste! I want details about booking a property at Unique Haven Homes." target="_blank" style="background:#25D366;color:#000;text-decoration:none;padding:7px 12px;border-radius:8px;font-size:11.5px;font-weight:700;display:inline-flex;align-items:center;gap:4px;">
-              📲 WhatsApp Host
-            </a>
-          </div>
-        `;
+      if (window.nishaAI) {
+        await window.nishaAI.speak(textToSpeak, onDone);
+      } else {
+        setTimeout(onDone, 3000);
       }
-    }
+    };
+
+    const listenToGuest = () => {
+      if (!_isActiveVoiceSession) return;
+      setStatus('listening', '🔴 Listening… (Bolna shuru karein)');
+
+      if (!window.nishaAI) return;
+
+      window.nishaAI.startListening(async (transcript) => {
+        if (!_isActiveVoiceSession) return;
+        if (!transcript || !transcript.trim()) {
+          listenToGuest();
+          return;
+        }
+
+        appendTranscript('user', transcript);
+        setStatus('connecting', '⏳ Thinking…');
+
+        // Check for phone number for lead capture
+        const phoneMatch = transcript.match(/(\+?\d{1,4}[-.\s]?)?([6-9]\d{9})/);
+        if (phoneMatch) {
+          saveLead({ name: 'Voice Guest', phone: phoneMatch[2], interested_property: transcript });
+        }
+
+        const reply = await window.nishaAI.sendMessage(transcript);
+        if (!_isActiveVoiceSession) return;
+
+        appendTranscript('agent', reply);
+        await speakAndListen(reply);
+      }, (err) => {
+        if (!_isActiveVoiceSession) return;
+        console.warn('[Nisha Voice] Listening status:', err);
+        setTimeout(() => {
+          if (_isActiveVoiceSession && _status !== 'speaking') {
+            listenToGuest();
+          }
+        }, 1500);
+      });
+    };
+
+    await speakAndListen(welcomeMsg);
   }
 
   // ── 9. END CONVERSATION ────────────────────────────────────────────
   async function endConversation() {
-    if (_conversation) {
-      try { await _conversation.endSession(); } catch (_) {}
-      _conversation = null;
+    _isActiveVoiceSession = false;
+    if (window.nishaAI) {
+      window.nishaAI.stopSpeaking();
+      window.nishaAI.stopListening();
     }
     setStatus('idle', '🎙️ Talk to Nisha');
     const panel = document.getElementById('uhh-voice-panel');
@@ -608,7 +584,7 @@ Remember: Your goal is to make guests fall in love with Unique Haven Homes and g
 
   // ── 10. TOGGLE ─────────────────────────────────────────────────────
   function toggleConversation() {
-    if (_conversation) {
+    if (_isActiveVoiceSession) {
       endConversation();
     } else {
       startConversation();
@@ -618,7 +594,6 @@ Remember: Your goal is to make guests fall in love with Unique Haven Homes and g
   // ── 11. BOOT ───────────────────────────────────────────────────────
   function boot() {
     createVoiceUI();
-    // Pre-fetch rates silently so session starts faster
     getRates().catch(() => {});
   }
 
@@ -628,7 +603,8 @@ Remember: Your goal is to make guests fall in love with Unique Haven Homes and g
     boot();
   }
 
-  // Expose for debugging
+  // Expose globally
   window.UHH_VoiceAgent = { start: startConversation, end: endConversation, getRates };
 
 })();
+

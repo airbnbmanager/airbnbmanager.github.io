@@ -654,14 +654,15 @@ Whenever guest asks for dates or rates, warmly recommend the best stay and ask f
               if (onEnd) onEnd();
             };
 
-            audio.onerror = () => {
+            try {
+              await audio.play();
+              return true;
+            } catch (playErr) {
+              console.warn('[NishaAI] Audio play blocked or cancelled:', playErr);
+              if (this.currentAudio === audio) this.currentAudio = null;
               this.isSpeaking = false;
-              if (this.onStateChange && !this.isListening) this.onStateChange('idle');
-              if (onEnd) onEnd();
-            };
-
-            await audio.play();
-            return true;
+              return false;
+            }
           }
         } else {
           const errData = await res.json().catch(() => ({}));
