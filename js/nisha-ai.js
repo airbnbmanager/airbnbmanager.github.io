@@ -269,6 +269,26 @@ When a guest asks for availability, rates, or expresses interest in staying:
 4. Once you have their phone number, confirm warmly that the team will reach out immediately.`;
     }
 
+    // ── Validate API Key ──
+    async validateApiKey(keyToTest) {
+      const k = keyToTest || this.apiKey;
+      if (!k) return { valid: false, message: 'No API key provided' };
+      try {
+        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${k}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ contents: [{ role: 'user', parts: [{ text: 'ping' }] }] })
+        });
+        const data = await res.json();
+        if (res.ok && data.candidates?.[0]?.content?.parts?.[0]?.text) {
+          return { valid: true, message: 'API key is active and responding!' };
+        }
+        return { valid: false, message: data.error?.message || `Status ${res.status}` };
+      } catch (e) {
+        return { valid: false, message: e.message };
+      }
+    }
+
     // ── 5. Generate Gemini Chat Reply ──
     async sendMessage(userMessage) {
       if (!userMessage || !userMessage.trim()) return '';
@@ -287,7 +307,7 @@ When a guest asks for availability, rates, or expresses interest in staying:
       const recentHistory = this.conversationHistory.slice(-12);
 
       const payload = {
-        system_instruction: {
+        systemInstruction: {
           parts: [{ text: systemInstruction }]
         },
         contents: recentHistory,
@@ -298,41 +318,50 @@ When a guest asks for availability, rates, or expresses interest in staying:
         }
       };
 
-      try {
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${this.apiKey}`;
-        const response = await fetch(url, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
-        });
+      const modelsToTry = ['gemini-1.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash-latest'];
+      let lastError = null;
 
-        if (!response.ok) {
-          const errData = await response.json().catch(() => ({}));
-          throw new Error(errData.error?.message || `Gemini API returned status ${response.status}`);
-        }
-
-        const data = await response.json();
-        const replyText = data.candidates?.[0]?.content?.parts?.[0]?.text || 'Bilkul ji, aapki request note ho gayi hai.';
-
-        // Save AI reply to history
-        this.conversationHistory.push({ role: 'model', parts: [{ text: replyText }] });
-
-        // Auto-extract phone number from user message for lead capture
-        const phoneMatch = userMessage.match(/(\+?\d{1,4}[-.\s]?)?([6-9]\d{9})/);
-        if (phoneMatch) {
-          const cleanPhone = phoneMatch[2];
-          this.captureLead({
-            name: 'Web Guest',
-            phone: cleanPhone,
-            notes: userMessage
+      for (const model of modelsToTry) {
+        try {
+          const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${this.apiKey}`;
+          const response = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
           });
-        }
 
-        return replyText;
-      } catch (err) {
-        console.error('[NishaAI] Chat generation error:', err);
-        return `Namaste! Maaf kijiye abhi network me thoda issue hai. Aap direct hamare host Mr. Shahanshah se +91 94500 55554 par baat kar sakte hain.`;
+          if (!response.ok) {
+            const errData = await response.json().catch(() => ({}));
+            throw new Error(errData.error?.message || `Status ${response.status}`);
+          }
+
+          const data = await response.json();
+          const replyText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+          if (replyText) {
+            // Save AI reply to history
+            this.conversationHistory.push({ role: 'model', parts: [{ text: replyText }] });
+
+            // Auto-extract phone number from user message for lead capture
+            const phoneMatch = userMessage.match(/(\+?\d{1,4}[-.\s]?)?([6-9]\d{9})/);
+            if (phoneMatch) {
+              const cleanPhone = phoneMatch[2];
+              this.captureLead({
+                name: 'Web Guest',
+                phone: cleanPhone,
+                notes: userMessage
+              });
+            }
+
+            return replyText;
+          }
+        } catch (err) {
+          lastError = err;
+          console.warn(`[NishaAI] Model ${model} failed, trying next:`, err.message);
+        }
       }
+
+      console.error('[NishaAI] All models failed:', lastError);
+      return `⚠️ [Google AI Notice]: ${lastError?.message || 'Connection failed'}. (Please verify your Gemini key is enabled in Google AI Studio).`;
     }
 
     // ── 6. Speech-to-Text (STT) via Web Speech API (Free & Unlimited) ──
