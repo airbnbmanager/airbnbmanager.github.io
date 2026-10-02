@@ -628,6 +628,134 @@
       }
     }
 
+    // 28B. COOK, CHEF & HOME-STYLE FOOD
+    if (/cook|chef|khana banane|meals|breakfast|nashta|lunch|dinner|maid for cooking|ghar ka khana/i.test(msg)) {
+      return {
+        text: `👨‍🍳 **Cook / Chef & Meal Facilities:**\n\n` +
+              `• **Cook on Call:** Aapki demand par hum trusted local home cook/chef arrange karwa sakte hain (prior notice zaroori hai, nominal charges direct cook ko pay karne hote hain).\n` +
+              `• **Self-Cooking in Full Modular Kitchen:** Har flat aur villa me gas stove, microwave, refrigerator, RO water purifier, cookware aur crockery bilkul free provide ki jaati hai.\n` +
+              `• **Instant Delivery:** Swiggy, Zomato, Blinkit, Zepto, aur Instamart se 10 se 15 minute me grocery aur Lucknow ke famous restaurants (Tunday, Dastarkhwan, Royal Cafe) se khana deliver ho jaata hai!`,
+        quickReplies: ['Kitchen amenities? 🍳', 'Rates list 💰', 'Gomti Grand Villa 🏡', 'Book karna hai 📅']
+      };
+    }
+
+    // 28C. PHOTOSHOOT, PRE-WEDDING & COMMERCIAL SHOOTS
+    if (/photoshoot|shoot|pre wedding|pre-wedding|reels|video shoot|camera|shooting|model shoot/i.test(msg)) {
+      return {
+        text: `📸 **Photoshoots & Pre-Wedding Shoots:**\n\n` +
+              `• **Permitted Venues:** Hamari private villas shoots ke liye Lucknow me sabse popular aur Instagram-aesthetic hain:\n` +
+              `  🌸 **The Pink House** — Gorgeous pastel aesthetic interiors & terrace garden\n` +
+              `  👑 **Royal White House** — Palatial white royal architecture & sprawling lawn\n` +
+              `  🏡 **Gomti Grand Villa** — Luxury standalone villa with landscaped green lawn\n` +
+              `  ✨ **Starlight Blue PentHouse** — Night skyline view open terrace\n\n` +
+              `• Commercial shoot permission, camera crew equipment aur day slots ke special packages ke liye host se WhatsApp par coordinate karein.`,
+        actions: [{ label: '📲 Coordinate Shoot on WhatsApp', url: `https://wa.me/${ADMIN_WA}?text=Namaste! I want to inquire about a pre-wedding/photoshoot at Unique Haven Homes.` }],
+        quickReplies: ['The Pink House ₹9k', 'Royal White House ₹12k', 'Rates list 💰']
+      };
+    }
+
+    // 28D. AIRPORT & RAILWAY PICKUP / CAB & TRAVEL
+    if (/airport pickup|railway pickup|taxi|cab|ola|uber|drop|station pickup|travel assistance|gaadi chahiye/i.test(msg)) {
+      return {
+        text: `🚕 **Airport & Railway Travel Assistance:**\n\n` +
+              `• **Easy Cab Availability:** Ola, Uber aur inDrive hamari sabhi properties par 3–5 minute me available ho jaate hain.\n` +
+              `• **Airport Distance:** CCS International Airport (Amausi) se sirf **20–25 minutes** Shaheed Path elevated expressway ke zariye.\n` +
+              `• **Railway Stations:** Charbagh Station & Gomti Nagar Terminal se 15–20 minutes.\n` +
+              `• **Private Cab On Request:** Agar aapko dedicated luxury sedan/SUV pickup ya drop chahiye, to hum verified driver arrange karwa dete hain.`,
+        actions: [{ label: '📲 Request Cab / Travel Help', url: `https://wa.me/${ADMIN_WA}?text=Namaste! I need taxi/pickup assistance for my stay at Unique Haven Homes.` }],
+        quickReplies: ['Lulu Mall distance? 📍', 'Check-in time? 🕐', 'Book karna hai 📅']
+      };
+    }
+
+    // 28E. MEDANTA HOSPITAL & MEDICAL PATIENT STAYS
+    if (/medanta|hospital|doctor|patient|medical|treatment|apollo|sahara|sgpgi/i.test(msg)) {
+      return {
+        text: `🏥 **Medanta Hospital & Medical Recovery Stays:**\n\n` +
+              `• **Super Close Distance:** Hamari villas aur serviced stays Medanta Hospital Lucknow se sirf **5 minutes ki doori** par hain!\n` +
+              `• **Peaceful & Sanitized:** 100% quiet VIP colony, deeply sanitized peaceful environment jo patient recovery aur family stay ke liye best hai.\n` +
+              `• **Home Cooking:** Patient ke specific diet food ke liye fully equipped kitchen (Gas, RO water, Microwave, Fridge).\n` +
+              `• **Subsidized Long Stays:** Medical treatments ke liye special weekly aur monthly discounted rates provide kiye jaate hain.`,
+        actions: [{ label: '📲 Inquire Medanta Stay Package', url: `https://wa.me/${ADMIN_WA}?text=Namaste! We need a clean homestay near Medanta Hospital for medical purpose.` }],
+        quickReplies: ['Gomti Grand Villa ₹8k', '3BHK Flat ₹4.5k', 'Kitchen facility? 🍳']
+      };
+    }
+
+    // 28F. EKANA STADIUM & IPL / MATCH / EVENTS
+    if (/ekana|stadium|ipl|cricket|match|concert|palassio/i.test(msg)) {
+      return {
+        text: `🏏 **Ekana Stadium & Match Day Stays:**\n\n` +
+              `• **Prime Location:** Hamari luxury properties Ekana Cricket Stadium aur Phoenix Palassio se sirf **7 minutes door** hain (Shaheed Path road par direct access)!\n` +
+              `• Match ya concert ke baad bina kisi traffic hassle ke aap 5-7 minutes me apne luxurious private stay me relax kar sakte hain.\n` +
+              `• Match dates par demand high rehti hai, isliye dates advance token se lock karein.`,
+        actions: [{ label: '📲 Book Near Ekana Stadium', url: `https://wa.me/${ADMIN_WA}?text=Namaste! I want to book stay near Ekana Stadium.` }],
+        quickReplies: ['Rates list 💰', 'Gomti Grand Villa ₹8k', 'Book now 📅']
+      };
+    }
+
+    // 28G. SENIOR CITIZENS, LIFT, GROUND FLOOR & ACCESSIBILITY
+    if (/lift|elevator|senior citizen|elderly|bujurg|wheelchair|ground floor|stairs|seedhi/i.test(msg)) {
+      return {
+        text: `🛗 **Accessibility & Senior Citizens Comfort:**\n\n` +
+              `• **Ground Floor Villas:** Hamari private standalone villas (**Gomti Grand Villa**, **Celebrity Garden**) ground floor access ke saath aati hain — zero stairs, easy wheelchair movement aur senior citizens ke liye 100% comfortable.\n` +
+              `• **Automatic Lifts:** Hamare 3BHK serviced apartments high-speed automatic elevators ke saath aate hain.\n` +
+              `• Hum elderly guests ke aaram aur silent environment ka vishesh dhyan rakhte hain.`,
+        quickReplies: ['Gomti Grand Villa ₹8k', 'Rates list 💰', 'Book karna hai 📅']
+      };
+    }
+
+    // 28H. LAUNDRY, WASHING MACHINE & IRON
+    if (/washing machine|laundry|dhona|kapde|iron|press|clothes/i.test(msg)) {
+      return {
+        text: `🧺 **Laundry & Washing Facilities:**\n\n` +
+              `• **Washing Machine:** Hamari villas aur serviced flats me automatic washing machine aur laundry drying rack available hai.\n` +
+              `• **Iron & Board:** Har stay me electric iron (press) aur ironing board complimentary provide kiya jata hai.\n` +
+              `• Nearby professional dry-cleaning & express laundry service bhi available hai jo same day deliver karti hai.`,
+        quickReplies: ['Cleaning policy? 🧼', 'Kitchen amenities? 🍳', 'Book now 📅']
+      };
+    }
+
+    // 28I. SWIMMING POOL / WATER AMENITIES CLARIFICATION
+    if (/pool|swimming|jacuzzi|water pool/i.test(msg)) {
+      return {
+        text: `🏊 **Pool & Open Space Information:**\n\n` +
+              `• Hamare paas **private sprawling green lawns**, lush gardens aur **open-sky rooftop penthouse terraces** hain.\n` +
+              `• Hamare paas open swimming pool nahi hai ji, lekin outdoor relax karne ke liye private lawns, sit-out gazebos aur terrace lounge available hain.\n` +
+              `• Agar aapko private villa with lawn dekhna hai, to **Gomti Grand Villa** aur **Celebrity Garden** best options hain!`,
+        quickReplies: ['Gomti Grand Villa ₹8k', 'Celebrity Garden ₹10k', 'Rates list 💰']
+      };
+    }
+
+    // 28J. LUCKNOW TOURISM, SIGHTSEEING & FAMOUS FOOD
+    if (/lucknow ghumna|sightseeing|tourist|tourism|imambara|rumi darwaza|hazratganj|tunday|kababi|chikan|shopping|kya dekhe/i.test(msg)) {
+      return {
+        text: `🕌 **Lucknow City Guide & Must-Visit Spots:**\n\n` +
+              `📍 **Top Heritage Attractions:**\n` +
+              `• Bara Imambara & Bhulbhulaiya, Chota Imambara, Rumi Darwaza, Clock Tower (Old Lucknow)\n` +
+              `• The Residency & British Heritage Walk\n` +
+              `• Ambedkar Memorial Park & Gomti Riverfront (Sirf 10 mins from Gomti Nagar)\n\n` +
+              `🍽️ **Famous Lucknowi Food:**\n` +
+              `• Tunday Kababi (Aminabad & Chowk) — Galawati Kabab\n` +
+              `• Dastarkhwan & Naushijaan — Mughlai Biryani & Korma\n` +
+              `• Royal Cafe (Hazratganj) — Famous Basket Chaat\n` +
+              `• Sharma Chai (Hazratganj) — Bun Makkhan & Samosa\n\n` +
+              `🛍️ **Chikankari Shopping:**\n` +
+              `• Hazratganj, Janpath Market aur Chowk me best authentic Lakhnawi Chikan work milta hai!`,
+        quickReplies: ['Gomti Nagar Flats ₹4.5k', 'Villas rates 💰', 'Book karna hai 📅']
+      };
+    }
+
+    // 28K. SOLO FEMALE & GIRLS GROUP SAFETY
+    if (/solo female|girls|women|ladies|aurat|ladkiya|safe for women|security/i.test(msg)) {
+      return {
+        text: `🛡️ **100% Safe for Solo Female & Women Travelers:**\n\n` +
+              `• **VIP Gated Colonies:** Hamari sabhi properties safe, affluent VIP neighborhoods (Gomti Nagar & Sushant Golf City) me hain jahan 24/7 security patrolling hoti hai.\n` +
+              `• **Zero Interference:** Complete privacy, secure locks, exterior CCTV monitoring.\n` +
+              `• **24/7 Support:** Hamari team aur co-founder Mr. Shahanshah 24 hours kisi bhi zaroorat ke liye available rehte hain.\n` +
+              `• Dozens of solo female executives, doctors, and women groups stay with us every month with 5★ ratings!`,
+        quickReplies: ['Rates list 💰', '3BHK Flat ₹4,500', 'Book now 📅']
+      };
+    }
+
     // 29. WEBSITE & SOFTWARE / HOW THE PLATFORM WORKS
     if (/software|crm|system|website|platform|tech|sync|app/i.test(msg)) {
       return {
@@ -896,10 +1024,11 @@
         padding: 8px 14px; border-radius: 10px; font-size: 12.5px;
         font-weight: 700; transition: all 0.15s; border: none; cursor: pointer;
       }
-      .uhh-msg-action-btn:hover { background: #16a34a; transform: translateY(-1px); }
       .uhh-quick-replies {
-        display: flex; flex-wrap: wrap; gap: 6px; padding: 8px 12px 0;
+        display: flex; flex-wrap: nowrap; overflow-x: auto; gap: 6px; padding: 8px 12px;
+        scrollbar-width: none; -webkit-overflow-scrolling: touch;
       }
+      .uhh-quick-replies::-webkit-scrollbar { display: none; }
       .uhh-qr {
         background: rgba(34,197,94,0.1);
         border: 1px solid rgba(34,197,94,0.25);
@@ -1154,8 +1283,18 @@
     // Send greeting after short delay
     setTimeout(() => {
       addBotMessage({
-        text: 'Namaste! 🙏 Main Nisha hoon — Unique Haven Homes ki AI concierge.\n\nMain Lucknow me best luxury flats, grand private villas, rates aur direct booking me aapki madad kar sakti hoon!\n\nAap kya dekhna chahte hain?',
-        quickReplies: ['Rates dikhao 💰', 'Gomti Grand Villa ₹8k', '6 logon ke liye 👥', 'Book karna hai 📅']
+        text: 'Namaste! 🙏 Main Nisha hoon — Unique Haven Homes ki AI concierge.\n\nMain Lucknow me best luxury 3BHK flats, grand private villas, rates aur direct booking me aapki madad kar sakti hoon!\n\nAap neeche diye popular options me se choose karein ya apna sawaal bol kar / type kar poochhein:',
+        quickReplies: [
+          'Rates List 💰',
+          'Gomti Grand Villa ₹8k 🏡',
+          '3BHK Flats ₹4.5k 🏢',
+          'Couple Friendly? ❤️',
+          'Near Lulu & Medanta 📍',
+          'Kitchen & Cook? 🍳',
+          'Photoshoot Allowed? 📸',
+          'Check-in / Out 🕐',
+          'Book Karna Hai 📅'
+        ]
       });
     }, 400);
 

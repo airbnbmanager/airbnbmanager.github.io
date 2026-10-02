@@ -267,6 +267,41 @@
         return `Check-in timing dopahar **12:00 PM** se hai aur check-out subah **11:00 AM** hai ji. Early check-in availability ke basis par bilkul free arrange kar di jaati hai. Smoking balcony aur open terrace par allowed hai, rooms ke andar smoking prohibited hai.`;
       }
 
+      // 7B. Cook / Meals & Kitchen Facilities
+      if (/cook|chef|khana|meals|breakfast|nashta|lunch|dinner/i.test(q)) {
+        return `Har flat aur villa me fully equipped modular kitchen bilkul free milta hai ji! Iske alawa agar aapko home cook ya chef chahiye, toh advance notice par trusted cook provide karwa diya jata hai. Saath hi Swiggy aur Zomato se 10 se 15 minute me Lucknow ke best restaurants se food deliver ho jata hai!`;
+      }
+
+      // 7C. Photoshoots & Pre-Wedding
+      if (/photoshoot|shoot|pre wedding|reels|camera/i.test(q)) {
+        return `Haanji! The Pink House, Royal White House aur Gomti Grand Villa pre-wedding aur aesthetic video shoots ke liye Lucknow me best locations hain. Shoot timing aur equipment permissions ke liye aap WhatsApp (+91 94500 55554) par coordinate kar sakte hain!`;
+      }
+
+      // 7D. Medanta Hospital & Patient Stays
+      if (/medanta|hospital|doctor|patient|medical|treatment/i.test(q)) {
+        return `Hamari villas aur serviced stays Medanta Hospital Lucknow se sirf 5 minutes door hain ji. Yeh 100% sanitized, quiet aur peaceful hain jahan patient diet ke hisab se kitchen me khana banaya ja sakta hai. Long stays ke liye special discounted rates bhi available hain!`;
+      }
+
+      // 7E. Ekana Stadium / Match Day
+      if (/ekana|stadium|cricket|ipl|match|concert/i.test(q)) {
+        return `Ekana Stadium aur Phoenix Palassio se hamari properties sirf 7 minutes door Shaheed Path road par hain ji. Match aur events ke dino me direct booking se aap traffic aur high hotel rates se bach sakte hain!`;
+      }
+
+      // 7F. Senior Citizens & Lift / Ground Floor
+      if (/lift|elevator|senior|elderly|bujurg|wheelchair|ground floor/i.test(q)) {
+        return `Senior citizens aur elderly guests ke liye Gomti Grand Villa aur Celebrity Garden ground floor standalone properties hain (zero stairs & wheelchair friendly). Baaki apartments me modern automatic lifts available hain!`;
+      }
+
+      // 7G. Laundry & Washing Machine
+      if (/washing machine|laundry|dhona|kapde|iron|press/i.test(q)) {
+        return `Haanji! Har villa aur serviced stay me automatic washing machine, clothes drying stand aur iron (press) complimentary provide kiya jata hai. Express laundry service bhi nearby available hai!`;
+      }
+
+      // 7H. Lucknow Tourism & Sightseeing
+      if (/lucknow ghumna|sightseeing|tourist|imambara|rumi darwaza|tunday|hazratganj/i.test(q)) {
+        return `Lucknow me Bara Imambara, Bhulbhulaiya, Rumi Darwaza, Ambedkar Memorial Park aur Gomti Riverfront must-visit places hain! Aur food ke liye Tunday Kababi, Dastarkhwan aur Royal Cafe ki Basket Chaat zaroor try karein!`;
+      }
+
       // 8. Contact Hosts
       if (/contact|phone|call|number|firoz|shahanshah|host|owner/i.test(q)) {
         return `Aap hamare hosts se directly phone ya WhatsApp par baat kar sakte hain:\n\n` +
