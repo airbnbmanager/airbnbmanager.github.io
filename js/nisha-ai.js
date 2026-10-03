@@ -59,22 +59,41 @@
       this.onStateChange = null;
       this.lastAudioUnlocked = false;
       this.currentAudio = null;
+      this.currentAudioUrl = null;
+      this._speakToken = 0;
 
       this.initVoiceSynthesis();
     }
 
     // ── Unlock Audio & Speech Synthesis on User Gesture ──
     unlockAudio() {
-      if (this.lastAudioUnlocked || !this.synthesis) return;
+      if (this.lastAudioUnlocked) return;
       try {
-        const silent = new SpeechSynthesisUtterance('');
-        silent.volume = 0;
-        this.synthesis.speak(silent);
-        if (typeof this.synthesis.resume === 'function') {
-          this.synthesis.resume();
+        const AudioCtx = typeof window !== 'undefined' && (window.AudioContext || window.webkitAudioContext);
+        if (AudioCtx) {
+          if (!this.audioCtx) this.audioCtx = new AudioCtx();
+          if (this.audioCtx.state === 'suspended') {
+            this.audioCtx.resume();
+          }
+          const buf = this.audioCtx.createBuffer(1, 1, 22050);
+          const src = this.audioCtx.createBufferSource();
+          src.buffer = buf;
+          src.connect(this.audioCtx.destination);
+          src.start(0);
         }
-        this.lastAudioUnlocked = true;
       } catch (_) {}
+
+      if (this.synthesis) {
+        try {
+          const silent = new SpeechSynthesisUtterance(' ');
+          silent.volume = 0;
+          this.synthesis.speak(silent);
+          if (typeof this.synthesis.resume === 'function') {
+            this.synthesis.resume();
+          }
+        } catch (_) {}
+      }
+      this.lastAudioUnlocked = true;
     }
 
     // ── API Key Management ──
@@ -104,12 +123,16 @@
 
     // ── Sarvam AI Key Management (Ultra-Realistic Neural Hindi Voice) ──
     loadSarvamApiKey() {
-      return (
+      const defaultKey = 'sk_orfqm7wg_SQ7yNgrDCzW7R1lEi1i94sY6';
+      const stored = (
         (typeof window !== 'undefined' && window.SARVAM_API_KEY) ||
         (typeof localStorage !== 'undefined' && localStorage.getItem(SARVAM_KEY_STORAGE)) ||
-        (typeof sessionStorage !== 'undefined' && sessionStorage.getItem(SARVAM_KEY_STORAGE)) ||
-        'sk_orfqm7wg_SQ7yNgrDCzW7R1lEi1i94sY6'
+        (typeof sessionStorage !== 'undefined' && sessionStorage.getItem(SARVAM_KEY_STORAGE))
       );
+      if (stored && typeof stored === 'string' && stored.trim().startsWith('sk_')) {
+        return stored.trim();
+      }
+      return defaultKey;
     }
 
     setSarvamApiKey(key) {
@@ -221,7 +244,7 @@
       }
 
       // 1. Property Count / Overview
-      if (/kitn[ei]|count|overview|all|kaha|total|properties|options/i.test(q) && /flat|villa|property|homestay|room/i.test(q)) {
+      if (/(kitn[ei]|count|overview|all|kaha|total|properties|options|कितने|कितनी|कुल|सब|लिस्ट)/i.test(q) && /(flat|villa|property|homestay|room|stay|फ्लैट|विला|रूम|कमरे|होमस्टे)/i.test(q)) {
         return `Namaste ji! Lucknow me hamare pass total **17 premium homestays & private villas** hain:\n\n` +
           `• **Gomti Nagar Prime (Vikalp & Vishesh Khand):** 8 luxury 3BHK flats (₹3,500/night se start) aur Starlight Penthouse.\n` +
           `• **Private Villas:** Royal White House (up to 18 guests), Gomti Grand Villa, Pink House, aur Celebrity Garden.\n` +
@@ -229,17 +252,17 @@
       }
 
       // 2. Gomti Nagar Rates & 3BHK Flats
-      if (/gomti nagar|flat|3bhk|rate|price|kiraya|kitna hai|cost|budget/i.test(q) && !/villa|white house|celebrity/i.test(q)) {
+      if (/(gomti nagar|गोमती नगर|vikalp|vishesh|3bhk|3 bhk|flat|फ्लैट|रेट|किराया|कीमत|प्राइस|खर्च|rate|price|kiraya|kitna hai|cost|budget)/i.test(q) && !/(villa|white house|celebrity|विला|वाइट हाउस)/i.test(q)) {
         return `Gomti Nagar (Vikalp & Vishesh Khand) me hamare fully furnished 3BHK luxury flats ka direct website rate **₹3,500 se ₹4,500 per night** hai ji! Isme 3 AC bedrooms, hall, dining area aur gas/RO ke sath modular kitchen shamil hai. Airbnb se direct 15% discount milta hai!`;
       }
 
       // 3. Couples & Safety Policy
-      if (/couple|unmarried|girlfriend|boyfriend|safe|id|rules|restriction/i.test(q)) {
+      if (/(couple|unmarried|girlfriend|boyfriend|safe|id|rules|restriction|कपल|शादीशुदा|सुरक्षित|नियम|आईडी|पहचान पत्र)/i.test(q)) {
         return `Ji bilkul! Hamari sabhi properties **100% Couple-Friendly aur safe** hain. Married aur unmarried couples dono ka swagat hai. Bas check-in ke time Govt Photo ID (jaise Aadhaar Card, Driving License ya Passport) dikhana zaroori hota hai. Full privacy aur respect guaranteed hai!`;
       }
 
       // 4. Big Villas / Weddings / 10 to 18 Guests
-      if (/villa|badi|party|wedding|shaadi|gathering|10|12|15|18|20|group/i.test(q)) {
+      if (/(villa|badi|party|wedding|shaadi|gathering|10|12|15|18|20|group|विल्ला|विला|शादी|पार्टी|बड़ी|बड़ा|ग्रुप|मेहमान)/i.test(q)) {
         return `Badhe groups aur family get-together ke liye hamare pass 2 grand private villas hain ji:\n\n` +
           `1️⃣ **Royal White House:** ₹12,000/night (18 guests tak ke liye grand palace villa).\n` +
           `2️⃣ **Gomti Grand Villa:** ₹8,000/night (10 guests tak ke liye private villa with lawn).\n` +
@@ -248,12 +271,12 @@
       }
 
       // 5. Kitchen & Food / Cooking
-      if (/kitchen|rasoi|cook|bartan|gas|swiggy|zomato|khana|refrigerator|fridge/i.test(q)) {
+      if (/(kitchen|rasoi|cook|bartan|gas|swiggy|zomato|khana|refrigerator|fridge|किचन|रसोई|खाना|कुक|गैस|बर्तन|फ्रिज)/i.test(q)) {
         return `Haanji! Har flat aur villa me **fully equipped modular kitchen** hai jisme gas stove, RO water purifier, microwave oven, refrigerator aur basic cooking bartan available hain. Saath hi Zomato, Swiggy, Blinkit aur Zepto se 10 se 15 minute me grocery aur khana deliver ho jaata hai!`;
       }
 
       // 6. Locations & Distances (Lulu Mall, Airport, Medanta, Ekana)
-      if (/lulu|airport|station|charbagh|medanta|ekana|palassio|distance|door|location|address/i.test(q)) {
+      if (/(lulu|airport|station|charbagh|medanta|ekana|palassio|distance|door|location|address|लुलु|एयरपोर्ट|स्टेशन|मेदांता|इकाना|दूरी|लोकेशन|रास्ता|पता)/i.test(q)) {
         return `Hamari sabhi properties prime Lucknow locations par hain ji:\n\n` +
           `• **Lulu Mall & Phoenix Palassio:** Sirf 5 minutes door\n` +
           `• **Medanta Hospital:** Sirf 5 minutes door\n` +
@@ -263,55 +286,60 @@
       }
 
       // 7. Check-in / Check-out & Rules
-      if (/check in|check out|timing|early|late|smoke|smoking|drink|alcohol/i.test(q)) {
+      if (/(check.?in|check.?out|timing|early|late|smoke|smoking|drink|alcohol|चेक इन|चेक आउट|टाइम|समय|धूम्रपान|सिगरेट)/i.test(q)) {
         return `Check-in timing dopahar **12:00 PM** se hai aur check-out subah **11:00 AM** hai ji. Early check-in availability ke basis par bilkul free arrange kar di jaati hai. Smoking balcony aur open terrace par allowed hai, rooms ke andar smoking prohibited hai.`;
       }
 
       // 7B. Cook / Meals & Kitchen Facilities
-      if (/cook|chef|khana|meals|breakfast|nashta|lunch|dinner/i.test(q)) {
+      if (/(cook|chef|khana|meals|breakfast|nashta|lunch|dinner|कुक|शेफ|नाश्ता|लंच|डिनर)/i.test(q)) {
         return `Har flat aur villa me fully equipped modular kitchen bilkul free milta hai ji! Iske alawa agar aapko home cook ya chef chahiye, toh advance notice par trusted cook provide karwa diya jata hai. Saath hi Swiggy aur Zomato se 10 se 15 minute me Lucknow ke best restaurants se food deliver ho jata hai!`;
       }
 
       // 7C. Photoshoots & Pre-Wedding
-      if (/photoshoot|shoot|pre wedding|reels|camera/i.test(q)) {
+      if (/(photoshoot|shoot|pre wedding|reels|camera|फोटोशूट|शूट|रील|कैमरा)/i.test(q)) {
         return `Haanji! The Pink House, Royal White House aur Gomti Grand Villa pre-wedding aur aesthetic video shoots ke liye Lucknow me best locations hain. Shoot timing aur equipment permissions ke liye aap WhatsApp (+91 94500 55554) par coordinate kar sakte hain!`;
       }
 
       // 7D. Medanta Hospital & Patient Stays
-      if (/medanta|hospital|doctor|patient|medical|treatment/i.test(q)) {
+      if (/(medanta|hospital|doctor|patient|medical|treatment|मेदांता|अस्पताल|इलाज|मरीज)/i.test(q)) {
         return `Hamari villas aur serviced stays Medanta Hospital Lucknow se sirf 5 minutes door hain ji. Yeh 100% sanitized, quiet aur peaceful hain jahan patient diet ke hisab se kitchen me khana banaya ja sakta hai. Long stays ke liye special discounted rates bhi available hain!`;
       }
 
       // 7E. Ekana Stadium / Match Day
-      if (/ekana|stadium|cricket|ipl|match|concert/i.test(q)) {
+      if (/(ekana|stadium|cricket|ipl|match|concert|इकाना|स्टेडियम|मैच|क्रिकेट)/i.test(q)) {
         return `Ekana Stadium aur Phoenix Palassio se hamari properties sirf 7 minutes door Shaheed Path road par hain ji. Match aur events ke dino me direct booking se aap traffic aur high hotel rates se bach sakte hain!`;
       }
 
       // 7F. Senior Citizens & Lift / Ground Floor
-      if (/lift|elevator|senior|elderly|bujurg|wheelchair|ground floor/i.test(q)) {
+      if (/(lift|elevator|senior|elderly|bujurg|wheelchair|ground floor|लिफ्ट|बुजुर्ग|सीढ़ी)/i.test(q)) {
         return `Senior citizens aur elderly guests ke liye Gomti Grand Villa aur Celebrity Garden ground floor standalone properties hain (zero stairs & wheelchair friendly). Baaki apartments me modern automatic lifts available hain!`;
       }
 
       // 7G. Laundry & Washing Machine
-      if (/washing machine|laundry|dhona|kapde|iron|press/i.test(q)) {
+      if (/(washing machine|laundry|dhona|kapde|iron|press|वॉशिंग मशीन|कपड़े|धुलाई)/i.test(q)) {
         return `Haanji! Har villa aur serviced stay me automatic washing machine, clothes drying stand aur iron (press) complimentary provide kiya jata hai. Express laundry service bhi nearby available hai!`;
       }
 
       // 7H. Lucknow Tourism & Sightseeing
-      if (/lucknow ghumna|sightseeing|tourist|imambara|rumi darwaza|tunday|hazratganj/i.test(q)) {
+      if (/(lucknow ghumna|sightseeing|tourist|imambara|rumi darwaza|tunday|hazratganj|घूमना|इमामबाड़ा|टुंडे)/i.test(q)) {
         return `Lucknow me Bara Imambara, Bhulbhulaiya, Rumi Darwaza, Ambedkar Memorial Park aur Gomti Riverfront must-visit places hain! Aur food ke liye Tunday Kababi, Dastarkhwan aur Royal Cafe ki Basket Chaat zaroor try karein!`;
       }
 
       // 8. Contact Hosts
-      if (/contact|phone|call|number|firoz|shahanshah|host|owner/i.test(q)) {
+      if (/(contact|phone|call|number|firoz|shahanshah|host|owner|फोन|नंबर|कॉल|बात|मालिक|संपर्क)/i.test(q)) {
         return `Aap hamare hosts se directly phone ya WhatsApp par baat kar sakte hain:\n\n` +
           `👑 **Mr. Shahanshah (Founder & Host):** +91 94500 55554\n` +
           `⭐ **Mr. Firoz Khan (Superhost):** +91 82996 00709\n\n` +
           `Dono numbers par 24/7 call aur WhatsApp active hai!`;
       }
 
-      // 9. Greetings
-      if (/^(hi|hello|hey|namaste|pranam|good morning|good evening|kaise ho)/i.test(q)) {
+      // 9. Booking / Availability
+      if (/(book|booking|reserve|chahiye|khali hai|available|बुक|बुकिंग|चाहिए|खाली|कमरा चाहिए|फ्लैट चाहिए)/i.test(q)) {
+        return `Ji bilkul, direct booking ke liye hamare paas dates open hain! Gomti Nagar me 3BHK flat ₹3,500 se aur private villas ₹8,000 se start hain. Aap apni check-in date aur guests count bataiye ya WhatsApp number share karein taaki hum instant photos aur booking link bhej sakein!`;
+      }
+
+      // 10. Greetings
+      if (/^(hi|hello|hey|namaste|pranam|good morning|good evening|kaise ho|नमस्ते|हेलो|हाय|प्रणाम|कैसी हो|सुप्रभात)/i.test(q)) {
         return `Namaste ji! 🙏 Main Nisha hoon — The Unique Haven Homes Lucknow ki AI Concierge. Lucknow me best 3BHK flat ya luxury villa booking ke baare me aap mujhse kuch bhi pooch sakte hain! Aaj main aapki kya madad kar sakti hoon?`;
       }
 
@@ -451,11 +479,22 @@ Whenever guest asks for dates or rates, warmly recommend the best stay and ask f
         const systemInstruction = this.buildSystemInstruction();
 
         this.conversationHistory.push({ role: 'user', parts: [{ text: userMessage }] });
-        const recentHistory = this.conversationHistory.slice(-10);
+        // Build strictly alternating user/model history for Gemini
+        const cleanedHistory = [];
+        let expectedRole = 'user';
+        for (const item of this.conversationHistory.slice(-8)) {
+          if (item.role === expectedRole) {
+            cleanedHistory.push(item);
+            expectedRole = expectedRole === 'user' ? 'model' : 'user';
+          }
+        }
+        if (cleanedHistory.length === 0 || cleanedHistory[cleanedHistory.length - 1].role !== 'user') {
+          cleanedHistory.push({ role: 'user', parts: [{ text: userMessage }] });
+        }
 
         const payload = {
           systemInstruction: { parts: [{ text: systemInstruction }] },
-          contents: recentHistory,
+          contents: cleanedHistory,
           generationConfig: {
             temperature: 0.7,
             maxOutputTokens: 350,
@@ -505,7 +544,7 @@ Whenever guest asks for dates or rates, warmly recommend the best stay and ask f
     }
 
     // ── 7. Speech-to-Text (STT) via Web Speech API ──
-    startListening(onTranscript, onError) {
+    startListening(onTranscript, onError, onInterim) {
       this.unlockAudio(); // Unlock audio on user tap
 
       const SpeechRecognition = typeof window !== 'undefined'
@@ -525,39 +564,104 @@ Whenever guest asks for dates or rates, warmly recommend the best stay and ask f
         this.recognition = null;
       }
 
+      // ── BARGE-IN INTERRUPTION ──
+      // If Nisha is currently speaking when user activates mic or speaks, stop Nisha immediately!
+      if (this.isSpeaking) {
+        this.stopSpeaking();
+      }
+
+      this.isListening = true;
+      let finalDelivered = false;
+
       try {
         const reco = new SpeechRecognition();
         reco.continuous = false;
-        reco.interimResults = false;
-        reco.lang = 'hi-IN'; // Dual Hindi / English understanding
+        reco.interimResults = true; // Show interim words in real-time
+        reco.lang = this.recognitionLang || 'hi-IN'; // Dual Hindi / English understanding
 
         reco.onstart = () => {
           this.isListening = true;
           if (this.onStateChange) this.onStateChange('listening');
         };
 
+        // Barge-in: if user starts making sound or speaking while Nisha was speaking, immediately silence Nisha!
+        reco.onspeechstart = () => {
+          if (this.isSpeaking) {
+            this.stopSpeaking();
+          }
+        };
+
+        reco.onsoundstart = () => {
+          if (this.isSpeaking) {
+            this.stopSpeaking();
+          }
+        };
+
         reco.onresult = (event) => {
-          const transcript = event.results[0]?.[0]?.transcript || '';
-          this.isListening = false;
-          if (this.onStateChange) this.onStateChange('processing', transcript);
-          if (onTranscript) onTranscript(transcript);
+          // Barge-in: any speech detected cuts off ongoing speech immediately
+          if (this.isSpeaking) {
+            this.stopSpeaking();
+          }
+
+          let interimText = '';
+          let finalText = '';
+
+          for (let i = event.resultIndex; i < event.results.length; ++i) {
+            const item = event.results[i];
+            const transcript = item[0]?.transcript || '';
+            if (item.isFinal) {
+              finalText += transcript;
+            } else {
+              interimText += transcript;
+            }
+          }
+
+          if (interimText && onInterim) {
+            onInterim(interimText);
+          }
+
+          if (finalText && finalText.trim()) {
+            finalDelivered = true;
+            this.isListening = false;
+            if (this.onStateChange) this.onStateChange('processing', finalText.trim());
+            if (onTranscript) onTranscript(finalText.trim());
+            try { reco.stop(); } catch (_) {}
+          }
         };
 
         reco.onerror = (event) => {
-          this.isListening = false;
+          console.warn('[NishaAI] SpeechRecognition event error:', event.error);
+          if (event.error === 'no-speech') {
+            // Normal silence pause when user is thinking, don't abort completely!
+            return;
+          }
+          if (event.error === 'language-not-supported' && reco.lang !== 'en-IN') {
+            console.log('[NishaAI] Falling back to en-IN voice recognition');
+            this.recognitionLang = 'en-IN';
+            return;
+          }
           let userMsg = 'Voice recognition error';
           if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
-            userMsg = 'Microphone permission denied. Please allow microphone access in your browser address bar.';
-          } else if (event.error === 'no-speech') {
-            userMsg = 'No speech detected. Please tap mic and speak again.';
-          } else if (event.error === 'network') {
-            userMsg = 'Network issue with voice service. Please check internet connection.';
+            userMsg = 'Microphone permission denied. Please allow microphone access in your browser.';
+            this.isListening = false;
           }
           if (this.onStateChange) this.onStateChange('error', userMsg);
           if (onError) onError(userMsg);
         };
 
         reco.onend = () => {
+          // If we are actively listening and no final transcript was produced yet, keep mic alive!
+          if (this.isListening && !finalDelivered && !this.isSpeaking) {
+            setTimeout(() => {
+              if (this.isListening && !finalDelivered && !this.isSpeaking) {
+                try {
+                  reco.start();
+                } catch (_) {}
+              }
+            }, 120);
+            return;
+          }
+
           this.isListening = false;
           if (this.onStateChange && !this.isSpeaking) {
             this.onStateChange('idle');
@@ -574,10 +678,10 @@ Whenever guest asks for dates or rates, warmly recommend the best stay and ask f
     }
 
     stopListening() {
+      this.isListening = false;
       if (this.recognition) {
         try { this.recognition.stop(); } catch (_) {}
       }
-      this.isListening = false;
       if (this.onStateChange && !this.isSpeaking) {
         this.onStateChange('idle');
       }
@@ -592,28 +696,35 @@ Whenever guest asks for dates or rates, warmly recommend the best stay and ask f
           const voices = this.synthesis.getVoices() || [];
           if (!voices || voices.length === 0) return;
 
-          // Priority for Natural Sounding Voices:
-          // 1. Google Hindi (Natural Neural Web Voice)
-          // 2. Microsoft Swara / Madhur
-          // 3. Indian English Female (Neerja, Heera, Priya - sounds very natural for Hinglish hospitality)
-          // 4. Enhanced / Natural female voices (Samantha, Siri, Karen)
-          // 5. Avoid legacy compact robotic Mac 'Lekha' unless nothing else exists!
-          const nonRoboticHindi = voices.find(v => (v.lang === 'hi-IN' || v.lang.startsWith('hi')) && !/lekha/i.test(v.name));
-          const naturalIndianEng = voices.find(v => (v.lang === 'en-IN' || v.lang.includes('IN')) && /female|neerja|heera|aditi|priya|google/i.test(v.name));
-          const googleHindi = voices.find(v => /google/i.test(v.name) && (v.lang === 'hi-IN' || v.lang.startsWith('hi')));
-          const enhancedEng = voices.find(v => /enhanced|natural/i.test(v.name) && /female|samantha/i.test(v.name));
-          const genericIndian = voices.find(v => v.lang === 'en-IN' || v.lang === 'hi-IN');
+          // STRICT: Exclude any voice that is male!
+          const isExplicitMale = (v) => /aman|rishi|daniel|fred|alex|david|george|oliver|arthur|thomas|male/i.test(v.name);
+          const isExplicitFemale = (v) => /female|woman|girl|ritu|swara|neerja|heera|priya|tara|lekha|samantha|siri|karen|victoria|fiona/i.test(v.name);
+
+          // 1. Google Hindi Female
+          const googleHindi = voices.find(v => (v.lang === 'hi-IN' || v.lang.startsWith('hi')) && /google/i.test(v.name) && !isExplicitMale(v));
+          // 2. Microsoft Swara / Any non-male Hindi
+          const hindiFemale = voices.find(v => (v.lang === 'hi-IN' || v.lang.startsWith('hi')) && !isExplicitMale(v));
+          // 3. Indian English Female (Tara, Neerja, Heera, Priya, Aditi)
+          const indianEngFemale = voices.find(v => (v.lang === 'en-IN' || v.lang.includes('IN')) && isExplicitFemale(v));
+          // 4. Any Indian voice that is NOT male (e.g. Tara on Mac)
+          const indianNonMale = voices.find(v => (v.lang === 'en-IN' || v.lang === 'hi-IN') && !isExplicitMale(v));
+          // 5. Samantha / Siri / Karen / Victoria (natural female)
+          const naturalFemale = voices.find(v => /samantha|siri|karen|victoria|fiona/i.test(v.name) && !isExplicitMale(v));
+          // 6. Any voice marked female
+          const anyFemale = voices.find(v => isExplicitFemale(v));
+          // 7. Any voice that is not explicitly male
+          const anyNonMale = voices.find(v => !isExplicitMale(v));
 
           this.selectedVoice =
             googleHindi ||
-            nonRoboticHindi ||
-            naturalIndianEng ||
-            enhancedEng ||
-            genericIndian ||
-            voices.find(v => /female/i.test(v.name)) ||
-            voices[0];
+            hindiFemale ||
+            indianEngFemale ||
+            indianNonMale ||
+            naturalFemale ||
+            anyFemale ||
+            anyNonMale;
 
-          console.log('[NishaAI] Selected Voice:', this.selectedVoice?.name, 'Lang:', this.selectedVoice?.lang);
+          console.log('[NishaAI] Selected Female Voice:', this.selectedVoice?.name, 'Lang:', this.selectedVoice?.lang);
         } catch (_) {}
       };
 
@@ -640,11 +751,13 @@ Whenever guest asks for dates or rates, warmly recommend the best stay and ask f
       try {
         const cleanSpeech = text
           .replace(/https?:\/\/\S+/gi, '')
-          .replace(/[*#_~`]/g, '')
-          .replace(/[•→➔➜]/g, ', ')
+          .replace(/[*#_~`•→➔➜]/g, ' ')
           .replace(/₹\s*(\d+)/g, 'Rupees $1')
           .replace(/\bRs\.?\s*(\d+)/gi, 'Rupees $1')
-          .replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F1E0}-\u{1F1FF}]/gu, '')
+          .replace(/\p{Extended_Pictographic}/gu, '')
+          .replace(/[\u{FE00}-\u{FE0F}\u{E0020}-\u{E007F}\u{20E3}]/gu, '')
+          .replace(/[—–]/g, ', ')
+          .replace(/\s+/g, ' ')
           .trim()
           .slice(0, 1000);
 
@@ -655,8 +768,9 @@ Whenever guest asks for dates or rates, warmly recommend the best stay and ask f
 
         if (this.onStateChange) this.onStateChange('speaking', 'Sarvam Bulbul Voice');
         this.isSpeaking = true;
+        const currentToken = ++this._speakToken;
 
-        // Exact validated Bulbul v3 payload
+        // Exact validated Bulbul v3 payload with female speaker 'ritu'
         const res = await fetch('https://api.sarvam.ai/text-to-speech', {
           method: 'POST',
           headers: {
@@ -671,30 +785,76 @@ Whenever guest asks for dates or rates, warmly recommend the best stay and ask f
           })
         });
 
+        // If stopped/interrupted while network request was running, abort!
+        if (this._speakToken !== currentToken || !this.isSpeaking) {
+          return false;
+        }
+
         if (res.ok) {
           const data = await res.json();
+          // Re-verify after JSON parse
+          if (this._speakToken !== currentToken || !this.isSpeaking) {
+            return false;
+          }
+
           const base64Audio = (data.audios && data.audios[0]) || data.audio;
           if (base64Audio) {
+            // Stop any ongoing audio cleanly
             if (this.currentAudio) {
-              this.currentAudio.pause();
+              try {
+                this.currentAudio.pause();
+                this.currentAudio.currentTime = 0;
+                this.currentAudio.src = '';
+              } catch (_) {}
               this.currentAudio = null;
             }
+            if (this.currentAudioUrl) {
+              try { URL.revokeObjectURL(this.currentAudioUrl); } catch (_) {}
+              this.currentAudioUrl = null;
+            }
 
-            const audio = new Audio('data:audio/wav;base64,' + base64Audio);
+            // Convert base64 to Blob URL for instant native decoding
+            const binary = atob(base64Audio);
+            const len = binary.length;
+            const buffer = new Uint8Array(len);
+            for (let i = 0; i < len; i++) {
+              buffer[i] = binary.charCodeAt(i);
+            }
+            const blob = new Blob([buffer], { type: 'audio/wav' });
+            const audioUrl = URL.createObjectURL(blob);
+            this.currentAudioUrl = audioUrl;
+
+            const audio = new Audio(audioUrl);
             this.currentAudio = audio;
 
             audio.onended = () => {
-              this.isSpeaking = false;
-              if (this.onStateChange && !this.isListening) this.onStateChange('idle');
-              if (onEnd) onEnd();
+              if (this._speakToken === currentToken) {
+                this.isSpeaking = false;
+                if (this.currentAudioUrl) {
+                  try { URL.revokeObjectURL(this.currentAudioUrl); } catch (_) {}
+                  this.currentAudioUrl = null;
+                }
+                if (this.onStateChange && !this.isListening) this.onStateChange('idle');
+                if (onEnd) onEnd();
+              }
+            };
+
+            audio.onerror = (playErr) => {
+              console.warn('[NishaAI] Audio playback error:', playErr);
+              if (this._speakToken === currentToken) {
+                this.isSpeaking = false;
+                if (onEnd) onEnd();
+              }
             };
 
             try {
-              await audio.play();
+              const p = audio.play();
+              if (p !== undefined) {
+                await p;
+              }
               return true;
             } catch (playErr) {
-              console.warn('[NishaAI] Audio play blocked or cancelled:', playErr);
-              if (this.currentAudio === audio) this.currentAudio = null;
+              console.warn('[NishaAI] Audio play blocked:', playErr);
               this.isSpeaking = false;
               return false;
             }
@@ -730,16 +890,23 @@ Whenever guest asks for dates or rates, warmly recommend the best stay and ask f
       }
 
       try {
-        this.synthesis.cancel(); // Clear any ongoing queue
+        if (this.synthesis.speaking || this.synthesis.pending) {
+          this.synthesis.cancel();
+        }
+        if (typeof this.synthesis.resume === 'function') {
+          this.synthesis.resume();
+        }
 
         // Clean markdown symbols, asterisks, URLs, and emojis for natural pronunciation
         const cleanSpeech = text
           .replace(/https?:\/\/\S+/gi, '')
-          .replace(/[*#_~`]/g, '')
-          .replace(/[•→➔➜]/g, ', ')
+          .replace(/[*#_~`•→➔➜]/g, ' ')
           .replace(/₹\s*(\d+)/g, 'Rupees $1')
           .replace(/\bRs\.?\s*(\d+)/gi, 'Rupees $1')
-          .replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F1E0}-\u{1F1FF}]/gu, '')
+          .replace(/\p{Extended_Pictographic}/gu, '')
+          .replace(/[\u{FE00}-\u{FE0F}\u{E0020}-\u{E007F}\u{20E3}]/gu, '')
+          .replace(/[—–]/g, ', ')
+          .replace(/\s+/g, ' ')
           .trim();
 
         if (!cleanSpeech) {
@@ -749,19 +916,20 @@ Whenever guest asks for dates or rates, warmly recommend the best stay and ask f
 
         const utterance = new SpeechSynthesisUtterance(cleanSpeech);
 
-        if (!this.selectedVoice) {
+        const isExplicitMale = (v) => /aman|rishi|daniel|fred|alex|david|george|oliver|arthur|thomas|male/i.test(v.name);
+        if (!this.selectedVoice || isExplicitMale(this.selectedVoice)) {
           this.initVoiceSynthesis();
         }
 
-        if (this.selectedVoice) {
+        if (this.selectedVoice && !isExplicitMale(this.selectedVoice)) {
           utterance.voice = this.selectedVoice;
           utterance.lang = this.selectedVoice.lang || 'hi-IN';
         } else {
           utterance.lang = 'hi-IN';
         }
 
-        utterance.pitch = 1.0;
-        utterance.rate = this.speechRate || 0.90; // Slower, calmer, less robotic rate
+        utterance.pitch = 1.15; // Feminine, polite concierge pitch
+        utterance.rate = this.speechRate || 0.92; // Slower, calmer, non-robotic rate
 
         utterance.onstart = () => {
           this.isSpeaking = true;
@@ -781,7 +949,15 @@ Whenever guest asks for dates or rates, warmly recommend the best stay and ask f
           if (onEnd) onEnd();
         };
 
-        this.synthesis.speak(utterance);
+        // Delay 50ms to allow cancel() to clear cleanly on Chromium
+        setTimeout(() => {
+          try {
+            this.synthesis.speak(utterance);
+          } catch (e) {
+            console.warn('[NishaAI] speak exception:', e);
+            if (onEnd) onEnd();
+          }
+        }, 50);
 
         // Chrome keep-alive: prevent speech from freezing after 14s
         const keepAlive = setInterval(() => {
@@ -801,14 +977,30 @@ Whenever guest asks for dates or rates, warmly recommend the best stay and ask f
     }
 
     stopSpeaking() {
+      this._speakToken = (this._speakToken || 0) + 1;
+      this.isSpeaking = false;
+
+      if (this.audioPlayer) {
+        try {
+          this.audioPlayer.pause();
+          this.audioPlayer.currentTime = 0;
+        } catch (_) {}
+      }
       if (this.currentAudio) {
-        try { this.currentAudio.pause(); } catch (_) {}
+        try {
+          this.currentAudio.pause();
+          this.currentAudio.currentTime = 0;
+          this.currentAudio.src = '';
+        } catch (_) {}
         this.currentAudio = null;
+      }
+      if (this.currentAudioUrl) {
+        try { URL.revokeObjectURL(this.currentAudioUrl); } catch (_) {}
+        this.currentAudioUrl = null;
       }
       if (this.synthesis) {
         try { this.synthesis.cancel(); } catch (_) {}
       }
-      this.isSpeaking = false;
       if (this.onStateChange && !this.isListening) {
         this.onStateChange('idle');
       }

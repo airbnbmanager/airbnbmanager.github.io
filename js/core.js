@@ -539,12 +539,13 @@ function renderShell(content, activePage = 'dashboard') {
       id: 'cashbook',
       label: '💰 Finance & Accounts',
       page: 'cashbook',
-      pages: ['cashbook', 'reimbursements', 'claims', 'expenses', 'investors', 'financial', 'financial-sheet'],
+      pages: ['cashbook', 'reimbursements', 'claims', 'expenses', 'ca-audit', 'investors', 'financial', 'financial-sheet'],
       tabs: [
         { id: 'cashbook', label: '💰 Cash Book' },
         { id: 'reimbursements', label: '💸 Daily Expenses' },
         { id: 'claims', label: '📤 Claims Manager' },
         { id: 'expenses', label: '📊 Monthly P&L' },
+        { id: 'ca-audit', label: '💼 CA Audit & GST' },
         { id: 'investors', label: '🧑‍💼 Investors Ledger' }
       ]
     },
@@ -1052,6 +1053,7 @@ function navigate(page) {
     'monthly-expenses': () => (window.renderMonthlyExpenses || renderMonthlyExpenses)(),
     store: () => (window.renderStore || renderStore)(),
     expenses: () => (window.renderExpenses || renderExpenses)(),
+    'ca-audit': () => (window.renderCAAuditPack || renderCAAuditPack)(),
     'property-report': () => (window.renderPropertyReport || renderPropertyReport)(),
     shifts: () => (window.renderPropertyShifts || renderPropertyShifts)(),
     pendingApprovals: () => (window.renderPendingApprovals || window.renderApprovals || (() => {}))(),

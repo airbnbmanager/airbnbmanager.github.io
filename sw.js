@@ -21,6 +21,7 @@ const CORE_ASSETS = [
   '/js/smart-bookings.js',
   '/js/booking-receipt.js',
   '/js/gst-invoice.js',
+  '/js/ca-audit-pack.js',
   '/js/properties.js',
   '/js/employees.js',
   '/js/expenses.js',

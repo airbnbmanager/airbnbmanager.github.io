@@ -45,6 +45,7 @@ async function renderExpenses() {
       <div class="sub">${ml}</div>
       <div class="btn-row">
         <button onclick="renderAddExpEntry()">🧾 Log Expense</button>
+        <button onclick="navigate('ca-audit')" style="background:#0F172A;color:#38BDF8;font-weight:700;border:none;">💼 CA Audit &amp; GST Pack</button>
         <button class="secondary" onclick="renderManageCategories()">⚙️ Manage Categories</button>
         <button class="secondary" onclick="renderDefaultExpenses()">⚙️ Defaults</button>
       </div>

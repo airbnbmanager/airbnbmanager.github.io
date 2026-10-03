@@ -23,6 +23,7 @@
   let _history     = [];
   let _autoVoice   = true;   // Auto-speak Nisha's replies using Sarvam AI Bulbul voice
   let _currentSpeakingBtn = null;
+  let _voiceTurn   = false;  // Whether current turn was started by voice mic
 
   // ── GET LIVE RATES FROM SUPABASE ROOMS TABLE (SOURCE OF TRUTH) ────
   async function getRates() {
@@ -911,24 +912,54 @@
   }
 
   // ── INJECT STYLES ───────────────────────────────────────────────
+  // ── INJECT STYLES ───────────────────────────────────────────────
   function injectStyles() {
     if (document.getElementById('uhh-chat-styles')) return;
     const s = document.createElement('style');
     s.id = 'uhh-chat-styles';
     s.textContent = `
-      #uhh-chat-btn {
-        position: fixed; bottom: 24px; left: 24px; z-index: 9997;
-        width: 56px; height: 56px; border-radius: 50%;
-        background: linear-gradient(135deg,#22c55e,#16a34a);
-        border: none; cursor: pointer;
-        box-shadow: 0 6px 28px rgba(34,197,94,0.45);
-        display: flex; align-items: center; justify-content: center;
-        font-size: 22px; transition: transform 0.2s, box-shadow 0.2s;
-        outline: none;
+      #uhh-chat-btn-wrap {
+        position: fixed; bottom: 24px; right: 24px; z-index: 9997;
+        display: flex; align-items: center; gap: 10px;
+        font-family: 'Plus Jakarta Sans','Inter',sans-serif;
       }
-      #uhh-chat-btn:hover { transform: scale(1.1); box-shadow: 0 10px 36px rgba(34,197,94,0.6); }
+      #uhh-chat-btn-label {
+        background: rgba(17, 24, 39, 0.95);
+        border: 1px solid rgba(212, 168, 75, 0.35);
+        color: #f0f2f7;
+        padding: 8px 14px;
+        border-radius: 20px;
+        font-size: 12.5px;
+        font-weight: 600;
+        box-shadow: 0 6px 20px rgba(0,0,0,0.4);
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
+        backdrop-filter: blur(10px);
+      }
+      #uhh-chat-btn-label:hover {
+        transform: translateY(-2px);
+        border-color: #d4a84b;
+        box-shadow: 0 8px 24px rgba(212, 168, 75, 0.25);
+      }
+      #uhh-chat-btn {
+        width: 58px; height: 58px; border-radius: 50%;
+        background: linear-gradient(135deg, #059669, #047857);
+        border: 2px solid rgba(212, 168, 75, 0.5);
+        cursor: pointer;
+        box-shadow: 0 8px 30px rgba(5, 150, 105, 0.45);
+        display: flex; align-items: center; justify-content: center;
+        font-size: 24px; transition: transform 0.2s, box-shadow 0.2s;
+        outline: none; position: relative;
+      }
+      #uhh-chat-btn:hover {
+        transform: scale(1.08);
+        box-shadow: 0 10px 36px rgba(5, 150, 105, 0.6);
+      }
       #uhh-chat-btn .uhh-chat-badge {
-        position: absolute; top: -4px; right: -4px;
+        position: absolute; top: -3px; right: -3px;
         width: 18px; height: 18px; background: #ef4444;
         border-radius: 50%; font-size: 10px; color: #fff;
         display: flex; align-items: center; justify-content: center;
@@ -939,15 +970,15 @@
         0%,100%{transform:scale(1)} 50%{transform:scale(1.2)}
       }
       #uhh-chat-panel {
-        position: fixed; bottom: 90px; left: 16px; z-index: 9997;
-        width: min(360px, calc(100vw - 32px));
-        height: min(520px, calc(100vh - 120px));
-        background: #111318;
-        border: 1px solid rgba(255,255,255,0.08);
+        position: fixed; bottom: 92px; right: 24px; z-index: 9998;
+        width: min(380px, calc(100vw - 32px));
+        height: min(560px, calc(100vh - 120px));
+        background: #101217;
+        border: 1px solid rgba(212, 168, 75, 0.25);
         border-radius: 20px; overflow: hidden;
-        box-shadow: 0 24px 80px rgba(0,0,0,0.7);
+        box-shadow: 0 24px 80px rgba(0,0,0,0.75);
         display: flex; flex-direction: column;
-        transform-origin: bottom left;
+        transform-origin: bottom right;
         animation: uhh-chat-open 0.3s cubic-bezier(0.34,1.56,0.64,1);
         font-family: 'Plus Jakarta Sans','Inter',sans-serif;
       }
@@ -962,14 +993,15 @@
         to { opacity:0; transform: scale(0.85) translateY(20px); }
       }
       .uhh-chat-header {
-        background: linear-gradient(135deg,#162218,#1a2e1a);
-        border-bottom: 1px solid rgba(34,197,94,0.15);
-        padding: 14px 16px;
+        background: linear-gradient(135deg, #131d17, #19271e);
+        border-bottom: 1px solid rgba(212, 168, 75, 0.2);
+        padding: 13px 16px;
         display: flex; align-items: center; gap: 10px;
       }
       .uhh-chat-avatar {
         width: 38px; height: 38px; border-radius: 50%;
-        background: linear-gradient(135deg,#22c55e,#16a34a);
+        background: linear-gradient(135deg, #059669, #047857);
+        border: 1px solid rgba(212, 168, 75, 0.4);
         display: flex; align-items: center; justify-content: center;
         font-size: 18px; flex-shrink: 0;
       }
@@ -980,10 +1012,10 @@
       }
       .uhh-chat-header-info { flex: 1; }
       .uhh-chat-header-name { font-size: 14px; font-weight: 700; color: #f0f2f7; }
-      .uhh-chat-header-status { font-size: 11px; color: #22c55e; margin-top: 1px; }
+      .uhh-chat-header-status { font-size: 11px; color: #86efac; margin-top: 1px; }
       .uhh-chat-close {
-        background: none; border: none; color: #6b7280;
-        cursor: pointer; font-size: 20px; padding: 2px;
+        background: none; border: none; color: #9ca3af;
+        cursor: pointer; font-size: 22px; padding: 2px 6px;
         line-height: 1; transition: color 0.15s;
       }
       .uhh-chat-close:hover { color: #f0f2f7; }
@@ -1013,14 +1045,14 @@
         color: #e2e8f0; border-radius: 4px 16px 16px 16px;
       }
       .user .uhh-msg-bubble {
-        background: linear-gradient(135deg,#22c55e,#16a34a);
+        background: linear-gradient(135deg,#059669,#047857);
         color: #fff; border-radius: 16px 16px 4px 16px;
       }
-      .uhh-msg-time { font-size: 10px; color: #4b5563; padding: 0 4px; }
+      .uhh-msg-time { font-size: 10px; color: #6b7280; padding: 0 4px; }
       .uhh-msg-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
       .uhh-msg-action-btn {
         display: inline-flex; align-items: center; gap: 5px;
-        background: #22c55e; color: #fff; text-decoration: none;
+        background: #059669; color: #fff; text-decoration: none;
         padding: 8px 14px; border-radius: 10px; font-size: 12.5px;
         font-weight: 700; transition: all 0.15s; border: none; cursor: pointer;
       }
@@ -1030,20 +1062,20 @@
       }
       .uhh-quick-replies::-webkit-scrollbar { display: none; }
       .uhh-qr {
-        background: rgba(34,197,94,0.1);
-        border: 1px solid rgba(34,197,94,0.25);
-        color: #86efac; padding: 6px 12px; border-radius: 20px;
+        background: rgba(212,168,75,0.12);
+        border: 1px solid rgba(212,168,75,0.3);
+        color: #f0c96b; padding: 6px 12px; border-radius: 20px;
         font-size: 12px; font-weight: 600; cursor: pointer;
         transition: all 0.15s; white-space: nowrap;
       }
-      .uhh-qr:hover { background: rgba(34,197,94,0.2); border-color: rgba(34,197,94,0.4); }
+      .uhh-qr:hover { background: rgba(212,168,75,0.25); border-color: rgba(212,168,75,0.5); }
       .uhh-typing {
         display: flex; align-items: center; gap: 4px; padding: 10px 14px;
         background: rgba(255,255,255,0.07); border-radius: 4px 16px 16px 16px;
         width: fit-content;
       }
       .uhh-typing span {
-        width: 7px; height: 7px; border-radius: 50%; background: #6b7280;
+        width: 7px; height: 7px; border-radius: 50%; background: #9ca3af;
         animation: uhh-bounce 1.2s infinite;
       }
       .uhh-typing span:nth-child(2){animation-delay:.15s}
@@ -1051,6 +1083,54 @@
       @keyframes uhh-bounce {
         0%,60%,100%{transform:translateY(0)} 30%{transform:translateY(-5px)}
       }
+
+      /* Live Voice Status Bar with Barge-in Interruption */
+      .uhh-chat-status-bar {
+        display: none; align-items: center; justify-content: space-between;
+        padding: 7px 14px; background: rgba(17, 24, 39, 0.96);
+        border-top: 1px solid rgba(255,255,255,0.06);
+        font-size: 12px; color: #f3f4f6; gap: 8px;
+      }
+      .uhh-chat-status-bar.speaking {
+        display: flex; background: rgba(212,168,75,0.14);
+        border-top-color: rgba(212,168,75,0.35); color: #f0c96b;
+      }
+      .uhh-chat-status-bar.listening {
+        display: flex; background: rgba(239,68,68,0.14);
+        border-top-color: rgba(239,68,68,0.35); color: #fca5a5;
+      }
+      .uhh-chat-status-bar.processing {
+        display: flex; background: rgba(59,130,246,0.12);
+        border-top-color: rgba(59,130,246,0.3); color: #93c5fd;
+      }
+      .uhh-mini-wave {
+        display: inline-flex; align-items: center; gap: 2px; height: 12px; margin-right: 4px; vertical-align: middle;
+      }
+      .uhh-mini-wave span {
+        width: 2.5px; height: 10px; background: #d4a84b; border-radius: 2px;
+        animation: uhh-wave-anim 0.8s ease-in-out infinite alternate;
+      }
+      .uhh-mini-wave span:nth-child(2) { animation-delay: 0.2s; height: 14px; }
+      .uhh-mini-wave span:nth-child(3) { animation-delay: 0.4s; height: 8px; }
+      @keyframes uhh-wave-anim {
+        from { transform: scaleY(0.4); } to { transform: scaleY(1.2); }
+      }
+      .uhh-mic-pulse-dot {
+        display: inline-block; width: 8px; height: 8px; border-radius: 50%;
+        background: #ef4444; margin-right: 4px;
+        box-shadow: 0 0 8px rgba(239,68,68,0.8);
+        animation: uhh-chat-pulse 1s infinite alternate;
+        vertical-align: middle;
+      }
+      .uhh-chat-interrupt-btn {
+        background: rgba(239,68,68,0.22); border: 1px solid rgba(239,68,68,0.45);
+        color: #fee2e2; font-size: 11px; font-weight: 700; padding: 4px 10px;
+        border-radius: 12px; cursor: pointer; transition: all 0.15s; white-space: nowrap; outline: none;
+      }
+      .uhh-chat-interrupt-btn:hover {
+        background: #ef4444; color: #fff; transform: scale(1.04);
+      }
+
       .uhh-chat-input-row {
         padding: 10px 12px; border-top: 1px solid rgba(255,255,255,0.06);
         display: flex; gap: 8px; align-items: flex-end; background: #0d0f14;
@@ -1062,17 +1142,17 @@
         outline: none; resize: none; max-height: 80px; min-height: 40px;
         font-family: inherit; line-height: 1.4; transition: border-color 0.2s;
       }
-      #uhh-chat-input:focus { border-color: rgba(34,197,94,0.4); }
-      #uhh-chat-input::placeholder { color: #4b5563; }
+      #uhh-chat-input:focus { border-color: rgba(212,168,75,0.5); }
+      #uhh-chat-input::placeholder { color: #6b7280; }
       #uhh-chat-send {
-        width: 40px; height: 40px; border-radius: 50%; flex-shrink: 0;
-        background: linear-gradient(135deg,#22c55e,#16a34a);
+        width: 42px; height: 42px; border-radius: 50%; flex-shrink: 0;
+        background: linear-gradient(135deg,#059669,#047857);
         border: none; cursor: pointer; display: flex;
         align-items: center; justify-content: center;
         transition: transform 0.15s, box-shadow 0.15s;
         color: #fff; font-size: 18px;
       }
-      #uhh-chat-send:hover { transform: scale(1.05); box-shadow: 0 4px 16px rgba(34,197,94,0.4); }
+      #uhh-chat-send:hover { transform: scale(1.05); box-shadow: 0 4px 16px rgba(5,150,105,0.5); }
       /* Bold in chat */
       .uhh-msg-bubble strong, .uhh-msg-bubble b { color: #f0c96b; font-weight: 700; }
 
@@ -1099,18 +1179,19 @@
       }
       .uhh-chat-voice-toggle:hover { transform: scale(1.04); }
 
-      /* Mic Button in Input */
+      /* Mic Button in Input Row */
       .uhh-chat-mic-btn {
-        width: 40px; height: 40px; border-radius: 50%; flex-shrink: 0;
+        width: 42px; height: 42px; border-radius: 50%; flex-shrink: 0;
         background: rgba(255,255,255,0.08);
-        border: 1px solid rgba(255,255,255,0.15);
-        color: #f0f2f7; font-size: 18px;
+        border: 1px solid rgba(212,168,75,0.3);
+        color: #f0c96b; font-size: 19px;
         cursor: pointer; display: flex; align-items: center; justify-content: center;
         transition: all 0.2s; outline: none;
       }
       .uhh-chat-mic-btn:hover {
-        background: rgba(34,197,94,0.2);
-        border-color: #22c55e;
+        background: rgba(212,168,75,0.22);
+        border-color: #d4a84b;
+        transform: scale(1.05);
       }
       .uhh-chat-mic-btn.listening {
         background: #ef4444 !important;
@@ -1148,29 +1229,133 @@
         box-shadow: 0 2px 10px rgba(212,168,75,0.4);
       }
 
-      /* Mobile: full-screen chat on very small screens */
-      @media (max-width: 420px) {
-        #uhh-chat-panel {
-          bottom: 0; left: 0; right: 0; width: 100vw;
-          height: 70vh; border-radius: 20px 20px 0 0;
+      /* Responsive Mobile adjustments */
+      @media (max-width: 480px) {
+        #uhh-chat-btn-wrap {
+          bottom: 74px; right: 16px;
         }
-        #uhh-chat-btn { bottom: 16px; left: 16px; width: 52px; height: 52px; font-size: 20px; }
+        #uhh-chat-btn-label {
+          display: none;
+        }
+        #uhh-chat-panel {
+          bottom: 70px; right: 8px; left: 8px; width: auto;
+          max-width: calc(100vw - 16px);
+          height: min(540px, calc(100vh - 140px));
+          border-radius: 18px;
+        }
       }
     `;
     document.head.appendChild(s);
   }
 
+  // ── UPDATE LIVE VOICE STATUS BAR ────────────────────────────────
+  function updateVoiceStatus(state, msg) {
+    const bar = document.getElementById('uhh-chat-voice-status');
+    const textEl = document.getElementById('uhh-chat-status-text');
+    const interruptBtn = document.getElementById('uhh-chat-interrupt-btn');
+    if (!bar) return;
+
+    bar.classList.remove('speaking', 'listening', 'processing');
+
+    if (state === 'idle') {
+      bar.style.display = 'none';
+      return;
+    }
+
+    bar.style.display = 'flex';
+    bar.classList.add(state);
+
+    if (state === 'speaking') {
+      if (textEl) textEl.innerHTML = `<span class="uhh-mini-wave"><span></span><span></span><span></span></span> ${msg || 'Nisha bol rahi hain…'}`;
+      if (interruptBtn) {
+        interruptBtn.style.display = 'inline-flex';
+        interruptBtn.textContent = '⏹️ Ruk jao / Boliye';
+      }
+    } else if (state === 'listening') {
+      if (textEl) textEl.innerHTML = `<span class="uhh-mic-pulse-dot"></span> ${msg || 'Sun rahi hoon… Boliye'}`;
+      if (interruptBtn) interruptBtn.style.display = 'none';
+    } else if (state === 'processing') {
+      if (textEl) textEl.textContent = msg || 'Soch rahi hoon…';
+      if (interruptBtn) interruptBtn.style.display = 'none';
+    }
+  }
+
+  // ── BARGE-IN INTERRUPTION HANDLER ───────────────────────────────
+  function interruptNishaAndListen() {
+    if (window.nishaAI) {
+      window.nishaAI.stopSpeaking();
+    }
+    if (_currentSpeakingBtn) {
+      _currentSpeakingBtn.classList.remove('speaking');
+      const prevTxt = _currentSpeakingBtn.querySelector('.uhh-spk-txt');
+      const prevIco = _currentSpeakingBtn.querySelector('.uhh-spk-ico');
+      if (prevTxt) prevTxt.textContent = 'Suniye';
+      if (prevIco) prevIco.textContent = '🔊';
+      _currentSpeakingBtn = null;
+    }
+    // Start listening immediately
+    _voiceTurn = true;
+    startListeningMode();
+  }
+
+  // ── START LISTENING VIA MICROPHONE ──────────────────────────────
+  function startListeningMode() {
+    if (!window.nishaAI || !_chatOpen) return;
+    window.nishaAI.unlockAudio();
+
+    if (window.nishaAI.isSpeaking) {
+      window.nishaAI.stopSpeaking();
+    }
+
+    const micBtn = document.getElementById('uhh-chat-mic-btn');
+    const input = document.getElementById('uhh-chat-input');
+    if (micBtn) micBtn.classList.add('listening');
+    if (input) input.placeholder = '🎙️ Sun rahi hoon… Boliye (Listening…)';
+    updateVoiceStatus('listening', 'Sun rahi hoon… Boliye');
+
+    window.nishaAI.startListening(
+      (transcript) => {
+        if (micBtn) micBtn.classList.remove('listening');
+        if (input) input.placeholder = 'Type ya 🎙️ bol kar poochhein…';
+        updateVoiceStatus('processing', 'Nisha soch rahi hain…');
+        if (transcript && transcript.trim()) {
+          if (input) input.value = transcript.trim();
+          _voiceTurn = true;
+          sendUserMessage();
+        } else {
+          updateVoiceStatus('idle');
+        }
+      },
+      (err) => {
+        if (micBtn) micBtn.classList.remove('listening');
+        if (input) input.placeholder = 'Type ya 🎙️ bol kar poochhein…';
+        updateVoiceStatus('idle');
+        console.warn('[Chat Mic Warning]', err);
+      },
+      (interim) => {
+        if (interim) {
+          if (input) input.placeholder = `🎙️ "${interim}…"`;
+          updateVoiceStatus('listening', `"${interim}…"`);
+        }
+      }
+    );
+  }
+
   // ── BUILD UI ────────────────────────────────────────────────────
   function buildUI() {
-    if (document.getElementById('uhh-chat-btn')) return;
+    if (document.getElementById('uhh-chat-btn-wrap') || document.getElementById('uhh-chat-btn')) return;
 
-    // Floating button
-    const btn = document.createElement('button');
-    btn.id = 'uhh-chat-btn';
-    btn.setAttribute('aria-label', 'Chat with Nisha');
-    btn.innerHTML = `💬<span class="uhh-chat-badge">1</span>`;
-    btn.addEventListener('click', toggleChat);
-    document.body.appendChild(btn);
+    const wrap = document.createElement('div');
+    wrap.id = 'uhh-chat-btn-wrap';
+    wrap.innerHTML = `
+      <div id="uhh-chat-btn-label">✨ Nisha AI Concierge</div>
+      <button id="uhh-chat-btn" aria-label="Chat with Nisha AI">
+        💬<span class="uhh-chat-badge">1</span>
+      </button>
+    `;
+    wrap.querySelector('#uhh-chat-btn-label').addEventListener('click', toggleChat);
+    wrap.querySelector('#uhh-chat-btn').addEventListener('click', toggleChat);
+    document.body.appendChild(wrap);
   }
 
   // ── TOGGLE CHAT ─────────────────────────────────────────────────
@@ -1180,7 +1365,7 @@
 
   function openChat() {
     _chatOpen = true;
-    document.getElementById('uhh-chat-btn').querySelector('.uhh-chat-badge')?.remove();
+    document.getElementById('uhh-chat-btn')?.querySelector('.uhh-chat-badge')?.remove();
 
     if (window.nishaAI) window.nishaAI.unlockAudio();
 
@@ -1190,7 +1375,7 @@
       <div class="uhh-chat-header">
         <div class="uhh-chat-avatar" style="position:relative">💬<div class="uhh-chat-avatar-dot"></div></div>
         <div class="uhh-chat-header-info">
-          <div class="uhh-chat-header-name">Nisha — UHH Concierge</div>
+          <div class="uhh-chat-header-name">Nisha — AI Concierge</div>
           <div class="uhh-chat-header-status">🟢 Online • Replies instantly</div>
         </div>
         <button id="uhh-chat-voice-toggle" class="uhh-chat-voice-toggle ${_autoVoice ? 'active' : 'muted'}" title="Toggle Auto Voice Speech" aria-label="Toggle Voice">
@@ -1200,6 +1385,13 @@
       </div>
       <div class="uhh-chat-msgs" id="uhh-chat-msgs"></div>
       <div class="uhh-quick-replies" id="uhh-qr-bar"></div>
+
+      <!-- Real-time Voice Status Bar with Barge-in Interruption Button -->
+      <div id="uhh-chat-voice-status" class="uhh-chat-status-bar">
+        <div id="uhh-chat-status-text">Sun rahi hoon… Boliye</div>
+        <button id="uhh-chat-interrupt-btn" class="uhh-chat-interrupt-btn">⏹️ Ruk jao / Boliye</button>
+      </div>
+
       <div class="uhh-chat-input-row">
         <button id="uhh-chat-mic-btn" class="uhh-chat-mic-btn" title="Bol kar poochhein (Mic)" aria-label="Speak">🎙️</button>
         <textarea id="uhh-chat-input" placeholder="Type ya 🎙️ bol kar poochhein…" rows="1"></textarea>
@@ -1229,7 +1421,17 @@
             if (ico) ico.textContent = '🔊';
             _currentSpeakingBtn = null;
           }
+          updateVoiceStatus('idle');
         }
+      });
+    }
+
+    // Interrupt button listener (barge-in)
+    const interruptBtn = panel.querySelector('#uhh-chat-interrupt-btn');
+    if (interruptBtn) {
+      interruptBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        interruptNishaAndListen();
       });
     }
 
@@ -1241,33 +1443,40 @@
         if (!window.nishaAI) return;
         window.nishaAI.unlockAudio();
 
+        // If Nisha is currently speaking, barge in and start listening immediately!
+        if (window.nishaAI.isSpeaking) {
+          interruptNishaAndListen();
+          return;
+        }
+
+        // If currently listening, toggle off
         if (window.nishaAI.isListening) {
           window.nishaAI.stopListening();
           micBtn.classList.remove('listening');
           input.placeholder = 'Type ya 🎙️ bol kar poochhein…';
+          updateVoiceStatus('idle');
           return;
         }
 
-        if (window.nishaAI.isSpeaking) {
-          window.nishaAI.stopSpeaking();
-        }
-
-        micBtn.classList.add('listening');
-        input.placeholder = '🎙️ Sun rahe hain… Boliye (Listening…)';
-
-        window.nishaAI.startListening((transcript) => {
-          micBtn.classList.remove('listening');
-          input.placeholder = 'Type ya 🎙️ bol kar poochhein…';
-          if (transcript && transcript.trim()) {
-            input.value = transcript.trim();
-            sendUserMessage();
-          }
-        }, (err) => {
-          micBtn.classList.remove('listening');
-          input.placeholder = 'Type ya 🎙️ bol kar poochhein…';
-          console.warn('[Chat Mic Error]', err);
-        });
+        // Normal start
+        _voiceTurn = true;
+        startListeningMode();
       });
+    }
+
+    // Hook engine state change to keep UI in sync
+    if (window.nishaAI) {
+      window.nishaAI.onStateChange = (state, extra) => {
+        if (state === 'speaking') {
+          updateVoiceStatus('speaking', '🔊 Nisha bol rahi hain…');
+        } else if (state === 'listening') {
+          updateVoiceStatus('listening', extra ? `🎙️ "${extra}…"` : '🎙️ Sun rahi hoon… Boliye');
+        } else if (state === 'processing') {
+          updateVoiceStatus('processing', '⏳ Nisha soch rahi hain…');
+        } else if (state === 'idle') {
+          updateVoiceStatus('idle');
+        }
+      };
     }
 
     // Wire events
@@ -1278,6 +1487,11 @@
     input.addEventListener('input', () => {
       input.style.height = 'auto';
       input.style.height = Math.min(input.scrollHeight, 80) + 'px';
+      // If user starts typing while Nisha is speaking, stop Nisha
+      if (window.nishaAI && window.nishaAI.isSpeaking) {
+        window.nishaAI.stopSpeaking();
+        updateVoiceStatus('idle');
+      }
     });
 
     // Send greeting after short delay
@@ -1374,6 +1588,7 @@
             spkBtn.querySelector('.uhh-spk-txt').textContent = 'Suniye';
             spkBtn.querySelector('.uhh-spk-ico').textContent = '🔊';
             _currentSpeakingBtn = null;
+            updateVoiceStatus('idle');
           } else {
             if (_currentSpeakingBtn && _currentSpeakingBtn !== spkBtn) {
               _currentSpeakingBtn.classList.remove('speaking');
@@ -1386,12 +1601,23 @@
             spkBtn.querySelector('.uhh-spk-txt').textContent = 'Bol rahi hain…';
             spkBtn.querySelector('.uhh-spk-ico').textContent = '⏹️';
             _currentSpeakingBtn = spkBtn;
+            updateVoiceStatus('speaking', '🔊 Nisha bol rahi hain…');
 
             window.nishaAI.speak(cleanSpeech, () => {
               spkBtn.classList.remove('speaking');
               spkBtn.querySelector('.uhh-spk-txt').textContent = 'Suniye';
               spkBtn.querySelector('.uhh-spk-ico').textContent = '🔊';
               if (_currentSpeakingBtn === spkBtn) _currentSpeakingBtn = null;
+              updateVoiceStatus('idle');
+
+              // If this was a voice turn, listen for next query automatically!
+              if (_autoVoice && _voiceTurn && _chatOpen) {
+                setTimeout(() => {
+                  if (_chatOpen && !window.nishaAI.isSpeaking) {
+                    startListeningMode();
+                  }
+                }, 350);
+              }
             });
           }
         };
@@ -1422,6 +1648,7 @@
 
     // Stop ongoing speech before sending next query
     if (window.nishaAI) window.nishaAI.stopSpeaking();
+    updateVoiceStatus('idle');
     if (_currentSpeakingBtn) {
       _currentSpeakingBtn.classList.remove('speaking');
       const prevTxt = _currentSpeakingBtn.querySelector('.uhh-spk-txt');

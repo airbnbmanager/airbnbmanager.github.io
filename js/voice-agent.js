@@ -263,145 +263,10 @@ Remember: Your goal is to make guests fall in love with Unique Haven Homes and g
 
   // ── 5. BUILD THE FLOATING VOICE BUTTON UI ─────────────────────────
   function createVoiceUI() {
-    if (document.getElementById('uhh-voice-widget')) return;
-
-    // Inject keyframe animations
-    const style = document.createElement('style');
-    style.textContent = `
-      @keyframes uhh-pulse-ring {
-        0%   { transform: scale(1);   opacity: 0.6; }
-        70%  { transform: scale(1.6); opacity: 0;   }
-        100% { transform: scale(1.6); opacity: 0;   }
-      }
-      @keyframes uhh-pulse-ring2 {
-        0%   { transform: scale(1);   opacity: 0.3; }
-        70%  { transform: scale(2);   opacity: 0;   }
-        100% { transform: scale(2);   opacity: 0;   }
-      }
-      @keyframes uhh-fadein {
-        from { opacity:0; transform:translateY(10px); }
-        to   { opacity:1; transform:translateY(0); }
-      }
-      @keyframes uhh-slidein {
-        from { opacity:0; transform:translateX(80px); }
-        to   { opacity:1; transform:translateX(0); }
-      }
-      @keyframes uhh-soundwave {
-        0%, 100% { transform: scaleY(0.4); }
-        50%       { transform: scaleY(1.0); }
-      }
-      #uhh-voice-widget {
-        position: fixed;
-        bottom: 24px;
-        right: 24px;
-        z-index: 9998;
-        display: flex;
-        flex-direction: column;
-        align-items: flex-end;
-        gap: 10px;
-        font-family: 'Plus Jakarta Sans','Inter',sans-serif;
-      }
-      #uhh-voice-btn {
-        width: 60px; height: 60px;
-        border-radius: 50%;
-        background: linear-gradient(135deg, #d4a84b, #8c6a23);
-        border: none; cursor: pointer;
-        display: flex; align-items: center; justify-content: center;
-        box-shadow: 0 8px 32px rgba(212,168,75,0.45);
-        transition: transform 0.2s, box-shadow 0.2s;
-        position: relative;
-        outline: none;
-      }
-      #uhh-voice-btn:hover { transform: scale(1.08); box-shadow: 0 12px 40px rgba(212,168,75,0.6); }
-      #uhh-voice-btn.active { background: linear-gradient(135deg,#ef4444,#b91c1c); box-shadow: 0 8px 32px rgba(239,68,68,0.5); }
-      #uhh-voice-btn.connecting { background: linear-gradient(135deg,#3b82f6,#1d4ed8); }
-      #uhh-pulse-ring {
-        position:absolute; inset:-8px; border-radius:50%;
-        border:3px solid rgba(212,168,75,0.5);
-        animation: uhh-pulse-ring 2s ease-out infinite;
-        pointer-events:none;
-      }
-      #uhh-pulse-ring2 {
-        position:absolute; inset:-8px; border-radius:50%;
-        border:2px solid rgba(212,168,75,0.25);
-        animation: uhh-pulse-ring2 2s ease-out 0.4s infinite;
-        pointer-events:none;
-      }
-      #uhh-voice-label {
-        background: rgba(20,20,28,0.95);
-        border: 1px solid rgba(212,168,75,0.25);
-        border-radius: 24px;
-        padding: 8px 16px;
-        font-size: 13px;
-        font-weight: 600;
-        color: #f0f2f7;
-        white-space: nowrap;
-        backdrop-filter: blur(10px);
-        animation: uhh-fadein 0.3s ease;
-        pointer-events: none;
-      }
-      #uhh-voice-panel {
-        background: rgba(16,18,26,0.97);
-        border: 1px solid rgba(212,168,75,0.2);
-        border-radius: 20px;
-        padding: 18px 20px;
-        width: 280px;
-        backdrop-filter: blur(20px);
-        box-shadow: 0 24px 64px rgba(0,0,0,0.6);
-        animation: uhh-fadein 0.3s ease;
-      }
-      .uhh-soundwave {
-        display:flex; align-items:center; gap:3px; height:24px;
-      }
-      .uhh-bar {
-        width:3px; border-radius:2px; background:var(--color,#d4a84b);
-        animation: uhh-soundwave 0.8s ease-in-out infinite;
-      }
-      .uhh-bar:nth-child(1){ height:8px;  animation-delay:0s; }
-      .uhh-bar:nth-child(2){ height:18px; animation-delay:0.1s; }
-      .uhh-bar:nth-child(3){ height:14px; animation-delay:0.2s; }
-      .uhh-bar:nth-child(4){ height:20px; animation-delay:0.05s; }
-      .uhh-bar:nth-child(5){ height:10px; animation-delay:0.15s; }
-    `;
-    document.head.appendChild(style);
-
-    const widget = document.createElement('div');
-    widget.id = 'uhh-voice-widget';
-    widget.innerHTML = `
-      <div id="uhh-voice-panel" style="display:none;">
-        <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
-          <div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#d4a84b,#8c6a23);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;">🎙️</div>
-          <div>
-            <div style="font-size:14px;font-weight:700;color:#f0f2f7;">Nisha</div>
-            <div style="font-size:11px;color:#d4a84b;" id="uhh-status-text">AI Concierge • Unique Haven</div>
-          </div>
-          <button id="uhh-close-panel" style="margin-left:auto;background:rgba(255,255,255,0.08);border:none;color:#9ca3af;cursor:pointer;width:28px;height:28px;border-radius:50%;font-size:14px;">×</button>
-        </div>
-        <div id="uhh-wave-area" style="margin-bottom:12px;min-height:24px;display:flex;align-items:center;gap:8px;">
-          <span style="font-size:12px;color:#6b7280;" id="uhh-wave-msg">Press mic to start</span>
-        </div>
-        <div id="uhh-transcript" style="max-height:80px;overflow-y:auto;font-size:12px;color:#9ca3af;line-height:1.5;margin-bottom:12px;display:none;"></div>
-        <button id="uhh-end-btn" style="display:none;width:100%;padding:10px;background:rgba(239,68,68,0.12);border:1px solid rgba(239,68,68,0.3);color:#fca5a5;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;">
-          🔴 End Call
-        </button>
-      </div>
-      <div style="display:flex;align-items:center;gap:10px;">
-        <div id="uhh-voice-label">🎙️ Talk to Nisha</div>
-        <button id="uhh-voice-btn" aria-label="Start voice chat with Nisha AI">
-          <div id="uhh-pulse-ring"></div>
-          <div id="uhh-pulse-ring2"></div>
-          <span id="uhh-btn-icon" style="font-size:24px;position:relative;z-index:1;">🎙️</span>
-        </button>
-      </div>
-    `;
-    document.body.appendChild(widget);
-
-    // Wire up events
-    document.getElementById('uhh-voice-btn').addEventListener('click', toggleConversation);
-    document.getElementById('uhh-end-btn').addEventListener('click', endConversation);
-    document.getElementById('uhh-close-panel').addEventListener('click', () => {
-      document.getElementById('uhh-voice-panel').style.display = 'none';
-    });
+    // ── Retired: Unified into single Smart Chat + Voice Concierge (js/chat-widget.js) ──
+    const existing = document.getElementById('uhh-voice-widget');
+    if (existing) existing.remove();
+    return;
   }
 
   // ── 6. UPDATE UI STATE ─────────────────────────────────────────────
@@ -427,7 +292,9 @@ Remember: Your goal is to make guests fall in love with Unique Haven Homes and g
         <div class="uhh-bar" style="--color:${status==='speaking'?'#3b82f6':'#d4a84b'}"></div>
         <div class="uhh-bar" style="--color:${status==='speaking'?'#3b82f6':'#d4a84b'}"></div>
         <div class="uhh-bar" style="--color:${status==='speaking'?'#3b82f6':'#d4a84b'}"></div>
-      </div>`;
+      </div>
+      <span style="font-size:12px;color:${status==='speaking'?'#93c5fd':'#fde047'};margin-left:6px;" id="uhh-wave-msg">${text || ''}</span>
+    `;
 
     switch (status) {
       case 'idle':
@@ -443,7 +310,7 @@ Remember: Your goal is to make guests fall in love with Unique Haven Homes and g
         icon.textContent = '⏳';
         if (ring1) ring1.style.display = 'none';
         if (ring2) ring2.style.display = 'none';
-        if (waveArea) waveArea.innerHTML = '<span style="font-size:12px;color:#6b7280;">Connecting…</span>';
+        if (waveArea) waveArea.innerHTML = `<span style="font-size:12px;color:#60a5fa;">⏳ ${text || 'Connecting…'}</span>`;
         break;
       case 'listening':
         btn.className = 'active';
@@ -457,6 +324,7 @@ Remember: Your goal is to make guests fall in love with Unique Haven Homes and g
         btn.className = 'active';
         icon.textContent = '🔊';
         if (waveArea) waveArea.innerHTML = waveBars;
+        if (endBtn) endBtn.style.display = 'block';
         break;
       case 'error':
         btn.className = '';
@@ -474,14 +342,86 @@ Remember: Your goal is to make guests fall in love with Unique Haven Homes and g
     if (!el) return;
     el.style.display = 'block';
     const line = document.createElement('div');
-    line.style.cssText = `margin-bottom:4px;color:${role==='user'?'#d4a84b':'#9ca3af'};`;
-    line.innerHTML = `<b style="color:${role==='user'?'#f0c96b':'#6b7280'}">${role==='user'?'You':'Nisha'}:</b> ${text}`;
+    line.style.cssText = `margin-bottom:6px;line-height:1.45;color:${role==='user'?'#fde047':'#e2e8f0'};`;
+    const cleanFormatted = (text || '')
+      .replace(/\*\*(.*?)\*\*/g, '<b>$1</b>')
+      .replace(/\n/g, '<br>');
+    line.innerHTML = `<span style="font-weight:700;color:${role==='user'?'#facc15':'#93c5fd'}">${role==='user'?'You':'Nisha'}:</span> ${cleanFormatted}`;
     el.appendChild(line);
     el.scrollTop = el.scrollHeight;
   }
 
   // ── 8. START CONVERSATION (Powered by Sarvam AI Bulbul + Nisha Engine) ──
   let _isActiveVoiceSession = false;
+
+  async function speakAndListen(textToSpeak) {
+    if (!_isActiveVoiceSession) return;
+    setStatus('speaking', '🔊 Nisha bol rahi hain…');
+
+    const onDone = () => {
+      if (!_isActiveVoiceSession) return;
+      listenToGuest();
+    };
+
+    if (window.nishaAI) {
+      await window.nishaAI.speak(textToSpeak, onDone);
+    } else {
+      setTimeout(onDone, 3000);
+    }
+  }
+
+  function listenToGuest() {
+    if (!_isActiveVoiceSession) return;
+    setStatus('listening', '🔴 Sun rahi hoon... (Boliye)');
+
+    if (!window.nishaAI) return;
+
+    window.nishaAI.startListening(
+      async (transcript) => {
+        if (!_isActiveVoiceSession) return;
+        if (!transcript || !transcript.trim()) {
+          listenToGuest();
+          return;
+        }
+        await handleUserQuery(transcript);
+      },
+      (err) => {
+        if (!_isActiveVoiceSession) return;
+        console.warn('[Nisha Voice] Listening status:', err);
+      },
+      (interim) => {
+        if (!_isActiveVoiceSession) return;
+        const waveMsg = document.getElementById('uhh-wave-msg');
+        if (waveMsg) {
+          waveMsg.textContent = `"${interim}…"`;
+        }
+      }
+    );
+  }
+
+  async function handleUserQuery(userText) {
+    if (!_isActiveVoiceSession) return;
+    if (!userText || !userText.trim()) return;
+
+    if (window.nishaAI) {
+      window.nishaAI.stopListening();
+    }
+
+    appendTranscript('user', userText.trim());
+    setStatus('connecting', '⏳ Soch rahi hoon…');
+
+    // Check for phone number for lead capture
+    const phoneMatch = userText.match(/(\+?\d{1,4}[-.\s]?)?([6-9]\d{9})/);
+    if (phoneMatch) {
+      saveLead({ name: 'Voice Guest', phone: phoneMatch[2], interested_property: userText });
+    }
+
+    const reply = await window.nishaAI.sendMessage(userText.trim());
+    if (!_isActiveVoiceSession) return;
+
+    appendTranscript('agent', reply);
+    await speakAndListen(reply);
+  }
 
   async function startConversation() {
     const panel = document.getElementById('uhh-voice-panel');
@@ -492,13 +432,14 @@ Remember: Your goal is to make guests fall in love with Unique Haven Homes and g
     }
 
     _isActiveVoiceSession = true;
-    setStatus('connecting', '⏳ Nisha se connect ho rahe hain…');
+    setStatus('connecting', 'Nisha se connect ho rahe hain…');
 
     try {
-      // Request mic permission
-      await navigator.mediaDevices.getUserMedia({ audio: true });
+      // Request mic permission and immediately stop tracks so SpeechRecognition has full exclusive access
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      stream.getTracks().forEach(t => t.stop());
     } catch (_) {
-      setStatus('error', '🎙️ Microphone permission required');
+      setStatus('error', 'Microphone permission required');
       const waveArea = document.getElementById('uhh-wave-area');
       if (waveArea) {
         waveArea.innerHTML = '<span style="font-size:12px;color:#ef4444;">Please allow microphone access in your browser</span>';
@@ -509,64 +450,9 @@ Remember: Your goal is to make guests fall in love with Unique Haven Homes and g
     // Pre-fetch live rates
     await getRates();
 
-    const welcomeMsg = 'Namaste! Main Nisha hoon — The Unique Haven Homes Lucknow ki AI concierge. Lucknow me luxury 3BHK flat ya grand private villa booking ke baare me pooch sakte hain. Main aapki kya madad kar sakti hoon?';
+    const welcomeMsg = 'Namaste ji! Main Nisha hoon, The Unique Haven Homes Lucknow ki AI concierge. Lucknow me luxury 3BHK flat ya grand private villa booking ke baare me pooch sakte hain. Main aapki kya madad kar sakti hoon?';
 
     appendTranscript('agent', welcomeMsg);
-
-    const speakAndListen = async (textToSpeak) => {
-      if (!_isActiveVoiceSession) return;
-      setStatus('speaking', '🔊 Nisha is speaking…');
-
-      const onDone = () => {
-        if (!_isActiveVoiceSession) return;
-        listenToGuest();
-      };
-
-      if (window.nishaAI) {
-        await window.nishaAI.speak(textToSpeak, onDone);
-      } else {
-        setTimeout(onDone, 3000);
-      }
-    };
-
-    const listenToGuest = () => {
-      if (!_isActiveVoiceSession) return;
-      setStatus('listening', '🔴 Listening… (Bolna shuru karein)');
-
-      if (!window.nishaAI) return;
-
-      window.nishaAI.startListening(async (transcript) => {
-        if (!_isActiveVoiceSession) return;
-        if (!transcript || !transcript.trim()) {
-          listenToGuest();
-          return;
-        }
-
-        appendTranscript('user', transcript);
-        setStatus('connecting', '⏳ Thinking…');
-
-        // Check for phone number for lead capture
-        const phoneMatch = transcript.match(/(\+?\d{1,4}[-.\s]?)?([6-9]\d{9})/);
-        if (phoneMatch) {
-          saveLead({ name: 'Voice Guest', phone: phoneMatch[2], interested_property: transcript });
-        }
-
-        const reply = await window.nishaAI.sendMessage(transcript);
-        if (!_isActiveVoiceSession) return;
-
-        appendTranscript('agent', reply);
-        await speakAndListen(reply);
-      }, (err) => {
-        if (!_isActiveVoiceSession) return;
-        console.warn('[Nisha Voice] Listening status:', err);
-        setTimeout(() => {
-          if (_isActiveVoiceSession && _status !== 'speaking') {
-            listenToGuest();
-          }
-        }, 1500);
-      });
-    };
-
     await speakAndListen(welcomeMsg);
   }
 

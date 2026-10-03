@@ -15,12 +15,11 @@ window.BOOKING_RECEIPT_ENGINE = (function() {
     cin:        'U68101UP2026PTC244837',
     pan:        'ABECT9843K',
     address:    'P NO 39 & 40 Radhikapuri, Indira Nagar Takrohi, Lucknow, Uttar Pradesh – 226016',
-    phone:      '+91 94500 55554',
+    phone:      '+91 82996 00709',
     phone2:     '+91 82996 00709',
     managerPhone: '+91 9194109911',
     managerName: 'Praveen Singh',
     owners: [
-      { name: 'Mr. Shahanshah', phone: '+91 94500 55554' },
       { name: 'Mr. Firoz Khan', phone: '+91 82996 00709' }
     ],
     email:      'theuniquehavenhomes@gmail.com',
@@ -484,8 +483,7 @@ Thank you for choosing *The Unique Haven Homes*. Your direct reservation has bee
 
 👤 *Property Manager:* Praveen Singh (+91 9194109911)
 
-👑 *Company Owners:*
-• Mr. Shahanshah: +91 94500 55554
+👑 *Company Owners / Director:*
 • Mr. Firoz Khan: +91 82996 00709
 
 📋 *Key Check-in Instructions:*
@@ -1261,8 +1259,7 @@ ${propertiesList}
 
 👤 *Property Manager:* Praveen Singh (+91 9194109911)
 
-👑 *Company Owners:*
-• Mr. Shahanshah: +91 94500 55554
+👑 *Company Owners / Director:*
 • Mr. Firoz Khan: +91 82996 00709
 
 📋 *Key Check-in Instructions:*
