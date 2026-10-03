@@ -46,3 +46,8 @@ scratch/
 whatsapp-bot/*.log
 
 scratch_online_bookings_backup.json
+
+# Instagram Automation temporary files
+scripts/instagram-automation/cache/
+scripts/instagram-automation/output/*.mp4
+scripts/instagram-automation/output/*.jpg
