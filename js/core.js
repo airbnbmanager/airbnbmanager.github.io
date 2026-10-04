@@ -401,49 +401,394 @@ async function logout() {
 // ============ LOGIN ============
 function renderLogin() {
   appEl.innerHTML = `
-    <div style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:radial-gradient(circle at 50% 0%, #1E1B4B 0%, #0F172A 100%);padding:20px;">
-      <div class="card" style="max-width:420px;width:100%;border-radius:20px;padding:36px 30px;box-shadow:0 25px 50px -12px rgba(0,0,0,0.5);border:1px solid rgba(255,255,255,0.1);background:#FFFFFF;text-align:center;">
-        <div style="width:68px;height:68px;margin:0 auto 16px;background:#F8FAFC;border:1px solid #E2E8F0;border-radius:18px;display:flex;align-items:center;justify-content:center;padding:8px;box-shadow:0 4px 12px rgba(0,0,0,0.06);">
-          <img src="assets/logo.png" alt="Logo" style="width:100%;height:100%;object-fit:contain;border-radius:12px;" />
-        </div>
-        <h1 style="font-size:20px;font-weight:800;color:#0F172A;margin-bottom:4px;letter-spacing:-0.3px;">The Unique Haven Homes</h1>
-        <div class="sub" style="font-size:13px;color:#64748B;margin-bottom:24px;">Hospitality Management & Booking CRM</div>
+    <style>
+      @keyframes uhh-float {
+        0%,100% { transform: translateY(0px) rotate(0deg); opacity:0.6; }
+        50% { transform: translateY(-24px) rotate(8deg); opacity:1; }
+      }
+      @keyframes uhh-float2 {
+        0%,100% { transform: translateY(0px) rotate(0deg); opacity:0.4; }
+        50% { transform: translateY(-18px) rotate(-6deg); opacity:0.8; }
+      }
+      @keyframes uhh-fadeup {
+        from { opacity:0; transform:translateY(30px); }
+        to   { opacity:1; transform:translateY(0); }
+      }
+      @keyframes uhh-shimmer {
+        0%   { background-position: -200% center; }
+        100% { background-position: 200% center; }
+      }
+      @keyframes uhh-pulse-glow {
+        0%,100% { box-shadow: 0 0 0 0 rgba(139,92,246,0.4); }
+        50%      { box-shadow: 0 0 0 12px rgba(139,92,246,0); }
+      }
+      @keyframes uhh-spin-slow {
+        from { transform: rotate(0deg); }
+        to   { transform: rotate(360deg); }
+      }
+      .uhh-login-wrap {
+        min-height:100vh;
+        display:flex;
+        align-items:center;
+        justify-content:center;
+        padding:20px;
+        position:relative;
+        overflow:hidden;
+        background: linear-gradient(135deg, #0D0B21 0%, #12103A 40%, #0D1B2A 70%, #091520 100%);
+      }
+      /* Floating orbs */
+      .uhh-orb {
+        position:absolute;
+        border-radius:50%;
+        filter:blur(60px);
+        pointer-events:none;
+      }
+      .uhh-orb-1 {
+        width:400px; height:400px;
+        background: radial-gradient(circle, rgba(99,56,201,0.4), transparent);
+        top:-100px; left:-100px;
+        animation: uhh-float 8s ease-in-out infinite;
+      }
+      .uhh-orb-2 {
+        width:300px; height:300px;
+        background: radial-gradient(circle, rgba(20,184,166,0.25), transparent);
+        bottom:-80px; right:-80px;
+        animation: uhh-float2 10s ease-in-out infinite;
+      }
+      .uhh-orb-3 {
+        width:200px; height:200px;
+        background: radial-gradient(circle, rgba(236,72,153,0.2), transparent);
+        top:40%; left:5%;
+        animation: uhh-float 12s ease-in-out infinite reverse;
+      }
+      /* Grid lines overlay */
+      .uhh-grid {
+        position:absolute;
+        inset:0;
+        background-image:
+          linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
+        background-size:50px 50px;
+        pointer-events:none;
+      }
+      /* Card */
+      .uhh-card {
+        position:relative;
+        z-index:10;
+        width:100%;
+        max-width:440px;
+        animation: uhh-fadeup 0.7s cubic-bezier(.22,1,.36,1) both;
+      }
+      .uhh-card-inner {
+        background: rgba(15,13,40,0.75);
+        backdrop-filter: blur(24px);
+        -webkit-backdrop-filter: blur(24px);
+        border: 1px solid rgba(255,255,255,0.10);
+        border-radius: 28px;
+        padding: 40px 36px 32px;
+        box-shadow:
+          0 32px 80px rgba(0,0,0,0.6),
+          0 0 0 1px rgba(139,92,246,0.15) inset,
+          0 1px 0 rgba(255,255,255,0.12) inset;
+        text-align:center;
+      }
+      /* Logo ring */
+      .uhh-logo-ring {
+        width:80px; height:80px;
+        margin: 0 auto 20px;
+        position:relative;
+        animation: uhh-pulse-glow 3s ease-in-out infinite;
+      }
+      .uhh-logo-ring::before {
+        content:'';
+        position:absolute;
+        inset:-3px;
+        border-radius:24px;
+        background: linear-gradient(135deg, #8B5CF6, #06B6D4, #EC4899, #8B5CF6);
+        background-size:300% 300%;
+        animation: uhh-shimmer 3s linear infinite;
+        z-index:0;
+      }
+      .uhh-logo-inner {
+        position:relative;
+        z-index:1;
+        width:100%;height:100%;
+        background:#1A1535;
+        border-radius:22px;
+        display:flex;
+        align-items:center;
+        justify-content:center;
+        overflow:hidden;
+        padding:8px;
+      }
+      .uhh-logo-inner img {
+        width:100%; height:100%; object-fit:contain; border-radius:14px;
+      }
+      /* Title */
+      .uhh-brand-name {
+        font-size:22px;
+        font-weight:800;
+        letter-spacing:-0.5px;
+        background: linear-gradient(135deg, #FFFFFF 30%, #C4B5FD 70%, #67E8F9);
+        -webkit-background-clip:text;
+        -webkit-text-fill-color:transparent;
+        background-clip:text;
+        margin-bottom:6px;
+        line-height:1.2;
+      }
+      .uhh-brand-sub {
+        font-size:12.5px;
+        color:rgba(148,163,184,0.85);
+        margin-bottom:28px;
+        letter-spacing:0.2px;
+      }
+      /* Divider badges */
+      .uhh-badge-divider {
+        display:inline-flex;
+        align-items:center;
+        gap:8px;
+        background:rgba(99,56,201,0.15);
+        border:1px solid rgba(139,92,246,0.2);
+        border-radius:20px;
+        padding:4px 14px;
+        font-size:11px;
+        font-weight:600;
+        color:#A78BFA;
+        letter-spacing:0.5px;
+        margin-bottom:20px;
+      }
+      /* Google Button */
+      .uhh-google-btn {
+        width:100%;
+        padding:13px 18px;
+        background: rgba(255,255,255,0.06);
+        color:#F1F5F9;
+        border:1px solid rgba(255,255,255,0.12);
+        font-size:14px;
+        font-weight:600;
+        border-radius:14px;
+        display:flex;
+        align-items:center;
+        justify-content:center;
+        gap:10px;
+        cursor:pointer;
+        transition: all 0.25s ease;
+        font-family:inherit;
+        letter-spacing:0.1px;
+        margin-bottom:20px;
+      }
+      .uhh-google-btn:hover {
+        background: rgba(255,255,255,0.12);
+        border-color: rgba(255,255,255,0.22);
+        transform:translateY(-1px);
+        box-shadow:0 8px 24px rgba(0,0,0,0.3);
+      }
+      /* Divider */
+      .uhh-sep {
+        display:flex;
+        align-items:center;
+        gap:12px;
+        margin-bottom:20px;
+      }
+      .uhh-sep-line {
+        flex:1;
+        height:1px;
+        background:linear-gradient(90deg, transparent, rgba(255,255,255,0.12), transparent);
+      }
+      .uhh-sep-text {
+        font-size:10.5px;
+        font-weight:700;
+        color:rgba(148,163,184,0.6);
+        letter-spacing:0.8px;
+      }
+      /* Input fields */
+      .uhh-field {
+        text-align:left;
+        margin-bottom:14px;
+      }
+      .uhh-label {
+        font-size:11.5px;
+        font-weight:700;
+        color:rgba(148,163,184,0.9);
+        display:block;
+        margin-bottom:7px;
+        letter-spacing:0.3px;
+        text-transform:uppercase;
+      }
+      .uhh-input {
+        width:100%;
+        padding:12px 16px;
+        background:rgba(255,255,255,0.05);
+        border:1px solid rgba(255,255,255,0.10);
+        border-radius:12px;
+        color:#F1F5F9;
+        font-size:14px;
+        font-family:inherit;
+        outline:none;
+        transition:all 0.2s;
+        box-sizing:border-box;
+      }
+      .uhh-input::placeholder { color:rgba(148,163,184,0.4); }
+      .uhh-input:focus {
+        border-color:rgba(139,92,246,0.6);
+        background:rgba(139,92,246,0.08);
+        box-shadow:0 0 0 3px rgba(139,92,246,0.15);
+      }
+      /* Sign In Button */
+      .uhh-signin-btn {
+        width:100%;
+        padding:13px;
+        border-radius:14px;
+        font-size:14.5px;
+        font-weight:700;
+        border:none;
+        cursor:pointer;
+        font-family:inherit;
+        letter-spacing:0.2px;
+        background: linear-gradient(135deg, #7C3AED, #6D28D9);
+        color:#fff;
+        box-shadow: 0 4px 20px rgba(109,40,217,0.5), 0 1px 0 rgba(255,255,255,0.15) inset;
+        transition:all 0.25s ease;
+        position:relative;
+        overflow:hidden;
+        margin-top:4px;
+      }
+      .uhh-signin-btn::before {
+        content:'';
+        position:absolute;
+        inset:0;
+        background:linear-gradient(135deg, rgba(255,255,255,0.12), transparent);
+        pointer-events:none;
+      }
+      .uhh-signin-btn:hover:not(:disabled) {
+        transform:translateY(-2px);
+        box-shadow:0 8px 32px rgba(109,40,217,0.6), 0 1px 0 rgba(255,255,255,0.2) inset;
+        background: linear-gradient(135deg, #8B5CF6, #7C3AED);
+      }
+      .uhh-signin-btn:active:not(:disabled) { transform:translateY(0); }
+      .uhh-signin-btn:disabled { opacity:0.7; cursor:not-allowed; transform:none; }
+      /* Footer */
+      .uhh-footer {
+        margin-top:24px;
+        padding-top:18px;
+        border-top:1px solid rgba(255,255,255,0.07);
+        font-size:10.5px;
+        color:rgba(100,116,139,0.8);
+        line-height:1.7;
+        text-align:center;
+      }
+      /* Star dots */
+      .uhh-stars {
+        position:absolute;
+        inset:0;
+        pointer-events:none;
+        overflow:hidden;
+      }
+      .uhh-star {
+        position:absolute;
+        width:2px; height:2px;
+        background:white;
+        border-radius:50%;
+        opacity:0;
+        animation:uhh-twinkle 4s ease-in-out infinite;
+      }
+      @keyframes uhh-twinkle {
+        0%,100%{opacity:0;} 50%{opacity:0.7;}
+      }
+    </style>
 
-        <!-- Google Login -->
-        <button onclick="loginWithGoogle()" style="width:100%;padding:11px 16px;background:#fff;color:#1E293B;border:1.5px solid #CBD5E1;font-size:13.5px;font-weight:600;border-radius:10px;display:flex;align-items:center;justify-content:center;gap:10px;box-shadow:0 1px 2px rgba(0,0,0,0.05);transition:all 0.15s;">
-          <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" style="width:18px;height:18px;" />
-          Continue with Google
-        </button>
+    <div class="uhh-login-wrap">
+      <!-- Background elements -->
+      <div class="uhh-orb uhh-orb-1"></div>
+      <div class="uhh-orb uhh-orb-2"></div>
+      <div class="uhh-orb uhh-orb-3"></div>
+      <div class="uhh-grid"></div>
 
-        <div style="margin:20px 0;display:flex;align-items:center;gap:12px;">
-          <div style="flex:1;height:1px;background:#E2E8F0;"></div>
-          <span style="font-size:11px;font-weight:600;color:#94A3B8;letter-spacing:0.5px;">OR SIGN IN WITH EMAIL</span>
-          <div style="flex:1;height:1px;background:#E2E8F0;"></div>
-        </div>
+      <!-- Star field -->
+      <div class="uhh-stars" id="uhh-stars"></div>
 
-        <!-- Email Login Form -->
-        <div style="text-align:left;margin-bottom:12px;">
-          <label style="font-size:12px;font-weight:600;color:#475569;display:block;margin-bottom:6px;">Email Address</label>
-          <input id="email" type="email" placeholder="name@uniquehaven.com" autocomplete="email" style="padding:10px 14px;border-radius:10px;" />
-        </div>
+      <!-- Main card -->
+      <div class="uhh-card">
+        <div class="uhh-card-inner">
 
-        <div style="text-align:left;margin-bottom:18px;">
-          <label style="font-size:12px;font-weight:600;color:#475569;display:block;margin-bottom:6px;">Password</label>
-          <input id="password" type="password" placeholder="••••••••" autocomplete="current-password" style="padding:10px 14px;border-radius:10px;" onkeydown="if(event.key==='Enter'){loginWithEmail();}" />
-        </div>
+          <!-- Logo -->
+          <div class="uhh-logo-ring">
+            <div class="uhh-logo-inner">
+              <img src="assets/logo.png" alt="The Unique Haven Homes Logo" />
+            </div>
+          </div>
 
-        <button id="loginBtn" onclick="loginWithEmail()" style="width:100%;padding:11px;border-radius:10px;font-size:14px;font-weight:600;background:var(--primary);box-shadow:0 4px 12px rgba(79,70,229,0.3);">
-          Sign In to CRM
-        </button>
+          <!-- Brand -->
+          <div class="uhh-brand-name">The Unique Haven Homes</div>
+          <div class="uhh-brand-sub">Hospitality Management &amp; Booking CRM</div>
 
-        <div id="loginErr" style="margin-top:10px;"></div>
+          <!-- Status badge -->
+          <div style="margin-bottom:24px;">
+            <span class="uhh-badge-divider">
+              <span style="width:6px;height:6px;background:#22C55E;border-radius:50%;display:inline-block;box-shadow:0 0 6px #22C55E;"></span>
+              SECURE STAFF PORTAL
+            </span>
+          </div>
 
-        <div style="margin-top:24px;padding-top:16px;border-top:1px solid #F1F5F9;font-size:11px;color:#94A3B8;line-height:1.5;">
-          THE UNIQUE HAVEN HOMES PRIVATE LIMITED<br>
-          <span style="font-size:10px;color:#CBD5E1;">CIN: U55101UP2026PTC244637</span> &bull; <strong style="color:#64748B;">Build ${APP_VERSION}</strong>
+          <!-- Google Button -->
+          <button class="uhh-google-btn" onclick="loginWithGoogle()">
+            <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" style="width:20px;height:20px;" />
+            Continue with Google
+          </button>
+
+          <!-- Separator -->
+          <div class="uhh-sep">
+            <div class="uhh-sep-line"></div>
+            <span class="uhh-sep-text">or sign in with email</span>
+            <div class="uhh-sep-line"></div>
+          </div>
+
+          <!-- Email -->
+          <div class="uhh-field">
+            <label class="uhh-label">Email Address</label>
+            <input id="email" type="email" class="uhh-input" placeholder="name@uniquehaven.com" autocomplete="email" />
+          </div>
+
+          <!-- Password -->
+          <div class="uhh-field" style="margin-bottom:20px;">
+            <label class="uhh-label">Password</label>
+            <input id="password" type="password" class="uhh-input" placeholder="••••••••" autocomplete="current-password"
+              onkeydown="if(event.key==='Enter'){loginWithEmail();}" />
+          </div>
+
+          <!-- Sign In Button -->
+          <button id="loginBtn" class="uhh-signin-btn" onclick="loginWithEmail()">
+            ✦ &nbsp;Sign In to CRM
+          </button>
+
+          <div id="loginErr" style="margin-top:10px;font-size:13px;color:#F87171;"></div>
+
+          <!-- Footer -->
+          <div class="uhh-footer">
+            <strong style="color:rgba(148,163,184,0.7);font-size:10px;">THE UNIQUE HAVEN HOMES PRIVATE LIMITED</strong><br>
+            <span style="color:rgba(100,116,139,0.6);font-size:9.5px;">CIN: U55101UP2026PTC244637</span>
+            &nbsp;&bull;&nbsp;
+            <span style="color:rgba(139,92,246,0.8);font-size:9.5px;font-weight:700;">Build ${APP_VERSION}</span>
+          </div>
+
         </div>
       </div>
-    </div>`;
+    </div>
+
+    <script>
+      // Generate star field
+      (function() {
+        const c = document.getElementById('uhh-stars');
+        if (!c) return;
+        for (let i = 0; i < 60; i++) {
+          const s = document.createElement('div');
+          s.className = 'uhh-star';
+          s.style.cssText = 'left:' + Math.random()*100 + '%;top:' + Math.random()*100 + '%;animation-delay:' + (Math.random()*4) + 's;animation-duration:' + (2+Math.random()*4) + 's;width:' + (Math.random()>0.8?3:2) + 'px;height:' + (Math.random()>0.8?3:2) + 'px;';
+          c.appendChild(s);
+        }
+      })();
+    </script>
+  `;
 }
 
 async function loginWithGoogle() {
