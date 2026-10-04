@@ -33,17 +33,17 @@
     {
       id: '101', roomId: 'VIL-108', unitNo: '101',
       name: 'Pink Paradise Villa (101)', nickname: 'Pink Paradise',
-      aliases: ['pink paradise villa', 'pink paradise', 'paradise villa', 'पिंक पैराडाइज', 'पिंक पैराडाइज़', 'पिंक पैराडाइस', 'पिंक विला', '101', 'vil-108']
+      aliases: ['pink paradise villa', 'pink paradise', 'paradise villa', 'पिंक पैराडाइज', 'पिंक पैराडाइज़', 'पिंक पैराडाइस', 'पिंक विला', 'गुलाबी विला', 'गुलाबी पैराडाइज', '101', 'vil-108']
     },
     {
       id: '102', roomId: 'VIL-105', unitNo: '102',
       name: 'The Yellow House (102)', nickname: 'Yellow House',
-      aliases: ['the yellow house', 'yellow house', 'yellow', 'येलो हाउस', 'येलो', 'द येलो हाउस', 'पीला घर', '102', 'vil-105']
+      aliases: ['the yellow house', 'yellow house', 'yellow', 'येलो हाउस', 'येलो', 'द येलो हाउस', 'पीला घर', 'पीला हाउस', 'पीला', 'peela house', 'peela', '102', 'vil-105']
     },
     {
       id: '103', roomId: 'VIL-106', unitNo: '103',
       name: 'Green Forest View (103)', nickname: 'Green Forest',
-      aliases: ['green forest view', 'green forest', 'forest view', 'forest', 'ग्रीन फॉरेस्ट', 'ग्रीन फारेस्ट', 'ग्रीन व्यू', '103', 'vil-106']
+      aliases: ['green forest view', 'green forest', 'forest view', 'forest', 'ग्रीन फॉरेस्ट', 'ग्रीन फारेस्ट', 'ग्रीन व्यू', 'हरा जंगल', '103', 'vil-106']
     },
     {
       id: '104', roomId: 'LUL-402', unitNo: '104',
@@ -63,12 +63,12 @@
     {
       id: '107', roomId: 'GOM-501', unitNo: '107',
       name: 'Starlight Blue Penthouse (107)', nickname: 'Starlight Blue',
-      aliases: ['starlight blue penthouse', 'starlight blue', 'starlight', 'blue penthouse', 'penthouse', 'स्टारलाइट ब्लू', 'स्टारलाइट', 'ब्लू पेंटहाउस', 'पेंटहाउस', '107', 'gom-501']
+      aliases: ['starlight blue penthouse', 'starlight blue', 'starlight', 'blue penthouse', 'penthouse', 'स्टारलाइट ब्लू', 'स्टारलाइट', 'ब्लू पेंटहाउस', 'पेंटहाउस', 'नीला पेंटहाउस', '107', 'gom-501']
     },
     {
       id: '108', roomId: 'GOM-102', unitNo: '108',
       name: 'Black Beauty (108)', nickname: 'Black Beauty',
-      aliases: ['black beauty', 'black', 'ब्लैक ब्यूटी', 'ब्लैक', '108', 'gom-102']
+      aliases: ['black beauty', 'black', 'ब्लैक ब्यूटी', 'ब्लैक', 'काला ब्यूटी', 'काला', '108', 'gom-102']
     },
     {
       id: '109', roomId: 'GOM-401', unitNo: '109',
@@ -83,12 +83,12 @@
     {
       id: '111', roomId: 'VIL-104', unitNo: '111',
       name: 'The Green House (111)', nickname: 'Green House',
-      aliases: ['the green house', 'green house', 'द ग्रीन हाउस', 'ग्रीन हाउस', 'हरा घर', '111', 'vil-104']
+      aliases: ['the green house', 'green house', 'द ग्रीन हाउस', 'ग्रीन हाउस', 'हरा घर', 'हरा हाउस', 'हरा', '111', 'vil-104']
     },
     {
       id: '112', roomId: 'VIL-103', unitNo: '112',
       name: 'The Pink House (112)', nickname: 'Pink House',
-      aliases: ['the pink house', 'pink house', 'द पिंक हाउस', 'पिंक हाउस', '112', 'vil-103']
+      aliases: ['the pink house', 'pink house', 'द पिंक हाउस', 'पिंक हाउस', 'गुलाबी घर', 'गुलाबी हाउस', 'गुलाबी', 'पिंक', '112', 'vil-103']
     },
     {
       id: '113', roomId: 'GOM-202', unitNo: '113',
@@ -103,17 +103,17 @@
     {
       id: '115', roomId: 'VIL-102', unitNo: '115',
       name: 'Royal White House (115)', nickname: 'Royal White',
-      aliases: ['royal white house', 'royal white', 'white house', 'royal villa', 'रॉयल व्हाइट हाउस', 'रॉयल व्हाइट', 'व्हाइट हाउस', 'सफेद कोठी', '115', 'vil-102']
+      aliases: ['royal white house', 'royal white', 'white house', 'royal villa', 'रॉयल व्हाइट हाउस', 'रॉयल व्हाइट', 'व्हाइट हाउस', 'सफेद कोठी', 'सफेद घर', 'सफेद हाउस', 'सफेद', '115', 'vil-102']
     },
     {
       id: '116', roomId: 'GOM-201', unitNo: '116',
       name: 'The Dark Blue (116)', nickname: 'Dark Blue',
-      aliases: ['the dark blue', 'dark blue', 'द डार्क ब्लू', 'डार्क ब्लू', 'गहरा नीला', '116', 'gom-201']
+      aliases: ['the dark blue', 'dark blue', 'द डार्क ब्लू', 'डार्क ब्लू', 'गहरा नीला', 'नीला', '116', 'gom-201']
     },
     {
       id: '117', roomId: 'GOM-101', unitNo: '117',
       name: 'RedRose Palace (117)', nickname: 'RedRose Palace',
-      aliases: ['redrose palace', 'redrose', 'red rose', 'the red', 'red', 'रेडरोज़ पैलेस', 'रेडरोज़', 'रेड रोज', 'रेड रोज़', 'रेड', 'हेरेड', 'द रेड', 'ह रेड', 'दे रेड', '117', 'gom-101']
+      aliases: ['redrose palace', 'redrose', 'red rose', 'the red', 'red', 'रेडरोज़ पैलेस', 'रेडरोज़', 'रेड रोज', 'रेड रोज़', 'रेड', 'हेरेड', 'द रेड', 'ह रेड', 'दे रेड', 'लाल घर', 'लाल पैलेस', 'लाल रोज', 'लाल', '117', 'gom-101']
     }
   ];
 
@@ -154,10 +154,11 @@
     renderPaletteResults('');
   };
 
-  window.closeCommandPalette = function() {
+  function closeCommandPalette() {
     const el = document.getElementById('cmdPaletteBackdrop');
     if (el) el.style.display = 'none';
-  };
+  }
+  window.closeCommandPalette = closeCommandPalette;
 
   // Keyboard shortcut listener (Cmd+K / Ctrl+K)
   window.addEventListener('keydown', (e) => {
@@ -366,6 +367,9 @@
           <button type="button" style="background:#334155;color:#E2E8F0;border:1px solid #475569;padding:4px 9px;border-radius:6px;font-size:11px;cursor:pointer;" onclick="const t='गेस्ट राहुल शर्मा फोन 9876543210 येलो हाउस 2 रात रेट 3500 एडवांस 2000';document.getElementById('voiceTranscriptBox').value=t;processVoiceCommand(t);">
             ⚡ Test 2: राहुल शर्मा (Yellow House)
           </button>
+          <button type="button" style="background:#334155;color:#E2E8F0;border:1px solid #475569;padding:4px 9px;border-radius:6px;font-size:11px;cursor:pointer;" onclick="const t='लांगेस्ट नाम राजीव तलवार बुकिंग डेट 15 अक्टूबर 2026 से 20 अक्टूबर 2026 रेट पर दे 6000 प्रॉपर्टी पीला हाउस';document.getElementById('voiceTranscriptBox').value=t;processVoiceCommand(t);">
+            ⚡ Test 3: राजीव तलवार (पीला हाउस 15-20 Oct)
+          </button>
         </div>
 
         <div id="voiceParsedContainer" style="display:none;width:100%;">
@@ -381,21 +385,27 @@
     startVoiceRecording();
   };
 
-  window.closeVoiceBookingModal = function() {
+  function closeVoiceBookingModal() {
     stopVoiceRecording();
     const el = document.getElementById('voiceBookingBackdrop');
     if (el) el.style.display = 'none';
-  };
+  }
+  window.closeVoiceBookingModal = closeVoiceBookingModal;
 
-  window.toggleVoiceRecording = function() {
+  function toggleVoiceRecording() {
     if (_isRecording) stopVoiceRecording();
     else startVoiceRecording();
-  };
+  }
+  window.toggleVoiceRecording = toggleVoiceRecording;
 
   function startVoiceRecording() {
     const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+    const statusText = document.getElementById('voiceStatusText');
     if (!SpeechRec) {
-      alert('Speech Recognition is not supported in this browser. Please use Chrome or Safari.');
+      if (statusText) {
+        statusText.textContent = '⚠️ Mic not supported in this browser. Please type below.';
+        statusText.style.color = '#F59E0B';
+      }
       return;
     }
 
@@ -409,7 +419,6 @@
     _recognition.interimResults = true;
 
     const micBtn = document.getElementById('voiceMicBtn');
-    const statusText = document.getElementById('voiceStatusText');
     const waveform = document.getElementById('voiceWaveform');
 
     if (micBtn) micBtn.style.animation = 'pulseVoice 1.2s infinite';
@@ -484,6 +493,23 @@
   // ─── 6. Natural Speech Parser (Hindi, Hinglish & English) ───
   let _lastParsedData = null;
 
+  const HINDI_MONTH_MAP = {
+    'जनवरी': 1, 'january': 1, 'jan': 1,
+    'फरवरी': 2, 'फ़रवरी': 2, 'february': 2, 'feb': 2,
+    'मार्च': 3, 'march': 3, 'mar': 3,
+    'अप्रैल': 4, 'अप्रेल': 4, 'एप्रिल': 4, 'april': 4, 'apr': 4,
+    'मई': 5, 'may': 5,
+    'जून': 6, 'june': 6, 'jun': 6,
+    'जुलाई': 7, 'july': 7, 'jul': 7,
+    'अगस्त': 8, 'august': 8, 'aug': 8,
+    'सितंबर': 9, 'सितम्बर': 9, 'september': 9, 'sep': 9, 'sept': 9,
+    'अक्टूबर': 10, 'अक्तूबर': 10, 'october': 10, 'oct': 10,
+    'नवंबर': 11, 'नवम्बर': 11, 'november': 11, 'nov': 11,
+    'दिसंबर': 12, 'दिसम्बर': 12, 'december': 12, 'dec': 12
+  };
+
+  const MONTH_PATTERN = '(?:जनवरी|फरवरी|फ़रवरी|मार्च|अप्रैल|अप्रेल|एप्रिल|मई|जून|जुलाई|अगस्त|सितंबर|सितम्बर|अक्टूबर|अक्तूबर|नवंबर|नवम्बर|दिसंबर|दिसम्बर|january|jan|february|feb|march|mar|april|apr|may|june|jun|july|jul|august|aug|september|sep|sept|october|oct|november|nov|december|dec)';
+
   function normalizeHindiDigits(str) {
     if (!str) return '';
     const hindiDigits = ['०', '१', '२', '३', '४', '५', '६', '७', '८', '९'];
@@ -495,9 +521,34 @@
 
   function formatGuestName(str) {
     if (!str) return '';
-    let clean = String(str).replace(/[।\,\.\-\:\;]/g, '').trim();
-    clean = clean.replace(/\s+(?:का|की|के|ने|me|में)$/i, '').trim();
+    let clean = String(str).replace(/[।\,\.\-\:\;]/g, ' ').trim();
+    // Strip accidental leading speech recognition prefixes
+    clean = clean.replace(/^(?:लांगेस्ट|लॉन्गस्ट|लॉन्गेस्ट|गेस्ट|गस्ट|कस्टमर|क्लाइंट|यात्री|guest|customer|client|name|naam|नेम|नाम)\s*/i, '').trim();
+    // Strip trailing postpositions or booking keywords
+    clean = clean.replace(/\s+(?:का|की|के|ने|me|में|ko|को|ki|ka|ke|ne|booking|बुकिंग)$/i, '').trim();
+    // Capitalize words for Latin characters while preserving Devanagari
     return clean.replace(/\b[a-z]/g, l => l.toUpperCase());
+  }
+
+  function buildIsoDate(dayNum, monthStr, yearNum) {
+    const day = parseInt(dayNum, 10);
+    const mKey = String(monthStr || '').toLowerCase().trim();
+    const month = HINDI_MONTH_MAP[mKey];
+    if (!day || !month || day < 1 || day > 31) return null;
+
+    let year = yearNum ? parseInt(yearNum, 10) : new Date().getFullYear();
+    if (year < 100) year += 2000;
+
+    const pad = n => String(n).padStart(2, '0');
+    return `${year}-${pad(month)}-${pad(day)}`;
+  }
+
+  function addDaysToIso(isoStr, days) {
+    if (!isoStr) return '';
+    const d = new Date(isoStr + 'T00:00:00');
+    d.setDate(d.getDate() + (days || 1));
+    const pad = n => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
   }
 
   function processVoiceCommand(text) {
@@ -527,31 +578,45 @@
     }
 
     // 2. Match Property (Multi-lingual: Hindi Devanagari, English, and phonetic speech variations)
+    // First, sort PROPERTIES_LIST aliases by descending length for greedy matching
+    let matchedProp = null;
+    let longestMatchLen = 0;
+
     for (const p of PROPERTIES_LIST) {
       const aliases = p.aliases || [p.nickname.toLowerCase()];
-      const isMatched = aliases.some(alias => lower.includes(alias.toLowerCase()));
-      if (isMatched || lower.includes(`room ${p.id}`) || lower.includes(`flat ${p.id}`) || lower.includes(`unit ${p.id}`)) {
-        parsed.roomNickname = p.name;
-        parsed.roomId = p.roomId || p.id;
-        break;
+      for (const alias of aliases) {
+        const al = alias.toLowerCase().trim();
+        if (al.length > longestMatchLen && lower.includes(al)) {
+          matchedProp = p;
+          longestMatchLen = al.length;
+        }
       }
+      if (!matchedProp && (lower.includes(`room ${p.id}`) || lower.includes(`flat ${p.id}`) || lower.includes(`unit ${p.id}`))) {
+        matchedProp = p;
+        longestMatchLen = 1;
+      }
+    }
+
+    if (matchedProp) {
+      parsed.roomNickname = matchedProp.name;
+      parsed.roomId = matchedProp.roomId || matchedProp.id;
     }
 
     // Fallback matching for speech recognition phonetic variations
     if (!parsed.roomNickname) {
-      if (/हेरेड|रेडरोज़|रेड रोज|रेड रोज़|रेड पैलेस|द रेड|redrose|red rose|the red/i.test(lower)) {
+      if (/हेरेड|रेडरोज़|रेड रोज|रेड रोज़|रेड पैलेस|द रेड|redrose|red rose|the red|लाल घर|लाल पैलेस|लाल/i.test(lower)) {
         parsed.roomNickname = 'RedRose Palace (117)';
         parsed.roomId = 'GOM-101';
-      } else if (/पिंक पैरा|pink paradise/i.test(lower)) {
+      } else if (/पिंक पैरा|pink paradise|गुलाबी पैरा/i.test(lower)) {
         parsed.roomNickname = 'Pink Paradise Villa (101)';
         parsed.roomId = 'VIL-108';
-      } else if (/पिंक|pink/i.test(lower)) {
+      } else if (/पिंक|pink|गुलाबी/i.test(lower)) {
         parsed.roomNickname = 'The Pink House (112)';
         parsed.roomId = 'VIL-103';
-      } else if (/येलो|yellow/i.test(lower)) {
+      } else if (/येलो|yellow|पीला|peela/i.test(lower)) {
         parsed.roomNickname = 'The Yellow House (102)';
         parsed.roomId = 'VIL-105';
-      } else if (/फॉरेस्ट|green forest/i.test(lower)) {
+      } else if (/फॉरेस्ट|green forest|हरा जंगल/i.test(lower)) {
         parsed.roomNickname = 'Green Forest View (103)';
         parsed.roomId = 'VIL-106';
       } else if (/सेलिब्रिटी|celebrity/i.test(lower)) {
@@ -563,60 +628,37 @@
       } else if (/लाइट ग्रीन|light green/i.test(lower)) {
         parsed.roomNickname = 'The Light Green (106)';
         parsed.roomId = 'GOM-301';
-      } else if (/स्टारलाइट|पेंटहाउस|penthouse|starlight/i.test(lower)) {
+      } else if (/स्टारलाइट|पेंटहाउस|penthouse|starlight|नीला पेंट/i.test(lower)) {
         parsed.roomNickname = 'Starlight Blue Penthouse (107)';
         parsed.roomId = 'GOM-501';
-      } else if (/ब्लैक ब्यूटी|ब्लैक|black/i.test(lower)) {
+      } else if (/ब्लैक ब्यूटी|ब्लैक|black|काला/i.test(lower)) {
         parsed.roomNickname = 'Black Beauty (108)';
         parsed.roomId = 'GOM-102';
       } else if (/नवाबी|nawabi/i.test(lower)) {
         parsed.roomNickname = 'The Nawabi Stay (109)';
         parsed.roomId = 'GOM-401';
-      } else if (/गोमती ग्रैंड|ग्रैंड विला|gomti grand/i.test(lower)) {
+      } else if (/गोमती ग्रैंड|ग्रैंड विला|gomti grand|गोमती विला/i.test(lower)) {
         parsed.roomNickname = 'Gomti Grand Villa (110)';
         parsed.roomId = 'VIL-101';
+      } else if (/हरा हाउस|हरा घर|green house/i.test(lower)) {
+        parsed.roomNickname = 'The Green House (111)';
+        parsed.roomId = 'VIL-104';
       } else if (/ब्राउन|brown/i.test(lower)) {
         parsed.roomNickname = 'The Brown Flat (113)';
         parsed.roomId = 'GOM-202';
       } else if (/वेलवेट|velvet/i.test(lower)) {
         parsed.roomNickname = 'The Velvet House (114)';
         parsed.roomId = 'VIL-107';
-      } else if (/रॉयल व्हाइट|व्हाइट हाउस|royal white/i.test(lower)) {
+      } else if (/रॉयल व्हाइट|व्हाइट हाउस|royal white|सफेद घर|सफेद हाउस|सफेद कोठी/i.test(lower)) {
         parsed.roomNickname = 'Royal White House (115)';
         parsed.roomId = 'VIL-102';
-      } else if (/डार्क ब्लू|dark blue/i.test(lower)) {
+      } else if (/डार्क ब्लू|dark blue|गहरा नीला|नीला/i.test(lower)) {
         parsed.roomNickname = 'The Dark Blue (116)';
         parsed.roomId = 'GOM-201';
       }
     }
 
-    // 3. Match Guest Name (Hindi Devanagari & English)
-    // Pattern A: Prefix like "गेस्ट नेम प्रवीण सिंह", "गेस्ट नाम राहुल", "guest name John", "नाम अमित"
-    const prefixNameRegex = /(?:गेस्ट\s*(?:नेम|नाम)|कस्टमर\s*(?:नेम|नाम)|नेम|नाम|गेस्ट|गस्ट|कस्टमर|guest\s*name|guest|name|naam|for|booked\s*for)\s*[:=\-]?\s*([a-zA-Z\u0900-\u097F\s\.\'\-]+?)(?=\s+(?:मोबाइल|फोन|नंबर|phone|mobile|number|\d{4,}|प्रॉपर्टी|property|रूम|room|फ्लैट|flat|विला|villa|(?:का|की)\s+(?:बुकिंग|कमरा|stay)|रेट|rate|एडवांस|advance|कल|आज|night|रात)|[\,\.\।\:\;]|$)/i;
-    const prefixMatch = normText.match(prefixNameRegex);
-
-    if (prefixMatch && prefixMatch[1] && prefixMatch[1].trim()) {
-      parsed.guestName = formatGuestName(prefixMatch[1]);
-    } else {
-      // Pattern B: Postfix particle like "प्रवीण सिंह का बुकिंग", "Rahul Sharma ki booking"
-      const postfixMatch = normText.match(/([a-zA-Z\u0900-\u097F\s\.\'\-]{2,30}?)\s+(?:का|की|के|ने|ka|ki|ke|ne)\s+(?:बुकिंग|booking|कमरा|stay|room|staying)/i);
-      if (postfixMatch && postfixMatch[1] && postfixMatch[1].trim()) {
-        parsed.guestName = formatGuestName(postfixMatch[1]);
-      } else if (parsed.phone) {
-        // Pattern C: Context before phone number (e.g. "प्रवीण सिंह मोबाइल 9454470872")
-        const parts = normText.split(parsed.phone);
-        if (parts[0]) {
-          let candidate = parts[0].replace(/(?:मोबाइल|फोन|नंबर|phone|mobile|number|का|की|ke|ka|ki)\s*$/i, '').trim();
-          candidate = candidate.replace(/^(?:गेस्ट\s*(?:नेम|नाम)|नेम|नाम|guest\s*name|guest|name)\s*/i, '').trim();
-          const words = candidate.split(/\s+/).filter(w => w && !/^(का|की|के|हेरेड|रेड|रूम|होटल|stay|प्रॉपर्टी|property)$/i.test(w));
-          if (words.length >= 1 && words.length <= 4) {
-            parsed.guestName = formatGuestName(words.join(' '));
-          }
-        }
-      }
-    }
-
-    // 4. Match Nights / Duration (supports digits and Hindi words)
+    // 3. Match Nights / Duration (supports digits and Hindi words)
     const hindiWordToNum = {
       'एक': 1, 'दो': 2, 'तीन': 3, 'चार': 4, 'पांच': 5, 'पाँच': 5,
       'छह': 6, 'छः': 6, 'सात': 7, 'आठ': 8, 'नौ': 9, 'दस': 10,
@@ -628,37 +670,157 @@
       parsed.nights = hindiWordToNum[val] || parseInt(val, 10) || 1;
     }
 
-    // 5. Match Rate & Advance
-    const rateMatch1 = lower.match(/(?:रेट|rate|रुपये|रु|रू|₹|rs\.?|inr)\s*[:=\-]?\s*(\d{3,6})/i);
-    const rateMatch2 = lower.match(/(\d{3,6})\s*(?:रेट|rate|रुपये|रुपया|रू|रु|₹|rs\.?|inr|per night|पर नाइट|में|me|का|ka)/i);
-    if (rateMatch1) parsed.rate = rateMatch1[1];
-    else if (rateMatch2) parsed.rate = rateMatch2[1];
+    // 4. Match Dates (Full support for Hindi & English spoken dates & ranges)
+    let foundCheckIn = null;
+    let foundCheckOut = null;
 
-    const advMatch1 = lower.match(/(?:एडवांस|advance|टोकन|token|जमा)\s*[:=\-]?\s*(\d{3,6})/i);
-    const advMatch2 = lower.match(/(\d{3,6})\s*(?:एडवांस|advance|मिला|paid|टोकन|token|जमा)/i);
-    if (advMatch1) parsed.advance = advMatch1[1];
-    else if (advMatch2) parsed.advance = advMatch2[1];
+    // Pattern A: Two dates with explicit month names (e.g. "15 अक्टूबर 2026 से 20 अक्टूबर 2026" or "15 Oct to 20 Oct")
+    const dateRangeBothMonthsRegex = new RegExp(
+      `(\\d{1,2})(?:th|st|nd|rd)?\\s*(?:तारीख)?\\s*(${MONTH_PATTERN})\\s*(\\d{4})?\\s*(?:से|to|तक|-)\\s*(\\d{1,2})(?:th|st|nd|rd)?\\s*(?:तारीख)?\\s*(${MONTH_PATTERN})\\s*(\\d{4})?`,
+      'i'
+    );
+    const mRangeBoth = lower.match(dateRangeBothMonthsRegex);
 
-    // 6. Match Dates
-    const today = new Date();
-    let checkInDate = new Date(today);
-    checkInDate.setDate(checkInDate.getDate() + 1); // default tomorrow
-
-    if (/आज|today/i.test(lower)) {
-      checkInDate = new Date(today);
-    } else if (/परसों|day after tomorrow/i.test(lower)) {
-      checkInDate = new Date(today);
-      checkInDate.setDate(checkInDate.getDate() + 2);
-    } else if (/कल|tomorrow/i.test(lower)) {
-      checkInDate = new Date(today);
-      checkInDate.setDate(checkInDate.getDate() + 1);
+    if (mRangeBoth) {
+      const y1 = mRangeBoth[3] || mRangeBoth[6] || '';
+      const y2 = mRangeBoth[6] || mRangeBoth[3] || '';
+      foundCheckIn = buildIsoDate(mRangeBoth[1], mRangeBoth[2], y1);
+      foundCheckOut = buildIsoDate(mRangeBoth[4], mRangeBoth[5], y2);
     }
 
-    const checkOutDate = new Date(checkInDate);
-    checkOutDate.setDate(checkOutDate.getDate() + (parsed.nights || 1));
+    // Pattern B: Shared month range (e.g. "15 से 20 अक्टूबर 2026" or "15 to 20 october 2026")
+    if (!foundCheckIn) {
+      const dateRangeSharedMonthRegex = new RegExp(
+        `(\\d{1,2})(?:th|st|nd|rd)?\\s*(?:तारीख)?\\s*(?:से|to|तक|-)\\s*(\\d{1,2})(?:th|st|nd|rd)?\\s*(?:तारीख)?\\s*(${MONTH_PATTERN})\\s*(\\d{4})?`,
+        'i'
+      );
+      const mRangeShared = lower.match(dateRangeSharedMonthRegex);
+      if (mRangeShared) {
+        foundCheckIn = buildIsoDate(mRangeShared[1], mRangeShared[3], mRangeShared[4]);
+        foundCheckOut = buildIsoDate(mRangeShared[2], mRangeShared[3], mRangeShared[4]);
+      }
+    }
 
-    parsed.checkIn = checkInDate.toISOString().slice(0, 10);
-    parsed.checkOut = checkOutDate.toISOString().slice(0, 10);
+    // Pattern C: Numeric date range (e.g. "15/10/2026 से 20/10/2026" or "15-10-2026 to 20-10-2026")
+    if (!foundCheckIn) {
+      const numericRangeRegex = /(\d{1,2})[\/\-\.](\d{1,2})(?:[\/\-\.](\d{2,4}))?\s*(?:से|to|तक|-)\s*(\d{1,2})[\/\-\.](\d{1,2})(?:[\/\-\.](\d{2,4}))?/i;
+      const mNum = lower.match(numericRangeRegex);
+      if (mNum) {
+        const y1 = mNum[3] || mNum[6] || '';
+        const y2 = mNum[6] || mNum[3] || '';
+        const pad = n => String(n).padStart(2, '0');
+        const curY = new Date().getFullYear();
+        foundCheckIn = `${y1 || curY}-${pad(mNum[2])}-${pad(mNum[1])}`;
+        foundCheckOut = `${y2 || curY}-${pad(mNum[5])}-${pad(mNum[4])}`;
+      }
+    }
+
+    // Pattern D: Single start date (e.g. "15 अक्टूबर 2026" or "चेक इन 15 अक्टूबर")
+    if (!foundCheckIn) {
+      const singleDateRegex = new RegExp(
+        `(?:बुकिंग\\s*डेट|चेक\\s*इन|तारीख|डेट|from|date)?\\s*[:=\\-]?\\s*(\\d{1,2})(?:th|st|nd|rd)?\\s*(?:तारीख)?\\s*(${MONTH_PATTERN})\\s*(\\d{4})?`,
+        'i'
+      );
+      const mSingle = lower.match(singleDateRegex);
+      if (mSingle && mSingle[1] && mSingle[2]) {
+        foundCheckIn = buildIsoDate(mSingle[1], mSingle[2], mSingle[3]);
+      }
+    }
+
+    // Apply resolved dates or fall back to relative dates
+    if (foundCheckIn && foundCheckOut) {
+      parsed.checkIn = foundCheckIn;
+      parsed.checkOut = foundCheckOut;
+      const diffMs = new Date(foundCheckOut + 'T00:00:00') - new Date(foundCheckIn + 'T00:00:00');
+      const diffDays = Math.round(diffMs / (1000 * 60 * 60 * 24));
+      if (diffDays > 0) {
+        parsed.nights = diffDays;
+      }
+    } else if (foundCheckIn) {
+      parsed.checkIn = foundCheckIn;
+      parsed.checkOut = addDaysToIso(foundCheckIn, parsed.nights || 1);
+    } else {
+      const today = new Date();
+      let checkInDate = new Date(today);
+      checkInDate.setDate(checkInDate.getDate() + 1); // default tomorrow
+
+      if (/आज|today/i.test(lower)) {
+        checkInDate = new Date(today);
+      } else if (/परसों|day after tomorrow/i.test(lower)) {
+        checkInDate = new Date(today);
+        checkInDate.setDate(checkInDate.getDate() + 2);
+      } else if (/कल|tomorrow/i.test(lower)) {
+        checkInDate = new Date(today);
+        checkInDate.setDate(checkInDate.getDate() + 1);
+      }
+
+      const pad = n => String(n).padStart(2, '0');
+      parsed.checkIn = `${checkInDate.getFullYear()}-${pad(checkInDate.getMonth() + 1)}-${pad(checkInDate.getDate())}`;
+      parsed.checkOut = addDaysToIso(parsed.checkIn, parsed.nights || 1);
+    }
+
+    // 5. Match Rate & Advance (Ensuring 4-digit years like 2026 are never mistaken for rates)
+    const isYearOrDateDigit = (val) => {
+      if (!val) return false;
+      const n = parseInt(val, 10);
+      if (n >= 2024 && n <= 2035) {
+        const re = new RegExp(`(?:${MONTH_PATTERN}|[0-9]{1,2}[\\/\\-\\.]|तारीख)\\s*${val}`, 'i');
+        if (re.test(lower)) return true;
+      }
+      return false;
+    };
+
+    // Forward rate: "रेट पर दे 6000", "रेट पर डे 6000", "रेट 6000", "rate per day 6000", "किराया 6000"
+    const rateMatch1 = lower.match(/(?:रेट|rate|किराया|rent|price|प्राइस)\s*(?:पर\s*दे|पर\s*डे|परदे|परडे|पर\s*दिन|प्रति\s*दिन|रोज\s*का|per\s*day|per\s*night|पर\s*नाइट|पर\s*रात|है|होगा|रहेगा|का|की|के|is)?\s*[:=\-]?\s*(\d{3,6})/i);
+    // Reverse rate: "6000 रुपये", "6000 रेट", "6000 पर डे"
+    const rateMatch2 = lower.match(/(\d{3,6})\s*(?:रेट|rate|रुपये|रुपया|रू|रु|₹|rs\.?|inr|per night|पर नाइट|per day|पर डे|पर दे|पर दिन|प्रति दिन|रोज का|में|me)/i);
+
+    if (rateMatch1 && !isYearOrDateDigit(rateMatch1[1])) {
+      parsed.rate = rateMatch1[1];
+    } else if (rateMatch2 && !isYearOrDateDigit(rateMatch2[1])) {
+      parsed.rate = rateMatch2[1];
+    }
+
+    const advMatch1 = lower.match(/(?:एडवांस|advance|टोकन|token|जमा|paid)\s*(?:में|का|की|के|is)?\s*[:=\-]?\s*(\d{3,6})/i);
+    const advMatch2 = lower.match(/(\d{3,6})\s*(?:एडवांस|advance|मिला|paid|टोकन|token|जमा)/i);
+    if (advMatch1 && !isYearOrDateDigit(advMatch1[1])) parsed.advance = advMatch1[1];
+    else if (advMatch2 && !isYearOrDateDigit(advMatch2[1])) parsed.advance = advMatch2[1];
+
+    // 6. Match Guest Name (Hindi Devanagari & English)
+    // Pattern A: Prefix like "लांगेस्ट नाम राजीव तलवार", "गेस्ट नेम प्रवीण सिंह", "गेस्ट नाम राहुल", "नाम अमित", "guest name John"
+    const prefixNameRegex = /(?:(?:लांगेस्ट|लॉन्गस्ट|लॉन्गेस्ट|गेस्ट|गस्ट|कस्टमर|क्लाइंट|यात्री|guest|customer|client)\s*(?:नेम|नाम|name)?|(?:नेम|नाम|name|naam)|for|booked\s*for|booking\s*for)\s*[:=\-]?\s*([a-zA-Z\u0900-\u097F\s\.\'\-]+?)(?=\s+(?:बुकिंग|booking|डेट|date|तारीख|tarikh|from|to|से|तक|चेक\s*इन|check\s*in|चेक\s*आउट|check\s*out|मोबाइल|फोन|नंबर|phone|mobile|number|mob|\d+|प्रॉपर्टी|property|रूम|room|कमरा|फ्लैट|flat|विला|villa|हाउस|house|होटल|hotel|रेट|rate|किराया|rent|price|प्राइस|एडवांस|advance|टोकन|token|जमा|कल|आज|परसों|today|tomorrow|night|nights|नाइट|नाइट्स|रात|रातें|दिन|din|day|days|(?:का|की|के|ने)\s+(?:बुकिंग|कमरा|stay))|[\,\.\।\:\;\-\n]|$)/i;
+    const prefixMatch = normText.match(prefixNameRegex);
+
+    if (prefixMatch && prefixMatch[1] && prefixMatch[1].trim()) {
+      parsed.guestName = formatGuestName(prefixMatch[1]);
+    } else {
+      // Pattern B: Postfix particle like "प्रवीण सिंह का बुकिंग", "Rahul Sharma ki booking"
+      const postfixMatch = normText.match(/([a-zA-Z\u0900-\u097F\s\.\'\-]{2,30}?)\s+(?:का|की|के|ने|ka|ki|ke|ne)\s+(?:बुकिंग|booking|कमरा|stay|room|staying)/i);
+      if (postfixMatch && postfixMatch[1] && postfixMatch[1].trim()) {
+        parsed.guestName = formatGuestName(postfixMatch[1]);
+      } else {
+        // Pattern C: Leading Name without prefix before booking/date/property keyword (e.g. "राजीव तलवार बुकिंग डेट...")
+        const leadMatch = normText.match(/^\s*([a-zA-Z\u0900-\u097F\s\.\'\-]{2,30}?)\s+(?:बुकिंग|booking|मोबाइल|फोन|phone|mobile|डेट|date|तारीख|tarikh|check|चेक|रूम|room|प्रॉपर्टी|property|rate|रेट)/i);
+        if (leadMatch && leadMatch[1] && leadMatch[1].trim()) {
+          const candidate = leadMatch[1].trim();
+          const words = candidate.split(/\s+/).filter(w => !/^(बुकिंग|booking|डेट|date|का|की|के|ने|for)$/i.test(w));
+          if (words.length >= 1 && words.length <= 4) {
+            parsed.guestName = formatGuestName(words.join(' '));
+          }
+        } else if (parsed.phone) {
+          // Pattern D: Context before phone number (e.g. "प्रवीण सिंह मोबाइल 9454470872")
+          const parts = normText.split(parsed.phone);
+          if (parts[0]) {
+            let candidate = parts[0].replace(/(?:मोबाइल|फोन|नंबर|phone|mobile|number|का|की|ke|ka|ki)\s*$/i, '').trim();
+            candidate = candidate.replace(/^(?:लांगेस्ट|गेस्ट\s*(?:नेम|नाम)|नेम|नाम|guest\s*name|guest|name)\s*/i, '').trim();
+            const words = candidate.split(/\s+/).filter(w => w && !/^(का|की|के|हेरेड|रेड|रूम|होटल|stay|प्रॉपर्टी|property)$/i.test(w));
+            if (words.length >= 1 && words.length <= 4) {
+              parsed.guestName = formatGuestName(words.join(' '));
+            }
+          }
+        }
+      }
+    }
 
     _lastParsedData = parsed;
 
@@ -669,14 +831,15 @@
 
     if (parsedContainer && summaryBox) {
       parsedContainer.style.display = 'block';
+      const totalEstimated = parsed.rate ? Number(parsed.rate) * (parsed.nights || 1) : 0;
       summaryBox.innerHTML = `
-        <div style="font-weight:800;font-size:13px;margin-bottom:4px;color:#fff;">✅ Speech Parsed Successfully:</div>
-        <div>👤 <strong>Guest Name:</strong> ${parsed.guestName ? `<span style="color:#34D399;font-weight:800;">${parsed.guestName}</span>` : '<span style="color:#FBBF24;">(Not specified)</span>'}</div>
-        <div>🏡 <strong>Property:</strong> ${parsed.roomNickname ? `<span style="color:#38BDF8;font-weight:800;">${parsed.roomNickname}</span>` : '<span style="color:#FBBF24;">(Select in form)</span>'}</div>
-        <div>🌙 <strong>Duration:</strong> ${parsed.nights} Night(s) (${parsed.checkIn} → ${parsed.checkOut})</div>
-        ${parsed.rate ? `<div>💰 <strong>Rate:</strong> ₹${parsed.rate}</div>` : ''}
-        ${parsed.advance ? `<div>💵 <strong>Advance:</strong> ₹${parsed.advance}</div>` : ''}
-        ${parsed.phone ? `<div>📞 <strong>Phone:</strong> <span style="color:#A7F3D0;font-weight:800;">${parsed.phone}</span></div>` : ''}
+        <div style="font-weight:800;font-size:13px;margin-bottom:6px;color:#fff;">✅ Speech Parsed Successfully:</div>
+        <div style="margin-bottom:3px;">👤 <strong>Guest Name:</strong> ${parsed.guestName ? `<span style="color:#34D399;font-weight:800;">${escapeHtml(parsed.guestName)}</span>` : '<span style="color:#FBBF24;">(Not specified)</span>'}</div>
+        <div style="margin-bottom:3px;">🏡 <strong>Property:</strong> ${parsed.roomNickname ? `<span style="color:#38BDF8;font-weight:800;">${escapeHtml(parsed.roomNickname)}</span>` : '<span style="color:#FBBF24;">(Select in form)</span>'}</div>
+        <div style="margin-bottom:3px;">🌙 <strong>Duration:</strong> ${parsed.nights} Night(s) (${parsed.checkIn} → ${parsed.checkOut})</div>
+        ${parsed.rate ? `<div style="margin-bottom:3px;">💰 <strong>Rate:</strong> ₹${parsed.rate} / night ${parsed.nights > 1 ? `<span style="color:#94A3B8;font-size:11.5px;">(Total: ₹${totalEstimated})</span>` : ''}</div>` : ''}
+        ${parsed.advance ? `<div style="margin-bottom:3px;">💵 <strong>Advance:</strong> ₹${parsed.advance}</div>` : ''}
+        ${parsed.phone ? `<div style="margin-bottom:3px;">📞 <strong>Phone:</strong> <span style="color:#A7F3D0;font-weight:800;">${escapeHtml(parsed.phone)}</span></div>` : ''}
       `;
     }
 
@@ -690,6 +853,9 @@
       // Audio chime
     }
   }
+
+  window.processVoiceCommand = processVoiceCommand;
+  window.getLastParsedVoiceData = () => _lastParsedData;
 
   window.applyVoiceBooking = function() {
     if (!_lastParsedData) return;
