@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>📱 Phone Number Cleanup Tool — UHHS</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Inter', sans-serif; background: #0F172A; color: #E2E8F0; min-height: 100vh; padding: 24px; }
+    h1 { font-size: 20px; font-weight: 700; color: #F8FAFC; margin-bottom: 4px; }
+    .sub { font-size: 13px; color: #64748B; margin-bottom: 20px; }
+    .card { background: #1E293B; border: 1px solid #334155; border-radius: 14px; padding: 20px; margin-bottom: 16px; }
+    .badge { display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: 11px; font-weight: 700; }
+    .badge.red { background: #FEE2E2; color: #DC2626; }
+    .badge.green { background: #DCFCE7; color: #16A34A; }
+    .badge.yellow { background: #FEF9C3; color: #B45309; }
+    .badge.blue { background: #DBEAFE; color: #1D4ED8; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th { text-align: left; padding: 8px 10px; border-bottom: 1px solid #334155; color: #94A3B8; font-size: 11px; font-weight: 700; text-transform: uppercase; }
+    td { padding: 8px 10px; border-bottom: 1px solid #1E293B; vertical-align: middle; }
+    tr:hover td { background: rgba(255,255,255,0.02); }
+    .old { color: #EF4444; font-family: monospace; }
+    .new { color: #22C55E; font-family: monospace; font-weight: 700; }
+    .unchanged { color: #94A3B8; font-family: monospace; }
+    .btn { padding: 10px 20px; border: none; border-radius: 8px; font-size: 14px; font-weight: 700; cursor: pointer; font-family: inherit; transition: all 0.2s; }
+    .btn-primary { background: linear-gradient(135deg, #7C3AED, #6D28D9); color: #fff; box-shadow: 0 4px 12px rgba(109,40,217,0.4); }
+    .btn-primary:hover { transform: translateY(-1px); }
+    .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+    .btn-danger { background: linear-gradient(135deg, #DC2626, #B91C1C); color: #fff; box-shadow: 0 4px 12px rgba(220,38,38,0.4); }
+    .btn-danger:hover:not(:disabled) { transform: translateY(-1px); }
+    .btn-danger:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-green { background: linear-gradient(135deg, #16A34A, #15803D); color: #fff; box-shadow: 0 4px 12px rgba(22,163,74,0.4); }
+    .btn-green:hover:not(:disabled) { transform: translateY(-1px); }
+    .btn-green:disabled { opacity: 0.5; cursor: not-allowed; }
+    .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-bottom: 16px; }
+    .stat-box { background: #1E293B; border: 1px solid #334155; border-radius: 10px; padding: 14px 16px; }
+    .stat-num { font-size: 28px; font-weight: 800; }
+    .stat-lbl { font-size: 11px; color: #64748B; font-weight: 600; margin-top: 2px; text-transform: uppercase; }
+    #log { background: #0D1117; border: 1px solid #21262D; border-radius: 8px; padding: 14px; font-family: monospace; font-size: 12px; max-height: 250px; overflow-y: auto; margin-top: 12px; }
+    .log-ok { color: #22C55E; }
+    .log-err { color: #EF4444; }
+    .log-info { color: #60A5FA; }
+    .log-warn { color: #FBBF24; }
+    .progress-bar { height: 6px; background: #334155; border-radius: 3px; margin-top: 12px; overflow: hidden; }
+    .progress-fill { height: 100%; background: linear-gradient(90deg, #7C3AED, #22C55E); transition: width 0.3s; border-radius: 3px; }
+    .issue-tag { font-size: 10px; font-weight: 700; padding: 1px 6px; border-radius: 4px; margin-left: 4px; }
+    .flex { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .warning-box { background: rgba(251,191,36,0.1); border: 1px solid rgba(251,191,36,0.3); border-radius: 8px; padding: 12px 14px; margin-bottom: 14px; font-size: 13px; color: #FCD34D; }
+  </style>
+</head>
+<body>
+
+<h1>📱 Phone Number Cleanup Tool</h1>
+<div class="sub">The Unique Haven Homes — Supabase guest_register table audit</div>
+
+<div class="warning-box">
+  ⚠️ <strong>Data Safety:</strong> Yeh tool sirf <code>phone</code> column touch karega. Guest name, booking dates, amounts — kuch nahi badlega. Pehle <strong>Audit karo</strong>, result dekho, phir fix karo.
+</div>
+
+<!-- Stats -->
+<div class="stat-grid">
+  <div class="stat-box"><div class="stat-num" id="sTotal" style="color:#60A5FA">—</div><div class="stat-lbl">Total Records</div></div>
+  <div class="stat-box"><div class="stat-num" id="sIssues" style="color:#EF4444">—</div><div class="stat-lbl">Issues Found</div></div>
+  <div class="stat-box"><div class="stat-num" id="sClean" style="color:#22C55E">—</div><div class="stat-lbl">Already Clean</div></div>
+  <div class="stat-box"><div class="stat-num" id="sEmpty" style="color:#94A3B8">—</div><div class="stat-lbl">Empty/Null</div></div>
+</div>
+
+<!-- Buttons -->
+<div class="flex" style="margin-bottom:16px;">
+  <button class="btn btn-primary" id="btnAudit" onclick="runAudit()">🔍 Audit Phone Numbers</button>
+  <button class="btn btn-green" id="btnFix" onclick="runFix()" disabled>✅ Fix All Issues</button>
+  <button class="btn" style="background:#334155;color:#E2E8F0;" onclick="location.reload()">🔄 Reset</button>
+</div>
+
+<!-- Progress -->
+<div class="progress-bar" id="progressBar" style="display:none"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
+
+<!-- Results Table -->
+<div class="card" id="resultsCard" style="display:none;">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+    <div style="font-size:14px;font-weight:700;color:#F8FAFC;">📋 Issues Found</div>
+    <div id="issueCount" style="font-size:12px;color:#94A3B8;"></div>
+  </div>
+  <div style="overflow-x:auto;">
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Booking ID</th>
+          <th>Guest Name</th>
+          <th>❌ Original Phone</th>
+          <th>✅ Will Become</th>
+          <th>Issue Tags</th>
+        </tr>
+      </thead>
+      <tbody id="resultsBody"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Log -->
+<div class="card">
+  <div style="font-size:13px;font-weight:700;color:#F8FAFC;margin-bottom:8px;">📜 Log</div>
+  <div id="log"><span class="log-info">Ready. Click "Audit Phone Numbers" to start.</span></div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+  const SUPABASE_URL = "https://vxxmigdzimnrbbmkjzoa.supabase.co";
+  const SUPABASE_ANON_KEY = "sb_publishable_ZgssvBczAg9TPv4ihN8IfQ_FPcEnq1F";
+  const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  let issuesData = []; // { booking_id, guest_name, original, cleaned, issues[] }
+
+  function log(msg, type='info') {
+    const el = document.getElementById('log');
+    el.innerHTML += `<div class="log-${type}">[${new Date().toLocaleTimeString('en-IN')}] ${msg}</div>`;
+    el.scrollTop = el.scrollHeight;
+  }
+
+  function setProgress(pct) {
+    const bar = document.getElementById('progressBar');
+    const fill = document.getElementById('progressFill');
+    bar.style.display = 'block';
+    fill.style.width = pct + '%';
+  }
+
+  /**
+   * Clean a phone number:
+   * - Remove all non-digit chars
+   * - Strip leading country codes: +91, 0091, 91 (if 12 digits), 0 prefix (if 11 digits)
+   * - Return clean 10-digit number (or best effort)
+   */
+  function cleanPhone(raw) {
+    if (!raw || String(raw).trim() === '') return { cleaned: '', issues: ['empty'] };
+    
+    const original = String(raw).trim();
+    const issues = [];
+    
+    // Check for country code patterns
+    if (/^\+91/.test(original)) issues.push('+91 prefix');
+    if (/^0091/.test(original)) issues.push('0091 prefix');
+    if (/\s/.test(original)) issues.push('spaces');
+    if (/-/.test(original)) issues.push('dashes');
+    if (/\./.test(original)) issues.push('dots');
+    if (/[a-zA-Z]/.test(original)) issues.push('letters');
+
+    // Strip everything except digits
+    let digits = original.replace(/\D/g, '');
+
+    // Strip country code
+    if (digits.length === 12 && digits.startsWith('91')) {
+      digits = digits.slice(2);
+      if (!issues.includes('+91 prefix') && !issues.includes('0091 prefix')) issues.push('91 prefix');
+    } else if (digits.length === 13 && digits.startsWith('091')) {
+      digits = digits.slice(3);
+    } else if (digits.length === 11 && digits.startsWith('0')) {
+      digits = digits.slice(1);
+      issues.push('0 prefix');
+    }
+
+    // Validate result
+    if (digits.length !== 10) {
+      if (digits.length > 0) issues.push(`length:${digits.length}`);
+    }
+
+    // Check if valid Indian mobile (starts with 6-9)
+    if (digits.length === 10 && !/^[6-9]/.test(digits)) {
+      issues.push('invalid start digit');
+    }
+
+    const changed = digits !== original.replace(/\D/g, '').replace(/^91(?=\d{10}$)/, '').replace(/^0(?=\d{10}$)/, '');
+    
+    return { cleaned: digits, issues, changed: digits !== original };
+  }
+
+  async function runAudit() {
+    document.getElementById('btnAudit').disabled = true;
+    document.getElementById('btnFix').disabled = true;
+    issuesData = [];
+    document.getElementById('resultsBody').innerHTML = '';
+    document.getElementById('resultsCard').style.display = 'none';
+    document.getElementById('log').innerHTML = '';
+
+    log('🔍 Fetching all records from guest_register...', 'info');
+    setProgress(10);
+
+    try {
+      // Paginate — fetch all records
+      let allRecords = [];
+      let from = 0;
+      const pageSize = 1000;
+      
+      while (true) {
+        const { data, error } = await sb
+          .from('guest_register')
+          .select('booking_id, guest_name, phone')
+          .range(from, from + pageSize - 1)
+          .order('booking_id', { ascending: true });
+        
+        if (error) throw error;
+        if (!data || data.length === 0) break;
+        allRecords = allRecords.concat(data);
+        if (data.length < pageSize) break;
+        from += pageSize;
+      }
+
+      log(`✅ Fetched ${allRecords.length} total records`, 'ok');
+      setProgress(50);
+
+      let totalEmpty = 0;
+      let totalIssues = 0;
+      let totalClean = 0;
+
+      const tbody = document.getElementById('resultsBody');
+
+      allRecords.forEach((rec, idx) => {
+        const raw = rec.phone;
+        
+        if (!raw || String(raw).trim() === '') {
+          totalEmpty++;
+          return;
+        }
+
+        const { cleaned, issues, changed } = cleanPhone(raw);
+        
+        if (!changed || issues.length === 0) {
+          totalClean++;
+          return;
+        }
+
+        totalIssues++;
+        issuesData.push({
+          booking_id: rec.booking_id,
+          guest_name: rec.guest_name,
+          original: raw,
+          cleaned: cleaned,
+          issues: issues
+        });
+
+        // Add row to table
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td style="color:#64748B;font-size:11px;">${totalIssues}</td>
+          <td style="font-size:11px;color:#94A3B8;">${rec.booking_id || '—'}</td>
+          <td style="font-weight:600;">${rec.guest_name || '—'}</td>
+          <td class="old">${escHtml(String(raw))}</td>
+          <td class="new">${cleaned || '<span style="color:#EF4444;font-style:italic;">⚠️ could not clean</span>'}</td>
+          <td>${issues.map(i => `<span class="issue-tag" style="background:rgba(239,68,68,0.15);color:#EF4444;">${i}</span>`).join('')}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+
+      setProgress(100);
+
+      // Update stats
+      document.getElementById('sTotal').textContent = allRecords.length;
+      document.getElementById('sIssues').textContent = totalIssues;
+      document.getElementById('sClean').textContent = totalClean;
+      document.getElementById('sEmpty').textContent = totalEmpty;
+
+      if (totalIssues > 0) {
+        document.getElementById('resultsCard').style.display = 'block';
+        document.getElementById('issueCount').textContent = `${totalIssues} records need fixing`;
+        document.getElementById('btnFix').disabled = false;
+        log(`⚠️ Found ${totalIssues} records with phone issues`, 'warn');
+        log(`✅ ${totalClean} records already clean`, 'ok');
+        log(`📭 ${totalEmpty} records with empty phone`, 'info');
+        log(`👆 Review the table above, then click "Fix All Issues"`, 'info');
+      } else {
+        log('🎉 All phone numbers are already clean! No fixes needed.', 'ok');
+        document.getElementById('btnAudit').disabled = false;
+      }
+
+    } catch (err) {
+      log('❌ Error: ' + err.message, 'err');
+      document.getElementById('btnAudit').disabled = false;
+    }
+  }
+
+  async function runFix() {
+    if (issuesData.length === 0) { log('Nothing to fix!', 'warn'); return; }
+
+    const confirmed = confirm(
+      `⚠️ Are you sure?\n\n` +
+      `This will update ${issuesData.length} phone number(s) in the database.\n\n` +
+      `This action cannot be undone automatically.\n\n` +
+      `Click OK to proceed.`
+    );
+    if (!confirmed) return;
+
+    document.getElementById('btnFix').disabled = true;
+    document.getElementById('btnAudit').disabled = true;
+    log(`🚀 Starting fix for ${issuesData.length} records...`, 'info');
+
+    let success = 0, failed = 0;
+
+    for (let i = 0; i < issuesData.length; i++) {
+      const rec = issuesData[i];
+      setProgress(Math.round((i / issuesData.length) * 100));
+
+      if (!rec.cleaned || rec.cleaned.length < 7) {
+        log(`⏭️ SKIP ${rec.guest_name} (${rec.original}) — cleaned value too short, manual review needed`, 'warn');
+        failed++;
+        continue;
+      }
+
+      try {
+        const { error } = await sb
+          .from('guest_register')
+          .update({ phone: rec.cleaned })
+          .eq('booking_id', rec.booking_id);
+
+        if (error) throw error;
+        log(`✅ Fixed: ${rec.guest_name} | "${rec.original}" → "${rec.cleaned}"`, 'ok');
+        success++;
+
+        // Mark row green in table
+        const rows = document.querySelectorAll('#resultsBody tr');
+        if (rows[i]) rows[i].style.opacity = '0.4';
+
+      } catch (err) {
+        log(`❌ FAILED: ${rec.guest_name} (Booking: ${rec.booking_id}) — ${err.message}`, 'err');
+        failed++;
+      }
+    }
+
+    setProgress(100);
+    log(`\n🏁 Done! ✅ Fixed: ${success} | ❌ Failed: ${failed}`, success > 0 ? 'ok' : 'err');
+    
+    if (failed === 0) {
+      log('🎉 All phone numbers cleaned successfully!', 'ok');
+    }
+
+    document.getElementById('btnAudit').disabled = false;
+  }
+
+  function escHtml(str) {
+    return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+</script>
+</body>
+</html>
