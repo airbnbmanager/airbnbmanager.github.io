@@ -12,7 +12,7 @@ window.BOOKING_RECEIPT_ENGINE = (function() {
   const CO = {
     name:       'THE UNIQUE HAVEN HOMES PRIVATE LIMITED',
     tradeName:  'The Unique Haven Homes Homestays',
-    cin:        'U68101UP2026PTC244837',
+    cin:        'U55101UP2026PTC244637',
     pan:        'ABECT9843K',
     address:    'P NO 39 & 40 Radhikapuri, Indira Nagar Takrohi, Lucknow, Uttar Pradesh – 226016',
     phone:      '+91 82996 00709',

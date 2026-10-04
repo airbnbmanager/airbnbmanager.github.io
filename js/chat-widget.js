@@ -920,46 +920,54 @@
     s.textContent = `
       #uhh-chat-btn-wrap {
         position: fixed; bottom: 24px; right: 24px; z-index: 9997;
-        display: flex; align-items: center; gap: 10px;
-        font-family: 'Plus Jakarta Sans','Inter',sans-serif;
+        font-family: 'Outfit','Plus Jakarta Sans','Inter',sans-serif;
       }
-      #uhh-chat-btn-label {
-        background: rgba(17, 24, 39, 0.95);
-        border: 1px solid rgba(212, 168, 75, 0.35);
-        color: #f0f2f7;
-        padding: 8px 14px;
-        border-radius: 20px;
-        font-size: 12.5px;
-        font-weight: 600;
-        box-shadow: 0 6px 20px rgba(0,0,0,0.4);
-        cursor: pointer;
-        display: flex;
+      #uhh-chat-btn.uhh-chat-unified-btn {
+        display: inline-flex;
         align-items: center;
-        gap: 6px;
-        transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
+        gap: 8px;
+        background: linear-gradient(135deg, #0F172A 0%, #1E293B 100%);
+        border: 1.5px solid rgba(245, 158, 11, 0.55);
+        color: #F8FAFC;
+        padding: 10px 16px;
+        border-radius: 999px;
+        font-size: 13.5px;
+        font-weight: 700;
+        letter-spacing: 0.4px;
+        box-shadow: 0 8px 30px rgba(0, 0, 0, 0.45), 0 0 16px rgba(245, 158, 11, 0.25);
+        cursor: pointer;
+        outline: none;
+        position: relative;
+        transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
         backdrop-filter: blur(10px);
       }
-      #uhh-chat-btn-label:hover {
-        transform: translateY(-2px);
-        border-color: #d4a84b;
-        box-shadow: 0 8px 24px rgba(212, 168, 75, 0.25);
+      #uhh-chat-btn.uhh-chat-unified-btn:hover {
+        transform: translateY(-2px) scale(1.03);
+        border-color: #FBBF24;
+        box-shadow: 0 12px 36px rgba(0, 0, 0, 0.55), 0 0 24px rgba(245, 158, 11, 0.45);
       }
-      #uhh-chat-btn {
-        width: 58px; height: 58px; border-radius: 50%;
-        background: linear-gradient(135deg, #059669, #047857);
-        border: 2px solid rgba(212, 168, 75, 0.5);
-        cursor: pointer;
-        box-shadow: 0 8px 30px rgba(5, 150, 105, 0.45);
-        display: flex; align-items: center; justify-content: center;
-        font-size: 24px; transition: transform 0.2s, box-shadow 0.2s;
-        outline: none; position: relative;
+      .uhh-chat-btn-sparkle {
+        font-size: 15px;
+        color: #FCD34D;
       }
-      #uhh-chat-btn:hover {
-        transform: scale(1.08);
-        box-shadow: 0 10px 36px rgba(5, 150, 105, 0.6);
+      .uhh-chat-btn-title {
+        color: #FFFFFF;
+        font-family: 'Outfit', sans-serif;
+      }
+      .uhh-chat-btn-pill {
+        font-size: 11px;
+        font-weight: 700;
+        background: rgba(245, 158, 11, 0.16);
+        border: 1px solid rgba(245, 158, 11, 0.35);
+        color: #FCD34D;
+        padding: 2px 7px;
+        border-radius: 6px;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
       }
       #uhh-chat-btn .uhh-chat-badge {
-        position: absolute; top: -3px; right: -3px;
+        position: absolute; top: -4px; right: -4px;
         width: 18px; height: 18px; background: #ef4444;
         border-radius: 50%; font-size: 10px; color: #fff;
         display: flex; align-items: center; justify-content: center;
@@ -970,7 +978,7 @@
         0%,100%{transform:scale(1)} 50%{transform:scale(1.2)}
       }
       #uhh-chat-panel {
-        position: fixed; bottom: 92px; right: 24px; z-index: 9998;
+        position: fixed; bottom: 84px; right: 24px; z-index: 9998;
         width: min(380px, calc(100vw - 32px));
         height: min(560px, calc(100vh - 120px));
         background: #101217;
@@ -1348,12 +1356,13 @@
     const wrap = document.createElement('div');
     wrap.id = 'uhh-chat-btn-wrap';
     wrap.innerHTML = `
-      <div id="uhh-chat-btn-label">✨ Nisha AI Concierge</div>
-      <button id="uhh-chat-btn" aria-label="Chat with Nisha AI">
-        💬<span class="uhh-chat-badge">1</span>
+      <button id="uhh-chat-btn" class="uhh-chat-unified-btn" aria-label="Chat with Nisha AI — The Unique Haven Homes">
+        <span class="uhh-chat-btn-sparkle">✨</span>
+        <span class="uhh-chat-btn-title">Nisha AI Concierge</span>
+        <span class="uhh-chat-btn-pill">💬 Ask</span>
+        <span class="uhh-chat-badge">1</span>
       </button>
     `;
-    wrap.querySelector('#uhh-chat-btn-label').addEventListener('click', toggleChat);
     wrap.querySelector('#uhh-chat-btn').addEventListener('click', toggleChat);
     document.body.appendChild(wrap);
   }
@@ -1376,7 +1385,7 @@
         <div class="uhh-chat-avatar" style="position:relative">💬<div class="uhh-chat-avatar-dot"></div></div>
         <div class="uhh-chat-header-info">
           <div class="uhh-chat-header-name">Nisha — AI Concierge</div>
-          <div class="uhh-chat-header-status">🟢 Online • Replies instantly</div>
+          <div class="uhh-chat-header-status">The Unique Haven Homes Pvt. Ltd. · 🟢 Online</div>
         </div>
         <button id="uhh-chat-voice-toggle" class="uhh-chat-voice-toggle ${_autoVoice ? 'active' : 'muted'}" title="Toggle Auto Voice Speech" aria-label="Toggle Voice">
           ${_autoVoice ? '🔊 Voice: ON' : '🔈 Voice: OFF'}

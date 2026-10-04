@@ -22,7 +22,7 @@ window.CA_AUDIT_PACK = (function() {
     tradeName:  'The Unique Haven Homes Homestays',
     gstin:      '09ABECT9843K1Z7',
     pan:        'ABECT9843K',
-    cin:        'U68101UP2026PTC244837',
+    cin:        'U55101UP2026PTC244637',
     sac:        '996311', // Accommodation services in homestays / guest houses
     address:    'P NO 39 & 40 Radhikapuri, Indira Nagar Takrohi, Lucknow, Uttar Pradesh – 226016',
     state:      'Uttar Pradesh',

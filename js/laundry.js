@@ -1621,7 +1621,7 @@ window.printVendorLaundryReport = async function(vendorName, monthYear) {
       <div class="doc-brand">
         <h1>THE UNIQUE HAVEN HOMES</h1>
         <p>Luxury Serviced Apartments & Villas &bull; Gomti Nagar & Shaheed Path, Lucknow</p>
-        <p style="font-size:11px;color:#94a3b8;">CIN: U68101UP2026PTC244837 | Caretaker & Laundry Management</p>
+        <p style="font-size:11px;color:#94a3b8;">CIN: U55101UP2026PTC244637 | Caretaker & Laundry Management</p>
       </div>
       <div class="doc-badge">
         <div class="title">LAUNDRY STATEMENT</div>

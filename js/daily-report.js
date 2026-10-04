@@ -393,7 +393,7 @@ async function renderDailyReport(selectedDate) {
       <!-- Executive Footer -->
       <div style="background:#0F172A;color:#94A3B8;padding:22px 24px;margin:24px -32px -32px -32px;border-radius:0 0 12px 12px;text-align:center;border-top:1px solid #1E293B;">
         <div style="font-size:11px;letter-spacing:1.8px;color:#E2E8F0;font-weight:800;margin-bottom:4px;text-transform:uppercase;">${brand.toUpperCase()}</div>
-        <div style="font-size:11.5px;color:#94A3B8;">CIN: U68101UP2026PTC244837 &bull; GSTIN: 09ABECT9843K1Z7 &bull; Lucknow, Uttar Pradesh</div>
+        <div style="font-size:11.5px;color:#94A3B8;">CIN: U55101UP2026PTC244637 &bull; GSTIN: 09ABECT9843K1Z7 &bull; Lucknow, Uttar Pradesh</div>
         <div style="font-size:11px;color:#64748B;margin-top:4px;">Report Generated: ${new Date().toLocaleString('en-IN', {dateStyle:'medium', timeStyle:'short'})} &bull; 🌐 uniquehavenhomesstay.com</div>
         <div style="font-size:11px;font-weight:600;margin-top:6px;color:#94A3B8;">⚡ Hospitality Operations Management System</div>
       </div>

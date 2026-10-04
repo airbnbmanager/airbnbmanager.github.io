@@ -788,13 +788,13 @@ function renderShell(content, activePage = 'dashboard') {
       <!-- ─── SIDEBAR ─── -->
       <aside class="sidebar" id="sidebarEl">
         <div class="sidebar-top">
-          <div class="sidebar-brand" onclick="navigate('dashboard')" title="Unique Haven Homes">
+          <div class="sidebar-brand" onclick="navigate('dashboard')" title="THE UNIQUE HAVEN HOMES PRIVATE LIMITED">
             <div class="brand-logo-wrap">
-              <img src="assets/logo-emblem.png" alt="Unique Haven Homes Logo" class="brand-logo" />
+              <img src="assets/logo-emblem.png" alt="THE UNIQUE HAVEN HOMES" class="brand-logo" />
             </div>
             <div class="brand-text">
-              <span class="brand-name">UNIQUE HAVEN</span>
-              <span class="brand-sub">HOMES CRM</span>
+              <span class="brand-name">THE UNIQUE HAVEN HOMES</span>
+              <span class="brand-sub">PVT. LTD. · CRM</span>
             </div>
           </div>
           <button class="sidebar-close-btn" id="sidebarCloseBtn" aria-label="Close Sidebar">✕</button>
