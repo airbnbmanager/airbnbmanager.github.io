@@ -188,40 +188,81 @@ html, body, #app {
 .sidebar-brand {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
   cursor: pointer;
   text-decoration: none;
+  padding: 2px 0;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.brand-logo-wrap {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #1E293B, #0F172A);
+  border: 1.5px solid rgba(245, 158, 11, 0.5);
+  box-shadow: 0 0 16px rgba(245, 158, 11, 0.3), 0 4px 12px rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  overflow: hidden;
+  position: relative;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.brand-logo-wrap::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.15) 0%, transparent 60%);
+  pointer-events: none;
+}
+
+.sidebar-brand:hover .brand-logo-wrap {
+  transform: translateY(-1px) scale(1.06);
+  box-shadow: 0 0 24px rgba(245, 158, 11, 0.55), 0 6px 16px rgba(0, 0, 0, 0.45);
+  border-color: #FBBF24;
 }
 
 .sidebar-brand .brand-logo {
-  width: 32px;
-  height: 32px;
-  border-radius: 8px;
-  object-fit: contain;
-  background: #fff;
-  padding: 2px;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 10px;
+  display: block;
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));
 }
 
 .sidebar-brand .brand-text {
   display: flex;
   flex-direction: column;
+  gap: 3px;
 }
 
 .sidebar-brand .brand-name {
-  font-size: 13px;
+  font-family: 'Outfit', -apple-system, sans-serif;
+  font-size: 15px;
   font-weight: 800;
-  letter-spacing: 0.5px;
-  color: #fff;
-  line-height: 1.2;
+  letter-spacing: 0.8px;
+  color: #FFFFFF;
+  line-height: 1.15;
+  text-shadow: 0 2px 6px rgba(0,0,0,0.4);
 }
 
 .sidebar-brand .brand-sub {
   font-size: 9px;
-  font-weight: 600;
-  color: var(--primary-light);
-  letter-spacing: 0.8px;
+  font-weight: 800;
+  color: #FCD34D;
+  background: rgba(245, 158, 11, 0.14);
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  padding: 1px 6px;
+  border-radius: 4px;
+  letter-spacing: 1px;
   text-transform: uppercase;
-  opacity: 0.8;
+  width: fit-content;
+  display: inline-block;
+  line-height: 1.3;
 }
 
 .sidebar-close-btn {

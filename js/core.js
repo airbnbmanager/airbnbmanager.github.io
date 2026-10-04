@@ -788,8 +788,10 @@ function renderShell(content, activePage = 'dashboard') {
       <!-- ─── SIDEBAR ─── -->
       <aside class="sidebar" id="sidebarEl">
         <div class="sidebar-top">
-          <div class="sidebar-brand" onclick="navigate('dashboard')">
-            <img src="assets/logo.png" alt="Logo" class="brand-logo" />
+          <div class="sidebar-brand" onclick="navigate('dashboard')" title="Unique Haven Homes">
+            <div class="brand-logo-wrap">
+              <img src="assets/logo-emblem.png" alt="Unique Haven Homes Logo" class="brand-logo" />
+            </div>
             <div class="brand-text">
               <span class="brand-name">UNIQUE HAVEN</span>
               <span class="brand-sub">HOMES CRM</span>
