@@ -1,0 +1,989 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Digital Stay Pass — Unique Haven Homes</title>
+  <meta name="description" content="Your digital guest pass for Unique Haven Homes. Access WiFi, Google Maps navigation, house rules, and 1-tap concierge.">
+  <link rel="icon" href="favicon.ico">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
+  
+  <style>
+    :root {
+      --primary: #FF385C;
+      --primary-dark: #E00B41;
+      --gold: #F59E0B;
+      --emerald: #10B981;
+      --bg-dark: #0F172A;
+      --surface: #1E293B;
+      --surface-elevated: #334155;
+      --text-main: #F8FAFC;
+      --text-sub: #94A3B8;
+      --border-glass: rgba(255, 255, 255, 0.12);
+      --glass-bg: rgba(30, 41, 59, 0.75);
+      --radius-lg: 20px;
+      --radius-md: 14px;
+      --font-heading: 'Outfit', sans-serif;
+      --font-body: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+    body {
+      background-color: var(--bg-dark);
+      background-image: 
+        radial-gradient(at 0% 0%, rgba(255, 56, 92, 0.15) 0px, transparent 50%),
+        radial-gradient(at 100% 100%, rgba(16, 185, 129, 0.1) 0px, transparent 50%);
+      background-attachment: fixed;
+      font-family: var(--font-body);
+      color: var(--text-main);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 16px 16px 60px;
+    }
+
+    .pass-container {
+      width: 100%;
+      max-width: 480px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    /* Top Brand Bar */
+    .brand-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 4px;
+    }
+    .brand-logo-wrap {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .brand-icon {
+      width: 38px;
+      height: 38px;
+      background: linear-gradient(135deg, #FF385C, #E00B41);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      box-shadow: 0 4px 14px rgba(255, 56, 92, 0.4);
+    }
+    .brand-name {
+      font-family: var(--font-heading);
+      font-size: 17px;
+      font-weight: 700;
+      color: #fff;
+      letter-spacing: -0.3px;
+    }
+    .brand-sub {
+      font-size: 11px;
+      color: var(--text-sub);
+      font-weight: 500;
+    }
+    .status-pill {
+      font-size: 11px;
+      font-weight: 700;
+      padding: 5px 12px;
+      border-radius: 20px;
+      background: rgba(16, 185, 129, 0.15);
+      color: #34D399;
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .pulse-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #34D399;
+      animation: pulseAnim 1.8s infinite;
+    }
+    @keyframes pulseAnim {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.4; transform: scale(1.4); }
+    }
+
+    /* Card styling with glassmorphism */
+    .glass-card {
+      background: var(--glass-bg);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid var(--border-glass);
+      border-radius: var(--radius-lg);
+      padding: 20px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* Stay Hero Ticket */
+    .hero-ticket {
+      background: linear-gradient(135deg, rgba(30, 41, 59, 0.95), rgba(15, 23, 42, 0.95));
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      box-shadow: 0 12px 36px rgba(0, 0, 0, 0.45);
+    }
+    .ticket-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: #FBBF24;
+      background: rgba(245, 158, 11, 0.12);
+      padding: 4px 10px;
+      border-radius: 6px;
+      margin-bottom: 12px;
+    }
+    .property-title {
+      font-family: var(--font-heading);
+      font-size: 24px;
+      font-weight: 800;
+      color: #fff;
+      line-height: 1.2;
+      margin-bottom: 4px;
+    }
+    .unit-tag {
+      font-size: 14px;
+      color: var(--primary);
+      font-weight: 600;
+      margin-bottom: 18px;
+    }
+    .ticket-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      background: rgba(0, 0, 0, 0.25);
+      padding: 14px;
+      border-radius: var(--radius-md);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+    .ticket-label {
+      font-size: 10.5px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text-sub);
+      margin-bottom: 4px;
+    }
+    .ticket-val {
+      font-size: 15px;
+      font-weight: 700;
+      color: #fff;
+    }
+    .ticket-time {
+      font-size: 11px;
+      color: #FBBF24;
+      font-weight: 600;
+      margin-top: 2px;
+    }
+
+    /* WiFi Card */
+    .wifi-card {
+      border-left: 4px solid #38BDF8;
+    }
+    .card-title-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 14px;
+    }
+    .card-heading {
+      font-family: var(--font-heading);
+      font-size: 17px;
+      font-weight: 700;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .wifi-box {
+      background: rgba(0, 0, 0, 0.35);
+      border: 1px dashed rgba(255, 255, 255, 0.2);
+      border-radius: var(--radius-md);
+      padding: 14px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 10px;
+    }
+    .wifi-info-label {
+      font-size: 11px;
+      color: var(--text-sub);
+    }
+    .wifi-val {
+      font-family: 'SF Mono', Consolas, monospace;
+      font-size: 16px;
+      font-weight: 700;
+      color: #fff;
+      letter-spacing: 0.5px;
+    }
+    .copy-btn {
+      background: #38BDF8;
+      color: #0F172A;
+      border: none;
+      font-weight: 700;
+      font-size: 12.5px;
+      padding: 8px 14px;
+      border-radius: 8px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .copy-btn:active {
+      transform: scale(0.94);
+    }
+    .copy-btn.copied {
+      background: #10B981;
+      color: #fff;
+    }
+
+    /* Action Grid (WhatsApp Concierge) */
+    .concierge-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+      margin-top: 10px;
+    }
+    .concierge-btn {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: var(--radius-md);
+      padding: 12px;
+      color: #fff;
+      text-align: left;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      transition: all 0.2s ease;
+      text-decoration: none;
+    }
+    .concierge-btn:active {
+      transform: scale(0.97);
+      background: rgba(255, 255, 255, 0.1);
+    }
+    .concierge-icon {
+      font-size: 22px;
+    }
+    .concierge-text {
+      font-size: 13px;
+      font-weight: 600;
+    }
+    .concierge-sub {
+      font-size: 10.5px;
+      color: var(--text-sub);
+    }
+
+    /* ID Upload Box & Multi-Photo Grid */
+    .upload-box {
+      border: 2px dashed rgba(255, 255, 255, 0.25);
+      border-radius: var(--radius-md);
+      padding: 18px;
+      text-align: center;
+      background: rgba(255, 255, 255, 0.03);
+      cursor: pointer;
+      display: block;
+      transition: all 0.2s ease;
+    }
+    .upload-box:hover {
+      border-color: #38BDF8;
+      background: rgba(255, 255, 255, 0.06);
+    }
+    .upload-box:active {
+      background: rgba(255, 255, 255, 0.08);
+      border-color: var(--primary);
+    }
+
+    .upload-preview-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+      gap: 10px;
+      margin-top: 14px;
+    }
+    .upload-preview-item {
+      position: relative;
+      border-radius: 10px;
+      overflow: hidden;
+      aspect-ratio: 16/11;
+      background: #0F172A;
+      border: 1.5px solid rgba(255, 255, 255, 0.2);
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .upload-preview-item:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.5);
+      border-color: #38BDF8;
+    }
+    .upload-preview-item img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+    .upload-badge {
+      position: absolute;
+      top: 6px;
+      left: 6px;
+      background: rgba(15, 23, 42, 0.85);
+      backdrop-filter: blur(4px);
+      color: #fff;
+      font-size: 10px;
+      font-weight: 800;
+      padding: 2px 7px;
+      border-radius: 4px;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      pointer-events: none;
+    }
+    .upload-delete-btn {
+      position: absolute;
+      top: 6px;
+      right: 6px;
+      background: rgba(239, 68, 68, 0.95);
+      color: #fff;
+      border: none;
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      font-size: 13px;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.5);
+      transition: all 0.15s ease;
+      z-index: 10;
+    }
+    .upload-delete-btn:hover {
+      background: #DC2626;
+      transform: scale(1.15);
+    }
+    .upload-delete-btn:active {
+      transform: scale(0.9);
+    }
+
+    /* ─── FULLSCREEN LIGHTBOX MODAL ─── */
+    .guest-lightbox-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.95);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      z-index: 2147483647 !important;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      animation: fadeInLightbox 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    @keyframes fadeInLightbox {
+      from { opacity: 0; transform: scale(0.97); }
+      to { opacity: 1; transform: scale(1); }
+    }
+    .guest-lightbox-img {
+      max-width: 95%;
+      max-height: 80vh;
+      object-fit: contain;
+      border-radius: 12px;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.85);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      background: #000;
+    }
+    .guest-lightbox-close {
+      position: absolute;
+      top: 18px;
+      right: 18px;
+      background: rgba(255, 255, 255, 0.25);
+      color: #fff;
+      border: none;
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      font-size: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .guest-lightbox-close:hover {
+      background: rgba(255, 255, 255, 0.45);
+    }
+    .guest-lightbox-footer {
+      margin-top: 16px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .guest-lightbox-btn {
+      background: rgba(255, 255, 255, 0.15);
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      color: #fff;
+      font-size: 13px;
+      font-weight: 700;
+      padding: 9px 18px;
+      border-radius: 8px;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    /* Full Width Action Button */
+    .action-btn {
+      width: 100%;
+      padding: 14px 20px;
+      border-radius: var(--radius-md);
+      font-size: 15px;
+      font-weight: 700;
+      color: #fff;
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: all 0.2s ease;
+      text-decoration: none;
+    }
+    .action-btn.primary {
+      background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+      box-shadow: 0 4px 18px rgba(255, 56, 92, 0.35);
+    }
+    .action-btn.maps {
+      background: linear-gradient(135deg, #2563EB, #1D4ED8);
+      box-shadow: 0 4px 18px rgba(37, 99, 235, 0.35);
+    }
+    .action-btn:active {
+      transform: scale(0.97);
+    }
+
+    /* Rules accordion */
+    .rule-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 10px 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+      font-size: 13px;
+      color: var(--text-sub);
+    }
+    .rule-item:last-child { border-bottom: none; }
+    .rule-item strong { color: #fff; }
+
+    /* Footer */
+    .pass-footer {
+      text-align: center;
+      margin-top: 10px;
+      font-size: 11.5px;
+      color: var(--text-sub);
+    }
+    .pass-footer a { color: var(--primary); text-decoration: none; font-weight: 600; }
+
+    /* Loading Spinner */
+    .loader-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 60px 20px;
+      gap: 16px;
+    }
+    .spinner {
+      width: 40px;
+      height: 40px;
+      border: 3px solid rgba(255, 56, 92, 0.2);
+      border-top-color: var(--primary);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+
+  <div class="pass-container" id="passRoot">
+    <!-- Loading Screen -->
+    <div class="loader-wrap" id="loadingState">
+      <div class="spinner"></div>
+      <div style="font-weight:600;font-size:15px;color:#fff;">Loading Your Stay Pass...</div>
+      <div style="font-size:12px;color:var(--text-sub);">Unique Haven Homes & Villas</div>
+    </div>
+  </div>
+
+  <!-- Supabase -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="config.js"></script>
+
+  <script>
+    let _activeSbClient = null;
+    let _activeBookingId = null;
+    let _activeIdPhotos = [];
+
+    (async function initGuestPass() {
+      const root = document.getElementById('passRoot');
+      const params = new URLSearchParams(window.location.search);
+      const bookingId = (params.get('id') || params.get('b') || params.get('booking_id') || '').trim();
+      _activeBookingId = bookingId;
+
+      // Setup Supabase
+      try {
+        if (window.SUPABASE_URL && window.SUPABASE_ANON_KEY) {
+          _activeSbClient = supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY);
+        }
+      } catch (err) {
+        console.warn('Supabase init fallback:', err);
+      }
+
+      let bk = null;
+      let room = null;
+
+      if (_activeSbClient && bookingId) {
+        try {
+          const { data: bData } = await _activeSbClient
+            .from('guest_register')
+            .select('*, rooms(*)')
+            .eq('booking_id', bookingId)
+            .maybeSingle();
+
+          if (bData) {
+            bk = bData;
+            room = bData.rooms || null;
+          }
+        } catch (e) {
+          console.warn('Error fetching booking:', e);
+        }
+      }
+
+      // Fallback demo stay if ID is missing or offline
+      if (!bk) {
+        bk = {
+          booking_id: bookingId || 'BK-DEMO',
+          guest_name: 'Distinguished Guest',
+          phone: '9450055554',
+          check_in: new Date().toISOString().slice(0, 10),
+          check_out: new Date(Date.now() + 86400000 * 2).toISOString().slice(0, 10),
+          check_in_time: '13:00',
+          check_out_time: '11:00',
+          rooms: {
+            nickname: 'Pink Paradise Villa',
+            unit_no: 'Unit 101',
+            wifi_ssid: 'UniqueHaven_PinkParadise',
+            wifi_password: 'Airbnb.in1',
+            property_name: 'Pink Paradise Villa 3BHK',
+            map_link: 'https://maps.google.com/?q=Lulu+Mall+Lucknow'
+          }
+        };
+        room = bk.rooms;
+      }
+
+      // Collect existing ID photo paths
+      const rawPaths = [
+        ...(bk.id_proof_front_paths || '').split(','),
+        ...(bk.id_proof_back_paths || '').split(','),
+        ...(bk.id_proof_photo_paths || bk.id_proof_photo_path || '').split(',')
+      ].map(x => x.trim()).filter(Boolean);
+      _activeIdPhotos = [...new Set(rawPaths)];
+
+      const pName = room?.nickname || room?.property_name || 'Unique Haven Villa';
+      const unitNo = room?.unit_no ? `Unit ${room.unit_no}` : 'Private Suite';
+      const wifiSsid = room?.wifi_ssid || `${pName.replace(/\s+/g, '_')}_WiFi`;
+      const wifiPass = room?.wifi_password || 'Airbnb.in1';
+      const mapsUrl = room?.map_link || 'https://maps.google.com/?q=Gomti+Nagar+Lucknow';
+      const managerPhone = '919450055554';
+
+      const fmtDate = (dStr) => {
+        try {
+          return new Date(dStr + 'T12:00:00').toLocaleDateString('en-IN', {
+            weekday: 'short', day: 'numeric', month: 'short', year: 'numeric'
+          });
+        } catch (e) { return dStr; }
+      };
+
+      const hasId = _activeIdPhotos.length > 0;
+
+      root.innerHTML = `
+        <!-- Top Brand Bar -->
+        <header class="brand-header">
+          <div class="brand-logo-wrap">
+            <div class="brand-icon">🏡</div>
+            <div>
+              <div class="brand-name">Unique Haven Homes</div>
+              <div class="brand-sub">Boutique Luxury Stays · Lucknow</div>
+            </div>
+          </div>
+          <div class="status-pill">
+            <span class="pulse-dot"></span> Confirmed Stay
+          </div>
+        </header>
+
+        <!-- Stay Hero Pass Ticket -->
+        <div class="glass-card hero-ticket">
+          <div class="ticket-badge">✨ Reservation #${bk.booking_id}</div>
+          <div class="property-title">${pName}</div>
+          <div class="unit-tag">📍 ${unitNo} · Welcome, ${bk.guest_name || 'Guest'}</div>
+
+          <div class="ticket-grid">
+            <div>
+              <div class="ticket-label">Check-In</div>
+              <div class="ticket-val">${fmtDate(bk.check_in)}</div>
+              <div class="ticket-time">⏰ 1:00 PM Onwards</div>
+            </div>
+            <div>
+              <div class="ticket-label">Check-Out</div>
+              <div class="ticket-val">${fmtDate(bk.check_out)}</div>
+              <div class="ticket-time">⏰ by 11:00 AM</div>
+            </div>
+          </div>
+
+          <div style="margin-top:16px;">
+            <a href="${mapsUrl}" target="_blank" class="action-btn maps">
+              <span>🗺️</span> Open Live Navigation in Google Maps
+            </a>
+          </div>
+        </div>
+
+        <!-- High Speed WiFi -->
+        <div class="glass-card wifi-card">
+          <div class="card-title-row">
+            <div class="card-heading">
+              <span>📶</span> High-Speed WiFi
+            </div>
+            <span style="font-size:11px;color:#38BDF8;font-weight:700;">Unlimited 5G</span>
+          </div>
+
+          <div class="wifi-box">
+            <div>
+              <div class="wifi-info-label">Network (SSID)</div>
+              <div class="wifi-val" id="wifiSsidVal">${wifiSsid}</div>
+            </div>
+            <button type="button" class="copy-btn" onclick="copyText('${wifiSsid}', this)">
+              Copy
+            </button>
+          </div>
+
+          <div class="wifi-box" style="margin-bottom:0;">
+            <div>
+              <div class="wifi-info-label">Password</div>
+              <div class="wifi-val" id="wifiPassVal">${wifiPass}</div>
+            </div>
+            <button type="button" class="copy-btn" onclick="copyText('${wifiPass}', this)">
+              Copy Password
+            </button>
+          </div>
+        </div>
+
+        <!-- 1-Tap Concierge Requests -->
+        <div class="glass-card">
+          <div class="card-title-row">
+            <div class="card-heading">
+              <span>🛎️</span> 1-Tap Guest Concierge
+            </div>
+            <span style="font-size:11px;color:#34D399;font-weight:700;">24/7 Live Support</span>
+          </div>
+          <div style="font-size:12px;color:var(--text-sub);margin-bottom:8px;">
+            Tap below to send instant request directly to property manager via WhatsApp:
+          </div>
+
+          <div class="concierge-grid">
+            <a href="https://wa.me/${managerPhone}?text=${encodeURIComponent(`Hello Host! Requesting fresh towels and toiletries for ${bk.booking_id} at ${pName} (${unitNo}).`)}" target="_blank" class="concierge-btn">
+              <span class="concierge-icon">🧴</span>
+              <span class="concierge-text">Fresh Towels</span>
+              <span class="concierge-sub">Linen & Toiletries</span>
+            </a>
+
+            <a href="https://wa.me/${managerPhone}?text=${encodeURIComponent(`Hello Host! Requesting room housekeeping & cleaning for ${bk.booking_id} at ${pName} (${unitNo}).`)}" target="_blank" class="concierge-btn">
+              <span class="concierge-icon">🧹</span>
+              <span class="concierge-text">Housekeeping</span>
+              <span class="concierge-sub">Room freshen-up</span>
+            </a>
+
+            <a href="https://wa.me/${managerPhone}?text=${encodeURIComponent(`Hello Host! Requesting packaged drinking water bottles for ${bk.booking_id} at ${pName} (${unitNo}).`)}" target="_blank" class="concierge-btn">
+              <span class="concierge-icon">💧</span>
+              <span class="concierge-text">Drinking Water</span>
+              <span class="concierge-sub">Complimentary water</span>
+            </a>
+
+            <a href="https://wa.me/${managerPhone}?text=${encodeURIComponent(`Hello Host! Need assistance with ${bk.booking_id} at ${pName} (${unitNo}).`)}" target="_blank" class="concierge-btn">
+              <span class="concierge-icon">💬</span>
+              <span class="concierge-text">Direct Host Chat</span>
+              <span class="concierge-sub">Speak to manager</span>
+            </a>
+          </div>
+        </div>
+
+        <!-- Digital ID / Aadhaar Upload & Management -->
+        <div class="glass-card" id="idProofSection">
+          <div class="card-title-row">
+            <div class="card-heading">
+              <span>🪪</span> Govt ID / Aadhaar Upload
+            </div>
+            <span id="idStatusBadge" style="font-size:11px;font-weight:700;padding:3px 8px;border-radius:12px;${hasId ? 'background:#065F46;color:#34D399;' : 'background:#7C2D12;color:#FCA5A5;'}">
+              ${hasId ? '✅ ' + _activeIdPhotos.length + ' ID(s) Attached' : '⚠️ Pending'}
+            </span>
+          </div>
+          <div style="font-size:12px;color:var(--text-sub);margin-bottom:12px;">
+            Mandatory Govt requirement. Upload front & back photos of Aadhaar Card, DL or Passport for all staying guests:
+          </div>
+
+          <!-- Upload Dropzone Label -->
+          <label class="upload-box" for="guestIdFileInput" id="uploadBoxLabel">
+            <div style="font-size:30px;margin-bottom:6px;">📸</div>
+            <div style="font-weight:700;font-size:14px;color:#fff;">Tap to Take Photo or Select Multiple IDs</div>
+            <div style="font-size:11px;color:var(--text-sub);margin-top:4px;">Supports Multiple Guests · Camera Capture · JPG, PNG</div>
+            <input type="file" id="guestIdFileInput" accept="image/*" multiple style="display:none;" onchange="handleGuestIdUpload(this)">
+          </label>
+
+          <div id="uploadFeedback" style="display:none;margin-top:10px;text-align:center;font-size:12.5px;font-weight:600;"></div>
+
+          <!-- Existing / Uploaded IDs Gallery with Delete & Fullscreen Preview -->
+          <div class="upload-preview-grid" id="idPreviewGrid"></div>
+        </div>
+
+        <!-- House Rules & Amenities -->
+        <div class="glass-card">
+          <div class="card-title-row">
+            <div class="card-heading">
+              <span>📜</span> House Rules & Stay Guide
+            </div>
+          </div>
+          <div>
+            <div class="rule-item">
+              <span>🕒</span>
+              <div><strong>Check-in & Check-out:</strong> Check-in is from 1:00 PM and check-out is strictly by 11:00 AM to allow turnaround for next guests.</div>
+            </div>
+            <div class="rule-item">
+              <span>🤫</span>
+              <div><strong>Quiet Hours:</strong> 10:00 PM to 8:00 AM. Please keep music and TV volume moderate for society harmony.</div>
+            </div>
+            <div class="rule-item">
+              <span>🚭</span>
+              <div><strong>No Smoking Indoors:</strong> Smoking is permitted only in designated balconies. Heavy cleaning fee applies for indoor smoking.</div>
+            </div>
+            <div class="rule-item">
+              <span>⚡</span>
+              <div><strong>Save Energy:</strong> Kindly switch off ACs and geysers when stepping out of the apartment.</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Footer -->
+        <footer class="pass-footer">
+          <div>Unique Haven Homes · Luxury Serviced Residences</div>
+          <div style="margin-top:4px;">Questions? Call host at <a href="tel:+919450055554">+91 94500 55554</a></div>
+        </footer>
+      `;
+
+      renderIdGallery();
+    })();
+
+    // Copy Helper
+    function copyText(text, btn) {
+      navigator.clipboard.writeText(text).then(() => {
+        const orig = btn.textContent;
+        btn.textContent = '✓ Copied!';
+        btn.classList.add('copied');
+        setTimeout(() => {
+          btn.textContent = orig;
+          btn.classList.remove('copied');
+        }, 2000);
+      });
+    }
+
+    // Render All Attached ID Proofs
+    async function renderIdGallery() {
+      const grid = document.getElementById('idPreviewGrid');
+      const badge = document.getElementById('idStatusBadge');
+      if (!grid) return;
+      grid.innerHTML = '';
+
+      if (badge) {
+        if (_activeIdPhotos.length > 0) {
+          badge.style.background = '#065F46';
+          badge.style.color = '#34D399';
+          badge.textContent = `✅ ${_activeIdPhotos.length} ID(s) Attached`;
+        } else {
+          badge.style.background = '#7C2D12';
+          badge.style.color = '#FCA5A5';
+          badge.textContent = '⚠️ Pending';
+        }
+      }
+
+      if (_activeIdPhotos.length === 0) return;
+
+      for (let idx = 0; idx < _activeIdPhotos.length; idx++) {
+        const path = _activeIdPhotos[idx];
+        let imgUrl = path;
+
+        // Fetch signed url if stored in Supabase
+        if (_activeSbClient && !path.startsWith('blob:') && !path.startsWith('data:')) {
+          try {
+            const { data } = await _activeSbClient.storage.from('id-proofs').createSignedUrl(path, 3600);
+            if (data?.signedUrl) imgUrl = data.signedUrl;
+          } catch(e) {}
+        }
+
+        const item = document.createElement('div');
+        item.className = 'upload-preview-item';
+        item.innerHTML = `
+          <img src="${imgUrl}" alt="ID Photo" onclick="openGuestLightbox('${imgUrl}', 'ID #${idx + 1}')" />
+          <span class="upload-badge">ID #${idx + 1}</span>
+          <button type="button" class="upload-delete-btn" title="Delete this photo" onclick="event.stopPropagation(); deleteGuestIdPhoto('${path}', this)">
+            ✕
+          </button>
+        `;
+        grid.appendChild(item);
+      }
+    }
+
+    // ─── FULLSCREEN LIGHTBOX PREVIEW ───
+    window.openGuestLightbox = function(url, title = 'ID Photo') {
+      document.querySelectorAll('.guest-lightbox-overlay').forEach(el => el.remove());
+
+      const overlay = document.createElement('div');
+      overlay.className = 'guest-lightbox-overlay';
+      overlay.onclick = (e) => { if (e.target === overlay) overlay.remove(); };
+
+      const escClose = (e) => {
+        if (e.key === 'Escape') {
+          overlay.remove();
+          window.removeEventListener('keydown', escClose);
+        }
+      };
+      window.addEventListener('keydown', escClose);
+
+      overlay.innerHTML = `
+        <button class="guest-lightbox-close" onclick="this.closest('.guest-lightbox-overlay').remove()">✕</button>
+        <img class="guest-lightbox-img" src="${url}" alt="ID Full Photo" />
+        <div class="guest-lightbox-footer">
+          <a href="${url}" target="_blank" download="${title}.jpg" class="guest-lightbox-btn">
+            <span>📥</span> Download Full Size
+          </a>
+          <button type="button" class="guest-lightbox-btn" onclick="this.closest('.guest-lightbox-overlay').remove()">
+            <span>✕</span> Close
+          </button>
+        </div>
+      `;
+
+      document.body.appendChild(overlay);
+    };
+
+    // ─── DELETE SPECIFIC ID PHOTO ───
+    window.deleteGuestIdPhoto = async function(pathToDelete, btn) {
+      if (!confirm('Are you sure you want to delete this photo? You can upload a new one.')) return;
+
+      btn.disabled = true;
+      btn.textContent = '...';
+      const feedback = document.getElementById('uploadFeedback');
+      if (feedback) {
+        feedback.style.display = 'block';
+        feedback.style.color = '#F59E0B';
+        feedback.textContent = 'Deleting photo...';
+      }
+
+      // Remove from storage
+      if (_activeSbClient && !pathToDelete.startsWith('blob:') && !pathToDelete.startsWith('data:')) {
+        try {
+          await _activeSbClient.storage.from('id-proofs').remove([pathToDelete]);
+        } catch(e) {
+          console.warn('Storage delete warning:', e);
+        }
+      }
+
+      // Update state
+      _activeIdPhotos = _activeIdPhotos.filter(p => p !== pathToDelete);
+
+      // Update DB record
+      if (_activeSbClient && _activeBookingId) {
+        try {
+          await _activeSbClient.from('guest_register').update({
+            id_proof_photo_paths: _activeIdPhotos.join(',') || null,
+            id_proof_front_paths: _activeIdPhotos[0] || null,
+            id_proof_back_paths: _activeIdPhotos[1] || null,
+            id_proof_photo_path: _activeIdPhotos[0] || null
+          }).eq('booking_id', _activeBookingId);
+        } catch(e) {
+          console.warn('DB update error:', e);
+        }
+      }
+
+      if (feedback) {
+        feedback.style.color = '#10B981';
+        feedback.textContent = '✓ Photo deleted successfully!';
+        setTimeout(() => feedback.style.display = 'none', 2500);
+      }
+
+      renderIdGallery();
+    };
+
+    // ─── UPLOAD MULTIPLE IDS WITH COMPRESSION ───
+    window.handleGuestIdUpload = async function(input) {
+      const files = Array.from(input.files || []);
+      if (!files.length) return;
+
+      const feedback = document.getElementById('uploadFeedback');
+      feedback.style.display = 'block';
+      feedback.style.color = '#38BDF8';
+      feedback.textContent = `Uploading ${files.length} photo(s) securely...`;
+
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        feedback.textContent = `Uploading photo ${i + 1} of ${files.length}...`;
+
+        if (_activeSbClient && _activeBookingId) {
+          try {
+            const ext = file.name.split('.').pop() || 'jpg';
+            const storagePath = `guest-passes/${_activeBookingId}-${Date.now()}-${i}.${ext}`;
+            const { error: upErr } = await _activeSbClient.storage.from('id-proofs').upload(storagePath, file, { upsert: true });
+            if (!upErr) {
+              _activeIdPhotos.push(storagePath);
+            }
+          } catch(err) {
+            console.warn('Storage upload error:', err);
+          }
+        } else {
+          // Offline preview fallback
+          _activeIdPhotos.push(URL.createObjectURL(file));
+        }
+      }
+
+      // Update database with combined unique photos
+      if (_activeSbClient && _activeBookingId && _activeIdPhotos.length) {
+        try {
+          await _activeSbClient.from('guest_register').update({
+            id_proof_photo_paths: _activeIdPhotos.join(','),
+            id_proof_front_paths: _activeIdPhotos[0] || null,
+            id_proof_back_paths: _activeIdPhotos[1] || null,
+            id_proof_photo_path: _activeIdPhotos[0] || null,
+            id_proof_type: 'Aadhaar Card'
+          }).eq('booking_id', _activeBookingId);
+        } catch (e) { console.warn('DB update error:', e); }
+      }
+
+      feedback.style.color = '#34D399';
+      feedback.textContent = `✅ Successfully uploaded ${files.length} photo(s)! Tap any photo to view full size.`;
+      setTimeout(() => feedback.style.display = 'none', 4000);
+
+      input.value = '';
+      renderIdGallery();
+    };
+  </script>
+</body>
+</html>

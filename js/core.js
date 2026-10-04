@@ -732,6 +732,11 @@ function renderShell(content, activePage = 'dashboard') {
     // 1. In-place content update (Instant SPA transition, ZERO flicker/reload)
     existingMain.innerHTML = `${hubSubNavHtml}${content}${footerHtml}`;
 
+    // Silky smooth native page transition animation
+    existingMain.classList.remove('page-entrance');
+    void existingMain.offsetWidth;
+    existingMain.classList.add('page-entrance');
+
     // 2. Update page header info in topbar
     const pageIconEl = document.querySelector('.page-icon');
     const pageTitleEl = document.querySelector('.page-title');
@@ -863,10 +868,17 @@ function renderShell(content, activePage = 'dashboard') {
               </button>
             ` : ''}
 
+            <button class="topbar-icon-btn" onclick="window.openCommandPalette && window.openCommandPalette()" title="Quick Search & Actions (Cmd+K)" style="font-size:16px;">
+              🔍
+            </button>
+
+            <button class="topbar-icon-btn" onclick="window.openVoiceBookingModal && window.openVoiceBookingModal()" title="AI Voice-to-Booking (Hindi/English)" style="font-size:16px;color:#FF385C;">
+              🎙️
+            </button>
+
             <button class="topbar-icon-btn" onclick="navigate('whatsapp-hub')" title="WhatsApp Hub & QR Scanner" style="font-size:16px;">
               📱
             </button>
-
 
             <button class="topbar-icon-btn" id="topbarNotifBtn" onclick="window.notifications&&window.notifications.openPanel();" title="Notifications">
               🔔<span class="notif-bell-badge" style="display:none;"></span>
@@ -875,7 +887,7 @@ function renderShell(content, activePage = 'dashboard') {
         </header>
 
         <!-- Main Content View -->
-        <main class="main-content" id="mainContent">
+        <main class="main-content page-entrance" id="mainContent">
           ${hubSubNavHtml}
           ${content}
           ${footerHtml}
@@ -1280,7 +1292,17 @@ function showPhotoViewer(url, path) {
   const fileName = path ? path.split('/').pop() : 'Photo';
   const overlay = document.createElement('div');
   overlay.className = 'photo-viewer-overlay';
+  overlay.style.zIndex = '2147483647';
   overlay.onclick = e => { if (e.target === overlay) overlay.remove(); };
+  
+  const escHandler = (e) => {
+    if (e.key === 'Escape') {
+      overlay.remove();
+      window.removeEventListener('keydown', escHandler);
+    }
+  };
+  window.addEventListener('keydown', escHandler);
+
   overlay.innerHTML = `
     <button class="photo-viewer-close" onclick="this.closest('.photo-viewer-overlay').remove()">✕</button>
     <img src="${url}" alt="Photo" onerror="this.style.display='none';" />

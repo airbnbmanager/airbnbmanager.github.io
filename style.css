@@ -800,7 +800,7 @@ html, body, #app {
     margin-bottom: 12px !important;
   }
   .stat-grid {
-    grid-template-columns: 1fr !important;
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)) !important;
     gap: 10px !important;
   }
   .stat-card {
@@ -1660,7 +1660,7 @@ code {
   top: 0; left: 0;
   width: 100%; height: 100%;
   background: rgba(0,0,0,0.92);
-  z-index: 99999;
+  z-index: 2147483647 !important;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -1864,7 +1864,7 @@ code {
 /* ============ MOBILE RESPONSIVE FIXES ============ */
 @media (max-width: 768px) {
   .stat-grid {
-    grid-template-columns: 1fr !important;
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)) !important;
     gap: 8px !important;
   }
   .card {
@@ -1899,7 +1899,7 @@ code {
 
 @media (max-width: 480px) {
   .stat-grid {
-    grid-template-columns: 1fr !important;
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)) !important;
   }
   .filter-item {
     min-width: 100%;
@@ -2501,12 +2501,13 @@ code {
 }
 
 /* ═══════════════════════════════════════════════════════════
-   📱 iPad Portrait Optimization (769px - 1024px portrait)
+   📱 iPad & Tablet Optimization (768px - 1024px Portrait & Landscape)
    ═══════════════════════════════════════════════════════════ */
-@media (min-width: 769px) and (max-width: 1024px) and (orientation: portrait) {
+@media (min-width: 768px) and (max-width: 1024px) {
   .sidebar {
     transform: translateX(-100%);
-    width: 300px !important;
+    width: 290px !important;
+    box-shadow: 0 0 35px rgba(0, 0, 0, 0.4) !important;
   }
   .sidebar.open,
   .sidebar.mobile-drawer-open {
@@ -2515,46 +2516,32 @@ code {
   .app-main-wrapper {
     margin-left: 0 !important;
     width: 100% !important;
+    max-width: 100vw !important;
   }
   .mobile-hamburger-btn {
     display: flex !important;
   }
   .main-content {
-    padding: 20px 24px calc(80px + env(safe-area-inset-bottom, 0px)) !important;
+    padding: 20px 22px calc(84px + env(safe-area-inset-bottom, 0px)) !important;
+    max-width: 100vw !important;
   }
   .bottom-nav {
     display: flex !important;
   }
-}
 
-@media (min-width: 1025px) {
-  .sidebar {
-    transform: translateX(0) !important;
-  }
-  .app-main-wrapper {
-    margin-left: 250px !important;
-  }
-  .mobile-hamburger-btn {
-    display: none !important;
-  }
-  .bottom-nav {
-    display: none !important;
-  }
-}
-
-@media (min-width: 769px) and (max-width: 1024px) and (orientation: portrait) {
-  /* Cards — 2 column grid where possible */
+  /* Cards & Metrics — Balanced 2-3 column grid on tablet */
   .grid-cards,
-  .dashboard-metrics {
+  .dashboard-metrics,
+  .stat-grid {
     display: grid !important;
-    grid-template-columns: repeat(2, 1fr) !important;
-    gap: 12px !important;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)) !important;
+    gap: 14px !important;
   }
 
-  /* Font tweaks for readability */
+  /* Font tweaks for readability on tablet */
   .sidebar-nav a {
-    font-size: 13px !important;
-    padding: 10px 12px !important;
+    font-size: 13.5px !important;
+    padding: 10px 14px !important;
   }
 
   .sidebar-brand span {
@@ -2563,19 +2550,49 @@ code {
 
   /* Buttons — comfortable touch size */
   .btn, button.btn, .btn-sm {
-    min-height: 40px !important;
+    min-height: 38px !important;
     font-size: 13px !important;
   }
 
-  /* Tables — allow horizontal scroll if needed */
-  table {
-    font-size: 13px !important;
+  /* Tables — allow smooth touch-friendly horizontal scroll */
+  .table-wrap {
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+  }
+  .table-wrap table {
+    min-width: 620px;
   }
 
-  /* Modals — centered, not full width */
+  /* Modals — balanced tablet width, comfortable and spacious */
   .modal-content,
+  .modal-box,
   .fsn-card {
-    max-width: 480px !important;
+    max-width: min(92vw, 680px) !important;
+    border-radius: 16px !important;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   🖥️ Desktop Optimization (>= 1025px)
+   ═══════════════════════════════════════════════════════════ */
+@media (min-width: 1025px) {
+  .sidebar {
+    transform: translateX(0) !important;
+    width: 250px !important;
+  }
+  .app-main-wrapper {
+    margin-left: 250px !important;
+    width: calc(100% - 250px) !important;
+  }
+  .mobile-hamburger-btn {
+    display: none !important;
+  }
+  .bottom-nav {
+    display: none !important;
+  }
+  .main-content {
+    padding: 24px 28px 48px !important;
+    max-width: 1440px !important;
   }
 }
 
@@ -2592,9 +2609,86 @@ code {
 }
 
 /* ═══════════════════════════════════════════════════════════
-   🔔 NOTIFICATION TOASTS + BELL PANEL
+   🔔 LUXURY NOTIFICATION TOASTS + BELL PANEL + ANIMATIONS
    ═══════════════════════════════════════════════════════════ */
 
+/* ── 1. Native Page Entrance Animation ── */
+@keyframes uhhPageEntrance {
+  0% {
+    opacity: 0.7;
+    transform: translateY(6px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.page-entrance {
+  animation: uhhPageEntrance 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* ── 2. Micro-Interactions (Button & Tab Touch Feedback) ── */
+.btn:active,
+button.btn:active,
+.btn-sm:active,
+.airbnb-pill:active,
+.hub-subnav-tab:active,
+.topbar-icon-btn:active {
+  transform: scale(0.96);
+  transition: transform 0.08s ease;
+}
+
+/* ── 3. Live Radar Status Pulses ── */
+@keyframes radarPulseGreen {
+  0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.75); }
+  70% { transform: scale(1); box-shadow: 0 0 0 7px rgba(16, 185, 129, 0); }
+  100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+}
+@keyframes radarPulseWarning {
+  0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.75); }
+  70% { transform: scale(1); box-shadow: 0 0 0 7px rgba(245, 158, 11, 0); }
+  100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(245, 158, 11, 0); }
+}
+.live-radar-pulse {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #10B981;
+  animation: radarPulseGreen 2s infinite cubic-bezier(0.4, 0, 0.6, 1);
+  margin-right: 5px;
+  vertical-align: middle;
+}
+.live-radar-pulse.warning {
+  background: #F59E0B;
+  animation: radarPulseWarning 2s infinite cubic-bezier(0.4, 0, 0.6, 1);
+}
+
+/* ── 4. Bell Ring Swing & Badge Pop ── */
+@keyframes bellSwing {
+  0% { transform: rotate(0); }
+  15% { transform: rotate(14deg); }
+  30% { transform: rotate(-12deg); }
+  45% { transform: rotate(10deg); }
+  60% { transform: rotate(-8deg); }
+  75% { transform: rotate(4deg); }
+  100% { transform: rotate(0); }
+}
+.bell-ring-active {
+  animation: bellSwing 0.85s cubic-bezier(0.36, 0.07, 0.19, 0.97);
+  transform-origin: top center;
+}
+@keyframes badgePop {
+  0% { transform: scale(0.4); opacity: 0; }
+  70% { transform: scale(1.25); }
+  100% { transform: scale(1); opacity: 1; }
+}
+.badge-pop {
+  animation: badgePop 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* ── 5. Toast Container ── */
 #notifToastContainer {
   position: fixed;
   top: 20px;
@@ -2602,75 +2696,192 @@ code {
   z-index: 999998;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 12px;
   pointer-events: none;
-  max-width: 360px;
+  max-width: 380px;
+  width: calc(100% - 40px);
 }
 
 @media (max-width: 768px) {
   #notifToastContainer {
     top: 10px;
-    left: 10px;
-    right: 10px;
+    left: 12px;
+    right: 12px;
+    width: calc(100% - 24px);
     max-width: none;
   }
 }
 
+/* ── 6. Frosted Glass Notification Toast ── */
 .notif-toast {
-  background: #fff;
-  border-radius: 12px;
-  box-shadow: 0 8px 32px rgba(0,0,0,0.18);
-  padding: 12px 14px;
+  background: rgba(255, 255, 255, 0.96);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(226, 232, 240, 0.95);
+  border-radius: 16px;
+  box-shadow: 0 16px 36px -6px rgba(15, 23, 42, 0.18), 0 4px 12px rgba(0, 0, 0, 0.06);
+  padding: 14px 14px 18px 14px;
   display: flex;
   align-items: flex-start;
-  gap: 10px;
-  transform: translateX(120%);
-  opacity: 0;
-  transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.2s;
+  gap: 12px;
+  position: relative;
+  overflow: hidden;
   pointer-events: auto;
   cursor: pointer;
-  border-left: 4px solid #E2725B;
+  transform: translateX(115%) scale(0.92);
+  opacity: 0;
+  transition: transform 0.38s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.25s ease, box-shadow 0.2s ease;
+  user-select: none;
+}
+.notif-toast:hover {
+  box-shadow: 0 20px 42px -6px rgba(15, 23, 42, 0.24);
+  transform: translateY(-2px);
 }
 
-.notif-toast.show { transform: translateX(0); opacity: 1; }
-.notif-toast.notif-booking { border-left-color: #16a34a; }
-.notif-toast.notif-payment { border-left-color: #E2725B; }
-.notif-toast.notif-checkin { border-left-color: #2563eb; }
-.notif-toast.notif-checkout { border-left-color: #6b7280; }
-.notif-toast.notif-task { border-left-color: #d97706; }
+.notif-toast.show {
+  transform: translateX(0) scale(1);
+  opacity: 1;
+}
 
-.notif-toast .notif-icon {
-  font-size: 24px;
-  line-height: 1;
+.notif-toast.dismissing {
+  transform: translateX(120%) scale(0.92) !important;
+  opacity: 0 !important;
+  transition: all 0.28s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+/* Accent glowing side stripes */
+.notif-toast::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 5px;
+  background: #E2725B;
+}
+.notif-toast.notif-booking::before { background: linear-gradient(180deg, #10B981, #059669); }
+.notif-toast.notif-payment::before { background: linear-gradient(180deg, #4F46E5, #6366F1); }
+.notif-toast.notif-checkin::before { background: linear-gradient(180deg, #0EA5E9, #0284C7); }
+.notif-toast.notif-checkout::before { background: linear-gradient(180deg, #64748B, #475569); }
+.notif-toast.notif-task::before { background: linear-gradient(180deg, #F59E0B, #D97706); }
+
+/* Icon badge wrap */
+.notif-toast .notif-icon-wrap {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
   flex-shrink: 0;
+  background: #F8FAFC;
+  border: 1px solid #E2E8F0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
 }
-.notif-toast .notif-body { flex: 1; min-width: 0; }
+.notif-toast.notif-booking .notif-icon-wrap { background: #ECFDF5; border-color: #A7F3D0; }
+.notif-toast.notif-payment .notif-icon-wrap { background: #EEF2FF; border-color: #C7D2FE; }
+.notif-toast.notif-checkin .notif-icon-wrap { background: #F0F9FF; border-color: #BAE6FD; }
+.notif-toast.notif-task .notif-icon-wrap { background: #FFFBEB; border-color: #FDE68A; }
+
+.notif-toast .notif-body {
+  flex: 1;
+  min-width: 0;
+  padding-right: 6px;
+}
 .notif-toast .notif-title {
-  font-size: 14px;
-  font-weight: 700;
-  color: #111;
+  font-size: 13.5px;
+  font-weight: 800;
+  color: #0F172A;
   margin-bottom: 2px;
+  line-height: 1.25;
 }
 .notif-toast .notif-msg {
-  font-size: 13px;
-  color: #444;
-  line-height: 1.35;
+  font-size: 12.5px;
+  color: #475569;
+  line-height: 1.4;
   word-wrap: break-word;
 }
 .notif-toast .notif-sub {
   font-size: 11px;
-  color: #888;
+  color: #94A3B8;
   margin-top: 3px;
+  font-weight: 500;
 }
-.notif-toast .notif-close {
-  background: transparent;
+
+/* Toast Action Buttons */
+.notif-actions-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+  flex-wrap: wrap;
+}
+.notif-action-chip {
+  padding: 4px 10px;
+  border-radius: 14px;
+  font-size: 11px;
+  font-weight: 700;
   border: none;
-  color: #999;
-  font-size: 20px;
   cursor: pointer;
-  padding: 0 4px;
+  background: #0F172A;
+  color: #ffffff;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.15s ease;
+  line-height: 1.2;
+}
+.notif-action-chip:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+}
+.notif-action-chip.wa {
+  background: #25D366;
+  color: #fff;
+}
+.notif-action-chip.outline {
+  background: #F1F5F9;
+  color: #334155;
+  border: 1px solid #CBD5E1;
+}
+
+.notif-toast .notif-close {
+  background: #F1F5F9;
+  border: none;
+  color: #64748B;
+  font-size: 14px;
+  cursor: pointer;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   line-height: 1;
   flex-shrink: 0;
+  transition: all 0.15s ease;
+}
+.notif-toast .notif-close:hover {
+  background: #E2E8F0;
+  color: #0F172A;
+  transform: scale(1.1);
+}
+
+/* Toast Progress Countdown Line */
+.notif-progress-line {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--primary, #FF4D30), #4F46E5);
+  width: 100%;
+  transform-origin: left;
+  animation: toastCountdown 6.8s linear forwards;
+}
+@keyframes toastCountdown {
+  0% { transform: scaleX(1); }
+  100% { transform: scaleX(0); }
 }
 
 /* Bell Panel */
@@ -6687,57 +6898,99 @@ textarea:focus {
    ══════════════════════════════════════════════════════════════════ */
 @media (max-width: 768px) {
   .airbnb-host-wrap {
-    padding: 10px 14px 80px 14px;
+    padding: 10px 12px 90px 12px;
+    max-width: 100%;
+    overflow-x: hidden;
   }
 
   .airbnb-header-bar {
     display: flex;
     align-items: center;
-    justify-content: space-between;
     gap: 8px;
-    margin-bottom: 18px;
+    margin-bottom: 16px;
+    width: 100%;
+    position: relative;
   }
 
   .airbnb-pills-center {
-    display: inline-flex;
+    display: flex;
     align-items: center;
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow-x: auto;
+    white-space: nowrap;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
     background: transparent;
     border: none;
-    padding: 0;
-    gap: 6px;
+    padding: 4px 2px 6px 2px;
+    gap: 8px;
     margin: 0;
+    scroll-behavior: smooth;
+  }
+
+  .airbnb-pills-center::-webkit-scrollbar {
+    display: none;
   }
 
   .airbnb-pill {
+    flex-shrink: 0;
     background: #F3F4F6;
     color: #222222;
     border-radius: 28px;
-    padding: 9px 18px;
-    font-size: 14px;
-    font-weight: 700;
-    border: none;
+    padding: 8px 14px;
+    font-size: 13.5px;
+    font-weight: 600;
+    border: 1px solid #E5E7EB;
+    cursor: pointer;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.15s ease;
+  }
+
+  .airbnb-pill:active {
+    transform: scale(0.96);
   }
 
   .airbnb-pill.active {
     background: #222222 !important;
     color: #ffffff !important;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.18);
+    border-color: #222222 !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.22);
   }
 
   .airbnb-pill-num {
-    display: none;
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 1px 7px;
+    border-radius: 12px;
+    background: rgba(0, 0, 0, 0.08);
+    line-height: 1.3;
+  }
+
+  .airbnb-pill.active .airbnb-pill-num {
+    background: rgba(255, 255, 255, 0.25);
+    color: #ffffff;
   }
 
   .airbnb-header-actions {
-    margin-left: auto;
+    flex-shrink: 0;
     display: flex;
     align-items: center;
     gap: 6px;
+    margin-left: 0;
   }
 
   .airbnb-filter-trigger {
-    width: 42px;
-    height: 42px;
+    width: 40px;
+    height: 40px;
     border-radius: 50%;
     padding: 0;
     display: flex;
@@ -6746,6 +6999,21 @@ textarea:focus {
     background: #F3F4F6;
     border: 1px solid #E5E7EB;
     color: #222222;
+    flex-shrink: 0;
+    position: relative;
+    cursor: pointer;
+    touch-action: manipulation;
+  }
+
+  .airbnb-filter-trigger .airbnb-pill-num {
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    background: #FF385C;
+    color: #ffffff;
+    font-size: 10px;
+    padding: 1px 5px;
+    border-radius: 10px;
   }
 
   .airbnb-filter-text {
@@ -6756,45 +7024,130 @@ textarea:focus {
     display: none;
   }
 
-  /* Centered Large Bold Headline (Exact Airbnb Mobile App Heading) */
+  /* Slide-Down Filter Tray */
+  .airbnb-filter-tray {
+    grid-template-columns: 1fr;
+    padding: 14px;
+    gap: 10px;
+    border-radius: 14px;
+    margin-bottom: 16px;
+  }
+
+  /* Centered Large Bold Headline */
   .airbnb-hero-heading {
-    font-size: 32px;
+    font-size: 24px;
     font-weight: 800;
     color: #222222;
     text-align: center;
-    margin: 18px auto 24px auto;
-    letter-spacing: -0.6px;
-    line-height: 1.15;
-    max-width: 320px;
+    margin: 14px auto 16px auto;
+    letter-spacing: -0.4px;
+    line-height: 1.25;
+    max-width: 100%;
+    padding: 0 8px;
+    word-break: break-word;
   }
 
+  .airbnb-search-bar {
+    max-width: 100%;
+    margin: 0 auto 18px auto;
+    padding: 6px 12px;
+    gap: 8px;
+    border-radius: 28px;
+  }
+
+  .airbnb-search-bar input {
+    font-size: 14.5px;
+    min-width: 0;
+  }
+
+  /* Followups section */
+  .airbnb-followups-section {
+    margin-bottom: 20px;
+  }
+
+  .airbnb-followups-title {
+    font-size: 16px;
+    font-weight: 800;
+    color: #0F172A;
+  }
+
+  .airbnb-followups-grid {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .airbnb-followup-card {
+    padding: 10px 14px;
+    border-radius: 12px;
+    gap: 10px;
+  }
+
+  /* Reservation card */
   .airbnb-res-card {
-    padding: 18px;
-    border-radius: 20px;
+    padding: 16px 14px;
+    border-radius: 18px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
   }
 
   .airbnb-card-top-header {
-    gap: 12px;
+    gap: 10px;
   }
 
   .airbnb-guest-headline {
-    font-size: 17px;
+    font-size: 16.5px;
+    line-height: 1.25;
+    word-break: break-word;
+  }
+
+  .airbnb-property-sub {
+    font-size: 12.5px;
+    margin-top: 8px;
+    word-break: break-word;
   }
 
   .airbnb-avatar-group {
-    width: 50px;
-    height: 50px;
+    width: 48px;
+    height: 48px;
   }
 
   .airbnb-guest-avatar-img {
-    width: 50px;
-    height: 50px;
-    font-size: 18px;
+    width: 48px;
+    height: 48px;
+    font-size: 17px;
   }
 
   .airbnb-property-thumb-badge {
-    width: 26px;
-    height: 26px;
+    width: 24px;
+    height: 24px;
+  }
+
+  .airbnb-card-footer-row {
+    margin-top: 10px;
+    padding-top: 8px;
+    gap: 8px;
+  }
+
+  /* Floating Operations Notice Card */
+  .airbnb-notice-card {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 14px 16px;
+    gap: 12px;
+    border-radius: 16px;
+  }
+
+  .airbnb-notice-card > div:last-child {
+    width: 100%;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .airbnb-notice-card button {
+    flex: 1 1 auto;
+    text-align: center;
+    justify-content: center;
+    padding: 8px 14px;
   }
 
   .bottom-nav {
@@ -6808,6 +7161,297 @@ textarea:focus {
   .bottom-nav a.active svg {
     fill: #FF385C !important;
   }
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   🧹 HOUSEKEEPING REALTIME KANBAN TURNAROUND BOARD
+   ══════════════════════════════════════════════════════════════════ */
+.kanban-board {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(290px, 1fr));
+  gap: 16px;
+  align-items: flex-start;
+  margin-top: 14px;
+}
+@media (max-width: 900px) {
+  .kanban-board {
+    grid-template-columns: 1fr;
+  }
+}
+.kanban-col {
+  background: var(--surface, #FFFFFF);
+  border: 1px solid var(--border, #E2E8F0);
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.03);
+  display: flex;
+  flex-direction: column;
+  min-height: 480px;
+}
+.kanban-col-header {
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 2px solid;
+  font-weight: 800;
+  font-size: 14px;
+}
+.kanban-col.col-dirty .kanban-col-header {
+  background: #FEF2F2;
+  border-bottom-color: #EF4444;
+  color: #991B1B;
+}
+.kanban-col.col-progress .kanban-col-header {
+  background: #FFFBEB;
+  border-bottom-color: #F59E0B;
+  color: #92400E;
+}
+.kanban-col.col-clean .kanban-col-header {
+  background: #ECFDF5;
+  border-bottom-color: #10B981;
+  color: #065F46;
+}
+.kanban-col-count {
+  font-size: 11px;
+  font-weight: 800;
+  padding: 3px 8px;
+  border-radius: 12px;
+  background: rgba(0,0,0,0.08);
+}
+.kanban-cards-wrap {
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  flex: 1;
+  max-height: 70vh;
+  overflow-y: auto;
+}
+.kanban-card {
+  background: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 10px;
+  padding: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.kanban-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0,0,0,0.08);
+  border-color: #CBD5E1;
+}
+.kanban-turnaround-badge {
+  background: linear-gradient(135deg, #8B5CF6, #6D28D9);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 800;
+  padding: 3px 8px;
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  letter-spacing: 0.3px;
+  animation: radarPulseWarning 2.4s infinite;
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   🔍 GLOBAL SPOTLIGHT COMMAND PALETTE (Cmd+K / Ctrl+K)
+   ══════════════════════════════════════════════════════════════════ */
+.cmd-palette-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.65);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  z-index: 99999;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 12vh;
+  animation: uhhPageEntrance 0.2s ease-out;
+}
+.cmd-palette-box {
+  width: 100%;
+  max-width: 620px;
+  background: #FFFFFF;
+  border-radius: 16px;
+  border: 1px solid rgba(255,255,255,0.2);
+  box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.cmd-palette-header {
+  padding: 14px 18px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border-bottom: 1px solid #E2E8F0;
+  background: #F8FAFC;
+}
+.cmd-palette-input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  font-size: 16px;
+  font-weight: 600;
+  color: #0F172A;
+  outline: none;
+  font-family: inherit;
+}
+.cmd-palette-kbd {
+  font-size: 11px;
+  font-weight: 700;
+  color: #64748B;
+  background: #E2E8F0;
+  padding: 3px 6px;
+  border-radius: 4px;
+  border: 1px solid #CBD5E1;
+}
+.cmd-palette-results {
+  max-height: 380px;
+  overflow-y: auto;
+  padding: 8px;
+}
+.cmd-result-group-title {
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  color: #94A3B8;
+  letter-spacing: 0.6px;
+  padding: 8px 12px 4px;
+}
+.cmd-result-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  color: #1E293B;
+}
+.cmd-result-item:hover, .cmd-result-item.selected {
+  background: #F1F5F9;
+  color: #0F172A;
+}
+.cmd-result-item.selected {
+  outline: 2px solid var(--primary, #FF385C);
+}
+.cmd-result-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.cmd-result-icon {
+  font-size: 18px;
+  width: 24px;
+  text-align: center;
+}
+.cmd-result-label {
+  font-weight: 600;
+  font-size: 14px;
+}
+.cmd-result-sub {
+  font-size: 11.5px;
+  color: #64748B;
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   🎙️ AI VOICE-TO-BOOKING MODAL & AUDIO WAVE
+   ══════════════════════════════════════════════════════════════════ */
+.voice-booking-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.75);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  z-index: 999999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  animation: uhhPageEntrance 0.25s ease-out;
+}
+.voice-booking-card {
+  width: 100%;
+  max-width: 460px;
+  background: linear-gradient(135deg, #1E293B, #0F172A);
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 24px;
+  padding: 28px 24px;
+  box-shadow: 0 25px 70px rgba(0,0,0,0.5);
+  color: #F8FAFC;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  position: relative;
+}
+.voice-mic-glow {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #FF385C, #E00B41);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 34px;
+  box-shadow: 0 0 35px rgba(255, 56, 92, 0.6);
+  cursor: pointer;
+  animation: pulseVoice 1.8s infinite;
+}
+@keyframes pulseVoice {
+  0%, 100% { transform: scale(1); box-shadow: 0 0 25px rgba(255, 56, 92, 0.5); }
+  50% { transform: scale(1.08); box-shadow: 0 0 45px rgba(255, 56, 92, 0.85); }
+}
+.voice-waveform-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  height: 36px;
+  margin: 6px 0;
+}
+.voice-wave-bar {
+  width: 4px;
+  border-radius: 4px;
+  background: #38BDF8;
+  animation: waveBarAnim 1.2s ease-in-out infinite;
+}
+.voice-wave-bar:nth-child(2) { animation-delay: 0.15s; background: #818CF8; }
+.voice-wave-bar:nth-child(3) { animation-delay: 0.3s; background: #FF385C; }
+.voice-wave-bar:nth-child(4) { animation-delay: 0.45s; background: #34D399; }
+.voice-wave-bar:nth-child(5) { animation-delay: 0.2s; background: #FBBF24; }
+@keyframes waveBarAnim {
+  0%, 100% { height: 8px; }
+  50% { height: 32px; }
+}
+.voice-transcript-box {
+  width: 100%;
+  background: rgba(0,0,0,0.3);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 12px;
+  padding: 12px 14px;
+  font-size: 14px;
+  min-height: 54px;
+  color: #E2E8F0;
+  text-align: left;
+}
+.voice-parsed-summary {
+  width: 100%;
+  background: rgba(16, 185, 129, 0.12);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  border-radius: 10px;
+  padding: 10px 14px;
+  text-align: left;
+  font-size: 12px;
+  color: #34D399;
 }
 
 

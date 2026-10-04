@@ -500,6 +500,10 @@ async function renderFlatsStatus() {
             style="min-height:28px;padding:4px 10px;font-size:12px;border-radius:6px;${viewMode === 'cards' ? 'background:#fff;color:var(--dark);box-shadow:0 1px 3px rgba(0,0,0,0.1);font-weight:700;' : 'background:transparent;color:var(--muted);border:none;'}">
             📱 Cards
           </button>
+          <button type="button" class="btn-sm" onclick="setFlatsViewMode('kanban')"
+            style="min-height:28px;padding:4px 10px;font-size:12px;border-radius:6px;${viewMode === 'kanban' ? 'background:#fff;color:var(--dark);box-shadow:0 1px 3px rgba(0,0,0,0.1);font-weight:700;' : 'background:transparent;color:var(--muted);border:none;'}">
+            📊 Kanban
+          </button>
           <button type="button" class="btn-sm" onclick="setFlatsViewMode('table')"
             style="min-height:28px;padding:4px 10px;font-size:12px;border-radius:6px;${viewMode === 'table' ? 'background:#fff;color:var(--dark);box-shadow:0 1px 3px rgba(0,0,0,0.1);font-weight:700;' : 'background:transparent;color:var(--muted);border:none;'}">
             📋 Table
@@ -746,6 +750,48 @@ async function renderFlatsStatus() {
             </div>`;
         }).join('')}
       </div>
+    ` : viewMode === 'kanban' ? `
+      <!-- 📊 Real-Time Housekeeping Kanban Turnaround Board -->
+      <div class="kanban-board">
+        <!-- 🔴 Dirty Column -->
+        <div class="kanban-col col-dirty">
+          <div class="kanban-col-header">
+            <div style="display:flex;align-items:center;gap:6px;">
+              <span>🧹</span> <span>Needs Cleaning</span>
+            </div>
+            <span class="kanban-col-count">${filtered.filter(f => f.cleaning_status === 'Dirty').length}</span>
+          </div>
+          <div class="kanban-cards-wrap">
+            ${filtered.filter(f => f.cleaning_status === 'Dirty').map(f => renderKanbanCard(f, can, today)).join('') || '<div style="text-align:center;padding:24px;color:var(--muted);font-size:12px;">🎉 All clean or in progress!</div>'}
+          </div>
+        </div>
+
+        <!-- 🟡 In Progress Column -->
+        <div class="kanban-col col-progress">
+          <div class="kanban-col-header">
+            <div style="display:flex;align-items:center;gap:6px;">
+              <span>🔄</span> <span>Cleaning In Progress</span>
+            </div>
+            <span class="kanban-col-count">${filtered.filter(f => f.cleaning_status === 'In Progress').length}</span>
+          </div>
+          <div class="kanban-cards-wrap">
+            ${filtered.filter(f => f.cleaning_status === 'In Progress').map(f => renderKanbanCard(f, can, today)).join('') || '<div style="text-align:center;padding:24px;color:var(--muted);font-size:12px;">No active cleaning in progress.</div>'}
+          </div>
+        </div>
+
+        <!-- 🟢 Clean Column -->
+        <div class="kanban-col col-clean">
+          <div class="kanban-col-header">
+            <div style="display:flex;align-items:center;gap:6px;">
+              <span>✅</span> <span>Clean & Ready for Guest</span>
+            </div>
+            <span class="kanban-col-count">${filtered.filter(f => f.cleaning_status === 'Clean').length}</span>
+          </div>
+          <div class="kanban-cards-wrap">
+            ${filtered.filter(f => f.cleaning_status === 'Clean').map(f => renderKanbanCard(f, can, today)).join('') || '<div style="text-align:center;padding:24px;color:var(--muted);font-size:12px;">No clean rooms recorded.</div>'}
+          </div>
+        </div>
+      </div>
     ` : `
       <!-- Table View -->
       <div class="card" style="padding:0;overflow:hidden;">
@@ -792,6 +838,99 @@ async function renderFlatsStatus() {
       </div>
     `}
   `, 'flats');
+}
+
+// ═══ KANBAN CARD RENDERER ═══
+function renderKanbanCard(f, can, today) {
+  const isDirty = f.cleaning_status === 'Dirty';
+  const isProgress = f.cleaning_status === 'In Progress';
+  const isClean = f.cleaning_status === 'Clean';
+  const propTitle = propLabel(f.rooms) || f.room_id;
+  const unit = f.rooms?.unit_no ? `Unit ${f.rooms.unit_no}` : '';
+  const ctName = f.rooms?.checkin_manager || 'Unassigned';
+  const ctPhone = f.rooms?.caretaker_phone || '9450055554';
+  const waMsg = encodeURIComponent(`🧹 Housekeeping alert for ${propTitle} (${unit}): Status is ${f.cleaning_status || 'Dirty'}. Please check room.`);
+  const waLink = `https://wa.me/91${ctPhone.replace(/[^0-9]/g, '').slice(-10)}?text=${waMsg}`;
+
+  return `
+    <div class="kanban-card" id="kanbanCard_${f.room_id}">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">
+        <div>
+          <div style="font-weight:800;font-size:14px;color:var(--dark);line-height:1.2;">${propTitle}</div>
+          <div style="font-size:11.5px;color:var(--primary);font-weight:600;margin-top:2px;">${unit}</div>
+        </div>
+        <span class="badge ${f.status === 'Free' ? 'green' : f.status === 'Booked' ? 'blue' : 'red'}" style="font-size:10px;padding:2px 6px;">
+          ${f.status || 'Free'}
+        </span>
+      </div>
+
+      ${f.isTurnaround || (f.todayArrival && f.cleaning_status !== 'Clean') ? `
+        <div class="kanban-turnaround-badge">
+          <span>⚡ Turnaround: Arriving Today</span>
+        </div>
+      ` : ''}
+
+      <!-- Current / Next Stays -->
+      <div style="background:#F8FAFC;border-radius:8px;padding:8px 10px;font-size:11.5px;display:flex;flex-direction:column;gap:4px;">
+        ${f.activeStay ? `
+          <div style="display:flex;align-items:center;gap:4px;color:#1E293B;">
+            <span>👤</span>
+            <span style="font-weight:700;">${f.activeStay.guest_name}</span>
+            <span style="color:var(--muted);font-size:10.5px;">(${f.isCheckoutToday ? 'Departing Today' : 'until ' + f.activeStay.check_out})</span>
+          </div>
+        ` : `
+          <div style="color:#059669;font-weight:600;">🟢 Currently Vacant</div>
+        `}
+        ${f.todayArrival ? `
+          <div style="display:flex;align-items:center;gap:4px;color:#2563EB;font-weight:700;">
+            <span>📥</span>
+            <span>Next: ${f.todayArrival.guest_name}</span>
+          </div>
+        ` : ''}
+      </div>
+
+      ${f.issue ? `
+        <div style="padding:4px 8px;border-radius:6px;background:#FEF3C7;border:1px solid #F59E0B;color:#92400E;font-size:11px;">
+          ⚠️ <strong>Issue:</strong> ${f.issue}
+        </div>
+      ` : ''}
+
+      <!-- Staff & Alert -->
+      <div style="display:flex;justify-content:space-between;align-items:center;font-size:11px;color:var(--muted);padding-top:4px;border-top:1px dashed var(--border);">
+        <div>Staff: <strong style="color:var(--dark);">${ctName}</strong></div>
+        <a href="${waLink}" target="_blank" style="color:#25D366;text-decoration:none;font-weight:700;display:inline-flex;align-items:center;gap:3px;" title="WhatsApp Staff">
+          💬 Ping
+        </a>
+      </div>
+
+      <!-- Action Buttons -->
+      ${can ? `
+        <div style="display:flex;gap:6px;align-items:center;margin-top:4px;">
+          ${isDirty ? `
+            <button class="btn-sm secondary" onclick="quickClean('${f.room_id}','In Progress',this)" style="flex:1;font-weight:700;font-size:11.5px;min-height:30px;" title="Start Cleaning">
+              🔄 Start
+            </button>
+            <button class="btn-sm green-btn" onclick="quickClean('${f.room_id}','Clean',this)" style="flex:2;font-weight:800;font-size:11.5px;min-height:30px;">
+              ✅ Mark Clean
+            </button>
+          ` : ''}
+          ${isProgress ? `
+            <button class="btn-sm green-btn" onclick="quickClean('${f.room_id}','Clean',this)" style="width:100%;font-weight:800;font-size:12px;min-height:32px;">
+              ✅ Ready for Guest (Clean)
+            </button>
+          ` : ''}
+          ${isClean ? `
+            <button class="btn-sm danger" onclick="quickClean('${f.room_id}','Dirty',this)" style="flex:1;font-size:11px;min-height:28px;">
+              🧹 Mark Dirty
+            </button>
+            <button class="btn-sm outline" onclick="showEditFlatStatusModal('${f.room_id}')" style="padding:2px 8px;min-height:28px;">
+              ✏️
+            </button>
+          ` : ''}
+        </div>
+      ` : ''}
+    </div>
+  `;
 }
 
 // ═══ FILTER & VIEW HELPERS ═══

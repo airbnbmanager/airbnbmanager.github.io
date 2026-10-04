@@ -220,7 +220,7 @@ async function renderSmartManageBookings() {
   } else if (tab === 'inhouse') {
     heroTitle = `You have ${count} in-house stay${count === 1 ? '' : 's'}`;
   } else if (tab === 'all') {
-    heroTitle = `You have ${count} reservation${count === 1 ? '' : 's'}`;
+    heroTitle = `All Guests & Reservations (${count})`;
   } else if (tab === 'due') {
     heroTitle = `You have ${count} reservation${count === 1 ? '' : 's'} with balance due`;
   } else if (tab === 'arrivals') {
@@ -260,21 +260,21 @@ async function renderSmartManageBookings() {
       ` : ''}
       <!-- Centered Pill Bar & Filter Actions (Matches Airbnb Mobile Header) -->
       <div class="airbnb-header-bar">
-        <div class="airbnb-pills-center">
-          <button class="airbnb-pill ${tab === 'today' ? 'active' : ''}" onclick="window.setBookingTab('today')">
+        <div class="airbnb-pills-center" id="sbkPillsRow">
+          <button class="airbnb-pill ${tab === 'today' ? 'active' : ''}" onclick="window.setBookingTab('today')" id="sbkTabToday">
             Today <span class="airbnb-pill-num">${todayCount}</span>
           </button>
-          <button class="airbnb-pill ${tab === 'upcoming' ? 'active' : ''}" onclick="window.setBookingTab('upcoming')">
+          <button class="airbnb-pill ${tab === 'upcoming' ? 'active' : ''}" onclick="window.setBookingTab('upcoming')" id="sbkTabUpcoming">
             Upcoming <span class="airbnb-pill-num">${upcomingCount}</span>
           </button>
-          <button class="airbnb-pill ${tab === 'inhouse' ? 'active' : ''}" onclick="window.setBookingTab('inhouse')">
+          <button class="airbnb-pill ${tab === 'inhouse' ? 'active' : ''}" onclick="window.setBookingTab('inhouse')" id="sbkTabInhouse">
             In-House <span class="airbnb-pill-num">${inHouseCount}</span>
           </button>
-          <button class="airbnb-pill ${tab === 'pending' ? 'active' : ''}" onclick="window.setBookingTab('pending')" style="${pendingApprovalsCount > 0 ? 'background:#FEF3C7;color:#92400E;border-color:#F59E0B;font-weight:700;' : ''}">
+          <button class="airbnb-pill ${tab === 'pending' ? 'active' : ''}" onclick="window.setBookingTab('pending')" id="sbkTabPending" style="${pendingApprovalsCount > 0 ? 'background:#FEF3C7;color:#92400E;border-color:#F59E0B;font-weight:700;' : ''}">
             🟡 Pending <span class="airbnb-pill-num" style="${pendingApprovalsCount > 0 ? 'background:#F59E0B;color:#fff;' : ''}">${pendingApprovalsCount}</span>
           </button>
-          <button class="airbnb-pill ${tab === 'all' ? 'active' : ''}" onclick="window.setBookingTab('all')">
-            All <span class="airbnb-pill-num">${all?.length || 0}</span>
+          <button class="airbnb-pill ${tab === 'all' ? 'active' : ''}" onclick="window.setBookingTab('all')" id="sbkTabAll" title="View all reservations / guests">
+            All Guests <span class="airbnb-pill-num">${all?.length || 0}</span>
           </button>
         </div>
 
@@ -360,8 +360,8 @@ async function renderSmartManageBookings() {
         ` : ''}
       </div>
 
-      <!-- Your follow-ups Section (Placed Prominently at Top) -->
-      ${renderAirbnbFollowupsHtml(all, paidMap, canM, today)}
+      <!-- Your follow-ups Section (Displayed on Today tab for clean, immediate Guest list) -->
+      ${tab === 'today' && !sq ? renderAirbnbFollowupsHtml(all, paidMap, canM, today) : ''}
 
       <!-- Reservation Presentation -->
       ${filtered.length === 0 ? `
@@ -412,6 +412,14 @@ async function renderSmartManageBookings() {
   `;
 
   renderShell(html, 'bookings');
+
+  // Auto scroll active pill into view on mobile so current selection is always centered
+  setTimeout(() => {
+    const activePill = document.querySelector('.airbnb-pill.active');
+    if (activePill && window.innerWidth <= 768) {
+      activePill.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+    }
+  }, 40);
 }
 
 // =====================================================================
@@ -768,19 +776,27 @@ function renderAirbnbFollowupsHtml(allBookings, paidMap, canM, today) {
   const followups = [...approvals, ...urgentOps, ...balanceDue];
   if (followups.length === 0) return '';
 
-  const displayFollowups = followups.slice(0, 8);
+  const isExpanded = window._sbkState.expandFollowups || false;
+  const displayFollowups = isExpanded ? followups.slice(0, 16) : followups.slice(0, 3);
 
   return `
     <div class="airbnb-followups-section">
-      <h2 class="airbnb-followups-title">Your follow-ups (${followups.length})</h2>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;gap:8px;">
+        <h2 class="airbnb-followups-title" style="margin:0;">Your follow-ups (${followups.length})</h2>
+        ${followups.length > 3 ? `
+          <button type="button" class="btn-sm outline" style="border-radius:16px;padding:4px 10px;font-size:11.5px;font-weight:700;cursor:pointer;" onclick="window.toggleFollowupsExpanded()">
+            ${isExpanded ? '▴ Show Less' : `▾ View All (${followups.length})`}
+          </button>
+        ` : ''}
+      </div>
       <div class="airbnb-followups-grid">
         ${displayFollowups.map(f => `
           <div class="airbnb-followup-card" onclick="window.openBookingDrawer('${f.bookingId}')">
-            <div>
-              <div style="font-size:14px;font-weight:700;color:#0F172A;">${escapeHtml(f.title)}</div>
-              <div style="font-size:12.5px;color:#64748B;margin-top:2px;">${escapeHtml(f.subtitle)}</div>
+            <div style="flex:1;min-width:0;">
+              <div style="font-size:13.5px;font-weight:700;color:#0F172A;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(f.title)}</div>
+              <div style="font-size:12px;color:#64748B;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(f.subtitle)}</div>
             </div>
-            <button class="btn-sm outline" style="border-radius:20px;font-weight:700;padding:5px 12px;font-size:12px;" onclick="event.stopPropagation();window.openBookingDrawer('${f.bookingId}')">
+            <button class="btn-sm outline" style="border-radius:20px;font-weight:700;padding:5px 12px;font-size:12px;flex-shrink:0;" onclick="event.stopPropagation();window.openBookingDrawer('${f.bookingId}')">
               ${f.actionText}
             </button>
           </div>
@@ -1092,6 +1108,9 @@ window.openBookingDrawer = async function(bookingId) {
                 <svg viewBox="0 0 24 24" width="15" height="15" fill="#fff"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.79.47 3.55 1.36 5.09L2 22l5.25-1.38c1.48.8 3.13 1.23 4.79 1.23h.01c5.46 0 9.9-4.45 9.9-9.91 0-2.65-1.03-5.14-2.9-7.01A9.82 9.82 0 0 0 12.04 2m.01 1.67c2.2 0 4.26.86 5.82 2.42a8.18 8.18 0 0 1 2.41 5.83c0 4.54-3.7 8.23-8.24 8.23-1.48 0-2.93-.39-4.19-1.15l-.3-.17-3.12.82.83-3.04-.2-.32a8.2 8.2 0 0 1-1.26-4.37c.01-4.54 3.7-8.23 8.25-8.23M8.53 6.98c-.16 0-.43.06-.65.31s-.85.83-.85 2.02.87 2.35.99 2.51c.12.17 1.71 2.75 4.28 3.72 2.12.8 2.55.64 3.01.6.46-.05 1.5-.61 1.71-1.2.21-.59.21-1.09.15-1.19s-.23-.16-.48-.28-1.5-.74-1.73-.82c-.23-.08-.4-.12-.57.13s-.65.82-.8.99c-.15.17-.29.19-.55.06-.26-.13-1.09-.4-2.08-1.29-.77-.68-1.29-1.53-1.44-1.79-.15-.26-.02-.4.11-.53.12-.12.26-.31.4-.47.13-.16.17-.27.26-.45.09-.18.04-.34-.02-.47-.06-.13-.57-1.37-.78-1.87s-.42-.42-.57-.43z"/></svg>
                 ${b.phone ? 'WhatsApp' : 'Add Phone & WA'}
               </button>
+              <button class="sbk-action-btn" onclick="window.openGuestPassModal('${b.booking_id}', '${escapeHtml(b.phone || '')}', '${escapeHtml(b.guest_name || '')}')" style="height:36px;padding:0 10px;border-radius:8px;font-size:12px;display:inline-flex;align-items:center;gap:5px;background:#0F172A;color:#fff;border:none;cursor:pointer;font-weight:700;" title="Digital Guest Pass">
+                🪪 Pass
+              </button>
               ${b.phone ? `
                 <a href="tel:${b.phone}" class="sbk-action-btn call" style="width:36px;height:36px;border-radius:8px;font-size:16px;display:inline-flex;align-items:center;justify-content:center;background:#E2E8F0;text-decoration:none;" title="Call Guest">
                   📞
@@ -1207,6 +1226,9 @@ window.openBookingDrawer = async function(bookingId) {
                 ✏️ Edit Booking
               </button>
             ` : ''}
+            <button class="btn-sm" style="background:#0F766E;color:#fff;padding:10px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;gap:6px;" onclick="window.openBookingIdUploadModal('${b.booking_id}')" title="Upload, View or Delete Guest ID Documents">
+              🪪 Manage IDs
+            </button>
             <button class="btn-sm outline" style="padding:10px;" onclick="showGuestLedger('${escapeHtml(b.guest_name || '')}', '${b.booking_id}', '${b.phone || ''}', '${b.airbnb_confirmation_code || ''}')">
               📑 Guest Ledger
             </button>
@@ -1305,6 +1327,17 @@ window.closeBookingDrawer = function() {
 // =====================================================================
 window.setBookingTab = function(tab) {
   window._sbkState.activeTab = tab;
+  renderSmartManageBookings();
+  setTimeout(() => {
+    const activePill = document.querySelector('.airbnb-pill.active');
+    if (activePill) {
+      activePill.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+    }
+  }, 40);
+};
+
+window.toggleFollowupsExpanded = function() {
+  window._sbkState.expandFollowups = !window._sbkState.expandFollowups;
   renderSmartManageBookings();
 };
 
@@ -2783,3 +2816,58 @@ if (typeof window.renderAddBooking === 'function' && !window.renderClassicAddBoo
 // Override with Smart Next-Gen Views
 window.renderManageBookings = renderSmartManageBookings;
 window.renderAddBooking = renderSmartAddBooking;
+
+// ═══ DIGITAL GUEST PASS MODAL ═══
+window.openGuestPassModal = function(bookingId, phone, guestName) {
+  const origin = window.location.origin;
+  const passUrl = `${origin}/guest.html?id=${encodeURIComponent(bookingId)}`;
+  const cleanPhone = String(phone || '').replace(/[^0-9]/g, '').slice(-10);
+  const waMsg = encodeURIComponent(`Namaste ${guestName || 'Guest'}! 🙏\n\nHere is your Digital Stay Pass for Unique Haven Homes:\n👉 ${passUrl}\n\n• High-Speed WiFi credentials\n• Live Google Maps navigation\n• 1-Tap Housekeeping concierge\n• Digital Aadhaar / ID check-in\n\nLooking forward to hosting you!`);
+  const waLink = cleanPhone ? `https://wa.me/91${cleanPhone}?text=${waMsg}` : '';
+
+  let overlay = document.getElementById('guestPassModalOverlay');
+  if (!overlay) {
+    overlay = document.createElement('div');
+    overlay.id = 'guestPassModalOverlay';
+    document.body.appendChild(overlay);
+  }
+
+  overlay.innerHTML = `
+    <div style="position:fixed;inset:0;background:rgba(15,23,42,0.7);backdrop-filter:blur(8px);z-index:99999;display:flex;align-items:center;justify-content:center;padding:16px;" onclick="if(event.target===this)document.getElementById('guestPassModalOverlay').innerHTML=''">
+      <div style="width:100%;max-width:520px;background:#fff;border-radius:18px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,0.3);animation:uhhPageEntrance 0.22s ease-out;">
+        <div style="padding:16px 20px;background:#0F172A;color:#fff;display:flex;justify-content:space-between;align-items:center;">
+          <div style="font-weight:800;font-size:16px;display:flex;align-items:center;gap:8px;">
+            <span>🪪</span> Digital Guest Pass
+          </div>
+          <button onclick="document.getElementById('guestPassModalOverlay').innerHTML=''" style="background:none;border:none;color:#fff;font-size:20px;cursor:pointer;">✕</button>
+        </div>
+        <div style="padding:20px;display:flex;flex-direction:column;gap:14px;">
+          <div style="font-size:13px;color:#475569;">
+            Send this digital stay pass to <strong>${escapeHtml(guestName || 'Guest')}</strong> (#${bookingId}). They can access WiFi, Google Maps directions, upload ID proofs, and request housekeeping without downloading any app!
+          </div>
+
+          <div style="background:#F8FAFC;border:1px dashed #CBD5E1;border-radius:10px;padding:12px;display:flex;align-items:center;justify-content:space-between;gap:10px;">
+            <div style="font-family:monospace;font-size:12.5px;color:#0F172A;word-break:break-all;">
+              ${passUrl}
+            </div>
+            <button class="btn-sm" onclick="navigator.clipboard.writeText('${passUrl}');this.textContent='Copied!';setTimeout(()=>this.textContent='Copy',2000);" style="flex-shrink:0;background:#0F172A;color:#fff;font-weight:700;">
+              Copy
+            </button>
+          </div>
+
+          <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:6px;">
+            <a href="${passUrl}" target="_blank" class="btn" style="flex:1;background:#2563EB;color:#fff;text-align:center;text-decoration:none;padding:10px;border-radius:10px;font-weight:700;font-size:13px;display:flex;align-items:center;justify-content:center;gap:6px;">
+              👁️ Preview Guest Pass
+            </a>
+            ${waLink ? `
+              <a href="${waLink}" target="_blank" class="btn" style="flex:1;background:#25D366;color:#fff;text-align:center;text-decoration:none;padding:10px;border-radius:10px;font-weight:700;font-size:13px;display:flex;align-items:center;justify-content:center;gap:6px;">
+                💬 Send via WhatsApp
+              </a>
+            ` : ''}
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+};
+

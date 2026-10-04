@@ -7,29 +7,69 @@
     channels: [],
     history: JSON.parse(localStorage.getItem('uh_notif_history') || '[]'),
     maxHistory: 50,
+    isMuted: localStorage.getItem('uh_notif_muted') === 'true',
     started: false
   };
 
-  // ─── Sound ───
+  // ─── Sound (Apple / Luxury Hospitality Harmonic Chime Synthesizer) ───
   function playSound(type) {
+    if (NOTIF.isMuted) return;
     try {
-      const ctx = new (window.AudioContext || window.webkitAudioContext)();
-      const tones = {
-        booking: [523, 659, 784], payment: [659, 784, 988],
-        checkin: [440, 554], checkout: [554, 440],
-        task: [349, 440], info: [440]
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      if (!AudioCtx) return;
+      const ctx = new AudioCtx();
+      if (ctx.state === 'suspended') {
+        ctx.resume();
+      }
+
+      // Harmonic chords with gentle attack and warm exponential decay
+      const presets = {
+        booking: [
+          { freq: 523.25, time: 0, dur: 0.35, gain: 0.16 },    // C5
+          { freq: 659.25, time: 0.08, dur: 0.35, gain: 0.18 },  // E5
+          { freq: 783.99, time: 0.16, dur: 0.45, gain: 0.20 },  // G5
+          { freq: 1046.5, time: 0.24, dur: 0.65, gain: 0.22 }   // C6 (crystal bell)
+        ],
+        payment: [
+          { freq: 587.33, time: 0, dur: 0.3, gain: 0.16 },     // D5
+          { freq: 880.00, time: 0.09, dur: 0.35, gain: 0.18 },   // A5
+          { freq: 1174.66, time: 0.18, dur: 0.6, gain: 0.22 }   // D6
+        ],
+        checkin: [
+          { freq: 440.00, time: 0, dur: 0.35, gain: 0.16 },    // A4
+          { freq: 554.37, time: 0.1, dur: 0.5, gain: 0.20 }     // C#5
+        ],
+        checkout: [
+          { freq: 554.37, time: 0, dur: 0.3, gain: 0.16 },
+          { freq: 440.00, time: 0.1, dur: 0.45, gain: 0.18 }
+        ],
+        task: [
+          { freq: 493.88, time: 0, dur: 0.3, gain: 0.15 },
+          { freq: 659.25, time: 0.1, dur: 0.45, gain: 0.18 }
+        ],
+        info: [
+          { freq: 523.25, time: 0, dur: 0.25, gain: 0.14 },
+          { freq: 659.25, time: 0.08, dur: 0.4, gain: 0.16 }
+        ]
       };
-      const notes = tones[type] || tones.info;
-      notes.forEach((freq, i) => {
+
+      const notes = presets[type] || presets.info;
+      notes.forEach(({ freq, time, dur, gain }) => {
         setTimeout(() => {
-          const o = ctx.createOscillator();
-          const g = ctx.createGain();
-          o.connect(g); g.connect(ctx.destination);
-          o.type = 'sine'; o.frequency.value = freq;
-          g.gain.setValueAtTime(0.15, ctx.currentTime);
-          g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.15);
-          o.start(); o.stop(ctx.currentTime + 0.15);
-        }, i * 120);
+          try {
+            const osc = ctx.createOscillator();
+            const gainNode = ctx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(freq, ctx.currentTime);
+            gainNode.gain.setValueAtTime(0.001, ctx.currentTime);
+            gainNode.gain.linearRampToValueAtTime(gain, ctx.currentTime + 0.02);
+            gainNode.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + dur);
+            osc.connect(gainNode);
+            gainNode.connect(ctx.destination);
+            osc.start(ctx.currentTime);
+            osc.stop(ctx.currentTime + dur);
+          } catch(err) {}
+        }, time * 1000);
       });
     } catch(e) {}
   }
@@ -139,9 +179,20 @@
       if (unread > 0) {
         b.textContent = unread > 99 ? '99+' : unread;
         b.style.display = 'flex';
+        b.classList.remove('badge-pop');
+        void b.offsetWidth;
+        b.classList.add('badge-pop');
       } else {
         b.style.display = 'none';
       }
+    });
+
+    // Trigger bell swing animation
+    const bellBtns = document.querySelectorAll('.topbar-icon-btn[title*="Notification"], #topbarNotifBtn, #notifBellBtn');
+    bellBtns.forEach(btn => {
+      btn.classList.remove('bell-ring-active');
+      void btn.offsetWidth;
+      btn.classList.add('bell-ring-active');
     });
   }
 
@@ -154,24 +205,48 @@
       document.body.appendChild(c);
     }
     const t = document.createElement('div');
-    t.className = 'notif-toast notif-' + n.type;
-    t.innerHTML = `
-      <div class="notif-icon">${n.icon}</div>
-      <div class="notif-body">
-        <div class="notif-title">${n.title}</div>
-        <div class="notif-msg">${n.message}</div>
-        ${n.sub ? `<div class="notif-sub">${n.sub}</div>` : ''}
-      </div>
-      <button class="notif-close">×</button>`;
-    c.appendChild(t);
-    setTimeout(() => t.classList.add('show'), 10);
+    t.className = 'notif-toast notif-' + (n.type || 'info');
 
+    // Build quick actions if applicable
+    let actionsHtml = '';
+    const bkId = n.booking_id || n.entityId || (n.data && n.data.booking_id);
+    const phone = n.phone || (n.data && n.data.phone);
+    if (bkId) {
+      actionsHtml += `<button type="button" class="notif-action-chip" onclick="event.stopPropagation();if(window.openBookingDrawer)window.openBookingDrawer('${bkId}');else navigate('bookings');">View Stay ➔</button>`;
+    }
+    if (phone) {
+      actionsHtml += `<button type="button" class="notif-action-chip wa" onclick="event.stopPropagation();window.open('https://wa.me/91${String(phone).replace(/[^0-9]/g,'').slice(-10)}','_blank');">💬 WhatsApp</button>`;
+    } else if (n.page && !bkId) {
+      actionsHtml += `<button type="button" class="notif-action-chip outline" onclick="event.stopPropagation();navigate('${n.page}');">Open ➔</button>`;
+    }
+
+    t.innerHTML = `
+      <div class="notif-icon-wrap">${n.icon || '🔔'}</div>
+      <div class="notif-body">
+        <div class="notif-title">${n.title || 'Notification'}</div>
+        <div class="notif-msg">${n.message || ''}</div>
+        ${n.sub ? `<div class="notif-sub">${n.sub}</div>` : ''}
+        ${actionsHtml ? `<div class="notif-actions-row">${actionsHtml}</div>` : ''}
+      </div>
+      <button class="notif-close" title="Dismiss">✕</button>
+      <div class="notif-progress-line"></div>
+    `;
+    c.appendChild(t);
+    requestAnimationFrame(() => t.classList.add('show'));
+
+    let dismissed = false;
     const dismiss = () => {
-      t.classList.remove('show');
-      setTimeout(() => t.remove(), 300);
+      if (dismissed) return;
+      dismissed = true;
+      t.classList.add('dismissing');
+      setTimeout(() => t.remove(), 280);
     };
+
     t.onclick = e => {
-      if (e.target.classList.contains('notif-close')) { dismiss(); return; }
+      if (e.target.classList.contains('notif-close') || e.target.closest('.notif-action-chip')) {
+        dismiss();
+        return;
+      }
       if (typeof window.openNotificationTarget === 'function') {
         window.openNotificationTarget(n);
       } else if (n.page && typeof navigate === 'function') {
@@ -179,7 +254,8 @@
       }
       dismiss();
     };
-    setTimeout(dismiss, 7000);
+
+    setTimeout(dismiss, 6800);
   }
 
   function notify(cfg) {
@@ -248,7 +324,12 @@
     o.innerHTML = `
       <div class="notif-panel">
         <div class="notif-panel-header">
-          <h3>🔔 Notifications</h3>
+          <div style="display:flex;align-items:center;gap:10px;">
+            <h3 style="margin:0;font-size:16px;font-weight:800;">🔔 Notifications</h3>
+            <button type="button" id="notifMuteToggle" title="Toggle sound alerts" style="background:${NOTIF.isMuted ? '#FEE2E2' : '#F1F5F9'};border:1px solid #CBD5E1;border-radius:20px;padding:3px 10px;font-size:11px;font-weight:700;cursor:pointer;color:${NOTIF.isMuted ? '#DC2626' : '#334155'};display:inline-flex;align-items:center;gap:4px;">
+              ${NOTIF.isMuted ? '🔇 Muted' : '🔊 Sound ON'}
+            </button>
+          </div>
           <button class="notif-panel-close">×</button>
         </div>
         <div class="notif-panel-actions">
@@ -274,6 +355,22 @@
     document.body.appendChild(o);
     
     const close = () => { o.classList.remove('show'); setTimeout(() => o.remove(), 250); };
+
+    // Mute/Unmute sound toggle
+    const muteBtn = o.querySelector('#notifMuteToggle');
+    if (muteBtn) {
+      muteBtn.onclick = (e) => {
+        e.stopPropagation();
+        NOTIF.isMuted = !NOTIF.isMuted;
+        localStorage.setItem('uh_notif_muted', String(NOTIF.isMuted));
+        muteBtn.textContent = NOTIF.isMuted ? '🔇 Muted' : '🔊 Sound ON';
+        muteBtn.style.background = NOTIF.isMuted ? '#FEE2E2' : '#F1F5F9';
+        muteBtn.style.color = NOTIF.isMuted ? '#DC2626' : '#334155';
+        if (!NOTIF.isMuted) {
+          playSound('info');
+        }
+      };
+    }
 
     // Reminder item click → open target
     o.querySelectorAll('[data-rem-id]').forEach(el => {
@@ -502,6 +599,8 @@
     updateBadge: updateBadge,
     history: () => NOTIF.history
   };
+  window.notify = notify;
+  window.showToast = showToast;
 
   // Auto-start when session ready
   let tries = 0;
