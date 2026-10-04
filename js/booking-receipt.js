@@ -547,6 +547,14 @@ Thank you for choosing *The Unique Haven Homes*. Your direct reservation has bee
     const origDocTitle = document.title;
     try { document.title = title; } catch(e) {}
 
+    const isAppleTouch = /iPad|iPhone|iPod/i.test(navigator.userAgent) || 
+      (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+
+    if (isAppleTouch && typeof window.printDocumentHTML === 'function') {
+      window.printDocumentHTML(el.innerHTML, title);
+      return;
+    }
+
     // Remove any previous print iframe
     let old = document.getElementById('uhhReceiptPrintFrame');
     if (old) old.remove();

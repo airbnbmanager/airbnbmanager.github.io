@@ -1471,10 +1471,7 @@ function buildInvestorReportHTML(reportHTML, filename) {
       } catch(e) {}
       setTimeout(function() {
         document.title = "${filename}";
-        const isMobileOrTablet = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-        if (!isMobileOrTablet) {
-          window.print();
-        }
+        try { window.print(); } catch(e) {}
       }, 400);
     };
   </script>
@@ -1485,46 +1482,27 @@ function buildInvestorReportHTML(reportHTML, filename) {
 window.downloadInvestorReport = function(investorName, propertyName, monthYear) {
   const reportEl = document.querySelector('.report-doc');
   if (!reportEl) {
-    alert('Report not found. Please try again.');
+    if (window.fsn) fsn.info('Info', 'Report not found. Please try again.');
+    else alert('Report not found. Please try again.');
     return;
   }
   const filename = getInvestorReportFilename(investorName, propertyName, monthYear);
   const reportHTML = reportEl.outerHTML;
   const html = buildInvestorReportHTML(reportHTML, filename);
-  const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = `${filename}.html`;
-  document.body.appendChild(a);
-  a.click();
-  setTimeout(() => {
-    a.remove();
-    if (window.fsn) fsn.success('Downloaded', `Saved ${filename}.html`);
-  }, 500);
+  window.downloadExportFile(html, `${filename}.html`, 'text/html;charset=utf-8');
 };
 
 window.printInvestorReport = function(investorName, propertyName, monthYear) {
   const reportEl = document.querySelector('.report-doc');
   if (!reportEl) {
-    alert('Report not found. Please try again.');
+    if (window.fsn) fsn.info('Info', 'Report not found. Please try again.');
+    else alert('Report not found. Please try again.');
     return;
   }
   const filename = getInvestorReportFilename(investorName, propertyName, monthYear);
   const reportHTML = reportEl.outerHTML;
   const html = buildInvestorReportHTML(reportHTML, filename);
-
-  const win = window.open('', '_blank');
-  if (!win) {
-    alert('Popup blocked! Please allow popups for this site.');
-    return;
-  }
-  win.document.open();
-  win.document.write(html);
-  win.document.close();
-  win.document.title = filename;
-  setTimeout(() => {
-    try { win.document.title = filename; } catch(e) {}
-  }, 100);
+  window.printDocumentHTML(html, filename);
 };
 
 

@@ -367,42 +367,71 @@ async function showGuestLedger(guestName, bookingId, phone, airbnbCode, initialF
   const modal = document.createElement('div');
   modal.className = 'modal-overlay';
   modal.id = 'guestLedgerModal';
-  modal.onclick = e => { if (e.target === modal) modal.remove(); };
+
+  // Robust close handler (cleans up keydown listener and removes modal)
+  function closeGuestLedgerHandler() {
+    document.removeEventListener('keydown', handleGlEsc);
+    const existing = document.getElementById('guestLedgerModal');
+    if (existing) existing.remove();
+  }
+  window.closeGuestLedger = closeGuestLedgerHandler;
+
+  function handleGlEsc(e) {
+    if (e.key === 'Escape' || e.keyCode === 27) {
+      closeGuestLedgerHandler();
+    }
+  }
+  document.addEventListener('keydown', handleGlEsc);
+
+  modal.onclick = e => { if (e.target === modal) closeGuestLedgerHandler(); };
 
   modal.innerHTML = `
-    <div class="modal-box" style="max-width:960px;width:95vw;max-height:92vh;overflow-y:auto;padding:24px;border-radius:14px;box-shadow:0 25px 50px -12px rgba(0,0,0,0.25);">
-      <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">✕</button>
+    <!-- Persistent Floating Close Button (Always pinned in viewport top-right for phone/tablet) -->
+    <button type="button" class="gl-floating-close-btn" onclick="window.closeGuestLedger()" aria-label="Close Guest Ledger" title="Close Ledger (ESC)">✕</button>
+
+    <div class="modal-box" style="max-width:960px;width:95vw;max-height:92vh;overflow-y:auto;padding:24px;border-radius:14px;box-shadow:0 25px 50px -12px rgba(0,0,0,0.25);position:relative;">
       
-      <!-- Guest Header -->
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;margin-bottom:12px;border-bottom:1px solid #E2E8F0;padding-bottom:12px;">
-        <div>
-          <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-            <h2 style="margin:0;font-size:22px;color:var(--dark);">👤 Guest Ledger & Statement</h2>
-            <span style="font-size:18px;font-weight:700;color:#1E293B;">— ${escapeHtml(resolvedGuestName)}</span>
-          </div>
-          <div style="margin-top:6px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;font-size:13px;color:#64748B;">
-            ${displayPhone ? `
-              <span style="display:inline-flex;align-items:center;gap:5px;background:#F1F5F9;padding:3px 9px;border-radius:6px;font-weight:600;color:#334155;">
-                📞 ${displayPhone}
-              </span>
-              <a href="https://wa.me/${displayPhone.length === 10 ? '91' + displayPhone : displayPhone}" target="_blank" style="color:#16A34A;text-decoration:none;font-weight:700;">
-                💬 WhatsApp
-              </a>
-              <a href="tel:${displayPhone}" style="color:#2563EB;text-decoration:none;font-weight:600;">
-                📱 Call
-              </a>
-            ` : '<span style="color:#94A3B8;">No phone recorded</span>'}
-            <span style="color:#CBD5E1;">•</span>
-            <span>Total Stays on record: <strong>${allBookings.length}</strong></span>
+      <!-- Sticky Top Header Bar (Stays pinned when scrolling through ledger records) -->
+      <div class="gl-sticky-header">
+        <div style="display:flex;align-items:center;gap:10px;flex:1;min-width:0;">
+          <button type="button" class="gl-header-back-btn" onclick="window.closeGuestLedger()" title="Close Ledger">
+            ✕ Close
+          </button>
+          <div style="min-width:0;">
+            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+              <h2 style="margin:0;font-size:18px;color:var(--dark);display:flex;align-items:center;gap:6px;">
+                <span>👤</span> <span>Guest Ledger & Statement</span>
+              </h2>
+              <span style="font-size:16px;font-weight:700;color:#1E293B;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">— ${escapeHtml(resolvedGuestName)}</span>
+            </div>
+            <div style="margin-top:3px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:12px;color:#64748B;">
+              ${displayPhone ? `
+                <span style="display:inline-flex;align-items:center;gap:4px;background:#F1F5F9;padding:2px 7px;border-radius:5px;font-weight:600;color:#334155;">
+                  📞 ${displayPhone}
+                </span>
+                <a href="https://wa.me/${displayPhone.length === 10 ? '91' + displayPhone : displayPhone}" target="_blank" style="color:#16A34A;text-decoration:none;font-weight:700;">
+                  💬 WhatsApp
+                </a>
+                <a href="tel:${displayPhone}" style="color:#2563EB;text-decoration:none;font-weight:600;">
+                  📱 Call
+                </a>
+              ` : '<span style="color:#94A3B8;">No phone recorded</span>'}
+              <span style="color:#CBD5E1;">•</span>
+              <span>Total Stays: <strong>${allBookings.length}</strong></span>
+            </div>
           </div>
         </div>
-        <div style="display:flex;gap:6px;align-items:center;">
+
+        <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
           ${(() => {
             const t = getLoyaltyTier(allBookings.length);
-            return `<div style="display:inline-flex;align-items:center;gap:6px;padding:6px 12px;background:linear-gradient(135deg, ${t.color}, #334155);color:#fff;border-radius:20px;font-size:12px;font-weight:700;">
+            return `<div class="gl-tier-badge" style="display:inline-flex;align-items:center;gap:5px;padding:5px 12px;background:linear-gradient(135deg, ${t.color}, #334155);color:#fff;border-radius:20px;font-size:11.5px;font-weight:700;">
               <span>${t.icon}</span> <span>${t.tier} Member</span>
             </div>`;
           })()}
+          <button type="button" class="gl-top-close-btn" onclick="window.closeGuestLedger()" title="Close Ledger (ESC)">
+            ✕ Close
+          </button>
         </div>
       </div>
 
@@ -450,14 +479,110 @@ async function showGuestLedger(guestName, bookingId, phone, airbnbCode, initialF
       <!-- Dynamic Content Wrapper -->
       <div id="glDynamicContent"></div>
 
-      <!-- Bottom Action Row -->
-      <div id="glActionButtons" class="btn-row" style="margin-top:16px;border-top:1px solid #E2E8F0;padding-top:14px;flex-wrap:wrap;"></div>
+      <!-- Bottom Action Row (Sticky at bottom so always accessible) -->
+      <div id="glActionButtons" class="btn-row gl-sticky-footer"></div>
     </div>
   `;
 
-  // Attach quick pill styling
+  // Attach quick pill and mobile-friendly sticky styling
   const styleEl = document.createElement('style');
   styleEl.textContent = `
+    .gl-floating-close-btn {
+      position: fixed;
+      top: 12px;
+      right: 12px;
+      z-index: 1000005;
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background: #EF4444;
+      color: #FFFFFF;
+      border: 2.5px solid #FFFFFF;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.45);
+      font-size: 20px;
+      font-weight: 900;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.15s ease;
+      touch-action: manipulation;
+    }
+    .gl-floating-close-btn:hover, .gl-floating-close-btn:active {
+      background: #DC2626;
+      transform: scale(1.08);
+    }
+    .gl-sticky-header {
+      position: sticky;
+      top: -24px;
+      margin: -24px -24px 16px -24px;
+      padding: 14px 20px;
+      background: #FFFFFF;
+      border-bottom: 2px solid #E2E8F0;
+      border-top-left-radius: 14px;
+      border-top-right-radius: 14px;
+      z-index: 99;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    }
+    .gl-top-close-btn {
+      background: #EF4444;
+      color: #FFFFFF;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-weight: 700;
+      font-size: 13px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      box-shadow: 0 2px 6px rgba(239,68,68,0.25);
+      white-space: nowrap;
+      min-height: 38px;
+      transition: background 0.15s ease;
+    }
+    .gl-top-close-btn:hover, .gl-top-close-btn:active {
+      background: #DC2626;
+    }
+    .gl-header-back-btn {
+      background: #FEE2E2;
+      color: #DC2626;
+      border: 1px solid #FCA5A5;
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 12.5px;
+      font-weight: 700;
+      cursor: pointer;
+      display: none;
+      align-items: center;
+      gap: 4px;
+      white-space: nowrap;
+      min-height: 36px;
+    }
+    .gl-header-back-btn:hover, .gl-header-back-btn:active {
+      background: #FCA5A5;
+      color: #991B1B;
+    }
+    .gl-sticky-footer {
+      position: sticky;
+      bottom: -24px;
+      margin: 16px -24px -24px -24px;
+      padding: 12px 20px;
+      background: #FFFFFF;
+      border-top: 2px solid #E2E8F0;
+      border-bottom-left-radius: 14px;
+      border-bottom-right-radius: 14px;
+      z-index: 90;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+      box-shadow: 0 -4px 12px rgba(0,0,0,0.06);
+    }
     .gl-preset-pill {
       background: #FFFFFF;
       border: 1px solid #CBD5E1;
@@ -478,6 +603,42 @@ async function showGuestLedger(guestName, bookingId, phone, airbnbCode, initialF
       background: #4F46E5;
       border-color: #4F46E5;
       color: #FFFFFF;
+    }
+    @media (max-width: 768px) {
+      #guestLedgerModal .modal-box {
+        width: 98vw !important;
+        max-width: 98vw !important;
+        max-height: 94vh !important;
+        padding: 14px 12px !important;
+        border-radius: 12px !important;
+      }
+      .gl-sticky-header {
+        top: -14px !important;
+        margin: -14px -12px 12px -12px !important;
+        padding: 10px 12px !important;
+        border-top-left-radius: 12px !important;
+        border-top-right-radius: 12px !important;
+      }
+      .gl-header-back-btn {
+        display: inline-flex !important;
+      }
+      .gl-tier-badge {
+        display: none !important;
+      }
+      .gl-sticky-footer {
+        bottom: -14px !important;
+        margin: 14px -12px -14px -12px !important;
+        padding: 10px 12px !important;
+        border-bottom-left-radius: 12px !important;
+        border-bottom-right-radius: 12px !important;
+      }
+      .gl-floating-close-btn {
+        top: 8px !important;
+        right: 8px !important;
+        width: 42px !important;
+        height: 42px !important;
+        font-size: 20px !important;
+      }
     }
   `;
   modal.appendChild(styleEl);
@@ -728,6 +889,9 @@ async function showGuestLedger(guestName, bookingId, phone, airbnbCode, initialF
         <button type="button" onclick="window._glPrintStatement()" style="background:#00A699;color:#fff;font-weight:700;padding:8px 16px;border:none;border-radius:8px;cursor:pointer;">
           🖨️ Print / PDF Statement (${activeBookings.length})
         </button>
+        <button type="button" onclick="window._glExportCSV()" style="background:#059669;color:#fff;font-weight:700;padding:8px 16px;border:none;border-radius:8px;cursor:pointer;">
+          📥 Export CSV (${activeBookings.length})
+        </button>
         <button type="button" onclick="window._glWhatsAppStatement()" style="background:#25D366;color:#fff;font-weight:700;padding:8px 16px;border:none;border-radius:8px;cursor:pointer;">
           📱 WhatsApp Statement (${activeBookings.length})
         </button>
@@ -739,8 +903,8 @@ async function showGuestLedger(guestName, bookingId, phone, airbnbCode, initialF
             📄 Latest Receipt
           </button>
         ` : ''}
-        <button type="button" class="outline" onclick="this.closest('.modal-overlay').remove()" style="margin-left:auto;padding:8px 16px;">
-          Close
+        <button type="button" onclick="window.closeGuestLedger()" style="background:#FEF2F2;color:#DC2626;border:1.5px solid #FCA5A5;font-weight:700;padding:8px 18px;border-radius:8px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;min-height:38px;margin-left:auto;font-size:13px;">
+          ✕ Close Ledger / बंद करें
         </button>
       `;
     }
@@ -884,6 +1048,59 @@ async function showGuestLedger(guestName, bookingId, phone, airbnbCode, initialF
     }).catch(() => {
       fsn.info('Copy', 'Could not access clipboard.');
     });
+  };
+
+  window._glExportCSV = () => {
+    const curBookings = allBookings.filter(b => {
+      if (excludedBkIds.has(b.booking_id)) return false;
+      const ci = b.check_in || '';
+      const co = b.check_out || b.check_in || '';
+      if (currentFrom && currentTo) return ci <= currentTo && co >= currentFrom;
+      if (currentFrom) return co >= currentFrom;
+      if (currentTo) return ci <= currentTo;
+      return true;
+    });
+    const fBkIds = new Set(curBookings.map(b => b.booking_id));
+    const curPays = allPayments.filter(p => fBkIds.has(p.booking_id));
+
+    const totAmt = curBookings.reduce((s, b) => s + (b.total_amount || 0), 0);
+    const totPd = curBookings.reduce((s, b) => s + (payMap[b.booking_id] || 0), 0);
+    const totDue = Math.max(0, totAmt - totPd);
+    const periodStr = (currentFrom && currentTo) ? `${currentFrom} to ${currentTo}` : 'All Time';
+
+    let csv = `THE UNIQUE HAVEN HOMES PRIVATE LIMITED - GUEST STATEMENT\n`;
+    csv += `Guest Name,"${(resolvedGuestName || '').replace(/"/g, '""')}"\n`;
+    csv += `Phone,"${(displayPhone || '').replace(/"/g, '""')}"\n`;
+    csv += `Period,"${periodStr}"\n`;
+    csv += `Generated On,"${new Date().toLocaleString('en-IN')}"\n`;
+    csv += `Total Billed,${totAmt}\n`;
+    csv += `Total Paid,${totPd}\n`;
+    csv += `Balance Due,${totDue}\n\n`;
+
+    csv += `SECTION 1: STAY RECORDS\n`;
+    csv += `#,Check-In,Check-Out,Property / Unit,Booking ID,Mode,Nights,Billed (INR),Paid (INR),Balance Due (INR)\n`;
+    curBookings.forEach((b, idx) => {
+      const pd = payMap[b.booking_id] || 0;
+      const d = Math.max(0, (b.total_amount || 0) - pd);
+      const n = (b.check_in && b.check_out) ? calcNights(b.check_in, b.check_out) : 1;
+      const unit = (propLabel(b.rooms) || b.room_id || '-').replace(/"/g, '""');
+      const isAirbnb = b.booking_mode === 'Online-Airbnb' || !!b.airbnb_confirmation_code;
+      csv += `${idx + 1},"${b.check_in || '-'}","${b.check_out || '-'}","${unit}","${b.booking_id || ''}","${isAirbnb ? 'Airbnb' : 'Direct'}",${n},${b.total_amount || 0},${pd},${d}\n`;
+    });
+    csv += `Total Stays (${curBookings.length}),,,,,,"${totAmt}","${totPd}","${totDue}"\n\n`;
+
+    csv += `SECTION 2: PAYMENT LOG\n`;
+    csv += `Payment Date,Amount (INR),Mode,Related Stay,Notes\n`;
+    curPays.forEach(p => {
+      const matchedBk = allBookings.find(b => b.booking_id === p.booking_id);
+      const roomName = (matchedBk ? (propLabel(matchedBk.rooms) || matchedBk.room_id) : '-').replace(/"/g, '""');
+      const notes = (p.notes || '-').replace(/"/g, '""');
+      csv += `"${p.payment_date || '-'}","${p.amount || 0}","${p.payment_mode || '-'}","${roomName}","${notes}"\n`;
+    });
+    csv += `\n"THE UNIQUE HAVEN HOMES PRIVATE LIMITED"\n"CIN: U55101UP2024PTC202863 · uniquehavenhomesstay.com"\n`;
+
+    const cleanName = String(resolvedGuestName || 'Guest').replace(/[^a-zA-Z0-9_-]/g, '_');
+    window.exportCSV(csv, `Guest_Statement_${cleanName}_${new Date().toISOString().slice(0, 10)}.csv`);
   };
 
   // Initial render
@@ -1113,12 +1330,7 @@ async function printGuestLedger(guestName, phone, passedBookings, passedPayments
     <script>setTimeout(function(){ window.print(); }, 500);<\/script>
   </body></html>`;
 
-  const win = window.open('', '_blank');
-  if (win) {
-    win.document.title = pdfTitle;
-    win.document.write(html);
-    win.document.close();
-  }
+  window.printDocumentHTML(html, pdfTitle);
 }
 
 // ============ WHATSAPP GUEST STATEMENT ============
@@ -1974,6 +2186,7 @@ async function renderManageBookings() {
         <button class="btn-sm" onclick="navigate('whatsapp-hub')" style="background:#15803D;color:#fff;border:none;font-weight:700;">📱 WhatsApp Hub</button>
         ${canM ? `<button class="btn-sm" onclick="renderAddBooking()">➕ New Booking</button>` : ''}
         <button class="btn-sm outline" onclick="exportBookingsPDF()">📄 Export PDF</button>
+        <button class="btn-sm" onclick="exportBookingsCSV()" style="background:#059669;color:#fff;border:none;font-weight:700;">📥 Export CSV</button>
       </div>
     </div>
 
@@ -2031,6 +2244,7 @@ async function renderManageBookings() {
         <div class="filter-item" style="flex-direction:row;gap:4px;align-items:flex-end;">
           <button class="btn-sm" onclick="applyBkFilters()">Apply</button>
           <button class="btn-sm" style="background:#00A699;" onclick="exportBookingsPDF()">📄 Export PDF</button>
+          <button class="btn-sm" style="background:#059669;" onclick="exportBookingsCSV()">📥 Export CSV</button>
           <button class="btn-sm outline" onclick="clearBkFilters()">Clear</button>
         </div>
       </div>
@@ -5762,13 +5976,87 @@ async function exportBookingsPDF() {
 </body>
 </html>`;
 
-  const win = window.open('', '_blank');
-  if (win) {
-    win.document.title = pdfDocTitle;
-    win.document.write(html);
-    win.document.close();
+  if (typeof window.printDocumentHTML === 'function') {
+    window.printDocumentHTML(html, pdfDocTitle);
+  } else {
+    const win = window.open('', '_blank');
+    if (win) {
+      win.document.title = pdfDocTitle;
+      win.document.write(html);
+      win.document.close();
+    }
   }
 }
+
+// ============ EXPORT FILTERED BOOKINGS TO CSV / EXCEL ============
+async function exportBookingsCSV() {
+  const rows = document.querySelectorAll('.table-wrap table tbody tr');
+  if (!rows.length) { 
+    if (window.fsn) fsn.info('Info', 'No bookings to export'); 
+    else alert('No bookings to export');
+    return; 
+  }
+
+  const now = new Date();
+  const dateStr = now.toLocaleDateString('en-IN');
+  const todayIso = now.toISOString().slice(0, 10);
+  const period = SESSION.bookingPeriod || '';
+  const payFilter = SESSION.bookingPayFilter || '';
+  const mode = SESSION.bookingFilter || '';
+  const prop = SESSION.bookingPropFilter || '';
+  const search = SESSION.bookingSearch || '';
+
+  let csv = `THE UNIQUE HAVEN HOMES PRIVATE LIMITED - BOOKINGS REPORT\n`;
+  csv += `Generated On,"${dateStr} ${now.toLocaleTimeString('en-IN')}"\n`;
+  if (prop) csv += `Property Filter,"${prop}"\n`;
+  if (period) csv += `Period Filter,"${period}"\n`;
+  if (payFilter) csv += `Payment Filter,"${payFilter}"\n`;
+  if (mode && mode !== 'All') csv += `Mode Filter,"${mode}"\n`;
+  if (search) csv += `Search Query,"${search.replace(/"/g, '""')}"\n`;
+  csv += `\n`;
+
+  csv += `#,Guest Name,Property / Room,Booking Mode,Check-In,Check-Out,Booking ID / Code,Total Amount (INR),Paid Amount (INR),Balance Due (INR)\n`;
+
+  let totalDue = 0, totalAmount = 0, totalPaid = 0;
+  let count = 0;
+
+  rows.forEach(tr => {
+    const cells = tr.querySelectorAll('td');
+    if (cells.length < 8) return;
+
+    count++;
+    const guest = (cells[1]?.innerText?.trim() || '').replace(/\n+/g, ' ').replace(/"/g, '""');
+    const property = (cells[2]?.innerText?.trim() || '').replace(/\n+/g, ' ').replace(/"/g, '""');
+    const modeVal = (cells[3]?.innerText?.trim() || '').replace(/\n+/g, ' ').replace(/"/g, '""');
+    const checkIn = (cells[4]?.innerText?.trim() || '').replace(/\n+/g, ' ');
+    const checkOut = (cells[5]?.innerText?.trim() || '').replace(/\n+/g, ' ');
+    const idVal = (cells[6]?.innerText?.trim() || '').replace(/\n+/g, ' ').replace(/"/g, '""');
+    const total = cells[7]?.innerText?.trim() || '';
+    const paid = cells[8]?.innerText?.trim() || '';
+    const due = cells[9]?.innerText?.trim() || '';
+
+    const totalNum = parseFloat(total.replace(/[₹,]/g, '')) || 0;
+    const paidNum = parseFloat(paid.replace(/[₹,]/g, '')) || 0;
+    const dueNum = parseFloat(due.replace(/[₹,]/g, '')) || 0;
+
+    totalAmount += totalNum;
+    totalPaid += paidNum;
+    totalDue += dueNum;
+
+    csv += `${count},"${guest}","${property}","${modeVal}","${checkIn}","${checkOut}","${idVal}",${totalNum},${paidNum},${dueNum}\n`;
+  });
+
+  csv += `\nTotal (${count} Bookings),,,,,,"Totals:",${totalAmount},${totalPaid},${totalDue}\n`;
+  csv += `\n"THE UNIQUE HAVEN HOMES PRIVATE LIMITED"\n"CIN: U55101UP2024PTC202863 · uniquehavenhomesstay.com"\n`;
+
+  const fileName = `Bookings_Report_${prop ? String(prop).replace(/[\/\\:*?"<>|]/g, '-') + '_' : ''}${todayIso}.csv`;
+  if (typeof window.exportCSV === 'function') {
+    window.exportCSV(csv, fileName);
+  } else if (typeof window.downloadExportFile === 'function') {
+    window.downloadExportFile(csv, fileName, 'text/csv;charset=utf-8');
+  }
+}
+window.exportBookingsCSV = exportBookingsCSV;
 
 
 // ============ CROP MODAL ============

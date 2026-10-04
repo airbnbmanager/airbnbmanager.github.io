@@ -30,23 +30,91 @@
 
   // ─── 2. Properties Directory ───
   const PROPERTIES_LIST = [
-    { id: '101', name: 'Pink Paradise Villa (101)', nickname: 'Pink Paradise' },
-    { id: '102', name: 'The Yellow House (102)', nickname: 'Yellow House' },
-    { id: '103', name: 'Green Forest View (103)', nickname: 'Green Forest' },
-    { id: '104', name: 'Celebrity Garden (104)', nickname: 'Celebrity Garden' },
-    { id: '105', name: 'The Unique 3BHK (105)', nickname: 'Unique 3BHK' },
-    { id: '106', name: 'The Light Green (106)', nickname: 'Light Green' },
-    { id: '107', name: 'Starlight Blue Penthouse (107)', nickname: 'Starlight Blue' },
-    { id: '108', name: 'Black Beauty (108)', nickname: 'Black Beauty' },
-    { id: '109', name: 'The Nawabi Stay (109)', nickname: 'Nawabi Stay' },
-    { id: '110', name: 'Gomti Grand Villa (110)', nickname: 'Gomti Grand Villa' },
-    { id: '111', name: 'The Green House (111)', nickname: 'Green House' },
-    { id: '112', name: 'The Pink House (112)', nickname: 'Pink House' },
-    { id: '113', name: 'The Brown Flat (113)', nickname: 'Brown Flat' },
-    { id: '114', name: 'The Velvet House (114)', nickname: 'Velvet House' },
-    { id: '115', name: 'Royal White House (115)', nickname: 'Royal White' },
-    { id: '116', name: 'The Dark Blue (116)', nickname: 'Dark Blue' },
-    { id: '117', name: 'RedRose Palace (117)', nickname: 'RedRose Palace' }
+    {
+      id: '101', roomId: 'VIL-108', unitNo: '101',
+      name: 'Pink Paradise Villa (101)', nickname: 'Pink Paradise',
+      aliases: ['pink paradise villa', 'pink paradise', 'paradise villa', 'पिंक पैराडाइज', 'पिंक पैराडाइज़', 'पिंक पैराडाइस', 'पिंक विला', '101', 'vil-108']
+    },
+    {
+      id: '102', roomId: 'VIL-105', unitNo: '102',
+      name: 'The Yellow House (102)', nickname: 'Yellow House',
+      aliases: ['the yellow house', 'yellow house', 'yellow', 'येलो हाउस', 'येलो', 'द येलो हाउस', 'पीला घर', '102', 'vil-105']
+    },
+    {
+      id: '103', roomId: 'VIL-106', unitNo: '103',
+      name: 'Green Forest View (103)', nickname: 'Green Forest',
+      aliases: ['green forest view', 'green forest', 'forest view', 'forest', 'ग्रीन फॉरेस्ट', 'ग्रीन फारेस्ट', 'ग्रीन व्यू', '103', 'vil-106']
+    },
+    {
+      id: '104', roomId: 'LUL-402', unitNo: '104',
+      name: 'Celebrity Garden (104)', nickname: 'Celebrity Garden',
+      aliases: ['celebrity garden', 'celebrity', 'garden villa', 'सेलिब्रिटी गार्डन', 'सेलिब्रिटी', 'सेलेब्रिटी', '104', 'lul-402']
+    },
+    {
+      id: '105', roomId: 'GOM-302', unitNo: '105',
+      name: 'The Unique 3BHK (105)', nickname: 'Unique 3BHK',
+      aliases: ['the unique 3bhk', 'the unique', 'unique 3bhk', 'unique', 'द यूनिक', 'यूनिक', '105', 'gom-302']
+    },
+    {
+      id: '106', roomId: 'GOM-301', unitNo: '106',
+      name: 'The Light Green (106)', nickname: 'Light Green',
+      aliases: ['the light green', 'light green', 'लाइट ग्रीन', 'हल्का हरा', '106', 'gom-301']
+    },
+    {
+      id: '107', roomId: 'GOM-501', unitNo: '107',
+      name: 'Starlight Blue Penthouse (107)', nickname: 'Starlight Blue',
+      aliases: ['starlight blue penthouse', 'starlight blue', 'starlight', 'blue penthouse', 'penthouse', 'स्टारलाइट ब्लू', 'स्टारलाइट', 'ब्लू पेंटहाउस', 'पेंटहाउस', '107', 'gom-501']
+    },
+    {
+      id: '108', roomId: 'GOM-102', unitNo: '108',
+      name: 'Black Beauty (108)', nickname: 'Black Beauty',
+      aliases: ['black beauty', 'black', 'ब्लैक ब्यूटी', 'ब्लैक', '108', 'gom-102']
+    },
+    {
+      id: '109', roomId: 'GOM-401', unitNo: '109',
+      name: 'The Nawabi Stay (109)', nickname: 'Nawabi Stay',
+      aliases: ['the nawabi stay', 'nawabi stay', 'nawabi', 'द नवाबी स्टे', 'नवाबी स्टे', 'नवाबी', '109', 'gom-401']
+    },
+    {
+      id: '110', roomId: 'VIL-101', unitNo: '110',
+      name: 'Gomti Grand Villa (110)', nickname: 'Gomti Grand Villa',
+      aliases: ['gomti grand villa', 'gomti grand', 'grand villa', 'gomti villa', 'गोमती ग्रैंड विला', 'गोमती ग्रैंड', 'ग्रैंड विला', 'गोमती विला', '110', 'vil-101']
+    },
+    {
+      id: '111', roomId: 'VIL-104', unitNo: '111',
+      name: 'The Green House (111)', nickname: 'Green House',
+      aliases: ['the green house', 'green house', 'द ग्रीन हाउस', 'ग्रीन हाउस', 'हरा घर', '111', 'vil-104']
+    },
+    {
+      id: '112', roomId: 'VIL-103', unitNo: '112',
+      name: 'The Pink House (112)', nickname: 'Pink House',
+      aliases: ['the pink house', 'pink house', 'द पिंक हाउस', 'पिंक हाउस', '112', 'vil-103']
+    },
+    {
+      id: '113', roomId: 'GOM-202', unitNo: '113',
+      name: 'The Brown Flat (113)', nickname: 'Brown Flat',
+      aliases: ['the brown flat', 'the brown', 'brown flat', 'brown', 'द ब्राउन फ्लैट', 'द ब्राउन', 'ब्राउन फ्लैट', 'ब्राउन', '113', 'gom-202']
+    },
+    {
+      id: '114', roomId: 'VIL-107', unitNo: '114',
+      name: 'The Velvet House (114)', nickname: 'Velvet House',
+      aliases: ['the velvet house', 'velvet house', 'velvet', 'द वेलवेट हाउस', 'वेलवेट हाउस', 'वेलवेट', '114', 'vil-107']
+    },
+    {
+      id: '115', roomId: 'VIL-102', unitNo: '115',
+      name: 'Royal White House (115)', nickname: 'Royal White',
+      aliases: ['royal white house', 'royal white', 'white house', 'royal villa', 'रॉयल व्हाइट हाउस', 'रॉयल व्हाइट', 'व्हाइट हाउस', 'सफेद कोठी', '115', 'vil-102']
+    },
+    {
+      id: '116', roomId: 'GOM-201', unitNo: '116',
+      name: 'The Dark Blue (116)', nickname: 'Dark Blue',
+      aliases: ['the dark blue', 'dark blue', 'द डार्क ब्लू', 'डार्क ब्लू', 'गहरा नीला', '116', 'gom-201']
+    },
+    {
+      id: '117', roomId: 'GOM-101', unitNo: '117',
+      name: 'RedRose Palace (117)', nickname: 'RedRose Palace',
+      aliases: ['redrose palace', 'redrose', 'red rose', 'the red', 'red', 'रेडरोज़ पैलेस', 'रेडरोज़', 'रेड रोज', 'रेड रोज़', 'रेड', 'हेरेड', 'द रेड', 'ह रेड', 'दे रेड', '117', 'gom-101']
+    }
   ];
 
   // ─── 3. State Management ───
@@ -286,8 +354,18 @@
           Tap microphone to start speaking...
         </div>
 
-        <div class="voice-transcript-box" id="voiceTranscriptBox">
-          <em>e.g. "Pink Paradise me Rahul Sharma ka kal se 3 nights ka booking banao ₹3500 rate pe, 2000 advance mila hai..."</em>
+        <textarea class="voice-transcript-box" id="voiceTranscriptBox" rows="3"
+          placeholder="Boliye ya type karein (e.g. 'गेस्ट नेम प्रवीण सिंह मोबाइल 9454470872 हेरेड प्रॉपर्टी')"
+          oninput="processVoiceCommand(this.value)"
+          style="width:100%;box-sizing:border-box;background:#1E293B;color:#F1F5F9;border:1.5px solid #334155;border-radius:10px;padding:10px 12px;font-size:13px;font-family:inherit;resize:none;outline:none;margin:10px 0 8px 0;line-height:1.5;"></textarea>
+
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;width:100%;">
+          <button type="button" style="background:#334155;color:#E2E8F0;border:1px solid #475569;padding:4px 9px;border-radius:6px;font-size:11px;cursor:pointer;" onclick="const t='गेस्ट नेम प्रवीण सिंह मोबाइल नंबर 9454470872 हेरेड प्रॉपर्टी रहेंगी।';document.getElementById('voiceTranscriptBox').value=t;processVoiceCommand(t);">
+            ⚡ Test 1: प्रवीण सिंह (RedRose)
+          </button>
+          <button type="button" style="background:#334155;color:#E2E8F0;border:1px solid #475569;padding:4px 9px;border-radius:6px;font-size:11px;cursor:pointer;" onclick="const t='गेस्ट राहुल शर्मा फोन 9876543210 येलो हाउस 2 रात रेट 3500 एडवांस 2000';document.getElementById('voiceTranscriptBox').value=t;processVoiceCommand(t);">
+            ⚡ Test 2: राहुल शर्मा (Yellow House)
+          </button>
         </div>
 
         <div id="voiceParsedContainer" style="display:none;width:100%;">
@@ -327,13 +405,12 @@
 
     _recognition = new SpeechRec();
     _recognition.lang = 'hi-IN'; // Bilingual fallback handles Hinglish
-    _recognition.continuous = false;
+    _recognition.continuous = true; // Keep recording through natural pauses
     _recognition.interimResults = true;
 
     const micBtn = document.getElementById('voiceMicBtn');
     const statusText = document.getElementById('voiceStatusText');
     const waveform = document.getElementById('voiceWaveform');
-    const transcriptBox = document.getElementById('voiceTranscriptBox');
 
     if (micBtn) micBtn.style.animation = 'pulseVoice 1.2s infinite';
     if (waveform) waveform.style.opacity = '1';
@@ -345,13 +422,19 @@
     _isRecording = true;
 
     _recognition.onresult = (event) => {
-      let speech = '';
-      for (let i = event.resultIndex; i < event.results.length; ++i) {
-        speech += event.results[i][0].transcript;
+      let fullSpeech = '';
+      for (let i = 0; i < event.results.length; ++i) {
+        if (event.results[i] && event.results[i][0]) {
+          fullSpeech += event.results[i][0].transcript + ' ';
+        }
       }
-      if (transcriptBox) transcriptBox.textContent = speech;
-      if (event.results[0].isFinal) {
-        processVoiceCommand(speech);
+      fullSpeech = fullSpeech.trim();
+      const transcriptBox = document.getElementById('voiceTranscriptBox');
+      if (transcriptBox) {
+        transcriptBox.value = fullSpeech;
+      }
+      if (fullSpeech) {
+        processVoiceCommand(fullSpeech);
       }
     };
 
@@ -366,6 +449,11 @@
 
     _recognition.onend = () => {
       stopVoiceRecording();
+      const transcriptBox = document.getElementById('voiceTranscriptBox');
+      const text = transcriptBox ? (transcriptBox.value || '').trim() : '';
+      if (text) {
+        processVoiceCommand(text);
+      }
     };
 
     try {
@@ -384,7 +472,7 @@
     if (micBtn) micBtn.style.animation = 'none';
     if (waveform) waveform.style.opacity = '0.3';
     if (statusText && statusText.textContent.includes('Listening')) {
-      statusText.textContent = 'Processing speech...';
+      statusText.textContent = 'Speech processed successfully!';
       statusText.style.color = '#38BDF8';
     }
 
@@ -393,13 +481,32 @@
     } catch(e) {}
   }
 
-  // ─── 6. Natural Speech Parser ───
+  // ─── 6. Natural Speech Parser (Hindi, Hinglish & English) ───
   let _lastParsedData = null;
+
+  function normalizeHindiDigits(str) {
+    if (!str) return '';
+    const hindiDigits = ['०', '१', '२', '३', '४', '५', '६', '७', '८', '९'];
+    return String(str).replace(/[०-९]/g, d => {
+      const idx = hindiDigits.indexOf(d);
+      return idx !== -1 ? idx : d;
+    });
+  }
+
+  function formatGuestName(str) {
+    if (!str) return '';
+    let clean = String(str).replace(/[।\,\.\-\:\;]/g, '').trim();
+    clean = clean.replace(/\s+(?:का|की|के|ने|me|में)$/i, '').trim();
+    return clean.replace(/\b[a-z]/g, l => l.toUpperCase());
+  }
 
   function processVoiceCommand(text) {
     if (!text || !text.trim()) return;
 
-    const lower = text.toLowerCase();
+    // Convert Hindi Devanagari numerals if any
+    const normText = normalizeHindiDigits(text);
+    const lower = normText.toLowerCase();
+
     const parsed = {
       guestName: '',
       roomNickname: '',
@@ -407,66 +514,151 @@
       nights: 1,
       rate: '',
       advance: '',
-      phone: ''
+      phone: '',
+      checkIn: '',
+      checkOut: ''
     };
 
-    // 1. Match Property
+    // 1. Match Phone Number (10 digits starting with 6-9)
+    const phoneCleaned = normText.replace(/[-\s]/g, '');
+    const phoneMatch = phoneCleaned.match(/(?:\+?91)?([6-9]\d{9})/);
+    if (phoneMatch) {
+      parsed.phone = phoneMatch[1];
+    }
+
+    // 2. Match Property (Multi-lingual: Hindi Devanagari, English, and phonetic speech variations)
     for (const p of PROPERTIES_LIST) {
-      const nick = p.nickname.toLowerCase();
-      const id = p.id;
-      if (lower.includes(nick) || lower.includes(`room ${id}`) || lower.includes(`flat ${id}`) || lower.includes(`unit ${id}`)) {
-        parsed.roomNickname = p.nickname;
-        parsed.roomId = p.id;
+      const aliases = p.aliases || [p.nickname.toLowerCase()];
+      const isMatched = aliases.some(alias => lower.includes(alias.toLowerCase()));
+      if (isMatched || lower.includes(`room ${p.id}`) || lower.includes(`flat ${p.id}`) || lower.includes(`unit ${p.id}`)) {
+        parsed.roomNickname = p.name;
+        parsed.roomId = p.roomId || p.id;
         break;
       }
     }
+
+    // Fallback matching for speech recognition phonetic variations
     if (!parsed.roomNickname) {
-      // Fallback matching
-      if (lower.includes('pink')) parsed.roomNickname = 'Pink Paradise';
-      else if (lower.includes('yellow')) parsed.roomNickname = 'Yellow House';
-      else if (lower.includes('green forest')) parsed.roomNickname = 'Green Forest';
-      else if (lower.includes('celebrity')) parsed.roomNickname = 'Celebrity Garden';
-      else if (lower.includes('unique')) parsed.roomNickname = 'Unique 3BHK';
-      else if (lower.includes('blue') || lower.includes('penthouse')) parsed.roomNickname = 'Starlight Blue';
-      else if (lower.includes('grand villa')) parsed.roomNickname = 'Gomti Grand Villa';
-    }
-
-    // 2. Match Nights / Days
-    const nightsMatch = lower.match(/(\d+)\s*(night|nights|din|day|days)/);
-    if (nightsMatch) {
-      parsed.nights = parseInt(nightsMatch[1], 10) || 1;
-    }
-
-    // 3. Match Rate & Advance
-    const rateMatch = lower.match(/(₹|rs\.?|inr)?\s*(\d{3,6})\s*(rate|per night|me|ka)/);
-    if (rateMatch) {
-      parsed.rate = rateMatch[2];
-    } else {
-      const anyNum = lower.match(/(\d{3,6})\s*(rupaye|rs|inr)/);
-      if (anyNum) parsed.rate = anyNum[1];
-    }
-
-    const advMatch = lower.match(/(\d{3,6})\s*(advance|mila|paid)/);
-    if (advMatch) {
-      parsed.advance = advMatch[1];
-    }
-
-    // 4. Match Phone Number (10 digits)
-    const phoneMatch = lower.replace(/\s+/g, '').match(/\d{10}/);
-    if (phoneMatch) {
-      parsed.phone = phoneMatch[0];
-    }
-
-    // 5. Match Guest Name (words before "ka", "ki", "booked for", "for")
-    const forMatch = lower.match(/(for|naam|guest)\s+([a-zA-Z\u0900-\u097F]+(?:\s+[a-zA-Z\u0900-\u097F]+)?)/);
-    if (forMatch) {
-      parsed.guestName = capitalizeWords(forMatch[2]);
-    } else {
-      const kaMatch = text.match(/([A-Z\u0900-\u097F][a-zA-Z\u0900-\u097F]+(?:\s+[A-Z\u0900-\u097F][a-zA-Z\u0900-\u097F]+)?)\s+(ka|ki|ne)/);
-      if (kaMatch) {
-        parsed.guestName = capitalizeWords(kaMatch[1]);
+      if (/हेरेड|रेडरोज़|रेड रोज|रेड रोज़|रेड पैलेस|द रेड|redrose|red rose|the red/i.test(lower)) {
+        parsed.roomNickname = 'RedRose Palace (117)';
+        parsed.roomId = 'GOM-101';
+      } else if (/पिंक पैरा|pink paradise/i.test(lower)) {
+        parsed.roomNickname = 'Pink Paradise Villa (101)';
+        parsed.roomId = 'VIL-108';
+      } else if (/पिंक|pink/i.test(lower)) {
+        parsed.roomNickname = 'The Pink House (112)';
+        parsed.roomId = 'VIL-103';
+      } else if (/येलो|yellow/i.test(lower)) {
+        parsed.roomNickname = 'The Yellow House (102)';
+        parsed.roomId = 'VIL-105';
+      } else if (/फॉरेस्ट|green forest/i.test(lower)) {
+        parsed.roomNickname = 'Green Forest View (103)';
+        parsed.roomId = 'VIL-106';
+      } else if (/सेलिब्रिटी|celebrity/i.test(lower)) {
+        parsed.roomNickname = 'Celebrity Garden (104)';
+        parsed.roomId = 'LUL-402';
+      } else if (/यूनिक|unique/i.test(lower)) {
+        parsed.roomNickname = 'The Unique 3BHK (105)';
+        parsed.roomId = 'GOM-302';
+      } else if (/लाइट ग्रीन|light green/i.test(lower)) {
+        parsed.roomNickname = 'The Light Green (106)';
+        parsed.roomId = 'GOM-301';
+      } else if (/स्टारलाइट|पेंटहाउस|penthouse|starlight/i.test(lower)) {
+        parsed.roomNickname = 'Starlight Blue Penthouse (107)';
+        parsed.roomId = 'GOM-501';
+      } else if (/ब्लैक ब्यूटी|ब्लैक|black/i.test(lower)) {
+        parsed.roomNickname = 'Black Beauty (108)';
+        parsed.roomId = 'GOM-102';
+      } else if (/नवाबी|nawabi/i.test(lower)) {
+        parsed.roomNickname = 'The Nawabi Stay (109)';
+        parsed.roomId = 'GOM-401';
+      } else if (/गोमती ग्रैंड|ग्रैंड विला|gomti grand/i.test(lower)) {
+        parsed.roomNickname = 'Gomti Grand Villa (110)';
+        parsed.roomId = 'VIL-101';
+      } else if (/ब्राउन|brown/i.test(lower)) {
+        parsed.roomNickname = 'The Brown Flat (113)';
+        parsed.roomId = 'GOM-202';
+      } else if (/वेलवेट|velvet/i.test(lower)) {
+        parsed.roomNickname = 'The Velvet House (114)';
+        parsed.roomId = 'VIL-107';
+      } else if (/रॉयल व्हाइट|व्हाइट हाउस|royal white/i.test(lower)) {
+        parsed.roomNickname = 'Royal White House (115)';
+        parsed.roomId = 'VIL-102';
+      } else if (/डार्क ब्लू|dark blue/i.test(lower)) {
+        parsed.roomNickname = 'The Dark Blue (116)';
+        parsed.roomId = 'GOM-201';
       }
     }
+
+    // 3. Match Guest Name (Hindi Devanagari & English)
+    // Pattern A: Prefix like "गेस्ट नेम प्रवीण सिंह", "गेस्ट नाम राहुल", "guest name John", "नाम अमित"
+    const prefixNameRegex = /(?:गेस्ट\s*(?:नेम|नाम)|कस्टमर\s*(?:नेम|नाम)|नेम|नाम|गेस्ट|गस्ट|कस्टमर|guest\s*name|guest|name|naam|for|booked\s*for)\s*[:=\-]?\s*([a-zA-Z\u0900-\u097F\s\.\'\-]+?)(?=\s+(?:मोबाइल|फोन|नंबर|phone|mobile|number|\d{4,}|प्रॉपर्टी|property|रूम|room|फ्लैट|flat|विला|villa|(?:का|की)\s+(?:बुकिंग|कमरा|stay)|रेट|rate|एडवांस|advance|कल|आज|night|रात)|[\,\.\।\:\;]|$)/i;
+    const prefixMatch = normText.match(prefixNameRegex);
+
+    if (prefixMatch && prefixMatch[1] && prefixMatch[1].trim()) {
+      parsed.guestName = formatGuestName(prefixMatch[1]);
+    } else {
+      // Pattern B: Postfix particle like "प्रवीण सिंह का बुकिंग", "Rahul Sharma ki booking"
+      const postfixMatch = normText.match(/([a-zA-Z\u0900-\u097F\s\.\'\-]{2,30}?)\s+(?:का|की|के|ने|ka|ki|ke|ne)\s+(?:बुकिंग|booking|कमरा|stay|room|staying)/i);
+      if (postfixMatch && postfixMatch[1] && postfixMatch[1].trim()) {
+        parsed.guestName = formatGuestName(postfixMatch[1]);
+      } else if (parsed.phone) {
+        // Pattern C: Context before phone number (e.g. "प्रवीण सिंह मोबाइल 9454470872")
+        const parts = normText.split(parsed.phone);
+        if (parts[0]) {
+          let candidate = parts[0].replace(/(?:मोबाइल|फोन|नंबर|phone|mobile|number|का|की|ke|ka|ki)\s*$/i, '').trim();
+          candidate = candidate.replace(/^(?:गेस्ट\s*(?:नेम|नाम)|नेम|नाम|guest\s*name|guest|name)\s*/i, '').trim();
+          const words = candidate.split(/\s+/).filter(w => w && !/^(का|की|के|हेरेड|रेड|रूम|होटल|stay|प्रॉपर्टी|property)$/i.test(w));
+          if (words.length >= 1 && words.length <= 4) {
+            parsed.guestName = formatGuestName(words.join(' '));
+          }
+        }
+      }
+    }
+
+    // 4. Match Nights / Duration (supports digits and Hindi words)
+    const hindiWordToNum = {
+      'एक': 1, 'दो': 2, 'तीन': 3, 'चार': 4, 'पांच': 5, 'पाँच': 5,
+      'छह': 6, 'छः': 6, 'सात': 7, 'आठ': 8, 'नौ': 9, 'दस': 10,
+      'one': 1, 'two': 2, 'three': 3, 'four': 4, 'five': 5
+    };
+    const nightsMatch = lower.match(/(\d+|एक|दो|तीन|चार|पांच|पाँच|छह|सात|आठ|नौ|दस|one|two|three|four|five)\s*(night|nights|नाइट्स|नाइट|रात|रातें|दिन|din|day|days)/i);
+    if (nightsMatch) {
+      const val = nightsMatch[1];
+      parsed.nights = hindiWordToNum[val] || parseInt(val, 10) || 1;
+    }
+
+    // 5. Match Rate & Advance
+    const rateMatch1 = lower.match(/(?:रेट|rate|रुपये|रु|रू|₹|rs\.?|inr)\s*[:=\-]?\s*(\d{3,6})/i);
+    const rateMatch2 = lower.match(/(\d{3,6})\s*(?:रेट|rate|रुपये|रुपया|रू|रु|₹|rs\.?|inr|per night|पर नाइट|में|me|का|ka)/i);
+    if (rateMatch1) parsed.rate = rateMatch1[1];
+    else if (rateMatch2) parsed.rate = rateMatch2[1];
+
+    const advMatch1 = lower.match(/(?:एडवांस|advance|टोकन|token|जमा)\s*[:=\-]?\s*(\d{3,6})/i);
+    const advMatch2 = lower.match(/(\d{3,6})\s*(?:एडवांस|advance|मिला|paid|टोकन|token|जमा)/i);
+    if (advMatch1) parsed.advance = advMatch1[1];
+    else if (advMatch2) parsed.advance = advMatch2[1];
+
+    // 6. Match Dates
+    const today = new Date();
+    let checkInDate = new Date(today);
+    checkInDate.setDate(checkInDate.getDate() + 1); // default tomorrow
+
+    if (/आज|today/i.test(lower)) {
+      checkInDate = new Date(today);
+    } else if (/परसों|day after tomorrow/i.test(lower)) {
+      checkInDate = new Date(today);
+      checkInDate.setDate(checkInDate.getDate() + 2);
+    } else if (/कल|tomorrow/i.test(lower)) {
+      checkInDate = new Date(today);
+      checkInDate.setDate(checkInDate.getDate() + 1);
+    }
+
+    const checkOutDate = new Date(checkInDate);
+    checkOutDate.setDate(checkOutDate.getDate() + (parsed.nights || 1));
+
+    parsed.checkIn = checkInDate.toISOString().slice(0, 10);
+    parsed.checkOut = checkOutDate.toISOString().slice(0, 10);
 
     _lastParsedData = parsed;
 
@@ -479,12 +671,12 @@
       parsedContainer.style.display = 'block';
       summaryBox.innerHTML = `
         <div style="font-weight:800;font-size:13px;margin-bottom:4px;color:#fff;">✅ Speech Parsed Successfully:</div>
-        <div>👤 <strong>Guest Name:</strong> ${parsed.guestName || '<span style="color:#FBBF24;">(Not specified)</span>'}</div>
-        <div>🏡 <strong>Property:</strong> ${parsed.roomNickname || '<span style="color:#FBBF24;">(Select in form)</span>'}</div>
-        <div>🌙 <strong>Duration:</strong> ${parsed.nights} Night(s)</div>
+        <div>👤 <strong>Guest Name:</strong> ${parsed.guestName ? `<span style="color:#34D399;font-weight:800;">${parsed.guestName}</span>` : '<span style="color:#FBBF24;">(Not specified)</span>'}</div>
+        <div>🏡 <strong>Property:</strong> ${parsed.roomNickname ? `<span style="color:#38BDF8;font-weight:800;">${parsed.roomNickname}</span>` : '<span style="color:#FBBF24;">(Select in form)</span>'}</div>
+        <div>🌙 <strong>Duration:</strong> ${parsed.nights} Night(s) (${parsed.checkIn} → ${parsed.checkOut})</div>
         ${parsed.rate ? `<div>💰 <strong>Rate:</strong> ₹${parsed.rate}</div>` : ''}
         ${parsed.advance ? `<div>💵 <strong>Advance:</strong> ₹${parsed.advance}</div>` : ''}
-        ${parsed.phone ? `<div>📞 <strong>Phone:</strong> ${parsed.phone}</div>` : ''}
+        ${parsed.phone ? `<div>📞 <strong>Phone:</strong> <span style="color:#A7F3D0;font-weight:800;">${parsed.phone}</span></div>` : ''}
       `;
     }
 
@@ -504,23 +696,16 @@
     const p = _lastParsedData;
     closeVoiceBookingModal();
 
-    const today = new Date();
-    const tomorrow = new Date(today);
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    const checkout = new Date(tomorrow);
-    checkout.setDate(checkout.getDate() + (p.nights || 1));
-
-    const checkInStr = tomorrow.toISOString().slice(0, 10);
-    const checkOutStr = checkout.toISOString().slice(0, 10);
-
     window._bookingPrefill = {
       guestName: p.guestName || '',
       guestPhone: p.phone || '',
-      checkIn: checkInStr,
-      checkOut: checkOutStr,
+      checkIn: p.checkIn,
+      checkOut: p.checkOut,
       totalAmount: p.rate ? Number(p.rate) * (p.nights || 1) : '',
       advance: p.advance || '',
-      roomId: p.roomId || ''
+      advanceAmt: p.advance || '',
+      roomId: p.roomId || '',
+      room_id: p.roomId || ''
     };
 
     if (typeof window.renderAddBooking === 'function') {

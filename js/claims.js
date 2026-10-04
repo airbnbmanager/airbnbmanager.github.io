@@ -1434,15 +1434,11 @@ window.exportUhhsLedgerPDF = function(fDate, tDate, totalInflow, totalOutflow, n
   const safeOutflow = Number(totalOutflow) || 0;
   const safeBalance = Number(netBalance) || 0;
 
-  const printWin = window.open('', '_blank');
-  if (!printWin) { alert('Popup blocked! Please allow popups.'); return; }
-
   const escapeHtml = str => String(str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
   const cleanFDate = String(safeFDate || 'Start').replace(/[\/\\:*?"<>|]/g, '-');
   const cleanTDate = String(safeTDate || 'End').replace(/[\/\\:*?"<>|]/g, '-');
   const title = `TUHH_OD_Ledger_Statement_${cleanFDate}_to_${cleanTDate}`;
-  printWin.document.title = title;
-  printWin.document.write(`
+  const html = `
     <!DOCTYPE html>
     <html>
     <head>
@@ -1539,8 +1535,8 @@ window.exportUhhsLedgerPDF = function(fDate, tDate, totalInflow, totalOutflow, n
       </script>
     </body>
     </html>
-  `);
-  printWin.document.close();
+  `;
+  window.printDocumentHTML(html, title);
 };
 
 // ══════════════════════════════════════════════════════════════════
@@ -1718,12 +1714,7 @@ window.printClaimReportStatement = function() {
   const cleanFDate = String(fDate || 'Start').replace(/[\/\\:*?"<>|]/g, '-');
   const cleanTDate = String(tDate || 'End').replace(/[\/\\:*?"<>|]/g, '-');
   const pdfTitle = `TUHH_Claim_Statement_${cleanPayer}_${cleanFDate}_to_${cleanTDate}`;
-
-  const printWin = window.open('', '_blank');
-  if (!printWin) { alert('Popup blocked! Please allow popups.'); return; }
-  printWin.document.title = pdfTitle;
-
-  printWin.document.write(`
+  const html = `
     <!DOCTYPE html>
     <html>
     <head>
@@ -1802,8 +1793,8 @@ window.printClaimReportStatement = function() {
       <script>window.onload = function() { setTimeout(function(){ window.print(); }, 400); };</script>
     </body>
     </html>
-  `);
-  printWin.document.close();
+  `;
+  window.printDocumentHTML(html, pdfTitle);
 };
 
 window.copyClaimWhatsAppText = function() {
@@ -1936,11 +1927,7 @@ window.exportCompanyLedgerPDF = function(fDate, tDate) {
   const title = `TUHH_Company_Payments_Ledger_${cleanFDate}_to_${cleanTDate}`;
   const displayTitle = 'Company Payments Statement (' + (fDate||'-') + ' to ' + (tDate||'-') + ')';
 
-  const printWin = window.open('', '_blank');
-  if (!printWin) { alert('Popup blocked! Please allow popups.'); return; }
-
-  printWin.document.title = title;
-  printWin.document.write(
+  const html =
     '<!DOCTYPE html><html><head><meta charset="utf-8"><title>' + title + '</title><style>' +
     '@page{size:A4;margin:10mm}*{box-sizing:border-box;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}' +
     'body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;padding:10mm 14mm;margin:0;color:#1e293b;background:#fff}' +
@@ -1994,7 +1981,6 @@ window.exportCompanyLedgerPDF = function(fDate, tDate) {
     '<div style="margin-top:24px;padding-top:12px;border-top:1px solid #DDD6FE;text-align:center;font-size:11px;color:#64748b;">' +
     '<strong>THE UNIQUE HAVEN HOMES PRIVATE LIMITED</strong> · uniquehavenhomesstay.com<br>⚡ Developed by Praveen Singh</div>' +
     '<script>window.onload=function(){setTimeout(function(){window.print();},400);};<\/script>' +
-    '</body></html>'
-  );
-  printWin.document.close();
+    '</body></html>';
+  window.printDocumentHTML(html, title);
 };

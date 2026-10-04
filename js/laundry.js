@@ -1773,14 +1773,18 @@ window.printVendorLaundryReport = async function(vendorName, monthYear) {
 </body>
 </html>`;
 
-  const printWindow = window.open('', '_blank');
-  if (printWindow) {
-    printWindow.document.open();
-    printWindow.document.write(printHtml);
-    printWindow.document.close();
-    printWindow.document.title = pdfTitle;
+  if (typeof window.printDocumentHTML === 'function') {
+    window.printDocumentHTML(printHtml, pdfTitle);
   } else {
-    alert('Please allow popups in your browser to print the PDF statement.');
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+      printWindow.document.open();
+      printWindow.document.write(printHtml);
+      printWindow.document.close();
+      printWindow.document.title = pdfTitle;
+    } else {
+      alert('Please allow popups in your browser to print the PDF statement.');
+    }
   }
 };
 

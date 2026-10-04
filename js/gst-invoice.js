@@ -498,57 +498,11 @@ window.GST_ENGINE = (function() {
   // 10. PRINT / PDF TRIGGER
   function printInvoiceDocument(inv) {
     const html = buildPrintableInvoiceHTML(inv);
-    const win = window.open('', '_blank', 'width=900,height=800');
-    if (!win) {
-      alert('Pop-up blocked. Please allow pop-ups for this website to print the GST Invoice.');
-      return;
-    }
     const cleanInvNo = String(inv.invoice_no || '').replace(/[\/\\:*?"<>|]/g, '-');
     const cleanGuest = String(inv.guest_name || 'Guest').trim().replace(/[\/\\:*?"<>|]/g, '-').replace(/\s+/g, '_');
     const docTitle = `TUHH ${inv.is_gst ? 'GST Tax Invoice' : 'Bill'} — ${cleanInvNo} — ${inv.guest_name || 'Guest'}`;
 
-    win.document.write(`<!DOCTYPE html>
-      <html>
-      <head>
-        <meta charset="utf-8">
-        <title>${escapeHtml(docTitle)}</title>
-        <link rel="preconnect" href="https://fonts.googleapis.com">
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-        <style>
-          @page { size: A4 portrait; margin: 8mm; }
-          * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; box-sizing: border-box; }
-          body { margin: 0; padding: 10px; background: #fff; font-family: 'Inter', Arial, sans-serif; }
-          .uhh-invoice-document { box-shadow: none !important; border: 1px solid #D1D5DB !important; }
-          @media print {
-            .no-print { display: none !important; }
-          }
-        </style>
-      </head>
-      <body>
-        <!-- Top Sticky Action Bar (Hidden during print) -->
-        <div class="no-print" style="position:sticky;top:0;left:0;right:0;background:#0F172A;color:#fff;padding:12px 18px;display:flex;justify-content:space-between;align-items:center;z-index:999999;box-shadow:0 4px 14px rgba(0,0,0,0.25);margin:-10px -10px 14px -10px;border-bottom:3px solid #b58d3d;">
-          <div style="font-weight:800;font-size:14px;display:flex;align-items:center;gap:8px;">
-            <span style="font-size:18px;">🧾</span>
-            <span>${escapeHtml(docTitle)}</span>
-          </div>
-          <div style="display:flex;gap:10px;align-items:center;">
-            <button onclick="window.print()" style="background:#2563EB;color:#fff;border:none;padding:8px 16px;border-radius:8px;font-weight:800;font-size:13px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;">
-              🖨️ Print / Save PDF
-            </button>
-            <button onclick="window.close()" style="background:#DC2626;color:#fff;border:none;padding:8px 16px;border-radius:8px;font-weight:800;font-size:13px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;">
-              ✕ Close Window
-            </button>
-          </div>
-        </div>
-        ${html}
-      </body>
-      </html>`);
-    win.document.close();
-    setTimeout(() => {
-      win.focus();
-      win.print();
-    }, 600);
+    window.printDocumentHTML(html, docTitle);
   }
 
   // 11. ESCAPE HTML HELPER
@@ -639,15 +593,9 @@ window.GST_ENGINE = (function() {
       `"${i.status || 'Recorded for CA'}"`
     ]);
 
-    const csvContent = 'data:text/csv;charset=utf-8,\uFEFF' + [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement('a');
-    link.setAttribute('href', encodedUri);
+    const csvContent = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
     const today = new Date().toISOString().slice(0, 10);
-    link.setAttribute('download', `UHH_GST_Register_CA_${today}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
+    window.exportCSV(csvContent, `UHH_GST_Register_CA_${today}.csv`);
   }
 
   // 14. CA SUMMARY MODAL

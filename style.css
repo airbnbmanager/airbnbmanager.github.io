@@ -7495,4 +7495,86 @@ textarea:focus {
   color: #34D399;
 }
 
+/* ═══════════════════════════════════════════════════════════
+   📱 UNIVERSAL PRINT & EXPORT OVERLAY (iPad / iPhone / Mobile / Desktop)
+   ═══════════════════════════════════════════════════════════ */
+.uhh-print-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: #FFFFFF;
+  z-index: 1000010;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+.uhh-print-toolbar {
+  position: sticky;
+  top: 0;
+  background: #0F172A;
+  color: #FFFFFF;
+  padding: 10px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.25);
+  z-index: 100;
+}
+.uhh-print-btn {
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-weight: 700;
+  font-size: 13px;
+  border: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.uhh-print-btn.primary {
+  background: #10B981;
+  color: #FFFFFF;
+}
+.uhh-print-btn.secondary {
+  background: #3B82F6;
+  color: #FFFFFF;
+}
+.uhh-print-close-btn {
+  background: #EF4444;
+  color: #FFFFFF;
+  border: none;
+  padding: 6px 14px;
+  border-radius: 6px;
+  font-weight: 700;
+  font-size: 13px;
+  cursor: pointer;
+}
+.uhh-print-body {
+  padding: 20px;
+  flex: 1;
+  background: #FFFFFF;
+}
+
+@media print {
+  body > *:not(#uhhPrintOverlay) {
+    display: none !important;
+  }
+  #uhhPrintOverlay {
+    position: static !important;
+    overflow: visible !important;
+    display: block !important;
+    background: #FFFFFF !important;
+  }
+  .uhh-print-toolbar, .no-print {
+    display: none !important;
+  }
+  .uhh-print-body {
+    padding: 0 !important;
+  }
+}
+
+
 

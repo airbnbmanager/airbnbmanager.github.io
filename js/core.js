@@ -3320,3 +3320,191 @@ window.renderCalendar = function() {
   }
 };
 
+// ═══════════════════════════════════════════════════════════
+// 🌐 UNIVERSAL DEVICE-COMPATIBLE EXPORT & PRINT ENGINE
+// Supports iPad, iPadOS 13+, iPhone, Android, Safari, Tablets, & Desktop
+// ═══════════════════════════════════════════════════════════
+
+/**
+ * Universal File Download & Share for all devices (iPad, iPhone, Android, Desktop)
+ */
+window.downloadExportFile = async function(content, fileName, mimeType = 'text/csv;charset=utf-8') {
+  if (!content) {
+    if (window.fsn) fsn.error('Export Error', 'No data to export.');
+    return false;
+  }
+
+  // Prepend UTF-8 BOM for CSV/Excel compatibility (shows Rupee ₹ and Hindi properly)
+  let blobData = content;
+  if (mimeType.includes('csv') && typeof content === 'string' && !content.startsWith('\uFEFF')) {
+    blobData = '\uFEFF' + content;
+  }
+
+  const blob = (blobData instanceof Blob) ? blobData : new Blob([blobData], { type: mimeType });
+  const isAppleTouch = /iPad|iPhone|iPod/i.test(navigator.userAgent) || 
+    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+
+  // 1. On iPad / iPhone / Android: Try Web Share API (native "Save to Files", Numbers, AirDrop)
+  if (isAppleTouch && navigator.canShare && window.File) {
+    try {
+      const file = new File([blob], fileName, { type: mimeType });
+      if (navigator.canShare({ files: [file] })) {
+        await navigator.share({
+          files: [file],
+          title: fileName,
+          text: `TUHH CRM Export: ${fileName}`
+        });
+        if (window.fsn) fsn.success('Export Ready', `Opened share options for ${fileName}`);
+        return true;
+      }
+    } catch(err) {
+      if (err.name === 'AbortError') return true; // User tapped Cancel in share sheet
+      console.warn('Web Share failed, falling back to direct download:', err);
+    }
+  }
+
+  // 2. Direct Blob anchor download
+  try {
+    const objectUrl = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = objectUrl;
+    a.download = fileName;
+    a.target = '_blank';
+    a.rel = 'noopener';
+    a.style.display = 'none';
+    document.body.appendChild(a);
+    a.click();
+
+    // Keep URL alive for 60s for Safari iOS/iPadOS
+    setTimeout(() => {
+      try { a.remove(); } catch(e) {}
+      try { URL.revokeObjectURL(objectUrl); } catch(e) {}
+    }, 60000);
+
+    if (window.fsn) fsn.success('Export Ready', `Downloaded ${fileName}`);
+    return true;
+  } catch(err) {
+    console.error('Download error:', err);
+    if (window.fsn) fsn.error('Download Failed', err.message || 'Could not save file.');
+    return false;
+  }
+};
+
+/**
+ * Universal CSV Export shortcut
+ */
+window.exportCSV = function(csvContent, fileName) {
+  const safeName = (fileName && fileName.endsWith('.csv')) ? fileName : `${fileName || 'Export'}.csv`;
+  return window.downloadExportFile(csvContent, safeName, 'text/csv;charset=utf-8');
+};
+
+/**
+ * Universal Document Print for iPad, iPhone, Android, and Desktop
+ * Eliminates "Popup blocked!" alerts and iOS iframe blank printing issues
+ */
+window.printDocumentHTML = function(htmlContent, title = 'Document') {
+  const cleanTitle = String(title || 'Document').replace(/[\/\\:*?"<>|]/g, '_');
+  const isAppleTouch = /iPad|iPhone|iPod/i.test(navigator.userAgent) || 
+    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+
+  // In-App Print Modal for iPad/Mobile and popup-blocked browsers
+  function showInAppPrintModal(html, docTitle) {
+    const existing = document.getElementById('uhhPrintOverlay');
+    if (existing) existing.remove();
+
+    const overlay = document.createElement('div');
+    overlay.id = 'uhhPrintOverlay';
+    overlay.className = 'uhh-print-overlay';
+    overlay.innerHTML = `
+      <div class="uhh-print-toolbar no-print">
+        <div style="display:flex;align-items:center;gap:10px;min-width:0;">
+          <button type="button" class="uhh-print-btn primary" onclick="window.print()" title="Print via AirPrint or Connected Printer">
+            🖨️ Print / AirPrint
+          </button>
+          <button type="button" class="uhh-print-btn secondary" onclick="window.downloadExportFile(document.getElementById('uhhPrintBodyInner').innerHTML, '${docTitle}.html', 'text/html;charset=utf-8')">
+            📥 Save HTML
+          </button>
+          <span style="font-weight:700;font-size:14px;color:#FFFFFF;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+            ${escapeHtml(docTitle)}
+          </span>
+        </div>
+        <button type="button" class="uhh-print-close-btn" onclick="document.getElementById('uhhPrintOverlay')?.remove()">
+          ✕ Close
+        </button>
+      </div>
+      <div class="uhh-print-body">
+        <div id="uhhPrintBodyInner">
+          ${html}
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(overlay);
+
+    // Auto-trigger print dialog after short render delay
+    setTimeout(() => {
+      try { window.print(); } catch(e) { console.warn('Auto print failed:', e); }
+    }, 450);
+  }
+
+  // On iPad / iPhone or touch devices: in-app modal is 100% reliable with system AirPrint
+  if (isAppleTouch) {
+    showInAppPrintModal(htmlContent, cleanTitle);
+    return;
+  }
+
+  // On desktop: attempt window.open
+  let win = null;
+  try {
+    win = window.open('', '_blank');
+  } catch(e) {
+    win = null;
+  }
+
+  if (!win) {
+    // If popup blocked on desktop, fallback seamlessly to in-app print overlay
+    showInAppPrintModal(htmlContent, cleanTitle);
+    return;
+  }
+
+  try {
+    win.document.title = cleanTitle;
+    win.document.open();
+    win.document.write(`
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>${escapeHtml(cleanTitle)}</title>
+        <style>
+          @page { size: A4; margin: 10mm; }
+          * { box-sizing: border-box; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+          body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif; background: #fff; color: #111; padding: 12mm 15mm; }
+          @media print { .no-print { display: none !important; } }
+          table { width: 100%; border-collapse: collapse; }
+        </style>
+      </head>
+      <body>
+        <div class="no-print" style="padding:10px 16px;background:#F8FAFC;border-bottom:1px solid #E2E8F0;display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+          <button onclick="window.print()" style="padding:8px 20px;background:#4F46E5;color:#fff;border:none;border-radius:6px;font-weight:700;cursor:pointer;">🖨️ Print / Save as PDF</button>
+          <span style="font-size:12px;color:#64748B;">The Unique Haven Homes CRM</span>
+        </div>
+        ${htmlContent}
+        <script>
+          window.onload = function() {
+            setTimeout(function() { window.print(); }, 400);
+          };
+        <\/script>
+      </body>
+      </html>
+    `);
+    win.document.close();
+    win.focus();
+  } catch(err) {
+    console.warn('Window write failed, falling back to in-app print overlay:', err);
+    showInAppPrintModal(htmlContent, cleanTitle);
+  }
+};
+
+

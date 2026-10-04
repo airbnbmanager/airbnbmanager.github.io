@@ -110,6 +110,9 @@ async function renderDailyReport(selectedDate) {
           <button onclick="printDailyReportWindow()" class="btn-sm" style="background:#0F172A;color:#fff;border:none;padding:8px 16px;border-radius:8px;font-size:12px;font-weight:700;display:inline-flex;align-items:center;gap:6px;cursor:pointer;height:38px;box-shadow:0 1px 3px rgba(15,23,42,0.15);">
             🖨️ Print / PDF
           </button>
+          <button onclick="exportDailyReportCSV('${repDate}')" class="btn-sm" style="background:#0284C7;color:#fff;border:none;padding:8px 16px;border-radius:8px;font-size:12px;font-weight:700;display:inline-flex;align-items:center;gap:6px;cursor:pointer;height:38px;box-shadow:0 1px 3px rgba(2,132,199,0.2);">
+            📥 Export CSV
+          </button>
           <button onclick="whatsappDailyReport('${repDate}')" class="btn-sm" style="background:#059669;color:#fff;border:none;padding:8px 16px;border-radius:8px;font-size:12px;font-weight:700;display:inline-flex;align-items:center;gap:6px;cursor:pointer;height:38px;box-shadow:0 1px 3px rgba(5,150,105,0.2);">
             📱 WhatsApp
           </button>
@@ -410,34 +413,76 @@ async function renderDailyReport(selectedDate) {
 
 function printDailyReportWindow() {
   const reportEl = document.querySelector('.report-doc');
-  if (!reportEl) { alert('Report not loaded'); return; }
+  if (!reportEl) {
+    if (window.fsn) fsn.info('Info', 'Report not loaded');
+    else alert('Report not loaded');
+    return;
+  }
   const html = reportEl.outerHTML;
-  const w = window.open('', '_blank', 'width=1000,height=800');
-  if (!w) { alert('Popup blocked! Please allow popups.'); return; }
   const repDate = window._dailyReportDate || new Date().toISOString().slice(0, 10);
   const pdfTitle = `TUHH_Daily_Operations_Report_${repDate}`;
-  w.document.title = pdfTitle;
-  w.document.write(
-    '<!DOCTYPE html><html><head><title>' + pdfTitle + '</title>' +
-    '<meta charset="utf-8">' +
-    '<style>' +
-    '@page { size: A4; margin: 0; }' +
-    '* { box-sizing: border-box; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; color-adjust: exact !important; }' +
-    'html, body { margin: 0; padding: 10mm 12mm; background: #fff; color: #111; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif; font-size: 13px; }' +
-    '.report-doc { max-width: 100% !important; margin: 0 !important; padding: 0 !important; box-shadow: none !important; border: none !important; background: #fff !important; display: block !important; visibility: visible !important; }' +
-    '.report-doc * { visibility: visible !important; }' +
-    'table { width: 100%; border-collapse: collapse; }' +
-    'th, td { padding: 6px 8px; }' +
-    'h1, h2, h3 { margin: 6px 0; }' +
-    '</style></head><body>' +
-    html +
-    '<script>window.onload = function(){ setTimeout(function(){ window.print(); }, 400); };<\/script>' +
-    '</body></html>'
-  );
-  w.document.close();
-  w.focus();
+  window.printDocumentHTML(html, pdfTitle);
 }
 window.printDailyReportWindow = printDailyReportWindow;
+
+async function exportDailyReportCSV(date) {
+  const repDate = date || window._dailyReportDate || new Date().toISOString().slice(0, 10);
+  const [
+    { data: allBks },
+    { data: allPays }
+  ] = await Promise.all([
+    sb.from('guest_register').select('*, rooms(nickname, unit_no)'),
+    sb.from('payment_history').select('*').eq('payment_date', repDate).neq('verification_status', 'rejected')
+  ]);
+
+  const [
+    { data: allPaysFull }
+  ] = await Promise.all([
+    sb.from('payment_history').select('booking_id, amount').neq('verification_status', 'rejected')
+  ]);
+
+  const paidMapFull = {};
+  (allPaysFull || []).forEach(p => {
+    paidMapFull[p.booking_id] = (paidMapFull[p.booking_id] || 0) + (p.amount || 0);
+  });
+
+  const checkins = (allBks || []).filter(b => b.check_in === repDate && !b.is_cancelled);
+  const checkouts = (allBks || []).filter(b => b.check_out === repDate && !b.is_cancelled);
+  const staying = (allBks || []).filter(b => b.check_in <= repDate && b.check_out >= repDate && !b.is_cancelled);
+
+  let csv = `THE UNIQUE HAVEN HOMES PRIVATE LIMITED - DAILY OPERATIONS REPORT\n`;
+  csv += `Date,${repDate}\n`;
+  csv += `Generated On,${new Date().toLocaleString('en-IN')}\n\n`;
+
+  csv += `SECTION 1: TODAY CHECK-INS (${checkins.length})\n`;
+  csv += `Guest Name,Room / Unit,Phone,Booking ID,Mode,Check-Out,Total Amount,Paid,Balance Due\n`;
+  checkins.forEach(b => {
+    const pd = paidMapFull[b.booking_id] || 0;
+    const due = Math.max((b.total_amount || 0) - pd, 0);
+    const rName = (propLabel(b.rooms) || b.room_id || '-').replace(/"/g, '""');
+    csv += `"${(b.guest_name || '').replace(/"/g, '""')}","${rName}","${b.phone || '-'}","${b.booking_id || ''}","${b.booking_mode || ''}","${b.check_out || ''}",${b.total_amount || 0},${pd},${due}\n`;
+  });
+
+  csv += `\nSECTION 2: TODAY CHECK-OUTS (${checkouts.length})\n`;
+  csv += `Guest Name,Room / Unit,Phone,Booking ID,Mode,Check-In,Total Amount,Paid,Balance Due\n`;
+  checkouts.forEach(b => {
+    const pd = paidMapFull[b.booking_id] || 0;
+    const due = Math.max((b.total_amount || 0) - pd, 0);
+    const rName = (propLabel(b.rooms) || b.room_id || '-').replace(/"/g, '""');
+    csv += `"${(b.guest_name || '').replace(/"/g, '""')}","${rName}","${b.phone || '-'}","${b.booking_id || ''}","${b.booking_mode || ''}","${b.check_in || ''}",${b.total_amount || 0},${pd},${due}\n`;
+  });
+
+  csv += `\nSECTION 3: TODAY PAYMENTS RECEIVED (${(allPays || []).length})\n`;
+  csv += `Payment Date,Amount (INR),Mode,Booking ID,Notes\n`;
+  (allPays || []).forEach(p => {
+    csv += `"${p.payment_date || ''}",${p.amount || 0},"${p.payment_mode || ''}","${p.booking_id || ''}","${(p.notes || '').replace(/"/g, '""')}"\n`;
+  });
+
+  csv += `\n"THE UNIQUE HAVEN HOMES PRIVATE LIMITED"\n"CIN: U55101UP2024PTC202863 · uniquehavenhomesstay.com"\n`;
+
+  window.exportCSV(csv, `TUHH_Daily_Report_${repDate}.csv`);
+}
+window.exportDailyReportCSV = exportDailyReportCSV;
 
 async function whatsappDailyReport(date) {
   const [

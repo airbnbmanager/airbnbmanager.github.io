@@ -2846,12 +2846,7 @@ window.CA_AUDIT_PACK = (function() {
   async function printFullAuditPack() {
     const data = await fetchMonthAuditData(activeMonth);
     const sigSrc = (window.GST_ENGINE?.getSignatureStampSrc && window.GST_ENGINE.getSignatureStampSrc()) || 'assets/signature-stamp.svg';
-
-    const w = window.open('', '_blank', 'width=1100,height=800');
-    if (!w) {
-      alert('Pop-up blocked! Please allow pop-ups for this site to print the CA Audit Dossier.');
-      return;
-    }
+    const docTitle = `CA_Audit_Pack_${activeMonth}_${CO.cin}`;
 
     const totalSalesTaxable = data.includedSales.reduce((s, x) => s + Number(x.taxable_value || 0), 0);
     const totalOutputGST = data.includedSales.reduce((s, x) => s + Number(x.cgst || 0) + Number(x.sgst || 0), 0);
@@ -2865,7 +2860,7 @@ window.CA_AUDIT_PACK = (function() {
     const totalNetSalary = data.includedSalary.reduce((s, x) => s + Number(x.net_payable || 0), 0);
     const netGSTPayable = Math.max(0, totalOutputGST - totalInputITC);
 
-    w.document.write(`
+    const html = `
       <!DOCTYPE html>
       <html>
       <head>
@@ -3098,18 +3093,16 @@ window.CA_AUDIT_PACK = (function() {
         </div>
       </body>
       </html>
-    `);
-    w.document.close();
+    `;
+    window.printDocumentHTML(html, docTitle);
   }
 
   async function printSalaryMuster() {
     const data = await fetchMonthAuditData(activeMonth);
     const sigSrc = (window.GST_ENGINE?.getSignatureStampSrc && window.GST_ENGINE.getSignatureStampSrc()) || 'assets/signature-stamp.svg';
+    const docTitle = `Salary_Muster_${activeMonth}`;
 
-    const w = window.open('', '_blank', 'width=1000,height=750');
-    if (!w) { alert('Pop-up blocked!'); return; }
-
-    w.document.write(`
+    const html = `
       <!DOCTYPE html>
       <html>
       <head>
@@ -3182,22 +3175,18 @@ window.CA_AUDIT_PACK = (function() {
             <div style="font-size:8.5pt;">Director / Authorised Signatory</div>
           </div>
         </div>
-
-        <script>window.onload = () => window.print();</script>
       </body>
       </html>
-    `);
-    w.document.close();
+    `;
+    window.printDocumentHTML(html, docTitle);
   }
 
   async function printSelfVouchers() {
     const data = await fetchMonthAuditData(activeMonth);
     const sigSrc = (window.GST_ENGINE?.getSignatureStampSrc && window.GST_ENGINE.getSignatureStampSrc()) || 'assets/signature-stamp.svg';
+    const docTitle = `Self_Vouchers_${activeMonth}`;
 
-    const w = window.open('', '_blank', 'width=1000,height=750');
-    if (!w) { alert('Pop-up blocked!'); return; }
-
-    w.document.write(`
+    const html = `
       <!DOCTYPE html>
       <html>
       <head>
@@ -3269,25 +3258,26 @@ window.CA_AUDIT_PACK = (function() {
             <div style="font-size:8.5pt;">Director / Authorised Signatory</div>
           </div>
         </div>
-
-        <script>window.onload = () => window.print();</script>
       </body>
       </html>
-    `);
-    w.document.close();
+    `;
+    window.printDocumentHTML(html, docTitle);
   }
 
   // ═══════════════════════════════════════════════════════════════
   // 5. CSV EXPORT UTILITIES (EXCEL COMPATIBLE)
   // ═══════════════════════════════════════════════════════════════
   function downloadCSV(csvContent, fileName) {
+    if (typeof window.exportCSV === 'function') {
+      return window.exportCSV(csvContent, fileName);
+    }
     const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
     link.setAttribute('download', fileName);
     document.body.appendChild(link);
     link.click();
-    document.body.removeChild(link);
+    setTimeout(() => link.remove(), 1000);
   }
 
   async function exportMasterCSV() {
@@ -3423,14 +3413,7 @@ window.CA_AUDIT_PACK = (function() {
     const recon = data.bankRecon || {};
     const sigSrc = (window.GST_ENGINE?.getSignatureStampSrc && window.GST_ENGINE.getSignatureStampSrc()) || 'assets/signature-stamp.svg';
 
-    const w = window.open('', '_blank', 'width=1000,height=800');
-    if (!w) { alert('Pop-up blocked!'); return; }
-
-    const bookBal = Number(recon.openingBalance || 50000) + 
-      data.bookBankEntries.filter(x => x.type === 'Credit').reduce((s,x)=>s+x.amount,0) - 
-      data.bookBankEntries.filter(x => x.type === 'Debit').reduce((s,x)=>s+x.amount,0);
-
-    w.document.write(`
+    const html = `
       <!DOCTYPE html>
       <html>
       <head>
@@ -3446,9 +3429,17 @@ window.CA_AUDIT_PACK = (function() {
           .bold { font-weight: bold; }
           .header-box { border-bottom: 2.5px solid #0F172A; padding-bottom: 8px; margin-bottom: 12px; }
           .sig-box { margin-top: 40px; display: flex; justify-content: space-between; align-items: flex-end; page-break-inside: avoid; }
+          @media print {
+            .no-print { display: none !important; }
+          }
         </style>
       </head>
       <body>
+        <div class="no-print" style="background:#0F172A;color:#fff;padding:12px;display:flex;justify-content:space-between;align-items:center;margin-bottom:15px;border-radius:6px;">
+          <div><strong>💼 Bank Reconciliation Dossier (BRS) — ${data.monthLabel}</strong></div>
+          <button onclick="window.print()" style="background:#0284C7;color:#fff;border:none;padding:8px 18px;border-radius:6px;font-weight:bold;cursor:pointer;">🖨️ Print / Save as PDF</button>
+        </div>
+
         <div class="header-box">
           <div style="float:right;text-align:right;">
             <h3 style="margin:0;color:#0284C7;">BANK RECONCILIATION DOSSIER</h3>
@@ -3522,8 +3513,8 @@ window.CA_AUDIT_PACK = (function() {
         </div>
       </body>
       </html>
-    `);
-    w.document.close();
+    `;
+    window.printDocumentHTML(html, `BRS_${activeMonth}_${CO.cin}`);
   }
 
   async function copyBRSWhatsAppSummary() {

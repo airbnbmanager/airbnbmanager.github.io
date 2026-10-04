@@ -45,6 +45,8 @@ async function renderExpenses() {
       <div class="sub">${ml}</div>
       <div class="btn-row">
         <button onclick="renderAddExpEntry()">🧾 Log Expense</button>
+        <button onclick="window.exportExpensesCSV()" style="background:#059669;color:#fff;font-weight:700;border:none;">📥 Export CSV / Excel</button>
+        <button onclick="window.printExpensesReport()" style="background:#4F46E5;color:#fff;font-weight:700;border:none;">🖨️ Print / PDF Report</button>
         <button onclick="navigate('ca-audit')" style="background:#0F172A;color:#38BDF8;font-weight:700;border:none;">💼 CA Audit &amp; GST Pack</button>
         <button class="secondary" onclick="renderManageCategories()">⚙️ Manage Categories</button>
         <button class="secondary" onclick="renderDefaultExpenses()">⚙️ Defaults</button>
@@ -180,13 +182,27 @@ function applyExpenseFilters() {
   const total = filtered.reduce((s, e) => s + (e.amount || 0), 0);
   const isO = ['owner','admin'].includes(SESSION.role) || SESSION.role === 'manager';
 
+  // Save for export and print
+  window._currentFilteredExps = filtered;
+  window._currentExpenseMonth = monthLabel || 'All';
+
   wrap.innerHTML = `
     <div class="card">
-      <div class="section-title">
-        🧾 Entries — ${monthLabel || 'All'}
-        <span class="badge red" style="float:right;">
-          ₹${total.toLocaleString('en-IN')}
-        </span>
+      <div class="section-title" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span>🧾 Entries — ${monthLabel || 'All'}</span>
+          <span class="badge red">
+            ₹${total.toLocaleString('en-IN')}
+          </span>
+        </div>
+        <div style="display:flex;gap:6px;align-items:center;">
+          <button type="button" class="btn-sm" onclick="window.exportExpensesCSV()" style="background:#059669;color:#fff;font-weight:700;border:none;padding:5px 12px;border-radius:6px;cursor:pointer;">
+            📥 Export CSV
+          </button>
+          <button type="button" class="btn-sm" onclick="window.printExpensesReport()" style="background:#4F46E5;color:#fff;font-weight:700;border:none;padding:5px 12px;border-radius:6px;cursor:pointer;">
+            🖨️ Print / PDF
+          </button>
+        </div>
       </div>
       <div class="table-wrap"><table>
         <thead><tr>
@@ -229,7 +245,7 @@ function applyExpenseFilters() {
         ${filtered.length > 0 ? `
         <tfoot>
           <tr style="font-weight:700;background:#fafafa;">
-            <td colspan="3">Total</td>
+            <td colspan="3">Total (${filtered.length} entries)</td>
             <td style="color:var(--red);">₹${total.toLocaleString('en-IN')}</td>
             <td colspan="3"></td>
           </tr>
@@ -238,6 +254,149 @@ function applyExpenseFilters() {
     </div>
   `;
 }
+
+// ============ EXPORT EXPENSES TO CSV / EXCEL ============
+window.exportExpensesCSV = function() {
+  const exps = window._currentFilteredExps || window._allExps || [];
+  if (!exps.length) {
+    if (window.fsn) fsn.info('Info', 'No expenses found to export.');
+    return;
+  }
+
+  const mName = window._currentExpenseMonth || 'All';
+  let csv = `THE UNIQUE HAVEN HOMES PRIVATE LIMITED - EXPENSES & P&L REGISTER\n`;
+  csv += `Period,${mName}\n`;
+  csv += `Exported On,${new Date().toLocaleString('en-IN')}\n`;
+  csv += `Total Expenses Count,${exps.length}\n`;
+  const totalAmt = exps.reduce((s, e) => s + (e.amount || 0), 0);
+  csv += `Total Amount,Rs. ${totalAmt.toLocaleString('en-IN')}\n\n`;
+
+  // Headers
+  csv += `Month,Category,Property / Unit,Amount (INR),Date,Source / Account,Notes,Entry ID\n`;
+
+  exps.forEach(e => {
+    const m = (e.month || '').replace(/"/g, '""');
+    const c = (e.expense_categories?.category_name || '-').replace(/"/g, '""');
+    const p = (propLabel(e.rooms) || e.room_id || 'General').replace(/"/g, '""');
+    const a = e.amount || 0;
+    const d = e.entry_date || '-';
+    const s = (e.payment_source || '-').replace(/"/g, '""');
+    const n = (e.notes || '').replace(/"/g, '""').replace(/\n/g, ' ');
+    const id = e.id || '';
+    csv += `"${m}","${c}","${p}",${a},"${d}","${s}","${n}",${id}\n`;
+  });
+
+  csv += `\n"Total",,,"${totalAmt}",,,,\n`;
+  csv += `\n"THE UNIQUE HAVEN HOMES PRIVATE LIMITED"\n"CIN: U55101UP2024PTC202863 · uniquehavenhomesstay.com"\n`;
+
+  const fileName = `TUHH_Expenses_${String(mName).replace(/[\s\/-]/g, '_')}_${new Date().toISOString().slice(0, 10)}.csv`;
+  window.exportCSV(csv, fileName);
+};
+
+// ============ PRINT EXPENSES REPORT ============
+window.printExpensesReport = function() {
+  const exps = window._currentFilteredExps || window._allExps || [];
+  if (!exps.length) {
+    if (window.fsn) fsn.info('Info', 'No expenses to print.');
+    return;
+  }
+
+  const mName = window._currentExpenseMonth || 'All Months';
+  const totalAmt = exps.reduce((s, e) => s + (e.amount || 0), 0);
+
+  // Group by category for summary
+  const catMap = {};
+  exps.forEach(e => {
+    const c = e.expense_categories?.category_name || 'Uncategorized';
+    catMap[c] = (catMap[c] || 0) + (e.amount || 0);
+  });
+
+  const catRows = Object.entries(catMap)
+    .sort((a, b) => b[1] - a[1])
+    .map(([cat, amt]) => `
+      <tr>
+        <td style="padding:6px 10px;border-bottom:1px solid #E2E8F0;font-weight:600;">${escapeHtml(cat)}</td>
+        <td style="padding:6px 10px;border-bottom:1px solid #E2E8F0;text-align:right;font-weight:700;color:#DC2626;">₹${amt.toLocaleString('en-IN')}</td>
+        <td style="padding:6px 10px;border-bottom:1px solid #E2E8F0;text-align:right;color:#64748B;">${((amt / (totalAmt || 1)) * 100).toFixed(1)}%</td>
+      </tr>
+    `).join('');
+
+  const rows = exps.map((e, idx) => `
+    <tr style="border-bottom:1px solid #F1F5F9;">
+      <td style="padding:6px 8px;text-align:center;color:#64748B;">${idx + 1}</td>
+      <td style="padding:6px 8px;font-weight:600;">${escapeHtml(e.month || '-')}</td>
+      <td style="padding:6px 8px;">${escapeHtml(e.expense_categories?.category_name || '-')}</td>
+      <td style="padding:6px 8px;">${escapeHtml(propLabel(e.rooms) || e.room_id || 'General')}</td>
+      <td style="padding:6px 8px;text-align:right;font-weight:700;color:#DC2626;">₹${(e.amount || 0).toLocaleString('en-IN')}</td>
+      <td style="padding:6px 8px;font-size:11.5px;color:#475569;">${escapeHtml(e.entry_date || '-')}</td>
+      <td style="padding:6px 8px;font-size:11.5px;color:#334155;">${escapeHtml(e.payment_source || '-')}</td>
+      <td style="padding:6px 8px;font-size:11.5px;color:#64748B;max-width:180px;">${escapeHtml(e.notes || '-')}</td>
+    </tr>
+  `).join('');
+
+  const html = `
+    <div style="max-width:900px;margin:0 auto;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;color:#1e293b;">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #E2E8F0;padding-bottom:14px;margin-bottom:16px;">
+        <div>
+          <h1 style="margin:0;font-size:20px;color:#0F172A;">THE UNIQUE HAVEN HOMES PRIVATE LIMITED</h1>
+          <div style="font-size:13px;color:#64748B;margin-top:4px;">Official Expenses &amp; Cost Disbursement Statement</div>
+          <div style="font-size:12px;color:#64748B;margin-top:2px;">Period: <strong>${escapeHtml(mName)}</strong> | Generated: ${new Date().toLocaleDateString('en-IN')}</div>
+        </div>
+        <div style="text-align:right;background:#FEF2F2;border:1px solid #FCA5A5;padding:10px 16px;border-radius:8px;">
+          <div style="font-size:11px;color:#991B1B;font-weight:700;text-transform:uppercase;">Total Period Expenses</div>
+          <div style="font-size:22px;color:#DC2626;font-weight:900;">₹${totalAmt.toLocaleString('en-IN')}</div>
+          <div style="font-size:11px;color:#64748B;">${exps.length} Total Records</div>
+        </div>
+      </div>
+
+      <div style="margin-bottom:20px;">
+        <h3 style="margin:0 0 8px;font-size:14px;color:#1E293B;">📊 Category-wise Expense Breakdown</h3>
+        <table style="width:100%;border-collapse:collapse;font-size:12px;background:#F8FAFC;border:1px solid #E2E8F0;border-radius:6px;">
+          <thead>
+            <tr style="background:#F1F5F9;text-align:left;">
+              <th style="padding:6px 10px;">Category</th>
+              <th style="padding:6px 10px;text-align:right;">Total Spent</th>
+              <th style="padding:6px 10px;text-align:right;">Share %</th>
+            </tr>
+          </thead>
+          <tbody>${catRows}</tbody>
+        </table>
+      </div>
+
+      <div>
+        <h3 style="margin:0 0 8px;font-size:14px;color:#1E293B;">🧾 Itemized Expense Entries (${exps.length})</h3>
+        <table style="width:100%;border-collapse:collapse;font-size:11.5px;">
+          <thead>
+            <tr style="background:#F1F5F9;text-align:left;border-top:1px solid #CBD5E1;border-bottom:1px solid #CBD5E1;">
+              <th style="padding:6px 8px;text-align:center;">#</th>
+              <th style="padding:6px 8px;">Month</th>
+              <th style="padding:6px 8px;">Category</th>
+              <th style="padding:6px 8px;">Property / Unit</th>
+              <th style="padding:6px 8px;text-align:right;">Amount (₹)</th>
+              <th style="padding:6px 8px;">Date</th>
+              <th style="padding:6px 8px;">Account</th>
+              <th style="padding:6px 8px;">Notes</th>
+            </tr>
+          </thead>
+          <tbody>${rows}</tbody>
+          <tfoot>
+            <tr style="background:#F8FAFC;font-weight:700;border-top:2px solid #CBD5E1;">
+              <td colspan="4" style="padding:8px;text-align:right;">Grand Total:</td>
+              <td style="padding:8px;text-align:right;color:#DC2626;">₹${totalAmt.toLocaleString('en-IN')}</td>
+              <td colspan="3"></td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+
+      <div style="margin-top:30px;padding-top:14px;border-top:1px solid #E2E8F0;font-size:11px;color:#94A3B8;text-align:center;">
+        THE UNIQUE HAVEN HOMES PRIVATE LIMITED · CIN: U55101UP2024PTC202863 · Developed by Praveen Singh
+      </div>
+    </div>
+  `;
+
+  window.printDocumentHTML(html, `TUHH_Expenses_Report_${String(mName).replace(/[\s\/-]/g, '_')}`);
+};
 
 // ============ CATEGORY BADGE COLOR ============
 function getCategoryBadge(catName) {
