@@ -577,7 +577,7 @@ Whenever guest asks for dates or rates, warmly recommend the best stay and ask f
         const reco = new SpeechRecognition();
         reco.continuous = false;
         reco.interimResults = true; // Show interim words in real-time
-        reco.lang = this.recognitionLang || 'hi-IN'; // Dual Hindi / English understanding
+        reco.lang = this.recognitionLang || 'en-IN'; // en-IN = Hinglish (Roman script) — names searchable
 
         reco.onstart = () => {
           this.isListening = true;
@@ -635,9 +635,9 @@ Whenever guest asks for dates or rates, warmly recommend the best stay and ask f
             // Normal silence pause when user is thinking, don't abort completely!
             return;
           }
-          if (event.error === 'language-not-supported' && reco.lang !== 'en-IN') {
-            console.log('[NishaAI] Falling back to en-IN voice recognition');
-            this.recognitionLang = 'en-IN';
+          if (event.error === 'language-not-supported' && reco.lang !== 'hi-IN') {
+            console.log('[NishaAI] Falling back to hi-IN voice recognition');
+            this.recognitionLang = 'hi-IN';
             return;
           }
           let userMsg = 'Voice recognition error';

@@ -2638,7 +2638,9 @@ async function renderAddBooking() {
         <div class="form-group"><label>Guest Name *</label><input id="guestName" placeholder="Guest ka naam" value="${pre.guestName || ''}" /></div>
         <div class="form-group">
           <label>Phone</label>
-          <input id="guestPhone" type="tel" placeholder="Mobile" value="${pre.guestPhone || ''}" onblur="checkGuestRating(this.value)" />
+          <input id="guestPhone" type="tel" placeholder="Mobile (10 digits)" value="${pre.guestPhone || ''}"
+            onblur="checkGuestRating(this.value)"
+            onpaste="event.preventDefault();var p=(event.clipboardData||window.clipboardData).getData('text');var c=p.replace(/[^\\d]/g,'');if(c.length===12&&c.startsWith('91'))c=c.slice(2);else if(c.length===13&&c.startsWith('091'))c=c.slice(3);else if(c.length===11&&c.startsWith('0'))c=c.slice(1);if(c.length===10){this.value=c;checkGuestRating(c);}else{this.value=c;}" />
           <div id="guestRatingWarning" style="margin-top:6px;"></div>
         </div>
       </div>
@@ -4399,7 +4401,9 @@ async function editBooking(bkId) {
         <div class="form-group"><label>Guest Name</label><input id="guestName" value="${b.guest_name || ''}" /></div>
         <div class="form-group">
           <label>Phone</label>
-          <input id="guestPhone" value="${b.phone || ''}" onblur="checkGuestRating(this.value)" />
+          <input id="guestPhone" type="tel" placeholder="10 digit mobile" value="${b.phone || ''}"
+            onblur="checkGuestRating(this.value)"
+            onpaste="event.preventDefault();var p=(event.clipboardData||window.clipboardData).getData('text');var c=p.replace(/[^\\d]/g,'');if(c.length===12&&c.startsWith('91'))c=c.slice(2);else if(c.length===13&&c.startsWith('091'))c=c.slice(3);else if(c.length===11&&c.startsWith('0'))c=c.slice(1);if(c.length===10){this.value=c;checkGuestRating(c);}else{this.value=c;}" />
           <div id="guestRatingWarning" style="margin-top:6px;"></div>
         </div>
       </div>
