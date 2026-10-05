@@ -2058,15 +2058,23 @@ window.suggestDefaultPrice = function() {
   if (!roomId || !totInput) return;
 
   const room = (window._roomsCache || []).find(r => r.room_id === roomId);
-  const baseRate = room?.rent_per_night || 3499;
+  const baseRate = (room && room.rent_per_night && !isNaN(Number(room.rent_per_night)))
+    ? Number(room.rent_per_night)
+    : 4500;
 
   const ci = document.getElementById('checkIn')?.value;
   const co = document.getElementById('checkOut')?.value;
   const nights = (ci && co) ? Math.max(calcNights(ci, co), 1) : 1;
 
-  if (!totInput.value || totInput.dataset.autoFilled === 'true') {
+  if (!totInput.value || totInput.dataset.autoFilled === 'true' || totInput.dataset.autofilled === 'true') {
     totInput.value = baseRate * nights;
     totInput.dataset.autoFilled = 'true';
+    totInput.dataset.autofilled = 'true';
+    const perDayInp = document.getElementById('perDayRate');
+    if (perDayInp) {
+      perDayInp.value = baseRate;
+      perDayInp.dataset.autofilled = 'true';
+    }
     window.recalcSmartPrice();
   }
 };

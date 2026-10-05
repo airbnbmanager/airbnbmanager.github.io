@@ -312,12 +312,47 @@ Aapki chat ko hamare live property manager ko assign kar diya gaya hai.
 
 Hamari team aapse turant connect karegi. Aap apna requirement yahan likh sakte hain. 🙏`;
 
+  } else if (
+    (lower.includes('kal') || lower.includes('aaj') || lower.includes('parso') || lower.includes('tomorrow') || lower.includes('today')) &&
+    (lower.includes('availab') || lower.includes('khali') || lower.includes('chahiye') || lower.includes('room') || lower.includes('flat') || lower.includes('bhk') || lower.includes('book'))
+  ) {
+    const isKal = lower.includes('kal') || lower.includes('tomorrow');
+    const dayLabel = isKal ? 'Kal' : (lower.includes('parso') ? 'Parso' : 'Aaj');
+    replyText =
+`🏡 *Haanji ${name}! ${dayLabel} ke liye Gomti Nagar me luxury flats available hain!* ✨
+
+Hamare fully furnished 3BHK premium apartments ko aap *2BHK ya 3BHK dono requirements* ke liye direct book kar sakte hain:
+
+1️⃣ *Black Beauty* (3BHK Flat, Vikalp Khand, Gomti Nagar) — ₹3,499/night
+👉 https://uniquehavenhomesstay.com/black-beauty.html
+
+2️⃣ *The Dark Blue* (3BHK Flat, Gomti Nagar Prime) — ₹3,499/night
+👉 https://uniquehavenhomesstay.com/the-dark-blue.html
+
+3️⃣ *RedRose Palace* (3BHK Flat, Vikalp Khand) — ₹3,499/night
+👉 https://uniquehavenhomesstay.com/redrose-palace.html
+
+4️⃣ *Starlight Blue PentHouse* (4BHK Penthouse, Gomti Nagar) — ₹6,000/night
+👉 https://uniquehavenhomesstay.com/starlight-blue-penthouse.html
+
+✨ *Included Amenities:*
+✔ 3 AC Bedrooms & Elegant Living Room
+✔ Modular Kitchen with Gas Stove, Refrigerator & RO Water
+✔ High-Speed 200 Mbps Wi-Fi & Smart TV
+✔ Automatic Lift & Free Reserved Parking
+✔ 100% Couple-Friendly, Safe & Clean!
+
+🌐 *Direct Booking Link (Save 15% Airbnb Commission):*
+https://uniquehavenhomesstay.com/properties.html
+
+Agar aap dates lock karna chahte hain toh apna naam reply kar dijiye ya mujhe bataiye, main manager se confirm karwa deta hoon! 🙏`;
+
   } else if (lower.includes('availab') || lower.includes('booking') || lower.includes('chahiye') || lower.includes('khali') || lower.includes('book')) {
     replyText =
 `🏡 *Haanji! The Unique Haven Homes me luxury villas aur apartments available hain!* ✨
 
 Hum Lucknow me 100% verified, fully furnished private serviced stays provide karte hain:
-• *3BHK Luxury Flats:* ₹3,499 – ₹3,999/night
+• *3BHK Luxury Flats (Gomti Nagar):* ₹3,499 – ₹3,999/night
 • *3BHK Private Independent Villas:* ₹3,999 – ₹4,499/night
 • *4BHK/5BHK Grand Villas:* ₹4,999 – ₹6,999/night
 

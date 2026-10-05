@@ -2580,7 +2580,7 @@ async function renderAddBooking() {
   const { data: recentBookings } = await sb.from('guest_register').select('booking_id, guest_name, room_id, check_in, check_out, rooms(nickname)').gte('check_out', today_iso).eq('is_review_booking', false).order('check_in', {ascending: true}).limit(100);
   const pre = window._bookingPrefill || {};
   const {data:rooms} = await sb.from('rooms')
-    .select('room_id, unit_no, nickname, property_name, bookable, checkin_manager, caretaker_phone, map_link')
+    .select('room_id, unit_no, nickname, property_name, bookable, checkin_manager, caretaker_phone, map_link, rent_per_night')
     .order('room_id');
   window._roomsCache = rooms || [];
 
@@ -2737,8 +2737,8 @@ async function renderAddBooking() {
           <div class="form-group">
             <label>Total Amount ₹ *</label>
             <input id="totalAmount" type="number" placeholder="Total kitne me book hua"
-              oninput="onAmtChg()" value="${pre.totalAmount || ''}" />
-            <div id="sugInfo" style="font-size:11px;color:var(--muted);"></div>
+              oninput="delete this.dataset.autofilled; onAmtChg()" value="${pre.totalAmount || ''}" />
+            <div id="sugInfo" style="font-size:11px;color:var(--muted);margin-top:4px;"></div>
           </div>
           <div class="form-group">
             <label>Per Day Rate ₹ (auto)</label>
@@ -3219,10 +3219,23 @@ function onRoomChg() {
 
   if (room && room.rent_per_night && mode !== 'Online-Airbnb') {
     const totInp = document.getElementById('totalAmount');
+    const perDayInp = document.getElementById('perDayRate');
     const sugInfo = document.getElementById('sugInfo');
     const effNights = nights > 0 ? nights : 1;
-    if (sugInfo && (!totInp || !totInp.value || parseFloat(totInp.value) === 0)) {
-      sugInfo.innerHTML = `💡 Official Rate: <strong>₹${Number(room.rent_per_night).toLocaleString('en-IN')}/night</strong> (${effNights} night${effNights > 1 ? 's' : ''} = ₹${(Number(room.rent_per_night) * effNights).toLocaleString('en-IN')})`;
+    const rate = Number(room.rent_per_night);
+    const standardTotal = rate * effNights;
+
+    // Auto-fill total if not manually entered by user, or if previously auto-filled, or if empty/0
+    if (totInp && (!totInp.value || parseFloat(totInp.value) === 0 || totInp.dataset.autofilled === 'true')) {
+      totInp.value = standardTotal;
+      totInp.dataset.autofilled = 'true';
+    }
+    if (perDayInp && (!perDayInp.value || parseFloat(perDayInp.value) === 0 || perDayInp.dataset.autofilled === 'true')) {
+      perDayInp.value = rate;
+      perDayInp.dataset.autofilled = 'true';
+    }
+    if (sugInfo) {
+      sugInfo.innerHTML = `💡 Official Rate: <strong>₹${rate.toLocaleString('en-IN')}/night</strong> (${effNights} night${effNights > 1 ? 's' : ''} = ₹${standardTotal.toLocaleString('en-IN')})`;
     }
   }
 

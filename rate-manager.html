@@ -629,21 +629,38 @@ async function loadRates() {
   document.getElementById('rate-rows').innerHTML = `
     <div class="loading-state"><div class="spinner"></div>Loading rates…</div>`;
 
-  const { data, error } = await getSB()
-    .from('property_rates')
-    .select('*')
+  // Source of truth: rooms table
+  const { data: roomData, error: roomErr } = await getSB()
+    .from('rooms')
+    .select('room_id, unit_no, nickname, property_name, rent_per_night, max_guests')
     .order('room_id');
 
-  if (error) {
-    document.getElementById('rate-rows').innerHTML =
-      `<div class="loading-state" style="color:#ef4444">❌ ${error.message}</div>`;
-    return;
+  if (roomErr && !roomData) {
+    // Fallback: try property_rates if rooms query errored
+    const { data: prData, error: prErr } = await getSB()
+      .from('property_rates')
+      .select('*')
+      .order('room_id');
+    if (prErr) {
+      document.getElementById('rate-rows').innerHTML =
+        `<div class="loading-state" style="color:#ef4444">❌ ${roomErr.message || prErr.message}</div>`;
+      return;
+    }
+    _rates = prData;
+  } else {
+    _rates = (roomData || []).map(r => ({
+      room_id: r.room_id,
+      property_name: r.nickname || r.property_name || r.room_id,
+      slug: (r.nickname || r.room_id).toLowerCase().replace(/[^a-z0-9]/g, '-'),
+      base_price: Number(r.rent_per_night) || 4500,
+      airbnb_price: Math.round((Number(r.rent_per_night) || 4500) * 1.22),
+      max_guests: r.max_guests || 6
+    }));
   }
 
-  _rates = data;
   _pendingChanges = {};
-  renderRates(data);
-  updateStats(data);
+  renderRates(_rates);
+  updateStats(_rates);
 
   const ts = new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
   document.getElementById('last-updated').innerHTML =
@@ -720,6 +737,7 @@ function markChanged(roomId, field, input) {
 }
 
 // ── SAVE SINGLE ROW ───────────────────────────────────────
+// ── SAVE SINGLE ROW ───────────────────────────────────────
 async function saveRow(roomId) {
   const changes = _pendingChanges[roomId];
   if (!changes || Object.keys(changes).length === 0) {
@@ -731,18 +749,44 @@ async function saveRow(roomId) {
   btn.textContent = '⏳';
   btn.disabled = true;
 
-  const { error } = await getSB()
-    .from('property_rates')
-    .update({ ...changes, updated_at: new Date().toISOString(), updated_by: 'admin-crm' })
-    .eq('room_id', roomId);
+  // 1. Update primary source of truth: rooms table
+  const roomUpdate = {};
+  if (changes.base_price !== undefined) roomUpdate.rent_per_night = changes.base_price;
+  if (changes.max_guests !== undefined) roomUpdate.max_guests = changes.max_guests;
 
-  if (error) {
+  let updateError = null;
+  if (Object.keys(roomUpdate).length > 0) {
+    const { error: rErr } = await getSB()
+      .from('rooms')
+      .update(roomUpdate)
+      .eq('room_id', roomId);
+    if (rErr) updateError = rErr;
+  }
+
+  // 2. Also try updating property_rates if table exists
+  try {
+    await getSB()
+      .from('property_rates')
+      .update({ ...changes, updated_at: new Date().toISOString(), updated_by: 'admin-crm' })
+      .eq('room_id', roomId);
+  } catch (e) {}
+
+  if (updateError) {
     btn.textContent = '❌ Error';
     btn.className = 'save-row-btn error';
     btn.disabled = false;
-    toast('Failed to save ' + roomId + ': ' + error.message, 'error');
+    toast('Failed to save ' + roomId + ': ' + updateError.message, 'error');
     return;
   }
+
+  // Update in-memory _rates
+  const item = _rates.find(r => r.room_id === roomId);
+  if (item) {
+    if (changes.base_price !== undefined) item.base_price = changes.base_price;
+    if (changes.airbnb_price !== undefined) item.airbnb_price = changes.airbnb_price;
+    if (changes.max_guests !== undefined) item.max_guests = changes.max_guests;
+  }
+  updateStats(_rates);
 
   // Clear pending for this row
   delete _pendingChanges[roomId];
@@ -762,7 +806,7 @@ async function saveRow(roomId) {
     btn.className = 'save-row-btn';
   }, 2500);
 
-  toast('✅ ' + roomId + ' updated — website will reflect in ~1 minute.', 'success');
+  toast('✅ ' + roomId + ' updated — website and CRM show new rate immediately.', 'success');
 }
 
 // ── SAVE ALL ──────────────────────────────────────────────
@@ -781,16 +825,37 @@ async function saveAll() {
 
   for (const roomId of roomIds) {
     const changes = _pendingChanges[roomId];
-    const { error } = await getSB()
-      .from('property_rates')
-      .update({ ...changes, updated_at: new Date().toISOString(), updated_by: 'admin-crm' })
-      .eq('room_id', roomId);
+    const roomUpdate = {};
+    if (changes.base_price !== undefined) roomUpdate.rent_per_night = changes.base_price;
+    if (changes.max_guests !== undefined) roomUpdate.max_guests = changes.max_guests;
 
-    if (error) {
+    let err = null;
+    if (Object.keys(roomUpdate).length > 0) {
+      const { error: rErr } = await getSB()
+        .from('rooms')
+        .update(roomUpdate)
+        .eq('room_id', roomId);
+      if (rErr) err = rErr;
+    }
+
+    try {
+      await getSB()
+        .from('property_rates')
+        .update({ ...changes, updated_at: new Date().toISOString(), updated_by: 'admin-crm' })
+        .eq('room_id', roomId);
+    } catch (e) {}
+
+    if (err) {
       failed++;
-      toast('❌ ' + roomId + ': ' + error.message, 'error');
+      toast('❌ ' + roomId + ': ' + err.message, 'error');
     } else {
       saved++;
+      const item = _rates.find(r => r.room_id === roomId);
+      if (item) {
+        if (changes.base_price !== undefined) item.base_price = changes.base_price;
+        if (changes.airbnb_price !== undefined) item.airbnb_price = changes.airbnb_price;
+        if (changes.max_guests !== undefined) item.max_guests = changes.max_guests;
+      }
       delete _pendingChanges[roomId];
       const savebtn = document.getElementById('savebtn_' + roomId);
       if (savebtn) { savebtn.textContent = '✓'; savebtn.className = 'save-row-btn saved'; }
@@ -804,12 +869,10 @@ async function saveAll() {
   btn.textContent = '💾 Save All Changes';
   btn.disabled = false;
 
-  if (saved > 0) toast(`✅ ${saved} propert${saved > 1 ? 'ies' : 'y'} saved — website updates live!`, 'success');
-  if (failed > 0) toast(`⚠️ ${failed} failed. Check errors above.`, 'error');
+  updateStats(_rates);
 
-  // Update stats
-  const { data } = await getSB().from('property_rates').select('base_price').eq('is_active', true);
-  if (data) updateStats(data);
+  if (saved > 0) toast(`✅ ${saved} propert${saved > 1 ? 'ies' : 'y'} saved — website and CRM synced live!`, 'success');
+  if (failed > 0) toast(`⚠️ ${failed} failed. Check errors above.`, 'error');
 }
 
 // ── SEARCH / FILTER ───────────────────────────────────────

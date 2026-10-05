@@ -243,6 +243,26 @@
         return `Dhanyawad ji! 🙏 Aapka number (${phone}) maine note kar liya hai. Hamare co-founder Mr. Shahanshah (+91 94500 55554) aapko 5 minute ke andar WhatsApp par best direct discount aur available flats ki photos bhej rahe hain!`;
       }
 
+      // 1A. 24/7 AI Receptionist: Gomti Nagar 2BHK / 3BHK Flat Availability (Kal / Aaj / Parso / Dates)
+      if (/(kal|aaj|parso|tomorrow|today|कल|आज|परसों)/i.test(q) && /(available|khali|milega|mil jayega|chahiye|खाली|मिलेगा|चाहिए|उपलब्ध|booking|बुक)/i.test(q)) {
+        const isKal = /(kal|tomorrow|कल)/i.test(q);
+        const dayLabel = isKal ? 'Kal' : (/(parso|परसों)/i.test(q) ? 'Parso' : 'Aaj');
+        return `Haanji bilkul! 🙏 ${dayLabel} ke liye Gomti Nagar (Vikalp & Vishesh Khand) me hamare luxury fully furnished 3BHK flats available hain (jise aap 2BHK ya 3BHK dono requirements ke liye book kar sakte hain):\n\n` +
+          `1️⃣ **Black Beauty** (3BHK Luxury Flat, Gomti Nagar) — ₹3,499/night\n` +
+          `   👉 https://uniquehavenhomesstay.com/black-beauty.html\n\n` +
+          `2️⃣ **The Dark Blue** (3BHK Flat, Gomti Nagar) — ₹3,499/night\n` +
+          `   👉 https://uniquehavenhomesstay.com/the-dark-blue.html\n\n` +
+          `3️⃣ **RedRose Palace** (3BHK Flat, Vikalp Khand) — ₹3,499/night\n` +
+          `   👉 https://uniquehavenhomesstay.com/redrose-palace.html\n\n` +
+          `4️⃣ **Starlight Blue PentHouse** (4BHK Penthouse, Gomti Nagar) — ₹6,000/night\n` +
+          `   👉 https://uniquehavenhomesstay.com/starlight-blue-penthouse.html\n\n` +
+          `✨ *Amenities:* 3 AC Bedrooms, Modular Kitchen with Gas & RO, 200 Mbps Wi-Fi, Lift & Covered Parking.\n` +
+          `🔒 100% Couple-Friendly, Private & Safe!\n\n` +
+          `🌐 **Direct Booking Link (15% Commission Discount):**\n` +
+          `https://uniquehavenhomesstay.com/properties.html\n\n` +
+          `Agar aap dates lock karna chahte hain toh apna naam reply kar dijiye ya link se direct book kar lijiye!`;
+      }
+
       // 1. Property Count / Overview
       if (/(kitn[ei]|count|overview|all|kaha|total|properties|options|कितने|कितनी|कुल|सब|लिस्ट)/i.test(q) && /(flat|villa|property|homestay|room|stay|फ्लैट|विला|रूम|कमरे|होमस्टे)/i.test(q)) {
         return `Namaste ji! Lucknow me hamare pass total **17 premium homestays & private villas** hain:\n\n` +

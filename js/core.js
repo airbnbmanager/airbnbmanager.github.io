@@ -1381,10 +1381,11 @@ function navigate(page) {
   if (backdropEl) backdropEl.classList.remove('active');
 
   // Update active state on bottom navigation
-  document.querySelectorAll('.bottom-nav a[data-page]').forEach(a => {
+  document.querySelectorAll('.bottom-nav a[data-page], .pwa-bottom-nav .pwa-nav-item[data-page]').forEach(a => {
     const isAct = (a.dataset.page === page) ||
       (a.dataset.page === 'calendar' && (page === 'calendar' || page === 'reports')) ||
-      (a.dataset.page === 'bookings' && (page === 'dashboard' || page === 'bookings')) ||
+      (a.dataset.page === 'bookings' && page === 'bookings') ||
+      (a.dataset.page === 'dashboard' && page === 'dashboard') ||
       (a.dataset.page === 'flats' && (page === 'flats' || page === 'properties'));
     if (isAct) a.classList.add('active');
     else a.classList.remove('active');

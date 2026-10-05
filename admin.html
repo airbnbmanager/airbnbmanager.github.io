@@ -93,33 +93,74 @@
   <script src="js/employee-ledger.js?v=207"></script>
   <script src="js/analytics.js?v=200"></script>
   <script src="js/whatsapp-hub.js?v=235"></script>
+  <script src="js/nisha-ai.js?v=25"></script>
   <script src="js/showcase-admin.js"></script>
   <script src="js/command-palette.js?v=5"></script>
 
-  <!-- Automatic Cache & SW Cleaner (Guarantees Realtime Admin Code) -->
+  <!-- 📱 PWA Service Worker & Realtime Offline Sync -->
   <script>
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.getRegistrations().then(regs => {
-        for (let r of regs) {
-          r.unregister();
-          console.log('🧹 Stale SW unregistered');
-        }
-      });
-      if (window.caches) {
-        caches.keys().then(keys => {
-          for (let k of keys) caches.delete(k);
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js').then(reg => {
+          console.log('✅ UHHS PWA Service Worker active:', reg.scope);
+          // Check for SW updates
+          if (reg.waiting) reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+          reg.onupdatefound = () => {
+            const installing = reg.installing;
+            if (installing) {
+              installing.onstatechange = () => {
+                if (installing.state === 'installed' && navigator.serviceWorker.controller) {
+                  console.log('🔄 New PWA update available');
+                }
+              };
+            }
+          };
+        }).catch(err => {
+          console.warn('SW registration notice:', err.message);
         });
-      }
+      });
     }
+
     // Clean up stale dry-run localStorage keys
     ['uhhs_wa_automation_v1', 'uhhs_wa_automation_v2', 'uhhs_wa_automation_v3', 'uhhs_wa_automation_v4'].forEach(k => {
       try { localStorage.removeItem(k); } catch(e) {}
     });
   </script>
+
+  <!-- 📱 PWA Native Mobile Bottom Navigation Bar -->
+  <nav id="pwa-bottom-nav" class="pwa-bottom-nav">
+    <button type="button" class="pwa-nav-item active" data-page="dashboard" onclick="navigate('dashboard')">
+      <span class="pwa-nav-icon">📊</span>
+      <span class="pwa-nav-label">Home</span>
+    </button>
+    <button type="button" class="pwa-nav-item" data-page="bookings" onclick="navigate('bookings')">
+      <span class="pwa-nav-icon">📅</span>
+      <span class="pwa-nav-label">Bookings</span>
+    </button>
+    <button type="button" class="pwa-nav-item" data-page="calendar" onclick="navigate('calendar')">
+      <span class="pwa-nav-icon">📆</span>
+      <span class="pwa-nav-label">Calendar</span>
+    </button>
+    <button type="button" class="pwa-nav-item" data-page="expenses" onclick="navigate('expenses')">
+      <span class="pwa-nav-icon">💹</span>
+      <span class="pwa-nav-label">Expenses</span>
+    </button>
+    <button type="button" class="pwa-nav-item" data-page="store" onclick="navigate('store')">
+      <span class="pwa-nav-icon">📦</span>
+      <span class="pwa-nav-label">Store</span>
+    </button>
+    <button type="button" class="pwa-nav-item" data-page="alerts" onclick="if(window.notifications?.openPanel)window.notifications.openPanel();">
+      <span class="pwa-nav-icon">🔔</span>
+      <span class="pwa-nav-label">Alerts</span>
+      <span class="notif-bell-badge pwa-nav-badge" style="display:none;">0</span>
+    </button>
+  </nav>
+
   <!-- PWA Install Button -->
-  <div id="pwa-install-bar" style="display:none;position:fixed;bottom:20px;left:50%;transform:translateX(-50%);z-index:99999;background:#6C5CE0;color:white;padding:14px 28px;border-radius:50px;font-size:15px;font-weight:600;box-shadow:0 4px 20px rgba(0,0,0,0.3);cursor:pointer;align-items:center;gap:10px;font-family:sans-serif;">
-    📲 Install App
+  <div id="pwa-install-bar" style="display:none;position:fixed;bottom:75px;left:50%;transform:translateX(-50%);z-index:99999;background:linear-gradient(135deg, #4F46E5, #06B6D4);color:white;padding:12px 24px;border-radius:50px;font-size:14px;font-weight:700;box-shadow:0 8px 24px rgba(79,70,229,0.4);cursor:pointer;align-items:center;gap:8px;font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:0.3px;">
+    📲 Install UHHS App
   </div>
+
 
   <script>
     let deferredPrompt;

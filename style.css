@@ -7576,5 +7576,93 @@ textarea:focus {
   }
 }
 
+/* ═══════════════════════════════════════════════════════════
+   📱 PWA NATIVE MOBILE BOTTOM NAVIGATION & PUSH UI
+   ═══════════════════════════════════════════════════════════ */
+
+.pwa-bottom-nav {
+  display: none;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 64px;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-top: 1px solid #E2E8F0;
+  z-index: 99990;
+  justify-content: space-around;
+  align-items: center;
+  padding: 4px 6px calc(4px + env(safe-area-inset-bottom, 0px));
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.05);
+}
+
+.pwa-nav-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  outline: none;
+  cursor: pointer;
+  padding: 4px 2px;
+  color: #64748B;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  border-radius: 8px;
+}
+
+.pwa-nav-icon {
+  font-size: 20px;
+  line-height: 1;
+  margin-bottom: 2px;
+  transition: transform 0.2s ease;
+}
+
+.pwa-nav-label {
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+}
+
+.pwa-nav-item.active {
+  color: #4F46E5;
+}
+
+.pwa-nav-item.active .pwa-nav-icon {
+  transform: scale(1.15);
+}
+
+.pwa-nav-badge {
+  position: absolute;
+  top: 2px;
+  right: 22%;
+  min-width: 16px;
+  height: 16px;
+  background: #EF4444;
+  color: #FFFFFF;
+  font-size: 9.5px;
+  font-weight: 800;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 4px;
+  border: 1.5px solid #FFFFFF;
+}
+
+@media (max-width: 768px) {
+  .pwa-bottom-nav {
+    display: flex;
+  }
+  #app {
+    padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px)) !important;
+  }
+}
+
+
 
 

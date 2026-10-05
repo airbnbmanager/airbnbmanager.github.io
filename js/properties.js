@@ -32,7 +32,7 @@ async function renderManageRooms() {
     <div class="card">
       <div class="table-wrap"><table>
         <thead><tr>
-          <th>ID</th><th>Property</th><th>Nickname</th><th>Unit</th>
+          <th>ID</th><th>Property</th><th>Nickname</th><th>Unit</th><th>Rate / Night</th>
           <th>Contacts</th><th>Lock</th><th>Map Pin</th><th>Status</th>
           ${isO ? '<th>Actions</th>' : ''}
         </tr></thead>
@@ -48,6 +48,7 @@ async function renderManageRooms() {
             <td style="max-width:200px;font-size:12px;">${r.property_name || '-'}</td>
             <td>${propLabel(r) || '-'}</td>
             <td>${r.unit_no || '-'}</td>
+            <td><strong style="color:#059669;font-size:13px;">₹${Number(r.rent_per_night || 0).toLocaleString('en-IN')}</strong><br><small style="color:var(--muted);">/night</small></td>
             <td style="font-size:12px;">
               <strong>Caretaker:</strong> ${careName}
               ${carePhone ? `<br><small>📞 ${carePhone}</small>` : ''}
@@ -109,7 +110,14 @@ function roomFormFields(r = {}, emps = []) {
       <div class="form-group"><label>Floor</label><input id="floor" value="${r.floor || ''}" placeholder="1st, 2nd, ALL" /></div>
     </div>
     <div class="form-grid">
+      <div class="form-group">
+        <label>💰 Rent per Night (₹) *</label>
+        <input id="rentPerNight" type="number" step="100" min="500" value="${r.rent_per_night || ''}" placeholder="e.g. 4500" style="font-weight:700;color:#059669;" />
+        <small style="color:#666;font-size:11px;">Official rate for website &amp; CRM bookings</small>
+      </div>
       <div class="form-group"><label>Max Guests</label><input id="maxGuests" type="number" value="${r.max_guests || ''}" /></div>
+    </div>
+    <div class="form-grid">
       <div class="form-group"><label>Building Name</label><input id="buildingName" value="${r.building_name || ''}" placeholder="e.g. Mehadi Park" /></div>
     </div>
 
@@ -236,6 +244,7 @@ function collectRoomForm() {
     address: document.getElementById('address').value.trim() || null,
     unit_type: document.getElementById('unitType').value,
     unit_no: document.getElementById('unitNo').value.trim(),
+    rent_per_night: parseFloat(document.getElementById('rentPerNight')?.value) || null,
     floor: document.getElementById('floor').value.trim() || null,
     nickname: document.getElementById('nickname').value.trim() || null,
     max_guests: parseInt(document.getElementById('maxGuests').value) || null,

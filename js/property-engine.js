@@ -254,6 +254,7 @@
             }
             this.renderLocationSection();
             this.renderBookingCard();
+            this.renderMobileBar();
           }
         }
       } catch (err) {

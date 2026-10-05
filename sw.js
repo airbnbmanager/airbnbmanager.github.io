@@ -139,3 +139,80 @@ self.addEventListener('fetch', event => {
     })
   );
 });
+
+// ═══════════════════════════════════════════════════════════
+// 🔔 PWA NATIVE PUSH & NOTIFICATION HANDLING
+// ═══════════════════════════════════════════════════════════
+
+self.addEventListener('push', event => {
+  let data = {};
+  if (event.data) {
+    try {
+      data = event.data.json();
+    } catch(e) {
+      data = { title: 'UHHS Alert', body: event.data.text() };
+    }
+  }
+
+  const title = data.title || 'The Unique Haven Homes';
+  const options = {
+    body: data.body || data.message || 'New update from UHHS CRM',
+    icon: data.icon || '/assets/icon-192.png',
+    badge: '/assets/logo.png',
+    tag: data.tag || ('uhhs-notif-' + Date.now()),
+    data: data,
+    vibrate: [100, 50, 100],
+    requireInteraction: true,
+    actions: [
+      { action: 'open', title: 'Open UHHS' },
+      { action: 'dismiss', title: 'Dismiss' }
+    ]
+  };
+
+  event.waitUntil(self.registration.showNotification(title, options));
+});
+
+self.addEventListener('notificationclick', event => {
+  event.notification.close();
+  const d = event.notification.data || {};
+  let targetUrl = '/admin.html';
+  if (d.page === 'bookings' || d.entityType === 'booking') {
+    targetUrl = '/admin.html#bookings';
+  } else if (d.page === 'store') {
+    targetUrl = '/admin.html#store';
+  } else if (d.page === 'expenses') {
+    targetUrl = '/admin.html#expenses';
+  }
+
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(clientList => {
+      for (const client of clientList) {
+        if (client.url.includes('admin.html') && 'focus' in client) {
+          if (d.entityId) {
+            client.postMessage({ type: 'OPEN_NOTIFICATION_TARGET', data: d });
+          }
+          return client.focus();
+        }
+      }
+      if (self.clients.openWindow) {
+        return self.clients.openWindow(targetUrl);
+      }
+    })
+  );
+});
+
+self.addEventListener('message', event => {
+  if (event.data && event.data.type === 'SHOW_NATIVE_NOTIF') {
+    const n = event.data.payload || {};
+    self.registration.showNotification(n.title || 'The Unique Haven Homes', {
+      body: n.body || n.message || '',
+      icon: n.icon || '/assets/icon-192.png',
+      badge: '/assets/logo.png',
+      tag: n.tag || ('uhhs-' + Date.now()),
+      data: n,
+      vibrate: [100, 50, 100],
+      requireInteraction: false
+    });
+  }
+});
+

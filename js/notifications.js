@@ -258,11 +258,148 @@
     setTimeout(dismiss, 6800);
   }
 
+  // ─── Native Web Push Notifications (PWA Native Notification API) ───
+  async function showNativeNotification(cfg) {
+    if (!('Notification' in window)) return;
+    if (Notification.permission !== 'granted') return;
+
+    const title = cfg.title || 'The Unique Haven Homes';
+    const body = (cfg.message || '') + (cfg.sub ? ` • ${cfg.sub}` : '');
+    const tag = 'uhhs-' + (cfg.entityId || Date.now());
+
+    const options = {
+      body: body,
+      icon: '/assets/icon-192.png',
+      badge: '/assets/logo.png',
+      tag: tag,
+      renotify: true,
+      vibrate: [100, 50, 100],
+      data: {
+        page: cfg.page,
+        entityId: cfg.entityId,
+        entityType: cfg.entityType
+      }
+    };
+
+    // 1. Try Service Worker showNotification (works on mobile Android/PWA)
+    try {
+      if ('serviceWorker' in navigator) {
+        const reg = await navigator.serviceWorker.ready;
+        if (reg && reg.showNotification) {
+          await reg.showNotification(title, options);
+          return;
+        }
+      }
+    } catch(e) {
+      console.warn('SW notification fallback to Notification object:', e);
+    }
+
+    // 2. Direct Window Notification fallback
+    try {
+      const n = new Notification(title, options);
+      n.onclick = () => {
+        window.focus();
+        if (typeof window.openNotificationTarget === 'function') {
+          window.openNotificationTarget(cfg);
+        } else if (cfg.page && typeof navigate === 'function') {
+          navigate(cfg.page);
+        }
+        n.close();
+      };
+    } catch(e) {
+      console.warn('Native notification failed:', e);
+    }
+  }
+
+  async function requestPushPermission() {
+    if (!('Notification' in window)) {
+      if (window.fsn) fsn.info('Notice', 'Web Push notifications are not supported in this browser.');
+      return false;
+    }
+    if (Notification.permission === 'granted') {
+      if (window.fsn) fsn.success('Push Active', '🔔 Mobile push notifications are already enabled!');
+      // Show test notification
+      showNativeNotification({
+        title: '🔔 UHHS Notifications Active',
+        message: 'You will receive real-time alerts for New Bookings, Check-ins & Low Stock!',
+        page: 'bookings'
+      });
+      return true;
+    }
+    try {
+      const perm = await Notification.requestPermission();
+      if (perm === 'granted') {
+        if (window.fsn) fsn.success('Enabled', '✅ Push notifications enabled for UHHS!');
+        showNativeNotification({
+          title: '🔔 UHHS Mobile Alerts Enabled',
+          message: 'Real-time alerts will now pop up on your device screen.',
+          page: 'bookings'
+        });
+        return true;
+      } else {
+        if (window.fsn) fsn.info('Permission Denied', 'Please allow notifications in your browser settings to receive mobile alerts.');
+        return false;
+      }
+    } catch(e) {
+      console.warn('requestPermission error:', e);
+      return false;
+    }
+  }
+
+  // ─── Inventory Low Stock Check ───
+  async function checkLowInventoryAlert() {
+    if (!window.sb) return;
+    try {
+      const [{ data: items }, { data: txns }] = await Promise.all([
+        sb.from('store_items').select('*'),
+        sb.from('stock_transactions').select('item_id, txn_type, quantity')
+      ]);
+      if (!items || !items.length) return;
+
+      const stockMap = {};
+      (txns || []).forEach(t => {
+        stockMap[t.item_id] = (stockMap[t.item_id] || 0) + (t.txn_type === 'In' ? (t.quantity || 0) : -(t.quantity || 0));
+      });
+
+      const notifKey = 'uhhs_notified_low_inventory';
+      let notifiedMap = {};
+      try { notifiedMap = JSON.parse(localStorage.getItem(notifKey) || '{}'); } catch(e){}
+      const now = Date.now();
+
+      items.forEach(item => {
+        const stock = stockMap[item.item_id] || 0;
+        const reorderLevel = Number(item.reorder_level) || 5;
+        if (stock <= reorderLevel) {
+          const last = notifiedMap[item.item_id];
+          // Alert if stock decreased or haven't alerted in 4 hours
+          if (!last || last.stock !== stock || (now - last.time > 4 * 3600 * 1000)) {
+            notifiedMap[item.item_id] = { stock, time: now };
+            notify({
+              type: 'task',
+              icon: '⚠️',
+              title: `⚠️ Inventory Low: ${item.item_name} < ${reorderLevel} left`,
+              message: `Current stock: ${stock} ${item.unit || 'pcs'} (Reorder level: ${reorderLevel})`,
+              sub: 'Tap to view Inventory & Stock In',
+              page: 'store',
+              sound: 'task',
+              entityId: item.item_id,
+              entityType: 'store'
+            });
+          }
+        }
+      });
+      localStorage.setItem(notifKey, JSON.stringify(notifiedMap));
+    } catch(err) {
+      console.warn('Inventory alert check error:', err);
+    }
+  }
+
   function notify(cfg) {
     saveHist(cfg);
     showToast(cfg);
     playSound(cfg.sound || cfg.type);
     vibrate([50, 30, 50]);
+    showNativeNotification(cfg);
   }
 
   // ─── Bell Panel ───
@@ -324,10 +461,13 @@
     o.innerHTML = `
       <div class="notif-panel">
         <div class="notif-panel-header">
-          <div style="display:flex;align-items:center;gap:10px;">
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
             <h3 style="margin:0;font-size:16px;font-weight:800;">🔔 Notifications</h3>
             <button type="button" id="notifMuteToggle" title="Toggle sound alerts" style="background:${NOTIF.isMuted ? '#FEE2E2' : '#F1F5F9'};border:1px solid #CBD5E1;border-radius:20px;padding:3px 10px;font-size:11px;font-weight:700;cursor:pointer;color:${NOTIF.isMuted ? '#DC2626' : '#334155'};display:inline-flex;align-items:center;gap:4px;">
               ${NOTIF.isMuted ? '🔇 Muted' : '🔊 Sound ON'}
+            </button>
+            <button type="button" onclick="window.notifications.requestPushPermission()" title="Enable OS / Mobile Push Alerts" style="background:#EEF2FF;border:1px solid #C7D2FE;border-radius:20px;padding:3px 10px;font-size:11px;font-weight:700;cursor:pointer;color:#4F46E5;display:inline-flex;align-items:center;gap:4px;">
+              📲 Push Alerts
             </button>
           </div>
           <button class="notif-panel-close">×</button>
@@ -491,13 +631,28 @@
             const { data: r } = await sb.from('rooms').select('nickname, unit_no').eq('room_id', b.room_id).single();
             if (r) roomName = (r.nickname || '') + (r.unit_no ? ' (' + r.unit_no + ')' : '');
           } catch(e) {}
+          const modeStr = String(b.booking_mode || '').toLowerCase();
+          const sourceStr = String(b.booked_by || '').toLowerCase();
+          const isAirbnb = modeStr.includes('airbnb') || sourceStr.includes('airbnb');
           const isWeb = b.booked_by === 'Website' || b.booking_mode === 'Direct-Website' || b.verification_status === 'pending';
+          const totalFormatted = Number(b.total_amount || 0).toLocaleString('en-IN');
+
+          let notifTitle = `📅 New Booking: ${roomName} (₹${totalFormatted})`;
+          let notifIcon = '📅';
+          if (isAirbnb) {
+            notifTitle = `🚨 New Airbnb Booking: ${roomName} (₹${totalFormatted})`;
+            notifIcon = '🚨';
+          } else if (isWeb) {
+            notifTitle = `🌐 New Website Booking: ${roomName} (₹${totalFormatted})`;
+            notifIcon = '🌐';
+          }
+
           notify({
             type: 'booking',
-            icon: isWeb ? '🌐' : '📅',
-            title: isWeb ? '🌐 New Website Booking!' : 'New Booking!',
+            icon: notifIcon,
+            title: notifTitle,
             message: (b.guest_name || 'Guest') + ' — ' + roomName,
-            sub: 'Check-in: ' + (b.check_in || '-') + ' • ₹' + (b.total_amount || 0) + (isWeb ? ' • Awaiting Approval' : ''),
+            sub: 'Check-in: ' + (b.check_in || '-') + ' • ₹' + totalFormatted + (isWeb ? ' • Awaiting Approval' : ''),
             page: isWeb ? 'pendingApprovals' : 'bookings',
             sound: 'booking',
             entityId: b.booking_id,
@@ -561,11 +716,18 @@
         { event: 'UPDATE', schema: 'public', table: 'guest_register' },
         (payload) => {
           const o = payload.old, n = payload.new;
+          let rName = n.room_id || 'Homestay';
+          try {
+            const { data: r } = await sb.from('rooms').select('nickname, unit_no').eq('room_id', n.room_id).single();
+            if (r) rName = (r.nickname || '') + (r.unit_no ? ' (' + r.unit_no + ')' : '');
+          } catch(e) {}
+
           if (!o.check_in_time && n.check_in_time) {
             notify({
               type: 'checkin', icon: '✅',
-              title: 'Guest Checked In',
-              message: n.guest_name || 'Guest',
+              title: `✅ Guest Checked-in: ${n.guest_name || 'Guest'} (${rName})`,
+              message: `${n.guest_name || 'Guest'} is now checked-in at ${rName}`,
+              sub: `Check-in time: ${new Date(n.check_in_time).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}`,
               page: 'bookings', sound: 'checkin',
               entityId: n.booking_id,
               entityType: 'booking'
@@ -574,8 +736,9 @@
           if (!o.check_out_time && n.check_out_time) {
             notify({
               type: 'checkout', icon: '📤',
-              title: 'Guest Checked Out',
-              message: n.guest_name || 'Guest',
+              title: `📤 Guest Checked-out: ${n.guest_name || 'Guest'} (${rName})`,
+              message: `${n.guest_name || 'Guest'} departed from ${rName}. Ready for turnover.`,
+              sub: `Check-out time: ${new Date(n.check_out_time).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}`,
               page: 'bookings', sound: 'checkout',
               entityId: n.booking_id,
               entityType: 'booking'
@@ -584,9 +747,22 @@
         })
       .subscribe((s) => console.log('🔔 Updates channel:', s));
 
-    NOTIF.channels = [c1, c2, c3, c4];
+    // 5. Stock / Inventory Transactions (Auto-detect Low Stock in Real-time)
+    const c5 = sb.channel('rt-stock-' + Date.now())
+      .on('postgres_changes',
+        { event: '*', schema: 'public', table: 'stock_transactions' },
+        () => {
+          console.log('📦 Stock transaction detected, checking inventory...');
+          setTimeout(checkLowInventoryAlert, 1500);
+        })
+      .subscribe((s) => console.log('🔔 Stock channel:', s));
+
+    NOTIF.channels = [c1, c2, c3, c4, c5];
     NOTIF.started = true;
     console.log('🔔 Started', NOTIF.channels.length, 'channels');
+
+    // Run initial low inventory check on startup
+    setTimeout(checkLowInventoryAlert, 3000);
     return true;
   }
 
@@ -597,10 +773,13 @@
     openPanel: openPanel,
     notify: notify,
     updateBadge: updateBadge,
+    requestPushPermission: requestPushPermission,
+    checkLowInventory: checkLowInventoryAlert,
     history: () => NOTIF.history
   };
   window.notify = notify;
   window.showToast = showToast;
+  window.requestPushPermission = requestPushPermission;
 
   // Auto-start when session ready
   let tries = 0;
