@@ -57,6 +57,133 @@ function setLocalODDeposits(list) {
     } catch (e) {}
 }
 
+function normalizePaymentSource(src) {
+    if (!src) return '';
+    const s = String(src).trim().toUpperCase();
+    if (s.includes('OD') || s.includes('UHHS') || s.includes('TUHH')) return 'UHHS-OD';
+    return src;
+}
+
+function extractSecurityDeposit(b) {
+    if (!b) return null;
+    if (typeof window !== 'undefined' && typeof window.getSecurityDeposit === 'function') {
+        const sec = window.getSecurityDeposit(b);
+        if (sec && (sec.amount > 0 || (sec.status && sec.status !== 'none'))) return sec;
+    }
+    if (b.security_deposit_amount != null || b.security_deposit_status) {
+        const amt = parseFloat(b.security_deposit_amount) || 0;
+        const st = b.security_deposit_status || (amt > 0 ? 'collected' : 'none');
+        if (amt > 0 || (st && st !== 'none')) {
+            return {
+                amount: amt,
+                status: st,
+                mode: b.security_deposit_mode || 'UPI',
+                receivedBy: b.security_deposit_received_by || '',
+                receivedDate: b.security_deposit_received_date || '',
+                refundDate: b.security_deposit_refund_date || '',
+                refundAmount: parseFloat(b.security_deposit_refund_amount) || 0,
+                refundMode: b.security_deposit_refund_mode || 'UPI',
+                refundedBy: b.security_deposit_refunded_by || '',
+                deductedAmount: parseFloat(b.security_deposit_deducted_amount) || 0,
+                deductionReason: b.security_deposit_deduction_reason || '',
+                notes: b.security_deposit_notes || ''
+            };
+        }
+    }
+    if (b.notes && b.notes.includes('[SECURITY_DEPOSIT:')) {
+        try {
+            const match = b.notes.match(/\[SECURITY_DEPOSIT:(.*?)\]/);
+            if (match && match[1]) {
+                const p = JSON.parse(match[1]);
+                return {
+                    amount: parseFloat(p.amount) || 0,
+                    status: p.status || (parseFloat(p.amount) > 0 ? 'collected' : 'none'),
+                    mode: p.mode || 'UPI',
+                    receivedBy: p.receivedBy || '',
+                    receivedDate: p.receivedDate || '',
+                    refundDate: p.refundDate || '',
+                    refundAmount: parseFloat(p.refundAmount) || 0,
+                    refundMode: p.refundMode || 'UPI',
+                    refundedBy: p.refundedBy || '',
+                    deductedAmount: parseFloat(p.deductedAmount) || 0,
+                    deductionReason: p.deductionReason || '',
+                    notes: p.notes || ''
+                };
+            }
+        } catch (e) {}
+    }
+    return null;
+}
+
+let _hasNativeSecDepCols = null;
+
+async function fetchRawSecurityDepositBookings(client) {
+    if (!client) return [];
+    try {
+        if (_hasNativeSecDepCols !== false) {
+            try {
+                const { data, error } = await client.from('guest_register')
+                    .select('booking_id, guest_name, room_id, check_in, check_out, notes, security_deposit_amount, security_deposit_status, security_deposit_mode, security_deposit_received_by, security_deposit_received_date, security_deposit_refund_date, security_deposit_refund_amount, security_deposit_refund_mode, security_deposit_refunded_by, security_deposit_deducted_amount, rooms(nickname, unit_no)')
+                    .or('security_deposit_received_by.ilike.%OD%,security_deposit_received_by.ilike.%UHHS%,security_deposit_received_by.ilike.%TUHH%,security_deposit_refunded_by.ilike.%OD%,security_deposit_refunded_by.ilike.%UHHS%,security_deposit_refunded_by.ilike.%TUHH%,notes.ilike.%[SECURITY_DEPOSIT:%');
+                if (!error && Array.isArray(data)) {
+                    _hasNativeSecDepCols = true;
+                    return data;
+                }
+                _hasNativeSecDepCols = false;
+            } catch (e) {
+                _hasNativeSecDepCols = false;
+            }
+        }
+        const { data: fbData, error: fbErr } = await client.from('guest_register')
+            .select('booking_id, guest_name, room_id, check_in, check_out, notes, rooms(nickname, unit_no)')
+            .ilike('notes', '%[SECURITY_DEPOSIT:%');
+        if (!fbErr && Array.isArray(fbData)) {
+            return fbData;
+        }
+    } catch (e) {
+        console.warn('Error fetching security deposit bookings:', e);
+    }
+    return [];
+}
+
+async function getODSecurityRefunds(client, startDate, endDate) {
+    if (!client) return [];
+    try {
+        const secBookings = await fetchRawSecurityDepositBookings(client);
+        const refunds = [];
+        secBookings.forEach(b => {
+            const sec = extractSecurityDeposit(b);
+            if (!sec) return;
+            const refAmt = parseFloat(sec.refundAmount || 0);
+            const isODRef = normalizePaymentSource(sec.refundedBy) === 'UHHS-OD';
+            if (refAmt > 0 && isODRef) {
+                const refDate = sec.refundDate || b.check_out || '';
+                if (startDate && refDate && refDate < startDate) return;
+                if (endDate && refDate && refDate > endDate) return;
+
+                const guestName = b.guest_name || 'Guest';
+                const r = b.rooms;
+                const roomStr = r ? (r.nickname ? `${r.nickname} (${r.unit_no || ''})` : (r.unit_no || '')) : '';
+                const desc = `🛡️ Security Deposit Refund: ${guestName}${roomStr ? ' - ' + roomStr : ''} [Booking #${b.booking_id}]`;
+
+                refunds.push({
+                    id: 'sec_ref_' + b.booking_id,
+                    booking_id: b.booking_id,
+                    date: refDate,
+                    desc: desc,
+                    amount: refAmt,
+                    mode: sec.refundMode || 'UPI',
+                    created_at: refDate
+                });
+            }
+        });
+        return refunds;
+    } catch (e) {
+        console.warn('UHHS-OD security refund read error:', e.message);
+        return [];
+    }
+}
+
 // Default baseline reconciliation & settlement entries
 const BASELINE_OD_ENTRIES = [
     {
@@ -149,6 +276,47 @@ async function getAllODDeposits(supabaseClient, startDate = '2026-09-17', endDat
             console.warn('UHHS-OD payment_history auto-sync read error:', e.message);
         }
 
+        // 2c. Auto-synced Guest Security Deposits directly received into UHHS-OD
+        try {
+            const secBookings = await fetchRawSecurityDepositBookings(client);
+            secBookings.forEach(b => {
+                const sec = extractSecurityDeposit(b);
+                if (!sec) return;
+                const isCollected = sec.amount > 0 && ['collected', 'refunded', 'partially_refunded', 'retained'].includes(sec.status);
+                const isODReceived = normalizePaymentSource(sec.receivedBy) === 'UHHS-OD';
+
+                if (isCollected && isODReceived) {
+                    const txDate = sec.receivedDate || b.check_in || '';
+                    if (startDate && txDate && txDate < startDate) return;
+                    if (endDate && txDate && txDate > endDate) return;
+
+                    const uniqueKey = 'sec_dep_' + b.booking_id;
+                    const guestName = b.guest_name || 'Guest';
+                    const r = b.rooms;
+                    const roomStr = r ? (r.nickname ? `${r.nickname} (${r.unit_no || ''})` : (r.unit_no || '')) : '';
+                    const desc = `🛡️ Security Deposit: ${guestName}${roomStr ? ' - ' + roomStr : ''} [Booking #${b.booking_id || ''}]`;
+
+                    itemsMap.set(uniqueKey, {
+                        id: uniqueKey,
+                        db_id: b.booking_id,
+                        booking_id: b.booking_id,
+                        source_table: 'guest_register_security_deposit',
+                        transaction_date: txDate,
+                        description: desc,
+                        amount: parseFloat(sec.amount || 0),
+                        transaction_type: 'INFLOW',
+                        payment_mode: sec.mode || 'UPI',
+                        received_from: guestName,
+                        reference_note: sec.notes || `Security Deposit Booking #${b.booking_id}`,
+                        created_at: txDate,
+                        isSecurityDeposit: true
+                    });
+                }
+            });
+        } catch (e) {
+            console.warn('UHHS-OD security deposit auto-sync read error:', e.message);
+        }
+
         // 3. Historical account_transactions prior to 2026-09-17
         try {
             if (!startDate || startDate <= '2026-09-16') {
@@ -195,13 +363,6 @@ async function getLedgerData(supabaseClient, customStartDate, customEndDate) {
     const startDate = customStartDate || CHECKPOINT_START;
     const endDate = customEndDate || null;
 
-    function normalizePaymentSource(src) {
-        if (!src) return '';
-        const s = String(src).trim().toUpperCase();
-        if (s.includes('OD') || s.includes('UHHS') || s.includes('TUHH')) return 'UHHS-OD';
-        return src;
-    }
-
     // ─── 0. CALCULATE OPENING BALANCE B/F (If startDate is after Checkpoint 17-Sep) ───
     let openingBalance = 0;
     let openingInflow = 0;
@@ -218,13 +379,15 @@ async function getLedgerData(supabaseClient, customStartDate, customEndDate) {
             { data: pMaints },
             { data: pLaunds },
             { data: pAdvs },
-            { data: pReturns }
+            { data: pReturns },
+            pSecRefunds
         ] = await Promise.all([
             client.from('reimbursements').select('*').gte('expense_date', CHECKPOINT_START).lte('expense_date', dayBefore),
             client.from('maintenance_log').select('*').gte('reported_date', CHECKPOINT_START).lte('reported_date', dayBefore),
             client.from('laundry_payments').select('*').gte('payment_date', CHECKPOINT_START).lte('payment_date', dayBefore),
             client.from('advance_tracker').select('*').gte('date_given', CHECKPOINT_START).lte('date_given', dayBefore),
-            client.from('company_advances').select('*').or('given_by.eq.UHHS-OD,status.eq.Returned,status.eq.Handover').gte('advance_date', CHECKPOINT_START).lte('advance_date', dayBefore)
+            client.from('company_advances').select('*').or('given_by.eq.UHHS-OD,status.eq.Returned,status.eq.Handover').gte('advance_date', CHECKPOINT_START).lte('advance_date', dayBefore),
+            getODSecurityRefunds(client, CHECKPOINT_START, dayBefore)
         ]);
 
         const seenPrior = new Set();
@@ -251,6 +414,9 @@ async function getLedgerData(supabaseClient, customStartDate, customEndDate) {
         (pReturns || []).forEach(r => {
             openingOutflow += parseFloat(r.amount_given || 0);
         });
+        (pSecRefunds || []).forEach(sr => {
+            openingOutflow += parseFloat(sr.amount || 0);
+        });
 
         openingBalance = openingInflow - openingOutflow;
     }
@@ -273,8 +439,8 @@ async function getLedgerData(supabaseClient, customStartDate, customEndDate) {
     let qReturns = client.from('company_advances').select('*').or('given_by.eq.UHHS-OD,status.eq.Returned,status.eq.Handover').gte('advance_date', startDate);
     if (endDate) qReturns = qReturns.lte('advance_date', endDate);
 
-    const [{ data: exps }, { data: maints }, { data: launds }, { data: allAdvs }, { data: returns }] = await Promise.all([
-        qReimb, qMaint, qLaund, qAdv, qReturns
+    const [{ data: exps }, { data: maints }, { data: launds }, { data: allAdvs }, { data: returns }, secRefunds] = await Promise.all([
+        qReimb, qMaint, qLaund, qAdv, qReturns, getODSecurityRefunds(client, startDate, endDate)
     ]);
 
     const txns = [];
@@ -289,12 +455,14 @@ async function getLedgerData(supabaseClient, customStartDate, customEndDate) {
         txns.push({
             id: d.id,
             db_id: d.db_id,
+            booking_id: d.booking_id,
             source_table: d.source_table || 'company_advances',
             date: d.transaction_date,
             type: 'DEPOSIT',
             desc: d.description || `Funds added by ${d.received_from || 'Firoz'} via ${d.payment_mode || 'UPI'}`,
             amount: parseFloat(d.amount || 0),
-            isDep: true
+            isDep: true,
+            isSecurityDeposit: !!d.isSecurityDeposit
         });
     });
 
@@ -368,6 +536,22 @@ async function getLedgerData(supabaseClient, customStartDate, customEndDate) {
             amount: parseFloat(r.amount_given || 0),
             isDep: false,
             isReturn: true
+        });
+    });
+
+    // Security Deposit Refunds to Guests from UHHS-OD (-)
+    (secRefunds || []).forEach(sr => {
+        txns.push({
+            id: sr.id,
+            db_id: sr.booking_id,
+            booking_id: sr.booking_id,
+            source: 'guest_register_security_refund',
+            date: sr.date,
+            type: 'EXPENSE',
+            desc: sr.desc,
+            amount: parseFloat(sr.amount || 0),
+            isDep: false,
+            isSecurityRefund: true
         });
     });
 
@@ -774,6 +958,16 @@ window.cbEditODDeposit = async function(id) {
     const client = window.sb || window.supabaseClient || window.supabase;
     let d = null;
 
+    if (String(id).startsWith('sec_dep_') || String(id).startsWith('sec_ref_')) {
+        const bkId = String(id).replace('sec_dep_', '').replace('sec_ref_', '');
+        if (typeof window.showSecurityDepositModal === 'function') {
+            window.showSecurityDepositModal(bkId);
+        } else {
+            alert('ℹ️ This is an auto-synced Guest Security Deposit. You can manage or refund this deposit directly in the Bookings manager.');
+        }
+        return;
+    }
+
     if (String(id).startsWith('pay_')) {
         alert('ℹ️ This is an auto-synced Guest Booking Payment. Any changes to this payment or booking (or deleting the booking) in the Bookings manager will automatically sync with UHHS-OD.');
         return;
@@ -935,6 +1129,14 @@ window.cbSaveODEditDeposit = async function(id) {
 };
 
 window.cbDeleteODDeposit = async function(id) {
+    if (String(id).startsWith('sec_dep_') || String(id).startsWith('sec_ref_')) {
+        alert('ℹ️ This is an auto-synced Guest Security Deposit. To edit, refund or remove this deposit, update the booking in the Bookings manager.');
+        return;
+    }
+    if (String(id).startsWith('pay_')) {
+        alert('ℹ️ This is an auto-synced Guest Booking Payment. To delete or edit this payment, update the booking in the Bookings manager.');
+        return;
+    }
     if (!confirm('🗑️ Delete this deposit entry? This cannot be undone.')) return;
     const client = window.sb || window.supabaseClient || window.supabase;
 
@@ -975,5 +1177,15 @@ window.cbBulkHandoverAllModal = window.cbBulkHandoverAllModal || function() {
         alert('🤝 Cash Handover action initialized.');
     }
 };
+
+// Auto-refresh OD balance on cross-module data changes
+if (typeof window !== 'undefined' && typeof window.addEventListener === 'function') {
+    window.addEventListener('uhhs:dataChanged', () => {
+        const client = window.sb || window.supabaseClient || window.supabase;
+        if (client && window.UHHSODManager && typeof window.UHHSODManager.calculateBalance === 'function') {
+            window.UHHSODManager.calculateBalance(client);
+        }
+    });
+}
 
 console.log("✅ UHHS-OD Global Manager loaded & Global Modals Attached!");

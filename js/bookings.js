@@ -4078,6 +4078,8 @@ async function saveBooking() {
 
     window._rebookedGuestData = null;
     renderManageBookings();
+    if (window.UHHSODManager && window.UHHSODManager.calculateBalance) window.UHHSODManager.calculateBalance();
+    if (typeof window.notifyDataChanged === 'function') window.notifyDataChanged();
 
   } catch (err) {
     document.getElementById('addBkErr').innerHTML = `<div class="error">${err.message || err}</div>`;
@@ -8256,6 +8258,8 @@ window.submitSecurityCollection = async function(bkId) {
   if (window.fsn) fsn.success('Saved', '✅ Security Deposit details updated');
   document.querySelector('.modal-overlay')?.remove();
   if (window.renderManageBookings) renderManageBookings();
+  if (window.UHHSODManager && window.UHHSODManager.calculateBalance) window.UHHSODManager.calculateBalance();
+  if (typeof window.notifyDataChanged === 'function') window.notifyDataChanged();
 };
 
 window.submitSecurityRefund = async function(bkId) {
@@ -8302,5 +8306,7 @@ window.submitSecurityRefund = async function(bkId) {
   if (window.fsn) fsn.success('Refunded', '✅ Security Deposit refund & settlement saved');
   document.querySelector('.modal-overlay')?.remove();
   if (window.renderManageBookings) renderManageBookings();
+  if (window.UHHSODManager && window.UHHSODManager.calculateBalance) window.UHHSODManager.calculateBalance();
+  if (typeof window.notifyDataChanged === 'function') window.notifyDataChanged();
 };
 

@@ -994,13 +994,15 @@ window.showUhhsStatementModal = async function() {
                     <td style="padding:8px;">${t.desc}</td>
                     <td style="padding:8px;text-align:right;font-weight:700;color:${t.isDep?'#15803D':'#B91C1C'};white-space:nowrap;">${t.isDep ? '+' : '-'}₹${t.amount.toLocaleString('en-IN')}</td>
                     <td style="padding:8px;text-align:center;white-space:nowrap;">
-                      ${t.isDep ? `
+                      ${(t.isSecurityDeposit || t.isSecurityRefund) && t.booking_id ? `
+                        <button onclick="window.showSecurityDepositModal('${t.booking_id}')" class="btn-sm" style="background:#0284C7;color:#fff;padding:3px 8px;font-size:10px;border:none;border-radius:4px;cursor:pointer;" title="Manage Security Deposit">🛡️ Manage</button>
+                      ` : (t.isDep ? `
                         <button onclick="window.cbEditODDeposit('${t.id}')" class="btn-sm" style="background:#3B82F6;color:#fff;padding:3px 8px;font-size:10px;border:none;border-radius:4px;cursor:pointer;margin-right:4px;">✏️ Edit</button>
                         <button onclick="window.cbDeleteODDeposit('${t.id}')" class="btn-sm" style="background:#DC2626;color:#fff;padding:3px 8px;font-size:10px;border:none;border-radius:4px;cursor:pointer;">🗑️ Delete</button>
                       ` : (t.source === 'reimbursements' && t.id ? `
                         <button onclick="window.openReimbursementEditModal('${t.id}')" class="btn-sm" style="background:#3B82F6;color:#fff;padding:3px 8px;font-size:10px;border:none;border-radius:4px;cursor:pointer;margin-right:4px;" title="Edit Daily Expense">✏️ Edit</button>
                         <button onclick="window.deleteReimbursementFromLedger('${t.id}')" class="btn-sm" style="background:#DC2626;color:#fff;padding:3px 8px;font-size:10px;border:none;border-radius:4px;cursor:pointer;" title="Delete Daily Expense">🗑️ Delete</button>
-                      ` : '<span style="color:#94A3B8;font-size:11px;">Auto</span>')}
+                      ` : '<span style="color:#94A3B8;font-size:11px;">Auto</span>'))}
                     </td>
                   </tr>
                 `).join('')}
