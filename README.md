@@ -115,3 +115,20 @@ Supabase → **Table Editor** → har table kholo → upar-right **Export → CS
 - Guest/Investor ke liye WhatsApp-friendly printable slip
 - Bulk data import (Excel se seedha upload)
 - Automatic monthly salary generation
+
+---
+
+## 📁 Repository Directory Structure
+
+```text
+├── / (Root)                  # GitHub Pages web entry points (index.html, admin.html, billing.html, property pages)
+├── assets/                   # Static branding, logo crests, icons, property image assets
+├── css/                      # Modular stylesheets (mobile-fixes.css, properties-directory.css, property-luxe.css)
+├── docs/                     # Project documentation, guides, Notion directories, voice setup
+├── js/                       # Client frontend logic modules (bookings, claims, calendar, core, etc.)
+├── scratch/                  # Temporary debug dumps & offline scratch files (gitignored)
+├── scripts/                  # Data migration scripts, PowerShell utilities, Instagram automation, photo sync
+├── sql/                      # Supabase database schemas, migration queries, RLS policies
+├── supabase/                 # Supabase CLI config and edge functions
+└── whatsapp-bot/             # WhatsApp automation service & integration bot
+```
