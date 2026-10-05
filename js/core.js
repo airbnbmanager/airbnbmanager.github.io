@@ -1002,9 +1002,9 @@ function renderShell(content, activePage = 'dashboard') {
 
   const PAGE_TITLES = {
     dashboard: { title: 'Dashboard', sub: 'Overview & Key Performance Indicators', icon: '🏠' },
-    reports: { title: 'Calendar & Bookings', sub: 'Room reservations timeline', icon: '📆' },
-    calendar: { title: 'Calendar & Bookings', sub: 'Room reservations timeline', icon: '📆' },
-    bookings: { title: 'Bookings Management', sub: 'Guest check-ins, check-outs & payments', icon: '📅' },
+    reports: { title: 'Calendar & Bookings', sub: 'Room reservations timeline', icon: '📅' },
+    calendar: { title: 'Calendar & Bookings', sub: 'Room reservations timeline', icon: '📅' },
+    bookings: { title: 'Bookings Management', sub: 'Guest check-ins, check-outs & payments', icon: '🛎' },
     flats: { title: 'Flats & Housekeeping', sub: 'Room readiness, cleaning & maintenance', icon: '🛏️' },
     shifts: { title: 'Property Shifts', sub: 'Extended stays & room changeovers', icon: '🔄' },
     pendingApprovals: { title: 'Pending Approvals', sub: 'Verification queue for bookings & payments', icon: '🟡' },
@@ -1243,36 +1243,29 @@ function renderShell(content, activePage = 'dashboard') {
 
       <!-- ─── AIRBNB HOST MOBILE BOTTOM NAV ─── -->
       <nav class="bottom-nav" id="bottomNav">
-        <a href="#" data-page="bookings" class="${(activePage === 'bookings' || activePage === 'dashboard') ? 'active' : ''}">
-          <span class="bn-icon">
-            <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><path d="M17 3H7c-1.1 0-1.99.9-1.99 2L5 21l7-3 7 3V5c0-1.1-.9-2-2-2zm0 15l-5-2.18L7 18V5h10v13z"/></svg>
-          </span>
-          <span class="bn-label">Today</span>
+        <a href="#" data-page="dashboard" class="${activePage === 'dashboard' ? 'active' : ''}">
+          <span class="bn-icon">🏠</span>
+          <span class="bn-label">Home</span>
+        </a>
+        <a href="#" data-page="bookings" class="${activePage === 'bookings' ? 'active' : ''}">
+          <span class="bn-icon">🛎</span>
+          <span class="bn-label">Bookings</span>
         </a>
         <a href="#" data-page="calendar" class="${(activePage === 'calendar' || activePage === 'reports') ? 'active' : ''}">
-          <span class="bn-icon">
-            <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><path d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20a2 2 0 0 0 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V9h14v11zM7 11h5v5H7z"/></svg>
-          </span>
+          <span class="bn-icon">📅</span>
           <span class="bn-label">Calendar</span>
         </a>
-        <a href="#" data-page="flats" class="${(activePage === 'flats' || activePage === 'properties') ? 'active' : ''}">
-          <span class="bn-icon">
-            <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-2 10H7v-2h10v2zm0-4H7V7h10v2z"/></svg>
-          </span>
-          <span class="bn-label">Listings</span>
+        <a href="#" data-page="tasks" class="${activePage === 'tasks' ? 'active' : ''}">
+          <span class="bn-icon">✅</span>
+          <span class="bn-label">Tasks</span>
         </a>
-        <a href="#" data-page="whatsapp-hub" class="${activePage === 'whatsapp-hub' ? 'active' : ''}">
-          <span class="bn-icon" style="position:relative;display:inline-flex;">
-            <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H5.17L4 17.17V4h16v12z"/></svg>
-            <span style="position:absolute;top:0;right:-3px;width:7px;height:7px;background:#FF385C;border-radius:50%;"></span>
-          </span>
-          <span class="bn-label">Messages</span>
+        <a href="#" data-page="attendance" class="${(activePage === 'attendance' || activePage === 'att-summary') ? 'active' : ''}">
+          <span class="bn-icon">📋</span>
+          <span class="bn-label">Attendance</span>
         </a>
-        <a href="#" id="bottomNavMore">
-          <span class="bn-icon">
-            <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/></svg>
-          </span>
-          <span class="bn-label">Menu</span>
+        <a href="#" data-page="expenses" class="${activePage === 'expenses' ? 'active' : ''}">
+          <span class="bn-icon">💰</span>
+          <span class="bn-label">Expenses</span>
         </a>
       </nav>
     </div>`;
@@ -1386,6 +1379,9 @@ function navigate(page) {
       (a.dataset.page === 'calendar' && (page === 'calendar' || page === 'reports')) ||
       (a.dataset.page === 'bookings' && page === 'bookings') ||
       (a.dataset.page === 'dashboard' && page === 'dashboard') ||
+      (a.dataset.page === 'tasks' && page === 'tasks') ||
+      (a.dataset.page === 'attendance' && (page === 'attendance' || page === 'att-summary')) ||
+      (a.dataset.page === 'expenses' && page === 'expenses') ||
       (a.dataset.page === 'flats' && (page === 'flats' || page === 'properties'));
     if (isAct) a.classList.add('active');
     else a.classList.remove('active');

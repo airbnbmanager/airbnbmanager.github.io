@@ -7600,6 +7600,7 @@ textarea:focus {
 
 .pwa-nav-item {
   flex: 1;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -7608,7 +7609,7 @@ textarea:focus {
   border: none;
   outline: none;
   cursor: pointer;
-  padding: 4px 2px;
+  padding: 4px 1px;
   color: #64748B;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
@@ -7616,16 +7617,20 @@ textarea:focus {
 }
 
 .pwa-nav-icon {
-  font-size: 20px;
+  font-size: 19px;
   line-height: 1;
   margin-bottom: 2px;
   transition: transform 0.2s ease;
 }
 
 .pwa-nav-label {
-  font-size: 10.5px;
+  font-size: 10px;
   font-weight: 600;
-  letter-spacing: 0.2px;
+  letter-spacing: -0.1px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
 }
 
 .pwa-nav-item.active {
