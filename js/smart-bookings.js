@@ -2638,6 +2638,7 @@ window.saveMultiSmartBooking = async function() {
 
     // Proportionate advance split
     let remainingAdv = totalAdvance;
+    const roomAdvMap = {};
     const roomInserts = roomItems.map((r, idx) => {
       let roomAdv = 0;
       if (totalAdvance > 0) {
@@ -2650,6 +2651,7 @@ window.saveMultiSmartBooking = async function() {
       }
 
       const bkId = 'B' + Date.now() + '_' + (idx + 1);
+      roomAdvMap[r.room_id] = roomAdv;
       const payStatus = totalAdvance >= grandTotal && grandTotal > 0 ? 'Paid' : (roomAdv > 0 ? 'Partial' : 'Unpaid');
 
       return {
@@ -2694,23 +2696,46 @@ window.saveMultiSmartBooking = async function() {
       }
     }
 
-    // Record total advance in payment_history linked to primary booking
-    if (totalAdvance > 0 && createdBookings && createdBookings.length > 0) {
-      const primaryBk = createdBookings[0];
-      try {
-        await sb.from('payment_history').insert({
-          booking_id: primaryBk.booking_id,
-          amount: totalAdvance,
-          payment_type: 'advance',
-          payment_mode: advMode,
-          received_by: advReceivedBy,
-          payment_date: ci,
-          handover_status: advMode === 'Cash' ? 'in_hand' : 'handed_over',
-          notes: `Consolidated advance for ${roomItems.length} homestays (${stayGroupId})`,
-          created_by: SESSION?.userId || null
-        });
-      } catch (payErr) {
-        console.warn('Payment history insert warning:', payErr);
+    // Record advance in payment_history for all booked homestays
+    if (totalAdvance > 0) {
+      const bksToProcess = (createdBookings && createdBookings.length > 0) ? createdBookings : roomInserts;
+      const payDate = ci || new Date().toISOString().slice(0, 10);
+      const handoverStatus = (advMode === 'Cash' && !['Firoz', 'Shahenshah'].includes(advReceivedBy)) ? 'in_hand' : 'handed_over';
+      const meta = typeof approvalMeta === 'function' ? approvalMeta() : {};
+
+      for (const cbk of bksToProcess) {
+        const roomAdv = roomAdvMap[cbk.room_id] || 0;
+        if (roomAdv > 0) {
+          const roomObj = roomItems.find(x => x.room_id === cbk.room_id);
+          const payPayload = {
+            booking_id: cbk.booking_id,
+            amount: roomAdv,
+            payment_mode: advMode,
+            received_by: advReceivedBy,
+            payment_date: payDate,
+            handover_status: handoverStatus,
+            notes: `Advance for ${roomObj?.room_name || cbk.room_id} (Group: ${stayGroupId})`,
+            created_by: SESSION?.userId || null,
+            ...meta
+          };
+
+          const { error: payErr } = await sb.from('payment_history').insert(payPayload);
+          if (payErr) {
+            console.warn('Payment insert with meta warning:', payErr.message);
+            // Fallback retry without approvalMeta in case verification columns differ
+            delete payPayload.verification_status;
+            delete payPayload.verified_by;
+            delete payPayload.verified_at;
+            const { error: retryErr } = await sb.from('payment_history').insert(payPayload);
+            if (retryErr) {
+              console.error('CRITICAL: Payment history insert failed:', retryErr);
+            }
+          }
+
+          if (typeof recalcPaymentStatus === 'function') {
+            await recalcPaymentStatus(cbk.booking_id);
+          }
+        }
       }
     }
 
