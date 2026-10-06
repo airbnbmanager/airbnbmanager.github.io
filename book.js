@@ -67,8 +67,9 @@ async function fetchLivePrices() {
           selectedProp = refreshed;
           const priceEl = document.getElementById('propPrice');
           if (priceEl) {
+            const gstRate = selectedProp.price <= 7500 ? 5 : 18;
             priceEl.textContent =
-              '₹' + selectedProp.price.toLocaleString('en-IN') + '/night + 12% GST (Direct) · Airbnb ₹' + selectedProp.airbnb.toLocaleString('en-IN') + '+';
+              '₹' + selectedProp.price.toLocaleString('en-IN') + '/night + ' + gstRate + '% GST (Direct) · Airbnb ₹' + selectedProp.airbnb.toLocaleString('en-IN') + '+';
           }
           updateSummary();
         }
@@ -130,8 +131,9 @@ function onPropertyChange() {
     document.getElementById('propThumb').src = selectedProp.img;
     document.getElementById('propName').textContent = selectedProp.name;
     document.getElementById('propType').textContent = selectedProp.type + ' · Up to ' + selectedProp.guests + ' guests';
+    const gstRate = selectedProp.price <= 7500 ? 5 : 18;
     document.getElementById('propPrice').textContent =
-      '₹' + selectedProp.price.toLocaleString('en-IN') + '/night + 12% GST (Direct) · Airbnb ₹' + selectedProp.airbnb.toLocaleString('en-IN') + '+';
+      '₹' + selectedProp.price.toLocaleString('en-IN') + '/night + ' + gstRate + '% GST (Direct) · Airbnb ₹' + selectedProp.airbnb.toLocaleString('en-IN') + '+';
     bookedDates = [];
     renderMiniCal();
     fetchBookedDates();
@@ -309,11 +311,15 @@ function updateSummary() {
 
   empty.style.display = 'none'; content.style.display = 'block';
   const baseTotal = selectedProp.price * nights;
-  const gstAmt = Math.round(baseTotal * 0.12);
+  const gstRate = selectedProp.price <= 7500 ? 5 : 18;
+  const gstAmt = Math.round(baseTotal * (gstRate / 100));
   const grossWithGst = baseTotal + gstAmt;
 
   document.getElementById('sumNights').textContent = nights + ' night' + (nights !== 1 ? 's' : '') + ' × ₹' + selectedProp.price.toLocaleString('en-IN');
   document.getElementById('sumNightlyTotal').textContent = '₹' + baseTotal.toLocaleString('en-IN');
+
+  const gstLabelEl = document.getElementById('sumGstLabel');
+  if (gstLabelEl) gstLabelEl.innerHTML = `Taxes &amp; GST (${gstRate}% · SAC 996311)`;
 
   const gstEl = document.getElementById('sumGst');
   if (gstEl) gstEl.textContent = '+₹' + gstAmt.toLocaleString('en-IN');
@@ -468,7 +474,8 @@ async function submitBookingRequest() {
   btn.innerHTML = '<span class="spin"></span> Sending…';
 
   const baseTotal = selectedProp.price * nights;
-  const gstAmt = Math.round(baseTotal * 0.12);
+  const gstRate = selectedProp.price <= 7500 ? 5 : 18;
+  const gstAmt = Math.round(baseTotal * (gstRate / 100));
   const grossWithGst = baseTotal + gstAmt;
   const discountAmt = (appliedCoupon && couponDiscount > 0) ? Math.round(grossWithGst * (couponDiscount / 100)) : 0;
   const finalTotal = grossWithGst - discountAmt;
@@ -479,7 +486,7 @@ async function submitBookingRequest() {
   const noteParts = [
     `Direct Website Booking (book.html)`,
     `Property: ${selectedProp.name}`,
-    `Tariff: ₹${baseTotal} + 12% GST (₹${gstAmt}) = Standard ₹${grossWithGst}`,
+    `Tariff: ₹${baseTotal} + ${gstRate}% GST (₹${gstAmt}) = Standard ₹${grossWithGst}`,
     `Purpose: ${purpose || 'Not specified'}`
   ];
   if (appliedCoupon) {
@@ -565,7 +572,7 @@ async function submitBookingRequest() {
     '👥 *Guests:* ' + guests,
     '🎯 *Purpose:* ' + purpose,
     '🏷️ *Base Tariff:* ₹' + baseTotal.toLocaleString('en-IN') + ' (' + nights + ' nights @ ₹' + selectedProp.price.toLocaleString('en-IN') + '/night)',
-    '🏛️ *Taxes & GST (12% · SAC 996311):* +₹' + gstAmt.toLocaleString('en-IN'),
+    '🏛️ *Taxes & GST (' + gstRate + '% · SAC 996311):* +₹' + gstAmt.toLocaleString('en-IN'),
     '📊 *Standard Gross (with GST):* ₹' + grossWithGst.toLocaleString('en-IN'),
     appliedCoupon ? '🎁 *Direct Discount Code:* ' + appliedCoupon + (couponDiscount > 0 ? ' (' + couponDiscount + '% Direct Host OFF)' : '') : '💡 *Direct Booking:* Guest requested direct host discount rate',
     discountAmt > 0 ? '💸 *Direct Host Discount:* -₹' + discountAmt.toLocaleString('en-IN') : '',
