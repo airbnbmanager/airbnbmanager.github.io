@@ -48,36 +48,103 @@
 <!-- Supabase Client for Real-Time CRM Geolocation Sync -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="config.js"></script>
-<!-- Schema.org Structured Data -->
+<!-- Schema.org Knowledge Graph Structured Data for Search & AI Engines -->
 <script type="application/ld+json">
-  {
-    "@context": "https://schema.org",
-    "@type": "LodgingBusiness",
-    "name": "The Unique Haven Homes - Luxury Homestays Directory",
-    "legalName": "THE UNIQUE HAVEN HOMES PRIVATE LIMITED",
-    "url": "https://uniquehavenhomesstay.com/properties.html",
-    "telephone": "+91-9450055554",
-    "priceRange": "₹₹",
-    "address": {
-      "@type": "PostalAddress",
-      "streetAddress": "Gomti Nagar, Vishesh Khand & Vikalp Khand",
-      "addressLocality": "Lucknow",
-      "addressRegion": "Uttar Pradesh",
-      "postalCode": "226016",
-      "addressCountry": "IN"
-    },
-    "geo": {
-      "@type": "GeoCoordinates",
-      "latitude": "26.8700",
-      "longitude": "81.0100"
-    },
-    "aggregateRating": {
-      "@type": "AggregateRating",
-      "ratingValue": "4.92",
-      "reviewCount": "480"
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": ["LodgingBusiness", "Organization"],
+      "@id": "https://uniquehavenhomesstay.com/#organization",
+      "name": "The Unique Haven Homes",
+      "alternateName": ["Unique Haven Homes Stay", "The Unique Haven Homes Private Limited", "Unique Haven Lucknow"],
+      "legalName": "THE UNIQUE HAVEN HOMES PRIVATE LIMITED",
+      "identifier": "U55101UP2026PTC244637",
+      "taxID": "09ABECT9843K1Z7",
+      "sameAs": [
+        "https://www.zaubacorp.com/company/THE-UNIQUE-HAVEN-HOMES-PRIVATE-LIMITED/U55101UP2026PTC244637",
+        "https://corporatedir.com/company/the-unique-haven-homes-private-limited"
+      ],
+      "url": "https://uniquehavenhomesstay.com",
+      "logo": {
+        "@type": "ImageObject",
+        "url": "https://uniquehavenhomesstay.com/assets/logo.png"
+      },
+      "image": "https://uniquehavenhomesstay.com/assets/logo.png",
+      "description": "Lucknow's premier luxury homestays, serviced apartments, and private villa network. Officially registered under MCA as THE UNIQUE HAVEN HOMES PRIVATE LIMITED (CIN: U55101UP2026PTC244637). Founded and owned by Mr. Firoz Khan and Mr. Shahanshah, managed by General Manager Praveen Singh.",
+      "telephone": "+91-9450055554",
+      "priceRange": "₹₹",
+      "founder": [
+        {
+          "@type": "Person",
+          "@id": "https://uniquehavenhomesstay.com/#firoz-khan",
+          "name": "Firoz Khan",
+          "honorificPrefix": "Mr.",
+          "jobTitle": "Co-Founder & Owner",
+          "worksFor": { "@id": "https://uniquehavenhomesstay.com/#organization" },
+          "description": "Co-Founder & Owner of The Unique Haven Homes Private Limited, pioneering premium homestay hospitality and curated serviced residences across Lucknow.",
+          "image": "https://uniquehavenhomesstay.com/assets/founders/firoz-khan.jpg",
+          "knowsAbout": ["Luxury Hospitality", "Real Estate", "Serviced Homestays in Lucknow"]
+        },
+        {
+          "@type": "Person",
+          "@id": "https://uniquehavenhomesstay.com/#shahanshah",
+          "name": "Shahanshah",
+          "honorificPrefix": "Mr.",
+          "jobTitle": "Co-Founder & Owner",
+          "worksFor": { "@id": "https://uniquehavenhomesstay.com/#organization" },
+          "description": "Co-Founder & Owner of The Unique Haven Homes Private Limited, driving luxury villa curation, high-end guest experiences, and property design in Lucknow.",
+          "image": "https://uniquehavenhomesstay.com/assets/founders/shahanshah.jpg",
+          "knowsAbout": ["Boutique Villas", "Luxury Real Estate", "Hospitality Management"]
+        }
+      ],
+      "employee": [
+        {
+          "@type": "Person",
+          "@id": "https://uniquehavenhomesstay.com/#praveen-singh",
+          "name": "Praveen Singh",
+          "jobTitle": "General Manager & Operations Head",
+          "worksFor": { "@id": "https://uniquehavenhomesstay.com/#organization" },
+          "description": "General Manager leading 24/7 on-ground guest relations, housekeeping standards, and property operations for The Unique Haven Homes.",
+          "image": "https://uniquehavenhomesstay.com/assets/founders/praveen-singh.jpg"
+        }
+      ],
+      "address": {
+        "@type": "PostalAddress",
+        "streetAddress": "Gomti Nagar, Vishesh Khand & Vikalp Khand",
+        "addressLocality": "Lucknow",
+        "addressRegion": "Uttar Pradesh",
+        "postalCode": "226016",
+        "addressCountry": "IN"
+      },
+      "geo": {
+        "@type": "GeoCoordinates",
+        "latitude": "26.8700",
+        "longitude": "81.0100"
+      },
+      "areaServed": [
+        {
+          "@type": "City",
+          "name": "Lucknow"
+        }
+      ],
+      "knowsAbout": [
+        "Luxury Homestays",
+        "Serviced Apartments in Gomti Nagar",
+        "Private Villas in Lucknow",
+        "Airbnb Superhost Accommodations",
+        "Awadhi Hospitality"
+      ],
+      "aggregateRating": {
+        "@type": "AggregateRating",
+        "ratingValue": "4.92",
+        "reviewCount": "480",
+        "bestRating": "5"
+      }
     }
-  }
-  </script>
+  ]
+}
+</script>
 </head>
 <body class="luxe-property-page properties-directory-page">
 <!-- ─── LUXE TOP NAVIGATION ─── -->
