@@ -1457,6 +1457,10 @@
               <span>🛡️</span>
               <span>Official GST Invoice provided upon check-in. Corporate ITC supported.</span>
             </div>
+            <div style="font-size:11.5px; color:#92400e; margin-top:6px; background:#fffbeb; border:1px solid #fef3c7; padding:6px 10px; border-radius:8px; display:flex; align-items:center; gap:6px;">
+              <span>🎁</span>
+              <span><strong>Direct Booking Perk:</strong> Save 16% Airbnb guest fees · Direct host discount available on next step!</span>
+            </div>
           </div>
 
           <!-- Primary Direct Booking CTA — redirects to book.html -->

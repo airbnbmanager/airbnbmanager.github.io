@@ -126,23 +126,43 @@
           <div id="summaryContent" style="display:none;">
             <div class="price-box">
               <div class="prow"><span id="sumNights">—</span><span id="sumNightlyTotal">₹—</span></div>
-              <div id="couponDiscountRow" class="prow" style="display:none;">
-                <span>Coupon Discount <button type="button" onclick="removeCoupon()" style="background:none; border:none; color:#ef4444; font-size:11.5px; font-weight:700; text-decoration:underline; cursor:pointer; padding:0 4px;">(Remove)</button></span>
-                <span id="sumDiscount" class="discount">—</span>
+              <div class="prow" id="sumGstRow">
+                <span>Taxes &amp; GST (12% · SAC 996311)</span>
+                <span id="sumGst" style="font-weight:600; color:#475569;">+₹—</span>
               </div>
-              <div class="prow total"><span>Total (Estimate)</span><span id="sumTotal">₹—</span></div>
+              <div class="prow" id="sumStandardRow" style="font-size:12px; color:#64748b; border-bottom:1px dashed rgba(181,141,61,.3); padding-bottom:6px; margin-bottom:4px;">
+                <span>Standard Gross (with GST)</span>
+                <span id="sumGrossTotal" style="font-weight:700; color:#1e293b;">₹—</span>
+              </div>
+              <div id="couponDiscountRow" class="prow" style="display:none;">
+                <span style="color:#16a34a; font-weight:700;">🎁 Direct Host Discount <button type="button" onclick="removeCoupon()" style="background:none; border:none; color:#ef4444; font-size:11.5px; font-weight:700; text-decoration:underline; cursor:pointer; padding:0 4px;">(Remove)</button></span>
+                <span id="sumDiscount" class="discount" style="font-weight:800; color:#16a34a;">—</span>
+              </div>
+              <div class="prow total">
+                <span id="sumTotalLabel">Estimated Direct Payable</span>
+                <span id="sumTotal" style="color:#0f172a;">₹—</span>
+              </div>
             </div>
+
+            <!-- Direct Booking Advantage Callout -->
+            <div style="margin-top:-6px; margin-bottom:12px; padding:10px 12px; background:#f0fdf4; border:1px solid #bbf7d0; border-radius:10px; display:flex; align-items:flex-start; gap:8px;">
+              <span style="font-size:16px; line-height:1;">💡</span>
+              <div style="font-size:11.5px; line-height:1.45; color:#166534;">
+                <strong>Direct Booking Benefit:</strong> Airbnb charges up to 16% extra guest service fee. When you book directly with owners, you get exclusive host discounts up to <strong>15% OFF</strong>!
+              </div>
+            </div>
+
             <!-- Coupon / Discount Code -->
-            <div style="margin-top:12px; padding:12px; background:#f0fdf4; border:1px solid #bbf7d0; border-radius:10px;">
-              <label style="font-size:12.5px; font-weight:600; color:#166534; display:block; margin-bottom:6px;">🏷️ Have a Discount Code?</label>
+            <div style="margin-top:12px; padding:12px; background:#fffbeb; border:1px solid #fef3c7; border-radius:10px;">
+              <label style="font-size:12.5px; font-weight:700; color:#92400e; display:block; margin-bottom:6px;">🏷️ Have a Direct Discount Code?</label>
               <div style="display:flex; gap:8px;">
-                <input id="couponCode" type="text" class="finput" placeholder="Enter coupon code" style="flex:1; font-size:13px; text-transform:uppercase; letter-spacing:1px;"/>
+                <input id="couponCode" type="text" class="finput" placeholder="e.g. TUHH15" style="flex:1; font-size:13px; text-transform:uppercase; letter-spacing:1px;"/>
                 <button id="couponApplyBtn" type="button" onclick="applyCoupon()" style="padding:8px 16px; background:#059669; color:#fff; border:none; border-radius:8px; font-weight:700; font-size:12.5px; cursor:pointer; white-space:nowrap;">Apply</button>
                 <button id="couponRemoveBtn" type="button" onclick="removeCoupon()" style="display:none; padding:8px 14px; background:#ef4444; color:#fff; border:none; border-radius:8px; font-weight:700; font-size:12.5px; cursor:pointer; white-space:nowrap;">✕ Remove</button>
               </div>
-              <div id="couponMsg" style="font-size:11.5px; color:#6b7280; margin-top:6px;">For discount codes, WhatsApp Superhosts &amp; Owners <a href="https://wa.me/919450055554?text=Namaste!%20Please%20share%20a%20discount%20code%20for%20my%20booking." target="_blank" style="color:#059669; font-weight:600;">Shahanshah</a> / <a href="https://wa.me/918299600709?text=Namaste!%20Please%20share%20a%20discount%20code%20for%20my%20booking." target="_blank" style="color:#059669; font-weight:600;">Firoz</a> or Manager <a href="https://wa.me/919194109911?text=Namaste!%20Please%20share%20a%20discount%20code%20for%20my%20booking." target="_blank" style="color:#059669; font-weight:600;">Praveen Singh</a></div>
+              <div id="couponMsg" style="font-size:11.5px; color:#78350f; margin-top:6px;">For instant direct discount, WhatsApp Owners <a href="https://wa.me/919450055554?text=Namaste!%20Please%20share%20a%20discount%20code%20for%20my%20booking." target="_blank" style="color:#059669; font-weight:700;">Shahanshah</a> / <a href="https://wa.me/918299600709?text=Namaste!%20Please%20share%20a%20discount%20code%20for%20my%20booking." target="_blank" style="color:#059669; font-weight:700;">Firoz</a> or Manager <a href="https://wa.me/919194109911?text=Namaste!%20Please%20share%20a%20discount%20code%20for%20my%20booking." target="_blank" style="color:#059669; font-weight:700;">Praveen</a>.</div>
             </div>
-            <div class="price-note" style="margin-top:10px;">Final price confirmed by host on WhatsApp. No payment now.</div>
+            <div class="price-note" style="margin-top:10px;">Final discounted tariff confirmed directly by host on WhatsApp. No payment needed now.</div>
           </div>
 
           <button class="btn-wa" id="bookBtn" onclick="submitBookingRequest()" disabled>
@@ -269,6 +289,6 @@
   </div>
 </div>
 
-<script src="book.js?v=216"></script>
+<script src="book.js?v=217"></script>
 </body>
 </html>

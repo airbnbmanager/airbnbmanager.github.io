@@ -33,12 +33,21 @@
   // Live Sync Card Prices from Master Database (Ensures 100% price parity with booking)
   function syncCardPricesFromDatabase() {
     const db = window.UHH_PHOTO_DB || (window.UHH_SHOWCASE_DATA && window.UHH_SHOWCASE_DATA.properties);
-    if (!db) return;
 
     const cards = document.querySelectorAll('.dir-card');
     cards.forEach(card => {
+      // Ensure + 12% GST · Direct Discount tag exists
+      let taxEl = card.querySelector('.dir-card-price-tax');
+      if (!taxEl) {
+        taxEl = document.createElement('span');
+        taxEl.className = 'dir-card-price-tax';
+        taxEl.innerHTML = '+ 12% GST · Direct Discount';
+        const pBlock = card.querySelector('.dir-card-price-block');
+        if (pBlock) pBlock.appendChild(taxEl);
+      }
+
       const slug = card.dataset.slug;
-      if (!slug) return;
+      if (!slug || !db) return;
       const propData = db[slug];
       if (propData && propData.base_price) {
         const basePrice = Number(propData.base_price);

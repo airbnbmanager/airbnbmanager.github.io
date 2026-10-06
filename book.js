@@ -68,7 +68,7 @@ async function fetchLivePrices() {
           const priceEl = document.getElementById('propPrice');
           if (priceEl) {
             priceEl.textContent =
-              '₹' + selectedProp.price.toLocaleString('en-IN') + '/night (Direct) · Airbnb ₹' + selectedProp.airbnb.toLocaleString('en-IN');
+              '₹' + selectedProp.price.toLocaleString('en-IN') + '/night + 12% GST (Direct) · Airbnb ₹' + selectedProp.airbnb.toLocaleString('en-IN') + '+';
           }
           updateSummary();
         }
@@ -87,7 +87,7 @@ function init() {
   PROPERTIES.forEach(function(p) {
     const opt = document.createElement('option');
     opt.value = p.id;
-    opt.textContent = p.name + ' — ' + p.type + ' (₹' + p.price.toLocaleString('en-IN') + '/night)';
+    opt.textContent = p.name + ' — ' + p.type + ' (₹' + p.price.toLocaleString('en-IN') + '/night + GST)';
     sel.appendChild(opt);
   });
 
@@ -131,7 +131,7 @@ function onPropertyChange() {
     document.getElementById('propName').textContent = selectedProp.name;
     document.getElementById('propType').textContent = selectedProp.type + ' · Up to ' + selectedProp.guests + ' guests';
     document.getElementById('propPrice').textContent =
-      '₹' + selectedProp.price.toLocaleString('en-IN') + '/night (Direct) · Airbnb ₹' + selectedProp.airbnb.toLocaleString('en-IN');
+      '₹' + selectedProp.price.toLocaleString('en-IN') + '/night + 12% GST (Direct) · Airbnb ₹' + selectedProp.airbnb.toLocaleString('en-IN') + '+';
     bookedDates = [];
     renderMiniCal();
     fetchBookedDates();
@@ -308,21 +308,30 @@ function updateSummary() {
   if (nights <= 0) { empty.style.display = 'block'; content.style.display = 'none'; return; }
 
   empty.style.display = 'none'; content.style.display = 'block';
-  const total = selectedProp.price * nights;
+  const baseTotal = selectedProp.price * nights;
+  const gstAmt = Math.round(baseTotal * 0.12);
+  const grossWithGst = baseTotal + gstAmt;
+
   document.getElementById('sumNights').textContent = nights + ' night' + (nights !== 1 ? 's' : '') + ' × ₹' + selectedProp.price.toLocaleString('en-IN');
-  document.getElementById('sumNightlyTotal').textContent = '₹' + total.toLocaleString('en-IN');
+  document.getElementById('sumNightlyTotal').textContent = '₹' + baseTotal.toLocaleString('en-IN');
+
+  const gstEl = document.getElementById('sumGst');
+  if (gstEl) gstEl.textContent = '+₹' + gstAmt.toLocaleString('en-IN');
+
+  const grossEl = document.getElementById('sumGrossTotal');
+  if (grossEl) grossEl.textContent = '₹' + grossWithGst.toLocaleString('en-IN');
 
   // Show coupon discount if applied
   var discountRow = document.getElementById('couponDiscountRow');
   if (appliedCoupon && couponDiscount > 0) {
-    var discountAmt = Math.round(total * (couponDiscount / 100));
-    var finalTotal = total - discountAmt;
+    var discountAmt = Math.round(grossWithGst * (couponDiscount / 100));
+    var finalTotal = grossWithGst - discountAmt;
     if (discountRow) { discountRow.style.display = 'flex'; }
-    document.getElementById('sumDiscount').textContent = '−₹' + discountAmt.toLocaleString('en-IN') + ' (' + couponDiscount + '%)';
+    document.getElementById('sumDiscount').textContent = '−₹' + discountAmt.toLocaleString('en-IN') + ' (' + couponDiscount + '% Direct Host OFF)';
     document.getElementById('sumTotal').textContent = '₹' + finalTotal.toLocaleString('en-IN');
   } else {
     if (discountRow) { discountRow.style.display = 'none'; }
-    document.getElementById('sumTotal').textContent = '₹' + total.toLocaleString('en-IN');
+    document.getElementById('sumTotal').textContent = '₹' + grossWithGst.toLocaleString('en-IN');
   }
 }
 
@@ -458,9 +467,11 @@ async function submitBookingRequest() {
   btn.disabled = true;
   btn.innerHTML = '<span class="spin"></span> Sending…';
 
-  const totalRaw = selectedProp.price * nights;
-  const discountAmt = (appliedCoupon && couponDiscount > 0) ? Math.round(totalRaw * (couponDiscount / 100)) : 0;
-  const finalTotal = totalRaw - discountAmt;
+  const baseTotal = selectedProp.price * nights;
+  const gstAmt = Math.round(baseTotal * 0.12);
+  const grossWithGst = baseTotal + gstAmt;
+  const discountAmt = (appliedCoupon && couponDiscount > 0) ? Math.round(grossWithGst * (couponDiscount / 100)) : 0;
+  const finalTotal = grossWithGst - discountAmt;
   const bookingId = 'BK-' + Date.now();
   const phone91 = rawPhone.length === 10 ? '91' + rawPhone : rawPhone;
 
@@ -468,10 +479,11 @@ async function submitBookingRequest() {
   const noteParts = [
     `Direct Website Booking (book.html)`,
     `Property: ${selectedProp.name}`,
+    `Tariff: ₹${baseTotal} + 12% GST (₹${gstAmt}) = Standard ₹${grossWithGst}`,
     `Purpose: ${purpose || 'Not specified'}`
   ];
   if (appliedCoupon) {
-    noteParts.push(`Coupon: ${appliedCoupon} (${couponDiscount}% OFF, -₹${discountAmt})`);
+    noteParts.push(`Coupon: ${appliedCoupon} (${couponDiscount}% OFF, -₹${discountAmt}) | Direct Payable: ₹${finalTotal}`);
   }
   if (special) {
     noteParts.push(`Special Request: ${special}`);
@@ -538,8 +550,8 @@ async function submitBookingRequest() {
   };
 
   const waMsg = [
-    '🏠 *NEW BOOKING REQUEST*',
-    '*The Unique Haven Homes*',
+    '🏠 *NEW DIRECT BOOKING REQUEST*',
+    '*The Unique Haven Homes (Direct Guest Channel)*',
     '',
     '🔖 *Booking ID:* ' + bookingId,
     '👤 *Guest:* ' + name,
@@ -552,12 +564,15 @@ async function submitBookingRequest() {
     '🌙 *Nights:* ' + nights,
     '👥 *Guests:* ' + guests,
     '🎯 *Purpose:* ' + purpose,
-    '💰 *Nightly Total:* ₹' + totalRaw.toLocaleString('en-IN') + ' (' + nights + ' nights)',
-    appliedCoupon ? '🏷️ *Coupon Applied:* ' + appliedCoupon + (couponDiscount > 0 ? ' (' + couponDiscount + '% OFF)' : '') : '',
-    discountAmt > 0 ? '💸 *Discount:* -₹' + discountAmt.toLocaleString('en-IN') : '',
-    discountAmt > 0 ? '✨ *Payable Amount:* ₹' + finalTotal.toLocaleString('en-IN') : '💰 *Total Amount:* ₹' + totalRaw.toLocaleString('en-IN'),
-    special ? '📝 *Special:* ' + special : '',
+    '🏷️ *Base Tariff:* ₹' + baseTotal.toLocaleString('en-IN') + ' (' + nights + ' nights @ ₹' + selectedProp.price.toLocaleString('en-IN') + '/night)',
+    '🏛️ *Taxes & GST (12% · SAC 996311):* +₹' + gstAmt.toLocaleString('en-IN'),
+    '📊 *Standard Gross (with GST):* ₹' + grossWithGst.toLocaleString('en-IN'),
+    appliedCoupon ? '🎁 *Direct Discount Code:* ' + appliedCoupon + (couponDiscount > 0 ? ' (' + couponDiscount + '% Direct Host OFF)' : '') : '💡 *Direct Booking:* Guest requested direct host discount rate',
+    discountAmt > 0 ? '💸 *Direct Host Discount:* -₹' + discountAmt.toLocaleString('en-IN') : '',
+    '✨ *Estimated Direct Payable:* ₹' + finalTotal.toLocaleString('en-IN'),
+    special ? '📝 *Special Request:* ' + special : '',
     '',
+    '💬 _Host Note: Direct booking saves 14–16% Airbnb guest platform fee!_',
     '_Sent from uniquehavenhomestay.com/book.html_'
   ].filter(Boolean).join('\n');
 

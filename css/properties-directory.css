@@ -849,6 +849,17 @@ body.properties-directory-page {
   color: var(--dir-muted);
 }
 
+.dir-card-price-tax {
+  font-size: 11px;
+  font-weight: 700;
+  color: #059669;
+  letter-spacing: 0.2px;
+  margin-top: 2px;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
 .dir-card-actions {
   display: flex;
   align-items: center;
