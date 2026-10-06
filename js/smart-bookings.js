@@ -405,9 +405,6 @@ async function renderSmartManageBookings() {
           ` : ''}
         </div>
       </div>
-
-      <!-- Slide-Over Drawer Container (Dynamic) -->
-      <div id="sbkDrawerContainer"></div>
     </div>
   `;
 
@@ -1078,8 +1075,14 @@ window.openBookingDrawer = async function(bookingId) {
     .eq('booking_id', bookingId)
     .order('payment_date', { ascending: true });
 
-  const container = document.getElementById('sbkDrawerContainer');
-  if (!container) return;
+  let container = document.getElementById('sbkDrawerContainer');
+  if (!container) {
+    container = document.createElement('div');
+    container.id = 'sbkDrawerContainer';
+    document.body.appendChild(container);
+  } else if (container.parentElement !== document.body) {
+    document.body.appendChild(container);
+  }
 
   container.innerHTML = `
     <div class="sbk-drawer-overlay" onclick="if(event.target===this) window.closeBookingDrawer()">

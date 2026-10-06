@@ -1483,8 +1483,94 @@ body.properties-directory-page {
 .dir-host-card:hover {
   background: #ffffff;
   border-color: #cbd5e1;
-  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.09);
-  transform: translateY(-3px);
+  box-shadow: 0 14px 32px rgba(15, 23, 42, 0.1);
+  transform: translateY(-4px);
+}
+
+/* ─── Founder Luxury Portrait Frame & Placeholders ─── */
+.dir-founder-photo-wrap {
+  position: relative;
+  width: 116px;
+  height: 116px;
+  margin: 0 auto 16px;
+  border-radius: 50%;
+  padding: 4px;
+  background: linear-gradient(135deg, #d97706, #b45309);
+  box-shadow: 0 8px 24px rgba(180, 83, 9, 0.22);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.dir-founder-photo-wrap.firoz {
+  background: linear-gradient(135deg, #f59e0b, #d97706, #92400e);
+  box-shadow: 0 8px 24px rgba(217, 119, 6, 0.28);
+}
+
+.dir-founder-photo-wrap.shah {
+  background: linear-gradient(135deg, #334155, #1e293b, #0f172a);
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.25);
+}
+
+.dir-founder-photo-wrap.praveen {
+  background: linear-gradient(135deg, #38bdf8, #0284c7, #0369a1);
+  box-shadow: 0 8px 24px rgba(2, 132, 199, 0.25);
+}
+
+.dir-host-card:hover .dir-founder-photo-wrap {
+  transform: scale(1.04);
+}
+
+.dir-founder-img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+  display: block;
+  background: #f1f5f9;
+  border: 2.5px solid #ffffff;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.dir-founder-fallback {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Outfit', sans-serif;
+  font-size: 32px;
+  font-weight: 800;
+  color: #ffffff;
+  border: 2.5px solid #ffffff;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+.dir-founder-verified-badge {
+  position: absolute;
+  bottom: 3px;
+  right: 3px;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: #059669;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2.5px solid #ffffff;
+  font-size: 13px;
+  font-weight: 800;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.18);
+}
+
+.dir-founder-quote {
+  font-size: 12.5px;
+  color: #475569;
+  line-height: 1.55;
+  margin: 10px 0 16px;
+  padding: 0 4px;
+  font-style: italic;
+  min-height: 38px;
 }
 
 .dir-host-avatar {
@@ -1531,17 +1617,17 @@ body.properties-directory-page {
 
 .dir-host-name {
   font-family: 'Outfit', sans-serif;
-  font-size: 18px;
+  font-size: 19px;
   font-weight: 700;
   color: #0f172a;
   margin-bottom: 3px;
 }
 
 .dir-host-phone {
-  font-size: 13.5px;
+  font-size: 13px;
   font-weight: 600;
   color: #64748b;
-  margin-bottom: 14px;
+  margin-bottom: 4px;
 }
 
 .dir-host-actions {

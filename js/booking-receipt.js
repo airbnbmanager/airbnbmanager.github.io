@@ -720,6 +720,88 @@ Thank you for choosing *The Unique Haven Homes*. Your direct reservation has bee
     sendReceiptWhatsApp(options.phone, options.message);
   }
 
+  // 4D. Convert payment slip to crisp high-res image for 100% WhatsApp visual preview
+  async function shareSlipAsImage(elementId, filename = 'Payment_Slip') {
+    const el = document.getElementById(elementId);
+    if (!el) return;
+
+    try {
+      if (!window.html2canvas) {
+        await ensureHtml2Pdf();
+      }
+    } catch(e) {}
+
+    if (!window.html2canvas) {
+      alert('Could not initialize image renderer. Please check your internet connection.');
+      return;
+    }
+
+    if (window.fsn?.info) {
+      fsn.info('Processing Image', '📸 Generating high-res slip image for WhatsApp...');
+    }
+
+    try {
+      const canvas = await window.html2canvas(el, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: '#ffffff',
+        logging: false
+      });
+
+      canvas.toBlob(async (blob) => {
+        if (!blob) return;
+        const file = new File([blob], `${filename}.png`, { type: 'image/png' });
+
+        // A. Mobile Web Share (Native WhatsApp Share Sheet as Image)
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+          try {
+            await navigator.share({
+              files: [file],
+              title: 'Payment Receipt',
+              text: 'Namaste! Please find your official booking payment slip from The Unique Haven Homes.'
+            });
+            return;
+          } catch(err) {
+            if (err.name !== 'AbortError') console.warn('Native share failed:', err);
+          }
+        }
+
+        // B. Desktop Clipboard Image Copy (Paste into WhatsApp Web / Desktop with Ctrl+V)
+        if (navigator.clipboard && window.ClipboardItem) {
+          try {
+            await navigator.clipboard.write([
+              new ClipboardItem({ 'image/png': blob })
+            ]);
+            if (window.fsn?.success) {
+              fsn.success('Image Copied!', '📸 Payment Slip image copy ho gayi! Ab WhatsApp me Ctrl+V (Paste) karein — full visual preview dikhega.');
+            } else {
+              alert('✅ Payment Slip image copied to clipboard!\n\nAb WhatsApp Web me jaakar Ctrl+V (Paste) karein — direct visual preview send hoga!');
+            }
+            return;
+          } catch(e) {
+            console.warn('ClipboardItem copy failed:', e);
+          }
+        }
+
+        // C. Fallback: Direct Download as Image
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${filename}.png`;
+        a.click();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+        if (window.fsn?.success) {
+          fsn.success('Image Saved', 'Payment Slip image download ho gayi. Is photo ko WhatsApp par send karein.');
+        } else {
+          alert('✅ Payment Slip image download ho gayi! Is photo ko WhatsApp me bhejenge toh instant full preview dikhega.');
+        }
+      }, 'image/png');
+    } catch(err) {
+      console.error('Canvas capture error:', err);
+      alert('Error creating receipt image: ' + err.message);
+    }
+  }
+
   // 5. Open Booking Receipt Interactive Modal
   async function openBookingReceiptModal(bookingIdOrPhone) {
     if (!bookingIdOrPhone) {
@@ -1378,6 +1460,9 @@ ${propertiesList}
             <button type="button" class="btn-sm" style="background:#B45309;color:#fff;font-weight:700;border:none;padding:7px 14px;border-radius:6px;cursor:pointer;display:inline-flex;align-items:center;gap:5px;" onclick="window.printBookingReceipt('multiReceiptPrintArea', '${escapeHtml(docTitle).replace(/'/g, "\\'")}')">
               🖨️ Print / Save PDF
             </button>
+            <button type="button" class="btn-sm" style="background:#0284C7;color:#fff;font-weight:700;border:none;padding:7px 14px;border-radius:6px;cursor:pointer;display:inline-flex;align-items:center;gap:5px;" onclick="window.shareSlipAsImage('multiReceiptPrintArea', 'Payment_Slip_Combined')">
+              📸 Share as Image (Preview)
+            </button>
             <button type="button" class="btn-sm" style="background:#25D366;color:#fff;font-weight:800;border:none;padding:7px 14px;border-radius:6px;cursor:pointer;display:inline-flex;align-items:center;gap:5px;" onclick="window.sendReceiptWhatsApp('${escapeHtml(data.phone || '')}', document.getElementById('multiReceiptWaHidden').value)">
               💬 Send on WhatsApp
             </button>
@@ -1529,6 +1614,9 @@ ${propertiesList}
             <button type="button" class="btn-sm" style="background:#B45309;color:#fff;font-weight:700;border:none;padding:7px 14px;border-radius:6px;cursor:pointer;display:inline-flex;align-items:center;gap:5px;" onclick="window.printBookingReceipt('receiptPrintArea', '${escapeHtml(docTitle).replace(/'/g, "\\'")}')">
               🖨️ Print / Save PDF
             </button>
+            <button type="button" class="btn-sm" style="background:#0284C7;color:#fff;font-weight:700;border:none;padding:7px 14px;border-radius:6px;cursor:pointer;display:inline-flex;align-items:center;gap:5px;" onclick="window.shareSlipAsImage('receiptPrintArea', 'Payment_Slip_${escapeHtml(data.booking.booking_id)}')">
+              📸 Share as Image (Preview)
+            </button>
             <button type="button" class="btn-sm" style="background:#25D366;color:#fff;font-weight:800;border:none;padding:7px 14px;border-radius:6px;cursor:pointer;display:inline-flex;align-items:center;gap:5px;" onclick="window.sendReceiptWhatsApp('${escapeHtml(data.booking.phone || '')}', document.getElementById('receiptWaHidden').value)">
               💬 Send on WhatsApp
             </button>
@@ -1596,7 +1684,8 @@ ${propertiesList}
     getMultiReceiptFilename,
     printBookingReceipt,
     sendReceiptWhatsApp,
-    sharePdfViaWhatsApp
+    sharePdfViaWhatsApp,
+    shareSlipAsImage
   };
 
 })();
@@ -1615,3 +1704,4 @@ window.getMultiReceiptDocTitle = window.BOOKING_RECEIPT_ENGINE.getMultiReceiptDo
 window.getMultiReceiptFilename = window.BOOKING_RECEIPT_ENGINE.getMultiReceiptFilename;
 window.sendReceiptWhatsApp = window.BOOKING_RECEIPT_ENGINE.sendReceiptWhatsApp;
 window.sharePdfViaWhatsApp = window.BOOKING_RECEIPT_ENGINE.sharePdfViaWhatsApp;
+window.shareSlipAsImage = window.BOOKING_RECEIPT_ENGINE.shareSlipAsImage;

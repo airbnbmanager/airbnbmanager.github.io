@@ -2661,7 +2661,7 @@ code {
   }
   100% {
     opacity: 1;
-    transform: translateY(0);
+    transform: none;
   }
 }
 
@@ -6176,7 +6176,8 @@ textarea:focus {
   bottom: 0;
   background: rgba(15, 23, 42, 0.45);
   backdrop-filter: blur(4px);
-  z-index: 8000 !important;
+  -webkit-backdrop-filter: blur(4px);
+  z-index: 99999 !important;
   display: flex;
   justify-content: flex-end;
   animation: sbkFadeIn 0.2s ease-out;
@@ -6185,13 +6186,15 @@ textarea:focus {
 .sbk-drawer {
   width: 100%;
   max-width: 520px;
-  height: 100%;
+  height: 100vh;
+  max-height: 100vh;
   background: #ffffff;
   box-shadow: -4px 0 25px rgba(0, 0, 0, 0.15);
   display: flex;
   flex-direction: column;
   animation: sbkSlideIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
   overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 @keyframes sbkSlideIn {
