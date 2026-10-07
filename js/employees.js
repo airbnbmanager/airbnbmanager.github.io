@@ -742,7 +742,7 @@ async function renderAddEmp() {
       <div style="display:flex;align-items:center;gap:10px;">
         <span style="font-size:20px;">ℹ️</span>
         <div style="font-size:12.5px;color:#1E3A8A;line-height:1.4;">
-          <strong>Manager Note:</strong> <strong>Praveen Singh</strong> is the sole General Manager across all properties. On-ground staff roles should be assigned as <strong>Caretaker</strong>, <strong>Cleaning Staff</strong>, or <strong>Maid</strong>.
+          <strong>Manager Note:</strong> <strong>Praveen Singh</strong> is the sole Manager across all properties. On-ground staff roles should be assigned as <strong>Caretaker</strong>, <strong>Cleaning Staff</strong>, or <strong>Maid</strong>.
         </div>
       </div>
     </div>
@@ -1034,7 +1034,7 @@ async function editEmp(id) {
       <div style="display:flex;align-items:center;gap:10px;">
         <span style="font-size:20px;">ℹ️</span>
         <div style="font-size:12.5px;color:#1E3A8A;line-height:1.4;">
-          <strong>Manager Note:</strong> <strong>Praveen Singh</strong> is the sole General Manager across all properties. On-ground staff roles should be assigned as <strong>Caretaker</strong>, <strong>Cleaning Staff</strong>, or <strong>Maid</strong>.
+          <strong>Manager Note:</strong> <strong>Praveen Singh</strong> is the sole Manager across all properties. On-ground staff roles should be assigned as <strong>Caretaker</strong>, <strong>Cleaning Staff</strong>, or <strong>Maid</strong>.
         </div>
       </div>
     </div>

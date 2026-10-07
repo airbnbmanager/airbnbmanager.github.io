@@ -12,7 +12,7 @@ To update the photos of the Founders and Team on the website:
    - File Path: `assets/founders/shahanshah.jpg`
    - Recommended Size: 800x800px (1:1 Square) or portrait JPG/PNG
 
-3. **Praveen Singh** (General Manager)
+3. **Praveen Singh** (Manager)
    - File Path: `assets/founders/praveen-singh.jpg`
    - Recommended Size: 800x800px (1:1 Square) or portrait JPG/PNG
 
