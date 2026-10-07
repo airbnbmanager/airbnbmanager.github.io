@@ -19,7 +19,8 @@ window.GST_ENGINE = (function() {
     address:    'P NO 39 & 40 Radhikapuri, Indira Nagar Takrohi, Lucknow, Uttar Pradesh – 226016',
     state:      'Uttar Pradesh',
     stateCode:  '09',
-    phone:      '+91 82996 00709',
+    phone:      '+91 94500 55554 / +91 82996 00709',
+    managerPhone: '+91 9194109911',
     email:      'theuniquehavenhomes@gmail.com',
     web:        'uniquehavenhomesstay.com'
   };

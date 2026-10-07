@@ -15,11 +15,12 @@ window.BOOKING_RECEIPT_ENGINE = (function() {
     cin:        'U55101UP2026PTC244637',
     pan:        'ABECT9843K',
     address:    'P NO 39 & 40 Radhikapuri, Indira Nagar Takrohi, Lucknow, Uttar Pradesh – 226016',
-    phone:      '+91 82996 00709',
+    phone:      '+91 94500 55554',
     phone2:     '+91 82996 00709',
     managerPhone: '+91 9194109911',
     managerName: 'Praveen Singh',
     owners: [
+      { name: 'Mr. Shahanshah', phone: '+91 94500 55554' },
       { name: 'Mr. Firoz Khan', phone: '+91 82996 00709' }
     ],
     email:      'theuniquehavenhomes@gmail.com',

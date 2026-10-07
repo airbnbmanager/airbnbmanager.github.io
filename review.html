@@ -637,7 +637,7 @@
           // 1. Check app_settings
           const { data: sets } = await sb.from('app_settings').select('key, value').in('key', ['google_review_link', 'airbnb_review_link', 'registered_office_map_link']);
           (sets || []).forEach(s => {
-            if (s.key === 'google_review_link' && s.value && s.value.trim()) {
+            if (s.key === 'google_review_link' && s.value && s.value.trim() && !s.value.includes('YOUR_GOOGLE_ID')) {
               googleReviewURL = s.value.trim();
             }
             if (s.key === 'airbnb_review_link' && s.value && s.value.trim()) {
@@ -651,7 +651,7 @@
           // 2. Check company_config fallback
           if (!googleReviewURL || googleReviewURL === defaultGoogleSearch) {
             const { data: cfg } = await sb.from('company_config').select('google_review_url, airbnb_host_url').eq('id', 1).single();
-            if (cfg?.google_review_url) googleReviewURL = cfg.google_review_url;
+            if (cfg?.google_review_url && !cfg.google_review_url.includes('YOUR_GOOGLE_ID')) googleReviewURL = cfg.google_review_url;
             if (!airbnbReviewURL && cfg?.airbnb_host_url) airbnbReviewURL = cfg.airbnb_host_url;
           }
         }

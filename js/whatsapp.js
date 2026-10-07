@@ -40,7 +40,7 @@ async function buildMessageData(bkId) {
   try {
     const { data: appSets } = await sb.from('app_settings').select('key, value').in('key', ['google_review_link', 'airbnb_review_link']);
     (appSets || []).forEach(s => {
-      if (s.key === 'google_review_link' && s.value && s.value.trim()) appGoogleReview = s.value.trim();
+      if (s.key === 'google_review_link' && s.value && s.value.trim() && !s.value.includes('YOUR_GOOGLE_ID')) appGoogleReview = s.value.trim();
       if (s.key === 'airbnb_review_link' && s.value && s.value.trim()) appAirbnbReview = s.value.trim();
     });
   } catch(e) {
@@ -184,7 +184,7 @@ async function buildMessageData(bkId) {
     investors,
     websiteURL: config.website_url || BRAND_URL,
     companyReviewPortal: `https://uniquehavenhomesstay.com/review.html?b=${encodeURIComponent(bkId)}&guest=${encodeURIComponent(bk.guest_name || 'Guest')}&prop=${encodeURIComponent(room.nickname || room.property_name || roomId)}`,
-    googleReview: config.google_review_url || appGoogleReview || `https://uniquehavenhomesstay.com/review.html?b=${encodeURIComponent(bkId)}&guest=${encodeURIComponent(bk.guest_name || 'Guest')}&prop=${encodeURIComponent(room.nickname || room.property_name || roomId)}`,
+    googleReview: (config.google_review_url && !config.google_review_url.includes('YOUR_GOOGLE_ID')) ? config.google_review_url : (appGoogleReview || `https://uniquehavenhomesstay.com/review.html?b=${encodeURIComponent(bkId)}&guest=${encodeURIComponent(bk.guest_name || 'Guest')}&prop=${encodeURIComponent(room.nickname || room.property_name || roomId)}`),
     airbnbReview: config.airbnb_host_url || appAirbnbReview || '',
     airbnbReviewLink: bk.airbnb_confirmation_code
       ? `https://www.airbnb.com/reviews/write?reservationId=${bk.airbnb_confirmation_code}`

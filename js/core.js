@@ -2308,23 +2308,43 @@ window.setSettingsTab = function(tabId) {
 async function renderSettings() {
   renderShell(`<div class="loading">Loading settings...</div>`, 'settings');
 
-  const { data: settings } = await sb.from('app_settings').select('*').order('key');
+  const { data: rawSettings } = await sb.from('app_settings').select('*').order('key');
+  const settings = rawSettings || [];
   const setMap = {};
-  (settings || []).forEach(s => { setMap[s.key] = s.value; });
 
-  // Auto-sanitize rogue/incorrect legacy values
-  if (!setMap['brand_name'] || setMap['brand_name'].toUpperCase().includes('HOME STAY') || setMap['brand_name'].trim().toLowerCase() === 'the unique haven') {
-    setMap['brand_name'] = 'The Unique Haven Homes';
-    sb.from('app_settings').upsert({ key: 'brand_name', value: 'The Unique Haven Homes', updated_at: new Date().toISOString() }, { onConflict: 'key' }).then();
+  // Auto-sanitize rogue/incorrect legacy values across BOTH settings array (Tab 4 table) AND setMap (Tab 2 form)
+  settings.forEach(s => {
+    if (s.key === 'brand_name' && (!s.value || s.value.toUpperCase().includes('HOME STAY') || s.value.trim().toLowerCase() === 'the unique haven')) {
+      s.value = 'The Unique Haven Homes';
+      sb.from('app_settings').update({ value: 'The Unique Haven Homes', updated_at: new Date().toISOString() }).eq('key', 'brand_name').then();
+    }
+    if (s.key === 'website_url' && (!s.value || s.value.includes('theuniquehaven.com'))) {
+      s.value = 'https://uniquehavenhomesstay.com';
+      sb.from('app_settings').update({ value: 'https://uniquehavenhomesstay.com', updated_at: new Date().toISOString() }).eq('key', 'website_url').then();
+    }
+    if (s.key === 'google_review_link' && s.value && s.value.includes('YOUR_GOOGLE_ID')) {
+      s.value = '';
+      sb.from('app_settings').update({ value: '', updated_at: new Date().toISOString() }).eq('key', 'google_review_link').then();
+    }
+    if (s.key === 'checkin_time' && (s.value === '2:00 PM' || !s.value)) {
+      s.value = '1:00 PM';
+      sb.from('app_settings').update({ value: '1:00 PM', updated_at: new Date().toISOString() }).eq('key', 'checkin_time').then();
+    }
+    if (s.key === 'checkout_time' && !s.value) {
+      s.value = '11:00 AM';
+      sb.from('app_settings').update({ value: '11:00 AM', updated_at: new Date().toISOString() }).eq('key', 'checkout_time').then();
+    }
+    setMap[s.key] = s.value;
+  });
+
+  if (!settings.find(s => s.key === 'manager_phone')) {
+    const entry = { key: 'manager_phone', value: '9194109911', description: 'Manager (Mr. Praveen Singh)' };
+    settings.push(entry);
+    sb.from('app_settings').upsert({ ...entry, updated_at: new Date().toISOString() }, { onConflict: 'key' }).then();
   }
-  if (!setMap['website_url'] || setMap['website_url'].includes('theuniquehaven.com')) {
-    setMap['website_url'] = 'https://uniquehavenhomesstay.com';
-    sb.from('app_settings').upsert({ key: 'website_url', value: 'https://uniquehavenhomesstay.com', updated_at: new Date().toISOString() }, { onConflict: 'key' }).then();
-  }
-  if (setMap['google_review_link'] && setMap['google_review_link'].includes('YOUR_GOOGLE_ID')) {
-    setMap['google_review_link'] = '';
-    sb.from('app_settings').upsert({ key: 'google_review_link', value: '', updated_at: new Date().toISOString() }, { onConflict: 'key' }).then();
-  }
+
+  if (!setMap['brand_name']) setMap['brand_name'] = 'The Unique Haven Homes';
+  if (!setMap['website_url']) setMap['website_url'] = 'https://uniquehavenhomesstay.com';
   if (!setMap['owner_phone_1']) setMap['owner_phone_1'] = '9450055554';
   if (!setMap['owner_phone_2']) setMap['owner_phone_2'] = '8299600709';
   if (!setMap['manager_phone']) setMap['manager_phone'] = '9194109911';
@@ -2675,10 +2695,14 @@ window.clearAppCacheAndReload = function() {
 };
 
 async function saveSetting(key) {
-  const value = document.getElementById(`set_${key}`).value.trim();
+  let value = document.getElementById(`set_${key}`)?.value?.trim() || '';
+  if (key === 'brand_name' && (!value || value.toUpperCase().includes('HOME STAY') || value.trim().toLowerCase() === 'the unique haven')) {
+    value = 'The Unique Haven Homes';
+    const el = document.getElementById(`set_${key}`);
+    if (el) el.value = value;
+  }
   const { error } = await sb.from('app_settings')
-    .update({ value, updated_at: new Date().toISOString() })
-    .eq('key', key);
+    .upsert({ key, value, updated_at: new Date().toISOString() }, { onConflict: 'key' });
 
   if (error) {
     fsn.error('Error', '❌ ' + error.message);
