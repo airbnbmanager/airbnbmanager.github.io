@@ -2334,11 +2334,20 @@ async function renderSettings() {
       s.value = '11:00 AM';
       sb.from('app_settings').update({ value: '11:00 AM', updated_at: new Date().toISOString() }).eq('key', 'checkout_time').then();
     }
+    if (s.key === 'registered_office_map_link' && (!s.value || s.value.includes('Radhikapuri') || !s.value.includes('26.897965'))) {
+      s.value = 'https://www.google.com/maps?q=26.897965,81.010463';
+      sb.from('app_settings').update({ value: 'https://www.google.com/maps?q=26.897965,81.010463', updated_at: new Date().toISOString() }).eq('key', 'registered_office_map_link').then();
+    }
     setMap[s.key] = s.value;
   });
 
   if (!settings.find(s => s.key === 'manager_phone')) {
     const entry = { key: 'manager_phone', value: '9194109911', description: 'Manager (Mr. Praveen Singh)' };
+    settings.push(entry);
+    sb.from('app_settings').upsert({ ...entry, updated_at: new Date().toISOString() }, { onConflict: 'key' }).then();
+  }
+  if (!settings.find(s => s.key === 'registered_office_map_link')) {
+    const entry = { key: 'registered_office_map_link', value: 'https://www.google.com/maps?q=26.897965,81.010463', description: 'Registered Office Exact Google Maps Pin' };
     settings.push(entry);
     sb.from('app_settings').upsert({ ...entry, updated_at: new Date().toISOString() }, { onConflict: 'key' }).then();
   }
@@ -2350,6 +2359,7 @@ async function renderSettings() {
   if (!setMap['manager_phone']) setMap['manager_phone'] = '9194109911';
   if (!setMap['checkin_time']) setMap['checkin_time'] = '1:00 PM';
   if (!setMap['checkout_time']) setMap['checkout_time'] = '11:00 AM';
+  if (!setMap['registered_office_map_link']) setMap['registered_office_map_link'] = 'https://www.google.com/maps?q=26.897965,81.010463';
 
   const activeTab = window._settingsActiveTab || 'themes';
   const currentTheme = window.themeManager?.get() || 'light';
@@ -2516,7 +2526,7 @@ async function renderSettings() {
               📍 Capture My GPS Location
             </button>
           </div>
-          <input type="text" id="brand_registered_office_map_link" value="${(setMap['registered_office_map_link'] || '').replace(/"/g, '&quot;')}" placeholder="https://maps.app.goo.gl/... or https://maps.google.com/?q=26.88...,80.99..." />
+          <input type="text" id="brand_registered_office_map_link" value="${(setMap['registered_office_map_link'] || 'https://www.google.com/maps?q=26.897965,81.010463').replace(/"/g, '&quot;')}" placeholder="https://www.google.com/maps?q=26.897965,81.010463" />
           <small style="color:var(--muted);">Jab aap Radhikapuri Takrohi address par hon, tab "Capture My GPS Location" par click karein ya Google Maps se pin link paste karein.</small>
         </div>
 
@@ -2647,6 +2657,10 @@ window.saveBrandSettingsGroup = async function() {
     let value = el.value.trim();
     if (key === 'brand_name' && (!value || value.toUpperCase().includes('HOME STAY'))) {
       value = 'The Unique Haven Homes';
+      el.value = value;
+    }
+    if (key === 'registered_office_map_link' && !value) {
+      value = 'https://www.google.com/maps?q=26.897965,81.010463';
       el.value = value;
     }
     const { error } = await sb.from('app_settings').upsert({

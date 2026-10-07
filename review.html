@@ -575,7 +575,7 @@
         Incorporated under Companies Act, 2013 (Ministry of Corporate Affairs)
       </div>
       <div class="office-actions">
-        <a id="officeMapBtn" href="https://maps.google.com/?q=Radhikapuri,+Indira+Nagar+Takrohi,+Lucknow,+Uttar+Pradesh+226016" target="_blank" class="office-link-btn">
+        <a id="officeMapBtn" href="https://www.google.com/maps?q=26.897965,81.010463" target="_blank" class="office-link-btn">
           <span>🗺️</span> Google Maps Location
         </a>
         <a href="https://uniquehavenhomesstay.com" target="_blank" class="office-link-btn">
@@ -623,11 +623,11 @@
           `"Had an exceptional stay at ${propParam} with The Unique Haven Homes in Lucknow! Beautiful interiors, super clean, and Praveen and the staff were extremely accommodating. Highly recommended!"`;
       }
 
-      // Default Google Maps Search fallback for registered address if no direct link configured
-      const defaultGoogleSearch = 'https://www.google.com/maps/search/?api=1&query=' + 
-        encodeURIComponent('The Unique Haven Homes Private Limited Radhikapuri Indira Nagar Takrohi Lucknow 226016');
+      // Exact Google Maps Pin for Registered Office (Radhikapuri, Indira Nagar Takrohi, Lucknow)
+      const exactOfficeMapURL = 'https://www.google.com/maps?q=26.897965,81.010463';
+      const defaultGoogleSearch = exactOfficeMapURL;
       googleReviewURL = defaultGoogleSearch;
-      let registeredOfficeMapURL = 'https://maps.google.com/?q=Radhikapuri,+Indira+Nagar+Takrohi,+Lucknow,+Uttar+Pradesh+226016';
+      let registeredOfficeMapURL = exactOfficeMapURL;
 
       // Fetch live review link from Supabase app_settings & company_config
       try {

@@ -13,6 +13,7 @@
 - **GSTIN**: 09ABECT9843K1Z7 (Uttar Pradesh)
 - **SAC Code**: 996311 (Accommodation services in homestays / guest houses)
 - **Registered Office Address**: P No 39 & 40 Radhikapuri, Indira Nagar Takrohi, Lucknow, Uttar Pradesh – 226016, India
+- **Registered Office Google Maps Pin**: https://www.google.com/maps?q=26.897965,81.010463
 - **ZaubaCorp Registry Profile**: https://www.zaubacorp.com/company/THE-UNIQUE-HAVEN-HOMES-PRIVATE-LIMITED/U55101UP2026PTC244637
 - **CorporateDir Profile**: https://corporatedir.com/company/the-unique-haven-homes-private-limited
 - **Brand / Trading Names**: The Unique Haven Homes, Unique Haven Homes Stay, UHHS Lucknow
