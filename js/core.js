@@ -2465,6 +2465,17 @@ async function renderSettings() {
           <small style="color:var(--muted);">Auto sent in checkout WhatsApp message for Online-Airbnb guests</small>
         </div>
 
+        <div class="form-group" style="margin-top:10px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+            <label style="margin:0;">📍 Registered Office Exact Google Maps Pin</label>
+            <button type="button" class="btn-sm" style="background:#2563EB;color:#fff;padding:3px 10px;font-size:11px;font-weight:700;" onclick="captureCurrentLocationForOffice()">
+              📍 Capture My GPS Location
+            </button>
+          </div>
+          <input type="text" id="brand_registered_office_map_link" value="${(setMap['registered_office_map_link'] || '').replace(/"/g, '&quot;')}" placeholder="https://maps.app.goo.gl/... or https://maps.google.com/?q=26.88...,80.99..." />
+          <small style="color:var(--muted);">Jab aap Radhikapuri Takrohi address par hon, tab "Capture My GPS Location" par click karein ya Google Maps se pin link paste karein.</small>
+        </div>
+
         <div class="form-group">
           <label>🌟 Google Business Review Short Link</label>
           <input type="text" id="brand_google_review_link" value="${(setMap['google_review_link'] || '').replace(/"/g, '&quot;')}" placeholder="https://g.page/r/.../review or https://search.google.com/local/writereview?placeid=..." />
@@ -2584,7 +2595,7 @@ window.filterSettingsTable = function() {
 };
 
 window.saveBrandSettingsGroup = async function() {
-  const keys = ['brand_name', 'website_url', 'owner_phone_1', 'owner_phone_2', 'checkin_time', 'checkout_time', 'airbnb_review_link', 'google_review_link'];
+  const keys = ['brand_name', 'website_url', 'owner_phone_1', 'owner_phone_2', 'checkin_time', 'checkout_time', 'airbnb_review_link', 'google_review_link', 'registered_office_map_link'];
   let savedCount = 0;
   for (const key of keys) {
     const el = document.getElementById('brand_' + key);
@@ -2597,6 +2608,32 @@ window.saveBrandSettingsGroup = async function() {
   }
   window._appSettings = null;
   fsn.success('Brand Details Saved', `✅ Updated ${savedCount} settings successfully!`);
+};
+
+window.captureCurrentLocationForOffice = function() {
+  if (!navigator.geolocation) {
+    alert('Aapke browser/phone mein Geolocation support nahi hai.');
+    return;
+  }
+  if (window.fsn) fsn.info('Locating...', 'Fetching exact GPS coordinates from your device...');
+  navigator.geolocation.getCurrentPosition(
+    pos => {
+      const lat = pos.coords.latitude.toFixed(6);
+      const lng = pos.coords.longitude.toFixed(6);
+      const acc = Math.round(pos.coords.accuracy);
+      const mapUrl = `https://maps.google.com/?q=${lat},${lng}`;
+      const input = document.getElementById('brand_registered_office_map_link');
+      if (input) input.value = mapUrl;
+      if (window.fsn) fsn.success('Pin Captured! (Accuracy: ±' + acc + 'm)', 'Lat: ' + lat + ', Lng: ' + lng);
+      const openConfirm = confirm(`✅ Exact GPS Coordinates Captured!\n\nLatitude: ${lat}\nLongitude: ${lng}\nAccuracy: ±${acc} meters\n\nKya aap ise Google Maps mein open karke check karna chahte hain?`);
+      if (openConfirm) window.open(mapUrl, '_blank');
+    },
+    err => {
+      console.error('Geolocation error:', err);
+      alert('Location access denied ya GPS unavailable: ' + err.message + '\n\nKripya device settings se Location permission allow karein.');
+    },
+    { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+  );
 };
 
 window.clearAppCacheAndReload = function() {

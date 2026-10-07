@@ -575,7 +575,7 @@
         Incorporated under Companies Act, 2013 (Ministry of Corporate Affairs)
       </div>
       <div class="office-actions">
-        <a href="https://maps.google.com/?q=Radhikapuri,+Indira+Nagar+Takrohi,+Lucknow,+Uttar+Pradesh+226016" target="_blank" class="office-link-btn">
+        <a id="officeMapBtn" href="https://maps.google.com/?q=Radhikapuri,+Indira+Nagar+Takrohi,+Lucknow,+Uttar+Pradesh+226016" target="_blank" class="office-link-btn">
           <span>🗺️</span> Google Maps Location
         </a>
         <a href="https://uniquehavenhomesstay.com" target="_blank" class="office-link-btn">
@@ -627,6 +627,7 @@
       const defaultGoogleSearch = 'https://www.google.com/maps/search/?api=1&query=' + 
         encodeURIComponent('The Unique Haven Homes Private Limited Radhikapuri Indira Nagar Takrohi Lucknow 226016');
       googleReviewURL = defaultGoogleSearch;
+      let registeredOfficeMapURL = 'https://maps.google.com/?q=Radhikapuri,+Indira+Nagar+Takrohi,+Lucknow,+Uttar+Pradesh+226016';
 
       // Fetch live review link from Supabase app_settings & company_config
       try {
@@ -634,13 +635,16 @@
           const sb = supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY);
           
           // 1. Check app_settings
-          const { data: sets } = await sb.from('app_settings').select('key, value').in('key', ['google_review_link', 'airbnb_review_link']);
+          const { data: sets } = await sb.from('app_settings').select('key, value').in('key', ['google_review_link', 'airbnb_review_link', 'registered_office_map_link']);
           (sets || []).forEach(s => {
             if (s.key === 'google_review_link' && s.value && s.value.trim()) {
               googleReviewURL = s.value.trim();
             }
             if (s.key === 'airbnb_review_link' && s.value && s.value.trim()) {
               airbnbReviewURL = s.value.trim();
+            }
+            if (s.key === 'registered_office_map_link' && s.value && s.value.trim()) {
+              registeredOfficeMapURL = s.value.trim();
             }
           });
 
@@ -658,6 +662,9 @@
       // Set link href
       const googleBtn = document.getElementById('btnGoogleReview');
       if (googleBtn) googleBtn.href = googleReviewURL;
+
+      const officeMapBtn = document.getElementById('officeMapBtn');
+      if (officeMapBtn) officeMapBtn.href = registeredOfficeMapURL;
 
       // Show Airbnb button if booking is from Airbnb or explicit param
       if (sourceParam.includes('airbnb') && airbnbReviewURL) {
