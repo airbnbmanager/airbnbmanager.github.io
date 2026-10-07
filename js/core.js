@@ -1186,7 +1186,7 @@ function renderShell(content, activePage = 'dashboard') {
         <!-- Top App Bar -->
         <header class="app-topbar">
           <div class="topbar-left">
-            <button class="mobile-hamburger-btn" id="hamburgerBtn" aria-label="Toggle menu">
+            <button class="mobile-hamburger-btn" id="hamburgerBtn" aria-label="Toggle menu" title="Open Navigation Menu">
               <span></span><span></span><span></span>
             </button>
             <div class="page-heading">
@@ -1199,36 +1199,20 @@ function renderShell(content, activePage = 'dashboard') {
           </div>
 
           <div class="topbar-right">
+            <!-- Desktop Search Bar -->
             <div class="topbar-search">
               <span class="search-icon" style="cursor:pointer;" onclick="window.triggerGlobalSearch && window.triggerGlobalSearch()" title="Click to Search">🔍</span>
-              <input type="text" id="topbarGlobalSearch" placeholder="Search guests, phone..." value="${SESSION.bookingSearch || ''}" onkeydown="if(event.key==='Enter'){window.triggerGlobalSearch&&window.triggerGlobalSearch();}" />
+              <input type="text" id="topbarGlobalSearch" placeholder="Search guests, phone, ID..." value="${SESSION.bookingSearch || ''}" onkeydown="if(event.key==='Enter'){window.triggerGlobalSearch&&window.triggerGlobalSearch();}" />
             </div>
 
-            <!-- 🔄 UNIVERSAL REFRESH DATA BUTTON (ALL DEVICES) -->
-            <button type="button" class="topbar-refresh-btn" id="globalRefreshBtn" onclick="window.manualRefreshCurrentPage()" title="Refresh latest data without reloading page">
-              <span class="refresh-icon">🔄</span> <span class="btn-text">Refresh</span>
+            <!-- Mobile Quick Search Button (opens instant search overlay) -->
+            <button type="button" class="topbar-icon-btn topbar-mobile-search-btn" onclick="window.openMobileSearch && window.openMobileSearch()" title="Search Bookings & Guests" aria-label="Search">
+              <span>🔍</span>
             </button>
 
-            ${typeof window.canModerate === 'function' && window.canModerate() ? `
-              <button class="topbar-cta-btn" id="topbarNewBookingBtn" onclick="window.renderAddBooking ? renderAddBooking() : (navigate('bookings'), setTimeout(() => window.renderAddBooking && renderAddBooking(), 400))">
-                <span>➕</span> <span class="btn-text">New Booking</span>
-              </button>
-            ` : ''}
-
-            <button class="topbar-icon-btn" onclick="window.openCommandPalette && window.openCommandPalette()" title="Quick Search & Actions (Cmd+K)" style="font-size:16px;">
-              🔍
-            </button>
-
-            <button class="topbar-icon-btn" onclick="window.openVoiceBookingModal && window.openVoiceBookingModal()" title="AI Voice-to-Booking (Hindi/English)" style="font-size:16px;color:#FF385C;">
-              🎙️
-            </button>
-
-            <button class="topbar-icon-btn" onclick="navigate('whatsapp-hub')" title="WhatsApp Hub & QR Scanner" style="font-size:16px;">
-              📱
-            </button>
-
-            <button class="topbar-icon-btn" id="topbarNotifBtn" onclick="window.notifications&&window.notifications.openPanel();" title="Notifications">
-              🔔<span class="notif-bell-badge" style="display:none;"></span>
+            <!-- Notifications Bell -->
+            <button class="topbar-icon-btn" id="topbarNotifBtn" onclick="window.notifications&&window.notifications.openPanel();" title="Notifications" aria-label="Notifications">
+              <span>🔔</span><span class="notif-bell-badge" style="display:none;"></span>
             </button>
           </div>
         </header>
@@ -1336,14 +1320,23 @@ function renderShell(content, activePage = 'dashboard') {
   }
 
   // Global search input handling — manual trigger on Enter or 🔍 click
-  window.triggerGlobalSearch = function() {
-    const globalSearch = document.getElementById('topbarGlobalSearch');
-    if (!globalSearch) return;
-    SESSION.bookingSearch = globalSearch.value.trim();
+  window.triggerGlobalSearch = function(customQuery) {
+    const q = (customQuery !== undefined) 
+      ? customQuery 
+      : (document.getElementById('topbarGlobalSearch')?.value || document.getElementById('mobileSearchInput')?.value || '');
+    const query = (q || '').trim();
+    SESSION.bookingSearch = query;
+    if (window._sbkState) {
+      window._sbkState.searchQuery = query;
+    }
     if (SESSION.currentPage !== 'bookings') {
       navigate('bookings');
-    } else if (typeof renderManageBookings === 'function') {
-      renderManageBookings();
+    } else {
+      if (typeof window.renderSmartManageBookings === 'function') {
+        window.renderSmartManageBookings();
+      } else if (typeof renderManageBookings === 'function') {
+        renderManageBookings();
+      }
     }
   };
 
@@ -1355,6 +1348,120 @@ function renderShell(content, activePage = 'dashboard') {
       }
     };
   }
+
+  // 📱 Mobile Spotlight Search Overlay & Real-Time Lookup
+  window.openMobileSearch = function() {
+    let overlay = document.getElementById('mobileSearchOverlay');
+    if (!overlay) {
+      overlay = document.createElement('div');
+      overlay.id = 'mobileSearchOverlay';
+      overlay.className = 'mobile-search-overlay';
+      overlay.innerHTML = `
+        <div class="mobile-search-card">
+          <div class="mobile-search-top">
+            <span class="mobile-search-icon">🔍</span>
+            <input type="text" id="mobileSearchInput" class="mobile-search-input" placeholder="Search guests, phone, ID, room..." autocomplete="off" />
+            <button type="button" class="mobile-search-close" onclick="window.closeMobileSearch()">✕</button>
+          </div>
+          <div id="mobileSearchResults" class="mobile-search-results">
+            <div class="mobile-search-placeholder">Type guest name, phone number, or flat...</div>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(overlay);
+      overlay.onclick = e => { if (e.target === overlay) window.closeMobileSearch(); };
+    }
+    overlay.classList.add('show');
+    const inp = document.getElementById('mobileSearchInput');
+    if (inp) {
+      inp.value = SESSION.bookingSearch || '';
+      setTimeout(() => { inp.focus(); inp.select(); }, 120);
+      inp.oninput = () => window.handleMobileSearchQuery(inp.value);
+      inp.onkeydown = e => {
+        if (e.key === 'Enter') {
+          window.triggerGlobalSearch(inp.value);
+          window.closeMobileSearch();
+        } else if (e.key === 'Escape') {
+          window.closeMobileSearch();
+        }
+      };
+    }
+    window.handleMobileSearchQuery(inp ? inp.value : '');
+  };
+
+  window.closeMobileSearch = function() {
+    const overlay = document.getElementById('mobileSearchOverlay');
+    if (overlay) overlay.classList.remove('show');
+  };
+
+  let _mobileSearchDebounce = null;
+  window.handleMobileSearchQuery = async function(query) {
+    const q = (query || '').toLowerCase().trim();
+    const resBox = document.getElementById('mobileSearchResults');
+    if (!resBox) return;
+
+    if (!q) {
+      resBox.innerHTML = '<div class="mobile-search-placeholder">Type guest name, phone number, or flat...</div>';
+      return;
+    }
+
+    clearTimeout(_mobileSearchDebounce);
+    _mobileSearchDebounce = setTimeout(async () => {
+      let matches = [];
+      const cached = window._sbkState?.cachedBookings || [];
+      if (cached.length) {
+        matches = cached.filter(b => 
+          (b.guest_name && b.guest_name.toLowerCase().includes(q)) ||
+          (b.phone && b.phone.includes(q)) ||
+          (b.booking_id && String(b.booking_id).toLowerCase().includes(q)) ||
+          (b.rooms?.nickname && b.rooms.nickname.toLowerCase().includes(q)) ||
+          (b.room_id && b.room_id.toLowerCase().includes(q))
+        ).slice(0, 8);
+      }
+
+      // If no cached matches or not loaded yet, query Supabase directly
+      if (!matches.length && window.sb) {
+        try {
+          const { data } = await sb.from('guest_register')
+            .select('booking_id, guest_name, phone, room_id, check_in, check_out, total_amount')
+            .or(`guest_name.ilike.%${q}%,phone.ilike.%${q}%,booking_id.ilike.%${q}%`)
+            .limit(8);
+          if (data) matches = data;
+        } catch(e) {}
+      }
+
+      if (!matches.length) {
+        resBox.innerHTML = `
+          <div class="mobile-search-empty">
+            No matches found for "<strong>${escapeHtml(q)}</strong>"
+            <div style="margin-top:10px;">
+              <button type="button" class="btn-sm" onclick="window.triggerGlobalSearch('${escapeHtml(q)}');window.closeMobileSearch();" style="padding:6px 12px;background:#0F172A;color:#fff;border-radius:8px;font-size:12px;font-weight:700;border:none;cursor:pointer;">
+                Search all Bookings Register ➔
+              </button>
+            </div>
+          </div>`;
+        return;
+      }
+
+      resBox.innerHTML = `
+        <div style="padding:8px 12px;font-size:11px;font-weight:700;color:#64748B;text-transform:uppercase;letter-spacing:0.5px;display:flex;justify-content:space-between;align-items:center;">
+          <span>Found ${matches.length} matching stays</span>
+          <a href="#" onclick="event.preventDefault();window.triggerGlobalSearch('${escapeHtml(q)}');window.closeMobileSearch();" style="color:#4F46E5;font-weight:700;text-decoration:none;">View all ➔</a>
+        </div>
+        ${matches.map(b => `
+          <div class="mobile-search-item" onclick="if(window.openBookingDrawer){window.openBookingDrawer('${b.booking_id}');window.closeMobileSearch();}else{window.triggerGlobalSearch('${b.booking_id}');window.closeMobileSearch();}">
+            <div class="ms-avatar">${(b.guest_name || 'G').charAt(0).toUpperCase()}</div>
+            <div class="ms-info">
+              <div class="ms-name">${escapeHtml(b.guest_name || 'Guest')} <span class="ms-id">(${escapeHtml(b.booking_id)})</span></div>
+              <div class="ms-sub">🛏️ ${escapeHtml(b.rooms?.nickname || b.room_id || 'Unit')} · 📅 ${escapeHtml(b.check_in || '-')} to ${escapeHtml(b.check_out || '-')}</div>
+              ${b.phone ? `<div class="ms-phone">📞 ${escapeHtml(b.phone)}</div>` : ''}
+            </div>
+            <div class="ms-arrow">➔</div>
+          </div>
+        `).join('')}
+      `;
+    }, 200);
+  };
 
   // Init drawer search if drawer input present
   if (typeof initDrawerSearch === 'function') {

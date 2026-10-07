@@ -117,8 +117,19 @@ async function renderSmartManageBookings() {
     filtered = filtered.filter(b => window._myAssignedRooms.includes(b.room_id));
   }
 
+  // Sync global search if present
+  if (window.SESSION?.bookingSearch && !window._sbkState.searchQuery) {
+    window._sbkState.searchQuery = window.SESSION.bookingSearch;
+  }
+
+  // Search filter query
+  const sq = (window._sbkState.searchQuery || '').trim().toLowerCase();
+
   const tab = window._sbkState.activeTab || 'today';
-  if (tab === 'today') {
+  if (sq) {
+    // When searching, bypass date tab constraints so user can find ANY reservation across all dates
+    filtered.sort((a, b) => (b.check_in || '').localeCompare(a.check_in || ''));
+  } else if (tab === 'today') {
     filtered = filtered.filter(b => {
       if (b.is_cancelled) return false;
       const isArrival = b.check_in === today;
@@ -187,7 +198,6 @@ async function renderSmartManageBookings() {
   }
 
   // Search filter
-  const sq = (window._sbkState.searchQuery || '').trim().toLowerCase();
   if (sq) {
     filtered = filtered.filter(b => 
       (b.guest_name || '').toLowerCase().includes(sq) ||
@@ -196,7 +206,8 @@ async function renderSmartManageBookings() {
       (b.airbnb_confirmation_code && b.airbnb_confirmation_code.toLowerCase().includes(sq)) ||
       (b.rooms?.nickname && b.rooms.nickname.toLowerCase().includes(sq)) ||
       (b.rooms?.unit_no && String(b.rooms.unit_no).toLowerCase().includes(sq)) ||
-      (b.rooms?.property_name && b.rooms.property_name.toLowerCase().includes(sq))
+      (b.rooms?.property_name && b.rooms.property_name.toLowerCase().includes(sq)) ||
+      (b.room_id && b.room_id.toLowerCase().includes(sq))
     );
   }
 
@@ -352,6 +363,7 @@ async function renderSmartManageBookings() {
         <span style="font-size:16px;color:#64748B;">🔍</span>
         <input type="text" id="sbkLiveSearch" placeholder="Search guest name, phone, reservation code, unit..."
           value="${escapeHtml(window._sbkState.searchQuery)}"
+          oninput="window.handleSearchInput && window.handleSearchInput(this.value);"
           onkeydown="if(event.key==='Enter'){window.handleManualSearch();}" />
         <button type="button" class="btn-sm" onclick="window.handleManualSearch();" style="padding:6px 14px;background:#0F172A;color:#fff;border-radius:8px;font-weight:700;cursor:pointer;font-size:13px;border:none;flex-shrink:0;">Search</button>
         ${window._sbkState.searchQuery ? `
@@ -1344,23 +1356,38 @@ window.toggleFollowupsExpanded = function() {
   renderSmartManageBookings();
 };
 
+let _sbkDebounceTimer = null;
 window.handleManualSearch = function() {
+  clearTimeout(_sbkDebounceTimer);
   const input = document.getElementById('sbkLiveSearch');
   const val = input ? input.value.trim() : '';
   window._sbkState.searchQuery = val;
+  if (window.SESSION) window.SESSION.bookingSearch = val;
   renderSmartManageBookings();
 };
 
 window.clearSearch = function() {
+  clearTimeout(_sbkDebounceTimer);
   const input = document.getElementById('sbkLiveSearch');
   if (input) input.value = '';
   window._sbkState.searchQuery = '';
+  if (window.SESSION) window.SESSION.bookingSearch = '';
   renderSmartManageBookings();
 };
 
 window.handleSearchInput = function(val) {
-  // Sets query without instant re-render; manual click triggers render
-  window._sbkState.searchQuery = (val || '').trim();
+  const query = (val || '').trim();
+  window._sbkState.searchQuery = query;
+  if (window.SESSION) window.SESSION.bookingSearch = query;
+  clearTimeout(_sbkDebounceTimer);
+  _sbkDebounceTimer = setTimeout(() => {
+    renderSmartManageBookings();
+    const inp = document.getElementById('sbkLiveSearch');
+    if (inp) {
+      inp.focus();
+      inp.setSelectionRange(inp.value.length, inp.value.length);
+    }
+  }, 300);
 };
 
 window.handlePropertyFilter = function(propId) {

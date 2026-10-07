@@ -3,13 +3,31 @@
 // ═══════════════════════════════════════════════════════════
 
 (function() {
+  function dedupeHistoryArray(arr) {
+    if (!Array.isArray(arr)) return [];
+    const seen = new Set();
+    const result = [];
+    for (const item of arr) {
+      if (!item) continue;
+      const key = item.dbId ? `db:${item.dbId}` : `${item.type||''}:${item.entityId||''}:${(item.title||'').trim()}:${(item.message||'').trim()}`;
+      if (!seen.has(key)) {
+        seen.add(key);
+        result.push(item);
+      }
+    }
+    return result;
+  }
+
+  let rawHist = [];
+  try { rawHist = JSON.parse(localStorage.getItem('uh_notif_history') || '[]'); } catch(e) {}
   const NOTIF = {
     channels: [],
-    history: JSON.parse(localStorage.getItem('uh_notif_history') || '[]'),
+    history: dedupeHistoryArray(rawHist),
     maxHistory: 50,
     isMuted: localStorage.getItem('uh_notif_muted') === 'true',
     started: false
   };
+  try { localStorage.setItem('uh_notif_history', JSON.stringify(NOTIF.history)); } catch(e) {}
 
   // ─── Sound (Apple / Luxury Hospitality Harmonic Chime Synthesizer) ───
   function playSound(type) {
@@ -78,10 +96,34 @@
     try { navigator.vibrate && navigator.vibrate(pattern); } catch(e) {}
   }
 
-  // ─── History ───
+  // ─── History (Strict Deduplication) ───
   function saveHist(n) {
-    const entry = { ...n, id: Date.now()+Math.random(), read: false, time: new Date().toISOString() };
+    if (!n) return;
+    const now = Date.now();
+    const sig = `${n.type||''}:${n.entityId||''}:${(n.title||'').trim()}:${(n.message||'').trim()}`;
+
+    // Deduplicate against existing notifications in history
+    const existing = NOTIF.history.find(item => {
+      if (n.dbId && item.dbId && n.dbId === item.dbId) return true;
+      const itemSig = `${item.type||''}:${item.entityId||''}:${(item.title||'').trim()}:${(item.message||'').trim()}`;
+      if (itemSig === sig) {
+        const itemAge = now - new Date(item.time || 0).getTime();
+        return itemAge < 30 * 60 * 1000; // 30 min dedupe window
+      }
+      return false;
+    });
+
+    if (existing) {
+      existing.time = new Date().toISOString();
+      if (n.dbId && !existing.dbId) existing.dbId = n.dbId;
+      localStorage.setItem('uh_notif_history', JSON.stringify(NOTIF.history));
+      updateBadge();
+      return;
+    }
+
+    const entry = { ...n, id: now + Math.random(), read: false, time: new Date().toISOString() };
     NOTIF.history.unshift(entry);
+    NOTIF.history = dedupeHistoryArray(NOTIF.history);
     if (NOTIF.history.length > NOTIF.maxHistory) NOTIF.history = NOTIF.history.slice(0, NOTIF.maxHistory);
     localStorage.setItem('uh_notif_history', JSON.stringify(NOTIF.history));
     updateBadge();
@@ -115,7 +157,7 @@
     } catch(e) { console.warn('Notif DB persist failed:', e); }
   }
 
-  // ─── Fetch unread from DB (on login) ───
+  // ─── Fetch unread from DB (on login, strictly deduplicated) ───
   async function fetchUnreadFromDB() {
     if (!window.sb || !window.SESSION?.userId) return;
     try {
@@ -128,27 +170,47 @@
       if (error) return console.warn('Notif fetch error:', error);
       if (!data || data.length === 0) return;
 
-      // Merge with local history (dedupe by dbId)
       const existingDbIds = new Set(NOTIF.history.map(x => x.dbId).filter(Boolean));
-      const newOnes = data.filter(d => !existingDbIds.has(d.id)).map(d => ({
-        id: Date.now() + Math.random(),
-        dbId: d.id,
-        type: d.type,
-        icon: d.icon || '🔔',
-        title: d.title,
-        message: d.message,
-        page: d.page,
-        sub: d.data?.sub,
-        entityId: d.data?.entityId || null,
-        entityType: d.data?.entityType || null,
-        read: false,
-        time: d.created_at
-      }));
+      const newOnes = [];
+
+      data.forEach(d => {
+        if (existingDbIds.has(d.id)) return;
+        // Check if matching item already in local history by entityId or title+message
+        const localMatch = NOTIF.history.find(h =>
+          (h.dbId && h.dbId === d.id) ||
+          (d.data?.entityId && h.entityId === d.data.entityId && h.type === d.type) ||
+          ((h.title || '').trim() === (d.title || '').trim() && (h.message || '').trim() === (d.message || '').trim())
+        );
+
+        if (localMatch) {
+          localMatch.dbId = d.id; // Associate DB ID
+          return;
+        }
+
+        newOnes.push({
+          id: Date.now() + Math.random(),
+          dbId: d.id,
+          type: d.type,
+          icon: d.icon || '🔔',
+          title: d.title,
+          message: d.message,
+          page: d.page,
+          sub: d.data?.sub,
+          entityId: d.data?.entityId || null,
+          entityType: d.data?.entityType || null,
+          read: false,
+          time: d.created_at
+        });
+      });
+
       if (newOnes.length > 0) {
-        NOTIF.history = [...newOnes, ...NOTIF.history].slice(0, NOTIF.maxHistory);
+        NOTIF.history = dedupeHistoryArray([...newOnes, ...NOTIF.history]).slice(0, NOTIF.maxHistory);
         localStorage.setItem('uh_notif_history', JSON.stringify(NOTIF.history));
         updateBadge();
-        console.log('🔔 Loaded', newOnes.length, 'unread notifications from DB');
+        console.log('🔔 Loaded', newOnes.length, 'unread notifications from DB (deduplicated)');
+      } else {
+        localStorage.setItem('uh_notif_history', JSON.stringify(NOTIF.history));
+        updateBadge();
       }
     } catch(e) { console.warn('Notif DB fetch failed:', e); }
   }
@@ -394,7 +456,23 @@
     }
   }
 
+  const _recentNotifSignatures = new Map();
   function notify(cfg) {
+    if (!cfg) return;
+    const now = Date.now();
+    const sig = `${cfg.type||''}:${cfg.entityId||''}:${(cfg.title||'').trim()}:${(cfg.message||'').trim()}`;
+    const lastTime = _recentNotifSignatures.get(sig);
+    if (lastTime && (now - lastTime < 10000)) {
+      console.log('🔔 Duplicate notification suppressed:', sig);
+      return;
+    }
+    _recentNotifSignatures.set(sig, now);
+    if (_recentNotifSignatures.size > 100) {
+      for (const [k, t] of _recentNotifSignatures.entries()) {
+        if (now - t > 30000) _recentNotifSignatures.delete(k);
+      }
+    }
+
     saveHist(cfg);
     showToast(cfg);
     playSound(cfg.sound || cfg.type);
@@ -415,16 +493,33 @@
         sb.from('reminders').select('*').eq('is_resolved', false).gte('reminder_time', now).lte('reminder_time', in24h).order('reminder_time').limit(10)
       ]);
       
+      // Deduplicate reminders by ID
+      const seenRemIds = new Set();
+      const dedupedOverdue = [];
+      (overdueRaw || []).forEach(r => {
+        if (!seenRemIds.has(r.id)) {
+          seenRemIds.add(r.id);
+          dedupedOverdue.push(r);
+        }
+      });
+      const dedupedUpcoming = [];
+      (upcomingRaw || []).forEach(r => {
+        if (!seenRemIds.has(r.id)) {
+          seenRemIds.add(r.id);
+          dedupedUpcoming.push(r);
+        }
+      });
+
       // Get booking names
-      const allBkIds = [...new Set([...(overdueRaw||[]), ...(upcomingRaw||[])].map(r => r.booking_id))];
+      const allBkIds = [...new Set([...dedupedOverdue, ...dedupedUpcoming].map(r => r.booking_id).filter(Boolean))];
       let bkMap = {};
       if (allBkIds.length > 0) {
         const { data: bks } = await sb.from('guest_register')
           .select('booking_id, guest_name, room_id, phone').in('booking_id', allBkIds);
         (bks || []).forEach(b => bkMap[b.booking_id] = b);
       }
-      overdueRem = (overdueRaw || []).map(r => ({ ...r, bk: bkMap[r.booking_id] || {} }));
-      upcomingRem = (upcomingRaw || []).map(r => ({ ...r, bk: bkMap[r.booking_id] || {} }));
+      overdueRem = dedupedOverdue.map(r => ({ ...r, bk: bkMap[r.booking_id] || {} }));
+      upcomingRem = dedupedUpcoming.map(r => ({ ...r, bk: bkMap[r.booking_id] || {} }));
     } catch(e) { console.error('Reminders fetch error:', e); }
     
     const typeIcon = t => ({ payment: '💰', id: '🪪', checkout: '🚪', custom: '📌' })[t] || '📌';
@@ -714,7 +809,7 @@
     const c4 = sb.channel('rt-updates-' + Date.now())
       .on('postgres_changes',
         { event: 'UPDATE', schema: 'public', table: 'guest_register' },
-        (payload) => {
+        async (payload) => {
           const o = payload.old, n = payload.new;
           let rName = n.room_id || 'Homestay';
           try {

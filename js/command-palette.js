@@ -211,14 +211,24 @@
       });
     }
 
-    // Search Live Bookings & Guests from cache
-    const cachedBks = window._sbkState?.cachedBookings || [];
-    if (q && cachedBks.length) {
-      const matchedGuests = cachedBks.filter(b => 
+    // Search Live Bookings & Guests from cache or direct Supabase fallback
+    let guestPool = window._sbkState?.cachedBookings || [];
+    if (q && guestPool.length === 0 && window.sb) {
+      try {
+        const { data: directBks } = await sb.from('guest_register')
+          .select('booking_id, guest_name, phone, room_id, check_in, check_out, total_amount')
+          .or(`guest_name.ilike.%${q}%,phone.ilike.%${q}%,booking_id.ilike.%${q}%`)
+          .limit(8);
+        if (directBks && directBks.length) guestPool = directBks;
+      } catch(e) {}
+    }
+
+    if (q && guestPool.length) {
+      const matchedGuests = guestPool.filter(b => 
         (b.guest_name && b.guest_name.toLowerCase().includes(q)) ||
         (b.phone && b.phone.includes(q)) ||
-        (b.booking_id && b.booking_id.toLowerCase().includes(q))
-      ).slice(0, 6);
+        (b.booking_id && String(b.booking_id).toLowerCase().includes(q))
+      ).slice(0, 8);
 
       if (matchedGuests.length) {
         items.push({ isHeader: true, title: '👥 Guest Reservations' });
@@ -227,10 +237,13 @@
             type: 'guest',
             icon: '👤',
             title: `${b.guest_name || 'Guest'} (${b.booking_id})`,
-            sub: `${b.room_id || 'Room'} · ${b.check_in} to ${b.check_out} · ${b.phone || 'No phone'}`,
+            sub: `${b.room_id || 'Room'} · ${b.check_in || '-'} to ${b.check_out || '-'} · ${b.phone || 'No phone'}`,
             action: () => {
               if (window.openBookingDrawer) window.openBookingDrawer(b.booking_id);
-              else window.navigate('bookings');
+              else {
+                if (window.SESSION) window.SESSION.bookingSearch = b.booking_id;
+                window.navigate('bookings');
+              }
             }
           });
         });
