@@ -1,5 +1,5 @@
-const CACHE_NAME = 'tuhh-live-v227';
-const RUNTIME_CACHE = 'tuhh-runtime-v107';
+const CACHE_NAME = 'tuhh-live-v228';
+const RUNTIME_CACHE = 'tuhh-runtime-v108';
 
 const CORE_ASSETS = [
   '/admin.html',

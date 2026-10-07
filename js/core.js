@@ -2312,6 +2312,25 @@ async function renderSettings() {
   const setMap = {};
   (settings || []).forEach(s => { setMap[s.key] = s.value; });
 
+  // Auto-sanitize rogue/incorrect legacy values
+  if (!setMap['brand_name'] || setMap['brand_name'].toUpperCase().includes('HOME STAY') || setMap['brand_name'].trim().toLowerCase() === 'the unique haven') {
+    setMap['brand_name'] = 'The Unique Haven Homes';
+    sb.from('app_settings').upsert({ key: 'brand_name', value: 'The Unique Haven Homes', updated_at: new Date().toISOString() }, { onConflict: 'key' }).then();
+  }
+  if (!setMap['website_url'] || setMap['website_url'].includes('theuniquehaven.com')) {
+    setMap['website_url'] = 'https://uniquehavenhomesstay.com';
+    sb.from('app_settings').upsert({ key: 'website_url', value: 'https://uniquehavenhomesstay.com', updated_at: new Date().toISOString() }, { onConflict: 'key' }).then();
+  }
+  if (setMap['google_review_link'] && setMap['google_review_link'].includes('YOUR_GOOGLE_ID')) {
+    setMap['google_review_link'] = '';
+    sb.from('app_settings').upsert({ key: 'google_review_link', value: '', updated_at: new Date().toISOString() }, { onConflict: 'key' }).then();
+  }
+  if (!setMap['owner_phone_1']) setMap['owner_phone_1'] = '9450055554';
+  if (!setMap['owner_phone_2']) setMap['owner_phone_2'] = '8299600709';
+  if (!setMap['manager_phone']) setMap['manager_phone'] = '9194109911';
+  if (!setMap['checkin_time']) setMap['checkin_time'] = '1:00 PM';
+  if (!setMap['checkout_time']) setMap['checkout_time'] = '11:00 AM';
+
   const activeTab = window._settingsActiveTab || 'themes';
   const currentTheme = window.themeManager?.get() || 'light';
 
@@ -2399,37 +2418,42 @@ async function renderSettings() {
         <div class="form-grid">
           <div class="form-group">
             <label>Brand Name</label>
-            <input type="text" id="brand_brand_name" value="${(setMap['brand_name'] || 'The Unique Haven').replace(/"/g, '&quot;')}" placeholder="e.g. The Unique Haven" />
-            <small style="color:var(--muted);">Used in page headers, invoices & WhatsApp signatures</small>
+            <input type="text" id="brand_brand_name" value="${(setMap['brand_name'] || 'The Unique Haven Homes').replace(/"/g, '&quot;')}" placeholder="e.g. The Unique Haven Homes" />
+            <small style="color:var(--muted);">Official brand name used in vouchers, receipts &amp; WhatsApp</small>
           </div>
           <div class="form-group">
             <label>Website URL</label>
-            <input type="text" id="brand_website_url" value="${(setMap['website_url'] || 'https://theuniquehaven.com').replace(/"/g, '&quot;')}" placeholder="https://..." />
-            <small style="color:var(--muted);">Public website link included in messages</small>
+            <input type="text" id="brand_website_url" value="${(setMap['website_url'] || 'https://uniquehavenhomesstay.com').replace(/"/g, '&quot;')}" placeholder="https://uniquehavenhomesstay.com" />
+            <small style="color:var(--muted);">Public live website address included in messages</small>
           </div>
         </div>
 
         <div class="form-grid" style="margin-top:10px;">
           <div class="form-group">
-            <label>Primary Owner/Manager Phone</label>
-            <input type="text" id="brand_owner_phone_1" value="${(setMap['owner_phone_1'] || '').replace(/"/g, '&quot;')}" placeholder="+91..." />
-            <small style="color:var(--muted);">Guest escalation & WhatsApp contact</small>
+            <label>Co-Founder &amp; Owner Phone (Mr. Shahanshah)</label>
+            <input type="text" id="brand_owner_phone_1" value="${(setMap['owner_phone_1'] || '9450055554').replace(/"/g, '&quot;')}" placeholder="9450055554" />
+            <small style="color:var(--muted);">Director escalation &amp; primary owner contact</small>
           </div>
           <div class="form-group">
-            <label>Secondary / Supervisor Phone</label>
-            <input type="text" id="brand_owner_phone_2" value="${(setMap['owner_phone_2'] || '').replace(/"/g, '&quot;')}" placeholder="+91..." />
-            <small style="color:var(--muted);">Backup emergency contact</small>
+            <label>Co-Founder &amp; Owner Phone (Mr. Firoz Khan)</label>
+            <input type="text" id="brand_owner_phone_2" value="${(setMap['owner_phone_2'] || '8299600709').replace(/"/g, '&quot;')}" placeholder="8299600709" />
+            <small style="color:var(--muted);">Director escalation &amp; secondary owner contact</small>
           </div>
         </div>
 
         <div class="form-grid" style="margin-top:10px;">
           <div class="form-group">
-            <label>Default Check-in Time</label>
-            <input type="text" id="brand_checkin_time" value="${(setMap['checkin_time'] || '2:00 PM').replace(/"/g, '&quot;')}" placeholder="e.g. 2:00 PM" />
+            <label>Manager Phone (Praveen Singh)</label>
+            <input type="text" id="brand_manager_phone" value="${(setMap['manager_phone'] || '9194109911').replace(/"/g, '&quot;')}" placeholder="9194109911" />
+            <small style="color:var(--muted);">24/7 on-ground guest assistance, caretaking supervisor &amp; bookings</small>
           </div>
           <div class="form-group">
-            <label>Default Check-out Time</label>
-            <input type="text" id="brand_checkout_time" value="${(setMap['checkout_time'] || '11:00 AM').replace(/"/g, '&quot;')}" placeholder="e.g. 11:00 AM" />
+            <label>Default Check-in / Check-out Times</label>
+            <div style="display:flex;gap:8px;">
+              <input type="text" id="brand_checkin_time" value="${(setMap['checkin_time'] || '1:00 PM').replace(/"/g, '&quot;')}" placeholder="1:00 PM" style="flex:1;" />
+              <input type="text" id="brand_checkout_time" value="${(setMap['checkout_time'] || '11:00 AM').replace(/"/g, '&quot;')}" placeholder="11:00 AM" style="flex:1;" />
+            </div>
+            <small style="color:var(--muted);">Check-in from 1:00 PM &bull; Check-out strictly by 11:00 AM</small>
           </div>
         </div>
 
@@ -2595,12 +2619,16 @@ window.filterSettingsTable = function() {
 };
 
 window.saveBrandSettingsGroup = async function() {
-  const keys = ['brand_name', 'website_url', 'owner_phone_1', 'owner_phone_2', 'checkin_time', 'checkout_time', 'airbnb_review_link', 'google_review_link', 'registered_office_map_link'];
+  const keys = ['brand_name', 'website_url', 'owner_phone_1', 'owner_phone_2', 'manager_phone', 'checkin_time', 'checkout_time', 'airbnb_review_link', 'google_review_link', 'registered_office_map_link'];
   let savedCount = 0;
   for (const key of keys) {
     const el = document.getElementById('brand_' + key);
     if (!el) continue;
-    const value = el.value.trim();
+    let value = el.value.trim();
+    if (key === 'brand_name' && (!value || value.toUpperCase().includes('HOME STAY'))) {
+      value = 'The Unique Haven Homes';
+      el.value = value;
+    }
     const { error } = await sb.from('app_settings').upsert({
       key, value, updated_at: new Date().toISOString()
     }, { onConflict: 'key' });

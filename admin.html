@@ -58,7 +58,7 @@
   <script src="config.js"></script>
 
   <!-- App Modules — order matters -->
-  <script src="js/core.js?v=211"></script>
+  <script src="js/core.js?v=212"></script>
   <script src="js/dashboard.js?v=202"></script>
   <script src="js/daily-report.js?v=201"></script>
   <script src="js/reminders.js?v=200"></script>
@@ -101,7 +101,7 @@
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/sw.js?v=227').then(reg => {
+        navigator.serviceWorker.register('/sw.js?v=228').then(reg => {
           console.log('✅ UHHS PWA Service Worker active:', reg.scope);
           // Check for SW updates
           if (reg.waiting) reg.waiting.postMessage({ type: 'SKIP_WAITING' });
