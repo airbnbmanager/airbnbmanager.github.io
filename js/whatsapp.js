@@ -31,9 +31,21 @@ async function buildMessageData(bkId) {
   const room = bk.rooms || {};
   const roomId = bk.room_id;
 
-  // Fetch config
+  // Fetch config & app_settings
   const { data: cfg } = await sb.from('company_config').select('*').eq('id', 1).single();
   const config = cfg || {};
+
+  let appGoogleReview = '';
+  let appAirbnbReview = '';
+  try {
+    const { data: appSets } = await sb.from('app_settings').select('key, value').in('key', ['google_review_link', 'airbnb_review_link']);
+    (appSets || []).forEach(s => {
+      if (s.key === 'google_review_link' && s.value && s.value.trim()) appGoogleReview = s.value.trim();
+      if (s.key === 'airbnb_review_link' && s.value && s.value.trim()) appAirbnbReview = s.value.trim();
+    });
+  } catch(e) {
+    console.warn('Error reading app_settings for review links:', e);
+  }
 
   // Fetch active staff for this property
   let propertyStaff = [];
@@ -171,11 +183,12 @@ async function buildMessageData(bkId) {
     owners: OWNERS,
     investors,
     websiteURL: config.website_url || BRAND_URL,
-    googleReview: config.google_review_url || '',
-    airbnbReview: config.airbnb_host_url || '',
+    companyReviewPortal: `https://uniquehavenhomesstay.com/review.html?b=${encodeURIComponent(bkId)}&guest=${encodeURIComponent(bk.guest_name || 'Guest')}&prop=${encodeURIComponent(room.nickname || room.property_name || roomId)}`,
+    googleReview: config.google_review_url || appGoogleReview || `https://uniquehavenhomesstay.com/review.html?b=${encodeURIComponent(bkId)}&guest=${encodeURIComponent(bk.guest_name || 'Guest')}&prop=${encodeURIComponent(room.nickname || room.property_name || roomId)}`,
+    airbnbReview: config.airbnb_host_url || appAirbnbReview || '',
     airbnbReviewLink: bk.airbnb_confirmation_code
       ? `https://www.airbnb.com/reviews/write?reservationId=${bk.airbnb_confirmation_code}`
-      : (room.airbnb_url || config.airbnb_host_url || 'https://www.airbnb.com/progress/reviews'),
+      : (room.airbnb_url || config.airbnb_host_url || appAirbnbReview || 'https://www.airbnb.com/progress/reviews'),
     isAirbnb: bk.booking_mode === 'Online-Airbnb',
     discount: config.discount_percent || 15
   };
@@ -343,21 +356,28 @@ Thank you for staying with us! 🙏`;
 
 // ═══ 6a. GOOGLE REVIEW REQUEST ═══
 function tplGoogleReview(d) {
-  return `Hi ${d.guestName},
+  const reviewLink = d.googleReview || d.companyReviewPortal || 'https://uniquehavenhomesstay.com/review.html';
+  return `Hi *${d.guestName}*,
 
-Thank you for staying at *${d.propertyName}*. Hope you had a comfortable time.
+Thank you for choosing *The Unique Haven Homes* for your stay at *${d.propertyName}*! 🙏
 
-If you enjoyed your stay, a 30-second review on *Google* helps our small team a lot.
+We hope you had a pleasant, comfortable, and memorable experience with us.
 
-Review here: ${d.googleReview || 'https://google.com'}
+If you enjoyed your stay, could you please take 30 seconds to rate us with a 5-star review? Your review helps our team and caretakers immensely:
 
-*Planning your next Lucknow trip?*
-Book direct on our website — save ${d.discount}% vs Airbnb/Booking.com:
-${d.websiteURL}
+⭐ *Rate & Review Us Here:*
+${reviewLink}
 
-Save our number — we'd love to host you again.
+*Planning your next Lucknow visit?*
+Book directly with us to get guaranteed ${d.discount}% discount vs Airbnb & Booking.com:
+🌐 ${d.websiteURL}
 
-— Team ${BRAND_NAME}`;
+Save our contact — we'd love to host you again!
+
+Warm regards,
+*Team The Unique Haven Homes Private Limited*
+📞 9450055554 / 8299600709
+📍 Reg. Off: P NO 39 & 40 Radhikapuri, Indira Nagar Takrohi, Lucknow`;
 }
 
 // ═══ 6b. AIRBNB REVIEW REQUEST ═══
@@ -739,7 +759,7 @@ window.showWATemplatesMenu = function(bkId, btn) {
         <button class="outline" style="width:100%;text-align:left;margin-bottom:6px;font-weight:600;" onclick="this.closest('.modal-overlay').remove();sendCheckoutReminder('${bkId}')">👋 11:00 AM Checkout Reminder</button>
         <button class="outline" style="width:100%;text-align:left;margin-bottom:6px;background:#F0F9FF;color:#0284C7;border-color:#BAE6FD;" onclick="this.closest('.modal-overlay').remove();sendSecurityDepositReceipt('${bkId}')">🛡️ Security Deposit Receipt (Collected)</button>
         <button class="outline" style="width:100%;text-align:left;margin-bottom:6px;background:#FAF5FF;color:#7C3AED;border-color:#DDD6FE;" onclick="this.closest('.modal-overlay').remove();sendSecurityDepositRefund('${bkId}')">💸 Security Deposit Refund &amp; Damage Slip</button>
-        <button class="outline" style="width:100%;text-align:left;margin-bottom:6px;" onclick="this.closest('.modal-overlay').remove();requestGoogleReview('${bkId}')">⭐ Google Review Request</button>
+        <button class="outline" style="width:100%;text-align:left;margin-bottom:6px;background:#FFFBEB;color:#B45309;border-color:#FDE68A;font-weight:700;" onclick="this.closest('.modal-overlay').remove();requestGoogleReview('${bkId}')">⭐ Google &amp; Company 5-Star Review Request</button>
         <button class="outline" style="width:100%;text-align:left;margin-bottom:6px;" onclick="this.closest('.modal-overlay').remove();requestAirbnbReview('${bkId}')">⭐ Airbnb Review Form Link</button>
 
         <div style="font-size:11px;color:#888;text-transform:uppercase;margin:14px 0 6px;font-weight:700;">👥 Internal Alerts</div>

@@ -1,0 +1,801 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Rate Your Stay — The Unique Haven Homes Private Limited</title>
+  <meta name="description" content="Share your stay experience with The Unique Haven Homes Private Limited. Top-rated luxury serviced homestays and apartments in Lucknow.">
+  <meta property="og:title" content="Rate Your Stay — The Unique Haven Homes Private Limited">
+  <meta property="og:description" content="We value your feedback. Leave a 5-star review on Google or share direct feedback with our executive management team.">
+  <meta property="og:image" content="https://uniquehavenhomesstay.com/apple-touch-icon.png">
+  <link rel="icon" href="favicon.ico">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
+  
+  <style>
+    :root {
+      --bg-dark: #0A0F1D;
+      --surface: #131B2E;
+      --surface-elevated: #1E2942;
+      --surface-card: rgba(19, 27, 46, 0.85);
+      --gold: #F59E0B;
+      --gold-light: #FCD34D;
+      --gold-dark: #D97706;
+      --emerald: #10B981;
+      --primary: #FF385C;
+      --text-main: #F8FAFC;
+      --text-muted: #94A3B8;
+      --text-sub: #64748B;
+      --border-glass: rgba(255, 255, 255, 0.1);
+      --border-gold: rgba(245, 158, 11, 0.35);
+      --radius-lg: 20px;
+      --radius-md: 14px;
+      --radius-sm: 8px;
+      --font-heading: 'Outfit', sans-serif;
+      --font-body: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+    body {
+      background-color: var(--bg-dark);
+      background-image: 
+        radial-gradient(at 0% 0%, rgba(245, 158, 11, 0.12) 0px, transparent 50%),
+        radial-gradient(at 100% 100%, rgba(16, 185, 129, 0.08) 0px, transparent 50%),
+        radial-gradient(at 50% 50%, rgba(255, 56, 92, 0.05) 0px, transparent 60%);
+      background-attachment: fixed;
+      font-family: var(--font-body);
+      color: var(--text-main);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px 16px 60px;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 520px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    /* Corporate Header Card */
+    .company-header-card {
+      background: var(--surface-card);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid var(--border-glass);
+      border-radius: var(--radius-lg);
+      padding: 22px 20px;
+      text-align: center;
+      box-shadow: 0 10px 30px -10px rgba(0,0,0,0.5);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .company-header-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0; height: 3px;
+      background: linear-gradient(90deg, #F59E0B, #FF385C, #10B981);
+    }
+
+    .company-emblem {
+      width: 52px;
+      height: 52px;
+      background: linear-gradient(135deg, #F59E0B, #D97706);
+      border-radius: 50%;
+      margin: 0 auto 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 26px;
+      box-shadow: 0 4px 16px rgba(245, 158, 11, 0.35);
+    }
+
+    .company-legal-title {
+      font-family: var(--font-heading);
+      font-size: 15px;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+      color: #F8FAFC;
+      text-transform: uppercase;
+      margin-bottom: 4px;
+    }
+
+    .company-cin-tag {
+      font-size: 10.5px;
+      color: #FCD34D;
+      background: rgba(245, 158, 11, 0.15);
+      border: 1px solid rgba(245, 158, 11, 0.3);
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 20px;
+      font-weight: 700;
+      letter-spacing: 0.4px;
+      margin-bottom: 8px;
+    }
+
+    .company-reg-address {
+      font-size: 11px;
+      color: var(--text-muted);
+      line-height: 1.45;
+      max-width: 440px;
+      margin: 0 auto;
+    }
+
+    /* Main Interaction Card */
+    .review-main-card {
+      background: var(--surface-card);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid var(--border-glass);
+      border-radius: var(--radius-lg);
+      padding: 24px 20px;
+      box-shadow: 0 10px 30px -10px rgba(0,0,0,0.5);
+    }
+
+    .guest-welcome {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    .guest-welcome h1 {
+      font-family: var(--font-heading);
+      font-size: 22px;
+      font-weight: 800;
+      color: #FFF;
+      line-height: 1.3;
+      margin-bottom: 6px;
+    }
+
+    .guest-welcome p {
+      font-size: 13.5px;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+
+    .stay-property-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid var(--border-glass);
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+      color: #E2E8F0;
+      margin-top: 8px;
+    }
+
+    /* Interactive Star Rating */
+    .star-rating-box {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      margin: 18px 0 10px;
+    }
+
+    .star-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 42px;
+      line-height: 1;
+      color: rgba(255, 255, 255, 0.2);
+      transition: transform 0.18s ease, color 0.18s ease;
+      user-select: none;
+      padding: 4px;
+    }
+
+    .star-btn:hover {
+      transform: scale(1.2);
+    }
+
+    .star-btn.active {
+      color: #F59E0B;
+      text-shadow: 0 0 18px rgba(245, 158, 11, 0.6);
+      transform: scale(1.08);
+    }
+
+    .rating-caption {
+      text-align: center;
+      font-size: 13.5px;
+      font-weight: 700;
+      min-height: 22px;
+      color: var(--gold-light);
+      margin-bottom: 16px;
+    }
+
+    /* Result Panes */
+    .review-pane {
+      display: none;
+      animation: fadeIn 0.3s ease forwards;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* 5-Star Delight Pane */
+    .delight-banner {
+      background: linear-gradient(135deg, rgba(245, 158, 11, 0.15), rgba(16, 185, 129, 0.1));
+      border: 1px solid var(--border-gold);
+      border-radius: var(--radius-md);
+      padding: 18px 16px;
+      text-align: center;
+      margin-bottom: 18px;
+    }
+
+    .delight-banner h2 {
+      font-family: var(--font-heading);
+      font-size: 18px;
+      font-weight: 800;
+      color: #FCD34D;
+      margin-bottom: 6px;
+    }
+
+    .delight-banner p {
+      font-size: 13px;
+      color: #E2E8F0;
+      line-height: 1.5;
+    }
+
+    .action-btn-primary {
+      width: 100%;
+      background: linear-gradient(135deg, #F59E0B, #D97706);
+      color: #FFFFFF;
+      font-family: var(--font-heading);
+      font-size: 15px;
+      font-weight: 800;
+      padding: 15px 20px;
+      border-radius: var(--radius-md);
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      box-shadow: 0 8px 24px -6px rgba(245, 158, 11, 0.5);
+      text-decoration: none;
+      margin-bottom: 10px;
+      transition: transform 0.15s ease, filter 0.15s ease;
+    }
+
+    .action-btn-primary:active {
+      transform: scale(0.98);
+    }
+
+    .action-btn-airbnb {
+      width: 100%;
+      background: linear-gradient(135deg, #FF385C, #E00B41);
+      color: #FFFFFF;
+      font-family: var(--font-heading);
+      font-size: 14px;
+      font-weight: 700;
+      padding: 13px 20px;
+      border-radius: var(--radius-md);
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      box-shadow: 0 6px 20px -6px rgba(255, 56, 92, 0.4);
+      text-decoration: none;
+      margin-bottom: 10px;
+    }
+
+    .review-template-box {
+      background: rgba(0, 0, 0, 0.3);
+      border: 1px dashed rgba(255, 255, 255, 0.2);
+      border-radius: var(--radius-sm);
+      padding: 12px;
+      margin: 14px 0;
+      font-size: 12px;
+      color: #CBD5E1;
+      line-height: 1.5;
+      text-align: left;
+    }
+
+    .copy-template-btn {
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid var(--border-glass);
+      color: #F8FAFC;
+      font-size: 12px;
+      font-weight: 600;
+      padding: 6px 14px;
+      border-radius: 6px;
+      cursor: pointer;
+      margin-top: 8px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    /* 1-3 Star Protection Pane */
+    .concern-banner {
+      background: rgba(239, 68, 68, 0.1);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      border-radius: var(--radius-md);
+      padding: 16px;
+      text-align: center;
+      margin-bottom: 16px;
+    }
+
+    .concern-banner h2 {
+      font-family: var(--font-heading);
+      font-size: 17px;
+      font-weight: 800;
+      color: #FCA5A5;
+      margin-bottom: 6px;
+    }
+
+    .concern-banner p {
+      font-size: 12.5px;
+      color: #E2E8F0;
+      line-height: 1.5;
+    }
+
+    .tag-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 14px;
+    }
+
+    .concern-tag {
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid var(--border-glass);
+      color: var(--text-muted);
+      font-size: 11.5px;
+      padding: 6px 12px;
+      border-radius: 20px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .concern-tag.selected {
+      background: rgba(239, 68, 68, 0.25);
+      border-color: #EF4444;
+      color: #FFF;
+      font-weight: 700;
+    }
+
+    .feedback-textarea {
+      width: 100%;
+      height: 90px;
+      background: rgba(0, 0, 0, 0.3);
+      border: 1px solid var(--border-glass);
+      border-radius: var(--radius-md);
+      padding: 12px;
+      font-family: var(--font-body);
+      font-size: 13px;
+      color: #FFF;
+      resize: none;
+      margin-bottom: 12px;
+      outline: none;
+    }
+
+    .feedback-textarea:focus {
+      border-color: var(--gold);
+    }
+
+    .action-btn-whatsapp-mgmt {
+      width: 100%;
+      background: linear-gradient(135deg, #25D366, #128C7E);
+      color: #FFFFFF;
+      font-family: var(--font-heading);
+      font-size: 14.5px;
+      font-weight: 800;
+      padding: 14px 20px;
+      border-radius: var(--radius-md);
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      box-shadow: 0 6px 20px -6px rgba(37, 211, 102, 0.4);
+      text-decoration: none;
+    }
+
+    /* Registered Office Card */
+    .office-card {
+      background: var(--surface-card);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid var(--border-glass);
+      border-radius: var(--radius-lg);
+      padding: 18px 20px;
+      font-size: 12px;
+      color: var(--text-muted);
+      line-height: 1.6;
+    }
+
+    .office-card-title {
+      font-family: var(--font-heading);
+      font-size: 13px;
+      font-weight: 800;
+      color: #FFF;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+
+    .office-actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 12px;
+      flex-wrap: wrap;
+    }
+
+    .office-link-btn {
+      flex: 1;
+      min-width: 140px;
+      padding: 8px 12px;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid var(--border-glass);
+      border-radius: 8px;
+      color: #F8FAFC;
+      text-decoration: none;
+      font-weight: 600;
+      font-size: 11.5px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+
+    .office-link-btn:hover {
+      background: rgba(255, 255, 255, 0.12);
+    }
+
+    /* Footer */
+    .page-footer {
+      text-align: center;
+      font-size: 11px;
+      color: var(--text-sub);
+      line-height: 1.6;
+      margin-top: 8px;
+    }
+
+    .page-footer a {
+      color: var(--text-muted);
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+
+    <!-- 1. OFFICIAL REGISTERED COMPANY BADGE -->
+    <header class="company-header-card">
+      <div class="company-emblem">🏛️</div>
+      <div class="company-legal-title">The Unique Haven Homes Private Limited</div>
+      <div class="company-cin-tag">CIN: U55101UP2026PTC244637 · ROC Kanpur</div>
+      <div class="company-reg-address">
+        <strong>Registered Office:</strong> Plot No. 39 &amp; 40, Radhikapuri, Indira Nagar Takrohi, Lucknow, Uttar Pradesh – 226016, India
+      </div>
+    </header>
+
+    <!-- 2. GUEST STAY & RATING INTERFACE -->
+    <main class="review-main-card">
+      <div class="guest-welcome">
+        <h1 id="welcomeTitle">How was your stay with us?</h1>
+        <p id="welcomeSubtitle">Your feedback directly shapes our hospitality standards and motivates our caretakers.</p>
+        <div class="stay-property-pill" id="propertyBadge">
+          <span>🏡</span> <span id="propertyNameSpan">Unique Haven Homes Stay</span>
+        </div>
+      </div>
+
+      <!-- STAR RATING SELECTOR -->
+      <div class="star-rating-box" id="starContainer">
+        <button class="star-btn" data-rating="1" onclick="selectRating(1)">★</button>
+        <button class="star-btn" data-rating="2" onclick="selectRating(2)">★</button>
+        <button class="star-btn" data-rating="3" onclick="selectRating(3)">★</button>
+        <button class="star-btn" data-rating="4" onclick="selectRating(4)">★</button>
+        <button class="star-btn" data-rating="5" onclick="selectRating(5)">★</button>
+      </div>
+      <div class="rating-caption" id="ratingCaption">Tap a star to rate your experience</div>
+
+      <!-- 3A. POSITIVE FLOW (4 or 5 STARS) -->
+      <div class="review-pane" id="panePositive">
+        <div class="delight-banner">
+          <h2>🎉 We're Thrilled You Loved It!</h2>
+          <p>A quick 30-second review on <strong>Google</strong> helps our local Lucknow team and independent caretakers immensely.</p>
+        </div>
+
+        <!-- Google Review CTA -->
+        <a id="btnGoogleReview" href="#" target="_blank" class="action-btn-primary" onclick="trackReviewClick('google')">
+          <span>🌟</span> <span>Post Review on Google Maps</span>
+        </a>
+
+        <!-- Airbnb Review CTA (if relevant) -->
+        <a id="btnAirbnbReview" href="#" target="_blank" class="action-btn-airbnb" style="display:none;" onclick="trackReviewClick('airbnb')">
+          <span>⭐</span> <span>Post Review on Airbnb</span>
+        </a>
+
+        <!-- Quick copy suggested review text -->
+        <div class="review-template-box">
+          <div style="font-weight:700;color:#FCD34D;margin-bottom:4px;">💡 Quick Suggested Review (Tap to Copy):</div>
+          <div id="suggestedText">"Had a wonderful and comfortable stay with The Unique Haven Homes in Lucknow! The apartment was spotless, beautifully designed, and Praveen and the team provided 5-star hospitality. Highly recommended!"</div>
+          <button class="copy-template-btn" onclick="copySuggestedReview(this)">
+            <span>📋</span> <span id="copyBtnText">Copy Review Text</span>
+          </button>
+        </div>
+
+        <div style="text-align:center;margin-top:14px;font-size:12px;color:var(--text-muted);">
+          🎁 <strong>Direct Booking Perk:</strong> Save 15% on your next stay in Lucknow by booking directly on WhatsApp: <a href="tel:+919450055554" style="color:#FCD34D;text-decoration:none;font-weight:700;">+91 94500 55554</a>
+        </div>
+      </div>
+
+      <!-- 3B. CRITICAL FLOW (1, 2, or 3 STARS) -->
+      <div class="review-pane" id="paneNegative">
+        <div class="concern-banner">
+          <h2>🙏 We Genuinely Apologize</h2>
+          <p>Every guest is our priority. Please tell our Founders &amp; General Manager directly what went wrong so we can resolve it immediately.</p>
+        </div>
+
+        <div style="font-size:12px;font-weight:700;color:#CBD5E1;margin-bottom:8px;">Where did we fall short?</div>
+        <div class="tag-grid">
+          <div class="concern-tag" onclick="toggleTag(this, 'Cleanliness')">🧹 Cleanliness / Hygiene</div>
+          <div class="concern-tag" onclick="toggleTag(this, 'WiFi/TV')">📶 WiFi / TV / OTT</div>
+          <div class="concern-tag" onclick="toggleTag(this, 'AC/Geyser')">❄️ AC / Geyser / Power</div>
+          <div class="concern-tag" onclick="toggleTag(this, 'Caretaker')">👤 Caretaker Assistance</div>
+          <div class="concern-tag" onclick="toggleTag(this, 'Check-in/Keys')">🔑 Check-in / Access</div>
+          <div class="concern-tag" onclick="toggleTag(this, 'Noise')">🔊 Noise / Surroundings</div>
+        </div>
+
+        <textarea id="privateFeedbackText" class="feedback-textarea" placeholder="Please share details of what happened (optional)..."></textarea>
+
+        <button class="action-btn-whatsapp-mgmt" onclick="sendPrivateFeedback()">
+          <span>💬</span> <span>Send Direct to Management via WhatsApp</span>
+        </button>
+      </div>
+
+    </main>
+
+    <!-- 4. REGISTERED COMPANY PROFILE & GOOGLE MAPS CARD -->
+    <section class="office-card">
+      <div class="office-card-title">
+        <span>📍</span> Registered Office Location &amp; Corporate Identity
+      </div>
+      <div>
+        <strong>THE UNIQUE HAVEN HOMES PRIVATE LIMITED</strong><br>
+        Plot No. 39 &amp; 40, Radhikapuri, Indira Nagar Takrohi, Lucknow, UP 226016<br>
+        Incorporated under Companies Act, 2013 (Ministry of Corporate Affairs)
+      </div>
+      <div class="office-actions">
+        <a href="https://maps.google.com/?q=Radhikapuri,+Indira+Nagar+Takrohi,+Lucknow,+Uttar+Pradesh+226016" target="_blank" class="office-link-btn">
+          <span>🗺️</span> Google Maps Location
+        </a>
+        <a href="https://uniquehavenhomesstay.com" target="_blank" class="office-link-btn">
+          <span>🌐</span> Official Website
+        </a>
+        <a href="tel:+919450055554" class="office-link-btn">
+          <span>📞</span> Call Management
+        </a>
+      </div>
+    </section>
+
+    <!-- 5. FOOTER -->
+    <footer class="page-footer">
+      <div>© 2026 The Unique Haven Homes Private Limited. All Rights Reserved.</div>
+      <div style="margin-top:2px;">Developed &amp; Managed by Praveen Singh (General Manager)</div>
+    </footer>
+
+  </div>
+
+  <!-- Supabase CDN for Live Settings Fetch -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="config.js"></script>
+
+  <script>
+    // ═══ STATE & URL PARAMS ═══
+    const params = new URLSearchParams(window.location.search);
+    const guestParam = (params.get('guest') || '').trim();
+    const propParam = (params.get('prop') || '').trim();
+    const bkId = (params.get('b') || '').trim();
+    const sourceParam = (params.get('source') || '').toLowerCase();
+
+    let currentRating = 0;
+    let selectedConcerns = [];
+    let googleReviewURL = '';
+    let airbnbReviewURL = '';
+
+    // Initialize UI on load
+    document.addEventListener('DOMContentLoaded', async () => {
+      if (guestParam) {
+        document.getElementById('welcomeTitle').textContent = `Hi ${guestParam}, how was your stay?`;
+      }
+      if (propParam) {
+        document.getElementById('propertyNameSpan').textContent = propParam;
+        document.getElementById('suggestedText').textContent = 
+          `"Had an exceptional stay at ${propParam} with The Unique Haven Homes in Lucknow! Beautiful interiors, super clean, and Praveen and the staff were extremely accommodating. Highly recommended!"`;
+      }
+
+      // Default Google Maps Search fallback for registered address if no direct link configured
+      const defaultGoogleSearch = 'https://www.google.com/maps/search/?api=1&query=' + 
+        encodeURIComponent('The Unique Haven Homes Private Limited Radhikapuri Indira Nagar Takrohi Lucknow 226016');
+      googleReviewURL = defaultGoogleSearch;
+
+      // Fetch live review link from Supabase app_settings & company_config
+      try {
+        if (typeof supabase !== 'undefined' && window.SUPABASE_URL && window.SUPABASE_ANON_KEY) {
+          const sb = supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY);
+          
+          // 1. Check app_settings
+          const { data: sets } = await sb.from('app_settings').select('key, value').in('key', ['google_review_link', 'airbnb_review_link']);
+          (sets || []).forEach(s => {
+            if (s.key === 'google_review_link' && s.value && s.value.trim()) {
+              googleReviewURL = s.value.trim();
+            }
+            if (s.key === 'airbnb_review_link' && s.value && s.value.trim()) {
+              airbnbReviewURL = s.value.trim();
+            }
+          });
+
+          // 2. Check company_config fallback
+          if (!googleReviewURL || googleReviewURL === defaultGoogleSearch) {
+            const { data: cfg } = await sb.from('company_config').select('google_review_url, airbnb_host_url').eq('id', 1).single();
+            if (cfg?.google_review_url) googleReviewURL = cfg.google_review_url;
+            if (!airbnbReviewURL && cfg?.airbnb_host_url) airbnbReviewURL = cfg.airbnb_host_url;
+          }
+        }
+      } catch (err) {
+        console.warn('Could not load live review links from Supabase:', err);
+      }
+
+      // Set link href
+      const googleBtn = document.getElementById('btnGoogleReview');
+      if (googleBtn) googleBtn.href = googleReviewURL;
+
+      // Show Airbnb button if booking is from Airbnb or explicit param
+      if (sourceParam.includes('airbnb') && airbnbReviewURL) {
+        const abnbBtn = document.getElementById('btnAirbnbReview');
+        abnbBtn.href = airbnbReviewURL;
+        abnbBtn.style.display = 'flex';
+      }
+    });
+
+    // ═══ STAR RATING INTERACTION ═══
+    function selectRating(stars) {
+      currentRating = stars;
+      const starBtns = document.querySelectorAll('.star-btn');
+      starBtns.forEach((btn, idx) => {
+        if (idx < stars) {
+          btn.classList.add('active');
+        } else {
+          btn.classList.remove('active');
+        }
+      });
+
+      const captions = [
+        '',
+        '⭐ Poor Experience (1/5)',
+        '⭐⭐ Below Expectations (2/5)',
+        '⭐⭐⭐ Average Stay (3/5)',
+        '⭐⭐⭐⭐ Very Good Stay (4/5)',
+        '⭐⭐⭐⭐⭐ Outstanding Experience! (5/5)'
+      ];
+      document.getElementById('ratingCaption').textContent = captions[stars] || '';
+
+      const panePos = document.getElementById('panePositive');
+      const paneNeg = document.getElementById('paneNegative');
+
+      if (stars >= 4) {
+        paneNeg.style.display = 'none';
+        panePos.style.display = 'block';
+        triggerDelightParticles();
+      } else {
+        panePos.style.display = 'none';
+        paneNeg.style.display = 'block';
+      }
+
+      // Log rating anonymously if possible
+      logFeedbackToDB(stars);
+    }
+
+    // ═══ DELIGHT PARTICLES ═══
+    function triggerDelightParticles() {
+      const colors = ['#F59E0B', '#FCD34D', '#10B981', '#FF385C', '#3B82F6'];
+      for (let i = 0; i < 25; i++) {
+        const dot = document.createElement('div');
+        dot.style.position = 'fixed';
+        dot.style.left = (window.innerWidth / 2 + (Math.random() - 0.5) * 200) + 'px';
+        dot.style.top = (window.innerHeight * 0.45 + (Math.random() - 0.5) * 100) + 'px';
+        dot.style.width = Math.random() * 8 + 5 + 'px';
+        dot.style.height = dot.style.width;
+        dot.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+        dot.style.borderRadius = '50%';
+        dot.style.pointerEvents = 'none';
+        dot.style.zIndex = '9999';
+        dot.style.transition = 'all 0.8s cubic-bezier(0.2, 0.8, 0.2, 1)';
+        document.body.appendChild(dot);
+
+        requestAnimationFrame(() => {
+          dot.style.transform = `translate(${(Math.random() - 0.5) * 300}px, ${(Math.random() - 0.5) * 300 - 50}px) scale(0)`;
+          dot.style.opacity = '0';
+        });
+
+        setTimeout(() => dot.remove(), 900);
+      }
+    }
+
+    // ═══ COPY SUGGESTED REVIEW ═══
+    function copySuggestedReview(btn) {
+      const text = document.getElementById('suggestedText').textContent;
+      navigator.clipboard.writeText(text).then(() => {
+        const orig = document.getElementById('copyBtnText').textContent;
+        document.getElementById('copyBtnText').textContent = '✓ Copied to Clipboard!';
+        btn.style.background = 'rgba(16, 185, 129, 0.25)';
+        btn.style.borderColor = '#10B981';
+        setTimeout(() => {
+          document.getElementById('copyBtnText').textContent = orig;
+          btn.style.background = 'rgba(255, 255, 255, 0.1)';
+          btn.style.borderColor = 'rgba(255, 255, 255, 0.1)';
+        }, 2500);
+      }).catch(() => {
+        alert('Please manually select and copy the text.');
+      });
+    }
+
+    // ═══ NEGATIVE FEEDBACK HANDLING ═══
+    function toggleTag(el, tagName) {
+      el.classList.toggle('selected');
+      if (el.classList.contains('selected')) {
+        if (!selectedConcerns.includes(tagName)) selectedConcerns.push(tagName);
+      } else {
+        selectedConcerns = selectedConcerns.filter(t => t !== tagName);
+      }
+    }
+
+    function sendPrivateFeedback() {
+      const note = (document.getElementById('privateFeedbackText').value || '').trim();
+      const guestName = guestParam || 'Guest';
+      const prop = propParam || 'Unique Haven Homes';
+      const issues = selectedConcerns.length ? selectedConcerns.join(', ') : 'General Feedback';
+
+      const msg = 
+        `🚨 *Private Guest Feedback Escalation*\n\n` +
+        `• *Guest:* ${guestName}\n` +
+        `• *Property:* ${prop}\n` +
+        `• *Rating:* ${currentRating} / 5 Stars\n` +
+        `• *Issues Noted:* ${issues}\n` +
+        (note ? `• *Comments:* "${note}"\n` : '') +
+        (bkId ? `• *Booking ID:* ${bkId}\n` : '') +
+        `\n_Sent from verified Review Portal — The Unique Haven Homes Pvt Ltd_`;
+
+      const targetPhone = '919450055554'; // Praveen Singh (GM)
+      const waUrl = `https://wa.me/${targetPhone}?text=${encodeURIComponent(msg)}`;
+      window.open(waUrl, '_blank');
+    }
+
+    function trackReviewClick(platform) {
+      console.log('Review CTA tapped:', platform);
+    }
+
+    async function logFeedbackToDB(stars) {
+      try {
+        if (typeof supabase !== 'undefined' && window.SUPABASE_URL && window.SUPABASE_ANON_KEY) {
+          const sb = supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY);
+          // Optional logging
+          await sb.from('system_logs').insert([{
+            event_type: 'guest_review_tapped',
+            details: { stars, guest: guestParam, prop: propParam, booking_id: bkId, time: new Date().toISOString() }
+          }]).select();
+        }
+      } catch (_) {}
+    }
+  </script>
+</body>
+</html>

@@ -2433,6 +2433,32 @@ async function renderSettings() {
           </div>
         </div>
 
+        <!-- Registered Company Profile & Address Card -->
+        <div style="background:var(--bg-tertiary);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:16px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+            <div style="font-weight:800;font-size:13px;color:var(--text);display:flex;align-items:center;gap:6px;">
+              <span>🏛️</span> Registered Corporate Profile (Govt. of India)
+            </div>
+            <span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;background:#10B981;color:#fff;">Verified ROC</span>
+          </div>
+          <div style="font-size:12px;color:var(--text);font-weight:700;">THE UNIQUE HAVEN HOMES PRIVATE LIMITED</div>
+          <div style="font-size:11.5px;color:var(--muted);margin-top:2px;line-height:1.4;">
+            <strong>CIN:</strong> U55101UP2026PTC244637 &bull; <strong>ROC:</strong> Kanpur<br>
+            <strong>Registered Office:</strong> P NO 39 &amp; 40 RADHIKAPURI, INDIRA NAGAR TAKROHI, Lucknow, UP - 226016
+          </div>
+          <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;">
+            <a href="review.html" target="_blank" class="btn-sm" style="background:#F59E0B;color:#fff;text-decoration:none;display:inline-flex;align-items:center;gap:4px;font-weight:700;">
+              ⭐ Open Public Review Portal
+            </a>
+            <button type="button" class="btn-sm outline" onclick="navigator.clipboard.writeText('https://uniquehavenhomesstay.com/review.html');if(window.fsn)fsn.success('Copied!','Review portal link copied');">
+              📋 Copy Review Link
+            </button>
+            <a href="https://business.google.com/create" target="_blank" class="btn-sm outline" style="text-decoration:none;display:inline-flex;align-items:center;gap:4px;">
+              📍 Setup Google Business Profile
+            </a>
+          </div>
+        </div>
+
         <div class="form-group" style="margin-top:10px;">
           <label>⭐ Airbnb Review Link</label>
           <input type="text" id="brand_airbnb_review_link" value="${(setMap['airbnb_review_link'] || '').replace(/"/g, '&quot;')}" placeholder="https://airbnb.com/..." />
@@ -2440,9 +2466,9 @@ async function renderSettings() {
         </div>
 
         <div class="form-group">
-          <label>🌟 Google / Direct Review Link</label>
-          <input type="text" id="brand_google_review_link" value="${(setMap['google_review_link'] || '').replace(/"/g, '&quot;')}" placeholder="https://g.page/r/..." />
-          <small style="color:var(--muted);">Auto sent in checkout WhatsApp message for Direct & Offline guests</small>
+          <label>🌟 Google Business Review Short Link</label>
+          <input type="text" id="brand_google_review_link" value="${(setMap['google_review_link'] || '').replace(/"/g, '&quot;')}" placeholder="https://g.page/r/.../review or https://search.google.com/local/writereview?placeid=..." />
+          <small style="color:var(--muted);">Auto sent in checkout WhatsApp messages & plugged into the Review Portal. (If empty, portal links to Google Maps address search).</small>
         </div>
 
         <button onclick="saveBrandSettingsGroup()" class="green-btn" style="padding:12px 24px;font-weight:700;margin-top:12px;">

@@ -58,7 +58,7 @@
   <script src="config.js"></script>
 
   <!-- App Modules — order matters -->
-  <script src="js/core.js?v=209"></script>
+  <script src="js/core.js?v=210"></script>
   <script src="js/dashboard.js?v=202"></script>
   <script src="js/daily-report.js?v=201"></script>
   <script src="js/reminders.js?v=200"></script>
@@ -77,7 +77,7 @@
   <script src="js/maintenance.js?v=200"></script>
   <script src="js/investors.js?v=187"></script>
   <script src="js/sop.js?v=200"></script>
-  <script src="js/whatsapp.js?v=205"></script>
+  <script src="js/whatsapp.js?v=206"></script>
   <script src="js/reconciliation.js?v=200"></script>
   <script src="js/notifications.js?v=230"></script>
   <script src="js/airbnb-sync.js?v=180"></script>
@@ -101,7 +101,7 @@
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/sw.js?v=224').then(reg => {
+        navigator.serviceWorker.register('/sw.js?v=225').then(reg => {
           console.log('✅ UHHS PWA Service Worker active:', reg.scope);
           // Check for SW updates
           if (reg.waiting) reg.waiting.postMessage({ type: 'SKIP_WAITING' });
