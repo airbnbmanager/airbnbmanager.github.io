@@ -937,19 +937,75 @@ Whenever guest asks for dates or rates, warmly recommend the best stay and ask f
       const key = this.sarvamApiKey || 'sk_orfqm7wg_SQ7yNgrDCzW7R1lEi1i94sY6';
       if (!key || !text) return false;
       try {
-        const cleanSpeech = text
+        // Phonetic Hindi/Hinglish speech normalization for flawless pronunciation
+        let clean = text
           .replace(/https?:\/\/\S+/gi, '')
           .replace(/[*#_~`•→➔➜]/g, ' ')
           .replace(/₹\s*(\d+)/g, 'Rupees $1')
           .replace(/\bRs\.?\s*(\d+)/gi, 'Rupees $1')
+          .replace(/\b100%/g, '100 percent')
+          .replace(/%/g, ' percent')
+          .replace(/\b24\/7\b/g, '24 ghante')
+          .replace(/\b3BHK\b/gi, '3 B H K')
+          .replace(/\b2BHK\b/gi, '2 B H K')
+          .replace(/\b4BHK\b/gi, '4 B H K')
+          .replace(/\b5BHK\b/gi, '5 B H K')
+          .replace(/\bWi-?Fi\b/gi, 'Wi-Fi')
+          .replace(/\bAC\b/g, 'A C')
+          .replace(/\bGST\b/g, 'G S T')
+          .replace(/\bSAC\b/g, 'S A C')
+          .replace(/\bTUHH\b/g, 'The Unique Haven Homes')
+          .replace(/\bID\b/g, 'I D')
+          .replace(/\bGovt\b/gi, 'Government')
+          .replace(/\bpvt\b/gi, 'private')
+          .replace(/\bltd\b/gi, 'limited')
           .replace(/\p{Extended_Pictographic}/gu, '')
           .replace(/[\u{FE00}-\u{FE0F}\u{E0020}-\u{E007F}\u{20E3}]/gu, '')
           .replace(/[—–]/g, ', ')
+          .replace(/\//g, ' ya ')
           .replace(/\s+/g, ' ')
-          .trim()
-          .slice(0, 1000);
+          .trim();
 
-        if (!cleanSpeech) {
+        if (!clean) {
+          if (onEnd) onEnd();
+          return false;
+        }
+
+        // CRITICAL: Sarvam Bulbul v3 requires every string in inputs to be <= 500 characters.
+        // We chunk clean speech into sentences each strictly <= 400 characters.
+        const sentences = clean.split(/(?<=[.?!।\n])\s+/);
+        const chunks = [];
+        let curChunk = '';
+
+        for (const s of sentences) {
+          if (!s) continue;
+          if ((curChunk + ' ' + s).trim().length <= 400) {
+            curChunk = (curChunk ? curChunk + ' ' + s : s).trim();
+          } else {
+            if (curChunk) chunks.push(curChunk);
+            if (s.length <= 400) {
+              curChunk = s;
+            } else {
+              // Long sentence fallback: chunk by words
+              const words = s.split(' ');
+              let sub = '';
+              for (const w of words) {
+                if ((sub + ' ' + w).trim().length <= 400) {
+                  sub = (sub ? sub + ' ' + w : w).trim();
+                } else {
+                  if (sub) chunks.push(sub);
+                  sub = w;
+                }
+              }
+              curChunk = sub;
+            }
+          }
+        }
+        if (curChunk) chunks.push(curChunk);
+
+        // Limit to max 3 spoken chunks (~1,200 chars) for responsive conversational voice notes
+        const inputsToSpeak = chunks.slice(0, 3);
+        if (inputsToSpeak.length === 0) {
           if (onEnd) onEnd();
           return false;
         }
@@ -958,7 +1014,7 @@ Whenever guest asks for dates or rates, warmly recommend the best stay and ask f
         this.isSpeaking = true;
         const currentToken = ++this._speakToken;
 
-        // Exact validated Bulbul v3 payload with female speaker 'ritu'
+        // Exact validated Bulbul v3 payload with warm female speaker 'ritu'
         const res = await fetch('https://api.sarvam.ai/text-to-speech', {
           method: 'POST',
           headers: {
@@ -966,10 +1022,11 @@ Whenever guest asks for dates or rates, warmly recommend the best stay and ask f
             'api-subscription-key': key
           },
           body: JSON.stringify({
-            inputs: [cleanSpeech],
+            inputs: inputsToSpeak,
             target_language_code: 'hi-IN',
             speaker: this.sarvamSpeaker || 'ritu',
-            model: 'bulbul:v3'
+            model: 'bulbul:v3',
+            pace: 0.98
           })
         });
 
@@ -980,14 +1037,12 @@ Whenever guest asks for dates or rates, warmly recommend the best stay and ask f
 
         if (res.ok) {
           const data = await res.json();
-          // Re-verify after JSON parse
           if (this._speakToken !== currentToken || !this.isSpeaking) {
             return false;
           }
 
           const base64Audio = (data.audios && data.audios[0]) || data.audio;
           if (base64Audio) {
-            // Stop any ongoing audio cleanly
             if (this.currentAudio) {
               try {
                 this.currentAudio.pause();
@@ -1001,18 +1056,26 @@ Whenever guest asks for dates or rates, warmly recommend the best stay and ask f
               this.currentAudioUrl = null;
             }
 
-            // Convert base64 to Blob URL for instant native decoding
-            const binary = atob(base64Audio);
-            const len = binary.length;
-            const buffer = new Uint8Array(len);
-            for (let i = 0; i < len; i++) {
-              buffer[i] = binary.charCodeAt(i);
+            // Safe Base64 to Blob URL decoding
+            let audioUrl;
+            try {
+              const cleanB64 = base64Audio.replace(/\s+/g, '');
+              const binary = atob(cleanB64);
+              const len = binary.length;
+              const buffer = new Uint8Array(len);
+              for (let i = 0; i < len; i++) {
+                buffer[i] = binary.charCodeAt(i);
+              }
+              const blob = new Blob([buffer], { type: 'audio/wav' });
+              audioUrl = URL.createObjectURL(blob);
+              this.currentAudioUrl = audioUrl;
+            } catch (_) {
+              audioUrl = 'data:audio/wav;base64,' + base64Audio.replace(/\s+/g, '');
             }
-            const blob = new Blob([buffer], { type: 'audio/wav' });
-            const audioUrl = URL.createObjectURL(blob);
-            this.currentAudioUrl = audioUrl;
 
-            const audio = new Audio(audioUrl);
+            const audio = new Audio();
+            audio.preload = 'auto';
+            audio.src = audioUrl;
             this.currentAudio = audio;
 
             audio.onended = () => {
@@ -1027,10 +1090,11 @@ Whenever guest asks for dates or rates, warmly recommend the best stay and ask f
               }
             };
 
-            audio.onerror = () => {
+            audio.onerror = (e) => {
+              console.warn('[NishaAI] Audio element error:', e);
               if (this._speakToken === currentToken) {
                 this.isSpeaking = false;
-                this.speakBrowser(cleanSpeech, onEnd);
+                if (onEnd) onEnd();
               }
             };
 
@@ -1040,9 +1104,10 @@ Whenever guest asks for dates or rates, warmly recommend the best stay and ask f
                 await p;
               }
               return true;
-            } catch (_) {
+            } catch (playErr) {
+              console.warn('[NishaAI] Audio play rejected (autoplay permission):', playErr);
               this.isSpeaking = false;
-              this.speakBrowser(cleanSpeech, onEnd);
+              if (onEnd) onEnd();
               return false;
             }
           }
@@ -1051,7 +1116,7 @@ Whenever guest asks for dates or rates, warmly recommend the best stay and ask f
           console.warn('[NishaAI] Sarvam API returned error:', errData);
         }
       } catch (err) {
-        console.warn('[NishaAI] Sarvam AI speech error, falling back to Web Speech:', err);
+        console.warn('[NishaAI] Sarvam AI speech error:', err);
       }
       this.isSpeaking = false;
       return false;
@@ -1090,9 +1155,24 @@ Whenever guest asks for dates or rates, warmly recommend the best stay and ask f
           .replace(/[*#_~`•→➔➜]/g, ' ')
           .replace(/₹\s*(\d+)/g, 'Rupees $1')
           .replace(/\bRs\.?\s*(\d+)/gi, 'Rupees $1')
+          .replace(/\b100%/g, '100 percent')
+          .replace(/%/g, ' percent')
+          .replace(/\b24\/7\b/g, '24 ghante')
+          .replace(/\b3BHK\b/gi, '3 B H K')
+          .replace(/\b2BHK\b/gi, '2 B H K')
+          .replace(/\b4BHK\b/gi, '4 B H K')
+          .replace(/\b5BHK\b/gi, '5 B H K')
+          .replace(/\bWi-?Fi\b/gi, 'Wi-Fi')
+          .replace(/\bAC\b/g, 'A C')
+          .replace(/\bGST\b/g, 'G S T')
+          .replace(/\bSAC\b/g, 'S A C')
+          .replace(/\bTUHH\b/g, 'The Unique Haven Homes')
+          .replace(/\bID\b/g, 'I D')
+          .replace(/\bGovt\b/gi, 'Government')
           .replace(/\p{Extended_Pictographic}/gu, '')
           .replace(/[\u{FE00}-\u{FE0F}\u{E0020}-\u{E007F}\u{20E3}]/gu, '')
           .replace(/[—–]/g, ', ')
+          .replace(/\//g, ' ya ')
           .replace(/\s+/g, ' ')
           .trim();
 
