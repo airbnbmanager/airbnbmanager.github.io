@@ -977,32 +977,48 @@
       @keyframes uhh-chat-pulse {
         0%,100%{transform:scale(1)} 50%{transform:scale(1.2)}
       }
+      /* Backdrop Scrim Overlay */
+      #uhh-chat-backdrop {
+        position: fixed; inset: 0;
+        background: rgba(11, 17, 32, 0.72);
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+        z-index: 99990;
+        opacity: 0; pointer-events: none;
+        transition: opacity 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+      }
+      #uhh-chat-backdrop.active {
+        opacity: 1; pointer-events: auto;
+      }
+
+      .uhh-sheet-handle-wrap { display: none; }
+
       #uhh-chat-panel {
-        position: fixed; bottom: 84px; right: 24px; z-index: 9998;
-        width: min(380px, calc(100vw - 32px));
-        height: min(560px, calc(100vh - 120px));
-        background: #101217;
-        border: 1px solid rgba(212, 168, 75, 0.25);
-        border-radius: 20px; overflow: hidden;
-        box-shadow: 0 24px 80px rgba(0,0,0,0.75);
+        position: fixed; bottom: 84px; right: 24px; z-index: 99995;
+        width: min(390px, calc(100vw - 32px));
+        height: min(580px, calc(100vh - 120px));
+        background: #0B1120;
+        border: 1.5px solid rgba(212, 168, 75, 0.35);
+        border-radius: 24px; overflow: hidden;
+        box-shadow: 0 24px 80px rgba(0,0,0,0.8), 0 0 30px rgba(212, 168, 75, 0.15);
         display: flex; flex-direction: column;
         transform-origin: bottom right;
-        animation: uhh-chat-open 0.3s cubic-bezier(0.34,1.56,0.64,1);
+        animation: uhh-chat-open 0.3s cubic-bezier(0.16, 1, 0.3, 1);
         font-family: 'Plus Jakarta Sans','Inter',sans-serif;
       }
       @keyframes uhh-chat-open {
-        from { opacity:0; transform: scale(0.85) translateY(20px); }
+        from { opacity:0; transform: scale(0.9) translateY(20px); }
         to   { opacity:1; transform: scale(1) translateY(0); }
       }
       #uhh-chat-panel.closing {
         animation: uhh-chat-close 0.2s ease forwards;
       }
       @keyframes uhh-chat-close {
-        to { opacity:0; transform: scale(0.85) translateY(20px); }
+        to { opacity:0; transform: scale(0.9) translateY(20px); }
       }
       .uhh-chat-header {
-        background: linear-gradient(135deg, #131d17, #19271e);
-        border-bottom: 1px solid rgba(212, 168, 75, 0.2);
+        background: linear-gradient(135deg, #0F172A, #1E293B);
+        border-bottom: 1px solid rgba(212, 168, 75, 0.25);
         padding: 13px 16px;
         display: flex; align-items: center; gap: 10px;
       }
@@ -1022,11 +1038,18 @@
       .uhh-chat-header-name { font-size: 14px; font-weight: 700; color: #f0f2f7; }
       .uhh-chat-header-status { font-size: 11px; color: #86efac; margin-top: 1px; }
       .uhh-chat-close {
-        background: none; border: none; color: #9ca3af;
-        cursor: pointer; font-size: 22px; padding: 2px 6px;
-        line-height: 1; transition: color 0.15s;
+        background: rgba(255, 255, 255, 0.08);
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        color: #f0f2f7;
+        width: 32px; height: 32px; border-radius: 50%;
+        cursor: pointer; font-size: 15px;
+        display: flex; align-items: center; justify-content: center;
+        line-height: 1; transition: all 0.2s ease;
       }
-      .uhh-chat-close:hover { color: #f0f2f7; }
+      .uhh-chat-close:hover {
+        background: rgba(255, 255, 255, 0.2);
+        color: #ffffff;
+      }
       .uhh-chat-msgs {
         flex: 1; overflow-y: auto; padding: 14px 12px; display: flex;
         flex-direction: column; gap: 10px; scroll-behavior: smooth;
@@ -1263,13 +1286,75 @@
           margin: 0;
         }
         #uhh-chat-panel {
-          bottom: calc(68px + env(safe-area-inset-bottom, 0px));
-          right: 8px;
-          left: 8px;
-          width: auto;
-          max-width: calc(100vw - 16px);
-          height: min(540px, calc(100vh - 140px));
-          border-radius: 18px;
+          bottom: 0 !important;
+          right: 0 !important;
+          left: 0 !important;
+          top: auto !important;
+          width: 100vw !important;
+          max-width: 100vw !important;
+          height: 86vh !important;
+          max-height: 86vh !important;
+          border-radius: 24px 24px 0 0 !important;
+          border-left: none !important;
+          border-right: none !important;
+          border-bottom: none !important;
+          border-top: 1.5px solid rgba(212, 168, 75, 0.4) !important;
+          box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.7) !important;
+          animation: uhh-sheet-up 0.32s cubic-bezier(0.16, 1, 0.3, 1) !important;
+        }
+        #uhh-chat-panel.closing {
+          animation: uhh-sheet-down 0.22s ease forwards !important;
+        }
+        @keyframes uhh-sheet-up {
+          from { transform: translateY(100%); }
+          to   { transform: translateY(0); }
+        }
+        @keyframes uhh-sheet-down {
+          from { transform: translateY(0); opacity: 1; }
+          to   { transform: translateY(100%); opacity: 0; }
+        }
+        .uhh-sheet-handle-wrap {
+          display: flex !important;
+          justify-content: center;
+          padding: 8px 0 4px;
+          background: #0F172A;
+          cursor: pointer;
+        }
+        .uhh-sheet-handle {
+          width: 42px;
+          height: 4.5px;
+          background: rgba(255, 255, 255, 0.3);
+          border-radius: 999px;
+        }
+        .uhh-chat-header {
+          padding: 10px 16px !important;
+        }
+        .uhh-chat-close {
+          width: 36px !important;
+          height: 36px !important;
+          font-size: 16px !important;
+        }
+        .uhh-quick-replies {
+          display: flex;
+          gap: 8px;
+          overflow-x: auto;
+          padding: 8px 14px;
+          scrollbar-width: none;
+          -webkit-overflow-scrolling: touch;
+          border-top: 1px solid rgba(255, 255, 255, 0.08);
+          background: #0B1120;
+        }
+        .uhh-quick-replies::-webkit-scrollbar { display: none; }
+        .uhh-qr-btn {
+          flex-shrink: 0;
+          white-space: nowrap;
+          background: rgba(255, 255, 255, 0.08);
+          border: 1px solid rgba(212, 168, 75, 0.35);
+          color: #f8fafc;
+          font-size: 12px;
+          font-weight: 600;
+          padding: 6px 12px;
+          border-radius: 999px;
         }
       }
     `;
@@ -1398,19 +1483,32 @@
 
     if (window.nishaAI) window.nishaAI.unlockAudio();
 
+    // 1. Create or show Backdrop Overlay
+    let backdrop = document.getElementById('uhh-chat-backdrop');
+    if (!backdrop) {
+      backdrop = document.createElement('div');
+      backdrop.id = 'uhh-chat-backdrop';
+      backdrop.addEventListener('click', closeChat);
+      document.body.appendChild(backdrop);
+    }
+    requestAnimationFrame(() => backdrop.classList.add('active'));
+
     const panel = document.createElement('div');
     panel.id = 'uhh-chat-panel';
     panel.innerHTML = `
+      <div class="uhh-sheet-handle-wrap" onclick="UHH_Chat.close()">
+        <div class="uhh-sheet-handle"></div>
+      </div>
       <div class="uhh-chat-header">
-        <div class="uhh-chat-avatar" style="position:relative">💬<div class="uhh-chat-avatar-dot"></div></div>
+        <div class="uhh-chat-avatar" style="position:relative">✨<div class="uhh-chat-avatar-dot"></div></div>
         <div class="uhh-chat-header-info">
           <div class="uhh-chat-header-name">Nisha — AI Concierge</div>
-          <div class="uhh-chat-header-status">The Unique Haven Homes Pvt. Ltd. · 🟢 Online</div>
+          <div class="uhh-chat-header-status">The Unique Haven Homes · 🟢 Online</div>
         </div>
         <button id="uhh-chat-voice-toggle" class="uhh-chat-voice-toggle ${_autoVoice ? 'active' : 'muted'}" title="Toggle Auto Voice Speech" aria-label="Toggle Voice">
           ${_autoVoice ? '🔊 Voice: ON' : '🔈 Voice: OFF'}
         </button>
-        <button class="uhh-chat-close" onclick="UHH_Chat.close()" aria-label="Close chat">×</button>
+        <button class="uhh-chat-close" onclick="UHH_Chat.close()" aria-label="Close chat">✕</button>
       </div>
       <div class="uhh-chat-msgs" id="uhh-chat-msgs"></div>
       <div class="uhh-quick-replies" id="uhh-qr-bar"></div>
@@ -1526,17 +1624,15 @@
     // Send greeting after short delay
     setTimeout(() => {
       addBotMessage({
-        text: 'Namaste! 🙏 Main Nisha hoon — Unique Haven Homes ki AI concierge.\n\nMain Lucknow me best luxury 3BHK flats, grand private villas, rates aur direct booking me aapki madad kar sakti hoon!\n\nAap neeche diye popular options me se choose karein ya apna sawaal bol kar / type kar poochhein:',
+        text: 'Namaste! 🙏 Main **Nisha** hoon, aapki 24/7 AI Concierge at **The Unique Haven Homes**.\n\nLucknow mein luxury homestays, private pool villas, live availability ya **15% direct discount** ke liye batayein — kaise madad karoon?',
         quickReplies: [
-          'Rates List 💰',
-          'Gomti Grand Villa ₹8k 🏡',
-          '3BHK Flats ₹4.5k 🏢',
-          'Couple Friendly? ❤️',
-          'Near Lulu & Medanta 📍',
-          'Kitchen & Cook? 🍳',
-          'Photoshoot Allowed? 📸',
-          'Check-in / Out 🕐',
-          'Book Karna Hai 📅'
+          '💰 Rates & Pricing',
+          '🏡 3BHK Luxury Flats',
+          '🏰 Private Pool Villas',
+          '❤️ Couple Friendly?',
+          '📍 Near Lulu Mall',
+          '🍳 Kitchen & Cook',
+          '📅 Direct Booking'
         ]
       });
     }, 400);
@@ -1550,10 +1646,15 @@
       window.nishaAI.stopSpeaking();
       window.nishaAI.stopListening();
     }
+    const backdrop = document.getElementById('uhh-chat-backdrop');
+    if (backdrop) {
+      backdrop.classList.remove('active');
+      setTimeout(() => backdrop.remove(), 250);
+    }
     const panel = document.getElementById('uhh-chat-panel');
     if (!panel) return;
     panel.classList.add('closing');
-    setTimeout(() => panel.remove(), 200);
+    setTimeout(() => panel.remove(), 250);
   }
 
   // ── RENDER MESSAGES ─────────────────────────────────────────────
