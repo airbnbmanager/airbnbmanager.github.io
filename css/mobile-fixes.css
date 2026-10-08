@@ -559,6 +559,48 @@
   }
 }
 
+/* ── 17B. LUXURY FOOTER MOBILE REFINEMENT ────────────────────────
+   Safe bottom clearance + clean pill links
+   ─────────────────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .dir-footer {
+    padding: 36px 16px calc(96px + env(safe-area-inset-bottom, 0px)) !important;
+  }
+  .dir-footer-nav {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    gap: 8px !important;
+    margin: 14px 0 !important;
+  }
+  .dir-footer-nav a {
+    display: inline-flex !important;
+    align-items: center !important;
+    padding: 7px 16px !important;
+    background: rgba(255, 255, 255, 0.06) !important;
+    border: 1px solid rgba(255, 255, 255, 0.12) !important;
+    border-radius: 999px !important;
+    font-size: 12.5px !important;
+    color: #f1f5f9 !important;
+    text-decoration: none !important;
+    transition: all 0.2s ease !important;
+  }
+  .dir-footer-nav a:hover {
+    background: rgba(212, 168, 75, 0.2) !important;
+    border-color: #f59e0b !important;
+    color: #fbbf24 !important;
+  }
+  .dir-footer-cin {
+    font-size: 11px !important;
+    line-height: 1.5 !important;
+    color: #94a3b8 !important;
+  }
+  .dir-footer-copyright {
+    font-size: 11.5px !important;
+    color: #94a3b8 !important;
+  }
+}
+
 /* ── 18. PWA / HOME-SCREEN STANDALONE ───────────────────────────
    ─────────────────────────────────────────────────────────────── */
 @media (display-mode: standalone) {
