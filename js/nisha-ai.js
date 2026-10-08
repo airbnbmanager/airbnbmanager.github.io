@@ -243,7 +243,175 @@
         return `Dhanyawad ji! 🙏 Aapka number (${phone}) maine note kar liya hai. Hamare co-founder Mr. Shahanshah (+91 94500 55554) aapko 5 minute ke andar WhatsApp par best direct discount aur available flats ki photos bhej rahe hain!`;
       }
 
-      // 1A. 24/7 AI Receptionist: Gomti Nagar 2BHK / 3BHK Flat Availability (Kal / Aaj / Parso / Dates)
+      // 0. SPECIFIC PROPERTY LOOKUP (Matches by exact/partial/phonetic property names)
+      const propMatches = [
+        {
+          keys: /red\s*ro[szj]e?|redrose|लाल\s*गुलाब/i,
+          name: 'RedRose Palace',
+          bhk: '3BHK Luxury Flat',
+          area: 'Vikalp Khand, Gomti Nagar (5 min to Max Hospital)',
+          price: '₹3,499 / night',
+          link: 'redrose-palace.html',
+          desc: 'RedRose Palace Gomti Nagar (Vikalp Khand) me hamara 5-star rated 3BHK luxury flat hai! Isme 3 fully air-conditioned bedrooms, rich floral crimson theme, spacious drawing-dining hall, fully equipped modular kitchen aur high-speed WiFi hai (up to 6 guests). Direct booking website rate sirf ₹3,499/night hai (Airbnb se 15% sasta)!'
+        },
+        {
+          keys: /black\s*beauty|काली\s*ब्यूटी/i,
+          name: 'Black Beauty',
+          bhk: '3BHK Luxury Flat',
+          area: 'Vikalp Khand, Gomti Nagar',
+          price: '₹3,499 / night',
+          link: 'black-beauty.html',
+          desc: 'Black Beauty Vikalp Khand (Gomti Nagar) me hamara signature 3BHK flat hai with royal Black & Gold aesthetics! 3 AC bedrooms, modern modular kitchen, high-speed WiFi aur secure CCTV parking shamil hai (up to 6 guests). Direct rate sirf ₹3,499/night hai!'
+        },
+        {
+          keys: /dark\s*blue|नीला\s*फ्लैट/i,
+          name: 'The Dark Blue',
+          bhk: '3BHK Luxury Flat',
+          area: 'Vikalp Khand, Gomti Nagar',
+          price: '₹3,499 / night',
+          link: 'the-dark-blue.html',
+          desc: 'The Dark Blue Vikalp Khand me calming oceanic navy blue aesthetic ke sath banaya gaya 3BHK luxury flat hai. 3 AC master bedrooms, modular kitchen, and modern washrooms with 100% couple-friendly privacy. Direct rate ₹3,499/night!'
+        },
+        {
+          keys: /the\s*brown|brown\s*stay|brown\s*flat/i,
+          name: 'The Brown',
+          bhk: '3BHK Luxury Flat',
+          area: 'Vikalp Khand, Gomti Nagar',
+          price: '₹3,499 / night',
+          link: 'the-brown.html',
+          desc: 'The Brown Vikalp Khand me warm earthen walnut wood interiors ke sath ek peaceful 3BHK homestay hai. 3 AC bedrooms, modular kitchen, WiFi and lift parking. Direct rate ₹3,499/night!'
+        },
+        {
+          keys: /light\s*green|the\s*light\s*green|हरा\s*फ्लैट/i,
+          name: 'The Light Green',
+          bhk: '3BHK Luxury Flat',
+          area: 'Vikalp Khand, Gomti Nagar',
+          price: '₹3,499 / night',
+          link: 'the-light-green.html',
+          desc: 'The Light Green mint & sage botanical theme par designed fresh 3BHK flat hai. AC in all rooms, full kitchen, high-speed WiFi. Direct rate ₹3,499/night!'
+        },
+        {
+          keys: /nawabi|nawabi\s*stay|nawab/i,
+          name: 'The Nawabi Stay',
+          bhk: '3BHK Luxury Flat',
+          area: 'Vikalp Khand, Gomti Nagar',
+          price: '₹3,499 / night',
+          link: 'the-nawabi-stay.html',
+          desc: 'The Nawabi Stay authentic royal Lucknowi heritage decor aur classic comforts ka sangam hai. 3 AC bedrooms, modular kitchen, 100% couple-friendly. Direct rate ₹3,499/night!'
+        },
+        {
+          keys: /starlight|penthouse|pent\s*house|rooftop|छत/i,
+          name: 'Starlight Blue PentHouse',
+          bhk: '4BHK Grand Skyline Penthouse',
+          area: 'Vikalp Khand, Gomti Nagar',
+          price: '₹5,999 / night',
+          link: 'starlight-blue-penthouse.html',
+          desc: 'Starlight Blue PentHouse Gomti Nagar me hamara grand 4BHK penthouse hai with private skyline terrace! Romantic open-air night views, 4 AC bedrooms, huge living hall (up to 10 guests). Direct rate ₹5,999/night!'
+        },
+        {
+          keys: /pink\s*house|the\s*pink|गुलाबी\s*विला/i,
+          name: 'The Pink House',
+          bhk: '3BHK Grand Villa',
+          area: 'Vishesh Khand, Gomti Nagar',
+          price: '₹8,999 / night',
+          link: 'the-pink-house.html',
+          desc: 'The Pink House Vishesh Khand me hamari highly-aesthetic pastel pink luxury villa hai! Sprawling lawn, designer interior, pre-wedding & photoshoot friendly, up to 10 guests. Direct rate ₹8,999/night!'
+        },
+        {
+          keys: /gomti\s*grand|grand\s*villa|gomti\s*villa/i,
+          name: 'Gomti Grand Villa',
+          bhk: 'Standalone Private Villa',
+          area: 'Near Lulu Mall & Shaheed Path',
+          price: '₹7,999 / night',
+          link: 'gomti-grand-villa.html',
+          desc: 'Gomti Grand Villa Lulu Mall ke paas ek private standalone luxury villa hai with private green lawn, modular kitchen, and gated parking (up to 10 guests). Direct rate ₹7,999/night!'
+        },
+        {
+          keys: /royal\s*white|white\s*house|safed\s*kothi|badi\s*villa|palace/i,
+          name: 'Royal White House',
+          bhk: 'Palatial Palace Villa',
+          area: 'Near Shaheed Path / Mahanagar',
+          price: '₹11,999 / night',
+          link: 'royal-white-house.html',
+          desc: 'Royal White House Lucknow ka grandest luxury estate hai (up to 18 guests)! Massive royal green lawn, palatial white exterior, grand halls, ideal for wedding events, Haldi-Mehndi & family stays. Direct rate ₹11,999/night!'
+        },
+        {
+          keys: /celebrity|celebrity\s*garden/i,
+          name: 'Celebrity Garden',
+          bhk: 'Grand Luxury Homestay',
+          area: 'Near Lulu Mall',
+          price: '₹9,999 / night',
+          link: 'celebrity-garden.html',
+          desc: 'Celebrity Garden Lulu Mall aur Medanta ke paas lush private garden aur luxury suites ke sath grand homestay hai (up to 10 guests). Direct rate ₹9,999/night!'
+        },
+        {
+          keys: /velvet|velvet\s*house/i,
+          name: 'The Velvet House',
+          bhk: '3BHK Luxury Flat',
+          area: 'Near Lulu Mall & Shaheed Path',
+          price: '₹4,499 / night',
+          link: 'the-velvet-house.html',
+          desc: 'The Velvet House Lulu Mall ke paas plush velvet luxury decor ke sath 3BHK flat hai. 3 AC rooms, full kitchen, WiFi. Direct rate ₹4,499/night!'
+        },
+        {
+          keys: /the\s*unique|unique\s*flat/i,
+          name: 'The Unique',
+          bhk: '3BHK Luxury Flat',
+          area: 'Vishesh Khand, Gomti Nagar',
+          price: '₹5,499 / night',
+          link: 'the-unique.html',
+          desc: 'The Unique Vishesh Khand Gomti Nagar me premium 3BHK luxury flat hai with modern minimalist interior. Direct rate ₹5,499/night!'
+        },
+        {
+          keys: /green\s*house/i,
+          name: 'The Green House',
+          bhk: '3BHK Luxury Flat',
+          area: 'Vishesh Khand, Gomti Nagar',
+          price: '₹5,499 / night',
+          link: 'the-green-house.html',
+          desc: 'The Green House Vishesh Khand me nature-inspired botanical luxury 3BHK flat hai. 3 AC rooms, kitchen, WiFi. Direct rate ₹5,499/night!'
+        },
+        {
+          keys: /yellow\s*house/i,
+          name: 'The Yellow House',
+          bhk: '3BHK Luxury Flat',
+          area: 'Vishesh Khand, Gomti Nagar',
+          price: '₹5,499 / night',
+          link: 'the-yellow-house.html',
+          desc: 'The Yellow House Vishesh Khand me cheerful sunshine theme par sajaya gaya 3BHK flat hai. Direct rate ₹5,499/night!'
+        },
+        {
+          keys: /pink\s*paradise/i,
+          name: 'Pink Paradise Villa',
+          bhk: 'Luxury Villa',
+          area: 'Near Shaheed Path',
+          price: '₹4,499 / night',
+          link: 'pink-paradise-villa.html',
+          desc: 'Pink Paradise Villa Shaheed Path ke paas chic aesthetic villa hai. AC bedrooms, kitchen, private parking. Direct rate ₹4,499/night!'
+        },
+        {
+          keys: /green\s*forest/i,
+          name: 'Green Forest View',
+          bhk: '3BHK Luxury Flat',
+          area: 'Near Mahanagar',
+          price: '₹4,499 / night',
+          link: 'green-forest-view.html',
+          desc: 'Green Forest View Mahanagar ke paas peaceful botanical balcony 3BHK flat hai. Direct rate ₹4,499/night!'
+        }
+      ];
+
+      for (const p of propMatches) {
+        if (p.keys.test(q)) {
+          return `Haanji bilkul! 🙏 **${p.name}** ke baare mein poori jankari:\n\n` +
+            `🏡 **Property:** ${p.name} (${p.bhk})\n` +
+            `📍 **Location:** ${p.area}\n` +
+            `💰 **Direct Rate:** **${p.price}** (Airbnb se 15% discount)\n\n` +
+            `${p.desc}\n\n` +
+            `📸 **Photos & Walkthrough:**\n` +
+            `👉 https://uniquehavenhomesstay.com/${p.link}\n\n` +
+            `Aap kis date ke liye book karna chahte hain? Main availability check kar sakti hoon!`;
+        }
+      }
       if (/(kal|aaj|parso|tomorrow|today|कल|आज|परसों)/i.test(q) && /(available|khali|milega|mil jayega|chahiye|खाली|मिलेगा|चाहिए|उपलब्ध|booking|बुक)/i.test(q)) {
         const isKal = /(kal|tomorrow|कल)/i.test(q);
         const dayLabel = isKal ? 'Kal' : (/(parso|परसों)/i.test(q) ? 'Parso' : 'Aaj');
@@ -859,11 +1027,10 @@ Whenever guest asks for dates or rates, warmly recommend the best stay and ask f
               }
             };
 
-            audio.onerror = (playErr) => {
-              console.warn('[NishaAI] Audio playback error:', playErr);
+            audio.onerror = () => {
               if (this._speakToken === currentToken) {
                 this.isSpeaking = false;
-                if (onEnd) onEnd();
+                this.speakBrowser(cleanSpeech, onEnd);
               }
             };
 
@@ -873,9 +1040,9 @@ Whenever guest asks for dates or rates, warmly recommend the best stay and ask f
                 await p;
               }
               return true;
-            } catch (playErr) {
-              console.warn('[NishaAI] Audio play blocked:', playErr);
+            } catch (_) {
               this.isSpeaking = false;
+              this.speakBrowser(cleanSpeech, onEnd);
               return false;
             }
           }

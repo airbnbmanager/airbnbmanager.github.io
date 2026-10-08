@@ -76,6 +76,300 @@
     return _rates;
   }
 
+  // ── 17 LUXURY PROPERTIES CATALOG (PHOTOS + AMENITIES + DIRECT RATES) ──
+  const PROPERTIES_CATALOG = {
+    'redrose-palace': {
+      id: 'GOM-101',
+      name: 'RedRose Palace',
+      type: '3BHK Luxury Flat',
+      area: 'Vikalp Khand, Gomti Nagar',
+      price: 3499,
+      originalPrice: 4500,
+      rating: 4.90,
+      reviews: 41,
+      cover: 'https://a0.muscache.com/im/pictures/hosting/Hosting-1654261872286835347/original/cbc0aaab-4039-4892-ba03-f18c24a603c9.jpeg',
+      link: 'redrose-palace.html',
+      tagline: 'Rich crimson floral luxury interior · 5 min to Max Hospital',
+      specs: ['3 AC Bedrooms', 'Modular Kitchen + RO', '200 Mbps Wi-Fi', '100% Couple Friendly'],
+      match: /red\s*ro[szj]e?|redrose|लाल\s*गुलाब|gom-?101/i
+    },
+    'black-beauty': {
+      id: 'GOM-102',
+      name: 'Black Beauty',
+      type: '3BHK Luxury Flat',
+      area: 'Vikalp Khand, Gomti Nagar',
+      price: 3499,
+      originalPrice: 4500,
+      rating: 4.95,
+      reviews: 48,
+      cover: 'https://a0.muscache.com/im/pictures/hosting/Hosting-1655974057816027178/original/fcaaa310-7521-4fae-9ef7-47b2c58a631c.jpeg',
+      link: 'black-beauty.html',
+      tagline: 'Signature royal black & gold interior · VIP location',
+      specs: ['3 AC Bedrooms', 'Modular Kitchen + Gas', 'Lift & Parking', 'Couple Friendly'],
+      match: /black\s*beauty|kali\s*beauty|black\s*flat|gom-?102/i
+    },
+    'the-dark-blue': {
+      id: 'GOM-201',
+      name: 'The Dark Blue',
+      type: '3BHK Luxury Flat',
+      area: 'Vikalp Khand, Gomti Nagar',
+      price: 3499,
+      originalPrice: 4500,
+      rating: 4.93,
+      reviews: 46,
+      cover: 'https://a0.muscache.com/im/pictures/hosting/Hosting-1655969170448425308/original/c84e509a-1192-4491-891b-8dda32439a38.jpeg',
+      link: 'the-dark-blue.html',
+      tagline: 'Calming oceanic navy blue aesthetic · 100% privacy',
+      specs: ['3 AC Bedrooms', 'Full Kitchen', 'High-Speed Wi-Fi', 'Couple Friendly'],
+      match: /dark\s*blue|the\s*dark\s*blue|neela\s*flat|blue\s*flat|gom-?201/i
+    },
+    'the-brown': {
+      id: 'GOM-202',
+      name: 'The Brown',
+      type: '3BHK Luxury Flat',
+      area: 'Vikalp Khand, Gomti Nagar',
+      price: 3499,
+      originalPrice: 4500,
+      rating: 4.88,
+      reviews: 39,
+      cover: 'https://a0.muscache.com/im/pictures/hosting/Hosting-1655971485603770428/original/2cb059fb-e2ca-4c9f-ba52-dd58d84a7541.jpeg',
+      link: 'the-brown.html',
+      tagline: 'Warm walnut wood earthen interior · Peaceful family retreat',
+      specs: ['3 AC Bedrooms', 'Modular Kitchen', 'Lift & Balcony', 'Couple Friendly'],
+      match: /the\s*brown|brown\s*stay|brown\s*flat|gom-?202/i
+    },
+    'the-light-green': {
+      id: 'GOM-301',
+      name: 'The Light Green',
+      type: '3BHK Luxury Flat',
+      area: 'Vikalp Khand, Gomti Nagar',
+      price: 3499,
+      originalPrice: 4500,
+      rating: 4.91,
+      reviews: 42,
+      cover: 'https://a0.muscache.com/im/pictures/hosting/Hosting-1655972856417748455/original/4bfd8c83-fa56-4c4d-91b4-2b6fe18ef77a.jpeg',
+      link: 'the-light-green.html',
+      tagline: 'Mint & sage botanical fresh interior · Natural sunlight',
+      specs: ['3 AC Bedrooms', 'Full Kitchen', 'Lift Access', 'Couple Friendly'],
+      match: /light\s*green|the\s*light\s*green|hara\s*flat|gom-?301/i
+    },
+    'the-nawabi-stay': {
+      id: 'GOM-401',
+      name: 'The Nawabi Stay',
+      type: '3BHK Luxury Flat',
+      area: 'Vikalp Khand, Gomti Nagar',
+      price: 3499,
+      originalPrice: 4500,
+      rating: 4.92,
+      reviews: 37,
+      cover: 'https://a0.muscache.com/im/pictures/hosting/Hosting-1655975005881477758/original/e944bc30-f654-47ae-90b5-7c1ce3e08f51.jpeg',
+      link: 'the-nawabi-stay.html',
+      tagline: 'Classic Lucknowi royal heritage decor with contemporary luxuries',
+      specs: ['3 AC Bedrooms', 'Modular Kitchen', 'Dedicated Parking', 'Couple Friendly'],
+      match: /nawabi|nawabi\s*stay|nawab|gom-?401/i
+    },
+    'starlight-blue-penthouse': {
+      id: 'GOM-501',
+      name: 'Starlight Blue PentHouse',
+      type: '4BHK Grand Skyline Penthouse',
+      area: 'Vikalp Khand, Gomti Nagar',
+      price: 5999,
+      originalPrice: 7000,
+      rating: 4.96,
+      reviews: 53,
+      cover: 'https://a0.muscache.com/im/pictures/hosting/Hosting-1655976508493130141/original/918fa240-a1f9-4db5-b82b-bbd7c6778f65.jpeg',
+      link: 'starlight-blue-penthouse.html',
+      tagline: 'Top-floor penthouse with private open-air skyline terrace garden',
+      specs: ['4 AC Bedrooms', 'Private Open Terrace', 'Skyline Night View', 'Up to 10 Guests'],
+      match: /starlight|penthouse|pent\s*house|blue\s*penthouse|skyline|gom-?501/i
+    },
+    'gomti-grand-villa': {
+      id: 'VIL-101',
+      name: 'Gomti Grand Villa',
+      type: 'Luxury Standalone Private Villa',
+      area: 'Near Lulu Mall & Shaheed Path',
+      price: 7999,
+      originalPrice: 9500,
+      rating: 4.97,
+      reviews: 64,
+      cover: 'https://a0.muscache.com/im/pictures/hosting/Hosting-1655980649712759905/original/6c4e0f10-6c58-45a9-bc4c-a11fa7da1795.jpeg',
+      link: 'gomti-grand-villa.html',
+      tagline: '100% Standalone private villa with lush green lawn & private terrace',
+      specs: ['3 AC Bedrooms', 'Private Green Lawn', 'Gated 3-Car Parking', 'Up to 10 Guests'],
+      match: /gomti\s*grand|grand\s*villa|gomti\s*villa|vil-?101/i
+    },
+    'royal-white-house': {
+      id: 'VIL-102',
+      name: 'Royal White House',
+      type: 'Grand Palatial Villa Estate',
+      area: 'Near Shaheed Path / Mahanagar',
+      price: 11999,
+      originalPrice: 15000,
+      rating: 4.98,
+      reviews: 72,
+      cover: 'https://a0.muscache.com/im/pictures/hosting/Hosting-1655982882208007785/original/9fcfd2b8-7c8d-4e94-81ae-281b95cb9110.jpeg',
+      link: 'royal-white-house.html',
+      tagline: 'Palatial white estate for grand weddings, reunions & VIP celebrations',
+      specs: ['Grand Bedrooms', 'Huge Event Lawn', 'Catering Kitchen', 'Up to 18 Guests'],
+      match: /royal\s*white|white\s*house|royal\s*villa|badi\s*villa|wedding\s*villa|shaadi\s*villa|vil-?102/i
+    },
+    'celebrity-garden': {
+      id: 'LUL-402',
+      name: 'Celebrity Garden',
+      type: 'Sprawling Green Luxury Villa',
+      area: 'Near Lulu Mall & Medanta Hospital',
+      price: 9999,
+      originalPrice: 12000,
+      rating: 4.94,
+      reviews: 45,
+      cover: 'https://a0.muscache.com/im/pictures/hosting/Hosting-1655984620023775191/original/e944743e-a144-48ee-8957-1ffbce44cbdb.jpeg',
+      link: 'celebrity-garden.html',
+      tagline: 'Sprawling landscaped green lawn with premium luxury suites',
+      specs: ['Private Garden Patio', 'Full Modular Kitchen', '5 Min to Lulu Mall', 'Up to 10 Guests'],
+      match: /celebrity|celebrity\s*garden|garden\s*villa|lul-?402/i
+    },
+    'the-pink-house': {
+      id: 'VIL-103',
+      name: 'The Pink House',
+      type: 'Aesthetic Designer Villa',
+      area: 'Vishesh Khand, Gomti Nagar',
+      price: 8999,
+      originalPrice: 10500,
+      rating: 4.95,
+      reviews: 58,
+      cover: 'https://a0.muscache.com/im/pictures/hosting/Hosting-1655979101880521639/original/8e181958-fc20-4137-b498-8ec1f2ecf802.jpeg',
+      link: 'the-pink-house.html',
+      tagline: 'Instagram-famous pastel pink aesthetic villa with terrace garden',
+      specs: ['Pastel Designer Themes', 'Pre-Wedding Friendly', 'Private Lawn', 'Up to 10 Guests'],
+      match: /the\s*pink\s*house|pink\s*house|pink\s*villa|aesthetic\s*villa|vil-?103/i
+    },
+    'the-unique': {
+      id: 'GOM-302',
+      name: 'The Unique',
+      type: '3BHK Contemporary Luxury Flat',
+      area: 'Vishesh Khand, Gomti Nagar',
+      price: 5499,
+      originalPrice: 6500,
+      rating: 4.92,
+      reviews: 38,
+      cover: 'https://a0.muscache.com/im/pictures/hosting/Hosting-1655967664448560183/original/2e7ee400-f65f-4d97-8c46-95383f9fc3ba.jpeg',
+      link: 'the-unique.html',
+      tagline: 'Contemporary minimalism with opulent furnishings in Vishesh Khand',
+      specs: ['3 AC Bedrooms', 'Modular Kitchen', 'High-Speed Wi-Fi', 'Couple Friendly'],
+      match: /the\s*unique|unique\s*flat|unique\s*stay|gom-?302/i
+    },
+    'the-green-house': {
+      id: 'VIL-104',
+      name: 'The Green House',
+      type: '3BHK Serviced Stays',
+      area: 'Vishesh Khand, Gomti Nagar',
+      price: 5499,
+      originalPrice: 6500,
+      rating: 4.90,
+      reviews: 35,
+      cover: 'https://a0.muscache.com/im/pictures/hosting/Hosting-1655977934673623097/original/ecad21da-10eb-4856-afbf-eb5d15ca35df.jpeg',
+      link: 'the-green-house.html',
+      tagline: 'Nature-inspired luxury flat with tranquil green vibes',
+      specs: ['3 AC Bedrooms', 'Full Kitchen', 'Private Balcony', 'Couple Friendly'],
+      match: /the\s*green\s*house|green\s*house|vil-?104/i
+    },
+    'the-yellow-house': {
+      id: 'VIL-105',
+      name: 'The Yellow House',
+      type: '3BHK Serviced Stays',
+      area: 'Vishesh Khand, Gomti Nagar',
+      price: 5499,
+      originalPrice: 6500,
+      rating: 4.89,
+      reviews: 33,
+      cover: 'https://a0.muscache.com/im/pictures/hosting/Hosting-1655977196025287796/original/b0b57e4e-096b-4e6f-8706-e79e6f3b9c02.jpeg',
+      link: 'the-yellow-house.html',
+      tagline: 'Warm sunshine cheerful decor with modern amenities',
+      specs: ['3 AC Bedrooms', 'Full Kitchen', 'Wi-Fi & RO', 'Couple Friendly'],
+      match: /the\s*yellow\s*house|yellow\s*house|vil-?105/i
+    },
+    'the-velvet-house': {
+      id: 'VIL-107',
+      name: 'The Velvet House',
+      type: '3BHK Serviced Stays',
+      area: 'Near Lulu Mall & Shaheed Path',
+      price: 4499,
+      originalPrice: 5500,
+      rating: 4.91,
+      reviews: 36,
+      cover: 'https://a0.muscache.com/im/pictures/hosting/Hosting-1655986064047814407/original/35048b1d-7206-4fe4-aaee-4cb5069fae48.jpeg',
+      link: 'the-velvet-house.html',
+      tagline: 'Plush velvet textures and ultra-comfortable suites near Lulu Mall',
+      specs: ['3 AC Bedrooms', 'Modular Kitchen', 'Lulu Mall 5 Mins', 'Couple Friendly'],
+      match: /the\s*velvet\s*house|velvet\s*house|velvet|vil-?107/i
+    },
+    'green-forest-view': {
+      id: 'VIL-106',
+      name: 'Green Forest View',
+      type: '3BHK Serviced Flat',
+      area: 'Near Mahanagar',
+      price: 4499,
+      originalPrice: 5500,
+      rating: 4.88,
+      reviews: 29,
+      cover: 'https://a0.muscache.com/im/pictures/hosting/Hosting-1655987309104085461/original/91a27e7f-44e2-4113-92f7-dc41b4cfb5c0.jpeg',
+      link: 'green-forest-view.html',
+      tagline: 'Serene botanical balcony views in calm residential sanctuary',
+      specs: ['3 AC Bedrooms', 'Scenic Balcony', 'High-Speed Wi-Fi', 'Couple Friendly'],
+      match: /green\s*forest|forest\s*view|vil-?106/i
+    },
+    'pink-paradise-villa': {
+      id: 'VIL-108',
+      name: 'Pink Paradise Villa',
+      type: 'Luxury Villa',
+      area: 'Near Shaheed Path',
+      price: 4499,
+      originalPrice: 5500,
+      rating: 4.92,
+      reviews: 31,
+      cover: 'https://a0.muscache.com/im/pictures/hosting/Hosting-1655988674966779430/original/5e3ee077-d035-46f9-b883-7d848695f7c3.jpeg',
+      link: 'pink-paradise-villa.html',
+      tagline: 'Chic modern villa retreat with private patio near Shaheed Path',
+      specs: ['AC Bedrooms', 'Full Kitchen', 'Private Parking', 'Couple Friendly'],
+      match: /pink\s*paradise|paradise\s*villa|vil-?108/i
+    }
+  };
+
+  function formatPropertyReply(prop) {
+    const waMsg = encodeURIComponent(`Namaste Shahanshah ji! I am interested in booking ${prop.name} (${prop.type}) in ${prop.area}. Direct rate: ₹${prop.price.toLocaleString('en-IN')}/night. Please share availability.`);
+    const waUrl = `https://wa.me/${ADMIN_WA}?text=${waMsg}`;
+    return {
+      text: `Namaste ji! 🙏 **${prop.name}** (${prop.type}) ke baare mein complete details:\n\n` +
+            `💰 **Direct Rate:** **₹${prop.price.toLocaleString('en-IN')} / night** <small style="color:#8696a0">(Airbnb: ₹${prop.originalPrice.toLocaleString('en-IN')} — Save 15%)</small>\n` +
+            `📍 **Location:** ${prop.area}\n` +
+            `⭐ **Rating:** ${prop.rating}★ (${prop.reviews} verified reviews)\n\n` +
+            `✨ *${prop.tagline}*\n` +
+            `• ${prop.specs.join(' • ')}\n\n` +
+            `🔒 **100% Couple-Friendly, Private & Safe!** Kitchen me cooking facility, RO, refrigerator, aur premise par free parking available hai.`,
+      card: {
+        title: prop.name,
+        subtitle: `${prop.type} · ${prop.area}`,
+        price: `₹${prop.price.toLocaleString('en-IN')}`,
+        period: '/ night',
+        rating: `${prop.rating}★ (${prop.reviews})`,
+        image: prop.cover,
+        link: prop.link,
+        waUrl: waUrl,
+        specs: prop.specs
+      },
+      actions: [
+        { label: '💬 Book on WhatsApp', url: waUrl, isPrimary: true },
+        { label: '📸 View Photos & Tour', url: prop.link }
+      ],
+      quickReplies: [
+        `📅 Book ${prop.name}`,
+        'Check-in policy?',
+        'Other options dikhao',
+        'Host se baat karein'
+      ]
+    };
+  }
+
   // ── SAVE LEAD ───────────────────────────────────────────────────
   async function saveLead(name, phone, note) {
     try {
@@ -216,122 +510,50 @@
       };
     }
 
-    // 1. SPECIFIC VILLA: GOMTI GRAND VILLA (VIL-101)
-    if (/gomti grand|grand villa|gomti villa/i.test(msg)) {
+    // 1. SPECIFIC 17-PROPERTY FUZZY LOOKUP (Matches ANY property by exact/typo/colloquial name)
+    for (const key of Object.keys(PROPERTIES_CATALOG)) {
+      const prop = PROPERTIES_CATALOG[key];
+      if (prop.match && prop.match.test(msg)) {
+        _leadData.property = prop.name;
+        return formatPropertyReply(prop);
+      }
+    }
+
+    // 2. GENERAL 3BHK SERVICED FLATS (₹3,499 - ₹4,500 / NIGHT)
+    if (/(3bhk|3 bhk|flat|flats|serviced flat|gomti nagar flat|apartment|कमरा|फ्लैट)/i.test(msg) && !/(villa|white house|celebrity|party|wedding)/i.test(msg)) {
       return {
-        text: `🏡 **Gomti Grand Villa — Luxury Private Villa**\n\n` +
-              `💰 **Rate:** **₹8,000 / night** (Direct Booking — Save 15%)\n` +
-              `👥 **Capacity:** Up to 10 Guests\n` +
-              `📍 **Location:** Near Lulu Mall & Shaheed Path (Central Lucknow)\n\n` +
-              `✨ **Highlights & Amenities:**\n` +
-              `• 100% Private Standalone Villa with private green lawn & terrace\n` +
-              `• Fully equipped modern modular kitchen (Gas, Fridge, RO water, Cookware)\n` +
-              `• All bedrooms 100% Split AC, High-speed optical fiber WiFi & Smart LED TV\n` +
-              `• Gated private parking inside premises (2-3 cars safely)\n` +
-              `• Pet-friendly (prior notice required)\n` +
-              `• Ideal for family holidays, intimate celebrations & Medanta/Ekana visits.`,
-        actions: [{ label: '📲 Book Gomti Grand Villa', url: `https://wa.me/${ADMIN_WA}?text=Namaste! I want to book Gomti Grand Villa (₹8,000/night). Please share availability.` }],
-        quickReplies: ['Book karna hai 📅', 'Advance policy?', 'Other villas dikhao']
+        text: `🏢 **Gomti Nagar Prime (Vikalp & Vishesh Khand) — Luxury 3BHK Serviced Flats:**\n\n` +
+              `Hamare premium fully furnished 3BHK flats website direct rate par sirf **₹3,499 se ₹4,500/night** me available hain (Airbnb se 15% discount)!\n\n` +
+              `1️⃣ **RedRose Palace:** Rich crimson floral luxury interiors (₹3,499)\n` +
+              `2️⃣ **Black Beauty:** Ultra-luxurious Black & Gold royal theme (₹3,499)\n` +
+              `3️⃣ **The Dark Blue:** Calming oceanic navy blue aesthetic (₹3,499)\n` +
+              `4️⃣ **The Brown:** Warm earthen walnut wood cozy interior (₹3,499)\n` +
+              `5️⃣ **The Light Green:** Mint & sage green fresh botanical theme (₹3,499)\n` +
+              `6️⃣ **The Nawabi Stay:** Classic royal Lucknowi heritage decor (₹3,499)\n` +
+              `7️⃣ **The Velvet House:** Plush velvet decor near Lulu Mall (₹4,499)\n\n` +
+              `✨ *Sabhi flats me:* 3 AC Bedrooms, Modular Kitchen (Gas + RO), High-Speed 200 Mbps Wi-Fi, Lift & Covered Parking. 100% Couple Friendly!`,
+        actions: [
+          { label: '💬 Book 3BHK on WhatsApp', url: `https://wa.me/${ADMIN_WA}?text=${encodeURIComponent('Namaste! I want to book a luxury 3BHK flat in Gomti Nagar. Please share availability.')}`, isPrimary: true },
+          { label: '🌐 View All 3BHK Flats', url: 'properties.html' }
+        ],
+        quickReplies: ['RedRose Palace 🌹', 'Black Beauty 🖤', 'The Dark Blue 💙', 'Check-in rules']
       };
     }
 
-    // 2. SPECIFIC VILLA: ROYAL WHITE HOUSE (VIL-102)
-    if (/royal white|white house|royal villa|18 guest|badi villa|wedding villa|shaadi/i.test(msg)) {
+    // 3. GENERAL PRIVATE VILLAS & LARGE GROUPS (10 - 18 GUESTS)
+    if (/(villa|villas|badi villa|white house|celebrity|wedding|shaadi|haldi|mehndi|party|gathering|10 guest|12 guest|15 guest|18 guest|विल्ला|विला)/i.test(msg)) {
       return {
-        text: `👑 **Royal White House — Grand Luxury Estate**\n\n` +
-              `💰 **Rate:** **₹12,000 / night** (Best Value for Large Groups)\n` +
-              `👥 **Capacity:** Up to 18 Guests (4-5 Spacious Bedrooms)\n` +
-              `📍 **Location:** Near Shaheed Path & Mahanagar connectivity\n\n` +
-              `✨ **Highlights & Amenities:**\n` +
-              `• Palatial white exterior with royal architecture & massive private lawn\n` +
-              `• Huge living & dining hall, grand open terrace with panoramic views\n` +
-              `• Full modular kitchen for self-cooking or catering service\n` +
-              `• Gated parking for 4+ cars inside premises\n` +
-              `• Perfect for: Wedding stays (Haldi, Mehndi, Barat stay), Family reunions, Corporate offsites.`,
-        actions: [{ label: '📲 Inquire Royal White House', url: `https://wa.me/${ADMIN_WA}?text=Namaste! I want to book Royal White House (₹12,000/night) for large group/event.` }],
-        quickReplies: ['Gomti Grand Villa ₹8,000', 'Celebrity Garden ₹10,000', 'Book karna hai 📅']
-      };
-    }
-
-    // 3. SPECIFIC VILLA: CELEBRITY GARDEN (LUL-402)
-    if (/celebrity garden|celebrity|lul-402|garden villa/i.test(msg)) {
-      return {
-        text: `🌴 **Celebrity Garden — Sprawling Green Luxury Villa**\n\n` +
-              `💰 **Rate:** **₹10,000 / night**\n` +
-              `👥 **Capacity:** Up to 8–10 Guests\n` +
-              `📍 **Location:** Near Lulu Mall & Medanta Hospital\n\n` +
-              `✨ **Highlights:**\n` +
-              `• Lush sprawling landscaped garden & private sit-out patio\n` +
-              `• Super high-end luxury interiors, 100% split AC in all rooms\n` +
-              `• Full modern kitchen & rapid delivery from Swiggy/Zomato/Blinkit\n` +
-              `• 5 mins to Lulu Mall & 7 mins to Ekana Stadium.`,
-        actions: [{ label: '📲 Book Celebrity Garden', url: `https://wa.me/${ADMIN_WA}?text=Namaste! I want to book Celebrity Garden (₹10,000/night).` }],
-        quickReplies: ['Book karna hai 📅', 'Lulu Mall distance?', 'Villas rates']
-      };
-    }
-
-    // 4. SPECIFIC VILLA: THE PINK HOUSE (VIL-103)
-    if (/pink house|pink villa|aesthetic villa/i.test(msg)) {
-      return {
-        text: `🌸 **The Pink House — Aesthetic Designer Villa**\n\n` +
-              `💰 **Rate:** **₹9,000 / night**\n` +
-              `👥 **Capacity:** Up to 10 Guests\n` +
-              `📍 **Location:** Vishesh Khand, Gomti Nagar\n\n` +
-              `✨ **Highlights:**\n` +
-              `• Gorgeous pastel aesthetic theme with Instagram-worthy interiors\n` +
-              `• Private terrace garden, full modular kitchen, high-speed WiFi\n` +
-              `• Located in upscale quiet VIP colony of Gomti Nagar\n` +
-              `• Pet friendly (prior approval needed).`,
-        actions: [{ label: '📲 Book The Pink House', url: `https://wa.me/${ADMIN_WA}?text=Namaste! I want to book The Pink House (₹9,000/night).` }],
-        quickReplies: ['Book karna hai 📅', 'Check-in time?', 'Rates list']
-      };
-    }
-
-    // 5. SPECIFIC PENTHOUSE: STARLIGHT BLUE PENTHOUSE (GOM-501)
-    if (/starlight|penthouse|blue penthouse|rooftop|skyline/i.test(msg)) {
-      return {
-        text: `✨ **Starlight Blue PentHouse — Open Sky Skyline Living**\n\n` +
-              `💰 **Rate:** **₹6,000 / night**\n` +
-              `👥 **Capacity:** Up to 10 Guests\n` +
-              `📍 **Location:** Vikalp Khand, Gomti Nagar\n\n` +
-              `✨ **Highlights:**\n` +
-              `• Top floor penthouse with huge private open-sky terrace\n` +
-              `• Breathtaking night skyline view of Lucknow city lights\n` +
-              `• Designer blue & gold luxury mood lighting\n` +
-              `• 3 AC Bedrooms + Large Living Space + Full Kitchen\n` +
-              `• Perfect for romantic getaways, family birthdays & relaxing evenings.`,
-        actions: [{ label: '📲 Book Starlight Penthouse', url: `https://wa.me/${ADMIN_WA}?text=Namaste! I want to book Starlight Blue Penthouse (₹6,000/night).` }],
-        quickReplies: ['Book karna hai 📅', 'Couples allowed?', '3BHK flats dikhao']
-      };
-    }
-
-    // 6. SPECIFIC BOUTIQUE FLATS: THE UNIQUE / GREEN HOUSE / YELLOW HOUSE
-    if (/the unique|green house|yellow house|vil-104|vil-105|gom-302/i.test(msg)) {
-      return {
-        text: `🏡 **Designer Serviced Stays — Vishesh Khand, Gomti Nagar**\n\n` +
-              `• **The Unique:** ₹5,500/night (Contemporary luxury styling)\n` +
-              `• **The Green House:** ₹5,500/night (Lush nature-inspired interior)\n` +
-              `• **The Yellow House:** ₹5,500/night (Warm vibrant sunshine aesthetic)\n\n` +
-              `✨ All units feature 3 fully AC bedrooms, modular kitchen with gas stove & RO, high-speed WiFi, dedicated parking and 100% privacy.`,
-        actions: [{ label: '📲 Book Vishesh Khand Flat', url: `https://wa.me/${ADMIN_WA}?text=Namaste! I am interested in The Unique / Green / Yellow House (₹5,500).` }],
-        quickReplies: ['Book karna hai 📅', '₹4,500 flats dikhao', 'Check-in rules']
-      };
-    }
-
-    // 7. SPECIFIC 3BHK SERVICED FLATS (₹4,500 / NIGHT): REDROSE, BLACK BEAUTY, DARK BLUE, ETC.
-    if (/redrose|black beauty|dark blue|the brown|light green|nawabi stay|velvet house|4500|3bhk/i.test(msg)) {
-      return {
-        text: `🏢 **Luxury 3BHK Serviced Flats (₹4,500 / night):**\n\n` +
-              `1️⃣ **Black Beauty:** Ultra-luxurious Black & Gold royal theme\n` +
-              `2️⃣ **RedRose Palace:** Rich crimson floral luxury interiors\n` +
-              `3️⃣ **The Dark Blue:** Calming oceanic navy blue aesthetic\n` +
-              `4️⃣ **The Nawabi Stay:** Classic royal Lucknowi heritage decor\n` +
-              `5️⃣ **The Brown:** Warm earthen walnut wood cozy interior\n` +
-              `6️⃣ **The Light Green:** Mint & sage green fresh botanical theme\n` +
-              `7️⃣ **The Velvet House:** Plush velvet decor near Lulu Mall\n\n` +
-              `✨ **Every flat includes:** 3 AC Bedrooms, Full Kitchen, Refrigerator, RO water, High-speed WiFi, 24/7 Security & CCTV parking. 100% Couple Friendly!`,
-        actions: [{ label: '📲 Book 3BHK Flat @ ₹4,500', url: `https://wa.me/${ADMIN_WA}?text=Namaste! I want to book a 3BHK luxury flat at ₹4,500/night.` }],
-        quickReplies: ['Couples allowed?', 'Kitchen facility?', 'Book karna hai 📅']
+        text: `🏰 **Luxury Standalone Villas & Estates in Lucknow:**\n\n` +
+              `1️⃣ **Royal White House:** ₹11,999/night (Grand palatial estate for up to 18 guests · Weddings & Reunions)\n` +
+              `2️⃣ **Gomti Grand Villa:** ₹7,999/night (100% Private standalone villa with lawn · Up to 10 guests · Near Lulu Mall)\n` +
+              `3️⃣ **Celebrity Garden:** ₹9,999/night (Sprawling landscaped green lawn & luxury suites near Lulu Mall)\n` +
+              `4️⃣ **The Pink House:** ₹8,999/night (Instagram-famous aesthetic villa in Vishesh Khand, Gomti Nagar)\n\n` +
+              `✨ 100% Standalone privacy, AC in all suites, modular kitchens for self-cooking/catering & secure multi-car parking.`,
+        actions: [
+          { label: '💬 Book Villa on WhatsApp', url: `https://wa.me/${ADMIN_WA}?text=${encodeURIComponent('Namaste! I want to inquire about luxury villas for our group stay.')}`, isPrimary: true },
+          { label: '🌐 View All Villas', url: 'properties.html' }
+        ],
+        quickReplies: ['Gomti Grand Villa ₹8k', 'Royal White House ₹12k', 'Celebrity Garden ₹10k', 'Advance policy']
       };
     }
 
@@ -920,69 +1142,58 @@
     s.textContent = `
       #uhh-chat-btn-wrap {
         position: fixed; bottom: 24px; right: 24px; z-index: 9997;
-        font-family: 'Outfit','Plus Jakarta Sans','Inter',sans-serif;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
       }
       #uhh-chat-btn.uhh-chat-unified-btn {
         display: inline-flex;
         align-items: center;
         gap: 8px;
-        background: linear-gradient(135deg, #0F172A 0%, #1E293B 100%);
-        border: 1.5px solid rgba(245, 158, 11, 0.55);
-        color: #F8FAFC;
-        padding: 10px 16px;
+        background: linear-gradient(135deg, #00A884 0%, #008069 100%);
+        border: 1px solid rgba(255, 255, 255, 0.25);
+        color: #FFFFFF;
+        padding: 10px 18px;
         border-radius: 999px;
         font-size: 13.5px;
         font-weight: 700;
-        letter-spacing: 0.4px;
-        box-shadow: 0 8px 30px rgba(0, 0, 0, 0.45), 0 0 16px rgba(245, 158, 11, 0.25);
+        letter-spacing: 0.2px;
+        box-shadow: 0 8px 24px rgba(0, 168, 132, 0.35), 0 4px 12px rgba(0, 0, 0, 0.4);
         cursor: pointer;
         outline: none;
         position: relative;
         transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-        backdrop-filter: blur(10px);
       }
       #uhh-chat-btn.uhh-chat-unified-btn:hover {
         transform: translateY(-2px) scale(1.03);
-        border-color: #FBBF24;
-        box-shadow: 0 12px 36px rgba(0, 0, 0, 0.55), 0 0 24px rgba(245, 158, 11, 0.45);
+        box-shadow: 0 12px 30px rgba(0, 168, 132, 0.5), 0 6px 16px rgba(0, 0, 0, 0.5);
       }
-      .uhh-chat-btn-sparkle {
-        font-size: 15px;
-        color: #FCD34D;
-      }
-      .uhh-chat-btn-title {
-        color: #FFFFFF;
-        font-family: 'Outfit', sans-serif;
-      }
+      .uhh-chat-btn-sparkle { font-size: 16px; }
+      .uhh-chat-btn-title { color: #FFFFFF; font-weight: 700; }
       .uhh-chat-btn-pill {
         font-size: 11px;
         font-weight: 700;
-        background: rgba(245, 158, 11, 0.16);
-        border: 1px solid rgba(245, 158, 11, 0.35);
-        color: #FCD34D;
+        background: rgba(255, 255, 255, 0.22);
+        color: #FFFFFF;
         padding: 2px 7px;
         border-radius: 6px;
-        display: inline-flex;
-        align-items: center;
-        gap: 4px;
       }
       #uhh-chat-btn .uhh-chat-badge {
-        position: absolute; top: -4px; right: -4px;
-        width: 18px; height: 18px; background: #ef4444;
-        border-radius: 50%; font-size: 10px; color: #fff;
+        position: absolute; top: -3px; right: -3px;
+        width: 18px; height: 18px; background: #25D366;
+        border-radius: 50%; font-size: 10px; color: #111B21;
         display: flex; align-items: center; justify-content: center;
-        font-weight: 700; border: 2px solid #0d0f14;
+        font-weight: 800; border: 2px solid #0B141A;
         animation: uhh-chat-pulse 2s infinite;
       }
       @keyframes uhh-chat-pulse {
         0%,100%{transform:scale(1)} 50%{transform:scale(1.2)}
       }
+
       /* Backdrop Scrim Overlay */
       #uhh-chat-backdrop {
         position: fixed; inset: 0;
-        background: rgba(11, 17, 32, 0.72);
-        backdrop-filter: blur(8px);
-        -webkit-backdrop-filter: blur(8px);
+        background: rgba(11, 20, 26, 0.72);
+        backdrop-filter: blur(6px);
+        -webkit-backdrop-filter: blur(6px);
         z-index: 99990;
         opacity: 0; pointer-events: none;
         transition: opacity 0.25s cubic-bezier(0.16, 1, 0.3, 1);
@@ -993,152 +1204,456 @@
 
       .uhh-sheet-handle-wrap { display: none; }
 
+      /* WhatsApp Chat Panel */
       #uhh-chat-panel {
         position: fixed; bottom: 84px; right: 24px; z-index: 99995;
-        width: min(390px, calc(100vw - 32px));
-        height: min(580px, calc(100vh - 120px));
-        background: #0B1120;
-        border: 1.5px solid rgba(212, 168, 75, 0.35);
-        border-radius: 24px; overflow: hidden;
-        box-shadow: 0 24px 80px rgba(0,0,0,0.8), 0 0 30px rgba(212, 168, 75, 0.15);
+        width: min(400px, calc(100vw - 32px));
+        height: min(620px, calc(100vh - 110px));
+        background-color: #0B141A;
+        background-image: radial-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px),
+          url("data:image/svg+xml,%3Csvg width='80' height='80' viewBox='0 0 80 80' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M15 15h6v6h-6z' stroke='%23ffffff' stroke-width='0.75' stroke-opacity='0.03'/%3E%3Ccircle cx='60' cy='25' r='4' stroke='%23ffffff' stroke-width='0.75' stroke-opacity='0.03'/%3E%3Cpath d='M20 60c3-4 8-4 11 0' stroke='%23ffffff' stroke-width='0.75' stroke-opacity='0.03'/%3E%3Cpath d='M65 55l4 6h-8z' stroke='%23ffffff' stroke-width='0.75' stroke-opacity='0.03'/%3E%3C/svg%3E");
+        background-size: 20px 20px, 80px 80px;
+        border: 1px solid rgba(134, 150, 160, 0.2);
+        border-radius: 18px; overflow: hidden;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8), 0 0 1px rgba(255, 255, 255, 0.2);
         display: flex; flex-direction: column;
         transform-origin: bottom right;
-        animation: uhh-chat-open 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-        font-family: 'Plus Jakarta Sans','Inter',sans-serif;
+        animation: uhh-chat-open 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        color: #E9EDEF;
       }
       @keyframes uhh-chat-open {
-        from { opacity:0; transform: scale(0.9) translateY(20px); }
-        to   { opacity:1; transform: scale(1) translateY(0); }
+        from { opacity: 0; transform: scale(0.92) translateY(16px); }
+        to   { opacity: 1; transform: scale(1) translateY(0); }
       }
       #uhh-chat-panel.closing {
         animation: uhh-chat-close 0.2s ease forwards;
       }
       @keyframes uhh-chat-close {
-        to { opacity:0; transform: scale(0.9) translateY(20px); }
+        to { opacity: 0; transform: scale(0.92) translateY(16px); }
       }
+
+      /* WhatsApp Dark Header */
       .uhh-chat-header {
-        background: linear-gradient(135deg, #0F172A, #1E293B);
-        border-bottom: 1px solid rgba(212, 168, 75, 0.25);
-        padding: 13px 16px;
+        background: #1F2C34;
+        border-bottom: 1px solid rgba(134, 150, 160, 0.15);
+        padding: 10px 14px;
         display: flex; align-items: center; gap: 10px;
+        flex-shrink: 0;
+      }
+      .uhh-chat-back-btn {
+        display: none;
+        background: none; border: none;
+        color: #AEBAC1; cursor: pointer;
+        padding: 4px; line-height: 1;
+      }
+      .uhh-chat-avatar-wrap {
+        position: relative; flex-shrink: 0;
       }
       .uhh-chat-avatar {
-        width: 38px; height: 38px; border-radius: 50%;
-        background: linear-gradient(135deg, #059669, #047857);
-        border: 1px solid rgba(212, 168, 75, 0.4);
+        width: 40px; height: 40px; border-radius: 50%;
+        background: linear-gradient(135deg, #00A884 0%, #128C7E 100%);
+        border: 1.5px solid rgba(255, 255, 255, 0.2);
         display: flex; align-items: center; justify-content: center;
-        font-size: 18px; flex-shrink: 0;
+        font-size: 19px;
       }
       .uhh-chat-avatar-dot {
-        width: 10px; height: 10px; background: #22c55e;
-        border-radius: 50%; border: 2px solid #111;
+        width: 10px; height: 10px; background: #00A884;
+        border-radius: 50%; border: 2px solid #1F2C34;
         position: absolute; bottom: 0; right: 0;
       }
-      .uhh-chat-header-info { flex: 1; }
-      .uhh-chat-header-name { font-size: 14px; font-weight: 700; color: #f0f2f7; }
-      .uhh-chat-header-status { font-size: 11px; color: #86efac; margin-top: 1px; }
-      .uhh-chat-close {
-        background: rgba(255, 255, 255, 0.08);
-        border: 1px solid rgba(255, 255, 255, 0.15);
-        color: #f0f2f7;
+      .uhh-chat-header-info { flex: 1; min-width: 0; }
+      .uhh-chat-header-name {
+        font-size: 14.5px; font-weight: 700; color: #E9EDEF;
+        display: flex; align-items: center; gap: 5px;
+        white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      }
+      .uhh-wa-verified-badge { flex-shrink: 0; }
+      .uhh-chat-header-status {
+        font-size: 11.5px; color: #8696A0; margin-top: 1px;
+        white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      }
+      .uhh-chat-header-status.typing { color: #00A884; font-weight: 600; }
+      .uhh-chat-header-actions {
+        display: flex; align-items: center; gap: 6px; flex-shrink: 0;
+      }
+      .uhh-header-icon-btn {
         width: 32px; height: 32px; border-radius: 50%;
-        cursor: pointer; font-size: 15px;
+        display: inline-flex; align-items: center; justify-content: center;
+        color: #AEBAC1; text-decoration: none;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        transition: all 0.15s;
+      }
+      .uhh-header-icon-btn:hover {
+        background: rgba(255, 255, 255, 0.12); color: #E9EDEF;
+      }
+      .uhh-chat-voice-toggle {
+        background: rgba(0, 168, 132, 0.15);
+        border: 1px solid rgba(0, 168, 132, 0.35);
+        color: #00A884; width: 32px; height: 32px; border-radius: 50%;
         display: flex; align-items: center; justify-content: center;
-        line-height: 1; transition: all 0.2s ease;
+        font-size: 14px; cursor: pointer; outline: none; transition: all 0.2s;
+      }
+      .uhh-chat-voice-toggle.muted {
+        background: rgba(255, 255, 255, 0.06);
+        border-color: rgba(255, 255, 255, 0.12);
+        color: #8696A0;
+      }
+      .uhh-chat-close {
+        background: rgba(255, 255, 255, 0.06);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        color: #AEBAC1;
+        width: 32px; height: 32px; border-radius: 50%;
+        cursor: pointer; font-size: 14px;
+        display: flex; align-items: center; justify-content: center;
+        transition: all 0.15s; outline: none;
       }
       .uhh-chat-close:hover {
-        background: rgba(255, 255, 255, 0.2);
-        color: #ffffff;
+        background: rgba(255, 255, 255, 0.15); color: #FFFFFF;
       }
+
+      /* Messages Stream */
       .uhh-chat-msgs {
-        flex: 1; overflow-y: auto; padding: 14px 12px; display: flex;
-        flex-direction: column; gap: 10px; scroll-behavior: smooth;
+        flex: 1; overflow-y: auto; padding: 12px 14px; display: flex;
+        flex-direction: column; gap: 8px; scroll-behavior: smooth;
       }
-      .uhh-chat-msgs::-webkit-scrollbar { width: 3px; }
-      .uhh-chat-msgs::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 4px; }
+      .uhh-chat-msgs::-webkit-scrollbar { width: 4px; }
+      .uhh-chat-msgs::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.12); border-radius: 4px; }
+
+      /* WhatsApp Security Notice Banner */
+      .uhh-wa-security-banner {
+        align-self: center;
+        background: #182229;
+        border: 1px solid rgba(255, 226, 122, 0.2);
+        border-radius: 8px;
+        padding: 6px 12px;
+        margin: 2px 0 8px;
+        max-width: 90%;
+        text-align: center;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+      }
+      .uhh-wa-security-banner span {
+        font-size: 11px;
+        color: #FFE27A;
+        line-height: 1.4;
+        display: inline-block;
+      }
+
+      /* Message Groups & Bubbles */
       .uhh-msg {
-        max-width: 88%; display: flex; flex-direction: column; gap: 3px;
-        animation: uhh-msg-in 0.25s ease;
+        max-width: 86%; display: flex; flex-direction: column;
+        animation: uhh-msg-in 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+        position: relative;
       }
       @keyframes uhh-msg-in {
-        from { opacity:0; transform: translateY(8px); }
-        to   { opacity:1; transform: translateY(0); }
+        from { opacity: 0; transform: translateY(6px); }
+        to   { opacity: 1; transform: translateY(0); }
       }
       .uhh-msg.bot { align-self: flex-start; }
       .uhh-msg.user { align-self: flex-end; }
+
       .uhh-msg-bubble {
-        padding: 10px 14px; border-radius: 16px;
-        font-size: 13.5px; line-height: 1.55; white-space: pre-wrap;
+        padding: 8px 11px;
+        font-size: 13.5px;
+        line-height: 1.48;
+        word-break: break-word;
+        box-shadow: 0 1px 1.5px rgba(11, 20, 26, 0.35);
+        position: relative;
       }
       .bot .uhh-msg-bubble {
-        background: rgba(255,255,255,0.07);
-        border: 1px solid rgba(255,255,255,0.07);
-        color: #e2e8f0; border-radius: 4px 16px 16px 16px;
+        background: #202C33;
+        color: #E9EDEF;
+        border-radius: 0 8px 8px 8px;
       }
+      /* WhatsApp Left Tail */
+      .bot .uhh-msg-bubble::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: -8px;
+        width: 0;
+        height: 0;
+        border-top: 8px solid #202C33;
+        border-left: 8px solid transparent;
+      }
+
       .user .uhh-msg-bubble {
-        background: linear-gradient(135deg,#059669,#047857);
-        color: #fff; border-radius: 16px 16px 4px 16px;
+        background: #005C4B;
+        color: #E9EDEF;
+        border-radius: 8px 0 8px 8px;
       }
-      .uhh-msg-time { font-size: 10px; color: #6b7280; padding: 0 4px; }
-      .uhh-msg-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+      /* WhatsApp Right Tail */
+      .user .uhh-msg-bubble::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        right: -8px;
+        width: 0;
+        height: 0;
+        border-top: 8px solid #005C4B;
+        border-right: 8px solid transparent;
+      }
+
+      .uhh-msg-content { white-space: pre-wrap; }
+      .uhh-msg-content strong, .uhh-msg-content b { color: #53BDEB; font-weight: 700; }
+      .bot .uhh-msg-content strong { color: #53BDEB; }
+
+      /* Message Meta (Time + Blue Ticks) */
+      .uhh-msg-meta {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 3px;
+        margin-top: 4px;
+        float: right;
+      }
+      .uhh-msg-time {
+        font-size: 10.5px;
+        color: #8696A0;
+      }
+      .user .uhh-msg-time { color: rgba(255, 255, 255, 0.75); }
+      .uhh-wa-ticks {
+        font-size: 11.5px;
+        font-weight: 700;
+        color: #53BDEB;
+        letter-spacing: -1.5px;
+        margin-left: 2px;
+      }
+
+      /* WhatsApp Business Product Catalog Card Component */
+      .uhh-wa-card {
+        background: #111B21;
+        border: 1px solid #2A3942;
+        border-radius: 10px;
+        overflow: hidden;
+        margin-top: 8px;
+        display: flex;
+        flex-direction: column;
+      }
+      .uhh-wa-card-media {
+        position: relative;
+        height: 135px;
+        overflow: hidden;
+        background: #0B141A;
+      }
+      .uhh-wa-card-media img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        transition: transform 0.3s ease;
+      }
+      .uhh-wa-card-media:hover img {
+        transform: scale(1.03);
+      }
+      .uhh-wa-card-badge {
+        position: absolute;
+        bottom: 8px;
+        left: 8px;
+        background: rgba(11, 20, 26, 0.88);
+        color: #FFD700;
+        font-size: 10.5px;
+        font-weight: 700;
+        padding: 3px 7px;
+        border-radius: 6px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(4px);
+      }
+      .uhh-wa-card-body {
+        padding: 10px 12px;
+      }
+      .uhh-wa-card-title {
+        font-size: 14.5px;
+        font-weight: 700;
+        color: #E9EDEF;
+      }
+      .uhh-wa-card-sub {
+        font-size: 11px;
+        color: #8696A0;
+        margin-top: 2px;
+      }
+      .uhh-wa-card-price {
+        display: flex;
+        align-items: baseline;
+        gap: 6px;
+        margin: 6px 0 8px;
+      }
+      .uhh-wa-card-amount {
+        font-size: 17px;
+        font-weight: 800;
+        color: #00A884;
+      }
+      .uhh-wa-card-per {
+        font-size: 11px;
+        color: #8696A0;
+      }
+      .uhh-wa-card-save {
+        font-size: 10px;
+        font-weight: 700;
+        background: rgba(0, 168, 132, 0.15);
+        color: #00A884;
+        padding: 2px 6px;
+        border-radius: 4px;
+        border: 1px solid rgba(0, 168, 132, 0.3);
+      }
+      .uhh-wa-card-tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px;
+        margin-bottom: 10px;
+      }
+      .uhh-wa-tag {
+        font-size: 10.5px;
+        color: #D1D7DB;
+        background: #202C33;
+        padding: 2px 7px;
+        border-radius: 4px;
+        border: 1px solid #2A3942;
+      }
+      .uhh-wa-card-btns {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 6px;
+      }
+      .uhh-wa-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 5px;
+        padding: 7px 10px;
+        border-radius: 6px;
+        font-size: 11.5px;
+        font-weight: 700;
+        text-decoration: none;
+        transition: all 0.15s;
+        text-align: center;
+      }
+      .uhh-wa-btn.secondary {
+        background: #202C33;
+        color: #E9EDEF;
+        border: 1px solid #2A3942;
+      }
+      .uhh-wa-btn.secondary:hover {
+        background: #2A3942;
+      }
+      .uhh-wa-btn.primary {
+        background: #00A884;
+        color: #111B21;
+      }
+      .uhh-wa-btn.primary:hover {
+        background: #029070;
+      }
+
+      /* WhatsApp Voice Note Bar */
+      .uhh-wa-voice-note {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        background: #111B21;
+        border: 1px solid #2A3942;
+        padding: 6px 10px;
+        border-radius: 8px;
+        margin-top: 8px;
+      }
+      .uhh-speak-msg-btn {
+        display: inline-flex; align-items: center; gap: 4px;
+        background: #00A884; color: #111B21;
+        border: none; border-radius: 14px;
+        padding: 4px 9px; font-size: 11px; font-weight: 700;
+        cursor: pointer; outline: none; transition: all 0.15s;
+      }
+      .uhh-speak-msg-btn:hover { background: #029070; }
+      .uhh-speak-msg-btn.speaking {
+        background: #EF4444; color: #FFFFFF;
+      }
+      .uhh-wa-waveform {
+        flex: 1; display: flex; align-items: center; gap: 2.5px; height: 16px;
+      }
+      .uhh-wave-bar {
+        width: 2.5px; background: #8696A0; border-radius: 1px;
+      }
+      .uhh-speak-msg-btn.speaking ~ .uhh-wa-waveform .uhh-wave-bar {
+        background: #00A884;
+        animation: uhh-wave-anim 0.6s ease-in-out infinite alternate;
+      }
+      .uhh-wa-voice-meta {
+        font-size: 10.5px; color: #8696A0; white-space: nowrap;
+      }
+
+      /* Generic Actions inside Bubbles */
+      .uhh-msg-actions {
+        display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px;
+      }
       .uhh-msg-action-btn {
         display: inline-flex; align-items: center; gap: 5px;
-        background: #059669; color: #fff; text-decoration: none;
-        padding: 8px 14px; border-radius: 10px; font-size: 12.5px;
-        font-weight: 700; transition: all 0.15s; border: none; cursor: pointer;
+        background: #202C33; color: #E9EDEF;
+        border: 1px solid #2A3942;
+        text-decoration: none; padding: 7px 12px; border-radius: 6px;
+        font-size: 12px; font-weight: 700; transition: all 0.15s;
       }
+      .uhh-msg-action-btn.primary {
+        background: #00A884; color: #111B21; border-color: #00A884;
+      }
+      .uhh-msg-action-btn:hover {
+        background: #2A3942;
+      }
+      .uhh-msg-action-btn.primary:hover {
+        background: #029070;
+      }
+
+      /* Quick Replies Bar */
       .uhh-quick-replies {
         display: flex; flex-wrap: nowrap; overflow-x: auto; gap: 6px; padding: 8px 12px;
         scrollbar-width: none; -webkit-overflow-scrolling: touch;
+        background: #111B21; border-top: 1px solid #222D34;
       }
       .uhh-quick-replies::-webkit-scrollbar { display: none; }
       .uhh-qr {
-        background: rgba(212,168,75,0.12);
-        border: 1px solid rgba(212,168,75,0.3);
-        color: #f0c96b; padding: 6px 12px; border-radius: 20px;
-        font-size: 12px; font-weight: 600; cursor: pointer;
-        transition: all 0.15s; white-space: nowrap;
+        background: #1F2C34;
+        border: 1px solid #2A3942;
+        color: #00A884; padding: 5px 12px; border-radius: 16px;
+        font-size: 11.5px; font-weight: 600; cursor: pointer;
+        transition: all 0.15s; white-space: nowrap; outline: none;
       }
-      .uhh-qr:hover { background: rgba(212,168,75,0.25); border-color: rgba(212,168,75,0.5); }
+      .uhh-qr:hover { background: #2A3942; border-color: #00A884; }
+
+      /* Typing Indicator */
       .uhh-typing {
         display: flex; align-items: center; gap: 4px; padding: 10px 14px;
-        background: rgba(255,255,255,0.07); border-radius: 4px 16px 16px 16px;
-        width: fit-content;
+        background: #202C33; border-radius: 0 8px 8px 8px; width: fit-content;
       }
       .uhh-typing span {
-        width: 7px; height: 7px; border-radius: 50%; background: #9ca3af;
+        width: 6.5px; height: 6.5px; border-radius: 50%; background: #8696A0;
         animation: uhh-bounce 1.2s infinite;
       }
-      .uhh-typing span:nth-child(2){animation-delay:.15s}
-      .uhh-typing span:nth-child(3){animation-delay:.3s}
+      .uhh-typing span:nth-child(2) { animation-delay: .15s; }
+      .uhh-typing span:nth-child(3) { animation-delay: .3s; }
       @keyframes uhh-bounce {
-        0%,60%,100%{transform:translateY(0)} 30%{transform:translateY(-5px)}
+        0%,60%,100%{ transform: translateY(0); }
+        30%{ transform: translateY(-4px); }
       }
 
-      /* Live Voice Status Bar with Barge-in Interruption */
+      /* Live Voice Status Bar */
       .uhh-chat-status-bar {
         display: none; align-items: center; justify-content: space-between;
-        padding: 7px 14px; background: rgba(17, 24, 39, 0.96);
-        border-top: 1px solid rgba(255,255,255,0.06);
-        font-size: 12px; color: #f3f4f6; gap: 8px;
+        padding: 6px 12px; background: #1F2C34;
+        border-top: 1px solid #222D34;
+        font-size: 11.5px; color: #E9EDEF; gap: 8px;
       }
       .uhh-chat-status-bar.speaking {
-        display: flex; background: rgba(212,168,75,0.14);
-        border-top-color: rgba(212,168,75,0.35); color: #f0c96b;
+        display: flex; background: rgba(0, 168, 132, 0.15); color: #00A884;
       }
       .uhh-chat-status-bar.listening {
-        display: flex; background: rgba(239,68,68,0.14);
-        border-top-color: rgba(239,68,68,0.35); color: #fca5a5;
+        display: flex; background: rgba(239, 68, 68, 0.15); color: #FCA5A5;
       }
       .uhh-chat-status-bar.processing {
-        display: flex; background: rgba(59,130,246,0.12);
-        border-top-color: rgba(59,130,246,0.3); color: #93c5fd;
+        display: flex; background: rgba(83, 189, 235, 0.12); color: #53BDEB;
       }
       .uhh-mini-wave {
         display: inline-flex; align-items: center; gap: 2px; height: 12px; margin-right: 4px; vertical-align: middle;
       }
       .uhh-mini-wave span {
-        width: 2.5px; height: 10px; background: #d4a84b; border-radius: 2px;
+        width: 2.5px; height: 10px; background: #00A884; border-radius: 2px;
         animation: uhh-wave-anim 0.8s ease-in-out infinite alternate;
       }
       .uhh-mini-wave span:nth-child(2) { animation-delay: 0.2s; height: 14px; }
@@ -1148,158 +1663,79 @@
       }
       .uhh-mic-pulse-dot {
         display: inline-block; width: 8px; height: 8px; border-radius: 50%;
-        background: #ef4444; margin-right: 4px;
-        box-shadow: 0 0 8px rgba(239,68,68,0.8);
+        background: #EF4444; margin-right: 4px;
+        box-shadow: 0 0 8px rgba(239, 68, 68, 0.8);
         animation: uhh-chat-pulse 1s infinite alternate;
         vertical-align: middle;
       }
       .uhh-chat-interrupt-btn {
-        background: rgba(239,68,68,0.22); border: 1px solid rgba(239,68,68,0.45);
-        color: #fee2e2; font-size: 11px; font-weight: 700; padding: 4px 10px;
-        border-radius: 12px; cursor: pointer; transition: all 0.15s; white-space: nowrap; outline: none;
+        background: rgba(239, 68, 68, 0.22); border: 1px solid rgba(239, 68, 68, 0.45);
+        color: #FEE2E2; font-size: 11px; font-weight: 700; padding: 3px 8px;
+        border-radius: 10px; cursor: pointer; transition: all 0.15s; outline: none;
       }
-      .uhh-chat-interrupt-btn:hover {
-        background: #ef4444; color: #fff; transform: scale(1.04);
-      }
+      .uhh-chat-interrupt-btn:hover { background: #EF4444; color: #FFF; }
 
+      /* WhatsApp Input Row */
       .uhh-chat-input-row {
-        padding: 10px 12px; border-top: 1px solid rgba(255,255,255,0.06);
-        display: flex; gap: 8px; align-items: flex-end; background: #0d0f14;
+        padding: 8px 10px; border-top: 1px solid #222D34;
+        display: flex; gap: 8px; align-items: center; background: #1F2C34;
+      }
+      .uhh-wa-input-emoji {
+        background: none; border: none; font-size: 20px; color: #8696A0;
+        cursor: pointer; padding: 4px; line-height: 1; outline: none;
       }
       #uhh-chat-input {
-        flex: 1; background: rgba(255,255,255,0.07);
-        border: 1px solid rgba(255,255,255,0.1); border-radius: 22px;
-        padding: 10px 14px; color: #f0f2f7; font-size: 14px;
-        outline: none; resize: none; max-height: 80px; min-height: 40px;
-        font-family: inherit; line-height: 1.4; transition: border-color 0.2s;
+        flex: 1; background: #2A3942;
+        border: none; border-radius: 20px;
+        padding: 9px 14px; color: #E9EDEF; font-size: 14px;
+        outline: none; resize: none; max-height: 80px; min-height: 38px;
+        font-family: inherit; line-height: 1.4;
       }
-      #uhh-chat-input:focus { border-color: rgba(212,168,75,0.5); }
-      #uhh-chat-input::placeholder { color: #6b7280; }
-      #uhh-chat-send {
-        width: 42px; height: 42px; border-radius: 50%; flex-shrink: 0;
-        background: linear-gradient(135deg,#059669,#047857);
-        border: none; cursor: pointer; display: flex;
-        align-items: center; justify-content: center;
-        transition: transform 0.15s, box-shadow 0.15s;
-        color: #fff; font-size: 18px;
-      }
-      #uhh-chat-send:hover { transform: scale(1.05); box-shadow: 0 4px 16px rgba(5,150,105,0.5); }
-      /* Bold in chat */
-      .uhh-msg-bubble strong, .uhh-msg-bubble b { color: #f0c96b; font-weight: 700; }
-
-      /* Voice Toggle in Header */
-      .uhh-chat-voice-toggle {
-        background: rgba(34,197,94,0.15);
-        border: 1px solid rgba(34,197,94,0.35);
-        color: #86efac;
-        padding: 4px 10px;
-        border-radius: 12px;
-        font-size: 11px;
-        font-weight: 700;
-        cursor: pointer;
-        transition: all 0.2s;
-        display: flex;
-        align-items: center;
-        gap: 4px;
-        outline: none;
-      }
-      .uhh-chat-voice-toggle.muted {
-        background: rgba(255,255,255,0.06);
-        border-color: rgba(255,255,255,0.15);
-        color: #9ca3af;
-      }
-      .uhh-chat-voice-toggle:hover { transform: scale(1.04); }
-
-      /* Mic Button in Input Row */
+      #uhh-chat-input::placeholder { color: #8696A0; }
       .uhh-chat-mic-btn {
-        width: 42px; height: 42px; border-radius: 50%; flex-shrink: 0;
-        background: rgba(255,255,255,0.08);
-        border: 1px solid rgba(212,168,75,0.3);
-        color: #f0c96b; font-size: 19px;
+        width: 38px; height: 38px; border-radius: 50%; flex-shrink: 0;
+        background: none; border: none; color: #8696A0; font-size: 18px;
         cursor: pointer; display: flex; align-items: center; justify-content: center;
         transition: all 0.2s; outline: none;
       }
-      .uhh-chat-mic-btn:hover {
-        background: rgba(212,168,75,0.22);
-        border-color: #d4a84b;
-        transform: scale(1.05);
-      }
+      .uhh-chat-mic-btn:hover { color: #E9EDEF; }
       .uhh-chat-mic-btn.listening {
-        background: #ef4444 !important;
-        border-color: #f87171 !important;
-        color: #fff !important;
+        background: #EF4444 !important; color: #FFF !important;
         animation: uhh-mic-pulse 1s infinite alternate;
       }
       @keyframes uhh-mic-pulse {
-        from { transform: scale(1); box-shadow: 0 0 0 0 rgba(239,68,68,0.7); }
-        to { transform: scale(1.12); box-shadow: 0 0 0 8px rgba(239,68,68,0); }
+        from { transform: scale(1); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+        to   { transform: scale(1.12); box-shadow: 0 0 0 6px rgba(239, 68, 68, 0); }
       }
-
-      /* Speak Message Button (Bulbul Neural Voice) */
-      .uhh-speak-msg-btn {
-        display: inline-flex; align-items: center; gap: 5px;
-        background: rgba(212,168,75,0.12);
-        border: 1px solid rgba(212,168,75,0.3);
-        color: #f0c96b;
-        padding: 4px 10px; border-radius: 10px;
-        font-size: 11.5px; font-weight: 600;
-        cursor: pointer; margin-top: 6px;
-        transition: all 0.15s; width: fit-content;
+      #uhh-chat-send {
+        width: 40px; height: 40px; border-radius: 50%; flex-shrink: 0;
+        background: #00A884; border: none; cursor: pointer;
+        display: flex; align-items: center; justify-content: center;
+        color: #111B21; transition: transform 0.15s, background 0.15s;
         outline: none;
       }
-      .uhh-speak-msg-btn:hover {
-        background: rgba(212,168,75,0.25);
-        border-color: rgba(212,168,75,0.5);
-        transform: translateY(-1px);
-      }
-      .uhh-speak-msg-btn.speaking {
-        background: linear-gradient(135deg,#d4a84b,#b58d3d);
-        color: #0b0c10;
-        border-color: #d4a84b;
-        font-weight: 700;
-        box-shadow: 0 2px 10px rgba(212,168,75,0.4);
-      }
+      #uhh-chat-send:hover { transform: scale(1.05); background: #029070; }
 
-      /* Responsive Mobile adjustments */
+      /* Mobile Responsive (Full WhatsApp Experience) */
       @media (max-width: 768px) {
         #uhh-chat-btn-wrap {
-          bottom: calc(72px + env(safe-area-inset-bottom, 0px));
+          bottom: calc(76px + env(safe-area-inset-bottom, 0px));
           right: 14px;
         }
         #uhh-chat-btn.uhh-chat-unified-btn {
-          width: 48px;
-          height: 48px;
-          min-width: 48px;
-          min-height: 48px;
-          padding: 0;
-          border-radius: 50%;
-          justify-content: center;
-          box-shadow: 0 8px 24px rgba(15, 23, 42, 0.45), 0 0 16px rgba(245, 158, 11, 0.35);
+          width: 50px; height: 50px; min-width: 50px; min-height: 50px;
+          padding: 0; border-radius: 50%; justify-content: center;
         }
-        .uhh-chat-btn-title,
-        .uhh-chat-btn-pill,
-        #uhh-chat-btn-label {
-          display: none !important;
-        }
-        .uhh-chat-btn-sparkle {
-          font-size: 20px;
-          margin: 0;
-        }
+        .uhh-chat-btn-title, .uhh-chat-btn-pill { display: none !important; }
+        .uhh-chat-btn-sparkle { font-size: 22px; margin: 0; }
         #uhh-chat-panel {
-          bottom: 0 !important;
-          right: 0 !important;
-          left: 0 !important;
-          top: auto !important;
-          width: 100vw !important;
-          max-width: 100vw !important;
-          height: 86vh !important;
-          max-height: 86vh !important;
-          border-radius: 24px 24px 0 0 !important;
-          border-left: none !important;
-          border-right: none !important;
-          border-bottom: none !important;
-          border-top: 1.5px solid rgba(212, 168, 75, 0.4) !important;
-          box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.7) !important;
+          bottom: 0 !important; right: 0 !important; left: 0 !important; top: auto !important;
+          width: 100vw !important; max-width: 100vw !important;
+          height: 88vh !important; max-height: 88vh !important;
+          border-radius: 20px 20px 0 0 !important;
+          border: none !important;
+          border-top: 1px solid rgba(134, 150, 160, 0.25) !important;
+          box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.75) !important;
           animation: uhh-sheet-up 0.32s cubic-bezier(0.16, 1, 0.3, 1) !important;
         }
         #uhh-chat-panel.closing {
@@ -1317,44 +1753,17 @@
           display: flex !important;
           justify-content: center;
           padding: 8px 0 4px;
-          background: #0F172A;
+          background: #1F2C34;
           cursor: pointer;
         }
         .uhh-sheet-handle {
-          width: 42px;
-          height: 4.5px;
-          background: rgba(255, 255, 255, 0.3);
+          width: 40px; height: 4px;
+          background: rgba(255, 255, 255, 0.25);
           border-radius: 999px;
         }
-        .uhh-chat-header {
-          padding: 10px 16px !important;
-        }
-        .uhh-chat-close {
-          width: 36px !important;
-          height: 36px !important;
-          font-size: 16px !important;
-        }
-        .uhh-quick-replies {
-          display: flex;
-          gap: 8px;
-          overflow-x: auto;
-          padding: 8px 14px;
-          scrollbar-width: none;
-          -webkit-overflow-scrolling: touch;
-          border-top: 1px solid rgba(255, 255, 255, 0.08);
-          background: #0B1120;
-        }
-        .uhh-quick-replies::-webkit-scrollbar { display: none; }
-        .uhh-qr-btn {
-          flex-shrink: 0;
-          white-space: nowrap;
-          background: rgba(255, 255, 255, 0.08);
-          border: 1px solid rgba(212, 168, 75, 0.35);
-          color: #f8fafc;
-          font-size: 12px;
-          font-weight: 600;
-          padding: 6px 12px;
-          border-radius: 999px;
+        .uhh-chat-back-btn { display: inline-flex !important; }
+        .uhh-chat-input-row {
+          padding-bottom: max(10px, env(safe-area-inset-bottom, 10px)) !important;
         }
       }
     `;
@@ -1500,17 +1909,38 @@
         <div class="uhh-sheet-handle"></div>
       </div>
       <div class="uhh-chat-header">
-        <div class="uhh-chat-avatar" style="position:relative">✨<div class="uhh-chat-avatar-dot"></div></div>
-        <div class="uhh-chat-header-info">
-          <div class="uhh-chat-header-name">Nisha — AI Concierge</div>
-          <div class="uhh-chat-header-status">The Unique Haven Homes · 🟢 Online</div>
-        </div>
-        <button id="uhh-chat-voice-toggle" class="uhh-chat-voice-toggle ${_autoVoice ? 'active' : 'muted'}" title="Toggle Auto Voice Speech" aria-label="Toggle Voice">
-          ${_autoVoice ? '🔊 Voice: ON' : '🔈 Voice: OFF'}
+        <button class="uhh-chat-back-btn" onclick="UHH_Chat.close()" aria-label="Back">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
         </button>
-        <button class="uhh-chat-close" onclick="UHH_Chat.close()" aria-label="Close chat">✕</button>
+        <div class="uhh-chat-avatar-wrap">
+          <div class="uhh-chat-avatar">✨</div>
+          <div class="uhh-chat-avatar-dot"></div>
+        </div>
+        <div class="uhh-chat-header-info">
+          <div class="uhh-chat-header-name">
+            <span>Nisha — AI Concierge</span>
+            <svg class="uhh-wa-verified-badge" width="15" height="15" viewBox="0 0 24 24" fill="#00A884"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+          </div>
+          <div class="uhh-chat-header-status" id="uhh-chat-header-status">The Unique Haven Homes · Online</div>
+        </div>
+        <div class="uhh-chat-header-actions">
+          <a href="tel:+919450055554" class="uhh-header-icon-btn" title="Call Host (+91 94500 55554)" aria-label="Call">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+          </a>
+          <a href="https://wa.me/919450055554?text=Namaste!%20I%20am%20looking%20for%20stay%20at%20Unique%20Haven%20Homes." target="_blank" rel="noopener" class="uhh-header-icon-btn" title="Direct WhatsApp" aria-label="WhatsApp">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor"><path d="M12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21 5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.816 9.816 0 0 0 12.04 2z"/></svg>
+          </a>
+          <button id="uhh-chat-voice-toggle" class="uhh-chat-voice-toggle ${_autoVoice ? 'active' : 'muted'}" title="Toggle Voice" aria-label="Toggle Voice">
+            ${_autoVoice ? '🔊' : '🔈'}
+          </button>
+          <button class="uhh-chat-close" onclick="UHH_Chat.close()" aria-label="Close chat">✕</button>
+        </div>
       </div>
-      <div class="uhh-chat-msgs" id="uhh-chat-msgs"></div>
+      <div class="uhh-chat-msgs" id="uhh-chat-msgs">
+        <div class="uhh-wa-security-banner">
+          <span>🔒 Messages are encrypted & verified · 24/7 Concierge (Save 15% Direct)</span>
+        </div>
+      </div>
       <div class="uhh-quick-replies" id="uhh-qr-bar"></div>
 
       <!-- Real-time Voice Status Bar with Barge-in Interruption Button -->
@@ -1520,9 +1950,12 @@
       </div>
 
       <div class="uhh-chat-input-row">
+        <button type="button" class="uhh-wa-input-emoji" title="Emoji">😊</button>
+        <textarea id="uhh-chat-input" placeholder="Type a message..." rows="1"></textarea>
         <button id="uhh-chat-mic-btn" class="uhh-chat-mic-btn" title="Bol kar poochhein (Mic)" aria-label="Speak">🎙️</button>
-        <textarea id="uhh-chat-input" placeholder="Type ya 🎙️ bol kar poochhein…" rows="1"></textarea>
-        <button id="uhh-chat-send" aria-label="Send">➤</button>
+        <button id="uhh-chat-send" aria-label="Send">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+        </button>
       </div>
     `;
     document.body.appendChild(panel);
@@ -1534,18 +1967,18 @@
         _autoVoice = !_autoVoice;
         if (_autoVoice) {
           voiceToggle.classList.remove('muted');
-          voiceToggle.textContent = '🔊 Voice: ON';
+          voiceToggle.textContent = '🔊';
           if (window.nishaAI) window.nishaAI.unlockAudio();
         } else {
           voiceToggle.classList.add('muted');
-          voiceToggle.textContent = '🔈 Voice: OFF';
+          voiceToggle.textContent = '🔈';
           if (window.nishaAI) window.nishaAI.stopSpeaking();
           if (_currentSpeakingBtn) {
             _currentSpeakingBtn.classList.remove('speaking');
             const txt = _currentSpeakingBtn.querySelector('.uhh-spk-txt');
             const ico = _currentSpeakingBtn.querySelector('.uhh-spk-ico');
             if (txt) txt.textContent = 'Suniye';
-            if (ico) ico.textContent = '🔊';
+            if (ico) ico.textContent = '▶';
             _currentSpeakingBtn = null;
           }
           updateVoiceStatus('idle');
@@ -1580,7 +2013,7 @@
         if (window.nishaAI.isListening) {
           window.nishaAI.stopListening();
           micBtn.classList.remove('listening');
-          input.placeholder = 'Type ya 🎙️ bol kar poochhein…';
+          input.placeholder = 'Type a message...';
           updateVoiceStatus('idle');
           return;
         }
@@ -1594,13 +2027,18 @@
     // Hook engine state change to keep UI in sync
     if (window.nishaAI) {
       window.nishaAI.onStateChange = (state, extra) => {
+        const headerStatus = document.getElementById('uhh-chat-header-status');
         if (state === 'speaking') {
+          if (headerStatus) { headerStatus.textContent = '🔊 Nisha bol rahi hain…'; headerStatus.classList.remove('typing'); }
           updateVoiceStatus('speaking', '🔊 Nisha bol rahi hain…');
         } else if (state === 'listening') {
+          if (headerStatus) { headerStatus.textContent = '🎙️ Listening to you…'; headerStatus.classList.remove('typing'); }
           updateVoiceStatus('listening', extra ? `🎙️ "${extra}…"` : '🎙️ Sun rahi hoon… Boliye');
         } else if (state === 'processing') {
-          updateVoiceStatus('processing', '⏳ Nisha soch rahi hain…');
+          if (headerStatus) { headerStatus.textContent = 'typing…'; headerStatus.classList.add('typing'); }
+          updateVoiceStatus('processing', 'Nisha soch rahi hain…');
         } else if (state === 'idle') {
+          if (headerStatus) { headerStatus.textContent = 'The Unique Haven Homes · Online'; headerStatus.classList.remove('typing'); }
           updateVoiceStatus('idle');
         }
       };
@@ -1627,7 +2065,7 @@
         text: 'Namaste! 🙏 Main **Nisha** hoon, aapki 24/7 AI Concierge at **The Unique Haven Homes**.\n\nLucknow mein luxury homestays, private pool villas, live availability ya **15% direct discount** ke liye batayein — kaise madad karoon?',
         quickReplies: [
           '💰 Rates & Pricing',
-          '🏡 3BHK Luxury Flats',
+          '🏢 3BHK Luxury Flats',
           '🏰 Private Pool Villas',
           '❤️ Couple Friendly?',
           '📍 Near Lulu Mall',
@@ -1635,9 +2073,9 @@
           '📅 Direct Booking'
         ]
       });
-    }, 400);
+    }, 350);
 
-    setTimeout(() => input.focus(), 500);
+    setTimeout(() => input.focus(), 450);
   }
 
   function closeChat() {
@@ -1661,9 +2099,15 @@
   function addBotMessage(reply) {
     const msgs = document.getElementById('uhh-chat-msgs');
     const qrBar = document.getElementById('uhh-qr-bar');
+    const headerStatus = document.getElementById('uhh-chat-header-status');
     if (!msgs) return;
 
-    // Typing indicator
+    if (headerStatus) {
+      headerStatus.textContent = 'typing…';
+      headerStatus.classList.add('typing');
+    }
+
+    // WhatsApp Typing indicator
     const typing = document.createElement('div');
     typing.className = 'uhh-msg bot';
     typing.innerHTML = `<div class="uhh-typing"><span></span><span></span><span></span></div>`;
@@ -1672,6 +2116,10 @@
 
     setTimeout(() => {
       typing.remove();
+      if (headerStatus) {
+        headerStatus.textContent = 'The Unique Haven Homes · Online';
+        headerStatus.classList.remove('typing');
+      }
 
       const msg = document.createElement('div');
       msg.className = 'uhh-msg bot';
@@ -1687,20 +2135,67 @@
         .trim();
 
       let html = `<div class="uhh-msg-bubble">
-        ${formatted}
-        <div>
-          <button class="uhh-speak-msg-btn" title="Nisha ki Sarvam Bulbul voice me suniye">
-            <span class="uhh-spk-ico">🔊</span> <span class="uhh-spk-txt">Suniye</span>
-          </button>
-        </div>
-      </div>`;
+        <div class="uhh-msg-content">${formatted}</div>`;
 
-      if (reply.actions && reply.actions.length) {
+      // WhatsApp Business Product Catalog Card
+      if (reply.card) {
+        const c = reply.card;
+        html += `
+        <div class="uhh-wa-card">
+          <div class="uhh-wa-card-media">
+            <img src="${c.image}" alt="${c.title}" loading="lazy" />
+            <span class="uhh-wa-card-badge">⭐ ${c.rating}</span>
+          </div>
+          <div class="uhh-wa-card-body">
+            <div class="uhh-wa-card-title">${c.title}</div>
+            <div class="uhh-wa-card-sub">${c.subtitle}</div>
+            <div class="uhh-wa-card-price">
+              <span class="uhh-wa-card-amount">${c.price}</span>
+              <span class="uhh-wa-card-per">${c.period}</span>
+              <span class="uhh-wa-card-save">Save 15% Direct</span>
+            </div>
+            ${c.specs && c.specs.length ? `<div class="uhh-wa-card-tags">${c.specs.map(s => `<span class="uhh-wa-tag">${s}</span>`).join('')}</div>` : ''}
+            <div class="uhh-wa-card-btns">
+              <a href="${c.link}" target="_blank" rel="noopener" class="uhh-wa-btn secondary">📸 View Photos</a>
+              <a href="${c.waUrl}" target="_blank" rel="noopener" class="uhh-wa-btn primary">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" style="vertical-align:middle"><path d="M12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21 5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.816 9.816 0 0 0 12.04 2z"/></svg>
+                Book on WhatsApp
+              </a>
+            </div>
+          </div>
+        </div>`;
+      }
+
+      // WhatsApp Voice Note Preview Bar
+      html += `
+        <div class="uhh-wa-voice-note">
+          <button class="uhh-speak-msg-btn" title="Nisha ki Sarvam Bulbul voice me suniye" aria-label="Listen Voice Note">
+            <span class="uhh-spk-ico">▶</span>
+            <span class="uhh-spk-txt">Suniye</span>
+          </button>
+          <div class="uhh-wa-waveform">
+            <span class="uhh-wave-bar" style="height:8px"></span>
+            <span class="uhh-wave-bar" style="height:14px"></span>
+            <span class="uhh-wave-bar" style="height:10px"></span>
+            <span class="uhh-wave-bar" style="height:16px"></span>
+            <span class="uhh-wave-bar" style="height:12px"></span>
+            <span class="uhh-wave-bar" style="height:15px"></span>
+            <span class="uhh-wave-bar" style="height:9px"></span>
+            <span class="uhh-wave-bar" style="height:13px"></span>
+          </div>
+          <span class="uhh-wa-voice-meta">Voice Note</span>
+        </div>`;
+
+      if (reply.actions && reply.actions.length && !reply.card) {
         html += `<div class="uhh-msg-actions">${reply.actions.map(a =>
-          `<a href="${a.url}" target="_blank" rel="noopener" class="uhh-msg-action-btn">${a.label}</a>`
+          `<a href="${a.url}" target="_blank" rel="noopener" class="uhh-msg-action-btn ${a.isPrimary ? 'primary' : ''}">${a.label}</a>`
         ).join('')}</div>`;
       }
-      html += `<span class="uhh-msg-time">${new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'})}</span>`;
+
+      const nowTime = new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+      html += `<div class="uhh-msg-meta"><span class="uhh-msg-time">${nowTime}</span></div>`;
+      html += `</div>`; // closes .uhh-msg-bubble
+
       msg.innerHTML = html;
       msgs.appendChild(msg);
       msgs.scrollTop = msgs.scrollHeight;
@@ -1716,7 +2211,7 @@
             window.nishaAI.stopSpeaking();
             spkBtn.classList.remove('speaking');
             spkBtn.querySelector('.uhh-spk-txt').textContent = 'Suniye';
-            spkBtn.querySelector('.uhh-spk-ico').textContent = '🔊';
+            spkBtn.querySelector('.uhh-spk-ico').textContent = '▶';
             _currentSpeakingBtn = null;
             updateVoiceStatus('idle');
           } else {
@@ -1725,7 +2220,7 @@
               const prevTxt = _currentSpeakingBtn.querySelector('.uhh-spk-txt');
               const prevIco = _currentSpeakingBtn.querySelector('.uhh-spk-ico');
               if (prevTxt) prevTxt.textContent = 'Suniye';
-              if (prevIco) prevIco.textContent = '🔊';
+              if (prevIco) prevIco.textContent = '▶';
             }
             spkBtn.classList.add('speaking');
             spkBtn.querySelector('.uhh-spk-txt').textContent = 'Bol rahi hain…';
@@ -1736,7 +2231,7 @@
             window.nishaAI.speak(cleanSpeech, () => {
               spkBtn.classList.remove('speaking');
               spkBtn.querySelector('.uhh-spk-txt').textContent = 'Suniye';
-              spkBtn.querySelector('.uhh-spk-ico').textContent = '🔊';
+              spkBtn.querySelector('.uhh-spk-ico').textContent = '▶';
               if (_currentSpeakingBtn === spkBtn) _currentSpeakingBtn = null;
               updateVoiceStatus('idle');
 
@@ -1766,7 +2261,7 @@
           `<button class="uhh-qr" onclick="UHH_Chat.quickReply('${qr.replace(/'/g, "\\'")}')">${qr}</button>`
         ).join('');
       }
-    }, 700 + Math.random() * 400);
+    }, 600 + Math.random() * 300);
   }
 
   async function sendUserMessage() {
@@ -1784,7 +2279,7 @@
       const prevTxt = _currentSpeakingBtn.querySelector('.uhh-spk-txt');
       const prevIco = _currentSpeakingBtn.querySelector('.uhh-spk-ico');
       if (prevTxt) prevTxt.textContent = 'Suniye';
-      if (prevIco) prevIco.textContent = '🔊';
+      if (prevIco) prevIco.textContent = '▶';
       _currentSpeakingBtn = null;
     }
 
@@ -1795,11 +2290,19 @@
     const qrBar = document.getElementById('uhh-qr-bar');
     if (qrBar) qrBar.innerHTML = '';
 
-    // User bubble
+    // WhatsApp Outgoing Bubble with Blue Double Ticks (✓✓)
     const userMsg = document.createElement('div');
     userMsg.className = 'uhh-msg user';
-    userMsg.innerHTML = `<div class="uhh-msg-bubble">${text}</div>
-      <span class="uhh-msg-time" style="text-align:right">${new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'})}</span>`;
+    const nowTime = new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+    userMsg.innerHTML = `
+      <div class="uhh-msg-bubble">
+        <div class="uhh-msg-content">${text}</div>
+        <div class="uhh-msg-meta">
+          <span class="uhh-msg-time">${nowTime}</span>
+          <span class="uhh-wa-ticks" title="Read by Concierge">✓✓</span>
+        </div>
+      </div>
+    `;
     msgs.appendChild(userMsg);
     msgs.scrollTop = msgs.scrollHeight;
 
