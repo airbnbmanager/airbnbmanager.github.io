@@ -2379,7 +2379,16 @@
   }
 
   // ── INIT ────────────────────────────────────────────────────────
+  const NISHA_ENABLED = false; // Disabled until full pronunciation training & accuracy are 100% complete
+
   function boot() {
+    if (!NISHA_ENABLED) {
+      document.getElementById('uhh-chat-btn-wrap')?.remove();
+      document.getElementById('uhh-chat-panel')?.remove();
+      document.getElementById('uhh-chat-backdrop')?.remove();
+      document.getElementById('uhh-chat-styles')?.remove();
+      return;
+    }
     injectStyles();
     buildUI();
     getRates().catch(() => {}); // Pre-warm

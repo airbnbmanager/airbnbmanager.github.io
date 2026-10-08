@@ -1,4 +1,4 @@
-const CACHE_NAME = 'tuhh-live-v241';
+const CACHE_NAME = 'tuhh-live-v242';
 const RUNTIME_CACHE = 'tuhh-runtime-v118';
 
 const CORE_ASSETS = [
