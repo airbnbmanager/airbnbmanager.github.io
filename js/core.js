@@ -850,8 +850,8 @@ function renderShell(content, activePage = 'dashboard') {
       pages: ['dashboard', 'analytics', 'dailyReport'],
       tabs: [
         { id: 'dashboard', label: '🏠 Overview' },
-        { id: 'analytics', label: '📊 Business Analytics' },
-        { id: 'dailyReport', label: '📈 Daily Operations' }
+        { id: 'analytics', label: '📊 Analytics' },
+        { id: 'dailyReport', label: '📈 Daily Ops' }
       ]
     },
     {
@@ -860,8 +860,8 @@ function renderShell(content, activePage = 'dashboard') {
       page: 'bookings',
       pages: ['bookings', 'reports', 'calendar', 'flats', 'pendingApprovals', 'reminders'],
       tabs: [
-        { id: 'bookings', label: '📅 Bookings Register' },
-        { id: 'reports', label: '📆 Calendar Timeline' },
+        { id: 'bookings', label: '📅 Bookings' },
+        { id: 'reports', label: '📆 Timeline' },
         { id: 'flats', label: '🛏️ Flats Status' },
         { id: 'pendingApprovals', label: '🟡 Approvals' },
         { id: 'reminders', label: '🔔 Reminders' }
@@ -873,11 +873,11 @@ function renderShell(content, activePage = 'dashboard') {
       page: 'employees',
       pages: ['employees', 'attendance', 'att-summary', 'advance', 'employee-ledger', 'tasks', 'sop'],
       tabs: [
-        { id: 'employees', label: '👥 Employees Roster' },
+        { id: 'employees', label: '👥 Staff Roster' },
         { id: 'attendance', label: '📋 Attendance' },
-        { id: 'advance', label: '🎁 Advance Tracker' },
-        { id: 'employee-ledger', label: '📒 Employee Ledger' },
-        { id: 'tasks', label: '🧰 Staff Tasks & SOP' }
+        { id: 'advance', label: '🎁 Advances' },
+        { id: 'employee-ledger', label: '📒 Ledger' },
+        { id: 'tasks', label: '🧰 Tasks & SOP' }
       ]
     },
     {
@@ -887,11 +887,11 @@ function renderShell(content, activePage = 'dashboard') {
       pages: ['cashbook', 'reimbursements', 'claims', 'expenses', 'ca-audit', 'investors', 'financial', 'financial-sheet'],
       tabs: [
         { id: 'cashbook', label: '💰 Cash Book' },
-        { id: 'reimbursements', label: '💸 Daily Expenses' },
-        { id: 'claims', label: '📤 Claims Manager' },
-        { id: 'expenses', label: '📊 Monthly P&L' },
-        { id: 'ca-audit', label: '💼 CA Audit & GST' },
-        { id: 'investors', label: '🧑‍💼 Investors Ledger' }
+        { id: 'reimbursements', label: '💸 Expenses' },
+        { id: 'claims', label: '📤 Claims' },
+        { id: 'expenses', label: '📊 P&L' },
+        { id: 'ca-audit', label: '💼 GST & Audit' },
+        { id: 'investors', label: '🧑‍💼 Investors' }
       ]
     },
     {

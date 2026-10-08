@@ -922,6 +922,25 @@ async function renderDashboard() {
       @media (max-width: 480px) {
         .dash-kpi-ribbon { grid-template-columns: 1fr; }
         .dash-month-grid { grid-template-columns: 1fr; }
+        .dash-hero-actions {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 8px;
+          width: 100%;
+          margin-top: 10px;
+        }
+        .dash-online-badge {
+          grid-column: 1 / -1;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+        }
+        .dash-pill-btn {
+          justify-content: center;
+          padding: 9px 8px;
+          font-size: 12px;
+          text-align: center;
+        }
       }
     </style>
 
