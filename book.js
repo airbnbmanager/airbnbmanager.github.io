@@ -143,6 +143,7 @@ function onPropertyChange() {
     renderMiniCal();
   }
   updateSummary();
+  if (typeof syncDockInfo === 'function') syncDockInfo();
 }
 
 // ── FETCH BOOKED DATES ──
@@ -339,6 +340,7 @@ function updateSummary() {
     if (discountRow) { discountRow.style.display = 'none'; }
     document.getElementById('sumTotal').textContent = '₹' + grossWithGst.toLocaleString('en-IN');
   }
+  if (typeof syncDockInfo === 'function') syncDockInfo();
 }
 
 // ── COUPON / DISCOUNT CODE ──
@@ -613,5 +615,66 @@ async function submitBookingRequest() {
   document.getElementById('successModal').style.display = 'flex';
 }
 
+// ── MOBILE FLOATING BOOKING DOCK HELPERS (INTERACTIVE UI SKILL) ──
+function syncDockInfo() {
+  const dockProp = document.getElementById('dockPropName');
+  const dockPrice = document.getElementById('dockPropPrice');
+  if (!dockProp || !dockPrice) return;
+
+  if (selectedProp) {
+    dockProp.textContent = selectedProp.name;
+    const ci = document.getElementById('checkIn').value;
+    const co = document.getElementById('checkOut').value;
+    if (ci && co) {
+      const sumTotalEl = document.getElementById('sumTotal');
+      if (sumTotalEl && sumTotalEl.textContent && sumTotalEl.textContent !== '₹—') {
+        dockPrice.textContent = sumTotalEl.textContent + ' Total';
+        return;
+      }
+    }
+    dockPrice.textContent = '₹' + selectedProp.price.toLocaleString('en-IN') + '/night';
+  } else {
+    dockProp.textContent = 'Select a stay';
+    dockPrice.textContent = 'Best Rate Direct';
+  }
+}
+
+function onDockBookClick() {
+  const sel = document.getElementById('propSelect');
+  const ci = document.getElementById('checkIn');
+  const co = document.getElementById('checkOut');
+  const name = document.getElementById('guestName');
+  const phone = document.getElementById('guestPhone');
+
+  if (!sel || !sel.value) {
+    sel.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    sel.focus();
+    return;
+  }
+  if (!ci || !ci.value) {
+    ci.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    ci.focus();
+    return;
+  }
+  if (!co || !co.value) {
+    co.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    co.focus();
+    return;
+  }
+  if (!name || !name.value.trim()) {
+    name.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    name.focus();
+    return;
+  }
+  if (!phone || !phone.value.trim()) {
+    phone.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    phone.focus();
+    return;
+  }
+  submitBookingRequest();
+}
+
 // Boot
 init();
+syncDockInfo();
+
