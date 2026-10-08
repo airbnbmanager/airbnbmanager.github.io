@@ -1848,7 +1848,7 @@ window.copyClaimWhatsAppText = function() {
 console.log("✅ Claims Manager v8 MASTER LOADED!");
 
 // ═══════════════════════════════════════════════════════════
-// 🏢 COMPANY LEDGER — Statement of Company Expenses & Firoz Funds
+// 🏢 COMPANY LEDGER — Statement of Company Expenses & Advances
 // ═══════════════════════════════════════════════════════════
 
 window.showCompanyLedgerModal = function() {
@@ -1865,11 +1865,11 @@ window.showCompanyLedgerModal = function() {
   overlay.style.cssText = 'position:fixed;inset:0;background:rgba(15,23,42,0.65);z-index:9000000;display:flex;align-items:center;justify-content:center;padding:16px;backdrop-filter:blur(2px);';
 
   overlay.innerHTML = `
-    <div style="background:#fff;border-radius:16px;width:100%;max-width:500px;box-shadow:0 20px 60px rgba(0,0,0,0.25);overflow:hidden;">
+    <div style="background:#fff;border-radius:16px;width:100%;max-width:480px;box-shadow:0 20px 60px rgba(0,0,0,0.25);overflow:hidden;">
       <div style="background:#EA580C;color:#fff;padding:18px 20px;display:flex;justify-content:space-between;align-items:center;">
         <div>
-          <div style="font-size:17px;font-weight:800;">🏢 Company &amp; Firoz Payments Ledger</div>
-          <div style="font-size:12px;opacity:0.85;margin-top:2px;">Statement of Funds from Firoz &amp; Company Expenses</div>
+          <div style="font-size:17px;font-weight:800;">🏢 Company Payments Ledger</div>
+          <div style="font-size:12px;opacity:0.85;margin-top:2px;">Statement of all Company-paid expenses &amp; staff advances</div>
         </div>
         <button onclick="document.getElementById('companyLedgerModalOverlay').remove()" style="background:rgba(255,255,255,0.15);border:none;color:#fff;width:30px;height:30px;border-radius:8px;cursor:pointer;font-size:16px;">✕</button>
       </div>
@@ -1886,10 +1886,7 @@ window.showCompanyLedgerModal = function() {
           </div>
         </div>
         <div style="background:#FFF7ED;border:1px solid #FED7AA;border-radius:10px;padding:12px;margin-bottom:16px;font-size:12px;color:#9A3412;line-height:1.5;">
-          ℹ️ Generates an executive <strong>PDF Statement</strong> containing:<br>
-          • <strong>📥 Funds Received from Firoz</strong> (Only Firoz deposits tracked)<br>
-          • <strong>📤 Company-Paid Expenses &amp; Staff Advances</strong><br>
-          • <strong>⚖️ Net Settlement Balance</strong> (Praveen Spent vs Firoz Paid)
+          ℹ️ Generates an executive <strong>PDF statement</strong> of all expenses and staff advances paid via <strong>Company funds</strong> (Guest rent / cash in hand) in the selected period.
         </div>
         <div style="display:flex;gap:10px;">
           <button id="btnGenCompLedger" onclick="window.exportCompanyLedgerPDF(document.getElementById('compLedgerFrom').value,document.getElementById('compLedgerTo').value)" style="flex:1;padding:12px;background:#EA580C;color:#fff;border:none;border-radius:10px;font-weight:700;font-size:14px;cursor:pointer;">
@@ -1920,33 +1917,7 @@ window.exportCompanyLedgerPDF = async function(fDate, tDate) {
     window._claimsState.companyLedgerTo = toD;
   }
 
-  const client = window.sb || window.supabaseClient || window.supabase;
-
-  // 1. Fetch FIROZ funds from company_advances (Only Firoz, Not Others)
-  let firozDeposits = [];
-  try {
-    if (client) {
-      const { data: caData, error: caErr } = await client
-        .from('company_advances')
-        .select('*')
-        .gte('advance_date', fromD)
-        .lte('advance_date', toD)
-        .order('advance_date', { ascending: true });
-
-      if (!caErr && caData) {
-        firozDeposits = caData.filter(d => {
-          const gBy = String(d.given_by || '').toUpperCase();
-          const pur = String(d.purpose || '').toUpperCase();
-          const nts = String(d.notes || '').toUpperCase();
-          return gBy.includes('FIROZ') || pur.includes('BY FIROZ') || nts.includes('BY FIROZ');
-        });
-      }
-    }
-  } catch (err) {
-    console.warn('Error fetching Firoz advances:', err);
-  }
-
-  // 2. Ensure claims allData is loaded
+  // Ensure claims allData is loaded
   if (!window._claimsState?.allData || window._claimsState.allData.length === 0) {
     if (typeof loadClaimsData === 'function') await loadClaimsData();
   }
@@ -1955,7 +1926,7 @@ window.exportCompanyLedgerPDF = async function(fDate, tDate) {
 
   const allData = window._claimsState?.allData || [];
 
-  // Filter: COMPANY paid expenses/advances within date range
+  // Filter: COMPANY/FIROZ paid expenses and advances within date range
   const compItems = allData.filter(item => {
     if (item.paidBy !== 'COMPANY' && item.paidBy !== 'FIROZ') return false;
     if (fromD && item.dateStr && item.dateStr < fromD) return false;
@@ -1963,10 +1934,9 @@ window.exportCompanyLedgerPDF = async function(fDate, tDate) {
     return true;
   }).sort((a, b) => (a.dateStr || '').localeCompare(b.dateStr || ''));
 
-  // Totals calculation
-  const totalFirozGiven = firozDeposits.reduce((s, d) => s + (Number(d.amount_given) || 0), 0);
   const totalCompanyExpenses = compItems.reduce((s, i) => s + (Number(i.amount) || 0), 0);
-  const netDueFromFiroz = totalCompanyExpenses - totalFirozGiven;
+  const settledExpenses = compItems.filter(i => i.status === 'received').reduce((s, i) => s + (Number(i.amount) || 0), 0);
+  const pendingExpenses = totalCompanyExpenses - settledExpenses;
 
   // Category breakdown for expenses
   const catMap = {};
@@ -1987,60 +1957,28 @@ window.exportCompanyLedgerPDF = async function(fDate, tDate) {
     '.header{border-bottom:2px solid #EA580C;padding-bottom:10px;margin-bottom:16px}' +
     'h1{margin:0;color:#EA580C;font-size:20px;font-weight:800}.sub{color:#64748b;font-size:11px;margin-top:4px}' +
     '.cards{display:flex;gap:10px;margin-bottom:18px}.card{flex:1;padding:12px;border-radius:8px;text-align:center;border:1px solid #cbd5e1}' +
-    '.c-firoz{background:#F0FDF4;border-color:#86EFAC}.c-total{background:#FFF7ED;border-color:#FDBA74}.c-pending{background:#FEF2F2;border-color:#FCA5A5}.c-settled{background:#ECFDF5;border-color:#A7F3D0}' +
+    '.c-total{background:#FFF7ED;border-color:#FDBA74}.c-settled{background:#f0fdf4;border-color:#86efac}.c-pending{background:#fef2f2;border-color:#fca5a5}' +
     '.lbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px}.val{font-size:18px;font-weight:800;margin-top:2px}' +
-    '.sec-title{font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;margin:20px 0 8px 0;display:flex;justify-content:space-between;align-items:center;padding-bottom:4px;border-bottom:1.5px solid #E2E8F0;}' +
-    '.cat-box{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px}.cat-chip{background:#FFF7ED;border:1px solid #FED7AA;border-radius:20px;padding:4px 12px;font-size:11px;font-weight:600;color:#9A3412}' +
+    '.cat-box{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px}.cat-chip{background:#FFF7ED;border:1px solid #FED7AA;border-radius:20px;padding:4px 12px;font-size:11px;font-weight:600;color:#9A3412}' +
     'table{width:100%;border-collapse:collapse;font-size:11px;margin-bottom:16px}th{background:#FFF7ED;padding:8px;text-align:left;border-bottom:2px solid #FED7AA;font-weight:700;color:#9A3412}' +
-    'td{padding:7px 8px;border-bottom:1px solid #F1F5F9}' +
-    '.th-firoz{background:#F0FDF4!important;border-bottom:2px solid #BBF7D0!important;color:#166534!important}' +
+    'td{padding:7px 8px;border-bottom:1px solid #EDE9FE}' +
     '.bs{background:#dcfce7;color:#15803d;padding:2px 6px;border-radius:4px;font-weight:700;font-size:9px}' +
     '.bc{background:#fef9c3;color:#92400e;padding:2px 6px;border-radius:4px;font-weight:700;font-size:9px}' +
     '.bp{background:#fee2e2;color:#b91c1c;padding:2px 6px;border-radius:4px;font-weight:700;font-size:9px}' +
     '.tr-total{background:#FFF7ED;font-weight:800}' +
-    '.recon-box{background:#F8FAFC;border:1.5px solid #CBD5E1;border-radius:10px;padding:14px;margin-top:20px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px}' +
     '@media print{body{padding:0}.toolbar{display:none!important}}' +
     '</style></head><body>' +
     '<div class="toolbar"><span style="font-weight:700;">🏢 ' + title + '</span>' +
     '<div style="display:flex;gap:8px;"><button onclick="window.print()">🖨️ Print / Save as PDF</button>' +
     '<button class="tbtn-close" onclick="window.close()">✕ Close</button></div></div>' +
     '<div class="header"><h1>🏢 Company Payments Ledger</h1>' +
-    '<div class="sub">Period: <strong>' + fromD + '</strong> → <strong>' + toD + '</strong> · Post-Checkpoint (17-Sep-2026 onwards) · Generated: ' + new Date().toLocaleString('en-IN') + '</div></div>' +
+    '<div class="sub">Period: <strong>' + fromD + '</strong> → <strong>' + toD + '</strong> · Post-Checkpoint (17-Sep-2026 onwards) · Paid via: COMPANY Funds · Generated: ' + new Date().toLocaleString('en-IN') + '</div></div>' +
     '<div class="cards">' +
-    '<div class="card c-firoz"><div class="lbl" style="color:#166534;">📥 FUNDS RECEIVED FROM FIROZ</div><div class="val" style="color:#059669;">₹' + totalFirozGiven.toLocaleString('en-IN') + '</div><div style="font-size:10px;color:#64748b;margin-top:2px;">' + firozDeposits.length + ' deposits (Only Firoz)</div></div>' +
-    '<div class="card c-total"><div class="lbl" style="color:#9A3412;">📤 COMPANY EXPENSES PAID</div><div class="val" style="color:#EA580C;">₹' + totalCompanyExpenses.toLocaleString('en-IN') + '</div><div style="font-size:10px;color:#64748b;margin-top:2px;">' + compItems.length + ' transactions</div></div>' +
-    '<div class="card ' + (netDueFromFiroz > 0 ? 'c-pending' : 'c-settled') + '"><div class="lbl" style="color:' + (netDueFromFiroz > 0 ? '#991B1B' : '#166534') + ';">' + (netDueFromFiroz > 0 ? '⚖️ DUE FROM FIROZ' : '⚖️ FIROZ SURPLUS BALANCE') + '</div><div class="val" style="color:' + (netDueFromFiroz > 0 ? '#DC2626' : '#059669') + ';">₹' + Math.abs(netDueFromFiroz).toLocaleString('en-IN') + '</div><div style="font-size:10px;color:#64748b;margin-top:2px;">' + (netDueFromFiroz > 0 ? 'Praveen / Company extra spent' : 'Remaining balance with company') + '</div></div>' +
+    '<div class="card c-total"><div class="lbl" style="color:#9A3412;">TOTAL COMPANY PAID</div><div class="val" style="color:#EA580C;">₹' + totalCompanyExpenses.toLocaleString('en-IN') + '</div><div style="font-size:10px;color:#64748b;margin-top:2px;">' + compItems.length + ' transactions</div></div>' +
+    '<div class="card c-settled"><div class="lbl" style="color:#166534;">SETTLED / RECEIVED</div><div class="val" style="color:#059669;">₹' + settledExpenses.toLocaleString('en-IN') + '</div></div>' +
+    '<div class="card c-pending"><div class="lbl" style="color:#991b1b;">PENDING TO SETTLE</div><div class="val" style="color:#dc2626;">₹' + pendingExpenses.toLocaleString('en-IN') + '</div></div>' +
     '</div>' +
-
-    // SECTION 1: FUNDS RECEIVED FROM FIROZ
-    '<div class="sec-title" style="color:#166534;">' +
-    '<span>📥 1. Funds Received from Firoz (Only Firoz)</span>' +
-    '<span style="font-size:13px;color:#059669;">Total: ₹' + totalFirozGiven.toLocaleString('en-IN') + '</span></div>' +
-    '<table><thead><tr><th class="th-firoz">#</th><th class="th-firoz">Date</th><th class="th-firoz">Source / Mode</th><th class="th-firoz">Description / Notes</th><th class="th-firoz">Deposited Into</th><th class="th-firoz">Status</th><th class="th-firoz" style="text-align:right;">Amount (₹)</th></tr></thead><tbody>' +
-    (firozDeposits.length === 0
-      ? '<tr><td colspan="7" style="text-align:center;padding:16px;color:#64748B;">No direct deposits from Firoz found in this date range.</td></tr>'
-      : firozDeposits.map((d, idx) => {
-          const modeMatch = String(d.purpose || '').match(/via\s+(\w+)/i);
-          const mode = modeMatch ? modeMatch[1].toUpperCase() : 'UPI/CASH';
-          return '<tr>' +
-            '<td style="color:#64748B;">' + (idx+1) + '</td>' +
-            '<td>' + (d.advance_date || '-') + '</td>' +
-            '<td><span class="bs">' + mode + '</span></td>' +
-            '<td>' + esc(d.purpose || d.notes || 'Funds added by Firoz') + '</td>' +
-            '<td style="color:#0F766E;font-weight:600;">' + esc(d.given_to || 'UHHS-OD') + '</td>' +
-            '<td><span class="bs">✅ RECEIVED</span></td>' +
-            '<td style="text-align:right;font-weight:700;color:#059669;">₹' + (Number(d.amount_given)||0).toLocaleString('en-IN') + '</td>' +
-            '</tr>';
-        }).join('') +
-        '<tr style="background:#F0FDF4;font-weight:800;"><td colspan="6" style="text-align:right;padding:9px 8px;font-size:12px;color:#166534;">📥 TOTAL RECEIVED FROM FIROZ</td>' +
-        '<td style="text-align:right;font-size:13px;font-weight:800;color:#059669;padding:9px 8px;">₹' + totalFirozGiven.toLocaleString('en-IN') + '</td></tr>'
-    ) +
-    '</tbody></table>' +
-
-    // SECTION 2: COMPANY EXPENSES INCURRED
-    '<div class="sec-title" style="color:#9A3412;">' +
-    '<span>📤 2. Company Expenses &amp; Staff Advances Paid</span>' +
-    '<span style="font-size:13px;color:#EA580C;">Total: ₹' + totalCompanyExpenses.toLocaleString('en-IN') + '</span></div>' +
+    '<div style="font-size:11px;font-weight:700;color:#9A3412;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;">Category Breakdown</div>' +
     '<div class="cat-box">' + Object.entries(catMap).map(([c,a]) => '<div class="cat-chip">' + c + ': ₹' + a.toLocaleString('en-IN') + '</div>').join('') + '</div>' +
     '<table><thead><tr><th>#</th><th>Date</th><th>Type</th><th>Description</th><th>Vendor / Staff</th><th>Status</th><th style="text-align:right;">Amount (₹)</th></tr></thead><tbody>' +
     (compItems.length === 0
@@ -2056,25 +1994,10 @@ window.exportCompanyLedgerPDF = async function(fDate, tDate) {
           '<td style="text-align:right;font-weight:700;color:#EA580C;">₹' + (Number(item.amount)||0).toLocaleString('en-IN') + '</td>' +
           '</tr>'
         ).join('') +
-        '<tr class="tr-total"><td colspan="6" style="text-align:right;padding:10px 8px;font-size:12px;">🏢 TOTAL COMPANY EXPENSES PAID</td>' +
-        '<td style="text-align:right;font-size:13px;font-weight:800;color:#EA580C;padding:10px 8px;">₹' + totalCompanyExpenses.toLocaleString('en-IN') + '</td></tr>'
+        '<tr class="tr-total"><td colspan="6" style="text-align:right;padding:10px 8px;font-size:13px;">🏢 TOTAL COMPANY PAID</td>' +
+        '<td style="text-align:right;font-size:14px;font-weight:800;color:#EA580C;padding:10px 8px;">₹' + totalCompanyExpenses.toLocaleString('en-IN') + '</td></tr>'
     ) +
     '</tbody></table>' +
-
-    // RECONCILIATION SUMMARY BOX
-    '<div class="recon-box">' +
-    '<div>' +
-    '<div style="font-size:13px;font-weight:800;color:#0F172A;margin-bottom:4px;">⚖️ Net Settlement Statement (Firoz vs Company)</div>' +
-    '<div style="font-size:11px;color:#64748B;">' +
-    'Funds Received from Firoz: <strong>₹' + totalFirozGiven.toLocaleString('en-IN') + '</strong> · ' +
-    'Company Expenses Incurred: <strong>₹' + totalCompanyExpenses.toLocaleString('en-IN') + '</strong>' +
-    '</div></div>' +
-    '<div style="text-align:right;">' +
-    '<div style="font-size:11px;font-weight:700;color:' + (netDueFromFiroz > 0 ? '#991B1B' : '#166534') + ';">' + (netDueFromFiroz > 0 ? 'NET DUE FROM FIROZ TO PRAVEEN / COMPANY' : 'NET SURPLUS WITH COMPANY') + '</div>' +
-    '<div style="font-size:20px;font-weight:900;color:' + (netDueFromFiroz > 0 ? '#DC2626' : '#059669') + ';">₹' + Math.abs(netDueFromFiroz).toLocaleString('en-IN') + '</div>' +
-    '<div style="font-size:10px;color:#64748B;margin-top:2px;">' + (netDueFromFiroz > 0 ? 'Praveen / Company spent ₹' + Math.abs(netDueFromFiroz).toLocaleString('en-IN') + ' extra beyond Firoz funds' : 'Firoz funds remaining') + '</div>' +
-    '</div></div>' +
-
     '<div style="margin-top:24px;padding-top:12px;border-top:1px solid #DDD6FE;text-align:center;font-size:11px;color:#64748b;">' +
     '<strong>THE UNIQUE HAVEN HOMES PRIVATE LIMITED</strong> · uniquehavenhomesstay.com<br>⚡ Developed by Praveen Singh</div>' +
     '<script>window.onload=function(){setTimeout(function(){window.print();},400);};<\/script>' +
