@@ -3,6 +3,8 @@
    World-class 5-star presentation for Lucknow's top luxury stays.
    ══════════════════════════════════════════════════════════════ */
 
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,500;1,9..144,600&family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+
 :root {
   --luxe-bg: #fcfbf9;
   --luxe-surface: #ffffff;
@@ -27,7 +29,7 @@
   --luxe-radius-lg: 20px;
   --luxe-radius-full: 9999px;
   --luxe-font-display: 'Fraunces', serif;
-  --luxe-font-sans: 'Manrope', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --luxe-font-sans: 'Plus Jakarta Sans', 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
 body.luxe-property-page {

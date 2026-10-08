@@ -254,20 +254,21 @@ body.properties-directory-page {
 }
 
 .dir-hero-title {
-  font-family: 'Outfit', sans-serif;
-  font-size: 38px;
-  font-weight: 800;
+  font-family: 'Fraunces', serif;
+  font-size: clamp(30px, 4.8vw, 46px);
+  font-weight: 700;
   color: var(--dir-ink);
-  margin: 0 0 10px;
-  line-height: 1.16;
-  letter-spacing: -0.6px;
+  margin: 0 0 12px;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
 }
 
 .dir-hero-title span.dir-hero-accent {
-  background: linear-gradient(135deg, #0f172a 0%, #b58d3d 100%);
+  background: linear-gradient(135deg, #b58d3d 0%, #d97706 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
+  font-style: italic;
 }
 
 .dir-hero-sub {
@@ -867,27 +868,37 @@ body.properties-directory-page {
 }
 
 .dir-btn-details {
-  background: #f1f5f9;
-  color: var(--dir-ink);
+  background: #0f172a;
+  color: #ffffff;
   font-size: 13px;
   font-weight: 700;
   text-decoration: none;
-  padding: 9px 14px;
+  padding: 9px 16px;
   border-radius: var(--dir-radius-sm);
-  transition: all 0.2s;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
   white-space: nowrap;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.15);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
 }
 
 .dir-btn-details:hover {
-  background: var(--dir-ink);
+  background: linear-gradient(135deg, #1e293b, #0f172a);
   color: #ffffff;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(15, 23, 42, 0.25);
+}
+
+.dir-btn-details:active {
+  transform: scale(0.97);
 }
 
 .dir-btn-share-icon {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  background: #f1f5f9;
+  background: #ffffff;
   color: #334155;
   border: 1px solid #cbd5e1;
   padding: 8px 12px;
@@ -904,8 +915,12 @@ body.properties-directory-page {
   background: #25d366;
   color: #ffffff;
   border-color: #25d366;
-  transform: translateY(-1px);
+  transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(37, 211, 102, 0.28);
+}
+
+.dir-btn-share-icon:active {
+  transform: scale(0.97);
 }
 
 .dir-btn-share-icon svg {
@@ -1273,12 +1288,12 @@ body.properties-directory-page {
 }
 
 .dir-section-title {
-  font-family: 'Outfit', sans-serif;
-  font-size: 30px;
+  font-family: 'Fraunces', serif;
+  font-size: clamp(26px, 3.8vw, 36px);
   font-weight: 700;
   color: var(--dir-ink);
   margin: 0 0 8px;
-  letter-spacing: -0.4px;
+  letter-spacing: -0.02em;
 }
 
 .dir-section-sub {
@@ -1446,13 +1461,13 @@ body.properties-directory-page {
 }
 
 .dir-concierge-title {
-  font-family: 'Outfit', sans-serif;
-  font-size: 30px;
-  font-weight: 800;
+  font-family: 'Fraunces', serif;
+  font-size: clamp(26px, 3.8vw, 36px);
+  font-weight: 700;
   color: #0f172a;
   margin: 0 0 10px;
   line-height: 1.25;
-  letter-spacing: -0.5px;
+  letter-spacing: -0.02em;
 }
 
 .dir-concierge-sub {
