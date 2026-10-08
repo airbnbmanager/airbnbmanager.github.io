@@ -22,6 +22,22 @@ window._sbkState = {
   classicMode: false         // toggleable if classic view is ever desired
 };
 
+function formatDate(dStr) {
+  if (!dStr) return '';
+  try {
+    const p = String(dStr).split('-');
+    if (p.length === 3) {
+      const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sept','Oct','Nov','Dec'];
+      const mIdx = parseInt(p[1], 10) - 1;
+      return `${parseInt(p[2], 10)} ${months[mIdx] || p[1]} ${p[0]}`;
+    }
+    const d = new Date(dStr);
+    return isNaN(d.getTime()) ? String(dStr) : d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+  } catch (e) {
+    return String(dStr);
+  }
+}
+
 // =====================================================================
 // 1. MAIN COMMAND CENTER: RENDER MANAGE BOOKINGS (Airbnb Host Style)
 // =====================================================================
