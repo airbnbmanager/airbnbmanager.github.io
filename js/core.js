@@ -1206,6 +1206,17 @@ function renderShell(content, activePage = 'dashboard') {
           </div>
 
           <div class="topbar-right">
+            <!-- Desktop Search Bar -->
+            <div class="topbar-search">
+              <span class="search-icon" style="cursor:pointer;" onclick="window.triggerGlobalSearch && window.triggerGlobalSearch()" title="Click to Search">🔍</span>
+              <input type="text" id="topbarGlobalSearch" placeholder="Search guests, phone, ID..." value="${SESSION.bookingSearch || ''}" onkeydown="if(event.key==='Enter'){window.triggerGlobalSearch&&window.triggerGlobalSearch();}" />
+            </div>
+
+            <!-- Mobile Quick Search Button (opens instant search overlay) -->
+            <button type="button" class="topbar-icon-btn topbar-mobile-search-btn" onclick="window.openMobileSearch && window.openMobileSearch()" title="Search Bookings & Guests" aria-label="Search">
+              <span>🔍</span>
+            </button>
+
             <!-- Notifications Bell -->
             <button class="topbar-icon-btn" id="topbarNotifBtn" onclick="window.notifications&&window.notifications.openPanel();" title="Notifications" aria-label="Notifications">
               <span>🔔</span><span class="notif-bell-badge" style="display:none;"></span>
