@@ -261,6 +261,17 @@
           <div class="lux-lightbox-thumbs-wrap">
             <div id="luxLbThumbs" class="lux-lightbox-thumbs"></div>
           </div>
+
+          <!-- Bottom Sticky Action Dock (High-Conversion Thumb Zone for Mobile) -->
+          <div class="lux-lightbox-dock">
+            <div class="lux-lb-dock-info">
+              <div id="luxLbDockPrice" class="lux-lb-dock-price">₹4,500 / night</div>
+              <div class="lux-lb-dock-sub">Direct Host Rate · Best Price</div>
+            </div>
+            <a id="luxLbDockBtn" class="lux-lb-dock-btn" href="book.html">
+              <span>📋 Book Direct</span>
+            </a>
+          </div>
         </div>
       `;
       document.body.appendChild(modal);
@@ -289,9 +300,18 @@
       metaEl.textContent = `${data.type} · ${data.area} · ₹${(data.base_price || 4499).toLocaleString('en-IN')}/night (Direct Price)`;
     }
     if (waBtn) {
-      waBtn.innerHTML = '<span>📋 Book Now</span>';
+      waBtn.innerHTML = '<span>📋 Book This Stay</span>';
       waBtn.removeAttribute('target');
       waBtn.href = `book.html?property=${data.id || slug}`;
+    }
+
+    const dockPriceEl = document.getElementById('luxLbDockPrice');
+    const dockBtn = document.getElementById('luxLbDockBtn');
+    if (dockPriceEl) {
+      dockPriceEl.textContent = `₹${(data.base_price || 4499).toLocaleString('en-IN')} / night`;
+    }
+    if (dockBtn) {
+      dockBtn.href = `book.html?property=${data.id || slug}`;
     }
 
     // Dynamic category tabs with real photo counts
