@@ -155,7 +155,8 @@ async function getODSecurityRefunds(client, startDate, endDate) {
             const sec = extractSecurityDeposit(b);
             if (!sec) return;
             const refAmt = parseFloat(sec.refundAmount || 0);
-            const isODRef = normalizePaymentSource(sec.refundedBy) === 'UHHS-OD';
+            const isODRef = normalizePaymentSource(sec.refundedBy) === 'UHHS-OD' || 
+                            (normalizePaymentSource(sec.receivedBy) === 'UHHS-OD' && (sec.refundMode || 'UPI') !== 'Cash');
             if (refAmt > 0 && isODRef) {
                 const refDate = sec.refundDate || b.check_out || '';
                 if (startDate && refDate && refDate < startDate) return;

@@ -2198,8 +2198,8 @@ async function renderManageBookings() {
       <div class="search-bar">
         <span class="search-icon">🔍</span>
         <input type="text" id="bkSearch" placeholder="Search guest name or phone..." value="${sq}"
-          oninput="SESSION.bookingSearch=this.value;" onkeydown="if(event.key==='Enter'){renderManageBookings();}" />
-        <button class="btn-sm" onclick="renderManageBookings();" style="min-height:30px;padding:4px 10px;">🔍 Search</button>
+          onkeydown="if(event.key==='Enter'){event.preventDefault();SESSION.bookingSearch=this.value.trim();renderManageBookings();}" />
+        <button class="btn-sm" onclick="SESSION.bookingSearch=(document.getElementById('bkSearch')?.value||'').trim();renderManageBookings();" style="min-height:30px;padding:4px 10px;">🔍 Search</button>
         ${sq ? `<button class="outline btn-sm" onclick="SESSION.bookingSearch='';renderManageBookings();" style="min-height:30px;padding:4px 8px;">✕</button>` : ''}
       </div>
       <div class="section-title">Filters</div>
@@ -4333,6 +4333,9 @@ window.saveCheckoutWithRating = async function(bkId, roomId, today, nowTime, nig
 
 // ============ EDIT BOOKING ============
 async function editBooking(bkId) {
+  if (typeof window.closeBookingDrawer === 'function') {
+    window.closeBookingDrawer();
+  }
   window._origBooking = null; // reset
   const { data: b } = await sb.from('guest_register').select('*').eq('booking_id', bkId).single();
   if (!b) { fsn.error('Error', 'Not found'); return; }
@@ -4704,6 +4707,7 @@ async function editBooking(bkId) {
   onCheckoutTypeChgEdit();
   if (typeof initEditSecDropdowns === 'function') initEditSecDropdowns(sec);
 }
+window.editBooking = editBooking;
 
 function toggleEditSourceBox() {
   const mode = document.getElementById('bookingMode')?.value;
@@ -8167,7 +8171,9 @@ window.showSecurityDepositModal = async function(bkId) {
   setTimeout(async () => {
     if (window.populateReceivedByDropdown) {
       await window.populateReceivedByDropdown(document.getElementById('mSecReceivedBy'), sec.mode || 'UPI', sec.receivedBy || '', document.getElementById('mSecReceivedByCustom'));
-      await window.populateReceivedByDropdown(document.getElementById('mSecRefBy'), sec.refundMode || 'UPI', sec.refundedBy || '', document.getElementById('mSecRefByCustom'));
+      const isSecOD = (sec.receivedBy || '').toUpperCase().includes('OD') || (sec.receivedBy || '').toUpperCase().includes('UHHS') || (sec.receivedBy || '').toUpperCase().includes('TUHH');
+      const defaultRefBy = sec.refundedBy || (isSecOD ? 'UHHS-OD' : '');
+      await window.populateReceivedByDropdown(document.getElementById('mSecRefBy'), sec.refundMode || 'UPI', defaultRefBy, document.getElementById('mSecRefByCustom'));
     }
   }, 30);
 };
@@ -8304,7 +8310,7 @@ window.submitSecurityRefund = async function(bkId) {
     refundDate: refDate,
     refundAmount: net,
     refundMode: refMode,
-    refundedBy: refBy,
+    refundedBy: refBy || (((currentSec.receivedBy || '').toUpperCase().includes('OD') || (currentSec.receivedBy || '').toUpperCase().includes('UHHS') || (currentSec.receivedBy || '').toUpperCase().includes('TUHH')) ? 'UHHS-OD' : ''),
     deductedAmount: ded,
     deductionReason: reason,
     notes: refNotes || currentSec.notes || ''

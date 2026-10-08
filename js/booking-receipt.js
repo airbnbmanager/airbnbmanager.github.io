@@ -898,9 +898,10 @@ Thank you for choosing *The Unique Haven Homes*. Your direct reservation has bee
           bookings = data || [];
         } else if (singleBk?.phone) {
           const pDigits = cleanPhone(singleBk.phone);
+          const last10 = pDigits.slice(-10);
           const { data, error } = await client.from('guest_register')
             .select('*, rooms(*)')
-            .eq('phone', pDigits)
+            .or(`phone.eq.${singleBk.phone},phone.eq.${pDigits},phone.ilike.%${last10}%`)
             .order('check_in', { ascending: true });
           if (error) throw error;
           bookings = data || [];
@@ -912,17 +913,22 @@ Thank you for choosing *The Unique Haven Homes*. Your direct reservation has bee
         }
       } else if (digits.length >= 10) {
         // Query by phone
+        const last10 = digits.slice(-10);
         const { data, error } = await client.from('guest_register')
           .select('*, rooms(*)')
-          .or(`phone.ilike.%${digits}%,phone.eq.${digits}`)
+          .or(`phone.ilike.%${last10}%,phone.eq.${digits}`)
           .order('check_in', { ascending: false })
-          .limit(20);
+          .limit(30);
         if (error) throw error;
         bookings = data || [];
       }
     }
 
     if (!bookings || bookings.length === 0) return null;
+
+    // Filter out rejected / cancelled bookings if any
+    bookings = bookings.filter(b => !b.is_cancelled && b.verification_status !== 'rejected');
+    if (!bookings.length) return null;
 
     // Fetch payments for all bookings
     const bIds = bookings.map(b => b.booking_id);
@@ -940,7 +946,8 @@ Thank you for choosing *The Unique Haven Homes*. Your direct reservation has bee
     const primaryBooking = bookings[0];
     const guestName = primaryBooking.guest_name || 'Valued Guest';
     const phone = primaryBooking.phone || '';
-    const stayGroupId = primaryBooking.stay_group_id || `GRP-${cleanPhone(phone)}-${Date.now().toString().slice(-4)}`;
+    const anyGroupId = bookings.find(b => b.stay_group_id)?.stay_group_id;
+    const stayGroupId = anyGroupId || primaryBooking.stay_group_id || `GRP-${cleanPhone(phone)}-${Date.now().toString().slice(-4)}`;
 
     // Total guests
     const totalGuests = bookings.reduce((sum, b) => sum + Number(b.guests || 1), 0);
@@ -1467,6 +1474,11 @@ ${propertiesList}
             <button type="button" class="btn-sm" style="background:#25D366;color:#fff;font-weight:800;border:none;padding:7px 14px;border-radius:6px;cursor:pointer;display:inline-flex;align-items:center;gap:5px;" onclick="window.sendReceiptWhatsApp('${escapeHtml(data.phone || '')}', document.getElementById('multiReceiptWaHidden').value)">
               💬 Send on WhatsApp
             </button>
+            ${data.phone ? `
+              <button type="button" class="btn-sm" style="background:#4F46E5;color:#fff;font-weight:700;border:none;padding:7px 12px;border-radius:6px;cursor:pointer;display:inline-flex;align-items:center;gap:5px;" onclick="this.closest('.modal-overlay').remove();window.openMultiPropertyReceiptModal('${escapeHtml(cleanPhone(data.phone))}')" title="Combine all bookings for this guest phone across all dates">
+                📱 All Stays of Guest
+              </button>
+            ` : ''}
             <button type="button" class="btn-sm" style="background:#334155;color:#fff;font-weight:700;border:none;padding:7px 12px;border-radius:6px;cursor:pointer;" onclick="navigator.clipboard.writeText(document.getElementById('multiReceiptWaHidden').value);if(window.fsn?.success) fsn.success('Copied','Consolidated receipt text copied to clipboard!'); else alert('Receipt text copied!');">
               📋 Copy Text
             </button>
@@ -1624,11 +1636,9 @@ ${propertiesList}
             <button type="button" class="btn-sm" style="background:#334155;color:#fff;font-weight:700;border:none;padding:7px 12px;border-radius:6px;cursor:pointer;" onclick="navigator.clipboard.writeText(document.getElementById('receiptWaHidden').value);if(window.fsn?.success) fsn.success('Copied','Receipt text copied to clipboard!'); else alert('Receipt text copied!');">
               📋 Copy Text
             </button>
-            ${data.booking.stay_group_id ? `
-              <button type="button" class="btn-sm" style="background:#4F46E5;color:#fff;font-weight:700;border:none;padding:7px 12px;border-radius:6px;cursor:pointer;" onclick="this.closest('.modal-overlay').remove();window.openMultiPropertyReceiptModal('${data.booking.stay_group_id}')" title="View Combined Multi-Property Receipt">
-                🏢 Combined Receipt
-              </button>
-            ` : ''}
+            <button type="button" class="btn-sm" style="background:#4F46E5;color:#fff;font-weight:700;border:none;padding:7px 12px;border-radius:6px;cursor:pointer;" onclick="this.closest('.modal-overlay').remove();window.openMultiPropertyReceiptModal('${data.booking.stay_group_id || data.booking.phone || data.booking.booking_id}')" title="View Combined Multi-Property Receipt for this guest / group">
+              🏢 Combined Group Receipt
+            </button>
             <button type="button" class="btn-sm outline" style="background:transparent;color:#CBD5E1;border:1px solid #475569;padding:7px 10px;font-size:11.5px;" onclick="const m=this.closest('.modal-overlay');if(m)m.remove();if(window.openGSTInvoiceModal){window.openGSTInvoiceModal('${data.booking.booking_id}');}">
               🧾 Need GST Invoice?
             </button>
@@ -1644,7 +1654,16 @@ ${propertiesList}
               📑 View Consolidated Multi-Property Receipt →
             </button>
           </div>
-        ` : ''}
+        ` : (data.booking.phone ? `
+          <div style="background:#F5F3FF;border:1.5px solid #C4B5FD;border-radius:8px;padding:8px 14px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;">
+            <div style="font-size:12px;color:#5B21B6;font-weight:700;">
+              🏢 View All / Combined Properties for Guest (${escapeHtml(data.booking.guest_name || 'Guest')})
+            </div>
+            <button type="button" class="btn-sm" style="background:#4F46E5;color:#fff;border:none;padding:5px 12px;border-radius:6px;font-size:11px;font-weight:800;cursor:pointer;" onclick="this.closest('.modal-overlay').remove();window.openMultiPropertyReceiptModal('${escapeHtml(data.booking.phone)}')">
+              📑 Consolidated Multi-Property Receipt →
+            </button>
+          </div>
+        ` : '')}
 
         <textarea id="receiptWaHidden" style="display:none;">${escapeHtml(waText)}</textarea>
 

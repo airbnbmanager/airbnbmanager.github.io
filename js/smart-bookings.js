@@ -74,6 +74,16 @@ async function renderSmartManageBookings() {
   window._allBookings = all || [];
   window._sbkState.cachedBookings = all || [];
 
+  // Compute guest phone frequencies to detect multi-stay / group guests even without stay_group_id
+  const phoneCounts = {};
+  (all || []).forEach(x => {
+    if (x.phone && !x.is_cancelled && x.verification_status !== 'rejected') {
+      const p = String(x.phone).replace(/\D/g, '').slice(-10);
+      if (p.length === 10) phoneCounts[p] = (phoneCounts[p] || 0) + 1;
+    }
+  });
+  window._sbkState.phoneCounts = phoneCounts;
+
   // Compute operational KPIs
   let activeBookings = (all || []).filter(b => !b.is_cancelled && b.verification_status !== 'rejected');
   if (window._myAssignedRooms?.length) {
@@ -127,88 +137,128 @@ async function renderSmartManageBookings() {
 
   const tab = window._sbkState.activeTab || 'today';
   if (sq) {
-    // When searching, bypass date tab constraints so user can find ANY reservation across all dates
+    // UNIVERSAL SEARCH: Searches across ALL bookings & ALL guest details
+    const rawTokens = sq.split(/\s+/).filter(Boolean);
+    const sqDigits = sq.replace(/\D/g, '');
+
+    filtered = (all || []).filter(b => {
+      // 1. Digits matching (Phone number, Aadhaar/ID, Booking ID, Amount)
+      const bPhoneDigits = String(b.phone || '').replace(/\D/g, '');
+      const bIdDigits = String(b.id_proof_no || '').replace(/\D/g, '');
+      const bBookingIdDigits = String(b.booking_id || '').replace(/\D/g, '');
+
+      if (sqDigits.length >= 3) {
+        if (bPhoneDigits.includes(sqDigits)) return true;
+        if (bIdDigits.includes(sqDigits)) return true;
+        if (bBookingIdDigits.includes(sqDigits)) return true;
+      }
+
+      // 2. Comprehensive text bundle for this booking
+      const textBundle = [
+        b.guest_name || '',
+        b.phone || '',
+        b.booking_id || '',
+        b.stay_group_id || '',
+        b.airbnb_confirmation_code || '',
+        b.id_proof_no || '',
+        b.id_proof_type || '',
+        b.notes || '',
+        b.vehicle_name || '',
+        b.vehicle_number || '',
+        b.booked_by || '',
+        b.room_id || '',
+        b.rooms?.nickname || '',
+        b.rooms?.unit_no || '',
+        b.rooms?.property_name || '',
+        b.rooms?.address || '',
+        b.check_in || '',
+        b.check_out || '',
+        formatDate(b.check_in),
+        formatDate(b.check_out),
+        b.booking_mode || '',
+        b.payment_status || '',
+        String(b.total_amount || '')
+      ].join(' ').toLowerCase();
+
+      // If full query is in the bundle
+      if (textBundle.includes(sq)) return true;
+
+      // Or if all space-separated tokens match inside the bundle
+      if (rawTokens.length > 1 && rawTokens.every(tok => textBundle.includes(tok))) {
+        return true;
+      }
+
+      return false;
+    });
+
+    // Chronological sort for search results (latest stays first)
     filtered.sort((a, b) => (b.check_in || '').localeCompare(a.check_in || ''));
-  } else if (tab === 'today') {
-    filtered = filtered.filter(b => {
-      if (b.is_cancelled) return false;
-      const isArrival = b.check_in === today;
-      const isDeparture = b.check_out === today;
-      const isStaying = b.check_in < today && (b.check_out > today || (!b.check_out && b.checkout_confirmed === false));
-      return isArrival || isDeparture || isStaying;
-    });
-    // Sort today: Departures first (checkout at 11am), then In-House (all day), then Arrivals (2pm)
-    filtered.sort((a, b) => {
-      const aScore = a.check_out === today ? 0 : (a.check_in === today ? 2 : 1);
-      const bScore = b.check_out === today ? 0 : (b.check_in === today ? 2 : 1);
-      return aScore - bScore;
-    });
-  } else if (tab === 'upcoming') {
-    filtered = filtered.filter(b => b.check_in > today && !b.is_cancelled);
-    // Chronological ascending sort (nearest upcoming stay first)
-    filtered.sort((a, b) => (a.check_in || '').localeCompare(b.check_in || ''));
-  } else if (tab === 'inhouse') {
-    filtered = filtered.filter(b => b.check_in <= today && (b.check_out > today || (!b.check_out && b.checkout_confirmed === false)) && !b.is_cancelled);
-    filtered.sort((a, b) => (a.check_out || '').localeCompare(b.check_out || ''));
-  } else if (tab === 'all') {
-    // All stays
-    filtered.sort((a, b) => (b.check_in || '').localeCompare(a.check_in || ''));
-  } else if (tab === 'arrivals') {
-    filtered = filtered.filter(b => b.check_in === today && !b.is_cancelled);
-  } else if (tab === 'departures') {
-    filtered = filtered.filter(b => b.check_out === today && b.checkout_confirmed !== false && !b.is_cancelled);
-  } else if (tab === 'due') {
-    filtered = filtered.filter(b => {
-      if (b.is_cancelled) return false;
-      const pd = paidMap[b.booking_id] || 0;
-      return (b.total_amount || 0) - pd > 0.99;
-    });
-  } else if (tab === 'pending') {
-    filtered = filtered.filter(b => b.verification_status === 'pending');
-  } else if (tab === 'airbnb') {
-    filtered = filtered.filter(b => b.booking_mode === 'Online-Airbnb' || !!b.airbnb_confirmation_code);
-  } else if (tab === 'direct') {
-    filtered = filtered.filter(b => b.booking_mode !== 'Online-Airbnb' && !b.airbnb_confirmation_code);
-  }
+  } else {
+    // Normal Tab-based filtering when NOT searching
+    if (tab === 'today') {
+      filtered = filtered.filter(b => {
+        if (b.is_cancelled) return false;
+        const isArrival = b.check_in === today;
+        const isDeparture = b.check_out === today;
+        const isStaying = b.check_in < today && (b.check_out > today || (!b.check_out && b.checkout_confirmed === false));
+        return isArrival || isDeparture || isStaying;
+      });
+      // Sort today: Departures first (checkout at 11am), then In-House (all day), then Arrivals (2pm)
+      filtered.sort((a, b) => {
+        const aScore = a.check_out === today ? 0 : (a.check_in === today ? 2 : 1);
+        const bScore = b.check_out === today ? 0 : (b.check_in === today ? 2 : 1);
+        return aScore - bScore;
+      });
+    } else if (tab === 'upcoming') {
+      filtered = filtered.filter(b => b.check_in > today && !b.is_cancelled);
+      filtered.sort((a, b) => (a.check_in || '').localeCompare(b.check_in || ''));
+    } else if (tab === 'inhouse') {
+      filtered = filtered.filter(b => b.check_in <= today && (b.check_out > today || (!b.check_out && b.checkout_confirmed === false)) && !b.is_cancelled);
+      filtered.sort((a, b) => (a.check_out || '').localeCompare(b.check_out || ''));
+    } else if (tab === 'all') {
+      filtered.sort((a, b) => (b.check_in || '').localeCompare(a.check_in || ''));
+    } else if (tab === 'arrivals') {
+      filtered = filtered.filter(b => b.check_in === today && !b.is_cancelled);
+    } else if (tab === 'departures') {
+      filtered = filtered.filter(b => b.check_out === today && b.checkout_confirmed !== false && !b.is_cancelled);
+    } else if (tab === 'due') {
+      filtered = filtered.filter(b => {
+        if (b.is_cancelled) return false;
+        const pd = paidMap[b.booking_id] || 0;
+        return (b.total_amount || 0) - pd > 0.99;
+      });
+    } else if (tab === 'pending') {
+      filtered = filtered.filter(b => b.verification_status === 'pending');
+    } else if (tab === 'airbnb') {
+      filtered = filtered.filter(b => b.booking_mode === 'Online-Airbnb' || !!b.airbnb_confirmation_code);
+    } else if (tab === 'direct') {
+      filtered = filtered.filter(b => b.booking_mode !== 'Online-Airbnb' && !b.airbnb_confirmation_code);
+    }
 
-  // Secondary filters (from filter tray)
-  if (window._sbkState.channelFilter === 'airbnb') {
-    filtered = filtered.filter(b => b.booking_mode === 'Online-Airbnb' || !!b.airbnb_confirmation_code);
-  } else if (window._sbkState.channelFilter === 'direct') {
-    filtered = filtered.filter(b => b.booking_mode !== 'Online-Airbnb' && !b.airbnb_confirmation_code);
-  }
+    // Secondary filters (from filter tray)
+    if (window._sbkState.channelFilter === 'airbnb') {
+      filtered = filtered.filter(b => b.booking_mode === 'Online-Airbnb' || !!b.airbnb_confirmation_code);
+    } else if (window._sbkState.channelFilter === 'direct') {
+      filtered = filtered.filter(b => b.booking_mode !== 'Online-Airbnb' && !b.airbnb_confirmation_code);
+    }
 
-  if (window._sbkState.paymentFilter === 'due') {
-    filtered = filtered.filter(b => {
-      if (b.is_cancelled) return false;
-      const pd = paidMap[b.booking_id] || 0;
-      return (b.total_amount || 0) - pd > 0.99;
-    });
-  } else if (window._sbkState.paymentFilter === 'paid') {
-    filtered = filtered.filter(b => {
-      if (b.is_cancelled) return false;
-      const pd = paidMap[b.booking_id] || 0;
-      return (b.total_amount || 0) - pd <= 0.99;
-    });
-  }
+    if (window._sbkState.paymentFilter === 'due') {
+      filtered = filtered.filter(b => {
+        if (b.is_cancelled) return false;
+        const pd = paidMap[b.booking_id] || 0;
+        return (b.total_amount || 0) - pd > 0.99;
+      });
+    } else if (window._sbkState.paymentFilter === 'paid') {
+      filtered = filtered.filter(b => {
+        if (b.is_cancelled) return false;
+        const pd = paidMap[b.booking_id] || 0;
+        return (b.total_amount || 0) - pd <= 0.99;
+      });
+    }
 
-  // Property filter
-  if (window._sbkState.propertyFilter) {
-    filtered = filtered.filter(b => b.room_id === window._sbkState.propertyFilter);
-  }
-
-  // Search filter
-  if (sq) {
-    filtered = filtered.filter(b => 
-      (b.guest_name || '').toLowerCase().includes(sq) ||
-      (b.phone || '').includes(sq) ||
-      (b.booking_id && String(b.booking_id).toLowerCase().includes(sq)) ||
-      (b.airbnb_confirmation_code && b.airbnb_confirmation_code.toLowerCase().includes(sq)) ||
-      (b.rooms?.nickname && b.rooms.nickname.toLowerCase().includes(sq)) ||
-      (b.rooms?.unit_no && String(b.rooms.unit_no).toLowerCase().includes(sq)) ||
-      (b.rooms?.property_name && b.rooms.property_name.toLowerCase().includes(sq)) ||
-      (b.room_id && b.room_id.toLowerCase().includes(sq))
-    );
+    if (window._sbkState.propertyFilter) {
+      filtered = filtered.filter(b => b.room_id === window._sbkState.propertyFilter);
+    }
   }
 
   const canM = ['owner','admin','manager','moderator','developer'].includes(SESSION.role);
@@ -363,9 +413,8 @@ async function renderSmartManageBookings() {
         <span style="font-size:16px;color:#64748B;">🔍</span>
         <input type="text" id="sbkLiveSearch" placeholder="Search guest name, phone, reservation code, unit..."
           value="${escapeHtml(window._sbkState.searchQuery)}"
-          oninput="window.handleSearchInput && window.handleSearchInput(this.value);"
-          onkeydown="if(event.key==='Enter'){window.handleManualSearch();}" />
-        <button type="button" class="btn-sm" onclick="window.handleManualSearch();" style="padding:6px 14px;background:#0F172A;color:#fff;border-radius:8px;font-weight:700;cursor:pointer;font-size:13px;border:none;flex-shrink:0;">Search</button>
+          onkeydown="if(event.key==='Enter'){event.preventDefault();window.handleManualSearch();}" />
+        <button type="button" class="btn-sm" onclick="window.handleManualSearch();" style="padding:6px 16px;background:#0F172A;color:#fff;border-radius:8px;font-weight:700;cursor:pointer;font-size:13px;border:none;flex-shrink:0;">🔍 Search</button>
         ${window._sbkState.searchQuery ? `
           <button type="button" onclick="window.clearSearch();" 
             style="background:#F1F5F9;border:1px solid #CBD5E1;border-radius:8px;cursor:pointer;color:#64748B;font-weight:700;padding:6px 10px;font-size:13px;flex-shrink:0;">✕ Clear</button>
@@ -682,9 +731,9 @@ function renderAirbnbReservationsHtml(bookings, paidMap, canM, today) {
                   <span class="airbnb-chip paid">✅ Paid ₹${dynamicTotal.toLocaleString('en-IN')}</span>
                 `}
 
-                ${b.stay_group_id ? `
-                  <span class="airbnb-chip" style="background:#EEF2FF;color:#4F46E5;font-weight:800;cursor:pointer;" onclick="event.stopPropagation();window.openMultiPropertyReceiptModal('${b.stay_group_id}')" title="Multi-Property Group Booking: ${b.stay_group_id} · Click to view combined receipt">
-                    🏢 Group Stay
+                ${(b.stay_group_id || (b.phone && (window._sbkState?.phoneCounts?.[String(b.phone).replace(/\D/g, '').slice(-10)] || 0) > 1)) ? `
+                  <span class="airbnb-chip" style="background:#EEF2FF;color:#4F46E5;font-weight:800;cursor:pointer;" onclick="event.stopPropagation();window.openMultiPropertyReceiptModal('${b.stay_group_id || b.phone || b.booking_id}')" title="Multi-Property Group Booking · Click to view combined receipt">
+                    🏢 Group Stay${(!b.stay_group_id && b.phone && (window._sbkState?.phoneCounts?.[String(b.phone).replace(/\D/g, '').slice(-10)] || 0) > 1) ? ` (${window._sbkState.phoneCounts[String(b.phone).replace(/\D/g, '').slice(-10)]})` : ''}
                   </span>
                 ` : ''}
 
@@ -879,9 +928,14 @@ function renderBookingCardsHtml(bookings, paidMap, canM, today) {
                     ` : ''}
                   </div>
                 </div>
+              <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;">
+                ${statusBadge}
+                ${(b.stay_group_id || (b.phone && (window._sbkState?.phoneCounts?.[String(b.phone).replace(/\D/g, '').slice(-10)] || 0) > 1)) ? `
+                  <span class="sbk-status-badge" style="background:#EEF2FF;color:#4F46E5;cursor:pointer;font-weight:800;" onclick="event.stopPropagation();window.openMultiPropertyReceiptModal('${b.stay_group_id || b.phone || b.booking_id}')" title="Multi-Property Group Booking · Click for receipt">
+                    🏢 Group Stay
+                  </span>
+                ` : ''}
               </div>
-              <div>${statusBadge}</div>
-            </div>
 
             <!-- Stay Info: Property & Dates -->
             <div class="sbk-stay-info">
@@ -1168,8 +1222,9 @@ window.openBookingDrawer = async function(bookingId) {
           <div style="border:1px solid var(--border);border-radius:12px;padding:14px;">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
               <div style="font-size:13px;font-weight:700;color:var(--dark);">💰 Payment Ledger</div>
-              <div style="display:flex;gap:6px;align-items:center;">
+              <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
                 <button class="btn-sm" onclick="window.openBookingReceiptModal('${b.booking_id}')" style="background:#0F172A;color:#fff;border:none;padding:4px 9px;font-size:11.5px;font-weight:700;border-radius:6px;cursor:pointer;" title="Booking Confirmation & Advance Voucher (No GST)">📄 Receipt</button>
+                <button class="btn-sm" onclick="window.openMultiPropertyReceiptModal('${b.stay_group_id || b.phone || b.booking_id}')" style="background:#4F46E5;color:#fff;border:none;padding:4px 9px;font-size:11.5px;font-weight:700;border-radius:6px;cursor:pointer;" title="View Combined Multi-Property Group Receipt">🏢 Group Receipt</button>
                 <button class="btn-sm" onclick="window.openGSTInvoiceModal('${b.booking_id}')" style="background:#B45309;color:#fff;border:none;padding:4px 9px;font-size:11.5px;font-weight:700;border-radius:6px;cursor:pointer;" title="Generate or View GST Invoice">🧾 GST Bill</button>
                 ${canM ? `<button class="btn-sm" onclick="showPaymentModal('${b.booking_id}')" style="background:#10B981;color:#fff;border:none;padding:4px 10px;font-size:11.5px;">+ Add Payment</button>` : ''}
               </div>
@@ -1237,7 +1292,7 @@ window.openBookingDrawer = async function(bookingId) {
               ⏭️ Extend Stay
             </button>
             ${canM ? `
-              <button class="btn-sm" style="background:var(--primary);color:#fff;padding:10px;" onclick="editBooking('${b.booking_id}')">
+              <button class="btn-sm" style="background:var(--primary);color:#fff;padding:10px;" onclick="window.drawerEditBooking('${b.booking_id}')">
                 ✏️ Edit Booking
               </button>
             ` : ''}
@@ -1250,9 +1305,12 @@ window.openBookingDrawer = async function(bookingId) {
             <button class="btn-sm" style="background:#0F172A;color:#fff;padding:10px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;gap:6px;" onclick="window.openBookingReceiptModal('${b.booking_id}')" title="Generate Booking Confirmation & Advance Receipt (Without GST)">
               📄 Booking Receipt
             </button>
-            ${b.stay_group_id ? `
-              <button class="btn-sm" style="background:#4F46E5;color:#fff;padding:10px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;gap:6px;" onclick="window.openMultiPropertyReceiptModal('${b.stay_group_id}')" title="View Combined Multi-Property Receipt for this group">
-                🏢 Group Receipt
+            <button class="btn-sm" style="background:#4F46E5;color:#fff;padding:10px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;gap:6px;" onclick="window.openMultiPropertyReceiptModal('${b.stay_group_id || b.phone || b.booking_id}')" title="View Combined Multi-Property Receipt for this group or guest">
+              🏢 Group Receipt
+            </button>
+            ${canM ? `
+              <button class="btn-sm" style="background:#8B5CF6;color:#fff;padding:10px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;gap:6px;" onclick="if(window.showGroupBookingModal) window.showGroupBookingModal('${b.booking_id}');" title="Group Booking Manager (Link or Merge Related Group Bookings)">
+                🎊 Group Manager
               </button>
             ` : ''}
             <button class="btn-sm" style="background:#B45309;color:#fff;padding:10px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;gap:6px;" onclick="window.openGSTInvoiceModal('${b.booking_id}')" title="Generate GST Tax Invoice">
@@ -1268,6 +1326,17 @@ window.openBookingDrawer = async function(bookingId) {
       </div>
     </div>
   `;
+};
+
+window.drawerEditBooking = function(bookingId) {
+  window.closeBookingDrawer();
+  if (typeof window.editBooking === 'function') {
+    window.editBooking(bookingId);
+  } else if (typeof editBooking === 'function') {
+    editBooking(bookingId);
+  } else {
+    alert('Edit booking function is unavailable.');
+  }
 };
 
 window.drawerDuplicateBooking = function(bookingId) {
@@ -1376,18 +1445,9 @@ window.clearSearch = function() {
 };
 
 window.handleSearchInput = function(val) {
-  const query = (val || '').trim();
-  window._sbkState.searchQuery = query;
-  if (window.SESSION) window.SESSION.bookingSearch = query;
   clearTimeout(_sbkDebounceTimer);
-  _sbkDebounceTimer = setTimeout(() => {
-    renderSmartManageBookings();
-    const inp = document.getElementById('sbkLiveSearch');
-    if (inp) {
-      inp.focus();
-      inp.setSelectionRange(inp.value.length, inp.value.length);
-    }
-  }, 300);
+  // Manual search mode: Typing does not refresh or re-render the page.
+  // Search is executed when the user presses Enter or clicks 'Search'.
 };
 
 window.handlePropertyFilter = function(propId) {

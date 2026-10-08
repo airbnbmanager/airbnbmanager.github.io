@@ -18,8 +18,22 @@
     return result;
   }
 
+  function isStoreNotification(item) {
+    if (!item) return false;
+    const t = (item.title || '').toLowerCase();
+    const m = (item.message || '').toLowerCase();
+    const p = (item.page || '').toLowerCase();
+    const et = (item.entityType || '').toLowerCase();
+    return et === 'store' || p === 'store' || t.includes('inventory') || t.includes('stock') || m.includes('inventory');
+  }
+
   let rawHist = [];
-  try { rawHist = JSON.parse(localStorage.getItem('uh_notif_history') || '[]'); } catch(e) {}
+  try {
+    rawHist = JSON.parse(localStorage.getItem('uh_notif_history') || '[]');
+    // Filter out store/inventory notifications as Store is not used
+    rawHist = rawHist.filter(x => !isStoreNotification(x));
+    localStorage.removeItem('uhhs_notified_low_inventory');
+  } catch(e) {}
   const NOTIF = {
     channels: [],
     history: dedupeHistoryArray(rawHist),
@@ -98,7 +112,7 @@
 
   // ─── History (Strict Deduplication) ───
   function saveHist(n) {
-    if (!n) return;
+    if (!n || isStoreNotification(n)) return;
     const now = Date.now();
     const sig = `${n.type||''}:${n.entityId||''}:${(n.title||'').trim()}:${(n.message||'').trim()}`;
 
@@ -408,57 +422,15 @@
     }
   }
 
-  // ─── Inventory Low Stock Check ───
+  // ─── Inventory Low Stock Check (Disabled per user request) ───
   async function checkLowInventoryAlert() {
-    if (!window.sb) return;
-    try {
-      const [{ data: items }, { data: txns }] = await Promise.all([
-        sb.from('store_items').select('*'),
-        sb.from('stock_transactions').select('item_id, txn_type, quantity')
-      ]);
-      if (!items || !items.length) return;
-
-      const stockMap = {};
-      (txns || []).forEach(t => {
-        stockMap[t.item_id] = (stockMap[t.item_id] || 0) + (t.txn_type === 'In' ? (t.quantity || 0) : -(t.quantity || 0));
-      });
-
-      const notifKey = 'uhhs_notified_low_inventory';
-      let notifiedMap = {};
-      try { notifiedMap = JSON.parse(localStorage.getItem(notifKey) || '{}'); } catch(e){}
-      const now = Date.now();
-
-      items.forEach(item => {
-        const stock = stockMap[item.item_id] || 0;
-        const reorderLevel = Number(item.reorder_level) || 5;
-        if (stock <= reorderLevel) {
-          const last = notifiedMap[item.item_id];
-          // Alert if stock decreased or haven't alerted in 4 hours
-          if (!last || last.stock !== stock || (now - last.time > 4 * 3600 * 1000)) {
-            notifiedMap[item.item_id] = { stock, time: now };
-            notify({
-              type: 'task',
-              icon: '⚠️',
-              title: `⚠️ Inventory Low: ${item.item_name} < ${reorderLevel} left`,
-              message: `Current stock: ${stock} ${item.unit || 'pcs'} (Reorder level: ${reorderLevel})`,
-              sub: 'Tap to view Inventory & Stock In',
-              page: 'store',
-              sound: 'task',
-              entityId: item.item_id,
-              entityType: 'store'
-            });
-          }
-        }
-      });
-      localStorage.setItem(notifKey, JSON.stringify(notifiedMap));
-    } catch(err) {
-      console.warn('Inventory alert check error:', err);
-    }
+    // Store & Inventory notifications disabled as store is not being used
+    return;
   }
 
   const _recentNotifSignatures = new Map();
   function notify(cfg) {
-    if (!cfg) return;
+    if (!cfg || isStoreNotification(cfg)) return;
     const now = Date.now();
     const sig = `${cfg.type||''}:${cfg.entityId||''}:${(cfg.title||'').trim()}:${(cfg.message||'').trim()}`;
     const lastTime = _recentNotifSignatures.get(sig);
@@ -842,22 +814,9 @@
         })
       .subscribe((s) => console.log('🔔 Updates channel:', s));
 
-    // 5. Stock / Inventory Transactions (Auto-detect Low Stock in Real-time)
-    const c5 = sb.channel('rt-stock-' + Date.now())
-      .on('postgres_changes',
-        { event: '*', schema: 'public', table: 'stock_transactions' },
-        () => {
-          console.log('📦 Stock transaction detected, checking inventory...');
-          setTimeout(checkLowInventoryAlert, 1500);
-        })
-      .subscribe((s) => console.log('🔔 Stock channel:', s));
-
-    NOTIF.channels = [c1, c2, c3, c4, c5];
+    NOTIF.channels = [c1, c2, c3, c4];
     NOTIF.started = true;
     console.log('🔔 Started', NOTIF.channels.length, 'channels');
-
-    // Run initial low inventory check on startup
-    setTimeout(checkLowInventoryAlert, 3000);
     return true;
   }
 
