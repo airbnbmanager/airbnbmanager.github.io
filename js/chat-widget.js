@@ -1238,15 +1238,35 @@
       }
 
       /* Responsive Mobile adjustments */
-      @media (max-width: 480px) {
+      @media (max-width: 768px) {
         #uhh-chat-btn-wrap {
-          bottom: 74px; right: 16px;
+          bottom: calc(72px + env(safe-area-inset-bottom, 0px));
+          right: 14px;
         }
+        #uhh-chat-btn.uhh-chat-unified-btn {
+          width: 48px;
+          height: 48px;
+          min-width: 48px;
+          min-height: 48px;
+          padding: 0;
+          border-radius: 50%;
+          justify-content: center;
+          box-shadow: 0 8px 24px rgba(15, 23, 42, 0.45), 0 0 16px rgba(245, 158, 11, 0.35);
+        }
+        .uhh-chat-btn-title,
+        .uhh-chat-btn-pill,
         #uhh-chat-btn-label {
-          display: none;
+          display: none !important;
+        }
+        .uhh-chat-btn-sparkle {
+          font-size: 20px;
+          margin: 0;
         }
         #uhh-chat-panel {
-          bottom: 70px; right: 8px; left: 8px; width: auto;
+          bottom: calc(68px + env(safe-area-inset-bottom, 0px));
+          right: 8px;
+          left: 8px;
+          width: auto;
           max-width: calc(100vw - 16px);
           height: min(540px, calc(100vh - 140px));
           border-radius: 18px;

@@ -612,19 +612,40 @@ body.properties-directory-page {
   text-transform: uppercase;
 }
 
-/* Availability Badge */
+/* Availability Badge - Positioned bottom-left so it NEVER collides with top-left rating */
 .dir-avail-badge {
   position: absolute;
-  top: 48px;
+  bottom: 14px;
   left: 14px;
   z-index: 5;
   background: rgba(15, 23, 42, 0.85);
   color: #ffffff;
-  padding: 3px 9px;
+  padding: 4px 10px;
   border-radius: var(--dir-radius-full);
   font-size: 11px;
   font-weight: 700;
-  backdrop-filter: blur(6px);
+  letter-spacing: 0.2px;
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+  transition: all 0.2s ease;
+}
+
+.dir-avail-badge.dir-avail-free {
+  background: rgba(16, 185, 129, 0.92);
+  color: #ffffff;
+  border-color: rgba(255, 255, 255, 0.35);
+}
+
+.dir-avail-badge.dir-avail-booked {
+  background: rgba(220, 38, 38, 0.92);
+  color: #ffffff;
+  border-color: rgba(255, 255, 255, 0.35);
+}
+
+.dir-avail-badge.dir-avail-loading {
+  background: rgba(15, 23, 42, 0.8);
+  color: rgba(255, 255, 255, 0.8);
 }
 
 /* Photo Counter Badge (Click to open full Lightbox) */
@@ -2073,22 +2094,36 @@ body.properties-directory-page {
   }
 
   .dir-hero {
-    padding: 40px 16px 32px;
+    padding: 18px 16px 14px;
+  }
+
+  .dir-hero-badge {
+    font-size: 10px;
+    padding: 3px 10px;
+    margin-bottom: 6px;
+    letter-spacing: 0.5px;
   }
 
   .dir-hero-title {
-    font-size: 30px;
+    font-size: clamp(22px, 5.5vw, 26px);
+    margin: 0 0 6px;
+    line-height: 1.2;
   }
 
   .dir-hero-sub {
-    font-size: 15px;
-    margin-bottom: 24px;
+    font-size: 12.5px;
+    margin-bottom: 12px;
+    line-height: 1.4;
   }
 
   .dir-search-wrap {
-    flex-direction: column;
+    display: flex;
+    flex-wrap: wrap;
     border-radius: 18px;
-    padding: 14px;
+    padding: 8px 10px;
+    gap: 6px;
+    background: #ffffff;
+    box-shadow: 0 4px 16px rgba(15, 23, 42, 0.08);
   }
 
   .dir-search-divider {
@@ -2096,14 +2131,43 @@ body.properties-directory-page {
   }
 
   .dir-search-input-box {
-    width: 100%;
-    padding-left: 0;
+    flex: 1 1 calc(100% - 46px);
+    width: calc(100% - 46px);
+    min-height: 38px;
+    padding-left: 4px;
+    display: flex;
+    align-items: center;
+  }
+
+  .dir-search-btn-icon {
+    width: 38px;
+    height: 38px;
+    min-width: 38px;
+    min-height: 38px;
+    border-radius: 50%;
+    margin-left: auto;
   }
 
   .dir-search-select-box {
+    flex: 1 1 calc(50% - 4px);
+    width: calc(50% - 4px);
+    min-width: 0;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    background: #f8fafc;
+    padding: 0 4px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+  }
+
+  .dir-search-select {
+    font-size: 12px;
+    padding: 0 4px;
+    height: 34px;
     width: 100%;
-    border-top: 1px solid var(--dir-border);
-    padding-top: 8px;
+    color: #1e293b;
+    font-weight: 600;
   }
 
   .dir-filter-bar {

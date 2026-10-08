@@ -59,15 +59,34 @@
     display: none !important; /* Hide long pill label on mobile */
   }
 
-  /* 3. CHAT BUTTON (Docks right next to Voice on bottom-right, leaving left & center completely free!) */
-  #uhh-chat-btn {
-    bottom: calc(66px + env(safe-area-inset-bottom, 0px)) !important;
-    right: 62px !important;
+  /* 3. CHAT BUTTON (Docks cleanly on bottom-right, leaving center completely free!) */
+  #uhh-chat-btn-wrap {
+    bottom: calc(68px + env(safe-area-inset-bottom, 0px)) !important;
+    right: 14px !important;
     left: auto !important;
-    width: 44px !important;
-    height: 44px !important;
+    z-index: 9997 !important;
+  }
+  #uhh-chat-btn {
+    width: 46px !important;
+    height: 46px !important;
+    min-width: 46px !important;
+    min-height: 46px !important;
+    padding: 0 !important;
+    border-radius: 50% !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
     font-size: 18px !important;
     z-index: 9997 !important;
+    box-shadow: 0 6px 20px rgba(15, 23, 42, 0.4) !important;
+  }
+  .uhh-chat-btn-title,
+  .uhh-chat-btn-pill {
+    display: none !important;
+  }
+  .uhh-chat-btn-sparkle {
+    font-size: 20px !important;
+    margin: 0 !important;
   }
 
   /* 4. CHAT PANEL OVERLAY */
@@ -83,46 +102,114 @@
 }
 
 /* ── 2. HERO SECTION ─────────────────────────────────────────────
-   Large headline → readable on phones
+   Compact, elegant typography, minimal vertical footprint
    ─────────────────────────────────────────────────────────────── */
-@media (max-width: 480px) {
+@media (max-width: 768px) {
   .dir-hero {
-    padding: 28px 14px 24px;
+    padding: 16px 14px 12px !important;
     text-align: center;
   }
   .dir-hero-badge {
-    font-size: 11px;
-    padding: 5px 12px;
+    font-size: 10px !important;
+    padding: 3px 10px !important;
+    margin-bottom: 6px !important;
+    letter-spacing: 0.5px !important;
   }
   .dir-hero-title {
-    font-size: clamp(22px, 7vw, 30px) !important;
-    line-height: 1.2;
-    margin-bottom: 10px;
+    font-size: clamp(22px, 5.5vw, 26px) !important;
+    line-height: 1.2 !important;
+    margin-bottom: 6px !important;
   }
   .dir-hero-sub {
-    font-size: 13px !important;
-    margin-bottom: 18px;
+    font-size: 12.5px !important;
+    line-height: 1.4 !important;
+    margin-bottom: 10px !important;
+    color: #64748b !important;
+    display: -webkit-box !important;
+    -webkit-line-clamp: 2 !important;
+    -webkit-box-orient: vertical !important;
+    overflow: hidden !important;
   }
 }
 
-/* ── 3. SEARCH BAR ───────────────────────────────────────────────
-   Full-width, tap-friendly inputs
+/* ── 3. AIRBNB-GRADE COMPACT SEARCH BAR ──────────────────────────
+   Row 1: Search input + Search button
+   Row 2: Location (50%) + Sort (50%) side-by-side
+   Cuts vertical space by > 60%
    ─────────────────────────────────────────────────────────────── */
-@media (max-width: 480px) {
+@media (max-width: 768px) {
   .dir-search-wrap {
-    padding: 12px !important;
-    gap: 8px !important;
-    border-radius: 16px !important;
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: wrap !important;
+    padding: 8px 10px !important;
+    gap: 6px !important;
+    border-radius: 18px !important;
+    background: #ffffff !important;
+    border: 1px solid #cbd5e1 !important;
+    box-shadow: 0 4px 16px rgba(15, 23, 42, 0.08) !important;
+    max-width: 100% !important;
   }
-  .dir-search-input-box input,
-  .dir-search-select-box select {
-    font-size: 15px !important; /* iOS zoom prevention */
-    min-height: 44px;
+
+  .dir-search-input-box {
+    flex: 1 1 calc(100% - 46px) !important;
+    width: calc(100% - 46px) !important;
+    min-height: 38px !important;
+    padding-left: 4px !important;
+    display: flex !important;
+    align-items: center !important;
   }
+
+  .dir-search-input-box input {
+    font-size: 14px !important;
+    height: 36px !important;
+    min-height: 36px !important;
+    padding: 4px 0 !important;
+  }
+
+  .dir-search-btn-icon,
   .dir-search-btn {
-    width: 44px !important;
-    height: 44px !important;
-    min-width: 44px !important;
+    width: 38px !important;
+    height: 38px !important;
+    min-width: 38px !important;
+    min-height: 38px !important;
+    border-radius: 50% !important;
+    margin-left: auto !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    flex-shrink: 0 !important;
+  }
+
+  .dir-search-divider {
+    display: none !important;
+  }
+
+  .dir-search-select-box {
+    flex: 1 1 calc(50% - 4px) !important;
+    width: calc(50% - 4px) !important;
+    min-width: 0 !important;
+    border: 1px solid #e2e8f0 !important;
+    border-radius: 10px !important;
+    background: #f8fafc !important;
+    padding: 0 4px !important;
+    margin: 0 !important;
+    height: 36px !important;
+    display: flex !important;
+    align-items: center !important;
+  }
+
+  .dir-search-select-box select,
+  .dir-search-select {
+    font-size: 12px !important;
+    min-height: 34px !important;
+    height: 34px !important;
+    width: 100% !important;
+    border: none !important;
+    background: transparent !important;
+    padding: 0 4px !important;
+    color: #1e293b !important;
+    font-weight: 600 !important;
   }
 }
 
@@ -178,6 +265,38 @@
 
   .dir-card-media img {
     object-position: center 30%; /* Better crop for property photos */
+  }
+
+  /* 4-corner non-colliding badge system */
+  .dir-card-rating-badge {
+    top: 10px !important;
+    left: 10px !important;
+    bottom: auto !important;
+    font-size: 11px !important;
+    padding: 3px 8px !important;
+  }
+
+  .dir-card-save-badge {
+    top: 10px !important;
+    right: 10px !important;
+    bottom: auto !important;
+    font-size: 10.5px !important;
+    padding: 3px 8px !important;
+  }
+
+  .dir-avail-badge {
+    bottom: 10px !important;
+    left: 10px !important;
+    top: auto !important;
+    font-size: 10.5px !important;
+    padding: 3px 8px !important;
+  }
+
+  .dir-card-photo-count {
+    bottom: 10px !important;
+    right: 10px !important;
+    font-size: 11px !important;
+    padding: 3px 8px !important;
   }
 
   .dir-card-body {
