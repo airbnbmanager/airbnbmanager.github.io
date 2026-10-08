@@ -26,12 +26,12 @@
 
   // 17 Verified Luxury Properties (Source of Truth)
   const VERIFIED_PROPERTIES = [
-    { room_id:'GOM-101', property_name:'RedRose Palace',            nickname:'RedRose Palace',            base_price:3500, max_guests:6,  bhk:'3BHK Luxury Flat', area:'Vikalp Khand, Gomti Nagar' },
-    { room_id:'GOM-102', property_name:'Black Beauty',              nickname:'Black Beauty',              base_price:3500, max_guests:6,  bhk:'3BHK Luxury Flat', area:'Vikalp Khand, Gomti Nagar' },
-    { room_id:'GOM-201', property_name:'The Dark Blue',             nickname:'The Dark Blue',             base_price:3500, max_guests:6,  bhk:'3BHK Luxury Flat', area:'Vikalp Khand, Gomti Nagar' },
-    { room_id:'GOM-202', property_name:'The Brown',                 nickname:'The Brown',                 base_price:3500, max_guests:6,  bhk:'3BHK Luxury Flat', area:'Vikalp Khand, Gomti Nagar' },
-    { room_id:'GOM-301', property_name:'The Light Green',           nickname:'The Light Green',           base_price:3500, max_guests:6,  bhk:'3BHK Luxury Flat', area:'Vikalp Khand, Gomti Nagar' },
-    { room_id:'GOM-401', property_name:'The Nawabi Stay',           nickname:'The Nawabi Stay',           base_price:3500, max_guests:6,  bhk:'3BHK Luxury Flat', area:'Vikalp Khand, Gomti Nagar' },
+    { room_id:'GOM-101', property_name:'RedRose Palace',            nickname:'RedRose Palace',            base_price:4500, max_guests:6,  bhk:'3BHK Luxury Flat', area:'Vikalp Khand, Gomti Nagar' },
+    { room_id:'GOM-102', property_name:'Black Beauty',              nickname:'Black Beauty',              base_price:4500, max_guests:6,  bhk:'3BHK Luxury Flat', area:'Vikalp Khand, Gomti Nagar' },
+    { room_id:'GOM-201', property_name:'The Dark Blue',             nickname:'The Dark Blue',             base_price:4500, max_guests:6,  bhk:'3BHK Luxury Flat', area:'Vikalp Khand, Gomti Nagar' },
+    { room_id:'GOM-202', property_name:'The Brown',                 nickname:'The Brown',                 base_price:4500, max_guests:6,  bhk:'3BHK Luxury Flat', area:'Vikalp Khand, Gomti Nagar' },
+    { room_id:'GOM-301', property_name:'The Light Green',           nickname:'The Light Green',           base_price:4500, max_guests:6,  bhk:'3BHK Luxury Flat', area:'Vikalp Khand, Gomti Nagar' },
+    { room_id:'GOM-401', property_name:'The Nawabi Stay',           nickname:'The Nawabi Stay',           base_price:4500, max_guests:6,  bhk:'3BHK Luxury Flat', area:'Vikalp Khand, Gomti Nagar' },
     { room_id:'GOM-501', property_name:'Starlight Blue PentHouse',  nickname:'Starlight Blue PentHouse',  base_price:6000, max_guests:10, bhk:'4BHK Penthouse',   area:'Vikalp Khand, Gomti Nagar' },
     { room_id:'GOM-302', property_name:'The Unique',                nickname:'The Unique',                base_price:5500, max_guests:8,  bhk:'3BHK Luxury Flat', area:'Vishesh Khand, Gomti Nagar' },
     { room_id:'VIL-104', property_name:'The Green House',           nickname:'The Green House',           base_price:5500, max_guests:8,  bhk:'3BHK Luxury Flat', area:'Vishesh Khand, Gomti Nagar' },
@@ -63,6 +63,7 @@
       this._speakToken = 0;
 
       this.initVoiceSynthesis();
+      this.fetchLiveProperties().catch(() => {});
     }
 
     // ── Unlock Audio & Speech Synthesis on User Gesture ──

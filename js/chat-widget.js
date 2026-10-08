@@ -25,56 +25,8 @@
   let _currentSpeakingBtn = null;
   let _voiceTurn   = false;  // Whether current turn was started by voice mic
 
-  // ── GET LIVE RATES FROM SUPABASE ROOMS TABLE (SOURCE OF TRUTH) ────
-  async function getRates() {
-    if (_rates && _rates.length > 0) return _rates;
-    try {
-      const cached = JSON.parse(sessionStorage.getItem('uhh_price_cache') || 'null');
-      if (cached && cached.data && (Date.now() - cached.ts) < 15 * 60 * 1000) {
-        _rates = cached.data; return _rates;
-      }
-      const sb = window.sb || (typeof supabase !== 'undefined' && window.SUPABASE_URL
-        ? supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY) : null);
-      if (sb) {
-        // Query live rooms table
-        const { data, error } = await sb
-          .from('rooms')
-          .select('room_id, property_name, nickname, rent_per_night, max_guests')
-          .order('room_id');
-        if (!error && data && data.length > 0) {
-          _rates = data.map(r => ({
-            room_id: r.room_id,
-            property_name: r.nickname || r.property_name,
-            base_price: Number(r.rent_per_night) || 4500,
-            max_guests: r.max_guests || 6
-          }));
-          return _rates;
-        }
-      }
-    } catch (_) {}
-
-    // Fallback: Exact verified rates (Gomti Grand Villa = ₹8,000)
-    _rates = [
-      { room_id:'VIL-101', property_name:'Gomti Grand Villa',         base_price:8000,  max_guests:10, type:'villa', area:'Near Lulu Mall / Shaheed Path' },
-      { room_id:'VIL-102', property_name:'Royal White House',        base_price:12000, max_guests:18, type:'villa', area:'Near Shaheed Path / Mahanagar' },
-      { room_id:'LUL-402', property_name:'Celebrity Garden',         base_price:10000, max_guests:8,  type:'villa', area:'Near Lulu Mall' },
-      { room_id:'VIL-103', property_name:'The Pink House',           base_price:9000,  max_guests:10, type:'villa', area:'Vishesh Khand, Gomti Nagar' },
-      { room_id:'GOM-501', property_name:'Starlight Blue PentHouse', base_price:6000,  max_guests:10, type:'penthouse', area:'Vikalp Khand, Gomti Nagar' },
-      { room_id:'GOM-302', property_name:'The Unique',               base_price:5500,  max_guests:10, type:'flat',  area:'Vishesh Khand, Gomti Nagar' },
-      { room_id:'VIL-104', property_name:'The Green House',          base_price:5500,  max_guests:10, type:'flat',  area:'Vishesh Khand, Gomti Nagar' },
-      { room_id:'VIL-105', property_name:'The Yellow House',         base_price:5500,  max_guests:10, type:'flat',  area:'Vishesh Khand, Gomti Nagar' },
-      { room_id:'GOM-101', property_name:'RedRose Palace',           base_price:4500,  max_guests:10, type:'flat',  area:'Vikalp Khand, Gomti Nagar' },
-      { room_id:'GOM-102', property_name:'Black Beauty',             base_price:4500,  max_guests:10, type:'flat',  area:'Vikalp Khand, Gomti Nagar' },
-      { room_id:'GOM-201', property_name:'The Dark Blue',            base_price:4500,  max_guests:10, type:'flat',  area:'Vikalp Khand, Gomti Nagar' },
-      { room_id:'GOM-202', property_name:'The Brown',                base_price:4500,  max_guests:10, type:'flat',  area:'Vikalp Khand, Gomti Nagar' },
-      { room_id:'GOM-301', property_name:'The Light Green',          base_price:4500,  max_guests:10, type:'flat',  area:'Vikalp Khand, Gomti Nagar' },
-      { room_id:'GOM-401', property_name:'The Nawabi Stay',          base_price:4500,  max_guests:10, type:'flat',  area:'Vikalp Khand, Gomti Nagar' },
-      { room_id:'VIL-107', property_name:'The Velvet House',         base_price:4500,  max_guests:5,  type:'flat',  area:'Near Lulu Mall' },
-      { room_id:'VIL-106', property_name:'Green Forest View',        base_price:4500,  max_guests:6,  type:'flat',  area:'Near Mahanagar' },
-      { room_id:'VIL-108', property_name:'Pink Paradise Villa',      base_price:4500,  max_guests:6,  type:'villa', area:'Near Shaheed Path' },
-    ];
-    return _rates;
-  }
+  // ── CRM LIVE RATES CACHE & SUPABASE CONNECTOR ────
+  let _lastSupabaseSyncTs = 0;
 
   // ── 17 LUXURY PROPERTIES CATALOG (PHOTOS + AMENITIES + DIRECT RATES) ──
   const PROPERTIES_CATALOG = {
@@ -83,8 +35,8 @@
       name: 'RedRose Palace',
       type: '3BHK Luxury Flat',
       area: 'Vikalp Khand, Gomti Nagar',
-      price: 3499,
-      originalPrice: 4500,
+      price: 4500,
+      originalPrice: 5499,
       rating: 4.90,
       reviews: 41,
       cover: 'https://a0.muscache.com/im/pictures/hosting/Hosting-1654261872286835347/original/cbc0aaab-4039-4892-ba03-f18c24a603c9.jpeg',
@@ -98,8 +50,8 @@
       name: 'Black Beauty',
       type: '3BHK Luxury Flat',
       area: 'Vikalp Khand, Gomti Nagar',
-      price: 3499,
-      originalPrice: 4500,
+      price: 4500,
+      originalPrice: 5499,
       rating: 4.95,
       reviews: 48,
       cover: 'https://a0.muscache.com/im/pictures/hosting/Hosting-1655974057816027178/original/fcaaa310-7521-4fae-9ef7-47b2c58a631c.jpeg',
@@ -113,8 +65,8 @@
       name: 'The Dark Blue',
       type: '3BHK Luxury Flat',
       area: 'Vikalp Khand, Gomti Nagar',
-      price: 3499,
-      originalPrice: 4500,
+      price: 4500,
+      originalPrice: 5499,
       rating: 4.93,
       reviews: 46,
       cover: 'https://a0.muscache.com/im/pictures/hosting/Hosting-1655969170448425308/original/c84e509a-1192-4491-891b-8dda32439a38.jpeg',
@@ -128,8 +80,8 @@
       name: 'The Brown',
       type: '3BHK Luxury Flat',
       area: 'Vikalp Khand, Gomti Nagar',
-      price: 3499,
-      originalPrice: 4500,
+      price: 4500,
+      originalPrice: 5499,
       rating: 4.88,
       reviews: 39,
       cover: 'https://a0.muscache.com/im/pictures/hosting/Hosting-1655971485603770428/original/2cb059fb-e2ca-4c9f-ba52-dd58d84a7541.jpeg',
@@ -143,8 +95,8 @@
       name: 'The Light Green',
       type: '3BHK Luxury Flat',
       area: 'Vikalp Khand, Gomti Nagar',
-      price: 3499,
-      originalPrice: 4500,
+      price: 4500,
+      originalPrice: 5499,
       rating: 4.91,
       reviews: 42,
       cover: 'https://a0.muscache.com/im/pictures/hosting/Hosting-1655972856417748455/original/4bfd8c83-fa56-4c4d-91b4-2b6fe18ef77a.jpeg',
@@ -158,8 +110,8 @@
       name: 'The Nawabi Stay',
       type: '3BHK Luxury Flat',
       area: 'Vikalp Khand, Gomti Nagar',
-      price: 3499,
-      originalPrice: 4500,
+      price: 4500,
+      originalPrice: 5499,
       rating: 4.92,
       reviews: 37,
       cover: 'https://a0.muscache.com/im/pictures/hosting/Hosting-1655975005881477758/original/e944bc30-f654-47ae-90b5-7c1ce3e08f51.jpeg',
@@ -173,8 +125,8 @@
       name: 'Starlight Blue PentHouse',
       type: '4BHK Grand Skyline Penthouse',
       area: 'Vikalp Khand, Gomti Nagar',
-      price: 5999,
-      originalPrice: 7000,
+      price: 6000,
+      originalPrice: 7299,
       rating: 4.96,
       reviews: 53,
       cover: 'https://a0.muscache.com/im/pictures/hosting/Hosting-1655976508493130141/original/918fa240-a1f9-4db5-b82b-bbd7c6778f65.jpeg',
@@ -188,8 +140,8 @@
       name: 'Gomti Grand Villa',
       type: 'Luxury Standalone Private Villa',
       area: 'Near Lulu Mall & Shaheed Path',
-      price: 7999,
-      originalPrice: 9500,
+      price: 8000,
+      originalPrice: 9599,
       rating: 4.97,
       reviews: 64,
       cover: 'https://a0.muscache.com/im/pictures/hosting/Hosting-1655980649712759905/original/6c4e0f10-6c58-45a9-bc4c-a11fa7da1795.jpeg',
@@ -203,8 +155,8 @@
       name: 'Royal White House',
       type: 'Grand Palatial Villa Estate',
       area: 'Near Shaheed Path / Mahanagar',
-      price: 11999,
-      originalPrice: 15000,
+      price: 12000,
+      originalPrice: 14499,
       rating: 4.98,
       reviews: 72,
       cover: 'https://a0.muscache.com/im/pictures/hosting/Hosting-1655982882208007785/original/9fcfd2b8-7c8d-4e94-81ae-281b95cb9110.jpeg',
@@ -218,8 +170,8 @@
       name: 'Celebrity Garden',
       type: 'Sprawling Green Luxury Villa',
       area: 'Near Lulu Mall & Medanta Hospital',
-      price: 9999,
-      originalPrice: 12000,
+      price: 10000,
+      originalPrice: 11999,
       rating: 4.94,
       reviews: 45,
       cover: 'https://a0.muscache.com/im/pictures/hosting/Hosting-1655984620023775191/original/e944743e-a144-48ee-8957-1ffbce44cbdb.jpeg',
@@ -233,8 +185,8 @@
       name: 'The Pink House',
       type: 'Aesthetic Designer Villa',
       area: 'Vishesh Khand, Gomti Nagar',
-      price: 8999,
-      originalPrice: 10500,
+      price: 9000,
+      originalPrice: 10999,
       rating: 4.95,
       reviews: 58,
       cover: 'https://a0.muscache.com/im/pictures/hosting/Hosting-1655979101880521639/original/8e181958-fc20-4137-b498-8ec1f2ecf802.jpeg',
@@ -248,8 +200,8 @@
       name: 'The Unique',
       type: '3BHK Contemporary Luxury Flat',
       area: 'Vishesh Khand, Gomti Nagar',
-      price: 5499,
-      originalPrice: 6500,
+      price: 5500,
+      originalPrice: 6499,
       rating: 4.92,
       reviews: 38,
       cover: 'https://a0.muscache.com/im/pictures/hosting/Hosting-1655967664448560183/original/2e7ee400-f65f-4d97-8c46-95383f9fc3ba.jpeg',
@@ -263,8 +215,8 @@
       name: 'The Green House',
       type: '3BHK Serviced Stays',
       area: 'Vishesh Khand, Gomti Nagar',
-      price: 5499,
-      originalPrice: 6500,
+      price: 5500,
+      originalPrice: 6599,
       rating: 4.90,
       reviews: 35,
       cover: 'https://a0.muscache.com/im/pictures/hosting/Hosting-1655977934673623097/original/ecad21da-10eb-4856-afbf-eb5d15ca35df.jpeg',
@@ -278,8 +230,8 @@
       name: 'The Yellow House',
       type: '3BHK Serviced Stays',
       area: 'Vishesh Khand, Gomti Nagar',
-      price: 5499,
-      originalPrice: 6500,
+      price: 5500,
+      originalPrice: 6599,
       rating: 4.89,
       reviews: 33,
       cover: 'https://a0.muscache.com/im/pictures/hosting/Hosting-1655977196025287796/original/b0b57e4e-096b-4e6f-8706-e79e6f3b9c02.jpeg',
@@ -293,8 +245,8 @@
       name: 'The Velvet House',
       type: '3BHK Serviced Stays',
       area: 'Near Lulu Mall & Shaheed Path',
-      price: 4499,
-      originalPrice: 5500,
+      price: 4500,
+      originalPrice: 5499,
       rating: 4.91,
       reviews: 36,
       cover: 'https://a0.muscache.com/im/pictures/hosting/Hosting-1655986064047814407/original/35048b1d-7206-4fe4-aaee-4cb5069fae48.jpeg',
@@ -308,8 +260,8 @@
       name: 'Green Forest View',
       type: '3BHK Serviced Flat',
       area: 'Near Mahanagar',
-      price: 4499,
-      originalPrice: 5500,
+      price: 4500,
+      originalPrice: 5499,
       rating: 4.88,
       reviews: 29,
       cover: 'https://a0.muscache.com/im/pictures/hosting/Hosting-1655987309104085461/original/91a27e7f-44e2-4113-92f7-dc41b4cfb5c0.jpeg',
@@ -323,8 +275,8 @@
       name: 'Pink Paradise Villa',
       type: 'Luxury Villa',
       area: 'Near Shaheed Path',
-      price: 4499,
-      originalPrice: 5500,
+      price: 4500,
+      originalPrice: 5499,
       rating: 4.92,
       reviews: 31,
       cover: 'https://a0.muscache.com/im/pictures/hosting/Hosting-1655988674966779430/original/5e3ee077-d035-46f9-b883-7d848695f7c3.jpeg',
@@ -335,7 +287,100 @@
     }
   };
 
+  // ── DYNAMIC RATE SYNC FROM CRM (SUPABASE ROOMS TABLE) ─────────────
+  async function syncCatalogRatesFromDB(force = false) {
+    // 1. Fast in-memory sync from window.UHH_PHOTO_DB if already initialized
+    if (typeof window !== 'undefined' && window.UHH_PHOTO_DB) {
+      Object.keys(PROPERTIES_CATALOG).forEach(slug => {
+        const item = window.UHH_PHOTO_DB[slug];
+        if (item && item.base_price && !isNaN(Number(item.base_price))) {
+          PROPERTIES_CATALOG[slug].price = Number(item.base_price);
+          if (item.airbnb_price) {
+            PROPERTIES_CATALOG[slug].originalPrice = Number(item.airbnb_price);
+          }
+        }
+      });
+    }
+
+    // 2. Query live Supabase rooms table (source of truth from CRM)
+    const now = Date.now();
+    if (!force && (now - _lastSupabaseSyncTs) < 30 * 1000) return _rates;
+    try {
+      const sb = window.sb || (typeof supabase !== 'undefined' && window.SUPABASE_URL
+        ? supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY) : null);
+      if (sb) {
+        const { data, error } = await sb
+          .from('rooms')
+          .select('room_id, property_name, nickname, rent_per_night, max_guests')
+          .order('room_id');
+
+        if (!error && Array.isArray(data) && data.length > 0) {
+          _lastSupabaseSyncTs = now;
+          _rates = data.map(r => ({
+            room_id: r.room_id,
+            property_name: r.nickname || r.property_name,
+            base_price: Number(r.rent_per_night) || 4500,
+            max_guests: r.max_guests || 6
+          }));
+
+          // Synchronize every property in PROPERTIES_CATALOG dynamically
+          data.forEach(r => {
+            const livePrice = Number(r.rent_per_night);
+            if (!livePrice || isNaN(livePrice)) return;
+            for (const slug of Object.keys(PROPERTIES_CATALOG)) {
+              const prop = PROPERTIES_CATALOG[slug];
+              const isIdMatch = prop.id && r.room_id && prop.id.trim().toUpperCase() === r.room_id.trim().toUpperCase();
+              const isNameMatch = (r.nickname && prop.name && prop.name.toLowerCase().includes(r.nickname.toLowerCase())) ||
+                                  (r.property_name && prop.name && r.property_name.toLowerCase().includes(prop.name.toLowerCase()));
+              if (isIdMatch || isNameMatch) {
+                prop.price = livePrice;
+                prop.originalPrice = Math.round(livePrice * 1.22);
+                break;
+              }
+            }
+          });
+
+          try {
+            sessionStorage.setItem('uhh_price_cache', JSON.stringify({ ts: now, data: _rates }));
+          } catch (_) {}
+          return _rates;
+        }
+      }
+    } catch (err) {
+      console.warn('[NishaAI] Supabase dynamic rates sync error:', err);
+    }
+
+    // 3. Fallback rates if Supabase is offline
+    if (!_rates || _rates.length === 0) {
+      _rates = [
+        { room_id:'VIL-101', property_name:'Gomti Grand Villa',         base_price:8000,  max_guests:10, type:'villa', area:'Near Lulu Mall / Shaheed Path' },
+        { room_id:'VIL-102', property_name:'Royal White House',        base_price:12000, max_guests:18, type:'villa', area:'Near Shaheed Path / Mahanagar' },
+        { room_id:'LUL-402', property_name:'Celebrity Garden',         base_price:10000, max_guests:8,  type:'villa', area:'Near Lulu Mall' },
+        { room_id:'VIL-103', property_name:'The Pink House',           base_price:9000,  max_guests:10, type:'villa', area:'Vishesh Khand, Gomti Nagar' },
+        { room_id:'GOM-501', property_name:'Starlight Blue PentHouse', base_price:6000,  max_guests:10, type:'penthouse', area:'Vikalp Khand, Gomti Nagar' },
+        { room_id:'GOM-302', property_name:'The Unique',               base_price:5500,  max_guests:10, type:'flat',  area:'Vishesh Khand, Gomti Nagar' },
+        { room_id:'VIL-104', property_name:'The Green House',          base_price:5500,  max_guests:10, type:'flat',  area:'Vishesh Khand, Gomti Nagar' },
+        { room_id:'VIL-105', property_name:'The Yellow House',         base_price:5500,  max_guests:10, type:'flat',  area:'Vishesh Khand, Gomti Nagar' },
+        { room_id:'GOM-101', property_name:'RedRose Palace',           base_price:4500,  max_guests:10, type:'flat',  area:'Vikalp Khand, Gomti Nagar' },
+        { room_id:'GOM-102', property_name:'Black Beauty',             base_price:4500,  max_guests:10, type:'flat',  area:'Vikalp Khand, Gomti Nagar' },
+        { room_id:'GOM-201', property_name:'The Dark Blue',            base_price:4500,  max_guests:10, type:'flat',  area:'Vikalp Khand, Gomti Nagar' },
+        { room_id:'GOM-202', property_name:'The Brown',                base_price:4500,  max_guests:10, type:'flat',  area:'Vikalp Khand, Gomti Nagar' },
+        { room_id:'GOM-301', property_name:'The Light Green',          base_price:4500,  max_guests:10, type:'flat',  area:'Vikalp Khand, Gomti Nagar' },
+        { room_id:'GOM-401', property_name:'The Nawabi Stay',          base_price:4500,  max_guests:10, type:'flat',  area:'Vikalp Khand, Gomti Nagar' },
+        { room_id:'VIL-107', property_name:'The Velvet House',         base_price:4500,  max_guests:5,  type:'flat',  area:'Near Lulu Mall' },
+        { room_id:'VIL-106', property_name:'Green Forest View',        base_price:4500,  max_guests:6,  type:'flat',  area:'Near Mahanagar' },
+        { room_id:'VIL-108', property_name:'Pink Paradise Villa',      base_price:4500,  max_guests:6,  type:'villa', area:'Near Shaheed Path' },
+      ];
+    }
+    return _rates;
+  }
+
+  async function getRates(force = false) {
+    return await syncCatalogRatesFromDB(force);
+  }
+
   function formatPropertyReply(prop) {
+    syncCatalogRatesFromDB();
     const waMsg = encodeURIComponent(`Namaste Shahanshah ji! I am interested in booking ${prop.name} (${prop.type}) in ${prop.area}. Direct rate: ₹${prop.price.toLocaleString('en-IN')}/night. Please share availability.`);
     const waUrl = `https://wa.me/${ADMIN_WA}?text=${waMsg}`;
     return {
@@ -415,31 +460,33 @@
     const phoneMatch = raw.match(/(\+?\d{1,4}[-.\s]?)?([6-9]\d{9})/);
     if (phoneMatch) info.phone = phoneMatch[2];
 
-    // Property
+    // Property (Dynamic Rate from PROPERTIES_CATALOG)
     if (/royal white|white house|shaadi|wedding|18 guest|badi villa/i.test(msg)) {
       info.property = 'Royal White House';
-      info.rate = '₹12,000 / night';
+      info.rate = `₹${(PROPERTIES_CATALOG['royal-white-house']?.price || 12000).toLocaleString('en-IN')} / night`;
     } else if (/gomti grand|grand villa|gomti villa/i.test(msg)) {
       info.property = 'Gomti Grand Villa';
-      info.rate = '₹8,000 / night';
+      info.rate = `₹${(PROPERTIES_CATALOG['gomti-grand-villa']?.price || 8000).toLocaleString('en-IN')} / night`;
     } else if (/celebrity/i.test(msg)) {
       info.property = 'Celebrity Garden';
-      info.rate = '₹10,000 / night';
+      info.rate = `₹${(PROPERTIES_CATALOG['celebrity-garden']?.price || 10000).toLocaleString('en-IN')} / night`;
     } else if (/pink house/i.test(msg)) {
       info.property = 'The Pink House';
-      info.rate = '₹9,000 / night';
+      info.rate = `₹${(PROPERTIES_CATALOG['the-pink-house']?.price || 9000).toLocaleString('en-IN')} / night`;
     } else if (/starlight|penthouse|blue penthouse|skyline|rooftop/i.test(msg)) {
       info.property = 'Starlight Blue PentHouse';
-      info.rate = '₹6,000 / night';
+      info.rate = `₹${(PROPERTIES_CATALOG['starlight-blue-penthouse']?.price || 6000).toLocaleString('en-IN')} / night`;
     } else if (/unique|green house|yellow house/i.test(msg)) {
       info.property = 'Vishesh Khand 3BHK';
-      info.rate = '₹5,500 / night';
+      info.rate = `₹${(PROPERTIES_CATALOG['the-unique']?.price || 5500).toLocaleString('en-IN')} / night`;
     } else if (/redrose|black beauty|dark blue|brown|light green|nawabi|velvet|3bhk|flat|apartment/i.test(msg)) {
       info.property = '3BHK Serviced Flat (Gomti Nagar)';
-      info.rate = '₹4,500 / night';
+      info.rate = `₹${(PROPERTIES_CATALOG['the-dark-blue']?.price || 4500).toLocaleString('en-IN')} / night`;
     } else if (/villa/i.test(msg)) {
       info.property = 'Luxury Villa';
-      info.rate = '₹8,000 – ₹12,000 / night';
+      const minV = PROPERTIES_CATALOG['gomti-grand-villa']?.price || 8000;
+      const maxV = PROPERTIES_CATALOG['royal-white-house']?.price || 12000;
+      info.rate = `₹${minV.toLocaleString('en-IN')} – ₹${maxV.toLocaleString('en-IN')} / night`;
     }
 
     // Guests
@@ -519,18 +566,25 @@
       }
     }
 
-    // 2. GENERAL 3BHK SERVICED FLATS (₹3,499 - ₹4,500 / NIGHT)
+    // 2. GENERAL 3BHK SERVICED FLATS (LIVE CRM RATES)
     if (/(3bhk|3 bhk|flat|flats|serviced flat|gomti nagar flat|apartment|कमरा|फ्लैट)/i.test(msg) && !/(villa|white house|celebrity|party|wedding)/i.test(msg)) {
+      const pRedRose = PROPERTIES_CATALOG['redrose-palace']?.price || 4500;
+      const pBlack = PROPERTIES_CATALOG['black-beauty']?.price || 4500;
+      const pDarkBlue = PROPERTIES_CATALOG['the-dark-blue']?.price || 4500;
+      const pBrown = PROPERTIES_CATALOG['the-brown']?.price || 4500;
+      const pLightGreen = PROPERTIES_CATALOG['the-light-green']?.price || 4500;
+      const pNawabi = PROPERTIES_CATALOG['the-nawabi-stay']?.price || 4500;
+      const pVelvet = PROPERTIES_CATALOG['the-velvet-house']?.price || 4500;
       return {
         text: `🏢 **Gomti Nagar Prime (Vikalp & Vishesh Khand) — Luxury 3BHK Serviced Flats:**\n\n` +
-              `Hamare premium fully furnished 3BHK flats website direct rate par sirf **₹3,499 se ₹4,500/night** me available hain (Airbnb se 15% discount)!\n\n` +
-              `1️⃣ **RedRose Palace:** Rich crimson floral luxury interiors (₹3,499)\n` +
-              `2️⃣ **Black Beauty:** Ultra-luxurious Black & Gold royal theme (₹3,499)\n` +
-              `3️⃣ **The Dark Blue:** Calming oceanic navy blue aesthetic (₹3,499)\n` +
-              `4️⃣ **The Brown:** Warm earthen walnut wood cozy interior (₹3,499)\n` +
-              `5️⃣ **The Light Green:** Mint & sage green fresh botanical theme (₹3,499)\n` +
-              `6️⃣ **The Nawabi Stay:** Classic royal Lucknowi heritage decor (₹3,499)\n` +
-              `7️⃣ **The Velvet House:** Plush velvet decor near Lulu Mall (₹4,499)\n\n` +
+              `Hamare premium fully furnished 3BHK flats website direct rate par live CRM pricing ke saath available hain (Airbnb se 15% direct discount)!\n\n` +
+              `1️⃣ **RedRose Palace:** Rich crimson floral luxury interiors (₹${pRedRose.toLocaleString('en-IN')})\n` +
+              `2️⃣ **Black Beauty:** Ultra-luxurious Black & Gold royal theme (₹${pBlack.toLocaleString('en-IN')})\n` +
+              `3️⃣ **The Dark Blue:** Calming oceanic navy blue aesthetic (₹${pDarkBlue.toLocaleString('en-IN')})\n` +
+              `4️⃣ **The Brown:** Warm earthen walnut wood cozy interior (₹${pBrown.toLocaleString('en-IN')})\n` +
+              `5️⃣ **The Light Green:** Mint & sage green fresh botanical theme (₹${pLightGreen.toLocaleString('en-IN')})\n` +
+              `6️⃣ **The Nawabi Stay:** Classic royal Lucknowi heritage decor (₹${pNawabi.toLocaleString('en-IN')})\n` +
+              `7️⃣ **The Velvet House:** Plush velvet decor near Lulu Mall (₹${pVelvet.toLocaleString('en-IN')})\n\n` +
               `✨ *Sabhi flats me:* 3 AC Bedrooms, Modular Kitchen (Gas + RO), High-Speed 200 Mbps Wi-Fi, Lift & Covered Parking. 100% Couple Friendly!`,
         actions: [
           { label: '💬 Book 3BHK on WhatsApp', url: `https://wa.me/${ADMIN_WA}?text=${encodeURIComponent('Namaste! I want to book a luxury 3BHK flat in Gomti Nagar. Please share availability.')}`, isPrimary: true },
@@ -542,18 +596,22 @@
 
     // 3. GENERAL PRIVATE VILLAS & LARGE GROUPS (10 - 18 GUESTS)
     if (/(villa|villas|badi villa|white house|celebrity|wedding|shaadi|haldi|mehndi|party|gathering|10 guest|12 guest|15 guest|18 guest|विल्ला|विला)/i.test(msg)) {
+      const pWhiteHouse = PROPERTIES_CATALOG['royal-white-house']?.price || 12000;
+      const pGomtiVilla = PROPERTIES_CATALOG['gomti-grand-villa']?.price || 8000;
+      const pCelebrity = PROPERTIES_CATALOG['celebrity-garden']?.price || 10000;
+      const pPinkHouse = PROPERTIES_CATALOG['the-pink-house']?.price || 9000;
       return {
         text: `🏰 **Luxury Standalone Villas & Estates in Lucknow:**\n\n` +
-              `1️⃣ **Royal White House:** ₹11,999/night (Grand palatial estate for up to 18 guests · Weddings & Reunions)\n` +
-              `2️⃣ **Gomti Grand Villa:** ₹7,999/night (100% Private standalone villa with lawn · Up to 10 guests · Near Lulu Mall)\n` +
-              `3️⃣ **Celebrity Garden:** ₹9,999/night (Sprawling landscaped green lawn & luxury suites near Lulu Mall)\n` +
-              `4️⃣ **The Pink House:** ₹8,999/night (Instagram-famous aesthetic villa in Vishesh Khand, Gomti Nagar)\n\n` +
+              `1️⃣ **Royal White House:** ₹${pWhiteHouse.toLocaleString('en-IN')}/night (Grand palatial estate for up to 18 guests · Weddings & Reunions)\n` +
+              `2️⃣ **Gomti Grand Villa:** ₹${pGomtiVilla.toLocaleString('en-IN')}/night (100% Private standalone villa with lawn · Up to 10 guests · Near Lulu Mall)\n` +
+              `3️⃣ **Celebrity Garden:** ₹${pCelebrity.toLocaleString('en-IN')}/night (Sprawling landscaped green lawn & luxury suites near Lulu Mall)\n` +
+              `4️⃣ **The Pink House:** ₹${pPinkHouse.toLocaleString('en-IN')}/night (Instagram-famous aesthetic villa in Vishesh Khand, Gomti Nagar)\n\n` +
               `✨ 100% Standalone privacy, AC in all suites, modular kitchens for self-cooking/catering & secure multi-car parking.`,
         actions: [
           { label: '💬 Book Villa on WhatsApp', url: `https://wa.me/${ADMIN_WA}?text=${encodeURIComponent('Namaste! I want to inquire about luxury villas for our group stay.')}`, isPrimary: true },
           { label: '🌐 View All Villas', url: 'properties.html' }
         ],
-        quickReplies: ['Gomti Grand Villa ₹8k', 'Royal White House ₹12k', 'Celebrity Garden ₹10k', 'Advance policy']
+        quickReplies: [`Gomti Grand Villa ₹${pGomtiVilla.toLocaleString('en-IN')}`, `Royal White House ₹${pWhiteHouse.toLocaleString('en-IN')}`, `Celebrity Garden ₹${pCelebrity.toLocaleString('en-IN')}`, 'Advance policy']
       };
     }
 
@@ -805,22 +863,30 @@
       };
     }
 
-    // 27. RATES & COMPLETE PRICING LIST
+    // 27. RATES & COMPLETE PRICING LIST (LIVE CRM RATES)
     if (/rate|price|cost|kitna|charge|per night|rent|pricing|list/i.test(msg)) {
+      const pRWH = PROPERTIES_CATALOG['royal-white-house']?.price || 12000;
+      const pCG = PROPERTIES_CATALOG['celebrity-garden']?.price || 10000;
+      const pTPH = PROPERTIES_CATALOG['the-pink-house']?.price || 9000;
+      const pGGV = PROPERTIES_CATALOG['gomti-grand-villa']?.price || 8000;
+      const pSBP = PROPERTIES_CATALOG['starlight-blue-penthouse']?.price || 6000;
+      const pTU = PROPERTIES_CATALOG['the-unique']?.price || 5500;
+      const pFlat = PROPERTIES_CATALOG['the-dark-blue']?.price || 4500;
+
       return {
-        text: `💰 **Official Property Rates (Verified Direct Rates):**\n\n` +
+        text: `💰 **Official Property Rates (Live Direct CRM Rates):**\n\n` +
               `🏡 **Grand Private Standalone Villas:**\n` +
-              `• **Royal White House:** ₹12,000 / night (Up to 18 Guests, Royal Estate)\n` +
-              `• **Celebrity Garden:** ₹10,000 / night (Up to 8–10 Guests, Sprawling Lawn)\n` +
-              `• **The Pink House:** ₹9,000 / night (Up to 10 Guests, Aesthetic Luxury)\n` +
-              `• **Gomti Grand Villa:** ₹8,000 / night (Up to 10 Guests, Private Lawn)\n\n` +
+              `• **Royal White House:** ₹${pRWH.toLocaleString('en-IN')} / night (Up to 18 Guests, Royal Estate)\n` +
+              `• **Celebrity Garden:** ₹${pCG.toLocaleString('en-IN')} / night (Up to 8–10 Guests, Sprawling Lawn)\n` +
+              `• **The Pink House:** ₹${pTPH.toLocaleString('en-IN')} / night (Up to 10 Guests, Aesthetic Luxury)\n` +
+              `• **Gomti Grand Villa:** ₹${pGGV.toLocaleString('en-IN')} / night (Up to 10 Guests, Private Lawn)\n\n` +
               `🏙️ **Penthouse & Boutique Stays:**\n` +
-              `• **Starlight Blue PentHouse:** ₹6,000 / night (Private Open-Sky Terrace)\n` +
-              `• **The Unique / Green House / Yellow House:** ₹5,500 / night\n\n` +
-              `🏢 **Luxury 3BHK Serviced Flats (₹4,500 / night):**\n` +
+              `• **Starlight Blue PentHouse:** ₹${pSBP.toLocaleString('en-IN')} / night (Private Open-Sky Terrace)\n` +
+              `• **The Unique / Green House / Yellow House:** ₹${pTU.toLocaleString('en-IN')} / night\n\n` +
+              `🏢 **Luxury 3BHK Serviced Flats (₹${pFlat.toLocaleString('en-IN')} / night):**\n` +
               `• Black Beauty • RedRose Palace • The Dark Blue • The Brown • The Light Green • The Nawabi Stay • The Velvet House\n\n` +
-              `✨ *All prices include full kitchen, AC in all rooms, high-speed WiFi & parking.*`,
-        quickReplies: ['Gomti Grand Villa ₹8,000', '3BHK Flat ₹4,500', 'Book karna hai 📅']
+              `✨ *All prices direct from CRM. Includes full kitchen, AC in all rooms, high-speed WiFi & parking.*`,
+        quickReplies: [`Gomti Grand Villa ₹${pGGV.toLocaleString('en-IN')}`, `3BHK Flat ₹${pFlat.toLocaleString('en-IN')}`, 'Book karna hai 📅']
       };
     }
 
@@ -1891,6 +1957,7 @@
     document.getElementById('uhh-chat-btn')?.querySelector('.uhh-chat-badge')?.remove();
 
     if (window.nishaAI) window.nishaAI.unlockAudio();
+    syncCatalogRatesFromDB(true).catch(() => {});
 
     // 1. Create or show Backdrop Overlay
     let backdrop = document.getElementById('uhh-chat-backdrop');
