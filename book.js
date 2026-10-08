@@ -345,7 +345,12 @@ function updateSummary() {
 
 // ── COUPON / DISCOUNT CODE ──
 const BUILTIN_COUPONS = {
-  'TUHH15': { discount_percent: 15, min_nights: 1 }
+  'TUHH15': { discount_percent: 15, min_nights: 1 },
+  'TUHH10': { discount_percent: 10, min_nights: 1 },
+  'DIRECT10': { discount_percent: 10, min_nights: 1 },
+  'DIRECT15': { discount_percent: 15, min_nights: 1 },
+  'WELCOME10': { discount_percent: 10, min_nights: 1 },
+  'VIP15': { discount_percent: 15, min_nights: 1 }
 };
 
 async function applyCoupon() {
