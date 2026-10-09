@@ -8,7 +8,13 @@
 
 window._sbkState = {
   activeTab: 'today',        // 'today', 'upcoming', 'inhouse', 'all', 'arrivals', 'departures', 'due', 'pending', 'airbnb', 'direct'
-  viewMode: 'airbnb',        // 'airbnb' (default!) | 'cards' | 'table'
+  viewMode: (function() {
+    try {
+      const saved = localStorage.getItem('sbk_view_mode');
+      if (saved && ['airbnb', 'cards', 'table'].includes(saved)) return saved;
+    } catch(e) {}
+    return 'airbnb';
+  })(),
   searchQuery: '',
   propertyFilter: '',
   channelFilter: '',         // '', 'airbnb', 'direct'
@@ -364,15 +370,15 @@ async function renderSmartManageBookings() {
             ${activeFilterCount > 0 ? `<span class="airbnb-pill-num">${activeFilterCount}</span>` : ''}
           </button>
 
-          <div class="airbnb-view-switch">
-            <button class="airbnb-view-btn ${window._sbkState.viewMode === 'airbnb' ? 'active' : ''}" onclick="window.toggleViewMode('airbnb')" title="Airbnb Style View">
-              🏠 Airbnb
+          <div class="airbnb-view-switch" role="group" aria-label="View Mode">
+            <button type="button" class="airbnb-view-btn ${window._sbkState.viewMode === 'airbnb' ? 'active' : ''}" onclick="window.toggleViewMode('airbnb')" title="Airbnb Style View">
+              <span>🏠</span> <span>Airbnb</span>
             </button>
-            <button class="airbnb-view-btn ${window._sbkState.viewMode === 'cards' ? 'active' : ''}" onclick="window.toggleViewMode('cards')" title="Grid Cards View">
-              🗂️ Cards
+            <button type="button" class="airbnb-view-btn ${window._sbkState.viewMode === 'cards' ? 'active' : ''}" onclick="window.toggleViewMode('cards')" title="Grid Cards View">
+              <span>🗂️</span> <span>Cards</span>
             </button>
-            <button class="airbnb-view-btn ${window._sbkState.viewMode === 'table' ? 'active' : ''}" onclick="window.toggleViewMode('table')" title="Table View">
-              📑 Table
+            <button type="button" class="airbnb-view-btn ${window._sbkState.viewMode === 'table' ? 'active' : ''}" onclick="window.toggleViewMode('table')" title="Table View">
+              <span>📑</span> <span>Table</span>
             </button>
           </div>
         </div>
@@ -933,8 +939,8 @@ function renderBookingCardsHtml(bookings, paidMap, canM, today) {
             <div class="sbk-card-top">
               <div class="sbk-guest-meta">
                 <div class="sbk-guest-avatar">${guestInitials}</div>
-                <div>
-                  <div class="sbk-guest-name" onclick="window.openBookingDrawer('${b.booking_id}')">
+                <div style="min-width:0;flex:1;">
+                  <div class="sbk-guest-name" onclick="window.openBookingDrawer('${b.booking_id}')" title="${escapeHtml(b.guest_name || 'Guest')}">
                     ${escapeHtml(b.guest_name || 'Guest')}
                   </div>
                   <div class="sbk-guest-phone">
@@ -944,7 +950,8 @@ function renderBookingCardsHtml(bookings, paidMap, canM, today) {
                     ` : ''}
                   </div>
                 </div>
-              <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;">
+              </div>
+              <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0;">
                 ${statusBadge}
                 ${(b.stay_group_id || (b.phone && (window._sbkState?.phoneCounts?.[String(b.phone).replace(/\D/g, '').slice(-10)] || 0) > 1)) ? `
                   <span class="sbk-status-badge" style="background:#EEF2FF;color:#4F46E5;cursor:pointer;font-weight:800;" onclick="event.stopPropagation();window.openMultiPropertyReceiptModal('${b.stay_group_id || b.phone || b.booking_id}')" title="Multi-Property Group Booking · Click for receipt">
@@ -952,20 +959,21 @@ function renderBookingCardsHtml(bookings, paidMap, canM, today) {
                   </span>
                 ` : ''}
               </div>
+            </div>
 
             <!-- Stay Info: Property & Dates -->
             <div class="sbk-stay-info">
-              <div>
+              <div style="min-width:0;flex:1;">
                 <div class="sbk-room-tag">
                   <span>🏠</span>
-                  <span>${escapeHtml(propLabel(b.rooms) || b.room_id)}</span>
+                  <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(propLabel(b.rooms) || b.room_id)}</span>
                 </div>
                 <div style="font-size:11px;color:var(--muted);margin-top:2px;">
                   ${isOnline ? `<span style="color:#FF385C;font-weight:700;">Airbnb (${b.airbnb_confirmation_code || 'Online'})</span>` : 'Direct Booking'}
                   ${b.verification_status === 'pending' ? ' · <span style="color:#D97706;font-weight:700;">🟡 Pending Approval</span>' : ''}
                 </div>
               </div>
-              <div class="sbk-dates-tag">
+              <div class="sbk-dates-tag" style="flex-shrink:0;text-align:right;">
                 <div style="font-weight:700;color:var(--dark);">
                   ${b.check_in || '-'} → ${isOpenEnded ? 'Open' : (b.check_out || '-')}
                 </div>
@@ -994,7 +1002,7 @@ function renderBookingCardsHtml(bookings, paidMap, canM, today) {
             </div>
 
             <!-- Quick Action Buttons -->
-            <div class="sbk-card-actions">
+            <div class="sbk-card-actions" style="flex-wrap:wrap;">
               ${b.phone ? `
                 <button class="sbk-action-btn wa" onclick="window.sendWhatsAppToGuest('${b.phone}', '${escapeHtml(b.guest_name)}', '${b.booking_id}')" title="Chat on WhatsApp">
                   💬
@@ -1009,7 +1017,7 @@ function renderBookingCardsHtml(bookings, paidMap, canM, today) {
               </button>
 
               ${bal > 0.99 && canM ? `
-                <button class="sbk-action-btn" onclick="showPaymentModal('${b.booking_id}')" style="background:#ECFDF5;border-color:#10B981;color:#047857;">
+                <button class="sbk-action-btn" onclick="showPaymentModal('${b.booking_id}')" style="background:#ECFDF5;border-color:#10B981;color:#047857;flex:1 1 auto;font-weight:700;">
                   💰 Collect ₹${Math.round(bal).toLocaleString('en-IN')}
                 </button>
               ` : ''}
@@ -1036,20 +1044,20 @@ function renderBookingCardsHtml(bookings, paidMap, canM, today) {
 // =====================================================================
 function renderBookingTableHtml(bookings, paidMap, canM, today) {
   return `
-    <div class="card" style="padding:0;overflow:hidden;">
-      <div class="table-wrap">
-        <table style="width:100%;margin:0;border-collapse:collapse;">
-          <thead style="background:#F8FAFC;border-bottom:1px solid var(--border);">
-            <tr>
-              <th style="padding:12px 16px;text-align:left;">Status</th>
-              <th style="padding:12px 16px;text-align:left;">Guest &amp; Phone</th>
-              <th style="padding:12px 16px;text-align:left;">Property</th>
-              <th style="padding:12px 16px;text-align:left;">Channel</th>
-              <th style="padding:12px 16px;text-align:left;">Stay Dates</th>
-              <th style="padding:12px 16px;text-align:right;">Total</th>
-              <th style="padding:12px 16px;text-align:right;">Paid</th>
-              <th style="padding:12px 16px;text-align:right;">Balance</th>
-              <th style="padding:12px 16px;text-align:center;">Quick Actions</th>
+    <div style="background:#ffffff;border:1px solid #E2E8F0;border-radius:16px;box-shadow:0 1px 3px rgba(0,0,0,0.05);overflow:hidden;margin-bottom:24px;">
+      <div style="overflow-x:auto;-webkit-overflow-scrolling:touch;width:100%;">
+        <table class="sbk-custom-table" style="width:100%;min-width:1080px;margin:0;border-collapse:collapse;font-size:13px;">
+          <thead>
+            <tr style="background:#F8FAFC;border-bottom:1px solid #E2E8F0;">
+              <th style="padding:13px 16px;text-align:left;font-weight:700;color:#475569;white-space:nowrap;width:120px;">Status</th>
+              <th style="padding:13px 16px;text-align:left;font-weight:700;color:#475569;white-space:nowrap;min-width:180px;">Guest &amp; Phone</th>
+              <th style="padding:13px 16px;text-align:left;font-weight:700;color:#475569;white-space:nowrap;min-width:170px;">Property</th>
+              <th style="padding:13px 16px;text-align:left;font-weight:700;color:#475569;white-space:nowrap;width:130px;">Channel</th>
+              <th style="padding:13px 16px;text-align:left;font-weight:700;color:#475569;white-space:nowrap;min-width:170px;">Stay Dates</th>
+              <th style="padding:13px 16px;text-align:right;font-weight:700;color:#475569;white-space:nowrap;width:100px;">Total</th>
+              <th style="padding:13px 16px;text-align:right;font-weight:700;color:#475569;white-space:nowrap;width:100px;">Paid</th>
+              <th style="padding:13px 16px;text-align:right;font-weight:700;color:#475569;white-space:nowrap;width:110px;">Balance</th>
+              <th style="padding:13px 16px;text-align:center;font-weight:700;color:#475569;white-space:nowrap;min-width:170px;">Quick Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -1067,61 +1075,77 @@ function renderBookingTableHtml(bookings, paidMap, canM, today) {
               const isArrivalToday = b.check_in === today;
               const isPast = !isOpenEnded && b.check_out < today;
               const isOnline = b.booking_mode === 'Online-Airbnb' || !!b.airbnb_confirmation_code;
+              const hasId = !!(b.id_proof_photo_paths || b.id_proof_photo_path);
 
-              let statusBadge = '<span class="sbk-status-badge upcoming">Upcoming</span>';
-              if (b.is_cancelled) statusBadge = '<span class="sbk-status-badge cancelled">Cancelled</span>';
-              else if (isActive) statusBadge = isOpenEnded ? `<span class="sbk-status-badge open">Open (${elapsedDays}d)</span>` : '<span class="sbk-status-badge active">In-House</span>';
-              else if (isCheckoutToday) statusBadge = '<span class="sbk-status-badge today">Leave Today</span>';
-              else if (isArrivalToday) statusBadge = '<span class="sbk-status-badge upcoming">Arrive Today</span>';
-              else if (isPast) statusBadge = '<span class="sbk-status-badge completed">Done</span>';
+              let statusBadge = '<span class="sbk-status-badge upcoming" style="white-space:nowrap;">Upcoming</span>';
+              if (b.is_cancelled) statusBadge = '<span class="sbk-status-badge cancelled" style="white-space:nowrap;">Cancelled</span>';
+              else if (isActive) statusBadge = isOpenEnded ? `<span class="sbk-status-badge open" style="white-space:nowrap;">Open (${elapsedDays}d)</span>` : '<span class="sbk-status-badge active" style="white-space:nowrap;">In-House</span>';
+              else if (isCheckoutToday) statusBadge = '<span class="sbk-status-badge today" style="white-space:nowrap;">Leave Today</span>';
+              else if (isArrivalToday) statusBadge = '<span class="sbk-status-badge upcoming" style="white-space:nowrap;">Arrive Today</span>';
+              else if (isPast) statusBadge = '<span class="sbk-status-badge completed" style="white-space:nowrap;">Done</span>';
 
               const rowBg = isActive ? 'background:#F0FDF4;' : (isCheckoutToday ? 'background:#FFFBEB;' : '');
 
               return `
-                <tr style="${rowBg}border-bottom:1px solid var(--border-light);">
-                  <td style="padding:12px 16px;">${statusBadge}</td>
-                  <td style="padding:12px 16px;">
-                    <strong style="color:var(--primary);cursor:pointer;" onclick="window.openBookingDrawer('${b.booking_id}')">
+                <tr style="${rowBg}border-bottom:1px solid #F1F5F9;transition:background 0.15s ease;">
+                  <td style="padding:12px 16px;white-space:nowrap;vertical-align:middle;">${statusBadge}</td>
+                  <td style="padding:12px 16px;white-space:nowrap;vertical-align:middle;">
+                    <div style="font-weight:700;color:var(--dark);cursor:pointer;" onclick="window.openBookingDrawer('${b.booking_id}')">
                       ${escapeHtml(b.guest_name || 'Guest')}
-                    </strong><br>
-                    <small style="color:var(--muted);">${escapeHtml(b.phone || '')}</small>
+                    </div>
+                    ${b.phone ? `
+                      <div style="font-size:12px;color:var(--muted);margin-top:2px;display:flex;align-items:center;gap:6px;">
+                        <span>📞 ${escapeHtml(b.phone)}</span>
+                        <a href="tel:${b.phone}" style="color:var(--primary);text-decoration:none;font-weight:700;">Call</a>
+                      </div>
+                    ` : ''}
                   </td>
-                  <td style="padding:12px 16px;">
-                    <strong>${escapeHtml(propLabel(b.rooms) || b.room_id)}</strong>
+                  <td style="padding:12px 16px;white-space:nowrap;vertical-align:middle;">
+                    <div style="font-weight:700;color:var(--dark);">${escapeHtml(propLabel(b.rooms) || b.room_id)}</div>
+                    <div style="font-size:11px;color:var(--muted);">${escapeHtml(b.rooms?.property_name || b.room_id)}</div>
                   </td>
-                  <td style="padding:12px 16px;">
-                    <span class="channel-badge ${isOnline ? 'channel-airbnb' : 'channel-direct'}">
+                  <td style="padding:12px 16px;white-space:nowrap;vertical-align:middle;">
+                    <span class="channel-badge ${isOnline ? 'channel-airbnb' : 'channel-direct'}" style="white-space:nowrap;display:inline-flex;">
                       ${isOnline ? 'Airbnb' : 'Direct'}
                     </span>
-                    ${b.airbnb_confirmation_code ? `<br><small style="color:#FF385C;font-family:monospace;font-weight:700;">${b.airbnb_confirmation_code}</small>` : ''}
+                    ${b.airbnb_confirmation_code ? `<div style="color:#FF385C;font-family:monospace;font-size:11px;font-weight:700;margin-top:3px;white-space:nowrap;">${escapeHtml(b.airbnb_confirmation_code)}</div>` : ''}
                   </td>
-                  <td style="padding:12px 16px;">
-                    <span style="font-weight:600;">${b.check_in || '-'}</span> → 
-                    <span style="font-weight:600;">${isOpenEnded ? 'Open' : (b.check_out || '-')}</span>
+                  <td style="padding:12px 16px;white-space:nowrap;vertical-align:middle;">
+                    <div style="font-weight:600;color:var(--dark);">
+                      ${b.check_in || '-'} <span style="color:var(--muted);">→</span> ${isOpenEnded ? 'Open' : (b.check_out || '-')}
+                    </div>
+                    <div style="font-size:11px;color:var(--muted);margin-top:2px;">
+                      ${isOpenEnded ? `Day ${elapsedDays} so far` : `${nights} ${nights === 1 ? 'Night' : 'Nights'}`}
+                    </div>
                   </td>
-                  <td style="padding:12px 16px;text-align:right;font-weight:700;">
+                  <td style="padding:12px 16px;text-align:right;font-weight:700;white-space:nowrap;vertical-align:middle;color:var(--dark);">
                     ₹${dynamicTotal.toLocaleString('en-IN')}
                   </td>
-                  <td style="padding:12px 16px;text-align:right;font-weight:700;color:#059669;">
+                  <td style="padding:12px 16px;text-align:right;font-weight:700;color:#059669;white-space:nowrap;vertical-align:middle;">
                     ₹${pd.toLocaleString('en-IN')}
                   </td>
-                  <td style="padding:12px 16px;text-align:right;">
-                    <strong class="${bal > 0.99 ? 'sbk-amt-pill due' : 'sbk-amt-pill paid'}">
-                      ${bal > 0.99 ? `₹${Math.round(bal).toLocaleString('en-IN')}` : '0'}
+                  <td style="padding:12px 16px;text-align:right;white-space:nowrap;vertical-align:middle;">
+                    <strong class="${bal > 0.99 ? 'sbk-amt-pill due' : 'sbk-amt-pill paid'}" style="white-space:nowrap;">
+                      ${bal > 0.99 ? `₹${Math.round(bal).toLocaleString('en-IN')} Due` : '✅ Paid'}
                     </strong>
                   </td>
-                  <td style="padding:12px 16px;text-align:center;">
-                    <div style="display:flex;justify-content:center;gap:6px;">
-                      <button class="btn-sm" onclick="window.openBookingDrawer('${b.booking_id}')" title="Details &amp; Actions">
+                  <td style="padding:12px 16px;text-align:center;white-space:nowrap;vertical-align:middle;">
+                    <div style="display:inline-flex;align-items:center;justify-content:center;gap:6px;">
+                      <button class="btn-sm" onclick="window.openBookingDrawer('${b.booking_id}')" style="padding:6px 12px;font-weight:600;" title="Details &amp; Actions">
                         ⚡ Details
                       </button>
-                      ${bal > 0.99 ? `
-                        <button class="btn-sm" style="background:#10B981;color:#fff;" onclick="showPaymentModal('${b.booking_id}')" title="Record Payment">
-                          💰
+                      ${b.phone ? `
+                        <button class="btn-sm" style="background:#25D366;color:#fff;border-color:#25D366;padding:6px 9px;" onclick="window.sendWhatsAppToGuest('${b.phone}', '${escapeHtml(b.guest_name)}', '${b.booking_id}')" title="Chat on WhatsApp">
+                          💬
                         </button>
                       ` : ''}
-                      <button class="btn-sm" style="background:#0D9488;color:#fff;" onclick="window.openBookingIdUploadModal('${b.booking_id}')" title="ID Proofs">
-                        🪪
+                      ${bal > 0.99 && canM ? `
+                        <button class="btn-sm" style="background:#ECFDF5;border-color:#10B981;color:#047857;padding:6px 10px;font-weight:700;" onclick="showPaymentModal('${b.booking_id}')" title="Record Payment">
+                          💰 Collect
+                        </button>
+                      ` : ''}
+                      <button class="btn-sm" style="background:#F1F5F9;border-color:#CBD5E1;color:#334155;padding:6px 9px;" onclick="window.openBookingIdUploadModal('${b.booking_id}')" title="ID Proofs">
+                        🪪 ${hasId ? 'IDs' : 'Upload'}
                       </button>
                     </div>
                   </td>
@@ -1488,6 +1512,7 @@ window.handlePaymentFilter = function(val) {
 
 window.toggleViewMode = function(mode) {
   window._sbkState.viewMode = mode;
+  try { localStorage.setItem('sbk_view_mode', mode); } catch (e) {}
   renderSmartManageBookings();
 };
 
