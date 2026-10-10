@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Vesper Hero Showcase Controller — All 17 Luxe Properties
  * THE UNIQUE HAVEN HOMES PRIVATE LIMITED
  */
@@ -527,6 +527,8 @@
     initScrollReveal();
     initSpacesLightbox();
     initSpacesProgressBar();
+    initHeroImageExpansionBlend();
+    initStickyScrollRooms();
     initCollectionFilter();
     initStickyMobileBar();
   }
