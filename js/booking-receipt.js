@@ -687,21 +687,40 @@ Thank you for choosing *The Unique Haven Homes*. Your direct reservation has bee
     }
   }
 
-  // 4B. Ensure html2pdf is loaded from CDN on demand
-  async function ensureHtml2Pdf() {
-    if (window.html2pdf) return window.html2pdf;
+  // 4B. Ensure html2canvas is loaded (local bundled script first, then CDN fallback)
+  async function ensureHtml2Canvas() {
+    if (window.html2canvas) return window.html2canvas;
     return new Promise((resolve, reject) => {
-      const existing = document.querySelector('script[src*="html2pdf"]');
+      const existing = document.querySelector('script[src*="html2canvas"]');
       if (existing) {
-        existing.addEventListener('load', () => resolve(window.html2pdf));
-        existing.addEventListener('error', () => reject(new Error('Failed to load html2pdf.')));
-        return;
+        existing.addEventListener('load', () => resolve(window.html2canvas));
+        existing.addEventListener('error', () => tryCdn());
+        if (window.html2canvas) return resolve(window.html2canvas);
+      } else {
+        tryLocal();
       }
-      const s = document.createElement('script');
-      s.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js';
-      s.onload = () => resolve(window.html2pdf);
-      s.onerror = () => reject(new Error('Failed to load html2pdf library.'));
-      document.head.appendChild(s);
+
+      function tryLocal() {
+        const s = document.createElement('script');
+        s.src = 'js/html2canvas.min.js';
+        s.onload = () => {
+          if (window.html2canvas) resolve(window.html2canvas);
+          else tryCdn();
+        };
+        s.onerror = () => tryCdn();
+        document.head.appendChild(s);
+      }
+
+      function tryCdn() {
+        const cdn = document.createElement('script');
+        cdn.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
+        cdn.onload = () => {
+          if (window.html2canvas) resolve(window.html2canvas);
+          else reject(new Error('html2canvas failed to initialize.'));
+        };
+        cdn.onerror = () => reject(new Error('Failed to load html2canvas from both local and CDN.'));
+        document.head.appendChild(cdn);
+      }
     });
   }
 
@@ -721,24 +740,29 @@ Thank you for choosing *The Unique Haven Homes*. Your direct reservation has bee
     sendReceiptWhatsApp(options.phone, options.message);
   }
 
-  // 4D. Convert payment slip to crisp high-res image for 100% WhatsApp visual preview
+  // 4D. Convert payment slip to crisp high-res image and show rich visual preview modal
   async function shareSlipAsImage(elementId, filename = 'Payment_Slip') {
     const el = document.getElementById(elementId);
-    if (!el) return;
+    if (!el) {
+      alert('Receipt content not found.');
+      return;
+    }
 
     try {
       if (!window.html2canvas) {
-        await ensureHtml2Pdf();
+        await ensureHtml2Canvas();
       }
-    } catch(e) {}
+    } catch(e) {
+      console.warn('ensureHtml2Canvas warning:', e);
+    }
 
     if (!window.html2canvas) {
-      alert('Could not initialize image renderer. Please check your internet connection.');
+      alert('Could not initialize image renderer. Please check your internet connection or reload the page.');
       return;
     }
 
     if (window.fsn?.info) {
-      fsn.info('Processing Image', '📸 Generating high-res slip image for WhatsApp...');
+      fsn.info('Processing Image', '📸 Generating high-res slip image preview...');
     }
 
     try {
@@ -746,60 +770,141 @@ Thank you for choosing *The Unique Haven Homes*. Your direct reservation has bee
         scale: 2,
         useCORS: true,
         backgroundColor: '#ffffff',
-        logging: false
+        logging: false,
+        windowWidth: 1024
       });
 
       canvas.toBlob(async (blob) => {
-        if (!blob) return;
-        const file = new File([blob], `${filename}.png`, { type: 'image/png' });
-
-        // A. Mobile Web Share (Native WhatsApp Share Sheet as Image)
-        if (navigator.canShare && navigator.canShare({ files: [file] })) {
-          try {
-            await navigator.share({
-              files: [file],
-              title: 'Payment Receipt',
-              text: 'Namaste! Please find your official booking payment slip from The Unique Haven Homes.'
-            });
-            return;
-          } catch(err) {
-            if (err.name !== 'AbortError') console.warn('Native share failed:', err);
-          }
+        if (!blob) {
+          alert('Could not generate receipt image blob.');
+          return;
         }
 
-        // B. Desktop Clipboard Image Copy (Paste into WhatsApp Web / Desktop with Ctrl+V)
+        const file = new File([blob], `${filename}.png`, { type: 'image/png' });
+
+        // Auto copy to clipboard in background if supported
         if (navigator.clipboard && window.ClipboardItem) {
           try {
             await navigator.clipboard.write([
               new ClipboardItem({ 'image/png': blob })
             ]);
             if (window.fsn?.success) {
-              fsn.success('Image Copied!', '📸 Payment Slip image copy ho gayi! Ab WhatsApp me Ctrl+V (Paste) karein — full visual preview dikhega.');
-            } else {
-              alert('✅ Payment Slip image copied to clipboard!\n\nAb WhatsApp Web me jaakar Ctrl+V (Paste) karein — direct visual preview send hoga!');
+              fsn.success('Image Ready & Copied', '📸 Receipt image copied to clipboard! Preview shown below.');
             }
-            return;
           } catch(e) {
-            console.warn('ClipboardItem copy failed:', e);
+            console.warn('Silent clipboard copy failed:', e);
           }
         }
 
-        // C. Fallback: Direct Download as Image
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `${filename}.png`;
-        a.click();
-        setTimeout(() => URL.revokeObjectURL(url), 1000);
-        if (window.fsn?.success) {
-          fsn.success('Image Saved', 'Payment Slip image download ho gayi. Is photo ko WhatsApp par send karein.');
-        } else {
-          alert('✅ Payment Slip image download ho gayi! Is photo ko WhatsApp me bhejenge toh instant full preview dikhega.');
-        }
+        // Show rich interactive preview modal
+        showSlipImagePreviewModal(blob, filename, file);
       }, 'image/png');
     } catch(err) {
       console.error('Canvas capture error:', err);
       alert('Error creating receipt image: ' + err.message);
+    }
+  }
+
+  // 4E. Visual Preview Modal for rendered receipt image
+  function showSlipImagePreviewModal(blob, filename, file) {
+    const old = document.getElementById('slipImagePreviewModal');
+    if (old) old.remove();
+
+    const imgUrl = URL.createObjectURL(blob);
+    const prevModal = document.createElement('div');
+    prevModal.className = 'modal-overlay';
+    prevModal.id = 'slipImagePreviewModal';
+    prevModal.style.zIndex = '999999';
+    prevModal.onclick = (e) => {
+      if (e.target === prevModal) {
+        URL.revokeObjectURL(imgUrl);
+        prevModal.remove();
+      }
+    };
+
+    prevModal.innerHTML = `
+      <div class="modal-box" style="max-width:760px;width:95%;max-height:92vh;display:flex;flex-direction:column;padding:18px;border-radius:14px;background:#0F172A;color:#fff;box-shadow:0 25px 50px -12px rgba(0,0,0,0.5);position:relative;">
+        <button type="button" onclick="URL.revokeObjectURL('${imgUrl}');this.closest('.modal-overlay').remove();" style="position:absolute;top:12px;right:12px;background:#EF4444;color:#fff;border:none;border-radius:50%;width:30px;height:30px;font-weight:900;cursor:pointer;font-size:14px;">✕</button>
+
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;padding-right:40px;">
+          <span style="font-size:24px;">📸</span>
+          <div>
+            <div style="font-weight:900;font-size:15px;color:#F8FAFC;">Payment Slip Image Preview</div>
+            <div style="font-size:11.5px;color:#94A3B8;">Crisp high-resolution visual receipt for WhatsApp &amp; records</div>
+          </div>
+        </div>
+
+        <!-- Action Toolbar -->
+        <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center;background:#1E293B;padding:10px 14px;border-radius:8px;">
+          <button type="button" class="btn-sm" style="background:#4F46E5;color:#fff;font-weight:800;padding:8px 14px;border:none;border-radius:6px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;" id="btnCopySlipImg">
+            📋 Copy Image (for WhatsApp Ctrl+V)
+          </button>
+          <button type="button" class="btn-sm" style="background:#0284C7;color:#fff;font-weight:800;padding:8px 14px;border:none;border-radius:6px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;" id="btnDownloadSlipImg">
+            📥 Download PNG
+          </button>
+          ${navigator.canShare && navigator.canShare({ files: [file] }) ? `
+            <button type="button" class="btn-sm" style="background:#25D366;color:#fff;font-weight:800;padding:8px 14px;border:none;border-radius:6px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;" id="btnShareSlipImg">
+              📱 WhatsApp Share Sheet
+            </button>
+          ` : ''}
+          <span style="font-size:11px;color:#CBD5E1;margin-left:auto;">💡 Tip: Image auto-copied. WhatsApp me seedha <strong>Ctrl+V</strong> karein.</span>
+        </div>
+
+        <!-- Scrollable Image Preview -->
+        <div style="flex:1;overflow-y:auto;background:#334155;padding:14px;border-radius:8px;text-align:center;">
+          <img src="${imgUrl}" alt="Slip Preview" style="max-width:100%;height:auto;border-radius:6px;box-shadow:0 8px 24px rgba(0,0,0,0.35);background:#fff;" />
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(prevModal);
+
+    // Copy Button Handler
+    const btnCopy = prevModal.querySelector('#btnCopySlipImg');
+    if (btnCopy) {
+      btnCopy.onclick = async () => {
+        try {
+          if (navigator.clipboard && window.ClipboardItem) {
+            await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+            btnCopy.textContent = '✅ Copied to Clipboard!';
+            btnCopy.style.background = '#059669';
+            if (window.fsn?.success) fsn.success('Copied', 'Slip image copy ho gayi! WhatsApp Web me Ctrl+V paste karein.');
+            setTimeout(() => {
+              btnCopy.textContent = '📋 Copy Image (for WhatsApp Ctrl+V)';
+              btnCopy.style.background = '#4F46E5';
+            }, 3000);
+          } else {
+            alert('Direct clipboard copy unsupported. Please use Download PNG button.');
+          }
+        } catch(e) {
+          alert('Clipboard copy failed. Please use Download PNG button.');
+        }
+      };
+    }
+
+    // Download Button Handler
+    const btnDl = prevModal.querySelector('#btnDownloadSlipImg');
+    if (btnDl) {
+      btnDl.onclick = () => {
+        const a = document.createElement('a');
+        a.href = imgUrl;
+        a.download = `${filename}.png`;
+        a.click();
+      };
+    }
+
+    // Native Share Button Handler
+    const btnShare = prevModal.querySelector('#btnShareSlipImg');
+    if (btnShare) {
+      btnShare.onclick = async () => {
+        try {
+          await navigator.share({
+            files: [file],
+            title: 'Payment Receipt',
+            text: 'Payment Slip from The Unique Haven Homes'
+          });
+        } catch(e) {}
+      };
     }
   }
 
