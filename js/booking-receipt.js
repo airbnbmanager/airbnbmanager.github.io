@@ -1174,27 +1174,56 @@ Thank you for choosing *The Unique Haven Homes*. Your direct reservation has bee
     prevModal.className = 'modal-overlay';
     prevModal.id = 'slipImagePreviewModal';
     prevModal.style.zIndex = '999999';
-    prevModal.onclick = (e) => {
-      if (e.target === prevModal) {
-        URL.revokeObjectURL(imgUrl);
+
+    // Reliable teardown function
+    let isClosed = false;
+    function closeSlipPreview() {
+      if (isClosed) return;
+      isClosed = true;
+      try { URL.revokeObjectURL(imgUrl); } catch(e) {}
+      window.removeEventListener('keydown', handleKeyDown, true);
+      if (prevModal && prevModal.parentNode) {
         prevModal.remove();
       }
-    };
+    }
+
+    function handleKeyDown(e) {
+      if (e.key === 'Escape' || e.key === 'Esc' || e.keyCode === 27) {
+        e.preventDefault();
+        e.stopPropagation();
+        closeSlipPreview();
+      }
+    }
+    // High-priority ESC capture listener
+    window.addEventListener('keydown', handleKeyDown, true);
 
     prevModal.innerHTML = `
-      <div class="modal-box" style="max-width:760px;width:95%;max-height:92vh;display:flex;flex-direction:column;padding:18px;border-radius:14px;background:#0F172A;color:#fff;box-shadow:0 25px 50px -12px rgba(0,0,0,0.5);position:relative;">
-        <button type="button" onclick="URL.revokeObjectURL('${imgUrl}');this.closest('.modal-overlay').remove();" style="position:absolute;top:12px;right:12px;background:#EF4444;color:#fff;border:none;border-radius:50%;width:30px;height:30px;font-weight:900;cursor:pointer;font-size:14px;">✕</button>
-
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;padding-right:40px;">
-          <span style="font-size:24px;">📸</span>
-          <div>
-            <div style="font-weight:900;font-size:15px;color:#F8FAFC;">📱 Mobile Voucher Slip Preview (WhatsApp Optimized)</div>
-            <div style="font-size:11.5px;color:#94A3B8;">Ultra-crisp 5-star mobile pass · Zero zoom needed on smartphones</div>
+      <div class="modal-box" style="max-width:760px;width:95%;max-height:92vh;display:flex;flex-direction:column;padding:18px 20px;border-radius:16px;background:#0F172A;color:#fff;box-shadow:0 25px 60px -12px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.08);position:relative;">
+        
+        <!-- Header with Sleek Integrated Close Button -->
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid rgba(255,255,255,0.1);">
+          <div style="display:flex;align-items:center;gap:12px;min-width:0;">
+            <div style="width:42px;height:42px;border-radius:10px;background:rgba(99,102,241,0.18);border:1px solid rgba(99,102,241,0.3);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;">📸</div>
+            <div style="min-width:0;">
+              <div style="font-weight:900;font-size:15.5px;color:#F8FAFC;letter-spacing:-0.2px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                <span>Mobile Voucher Slip Preview</span>
+                <span style="background:#10B981;color:#fff;font-size:10px;font-weight:800;padding:2px 7px;border-radius:6px;letter-spacing:0.3px;text-transform:uppercase;">WhatsApp HD (300 DPI)</span>
+              </div>
+              <div style="font-size:11.5px;color:#94A3B8;margin-top:2px;">Ultra-crisp 5-star mobile pass · Zero zoom needed on smartphones</div>
+            </div>
           </div>
+
+          <!-- 🌟 BEST MODERN CLOSE BUTTON -->
+          <button type="button" id="btnCloseSlipModal" title="Close Preview (ESC or Click)" aria-label="Close Preview" style="width:36px;height:36px;min-width:36px;border-radius:50%;background:#EF4444;border:2px solid #DC2626;color:#ffffff;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all 0.2s cubic-bezier(0.16,1,0.3,1);box-shadow:0 4px 12px rgba(239,68,68,0.4);flex-shrink:0;outline:none;padding:0;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" style="pointer-events:none;display:block;">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
         </div>
 
         <!-- Action Toolbar -->
-        <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center;background:#1E293B;padding:10px 14px;border-radius:8px;">
+        <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center;background:#1E293B;padding:10px 14px;border-radius:8px;border:1px solid rgba(255,255,255,0.06);">
           <button type="button" class="btn-sm" style="background:#4F46E5;color:#fff;font-weight:800;padding:8px 14px;border:none;border-radius:6px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;" id="btnCopySlipImg">
             📋 Copy Image (for WhatsApp Ctrl+V)
           </button>
@@ -1206,7 +1235,14 @@ Thank you for choosing *The Unique Haven Homes*. Your direct reservation has bee
               📱 WhatsApp Share Sheet
             </button>
           ` : ''}
-          <span style="font-size:11px;color:#CBD5E1;margin-left:auto;">💡 Tip: Image auto-copied. WhatsApp me seedha <strong>Ctrl+V</strong> karein.</span>
+          <button type="button" class="btn-sm" id="btnCloseSlipModalBar" style="background:#334155;color:#F8FAFC;font-weight:800;padding:8px 14px;border:1px solid #475569;border-radius:6px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;transition:all 0.2s;" title="Close Preview">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="pointer-events:none;">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+            Close
+          </button>
+          <span style="font-size:11px;color:#94A3B8;margin-left:auto;">💡 WhatsApp me seedha <strong>Ctrl+V</strong> karein ya ESC dabayein.</span>
         </div>
 
         <!-- Scrollable Image Preview -->
@@ -1217,6 +1253,52 @@ Thank you for choosing *The Unique Haven Homes*. Your direct reservation has bee
     `;
 
     document.body.appendChild(prevModal);
+
+    // Close button interactions & hover animations
+    const btnClose = prevModal.querySelector('#btnCloseSlipModal');
+    if (btnClose) {
+      btnClose.onmouseenter = () => {
+        btnClose.style.transform = 'scale(1.1) rotate(90deg)';
+        btnClose.style.background = '#DC2626';
+        btnClose.style.boxShadow = '0 6px 18px rgba(239,68,68,0.6)';
+      };
+      btnClose.onmouseleave = () => {
+        btnClose.style.transform = 'scale(1) rotate(0deg)';
+        btnClose.style.background = '#EF4444';
+        btnClose.style.boxShadow = '0 4px 12px rgba(239,68,68,0.4)';
+      };
+      btnClose.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        closeSlipPreview();
+      });
+    }
+
+    const btnCloseBar = prevModal.querySelector('#btnCloseSlipModalBar');
+    if (btnCloseBar) {
+      btnCloseBar.onmouseenter = () => {
+        btnCloseBar.style.background = '#EF4444';
+        btnCloseBar.style.borderColor = '#EF4444';
+      };
+      btnCloseBar.onmouseleave = () => {
+        btnCloseBar.style.background = '#334155';
+        btnCloseBar.style.borderColor = '#475569';
+      };
+      btnCloseBar.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        closeSlipPreview();
+      });
+    }
+
+    // Backdrop click
+    prevModal.addEventListener('click', (e) => {
+      if (e.target === prevModal || e.target.classList.contains('modal-overlay')) {
+        e.preventDefault();
+        e.stopPropagation();
+        closeSlipPreview();
+      }
+    });
 
     // Copy Button Handler
     const btnCopy = prevModal.querySelector('#btnCopySlipImg');
@@ -1913,7 +1995,12 @@ ${propertiesList}
       <div class="modal-box" style="max-width:960px;width:96%;max-height:94vh;display:flex;flex-direction:column;padding:20px;border-radius:14px;background:#F1F5F9;box-shadow:0 25px 50px -12px rgba(0,0,0,0.25);position:relative;">
         
         <!-- Sticky Prominent Floating Close Button -->
-        <button type="button" class="modal-close-prominent" onclick="this.closest('.modal-overlay').remove()" title="Close (ESC)" style="position:absolute;top:10px;right:10px;background:#EF4444;color:#fff;border:none;border-radius:50%;width:34px;height:34px;font-size:16px;font-weight:900;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 10px rgba(239,68,68,0.35);z-index:10000;">✕</button>
+        <button type="button" class="modal-close-prominent" onclick="this.closest('.modal-overlay').remove()" title="Close (ESC)" style="position:absolute;top:10px;right:10px;background:#EF4444;border:2px solid #DC2626;color:#fff;border-radius:50%;width:34px;height:34px;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 10px rgba(239,68,68,0.35);z-index:10000;transition:all 0.2s cubic-bezier(0.16,1,0.3,1);outline:none;padding:0;" onmouseenter="this.style.transform='scale(1.1) rotate(90deg)';this.style.background='#DC2626'" onmouseleave="this.style.transform='scale(1) rotate(0deg)';this.style.background='#EF4444'">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" style="pointer-events:none;display:block;">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
 
         <!-- Modal Topbar -->
         <div style="display:flex;justify-content:space-between;align-items:center;background:#0F172A;color:#fff;padding:12px 18px;border-radius:10px;margin-bottom:14px;box-shadow:0 4px 6px -1px rgba(0,0,0,0.1);flex-wrap:wrap;gap:10px;padding-right:45px;">
@@ -2076,7 +2163,12 @@ ${propertiesList}
       <div class="modal-box" style="max-width:920px;width:96%;max-height:94vh;display:flex;flex-direction:column;padding:20px;border-radius:14px;background:#F1F5F9;box-shadow:0 25px 50px -12px rgba(0,0,0,0.25);position:relative;">
         
         <!-- Sticky Prominent Floating Close Button -->
-        <button type="button" class="modal-close-prominent" onclick="this.closest('.modal-overlay').remove()" title="Close (ESC)" style="position:absolute;top:10px;right:10px;background:#EF4444;color:#fff;border:none;border-radius:50%;width:34px;height:34px;font-size:16px;font-weight:900;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 10px rgba(239,68,68,0.35);z-index:10000;">✕</button>
+        <button type="button" class="modal-close-prominent" onclick="this.closest('.modal-overlay').remove()" title="Close (ESC)" style="position:absolute;top:10px;right:10px;background:#EF4444;border:2px solid #DC2626;color:#fff;border-radius:50%;width:34px;height:34px;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 10px rgba(239,68,68,0.35);z-index:10000;transition:all 0.2s cubic-bezier(0.16,1,0.3,1);outline:none;padding:0;" onmouseenter="this.style.transform='scale(1.1) rotate(90deg)';this.style.background='#DC2626'" onmouseleave="this.style.transform='scale(1) rotate(0deg)';this.style.background='#EF4444'">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" style="pointer-events:none;display:block;">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
 
         <!-- Modal Topbar -->
         <div style="display:flex;justify-content:space-between;align-items:center;background:#0F172A;color:#fff;padding:12px 18px;border-radius:10px;margin-bottom:14px;box-shadow:0 4px 6px -1px rgba(0,0,0,0.1);flex-wrap:wrap;gap:8px;padding-right:45px;">
