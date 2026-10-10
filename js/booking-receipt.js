@@ -740,10 +740,292 @@ Thank you for choosing *The Unique Haven Homes*. Your direct reservation has bee
     sendReceiptWhatsApp(options.phone, options.message);
   }
 
+  // 4D-1. Dedicated Mobile-First Voucher Card Builder (Optimized for WhatsApp & Phone Screens)
+  function buildMobileSlipCardHTML(data) {
+    const isMulti = !!data.isMulti;
+
+    const guestName = isMulti ? (data.guestName || 'Guest') : (data.booking?.guest_name || 'Guest');
+    const phone = isMulti ? (data.phone || '') : (data.booking?.phone || '');
+    const cleanP = cleanPhone(phone);
+    const totalAmount = Number(data.totalAmount || 0);
+    const paidAmount = Number(data.paidAmount || 0);
+    const balanceDue = Number(data.balanceDue || 0);
+    const payments = data.payments || [];
+    const customNotes = data.customNotes || (isMulti ? (data.primaryBooking?.notes || data.bookings?.[0]?.notes || '') : (data.booking?.notes || ''));
+    const bookedBy = isMulti ? (data.primaryBooking?.booked_by || '') : (data.booking?.booked_by || '');
+
+    const receiptNo = isMulti ? `UHH-GRP/${data.stayGroupId || 'GROUP'}` : `UHH-REC/${data.booking?.booking_id || 'SLIP'}`;
+    const todayStr = formatDate(new Date().toISOString().slice(0, 10));
+
+    let logoSrc = 'assets/logo.png';
+    try { logoSrc = new URL('assets/logo.png', window.location.href).href; } catch(e) {}
+
+    // Status Styling
+    let statusText = 'FULL PAYMENT SETTLED';
+    let statusBg = '#ECFDF5';
+    let statusBorder = '#10B981';
+    let statusColor = '#065F46';
+    let statusIcon = '✅';
+
+    if (totalAmount <= 0) {
+      statusText = 'COMPLIMENTARY GUEST STAY';
+      statusBg = '#F3F4F6';
+      statusBorder = '#9CA3AF';
+      statusColor = '#374151';
+      statusIcon = '🎁';
+    } else if (paidAmount === 0) {
+      statusText = `PAYMENT DUE AT CHECK-IN: ₹${balanceDue.toLocaleString('en-IN')}`;
+      statusBg = '#FEF2F2';
+      statusBorder = '#EF4444';
+      statusColor = '#991B1B';
+      statusIcon = '🔴';
+    } else if (balanceDue > 0) {
+      statusText = `ADVANCE PAID · ₹${balanceDue.toLocaleString('en-IN')} DUE AT CHECK-IN`;
+      statusBg = '#FEF9C3';
+      statusBorder = '#F59E0B';
+      statusColor = '#854D0E';
+      statusIcon = '⚠️';
+    }
+
+    // Properties Cards HTML
+    let propertiesHTML = '';
+    if (isMulti) {
+      const bList = data.bookings || [];
+      propertiesHTML = bList.map((b, idx) => {
+        const room = b.rooms || {};
+        const pName = room.nickname || room.property_name || b.room_id || 'Homestay';
+        const unit = room.unit_no ? ` (${room.unit_no})` : '';
+        const address = room.address || 'Lucknow, Uttar Pradesh';
+        const n = calcNights(b.check_in, b.check_out);
+        const ci = formatDate(b.check_in);
+        const co = formatDate(b.check_out);
+        const cit = formatTime(b.check_in_time || '14:00');
+        const cot = formatTime(b.check_out_time || '11:00');
+        const amt = Number(b.total_amount || 0);
+
+        return `
+          <div style="background:#FFFFFF;border:1.5px solid #E2E8F0;border-radius:12px;padding:12px 14px;margin-bottom:10px;box-shadow:0 2px 4px rgba(0,0,0,0.02);">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:8px;">
+              <div>
+                <div style="font-size:10.5px;font-weight:800;color:#B45309;text-transform:uppercase;letter-spacing:0.5px;">Homestay #${idx + 1}</div>
+                <div style="font-size:16px;font-weight:900;color:#0F172A;line-height:1.2;">${escapeHtml(pName)}${escapeHtml(unit)}</div>
+                <div style="font-size:11.5px;color:#64748B;margin-top:2px;">📍 ${escapeHtml(address)}</div>
+              </div>
+              <div style="text-align:right;">
+                <div style="font-size:16px;font-weight:900;color:#0F172A;">₹${amt.toLocaleString('en-IN')}</div>
+                <div style="font-size:10.5px;color:#64748B;font-family:monospace;">${escapeHtml(b.booking_id)}</div>
+              </div>
+            </div>
+
+            <div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:8px;padding:9px 12px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;">
+              <div>
+                <div style="font-size:10px;color:#64748B;font-weight:700;text-transform:uppercase;">Check-In</div>
+                <div style="font-size:13px;font-weight:800;color:#0F172A;">${ci}</div>
+                <div style="font-size:11px;color:#475569;font-weight:600;">⏰ ${cit}</div>
+              </div>
+              <div style="text-align:center;color:#94A3B8;font-size:15px;font-weight:bold;">→</div>
+              <div>
+                <div style="font-size:10px;color:#64748B;font-weight:700;text-transform:uppercase;">Check-Out</div>
+                <div style="font-size:13px;font-weight:800;color:#0F172A;">${co}</div>
+                <div style="font-size:11px;color:#475569;font-weight:600;">⏰ ${cot}</div>
+              </div>
+              <div style="border-left:1px dashed #CBD5E1;padding-left:10px;">
+                <div style="font-size:10px;color:#64748B;font-weight:700;text-transform:uppercase;">Stay</div>
+                <div style="font-size:13px;font-weight:800;color:#4F46E5;">${n} Night${n > 1 ? 's' : ''}</div>
+                <div style="font-size:11px;color:#475569;font-weight:600;">👥 ${b.guests || 1} Guests</div>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    } else {
+      const b = data.booking || {};
+      const room = b.rooms || {};
+      const pName = room.nickname || room.property_name || b.room_id || 'Homestay';
+      const unit = room.unit_no ? ` (${room.unit_no})` : '';
+      const address = room.address || 'Lucknow, Uttar Pradesh';
+      const n = data.nights || calcNights(b.check_in, b.check_out);
+      const ci = formatDate(b.check_in);
+      const co = formatDate(b.check_out);
+      const cit = formatTime(b.check_in_time || '14:00');
+      const cot = formatTime(b.check_out_time || '11:00');
+
+      propertiesHTML = `
+        <div style="background:#FFFFFF;border:1.5px solid #E2E8F0;border-radius:12px;padding:12px 14px;margin-bottom:10px;box-shadow:0 2px 4px rgba(0,0,0,0.02);">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:8px;">
+            <div>
+              <div style="font-size:10.5px;font-weight:800;color:#B45309;text-transform:uppercase;letter-spacing:0.5px;">Booked Property</div>
+              <div style="font-size:16.5px;font-weight:900;color:#0F172A;line-height:1.2;">${escapeHtml(pName)}${escapeHtml(unit)}</div>
+              <div style="font-size:11.5px;color:#64748B;margin-top:2px;">📍 ${escapeHtml(address)}</div>
+            </div>
+            <div style="text-align:right;">
+              <div style="font-size:17px;font-weight:900;color:#0F172A;">₹${totalAmount.toLocaleString('en-IN')}</div>
+              <div style="font-size:10.5px;color:#64748B;font-family:monospace;">${escapeHtml(b.booking_id)}</div>
+            </div>
+          </div>
+
+          <div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:8px;padding:9px 12px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;">
+            <div>
+              <div style="font-size:10px;color:#64748B;font-weight:700;text-transform:uppercase;">Check-In</div>
+              <div style="font-size:13px;font-weight:800;color:#0F172A;">${ci}</div>
+              <div style="font-size:11px;color:#475569;font-weight:600;">⏰ ${cit}</div>
+            </div>
+            <div style="text-align:center;color:#94A3B8;font-size:15px;font-weight:bold;">→</div>
+            <div>
+              <div style="font-size:10px;color:#64748B;font-weight:700;text-transform:uppercase;">Check-Out</div>
+              <div style="font-size:13px;font-weight:800;color:#0F172A;">${co}</div>
+              <div style="font-size:11px;color:#475569;font-weight:600;">⏰ ${cot}</div>
+            </div>
+            <div style="border-left:1px dashed #CBD5E1;padding-left:10px;">
+              <div style="font-size:10px;color:#64748B;font-weight:700;text-transform:uppercase;">Stay</div>
+              <div style="font-size:13px;font-weight:800;color:#4F46E5;">${n} Night${n > 1 ? 's' : ''}</div>
+              <div style="font-size:11px;color:#475569;font-weight:600;">👥 ${b.guests || 1} Guests</div>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    return `
+      <div id="uhhMobileSlipCard" style="width:480px;max-width:480px;background:#FFFFFF;color:#0F172A;font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;padding:20px 18px;border-radius:16px;box-sizing:border-box;line-height:1.4;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;border:1px solid #CBD5E1;margin:0 auto;">
+        
+        <!-- Header Strip -->
+        <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid #0F172A;padding-bottom:12px;margin-bottom:12px;gap:10px;">
+          <div style="display:flex;align-items:center;gap:12px;">
+            <img src="${logoSrc}" alt="Logo" style="width:44px;height:44px;object-fit:contain;border-radius:10px;background:#FAF8F5;border:1px solid #E2E8F0;padding:2px;" />
+            <div>
+              <div style="font-size:9.5px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:#B45309;">The Unique Haven Homes</div>
+              <div style="font-size:15px;font-weight:900;color:#0F172A;line-height:1.2;">${CO.name}</div>
+              <div style="font-size:10.5px;color:#64748B;margin-top:2px;">📞 ${CO.phone} · Lucknow, UP</div>
+            </div>
+          </div>
+          <div style="text-align:right;">
+            <div style="background:#0F172A;color:#FFFFFF;padding:3px 9px;border-radius:6px;font-size:10px;font-weight:800;letter-spacing:0.5px;text-transform:uppercase;display:inline-block;">
+              Official Voucher
+            </div>
+            <div style="font-size:9.5px;color:#64748B;margin-top:3px;font-weight:600;">
+              ${todayStr}
+            </div>
+          </div>
+        </div>
+
+        <!-- Status Banner -->
+        <div style="background:${statusBg};border:1.5px solid ${statusBorder};color:${statusColor};border-radius:10px;padding:9px 12px;margin-bottom:12px;text-align:center;">
+          <div style="font-size:13px;font-weight:900;letter-spacing:0.3px;">
+            ${statusIcon} ${statusText}
+          </div>
+          <div style="font-size:11px;font-weight:600;margin-top:2px;opacity:0.95;">
+            ${isMulti ? `Group Ref: <strong>${data.stayGroupId}</strong> · ${data.bookings.length} Homestays` : `Booking Ref: <strong>${data.booking?.booking_id}</strong>`}
+          </div>
+        </div>
+
+        <!-- Primary Guest Card -->
+        <div style="background:#F8FAFC;border:1.5px solid #E2E8F0;border-radius:12px;padding:12px 14px;margin-bottom:12px;">
+          <div style="font-size:10px;font-weight:800;color:#B45309;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:2px;">Primary Guest</div>
+          <div style="font-size:17px;font-weight:900;color:#0F172A;">${escapeHtml(guestName)}</div>
+          <div style="font-size:12.5px;color:#334155;margin-top:4px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;">
+            <span>📱 <strong>${phone ? escapeHtml(phone) : 'N/A'}</strong></span>
+            <span>👥 <strong>${isMulti ? data.totalGuests : (data.booking?.guests || 1)} Guests Total</strong></span>
+            ${bookedBy ? `<span>✍️ Booked By: <strong>${escapeHtml(bookedBy)}</strong></span>` : ''}
+          </div>
+        </div>
+
+        <!-- Properties Section -->
+        <div style="margin-bottom:12px;">
+          <div style="font-size:11.5px;font-weight:800;color:#0F172A;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;">
+            <span>🏠 Reserved Homestay(s)</span>
+            <span style="font-size:11px;color:#64748B;font-weight:700;">${isMulti ? `${data.bookings.length} Homestays` : '1 Homestay'}</span>
+          </div>
+          ${propertiesHTML}
+        </div>
+
+        <!-- Financial Statement (3 Highlight Hero Metric Boxes) -->
+        <div style="border:1.5px solid #0F172A;border-radius:12px;overflow:hidden;margin-bottom:12px;">
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;background:#F8FAFC;text-align:center;">
+            <div style="padding:10px 6px;border-right:1px solid #E2E8F0;">
+              <div style="font-size:9.5px;font-weight:800;color:#64748B;text-transform:uppercase;">Total Bill</div>
+              <div style="font-size:16.5px;font-weight:900;color:#0F172A;margin-top:2px;">₹${totalAmount.toLocaleString('en-IN')}</div>
+            </div>
+            <div style="padding:10px 6px;border-right:1px solid #E2E8F0;background:#F0FDF4;">
+              <div style="font-size:9.5px;font-weight:800;color:#15803D;text-transform:uppercase;">Advance Paid</div>
+              <div style="font-size:16.5px;font-weight:900;color:#059669;margin-top:2px;">₹${paidAmount.toLocaleString('en-IN')}</div>
+            </div>
+            <div style="padding:10px 6px;background:${balanceDue > 0 ? '#FEF2F2' : '#F0FDF4'};">
+              <div style="font-size:9.5px;font-weight:800;color:${balanceDue > 0 ? '#DC2626' : '#15803D'};text-transform:uppercase;">${balanceDue > 0 ? 'Balance Due' : 'Cleared'}</div>
+              <div style="font-size:16.5px;font-weight:900;color:${balanceDue > 0 ? '#DC2626' : '#059669'};margin-top:2px;">₹${balanceDue.toLocaleString('en-IN')}</div>
+            </div>
+          </div>
+
+          ${payments && payments.length > 0 ? `
+            <div style="padding:10px 12px;background:#FFFFFF;border-top:1px solid #E2E8F0;">
+              <div style="font-size:10px;font-weight:800;color:#475569;text-transform:uppercase;margin-bottom:6px;">💳 Payment Log (${payments.length} Transaction${payments.length > 1 ? 's' : ''})</div>
+              ${payments.map((p, idx) => `
+                <div style="display:flex;justify-content:space-between;align-items:center;font-size:11.5px;padding:3px 0;border-bottom:1px solid #F1F5F9;">
+                  <div>
+                    <span style="font-weight:700;color:#0F172A;">${formatDate(p.payment_date || p.paid_at)}</span>
+                    <span style="color:#64748B;font-size:10px;"> · via <strong>${escapeHtml(p.payment_mode || 'UPI')}</strong></span>
+                  </div>
+                  <div style="font-weight:900;color:#059669;font-size:12px;">
+                    ₹${Number(p.amount || 0).toLocaleString('en-IN')}
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+          ` : ''}
+        </div>
+
+        <!-- Custom Notes Banner (If any) -->
+        ${customNotes ? `
+          <div style="background:#FFFBEB;border:1.5px solid #FDE68A;border-radius:10px;padding:10px 12px;margin-bottom:12px;font-size:12px;color:#92400E;line-height:1.4;">
+            <strong style="font-size:12px;">📝 Special Note:</strong><br>
+            ${escapeHtml(customNotes)}
+          </div>
+        ` : ''}
+
+        <!-- Support Strip -->
+        <div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:10px;padding:9px 12px;margin-bottom:12px;font-size:11px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;">
+          <div>
+            👤 <strong>Manager:</strong> Praveen Singh<br>
+            📞 <a href="tel:+919194109911" style="color:#0F172A;text-decoration:none;font-weight:800;">+91 9194109911</a>
+          </div>
+          <div>
+            👑 <strong>Director / Owner:</strong> Firoz Khan<br>
+            📞 <a href="tel:+918299600709" style="color:#0F172A;text-decoration:none;font-weight:800;">+91 82996 00709</a>
+          </div>
+        </div>
+
+        <!-- Compact Guidelines -->
+        <div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:10px;padding:9px 12px;margin-bottom:12px;font-size:10px;color:#475569;line-height:1.4;">
+          <div style="font-weight:800;color:#0F172A;margin-bottom:3px;text-transform:uppercase;">📋 Important Stay Guidelines:</div>
+          • Original Govt Photo ID (Aadhaar / Passport / DL) mandatory at check-in.<br>
+          • Check-in: 02:00 PM | Check-out: 11:00 AM.<br>
+          • Quiet hours post 11:00 PM. No loud music.<br>
+          • Remaining balance must be settled before key handover.
+        </div>
+
+        <!-- Footer Signature & Stamp -->
+        <div style="display:flex;justify-content:space-between;align-items:flex-end;border-top:1.5px solid #CBD5E1;padding-top:8px;">
+          <div style="font-size:9.5px;color:#94A3B8;line-height:1.35;">
+            <strong style="color:#475569;">${CO.name}</strong><br>
+            CIN: ${CO.cin} · PAN: ${CO.pan}<br>
+            Website: ${CO.web}
+          </div>
+          <div style="text-align:right;">
+            <img src="${getSignatureStampSrc()}" alt="Signature" style="height:34px;max-width:120px;object-fit:contain;margin-bottom:-4px;margin-left:auto;display:block;" />
+            <div style="border-bottom:1px dashed #CBD5E1;width:110px;margin-left:auto;height:1px;"></div>
+            <div style="font-size:9px;color:#64748B;margin-top:2px;">Authorised Signatory</div>
+          </div>
+        </div>
+
+      </div>
+    `;
+  }
+
   // 4D. Convert payment slip to crisp high-res image and show rich visual preview modal
-  async function shareSlipAsImage(elementId, filename = 'Payment_Slip') {
+  // Renders Mobile-First Voucher Card specifically for WhatsApp & mobile viewing!
+  async function shareSlipAsImage(elementId, filename = 'Payment_Slip', receiptData = null) {
     const el = document.getElementById(elementId);
-    if (!el) {
+    if (!el && !receiptData && !window._activeReceiptData) {
       alert('Receipt content not found.');
       return;
     }
@@ -757,36 +1039,50 @@ Thank you for choosing *The Unique Haven Homes*. Your direct reservation has bee
     }
 
     if (!window.html2canvas) {
-      alert('Could not initialize image renderer. Please check your internet connection or reload the page.');
+      alert('Could not initialize image renderer. Please reload the page.');
       return;
     }
 
     if (window.fsn?.info) {
-      fsn.info('Processing Image', '📸 Generating high-res slip image preview...');
+      fsn.info('Processing Image', '📸 Generating high-res mobile slip preview...');
     }
 
-    let clone = null;
-    try {
-      const target = el.querySelector('.uhh-receipt-container') || el;
-      clone = target.cloneNode(true);
-      clone.id = 'uhh_temp_capture_clone';
-      clone.style.position = 'fixed';
-      clone.style.left = '-9999px';
-      clone.style.top = '0';
-      clone.style.width = '760px';
-      clone.style.maxWidth = '760px';
-      clone.style.minWidth = '760px';
-      clone.style.height = 'auto';
-      clone.style.minHeight = 'auto';
-      clone.style.maxHeight = 'none';
-      clone.style.overflow = 'visible';
-      clone.style.zIndex = '-99999';
-      clone.style.boxSizing = 'border-box';
-      clone.style.background = '#ffffff';
-      document.body.appendChild(clone);
+    const data = receiptData || window._activeReceiptData || null;
 
-      // Wait for all images in clone to be ready
-      const imgs = Array.from(clone.querySelectorAll('img'));
+    let tempWrapper = null;
+    try {
+      let captureEl = null;
+
+      if (data) {
+        // Render dedicated Mobile Format Voucher Card!
+        tempWrapper = document.createElement('div');
+        tempWrapper.id = 'uhh_mobile_slip_render_wrapper';
+        tempWrapper.style.position = 'fixed';
+        tempWrapper.style.left = '-9999px';
+        tempWrapper.style.top = '0';
+        tempWrapper.style.width = '480px';
+        tempWrapper.style.maxWidth = '480px';
+        tempWrapper.style.zIndex = '-99999';
+        tempWrapper.style.background = '#ffffff';
+        tempWrapper.innerHTML = buildMobileSlipCardHTML(data);
+        document.body.appendChild(tempWrapper);
+        captureEl = tempWrapper.firstElementChild || tempWrapper;
+      } else {
+        // Fallback: unconstrained clone of DOM element
+        const target = el ? (el.querySelector('.uhh-receipt-container') || el) : null;
+        if (!target) throw new Error('Target receipt container not found.');
+        tempWrapper = target.cloneNode(true);
+        tempWrapper.style.position = 'fixed';
+        tempWrapper.style.left = '-9999px';
+        tempWrapper.style.top = '0';
+        tempWrapper.style.width = '760px';
+        tempWrapper.style.zIndex = '-99999';
+        document.body.appendChild(tempWrapper);
+        captureEl = tempWrapper;
+      }
+
+      // Wait for all images in captureEl to be ready
+      const imgs = Array.from(captureEl.querySelectorAll('img'));
       await Promise.all(imgs.map(img => {
         if (img.complete && img.naturalHeight !== 0) return Promise.resolve();
         return new Promise(res => {
@@ -799,10 +1095,10 @@ Thank you for choosing *The Unique Haven Homes*. Your direct reservation has bee
       // Give browser layout engine a short beat to calculate full height
       await new Promise(r => setTimeout(r, 60));
 
-      const fullHeight = Math.max(clone.scrollHeight, clone.offsetHeight, 600);
-      const fullWidth = clone.offsetWidth || 760;
+      const fullHeight = Math.max(captureEl.scrollHeight, captureEl.offsetHeight, 600);
+      const fullWidth = captureEl.offsetWidth || 480;
 
-      const canvas = await window.html2canvas(clone, {
+      const canvas = await window.html2canvas(captureEl, {
         scale: 2,
         useCORS: true,
         backgroundColor: '#ffffff',
@@ -813,13 +1109,13 @@ Thank you for choosing *The Unique Haven Homes*. Your direct reservation has bee
         y: 0,
         width: fullWidth,
         height: fullHeight,
-        windowWidth: 1200,
+        windowWidth: 1024,
         windowHeight: fullHeight + 100
       });
 
-      if (clone && clone.parentNode) {
-        clone.remove();
-        clone = null;
+      if (tempWrapper && tempWrapper.parentNode) {
+        tempWrapper.remove();
+        tempWrapper = null;
       }
 
       canvas.toBlob(async (blob) => {
@@ -837,7 +1133,7 @@ Thank you for choosing *The Unique Haven Homes*. Your direct reservation has bee
               new ClipboardItem({ 'image/png': blob })
             ]);
             if (window.fsn?.success) {
-              fsn.success('Image Ready & Copied', '📸 Full receipt image copied to clipboard! Preview shown below.');
+              fsn.success('Mobile Slip Copied', '📸 Mobile receipt image copied to clipboard! Preview shown below.');
             }
           } catch(e) {
             console.warn('Silent clipboard copy failed:', e);
@@ -848,7 +1144,7 @@ Thank you for choosing *The Unique Haven Homes*. Your direct reservation has bee
         showSlipImagePreviewModal(blob, filename, file);
       }, 'image/png');
     } catch(err) {
-      if (clone && clone.parentNode) clone.remove();
+      if (tempWrapper && tempWrapper.parentNode) tempWrapper.remove();
       console.error('Canvas capture error:', err);
       alert('Error creating receipt image: ' + err.message);
     }
@@ -878,8 +1174,8 @@ Thank you for choosing *The Unique Haven Homes*. Your direct reservation has bee
         <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;padding-right:40px;">
           <span style="font-size:24px;">📸</span>
           <div>
-            <div style="font-weight:900;font-size:15px;color:#F8FAFC;">Payment Slip Image Preview</div>
-            <div style="font-size:11.5px;color:#94A3B8;">Crisp high-resolution visual receipt for WhatsApp &amp; records</div>
+            <div style="font-weight:900;font-size:15px;color:#F8FAFC;">📱 Mobile Voucher Slip Preview (WhatsApp Optimized)</div>
+            <div style="font-size:11.5px;color:#94A3B8;">Ultra-crisp 5-star mobile pass · Zero zoom needed on smartphones</div>
           </div>
         </div>
 
@@ -1584,6 +1880,9 @@ ${propertiesList}
   }
 
   function renderMultiPropertyReceiptModal(data) {
+    window._activeReceiptData = data;
+    window._activeMultiReceiptData = data;
+
     const modal = document.createElement('div');
     modal.className = 'modal-overlay';
     modal.id = 'uhhMultiBookingReceiptModal';
@@ -1622,7 +1921,7 @@ ${propertiesList}
             <button type="button" class="btn-sm" style="background:#B45309;color:#fff;font-weight:700;border:none;padding:7px 14px;border-radius:6px;cursor:pointer;display:inline-flex;align-items:center;gap:5px;" onclick="window.printBookingReceipt('multiReceiptPrintArea', '${escapeHtml(docTitle).replace(/'/g, "\\'")}')">
               🖨️ Print / Save PDF
             </button>
-            <button type="button" class="btn-sm" style="background:#0284C7;color:#fff;font-weight:700;border:none;padding:7px 14px;border-radius:6px;cursor:pointer;display:inline-flex;align-items:center;gap:5px;" onclick="window.shareSlipAsImage('multiReceiptPrintArea', 'Payment_Slip_Combined')">
+            <button type="button" class="btn-sm" style="background:#0284C7;color:#fff;font-weight:700;border:none;padding:7px 14px;border-radius:6px;cursor:pointer;display:inline-flex;align-items:center;gap:5px;" onclick="window.shareSlipAsImage('multiReceiptPrintArea', 'Payment_Slip_Combined', window._activeMultiReceiptData)">
               📸 Share as Image (Preview)
             </button>
             <button type="button" class="btn-sm" style="background:#25D366;color:#fff;font-weight:800;border:none;padding:7px 14px;border-radius:6px;cursor:pointer;display:inline-flex;align-items:center;gap:5px;" onclick="window.sendReceiptWhatsApp('${escapeHtml(data.phone || '')}', document.getElementById('multiReceiptWaHidden').value)">
@@ -1743,6 +2042,9 @@ ${propertiesList}
 
   // Render the Full Interactive Receipt Modal
   function renderReceiptModal(data) {
+    window._activeReceiptData = data;
+    window._activeSingleReceiptData = data;
+
     const modal = document.createElement('div');
     modal.className = 'modal-overlay';
     modal.id = 'uhhBookingReceiptModal';
@@ -1781,7 +2083,7 @@ ${propertiesList}
             <button type="button" class="btn-sm" style="background:#B45309;color:#fff;font-weight:700;border:none;padding:7px 14px;border-radius:6px;cursor:pointer;display:inline-flex;align-items:center;gap:5px;" onclick="window.printBookingReceipt('receiptPrintArea', '${escapeHtml(docTitle).replace(/'/g, "\\'")}')">
               🖨️ Print / Save PDF
             </button>
-            <button type="button" class="btn-sm" style="background:#0284C7;color:#fff;font-weight:700;border:none;padding:7px 14px;border-radius:6px;cursor:pointer;display:inline-flex;align-items:center;gap:5px;" onclick="window.shareSlipAsImage('receiptPrintArea', 'Payment_Slip_${escapeHtml(data.booking.booking_id)}')">
+            <button type="button" class="btn-sm" style="background:#0284C7;color:#fff;font-weight:700;border:none;padding:7px 14px;border-radius:6px;cursor:pointer;display:inline-flex;align-items:center;gap:5px;" onclick="window.shareSlipAsImage('receiptPrintArea', 'Payment_Slip_${escapeHtml(data.booking.booking_id)}', window._activeSingleReceiptData)">
               📸 Share as Image (Preview)
             </button>
             <button type="button" class="btn-sm" style="background:#25D366;color:#fff;font-weight:800;border:none;padding:7px 14px;border-radius:6px;cursor:pointer;display:inline-flex;align-items:center;gap:5px;" onclick="window.sendReceiptWhatsApp('${escapeHtml(data.booking.phone || '')}', document.getElementById('receiptWaHidden').value)">
