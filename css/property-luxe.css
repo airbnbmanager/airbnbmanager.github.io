@@ -1,4 +1,4 @@
-/* ══════════════════════════════════════════════════════════════
+﻿/* ══════════════════════════════════════════════════════════════
    THE UNIQUE HAVEN HOMES — LUXURY HOMESTAY SHOWCASE DESIGN SYSTEM
    World-class 5-star presentation for Lucknow's top luxury stays.
    ══════════════════════════════════════════════════════════════ */
@@ -6,32 +6,31 @@
 @import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,500;1,9..144,600&family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
 
 :root {
-  --luxe-bg: #fcfbf9;
-  --luxe-surface: #ffffff;
-  --luxe-ink: #181d24;
-  --luxe-ink-soft: #4a5568;
-  --luxe-muted: #718096;
-  --luxe-border: #e8e5df;
-  --luxe-border-light: #f1ede6;
-  --luxe-gold: #b58d3d;
-  --luxe-gold-soft: #fbf5e8;
-  --luxe-gold-dark: #8c6a23;
-  --luxe-emerald: #1fa463;
-  --luxe-emerald-dark: #16824c;
+  --luxe-bg: #0b0f15;
+  --luxe-surface: #131922;
+  --luxe-ink: #f8fafc;
+  --luxe-ink-soft: #cbd5e1;
+  --luxe-muted: #94a3b8;
+  --luxe-border: rgba(255, 255, 255, 0.08);
+  --luxe-border-light: rgba(255, 255, 255, 0.05);
+  --luxe-gold: #f59e0b;
+  --luxe-gold-soft: rgba(245, 158, 11, 0.14);
+  --luxe-gold-dark: #d97706;
+  --luxe-emerald: #10b981;
+  --luxe-emerald-dark: #059669;
   --luxe-whatsapp: #25d366;
   --luxe-whatsapp-dark: #128c7e;
-  --luxe-shadow-sm: 0 2px 8px rgba(24, 29, 36, 0.05);
-  --luxe-shadow-md: 0 8px 24px rgba(24, 29, 36, 0.08);
-  --luxe-shadow-lg: 0 16px 40px rgba(24, 29, 36, 0.12);
-  --luxe-shadow-float: 0 20px 48px rgba(24, 29, 36, 0.16);
-  --luxe-radius-sm: 8px;
-  --luxe-radius-md: 14px;
-  --luxe-radius-lg: 20px;
+  --luxe-shadow-sm: 0 4px 12px rgba(0, 0, 0, 0.35);
+  --luxe-shadow-md: 0 10px 30px rgba(0, 0, 0, 0.45);
+  --luxe-shadow-lg: 0 20px 50px rgba(0, 0, 0, 0.6);
+  --luxe-shadow-float: 0 25px 60px rgba(0, 0, 0, 0.7);
+  --luxe-radius-sm: 10px;
+  --luxe-radius-md: 16px;
+  --luxe-radius-lg: 24px;
   --luxe-radius-full: 9999px;
-  --luxe-font-display: 'Fraunces', serif;
+  --luxe-font-display: 'Fraunces', 'Cormorant Garamond', Georgia, serif;
   --luxe-font-sans: 'Plus Jakarta Sans', 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
 }
-
 body.luxe-property-page {
   background-color: var(--luxe-bg);
   color: var(--luxe-ink);
@@ -295,7 +294,7 @@ body.luxe-property-page .hero-frame {
 }
 
 .luxe-breadcrumb a:hover {
-  color: var(--luxe-gold-dark);
+  color: #fbbf24;
 }
 
 .luxe-header {
@@ -335,7 +334,7 @@ body.luxe-property-page .hero-frame {
   align-items: center;
   gap: 4px;
   font-weight: 700;
-  color: #b58d3d;
+  color: #f59e0b;
 }
 
 .luxe-badge-superhost {
@@ -343,7 +342,7 @@ body.luxe-property-page .hero-frame {
   align-items: center;
   gap: 6px;
   background: var(--luxe-gold-soft);
-  color: var(--luxe-gold-dark);
+  color: #fbbf24;
   font-size: 12px;
   font-weight: 700;
   padding: 4px 10px;
@@ -381,7 +380,7 @@ body.luxe-property-page .hero-frame {
 }
 
 .luxe-action-btn:hover {
-  background: #f7f6f3;
+  background: rgba(255, 255, 255, 0.08);
   color: var(--luxe-ink);
   border-color: #d8d4cb;
 }
@@ -397,14 +396,14 @@ body.luxe-property-page .hero-frame {
   overflow: hidden;
   box-shadow: var(--luxe-shadow-md);
   margin-bottom: 14px;
-  background: #e2ded5;
+  background: #141822;
 }
 
 .luxe-photo-item {
   position: relative;
   overflow: hidden;
   cursor: pointer;
-  background-color: #e5e2db;
+  background-color: #171d28;
 }
 
 .luxe-photo-item img {
@@ -516,8 +515,8 @@ body.luxe-property-page .hero-frame {
 }
 
 .luxe-category-chip:hover {
-  background: #fbf9f5;
-  border-color: #b58d3d;
+  background: rgba(255, 255, 255, 0.08);
+  border-color: #f59e0b;
   color: #181d24;
   transform: translateY(-1.5px);
   box-shadow: 0 4px 12px rgba(181, 141, 61, 0.12);
@@ -601,7 +600,7 @@ body.luxe-property-page .hero-frame {
   height: 44px;
   border-radius: 12px;
   background: var(--luxe-gold-soft);
-  color: var(--luxe-gold-dark);
+  color: #fbbf24;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -755,7 +754,7 @@ body.luxe-property-page .hero-frame {
 .luxe-landmark-time {
   font-size: 12.5px;
   font-weight: 700;
-  color: var(--luxe-gold-dark);
+  color: #fbbf24;
   background: var(--luxe-gold-soft);
   padding: 3px 8px;
   border-radius: var(--luxe-radius-full);
@@ -862,7 +861,7 @@ body.luxe-property-page .hero-frame {
   padding: 10px 14px;
   font-size: 13px;
   border-bottom: 1px solid var(--luxe-border-light);
-  background: #faf9f6;
+  background: rgba(255, 255, 255, 0.03);
 }
 
 .luxe-detail-row:last-child {
@@ -934,7 +933,7 @@ body.luxe-property-page .hero-frame {
 }
 
 .luxe-btn-card-sub:hover {
-  background: #f7f6f3;
+  background: rgba(255, 255, 255, 0.08);
   border-color: #ccc;
   color: var(--luxe-ink);
 }
@@ -2593,7 +2592,7 @@ body.luxe-property-page .hero-frame {
 .map-popup-price {
   font-weight: 800;
   font-size: 15px;
-  color: var(--luxe-gold-dark);
+  color: #fbbf24;
 }
 .map-popup-link {
   display: block;
@@ -4284,3 +4283,148 @@ body.luxe-property-page .hero-frame {
 
 
 
+
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+   ARCHITECTURAL CRAFT & EDITORIAL ENHANCEMENTS (THE CLIFFS STYLE)
+   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+
+/* Nav glassmorphism */
+.luxe-nav {
+  background: rgba(11, 15, 21, 0.94) !important;
+  backdrop-filter: blur(20px) !important;
+  -webkit-backdrop-filter: blur(20px) !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.5) !important;
+}
+
+.luxe-nav-link {
+  color: #94a3b8 !important;
+  border-radius: 999px !important;
+  padding: 6px 14px !important;
+  font-weight: 600 !important;
+  transition: all 0.2s ease !important;
+}
+
+.luxe-nav-link:hover {
+  color: #f59e0b !important;
+  background: rgba(245, 158, 11, 0.1) !important;
+}
+
+/* Nav Book button */
+.luxe-nav-book {
+  background: linear-gradient(135deg, #f59e0b, #d97706) !important;
+  color: #0c0e12 !important;
+  font-weight: 800 !important;
+  border-radius: 999px !important;
+  box-shadow: 0 4px 16px rgba(245, 158, 11, 0.35) !important;
+}
+
+.luxe-nav-book:hover {
+  transform: translateY(-2px) !important;
+  box-shadow: 0 6px 20px rgba(245, 158, 11, 0.5) !important;
+}
+
+/* Photo mosaic smooth luxury rounded corners and scale transitions */
+.luxe-photo-mosaic {
+  border-radius: 22px !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.6) !important;
+}
+
+.luxe-photo-item img {
+  transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1), filter 0.4s ease !important;
+}
+
+.luxe-photo-item:hover img {
+  transform: scale(1.04) !important;
+  filter: brightness(1.05) !important;
+}
+
+/* Show all photos button */
+.luxe-btn-show-all {
+  background: rgba(15, 23, 42, 0.88) !important;
+  color: #ffffff !important;
+  border: 1px solid rgba(255, 255, 255, 0.18) !important;
+  backdrop-filter: blur(14px) !important;
+  -webkit-backdrop-filter: blur(14px) !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5) !important;
+  transition: all 0.25s ease !important;
+}
+
+.luxe-btn-show-all:hover {
+  background: #1e293b !important;
+  border-color: #f59e0b !important;
+  color: #fbbf24 !important;
+  transform: translateY(-2px) !important;
+}
+
+/* Category pills */
+.luxe-category-chip {
+  background: rgba(255, 255, 255, 0.04) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  color: #cbd5e1 !important;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+.luxe-category-chip:hover {
+  background: rgba(245, 158, 11, 0.12) !important;
+  border-color: #f59e0b !important;
+  color: #ffffff !important;
+  transform: translateY(-2px) !important;
+}
+
+.luxe-category-chip.active {
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.25), rgba(217, 119, 6, 0.18)) !important;
+  border-color: #f59e0b !important;
+  color: #fbbf24 !important;
+  box-shadow: 0 0 16px rgba(245, 158, 11, 0.25) !important;
+}
+
+/* Sticky Booking Card */
+.luxe-booking-card {
+  background: #131922 !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  border-radius: 24px !important;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6) !important;
+}
+
+.luxe-details-box {
+  background: rgba(255, 255, 255, 0.02) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  border-radius: 16px !important;
+}
+
+/* Action buttons */
+.luxe-action-btn {
+  background: rgba(255, 255, 255, 0.05) !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  color: #cbd5e1 !important;
+  transition: all 0.2s ease !important;
+}
+
+.luxe-action-btn:hover {
+  background: rgba(255, 255, 255, 0.12) !important;
+  border-color: #f59e0b !important;
+  color: #ffffff !important;
+}
+
+/* Section styling with generous luxury whitespace */
+.luxe-section {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+  padding: 36px 0 !important;
+}
+
+.luxe-section-title {
+  font-family: var(--luxe-font-display) !important;
+  color: #ffffff !important;
+  letter-spacing: -0.01em !important;
+}
+
+/* Mobile sticky bottom bar */
+.luxe-mobile-bar {
+  background: rgba(11, 15, 21, 0.96) !important;
+  backdrop-filter: blur(20px) !important;
+  -webkit-backdrop-filter: blur(20px) !important;
+  border-top: 1px solid rgba(245, 158, 11, 0.3) !important;
+  box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.6) !important;
+}

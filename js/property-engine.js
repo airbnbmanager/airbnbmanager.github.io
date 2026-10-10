@@ -2719,12 +2719,8 @@ _Please confirm room allotment and issue official GST Tax Invoice. Thank you!_`;
           </button>
         `;
       } else {
-        slot.innerHTML = `
-          <button type="button" class="luxe-user-nav-badge" onclick="window.luxeEngine.openProfileModal()" style="border:1.5px solid #0f172a; background:#0f172a; color:#fff;" title="Sign in with Google or Setup Profile">
-            <span>👤</span>
-            <span>Sign In / Profile</span>
-          </button>
-        `;
+        slot.innerHTML = '';
+        slot.style.display = 'none';
       }
     }
 
