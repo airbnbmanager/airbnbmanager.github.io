@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Vesper Hero Showcase Controller — All 17 Luxe Properties
  * THE UNIQUE HAVEN HOMES PRIVATE LIMITED
  */
@@ -823,6 +823,176 @@
       }
     }
   });
+
+  // ── 12. CLAUDE CODE TOOLKIT: HERO IMAGE EXPANSION & TEXT BLEND (21:09 - 22:40) ──
+  function initHeroImageExpansionBlend() {
+    const heroEl = document.getElementById('flagship-hero');
+    const bgViewport = document.getElementById('vesperBgViewport');
+    const heroLeft = document.querySelector('.vesper-left');
+    const bookingWidget = document.querySelector('.vesper-booking-widget');
+    if (!heroEl || !bgViewport) return;
+
+    let ticking = false;
+
+    window.addEventListener('scroll', () => {
+      if (!ticking) {
+        window.requestAnimationFrame(() => {
+          // Responsive touch guard: Disable text fadeout on mobile touchscreens (<=768px)
+          if (window.innerWidth <= 768) {
+            bgViewport.style.transform = 'none';
+            bgViewport.style.filter = 'none';
+            if (heroLeft) {
+              heroLeft.style.opacity = '1';
+              heroLeft.style.transform = 'none';
+            }
+            ticking = false;
+            return;
+          }
+
+          const scrollY = window.scrollY;
+          const heroHeight = heroEl.offsetHeight || 800;
+
+          if (scrollY <= heroHeight * 1.2) {
+            const progress = Math.min(1, Math.max(0, scrollY / (heroHeight * 0.85)));
+
+            // Image expansion: background expands smoothly on desktop
+            const scale = 1 + progress * 0.12;
+            const brightness = Math.max(0.68, 1 - progress * 0.22);
+            bgViewport.style.transform = `scale(${scale})`;
+            bgViewport.style.filter = `brightness(${brightness})`;
+
+            // Text blend: hero text softly translates up, fades and blends with mask
+            if (heroLeft) {
+              const textOpacity = Math.max(0, 1 - progress * 1.55);
+              const textTranslate = progress * -40;
+              heroLeft.style.opacity = textOpacity;
+              heroLeft.style.transform = `translateY(${textTranslate}px)`;
+            }
+
+            // Desktop booking card fade
+            if (bookingWidget && window.innerWidth > 960) {
+              const widgetOpacity = Math.max(0, 1 - progress * 1.4);
+              const widgetTranslate = progress * -25;
+              bookingWidget.style.opacity = widgetOpacity;
+              bookingWidget.style.transform = `translateY(${widgetTranslate}px)`;
+            }
+          } else {
+            if (heroLeft && heroLeft.style.opacity !== '0') {
+              heroLeft.style.opacity = '0';
+            }
+          }
+
+          ticking = false;
+        });
+        ticking = true;
+      }
+    }, { passive: true });
+
+    // Handle screen resize
+    window.addEventListener('resize', () => {
+      if (window.innerWidth <= 768) {
+        bgViewport.style.transform = 'none';
+        bgViewport.style.filter = 'none';
+        if (heroLeft) {
+          heroLeft.style.opacity = '1';
+          heroLeft.style.transform = 'none';
+        }
+      }
+    }, { passive: true });
+  }
+
+  // ── 13. CLAUDE CODE TOOLKIT: STICKY SCROLL ROOMS SHOWCASE (31:07 - 32:20 & 35:12 - 35:29) ──
+  function initStickyScrollRooms() {
+    const cards = document.querySelectorAll('.vesper-narrative-card');
+    const stickyImg = document.getElementById('vesperStickyImg');
+    const stickyPill = document.getElementById('vesperStickyPill');
+    const stickyTagline = document.getElementById('vesperStickyTagline');
+    const prevBtn = document.getElementById('vesperStickyPrev');
+    const nextBtn = document.getElementById('vesperStickyNext');
+
+    if (!cards.length || !stickyImg) return;
+
+    let activeIdx = 0;
+
+    function activateRoom(index, smoothScroll) {
+      if (index < 0 || index >= cards.length) return;
+      activeIdx = index;
+
+      cards.forEach((c, idx) => {
+        if (idx === index) {
+          c.classList.add('active');
+          if (smoothScroll && window.innerWidth > 860) {
+            c.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }
+        } else {
+          c.classList.remove('active');
+        }
+      });
+
+      const card = cards[index];
+      const newImg = card.getAttribute('data-img');
+      const newPill = card.getAttribute('data-pill');
+      const newTagline = card.getAttribute('data-tagline');
+
+      if (newImg && stickyImg.getAttribute('src') !== newImg) {
+        stickyImg.style.opacity = '0.35';
+        stickyImg.style.transform = 'scale(0.98)';
+        setTimeout(() => {
+          stickyImg.src = newImg;
+          stickyImg.style.opacity = '1';
+          stickyImg.style.transform = 'scale(1)';
+        }, 120);
+      }
+
+      if (stickyPill && newPill) stickyPill.textContent = newPill;
+      if (stickyTagline && newTagline) stickyTagline.textContent = newTagline;
+    }
+
+    // Click on card to activate
+    cards.forEach((card, idx) => {
+      card.addEventListener('click', () => {
+        activateRoom(idx, false);
+      });
+    });
+
+    // Prev / Next button controls (Touch-friendly on mobile & tablet)
+    if (prevBtn) {
+      prevBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const prev = (activeIdx - 1 + cards.length) % cards.length;
+        activateRoom(prev, true);
+      });
+    }
+
+    if (nextBtn) {
+      nextBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const next = (activeIdx + 1) % cards.length;
+        activateRoom(next, true);
+      });
+    }
+
+    // Scroll spy on desktop and tablet (Observer ignored on mobile to allow natural finger scrolling)
+    if ('IntersectionObserver' in window) {
+      const observer = new IntersectionObserver((entries) => {
+        if (window.innerWidth <= 860) return; // Touchscreens use tap/button navigation
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            const idx = parseInt(entry.target.getAttribute('data-index'), 10);
+            if (!isNaN(idx)) {
+              activateRoom(idx, false);
+            }
+          }
+        });
+      }, {
+        root: null,
+        rootMargin: '-25% 0px -35% 0px',
+        threshold: 0.15
+      });
+
+      cards.forEach(card => observer.observe(card));
+    }
+  }
 
   function scrollToDirectory() {
     const grid = document.getElementById('collection') || document.getElementById('spaces') || document.getElementById('directory-grid') || document.querySelector('.airnest-cat-nav') || document.getElementById('filterPills');
