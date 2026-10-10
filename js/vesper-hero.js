@@ -15,7 +15,7 @@
       headline: 'Come find your royal quiet.',
       desc: 'The entire white-marble villa, exclusively yours. 4 luxury suites, private lawn, and 24/7 caretaker near Lulu Mall & Airport.',
       specs: ['👥 Sleeps 12', '🛏️ 4 King Suites', '❄️ 100% AC', '🚗 Free Parking', '✨ Save 15% Direct'],
-      price: '₹5,199 / night',
+      price: '₹12,000 / night',
       spaces: [
         { num: '01', name: 'Grand Marble Hall', desc: 'High ceiling, plush seating & chandeliers', image: 'https://a0.muscache.com/im/pictures/hosting/Hosting-1718315215180636685/original/b018acc7-5ccb-440e-8bc0-afbfbb9fb2a0.jpeg?im_w=1200' },
         { num: '02', name: 'Royal Master Suite', desc: 'King bed with warm ambient cove lighting', image: 'https://a0.muscache.com/im/pictures/hosting/Hosting-1718315215180636685/original/b0aaece7-bd13-44a2-a040-1af26e035314.jpeg?im_w=1200' },
@@ -47,7 +47,7 @@
       headline: 'Elevate your stay above the skyline.',
       desc: 'Opulent top-floor penthouse with sprawling terrace, panoramic city views, and designer starry lighting.',
       specs: ['👥 Sleeps 14', '🛏️ 4 King Suites', '🌆 Panoramic Terrace', '❄️ 100% AC', '✨ Save 15% Direct'],
-      price: '₹6,499 / night',
+      price: '₹6,000 / night',
       spaces: [
         { num: '01', name: 'Sky High Grand Living', desc: 'Spacious lounge with city skyline views' },
         { num: '02', name: 'Panorama Master Suite', desc: 'King bed with floor-to-ceiling glass' },
@@ -63,7 +63,7 @@
       headline: 'Regal sprawling grandeur in Gomti Nagar.',
       desc: 'Expansive private villa with lush courtyards, lavish traditional seating, and unmatched Nawabi hospitality.',
       specs: ['👥 Sleeps 14', '🛏️ 4 Luxury Bedrooms', '🌳 Private Courtyard', '🚗 Dedicated Parking', '✨ Save 15% Direct'],
-      price: '₹5,499 / night',
+      price: '₹8,000 / night',
       spaces: [
         { num: '01', name: 'Grand Diwan Living', desc: 'Lavish high-ceiling family lounge' },
         { num: '02', name: 'Maharajah Master Bedroom', desc: 'King size bed with heritage touches' },
@@ -79,7 +79,7 @@
       headline: 'Private garden sanctuary in Lucknow.',
       desc: 'Private estate enveloped in lush greenery, outdoor lawn seating, and complete privacy for families and celebrations.',
       specs: ['👥 Sleeps 15', '🏡 Private Lawn & Gazebo', '🛏️ 4 Bedrooms', '❄️ 100% AC', '✨ Save 15% Direct'],
-      price: '₹5,999 / night',
+      price: '₹10,000 / night',
       spaces: [
         { num: '01', name: 'Garden View Living', desc: 'Glass-walled lounge overlooking gardens' },
         { num: '02', name: 'Garden Master Suite', desc: 'King bed with serene lawn vistas' },
@@ -111,7 +111,7 @@
       headline: 'Warm golden sunshine & soulful comfort.',
       desc: 'Vibrant, sun-drenched interiors with cheerful aesthetics, plush couches, and family-friendly dining.',
       specs: ['👥 Sleeps 10', '🛏️ 3 King Beds', '☀️ Sunlit Balcony', '❄️ 100% AC', '✨ Save 15% Direct'],
-      price: '₹4,500 / night',
+      price: '₹5,500 / night',
       spaces: [
         { num: '01', name: 'Sunlit Yellow Lounge', desc: 'Cheerful yellow sofas & warm vibes' },
         { num: '02', name: 'Golden Glow Bedroom', desc: 'Bright king bedroom with fresh linen' },
@@ -127,7 +127,7 @@
       headline: 'Botanical oasis & serene indoor greens.',
       desc: 'Earthy tones, natural indoor foliage, and peaceful zen ambiance for true rejuvenation.',
       specs: ['👥 Sleeps 10', '🌿 Botanical Decor', '🛏️ 3 King Beds', '❄️ 100% AC', '✨ Save 15% Direct'],
-      price: '₹4,500 / night',
+      price: '₹5,500 / night',
       spaces: [
         { num: '01', name: 'Botanical Living Hall', desc: 'Lush potted greenery & soothing decor' },
         { num: '02', name: 'Zen Forest Bedroom', desc: 'Calming king suite with garden art' },
@@ -143,7 +143,7 @@
       headline: 'Blush pastels, bohemian charm & romance.',
       desc: 'Aesthetic blush pink tones, cozy boho corners, and soft velvet textures crafted for aesthetic stays.',
       specs: ['👥 Sleeps 10', '🌸 Boho Chic Decor', '🛏️ 3 King Beds', '❄️ 100% AC', '✨ Save 15% Direct'],
-      price: '₹4,500 / night',
+      price: '₹9,000 / night',
       spaces: [
         { num: '01', name: 'Blush Velvet Salon', desc: 'Rose gold lighting & pastel lounge' },
         { num: '02', name: 'Pastel Dream Bedroom', desc: 'Romantic king suite with soft hues' },
@@ -223,7 +223,7 @@
       headline: 'Our signature original boutique home.',
       desc: 'The pioneer flat of The Unique Haven Homes, impeccably maintained with 4.9+ rating.',
       specs: ['👥 Sleeps 10', '⭐ 4.9+ Top Rated', '🛏️ 3 King Beds', '❄️ 100% AC', '✨ Save 15% Direct'],
-      price: '₹4,500 / night',
+      price: '₹5,500 / night',
       spaces: [
         { num: '01', name: 'Signature Living Room', desc: 'Timeless comfort with smart TV' },
         { num: '02', name: 'Prime Master Bedroom', desc: 'Generous king bed & wardrobe' },

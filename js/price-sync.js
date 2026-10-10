@@ -251,6 +251,15 @@
       });
     }
 
+    // 4b. Update Mobile Floating Bar Starting Price dynamically from CRM
+    const validPrices = rates.map(r => Number(r.base_price)).filter(p => p > 0);
+    if (validPrices.length > 0) {
+      const minStartingPrice = Math.min(...validPrices);
+      document.querySelectorAll('.vesper-mobile-sticky-price, #vesperStickyMinPrice').forEach(el => {
+        el.innerHTML = 'From ' + formatPrice(minStartingPrice) + ' <small>/ nt</small>';
+      });
+    }
+
     // 5. Patch map markers
     patchMapMarkers(rateMap);
 
