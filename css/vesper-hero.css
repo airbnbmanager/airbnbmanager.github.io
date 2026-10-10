@@ -1308,12 +1308,12 @@ body.properties-directory-page {
   line-height: 1.5;
 }
 
-/* 2. Main 4-Column Luxury Editorial Grid */
+/* 2. Main 3-Column Clean Luxury Architecture Grid */
 .vesper-footer-grid {
   display: grid;
-  grid-template-columns: 1.45fr 1fr 1.05fr 1.25fr;
+  grid-template-columns: 1.35fr 1fr 1.15fr;
   gap: 48px;
-  margin-bottom: 56px;
+  margin-bottom: 40px;
 }
 
 .vesper-footer-col-brand {
@@ -1604,7 +1604,7 @@ body.properties-directory-page {
 
 @media (max-width: 820px) {
   .vesper-luxe-footer {
-    padding: 60px 18px 30px;
+    padding: 56px 18px 110px; /* Clearance for floating booking bar */
   }
   .vesper-footer-trust-banner {
     grid-template-columns: 1fr;
@@ -1613,12 +1613,13 @@ body.properties-directory-page {
   }
   .vesper-footer-grid {
     grid-template-columns: 1fr;
-    gap: 36px;
+    gap: 32px;
   }
   .vesper-footer-bottom {
     flex-direction: column;
-    align-items: flex-start;
-    gap: 14px;
+    align-items: center;
+    text-align: center;
+    gap: 12px;
   }
 }
 
@@ -2732,6 +2733,52 @@ body.properties-directory-page {
   font-style: italic;
   margin: 0 0 24px;
   flex: 1;
+}
+
+/* Unified Luxury Contact Strip */
+.vesper-hosts-contact-strip {
+  margin-top: 48px;
+  background: rgba(20, 22, 28, 0.85);
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  border-radius: 999px;
+  padding: 12px 28px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+}
+
+.vesper-hosts-contact-label {
+  font-family: 'Fraunces', serif;
+  font-size: 16px;
+  color: #ffffff;
+  font-weight: 600;
+}
+
+.vesper-hosts-contact-btns {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+@media (max-width: 768px) {
+  .vesper-hosts-contact-strip {
+    flex-direction: column;
+    border-radius: 20px;
+    padding: 18px;
+    gap: 14px;
+    text-align: center;
+  }
+  .vesper-hosts-contact-btns {
+    width: 100%;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .vesper-hosts-contact-btns a {
+    width: 100%;
+    justify-content: center;
+  }
 }
 
 .vesper-host-actions {
