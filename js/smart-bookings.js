@@ -1064,6 +1064,7 @@ function renderBookingTableHtml(bookings, paidMap, canM, today) {
             ${bookings.map(b => {
               const pd = paidMap[b.booking_id] || 0;
               const isOpenEnded = !b.check_out && b.checkout_confirmed === false;
+              const nights = (b.check_in && b.check_out) ? Math.max((typeof calcNights === 'function' ? calcNights(b.check_in, b.check_out) : Math.round((new Date(b.check_out) - new Date(b.check_in)) / 86400000)), 1) : 1;
               const cin = b.check_in || today;
               const elapsedDays = Math.max(1, Math.ceil((new Date(today) - new Date(cin)) / 86400000));
               const dailyRate = b.per_day_rate || 0;
