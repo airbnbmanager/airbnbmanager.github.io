@@ -33,14 +33,45 @@
     return '₹' + Number(amount).toLocaleString('en-IN');
   }
 
+  const ROOM_SLUG_MAP = {
+    'VIL-102': 'royal-white-house',
+    'GOM-102': 'black-beauty',
+    'GOM-501': 'starlight-blue-penthouse',
+    'VIL-101': 'gomti-grand-villa',
+    'LUL-402': 'celebrity-garden',
+    'GOM-101': 'redrose-palace',
+    'GOM-201': 'the-dark-blue',
+    'VIL-105': 'the-yellow-house',
+    'VIL-104': 'the-green-house',
+    'VIL-107': 'the-velvet-house',
+    'VIL-103': 'the-pink-house',
+    'GOM-301': 'the-light-green',
+    'GOM-202': 'the-brown',
+    'GOM-401': 'the-nawabi-stay',
+    'GOM-302': 'the-unique',
+    'VIL-106': 'green-forest',
+    'VIL-108': 'pink-paradise'
+  };
+
   // ── Patch a single property card with new price data
   function patchCard(card, rate) {
     if (!card || !rate) return;
 
-    // Price badge / display (various class names used across templates)
+    // 1. Vesper Stay Cards Price
+    card.querySelectorAll('.vesper-stay-price').forEach(el => {
+      el.innerHTML = formatPrice(rate.base_price) + ' <small>/ night</small>';
+    });
+
+    // 2. Vesper Stay Cards Strike-Through Price (Saved ~15-25% direct)
+    card.querySelectorAll('.vesper-stay-price-strike').forEach(el => {
+      const strike = rate.airbnb_price || Math.round(rate.base_price * 1.25);
+      el.textContent = formatPrice(strike);
+    });
+
+    // 3. Price badge / display across directory cards
     const priceSelectors = [
       '.dir-price', '.dir-price-val', '.property-price',
-      '[data-price]', '.price-night', '.card-price'
+      '[data-price]', '.price-night', '.card-price', '.dir-card-price-main'
     ];
     priceSelectors.forEach(sel => {
       card.querySelectorAll(sel).forEach(el => {
@@ -48,18 +79,17 @@
       });
     });
 
-    // Guest count badge
-    const guestSelectors = ['.dir-guests', '.guest-count', '[data-guests]'];
+    // 4. Guest count badge
+    const guestSelectors = ['.dir-guests', '.guest-count', '[data-guests]', '.vesper-stay-spec-pill'];
     guestSelectors.forEach(sel => {
       card.querySelectorAll(sel).forEach(el => {
-        // Only update if element contains a number + "guests" pattern
-        if (/\d+\s*(guests?|person)/i.test(el.textContent)) {
-          el.textContent = rate.max_guests + ' Guests';
+        if (/👥\s*Up to|\d+\s*(guests?|person)/i.test(el.textContent)) {
+          el.textContent = '👥 Up to ' + (rate.max_guests || 10);
         }
       });
     });
 
-    // Mark card as price-synced so we can debug easily
+    // Mark card as price-synced
     card.setAttribute('data-price-synced', 'true');
     card.setAttribute('data-live-price', rate.base_price);
   }
@@ -143,6 +173,7 @@
         if (!roomsErr && roomsData && roomsData.length > 0) {
           rates = roomsData.map(r => ({
             room_id: r.room_id,
+            slug: ROOM_SLUG_MAP[r.room_id] || '',
             property_name: r.nickname || r.property_name,
             base_price: Number(r.rent_per_night) || 4500,
             max_guests: r.max_guests || 6
@@ -169,7 +200,7 @@
       } catch (_) {}
 
       applyRates(rates);
-      console.log(`[UHH PriceSync] ✅ Synced prices for ${rates.length} properties`);
+      console.log(`[UHH PriceSync] ✅ Synced live CRM rates for ${rates.length} properties`);
 
     } catch (err) {
       console.warn('[UHH PriceSync] Silent fail:', err.message);
@@ -178,34 +209,58 @@
 
   // ── Apply fetched rates to the DOM
   function applyRates(rates) {
-    // Build lookup by room_id
     const rateMap = {};
-    rates.forEach(r => { rateMap[r.room_id] = r; });
+    const slugMap = {};
 
-    // 1. Patch all directory cards  
+    rates.forEach(r => {
+      if (!r.slug && ROOM_SLUG_MAP[r.room_id]) {
+        r.slug = ROOM_SLUG_MAP[r.room_id];
+      }
+      rateMap[r.room_id] = r;
+      if (r.slug) slugMap[r.slug] = r;
+    });
+
+    // Expose globally for vesper-hero.js and other components
+    window.UHH_LIVE_RATES = { ...rateMap, ...slugMap };
+
+    // 1. Patch all Vesper Stay cards in the collection
+    document.querySelectorAll('.vesper-stay-card').forEach(card => {
+      const roomId = card.dataset.roomId || card.getAttribute('data-room-id');
+      const slug = card.dataset.slug || card.getAttribute('data-slug');
+      const rate = (roomId && rateMap[roomId]) || (slug && slugMap[slug]);
+      if (rate) patchCard(card, rate);
+    });
+
+    // 2. Patch all directory cards
     document.querySelectorAll('.dir-card[data-room-id]').forEach(card => {
       const roomId = card.dataset.roomId;
       patchCard(card, rateMap[roomId]);
     });
 
-    // 2. Also try data-slug based cards (some pages use slug)
-    const slugMap = {};
-    rates.forEach(r => { slugMap[r.slug] = r; });
+    // 3. Patch data-slug based elements
     document.querySelectorAll('[data-slug]').forEach(card => {
       const slug = card.dataset.slug;
-      patchCard(card, slugMap[slug]);
+      if (slugMap[slug]) patchCard(card, slugMap[slug]);
     });
 
-    // 3. Patch map markers
+    // 4. Update Hero Featured Villa pricing dynamically from CRM
+    const rwhRate = slugMap['royal-white-house'] || rateMap['VIL-102'];
+    if (rwhRate) {
+      document.querySelectorAll('.vesper-subcopy strong').forEach(el => {
+        el.textContent = 'From ' + formatPrice(rwhRate.base_price) + ' / night';
+      });
+    }
+
+    // 5. Patch map markers
     patchMapMarkers(rateMap);
 
-    // 4. Patch PROPERTY_PINS
+    // 6. Patch PROPERTY_PINS
     patchPropertyPins(rateMap);
 
-    // 5. Patch in-memory UHH_PHOTO_DB
+    // 7. Patch in-memory UHH_PHOTO_DB
     patchPhotoDb(rateMap);
 
-    // 6. Dispatch custom event so other scripts can react
+    // 8. Dispatch custom event so other scripts can react
     window.dispatchEvent(new CustomEvent('uhh:pricesSynced', { detail: { rateMap, slugMap } }));
   }
 

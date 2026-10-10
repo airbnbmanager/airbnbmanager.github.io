@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 
 <html lang="en">
 <head>
@@ -39,12 +39,10 @@
 <link href="https://fonts.googleapis.com" rel="preconnect"/>
 <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400..800;1,9..144,400..800&amp;family=Outfit:wght@400;500;600;700;800&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
-<!-- Leaflet Map -->
-<link crossorigin="" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" rel="stylesheet"/>
 <!-- Core Luxe & Directory Stylesheets -->
 <link href="css/property-luxe.css" rel="stylesheet"/>
-<link href="css/properties-directory.css?v=205" rel="stylesheet"/>
 <link href="css/mobile-fixes.css?v=206" rel="stylesheet"/>
+<link href="css/vesper-hero.css?v=5" rel="stylesheet"/>
 <!-- Supabase Client for Real-Time CRM Geolocation Sync -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="config.js"></script>
@@ -147,1001 +145,1086 @@
 </script>
 </head>
 <body class="luxe-property-page properties-directory-page">
-<!-- ─── LUXE TOP NAVIGATION ─── -->
-<header class="luxe-nav">
-<div class="luxe-nav-container">
-<a class="luxe-nav-brand" href="properties.html" title="THE UNIQUE HAVEN HOMES PRIVATE LIMITED">
-<div class="brand-logo-wrap">
-<img alt="THE UNIQUE HAVEN HOMES" class="brand-logo" src="assets/logo-emblem.png"/>
-</div>
-<div class="luxe-brand-text">
-<span class="luxe-brand-title">THE UNIQUE HAVEN HOMES</span>
-<span class="luxe-brand-sub">PVT. LTD. &middot; LUXURY STAYS</span>
-</div>
-</a>
-<div class="luxe-nav-links">
-<a class="luxe-nav-link" href="#directory-grid">All Stays</a>
-<a class="luxe-nav-book" href="book.html" style="background:linear-gradient(135deg,#059669,#10b981); color:#fff; padding:8px 18px; border-radius:999px; font-weight:700; text-decoration:none; display:inline-flex; align-items:center; gap:6px;">📋 Book Now</a>
-<a class="luxe-btn-wa" href="https://wa.me/919450055554?text=Namaste!%20I%20am%20looking%20to%20book%20a%20luxury%20homestay%20in%20Lucknow." target="_blank">
-<svg width="16" height="16" fill="currentColor" viewBox="0 0 32 32"><path d="M16 3C8.832 3 3 8.832 3 16c0 2.66.784 5.13 2.133 7.21L3 29l6.055-2.101A12.937 12.937 0 0 0 16 29c7.168 0 13-5.832 13-13S23.168 3 16 3zm0 23.6a10.54 10.54 0 0 1-5.32-1.435l-.38-.223-4.02 1.27 1.31-3.89-.247-.39A10.55 10.55 0 0 1 5.4 16C5.4 9.708 10.708 4.4 17 4.4S28.6 9.708 28.6 16 23.292 26.6 17 26.6zm5.78-7.79c-.316-.158-1.872-.923-2.162-1.029-.289-.105-.5-.158-.71.158-.21.315-.81 1.027-.994 1.238-.184.21-.368.237-.684.08-.316-.158-1.328-.49-2.527-1.558-.934-.832-1.565-1.858-1.75-2.175-.184-.316-.02-.487.139-.644.142-.141.316-.368.473-.552.158-.184.21-.316.316-.526.105-.21.052-.395-.026-.553-.079-.158-.71-1.712-.973-2.343-.258-.618-.519-.533-.71-.543a12.9 12.9 0 0 0-.605-.011c-.21 0-.553.078-.842.395-.29.316-1.107 1.081-1.107 2.635 0 1.553 1.133 3.054 1.291 3.264.158.21 2.23 3.396 5.405 4.764.755.325 1.345.52 1.806.664.758.24 1.45.206 1.995.126.609-.088 1.872-.766 2.136-1.506.263-.739.263-1.373.184-1.506-.08-.132-.29-.21-.606-.368z"/></svg>
-<span class="luxe-wa-text">WhatsApp</span>
-</a>
-</div>
-</div>
-</header>
-<!-- ─── AIRNEST HERO SECTION ─── -->
-<section class="dir-hero">
-<div class="dir-hero-badge">
-<svg fill="#b58d3d" height="13" viewbox="0 0 24 24" width="13"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
-      LUCKNOW'S TOP RATED HOMESTAY NETWORK · AIRBNB SUPERHOST VERIFIED
-    </div>
-<h1 class="dir-hero-title">Book Unique Stays &amp; Luxury Villas in <span class="dir-hero-accent">Lucknow</span></h1>
-<p class="dir-hero-sub">
-      Experience 5-star comfort across 17 handpicked properties in Gomti Nagar &amp; near Lulu Mall. For up to 15% discount, reach us on WhatsApp.
-    </p>
-<!-- ─── AIRNEST FLOATING SEARCH PILL BAR ─── -->
-<div class="dir-search-wrap">
-<div class="dir-search-input-box">
-<svg fill="none" stroke="currentColor" viewbox="0 0 24 24"><circle cx="11" cy="11" r="8" stroke-width="2"></circle><line stroke-width="2" x1="21" x2="16.65" y1="21" y2="16.65"></line></svg>
-<input id="propertySearchInput" oninput="applyFilters()" placeholder="Search by name, location (e.g. Vikalp, Villa, Lulu, Penthouse)..." type="text"/>
-</div>
-<div class="dir-search-divider"></div>
-<div class="dir-search-select-box">
-<select class="dir-search-select" id="locationSelect" onchange="applyFilters()">
-<option value="all">📍 Anywhere in Lucknow (17)</option>
-<option value="gomti">📍 Gomti Nagar (11 Stays)</option>
-<option value="vikalp">📍 Vikalp Khand, Gomti Nagar (8 Flats)</option>
-<option value="vishesh">📍 Vishesh Khand, Gomti Nagar (3 Stays)</option>
-<option value="lulu">📍 Near Lulu Mall &amp; Shaheed Path (6 Stays)</option>
-</select>
-</div>
-<div class="dir-search-divider"></div>
-<div class="dir-search-select-box">
-<select class="dir-search-select" id="sortSelect" onchange="applyFilters()">
-<option value="recommended">✨ Recommended</option>
-<option value="price-low">💰 Price: Low to High</option>
-<option value="price-high">💎 Price: High to Low</option>
-<option value="rating-high">⭐ Highest Rating</option>
-</select>
-</div>
-<button aria-label="Search" class="dir-search-btn-icon" onclick="applyFilters()" type="button">
-<svg fill="none" height="17" stroke="currentColor" stroke-width="2.5" viewbox="0 0 24 24" width="17"><circle cx="11" cy="11" r="8"></circle><line x1="21" x2="16.65" y1="21" y2="16.65"></line></svg>
-</button>
-</div>
-</section>
-<!-- ─── AIRNEST HORIZONTAL CATEGORY BAR WITH ICONS ─── -->
-<nav aria-label="Stay Categories" class="airnest-cat-nav">
-<div class="airnest-cat-bar" id="filterPills">
-<button class="airnest-cat-btn active" onclick="setCategoryFilter('all', this)" type="button">
-<span class="airnest-cat-icon">🏡</span>
-<span>All Stays (17)</span>
-</button>
-<button class="airnest-cat-btn" onclick="setCategoryFilter('flat', this)" type="button">
-<span class="airnest-cat-icon">🏢</span>
-<span>Flats &amp; Apartments</span>
-</button>
-<button class="airnest-cat-btn" onclick="setCategoryFilter('villa', this)" type="button">
-<span class="airnest-cat-icon">🏰</span>
-<span>Luxury Villas</span>
-</button>
-<button class="airnest-cat-btn" onclick="setCategoryFilter('penthouse', this)" type="button">
-<span class="airnest-cat-icon">🌟</span>
-<span>Penthouse</span>
-</button>
-<button class="airnest-cat-btn" onclick="setCategoryFilter('top-rated', this)" type="button">
-<span class="airnest-cat-icon">⭐</span>
-<span>Top Rated 4.9+</span>
-</button>
-<button class="airnest-cat-btn" onclick="setCategoryFilter('gomti', this)" type="button">
-<span class="airnest-cat-icon">📍</span>
-<span>Gomti Nagar (11)</span>
-</button>
-<button class="airnest-cat-btn" onclick="setCategoryFilter('lulu', this)" type="button">
-<span class="airnest-cat-icon">🛍️</span>
-<span>Near Lulu Mall (6)</span>
-</button>
-</div>
-</nav>
-<!-- ─── PROPERTIES DIRECTORY GRID ─── -->
-<main class="dir-container" id="directory-grid">
-<div class="dir-grid-header">
-<div class="dir-grid-count" id="visibleCount">Showing 17 of 17 luxury homestays</div>
-<div style="font-size:13px;color:var(--dir-muted);display:flex;align-items:center;gap:6px;">
-<span>🔒 Best Direct Price Guaranteed</span>
-</div>
-</div>
-<div class="dir-property-grid" id="propertiesList">
-<!-- 1. RedRose Palace -->
-<article class="dir-card" data-area="vikalp" data-name="redrose palace" data-price="4500" data-rating="4.92" data-room-id="GOM-101" data-slug="redrose-palace" data-type="flat">
-<a aria-label="Explore redrose-palace" class="dir-card-media" href="redrose-palace.html">
-<img alt="RedRose Palace Homestay Lucknow" decoding="async" loading="lazy" src="assets/properties/redrose-palace/cover.jpg"/>
-<span class="dir-card-rating-badge">⭐ 4.92 (Airbnb)</span>
-<span class="dir-avail-badge dir-avail-loading">⏳ Checking...</span>
-</a>
-<div class="dir-card-body">
-<div class="dir-card-eyebrow">3BHK Luxury Flat · Vikalp Khand</div>
-<h2 class="dir-card-title"><a href="redrose-palace.html">RedRose Palace</a></h2>
-<div class="dir-card-location">📍 Vikalp Khand, Gomti Nagar · 5 min to Max Hospital</div>
-<div class="dir-card-specs">
-<span class="dir-card-spec-item">👥 Up to 6</span>
-<span class="dir-card-spec-item">❄️ AC in all rooms</span>
-<span class="dir-card-spec-item">📶 High-speed WiFi</span>
-<span class="dir-card-spec-item">🍳 Kitchen</span>
-<span class="dir-card-spec-item">🅿️ Free Parking</span>
-</div>
-<div class="dir-card-footer">
-<div class="dir-card-price-block">
-<span class="dir-card-price-strike">₹5,499</span>
-<span class="dir-card-price-main">₹4,500 <small>/ night</small></span>
-</div>
-<div class="dir-card-actions">
-<a class="dir-btn-details" href="redrose-palace.html">Explore ↗</a>
-<button class="dir-btn-share-icon" onclick="shareProperty('redrose-palace', 'RedRose Palace', '4,500', 'Vikalp Khand, Gomti Nagar', event)" title="Share photos &amp; link on WhatsApp" type="button"><svg fill="none" height="15" stroke="currentColor" stroke-width="2.2" viewbox="0 0 24 24" width="15"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path><polyline points="16 6 12 2 8 6"></polyline><line x1="12" x2="12" y1="2" y2="15"></line></svg><span>Share</span></button>
-</div>
-</div>
-</div>
-</article>
-<!-- 2. Black Beauty -->
-<article class="dir-card" data-area="vikalp" data-name="black beauty" data-price="4500" data-rating="4.91" data-room-id="GOM-102" data-slug="black-beauty" data-type="flat">
-<a aria-label="Explore black-beauty" class="dir-card-media" href="black-beauty.html">
-<img alt="Black Beauty Homestay Lucknow" decoding="async" loading="lazy" src="assets/properties/black-beauty/cover.jpg"/>
-<span class="dir-card-rating-badge">⭐ 4.91 (Airbnb)</span>
-<span class="dir-avail-badge dir-avail-loading">⏳ Checking...</span>
-</a>
-<div class="dir-card-body">
-<div class="dir-card-eyebrow">3BHK Luxury Flat · Vikalp Khand</div>
-<h2 class="dir-card-title"><a href="black-beauty.html">Black Beauty</a></h2>
-<div class="dir-card-location">📍 Vikalp Khand, Gomti Nagar · Modern Aesthetic Interiors</div>
-<div class="dir-card-specs">
-<span class="dir-card-spec-item">👥 Up to 6</span>
-<span class="dir-card-spec-item">❄️ AC in all rooms</span>
-<span class="dir-card-spec-item">📶 High-speed WiFi</span>
-<span class="dir-card-spec-item">🍳 Modular Kitchen</span>
-<span class="dir-card-spec-item">🅿️ Free Parking</span>
-</div>
-<div class="dir-card-footer">
-<div class="dir-card-price-block">
-<span class="dir-card-price-strike">₹5,499</span>
-<span class="dir-card-price-main">₹4,500 <small>/ night</small></span>
-</div>
-<div class="dir-card-actions">
-<a class="dir-btn-details" href="black-beauty.html">Explore ↗</a>
-<button class="dir-btn-share-icon" onclick="shareProperty('black-beauty', 'Black Beauty', '4,500', 'Vikalp Khand, Gomti Nagar', event)" title="Share photos &amp; link on WhatsApp" type="button"><svg fill="none" height="15" stroke="currentColor" stroke-width="2.2" viewbox="0 0 24 24" width="15"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path><polyline points="16 6 12 2 8 6"></polyline><line x1="12" x2="12" y1="2" y2="15"></line></svg><span>Share</span></button>
-</div>
-</div>
-</div>
-</article>
-<!-- 3. The Dark Blue -->
-<article class="dir-card" data-area="vikalp" data-name="the dark blue" data-price="4500" data-rating="4.95" data-room-id="GOM-201" data-slug="the-dark-blue" data-type="flat">
-<a aria-label="Explore the-dark-blue" class="dir-card-media" href="the-dark-blue.html">
-<img alt="The Dark Blue Homestay Lucknow" decoding="async" loading="lazy" src="assets/properties/the-dark-blue/cover.jpg"/>
-<span class="dir-card-rating-badge">⭐ 4.95 (Guest Favorite)</span>
-<span class="dir-avail-badge dir-avail-loading">⏳ Checking...</span>
-</a>
-<div class="dir-card-body">
-<div class="dir-card-eyebrow">3BHK Luxury Flat · Vikalp Khand</div>
-<h2 class="dir-card-title"><a href="the-dark-blue.html">The Dark Blue</a></h2>
-<div class="dir-card-location">📍 Flat 201, Vikalp Khand, Chinhat · Near High Court</div>
-<div class="dir-card-specs">
-<span class="dir-card-spec-item">👥 Up to 6</span>
-<span class="dir-card-spec-item">❄️ AC in all rooms</span>
-<span class="dir-card-spec-item">📶 High-speed WiFi</span>
-<span class="dir-card-spec-item">🍳 Kitchen</span>
-<span class="dir-card-spec-item">🅿️ Free Parking</span>
-</div>
-<div class="dir-card-footer">
-<div class="dir-card-price-block">
-<span class="dir-card-price-strike">₹5,499</span>
-<span class="dir-card-price-main">₹4,500 <small>/ night</small></span>
-</div>
-<div class="dir-card-actions">
-<a class="dir-btn-details" href="the-dark-blue.html">Explore ↗</a>
-<button class="dir-btn-share-icon" onclick="shareProperty('the-dark-blue', 'The Dark Blue', '4,500', 'Flat 201, Vikalp Khand, Chinhat', event)" title="Share photos &amp; link on WhatsApp" type="button"><svg fill="none" height="15" stroke="currentColor" stroke-width="2.2" viewbox="0 0 24 24" width="15"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path><polyline points="16 6 12 2 8 6"></polyline><line x1="12" x2="12" y1="2" y2="15"></line></svg><span>Share</span></button>
-</div>
-</div>
-</div>
-</article>
-<!-- 4. The Brown -->
-<article class="dir-card" data-area="vikalp" data-name="the brown" data-price="4500" data-rating="4.90" data-room-id="GOM-202" data-slug="the-brown" data-type="flat">
-<a aria-label="Explore the-brown" class="dir-card-media" href="the-brown.html">
-<img alt="The Brown Homestay Lucknow" decoding="async" loading="lazy" src="assets/properties/the-brown/cover.jpg"/>
-<span class="dir-card-rating-badge">⭐ 4.90 (Superhost)</span>
-<span class="dir-avail-badge dir-avail-loading">⏳ Checking...</span>
-</a>
-<div class="dir-card-body">
-<div class="dir-card-eyebrow">3BHK Luxury Flat · Vikalp Khand</div>
-<h2 class="dir-card-title"><a href="the-brown.html">The Brown</a></h2>
-<div class="dir-card-location">📍 Flat 202, Vikalp Khand, Gomti Nagar</div>
-<div class="dir-card-specs">
-<span class="dir-card-spec-item">👥 Up to 6</span>
-<span class="dir-card-spec-item">❄️ AC</span>
-<span class="dir-card-spec-item">📶 WiFi</span>
-<span class="dir-card-spec-item">🍳 Kitchen</span>
-<span class="dir-card-spec-item">🅿️ Free Parking</span>
-</div>
-<div class="dir-card-footer">
-<div class="dir-card-price-block">
-<span class="dir-card-price-strike">₹5,499</span>
-<span class="dir-card-price-main">₹4,500 <small>/ night</small></span>
-</div>
-<div class="dir-card-actions">
-<a class="dir-btn-details" href="the-brown.html">Explore ↗</a>
-<button class="dir-btn-share-icon" onclick="shareProperty('the-brown', 'The Brown', '4,500', 'Flat 202, Vikalp Khand, Gomti Nagar', event)" title="Share photos &amp; link on WhatsApp" type="button"><svg fill="none" height="15" stroke="currentColor" stroke-width="2.2" viewbox="0 0 24 24" width="15"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path><polyline points="16 6 12 2 8 6"></polyline><line x1="12" x2="12" y1="2" y2="15"></line></svg><span>Share</span></button>
-</div>
-</div>
-</div>
-</article>
-<!-- 5. The Light Green -->
-<article class="dir-card" data-area="vikalp" data-name="the light green" data-price="4500" data-rating="4.88" data-room-id="GOM-301" data-slug="the-light-green" data-type="flat">
-<a aria-label="Explore the-light-green" class="dir-card-media" href="the-light-green.html">
-<img alt="The Light Green Homestay Lucknow" decoding="async" loading="lazy" src="assets/properties/the-light-green/cover.jpg"/>
-<span class="dir-card-rating-badge">⭐ 4.88 (Superhost)</span>
-<span class="dir-avail-badge dir-avail-loading">⏳ Checking...</span>
-</a>
-<div class="dir-card-body">
-<div class="dir-card-eyebrow">3BHK Luxury Flat · Vikalp Khand</div>
-<h2 class="dir-card-title"><a href="the-light-green.html">The Light Green</a></h2>
-<div class="dir-card-location">📍 Flat 301, Vikalp Khand, Chinhat</div>
-<div class="dir-card-specs">
-<span class="dir-card-spec-item">👥 Up to 6</span>
-<span class="dir-card-spec-item">❄️ AC</span>
-<span class="dir-card-spec-item">📶 WiFi</span>
-<span class="dir-card-spec-item">🍳 Kitchen</span>
-<span class="dir-card-spec-item">🅿️ Free Parking</span>
-</div>
-<div class="dir-card-footer">
-<div class="dir-card-price-block">
-<span class="dir-card-price-strike">₹5,499</span>
-<span class="dir-card-price-main">₹4,500 <small>/ night</small></span>
-</div>
-<div class="dir-card-actions">
-<a class="dir-btn-details" href="the-light-green.html">Explore ↗</a>
-<button class="dir-btn-share-icon" onclick="shareProperty('the-light-green', 'The Light Green', '4,500', 'Flat 301, Vikalp Khand, Chinhat', event)" title="Share photos &amp; link on WhatsApp" type="button"><svg fill="none" height="15" stroke="currentColor" stroke-width="2.2" viewbox="0 0 24 24" width="15"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path><polyline points="16 6 12 2 8 6"></polyline><line x1="12" x2="12" y1="2" y2="15"></line></svg><span>Share</span></button>
-</div>
-</div>
-</div>
-</article>
-<!-- 6. The Nawabi Stay -->
-<article class="dir-card" data-area="vikalp" data-name="the nawabi stay" data-price="4500" data-rating="4.92" data-room-id="GOM-401" data-slug="the-nawabi-stay" data-type="flat">
-<a aria-label="Explore the-nawabi-stay" class="dir-card-media" href="the-nawabi-stay.html">
-<img alt="The Nawabi Stay Homestay Lucknow" decoding="async" loading="lazy" src="assets/properties/the-nawabi-stay/cover.jpg"/>
-<span class="dir-card-rating-badge">⭐ 4.92 (Royal Decor)</span>
-<span class="dir-avail-badge dir-avail-loading">⏳ Checking...</span>
-</a>
-<div class="dir-card-body">
-<div class="dir-card-eyebrow">3BHK Luxury Flat · Vikalp Khand</div>
-<h2 class="dir-card-title"><a href="the-nawabi-stay.html">The Nawabi Stay</a></h2>
-<div class="dir-card-location">📍 Flat 302, Vikalp Khand, Gomti Nagar</div>
-<div class="dir-card-specs">
-<span class="dir-card-spec-item">👥 Up to 6</span>
-<span class="dir-card-spec-item">❄️ AC</span>
-<span class="dir-card-spec-item">📶 WiFi</span>
-<span class="dir-card-spec-item">🍳 Kitchen</span>
-<span class="dir-card-spec-item">🅿️ Free Parking</span>
-</div>
-<div class="dir-card-footer">
-<div class="dir-card-price-block">
-<span class="dir-card-price-strike">₹5,499</span>
-<span class="dir-card-price-main">₹4,500 <small>/ night</small></span>
-</div>
-<div class="dir-card-actions">
-<a class="dir-btn-details" href="the-nawabi-stay.html">Explore ↗</a>
-<button class="dir-btn-share-icon" onclick="shareProperty('the-nawabi-stay', 'The Nawabi Stay', '4,500', 'Flat 302, Vikalp Khand, Gomti Nagar', event)" title="Share photos &amp; link on WhatsApp" type="button"><svg fill="none" height="15" stroke="currentColor" stroke-width="2.2" viewbox="0 0 24 24" width="15"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path><polyline points="16 6 12 2 8 6"></polyline><line x1="12" x2="12" y1="2" y2="15"></line></svg><span>Share</span></button>
-</div>
-</div>
-</div>
-</article>
-<!-- 7. Starlight Blue Penthouse -->
-<article class="dir-card" data-area="vikalp" data-name="starlight blue penthouse" data-price="6000" data-rating="4.96" data-room-id="GOM-501" data-slug="starlight-blue-penthouse" data-type="penthouse flat">
-<a aria-label="Explore starlight-blue-penthouse" class="dir-card-media" href="starlight-blue-penthouse.html">
-<img alt="Starlight Blue Penthouse Homestay Lucknow" decoding="async" loading="lazy" src="assets/properties/starlight-blue/cover.jpg"/>
-<span class="dir-card-rating-badge">⭐ 4.96 (Luxury Penthouse)</span>
-<span class="dir-avail-badge dir-avail-loading">⏳ Checking...</span>
-</a>
-<div class="dir-card-body">
-<div class="dir-card-eyebrow">4BHK Penthouse · Vikalp Khand</div>
-<h2 class="dir-card-title"><a href="starlight-blue-penthouse.html">Starlight Blue Penthouse</a></h2>
-<div class="dir-card-location">📍 Top Floor, Vikalp Khand · Private Terrace Views</div>
-<div class="dir-card-specs">
-<span class="dir-card-spec-item">👥 Up to 6</span>
-<span class="dir-card-spec-item">❄️ AC in all rooms</span>
-<span class="dir-card-spec-item">📶 WiFi</span>
-<span class="dir-card-spec-item">🌇 Private Terrace</span>
-<span class="dir-card-spec-item">🅿️ Free Parking</span>
-</div>
-<div class="dir-card-footer">
-<div class="dir-card-price-block">
-<span class="dir-card-price-strike">₹7,499</span>
-<span class="dir-card-price-main">₹6,000 <small>/ night</small></span>
-</div>
-<div class="dir-card-actions">
-<a class="dir-btn-details" href="starlight-blue-penthouse.html">Explore ↗</a>
-<button class="dir-btn-share-icon" onclick="shareProperty('starlight-blue-penthouse', 'Starlight Blue Penthouse', '6,000', 'Top Floor, Vikalp Khand', event)" title="Share photos &amp; link on WhatsApp" type="button"><svg fill="none" height="15" stroke="currentColor" stroke-width="2.2" viewbox="0 0 24 24" width="15"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path><polyline points="16 6 12 2 8 6"></polyline><line x1="12" x2="12" y1="2" y2="15"></line></svg><span>Share</span></button>
-</div>
-</div>
-</div>
-</article>
-<!-- 8. The Unique -->
-<article class="dir-card" data-area="vikalp" data-name="the unique" data-price="5500" data-rating="4.93" data-room-id="GOM-302" data-slug="the-unique" data-type="flat">
-<a aria-label="Explore the-unique" class="dir-card-media" href="the-unique.html">
-<img alt="The Unique Homestay Lucknow" decoding="async" loading="lazy" src="assets/properties/the-unique/cover.jpg"/>
-<span class="dir-card-rating-badge">⭐ 4.93 (Flagship)</span>
-<span class="dir-avail-badge dir-avail-loading">⏳ Checking...</span>
-</a>
-<div class="dir-card-body">
-<div class="dir-card-eyebrow">3BHK Luxury Flat · Vikalp Khand</div>
-<h2 class="dir-card-title"><a href="the-unique.html">The Unique</a></h2>
-<div class="dir-card-location">📍 Flat 302, Vikalp Khand, Gomti Nagar</div>
-<div class="dir-card-specs">
-<span class="dir-card-spec-item">👥 Up to 6</span>
-<span class="dir-card-spec-item">❄️ AC</span>
-<span class="dir-card-spec-item">📶 WiFi</span>
-<span class="dir-card-spec-item">🍳 Kitchen</span>
-<span class="dir-card-spec-item">🅿️ Free Parking</span>
-</div>
-<div class="dir-card-footer">
-<div class="dir-card-price-block">
-<span class="dir-card-price-strike">₹6,599</span>
-<span class="dir-card-price-main">₹5,500 <small>/ night</small></span>
-</div>
-<div class="dir-card-actions">
-<a class="dir-btn-details" href="the-unique.html">Explore ↗</a>
-<button class="dir-btn-share-icon" onclick="shareProperty('the-unique', 'The Unique', '5,500', 'Flat 302, Vikalp Khand, Gomti Nagar', event)" title="Share photos &amp; link on WhatsApp" type="button"><svg fill="none" height="15" stroke="currentColor" stroke-width="2.2" viewbox="0 0 24 24" width="15"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path><polyline points="16 6 12 2 8 6"></polyline><line x1="12" x2="12" y1="2" y2="15"></line></svg><span>Share</span></button>
-</div>
-</div>
-</div>
-</article>
-<!-- 9. The Green House -->
-<article class="dir-card" data-area="vishesh" data-name="the green house" data-price="5500" data-rating="4.90" data-room-id="VIL-104" data-slug="the-green-house" data-type="flat">
-<a aria-label="Explore the-green-house" class="dir-card-media" href="the-green-house.html">
-<img alt="The Green House Homestay Lucknow" decoding="async" loading="lazy" src="assets/properties/the-green-house/cover.jpg"/>
-<span class="dir-card-rating-badge">⭐ 4.90 (Cozy Stay)</span>
-<span class="dir-avail-badge dir-avail-loading">⏳ Checking...</span>
-</a>
-<div class="dir-card-body">
-<div class="dir-card-eyebrow">3BHK Luxury Flat · Vishesh Khand</div>
-<h2 class="dir-card-title"><a href="the-green-house.html">The Green House</a></h2>
-<div class="dir-card-location">📍 Vishesh Khand, Gomti Nagar · Peaceful Residential Area</div>
-<div class="dir-card-specs">
-<span class="dir-card-spec-item">👥 Up to 6</span>
-<span class="dir-card-spec-item">❄️ AC</span>
-<span class="dir-card-spec-item">📶 WiFi</span>
-<span class="dir-card-spec-item">🍳 Kitchen</span>
-<span class="dir-card-spec-item">🅿️ Free Parking</span>
-</div>
-<div class="dir-card-footer">
-<div class="dir-card-price-block">
-<span class="dir-card-price-strike">₹6,599</span>
-<span class="dir-card-price-main">₹5,500 <small>/ night</small></span>
-</div>
-<div class="dir-card-actions">
-<a class="dir-btn-details" href="the-green-house.html">Explore ↗</a>
-<button class="dir-btn-share-icon" onclick="shareProperty('the-green-house', 'The Green House', '5,500', 'Vishesh Khand, Gomti Nagar', event)" title="Share photos &amp; link on WhatsApp" type="button"><svg fill="none" height="15" stroke="currentColor" stroke-width="2.2" viewbox="0 0 24 24" width="15"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path><polyline points="16 6 12 2 8 6"></polyline><line x1="12" x2="12" y1="2" y2="15"></line></svg><span>Share</span></button>
-</div>
-</div>
-</div>
-</article>
-<!-- 10. The Pink House -->
-<article class="dir-card" data-area="vishesh" data-name="the pink house" data-price="9000" data-rating="4.89" data-room-id="VIL-103" data-slug="the-pink-house" data-type="flat">
-<a aria-label="Explore the-pink-house" class="dir-card-media" href="the-pink-house.html">
-<img alt="The Pink House Homestay Lucknow" decoding="async" loading="lazy" src="assets/properties/the-pink-house/cover.jpg"/>
-<span class="dir-card-rating-badge">⭐ 4.89 (Superhost)</span>
-<span class="dir-avail-badge dir-avail-loading">⏳ Checking...</span>
-</a>
-<div class="dir-card-body">
-<div class="dir-card-eyebrow">3BHK Luxury Flat · Vishesh Khand</div>
-<h2 class="dir-card-title"><a href="the-pink-house.html">The Pink House</a></h2>
-<div class="dir-card-location">📍 Vishesh Khand, Gomti Nagar · Family Favorite</div>
-<div class="dir-card-specs">
-<span class="dir-card-spec-item">👥 Up to 10</span>
-<span class="dir-card-spec-item">❄️ AC</span>
-<span class="dir-card-spec-item">📶 WiFi</span>
-<span class="dir-card-spec-item">🍳 Kitchen</span>
-<span class="dir-card-spec-item">🅿️ Free Parking</span>
-</div>
-<div class="dir-card-footer">
-<div class="dir-card-price-block">
-<span class="dir-card-price-strike">₹10,999</span>
-<span class="dir-card-price-main">₹9,000 <small>/ night</small></span>
-</div>
-<div class="dir-card-actions">
-<a class="dir-btn-details" href="the-pink-house.html">Explore ↗</a>
-<button class="dir-btn-share-icon" onclick="shareProperty('the-pink-house', 'The Pink House', '9,000', 'Vishesh Khand, Gomti Nagar', event)" title="Share photos &amp; link on WhatsApp" type="button"><svg fill="none" height="15" stroke="currentColor" stroke-width="2.2" viewbox="0 0 24 24" width="15"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path><polyline points="16 6 12 2 8 6"></polyline><line x1="12" x2="12" y1="2" y2="15"></line></svg><span>Share</span></button>
-</div>
-</div>
-</div>
-</article>
-<!-- 11. The Yellow House -->
-<article class="dir-card" data-area="vishesh" data-name="the yellow house" data-price="5500" data-rating="4.89" data-room-id="VIL-105" data-slug="the-yellow-house" data-type="flat">
-<a aria-label="Explore the-yellow-house" class="dir-card-media" href="the-yellow-house.html">
-<img alt="The Yellow House Homestay Lucknow" decoding="async" loading="lazy" src="assets/properties/the-yellow-house/cover.jpg"/>
-<span class="dir-card-rating-badge">⭐ 4.89 (Superhost)</span>
-<span class="dir-avail-badge dir-avail-loading">⏳ Checking...</span>
-</a>
-<div class="dir-card-body">
-<div class="dir-card-eyebrow">3BHK Luxury Flat · Vishesh Khand</div>
-<h2 class="dir-card-title"><a href="the-yellow-house.html">The Yellow House</a></h2>
-<div class="dir-card-location">📍 Vishesh Khand, Gomti Nagar · Modern Furnished</div>
-<div class="dir-card-specs">
-<span class="dir-card-spec-item">👥 Up to 6</span>
-<span class="dir-card-spec-item">❄️ AC</span>
-<span class="dir-card-spec-item">📶 WiFi</span>
-<span class="dir-card-spec-item">🍳 Kitchen</span>
-<span class="dir-card-spec-item">🅿️ Free Parking</span>
-</div>
-<div class="dir-card-footer">
-<div class="dir-card-price-block">
-<span class="dir-card-price-strike">₹6,599</span>
-<span class="dir-card-price-main">₹5,500 <small>/ night</small></span>
-</div>
-<div class="dir-card-actions">
-<a class="dir-btn-details" href="the-yellow-house.html">Explore ↗</a>
-<button class="dir-btn-share-icon" onclick="shareProperty('the-yellow-house', 'The Yellow House', '5,500', 'Vishesh Khand, Gomti Nagar', event)" title="Share photos &amp; link on WhatsApp" type="button"><svg fill="none" height="15" stroke="currentColor" stroke-width="2.2" viewbox="0 0 24 24" width="15"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path><polyline points="16 6 12 2 8 6"></polyline><line x1="12" x2="12" y1="2" y2="15"></line></svg><span>Share</span></button>
-</div>
-</div>
-</div>
-</article>
-<!-- 12. Green Forest View -->
-<article class="dir-card" data-area="lulu" data-location="lulu" data-name="green forest view" data-price="4500" data-rating="4.94" data-room-id="VIL-106" data-slug="green-forest" data-type="flat">
-<a aria-label="Explore green-forest" class="dir-card-media" href="green-forest.html">
-<img alt="Green Forest View Homestay Lucknow" decoding="async" loading="lazy" src="assets/properties/green-forest/cover.jpg"/>
-<span class="dir-card-rating-badge">⭐ 4.94 (Near Lulu Mall)</span>
-<span class="dir-avail-badge dir-avail-loading">⏳ Checking...</span>
-</a>
-<div class="dir-card-body">
-<div class="dir-card-eyebrow">3BHK Luxury Stay · Near Lulu Mall &amp; Ekana</div>
-<h2 class="dir-card-title"><a href="green-forest.html">Green Forest View</a></h2>
-<div class="dir-card-location">📍 Madhav Kunj · Near Lulu Mall &amp; Ekana Stadium</div>
-<div class="dir-card-specs">
-<span class="dir-card-spec-item">👥 Up to 6</span>
-<span class="dir-card-spec-item">❄️ AC</span>
-<span class="dir-card-spec-item">📶 WiFi</span>
-<span class="dir-card-spec-item">🍳 Kitchen</span>
-<span class="dir-card-spec-item">🅿️ Free Parking</span>
-</div>
-<div class="dir-card-footer">
-<div class="dir-card-price-block">
-<span class="dir-card-price-strike">₹5,499</span>
-<span class="dir-card-price-main">₹4,500 <small>/ night</small></span>
-</div>
-<div class="dir-card-actions">
-<a class="dir-btn-details" href="green-forest.html">Explore ↗</a>
-<button class="dir-btn-share-icon" onclick="shareProperty('green-forest', 'Green Forest View', '4,500', 'Near Lulu Mall, Ansal &amp; Ekana', event)" title="Share photos &amp; link on WhatsApp" type="button"><svg fill="none" height="15" stroke="currentColor" stroke-width="2.2" viewbox="0 0 24 24" width="15"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path><polyline points="16 6 12 2 8 6"></polyline><line x1="12" x2="12" y1="2" y2="15"></line></svg><span>Share</span></button>
-</div>
-</div>
-</div>
-</article>
-<!-- 13. Pink Paradise Villa -->
-<article class="dir-card" data-area="lulu" data-location="lulu" data-name="pink paradise villa" data-price="4500" data-rating="4.91" data-room-id="VIL-108" data-slug="pink-paradise" data-type="villa flat">
-<a aria-label="Explore pink-paradise" class="dir-card-media" href="pink-paradise.html">
-<img alt="Pink Paradise Villa Lucknow" decoding="async" loading="lazy" src="assets/properties/pink-paradise/cover.jpg"/>
-<span class="dir-card-rating-badge">⭐ 4.91 (Boutique Villa)</span>
-<span class="dir-avail-badge dir-avail-loading">⏳ Checking...</span>
-</a>
-<div class="dir-card-body">
-<div class="dir-card-eyebrow">3BHK Boutique Villa · Near Lulu Mall &amp; Medanta</div>
-<h2 class="dir-card-title"><a href="pink-paradise.html">Pink Paradise Villa</a></h2>
-<div class="dir-card-location">📍 Madhav Kunj · Near Lulu Mall &amp; Medanta</div>
-<div class="dir-card-specs">
-<span class="dir-card-spec-item">👥 Up to 6</span>
-<span class="dir-card-spec-item">❄️ AC</span>
-<span class="dir-card-spec-item">📶 WiFi</span>
-<span class="dir-card-spec-item">🍳 Kitchen</span>
-<span class="dir-card-spec-item">🅿️ Free Parking</span>
-</div>
-<div class="dir-card-footer">
-<div class="dir-card-price-block">
-<span class="dir-card-price-strike">₹5,499</span>
-<span class="dir-card-price-main">₹4,500 <small>/ night</small></span>
-</div>
-<div class="dir-card-actions">
-<a class="dir-btn-details" href="pink-paradise.html">Explore ↗</a>
-<button class="dir-btn-share-icon" onclick="shareProperty('pink-paradise', 'Pink Paradise Villa', '4,500', 'Near Lulu Mall &amp; Medanta', event)" title="Share photos &amp; link on WhatsApp" type="button"><svg fill="none" height="15" stroke="currentColor" stroke-width="2.2" viewbox="0 0 24 24" width="15"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path><polyline points="16 6 12 2 8 6"></polyline><line x1="12" x2="12" y1="2" y2="15"></line></svg><span>Share</span></button>
-</div>
-</div>
-</div>
-</article>
-<!-- 14. Celebrity Garden -->
-<article class="dir-card" data-area="lulu" data-location="lulu" data-name="celebrity garden" data-price="10000" data-rating="4.94" data-room-id="LUL-402" data-slug="celebrity-garden" data-type="flat">
-<a aria-label="Explore celebrity-garden" class="dir-card-media" href="celebrity-garden.html">
-<img alt="Celebrity Garden Homestay Lucknow" decoding="async" loading="lazy" src="assets/properties/celebrity-garden/cover.jpg"/>
-<span class="dir-card-rating-badge">⭐ 4.94 (Lulu Mall &amp; Medanta)</span>
-<span class="dir-avail-badge dir-avail-loading">⏳ Checking...</span>
-</a>
-<div class="dir-card-body">
-<div class="dir-card-eyebrow">4BHK Grand Homestay · Near Lulu &amp; Medanta</div>
-<h2 class="dir-card-title"><a href="celebrity-garden.html">Celebrity Garden</a></h2>
-<div class="dir-card-location">📍 Sushant Golf City · 8 min to Lulu Mall &amp; Medanta</div>
-<div class="dir-card-specs">
-<span class="dir-card-spec-item">👥 Up to 10</span>
-<span class="dir-card-spec-item">❄️ AC in all rooms</span>
-<span class="dir-card-spec-item">📶 WiFi</span>
-<span class="dir-card-spec-item">🍳 Kitchen</span>
-<span class="dir-card-spec-item">🅿️ Free Parking</span>
-</div>
-<div class="dir-card-footer">
-<div class="dir-card-price-block">
-<span class="dir-card-price-strike">₹12,499</span>
-<span class="dir-card-price-main">₹10,000 <small>/ night</small></span>
-</div>
-<div class="dir-card-actions">
-<a class="dir-btn-details" href="celebrity-garden.html">Explore ↗</a>
-<button class="dir-btn-share-icon" onclick="shareProperty('celebrity-garden', 'Celebrity Garden', '10,000', 'Sushant Golf City, Near Lulu Mall', event)" title="Share photos &amp; link on WhatsApp" type="button"><svg fill="none" height="15" stroke="currentColor" stroke-width="2.2" viewbox="0 0 24 24" width="15"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path><polyline points="16 6 12 2 8 6"></polyline><line x1="12" x2="12" y1="2" y2="15"></line></svg><span>Share</span></button>
-</div>
-</div>
-</div>
-</article>
-<!-- 15. Gomti Grand Villa -->
-<article class="dir-card" data-area="lulu" data-location="lulu" data-name="gomti grand villa" data-price="8000" data-rating="4.97" data-room-id="VIL-101" data-slug="gomti-grand-villa" data-type="villa">
-<a aria-label="Explore gomti-grand-villa" class="dir-card-media" href="gomti-grand-villa.html">
-<img alt="Gomti Grand Villa Lucknow" decoding="async" loading="lazy" src="assets/properties/gomti-grand-villa/cover.jpg"/>
-<span class="dir-card-rating-badge">⭐ 4.97 (Luxury Villa)</span>
-<span class="dir-avail-badge dir-avail-loading">⏳ Checking...</span>
-</a>
-<div class="dir-card-body">
-<div class="dir-card-eyebrow">4BHK Luxury Villa · Near Lulu &amp; Palassio Mall</div>
-<h2 class="dir-card-title"><a href="gomti-grand-villa.html">Gomti Grand Villa</a></h2>
-<div class="dir-card-location">📍 Geetapuri Colony · Near Lulu &amp; Palassio Mall</div>
-<div class="dir-card-specs">
-<span class="dir-card-spec-item">👥 Up to 10</span>
-<span class="dir-card-spec-item">🏡 Full Private Villa</span>
-<span class="dir-card-spec-item">❄️ AC</span>
-<span class="dir-card-spec-item">📶 WiFi</span>
-<span class="dir-card-spec-item">🅿️ Private Driveway</span>
-</div>
-<div class="dir-card-footer">
-<div class="dir-card-price-block">
-<span class="dir-card-price-strike">₹9,499</span>
-<span class="dir-card-price-main">₹8,000 <small>/ night</small></span>
-</div>
-<div class="dir-card-actions">
-<a class="dir-btn-details" href="gomti-grand-villa.html">Explore ↗</a>
-<button class="dir-btn-share-icon" onclick="shareProperty('gomti-grand-villa', 'Gomti Grand Villa', '8,000', 'Geetapuri Colony, Near Lulu Mall', event)" title="Share photos &amp; link on WhatsApp" type="button"><svg fill="none" height="15" stroke="currentColor" stroke-width="2.2" viewbox="0 0 24 24" width="15"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path><polyline points="16 6 12 2 8 6"></polyline><line x1="12" x2="12" y1="2" y2="15"></line></svg><span>Share</span></button>
-</div>
-</div>
-</div>
-</article>
-<!-- 16. Royal White House -->
-<article class="dir-card" data-area="lulu" data-location="lulu" data-name="royal white house" data-price="12000" data-rating="4.95" data-room-id="VIL-102" data-slug="royal-white-house" data-type="villa">
-<a aria-label="Explore royal-white-house" class="dir-card-media" href="royal-white-house.html">
-<img alt="Royal White House Homestay Lucknow" decoding="async" loading="lazy" src="assets/properties/royal-white-house/cover.jpg"/>
-<span class="dir-card-rating-badge">⭐ 4.95 (Exclusive Villa)</span>
-<span class="dir-avail-badge dir-avail-loading">⏳ Checking...</span>
-</a>
-<div class="dir-card-body">
-<div class="dir-card-eyebrow">Royal Villa · Near Lulu Mall &amp; Ekana</div>
-<h2 class="dir-card-title"><a href="royal-white-house.html">Royal White House</a></h2>
-<div class="dir-card-location">📍 Omaxe City / Shaheed Path · Near Lulu Mall &amp; Airport</div>
-<div class="dir-card-specs">
-<span class="dir-card-spec-item">👥 Up to 12</span>
-<span class="dir-card-spec-item">🏡 Private Villa</span>
-<span class="dir-card-spec-item">❄️ AC</span>
-<span class="dir-card-spec-item">📶 WiFi</span>
-<span class="dir-card-spec-item">🅿️ Free Parking</span>
-</div>
-<div class="dir-card-footer">
-<div class="dir-card-price-block">
-<span class="dir-card-price-strike">₹14,999</span>
-<span class="dir-card-price-main">₹12,000 <small>/ night</small></span>
-</div>
-<div class="dir-card-actions">
-<a class="dir-btn-details" href="royal-white-house.html">Explore ↗</a>
-<button class="dir-btn-share-icon" onclick="shareProperty('royal-white-house', 'Royal White House', '12,000', 'Near Lulu Mall &amp; Airport', event)" title="Share photos &amp; link on WhatsApp" type="button"><svg fill="none" height="15" stroke="currentColor" stroke-width="2.2" viewbox="0 0 24 24" width="15"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path><polyline points="16 6 12 2 8 6"></polyline><line x1="12" x2="12" y1="2" y2="15"></line></svg><span>Share</span></button>
-</div>
-</div>
-</div>
-</article>
-<!-- 17. The Velvet House -->
-<article class="dir-card" data-area="lulu" data-location="lulu" data-name="the velvet house" data-price="4500" data-rating="4.93" data-room-id="VIL-107" data-slug="the-velvet-house" data-type="villa">
-<a aria-label="Explore the-velvet-house" class="dir-card-media" href="the-velvet-house.html">
-<img alt="The Velvet House Lucknow" decoding="async" loading="lazy" src="assets/properties/the-velvet-house/cover.jpg"/>
-<span class="dir-card-rating-badge">⭐ 4.93 (Luxe Villa)</span>
-<span class="dir-avail-badge dir-avail-loading">⏳ Checking...</span>
-</a>
-<div class="dir-card-body">
-<div class="dir-card-eyebrow">Luxury Villa · Near Lulu Mall &amp; Medanta</div>
-<h2 class="dir-card-title"><a href="the-velvet-house.html">The Velvet House</a></h2>
-<div class="dir-card-location">📍 Madhav Kunj · Near Lulu Mall &amp; Ekana Stadium</div>
-<div class="dir-card-specs">
-<span class="dir-card-spec-item">👥 Up to 6</span>
-<span class="dir-card-spec-item">🏡 Private Villa</span>
-<span class="dir-card-spec-item">❄️ AC</span>
-<span class="dir-card-spec-item">📶 WiFi</span>
-<span class="dir-card-spec-item">🅿️ Free Parking</span>
-</div>
-<div class="dir-card-footer">
-<div class="dir-card-price-block">
-<span class="dir-card-price-strike">₹5,499</span>
-<span class="dir-card-price-main">₹4,500 <small>/ night</small></span>
-</div>
-<div class="dir-card-actions">
-<a class="dir-btn-details" href="the-velvet-house.html">Explore ↗</a>
-<button class="dir-btn-share-icon" onclick="shareProperty('the-velvet-house', 'The Velvet House', '4,500', 'Near Lulu Mall &amp; Ekana Stadium', event)" title="Share photos &amp; link on WhatsApp" type="button"><svg fill="none" height="15" stroke="currentColor" stroke-width="2.2" viewbox="0 0 24 24" width="15"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path><polyline points="16 6 12 2 8 6"></polyline><line x1="12" x2="12" y1="2" y2="15"></line></svg><span>Share</span></button>
-</div>
-</div>
-</div>
-</article>
-</div>
-</main>
+<!-- ─── VESPER-STYLE CINEMATIC FLAGSHIP HERO: ROYAL WHITE HOUSE ─── -->
+<section class="tuhh-vesper-hero" id="flagship-hero">
+  <!-- Dynamic Background Slides -->
+  <div class="vesper-bg-viewport" id="vesperBgViewport">
+    <!-- Populated by js/vesper-hero.js with 5 real high-res rooms -->
+  </div>
+  <div class="vesper-scrim"></div>
+  <div class="vesper-watermark">HAVEN</div>
 
-<!-- ─── GUEST REVIEWS (Live from Airbnb via Supabase) ─── -->
-<section id="uhh-reviews-section" aria-label="Guest Reviews">
-  <!-- Populated by js/reviews-display.js -->
-</section>
-
-<!-- ─── PROPERTY LOCATIONS MAP ─── -->
-<section class="dir-map-section" id="property-map">
-<div class="dir-map-section-header">
-<div>
-<h2 class="dir-map-section-title">📍 Find Our Properties</h2>
-<p class="dir-map-section-sub">All 17 luxury stays across Lucknow: 8 Flats in Vikalp Khand · 3 Flats in Vishesh Khand · 6 Stays Near Lulu Mall</p>
-</div>
-<a href="calendar.html" style="display:inline-flex;align-items:center;gap:8px;background:#181d24;color:#fff;text-decoration:none;padding:10px 18px;border-radius:10px;font-size:13px;font-weight:700;transition:all 0.2s;">
-        📅 View Availability Calendar ↗
+  <!-- Top Hero Header Bar -->
+  <header class="vesper-topbar">
+    <a class="vesper-brand" href="index.html" title="THE UNIQUE HAVEN HOMES">
+      <div class="vesper-brand-emblem">
+        <img alt="TUHH Crest" src="assets/logo-emblem.png"/>
+      </div>
+      <div>
+        <span class="vesper-brand-title">THE UNIQUE HAVEN HOMES</span>
+        <span class="vesper-brand-sub">LUXURY BOUTIQUE HOSPITALITY</span>
+      </div>
+    </a>
+    <nav class="vesper-nav-links">
+      <a class="vesper-nav-link" href="#collection">17 Stays Collection</a>
+      <a class="vesper-nav-link" href="#spaces">Flagship Spaces</a>
+      <a class="vesper-nav-link" href="#hosts">The Leadership</a>
+      <a class="vesper-nav-link" href="royal-white-house.html">Villa Tour</a>
+      <a class="vesper-nav-link" href="properties.html">All 17 Properties</a>
+      <a class="vesper-btn-book" href="book.html?property=royal-white-house">Book Direct</a>
+      <a class="vesper-btn-wa-header" href="https://wa.me/919450055554?text=Namaste!%20I%20am%20interested%20in%20booking%20with%20The%20Unique%20Haven%20Homes%20in%20Lucknow." target="_blank">
+        <svg width="15" height="15" fill="currentColor" viewBox="0 0 32 32"><path d="M16 3C8.832 3 3 8.832 3 16c0 2.66.784 5.13 2.133 7.21L3 29l6.055-2.101A12.937 12.937 0 0 0 16 29c7.168 0 13-5.832 13-13S23.168 3 16 3zm0 23.6a10.54 10.54 0 0 1-5.32-1.435l-.38-.223-4.02 1.27 1.31-3.89-.247-.39A10.55 10.55 0 0 1 5.4 16C5.4 9.708 10.708 4.4 17 4.4S28.6 9.708 28.6 16 23.292 26.6 17 26.6zm5.78-7.79c-.316-.158-1.872-.923-2.162-1.029-.289-.105-.5-.158-.71.158-.21.315-.81 1.027-.994 1.238-.184.21-.368.237-.684.08-.316-.158-1.328-.49-2.527-1.558-.934-.832-1.565-1.858-1.75-2.175-.184-.316-.02-.487.139-.644.142-.141.316-.368.473-.552.158-.184.21-.316.316-.526.105-.21.052-.395-.026-.553-.079-.158-.71-1.712-.973-2.343-.258-.618-.519-.533-.71-.543a12.9 12.9 0 0 0-.605-.011c-.21 0-.553.078-.842.395-.29.316-1.107 1.081-1.107 2.635 0 1.553 1.133 3.054 1.291 3.264.158.21 2.23 3.396 5.405 4.764.755.325 1.345.52 1.806.664.758.24 1.45.206 1.995.126.609-.088 1.872-.766 2.136-1.506.263-.739.263-1.373.184-1.506-.08-.132-.29-.21-.606-.368z"/></svg>
+        WhatsApp
       </a>
-</div>
-<div class="dir-map-container">
-<div id="propertyMap"></div>
-</div>
+    </nav>
+  </header>
+
+  <!-- Main Hero Stage -->
+  <div class="vesper-hero-body">
+    <div class="vesper-left">
+      <div class="vesper-step-counter">
+        <span class="active-num" id="vesperActiveNum">01</span> / 05 &nbsp;&middot;&nbsp; FLAGSHIP VILLA TOUR &middot; THE UNIQUE HAVEN HOMES
+      </div>
+      <div class="vesper-tag-bar">
+        <span class="vesper-tag-label">⭐ FEATURED STAY:</span>
+        <select id="vesperPropertySelect" class="vesper-property-picker" aria-label="Select Villa Showcase">
+          <option value="royal-white-house" selected>Royal White House (Royal Villa)</option>
+          <option value="black-beauty">Black Beauty (3BHK Flat)</option>
+          <option value="starlight-blue-penthouse">Starlight Blue Penthouse (4BHK Penthouse)</option>
+          <option value="gomti-grand-villa">Gomti Grand Villa (4BHK Villa)</option>
+          <option value="celebrity-garden">Celebrity Garden (Farmhouse & Villa)</option>
+          <option value="the-dark-blue">The Dark Blue (3BHK Flat)</option>
+          <option value="the-yellow-house">The Yellow House (3BHK Flat)</option>
+          <option value="the-green-house">The Green House (3BHK Flat)</option>
+          <option value="the-pink-house">The Pink House (3BHK Flat)</option>
+          <option value="the-light-green">The Light Green (3BHK Flat)</option>
+          <option value="the-velvet-house">The Velvet House (3BHK Flat)</option>
+          <option value="redrose-palace">Redrose Palace (3BHK Flat)</option>
+          <option value="the-nawabi-stay">The Nawabi Stay (Heritage Flat)</option>
+          <option value="the-unique">The Unique (3BHK Flat)</option>
+          <option value="the-brown">The Brown (3BHK Flat)</option>
+          <option value="green-forest">Green Forest (3BHK Flat)</option>
+          <option value="pink-paradise">Pink Paradise (3BHK Flat)</option>
+        </select>
+      </div>
+      <div class="vesper-typewriter-badge">
+        <span class="vesper-typewriter-label">THE UNIQUE HAVEN HOMES:</span>
+        <span id="vesperTypewriter" class="vesper-typewriter-text">17 Curated Boutique Residences Across Lucknow.</span>
+        <span class="vesper-typewriter-cursor">|</span>
+      </div>
+      <h1 class="vesper-headline">
+        Where luxury <em>slows down.</em>
+      </h1>
+      <div class="vesper-rating-row">
+        <span class="vesper-stars">★★★★★</span>
+        <span class="vesper-rating-text">4.94 &middot; 480+ verified guest reviews across 17 Lucknow stays</span>
+      </div>
+      <p class="vesper-subcopy">
+        Welcome to <strong>The Unique Haven Homes</strong>—operating 17 luxury boutique stays, private villas, and penthouses in Gomti Nagar &amp; near Lulu Mall. Currently spotlighting our presidential flagship, <strong>Royal White House</strong>: 4 grand suites, private lawn &amp; 24/7 royal caretaker. <strong>From ₹5,199 / night</strong> (Save 15% direct).
+      </p>
+
+      <div class="vesper-spec-row">
+        <span class="vesper-pill">👥 Sleeps 12</span>
+        <span class="vesper-pill">🛏️ 4 King Suites</span>
+        <span class="vesper-pill">❄️ 100% AC</span>
+        <span class="vesper-pill">🚗 Free Parking</span>
+        <span class="vesper-pill highlight">✨ Save 15% Direct</span>
+      </div>
+
+      <div class="vesper-actions">
+        <a class="vesper-btn-primary" id="vesperExploreCollectionBtn" href="#collection">
+          🏰 Explore 17 Haven Stays
+        </a>
+        <a class="vesper-btn-secondary" id="vesperExploreVillaBtn" href="royal-white-house.html">
+          🏛️ Royal White House Tour
+        </a>
+      </div>
+    </div>
+
+    <!-- Right: Booking Card + Stepper Navigator (Screenshots 2, 3, 4) -->
+    <div class="vesper-right">
+      <div class="vesper-booking-widget">
+        <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+          <div>
+            <p class="vesper-widget-title">Reserve the quiet,</p>
+            <span style="font-size:12.5px; color:#cbd5e1;">hosted with royal care</span>
+          </div>
+          <a href="book.html?property=royal-white-house" style="font-size:18px; color:#f59e0b; text-decoration:none;" title="Direct Booking">↗</a>
+        </div>
+        <div class="vesper-widget-field">
+          <label class="vesper-widget-label">Check In</label>
+          <div class="vesper-widget-input-wrap">
+            <input type="date" id="vesperCheckIn" class="vesper-widget-input" value="2026-10-15" aria-label="Check in date">
+          </div>
+        </div>
+        <div class="vesper-widget-field">
+          <label class="vesper-widget-label">Guests</label>
+          <div class="vesper-widget-input-wrap">
+            <select id="vesperGuests" class="vesper-widget-select" aria-label="Number of guests">
+              <option value="2">2 guests</option>
+              <option value="4">4 guests</option>
+              <option value="6">6 guests</option>
+              <option value="8">8 guests</option>
+              <option value="12" selected>12 guests (Entire Villa)</option>
+            </select>
+          </div>
+        </div>
+        <a class="vesper-widget-btn-submit" href="book.html?property=royal-white-house" id="vesperSubmitBtn">
+          Check availability
+        </a>
+        <p class="vesper-widget-guarantee">🔒 Direct Rate Guarantee · Zero Commission</p>
+      </div>
+
+      <div class="vesper-flight-path">
+        <div class="vesper-flight-header">
+          <span class="vesper-flight-title">Villa Flight Path</span>
+          <span class="vesper-flight-hint">Click space to fly</span>
+        </div>
+        <div class="vesper-steps-list" id="vesperStepsList">
+          <!-- Injected by js/vesper-hero.js -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bottom Scroll Fly-in Indicator -->
+  <a class="vesper-scroll-flyin" href="#collection" aria-label="Scroll to explore collection">
+    <span>Scroll to explore 17 stays</span>
+    <span class="vesper-scroll-arrow">↓</span>
+  </a>
 </section>
-<!-- ─── AIRNEST 4-ITEM HORIZONTAL TRUST STRIP (REPLACING BULKY BOXES) ─── -->
-<section class="airnest-trust-section" id="why-us">
-<div class="airnest-trust-strip">
-<div class="airnest-trust-item">
-<div class="airnest-trust-icon-box">🛡️</div>
-<div>
-<div class="airnest-trust-title">Verified Superhosts</div>
-<p class="airnest-trust-desc">4.92★ verified rating across 480+ reviews. Handpicked stays with strict 5-star hospitality hygiene.</p>
-</div>
-</div>
-<div class="airnest-trust-item">
-<div class="airnest-trust-icon-box">⚡</div>
-<div>
-<div class="airnest-trust-title">Zero Platform Fees</div>
-<p class="airnest-trust-desc">For up to 15% discount, WhatsApp Shahanshah or Firoz. Zero service fees.</p>
-</div>
-</div>
-<div class="airnest-trust-item">
-<div class="airnest-trust-icon-box">🛎️</div>
-<div>
-<div class="airnest-trust-title">24/7 Local Concierge</div>
-<p class="airnest-trust-desc">In-person check-in, on-call caretakers, and immediate assistance for family trips &amp; corporate stays.</p>
-</div>
-</div>
-<div class="airnest-trust-item">
-<div class="airnest-trust-icon-box">🍳</div>
-<div>
-<div class="airnest-trust-title">100% Fully Furnished</div>
-<p class="airnest-trust-desc">Modular kitchen with cookware, split ACs in all rooms, high-speed WiFi, power backup &amp; linens.</p>
-</div>
-</div>
-</div>
+
+<!-- ─── THE 17 STAYS PORTFOLIO: HIGH-CONVERSION 2-MINUTE BOOKING SHOWCASE ─── -->
+<section class="vesper-collection-section" id="collection">
+  <div class="vesper-collection-container">
+    <div class="vesper-collection-header vesper-reveal">
+      <span class="vesper-collection-eyebrow">THE HAVEN COLLECTION · 17 CURATED STAYS IN LUCKNOW</span>
+      <h2 class="vesper-collection-title">Choose your stay across Lucknow's finest locations.</h2>
+      <p class="vesper-collection-sub">From private white-marble estates to skyline penthouses and designer 3BHK suites in Gomti Nagar &amp; near Lulu Mall. Book direct with verified Airbnb Superhosts and save 15% with zero platform commission.</p>
+    </div>
+
+    <!-- Quick Category Filter Tabs -->
+    <div class="vesper-filter-bar vesper-reveal">
+      <button type="button" class="vesper-filter-btn active" data-filter="all">🌟 All 17 Stays (17)</button>
+      <button type="button" class="vesper-filter-btn" data-filter="villa">🏰 Luxury Villas &amp; Farmhouses (5)</button>
+      <button type="button" class="vesper-filter-btn" data-filter="penthouse">🌌 Skyline Penthouses (2)</button>
+      <button type="button" class="vesper-filter-btn" data-filter="flat">🏢 Gomti Nagar 3BHK Flats (10)</button>
+      <button type="button" class="vesper-filter-btn" data-filter="shaheed">📍 Near Lulu Mall &amp; Airport (6)</button>
+    </div>
+
+    <!-- The 17 Properties Grid -->
+    <div class="vesper-stays-grid" id="vesperStaysGrid">
+
+      <!-- 1. Royal White House -->
+      <article class="vesper-stay-card" data-room-id="VIL-102" data-slug="royal-white-house" data-category="all villa shaheed">
+        <div class="vesper-stay-media">
+          <img src="assets/properties/royal-white-house/cover.jpg" alt="Royal White House Flagship Villa" loading="lazy">
+          <span class="vesper-stay-badge">👑 Flagship Presidential Villa</span>
+          <span class="vesper-stay-save-badge">Save 15%</span>
+        </div>
+        <div class="vesper-stay-body">
+          <div>
+            <div class="vesper-stay-type">4 Suites Luxury Villa</div>
+            <h3 class="vesper-stay-title"><a href="royal-white-house.html">Royal White House</a></h3>
+            <div class="vesper-stay-loc">📍 Shaheed Path · Near Lulu Mall &amp; Airport</div>
+            <div class="vesper-stay-specs">
+              <span class="vesper-stay-spec-pill">👥 Up to 12</span>
+              <span class="vesper-stay-spec-pill">🛏️ 4 King Suites</span>
+              <span class="vesper-stay-spec-pill">🏡 Private Lawn</span>
+              <span class="vesper-stay-spec-pill">❄️ 100% AC</span>
+            </div>
+          </div>
+          <div>
+            <div class="vesper-stay-pricing-row">
+              <div>
+                <span class="vesper-stay-price-strike">₹6,499</span>
+                <span class="vesper-stay-price">₹5,199 <small>/ night</small></span>
+              </div>
+              <span style="font-size:12px; color:#f59e0b; font-weight:700;">★ 4.95 (48)</span>
+            </div>
+            <div class="vesper-stay-actions">
+              <a class="vesper-btn-stay-book" href="book.html?property=royal-white-house">⚡ Book Direct</a>
+              <a class="vesper-btn-stay-wa" href="https://wa.me/919450055554?text=Namaste!%20I%20am%20interested%20in%20booking%20Royal%20White%20House%20in%20Lucknow." target="_blank">💬 WhatsApp</a>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <!-- 2. Black Beauty -->
+      <article class="vesper-stay-card" data-room-id="GOM-102" data-slug="black-beauty" data-category="all flat">
+        <div class="vesper-stay-media">
+          <img src="assets/properties/black-beauty/cover.jpg" alt="Black Beauty 3BHK Flat" loading="lazy">
+          <span class="vesper-stay-badge">🖤 Designer Luxury Suite</span>
+          <span class="vesper-stay-save-badge">Save 15%</span>
+        </div>
+        <div class="vesper-stay-body">
+          <div>
+            <div class="vesper-stay-type">3BHK Luxury Flat</div>
+            <h3 class="vesper-stay-title"><a href="black-beauty.html">Black Beauty</a></h3>
+            <div class="vesper-stay-loc">📍 Vikalp Khand, Gomti Nagar</div>
+            <div class="vesper-stay-specs">
+              <span class="vesper-stay-spec-pill">👥 Up to 10</span>
+              <span class="vesper-stay-spec-pill">🛏️ 3 King Beds</span>
+              <span class="vesper-stay-spec-pill">📶 100 Mbps WiFi</span>
+              <span class="vesper-stay-spec-pill">❄️ 100% AC</span>
+            </div>
+          </div>
+          <div>
+            <div class="vesper-stay-pricing-row">
+              <div>
+                <span class="vesper-stay-price-strike">₹5,499</span>
+                <span class="vesper-stay-price">₹4,500 <small>/ night</small></span>
+              </div>
+              <span style="font-size:12px; color:#f59e0b; font-weight:700;">★ 4.95 (52)</span>
+            </div>
+            <div class="vesper-stay-actions">
+              <a class="vesper-btn-stay-book" href="book.html?property=black-beauty">⚡ Book Direct</a>
+              <a class="vesper-btn-stay-wa" href="https://wa.me/919450055554?text=Namaste!%20I%20am%20interested%20in%20booking%20Black%20Beauty%20in%20Lucknow." target="_blank">💬 WhatsApp</a>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <!-- 3. Starlight Blue Penthouse -->
+      <article class="vesper-stay-card" data-room-id="GOM-501" data-slug="starlight-blue-penthouse" data-category="all penthouse flat">
+        <div class="vesper-stay-media">
+          <img src="assets/properties/starlight-blue/cover.jpg" alt="Starlight Blue Penthouse" loading="lazy">
+          <span class="vesper-stay-badge">🌌 4BHK Sky Penthouse</span>
+          <span class="vesper-stay-save-badge">Save 15%</span>
+        </div>
+        <div class="vesper-stay-body">
+          <div>
+            <div class="vesper-stay-type">4BHK Panoramic Penthouse</div>
+            <h3 class="vesper-stay-title"><a href="starlight-blue-penthouse.html">Starlight Blue Penthouse</a></h3>
+            <div class="vesper-stay-loc">📍 Vikalp Khand, Gomti Nagar</div>
+            <div class="vesper-stay-specs">
+              <span class="vesper-stay-spec-pill">👥 Up to 14</span>
+              <span class="vesper-stay-spec-pill">🛏️ 4 Suites</span>
+              <span class="vesper-stay-spec-pill">🌇 Open Terrace</span>
+              <span class="vesper-stay-spec-pill">❄️ 100% AC</span>
+            </div>
+          </div>
+          <div>
+            <div class="vesper-stay-pricing-row">
+              <div>
+                <span class="vesper-stay-price-strike">₹7,499</span>
+                <span class="vesper-stay-price">₹6,000 <small>/ night</small></span>
+              </div>
+              <span style="font-size:12px; color:#f59e0b; font-weight:700;">★ 4.96 (41)</span>
+            </div>
+            <div class="vesper-stay-actions">
+              <a class="vesper-btn-stay-book" href="book.html?property=starlight-blue-penthouse">⚡ Book Direct</a>
+              <a class="vesper-btn-stay-wa" href="https://wa.me/919450055554?text=Namaste!%20I%20am%20interested%20in%20booking%20Starlight%20Blue%20Penthouse%20in%20Lucknow." target="_blank">💬 WhatsApp</a>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <!-- 4. Gomti Grand Villa -->
+      <article class="vesper-stay-card" data-room-id="VIL-101" data-slug="gomti-grand-villa" data-category="all villa">
+        <div class="vesper-stay-media">
+          <img src="assets/properties/gomti-grand-villa/cover.jpg" alt="Gomti Grand Villa" loading="lazy">
+          <span class="vesper-stay-badge">🏛️ 4BHK Royal Courtyard Villa</span>
+          <span class="vesper-stay-save-badge">Save 15%</span>
+        </div>
+        <div class="vesper-stay-body">
+          <div>
+            <div class="vesper-stay-type">4BHK Sprawling Villa</div>
+            <h3 class="vesper-stay-title"><a href="gomti-grand-villa.html">Gomti Grand Villa</a></h3>
+            <div class="vesper-stay-loc">📍 Gomti Nagar Extension</div>
+            <div class="vesper-stay-specs">
+              <span class="vesper-stay-spec-pill">👥 Up to 14</span>
+              <span class="vesper-stay-spec-pill">🛏️ 4 Bedrooms</span>
+              <span class="vesper-stay-spec-pill">🌳 Courtyard</span>
+              <span class="vesper-stay-spec-pill">🚗 Parking</span>
+            </div>
+          </div>
+          <div>
+            <div class="vesper-stay-pricing-row">
+              <div>
+                <span class="vesper-stay-price-strike">₹8,999</span>
+                <span class="vesper-stay-price">₹8,000 <small>/ night</small></span>
+              </div>
+              <span style="font-size:12px; color:#f59e0b; font-weight:700;">★ 4.97 (32)</span>
+            </div>
+            <div class="vesper-stay-actions">
+              <a class="vesper-btn-stay-book" href="book.html?property=gomti-grand-villa">⚡ Book Direct</a>
+              <a class="vesper-btn-stay-wa" href="https://wa.me/919450055554?text=Namaste!%20I%20am%20interested%20in%20booking%20Gomti%20Grand%20Villa%20in%20Lucknow." target="_blank">💬 WhatsApp</a>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <!-- 5. Celebrity Garden -->
+      <article class="vesper-stay-card" data-room-id="LUL-402" data-slug="celebrity-garden" data-category="all villa shaheed">
+        <div class="vesper-stay-media">
+          <img src="assets/properties/celebrity-garden/cover.jpg" alt="Celebrity Garden Farmhouse" loading="lazy">
+          <span class="vesper-stay-badge">🌿 Luxury Farmhouse &amp; Lawn</span>
+          <span class="vesper-stay-save-badge">Save 15%</span>
+        </div>
+        <div class="vesper-stay-body">
+          <div>
+            <div class="vesper-stay-type">Farmhouse &amp; Villa</div>
+            <h3 class="vesper-stay-title"><a href="celebrity-garden.html">Celebrity Garden</a></h3>
+            <div class="vesper-stay-loc">📍 Shaheed Path · Near Ekana Stadium</div>
+            <div class="vesper-stay-specs">
+              <span class="vesper-stay-spec-pill">👥 Up to 15</span>
+              <span class="vesper-stay-spec-pill">🏡 Private Lawn</span>
+              <span class="vesper-stay-spec-pill">🛏️ 4 Bedrooms</span>
+              <span class="vesper-stay-spec-pill">❄️ 100% AC</span>
+            </div>
+          </div>
+          <div>
+            <div class="vesper-stay-pricing-row">
+              <div>
+                <span class="vesper-stay-price-strike">₹11,999</span>
+                <span class="vesper-stay-price">₹10,000 <small>/ night</small></span>
+              </div>
+              <span style="font-size:12px; color:#f59e0b; font-weight:700;">★ 4.94 (34)</span>
+            </div>
+            <div class="vesper-stay-actions">
+              <a class="vesper-btn-stay-book" href="book.html?property=celebrity-garden">⚡ Book Direct</a>
+              <a class="vesper-btn-stay-wa" href="https://wa.me/919450055554?text=Namaste!%20I%20am%20interested%20in%20booking%20Celebrity%20Garden%20in%20Lucknow." target="_blank">💬 WhatsApp</a>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <!-- 6. Redrose Palace -->
+      <article class="vesper-stay-card" data-room-id="GOM-101" data-slug="redrose-palace" data-category="all penthouse flat">
+        <div class="vesper-stay-media">
+          <img src="assets/properties/redrose-palace/cover.jpg" alt="Redrose Palace Flat" loading="lazy">
+          <span class="vesper-stay-badge">🌹 Luxury Rose Suite</span>
+          <span class="vesper-stay-save-badge">Save 15%</span>
+        </div>
+        <div class="vesper-stay-body">
+          <div>
+            <div class="vesper-stay-type">3BHK Luxury Flat</div>
+            <h3 class="vesper-stay-title"><a href="redrose-palace.html">Redrose Palace</a></h3>
+            <div class="vesper-stay-loc">📍 Vikalp Khand, Gomti Nagar</div>
+            <div class="vesper-stay-specs">
+              <span class="vesper-stay-spec-pill">👥 Up to 10</span>
+              <span class="vesper-stay-spec-pill">🛏️ 3 Beds</span>
+              <span class="vesper-stay-spec-pill">🛋️ Velvet Sofa</span>
+              <span class="vesper-stay-spec-pill">❄️ 100% AC</span>
+            </div>
+          </div>
+          <div>
+            <div class="vesper-stay-pricing-row">
+              <div>
+                <span class="vesper-stay-price-strike">₹5,499</span>
+                <span class="vesper-stay-price">₹4,500 <small>/ night</small></span>
+              </div>
+              <span style="font-size:12px; color:#f59e0b; font-weight:700;">★ 4.92 (33)</span>
+            </div>
+            <div class="vesper-stay-actions">
+              <a class="vesper-btn-stay-book" href="book.html?property=redrose-palace">⚡ Book Direct</a>
+              <a class="vesper-btn-stay-wa" href="https://wa.me/919450055554?text=Namaste!%20I%20am%20interested%20in%20booking%20Redrose%20Palace%20in%20Lucknow." target="_blank">💬 WhatsApp</a>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <!-- 7. The Dark Blue -->
+      <article class="vesper-stay-card" data-room-id="GOM-201" data-slug="the-dark-blue" data-category="all flat">
+        <div class="vesper-stay-media">
+          <img src="assets/properties/the-dark-blue/cover.jpg" alt="The Dark Blue Flat" loading="lazy">
+          <span class="vesper-stay-badge">✨ Signature Velvet Flat</span>
+          <span class="vesper-stay-save-badge">Save 15%</span>
+        </div>
+        <div class="vesper-stay-body">
+          <div>
+            <div class="vesper-stay-type">3BHK Luxury Flat</div>
+            <h3 class="vesper-stay-title"><a href="the-dark-blue.html">The Dark Blue</a></h3>
+            <div class="vesper-stay-loc">📍 Vikalp Khand, Gomti Nagar</div>
+            <div class="vesper-stay-specs">
+              <span class="vesper-stay-spec-pill">👥 Up to 10</span>
+              <span class="vesper-stay-spec-pill">🛏️ 3 Beds</span>
+              <span class="vesper-stay-spec-pill">🌿 Balcony</span>
+              <span class="vesper-stay-spec-pill">❄️ 100% AC</span>
+            </div>
+          </div>
+          <div>
+            <div class="vesper-stay-pricing-row">
+              <div>
+                <span class="vesper-stay-price-strike">₹5,499</span>
+                <span class="vesper-stay-price">₹4,500 <small>/ night</small></span>
+              </div>
+              <span style="font-size:12px; color:#f59e0b; font-weight:700;">★ 4.95 (46)</span>
+            </div>
+            <div class="vesper-stay-actions">
+              <a class="vesper-btn-stay-book" href="book.html?property=the-dark-blue">⚡ Book Direct</a>
+              <a class="vesper-btn-stay-wa" href="https://wa.me/919450055554?text=Namaste!%20I%20am%20interested%20in%20booking%20The%20Dark%20Blue%20in%20Lucknow." target="_blank">💬 WhatsApp</a>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <!-- 8. The Yellow House -->
+      <article class="vesper-stay-card" data-room-id="VIL-105" data-slug="the-yellow-house" data-category="all flat">
+        <div class="vesper-stay-media">
+          <img src="assets/properties/the-yellow-house/cover.jpg" alt="The Yellow House Flat" loading="lazy">
+          <span class="vesper-stay-badge">💛 Sunlit Balcony Flat</span>
+          <span class="vesper-stay-save-badge">Save 15%</span>
+        </div>
+        <div class="vesper-stay-body">
+          <div>
+            <div class="vesper-stay-type">3BHK Sunlit Flat</div>
+            <h3 class="vesper-stay-title"><a href="the-yellow-house.html">The Yellow House</a></h3>
+            <div class="vesper-stay-loc">📍 Vishesh Khand, Gomti Nagar</div>
+            <div class="vesper-stay-specs">
+              <span class="vesper-stay-spec-pill">👥 Up to 10</span>
+              <span class="vesper-stay-spec-pill">🛏️ 3 Beds</span>
+              <span class="vesper-stay-spec-pill">☀️ Sunlit Balcony</span>
+              <span class="vesper-stay-spec-pill">❄️ 100% AC</span>
+            </div>
+          </div>
+          <div>
+            <div class="vesper-stay-pricing-row">
+              <div>
+                <span class="vesper-stay-price-strike">₹6,499</span>
+                <span class="vesper-stay-price">₹5,500 <small>/ night</small></span>
+              </div>
+              <span style="font-size:12px; color:#f59e0b; font-weight:700;">★ 4.89 (29)</span>
+            </div>
+            <div class="vesper-stay-actions">
+              <a class="vesper-btn-stay-book" href="book.html?property=the-yellow-house">⚡ Book Direct</a>
+              <a class="vesper-btn-stay-wa" href="https://wa.me/919450055554?text=Namaste!%20I%20am%20interested%20in%20booking%20The%20Yellow%20House%20in%20Lucknow." target="_blank">💬 WhatsApp</a>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <!-- 9. The Green House -->
+      <article class="vesper-stay-card" data-room-id="VIL-104" data-slug="the-green-house" data-category="all flat">
+        <div class="vesper-stay-media">
+          <img src="assets/properties/the-green-house/cover.jpg" alt="The Green House Flat" loading="lazy">
+          <span class="vesper-stay-badge">🌿 Botanical Oasis Flat</span>
+          <span class="vesper-stay-save-badge">Save 15%</span>
+        </div>
+        <div class="vesper-stay-body">
+          <div>
+            <div class="vesper-stay-type">3BHK Botanical Flat</div>
+            <h3 class="vesper-stay-title"><a href="the-green-house.html">The Green House</a></h3>
+            <div class="vesper-stay-loc">📍 Vishesh Khand, Gomti Nagar</div>
+            <div class="vesper-stay-specs">
+              <span class="vesper-stay-spec-pill">👥 Up to 10</span>
+              <span class="vesper-stay-spec-pill">🛏️ 3 Beds</span>
+              <span class="vesper-stay-spec-pill">🌿 Plant Balcony</span>
+              <span class="vesper-stay-spec-pill">❄️ 100% AC</span>
+            </div>
+          </div>
+          <div>
+            <div class="vesper-stay-pricing-row">
+              <div>
+                <span class="vesper-stay-price-strike">₹6,499</span>
+                <span class="vesper-stay-price">₹5,500 <small>/ night</small></span>
+              </div>
+              <span style="font-size:12px; color:#f59e0b; font-weight:700;">★ 4.90 (31)</span>
+            </div>
+            <div class="vesper-stay-actions">
+              <a class="vesper-btn-stay-book" href="book.html?property=the-green-house">⚡ Book Direct</a>
+              <a class="vesper-btn-stay-wa" href="https://wa.me/919450055554?text=Namaste!%20I%20am%20interested%20in%20booking%20The%20Green%20House%20in%20Lucknow." target="_blank">💬 WhatsApp</a>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <!-- 10. The Velvet House -->
+      <article class="vesper-stay-card" data-room-id="VIL-107" data-slug="the-velvet-house" data-category="all villa shaheed">
+        <div class="vesper-stay-media">
+          <img src="assets/properties/the-velvet-house/cover.jpg" alt="The Velvet House Villa" loading="lazy">
+          <span class="vesper-stay-badge">🎭 Plush Velvet Villa</span>
+          <span class="vesper-stay-save-badge">Save 15%</span>
+        </div>
+        <div class="vesper-stay-body">
+          <div>
+            <div class="vesper-stay-type">Luxury Boutique Villa</div>
+            <h3 class="vesper-stay-title"><a href="the-velvet-house.html">The Velvet House</a></h3>
+            <div class="vesper-stay-loc">📍 Near Lulu Mall &amp; Shaheed Path</div>
+            <div class="vesper-stay-specs">
+              <span class="vesper-stay-spec-pill">👥 Up to 12</span>
+              <span class="vesper-stay-spec-pill">🛏️ 3 Suites</span>
+              <span class="vesper-stay-spec-pill">🛋️ Velvet Lounge</span>
+              <span class="vesper-stay-spec-pill">❄️ 100% AC</span>
+            </div>
+          </div>
+          <div>
+            <div class="vesper-stay-pricing-row">
+              <div>
+                <span class="vesper-stay-price-strike">₹5,499</span>
+                <span class="vesper-stay-price">₹4,500 <small>/ night</small></span>
+              </div>
+              <span style="font-size:12px; color:#f59e0b; font-weight:700;">★ 4.93 (35)</span>
+            </div>
+            <div class="vesper-stay-actions">
+              <a class="vesper-btn-stay-book" href="book.html?property=the-velvet-house">⚡ Book Direct</a>
+              <a class="vesper-btn-stay-wa" href="https://wa.me/919450055554?text=Namaste!%20I%20am%20interested%20in%20booking%20The%20Velvet%20House%20in%20Lucknow." target="_blank">💬 WhatsApp</a>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <!-- 11. The Pink House -->
+      <article class="vesper-stay-card" data-room-id="VIL-103" data-slug="the-pink-house" data-category="all flat">
+        <div class="vesper-stay-media">
+          <img src="assets/properties/the-pink-house/cover.jpg" alt="The Pink House Flat" loading="lazy">
+          <span class="vesper-stay-badge">🌸 Boho Chic Flat</span>
+          <span class="vesper-stay-save-badge">Save 15%</span>
+        </div>
+        <div class="vesper-stay-body">
+          <div>
+            <div class="vesper-stay-type">3BHK Boho Flat</div>
+            <h3 class="vesper-stay-title"><a href="the-pink-house.html">The Pink House</a></h3>
+            <div class="vesper-stay-loc">📍 Vishesh Khand, Gomti Nagar</div>
+            <div class="vesper-stay-specs">
+              <span class="vesper-stay-spec-pill">👥 Up to 10</span>
+              <span class="vesper-stay-spec-pill">🛏️ 3 Beds</span>
+              <span class="vesper-stay-spec-pill">🌸 Boho Decor</span>
+              <span class="vesper-stay-spec-pill">❄️ 100% AC</span>
+            </div>
+          </div>
+          <div>
+            <div class="vesper-stay-pricing-row">
+              <div>
+                <span class="vesper-stay-price-strike">₹10,499</span>
+                <span class="vesper-stay-price">₹9,000 <small>/ night</small></span>
+              </div>
+              <span style="font-size:12px; color:#f59e0b; font-weight:700;">★ 4.89 (27)</span>
+            </div>
+            <div class="vesper-stay-actions">
+              <a class="vesper-btn-stay-book" href="book.html?property=the-pink-house">⚡ Book Direct</a>
+              <a class="vesper-btn-stay-wa" href="https://wa.me/919450055554?text=Namaste!%20I%20am%20interested%20in%20booking%20The%20Pink%20House%20in%20Lucknow." target="_blank">💬 WhatsApp</a>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <!-- 12. The Light Green -->
+      <article class="vesper-stay-card" data-room-id="GOM-301" data-slug="the-light-green" data-category="all flat">
+        <div class="vesper-stay-media">
+          <img src="assets/properties/the-light-green/cover.jpg" alt="The Light Green Flat" loading="lazy">
+          <span class="vesper-stay-badge">🍃 Nordic Minimalist Flat</span>
+          <span class="vesper-stay-save-badge">Save 15%</span>
+        </div>
+        <div class="vesper-stay-body">
+          <div>
+            <div class="vesper-stay-type">3BHK Scandinavian Flat</div>
+            <h3 class="vesper-stay-title"><a href="the-light-green.html">The Light Green</a></h3>
+            <div class="vesper-stay-loc">📍 Vikalp Khand, Gomti Nagar</div>
+            <div class="vesper-stay-specs">
+              <span class="vesper-stay-spec-pill">👥 Up to 10</span>
+              <span class="vesper-stay-spec-pill">🛏️ 3 Beds</span>
+              <span class="vesper-stay-spec-pill">🍃 Sage Decor</span>
+              <span class="vesper-stay-spec-pill">❄️ 100% AC</span>
+            </div>
+          </div>
+          <div>
+            <div class="vesper-stay-pricing-row">
+              <div>
+                <span class="vesper-stay-price-strike">₹5,499</span>
+                <span class="vesper-stay-price">₹4,500 <small>/ night</small></span>
+              </div>
+              <span style="font-size:12px; color:#f59e0b; font-weight:700;">★ 4.88 (25)</span>
+            </div>
+            <div class="vesper-stay-actions">
+              <a class="vesper-btn-stay-book" href="book.html?property=the-light-green">⚡ Book Direct</a>
+              <a class="vesper-btn-stay-wa" href="https://wa.me/919450055554?text=Namaste!%20I%20am%20interested%20in%20booking%20The%20Light%20Green%20in%20Lucknow." target="_blank">💬 WhatsApp</a>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <!-- 13. The Brown -->
+      <article class="vesper-stay-card" data-room-id="GOM-202" data-slug="the-brown" data-category="all flat">
+        <div class="vesper-stay-media">
+          <img src="assets/properties/the-brown/cover.jpg" alt="The Brown Luxury Flat" loading="lazy">
+          <span class="vesper-stay-badge">🪵 Warm Timber Suite</span>
+          <span class="vesper-stay-save-badge">Save 15%</span>
+        </div>
+        <div class="vesper-stay-body">
+          <div>
+            <div class="vesper-stay-type">3BHK Warm Timber Flat</div>
+            <h3 class="vesper-stay-title"><a href="the-brown.html">The Brown</a></h3>
+            <div class="vesper-stay-loc">📍 Vikalp Khand, Gomti Nagar</div>
+            <div class="vesper-stay-specs">
+              <span class="vesper-stay-spec-pill">👥 Up to 10</span>
+              <span class="vesper-stay-spec-pill">🛏️ 3 Beds</span>
+              <span class="vesper-stay-spec-pill">🪵 Warm Oak</span>
+              <span class="vesper-stay-spec-pill">❄️ 100% AC</span>
+            </div>
+          </div>
+          <div>
+            <div class="vesper-stay-pricing-row">
+              <div>
+                <span class="vesper-stay-price-strike">₹5,499</span>
+                <span class="vesper-stay-price">₹4,500 <small>/ night</small></span>
+              </div>
+              <span style="font-size:12px; color:#f59e0b; font-weight:700;">★ 4.90 (24)</span>
+            </div>
+            <div class="vesper-stay-actions">
+              <a class="vesper-btn-stay-book" href="book.html?property=the-brown">⚡ Book Direct</a>
+              <a class="vesper-btn-stay-wa" href="https://wa.me/919450055554?text=Namaste!%20I%20am%20interested%20in%20booking%20The%20Brown%20in%20Lucknow." target="_blank">💬 WhatsApp</a>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <!-- 14. The Nawabi Stay -->
+      <article class="vesper-stay-card" data-room-id="GOM-401" data-slug="the-nawabi-stay" data-category="all flat">
+        <div class="vesper-stay-media">
+          <img src="assets/properties/the-nawabi-stay/cover.jpg" alt="The Nawabi Stay" loading="lazy">
+          <span class="vesper-stay-badge">🏺 Awadhi Heritage Suite</span>
+          <span class="vesper-stay-save-badge">Save 15%</span>
+        </div>
+        <div class="vesper-stay-body">
+          <div>
+            <div class="vesper-stay-type">3BHK Heritage Flat</div>
+            <h3 class="vesper-stay-title"><a href="the-nawabi-stay.html">The Nawabi Stay</a></h3>
+            <div class="vesper-stay-loc">📍 Vikalp Khand, Gomti Nagar</div>
+            <div class="vesper-stay-specs">
+              <span class="vesper-stay-spec-pill">👥 Up to 10</span>
+              <span class="vesper-stay-spec-pill">🛏️ 3 King Beds</span>
+              <span class="vesper-stay-spec-pill">🍳 Kitchen</span>
+              <span class="vesper-stay-spec-pill">❄️ 100% AC</span>
+            </div>
+          </div>
+          <div>
+            <div class="vesper-stay-pricing-row">
+              <div>
+                <span class="vesper-stay-price-strike">₹5,499</span>
+                <span class="vesper-stay-price">₹4,500 <small>/ night</small></span>
+              </div>
+              <span style="font-size:12px; color:#f59e0b; font-weight:700;">★ 4.92 (38)</span>
+            </div>
+            <div class="vesper-stay-actions">
+              <a class="vesper-btn-stay-book" href="book.html?property=the-nawabi-stay">⚡ Book Direct</a>
+              <a class="vesper-btn-stay-wa" href="https://wa.me/919450055554?text=Namaste!%20I%20am%20interested%20in%20booking%20The%20Nawabi%20Stay%20in%20Lucknow." target="_blank">💬 WhatsApp</a>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <!-- 15. The Unique -->
+      <article class="vesper-stay-card" data-room-id="GOM-302" data-slug="the-unique" data-category="all flat">
+        <div class="vesper-stay-media">
+          <img src="assets/properties/the-unique/cover.jpg" alt="The Unique Flat" loading="lazy">
+          <span class="vesper-stay-badge">⭐ Modern Executive Residence</span>
+          <span class="vesper-stay-save-badge">Save 15%</span>
+        </div>
+        <div class="vesper-stay-body">
+          <div>
+            <div class="vesper-stay-type">3BHK Executive Flat</div>
+            <h3 class="vesper-stay-title"><a href="the-unique.html">The Unique</a></h3>
+            <div class="vesper-stay-loc">📍 Vikalp Khand, Gomti Nagar</div>
+            <div class="vesper-stay-specs">
+              <span class="vesper-stay-spec-pill">👥 Up to 10</span>
+              <span class="vesper-stay-spec-pill">🛏️ 3 Beds</span>
+              <span class="vesper-stay-spec-pill">⚡ Work Desk</span>
+              <span class="vesper-stay-spec-pill">❄️ 100% AC</span>
+            </div>
+          </div>
+          <div>
+            <div class="vesper-stay-pricing-row">
+              <div>
+                <span class="vesper-stay-price-strike">₹6,499</span>
+                <span class="vesper-stay-price">₹5,500 <small>/ night</small></span>
+              </div>
+              <span style="font-size:12px; color:#f59e0b; font-weight:700;">★ 4.93 (30)</span>
+            </div>
+            <div class="vesper-stay-actions">
+              <a class="vesper-btn-stay-book" href="book.html?property=the-unique">⚡ Book Direct</a>
+              <a class="vesper-btn-stay-wa" href="https://wa.me/919450055554?text=Namaste!%20I%20am%20interested%20in%20booking%20The%20Unique%20in%20Lucknow." target="_blank">💬 WhatsApp</a>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <!-- 16. Green Forest -->
+      <article class="vesper-stay-card" data-room-id="VIL-106" data-slug="green-forest" data-category="all villa shaheed">
+        <div class="vesper-stay-media">
+          <img src="assets/properties/green-forest/cover.jpg" alt="Green Forest View" loading="lazy">
+          <span class="vesper-stay-badge">🌲 Scenic Forest View</span>
+          <span class="vesper-stay-save-badge">Save 15%</span>
+        </div>
+        <div class="vesper-stay-body">
+          <div>
+            <div class="vesper-stay-type">3BHK Forest View Residence</div>
+            <h3 class="vesper-stay-title"><a href="green-forest.html">Green Forest</a></h3>
+            <div class="vesper-stay-loc">📍 Near Shaheed Path &amp; Lulu Mall</div>
+            <div class="vesper-stay-specs">
+              <span class="vesper-stay-spec-pill">👥 Up to 10</span>
+              <span class="vesper-stay-spec-pill">🛏️ 3 Beds</span>
+              <span class="vesper-stay-spec-pill">🌲 Forest Balcony</span>
+              <span class="vesper-stay-spec-pill">❄️ 100% AC</span>
+            </div>
+          </div>
+          <div>
+            <div class="vesper-stay-pricing-row">
+              <div>
+                <span class="vesper-stay-price-strike">₹5,499</span>
+                <span class="vesper-stay-price">₹4,500 <small>/ night</small></span>
+              </div>
+              <span style="font-size:12px; color:#f59e0b; font-weight:700;">★ 4.94 (36)</span>
+            </div>
+            <div class="vesper-stay-actions">
+              <a class="vesper-btn-stay-book" href="book.html?property=green-forest">⚡ Book Direct</a>
+              <a class="vesper-btn-stay-wa" href="https://wa.me/919450055554?text=Namaste!%20I%20am%20interested%20in%20booking%20Green%20Forest%20in%20Lucknow." target="_blank">💬 WhatsApp</a>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <!-- 17. Pink Paradise -->
+      <article class="vesper-stay-card" data-room-id="VIL-108" data-slug="pink-paradise" data-category="all villa shaheed">
+        <div class="vesper-stay-media">
+          <img src="assets/properties/pink-paradise/cover.jpg" alt="Pink Paradise Villa" loading="lazy">
+          <span class="vesper-stay-badge">🌺 Luxury Garden Villa</span>
+          <span class="vesper-stay-save-badge">Save 15%</span>
+        </div>
+        <div class="vesper-stay-body">
+          <div>
+            <div class="vesper-stay-type">Boutique Garden Villa</div>
+            <h3 class="vesper-stay-title"><a href="pink-paradise.html">Pink Paradise</a></h3>
+            <div class="vesper-stay-loc">📍 Near Shaheed Path &amp; Airport</div>
+            <div class="vesper-stay-specs">
+              <span class="vesper-stay-spec-pill">👥 Up to 12</span>
+              <span class="vesper-stay-spec-pill">🛏️ 3 Suites</span>
+              <span class="vesper-stay-spec-pill">🌺 Garden Terrace</span>
+              <span class="vesper-stay-spec-pill">❄️ 100% AC</span>
+            </div>
+          </div>
+          <div>
+            <div class="vesper-stay-pricing-row">
+              <div>
+                <span class="vesper-stay-price-strike">₹5,499</span>
+                <span class="vesper-stay-price">₹4,500 <small>/ night</small></span>
+              </div>
+              <span style="font-size:12px; color:#f59e0b; font-weight:700;">★ 4.91 (29)</span>
+            </div>
+            <div class="vesper-stay-actions">
+              <a class="vesper-btn-stay-book" href="book.html?property=pink-paradise">⚡ Book Direct</a>
+              <a class="vesper-btn-stay-wa" href="https://wa.me/919450055554?text=Namaste!%20I%20am%20interested%20in%20booking%20Pink%20Paradise%20in%20Lucknow." target="_blank">💬 WhatsApp</a>
+            </div>
+          </div>
+        </div>
+      </article>
+
+    </div>
+
+    <!-- Collection Banner with CTA to full directory -->
+    <div class="vesper-collection-banner vesper-reveal">
+      <div class="vesper-collection-banner-text">
+        <h3>Looking for all 17 residences with real-time dates &amp; interactive map?</h3>
+        <p>Explore complete gallery, amenity filters, verified reviews &amp; instant booking support across Gomti Nagar, Shaheed Path, and near Lulu Mall.</p>
+      </div>
+      <a class="vesper-btn-explore-collection" href="properties.html">
+        <span>Explore All 17 Properties</span>
+        <span>→</span>
+      </a>
+    </div>
+
+  </div>
 </section>
-<!-- ─── VERIFIED GUEST REVIEWS SECTION ─── -->
-<section class="dir-why-section" id="reviews" style="background:#ffffff; border-bottom:1px solid var(--dir-border);">
-<div class="dir-why-container">
-<div class="dir-section-header">
-<div class="dir-hero-badge" style="margin-bottom:12px;">VERIFIED GUEST REVIEWS</div>
-<h2 class="dir-section-title">Loved by Travelers Across India</h2>
-<p class="dir-section-sub">
-          Over 480+ authentic 5-star reviews on Airbnb and direct bookings. Here is what guests have to say.
+
+<!-- ─── THE SPACES SECTION (SCREENSHOT 1: WARM LINEN EDITORIAL CARDS) ─── -->
+<section class="vesper-spaces-section" id="spaces">
+  <div class="vesper-spaces-container">
+    <div class="vesper-spaces-header vesper-reveal">
+      <span class="vesper-spaces-eyebrow">THE HAVEN STANDARD · FLAGSHIP VILLA SPACES</span>
+      <h2 class="vesper-spaces-title">Five private wings of white marble and handcrafted timber.</h2>
+      <p class="vesper-spaces-sub">Inside our presidential flagship, Royal White House. Every suite embodies the architectural calm and bespoke hospitality standard shared across all 17 Unique Haven properties in Lucknow.</p>
+    </div>
+
+    <div class="vesper-spaces-grid">
+      <!-- 01 The Great Room -->
+      <article class="vesper-space-card vesper-reveal vesper-delay-1">
+        <div class="vesper-space-media">
+          <img src="https://a0.muscache.com/im/pictures/hosting/Hosting-1718315215180636685/original/b018acc7-5ccb-440e-8bc0-afbfbb9fb2a0.jpeg?im_w=1200" alt="The Great Room - Royal White House" onerror="this.src='assets/properties/royal-white-house/cover.jpg'" loading="lazy">
+          <div class="vesper-space-zoom-hint"><span>🔍 View Photo</span></div>
+        </div>
+        <div class="vesper-space-content">
+          <span class="vesper-space-tag">The Great Room</span>
+          <h3 class="vesper-space-name">Glass, timber &amp; light</h3>
+          <p class="vesper-space-desc">A double-height ceiling hall with Italian marble flooring, crystal chandeliers, and the softest seating designed for quiet unwinding.</p>
+        </div>
+      </article>
+
+      <!-- 02 Primary Suite -->
+      <article class="vesper-space-card vesper-reveal vesper-delay-2">
+        <div class="vesper-space-media">
+          <img src="https://a0.muscache.com/im/pictures/hosting/Hosting-1718315215180636685/original/b0aaece7-bd13-44a2-a040-1af26e035314.jpeg?im_w=1200" alt="Primary Suite - Royal White House" onerror="this.src='assets/properties/royal-white-house/cover.jpg'" loading="lazy">
+          <div class="vesper-space-zoom-hint"><span>🔍 View Photo</span></div>
+        </div>
+        <div class="vesper-space-content">
+          <span class="vesper-space-tag">Primary Suite</span>
+          <h3 class="vesper-space-name">Wake to the mist</h3>
+          <p class="vesper-space-desc">A low linen plush king bed pushed right up to expansive garden glass, so the first thing you see is morning light filtering through the lawn.</p>
+        </div>
+      </article>
+
+      <!-- 03 Regal Suite -->
+      <article class="vesper-space-card vesper-reveal vesper-delay-3">
+        <div class="vesper-space-media">
+          <img src="https://a0.muscache.com/im/pictures/hosting/Hosting-1718315215180636685/original/000de00d-6a12-43af-b11b-7fee2265d162.jpeg?im_w=1200" alt="Regal Suite - Royal White House" onerror="this.src='assets/properties/royal-white-house/cover.jpg'" loading="lazy">
+          <div class="vesper-space-zoom-hint"><span>🔍 View Photo</span></div>
+        </div>
+        <div class="vesper-space-content">
+          <span class="vesper-space-tag">Regal Suite</span>
+          <h3 class="vesper-space-name">Quiet luxury &amp; deep rest</h3>
+          <p class="vesper-space-desc">Curated art gallery walls, warm ambient cove lighting, private dressing closet, and sound-insulated tranquility for deep restorative sleep.</p>
+        </div>
+      </article>
+
+      <!-- 04 The Soaking Bath -->
+      <article class="vesper-space-card vesper-reveal vesper-delay-4">
+        <div class="vesper-space-media">
+          <img src="https://a0.muscache.com/im/pictures/hosting/Hosting-1718315215180636685/original/05e0ca85-6bbb-4ab3-a47a-1e0f7da73583.jpeg?im_w=1200" alt="The Spa Bath - Royal White House" onerror="this.src='assets/properties/royal-white-house/cover.jpg'" loading="lazy">
+          <div class="vesper-space-zoom-hint"><span>🔍 View Photo</span></div>
+        </div>
+        <div class="vesper-space-content">
+          <span class="vesper-space-tag">The Soaking Bath</span>
+          <h3 class="vesper-space-name">A long, slow soak</h3>
+          <p class="vesper-space-desc">Polished stone vanity, high-pressure rain shower, premium brass fixtures, and refreshing botanical guest toiletries.</p>
+        </div>
+      </article>
+
+      <!-- 05 Sunset Terrace & Lawn -->
+      <article class="vesper-space-card vesper-reveal vesper-delay-5">
+        <div class="vesper-space-media">
+          <img src="https://a0.muscache.com/im/pictures/hosting/Hosting-1718315215180636685/original/7ee5b490-e361-4270-9d5c-516e594f4698.jpeg?im_w=1200" alt="Sunset Terrace & Lawn - Royal White House" onerror="this.src='assets/properties/royal-white-house/cover.jpg'" loading="lazy">
+          <div class="vesper-space-zoom-hint"><span>🔍 View Photo</span></div>
+        </div>
+        <div class="vesper-space-content">
+          <span class="vesper-space-tag">Sunset Terrace &amp; Lawn</span>
+          <h3 class="vesper-space-name">Stars over Lucknow</h3>
+          <p class="vesper-space-desc">Private open-air rooftop terrace and green garden lawn for peaceful morning tea, yoga, or starlit evening conversations.</p>
+        </div>
+      </article>
+    </div>
+
+    <!-- Progress Indicator Bar (Sleek Centered Pill) -->
+    <div class="vesper-spaces-progress-bar">
+      <div class="vesper-spaces-progress-fill"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ─── THE HOSTS SECTION (THE 3 FOUNDERS REQUESTED) ─── -->
+<section class="vesper-hosts-section" id="hosts">
+  <div class="vesper-hosts-container">
+    <div class="vesper-hosts-header vesper-reveal">
+      <span class="vesper-hosts-eyebrow">THE LEADERSHIP · THE UNIQUE HAVEN HOMES</span>
+      <h2 class="vesper-hosts-title">Meet the founders behind Lucknow's 17 luxury boutique stays.</h2>
+      <p class="vesper-hosts-sub">Hospitality is in Lucknow’s heritage. Mr. Firoz Khan, Mr. Shahanshah, and Praveen Singh ensure every stay across all 17 properties exceeds 5-star boutique standards.</p>
+    </div>
+
+    <div class="vesper-hosts-grid">
+      <!-- Host 1: Mr. Firoz Khan -->
+      <article class="vesper-host-card vesper-reveal vesper-delay-1">
+        <div class="vesper-host-avatar-wrap">
+          <img src="assets/founders/firoz-khan.jpg?v=12" alt="Mr. Firoz Khan - Co-Founder &amp; Superhost" class="vesper-host-avatar" onerror="this.src='assets/logo-emblem.png'">
+        </div>
+        <span class="vesper-host-badge-chip">👑 Co-Founder &amp; Director</span>
+        <h3 class="vesper-host-name">Mr. Firoz Khan</h3>
+        <div class="vesper-host-role">Airbnb Superhost &middot; 4.94★ Rating across 480+ Reviews</div>
+        <blockquote class="vesper-host-quote">
+          “Hospitality is Lucknow’s pride. Across all 17 properties of The Unique Haven Homes, we welcome every guest like family with personal concierge and total privacy.”
+        </blockquote>
+        <div class="vesper-host-actions">
+          <a class="vesper-btn-wa-host" href="https://wa.me/919450055554?text=Namaste%20Mr.%20Firoz%20Khan%2C%20I%20am%20interested%20in%20booking%20with%20The%20Unique%20Haven%20Homes." target="_blank">
+            💬 WhatsApp Host
+          </a>
+          <a class="vesper-btn-call-host" href="tel:+919450055554">
+            📞 Call
+          </a>
+        </div>
+      </article>
+
+      <!-- Host 2: Mr. Shahanshah -->
+      <article class="vesper-host-card vesper-reveal vesper-delay-2">
+        <div class="vesper-host-avatar-wrap">
+          <img src="assets/founders/shahanshah.jpg?v=12" alt="Mr. Shahanshah - Co-Founder &amp; Superhost" class="vesper-host-avatar" onerror="this.src='assets/logo-emblem.png'">
+        </div>
+        <span class="vesper-host-badge-chip">👑 Co-Founder &amp; Director</span>
+        <h3 class="vesper-host-name">Mr. Shahanshah</h3>
+        <div class="vesper-host-role">Airbnb Superhost &middot; Villa &amp; Property Curator</div>
+        <blockquote class="vesper-host-quote">
+          “From Royal White House to our skyline penthouses, every residence is personally styled and inspected to guarantee pristine cleanliness and comfort.”
+        </blockquote>
+        <div class="vesper-host-actions">
+          <a class="vesper-btn-wa-host" href="https://wa.me/919450055554?text=Namaste%20Mr.%20Shahanshah%2C%20I%20am%20interested%20in%20booking%20with%20The%20Unique%20Haven%20Homes." target="_blank">
+            💬 WhatsApp Host
+          </a>
+          <a class="vesper-btn-call-host" href="tel:+919450055554">
+            📞 Call
+          </a>
+        </div>
+      </article>
+
+      <!-- Host 3: Praveen Singh -->
+      <article class="vesper-host-card vesper-reveal vesper-delay-3">
+        <div class="vesper-host-avatar-wrap">
+          <img src="assets/founders/praveen-singh.jpg?v=12" alt="Praveen Singh - Operations &amp; Tech Lead" class="vesper-host-avatar" onerror="this.src='assets/logo-emblem.png'">
+        </div>
+        <span class="vesper-host-badge-chip">💻 Operations &amp; Tech Lead</span>
+        <h3 class="vesper-host-name">Praveen Singh</h3>
+        <div class="vesper-host-role">24/7 Guest Care &middot; Instant Confirmation</div>
+        <blockquote class="vesper-host-quote">
+          “Managing 24/7 on-ground guest care, instant digital check-ins, caretaker coordination, and direct booking support across all 17 Haven residences.”
+        </blockquote>
+        <div class="vesper-host-actions">
+          <a class="vesper-btn-wa-host" href="https://wa.me/919194109911?text=Namaste%20Praveen%2C%20I%20am%20inquiring%20about%20booking%20a%20stay%20with%20The%20Unique%20Haven%20Homes." target="_blank">
+            💬 WhatsApp
+          </a>
+          <a class="vesper-btn-call-host" href="tel:+919194109911">
+            📞 Call
+          </a>
+        </div>
+      </article>
+    </div>
+  </div>
+</section>
+
+<footer class="vesper-luxe-footer">
+  <div class="vesper-footer-inner">
+    
+    <!-- Top Trust Pillars -->
+    <div class="vesper-footer-trust-banner">
+      <div class="vesper-trust-item">
+        <div class="vesper-trust-icon">💎</div>
+        <div class="vesper-trust-text">
+          <h4>Best Direct Rate Guarantee</h4>
+          <p>Zero middleman commission · Save up to 15% vs Airbnb &amp; OTAs</p>
+        </div>
+      </div>
+      <div class="vesper-trust-item">
+        <div class="vesper-trust-icon">🏆</div>
+        <div class="vesper-trust-text">
+          <h4>Verified Airbnb Superhost</h4>
+          <p>4.94★ Average Rating across 480+ guest reviews in Lucknow</p>
+        </div>
+      </div>
+      <div class="vesper-trust-item">
+        <div class="vesper-trust-icon">🛎️</div>
+        <div class="vesper-trust-text">
+          <h4>24/7 Dedicated Caretaker</h4>
+          <p>On-ground hospitality &amp; instant contactless check-in</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- 4-Column Luxury Grid -->
+    <div class="vesper-footer-grid">
+      
+      <!-- Col 1: Brand & Corporation -->
+      <div class="vesper-footer-col">
+        <div class="vesper-footer-brand-wrap">
+          <div class="vesper-footer-brand-logo">
+            <img alt="The Unique Haven Homes Emblem" src="assets/logo-emblem.png"/>
+          </div>
+          <div>
+            <div class="vesper-footer-brand-title">THE UNIQUE HAVEN HOMES</div>
+            <div class="vesper-footer-brand-sub">LUXURY BOUTIQUE HOSPITALITY</div>
+          </div>
+        </div>
+        <p class="vesper-footer-desc">
+          Lucknow's premier network of 17 curated private villas, penthouses, and serviced residences in Gomti Nagar &amp; near Lulu Mall.
         </p>
-</div>
-<div class="dir-usp-grid">
-<div class="dir-usp-card" style="background:var(--dir-bg);">
-<div style="color:#b58d3d;font-size:16px;margin-bottom:12px;letter-spacing:2px;">
-            ★★★★★
-          </div>
-<p style="font-size:14.5px;color:var(--dir-ink-soft);line-height:1.65;font-style:italic;margin-bottom:18px;">
-            "We stayed at Starlight Blue Penthouse for my sister's wedding in Gomti Nagar. The space was huge, impeccably clean, and the host team was available 24/7. Booking direct saved us almost 15%!"
-          </p>
-<div style="display:flex;align-items:center;gap:12px;">
-<div style="width:42px;height:42px;border-radius:50%;background:#0f172a;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;">AS</div>
-<div>
-<div style="font-weight:700;font-size:14.5px;color:var(--dir-ink);">Ananya Sharma</div>
-<div style="font-size:12px;color:var(--dir-muted);">Stayed at Starlight Blue Penthouse · Family Trip</div>
-</div>
-</div>
-</div>
-<div class="dir-usp-card" style="background:var(--dir-bg);">
-<div style="color:#b58d3d;font-size:16px;margin-bottom:12px;letter-spacing:2px;">
-            ★★★★★
-          </div>
-<p style="font-size:14.5px;color:var(--dir-ink-soft);line-height:1.65;font-style:italic;margin-bottom:18px;">
-            "Black Beauty was stunning in person! Exactly like the photos, super clean bedsheets, fast WiFi for work calls, and secure parking. Shahanshah Bhai is a genuine Superhost."
-          </p>
-<div style="display:flex;align-items:center;gap:12px;">
-<div style="width:42px;height:42px;border-radius:50%;background:#b58d3d;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;">RV</div>
-<div>
-<div style="font-weight:700;font-size:14.5px;color:var(--dir-ink);">Rohan Verma</div>
-<div style="font-size:12px;color:var(--dir-muted);">Stayed at Black Beauty · Business &amp; Leisure</div>
-</div>
-</div>
-</div>
-<div class="dir-usp-card" style="background:var(--dir-bg);">
-<div style="color:#b58d3d;font-size:16px;margin-bottom:12px;letter-spacing:2px;">
-            ★★★★★
-          </div>
-<p style="font-size:14.5px;color:var(--dir-ink-soft);line-height:1.65;font-style:italic;margin-bottom:18px;">
-            "Celebrity Garden near Lulu Mall was the perfect choice for our Medanta hospital visit. Very peaceful, private, with a fully equipped kitchen where we could cook home meals. Highly recommended."
-          </p>
-<div style="display:flex;align-items:center;gap:12px;">
-<div style="width:42px;height:42px;border-radius:50%;background:#059669;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;">MK</div>
-<div>
-<div style="font-weight:700;font-size:14.5px;color:var(--dir-ink);">Mohit Khanna</div>
-<div style="font-size:12px;color:var(--dir-muted);">Stayed at Celebrity Garden · Medical Visit</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</section>
-<!-- ─── DIRECT BOOKING CONCIERGE (ROYAL AWADHI LUXURY LEADERSHIP SHOWCASE) ─── -->
-<section class="dir-concierge-section" id="concierge">
-<div class="dir-concierge-wrap">
-
-  <div class="dir-concierge-pill">
-    <span>👑 LUCKNOW’S #1 LUXURY HOMESTAY NETWORK · DIRECT OWNER ASSURANCE</span>
-  </div>
-
-  <h2 class="dir-concierge-title">Meet The Founders &amp; Property Owners</h2>
-  <p class="dir-concierge-sub">
-    <strong>Mr. Firoz Khan</strong> and <strong>Mr. Shahanshah</strong> personally own and curate Lucknow's finest luxury villas and serviced homestays—ensuring 5-star amenities, spotless hygiene, and genuine Awadhi hospitality. Connect directly to skip platform commissions (save up to 15%) with 24/7 on-ground assistance from Operations Manager <strong>Praveen Singh</strong>.
-  </p>
-
-  <!-- Executive Trust & Amenity Highlights Bar -->
-  <div class="dir-trust-strip">
-    <div class="dir-trust-item">
-      <span class="dir-trust-ico">💎</span>
-      <div>
-        <strong>5★ Luxury Amenities</strong>
-        <small>Curated directly by owners</small>
-      </div>
-    </div>
-    <div class="dir-trust-item">
-      <span class="dir-trust-ico">🏆</span>
-      <div>
-        <strong>#1 Homestays in Lucknow</strong>
-        <small>Top-rated Awadhi hospitality</small>
-      </div>
-    </div>
-    <div class="dir-trust-item">
-      <span class="dir-trust-ico">💸</span>
-      <div>
-        <strong>Save Flat 15% Direct</strong>
-        <small>Zero platform / OTA fees</small>
-      </div>
-    </div>
-    <div class="dir-trust-item">
-      <span class="dir-trust-ico">⚡</span>
-      <div>
-        <strong>Instant Response (&lt;5m)</strong>
-        <small>Direct WhatsApp with team</small>
-      </div>
-    </div>
-  </div>
-
-  <div class="dir-host-grid">
-
-    <!-- Host 1: Mr. Firoz Khan (Co-Founder & Owner) -->
-    <div class="dir-host-card dir-card-firoz">
-      <div class="dir-card-top-accent"></div>
-      <div class="dir-founder-photo-wrap firoz">
-        <div class="dir-photo-inner">
-          <img alt="Mr. Firoz Khan - Co-Founder &amp; Owner" class="dir-founder-img" src="assets/founders/firoz-khan.jpg?v=8" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"/>
-          <div class="dir-founder-fallback" style="display:none; background:linear-gradient(135deg, #d97706, #b45309);">FK</div>
+        <div class="vesper-corp-badge">
+          <strong>THE UNIQUE HAVEN HOMES PRIVATE LIMITED</strong><br/>
+          CIN: U55101UP2026PTC244637 · ROC Kanpur<br/>
+          Regd Office: Radhikapuri, Takrohi, Indira Nagar, Lucknow, UP 226016
         </div>
-        <div class="dir-founder-verified-badge" title="Verified Owner &amp; 5-Star Amenities Curator">★</div>
-      </div>
-      <span class="dir-host-badge firoz-badge">👑 Co-Founder &amp; Owner</span>
-      <div class="dir-host-name">Mr. Firoz Khan</div>
-      <div class="dir-host-phone">+91 82996 00709</div>
-
-      <div class="dir-founder-chips">
-        <span class="dir-chip">💎 5★ Luxury Amenities</span>
-        <span class="dir-chip">✨ Spotless Hygiene</span>
       </div>
 
-      <p class="dir-founder-quote">
-        <span class="dir-quote-mark">“</span>As property owner, my top responsibility is ensuring every villa features 5-star luxury amenities, immaculate hygiene, and Lucknow’s warmest Awadhi hospitality.<span class="dir-quote-mark">”</span>
-      </p>
-
-      <div class="dir-host-actions">
-        <a class="dir-host-btn-wa" href="https://wa.me/918299600709?text=Namaste%20Mr.%20Firoz%2C%20I%20am%20interested%20in%20booking%20a%20luxury%20homestay%20in%20Lucknow.%20Please%20share%20availability%20and%20direct%20rates." rel="noopener" target="_blank">
-          <svg fill="currentColor" height="17" viewbox="0 0 32 32" width="17"><path d="M16.001 3C9.373 3 4 8.373 4 15c0 2.634.86 5.08 2.32 7.06L4 29l7.2-2.28A11.93 11.93 0 0 0 16 27c6.627 0 12-5.373 12-12S22.628 3 16.001 3zm0 21.6c-1.98 0-3.84-.55-5.43-1.5l-.39-.23-4.27 1.35 1.39-4.16-.25-.4A9.55 9.55 0 0 1 5.4 15c0-5.85 4.76-10.6 10.6-10.6S26.6 9.15 26.6 15 21.85 24.6 16 24.6zm5.86-7.9c-.32-.16-1.9-.94-2.19-1.05-.29-.11-.5-.16-.72.16-.21.32-.82 1.05-1.01 1.26-.19.21-.37.24-.69.08-.32-.16-1.34-.49-2.55-1.57-.94-.84-1.58-1.87-1.76-2.19-.19-.32-.02-.49.14-.65.14-.14.32-.37.48-.55.16-.19.21-.32.32-.53.11-.21.05-.4-.03-.55-.08-.16-.72-1.74-.98-2.38-.26-.63-.53-.54-.72-.55-.19-.01-.4-.01-.61-.01-.21 0-.55.08-.84.4-.29.32-1.1 1.08-1.1 2.63 0 1.55 1.13 3.05 1.29 3.26.16.21 2.22 3.39 5.39 4.76.75.32 1.34.51 1.8.66.76.24 1.44.21 1.99.13.61-.09 1.9-.78 2.17-1.53.27-.75.27-1.39.19-1.53-.08-.13-.29-.21-.61-.37z"></path></svg>
-          <span>WhatsApp</span>
-        </a>
-        <a class="dir-host-btn-call" href="tel:+918299600709">
-          <svg fill="none" height="15" stroke="currentColor" stroke-width="2.2" viewbox="0 0 24 24" width="15"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
-          <span>Call</span>
-        </a>
+      <!-- Col 2: Signature Stays -->
+      <div class="vesper-footer-col">
+        <h3>🏛️ Signature Stays</h3>
+        <ul class="vesper-footer-links">
+          <li><a href="royal-white-house.html">Royal White House (Flagship Villa)</a></li>
+          <li><a href="starlight-blue-penthouse.html">Starlight Blue Penthouse (4BHK)</a></li>
+          <li><a href="gomti-grand-villa.html">Gomti Grand Villa (4BHK)</a></li>
+          <li><a href="black-beauty.html">Black Beauty (3BHK Flat)</a></li>
+          <li><a href="celebrity-garden.html">Celebrity Garden (Farmhouse)</a></li>
+          <li><a href="properties.html">Explore All 17 Luxe Stays →</a></li>
+        </ul>
       </div>
+
+      <!-- Col 3: Prime Lucknow Locations -->
+      <div class="vesper-footer-col">
+        <h3>📍 Prime Locations</h3>
+        <ul class="vesper-footer-links">
+          <li><a href="properties.html">Vikalp Khand, Gomti Nagar (8 Stays)</a></li>
+          <li><a href="properties.html">Near Lulu Mall &amp; Shaheed Path (6 Stays)</a></li>
+          <li><a href="properties.html">Vishesh Khand, Gomti Nagar (3 Stays)</a></li>
+          <li><a href="https://maps.google.com/?q=Shaheed+Path+Lucknow" target="_blank">Ekana Stadium &amp; Phoenix Palassio (5 min) ↗</a></li>
+          <li><a href="https://maps.google.com/?q=Lucknow+Airport" target="_blank">Chaudhary Charan Singh Airport Express (12 min) ↗</a></li>
+        </ul>
+      </div>
+
+      <!-- Col 4: 24/7 Concierge & Owners -->
+      <div class="vesper-footer-col">
+        <h3>🛎️ Direct Concierge</h3>
+        <div class="vesper-concierge-card">
+          <div class="vesper-concierge-title">Instant WhatsApp Booking</div>
+          <a class="vesper-concierge-btn" href="https://wa.me/919450055554?text=Namaste!%20I%20am%20looking%20to%20book%20a%20luxury%20stay%20in%20Lucknow." target="_blank">
+            💬 Chat with Host (+91 94500 55554)
+          </a>
+          <a class="vesper-call-line" href="tel:+919194109911">
+            📞 Operations Manager: Praveen Singh (+91 91941 09911)
+          </a>
+        </div>
+        <div style="font-size:12px; color:#94a3b8; line-height:1.6;">
+          <strong style="color:#ffffff;">Superhosts &amp; Owners:</strong><br/>
+          Mr. Firoz Khan &amp; Mr. Shahanshah
+        </div>
+      </div>
+
     </div>
 
-    <!-- Host 2: Mr. Shahanshah (Co-Founder & Owner) -->
-    <div class="dir-host-card dir-card-shah">
-      <div class="dir-card-top-accent"></div>
-      <div class="dir-founder-photo-wrap shah">
-        <div class="dir-photo-inner">
-          <img alt="Mr. Shahanshah - Co-Founder &amp; Owner" class="dir-founder-img" src="assets/founders/shahanshah.jpg?v=8" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"/>
-          <div class="dir-founder-fallback" style="display:none; background:linear-gradient(135deg, #1e293b, #0f172a);">SK</div>
-        </div>
-        <div class="dir-founder-verified-badge" title="Verified Owner &amp; Luxury Villa Curator">★</div>
+    <!-- Bottom Bar -->
+    <div class="vesper-footer-bottom">
+      <div id="footerYear">
+        © 2026 THE UNIQUE HAVEN HOMES PRIVATE LIMITED. All rights reserved.
       </div>
-      <span class="dir-host-badge shah-badge">👑 Co-Founder &amp; Owner</span>
-      <div class="dir-host-name">Mr. Shahanshah</div>
-      <div class="dir-host-phone">+91 94500 55554</div>
-
-      <div class="dir-founder-chips">
-        <span class="dir-chip">🏡 Luxury Villas &amp; Penthouses</span>
-        <span class="dir-chip">🎉 Wedding &amp; Family Stays</span>
-      </div>
-
-      <p class="dir-founder-quote">
-        <span class="dir-quote-mark">“</span>We personally oversee every detail to deliver Lucknow's premier homestay service—giving guests royal comfort, privacy, and 5-star amenities.<span class="dir-quote-mark">”</span>
-      </p>
-
-      <div class="dir-host-actions">
-        <a class="dir-host-btn-wa" href="https://wa.me/919450055554?text=Namaste%20Mr.%20Shahanshah%2C%20I%20am%20interested%20in%20booking%20a%20luxury%20homestay%20in%20Lucknow.%20Please%20share%20availability%20and%20direct%20rates." rel="noopener" target="_blank">
-          <svg fill="currentColor" height="17" viewbox="0 0 32 32" width="17"><path d="M16.001 3C9.373 3 4 8.373 4 15c0 2.634.86 5.08 2.32 7.06L4 29l7.2-2.28A11.93 11.93 0 0 0 16 27c6.627 0 12-5.373 12-12S22.628 3 16.001 3zm0 21.6c-1.98 0-3.84-.55-5.43-1.5l-.39-.23-4.27 1.35 1.39-4.16-.25-.4A9.55 9.55 0 0 1 5.4 15c0-5.85 4.76-10.6 10.6-10.6S26.6 9.15 26.6 15 21.85 24.6 16 24.6zm5.86-7.9c-.32-.16-1.9-.94-2.19-1.05-.29-.11-.5-.16-.72.16-.21.32-.82 1.05-1.01 1.26-.19.21-.37.24-.69.08-.32-.16-1.34-.49-2.55-1.57-.94-.84-1.58-1.87-1.76-2.19-.19-.32-.02-.49.14-.65.14-.14.32-.37.48-.55.16-.19.21-.32.32-.53.11-.21.05-.4-.03-.55-.08-.16-.72-1.74-.98-2.38-.26-.63-.53-.54-.72-.55-.19-.01-.4-.01-.61-.01-.21 0-.55.08-.84.4-.29.32-1.1 1.08-1.1 2.63 0 1.55 1.13 3.05 1.29 3.26.16.21 2.22 3.39 5.39 4.76.75.32 1.34.51 1.8.66.76.24 1.44.21 1.99.13.61-.09 1.9-.78 2.17-1.53.27-.75.27-1.39.19-1.53-.08-.13-.29-.21-.61-.37z"></path></svg>
-          <span>WhatsApp</span>
-        </a>
-        <a class="dir-host-btn-call" href="tel:+919450055554">
-          <svg fill="none" height="15" stroke="currentColor" stroke-width="2.2" viewbox="0 0 24 24" width="15"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
-          <span>Call</span>
-        </a>
-      </div>
-    </div>
-
-    <!-- Host 3: Praveen Singh (Operations & Tech Lead) -->
-    <div class="dir-host-card dir-card-praveen">
-      <div class="dir-card-top-accent"></div>
-      <div class="dir-founder-photo-wrap praveen">
-        <div class="dir-photo-inner">
-          <img alt="Praveen Singh - Operations &amp; Tech Lead" class="dir-founder-img" src="assets/founders/praveen-singh.jpg?v=8" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"/>
-          <div class="dir-founder-fallback" style="display:none; background:linear-gradient(135deg, #0284c7, #0369a1);">PS</div>
-        </div>
-        <div class="dir-founder-verified-badge" title="Verified Operations Manager">✓</div>
-      </div>
-      <span class="dir-host-badge praveen-badge">💻 Operations &amp; Tech Lead</span>
-      <div class="dir-host-name">Praveen Singh</div>
-      <div class="dir-host-phone">+91 91941 09911</div>
-
-      <div class="dir-founder-chips">
-        <span class="dir-chip">⚡ 24/7 Guest Care</span>
-        <span class="dir-chip">🚀 Instant Check-in Tech</span>
-      </div>
-
-      <p class="dir-founder-quote">
-        <span class="dir-quote-mark">“</span>Leading 24/7 on-ground guest care, seamless check-ins, caretaker support, and direct booking technology for a smooth stay across Lucknow.<span class="dir-quote-mark">”</span>
-      </p>
-
-      <div class="dir-host-actions">
-        <a class="dir-host-btn-wa" href="https://wa.me/919194109911?text=Namaste%20Praveen%2C%20I%20am%20inquiring%20about%20a%20luxury%20stay%20in%20Lucknow." rel="noopener" target="_blank">
-          <svg fill="currentColor" height="17" viewbox="0 0 32 32" width="17"><path d="M16.001 3C9.373 3 4 8.373 4 15c0 2.634.86 5.08 2.32 7.06L4 29l7.2-2.28A11.93 11.93 0 0 0 16 27c6.627 0 12-5.373 12-12S22.628 3 16.001 3zm0 21.6c-1.98 0-3.84-.55-5.43-1.5l-.39-.23-4.27 1.35 1.39-4.16-.25-.4A9.55 9.55 0 0 1 5.4 15c0-5.85 4.76-10.6 10.6-10.6S26.6 9.15 26.6 15 21.85 24.6 16 24.6zm5.86-7.9c-.32-.16-1.9-.94-2.19-1.05-.29-.11-.5-.16-.72.16-.21.32-.82 1.05-1.01 1.26-.19.21-.37.24-.69.08-.32-.16-1.34-.49-2.55-1.57-.94-.84-1.58-1.87-1.76-2.19-.19-.32-.02-.49.14-.65.14-.14.32-.37.48-.55.16-.19.21-.32.32-.53.11-.21.05-.4-.03-.55-.08-.16-.72-1.74-.98-2.38-.26-.63-.53-.54-.72-.55-.19-.01-.4-.01-.61-.01-.21 0-.55.08-.84.4-.29.32-1.1 1.08-1.1 2.63 0 1.55 1.13 3.05 1.29 3.26.16.21 2.22 3.39 5.39 4.76.75.32 1.34.51 1.8.66.76.24 1.44.21 1.99.13.61-.09 1.9-.78 2.17-1.53.27-.75.27-1.39.19-1.53-.08-.13-.29-.21-.61-.37z"></path></svg>
-          <span>WhatsApp</span>
-        </a>
-        <a class="dir-host-btn-call" href="tel:+919194109911">
-          <svg fill="none" height="15" stroke="currentColor" stroke-width="2.2" viewbox="0 0 24 24" width="15"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
-          <span>Call</span>
-        </a>
+      <div class="vesper-footer-bottom-links">
+        <a href="properties.html">All Stays</a>
+        <a href="book.html">Direct Reservation</a>
+        <a href="https://www.airbnb.co.in/users/profile/1592729439630759961" target="_blank">Verified Airbnb Superhost ↗</a>
       </div>
     </div>
 
   </div>
-</div>
-</section>
-<!-- ─── FLOATING BACK TO TOP BUTTON ─── -->
-<button aria-label="Back to top" class="dir-back-to-top" id="backToTopBtn" onclick="window.scrollTo({top: 0, behavior: 'smooth'})" type="button">
-<svg fill="none" height="15" stroke="currentColor" stroke-width="2.5" viewbox="0 0 24 24" width="15"><polyline points="18 15 12 9 6 15"></polyline></svg>
-<span>Top</span>
-</button>
-<!-- ─── FOOTER ─── -->
-<footer class="dir-footer">
-<img alt="The Unique Haven Homes" class="dir-footer-logo" src="assets/logo-emblem.png"/>
-<div class="dir-footer-corp">THE UNIQUE HAVEN HOMES PRIVATE LIMITED</div>
-<div class="dir-footer-cin">
-      CIN: U55101UP2026PTC244637 · ROC Kanpur<br/>
-      Registered Office: P NO 39 &amp; 40 Radhikapuri, Indira Nagar Takrohi, Lucknow, UP 226016 - India
-    </div>
-<div class="dir-footer-nav">
-      <a href="#directory-grid">🏡 Explore All Properties</a>
-      <a href="book.html">📅 Direct Booking (15% Off)</a>
-      <a href="https://www.airbnb.co.in/users/profile/1592729439630759961" rel="noopener" target="_blank">⭐ Verified Airbnb Superhost ↗</a>
-    </div>
-<div class="dir-footer-copyright" id="footerYear">
-      © 2026 THE UNIQUE HAVEN HOMES PRIVATE LIMITED · Lucknow, Uttar Pradesh
-    </div>
-<div style="margin-top:6px;font-size:11.5px;color:#64748b;letter-spacing:0.3px;">
-      Superhosts &amp; Owners: Firoz &amp; Shahanshah · Manager: Praveen Singh
-    </div>
 </footer>
+
+<!-- Dynamic Year Script -->
 <script>
-    // Dynamic Year
-    const yearEl = document.getElementById('footerYear');
-    if (yearEl) {
-      yearEl.innerHTML = `© ${new Date().getFullYear()} THE UNIQUE HAVEN HOMES PRIVATE LIMITED · Lucknow, Uttar Pradesh`;
-    }
+  const yearEl = document.getElementById('footerYear');
+  if (yearEl) {
+    yearEl.innerHTML = `© ${new Date().getFullYear()} THE UNIQUE HAVEN HOMES PRIVATE LIMITED · Lucknow, Uttar Pradesh`;
+  }
+</script>
 
-    // ── Real-time CRM Sync: Auto-pick Exact Pinpoint Map Location from Supabase ──
-    async function syncDirectoryFromCrm() {
-      try {
-        let sbClient = window.sb;
-        if (!sbClient && typeof supabase !== 'undefined' && window.SUPABASE_URL && window.SUPABASE_ANON_KEY) {
-          sbClient = window.sb = supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY);
-        }
-        if (!sbClient) return;
-
-        const { data: rooms, error } = await sbClient
-          .from('rooms')
-          .select('room_id, map_link, rent_per_night');
-
-        if (error || !rooms) return;
-
-        rooms.forEach(room => {
-          const card = document.querySelector(`.dir-card[data-room-id="${room.room_id}"]`);
-          if (!card) return;
-
-          // 1. Live Google Maps Pinpoint
-          if (room.map_link) {
-            const locEl = card.querySelector('.dir-card-location');
-            if (locEl && !locEl.querySelector('.dir-map-pin-link')) {
-              const currentLocText = locEl.textContent.trim().replace(/^📍\s*/, '');
-              locEl.innerHTML = `
-                <a href="${room.map_link}" target="_blank" rel="noopener" class="dir-map-pin-link" title="Open exact pinpoint on Google Maps">
-                  <span class="dir-map-icon">📍</span>
-                  <span class="dir-map-text">${currentLocText}</span>
-                  <span class="dir-map-badge">Exact Pin ↗</span>
-                </a>
-              `;
-            }
-          }
-
-          // 2. Live Rent Sync if modified in CRM
-          if (room.rent_per_night && !isNaN(Number(room.rent_per_night))) {
-            const liveRent = Number(room.rent_per_night);
-            card.dataset.price = String(liveRent);
-            const mainPriceEl = card.querySelector('.dir-card-price-main');
-            if (mainPriceEl) {
-              mainPriceEl.innerHTML = `₹${liveRent.toLocaleString('en-IN')} <small>/ night</small>`;
-            }
-          }
-        });
-      } catch (err) {
-        console.warn('CRM sync info:', err);
-      }
-    }
-
-    if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', syncDirectoryFromCrm);
-    } else {
-      syncDirectoryFromCrm();
-    }
-  </script>
-<!-- ─── MOBILE STICKY DIRECT BOOKING BAR ─── -->
-<aside aria-label="Quick Booking Actions" class="mobile-sticky-bar">
-<a class="mobile-bar-btn-wa" href="https://wa.me/919450055554?text=Namaste!%20I%20am%20looking%20to%20book%20a%20luxury%20homestay%20in%20Lucknow.%20Please%20share%20availability%20and%20direct%20rates." target="_blank">
-<svg fill="currentColor" height="20" viewbox="0 0 32 32" width="20"><path d="M16.001 3C9.373 3 4 8.373 4 15c0 2.634.86 5.08 2.32 7.06L4 29l7.2-2.28A11.93 11.93 0 0 0 16 27c6.627 0 12-5.373 12-12S22.628 3 16.001 3zm0 21.6c-1.98 0-3.84-.55-5.43-1.5l-.39-.23-4.27 1.35 1.39-4.16-.25-.4A9.55 9.55 0 0 1 5.4 15c0-5.85 4.76-10.6 10.6-10.6S26.6 9.15 26.6 15 21.85 24.6 16 24.6zm5.86-7.9c-.32-.16-1.9-.94-2.19-1.05-.29-.11-.5-.16-.72.16-.21.32-.82 1.05-1.01 1.26-.19.21-.37.24-.69.08-.32-.16-1.34-.49-2.55-1.57-.94-.84-1.58-1.87-1.76-2.19-.19-.32-.02-.49.14-.65.14-.14.32-.37.48-.55.16-.19.21-.32.32-.53.11-.21.05-.4-.03-.55-.08-.16-.72-1.74-.98-2.38-.26-.63-.53-.54-.72-.55-.19-.01-.4-.01-.61-.01-.21 0-.55.08-.84.4-.29.32-1.1 1.08-1.1 2.63 0 1.55 1.13 3.05 1.29 3.26.16.21 2.22 3.39 5.39 4.76.75.32 1.34.51 1.8.66.76.24 1.44.21 1.99.13.61-.09 1.9-.78 2.17-1.53.27-.75.27-1.39.19-1.53-.08-.13-.29-.21-.61-.37z"></path></svg>
-<span>WhatsApp Booking</span>
-</a>
-<a class="mobile-bar-btn-call" href="tel:+919450055554">
-<span>📞 Call Host</span>
-</a>
+<!-- ─── MOBILE STICKY DIRECT BOOKING BAR (TACTILE LUXURY CONVERSION) ─── -->
+<aside aria-label="Quick Booking Actions" class="vesper-mobile-sticky-bar" id="vesperMobileStickyBar">
+  <div class="vesper-mobile-sticky-info">
+    <span class="vesper-mobile-sticky-tag">👑 17 LUXURY STAYS</span>
+    <span class="vesper-mobile-sticky-price">From ₹3,500 <small>/ nt</small></span>
+  </div>
+  <div class="vesper-mobile-sticky-actions">
+    <a class="vesper-mobile-btn-wa" href="https://wa.me/919450055554?text=Namaste!%20I%20am%20looking%20to%20book%20a%20luxury%20stay%20with%20The%20Unique%20Haven%20Homes%20in%20Lucknow." target="_blank">
+      💬 WhatsApp
+    </a>
+    <a class="vesper-mobile-btn-book" href="book.html">
+      ⚡ Book Direct
+    </a>
+  </div>
 </aside>
-<!-- Photo DB & Luxury Directory Controller -->
-<script src="js/directory-photos.js"></script>
-<script src="js/luxury-directory.js?v=213"></script>
-<!-- Leaflet JS -->
-<script crossorigin="" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<!-- Website Sync: Map + Availability -->
-<script src="js/website-sync.js?v=4"></script>
-<!-- Live Price Sync: Fetches rates from Supabase → property_rates table -->
-<script src="js/price-sync.js?v=1"></script>
-<!-- Guest Reviews: Fetches polished Airbnb reviews from Supabase -->
-<script src="js/reviews-display.js?v=2"></script>
-<!-- Nisha AI Concierge (Temporarily disabled for model training & pronunciation accuracy)
-<script src="js/nisha-ai.js?v=17"></script>
-<script src="js/chat-widget.js?v=18"></script>
--->
+
+<!-- Real-Time CRM Price Sync (Rooms & Property Rates) -->
+<script src="js/price-sync.js?v=2"></script>
+<!-- Vesper-style interactive hero & motion controller -->
+<script src="js/vesper-hero.js?v=5"></script>
 </body>
 </html>
