@@ -765,14 +765,62 @@ Thank you for choosing *The Unique Haven Homes*. Your direct reservation has bee
       fsn.info('Processing Image', '📸 Generating high-res slip image preview...');
     }
 
+    let clone = null;
     try {
-      const canvas = await window.html2canvas(el, {
+      const target = el.querySelector('.uhh-receipt-container') || el;
+      clone = target.cloneNode(true);
+      clone.id = 'uhh_temp_capture_clone';
+      clone.style.position = 'fixed';
+      clone.style.left = '-9999px';
+      clone.style.top = '0';
+      clone.style.width = '760px';
+      clone.style.maxWidth = '760px';
+      clone.style.minWidth = '760px';
+      clone.style.height = 'auto';
+      clone.style.minHeight = 'auto';
+      clone.style.maxHeight = 'none';
+      clone.style.overflow = 'visible';
+      clone.style.zIndex = '-99999';
+      clone.style.boxSizing = 'border-box';
+      clone.style.background = '#ffffff';
+      document.body.appendChild(clone);
+
+      // Wait for all images in clone to be ready
+      const imgs = Array.from(clone.querySelectorAll('img'));
+      await Promise.all(imgs.map(img => {
+        if (img.complete && img.naturalHeight !== 0) return Promise.resolve();
+        return new Promise(res => {
+          img.onload = res;
+          img.onerror = res;
+          setTimeout(res, 250);
+        });
+      }));
+
+      // Give browser layout engine a short beat to calculate full height
+      await new Promise(r => setTimeout(r, 60));
+
+      const fullHeight = Math.max(clone.scrollHeight, clone.offsetHeight, 600);
+      const fullWidth = clone.offsetWidth || 760;
+
+      const canvas = await window.html2canvas(clone, {
         scale: 2,
         useCORS: true,
         backgroundColor: '#ffffff',
         logging: false,
-        windowWidth: 1024
+        scrollY: 0,
+        scrollX: 0,
+        x: 0,
+        y: 0,
+        width: fullWidth,
+        height: fullHeight,
+        windowWidth: 1200,
+        windowHeight: fullHeight + 100
       });
+
+      if (clone && clone.parentNode) {
+        clone.remove();
+        clone = null;
+      }
 
       canvas.toBlob(async (blob) => {
         if (!blob) {
@@ -789,7 +837,7 @@ Thank you for choosing *The Unique Haven Homes*. Your direct reservation has bee
               new ClipboardItem({ 'image/png': blob })
             ]);
             if (window.fsn?.success) {
-              fsn.success('Image Ready & Copied', '📸 Receipt image copied to clipboard! Preview shown below.');
+              fsn.success('Image Ready & Copied', '📸 Full receipt image copied to clipboard! Preview shown below.');
             }
           } catch(e) {
             console.warn('Silent clipboard copy failed:', e);
@@ -800,6 +848,7 @@ Thank you for choosing *The Unique Haven Homes*. Your direct reservation has bee
         showSlipImagePreviewModal(blob, filename, file);
       }, 'image/png');
     } catch(err) {
+      if (clone && clone.parentNode) clone.remove();
       console.error('Canvas capture error:', err);
       alert('Error creating receipt image: ' + err.message);
     }
