@@ -480,7 +480,7 @@ Thank you for choosing *The Unique Haven Homes*. Your direct reservation has bee
 ▪️ *Total Booking Amount:* ₹${totalAmount.toLocaleString('en-IN')}
 ▪️ *Advance Paid:* ₹${paidAmount.toLocaleString('en-IN')} ✅
 ▪️ *Balance Due:* ₹${balanceDue.toLocaleString('en-IN')} ${balanceDue > 0 ? '⚠️ (Payable at Check-in)' : '✅ (Fully Cleared)'}
-━━━━━━━━━━━━━━━━━━━━${payHistoryText}
+━━━━━━━━━━━━━━━━━━━━${payHistoryText}${booking.notes ? `\n\n📝 *Special Note:*\n${booking.notes}` : ''}
 
 👤 *Property Manager:* Praveen Singh (+91 9194109911)
 
@@ -1353,7 +1353,7 @@ ${propertiesList}
 ▪️ *Total Booking Amount:* ₹${totalAmount.toLocaleString('en-IN')}
 ▪️ *Advance Paid:* ₹${paidAmount.toLocaleString('en-IN')} ✅
 ▪️ *Balance Due at Check-in:* ₹${balanceDue.toLocaleString('en-IN')} ${balanceDue > 0 ? '⚠️ (Payable upon arrival)' : '✅ (Fully Cleared)'}
-━━━━━━━━━━━━━━━━━━━━${payHistoryText}
+━━━━━━━━━━━━━━━━━━━━${payHistoryText}${bookings && bookings[0]?.notes ? `\n\n📝 *Special Note:*\n${bookings[0].notes}` : ''}
 
 👤 *Property Manager:* Praveen Singh (+91 9194109911)
 

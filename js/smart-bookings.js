@@ -1614,7 +1614,7 @@ async function renderSmartAddBooking() {
           </div>
           <div class="form-group">
             <label style="font-weight:700;">Guest Name *</label>
-            <input id="guestName" placeholder="Full name of guest (e.g. Neelkamal)" value="${pre.guestName || ''}"
+            <input id="guestName" placeholder="Full name of guest (e.g. Praveen Singh)" value="${pre.guestName || ''}"
               style="font-size:14px;font-weight:600;" />
           </div>
         </div>
