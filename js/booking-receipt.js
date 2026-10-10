@@ -887,43 +887,55 @@ Thank you for choosing *The Unique Haven Homes*. Your direct reservation has bee
     }
 
     return `
-      <div id="uhhMobileSlipCard" style="width:480px;max-width:480px;background:#FFFFFF;color:#0F172A;font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;padding:20px 18px;border-radius:16px;box-sizing:border-box;line-height:1.4;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;border:1px solid #CBD5E1;margin:0 auto;">
+      <div id="uhhMobileSlipCard" style="width:480px;max-width:480px;background:#FFFFFF;color:#0F172A;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;padding:20px 18px;border-radius:14px;box-sizing:border-box;line-height:1.4;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;text-rendering:geometricPrecision;font-variant-numeric:tabular-nums;border:2px solid #0F172A;margin:0 auto;">
         
         <!-- Header Strip -->
-        <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid #0F172A;padding-bottom:12px;margin-bottom:12px;gap:10px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid #E2E8F0;padding-bottom:12px;margin-bottom:10px;gap:10px;">
           <div style="display:flex;align-items:center;gap:12px;">
-            <img src="${logoSrc}" alt="Logo" style="width:44px;height:44px;object-fit:contain;border-radius:10px;background:#FAF8F5;border:1px solid #E2E8F0;padding:2px;" />
+            <img src="${logoSrc}" alt="Logo" style="width:46px;height:46px;object-fit:contain;border-radius:10px;background:#FAF8F5;border:1.5px solid #CBD5E1;padding:2px;" />
             <div>
-              <div style="font-size:9.5px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:#B45309;">The Unique Haven Homes</div>
+              <div style="font-size:10px;font-weight:900;letter-spacing:1px;text-transform:uppercase;color:#B45309;">The Unique Haven Homes</div>
               <div style="font-size:15px;font-weight:900;color:#0F172A;line-height:1.2;">${CO.name}</div>
-              <div style="font-size:10.5px;color:#64748B;margin-top:2px;">📞 ${CO.phone} · Lucknow, UP</div>
+              <div style="font-size:11px;color:#475569;margin-top:2px;font-weight:600;">📞 ${CO.phone} · Lucknow, UP</div>
             </div>
           </div>
           <div style="text-align:right;">
-            <div style="background:#0F172A;color:#FFFFFF;padding:3px 9px;border-radius:6px;font-size:10px;font-weight:800;letter-spacing:0.5px;text-transform:uppercase;display:inline-block;">
-              Official Voucher
+            <div style="background:#0F172A;color:#FFFFFF;padding:3px 9px;border-radius:6px;font-size:10.5px;font-weight:800;letter-spacing:0.5px;text-transform:uppercase;display:inline-block;">
+              Official Pass
             </div>
-            <div style="font-size:9.5px;color:#64748B;margin-top:3px;font-weight:600;">
+            <div style="font-size:10px;color:#64748B;margin-top:3px;font-weight:700;">
               ${todayStr}
             </div>
           </div>
         </div>
 
-        <!-- Status Banner -->
-        <div style="background:${statusBg};border:1.5px solid ${statusBorder};color:${statusColor};border-radius:10px;padding:9px 12px;margin-bottom:12px;text-align:center;">
-          <div style="font-size:13px;font-weight:900;letter-spacing:0.3px;">
-            ${statusIcon} ${statusText}
+        <!-- 🎫 IRCTC-Style High-Visibility PNR / Booking Reference Bar -->
+        <div style="background:#0F172A;color:#FFFFFF;border-radius:8px;padding:8px 12px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;">
+          <div>
+            <div style="font-size:9.5px;font-weight:800;letter-spacing:0.8px;color:#94A3B8;text-transform:uppercase;">BOOKING REFERENCE / PNR</div>
+            <div style="font-size:16px;font-weight:900;font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;letter-spacing:0.6px;color:#38BDF8;">
+              ${escapeHtml(isMulti ? data.stayGroupId : data.booking?.booking_id)}
+            </div>
           </div>
-          <div style="font-size:11px;font-weight:600;margin-top:2px;opacity:0.95;">
-            ${isMulti ? `Group Ref: <strong>${data.stayGroupId}</strong> · ${data.bookings.length} Homestays` : `Booking Ref: <strong>${data.booking?.booking_id}</strong>`}
+          <div style="text-align:right;">
+            <span style="background:#4F46E5;color:#fff;font-size:10.5px;padding:3px 8px;border-radius:10px;font-weight:800;text-transform:uppercase;">
+              ${isMulti ? `${data.bookings.length} Homestays` : 'Single Homestay'}
+            </span>
+          </div>
+        </div>
+
+        <!-- Status Banner -->
+        <div style="background:${statusBg};border:1.5px solid ${statusBorder};color:${statusColor};border-radius:10px;padding:9px 12px;margin-bottom:10px;text-align:center;">
+          <div style="font-size:13.5px;font-weight:900;letter-spacing:0.3px;">
+            ${statusIcon} ${statusText}
           </div>
         </div>
 
         <!-- Primary Guest Card -->
-        <div style="background:#F8FAFC;border:1.5px solid #E2E8F0;border-radius:12px;padding:12px 14px;margin-bottom:12px;">
-          <div style="font-size:10px;font-weight:800;color:#B45309;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:2px;">Primary Guest</div>
-          <div style="font-size:17px;font-weight:900;color:#0F172A;">${escapeHtml(guestName)}</div>
-          <div style="font-size:12.5px;color:#334155;margin-top:4px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;">
+        <div style="background:#F8FAFC;border:1.5px solid #CBD5E1;border-radius:10px;padding:12px 14px;margin-bottom:10px;">
+          <div style="font-size:10px;font-weight:900;color:#B45309;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:2px;">Primary Guest Details</div>
+          <div style="font-size:17.5px;font-weight:900;color:#0F172A;">${escapeHtml(guestName)}</div>
+          <div style="font-size:13px;color:#1E293B;margin-top:4px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;">
             <span>📱 <strong>${phone ? escapeHtml(phone) : 'N/A'}</strong></span>
             <span>👥 <strong>${isMulti ? data.totalGuests : (data.booking?.guests || 1)} Guests Total</strong></span>
             ${bookedBy ? `<span>✍️ Booked By: <strong>${escapeHtml(bookedBy)}</strong></span>` : ''}
@@ -931,41 +943,41 @@ Thank you for choosing *The Unique Haven Homes*. Your direct reservation has bee
         </div>
 
         <!-- Properties Section -->
-        <div style="margin-bottom:12px;">
-          <div style="font-size:11.5px;font-weight:800;color:#0F172A;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;">
+        <div style="margin-bottom:10px;">
+          <div style="font-size:12px;font-weight:900;color:#0F172A;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;">
             <span>🏠 Reserved Homestay(s)</span>
-            <span style="font-size:11px;color:#64748B;font-weight:700;">${isMulti ? `${data.bookings.length} Homestays` : '1 Homestay'}</span>
+            <span style="font-size:11px;color:#475569;font-weight:800;">${isMulti ? `${data.bookings.length} Properties` : '1 Property'}</span>
           </div>
           ${propertiesHTML}
         </div>
 
         <!-- Financial Statement (3 Highlight Hero Metric Boxes) -->
-        <div style="border:1.5px solid #0F172A;border-radius:12px;overflow:hidden;margin-bottom:12px;">
+        <div style="border:1.5px solid #0F172A;border-radius:10px;overflow:hidden;margin-bottom:10px;">
           <div style="display:grid;grid-template-columns:1fr 1fr 1fr;background:#F8FAFC;text-align:center;">
-            <div style="padding:10px 6px;border-right:1px solid #E2E8F0;">
-              <div style="font-size:9.5px;font-weight:800;color:#64748B;text-transform:uppercase;">Total Bill</div>
-              <div style="font-size:16.5px;font-weight:900;color:#0F172A;margin-top:2px;">₹${totalAmount.toLocaleString('en-IN')}</div>
+            <div style="padding:10px 6px;border-right:1px solid #CBD5E1;">
+              <div style="font-size:10px;font-weight:900;color:#475569;text-transform:uppercase;">Total Bill</div>
+              <div style="font-size:17px;font-weight:900;color:#0F172A;margin-top:2px;">₹${totalAmount.toLocaleString('en-IN')}</div>
             </div>
-            <div style="padding:10px 6px;border-right:1px solid #E2E8F0;background:#F0FDF4;">
-              <div style="font-size:9.5px;font-weight:800;color:#15803D;text-transform:uppercase;">Advance Paid</div>
-              <div style="font-size:16.5px;font-weight:900;color:#059669;margin-top:2px;">₹${paidAmount.toLocaleString('en-IN')}</div>
+            <div style="padding:10px 6px;border-right:1px solid #CBD5E1;background:#F0FDF4;">
+              <div style="font-size:10px;font-weight:900;color:#15803D;text-transform:uppercase;">Advance Paid</div>
+              <div style="font-size:17px;font-weight:900;color:#059669;margin-top:2px;">₹${paidAmount.toLocaleString('en-IN')}</div>
             </div>
             <div style="padding:10px 6px;background:${balanceDue > 0 ? '#FEF2F2' : '#F0FDF4'};">
-              <div style="font-size:9.5px;font-weight:800;color:${balanceDue > 0 ? '#DC2626' : '#15803D'};text-transform:uppercase;">${balanceDue > 0 ? 'Balance Due' : 'Cleared'}</div>
-              <div style="font-size:16.5px;font-weight:900;color:${balanceDue > 0 ? '#DC2626' : '#059669'};margin-top:2px;">₹${balanceDue.toLocaleString('en-IN')}</div>
+              <div style="font-size:10px;font-weight:900;color:${balanceDue > 0 ? '#DC2626' : '#15803D'};text-transform:uppercase;">${balanceDue > 0 ? 'Balance Due' : 'Cleared'}</div>
+              <div style="font-size:17px;font-weight:900;color:${balanceDue > 0 ? '#DC2626' : '#059669'};margin-top:2px;">₹${balanceDue.toLocaleString('en-IN')}</div>
             </div>
           </div>
 
           ${payments && payments.length > 0 ? `
-            <div style="padding:10px 12px;background:#FFFFFF;border-top:1px solid #E2E8F0;">
-              <div style="font-size:10px;font-weight:800;color:#475569;text-transform:uppercase;margin-bottom:6px;">💳 Payment Log (${payments.length} Transaction${payments.length > 1 ? 's' : ''})</div>
+            <div style="padding:10px 12px;background:#FFFFFF;border-top:1.5px solid #CBD5E1;">
+              <div style="font-size:10.5px;font-weight:900;color:#0F172A;text-transform:uppercase;margin-bottom:6px;">💳 Payment Log (${payments.length} Transaction${payments.length > 1 ? 's' : ''})</div>
               ${payments.map((p, idx) => `
-                <div style="display:flex;justify-content:space-between;align-items:center;font-size:11.5px;padding:3px 0;border-bottom:1px solid #F1F5F9;">
+                <div style="display:flex;justify-content:space-between;align-items:center;font-size:12px;padding:3px 0;border-bottom:1px solid #E2E8F0;">
                   <div>
-                    <span style="font-weight:700;color:#0F172A;">${formatDate(p.payment_date || p.paid_at)}</span>
-                    <span style="color:#64748B;font-size:10px;"> · via <strong>${escapeHtml(p.payment_mode || 'UPI')}</strong></span>
+                    <span style="font-weight:800;color:#0F172A;">${formatDate(p.payment_date || p.paid_at)}</span>
+                    <span style="color:#475569;font-size:11px;"> · via <strong>${escapeHtml(p.payment_mode || 'UPI')}</strong></span>
                   </div>
-                  <div style="font-weight:900;color:#059669;font-size:12px;">
+                  <div style="font-weight:900;color:#059669;font-size:12.5px;">
                     ₹${Number(p.amount || 0).toLocaleString('en-IN')}
                   </div>
                 </div>
@@ -976,27 +988,27 @@ Thank you for choosing *The Unique Haven Homes*. Your direct reservation has bee
 
         <!-- Custom Notes Banner (If any) -->
         ${customNotes ? `
-          <div style="background:#FFFBEB;border:1.5px solid #FDE68A;border-radius:10px;padding:10px 12px;margin-bottom:12px;font-size:12px;color:#92400E;line-height:1.4;">
-            <strong style="font-size:12px;">📝 Special Note:</strong><br>
-            ${escapeHtml(customNotes)}
+          <div style="background:#FFFBEB;border:1.5px solid #F59E0B;border-radius:10px;padding:10px 12px;margin-bottom:10px;font-size:12.5px;color:#92400E;line-height:1.4;">
+            <strong style="font-size:12.5px;color:#78350F;">📝 Special Note:</strong><br>
+            <span style="font-weight:700;">${escapeHtml(customNotes)}</span>
           </div>
         ` : ''}
 
         <!-- Support Strip -->
-        <div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:10px;padding:9px 12px;margin-bottom:12px;font-size:11px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;">
+        <div style="background:#F8FAFC;border:1.5px solid #CBD5E1;border-radius:10px;padding:9px 12px;margin-bottom:10px;font-size:11.5px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;">
           <div>
             👤 <strong>Manager:</strong> Praveen Singh<br>
-            📞 <a href="tel:+919194109911" style="color:#0F172A;text-decoration:none;font-weight:800;">+91 9194109911</a>
+            📞 <a href="tel:+919194109911" style="color:#0F172A;text-decoration:none;font-weight:900;">+91 9194109911</a>
           </div>
           <div>
             👑 <strong>Director / Owner:</strong> Firoz Khan<br>
-            📞 <a href="tel:+918299600709" style="color:#0F172A;text-decoration:none;font-weight:800;">+91 82996 00709</a>
+            📞 <a href="tel:+918299600709" style="color:#0F172A;text-decoration:none;font-weight:900;">+91 82996 00709</a>
           </div>
         </div>
 
         <!-- Compact Guidelines -->
-        <div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:10px;padding:9px 12px;margin-bottom:12px;font-size:10px;color:#475569;line-height:1.4;">
-          <div style="font-weight:800;color:#0F172A;margin-bottom:3px;text-transform:uppercase;">📋 Important Stay Guidelines:</div>
+        <div style="background:#F8FAFC;border:1.5px solid #CBD5E1;border-radius:10px;padding:9px 12px;margin-bottom:10px;font-size:10.5px;color:#334155;line-height:1.4;">
+          <div style="font-weight:900;color:#0F172A;margin-bottom:3px;text-transform:uppercase;">📋 Important Stay Guidelines:</div>
           • Original Govt Photo ID (Aadhaar / Passport / DL) mandatory at check-in.<br>
           • Check-in: 02:00 PM | Check-out: 11:00 AM.<br>
           • Quiet hours post 11:00 PM. No loud music.<br>
@@ -1004,16 +1016,16 @@ Thank you for choosing *The Unique Haven Homes*. Your direct reservation has bee
         </div>
 
         <!-- Footer Signature & Stamp -->
-        <div style="display:flex;justify-content:space-between;align-items:flex-end;border-top:1.5px solid #CBD5E1;padding-top:8px;">
-          <div style="font-size:9.5px;color:#94A3B8;line-height:1.35;">
-            <strong style="color:#475569;">${CO.name}</strong><br>
+        <div style="display:flex;justify-content:space-between;align-items:flex-end;border-top:1.5px solid #0F172A;padding-top:8px;">
+          <div style="font-size:10px;color:#64748B;line-height:1.35;">
+            <strong style="color:#0F172A;">${CO.name}</strong><br>
             CIN: ${CO.cin} · PAN: ${CO.pan}<br>
             Website: ${CO.web}
           </div>
           <div style="text-align:right;">
-            <img src="${getSignatureStampSrc()}" alt="Signature" style="height:34px;max-width:120px;object-fit:contain;margin-bottom:-4px;margin-left:auto;display:block;" />
-            <div style="border-bottom:1px dashed #CBD5E1;width:110px;margin-left:auto;height:1px;"></div>
-            <div style="font-size:9px;color:#64748B;margin-top:2px;">Authorised Signatory</div>
+            <img src="${getSignatureStampSrc()}" alt="Signature" style="height:36px;max-width:130px;object-fit:contain;margin-bottom:-4px;margin-left:auto;display:block;" />
+            <div style="border-bottom:1px dashed #CBD5E1;width:120px;margin-left:auto;height:1px;"></div>
+            <div style="font-size:9.5px;color:#475569;margin-top:2px;font-weight:700;">Authorised Signatory</div>
           </div>
         </div>
 
@@ -1044,7 +1056,7 @@ Thank you for choosing *The Unique Haven Homes*. Your direct reservation has bee
     }
 
     if (window.fsn?.info) {
-      fsn.info('Processing Image', '📸 Generating high-res mobile slip preview...');
+      fsn.info('Processing Image', '📸 Generating 300+ DPI ultra-crisp mobile slip...');
     }
 
     const data = receiptData || window._activeReceiptData || null;
@@ -1098,9 +1110,11 @@ Thank you for choosing *The Unique Haven Homes*. Your direct reservation has bee
       const fullHeight = Math.max(captureEl.scrollHeight, captureEl.offsetHeight, 600);
       const fullWidth = captureEl.offsetWidth || 480;
 
+      // 🌟 ULTRA-CRISP 3X DPI RETINA CAPTURE (IRCTC Screenshot Grade Clarity)
       const canvas = await window.html2canvas(captureEl, {
-        scale: 2,
+        scale: 3, // 300+ DPI Crisp Retina Resolution
         useCORS: true,
+        allowTaint: true,
         backgroundColor: '#ffffff',
         logging: false,
         scrollY: 0,
@@ -1196,8 +1210,8 @@ Thank you for choosing *The Unique Haven Homes*. Your direct reservation has bee
         </div>
 
         <!-- Scrollable Image Preview -->
-        <div style="flex:1;overflow-y:auto;background:#334155;padding:14px;border-radius:8px;text-align:center;">
-          <img src="${imgUrl}" alt="Slip Preview" style="max-width:100%;height:auto;border-radius:6px;box-shadow:0 8px 24px rgba(0,0,0,0.35);background:#fff;" />
+        <div style="flex:1;overflow-y:auto;background:#1E293B;padding:16px;border-radius:8px;text-align:center;">
+          <img src="${imgUrl}" alt="Slip Preview" style="width:480px;max-width:100%;height:auto;border-radius:10px;box-shadow:0 12px 30px rgba(0,0,0,0.45);background:#fff;display:inline-block;image-rendering:-webkit-optimize-contrast;image-rendering:crisp-edges;" />
         </div>
       </div>
     `;
