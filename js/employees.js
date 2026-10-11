@@ -2647,39 +2647,55 @@ window.printAdvancesReport = async function(targetEmpId = null) {
 
   let empName = 'All Employees (Consolidated)';
   let empMeta = null;
-  if (filterEmpId && filterEmpId !== 'all') {
+  const isSingleEmp = Boolean(filterEmpId && filterEmpId !== 'all');
+
+  if (isSingleEmp) {
     empMeta = (emps || []).find(e => e.emp_id === filterEmpId) || advs[0]?.employees;
     empName = empMeta?.name || filterEmpId;
   }
 
   const fromDate = targetEmpId ? '' : (window._advTrackerFilter?.fromDate || '');
   const toDate = targetEmpId ? '' : (window._advTrackerFilter?.toDate || '');
+  
+  const fmtD = dStr => {
+    if (!dStr) return '';
+    try {
+      const parts = dStr.split('-');
+      if (parts.length === 3) {
+        const d = new Date(parts[0], parts[1] - 1, parts[2]);
+        return d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+      }
+    } catch(e) {}
+    return dStr;
+  };
+
   let periodStr = 'All Historical Records';
-  if (fromDate && toDate) periodStr = `${fromDate} to ${toDate}`;
-  else if (fromDate) periodStr = `From ${fromDate}`;
-  else if (toDate) periodStr = `Up to ${toDate}`;
+  if (fromDate && toDate) periodStr = `${fmtD(fromDate)} – ${fmtD(toDate)}`;
+  else if (fromDate) periodStr = `From ${fmtD(fromDate)}`;
+  else if (toDate) periodStr = `Up to ${fmtD(toDate)}`;
 
   const totalGiven = advs.reduce((s, a) => s + Number(a.advance_amount || 0), 0);
   const totalRepaid = advs.reduce((s, a) => s + Number(a.repaid_amount || 0), 0);
   const totalBal = totalGiven - totalRepaid;
 
+  // Table rows with exact column widths and zero awkward wrapping
   const rows = advs.map((a, idx) => {
     const bal = Number(a.advance_amount || 0) - Number(a.repaid_amount || 0);
     const isSettled = bal <= 0;
     return `
-      <tr style="border-bottom:1px solid #E2E8F0;background:${idx % 2 === 0 ? '#FFFFFF' : '#F8FAFC'};">
-        <td style="padding:7px 8px;text-align:center;color:#64748B;font-size:11px;">${idx + 1}</td>
-        <td style="padding:7px 8px;font-weight:700;color:#0F172A;font-size:12px;">${escapeHtml(a.employees?.name || a.emp_id)}</td>
-        <td style="padding:7px 8px;font-size:11.5px;color:#334155;white-space:nowrap;">${escapeHtml(a.date_given || (a.created_at || '').slice(0, 10) || '-')}</td>
-        <td style="padding:7px 8px;text-align:right;font-weight:700;color:#DC2626;font-size:12px;">₹${Number(a.advance_amount || 0).toLocaleString('en-IN')}</td>
-        <td style="padding:7px 8px;text-align:right;font-weight:700;color:#059669;font-size:12px;">₹${Number(a.repaid_amount || 0).toLocaleString('en-IN')}</td>
-        <td style="padding:7px 8px;font-size:11px;color:#64748B;white-space:nowrap;">${escapeHtml(a.repaid_date || '-')}</td>
-        <td style="padding:7px 8px;text-align:right;font-weight:800;color:${bal > 0 ? '#DC2626' : '#059669'};font-size:12px;">₹${bal.toLocaleString('en-IN')}</td>
-        <td style="padding:7px 8px;font-size:11px;color:#334155;">${escapeHtml(a.paid_by || '-')}</td>
-        <td style="padding:7px 8px;font-size:11px;color:#64748B;">${escapeHtml(a.payment_mode || '-')}</td>
-        <td style="padding:7px 8px;font-size:11px;color:#475569;max-width:180px;">${escapeHtml(a.reason || '-')}</td>
-        <td style="padding:7px 8px;text-align:center;font-size:10.5px;">
-          <span style="display:inline-block;padding:2px 7px;border-radius:10px;font-weight:700;${isSettled ? 'background:#DCFCE7;color:#166534;' : 'background:#FEE2E2;color:#991B1B;'}">
+      <tr style="border-bottom:1px solid #CBD5E1;background:${idx % 2 === 0 ? '#FFFFFF' : '#F8FAFC'};">
+        <td style="padding:5px 4px;text-align:center;color:#64748B;font-size:10.5px;border:1px solid #CBD5E1;">${idx + 1}</td>
+        ${!isSingleEmp ? `<td style="padding:5px 6px;font-weight:700;color:#0F172A;font-size:11px;white-space:nowrap;border:1px solid #CBD5E1;">${escapeHtml(a.employees?.name || a.emp_id)}</td>` : ''}
+        <td style="padding:5px 6px;text-align:center;font-size:11px;color:#334155;white-space:nowrap;border:1px solid #CBD5E1;">${escapeHtml(a.date_given || (a.created_at || '').slice(0, 10) || '-')}</td>
+        <td style="padding:5px 6px;text-align:right;font-weight:700;color:#DC2626;font-size:11.5px;white-space:nowrap;border:1px solid #CBD5E1;">₹${Number(a.advance_amount || 0).toLocaleString('en-IN')}</td>
+        <td style="padding:5px 6px;text-align:right;font-weight:700;color:#059669;font-size:11.5px;white-space:nowrap;border:1px solid #CBD5E1;">₹${Number(a.repaid_amount || 0).toLocaleString('en-IN')}</td>
+        <td style="padding:5px 6px;text-align:center;font-size:10.5px;color:#64748B;white-space:nowrap;border:1px solid #CBD5E1;">${escapeHtml(a.repaid_date || '-')}</td>
+        <td style="padding:5px 6px;text-align:right;font-weight:800;color:${bal > 0 ? '#DC2626' : '#059669'};font-size:11.5px;white-space:nowrap;border:1px solid #CBD5E1;">₹${bal.toLocaleString('en-IN')}</td>
+        <td style="padding:5px 6px;text-align:center;font-size:10.5px;color:#334155;white-space:nowrap;border:1px solid #CBD5E1;">${escapeHtml(a.paid_by || '-')}</td>
+        <td style="padding:5px 6px;text-align:center;font-size:10.5px;color:#64748B;white-space:nowrap;border:1px solid #CBD5E1;">${escapeHtml(a.payment_mode || '-')}</td>
+        <td style="padding:5px 6px;font-size:10.5px;color:#475569;border:1px solid #CBD5E1;word-break:break-word;">${escapeHtml(a.reason || '-')}</td>
+        <td style="padding:5px 4px;text-align:center;font-size:10px;white-space:nowrap;border:1px solid #CBD5E1;">
+          <span style="display:inline-block;padding:2px 6px;border-radius:10px;font-weight:700;white-space:nowrap;${isSettled ? 'background:#DCFCE7;color:#166534;' : 'background:#FEE2E2;color:#991B1B;'}">
             ${isSettled ? '✓ Repaid' : '● Due'}
           </span>
         </td>
@@ -2688,85 +2704,85 @@ window.printAdvancesReport = async function(targetEmpId = null) {
   }).join('');
 
   const html = `
-    <div style="max-width:960px;margin:0 auto;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#0F172A;line-height:1.4;">
+    <div style="width:100%;box-sizing:border-box;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#0F172A;line-height:1.35;">
       
       <!-- HEADER -->
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2.5px solid #0F766E;padding-bottom:14px;margin-bottom:14px;">
-        <div>
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2.5px solid #0F766E;padding-bottom:10px;margin-bottom:10px;">
+        <div style="flex:1;">
           <div style="display:flex;align-items:center;gap:8px;">
-            <span style="font-size:24px;">🏡</span>
+            <span style="font-size:22px;">🏡</span>
             <div>
-              <h1 style="margin:0;font-size:20px;font-weight:900;letter-spacing:-0.3px;color:#0F172A;">THE UNIQUE HAVEN HOMES PRIVATE LIMITED</h1>
-              <div style="font-size:11px;color:#64748B;font-weight:600;margin-top:2px;">CIN: U55101UP2024PTC202863 · HRMS &amp; Staff Payroll Portal</div>
+              <h1 style="margin:0;font-size:17px;font-weight:900;letter-spacing:-0.2px;color:#0F172A;">THE UNIQUE HAVEN HOMES PRIVATE LIMITED</h1>
+              <div style="font-size:10.5px;color:#64748B;font-weight:600;margin-top:2px;">CIN: U55101UP2024PTC202863 · HRMS &amp; Staff Payroll Portal</div>
             </div>
           </div>
-          <div style="margin-top:10px;display:inline-block;background:#F0FDFA;border:1px solid #99F6E4;padding:4px 10px;border-radius:6px;font-size:12px;font-weight:800;color:#0F766E;letter-spacing:0.5px;">
+          <div style="margin-top:6px;display:inline-block;background:#F0FDFA;border:1px solid #99F6E4;padding:3px 9px;border-radius:6px;font-size:11px;font-weight:800;color:#0F766E;letter-spacing:0.4px;">
             📄 STAFF SALARY ADVANCE &amp; REPAYMENT STATEMENT
           </div>
         </div>
-        <div style="text-align:right;">
-          <div style="font-size:11px;color:#64748B;">Statement Date</div>
-          <div style="font-size:13px;font-weight:800;color:#0F172A;">${new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</div>
-          <div style="font-size:11px;color:#64748B;margin-top:4px;">Period: <strong>${escapeHtml(periodStr)}</strong></div>
+        <div style="text-align:right;white-space:nowrap;min-width:180px;">
+          <div style="font-size:10.5px;color:#64748B;font-weight:600;">Statement Date</div>
+          <div style="font-size:13px;font-weight:900;color:#0F172A;margin-top:1px;">${new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</div>
+          <div style="font-size:10.5px;color:#64748B;margin-top:3px;white-space:nowrap;">Period: <strong style="color:#0F172A;">${escapeHtml(periodStr)}</strong></div>
         </div>
       </div>
 
       <!-- EMPLOYEE / SCOPE INFO -->
-      <div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:10px;padding:12px 16px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
+      <div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:8px;padding:8px 12px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
         <div>
-          <div style="font-size:11px;font-weight:700;color:#64748B;text-transform:uppercase;letter-spacing:0.5px;">Employee Details</div>
-          <div style="font-size:17px;font-weight:900;color:#0F172A;margin-top:2px;">${escapeHtml(empName)}</div>
+          <div style="font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;letter-spacing:0.5px;">Employee Details</div>
+          <div style="font-size:15px;font-weight:900;color:#0F172A;margin-top:1px;">${escapeHtml(empName)}</div>
           ${empMeta ? `
-            <div style="font-size:12px;color:#475569;margin-top:2px;">
+            <div style="font-size:11px;color:#475569;margin-top:2px;">
               <span><strong>ID:</strong> ${escapeHtml(filterEmpId)}</span>
               ${empMeta.role ? ` · <span><strong>Role:</strong> ${escapeHtml(empMeta.role)}</span>` : ''}
               ${empMeta.phone ? ` · <span><strong>Phone:</strong> ${escapeHtml(empMeta.phone)}</span>` : ''}
             </div>
           ` : `
-            <div style="font-size:12px;color:#475569;margin-top:2px;">Consolidated ledger for all employees in system (${advs.length} entries)</div>
+            <div style="font-size:11px;color:#475569;margin-top:2px;">Consolidated ledger for all employees in system (${advs.length} entries)</div>
           `}
         </div>
         <div style="text-align:right;">
-          <div style="font-size:11px;font-weight:700;color:#64748B;text-transform:uppercase;">Generated By</div>
-          <div style="font-size:13px;font-weight:700;color:#334155;">${escapeHtml(window.SESSION?.name || window.SESSION?.user || 'Admin')} (${escapeHtml(window.SESSION?.role || 'Management')})</div>
+          <div style="font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;">Generated By</div>
+          <div style="font-size:11.5px;font-weight:700;color:#334155;">${escapeHtml(window.SESSION?.name || window.SESSION?.user || 'Admin')} (${escapeHtml(window.SESSION?.role || 'Management')})</div>
         </div>
       </div>
 
       <!-- KPI METRIC BOXES -->
-      <div style="display:grid;grid-template-columns:repeat(3, 1fr);gap:12px;margin-bottom:16px;">
-        <div style="background:#FEF2F2;border:1.5px solid #FECDD3;padding:12px;border-radius:10px;text-align:center;">
-          <div style="font-size:11px;font-weight:800;color:#991B1B;letter-spacing:0.5px;">💰 TOTAL ADVANCES GIVEN</div>
-          <div style="font-size:22px;font-weight:900;color:#DC2626;margin-top:4px;">₹${totalGiven.toLocaleString('en-IN')}</div>
-          <div style="font-size:10.5px;color:#7F1D1D;margin-top:2px;">${advs.length} disbursements</div>
+      <div style="display:grid;grid-template-columns:repeat(3, 1fr);gap:10px;margin-bottom:12px;">
+        <div style="background:#FEF2F2;border:1.5px solid #FECDD3;padding:8px 10px;border-radius:8px;text-align:center;">
+          <div style="font-size:10px;font-weight:800;color:#991B1B;letter-spacing:0.4px;">💰 TOTAL ADVANCES GIVEN</div>
+          <div style="font-size:18px;font-weight:900;color:#DC2626;margin-top:2px;">₹${totalGiven.toLocaleString('en-IN')}</div>
+          <div style="font-size:9.5px;color:#7F1D1D;margin-top:1px;">${advs.length} ${advs.length === 1 ? 'disbursement' : 'disbursements'}</div>
         </div>
-        <div style="background:#F0FDF4;border:1.5px solid #BBF7D0;padding:12px;border-radius:10px;text-align:center;">
-          <div style="font-size:11px;font-weight:800;color:#166534;letter-spacing:0.5px;">✅ TOTAL REPAID / DEDUCTED</div>
-          <div style="font-size:22px;font-weight:900;color:#059669;margin-top:4px;">₹${totalRepaid.toLocaleString('en-IN')}</div>
-          <div style="font-size:10.5px;color:#14532D;margin-top:2px;">Salary recovery / cash return</div>
+        <div style="background:#F0FDF4;border:1.5px solid #BBF7D0;padding:8px 10px;border-radius:8px;text-align:center;">
+          <div style="font-size:10px;font-weight:800;color:#166534;letter-spacing:0.4px;">✅ TOTAL REPAID / DEDUCTED</div>
+          <div style="font-size:18px;font-weight:900;color:#059669;margin-top:2px;">₹${totalRepaid.toLocaleString('en-IN')}</div>
+          <div style="font-size:9.5px;color:#14532D;margin-top:1px;">Salary recovery / cash return</div>
         </div>
-        <div style="background:${totalBal > 0 ? '#FEF2F2' : '#F0FDF4'};border:1.5px solid ${totalBal > 0 ? '#FCA5A5' : '#86EFAC'};padding:12px;border-radius:10px;text-align:center;">
-          <div style="font-size:11px;font-weight:800;color:${totalBal > 0 ? '#991B1B' : '#166534'};letter-spacing:0.5px;">⚖️ OUTSTANDING DUE BALANCE</div>
-          <div style="font-size:22px;font-weight:900;color:${totalBal > 0 ? '#DC2626' : '#059669'};margin-top:4px;">₹${totalBal.toLocaleString('en-IN')}</div>
-          <div style="font-size:10.5px;color:${totalBal > 0 ? '#7F1D1D' : '#14532D'};margin-top:2px;">${totalBal > 0 ? 'To be deducted in upcoming salary' : 'Fully Cleared / Nil Balance'}</div>
+        <div style="background:${totalBal > 0 ? '#FEF2F2' : '#F0FDF4'};border:1.5px solid ${totalBal > 0 ? '#FCA5A5' : '#86EFAC'};padding:8px 10px;border-radius:8px;text-align:center;">
+          <div style="font-size:10px;font-weight:800;color:${totalBal > 0 ? '#991B1B' : '#166534'};letter-spacing:0.4px;">⚖️ OUTSTANDING DUE BALANCE</div>
+          <div style="font-size:18px;font-weight:900;color:${totalBal > 0 ? '#DC2626' : '#059669'};margin-top:2px;">₹${totalBal.toLocaleString('en-IN')}</div>
+          <div style="font-size:9.5px;color:${totalBal > 0 ? '#7F1D1D' : '#14532D'};margin-top:1px;">${totalBal > 0 ? 'To be deducted in upcoming salary' : 'Fully Cleared / Nil Balance'}</div>
         </div>
       </div>
 
       <!-- TABLE -->
-      <div style="margin-bottom:24px;">
-        <table style="width:100%;border-collapse:collapse;font-size:11.5px;background:#fff;border:1px solid #CBD5E1;">
+      <div style="margin-bottom:14px;overflow-x:auto;">
+        <table style="width:100%;border-collapse:collapse;font-size:11px;background:#fff;border:1.5px solid #0F172A;">
           <thead>
             <tr style="background:#0F172A;color:#fff;text-align:left;">
-              <th style="padding:8px 8px;text-align:center;width:30px;">#</th>
-              <th style="padding:8px 8px;">Employee</th>
-              <th style="padding:8px 8px;">Date Given</th>
-              <th style="padding:8px 8px;text-align:right;">Given (₹)</th>
-              <th style="padding:8px 8px;text-align:right;">Repaid (₹)</th>
-              <th style="padding:8px 8px;">Repaid Date</th>
-              <th style="padding:8px 8px;text-align:right;">Balance (₹)</th>
-              <th style="padding:8px 8px;">Account</th>
-              <th style="padding:8px 8px;">Mode</th>
-              <th style="padding:8px 8px;">Reason / Purpose</th>
-              <th style="padding:8px 8px;text-align:center;">Status</th>
+              <th style="padding:6px 5px;text-align:center;width:26px;border:1px solid #334155;font-size:10.5px;">#</th>
+              ${!isSingleEmp ? `<th style="padding:6px 8px;white-space:nowrap;width:110px;border:1px solid #334155;font-size:10.5px;">Employee</th>` : ''}
+              <th style="padding:6px 6px;text-align:center;white-space:nowrap;width:78px;border:1px solid #334155;font-size:10.5px;">Date Given</th>
+              <th style="padding:6px 6px;text-align:right;white-space:nowrap;width:78px;border:1px solid #334155;font-size:10.5px;">Given (₹)</th>
+              <th style="padding:6px 6px;text-align:right;white-space:nowrap;width:78px;border:1px solid #334155;font-size:10.5px;">Repaid (₹)</th>
+              <th style="padding:6px 6px;text-align:center;white-space:nowrap;width:78px;border:1px solid #334155;font-size:10.5px;">Repaid Date</th>
+              <th style="padding:6px 6px;text-align:right;white-space:nowrap;width:82px;border:1px solid #334155;font-size:10.5px;">Balance (₹)</th>
+              <th style="padding:6px 6px;text-align:center;white-space:nowrap;width:72px;border:1px solid #334155;font-size:10.5px;">Account</th>
+              <th style="padding:6px 6px;text-align:center;white-space:nowrap;width:55px;border:1px solid #334155;font-size:10.5px;">Mode</th>
+              <th style="padding:6px 8px;border:1px solid #334155;font-size:10.5px;">Reason / Purpose</th>
+              <th style="padding:6px 5px;text-align:center;white-space:nowrap;width:62px;border:1px solid #334155;font-size:10.5px;">Status</th>
             </tr>
           </thead>
           <tbody>
@@ -2774,41 +2790,41 @@ window.printAdvancesReport = async function(targetEmpId = null) {
           </tbody>
           <tfoot>
             <tr style="background:#F1F5F9;border-top:2px solid #0F172A;font-weight:900;">
-              <td colspan="3" style="padding:10px 8px;text-align:right;font-size:12px;color:#0F172A;">GRAND TOTAL:</td>
-              <td style="padding:10px 8px;text-align:right;color:#DC2626;font-size:13px;">₹${totalGiven.toLocaleString('en-IN')}</td>
-              <td style="padding:10px 8px;text-align:right;color:#059669;font-size:13px;">₹${totalRepaid.toLocaleString('en-IN')}</td>
-              <td></td>
-              <td style="padding:10px 8px;text-align:right;color:${totalBal > 0 ? '#DC2626' : '#059669'};font-size:14px;">₹${totalBal.toLocaleString('en-IN')}</td>
-              <td colspan="4"></td>
+              <td colspan="${isSingleEmp ? 2 : 3}" style="padding:7px 8px;text-align:right;font-size:11px;font-weight:900;color:#0F172A;border:1px solid #CBD5E1;background:#F1F5F9;">GRAND TOTAL:</td>
+              <td style="padding:7px 6px;text-align:right;color:#DC2626;font-size:11.5px;font-weight:900;white-space:nowrap;border:1px solid #CBD5E1;background:#F1F5F9;">₹${totalGiven.toLocaleString('en-IN')}</td>
+              <td style="padding:7px 6px;text-align:right;color:#059669;font-size:11.5px;font-weight:900;white-space:nowrap;border:1px solid #CBD5E1;background:#F1F5F9;">₹${totalRepaid.toLocaleString('en-IN')}</td>
+              <td style="border:1px solid #CBD5E1;background:#F1F5F9;text-align:center;color:#94A3B8;font-size:11px;">—</td>
+              <td style="padding:7px 6px;text-align:right;color:${totalBal > 0 ? '#DC2626' : '#059669'};font-size:12px;font-weight:900;white-space:nowrap;border:1px solid #CBD5E1;background:#F1F5F9;">₹${totalBal.toLocaleString('en-IN')}</td>
+              <td colspan="4" style="border:1px solid #CBD5E1;background:#F1F5F9;"></td>
             </tr>
           </tfoot>
         </table>
       </div>
 
       <!-- SIGN-OFF & ACKNOWLEDGMENT SECTION -->
-      <div style="border:1px solid #CBD5E1;border-radius:10px;padding:16px;background:#FAFAFA;margin-top:20px;page-break-inside:avoid;">
-        <div style="font-size:11px;font-weight:800;color:#475569;text-transform:uppercase;margin-bottom:12px;letter-spacing:0.5px;">Verification &amp; Acknowledgment</div>
-        <div style="display:grid;grid-template-columns:repeat(3, 1fr);gap:20px;margin-top:20px;text-align:center;">
+      <div style="border:1px solid #CBD5E1;border-radius:8px;padding:10px 14px;background:#FAFAFA;margin-top:12px;page-break-inside:avoid;break-inside:avoid;">
+        <div style="font-size:10px;font-weight:800;color:#475569;text-transform:uppercase;margin-bottom:6px;letter-spacing:0.5px;">Verification &amp; Acknowledgment</div>
+        <div style="display:grid;grid-template-columns:repeat(3, 1fr);gap:16px;margin-top:10px;text-align:center;">
           <div>
-            <div style="border-bottom:1px dashed #94A3B8;height:45px;margin-bottom:8px;"></div>
-            <div style="font-weight:700;font-size:12px;color:#0F172A;">Prepared By</div>
-            <div style="font-size:11px;color:#64748B;">HR &amp; Payroll Officer</div>
+            <div style="border-bottom:1px dashed #94A3B8;height:30px;margin-bottom:5px;"></div>
+            <div style="font-weight:700;font-size:11px;color:#0F172A;">Prepared By</div>
+            <div style="font-size:10px;color:#64748B;">HR &amp; Payroll Officer</div>
           </div>
           <div>
-            <div style="border-bottom:1px dashed #94A3B8;height:45px;margin-bottom:8px;"></div>
-            <div style="font-weight:700;font-size:12px;color:#0F172A;">Employee Signature</div>
-            <div style="font-size:10px;color:#64748B;">I accept advance records &amp; balance due</div>
+            <div style="border-bottom:1px dashed #94A3B8;height:30px;margin-bottom:5px;"></div>
+            <div style="font-weight:700;font-size:11px;color:#0F172A;">Employee Signature</div>
+            <div style="font-size:9.5px;color:#64748B;">I accept advance records &amp; balance due</div>
           </div>
           <div>
-            <div style="border-bottom:1px dashed #94A3B8;height:45px;margin-bottom:8px;"></div>
-            <div style="font-weight:700;font-size:12px;color:#0F172A;">Authorized Signatory</div>
-            <div style="font-size:11px;color:#64748B;">Director / Finance TUHH</div>
+            <div style="border-bottom:1px dashed #94A3B8;height:30px;margin-bottom:5px;"></div>
+            <div style="font-weight:700;font-size:11px;color:#0F172A;">Authorized Signatory</div>
+            <div style="font-size:10px;color:#64748B;">Director / Finance TUHH</div>
           </div>
         </div>
       </div>
 
       <!-- FOOTER NOTE -->
-      <div style="margin-top:24px;border-top:1px solid #E2E8F0;padding-top:10px;font-size:10.5px;color:#94A3B8;text-align:center;">
+      <div style="margin-top:12px;border-top:1px solid #E2E8F0;padding-top:6px;font-size:9.5px;color:#94A3B8;text-align:center;">
         THE UNIQUE HAVEN HOMES PRIVATE LIMITED · CIN: U55101UP2024PTC202863 · This is a computer generated payroll advance document · uniquehavenhomesstay.com
       </div>
     </div>

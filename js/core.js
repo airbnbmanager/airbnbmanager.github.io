@@ -4085,7 +4085,7 @@ window.printDocumentHTML = function(htmlContent, title = 'Document') {
             width: 100% !important;
           }
           body {
-            padding: 10mm 14mm !important; /* Safe printable padding inside the page so text never touches edges */
+            padding: 8mm 10mm !important; /* Safe printable padding inside the page so text never touches edges */
           }
           @media print {
             @page {
@@ -4094,7 +4094,7 @@ window.printDocumentHTML = function(htmlContent, title = 'Document') {
             }
             html, body {
               margin: 0 !important;
-              padding: 10mm 14mm !important;
+              padding: 8mm 10mm !important;
             }
             .no-print {
               display: none !important;
