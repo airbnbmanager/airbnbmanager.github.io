@@ -306,8 +306,10 @@
             <strong style="color:${winInfo.isUrgent ? '#DC2626' : '#059669'};">${winInfo.label}</strong>
           </div>
           <div>
-            <span style="color:#64748B;">Airbnb Code:</span><br>
-            <strong>${b.airbnb_confirmation_code || 'Direct Booking'}</strong>
+            <span style="color:#64748B;">Platform Channel:</span><br>
+            <span class="channel-badge ${(window.getBookingSource ? window.getBookingSource(b).badgeClass : 'channel-airbnb')}">
+              ${window.getBookingSource ? window.getBookingSource(b).badge : (b.airbnb_confirmation_code || 'Online OTA')}
+            </span>
           </div>
         </div>
 
@@ -456,7 +458,14 @@
       window.fetchReviewFollowupMap()
     ]);
 
-    const bookings = (bks || []).filter(b => !b.is_cancelled);
+    window._reviewFollowupState = window._reviewFollowupState || { filterTab: 'active', propertyFilter: 'all', channelFilter: 'all_online', searchQuery: '' };
+
+    // Strictly keep records for Online bookings (Airbnb and Booking.com) as requested
+    const bookings = (bks || []).filter(b => {
+      if (b.is_cancelled) return false;
+      const src = window.getBookingSource ? window.getBookingSource(b) : null;
+      return src ? src.isOnline : (b.booking_mode === 'Online-Airbnb' || !!b.airbnb_confirmation_code);
+    });
     const rooms = allRooms || [];
 
     // Calculate metrics
@@ -465,8 +474,14 @@
     let calledPromisedCount = 0;
     let urgentCount = 0;
     let needsCallCount = 0;
+    let airbnbCount = 0;
+    let bookingComCount = 0;
 
     bookings.forEach(b => {
+      const src = window.getBookingSource ? window.getBookingSource(b) : null;
+      if (src && src.type === 'booking_com') bookingComCount++;
+      else airbnbCount++;
+
       const win = getReviewWindowInfo(b.check_out);
       const rec = followupMap[b.booking_id] || {};
       const status = rec.status || (b.client_rating >= 4 ? 'review_received' : 'pending');
@@ -482,13 +497,19 @@
 
     const activeFilterTab = window._reviewFollowupState.filterTab || 'active';
     const activePropFilter = window._reviewFollowupState.propertyFilter || 'all';
+    const activeChannelFilter = window._reviewFollowupState.channelFilter || 'all_online';
     const sq = (window._reviewFollowupState.searchQuery || '').toLowerCase().trim();
 
     // Apply filtering
     let filtered = bookings.filter(b => {
+      const src = window.getBookingSource ? window.getBookingSource(b) : null;
       const win = getReviewWindowInfo(b.check_out);
       const rec = followupMap[b.booking_id] || {};
       const status = rec.status || (b.client_rating >= 4 ? 'review_received' : 'pending');
+
+      // Channel Filter (Airbnb vs Booking.com vs All Online)
+      if (activeChannelFilter === 'airbnb' && src && src.type !== 'airbnb') return false;
+      if (activeChannelFilter === 'booking_com' && src && src.type !== 'booking_com') return false;
 
       // Property filter
       if (activePropFilter !== 'all' && b.room_id !== activePropFilter) return false;
@@ -519,10 +540,10 @@
       <div class="card" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:12px;">
         <div>
           <h1 style="margin:0;font-size:22px;display:flex;align-items:center;gap:8px;">
-            <span>⭐ Airbnb Review &amp; Call Follow-up Radar</span>
+            <span>⭐ Online Reviews &amp; Call Follow-up Radar</span>
           </h1>
           <div class="sub" style="margin:4px 0 0;">
-            Real-time 14-day post-checkout review tracking, guest call logs &amp; 1-click WhatsApp review reminders.
+            Real-time 14-day post-checkout review tracking, guest call logs &amp; 1-click WhatsApp review reminders for Online Guests.
           </div>
         </div>
         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
@@ -531,6 +552,28 @@
           </button>
           <button class="btn-sm" onclick="navigate('bookings')" style="background:#F3F4F6;color:#374151;border:1px solid #D1D5DB;">
             ← Stay &amp; Bookings
+          </button>
+        </div>
+      </div>
+
+      <!-- ONLINE OTA MODE BANNER WITH FILTER PILLS -->
+      <div style="background:#FFF1F2;border:1px solid #FECDD3;border-radius:12px;padding:12px 16px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
+        <div style="font-size:13px;color:#9F1239;font-weight:600;display:flex;align-items:center;gap:8px;">
+          <span style="font-size:16px;">🌐</span>
+          <span><strong>Online OTA Review Mode</strong>: Keeping records exclusively for online guest reviews (Airbnb &amp; Booking.com). Offline/direct stays are excluded.</span>
+        </div>
+        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+          <button type="button" class="btn-sm" onclick="window._reviewFollowupState.channelFilter='all_online';renderReviewFollowupHub();"
+            style="${activeChannelFilter === 'all_online' ? 'background:#0F172A;color:#fff;' : 'background:#fff;color:#0F172A;border:1px solid #CBD5E1;'}font-weight:700;padding:6px 12px;border-radius:8px;">
+            All Online (${bookings.length})
+          </button>
+          <button type="button" class="btn-sm" onclick="window._reviewFollowupState.channelFilter='airbnb';renderReviewFollowupHub();"
+            style="${activeChannelFilter === 'airbnb' ? 'background:#FF385C;color:#fff;' : 'background:#fff;color:#E11D48;border:1px solid #FECDD3;'}font-weight:700;padding:6px 12px;border-radius:8px;">
+            🌐 Airbnb (${airbnbCount})
+          </button>
+          <button type="button" class="btn-sm" onclick="window._reviewFollowupState.channelFilter='booking_com';renderReviewFollowupHub();"
+            style="${activeChannelFilter === 'booking_com' ? 'background:#003580;color:#fff;' : 'background:#fff;color:#003580;border:1px solid #BFDBFE;'}font-weight:700;padding:6px 12px;border-radius:8px;">
+            🏨 Booking.com (${bookingComCount})
           </button>
         </div>
       </div>
@@ -597,8 +640,8 @@
       ${filtered.length === 0 ? `
         <div class="card" style="text-align:center;padding:48px 20px;color:var(--muted);">
           <div style="font-size:42px;margin-bottom:8px;">⭐</div>
-          <div style="font-size:16px;font-weight:700;color:#374151;">No guest follow-ups found in this view</div>
-          <div style="font-size:13px;margin-top:4px;">Try switching filter tabs or selecting All Properties.</div>
+          <div style="font-size:16px;font-weight:700;color:#374151;">No online guest follow-ups found in this view</div>
+          <div style="font-size:13px;margin-top:4px;">Try switching channel filters (Airbnb/Booking.com) or selecting All Properties.</div>
         </div>
       ` : `
         <div class="card" style="padding:0;overflow:hidden;">
@@ -606,9 +649,9 @@
             <table>
               <thead>
                 <tr>
-                  <th>Guest / Property</th>
+                  <th>Online Guest / Channel</th>
                   <th>Checkout Date</th>
-                  <th>14-Day Airbnb Window</th>
+                  <th>14-Day Review Window</th>
                   <th>Follow-up Status</th>
                   <th>Last Call Log</th>
                   <th style="text-align:right;">Quick Actions</th>
@@ -620,19 +663,21 @@
                   const rec = followupMap[b.booking_id] || {};
                   const status = rec.status || (b.client_rating >= 4 ? 'review_received' : 'pending');
                   const pLabel = (typeof propLabel === 'function') ? propLabel(b.rooms) : (b.room_id || '');
-                  const isAirbnb = b.booking_mode === 'Online-Airbnb' || !!b.airbnb_confirmation_code;
+                  const src = window.getBookingSource ? window.getBookingSource(b) : { badge: 'Online', badgeClass: 'channel-airbnb', bgColor: '#FFF1F2', color: '#FF385C', borderColor: '#FECDD3' };
 
                   return `
                     <tr style="${win.isUrgent && status !== 'review_received' ? 'background:#FEF2F2;' : ''}">
                       <td>
                         <div style="display:flex;align-items:center;gap:10px;">
-                          <div style="width:34px;height:34px;border-radius:50%;background:#EDE9FE;color:#6D28D9;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;">
+                          <div style="width:34px;height:34px;border-radius:50%;background:${src.bgColor};color:${src.color};display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;border:1px solid ${src.borderColor};flex-shrink:0;">
                             ${(b.guest_name || 'G').charAt(0).toUpperCase()}
                           </div>
                           <div>
-                            <div style="font-weight:700;font-size:14px;color:#111827;display:flex;align-items:center;gap:6px;">
+                            <div style="font-weight:700;font-size:14px;color:#111827;display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
                               <span>${escapeHtml(b.guest_name || 'Guest')}</span>
-                              ${isAirbnb ? `<span style="background:#FFE4E6;color:#E11D48;font-size:10px;padding:1px 5px;border-radius:4px;font-weight:700;">Airbnb</span>` : ''}
+                              <span class="channel-badge ${src.badgeClass}" style="font-size:10.5px;padding:2px 8px;">
+                                ${src.badge}
+                              </span>
                             </div>
                             <div style="font-size:12px;color:#6B7280;margin-top:2px;">
                               🏠 ${escapeHtml(pLabel)} &bull; 📞 ${escapeHtml(b.phone || 'No phone')}

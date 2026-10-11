@@ -1799,6 +1799,111 @@ window.manualRefreshCurrentPage = function() {
   }, 450);
 };
 
+// ============ BOOKING CHANNELS & COLOR CODING ============
+window.getBookingSource = function(b) {
+  if (!b) return {
+    type: 'unknown',
+    key: 'direct',
+    label: 'Direct Booking',
+    badge: '🏠 Direct',
+    badgeClass: 'channel-direct',
+    chipClass: 'direct',
+    color: '#059669',
+    bgColor: '#ECFDF5',
+    borderColor: '#A7F3D0',
+    pillGradient: 'linear-gradient(135deg, #059669 0%, #047857 100%)',
+    isOnline: false
+  };
+
+  const mode = String(b.booking_mode || '').trim().toLowerCase();
+  const code = String(b.airbnb_confirmation_code || '').trim();
+  const name = String(b.guest_name || '').toLowerCase();
+  const idStr = String(b.booking_id || '');
+
+  // 1. Blocked Slot
+  if (idStr.startsWith('BLK_') || name.includes('blocked') || mode === 'offline-blocked') {
+    return {
+      type: 'blocked',
+      key: 'blocked',
+      label: 'Blocked Slot',
+      badge: '🔒 Blocked',
+      badgeClass: 'channel-blocked',
+      chipClass: 'blocked',
+      color: '#475569',
+      bgColor: '#F1F5F9',
+      borderColor: '#CBD5E1',
+      pillGradient: 'linear-gradient(135deg, #475569 0%, #334155 100%)',
+      isOnline: false
+    };
+  }
+
+  // 2. Booking.com
+  if (mode.includes('booking.com') || mode === 'online-booking.com' || (b.notes && String(b.notes).toLowerCase().includes('booking.com'))) {
+    return {
+      type: 'booking_com',
+      key: 'booking_com',
+      label: 'Booking.com',
+      badge: '🏨 Booking.com',
+      badgeClass: 'channel-bookingcom',
+      chipClass: 'bookingcom',
+      color: '#003580',
+      bgColor: '#EFF6FF',
+      borderColor: '#BFDBFE',
+      pillGradient: 'linear-gradient(135deg, #003580 0%, #002244 100%)',
+      isOnline: true
+    };
+  }
+
+  // 3. Airbnb (Online-Airbnb or has Airbnb confirmation code or mentions airbnb)
+  if (mode.includes('airbnb') || mode === 'online-airbnb' || code.length > 0) {
+    return {
+      type: 'airbnb',
+      key: 'airbnb',
+      label: 'Airbnb',
+      badge: code ? `🌐 Airbnb · ${code}` : '🌐 Airbnb',
+      badgeClass: 'channel-airbnb',
+      chipClass: 'airbnb',
+      color: '#FF385C',
+      bgColor: '#FFF1F2',
+      borderColor: '#FECDD3',
+      pillGradient: 'linear-gradient(135deg, #FF385C 0%, #E00B41 100%)',
+      isOnline: true
+    };
+  }
+
+  // 4. Other Online OTA
+  if (mode.startsWith('online')) {
+    return {
+      type: 'online_other',
+      key: 'online_other',
+      label: 'Online OTA',
+      badge: '🌐 Online',
+      badgeClass: 'channel-airbnb',
+      chipClass: 'airbnb',
+      color: '#2563EB',
+      bgColor: '#EFF6FF',
+      borderColor: '#BFDBFE',
+      pillGradient: 'linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%)',
+      isOnline: true
+    };
+  }
+
+  // 5. Direct / Offline
+  return {
+    type: 'direct',
+    key: 'direct',
+    label: 'Direct Booking',
+    badge: '🏠 Direct',
+    badgeClass: 'channel-direct',
+    chipClass: 'direct',
+    color: '#059669',
+    bgColor: '#ECFDF5',
+    borderColor: '#A7F3D0',
+    pillGradient: 'linear-gradient(135deg, #059669 0%, #047857 100%)',
+    isOnline: false
+  };
+};
+
 // ============ HELPERS ============
 async function getPaidMap(ids) {
   if (!ids.length) return {};

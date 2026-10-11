@@ -259,9 +259,20 @@ async function renderSmartManageBookings() {
 
     // Secondary filters (from filter tray)
     if (window._sbkState.channelFilter === 'airbnb') {
-      filtered = filtered.filter(b => b.booking_mode === 'Online-Airbnb' || !!b.airbnb_confirmation_code);
+      filtered = filtered.filter(b => {
+        const s = window.getBookingSource ? window.getBookingSource(b) : null;
+        return s ? s.type === 'airbnb' : (b.booking_mode === 'Online-Airbnb' || !!b.airbnb_confirmation_code);
+      });
+    } else if (window._sbkState.channelFilter === 'bookingcom') {
+      filtered = filtered.filter(b => {
+        const s = window.getBookingSource ? window.getBookingSource(b) : null;
+        return s ? s.type === 'booking_com' : (b.booking_mode || '').toLowerCase().includes('booking.com');
+      });
     } else if (window._sbkState.channelFilter === 'direct') {
-      filtered = filtered.filter(b => b.booking_mode !== 'Online-Airbnb' && !b.airbnb_confirmation_code);
+      filtered = filtered.filter(b => {
+        const s = window.getBookingSource ? window.getBookingSource(b) : null;
+        return s ? s.type === 'direct' : (b.booking_mode !== 'Online-Airbnb' && !b.airbnb_confirmation_code);
+      });
     }
 
     if (window._sbkState.paymentFilter === 'due') {
@@ -406,6 +417,7 @@ async function renderSmartManageBookings() {
             <select onchange="window.handleChannelFilter(this.value)">
               <option value="">All Channels</option>
               <option value="airbnb" ${window._sbkState.channelFilter === 'airbnb' ? 'selected' : ''}>🌐 Airbnb Only</option>
+              <option value="bookingcom" ${window._sbkState.channelFilter === 'bookingcom' ? 'selected' : ''}>🏨 Booking.com Only</option>
               <option value="direct" ${window._sbkState.channelFilter === 'direct' ? 'selected' : ''}>🏠 Direct Booking Only</option>
             </select>
           </div>
@@ -668,8 +680,8 @@ function renderAirbnbReservationsHtml(bookings, paidMap, canM, today) {
         const isCheckoutToday = b.check_out === today;
         const isArrivalToday = b.check_in === today;
         const isStayingAllDay = b.check_in < today && (b.check_out > today || isOpenEnded);
-        const isUpcoming = b.check_in > today;
         const isOnline = b.booking_mode === 'Online-Airbnb' || !!b.airbnb_confirmation_code;
+        const bSrc = (typeof window.getBookingSource === 'function') ? window.getBookingSource(b) : null;
         const nights = (b.check_in && b.check_out) ? Math.max(calcNights(b.check_in, b.check_out), 1) : 1;
 
         // Left Time Column Content
@@ -742,13 +754,9 @@ function renderAirbnbReservationsHtml(bookings, paidMap, canM, today) {
             <!-- Card Bottom: Status Chips & Quick Actions -->
             <div class="airbnb-card-footer-row">
               <div class="airbnb-chips-row">
-                ${isOnline ? `
-                  <span class="airbnb-chip airbnb">
-                    🌐 Airbnb ${b.airbnb_confirmation_code ? `· ${escapeHtml(b.airbnb_confirmation_code)}` : ''}
-                  </span>
-                ` : `
-                  <span class="airbnb-chip direct">🏠 Direct</span>
-                `}
+                <span class="airbnb-chip ${bSrc ? bSrc.chipClass : (isOnline ? 'airbnb' : 'direct')}">
+                  ${bSrc ? bSrc.badge : (isOnline ? '🌐 Airbnb' : '🏠 Direct')}
+                </span>
                 
                 ${bal > 0.99 ? `
                   <span class="airbnb-chip due">⚠️ ₹${Math.round(bal).toLocaleString('en-IN')} Due</span>
@@ -907,8 +915,8 @@ function renderBookingCardsHtml(bookings, paidMap, canM, today) {
         const isActive = b.check_in <= today && (isOpenEnded || b.check_out > today);
         const isCheckoutToday = !isOpenEnded && b.check_out === today;
         const isArrivalToday = b.check_in === today;
-        const isPast = !isOpenEnded && b.check_out < today;
         const isOnline = b.booking_mode === 'Online-Airbnb' || !!b.airbnb_confirmation_code;
+        const bSrc = (typeof window.getBookingSource === 'function') ? window.getBookingSource(b) : null;
 
         let statusClass = 'upcoming-border';
         let statusBadge = '<span class="sbk-status-badge upcoming">⏳ Upcoming</span>';
@@ -971,9 +979,11 @@ function renderBookingCardsHtml(bookings, paidMap, canM, today) {
                   <span>🏠</span>
                   <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(propLabel(b.rooms) || b.room_id)}</span>
                 </div>
-                <div style="font-size:11px;color:var(--muted);margin-top:2px;">
-                  ${isOnline ? `<span style="color:#FF385C;font-weight:700;">Airbnb (${b.airbnb_confirmation_code || 'Online'})</span>` : 'Direct Booking'}
-                  ${b.verification_status === 'pending' ? ' · <span style="color:#D97706;font-weight:700;">🟡 Pending Approval</span>' : ''}
+                <div style="font-size:11px;margin-top:2px;display:flex;align-items:center;gap:6px;">
+                  <span class="channel-badge ${bSrc ? bSrc.badgeClass : (isOnline ? 'channel-airbnb' : 'channel-direct')}" style="font-size:11px;padding:2px 8px;">
+                    ${bSrc ? bSrc.badge : (isOnline ? '🌐 Airbnb' : '🏠 Direct')}
+                  </span>
+                  ${b.verification_status === 'pending' ? '<span style="color:#D97706;font-weight:700;">🟡 Pending Approval</span>' : ''}
                 </div>
               </div>
               <div class="sbk-dates-tag" style="flex-shrink:0;text-align:right;">
@@ -1079,6 +1089,7 @@ function renderBookingTableHtml(bookings, paidMap, canM, today) {
               const isArrivalToday = b.check_in === today;
               const isPast = !isOpenEnded && b.check_out < today;
               const isOnline = b.booking_mode === 'Online-Airbnb' || !!b.airbnb_confirmation_code;
+              const bSrc = (typeof window.getBookingSource === 'function') ? window.getBookingSource(b) : null;
               const hasId = !!(b.id_proof_photo_paths || b.id_proof_photo_path);
 
               let statusBadge = '<span class="sbk-status-badge upcoming" style="white-space:nowrap;">Upcoming</span>';
@@ -1109,8 +1120,8 @@ function renderBookingTableHtml(bookings, paidMap, canM, today) {
                     <div style="font-size:11px;color:var(--muted);">${escapeHtml(b.rooms?.property_name || b.room_id)}</div>
                   </td>
                   <td style="padding:12px 16px;white-space:nowrap;vertical-align:middle;">
-                    <span class="channel-badge ${isOnline ? 'channel-airbnb' : 'channel-direct'}" style="white-space:nowrap;display:inline-flex;">
-                      ${isOnline ? 'Airbnb' : 'Direct'}
+                    <span class="channel-badge ${bSrc ? bSrc.badgeClass : (isOnline ? 'channel-airbnb' : 'channel-direct')}" style="white-space:nowrap;display:inline-flex;">
+                      ${bSrc ? bSrc.badge : (isOnline ? 'Airbnb' : 'Direct')}
                     </span>
                     ${b.airbnb_confirmation_code ? `<div style="color:#FF385C;font-family:monospace;font-size:11px;font-weight:700;margin-top:3px;white-space:nowrap;">${escapeHtml(b.airbnb_confirmation_code)}</div>` : ''}
                   </td>
@@ -1203,6 +1214,7 @@ window.openBookingDrawer = async function(bookingId) {
   const tot = b.total_amount || 0;
   const bal = tot - pd;
   const isOnline = b.booking_mode === 'Online-Airbnb' || !!b.airbnb_confirmation_code;
+  const bSrc = (typeof window.getBookingSource === 'function') ? window.getBookingSource(b) : null;
   const canM = ['owner','admin','manager','moderator','developer'].includes(SESSION.role);
   const canD = ['developer','owner','admin'].includes(SESSION.role);
 
@@ -1265,7 +1277,9 @@ window.openBookingDrawer = async function(bookingId) {
               </div>
               <div>
                 <span style="color:var(--muted);font-size:11px;">Channel:</span><br>
-                <strong>${isOnline ? `Airbnb (${b.airbnb_confirmation_code || 'Online'})` : 'Direct Booking'}</strong>
+                <span class="channel-badge ${bSrc ? bSrc.badgeClass : (isOnline ? 'channel-airbnb' : 'channel-direct')}" style="margin-top:2px;">
+                  ${bSrc ? bSrc.badge : (isOnline ? 'Airbnb' : 'Direct Booking')}
+                </span>
               </div>
               <div>
                 <span style="color:var(--muted);font-size:11px;">Check-In:</span><br>

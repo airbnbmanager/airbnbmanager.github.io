@@ -68,8 +68,8 @@ async function renderReports() {
   const rev = mb.reduce((s, b) => s + (pm[b.booking_id] || 0), 0);
   const realMb = mb.filter(b => !isBkBlocked(b));
   const blockedMbCount = mb.length - realMb.length;
-  const onCount = realMb.filter(b => b.booking_mode === 'Online-Airbnb').length;
-  const bcomCount = realMb.filter(b => b.booking_mode === 'Online-Booking.com' || (b.booking_mode || '').toLowerCase().includes('booking.com')).length;
+  const onCount = realMb.filter(b => (window.getBookingSource ? window.getBookingSource(b).type === 'airbnb' : b.booking_mode === 'Online-Airbnb')).length;
+  const bcomCount = realMb.filter(b => (window.getBookingSource ? window.getBookingSource(b).type === 'booking_com' : (b.booking_mode || '').toLowerCase().includes('booking.com'))).length;
   const offCount = Math.max(0, realMb.length - onCount - bcomCount);
 
   // Occupancy for filtered rooms
@@ -210,15 +210,11 @@ async function renderReports() {
       if (bk) {
         const isCheckIn = bk.check_in === ds;
         const isCheckOut = dateAdd(ds, 1) === bk.check_out;
-        const isAirbnb = bk.booking_mode === 'Online-Airbnb';
-        const isBookingCom = bk.booking_mode === 'Online-Booking.com' || (bk.booking_mode || '').toLowerCase().includes('booking.com');
-        const isBlocked = isBkBlocked(bk);
+        const bSrc = (typeof window.getBookingSource === 'function') ? window.getBookingSource(bk) : null;
+        const isBlocked = bSrc ? (bSrc.type === 'blocked') : isBkBlocked(bk);
 
         // Airbnb = Red (#FF385C), Booking.com = Navy Blue (#003580), Direct = Green (#059669), Blocked = Slate (#475569)
-        let bg = isBlocked ? 'linear-gradient(135deg, #475569 0%, #334155 100%)' 
-               : (isAirbnb ? '#FF385C' 
-               : (isBookingCom ? '#003580' 
-               : 'linear-gradient(135deg, #059669 0%, #047857 100%)'));
+        const bg = bSrc ? bSrc.pillGradient : (isBlocked ? 'linear-gradient(135deg, #475569 0%, #334155 100%)' : '#FF385C');
 
         const cleanGuestName = (bk.guest_name || (isBlocked ? 'Blocked' : 'Guest'))
           .replace(/^🚫\s*/, '')
@@ -303,8 +299,9 @@ async function renderReports() {
     <div class="card" style="padding:12px;text-align:center;border-radius:12px;margin-bottom:14px;">
       <div style="display:inline-flex;gap:14px;flex-wrap:wrap;justify-content:center;font-size:12px;font-weight:600;">
         <span><span style="display:inline-block;width:14px;height:14px;background:#FF385C;border-radius:4px;vertical-align:middle;margin-right:4px;"></span> 🌐 Airbnb</span>
-        <span><span style="display:inline-block;width:14px;height:14px;background:#475569;border-radius:4px;vertical-align:middle;margin-right:4px;"></span> 💵 Direct (Offline)</span>
-        <span><span style="display:inline-block;width:14px;height:14px;background:#334155;border:1px dashed #94A3B8;border-radius:4px;vertical-align:middle;margin-right:4px;"></span> 🔒 Blocked</span>
+        <span><span style="display:inline-block;width:14px;height:14px;background:#003580;border-radius:4px;vertical-align:middle;margin-right:4px;"></span> 🏨 Booking.com</span>
+        <span><span style="display:inline-block;width:14px;height:14px;background:#059669;border-radius:4px;vertical-align:middle;margin-right:4px;"></span> 🏠 Direct (Offline)</span>
+        <span><span style="display:inline-block;width:14px;height:14px;background:#475569;border-radius:4px;vertical-align:middle;margin-right:4px;"></span> 🔒 Blocked</span>
         <span><span style="display:inline-block;width:14px;height:14px;background:#fff;border:1px solid #ccc;border-radius:4px;vertical-align:middle;margin-right:4px;"></span> ⚪ Free</span>
         <span><span style="display:inline-block;width:14px;height:14px;background:#FEE2E2;border:1px solid #FF385C;border-radius:4px;vertical-align:middle;margin-right:4px;"></span> 📍 Today</span>
       </div>
