@@ -278,6 +278,205 @@ async function manualSync() {
   } catch (e) { fsn.error('Error', '❌ Failed: ' + e.message); }
 }
 
+// ═══════════════════════════════════════════════════════════
+// ⏱️ USER ACTIVITY & SCREEN TIME TRACKER
+// ═══════════════════════════════════════════════════════════
+window.UserActivityTracker = {
+  _currentDateStr() {
+    const d = new Date();
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  },
+
+  _formatDuration(sec) {
+    sec = Math.max(0, Math.floor(sec || 0));
+    const hrs = Math.floor(sec / 3600);
+    const mins = Math.floor((sec % 3600) / 60);
+    const secs = sec % 60;
+    if (hrs > 0) return `${hrs}h ${mins}m ${secs}s`;
+    if (mins > 0) return `${mins}m ${secs}s`;
+    return `${secs}s`;
+  },
+
+  _formatTime(isoStr) {
+    if (!isoStr) return '-';
+    try {
+      const d = new Date(isoStr);
+      return d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
+    } catch(e) { return '-'; }
+  },
+
+  _getLocalLogs() {
+    try {
+      return JSON.parse(localStorage.getItem('uh_user_activity_logs') || '{}');
+    } catch(e) { return {}; }
+  },
+
+  _saveLocalLogs(logs) {
+    try {
+      localStorage.setItem('uh_user_activity_logs', JSON.stringify(logs));
+    } catch(e) {}
+  },
+
+  async recordLogin(userId, displayName, role) {
+    if (!userId) return;
+    const today = this._currentDateStr();
+    const sessKey = `uh_sess_logged_${today}_${userId}`;
+    const isNewBrowserSession = !sessionStorage.getItem(sessKey);
+
+    const allLogs = this._getLocalLogs();
+    if (!allLogs[today]) allLogs[today] = {};
+    if (!allLogs[today][userId]) {
+      allLogs[today][userId] = {
+        userId,
+        displayName: displayName || 'User',
+        role: role || 'staff',
+        logDate: today,
+        loginCount: 1,
+        activeSeconds: 30,
+        firstLoginAt: new Date().toISOString(),
+        lastActiveAt: new Date().toISOString()
+      };
+      sessionStorage.setItem(sessKey, '1');
+    } else {
+      allLogs[today][userId].lastActiveAt = new Date().toISOString();
+      if (displayName) allLogs[today][userId].displayName = displayName;
+      if (role) allLogs[today][userId].role = role;
+      if (isNewBrowserSession) {
+        allLogs[today][userId].loginCount = (allLogs[today][userId].loginCount || 1) + 1;
+        sessionStorage.setItem(sessKey, '1');
+      }
+    }
+    this._saveLocalLogs(allLogs);
+    this._syncRecord(allLogs[today][userId]);
+  },
+
+  async pulseActivity(userId, displayName, role) {
+    if (!userId) return;
+    if (document.visibilityState !== 'visible') return;
+
+    const today = this._currentDateStr();
+    const allLogs = this._getLocalLogs();
+    if (!allLogs[today]) allLogs[today] = {};
+    if (!allLogs[today][userId]) {
+      allLogs[today][userId] = {
+        userId,
+        displayName: displayName || 'User',
+        role: role || 'staff',
+        logDate: today,
+        loginCount: 1,
+        activeSeconds: 30,
+        firstLoginAt: new Date().toISOString(),
+        lastActiveAt: new Date().toISOString()
+      };
+    } else {
+      allLogs[today][userId].activeSeconds = (allLogs[today][userId].activeSeconds || 0) + 30;
+      allLogs[today][userId].lastActiveAt = new Date().toISOString();
+      if (displayName) allLogs[today][userId].displayName = displayName;
+      if (role) allLogs[today][userId].role = role;
+    }
+    this._saveLocalLogs(allLogs);
+    this._syncRecord(allLogs[today][userId]);
+  },
+
+  async _syncRecord(rec) {
+    if (!rec || !rec.userId) return;
+    try {
+      if (window.sb) {
+        const { error } = await sb.from('user_activity_logs').upsert({
+          user_id: rec.userId,
+          display_name: rec.displayName,
+          role: rec.role,
+          log_date: rec.logDate,
+          login_count: rec.loginCount,
+          active_seconds: rec.activeSeconds,
+          first_login_at: rec.firstLoginAt,
+          last_active_at: rec.lastActiveAt,
+          updated_at: new Date().toISOString()
+        }, { onConflict: 'user_id,log_date' });
+
+        if (error) {
+          this._syncToAppSettings(rec);
+        }
+      }
+    } catch(e) {
+      this._syncToAppSettings(rec);
+    }
+  },
+
+  async _syncToAppSettings(rec) {
+    try {
+      if (!window.sb) return;
+      const { data: setRow } = await sb.from('app_settings').select('value').eq('key', 'user_daily_activity_logs').single();
+      let remoteMap = {};
+      try { remoteMap = JSON.parse(setRow?.value || '{}'); } catch(e) {}
+      if (!remoteMap[rec.logDate]) remoteMap[rec.logDate] = {};
+      remoteMap[rec.logDate][rec.userId] = rec;
+
+      const dates = Object.keys(remoteMap).sort().reverse();
+      if (dates.length > 30) {
+        dates.slice(30).forEach(d => delete remoteMap[d]);
+      }
+
+      await sb.from('app_settings').upsert({
+        key: 'user_daily_activity_logs',
+        value: JSON.stringify(remoteMap),
+        updated_at: new Date().toISOString()
+      }, { onConflict: 'key' });
+    } catch(e) {}
+  },
+
+  async fetchLogsForDate(dateStr) {
+    dateStr = dateStr || this._currentDateStr();
+    let records = [];
+
+    // 1. Try dedicated table user_activity_logs
+    try {
+      if (window.sb) {
+        const { data, error } = await sb.from('user_activity_logs')
+          .select('*')
+          .eq('log_date', dateStr)
+          .order('last_active_at', { ascending: false });
+        if (!error && data && data.length > 0) {
+          return data.map(d => ({
+            userId: d.user_id,
+            displayName: d.display_name,
+            role: d.role,
+            logDate: d.log_date,
+            loginCount: d.login_count || 1,
+            activeSeconds: d.active_seconds || 0,
+            firstLoginAt: d.first_login_at,
+            lastActiveAt: d.last_active_at
+          }));
+        }
+      }
+    } catch(e) {}
+
+    // 2. Try app_settings fallback
+    try {
+      if (window.sb) {
+        const { data: setRow } = await sb.from('app_settings').select('value').eq('key', 'user_daily_activity_logs').single();
+        if (setRow && setRow.value) {
+          const map = JSON.parse(setRow.value);
+          if (map[dateStr]) {
+            records = Object.values(map[dateStr]);
+            return records.sort((a, b) => new Date(b.lastActiveAt || 0) - new Date(a.lastActiveAt || 0));
+          }
+        }
+      }
+    } catch(e) {}
+
+    // 3. Fallback to localStorage
+    const local = this._getLocalLogs();
+    if (local[dateStr]) {
+      records = Object.values(local[dateStr]);
+    }
+    return records.sort((a, b) => new Date(b.lastActiveAt || 0) - new Date(a.lastActiveAt || 0));
+  }
+};
+
 // ============ AUTH ============
 async function loadProfile(userId) {
   const { data: p, error } = await sb.from("profiles")
@@ -298,16 +497,18 @@ async function loadProfile(userId) {
   if (p.is_approved === false) {
     appEl.innerHTML = `
       <div class="wrap">
-        <div class="card" style="text-align:center;">
-          <img src="assets/logo.png" alt="" style="width:64px;height:64px;border-radius:14px;margin-bottom:8px;" />
-          <h1>${BRAND}</h1>
-          <div style="margin:16px 0;padding:16px;background:#FDF6B2;border-radius:10px;">
-            <div style="font-size:18px;margin-bottom:6px;">⏳</div>
-            <strong>Account Pending Approval</strong><br>
-            <small style="color:var(--muted);">Admin aapka account approve karega. Thodi der me try karo.</small>
+        <div class="card" style="text-align:center;max-width:440px;margin:40px auto;padding:32px 24px;">
+          <img src="assets/logo.png" alt="" style="width:68px;height:68px;border-radius:16px;margin-bottom:12px;box-shadow:0 4px 12px rgba(0,0,0,0.08);" />
+          <h2 style="margin:0 0 8px;font-size:20px;color:var(--dark);">${BRAND}</h2>
+          <div style="margin:16px 0;padding:16px;background:#FEF2F2;border:1px solid #FCA5A5;border-radius:12px;">
+            <div style="font-size:28px;margin-bottom:6px;">🚫</div>
+            <strong style="color:#991B1B;font-size:16px;">Access Suspended / Terminated</strong><br>
+            <small style="color:#7F1D1D;display:block;margin-top:6px;line-height:1.4;">
+              Aapka CRM login access band kar diya gaya hai. Kripya Company Management se sampark karein.
+            </small>
           </div>
-          <div class="sub">Logged in as: ${p.display_name || 'User'}</div>
-          <button onclick="logout()">🚪 Logout</button>
+          <div class="sub" style="font-size:13px;color:var(--muted);margin-bottom:16px;">Account: <strong>${p.display_name || 'User'}</strong></div>
+          <button onclick="logout()" style="width:100%;background:#DC2626;color:#fff;border:none;padding:11px;border-radius:8px;font-weight:700;font-size:14px;cursor:pointer;">🚪 Logout</button>
         </div>
       </div>`;
     return;
@@ -319,6 +520,10 @@ async function loadProfile(userId) {
   SESSION.investorId = p.investor_id;
   SESSION.displayName = p.display_name || p.role;
   startHeartbeat();
+
+  if (window.UserActivityTracker) {
+    window.UserActivityTracker.recordLogin(userId, p.display_name || p.role, p.role);
+  }
 
   if (p.role === 'employee') renderEmployeeView();
   else if (p.role === 'investor' || (p.role === 'viewer' && p.investor_id)) renderInvestorView();
@@ -1804,22 +2009,72 @@ window.setUserFilter = function(filter) {
   renderUserManagement();
 };
 
-async function renderUserManagement() {
-  renderShell(`<div class="loading">Loading users & permissions...</div>`, 'user-mgmt');
+window.setUserMgmtTab = function(tab) {
+  window._userMgmtTab = tab;
+  renderUserManagement();
+};
 
-  const [{ data: profiles }, { data: allPending }] = await Promise.all([
+window.setActivityLogDate = function(dateStr) {
+  window._activityLogDate = dateStr;
+  renderUserManagement();
+};
+
+// ============ USER MANAGEMENT & ACTIVITY LOGS ============
+async function renderUserManagement() {
+  renderShell(`<div class="loading">Loading users & staff activity...</div>`, 'user-mgmt');
+
+  const currentTab = window._userMgmtTab || 'users';
+
+  const [{ data: profiles }, { data: allPending }, { data: allEmployees }] = await Promise.all([
     sb.from('profiles').select('*').order('display_name'),
-    sb.from('pending_users').select('*').order('requested_at', { ascending: false })
+    sb.from('pending_users').select('*').order('requested_at', { ascending: false }),
+    sb.from('employees').select('emp_id, name, phone, role, is_active')
   ]);
 
   const userList = profiles || [];
   const pendingRequests = (allPending || []).filter(p => p.status === 'Pending');
+  const employees = allEmployees || [];
 
   // Build user email map from pending_users and auth metadata
   const emailMap = {};
   (allPending || []).forEach(p => {
     if (p.user_id && p.email) emailMap[p.user_id] = p.email;
   });
+
+  // Cross-reference with HRMS Employees to identify former/fired staff
+  const inactiveEmployees = employees.filter(e => e.is_active === false);
+  const inactiveNameSet = new Set(inactiveEmployees.map(e => (e.name || '').trim().toLowerCase()));
+  const inactiveEmpIdSet = new Set(inactiveEmployees.map(e => e.emp_id).filter(Boolean));
+
+  // Explicit known fired former employees
+  const knownFiredUids = new Set([
+    '75c2d099-adcd-4441-b66b-7604540d949a', // Amit Kumar
+    '9fb4e445-6651-45d0-bc70-34e59f258a1f'  // Mohammad Iesa
+  ]);
+
+  userList.forEach(u => {
+    const uName = (u.display_name || '').toLowerCase();
+    const isMatchName = inactiveEmployees.some(e => {
+      const eName = (e.name || '').trim().toLowerCase();
+      if (!eName) return false;
+      return uName.includes(eName) || 
+        (eName.includes('iesa') && uName.includes('iesa')) || 
+        (eName.includes('esha') && (uName.includes('iesa') || uName.includes('esha'))) ||
+        (eName.includes('amit') && uName.includes('amit'));
+    });
+    const isMatchEmpId = u.emp_id && inactiveEmpIdSet.has(u.emp_id);
+    const isKnown = knownFiredUids.has(u.user_id);
+
+    if (isMatchName || isMatchEmpId || isKnown) {
+      u.isFiredStaff = true;
+      if (u.is_approved) {
+        u.needsRevocation = true;
+      }
+    }
+  });
+
+  const firedStaffNeedingRevocation = userList.filter(u => u.needsRevocation);
+  window._firedStaffNeedsRevocationIds = firedStaffNeedingRevocation.map(u => u.user_id);
 
   // Calculate metrics
   const totalUsers = userList.length;
@@ -1828,53 +2083,50 @@ async function renderUserManagement() {
   const pendingCount = pendingRequests.length;
   const adminCount = userList.filter(u => ['developer', 'admin'].includes(u.role)).length;
   const managerCount = userList.filter(u => ['manager', 'owner'].includes(u.role)).length;
+  const firedCount = userList.filter(u => u.isFiredStaff).length;
 
   const viewMode = window._userViewMode || localStorage.getItem('user_mgmt_view_mode') || (window.innerWidth <= 768 ? 'cards' : 'table');
   const activeFilter = window._userFilter || 'all';
   const sq = (window._userSearchQuery || '').toLowerCase().trim();
 
-  // Apply filters
-  let filtered = userList.filter(u => {
-    if (activeFilter === 'active') return u.is_approved;
-    if (activeFilter === 'suspended') return !u.is_approved;
-    if (activeFilter === 'admin') return ['developer', 'admin'].includes(u.role);
-    if (activeFilter === 'manager') return ['manager', 'owner'].includes(u.role);
-    if (activeFilter === 'staff') return ['booking_staff', 'caretaker', 'checkin_manager', 'moderator'].includes(u.role);
-    if (activeFilter === 'viewer') return u.role === 'viewer';
-    return true;
-  });
-
-  if (sq) {
-    filtered = filtered.filter(u => {
-      const name = (u.display_name || '').toLowerCase();
-      const email = (emailMap[u.user_id] || '').toLowerCase();
-      const role = (u.role || '').toLowerCase();
-      return name.includes(sq) || email.includes(sq) || role.includes(sq);
-    });
+  // If in Activity tab, prepare activity records
+  const selectedDate = window._activityLogDate || (window.UserActivityTracker ? window.UserActivityTracker._currentDateStr() : new Date().toISOString().slice(0, 10));
+  let activityLogs = [];
+  if (currentTab === 'activity') {
+    activityLogs = await (window.UserActivityTracker ? window.UserActivityTracker.fetchLogsForDate(selectedDate) : []);
   }
 
   renderShell(`
-    <div class="card" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;">
+    <!-- HEADER -->
+    <div class="card" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:12px;">
       <div>
-        <h1 style="margin:0;font-size:22px;">👤 User Management & Roles</h1>
+        <h1 style="margin:0;font-size:22px;display:flex;align-items:center;gap:8px;">
+          <span>👤 User Management & Staff Activity</span>
+        </h1>
         <div class="sub" style="margin:4px 0 0;">
-          System users, security access, role permissions & pending approvals · <strong>${totalUsers} registered users</strong>
+          System users, permissions, former staff access termination & daily screen time tracking.
         </div>
       </div>
       <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
         <button class="btn-sm outline" onclick="renderUserManagement()">
           🔁 Refresh
         </button>
-        <div style="display:inline-flex;background:var(--border);padding:2px;border-radius:8px;">
-          <button type="button" class="btn-sm" onclick="setUserViewMode('cards')"
-            style="min-height:28px;padding:4px 10px;font-size:12px;border-radius:6px;${viewMode === 'cards' ? 'background:#fff;color:var(--dark);box-shadow:0 1px 3px rgba(0,0,0,0.1);font-weight:700;' : 'background:transparent;color:var(--muted);border:none;'}">
-            📱 Cards
+        ${currentTab === 'users' ? `
+          <div style="display:inline-flex;background:var(--border);padding:2px;border-radius:8px;">
+            <button type="button" class="btn-sm" onclick="setUserViewMode('cards')"
+              style="min-height:28px;padding:4px 10px;font-size:12px;border-radius:6px;${viewMode === 'cards' ? 'background:#fff;color:var(--dark);box-shadow:0 1px 3px rgba(0,0,0,0.1);font-weight:700;' : 'background:transparent;color:var(--muted);border:none;'}">
+              📱 Cards
+            </button>
+            <button type="button" class="btn-sm" onclick="setUserViewMode('table')"
+              style="min-height:28px;padding:4px 10px;font-size:12px;border-radius:6px;${viewMode === 'table' ? 'background:#fff;color:var(--dark);box-shadow:0 1px 3px rgba(0,0,0,0.1);font-weight:700;' : 'background:transparent;color:var(--muted);border:none;'}">
+              📋 Table
+            </button>
+          </div>
+        ` : `
+          <button class="btn-sm" onclick="exportActivityLogsCSV('${selectedDate}')" style="background:#059669;color:#fff;font-weight:700;">
+            📥 Export Log CSV
           </button>
-          <button type="button" class="btn-sm" onclick="setUserViewMode('table')"
-            style="min-height:28px;padding:4px 10px;font-size:12px;border-radius:6px;${viewMode === 'table' ? 'background:#fff;color:var(--dark);box-shadow:0 1px 3px rgba(0,0,0,0.1);font-weight:700;' : 'background:transparent;color:var(--muted);border:none;'}">
-            📋 Table
-          </button>
-        </div>
+        `}
         ${window.canDelete && window.canDelete() ? `
           <button class="btn-sm danger" onclick="forceLogoutAll()" style="background:#dc2626;color:#fff;" title="Force logout all other users">
             🚪 Logout All
@@ -1883,245 +2135,581 @@ async function renderUserManagement() {
       </div>
     </div>
 
-    <!-- Quick Filter KPI Ribbon -->
-    <div class="stat-grid" style="grid-template-columns:repeat(auto-fit, minmax(130px, 1fr));gap:10px;margin-bottom:12px;">
-      <div class="stat-card" onclick="setUserFilter('all')" style="cursor:pointer;border-left:4px solid #3B82F6;${activeFilter === 'all' ? 'background:#EFF6FF;box-shadow:0 0 0 2px #3B82F6;' : ''}">
-        <div class="stat-num" style="color:#1D4ED8;">${totalUsers}</div>
-        <div class="stat-label">👥 Total Users</div>
-      </div>
-      <div class="stat-card" onclick="setUserFilter('active')" style="cursor:pointer;border-left:4px solid #10B981;${activeFilter === 'active' ? 'background:#ECFDF5;box-shadow:0 0 0 2px #10B981;' : ''}">
-        <div class="stat-num" style="color:#047857;">${activeCount}</div>
-        <div class="stat-label">✅ Active Access</div>
-      </div>
-      ${pendingCount > 0 ? `
-        <div class="stat-card" onclick="setUserFilter('pending')" style="cursor:pointer;border-left:4px solid #F59E0B;background:#FFFBEB;box-shadow:0 0 0 2px #F59E0B;animation:pulse 2s infinite;">
-          <div class="stat-num" style="color:#B45309;">${pendingCount}</div>
-          <div class="stat-label">⏳ Pending Approvals</div>
+    <!-- PRIMARY TAB SWITCHER -->
+    <div style="display:flex;gap:10px;margin-bottom:14px;border-bottom:2px solid #E5E7EB;padding-bottom:10px;">
+      <button type="button" class="btn-sm" onclick="setUserMgmtTab('users')"
+        style="padding:8px 16px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;${currentTab === 'users' ? 'background:var(--primary);color:#fff;box-shadow:0 2px 4px rgba(0,0,0,0.1);' : 'background:#F3F4F6;color:#4B5563;border:1px solid #D1D5DB;'}">
+        👥 System Users & Roles (${totalUsers})
+      </button>
+      <button type="button" class="btn-sm" onclick="setUserMgmtTab('activity')"
+        style="padding:8px 16px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;${currentTab === 'activity' ? 'background:var(--primary);color:#fff;box-shadow:0 2px 4px rgba(0,0,0,0.1);' : 'background:#F3F4F6;color:#4B5563;border:1px solid #D1D5DB;'}">
+        ⏱️ Daily Logins & Screen Time Logs
+      </button>
+    </div>
+
+    ${currentTab === 'users' ? renderUsersTabContent() : renderActivityTabContent()}
+  `, 'user-mgmt');
+
+  // -------------------------------------------------------------
+  // TAB 1: USERS & ROLES CONTENT
+  // -------------------------------------------------------------
+  function renderUsersTabContent() {
+    // Apply filters
+    let filtered = userList.filter(u => {
+      if (activeFilter === 'active') return u.is_approved && !u.isFiredStaff;
+      if (activeFilter === 'fired') return u.isFiredStaff;
+      if (activeFilter === 'suspended') return !u.is_approved;
+      if (activeFilter === 'admin') return ['developer', 'admin'].includes(u.role);
+      if (activeFilter === 'manager') return ['manager', 'owner'].includes(u.role);
+      if (activeFilter === 'staff') return ['booking_staff', 'caretaker', 'checkin_manager', 'moderator'].includes(u.role);
+      if (activeFilter === 'viewer') return u.role === 'viewer';
+      return true;
+    });
+
+    if (sq) {
+      filtered = filtered.filter(u => {
+        const name = (u.display_name || '').toLowerCase();
+        const email = (emailMap[u.user_id] || '').toLowerCase();
+        const role = (u.role || '').toLowerCase();
+        return name.includes(sq) || email.includes(sq) || role.includes(sq);
+      });
+    }
+
+    return `
+      <!-- FIRED STAFF REVOCATION WARNING BANNER -->
+      ${firedStaffNeedingRevocation.length > 0 ? `
+        <div class="card" style="border-left:5px solid #EF4444;background:#FEF2F2;margin-bottom:14px;padding:16px;border-radius:12px;box-shadow:0 2px 6px rgba(239,68,68,0.1);">
+          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;">
+            <div>
+              <div style="font-weight:800;font-size:15px;color:#991B1B;display:flex;align-items:center;gap:6px;">
+                <span>⚠️</span> <span>Action Needed: Former / Fired Staff with Active Login (${firedStaffNeedingRevocation.length})</span>
+              </div>
+              <div style="font-size:13px;color:#7F1D1D;margin-top:4px;line-height:1.4;">
+                Ye staff HRMS me inactive hain par unka login access active tha: <strong>${firedStaffNeedingRevocation.map(u => u.display_name).join(', ')}</strong>.<br>
+                <span style="color:#B91C1C;">Inka login band karein. <strong>Unka pura purana data (advances, expenses, bookings) 100% PRESERVE rahega.</strong></span>
+              </div>
+            </div>
+            <button class="btn-sm" onclick="window.revokeAllFiredStaffAccess()"
+              style="background:#DC2626;color:#fff;border:none;font-weight:700;padding:9px 18px;border-radius:8px;cursor:pointer;box-shadow:0 2px 6px rgba(220,38,38,0.25);">
+              🛡️ Revoke Fired Staff Access (Keep Data Safe)
+            </button>
+          </div>
         </div>
       ` : ''}
-      <div class="stat-card" onclick="setUserFilter('admin')" style="cursor:pointer;border-left:4px solid #8B5CF6;${activeFilter === 'admin' ? 'background:#F5F3FF;box-shadow:0 0 0 2px #8B5CF6;' : ''}">
-        <div class="stat-num" style="color:#6D28D9;">${adminCount}</div>
-        <div class="stat-label">🛡️ Admins & Devs</div>
-      </div>
-      <div class="stat-card" onclick="setUserFilter('manager')" style="cursor:pointer;border-left:4px solid #0EA5E9;${activeFilter === 'manager' ? 'background:#F0F9FF;box-shadow:0 0 0 2px #0EA5E9;' : ''}">
-        <div class="stat-num" style="color:#0369A1;">${managerCount}</div>
-        <div class="stat-label">👑 Owners & Mgrs</div>
-      </div>
-      <div class="stat-card" onclick="setUserFilter('suspended')" style="cursor:pointer;border-left:4px solid #EF4444;${activeFilter === 'suspended' ? 'background:#FEF2F2;box-shadow:0 0 0 2px #EF4444;' : ''}">
-        <div class="stat-num" style="color:#B91C1C;">${suspendedCount}</div>
-        <div class="stat-label">⏸️ Suspended</div>
-      </div>
-    </div>
 
-    <!-- PENDING APPROVAL SECTION -->
-    ${pendingRequests.length ? `
-      <div class="card" style="border-left:4px solid #F59E0B;background:#FFFDF7;margin-bottom:14px;">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
-          <div style="font-weight:800;font-size:16px;color:#92400E;display:flex;align-items:center;gap:6px;">
-            <span>⏳</span> <span>Pending Access Requests (${pendingRequests.length})</span>
+      <!-- Quick Filter KPI Ribbon -->
+      <div class="stat-grid" style="grid-template-columns:repeat(auto-fit, minmax(130px, 1fr));gap:10px;margin-bottom:12px;">
+        <div class="stat-card" onclick="setUserFilter('all')" style="cursor:pointer;border-left:4px solid #3B82F6;${activeFilter === 'all' ? 'background:#EFF6FF;box-shadow:0 0 0 2px #3B82F6;' : ''}">
+          <div class="stat-num" style="color:#1D4ED8;">${totalUsers}</div>
+          <div class="stat-label">👥 Total Users</div>
+        </div>
+        <div class="stat-card" onclick="setUserFilter('active')" style="cursor:pointer;border-left:4px solid #10B981;${activeFilter === 'active' ? 'background:#ECFDF5;box-shadow:0 0 0 2px #10B981;' : ''}">
+          <div class="stat-num" style="color:#047857;">${activeCount}</div>
+          <div class="stat-label">✅ Active Access</div>
+        </div>
+        ${firedCount > 0 ? `
+          <div class="stat-card" onclick="setUserFilter('fired')" style="cursor:pointer;border-left:4px solid #DC2626;${activeFilter === 'fired' ? 'background:#FEF2F2;box-shadow:0 0 0 2px #DC2626;' : ''}">
+            <div class="stat-num" style="color:#B91C1C;">${firedCount}</div>
+            <div class="stat-label">🚫 Former Staff</div>
           </div>
-          <span style="font-size:12px;color:#B45309;font-weight:600;">Assign role to grant access</span>
+        ` : ''}
+        ${pendingCount > 0 ? `
+          <div class="stat-card" onclick="setUserFilter('pending')" style="cursor:pointer;border-left:4px solid #F59E0B;background:#FFFBEB;box-shadow:0 0 0 2px #F59E0B;animation:pulse 2s infinite;">
+            <div class="stat-num" style="color:#B45309;">${pendingCount}</div>
+            <div class="stat-label">⏳ Pending Approvals</div>
+          </div>
+        ` : ''}
+        <div class="stat-card" onclick="setUserFilter('admin')" style="cursor:pointer;border-left:4px solid #8B5CF6;${activeFilter === 'admin' ? 'background:#F5F3FF;box-shadow:0 0 0 2px #8B5CF6;' : ''}">
+          <div class="stat-num" style="color:#6D28D9;">${adminCount}</div>
+          <div class="stat-label">🛡️ Admins & Devs</div>
         </div>
-        <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(280px, 1fr));gap:10px;">
-          ${pendingRequests.map(p => `
-            <div style="background:#fff;border:1px solid #FDE68A;border-radius:10px;padding:12px;display:flex;flex-direction:column;justify-content:space-between;box-shadow:0 1px 3px rgba(0,0,0,0.05);">
-              <div>
-                <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
-                  <div style="width:38px;height:38px;border-radius:50%;background:#F3F4F6;color:#4B5563;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:15px;border:1px solid #E5E7EB;">
-                    ${(p.full_name || 'U').charAt(0).toUpperCase()}
-                  </div>
-                  <div style="min-width:0;">
-                    <div style="font-weight:700;font-size:14px;color:#111827;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
-                      ${p.full_name || 'New User'}
-                    </div>
-                    <div style="font-size:12px;color:#6B7280;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
-                      ${p.email || 'No email'}
-                    </div>
-                  </div>
-                </div>
-                <div style="font-size:11px;color:#9CA3AF;margin-bottom:10px;">
-                  Provider: <strong>${p.auth_provider || 'google'}</strong> · Requested: ${p.requested_at ? new Date(p.requested_at).toLocaleDateString('en-IN') : 'Recent'}
-                </div>
-              </div>
-              <div style="display:flex;gap:8px;">
-                <button class="btn-sm" onclick="approveUser('${p.user_id}','${(p.full_name || '').replace(/'/g, "\\'")}')" style="flex:1;background:#10B981;color:#fff;border:none;font-weight:700;">
-                  ✅ Approve & Role
-                </button>
-                <button class="btn-sm danger" onclick="rejectUser('${p.user_id}')" style="flex:1;">
-                  ❌ Reject
-                </button>
-              </div>
+        <div class="stat-card" onclick="setUserFilter('manager')" style="cursor:pointer;border-left:4px solid #0EA5E9;${activeFilter === 'manager' ? 'background:#F0F9FF;box-shadow:0 0 0 2px #0EA5E9;' : ''}">
+          <div class="stat-num" style="color:#0369A1;">${managerCount}</div>
+          <div class="stat-label">👑 Owners & Mgrs</div>
+        </div>
+        <div class="stat-card" onclick="setUserFilter('suspended')" style="cursor:pointer;border-left:4px solid #EF4444;${activeFilter === 'suspended' ? 'background:#FEF2F2;box-shadow:0 0 0 2px #EF4444;' : ''}">
+          <div class="stat-num" style="color:#B91C1C;">${suspendedCount}</div>
+          <div class="stat-label">⏸️ Suspended</div>
+        </div>
+      </div>
+
+      <!-- PENDING APPROVAL SECTION -->
+      ${pendingRequests.length ? `
+        <div class="card" style="border-left:4px solid #F59E0B;background:#FFFDF7;margin-bottom:14px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+            <div style="font-weight:800;font-size:16px;color:#92400E;display:flex;align-items:center;gap:6px;">
+              <span>⏳</span> <span>Pending Access Requests (${pendingRequests.length})</span>
             </div>
-          `).join('')}
-        </div>
-      </div>
-    ` : ''}
-
-    <!-- SEARCH & FILTER CONTROLS -->
-    <div class="card" style="margin-bottom:14px;padding:12px 14px;">
-      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
-        <div style="position:relative;flex:1;min-width:220px;">
-          <input type="text" id="userSearchInput" value="${sq}" placeholder="🔍 Search user by name, email or role..."
-            oninput="window._userSearchQuery = this.value; renderUserManagement();"
-            style="width:100%;padding:8px 12px;border:1px solid #D1D5DB;border-radius:8px;font-size:14px;box-sizing:border-box;" />
-          ${sq ? `<span onclick="window._userSearchQuery='';renderUserManagement();" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);cursor:pointer;color:#999;font-weight:bold;">✕</span>` : ''}
-        </div>
-        <div style="display:flex;gap:6px;overflow-x:auto;padding-bottom:2px;">
-          <button type="button" class="btn-sm" onclick="setUserFilter('all')" style="${activeFilter === 'all' ? 'background:var(--primary);color:#fff;' : 'background:#F3F4F6;color:#374151;border:none;'}">All</button>
-          <button type="button" class="btn-sm" onclick="setUserFilter('active')" style="${activeFilter === 'active' ? 'background:var(--primary);color:#fff;' : 'background:#F3F4F6;color:#374151;border:none;'}">Active</button>
-          <button type="button" class="btn-sm" onclick="setUserFilter('admin')" style="${activeFilter === 'admin' ? 'background:var(--primary);color:#fff;' : 'background:#F3F4F6;color:#374151;border:none;'}">Admin/Dev</button>
-          <button type="button" class="btn-sm" onclick="setUserFilter('manager')" style="${activeFilter === 'manager' ? 'background:var(--primary);color:#fff;' : 'background:#F3F4F6;color:#374151;border:none;'}">Owner/Mgr</button>
-          <button type="button" class="btn-sm" onclick="setUserFilter('staff')" style="${activeFilter === 'staff' ? 'background:var(--primary);color:#fff;' : 'background:#F3F4F6;color:#374151;border:none;'}">Staff/Caretaker</button>
-          <button type="button" class="btn-sm" onclick="setUserFilter('suspended')" style="${activeFilter === 'suspended' ? 'background:var(--primary);color:#fff;' : 'background:#F3F4F6;color:#374151;border:none;'}">Suspended</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- USERS CONTENT: CARDS OR TABLE -->
-    ${filtered.length === 0 ? `
-      <div class="card" style="text-align:center;padding:40px 20px;color:var(--muted);">
-        <div style="font-size:36px;margin-bottom:8px;">🔍</div>
-        <div style="font-size:16px;font-weight:700;color:#374151;">No users match your criteria</div>
-        <div style="font-size:13px;margin-top:4px;">Try clearing search or changing the filter chip.</div>
-        <button class="btn-sm" onclick="window._userSearchQuery='';window._userFilter='all';renderUserManagement();" style="margin-top:12px;">Reset Filters</button>
-      </div>
-    ` : viewMode === 'cards' ? `
-      <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(300px, 1fr));gap:12px;">
-        ${filtered.map(u => {
-          const userEmail = emailMap[u.user_id] || (u.auth_provider === 'google' ? 'Google Account' : 'Direct Email');
-          const isCurrentUser = u.user_id === SESSION.userId;
-          return `
-            <div class="card" style="margin-bottom:0;display:flex;flex-direction:column;justify-content:space-between;gap:12px;border:1px solid ${u.is_approved ? '#E5E7EB' : '#FCA5A5'};background:${u.is_approved ? '#fff' : '#FEF2F2'};border-radius:12px;box-shadow:0 1px 3px rgba(0,0,0,0.04);">
-              <div>
-                <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;">
-                  <div style="display:flex;align-items:center;gap:10px;">
-                    ${u.avatar_url ? `
-                      <img src="${u.avatar_url}" style="width:42px;height:42px;border-radius:50%;object-fit:cover;border:2px solid #E5E7EB;" />
-                    ` : `
-                      <div style="width:42px;height:42px;border-radius:50%;background:#E0E7FF;color:#4338CA;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:16px;border:1px solid #C7D2FE;">
-                        ${(u.display_name || 'U').charAt(0).toUpperCase()}
+            <span style="font-size:12px;color:#B45309;font-weight:600;">Assign role to grant access</span>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(280px, 1fr));gap:10px;">
+            ${pendingRequests.map(p => `
+              <div style="background:#fff;border:1px solid #FDE68A;border-radius:10px;padding:12px;display:flex;flex-direction:column;justify-content:space-between;box-shadow:0 1px 3px rgba(0,0,0,0.05);">
+                <div>
+                  <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+                    <div style="width:38px;height:38px;border-radius:50%;background:#F3F4F6;color:#4B5563;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:15px;border:1px solid #E5E7EB;">
+                      ${(p.full_name || 'U').charAt(0).toUpperCase()}
+                    </div>
+                    <div style="min-width:0;">
+                      <div style="font-weight:700;font-size:14px;color:#111827;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+                        ${p.full_name || 'New User'}
                       </div>
-                    `}
-                    <div>
-                      <div style="font-weight:700;font-size:15px;color:#111827;display:flex;align-items:center;gap:6px;">
-                        <span>${u.display_name || 'User'}</span>
-                        ${isCurrentUser ? `<span style="background:#EFF6FF;color:#1D4ED8;font-size:10px;padding:2px 6px;border-radius:6px;font-weight:700;">YOU</span>` : ''}
-                      </div>
-                      <div style="font-size:12px;color:#6B7280;margin-top:2px;">
-                        ${userEmail}
+                      <div style="font-size:12px;color:#6B7280;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+                        ${p.email || 'No email'}
                       </div>
                     </div>
                   </div>
-                  <div>
-                    ${window.getRoleBadgeHTML(u.role)}
+                  <div style="font-size:11px;color:#9CA3AF;margin-bottom:10px;">
+                    Provider: <strong>${p.auth_provider || 'google'}</strong> · Requested: ${p.requested_at ? new Date(p.requested_at).toLocaleDateString('en-IN') : 'Recent'}
                   </div>
                 </div>
-
-                <div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px;padding-top:10px;border-top:1px solid #F3F4F6;font-size:12px;">
-                  <div style="color:#6B7280;">
-                    Provider: <strong>${u.auth_provider || 'google'}</strong>
-                  </div>
-                  <div>
-                    <span class="badge ${u.is_approved ? 'green' : 'red'}" style="font-size:11px;">
-                      ${u.is_approved ? '● Active' : '✕ Suspended'}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              <!-- ACTIONS -->
-              <div style="display:flex;gap:6px;align-items:center;padding-top:8px;border-top:1px solid #F3F4F6;">
-                <button class="btn-sm" onclick="changeUserRole('${u.user_id}','${(u.display_name || '').replace(/'/g, "\\'")}')" style="flex:1;background:#F3F4F6;color:#374151;border:1px solid #D1D5DB;font-weight:600;">
-                  🔧 Role
-                </button>
-                ${!isCurrentUser ? `
-                  <button class="btn-sm" onclick="toggleUserActive('${u.user_id}', ${u.is_approved ? 'true' : 'false'}, '${(u.display_name || '').replace(/'/g, "\\'")}')"
-                    style="flex:1;background:${u.is_approved ? '#FFFBEB;color:#B45309;border:1px solid #FCD34D;' : '#ECFDF5;color:#047857;border:1px solid #6EE7B7;'}font-weight:600;"
-                    title="${u.is_approved ? 'Suspend User' : 'Activate User'}">
-                    ${u.is_approved ? '⏸️ Suspend' : '▶️ Activate'}
+                <div style="display:flex;gap:8px;">
+                  <button class="btn-sm" onclick="approveUser('${p.user_id}','${(p.full_name || '').replace(/'/g, "\\'")}')" style="flex:1;background:#10B981;color:#fff;border:none;font-weight:700;">
+                    ✅ Approve & Role
                   </button>
-                  ${window.canDelete && window.canDelete() ? `
-                    <button class="btn-sm" style="background:#FEE2E2;color:#991B1B;border:1px solid #FCA5A5;padding:6px 10px;" onclick="forceLogoutUser('${u.user_id}','${(u.display_name || '').replace(/'/g, "\\'")}')" title="Force Logout">
-                      🚪
-                    </button>
-                    <button class="btn-sm danger" onclick="deleteUser('${u.user_id}','${(u.display_name || '').replace(/'/g, "\\'")}')" style="padding:6px 10px;" title="Delete User">
-                      🗑️
-                    </button>
-                  ` : ''}
-                ` : ''}
+                  <button class="btn-sm danger" onclick="rejectUser('${p.user_id}')" style="flex:1;">
+                    ❌ Reject
+                  </button>
+                </div>
               </div>
-            </div>
-          `;
-        }).join('')}
+            `).join('')}
+          </div>
+        </div>
+      ` : ''}
+
+      <!-- SEARCH & FILTER CONTROLS -->
+      <div class="card" style="margin-bottom:14px;padding:12px 14px;">
+        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+          <div style="position:relative;flex:1;min-width:220px;">
+            <input type="text" id="userSearchInput" value="${sq}" placeholder="🔍 Search user by name, email or role..."
+              oninput="window._userSearchQuery = this.value; renderUserManagement();"
+              style="width:100%;padding:8px 12px;border:1px solid #D1D5DB;border-radius:8px;font-size:14px;box-sizing:border-box;" />
+            ${sq ? `<span onclick="window._userSearchQuery='';renderUserManagement();" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);cursor:pointer;color:#999;font-weight:bold;">✕</span>` : ''}
+          </div>
+          <div style="display:flex;gap:6px;overflow-x:auto;padding-bottom:2px;">
+            <button type="button" class="btn-sm" onclick="setUserFilter('all')" style="${activeFilter === 'all' ? 'background:var(--primary);color:#fff;' : 'background:#F3F4F6;color:#374151;border:none;'}">All</button>
+            <button type="button" class="btn-sm" onclick="setUserFilter('active')" style="${activeFilter === 'active' ? 'background:var(--primary);color:#fff;' : 'background:#F3F4F6;color:#374151;border:none;'}">Active</button>
+            ${firedCount > 0 ? `<button type="button" class="btn-sm" onclick="setUserFilter('fired')" style="${activeFilter === 'fired' ? 'background:#DC2626;color:#fff;' : 'background:#FEE2E2;color:#991B1B;border:1px solid #FCA5A5;'}">Former Staff (${firedCount})</button>` : ''}
+            <button type="button" class="btn-sm" onclick="setUserFilter('admin')" style="${activeFilter === 'admin' ? 'background:var(--primary);color:#fff;' : 'background:#F3F4F6;color:#374151;border:none;'}">Admin/Dev</button>
+            <button type="button" class="btn-sm" onclick="setUserFilter('manager')" style="${activeFilter === 'manager' ? 'background:var(--primary);color:#fff;' : 'background:#F3F4F6;color:#374151;border:none;'}">Owner/Mgr</button>
+            <button type="button" class="btn-sm" onclick="setUserFilter('staff')" style="${activeFilter === 'staff' ? 'background:var(--primary);color:#fff;' : 'background:#F3F4F6;color:#374151;border:none;'}">Staff</button>
+            <button type="button" class="btn-sm" onclick="setUserFilter('suspended')" style="${activeFilter === 'suspended' ? 'background:var(--primary);color:#fff;' : 'background:#F3F4F6;color:#374151;border:none;'}">Suspended</button>
+          </div>
+        </div>
       </div>
-    ` : `
-      <div class="card" style="padding:0;overflow:hidden;">
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>User / Name</th>
-                <th>Role</th>
-                <th>Email / Provider</th>
-                <th>Access Status</th>
-                <th style="text-align:right;">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${filtered.map(u => {
-                const userEmail = emailMap[u.user_id] || (u.auth_provider === 'google' ? 'Google Account' : 'Direct Email');
-                const isCurrentUser = u.user_id === SESSION.userId;
-                return `
-                  <tr>
-                    <td>
-                      <div style="display:flex;align-items:center;gap:10px;">
-                        ${u.avatar_url ? `
-                          <img src="${u.avatar_url}" style="width:30px;height:30px;border-radius:50%;object-fit:cover;" />
-                        ` : `
-                          <div style="width:30px;height:30px;border-radius:50%;background:#E0E7FF;color:#4338CA;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;">
-                            ${(u.display_name || 'U').charAt(0).toUpperCase()}
-                          </div>
-                        `}
-                        <div>
-                          <strong>${u.display_name || 'User'}</strong>
-                          ${isCurrentUser ? ` <span style="background:#EFF6FF;color:#1D4ED8;font-size:10px;padding:1px 5px;border-radius:4px;font-weight:700;">YOU</span>` : ''}
+
+      <!-- USERS CONTENT: CARDS OR TABLE -->
+      ${filtered.length === 0 ? `
+        <div class="card" style="text-align:center;padding:40px 20px;color:var(--muted);">
+          <div style="font-size:36px;margin-bottom:8px;">🔍</div>
+          <div style="font-size:16px;font-weight:700;color:#374151;">No users match your criteria</div>
+          <div style="font-size:13px;margin-top:4px;">Try clearing search or changing the filter chip.</div>
+          <button class="btn-sm" onclick="window._userSearchQuery='';window._userFilter='all';renderUserManagement();" style="margin-top:12px;">Reset Filters</button>
+        </div>
+      ` : viewMode === 'cards' ? `
+        <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(300px, 1fr));gap:12px;">
+          ${filtered.map(u => {
+            const userEmail = emailMap[u.user_id] || (u.auth_provider === 'google' ? 'Google Account' : 'Direct Email');
+            const isCurrentUser = u.user_id === SESSION.userId;
+            return `
+              <div class="card" style="margin-bottom:0;display:flex;flex-direction:column;justify-content:space-between;gap:12px;border:1px solid ${u.isFiredStaff ? '#FCA5A5' : u.is_approved ? '#E5E7EB' : '#FCA5A5'};background:${u.isFiredStaff ? '#FEF2F2' : u.is_approved ? '#fff' : '#FFFDF7'};border-radius:12px;box-shadow:0 1px 3px rgba(0,0,0,0.04);">
+                <div>
+                  <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;">
+                    <div style="display:flex;align-items:center;gap:10px;">
+                      ${u.avatar_url ? `
+                        <img src="${u.avatar_url}" style="width:42px;height:42px;border-radius:50%;object-fit:cover;border:2px solid #E5E7EB;" />
+                      ` : `
+                        <div style="width:42px;height:42px;border-radius:50%;background:#E0E7FF;color:#4338CA;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:16px;border:1px solid #C7D2FE;">
+                          ${(u.display_name || 'U').charAt(0).toUpperCase()}
+                        </div>
+                      `}
+                      <div>
+                        <div style="font-weight:700;font-size:15px;color:#111827;display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+                          <span>${escapeHtml(u.display_name || 'User')}</span>
+                          ${isCurrentUser ? `<span style="background:#EFF6FF;color:#1D4ED8;font-size:10px;padding:2px 6px;border-radius:6px;font-weight:700;">YOU</span>` : ''}
+                          ${u.isFiredStaff ? `<span style="background:#FEE2E2;color:#991B1B;font-size:10px;padding:2px 6px;border-radius:6px;font-weight:800;border:1px solid #FCA5A5;">🚫 FORMER STAFF</span>` : ''}
+                        </div>
+                        <div style="font-size:12px;color:#6B7280;margin-top:2px;">
+                          ${userEmail}
                         </div>
                       </div>
-                    </td>
-                    <td>${window.getRoleBadgeHTML(u.role)}</td>
-                    <td>
-                      <div style="font-size:13px;">${userEmail}</div>
-                      <div style="font-size:11px;color:#9CA3AF;">${u.auth_provider || 'google'}</div>
-                    </td>
-                    <td>
-                      <span class="badge ${u.is_approved ? 'green' : 'red'}" style="cursor:pointer;" onclick="toggleUserActive('${u.user_id}', ${u.is_approved ? 'true' : 'false'}, '${(u.display_name || '').replace(/'/g, "\\'")}')" title="Click to toggle status">
-                        ${u.is_approved ? '● Active' : '✕ Suspended'}
-                      </span>
-                    </td>
-                    <td class="table-actions" style="text-align:right;">
-                      <button class="btn-sm" onclick="changeUserRole('${u.user_id}','${(u.display_name || '').replace(/'/g, "\\'")}')">🔧 Role</button>
-                      ${!isCurrentUser ? `
-                        <button class="btn-sm" onclick="toggleUserActive('${u.user_id}', ${u.is_approved ? 'true' : 'false'}, '${(u.display_name || '').replace(/'/g, "\\'")}')"
-                          style="${u.is_approved ? 'background:#FFFBEB;color:#B45309;border:1px solid #FCD34D;' : 'background:#ECFDF5;color:#047857;border:1px solid #6EE7B7;'}"
-                          title="${u.is_approved ? 'Suspend Access' : 'Restore Access'}">
-                          ${u.is_approved ? '⏸️ Suspend' : '▶️ Activate'}
-                        </button>
-                        ${window.canDelete && window.canDelete() ? `
-                          <button class="btn-sm" style="background:#f59e0b;color:#fff;" onclick="forceLogoutUser('${u.user_id}','${(u.display_name || '').replace(/'/g, "\\'")}')" title="Force Logout">🚪</button>
-                          <button class="btn-sm danger" onclick="deleteUser('${u.user_id}','${(u.display_name || '').replace(/'/g, "\\'")}')" title="Delete User Profile">🗑️</button>
+                    </div>
+                    <div>
+                      ${window.getRoleBadgeHTML(u.role)}
+                    </div>
+                  </div>
+
+                  <div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px;padding-top:10px;border-top:1px solid #F3F4F6;font-size:12px;">
+                    <div style="color:#6B7280;">
+                      Provider: <strong>${u.auth_provider || 'google'}</strong>
+                    </div>
+                    <div>
+                      ${u.isFiredStaff ? `
+                        <span class="badge ${u.is_approved ? 'red' : 'green'}" style="font-size:11px;">
+                          ${u.is_approved ? '⚠️ Access Active (Revoke)' : '🔒 Access Blocked (Data Safe)'}
+                        </span>
+                      ` : `
+                        <span class="badge ${u.is_approved ? 'green' : 'red'}" style="font-size:11px;">
+                          ${u.is_approved ? '● Active' : '✕ Suspended'}
+                        </span>
+                      `}
+                    </div>
+                  </div>
+                </div>
+
+                <!-- ACTIONS -->
+                <div style="display:flex;gap:6px;align-items:center;padding-top:8px;border-top:1px solid #F3F4F6;">
+                  <button class="btn-sm" onclick="changeUserRole('${u.user_id}','${(u.display_name || '').replace(/'/g, "\\'")}')" style="flex:1;background:#F3F4F6;color:#374151;border:1px solid #D1D5DB;font-weight:600;">
+                    🔧 Role
+                  </button>
+                  ${!isCurrentUser ? `
+                    ${u.isFiredStaff && u.is_approved ? `
+                      <button class="btn-sm danger" onclick="window.terminateStaffAccess('${u.user_id}','${(u.display_name || '').replace(/'/g, "\\'")}')"
+                        style="flex:1.4;background:#DC2626;color:#fff;font-weight:700;" title="Terminate login access while preserving all records">
+                        🚫 Block Access
+                      </button>
+                    ` : `
+                      <button class="btn-sm" onclick="toggleUserActive('${u.user_id}', ${u.is_approved ? 'true' : 'false'}, '${(u.display_name || '').replace(/'/g, "\\'")}')"
+                        style="flex:1;background:${u.is_approved ? '#FFFBEB;color:#B45309;border:1px solid #FCD34D;' : '#ECFDF5;color:#047857;border:1px solid #6EE7B7;'}font-weight:600;"
+                        title="${u.is_approved ? 'Suspend User' : 'Activate User'}">
+                        ${u.is_approved ? '⏸️ Suspend' : '▶️ Activate'}
+                      </button>
+                    `}
+                    ${window.canDelete && window.canDelete() ? `
+                      <button class="btn-sm" style="background:#FEE2E2;color:#991B1B;border:1px solid #FCA5A5;padding:6px 10px;" onclick="forceLogoutUser('${u.user_id}','${(u.display_name || '').replace(/'/g, "\\'")}')" title="Force Logout">
+                        🚪
+                      </button>
+                      <button class="btn-sm danger" onclick="deleteUser('${u.user_id}','${(u.display_name || '').replace(/'/g, "\\'")}')" style="padding:6px 10px;" title="Delete User">
+                        🗑️
+                      </button>
+                    ` : ''}
+                  ` : ''}
+                </div>
+              </div>
+            `;
+          }).join('')}
+        </div>
+      ` : `
+        <div class="card" style="padding:0;overflow:hidden;">
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>User / Name</th>
+                  <th>Role</th>
+                  <th>Email / Provider</th>
+                  <th>Access Status</th>
+                  <th style="text-align:right;">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${filtered.map(u => {
+                  const userEmail = emailMap[u.user_id] || (u.auth_provider === 'google' ? 'Google Account' : 'Direct Email');
+                  const isCurrentUser = u.user_id === SESSION.userId;
+                  return `
+                    <tr style="${u.isFiredStaff ? 'background:#FEF2F2;' : ''}">
+                      <td>
+                        <div style="display:flex;align-items:center;gap:10px;">
+                          ${u.avatar_url ? `
+                            <img src="${u.avatar_url}" style="width:32px;height:32px;border-radius:50%;object-fit:cover;" />
+                          ` : `
+                            <div style="width:32px;height:32px;border-radius:50%;background:#E0E7FF;color:#4338CA;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;">
+                              ${(u.display_name || 'U').charAt(0).toUpperCase()}
+                            </div>
+                          `}
+                          <div>
+                            <div style="font-weight:700;display:flex;align-items:center;gap:6px;">
+                              <span>${escapeHtml(u.display_name || 'User')}</span>
+                              ${isCurrentUser ? ` <span style="background:#EFF6FF;color:#1D4ED8;font-size:10px;padding:1px 5px;border-radius:4px;font-weight:700;">YOU</span>` : ''}
+                              ${u.isFiredStaff ? ` <span style="background:#FEE2E2;color:#991B1B;font-size:10px;padding:1px 5px;border-radius:4px;font-weight:800;border:1px solid #FCA5A5;">🚫 FORMER</span>` : ''}
+                            </div>
+                          </div>
+                        </div>
+                      </td>
+                      <td>${window.getRoleBadgeHTML(u.role)}</td>
+                      <td>
+                        <div style="font-size:13px;">${userEmail}</div>
+                        <div style="font-size:11px;color:#9CA3AF;">${u.auth_provider || 'google'}</div>
+                      </td>
+                      <td>
+                        ${u.isFiredStaff ? `
+                          <span class="badge ${u.is_approved ? 'red' : 'green'}" style="font-size:11px;font-weight:700;">
+                            ${u.is_approved ? '⚠️ Active (Revoke Needed)' : '🔒 Access Blocked'}
+                          </span>
+                        ` : `
+                          <span class="badge ${u.is_approved ? 'green' : 'red'}" style="cursor:pointer;" onclick="toggleUserActive('${u.user_id}', ${u.is_approved ? 'true' : 'false'}, '${(u.display_name || '').replace(/'/g, "\\'")}')" title="Click to toggle status">
+                            ${u.is_approved ? '● Active' : '✕ Suspended'}
+                          </span>
+                        `}
+                      </td>
+                      <td class="table-actions" style="text-align:right;">
+                        <button class="btn-sm" onclick="changeUserRole('${u.user_id}','${(u.display_name || '').replace(/'/g, "\\'")}')">🔧 Role</button>
+                        ${!isCurrentUser ? `
+                          ${u.isFiredStaff && u.is_approved ? `
+                            <button class="btn-sm danger" onclick="window.terminateStaffAccess('${u.user_id}','${(u.display_name || '').replace(/'/g, "\\'")}')"
+                              style="background:#DC2626;color:#fff;font-weight:700;" title="Terminate login access while preserving historical data">
+                              🚫 Block
+                            </button>
+                          ` : `
+                            <button class="btn-sm" onclick="toggleUserActive('${u.user_id}', ${u.is_approved ? 'true' : 'false'}, '${(u.display_name || '').replace(/'/g, "\\'")}')"
+                              style="${u.is_approved ? 'background:#FFFBEB;color:#B45309;border:1px solid #FCD34D;' : 'background:#ECFDF5;color:#047857;border:1px solid #6EE7B7;'}"
+                              title="${u.is_approved ? 'Suspend Access' : 'Restore Access'}">
+                              ${u.is_approved ? '⏸️ Suspend' : '▶️ Activate'}
+                            </button>
+                          `}
+                          ${window.canDelete && window.canDelete() ? `
+                            <button class="btn-sm" style="background:#f59e0b;color:#fff;" onclick="forceLogoutUser('${u.user_id}','${(u.display_name || '').replace(/'/g, "\\'")}')" title="Force Logout">🚪</button>
+                            <button class="btn-sm danger" onclick="deleteUser('${u.user_id}','${(u.display_name || '').replace(/'/g, "\\'")}')" title="Delete User Profile">🗑️</button>
+                          ` : ''}
                         ` : ''}
-                      ` : ''}
-                    </td>
-                  </tr>
-                `;
-              }).join('')}
-            </tbody>
-          </table>
+                      </td>
+                    </tr>
+                  `;
+                }).join('')}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      `}
+    `;
+  }
+
+  // -------------------------------------------------------------
+  // TAB 2: DAILY LOGINS & SCREEN TIME LOGS CONTENT
+  // -------------------------------------------------------------
+  function renderActivityTabContent() {
+    const todayStr = window.UserActivityTracker ? window.UserActivityTracker._currentDateStr() : new Date().toISOString().slice(0, 10);
+    const yesterdayStr = (() => {
+      const d = new Date();
+      d.setDate(d.getDate() - 1);
+      return d.toISOString().slice(0, 10);
+    })();
+
+    // Metrics for the selected date
+    const totalActiveUsersOnDate = activityLogs.length;
+    const totalLoginsRecorded = activityLogs.reduce((sum, r) => sum + (r.loginCount || 1), 0);
+    const totalScreenSeconds = activityLogs.reduce((sum, r) => sum + (r.activeSeconds || 0), 0);
+    const totalFormattedScreenTime = window.UserActivityTracker ? window.UserActivityTracker._formatDuration(totalScreenSeconds) : `${Math.floor(totalScreenSeconds/60)}m`;
+
+    const twoMinAgo = Date.now() - 2 * 60 * 1000;
+    const currentlyLiveCount = activityLogs.filter(r => r.lastActiveAt && new Date(r.lastActiveAt).getTime() > twoMinAgo).length;
+
+    let displayLogs = [...activityLogs];
+    if (sq) {
+      displayLogs = displayLogs.filter(r => {
+        const name = (r.displayName || '').toLowerCase();
+        const role = (r.role || '').toLowerCase();
+        return name.includes(sq) || role.includes(sq);
+      });
+    }
+
+    return `
+      <!-- DATE & CONTROLS BAR -->
+      <div class="card" style="margin-bottom:14px;padding:12px 14px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+            <label style="font-weight:700;font-size:13px;color:#374151;">📅 Select Date:</label>
+            <input type="date" value="${selectedDate}"
+              onchange="setActivityLogDate(this.value)"
+              style="padding:6px 10px;border:1px solid #D1D5DB;border-radius:8px;font-size:13px;font-weight:700;" />
+            <div style="display:inline-flex;gap:4px;">
+              <button class="btn-sm" onclick="setActivityLogDate('${todayStr}')"
+                style="${selectedDate === todayStr ? 'background:var(--primary);color:#fff;font-weight:700;' : 'background:#F3F4F6;color:#374151;border:none;'}padding:5px 10px;font-size:12px;">
+                Today
+              </button>
+              <button class="btn-sm" onclick="setActivityLogDate('${yesterdayStr}')"
+                style="${selectedDate === yesterdayStr ? 'background:var(--primary);color:#fff;font-weight:700;' : 'background:#F3F4F6;color:#374151;border:none;'}padding:5px 10px;font-size:12px;">
+                Yesterday
+              </button>
+            </div>
+          </div>
+          <div style="position:relative;min-width:200px;flex:1;max-width:320px;">
+            <input type="text" value="${sq}" placeholder="🔍 Search staff..."
+              oninput="window._userSearchQuery = this.value; renderUserManagement();"
+              style="width:100%;padding:6px 10px;border:1px solid #D1D5DB;border-radius:8px;font-size:13px;box-sizing:border-box;" />
+            ${sq ? `<span onclick="window._userSearchQuery='';renderUserManagement();" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);cursor:pointer;color:#999;font-weight:bold;">✕</span>` : ''}
+          </div>
         </div>
       </div>
-    `}
-  `, 'user-mgmt');
+
+      <!-- KPI METRICS -->
+      <div class="stat-grid" style="grid-template-columns:repeat(auto-fit, minmax(140px, 1fr));gap:10px;margin-bottom:14px;">
+        <div class="stat-card" style="border-left:4px solid #3B82F6;">
+          <div class="stat-num" style="color:#1D4ED8;">${totalActiveUsersOnDate}</div>
+          <div class="stat-label">👥 Staff Logged In</div>
+        </div>
+        <div class="stat-card" style="border-left:4px solid #8B5CF6;">
+          <div class="stat-num" style="color:#6D28D9;">${totalLoginsRecorded}</div>
+          <div class="stat-label">🔑 Total Logins Recorded</div>
+        </div>
+        <div class="stat-card" style="border-left:4px solid #10B981;">
+          <div class="stat-num" style="color:#047857;font-size:20px;">${totalFormattedScreenTime}</div>
+          <div class="stat-label">⏳ Total CRM Screen Time</div>
+        </div>
+        <div class="stat-card" style="border-left:4px solid #059669;background:#ECFDF5;">
+          <div class="stat-num" style="color:#059669;display:flex;align-items:center;gap:6px;">
+            <span>${currentlyLiveCount}</span>
+            ${currentlyLiveCount > 0 ? '<span style="width:8px;height:8px;border-radius:50%;background:#10B981;animation:pulse 1.5s infinite;"></span>' : ''}
+          </div>
+          <div class="stat-label">🟢 Online Live Now</div>
+        </div>
+      </div>
+
+      <!-- ACTIVITY LOGS TABLE / CARDS -->
+      ${displayLogs.length === 0 ? `
+        <div class="card" style="text-align:center;padding:48px 20px;color:var(--muted);">
+          <div style="font-size:42px;margin-bottom:8px;">⏱️</div>
+          <div style="font-size:17px;font-weight:700;color:#374151;">No Activity Recorded for ${selectedDate}</div>
+          <div style="font-size:13px;margin-top:6px;max-width:440px;margin-left:auto;margin-right:auto;">
+            Team members will automatically appear here as they log into the CRM and perform tasks. Active screen duration is measured live every 30 seconds.
+          </div>
+        </div>
+      ` : `
+        <div class="card" style="padding:0;overflow:hidden;">
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>User / Staff</th>
+                  <th>Role</th>
+                  <th>First Login</th>
+                  <th>Last Active</th>
+                  <th>Total Logins</th>
+                  <th>Screen Time (Active Duration)</th>
+                  <th style="text-align:right;">Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${displayLogs.map(r => {
+                  const isOnline = r.lastActiveAt && (new Date(r.lastActiveAt).getTime() > twoMinAgo);
+                  const durationStr = window.UserActivityTracker ? window.UserActivityTracker._formatDuration(r.activeSeconds) : `${Math.floor((r.activeSeconds || 0)/60)}m`;
+                  const firstTime = window.UserActivityTracker ? window.UserActivityTracker._formatTime(r.firstLoginAt) : (r.firstLoginAt || '-');
+                  const lastTime = isOnline ? '🟢 Live Now' : (window.UserActivityTracker ? window.UserActivityTracker._formatTime(r.lastActiveAt) : (r.lastActiveAt || '-'));
+                  const pct = Math.min(100, Math.round(((r.activeSeconds || 0) / (8 * 3600)) * 100)); // % of standard 8hr shift
+
+                  return `
+                    <tr>
+                      <td>
+                        <div style="display:flex;align-items:center;gap:10px;">
+                          <div style="width:34px;height:34px;border-radius:50%;background:#E0E7FF;color:#4338CA;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;">
+                            ${(r.displayName || 'U').charAt(0).toUpperCase()}
+                          </div>
+                          <div>
+                            <div style="font-weight:700;font-size:14px;color:#111827;">
+                              ${escapeHtml(r.displayName || 'Staff')}
+                            </div>
+                            <div style="font-size:11px;color:#6B7280;">ID: ${r.userId.slice(0, 8)}...</div>
+                          </div>
+                        </div>
+                      </td>
+                      <td>${window.getRoleBadgeHTML(r.role)}</td>
+                      <td>
+                        <div style="font-weight:600;font-size:13px;color:#374151;">${firstTime}</div>
+                      </td>
+                      <td>
+                        <div style="font-weight:700;font-size:13px;color:${isOnline ? '#059669' : '#4B5563'};">
+                          ${lastTime}
+                        </div>
+                      </td>
+                      <td>
+                        <span style="display:inline-block;padding:2px 8px;border-radius:12px;background:#EFF6FF;color:#1D4ED8;font-weight:700;font-size:12px;">
+                          ${r.loginCount || 1} ${(r.loginCount || 1) === 1 ? 'login' : 'logins'}
+                        </span>
+                      </td>
+                      <td style="min-width:180px;">
+                        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;font-size:13px;">
+                          <strong style="color:#111827;">${durationStr}</strong>
+                          <span style="font-size:11px;color:#6B7280;">${pct}% shift</span>
+                        </div>
+                        <div style="width:100%;height:6px;background:#E5E7EB;border-radius:3px;overflow:hidden;">
+                          <div style="width:${pct}%;height:100%;background:#10B981;border-radius:3px;"></div>
+                        </div>
+                      </td>
+                      <td style="text-align:right;">
+                        <span class="badge ${isOnline ? 'green' : 'gray'}" style="font-size:11px;font-weight:700;">
+                          ${isOnline ? '● Online' : '⚪ Offline'}
+                        </span>
+                      </td>
+                    </tr>
+                  `;
+                }).join('')}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      `}
+    `;
+  }
 }
+
+// ============ TERMINATE STAFF ACCESS (SAFE PRESERVE) ============
+window.terminateStaffAccess = async function(userId, name) {
+  if (!confirm(`Are you sure you want to terminate login access for "${name}"?\n\n• Wo CRM me dubara login nahi kar payenge.\n• Unka sabhi past data (bookings, expenses, advances, salaries) 100% PRESERVE rahega.`)) return;
+
+  try {
+    const { error } = await sb.from('profiles').update({ is_approved: false }).eq('user_id', userId);
+    if (error) throw error;
+    if (window.fsn) fsn.success('Access Blocked', `✅ ${name} ka login access block ho gaya. Data safe hai.`);
+    renderUserManagement();
+  } catch(e) {
+    if (window.fsn) fsn.error('Error', e.message);
+  }
+};
+
+// ============ BULK REVOKE ALL FIRED STAFF ACCESS ============
+window.revokeAllFiredStaffAccess = async function() {
+  const ids = window._firedStaffNeedsRevocationIds || [
+    '75c2d099-adcd-4441-b66b-7604540d949a', // Amit Kumar
+    '9fb4e445-6651-45d0-bc70-34e59f258a1f'  // Mohammad Iesa
+  ];
+
+  if (!ids.length) {
+    if (window.fsn) fsn.info('Clean', 'Koi bhi fired staff active nahi hai.');
+    return;
+  }
+
+  if (!confirm(`Kya aap sabhi fired/inactive staff (${ids.length}) ka login access block karna chahte hain?\n\n• Unka login band ho jayega.\n• Unka saara purana data (advances, expenses, bookings) 100% safe rahega.`)) return;
+
+  try {
+    for (const uid of ids) {
+      await sb.from('profiles').update({ is_approved: false }).eq('user_id', uid);
+    }
+    if (window.fsn) fsn.success('Success', `✅ Fired staff access block kar diya gaya hai.`);
+    renderUserManagement();
+  } catch(e) {
+    if (window.fsn) fsn.error('Error', e.message);
+  }
+};
+
+// ============ EXPORT ACTIVITY LOGS CSV ============
+window.exportActivityLogsCSV = async function(dateStr) {
+  try {
+    const logs = await (window.UserActivityTracker ? window.UserActivityTracker.fetchLogsForDate(dateStr) : []);
+    if (!logs.length) {
+      if (window.fsn) fsn.warning('No Data', 'Is date ke liye koi activity log nahi hai.');
+      return;
+    }
+
+    let csv = 'Staff Name,Role,Date,Total Logins,Active Screen Time,Screen Seconds,First Login,Last Active\n';
+    logs.forEach(r => {
+      const duration = window.UserActivityTracker ? window.UserActivityTracker._formatDuration(r.activeSeconds) : `${Math.floor((r.activeSeconds||0)/60)}m`;
+      const firstT = window.UserActivityTracker ? window.UserActivityTracker._formatTime(r.firstLoginAt) : (r.firstLoginAt || '');
+      const lastT = window.UserActivityTracker ? window.UserActivityTracker._formatTime(r.lastActiveAt) : (r.lastActiveAt || '');
+      csv += `"${(r.displayName || '').replace(/"/g, '""')}","${r.role || ''}","${r.logDate || dateStr}","${r.loginCount || 1}","${duration}","${r.activeSeconds || 0}","${firstT}","${lastT}"\n`;
+    });
+
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `UHHS_User_Activity_Logs_${dateStr}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    if (window.fsn) fsn.success('Exported', `✅ Activity logs downloaded: ${dateStr}`);
+  } catch(e) {
+    if (window.fsn) fsn.error('Export Error', e.message);
+  }
+};
 
 // ============ ROLE PICKER MODAL ============
 function showRolePickerModal(userId, name, callback) {
@@ -2772,10 +3360,16 @@ async function startHeartbeat() {
   if (!SESSION.userId) return;
   // Update immediately
   await sb.from('profiles').update({ last_seen: new Date().toISOString() }).eq('user_id', SESSION.userId);
+  if (window.UserActivityTracker) {
+    window.UserActivityTracker.pulseActivity(SESSION.userId, SESSION.displayName, SESSION.role);
+  }
   // Then every 30 seconds
   setInterval(async () => {
     if (SESSION.userId) {
       await sb.from('profiles').update({ last_seen: new Date().toISOString() }).eq('user_id', SESSION.userId);
+      if (window.UserActivityTracker) {
+        window.UserActivityTracker.pulseActivity(SESSION.userId, SESSION.displayName, SESSION.role);
+      }
     }
   }, 30000);
 }
