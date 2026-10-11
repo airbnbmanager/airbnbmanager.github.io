@@ -2867,8 +2867,8 @@ window.CA_AUDIT_PACK = (function() {
         <meta charset="utf-8">
         <title>CA_Audit_Pack_${activeMonth}_${CO.cin}.pdf</title>
         <style>
-          @page { size: A4; margin: 12mm 15mm; }
-          body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; font-size: 11pt; color: #111; line-height: 1.4; margin: 0; padding: 0; }
+          @page { size: A4; margin: 0 !important; }
+          body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; font-size: 11pt; color: #111; line-height: 1.4; margin: 0 !important; padding: 12mm 15mm !important; }
           .header-box { border-bottom: 2.5px solid #0F172A; padding-bottom: 8px; margin-bottom: 12px; }
           .co-title { font-size: 16pt; font-weight: 900; color: #0F172A; text-transform: uppercase; margin: 0; }
           .co-meta { font-size: 8.5pt; color: #475569; margin-top: 3px; }
@@ -3109,8 +3109,8 @@ window.CA_AUDIT_PACK = (function() {
         <meta charset="utf-8">
         <title>Salary_Muster_${activeMonth}.pdf</title>
         <style>
-          @page { size: A4 portrait; margin: 15mm; }
-          body { font-family: -apple-system, sans-serif; font-size: 11pt; color: #111; }
+          @page { size: A4 portrait; margin: 0 !important; }
+          body { font-family: -apple-system, sans-serif; font-size: 11pt; color: #111; margin: 0 !important; padding: 12mm 15mm !important; }
           table { width: 100%; border-collapse: collapse; margin-top: 14px; font-size: 10pt; }
           th { background: #F1F5F9; border: 1.5px solid #0F172A; padding: 8px; text-align: left; }
           td { border: 1px solid #CBD5E1; padding: 8px; }
@@ -3193,8 +3193,8 @@ window.CA_AUDIT_PACK = (function() {
         <meta charset="utf-8">
         <title>Self_Vouchers_${activeMonth}.pdf</title>
         <style>
-          @page { size: A4 portrait; margin: 15mm; }
-          body { font-family: -apple-system, sans-serif; font-size: 10pt; color: #111; }
+          @page { size: A4 portrait; margin: 0 !important; }
+          body { font-family: -apple-system, sans-serif; font-size: 10pt; color: #111; margin: 0 !important; padding: 12mm 15mm !important; }
           table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 9.5pt; }
           th { background: #F1F5F9; border: 1.5px solid #0F172A; padding: 6px; text-align: left; }
           td { border: 1px solid #CBD5E1; padding: 6px; }
@@ -3420,8 +3420,8 @@ window.CA_AUDIT_PACK = (function() {
         <meta charset="utf-8">
         <title>BRS_${activeMonth}_${CO.cin}.pdf</title>
         <style>
-          @page { size: A4 portrait; margin: 15mm; }
-          body { font-family: -apple-system, sans-serif; font-size: 10.5pt; color: #111; line-height: 1.4; }
+          @page { size: A4 portrait; margin: 0 !important; }
+          body { font-family: -apple-system, sans-serif; font-size: 10.5pt; color: #111; line-height: 1.4; margin: 0 !important; padding: 12mm 15mm !important; }
           table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 9.5pt; }
           th { background: #F1F5F9; border: 1.5px solid #0F172A; padding: 7px 10px; text-align: left; }
           td { border: 1px solid #CBD5E1; padding: 6px 10px; }

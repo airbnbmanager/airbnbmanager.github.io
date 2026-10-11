@@ -4052,6 +4052,10 @@ window.printDocumentHTML = function(htmlContent, title = 'Document') {
     return;
   }
 
+  // Strip any conflicting @page margin rules in htmlContent that might trigger browser headers/footers
+  const cleanHtml = String(htmlContent || '')
+    .replace(/@page\s*\{[^}]*\}/gi, '');
+
   try {
     win.document.title = cleanTitle;
     win.document.open();
@@ -4063,10 +4067,39 @@ window.printDocumentHTML = function(htmlContent, title = 'Document') {
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>${escapeHtml(cleanTitle)}</title>
         <style>
-          @page { size: A4; margin: 10mm; }
-          * { box-sizing: border-box; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-          body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif; background: #fff; color: #111; padding: 12mm 15mm; }
-          @media print { .no-print { display: none !important; } }
+          @page {
+            size: auto;
+            margin: 0 !important; /* CRITICAL: 0 margin completely suppresses browser default headers and footers (about:blank, date, URL) */
+          }
+          * {
+            box-sizing: border-box;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+          }
+          html, body {
+            margin: 0 !important;
+            padding: 0 !important;
+            background: #ffffff !important;
+            color: #0F172A !important;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+            width: 100% !important;
+          }
+          body {
+            padding: 10mm 14mm !important; /* Safe printable padding inside the page so text never touches edges */
+          }
+          @media print {
+            @page {
+              size: auto;
+              margin: 0 !important; /* Zero margin suppresses about:blank URL footer in Chrome/Edge/Safari */
+            }
+            html, body {
+              margin: 0 !important;
+              padding: 10mm 14mm !important;
+            }
+            .no-print {
+              display: none !important;
+            }
+          }
           table { width: 100%; border-collapse: collapse; }
         </style>
       </head>
@@ -4075,7 +4108,7 @@ window.printDocumentHTML = function(htmlContent, title = 'Document') {
           <button onclick="window.print()" style="padding:8px 20px;background:#4F46E5;color:#fff;border:none;border-radius:6px;font-weight:700;cursor:pointer;">🖨️ Print / Save as PDF</button>
           <span style="font-size:12px;color:#64748B;">The Unique Haven Homes CRM</span>
         </div>
-        ${htmlContent}
+        ${cleanHtml}
         <script>
           window.onload = function() {
             setTimeout(function() { window.print(); }, 400);

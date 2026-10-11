@@ -1210,9 +1210,9 @@ async function printGuestLedger(guestName, phone, passedBookings, passedPayments
 
   const html = `<!DOCTYPE html><html><head><title>${pdfTitle}</title>
     <style>
-      @page { size: A4; margin: 12mm 15mm; }
+      @page { size: auto; margin: 0 !important; }
       * { box-sizing: border-box; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-      body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; color: #1E293B; margin: 0; padding: 12mm 15mm; }
+      body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; color: #1E293B; margin: 0 !important; padding: 10mm 14mm !important; }
       .header-card { background: linear-gradient(135deg, #1E293B, #0F172A); color: #fff; padding: 22px 24px; border-radius: 12px; margin-bottom: 20px; }
       .company-title { font-size: 20px; font-weight: 800; letter-spacing: 0.5px; }
       .doc-subtitle { font-size: 14px; opacity: 0.9; margin-top: 4px; color: #94A3B8; }

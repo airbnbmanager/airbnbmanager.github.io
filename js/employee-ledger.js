@@ -400,8 +400,16 @@ window.renderEmployeeLedger = async function() {
               Yeh employees company se advance liye hue hain — salary me se auto-deduct hoga:
             </div>
           </div>
-          <div style="font-size:16px; font-weight:900; color:#DC2626; background:#fff; padding:6px 14px; border-radius:8px; border:1px solid #FECACA;">
-            Total Due: ₹${totalAdvanceOut.toLocaleString('en-IN')}
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+            <button type="button" onclick="window.exportAdvancesCSV ? window.exportAdvancesCSV() : null" style="padding:6px 12px;background:#059669;color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:4px;">
+              📥 Export CSV
+            </button>
+            <button type="button" onclick="window.printAdvancesReport ? window.printAdvancesReport() : null" style="padding:6px 12px;background:#0F172A;color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:4px;">
+              📄 Print / PDF
+            </button>
+            <div style="font-size:16px; font-weight:900; color:#DC2626; background:#fff; padding:6px 14px; border-radius:8px; border:1px solid #FECACA;">
+              Total Due: ₹${totalAdvanceOut.toLocaleString('en-IN')}
+            </div>
           </div>
         </div>
 
@@ -433,16 +441,31 @@ window.renderEmployeeLedger = async function() {
                     <td style="padding:8px 12px; font-size:12px; color:#4B5563;">
                       ${escapeHtml(latest.reason || 'Advance')} (${latest.date_given || '-'})
                     </td>
-                    <td style="padding:8px 12px; text-align:center;">
-                      <button onclick="window.paySalaryModal('${e.emp_id}','${escapeHtml(e.name).replace(/'/g,"\\'")}',${e.netPayable})"
-                              style="padding:5px 10px; background:#059669; color:#fff; border:none; border-radius:6px; font-size:11px; font-weight:700; cursor:pointer;">
-                        💵 Pay &amp; Settle
-                      </button>
+                    <td style="padding:8px 12px; text-align:center; white-space:nowrap;">
+                      <div style="display:flex;gap:4px;justify-content:center;">
+                        <button onclick="window.paySalaryModal('${e.emp_id}','${escapeHtml(e.name).replace(/'/g,"\\'")}',${e.netPayable})"
+                                style="padding:5px 8px; background:#059669; color:#fff; border:none; border-radius:6px; font-size:11px; font-weight:700; cursor:pointer;" title="Pay salary and deduct advance">
+                          💵 Settle
+                        </button>
+                        <button onclick="window.printAdvancesReport ? window.printAdvancesReport('${e.emp_id}') : null"
+                                style="padding:5px 8px; background:#0F172A; color:#fff; border:none; border-radius:6px; font-size:11px; font-weight:700; cursor:pointer;" title="Print Advance Slip">
+                          📄 Slip
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 `;
               }).join('')}
             </tbody>
+            <tfoot style="background:#FFF1F2; font-weight:800; border-top:2px solid #FDA4AF;">
+              <tr>
+                <td colspan="2" style="padding:8px 12px; text-align:right; color:#881337;">Total (${advanceOnlyList.length} staff):</td>
+                <td style="padding:8px 12px; text-align:right; color:#4B5563;">₹${advanceOnlyList.reduce((s, e) => s + e.advances.reduce((sa, a) => sa + a.advance_amount, 0), 0).toLocaleString('en-IN')}</td>
+                <td style="padding:8px 12px; text-align:right; color:#059669;">₹${advanceOnlyList.reduce((s, e) => s + e.advances.reduce((sa, a) => sa + a.repaid_amount, 0), 0).toLocaleString('en-IN')}</td>
+                <td style="padding:8px 12px; text-align:right; color:#DC2626; font-size:14px;">₹${totalAdvanceOut.toLocaleString('en-IN')}</td>
+                <td colspan="2"></td>
+              </tr>
+            </tfoot>
           </table>
         </div>
       </div>

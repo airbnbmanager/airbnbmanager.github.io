@@ -1447,9 +1447,9 @@ window.exportUhhsLedgerPDF = function(fDate, tDate, totalInflow, totalOutflow, n
       <meta charset="utf-8">
       <title>${title}</title>
       <style>
-        @page { size: A4; margin: 10mm; }
+        @page { size: auto; margin: 0 !important; }
         * { box-sizing: border-box; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 12mm 15mm; margin: 0; color: #1e293b; background: #fff; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 10mm 14mm !important; margin: 0 !important; color: #1e293b; background: #fff; }
         .toolbar { display: flex; justify-content: space-between; align-items: center; background: #0F172A; color: #fff; padding: 10px 16px; border-radius: 8px; margin-bottom: 20px; }
         .toolbar button { background: #10B981; color: #fff; border: none; padding: 8px 16px; border-radius: 6px; font-weight: 700; cursor: pointer; font-size: 13px; }
         .header { border-bottom: 2px solid #0f766e; padding-bottom: 10px; margin-bottom: 16px; }
@@ -1722,9 +1722,9 @@ window.printClaimReportStatement = function() {
     <head>
       <title>${pdfTitle}</title>
       <style>
-        @page { size: A4; margin: 10mm; }
+        @page { size: auto; margin: 0 !important; }
         * { box-sizing: border-box; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 0; color: #1e293b; background: #fff; font-size: 11px; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 0 !important; padding: 10mm 14mm !important; color: #1e293b; background: #fff; font-size: 11px; }
         .header { border-bottom: 2px solid #6d28d9; padding-bottom: 8px; margin-bottom: 14px; }
         h1 { margin: 0; color: #6d28d9; font-size: 18px; font-weight: 800; }
         .sub { color: #64748b; font-size: 11px; margin-top: 3px; }
@@ -1949,8 +1949,8 @@ window.exportCompanyLedgerPDF = async function(fDate, tDate) {
 
   const html =
     '<!DOCTYPE html><html><head><meta charset="utf-8"><title>' + title + '</title><style>' +
-    '@page{size:A4;margin:10mm}*{box-sizing:border-box;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}' +
-    'body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;padding:10mm 14mm;margin:0;color:#1e293b;background:#fff}' +
+    '@page{size:auto;margin:0!important}*{box-sizing:border-box;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}' +
+    'body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;padding:10mm 14mm!important;margin:0!important;color:#1e293b;background:#fff}' +
     '.toolbar{display:flex;justify-content:space-between;align-items:center;background:#EA580C;color:#fff;padding:10px 16px;border-radius:8px;margin-bottom:20px}' +
     '.toolbar button{background:#fff;color:#EA580C;border:none;padding:8px 16px;border-radius:6px;font-weight:700;cursor:pointer;font-size:13px}' +
     '.tbtn-close{background:#EF4444!important;color:#fff!important}' +

@@ -1596,8 +1596,8 @@ window.printVendorLaundryReport = async function(vendorName, monthYear) {
     @media print {
       body { background: #fff; padding: 0; }
       .page-container { box-shadow: none; padding: 0; max-width: 100%; }
-      .no-print { display: none !important; }
-      @page { size: A4 portrait; margin: 12mm 15mm; }
+      @page { size: A4 portrait; margin: 0 !important; }
+      body { padding: 10mm 14mm !important; }
     }
   </style>
 </head>

@@ -2304,30 +2304,58 @@ async function delSal(id) {
 }
 
 // ============ ADVANCE TRACKER ============
-window._advTrackerFilter = window._advTrackerFilter || { empId: 'all', fromDate: '', toDate: '' };
+window._advTrackerFilter = window._advTrackerFilter || { empId: 'all', fromDate: '', toDate: '', showInactive: false };
 
 async function renderAdvanceTracker() {
   renderShell(`<div class="loading">Loading advances...</div>`, 'advance');
   const [{ data: advs }, { data: emps }] = await Promise.all([
-    sb.from('advance_tracker').select('*, employees(name)').order('date_given', { ascending: false }),
-    sb.from('employees').select('emp_id, name').order('name')
+    sb.from('advance_tracker').select('*, employees(emp_id, name, role, phone, status, is_active)').order('date_given', { ascending: false }),
+    sb.from('employees').select('emp_id, name, role, phone, status, is_active').order('name')
   ]);
   const isO = ['owner','admin','moderator','developer'].includes(SESSION.role);
 
   const filter = window._advTrackerFilter;
   const currMonth = new Date().toISOString().slice(0, 7);
 
+  // Active vs Inactive separation
+  const activeEmps = (emps || []).filter(isEmployeeActive);
+  const inactiveEmps = (emps || []).filter(e => !isEmployeeActive(e));
+
+  // If currently selected employee was disabled and showInactive is false, reset to all
+  if (filter.empId !== 'all' && !filter.showInactive && !activeEmps.some(e => e.emp_id === filter.empId)) {
+    filter.empId = 'all';
+  }
+
   // Filter advances
   const filtered = (advs || []).filter(a => {
-    if (filter.empId && filter.empId !== 'all' && a.emp_id !== filter.empId) return false;
+    if (filter.empId && filter.empId !== 'all') {
+      if (a.emp_id !== filter.empId) return false;
+    } else if (!filter.showInactive) {
+      // By default, exclude disabled/inactive employees
+      const empObj = a.employees || (emps || []).find(e => e.emp_id === a.emp_id);
+      if (empObj && !isEmployeeActive(empObj)) return false;
+    }
     const d = a.date_given || (a.created_at || '').slice(0, 10);
     if (filter.fromDate && d < filter.fromDate) return false;
     if (filter.toDate && d > filter.toDate) return false;
     return true;
   });
 
+  // Save in memory for universal export functions
+  window._currentFilteredAdvs = filtered;
+  window._currentAdvEmps = emps || [];
+  window._currentAdvActiveEmps = activeEmps;
+  window._currentAdvAllAdvs = advs || [];
+
   // 1. Total All Time (for selected employee or all)
-  const empAllAdvs = (advs || []).filter(a => filter.empId === 'all' || a.emp_id === filter.empId);
+  const empAllAdvs = (advs || []).filter(a => {
+    if (filter.empId !== 'all') return a.emp_id === filter.empId;
+    if (!filter.showInactive) {
+      const empObj = a.employees || (emps || []).find(e => e.emp_id === a.emp_id);
+      if (empObj && !isEmployeeActive(empObj)) return false;
+    }
+    return true;
+  });
   const totalAllTimeGiven = empAllAdvs.reduce((s, a) => s + Number(a.advance_amount || 0), 0);
   const totalAllTimeRepaid = empAllAdvs.reduce((s, a) => s + Number(a.repaid_amount || 0), 0);
   const totalAllTimeBalance = totalAllTimeGiven - totalAllTimeRepaid;
@@ -2342,14 +2370,25 @@ async function renderAdvanceTracker() {
   const totalBetweenRepaid = filtered.reduce((s, a) => s + Number(a.repaid_amount || 0), 0);
   const totalBetweenBalance = totalBetweenGiven - totalBetweenRepaid;
 
+  const selEmp = filter.empId !== 'all' ? (emps || []).find(e => e.emp_id === filter.empId) : null;
+  const selEmpName = selEmp ? selEmp.name : (filter.empId !== 'all' ? filter.empId : (filter.showInactive ? 'All Employees' : 'All Active Staff'));
+
   renderShell(`
     <div class="card">
       <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
         <div>
           <h1 style="margin:0;">💵 Staff Advances Tracker</h1>
-          <div class="sub">${filtered.length} records shown (Total ${advs?.length || 0} in system)</div>
+          <div class="sub">${filtered.length} records shown (${activeEmps.length} active staff)</div>
         </div>
-        ${isO ? `<button onclick="renderAddAdv()" style="background:#0F766E;color:#fff;font-weight:700;">➕ Give Advance</button>` : ''}
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+          <button type="button" onclick="window.exportAdvancesCSV()" style="background:#059669;color:#fff;font-weight:700;display:inline-flex;align-items:center;gap:6px;border:none;padding:8px 14px;border-radius:7px;cursor:pointer;box-shadow:0 1px 3px rgba(5,150,105,0.25);" title="Download CSV / Excel spreadsheet of advances">
+            📥 Export CSV / Excel
+          </button>
+          <button type="button" onclick="window.printAdvancesReport()" style="background:#0F172A;color:#fff;font-weight:700;display:inline-flex;align-items:center;gap:6px;border:none;padding:8px 14px;border-radius:7px;cursor:pointer;box-shadow:0 1px 3px rgba(15,23,42,0.25);" title="Print or Save PDF Advance Statement / Slip">
+            📄 Print / PDF Report
+          </button>
+          ${isO ? `<button onclick="renderAddAdv()" style="background:#0F766E;color:#fff;font-weight:700;border:none;padding:8px 14px;border-radius:7px;cursor:pointer;">➕ Give Advance</button>` : ''}
+        </div>
       </div>
     </div>
 
@@ -2358,10 +2397,19 @@ async function renderAdvanceTracker() {
       <div style="font-size:13px;font-weight:700;margin-bottom:8px;color:#334155;">🔍 Filter by Employee &amp; Date Range</div>
       <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(160px, 1fr));gap:10px;align-items:end;">
         <div>
-          <label style="font-size:11px;font-weight:700;color:#64748B;display:block;margin-bottom:3px;">👤 Employee</label>
+          <label style="font-size:11px;font-weight:700;color:#64748B;display:block;margin-bottom:3px;">👤 Employee (Active Staff)</label>
           <select id="advEmpFilter" onchange="updateAdvTrackerFilter()" style="width:100%;padding:7px;font-size:12px;border:1px solid #CBD5E1;border-radius:6px;background:#fff;">
-            <option value="all" ${filter.empId==='all'?'selected':''}>All Employees</option>
-            ${(emps || []).map(e => `<option value="${e.emp_id}" ${filter.empId===e.emp_id?'selected':''}>${e.name}</option>`).join('')}
+            <option value="all" ${filter.empId==='all'?'selected':''}>${filter.showInactive ? 'All Staff (Active + Disabled)' : 'All Active Staff (' + activeEmps.length + ')'}</option>
+            ${filter.showInactive ? `
+              <optgroup label="Active Staff (${activeEmps.length})">
+                ${activeEmps.map(e => `<option value="${e.emp_id}" ${filter.empId===e.emp_id?'selected':''}>${e.name}</option>`).join('')}
+              </optgroup>
+              <optgroup label="Disabled / Inactive Staff (${inactiveEmps.length})">
+                ${inactiveEmps.map(e => `<option value="${e.emp_id}" ${filter.empId===e.emp_id?'selected':''}>${e.name} (Disabled)</option>`).join('')}
+              </optgroup>
+            ` : `
+              ${activeEmps.map(e => `<option value="${e.emp_id}" ${filter.empId===e.emp_id?'selected':''}>${e.name}</option>`).join('')}
+            `}
           </select>
         </div>
         <div>
@@ -2373,11 +2421,20 @@ async function renderAdvanceTracker() {
           <input id="advToDate" type="date" value="${filter.toDate}" onchange="updateAdvTrackerFilter()" style="width:100%;padding:6px;font-size:12px;border:1px solid #CBD5E1;border-radius:6px;box-sizing:border-box;">
         </div>
       </div>
-      <div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
-        <span style="font-size:10.5px;color:#64748B;font-weight:700;">Quick Presets:</span>
-        <button type="button" onclick="setAdvTrackerDates('${currMonth}-01', '${new Date().toISOString().slice(0, 10)}')" style="background:#E0E7FF;color:#3730A3;border:1px solid #C7D2FE;padding:3px 8px;border-radius:4px;font-size:11px;font-weight:600;cursor:pointer;">📅 This Month</button>
-        <button type="button" onclick="setAdvTrackerDates('2026-09-17', '${new Date().toISOString().slice(0, 10)}')" style="background:#E0E7FF;color:#3730A3;border:1px solid #C7D2FE;padding:3px 8px;border-radius:4px;font-size:11px;font-weight:600;cursor:pointer;">⚡ Post-Checkpoint (17-Sep)</button>
-        <button type="button" onclick="setAdvTrackerDates('', '')" style="background:#F1F5F9;color:#475569;border:1px solid #CBD5E1;padding:3px 8px;border-radius:4px;font-size:11px;font-weight:600;cursor:pointer;">🌐 All Dates</button>
+      <div style="margin-top:10px;display:flex;gap:6px;flex-wrap:wrap;align-items:center;justify-content:space-between;">
+        <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
+          <span style="font-size:10.5px;color:#64748B;font-weight:700;">Quick Presets:</span>
+          <button type="button" onclick="setAdvTrackerDates('${currMonth}-01', '${new Date().toISOString().slice(0, 10)}')" style="background:#E0E7FF;color:#3730A3;border:1px solid #C7D2FE;padding:3px 8px;border-radius:4px;font-size:11px;font-weight:600;cursor:pointer;">📅 This Month</button>
+          <button type="button" onclick="setAdvTrackerDates('2026-09-17', '${new Date().toISOString().slice(0, 10)}')" style="background:#E0E7FF;color:#3730A3;border:1px solid #C7D2FE;padding:3px 8px;border-radius:4px;font-size:11px;font-weight:600;cursor:pointer;">⚡ Post-Checkpoint (17-Sep)</button>
+          <button type="button" onclick="setAdvTrackerDates('', '')" style="background:#F1F5F9;color:#475569;border:1px solid #CBD5E1;padding:3px 8px;border-radius:4px;font-size:11px;font-weight:600;cursor:pointer;">🌐 All Dates</button>
+          <label style="font-size:11px;color:#475569;font-weight:600;display:inline-flex;align-items:center;gap:4px;cursor:pointer;background:#fff;padding:3px 8px;border-radius:4px;border:1px solid #CBD5E1;margin-left:4px;">
+            <input type="checkbox" id="advShowInactive" ${filter.showInactive ? 'checked' : ''} onchange="window.toggleAdvInactive(this.checked)" style="margin:0;cursor:pointer;">
+            Include Disabled Staff (${inactiveEmps.length})
+          </label>
+        </div>
+        <div style="display:flex;gap:6px;align-items:center;">
+          <span style="font-size:11px;color:#475569;font-weight:600;">Active Filter: <strong>${escapeHtml(selEmpName)}</strong> (${filtered.length} records)</span>
+        </div>
       </div>
     </div>
 
@@ -2432,6 +2489,19 @@ async function renderAdvanceTracker() {
           </td>` : ''}
         </tr>`;
       }).join('')}</tbody>
+      ${filtered.length > 0 ? `
+      <tfoot style="background:#F8FAFC;border-top:2px solid #CBD5E1;font-weight:700;">
+        <tr>
+          <td colspan="2" style="padding:10px 8px;text-align:right;font-weight:800;color:#334155;">
+            Total (${filtered.length} records):
+          </td>
+          <td style="padding:10px 8px;color:var(--red);font-weight:800;font-size:13px;">₹${totalBetweenGiven.toLocaleString('en-IN')}</td>
+          <td style="padding:10px 8px;color:var(--green);font-weight:800;font-size:13px;">₹${totalBetweenRepaid.toLocaleString('en-IN')}</td>
+          <td></td>
+          <td style="padding:10px 8px;color:${totalBetweenBalance > 0 ? 'var(--red)' : 'var(--green)'};font-weight:900;font-size:14px;">₹${totalBetweenBalance.toLocaleString('en-IN')}</td>
+          <td colspan="${isO ? 4 : 3}"></td>
+        </tr>
+      </tfoot>` : ''}
     </table></div></div>
   `, 'advance');
 }
@@ -2447,6 +2517,318 @@ window.setAdvTrackerDates = function(f, t) {
   window._advTrackerFilter.fromDate = f;
   window._advTrackerFilter.toDate = t;
   renderAdvanceTracker();
+};
+
+window.toggleAdvInactive = function(show) {
+  window._advTrackerFilter.showInactive = !!show;
+  if (!show && window._advTrackerFilter.empId !== 'all') {
+    const isStillActive = (window._currentAdvActiveEmps || []).some(e => e.emp_id === window._advTrackerFilter.empId);
+    if (!isStillActive) window._advTrackerFilter.empId = 'all';
+  }
+  renderAdvanceTracker();
+};
+
+// ============ EXPORT STAFF ADVANCES TO CSV / EXCEL ============
+window.exportAdvancesCSV = async function(targetEmpId = null) {
+  let advs = window._currentFilteredAdvs || [];
+  let emps = window._currentAdvEmps || [];
+  let filterEmpId = targetEmpId || window._advTrackerFilter?.empId || 'all';
+
+  // If called directly with a specific employee ID or if memory empty, fetch fresh
+  if (targetEmpId || !advs.length) {
+    let query = sb.from('advance_tracker').select('*, employees(emp_id, name, role, phone)').order('date_given', { ascending: false });
+    if (filterEmpId && filterEmpId !== 'all') {
+      query = query.eq('emp_id', filterEmpId);
+    }
+    const { data } = await query;
+    advs = data || [];
+  }
+
+  if (!advs.length) {
+    if (window.fsn) fsn.info('No Records', 'Export karne ke liye koi advance record nahi mila.');
+    else alert('No advance records found to export.');
+    return;
+  }
+
+  // Determine employee info
+  let empName = 'All Employees';
+  let empSub = 'Consolidated Staff Advances';
+  if (filterEmpId && filterEmpId !== 'all') {
+    const matched = (emps || []).find(e => e.emp_id === filterEmpId) || advs[0]?.employees;
+    empName = matched?.name || filterEmpId;
+    empSub = `ID: ${filterEmpId}${matched?.role ? ' · ' + matched.role : ''}`;
+  }
+
+  const fromDate = targetEmpId ? '' : (window._advTrackerFilter?.fromDate || '');
+  const toDate = targetEmpId ? '' : (window._advTrackerFilter?.toDate || '');
+  let periodStr = 'All Historical Dates';
+  if (fromDate && toDate) periodStr = `${fromDate} to ${toDate}`;
+  else if (fromDate) periodStr = `From ${fromDate}`;
+  else if (toDate) periodStr = `Up to ${toDate}`;
+
+  const totalGiven = advs.reduce((s, a) => s + Number(a.advance_amount || 0), 0);
+  const totalRepaid = advs.reduce((s, a) => s + Number(a.repaid_amount || 0), 0);
+  const totalBal = totalGiven - totalRepaid;
+
+  let csv = `THE UNIQUE HAVEN HOMES PRIVATE LIMITED - STAFF ADVANCES & REPAYMENTS REGISTER\n`;
+  csv += `CIN: U55101UP2024PTC202863 · Corporate Office: Lucknow, UP\n`;
+  csv += `Employee / Scope,"${empName} (${empSub})"\n`;
+  csv += `Period / Date Filter,"${periodStr}"\n`;
+  csv += `Exported On,"${new Date().toLocaleString('en-IN')}"\n`;
+  csv += `Total Records,"${advs.length}"\n`;
+  csv += `Total Advance Given (INR),${totalGiven}\n`;
+  csv += `Total Repaid (INR),${totalRepaid}\n`;
+  csv += `Net Outstanding Balance (INR),${totalBal}\n\n`;
+
+  // Column Headers
+  csv += `Sr,Employee Name,Employee ID,Date Given,Advance Given (INR),Repaid Amount (INR),Repaid Date,Balance Amount (INR),Account / Source,Payment Mode,Reason / Purpose,Status,Record ID\n`;
+
+  advs.forEach((a, idx) => {
+    const eName = (a.employees?.name || a.emp_id || '-').replace(/"/g, '""');
+    const eId = (a.emp_id || '-').replace(/"/g, '""');
+    const dGiven = a.date_given || (a.created_at || '').slice(0, 10) || '-';
+    const amtGiven = Number(a.advance_amount || 0);
+    const amtRepaid = Number(a.repaid_amount || 0);
+    const dRepaid = a.repaid_date || '-';
+    const bal = amtGiven - amtRepaid;
+    const paidBy = (a.paid_by || '-').replace(/"/g, '""');
+    const mode = (a.payment_mode || '-').replace(/"/g, '""');
+    const reason = (a.reason || '-').replace(/"/g, '""').replace(/\n/g, ' ');
+    const status = bal <= 0 ? 'Fully Repaid' : (amtRepaid > 0 ? 'Partially Repaid' : 'Outstanding');
+    const id = a.id || '';
+
+    csv += `${idx + 1},"${eName}","${eId}","${dGiven}",${amtGiven},${amtRepaid},"${dRepaid}",${bal},"${paidBy}","${mode}","${reason}","${status}",${id}\n`;
+  });
+
+  csv += `\n"Total",,,,"${totalGiven}","${totalRepaid}",,"${totalBal}",,,,,\n`;
+  csv += `\n"THE UNIQUE HAVEN HOMES PRIVATE LIMITED"\n"CIN: U55101UP2024PTC202863 · uniquehavenhomesstay.com"\n`;
+
+  const cleanEmpSlug = String(empName).replace(/[^a-zA-Z0-9]/g, '_');
+  const today = new Date().toISOString().slice(0, 10);
+  const fileName = `TUHH_Staff_Advance_${cleanEmpSlug}_${today}.csv`;
+
+  if (typeof window.exportCSV === 'function') {
+    window.exportCSV(csv, fileName);
+  } else if (typeof window.downloadExportFile === 'function') {
+    window.downloadExportFile(csv, fileName, 'text/csv;charset=utf-8');
+  } else {
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = fileName;
+    link.click();
+  }
+
+  if (window.fsn) {
+    fsn.success('Advance Report Exported', `Advance register for ${empName} downloaded!`);
+  }
+};
+
+// ============ PRINT / PDF STAFF ADVANCE STATEMENT ============
+window.printAdvancesReport = async function(targetEmpId = null) {
+  let advs = window._currentFilteredAdvs || [];
+  let emps = window._currentAdvEmps || [];
+  let filterEmpId = targetEmpId || window._advTrackerFilter?.empId || 'all';
+
+  if (targetEmpId || !advs.length) {
+    let query = sb.from('advance_tracker').select('*, employees(emp_id, name, role, phone)').order('date_given', { ascending: false });
+    if (filterEmpId && filterEmpId !== 'all') {
+      query = query.eq('emp_id', filterEmpId);
+    }
+    const { data } = await query;
+    advs = data || [];
+  }
+
+  if (!advs.length) {
+    if (window.fsn) fsn.info('No Records', 'Print karne ke liye koi advance record nahi mila.');
+    else alert('No advance records found to print.');
+    return;
+  }
+
+  let empName = 'All Employees (Consolidated)';
+  let empMeta = null;
+  if (filterEmpId && filterEmpId !== 'all') {
+    empMeta = (emps || []).find(e => e.emp_id === filterEmpId) || advs[0]?.employees;
+    empName = empMeta?.name || filterEmpId;
+  }
+
+  const fromDate = targetEmpId ? '' : (window._advTrackerFilter?.fromDate || '');
+  const toDate = targetEmpId ? '' : (window._advTrackerFilter?.toDate || '');
+  let periodStr = 'All Historical Records';
+  if (fromDate && toDate) periodStr = `${fromDate} to ${toDate}`;
+  else if (fromDate) periodStr = `From ${fromDate}`;
+  else if (toDate) periodStr = `Up to ${toDate}`;
+
+  const totalGiven = advs.reduce((s, a) => s + Number(a.advance_amount || 0), 0);
+  const totalRepaid = advs.reduce((s, a) => s + Number(a.repaid_amount || 0), 0);
+  const totalBal = totalGiven - totalRepaid;
+
+  const rows = advs.map((a, idx) => {
+    const bal = Number(a.advance_amount || 0) - Number(a.repaid_amount || 0);
+    const isSettled = bal <= 0;
+    return `
+      <tr style="border-bottom:1px solid #E2E8F0;background:${idx % 2 === 0 ? '#FFFFFF' : '#F8FAFC'};">
+        <td style="padding:7px 8px;text-align:center;color:#64748B;font-size:11px;">${idx + 1}</td>
+        <td style="padding:7px 8px;font-weight:700;color:#0F172A;font-size:12px;">${escapeHtml(a.employees?.name || a.emp_id)}</td>
+        <td style="padding:7px 8px;font-size:11.5px;color:#334155;white-space:nowrap;">${escapeHtml(a.date_given || (a.created_at || '').slice(0, 10) || '-')}</td>
+        <td style="padding:7px 8px;text-align:right;font-weight:700;color:#DC2626;font-size:12px;">₹${Number(a.advance_amount || 0).toLocaleString('en-IN')}</td>
+        <td style="padding:7px 8px;text-align:right;font-weight:700;color:#059669;font-size:12px;">₹${Number(a.repaid_amount || 0).toLocaleString('en-IN')}</td>
+        <td style="padding:7px 8px;font-size:11px;color:#64748B;white-space:nowrap;">${escapeHtml(a.repaid_date || '-')}</td>
+        <td style="padding:7px 8px;text-align:right;font-weight:800;color:${bal > 0 ? '#DC2626' : '#059669'};font-size:12px;">₹${bal.toLocaleString('en-IN')}</td>
+        <td style="padding:7px 8px;font-size:11px;color:#334155;">${escapeHtml(a.paid_by || '-')}</td>
+        <td style="padding:7px 8px;font-size:11px;color:#64748B;">${escapeHtml(a.payment_mode || '-')}</td>
+        <td style="padding:7px 8px;font-size:11px;color:#475569;max-width:180px;">${escapeHtml(a.reason || '-')}</td>
+        <td style="padding:7px 8px;text-align:center;font-size:10.5px;">
+          <span style="display:inline-block;padding:2px 7px;border-radius:10px;font-weight:700;${isSettled ? 'background:#DCFCE7;color:#166534;' : 'background:#FEE2E2;color:#991B1B;'}">
+            ${isSettled ? '✓ Repaid' : '● Due'}
+          </span>
+        </td>
+      </tr>
+    `;
+  }).join('');
+
+  const html = `
+    <div style="max-width:960px;margin:0 auto;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#0F172A;line-height:1.4;">
+      
+      <!-- HEADER -->
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2.5px solid #0F766E;padding-bottom:14px;margin-bottom:14px;">
+        <div>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span style="font-size:24px;">🏡</span>
+            <div>
+              <h1 style="margin:0;font-size:20px;font-weight:900;letter-spacing:-0.3px;color:#0F172A;">THE UNIQUE HAVEN HOMES PRIVATE LIMITED</h1>
+              <div style="font-size:11px;color:#64748B;font-weight:600;margin-top:2px;">CIN: U55101UP2024PTC202863 · HRMS &amp; Staff Payroll Portal</div>
+            </div>
+          </div>
+          <div style="margin-top:10px;display:inline-block;background:#F0FDFA;border:1px solid #99F6E4;padding:4px 10px;border-radius:6px;font-size:12px;font-weight:800;color:#0F766E;letter-spacing:0.5px;">
+            📄 STAFF SALARY ADVANCE &amp; REPAYMENT STATEMENT
+          </div>
+        </div>
+        <div style="text-align:right;">
+          <div style="font-size:11px;color:#64748B;">Statement Date</div>
+          <div style="font-size:13px;font-weight:800;color:#0F172A;">${new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</div>
+          <div style="font-size:11px;color:#64748B;margin-top:4px;">Period: <strong>${escapeHtml(periodStr)}</strong></div>
+        </div>
+      </div>
+
+      <!-- EMPLOYEE / SCOPE INFO -->
+      <div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:10px;padding:12px 16px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
+        <div>
+          <div style="font-size:11px;font-weight:700;color:#64748B;text-transform:uppercase;letter-spacing:0.5px;">Employee Details</div>
+          <div style="font-size:17px;font-weight:900;color:#0F172A;margin-top:2px;">${escapeHtml(empName)}</div>
+          ${empMeta ? `
+            <div style="font-size:12px;color:#475569;margin-top:2px;">
+              <span><strong>ID:</strong> ${escapeHtml(filterEmpId)}</span>
+              ${empMeta.role ? ` · <span><strong>Role:</strong> ${escapeHtml(empMeta.role)}</span>` : ''}
+              ${empMeta.phone ? ` · <span><strong>Phone:</strong> ${escapeHtml(empMeta.phone)}</span>` : ''}
+            </div>
+          ` : `
+            <div style="font-size:12px;color:#475569;margin-top:2px;">Consolidated ledger for all employees in system (${advs.length} entries)</div>
+          `}
+        </div>
+        <div style="text-align:right;">
+          <div style="font-size:11px;font-weight:700;color:#64748B;text-transform:uppercase;">Generated By</div>
+          <div style="font-size:13px;font-weight:700;color:#334155;">${escapeHtml(window.SESSION?.name || window.SESSION?.user || 'Admin')} (${escapeHtml(window.SESSION?.role || 'Management')})</div>
+        </div>
+      </div>
+
+      <!-- KPI METRIC BOXES -->
+      <div style="display:grid;grid-template-columns:repeat(3, 1fr);gap:12px;margin-bottom:16px;">
+        <div style="background:#FEF2F2;border:1.5px solid #FECDD3;padding:12px;border-radius:10px;text-align:center;">
+          <div style="font-size:11px;font-weight:800;color:#991B1B;letter-spacing:0.5px;">💰 TOTAL ADVANCES GIVEN</div>
+          <div style="font-size:22px;font-weight:900;color:#DC2626;margin-top:4px;">₹${totalGiven.toLocaleString('en-IN')}</div>
+          <div style="font-size:10.5px;color:#7F1D1D;margin-top:2px;">${advs.length} disbursements</div>
+        </div>
+        <div style="background:#F0FDF4;border:1.5px solid #BBF7D0;padding:12px;border-radius:10px;text-align:center;">
+          <div style="font-size:11px;font-weight:800;color:#166534;letter-spacing:0.5px;">✅ TOTAL REPAID / DEDUCTED</div>
+          <div style="font-size:22px;font-weight:900;color:#059669;margin-top:4px;">₹${totalRepaid.toLocaleString('en-IN')}</div>
+          <div style="font-size:10.5px;color:#14532D;margin-top:2px;">Salary recovery / cash return</div>
+        </div>
+        <div style="background:${totalBal > 0 ? '#FEF2F2' : '#F0FDF4'};border:1.5px solid ${totalBal > 0 ? '#FCA5A5' : '#86EFAC'};padding:12px;border-radius:10px;text-align:center;">
+          <div style="font-size:11px;font-weight:800;color:${totalBal > 0 ? '#991B1B' : '#166534'};letter-spacing:0.5px;">⚖️ OUTSTANDING DUE BALANCE</div>
+          <div style="font-size:22px;font-weight:900;color:${totalBal > 0 ? '#DC2626' : '#059669'};margin-top:4px;">₹${totalBal.toLocaleString('en-IN')}</div>
+          <div style="font-size:10.5px;color:${totalBal > 0 ? '#7F1D1D' : '#14532D'};margin-top:2px;">${totalBal > 0 ? 'To be deducted in upcoming salary' : 'Fully Cleared / Nil Balance'}</div>
+        </div>
+      </div>
+
+      <!-- TABLE -->
+      <div style="margin-bottom:24px;">
+        <table style="width:100%;border-collapse:collapse;font-size:11.5px;background:#fff;border:1px solid #CBD5E1;">
+          <thead>
+            <tr style="background:#0F172A;color:#fff;text-align:left;">
+              <th style="padding:8px 8px;text-align:center;width:30px;">#</th>
+              <th style="padding:8px 8px;">Employee</th>
+              <th style="padding:8px 8px;">Date Given</th>
+              <th style="padding:8px 8px;text-align:right;">Given (₹)</th>
+              <th style="padding:8px 8px;text-align:right;">Repaid (₹)</th>
+              <th style="padding:8px 8px;">Repaid Date</th>
+              <th style="padding:8px 8px;text-align:right;">Balance (₹)</th>
+              <th style="padding:8px 8px;">Account</th>
+              <th style="padding:8px 8px;">Mode</th>
+              <th style="padding:8px 8px;">Reason / Purpose</th>
+              <th style="padding:8px 8px;text-align:center;">Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${rows}
+          </tbody>
+          <tfoot>
+            <tr style="background:#F1F5F9;border-top:2px solid #0F172A;font-weight:900;">
+              <td colspan="3" style="padding:10px 8px;text-align:right;font-size:12px;color:#0F172A;">GRAND TOTAL:</td>
+              <td style="padding:10px 8px;text-align:right;color:#DC2626;font-size:13px;">₹${totalGiven.toLocaleString('en-IN')}</td>
+              <td style="padding:10px 8px;text-align:right;color:#059669;font-size:13px;">₹${totalRepaid.toLocaleString('en-IN')}</td>
+              <td></td>
+              <td style="padding:10px 8px;text-align:right;color:${totalBal > 0 ? '#DC2626' : '#059669'};font-size:14px;">₹${totalBal.toLocaleString('en-IN')}</td>
+              <td colspan="4"></td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+
+      <!-- SIGN-OFF & ACKNOWLEDGMENT SECTION -->
+      <div style="border:1px solid #CBD5E1;border-radius:10px;padding:16px;background:#FAFAFA;margin-top:20px;page-break-inside:avoid;">
+        <div style="font-size:11px;font-weight:800;color:#475569;text-transform:uppercase;margin-bottom:12px;letter-spacing:0.5px;">Verification &amp; Acknowledgment</div>
+        <div style="display:grid;grid-template-columns:repeat(3, 1fr);gap:20px;margin-top:20px;text-align:center;">
+          <div>
+            <div style="border-bottom:1px dashed #94A3B8;height:45px;margin-bottom:8px;"></div>
+            <div style="font-weight:700;font-size:12px;color:#0F172A;">Prepared By</div>
+            <div style="font-size:11px;color:#64748B;">HR &amp; Payroll Officer</div>
+          </div>
+          <div>
+            <div style="border-bottom:1px dashed #94A3B8;height:45px;margin-bottom:8px;"></div>
+            <div style="font-weight:700;font-size:12px;color:#0F172A;">Employee Signature</div>
+            <div style="font-size:10px;color:#64748B;">I accept advance records &amp; balance due</div>
+          </div>
+          <div>
+            <div style="border-bottom:1px dashed #94A3B8;height:45px;margin-bottom:8px;"></div>
+            <div style="font-weight:700;font-size:12px;color:#0F172A;">Authorized Signatory</div>
+            <div style="font-size:11px;color:#64748B;">Director / Finance TUHH</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- FOOTER NOTE -->
+      <div style="margin-top:24px;border-top:1px solid #E2E8F0;padding-top:10px;font-size:10.5px;color:#94A3B8;text-align:center;">
+        THE UNIQUE HAVEN HOMES PRIVATE LIMITED · CIN: U55101UP2024PTC202863 · This is a computer generated payroll advance document · uniquehavenhomesstay.com
+      </div>
+    </div>
+  `;
+
+  const cleanTitle = `Staff_Advance_${String(empName).replace(/[^a-zA-Z0-9]/g, '_')}_${new Date().toISOString().slice(0, 10)}`;
+
+  if (typeof window.printDocumentHTML === 'function') {
+    window.printDocumentHTML(html, cleanTitle);
+  } else {
+    const printWin = window.open('', '_blank');
+    if (printWin) {
+      printWin.document.write(`<html><head><title>${cleanTitle}</title><style>@page{size:auto;margin:0 !important;}body{margin:0 !important;padding:10mm 14mm !important;font-family:sans-serif;}@media print{@page{margin:0 !important;}body{padding:10mm 14mm !important;}}</style></head><body>${html}</body></html>`);
+      printWin.document.close();
+      printWin.focus();
+      setTimeout(() => { printWin.print(); }, 500);
+    } else {
+      alert('Popup blocked. Please allow popups to print.');
+    }
+  }
 };
 
 async function renderAddAdv() {
@@ -3052,7 +3434,15 @@ async function showEmpDetailModal(empId) {
           }).join('')}</tbody>
         </table></div>`}
 
-      <div class="section-title" style="margin-top:14px;">💵 Advance History</div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:14px;flex-wrap:wrap;gap:6px;">
+        <div class="section-title" style="margin:0;">💵 Advance History</div>
+        ${(advs || []).length > 0 ? `
+          <div style="display:flex;gap:6px;">
+            <button type="button" class="btn-sm" onclick="window.exportAdvancesCSV('${emp.emp_id}')" style="background:#059669;color:#fff;font-weight:700;border:none;border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer;">📥 Export CSV</button>
+            <button type="button" class="btn-sm" onclick="window.printAdvancesReport('${emp.emp_id}')" style="background:#0F172A;color:#fff;font-weight:700;border:none;border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer;">📄 Print Slip</button>
+          </div>
+        ` : ''}
+      </div>
       ${(advs || []).length === 0 ? '<div class="sub">No advances</div>' : `
         <div class="table-wrap"><table>
           <thead><tr><th>Date</th><th>Given</th><th>Repaid</th><th>Balance</th><th>Reason</th></tr></thead>
@@ -3066,6 +3456,15 @@ async function showEmpDetailModal(empId) {
               <td style="font-size:12px;">${r.reason || '-'}</td>
             </tr>`;
           }).join('')}</tbody>
+          <tfoot style="background:#F8FAFC;font-weight:700;border-top:2px solid #CBD5E1;">
+            <tr>
+              <td style="padding:6px 8px;font-weight:800;">Total:</td>
+              <td style="color:var(--red);padding:6px 8px;font-weight:800;">₹${totalAdvGiven.toLocaleString('en-IN')}</td>
+              <td style="color:var(--green);padding:6px 8px;font-weight:800;">₹${totalAdvRepaid.toLocaleString('en-IN')}</td>
+              <td style="color:${advBalance > 0 ? 'var(--red)' : 'var(--green)'};padding:6px 8px;font-weight:900;">₹${advBalance.toLocaleString('en-IN')}</td>
+              <td></td>
+            </tr>
+          </tfoot>
         </table></div>`}
 
       <div class="section-title" style="margin-top:14px;">🧾 Staff Expenses</div>
