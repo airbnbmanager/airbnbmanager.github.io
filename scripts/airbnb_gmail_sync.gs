@@ -556,7 +556,7 @@ function syncAirbnbReviewsFromGmail() {
   // Fetch recent checkouts (last 20 days) from CRM to match against
   const today = new Date();
   const twentyDaysAgo = new Date(today.getTime() - 20 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
-  const fetchUrl = `${CONFIG.SUPABASE_URL}/rest/v1/guest_register?select=booking_id,guest_name,airbnb_confirmation_code,check_out,client_rating&gte.check_out=${twentyDaysAgo}&is_cancelled=eq.false`;
+  const fetchUrl = `${CONFIG.SUPABASE_URL}/rest/v1/guest_register?select=booking_id,guest_name,airbnb_confirmation_code,check_out,client_rating&check_out=gte.${twentyDaysAgo}&is_cancelled=eq.false`;
 
   let recentBookings = [];
   try {

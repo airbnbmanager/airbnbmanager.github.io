@@ -466,6 +466,7 @@
       const src = window.getBookingSource ? window.getBookingSource(b) : null;
       return src ? src.isOnline : (b.booking_mode === 'Online-Airbnb' || !!b.airbnb_confirmation_code);
     });
+    window._cachedRadarBookings = bookings;
     const rooms = allRooms || [];
 
     // Calculate metrics
@@ -806,42 +807,70 @@
         return;
       }
 
-      // Extract HM code or first name
+      if (resEl) resEl.innerHTML = '<span style="color:#2563EB;">🔍 Searching for matching guest booking...</span>';
+
+      // 1. Extract HM confirmation code
       const codeMatch = val.match(/\b(HM[A-Z0-9]{8,12})\b/i);
       const confCode = codeMatch ? codeMatch[1].toUpperCase() : null;
 
+      // 2. Extract Guest Name (e.g. "Sparsh wrote you a review", "Read Sparsh's review")
       let guestName = null;
       const subMatch1 = val.match(/^([A-Za-z\s]+?)\s+wrote\s+(you\s+)?a\s+review/i);
       const subMatch2 = val.match(/^Read\s+([A-Za-z\s]+?)'s\s+review/i);
       const subMatch3 = val.match(/^New\s+review\s+from\s+([A-Za-z\s]+)/i);
+      const subMatch4 = val.match(/review\s+(for|from)\s+([A-Za-z\s]+)/i);
+
       if (subMatch1) guestName = subMatch1[1].trim();
       else if (subMatch2) guestName = subMatch2[1].trim();
       else if (subMatch3) guestName = subMatch3[1].trim();
-      else if (!confCode) guestName = val.split(' ')[0].trim();
-
-      const { data: bks } = await sb.from('guest_register')
-        .select('booking_id, guest_name, airbnb_confirmation_code, check_out')
-        .order('check_out', { ascending: false })
-        .limit(100);
+      else if (subMatch4) guestName = subMatch4[2].trim();
+      else if (!confCode) {
+        guestName = val.replace(/wrote\s+you\s+a\s+review/i, '').replace(/review/i, '').trim();
+      }
 
       let matched = null;
+
+      // A. Check in-memory radar bookings first (fastest and 100% matched with visible table)
+      const currentList = window._cachedRadarBookings || [];
       if (confCode) {
-        matched = (bks || []).find(b => (b.airbnb_confirmation_code || '').toUpperCase() === confCode);
+        matched = currentList.find(b => (b.airbnb_confirmation_code || '').toUpperCase() === confCode);
       }
       if (!matched && guestName) {
         const cleanTarget = guestName.toLowerCase();
-        matched = (bks || []).find(b => (b.guest_name || '').toLowerCase().includes(cleanTarget));
+        matched = currentList.find(b => {
+          const bName = (b.guest_name || '').toLowerCase();
+          return bName.includes(cleanTarget) || cleanTarget.includes(bName.split(' ')[0]);
+        });
+      }
+
+      // B. If not in memory, query Supabase database directly
+      if (!matched && confCode) {
+        const { data: byCode } = await sb.from('guest_register')
+          .select('booking_id, guest_name, airbnb_confirmation_code, check_out')
+          .eq('airbnb_confirmation_code', confCode)
+          .limit(1);
+        if (byCode && byCode.length > 0) matched = byCode[0];
+      }
+
+      if (!matched && guestName) {
+        const firstName = guestName.split(/\s+/)[0];
+        const { data: byName } = await sb.from('guest_register')
+          .select('booking_id, guest_name, airbnb_confirmation_code, check_out')
+          .ilike('guest_name', `%${firstName}%`)
+          .order('check_out', { ascending: false })
+          .limit(5);
+        if (byName && byName.length > 0) matched = byName[0];
       }
 
       if (matched) {
-        if (resEl) resEl.innerHTML = `<span style="color:#059669;">✅ Matched: <strong>${escapeHtml(matched.guest_name)}</strong> (${matched.airbnb_confirmation_code || matched.booking_id})! Marking review received...</span>`;
+        if (resEl) resEl.innerHTML = `<span style="color:#059669;font-weight:700;">✅ Matched: <strong>${escapeHtml(matched.guest_name)}</strong> (${matched.airbnb_confirmation_code || matched.booking_id})! Marking review received...</span>`;
         await window.markReviewReceived(matched.booking_id, matched.guest_name);
         setTimeout(() => {
           modal.remove();
           renderReviewFollowupHub();
         }, 1200);
       } else {
-        if (resEl) resEl.innerHTML = `<span style="color:#DC2626;">❌ No recent booking matched for "${val}". Please check name or code.</span>`;
+        if (resEl) resEl.innerHTML = `<span style="color:#DC2626;font-weight:600;">❌ No booking matched for "${val}". Please check name or code.</span>`;
       }
     };
   };
