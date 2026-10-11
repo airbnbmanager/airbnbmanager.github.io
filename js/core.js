@@ -3987,10 +3987,34 @@ window.exportCSV = function(csvContent, fileName) {
  * Universal Document Print for iPad, iPhone, Android, and Desktop
  * Eliminates "Popup blocked!" alerts and iOS iframe blank printing issues
  */
-window.printDocumentHTML = function(htmlContent, title = 'Document') {
+window.printDocumentHTML = function(htmlContent, title = 'Document', options = {}) {
   const cleanTitle = String(title || 'Document').replace(/[\/\\:*?"<>|]/g, '_');
-  const isAppleTouch = /iPad|iPhone|iPod/i.test(navigator.userAgent) || 
-    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || 
+    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1) || 
+    (window.innerWidth <= 768);
+
+  // Extract body content if full HTML document was passed
+  let cleanHtml = String(htmlContent || '');
+  const bodyMatch = cleanHtml.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
+  if (bodyMatch) {
+    cleanHtml = bodyMatch[1];
+  }
+  cleanHtml = cleanHtml
+    .replace(/<!DOCTYPE[^>]*>/gi, '')
+    .replace(/<\/?html[^>]*>/gi, '')
+    .replace(/<head[\s\S]*?<\/head>/gi, '')
+    .replace(/<title[\s\S]*?<\/title>/gi, '')
+    .replace(/<\/?body[^>]*>/gi, '')
+    .replace(/@page\s*\{[^}]*\}/gi, '')
+    .replace(/<script[\s\S]*?window\.print\(\)[\s\S]*?<\/script>/gi, '');
+
+  // Helper to extract clean text for WhatsApp / Clipboard
+  function extractReportText(htmlStr) {
+    const tmp = document.createElement('div');
+    tmp.innerHTML = htmlStr;
+    const txt = tmp.innerText || tmp.textContent || '';
+    return txt.replace(/\n\s*\n\s*\n/g, '\n\n').trim();
+  }
 
   // In-App Print Modal for iPad/Mobile and popup-blocked browsers
   function showInAppPrintModal(html, docTitle) {
@@ -4001,24 +4025,32 @@ window.printDocumentHTML = function(htmlContent, title = 'Document') {
     overlay.id = 'uhhPrintOverlay';
     overlay.className = 'uhh-print-overlay';
     overlay.innerHTML = `
-      <div class="uhh-print-toolbar no-print">
-        <div style="display:flex;align-items:center;gap:10px;min-width:0;">
-          <button type="button" class="uhh-print-btn primary" onclick="window.print()" title="Print via AirPrint or Connected Printer">
+      <div class="uhh-print-toolbar no-print" style="position:sticky;top:0;background:#0F172A;color:#FFFFFF;padding:10px 14px;display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;z-index:999999;box-shadow:0 2px 8px rgba(0,0,0,0.2);">
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;min-width:0;">
+          <button type="button" class="uhh-print-btn primary" onclick="window.print()" style="background:#10B981;color:#fff;border:none;padding:7px 14px;border-radius:6px;font-weight:700;font-size:12px;cursor:pointer;display:inline-flex;align-items:center;gap:5px;">
             🖨️ Print / AirPrint
           </button>
-          <button type="button" class="uhh-print-btn secondary" onclick="window.downloadExportFile(document.getElementById('uhhPrintBodyInner').innerHTML, '${docTitle}.html', 'text/html;charset=utf-8')">
+          <button type="button" class="uhh-print-btn secondary" onclick="window.downloadExportFile(document.getElementById('uhhPrintCardInner').innerHTML, '${docTitle}.html', 'text/html;charset=utf-8')" style="background:#3B82F6;color:#fff;border:none;padding:7px 12px;border-radius:6px;font-weight:700;font-size:12px;cursor:pointer;display:inline-flex;align-items:center;gap:5px;">
             📥 Save HTML
           </button>
-          <span style="font-weight:700;font-size:14px;color:#FFFFFF;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+          <button type="button" class="uhh-print-btn" onclick="const t=document.getElementById('uhhPrintCardInner')?.innerText||'';window.open('https://wa.me/?text=' + encodeURIComponent('*' + '${escapeHtml(docTitle)}' + '*\\n\\n' + t.slice(0, 1500)), '_blank')" style="background:#25D366;color:#fff;border:none;padding:7px 12px;border-radius:6px;font-weight:700;font-size:12px;cursor:pointer;display:inline-flex;align-items:center;gap:5px;" title="Share summary on WhatsApp">
+            💬 WhatsApp
+          </button>
+          <button type="button" class="uhh-print-btn" onclick="const t=document.getElementById('uhhPrintCardInner')?.innerText||'';navigator.clipboard.writeText(t);if(window.fsn?.success) fsn.success('Copied','Report text copied!'); else alert('Report text copied!');" style="background:#475569;color:#fff;border:none;padding:7px 10px;border-radius:6px;font-weight:700;font-size:12px;cursor:pointer;display:inline-flex;align-items:center;gap:4px;" title="Copy report text to clipboard">
+            📋 Copy
+          </button>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;min-width:0;">
+          <span style="font-weight:700;font-size:12px;color:#94A3B8;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
             ${escapeHtml(docTitle)}
           </span>
+          <button type="button" class="uhh-print-close-btn" onclick="document.getElementById('uhhPrintOverlay')?.remove()" style="background:#EF4444;color:#fff;border:none;padding:6px 12px;border-radius:6px;font-weight:800;font-size:12px;cursor:pointer;">
+            ✕ Close
+          </button>
         </div>
-        <button type="button" class="uhh-print-close-btn" onclick="document.getElementById('uhhPrintOverlay')?.remove()">
-          ✕ Close
-        </button>
       </div>
-      <div class="uhh-print-body">
-        <div id="uhhPrintBodyInner">
+      <div class="uhh-print-body" style="padding:16px 12px;background:#F1F5F9;flex:1;overflow-y:auto;overflow-x:auto;-webkit-overflow-scrolling:touch;">
+        <div id="uhhPrintCardInner" style="max-width:1000px;margin:0 auto;background:#FFFFFF;border-radius:10px;padding:16px;box-shadow:0 4px 15px rgba(0,0,0,0.06);box-sizing:border-box;">
           ${html}
         </div>
       </div>
@@ -4026,15 +4058,30 @@ window.printDocumentHTML = function(htmlContent, title = 'Document') {
 
     document.body.appendChild(overlay);
 
-    // Auto-trigger print dialog after short render delay
-    setTimeout(() => {
-      try { window.print(); } catch(e) { console.warn('Auto print failed:', e); }
-    }, 450);
+    const onEsc = (e) => {
+      if (e.key === 'Escape') {
+        overlay.remove();
+        window.removeEventListener('keydown', onEsc);
+      }
+    };
+    window.addEventListener('keydown', onEsc);
+
+    // Auto-trigger print dialog after short render delay on non-mobile or when requested
+    if (options.autoPrint !== false) {
+      setTimeout(() => {
+        try { window.print(); } catch(e) { console.warn('Auto print failed:', e); }
+      }, 450);
+    }
   }
 
-  // On iPad / iPhone or touch devices: in-app modal is 100% reliable with system AirPrint
-  if (isAppleTouch) {
-    showInAppPrintModal(htmlContent, cleanTitle);
+  // Provide public alias for in-app preview
+  window.previewReportModal = function(h, t) {
+    showInAppPrintModal(h, t);
+  };
+
+  // On Mobile / Touch devices: in-app modal is 100% reliable with system AirPrint & Android print
+  if (isMobile || options.forceModal) {
+    showInAppPrintModal(cleanHtml, cleanTitle);
     return;
   }
 
@@ -4048,13 +4095,9 @@ window.printDocumentHTML = function(htmlContent, title = 'Document') {
 
   if (!win) {
     // If popup blocked on desktop, fallback seamlessly to in-app print overlay
-    showInAppPrintModal(htmlContent, cleanTitle);
+    showInAppPrintModal(cleanHtml, cleanTitle);
     return;
   }
-
-  // Strip any conflicting @page margin rules in htmlContent that might trigger browser headers/footers
-  const cleanHtml = String(htmlContent || '')
-    .replace(/@page\s*\{[^}]*\}/gi, '');
 
   try {
     win.document.title = cleanTitle;
@@ -4069,7 +4112,7 @@ window.printDocumentHTML = function(htmlContent, title = 'Document') {
         <style>
           @page {
             size: auto;
-            margin: 0 !important; /* CRITICAL: 0 margin completely suppresses browser default headers and footers (about:blank, date, URL) */
+            margin: 0 !important; /* Zero margin suppresses about:blank URL footer in Chrome/Edge/Safari */
           }
           * {
             box-sizing: border-box;
@@ -4085,12 +4128,12 @@ window.printDocumentHTML = function(htmlContent, title = 'Document') {
             width: 100% !important;
           }
           body {
-            padding: 8mm 10mm !important; /* Safe printable padding inside the page so text never touches edges */
+            padding: 8mm 10mm !important; /* Safe printable padding inside page */
           }
           @media print {
             @page {
               size: auto;
-              margin: 0 !important; /* Zero margin suppresses about:blank URL footer in Chrome/Edge/Safari */
+              margin: 0 !important;
             }
             html, body {
               margin: 0 !important;
@@ -4105,8 +4148,11 @@ window.printDocumentHTML = function(htmlContent, title = 'Document') {
       </head>
       <body>
         <div class="no-print" style="padding:10px 16px;background:#F8FAFC;border-bottom:1px solid #E2E8F0;display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
-          <button onclick="window.print()" style="padding:8px 20px;background:#4F46E5;color:#fff;border:none;border-radius:6px;font-weight:700;cursor:pointer;">🖨️ Print / Save as PDF</button>
-          <span style="font-size:12px;color:#64748B;">The Unique Haven Homes CRM</span>
+          <div style="display:flex;align-items:center;gap:10px;">
+            <button onclick="window.print()" style="padding:8px 20px;background:#4F46E5;color:#fff;border:none;border-radius:6px;font-weight:700;font-size:13px;cursor:pointer;">🖨️ Print / Save as PDF</button>
+            <button onclick="window.close()" style="padding:8px 14px;background:#64748B;color:#fff;border:none;border-radius:6px;font-weight:700;font-size:13px;cursor:pointer;">✕ Close</button>
+          </div>
+          <span style="font-size:12px;color:#64748B;font-weight:600;">The Unique Haven Homes CRM</span>
         </div>
         ${cleanHtml}
         <script>
@@ -4121,7 +4167,7 @@ window.printDocumentHTML = function(htmlContent, title = 'Document') {
     win.focus();
   } catch(err) {
     console.warn('Window write failed, falling back to in-app print overlay:', err);
-    showInAppPrintModal(htmlContent, cleanTitle);
+    showInAppPrintModal(cleanHtml, cleanTitle);
   }
 };
 

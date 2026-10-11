@@ -47,6 +47,7 @@ async function renderExpenses() {
         <button onclick="renderAddExpEntry()">🧾 Log Expense</button>
         <button onclick="window.exportExpensesCSV()" style="background:#059669;color:#fff;font-weight:700;border:none;">📥 Export CSV / Excel</button>
         <button onclick="window.printExpensesReport()" style="background:#4F46E5;color:#fff;font-weight:700;border:none;">🖨️ Print / PDF Report</button>
+        <button onclick="window.shareExpensesWhatsApp()" style="background:#16A34A;color:#fff;font-weight:700;border:none;" title="Share monthly expenses on WhatsApp">💬 WhatsApp Summary</button>
         <button onclick="navigate('ca-audit')" style="background:#0F172A;color:#38BDF8;font-weight:700;border:none;">💼 CA Audit &amp; GST Pack</button>
         <button class="secondary" onclick="renderManageCategories()">⚙️ Manage Categories</button>
         <button class="secondary" onclick="renderDefaultExpenses()">⚙️ Defaults</button>
@@ -202,6 +203,9 @@ function applyExpenseFilters() {
           <button type="button" class="btn-sm" onclick="window.printExpensesReport()" style="background:#4F46E5;color:#fff;font-weight:700;border:none;padding:5px 12px;border-radius:6px;cursor:pointer;">
             🖨️ Print / PDF
           </button>
+          <button type="button" class="btn-sm" onclick="window.shareExpensesWhatsApp()" style="background:#16A34A;color:#fff;font-weight:700;border:none;padding:5px 12px;border-radius:6px;cursor:pointer;" title="Share on WhatsApp">
+            💬 WhatsApp
+          </button>
         </div>
       </div>
       <div class="table-wrap"><table>
@@ -314,88 +318,136 @@ window.printExpensesReport = function() {
   const catRows = Object.entries(catMap)
     .sort((a, b) => b[1] - a[1])
     .map(([cat, amt]) => `
-      <tr>
-        <td style="padding:6px 10px;border-bottom:1px solid #E2E8F0;font-weight:600;">${escapeHtml(cat)}</td>
-        <td style="padding:6px 10px;border-bottom:1px solid #E2E8F0;text-align:right;font-weight:700;color:#DC2626;">₹${amt.toLocaleString('en-IN')}</td>
-        <td style="padding:6px 10px;border-bottom:1px solid #E2E8F0;text-align:right;color:#64748B;">${((amt / (totalAmt || 1)) * 100).toFixed(1)}%</td>
+      <tr style="border-bottom:1px solid #CBD5E1;">
+        <td style="padding:6px 10px;font-weight:600;border:1px solid #CBD5E1;">${escapeHtml(cat)}</td>
+        <td style="padding:6px 10px;text-align:right;font-weight:700;color:#DC2626;white-space:nowrap;border:1px solid #CBD5E1;">₹${amt.toLocaleString('en-IN')}</td>
+        <td style="padding:6px 10px;text-align:right;color:#64748B;white-space:nowrap;border:1px solid #CBD5E1;">${((amt / (totalAmt || 1)) * 100).toFixed(1)}%</td>
       </tr>
     `).join('');
 
   const rows = exps.map((e, idx) => `
-    <tr style="border-bottom:1px solid #F1F5F9;">
-      <td style="padding:6px 8px;text-align:center;color:#64748B;">${idx + 1}</td>
-      <td style="padding:6px 8px;font-weight:600;">${escapeHtml(e.month || '-')}</td>
-      <td style="padding:6px 8px;">${escapeHtml(e.expense_categories?.category_name || '-')}</td>
-      <td style="padding:6px 8px;">${escapeHtml(propLabel(e.rooms) || e.room_id || 'General')}</td>
-      <td style="padding:6px 8px;text-align:right;font-weight:700;color:#DC2626;">₹${(e.amount || 0).toLocaleString('en-IN')}</td>
-      <td style="padding:6px 8px;font-size:11.5px;color:#475569;">${escapeHtml(e.entry_date || '-')}</td>
-      <td style="padding:6px 8px;font-size:11.5px;color:#334155;">${escapeHtml(e.payment_source || '-')}</td>
-      <td style="padding:6px 8px;font-size:11.5px;color:#64748B;max-width:180px;">${escapeHtml(e.notes || '-')}</td>
+    <tr style="border-bottom:1px solid #CBD5E1;background:${idx % 2 === 0 ? '#FFFFFF' : '#F8FAFC'};">
+      <td style="padding:5px 6px;text-align:center;color:#64748B;font-size:11px;border:1px solid #CBD5E1;">${idx + 1}</td>
+      <td style="padding:5px 6px;font-weight:600;white-space:nowrap;font-size:11px;border:1px solid #CBD5E1;">${escapeHtml(e.month || '-')}</td>
+      <td style="padding:5px 6px;font-size:11px;border:1px solid #CBD5E1;">${escapeHtml(e.expense_categories?.category_name || '-')}</td>
+      <td style="padding:5px 6px;font-size:11px;border:1px solid #CBD5E1;">${escapeHtml(propLabel(e.rooms) || e.room_id || 'General')}</td>
+      <td style="padding:5px 6px;text-align:right;font-weight:700;color:#DC2626;white-space:nowrap;font-size:11.5px;border:1px solid #CBD5E1;">₹${(e.amount || 0).toLocaleString('en-IN')}</td>
+      <td style="padding:5px 6px;font-size:11px;color:#475569;white-space:nowrap;text-align:center;border:1px solid #CBD5E1;">${escapeHtml(e.entry_date || '-')}</td>
+      <td style="padding:5px 6px;font-size:11px;color:#334155;white-space:nowrap;text-align:center;border:1px solid #CBD5E1;">${escapeHtml(e.payment_source || '-')}</td>
+      <td style="padding:5px 6px;font-size:10.5px;color:#64748B;border:1px solid #CBD5E1;word-break:break-word;">${escapeHtml(e.notes || '-')}</td>
     </tr>
   `).join('');
 
   const html = `
-    <div style="max-width:900px;margin:0 auto;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;color:#1e293b;">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #E2E8F0;padding-bottom:14px;margin-bottom:16px;">
+    <div style="width:100%;box-sizing:border-box;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;color:#1e293b;line-height:1.35;">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2.5px solid #0F766E;padding-bottom:10px;margin-bottom:12px;">
         <div>
-          <h1 style="margin:0;font-size:20px;color:#0F172A;">THE UNIQUE HAVEN HOMES PRIVATE LIMITED</h1>
-          <div style="font-size:13px;color:#64748B;margin-top:4px;">Official Expenses &amp; Cost Disbursement Statement</div>
-          <div style="font-size:12px;color:#64748B;margin-top:2px;">Period: <strong>${escapeHtml(mName)}</strong> | Generated: ${new Date().toLocaleDateString('en-IN')}</div>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span style="font-size:22px;">🏡</span>
+            <div>
+              <h1 style="margin:0;font-size:17px;font-weight:900;color:#0F172A;">THE UNIQUE HAVEN HOMES PRIVATE LIMITED</h1>
+              <div style="font-size:11px;color:#64748B;font-weight:600;margin-top:2px;">CIN: U55101UP2024PTC202863 · Expenses &amp; Cost Disbursement Ledger</div>
+            </div>
+          </div>
+          <div style="margin-top:6px;display:inline-block;background:#F0FDFA;border:1px solid #99F6E4;padding:3px 9px;border-radius:6px;font-size:11px;font-weight:800;color:#0F766E;">
+            📊 Period: <strong>${escapeHtml(mName)}</strong>
+          </div>
         </div>
-        <div style="text-align:right;background:#FEF2F2;border:1px solid #FCA5A5;padding:10px 16px;border-radius:8px;">
-          <div style="font-size:11px;color:#991B1B;font-weight:700;text-transform:uppercase;">Total Period Expenses</div>
-          <div style="font-size:22px;color:#DC2626;font-weight:900;">₹${totalAmt.toLocaleString('en-IN')}</div>
-          <div style="font-size:11px;color:#64748B;">${exps.length} Total Records</div>
+        <div style="text-align:right;background:#FEF2F2;border:1.5px solid #FCA5A5;padding:8px 14px;border-radius:8px;min-width:160px;">
+          <div style="font-size:10px;color:#991B1B;font-weight:800;text-transform:uppercase;letter-spacing:0.5px;">TOTAL EXPENSES</div>
+          <div style="font-size:20px;color:#DC2626;font-weight:900;margin-top:2px;">₹${totalAmt.toLocaleString('en-IN')}</div>
+          <div style="font-size:10px;color:#64748B;">${exps.length} Total Records</div>
         </div>
       </div>
 
-      <div style="margin-bottom:20px;">
-        <h3 style="margin:0 0 8px;font-size:14px;color:#1E293B;">📊 Category-wise Expense Breakdown</h3>
-        <table style="width:100%;border-collapse:collapse;font-size:12px;background:#F8FAFC;border:1px solid #E2E8F0;border-radius:6px;">
+      <div style="margin-bottom:14px;">
+        <h3 style="margin:0 0 6px;font-size:13px;color:#1E293B;">📊 Category-wise Expense Breakdown</h3>
+        <table style="width:100%;border-collapse:collapse;font-size:11px;background:#F8FAFC;border:1.5px solid #CBD5E1;">
           <thead>
-            <tr style="background:#F1F5F9;text-align:left;">
-              <th style="padding:6px 10px;">Category</th>
-              <th style="padding:6px 10px;text-align:right;">Total Spent</th>
-              <th style="padding:6px 10px;text-align:right;">Share %</th>
+            <tr style="background:#0F172A;color:#fff;text-align:left;">
+              <th style="padding:6px 10px;border:1px solid #334155;">Category</th>
+              <th style="padding:6px 10px;text-align:right;border:1px solid #334155;">Total Spent (₹)</th>
+              <th style="padding:6px 10px;text-align:right;border:1px solid #334155;">Share %</th>
             </tr>
           </thead>
           <tbody>${catRows}</tbody>
         </table>
       </div>
 
-      <div>
-        <h3 style="margin:0 0 8px;font-size:14px;color:#1E293B;">🧾 Itemized Expense Entries (${exps.length})</h3>
-        <table style="width:100%;border-collapse:collapse;font-size:11.5px;">
+      <div style="margin-bottom:14px;overflow-x:auto;">
+        <h3 style="margin:0 0 6px;font-size:13px;color:#1E293B;">🧾 Itemized Expense Entries (${exps.length})</h3>
+        <table style="width:100%;border-collapse:collapse;font-size:11px;border:1.5px solid #0F172A;">
           <thead>
-            <tr style="background:#F1F5F9;text-align:left;border-top:1px solid #CBD5E1;border-bottom:1px solid #CBD5E1;">
-              <th style="padding:6px 8px;text-align:center;">#</th>
-              <th style="padding:6px 8px;">Month</th>
-              <th style="padding:6px 8px;">Category</th>
-              <th style="padding:6px 8px;">Property / Unit</th>
-              <th style="padding:6px 8px;text-align:right;">Amount (₹)</th>
-              <th style="padding:6px 8px;">Date</th>
-              <th style="padding:6px 8px;">Account</th>
-              <th style="padding:6px 8px;">Notes</th>
+            <tr style="background:#0F172A;color:#fff;text-align:left;">
+              <th style="padding:6px 5px;text-align:center;width:26px;border:1px solid #334155;">#</th>
+              <th style="padding:6px 6px;white-space:nowrap;width:65px;border:1px solid #334155;">Month</th>
+              <th style="padding:6px 8px;border:1px solid #334155;">Category</th>
+              <th style="padding:6px 8px;border:1px solid #334155;">Property / Unit</th>
+              <th style="padding:6px 8px;text-align:right;white-space:nowrap;width:80px;border:1px solid #334155;">Amount (₹)</th>
+              <th style="padding:6px 6px;text-align:center;white-space:nowrap;width:75px;border:1px solid #334155;">Date</th>
+              <th style="padding:6px 6px;text-align:center;white-space:nowrap;width:75px;border:1px solid #334155;">Account</th>
+              <th style="padding:6px 8px;border:1px solid #334155;">Notes</th>
             </tr>
           </thead>
           <tbody>${rows}</tbody>
           <tfoot>
-            <tr style="background:#F8FAFC;font-weight:700;border-top:2px solid #CBD5E1;">
-              <td colspan="4" style="padding:8px;text-align:right;">Grand Total:</td>
-              <td style="padding:8px;text-align:right;color:#DC2626;">₹${totalAmt.toLocaleString('en-IN')}</td>
-              <td colspan="3"></td>
+            <tr style="background:#F1F5F9;font-weight:900;border-top:2px solid #0F172A;">
+              <td colspan="4" style="padding:7px 8px;text-align:right;font-size:11px;border:1px solid #CBD5E1;">GRAND TOTAL:</td>
+              <td style="padding:7px 8px;text-align:right;color:#DC2626;font-size:12px;white-space:nowrap;border:1px solid #CBD5E1;">₹${totalAmt.toLocaleString('en-IN')}</td>
+              <td colspan="3" style="border:1px solid #CBD5E1;"></td>
             </tr>
           </tfoot>
         </table>
       </div>
 
-      <div style="margin-top:30px;padding-top:14px;border-top:1px solid #E2E8F0;font-size:11px;color:#94A3B8;text-align:center;">
-        THE UNIQUE HAVEN HOMES PRIVATE LIMITED · CIN: U55101UP2024PTC202863 · Developed by Praveen Singh
+      <div style="margin-top:14px;padding-top:8px;border-top:1px solid #E2E8F0;font-size:10px;color:#94A3B8;text-align:center;">
+        THE UNIQUE HAVEN HOMES PRIVATE LIMITED · CIN: U55101UP2024PTC202863 · uniquehavenhomesstay.com
       </div>
     </div>
   `;
 
   window.printDocumentHTML(html, `TUHH_Expenses_Report_${String(mName).replace(/[\s\/-]/g, '_')}`);
+};
+
+// ============ WHATSAPP EXPENSES SUMMARY ============
+window.shareExpensesWhatsApp = function(monthStr = null) {
+  const mName = monthStr || window.CURRENT_MONTH || 'Current Month';
+  const exps = window._currentFilteredExpenses || window._lastFetchedExpenses || [];
+  const totalAmt = exps.reduce((s, e) => s + (e.amount || 0), 0);
+
+  if (!exps.length) {
+    if (window.fsn) fsn.info('No Data', 'Share karne ke liye koi expense data nahi mila.');
+    else alert('No expenses to share.');
+    return;
+  }
+
+  const byCat = {};
+  exps.forEach(e => {
+    const c = e.expense_categories?.category_name || 'General';
+    byCat[c] = (byCat[c] || 0) + (e.amount || 0);
+  });
+
+  let msg = `*THE UNIQUE HAVEN HOMES PRIVATE LIMITED*\n`;
+  msg += `*📊 Monthly Expenses & Cost Summary*\n`;
+  msg += `━━━━━━━━━━━━━━━━━━━━\n`;
+  msg += `📅 *Period:* ${mName}\n`;
+  msg += `💰 *Total Spent:* ₹${totalAmt.toLocaleString('en-IN')}\n`;
+  msg += `🧾 *Total Entries:* ${exps.length}\n`;
+  msg += `━━━━━━━━━━━━━━━━━━━━\n`;
+  msg += `*Category Breakdown:*\n`;
+
+  Object.entries(byCat)
+    .sort((a, b) => b[1] - a[1])
+    .forEach(([cat, amt]) => {
+      const pct = ((amt / (totalAmt || 1)) * 100).toFixed(1);
+      msg += `• ${cat}: ₹${amt.toLocaleString('en-IN')} (${pct}%)\n`;
+    });
+
+  msg += `━━━━━━━━━━━━━━━━━━━━\n`;
+  msg += `_Hospitality Operations Financial Summary_\n`;
+  msg += `🌐 uniquehavenhomesstay.com`;
+
+  window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
 };
 
 // ============ CATEGORY BADGE COLOR ============

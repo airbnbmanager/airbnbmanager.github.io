@@ -2387,6 +2387,9 @@ async function renderAdvanceTracker() {
           <button type="button" onclick="window.printAdvancesReport()" style="background:#0F172A;color:#fff;font-weight:700;display:inline-flex;align-items:center;gap:6px;border:none;padding:8px 14px;border-radius:7px;cursor:pointer;box-shadow:0 1px 3px rgba(15,23,42,0.25);" title="Print or Save PDF Advance Statement / Slip">
             📄 Print / PDF Report
           </button>
+          <button type="button" onclick="window.shareAdvancesWhatsApp()" style="background:#16A34A;color:#fff;font-weight:700;display:inline-flex;align-items:center;gap:6px;border:none;padding:8px 14px;border-radius:7px;cursor:pointer;box-shadow:0 1px 3px rgba(22,163,74,0.25);" title="Share mobile advance statement on WhatsApp">
+            💬 WhatsApp Slip
+          </button>
           ${isO ? `<button onclick="renderAddAdv()" style="background:#0F766E;color:#fff;font-weight:700;border:none;padding:8px 14px;border-radius:7px;cursor:pointer;">➕ Give Advance</button>` : ''}
         </div>
       </div>
@@ -2622,6 +2625,75 @@ window.exportAdvancesCSV = async function(targetEmpId = null) {
   if (window.fsn) {
     fsn.success('Advance Report Exported', `Advance register for ${empName} downloaded!`);
   }
+};
+
+// ============ WHATSAPP STAFF ADVANCE STATEMENT (MOBILE SLIP) ============
+window.shareAdvancesWhatsApp = async function(targetEmpId = null) {
+  let advs = window._currentFilteredAdvs || [];
+  let emps = window._currentAdvEmps || [];
+  let filterEmpId = targetEmpId || window._advTrackerFilter?.empId || 'all';
+
+  if (targetEmpId || !advs.length) {
+    let query = sb.from('advance_tracker').select('*, employees(emp_id, name, role, phone)').order('date_given', { ascending: false });
+    if (filterEmpId && filterEmpId !== 'all') {
+      query = query.eq('emp_id', filterEmpId);
+    }
+    const { data } = await query;
+    advs = data || [];
+  }
+
+  if (!advs.length) {
+    if (window.fsn) fsn.info('No Records', 'WhatsApp par share karne ke liye koi advance record nahi mila.');
+    else alert('No advance records found to share.');
+    return;
+  }
+
+  let empMeta = null;
+  let empName = 'All Staff Consolidated';
+  const isSingle = Boolean(filterEmpId && filterEmpId !== 'all');
+  if (isSingle) {
+    empMeta = (emps || []).find(e => e.emp_id === filterEmpId) || advs[0]?.employees;
+    empName = empMeta?.name || filterEmpId;
+  }
+
+  const totalGiven = advs.reduce((s, a) => s + Number(a.advance_amount || 0), 0);
+  const totalRepaid = advs.reduce((s, a) => s + Number(a.repaid_amount || 0), 0);
+  const totalBal = totalGiven - totalRepaid;
+
+  let msg = `*THE UNIQUE HAVEN HOMES PRIVATE LIMITED*\n`;
+  msg += `*📄 Staff Salary Advance & Repayment Slip*\n`;
+  msg += `━━━━━━━━━━━━━━━━━━━━\n`;
+  msg += `👤 *Employee:* ${empName}\n`;
+  if (empMeta?.role) msg += `💼 *Role:* ${empMeta.role}\n`;
+  if (empMeta?.emp_id) msg += `🆔 *ID:* ${empMeta.emp_id}\n`;
+  msg += `📅 *Date:* ${new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}\n`;
+  msg += `━━━━━━━━━━━━━━━━━━━━\n`;
+  msg += `💰 *Total Advances:* ₹${totalGiven.toLocaleString('en-IN')}\n`;
+  msg += `✅ *Total Repaid:* ₹${totalRepaid.toLocaleString('en-IN')}\n`;
+  msg += `⚖️ *Balance Due:* ₹${totalBal.toLocaleString('en-IN')} ${totalBal > 0 ? '(⚠️ Pending Deduction)' : '(✓ Cleared)'}\n`;
+  msg += `━━━━━━━━━━━━━━━━━━━━\n`;
+  msg += `*Itemized Entries (${advs.length}):*\n`;
+
+  const topAdvs = advs.slice(0, 6);
+  topAdvs.forEach((a, i) => {
+    const bal = Number(a.advance_amount || 0) - Number(a.repaid_amount || 0);
+    const dt = a.date_given || (a.created_at || '').slice(0, 10);
+    msg += `${i + 1}. ${dt}: ₹${Number(a.advance_amount || 0).toLocaleString('en-IN')} (Repaid: ₹${Number(a.repaid_amount || 0).toLocaleString('en-IN')}, Due: ₹${bal.toLocaleString('en-IN')}) [${a.paid_by || 'TUHH'}]\n`;
+  });
+  if (advs.length > 6) {
+    msg += `_...and ${advs.length - 6} more historical entries_\n`;
+  }
+
+  msg += `━━━━━━━━━━━━━━━━━━━━\n`;
+  msg += `_Official computer-generated payroll record._\n`;
+  msg += `🌐 uniquehavenhomesstay.com`;
+
+  const phone = empMeta?.phone ? String(empMeta.phone).replace(/\D/g, '') : '';
+  const fullPhone = phone.length === 10 ? '91' + phone : phone;
+  const waUrl = fullPhone 
+    ? `https://wa.me/${fullPhone}?text=${encodeURIComponent(msg)}` 
+    : `https://wa.me/?text=${encodeURIComponent(msg)}`;
+  window.open(waUrl, '_blank');
 };
 
 // ============ PRINT / PDF STAFF ADVANCE STATEMENT ============
@@ -3456,6 +3528,7 @@ async function showEmpDetailModal(empId) {
           <div style="display:flex;gap:6px;">
             <button type="button" class="btn-sm" onclick="window.exportAdvancesCSV('${emp.emp_id}')" style="background:#059669;color:#fff;font-weight:700;border:none;border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer;">📥 Export CSV</button>
             <button type="button" class="btn-sm" onclick="window.printAdvancesReport('${emp.emp_id}')" style="background:#0F172A;color:#fff;font-weight:700;border:none;border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer;">📄 Print Slip</button>
+            <button type="button" class="btn-sm" onclick="window.shareAdvancesWhatsApp('${emp.emp_id}')" style="background:#16A34A;color:#fff;font-weight:700;border:none;border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer;">💬 WhatsApp</button>
           </div>
         ` : ''}
       </div>

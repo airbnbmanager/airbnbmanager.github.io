@@ -7791,6 +7791,25 @@ textarea:focus {
   background: #FFFFFF;
 }
 
+@media screen and (max-width: 768px) {
+  .uhh-print-toolbar {
+    padding: 8px 10px;
+    gap: 6px;
+  }
+  .uhh-print-btn {
+    padding: 6px 10px;
+    font-size: 11.5px;
+  }
+  .uhh-print-body {
+    padding: 8px 6px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .uhh-print-body table {
+    min-width: 540px;
+  }
+}
+
 @media print {
   body > *:not(#uhhPrintOverlay) {
     display: none !important;
