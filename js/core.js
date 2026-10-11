@@ -1063,12 +1063,13 @@ function renderShell(content, activePage = 'dashboard') {
       id: 'bookings',
       label: '📅 Stay & Bookings',
       page: 'bookings',
-      pages: ['bookings', 'reports', 'calendar', 'flats', 'pendingApprovals', 'reminders'],
+      pages: ['bookings', 'reports', 'calendar', 'flats', 'pendingApprovals', 'reminders', 'reviews-followup'],
       tabs: [
         { id: 'bookings', label: '📅 Bookings' },
         { id: 'reports', label: '📆 Timeline' },
         { id: 'flats', label: '🛏️ Flats Status' },
         { id: 'pendingApprovals', label: '🟡 Approvals' },
+        { id: 'reviews-followup', label: '⭐ Review Radar' },
         { id: 'reminders', label: '🔔 Reminders' }
       ]
     },
@@ -1752,6 +1753,7 @@ function navigate(page) {
     investors: () => (window.renderManageInvestors || renderManageInvestors)(),
     maintenance: () => (window.renderMaintenanceLog || renderMaintenanceLog)(),
     'user-mgmt': () => (window.renderUserManagement || renderUserManagement)(),
+    'reviews-followup': () => (window.renderReviewFollowupHub || renderReviewFollowupHub)(),
     sop: () => (window.renderSOPPage || renderSOPPage)(),
   };
 

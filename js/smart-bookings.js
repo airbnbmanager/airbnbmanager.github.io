@@ -359,6 +359,9 @@ async function renderSmartManageBookings() {
           <button class="airbnb-pill ${tab === 'all' ? 'active' : ''}" onclick="window.setBookingTab('all')" id="sbkTabAll" title="View all reservations / guests">
             All Guests <span class="airbnb-pill-num">${all?.length || 0}</span>
           </button>
+          <button class="airbnb-pill" onclick="navigate('reviews-followup')" id="sbkTabReviews" title="Airbnb 14-Day Review Radar &amp; Follow-up Calls" style="background:#FFFBEB;color:#B45309;border-color:#FDE68A;font-weight:600;">
+            ⭐ Review Radar
+          </button>
         </div>
 
         <div class="airbnb-header-actions">
@@ -1377,6 +1380,9 @@ window.openBookingDrawer = async function(bookingId) {
             ` : ''}
             <button class="btn-sm" style="background:#B45309;color:#fff;padding:10px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;gap:6px;" onclick="window.openGSTInvoiceModal('${b.booking_id}')" title="Generate GST Tax Invoice">
               🧾 GST Invoice
+            </button>
+            <button class="btn-sm" style="background:#D97706;color:#fff;padding:10px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;gap:6px;" onclick="if(window.openReviewCallLogModal) window.openReviewCallLogModal('${b.booking_id}'); else alert('Review radar loading...');" title="Airbnb 14-Day Review &amp; Call Follow-up">
+              ⭐ Review Follow-up
             </button>
             ${canM ? `
               <button class="btn-sm" style="background:#EF4444;color:#fff;padding:10px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;gap:6px;" onclick="window.drawerDeleteBooking()" title="Delete this booking">
