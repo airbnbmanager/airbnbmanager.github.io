@@ -710,28 +710,33 @@
                           <span style="font-size:11px;color:#9CA3AF;">No calls logged yet</span>
                         `}
                       </td>
-                      <td class="table-actions" style="text-align:right;">
-                        ${b.phone ? `
-                          <a href="tel:${b.phone}" class="btn-sm" onclick="window.openReviewCallLogModal('${b.booking_id}')"
-                            style="background:#2563EB;color:#fff;text-decoration:none;display:inline-flex;align-items:center;gap:4px;" title="Call Guest">
-                            📞 Call
-                          </a>
-                          <button class="btn-sm" onclick="window.sendReviewFollowupWhatsApp('${b.booking_id}', '${escapeHtml(b.guest_name||'')}', '${b.phone}', '${b.room_id}', '${escapeHtml(pLabel)}')"
-                            style="background:#25D366;color:#fff;font-weight:700;border:none;" title="Send WhatsApp Review Request Link">
-                            💬 WA
+                      <td class="table-actions" style="text-align:right;white-space:nowrap;">
+                        <div style="display:inline-flex;gap:5px;align-items:center;justify-content:flex-end;">
+                          ${b.phone ? `
+                            <a href="tel:${b.phone}" class="btn-sm" onclick="window.openReviewCallLogModal('${b.booking_id}')"
+                              style="background:#2563EB;color:#fff;text-decoration:none;display:inline-flex;align-items:center;gap:4px;padding:5px 8px;font-size:11.5px;font-weight:700;border-radius:6px;" title="Call Guest">
+                              📞 Call
+                            </a>
+                            <button class="btn-sm" onclick="window.sendReviewFollowupWhatsApp('${b.booking_id}', '${escapeHtml(b.guest_name||'')}', '${b.phone}', '${b.room_id}', '${escapeHtml(pLabel)}')"
+                              style="background:#25D366;color:#fff;font-weight:700;border:none;padding:5px 8px;font-size:11.5px;border-radius:6px;" title="Send WhatsApp Review Request Link">
+                              💬 WA
+                            </button>
+                          ` : ''}
+                          <button class="btn-sm" onclick="window.openReviewCallLogModal('${b.booking_id}')" 
+                            style="background:#F3F4F6;color:#374151;border:1px solid #D1D5DB;font-weight:600;padding:5px 8px;font-size:11.5px;border-radius:6px;" title="Log Call Outcome">
+                            📝 Log
                           </button>
-                        ` : ''}
-                        <button class="btn-sm" onclick="window.openReviewCallLogModal('${b.booking_id}')" style="background:#F3F4F6;color:#374151;border:1px solid #D1D5DB;font-weight:600;" title="Log Call Outcome">
-                          📝 Log Call
-                        </button>
-                        ${status !== 'review_received' ? `
-                          <button class="btn-sm" onclick="window.markReviewReceived('${b.booking_id}', '${escapeHtml(b.guest_name||'')}')" style="background:#10B981;color:#fff;border:none;font-weight:700;" title="Confirm Review Received">
-                            ⭐ Received
+                          ${status !== 'review_received' ? `
+                            <button class="btn-sm" onclick="window.markReviewReceived('${b.booking_id}', '${escapeHtml(b.guest_name||'')}')" 
+                              style="background:#10B981;color:#fff;border:none;font-weight:700;padding:5px 8px;font-size:11.5px;border-radius:6px;" title="Confirm Review Received">
+                              ⭐ Received
+                            </button>
+                          ` : ''}
+                          <button class="btn-sm" onclick="if(window.openBookingDrawer) window.openBookingDrawer('${b.booking_id}');" 
+                            style="background:#0F172A;color:#fff;border:none;padding:5px 7px;font-size:11.5px;border-radius:6px;" title="View Booking Details Drawer">
+                            📋
                           </button>
-                        ` : ''}
-                        <button class="btn-sm" onclick="if(window.openBookingDrawer) window.openBookingDrawer('${b.booking_id}');" style="background:#0F172A;color:#fff;border:none;" title="View Booking Drawer">
-                          📋
-                        </button>
+                        </div>
                       </td>
                     </tr>
                   `;
