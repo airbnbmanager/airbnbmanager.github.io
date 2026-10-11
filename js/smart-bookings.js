@@ -1164,23 +1164,44 @@ function renderBookingTableHtml(bookings, paidMap, canM, today) {
 // 4. SLIDE-OVER BOOKING DETAILS DRAWER
 // =====================================================================
 window.openBookingDrawer = async function(bookingId) {
-  const all = window._sbkState.cachedBookings || [];
-  const b = all.find(x => x.booking_id === bookingId);
-  if (!b) return;
-  window._currentDrawerBooking = b;
+  if (!bookingId) return;
+  if (!window._sbkState) window._sbkState = { cachedBookings: [], cachedPaidMap: {} };
 
-  const pd = (window._sbkState.cachedPaidMap || {})[b.booking_id] || 0;
-  const tot = b.total_amount || 0;
-  const bal = tot - pd;
-  const isOnline = b.booking_mode === 'Online-Airbnb' || !!b.airbnb_confirmation_code;
-  const canM = ['owner','admin','manager','moderator','developer'].includes(SESSION.role);
-  const canD = ['developer','owner','admin'].includes(SESSION.role);
+  let all = window._sbkState.cachedBookings || [];
+  let b = all.find(x => x.booking_id === bookingId);
+  if (!b) {
+    const { data: dbBooking } = await sb.from('guest_register')
+      .select('*, rooms(nickname, unit_no, property_name)')
+      .eq('booking_id', bookingId)
+      .single();
+    if (!dbBooking) {
+      if (window.fsn) fsn.error('Not Found', 'Booking record not found.');
+      else alert('Booking not found');
+      return;
+    }
+    b = dbBooking;
+    if (!window._sbkState.cachedBookings) window._sbkState.cachedBookings = [];
+    window._sbkState.cachedBookings.push(b);
+  }
+  window._currentDrawerBooking = b;
 
   // Fetch individual payments for this booking
   const { data: payments } = await sb.from('payment_history')
     .select('*')
     .eq('booking_id', bookingId)
     .order('payment_date', { ascending: true });
+
+  let pd = (window._sbkState.cachedPaidMap || {})[b.booking_id];
+  if (pd === undefined) {
+    pd = (payments || []).filter(p => p.verification_status !== 'rejected').reduce((s, p) => s + (p.amount || 0), 0);
+    if (!window._sbkState.cachedPaidMap) window._sbkState.cachedPaidMap = {};
+    window._sbkState.cachedPaidMap[b.booking_id] = pd;
+  }
+  const tot = b.total_amount || 0;
+  const bal = tot - pd;
+  const isOnline = b.booking_mode === 'Online-Airbnb' || !!b.airbnb_confirmation_code;
+  const canM = ['owner','admin','manager','moderator','developer'].includes(SESSION.role);
+  const canD = ['developer','owner','admin'].includes(SESSION.role);
 
   let container = document.getElementById('sbkDrawerContainer');
   if (!container) {
@@ -1313,7 +1334,7 @@ window.openBookingDrawer = async function(bookingId) {
               </button>
             </div>
             <div>
-              ${buildIdButtons(b)}
+              ${typeof buildIdButtons === 'function' ? buildIdButtons(b) : (typeof window.buildIdButtons === 'function' ? window.buildIdButtons(b) : '')}
             </div>
           </div>
 

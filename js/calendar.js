@@ -671,7 +671,7 @@ async function showMultiBookingList(bookings, roomId, dateStr) {
       <div style="background:#fff;border:2px solid ${idx === 0 ? '#3B82F6' : '#F59E0B'};border-radius:10px;padding:14px;margin-bottom:12px;">
         <div style="display:flex;justify-content:space-between;align-items:start;flex-wrap:wrap;gap:8px;margin-bottom:10px;">
           <div>
-            <div style="font-weight:700;font-size:15px;">
+            <div style="font-weight:700;font-size:15px;cursor:pointer;color:var(--primary);" onclick="this.closest('.modal-overlay').remove(); openBookingDetails('${b.booking_id}');" title="Click to open full booking details drawer">
               ${idx + 1}. ${modeIcon} ${b.guest_name || 'Guest'} 
               ${statusBadges.join(' ')} ${secBadge}
             </div>
@@ -697,6 +697,7 @@ async function showMultiBookingList(bookings, roomId, dateStr) {
         ${cleanNotes ? `<div style="font-size:11px;color:#666;padding:6px;background:#FEF3C7;border-radius:4px;margin-bottom:8px;"><strong>Notes:</strong> ${cleanNotes}</div>` : ''}
         
         <div style="display:flex;gap:6px;flex-wrap:wrap;">
+          <button class="btn-sm" style="background:#0F172A;color:#fff;flex:1;" onclick="this.closest('.modal-overlay').remove(); openBookingDetails('${b.booking_id}');">📋 Details</button>
           <button class="btn-sm" onclick="this.closest('.modal-overlay').remove(); if(window.editBooking) editBooking('${b.booking_id}');" style="flex:1;">✏️ Edit</button>
           <button class="btn-sm secondary" onclick="this.closest('.modal-overlay').remove(); if(window.openAddPaymentModal) openAddPaymentModal('${b.booking_id}'); else if(window.showPaymentModal) showPaymentModal('${b.booking_id}');" style="flex:1;">💰 Pay</button>
           <button class="btn-sm" style="background:#0284C7;color:#fff;flex:1;" onclick="this.closest('.modal-overlay').remove(); if(window.showSecurityDepositModal) showSecurityDepositModal('${b.booking_id}');" title="Manage Security Deposit">🛡️ Deposit</button>
@@ -717,7 +718,7 @@ async function showMultiBookingList(bookings, roomId, dateStr) {
       </div>
       
       <div style="background:#FEF3C7;border-left:4px solid #F59E0B;padding:10px;border-radius:6px;margin-bottom:12px;font-size:12px;color:#92400E;">
-        ⚠️ <strong>${bookings.length} bookings detected on this date.</strong> You can edit, send WhatsApp, or click <strong>Delete</strong> on any duplicate booking below.
+        ⚠️ <strong>${bookings.length} bookings detected on this date.</strong> You can view details, edit, or manage each booking below.
       </div>
       
       ${bookingCards}
@@ -754,15 +755,31 @@ async function showBookingPopup(roomId, dateStr) {
 }
 
 // ═══════════════════════════════════════════════════════════
-// BOOKING DETAILS MODAL
+// BOOKING DETAILS MODAL & SLIDE-OVER DRAWER
 // ═══════════════════════════════════════════════════════════
 window.openBookingDetails = async function(bId) {
+  if (!bId) return;
+
+  // Real guest bookings: open the exact same slide-over booking details drawer (from bookings page)
+  const isBlockedId = String(bId).startsWith('BLK_');
+  if (!isBlockedId && typeof window.openBookingDrawer === 'function') {
+    return window.openBookingDrawer(bId);
+  }
+
   const { data: b } = await sb.from('guest_register')
     .select('*, rooms(nickname, unit_no, property_name)')
     .eq('booking_id', bId)
     .single();
 
   if (!b) { alert('Booking not found'); return; }
+
+  const isBlocked = (b.booking_id && String(b.booking_id).startsWith('BLK_')) || 
+                    b.booking_mode === 'Offline-Blocked' ||
+                    (b.guest_name && b.guest_name.toLowerCase().includes('blocked'));
+
+  if (!isBlocked && typeof window.openBookingDrawer === 'function') {
+    return window.openBookingDrawer(bId);
+  }
 
   const { data: pays } = await sb.from('payment_history')
     .select('amount, verification_status')
@@ -773,10 +790,6 @@ window.openBookingDetails = async function(bId) {
   const due = Math.max((b.total_amount || 0) - totalPaid, 0);
   const nights = (b.check_in && b.check_out) ? Math.max(Math.round((new Date(b.check_out) - new Date(b.check_in)) / 86400000), 1) : 1;
   const idPaths = (b.id_proof_photo_paths || b.id_proof_photo_path || '').split(',').filter(Boolean);
-
-  const isBlocked = (b.booking_id && String(b.booking_id).startsWith('BLK_')) || 
-                    b.booking_mode === 'Offline-Blocked' ||
-                    (b.guest_name && b.guest_name.toLowerCase().includes('blocked'));
 
   const sec = typeof getSecurityDeposit === 'function' ? getSecurityDeposit(b) : null;
   const secBadge = typeof getSecurityDepositBadge === 'function' ? getSecurityDepositBadge(b) : '';
