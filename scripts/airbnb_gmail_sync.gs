@@ -185,6 +185,13 @@ function syncAirbnbReservations() {
     }
 
     Logger.log(`✅ SYNC COMPLETE: Enriched: ${enrichedCount} | Newly Created: ${createdCount}`);
+
+    // Automatically sync guest reviews received from Airbnb notification emails
+    try {
+      syncAirbnbReviewsFromGmail();
+    } catch (eReview) {
+      Logger.log("Review sync notice: " + eReview.message);
+    }
   } catch (err) {
     Logger.log(`Fatal Error in syncAirbnbReservations: ${err.message}`);
   } finally {
@@ -528,4 +535,110 @@ function setupAutoSyncTrigger() {
 function forceEnrichAll() {
   Logger.log("=== RUNNING FORCE ENRICHMENT FOR ALL BOOKINGS ===");
   syncAirbnbReservations();
+}
+
+/**
+ * ⭐ AUTOMATIC AIRBNB REVIEW SYNC FROM GMAIL
+ * Automatically tracks when a guest writes a review on Airbnb by parsing
+ * Airbnb's notification emails ("Sparsh wrote you a review", "Read Sparsh's review", etc.)
+ */
+function syncAirbnbReviewsFromGmail() {
+  Logger.log("=== STARTING AIRBNB REVIEW AUTO-SYNC FROM GMAIL ===");
+  const reviewLabel = getOrCreateLabel("Airbnb-Review-Synced");
+
+  // Search Gmail for review notification emails that haven't been processed yet
+  const query = 'from:airbnb.com ("wrote you a review" OR "wrote a review" OR "left a review" OR "submitted a review" OR "Read" AND "review") -label:Airbnb-Review-Synced';
+  const threads = GmailApp.search(query, 0, 30);
+  Logger.log(`Found ${threads.length} potential Airbnb review notification threads in Gmail.`);
+
+  if (threads.length === 0) return 0;
+
+  // Fetch recent checkouts (last 20 days) from CRM to match against
+  const today = new Date();
+  const twentyDaysAgo = new Date(today.getTime() - 20 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+  const fetchUrl = `${CONFIG.SUPABASE_URL}/rest/v1/guest_register?select=booking_id,guest_name,airbnb_confirmation_code,check_out,client_rating&gte.check_out=${twentyDaysAgo}&is_cancelled=eq.false`;
+
+  let recentBookings = [];
+  try {
+    const resp = UrlFetchApp.fetch(fetchUrl, {
+      method: 'get',
+      headers: getHeaders(),
+      muteHttpExceptions: true
+    });
+    if (resp.getResponseCode() >= 200 && resp.getResponseCode() < 300) {
+      recentBookings = JSON.parse(resp.getContentText() || '[]');
+    }
+  } catch (e) {
+    Logger.log("Error fetching recent bookings: " + e.message);
+  }
+
+  Logger.log(`Loaded ${recentBookings.length} recent bookings from CRM for review matching.`);
+  let matchCount = 0;
+
+  for (const thread of threads) {
+    const messages = thread.getMessages();
+    const latestMsg = messages[messages.length - 1];
+    const subject = latestMsg.getSubject() || '';
+    const body = latestMsg.getPlainBody() || '';
+
+    Logger.log(`Processing Review Email: "${subject}"`);
+
+    // 1. Check for confirmation code (HM...) in email
+    let confirmationCode = null;
+    const codeMatch = (subject + ' ' + body).match(/\b(HM[A-Z0-9]{8,12})\b/i);
+    if (codeMatch) {
+      confirmationCode = codeMatch[1].toUpperCase();
+    }
+
+    // 2. Extract Guest Name from Subject (e.g. "Sparsh wrote you a review", "Read Sparsh's review")
+    let guestFirstName = null;
+    const subMatch1 = subject.match(/^([A-Za-z\s]+?)\s+wrote\s+(you\s+)?a\s+review/i);
+    const subMatch2 = subject.match(/^Read\s+([A-Za-z\s]+?)'s\s+review/i);
+    const subMatch3 = subject.match(/^New\s+review\s+from\s+([A-Za-z\s]+)/i);
+
+    if (subMatch1) guestFirstName = subMatch1[1].trim();
+    else if (subMatch2) guestFirstName = subMatch2[1].trim();
+    else if (subMatch3) guestFirstName = subMatch3[1].trim();
+
+    // 3. Find matching booking in CRM
+    let matchedBooking = null;
+
+    if (confirmationCode) {
+      matchedBooking = recentBookings.find(b => (b.airbnb_confirmation_code || '').toUpperCase() === confirmationCode);
+    }
+
+    if (!matchedBooking && guestFirstName) {
+      const cleanTarget = guestFirstName.toLowerCase();
+      matchedBooking = recentBookings.find(b => {
+        const bName = (b.guest_name || '').toLowerCase().trim();
+        return bName.startsWith(cleanTarget) || bName.includes(cleanTarget);
+      });
+    }
+
+    if (matchedBooking) {
+      Logger.log(`⭐ MATCHED REVIEW! Guest: "${matchedBooking.guest_name}" (Booking ID: ${matchedBooking.booking_id})`);
+
+      // Update CRM: Set client_rating = 5
+      const patchUrl = `${CONFIG.SUPABASE_URL}/rest/v1/guest_register?booking_id=eq.${matchedBooking.booking_id}`;
+      UrlFetchApp.fetch(patchUrl, {
+        method: 'patch',
+        headers: getHeaders(),
+        payload: JSON.stringify({
+          client_rating: 5,
+          rating_notes: `⭐ Auto-synced from Airbnb email notification on ${new Date().toLocaleDateString('en-IN')}`
+        }),
+        muteHttpExceptions: true
+      });
+
+      matchCount++;
+    } else {
+      Logger.log(`⚠️ Review email received for "${guestFirstName || confirmationCode || 'Guest'}", but could not link to a recent CRM checkout.`);
+    }
+
+    // Mark thread as processed so it isn't scanned again
+    thread.addLabel(reviewLabel);
+  }
+
+  Logger.log(`=== REVIEW AUTO-SYNC COMPLETE: ${matchCount} reviews recorded in CRM ===`);
+  return matchCount;
 }

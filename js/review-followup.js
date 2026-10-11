@@ -547,6 +547,10 @@
           </div>
         </div>
         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+          <button class="btn-sm" onclick="window.openGmailReviewSyncModal()" style="background:#0F172A;color:#fff;font-weight:700;display:inline-flex;align-items:center;gap:6px;border:none;">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="#EA4335"><path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg>
+            <span>Gmail Auto-Sync</span>
+          </button>
           <button class="btn-sm outline" onclick="renderReviewFollowupHub()">
             🔁 Refresh Radar
           </button>
@@ -749,9 +753,97 @@
     `, 'reviews-followup');
   };
 
-  window.setReviewTab = function(tab) {
-    window._reviewFollowupState.filterTab = tab;
-    renderReviewFollowupHub();
+  window.openGmailReviewSyncModal = function() {
+    const modal = document.createElement('div');
+    modal.className = 'modal-overlay';
+    modal.onclick = e => { if (e.target === modal) modal.remove(); };
+
+    modal.innerHTML = `
+      <div class="modal-box" style="max-width:580px;padding:24px;border-radius:16px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+          <h2 style="margin:0;font-size:18px;display:flex;align-items:center;gap:8px;">
+            <span>📧 Gmail Airbnb Review Auto-Sync</span>
+          </h2>
+          <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">✕</button>
+        </div>
+
+        <div style="background:#F0FDF4;border:1px solid #BBF7D0;padding:12px 14px;border-radius:10px;margin-bottom:16px;font-size:13px;color:#166534;line-height:1.6;">
+          <strong>⚡ 24/7 Gmail Auto-Sync is Active:</strong><br>
+          Airbnb aapke Gmail (<code>theuniquehavenhomes@gmail.com</code>) par <em>"[Guest Name] wrote you a review"</em> email bhejta hai. Hamara Google Apps Script background me chal kar guest ko CRM me match karta hai aur yahan <strong>⭐ Review Received</strong> auto-mark kar deta hai!
+        </div>
+
+        <div style="border:1px solid #E2E8F0;border-radius:12px;padding:14px;margin-bottom:16px;background:#F8FAFC;">
+          <label style="display:block;font-size:13px;font-weight:700;color:#1E293B;margin-bottom:6px;">
+            📥 Instant Email Paste &amp; Verify (Test Matcher)
+          </label>
+          <div style="font-size:12px;color:#64748B;margin-bottom:8px;">
+            Email Subject (e.g. <em>"Sparsh wrote you a review"</em>) ya Confirmation Code (e.g. <em>"HMKADZT8JQ"</em>) paste karein:
+          </div>
+          <div style="display:flex;gap:8px;">
+            <input type="text" id="gmailReviewInput" placeholder="e.g. Sparsh wrote you a review OR HMKADZT8JQ"
+              style="flex:1;padding:9px 12px;border:1px solid #CBD5E1;border-radius:8px;font-size:13px;" />
+            <button type="button" class="btn-sm" onclick="matchPastedReviewEmail()"
+              style="background:#10B981;color:#fff;font-weight:700;padding:9px 14px;border:none;border-radius:8px;cursor:pointer;">
+              ⚡ Verify Review
+            </button>
+          </div>
+          <div id="gmailMatchResult" style="margin-top:8px;font-size:12.5px;font-weight:600;"></div>
+        </div>
+
+        <div style="background:#FFFBEB;border:1px solid #FDE68A;padding:10px 14px;border-radius:10px;font-size:12px;color:#92400E;line-height:1.5;">
+          <strong>Tip:</strong> Apps Script me <code>syncAirbnbReviewsFromGmail()</code> function shamil ho chuka hai jo har 10 minute me Gmail scan karke review received ko auto-update karta hai.
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    window.matchPastedReviewEmail = async function() {
+      const val = (document.getElementById('gmailReviewInput')?.value || '').trim();
+      const resEl = document.getElementById('gmailMatchResult');
+      if (!val) {
+        if (resEl) resEl.innerHTML = '<span style="color:#DC2626;">⚠️ Please enter email subject or confirmation code.</span>';
+        return;
+      }
+
+      // Extract HM code or first name
+      const codeMatch = val.match(/\b(HM[A-Z0-9]{8,12})\b/i);
+      const confCode = codeMatch ? codeMatch[1].toUpperCase() : null;
+
+      let guestName = null;
+      const subMatch1 = val.match(/^([A-Za-z\s]+?)\s+wrote\s+(you\s+)?a\s+review/i);
+      const subMatch2 = val.match(/^Read\s+([A-Za-z\s]+?)'s\s+review/i);
+      const subMatch3 = val.match(/^New\s+review\s+from\s+([A-Za-z\s]+)/i);
+      if (subMatch1) guestName = subMatch1[1].trim();
+      else if (subMatch2) guestName = subMatch2[1].trim();
+      else if (subMatch3) guestName = subMatch3[1].trim();
+      else if (!confCode) guestName = val.split(' ')[0].trim();
+
+      const { data: bks } = await sb.from('guest_register')
+        .select('booking_id, guest_name, airbnb_confirmation_code, check_out')
+        .order('check_out', { ascending: false })
+        .limit(100);
+
+      let matched = null;
+      if (confCode) {
+        matched = (bks || []).find(b => (b.airbnb_confirmation_code || '').toUpperCase() === confCode);
+      }
+      if (!matched && guestName) {
+        const cleanTarget = guestName.toLowerCase();
+        matched = (bks || []).find(b => (b.guest_name || '').toLowerCase().includes(cleanTarget));
+      }
+
+      if (matched) {
+        if (resEl) resEl.innerHTML = `<span style="color:#059669;">✅ Matched: <strong>${escapeHtml(matched.guest_name)}</strong> (${matched.airbnb_confirmation_code || matched.booking_id})! Marking review received...</span>`;
+        await window.markReviewReceived(matched.booking_id, matched.guest_name);
+        setTimeout(() => {
+          modal.remove();
+          renderReviewFollowupHub();
+        }, 1200);
+      } else {
+        if (resEl) resEl.innerHTML = `<span style="color:#DC2626;">❌ No recent booking matched for "${val}". Please check name or code.</span>`;
+      }
+    };
   };
 
 })();
