@@ -1243,6 +1243,19 @@ window.openBookingDrawer = async function(bookingId) {
         </div>
 
         <div class="sbk-drawer-body">
+          ${Number(b.client_rating || 0) >= 4 ? `
+            <div style="background:linear-gradient(135deg, #FEF3C7 0%, #FDE68A 100%);border:1px solid #F59E0B;border-radius:12px;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;gap:10px;box-shadow:0 1px 3px rgba(245,158,11,0.2);">
+              <div style="display:flex;align-items:center;gap:10px;">
+                <span style="font-size:24px;line-height:1;">⭐</span>
+                <div>
+                  <div style="font-size:13.5px;font-weight:800;color:#92400E;">5-Star Review Received &amp; Verified</div>
+                  <div style="font-size:11.5px;color:#B45309;margin-top:1px;">Guest submitted their review on Airbnb. Logged in Review Radar.</div>
+                </div>
+              </div>
+              <span style="background:#F59E0B;color:#fff;font-size:11px;font-weight:800;padding:4px 9px;border-radius:20px;white-space:nowrap;">5.0 ★</span>
+            </div>
+          ` : ''}
+
           <!-- Top Contact & Communication Card -->
           <div style="background:#F8FAFC;border:1px solid var(--border);border-radius:12px;padding:14px;display:flex;justify-content:space-between;align-items:center;">
             <div>

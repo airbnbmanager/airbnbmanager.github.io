@@ -72,6 +72,8 @@ async function renderReports() {
   const bcomCount = realMb.filter(b => (window.getBookingSource ? window.getBookingSource(b).type === 'booking_com' : (b.booking_mode || '').toLowerCase().includes('booking.com'))).length;
   const offCount = Math.max(0, realMb.length - onCount - bcomCount);
 
+  const reviewCount = realMb.filter(b => Number(b.client_rating || 0) >= 4).length;
+
   // Occupancy for filtered rooms
   const displayRooms = selRoom === 'all' ? allRooms : allRooms.filter(r => r.room_id === selRoom);
   const bMap = {};
@@ -172,6 +174,10 @@ async function renderReports() {
         <div class="stat-num" style="color:#475569;">${blockedMbCount}</div>
         <div class="stat-label">🔒 Blocked</div>
       </div>
+      <div class="stat-card" style="border-left:4px solid #F59E0B;border-radius:12px;background:#FFFBEB;">
+        <div class="stat-num" style="color:#B45309;">${reviewCount}</div>
+        <div class="stat-label">⭐ Reviews Verified</div>
+      </div>
       <div class="stat-card" style="border-left:4px solid var(--purple, #8B5CF6);border-radius:12px;">
         <div class="stat-num" style="color:#8B5CF6;">${occ}%</div>
         <div class="stat-label">📊 Occupancy</div>
@@ -228,6 +234,7 @@ async function renderReports() {
         }
         if (firstName.length > 7) firstName = firstName.substring(0, 7);
 
+        const hasReview = Number(bk.client_rating || 0) >= 4;
         const currentNight = calcNights(bk.check_in, ds);
         const showName = isCheckIn || isCheckOut || (currentNight > 0 && currentNight % 2 === 0);
         const showAvatar = isCheckIn || isBlocked;
@@ -242,12 +249,13 @@ async function renderReports() {
           : (bk.guest_name || (isBlocked ? 'Blocked Slot' : 'Booked'));
 
         cellsHtml += `
-          <div class="cal-day booked ${isToday ? 'today' : ''} ${isBlocked ? 'is-blocked-day' : ''}" onclick="showBookingPopup('${r.room_id}','${ds}')" title="${overlapTitle}" style="position:relative;">
+          <div class="cal-day booked ${isToday ? 'today' : ''} ${isBlocked ? 'is-blocked-day' : ''}" onclick="showBookingPopup('${r.room_id}','${ds}')" title="${overlapTitle}${hasReview ? ' • ⭐ 5-Star Review Verified' : ''}" style="position:relative;">
             <div class="cal-date-num">${d}</div>
             ${overlapCount > 1 ? `<div style="position:absolute;top:2px;right:2px;background:#DC2626;color:#fff;border-radius:50%;min-width:16px;height:16px;padding:0 3px;display:flex;align-items:center;justify-content:center;font-size:9.5px;font-weight:800;box-shadow:0 1px 3px rgba(0,0,0,0.4);z-index:3;line-height:1;" title="${overlapCount} bookings on this date">${overlapCount}</div>` : ''}
-            <div class="cal-pill ${isBlocked ? 'blocked' : ''}" style="background:${bg};border-radius:${borderRadius};">
-              ${showAvatar ? `<span class="cal-avatar">${guestInitial}</span>` : ''}
-              ${showName && !isBlocked ? `<span class="cal-name">${firstName}</span>` : ''}
+            ${hasReview && overlapCount <= 1 ? `<div style="position:absolute;top:2px;right:2px;font-size:10px;line-height:1;z-index:3;" title="⭐ 5-Star Review Verified!">⭐</div>` : ''}
+            <div class="cal-pill ${isBlocked ? 'blocked' : ''}" style="background:${bg};border-radius:${borderRadius};${hasReview ? 'box-shadow:0 0 0 1.5px #F59E0B;' : ''}">
+              ${showAvatar ? `<span class="cal-avatar" style="${hasReview ? 'background:#FEF3C7;color:#D97706;' : ''}">${hasReview ? '⭐' : guestInitial}</span>` : ''}
+              ${showName && !isBlocked ? `<span class="cal-name">${firstName}${hasReview ? ' ⭐' : ''}</span>` : ''}
               ${isBlocked && showName && isCheckIn ? `<span class="cal-name">Blocked</span>` : ''}
             </div>
           </div>`;
@@ -304,6 +312,7 @@ async function renderReports() {
         <span><span style="display:inline-block;width:14px;height:14px;background:#475569;border-radius:4px;vertical-align:middle;margin-right:4px;"></span> 🔒 Blocked</span>
         <span><span style="display:inline-block;width:14px;height:14px;background:#fff;border:1px solid #ccc;border-radius:4px;vertical-align:middle;margin-right:4px;"></span> ⚪ Free</span>
         <span><span style="display:inline-block;width:14px;height:14px;background:#FEE2E2;border:1px solid #FF385C;border-radius:4px;vertical-align:middle;margin-right:4px;"></span> 📍 Today</span>
+        <span><span style="display:inline-block;width:14px;height:14px;background:#FEF3C7;border:1px solid #F59E0B;border-radius:4px;vertical-align:middle;margin-right:4px;text-align:center;line-height:14px;font-size:10px;">⭐</span> ⭐ Reviewed Guest</span>
       </div>
     </div>
 
@@ -660,6 +669,7 @@ async function showMultiBookingList(bookings, roomId, dateStr) {
     const secBadge = typeof getSecurityDepositBadge === 'function' ? getSecurityDepositBadge(b) : '';
     const cleanNotes = typeof cleanNotesForDisplay === 'function' ? cleanNotesForDisplay(b.notes) : (b.notes || '');
     const statusBadges = [];
+    if (Number(b.client_rating || 0) >= 4) statusBadges.push('<span style="background:#F59E0B;color:#fff;padding:2px 7px;border-radius:4px;font-size:10px;font-weight:700;">⭐ 5★ REVIEWED</span>');
     if (b.is_review_booking) statusBadges.push('<span style="background:#8B5CF6;color:#fff;padding:2px 6px;border-radius:4px;font-size:10px;">⭐ REVIEW</span>');
     if (b.show_to_investor === false) statusBadges.push('<span style="background:#DC2626;color:#fff;padding:2px 6px;border-radius:4px;font-size:10px;">🚫 HIDDEN</span>');
     if (b.is_cancelled) statusBadges.push('<span style="background:#DC2626;color:#fff;padding:2px 6px;border-radius:4px;font-size:10px;">❌ CANCELLED</span>');
