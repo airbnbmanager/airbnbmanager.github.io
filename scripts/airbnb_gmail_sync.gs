@@ -547,8 +547,8 @@ function syncAirbnbReviewsFromGmail() {
   const reviewLabel = getOrCreateLabel("Airbnb-Review-Synced");
 
   // Search Gmail for review notification emails that haven't been processed yet
-  const query = 'from:airbnb.com ("wrote you a review" OR "wrote a review" OR "left a review" OR "left a 5-star review" OR "5-star review" OR "submitted a review" OR "Read" AND "review") -label:Airbnb-Review-Synced';
-  const threads = GmailApp.search(query, 0, 30);
+  const query = 'from:airbnb.com ("wrote you a review" OR "wrote a review" OR "left a review" OR "left a 5-star review" OR "5-star review" OR "submitted a review" OR "Write a review for" OR "Read" AND "review") -label:Airbnb-Review-Synced';
+  const threads = GmailApp.search(query, 0, 50);
   Logger.log(`Found ${threads.length} potential Airbnb review notification threads in Gmail.`);
 
   if (threads.length === 0) return 0;
@@ -590,17 +590,23 @@ function syncAirbnbReviewsFromGmail() {
       confirmationCode = codeMatch[1].toUpperCase();
     }
 
-    // 2. Extract Guest Name from Subject (e.g. "Sparsh wrote you a review", "Stuti left a 5-star review!", "Read Sparsh's review")
+    // 2. Extract Guest Name from Subject (handles all Airbnb review subject formats)
     let guestFirstName = null;
-    const subMatch1 = subject.match(/^([A-Za-z\s]+?)\s+wrote\s+(you\s+)?a\s+review/i);
-    const subMatch2 = subject.match(/^([A-Za-z\s]+?)\s+left\s+a\s+(5-star\s+)?review/i);
-    const subMatch3 = subject.match(/^Read\s+([A-Za-z\s]+?)'s\s+review/i);
-    const subMatch4 = subject.match(/^New\s+review\s+from\s+([A-Za-z\s]+)/i);
+    const subMatch1 = subject.match(/(?:Airbnb\s*[-|:]\s*)?([A-Za-z\s]+?)\s+wrote\s+(?:you\s+)?a\s+review/i);
+    const subMatch2 = subject.match(/(?:Airbnb\s*[-|:]\s*)?([A-Za-z\s]+?)\s+left\s+a\s+(?:5-star\s+)?review/i);
+    const subMatch3 = subject.match(/(?:Airbnb\s*[-|:]\s*)?Read\s+([A-Za-z\s]+?)'s\s+review/i);
+    const subMatch4 = subject.match(/(?:Airbnb\s*[-|:]\s*)?Write\s+a\s+review\s+for\s+([A-Za-z\s]+?)(?:'s\s+group|\.|\n|$)/i);
+    const subMatch5 = subject.match(/New\s+review\s+from\s+([A-Za-z\s]+)/i);
 
     if (subMatch1) guestFirstName = subMatch1[1].trim();
     else if (subMatch2) guestFirstName = subMatch2[1].trim();
-    else if (subMatch3) guestFirstName = subMatch3[1].trim();
     else if (subMatch4) guestFirstName = subMatch4[1].trim();
+    else if (subMatch3) guestFirstName = subMatch3[1].trim();
+    else if (subMatch5) guestFirstName = subMatch5[1].trim();
+
+    if (guestFirstName) {
+      guestFirstName = guestFirstName.replace(/^(Airbnb|Write a review for|Read)\s+/i, '').replace(/'s\s+group$/i, '').trim();
+    }
 
     // 3. Find matching booking in CRM
     let matchedBooking = null;

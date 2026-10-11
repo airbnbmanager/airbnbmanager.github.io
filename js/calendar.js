@@ -72,7 +72,19 @@ async function renderReports() {
   const bcomCount = realMb.filter(b => (window.getBookingSource ? window.getBookingSource(b).type === 'booking_com' : (b.booking_mode || '').toLowerCase().includes('booking.com'))).length;
   const offCount = Math.max(0, realMb.length - onCount - bcomCount);
 
-  const reviewCount = realMb.filter(b => Number(b.client_rating || 0) >= 4).length;
+  let reviewFollowupsMap = {};
+  try {
+    reviewFollowupsMap = JSON.parse(localStorage.getItem('uh_airbnb_review_followups') || '{}');
+  } catch(e) {}
+
+  const isReviewedBooking = (b) => {
+    if (!b) return false;
+    if (Number(b.client_rating || 0) >= 4) return true;
+    if (reviewFollowupsMap[b.booking_id] && reviewFollowupsMap[b.booking_id].status === 'review_received') return true;
+    return false;
+  };
+
+  const reviewCount = realMb.filter(isReviewedBooking).length;
 
   // Occupancy for filtered rooms
   const displayRooms = selRoom === 'all' ? allRooms : allRooms.filter(r => r.room_id === selRoom);
@@ -234,7 +246,7 @@ async function renderReports() {
         }
         if (firstName.length > 7) firstName = firstName.substring(0, 7);
 
-        const hasReview = Number(bk.client_rating || 0) >= 4;
+        const hasReview = isReviewedBooking(bk);
         const currentNight = calcNights(bk.check_in, ds);
         const showName = isCheckIn || isCheckOut || (currentNight > 0 && currentNight % 2 === 0);
         const showAvatar = isCheckIn || isBlocked;
@@ -668,8 +680,14 @@ async function showMultiBookingList(bookings, roomId, dateStr) {
     const modeText = b.booking_mode === 'Online-Airbnb' ? 'Airbnb' : 'Direct';
     const secBadge = typeof getSecurityDepositBadge === 'function' ? getSecurityDepositBadge(b) : '';
     const cleanNotes = typeof cleanNotesForDisplay === 'function' ? cleanNotesForDisplay(b.notes) : (b.notes || '');
-    const statusBadges = [];
-    if (Number(b.client_rating || 0) >= 4) statusBadges.push('<span style="background:#F59E0B;color:#fff;padding:2px 7px;border-radius:4px;font-size:10px;font-weight:700;">⭐ 5★ REVIEWED</span>');
+    let isRev = false;
+    try {
+      const fMap = JSON.parse(localStorage.getItem('uh_airbnb_review_followups') || '{}');
+      isRev = Number(b.client_rating || 0) >= 4 || (fMap[b.booking_id] && fMap[b.booking_id].status === 'review_received');
+    } catch(e) {
+      isRev = Number(b.client_rating || 0) >= 4;
+    }
+    if (isRev) statusBadges.push('<span style="background:#F59E0B;color:#fff;padding:2px 7px;border-radius:4px;font-size:10px;font-weight:700;">⭐ 5★ REVIEWED</span>');
     if (b.is_review_booking) statusBadges.push('<span style="background:#8B5CF6;color:#fff;padding:2px 6px;border-radius:4px;font-size:10px;">⭐ REVIEW</span>');
     if (b.show_to_investor === false) statusBadges.push('<span style="background:#DC2626;color:#fff;padding:2px 6px;border-radius:4px;font-size:10px;">🚫 HIDDEN</span>');
     if (b.is_cancelled) statusBadges.push('<span style="background:#DC2626;color:#fff;padding:2px 6px;border-radius:4px;font-size:10px;">❌ CANCELLED</span>');

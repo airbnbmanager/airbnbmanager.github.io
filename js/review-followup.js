@@ -115,11 +115,12 @@
           updated_at: new Date().toISOString()
         }, { onConflict: 'key' });
 
-        // If rating was provided, also sync to guest_register
-        if (updateObj.rating) {
+        // If rating was provided OR status is review_received, sync to guest_register immediately
+        if (updateObj.rating || updateObj.status === 'review_received') {
+          const ratingVal = updateObj.rating || 5;
           await sb.from('guest_register').update({
-            client_rating: updateObj.rating,
-            rating_notes: updateObj.notes || 'Recorded via Review Radar',
+            client_rating: ratingVal,
+            rating_notes: updateObj.notes || '⭐ 5-Star Review Verified on Airbnb',
             rated_at: new Date().toISOString(),
             rated_by: SESSION?.displayName || 'Admin'
           }).eq('booking_id', bookingId);
@@ -426,6 +427,7 @@
 
     await window.saveReviewFollowupRecord(bookingId, {
       status: 'review_received',
+      rating: 5,
       reviewReceivedAt: new Date().toISOString(),
       newCallLog: {
         timestamp: new Date().toISOString(),
@@ -813,19 +815,27 @@
       const codeMatch = val.match(/\b(HM[A-Z0-9]{8,12})\b/i);
       const confCode = codeMatch ? codeMatch[1].toUpperCase() : null;
 
-      // 2. Extract Guest Name (e.g. "Sparsh wrote you a review", "Read Sparsh's review")
+      // 2. Extract Guest Name (handles all Airbnb review subject styles)
       let guestName = null;
-      const subMatch1 = val.match(/^([A-Za-z\s]+?)\s+wrote\s+(you\s+)?a\s+review/i);
-      const subMatch2 = val.match(/^Read\s+([A-Za-z\s]+?)'s\s+review/i);
-      const subMatch3 = val.match(/^New\s+review\s+from\s+([A-Za-z\s]+)/i);
-      const subMatch4 = val.match(/review\s+(for|from)\s+([A-Za-z\s]+)/i);
+      const subMatch1 = val.match(/([A-Za-z\s]+?)\s+wrote\s+(you\s+)?a\s+review/i);
+      const subMatch2 = val.match(/([A-Za-z\s]+?)\s+left\s+a\s+(5-star\s+)?review/i);
+      const subMatch3 = val.match(/Read\s+([A-Za-z\s]+?)'s\s+review/i);
+      const subMatch4 = val.match(/Write\s+a\s+review\s+for\s+([A-Za-z\s]+?)(?:'s\s+group|\.|\n|$)/i);
+      const subMatch5 = val.match(/review\s+(for|from)\s+([A-Za-z\s]+?)(?:'s\s+group|\.|\n|$)/i);
+      const subMatch6 = val.match(/^New\s+review\s+from\s+([A-Za-z\s]+)/i);
 
       if (subMatch1) guestName = subMatch1[1].trim();
       else if (subMatch2) guestName = subMatch2[1].trim();
+      else if (subMatch4) guestName = subMatch4[1].trim();
       else if (subMatch3) guestName = subMatch3[1].trim();
-      else if (subMatch4) guestName = subMatch4[2].trim();
+      else if (subMatch5) guestName = subMatch5[2].trim();
+      else if (subMatch6) guestName = subMatch6[1].trim();
       else if (!confCode) {
-        guestName = val.replace(/wrote\s+you\s+a\s+review/i, '').replace(/review/i, '').trim();
+        guestName = val.replace(/wrote\s+you\s+a\s+review/i, '').replace(/review/i, '').replace(/'s\s+group/i, '').trim();
+      }
+
+      if (guestName) {
+        guestName = guestName.replace(/^(Airbnb|Write a review for|Read)\s+/i, '').replace(/'s\s+group$/i, '').trim();
       }
 
       let matched = null;
