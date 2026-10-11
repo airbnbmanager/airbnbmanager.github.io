@@ -641,6 +641,14 @@
             </div>
           </div>
         </div>
+
+        <!-- CALL STATUS COLOR GUIDE -->
+        <div style="margin-top:10px;padding-top:8px;border-top:1px dashed #E5E7EB;display:flex;gap:16px;align-items:center;flex-wrap:wrap;font-size:11.5px;color:#4B5563;">
+          <span style="font-weight:700;color:#1F2937;">📞 Call Color Code:</span>
+          <span><span style="display:inline-block;width:11px;height:11px;border-radius:3px;background:#10B981;vertical-align:middle;margin-right:4px;"></span> 🟢 <strong>Green (Call)</strong>: Abhi call nahi kiya (Fresh)</span>
+          <span><span style="display:inline-block;width:11px;height:11px;border-radius:3px;background:#F59E0B;vertical-align:middle;margin-right:4px;"></span> 🟡 <strong>Yellow (Follow-up)</strong>: Call kar liya hai &bull; Follow-up pending</span>
+          <span><span style="display:inline-block;width:11px;height:11px;border-radius:3px;background:#94A3B8;vertical-align:middle;margin-right:4px;"></span> ⚪ <strong>Gray (Done)</strong>: Review aa chuka hai &bull; Call done</span>
+        </div>
       </div>
 
       <!-- RADAR LIST TABLE & CARDS -->
@@ -669,11 +677,13 @@
                   const win = getReviewWindowInfo(b.check_out);
                   const rec = followupMap[b.booking_id] || {};
                   const status = rec.status || (b.client_rating >= 4 ? 'review_received' : 'pending');
+                  const isReviewed = status === 'review_received' || Number(b.client_rating || 0) >= 4;
+                  const hasBeenCalled = !isReviewed && (!!rec.lastCallAt || (rec.callLogs && rec.callLogs.length > 0) || status === 'called_promised' || status === 'busy_callback');
                   const pLabel = (typeof propLabel === 'function') ? propLabel(b.rooms) : (b.room_id || '');
                   const src = window.getBookingSource ? window.getBookingSource(b) : { badge: 'Online', badgeClass: 'channel-airbnb', bgColor: '#FFF1F2', color: '#FF385C', borderColor: '#FECDD3' };
 
                   return `
-                    <tr style="${win.isUrgent && status !== 'review_received' ? 'background:#FEF2F2;' : ''}">
+                    <tr style="${win.isUrgent && !isReviewed ? 'background:#FEF2F2;' : ''}">
                       <td>
                         <div style="display:flex;align-items:center;gap:10px;">
                           <div style="width:34px;height:34px;border-radius:50%;background:${src.bgColor};color:${src.color};display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;border:1px solid ${src.borderColor};flex-shrink:0;">
@@ -702,7 +712,7 @@
                         </span>
                       </td>
                       <td>
-                        ${getFollowupStatusBadge(status, win)}
+                        ${getFollowupStatusBadge(isReviewed ? 'review_received' : status, win)}
                         ${rec.rating ? ` <span style="font-size:11px;color:#B45309;font-weight:700;">${'⭐'.repeat(rec.rating)}</span>` : ''}
                       </td>
                       <td>
@@ -720,20 +730,28 @@
                       <td class="table-actions" style="text-align:right;white-space:nowrap;">
                         <div style="display:inline-flex;gap:5px;align-items:center;justify-content:flex-end;">
                           ${b.phone ? `
-                            <a href="tel:${b.phone}" class="btn-sm" onclick="window.openReviewCallLogModal('${b.booking_id}')"
-                              style="background:#2563EB;color:#fff;text-decoration:none;display:inline-flex;align-items:center;gap:4px;padding:5px 8px;font-size:11.5px;font-weight:700;border-radius:6px;" title="Call Guest">
-                              📞 Call
-                            </a>
-                            <button class="btn-sm" onclick="window.sendReviewFollowupWhatsApp('${b.booking_id}', '${escapeHtml(b.guest_name||'')}', '${b.phone}', '${b.room_id}', '${escapeHtml(pLabel)}')"
-                              style="background:#25D366;color:#fff;font-weight:700;border:none;padding:5px 8px;font-size:11.5px;border-radius:6px;" title="Send WhatsApp Review Request Link">
-                              💬 WA
-                            </button>
+                            ${isReviewed ? `
+                              <span class="btn-sm" style="background:#94A3B8;color:#fff;display:inline-flex;align-items:center;gap:4px;padding:5px 8px;font-size:11.5px;font-weight:700;border-radius:6px;opacity:0.65;cursor:not-allowed;" title="Review aa chuka hai — Call done!">
+                                📞 Done
+                              </span>
+                            ` : `
+                              <a href="tel:${b.phone}" class="btn-sm" onclick="window.openReviewCallLogModal('${b.booking_id}')"
+                                style="background:${hasBeenCalled ? '#F59E0B' : '#10B981'};color:#fff;text-decoration:none;display:inline-flex;align-items:center;gap:4px;padding:5px 8px;font-size:11.5px;font-weight:700;border-radius:6px;box-shadow:0 1px 2px rgba(0,0,0,0.1);" title="${hasBeenCalled ? 'Follow-up Call (Already called previously)' : 'Fresh Call (Abhi call nahi kiya)'}">
+                                ${hasBeenCalled ? '📞 Follow-up' : '📞 Call'}
+                              </a>
+                            `}
+                            ${!isReviewed ? `
+                              <button class="btn-sm" onclick="window.sendReviewFollowupWhatsApp('${b.booking_id}', '${escapeHtml(b.guest_name||'')}', '${b.phone}', '${b.room_id}', '${escapeHtml(pLabel)}')"
+                                style="background:#25D366;color:#fff;font-weight:700;border:none;padding:5px 8px;font-size:11.5px;border-radius:6px;" title="Send WhatsApp Review Request Link">
+                                💬 WA
+                              </button>
+                            ` : ''}
                           ` : ''}
                           <button class="btn-sm" onclick="window.openReviewCallLogModal('${b.booking_id}')" 
                             style="background:#F3F4F6;color:#374151;border:1px solid #D1D5DB;font-weight:600;padding:5px 8px;font-size:11.5px;border-radius:6px;" title="Log Call Outcome">
                             📝 Log
                           </button>
-                          ${status !== 'review_received' ? `
+                          ${!isReviewed ? `
                             <button class="btn-sm" onclick="window.markReviewReceived('${b.booking_id}', '${escapeHtml(b.guest_name||'')}')" 
                               style="background:#10B981;color:#fff;border:none;font-weight:700;padding:5px 8px;font-size:11.5px;border-radius:6px;" title="Confirm Review Received">
                               ⭐ Received
