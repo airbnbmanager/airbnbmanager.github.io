@@ -8761,26 +8761,20 @@ window.openCustomPaymentQRModal = async function(prefill = {}) {
     }
 
     const NL = '\n';
-    const waMsg = `*THE UNIQUE HAVEN HOMES*${NL}` +
-      `*OFFICIAL PAYMENT QR / भुगतान*${NL}` +
-      `━━━━━━━━━━━━━━━━━━━━${NL}` +
-      `👤 *Guest:* ${guest}${NL}` +
-      `🏡 *Property:* ${roomFull}${NL}` +
-      `💰 *Amount to Pay:* *₹${amt.toLocaleString('en-IN')}*${NL}` +
-      `━━━━━━━━━━━━━━━━━━━━${NL}` +
-      `*UPI Settlement Details:*${NL}` +
-      `• Beneficiary: Mr. Firoz Khan${NL}` +
-      `• Official UPI ID: *8299600709@ybl*${NL}` +
-      `• Payment Note: *${cleanNote}*${NL}${NL}` +
-      `⚡ *Tap to Pay directly (PhonePe / GPay / Paytm):*${NL}` +
+    const waMsg = `Dear *${guest}*,${NL}` +
+      `Please pay *₹${amt.toLocaleString('en-IN')}* for *${roomFull}*.${NL}${NL}` +
+      `⚡ *UPI Pay Link:*${NL}` +
       `${upiString}${NL}${NL}` +
-      `📷 *View / Scan QR Code:*${NL}` +
+      `📷 *QR Code Link:*${NL}` +
       `${qrUrl}${NL}${NL}` +
-      `⚠️ *Note:* Payment hone ke baad screenshot isi WhatsApp par bhejein taaki aapka payment turant verify ho sake.${NL}${NL}` +
-      `Helpline: +91 82996 00709 (Mr. Firoz Khan)`;
+      `• UPI ID: *8299600709@ybl* (Firoz Khan)${NL}` +
+      `• Note: *${cleanNote}*${NL}${NL}` +
+      `Payment ke baad screenshot share kar dijiye.`;
 
-    // If mobile browser supports Web Share API with image file
-    if (navigator.canShare && navigator.userAgent.match(/Android|iPhone|iPad/i)) {
+    if (rawPhone.length >= 10) {
+      const targetWa = rawPhone.length === 10 ? '91' + rawPhone : rawPhone;
+      window.open(`https://wa.me/${targetWa}?text=${encodeURIComponent(waMsg)}`, '_blank');
+    } else if (navigator.canShare && navigator.userAgent.match(/Android|iPhone|iPad/i)) {
       try {
         const res = await fetch(qrUrl);
         const blob = await res.blob();
@@ -8794,13 +8788,8 @@ window.openCustomPaymentQRModal = async function(prefill = {}) {
           return;
         }
       } catch (err) {
-        console.log('Native share bypassed, opening wa.me:', err);
+        window.open(`https://wa.me/?text=${encodeURIComponent(waMsg)}`, '_blank');
       }
-    }
-
-    if (rawPhone.length >= 10) {
-      const targetWa = rawPhone.length === 10 ? '91' + rawPhone : rawPhone;
-      window.open(`https://wa.me/${targetWa}?text=${encodeURIComponent(waMsg)}`, '_blank');
     } else {
       window.open(`https://wa.me/?text=${encodeURIComponent(waMsg)}`, '_blank');
     }
