@@ -939,7 +939,7 @@ async function showGuestLedger(guestName, bookingId, phone, airbnbCode, initialF
           📋 Copy Statement
         </button>
         <button type="button" onclick="window.openCustomPaymentQRModal({ guestName: '${escapeHtml(resolvedGuestName)}', phone: '${escapeHtml(displayPhone)}', amount: ${totalDue > 0 ? totalDue : 0} })" style="background:linear-gradient(135deg, #4F46E5, #6366F1);color:#fff;font-weight:700;padding:8px 16px;border:none;border-radius:8px;cursor:pointer;">
-          ⚡ Send Custom QR
+          💳 Send Custom QR
         </button>
         ${activeBookings.length ? `
           <button type="button" onclick="window.openBookingReceiptModal('${activeBookings[activeBookings.length - 1]?.booking_id}')" style="background:#0F172A;color:#fff;font-weight:700;padding:8px 14px;border:none;border-radius:8px;cursor:pointer;">
@@ -1461,7 +1461,7 @@ async function printGuestLedger(guestName, phone, passedBookings, passedPayments
         <!-- Vibrant Header Strip -->
         <div style="background:linear-gradient(135deg, #0F172A 0%, #1E1B4B 50%, #4338CA 100%) !important;color:#FFFFFF !important;padding:8px 14px;display:flex;justify-content:space-between;align-items:center;">
           <div style="display:flex;align-items:center;gap:8px;">
-            <span style="font-size:14px;">⚡</span>
+            <span style="font-size:14px;">💳</span>
             <div>
               <div style="font-size:11.5px;font-weight:800;letter-spacing:0.5px;text-transform:uppercase;">OFFICIAL UPI SETTLEMENT & INSTANT QR</div>
               <div style="font-size:9.5px;color:#CBD5E1;">Scan with any UPI application · Auto-coded Due Amount: ₹${totalDue.toLocaleString('en-IN')}</div>
@@ -4437,7 +4437,7 @@ window.showCheckoutRatingModal = function(bkId, roomId, bk, nights, calcTotal, t
     <div style="background:#FFFBEB;border:1.5px solid #F59E0B;border-radius:8px;padding:10px 12px;margin-bottom:12px;font-size:12.5px;">
       <div style="display:flex;justify-content:space-between;align-items:center;">
         <strong style="color:#B45309;">🛡️ Security Deposit Held: ₹${sec.amount.toLocaleString('en-IN')}</strong>
-        <button type="button" class="btn-sm" style="background:#0284C7;color:#fff;font-size:11px;padding:3px 8px;" onclick="showSecurityDepositModal('${bkId}')">⚡ Settle / Refund</button>
+        <button type="button" class="btn-sm" style="background:#0284C7;color:#fff;font-size:11px;padding:3px 8px;" onclick="showSecurityDepositModal('${bkId}')">Settle / Refund</button>
       </div>
       <div style="color:#78350F;margin-top:4px;font-size:11.5px;">
         Guest is checking out. Check flat for any damages. If damage occurred, enter deduction and refund the balance.
@@ -4791,7 +4791,7 @@ async function editBooking(bkId) {
           </label>
           <div style="display:flex;gap:6px;align-items:center;">
             <span style="font-size:11px;background:#E0F2FE;color:#0369A1;font-weight:700;padding:2px 8px;border-radius:12px;">Not in Revenue</span>
-            <button type="button" class="btn-sm" style="background:#0284C7;color:#fff;font-size:11px;padding:3px 8px;" onclick="showSecurityDepositModal('${bkId}')">⚡ Open Settle Modal</button>
+            <button type="button" class="btn-sm" style="background:#0284C7;color:#fff;font-size:11px;padding:3px 8px;" onclick="showSecurityDepositModal('${bkId}')">Open Settle Modal</button>
           </div>
         </div>
 
@@ -8607,7 +8607,7 @@ window.openCustomPaymentQRModal = async function(prefill = {}) {
       <div style="background:linear-gradient(135deg, #0F172A 0%, #1E1B4B 60%, #4338CA 100%);color:#FFFFFF;padding:10px 14px;display:flex;align-items:center;justify-content:space-between;gap:8px;">
         <div style="display:flex;align-items:center;gap:8px;min-width:0;">
           <div style="width:28px;height:28px;border-radius:8px;background:rgba(255,255,255,0.15);display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;">
-            ⚡
+            💳
           </div>
           <div style="min-width:0;">
             <h3 style="margin:0;font-size:14px;font-weight:800;letter-spacing:0.3px;color:#FFFFFF;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Send Payment QR</h3>
@@ -8624,8 +8624,8 @@ window.openCustomPaymentQRModal = async function(prefill = {}) {
         <div>
           <label style="display:block;font-size:11.5px;font-weight:800;color:#1E1B4B;margin-bottom:3px;">1. Amount to Request (₹) *</label>
           <div style="position:relative;">
-            <span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:18px;font-weight:900;color:#4F46E5;">₹</span>
-            <input type="number" id="cpqrAmount" min="1" step="50" value="${initAmount}" placeholder="Enter amount" autofocus style="width:100%;padding:8px 10px 8px 30px;border:2px solid #4F46E5;border-radius:9px;font-size:16px;font-weight:900;color:#0F172A;background:#FFFFFF;box-sizing:border-box;outline:none;" />
+            <span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:18px;font-weight:900;color:#4F46E5;pointer-events:none;user-select:none;">₹</span>
+            <input type="text" inputmode="numeric" pattern="[0-9]*" id="cpqrAmount" value="${initAmount}" placeholder="Enter amount" autofocus autocomplete="off" style="width:100%;padding:8px 10px 8px 30px;border:2px solid #4F46E5;border-radius:9px;font-size:16px;font-weight:900;color:#0F172A;background:#FFFFFF;box-sizing:border-box;outline:none;" />
           </div>
         </div>
 
@@ -8650,7 +8650,7 @@ window.openCustomPaymentQRModal = async function(prefill = {}) {
               <div style="font-size:9.5px;color:#4338CA;font-family:monospace;margin-top:1px;font-weight:700;">8299600709@ybl</div>
             </button>
             <button type="button" id="cpqrPayeePraveen" style="padding:6px 8px;border-radius:8px;border:1.5px solid #CBD5E1;background:#FFFFFF;cursor:pointer;text-align:left;transition:all 0.2s;">
-              <div style="font-size:11px;font-weight:800;color:#0F172A;">⚡ Praveen</div>
+              <div style="font-size:11px;font-weight:800;color:#0F172A;">Praveen</div>
               <div style="font-size:9.5px;color:#64748B;font-family:monospace;margin-top:1px;">9454470872@apl</div>
             </button>
           </div>
@@ -8692,7 +8692,7 @@ window.openCustomPaymentQRModal = async function(prefill = {}) {
               <img id="cpqrImg" src="" alt="UPI QR Code" style="width:130px;height:130px;display:block;border-radius:6px;" />
             </div>
             <div style="margin-top:4px;font-size:9.5px;font-weight:800;color:#4338CA;letter-spacing:0.5px;">
-              ⚡ SCAN WITH ANY UPI APP
+              SCAN WITH ANY UPI APP
             </div>
           </div>
 
@@ -9035,7 +9035,31 @@ window.openCustomPaymentQRModal = async function(prefill = {}) {
   guestIn.addEventListener('input', updateLivePreview);
   phoneIn.addEventListener('input', updateLivePreview);
   roomSel.addEventListener('change', updateLivePreview);
-  amtIn.addEventListener('input', updateLivePreview);
+  
+  amtIn.addEventListener('input', () => {
+    const clean = amtIn.value.replace(/[^0-9]/g, '');
+    if (amtIn.value !== clean) amtIn.value = clean;
+    updateLivePreview();
+  });
+
+  ['focusin', 'click', 'touchend'].forEach(evt => {
+    amtIn.addEventListener(evt, () => {
+      setTimeout(() => {
+        if (amtIn.value) {
+          try { amtIn.setSelectionRange(amtIn.value.length, amtIn.value.length); } catch(e){}
+        }
+      }, 20);
+    });
+  });
+
+  setTimeout(() => {
+    if (amtIn.value) {
+      try {
+        amtIn.focus();
+        amtIn.setSelectionRange(amtIn.value.length, amtIn.value.length);
+      } catch(e){}
+    }
+  }, 100);
 
   updateLivePreview();
 
@@ -9056,7 +9080,7 @@ window.openCustomPaymentQRModal = async function(prefill = {}) {
     const greeting = guest ? `Dear *${guest}*,` : `Dear Guest,`;
     const waMsg = `${greeting}${NL}` +
       `Please pay *₹${amt.toLocaleString('en-IN')}* for *${roomFull}*.${NL}${NL}` +
-      `⚡ *UPI Pay Link:*${NL}` +
+      `*UPI Pay Link:*${NL}` +
       `${upiString}${NL}${NL}` +
       `📷 *QR Code Link:*${NL}` +
       `${qrUrl}${NL}${NL}` +

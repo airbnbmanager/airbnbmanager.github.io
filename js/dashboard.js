@@ -995,7 +995,7 @@ async function renderDashboard() {
             ` : ''}
             <button class="dash-pill-btn" onclick="renderDashboard()" title="Refresh live data">🔄 Refresh</button>
             <button type="button" class="dash-pill-btn" style="background:linear-gradient(135deg,#4F46E5,#6366F1);color:#FFFFFF;border-color:#4F46E5;font-weight:700;box-shadow:0 3px 10px rgba(79,70,229,0.3);display:inline-flex;align-items:center;gap:6px;" onclick="window.openCustomPaymentQRModal()" title="Create & Send Custom UPI Payment QR to Guest">
-              <span>⚡</span> <span>Send Payment QR</span>
+              <span>💳</span> <span>Send Payment QR</span>
             </button>
             <button class="dash-pill-btn" onclick="navigate('flats')">🛏️ Flats Status</button>
             <button class="dash-pill-btn" onclick="navigate('bookings')">📅 Bookings</button>

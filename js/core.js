@@ -1240,7 +1240,7 @@ function renderShell(content, activePage = 'dashboard') {
     settings: { title: 'System Settings', sub: 'Global configuration & preferences', icon: '⚙️' },
   };
 
-  const pageMeta = PAGE_TITLES[activePage] || { title: activePage, sub: 'The Unique Haven Homes CRM', icon: '⚡' };
+  const pageMeta = PAGE_TITLES[activePage] || { title: activePage, sub: 'The Unique Haven Homes CRM', icon: '📋' };
 
   // Find which Hub the activePage belongs to
   const currentHub = (UHHS_HUBS || []).find(h => h.pages.includes(activePage));
@@ -1414,7 +1414,7 @@ function renderShell(content, activePage = 'dashboard') {
           <div class="topbar-right">
             <!-- Quick Send Payment QR Action -->
             <button type="button" class="topbar-qr-pill-btn" onclick="window.openCustomPaymentQRModal && window.openCustomPaymentQRModal()" title="Instant UPI Payment QR to Guest">
-              <span style="font-size:14px;">⚡</span>
+              <span style="font-size:14px;">💳</span>
               <span class="qr-btn-text">QR Pay</span>
             </button>
 
@@ -3694,7 +3694,7 @@ function initDrawerSearch() {
           matchedTabs.push({
             id: tab.id,
             label: tab.label || pageMeta.title || tab.id,
-            icon: pageMeta.icon || '⚡',
+            icon: pageMeta.icon || '📋',
             hub: hub.label.replace(/^[^\w\s]+/, '').trim(),
             sub: pageMeta.sub || ''
           });
@@ -3725,8 +3725,8 @@ function initDrawerSearch() {
           seen.add(key);
           matchedTabs.push({
             id: key,
-            label: `${meta.icon || '⚡'} ${meta.title}`,
-            icon: meta.icon || '⚡',
+            label: `${meta.icon || '📋'} ${meta.title}`,
+            icon: meta.icon || '📋',
             hub: 'Feature',
             sub: meta.sub || ''
           });
@@ -4600,6 +4600,101 @@ window.restoreStoragePhoto = async function(path, fileBlob) {
   }
 
   window.syncModalZIndex = updateModalZIndices;
+})();
+
+// ═══════════════════════════════════════════════════════════
+// 🎯 UNIVERSAL CRM SMART CURSOR POSITIONING ENGINE
+// Ensures that clicking, tapping, or focusing any input/textarea
+// (amounts, rates, guest names, phones, notes, modals)
+// places the cursor at the proper position (end of existing text)
+// rather than being stranded at position 0 (start).
+// ═══════════════════════════════════════════════════════════
+(function initGlobalCursorPlacement() {
+  function placeCursorAtProperPosition(el) {
+    if (!el || (el.tagName !== 'INPUT' && el.tagName !== 'TEXTAREA')) return;
+    const type = (el.type || 'text').toLowerCase();
+    const nonTextTypes = ['checkbox', 'radio', 'button', 'submit', 'reset', 'file', 'image', 'color', 'range', 'hidden'];
+    if (nonTextTypes.includes(type)) return;
+
+    const val = el.value;
+    if (val === undefined || val === null) return;
+    const len = String(val).length;
+    if (len === 0) return;
+
+    try {
+      el.setSelectionRange(len, len);
+      return;
+    } catch (err) {
+      if (type === 'number') {
+        try {
+          el.type = 'text';
+          el.setSelectionRange(len, len);
+          el.type = 'number';
+          return;
+        } catch (_) {
+          try { el.select(); } catch (__) {}
+        }
+      }
+    }
+  }
+
+  // Handle focus, clicks, and touches across all CRM inputs and dynamic modals
+  ['focusin', 'click', 'touchend'].forEach(evtType => {
+    document.addEventListener(evtType, (e) => {
+      const el = e.target;
+      if (!el || (el.tagName !== 'INPUT' && el.tagName !== 'TEXTAREA')) return;
+      const type = (el.type || 'text').toLowerCase();
+      if (['checkbox', 'radio', 'button', 'submit', 'reset', 'file'].includes(type)) return;
+
+      setTimeout(() => {
+        if (!el.value || el.value.length === 0) return;
+
+        // Is it a numeric/amount/currency field?
+        const isNumericOrAmount = type === 'number' || 
+          el.inputMode === 'numeric' || 
+          el.inputMode === 'decimal' ||
+          /(amount|amt|rate|price|cost|salary|advance|paid|due|total|fee|phone|qty|balance)/i.test(el.id || el.name || el.className || '');
+
+        let isCaretAtStart = false;
+        try {
+          isCaretAtStart = (el.selectionStart === 0 && el.selectionEnd === 0);
+        } catch (_) {
+          isCaretAtStart = true;
+        }
+
+        // If amount field, or caret defaulted to position 0 (start), move to proper place (end)
+        if (isNumericOrAmount || isCaretAtStart) {
+          placeCursorAtProperPosition(el);
+        }
+      }, 20);
+    }, true);
+  });
+
+  // Handle programmatic autofocus on dynamically loaded modals/popups
+  const observer = new MutationObserver((mutations) => {
+    for (const m of mutations) {
+      if (m.addedNodes.length > 0) {
+        for (const n of m.addedNodes) {
+          if (n.nodeType === 1) {
+            const autoEl = n.matches?.('[autofocus]') ? n : n.querySelector?.('[autofocus]');
+            if (autoEl && autoEl.value) {
+              setTimeout(() => placeCursorAtProperPosition(autoEl), 80);
+            }
+          }
+        }
+      }
+    }
+  });
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+      observer.observe(document.body || document.documentElement, { childList: true, subtree: true });
+    });
+  } else {
+    observer.observe(document.body || document.documentElement, { childList: true, subtree: true });
+  }
+
+  window.placeCursorAtProperPosition = placeCursorAtProperPosition;
 })();
 
 window.renderCalendar = function() {
