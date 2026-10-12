@@ -9,40 +9,50 @@
   <link rel="apple-touch-icon" href="apple-touch-icon.png">
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
-    body { background: #0F172A; color: #1E293B; min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 16px 12px; }
+    body {
+      background: #0B0F19;
+      color: #1E293B;
+      min-height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      padding: 8px 8px 16px;
+      -webkit-font-smoothing: antialiased;
+    }
     
     .pay-card {
       width: 100%;
-      max-width: 450px;
+      max-width: 410px;
       background: #FFFFFF;
-      border-radius: 20px;
-      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.1);
+      border-radius: 16px;
+      box-shadow: 0 10px 35px rgba(0, 0, 0, 0.4);
       overflow: hidden;
-      margin: auto;
+      margin: 0 auto;
     }
 
     .pay-header {
       background: linear-gradient(135deg, #0F172A 0%, #1E1B4B 60%, #4338CA 100%);
       color: #FFFFFF;
-      padding: 18px 20px;
+      padding: 10px 14px;
       text-align: center;
       position: relative;
     }
-    .pay-header h1 { font-size: 17px; font-weight: 800; letter-spacing: 0.5px; color: #FFFFFF; margin-bottom: 2px; }
-    .pay-header .brand-gold { color: #FCD34D; font-size: 11px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; }
-    .pay-header .subtitle { font-size: 11.5px; color: #C7D2FE; margin-top: 4px; }
+    .pay-header h1 { font-size: 15px; font-weight: 800; letter-spacing: 0.3px; color: #FFFFFF; margin-bottom: 1px; }
+    .pay-header .brand-gold { color: #FCD34D; font-size: 9.5px; font-weight: 800; letter-spacing: 0.8px; text-transform: uppercase; }
+    .pay-header .subtitle { font-size: 10px; color: #C7D2FE; margin-top: 1px; }
 
-    .pay-body { padding: 18px; display: flex; flex-direction: column; gap: 13px; background: #F8FAFC; }
+    .pay-body { padding: 11px 13px; display: flex; flex-direction: column; gap: 8px; background: #F8FAFC; }
 
-    .field-group { display: flex; flex-direction: column; gap: 4px; }
-    .field-label { font-size: 11.5px; font-weight: 700; color: #334155; }
+    .field-group { display: flex; flex-direction: column; gap: 3px; }
+    .field-label { font-size: 11px; font-weight: 700; color: #334155; }
     
     .input-box {
       width: 100%;
-      padding: 10px 12px;
+      padding: 7px 10px;
       border: 1.5px solid #CBD5E1;
-      border-radius: 10px;
-      font-size: 13.5px;
+      border-radius: 8px;
+      font-size: 13px;
       font-weight: 600;
       color: #0F172A;
       background: #FFFFFF;
@@ -54,11 +64,11 @@
     .payee-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 8px;
+      gap: 6px;
     }
     .payee-btn {
-      padding: 9px 10px;
-      border-radius: 10px;
+      padding: 6px 8px;
+      border-radius: 8px;
       border: 1.5px solid #CBD5E1;
       background: #FFFFFF;
       cursor: pointer;
@@ -68,102 +78,102 @@
     .payee-btn.active {
       border: 2px solid #4F46E5;
       background: #EEF2FF;
-      box-shadow: 0 2px 8px rgba(79, 70, 229, 0.15);
+      box-shadow: 0 2px 6px rgba(79, 70, 229, 0.15);
     }
-    .payee-name { font-size: 12px; font-weight: 800; color: #0F172A; }
+    .payee-name { font-size: 11px; font-weight: 800; color: #0F172A; line-height: 1.2; }
     .payee-btn.active .payee-name { color: #312E81; }
-    .payee-upi { font-size: 10.5px; color: #64748B; font-family: monospace; margin-top: 2px; }
+    .payee-upi { font-size: 9.5px; color: #64748B; font-family: monospace; margin-top: 1px; }
     .payee-btn.active .payee-upi { color: #4338CA; font-weight: 700; }
 
     /* Live QR Preview Card */
     .qr-card-box {
       background: #FFFFFF;
-      border-radius: 14px;
+      border-radius: 12px;
       border: 1.5px solid #CBD5E1;
       overflow: hidden;
-      box-shadow: 0 4px 16px rgba(15, 23, 42, 0.08);
+      box-shadow: 0 2px 8px rgba(15, 23, 42, 0.05);
     }
     .qr-card-top {
       background: linear-gradient(135deg, #0F172A 0%, #1E1B4B 60%, #4338CA 100%);
       color: #FFFFFF;
-      padding: 10px 14px;
+      padding: 6px 10px;
       display: flex;
       align-items: center;
       justify-content: space-between;
     }
-    .qr-card-top .tuhh-title { font-size: 11px; font-weight: 800; letter-spacing: 0.5px; color: #FCD34D; }
+    .qr-card-top .tuhh-title { font-size: 9.5px; font-weight: 800; letter-spacing: 0.5px; color: #FCD34D; }
     .qr-app-badges { display: flex; gap: 3px; }
-    .qr-app-badge { font-size: 8.5px; font-weight: 800; color: #fff; padding: 2px 5px; border-radius: 4px; }
+    .qr-app-badge { font-size: 8px; font-weight: 800; color: #fff; padding: 1px 4px; border-radius: 3px; }
 
     .qr-guest-strip {
       background: #EEF2FF;
-      padding: 8px 12px;
+      padding: 5px 10px;
       border-bottom: 1px solid #E0E7FF;
       display: flex;
       justify-content: space-between;
       align-items: center;
-      font-size: 11px;
+      font-size: 10px;
     }
 
     .qr-image-wrap {
-      padding: 14px 12px 10px;
+      padding: 8px 10px 4px;
       text-align: center;
     }
     .qr-frame {
-      padding: 8px;
+      padding: 5px;
       background: #FFFFFF;
-      border-radius: 14px;
-      border: 2.5px solid #818CF8;
+      border-radius: 10px;
+      border: 2px solid #818CF8;
       display: inline-block;
-      box-shadow: 0 4px 16px rgba(99, 102, 241, 0.2);
+      box-shadow: 0 2px 8px rgba(99, 102, 241, 0.15);
     }
     .qr-frame img {
-      width: 165px;
-      height: 165px;
+      width: 130px;
+      height: 130px;
       display: block;
-      border-radius: 8px;
+      border-radius: 6px;
     }
 
     .qr-lock-info {
       background: #F8FAFC;
       border-top: 1px solid #E2E8F0;
-      padding: 9px 12px;
+      padding: 6px 10px;
       display: flex;
       flex-direction: column;
-      gap: 5px;
-      font-size: 11.5px;
+      gap: 3px;
+      font-size: 10.5px;
     }
 
     .btn-send-wa {
       width: 100%;
-      padding: 13px 16px;
+      padding: 10px 14px;
       background: #25D366;
       color: #FFFFFF;
       border: none;
-      border-radius: 10px;
-      font-size: 14px;
+      border-radius: 9px;
+      font-size: 13px;
       font-weight: 800;
       cursor: pointer;
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      gap: 8px;
-      box-shadow: 0 3px 12px rgba(37, 211, 102, 0.35);
+      gap: 6px;
+      box-shadow: 0 2px 8px rgba(37, 211, 102, 0.3);
       transition: transform 0.1s;
     }
     .btn-send-wa:active { transform: scale(0.98); }
 
-    .btn-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .btn-row { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
     .btn-action {
-      padding: 10px 12px;
+      padding: 8px 10px;
       border-radius: 8px;
-      font-size: 12px;
+      font-size: 11.5px;
       font-weight: 700;
       cursor: pointer;
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      gap: 6px;
+      gap: 5px;
       border: none;
     }
     .btn-download { background: #0F172A; color: #FFFFFF; }
@@ -176,9 +186,9 @@
       transform: translateX(-50%);
       background: #0F172A;
       color: #FFFFFF;
-      padding: 10px 18px;
+      padding: 8px 16px;
       border-radius: 30px;
-      font-size: 12.5px;
+      font-size: 12px;
       font-weight: 700;
       box-shadow: 0 10px 25px rgba(0,0,0,0.3);
       display: none;
@@ -187,9 +197,9 @@
 
     .footer-note {
       text-align: center;
-      font-size: 11px;
+      font-size: 10.5px;
       color: #94A3B8;
-      margin-top: 14px;
+      margin-top: 8px;
     }
     .footer-note a { color: #818CF8; text-decoration: none; font-weight: 700; }
   </style>

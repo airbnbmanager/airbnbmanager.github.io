@@ -8591,7 +8591,7 @@ window.openCustomPaymentQRModal = async function(prefill = {}) {
   const overlay = document.createElement('div');
   overlay.id = 'customPaymentQrOverlay';
   overlay.className = 'modal-overlay';
-  overlay.style.cssText = 'display:flex;align-items:center;justify-content:center;z-index:999999;background:rgba(15,23,42,0.75);backdrop-filter:blur(8px);padding:12px;width:100vw;height:100vh;position:fixed;inset:0;box-sizing:border-box;overflow-y:auto;';
+  overlay.style.cssText = 'display:flex;align-items:center;justify-content:center;z-index:999999;background:rgba(15,23,42,0.8);backdrop-filter:blur(8px);padding:8px;width:100vw;height:100vh;position:fixed;inset:0;box-sizing:border-box;overflow-y:auto;';
   overlay.onclick = e => { if (e.target === overlay) overlay.remove(); };
 
   // Initial values
@@ -8601,38 +8601,38 @@ window.openCustomPaymentQRModal = async function(prefill = {}) {
   const initAmount = prefill.amount ? Number(prefill.amount) : 2500;
 
   overlay.innerHTML = `
-    <div class="modal-box" style="max-width:440px;width:100%;max-height:92vh;overflow-y:auto;overflow-x:hidden;background:#FFFFFF;border-radius:18px;box-shadow:0 25px 50px -12px rgba(0,0,0,0.3);border:1px solid #E2E8F0;padding:0 !important;position:relative;margin:auto;">
+    <div class="modal-box" style="max-width:410px;width:100%;max-height:96vh;overflow-y:auto;overflow-x:hidden;background:#FFFFFF;border-radius:16px;box-shadow:0 15px 40px rgba(0,0,0,0.35);border:1px solid #E2E8F0;padding:0 !important;position:relative;margin:auto;">
       
-      <!-- Sleek Header -->
-      <div style="background:linear-gradient(135deg, #0F172A 0%, #1E1B4B 60%, #4338CA 100%);color:#FFFFFF;padding:14px 16px;display:flex;align-items:center;justify-content:space-between;gap:8px;">
-        <div style="display:flex;align-items:center;gap:10px;min-width:0;">
-          <div style="width:34px;height:34px;border-radius:10px;background:rgba(255,255,255,0.15);display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0;">
+      <!-- Sleek Compact Header -->
+      <div style="background:linear-gradient(135deg, #0F172A 0%, #1E1B4B 60%, #4338CA 100%);color:#FFFFFF;padding:10px 14px;display:flex;align-items:center;justify-content:space-between;gap:8px;">
+        <div style="display:flex;align-items:center;gap:8px;min-width:0;">
+          <div style="width:28px;height:28px;border-radius:8px;background:rgba(255,255,255,0.15);display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;">
             ⚡
           </div>
           <div style="min-width:0;">
-            <h3 style="margin:0;font-size:15px;font-weight:800;letter-spacing:0.3px;color:#FFFFFF;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Send Payment QR</h3>
-            <div style="font-size:11px;color:#C7D2FE;margin-top:1px;">Auto-locks amount & note for receipt verification</div>
+            <h3 style="margin:0;font-size:14px;font-weight:800;letter-spacing:0.3px;color:#FFFFFF;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Send Payment QR</h3>
+            <div style="font-size:10px;color:#C7D2FE;margin-top:1px;">Auto-locks amount & note for verification</div>
           </div>
         </div>
-        <button type="button" onclick="document.getElementById('customPaymentQrOverlay')?.remove()" style="background:rgba(255,255,255,0.15);border:none;color:#FFFFFF;width:30px;height:30px;border-radius:8px;font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;" title="Close">✕</button>
+        <button type="button" onclick="document.getElementById('customPaymentQrOverlay')?.remove()" style="background:rgba(255,255,255,0.15);border:none;color:#FFFFFF;width:26px;height:26px;border-radius:6px;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;" title="Close">✕</button>
       </div>
 
       <!-- Clean Form Body -->
-      <div style="padding:16px 18px;display:flex;flex-direction:column;gap:12px;background:#F8FAFC;">
+      <div style="padding:11px 13px;display:flex;flex-direction:column;gap:8px;background:#F8FAFC;">
         
         <!-- 1. Amount to Request (FIRST) -->
         <div>
-          <label style="display:block;font-size:12px;font-weight:800;color:#1E1B4B;margin-bottom:5px;">1. Amount to Request (₹) *</label>
+          <label style="display:block;font-size:11.5px;font-weight:800;color:#1E1B4B;margin-bottom:3px;">1. Amount to Request (₹) *</label>
           <div style="position:relative;">
-            <span style="position:absolute;left:14px;top:50%;transform:translateY(-50%);font-size:20px;font-weight:900;color:#4F46E5;">₹</span>
-            <input type="number" id="cpqrAmount" min="1" step="50" value="${initAmount}" placeholder="Enter amount" autofocus style="width:100%;padding:11px 14px 11px 34px;border:2px solid #4F46E5;border-radius:12px;font-size:18px;font-weight:900;color:#0F172A;background:#FFFFFF;box-sizing:border-box;outline:none;box-shadow:0 0 0 3px rgba(79,70,229,0.1);" />
+            <span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:18px;font-weight:900;color:#4F46E5;">₹</span>
+            <input type="number" id="cpqrAmount" min="1" step="50" value="${initAmount}" placeholder="Enter amount" autofocus style="width:100%;padding:8px 10px 8px 30px;border:2px solid #4F46E5;border-radius:9px;font-size:16px;font-weight:900;color:#0F172A;background:#FFFFFF;box-sizing:border-box;outline:none;" />
           </div>
         </div>
 
         <!-- 2. Property / Unit (SECOND) -->
         <div>
-          <label style="display:block;font-size:12px;font-weight:800;color:#1E1B4B;margin-bottom:5px;">2. Select Property / Unit *</label>
-          <select id="cpqrRoomSelect" style="width:100%;padding:11px 12px;border:1.5px solid #CBD5E1;border-radius:10px;font-size:13.5px;font-weight:700;color:#0F172A;background:#FFFFFF;box-sizing:border-box;">
+          <label style="display:block;font-size:11.5px;font-weight:800;color:#1E1B4B;margin-bottom:3px;">2. Select Property / Unit *</label>
+          <select id="cpqrRoomSelect" style="width:100%;padding:8px 10px;border:1.5px solid #CBD5E1;border-radius:8px;font-size:13px;font-weight:700;color:#0F172A;background:#FFFFFF;box-sizing:border-box;">
             <option value="">-- General Homestay --</option>
             ${rooms.map(r => {
               const isSel = r.room_id === initRoomId;
@@ -8643,64 +8643,64 @@ window.openCustomPaymentQRModal = async function(prefill = {}) {
 
         <!-- 3. Receiving Account (Default: Firoz Khan) -->
         <div>
-          <label style="display:block;font-size:11.5px;font-weight:700;color:#64748B;margin-bottom:4px;">Receiving Account (Default: Firoz Khan)</label>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-            <button type="button" id="cpqrPayeeFiroz" style="padding:8px 10px;border-radius:10px;border:2px solid #4F46E5;background:#EEF2FF;cursor:pointer;text-align:left;box-shadow:0 2px 8px rgba(79,70,229,0.15);transition:all 0.2s;">
-              <div style="font-size:11.5px;font-weight:800;color:#312E81;">👑 Firoz Khan (Default)</div>
-              <div style="font-size:10px;color:#4338CA;font-family:monospace;margin-top:1px;font-weight:700;">8299600709@ybl</div>
+          <label style="display:block;font-size:10.5px;font-weight:700;color:#64748B;margin-bottom:3px;">Receiving Account (Default: Firoz Khan)</label>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+            <button type="button" id="cpqrPayeeFiroz" style="padding:6px 8px;border-radius:8px;border:2px solid #4F46E5;background:#EEF2FF;cursor:pointer;text-align:left;box-shadow:0 2px 6px rgba(79,70,229,0.15);transition:all 0.2s;">
+              <div style="font-size:11px;font-weight:800;color:#312E81;">👑 Firoz (Default)</div>
+              <div style="font-size:9.5px;color:#4338CA;font-family:monospace;margin-top:1px;font-weight:700;">8299600709@ybl</div>
             </button>
-            <button type="button" id="cpqrPayeePraveen" style="padding:8px 10px;border-radius:10px;border:1.5px solid #CBD5E1;background:#FFFFFF;cursor:pointer;text-align:left;transition:all 0.2s;">
-              <div style="font-size:11.5px;font-weight:800;color:#0F172A;">⚡ Praveen Singh</div>
-              <div style="font-size:10px;color:#64748B;font-family:monospace;margin-top:1px;">9454470872@apl</div>
+            <button type="button" id="cpqrPayeePraveen" style="padding:6px 8px;border-radius:8px;border:1.5px solid #CBD5E1;background:#FFFFFF;cursor:pointer;text-align:left;transition:all 0.2s;">
+              <div style="font-size:11px;font-weight:800;color:#0F172A;">⚡ Praveen</div>
+              <div style="font-size:9.5px;color:#64748B;font-family:monospace;margin-top:1px;">9454470872@apl</div>
             </button>
           </div>
         </div>
 
         <!-- 4. Optional Guest Details (2-col compact) -->
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
           <div>
-            <label style="display:block;font-size:11px;font-weight:700;color:#64748B;margin-bottom:3px;">Guest Name (Optional)</label>
-            <input type="text" id="cpqrGuestName" value="${escapeHtml(initGuest)}" placeholder="e.g. Rohit" style="width:100%;padding:8px 10px;border:1.5px solid #CBD5E1;border-radius:8px;font-size:12.5px;font-weight:600;color:#0F172A;background:#FFFFFF;box-sizing:border-box;" />
+            <label style="display:block;font-size:10.5px;font-weight:700;color:#64748B;margin-bottom:2px;">Guest Name (Optional)</label>
+            <input type="text" id="cpqrGuestName" value="${escapeHtml(initGuest)}" placeholder="e.g. Rohit" style="width:100%;padding:7px 8px;border:1.5px solid #CBD5E1;border-radius:7px;font-size:12px;font-weight:600;color:#0F172A;background:#FFFFFF;box-sizing:border-box;" />
           </div>
           <div>
-            <label style="display:block;font-size:11px;font-weight:700;color:#64748B;margin-bottom:3px;">WhatsApp (Optional)</label>
-            <input type="tel" id="cpqrGuestPhone" value="${escapeHtml(initPhone)}" placeholder="10-digit mobile" style="width:100%;padding:8px 10px;border:1.5px solid #CBD5E1;border-radius:8px;font-size:12.5px;font-weight:600;color:#0F172A;background:#FFFFFF;box-sizing:border-box;" />
+            <label style="display:block;font-size:10.5px;font-weight:700;color:#64748B;margin-bottom:2px;">WhatsApp (Optional)</label>
+            <input type="tel" id="cpqrGuestPhone" value="${escapeHtml(initPhone)}" placeholder="10-digit mobile" style="width:100%;padding:7px 8px;border:1.5px solid #CBD5E1;border-radius:7px;font-size:12px;font-weight:600;color:#0F172A;background:#FFFFFF;box-sizing:border-box;" />
           </div>
         </div>
 
         <!-- Live QR Code Card with Locked Parameters -->
-        <div style="background:#FFFFFF;border-radius:14px;border:1.5px solid #CBD5E1;overflow:hidden;box-shadow:0 4px 16px rgba(15,23,42,0.08);margin-top:2px;box-sizing:border-box;">
+        <div style="background:#FFFFFF;border-radius:12px;border:1.5px solid #CBD5E1;overflow:hidden;box-shadow:0 2px 8px rgba(15,23,42,0.05);margin-top:1px;box-sizing:border-box;">
           
           <!-- Card Header Banner -->
-          <div style="background:linear-gradient(135deg, #0F172A 0%, #1E1B4B 60%, #4338CA 100%);color:#FFFFFF;padding:10px 14px;display:flex;align-items:center;justify-content:space-between;gap:6px;">
-            <div style="font-size:11px;font-weight:800;letter-spacing:0.5px;color:#FCD34D;">THE UNIQUE HAVEN HOMES</div>
+          <div style="background:linear-gradient(135deg, #0F172A 0%, #1E1B4B 60%, #4338CA 100%);color:#FFFFFF;padding:6px 10px;display:flex;align-items:center;justify-content:space-between;gap:6px;">
+            <div style="font-size:9.5px;font-weight:800;letter-spacing:0.5px;color:#FCD34D;">THE UNIQUE HAVEN HOMES</div>
             <div style="display:flex;gap:3px;">
-              <span style="background:#5F259F;color:#fff;font-size:8.5px;font-weight:800;padding:2px 5px;border-radius:4px;">PhonePe</span>
-              <span style="background:#1A73E8;color:#fff;font-size:8.5px;font-weight:800;padding:2px 5px;border-radius:4px;">GPay</span>
-              <span style="background:#00B9F1;color:#fff;font-size:8.5px;font-weight:800;padding:2px 5px;border-radius:4px;">Paytm</span>
+              <span style="background:#5F259F;color:#fff;font-size:8px;font-weight:800;padding:1px 4px;border-radius:3px;">PhonePe</span>
+              <span style="background:#1A73E8;color:#fff;font-size:8px;font-weight:800;padding:1px 4px;border-radius:3px;">GPay</span>
+              <span style="background:#00B9F1;color:#fff;font-size:8px;font-weight:800;padding:1px 4px;border-radius:3px;">Paytm</span>
             </div>
           </div>
 
           <!-- Guest & Property Tag Strip -->
-          <div style="background:#EEF2FF;padding:8px 12px;border-bottom:1px solid #E0E7FF;display:flex;justify-content:space-between;align-items:center;font-size:11px;gap:6px;">
+          <div style="background:#EEF2FF;padding:5px 10px;border-bottom:1px solid #E0E7FF;display:flex;justify-content:space-between;align-items:center;font-size:10px;gap:6px;">
             <div style="font-weight:800;color:#1E1B4B;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" id="cpqrPreviewGuest">👤 Guest: (Not specified)</div>
             <div style="font-weight:700;color:#4338CA;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" id="cpqrPreviewRoom">🏡 -</div>
           </div>
 
-          <div style="padding:14px 12px 10px;text-align:center;">
-            <div style="padding:8px;background:#FFFFFF;border-radius:14px;border:2.5px solid #818CF8;display:inline-block;box-shadow:0 4px 16px rgba(99,102,241,0.2);">
-              <img id="cpqrImg" src="" alt="UPI QR Code" style="width:160px;height:160px;display:block;border-radius:8px;" />
+          <div style="padding:8px 10px 4px;text-align:center;">
+            <div style="padding:5px;background:#FFFFFF;border-radius:10px;border:2px solid #818CF8;display:inline-block;box-shadow:0 2px 8px rgba(99,102,241,0.15);">
+              <img id="cpqrImg" src="" alt="UPI QR Code" style="width:130px;height:130px;display:block;border-radius:6px;" />
             </div>
-            <div style="margin-top:6px;font-size:10px;font-weight:800;color:#4338CA;letter-spacing:0.5px;">
+            <div style="margin-top:4px;font-size:9.5px;font-weight:800;color:#4338CA;letter-spacing:0.5px;">
               ⚡ SCAN WITH ANY UPI APP
             </div>
           </div>
 
           <!-- Locked Details Badge Strip -->
-          <div style="background:#F8FAFC;border-top:1px solid #E2E8F0;padding:9px 12px;display:flex;flex-direction:column;gap:5px;font-size:11.5px;color:#1E293B;">
+          <div style="background:#F8FAFC;border-top:1px solid #E2E8F0;padding:6px 10px;display:flex;flex-direction:column;gap:3px;font-size:10.5px;color:#1E293B;">
             <div style="display:flex;justify-content:space-between;align-items:center;">
               <span style="color:#64748B;font-weight:600;">🔒 Amount Locked:</span>
-              <span id="cpqrCardAmount" style="font-weight:900;color:#059669;font-size:14px;">₹2,500</span>
+              <span id="cpqrCardAmount" style="font-weight:900;color:#059669;font-size:13px;">₹2,500</span>
             </div>
             <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
               <span style="color:#64748B;font-weight:600;flex-shrink:0;">📝 Note in Screenshot:</span>
@@ -8714,29 +8714,29 @@ window.openCustomPaymentQRModal = async function(prefill = {}) {
         </div>
 
         <!-- Action Buttons -->
-        <div style="display:flex;flex-direction:column;gap:8px;margin-top:4px;">
+        <div style="display:flex;flex-direction:column;gap:6px;margin-top:2px;">
           <!-- 1. Send on WhatsApp -->
-          <button type="button" id="cpqrSendWaBtn" style="width:100%;padding:13px 16px;background:#25D366;color:#FFFFFF;border:none;border-radius:10px;font-size:14px;font-weight:800;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:8px;box-shadow:0 3px 12px rgba(37,211,102,0.35);">
+          <button type="button" id="cpqrSendWaBtn" style="width:100%;padding:10px 14px;background:#25D366;color:#FFFFFF;border:none;border-radius:9px;font-size:13px;font-weight:800;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:6px;box-shadow:0 2px 8px rgba(37,211,102,0.3);">
             <span>📲</span> <span>Send QR on WhatsApp</span>
           </button>
 
           <!-- 2. Download Image & Copy Link -->
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-            <button type="button" id="cpqrDownloadBtn" style="padding:10px 12px;background:#0F172A;color:#FFFFFF;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:6px;">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+            <button type="button" id="cpqrDownloadBtn" style="padding:8px 10px;background:#0F172A;color:#FFFFFF;border:none;border-radius:8px;font-size:11.5px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:5px;">
               <span>📥</span> <span>Download QR</span>
             </button>
-            <button type="button" id="cpqrCopyBtn" style="padding:10px 12px;background:#EEF2FF;color:#4338CA;border:1.5px solid #C7D2FE;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:6px;">
+            <button type="button" id="cpqrCopyBtn" style="padding:8px 10px;background:#EEF2FF;color:#4338CA;border:1.5px solid #C7D2FE;border-radius:8px;font-size:11.5px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:5px;">
               <span>📋</span> <span>Copy UPI Link</span>
             </button>
           </div>
 
           <!-- 3. Public Employee QR Generator Link -->
-          <div style="background:#F1F5F9;border:1px dashed #94A3B8;border-radius:10px;padding:9px 12px;display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:2px;">
+          <div style="background:#F1F5F9;border:1px dashed #94A3B8;border-radius:8px;padding:6px 10px;display:flex;align-items:center;justify-content:space-between;gap:6px;">
             <div style="min-width:0;">
-              <div style="font-size:11.5px;font-weight:800;color:#0F172A;">🌐 Public Staff QR Link</div>
-              <div style="font-size:10.5px;color:#64748B;">Staff bina login ke phone se QR bana sakte hain</div>
+              <div style="font-size:10.5px;font-weight:800;color:#0F172A;">🌐 Public Staff QR Link</div>
+              <div style="font-size:9.5px;color:#64748B;">Staff phone se bina login ke QR bana sakte hain</div>
             </div>
-            <button type="button" id="cpqrCopyPublicLinkBtn" style="padding:6px 10px;background:#0F172A;color:#FFFFFF;border:none;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;flex-shrink:0;">
+            <button type="button" id="cpqrCopyPublicLinkBtn" style="padding:5px 8px;background:#0F172A;color:#FFFFFF;border:none;border-radius:6px;font-size:10px;font-weight:700;cursor:pointer;white-space:nowrap;flex-shrink:0;">
               🔗 Copy Link
             </button>
           </div>
