@@ -227,15 +227,63 @@ body {
    2. EDITORIAL HERO SECTION (TASTE-DESIGN)
    ══════════════════════════════════════════════════════════════ */
 .booking-hero {
-  background: radial-gradient(circle at 50% 20%, rgba(181, 141, 61, 0.16) 0%, transparent 65%),
-              linear-gradient(180deg, #0b1120 0%, #0f172a 100%);
+  position: relative;
+  overflow: hidden;
+  background-color: #0c0d10;
   color: #ffffff;
-  padding: 48px 20px 42px;
+  padding: 56px 20px 48px;
   text-align: center;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.hero-bg-media {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background-image: url('assets/properties/royal-white-house/cover.jpg');
+  background-size: cover;
+  background-position: center center;
+  background-repeat: no-repeat;
+  transform: scale(1.03);
+  transition: background-image 0.8s cubic-bezier(0.16, 1, 0.3, 1), transform 12s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: transform, background-image;
+  filter: brightness(0.72) contrast(1.05);
+}
+
+.booking-hero:hover .hero-bg-media {
+  transform: scale(1.08) translate3d(0, -4px, 0);
+}
+
+.hero-bg-scrim {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  background: 
+    radial-gradient(circle at 50% 25%, rgba(181, 141, 61, 0.25) 0%, transparent 65%),
+    linear-gradient(90deg, rgba(12, 13, 16, 0.85) 0%, rgba(12, 13, 16, 0.45) 50%, rgba(12, 13, 16, 0.85) 100%),
+    linear-gradient(180deg, rgba(12, 13, 16, 0.72) 0%, rgba(12, 13, 16, 0.55) 45%, rgba(11, 17, 32, 0.95) 100%);
+  pointer-events: none;
+}
+
+.hero-bg-watermark {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-family: "Cinzel", "Playfair Display", Georgia, serif;
+  font-size: clamp(70px, 14vw, 160px);
+  font-weight: 900;
+  letter-spacing: 0.25em;
+  color: rgba(255, 255, 255, 0.03);
+  pointer-events: none;
+  z-index: 2;
+  user-select: none;
+  white-space: nowrap;
 }
 
 .hero-inner {
+  position: relative;
+  z-index: 3;
   max-width: 780px;
   margin: 0 auto;
 }

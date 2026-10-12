@@ -125,6 +125,15 @@ function onPropertyChange() {
   const pid = document.getElementById('propSelect').value;
   selectedProp = PROPERTIES.find(function(p){ return p.id === pid; }) || null;
 
+  const heroBg = document.getElementById('heroBgMedia');
+  if (heroBg) {
+    if (selectedProp && selectedProp.img) {
+      heroBg.style.backgroundImage = `url('${selectedProp.img}')`;
+    } else {
+      heroBg.style.backgroundImage = `url('assets/properties/royal-white-house/cover.jpg')`;
+    }
+  }
+
   const info = document.getElementById('propInfo');
   if (selectedProp) {
     info.style.display = 'flex';

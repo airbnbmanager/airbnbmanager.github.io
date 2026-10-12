@@ -690,6 +690,11 @@ async function showGuestLedger(guestName, bookingId, phone, airbnbCode, initialF
       return s;
     }, 0);
 
+    const modalUpiQrString = totalDue > 0
+      ? `upi://pay?pa=8299600709@ybl&pn=Firoz%20Khan%20TUHH&am=${totalDue}&cu=INR&tn=${encodeURIComponent('TUHH Stay Statement ' + (resolvedGuestName || 'Guest'))}`
+      : `upi://pay?pa=8299600709@ybl&pn=Firoz%20Khan%20TUHH&cu=INR&tn=${encodeURIComponent('The Unique Haven Homes')}`;
+    const modalQrImgUrl = `https://api.qrserver.com/v1/create-qr-code/?size=160x160&margin=2&color=0F172A&bgcolor=FFFFFF&data=${encodeURIComponent(modalUpiQrString)}`;
+
     // Filter Banner Text
     const bannerEl = modal.querySelector('#glActiveFilterBanner');
     if (bannerEl) {
@@ -743,20 +748,55 @@ async function showGuestLedger(guestName, bookingId, phone, airbnbCode, initialF
         </div>
       </div>
 
-      <!-- Pending Alert Banner if due > 0 -->
+      <!-- Colorful Quick UPI QR & Instant Settlement Card -->
       ${totalDue > 0 ? `
-        <div style="background:#FEE2E2;border:1px solid #F87171;color:#991B1B;padding:10px 14px;border-radius:8px;font-size:13px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:14px;">
-          <div>
-            <strong>⚠️ Outstanding Balance Due: ₹${totalDue.toLocaleString('en-IN')}</strong>
-            <span style="font-size:12px;opacity:0.9;margin-left:6px;">for selected stays</span>
+        <div style="background:linear-gradient(135deg, #FFF1F2 0%, #FEF2F2 60%, #F5F3FF 100%);border:1.5px solid #FCA5A5;border-radius:12px;padding:14px 18px;margin-bottom:16px;box-shadow:0 4px 12px rgba(239,68,68,0.08);">
+          <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:12px;">
+            <div>
+              <div style="font-size:15px;font-weight:800;color:#991B1B;display:flex;align-items:center;gap:6px;">
+                <span>⚠️</span> <span>Outstanding Balance Due: <span style="color:#DC2626;">₹${totalDue.toLocaleString('en-IN')}</span></span>
+              </div>
+              <div style="font-size:11.5px;color:#7F1D1D;margin-top:2px;">
+                Instant UPI Settlement for <strong>${resolvedGuestName}</strong> · PhonePe / GPay / Paytm / BHIM
+              </div>
+            </div>
+            <div style="display:flex;align-items:center;gap:6px;">
+              <span style="display:inline-block;padding:2px 8px;border-radius:12px;background:#5F259F;color:#FFFFFF;font-size:10px;font-weight:700;">PhonePe</span>
+              <span style="display:inline-block;padding:2px 8px;border-radius:12px;background:#1A73E8;color:#FFFFFF;font-size:10px;font-weight:700;">Google Pay</span>
+              <span style="display:inline-block;padding:2px 8px;border-radius:12px;background:#00B9F1;color:#FFFFFF;font-size:10px;font-weight:700;">Paytm</span>
+              <span style="display:inline-block;padding:2px 8px;border-radius:12px;background:#00796B;color:#FFFFFF;font-size:10px;font-weight:700;">BHIM UPI</span>
+            </div>
           </div>
-          <div style="font-size:12px;font-weight:600;">
-            Bank / UPI: <strong>9450055554@upi</strong> (THE UNIQUE HAVEN HOMES)
+
+          <!-- Dual Column: QR Code + Details + Actions -->
+          <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;background:#FFFFFF;border:1px solid #FECACA;border-radius:10px;padding:12px 16px;">
+            <div style="flex-shrink:0;text-align:center;">
+              <div style="padding:4px;background:#FFFFFF;border-radius:10px;border:2px solid #818CF8;box-shadow:0 2px 8px rgba(67,56,202,0.15);display:inline-block;">
+                <img src="${modalQrImgUrl}" alt="UPI QR Code" style="width:112px;height:112px;display:block;border-radius:6px;" />
+              </div>
+              <div style="font-size:9.5px;font-weight:800;color:#4338CA;margin-top:4px;">SCAN & PAY ₹${totalDue.toLocaleString('en-IN')}</div>
+            </div>
+            <div style="flex:1;min-width:230px;">
+              <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(130px, 1fr));gap:6px;font-size:12px;margin-bottom:10px;">
+                <div><span style="color:#64748B;font-size:11px;">Beneficiary:</span> <strong style="color:#0F172A;">Mr. Firoz Khan</strong></div>
+                <div><span style="color:#64748B;font-size:11px;">Official UPI ID:</span> <strong style="color:#4338CA;font-family:monospace;font-size:12.5px;">8299600709@ybl</strong></div>
+                <div><span style="color:#64748B;font-size:11px;">PhonePe / Mobile:</span> <strong style="color:#0F172A;">8299600709</strong></div>
+                <div><span style="color:#64748B;font-size:11px;">Auto-coded Due:</span> <strong style="color:#DC2626;">₹${totalDue.toLocaleString('en-IN')}</strong></div>
+              </div>
+              <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                <button type="button" class="btn-sm" style="background:#4338CA;color:#FFFFFF;padding:6px 14px;border-radius:6px;font-size:11.5px;font-weight:700;border:none;cursor:pointer;display:inline-flex;align-items:center;gap:5px;" onclick="navigator.clipboard.writeText('8299600709@ybl'); if (window.fsn?.success) { fsn.success('Copied', 'UPI ID 8299600709@ybl copied!'); } else { alert('Copied 8299600709@ybl'); }">
+                  📋 Copy UPI ID
+                </button>
+                <a href="${modalUpiQrString}" style="background:linear-gradient(135deg, #059669, #10B981);color:#FFFFFF;padding:6px 14px;border-radius:6px;font-size:11.5px;font-weight:700;text-decoration:none;display:inline-flex;align-items:center;gap:5px;box-shadow:0 2px 6px rgba(5,150,105,0.25);">
+                  📲 Pay ₹${totalDue.toLocaleString('en-IN')} via UPI App
+                </a>
+              </div>
+            </div>
           </div>
         </div>
       ` : `
-        <div style="background:#DCFCE7;border:1px solid #86EFAC;color:#166534;padding:8px 14px;border-radius:8px;font-size:12px;font-weight:600;margin-bottom:14px;">
-          ✅ All included stays are fully settled!
+        <div style="background:#DCFCE7;border:1px solid #86EFAC;color:#166534;padding:10px 14px;border-radius:8px;font-size:12.5px;font-weight:700;margin-bottom:14px;display:flex;align-items:center;gap:8px;">
+          <span>✅</span> <span>All included stay records are 100% reconciled and settled. Nil outstanding balance.</span>
         </div>
       `}
 
@@ -897,6 +937,9 @@ async function showGuestLedger(guestName, bookingId, phone, airbnbCode, initialF
         </button>
         <button type="button" onclick="window._glCopyStatement()" style="background:#3B82F6;color:#fff;font-weight:700;padding:8px 16px;border:none;border-radius:8px;cursor:pointer;">
           📋 Copy Statement
+        </button>
+        <button type="button" onclick="window.openCustomPaymentQRModal({ guestName: '${escapeHtml(resolvedGuestName)}', phone: '${escapeHtml(displayPhone)}', amount: ${totalDue > 0 ? totalDue : 0} })" style="background:linear-gradient(135deg, #4F46E5, #6366F1);color:#fff;font-weight:700;padding:8px 16px;border:none;border-radius:8px;cursor:pointer;">
+          ⚡ Send Custom QR
         </button>
         ${activeBookings.length ? `
           <button type="button" onclick="window.openBookingReceiptModal('${activeBookings[activeBookings.length - 1]?.booking_id}')" style="background:#0F172A;color:#fff;font-weight:700;padding:8px 14px;border:none;border-radius:8px;cursor:pointer;">
@@ -1041,7 +1084,7 @@ async function showGuestLedger(guestName, bookingId, phone, airbnbCode, initialF
       txt += `${i + 1}. ${formatDateDisplay(b.check_in)} -> ${formatDateDisplay(b.check_out)} (${propLabel(b.rooms) || b.room_id}) | Billed: Rs.${(b.total_amount || 0).toLocaleString('en-IN')} | Paid: Rs.${pd.toLocaleString('en-IN')} | Due: Rs.${d.toLocaleString('en-IN')}\n`;
     });
     txt += `\nNet Balance Due: Rs.${totDue.toLocaleString('en-IN')}\n`;
-    txt += `UPI: 9450055554@upi | Contact: 9450055554 / 8299600709\n`;
+    txt += `UPI: 8299600709@ybl (Mr. Firoz Khan) | Contact: 8299600709\n`;
 
     navigator.clipboard.writeText(txt).then(() => {
       fsn.success('Copied', 'Guest statement copied to clipboard!');
@@ -1165,6 +1208,35 @@ async function printGuestLedger(guestName, phone, passedBookings, passedPayments
     : (fromDate ? `From ${formatDateDisplay(fromDate)}` : (toDate ? `Up to ${formatDateDisplay(toDate)}` : 'Complete Stay History (All Time)'));
   const todayDateStr = new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 
+
+
+  const cleanGuestName = String(guestName || 'Guest').trim().replace(/[\/\\:*?"<>|]/g, '-').replace(/\s+/g, '_');
+  const pdfTitle = `TUHH_Statement_${cleanGuestName}_${new Date().toISOString().slice(0, 10)}`;
+
+  // Filter actual external payment receipts (exclude internal reallocation bookkeeping pairs)
+  const actualReceipts = (payments || []).filter(p => p.amount > 0 && p.payment_mode !== 'Adjustment');
+  const displayPays = actualReceipts.length ? actualReceipts : (payments || []).filter(p => p.amount > 0);
+  const sortedDisplayPays = displayPays.slice().sort((a, b) => (b.payment_date || '').localeCompare(a.payment_date || ''));
+
+  let payRows = '';
+  if (!sortedDisplayPays.length) {
+    payRows = '<tr><td colspan="5" style="text-align:center;color:#64748B;padding:12px;font-style:italic;">No payment receipts recorded in this period</td></tr>';
+  } else {
+    sortedDisplayPays.forEach(p => {
+      const relatedStay = bookings.find(b => b.booking_id === p.booking_id);
+      const stayRoom = relatedStay ? (propLabel(relatedStay.rooms) || relatedStay.room_id) : '-';
+      payRows += `
+        <tr style="border-bottom:1px solid #E2E8F0;page-break-inside:avoid;">
+          <td style="padding:6px 10px;white-space:nowrap;font-weight:700;color:#0F172A;font-size:11px;">${formatDateDisplay(p.payment_date)}</td>
+          <td style="padding:6px 10px;text-align:right;font-weight:800;color:#059669;white-space:nowrap;font-size:11.5px;">₹${Number(p.amount || 0).toLocaleString('en-IN')}</td>
+          <td style="padding:6px 10px;text-align:center;"><span style="background:#EEF2FF;color:#4338CA;padding:2px 8px;border-radius:4px;font-weight:700;font-size:10px;">${escapeHtml(p.payment_mode || 'UPI')}</span></td>
+          <td style="padding:6px 10px;color:#334155;font-size:11px;">${escapeHtml(stayRoom)}</td>
+          <td style="padding:6px 10px;color:#64748B;font-size:11px;">${escapeHtml(p.notes || 'Payment Received')}</td>
+        </tr>
+      `;
+    });
+  }
+
   let bkRows = '';
   bookings.forEach((b, idx) => {
     const pd = payMap[b.booking_id] || 0;
@@ -1173,161 +1245,307 @@ async function printGuestLedger(guestName, phone, passedBookings, passedPayments
     const due = isPendingCsv ? 0 : Math.max(0, (b.total_amount || 0) - pd);
     const nights = (b.check_in && b.check_out) ? calcNights(b.check_in, b.check_out) : 1;
     const roomName = propLabel(b.rooms) || b.room_id || '-';
+    const ratePerDay = b.per_day_rate || (nights > 0 ? Math.round((b.total_amount || 0) / nights) : 2500);
+    const isEven = idx % 2 === 1;
 
-    bkRows += `<tr>
-      <td style="text-align:center;">${idx + 1}</td>
-      <td><strong>${formatDateDisplay(b.check_in)}</strong></td>
-      <td>${formatDateDisplay(b.check_out)}</td>
-      <td>${roomName}</td>
-      <td style="text-align:center;">${isAirbnb ? 'Airbnb' : 'Direct'}</td>
-      <td style="text-align:center;">${nights}N</td>
-      <td style="text-align:right;">${isPendingCsv ? 'Pending CSV' : '₹' + (b.total_amount || 0).toLocaleString('en-IN')}</td>
-      <td style="text-align:right;color:#0A7D1A;">${isPendingCsv ? '-' : '₹' + pd.toLocaleString('en-IN')}</td>
-      <td style="text-align:right;font-weight:700;color:${due > 0 ? '#DC2626' : '#0A7D1A'};">${isPendingCsv ? '-' : (due > 0 ? '₹' + due.toLocaleString('en-IN') : '₹0')}</td>
-    </tr>`;
+    bkRows += `
+      <tr style="border-bottom:1px solid #E2E8F0;background:${isEven ? '#F8FAFC' : '#FFFFFF'};page-break-inside:avoid;">
+        <td style="padding:5px 6px;text-align:center;color:#64748B;font-size:10.5px;font-weight:600;">${idx + 1}</td>
+        <td style="padding:5px 8px;white-space:nowrap;font-weight:700;color:#0F172A;font-size:11px;">${formatDateDisplay(b.check_in)}</td>
+        <td style="padding:5px 8px;white-space:nowrap;color:#475569;font-size:11px;">${formatDateDisplay(b.check_out)}</td>
+        <td style="padding:5px 8px;color:#1E293B;font-weight:600;font-size:11px;">${escapeHtml(roomName)}</td>
+        <td style="padding:5px 6px;text-align:center;">
+          <span style="font-size:10px;padding:2px 6px;border-radius:4px;font-weight:700;background:${isAirbnb ? '#FEE2E2;color:#DC2626' : '#F1F5F9;color:#334155'};">
+            ${isAirbnb ? 'Airbnb' : 'Direct'}
+          </span>
+        </td>
+        <td style="padding:5px 6px;text-align:center;">
+          <span style="font-size:10.5px;font-weight:700;color:#1E293B;background:#E2E8F0;padding:2px 6px;border-radius:4px;">${nights}N</span>
+        </td>
+        <td style="padding:5px 8px;text-align:right;color:#475569;font-size:11px;white-space:nowrap;">
+          ₹${Number(ratePerDay).toLocaleString('en-IN')}
+        </td>
+        <td style="padding:5px 8px;text-align:right;font-weight:700;color:#0F172A;font-size:11px;white-space:nowrap;">
+          ${isPendingCsv ? '<span style="color:#D97706;font-size:10px;">Pending</span>' : '₹' + Number(b.total_amount || 0).toLocaleString('en-IN')}
+        </td>
+        <td style="padding:5px 8px;text-align:right;font-weight:700;white-space:nowrap;font-size:11px;color:${pd > 0 ? '#059669' : '#94A3B8'};">
+          ${isPendingCsv ? '-' : (pd > 0 ? '₹' + Number(pd).toLocaleString('en-IN') : '₹0')}
+        </td>
+        <td style="padding:5px 8px;text-align:right;font-weight:800;white-space:nowrap;font-size:11px;color:${due > 0 ? '#DC2626' : '#059669'};">
+          ${isPendingCsv ? '-' : (due > 0 ? '₹' + Number(due).toLocaleString('en-IN') : '₹0 ✓')}
+        </td>
+      </tr>
+    `;
   });
 
-  let payRows = '';
-  const sortedPays = (payments || []).slice().sort((a, b) => (b.payment_date || '').localeCompare(a.payment_date || ''));
-  if (!sortedPays.length) {
-    payRows = '<tr><td colspan="5" style="text-align:center;color:#717171;padding:12px;">No payment receipts recorded in this period</td></tr>';
-  } else {
-    sortedPays.forEach(p => {
-      const relatedStay = bookings.find(b => b.booking_id === p.booking_id);
-      const stayRoom = relatedStay ? (propLabel(relatedStay.rooms) || relatedStay.room_id) : '-';
-      payRows += `<tr>
-        <td>${formatDateDisplay(p.payment_date)}</td>
-        <td style="text-align:right;font-weight:700;color:#0A7D1A;">₹${(p.amount || 0).toLocaleString('en-IN')}</td>
-        <td>${p.payment_mode || '-'}</td>
-        <td>${stayRoom}</td>
-        <td>${p.notes || '-'}</td>
-      </tr>`;
-    });
-  }
+  const upiQrString = totalDue > 0
+    ? `upi://pay?pa=8299600709@ybl&pn=Firoz%20Khan%20TUHH&am=${totalDue}&cu=INR&tn=${encodeURIComponent('TUHH Stay Statement ' + (guestName || 'Guest'))}`
+    : `upi://pay?pa=8299600709@ybl&pn=Firoz%20Khan%20TUHH&cu=INR&tn=${encodeURIComponent('The Unique Haven Homes')}`;
+  const qrImgUrl = `https://api.qrserver.com/v1/create-qr-code/?size=220x220&margin=2&color=0F172A&bgcolor=FFFFFF&data=${encodeURIComponent(upiQrString)}`;
 
-  const cleanGuestName = String(guestName || 'Guest').trim().replace(/[\/\\:*?"<>|]/g, '-').replace(/\s+/g, '_');
-  const pdfTitle = `TUHH_Statement_${cleanGuestName}_${new Date().toISOString().slice(0, 10)}`;
-
-  const html = `<!DOCTYPE html><html><head><title>${pdfTitle}</title>
+  const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${escapeHtml(pdfTitle)}</title>
     <style>
-      @page { size: auto; margin: 0 !important; }
+      @page { size: A4 portrait; margin: 8mm 10mm !important; }
       * { box-sizing: border-box; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-      body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; color: #1E293B; margin: 0 !important; padding: 10mm 14mm !important; }
-      .header-card { background: linear-gradient(135deg, #1E293B, #0F172A); color: #fff; padding: 22px 24px; border-radius: 12px; margin-bottom: 20px; }
-      .company-title { font-size: 20px; font-weight: 800; letter-spacing: 0.5px; }
-      .doc-subtitle { font-size: 14px; opacity: 0.9; margin-top: 4px; color: #94A3B8; }
-      .meta-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; background: #F8FAFC; border: 1px solid #E2E8F0; padding: 14px 18px; border-radius: 10px; margin-bottom: 18px; font-size: 13px; }
-      .summary-cards { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin-bottom: 22px; }
-      .summary-card { background: #FAFAFA; border: 1px solid #E2E8F0; padding: 10px 12px; border-radius: 8px; text-align: center; }
-      .summary-card .label { font-size: 10px; text-transform: uppercase; color: #64748B; font-weight: 700; }
-      .summary-card .val { font-size: 18px; font-weight: 800; margin-top: 4px; color: #0F172A; }
-      .section-heading { font-size: 13.5px; font-weight: 700; color: #0F172A; border-bottom: 2px solid #3B82F6; padding-bottom: 5px; margin: 20px 0 10px; }
-      table { width: 100%; border-collapse: collapse; font-size: 11.5px; margin-bottom: 12px; }
-      th { background: #1E293B; color: #fff; padding: 7px 8px; text-align: left; font-size: 11px; }
-      td { padding: 6.5px 8px; border-bottom: 1px solid #E2E8F0; }
-      tr:nth-child(even) { background: #F8FAFC; }
-      tfoot tr td { background: #F1F5F9; font-weight: 700; border-top: 2px solid #CBD5E1; }
-      .alert-box { padding: 14px; border-radius: 8px; text-align: center; font-size: 14px; font-weight: 700; margin-top: 18px; }
-      .alert-due { background: #FEF2F2; color: #DC2626; border: 1.5px solid #F87171; }
-      .alert-clear { background: #F0FDF4; color: #166534; border: 1.5px solid #86EFAC; }
-      .bank-details { background: #F8FAFC; border: 1px dashed #CBD5E1; border-radius: 8px; padding: 12px 16px; margin-top: 16px; font-size: 11.5px; }
-      @media print { body { padding: 0; } .no-print { display: none !important; } }
+      html, body { margin: 0; padding: 0; background: #FFFFFF; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; color: #0F172A; }
+      body { padding: 4mm 6mm; }
+      .header-card { background: #0F172A !important; color: #FFFFFF !important; padding: 16px 20px; border-radius: 8px; margin-bottom: 14px; }
+      .summary-cards-row { display: flex !important; flex-direction: row !important; gap: 8px !important; width: 100% !important; margin-bottom: 16px !important; }
+      .summary-kpi-card { flex: 1 !important; background: #FFFFFF; border: 1.5px solid #CBD5E1; padding: 10px 12px; border-radius: 8px; text-align: center; }
+      .meta-box-row { display: flex !important; flex-direction: row !important; gap: 8px !important; width: 100% !important; background: #F8FAFC; border: 1.5px solid #E2E8F0; padding: 10px 14px; border-radius: 8px; margin-bottom: 14px; }
+      .meta-box-item { flex: 1 !important; font-size: 11.5px; }
+      table { width: 100%; border-collapse: collapse; font-size: 11px; }
+      th { background: #0F172A !important; color: #FFFFFF !important; padding: 7px 8px; font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px; }
+      td { padding: 5.5px 8px; }
+      tr { page-break-inside: avoid; }
+      .section-badge { font-size: 13px; font-weight: 800; color: #0F172A; border-bottom: 2px solid #0F172A; padding-bottom: 4px; margin: 18px 0 8px; display: flex; align-items: center; justify-content: space-between; }
+      @media print {
+        body { padding: 0; }
+        .no-print { display: none !important; }
+        .header-card { background: #0F172A !important; -webkit-print-color-adjust: exact !important; }
+        th { background: #0F172A !important; color: #FFFFFF !important; -webkit-print-color-adjust: exact !important; }
+      }
     </style>
   </head><body>
-    <div class="header-card">
-      <div style="display:flex;justify-content:space-between;align-items:center;">
-        <div>
-          <div class="company-title">THE UNIQUE HAVEN HOMES PRIVATE LIMITED</div>
-          <div class="doc-subtitle">Official Guest Statement of Account & Ledger (खाता विवरण)</div>
-        </div>
-        <div style="text-align:right;font-size:12px;opacity:0.85;">
-          TUHH / ACCOUNTS<br>Govt. Registered Homestay
+    <div style="max-width:210mm;margin:0 auto;box-sizing:border-box;">
+      
+      <!-- Top Luxury Header Letterhead -->
+      <div class="header-card" style="background:#0F172A;color:#FFFFFF;padding:16px 20px;border-radius:8px;margin-bottom:14px;border:1px solid #1E293B;">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;">
+          <div style="display:flex;align-items:center;gap:14px;">
+            <img src="assets/apple-touch-icon.png" alt="TUHH Logo" style="width:52px;height:52px;border-radius:8px;object-fit:cover;border:1.5px solid rgba(255,255,255,0.25);" onerror="this.onerror=null;this.src='https://uniquehavenhomesstay.com/assets/logo.png';" />
+            <div>
+              <div style="font-size:18px;font-weight:900;letter-spacing:0.5px;color:#FFFFFF;">THE UNIQUE HAVEN HOMES PRIVATE LIMITED</div>
+              <div style="font-size:12.5px;font-weight:700;color:#FCD34D;margin-top:2px;letter-spacing:0.3px;">OFFICIAL GUEST STATEMENT OF ACCOUNT & LEDGER (अतिथि खाता विवरण)</div>
+              <div style="font-size:9.5px;color:#94A3B8;margin-top:3px;">Govt. Registered Homestay (Dept. of Tourism, UP) · CIN: U55101UP2024PTC202863 · Lucknow, Uttar Pradesh</div>
+            </div>
+          </div>
+          <div style="text-align:right;font-size:10px;color:#94A3B8;line-height:1.45;flex-shrink:0;">
+            <div>STATEMENT REF: <strong style="color:#FFFFFF;">#TUHH-STMT-${escapeHtml(cleanGuestName)}</strong></div>
+            <div style="margin-top:2px;">GENERATED: <strong style="color:#FFFFFF;">${todayDateStr}</strong></div>
+            <div style="margin-top:6px;">
+              <span style="background:${totalDue > 0 ? '#DC2626' : '#166534'};color:#FFFFFF;padding:3px 10px;border-radius:4px;font-weight:800;font-size:11px;letter-spacing:0.3px;">
+                ${totalDue > 0 ? '⚠️ BALANCE DUE: ₹' + totalDue.toLocaleString('en-IN') : '✅ FULLY SETTLED'}
+              </span>
+            </div>
+          </div>
         </div>
       </div>
-    </div>
 
-    <div class="meta-grid">
-      <div><strong>Guest Name:</strong> ${guestName}</div>
-      <div><strong>Phone / Mobile:</strong> ${displayGuestPhone}</div>
-      <div><strong>Statement Period:</strong> <span style="color:#2563EB;font-weight:700;">${periodLabel}</span></div>
-      <div><strong>Date Generated:</strong> ${todayDateStr}</div>
-    </div>
-
-    <div class="summary-cards">
-      <div class="summary-card"><div class="label">Stays</div><div class="val">${bookings.length}</div></div>
-      <div class="summary-card"><div class="label">Total Nights</div><div class="val">${totalNights}N</div></div>
-      <div class="summary-card"><div class="label">Total Billed</div><div class="val">₹${totalAmount.toLocaleString('en-IN')}</div></div>
-      <div class="summary-card"><div class="label">Total Paid</div><div class="val" style="color:#0A7D1A;">₹${totalPaid.toLocaleString('en-IN')}</div></div>
-      <div class="summary-card" style="${totalDue > 0 ? 'border-color:#F87171;background:#FEF2F2;' : ''}">
-        <div class="label" style="${totalDue > 0 ? 'color:#DC2626;' : ''}">Balance Due</div>
-        <div class="val" style="color:${totalDue > 0 ? '#DC2626' : '#0A7D1A'};">₹${totalDue.toLocaleString('en-IN')}</div>
+      <!-- Guest Metadata Strip -->
+      <div class="meta-box-row" style="display:flex;gap:8px;width:100%;background:#F8FAFC;border:1.5px solid #E2E8F0;padding:10px 14px;border-radius:8px;margin-bottom:14px;box-sizing:border-box;">
+        <div class="meta-box-item" style="flex:1.2;font-size:11.5px;">
+          <div style="color:#64748B;font-size:9.5px;font-weight:700;text-transform:uppercase;">Guest Name (अतिथि का नाम)</div>
+          <div style="font-size:14px;font-weight:800;color:#0F172A;margin-top:2px;">${escapeHtml(guestName)}</div>
+        </div>
+        <div class="meta-box-item" style="flex:1;font-size:11.5px;">
+          <div style="color:#64748B;font-size:9.5px;font-weight:700;text-transform:uppercase;">Contact Number (मोबाइल)</div>
+          <div style="font-size:13px;font-weight:700;color:#0F172A;margin-top:2px;">+91 ${escapeHtml(displayGuestPhone)}</div>
+        </div>
+        <div class="meta-box-item" style="flex:1.4;font-size:11.5px;">
+          <div style="color:#64748B;font-size:9.5px;font-weight:700;text-transform:uppercase;">Statement Period (अवधि)</div>
+          <div style="font-size:13px;font-weight:700;color:#2563EB;margin-top:2px;">${periodLabel}</div>
+        </div>
+        <div class="meta-box-item" style="flex:1.2;font-size:11.5px;text-align:right;">
+          <div style="color:#64748B;font-size:9.5px;font-weight:700;text-transform:uppercase;">Tariff Agreement (दर)</div>
+          <div style="font-size:13px;font-weight:800;color:#0F172A;margin-top:2px;">₹2,500 / Night Flat</div>
+        </div>
       </div>
+
+      <!-- 5 Executive KPI Summary Cards -->
+      <div class="summary-cards-row" style="display:flex;gap:8px;width:100%;margin-bottom:16px;box-sizing:border-box;">
+        <div class="summary-kpi-card" style="flex:1;background:#FFFFFF;border:1.5px solid #CBD5E1;padding:8px 10px;border-radius:8px;text-align:center;">
+          <div style="font-size:9.5px;text-transform:uppercase;color:#64748B;font-weight:700;letter-spacing:0.5px;">Stays</div>
+          <div style="font-size:18px;font-weight:900;color:#0F172A;margin-top:2px;">${bookings.length}</div>
+        </div>
+        <div class="summary-kpi-card" style="flex:1;background:#FFFFFF;border:1.5px solid #CBD5E1;padding:8px 10px;border-radius:8px;text-align:center;">
+          <div style="font-size:9.5px;text-transform:uppercase;color:#64748B;font-weight:700;letter-spacing:0.5px;">Total Nights</div>
+          <div style="font-size:18px;font-weight:900;color:#0F172A;margin-top:2px;">${totalNights}N</div>
+        </div>
+        <div class="summary-kpi-card" style="flex:1.2;background:#FFFFFF;border:1.5px solid #CBD5E1;padding:8px 10px;border-radius:8px;text-align:center;">
+          <div style="font-size:9.5px;text-transform:uppercase;color:#64748B;font-weight:700;letter-spacing:0.5px;">Total Billed</div>
+          <div style="font-size:18px;font-weight:900;color:#0F172A;margin-top:2px;">₹${totalAmount.toLocaleString('en-IN')}</div>
+        </div>
+        <div class="summary-kpi-card" style="flex:1.2;background:#F0FDF4;border:1.5px solid #86EFAC;padding:8px 10px;border-radius:8px;text-align:center;">
+          <div style="font-size:9.5px;text-transform:uppercase;color:#166534;font-weight:700;letter-spacing:0.5px;">Total Paid</div>
+          <div style="font-size:18px;font-weight:900;color:#059669;margin-top:2px;">₹${totalPaid.toLocaleString('en-IN')}</div>
+        </div>
+        <div class="summary-kpi-card" style="flex:1.3;background:${totalDue > 0 ? '#FEF2F2' : '#F0FDF4'};border:1.5px solid ${totalDue > 0 ? '#FCA5A5' : '#86EFAC'};padding:8px 10px;border-radius:8px;text-align:center;">
+          <div style="font-size:9.5px;text-transform:uppercase;color:${totalDue > 0 ? '#991B1B' : '#166534'};font-weight:700;letter-spacing:0.5px;">Balance Due</div>
+          <div style="font-size:18px;font-weight:900;color:${totalDue > 0 ? '#DC2626' : '#059669'};margin-top:2px;">₹${totalDue.toLocaleString('en-IN')}</div>
+        </div>
+      </div>
+
+      <!-- Section 1: Stays Breakdown -->
+      <div class="section-badge">
+        <span>🗓️ Stay & Tariff Ledger Breakdown (${bookings.length} Stays · ${totalNights} Nights)</span>
+        <span style="font-size:11px;font-weight:600;color:#64748B;">All rates @ ₹2,500 / night</span>
+      </div>
+
+      <div style="border:1.5px solid #CBD5E1;border-radius:8px;overflow:hidden;margin-bottom:16px;">
+        <table style="width:100%;border-collapse:collapse;font-size:11px;">
+          <thead>
+            <tr>
+              <th style="width:26px;text-align:center;">#</th>
+              <th style="width:80px;text-align:left;">Check-In</th>
+              <th style="width:80px;text-align:left;">Check-Out</th>
+              <th style="text-align:left;">Property / Suite</th>
+              <th style="width:55px;text-align:center;">Channel</th>
+              <th style="width:40px;text-align:center;">Nights</th>
+              <th style="width:68px;text-align:right;">Rate/Day</th>
+              <th style="width:75px;text-align:right;">Billed (₹)</th>
+              <th style="width:72px;text-align:right;">Paid (₹)</th>
+              <th style="width:78px;text-align:right;">Balance (₹)</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${bkRows}
+          </tbody>
+          <tfoot>
+            <tr style="background:#0F172A;color:#FFFFFF;font-weight:800;font-size:11.5px;">
+              <td colspan="5" style="padding:8px 10px;text-align:right;color:#FFFFFF;">TOTALS FOR STATEMENT PERIOD:</td>
+              <td style="padding:8px 4px;text-align:center;color:#FCD34D;">${totalNights}N</td>
+              <td style="padding:8px 8px;text-align:right;color:#94A3B8;">-</td>
+              <td style="padding:8px 8px;text-align:right;color:#FFFFFF;">₹${totalAmount.toLocaleString('en-IN')}</td>
+              <td style="padding:8px 8px;text-align:right;color:#34D399;">₹${totalPaid.toLocaleString('en-IN')}</td>
+              <td style="padding:8px 8px;text-align:right;color:${totalDue > 0 ? '#F87171' : '#34D399'};">₹${totalDue.toLocaleString('en-IN')}</td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+
+      <!-- Section 2: Payments Receipts Log -->
+      <div class="section-badge">
+        <span>💳 Official Payment Receipts Log (${sortedDisplayPays.length} Transactions Recorded)</span>
+        <span style="font-size:11px;font-weight:600;color:#059669;">Total Paid: ₹${totalPaid.toLocaleString('en-IN')}</span>
+      </div>
+
+      <div style="border:1.5px solid #CBD5E1;border-radius:8px;overflow:hidden;margin-bottom:16px;">
+        <table style="width:100%;border-collapse:collapse;font-size:11px;">
+          <thead>
+            <tr>
+              <th style="width:90px;text-align:left;">Payment Date</th>
+              <th style="width:100px;text-align:right;">Amount (₹)</th>
+              <th style="width:80px;text-align:center;">Mode</th>
+              <th style="width:140px;text-align:left;">Related Stay Unit</th>
+              <th style="text-align:left;">Transaction Notes / Remarks</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${payRows}
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Settlement Banner -->
+      <div style="padding:12px 16px;border-radius:8px;margin-bottom:16px;page-break-inside:avoid;background:${totalDue > 0 ? '#FEF2F2' : '#F0FDF4'};border:1.5px solid ${totalDue > 0 ? '#F87171' : '#86EFAC'};">
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+          <div>
+            <div style="font-size:13.5px;font-weight:800;color:${totalDue > 0 ? '#991B1B' : '#166534'};">
+              ${totalDue > 0 ? '⚠️ Outstanding Account Balance: ₹' + totalDue.toLocaleString('en-IN') : '✅ Account Fully Settled & Reconciled'}
+            </div>
+            <div style="font-size:11px;color:${totalDue > 0 ? '#B91C1C' : '#15803D'};margin-top:2px;">
+              ${totalDue > 0 ? 'Kindly clear the remaining balance at your earliest convenience.' : 'Thank you for your valuable patronage with The Unique Haven Homes!'}
+            </div>
+          </div>
+          <div style="text-align:right;">
+            <span style="font-size:15px;font-weight:900;color:${totalDue > 0 ? '#DC2626' : '#059669'};">
+              ${totalDue > 0 ? 'Due: ₹' + totalDue.toLocaleString('en-IN') : 'NIL BALANCE'}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Colorful Executive UPI QR & Settlement Card -->
+      <div style="margin-bottom:16px;border-radius:10px;overflow:hidden;border:1.5px solid #CBD5E1;page-break-inside:avoid;background:#FFFFFF;">
+        <!-- Vibrant Header Strip -->
+        <div style="background:linear-gradient(135deg, #0F172A 0%, #1E1B4B 50%, #4338CA 100%) !important;color:#FFFFFF !important;padding:8px 14px;display:flex;justify-content:space-between;align-items:center;">
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span style="font-size:14px;">⚡</span>
+            <div>
+              <div style="font-size:11.5px;font-weight:800;letter-spacing:0.5px;text-transform:uppercase;">OFFICIAL UPI SETTLEMENT & INSTANT QR</div>
+              <div style="font-size:9.5px;color:#CBD5E1;">Scan with any UPI application · Auto-coded Due Amount: ₹${totalDue.toLocaleString('en-IN')}</div>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:5px;">
+            <span style="display:inline-block;padding:2px 7px;border-radius:10px;background:#5F259F !important;color:#FFFFFF !important;font-size:9px;font-weight:800;">PhonePe</span>
+            <span style="display:inline-block;padding:2px 7px;border-radius:10px;background:#1A73E8 !important;color:#FFFFFF !important;font-size:9px;font-weight:800;">Google Pay</span>
+            <span style="display:inline-block;padding:2px 7px;border-radius:10px;background:#00B9F1 !important;color:#FFFFFF !important;font-size:9px;font-weight:800;">Paytm</span>
+            <span style="display:inline-block;padding:2px 7px;border-radius:10px;background:#00796B !important;color:#FFFFFF !important;font-size:9px;font-weight:800;">BHIM UPI</span>
+          </div>
+        </div>
+        
+        <!-- Inner content with QR on left and Official Info on right -->
+        <div style="padding:12px 14px;display:flex;flex-direction:row;align-items:center;gap:16px;background:#F8FAFC;">
+          <!-- Left: High Res QR Frame -->
+          <div style="flex-shrink:0;text-align:center;">
+            <div style="padding:6px;background:#FFFFFF;border-radius:10px;border:2px solid #818CF8;display:inline-block;box-shadow:0 3px 10px rgba(99,102,241,0.15);">
+              <img src="${qrImgUrl}" alt="UPI QR Code" style="width:130px;height:130px;display:block;border-radius:6px;" />
+            </div>
+            <div style="margin-top:4px;font-size:10px;font-weight:800;color:#4338CA;letter-spacing:0.4px;">
+              📷 SCAN TO PAY
+            </div>
+          </div>
+
+          <!-- Right Column: Settlement Details -->
+          <div style="flex:1;">
+            <div style="display:grid;grid-template-columns:repeat(2, 1fr);gap:6px;font-size:11px;">
+              <div style="background:#FFFFFF;padding:6px 10px;border-radius:6px;border:1px solid #E2E8F0;">
+                <div style="font-size:9px;text-transform:uppercase;font-weight:700;color:#64748B;">Beneficiary / Receiver</div>
+                <div style="font-size:12px;font-weight:800;color:#0F172A;margin-top:1px;">Mr. Firoz Khan</div>
+              </div>
+              <div style="background:#FFFFFF;padding:6px 10px;border-radius:6px;border:1px solid #E2E8F0;">
+                <div style="font-size:9px;text-transform:uppercase;font-weight:700;color:#64748B;">Official UPI ID</div>
+                <div style="font-size:12.5px;font-weight:800;color:#4338CA;font-family:monospace;margin-top:1px;">8299600709@ybl</div>
+              </div>
+              <div style="background:#FFFFFF;padding:6px 10px;border-radius:6px;border:1px solid #E2E8F0;">
+                <div style="font-size:9px;text-transform:uppercase;font-weight:700;color:#64748B;">PhonePe / GPay / Mobile</div>
+                <div style="font-size:12px;font-weight:700;color:#0F172A;margin-top:1px;">+91 82996 00709</div>
+              </div>
+              <div style="background:#FFFFFF;padding:6px 10px;border-radius:6px;border:1px solid #E2E8F0;">
+                <div style="font-size:9px;text-transform:uppercase;font-weight:700;color:#64748B;">Auto-coded Due Amount</div>
+                <div style="font-size:12.5px;font-weight:800;color:${totalDue > 0 ? '#DC2626' : '#059669'};margin-top:1px;">
+                  ${totalDue > 0 ? '₹' + totalDue.toLocaleString('en-IN') : 'Settled (₹0)'}
+                </div>
+              </div>
+            </div>
+
+            <div style="margin-top:7px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px;">
+              <div style="font-size:10px;color:#64748B;line-height:1.4;">
+                💡 <em>Open any UPI app, scan the QR code to clear dues instantly. Reference & Amount are pre-configured.</em>
+              </div>
+              <a href="${upiQrString}" class="no-print" style="display:inline-flex;align-items:center;gap:5px;background:linear-gradient(135deg, #4338CA, #6366F1);color:#FFFFFF;padding:5px 12px;border-radius:6px;font-size:10.5px;font-weight:700;text-decoration:none;">
+                📲 Tap to Pay via UPI App
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Legal Footer & Digital Seal -->
+      <div style="margin-top:20px;text-align:center;font-size:10px;color:#64748B;border-top:1px solid #E2E8F0;padding-top:10px;page-break-inside:avoid;">
+        <div style="font-weight:700;color:#0F172A;font-size:11px;">THE UNIQUE HAVEN HOMES PRIVATE LIMITED</div>
+        <div>CIN: U55101UP2024PTC202863 · Govt. Registered Homestay · Computer-Generated Official Ledger</div>
+        <div style="margin-top:3px;color:#94A3B8;">Developed by Praveen Singh · Authenticated CRM Statement Record</div>
+      </div>
+
+      <!-- Screen-only Print Trigger Button -->
+      <div class="no-print" style="text-align:center;margin:24px 0 16px;">
+        <button onclick="window.print()" style="padding:12px 36px;background:#0F172A;color:#FFFFFF;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-size:14px;box-shadow:0 4px 12px rgba(15,23,42,0.25);">
+          🖨️ Print / Save as PDF
+        </button>
+      </div>
+
     </div>
-
-    <div class="section-heading">🗓️ Date-wise Stays Breakdown (${bookings.length})</div>
-    <table>
-      <thead>
-        <tr>
-          <th style="width:30px;text-align:center;">#</th>
-          <th>Check-In</th>
-          <th>Check-Out</th>
-          <th>Property / Room</th>
-          <th style="text-align:center;">Mode</th>
-          <th style="text-align:center;">Nights</th>
-          <th style="text-align:right;">Billed (₹)</th>
-          <th style="text-align:right;">Paid (₹)</th>
-          <th style="text-align:right;">Balance Due (₹)</th>
-        </tr>
-      </thead>
-      <tbody>${bkRows}</tbody>
-      <tfoot>
-        <tr>
-          <td colspan="5" style="text-align:right;">Total for Selected Period:</td>
-          <td style="text-align:center;">${totalNights}N</td>
-          <td style="text-align:right;">₹${totalAmount.toLocaleString('en-IN')}</td>
-          <td style="text-align:right;color:#0A7D1A;">₹${totalPaid.toLocaleString('en-IN')}</td>
-          <td style="text-align:right;color:${totalDue > 0 ? '#DC2626' : '#0A7D1A'};">₹${totalDue.toLocaleString('en-IN')}</td>
-        </tr>
-      </tfoot>
-    </table>
-
-    <div class="section-heading">💳 Payment Receipts Log (${(payments || []).length})</div>
-    <table>
-      <thead>
-        <tr>
-          <th>Payment Date</th>
-          <th style="text-align:right;">Amount (₹)</th>
-          <th>Payment Mode</th>
-          <th>Related Stay Unit</th>
-          <th>Remarks / Notes</th>
-        </tr>
-      </thead>
-      <tbody>${payRows}</tbody>
-    </table>
-
-    <div class="alert-box ${totalDue > 0 ? 'alert-due' : 'alert-clear'}">
-      ${totalDue > 0
-        ? `⚠️ Outstanding Balance Due: ₹${totalDue.toLocaleString('en-IN')} — Kindly clear at your earliest convenience.`
-        : '✅ Account Statement is Fully Settled — Thank You for Choosing TUHH!'}
-    </div>
-
-    <div class="bank-details">
-      <div style="font-weight:700;font-size:12px;margin-bottom:4px;color:#0F172A;">Bank & UPI Payment Details:</div>
-      <div><strong>Beneficiary:</strong> THE UNIQUE HAVEN HOMES PRIVATE LIMITED &nbsp;|&nbsp; <strong>UPI ID:</strong> 9450055554@upi</div>
-      <div><strong>Helpline Contacts:</strong> Mr. Shahanshah: 9450055554 &nbsp;|&nbsp; Mr. Firoz Khan: 8299600709</div>
-    </div>
-
-    <div style="margin-top:24px;text-align:center;font-size:11px;color:#717171;border-top:1px solid #E2E8F0;padding-top:12px;">
-      <strong>${window.COMPANY_LEGAL_NAME || 'THE UNIQUE HAVEN HOMES PRIVATE LIMITED'}</strong><br>
-      Developed by Praveen Singh · Generated from Airbnb Manager System
-    </div>
-
-    <div class="no-print" style="text-align:center;margin-top:20px;">
-      <button onclick="window.print()" style="padding:12px 32px;background:#4F46E5;color:#fff;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-size:15px;">
-        🖨️ Print / Save as PDF
-      </button>
-    </div>
-    <script>setTimeout(function(){ window.print(); }, 500);<\/script>
+    <script>
+      function doPrint() {
+        if (window._didPrint) return;
+        window._didPrint = true;
+        window.print();
+      }
+      window.addEventListener('load', function() { setTimeout(doPrint, 350); });
+      setTimeout(doPrint, 1200);
+    <\/script>
   </body></html>`;
 
   window.printDocumentHTML(html, pdfTitle);
@@ -1435,11 +1653,12 @@ async function whatsappGuestLedger(guestName, phone, passedBookings, passedPayme
     payList +
     `━━━━━━━━━━━━━━━━━━━━━━━━━━${NL}` +
     dueLine + `${NL}` +
-    `*Payment Account:*${NL}` +
-    `• UPI ID: 9450055554@upi${NL}` +
-    `• A/C: THE UNIQUE HAVEN HOMES PRIVATE LIMITED${NL}${NL}` +
-    `*Contact Helpline:*${NL}` +
-    `• Mr. Shahanshah: 9450055554${NL}` +
+    `*Payment Account (UPI):*${NL}` +
+    `• UPI ID: 8299600709@ybl${NL}` +
+    `• Receiver: Mr. Firoz Khan (PhonePe / GPay: 8299600709)${NL}` +
+    (totalDue > 0 ? `• Instant UPI Pay Link: upi://pay?pa=8299600709@ybl&pn=Firoz%20Khan%20TUHH&am=${totalDue}&cu=INR${NL}` : '') +
+    `${NL}` +
+    `*Helpline:*${NL}` +
     `• Mr. Firoz Khan: 8299600709${NL}${NL}` +
     `THE UNIQUE HAVEN HOMES PRIVATE LIMITED\nDeveloped by Praveen Singh`;
 
@@ -8329,3 +8548,404 @@ window.submitSecurityRefund = async function(bkId) {
   if (typeof window.notifyDataChanged === 'function') window.notifyDataChanged();
 };
 
+// ═══════════════════════════════════════════════════════════
+// ⚡ CUSTOM PAYMENT QR GENERATOR & INSTANT GUEST SETTLEMENT
+// ═══════════════════════════════════════════════════════════
+window.openCustomPaymentQRModal = async function(prefill = {}) {
+  // 1. Fetch available rooms
+  let rooms = window._cachedRooms || [];
+  if (!rooms.length) {
+    try {
+      const { data } = await sb.from('rooms').select('room_id, unit_no, nickname').order('room_id');
+      if (data && data.length) {
+        rooms = data;
+        window._cachedRooms = rooms;
+      }
+    } catch (e) {
+      console.warn('Could not load rooms:', e);
+    }
+  }
+
+  // 2. Remove existing overlay if any
+  document.getElementById('customPaymentQrOverlay')?.remove();
+
+  const overlay = document.createElement('div');
+  overlay.id = 'customPaymentQrOverlay';
+  overlay.className = 'modal-overlay';
+  overlay.style.cssText = 'display:flex;align-items:center;justify-content:center;z-index:99999;background:rgba(15,23,42,0.65);backdrop-filter:blur(6px);padding:14px;';
+  overlay.onclick = e => { if (e.target === overlay) overlay.remove(); };
+
+  // Initial values
+  const initGuest = prefill.guestName || '';
+  const initPhone = prefill.phone ? String(prefill.phone).replace(/\D/g, '') : '';
+  const initRoomId = prefill.roomId || '';
+  const initAmount = prefill.amount ? Number(prefill.amount) : 2500;
+  const initPurpose = prefill.purpose || 'Stay Advance / Token Booking';
+  const initRemarks = prefill.remarks || '';
+
+  overlay.innerHTML = `
+    <div class="modal-box" style="max-width:860px;width:100%;max-height:92vh;overflow-y:auto;background:#FFFFFF;border-radius:16px;box-shadow:0 25px 50px -12px rgba(0,0,0,0.25);border:1px solid #E2E8F0;padding:0;position:relative;">
+      
+      <!-- Top Modal Header -->
+      <div style="background:linear-gradient(135deg, #0F172A 0%, #1E1B4B 50%, #4338CA 100%);color:#FFFFFF;padding:16px 20px;border-top-left-radius:15px;border-top-right-radius:15px;display:flex;align-items:center;justify-content:space-between;gap:12px;">
+        <div style="display:flex;align-items:center;gap:12px;">
+          <div style="width:40px;height:40px;border-radius:10px;background:rgba(255,255,255,0.15);display:flex;align-items:center;justify-content:center;font-size:20px;">
+            ⚡
+          </div>
+          <div>
+            <h3 style="margin:0;font-size:17px;font-weight:800;letter-spacing:0.3px;color:#FFFFFF;">Quick UPI Payment QR Generator</h3>
+            <div style="font-size:11.5px;color:#C7D2FE;margin-top:2px;">Generate pre-filled UPI QR for any guest & send via WhatsApp instantly</div>
+          </div>
+        </div>
+        <button type="button" onclick="document.getElementById('customPaymentQrOverlay')?.remove()" style="background:rgba(255,255,255,0.15);border:none;color:#FFFFFF;width:32px;height:32px;border-radius:8px;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;" title="Close">✕</button>
+      </div>
+
+      <!-- Modal Body (Two-Column Layout) -->
+      <div style="padding:20px;display:grid;grid-template-columns:repeat(auto-fit, minmax(320px, 1fr));gap:20px;background:#F8FAFC;">
+        
+        <!-- LEFT COLUMN: Form Inputs -->
+        <div style="background:#FFFFFF;padding:18px;border-radius:12px;border:1px solid #E2E8F0;box-shadow:0 1px 3px rgba(0,0,0,0.05);">
+          <div style="font-size:12px;font-weight:800;color:#0F172A;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:14px;display:flex;align-items:center;gap:6px;">
+            <span>📝</span> <span>Payment Request Details</span>
+          </div>
+
+          <!-- Guest Name -->
+          <div style="margin-bottom:12px;">
+            <label style="display:block;font-size:11.5px;font-weight:700;color:#334155;margin-bottom:4px;">Guest Full Name</label>
+            <input type="text" id="cpqrGuestName" value="${escapeHtml(initGuest)}" placeholder="e.g. Rohit Singh" style="width:100%;padding:9px 12px;border:1.5px solid #CBD5E1;border-radius:8px;font-size:13px;font-weight:600;box-sizing:border-box;" />
+          </div>
+
+          <!-- Guest Phone (WhatsApp) -->
+          <div style="margin-bottom:12px;">
+            <label style="display:block;font-size:11.5px;font-weight:700;color:#334155;margin-bottom:4px;">Guest Phone (WhatsApp Number)</label>
+            <input type="tel" id="cpqrGuestPhone" value="${escapeHtml(initPhone)}" placeholder="10-digit mobile, e.g. 9415973110" style="width:100%;padding:9px 12px;border:1.5px solid #CBD5E1;border-radius:8px;font-size:13px;font-weight:600;box-sizing:border-box;" />
+          </div>
+
+          <!-- Property / Homestay Selection -->
+          <div style="margin-bottom:12px;">
+            <label style="display:block;font-size:11.5px;font-weight:700;color:#334155;margin-bottom:4px;">Property / Unit *</label>
+            <select id="cpqrRoomSelect" style="width:100%;padding:9px 12px;border:1.5px solid #CBD5E1;border-radius:8px;font-size:13px;font-weight:600;background:#FFFFFF;box-sizing:border-box;">
+              <option value="">-- General / Any Homestay Unit --</option>
+              ${rooms.map(r => {
+                const isSel = r.room_id === initRoomId;
+                return `<option value="${r.room_id}" ${isSel ? 'selected' : ''}>${propLabel(r)}</option>`;
+              }).join('')}
+            </select>
+          </div>
+
+          <!-- Amount to Request (₹) -->
+          <div style="margin-bottom:12px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+              <label style="font-size:11.5px;font-weight:700;color:#334155;">Custom Amount to Request (₹) *</label>
+              <span id="cpqrAmountDisplay" style="font-size:13px;font-weight:800;color:#059669;">₹${initAmount.toLocaleString('en-IN')}</span>
+            </div>
+            <input type="number" id="cpqrAmount" min="1" step="50" value="${initAmount}" placeholder="Enter amount in ₹" style="width:100%;padding:10px 12px;border:2px solid #4F46E5;border-radius:8px;font-size:16px;font-weight:800;color:#0F172A;box-sizing:border-box;" />
+            
+            <!-- Quick Preset Chips -->
+            <div style="display:flex;flex-wrap:wrap;gap:5px;margin-top:8px;">
+              <button type="button" class="cpqr-amt-chip" data-amt="1000" style="padding:4px 9px;background:#F1F5F9;border:1px solid #CBD5E1;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;">₹1,000</button>
+              <button type="button" class="cpqr-amt-chip" data-amt="2500" style="padding:4px 9px;background:#F1F5F9;border:1px solid #CBD5E1;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;">₹2,500</button>
+              <button type="button" class="cpqr-amt-chip" data-amt="5000" style="padding:4px 9px;background:#F1F5F9;border:1px solid #CBD5E1;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;">₹5,000</button>
+              <button type="button" class="cpqr-amt-chip" data-amt="10000" style="padding:4px 9px;background:#F1F5F9;border:1px solid #CBD5E1;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;">₹10,000</button>
+              <button type="button" class="cpqr-amt-chip" data-amt="20000" style="padding:4px 9px;background:#F1F5F9;border:1px solid #CBD5E1;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;">₹20,000</button>
+              <button type="button" class="cpqr-amt-chip" data-amt="clear" style="padding:4px 9px;background:#FEE2E2;border:1px solid #FCA5A5;color:#DC2626;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;">Clear</button>
+            </div>
+          </div>
+
+          <!-- Payment Purpose -->
+          <div style="margin-bottom:12px;">
+            <label style="display:block;font-size:11.5px;font-weight:700;color:#334155;margin-bottom:4px;">Payment Purpose / Category</label>
+            <select id="cpqrPurpose" style="width:100%;padding:8px 12px;border:1.5px solid #CBD5E1;border-radius:8px;font-size:12.5px;font-weight:600;background:#FFFFFF;box-sizing:border-box;">
+              <option value="Stay Advance / Token Booking">Stay Advance / Token Booking</option>
+              <option value="Remaining Stay Balance">Remaining Stay Balance</option>
+              <option value="Stay Extension Charges">Stay Extension Charges</option>
+              <option value="Security Deposit">Refundable Security Deposit</option>
+              <option value="Food, Laundry & Extra Services">Food, Laundry & Extra Services</option>
+              <option value="Custom Stay Settlement">Custom Stay Settlement</option>
+            </select>
+          </div>
+
+          <!-- Remarks / Note -->
+          <div>
+            <label style="display:block;font-size:11.5px;font-weight:700;color:#334155;margin-bottom:4px;">Additional Notes / Remarks</label>
+            <input type="text" id="cpqrRemarks" value="${escapeHtml(initRemarks)}" placeholder="e.g. Booking confirmation advance" style="width:100%;padding:8px 12px;border:1.5px solid #CBD5E1;border-radius:8px;font-size:12px;box-sizing:border-box;" />
+          </div>
+        </div>
+
+        <!-- RIGHT COLUMN: Live QR Code Card & Instant Action Buttons -->
+        <div style="display:flex;flex-direction:column;gap:14px;">
+          
+          <!-- Executive Colorful QR Code Preview Container -->
+          <div id="cpqrPreviewCard" style="background:#FFFFFF;border-radius:12px;overflow:hidden;border:1.5px solid #CBD5E1;box-shadow:0 4px 16px -2px rgba(15,23,42,0.08);">
+            <!-- Card Header Strip -->
+            <div style="background:linear-gradient(135deg, #0F172A 0%, #1E1B4B 50%, #4338CA 100%);color:#FFFFFF;padding:10px 14px;display:flex;justify-content:space-between;align-items:center;">
+              <div style="display:flex;align-items:center;gap:6px;">
+                <span style="font-size:13px;">⚡</span>
+                <div style="font-size:11px;font-weight:800;letter-spacing:0.5px;text-transform:uppercase;">TUHH OFFICIAL UPI QR</div>
+              </div>
+              <div style="display:flex;align-items:center;gap:4px;">
+                <span style="display:inline-block;padding:2px 6px;border-radius:8px;background:#5F259F;color:#FFFFFF;font-size:9px;font-weight:800;">PhonePe</span>
+                <span style="display:inline-block;padding:2px 6px;border-radius:8px;background:#1A73E8;color:#FFFFFF;font-size:9px;font-weight:800;">GPay</span>
+                <span style="display:inline-block;padding:2px 6px;border-radius:8px;background:#00B9F1;color:#FFFFFF;font-size:9px;font-weight:800;">Paytm</span>
+                <span style="display:inline-block;padding:2px 6px;border-radius:8px;background:#00796B;color:#FFFFFF;font-size:9px;font-weight:800;">BHIM</span>
+              </div>
+            </div>
+
+            <!-- Card Body: QR Frame + Details -->
+            <div style="padding:14px;background:#F8FAFC;display:flex;flex-direction:row;align-items:center;gap:14px;">
+              <div style="flex-shrink:0;text-align:center;">
+                <div style="padding:6px;background:#FFFFFF;border-radius:10px;border:2px solid #818CF8;display:inline-block;box-shadow:0 3px 10px rgba(99,102,241,0.15);">
+                  <img id="cpqrImg" src="" alt="UPI QR Code" style="width:125px;height:125px;display:block;border-radius:6px;" />
+                </div>
+                <div style="margin-top:4px;font-size:9.5px;font-weight:800;color:#4338CA;letter-spacing:0.3px;">
+                  📷 SCAN TO PAY
+                </div>
+              </div>
+
+              <div style="flex:1;min-width:0;">
+                <div style="background:#FFFFFF;padding:6px 10px;border-radius:6px;border:1px solid #E2E8F0;margin-bottom:6px;">
+                  <div style="font-size:9px;text-transform:uppercase;font-weight:700;color:#64748B;">Beneficiary Name</div>
+                  <div style="font-size:12.5px;font-weight:800;color:#0F172A;margin-top:1px;">Mr. Firoz Khan</div>
+                </div>
+                <div style="background:#FFFFFF;padding:6px 10px;border-radius:6px;border:1px solid #E2E8F0;margin-bottom:6px;">
+                  <div style="font-size:9px;text-transform:uppercase;font-weight:700;color:#64748B;">Official UPI ID</div>
+                  <div style="font-size:13px;font-weight:800;color:#4338CA;font-family:monospace;margin-top:1px;">8299600709@ybl</div>
+                </div>
+                <div style="background:#FFFFFF;padding:6px 10px;border-radius:6px;border:1px solid #E2E8F0;">
+                  <div style="font-size:9px;text-transform:uppercase;font-weight:700;color:#64748B;">Pre-filled Due Amount</div>
+                  <div id="cpqrCardAmount" style="font-size:14px;font-weight:900;color:#DC2626;margin-top:1px;">₹2,500</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Card Footer: Dynamic Info Note -->
+            <div style="padding:8px 12px;background:#EEF2FF;border-top:1px solid #E0E7FF;font-size:11px;color:#3730A3;display:flex;align-items:center;justify-content:space-between;gap:6px;">
+              <span id="cpqrCardPropTag">🏡 Unit: General Homestay</span>
+              <span id="cpqrCardGuestTag">👤 Guest: -</span>
+            </div>
+          </div>
+
+          <!-- Action Buttons Strip -->
+          <div style="display:flex;flex-direction:column;gap:8px;">
+            <button type="button" id="cpqrSendWaBtn" style="width:100%;padding:12px 18px;background:#25D366;color:#FFFFFF;border:none;border-radius:10px;font-size:14px;font-weight:800;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:8px;box-shadow:0 3px 10px rgba(37,211,102,0.3);transition:transform 0.15s ease;">
+              <span>📲</span> <span>Send QR Request on WhatsApp</span>
+            </button>
+
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+              <button type="button" id="cpqrPrintBtn" style="padding:10px 14px;background:#0F172A;color:#FFFFFF;border:none;border-radius:8px;font-size:12.5px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:6px;">
+                <span>🖨️</span> <span>Print / PDF Slip</span>
+              </button>
+              <button type="button" id="cpqrCopyBtn" style="padding:10px 14px;background:#EEF2FF;color:#4338CA;border:1.5px solid #C7D2FE;border-radius:8px;font-size:12.5px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:6px;">
+                <span>📋</span> <span>Copy UPI Link</span>
+              </button>
+            </div>
+
+            <a id="cpqrDirectPayLink" href="#" style="text-align:center;font-size:11px;color:#64748B;text-decoration:none;padding:4px;display:block;">
+              🔗 Direct 1-tap UPI link preview (tap to test)
+            </a>
+          </div>
+
+        </div>
+
+      </div>
+
+    </div>
+  `;
+
+  document.body.appendChild(overlay);
+
+  const guestIn = overlay.querySelector('#cpqrGuestName');
+  const phoneIn = overlay.querySelector('#cpqrGuestPhone');
+  const roomSel = overlay.querySelector('#cpqrRoomSelect');
+  const amtIn = overlay.querySelector('#cpqrAmount');
+  const purposeSel = overlay.querySelector('#cpqrPurpose');
+  const remarksIn = overlay.querySelector('#cpqrRemarks');
+  const amtDisp = overlay.querySelector('#cpqrAmountDisplay');
+  const cardAmt = overlay.querySelector('#cpqrCardAmount');
+  const cardPropTag = overlay.querySelector('#cpqrCardPropTag');
+  const cardGuestTag = overlay.querySelector('#cpqrCardGuestTag');
+  const qrImg = overlay.querySelector('#cpqrImg');
+  const directLink = overlay.querySelector('#cpqrDirectPayLink');
+  const sendWaBtn = overlay.querySelector('#cpqrSendWaBtn');
+  const printBtn = overlay.querySelector('#cpqrPrintBtn');
+  const copyBtn = overlay.querySelector('#cpqrCopyBtn');
+
+  function getSelectedRoomLabel() {
+    const val = roomSel.value;
+    if (!val) return 'General Homestay Booking';
+    const r = rooms.find(x => x.room_id === val);
+    return r ? propLabel(r) : val;
+  }
+
+  function getUpiDetails() {
+    const guest = guestIn.value.trim() || 'Guest';
+    const amt = Math.max(0, parseInt(amtIn.value) || 0);
+    const roomName = getSelectedRoomLabel();
+    const purpose = purposeSel.value || 'Stay Payment';
+    const note = `TUHH ${roomName} - ${guest} (${purpose})`.slice(0, 50);
+
+    const upiString = amt > 0
+      ? `upi://pay?pa=8299600709@ybl&pn=Firoz%20Khan%20TUHH&am=${amt}&cu=INR&tn=${encodeURIComponent(note)}`
+      : `upi://pay?pa=8299600709@ybl&pn=Firoz%20Khan%20TUHH&cu=INR&tn=${encodeURIComponent('The Unique Haven Homes')}`;
+
+    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=220x220&margin=2&color=0F172A&bgcolor=FFFFFF&data=${encodeURIComponent(upiString)}`;
+
+    return { guest, amt, roomName, purpose, note, upiString, qrUrl };
+  }
+
+  function updateLivePreview() {
+    const { guest, amt, roomName, upiString, qrUrl } = getUpiDetails();
+    amtDisp.textContent = `₹${amt.toLocaleString('en-IN')}`;
+    cardAmt.textContent = `₹${amt.toLocaleString('en-IN')}`;
+    cardPropTag.textContent = `🏡 Unit: ${roomName}`;
+    cardGuestTag.textContent = `👤 Guest: ${guest}`;
+    qrImg.src = qrUrl;
+    directLink.href = upiString;
+  }
+
+  // Bind live updates
+  guestIn.addEventListener('input', updateLivePreview);
+  phoneIn.addEventListener('input', updateLivePreview);
+  roomSel.addEventListener('change', updateLivePreview);
+  amtIn.addEventListener('input', updateLivePreview);
+  purposeSel.addEventListener('change', updateLivePreview);
+  remarksIn.addEventListener('input', updateLivePreview);
+
+  // Quick preset chips
+  overlay.querySelectorAll('.cpqr-amt-chip').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const v = btn.dataset.amt;
+      if (v === 'clear') {
+        amtIn.value = 0;
+      } else {
+        amtIn.value = v;
+      }
+      updateLivePreview();
+    });
+  });
+
+  // Initial preview render
+  updateLivePreview();
+
+  // 1. WhatsApp Button
+  sendWaBtn.addEventListener('click', () => {
+    const { guest, amt, roomName, purpose, upiString } = getUpiDetails();
+    const rawPhone = phoneIn.value.replace(/\D/g, '');
+    const remarks = remarksIn.value.trim();
+
+    if (amt <= 0) {
+      if (window.fsn) fsn.error('Amount Required', 'Please enter an amount to request.');
+      else alert('Please enter an amount to request.');
+      amtIn.focus();
+      return;
+    }
+
+    const NL = '\n';
+    let waMsg = `*THE UNIQUE HAVEN HOMES PRIVATE LIMITED*${NL}` +
+      `*OFFICIAL PAYMENT REQUEST / भुगतान अनुरोध*${NL}` +
+      `━━━━━━━━━━━━━━━━━━━━━━━━━━${NL}` +
+      `👤 *Guest:* ${guest}${NL}` +
+      `🏡 *Property / Unit:* ${roomName}${NL}` +
+      `💳 *Requested Amount:* *₹${amt.toLocaleString('en-IN')}*${NL}` +
+      `📋 *Purpose:* ${purpose}${NL}` +
+      (remarks ? `📝 *Note:* ${remarks}${NL}` : '') +
+      `━━━━━━━━━━━━━━━━━━━━━━━━━━${NL}` +
+      `*Official Settlement Account (UPI):*${NL}` +
+      `• UPI ID: *8299600709@ybl*${NL}` +
+      `• Beneficiary: Mr. Firoz Khan${NL}` +
+      `• PhonePe / GPay / Mobile: 8299600709${NL}${NL}` +
+      `⚡ *Tap to Pay directly via UPI App:*${NL}` +
+      `${upiString}${NL}${NL}` +
+      `*Helpline:* +91 82996 00709 (Mr. Firoz Khan)${NL}${NL}` +
+      `THE UNIQUE HAVEN HOMES PRIVATE LIMITED\nLuxury Boutique Homestays`;
+
+    if (rawPhone.length >= 10) {
+      const targetWa = rawPhone.length === 10 ? '91' + rawPhone : rawPhone;
+      window.open(`https://wa.me/${targetWa}?text=${encodeURIComponent(waMsg)}`, '_blank');
+    } else {
+      window.open(`https://wa.me/?text=${encodeURIComponent(waMsg)}`, '_blank');
+    }
+  });
+
+  // 2. Print / PDF Slip
+  printBtn.addEventListener('click', () => {
+    const { guest, amt, roomName, purpose, upiString, qrUrl } = getUpiDetails();
+    const rawPhone = phoneIn.value.replace(/\D/g, '');
+    const remarks = remarksIn.value.trim();
+    const slipTitle = `TUHH_Payment_Slip_${guest.replace(/\s+/g, '_')}_Rs${amt}`;
+
+    const slipHtml = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${escapeHtml(slipTitle)}</title>
+      <style>
+        @page { size: A5 portrait; margin: 6mm 8mm !important; }
+        * { box-sizing: border-box; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; color: #0F172A; margin: 0; padding: 4mm 6mm; background: #FFFFFF; }
+        .header { background: #0F172A; color: #FFFFFF; padding: 14px 18px; border-radius: 8px; margin-bottom: 12px; }
+        .box { background: #F8FAFC; border: 1.5px solid #E2E8F0; padding: 10px 14px; border-radius: 8px; margin-bottom: 12px; font-size: 11.5px; }
+        @media print { .no-print { display: none !important; } }
+      </style>
+    </head><body>
+      <div class="header">
+        <div style="font-size:16px;font-weight:900;letter-spacing:0.5px;">THE UNIQUE HAVEN HOMES PRIVATE LIMITED</div>
+        <div style="font-size:11px;color:#FCD34D;font-weight:700;margin-top:2px;">OFFICIAL PAYMENT DEMAND & SETTLEMENT SLIP</div>
+        <div style="font-size:9.5px;color:#94A3B8;margin-top:4px;">Govt. Registered Homestay · CIN: U55101UP2024PTC202863 · Helpline: +91 82996 00709</div>
+      </div>
+
+      <div class="box">
+        <div style="display:grid;grid-template-columns:repeat(2, 1fr);gap:8px;">
+          <div><span style="color:#64748B;">Guest Name:</span> <strong>${escapeHtml(guest)}</strong></div>
+          <div><span style="color:#64748B;">Contact:</span> <strong>${rawPhone || 'N/A'}</strong></div>
+          <div><span style="color:#64748B;">Property / Unit:</span> <strong>${escapeHtml(roomName)}</strong></div>
+          <div><span style="color:#64748B;">Purpose:</span> <strong>${escapeHtml(purpose)}</strong></div>
+          ${remarks ? `<div style="grid-column:span 2;"><span style="color:#64748B;">Notes:</span> ${escapeHtml(remarks)}</div>` : ''}
+        </div>
+      </div>
+
+      <!-- Amount Highlight -->
+      <div style="background:#FEF2F2;border:2px solid #F87171;padding:12px 16px;border-radius:8px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center;">
+        <div>
+          <div style="font-size:10px;text-transform:uppercase;font-weight:800;color:#991B1B;">Amount to Pay</div>
+          <div style="font-size:22px;font-weight:900;color:#DC2626;">₹${amt.toLocaleString('en-IN')}</div>
+        </div>
+        <div style="text-align:right;font-size:11px;color:#7F1D1D;font-weight:700;">
+          Auto-coded Instant UPI Settlement
+        </div>
+      </div>
+
+      <!-- Colorful QR Card -->
+      <div style="border:1.5px solid #CBD5E1;border-radius:10px;overflow:hidden;background:#FFFFFF;margin-bottom:14px;">
+        <div style="background:linear-gradient(135deg, #0F172A 0%, #1E1B4B 50%, #4338CA 100%);color:#FFFFFF;padding:8px 12px;font-size:11px;font-weight:800;display:flex;justify-content:space-between;align-items:center;">
+          <span>⚡ SCAN WITH ANY UPI APPLICATION</span>
+          <span style="font-size:9.5px;color:#CBD5E1;">PhonePe · GPay · Paytm · BHIM</span>
+        </div>
+        <div style="padding:12px;display:flex;align-items:center;gap:16px;background:#F8FAFC;">
+          <div style="flex-shrink:0;text-align:center;">
+            <div style="padding:5px;background:#FFFFFF;border-radius:8px;border:2px solid #818CF8;display:inline-block;">
+              <img src="${qrUrl}" alt="UPI QR" style="width:130px;height:130px;display:block;" />
+            </div>
+          </div>
+          <div style="flex:1;font-size:11.5px;line-height:1.6;">
+            <div><strong>Beneficiary:</strong> Mr. Firoz Khan</div>
+            <div><strong>Official UPI ID:</strong> <span style="font-family:monospace;color:#4338CA;font-weight:800;">8299600709@ybl</span></div>
+            <div><strong>Mobile / PhonePe:</strong> +91 82996 00709</div>
+            <div style="margin-top:6px;font-size:10px;color:#64748B;">Amount ₹${amt.toLocaleString('en-IN')} is pre-encoded into this QR code. Simply scan and authenticate.</div>
+          </div>
+        </div>
+      </div>
+
+      <div style="text-align:center;font-size:9.5px;color:#64748B;border-top:1px solid #E2E8F0;padding-top:8px;">
+        THE UNIQUE HAVEN HOMES PRIVATE LIMITED · Computer Generated Payment Voucher
+      </div>
+    </body></html>`;
+
+    window.printDocumentHTML(slipHtml, slipTitle);
+  });
+
+  // 3. Copy UPI Link
+  copyBtn.addEventListener('click', () => {
+    const { guest, amt, upiString } = getUpiDetails();
+    navigator.clipboard.writeText(upiString).then(() => {
+      if (window.fsn) fsn.success('Copied', `UPI pay link for ₹${amt.toLocaleString('en-IN')} copied!`);
+      else alert('Copied UPI pay link!');
+    });
+  });
+};

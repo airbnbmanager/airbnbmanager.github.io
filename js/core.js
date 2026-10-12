@@ -1412,6 +1412,12 @@ function renderShell(content, activePage = 'dashboard') {
           </div>
 
           <div class="topbar-right">
+            <!-- Quick Send Payment QR Action -->
+            <button type="button" class="topbar-icon-btn" onclick="window.openCustomPaymentQRModal && window.openCustomPaymentQRModal()" title="Instant UPI Payment QR to Guest" style="color:#4F46E5;font-weight:700;font-size:12px;display:inline-flex;align-items:center;gap:4px;padding:5px 10px;border-radius:8px;background:#EEF2FF;border:1.5px solid #C7D2FE;cursor:pointer;">
+              <span style="font-size:13px;">⚡</span>
+              <span style="font-weight:800;letter-spacing:0.3px;">QR Pay</span>
+            </button>
+
             <!-- Desktop Search Bar -->
             <div class="topbar-search">
               <span class="search-icon" style="cursor:pointer;" onclick="window.triggerGlobalSearch && window.triggerGlobalSearch()" title="Click to Search">🔍</span>
@@ -4694,8 +4700,14 @@ window.printDocumentHTML = function(htmlContent, title = 'Document', options = {
     (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1) || 
     (window.innerWidth <= 768);
 
-  // Extract body content if full HTML document was passed
+  // Extract body content and preserve all styles if full HTML document was passed
   let cleanHtml = String(htmlContent || '');
+  let extractedStyles = '';
+  const styleMatches = cleanHtml.match(/<style[^>]*>[\s\S]*?<\/style>/gi);
+  if (styleMatches) {
+    extractedStyles = styleMatches.join('\n');
+  }
+
   const bodyMatch = cleanHtml.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
   if (bodyMatch) {
     cleanHtml = bodyMatch[1];
@@ -4752,6 +4764,7 @@ window.printDocumentHTML = function(htmlContent, title = 'Document', options = {
       </div>
       <div class="uhh-print-body" style="padding:16px 12px;background:#F1F5F9;flex:1;overflow-y:auto;overflow-x:auto;-webkit-overflow-scrolling:touch;">
         <div id="uhhPrintCardInner" style="max-width:1000px;margin:0 auto;background:#FFFFFF;border-radius:10px;padding:16px;box-shadow:0 4px 15px rgba(0,0,0,0.06);box-sizing:border-box;">
+          ${extractedStyles}
           ${html}
         </div>
       </div>
@@ -4846,6 +4859,7 @@ window.printDocumentHTML = function(htmlContent, title = 'Document', options = {
           }
           table { width: 100%; border-collapse: collapse; }
         </style>
+        ${extractedStyles}
       </head>
       <body>
         <div class="no-print" style="padding:10px 16px;background:#F8FAFC;border-bottom:1px solid #E2E8F0;display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
