@@ -8572,7 +8572,7 @@ window.openCustomPaymentQRModal = async function(prefill = {}) {
   const overlay = document.createElement('div');
   overlay.id = 'customPaymentQrOverlay';
   overlay.className = 'modal-overlay';
-  overlay.style.cssText = 'display:flex;align-items:center;justify-content:center;z-index:999999;background:rgba(15,23,42,0.7);backdrop-filter:blur(8px);padding:10px;width:100vw;height:100vh;position:fixed;inset:0;box-sizing:border-box;';
+  overlay.style.cssText = 'display:flex;align-items:center;justify-content:center;z-index:999999;background:rgba(15,23,42,0.75);backdrop-filter:blur(8px);padding:12px;width:100vw;height:100vh;position:fixed;inset:0;box-sizing:border-box;overflow-y:auto;';
   overlay.onclick = e => { if (e.target === overlay) overlay.remove(); };
 
   // Initial values
@@ -8580,247 +8580,106 @@ window.openCustomPaymentQRModal = async function(prefill = {}) {
   const initPhone = prefill.phone ? String(prefill.phone).replace(/\D/g, '') : '';
   const initRoomId = prefill.roomId || '';
   const initAmount = prefill.amount ? Number(prefill.amount) : 2500;
-  const initPurpose = prefill.purpose || 'Stay Advance / Token Booking';
-  const initRemarks = prefill.remarks || '';
 
   overlay.innerHTML = `
-    <style>
-      .cpqr-grid {
-        display: grid;
-        grid-template-columns: 1.15fr 0.95fr;
-        gap: 16px;
-        padding: 18px;
-        background: #F8FAFC;
-        box-sizing: border-box;
-      }
-      .cpqr-card-row {
-        padding: 14px;
-        background: #F8FAFC;
-        display: flex;
-        flex-direction: row;
-        align-items: center;
-        gap: 14px;
-        box-sizing: border-box;
-      }
-      .cpqr-qr-frame {
-        flex-shrink: 0;
-        text-align: center;
-      }
-      .cpqr-qr-img {
-        width: 125px;
-        height: 125px;
-        display: block;
-        border-radius: 6px;
-      }
-      .cpqr-actions-row {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 8px;
-      }
-      .cpqr-chips-row {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 6px;
-        margin-top: 8px;
-      }
-      @media (max-width: 768px) {
-        .cpqr-modal-box {
-          width: 96vw !important;
-          max-width: 96vw !important;
-          margin: auto !important;
-          max-height: 94vh !important;
-        }
-        .cpqr-grid {
-          grid-template-columns: 1fr !important;
-          padding: 12px 10px !important;
-          gap: 14px !important;
-        }
-        .cpqr-card-row {
-          flex-direction: column !important;
-          text-align: center !important;
-          gap: 12px !important;
-          padding: 12px !important;
-        }
-        .cpqr-qr-img {
-          width: 145px !important;
-          height: 145px !important;
-          margin: 0 auto !important;
-        }
-        .cpqr-details-col {
-          width: 100% !important;
-          text-align: left !important;
-        }
-        .cpqr-actions-row {
-          grid-template-columns: 1fr !important;
-        }
-        .cpqr-chips-row button {
-          flex: 1 1 auto;
-          text-align: center;
-        }
-      }
-    </style>
-
-    <div class="modal-box cpqr-modal-box" style="max-width:860px;width:100%;max-height:92vh;overflow-y:auto;overflow-x:hidden;background:#FFFFFF;border-radius:16px;box-shadow:0 25px 50px -12px rgba(0,0,0,0.25);border:1px solid #E2E8F0;padding:0 !important;position:relative;">
+    <div class="modal-box" style="max-width:440px;width:100%;max-height:92vh;overflow-y:auto;overflow-x:hidden;background:#FFFFFF;border-radius:18px;box-shadow:0 25px 50px -12px rgba(0,0,0,0.3);border:1px solid #E2E8F0;padding:0 !important;position:relative;margin:auto;">
       
-      <!-- Top Modal Header -->
-      <div style="background:linear-gradient(135deg, #0F172A 0%, #1E1B4B 50%, #4338CA 100%);color:#FFFFFF;padding:14px 18px;border-top-left-radius:15px;border-top-right-radius:15px;display:flex;align-items:center;justify-content:space-between;gap:10px;">
+      <!-- Sleek Header -->
+      <div style="background:linear-gradient(135deg, #0F172A 0%, #1E1B4B 60%, #4338CA 100%);color:#FFFFFF;padding:14px 16px;display:flex;align-items:center;justify-content:space-between;gap:8px;">
         <div style="display:flex;align-items:center;gap:10px;min-width:0;">
-          <div style="width:36px;height:36px;border-radius:8px;background:rgba(255,255,255,0.15);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">
+          <div style="width:34px;height:34px;border-radius:10px;background:rgba(255,255,255,0.15);display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0;">
             ⚡
           </div>
           <div style="min-width:0;">
-            <h3 style="margin:0;font-size:16px;font-weight:800;letter-spacing:0.3px;color:#FFFFFF;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Quick UPI Payment QR</h3>
-            <div style="font-size:11px;color:#C7D2FE;margin-top:1px;">Custom amount QR for any guest · WhatsApp send</div>
+            <h3 style="margin:0;font-size:15px;font-weight:800;letter-spacing:0.3px;color:#FFFFFF;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Send Payment QR</h3>
+            <div style="font-size:11px;color:#C7D2FE;margin-top:1px;">Auto-locks amount & note for receipt verification</div>
           </div>
         </div>
-        <button type="button" onclick="document.getElementById('customPaymentQrOverlay')?.remove()" style="background:rgba(255,255,255,0.15);border:none;color:#FFFFFF;width:32px;height:32px;border-radius:8px;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;" title="Close">✕</button>
+        <button type="button" onclick="document.getElementById('customPaymentQrOverlay')?.remove()" style="background:rgba(255,255,255,0.15);border:none;color:#FFFFFF;width:30px;height:30px;border-radius:8px;font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;" title="Close">✕</button>
       </div>
 
-      <!-- Modal Body (Two-Column Responsive Layout) -->
-      <div class="cpqr-grid">
+      <!-- Clean Form Body (No clutter) -->
+      <div style="padding:16px 18px;display:flex;flex-direction:column;gap:12px;background:#F8FAFC;">
         
-        <!-- LEFT COLUMN: Form Inputs -->
-        <div style="background:#FFFFFF;padding:16px;border-radius:12px;border:1px solid #E2E8F0;box-shadow:0 1px 3px rgba(0,0,0,0.05);box-sizing:border-box;">
-          <div style="font-size:12px;font-weight:800;color:#0F172A;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:12px;display:flex;align-items:center;gap:6px;">
-            <span>📝</span> <span>Payment Request Details</span>
-          </div>
+        <!-- 1. Property / Flat -->
+        <div>
+          <label style="display:block;font-size:11.5px;font-weight:700;color:#334155;margin-bottom:4px;">Property / Unit *</label>
+          <select id="cpqrRoomSelect" style="width:100%;padding:10px 12px;border:1.5px solid #CBD5E1;border-radius:10px;font-size:13px;font-weight:700;color:#0F172A;background:#FFFFFF;box-sizing:border-box;">
+            <option value="">-- General Homestay --</option>
+            ${rooms.map(r => {
+              const isSel = r.room_id === initRoomId;
+              return `<option value="${r.room_id}" ${isSel ? 'selected' : ''}>${propLabel(r)}</option>`;
+            }).join('')}
+          </select>
+        </div>
 
-          <!-- Guest Name -->
-          <div style="margin-bottom:10px;">
-            <label style="display:block;font-size:11.5px;font-weight:700;color:#334155;margin-bottom:3px;">Guest Full Name</label>
-            <input type="text" id="cpqrGuestName" value="${escapeHtml(initGuest)}" placeholder="e.g. Rohit Singh" style="width:100%;padding:9px 12px;border:1.5px solid #CBD5E1;border-radius:8px;font-size:13px;font-weight:600;box-sizing:border-box;" />
-          </div>
+        <!-- 2. Guest Name -->
+        <div>
+          <label style="display:block;font-size:11.5px;font-weight:700;color:#334155;margin-bottom:4px;">Guest Name *</label>
+          <input type="text" id="cpqrGuestName" value="${escapeHtml(initGuest)}" placeholder="e.g. Rohit Singh" style="width:100%;padding:10px 12px;border:1.5px solid #CBD5E1;border-radius:10px;font-size:13.5px;font-weight:700;color:#0F172A;background:#FFFFFF;box-sizing:border-box;" />
+        </div>
 
-          <!-- Guest Phone (WhatsApp) -->
-          <div style="margin-bottom:10px;">
-            <label style="display:block;font-size:11.5px;font-weight:700;color:#334155;margin-bottom:3px;">Guest Phone (WhatsApp Number)</label>
-            <input type="tel" id="cpqrGuestPhone" value="${escapeHtml(initPhone)}" placeholder="10-digit mobile, e.g. 9415973110" style="width:100%;padding:9px 12px;border:1.5px solid #CBD5E1;border-radius:8px;font-size:13px;font-weight:600;box-sizing:border-box;" />
-          </div>
-
-          <!-- Property / Homestay Selection -->
-          <div style="margin-bottom:10px;">
-            <label style="display:block;font-size:11.5px;font-weight:700;color:#334155;margin-bottom:3px;">Property / Unit *</label>
-            <select id="cpqrRoomSelect" style="width:100%;padding:9px 12px;border:1.5px solid #CBD5E1;border-radius:8px;font-size:13px;font-weight:600;background:#FFFFFF;box-sizing:border-box;">
-              <option value="">-- General / Any Homestay Unit --</option>
-              ${rooms.map(r => {
-                const isSel = r.room_id === initRoomId;
-                return `<option value="${r.room_id}" ${isSel ? 'selected' : ''}>${propLabel(r)}</option>`;
-              }).join('')}
-            </select>
-          </div>
-
-          <!-- Amount to Request (₹) -->
-          <div style="margin-bottom:10px;">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px;">
-              <label style="font-size:11.5px;font-weight:700;color:#334155;">Custom Amount to Request (₹) *</label>
-              <span id="cpqrAmountDisplay" style="font-size:13px;font-weight:800;color:#059669;">₹${initAmount.toLocaleString('en-IN')}</span>
-            </div>
-            <input type="number" id="cpqrAmount" min="1" step="50" value="${initAmount}" placeholder="Enter amount in ₹" style="width:100%;padding:10px 12px;border:2px solid #4F46E5;border-radius:8px;font-size:16px;font-weight:800;color:#0F172A;box-sizing:border-box;" />
-            
-            <!-- Quick Preset Chips -->
-            <div class="cpqr-chips-row">
-              <button type="button" class="cpqr-amt-chip" data-amt="1000" style="padding:5px 10px;background:#F1F5F9;border:1px solid #CBD5E1;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;">₹1,000</button>
-              <button type="button" class="cpqr-amt-chip" data-amt="2500" style="padding:5px 10px;background:#F1F5F9;border:1px solid #CBD5E1;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;">₹2,500</button>
-              <button type="button" class="cpqr-amt-chip" data-amt="5000" style="padding:5px 10px;background:#F1F5F9;border:1px solid #CBD5E1;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;">₹5,000</button>
-              <button type="button" class="cpqr-amt-chip" data-amt="10000" style="padding:5px 10px;background:#F1F5F9;border:1px solid #CBD5E1;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;">₹10,000</button>
-              <button type="button" class="cpqr-amt-chip" data-amt="20000" style="padding:5px 10px;background:#F1F5F9;border:1px solid #CBD5E1;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;">₹20,000</button>
-              <button type="button" class="cpqr-amt-chip" data-amt="clear" style="padding:5px 10px;background:#FEE2E2;border:1px solid #FCA5A5;color:#DC2626;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;">Clear</button>
-            </div>
-          </div>
-
-          <!-- Payment Purpose -->
-          <div style="margin-bottom:10px;">
-            <label style="display:block;font-size:11.5px;font-weight:700;color:#334155;margin-bottom:3px;">Payment Purpose / Category</label>
-            <select id="cpqrPurpose" style="width:100%;padding:8px 12px;border:1.5px solid #CBD5E1;border-radius:8px;font-size:12.5px;font-weight:600;background:#FFFFFF;box-sizing:border-box;">
-              <option value="Stay Advance / Token Booking">Stay Advance / Token Booking</option>
-              <option value="Remaining Stay Balance">Remaining Stay Balance</option>
-              <option value="Stay Extension Charges">Stay Extension Charges</option>
-              <option value="Security Deposit">Refundable Security Deposit</option>
-              <option value="Food, Laundry & Extra Services">Food, Laundry & Extra Services</option>
-              <option value="Custom Stay Settlement">Custom Stay Settlement</option>
-            </select>
-          </div>
-
-          <!-- Remarks / Note -->
-          <div>
-            <label style="display:block;font-size:11.5px;font-weight:700;color:#334155;margin-bottom:3px;">Additional Notes / Remarks</label>
-            <input type="text" id="cpqrRemarks" value="${escapeHtml(initRemarks)}" placeholder="e.g. Booking confirmation advance" style="width:100%;padding:8px 12px;border:1.5px solid #CBD5E1;border-radius:8px;font-size:12px;box-sizing:border-box;" />
+        <!-- 3. Custom Amount (₹) -->
+        <div>
+          <label style="display:block;font-size:11.5px;font-weight:700;color:#334155;margin-bottom:4px;">Custom Amount to Request (₹) *</label>
+          <div style="position:relative;">
+            <span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:16px;font-weight:900;color:#4F46E5;">₹</span>
+            <input type="number" id="cpqrAmount" min="1" step="50" value="${initAmount}" placeholder="Enter amount" style="width:100%;padding:10px 12px 10px 28px;border:2px solid #4F46E5;border-radius:10px;font-size:16px;font-weight:900;color:#0F172A;background:#FFFFFF;box-sizing:border-box;" />
           </div>
         </div>
 
-        <!-- RIGHT COLUMN: Live QR Code Card & Instant Action Buttons -->
-        <div style="display:flex;flex-direction:column;gap:12px;box-sizing:border-box;">
+        <!-- 4. WhatsApp Number -->
+        <div>
+          <label style="display:block;font-size:11.5px;font-weight:700;color:#334155;margin-bottom:4px;">Guest WhatsApp Number</label>
+          <input type="tel" id="cpqrGuestPhone" value="${escapeHtml(initPhone)}" placeholder="10-digit mobile, e.g. 9415973110" style="width:100%;padding:10px 12px;border:1.5px solid #CBD5E1;border-radius:10px;font-size:13px;font-weight:600;color:#0F172A;background:#FFFFFF;box-sizing:border-box;" />
+        </div>
+
+        <!-- Live QR Code Card with Locked Parameters -->
+        <div style="background:#FFFFFF;border-radius:12px;border:1.5px solid #CBD5E1;padding:12px;box-shadow:0 2px 8px rgba(15,23,42,0.06);margin-top:2px;box-sizing:border-box;">
           
-          <!-- Executive Colorful QR Code Preview Container -->
-          <div id="cpqrPreviewCard" style="background:#FFFFFF;border-radius:12px;overflow:hidden;border:1.5px solid #CBD5E1;box-shadow:0 4px 16px -2px rgba(15,23,42,0.08);box-sizing:border-box;">
-            <!-- Card Header Strip -->
-            <div style="background:linear-gradient(135deg, #0F172A 0%, #1E1B4B 50%, #4338CA 100%);color:#FFFFFF;padding:9px 12px;display:flex;justify-content:space-between;align-items:center;">
-              <div style="display:flex;align-items:center;gap:6px;">
-                <span style="font-size:13px;">⚡</span>
-                <div style="font-size:11px;font-weight:800;letter-spacing:0.5px;text-transform:uppercase;">TUHH OFFICIAL UPI QR</div>
-              </div>
-              <div style="display:flex;align-items:center;gap:4px;">
-                <span style="display:inline-block;padding:2px 6px;border-radius:8px;background:#5F259F;color:#FFFFFF;font-size:9px;font-weight:800;">PhonePe</span>
-                <span style="display:inline-block;padding:2px 6px;border-radius:8px;background:#1A73E8;color:#FFFFFF;font-size:9px;font-weight:800;">GPay</span>
-                <span style="display:inline-block;padding:2px 6px;border-radius:8px;background:#00B9F1;color:#FFFFFF;font-size:9px;font-weight:800;">Paytm</span>
-                <span style="display:inline-block;padding:2px 6px;border-radius:8px;background:#00796B;color:#FFFFFF;font-size:9px;font-weight:800;">BHIM</span>
-              </div>
-            </div>
-
-            <!-- Card Body: QR Frame + Details -->
-            <div class="cpqr-card-row">
-              <div class="cpqr-qr-frame">
-                <div style="padding:6px;background:#FFFFFF;border-radius:10px;border:2px solid #818CF8;display:inline-block;box-shadow:0 3px 10px rgba(99,102,241,0.15);">
-                  <img id="cpqrImg" class="cpqr-qr-img" src="" alt="UPI QR Code" />
-                </div>
-                <div style="margin-top:4px;font-size:9.5px;font-weight:800;color:#4338CA;letter-spacing:0.3px;">
-                  📷 SCAN TO PAY
-                </div>
-              </div>
-
-              <div class="cpqr-details-col" style="flex:1;min-width:0;">
-                <div style="background:#FFFFFF;padding:6px 10px;border-radius:6px;border:1px solid #E2E8F0;margin-bottom:5px;">
-                  <div style="font-size:9px;text-transform:uppercase;font-weight:700;color:#64748B;">Beneficiary Name</div>
-                  <div style="font-size:12.5px;font-weight:800;color:#0F172A;margin-top:1px;">Mr. Firoz Khan</div>
-                </div>
-                <div style="background:#FFFFFF;padding:6px 10px;border-radius:6px;border:1px solid #E2E8F0;margin-bottom:5px;">
-                  <div style="font-size:9px;text-transform:uppercase;font-weight:700;color:#64748B;">Official UPI ID</div>
-                  <div style="font-size:13px;font-weight:800;color:#4338CA;font-family:monospace;margin-top:1px;">8299600709@ybl</div>
-                </div>
-                <div style="background:#FFFFFF;padding:6px 10px;border-radius:6px;border:1px solid #E2E8F0;">
-                  <div style="font-size:9px;text-transform:uppercase;font-weight:700;color:#64748B;">Pre-filled Due Amount</div>
-                  <div id="cpqrCardAmount" style="font-size:14px;font-weight:900;color:#DC2626;margin-top:1px;">₹2,500</div>
-                </div>
-              </div>
-            </div>
-
-            <!-- Card Footer: Dynamic Info Note -->
-            <div style="padding:8px 12px;background:#EEF2FF;border-top:1px solid #E0E7FF;font-size:11px;color:#3730A3;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:4px;">
-              <span id="cpqrCardPropTag">🏡 Unit: General Homestay</span>
-              <span id="cpqrCardGuestTag">👤 Guest: -</span>
+          <div style="display:flex;align-items:center;justify-content:center;margin-bottom:8px;">
+            <div style="padding:6px;background:#FFFFFF;border-radius:12px;border:2px solid #818CF8;box-shadow:0 4px 14px rgba(99,102,241,0.18);">
+              <img id="cpqrImg" src="" alt="UPI QR Code" style="width:150px;height:150px;display:block;border-radius:6px;" />
             </div>
           </div>
 
-          <!-- Action Buttons Strip -->
-          <div style="display:flex;flex-direction:column;gap:8px;">
-            <button type="button" id="cpqrSendWaBtn" style="width:100%;padding:12px 16px;background:#25D366;color:#FFFFFF;border:none;border-radius:10px;font-size:13.5px;font-weight:800;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:8px;box-shadow:0 3px 10px rgba(37,211,102,0.3);">
-              <span>📲</span> <span>Send QR on WhatsApp</span>
+          <!-- Locked Details Badge Strip -->
+          <div style="background:#F1F5F9;border-radius:8px;padding:8px 10px;display:flex;flex-direction:column;gap:5px;font-size:11.5px;color:#1E293B;">
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <span style="color:#64748B;font-weight:600;">🔒 Amount Locked:</span>
+              <span id="cpqrCardAmount" style="font-weight:900;color:#059669;font-size:13px;">₹2,500</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
+              <span style="color:#64748B;font-weight:600;flex-shrink:0;">📝 Note in Screenshot:</span>
+              <span id="cpqrCardNote" style="font-weight:800;color:#4338CA;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">-</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <span style="color:#64748B;font-weight:600;">👤 Payee (UPI):</span>
+              <span style="font-weight:700;color:#0F172A;">Mr. Firoz Khan (8299600709@ybl)</span>
+            </div>
+          </div>
+
+          <div style="margin-top:8px;font-size:10.5px;color:#64748B;line-height:1.4;text-align:center;">
+            ⚡ Google Pay / PhonePe / Paytm me Amount aur Note automatic fill rahenge.
+          </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div style="display:flex;flex-direction:column;gap:8px;margin-top:4px;">
+          <!-- 1. Send on WhatsApp -->
+          <button type="button" id="cpqrSendWaBtn" style="width:100%;padding:13px 16px;background:#25D366;color:#FFFFFF;border:none;border-radius:10px;font-size:14px;font-weight:800;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:8px;box-shadow:0 3px 12px rgba(37,211,102,0.35);">
+            <span>📲</span> <span>Send QR on WhatsApp</span>
+          </button>
+
+          <!-- 2. Download Image & Copy Link -->
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+            <button type="button" id="cpqrDownloadBtn" style="padding:10px 12px;background:#0F172A;color:#FFFFFF;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:6px;">
+              <span>📥</span> <span>Download QR</span>
             </button>
-
-            <div class="cpqr-actions-row">
-              <button type="button" id="cpqrPrintBtn" style="padding:10px 12px;background:#0F172A;color:#FFFFFF;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:6px;">
-                <span>🖨️</span> <span>Print Slip</span>
-              </button>
-              <button type="button" id="cpqrCopyBtn" style="padding:10px 12px;background:#EEF2FF;color:#4338CA;border:1.5px solid #C7D2FE;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:6px;">
-                <span>📋</span> <span>Copy UPI Link</span>
-              </button>
-            </div>
-
-            <a id="cpqrDirectPayLink" href="#" style="text-align:center;font-size:11px;color:#64748B;text-decoration:none;padding:3px;display:block;">
-              🔗 Direct 1-tap UPI link preview (tap to test)
-            </a>
+            <button type="button" id="cpqrCopyBtn" style="padding:10px 12px;background:#EEF2FF;color:#4338CA;border:1.5px solid #C7D2FE;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:6px;">
+              <span>📋</span> <span>Copy UPI Link</span>
+            </button>
           </div>
-
         </div>
 
       </div>
@@ -8834,80 +8693,65 @@ window.openCustomPaymentQRModal = async function(prefill = {}) {
   const phoneIn = overlay.querySelector('#cpqrGuestPhone');
   const roomSel = overlay.querySelector('#cpqrRoomSelect');
   const amtIn = overlay.querySelector('#cpqrAmount');
-  const purposeSel = overlay.querySelector('#cpqrPurpose');
-  const remarksIn = overlay.querySelector('#cpqrRemarks');
-  const amtDisp = overlay.querySelector('#cpqrAmountDisplay');
   const cardAmt = overlay.querySelector('#cpqrCardAmount');
-  const cardPropTag = overlay.querySelector('#cpqrCardPropTag');
-  const cardGuestTag = overlay.querySelector('#cpqrCardGuestTag');
+  const cardNote = overlay.querySelector('#cpqrCardNote');
   const qrImg = overlay.querySelector('#cpqrImg');
-  const directLink = overlay.querySelector('#cpqrDirectPayLink');
   const sendWaBtn = overlay.querySelector('#cpqrSendWaBtn');
-  const printBtn = overlay.querySelector('#cpqrPrintBtn');
+  const downloadBtn = overlay.querySelector('#cpqrDownloadBtn');
   const copyBtn = overlay.querySelector('#cpqrCopyBtn');
 
   function getSelectedRoomLabel() {
     const val = roomSel.value;
-    if (!val) return 'General Homestay Booking';
+    if (!val) return 'Homestay';
     const r = rooms.find(x => x.room_id === val);
     return r ? propLabel(r) : val;
+  }
+
+  function getSelectedRoomShort() {
+    const val = roomSel.value;
+    if (!val) return 'Stay';
+    const r = rooms.find(x => x.room_id === val);
+    return r ? (r.unit_no || r.nickname || val) : val;
   }
 
   function getUpiDetails() {
     const guest = guestIn.value.trim() || 'Guest';
     const amt = Math.max(0, parseInt(amtIn.value) || 0);
-    const roomName = getSelectedRoomLabel();
-    const purpose = purposeSel.value || 'Stay Payment';
-    const note = `TUHH ${roomName} - ${guest} (${purpose})`.slice(0, 50);
+    const roomFull = getSelectedRoomLabel();
+    const roomShort = getSelectedRoomShort();
+
+    // Clean alphanumeric note for UPI transaction (max 40 chars, e.g. "Rohit Singh - FLAT501")
+    const cleanGuest = guest.replace(/[^a-zA-Z0-9 ]/g, '').trim().slice(0, 20);
+    const cleanUnit = roomShort.replace(/[^a-zA-Z0-9 ]/g, '').trim().slice(0, 16);
+    const cleanNote = `${cleanGuest} - ${cleanUnit}`.slice(0, 42);
 
     const upiString = amt > 0
-      ? `upi://pay?pa=8299600709@ybl&pn=Firoz%20Khan%20TUHH&am=${amt}&cu=INR&tn=${encodeURIComponent(note)}`
-      : `upi://pay?pa=8299600709@ybl&pn=Firoz%20Khan%20TUHH&cu=INR&tn=${encodeURIComponent('The Unique Haven Homes')}`;
+      ? `upi://pay?pa=8299600709@ybl&pn=Firoz%20Khan&am=${amt}&cu=INR&tn=${encodeURIComponent(cleanNote)}`
+      : `upi://pay?pa=8299600709@ybl&pn=Firoz%20Khan&cu=INR&tn=${encodeURIComponent(cleanNote)}`;
 
-    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=220x220&margin=2&color=0F172A&bgcolor=FFFFFF&data=${encodeURIComponent(upiString)}`;
+    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&margin=2&color=0F172A&bgcolor=FFFFFF&data=${encodeURIComponent(upiString)}`;
 
-    return { guest, amt, roomName, purpose, note, upiString, qrUrl };
+    return { guest, amt, roomFull, cleanNote, upiString, qrUrl };
   }
 
   function updateLivePreview() {
-    const { guest, amt, roomName, upiString, qrUrl } = getUpiDetails();
-    amtDisp.textContent = `₹${amt.toLocaleString('en-IN')}`;
+    const { amt, cleanNote, qrUrl } = getUpiDetails();
     cardAmt.textContent = `₹${amt.toLocaleString('en-IN')}`;
-    cardPropTag.textContent = `🏡 Unit: ${roomName}`;
-    cardGuestTag.textContent = `👤 Guest: ${guest}`;
+    cardNote.textContent = cleanNote;
     qrImg.src = qrUrl;
-    directLink.href = upiString;
   }
 
-  // Bind live updates
   guestIn.addEventListener('input', updateLivePreview);
   phoneIn.addEventListener('input', updateLivePreview);
   roomSel.addEventListener('change', updateLivePreview);
   amtIn.addEventListener('input', updateLivePreview);
-  purposeSel.addEventListener('change', updateLivePreview);
-  remarksIn.addEventListener('input', updateLivePreview);
 
-  // Quick preset chips
-  overlay.querySelectorAll('.cpqr-amt-chip').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const v = btn.dataset.amt;
-      if (v === 'clear') {
-        amtIn.value = 0;
-      } else {
-        amtIn.value = v;
-      }
-      updateLivePreview();
-    });
-  });
-
-  // Initial preview render
   updateLivePreview();
 
   // 1. WhatsApp Button
-  sendWaBtn.addEventListener('click', () => {
-    const { guest, amt, roomName, purpose, upiString } = getUpiDetails();
+  sendWaBtn.addEventListener('click', async () => {
+    const { guest, amt, roomFull, cleanNote, upiString, qrUrl } = getUpiDetails();
     const rawPhone = phoneIn.value.replace(/\D/g, '');
-    const remarks = remarksIn.value.trim();
 
     if (amt <= 0) {
       if (window.fsn) fsn.error('Amount Required', 'Please enter an amount to request.');
@@ -8917,23 +8761,42 @@ window.openCustomPaymentQRModal = async function(prefill = {}) {
     }
 
     const NL = '\n';
-    let waMsg = `*THE UNIQUE HAVEN HOMES PRIVATE LIMITED*${NL}` +
-      `*OFFICIAL PAYMENT REQUEST / भुगतान अनुरोध*${NL}` +
-      `━━━━━━━━━━━━━━━━━━━━━━━━━━${NL}` +
+    const waMsg = `*THE UNIQUE HAVEN HOMES*${NL}` +
+      `*OFFICIAL PAYMENT QR / भुगतान*${NL}` +
+      `━━━━━━━━━━━━━━━━━━━━${NL}` +
       `👤 *Guest:* ${guest}${NL}` +
-      `🏡 *Property / Unit:* ${roomName}${NL}` +
-      `💳 *Requested Amount:* *₹${amt.toLocaleString('en-IN')}*${NL}` +
-      `📋 *Purpose:* ${purpose}${NL}` +
-      (remarks ? `📝 *Note:* ${remarks}${NL}` : '') +
-      `━━━━━━━━━━━━━━━━━━━━━━━━━━${NL}` +
-      `*Official Settlement Account (UPI):*${NL}` +
-      `• UPI ID: *8299600709@ybl*${NL}` +
+      `🏡 *Property:* ${roomFull}${NL}` +
+      `💰 *Amount to Pay:* *₹${amt.toLocaleString('en-IN')}*${NL}` +
+      `━━━━━━━━━━━━━━━━━━━━${NL}` +
+      `*UPI Settlement Details:*${NL}` +
       `• Beneficiary: Mr. Firoz Khan${NL}` +
-      `• PhonePe / GPay / Mobile: 8299600709${NL}${NL}` +
-      `⚡ *Tap to Pay directly via UPI App:*${NL}` +
+      `• Official UPI ID: *8299600709@ybl*${NL}` +
+      `• Payment Note: *${cleanNote}*${NL}${NL}` +
+      `⚡ *Tap to Pay directly (PhonePe / GPay / Paytm):*${NL}` +
       `${upiString}${NL}${NL}` +
-      `*Helpline:* +91 82996 00709 (Mr. Firoz Khan)${NL}${NL}` +
-      `THE UNIQUE HAVEN HOMES PRIVATE LIMITED\nLuxury Boutique Homestays`;
+      `📷 *View / Scan QR Code:*${NL}` +
+      `${qrUrl}${NL}${NL}` +
+      `⚠️ *Note:* Payment hone ke baad screenshot isi WhatsApp par bhejein taaki aapka payment turant verify ho sake.${NL}${NL}` +
+      `Helpline: +91 82996 00709 (Mr. Firoz Khan)`;
+
+    // If mobile browser supports Web Share API with image file
+    if (navigator.canShare && navigator.userAgent.match(/Android|iPhone|iPad/i)) {
+      try {
+        const res = await fetch(qrUrl);
+        const blob = await res.blob();
+        const file = new File([blob], `Payment_QR_${guest.replace(/\s+/g, '_')}_Rs${amt}.png`, { type: 'image/png' });
+        if (navigator.canShare({ files: [file] })) {
+          await navigator.share({
+            title: `Payment QR - ₹${amt}`,
+            text: waMsg,
+            files: [file]
+          });
+          return;
+        }
+      } catch (err) {
+        console.log('Native share bypassed, opening wa.me:', err);
+      }
+    }
 
     if (rawPhone.length >= 10) {
       const targetWa = rawPhone.length === 10 ? '91' + rawPhone : rawPhone;
@@ -8943,84 +8806,29 @@ window.openCustomPaymentQRModal = async function(prefill = {}) {
     }
   });
 
-  // 2. Print / PDF Slip
-  printBtn.addEventListener('click', () => {
-    const { guest, amt, roomName, purpose, upiString, qrUrl } = getUpiDetails();
-    const rawPhone = phoneIn.value.replace(/\D/g, '');
-    const remarks = remarksIn.value.trim();
-    const slipTitle = `TUHH_Payment_Slip_${guest.replace(/\s+/g, '_')}_Rs${amt}`;
-
-    const slipHtml = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${escapeHtml(slipTitle)}</title>
-      <style>
-        @page { size: A5 portrait; margin: 6mm 8mm !important; }
-        * { box-sizing: border-box; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; color: #0F172A; margin: 0; padding: 4mm 6mm; background: #FFFFFF; }
-        .header { background: #0F172A; color: #FFFFFF; padding: 14px 18px; border-radius: 8px; margin-bottom: 12px; }
-        .box { background: #F8FAFC; border: 1.5px solid #E2E8F0; padding: 10px 14px; border-radius: 8px; margin-bottom: 12px; font-size: 11.5px; }
-        @media print { .no-print { display: none !important; } }
-      </style>
-    </head><body>
-      <div class="header">
-        <div style="font-size:16px;font-weight:900;letter-spacing:0.5px;">THE UNIQUE HAVEN HOMES PRIVATE LIMITED</div>
-        <div style="font-size:11px;color:#FCD34D;font-weight:700;margin-top:2px;">OFFICIAL PAYMENT DEMAND & SETTLEMENT SLIP</div>
-        <div style="font-size:9.5px;color:#94A3B8;margin-top:4px;">Govt. Registered Homestay · CIN: U55101UP2024PTC202863 · Helpline: +91 82996 00709</div>
-      </div>
-
-      <div class="box">
-        <div style="display:grid;grid-template-columns:repeat(2, 1fr);gap:8px;">
-          <div><span style="color:#64748B;">Guest Name:</span> <strong>${escapeHtml(guest)}</strong></div>
-          <div><span style="color:#64748B;">Contact:</span> <strong>${rawPhone || 'N/A'}</strong></div>
-          <div><span style="color:#64748B;">Property / Unit:</span> <strong>${escapeHtml(roomName)}</strong></div>
-          <div><span style="color:#64748B;">Purpose:</span> <strong>${escapeHtml(purpose)}</strong></div>
-          ${remarks ? `<div style="grid-column:span 2;"><span style="color:#64748B;">Notes:</span> ${escapeHtml(remarks)}</div>` : ''}
-        </div>
-      </div>
-
-      <!-- Amount Highlight -->
-      <div style="background:#FEF2F2;border:2px solid #F87171;padding:12px 16px;border-radius:8px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center;">
-        <div>
-          <div style="font-size:10px;text-transform:uppercase;font-weight:800;color:#991B1B;">Amount to Pay</div>
-          <div style="font-size:22px;font-weight:900;color:#DC2626;">₹${amt.toLocaleString('en-IN')}</div>
-        </div>
-        <div style="text-align:right;font-size:11px;color:#7F1D1D;font-weight:700;">
-          Auto-coded Instant UPI Settlement
-        </div>
-      </div>
-
-      <!-- Colorful QR Card -->
-      <div style="border:1.5px solid #CBD5E1;border-radius:10px;overflow:hidden;background:#FFFFFF;margin-bottom:14px;">
-        <div style="background:linear-gradient(135deg, #0F172A 0%, #1E1B4B 50%, #4338CA 100%);color:#FFFFFF;padding:8px 12px;font-size:11px;font-weight:800;display:flex;justify-content:space-between;align-items:center;">
-          <span>⚡ SCAN WITH ANY UPI APPLICATION</span>
-          <span style="font-size:9.5px;color:#CBD5E1;">PhonePe · GPay · Paytm · BHIM</span>
-        </div>
-        <div style="padding:12px;display:flex;align-items:center;gap:16px;background:#F8FAFC;">
-          <div style="flex-shrink:0;text-align:center;">
-            <div style="padding:5px;background:#FFFFFF;border-radius:8px;border:2px solid #818CF8;display:inline-block;">
-              <img src="${qrUrl}" alt="UPI QR" style="width:130px;height:130px;display:block;" />
-            </div>
-          </div>
-          <div style="flex:1;font-size:11.5px;line-height:1.6;">
-            <div><strong>Beneficiary:</strong> Mr. Firoz Khan</div>
-            <div><strong>Official UPI ID:</strong> <span style="font-family:monospace;color:#4338CA;font-weight:800;">8299600709@ybl</span></div>
-            <div><strong>Mobile / PhonePe:</strong> +91 82996 00709</div>
-            <div style="margin-top:6px;font-size:10px;color:#64748B;">Amount ₹${amt.toLocaleString('en-IN')} is pre-encoded into this QR code. Simply scan and authenticate.</div>
-          </div>
-        </div>
-      </div>
-
-      <div style="text-align:center;font-size:9.5px;color:#64748B;border-top:1px solid #E2E8F0;padding-top:8px;">
-        THE UNIQUE HAVEN HOMES PRIVATE LIMITED · Computer Generated Payment Voucher
-      </div>
-    </body></html>`;
-
-    window.printDocumentHTML(slipHtml, slipTitle);
+  // 2. Download QR Image
+  downloadBtn.addEventListener('click', async () => {
+    const { guest, amt, qrUrl } = getUpiDetails();
+    try {
+      const res = await fetch(qrUrl);
+      const blob = await res.blob();
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `TUHH_QR_${guest.replace(/\s+/g, '_')}_Rs${amt}.png`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      if (window.fsn) fsn.success('Downloaded', 'QR image downloaded successfully!');
+    } catch (e) {
+      window.open(qrUrl, '_blank');
+    }
   });
 
   // 3. Copy UPI Link
   copyBtn.addEventListener('click', () => {
-    const { guest, amt, upiString } = getUpiDetails();
+    const { amt, upiString } = getUpiDetails();
     navigator.clipboard.writeText(upiString).then(() => {
-      if (window.fsn) fsn.success('Copied', `UPI pay link for ₹${amt.toLocaleString('en-IN')} copied!`);
+      if (window.fsn) fsn.success('Copied', `UPI pay link copied for ₹${amt.toLocaleString('en-IN')}`);
       else alert('Copied UPI pay link!');
     });
   });
