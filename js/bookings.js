@@ -8805,7 +8805,7 @@ window.openCustomPaymentQRModal = async function(prefill = {}) {
 
   if (copyPublicLinkBtn) {
     copyPublicLinkBtn.addEventListener('click', () => {
-      const pubUrl = window.location.origin + '/pay.html';
+      const pubUrl = window.location.origin + '/upi.html';
       navigator.clipboard.writeText(pubUrl).then(() => {
         if (window.fsn) fsn.success('Copied', 'Public Staff QR Link copied: ' + pubUrl);
         else alert('Public Staff QR Link copied: ' + pubUrl);
