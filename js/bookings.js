@@ -8620,25 +8620,19 @@ window.openCustomPaymentQRModal = async function(prefill = {}) {
       <!-- Clean Form Body -->
       <div style="padding:16px 18px;display:flex;flex-direction:column;gap:12px;background:#F8FAFC;">
         
-        <!-- Payee Account Selector -->
+        <!-- 1. Amount to Request (FIRST) -->
         <div>
-          <label style="display:block;font-size:11.5px;font-weight:700;color:#334155;margin-bottom:4px;">Receive In Account (Payee) *</label>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-            <button type="button" id="cpqrPayeeFiroz" style="padding:9px 10px;border-radius:10px;border:2px solid #4F46E5;background:#EEF2FF;cursor:pointer;text-align:left;box-shadow:0 2px 8px rgba(79,70,229,0.15);transition:all 0.2s;">
-              <div style="font-size:12px;font-weight:800;color:#312E81;">👑 Firoz Khan (Default)</div>
-              <div style="font-size:10.5px;color:#4338CA;font-family:monospace;margin-top:2px;font-weight:700;">8299600709@ybl</div>
-            </button>
-            <button type="button" id="cpqrPayeePraveen" style="padding:9px 10px;border-radius:10px;border:1.5px solid #CBD5E1;background:#FFFFFF;cursor:pointer;text-align:left;transition:all 0.2s;">
-              <div style="font-size:12px;font-weight:800;color:#0F172A;">⚡ Praveen Singh</div>
-              <div style="font-size:10.5px;color:#64748B;font-family:monospace;margin-top:2px;">9454470872@apl</div>
-            </button>
+          <label style="display:block;font-size:12px;font-weight:800;color:#1E1B4B;margin-bottom:5px;">1. Amount to Request (₹) *</label>
+          <div style="position:relative;">
+            <span style="position:absolute;left:14px;top:50%;transform:translateY(-50%);font-size:20px;font-weight:900;color:#4F46E5;">₹</span>
+            <input type="number" id="cpqrAmount" min="1" step="50" value="${initAmount}" placeholder="Enter amount" autofocus style="width:100%;padding:11px 14px 11px 34px;border:2px solid #4F46E5;border-radius:12px;font-size:18px;font-weight:900;color:#0F172A;background:#FFFFFF;box-sizing:border-box;outline:none;box-shadow:0 0 0 3px rgba(79,70,229,0.1);" />
           </div>
         </div>
 
-        <!-- 1. Property / Flat -->
+        <!-- 2. Property / Unit (SECOND) -->
         <div>
-          <label style="display:block;font-size:11.5px;font-weight:700;color:#334155;margin-bottom:4px;">Property / Unit *</label>
-          <select id="cpqrRoomSelect" style="width:100%;padding:10px 12px;border:1.5px solid #CBD5E1;border-radius:10px;font-size:13px;font-weight:700;color:#0F172A;background:#FFFFFF;box-sizing:border-box;">
+          <label style="display:block;font-size:12px;font-weight:800;color:#1E1B4B;margin-bottom:5px;">2. Select Property / Unit *</label>
+          <select id="cpqrRoomSelect" style="width:100%;padding:11px 12px;border:1.5px solid #CBD5E1;border-radius:10px;font-size:13.5px;font-weight:700;color:#0F172A;background:#FFFFFF;box-sizing:border-box;">
             <option value="">-- General Homestay --</option>
             ${rooms.map(r => {
               const isSel = r.room_id === initRoomId;
@@ -8647,25 +8641,31 @@ window.openCustomPaymentQRModal = async function(prefill = {}) {
           </select>
         </div>
 
-        <!-- 2. Guest Name (Optional) -->
+        <!-- 3. Receiving Account (Default: Firoz Khan) -->
         <div>
-          <label style="display:block;font-size:11.5px;font-weight:700;color:#334155;margin-bottom:4px;">Guest Name <span style="font-size:10.5px;font-weight:500;color:#64748B;">(Optional)</span></label>
-          <input type="text" id="cpqrGuestName" value="${escapeHtml(initGuest)}" placeholder="e.g. Rohit Singh (Optional)" style="width:100%;padding:10px 12px;border:1.5px solid #CBD5E1;border-radius:10px;font-size:13.5px;font-weight:700;color:#0F172A;background:#FFFFFF;box-sizing:border-box;" />
-        </div>
-
-        <!-- 3. Custom Amount (₹) -->
-        <div>
-          <label style="display:block;font-size:11.5px;font-weight:700;color:#334155;margin-bottom:4px;">Custom Amount to Request (₹) *</label>
-          <div style="position:relative;">
-            <span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:16px;font-weight:900;color:#4F46E5;">₹</span>
-            <input type="number" id="cpqrAmount" min="1" step="50" value="${initAmount}" placeholder="Enter amount" style="width:100%;padding:10px 12px 10px 28px;border:2px solid #4F46E5;border-radius:10px;font-size:16px;font-weight:900;color:#0F172A;background:#FFFFFF;box-sizing:border-box;" />
+          <label style="display:block;font-size:11.5px;font-weight:700;color:#64748B;margin-bottom:4px;">Receiving Account (Default: Firoz Khan)</label>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+            <button type="button" id="cpqrPayeeFiroz" style="padding:8px 10px;border-radius:10px;border:2px solid #4F46E5;background:#EEF2FF;cursor:pointer;text-align:left;box-shadow:0 2px 8px rgba(79,70,229,0.15);transition:all 0.2s;">
+              <div style="font-size:11.5px;font-weight:800;color:#312E81;">👑 Firoz Khan (Default)</div>
+              <div style="font-size:10px;color:#4338CA;font-family:monospace;margin-top:1px;font-weight:700;">8299600709@ybl</div>
+            </button>
+            <button type="button" id="cpqrPayeePraveen" style="padding:8px 10px;border-radius:10px;border:1.5px solid #CBD5E1;background:#FFFFFF;cursor:pointer;text-align:left;transition:all 0.2s;">
+              <div style="font-size:11.5px;font-weight:800;color:#0F172A;">⚡ Praveen Singh</div>
+              <div style="font-size:10px;color:#64748B;font-family:monospace;margin-top:1px;">9454470872@apl</div>
+            </button>
           </div>
         </div>
 
-        <!-- 4. WhatsApp Number -->
-        <div>
-          <label style="display:block;font-size:11.5px;font-weight:700;color:#334155;margin-bottom:4px;">Guest WhatsApp Number</label>
-          <input type="tel" id="cpqrGuestPhone" value="${escapeHtml(initPhone)}" placeholder="10-digit mobile, e.g. 9415973110" style="width:100%;padding:10px 12px;border:1.5px solid #CBD5E1;border-radius:10px;font-size:13px;font-weight:600;color:#0F172A;background:#FFFFFF;box-sizing:border-box;" />
+        <!-- 4. Optional Guest Details (2-col compact) -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+          <div>
+            <label style="display:block;font-size:11px;font-weight:700;color:#64748B;margin-bottom:3px;">Guest Name (Optional)</label>
+            <input type="text" id="cpqrGuestName" value="${escapeHtml(initGuest)}" placeholder="e.g. Rohit" style="width:100%;padding:8px 10px;border:1.5px solid #CBD5E1;border-radius:8px;font-size:12.5px;font-weight:600;color:#0F172A;background:#FFFFFF;box-sizing:border-box;" />
+          </div>
+          <div>
+            <label style="display:block;font-size:11px;font-weight:700;color:#64748B;margin-bottom:3px;">WhatsApp (Optional)</label>
+            <input type="tel" id="cpqrGuestPhone" value="${escapeHtml(initPhone)}" placeholder="10-digit mobile" style="width:100%;padding:8px 10px;border:1.5px solid #CBD5E1;border-radius:8px;font-size:12.5px;font-weight:600;color:#0F172A;background:#FFFFFF;box-sizing:border-box;" />
+          </div>
         </div>
 
         <!-- Live QR Code Card with Locked Parameters -->
@@ -8683,7 +8683,7 @@ window.openCustomPaymentQRModal = async function(prefill = {}) {
 
           <!-- Guest & Property Tag Strip -->
           <div style="background:#EEF2FF;padding:8px 12px;border-bottom:1px solid #E0E7FF;display:flex;justify-content:space-between;align-items:center;font-size:11px;gap:6px;">
-            <div style="font-weight:800;color:#1E1B4B;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" id="cpqrPreviewGuest">👤 Guest: -</div>
+            <div style="font-weight:800;color:#1E1B4B;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" id="cpqrPreviewGuest">👤 Guest: (Not specified)</div>
             <div style="font-weight:700;color:#4338CA;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" id="cpqrPreviewRoom">🏡 -</div>
           </div>
 
@@ -8710,10 +8710,6 @@ window.openCustomPaymentQRModal = async function(prefill = {}) {
               <span style="color:#64748B;font-weight:600;">👤 Payee (UPI):</span>
               <span id="cpqrCardPayee" style="font-weight:700;color:#0F172A;">Mr. Firoz Khan (8299600709@ybl)</span>
             </div>
-          </div>
-
-          <div style="padding:6px 10px;background:#FEF3C7;font-size:10px;color:#92400E;text-align:center;font-weight:600;">
-            💡 Download karne par poora colored branded card download hoga jisme guest ka name, amount aur payee likha hoga.
           </div>
         </div>
 
