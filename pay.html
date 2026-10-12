@@ -218,6 +218,30 @@
       z-index: 9999;
     }
 
+    .header-close-btn {
+      position: absolute;
+      top: 8px;
+      right: 10px;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.2);
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      color: #FFFFFF;
+      font-size: 14px;
+      font-weight: 800;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.15s, transform 0.1s;
+      z-index: 10;
+    }
+    .header-close-btn:active {
+      background: rgba(255, 255, 255, 0.35);
+      transform: scale(0.92);
+    }
+
     .footer-note {
       text-align: center;
       font-size: 10.5px;
@@ -231,8 +255,9 @@
 
   <div class="pay-card">
     
-    <!-- Top Header -->
+    <!-- Top Header with Close Button -->
     <div class="pay-header">
+      <button type="button" class="header-close-btn" onclick="handleClose()" title="Close / Back to CRM" aria-label="Close">✕</button>
       <div class="brand-gold">THE UNIQUE HAVEN HOMES</div>
       <h1>⚡ Staff Payment QR Generator</h1>
       <div class="subtitle">Custom UPI QR with locked amount & note for receipt verification</div>
@@ -371,6 +396,27 @@
   <div id="toast" class="toast">Link copied!</div>
 
   <script>
+    function handleClose() {
+      if (window.parent && window.parent !== window) {
+        try {
+          window.parent.postMessage({ type: 'CLOSE_PAY_MODAL' }, '*');
+        } catch (e) {}
+      }
+      if (window.opener) {
+        window.close();
+        return;
+      }
+      if (document.referrer && (document.referrer.includes('admin') || document.referrer.includes('uniquehavenhomesstay.com') || document.referrer.includes('127.0.0.1') || document.referrer.includes('localhost'))) {
+        window.location.href = document.referrer;
+        return;
+      }
+      if (window.history.length > 1) {
+        window.history.back();
+        return;
+      }
+      window.location.href = 'admin.html';
+    }
+
     const PAYEES = {
       firoz: {
         id: 'firoz',
