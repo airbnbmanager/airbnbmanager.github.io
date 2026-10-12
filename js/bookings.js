@@ -8699,7 +8699,7 @@ window.openCustomPaymentQRModal = async function(prefill = {}) {
           <!-- Locked Details Badge Strip -->
           <div style="background:#F8FAFC;border-top:1px solid #E2E8F0;padding:6px 10px;display:flex;flex-direction:column;gap:3px;font-size:10.5px;color:#1E293B;">
             <div style="display:flex;justify-content:space-between;align-items:center;">
-              <span style="color:#64748B;font-weight:600;">🔒 Amount Locked:</span>
+              <span style="color:#64748B;font-weight:600;">Amount:</span>
               <span id="cpqrCardAmount" style="font-weight:900;color:#059669;font-size:13px;">₹2,500</span>
             </div>
             <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
@@ -8907,7 +8907,7 @@ window.openCustomPaymentQRModal = async function(prefill = {}) {
 
     ctx.fillStyle = '#C7D2FE';
     ctx.font = '12px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
-    ctx.fillText(`Govt. Registered Homestays · Helpline: ${payee.phone}`, 400, 124);
+    ctx.fillText('Govt. Registered Homestays', 400, 124);
 
     // 3. Guest & Property Info Box
     roundRect(40, 190, 720, 95, 14, '#F8FAFC', 1.5, '#CBD5E1');
@@ -8933,21 +8933,14 @@ window.openCustomPaymentQRModal = async function(prefill = {}) {
     // 4. Amount Highlight Box
     roundRect(40, 300, 720, 85, 14, '#ECFDF5', 2, '#10B981');
     
-    ctx.textAlign = 'left';
+    ctx.textAlign = 'center';
     ctx.fillStyle = '#065F46';
     ctx.font = 'bold 12px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
-    ctx.fillText('AMOUNT TO PAY', 65, 330);
+    ctx.fillText('AMOUNT TO PAY', 400, 328);
 
     ctx.fillStyle = '#047857';
     ctx.font = '900 38px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
-    ctx.fillText(`₹${amt.toLocaleString('en-IN')}`, 65, 368);
-
-    // Locked badge
-    roundRect(585, 324, 150, 38, 19, '#10B981', 0);
-    ctx.textAlign = 'center';
-    ctx.fillStyle = '#FFFFFF';
-    ctx.font = 'bold 13px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
-    ctx.fillText('🔒 AUTO-LOCKED', 660, 348);
+    ctx.fillText(`₹${amt.toLocaleString('en-IN')}`, 400, 368);
 
     // 5. QR Code Frame
     roundRect(235, 405, 330, 330, 16, '#FFFFFF', 3, '#818CF8');
@@ -9015,7 +9008,7 @@ window.openCustomPaymentQRModal = async function(prefill = {}) {
 
     ctx.fillStyle = '#FCD34D';
     ctx.font = 'bold 13px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
-    ctx.fillText(`Helpline / WhatsApp: ${payee.phone}`, 400, 1018);
+    ctx.fillText(`Helpline: ${payee.phone}`, 400, 1018);
 
     return new Promise(resolve => {
       canvas.toBlob(blob => resolve(blob), 'image/png');
