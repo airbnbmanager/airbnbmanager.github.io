@@ -698,6 +698,44 @@ html, body, #app {
   transform: scale(0.95);
 }
 
+.topbar-qr-pill-btn {
+  background: #EEF2FF;
+  border: 1.5px solid #C7D2FE;
+  color: #4F46E5;
+  height: 38px;
+  min-height: 38px;
+  width: auto;
+  min-width: 38px;
+  padding: 0 10px;
+  border-radius: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all 0.15s ease;
+  box-shadow: 0 1px 2px rgba(79, 70, 229, 0.08);
+}
+.topbar-qr-pill-btn:hover {
+  background: #E0E7FF;
+  border-color: #818CF8;
+  transform: translateY(-1px);
+}
+@media (max-width: 640px) {
+  .topbar-qr-pill-btn {
+    width: 38px !important;
+    height: 38px !important;
+    min-width: 38px !important;
+    padding: 0 !important;
+  }
+  .topbar-qr-pill-btn .qr-btn-text {
+    display: none !important;
+  }
+}
+
 .topbar-mobile-search-btn {
   display: none;
 }

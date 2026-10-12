@@ -1413,9 +1413,9 @@ function renderShell(content, activePage = 'dashboard') {
 
           <div class="topbar-right">
             <!-- Quick Send Payment QR Action -->
-            <button type="button" class="topbar-icon-btn" onclick="window.openCustomPaymentQRModal && window.openCustomPaymentQRModal()" title="Instant UPI Payment QR to Guest" style="color:#4F46E5;font-weight:700;font-size:12px;display:inline-flex;align-items:center;gap:4px;padding:5px 10px;border-radius:8px;background:#EEF2FF;border:1.5px solid #C7D2FE;cursor:pointer;">
-              <span style="font-size:13px;">⚡</span>
-              <span style="font-weight:800;letter-spacing:0.3px;">QR Pay</span>
+            <button type="button" class="topbar-qr-pill-btn" onclick="window.openCustomPaymentQRModal && window.openCustomPaymentQRModal()" title="Instant UPI Payment QR to Guest">
+              <span style="font-size:14px;">⚡</span>
+              <span class="qr-btn-text">QR Pay</span>
             </button>
 
             <!-- Desktop Search Bar -->

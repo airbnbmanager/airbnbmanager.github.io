@@ -8572,7 +8572,7 @@ window.openCustomPaymentQRModal = async function(prefill = {}) {
   const overlay = document.createElement('div');
   overlay.id = 'customPaymentQrOverlay';
   overlay.className = 'modal-overlay';
-  overlay.style.cssText = 'display:flex;align-items:center;justify-content:center;z-index:99999;background:rgba(15,23,42,0.65);backdrop-filter:blur(6px);padding:14px;';
+  overlay.style.cssText = 'display:flex;align-items:center;justify-content:center;z-index:999999;background:rgba(15,23,42,0.7);backdrop-filter:blur(8px);padding:10px;width:100vw;height:100vh;position:fixed;inset:0;box-sizing:border-box;';
   overlay.onclick = e => { if (e.target === overlay) overlay.remove(); };
 
   // Initial values
@@ -8584,46 +8584,122 @@ window.openCustomPaymentQRModal = async function(prefill = {}) {
   const initRemarks = prefill.remarks || '';
 
   overlay.innerHTML = `
-    <div class="modal-box" style="max-width:860px;width:100%;max-height:92vh;overflow-y:auto;background:#FFFFFF;border-radius:16px;box-shadow:0 25px 50px -12px rgba(0,0,0,0.25);border:1px solid #E2E8F0;padding:0;position:relative;">
+    <style>
+      .cpqr-grid {
+        display: grid;
+        grid-template-columns: 1.15fr 0.95fr;
+        gap: 16px;
+        padding: 18px;
+        background: #F8FAFC;
+        box-sizing: border-box;
+      }
+      .cpqr-card-row {
+        padding: 14px;
+        background: #F8FAFC;
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        gap: 14px;
+        box-sizing: border-box;
+      }
+      .cpqr-qr-frame {
+        flex-shrink: 0;
+        text-align: center;
+      }
+      .cpqr-qr-img {
+        width: 125px;
+        height: 125px;
+        display: block;
+        border-radius: 6px;
+      }
+      .cpqr-actions-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+      }
+      .cpqr-chips-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-top: 8px;
+      }
+      @media (max-width: 768px) {
+        .cpqr-modal-box {
+          width: 96vw !important;
+          max-width: 96vw !important;
+          margin: auto !important;
+          max-height: 94vh !important;
+        }
+        .cpqr-grid {
+          grid-template-columns: 1fr !important;
+          padding: 12px 10px !important;
+          gap: 14px !important;
+        }
+        .cpqr-card-row {
+          flex-direction: column !important;
+          text-align: center !important;
+          gap: 12px !important;
+          padding: 12px !important;
+        }
+        .cpqr-qr-img {
+          width: 145px !important;
+          height: 145px !important;
+          margin: 0 auto !important;
+        }
+        .cpqr-details-col {
+          width: 100% !important;
+          text-align: left !important;
+        }
+        .cpqr-actions-row {
+          grid-template-columns: 1fr !important;
+        }
+        .cpqr-chips-row button {
+          flex: 1 1 auto;
+          text-align: center;
+        }
+      }
+    </style>
+
+    <div class="modal-box cpqr-modal-box" style="max-width:860px;width:100%;max-height:92vh;overflow-y:auto;overflow-x:hidden;background:#FFFFFF;border-radius:16px;box-shadow:0 25px 50px -12px rgba(0,0,0,0.25);border:1px solid #E2E8F0;padding:0 !important;position:relative;">
       
       <!-- Top Modal Header -->
-      <div style="background:linear-gradient(135deg, #0F172A 0%, #1E1B4B 50%, #4338CA 100%);color:#FFFFFF;padding:16px 20px;border-top-left-radius:15px;border-top-right-radius:15px;display:flex;align-items:center;justify-content:space-between;gap:12px;">
-        <div style="display:flex;align-items:center;gap:12px;">
-          <div style="width:40px;height:40px;border-radius:10px;background:rgba(255,255,255,0.15);display:flex;align-items:center;justify-content:center;font-size:20px;">
+      <div style="background:linear-gradient(135deg, #0F172A 0%, #1E1B4B 50%, #4338CA 100%);color:#FFFFFF;padding:14px 18px;border-top-left-radius:15px;border-top-right-radius:15px;display:flex;align-items:center;justify-content:space-between;gap:10px;">
+        <div style="display:flex;align-items:center;gap:10px;min-width:0;">
+          <div style="width:36px;height:36px;border-radius:8px;background:rgba(255,255,255,0.15);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">
             ⚡
           </div>
-          <div>
-            <h3 style="margin:0;font-size:17px;font-weight:800;letter-spacing:0.3px;color:#FFFFFF;">Quick UPI Payment QR Generator</h3>
-            <div style="font-size:11.5px;color:#C7D2FE;margin-top:2px;">Generate pre-filled UPI QR for any guest & send via WhatsApp instantly</div>
+          <div style="min-width:0;">
+            <h3 style="margin:0;font-size:16px;font-weight:800;letter-spacing:0.3px;color:#FFFFFF;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Quick UPI Payment QR</h3>
+            <div style="font-size:11px;color:#C7D2FE;margin-top:1px;">Custom amount QR for any guest · WhatsApp send</div>
           </div>
         </div>
-        <button type="button" onclick="document.getElementById('customPaymentQrOverlay')?.remove()" style="background:rgba(255,255,255,0.15);border:none;color:#FFFFFF;width:32px;height:32px;border-radius:8px;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;" title="Close">✕</button>
+        <button type="button" onclick="document.getElementById('customPaymentQrOverlay')?.remove()" style="background:rgba(255,255,255,0.15);border:none;color:#FFFFFF;width:32px;height:32px;border-radius:8px;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;" title="Close">✕</button>
       </div>
 
-      <!-- Modal Body (Two-Column Layout) -->
-      <div style="padding:20px;display:grid;grid-template-columns:repeat(auto-fit, minmax(320px, 1fr));gap:20px;background:#F8FAFC;">
+      <!-- Modal Body (Two-Column Responsive Layout) -->
+      <div class="cpqr-grid">
         
         <!-- LEFT COLUMN: Form Inputs -->
-        <div style="background:#FFFFFF;padding:18px;border-radius:12px;border:1px solid #E2E8F0;box-shadow:0 1px 3px rgba(0,0,0,0.05);">
-          <div style="font-size:12px;font-weight:800;color:#0F172A;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:14px;display:flex;align-items:center;gap:6px;">
+        <div style="background:#FFFFFF;padding:16px;border-radius:12px;border:1px solid #E2E8F0;box-shadow:0 1px 3px rgba(0,0,0,0.05);box-sizing:border-box;">
+          <div style="font-size:12px;font-weight:800;color:#0F172A;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:12px;display:flex;align-items:center;gap:6px;">
             <span>📝</span> <span>Payment Request Details</span>
           </div>
 
           <!-- Guest Name -->
-          <div style="margin-bottom:12px;">
-            <label style="display:block;font-size:11.5px;font-weight:700;color:#334155;margin-bottom:4px;">Guest Full Name</label>
+          <div style="margin-bottom:10px;">
+            <label style="display:block;font-size:11.5px;font-weight:700;color:#334155;margin-bottom:3px;">Guest Full Name</label>
             <input type="text" id="cpqrGuestName" value="${escapeHtml(initGuest)}" placeholder="e.g. Rohit Singh" style="width:100%;padding:9px 12px;border:1.5px solid #CBD5E1;border-radius:8px;font-size:13px;font-weight:600;box-sizing:border-box;" />
           </div>
 
           <!-- Guest Phone (WhatsApp) -->
-          <div style="margin-bottom:12px;">
-            <label style="display:block;font-size:11.5px;font-weight:700;color:#334155;margin-bottom:4px;">Guest Phone (WhatsApp Number)</label>
+          <div style="margin-bottom:10px;">
+            <label style="display:block;font-size:11.5px;font-weight:700;color:#334155;margin-bottom:3px;">Guest Phone (WhatsApp Number)</label>
             <input type="tel" id="cpqrGuestPhone" value="${escapeHtml(initPhone)}" placeholder="10-digit mobile, e.g. 9415973110" style="width:100%;padding:9px 12px;border:1.5px solid #CBD5E1;border-radius:8px;font-size:13px;font-weight:600;box-sizing:border-box;" />
           </div>
 
           <!-- Property / Homestay Selection -->
-          <div style="margin-bottom:12px;">
-            <label style="display:block;font-size:11.5px;font-weight:700;color:#334155;margin-bottom:4px;">Property / Unit *</label>
+          <div style="margin-bottom:10px;">
+            <label style="display:block;font-size:11.5px;font-weight:700;color:#334155;margin-bottom:3px;">Property / Unit *</label>
             <select id="cpqrRoomSelect" style="width:100%;padding:9px 12px;border:1.5px solid #CBD5E1;border-radius:8px;font-size:13px;font-weight:600;background:#FFFFFF;box-sizing:border-box;">
               <option value="">-- General / Any Homestay Unit --</option>
               ${rooms.map(r => {
@@ -8634,27 +8710,27 @@ window.openCustomPaymentQRModal = async function(prefill = {}) {
           </div>
 
           <!-- Amount to Request (₹) -->
-          <div style="margin-bottom:12px;">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+          <div style="margin-bottom:10px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px;">
               <label style="font-size:11.5px;font-weight:700;color:#334155;">Custom Amount to Request (₹) *</label>
               <span id="cpqrAmountDisplay" style="font-size:13px;font-weight:800;color:#059669;">₹${initAmount.toLocaleString('en-IN')}</span>
             </div>
             <input type="number" id="cpqrAmount" min="1" step="50" value="${initAmount}" placeholder="Enter amount in ₹" style="width:100%;padding:10px 12px;border:2px solid #4F46E5;border-radius:8px;font-size:16px;font-weight:800;color:#0F172A;box-sizing:border-box;" />
             
             <!-- Quick Preset Chips -->
-            <div style="display:flex;flex-wrap:wrap;gap:5px;margin-top:8px;">
-              <button type="button" class="cpqr-amt-chip" data-amt="1000" style="padding:4px 9px;background:#F1F5F9;border:1px solid #CBD5E1;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;">₹1,000</button>
-              <button type="button" class="cpqr-amt-chip" data-amt="2500" style="padding:4px 9px;background:#F1F5F9;border:1px solid #CBD5E1;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;">₹2,500</button>
-              <button type="button" class="cpqr-amt-chip" data-amt="5000" style="padding:4px 9px;background:#F1F5F9;border:1px solid #CBD5E1;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;">₹5,000</button>
-              <button type="button" class="cpqr-amt-chip" data-amt="10000" style="padding:4px 9px;background:#F1F5F9;border:1px solid #CBD5E1;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;">₹10,000</button>
-              <button type="button" class="cpqr-amt-chip" data-amt="20000" style="padding:4px 9px;background:#F1F5F9;border:1px solid #CBD5E1;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;">₹20,000</button>
-              <button type="button" class="cpqr-amt-chip" data-amt="clear" style="padding:4px 9px;background:#FEE2E2;border:1px solid #FCA5A5;color:#DC2626;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;">Clear</button>
+            <div class="cpqr-chips-row">
+              <button type="button" class="cpqr-amt-chip" data-amt="1000" style="padding:5px 10px;background:#F1F5F9;border:1px solid #CBD5E1;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;">₹1,000</button>
+              <button type="button" class="cpqr-amt-chip" data-amt="2500" style="padding:5px 10px;background:#F1F5F9;border:1px solid #CBD5E1;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;">₹2,500</button>
+              <button type="button" class="cpqr-amt-chip" data-amt="5000" style="padding:5px 10px;background:#F1F5F9;border:1px solid #CBD5E1;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;">₹5,000</button>
+              <button type="button" class="cpqr-amt-chip" data-amt="10000" style="padding:5px 10px;background:#F1F5F9;border:1px solid #CBD5E1;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;">₹10,000</button>
+              <button type="button" class="cpqr-amt-chip" data-amt="20000" style="padding:5px 10px;background:#F1F5F9;border:1px solid #CBD5E1;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;">₹20,000</button>
+              <button type="button" class="cpqr-amt-chip" data-amt="clear" style="padding:5px 10px;background:#FEE2E2;border:1px solid #FCA5A5;color:#DC2626;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;">Clear</button>
             </div>
           </div>
 
           <!-- Payment Purpose -->
-          <div style="margin-bottom:12px;">
-            <label style="display:block;font-size:11.5px;font-weight:700;color:#334155;margin-bottom:4px;">Payment Purpose / Category</label>
+          <div style="margin-bottom:10px;">
+            <label style="display:block;font-size:11.5px;font-weight:700;color:#334155;margin-bottom:3px;">Payment Purpose / Category</label>
             <select id="cpqrPurpose" style="width:100%;padding:8px 12px;border:1.5px solid #CBD5E1;border-radius:8px;font-size:12.5px;font-weight:600;background:#FFFFFF;box-sizing:border-box;">
               <option value="Stay Advance / Token Booking">Stay Advance / Token Booking</option>
               <option value="Remaining Stay Balance">Remaining Stay Balance</option>
@@ -8667,18 +8743,18 @@ window.openCustomPaymentQRModal = async function(prefill = {}) {
 
           <!-- Remarks / Note -->
           <div>
-            <label style="display:block;font-size:11.5px;font-weight:700;color:#334155;margin-bottom:4px;">Additional Notes / Remarks</label>
+            <label style="display:block;font-size:11.5px;font-weight:700;color:#334155;margin-bottom:3px;">Additional Notes / Remarks</label>
             <input type="text" id="cpqrRemarks" value="${escapeHtml(initRemarks)}" placeholder="e.g. Booking confirmation advance" style="width:100%;padding:8px 12px;border:1.5px solid #CBD5E1;border-radius:8px;font-size:12px;box-sizing:border-box;" />
           </div>
         </div>
 
         <!-- RIGHT COLUMN: Live QR Code Card & Instant Action Buttons -->
-        <div style="display:flex;flex-direction:column;gap:14px;">
+        <div style="display:flex;flex-direction:column;gap:12px;box-sizing:border-box;">
           
           <!-- Executive Colorful QR Code Preview Container -->
-          <div id="cpqrPreviewCard" style="background:#FFFFFF;border-radius:12px;overflow:hidden;border:1.5px solid #CBD5E1;box-shadow:0 4px 16px -2px rgba(15,23,42,0.08);">
+          <div id="cpqrPreviewCard" style="background:#FFFFFF;border-radius:12px;overflow:hidden;border:1.5px solid #CBD5E1;box-shadow:0 4px 16px -2px rgba(15,23,42,0.08);box-sizing:border-box;">
             <!-- Card Header Strip -->
-            <div style="background:linear-gradient(135deg, #0F172A 0%, #1E1B4B 50%, #4338CA 100%);color:#FFFFFF;padding:10px 14px;display:flex;justify-content:space-between;align-items:center;">
+            <div style="background:linear-gradient(135deg, #0F172A 0%, #1E1B4B 50%, #4338CA 100%);color:#FFFFFF;padding:9px 12px;display:flex;justify-content:space-between;align-items:center;">
               <div style="display:flex;align-items:center;gap:6px;">
                 <span style="font-size:13px;">⚡</span>
                 <div style="font-size:11px;font-weight:800;letter-spacing:0.5px;text-transform:uppercase;">TUHH OFFICIAL UPI QR</div>
@@ -8692,22 +8768,22 @@ window.openCustomPaymentQRModal = async function(prefill = {}) {
             </div>
 
             <!-- Card Body: QR Frame + Details -->
-            <div style="padding:14px;background:#F8FAFC;display:flex;flex-direction:row;align-items:center;gap:14px;">
-              <div style="flex-shrink:0;text-align:center;">
+            <div class="cpqr-card-row">
+              <div class="cpqr-qr-frame">
                 <div style="padding:6px;background:#FFFFFF;border-radius:10px;border:2px solid #818CF8;display:inline-block;box-shadow:0 3px 10px rgba(99,102,241,0.15);">
-                  <img id="cpqrImg" src="" alt="UPI QR Code" style="width:125px;height:125px;display:block;border-radius:6px;" />
+                  <img id="cpqrImg" class="cpqr-qr-img" src="" alt="UPI QR Code" />
                 </div>
                 <div style="margin-top:4px;font-size:9.5px;font-weight:800;color:#4338CA;letter-spacing:0.3px;">
                   📷 SCAN TO PAY
                 </div>
               </div>
 
-              <div style="flex:1;min-width:0;">
-                <div style="background:#FFFFFF;padding:6px 10px;border-radius:6px;border:1px solid #E2E8F0;margin-bottom:6px;">
+              <div class="cpqr-details-col" style="flex:1;min-width:0;">
+                <div style="background:#FFFFFF;padding:6px 10px;border-radius:6px;border:1px solid #E2E8F0;margin-bottom:5px;">
                   <div style="font-size:9px;text-transform:uppercase;font-weight:700;color:#64748B;">Beneficiary Name</div>
                   <div style="font-size:12.5px;font-weight:800;color:#0F172A;margin-top:1px;">Mr. Firoz Khan</div>
                 </div>
-                <div style="background:#FFFFFF;padding:6px 10px;border-radius:6px;border:1px solid #E2E8F0;margin-bottom:6px;">
+                <div style="background:#FFFFFF;padding:6px 10px;border-radius:6px;border:1px solid #E2E8F0;margin-bottom:5px;">
                   <div style="font-size:9px;text-transform:uppercase;font-weight:700;color:#64748B;">Official UPI ID</div>
                   <div style="font-size:13px;font-weight:800;color:#4338CA;font-family:monospace;margin-top:1px;">8299600709@ybl</div>
                 </div>
@@ -8719,7 +8795,7 @@ window.openCustomPaymentQRModal = async function(prefill = {}) {
             </div>
 
             <!-- Card Footer: Dynamic Info Note -->
-            <div style="padding:8px 12px;background:#EEF2FF;border-top:1px solid #E0E7FF;font-size:11px;color:#3730A3;display:flex;align-items:center;justify-content:space-between;gap:6px;">
+            <div style="padding:8px 12px;background:#EEF2FF;border-top:1px solid #E0E7FF;font-size:11px;color:#3730A3;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:4px;">
               <span id="cpqrCardPropTag">🏡 Unit: General Homestay</span>
               <span id="cpqrCardGuestTag">👤 Guest: -</span>
             </div>
@@ -8727,20 +8803,20 @@ window.openCustomPaymentQRModal = async function(prefill = {}) {
 
           <!-- Action Buttons Strip -->
           <div style="display:flex;flex-direction:column;gap:8px;">
-            <button type="button" id="cpqrSendWaBtn" style="width:100%;padding:12px 18px;background:#25D366;color:#FFFFFF;border:none;border-radius:10px;font-size:14px;font-weight:800;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:8px;box-shadow:0 3px 10px rgba(37,211,102,0.3);transition:transform 0.15s ease;">
-              <span>📲</span> <span>Send QR Request on WhatsApp</span>
+            <button type="button" id="cpqrSendWaBtn" style="width:100%;padding:12px 16px;background:#25D366;color:#FFFFFF;border:none;border-radius:10px;font-size:13.5px;font-weight:800;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:8px;box-shadow:0 3px 10px rgba(37,211,102,0.3);">
+              <span>📲</span> <span>Send QR on WhatsApp</span>
             </button>
 
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-              <button type="button" id="cpqrPrintBtn" style="padding:10px 14px;background:#0F172A;color:#FFFFFF;border:none;border-radius:8px;font-size:12.5px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:6px;">
-                <span>🖨️</span> <span>Print / PDF Slip</span>
+            <div class="cpqr-actions-row">
+              <button type="button" id="cpqrPrintBtn" style="padding:10px 12px;background:#0F172A;color:#FFFFFF;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:6px;">
+                <span>🖨️</span> <span>Print Slip</span>
               </button>
-              <button type="button" id="cpqrCopyBtn" style="padding:10px 14px;background:#EEF2FF;color:#4338CA;border:1.5px solid #C7D2FE;border-radius:8px;font-size:12.5px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:6px;">
+              <button type="button" id="cpqrCopyBtn" style="padding:10px 12px;background:#EEF2FF;color:#4338CA;border:1.5px solid #C7D2FE;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:6px;">
                 <span>📋</span> <span>Copy UPI Link</span>
               </button>
             </div>
 
-            <a id="cpqrDirectPayLink" href="#" style="text-align:center;font-size:11px;color:#64748B;text-decoration:none;padding:4px;display:block;">
+            <a id="cpqrDirectPayLink" href="#" style="text-align:center;font-size:11px;color:#64748B;text-decoration:none;padding:3px;display:block;">
               🔗 Direct 1-tap UPI link preview (tap to test)
             </a>
           </div>
