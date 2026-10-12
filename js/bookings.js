@@ -8647,10 +8647,10 @@ window.openCustomPaymentQRModal = async function(prefill = {}) {
           </select>
         </div>
 
-        <!-- 2. Guest Name -->
+        <!-- 2. Guest Name (Optional) -->
         <div>
-          <label style="display:block;font-size:11.5px;font-weight:700;color:#334155;margin-bottom:4px;">Guest Name *</label>
-          <input type="text" id="cpqrGuestName" value="${escapeHtml(initGuest)}" placeholder="e.g. Rohit Singh" style="width:100%;padding:10px 12px;border:1.5px solid #CBD5E1;border-radius:10px;font-size:13.5px;font-weight:700;color:#0F172A;background:#FFFFFF;box-sizing:border-box;" />
+          <label style="display:block;font-size:11.5px;font-weight:700;color:#334155;margin-bottom:4px;">Guest Name <span style="font-size:10.5px;font-weight:500;color:#64748B;">(Optional)</span></label>
+          <input type="text" id="cpqrGuestName" value="${escapeHtml(initGuest)}" placeholder="e.g. Rohit Singh (Optional)" style="width:100%;padding:10px 12px;border:1.5px solid #CBD5E1;border-radius:10px;font-size:13.5px;font-weight:700;color:#0F172A;background:#FFFFFF;box-sizing:border-box;" />
         </div>
 
         <!-- 3. Custom Amount (₹) -->
@@ -8832,16 +8832,17 @@ window.openCustomPaymentQRModal = async function(prefill = {}) {
   }
 
   function getUpiDetails() {
-    const guest = guestIn.value.trim() || 'Guest';
+    const rawGuest = guestIn.value.trim();
+    const guest = rawGuest || '';
     const amt = Math.max(0, parseInt(amtIn.value) || 0);
     const roomFull = getSelectedRoomLabel();
     const roomShort = getSelectedRoomShort();
     const payee = PAYEES[currentPayee] || PAYEES.firoz;
 
-    // Clean alphanumeric note for UPI transaction (max 40 chars, e.g. "Rohit Singh - FLAT501")
-    const cleanGuest = guest.replace(/[^a-zA-Z0-9 ]/g, '').trim().slice(0, 20);
-    const cleanUnit = roomShort.replace(/[^a-zA-Z0-9 ]/g, '').trim().slice(0, 16);
-    const cleanNote = `${cleanGuest} - ${cleanUnit}`.slice(0, 42);
+    // Clean alphanumeric note for UPI transaction (max 40 chars, e.g. "Rohit Singh - FLAT501" or "FLAT501 Stay")
+    const cleanGuest = rawGuest.replace(/[^a-zA-Z0-9 ]/g, '').trim().slice(0, 20);
+    const cleanUnit = roomShort.replace(/[^a-zA-Z0-9 ]/g, '').trim().slice(0, 20);
+    const cleanNote = cleanGuest ? `${cleanGuest} - ${cleanUnit}`.slice(0, 42) : `${cleanUnit} Stay`.slice(0, 42);
 
     const upiString = amt > 0
       ? `upi://pay?pa=${encodeURIComponent(payee.upiId)}&pn=${encodeURIComponent(payee.name)}&am=${amt}&cu=INR&tn=${encodeURIComponent(cleanNote)}`
@@ -8850,7 +8851,7 @@ window.openCustomPaymentQRModal = async function(prefill = {}) {
     // Dark indigo/navy colored QR dots for luxury look
     const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=350x350&margin=2&color=1E1B4B&bgcolor=FFFFFF&data=${encodeURIComponent(upiString)}`;
 
-    return { guest, amt, roomFull, cleanNote, payee, upiString, qrUrl };
+    return { guest, amt, roomFull, roomShort, cleanNote, payee, upiString, qrUrl };
   }
 
   // 🎨 Build high-resolution colored branded payment card canvas
@@ -8921,7 +8922,7 @@ window.openCustomPaymentQRModal = async function(prefill = {}) {
     ctx.fillText('GUEST NAME', 65, 222);
     ctx.fillStyle = '#0F172A';
     ctx.font = 'bold 22px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
-    const displayGuest = guest.length > 25 ? guest.slice(0, 25) + '...' : guest;
+    const displayGuest = guest ? (guest.length > 25 ? guest.slice(0, 25) + '...' : guest) : 'Valued Guest';
     ctx.fillText(displayGuest, 65, 256);
 
     ctx.textAlign = 'right';
@@ -9030,7 +9031,7 @@ window.openCustomPaymentQRModal = async function(prefill = {}) {
     cardAmt.textContent = `₹${amt.toLocaleString('en-IN')}`;
     cardNote.textContent = cleanNote;
     cardPayee.textContent = `${payee.name} (${payee.upiId})`;
-    previewGuest.textContent = `👤 Guest: ${guest}`;
+    previewGuest.textContent = guest ? `👤 Guest: ${guest}` : `👤 Guest: (Not specified)`;
     previewRoom.textContent = `🏡 ${roomFull}`;
     qrImg.src = qrUrl;
   }
@@ -9045,7 +9046,7 @@ window.openCustomPaymentQRModal = async function(prefill = {}) {
   // 1. WhatsApp Button
   sendWaBtn.addEventListener('click', async () => {
     const details = getUpiDetails();
-    const { guest, amt, roomFull, cleanNote, payee, upiString, qrUrl } = details;
+    const { guest, amt, roomFull, roomShort, cleanNote, payee, upiString, qrUrl } = details;
     const rawPhone = phoneIn.value.replace(/\D/g, '');
 
     if (amt <= 0) {
@@ -9056,7 +9057,8 @@ window.openCustomPaymentQRModal = async function(prefill = {}) {
     }
 
     const NL = '\n';
-    const waMsg = `Dear *${guest}*,${NL}` +
+    const greeting = guest ? `Dear *${guest}*,` : `Dear Guest,`;
+    const waMsg = `${greeting}${NL}` +
       `Please pay *₹${amt.toLocaleString('en-IN')}* for *${roomFull}*.${NL}${NL}` +
       `⚡ *UPI Pay Link:*${NL}` +
       `${upiString}${NL}${NL}` +
@@ -9071,7 +9073,8 @@ window.openCustomPaymentQRModal = async function(prefill = {}) {
       try {
         const blob = await buildBrandedPaymentCardBlob(details);
         if (blob) {
-          const file = new File([blob], `Payment_QR_${guest.replace(/\s+/g, '_')}_Rs${amt}.png`, { type: 'image/png' });
+          const safeName = (guest || roomShort || 'Stay').replace(/\s+/g, '_');
+          const file = new File([blob], `Payment_QR_${safeName}_Rs${amt}.png`, { type: 'image/png' });
           if (navigator.canShare({ files: [file] })) {
             await navigator.share({
               title: `Payment QR - ₹${amt}`,
@@ -9097,7 +9100,7 @@ window.openCustomPaymentQRModal = async function(prefill = {}) {
   // 2. Download QR Image (Beautiful Branded Card)
   downloadBtn.addEventListener('click', async () => {
     const details = getUpiDetails();
-    const { guest, amt } = details;
+    const { guest, roomShort, amt } = details;
     downloadBtn.disabled = true;
     downloadBtn.innerHTML = '<span>⏳</span> <span>Generating...</span>';
     try {
@@ -9105,7 +9108,8 @@ window.openCustomPaymentQRModal = async function(prefill = {}) {
       if (blob) {
         const a = document.createElement('a');
         a.href = URL.createObjectURL(blob);
-        a.download = `TUHH_QR_${guest.replace(/\s+/g, '_')}_Rs${amt}.png`;
+        const safeName = (guest || roomShort || 'Stay').replace(/\s+/g, '_');
+        a.download = `TUHH_QR_${safeName}_Rs${amt}.png`;
         document.body.appendChild(a);
         a.click();
         a.remove();
