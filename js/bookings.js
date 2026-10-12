@@ -8566,6 +8566,25 @@ window.openCustomPaymentQRModal = async function(prefill = {}) {
     }
   }
 
+  // Payees Definition
+  const PAYEES = {
+    firoz: {
+      id: 'firoz',
+      name: 'Mr. Firoz Khan',
+      upiId: '8299600709@ybl',
+      phone: '+91 82996 00709',
+      label: 'Mr. Firoz Khan (Default)'
+    },
+    praveen: {
+      id: 'praveen',
+      name: 'Mr. Praveen Singh',
+      upiId: '9454470872@apl',
+      phone: '+91 94544 70872',
+      label: 'Mr. Praveen Singh'
+    }
+  };
+  let currentPayee = 'firoz';
+
   // 2. Remove existing overlay if any
   document.getElementById('customPaymentQrOverlay')?.remove();
 
@@ -8598,9 +8617,24 @@ window.openCustomPaymentQRModal = async function(prefill = {}) {
         <button type="button" onclick="document.getElementById('customPaymentQrOverlay')?.remove()" style="background:rgba(255,255,255,0.15);border:none;color:#FFFFFF;width:30px;height:30px;border-radius:8px;font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;" title="Close">✕</button>
       </div>
 
-      <!-- Clean Form Body (No clutter) -->
+      <!-- Clean Form Body -->
       <div style="padding:16px 18px;display:flex;flex-direction:column;gap:12px;background:#F8FAFC;">
         
+        <!-- Payee Account Selector -->
+        <div>
+          <label style="display:block;font-size:11.5px;font-weight:700;color:#334155;margin-bottom:4px;">Receive In Account (Payee) *</label>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+            <button type="button" id="cpqrPayeeFiroz" style="padding:9px 10px;border-radius:10px;border:2px solid #4F46E5;background:#EEF2FF;cursor:pointer;text-align:left;box-shadow:0 2px 8px rgba(79,70,229,0.15);transition:all 0.2s;">
+              <div style="font-size:12px;font-weight:800;color:#312E81;">👑 Firoz Khan (Default)</div>
+              <div style="font-size:10.5px;color:#4338CA;font-family:monospace;margin-top:2px;font-weight:700;">8299600709@ybl</div>
+            </button>
+            <button type="button" id="cpqrPayeePraveen" style="padding:9px 10px;border-radius:10px;border:1.5px solid #CBD5E1;background:#FFFFFF;cursor:pointer;text-align:left;transition:all 0.2s;">
+              <div style="font-size:12px;font-weight:800;color:#0F172A;">⚡ Praveen Singh</div>
+              <div style="font-size:10.5px;color:#64748B;font-family:monospace;margin-top:2px;">9454470872@apl</div>
+            </button>
+          </div>
+        </div>
+
         <!-- 1. Property / Flat -->
         <div>
           <label style="display:block;font-size:11.5px;font-weight:700;color:#334155;margin-bottom:4px;">Property / Unit *</label>
@@ -8674,12 +8708,12 @@ window.openCustomPaymentQRModal = async function(prefill = {}) {
             </div>
             <div style="display:flex;justify-content:space-between;align-items:center;">
               <span style="color:#64748B;font-weight:600;">👤 Payee (UPI):</span>
-              <span style="font-weight:700;color:#0F172A;">Mr. Firoz Khan (8299600709@ybl)</span>
+              <span id="cpqrCardPayee" style="font-weight:700;color:#0F172A;">Mr. Firoz Khan (8299600709@ybl)</span>
             </div>
           </div>
 
           <div style="padding:6px 10px;background:#FEF3C7;font-size:10px;color:#92400E;text-align:center;font-weight:600;">
-            💡 Download karne par poora colored branded card download hoga jisme guest ka name aur amount likha hoga.
+            💡 Download karne par poora colored branded card download hoga jisme guest ka name, amount aur payee likha hoga.
           </div>
         </div>
 
@@ -8699,6 +8733,17 @@ window.openCustomPaymentQRModal = async function(prefill = {}) {
               <span>📋</span> <span>Copy UPI Link</span>
             </button>
           </div>
+
+          <!-- 3. Public Employee QR Generator Link -->
+          <div style="background:#F1F5F9;border:1px dashed #94A3B8;border-radius:10px;padding:9px 12px;display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:2px;">
+            <div style="min-width:0;">
+              <div style="font-size:11.5px;font-weight:800;color:#0F172A;">🌐 Public Staff QR Link</div>
+              <div style="font-size:10.5px;color:#64748B;">Staff bina login ke phone se QR bana sakte hain</div>
+            </div>
+            <button type="button" id="cpqrCopyPublicLinkBtn" style="padding:6px 10px;background:#0F172A;color:#FFFFFF;border:none;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;flex-shrink:0;">
+              🔗 Copy Link
+            </button>
+          </div>
         </div>
 
       </div>
@@ -8714,12 +8759,63 @@ window.openCustomPaymentQRModal = async function(prefill = {}) {
   const amtIn = overlay.querySelector('#cpqrAmount');
   const cardAmt = overlay.querySelector('#cpqrCardAmount');
   const cardNote = overlay.querySelector('#cpqrCardNote');
+  const cardPayee = overlay.querySelector('#cpqrCardPayee');
   const previewGuest = overlay.querySelector('#cpqrPreviewGuest');
   const previewRoom = overlay.querySelector('#cpqrPreviewRoom');
   const qrImg = overlay.querySelector('#cpqrImg');
   const sendWaBtn = overlay.querySelector('#cpqrSendWaBtn');
   const downloadBtn = overlay.querySelector('#cpqrDownloadBtn');
   const copyBtn = overlay.querySelector('#cpqrCopyBtn');
+  const payeeFirozBtn = overlay.querySelector('#cpqrPayeeFiroz');
+  const payeePraveenBtn = overlay.querySelector('#cpqrPayeePraveen');
+  const copyPublicLinkBtn = overlay.querySelector('#cpqrCopyPublicLinkBtn');
+
+  function setPayee(key) {
+    currentPayee = key;
+    if (key === 'firoz') {
+      payeeFirozBtn.style.border = '2px solid #4F46E5';
+      payeeFirozBtn.style.background = '#EEF2FF';
+      payeeFirozBtn.style.boxShadow = '0 2px 8px rgba(79,70,229,0.15)';
+      payeeFirozBtn.children[0].style.color = '#312E81';
+      payeeFirozBtn.children[1].style.color = '#4338CA';
+      payeeFirozBtn.children[1].style.fontWeight = '700';
+
+      payeePraveenBtn.style.border = '1.5px solid #CBD5E1';
+      payeePraveenBtn.style.background = '#FFFFFF';
+      payeePraveenBtn.style.boxShadow = 'none';
+      payeePraveenBtn.children[0].style.color = '#0F172A';
+      payeePraveenBtn.children[1].style.color = '#64748B';
+      payeePraveenBtn.children[1].style.fontWeight = 'normal';
+    } else {
+      payeePraveenBtn.style.border = '2px solid #4F46E5';
+      payeePraveenBtn.style.background = '#EEF2FF';
+      payeePraveenBtn.style.boxShadow = '0 2px 8px rgba(79,70,229,0.15)';
+      payeePraveenBtn.children[0].style.color = '#312E81';
+      payeePraveenBtn.children[1].style.color = '#4338CA';
+      payeePraveenBtn.children[1].style.fontWeight = '700';
+
+      payeeFirozBtn.style.border = '1.5px solid #CBD5E1';
+      payeeFirozBtn.style.background = '#FFFFFF';
+      payeeFirozBtn.style.boxShadow = 'none';
+      payeeFirozBtn.children[0].style.color = '#0F172A';
+      payeeFirozBtn.children[1].style.color = '#64748B';
+      payeeFirozBtn.children[1].style.fontWeight = 'normal';
+    }
+    updateLivePreview();
+  }
+
+  payeeFirozBtn.addEventListener('click', () => setPayee('firoz'));
+  payeePraveenBtn.addEventListener('click', () => setPayee('praveen'));
+
+  if (copyPublicLinkBtn) {
+    copyPublicLinkBtn.addEventListener('click', () => {
+      const pubUrl = window.location.origin + '/pay.html';
+      navigator.clipboard.writeText(pubUrl).then(() => {
+        if (window.fsn) fsn.success('Copied', 'Public Staff QR Link copied: ' + pubUrl);
+        else alert('Public Staff QR Link copied: ' + pubUrl);
+      });
+    });
+  }
 
   function getSelectedRoomLabel() {
     const val = roomSel.value;
@@ -8740,6 +8836,7 @@ window.openCustomPaymentQRModal = async function(prefill = {}) {
     const amt = Math.max(0, parseInt(amtIn.value) || 0);
     const roomFull = getSelectedRoomLabel();
     const roomShort = getSelectedRoomShort();
+    const payee = PAYEES[currentPayee] || PAYEES.firoz;
 
     // Clean alphanumeric note for UPI transaction (max 40 chars, e.g. "Rohit Singh - FLAT501")
     const cleanGuest = guest.replace(/[^a-zA-Z0-9 ]/g, '').trim().slice(0, 20);
@@ -8747,18 +8844,18 @@ window.openCustomPaymentQRModal = async function(prefill = {}) {
     const cleanNote = `${cleanGuest} - ${cleanUnit}`.slice(0, 42);
 
     const upiString = amt > 0
-      ? `upi://pay?pa=8299600709@ybl&pn=Firoz%20Khan&am=${amt}&cu=INR&tn=${encodeURIComponent(cleanNote)}`
-      : `upi://pay?pa=8299600709@ybl&pn=Firoz%20Khan&cu=INR&tn=${encodeURIComponent(cleanNote)}`;
+      ? `upi://pay?pa=${encodeURIComponent(payee.upiId)}&pn=${encodeURIComponent(payee.name)}&am=${amt}&cu=INR&tn=${encodeURIComponent(cleanNote)}`
+      : `upi://pay?pa=${encodeURIComponent(payee.upiId)}&pn=${encodeURIComponent(payee.name)}&cu=INR&tn=${encodeURIComponent(cleanNote)}`;
 
     // Dark indigo/navy colored QR dots for luxury look
     const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=350x350&margin=2&color=1E1B4B&bgcolor=FFFFFF&data=${encodeURIComponent(upiString)}`;
 
-    return { guest, amt, roomFull, cleanNote, upiString, qrUrl };
+    return { guest, amt, roomFull, cleanNote, payee, upiString, qrUrl };
   }
 
   // 🎨 Build high-resolution colored branded payment card canvas
   async function buildBrandedPaymentCardBlob(details) {
-    const { guest, amt, roomFull, cleanNote, qrUrl } = details;
+    const { guest, amt, roomFull, cleanNote, payee, qrUrl } = details;
     const canvas = document.createElement('canvas');
     canvas.width = 800;
     canvas.height = 1060;
@@ -8813,7 +8910,7 @@ window.openCustomPaymentQRModal = async function(prefill = {}) {
 
     ctx.fillStyle = '#C7D2FE';
     ctx.font = '12px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
-    ctx.fillText('Govt. Registered Homestays · Helpline: +91 82996 00709', 400, 124);
+    ctx.fillText(`Govt. Registered Homestays · Helpline: ${payee.phone}`, 400, 124);
 
     // 3. Guest & Property Info Box
     roundRect(40, 190, 720, 95, 14, '#F8FAFC', 1.5, '#CBD5E1');
@@ -8901,11 +8998,11 @@ window.openCustomPaymentQRModal = async function(prefill = {}) {
 
     ctx.fillStyle = '#0F172A';
     ctx.font = 'bold 20px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
-    ctx.fillText('Mr. Firoz Khan', 400, 848);
+    ctx.fillText(payee.name, 400, 848);
 
     ctx.fillStyle = '#4338CA';
     ctx.font = 'bold 24px monospace';
-    ctx.fillText('8299600709@ybl', 400, 882);
+    ctx.fillText(payee.upiId, 400, 882);
 
     ctx.fillStyle = '#334155';
     ctx.font = 'bold 13px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
@@ -8921,7 +9018,7 @@ window.openCustomPaymentQRModal = async function(prefill = {}) {
 
     ctx.fillStyle = '#FCD34D';
     ctx.font = 'bold 13px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
-    ctx.fillText('Helpline / WhatsApp: +91 82996 00709', 400, 1018);
+    ctx.fillText(`Helpline / WhatsApp: ${payee.phone}`, 400, 1018);
 
     return new Promise(resolve => {
       canvas.toBlob(blob => resolve(blob), 'image/png');
@@ -8929,9 +9026,10 @@ window.openCustomPaymentQRModal = async function(prefill = {}) {
   }
 
   function updateLivePreview() {
-    const { guest, amt, roomFull, cleanNote, qrUrl } = getUpiDetails();
+    const { guest, amt, roomFull, cleanNote, payee, qrUrl } = getUpiDetails();
     cardAmt.textContent = `₹${amt.toLocaleString('en-IN')}`;
     cardNote.textContent = cleanNote;
+    cardPayee.textContent = `${payee.name} (${payee.upiId})`;
     previewGuest.textContent = `👤 Guest: ${guest}`;
     previewRoom.textContent = `🏡 ${roomFull}`;
     qrImg.src = qrUrl;
@@ -8947,7 +9045,7 @@ window.openCustomPaymentQRModal = async function(prefill = {}) {
   // 1. WhatsApp Button
   sendWaBtn.addEventListener('click', async () => {
     const details = getUpiDetails();
-    const { guest, amt, roomFull, cleanNote, upiString, qrUrl } = details;
+    const { guest, amt, roomFull, cleanNote, payee, upiString, qrUrl } = details;
     const rawPhone = phoneIn.value.replace(/\D/g, '');
 
     if (amt <= 0) {
@@ -8964,7 +9062,7 @@ window.openCustomPaymentQRModal = async function(prefill = {}) {
       `${upiString}${NL}${NL}` +
       `📷 *QR Code Link:*${NL}` +
       `${qrUrl}${NL}${NL}` +
-      `• UPI ID: *8299600709@ybl* (Firoz Khan)${NL}` +
+      `• UPI ID: *${payee.upiId}* (${payee.name})${NL}` +
       `• Note: *${cleanNote}*${NL}${NL}` +
       `Payment ke baad screenshot share kar dijiye.`;
 
@@ -9033,3 +9131,4 @@ window.openCustomPaymentQRModal = async function(prefill = {}) {
     });
   });
 };
+

@@ -1,0 +1,658 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Quick UPI Payment QR Generator | The Unique Haven Homes</title>
+  <meta name="description" content="Generate pre-locked custom UPI payment QR codes for The Unique Haven Homes guests. Instant WhatsApp send and receipt verification.">
+  <link rel="icon" type="image/x-icon" href="favicon.ico">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+    body { background: #0F172A; color: #1E293B; min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 16px 12px; }
+    
+    .pay-card {
+      width: 100%;
+      max-width: 450px;
+      background: #FFFFFF;
+      border-radius: 20px;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.1);
+      overflow: hidden;
+      margin: auto;
+    }
+
+    .pay-header {
+      background: linear-gradient(135deg, #0F172A 0%, #1E1B4B 60%, #4338CA 100%);
+      color: #FFFFFF;
+      padding: 18px 20px;
+      text-align: center;
+      position: relative;
+    }
+    .pay-header h1 { font-size: 17px; font-weight: 800; letter-spacing: 0.5px; color: #FFFFFF; margin-bottom: 2px; }
+    .pay-header .brand-gold { color: #FCD34D; font-size: 11px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; }
+    .pay-header .subtitle { font-size: 11.5px; color: #C7D2FE; margin-top: 4px; }
+
+    .pay-body { padding: 18px; display: flex; flex-direction: column; gap: 13px; background: #F8FAFC; }
+
+    .field-group { display: flex; flex-direction: column; gap: 4px; }
+    .field-label { font-size: 11.5px; font-weight: 700; color: #334155; }
+    
+    .input-box {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1.5px solid #CBD5E1;
+      border-radius: 10px;
+      font-size: 13.5px;
+      font-weight: 600;
+      color: #0F172A;
+      background: #FFFFFF;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .input-box:focus { border-color: #4F46E5; box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.15); }
+
+    .payee-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+    .payee-btn {
+      padding: 9px 10px;
+      border-radius: 10px;
+      border: 1.5px solid #CBD5E1;
+      background: #FFFFFF;
+      cursor: pointer;
+      text-align: left;
+      transition: all 0.2s;
+    }
+    .payee-btn.active {
+      border: 2px solid #4F46E5;
+      background: #EEF2FF;
+      box-shadow: 0 2px 8px rgba(79, 70, 229, 0.15);
+    }
+    .payee-name { font-size: 12px; font-weight: 800; color: #0F172A; }
+    .payee-btn.active .payee-name { color: #312E81; }
+    .payee-upi { font-size: 10.5px; color: #64748B; font-family: monospace; margin-top: 2px; }
+    .payee-btn.active .payee-upi { color: #4338CA; font-weight: 700; }
+
+    /* Live QR Preview Card */
+    .qr-card-box {
+      background: #FFFFFF;
+      border-radius: 14px;
+      border: 1.5px solid #CBD5E1;
+      overflow: hidden;
+      box-shadow: 0 4px 16px rgba(15, 23, 42, 0.08);
+    }
+    .qr-card-top {
+      background: linear-gradient(135deg, #0F172A 0%, #1E1B4B 60%, #4338CA 100%);
+      color: #FFFFFF;
+      padding: 10px 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .qr-card-top .tuhh-title { font-size: 11px; font-weight: 800; letter-spacing: 0.5px; color: #FCD34D; }
+    .qr-app-badges { display: flex; gap: 3px; }
+    .qr-app-badge { font-size: 8.5px; font-weight: 800; color: #fff; padding: 2px 5px; border-radius: 4px; }
+
+    .qr-guest-strip {
+      background: #EEF2FF;
+      padding: 8px 12px;
+      border-bottom: 1px solid #E0E7FF;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 11px;
+    }
+
+    .qr-image-wrap {
+      padding: 14px 12px 10px;
+      text-align: center;
+    }
+    .qr-frame {
+      padding: 8px;
+      background: #FFFFFF;
+      border-radius: 14px;
+      border: 2.5px solid #818CF8;
+      display: inline-block;
+      box-shadow: 0 4px 16px rgba(99, 102, 241, 0.2);
+    }
+    .qr-frame img {
+      width: 165px;
+      height: 165px;
+      display: block;
+      border-radius: 8px;
+    }
+
+    .qr-lock-info {
+      background: #F8FAFC;
+      border-top: 1px solid #E2E8F0;
+      padding: 9px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      font-size: 11.5px;
+    }
+
+    .btn-send-wa {
+      width: 100%;
+      padding: 13px 16px;
+      background: #25D366;
+      color: #FFFFFF;
+      border: none;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 800;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      box-shadow: 0 3px 12px rgba(37, 211, 102, 0.35);
+      transition: transform 0.1s;
+    }
+    .btn-send-wa:active { transform: scale(0.98); }
+
+    .btn-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .btn-action {
+      padding: 10px 12px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      border: none;
+    }
+    .btn-download { background: #0F172A; color: #FFFFFF; }
+    .btn-copy { background: #EEF2FF; color: #4338CA; border: 1.5px solid #C7D2FE; }
+
+    .toast {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #0F172A;
+      color: #FFFFFF;
+      padding: 10px 18px;
+      border-radius: 30px;
+      font-size: 12.5px;
+      font-weight: 700;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+      display: none;
+      z-index: 9999;
+    }
+
+    .footer-note {
+      text-align: center;
+      font-size: 11px;
+      color: #94A3B8;
+      margin-top: 14px;
+    }
+    .footer-note a { color: #818CF8; text-decoration: none; font-weight: 700; }
+  </style>
+</head>
+<body>
+
+  <div class="pay-card">
+    
+    <!-- Top Header -->
+    <div class="pay-header">
+      <div class="brand-gold">THE UNIQUE HAVEN HOMES</div>
+      <h1>⚡ Staff Payment QR Generator</h1>
+      <div class="subtitle">Custom UPI QR with locked amount & note for receipt verification</div>
+    </div>
+
+    <!-- Form Body -->
+    <div class="pay-body">
+      
+      <!-- 1. Payee Account Selector -->
+      <div class="field-group">
+        <label class="field-label">Receive In Account (Payee) *</label>
+        <div class="payee-grid">
+          <button type="button" class="payee-btn active" id="payeeFiroz" onclick="selectPayee('firoz')">
+            <div class="payee-name">👑 Firoz Khan (Default)</div>
+            <div class="payee-upi">8299600709@ybl</div>
+          </button>
+          <button type="button" class="payee-btn" id="payeePraveen" onclick="selectPayee('praveen')">
+            <div class="payee-name">⚡ Praveen Singh</div>
+            <div class="payee-upi">9454470872@apl</div>
+          </button>
+        </div>
+      </div>
+
+      <!-- 2. Property / Homestay Selection -->
+      <div class="field-group">
+        <label class="field-label">Property / Unit *</label>
+        <select id="roomSelect" class="input-box">
+          <option value="General Homestay">-- General Homestay --</option>
+          <option value="101 - Pink Paradise (Villa)">101 - Pink Paradise (Villa)</option>
+          <option value="102 - Yellow House (Villa)">102 - Yellow House (Villa)</option>
+          <option value="103 - Green Forest (Villa)">103 - Green Forest (Villa)</option>
+          <option value="104 - Celebrity Garden (Villa)">104 - Celebrity Garden (Villa)</option>
+          <option value="105 - Unique 3BHK Flat">105 - Unique 3BHK Flat</option>
+          <option value="106 - Light Green Flat">106 - Light Green Flat</option>
+          <option value="107 - Starlight Blue PentHouse (FLAT501)" selected>107 - Starlight Blue PentHouse (FLAT501)</option>
+          <option value="108 - Black Beauty Flat">108 - Black Beauty Flat</option>
+          <option value="109 - Nawabi Stay Flat">109 - Nawabi Stay Flat</option>
+          <option value="110 - Gomti Grand Villa">110 - Gomti Grand Villa</option>
+          <option value="111 - Green House Flat">111 - Green House Flat</option>
+          <option value="112 - Pink House Flat">112 - Pink House Flat</option>
+          <option value="113 - Brown Flat">113 - Brown Flat</option>
+          <option value="114 - Velvet House Flat">114 - Velvet House Flat</option>
+          <option value="115 - Royal White House">115 - Royal White House</option>
+          <option value="116 - Dark Blue Flat">116 - Dark Blue Flat</option>
+          <option value="117 - RedRose Palace Flat">117 - RedRose Palace Flat</option>
+        </select>
+      </div>
+
+      <!-- 3. Guest Name -->
+      <div class="field-group">
+        <label class="field-label">Guest Full Name *</label>
+        <input type="text" id="guestName" class="input-box" placeholder="e.g. Rohit Singh" value="" />
+      </div>
+
+      <!-- 4. Amount to Request -->
+      <div class="field-group">
+        <label class="field-label">Custom Amount to Request (₹) *</label>
+        <div style="position:relative;">
+          <span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:16px;font-weight:900;color:#4F46E5;">₹</span>
+          <input type="number" id="customAmount" class="input-box" min="1" step="50" style="padding-left:28px;font-size:16px;font-weight:900;" placeholder="Enter amount" value="2500" />
+        </div>
+      </div>
+
+      <!-- 5. Guest WhatsApp Phone -->
+      <div class="field-group">
+        <label class="field-label">Guest WhatsApp Number</label>
+        <input type="tel" id="guestPhone" class="input-box" placeholder="10-digit mobile, e.g. 9415973110" value="" />
+      </div>
+
+      <!-- Live QR Preview Card -->
+      <div class="qr-card-box">
+        <div class="qr-card-top">
+          <div class="tuhh-title">THE UNIQUE HAVEN HOMES</div>
+          <div class="qr-app-badges">
+            <span class="qr-app-badge" style="background:#5F259F;">PhonePe</span>
+            <span class="qr-app-badge" style="background:#1A73E8;">GPay</span>
+            <span class="qr-app-badge" style="background:#00B9F1;">Paytm</span>
+          </div>
+        </div>
+
+        <div class="qr-guest-strip">
+          <div style="font-weight:800;color:#1E1B4B;" id="previewGuest">👤 Guest: -</div>
+          <div style="font-weight:700;color:#4338CA;" id="previewRoom">🏡 FLAT501</div>
+        </div>
+
+        <div class="qr-image-wrap">
+          <div class="qr-frame">
+            <img id="qrImg" src="" alt="UPI QR" />
+          </div>
+          <div style="margin-top:6px;font-size:10px;font-weight:800;color:#4338CA;letter-spacing:0.5px;">
+            ⚡ SCAN WITH ANY UPI APP
+          </div>
+        </div>
+
+        <div class="qr-lock-info">
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <span style="color:#64748B;font-weight:600;">🔒 Amount Locked:</span>
+            <span id="cardAmount" style="font-weight:900;color:#059669;font-size:14px;">₹2,500</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
+            <span style="color:#64748B;font-weight:600;flex-shrink:0;">📝 Note in Screenshot:</span>
+            <span id="cardNote" style="font-weight:800;color:#4338CA;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">-</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <span style="color:#64748B;font-weight:600;">👤 Payee (UPI):</span>
+            <span id="cardPayee" style="font-weight:700;color:#0F172A;">Mr. Firoz Khan (8299600709@ybl)</span>
+          </div>
+        </div>
+
+        <div style="padding:6px 10px;background:#FEF3C7;font-size:10.5px;color:#92400E;text-align:center;font-weight:600;">
+          💡 Download karne par poora colored branded card download hoga jisme guest ka name aur amount likha hoga.
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        <button type="button" class="btn-send-wa" id="sendWaBtn">
+          <span>📲</span> <span>Send QR on WhatsApp</span>
+        </button>
+
+        <div class="btn-row">
+          <button type="button" class="btn-action btn-download" id="downloadBtn">
+            <span>📥</span> <span>Download QR</span>
+          </button>
+          <button type="button" class="btn-action btn-copy" id="copyBtn">
+            <span>📋</span> <span>Copy UPI Link</span>
+          </button>
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+
+  <div class="footer-note">
+    The Unique Haven Homes · Luxury Boutique Homestays<br>
+    Official Settlement Gateway · <a href="admin.html">Staff Portal</a>
+  </div>
+
+  <div id="toast" class="toast">Link copied!</div>
+
+  <script>
+    const PAYEES = {
+      firoz: {
+        id: 'firoz',
+        name: 'Mr. Firoz Khan',
+        upiId: '8299600709@ybl',
+        phone: '+91 82996 00709',
+        label: 'Mr. Firoz Khan (Default)'
+      },
+      praveen: {
+        id: 'praveen',
+        name: 'Mr. Praveen Singh',
+        upiId: '9454470872@apl',
+        phone: '+91 94544 70872',
+        label: 'Mr. Praveen Singh'
+      }
+    };
+
+    let currentPayee = 'firoz';
+
+    function selectPayee(payeeKey) {
+      currentPayee = payeeKey;
+      document.getElementById('payeeFiroz').classList.toggle('active', payeeKey === 'firoz');
+      document.getElementById('payeePraveen').classList.toggle('active', payeeKey === 'praveen');
+      updateLivePreview();
+    }
+
+    function showToast(msg) {
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.style.display = 'block';
+      setTimeout(() => { t.style.display = 'none'; }, 2200);
+    }
+
+    function getUpiDetails() {
+      const guest = document.getElementById('guestName').value.trim() || 'Guest';
+      const amt = Math.max(0, parseInt(document.getElementById('customAmount').value) || 0);
+      const roomFull = document.getElementById('roomSelect').value;
+      const payee = PAYEES[currentPayee] || PAYEES.firoz;
+
+      // Extract short clean unit name
+      const shortRoom = roomFull.includes('-') ? roomFull.split('-')[1].trim() : roomFull;
+      const cleanGuest = guest.replace(/[^a-zA-Z0-9 ]/g, '').trim().slice(0, 20);
+      const cleanUnit = shortRoom.replace(/[^a-zA-Z0-9 ]/g, '').trim().slice(0, 16);
+      const cleanNote = `${cleanGuest} - ${cleanUnit}`.slice(0, 42);
+
+      const upiString = amt > 0
+        ? `upi://pay?pa=${encodeURIComponent(payee.upiId)}&pn=${encodeURIComponent(payee.name)}&am=${amt}&cu=INR&tn=${encodeURIComponent(cleanNote)}`
+        : `upi://pay?pa=${encodeURIComponent(payee.upiId)}&pn=${encodeURIComponent(payee.name)}&cu=INR&tn=${encodeURIComponent(cleanNote)}`;
+
+      const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=350x350&margin=2&color=1E1B4B&bgcolor=FFFFFF&data=${encodeURIComponent(upiString)}`;
+
+      return { guest, amt, roomFull, cleanNote, payee, upiString, qrUrl };
+    }
+
+    function updateLivePreview() {
+      const { guest, amt, roomFull, cleanNote, payee, qrUrl } = getUpiDetails();
+      document.getElementById('cardAmount').textContent = `₹${amt.toLocaleString('en-IN')}`;
+      document.getElementById('cardNote').textContent = cleanNote;
+      document.getElementById('cardPayee').textContent = `${payee.name} (${payee.upiId})`;
+      document.getElementById('previewGuest').textContent = `👤 Guest: ${guest}`;
+      document.getElementById('previewRoom').textContent = `🏡 ${roomFull.slice(0, 25)}`;
+      document.getElementById('qrImg').src = qrUrl;
+    }
+
+    // Build 800x1060 Retina Branded Card Canvas
+    async function buildBrandedPaymentCardBlob(details) {
+      const { guest, amt, roomFull, cleanNote, payee, qrUrl } = details;
+      const canvas = document.createElement('canvas');
+      canvas.width = 800;
+      canvas.height = 1060;
+      const ctx = canvas.getContext('2d');
+
+      function roundRect(x, y, w, h, r, fill, stroke, strokeColor) {
+        ctx.beginPath();
+        ctx.moveTo(x + r, y);
+        ctx.lineTo(x + w - r, y);
+        ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+        ctx.lineTo(x + w, y + h - r);
+        ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+        ctx.lineTo(x + r, y + h);
+        ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+        ctx.lineTo(x, y + r);
+        ctx.quadraticCurveTo(x, y, x + r, y);
+        ctx.closePath();
+        if (fill) { ctx.fillStyle = fill; ctx.fill(); }
+        if (stroke) { ctx.lineWidth = stroke; ctx.strokeStyle = strokeColor; ctx.stroke(); }
+      }
+
+      ctx.fillStyle = '#FFFFFF';
+      ctx.fillRect(0, 0, 800, 1060);
+      ctx.lineWidth = 4;
+      ctx.strokeStyle = '#E2E8F0';
+      ctx.strokeRect(0, 0, 800, 1060);
+
+      // Header Gradient
+      const grad = ctx.createLinearGradient(0, 0, 800, 170);
+      grad.addColorStop(0, '#0F172A');
+      grad.addColorStop(0.5, '#1E1B4B');
+      grad.addColorStop(1, '#3730A3');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, 800, 170);
+
+      ctx.fillStyle = '#F59E0B';
+      ctx.fillRect(0, 0, 800, 6);
+
+      ctx.textAlign = 'center';
+      ctx.fillStyle = '#FFFFFF';
+      ctx.font = 'bold 26px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+      ctx.fillText('THE UNIQUE HAVEN HOMES', 400, 62);
+
+      ctx.fillStyle = '#FCD34D';
+      ctx.font = 'bold 13px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+      ctx.fillText('LUXURY BOUTIQUE HOMESTAYS · OFFICIAL PAYMENT QR', 400, 94);
+
+      ctx.fillStyle = '#C7D2FE';
+      ctx.font = '12px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+      ctx.fillText(`Govt. Registered Homestays · Helpline: ${payee.phone}`, 400, 124);
+
+      // Guest & Property Box
+      roundRect(40, 190, 720, 95, 14, '#F8FAFC', 1.5, '#CBD5E1');
+      ctx.textAlign = 'left';
+      ctx.fillStyle = '#64748B';
+      ctx.font = 'bold 11px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+      ctx.fillText('GUEST NAME', 65, 222);
+      ctx.fillStyle = '#0F172A';
+      ctx.font = 'bold 22px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+      ctx.fillText(guest.slice(0, 25), 65, 256);
+
+      ctx.textAlign = 'right';
+      ctx.fillStyle = '#64748B';
+      ctx.font = 'bold 11px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+      ctx.fillText('PROPERTY / UNIT', 735, 222);
+      ctx.fillStyle = '#4338CA';
+      ctx.font = 'bold 19px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+      ctx.fillText(roomFull.slice(0, 28), 735, 256);
+
+      // Amount Highlight
+      roundRect(40, 300, 720, 85, 14, '#ECFDF5', 2, '#10B981');
+      ctx.textAlign = 'left';
+      ctx.fillStyle = '#065F46';
+      ctx.font = 'bold 12px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+      ctx.fillText('AMOUNT TO PAY', 65, 330);
+      ctx.fillStyle = '#047857';
+      ctx.font = '900 38px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+      ctx.fillText(`₹${amt.toLocaleString('en-IN')}`, 65, 368);
+
+      roundRect(585, 324, 150, 38, 19, '#10B981', 0);
+      ctx.textAlign = 'center';
+      ctx.fillStyle = '#FFFFFF';
+      ctx.font = 'bold 13px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+      ctx.fillText('🔒 AUTO-LOCKED', 660, 348);
+
+      // QR Frame
+      roundRect(235, 405, 330, 330, 16, '#FFFFFF', 3, '#818CF8');
+      try {
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        await new Promise((res) => {
+          img.onload = res;
+          img.onerror = res;
+          img.src = qrUrl;
+        });
+        if (img.complete && img.naturalWidth > 0) {
+          ctx.drawImage(img, 250, 420, 300, 300);
+        }
+      } catch (e) {
+        console.warn('QR draw error:', e);
+      }
+
+      // App Badges
+      const badges = [
+        { name: 'PhonePe', color: '#5F259F' },
+        { name: 'Google Pay', color: '#1A73E8' },
+        { name: 'Paytm', color: '#00B9F1' },
+        { name: 'BHIM UPI', color: '#00796B' }
+      ];
+      let bx = 165;
+      badges.forEach(b => {
+        roundRect(bx, 750, 105, 28, 7, b.color, 0);
+        ctx.fillStyle = '#FFFFFF';
+        ctx.font = 'bold 12px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(b.name, bx + 52, 769);
+        bx += 120;
+      });
+
+      // Payee Information Box
+      roundRect(40, 795, 720, 140, 14, '#F1F5F9', 1.5, '#CBD5E1');
+      ctx.textAlign = 'center';
+      ctx.fillStyle = '#64748B';
+      ctx.font = 'bold 11px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+      ctx.fillText('BENEFICIARY ACCOUNT (SETTLEMENT UPI)', 400, 820);
+      ctx.fillStyle = '#0F172A';
+      ctx.font = 'bold 20px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+      ctx.fillText(payee.name, 400, 848);
+      ctx.fillStyle = '#4338CA';
+      ctx.font = 'bold 24px monospace';
+      ctx.fillText(payee.upiId, 400, 882);
+      ctx.fillStyle = '#334155';
+      ctx.font = 'bold 13px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+      ctx.fillText(`Auto Receipt Note: ${cleanNote}`, 400, 915);
+
+      // Bottom Footer Bar
+      ctx.fillStyle = '#0F172A';
+      ctx.fillRect(0, 955, 800, 105);
+      ctx.fillStyle = '#94A3B8';
+      ctx.font = '12px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+      ctx.fillText('Scan with any UPI app · Please share screenshot after payment', 400, 988);
+      ctx.fillStyle = '#FCD34D';
+      ctx.font = 'bold 13px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+      ctx.fillText(`Helpline / WhatsApp: ${payee.phone}`, 400, 1018);
+
+      return new Promise(resolve => {
+        canvas.toBlob(blob => resolve(blob), 'image/png');
+      });
+    }
+
+    // Event listeners
+    document.getElementById('guestName').addEventListener('input', updateLivePreview);
+    document.getElementById('roomSelect').addEventListener('change', updateLivePreview);
+    document.getElementById('customAmount').addEventListener('input', updateLivePreview);
+
+    // Initial render
+    updateLivePreview();
+
+    // 1. Send WhatsApp
+    document.getElementById('sendWaBtn').addEventListener('click', async () => {
+      const details = getUpiDetails();
+      const { guest, amt, roomFull, cleanNote, payee, upiString, qrUrl } = details;
+      const rawPhone = document.getElementById('guestPhone').value.replace(/\D/g, '');
+
+      if (amt <= 0) {
+        alert('Please enter an amount to request.');
+        document.getElementById('customAmount').focus();
+        return;
+      }
+
+      const NL = '\n';
+      const waMsg = `Dear *${guest}*,${NL}` +
+        `Please pay *₹${amt.toLocaleString('en-IN')}* for *${roomFull}*.${NL}${NL}` +
+        `⚡ *UPI Pay Link:*${NL}` +
+        `${upiString}${NL}${NL}` +
+        `📷 *QR Code Link:*${NL}` +
+        `${qrUrl}${NL}${NL}` +
+        `• UPI ID: *${payee.upiId}* (${payee.name})${NL}` +
+        `• Note: *${cleanNote}*${NL}${NL}` +
+        `Payment ke baad screenshot share kar dijiye.`;
+
+      if (navigator.canShare && navigator.userAgent.match(/Android|iPhone|iPad/i)) {
+        try {
+          const blob = await buildBrandedPaymentCardBlob(details);
+          if (blob) {
+            const file = new File([blob], `Payment_QR_${guest.replace(/\s+/g, '_')}_Rs${amt}.png`, { type: 'image/png' });
+            if (navigator.canShare({ files: [file] })) {
+              await navigator.share({
+                title: `Payment QR - ₹${amt}`,
+                text: waMsg,
+                files: [file]
+              });
+              return;
+            }
+          }
+        } catch (err) {
+          console.log('Native share bypassed:', err);
+        }
+      }
+
+      if (rawPhone.length >= 10) {
+        const targetWa = rawPhone.length === 10 ? '91' + rawPhone : rawPhone;
+        window.open(`https://wa.me/${targetWa}?text=${encodeURIComponent(waMsg)}`, '_blank');
+      } else {
+        window.open(`https://wa.me/?text=${encodeURIComponent(waMsg)}`, '_blank');
+      }
+    });
+
+    // 2. Download QR
+    document.getElementById('downloadBtn').addEventListener('click', async () => {
+      const details = getUpiDetails();
+      const { guest, amt } = details;
+      const btn = document.getElementById('downloadBtn');
+      btn.disabled = true;
+      btn.innerHTML = '<span>⏳</span> <span>Generating...</span>';
+      try {
+        const blob = await buildBrandedPaymentCardBlob(details);
+        if (blob) {
+          const a = document.createElement('a');
+          a.href = URL.createObjectURL(blob);
+          a.download = `TUHH_QR_${guest.replace(/\s+/g, '_')}_Rs${amt}.png`;
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          showToast('Payment QR Card downloaded!');
+        } else {
+          window.open(details.qrUrl, '_blank');
+        }
+      } catch (e) {
+        console.error(e);
+        window.open(details.qrUrl, '_blank');
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<span>📥</span> <span>Download QR</span>';
+      }
+    });
+
+    // 3. Copy Link
+    document.getElementById('copyBtn').addEventListener('click', () => {
+      const { amt, upiString } = getUpiDetails();
+      navigator.clipboard.writeText(upiString).then(() => {
+        showToast(`UPI Pay link for ₹${amt.toLocaleString('en-IN')} copied!`);
+      });
+    });
+  </script>
+</body>
+</html>
