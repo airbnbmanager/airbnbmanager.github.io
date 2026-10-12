@@ -8635,19 +8635,38 @@ window.openCustomPaymentQRModal = async function(prefill = {}) {
         </div>
 
         <!-- Live QR Code Card with Locked Parameters -->
-        <div style="background:#FFFFFF;border-radius:12px;border:1.5px solid #CBD5E1;padding:12px;box-shadow:0 2px 8px rgba(15,23,42,0.06);margin-top:2px;box-sizing:border-box;">
+        <div style="background:#FFFFFF;border-radius:14px;border:1.5px solid #CBD5E1;overflow:hidden;box-shadow:0 4px 16px rgba(15,23,42,0.08);margin-top:2px;box-sizing:border-box;">
           
-          <div style="display:flex;align-items:center;justify-content:center;margin-bottom:8px;">
-            <div style="padding:6px;background:#FFFFFF;border-radius:12px;border:2px solid #818CF8;box-shadow:0 4px 14px rgba(99,102,241,0.18);">
-              <img id="cpqrImg" src="" alt="UPI QR Code" style="width:150px;height:150px;display:block;border-radius:6px;" />
+          <!-- Card Header Banner -->
+          <div style="background:linear-gradient(135deg, #0F172A 0%, #1E1B4B 60%, #4338CA 100%);color:#FFFFFF;padding:10px 14px;display:flex;align-items:center;justify-content:space-between;gap:6px;">
+            <div style="font-size:11px;font-weight:800;letter-spacing:0.5px;color:#FCD34D;">THE UNIQUE HAVEN HOMES</div>
+            <div style="display:flex;gap:3px;">
+              <span style="background:#5F259F;color:#fff;font-size:8.5px;font-weight:800;padding:2px 5px;border-radius:4px;">PhonePe</span>
+              <span style="background:#1A73E8;color:#fff;font-size:8.5px;font-weight:800;padding:2px 5px;border-radius:4px;">GPay</span>
+              <span style="background:#00B9F1;color:#fff;font-size:8.5px;font-weight:800;padding:2px 5px;border-radius:4px;">Paytm</span>
+            </div>
+          </div>
+
+          <!-- Guest & Property Tag Strip -->
+          <div style="background:#EEF2FF;padding:8px 12px;border-bottom:1px solid #E0E7FF;display:flex;justify-content:space-between;align-items:center;font-size:11px;gap:6px;">
+            <div style="font-weight:800;color:#1E1B4B;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" id="cpqrPreviewGuest">👤 Guest: -</div>
+            <div style="font-weight:700;color:#4338CA;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" id="cpqrPreviewRoom">🏡 -</div>
+          </div>
+
+          <div style="padding:14px 12px 10px;text-align:center;">
+            <div style="padding:8px;background:#FFFFFF;border-radius:14px;border:2.5px solid #818CF8;display:inline-block;box-shadow:0 4px 16px rgba(99,102,241,0.2);">
+              <img id="cpqrImg" src="" alt="UPI QR Code" style="width:160px;height:160px;display:block;border-radius:8px;" />
+            </div>
+            <div style="margin-top:6px;font-size:10px;font-weight:800;color:#4338CA;letter-spacing:0.5px;">
+              ⚡ SCAN WITH ANY UPI APP
             </div>
           </div>
 
           <!-- Locked Details Badge Strip -->
-          <div style="background:#F1F5F9;border-radius:8px;padding:8px 10px;display:flex;flex-direction:column;gap:5px;font-size:11.5px;color:#1E293B;">
+          <div style="background:#F8FAFC;border-top:1px solid #E2E8F0;padding:9px 12px;display:flex;flex-direction:column;gap:5px;font-size:11.5px;color:#1E293B;">
             <div style="display:flex;justify-content:space-between;align-items:center;">
               <span style="color:#64748B;font-weight:600;">🔒 Amount Locked:</span>
-              <span id="cpqrCardAmount" style="font-weight:900;color:#059669;font-size:13px;">₹2,500</span>
+              <span id="cpqrCardAmount" style="font-weight:900;color:#059669;font-size:14px;">₹2,500</span>
             </div>
             <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
               <span style="color:#64748B;font-weight:600;flex-shrink:0;">📝 Note in Screenshot:</span>
@@ -8659,8 +8678,8 @@ window.openCustomPaymentQRModal = async function(prefill = {}) {
             </div>
           </div>
 
-          <div style="margin-top:8px;font-size:10.5px;color:#64748B;line-height:1.4;text-align:center;">
-            ⚡ Google Pay / PhonePe / Paytm me Amount aur Note automatic fill rahenge.
+          <div style="padding:6px 10px;background:#FEF3C7;font-size:10px;color:#92400E;text-align:center;font-weight:600;">
+            💡 Download karne par poora colored branded card download hoga jisme guest ka name aur amount likha hoga.
           </div>
         </div>
 
@@ -8695,6 +8714,8 @@ window.openCustomPaymentQRModal = async function(prefill = {}) {
   const amtIn = overlay.querySelector('#cpqrAmount');
   const cardAmt = overlay.querySelector('#cpqrCardAmount');
   const cardNote = overlay.querySelector('#cpqrCardNote');
+  const previewGuest = overlay.querySelector('#cpqrPreviewGuest');
+  const previewRoom = overlay.querySelector('#cpqrPreviewRoom');
   const qrImg = overlay.querySelector('#cpqrImg');
   const sendWaBtn = overlay.querySelector('#cpqrSendWaBtn');
   const downloadBtn = overlay.querySelector('#cpqrDownloadBtn');
@@ -8729,15 +8750,190 @@ window.openCustomPaymentQRModal = async function(prefill = {}) {
       ? `upi://pay?pa=8299600709@ybl&pn=Firoz%20Khan&am=${amt}&cu=INR&tn=${encodeURIComponent(cleanNote)}`
       : `upi://pay?pa=8299600709@ybl&pn=Firoz%20Khan&cu=INR&tn=${encodeURIComponent(cleanNote)}`;
 
-    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&margin=2&color=0F172A&bgcolor=FFFFFF&data=${encodeURIComponent(upiString)}`;
+    // Dark indigo/navy colored QR dots for luxury look
+    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=350x350&margin=2&color=1E1B4B&bgcolor=FFFFFF&data=${encodeURIComponent(upiString)}`;
 
     return { guest, amt, roomFull, cleanNote, upiString, qrUrl };
   }
 
+  // 🎨 Build high-resolution colored branded payment card canvas
+  async function buildBrandedPaymentCardBlob(details) {
+    const { guest, amt, roomFull, cleanNote, qrUrl } = details;
+    const canvas = document.createElement('canvas');
+    canvas.width = 800;
+    canvas.height = 1060;
+    const ctx = canvas.getContext('2d');
+
+    function roundRect(x, y, w, h, r, fill, stroke, strokeColor) {
+      ctx.beginPath();
+      ctx.moveTo(x + r, y);
+      ctx.lineTo(x + w - r, y);
+      ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+      ctx.lineTo(x + w, y + h - r);
+      ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+      ctx.lineTo(x + r, y + h);
+      ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+      ctx.lineTo(x, y + r);
+      ctx.quadraticCurveTo(x, y, x + r, y);
+      ctx.closePath();
+      if (fill) { ctx.fillStyle = fill; ctx.fill(); }
+      if (stroke) { ctx.lineWidth = stroke; ctx.strokeStyle = strokeColor; ctx.stroke(); }
+    }
+
+    // 1. Pristine card background
+    ctx.fillStyle = '#FFFFFF';
+    ctx.fillRect(0, 0, 800, 1060);
+
+    // Outer border
+    ctx.lineWidth = 4;
+    ctx.strokeStyle = '#E2E8F0';
+    ctx.strokeRect(0, 0, 800, 1060);
+
+    // 2. Header gradient
+    const grad = ctx.createLinearGradient(0, 0, 800, 170);
+    grad.addColorStop(0, '#0F172A');
+    grad.addColorStop(0.5, '#1E1B4B');
+    grad.addColorStop(1, '#3730A3');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, 800, 170);
+
+    // Gold top bar
+    ctx.fillStyle = '#F59E0B';
+    ctx.fillRect(0, 0, 800, 6);
+
+    // Header Title
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#FFFFFF';
+    ctx.font = 'bold 26px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+    ctx.fillText('THE UNIQUE HAVEN HOMES', 400, 62);
+
+    ctx.fillStyle = '#FCD34D';
+    ctx.font = 'bold 13px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+    ctx.fillText('LUXURY BOUTIQUE HOMESTAYS · OFFICIAL PAYMENT QR', 400, 94);
+
+    ctx.fillStyle = '#C7D2FE';
+    ctx.font = '12px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+    ctx.fillText('Govt. Registered Homestays · Helpline: +91 82996 00709', 400, 124);
+
+    // 3. Guest & Property Info Box
+    roundRect(40, 190, 720, 95, 14, '#F8FAFC', 1.5, '#CBD5E1');
+
+    ctx.textAlign = 'left';
+    ctx.fillStyle = '#64748B';
+    ctx.font = 'bold 11px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+    ctx.fillText('GUEST NAME', 65, 222);
+    ctx.fillStyle = '#0F172A';
+    ctx.font = 'bold 22px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+    const displayGuest = guest.length > 25 ? guest.slice(0, 25) + '...' : guest;
+    ctx.fillText(displayGuest, 65, 256);
+
+    ctx.textAlign = 'right';
+    ctx.fillStyle = '#64748B';
+    ctx.font = 'bold 11px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+    ctx.fillText('PROPERTY / UNIT', 735, 222);
+    ctx.fillStyle = '#4338CA';
+    ctx.font = 'bold 19px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+    const displayRoom = roomFull.length > 28 ? roomFull.slice(0, 28) + '...' : roomFull;
+    ctx.fillText(displayRoom, 735, 256);
+
+    // 4. Amount Highlight Box
+    roundRect(40, 300, 720, 85, 14, '#ECFDF5', 2, '#10B981');
+    
+    ctx.textAlign = 'left';
+    ctx.fillStyle = '#065F46';
+    ctx.font = 'bold 12px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+    ctx.fillText('AMOUNT TO PAY', 65, 330);
+
+    ctx.fillStyle = '#047857';
+    ctx.font = '900 38px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+    ctx.fillText(`₹${amt.toLocaleString('en-IN')}`, 65, 368);
+
+    // Locked badge
+    roundRect(585, 324, 150, 38, 19, '#10B981', 0);
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#FFFFFF';
+    ctx.font = 'bold 13px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+    ctx.fillText('🔒 AUTO-LOCKED', 660, 348);
+
+    // 5. QR Code Frame
+    roundRect(235, 405, 330, 330, 16, '#FFFFFF', 3, '#818CF8');
+
+    // Load and draw QR
+    try {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      await new Promise((res) => {
+        img.onload = res;
+        img.onerror = res;
+        img.src = qrUrl;
+      });
+      if (img.complete && img.naturalWidth > 0) {
+        ctx.drawImage(img, 250, 420, 300, 300);
+      }
+    } catch (e) {
+      console.warn('QR draw error:', e);
+    }
+
+    // 6. UPI App Badges
+    const badges = [
+      { name: 'PhonePe', color: '#5F259F' },
+      { name: 'Google Pay', color: '#1A73E8' },
+      { name: 'Paytm', color: '#00B9F1' },
+      { name: 'BHIM UPI', color: '#00796B' }
+    ];
+    let bx = 165;
+    badges.forEach(b => {
+      roundRect(bx, 750, 105, 28, 7, b.color, 0);
+      ctx.fillStyle = '#FFFFFF';
+      ctx.font = 'bold 12px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(b.name, bx + 52, 769);
+      bx += 120;
+    });
+
+    // 7. Payee Information Box
+    roundRect(40, 795, 720, 140, 14, '#F1F5F9', 1.5, '#CBD5E1');
+
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#64748B';
+    ctx.font = 'bold 11px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+    ctx.fillText('BENEFICIARY ACCOUNT (SETTLEMENT UPI)', 400, 820);
+
+    ctx.fillStyle = '#0F172A';
+    ctx.font = 'bold 20px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+    ctx.fillText('Mr. Firoz Khan', 400, 848);
+
+    ctx.fillStyle = '#4338CA';
+    ctx.font = 'bold 24px monospace';
+    ctx.fillText('8299600709@ybl', 400, 882);
+
+    ctx.fillStyle = '#334155';
+    ctx.font = 'bold 13px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+    ctx.fillText(`Auto Receipt Note: ${cleanNote}`, 400, 915);
+
+    // 8. Bottom Footer Bar
+    ctx.fillStyle = '#0F172A';
+    ctx.fillRect(0, 955, 800, 105);
+
+    ctx.fillStyle = '#94A3B8';
+    ctx.font = '12px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+    ctx.fillText('Scan with any UPI app · Please share screenshot after payment', 400, 988);
+
+    ctx.fillStyle = '#FCD34D';
+    ctx.font = 'bold 13px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+    ctx.fillText('Helpline / WhatsApp: +91 82996 00709', 400, 1018);
+
+    return new Promise(resolve => {
+      canvas.toBlob(blob => resolve(blob), 'image/png');
+    });
+  }
+
   function updateLivePreview() {
-    const { amt, cleanNote, qrUrl } = getUpiDetails();
+    const { guest, amt, roomFull, cleanNote, qrUrl } = getUpiDetails();
     cardAmt.textContent = `₹${amt.toLocaleString('en-IN')}`;
     cardNote.textContent = cleanNote;
+    previewGuest.textContent = `👤 Guest: ${guest}`;
+    previewRoom.textContent = `🏡 ${roomFull}`;
     qrImg.src = qrUrl;
   }
 
@@ -8750,7 +8946,8 @@ window.openCustomPaymentQRModal = async function(prefill = {}) {
 
   // 1. WhatsApp Button
   sendWaBtn.addEventListener('click', async () => {
-    const { guest, amt, roomFull, cleanNote, upiString, qrUrl } = getUpiDetails();
+    const details = getUpiDetails();
+    const { guest, amt, roomFull, cleanNote, upiString, qrUrl } = details;
     const rawPhone = phoneIn.value.replace(/\D/g, '');
 
     if (amt <= 0) {
@@ -8771,45 +8968,59 @@ window.openCustomPaymentQRModal = async function(prefill = {}) {
       `• Note: *${cleanNote}*${NL}${NL}` +
       `Payment ke baad screenshot share kar dijiye.`;
 
+    // Mobile Web Share with Branded Card Image
+    if (navigator.canShare && navigator.userAgent.match(/Android|iPhone|iPad/i)) {
+      try {
+        const blob = await buildBrandedPaymentCardBlob(details);
+        if (blob) {
+          const file = new File([blob], `Payment_QR_${guest.replace(/\s+/g, '_')}_Rs${amt}.png`, { type: 'image/png' });
+          if (navigator.canShare({ files: [file] })) {
+            await navigator.share({
+              title: `Payment QR - ₹${amt}`,
+              text: waMsg,
+              files: [file]
+            });
+            return;
+          }
+        }
+      } catch (err) {
+        console.log('Native share bypassed, opening wa.me:', err);
+      }
+    }
+
     if (rawPhone.length >= 10) {
       const targetWa = rawPhone.length === 10 ? '91' + rawPhone : rawPhone;
       window.open(`https://wa.me/${targetWa}?text=${encodeURIComponent(waMsg)}`, '_blank');
-    } else if (navigator.canShare && navigator.userAgent.match(/Android|iPhone|iPad/i)) {
-      try {
-        const res = await fetch(qrUrl);
-        const blob = await res.blob();
-        const file = new File([blob], `Payment_QR_${guest.replace(/\s+/g, '_')}_Rs${amt}.png`, { type: 'image/png' });
-        if (navigator.canShare({ files: [file] })) {
-          await navigator.share({
-            title: `Payment QR - ₹${amt}`,
-            text: waMsg,
-            files: [file]
-          });
-          return;
-        }
-      } catch (err) {
-        window.open(`https://wa.me/?text=${encodeURIComponent(waMsg)}`, '_blank');
-      }
     } else {
       window.open(`https://wa.me/?text=${encodeURIComponent(waMsg)}`, '_blank');
     }
   });
 
-  // 2. Download QR Image
+  // 2. Download QR Image (Beautiful Branded Card)
   downloadBtn.addEventListener('click', async () => {
-    const { guest, amt, qrUrl } = getUpiDetails();
+    const details = getUpiDetails();
+    const { guest, amt } = details;
+    downloadBtn.disabled = true;
+    downloadBtn.innerHTML = '<span>⏳</span> <span>Generating...</span>';
     try {
-      const res = await fetch(qrUrl);
-      const blob = await res.blob();
-      const a = document.createElement('a');
-      a.href = URL.createObjectURL(blob);
-      a.download = `TUHH_QR_${guest.replace(/\s+/g, '_')}_Rs${amt}.png`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      if (window.fsn) fsn.success('Downloaded', 'QR image downloaded successfully!');
+      const blob = await buildBrandedPaymentCardBlob(details);
+      if (blob) {
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = `TUHH_QR_${guest.replace(/\s+/g, '_')}_Rs${amt}.png`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        if (window.fsn) fsn.success('Downloaded', 'Beautiful branded payment QR card downloaded!');
+      } else {
+        window.open(details.qrUrl, '_blank');
+      }
     } catch (e) {
-      window.open(qrUrl, '_blank');
+      console.error(e);
+      window.open(details.qrUrl, '_blank');
+    } finally {
+      downloadBtn.disabled = false;
+      downloadBtn.innerHTML = '<span>📥</span> <span>Download QR</span>';
     }
   });
 
