@@ -8552,11 +8552,11 @@ window.submitSecurityRefund = async function(bkId) {
 // ⚡ CUSTOM PAYMENT QR GENERATOR & INSTANT GUEST SETTLEMENT
 // ═══════════════════════════════════════════════════════════
 window.openCustomPaymentQRModal = async function(prefill = {}) {
-  // 1. Fetch available rooms
+  // 1. Fetch available rooms with complete property details
   let rooms = window._cachedRooms || [];
-  if (!rooms.length) {
+  if (!rooms.length || !rooms[0]?.property_name) {
     try {
-      const { data } = await sb.from('rooms').select('room_id, unit_no, nickname').order('room_id');
+      const { data } = await sb.from('rooms').select('room_id, unit_no, nickname, property_name, name').order('room_id');
       if (data && data.length) {
         rooms = data;
         window._cachedRooms = rooms;
@@ -8815,16 +8815,21 @@ window.openCustomPaymentQRModal = async function(prefill = {}) {
 
   function getSelectedRoomLabel() {
     const val = roomSel.value;
-    if (!val) return 'Homestay';
+    if (!val) return 'The Unique Haven Homes';
     const r = rooms.find(x => x.room_id === val);
-    return r ? propLabel(r) : val;
+    if (!r) return val;
+    // Prefer clean property name / nickname like website: "The Dark Blue (FLAT201)" or "Celebrity Garden (FLAT402)"
+    if (r.nickname && r.unit_no) return `${r.nickname} (${r.unit_no})`;
+    if (r.property_name) return r.property_name.split('|')[0].split('/')[0].trim();
+    return r.nickname || r.unit_no || val;
   }
 
   function getSelectedRoomShort() {
     const val = roomSel.value;
     if (!val) return 'Stay';
     const r = rooms.find(x => x.room_id === val);
-    return r ? (r.unit_no || r.nickname || val) : val;
+    if (!r) return val;
+    return r.unit_no || r.nickname || val;
   }
 
   function getUpiDetails() {
