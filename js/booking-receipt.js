@@ -65,6 +65,11 @@ window.BOOKING_RECEIPT_ENGINE = (function() {
       .replace(/'/g, '&#039;');
   }
 
+  function cleanNotes(notes) {
+    if (!notes) return '';
+    return String(notes).replace(/<!--SEC_DEP:[\s\S]*?-->/g, '').trim();
+  }
+
   function calcNights(cin, cout) {
     if (!cin || !cout) return 1;
     const diff = new Date(cout) - new Date(cin);
@@ -186,7 +191,7 @@ window.BOOKING_RECEIPT_ENGINE = (function() {
     const todayStr = formatDate(new Date().toISOString().slice(0, 10));
 
     const receiptNo = options.receiptNo || `UHH-REC/${booking.booking_id}`;
-    const customNotes = options.customNotes || booking.notes || '';
+    const customNotes = options.customNotes || cleanNotes(booking.notes) || '';
 
     let statusText = 'Fully Paid';
     let statusClass = 'status-paid';
@@ -395,10 +400,10 @@ window.BOOKING_RECEIPT_ENGINE = (function() {
         <!-- 📞 Management & Support Contacts Strip -->
         <div style="border:1px solid #E2E8F0;border-radius:5px;padding:3px 8px;background:#F8FAFC;margin-bottom:5px;display:flex;justify-content:space-between;align-items:center;font-size:9px;flex-wrap:wrap;gap:4px;">
           <div>
-            👤 <strong>Property Manager:</strong> ${CO.managerName} (📞 <a href="tel:${CO.managerPhone}" style="color:#0F172A;text-decoration:none;font-weight:700;">${CO.managerPhone}</a>)
+            👑 <strong>Company Owners &amp; Directors:</strong>
           </div>
           <div>
-            👑 <strong>Company Owners:</strong> ${CO.owners.map(o => `<strong>${o.name}:</strong> 📞 <a href="tel:${o.phone.replace(/[^0-9+]/g,'')}" style="color:#0F172A;text-decoration:none;font-weight:700;">${o.phone}</a>`).join(' &nbsp;|&nbsp; ')}
+            ${CO.owners.map(o => `<strong>${o.name}:</strong> 📞 <a href="tel:${o.phone.replace(/[^0-9+]/g,'')}" style="color:#0F172A;text-decoration:none;font-weight:700;">${o.phone}</a>`).join(' &nbsp;|&nbsp; ')}
           </div>
         </div>
 
@@ -480,11 +485,10 @@ Thank you for choosing *The Unique Haven Homes*. Your direct reservation has bee
 ▪️ *Total Booking Amount:* ₹${totalAmount.toLocaleString('en-IN')}
 ▪️ *Advance Paid:* ₹${paidAmount.toLocaleString('en-IN')} ✅
 ▪️ *Balance Due:* ₹${balanceDue.toLocaleString('en-IN')} ${balanceDue > 0 ? '⚠️ (Payable at Check-in)' : '✅ (Fully Cleared)'}
-━━━━━━━━━━━━━━━━━━━━${payHistoryText}${booking.notes ? `\n\n📝 *Special Note:*\n${booking.notes}` : ''}
+━━━━━━━━━━━━━━━━━━━━${payHistoryText}${cleanNotes(booking.notes) ? `\n\n📝 *Special Note:*\n${cleanNotes(booking.notes)}` : ''}
 
-👤 *Property Manager:* Praveen Singh (+91 9194109911)
-
-👑 *Company Owners / Director:*
+👑 *Company Owners / Directors:*
+• Mr. Shahanshah: +91 94500 55554
 • Mr. Firoz Khan: +91 82996 00709
 
 📋 *Key Check-in Instructions:*
@@ -751,7 +755,10 @@ Thank you for choosing *The Unique Haven Homes*. Your direct reservation has bee
     const paidAmount = Number(data.paidAmount || 0);
     const balanceDue = Number(data.balanceDue || 0);
     const payments = data.payments || [];
-    const customNotes = data.customNotes || (isMulti ? (data.primaryBooking?.notes || data.bookings?.[0]?.notes || '') : (data.booking?.notes || ''));
+    const multiNotes = isMulti
+      ? Array.from(new Set((data.bookings || []).map(b => cleanNotes(b.notes)).filter(Boolean))).join(' · ')
+      : '';
+    const customNotes = data.customNotes || (isMulti ? (multiNotes || cleanNotes(data.primaryBooking?.notes) || '') : cleanNotes(data.booking?.notes));
     const bookedBy = isMulti ? (data.primaryBooking?.booked_by || '') : (data.booking?.booked_by || '');
 
     const receiptNo = isMulti ? `UHH-GRP/${data.stayGroupId || 'GROUP'}` : `UHH-REC/${data.booking?.booking_id || 'SLIP'}`;
@@ -997,8 +1004,8 @@ Thank you for choosing *The Unique Haven Homes*. Your direct reservation has bee
         <!-- Support Strip -->
         <div style="background:#F8FAFC;border:1.5px solid #CBD5E1;border-radius:10px;padding:9px 12px;margin-bottom:10px;font-size:11.5px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;">
           <div>
-            👤 <strong>Manager:</strong> Praveen Singh<br>
-            📞 <a href="tel:+919194109911" style="color:#0F172A;text-decoration:none;font-weight:900;">+91 9194109911</a>
+            👑 <strong>Director / Owner:</strong> Shahanshah<br>
+            📞 <a href="tel:+919450055554" style="color:#0F172A;text-decoration:none;font-weight:900;">+91 94500 55554</a>
           </div>
           <div>
             👑 <strong>Director / Owner:</strong> Firoz Khan<br>
@@ -1519,7 +1526,8 @@ Thank you for choosing *The Unique Haven Homes*. Your direct reservation has bee
       totalAmount,
       paidAmount,
       balanceDue,
-      primaryBooking
+      primaryBooking,
+      customNotes: Array.from(new Set((bookings || []).map(b => cleanNotes(b.notes)).filter(Boolean))).join(' · ')
     };
   }
 
@@ -1543,7 +1551,8 @@ Thank you for choosing *The Unique Haven Homes*. Your direct reservation has bee
 
     const todayStr = formatDate(new Date().toISOString().slice(0, 10));
     const receiptNo = options.receiptNo || `UHH-GRP/${stayGroupId || 'RECEIPT'}`;
-    const customNotes = options.customNotes || primaryBooking?.notes || '';
+    const groupNotes = data.customNotes || Array.from(new Set((bookings || []).map(b => cleanNotes(b.notes)).filter(Boolean))).join(' · ');
+    const customNotes = options.customNotes || groupNotes || cleanNotes(primaryBooking?.notes) || '';
 
     let statusBadgeText = '✅ FULLY PAID';
     let statusBg = '#DEF7EC';
@@ -1690,6 +1699,7 @@ Thank you for choosing *The Unique Haven Homes*. Your direct reservation has bee
                     <td style="padding:4px 6px;">
                       <strong style="color:#0F172A;font-size:10.5px;">${escapeHtml(prop)}${escapeHtml(unit)}</strong>${mapLink}
                       <span style="font-size:9px;color:#64748B;"> · ID: ${escapeHtml(b.booking_id)} · ${escapeHtml(room.address || 'Lucknow')}</span>
+                      ${cleanNotes(b.notes) ? `<div style="font-size:8.5px;color:#B45309;font-weight:700;margin-top:2px;">📝 ${escapeHtml(cleanNotes(b.notes))}</div>` : ''}
                     </td>
                     <td style="padding:4px 6px;">
                       <strong>${formatDate(b.check_in)}</strong> (${ciTime}) → <strong>${formatDate(b.check_out)}</strong> (${coTime})
@@ -1797,10 +1807,10 @@ Thank you for choosing *The Unique Haven Homes*. Your direct reservation has bee
         <!-- 📞 Management & Support Contacts Strip -->
         <div style="border:1px solid #E2E8F0;border-radius:5px;padding:3px 8px;background:#F8FAFC;margin-bottom:5px;display:flex;justify-content:space-between;align-items:center;font-size:9px;flex-wrap:wrap;gap:4px;">
           <div>
-            👤 <strong>Property Manager:</strong> ${CO.managerName} (📞 <a href="tel:${CO.managerPhone}" style="color:#0F172A;text-decoration:none;font-weight:700;">${CO.managerPhone}</a>)
+            👑 <strong>Company Owners &amp; Directors:</strong>
           </div>
           <div>
-            👑 <strong>Company Owners:</strong> ${CO.owners.map(o => `<strong>${o.name}:</strong> 📞 <a href="tel:${o.phone.replace(/[^0-9+]/g,'')}" style="color:#0F172A;text-decoration:none;font-weight:700;">${o.phone}</a>`).join(' &nbsp;|&nbsp; ')}
+            ${CO.owners.map(o => `<strong>${o.name}:</strong> 📞 <a href="tel:${o.phone.replace(/[^0-9+]/g,'')}" style="color:#0F172A;text-decoration:none;font-weight:700;">${o.phone}</a>`).join(' &nbsp;|&nbsp; ')}
           </div>
         </div>
 
@@ -1879,6 +1889,8 @@ Thank you for choosing *The Unique Haven Homes*. Your direct reservation has bee
    🌙 ${n} Night(s) · 👥 ${b.guests || 1} Guest(s) · ₹${Number(b.total_amount || 0).toLocaleString('en-IN')}${address}${mapStr}`;
     }).join('\n\n');
 
+    const groupNotes = data.customNotes || Array.from(new Set((bookings || []).map(b => cleanNotes(b.notes)).filter(Boolean))).join(' · ');
+
     return `🏨 *THE UNIQUE HAVEN HOMES*
 *CONSOLIDATED MULTI-PROPERTY BOOKING CONFIRMATION & ADVANCE RECEIPT*
 Namaste *${guestName || 'Guest'}* ji 🙏
@@ -1899,11 +1911,10 @@ ${propertiesList}
 ▪️ *Total Booking Amount:* ₹${totalAmount.toLocaleString('en-IN')}
 ▪️ *Advance Paid:* ₹${paidAmount.toLocaleString('en-IN')} ✅
 ▪️ *Balance Due at Check-in:* ₹${balanceDue.toLocaleString('en-IN')} ${balanceDue > 0 ? '⚠️ (Payable upon arrival)' : '✅ (Fully Cleared)'}
-━━━━━━━━━━━━━━━━━━━━${payHistoryText}${bookings && bookings[0]?.notes ? `\n\n📝 *Special Note:*\n${bookings[0].notes}` : ''}
+━━━━━━━━━━━━━━━━━━━━${payHistoryText}${groupNotes ? `\n\n📝 *Special Note:*\n${groupNotes}` : ''}
 
-👤 *Property Manager:* Praveen Singh (+91 9194109911)
-
-👑 *Company Owners / Director:*
+👑 *Company Owners / Directors:*
+• Mr. Shahanshah: +91 94500 55554
 • Mr. Firoz Khan: +91 82996 00709
 
 📋 *Key Check-in Instructions:*

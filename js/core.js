@@ -1418,6 +1418,12 @@ function renderShell(content, activePage = 'dashboard') {
               <span class="qr-btn-text">QR Pay</span>
             </button>
 
+            <!-- Keyboard Shortcuts Button -->
+            <button type="button" class="topbar-qr-pill-btn" onclick="window.openShortcutsModal && window.openShortcutsModal()" title="Keyboard Shortcuts (Press ? or ⌥/)" style="background:#1E293B;color:#94A3B8;border:1px solid #334155;padding:5px 9px;">
+              <span style="font-size:12px;">⚡</span>
+              <span class="qr-btn-text" style="font-size:11px;font-weight:700;">Keys</span>
+            </button>
+
             <!-- Desktop Search Bar -->
             <div class="topbar-search">
               <span class="search-icon" style="cursor:pointer;" onclick="window.triggerGlobalSearch && window.triggerGlobalSearch()" title="Click to Search">🔍</span>
@@ -3521,8 +3527,22 @@ async function getActiveUsers() {
     const close = () => {
       overlay.classList.add('closing');
       setTimeout(() => overlay.remove(), 200);
+      document.removeEventListener('keydown', onKey);
     };
-    overlay.querySelector('[data-fsn-close]').onclick = close;
+
+    const onKey = (e) => {
+      if (e.key === 'Enter' || e.key === 'Escape' || e.key === 'Esc') {
+        e.preventDefault();
+        close();
+      }
+    };
+    document.addEventListener('keydown', onKey);
+
+    const closeBtn = overlay.querySelector('[data-fsn-close]');
+    if (closeBtn) {
+      closeBtn.onclick = close;
+      setTimeout(() => closeBtn.focus(), 50);
+    }
     overlay.onclick = e => { if (e.target === overlay) close(); };
 
     // Haptic feedback on notification

@@ -1198,6 +1198,8 @@ window.openBookingDrawer = async function(bookingId) {
     window._sbkState.cachedBookings.push(b);
   }
   window._currentDrawerBooking = b;
+  window._currentDrawerBookingId = b.booking_id;
+  if (window._sbkState) window._sbkState.drawerBookingId = b.booking_id;
 
   // Fetch individual payments for this booking
   const { data: payments } = await sb.from('payment_history')
@@ -1499,6 +1501,9 @@ window.drawerOpenWhatsApp = async function(bookingId, phone, guestName, btn) {
 window.closeBookingDrawer = function() {
   const container = document.getElementById('sbkDrawerContainer');
   if (container) container.innerHTML = '';
+  window._currentDrawerBooking = null;
+  window._currentDrawerBookingId = null;
+  if (window._sbkState) window._sbkState.drawerBookingId = null;
 };
 
 // =====================================================================

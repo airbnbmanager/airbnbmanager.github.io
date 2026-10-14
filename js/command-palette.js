@@ -8,24 +8,59 @@
 
   // ─── 1. Navigation & Actions Directory ───
   const SYSTEM_COMMANDS = [
-    { type: 'action', icon: '🎙️', title: 'Voice-to-Booking (Hindi/English)', sub: 'Speak to create a booking instantly', action: () => window.openVoiceBookingModal() },
-    { type: 'action', icon: '➕', title: 'New Booking Form', sub: 'Open manual booking creation', action: () => { if (window.renderAddBooking) window.renderAddBooking(); else window.navigate('bookings'); } },
-    { type: 'action', icon: '🧹', title: 'Housekeeping Turnaround Board', sub: 'Open realtime Kanban room turnaround', action: () => { window.setFlatsViewMode && window.setFlatsViewMode('kanban'); window.navigate('flats'); } },
-    { type: 'action', icon: '📱', title: 'WhatsApp Hub & Automations', sub: 'Guest chat triggers, scheduled messages', action: () => window.navigate('whatsapp-hub') },
-    
-    // Page Routes
-    { type: 'page', icon: '📊', title: 'Dashboard', sub: 'Overview, KPIs, live occupancy', page: 'dashboard' },
-    { type: 'page', icon: '📑', title: 'Smart Bookings', sub: 'Search reservations, follow-ups, passes', page: 'bookings' },
-    { type: 'page', icon: '📅', title: 'Calendar View', sub: 'Airbnb-style multi-property calendar', page: 'calendar' },
-    { type: 'page', icon: '🛏️', title: 'Flats & Housekeeping', sub: 'Rooms status, dirty/clean turnaround', page: 'flats' },
-    { type: 'page', icon: '📝', title: 'Daily Report', sub: 'Daily collections, handovers, check-ins', page: 'daily-report' },
-    { type: 'page', icon: '💰', title: 'Cash Book', sub: 'Income, petty expenses, UPI reconciliation', page: 'cashbook' },
-    { type: 'page', icon: '🧾', title: 'GST Invoices & CA Pack', sub: 'Tax invoices, bills, audit reports', page: 'ca-audit' },
-    { type: 'page', icon: '🧺', title: 'Laundry Tracker', sub: 'Linen counts, washer pickups & deliveries', page: 'laundry' },
-    { type: 'page', icon: '📈', title: 'Analytics & RevPAR', sub: 'Revenue charts, ADR, occupancy heatmap', page: 'analytics' },
-    { type: 'page', icon: '⏰', title: 'Reminders & Follow-ups', sub: 'Pending payments, ID collections', page: 'reminders' },
-    { type: 'page', icon: '👥', title: 'Employees & HRMS', sub: 'Staff attendance, salaries, tasks', page: 'employees' },
-    { type: 'page', icon: '📋', title: 'SOPs & Checklists', sub: 'Standard operating procedures', page: 'sop' }
+    // ⚡ Fast Booking Actions & Shortcuts
+    { type: 'action', icon: '🎙️', title: 'Voice-to-Booking (Hindi/English)', sub: 'Speak to create a booking instantly [Voice AI]', keywords: ['voice', 'bolkar', 'bolke', 'mic', 'nisha', 'speak', 'audio', 'ai booking'], action: () => window.openVoiceBookingModal() },
+    { type: 'action', icon: '➕', title: 'New Booking Form (Alt+N)', sub: 'Open manual booking creation wizard [Alt+N]', keywords: ['new booking', 'add booking', 'create reservation', 'naya', 'book', 'reservation', 'alt+n'], action: () => window.openNewBookingShortcut() },
+    { type: 'action', icon: '📋', title: 'Duplicate Existing Booking (Alt+D)', sub: 'Clone active booking or pick recent guest to rebook [Alt+D]', keywords: ['duplicate', 'clone', 'copy', 'repeat guest', 'rebook', 'wahi booking', 'alt+d', 'dupe'], action: () => window.duplicateExistingBookingShortcut() },
+    { type: 'action', icon: '💵', title: 'Add Payment / Quick Pay (Alt+P)', sub: 'Record payment for active booking or quick pay picker [Alt+P]', keywords: ['pay', 'payment', 'add payment', 'record payment', 'collect', 'jama', 'paisa', 'baki', 'due', 'receipt', 'fees', 'alt+p'], action: () => window.openQuickPaymentShortcut() },
+    { type: 'action', icon: '⚡', title: 'Instant QR Code Pay / UPI Collect', sub: 'Generate UPI QR code to collect payment instantly', keywords: ['qr', 'qr pay', 'upi', 'scan', 'gpay', 'phonepe', 'paytm', 'barcode', 'instant pay'], action: () => { if (window.openCustomPaymentQRModal) window.openCustomPaymentQRModal(); else if (window.openQuickQRPayModal) window.openQuickQRPayModal(); } },
+    { type: 'action', icon: '⌨️', title: 'Keyboard Shortcuts Help (?)', sub: 'View all keyboard shortcuts and fast keys [?]', keywords: ['shortcuts', 'keys', 'keyboard', 'help', 'fast keys', 'command', 'cheatsheet', '?'], action: () => window.openShortcutsModal() },
+
+    // 🧹 Tasks & Housekeeping Operations
+    { type: 'action', icon: '📋', title: 'Staff Tasks & Checklists (Tasks)', sub: 'Manage housekeeping, deep cleans, staff duties & inspection checklists', keywords: ['task', 'tasks', 'duty', 'checklist', 'housekeeping', 'staff task', 'kaam', 'clean', 'assign', 'inspection'], action: () => window.navigate('tasks') },
+    { type: 'action', icon: '➕', title: 'Create New Staff Task', sub: 'Assign room cleaning, maintenance, or errand to staff member', keywords: ['new task', 'add task', 'create task', 'assign task', 'duty', 'checklist', 'kaam do'], action: () => { window.navigate('tasks'); setTimeout(() => { if (typeof window.renderAddTask === 'function') window.renderAddTask(); }, 160); } },
+    { type: 'action', icon: '🧹', title: 'Housekeeping Turnaround Board (Alt+F)', sub: 'Realtime Kanban room turnaround (Dirty ➔ Cleaning ➔ Ready) [Alt+F]', keywords: ['turnaround', 'dirty', 'clean', 'inspected', 'kanban', 'flats', 'room status', 'safai', 'housekeeping board', 'alt+f'], action: () => window.openFlatsShortcut() },
+    { type: 'action', icon: '📖', title: 'SOPs & Operational Checklists', sub: 'Standard operating procedures for cleaning, check-in & safety', keywords: ['sop', 'checklist', 'procedure', 'rules', 'manual', 'standard operating procedure'], action: () => window.navigate('sop') },
+
+    // 💰 Advances, Salaries & HRMS
+    { type: 'action', icon: '💸', title: 'Staff Advances Tracker (Advance)', sub: 'Track employee advances, deductions & outstanding loan balances', keywords: ['advance', 'advances', 'employee advance', 'staff advance', 'advance ledger', 'peshgi', 'udhar', 'loan'], action: () => window.navigate('advance') },
+    { type: 'action', icon: '➕', title: 'Record New Staff Advance', sub: 'Issue cash or UPI advance payment to staff member', keywords: ['give advance', 'new advance', 'add advance', 'advance do', 'staff loan', 'advance payment'], action: () => { window.navigate('advance'); setTimeout(() => { if (typeof window.renderAddAdv === 'function') window.renderAddAdv(); }, 160); } },
+    { type: 'action', icon: '🏢', title: 'Company Advances Ledger', sub: 'Track business owner & partner corporate cash withdrawals', keywords: ['company advance', 'company advances', 'business advance', 'company ledger', 'owner advance', 'partner advance'], action: () => window.navigate('company-advances') },
+    { type: 'action', icon: '💼', title: 'Staff Salaries & Payroll', sub: 'Monthly salary calculations, advance deductions & net payouts', keywords: ['salary', 'payroll', 'tankhwah', 'staff pay', 'wages', 'monthly salary', 'salaries'], action: () => window.navigate('salary') },
+    { type: 'action', icon: '💳', title: 'Pay Staff Salary Voucher', sub: 'Generate staff salary voucher and record payment', keywords: ['pay salary', 'salary voucher', 'salary slip', 'payment to staff', 'salary record'], action: () => { window.navigate('salary'); setTimeout(() => { if (typeof window.renderAddSal === 'function') window.renderAddSal(); }, 160); } },
+    { type: 'action', icon: '🛡️', title: 'Security Deposits & Advance Refunds', sub: 'Manage guest caution deposits, deduction logs & UPI refunds', keywords: ['security deposit', 'deposit', 'advance refund', 'caution money', 'guest deposit', 'wapas', 'refund'], action: () => { if (typeof window.showAllSecurityDeposits === 'function') window.showAllSecurityDeposits(); else window.navigate('bookings'); } },
+    { type: 'action', icon: '🗓️', title: 'Staff Attendance (Mark Today)', sub: 'Mark daily check-in, presence, overtime & leaves for staff', keywords: ['attendance', 'haziri', 'daily attendance', 'present', 'absent', 'check in staff', 'overtime'], action: () => window.navigate('attendance') },
+    { type: 'action', icon: '📊', title: 'Monthly Attendance Summary', sub: 'Monthly staff muster roll & attendance percentage report', keywords: ['attendance report', 'monthly haziri', 'att summary', 'attendance sheet', 'muster roll'], action: () => window.navigate('att-summary') },
+    { type: 'action', icon: '👥', title: 'Employees Directory & HRMS', sub: 'Staff profiles, KYC documents, designations & contact numbers', keywords: ['employees', 'staff', 'workers', 'caretakers', 'maids', 'hrms', 'team', 'staff list'], action: () => window.navigate('employees') },
+
+    // 💵 Cash Book, Expenses & Financials
+    { type: 'action', icon: '💰', title: 'Cash Book & Counter Handover (Alt+M)', sub: 'Petty cash ledger, cash in hand & daily shift handovers [Alt+M]', keywords: ['cashbook', 'cash book', 'cash', 'handover', 'petty cash', 'counter cash', 'tijori', 'locker', 'alt+m'], action: () => window.openCashBookShortcut() },
+    { type: 'action', icon: '📉', title: 'Expenses & P&L Tracker', sub: 'Property operational expenses, utility bills & grocery receipts', keywords: ['expenses', 'expense', 'kharcha', 'spending', 'pnl', 'overhead', 'bills', 'profit loss'], action: () => window.navigate('expenses') },
+    { type: 'action', icon: '🧾', title: 'Staff Daily Expense Claims', sub: 'Staff market purchases, fuel, diesel, and maintenance bills', keywords: ['employee expense', 'staff bill', 'staff claim', 'diesel', 'petrol', 'grocery', 'saman', 'bill'], action: () => window.navigate('emp-expenses') },
+    { type: 'action', icon: '🔄', title: 'Staff Reimbursements', sub: 'Approved staff claim reimbursements and settlement payouts', keywords: ['reimburse', 'claims', 'refund to staff', 'reimbursement', 'reimbursements'], action: () => window.navigate('reimbursements') },
+    { type: 'action', icon: '✅', title: 'Pending Approvals & Handovers', sub: 'Verify and authorize shift cash handovers & staff expenses', keywords: ['approvals', 'pending handover', 'verify', 'signoff', 'authorize', 'manzoori', 'approvals'], action: () => window.navigate('pendingApprovals') },
+
+    // 📅 Bookings & Reservations Views
+    { type: 'action', icon: '📅', title: 'Calendar View (Alt+C)', sub: 'Airbnb-style visual calendar grid across all properties [Alt+C]', keywords: ['calendar', 'dates', 'occupancy', 'timeline', 'grid', 'schedule', 'cal', 'alt+c'], action: () => window.openCalendarShortcut() },
+    { type: 'action', icon: '📑', title: 'Smart Bookings (Alt+B)', sub: 'All guest reservations, filter by channel, status or balance [Alt+B]', keywords: ['bookings', 'reservations', 'guest list', 'smart bookings', 'all bookings', 'alt+b'], action: () => window.openBookingsShortcut() },
+    { type: 'action', icon: '🚪', title: 'Today’s Check-ins (Arrivals)', sub: 'Guests arriving today across all luxury villas and apartments', keywords: ['checkin', 'check-in', 'arrivals', 'today arrivals', 'aaj ke guest', 'aane wale', 'today checkin'], action: () => { window.navigate('bookings'); setTimeout(() => { if (window.setBookingTab) window.setBookingTab('today'); }, 150); } },
+    { type: 'action', icon: '🛫', title: 'Today’s Check-outs (Departures)', sub: 'Guests leaving today, turnaround alerts & bill settlements', keywords: ['checkout', 'check-out', 'departures', 'leaving', 'jane wale', 'today checkout'], action: () => { window.navigate('bookings'); setTimeout(() => { if (window.setBookingTab) window.setBookingTab('departures'); }, 150); } },
+    { type: 'action', icon: '⚠️', title: 'Unpaid & Balance Due Bookings', sub: 'Reservations with pending balance payment or unpaid dues', keywords: ['unpaid', 'balance due', 'pending payment', 'due amount', 'baki', 'udhar guest', 'dues'], action: () => { window.navigate('bookings'); setTimeout(() => { if (window.setBookingTab) window.setBookingTab('unpaid'); }, 150); } },
+    { type: 'action', icon: '⭐', title: 'Review Radar & Follow-up Calls', sub: 'Airbnb 14-day review alerts, guest feedback logs & ratings', keywords: ['review', 'reviews', 'feedback', '5 star', 'airbnb review', 'follow up', 'rating', 'call guest'], action: () => window.navigate('reviews-followup') },
+    { type: 'action', icon: '📱', title: 'WhatsApp Hub & Guest Automations', sub: 'Automated check-in guides, WiFi vouchers & guest chat triggers', keywords: ['whatsapp', 'wa', 'message', 'triggers', 'automated message', 'welcome msg', 'guest chat', 'chat'], action: () => window.navigate('whatsapp-hub') },
+
+    // 📊 Reports, Invoices & Operations
+    { type: 'action', icon: '📝', title: 'Daily Revenue & Operations Report (Alt+R)', sub: 'Daily collections, occupancy summary & audit logs [Alt+R]', keywords: ['daily report', 'revenue', 'collection', 'daily hisab', 'roj ka hisab', 'day report', 'income today', 'alt+r'], action: () => window.openDailyReportShortcut() },
+    { type: 'action', icon: '🧾', title: 'GST Tax Invoices & CA Audit Pack', sub: 'Generate tax invoices, customer GST bills & monthly CA exports', keywords: ['gst', 'tax invoice', 'ca pack', 'ca audit', 'bill', 'government tax', 'tax bill', 'invoice'], action: () => window.navigate('ca-audit') },
+    { type: 'action', icon: '📈', title: 'Financial Analytics & RevPAR', sub: 'Revenue charts, ADR, RevPAR trends & property performance', keywords: ['analytics', 'revpar', 'adr', 'occupancy', 'graph', 'charts', 'trends', 'revenue analytics'], action: () => window.navigate('analytics') },
+    { type: 'action', icon: '🏡', title: 'Property Performance Report', sub: 'Villa & room-level revenue, expenses & net operating income', keywords: ['property report', 'villa report', 'room revenue', 'profit per unit', 'unit report'], action: () => window.navigate('property-report') },
+    { type: 'action', icon: '🔄', title: 'Airbnb Direct Channel Sync', sub: 'Instant bi-directional sync with Airbnb calendars & rates', keywords: ['airbnb', 'sync', 'channel manager', 'calendar sync', 'ota', 'airbnb sync'], action: () => window.navigate('airbnb-sync') },
+    { type: 'action', icon: '📅', title: 'iCal Calendar Sync (Booking.com/Agoda)', sub: 'Import and export iCalendar feeds for external OTA channels', keywords: ['ical', 'calendar feed', 'booking.com', 'agoda', 'export ical', 'import ical'], action: () => window.navigate('ical-sync') },
+    { type: 'action', icon: '🧺', title: 'Laundry Tracker & Linen Counts', sub: 'Track bedsheets, duvet covers, towels & washer laundry runs', keywords: ['laundry', 'linen', 'sheets', 'towels', 'dhobi', 'washing', 'chadar', 'bedsheet'], action: () => window.navigate('laundry') },
+    { type: 'action', icon: '📦', title: 'Store & Inventory Supplies', sub: 'Track toiletries, water bottles, tea kits & room amenities', keywords: ['store', 'inventory', 'stock', 'toiletries', 'supplies', 'godown', 'amenities'], action: () => window.navigate('store') },
+    { type: 'action', icon: '🔧', title: 'Maintenance Log & Repairs', sub: 'Log AC servicing, plumbing fixes, electrical repairs & asset upkeep', keywords: ['maintenance', 'repair', 'ac', 'plumbing', 'electrician', 'fix', 'tuta', 'kharab', 'servicing'], action: () => window.navigate('maintenance') },
+    { type: 'action', icon: '👥', title: 'User Management & Role Permissions', sub: 'Staff portal logins, role assignments (Admin, Manager, Staff)', keywords: ['users', 'roles', 'permissions', 'admin', 'login', 'access', 'staff login', 'user mgmt'], action: () => window.navigate('user-mgmt') },
+    { type: 'action', icon: '⚙️', title: 'System Settings & Property Config', sub: 'Company details, property policies, tax numbers & defaults', keywords: ['settings', 'config', 'profile', 'business setup', 'company details', 'preferences'], action: () => window.navigate('settings') }
   ];
 
   // ─── 2. Properties Directory ───
@@ -160,18 +195,690 @@
   }
   window.closeCommandPalette = closeCommandPalette;
 
-  // Keyboard shortcut listener (Cmd+K / Ctrl+K)
+  // ─── 4B. Global Keyboard Shortcuts Actions ───
+  window.openNewBookingShortcut = function() {
+    if (typeof window.renderAddBooking === 'function') {
+      window.renderAddBooking();
+    } else if (typeof window.navigate === 'function') {
+      window.navigate('bookings');
+      setTimeout(() => {
+        if (typeof window.renderAddBooking === 'function') window.renderAddBooking();
+      }, 200);
+    }
+  };
+
+  // ─── 4A. Helper: Find Currently Open / Active Booking ───
+  function getCurrentlyActiveBookingId() {
+    // 1. Check slide-over drawer (smart-bookings / calendar)
+    const drawerEl = document.querySelector('#sbkDrawerContainer .sbk-drawer');
+    if (drawerEl) {
+      if (window._currentDrawerBooking?.booking_id) return String(window._currentDrawerBooking.booking_id);
+      if (window._currentDrawerBookingId) return String(window._currentDrawerBookingId);
+      if (window._sbkState?.drawerBookingId) return String(window._sbkState.drawerBookingId);
+
+      // Extract from Duplicate button inside drawer
+      const dupeBtn = drawerEl.querySelector('[onclick*="drawerDuplicateBooking"], [onclick*="duplicateBooking"]');
+      if (dupeBtn) {
+        const m = dupeBtn.getAttribute('onclick')?.match(/(?:drawerDuplicateBooking|duplicateBooking)\(['"]([^'"]+)['"]\)/);
+        if (m && m[1]) return m[1];
+      }
+
+      // Extract from Payment button inside drawer
+      const payBtn = drawerEl.querySelector('[onclick*="showPaymentModal"], [onclick*="openAddPaymentModal"]');
+      if (payBtn) {
+        const m = payBtn.getAttribute('onclick')?.match(/(?:showPaymentModal|openAddPaymentModal)\(['"]([^'"]+)['"]\)/);
+        if (m && m[1]) return m[1];
+      }
+
+      // Extract reference string (e.g. B1791968864128)
+      const refMatch = drawerEl.innerText.match(/\bB\d{10,}\b/);
+      if (refMatch) return refMatch[0];
+    }
+
+    // 2. Check open modal overlays
+    const modals = Array.from(document.querySelectorAll('.modal-overlay')).filter(m => 
+      m.id !== 'uhhShortcutsModal' && m.id !== 'uhhDupePickerModal' && m.id !== 'uhhQuickPayPickerModal'
+    );
+    for (const m of modals) {
+      const dupeBtn = m.querySelector('[onclick*="duplicateBooking"]');
+      if (dupeBtn) {
+        const match = dupeBtn.getAttribute('onclick')?.match(/duplicateBooking\(['"]([^'"]+)['"]\)/);
+        if (match && match[1]) return match[1];
+      }
+      const payBtn = m.querySelector('[onclick*="showPaymentModal"], [onclick*="openAddPaymentModal"]');
+      if (payBtn) {
+        const match = payBtn.getAttribute('onclick')?.match(/(?:showPaymentModal|openAddPaymentModal)\(['"]([^'"]+)['"]\)/);
+        if (match && match[1]) return match[1];
+      }
+      const bIdInput = m.querySelector('#bookingIdField, [name="booking_id"], [data-booking-id]');
+      if (bIdInput) {
+        const val = bIdInput.value || bIdInput.getAttribute('data-booking-id');
+        if (val) return String(val);
+      }
+      const ref = m.innerText.match(/\bB\d{10,}\b/);
+      if (ref) return ref[0];
+    }
+
+    // 3. Check memory & state variables
+    if (window._activeReceiptData?.booking?.booking_id) return String(window._activeReceiptData.booking.booking_id);
+    if (window._activeSingleReceiptData?.booking?.booking_id) return String(window._activeSingleReceiptData.booking.booking_id);
+    if (window._activeMultiReceiptData?.primaryBooking?.booking_id) return String(window._activeMultiReceiptData.primaryBooking.booking_id);
+    if (window._activeMultiReceiptData?.bookings?.[0]?.booking_id) return String(window._activeMultiReceiptData.bookings[0].booking_id);
+    if (window._currentDrawerBooking?.booking_id) return String(window._currentDrawerBooking.booking_id);
+    if (window._currentDrawerBookingId) return String(window._currentDrawerBookingId);
+    if (window._activeBookingId) return String(window._activeBookingId);
+    if (window._currentOpenBookingId) return String(window._currentOpenBookingId);
+
+    return null;
+  }
+  window.getCurrentlyActiveBookingId = getCurrentlyActiveBookingId;
+
+  // 🔄 Duplicate Existing Booking Shortcut (Alt+D / D)
+  window.duplicateExistingBookingShortcut = async function(bookingId) {
+    const activeBkId = bookingId || getCurrentlyActiveBookingId();
+
+    if (activeBkId && typeof window.duplicateBooking === 'function') {
+      // 1. Close slide-over drawer if open
+      if (typeof window.closeBookingDrawer === 'function') {
+        window.closeBookingDrawer();
+      }
+
+      // 2. Close open modal overlays
+      document.querySelectorAll('.modal-overlay').forEach(m => {
+        if (m.id !== 'uhhShortcutsModal' && m.id !== 'uhhDupePickerModal' && m.id !== 'uhhQuickPayPickerModal') m.remove();
+      });
+
+      // 3. Keep SESSION in sync
+      if (typeof SESSION !== 'undefined') {
+        SESSION.currentPage = 'bookings';
+      }
+      if (window.location.hash !== '#bookings') {
+        try { history.replaceState(null, '', '#bookings'); } catch(e) {}
+      }
+
+      // 4. Duplicate the booking
+      window.duplicateBooking(activeBkId);
+      return;
+    }
+
+    // Otherwise show the duplicate picker modal
+    window.openDuplicateBookingPickerModal();
+  };
+
+  // 💵 Quick Payment / Add Payment Shortcut (Alt+P / P)
+  window.openQuickPaymentShortcut = async function(bookingId) {
+    const activeBkId = bookingId || getCurrentlyActiveBookingId();
+
+    if (activeBkId) {
+      if (typeof window.showPaymentModal === 'function') {
+        window.showPaymentModal(activeBkId);
+        return;
+      } else if (typeof window.openAddPaymentModal === 'function') {
+        window.openAddPaymentModal(activeBkId);
+        return;
+      }
+    }
+
+    // Otherwise show the quick payment picker modal
+    window.openQuickPaymentPickerModal();
+  };
+
+  // ─── 4C. Quick Payment Picker Modal ───
+  window.openQuickPaymentPickerModal = async function() {
+    let oldModal = document.getElementById('uhhQuickPayPickerModal');
+    if (oldModal) oldModal.remove();
+
+    const modal = document.createElement('div');
+    modal.className = 'modal-overlay';
+    modal.id = 'uhhQuickPayPickerModal';
+    modal.style.zIndex = '999999';
+    modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
+
+    modal.innerHTML = `
+      <div class="modal-box" style="max-width:680px;width:95%;padding:22px;border-radius:16px;background:#0F172A;color:#fff;box-shadow:0 25px 60px -12px rgba(0,0,0,0.7);border:1px solid rgba(255,255,255,0.1);max-height:85vh;display:flex;flex-direction:column;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid rgba(255,255,255,0.1);">
+          <div style="display:flex;align-items:center;gap:10px;">
+            <span style="font-size:24px;">💵</span>
+            <div>
+              <div style="font-weight:900;font-size:16.5px;color:#F8FAFC;">Add Payment / Quick Collect (Alt+P)</div>
+              <div style="font-size:11.5px;color:#94A3B8;">1-Click record payment, UPI dues or collect outstanding balances</div>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <button type="button" class="btn-sm" style="background:#059669;color:#fff;border:none;padding:5px 12px;border-radius:8px;font-size:11.5px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:5px;" onclick="document.getElementById('uhhQuickPayPickerModal')?.remove(); if(window.openCustomPaymentQRModal) window.openCustomPaymentQRModal();">
+              ⚡ Instant QR Pay
+            </button>
+            <button type="button" onclick="this.closest('.modal-overlay').remove()" style="width:32px;height:32px;border-radius:50%;background:#EF4444;border:none;color:#fff;font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;">✕</button>
+          </div>
+        </div>
+
+        <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
+          <input type="text" id="quickPaySearchInput" placeholder="🔍 Search guest name, phone, room, or booking ID..." style="flex:1;min-width:220px;box-sizing:border-box;background:#1E293B;border:1.5px solid #334155;color:#fff;border-radius:10px;padding:10px 14px;font-size:13px;outline:none;" />
+          <div style="display:flex;gap:4px;">
+            <button type="button" id="payFilterUnpaid" class="btn-sm" style="background:#3B82F6;color:#fff;border:none;padding:6px 12px;border-radius:8px;font-size:11.5px;font-weight:700;cursor:pointer;">Pending Dues</button>
+            <button type="button" id="payFilterAll" class="btn-sm" style="background:#1E293B;color:#94A3B8;border:1px solid #334155;padding:6px 12px;border-radius:8px;font-size:11.5px;font-weight:700;cursor:pointer;">All Stays</button>
+          </div>
+        </div>
+
+        <div id="quickPayBookingsList" style="flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:8px;padding-right:4px;">
+          <div style="text-align:center;padding:24px;color:#94A3B8;">⏳ Loading guest payment balances...</div>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    const input = document.getElementById('quickPaySearchInput');
+    if (input) input.focus();
+
+    let bookings = [];
+    let paidMap = window._bkPaidMap || window._sbkState?.cachedPaidMap || {};
+
+    try {
+      if (window.sb) {
+        const { data: bks } = await window.sb.from('guest_register')
+          .select('booking_id, guest_name, phone, room_id, check_in, check_out, total_amount, rooms(nickname, property_name, unit_no)')
+          .neq('is_cancelled', true)
+          .order('check_in', { ascending: false })
+          .limit(40);
+        bookings = bks || [];
+
+        // If paidMap is empty, fetch recent payments
+        if (Object.keys(paidMap).length === 0 && bookings.length > 0) {
+          const bkIds = bookings.map(x => x.booking_id);
+          const { data: pays } = await window.sb.from('payment_history')
+            .select('booking_id, amount, verification_status')
+            .in('booking_id', bkIds);
+          paidMap = {};
+          (pays || []).forEach(p => {
+            if (p.verification_status !== 'rejected') {
+              paidMap[p.booking_id] = (paidMap[p.booking_id] || 0) + (p.amount || 0);
+            }
+          });
+        }
+      }
+    } catch(e) {
+      console.warn('Could not load bookings for quick payment picker:', e);
+      bookings = window._rawBookingsList || [];
+    }
+
+    let currentFilter = 'unpaid';
+
+    function renderPayList() {
+      const listEl = document.getElementById('quickPayBookingsList');
+      if (!listEl) return;
+      const q = (input?.value || '').toLowerCase().trim();
+
+      let filtered = (bookings || []).filter(b => {
+        const tot = b.total_amount || 0;
+        const pd = paidMap[b.booking_id] || 0;
+        const due = tot - pd;
+        if (currentFilter === 'unpaid' && due <= 0) return false;
+
+        if (!q) return true;
+        const name = (b.guest_name || '').toLowerCase();
+        const ph = (b.phone || '').toLowerCase();
+        const rid = (b.room_id || '').toLowerCase();
+        const prop = (b.rooms?.nickname || b.rooms?.property_name || '').toLowerCase();
+        const bid = (b.booking_id || '').toLowerCase();
+        return name.includes(q) || ph.includes(q) || rid.includes(q) || prop.includes(q) || bid.includes(q);
+      });
+
+      // Sort: bookings with highest positive due balance first
+      filtered.sort((a, b) => {
+        const dueA = (a.total_amount || 0) - (paidMap[a.booking_id] || 0);
+        const dueB = (b.total_amount || 0) - (paidMap[b.booking_id] || 0);
+        return dueB - dueA;
+      });
+
+      if (!filtered.length) {
+        listEl.innerHTML = `
+          <div style="text-align:center;padding:28px 16px;color:#94A3B8;font-size:13px;">
+            ${currentFilter === 'unpaid' ? '🎉 No pending dues found in recent bookings!' : 'No matching bookings found.'}
+          </div>
+        `;
+        return;
+      }
+
+      listEl.innerHTML = filtered.slice(0, 25).map(b => {
+        const prop = b.rooms?.nickname || b.rooms?.property_name || b.room_id || 'Room';
+        const unit = b.rooms?.unit_no ? ` (${b.rooms.unit_no})` : '';
+        const tot = b.total_amount || 0;
+        const pd = paidMap[b.booking_id] || 0;
+        const due = tot - pd;
+        const isDue = due > 0;
+
+        return `
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:11px 14px;background:#1E293B;border:1px solid #334155;border-radius:10px;gap:12px;">
+            <div style="min-width:0;flex:1;">
+              <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                <span style="font-weight:800;font-size:14px;color:#F8FAFC;">${escapeHtml(b.guest_name || 'Guest')}</span>
+                <span style="font-size:11px;color:#38BDF8;font-weight:700;">${escapeHtml(prop)}${escapeHtml(unit)}</span>
+                ${isDue ? `
+                  <span style="font-size:10.5px;font-weight:800;background:rgba(239,68,68,0.2);color:#FCA5A5;border:1px solid rgba(239,68,68,0.4);padding:2px 7px;border-radius:6px;">
+                    Due: ₹${Math.round(due).toLocaleString('en-IN')}
+                  </span>
+                ` : `
+                  <span style="font-size:10.5px;font-weight:800;background:rgba(16,185,129,0.2);color:#6EE7B7;border:1px solid rgba(16,185,129,0.4);padding:2px 7px;border-radius:6px;">
+                    ✅ Fully Paid
+                  </span>
+                `}
+              </div>
+              <div style="font-size:11px;color:#94A3B8;margin-top:3px;">
+                📅 ${b.check_in || '-'} → ${b.check_out || '-'} · 📱 ${b.phone || 'No phone'} · Total: ₹${tot.toLocaleString('en-IN')} · Paid: ₹${pd.toLocaleString('en-IN')}
+              </div>
+            </div>
+            <div style="display:flex;gap:6px;align-items:center;flex-shrink:0;">
+              <button type="button" class="btn-sm" style="background:#10B981;color:#fff;border:none;padding:7px 13px;border-radius:8px;font-weight:800;cursor:pointer;font-size:12px;box-shadow:0 2px 8px rgba(16,185,129,0.35);"
+                onclick="document.getElementById('uhhQuickPayPickerModal')?.remove(); if(window.showPaymentModal) window.showPaymentModal('${b.booking_id}'); else if(window.openAddPaymentModal) window.openAddPaymentModal('${b.booking_id}');">
+                💵 Add Payment
+              </button>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    renderPayList();
+
+    if (input) {
+      input.oninput = () => renderPayList();
+    }
+
+    const btnUnpaid = document.getElementById('payFilterUnpaid');
+    const btnAll = document.getElementById('payFilterAll');
+    if (btnUnpaid && btnAll) {
+      btnUnpaid.onclick = () => {
+        currentFilter = 'unpaid';
+        btnUnpaid.style.background = '#3B82F6'; btnUnpaid.style.color = '#fff'; btnUnpaid.style.border = 'none';
+        btnAll.style.background = '#1E293B'; btnAll.style.color = '#94A3B8'; btnAll.style.border = '1px solid #334155';
+        renderPayList();
+      };
+      btnAll.onclick = () => {
+        currentFilter = 'all';
+        btnAll.style.background = '#3B82F6'; btnAll.style.color = '#fff'; btnAll.style.border = 'none';
+        btnUnpaid.style.background = '#1E293B'; btnUnpaid.style.color = '#94A3B8'; btnUnpaid.style.border = '1px solid #334155';
+        renderPayList();
+      };
+    }
+  };
+
+  // Quick picker modal for duplicating a booking when none is active
+  window.openDuplicateBookingPickerModal = async function() {
+    let oldModal = document.getElementById('uhhDupePickerModal');
+    if (oldModal) oldModal.remove();
+
+    const modal = document.createElement('div');
+    modal.className = 'modal-overlay';
+    modal.id = 'uhhDupePickerModal';
+    modal.style.zIndex = '999999';
+    modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
+
+    modal.innerHTML = `
+      <div class="modal-box" style="max-width:620px;width:95%;padding:22px;border-radius:16px;background:#0F172A;color:#fff;box-shadow:0 25px 60px -12px rgba(0,0,0,0.7);border:1px solid rgba(255,255,255,0.1);max-height:85vh;display:flex;flex-direction:column;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid rgba(255,255,255,0.1);">
+          <div style="display:flex;align-items:center;gap:10px;">
+            <span style="font-size:24px;">📋</span>
+            <div>
+              <div style="font-weight:900;font-size:16.5px;color:#F8FAFC;">Duplicate / Clone Existing Booking</div>
+              <div style="font-size:11.5px;color:#94A3B8;">1-Click duplicate with guest details, ID proof &amp; photos pre-filled</div>
+            </div>
+          </div>
+          <button type="button" onclick="this.closest('.modal-overlay').remove()" style="width:32px;height:32px;border-radius:50%;background:#EF4444;border:none;color:#fff;font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;">✕</button>
+        </div>
+
+        <div style="margin-bottom:12px;">
+          <input type="text" id="dupeSearchInput" placeholder="🔍 Search by guest name, phone, or property..." style="width:100%;box-sizing:border-box;background:#1E293B;border:1.5px solid #334155;color:#fff;border-radius:10px;padding:10px 14px;font-size:13px;outline:none;" />
+        </div>
+
+        <div id="dupeBookingsList" style="flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:8px;padding-right:4px;">
+          <div style="text-align:center;padding:20px;color:#94A3B8;">⏳ Loading recent bookings...</div>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    const input = document.getElementById('dupeSearchInput');
+    if (input) input.focus();
+
+    // Load bookings from cache or Supabase
+    let bookings = window._rawBookingsList || [];
+    if (!bookings.length && window.sb) {
+      try {
+        const { data } = await window.sb.from('guest_register')
+          .select('booking_id, guest_name, phone, room_id, check_in, check_out, total_amount, rooms(nickname, property_name, unit_no)')
+          .neq('is_cancelled', true)
+          .order('check_in', { ascending: false })
+          .limit(30);
+        bookings = data || [];
+      } catch(e) {
+        console.warn('Could not fetch bookings for duplicate picker:', e);
+      }
+    }
+
+    function renderList(query = '') {
+      const listEl = document.getElementById('dupeBookingsList');
+      if (!listEl) return;
+      const q = query.toLowerCase().trim();
+      const filtered = (bookings || []).filter(b => {
+        if (!q) return true;
+        const name = (b.guest_name || '').toLowerCase();
+        const ph = (b.phone || '').toLowerCase();
+        const rid = (b.room_id || '').toLowerCase();
+        const prop = (b.rooms?.nickname || b.rooms?.property_name || '').toLowerCase();
+        return name.includes(q) || ph.includes(q) || rid.includes(q) || prop.includes(q) || (b.booking_id || '').toLowerCase().includes(q);
+      }).slice(0, 20);
+
+      if (!filtered.length) {
+        listEl.innerHTML = '<div style="text-align:center;padding:20px;color:#94A3B8;">No matching bookings found.</div>';
+        return;
+      }
+
+      listEl.innerHTML = filtered.map(b => {
+        const prop = b.rooms?.nickname || b.rooms?.property_name || b.room_id || 'Homestay';
+        const unit = b.rooms?.unit_no ? ` (${b.rooms.unit_no})` : '';
+        return `
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:#1E293B;border:1px solid #334155;border-radius:10px;gap:10px;">
+            <div style="min-width:0;flex:1;">
+              <div style="font-weight:800;font-size:13.5px;color:#F8FAFC;">
+                ${escapeHtml(b.guest_name || 'Guest')}
+                <span style="font-size:11px;color:#38BDF8;font-weight:700;margin-left:6px;">${escapeHtml(prop)}${escapeHtml(unit)}</span>
+              </div>
+              <div style="font-size:11px;color:#94A3B8;margin-top:2px;">
+                📅 ${b.check_in || '-'} → ${b.check_out || '-'} · 📱 ${b.phone || 'No phone'} · ID: <code style="color:#C7D2FE;">${b.booking_id}</code>
+              </div>
+            </div>
+            <button type="button" class="btn-sm" style="background:#6366F1;color:#fff;border:none;padding:7px 14px;border-radius:8px;font-weight:800;cursor:pointer;white-space:nowrap;font-size:12px;box-shadow:0 2px 8px rgba(99,102,241,0.35);"
+              onclick="document.getElementById('uhhDupePickerModal')?.remove(); if(window.duplicateBooking) window.duplicateBooking('${b.booking_id}');">
+              📋 Duplicate
+            </button>
+          </div>
+        `;
+      }).join('');
+    }
+
+    renderList('');
+    if (input) {
+      input.oninput = (e) => renderList(e.target.value);
+    }
+  };
+
+  window.openCalendarShortcut = function() {
+    if (typeof window.navigate === 'function') {
+      window.navigate('calendar');
+    }
+  };
+
+  window.openBookingsShortcut = function() {
+    if (typeof SESSION !== 'undefined') {
+      SESSION.bookingPayFilter = '';
+    }
+    if (typeof window.navigate === 'function') {
+      window.navigate('bookings');
+    }
+    setTimeout(() => {
+      const sel = document.getElementById('fPayStatus');
+      if (sel && sel.value === 'duplicates') {
+        sel.value = '';
+        sel.dispatchEvent(new Event('change'));
+      }
+    }, 150);
+  };
+
+  window.openFlatsShortcut = function() {
+    if (window.setFlatsViewMode) window.setFlatsViewMode('kanban');
+    if (typeof window.navigate === 'function') {
+      window.navigate('flats');
+    }
+  };
+
+  window.openDailyReportShortcut = function() {
+    if (typeof window.navigate === 'function') {
+      window.navigate('daily-report');
+    }
+  };
+
+  window.openCashBookShortcut = function() {
+    if (typeof window.navigate === 'function') {
+      window.navigate('cashbook');
+    }
+  };
+
+  window.openShortcutsModal = function() {
+    let el = document.getElementById('uhhShortcutsModal');
+    if (el) { el.remove(); return; }
+
+    const isApple = navigator.platform.toUpperCase().indexOf('MAC') >= 0 || /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    const altSymbol = isApple ? '⌥' : 'Alt+';
+    const cmdSymbol = isApple ? '⌘' : 'Ctrl+';
+
+    el = document.createElement('div');
+    el.id = 'uhhShortcutsModal';
+    el.className = 'modal-overlay';
+    el.style.zIndex = '999999';
+    el.onclick = (e) => { if (e.target === el) el.remove(); };
+
+    el.innerHTML = `
+      <div class="modal-box" style="max-width:540px;width:95%;padding:22px;border-radius:16px;background:#0F172A;color:#fff;box-shadow:0 25px 50px -12px rgba(0,0,0,0.6);border:1px solid rgba(255,255,255,0.1);position:relative;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid rgba(255,255,255,0.1);">
+          <div style="display:flex;align-items:center;gap:10px;">
+            <span style="font-size:24px;">⚡</span>
+            <div>
+              <div style="font-weight:900;font-size:16.5px;color:#F8FAFC;">PMS Keyboard Shortcuts</div>
+              <div style="font-size:11px;color:#94A3B8;">Fast navigation & high-speed booking controls</div>
+            </div>
+          </div>
+          <button type="button" onclick="this.closest('.modal-overlay').remove()" style="width:32px;height:32px;border-radius:50%;background:#EF4444;border:none;color:#fff;font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(239,68,68,0.4);">✕</button>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:8px;max-height:60vh;overflow-y:auto;padding-right:4px;">
+          ${[
+            { key: `${altSymbol}N`, single: 'N', label: '➕ New Booking', desc: 'Open manual booking creation wizard', action: 'window.openNewBookingShortcut()' },
+            { key: `${altSymbol}D`, single: 'D', label: '📋 Duplicate Booking', desc: 'Clone active booking or pick recent guest to rebook', action: 'window.duplicateExistingBookingShortcut()' },
+            { key: `${altSymbol}P`, single: 'P', label: '💵 Add Payment / Quick Pay', desc: 'Open payment popup for active booking or dues picker', action: 'window.openQuickPaymentShortcut()' },
+            { key: `${altSymbol}C`, single: 'C', label: '📅 Calendar View', desc: 'Open multi-property occupancy grid', action: 'window.openCalendarShortcut()' },
+            { key: `${altSymbol}B`, single: 'B', label: '📑 Smart Bookings', desc: 'View all reservations & guests register', action: 'window.openBookingsShortcut()' },
+            { key: `${altSymbol}F`, single: 'F', label: '🛏️ Flats & Turnaround', desc: 'Realtime room turnaround Kanban board', action: 'window.openFlatsShortcut()' },
+            { key: `${altSymbol}R`, single: 'R', label: '📝 Daily Report', desc: 'Today’s collections & check-ins log', action: 'window.openDailyReportShortcut()' },
+            { key: `${altSymbol}M`, single: 'M', label: '💰 Cash Book', desc: 'Petty expenses & UPI reconciliation', action: 'window.openCashBookShortcut()' },
+            { key: `${cmdSymbol}K`, single: '/', label: '🔍 Command Palette', desc: 'Spotlight search anything across PMS (Tasks, Advances, etc.)', action: 'window.openCommandPalette()' },
+            { key: '?', single: '?', label: '⚡ Shortcuts Help', desc: 'Open this keyboard cheatsheet modal', action: '' },
+            { key: 'ESC', single: 'Esc', label: '✕ Close Drawer / Dialog', desc: 'Dismiss active booking drawer or any open modal', action: '' }
+          ].map(s => `
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:9px 12px;background:rgba(255,255,255,0.04);border-radius:10px;border:1px solid rgba(255,255,255,0.06);cursor:${s.action ? 'pointer' : 'default'};transition:all 0.15s;" ${s.action ? `onclick="document.getElementById('uhhShortcutsModal')?.remove();${s.action}" onmouseenter="this.style.background='rgba(255,255,255,0.09)'" onmouseleave="this.style.background='rgba(255,255,255,0.04)'"` : ''}>
+              <div>
+                <div style="font-weight:800;font-size:13px;color:#F1F5F9;">${s.label}</div>
+                <div style="font-size:11px;color:#94A3B8;margin-top:2px;">${s.desc}</div>
+              </div>
+              <div style="display:flex;align-items:center;gap:6px;">
+                <kbd style="background:#1E293B;border:1px solid #475569;border-radius:6px;padding:4px 8px;font-size:11.5px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-weight:800;color:#38BDF8;box-shadow:0 2px 0 #0F172A;">${s.key}</kbd>
+                ${s.single && s.single !== s.key ? `<span style="font-size:10px;color:#64748B;">or</span> <kbd style="background:#1E293B;border:1px solid #475569;border-radius:6px;padding:4px 7px;font-size:11.5px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-weight:800;color:#F59E0B;box-shadow:0 2px 0 #0F172A;">${s.single}</kbd>` : ''}
+              </div>
+            </div>
+          `).join('')}
+        </div>
+
+        <div style="margin-top:14px;padding:9px 12px;background:#1E293B;border-radius:10px;font-size:11.5px;color:#94A3B8;text-align:center;line-height:1.4;">
+          💡 <em>Tip: iPad Magic Keyboard & Mac par aap <strong>⌥ (Option)</strong> ya direct single keys (<strong>D</strong>, <strong>P</strong>, <strong>N</strong>, <strong>C</strong>, <strong>B</strong>, <strong>F</strong>, <strong>R</strong>, <strong>M</strong>) use kar sakte hain jab cursor kisi text box me na ho.</em>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(el);
+  };
+
+  // Keyboard shortcut listener (Cmd+K / Ctrl+K, Alt+shortcuts, and single-letter navigation)
   window.addEventListener('keydown', (e) => {
-    if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+    // 1. ESC handler: dismiss picker modal, shortcut modal, command palette, voice modal, OR slide-over booking drawer
+    const keyCode = e.keyCode || e.which || 0;
+    const code = e.code || '';
+    const key = (e.key || '').toLowerCase();
+
+    if (key === 'escape' || key === 'esc' || code === 'Escape' || keyCode === 27) {
+      const payModal = document.getElementById('uhhQuickPayPickerModal');
+      if (payModal) { payModal.remove(); return; }
+      const dupeModal = document.getElementById('uhhDupePickerModal');
+      if (dupeModal) { dupeModal.remove(); return; }
+      const scModal = document.getElementById('uhhShortcutsModal');
+      if (scModal) { scModal.remove(); return; }
+      closeCommandPalette();
+      closeVoiceBookingModal();
+
+      // If slide-over booking drawer is open, dismiss it smoothly
+      const drawerEl = document.querySelector('#sbkDrawerContainer .sbk-drawer');
+      if (drawerEl && typeof window.closeBookingDrawer === 'function') {
+        window.closeBookingDrawer();
+        return;
+      }
+      return;
+    }
+
+    // 2. Cmd+K / Ctrl+K (Command Palette Spotlight on iPad/Mac/PC)
+    const isK = code === 'KeyK' || keyCode === 75 || key === 'k';
+    if ((e.metaKey || e.ctrlKey) && !e.shiftKey && isK) {
       e.preventDefault();
       const el = document.getElementById('cmdPaletteBackdrop');
       if (el && el.style.display === 'flex') closeCommandPalette();
       else window.openCommandPalette();
-    } else if (e.key === 'Escape') {
-      closeCommandPalette();
-      closeVoiceBookingModal();
+      return;
     }
-  });
+
+    // Check if user is typing in a form input, textarea, select, or contenteditable
+    const targetTag = (e.target?.tagName || '').toUpperCase();
+    const isTyping = ['INPUT', 'TEXTAREA', 'SELECT'].includes(targetTag) ||
+                     e.target?.isContentEditable ||
+                     e.target?.getAttribute('contenteditable') === 'true' ||
+                     e.target?.getAttribute('role') === 'textbox';
+
+    // Key matchers compatible across iPadOS Safari, macOS, Windows, Android
+    // Note: On iPadOS Safari, Option+N is a Dead key (~), Option+D is ∂, Option+P is π, etc.
+    const isKeyN = code === 'KeyN' || keyCode === 78 || key === 'n' || key === 'ñ' || key === '~' || key === '˜' || (key === 'dead' && (code === 'KeyN' || keyCode === 78));
+    const isKeyD = code === 'KeyD' || keyCode === 68 || key === 'd' || key === '∂';
+    const isKeyP = code === 'KeyP' || keyCode === 80 || key === 'p' || key === 'π';
+    const isKeyC = code === 'KeyC' || keyCode === 67 || key === 'c' || key === 'ç';
+    const isKeyB = code === 'KeyB' || keyCode === 66 || key === 'b' || key === '∫';
+    const isKeyF = code === 'KeyF' || keyCode === 70 || key === 'f' || key === 'ƒ';
+    const isKeyR = code === 'KeyR' || keyCode === 82 || key === 'r' || key === '®';
+    const isKeyM = code === 'KeyM' || keyCode === 77 || key === 'm' || key === 'µ';
+    const isKeySlash = code === 'Slash' || keyCode === 191 || key === '/' || key === '?';
+
+    // 3. Modifier Combinations (Option/Alt on iPad/Mac OR Cmd+Shift on iPad)
+    const isOptionCombo = e.altKey && !e.ctrlKey && !e.metaKey;
+    const isCmdShiftCombo = (e.metaKey || e.ctrlKey) && e.shiftKey;
+
+    if (isOptionCombo || isCmdShiftCombo) {
+      if (isKeyN) {
+        e.preventDefault();
+        window.openNewBookingShortcut();
+        return;
+      }
+      if (isKeyD) {
+        e.preventDefault();
+        window.duplicateExistingBookingShortcut();
+        return;
+      }
+      if (isKeyP) {
+        e.preventDefault();
+        window.openQuickPaymentShortcut();
+        return;
+      }
+      if (isKeyC) {
+        e.preventDefault();
+        window.openCalendarShortcut();
+        return;
+      }
+      if (isKeyB) {
+        e.preventDefault();
+        window.openBookingsShortcut();
+        return;
+      }
+      if (isKeyF) {
+        e.preventDefault();
+        window.openFlatsShortcut();
+        return;
+      }
+      if (isKeyR) {
+        e.preventDefault();
+        window.openDailyReportShortcut();
+        return;
+      }
+      if (isKeyM) {
+        e.preventDefault();
+        window.openCashBookShortcut();
+        return;
+      }
+      if (isKeySlash) {
+        e.preventDefault();
+        window.openShortcutsModal();
+        return;
+      }
+    }
+
+    // 4. Single-key shortcuts (Active on iPad Magic Keyboard & PC when NOT typing in an input field)
+    if (!isTyping && !e.altKey && !e.ctrlKey && !e.metaKey) {
+      // ? (Shift + /) -> Show shortcuts modal
+      if (key === '?' || (e.shiftKey && isKeySlash)) {
+        e.preventDefault();
+        window.openShortcutsModal();
+        return;
+      }
+      // / -> Open Command Palette / Spotlight Search
+      if (key === '/' || isKeySlash) {
+        e.preventDefault();
+        window.openCommandPalette();
+        return;
+      }
+      // n -> New booking
+      if (isKeyN) {
+        e.preventDefault();
+        window.openNewBookingShortcut();
+        return;
+      }
+      // d -> Duplicate booking
+      if (isKeyD) {
+        e.preventDefault();
+        window.duplicateExistingBookingShortcut();
+        return;
+      }
+      // p -> Add Payment / Quick Pay
+      if (isKeyP) {
+        e.preventDefault();
+        window.openQuickPaymentShortcut();
+        return;
+      }
+      // c -> Calendar
+      if (isKeyC) {
+        e.preventDefault();
+        window.openCalendarShortcut();
+        return;
+      }
+      // b -> Bookings
+      if (isKeyB) {
+        e.preventDefault();
+        window.openBookingsShortcut();
+        return;
+      }
+      // f -> Flats
+      if (isKeyF) {
+        e.preventDefault();
+        window.openFlatsShortcut();
+        return;
+      }
+      // r -> Daily Report
+      if (isKeyR) {
+        e.preventDefault();
+        window.openDailyReportShortcut();
+        return;
+      }
+      // m -> Cash Book
+      if (isKeyM) {
+        e.preventDefault();
+        window.openCashBookShortcut();
+        return;
+      }
+    }
+  }, { capture: true });
 
   // Render & Filter Results
   async function renderPaletteResults(query) {
@@ -181,10 +888,20 @@
 
     let items = [];
 
-    // Filter System Actions & Pages
-    const matchedCommands = SYSTEM_COMMANDS.filter(c => 
-      !q || c.title.toLowerCase().includes(q) || c.sub.toLowerCase().includes(q)
-    );
+    // Filter System Actions & Navigation with keyword search support
+    let matchedCommands = [];
+    if (!q) {
+      // Initially show top primary fast actions
+      matchedCommands = SYSTEM_COMMANDS.slice(0, 8);
+    } else {
+      matchedCommands = SYSTEM_COMMANDS.filter(c => {
+        if (c.title.toLowerCase().includes(q)) return true;
+        if (c.sub && c.sub.toLowerCase().includes(q)) return true;
+        if (c.keywords && c.keywords.some(k => k.toLowerCase().includes(q) || q.includes(k.toLowerCase()))) return true;
+        return false;
+      });
+    }
+
     if (matchedCommands.length) {
       items.push({ isHeader: true, title: '⚡ Actions & Navigation' });
       items.push(...matchedCommands);
