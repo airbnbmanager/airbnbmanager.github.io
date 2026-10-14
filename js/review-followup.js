@@ -884,6 +884,7 @@
         const firstName = guestName.split(/\s+/)[0];
         const { data: byName } = await sb.from('guest_register')
           .select('booking_id, guest_name, airbnb_confirmation_code, check_out')
+          .eq('booking_mode', 'Online-Airbnb')
           .ilike('guest_name', `%${firstName}%`)
           .order('check_out', { ascending: false })
           .limit(5);

@@ -79,6 +79,9 @@ async function renderReports() {
 
   const isReviewedBooking = (b) => {
     if (!b) return false;
+    const bSrc = (typeof window.getBookingSource === 'function') ? window.getBookingSource(b) : null;
+    const isOnlineAirbnb = bSrc ? (bSrc.type === 'airbnb') : (b.booking_mode === 'Online-Airbnb' || !!b.airbnb_confirmation_code);
+    if (!isOnlineAirbnb) return false;
     if (Number(b.client_rating || 0) >= 4) return true;
     if (reviewFollowupsMap[b.booking_id] && reviewFollowupsMap[b.booking_id].status === 'review_received') return true;
     return false;

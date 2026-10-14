@@ -569,10 +569,10 @@ function syncAirbnbReviewsFromGmail() {
     return 0;
   }
 
-  // Fetch recent checkouts (last 45 days) from CRM to match against
+  // Fetch recent checkouts (last 45 days) from CRM to match against (Strictly Online-Airbnb bookings)
   const today = new Date();
   const fortyFiveDaysAgo = new Date(today.getTime() - 45 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
-  const fetchUrl = `${CONFIG.SUPABASE_URL}/rest/v1/guest_register?select=booking_id,guest_name,airbnb_confirmation_code,check_out,client_rating&check_out=gte.${fortyFiveDaysAgo}&is_cancelled=eq.false`;
+  const fetchUrl = `${CONFIG.SUPABASE_URL}/rest/v1/guest_register?select=booking_id,guest_name,airbnb_confirmation_code,check_out,client_rating,booking_mode&check_out=gte.${fortyFiveDaysAgo}&is_cancelled=eq.false&booking_mode=eq.Online-Airbnb`;
 
   let recentBookings = [];
   try {
