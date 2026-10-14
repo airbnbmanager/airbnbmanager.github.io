@@ -680,6 +680,7 @@ async function showMultiBookingList(bookings, roomId, dateStr) {
     const modeText = b.booking_mode === 'Online-Airbnb' ? 'Airbnb' : 'Direct';
     const secBadge = typeof getSecurityDepositBadge === 'function' ? getSecurityDepositBadge(b) : '';
     const cleanNotes = typeof cleanNotesForDisplay === 'function' ? cleanNotesForDisplay(b.notes) : (b.notes || '');
+    const statusBadges = [];
     let isRev = false;
     try {
       const fMap = JSON.parse(localStorage.getItem('uh_airbnb_review_followups') || '{}');
