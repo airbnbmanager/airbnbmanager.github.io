@@ -538,6 +538,19 @@ function forceEnrichAll() {
 }
 
 /**
+ * ═════════════════════════════════════════════════════════════════════
+ * ⭐ TEST RUNNER: AIRBNB REVIEW SYNC (Run this to test immediately)
+ * ═════════════════════════════════════════════════════════════════════
+ */
+function testRunSyncAirbnbReviews() {
+  Logger.log("=================================================");
+  Logger.log("🔍 TESTING AIRBNB REVIEW SYNC FROM GMAIL...");
+  Logger.log("=================================================");
+  const count = syncAirbnbReviewsFromGmail();
+  Logger.log(`\n🎉 RESULT: Successfully synced ${count} reviews from Gmail into CRM!`);
+}
+
+/**
  * ⭐ AUTOMATIC AIRBNB REVIEW SYNC FROM GMAIL
  * Automatically tracks when a guest writes a review on Airbnb by parsing
  * Airbnb's notification emails ("Sparsh wrote you a review", "Read Sparsh's review", etc.)
@@ -546,17 +559,20 @@ function syncAirbnbReviewsFromGmail() {
   Logger.log("=== STARTING AIRBNB REVIEW AUTO-SYNC FROM GMAIL ===");
   const reviewLabel = getOrCreateLabel("Airbnb-Review-Synced");
 
-  // Search Gmail for review notification emails that haven't been processed yet
-  const query = 'from:airbnb.com ("wrote you a review" OR "wrote a review" OR "left a review" OR "left a 5-star review" OR "5-star review" OR "submitted a review" OR "Write a review for" OR "Read" AND "review") -label:Airbnb-Review-Synced';
+  // Search Gmail strictly for review notification emails (NOT reservation confirmations)
+  const query = 'from:airbnb.com ("wrote you a review" OR "wrote a review" OR "left a 5-star review" OR "left a review" OR "submitted a review" OR "Read" AND "review") -label:Airbnb-Review-Synced -subject:"Reservation confirmed" -subject:"Reservation reminder" -subject:"Inquiry"';
   const threads = GmailApp.search(query, 0, 50);
-  Logger.log(`Found ${threads.length} potential Airbnb review notification threads in Gmail.`);
+  Logger.log(`Found ${threads.length} Airbnb review notification threads in Gmail.`);
 
-  if (threads.length === 0) return 0;
+  if (threads.length === 0) {
+    Logger.log("No new un-synced review emails found.");
+    return 0;
+  }
 
-  // Fetch recent checkouts (last 20 days) from CRM to match against
+  // Fetch recent checkouts (last 45 days) from CRM to match against
   const today = new Date();
-  const twentyDaysAgo = new Date(today.getTime() - 20 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
-  const fetchUrl = `${CONFIG.SUPABASE_URL}/rest/v1/guest_register?select=booking_id,guest_name,airbnb_confirmation_code,check_out,client_rating&check_out=gte.${twentyDaysAgo}&is_cancelled=eq.false`;
+  const fortyFiveDaysAgo = new Date(today.getTime() - 45 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+  const fetchUrl = `${CONFIG.SUPABASE_URL}/rest/v1/guest_register?select=booking_id,guest_name,airbnb_confirmation_code,check_out,client_rating&check_out=gte.${fortyFiveDaysAgo}&is_cancelled=eq.false`;
 
   let recentBookings = [];
   try {
@@ -581,7 +597,7 @@ function syncAirbnbReviewsFromGmail() {
     const subject = latestMsg.getSubject() || '';
     const body = latestMsg.getPlainBody() || '';
 
-    Logger.log(`Processing Review Email: "${subject}"`);
+    Logger.log(`\n📧 Review Email: "${subject}"`);
 
     // 1. Check for confirmation code (HM...) in email
     let confirmationCode = null;
@@ -608,6 +624,12 @@ function syncAirbnbReviewsFromGmail() {
       guestFirstName = guestFirstName.replace(/^(Airbnb|Write a review for|Read)\s+/i, '').replace(/'s\s+group$/i, '').trim();
     }
 
+    // Determine rating score: default 5 unless email specifies 1-star
+    let ratingScore = 5;
+    if (subject.toLowerCase().includes("1-star review") || body.toLowerCase().includes("left a 1-star review")) {
+      ratingScore = 1;
+    }
+
     // 3. Find matching booking in CRM
     let matchedBooking = null;
 
@@ -619,34 +641,41 @@ function syncAirbnbReviewsFromGmail() {
       const cleanTarget = guestFirstName.toLowerCase();
       matchedBooking = recentBookings.find(b => {
         const bName = (b.guest_name || '').toLowerCase().trim();
-        return bName.startsWith(cleanTarget) || bName.includes(cleanTarget);
+        const parts = bName.split(/\s+/);
+        return parts[0] === cleanTarget || bName.startsWith(cleanTarget);
       });
     }
 
     if (matchedBooking) {
-      Logger.log(`⭐ MATCHED REVIEW! Guest: "${matchedBooking.guest_name}" (Booking ID: ${matchedBooking.booking_id})`);
+      Logger.log(`✅ MATCHED BOOKING! Guest: "${matchedBooking.guest_name}" (ID: ${matchedBooking.booking_id})`);
 
-      // Update CRM: Set client_rating = 5
+      // Update CRM: Set client_rating (do not include rated_by as it expects UUID)
       const patchUrl = `${CONFIG.SUPABASE_URL}/rest/v1/guest_register?booking_id=eq.${matchedBooking.booking_id}`;
-      UrlFetchApp.fetch(patchUrl, {
+      const patchResp = UrlFetchApp.fetch(patchUrl, {
         method: 'patch',
         headers: getHeaders(),
         payload: JSON.stringify({
-          client_rating: 5,
-          rating_notes: `⭐ Auto-synced from Airbnb email notification on ${new Date().toLocaleDateString('en-IN')}`
+          client_rating: ratingScore,
+          rating_notes: `⭐ ${ratingScore}-Star Review Verified on Airbnb (Email: ${subject.slice(0, 80)})`,
+          rated_at: new Date().toISOString()
         }),
         muteHttpExceptions: true
       });
 
-      matchCount++;
+      if (patchResp.getResponseCode() >= 200 && patchResp.getResponseCode() < 300) {
+        Logger.log(`🎉 CRM Updated successfully for ${matchedBooking.guest_name}!`);
+        matchCount++;
+      } else {
+        Logger.log(`❌ CRM Update failed: ${patchResp.getContentText()}`);
+      }
     } else {
-      Logger.log(`⚠️ Review email received for "${guestFirstName || confirmationCode || 'Guest'}", but could not link to a recent CRM checkout.`);
+      Logger.log(`⚠️ Review email for "${guestFirstName || confirmationCode || 'Guest'}", but could not link to a recent CRM checkout.`);
     }
 
-    // Mark thread as processed so it isn't scanned again
+    // Mark thread as processed so it isn't scanned repeatedly
     thread.addLabel(reviewLabel);
   }
 
-  Logger.log(`=== REVIEW AUTO-SYNC COMPLETE: ${matchCount} reviews recorded in CRM ===`);
+  Logger.log(`\n=== REVIEW AUTO-SYNC COMPLETE: ${matchCount} reviews synced to CRM ===`);
   return matchCount;
 }
