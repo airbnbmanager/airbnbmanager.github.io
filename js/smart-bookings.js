@@ -2258,13 +2258,20 @@ window.suggestDefaultPrice = function() {
   const co = document.getElementById('checkOut')?.value;
   const nights = (ci && co) ? Math.max(calcNights(ci, co), 1) : 1;
 
+  let pricing = null;
+  if (window.UHH_SEASONAL && typeof window.UHH_SEASONAL.calculateStayPricing === 'function' && ci && co) {
+    pricing = window.UHH_SEASONAL.calculateStayPricing(baseRate, ci, co);
+  }
+  const calcTotal = pricing ? pricing.totalBase : (baseRate * nights);
+  const calcPerDay = pricing ? pricing.effectiveNightlyRate : baseRate;
+
   if (!totInput.value || totInput.dataset.autoFilled === 'true' || totInput.dataset.autofilled === 'true') {
-    totInput.value = baseRate * nights;
+    totInput.value = calcTotal;
     totInput.dataset.autoFilled = 'true';
     totInput.dataset.autofilled = 'true';
     const perDayInp = document.getElementById('perDayRate');
     if (perDayInp) {
-      perDayInp.value = baseRate;
+      perDayInp.value = calcPerDay;
       perDayInp.dataset.autofilled = 'true';
     }
     window.recalcSmartPrice();
@@ -2276,12 +2283,22 @@ window.recalcSmartPrice = function() {
   const co = document.getElementById('checkOut')?.value;
   const nights = (ci && co) ? Math.max(calcNights(ci, co), 1) : 1;
 
+  let pricing = null;
+  if (window.UHH_SEASONAL && typeof window.UHH_SEASONAL.calculateStayPricing === 'function' && ci && co) {
+    const roomId = document.getElementById('roomId')?.value;
+    const room = (window._roomsCache || []).find(r => r.room_id === roomId);
+    const base = Number(room?.rent_per_night) || 4500;
+    pricing = window.UHH_SEASONAL.calculateStayPricing(base, ci, co);
+  }
+
   const tot = parseFloat(document.getElementById('totalAmount')?.value) || 0;
   const adv = parseFloat(document.getElementById('advanceAmt')?.value) || 0;
   const bal = Math.max(0, tot - adv);
 
   const nSummary = document.getElementById('smartNightsSummary');
-  if (nSummary) nSummary.textContent = `${nights} ${nights === 1 ? 'Night' : 'Nights'}`;
+  if (nSummary) {
+    nSummary.textContent = `${nights} ${nights === 1 ? 'Night' : 'Nights'}`;
+  }
 
   const tSummary = document.getElementById('smartTotalSummary');
   if (tSummary) tSummary.textContent = `₹${tot.toLocaleString('en-IN')}`;

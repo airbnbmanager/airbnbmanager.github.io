@@ -216,6 +216,17 @@
       this.renderLandmarks();
       this.renderLocationSection();
       this.renderInteractiveCalendar();
+      if (!window.UHH_SEASONAL && typeof document !== 'undefined') {
+        const s = document.createElement('script');
+        s.src = 'js/seasonal-pricing.js';
+        s.onload = () => {
+          if (this.checkIn && this.checkOut) {
+            this.renderBookingCard();
+            this.renderMobileBar();
+          }
+        };
+        document.head.appendChild(s);
+      }
       this.renderBookingCard();
       this.renderMobileBar();
       this.initGalleryModal();
@@ -1385,8 +1396,15 @@
     renderBookingCard() {
       const p = this.prop;
       const basePrice = p.base_price || 3499;
-      const baseTotal = basePrice * this.nights;
-      const gstRate = basePrice <= 7500 ? 5 : 18;
+
+      let pricing = null;
+      if (window.UHH_SEASONAL && typeof window.UHH_SEASONAL.calculateStayPricing === 'function' && this.checkIn && this.checkOut) {
+        pricing = window.UHH_SEASONAL.calculateStayPricing(basePrice, this.checkIn, this.checkOut);
+      }
+
+      const baseTotal = pricing ? pricing.totalBase : (basePrice * this.nights);
+      const effectiveRate = pricing ? pricing.effectiveNightlyRate : basePrice;
+      const gstRate = effectiveRate <= 7500 ? 5 : 18;
       const gstAmount = Math.round(baseTotal * (gstRate / 100));
       const cgstAmount = Math.round(gstAmount / 2);
       const sgstAmount = gstAmount - cgstAmount;
@@ -1510,8 +1528,15 @@
 
     renderMobileBar() {
       const basePrice = this.prop.base_price || 3499;
-      const baseTotal = basePrice * this.nights;
-      const gstRate = basePrice <= 7500 ? 5 : 18;
+
+      let pricing = null;
+      if (window.UHH_SEASONAL && typeof window.UHH_SEASONAL.calculateStayPricing === 'function' && this.checkIn && this.checkOut) {
+        pricing = window.UHH_SEASONAL.calculateStayPricing(basePrice, this.checkIn, this.checkOut);
+      }
+
+      const baseTotal = pricing ? pricing.totalBase : (basePrice * this.nights);
+      const effectiveRate = pricing ? pricing.effectiveNightlyRate : basePrice;
+      const gstRate = effectiveRate <= 7500 ? 5 : 18;
       const totalRent = baseTotal + Math.round(baseTotal * (gstRate / 100));
 
       const mobPrice = document.getElementById('luxe-mobile-price-val');

@@ -320,12 +320,19 @@ function updateSummary() {
   if (nights <= 0) { empty.style.display = 'block'; content.style.display = 'none'; return; }
 
   empty.style.display = 'none'; content.style.display = 'block';
-  const baseTotal = selectedProp.price * nights;
-  const gstRate = selectedProp.price <= 7500 ? 5 : 18;
+
+  let pricing = null;
+  if (window.UHH_SEASONAL && typeof window.UHH_SEASONAL.calculateStayPricing === 'function') {
+    pricing = window.UHH_SEASONAL.calculateStayPricing(selectedProp.price, ci, co);
+  }
+
+  const baseTotal = pricing ? pricing.totalBase : (selectedProp.price * nights);
+  const effectiveRate = pricing ? pricing.effectiveNightlyRate : selectedProp.price;
+  const gstRate = effectiveRate <= 7500 ? 5 : 18;
   const gstAmt = Math.round(baseTotal * (gstRate / 100));
   const grossWithGst = baseTotal + gstAmt;
 
-  document.getElementById('sumNights').textContent = nights + ' night' + (nights !== 1 ? 's' : '') + ' × ₹' + selectedProp.price.toLocaleString('en-IN');
+  document.getElementById('sumNights').textContent = nights + ' night' + (nights !== 1 ? 's' : '') + ' × ₹' + effectiveRate.toLocaleString('en-IN');
   document.getElementById('sumNightlyTotal').textContent = '₹' + baseTotal.toLocaleString('en-IN');
 
   const gstLabelEl = document.getElementById('sumGstLabel');
@@ -489,8 +496,14 @@ async function submitBookingRequest() {
   btn.disabled = true;
   btn.innerHTML = '<span class="spin"></span> Sending…';
 
-  const baseTotal = selectedProp.price * nights;
-  const gstRate = selectedProp.price <= 7500 ? 5 : 18;
+  let pricing = null;
+  if (window.UHH_SEASONAL && typeof window.UHH_SEASONAL.calculateStayPricing === 'function') {
+    pricing = window.UHH_SEASONAL.calculateStayPricing(selectedProp.price, ci, co);
+  }
+
+  const baseTotal = pricing ? pricing.totalBase : (selectedProp.price * nights);
+  const effectiveRate = pricing ? pricing.effectiveNightlyRate : selectedProp.price;
+  const gstRate = effectiveRate <= 7500 ? 5 : 18;
   const gstAmt = Math.round(baseTotal * (gstRate / 100));
   const grossWithGst = baseTotal + gstAmt;
   const discountAmt = (appliedCoupon && couponDiscount > 0) ? Math.round(grossWithGst * (couponDiscount / 100)) : 0;
@@ -502,9 +515,9 @@ async function submitBookingRequest() {
   const noteParts = [
     `Direct Website Booking (book.html)`,
     `Property: ${selectedProp.name}`,
-    `Tariff: ₹${baseTotal} + ${gstRate}% GST (₹${gstAmt}) = Standard ₹${grossWithGst}`,
+    `Tariff: ₹${baseTotal} (${nights} nt @ ₹${effectiveRate}/nt) + ${gstRate}% GST (₹${gstAmt}) = Standard ₹${grossWithGst}`,
     `Purpose: ${purpose || 'Not specified'}`
-  ];
+  ].filter(Boolean);
   if (appliedCoupon) {
     noteParts.push(`Coupon: ${appliedCoupon} (${couponDiscount}% OFF, -₹${discountAmt}) | Direct Payable: ₹${finalTotal}`);
   }
@@ -526,7 +539,7 @@ async function submitBookingRequest() {
         check_in_time: '14:00',
         check_out_time: '11:00',
         guests: parseInt(guests, 10) || 1,
-        per_day_rate: selectedProp.price,
+        per_day_rate: effectiveRate,
         total_amount: finalTotal,
         booking_mode: 'Direct-Website',
         payment_status: 'Unpaid',
@@ -587,7 +600,7 @@ async function submitBookingRequest() {
     '🌙 *Nights:* ' + nights,
     '👥 *Guests:* ' + guests,
     '🎯 *Purpose:* ' + purpose,
-    '🏷️ *Base Tariff:* ₹' + baseTotal.toLocaleString('en-IN') + ' (' + nights + ' nights @ ₹' + selectedProp.price.toLocaleString('en-IN') + '/night)',
+    '🏷️ *Base Tariff:* ₹' + baseTotal.toLocaleString('en-IN') + ' (' + nights + ' nights @ ₹' + effectiveRate.toLocaleString('en-IN') + '/night)',
     '🏛️ *Taxes & GST (' + gstRate + '% · SAC 996311):* +₹' + gstAmt.toLocaleString('en-IN'),
     '📊 *Standard Gross (with GST):* ₹' + grossWithGst.toLocaleString('en-IN'),
     appliedCoupon ? '🎁 *Direct Discount Code:* ' + appliedCoupon + (couponDiscount > 0 ? ' (' + couponDiscount + '% Direct Host OFF)' : '') : '💡 *Direct Booking:* Guest requested direct host discount rate',
@@ -595,7 +608,7 @@ async function submitBookingRequest() {
     '✨ *Estimated Direct Payable:* ₹' + finalTotal.toLocaleString('en-IN'),
     special ? '📝 *Special Request:* ' + special : '',
     '',
-    '💬 _Host Note: Direct booking saves 14–16% Airbnb guest platform fee!_',
+    '💬 _Host Note: Direct booking saves 14–16% Airbnb guest platform fee! Rate synced live with CRM._',
     '_Sent from uniquehavenhomestay.com/book.html_'
   ].filter(Boolean).join('\n');
 

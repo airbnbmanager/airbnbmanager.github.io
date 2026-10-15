@@ -447,6 +447,201 @@
       margin-top: 16px;
     }
 
+    /* Seasonal Dynamic Surge Panel */
+    .seasonal-panel {
+      background: linear-gradient(135deg, rgba(22, 25, 32, 0.95), rgba(30, 34, 48, 0.9));
+      border: 1px solid rgba(212, 168, 75, 0.25);
+      border-radius: var(--radius);
+      padding: 24px;
+      margin-bottom: 28px;
+      box-shadow: 0 12px 32px rgba(0,0,0,0.35);
+      position: relative;
+      overflow: hidden;
+    }
+    .seasonal-panel::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0; height: 3px;
+      background: linear-gradient(90deg, #d4a84b, #f59e0b, #ec4899, #d4a84b);
+      background-size: 200% auto;
+      animation: seasonalGradient 4s linear infinite;
+    }
+    @keyframes seasonalGradient {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+    .seasonal-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+    .seasonal-title-wrap {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .seasonal-icon {
+      width: 40px; height: 40px;
+      border-radius: 10px;
+      background: rgba(212,168,75,0.15);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 20px;
+      border: 1px solid rgba(212,168,75,0.3);
+    }
+    .seasonal-title {
+      font-size: 17px;
+      font-weight: 700;
+      color: var(--text);
+      letter-spacing: -0.3px;
+    }
+    .seasonal-subtitle {
+      font-size: 13px;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+    .seasonal-pills {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .season-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid var(--border);
+    }
+    .season-pill.active-oct {
+      background: rgba(217, 119, 6, 0.15);
+      border-color: rgba(217, 119, 6, 0.4);
+      color: #fbbf24;
+    }
+    .season-pill.ready-nov {
+      background: rgba(236, 72, 153, 0.12);
+      border-color: rgba(236, 72, 153, 0.35);
+      color: #f472b6;
+    }
+    .pulsing-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: #22c55e;
+      box-shadow: 0 0 8px #22c55e;
+      animation: pulseDot 1.5s infinite;
+    }
+    @keyframes pulseDot {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.4; transform: scale(0.85); }
+    }
+    .seasonal-actions-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+    .surge-btn {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      padding: 14px 16px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: var(--surface2);
+      color: var(--text);
+      cursor: pointer;
+      text-align: left;
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .surge-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+    }
+    .surge-btn.oct-surge {
+      border-color: rgba(217, 119, 6, 0.4);
+      background: linear-gradient(135deg, rgba(217, 119, 6, 0.12), rgba(30, 34, 48, 0.9));
+    }
+    .surge-btn.oct-surge:hover {
+      border-color: #d97706;
+      box-shadow: 0 6px 24px rgba(217, 119, 6, 0.25);
+    }
+    .surge-btn.nov-surge {
+      border-color: rgba(236, 72, 153, 0.4);
+      background: linear-gradient(135deg, rgba(236, 72, 153, 0.12), rgba(30, 34, 48, 0.9));
+    }
+    .surge-btn.nov-surge:hover {
+      border-color: #ec4899;
+      box-shadow: 0 6px 24px rgba(236, 72, 153, 0.25);
+    }
+    .surge-btn.reset-surge {
+      border-color: var(--border);
+      background: rgba(255,255,255,0.03);
+    }
+    .surge-btn.reset-surge:hover {
+      border-color: var(--muted);
+      background: rgba(255,255,255,0.06);
+    }
+    .surge-btn-title {
+      font-size: 14px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 4px;
+    }
+    .surge-btn-sub {
+      font-size: 11.5px;
+      color: var(--muted);
+      line-height: 1.4;
+    }
+    .seasonal-footer-info {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+      padding-top: 14px;
+      border-top: 1px solid var(--border);
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .custom-surge-wrap {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .custom-surge-input {
+      width: 70px;
+      padding: 6px 10px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-weight: 600;
+      text-align: center;
+    }
+    .custom-surge-btn {
+      padding: 6px 14px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--surface2);
+      color: var(--text);
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .custom-surge-btn:hover {
+      border-color: var(--gold);
+      color: var(--gold);
+    }
+
     /* Responsive */
     @media (max-width: 700px) {
       .rate-row {
@@ -459,6 +654,7 @@
       .rate-cell:nth-child(3) { display: none; } /* hide airbnb col on mobile */
       .crm-main { padding: 16px 12px; }
       .stats-bar { grid-template-columns: 1fr 1fr; }
+      .seasonal-actions-grid { grid-template-columns: 1fr; }
     }
   </style>
 </head>
@@ -522,6 +718,68 @@
       </div>
     </div>
 
+    <!-- Monthly Rate Adjustment & Real-Time Sync Panel -->
+    <div class="seasonal-panel" id="seasonal-panel">
+      <div class="seasonal-head">
+        <div class="seasonal-title-wrap">
+          <div class="seasonal-icon">📊</div>
+          <div>
+            <div class="seasonal-title">Monthly Rate Adjustment &amp; Live Sync</div>
+            <div class="seasonal-subtitle">Real-time sync between Website (direct booking, single villas) and CRM (smart-bookings, rooms table)</div>
+          </div>
+        </div>
+        <div class="seasonal-pills">
+          <div class="season-pill active-oct">
+            <span class="pulsing-dot"></span>
+            <span>October (+10%) Active</span>
+          </div>
+          <div class="season-pill ready-nov">
+            <span>November (+15%) Ready</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="seasonal-actions-grid">
+        <button class="surge-btn oct-surge" onclick="applySeasonalSurge(10)">
+          <div class="surge-btn-title">
+            <span>⚡ Apply +10% (October Rates)</span>
+          </div>
+          <div class="surge-btn-sub">
+            Sets all properties to October rates (e.g. ₹4,500 → ₹4,950, ₹12,000 → ₹13,200). Ready to sync.
+          </div>
+        </button>
+
+        <button class="surge-btn nov-surge" onclick="applySeasonalSurge(11)">
+          <div class="surge-btn-title">
+            <span>⚡ Apply +15% (November Rates)</span>
+          </div>
+          <div class="surge-btn-sub">
+            Sets all properties to November rates (e.g. ₹4,500 → ₹5,200, ₹12,000 → ₹13,800). Ready to sync.
+          </div>
+        </button>
+
+        <button class="surge-btn reset-surge" onclick="resetToBaselineRates()">
+          <div class="surge-btn-title">
+            <span>🔄 Revert to Baseline Rates</span>
+          </div>
+          <div class="surge-btn-sub">
+            Restores standard baseline prices for all 17 properties.
+          </div>
+        </button>
+      </div>
+
+      <div class="seasonal-footer-info">
+        <div>
+          <span>🛡️ <strong>Live Sync Active:</strong> Date-based booking engine automatically calculates Oct nights at +10% and Nov nights at +15%.</span>
+        </div>
+        <div class="custom-surge-wrap">
+          <span>Custom %:</span>
+          <input type="number" id="customSurgePct" class="custom-surge-input" value="10" min="-50" max="100" step="5" />
+          <button class="custom-surge-btn" onclick="applyCustomSurge()">Apply %</button>
+        </div>
+      </div>
+    </div>
+
     <!-- Table -->
     <div class="section-header">
       <div class="section-title">Property Rates</div>
@@ -557,6 +815,7 @@
 <!-- Supabase SDK -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="config.js"></script>
+<script src="js/seasonal-pricing.js"></script>
 
 <script>
 // ═══════════════════════════════════════════════════════════
@@ -871,8 +1130,101 @@ async function saveAll() {
 
   updateStats(_rates);
 
+  // Bust website price cache so index.html and properties.html load fresh rates instantly
+  try {
+    sessionStorage.removeItem('uhh_price_cache');
+    localStorage.setItem('uhh_price_sync_trigger', Date.now().toString());
+  } catch (_) {}
+
   if (saved > 0) toast(`✅ ${saved} propert${saved > 1 ? 'ies' : 'y'} saved — website and CRM synced live!`, 'success');
   if (failed > 0) toast(`⚠️ ${failed} failed. Check errors above.`, 'error');
+}
+
+// ── SEASONAL & BULK PRICING ACTIONS ───────────────────────
+function applySeasonalSurge(monthNum) {
+  if (!_rates || _rates.length === 0) {
+    toast('No property rates loaded yet. Click Refresh.', 'error');
+    return;
+  }
+  const isOct = monthNum === 10;
+  const surgePct = isOct ? 10 : 15;
+  const label = isOct ? 'October (+10%)' : 'November (+15%)';
+
+  let count = 0;
+  _rates.forEach(r => {
+    const baseObj = (window.UHH_SEASONAL && window.UHH_SEASONAL.BASELINE_RATES[r.room_id]) || null;
+    const stdBase = baseObj ? baseObj.base : (Number(r.base_price) || 4500);
+
+    const multiplier = 1 + (surgePct / 100);
+    const newBase = Math.round((stdBase * multiplier) / 50) * 50;
+    const newAirbnb = Math.round(newBase * 1.22);
+
+    const baseInp = document.getElementById('base_' + r.room_id);
+    const abInp = document.getElementById('airbnb_' + r.room_id);
+
+    if (baseInp) {
+      baseInp.value = newBase;
+      markChanged(r.room_id, 'base_price', baseInp);
+    }
+    if (abInp) {
+      abInp.value = newAirbnb;
+      markChanged(r.room_id, 'airbnb_price', abInp);
+    }
+    count++;
+  });
+
+  const saveBtn = document.getElementById('save-all-btn');
+  if (saveBtn) {
+    saveBtn.style.animation = 'pulse 1s 3';
+  }
+
+  toast(`⚡ Applied ${label} to all ${count} properties! Click "💾 Save All Changes" to sync live to Website & CRM.`, 'success');
+}
+
+function resetToBaselineRates() {
+  if (!_rates || _rates.length === 0) return;
+  let count = 0;
+  _rates.forEach(r => {
+    const baseObj = (window.UHH_SEASONAL && window.UHH_SEASONAL.BASELINE_RATES[r.room_id]) || null;
+    if (!baseObj) return;
+
+    const baseInp = document.getElementById('base_' + r.room_id);
+    const abInp = document.getElementById('airbnb_' + r.room_id);
+
+    if (baseInp) {
+      baseInp.value = baseObj.base;
+      markChanged(r.room_id, 'base_price', baseInp);
+    }
+    if (abInp) {
+      abInp.value = baseObj.airbnb;
+      markChanged(r.room_id, 'airbnb_price', abInp);
+    }
+    count++;
+  });
+  toast(`🔄 Reverted ${count} properties to standard baseline rates. Click "Save All" to commit.`, 'info');
+}
+
+function applyCustomSurge() {
+  const inp = document.getElementById('customSurgePct');
+  const pct = parseFloat(inp ? inp.value : 0);
+  if (isNaN(pct) || pct === 0) {
+    toast('Please enter a valid percentage (e.g. 10 or 15).', 'error');
+    return;
+  }
+  let count = 0;
+  _rates.forEach(r => {
+    const baseObj = (window.UHH_SEASONAL && window.UHH_SEASONAL.BASELINE_RATES[r.room_id]) || null;
+    const stdBase = baseObj ? baseObj.base : (Number(r.base_price) || 4500);
+    const newBase = Math.round((stdBase * (1 + pct / 100)) / 50) * 50;
+    const newAirbnb = Math.round(newBase * 1.22);
+
+    const baseInp = document.getElementById('base_' + r.room_id);
+    const abInp = document.getElementById('airbnb_' + r.room_id);
+    if (baseInp) { baseInp.value = newBase; markChanged(r.room_id, 'base_price', baseInp); }
+    if (abInp) { abInp.value = newAirbnb; markChanged(r.room_id, 'airbnb_price', abInp); }
+    count++;
+  });
+  toast(`⚡ Applied ${pct > 0 ? '+' : ''}${pct}% to all ${count} properties! Click "Save All" to sync.`, 'success');
 }
 
 // ── SEARCH / FILTER ───────────────────────────────────────

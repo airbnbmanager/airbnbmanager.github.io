@@ -1384,7 +1384,7 @@ function renderShell(content, activePage = 'dashboard') {
             const badgeHtml = (k === 'bookings' && (window._pendingCount || 0) > 0)
               ? `<span style="background:#F59E0B;color:#fff;border-radius:12px;padding:1px 7px;font-size:11px;font-weight:800;margin-left:auto;">${window._pendingCount}</span>`
               : '';
-            return `<a href="#" data-page="${k}" class="${isItemActive ? 'active active-hub' : ''}" style="display:flex;align-items:center;"><span>${l}</span>${badgeHtml}</a>`;
+            return `<a href="javascript:void(0)" data-page="${k}" class="${isItemActive ? 'active active-hub' : ''}" style="display:flex;align-items:center;"><span>${l}</span>${badgeHtml}</a>`;
           }).join('')}
         </nav>
 
@@ -1452,27 +1452,27 @@ function renderShell(content, activePage = 'dashboard') {
 
       <!-- ─── AIRBNB HOST MOBILE BOTTOM NAV ─── -->
       <nav class="bottom-nav" id="bottomNav">
-        <a href="#" data-page="dashboard" class="${activePage === 'dashboard' ? 'active' : ''}">
+        <a href="javascript:void(0)" data-page="dashboard" class="${activePage === 'dashboard' ? 'active' : ''}">
           <span class="bn-icon">🏠</span>
           <span class="bn-label">Home</span>
         </a>
-        <a href="#" data-page="bookings" class="${activePage === 'bookings' ? 'active' : ''}">
+        <a href="javascript:void(0)" data-page="bookings" class="${activePage === 'bookings' ? 'active' : ''}">
           <span class="bn-icon">🛎</span>
           <span class="bn-label">Bookings</span>
         </a>
-        <a href="#" data-page="calendar" class="${(activePage === 'calendar' || activePage === 'reports') ? 'active' : ''}">
+        <a href="javascript:void(0)" data-page="calendar" class="${(activePage === 'calendar' || activePage === 'reports') ? 'active' : ''}">
           <span class="bn-icon">📅</span>
           <span class="bn-label">Calendar</span>
         </a>
-        <a href="#" data-page="tasks" class="${activePage === 'tasks' ? 'active' : ''}">
+        <a href="javascript:void(0)" data-page="tasks" class="${activePage === 'tasks' ? 'active' : ''}">
           <span class="bn-icon">✅</span>
           <span class="bn-label">Tasks</span>
         </a>
-        <a href="#" data-page="attendance" class="${(activePage === 'attendance' || activePage === 'att-summary') ? 'active' : ''}">
+        <a href="javascript:void(0)" data-page="attendance" class="${(activePage === 'attendance' || activePage === 'att-summary') ? 'active' : ''}">
           <span class="bn-icon">📋</span>
           <span class="bn-label">Attendance</span>
         </a>
-        <a href="#" data-page="expenses" class="${activePage === 'expenses' ? 'active' : ''}">
+        <a href="javascript:void(0)" data-page="expenses" class="${activePage === 'expenses' ? 'active' : ''}">
           <span class="bn-icon">💰</span>
           <span class="bn-label">Expenses</span>
         </a>
@@ -4868,21 +4868,26 @@ window.printDocumentHTML = function(htmlContent, title = 'Document', options = {
             📋 Copy
           </button>
         </div>
-        <div style="display:flex;align-items:center;gap:10px;min-width:0;">
-          <span style="font-weight:700;font-size:12px;color:#94A3B8;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+        <div style="display:flex;align-items:center;gap:10px;min-width:0;flex-shrink:0;">
+          <span style="font-weight:700;font-size:12px;color:#94A3B8;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
             ${escapeHtml(docTitle)}
           </span>
-          <button type="button" class="uhh-print-close-btn" onclick="document.getElementById('uhhPrintOverlay')?.remove()" style="background:#EF4444;color:#fff;border:none;padding:6px 12px;border-radius:6px;font-weight:800;font-size:12px;cursor:pointer;">
+          <button type="button" class="uhh-print-close-btn" onclick="document.getElementById('uhhPrintOverlay')?.remove()" style="background:#EF4444;color:#fff;border:none;padding:8px 16px;border-radius:6px;font-weight:800;font-size:13px;cursor:pointer;white-space:nowrap;flex-shrink:0;">
             ✕ Close
           </button>
         </div>
       </div>
-      <div class="uhh-print-body" style="padding:16px 12px;background:#F1F5F9;flex:1;overflow-y:auto;overflow-x:auto;-webkit-overflow-scrolling:touch;">
+      <div class="uhh-print-body" style="padding:16px 12px 100px;background:#F1F5F9;flex:1;overflow-y:auto;overflow-x:auto;-webkit-overflow-scrolling:touch;">
         <div id="uhhPrintCardInner" style="max-width:1000px;margin:0 auto;background:#FFFFFF;border-radius:10px;padding:16px;box-shadow:0 4px 15px rgba(0,0,0,0.06);box-sizing:border-box;">
           ${extractedStyles}
           ${html}
         </div>
       </div>
+      <!-- Floating Close Button — always visible on iPad/mobile when scrolled down -->
+      <button type="button" class="no-print" onclick="document.getElementById('uhhPrintOverlay')?.remove()"
+        style="position:fixed;bottom:max(24px,env(safe-area-inset-bottom,24px));right:max(20px,env(safe-area-inset-right,20px));z-index:9999999;background:#EF4444;color:#fff;border:none;padding:13px 22px;border-radius:50px;font-weight:800;font-size:14px;cursor:pointer;box-shadow:0 4px 24px rgba(239,68,68,0.55);display:flex;align-items:center;gap:8px;-webkit-tap-highlight-color:transparent;letter-spacing:0.2px;">
+        ✕ Close Report
+      </button>
     `;
 
     document.body.appendChild(overlay);

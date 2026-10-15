@@ -280,6 +280,13 @@
       syncPrices();
       setInterval(() => syncPrices(true), REFRESH_INTERVAL_MS);
     }, 800);
+
+    // Instant cross-tab sync when admin saves in rate-manager.html
+    window.addEventListener('storage', (e) => {
+      if (e.key === 'uhh_price_sync_trigger') {
+        syncPrices(true);
+      }
+    });
   }
 
   if (document.readyState === 'loading') {
