@@ -999,6 +999,9 @@ async function renderDashboard() {
             </button>
             <button class="dash-pill-btn" onclick="navigate('flats')">🛏️ Flats Status</button>
             <button class="dash-pill-btn" onclick="navigate('bookings')">📅 Bookings</button>
+            <button class="dash-pill-btn" onclick="window.openTasksShortcut ? window.openTasksShortcut() : navigate('tasks')" title="Staff Tasks & Checklists (Alt+T / T)">📋 Tasks</button>
+            <button class="dash-pill-btn" onclick="window.openAdvanceShortcut ? window.openAdvanceShortcut() : navigate('advance')" title="Staff Advances (Alt+A / A)">💸 Advance</button>
+            <button class="dash-pill-btn" onclick="window.openClaimShortcut ? window.openClaimShortcut() : navigate('reimbursements')" title="Expense Claims & Reimbursements (Alt+E / E)">🧾 Claims</button>
             ${canModerate() ? `<button class="dash-pill-btn primary" onclick="renderAddBooking && renderAddBooking()">➕ New Booking</button>` : ''}
           </div>
         </div>

@@ -17,14 +17,14 @@
     { type: 'action', icon: '⌨️', title: 'Keyboard Shortcuts Help (?)', sub: 'View all keyboard shortcuts and fast keys [?]', keywords: ['shortcuts', 'keys', 'keyboard', 'help', 'fast keys', 'command', 'cheatsheet', '?'], action: () => window.openShortcutsModal() },
 
     // 🧹 Tasks & Housekeeping Operations
-    { type: 'action', icon: '📋', title: 'Staff Tasks & Checklists (Tasks)', sub: 'Manage housekeeping, deep cleans, staff duties & inspection checklists', keywords: ['task', 'tasks', 'duty', 'checklist', 'housekeeping', 'staff task', 'kaam', 'clean', 'assign', 'inspection'], action: () => window.navigate('tasks') },
-    { type: 'action', icon: '➕', title: 'Create New Staff Task', sub: 'Assign room cleaning, maintenance, or errand to staff member', keywords: ['new task', 'add task', 'create task', 'assign task', 'duty', 'checklist', 'kaam do'], action: () => { window.navigate('tasks'); setTimeout(() => { if (typeof window.renderAddTask === 'function') window.renderAddTask(); }, 160); } },
+    { type: 'action', icon: '📋', title: 'Staff Tasks & Checklists (Alt+T)', sub: 'Manage housekeeping, deep cleans, staff duties & inspection checklists [Alt+T / T]', keywords: ['task', 'tasks', 'duty', 'checklist', 'housekeeping', 'staff task', 'kaam', 'clean', 'assign', 'inspection', 'alt+t', 't'], action: () => window.openTasksShortcut() },
+    { type: 'action', icon: '➕', title: 'Create New Staff Task (Alt+Shift+T)', sub: 'Assign room cleaning, maintenance, or errand to staff member [Alt+Shift+T]', keywords: ['new task', 'add task', 'create task', 'assign task', 'duty', 'checklist', 'kaam do', 'alt+shift+t'], action: () => window.openNewTaskShortcut() },
     { type: 'action', icon: '🧹', title: 'Housekeeping Turnaround Board (Alt+F)', sub: 'Realtime Kanban room turnaround (Dirty ➔ Cleaning ➔ Ready) [Alt+F]', keywords: ['turnaround', 'dirty', 'clean', 'inspected', 'kanban', 'flats', 'room status', 'safai', 'housekeeping board', 'alt+f'], action: () => window.openFlatsShortcut() },
     { type: 'action', icon: '📖', title: 'SOPs & Operational Checklists', sub: 'Standard operating procedures for cleaning, check-in & safety', keywords: ['sop', 'checklist', 'procedure', 'rules', 'manual', 'standard operating procedure'], action: () => window.navigate('sop') },
 
     // 💰 Advances, Salaries & HRMS
-    { type: 'action', icon: '💸', title: 'Staff Advances Tracker (Advance)', sub: 'Track employee advances, deductions & outstanding loan balances', keywords: ['advance', 'advances', 'employee advance', 'staff advance', 'advance ledger', 'peshgi', 'udhar', 'loan'], action: () => window.navigate('advance') },
-    { type: 'action', icon: '➕', title: 'Record New Staff Advance', sub: 'Issue cash or UPI advance payment to staff member', keywords: ['give advance', 'new advance', 'add advance', 'advance do', 'staff loan', 'advance payment'], action: () => { window.navigate('advance'); setTimeout(() => { if (typeof window.renderAddAdv === 'function') window.renderAddAdv(); }, 160); } },
+    { type: 'action', icon: '💸', title: 'Staff Advances Tracker (Alt+A)', sub: 'Track employee advances, deductions & outstanding loan balances [Alt+A / A]', keywords: ['advance', 'advances', 'employee advance', 'staff advance', 'advance ledger', 'peshgi', 'udhar', 'loan', 'alt+a', 'a'], action: () => window.openAdvanceShortcut() },
+    { type: 'action', icon: '➕', title: 'Record New Staff Advance (Alt+Shift+A)', sub: 'Issue cash or UPI advance payment to staff member [Alt+Shift+A]', keywords: ['give advance', 'new advance', 'add advance', 'advance do', 'staff loan', 'advance payment', 'alt+shift+a'], action: () => window.openNewAdvanceShortcut() },
     { type: 'action', icon: '🏢', title: 'Company Advances Ledger', sub: 'Track business owner & partner corporate cash withdrawals', keywords: ['company advance', 'company advances', 'business advance', 'company ledger', 'owner advance', 'partner advance'], action: () => window.navigate('company-advances') },
     { type: 'action', icon: '💼', title: 'Staff Salaries & Payroll', sub: 'Monthly salary calculations, advance deductions & net payouts', keywords: ['salary', 'payroll', 'tankhwah', 'staff pay', 'wages', 'monthly salary', 'salaries'], action: () => window.navigate('salary') },
     { type: 'action', icon: '💳', title: 'Pay Staff Salary Voucher', sub: 'Generate staff salary voucher and record payment', keywords: ['pay salary', 'salary voucher', 'salary slip', 'payment to staff', 'salary record'], action: () => { window.navigate('salary'); setTimeout(() => { if (typeof window.renderAddSal === 'function') window.renderAddSal(); }, 160); } },
@@ -36,8 +36,9 @@
     // 💵 Cash Book, Expenses & Financials
     { type: 'action', icon: '💰', title: 'Cash Book & Counter Handover (Alt+M)', sub: 'Petty cash ledger, cash in hand & daily shift handovers [Alt+M]', keywords: ['cashbook', 'cash book', 'cash', 'handover', 'petty cash', 'counter cash', 'tijori', 'locker', 'alt+m'], action: () => window.openCashBookShortcut() },
     { type: 'action', icon: '📉', title: 'Expenses & P&L Tracker', sub: 'Property operational expenses, utility bills & grocery receipts', keywords: ['expenses', 'expense', 'kharcha', 'spending', 'pnl', 'overhead', 'bills', 'profit loss'], action: () => window.navigate('expenses') },
-    { type: 'action', icon: '🧾', title: 'Staff Daily Expense Claims', sub: 'Staff market purchases, fuel, diesel, and maintenance bills', keywords: ['employee expense', 'staff bill', 'staff claim', 'diesel', 'petrol', 'grocery', 'saman', 'bill'], action: () => window.navigate('emp-expenses') },
-    { type: 'action', icon: '🔄', title: 'Staff Reimbursements', sub: 'Approved staff claim reimbursements and settlement payouts', keywords: ['reimburse', 'claims', 'refund to staff', 'reimbursement', 'reimbursements'], action: () => window.navigate('reimbursements') },
+    { type: 'action', icon: '🧾', title: 'Staff Expense Claims & Reimbursements (Alt+E)', sub: 'Staff market purchases, fuel, diesel & settlement claims [Alt+E / E]', keywords: ['claim', 'claims', 'expense claim', 'employee expense', 'staff bill', 'staff claim', 'diesel', 'petrol', 'grocery', 'saman', 'bill', 'reimbursements', 'alt+e', 'e'], action: () => window.openClaimShortcut() },
+    { type: 'action', icon: '➕', title: 'Log New Expense Claim (Alt+Shift+E)', sub: 'Record new staff expense claim or market purchase bill [Alt+Shift+E]', keywords: ['new claim', 'add claim', 'log claim', 'log expense', 'add reimbursement', 'new bill', 'alt+shift+e'], action: () => window.openNewClaimShortcut() },
+    { type: 'action', icon: '🔄', title: 'Staff Reimbursements Summary', sub: 'Approved staff claim reimbursements and settlement payouts', keywords: ['reimburse', 'claims', 'refund to staff', 'reimbursement', 'reimbursements'], action: () => window.navigate('reimbursements') },
     { type: 'action', icon: '✅', title: 'Pending Approvals & Handovers', sub: 'Verify and authorize shift cash handovers & staff expenses', keywords: ['approvals', 'pending handover', 'verify', 'signoff', 'authorize', 'manzoori', 'approvals'], action: () => window.navigate('pendingApprovals') },
 
     // 📅 Bookings & Reservations Views
@@ -645,6 +646,60 @@
     }
   };
 
+  window.openTasksShortcut = function() {
+    if (typeof window.navigate === 'function') {
+      window.navigate('tasks');
+    }
+  };
+
+  window.openNewTaskShortcut = function() {
+    if (typeof window.navigate === 'function') {
+      window.navigate('tasks');
+      setTimeout(() => {
+        if (typeof window.renderAddTask === 'function') window.renderAddTask();
+      }, 180);
+    }
+  };
+
+  window.openAdvanceShortcut = function() {
+    if (typeof window.navigate === 'function') {
+      window.navigate('advance');
+    }
+  };
+
+  window.openNewAdvanceShortcut = function() {
+    if (typeof window.navigate === 'function') {
+      window.navigate('advance');
+      setTimeout(() => {
+        if (typeof window.renderAddAdv === 'function') window.renderAddAdv();
+      }, 180);
+    }
+  };
+
+  window.openClaimShortcut = function() {
+    if (typeof window.navigate === 'function') {
+      const page = (window.SESSION?.role === 'employee') ? 'emp-expenses' : 'reimbursements';
+      window.navigate(page);
+    }
+  };
+
+  window.openNewClaimShortcut = function() {
+    if (typeof window.navigate === 'function') {
+      const isEmp = window.SESSION?.role === 'employee';
+      if (isEmp) {
+        window.navigate('emp-expenses');
+        setTimeout(() => {
+          if (typeof window.renderAddEmpExpense === 'function') window.renderAddEmpExpense();
+        }, 180);
+      } else {
+        window.navigate('reimbursements');
+        setTimeout(() => {
+          if (typeof window.renderAddReimbursement === 'function') window.renderAddReimbursement();
+        }, 180);
+      }
+    }
+  };
+
   window.openShortcutsModal = function() {
     let el = document.getElementById('uhhShortcutsModal');
     if (el) { el.remove(); return; }
@@ -677,12 +732,15 @@
             { key: `${altSymbol}N`, single: 'N', label: '➕ New Booking', desc: 'Open manual booking creation wizard', action: 'window.openNewBookingShortcut()' },
             { key: `${altSymbol}D`, single: 'D', label: '📋 Duplicate Booking', desc: 'Clone active booking or pick recent guest to rebook', action: 'window.duplicateExistingBookingShortcut()' },
             { key: `${altSymbol}P`, single: 'P', label: '💵 Add Payment / Quick Pay', desc: 'Open payment popup for active booking or dues picker', action: 'window.openQuickPaymentShortcut()' },
+            { key: `${altSymbol}T`, single: 'T', label: '📋 Staff Tasks & Checklists', desc: 'Housekeeping, deep cleans & staff duties (Alt+Shift+T for new)', action: 'window.openTasksShortcut()' },
+            { key: `${altSymbol}A`, single: 'A', label: '💸 Staff Advances Tracker', desc: 'Track employee loans, peshgi & balances (Alt+Shift+A for new)', action: 'window.openAdvanceShortcut()' },
+            { key: `${altSymbol}E`, single: 'E', label: '🧾 Expense Claims & Reimbursements', desc: 'Staff daily market purchases & claims (Alt+Shift+E for new)', action: 'window.openClaimShortcut()' },
             { key: `${altSymbol}C`, single: 'C', label: '📅 Calendar View', desc: 'Open multi-property occupancy grid', action: 'window.openCalendarShortcut()' },
             { key: `${altSymbol}B`, single: 'B', label: '📑 Smart Bookings', desc: 'View all reservations & guests register', action: 'window.openBookingsShortcut()' },
             { key: `${altSymbol}F`, single: 'F', label: '🛏️ Flats & Turnaround', desc: 'Realtime room turnaround Kanban board', action: 'window.openFlatsShortcut()' },
             { key: `${altSymbol}R`, single: 'R', label: '📝 Daily Report', desc: 'Today’s collections & check-ins log', action: 'window.openDailyReportShortcut()' },
             { key: `${altSymbol}M`, single: 'M', label: '💰 Cash Book', desc: 'Petty expenses & UPI reconciliation', action: 'window.openCashBookShortcut()' },
-            { key: `${cmdSymbol}K`, single: '/', label: '🔍 Command Palette', desc: 'Spotlight search anything across PMS (Tasks, Advances, etc.)', action: 'window.openCommandPalette()' },
+            { key: `${cmdSymbol}K`, single: '/', label: '🔍 Command Palette', desc: 'Spotlight search anything across PMS (Tasks, Advances, Claims, etc.)', action: 'window.openCommandPalette()' },
             { key: '?', single: '?', label: '⚡ Shortcuts Help', desc: 'Open this keyboard cheatsheet modal', action: '' },
             { key: 'ESC', single: 'Esc', label: '✕ Close Drawer / Dialog', desc: 'Dismiss active booking drawer or any open modal', action: '' }
           ].map(s => `
@@ -700,7 +758,7 @@
         </div>
 
         <div style="margin-top:14px;padding:9px 12px;background:#1E293B;border-radius:10px;font-size:11.5px;color:#94A3B8;text-align:center;line-height:1.4;">
-          💡 <em>Tip: iPad Magic Keyboard & Mac par aap <strong>⌥ (Option)</strong> ya direct single keys (<strong>D</strong>, <strong>P</strong>, <strong>N</strong>, <strong>C</strong>, <strong>B</strong>, <strong>F</strong>, <strong>R</strong>, <strong>M</strong>) use kar sakte hain jab cursor kisi text box me na ho.</em>
+          💡 <em>Tip: iPad Magic Keyboard & Mac par aap <strong>⌥ (Option)</strong> ya direct single keys (<strong>T</strong>, <strong>A</strong>, <strong>E</strong>, <strong>D</strong>, <strong>P</strong>, <strong>N</strong>, <strong>C</strong>, <strong>B</strong>, <strong>F</strong>, <strong>R</strong>, <strong>M</strong>) use kar sakte hain jab cursor kisi text box me na ho.</em>
         </div>
       </div>
     `;
@@ -761,6 +819,9 @@
     const isKeyF = code === 'KeyF' || keyCode === 70 || key === 'f' || key === 'ƒ';
     const isKeyR = code === 'KeyR' || keyCode === 82 || key === 'r' || key === '®';
     const isKeyM = code === 'KeyM' || keyCode === 77 || key === 'm' || key === 'µ';
+    const isKeyT = code === 'KeyT' || keyCode === 84 || key === 't' || key === '†';
+    const isKeyA = code === 'KeyA' || keyCode === 65 || key === 'a' || key === 'å';
+    const isKeyE = code === 'KeyE' || keyCode === 69 || key === 'e' || key === '´' || (key === 'dead' && (code === 'KeyE' || keyCode === 69));
     const isKeySlash = code === 'Slash' || keyCode === 191 || key === '/' || key === '?';
 
     // 3. Modifier Combinations (Option/Alt on iPad/Mac OR Cmd+Shift on iPad)
@@ -806,6 +867,24 @@
       if (isKeyM) {
         e.preventDefault();
         window.openCashBookShortcut();
+        return;
+      }
+      if (isKeyT) {
+        e.preventDefault();
+        if (e.shiftKey) window.openNewTaskShortcut();
+        else window.openTasksShortcut();
+        return;
+      }
+      if (isKeyA) {
+        e.preventDefault();
+        if (e.shiftKey) window.openNewAdvanceShortcut();
+        else window.openAdvanceShortcut();
+        return;
+      }
+      if (isKeyE) {
+        e.preventDefault();
+        if (e.shiftKey) window.openNewClaimShortcut();
+        else window.openClaimShortcut();
         return;
       }
       if (isKeySlash) {
@@ -875,6 +954,27 @@
       if (isKeyM) {
         e.preventDefault();
         window.openCashBookShortcut();
+        return;
+      }
+      // t -> Tasks
+      if (isKeyT) {
+        e.preventDefault();
+        if (e.shiftKey) window.openNewTaskShortcut();
+        else window.openTasksShortcut();
+        return;
+      }
+      // a -> Advances
+      if (isKeyA) {
+        e.preventDefault();
+        if (e.shiftKey) window.openNewAdvanceShortcut();
+        else window.openAdvanceShortcut();
+        return;
+      }
+      // e -> Claims / Reimbursements
+      if (isKeyE) {
+        e.preventDefault();
+        if (e.shiftKey) window.openNewClaimShortcut();
+        else window.openClaimShortcut();
         return;
       }
     }
