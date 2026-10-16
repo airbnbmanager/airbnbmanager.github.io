@@ -2504,7 +2504,7 @@ async function renderManageBookings() {
             <small style="color:var(--muted);">${b.phone || ''}</small>
             ${(() => {
               const creator = b.booked_by || window._userNameCache?.[b.created_by] || (b.created_by ? 'Admin' : '');
-              const timeStr = b.created_at && window.formatDateTimeStamp ? window.formatDateTimeStamp(b.created_at) : '';
+              const timeStr = window.formatDateTimeStamp ? window.formatDateTimeStamp(window.getBookingTimestamp ? window.getBookingTimestamp(b) : (b.created_at || '')) : '';
               if (!creator && !timeStr) return '';
               return `<div style="margin-top:3px;font-size:10px;color:#64748B;display:inline-flex;align-items:center;gap:4px;flex-wrap:wrap;">
                 ${creator ? `<span style="background:#F1F5F9;color:#334155;padding:1px 5px;border-radius:4px;font-weight:600;">👤 ${escapeHtml(creator)}</span>` : ''}
@@ -2954,7 +2954,7 @@ async function renderAddBooking() {
           </select>
         </div>
         <div class="form-group"><label>Guests</label>
-          <input id="guests" type="number" value="${pre.guests || 1}" min="1" max="8"
+          <input id="guests" type="number" value="${pre.guests || 1}" min="1" max="50"
             onchange="showIdSlots()" oninput="showIdSlots()" />
         </div>
       </div>
@@ -4173,7 +4173,6 @@ async function saveBooking() {
       has_vehicle: hasVehicle, vehicle_name: vehicleName, vehicle_number: vehicleNumber,
       vehicle_photo_path: vehiclePhotoPath,
       payment_status: payStatus, notes: finalNotes || null,
-      created_at: new Date().toISOString(),
       booked_by: (window.getCurrentUserAuditName ? window.getCurrentUserAuditName() : (SESSION.displayName || SESSION.role)),
       show_to_investor: showToInvestor,
       hide_reason: hideReason
@@ -4226,7 +4225,6 @@ async function saveBooking() {
           received_by: receivedBy, handover_status: handoverStatus,
           created_by: SESSION.userId,
           paid_at: new Date().toISOString(),
-          created_at: new Date().toISOString(),
           ...approvalMeta()
         });
       }
@@ -4585,7 +4583,7 @@ async function editBooking(bkId) {
 
   const frontPaths = parseIdPathArray(b.id_proof_front_paths);
   const backPaths = parseIdPathArray(b.id_proof_back_paths);
-  const guestCountForUI = Math.min(Math.max(parseInt(b.guests || 1) || 1, 1), 8);
+  const guestCountForUI = Math.max(parseInt(b.guests || 1) || 1, 1);
   let maxSlotWithPhoto = 1;
   for (let i = 1; i <= 8; i++) {
     if (frontPaths[i - 1] || backPaths[i - 1]) maxSlotWithPhoto = Math.max(maxSlotWithPhoto, i);
@@ -4647,10 +4645,10 @@ async function editBooking(bkId) {
   renderShell(`
     <div class="card">
       <h1>✏️ Edit Booking</h1>
-      <button class="secondary btn-sm" onclick="renderManageBookings()">← Back</button>
+      <button class="secondary btn-sm" onclick="if(window.renderSmartManageBookings) window.renderSmartManageBookings(); else renderManageBookings();">← Back</button>
       <div style="margin-top:10px;padding:8px 12px;background:#F8FAFC;border:1px solid var(--border);border-radius:8px;font-size:12px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
         <div>👤 Booked By: <strong>${escapeHtml(b.booked_by || window._userNameCache?.[b.created_by] || 'Admin')}</strong></div>
-        <div>🕒 Booking Timestamp: <strong>${b.created_at && window.formatDateTimeStamp ? window.formatDateTimeStamp(b.created_at) : 'N/A'}</strong></div>
+        <div>🕒 Booking Timestamp: <strong>${window.formatDateTimeStamp ? window.formatDateTimeStamp(window.getBookingTimestamp ? window.getBookingTimestamp(b) : (b.created_at || '')) : 'N/A'}</strong></div>
       </div>
     </div>
     <div class="card">
@@ -4746,7 +4744,7 @@ async function editBooking(bkId) {
         <div><strong>Open Stay (Per Day basis):</strong> Total calculates dynamically day-by-day based on the daily rate.</div>
       </div>
       <div class="form-grid">
-        <div class="form-group"><label>Guests</label><input id="guests" type="number" value="${guestCountForUI}" min="1" max="8" onchange="showEditIdSlots()" oninput="showEditIdSlots()" /></div>
+        <div class="form-group"><label>Guests</label><input id="guests" type="number" value="${guestCountForUI}" min="1" max="50" onchange="showEditIdSlots()" oninput="showEditIdSlots()" /></div>
         <div class="form-group"><label>Per Day Rate ₹</label><input id="perDayRate" type="number" value="${b.per_day_rate || ''}" /></div>
       </div>
       <div class="form-grid">
@@ -5048,7 +5046,7 @@ async function updateBooking(bkId, parentBookingId = '', stayGroupId = '') {
       }
     }
   }
-  const gc = Math.min(Math.max(parseInt(document.getElementById('guests')?.value) || 1, 1), 8);
+  const gc = Math.max(parseInt(document.getElementById('guests')?.value) || 1, 1);
   const { data: oldBk } = await sb.from('guest_register')
     .select('id_proof_front_paths, id_proof_back_paths, id_proof_photo_paths')
     .eq('booking_id', bkId).single();
@@ -5125,7 +5123,7 @@ async function updateBooking(bkId, parentBookingId = '', stayGroupId = '') {
     check_in_time: document.getElementById('checkInTime')?.value || '14:00',
     check_out_time: document.getElementById('checkOutTime')?.value || '11:00',
     checkout_confirmed: document.getElementById('checkoutConfirmed')?.value === 'yes',
-    guests: gc, per_day_rate: perDay, total_amount: totVal,
+    guests: gc, adults: gc, per_day_rate: perDay, total_amount: totVal,
     payment_status: document.getElementById('paySt').value,
     has_vehicle: hasVehicle,
     vehicle_name: hasVehicle ? (document.getElementById('vehicleName')?.value.trim() || null) : null,
@@ -5348,7 +5346,32 @@ async function updateBooking(bkId, parentBookingId = '', stayGroupId = '') {
     }
   } catch(e) { console.warn('Auto-dirty error:', e); }
 
-  renderManageBookings();
+  // Update in-memory caches so cards, table, and drawer reflect immediately without reload
+  if (window._sbkState && window._sbkState.cachedBookings) {
+    const idx = window._sbkState.cachedBookings.findIndex(x => x.booking_id === bkId);
+    if (idx !== -1) Object.assign(window._sbkState.cachedBookings[idx], obj);
+  }
+  if (window._cachedBookings) {
+    const idx = window._cachedBookings.findIndex(x => x.booking_id === bkId);
+    if (idx !== -1) Object.assign(window._cachedBookings[idx], obj);
+  }
+  if (window._allBookings) {
+    const idx = window._allBookings.findIndex(x => x.booking_id === bkId);
+    if (idx !== -1) Object.assign(window._allBookings[idx], obj);
+  }
+  if (window._currentDrawerBooking && window._currentDrawerBooking.booking_id === bkId) {
+    Object.assign(window._currentDrawerBooking, obj);
+  }
+
+  if (typeof fsn !== 'undefined' && fsn.success) {
+    fsn.success('Booking Updated', '✅ Booking details and guest count saved successfully');
+  }
+
+  if (typeof window.renderSmartManageBookings === 'function') {
+    await window.renderSmartManageBookings();
+  } else {
+    renderManageBookings();
+  }
 }
 
 // ============ DELETE BOOKING ============
@@ -5867,7 +5890,6 @@ async function savePaymentModal(bkId) {
       handover_status: (mode === "Cash" && !["Firoz","Shahenshah"].includes(receivedBy)) ? "in_hand" : "handed_over",
       payment_date: payDate,
       paid_at: new Date().toISOString(),
-      created_at: new Date().toISOString(),
       notes: userNotes,
       created_by: SESSION.userId,
       ...approvalMeta()
@@ -5902,7 +5924,6 @@ async function savePaymentModal(bkId) {
         payment_mode: mode,
         payment_date: payDate,
         paid_at: new Date().toISOString(),
-        created_at: new Date().toISOString(),
         received_by: receivedBy || "Firoz", handover_status: (mode === "Cash" && !["Firoz","Shahenshah"].includes(receivedBy)) ? "in_hand" : "handed_over",
         notes: (userNotes ? userNotes + ' | ' : '') + `Auto-adjusted from booking ${bkId}`,
         created_by: SESSION.userId,
@@ -5928,7 +5949,6 @@ async function savePaymentModal(bkId) {
       payment_mode: mode,
       payment_date: payDate,
       paid_at: new Date().toISOString(),
-      created_at: new Date().toISOString(),
       notes: (userNotes ? userNotes + ' | ' : '') + 'Advance / extra payment',
       received_by: receivedBy || "Firoz", handover_status: (mode === "Cash" && !["Firoz","Shahenshah"].includes(receivedBy)) ? "in_hand" : "handed_over",
       created_by: SESSION.userId,
@@ -7169,8 +7189,8 @@ window.linkBookings = async function(bookingA, bookingB) {
   
   // Link A → B (A is the review booking, B is the original)
   // Set linked_booking_id on the newer one
-  const { data: bkA } = await sb.from('guest_register').select('created_at, is_review_booking').eq('booking_id', bookingA).single();
-  const { data: bkB } = await sb.from('guest_register').select('created_at, is_review_booking').eq('booking_id', bookingB).single();
+  const { data: bkA } = await sb.from('guest_register').select('booking_id, check_in, is_review_booking').eq('booking_id', bookingA).single();
+  const { data: bkB } = await sb.from('guest_register').select('booking_id, check_in, is_review_booking').eq('booking_id', bookingB).single();
   
   // The review one should link to the offline (original)
   let sourceId, targetId;
@@ -7181,8 +7201,10 @@ window.linkBookings = async function(bookingA, bookingB) {
     sourceId = bookingB;
     targetId = bookingA;
   } else {
-    // Neither is review, link newer to older
-    if (new Date(bkA.created_at) > new Date(bkB.created_at)) {
+    // Neither is review, link newer to older using robust booking timestamps
+    const timeA = window.getBookingTimestamp ? new Date(window.getBookingTimestamp(bkA)).getTime() : 0;
+    const timeB = window.getBookingTimestamp ? new Date(window.getBookingTimestamp(bkB)).getTime() : 0;
+    if (timeA > timeB) {
       sourceId = bookingA;
       targetId = bookingB;
     } else {

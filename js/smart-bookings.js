@@ -562,8 +562,8 @@ function getAirbnbHeadline(b, today) {
   let name = rawName.split('(')[0].split(',')[0].trim();
   if (!name) name = 'Guest';
   
-  // Determine guest count
-  let count = b.adults ? (Number(b.adults) + Number(b.children || 0)) : (b.num_guests || b.guests || null);
+  // Determine guest count (prioritize explicit guests field)
+  let count = b.guests || b.num_guests || (b.adults ? (Number(b.adults) + Number(b.children || 0)) : null);
   if (!count) {
     const m = rawName.match(/(\d+)\s*(guest|pax|person|people)/i);
     if (m) count = parseInt(m[1]);
@@ -990,7 +990,7 @@ function renderBookingCardsHtml(bookings, paidMap, canM, today) {
                 </div>
                 <div style="font-size:10.5px;color:#64748B;margin-top:3px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
                   <span>👤 ${escapeHtml(b.booked_by || window._userNameCache?.[b.created_by] || 'Staff')}</span>
-                  ${b.created_at && window.formatDateTimeStamp ? `<span title="Booking Timestamp">🕒 ${window.formatDateTimeStamp(b.created_at)}</span>` : ''}
+                  ${(window.getBookingTimestamp ? window.getBookingTimestamp(b) : b.created_at) && window.formatDateTimeStamp ? `<span title="Booking Timestamp">🕒 ${window.formatDateTimeStamp(window.getBookingTimestamp ? window.getBookingTimestamp(b) : b.created_at)}</span>` : ''}
                 </div>
               </div>
               <div class="sbk-dates-tag" style="flex-shrink:0;text-align:right;">
@@ -1123,7 +1123,7 @@ function renderBookingTableHtml(bookings, paidMap, canM, today) {
                     ` : ''}
                     <div style="font-size:10.5px;color:#64748B;margin-top:2px;display:flex;align-items:center;gap:5px;">
                       <span>👤 ${escapeHtml(b.booked_by || window._userNameCache?.[b.created_by] || 'Staff')}</span>
-                      ${b.created_at && window.formatDateTimeStamp ? `<span title="Booking Timestamp">· 🕒 ${window.formatDateTimeStamp(b.created_at)}</span>` : ''}
+                      ${(window.getBookingTimestamp ? window.getBookingTimestamp(b) : b.created_at) && window.formatDateTimeStamp ? `<span title="Booking Timestamp">· 🕒 ${window.formatDateTimeStamp(window.getBookingTimestamp ? window.getBookingTimestamp(b) : b.created_at)}</span>` : ''}
                     </div>
                   </td>
                   <td style="padding:12px 16px;white-space:nowrap;vertical-align:middle;">
@@ -1315,6 +1315,17 @@ window.openBookingDrawer = async function(bookingId) {
                 <span style="color:var(--muted);font-size:11px;">Check-Out:</span><br>
                 <strong>${b.check_out || '-'} ${b.check_out_time ? `(${b.check_out_time})` : ''}</strong>
               </div>
+              <div>
+                <span style="color:var(--muted);font-size:11px;">Guests:</span><br>
+                <div style="display:flex;align-items:center;gap:6px;margin-top:2px;">
+                  <strong style="color:var(--dark);font-size:14px;">👥 ${b.guests || 1} Guests</strong>
+                  ${canM ? `<button type="button" class="btn-sm" onclick="window.quickEditGuestCount('${b.booking_id}', ${b.guests || 1})" style="padding:2px 8px;font-size:11px;background:#EEF2F6;border:1px solid #CBD5E1;border-radius:6px;cursor:pointer;font-weight:700;" title="Change number of guests">✏️ Change</button>` : ''}
+                </div>
+              </div>
+              <div>
+                <span style="color:var(--muted);font-size:11px;">Duration:</span><br>
+                <strong>${b.check_in && b.check_out ? (calcNights(b.check_in, b.check_out) + ' Nights') : '-'}</strong>
+              </div>
             </div>
             <div style="margin-top:10px;padding:8px 12px;background:#F8FAFC;border:1px solid #E2E8F0;border-radius:8px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
               <div style="font-size:12px;color:#334155;">
@@ -1323,7 +1334,7 @@ window.openBookingDrawer = async function(bookingId) {
               </div>
               <div style="font-size:12px;color:#334155;text-align:right;">
                 <span style="color:var(--muted);font-size:11px;">Booking Timestamp:</span><br>
-                <strong style="color:var(--dark);">🕒 ${b.created_at && window.formatDateTimeStamp ? window.formatDateTimeStamp(b.created_at) : 'N/A'}</strong>
+                <strong style="color:var(--dark);">🕒 ${window.formatDateTimeStamp ? window.formatDateTimeStamp(window.getBookingTimestamp ? window.getBookingTimestamp(b) : (b.created_at || '')) : 'N/A'}</strong>
               </div>
             </div>
             ${b.notes ? `
@@ -1475,6 +1486,67 @@ window.drawerDuplicateBooking = function(bookingId) {
     window.duplicateBooking(bookingId);
   } else {
     alert('Duplicate booking function is unavailable.');
+  }
+};
+
+window.quickEditGuestCount = async function(bookingId, currentGuests) {
+  const currentVal = parseInt(currentGuests, 10) || 1;
+  const rawInput = prompt('👥 Enter updated number of guests for this booking:', currentVal);
+  if (rawInput === null) return;
+  const newCount = parseInt(rawInput, 10);
+  if (isNaN(newCount) || newCount < 1 || newCount > 50) {
+    if (typeof fsn !== 'undefined' && fsn.error) {
+      fsn.error('Invalid Guest Count', 'Please enter a valid number of guests between 1 and 50.');
+    } else {
+      alert('Please enter a valid number of guests between 1 and 50.');
+    }
+    return;
+  }
+
+  try {
+    if (typeof fsn !== 'undefined' && fsn.info) {
+      fsn.info('Updating...', 'Saving new guest count...');
+    }
+
+    const { error } = await sb.from('guest_register').update({ guests: newCount }).eq('booking_id', bookingId);
+    if (error) throw error;
+
+    // Update in memory caches
+    if (window._sbkState && window._sbkState.cachedBookings) {
+      const bk = window._sbkState.cachedBookings.find(x => x.booking_id === bookingId);
+      if (bk) { bk.guests = newCount; bk.adults = newCount; }
+    }
+    if (window._cachedBookings) {
+      const bk = window._cachedBookings.find(x => x.booking_id === bookingId);
+      if (bk) { bk.guests = newCount; bk.adults = newCount; }
+    }
+    if (window._allBookings) {
+      const bk = window._allBookings.find(x => x.booking_id === bookingId);
+      if (bk) { bk.guests = newCount; bk.adults = newCount; }
+    }
+    if (window._currentDrawerBooking && window._currentDrawerBooking.booking_id === bookingId) {
+      window._currentDrawerBooking.guests = newCount;
+      window._currentDrawerBooking.adults = newCount;
+    }
+
+    if (typeof fsn !== 'undefined' && fsn.success) {
+      fsn.success('Guests Updated', `✅ Guest count updated to ${newCount} guests!`);
+    }
+
+    // Refresh drawer
+    window.openBookingDrawer(bookingId);
+
+    // Refresh smart booking list/cards
+    if (typeof window.renderSmartManageBookings === 'function') {
+      window.renderSmartManageBookings();
+    }
+  } catch (err) {
+    console.error('Failed to update guest count:', err);
+    if (typeof fsn !== 'undefined' && fsn.error) {
+      fsn.error('Update Failed', err.message || 'Could not update guest count.');
+    } else {
+      alert('Failed to update guests: ' + (err.message || 'Error'));
+    }
   }
 };
 
@@ -1816,7 +1888,7 @@ async function renderSmartAddBooking() {
                   <div id="config_${r.room_id}" style="display:none;margin-top:10px;padding-top:8px;border-top:1px dashed #CBD5E1;gap:8px;align-items:center;">
                     <div style="flex:1;">
                       <label style="font-size:10px;font-weight:700;color:var(--muted);display:block;margin-bottom:2px;">Guests</label>
-                      <input id="guests_${r.room_id}" type="number" min="1" max="8" value="2" oninput="window.recalcMultiTotals()" style="width:100%;padding:4px 6px;font-size:12px;border:1px solid #CBD5E1;border-radius:6px;" />
+                      <input id="guests_${r.room_id}" type="number" min="1" max="50" value="2" oninput="window.recalcMultiTotals()" style="width:100%;padding:4px 6px;font-size:12px;border:1px solid #CBD5E1;border-radius:6px;" />
                     </div>
                     <div style="flex:1.5;">
                       <label style="font-size:10px;font-weight:700;color:var(--muted);display:block;margin-bottom:2px;">Rate ₹</label>
@@ -1917,7 +1989,7 @@ async function renderSmartAddBooking() {
             </div>
             <div class="form-group">
               <label style="font-weight:700;">Number of Guests</label>
-              <input id="guests" type="number" min="1" max="8" value="${pre.guests || 2}" />
+              <input id="guests" type="number" min="1" max="50" value="${pre.guests || 2}" />
             </div>
           </div>
 
@@ -2575,7 +2647,6 @@ window.saveSmartBooking = async function() {
       vehicle_name: document.getElementById('vehicleName')?.value?.trim() || null,
       vehicle_number: document.getElementById('vehicleNumber')?.value?.trim() || null,
       notes: document.getElementById('bkNotes')?.value?.trim() || null,
-      created_at: new Date().toISOString(),
       booked_by: window.getCurrentUserAuditName ? window.getCurrentUserAuditName() : (SESSION.displayName || SESSION.role || 'Staff')
     };
 
@@ -2590,7 +2661,6 @@ window.saveSmartBooking = async function() {
         payment_mode: advMode,
         payment_date: ci,
         paid_at: new Date().toISOString(),
-        created_at: new Date().toISOString(),
         received_by: receivedBy,
         handover_status: advMode === 'Cash' ? 'in_hand' : 'handed_over',
         notes: 'Advance booking deposit',
@@ -2943,7 +3013,6 @@ window.saveMultiSmartBooking = async function() {
         vehicle_name: vehicleName,
         vehicle_number: vehicleNumber,
         notes: `Multi-Property Booking (${roomItems.length} Homestays: ${roomItems.map(x => x.room_name).join(', ')}). ${notes}`.trim(),
-        created_at: new Date().toISOString(),
         booked_by: window.getCurrentUserAuditName ? window.getCurrentUserAuditName() : (SESSION?.displayName || SESSION?.role || 'Staff')
       };
     });
@@ -2983,7 +3052,6 @@ window.saveMultiSmartBooking = async function() {
             received_by: advReceivedBy,
             payment_date: payDate,
             paid_at: new Date().toISOString(),
-            created_at: new Date().toISOString(),
             handover_status: handoverStatus,
             notes: `Advance for ${roomObj?.room_name || cbk.room_id} (Group: ${stayGroupId})`,
             created_by: SESSION?.userId || null,

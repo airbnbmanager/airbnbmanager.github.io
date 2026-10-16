@@ -1650,10 +1650,29 @@ function renderShell(content, activePage = 'dashboard') {
     return 'Admin';
   };
 
+  window.getBookingTimestamp = function(b) {
+    if (!b) return '';
+    if (typeof b === 'string') return b;
+    if (b.created_at) return b.created_at;
+    const bId = b.booking_id || b.id || '';
+    const match = String(bId).match(/^B(\d{10,14})/);
+    if (match) {
+      const epoch = parseInt(match[1], 10);
+      if (!isNaN(epoch) && epoch > 1500000000000 && epoch < 2500000000000) {
+        return new Date(epoch).toISOString();
+      }
+    }
+    return b.paid_at || b.payment_date || b.check_in || '';
+  };
+
   window.formatDateTimeStamp = function(isoOrDate, opts = {}) {
     if (!isoOrDate) return '';
     try {
-      const d = new Date(isoOrDate);
+      const raw = (typeof isoOrDate === 'object' && isoOrDate !== null && !(isoOrDate instanceof Date))
+        ? window.getBookingTimestamp(isoOrDate)
+        : isoOrDate;
+      if (!raw) return '';
+      const d = new Date(raw);
       if (isNaN(d.getTime())) return String(isoOrDate);
 
       // Check if it's purely a date string without time component (e.g. '2026-10-16')
