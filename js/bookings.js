@@ -5123,7 +5123,7 @@ async function updateBooking(bkId, parentBookingId = '', stayGroupId = '') {
     check_in_time: document.getElementById('checkInTime')?.value || '14:00',
     check_out_time: document.getElementById('checkOutTime')?.value || '11:00',
     checkout_confirmed: document.getElementById('checkoutConfirmed')?.value === 'yes',
-    guests: gc, adults: gc, per_day_rate: perDay, total_amount: totVal,
+    guests: gc, per_day_rate: perDay, total_amount: totVal,
     payment_status: document.getElementById('paySt').value,
     has_vehicle: hasVehicle,
     vehicle_name: hasVehicle ? (document.getElementById('vehicleName')?.value.trim() || null) : null,
@@ -5262,9 +5262,19 @@ async function updateBooking(bkId, parentBookingId = '', stayGroupId = '') {
   });
 
 
-  let { error } = await sb.from('guest_register').update(obj).eq('booking_id', bkId);
+  let res = window.safeDbUpdate
+    ? await window.safeDbUpdate('guest_register', obj, 'booking_id', bkId)
+    : await sb.from('guest_register').update(obj).eq('booking_id', bkId);
+  let error = res ? res.error : null;
+
   if (isMissingColumnError(error)) {
-    console.warn('Native security deposit columns missing in Supabase, updating with notes fallback:', error.message);
+    console.warn('Column missing in Supabase, auto-stripping non-native fields:', error.message);
+    const badCol = error.message.match(/Could not find the '([^']+)' column/i)?.[1]
+                || error.message.match(/column '([^']+)' does not exist/i)
+                || error.message.match(/column "([^"]+)" does not exist/i);
+    if (badCol) delete obj[badCol];
+    delete obj.adults;
+    delete obj.created_at;
     delete obj.security_deposit_amount;
     delete obj.security_deposit_status;
     delete obj.security_deposit_mode;
