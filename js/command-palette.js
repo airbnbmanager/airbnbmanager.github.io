@@ -738,7 +738,6 @@
             { key: `${altSymbol}C`, single: 'C', label: '📅 Calendar View', desc: 'Open multi-property occupancy grid', action: 'window.openCalendarShortcut()' },
             { key: `${altSymbol}B`, single: 'B', label: '📑 Smart Bookings', desc: 'View all reservations & guests register', action: 'window.openBookingsShortcut()' },
             { key: `${altSymbol}F`, single: 'F', label: '🛏️ Flats & Turnaround', desc: 'Realtime room turnaround Kanban board', action: 'window.openFlatsShortcut()' },
-            { key: `${altSymbol}R`, single: 'R', label: '📝 Daily Report', desc: 'Today’s collections & check-ins log', action: 'window.openDailyReportShortcut()' },
             { key: `${altSymbol}M`, single: 'M', label: '💰 Cash Book', desc: 'Petty expenses & UPI reconciliation', action: 'window.openCashBookShortcut()' },
             { key: `${cmdSymbol}K`, single: '/', label: '🔍 Command Palette', desc: 'Spotlight search anything across PMS (Tasks, Advances, Claims, etc.)', action: 'window.openCommandPalette()' },
             { key: '?', single: '?', label: '⚡ Shortcuts Help', desc: 'Open this keyboard cheatsheet modal', action: '' },
@@ -758,7 +757,7 @@
         </div>
 
         <div style="margin-top:14px;padding:9px 12px;background:#1E293B;border-radius:10px;font-size:11.5px;color:#94A3B8;text-align:center;line-height:1.4;">
-          💡 <em>Tip: iPad Magic Keyboard & Mac par aap <strong>⌥ (Option)</strong> ya direct single keys (<strong>T</strong>, <strong>A</strong>, <strong>E</strong>, <strong>D</strong>, <strong>P</strong>, <strong>N</strong>, <strong>C</strong>, <strong>B</strong>, <strong>F</strong>, <strong>R</strong>, <strong>M</strong>) use kar sakte hain jab cursor kisi text box me na ho.</em>
+          💡 <em>Tip: iPad Magic Keyboard & Mac par aap <strong>⌥ (Option)</strong> ya direct single keys (<strong>T</strong>, <strong>A</strong>, <strong>E</strong>, <strong>D</strong>, <strong>P</strong>, <strong>N</strong>, <strong>C</strong>, <strong>B</strong>, <strong>F</strong>, <strong>M</strong>) use kar sakte hain jab cursor kisi text box me na ho.</em>
         </div>
       </div>
     `;
@@ -799,6 +798,11 @@
       const el = document.getElementById('cmdPaletteBackdrop');
       if (el && el.style.display === 'flex') closeCommandPalette();
       else window.openCommandPalette();
+      return;
+    }
+
+    // Never intercept native browser reload / hard reload (Cmd+R, Ctrl+R, Cmd+Shift+R, Ctrl+Shift+R, F5)
+    if (((e.metaKey || e.ctrlKey) && (code === 'KeyR' || keyCode === 82 || key === 'r')) || code === 'F5' || keyCode === 116) {
       return;
     }
 
@@ -857,11 +861,6 @@
       if (isKeyF) {
         e.preventDefault();
         window.openFlatsShortcut();
-        return;
-      }
-      if (isKeyR) {
-        e.preventDefault();
-        window.openDailyReportShortcut();
         return;
       }
       if (isKeyM) {
@@ -942,12 +941,6 @@
       if (isKeyF) {
         e.preventDefault();
         window.openFlatsShortcut();
-        return;
-      }
-      // r -> Daily Report
-      if (isKeyR) {
-        e.preventDefault();
-        window.openDailyReportShortcut();
         return;
       }
       // m -> Cash Book
