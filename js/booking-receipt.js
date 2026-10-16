@@ -99,9 +99,30 @@ window.BOOKING_RECEIPT_ENGINE = (function() {
     return tStr;
   }
 
+  function formatDateTime(dtStr) {
+    if (!dtStr) return '';
+    try {
+      const d = new Date(dtStr);
+      if (isNaN(d.getTime())) return dtStr;
+      const datePart = d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+      const timePart = d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
+      return `${datePart}, ${timePart}`;
+    } catch(e) {
+      return dtStr;
+    }
+  }
+
   function cleanPhone(p) {
     if (!p) return '';
-    return String(p).replace(/\D/g, '');
+    if (window.normalizePhone) {
+      const norm = window.normalizePhone(p);
+      return norm.core10 || norm.digits || String(p).replace(/\D/g, '');
+    }
+    let d = String(p).replace(/\D/g, '');
+    if (d.length >= 12 && d.startsWith('91')) d = d.slice(2);
+    else if (d.length >= 13 && d.startsWith('091')) d = d.slice(3);
+    else if (d.length >= 11 && d.startsWith('0')) d = d.slice(1);
+    return d.slice(-10);
   }
 
   // 1. Fetch Complete Booking Data for Receipt
@@ -281,6 +302,7 @@ window.BOOKING_RECEIPT_ENGINE = (function() {
             <div style="font-size:10px;color:#334155;line-height:1.5;">
               📱 Phone: <strong>${escapeHtml(booking.phone || 'N/A')}</strong> &nbsp;|&nbsp; 👥 Guests: <strong>${booking.guests || 1} Person${(booking.guests || 1) > 1 ? 's' : ''}</strong><br>
               ${booking.booked_by ? `✍️ Booked By: <strong>${escapeHtml(booking.booked_by)}</strong> &nbsp;|&nbsp; ` : ''}
+              ${booking.created_at ? `🕒 Booked On: <strong>${formatDateTime(booking.created_at)}</strong> &nbsp;|&nbsp; ` : ''}
               ${booking.id_proof_type ? `🪪 ID Type: <strong>${escapeHtml(booking.id_proof_type)}</strong>` : ''}
             </div>
           </div>
@@ -372,7 +394,7 @@ window.BOOKING_RECEIPT_ENGINE = (function() {
                   ${payments.map((p, idx) => `
                     <tr style="border-bottom:1px solid #E2E8F0;">
                       <td style="padding:2px 4px;color:#64748B;">${String(idx + 1).padStart(2, '0')}</td>
-                      <td style="padding:2px 4px;font-weight:700;">${formatDate(p.payment_date || p.paid_at)}</td>
+                      <td style="padding:2px 4px;font-weight:700;">${(p.paid_at || p.created_at) ? formatDateTime(p.paid_at || p.created_at) : formatDate(p.payment_date)}</td>
                       <td style="padding:2px 4px;"><span style="background:#E2E8F0;padding:1px 4px;border-radius:3px;font-size:8.5px;font-weight:700;">${escapeHtml(p.payment_mode || 'Direct')}</span></td>
                       <td style="padding:2px 4px;color:#475569;">${escapeHtml(p.notes || '-')}</td>
                       <td style="padding:2px 4px;color:#475569;">${escapeHtml(p.received_by || 'UHH Team')}</td>
@@ -1641,6 +1663,7 @@ Thank you for choosing *The Unique Haven Homes*. Your direct reservation has bee
               📱 Phone: <strong>${escapeHtml(phone || 'N/A')}</strong> &nbsp;|&nbsp; 👥 Total Guests: <strong>${totalGuests}</strong><br>
               🏢 Total Homestays: <strong>${bookings.length} Properties</strong>
               ${primaryBooking?.booked_by ? ` &nbsp;|&nbsp; ✍️ Booked By: <strong>${escapeHtml(primaryBooking.booked_by)}</strong>` : ''}
+              ${primaryBooking?.created_at ? ` &nbsp;|&nbsp; 🕒 Booked On: <strong>${formatDateTime(primaryBooking.created_at)}</strong>` : ''}
             </div>
           </div>
 
@@ -1778,7 +1801,7 @@ Thank you for choosing *The Unique Haven Homes*. Your direct reservation has bee
                   ${payments.map((p, idx) => `
                     <tr style="border-bottom:1px solid #E2E8F0;">
                       <td style="padding:2px 4px;color:#64748B;">${String(idx + 1).padStart(2, '0')}</td>
-                      <td style="padding:2px 4px;font-weight:700;">${formatDate(p.payment_date || p.paid_at)}</td>
+                      <td style="padding:2px 4px;font-weight:700;">${(p.paid_at || p.created_at) ? formatDateTime(p.paid_at || p.created_at) : formatDate(p.payment_date)}</td>
                       <td style="padding:2px 4px;font-family:monospace;font-size:9px;color:#0284C7;">${escapeHtml(p.booking_id)}</td>
                       <td style="padding:2px 4px;"><span style="background:#E2E8F0;padding:1px 4px;border-radius:3px;font-size:8.5px;font-weight:700;">${escapeHtml(p.payment_mode || 'Direct')}</span></td>
                       <td style="padding:2px 4px;color:#475569;">${escapeHtml(p.notes || '-')}</td>

@@ -518,11 +518,36 @@ async function loadProfile(userId) {
   SESSION.role = p.role;
   SESSION.empId = p.emp_id;
   SESSION.investorId = p.investor_id;
-  SESSION.displayName = p.display_name || p.role;
+
+  try {
+    const { data: { user } } = await sb.auth.getUser();
+    if (user) {
+      SESSION.email = user.email || '';
+      const emailPrefix = user.email ? user.email.split('@')[0] : '';
+      const metaName = user.user_metadata?.full_name || user.user_metadata?.name || '';
+      SESSION.displayName = p.display_name || metaName || emailPrefix || p.role;
+      SESSION.auditUser = p.display_name || emailPrefix || p.role;
+    } else {
+      SESSION.displayName = p.display_name || p.role;
+      SESSION.auditUser = p.display_name || p.role;
+    }
+  } catch (e) {
+    SESSION.displayName = p.display_name || p.role;
+    SESSION.auditUser = p.display_name || p.role;
+  }
+
+  window._userNameCache = window._userNameCache || {};
+  if (SESSION.userId) {
+    window._userNameCache[SESSION.userId] = SESSION.displayName;
+  }
+  if (typeof window.preloadUserNames === 'function') {
+    window.preloadUserNames();
+  }
+
   startHeartbeat();
 
   if (window.UserActivityTracker) {
-    window.UserActivityTracker.recordLogin(userId, p.display_name || p.role, p.role);
+    window.UserActivityTracker.recordLogin(userId, SESSION.displayName, p.role);
   }
 
   if (p.role === 'employee') renderEmployeeView();
@@ -1544,6 +1569,128 @@ function renderShell(content, activePage = 'dashboard') {
     };
   }
 
+  // ═══════════════════════════════════════════════════════════
+  // 📞 ULTRA-ROBUST PHONE NORMALIZATION & LOOKUP ENGINE
+  // Handles +91, 91, 0, spaces, dashes, parentheses & partials
+  // ═══════════════════════════════════════════════════════════
+  window.normalizePhone = function(raw) {
+    if (!raw) return { raw: '', digits: '', core10: '', formatted: '' };
+    const str = String(raw).trim();
+    const digits = str.replace(/\D/g, '');
+    let core10 = digits;
+    if (digits.length >= 12 && digits.startsWith('91')) {
+      core10 = digits.slice(2);
+    } else if (digits.length >= 13 && digits.startsWith('091')) {
+      core10 = digits.slice(3);
+    } else if (digits.length >= 11 && digits.startsWith('0')) {
+      core10 = digits.slice(1);
+    }
+    if (core10.length > 10) {
+      core10 = core10.slice(-10);
+    }
+    const formatted = core10.length === 10 ? `+91 ${core10.slice(0, 5)} ${core10.slice(5)}` : str;
+    return { raw: str, digits, core10, formatted };
+  };
+
+  window.matchPhoneSearch = function(query, targetPhone) {
+    if (!query || !targetPhone) return false;
+    const qStr = String(query).trim().toLowerCase();
+    const tStr = String(targetPhone).trim().toLowerCase();
+    if (tStr.includes(qStr)) return true;
+
+    const qNorm = window.normalizePhone(query);
+    const tNorm = window.normalizePhone(targetPhone);
+
+    // Exact 10-digit match (with or without +91 / 91 / 0 prefix)
+    if (qNorm.core10 && tNorm.core10 && qNorm.core10.length === 10 && tNorm.core10.length === 10) {
+      if (qNorm.core10 === tNorm.core10) return true;
+    }
+
+    // Substring match on normalized 10 digits or cleaned digits
+    if (qNorm.core10 && qNorm.core10.length >= 3) {
+      if (tNorm.core10 && tNorm.core10.includes(qNorm.core10)) return true;
+      if (tNorm.digits && tNorm.digits.includes(qNorm.core10)) return true;
+    }
+    if (qNorm.digits && qNorm.digits.length >= 3) {
+      if (tNorm.digits && tNorm.digits.includes(qNorm.digits)) return true;
+      if (tNorm.core10 && tNorm.core10.includes(qNorm.digits)) return true;
+    }
+    if (tNorm.core10 && tNorm.core10.length >= 4 && qNorm.digits && qNorm.digits.includes(tNorm.core10)) {
+      return true;
+    }
+
+    return false;
+  };
+
+  // ═══════════════════════════════════════════════════════════
+  // 🕒 USER AUDIT & TIMESTAMP FORMATTING ENGINE
+  // Accurately logs & formats booking/payment creators & exact times
+  // ═══════════════════════════════════════════════════════════
+  window._userNameCache = window._userNameCache || {};
+
+  window.getCurrentUserAuditName = function() {
+    const s = window.SESSION || {};
+    const dName = (s.displayName || '').trim();
+    const email = (s.email || '').trim();
+    const emailHandle = email ? email.split('@')[0] : '';
+    const role = (s.role || '').trim();
+
+    // If user has a valid display name
+    if (dName && dName !== 'User' && dName !== 'Staff') {
+      return dName;
+    }
+    // If user has email username (e.g. praveensinghaws)
+    if (emailHandle) {
+      return emailHandle;
+    }
+    // Fallback to role
+    if (role) {
+      return role.charAt(0).toUpperCase() + role.slice(1);
+    }
+    return 'Admin';
+  };
+
+  window.formatDateTimeStamp = function(isoOrDate, opts = {}) {
+    if (!isoOrDate) return '';
+    try {
+      const d = new Date(isoOrDate);
+      if (isNaN(d.getTime())) return String(isoOrDate);
+
+      // Check if it's purely a date string without time component (e.g. '2026-10-16')
+      const isDateOnly = (typeof isoOrDate === 'string' && isoOrDate.length === 10 && !isoOrDate.includes('T') && !isoOrDate.includes(' '));
+      if (isDateOnly) {
+        return d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+      }
+
+      // Format date
+      const datePart = d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+      // Format 12-hour time with AM/PM (e.g., 09:15 AM)
+      const timePart = d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
+
+      if (opts.timeOnly) return timePart;
+      if (opts.dateOnly) return datePart;
+      return `${datePart}, ${timePart}`;
+    } catch (e) {
+      return String(isoOrDate);
+    }
+  };
+
+  window.preloadUserNames = async function() {
+    try {
+      if (!window.sb) return;
+      const { data } = await window.sb.from('profiles').select('user_id, display_name, role');
+      if (data && data.length) {
+        data.forEach(p => {
+          if (p.user_id) {
+            window._userNameCache[p.user_id] = p.display_name || (p.role ? p.role.charAt(0).toUpperCase() + p.role.slice(1) : 'User');
+          }
+        });
+      }
+    } catch (e) {
+      console.warn('Preload user names warn:', e);
+    }
+  };
+
   // Global search input handling — manual trigger on Enter or 🔍 click
   window.triggerGlobalSearch = function(customQuery) {
     const q = (customQuery !== undefined) 
@@ -1585,11 +1732,11 @@ function renderShell(content, activePage = 'dashboard') {
         <div class="mobile-search-card">
           <div class="mobile-search-top">
             <span class="mobile-search-icon">🔍</span>
-            <input type="text" id="mobileSearchInput" class="mobile-search-input" placeholder="Search guests, phone, ID, room..." autocomplete="off" />
-            <button type="button" class="mobile-search-close" onclick="window.closeMobileSearch()">✕</button>
+            <input type="text" id="mobileSearchInput" class="mobile-search-input" placeholder="Search guests, phone (+91/0), ID, room..." autocomplete="off" />
+            <button type="button" class="mobile-search-close" onclick="window.closeMobileSearch()" title="Close (ESC)">✕</button>
           </div>
           <div id="mobileSearchResults" class="mobile-search-results">
-            <div class="mobile-search-placeholder">Type guest name, phone number, or flat...</div>
+            <div class="mobile-search-placeholder">Type guest name, phone number (+91/0), flat, or ID...</div>
           </div>
         </div>
       `;
@@ -1626,18 +1773,19 @@ function renderShell(content, activePage = 'dashboard') {
     if (!resBox) return;
 
     if (!q) {
-      resBox.innerHTML = '<div class="mobile-search-placeholder">Type guest name, phone number, or flat...</div>';
+      resBox.innerHTML = '<div class="mobile-search-placeholder">Type guest name, phone (+91/0), flat, or ID...</div>';
       return;
     }
 
     clearTimeout(_mobileSearchDebounce);
     _mobileSearchDebounce = setTimeout(async () => {
       let matches = [];
+      const qNorm = window.normalizePhone(q);
       const cached = window._sbkState?.cachedBookings || [];
       if (cached.length) {
         matches = cached.filter(b => 
           (b.guest_name && b.guest_name.toLowerCase().includes(q)) ||
-          (b.phone && b.phone.includes(q)) ||
+          window.matchPhoneSearch(q, b.phone) ||
           (b.booking_id && String(b.booking_id).toLowerCase().includes(q)) ||
           (b.rooms?.nickname && b.rooms.nickname.toLowerCase().includes(q)) ||
           (b.room_id && b.room_id.toLowerCase().includes(q))
@@ -1647,9 +1795,10 @@ function renderShell(content, activePage = 'dashboard') {
       // If no cached matches or not loaded yet, query Supabase directly
       if (!matches.length && window.sb) {
         try {
+          const phoneSearchTerm = qNorm.core10 && qNorm.core10.length >= 3 ? qNorm.core10 : q;
           const { data } = await sb.from('guest_register')
             .select('booking_id, guest_name, phone, room_id, check_in, check_out, total_amount')
-            .or(`guest_name.ilike.%${q}%,phone.ilike.%${q}%,booking_id.ilike.%${q}%`)
+            .or(`guest_name.ilike.%${q}%,phone.ilike.%${phoneSearchTerm}%,booking_id.ilike.%${q}%`)
             .limit(8);
           if (data) matches = data;
         } catch(e) {}
@@ -4982,15 +5131,23 @@ window.printDocumentHTML = function(htmlContent, title = 'Document', options = {
         ${extractedStyles}
       </head>
       <body>
-        <div class="no-print" style="padding:10px 16px;background:#F8FAFC;border-bottom:1px solid #E2E8F0;display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+        <div class="no-print" style="position:sticky;top:0;z-index:999999;padding:12px 18px;background:#0F172A;color:#FFFFFF;display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;box-shadow:0 4px 14px rgba(0,0,0,0.25);border-radius:0 0 10px 10px;">
           <div style="display:flex;align-items:center;gap:10px;">
-            <button onclick="window.print()" style="padding:8px 20px;background:#4F46E5;color:#fff;border:none;border-radius:6px;font-weight:700;font-size:13px;cursor:pointer;">🖨️ Print / Save as PDF</button>
-            <button onclick="window.close()" style="padding:8px 14px;background:#64748B;color:#fff;border:none;border-radius:6px;font-weight:700;font-size:13px;cursor:pointer;">✕ Close</button>
+            <button onclick="window.print()" style="padding:9px 20px;background:#10B981;color:#fff;border:none;border-radius:7px;font-weight:800;font-size:13px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;">🖨️ Print / Save as PDF</button>
+            <button onclick="window.close()" style="padding:9px 18px;background:#EF4444;color:#fff;border:none;border-radius:7px;font-weight:800;font-size:13px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;">✕ Close Window</button>
           </div>
-          <span style="font-size:12px;color:#64748B;font-weight:600;">The Unique Haven Homes CRM</span>
+          <span style="font-size:12.5px;color:#94A3B8;font-weight:700;">THE UNIQUE HAVEN HOMES PVT. LTD.</span>
         </div>
         ${cleanHtml}
+        <!-- Floating Close Button at bottom right for long scrolled pages -->
+        <button type="button" class="no-print" onclick="window.close()"
+          style="position:fixed;bottom:24px;right:24px;z-index:9999999;background:#EF4444;color:#fff;border:2px solid #DC2626;padding:12px 22px;border-radius:50px;font-weight:800;font-size:13.5px;cursor:pointer;box-shadow:0 6px 24px rgba(239,68,68,0.55);display:flex;align-items:center;gap:8px;">
+          ✕ Close Window
+        </button>
         <script>
+          window.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape' || e.key === 'Esc') window.close();
+          });
           window.onload = function() {
             setTimeout(function() { window.print(); }, 400);
           };
@@ -5005,5 +5162,147 @@ window.printDocumentHTML = function(htmlContent, title = 'Document', options = {
     showInAppPrintModal(cleanHtml, cleanTitle);
   }
 };
+
+// ═══════════════════════════════════════════════════════════
+// 🛡️ UNIVERSAL MODAL, POPUP, REPORT & ESCAPE SAFETY SYSTEM
+// Ensures EVERY modal, popup, preview, or report in whole CRM
+// has a working close button, backdrop dismissal, and ESC key listener
+// ═══════════════════════════════════════════════════════════
+(function initUniversalModalManager() {
+  'use strict';
+
+  window.closeTopModal = function() {
+    // 1. In-app print/report overlay
+    const printOverlay = document.getElementById('uhhPrintOverlay');
+    if (printOverlay) {
+      printOverlay.remove();
+      return true;
+    }
+
+    // 2. Booking details drawer
+    const drawerOverlay = document.querySelector('.sbk-drawer-overlay');
+    if (drawerOverlay) {
+      if (typeof window.closeBookingDrawer === 'function') window.closeBookingDrawer();
+      else drawerOverlay.closest('#sbkDrawerContainer')?.remove();
+      return true;
+    }
+
+    // 3. Mobile spotlight search overlay
+    const mobileSearch = document.getElementById('mobileSearchOverlay');
+    if (mobileSearch && mobileSearch.classList.contains('show')) {
+      if (typeof window.closeMobileSearch === 'function') window.closeMobileSearch();
+      else mobileSearch.classList.remove('show');
+      return true;
+    }
+
+    // 4. Command Palette
+    const cmdPalette = document.getElementById('uhhCmdPaletteOverlay');
+    if (cmdPalette) {
+      cmdPalette.remove();
+      return true;
+    }
+
+    // 5. Standard modals (.modal-overlay, .upi-modal-overlay, etc.)
+    const modals = document.querySelectorAll('.modal-overlay, .upi-modal-overlay, .luxe-rev-modal-overlay, .od-deposit-modal-overlay, .od-return-modal-overlay, .od-edit-modal-overlay, .notif-panel-overlay');
+    if (modals && modals.length) {
+      const topModal = modals[modals.length - 1]; // topmost in DOM
+      topModal.remove();
+      return true;
+    }
+
+    // 6. Mobile sidebar drawer
+    const sidebar = document.querySelector('.sidebar.mobile-open');
+    if (sidebar) {
+      sidebar.classList.remove('mobile-open');
+      document.getElementById('mobileDrawerBackdrop')?.remove();
+      return true;
+    }
+
+    return false;
+  };
+
+  // Global Capture-Phase Escape key handler
+  window.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape' || e.key === 'Esc') {
+      const didClose = window.closeTopModal();
+      if (didClose) {
+        e.stopPropagation();
+        e.preventDefault();
+      }
+    }
+  }, true);
+
+  // Global Backdrop Click Dismissal
+  document.addEventListener('click', function(e) {
+    if (!e.target) return;
+    const isBackdrop = 
+      e.target.classList.contains('modal-overlay') ||
+      e.target.classList.contains('upi-modal-overlay') ||
+      e.target.classList.contains('luxe-rev-modal-overlay') ||
+      e.target.classList.contains('sbk-drawer-overlay') ||
+      e.target.classList.contains('od-deposit-modal-overlay') ||
+      e.target.classList.contains('od-return-modal-overlay') ||
+      e.target.classList.contains('od-edit-modal-overlay');
+
+    if (isBackdrop) {
+      e.target.remove();
+    }
+  });
+
+  // Automatic Close Button Injector
+  // Ensures any modal that forgets to render a close button gets an immediate, prominent close button!
+  function ensureCloseButtonOnModal(modalNode) {
+    if (!modalNode || !(modalNode instanceof HTMLElement)) return;
+    const isModalOverlay = 
+      modalNode.classList.contains('modal-overlay') ||
+      modalNode.classList.contains('upi-modal-overlay') ||
+      modalNode.classList.contains('luxe-rev-modal-overlay') ||
+      modalNode.classList.contains('od-deposit-modal-overlay') ||
+      modalNode.classList.contains('od-return-modal-overlay') ||
+      modalNode.classList.contains('od-edit-modal-overlay');
+
+    if (!isModalOverlay) return;
+
+    const box = modalNode.querySelector('.modal-box, .modal-content, [class*="modal-box"]') || modalNode.firstElementChild;
+    if (!box) return;
+
+    // Check if a close button already exists
+    const hasCloseBtn = box.querySelector('.modal-close, .modal-close-prominent, [class*="close"], button[aria-label="Close"]');
+    if (!hasCloseBtn) {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'modal-close-prominent';
+      btn.title = 'Close (ESC)';
+      btn.setAttribute('aria-label', 'Close');
+      btn.innerHTML = '✕';
+      btn.onclick = function() {
+        modalNode.remove();
+      };
+      if (getComputedStyle(box).position === 'static') {
+        box.style.position = 'relative';
+      }
+      box.insertBefore(btn, box.firstChild);
+    }
+  }
+
+  // Observe newly added modals
+  if (typeof MutationObserver !== 'undefined') {
+    const observer = new MutationObserver(function(mutations) {
+      for (const mutation of mutations) {
+        for (const node of mutation.addedNodes) {
+          if (node.nodeType === 1) {
+            ensureCloseButtonOnModal(node);
+            node.querySelectorAll?.('.modal-overlay, .upi-modal-overlay, .luxe-rev-modal-overlay').forEach(ensureCloseButtonOnModal);
+          }
+        }
+      }
+    });
+    observer.observe(document.body, { childList: true, subtree: true });
+  }
+
+  // Initial pass
+  document.querySelectorAll('.modal-overlay, .upi-modal-overlay, .luxe-rev-modal-overlay').forEach(ensureCloseButtonOnModal);
+})();
+
 
 

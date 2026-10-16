@@ -2233,7 +2233,7 @@ async function renderManageBookings() {
     const sLow = sq.toLowerCase();
     f = f.filter(b => 
       (b.guest_name || '').toLowerCase().includes(sLow) || 
-      (b.phone || '').includes(sq) || 
+      window.matchPhoneSearch(sq, b.phone) || 
       (b.booking_id && String(b.booking_id).toLowerCase().includes(sLow)) ||
       (b.airbnb_confirmation_code && b.airbnb_confirmation_code.toLowerCase().includes(sLow)) ||
       (b.notes && b.notes.toLowerCase().includes(sLow))
@@ -2502,7 +2502,15 @@ async function renderManageBookings() {
             <strong style="cursor:pointer;text-decoration:underline;color:var(--blue);"
               onclick="showGuestLedger('${(b.guest_name || '').replace(/'/g, "\\'")}', '${b.booking_id}', '${(b.phone || '').replace(/'/g, "\\'")}', '${(b.airbnb_confirmation_code || '').replace(/'/g, "\\'")}')">${b.guest_name || '-'}</strong>${typeof window.getRatingBadge === 'function' ? window.getRatingBadge(b.client_rating) : ''}${typeof getGuestTierBadge === 'function' ? getGuestTierBadge(b) : ''}${typeof getSecurityDepositBadge === 'function' ? getSecurityDepositBadge(b) : ''}${b.is_cancelled ? ' <span class="badge red" style="font-size:9px;" title="' + (b.cancellation_reason || '').replace(/"/g,'&quot;') + '">🚫 CANCELLED</span>' : ''}${b.verification_status === 'pending' ? ' <span class="badge yellow" style="font-size:9px;">🟡 Pending</span>' : ''}${b.is_review_booking ? ' <span class="badge" style="font-size:9px;background:#8B5CF6;color:#fff;">👻 Review</span>' : ''}${b.show_to_investor === false ? ' <span class="badge" style="font-size:9px;background:#DC2626;color:#fff;" title="' + (b.hide_reason || 'Hidden from investor reports').replace(/"/g,'&quot;') + '">🚫 Hidden</span>' : ''}${b.verification_status === 'rejected' ? ' <span class="badge red" style="font-size:9px;" title="' + (b.rejection_reason || '').replace(/"/g,'&quot;') + '">❌ Rejected</span>' : ''}<br>
             <small style="color:var(--muted);">${b.phone || ''}</small>
-            ${b.created_by ? '<br><small style="color:#888;font-size:10px;">👤 ' + (window._userNameCache[b.created_by] || b.booked_by || 'User') + '</small>' : (b.booked_by ? '<br><small style="color:#888;font-size:10px;">👤 ' + b.booked_by + '</small>' : '')}
+            ${(() => {
+              const creator = b.booked_by || window._userNameCache?.[b.created_by] || (b.created_by ? 'Admin' : '');
+              const timeStr = b.created_at && window.formatDateTimeStamp ? window.formatDateTimeStamp(b.created_at) : '';
+              if (!creator && !timeStr) return '';
+              return `<div style="margin-top:3px;font-size:10px;color:#64748B;display:inline-flex;align-items:center;gap:4px;flex-wrap:wrap;">
+                ${creator ? `<span style="background:#F1F5F9;color:#334155;padding:1px 5px;border-radius:4px;font-weight:600;">👤 ${escapeHtml(creator)}</span>` : ''}
+                ${timeStr ? `<span style="color:#64748B;font-size:9.5px;" title="Booking Timestamp: ${timeStr}">🕒 ${timeStr}</span>` : ''}
+              </div>`;
+            })()}
             ${b.verification_status === 'pending' && isTrustedUser() ? '<br><button class="btn-sm green-btn" style="padding:2px 8px;font-size:10px;margin-top:2px;" onclick="event.stopPropagation();approveBooking(\'' + b.booking_id + '\')">✅ Approve</button> <button class="btn-sm danger" style="padding:2px 8px;font-size:10px;" onclick="event.stopPropagation();rejectBooking(\'' + b.booking_id + '\')">❌ Reject</button>' : ''}
             ${(() => {
               const allBks = window._allBookings || [];
@@ -2854,12 +2862,17 @@ async function renderAddBooking() {
       ${pre.parentBookingId ? `<div class="success-msg" style="margin-bottom:10px;">Extension of <strong>${pre.parentBookingId}</strong></div>` : ''}
 
 <div class="form-grid">
-        <div class="form-group"><label>Guest Name *</label><input id="guestName" placeholder="Guest ka naam" value="${pre.guestName || ''}" /></div>
+        <div class="form-group" style="position:relative;">
+          <label>Guest Name *</label>
+          <input id="guestName" placeholder="Guest ka naam" value="${pre.guestName || ''}" oninput="window.handleGuestNameInput(this.value)" autocomplete="off" />
+          <div id="guestNameSuggestions" class="guest-name-suggestions" style="display:none;"></div>
+        </div>
         <div class="form-group">
-          <label>Phone</label>
-          <input id="guestPhone" type="tel" placeholder="Mobile (10 digits)" value="${pre.guestPhone || ''}"
-            onblur="checkGuestRating(this.value)"
-            onpaste="event.preventDefault();var p=(event.clipboardData||window.clipboardData).getData('text');var c=p.replace(/[^\\d]/g,'');if(c.length===12&&c.startsWith('91'))c=c.slice(2);else if(c.length===13&&c.startsWith('091'))c=c.slice(3);else if(c.length===11&&c.startsWith('0'))c=c.slice(1);if(c.length===10){this.value=c;checkGuestRating(c);}else{this.value=c;}" />
+          <label>Phone (+91 / 0 / 10 digits)</label>
+          <input id="guestPhone" type="tel" placeholder="Mobile (e.g. 9876543210 or +91...)" value="${pre.guestPhone || ''}"
+            oninput="window.handleGuestPhoneInput(this.value)"
+            onblur="window.handleGuestPhoneInput(this.value)"
+            onpaste="window.handleGuestPhonePaste(event, this)" />
           <div id="guestRatingWarning" style="margin-top:6px;"></div>
         </div>
       </div>
@@ -4160,7 +4173,8 @@ async function saveBooking() {
       has_vehicle: hasVehicle, vehicle_name: vehicleName, vehicle_number: vehicleNumber,
       vehicle_photo_path: vehiclePhotoPath,
       payment_status: payStatus, notes: finalNotes || null,
-      booked_by: SESSION.displayName || SESSION.role,
+      created_at: new Date().toISOString(),
+      booked_by: (window.getCurrentUserAuditName ? window.getCurrentUserAuditName() : (SESSION.displayName || SESSION.role)),
       show_to_investor: showToInvestor,
       hide_reason: hideReason
     };
@@ -4211,6 +4225,8 @@ async function saveBooking() {
           payment_date: advDate, notes: isOnline ? 'Airbnb Payout' : 'Advance',
           received_by: receivedBy, handover_status: handoverStatus,
           created_by: SESSION.userId,
+          paid_at: new Date().toISOString(),
+          created_at: new Date().toISOString(),
           ...approvalMeta()
         });
       }
@@ -4632,15 +4648,24 @@ async function editBooking(bkId) {
     <div class="card">
       <h1>✏️ Edit Booking</h1>
       <button class="secondary btn-sm" onclick="renderManageBookings()">← Back</button>
+      <div style="margin-top:10px;padding:8px 12px;background:#F8FAFC;border:1px solid var(--border);border-radius:8px;font-size:12px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+        <div>👤 Booked By: <strong>${escapeHtml(b.booked_by || window._userNameCache?.[b.created_by] || 'Admin')}</strong></div>
+        <div>🕒 Booking Timestamp: <strong>${b.created_at && window.formatDateTimeStamp ? window.formatDateTimeStamp(b.created_at) : 'N/A'}</strong></div>
+      </div>
     </div>
     <div class="card">
       <div class="form-grid">
-        <div class="form-group"><label>Guest Name</label><input id="guestName" value="${b.guest_name || ''}" /></div>
+        <div class="form-group" style="position:relative;">
+          <label>Guest Name</label>
+          <input id="guestName" value="${b.guest_name || ''}" oninput="window.handleGuestNameInput(this.value)" autocomplete="off" />
+          <div id="guestNameSuggestions" class="guest-name-suggestions" style="display:none;"></div>
+        </div>
         <div class="form-group">
-          <label>Phone</label>
-          <input id="guestPhone" type="tel" placeholder="10 digit mobile" value="${b.phone || ''}"
-            onblur="checkGuestRating(this.value)"
-            onpaste="event.preventDefault();var p=(event.clipboardData||window.clipboardData).getData('text');var c=p.replace(/[^\\d]/g,'');if(c.length===12&&c.startsWith('91'))c=c.slice(2);else if(c.length===13&&c.startsWith('091'))c=c.slice(3);else if(c.length===11&&c.startsWith('0'))c=c.slice(1);if(c.length===10){this.value=c;checkGuestRating(c);}else{this.value=c;}" />
+          <label>Phone (+91 / 0 / 10 digits)</label>
+          <input id="guestPhone" type="tel" placeholder="10 digit mobile (or +91...)" value="${b.phone || ''}"
+            oninput="window.handleGuestPhoneInput(this.value)"
+            onblur="window.handleGuestPhoneInput(this.value)"
+            onpaste="window.handleGuestPhonePaste(event, this)" />
           <div id="guestRatingWarning" style="margin-top:6px;"></div>
         </div>
       </div>
@@ -4900,17 +4925,23 @@ async function editBooking(bkId) {
       <div class="metric-row"><span class="metric-label">Paid</span><span class="metric-value" style="color:var(--green);">₹${tp.toLocaleString('en-IN')}</span></div>
       <div class="metric-row"><span class="metric-label">Balance</span><span class="metric-value${bal > 0 ? ' warn' : ''}">₹${bal.toLocaleString('en-IN')}</span></div>
       ${(pays || []).length ? `<div class="table-wrap" style="margin-top:8px;"><table>
-        <thead><tr><th>Date</th><th>Amount</th><th>Mode</th><th>Notes</th><th>Actions</th></tr></thead>
-        <tbody>${pays.map(p => `<tr>
-          <td>${p.payment_date || new Date(p.paid_at).toLocaleDateString('en-IN')}</td>
-          <td>₹${(p.amount || 0).toLocaleString('en-IN')}</td>
-          <td>${p.payment_mode || '-'}</td>
-          <td>${p.notes || '-'}</td>
-          <td class="table-actions">
-            <button class="btn-sm" onclick="editPayment(${p.id},'${bkId}')">✏️</button>
-            ${window.canDelete && window.canDelete() ? `<button class="btn-sm danger" onclick="delPayment(${p.id},'${bkId}')">🗑️</button>` : ''}
-          </td>
-        </tr>`).join('')}</tbody>
+        <thead><tr><th>Date &amp; Time</th><th>Amount</th><th>Mode</th><th>Received By</th><th>Logged By</th><th>Notes</th><th>Actions</th></tr></thead>
+        <tbody>${pays.map(p => {
+          const timeStr = window.formatDateTimeStamp ? window.formatDateTimeStamp(p.paid_at || p.created_at || p.payment_date) : (p.payment_date || '');
+          const loggedBy = window._userNameCache?.[p.created_by] || (p.created_by ? 'Staff' : '-');
+          return `<tr>
+            <td style="white-space:nowrap;">🕒 ${timeStr}</td>
+            <td style="font-weight:700;color:var(--green);">₹${(p.amount || 0).toLocaleString('en-IN')}</td>
+            <td>${escapeHtml(p.payment_mode || '-')}</td>
+            <td>${escapeHtml(p.received_by || '-')}</td>
+            <td><span style="background:#F1F5F9;padding:2px 6px;border-radius:4px;font-size:11px;font-weight:600;">👤 ${escapeHtml(loggedBy)}</span></td>
+            <td>${escapeHtml(p.notes || '-')}</td>
+            <td class="table-actions">
+              <button class="btn-sm" onclick="editPayment(${p.id},'${bkId}')">✏️</button>
+              ${window.canDelete && window.canDelete() ? `<button class="btn-sm danger" onclick="delPayment(${p.id},'${bkId}')">🗑️</button>` : ''}
+            </td>
+          </tr>`;
+        }).join('')}</tbody>
       </table></div>` : '<div class="sub">No payments</div>'}
       <div class="btn-row" style="margin-top:8px;">
         <button class="btn-sm" onclick="showPaymentModal('${bkId}')">➕ Payment</button>
@@ -5832,9 +5863,11 @@ async function savePaymentModal(bkId) {
     const { error } = await sb.from('payment_history').insert({
       booking_id: bkId, amount: paymentForCurrent,
       payment_mode: mode,
-    received_by: receivedBy,
-    handover_status: (mode === "Cash" && !["Firoz","Shahenshah"].includes(receivedBy)) ? "in_hand" : "handed_over",
+      received_by: receivedBy,
+      handover_status: (mode === "Cash" && !["Firoz","Shahenshah"].includes(receivedBy)) ? "in_hand" : "handed_over",
       payment_date: payDate,
+      paid_at: new Date().toISOString(),
+      created_at: new Date().toISOString(),
       notes: userNotes,
       created_by: SESSION.userId,
       ...approvalMeta()
@@ -5868,6 +5901,8 @@ async function savePaymentModal(bkId) {
         amount: toApply,
         payment_mode: mode,
         payment_date: payDate,
+        paid_at: new Date().toISOString(),
+        created_at: new Date().toISOString(),
         received_by: receivedBy || "Firoz", handover_status: (mode === "Cash" && !["Firoz","Shahenshah"].includes(receivedBy)) ? "in_hand" : "handed_over",
         notes: (userNotes ? userNotes + ' | ' : '') + `Auto-adjusted from booking ${bkId}`,
         created_by: SESSION.userId,
@@ -5892,6 +5927,8 @@ async function savePaymentModal(bkId) {
       booking_id: bkId, amount: remainingOverflow,
       payment_mode: mode,
       payment_date: payDate,
+      paid_at: new Date().toISOString(),
+      created_at: new Date().toISOString(),
       notes: (userNotes ? userNotes + ' | ' : '') + 'Advance / extra payment',
       received_by: receivedBy || "Firoz", handover_status: (mode === "Cash" && !["Firoz","Shahenshah"].includes(receivedBy)) ? "in_hand" : "handed_over",
       created_by: SESSION.userId,
@@ -8026,97 +8063,305 @@ window.onEditReceivedByChange = function() {
 console.log('✅ Edit Payment Received-By module loaded');
 
 // ═══════════════════════════════════════════════════════════
-// 🎯 GUEST RATING LOOKUP (on phone blur)
+// 🌟 RETURNING GUEST AUTO-DETECTION & 1-CLICK AUTO-FILL ENGINE
+// Instantly detects if guest stayed before (with or without +91 / 0)
+// Auto-populates guest name, verifies VIP status & reuses past IDs
 // ═══════════════════════════════════════════════════════════
-window.checkGuestRating = async function(phone) {
+window.checkReturningGuest = async function(rawPhone) {
   const warnEl = document.getElementById('guestRatingWarning');
   if (!warnEl) return;
-  if (!phone || phone.trim().length < 6) {
+
+  if (!rawPhone) {
     warnEl.innerHTML = '';
     return;
   }
-  
-  const cleanPhone = phone.trim();
-  
-  // Fetch all previous bookings with this phone
-  const { data: previous } = await sb.from('guest_register')
-    .select('booking_id, guest_name, check_in, check_out, client_rating, rating_notes, total_amount')
-    .eq('phone', cleanPhone)
-    .not('client_rating', 'is', null)
-    .order('check_out', { ascending: false })
-    .limit(10);
-  
-  if (!previous || previous.length === 0) {
-    // Check if guest exists but no rating
-    const { data: anyBooking } = await sb.from('guest_register')
-      .select('booking_id, guest_name, check_in')
-      .eq('phone', cleanPhone)
-      .limit(5);
-    
-    if (anyBooking && anyBooking.length > 0) {
-      warnEl.innerHTML = `
-        <div style="padding:10px;background:#F0F7FF;border-left:4px solid #3B82F6;border-radius:6px;font-size:12px;">
-          ℹ️ <strong>Returning guest</strong> — ${anyBooking.length} previous booking${anyBooking.length > 1 ? 's' : ''} (no rating yet)
-        </div>
-      `;
-    } else {
-      warnEl.innerHTML = `
-        <div style="padding:8px;background:#F9FAFB;border-left:4px solid #9CA3AF;border-radius:6px;font-size:12px;color:#6B7280;">
-          🆕 New guest — no previous history
-        </div>
-      `;
-    }
+
+  const pNorm = window.normalizePhone ? window.normalizePhone(rawPhone) : { core10: String(rawPhone).replace(/\D/g, '').slice(-10) };
+  const corePhone = pNorm.core10 || '';
+
+  if (corePhone.length < 10) {
+    warnEl.innerHTML = '';
     return;
   }
-  
-  // Count ratings
-  const good = previous.filter(p => p.client_rating === 'good').length;
-  const normal = previous.filter(p => p.client_rating === 'normal').length;
-  const bad = previous.filter(p => p.client_rating === 'bad').length;
-  const total = previous.length;
-  
-  // Determine overall status
-  let bgColor, borderColor, icon, statusText, textColor;
-  
-  if (bad > 0) {
-    bgColor = '#FEE2E2';
-    borderColor = '#DC2626';
-    icon = '⚠️';
-    statusText = 'WARNING: Bad rating history';
-    textColor = '#991B1B';
-  } else if (good > normal) {
-    bgColor = '#DCFCE7';
-    borderColor = '#059669';
-    icon = '⭐';
-    statusText = 'TRUSTED GUEST';
-    textColor = '#166534';
-  } else {
-    bgColor = '#FEF3C7';
-    borderColor = '#F59E0B';
-    icon = 'ℹ️';
-    statusText = 'Returning guest';
-    textColor = '#92400E';
-  }
-  
-  // Recent notes (last 3 with notes)
-  const withNotes = previous.filter(p => p.rating_notes && p.rating_notes.trim());
-  const notesHtml = withNotes.slice(0, 3).map(p => 
-    `<div style="font-size:10px;color:${textColor};margin-top:3px;">• ${p.check_out}: ${p.client_rating === 'bad' ? '⚠️' : p.client_rating === 'good' ? '⭐' : '•'} "${p.rating_notes.slice(0, 80)}"</div>`
-  ).join('');
-  
+
   warnEl.innerHTML = `
-    <div style="padding:12px;background:${bgColor};border-left:4px solid ${borderColor};border-radius:8px;font-size:13px;">
-      <div style="font-weight:700;color:${textColor};">${icon} ${statusText}</div>
-      <div style="font-size:11px;color:${textColor};margin-top:4px;">
-        ${total} previous stay${total > 1 ? 's' : ''} · 
-        ${good > 0 ? '⭐ ' + good + ' good' : ''}${good > 0 && (normal > 0 || bad > 0) ? ' · ' : ''}${normal > 0 ? '😐 ' + normal + ' normal' : ''}${normal > 0 && bad > 0 ? ' · ' : ''}${bad > 0 ? '⚠️ ' + bad + ' bad' : ''}
+    <div style="padding:10px 14px;background:#F8FAFC;border:1px solid #E2E8F0;border-radius:10px;font-size:12px;color:#64748B;display:flex;align-items:center;gap:8px;">
+      <span class="spinner-sm" style="width:14px;height:14px;border:2px solid #CBD5E1;border-top-color:#0F172A;border-radius:50%;display:inline-block;animation:spin 0.6s linear infinite;"></span>
+      <span>Checking guest stay history for <strong>${escapeHtml(pNorm.formatted || corePhone)}</strong>...</span>
+    </div>`;
+
+  try {
+    const { data: previous, error } = await sb.from('guest_register')
+      .select('booking_id, guest_name, phone, room_id, check_in, check_out, total_amount, client_rating, rating_notes, id_proof_type, id_proof_no, id_proof_photo_path, id_proof_photo_paths, id_proof_front_paths, id_proof_back_paths, vehicle_name, vehicle_number, rooms(nickname, property_name)')
+      .or(`phone.ilike.%${corePhone}%,phone.eq.${corePhone},phone.eq.+91${corePhone},phone.eq.91${corePhone},phone.eq.0${corePhone}`)
+      .neq('is_cancelled', true)
+      .order('check_in', { ascending: false })
+      .limit(15);
+
+    if (error) throw error;
+
+    if (!previous || previous.length === 0) {
+      warnEl.innerHTML = `
+        <div style="padding:10px 14px;background:#F0FDF4;border:1px solid #BBF7D0;border-radius:10px;font-size:12px;color:#166534;display:flex;align-items:center;gap:8px;">
+          <span>✨</span>
+          <div>
+            <strong>New Guest</strong> — No previous stays recorded with ${escapeHtml(pNorm.formatted || corePhone)}.
+          </div>
+        </div>`;
+      return;
+    }
+
+    // Save stays in memory for 1-click auto-fill
+    window._allReturningGuestStays = previous;
+    const mostRecent = previous[0];
+
+    // Auto-fill guest name if field is empty
+    const gNameInput = document.getElementById('guestName');
+    if (gNameInput && !gNameInput.value.trim() && mostRecent.guest_name) {
+      gNameInput.value = mostRecent.guest_name;
+      gNameInput.style.backgroundColor = '#F0FDF4';
+      setTimeout(() => { gNameInput.style.backgroundColor = ''; }, 1200);
+    }
+
+    // Calculate stay metrics
+    const totalStays = previous.length;
+    const totalSpent = previous.reduce((acc, curr) => acc + (Number(curr.total_amount) || 0), 0);
+    const goodRatings = previous.filter(p => p.client_rating === 'good' || Number(p.client_rating) >= 4).length;
+    const badRatings = previous.filter(p => p.client_rating === 'bad' || (p.client_rating && Number(p.client_rating) <= 2)).length;
+    
+    let ratingTagClass = 'normal';
+    let ratingTagLabel = '⭐ Returning Guest';
+    if (badRatings > 0) {
+      ratingTagClass = 'warning';
+      ratingTagLabel = `⚠️ Caution (${badRatings} Bad Flag)`;
+    } else if (goodRatings > 0 || totalStays >= 2) {
+      ratingTagClass = 'trusted';
+      ratingTagLabel = '🌟 5-Star VIP Guest';
+    }
+
+    const lastProperty = mostRecent.rooms?.nickname || mostRecent.rooms?.property_name || mostRecent.room_id || 'UHH Stay';
+    const lastDates = (mostRecent.check_in && mostRecent.check_out) ? `${formatDate(mostRecent.check_in)} to ${formatDate(mostRecent.check_out)}` : (mostRecent.check_in || 'Recent');
+
+    // Build notes preview if any notes exist
+    const notesWithContent = previous.filter(p => p.rating_notes && p.rating_notes.trim());
+    let notesPreviewHtml = '';
+    if (notesWithContent.length) {
+      notesPreviewHtml = `
+        <div style="margin-top:6px;font-size:11px;color:#CBD5E1;background:rgba(0,0,0,0.25);padding:6px 10px;border-radius:6px;border-left:3px solid #F59E0B;">
+          <strong>Manager Note (${notesWithContent[0].check_in || 'Last Stay'}):</strong> "${escapeHtml(notesWithContent[0].rating_notes.slice(0, 110))}"
+        </div>`;
+    }
+
+    warnEl.innerHTML = `
+      <div class="repeat-guest-card">
+        <div class="rg-header">
+          <span class="rg-badge">🌟 RETURNING GUEST DETECTED</span>
+          <span class="rg-stays">📅 Stayed ${totalStays} time${totalStays > 1 ? 's' : ''} previously</span>
+        </div>
+        <div class="rg-body">
+          <div class="rg-name">
+            <span>${escapeHtml(mostRecent.guest_name || 'Guest')}</span>
+            <span class="rg-rating-tag ${ratingTagClass}">${ratingTagLabel}</span>
+          </div>
+          <div class="rg-meta">
+            💰 Lifetime Revenue: <strong>₹${totalSpent.toLocaleString('en-IN')}</strong> · 
+            🏡 Last Stay: <strong>${escapeHtml(lastProperty)}</strong> (${escapeHtml(lastDates)})
+          </div>
+          ${notesPreviewHtml}
+        </div>
+        <div class="rg-actions">
+          <button type="button" class="rg-btn primary" onclick="window.autoFillReturningGuestDetails('${corePhone}')" title="Fill name, IDs, and link saved documents">
+            ⚡ 1-Click Auto-Fill (Name &amp; Saved IDs)
+          </button>
+          <button type="button" class="rg-btn outline" onclick="window.viewGuestStayHistory('${corePhone}')" title="View all past bookings">
+            📜 View Stay History (${totalStays})
+          </button>
+        </div>
+      </div>`;
+  } catch (err) {
+    console.warn('Error fetching guest history:', err);
+    warnEl.innerHTML = '';
+  }
+};
+
+window.checkGuestRating = window.checkReturningGuest; // Backward compatibility alias
+
+// 1-Click Auto-fill guest details from previous stay
+window.autoFillReturningGuestDetails = function(corePhone) {
+  const stays = window._allReturningGuestStays || [];
+  const mostRecent = stays[0];
+  if (!mostRecent) return;
+
+  // 1. Guest Name
+  const gn = document.getElementById('guestName');
+  if (gn && mostRecent.guest_name) gn.value = mostRecent.guest_name;
+
+  // 2. ID Proof Type & Number
+  const idType = document.getElementById('idType');
+  const idNo = document.getElementById('idNo');
+  if (idType && mostRecent.id_proof_type) idType.value = mostRecent.id_proof_type;
+  if (idNo && mostRecent.id_proof_no) idNo.value = mostRecent.id_proof_no;
+
+  // 3. Vehicles
+  const vName = document.getElementById('vehicleName');
+  const vNo = document.getElementById('vehicleNumber');
+  if (vName && mostRecent.vehicle_name) vName.value = mostRecent.vehicle_name;
+  if (vNo && mostRecent.vehicle_number) vNo.value = mostRecent.vehicle_number;
+
+  // 4. Reuse Saved ID Proof Photos
+  if (mostRecent.id_proof_photo_path || mostRecent.id_proof_photo_paths || mostRecent.id_proof_front_paths) {
+    window._rebookedGuestData = {
+      id_proof_type: mostRecent.id_proof_type,
+      id_proof_no: mostRecent.id_proof_no,
+      id_proof_photo_path: mostRecent.id_proof_photo_path,
+      id_proof_photo_paths: mostRecent.id_proof_photo_paths,
+      id_proof_front_paths: mostRecent.id_proof_front_paths,
+      id_proof_back_paths: mostRecent.id_proof_back_paths
+    };
+
+    const idSummary = document.getElementById('idUploadSummary') || document.getElementById('idSlot1');
+    if (idSummary) {
+      const banner = document.createElement('div');
+      banner.id = 'reusedIdsNotification';
+      banner.style.cssText = 'padding:10px 14px;background:#ECFDF5;border:1.5px solid #10B981;border-radius:8px;font-size:12.5px;color:#065F46;margin-bottom:10px;font-weight:700;display:flex;align-items:center;justify-content:space-between;';
+      banner.innerHTML = `
+        <span>✅ Verified ID Proof documents linked from stay (${mostRecent.check_in || 'previous'}). No re-upload required!</span>
+        <button type="button" onclick="window._rebookedGuestData=null;this.parentElement.remove()" style="background:none;border:none;color:#EF4444;font-size:11px;font-weight:800;cursor:pointer;">Clear</button>
+      `;
+      document.getElementById('reusedIdsNotification')?.remove();
+      idSummary.parentElement.insertBefore(banner, idSummary);
+    }
+  }
+
+  if (window.fsn?.success) {
+    fsn.success('Auto-filled', `Returning guest details for ${mostRecent.guest_name} loaded!`);
+  } else {
+    alert(`✅ Auto-filled details for returning guest ${mostRecent.guest_name}!`);
+  }
+};
+
+// View Stay History Modal
+window.viewGuestStayHistory = function(corePhone) {
+  const stays = window._allReturningGuestStays || [];
+  if (!stays.length) return;
+
+  const modal = document.createElement('div');
+  modal.className = 'modal-overlay';
+  modal.innerHTML = `
+    <div class="modal-box" style="max-width:700px;position:relative;">
+      <button type="button" class="modal-close-prominent" onclick="this.closest('.modal-overlay').remove()" title="Close (ESC)" aria-label="Close">✕</button>
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;padding-right:40px;">
+        <span style="font-size:24px;">📜</span>
+        <div>
+          <h2 style="margin:0;font-size:18px;font-weight:800;color:#0F172A;">Past Stay History — ${escapeHtml(stays[0].guest_name || 'Guest')}</h2>
+          <div style="font-size:12px;color:#64748B;">Phone: <strong>${escapeHtml(stays[0].phone || corePhone)}</strong> · ${stays.length} total stays</div>
+        </div>
       </div>
-      ${notesHtml}
+      <div style="max-height:60vh;overflow-y:auto;display:flex;flex-direction:column;gap:10px;">
+        ${stays.map(s => `
+          <div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:10px;padding:12px 14px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+              <strong style="color:#0F172A;font-size:13.5px;">🏡 ${escapeHtml(s.rooms?.nickname || s.rooms?.property_name || s.room_id || 'Unit')}</strong>
+              <span style="font-weight:800;color:#10B981;font-size:13px;">₹${(Number(s.total_amount) || 0).toLocaleString('en-IN')}</span>
+            </div>
+            <div style="font-size:11.5px;color:#64748B;">
+              📅 Dates: <strong>${formatDate(s.check_in)} → ${formatDate(s.check_out)}</strong> · ID: <code>${escapeHtml(s.booking_id)}</code>
+            </div>
+            ${s.client_rating ? `
+              <div style="margin-top:5px;font-size:11.5px;font-weight:700;color:${s.client_rating === 'good' ? '#059669' : (s.client_rating === 'bad' ? '#DC2626' : '#D97706')};">
+                Rating: ${s.client_rating === 'good' ? '⭐ Good' : (s.client_rating === 'bad' ? '⚠️ Bad' : 'ℹ️ Normal')}
+                ${s.rating_notes ? `· "${escapeHtml(s.rating_notes)}"` : ''}
+              </div>
+            ` : ''}
+          </div>
+        `).join('')}
+      </div>
+      <div style="margin-top:16px;display:flex;justify-content:flex-end;">
+        <button type="button" class="btn-sm outline" onclick="this.closest('.modal-overlay').remove()" style="padding:8px 18px;font-weight:700;">
+          Close
+        </button>
+      </div>
     </div>
   `;
-  
-  console.log('✅ Guest rating loaded:', { total, good, normal, bad });
+  document.body.appendChild(modal);
 };
+
+// Real-time debounce on typing guest phone
+let _guestPhoneInputDebounce = null;
+window.handleGuestPhoneInput = function(val) {
+  clearTimeout(_guestPhoneInputDebounce);
+  _guestPhoneInputDebounce = setTimeout(() => {
+    window.checkReturningGuest(val);
+  }, 250);
+};
+
+// Handle pasting phone number (clean up +91, 0, spaces, dashes)
+window.handleGuestPhonePaste = function(event, inputEl) {
+  event.preventDefault();
+  const raw = (event.clipboardData || window.clipboardData).getData('text');
+  const pNorm = window.normalizePhone ? window.normalizePhone(raw) : { core10: raw.replace(/\D/g, '').slice(-10) };
+  const cleaned = pNorm.core10 || raw.replace(/\D/g, '');
+  if (inputEl) {
+    inputEl.value = cleaned;
+    window.checkReturningGuest(cleaned);
+  }
+};
+
+// Real-time suggestions when typing guest name
+let _guestNameDebounce = null;
+window.handleGuestNameInput = function(val) {
+  const sugBox = document.getElementById('guestNameSuggestions');
+  if (!sugBox) return;
+
+  const name = (val || '').trim();
+  if (name.length < 3) {
+    sugBox.style.display = 'none';
+    sugBox.innerHTML = '';
+    return;
+  }
+
+  clearTimeout(_guestNameDebounce);
+  _guestNameDebounce = setTimeout(async () => {
+    let pool = window._allBookings || window._sbkState?.cachedBookings || [];
+    let matches = pool.filter(b => b.guest_name && b.guest_name.toLowerCase().includes(name.toLowerCase()));
+
+    if (!matches.length && window.sb) {
+      try {
+        const { data } = await sb.from('guest_register')
+          .select('booking_id, guest_name, phone, room_id, total_amount')
+          .ilike('guest_name', `%${name}%`)
+          .order('check_in', { ascending: false })
+          .limit(5);
+        if (data) matches = data;
+      } catch(e) {}
+    }
+
+    // Deduplicate by normalized phone or name
+    const uniqueMap = new Map();
+    matches.forEach(m => {
+      const key = (m.phone ? m.phone.slice(-10) : '') || m.guest_name;
+      if (!uniqueMap.has(key)) uniqueMap.set(key, m);
+    });
+    const uniqueMatches = Array.from(uniqueMap.values()).slice(0, 4);
+
+    if (!uniqueMatches.length) {
+      sugBox.style.display = 'none';
+      return;
+    }
+
+    sugBox.innerHTML = uniqueMatches.map(m => `
+      <div class="guest-suggest-item" onclick="document.getElementById('guestName').value='${escapeHtml(m.guest_name)}';if(document.getElementById('guestPhone')){document.getElementById('guestPhone').value='${escapeHtml(m.phone||'')}';window.checkReturningGuest('${escapeHtml(m.phone||'')}');}this.parentElement.style.display='none';">
+        <div>
+          <strong>${escapeHtml(m.guest_name)}</strong>
+          <div class="sub">📱 ${escapeHtml(m.phone || 'No phone')} · Unit ${escapeHtml(m.room_id || '')}</div>
+        </div>
+        <span style="color:#059669;font-weight:700;font-size:11px;">Select ➔</span>
+      </div>
+    `).join('');
+    sugBox.style.display = 'block';
+  }, 280);
+};
+
 
 console.log('✅ Guest Rating lookup module loaded');
 

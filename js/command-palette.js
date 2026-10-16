@@ -417,11 +417,11 @@
 
         if (!q) return true;
         const name = (b.guest_name || '').toLowerCase();
-        const ph = (b.phone || '').toLowerCase();
         const rid = (b.room_id || '').toLowerCase();
         const prop = (b.rooms?.nickname || b.rooms?.property_name || '').toLowerCase();
         const bid = (b.booking_id || '').toLowerCase();
-        return name.includes(q) || ph.includes(q) || rid.includes(q) || prop.includes(q) || bid.includes(q);
+        const phoneMatched = (window.matchPhoneSearch && window.matchPhoneSearch(q, b.phone)) || (b.phone || '').includes(q);
+        return name.includes(q) || phoneMatched || rid.includes(q) || prop.includes(q) || bid.includes(q);
       });
 
       // Sort: bookings with highest positive due balance first
@@ -564,10 +564,10 @@
       const filtered = (bookings || []).filter(b => {
         if (!q) return true;
         const name = (b.guest_name || '').toLowerCase();
-        const ph = (b.phone || '').toLowerCase();
         const rid = (b.room_id || '').toLowerCase();
         const prop = (b.rooms?.nickname || b.rooms?.property_name || '').toLowerCase();
-        return name.includes(q) || ph.includes(q) || rid.includes(q) || prop.includes(q) || (b.booking_id || '').toLowerCase().includes(q);
+        const phoneMatched = (window.matchPhoneSearch && window.matchPhoneSearch(q, b.phone)) || (b.phone || '').includes(q);
+        return name.includes(q) || phoneMatched || rid.includes(q) || prop.includes(q) || (b.booking_id || '').toLowerCase().includes(q);
       }).slice(0, 20);
 
       if (!filtered.length) {
@@ -932,9 +932,11 @@
     let guestPool = window._sbkState?.cachedBookings || [];
     if (q && guestPool.length === 0 && window.sb) {
       try {
+        const qNorm = window.normalizePhone ? window.normalizePhone(q) : { core10: q.replace(/\D/g, '').slice(-10) };
+        const phoneTerm = qNorm.core10 && qNorm.core10.length >= 3 ? qNorm.core10 : q;
         const { data: directBks } = await sb.from('guest_register')
           .select('booking_id, guest_name, phone, room_id, check_in, check_out, total_amount')
-          .or(`guest_name.ilike.%${q}%,phone.ilike.%${q}%,booking_id.ilike.%${q}%`)
+          .or(`guest_name.ilike.%${q}%,phone.ilike.%${phoneTerm}%,booking_id.ilike.%${q}%`)
           .limit(8);
         if (directBks && directBks.length) guestPool = directBks;
       } catch(e) {}
@@ -943,6 +945,7 @@
     if (q && guestPool.length) {
       const matchedGuests = guestPool.filter(b => 
         (b.guest_name && b.guest_name.toLowerCase().includes(q)) ||
+        (window.matchPhoneSearch && window.matchPhoneSearch(q, b.phone)) ||
         (b.phone && b.phone.includes(q)) ||
         (b.booking_id && String(b.booking_id).toLowerCase().includes(q))
       ).slice(0, 8);

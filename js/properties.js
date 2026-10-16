@@ -460,8 +460,9 @@ async function renderFlatsStatus() {
       const guestPhone = (f.activeStay?.phone || '').toLowerCase();
       const nextGuest = (f.todayArrival?.guest_name || '').toLowerCase();
       const issue = (f.issue || '').toLowerCase();
+      const phoneMatched = (window.matchPhoneSearch && (window.matchPhoneSearch(sq, f.activeStay?.phone) || window.matchPhoneSearch(sq, f.todayArrival?.phone))) || guestPhone.includes(sq);
       return pName.includes(sq) || unit.includes(sq) || staff.includes(sq) ||
-             guest.includes(sq) || guestPhone.includes(sq) || nextGuest.includes(sq) || issue.includes(sq);
+             guest.includes(sq) || phoneMatched || nextGuest.includes(sq) || issue.includes(sq);
     });
   }
 

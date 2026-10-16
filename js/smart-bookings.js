@@ -164,7 +164,10 @@ async function renderSmartManageBookings() {
     const sqDigits = sq.replace(/\D/g, '');
 
     filtered = (all || []).filter(b => {
-      // 1. Digits matching (Phone number, Aadhaar/ID, Booking ID, Amount)
+      // 1. Robust Phone matching (+91, 91, 0, spaces, dashes)
+      if (window.matchPhoneSearch && window.matchPhoneSearch(sq, b.phone)) return true;
+
+      // 2. Digits matching (Aadhaar/ID, Booking ID, Amount)
       const bPhoneDigits = String(b.phone || '').replace(/\D/g, '');
       const bIdDigits = String(b.id_proof_no || '').replace(/\D/g, '');
       const bBookingIdDigits = String(b.booking_id || '').replace(/\D/g, '');
@@ -985,6 +988,10 @@ function renderBookingCardsHtml(bookings, paidMap, canM, today) {
                   </span>
                   ${b.verification_status === 'pending' ? '<span style="color:#D97706;font-weight:700;">🟡 Pending Approval</span>' : ''}
                 </div>
+                <div style="font-size:10.5px;color:#64748B;margin-top:3px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+                  <span>👤 ${escapeHtml(b.booked_by || window._userNameCache?.[b.created_by] || 'Staff')}</span>
+                  ${b.created_at && window.formatDateTimeStamp ? `<span title="Booking Timestamp">🕒 ${window.formatDateTimeStamp(b.created_at)}</span>` : ''}
+                </div>
               </div>
               <div class="sbk-dates-tag" style="flex-shrink:0;text-align:right;">
                 <div style="font-weight:700;color:var(--dark);">
@@ -1114,6 +1121,10 @@ function renderBookingTableHtml(bookings, paidMap, canM, today) {
                         <a href="tel:${b.phone}" style="color:var(--primary);text-decoration:none;font-weight:700;">Call</a>
                       </div>
                     ` : ''}
+                    <div style="font-size:10.5px;color:#64748B;margin-top:2px;display:flex;align-items:center;gap:5px;">
+                      <span>👤 ${escapeHtml(b.booked_by || window._userNameCache?.[b.created_by] || 'Staff')}</span>
+                      ${b.created_at && window.formatDateTimeStamp ? `<span title="Booking Timestamp">· 🕒 ${window.formatDateTimeStamp(b.created_at)}</span>` : ''}
+                    </div>
                   </td>
                   <td style="padding:12px 16px;white-space:nowrap;vertical-align:middle;">
                     <div style="font-weight:700;color:var(--dark);">${escapeHtml(propLabel(b.rooms) || b.room_id)}</div>
@@ -1305,6 +1316,16 @@ window.openBookingDrawer = async function(bookingId) {
                 <strong>${b.check_out || '-'} ${b.check_out_time ? `(${b.check_out_time})` : ''}</strong>
               </div>
             </div>
+            <div style="margin-top:10px;padding:8px 12px;background:#F8FAFC;border:1px solid #E2E8F0;border-radius:8px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+              <div style="font-size:12px;color:#334155;">
+                <span style="color:var(--muted);font-size:11px;">Booked By:</span><br>
+                <strong style="color:var(--dark);">👤 ${escapeHtml(b.booked_by || window._userNameCache?.[b.created_by] || 'Admin / Staff')}</strong>
+              </div>
+              <div style="font-size:12px;color:#334155;text-align:right;">
+                <span style="color:var(--muted);font-size:11px;">Booking Timestamp:</span><br>
+                <strong style="color:var(--dark);">🕒 ${b.created_at && window.formatDateTimeStamp ? window.formatDateTimeStamp(b.created_at) : 'N/A'}</strong>
+              </div>
+            </div>
             ${b.notes ? `
               <div style="margin-top:12px;padding-top:10px;border-top:1px dashed var(--border);font-size:12.5px;color:var(--text-secondary);">
                 <strong>Notes:</strong> ${escapeHtml(b.notes)}
@@ -1343,17 +1364,28 @@ window.openBookingDrawer = async function(bookingId) {
             ${(payments && payments.length > 0) ? `
               <div style="font-size:12px;">
                 <div style="font-weight:600;color:var(--muted);margin-bottom:6px;">Transactions:</div>
-                ${payments.map(p => `
-                  <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border-light);">
-                    <div>
-                      <span style="font-weight:700;color:var(--dark);">₹${(p.amount || 0).toLocaleString('en-IN')}</span>
-                      <span style="color:var(--muted);margin-left:6px;">${p.payment_mode || 'Payment'}</span>
+                ${payments.map(p => {
+                  const timeStr = window.formatDateTimeStamp ? window.formatDateTimeStamp(p.paid_at || p.created_at || p.payment_date) : (p.payment_date || '');
+                  const loggedBy = window._userNameCache?.[p.created_by] || (p.created_by ? 'Staff' : '');
+                  return `
+                    <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border-light);">
+                      <div>
+                        <div>
+                          <span style="font-weight:700;color:var(--dark);">₹${(p.amount || 0).toLocaleString('en-IN')}</span>
+                          <span style="color:var(--muted);margin-left:6px;font-size:12px;">via ${escapeHtml(p.payment_mode || 'Payment')}</span>
+                        </div>
+                        <div style="color:#64748B;font-size:11px;margin-top:2px;">
+                          🕒 <strong>${timeStr}</strong> · 💰 Recd: <strong>${escapeHtml(p.received_by || 'Staff')}</strong>
+                          ${loggedBy ? ` · ✍️ Logged by: <strong>${escapeHtml(loggedBy)}</strong>` : ''}
+                        </div>
+                        ${p.notes ? `<div style="font-size:10.5px;color:#94A3B8;margin-top:1px;font-style:italic;">"${escapeHtml(p.notes)}"</div>` : ''}
+                      </div>
+                      <div>
+                        ${p.verification_status === 'pending' ? '<span class="badge yellow" style="font-size:9px;">🟡 Pending</span>' : ''}
+                      </div>
                     </div>
-                    <div style="color:var(--muted);font-size:11px;">
-                      ${p.payment_date || ''} · ${escapeHtml(p.received_by || '')}
-                    </div>
-                  </div>
-                `).join('')}
+                  `;
+                }).join('')}
               </div>
             ` : '<div style="font-size:12px;color:var(--muted);text-align:center;padding:8px 0;">No individual payments recorded yet.</div>'}
           </div>
@@ -2327,39 +2359,66 @@ window.recalcSmartPrice = function() {
 };
 
 window.onSmartPhoneInput = async function(val) {
-  const clean = (val || '').replace(/[^0-9]/g, '');
-  const banner = document.getElementById('repeatGuestBanner');
+  const pNorm = window.normalizePhone ? window.normalizePhone(val) : { core10: String(val).replace(/\D/g, '').slice(-10) };
+  const clean = pNorm.core10 || '';
+  const banner = document.getElementById('repeatGuestBanner') || document.getElementById('guestRatingWarning');
   if (!banner) return;
 
   if (clean.length === 10) {
-    const { data: pastStays } = await sb.from('guest_register')
-      .select('guest_name, check_in, check_out, total_amount, id_proof_photo_paths, id_proof_photo_path, client_rating')
-      .eq('phone', clean)
+    const { data: pastStays, error } = await sb.from('guest_register')
+      .select('guest_name, phone, check_in, check_out, total_amount, id_proof_photo_paths, id_proof_photo_path, id_proof_front_paths, id_proof_back_paths, id_proof_type, id_proof_no, client_rating, rating_notes, rooms(nickname, property_name)')
+      .or(`phone.ilike.%${clean}%,phone.eq.${clean},phone.eq.+91${clean},phone.eq.91${clean},phone.eq.0${clean}`)
       .neq('is_cancelled', true)
       .order('check_in', { ascending: false });
 
-    if (pastStays && pastStays.length > 0) {
+    if (!error && pastStays && pastStays.length > 0) {
+      window._allReturningGuestStays = pastStays;
       const mostRecent = pastStays[0];
       const gNameInput = document.getElementById('guestName');
       if (gNameInput && !gNameInput.value) {
         gNameInput.value = mostRecent.guest_name || '';
       }
 
+      const totalStays = pastStays.length;
+      const totalSpent = pastStays.reduce((acc, curr) => acc + (Number(curr.total_amount) || 0), 0);
+      const goodRatings = pastStays.filter(p => p.client_rating === 'good' || Number(p.client_rating) >= 4).length;
+      const badRatings = pastStays.filter(p => p.client_rating === 'bad' || (p.client_rating && Number(p.client_rating) <= 2)).length;
+      
+      let ratingTagClass = 'normal';
+      let ratingTagLabel = '⭐ Returning Guest';
+      if (badRatings > 0) {
+        ratingTagClass = 'warning';
+        ratingTagLabel = `⚠️ Caution (${badRatings} Bad Flag)`;
+      } else if (goodRatings > 0 || totalStays >= 2) {
+        ratingTagClass = 'trusted';
+        ratingTagLabel = '🌟 5-Star VIP Guest';
+      }
+
+      const lastProp = mostRecent.rooms?.nickname || mostRecent.rooms?.property_name || 'UHH Homestay';
+
       banner.innerHTML = `
-        <div class="sbk-repeat-guest-card">
-          <div style="display:flex;justify-content:space-between;align-items:center;">
-            <div>
-              <strong style="color:var(--primary);font-size:13.5px;">🌟 Repeat Guest: ${escapeHtml(mostRecent.guest_name)}</strong>
-              <div style="font-size:12px;color:var(--text-secondary);margin-top:2px;">
-                Stayed ${pastStays.length} time${pastStays.length > 1 ? 's' : ''} previously at TUHH homestays.
-              </div>
+        <div class="repeat-guest-card">
+          <div class="rg-header">
+            <span class="rg-badge">🌟 RETURNING GUEST DETECTED</span>
+            <span class="rg-stays">📅 Stayed ${totalStays} time${totalStays > 1 ? 's' : ''} previously</span>
+          </div>
+          <div class="rg-body">
+            <div class="rg-name">
+              <span>${escapeHtml(mostRecent.guest_name || 'Guest')}</span>
+              <span class="rg-rating-tag ${ratingTagClass}">${ratingTagLabel}</span>
             </div>
-            ${mostRecent.id_proof_photo_paths ? `
-              <button type="button" class="btn-sm" style="background:var(--primary);color:#fff;font-size:11px;padding:4px 10px;" 
-                onclick="window.reusePastGuestIds('${clean}')">
-                ♻️ Reuse Saved IDs
-              </button>
-            ` : ''}
+            <div class="rg-meta">
+              💰 Lifetime Revenue: <strong>₹${totalSpent.toLocaleString('en-IN')}</strong> · 
+              🏡 Last Stay: <strong>${escapeHtml(lastProp)}</strong> (${escapeHtml(mostRecent.check_in || '-')})
+            </div>
+          </div>
+          <div class="rg-actions">
+            <button type="button" class="rg-btn primary" onclick="window.autoFillReturningGuestDetails ? window.autoFillReturningGuestDetails('${clean}') : window.reusePastGuestIds('${clean}')" title="Fill name, IDs, and link saved documents">
+              ⚡ 1-Click Auto-Fill (Name &amp; Saved IDs)
+            </button>
+            <button type="button" class="rg-btn outline" onclick="if(window.viewGuestStayHistory) window.viewGuestStayHistory('${clean}')" title="View all past bookings">
+              📜 View Stay History (${totalStays})
+            </button>
           </div>
         </div>
       `;
@@ -2516,7 +2575,8 @@ window.saveSmartBooking = async function() {
       vehicle_name: document.getElementById('vehicleName')?.value?.trim() || null,
       vehicle_number: document.getElementById('vehicleNumber')?.value?.trim() || null,
       notes: document.getElementById('bkNotes')?.value?.trim() || null,
-      booked_by: SESSION.displayName || SESSION.role || 'Staff'
+      created_at: new Date().toISOString(),
+      booked_by: window.getCurrentUserAuditName ? window.getCurrentUserAuditName() : (SESSION.displayName || SESSION.role || 'Staff')
     };
 
     const { error: insErr } = await sb.from('guest_register').insert(insertObj);
@@ -2529,6 +2589,8 @@ window.saveSmartBooking = async function() {
         amount: adv,
         payment_mode: advMode,
         payment_date: ci,
+        paid_at: new Date().toISOString(),
+        created_at: new Date().toISOString(),
         received_by: receivedBy,
         handover_status: advMode === 'Cash' ? 'in_hand' : 'handed_over',
         notes: 'Advance booking deposit',
@@ -2881,7 +2943,8 @@ window.saveMultiSmartBooking = async function() {
         vehicle_name: vehicleName,
         vehicle_number: vehicleNumber,
         notes: `Multi-Property Booking (${roomItems.length} Homestays: ${roomItems.map(x => x.room_name).join(', ')}). ${notes}`.trim(),
-        booked_by: SESSION?.displayName || SESSION?.role || 'Staff'
+        created_at: new Date().toISOString(),
+        booked_by: window.getCurrentUserAuditName ? window.getCurrentUserAuditName() : (SESSION?.displayName || SESSION?.role || 'Staff')
       };
     });
 
@@ -2919,6 +2982,8 @@ window.saveMultiSmartBooking = async function() {
             payment_mode: advMode,
             received_by: advReceivedBy,
             payment_date: payDate,
+            paid_at: new Date().toISOString(),
+            created_at: new Date().toISOString(),
             handover_status: handoverStatus,
             notes: `Advance for ${roomObj?.room_name || cbk.room_id} (Group: ${stayGroupId})`,
             created_by: SESSION?.userId || null,

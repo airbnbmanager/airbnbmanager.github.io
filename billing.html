@@ -140,7 +140,7 @@
     <button class="tbtn" id="caBtn" style="display:none;" onclick="window.openCARegisterModal()">📊 CA Register</button>
     <button class="tbtn" onclick="loadBookings()">🔄 Refresh</button>
     <button class="tbtn gold" onclick="printCurrentDoc()">🖨️ Print PDF</button>
-    <a href="admin.html" class="tbtn">← Admin</a>
+    <a href="admin.html" class="tbtn" style="background:#EF4444;color:#fff;font-weight:800;display:inline-flex;align-items:center;gap:5px;box-shadow:0 2px 8px rgba(239,68,68,0.4);" title="Close &amp; Return to CRM (ESC)">✕ Close</a>
   </div>
 </div>
 
@@ -378,7 +378,18 @@ function applyFilter() {
     const phone = (b.phone || '').replace(/\D/g, '');
     const nameMatch = (b.guest_name || '').toLowerCase().includes(s);
     const idMatch = (b.booking_id || '').toLowerCase().includes(s);
-    const phoneMatch = cleanS.length >= 3 && phone.includes(cleanS);
+    
+    // Robust phone matching (+91, 91, 0, spaces)
+    let phoneMatch = false;
+    if (window.matchPhoneSearch) {
+      phoneMatch = window.matchPhoneSearch(s, b.phone);
+    } else {
+      const cleanS10 = cleanS.length >= 10 ? cleanS.slice(-10) : cleanS;
+      const phone10 = phone.length >= 10 ? phone.slice(-10) : phone;
+      phoneMatch = (cleanS10.length >= 3 && phone10.includes(cleanS10)) || 
+                   (cleanS.length >= 3 && phone.includes(cleanS)) ||
+                   (phone10.length >= 10 && cleanS.includes(phone10));
+    }
     return nameMatch || idMatch || phoneMatch;
   });
   renderList(list);
@@ -1018,6 +1029,18 @@ function numToWords(n) {
   }
   setDocMode(pMode === 'gst' ? 'gst' : 'receipt');
   loadBookings();
+
+  // Escape key listener for billing.html
+  window.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape' || e.key === 'Esc') {
+      const openModal = document.querySelector('.modal-overlay, #receiptWaPreviewCard, #uhhBookingPickerModal');
+      if (openModal) {
+        openModal.remove();
+      } else {
+        window.location.href = 'admin.html';
+      }
+    }
+  });
 })();
 </script>
 </body>

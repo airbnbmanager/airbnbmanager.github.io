@@ -116,6 +116,9 @@ async function renderDailyReport(selectedDate) {
           <button onclick="whatsappDailyReport('${repDate}')" class="btn-sm" style="background:#059669;color:#fff;border:none;padding:8px 16px;border-radius:8px;font-size:12px;font-weight:700;display:inline-flex;align-items:center;gap:6px;cursor:pointer;height:38px;box-shadow:0 1px 3px rgba(5,150,105,0.2);">
             📱 WhatsApp
           </button>
+          <button onclick="navigate('dashboard')" class="btn-sm" style="background:#EF4444;color:#fff;border:none;padding:8px 16px;border-radius:8px;font-size:12px;font-weight:800;display:inline-flex;align-items:center;gap:6px;cursor:pointer;height:38px;box-shadow:0 2px 6px rgba(239,68,68,0.35);" title="Close Report (ESC)">
+            ✕ Close
+          </button>
         </div>
       </div>
     </div>

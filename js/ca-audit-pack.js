@@ -1428,6 +1428,9 @@ window.CA_AUDIT_PACK = (function() {
                 <button type="button" onclick="window.CA_AUDIT_PACK.copyCAWhatsAppSummary()" style="padding:9px 15px;background:#25D366;color:#fff;font-weight:900;border:none;border-radius:8px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;box-shadow:0 4px 12px rgba(37,211,102,0.3);margin-top:16px;">
                   📱 WhatsApp CA
                 </button>
+                <button type="button" onclick="navigate('dashboard')" style="padding:9px 16px;background:#EF4444;color:#fff;font-weight:900;border:none;border-radius:8px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;box-shadow:0 4px 12px rgba(239,68,68,0.35);margin-top:16px;" title="Close Report (ESC)">
+                  ✕ Close
+                </button>
               </div>
             </div>
           </div>

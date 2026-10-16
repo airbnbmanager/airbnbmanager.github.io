@@ -531,10 +531,10 @@
     if (sq) {
       filtered = filtered.filter(b => {
         const name = (b.guest_name || '').toLowerCase();
-        const ph = (b.phone || '').toLowerCase();
         const code = (b.airbnb_confirmation_code || '').toLowerCase();
         const rm = (b.room_id || '').toLowerCase();
-        return name.includes(sq) || ph.includes(sq) || code.includes(sq) || rm.includes(sq);
+        const phoneMatched = (window.matchPhoneSearch && window.matchPhoneSearch(sq, b.phone)) || (b.phone || '').includes(sq);
+        return name.includes(sq) || phoneMatched || code.includes(sq) || rm.includes(sq);
       });
     }
 
