@@ -155,6 +155,62 @@ window.getRecentPages = function(limit) {
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 window.sb = sb;
 
+// ============ SCHEMA-RESILIENT DATABASE AUTO-HEALING HELPERS ============
+// Automatically catches and auto-heals any missing column / schema cache errors
+window.safeDbInsert = async function(table, payload) {
+  if (!window.sb) throw new Error('Supabase client not initialized');
+  let p = Array.isArray(payload) ? payload.map(x => ({ ...x })) : { ...payload };
+  let attempts = 0;
+  while (attempts < 8) {
+    attempts++;
+    const res = await window.sb.from(table).insert(p);
+    if (!res || !res.error) return res || { data: null, error: null };
+    
+    const errMsg = res.error.message || '';
+    const match = errMsg.match(/Could not find the '([^']+)' column/i) ||
+                  errMsg.match(/column '([^']+)' does not exist/i) ||
+                  errMsg.match(/column "([^"]+)" does not exist/i) ||
+                  errMsg.match(/column "([^"]+)" of relation/i);
+                  
+    if (match && match[1]) {
+      const badCol = match[1];
+      console.warn(`[safeDbInsert] Auto-stripped missing column '${badCol}' from table '${table}':`, errMsg);
+      if (Array.isArray(p)) {
+        p.forEach(row => { if (row && typeof row === 'object') delete row[badCol]; });
+      } else if (p && typeof p === 'object') {
+        delete p[badCol];
+      }
+      continue;
+    }
+    return res;
+  }
+};
+
+window.safeDbUpdate = async function(table, payload, matchCol, matchVal) {
+  if (!window.sb) throw new Error('Supabase client not initialized');
+  let p = { ...payload };
+  let attempts = 0;
+  while (attempts < 8) {
+    attempts++;
+    const res = await window.sb.from(table).update(p).eq(matchCol, matchVal);
+    if (!res || !res.error) return res || { data: null, error: null };
+    
+    const errMsg = res.error.message || '';
+    const match = errMsg.match(/Could not find the '([^']+)' column/i) ||
+                  errMsg.match(/column '([^']+)' does not exist/i) ||
+                  errMsg.match(/column "([^"]+)" does not exist/i) ||
+                  errMsg.match(/column "([^"]+)" of relation/i);
+                  
+    if (match && match[1]) {
+      const badCol = match[1];
+      console.warn(`[safeDbUpdate] Auto-stripped missing column '${badCol}' from table '${table}':`, errMsg);
+      delete p[badCol];
+      continue;
+    }
+    return res;
+  }
+};
+
 const appEl = document.getElementById("app");
 const BRAND = "The Unique Haven Homes";
 const COMPANY_LEGAL_NAME = "THE UNIQUE HAVEN HOMES PRIVATE LIMITED";

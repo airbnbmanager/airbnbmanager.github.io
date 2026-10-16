@@ -2650,12 +2650,12 @@ window.saveSmartBooking = async function() {
       booked_by: window.getCurrentUserAuditName ? window.getCurrentUserAuditName() : (SESSION.displayName || SESSION.role || 'Staff')
     };
 
-    const { error: insErr } = await sb.from('guest_register').insert(insertObj);
+    const { error: insErr } = window.safeDbInsert ? await window.safeDbInsert('guest_register', insertObj) : await sb.from('guest_register').insert(insertObj);
     if (insErr) throw insErr;
 
     // Record payment if advance > 0
     if (adv > 0) {
-      await sb.from('payment_history').insert({
+      const payObj = {
         booking_id: bkId,
         amount: adv,
         payment_mode: advMode,
@@ -2665,7 +2665,12 @@ window.saveSmartBooking = async function() {
         handover_status: advMode === 'Cash' ? 'in_hand' : 'handed_over',
         notes: 'Advance booking deposit',
         created_by: SESSION.userId || null
-      });
+      };
+      if (window.safeDbInsert) {
+        await window.safeDbInsert('payment_history', payObj);
+      } else {
+        await sb.from('payment_history').insert(payObj);
+      }
     }
 
     // Automated WhatsApp Operations: Direct Guest Booking Pass & Booking Group Alert
@@ -3018,7 +3023,17 @@ window.saveMultiSmartBooking = async function() {
     });
 
     // Batch insert bookings
-    const { data: createdBookings, error: insErr } = await sb.from('guest_register').insert(roomInserts).select();
+    let createdBookings = null;
+    let insErr = null;
+    if (window.safeDbInsert) {
+      const bRes = await window.safeDbInsert('guest_register', roomInserts);
+      createdBookings = bRes?.data;
+      insErr = bRes?.error;
+    } else {
+      const bRes = await sb.from('guest_register').insert(roomInserts).select();
+      createdBookings = bRes?.data;
+      insErr = bRes?.error;
+    }
     if (insErr) throw insErr;
 
     // Update flats status
@@ -3058,16 +3073,15 @@ window.saveMultiSmartBooking = async function() {
             ...meta
           };
 
-          const { error: payErr } = await sb.from('payment_history').insert(payPayload);
-          if (payErr) {
-            console.warn('Payment insert with meta warning:', payErr.message);
-            // Fallback retry without approvalMeta in case verification columns differ
+          const pRes = window.safeDbInsert ? await window.safeDbInsert('payment_history', payPayload) : await sb.from('payment_history').insert(payPayload);
+          if (pRes?.error) {
+            console.warn('Payment insert with meta warning:', pRes.error.message);
             delete payPayload.verification_status;
             delete payPayload.verified_by;
             delete payPayload.verified_at;
-            const { error: retryErr } = await sb.from('payment_history').insert(payPayload);
-            if (retryErr) {
-              console.error('CRITICAL: Payment history insert failed:', retryErr);
+            const retryRes = window.safeDbInsert ? await window.safeDbInsert('payment_history', payPayload) : await sb.from('payment_history').insert(payPayload);
+            if (retryRes?.error) {
+              console.error('CRITICAL: Payment history insert failed:', retryRes.error);
             }
           }
 

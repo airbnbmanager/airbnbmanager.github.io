@@ -5646,10 +5646,10 @@ function showPaymentModal(bkId) {
   const prevDueHtml = prevDue > 0 ? `
     <div style="background:#FDE8E8;border:1px solid #FCA5A5;border-radius:8px;padding:10px;margin-bottom:12px;font-size:13px;">
       <div style="font-weight:700;color:#DC2626;margin-bottom:4px;">⚠️ Guest has Previous Due!</div>
-      <div style="color:#374151;">Current Booking Due: <strong>₹\${Math.max(currentDue,0).toLocaleString('en-IN')}</strong></div>
-      <div style="color:#DC2626;">Previous Bookings Due: <strong>₹\${prevDue.toLocaleString('en-IN')}</strong></div>
+      <div style="color:#374151;">Current Booking Due: <strong>₹${Math.max(currentDue,0).toLocaleString('en-IN')}</strong></div>
+      <div style="color:#DC2626;">Previous Bookings Due: <strong>₹${prevDue.toLocaleString('en-IN')}</strong></div>
       <div style="border-top:1px solid #FCA5A5;margin-top:6px;padding-top:6px;font-weight:700;color:#DC2626;">
-        Total Collectible: ₹\${totalCollectible.toLocaleString('en-IN')}
+        Total Collectible: ₹${totalCollectible.toLocaleString('en-IN')}
       </div>
     </div>` : '';
 
@@ -5883,7 +5883,7 @@ async function savePaymentModal(bkId) {
 
   // Step 1: Insert current booking payment (only up to remaining)
   if (paymentForCurrent > 0) {
-    const { error } = await sb.from('payment_history').insert({
+    const payPayload = {
       booking_id: bkId, amount: paymentForCurrent,
       payment_mode: mode,
       received_by: receivedBy,
@@ -5893,8 +5893,14 @@ async function savePaymentModal(bkId) {
       notes: userNotes,
       created_by: SESSION.userId,
       ...approvalMeta()
-    });
-    if (error) { document.getElementById('payErr').innerHTML = `<div class="error">${error.message}</div>`; return; }
+    };
+    const res = window.safeDbInsert ? await window.safeDbInsert('payment_history', payPayload) : await sb.from('payment_history').insert(payPayload);
+    if (res.error) {
+      document.getElementById('payErr').innerHTML = `<div class="error">${res.error.message}</div>`;
+      if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = '💾 Save Payment'; }
+      window._isSavingPayment = false;
+      return;
+    }
     await recalcPaymentStatus(bkId);
   }
 
@@ -5918,7 +5924,7 @@ async function savePaymentModal(bkId) {
       if (obDue <= 0) continue;
 
       const toApply = Math.min(remainingOverflow, obDue);
-      const { error: distErr } = await sb.from('payment_history').insert({
+      const distPayload = {
         booking_id: ob.booking_id,
         amount: toApply,
         payment_mode: mode,
@@ -5928,8 +5934,9 @@ async function savePaymentModal(bkId) {
         notes: (userNotes ? userNotes + ' | ' : '') + `Auto-adjusted from booking ${bkId}`,
         created_by: SESSION.userId,
         ...approvalMeta()
-      });
-      if (!distErr) {
+      };
+      const distRes = window.safeDbInsert ? await window.safeDbInsert('payment_history', distPayload) : await sb.from('payment_history').insert(distPayload);
+      if (!distRes.error) {
         await recalcPaymentStatus(ob.booking_id);
         distributed.push({
           bkId: ob.booking_id,
@@ -5944,7 +5951,7 @@ async function savePaymentModal(bkId) {
 
   // If any overflow left uncovered, add as advance/extra on current
   if (remainingOverflow > 0) {
-    const { error: extraErr } = await sb.from('payment_history').insert({
+    const extraPayload = {
       booking_id: bkId, amount: remainingOverflow,
       payment_mode: mode,
       payment_date: payDate,
@@ -5953,10 +5960,12 @@ async function savePaymentModal(bkId) {
       received_by: receivedBy || "Firoz", handover_status: (mode === "Cash" && !["Firoz","Shahenshah"].includes(receivedBy)) ? "in_hand" : "handed_over",
       created_by: SESSION.userId,
       ...approvalMeta()
-    });
-    if (!extraErr) await recalcPaymentStatus(bkId);
+    };
+    const extraRes = window.safeDbInsert ? await window.safeDbInsert('payment_history', extraPayload) : await sb.from('payment_history').insert(extraPayload);
+    if (!extraRes.error) await recalcPaymentStatus(bkId);
   }
 
+  window._isSavingPayment = false;
   document.querySelector('.modal-overlay')?.remove();
 
   // Show distribution summary
