@@ -167,10 +167,13 @@ async function renderDashboard() {
     sb.from("employees").select("emp_id, name").eq('status', 'Active')
   ]);
 
-  const allBookings = bookings || [];
+  const globalProp = (typeof window.getGlobalSelectedProperty === 'function') ? window.getGlobalSelectedProperty() : '';
+  const allBookingsRaw = bookings || [];
+  const allBookings = globalProp ? allBookingsRaw.filter(b => b.room_id === globalProp) : allBookingsRaw;
   const pendingWebsiteBookings = allBookings.filter(x => !x.is_cancelled && x.verification_status === 'pending');
   window._pendingCount = pendingWebsiteBookings.length;
-  const allFlats = flats || [];
+  const allFlatsRaw = flats || [];
+  const allFlats = globalProp ? allFlatsRaw.filter(f => f.room_id === globalProp) : allFlatsRaw;
   const allPayments = payments || [];
 
   // Today's check-ins/outs
@@ -976,10 +979,18 @@ async function renderDashboard() {
             <div class="dash-greeting">
               <span>${greetEmoji}</span> ${greeting}, ${userName}
             </div>
-            <div class="dash-heading">Operations Dashboard</div>
+            <div class="dash-heading" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+              <span>Operations Dashboard</span>
+              ${globalProp ? `
+                <span style="font-size:12px;font-weight:700;background:#EEF2FF;color:#4338CA;border:1px solid #C7D2FE;padding:2px 10px;border-radius:20px;display:inline-flex;align-items:center;gap:6px;">
+                  🏘️ ${(window._globalRoomsList || []).find(r => r.room_id === globalProp)?.nickname || globalProp}
+                  <span onclick="window.handleGlobalPropertyFilterChange('')" style="cursor:pointer;font-weight:900;color:#DC2626;padding-left:4px;" title="Clear property filter">✕</span>
+                </span>
+              ` : ''}
+            </div>
             <div class="dash-date-str">
               ${new Date().toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
-              &bull; <strong>${bookedNow.length}</strong>/${totalProps} Units Occupied (${occupancyPct}%)
+              &bull; <strong>${bookedNow.length}</strong>/${totalProps} Units ${globalProp ? 'Booked' : `Occupied (${occupancyPct}%)`}
             </div>
           </div>
 
@@ -994,7 +1005,7 @@ async function renderDashboard() {
             </div>
             ` : ''}
             <button class="dash-pill-btn" onclick="renderDashboard()" title="Refresh live data">🔄 Refresh</button>
-            <button type="button" class="dash-pill-btn" style="background:linear-gradient(135deg,#4F46E5,#6366F1);color:#FFFFFF;border-color:#4F46E5;font-weight:700;box-shadow:0 3px 10px rgba(79,70,229,0.3);display:inline-flex;align-items:center;gap:6px;" onclick="window.openCustomPaymentQRModal()" title="Create & Send Custom UPI Payment QR to Guest">
+            <button type="button" class="dash-pill-btn" style="background:linear-gradient(135deg,#4F46E5,#6366F1);color:#FFFFFF;border-color:#4F46E5;font-weight:700;box-shadow:0 3px 10px rgba(79,70,229,0.3);display:inline-flex;align-items:center;gap:6px;" onclick="window.openCustomPaymentQRModal(${globalProp ? `{ roomId: '${globalProp}' }` : ''})" title="Create & Send Custom UPI Payment QR to Guest">
               <span>💳</span> <span>Send Payment QR</span>
             </button>
             <button class="dash-pill-btn" onclick="navigate('flats')">🛏️ Flats Status</button>

@@ -8901,7 +8901,8 @@ window.openCustomPaymentQRModal = async function(prefill = {}) {
   // Initial values
   const initGuest = prefill.guestName || '';
   const initPhone = prefill.phone ? String(prefill.phone).replace(/\D/g, '') : '';
-  let initRoomId = (prefill.roomId || '').trim();
+  const globalProp = (typeof window.getGlobalSelectedProperty === 'function') ? window.getGlobalSelectedProperty() : '';
+  let initRoomId = (prefill.roomId || globalProp || '').trim();
 
   // If roomId given as name/unit or not exact room_id match, attempt fuzzy match against rooms
   if (initRoomId && rooms && rooms.length) {
@@ -9354,7 +9355,37 @@ window.openCustomPaymentQRModal = async function(prefill = {}) {
 
   guestIn.addEventListener('input', updateLivePreview);
   phoneIn.addEventListener('input', updateLivePreview);
-  roomSel.addEventListener('change', updateLivePreview);
+  roomSel.addEventListener('change', async () => {
+    const selRoomId = roomSel.value;
+    if (selRoomId) {
+      try {
+        const todayStr = new Date().toISOString().slice(0, 10);
+        const { data: activeBks } = await sb.from('guest_register')
+          .select('guest_name, phone')
+          .eq('room_id', selRoomId)
+          .lte('check_in', todayStr)
+          .gte('check_out', todayStr)
+          .eq('is_cancelled', false)
+          .limit(1);
+        if (activeBks && activeBks.length && (!guestIn.value || guestIn.dataset.autofilled === 'true')) {
+          guestIn.value = activeBks[0].guest_name || '';
+          guestIn.dataset.autofilled = 'true';
+          if (activeBks[0].phone && (!phoneIn.value || phoneIn.dataset.autofilled === 'true')) {
+            phoneIn.value = String(activeBks[0].phone).replace(/\D/g, '');
+            phoneIn.dataset.autofilled = 'true';
+          }
+        }
+      } catch(e) {}
+    } else if (guestIn.dataset.autofilled === 'true') {
+      guestIn.value = '';
+      delete guestIn.dataset.autofilled;
+      if (phoneIn.dataset.autofilled === 'true') {
+        phoneIn.value = '';
+        delete phoneIn.dataset.autofilled;
+      }
+    }
+    updateLivePreview();
+  });
   
   amtIn.addEventListener('input', () => {
     const clean = amtIn.value.replace(/[^0-9]/g, '');

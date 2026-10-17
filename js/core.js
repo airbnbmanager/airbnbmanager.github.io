@@ -1668,7 +1668,7 @@ function renderShell(content, activePage = 'dashboard') {
             </button>
 
             <!-- Quick Send Payment QR Action -->
-            <button type="button" class="topbar-qr-pill-btn" onclick="window.openCustomPaymentQRModal && window.openCustomPaymentQRModal()" title="Instant UPI Payment QR to Guest">
+            <button type="button" class="topbar-qr-pill-btn" onclick="const gp = (typeof window.getGlobalSelectedProperty === 'function') ? window.getGlobalSelectedProperty() : ''; window.openCustomPaymentQRModal && window.openCustomPaymentQRModal(gp ? { roomId: gp } : {});" title="Instant UPI Payment QR to Guest">
               <span style="font-size:14px;">💳</span>
               <span class="qr-btn-text">QR Pay</span>
             </button>
