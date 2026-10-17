@@ -22,14 +22,20 @@ window._guestCRMState = {
 window.fetchGuestCRMData = async function() {
   window._guestCRMState.isLoading = true;
   try {
+    const sbClient = window.sb || (typeof sb !== 'undefined' ? sb : null);
+    if (!sbClient) {
+      console.warn('Supabase client window.sb is not ready yet');
+      return [];
+    }
+
     const [{ data: bookings, error: bErr }, { data: payments, error: pErr }, { data: rooms }] = await Promise.all([
-      sb.from('guest_register')
+      sbClient.from('guest_register')
         .select('*, rooms(unit_no, nickname, property_name)')
         .order('check_in', { ascending: false }),
-      sb.from('payment_history')
+      sbClient.from('payment_history')
         .select('booking_id, amount, payment_date, verification_status')
         .neq('verification_status', 'rejected'),
-      sb.from('rooms')
+      sbClient.from('rooms')
         .select('room_id, unit_no, nickname, property_name')
         .order('unit_no')
     ]);
@@ -227,19 +233,22 @@ window.computeFilteredGuests = function(guests) {
  * Main Render Function for Guest CRM
  */
 window.renderGuestCRM = async function(forceRefresh = false) {
-  if (window.showLoadingSkeleton) window.showLoadingSkeleton('list');
+  const renderFn = window.renderShell || (typeof renderShell !== 'undefined' ? renderShell : null);
+  if (!renderFn) {
+    console.error('renderShell not available');
+    return;
+  }
 
   // Preload if not already in state
   let allGuests = window._guestCRMState.cachedGuests;
   if (!allGuests || !allGuests.length || forceRefresh) {
+    renderFn(`<div class="loading" style="padding:50px 20px;text-align:center;"><div class="spinner"></div><div style="margin-top:12px;font-weight:700;color:var(--text-secondary);font-size:15px;">Loading Verified Guest CRM Profiles...</div><div style="font-size:12.5px;color:var(--text-muted);margin-top:4px;">Aggregating guest stays, loyalty tiers &amp; balances</div></div>`, 'guest-crm');
     allGuests = await window.fetchGuestCRMData();
   }
 
   // Sync global property filter if active
-  const globalProp = window.getGlobalSelectedProperty ? window.getGlobalSelectedProperty() : '';
-  if (globalProp && !window._guestCRMState.propertyFilter) {
-    window._guestCRMState.propertyFilter = globalProp;
-  }
+  const globalProp = (typeof window.getGlobalSelectedProperty === 'function') ? window.getGlobalSelectedProperty() : '';
+  window._guestCRMState.propertyFilter = globalProp || '';
 
   const filtered = window.computeFilteredGuests(allGuests);
   const rooms = window._guestCRMRooms || [];
@@ -385,7 +394,7 @@ window.renderGuestCRM = async function(forceRefresh = false) {
     </div>
   `;
 
-  renderShell(html, 'guest-crm');
+  renderFn(html, 'guest-crm');
 };
 
 /**

@@ -12,7 +12,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="config.js"></script>
   <script src="js/seasonal-pricing.js"></script>
-  <link rel="stylesheet" href="book.css?v=238"/>
+  <link rel="stylesheet" href="book.css?v=239"/>
 </head>
 <body>
 
@@ -217,6 +217,23 @@
         </div>
       </section>
 
+      <!-- STEP 4: CURATED BOUTIQUE ADD-ON EXPERIENCES -->
+      <section class="card step-card" id="cardStepAddons">
+        <div class="card-hd">
+          <div class="step-num">04</div>
+          <div>
+            <div class="card-eyebrow">CURATED CONCIERGE ADD-ONS</div>
+            <h2 class="card-title">Enhance Your Experience (Optional)</h2>
+          </div>
+        </div>
+        <div class="card-body">
+          <p style="font-size:13px; color:var(--muted); margin-bottom:14px;">Select bespoke private services to be arranged exclusively for your stay. Payable directly at property or included in host settlement.</p>
+          <div class="addons-grid" id="addonsGrid">
+            <!-- Dynamic add-on cards injected via book.js -->
+          </div>
+        </div>
+      </section>
+
     </div>
 
     <!-- RIGHT COLUMN: VOUCHER RECEIPT SUMMARY & TRUST CARDS -->
@@ -254,6 +271,11 @@
               <div class="prow gross-row" id="sumStandardRow">
                 <span>Standard Gross (with GST)</span>
                 <span id="sumGrossTotal" class="p-num">₹—</span>
+              </div>
+
+              <div class="prow addon-row" id="sumAddonsRow" style="display:none; color:var(--gold-dark); font-weight:600;">
+                <span id="sumAddonsLabel">✦ Concierge Add-Ons (0)</span>
+                <span id="sumAddonsTotal" class="p-num">+₹0</span>
               </div>
 
               <div id="couponDiscountRow" class="prow discount-row" style="display:none;">
@@ -527,6 +549,6 @@
   </div>
 </div>
 
-<script src="book.js?v=238"></script>
+<script src="book.js?v=239"></script>
 </body>
 </html>

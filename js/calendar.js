@@ -51,19 +51,22 @@ async function renderReports() {
 
   const yr = window._calY ?? new Date().getFullYear();
   const mo = window._calM ?? new Date().getMonth();
-  const selRoom = window._calRoom || 'all';
+  const globalProp = (typeof window.getGlobalSelectedProperty === 'function') ? window.getGlobalSelectedProperty() : '';
+  const selRoom = window._calRoom ? window._calRoom : (globalProp ? globalProp : 'all');
 
   const mName = new Date(yr, mo, 1).toLocaleString('default', { month: 'long' });
   const dim = new Date(yr, mo + 1, 0).getDate();
   const mp = `${yr}-${String(mo + 1).padStart(2, '0')}`;
   const todayStr = new Date().toISOString().slice(0, 10);
 
-  // ─── Monthly stats ───
+  // ─── Monthly stats (Scoped to selected room if filtered) ───
   const isBkBlocked = b => (b.booking_id && String(b.booking_id).startsWith('BLK_')) || 
                            (b.guest_name || '').toLowerCase().includes('blocked') || 
                            b.booking_mode === 'Offline-Blocked';
 
-  const mb = allBks.filter(b => b.check_in?.startsWith(mp));
+  const displayRooms = (selRoom && selRoom !== 'all') ? allRooms.filter(r => r.room_id === selRoom) : allRooms;
+  const targetRoomIds = new Set(displayRooms.map(r => r.room_id));
+  const mb = allBks.filter(b => b.check_in?.startsWith(mp) && (selRoom === 'all' || targetRoomIds.has(b.room_id)));
   const pm = await getPaidMap(mb.map(b => b.booking_id));
   const rev = mb.reduce((s, b) => s + (pm[b.booking_id] || 0), 0);
   const realMb = mb.filter(b => !isBkBlocked(b));
@@ -649,7 +652,11 @@ function calGoToday() {
 
 function calSelectRoom(roomId) {
   window._calRoom = roomId;
-  renderReports();
+  if (typeof window.handleGlobalPropertyFilterChange === 'function') {
+    window.handleGlobalPropertyFilterChange(roomId === 'all' ? '' : roomId);
+  } else {
+    renderReports();
+  }
 }
 
 // ═══════════════════════════════════════════════════════════

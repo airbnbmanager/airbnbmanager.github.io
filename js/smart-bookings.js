@@ -303,9 +303,15 @@ async function renderSmartManageBookings(forceRefresh = false) {
   window._sbkState.phoneCounts = phoneCounts;
 
   // Compute operational KPIs
+  const curPropFilter = window._sbkState.propertyFilter || (typeof window.getGlobalSelectedProperty === 'function' ? window.getGlobalSelectedProperty() : '');
+  window._sbkState.propertyFilter = curPropFilter;
+
   let activeBookings = (all || []).filter(b => !b.is_cancelled && b.verification_status !== 'rejected');
   if (window._myAssignedRooms?.length) {
     activeBookings = activeBookings.filter(b => window._myAssignedRooms.includes(b.room_id));
+  }
+  if (curPropFilter) {
+    activeBookings = activeBookings.filter(b => b.room_id === curPropFilter);
   }
 
   const arrivalsCount = activeBookings.filter(b => b.check_in === today).length;
@@ -401,7 +407,7 @@ async function renderSmartManageBookings(forceRefresh = false) {
             🟡 Pending <span class="airbnb-pill-num" style="${pendingApprovalsCount > 0 ? 'background:#F59E0B;color:#fff;' : ''}">${pendingApprovalsCount}</span>
           </button>
           <button class="airbnb-pill ${tab === 'all' ? 'active' : ''}" onclick="window.setBookingTab('all')" id="sbkTabAll" title="View all reservations / guests">
-            All Guests <span class="airbnb-pill-num">${all?.length || 0}</span>
+            All Guests <span class="airbnb-pill-num">${curPropFilter ? (all || []).filter(b => b.room_id === curPropFilter).length : (all?.length || 0)}</span>
           </button>
           <button class="airbnb-pill" onclick="navigate('guest-crm')" id="sbkTabGuestCRM" title="Guest CRM &amp; Loyalty Profiles" style="background:#EEF2FF;color:#4338CA;border-color:#C7D2FE;font-weight:700;">
             👤 Guest CRM
@@ -1689,13 +1695,17 @@ window.renderSmartBookingsResultsOnly = function() {
   const subHeading = document.getElementById('sbkHeroSubheading');
   if (subHeading) {
     if (tab === 'today' && !sq) {
-      const activeBookings = (all || []).filter(b => !b.is_cancelled && b.verification_status !== 'rejected');
+      let activeBookings = (all || []).filter(b => !b.is_cancelled && b.verification_status !== 'rejected');
+      const curProp = window._sbkState.propertyFilter || (typeof window.getGlobalSelectedProperty === 'function' ? window.getGlobalSelectedProperty() : '');
+      if (curProp) {
+        activeBookings = activeBookings.filter(b => b.room_id === curProp);
+      }
       const arrivalsCount = activeBookings.filter(b => b.check_in === today).length;
       const departuresCount = activeBookings.filter(b => b.check_out === today && b.checkout_confirmed !== false).length;
       const inHouseCount = activeBookings.filter(b => b.check_in <= today && (b.check_out > today || (!b.check_out && b.checkout_confirmed === false))).length;
       subHeading.innerHTML = `
         <div style="font-size:13.5px;color:#64748B;text-align:center;margin:-12px 0 22px 0;font-weight:500;">
-          ${departuresCount} check-outs • ${arrivalsCount} check-ins • ${Math.max(0, inHouseCount - arrivalsCount)} continuing stays
+          ${departuresCount} check-out${departuresCount === 1 ? '' : 's'} • ${arrivalsCount} check-in${arrivalsCount === 1 ? '' : 's'} • ${Math.max(0, inHouseCount - arrivalsCount)} continuing stay${Math.max(0, inHouseCount - arrivalsCount) === 1 ? '' : 's'}
         </div>`;
     } else {
       subHeading.innerHTML = '';

@@ -24,6 +24,60 @@ const PROPERTIES = [
 const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 const DOWS = ['Su','Mo','Tu','We','Th','Fr','Sa'];
 
+// ── OPTION C: CURATED CONCIERGE ADD-ON EXPERIENCES SHOP ──
+const ADDON_SERVICES = [
+  { id: 'chef', title: 'Private Lucknowi Cook / Chef', icon: '👨‍🍳', tag: 'Culinary Master', price: 3500, unit: 'per session', desc: 'Authentic Awadhi Galawati kebabs, fragrant mutton/veg biryani, and bespoke dinner spread cooked fresh in your villa kitchen.' },
+  { id: 'bbq', title: 'Live Charcoal BBQ Setup', icon: '🍢', tag: 'Outdoor Dining', price: 1500, unit: 'per night', desc: 'Cast iron barbecue grill, charcoal fuel, skewers, and chef marinade kit setup on your private terrace or lawn.' },
+  { id: 'bonfire', title: 'Evening Bonfire & Acoustic Setup', icon: '🔥', tag: 'Night Ambiance', price: 2000, unit: 'per evening', desc: 'Hardwood logs, open fire pit, acoustic mood music speaker, and ambient fairy garden lighting.' },
+  { id: 'decor', title: 'Celebration Decor & Florals', icon: '🎈', tag: 'Special Moments', price: 2500, unit: 'per stay', desc: 'Custom anniversary or birthday setup with organic balloon arch, rose-petal bed decoration, and celebratory cake arrangement.' },
+  { id: 'pickup', title: 'Airport / Railway Luxury Transfer', icon: '🚘', tag: 'Doorstep VIP', price: 1200, unit: 'per vehicle', desc: 'Chauffeur-driven sanitized AC Sedan pickup directly from Amausi Airport or Charbagh Railway Station.' },
+  { id: 'linen', title: 'Extra Egyptian Linen & Towel Hamper', icon: '🧺', tag: 'Hotel Fresh', price: 500, unit: 'per set', desc: 'Fresh 400-thread-count cotton duvets, extra plush bath towels, and luxury Ayurveda toiletries hamper.' }
+];
+
+let selectedAddonIds = new Set();
+
+function renderAddonsGrid() {
+  const container = document.getElementById('addonsGrid');
+  if (!container) return;
+  container.innerHTML = ADDON_SERVICES.map(function(addon) {
+    const isSel = selectedAddonIds.has(addon.id);
+    return `
+      <div class="addon-card ${isSel ? 'selected' : ''}" onclick="toggleAddon('${addon.id}')" id="addon-${addon.id}">
+        <div>
+          <div class="addon-top-row">
+            <div class="addon-icon-wrap">${addon.icon}</div>
+            <div class="addon-header-text">
+              <span class="addon-tag">${addon.tag}</span>
+              <div class="addon-title">${addon.title}</div>
+            </div>
+          </div>
+          <div class="addon-desc">${addon.desc}</div>
+        </div>
+        <div class="addon-foot">
+          <div>
+            <span class="addon-price-tag">₹${addon.price.toLocaleString('en-IN')}</span>
+            <span class="addon-price-unit">/${addon.unit}</span>
+          </div>
+          <div class="addon-check-indicator">
+            <div class="addon-checkbox">${isSel ? '✓' : ''}</div>
+            <span>${isSel ? 'Selected' : 'Add to Stay'}</span>
+          </div>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function toggleAddon(id) {
+  if (selectedAddonIds.has(id)) {
+    selectedAddonIds.delete(id);
+  } else {
+    selectedAddonIds.add(id);
+  }
+  renderAddonsGrid();
+  updateSummary();
+}
+
 let calViewDate = new Date();
 let selectedProp = null;
 let bookedDates = [];
@@ -115,6 +169,7 @@ function init() {
   }
 
   renderMiniCal();
+  renderAddonsGrid();
 
   // Fetch live prices from Supabase and update
   fetchLivePrices();
@@ -344,17 +399,43 @@ function updateSummary() {
   const grossEl = document.getElementById('sumGrossTotal');
   if (grossEl) grossEl.textContent = '₹' + grossWithGst.toLocaleString('en-IN');
 
+  // Calculate Add-on Services total
+  let addonsTotal = 0;
+  const chosenAddons = [];
+  selectedAddonIds.forEach(function(aid) {
+    const item = ADDON_SERVICES.find(function(x){ return x.id === aid; });
+    if (item) {
+      addonsTotal += item.price;
+      chosenAddons.push(item);
+    }
+  });
+
+  const addonsRow = document.getElementById('sumAddonsRow');
+  const addonsLabel = document.getElementById('sumAddonsLabel');
+  const addonsVal = document.getElementById('sumAddonsTotal');
+  if (addonsRow) {
+    if (addonsTotal > 0) {
+      addonsRow.style.display = 'flex';
+      if (addonsLabel) addonsLabel.innerHTML = `✦ Concierge Add-Ons (${chosenAddons.length})`;
+      if (addonsVal) addonsVal.textContent = `+₹${addonsTotal.toLocaleString('en-IN')}`;
+    } else {
+      addonsRow.style.display = 'none';
+    }
+  }
+
+  const subTotalBeforeDiscount = grossWithGst + addonsTotal;
+
   // Show coupon discount if applied
   var discountRow = document.getElementById('couponDiscountRow');
   if (appliedCoupon && couponDiscount > 0) {
-    var discountAmt = Math.round(grossWithGst * (couponDiscount / 100));
-    var finalTotal = grossWithGst - discountAmt;
+    var discountAmt = Math.round(subTotalBeforeDiscount * (couponDiscount / 100));
+    var finalTotal = subTotalBeforeDiscount - discountAmt;
     if (discountRow) { discountRow.style.display = 'flex'; }
     document.getElementById('sumDiscount').textContent = '−₹' + discountAmt.toLocaleString('en-IN') + ' (' + couponDiscount + '% Direct Host OFF)';
     document.getElementById('sumTotal').textContent = '₹' + finalTotal.toLocaleString('en-IN');
   } else {
     if (discountRow) { discountRow.style.display = 'none'; }
-    document.getElementById('sumTotal').textContent = '₹' + grossWithGst.toLocaleString('en-IN');
+    document.getElementById('sumTotal').textContent = '₹' + subTotalBeforeDiscount.toLocaleString('en-IN');
   }
   if (typeof syncDockInfo === 'function') syncDockInfo();
 }
@@ -506,8 +587,20 @@ async function submitBookingRequest() {
   const gstRate = effectiveRate <= 7500 ? 5 : 18;
   const gstAmt = Math.round(baseTotal * (gstRate / 100));
   const grossWithGst = baseTotal + gstAmt;
-  const discountAmt = (appliedCoupon && couponDiscount > 0) ? Math.round(grossWithGst * (couponDiscount / 100)) : 0;
-  const finalTotal = grossWithGst - discountAmt;
+
+  const chosenAddons = [];
+  let addonsTotal = 0;
+  selectedAddonIds.forEach(function(aid) {
+    const item = ADDON_SERVICES.find(function(x){ return x.id === aid; });
+    if (item) {
+      addonsTotal += item.price;
+      chosenAddons.push(item);
+    }
+  });
+
+  const subTotalBeforeDiscount = grossWithGst + addonsTotal;
+  const discountAmt = (appliedCoupon && couponDiscount > 0) ? Math.round(subTotalBeforeDiscount * (couponDiscount / 100)) : 0;
+  const finalTotal = subTotalBeforeDiscount - discountAmt;
   const bookingId = 'BK-' + Date.now();
   const phone91 = rawPhone.length === 10 ? '91' + rawPhone : rawPhone;
 
@@ -516,6 +609,7 @@ async function submitBookingRequest() {
     `Direct Website Booking (book.html)`,
     `Property: ${selectedProp.name}`,
     `Tariff: ₹${baseTotal} (${nights} nt @ ₹${effectiveRate}/nt) + ${gstRate}% GST (₹${gstAmt}) = Standard ₹${grossWithGst}`,
+    chosenAddons.length > 0 ? `Concierge Add-ons: ${chosenAddons.map(a => `${a.title} (+₹${a.price})`).join(', ')} (+₹${addonsTotal})` : null,
     `Purpose: ${purpose || 'Not specified'}`
   ].filter(Boolean);
   if (appliedCoupon) {
@@ -603,6 +697,7 @@ async function submitBookingRequest() {
     '🏷️ *Base Tariff:* ₹' + baseTotal.toLocaleString('en-IN') + ' (' + nights + ' nights @ ₹' + effectiveRate.toLocaleString('en-IN') + '/night)',
     '🏛️ *Taxes & GST (' + gstRate + '% · SAC 996311):* +₹' + gstAmt.toLocaleString('en-IN'),
     '📊 *Standard Gross (with GST):* ₹' + grossWithGst.toLocaleString('en-IN'),
+    chosenAddons.length > 0 ? '✨ *Concierge Add-Ons (' + chosenAddons.length + '):*\n' + chosenAddons.map(a => '   • ' + a.title + ': +₹' + a.price.toLocaleString('en-IN')).join('\n') : '',
     appliedCoupon ? '🎁 *Direct Discount Code:* ' + appliedCoupon + (couponDiscount > 0 ? ' (' + couponDiscount + '% Direct Host OFF)' : '') : '💡 *Direct Booking:* Guest requested direct host discount rate',
     discountAmt > 0 ? '💸 *Direct Host Discount:* -₹' + discountAmt.toLocaleString('en-IN') : '',
     '✨ *Estimated Direct Payable:* ₹' + finalTotal.toLocaleString('en-IN'),

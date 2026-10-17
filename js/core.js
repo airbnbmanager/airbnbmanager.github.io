@@ -112,6 +112,13 @@ window.handleGlobalPropertyFilterChange = function(roomId) {
   if (window._guestCRMState) {
     window._guestCRMState.propertyFilter = roomId || '';
   }
+  window._calRoom = roomId || 'all';
+
+  // Keep select element in sync
+  const topSel = document.getElementById('topbarPropertySelect');
+  if (topSel && topSel.value !== (roomId || '')) {
+    topSel.value = roomId || '';
+  }
 
   // Visual indication
   const selWrap = document.getElementById('topbarPropSelector');
@@ -1255,6 +1262,7 @@ async function loginWithEmail() {
 
 // ============ SHELL ============
 function renderShell(content, activePage = 'dashboard') {
+  window.renderShell = renderShell;
   if (SESSION.investorId) { appEl.innerHTML = content; return; }
   const show = ['developer', 'admin', 'owner', 'moderator', 'subowner', 'viewer', 'booking_staff', 'manager', 'checkin_manager', 'caretaker'].includes(SESSION.role);
   const isCheckinMgr = SESSION.role === 'checkin_manager' || SESSION.role === 'caretaker';
@@ -1653,6 +1661,12 @@ function renderShell(content, activePage = 'dashboard') {
                 `).join('')}
               </select>
             </div>
+
+            <!-- ⚡ Express POS Terminal (Salon ERP Inspired) -->
+            <button type="button" class="topbar-qr-pill-btn" onclick="window.openPOSTerminal && window.openPOSTerminal()" title="Express Walk-in POS Terminal" style="background:linear-gradient(135deg, #059669, #047857);color:#fff;border:none;font-weight:700;padding:5px 12px;gap:5px;box-shadow:0 2px 6px rgba(5,150,105,0.25);">
+              <span style="font-size:13px;">⚡</span>
+              <span class="qr-btn-text" style="font-size:12px;">POS Terminal</span>
+            </button>
 
             <!-- Quick Send Payment QR Action -->
             <button type="button" class="topbar-qr-pill-btn" onclick="window.openCustomPaymentQRModal && window.openCustomPaymentQRModal()" title="Instant UPI Payment QR to Guest">
@@ -2089,6 +2103,11 @@ function navigate(page) {
   SESSION.currentPage = page;
   try { localStorage.setItem('uh_last_page', page); } catch(e) {}
   if (window.trackPageVisit) window.trackPageVisit(page);
+  try {
+    if (window.location.hash !== '#' + page) {
+      window.location.hash = '#' + page;
+    }
+  } catch(e) {}
 
   // Auto-close mobile drawer & backdrop on any navigation
   const sidebarEl = document.getElementById('sidebarEl');
