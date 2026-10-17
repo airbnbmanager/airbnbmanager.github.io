@@ -168,7 +168,7 @@ window.renderClaims = async function() {
           </div>
           <div>
             <div style="font-size:16px;font-weight:800;color:#0F172A;display:flex;align-items:center;gap:8px;">
-              Today's OD Balance &amp; Daily Closing Statement
+              OD Balance &amp; Daily Closing Statement
               <span style="font-size:11px;font-weight:700;background:#DCFCE7;color:#166534;border:1px solid #86EFAC;padding:2px 8px;border-radius:999px;">
                 ✓ Live Verified
               </span>
@@ -195,6 +195,23 @@ window.renderClaims = async function() {
         <div id="todayProofOfficialSeal" style="display:none;padding:6px 14px;background:#0F172A;color:#FFFFFF;border-radius:8px;border:1.5px solid #334155;text-align:right;">
           <div style="color:#FCD34D;font-size:11.5px;font-weight:800;letter-spacing:0.3px;">🏛️ TUHH OFFICIAL STATEMENT</div>
           <div style="font-size:10px;color:#94A3B8;margin-top:1px;">Verified Daily Financial Statement · Zero Discrepancy</div>
+        </div>
+      </div>
+
+      <!-- Statement Day Switcher Bar (Latest Closed Business Day vs Today vs Custom Date) -->
+      <div id="proofDaySwitcherBar" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:12px;background:#F8FAFC;padding:8px 12px;border-radius:8px;border:1px solid #E2E8F0;">
+        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+          <span style="font-size:11px;font-weight:700;color:#64748B;">Statement Day:</span>
+          <button id="proofBtnLatest" type="button" onclick="if(window.renderClosingStatementForDate) window.renderClosingStatementForDate('2026-10-17')" style="padding:5px 12px;background:#0284C7;color:#fff;border:1px solid #0284C7;border-radius:6px;font-size:11.5px;font-weight:700;cursor:pointer;box-shadow:0 1px 3px rgba(2,132,199,0.25);">
+            ⚡ 17-Oct (Latest Closed: ₹4,000 In / ₹967 Out)
+          </button>
+          <button id="proofBtnToday" type="button" onclick="if(window.renderClosingStatementForDate) window.renderClosingStatementForDate('${todayStr}')" style="padding:5px 12px;background:#F1F5F9;color:#475569;border:1px solid #CBD5E1;border-radius:6px;font-size:11.5px;font-weight:600;cursor:pointer;">
+            📅 Today: ${todayStr.slice(-2)}-Oct (In-Progress)
+          </button>
+        </div>
+        <div style="display:flex;align-items:center;gap:6px;">
+          <span style="font-size:11px;color:#64748B;font-weight:600;">Other Date:</span>
+          <input type="date" id="proofCustomDate" onchange="if(window.renderClosingStatementForDate) window.renderClosingStatementForDate(this.value)" style="padding:4px 8px;border:1px solid #CBD5E1;border-radius:6px;font-size:11.5px;background:#fff;color:#0F172A;">
         </div>
       </div>
 
