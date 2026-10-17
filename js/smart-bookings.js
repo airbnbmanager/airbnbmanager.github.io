@@ -409,12 +409,6 @@ async function renderSmartManageBookings(forceRefresh = false) {
           <button class="airbnb-pill ${tab === 'all' ? 'active' : ''}" onclick="window.setBookingTab('all')" id="sbkTabAll" title="View all reservations / guests">
             All Guests <span class="airbnb-pill-num">${curPropFilter ? (all || []).filter(b => b.room_id === curPropFilter).length : (all?.length || 0)}</span>
           </button>
-          <button class="airbnb-pill" onclick="navigate('guest-crm')" id="sbkTabGuestCRM" title="Guest CRM &amp; Loyalty Profiles" style="background:#EEF2FF;color:#4338CA;border-color:#C7D2FE;font-weight:700;">
-            👤 Guest CRM
-          </button>
-          <button class="airbnb-pill" onclick="navigate('reviews-followup')" id="sbkTabReviews" title="Airbnb 14-Day Review Radar &amp; Follow-up Calls" style="background:#FFFBEB;color:#B45309;border-color:#FDE68A;font-weight:600;">
-            ⭐ Review Radar
-          </button>
         </div>
 
         <div class="airbnb-header-actions">
@@ -483,26 +477,29 @@ async function renderSmartManageBookings(forceRefresh = false) {
         </div>
       ` : ''}
 
-      <!-- Big Hero Headline (Identical to Airbnb) -->
-      <h1 class="airbnb-hero-heading" id="sbkHeroHeading">${heroTitle}</h1>
-      <div id="sbkHeroSubheading">
-        ${tab === 'today' && !sq ? `
-          <div style="font-size:13.5px;color:#64748B;text-align:center;margin:-12px 0 22px 0;font-weight:500;">
-            ${departuresCount} check-outs • ${arrivalsCount} check-ins • ${Math.max(0, inHouseCount - arrivalsCount)} continuing stays
+      <!-- Streamlined Executive Header: Title & Subtitle Left, Search Right -->
+      <div class="sbk-streamlined-bar" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin:12px 0 16px 0;padding-bottom:12px;border-bottom:1px solid #E2E8F0;">
+        <div>
+          <h2 style="font-size:18px;font-weight:800;color:#0F172A;margin:0;letter-spacing:-0.2px;" id="sbkHeroHeading">
+            ${heroTitle}
+          </h2>
+          <div id="sbkHeroSubheading" style="font-size:12.5px;color:#64748B;margin-top:2px;font-weight:500;">
+            ${tab === 'today' && !sq ? `${departuresCount} check-outs • ${arrivalsCount} check-ins • ${Math.max(0, inHouseCount - arrivalsCount)} in-house` : `Showing ${filtered.length} stay${filtered.length === 1 ? '' : 's'}`}
           </div>
-        ` : ''}
-      </div>
+        </div>
 
-      <!-- Clean Airbnb Search Input with Instant & Manual Trigger -->
-      <div class="airbnb-search-bar" style="display:flex;align-items:center;gap:8px;">
-        <span style="font-size:16px;color:#64748B;">🔍</span>
-        <input type="text" id="sbkLiveSearch" placeholder="Search guest name, phone, reservation code, unit..."
-          value="${escapeHtml(window._sbkState.searchQuery)}"
-          oninput="window.handleSearchInput(this.value)"
-          onkeydown="if(event.key==='Enter'){event.preventDefault();window.handleManualSearch();}" />
-        <button type="button" class="btn-sm" onclick="window.handleManualSearch();" style="padding:6px 16px;background:#0F172A;color:#fff;border-radius:8px;font-weight:700;cursor:pointer;font-size:13px;border:none;flex-shrink:0;">🔍 Search</button>
-        <button type="button" id="sbkClearBtn" onclick="window.clearSearch();" 
-          style="background:#F1F5F9;border:1px solid #CBD5E1;border-radius:8px;cursor:pointer;color:#64748B;font-weight:700;padding:6px 10px;font-size:13px;flex-shrink:0;${window._sbkState.searchQuery ? '' : 'display:none;'}">✕ Clear</button>
+        <!-- Integrated Search Bar -->
+        <div style="display:flex;align-items:center;gap:8px;background:#ffffff;border:1.5px solid #CBD5E1;border-radius:24px;padding:5px 14px;box-shadow:0 1px 4px rgba(0,0,0,0.04);max-width:360px;flex:1;min-width:220px;">
+          <span style="font-size:14px;color:#94A3B8;">🔍</span>
+          <input type="text" id="sbkLiveSearch" placeholder="Search guest, phone, unit..."
+            value="${escapeHtml(window._sbkState.searchQuery)}"
+            style="border:none;outline:none;font-size:13px;color:#0F172A;width:100%;background:transparent;"
+            oninput="window.handleSearchInput(this.value)"
+            onkeydown="if(event.key==='Enter'){event.preventDefault();window.handleManualSearch();}" />
+          ${window._sbkState.searchQuery ? `
+            <button type="button" onclick="window.clearSearch();" style="border:none;background:transparent;cursor:pointer;color:#94A3B8;font-size:12px;padding:2px 4px;font-weight:700;" title="Clear search">✕</button>
+          ` : ''}
+        </div>
       </div>
 
       <!-- Reservation Presentation Container -->
@@ -861,6 +858,10 @@ function renderAirbnbFollowupsHtml(allBookings, paidMap, canM, today) {
 
   (allBookings || []).forEach(b => {
     if (b.is_cancelled) return;
+    const isToday = (b.check_in === today) || (b.check_out === today);
+    const isInHouse = b.check_in < today && (b.check_out > today || (!b.check_out && b.checkout_confirmed === false));
+    if (!isToday && !isInHouse) return; // Declutter: strictly focus on today's active tasks, not historical logs!
+
     const pd = paidMap[b.booking_id] || 0;
     const tot = b.total_amount || 0;
     const bal = tot - pd;
