@@ -38,6 +38,8 @@
     { type: 'action', icon: '📉', title: 'Expenses & P&L Tracker', sub: 'Property operational expenses, utility bills & grocery receipts', keywords: ['expenses', 'expense', 'kharcha', 'spending', 'pnl', 'overhead', 'bills', 'profit loss'], action: () => window.navigate('expenses') },
     { type: 'action', icon: '🧾', title: 'Staff Expense Claims & Reimbursements (Alt+E)', sub: 'Staff market purchases, fuel, diesel & settlement claims [Alt+E / E]', keywords: ['claim', 'claims', 'expense claim', 'employee expense', 'staff bill', 'staff claim', 'diesel', 'petrol', 'grocery', 'saman', 'bill', 'reimbursements', 'alt+e', 'e'], action: () => window.openClaimShortcut() },
     { type: 'action', icon: '➕', title: 'Log New Expense Claim (Alt+Shift+E)', sub: 'Record new staff expense claim or market purchase bill [Alt+Shift+E]', keywords: ['new claim', 'add claim', 'log claim', 'log expense', 'add reimbursement', 'new bill', 'alt+shift+e'], action: () => window.openNewClaimShortcut() },
+    { type: 'action', icon: '🧑‍💼', title: 'Investors Hub & Payouts (Alt+I)', sub: 'Investor profiles, property equity shares, monthly expenses & payout sheets [Alt+I / I]', keywords: ['investors', 'investor', 'inv', 'shareholder', 'equity', 'shares', 'payout', 'owner', 'malik', 'hisab', 'alt+i', 'i'], action: () => window.openInvestorsShortcut() },
+    { type: 'action', icon: '📢', title: 'Investor Booking Updates & Broadcast', sub: 'Broadcast date-wise guest bookings and revenue to all homestay investors', keywords: ['investor broadcast', 'investor update', 'broadcast', 'investor whatsapp', 'send to investors', 'inv'], action: () => { if (window.openInvestorBookingBroadcastModal) window.openInvestorBookingBroadcastModal(); else window.navigate('investors'); } },
     { type: 'action', icon: '🔄', title: 'Staff Reimbursements Summary', sub: 'Approved staff claim reimbursements and settlement payouts', keywords: ['reimburse', 'claims', 'refund to staff', 'reimbursement', 'reimbursements'], action: () => window.navigate('reimbursements') },
     { type: 'action', icon: '✅', title: 'Pending Approvals & Handovers', sub: 'Verify and authorize shift cash handovers & staff expenses', keywords: ['approvals', 'pending handover', 'verify', 'signoff', 'authorize', 'manzoori', 'approvals'], action: () => window.navigate('pendingApprovals') },
 
@@ -1066,11 +1068,56 @@
       // Initially show top primary fast actions
       matchedCommands = SYSTEM_COMMANDS.slice(0, 8);
     } else {
+      const seenTitles = new Set();
+      // 1. Static action catalog
       matchedCommands = SYSTEM_COMMANDS.filter(c => {
-        if (c.title.toLowerCase().includes(q)) return true;
-        if (c.sub && c.sub.toLowerCase().includes(q)) return true;
-        if (c.keywords && c.keywords.some(k => k.toLowerCase().includes(q) || q.includes(k.toLowerCase()))) return true;
+        const titleMatch = c.title.toLowerCase().includes(q);
+        const subMatch = c.sub && c.sub.toLowerCase().includes(q);
+        const kwMatch = c.keywords && c.keywords.some(k => k.toLowerCase().includes(q) || q.includes(k.toLowerCase()));
+        if (titleMatch || subMatch || kwMatch) {
+          seenTitles.add(c.title.toLowerCase());
+          return true;
+        }
         return false;
+      });
+
+      // 2. Dynamically index all Hubs & Sub-tabs from window._UHHS_HUBS and PAGE_TITLES
+      const hubs = window._UHHS_HUBS || [];
+      hubs.forEach(hub => {
+        (hub.tabs || []).forEach(tab => {
+          const pageMeta = (typeof PAGE_TITLES !== 'undefined' && PAGE_TITLES[tab.id]) || {};
+          const titleStr = tab.label || pageMeta.title || tab.id;
+          const keyLower = titleStr.toLowerCase();
+          if (seenTitles.has(keyLower)) return;
+
+          const subStr = pageMeta.sub || `${hub.label} sub-module`;
+          const idStr = tab.id.toLowerCase();
+          if (keyLower.includes(q) || idStr.includes(q) || subStr.toLowerCase().includes(q)) {
+            seenTitles.add(keyLower);
+            matchedCommands.push({
+              type: 'action',
+              icon: pageMeta.icon || '📑',
+              title: titleStr,
+              sub: subStr,
+              keywords: [tab.id, hub.id, hub.label],
+              action: () => window.navigate(tab.id)
+            });
+          }
+        });
+
+        // Index Hub itself if not seen
+        const hubTitle = hub.label;
+        if (!seenTitles.has(hubTitle.toLowerCase()) && (hubTitle.toLowerCase().includes(q) || hub.id.toLowerCase().includes(q))) {
+          seenTitles.add(hubTitle.toLowerCase());
+          matchedCommands.push({
+            type: 'action',
+            icon: '🏢',
+            title: hub.label,
+            sub: `Open ${hub.label} dashboard`,
+            keywords: [hub.id, hub.label],
+            action: () => window.navigate(hub.page || hub.id)
+          });
+        }
       });
     }
 
