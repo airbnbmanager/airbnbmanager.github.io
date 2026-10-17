@@ -631,11 +631,34 @@ async function calculateLiveODBalance(supabaseClient) {
         }
 
         const tTimeEl = document.getElementById('today-proof-timestamp');
+        const dateFmt = nowD.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
+        const timeFmt = nowD.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
         if (tTimeEl) {
-            const dateFmt = nowD.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
-            const timeFmt = nowD.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
             tTimeEl.innerText = `Daily Closing Proof · ${dateFmt} at ${timeFmt}`;
         }
+
+        const tNoteEl = document.getElementById('today-proof-note');
+        if (tNoteEl) {
+            if (todayInflowAmt === 0 && todayOutflowAmt === 0) {
+                tNoteEl.style.display = 'block';
+                tNoteEl.innerText = `ℹ️ No new entries recorded yet today. Previous running balance of ₹${Math.abs(netBalance).toLocaleString('en-IN')} fully intact.`;
+            } else {
+                tNoteEl.style.display = 'none';
+            }
+        }
+
+        window._tuhhOdBalanceState = {
+            totalInflow,
+            totalOutflow,
+            netBalance,
+            todayInflowAmt,
+            todayOutflowAmt,
+            todayNetAmt,
+            todayInflowsCount: todayInflows.length,
+            todayOutflowsCount: todayOutflows.length,
+            dateFmt,
+            timeFmt
+        };
 
         const bannerElements = [
             document.getElementById('uhhs-od-balance-display'),
