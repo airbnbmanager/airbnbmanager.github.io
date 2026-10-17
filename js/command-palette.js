@@ -6,65 +6,547 @@
 (function initCommandAndVoice() {
   'use strict';
 
-  // ─── 1. Navigation & Actions Directory ───
-  const SYSTEM_COMMANDS = [
-    // ⚡ Fast Booking Actions & Shortcuts
-    { type: 'action', icon: '🎙️', title: 'Voice-to-Booking (Hindi/English)', sub: 'Speak to create a booking instantly [Voice AI]', keywords: ['voice', 'bolkar', 'bolke', 'mic', 'nisha', 'speak', 'audio', 'ai booking'], action: () => window.openVoiceBookingModal() },
-    { type: 'action', icon: '➕', title: 'New Booking Form (Alt+N)', sub: 'Open manual booking creation wizard [Alt+N]', keywords: ['new booking', 'add booking', 'create reservation', 'naya', 'book', 'reservation', 'alt+n'], action: () => window.openNewBookingShortcut() },
-    { type: 'action', icon: '📋', title: 'Duplicate Existing Booking (Alt+D)', sub: 'Clone active booking or pick recent guest to rebook [Alt+D]', keywords: ['duplicate', 'clone', 'copy', 'repeat guest', 'rebook', 'wahi booking', 'alt+d', 'dupe'], action: () => window.duplicateExistingBookingShortcut() },
-    { type: 'action', icon: '💵', title: 'Add Payment / Quick Pay (Alt+P)', sub: 'Record payment for active booking or quick pay picker [Alt+P]', keywords: ['pay', 'payment', 'add payment', 'record payment', 'collect', 'jama', 'paisa', 'baki', 'due', 'receipt', 'fees', 'alt+p'], action: () => window.openQuickPaymentShortcut() },
-    { type: 'action', icon: '⚡', title: 'Instant QR Code Pay / UPI Collect', sub: 'Generate UPI QR code to collect payment instantly', keywords: ['qr', 'qr pay', 'upi', 'scan', 'gpay', 'phonepe', 'paytm', 'barcode', 'instant pay'], action: () => { if (window.openCustomPaymentQRModal) window.openCustomPaymentQRModal(); else if (window.openQuickQRPayModal) window.openQuickQRPayModal(); } },
-    { type: 'action', icon: '⌨️', title: 'Keyboard Shortcuts Help (?)', sub: 'View all keyboard shortcuts and fast keys [?]', keywords: ['shortcuts', 'keys', 'keyboard', 'help', 'fast keys', 'command', 'cheatsheet', '?'], action: () => window.openShortcutsModal() },
+  // ─── 1. Comprehensive PMS Menu & Navigation Directory ───
+  const PMS_MENU_DIRECTORY = [
+    // 🧑‍💼 Finance & Accounts
+    {
+      id: 'investors',
+      type: 'menu',
+      group: 'Finance & Accounts',
+      icon: '🧑‍💼',
+      title: 'Investors Hub & Payouts (Alt+I)',
+      sub: 'Investor profiles, equity shares, monthly expenses & payout sheets [Alt+I / I]',
+      keywords: ['investors', 'investor', 'inv', 'shareholder', 'equity', 'shares', 'payout', 'payouts', 'hisab', 'malik', 'owner', 'alt+i', 'i'],
+      action: () => window.openInvestorsShortcut()
+    },
+    {
+      id: 'investor-broadcast',
+      type: 'menu',
+      group: 'Finance & Accounts',
+      icon: '📢',
+      title: 'Investor Booking Updates & Broadcast',
+      sub: 'Broadcast date-wise guest bookings and revenue to all homestay investors',
+      keywords: ['investor broadcast', 'investor update', 'broadcast', 'investor whatsapp', 'send to investors', 'inv'],
+      action: () => { if (window.openInvestorBookingBroadcastModal) window.openInvestorBookingBroadcastModal(); else window.navigate('investors'); }
+    },
+    {
+      id: 'reimbursements',
+      type: 'menu',
+      group: 'Finance & Accounts',
+      icon: '💸',
+      title: 'Daily Expenses & Spends Tracker',
+      sub: 'Daily property operational expenses, utility bills & market grocery spends',
+      keywords: ['expenses', 'daily expenses', 'reimbursements', 'reimbursement', 'kharcha', 'spends', 'daily spend', 'bills'],
+      action: () => window.navigate('reimbursements')
+    },
+    {
+      id: 'claims',
+      type: 'menu',
+      group: 'Finance & Accounts',
+      icon: '🧾',
+      title: 'Staff Expense Claims & Settlements (Alt+E)',
+      sub: 'Staff market purchases, fuel, diesel & settlement claims [Alt+E / E]',
+      keywords: ['claims', 'claim', 'staff claim', 'employee claim', 'petrol', 'diesel', 'market bill', 'saman bill', 'claims manager', 'reimbursements', 'alt+e', 'e'],
+      action: () => window.openClaimShortcut()
+    },
+    {
+      id: 'expenses',
+      type: 'menu',
+      group: 'Finance & Accounts',
+      icon: '📊',
+      title: 'Monthly Expenses & P&L Tracker',
+      sub: 'Property-wise profit & loss reporting, overheads & monthly sheets',
+      keywords: ['expenses', 'monthly expenses', 'pnl', 'profit and loss', 'p&l', 'overhead', 'utility bills', 'bills', 'monthly sheet'],
+      action: () => window.navigate('expenses')
+    },
+    {
+      id: 'cashbook',
+      type: 'menu',
+      group: 'Finance & Accounts',
+      icon: '💰',
+      title: 'Cash Book & Counter Handover',
+      sub: 'Petty cash ledger, cash in hand & daily shift handovers',
+      keywords: ['cashbook', 'cash book', 'cash', 'handover', 'counter cash', 'petty cash', 'tijori', 'locker', 'safe balance'],
+      action: () => window.openCashBookShortcut()
+    },
+    {
+      id: 'ca-audit',
+      type: 'menu',
+      group: 'Finance & Accounts',
+      icon: '💼',
+      title: 'GST Tax Invoices & CA Audit Pack',
+      sub: 'Generate customer GST tax invoices, bills & monthly CA audit zip',
+      keywords: ['gst', 'ca audit', 'ca pack', 'tax invoices', 'tax invoice', 'tax bill', 'audit pack', 'chartered accountant', 'gst bill'],
+      action: () => window.navigate('ca-audit')
+    },
+    {
+      id: 'company-advances',
+      type: 'menu',
+      group: 'Finance & Accounts',
+      icon: '🏢',
+      title: 'Company Advances Ledger',
+      sub: 'Track business owner & partner corporate cash withdrawals',
+      keywords: ['company advances', 'company advance', 'owner advance', 'partner advance', 'business withdrawal', 'advances'],
+      action: () => window.navigate('company-advances')
+    },
 
-    // 🧹 Tasks & Housekeeping Operations
-    { type: 'action', icon: '📋', title: 'Staff Tasks & Checklists (Alt+T)', sub: 'Manage housekeeping, deep cleans, staff duties & inspection checklists [Alt+T / T]', keywords: ['task', 'tasks', 'duty', 'checklist', 'housekeeping', 'staff task', 'kaam', 'clean', 'assign', 'inspection', 'alt+t', 't'], action: () => window.openTasksShortcut() },
-    { type: 'action', icon: '➕', title: 'Create New Staff Task (Alt+Shift+T)', sub: 'Assign room cleaning, maintenance, or errand to staff member [Alt+Shift+T]', keywords: ['new task', 'add task', 'create task', 'assign task', 'duty', 'checklist', 'kaam do', 'alt+shift+t'], action: () => window.openNewTaskShortcut() },
-    { type: 'action', icon: '🧹', title: 'Housekeeping Turnaround Board (Alt+F)', sub: 'Realtime Kanban room turnaround (Dirty ➔ Cleaning ➔ Ready) [Alt+F]', keywords: ['turnaround', 'dirty', 'clean', 'inspected', 'kanban', 'flats', 'room status', 'safai', 'housekeeping board', 'alt+f'], action: () => window.openFlatsShortcut() },
-    { type: 'action', icon: '📖', title: 'SOPs & Operational Checklists', sub: 'Standard operating procedures for cleaning, check-in & safety', keywords: ['sop', 'checklist', 'procedure', 'rules', 'manual', 'standard operating procedure'], action: () => window.navigate('sop') },
+    // 📅 Stay & Bookings
+    {
+      id: 'bookings',
+      type: 'menu',
+      group: 'Stay & Bookings',
+      icon: '🛎',
+      title: 'Bookings Management (Alt+B)',
+      sub: 'Guest reservations, status filters, channel tags & payment tracking [Alt+B]',
+      keywords: ['bookings', 'booking', 'reservations', 'guest list', 'smart bookings', 'all bookings', 'stay', 'alt+b'],
+      action: () => window.openBookingsShortcut()
+    },
+    {
+      id: 'calendar',
+      type: 'menu',
+      group: 'Stay & Bookings',
+      icon: '📅',
+      title: 'Airbnb-Style Calendar (Alt+C)',
+      sub: 'Visual reservation calendar grid across all properties [Alt+C]',
+      keywords: ['calendar', 'dates', 'occupancy calendar', 'grid', 'schedule', 'timeline view', 'cal', 'alt+c'],
+      action: () => window.openCalendarShortcut()
+    },
+    {
+      id: 'flats',
+      type: 'menu',
+      group: 'Stay & Bookings',
+      icon: '🛏️',
+      title: 'Flats & Housekeeping Turnaround (Alt+F)',
+      sub: 'Realtime Kanban room status (Dirty ➔ Cleaning ➔ Ready) [Alt+F]',
+      keywords: ['flats', 'flats status', 'turnaround', 'housekeeping', 'dirty', 'cleaning', 'ready', 'inspected', 'safai', 'room status', 'alt+f'],
+      action: () => window.openFlatsShortcut()
+    },
+    {
+      id: 'reports',
+      type: 'menu',
+      group: 'Stay & Bookings',
+      icon: '📆',
+      title: 'Room Timeline & Reservations Grid',
+      sub: 'Timeline matrix of all units and guest bookings across dates',
+      keywords: ['reports', 'timeline', 'reservations timeline', 'matrix', 'room grid', 'stay grid'],
+      action: () => window.navigate('reports')
+    },
+    {
+      id: 'pendingApprovals',
+      type: 'menu',
+      group: 'Stay & Bookings',
+      icon: '🟡',
+      title: 'Pending Approvals & Verifications',
+      sub: 'Shift cash handovers, staff reimbursements & booking sign-offs',
+      keywords: ['pending approvals', 'approvals', 'pending handover', 'verify', 'signoff', 'authorize', 'manzoori'],
+      action: () => window.navigate('pendingApprovals')
+    },
+    {
+      id: 'reviews-followup',
+      type: 'menu',
+      group: 'Stay & Bookings',
+      icon: '⭐',
+      title: 'Review Radar & Follow-up Calls',
+      sub: 'Airbnb 14-day review alerts, guest feedback logs & ratings',
+      keywords: ['reviews', 'review radar', 'feedback', 'airbnb review', 'ratings', 'followup', 'follow up', 'calls', 'guest review', '5 star'],
+      action: () => window.navigate('reviews-followup')
+    },
+    {
+      id: 'reminders',
+      type: 'menu',
+      group: 'Stay & Bookings',
+      icon: '🔔',
+      title: 'Reminders & Checkout Alarms',
+      sub: 'Checkout alarms, turnaround notifications & upcoming tasks',
+      keywords: ['reminders', 'reminder', 'checkout alarm', 'alarms', 'alerts', 'upcoming tasks', 'follow ups'],
+      action: () => window.navigate('reminders')
+    },
 
-    // 💰 Advances, Salaries & HRMS
-    { type: 'action', icon: '💸', title: 'Staff Advances Tracker (Alt+A)', sub: 'Track employee advances, deductions & outstanding loan balances [Alt+A / A]', keywords: ['advance', 'advances', 'employee advance', 'staff advance', 'advance ledger', 'peshgi', 'udhar', 'loan', 'alt+a', 'a'], action: () => window.openAdvanceShortcut() },
-    { type: 'action', icon: '➕', title: 'Record New Staff Advance (Alt+Shift+A)', sub: 'Issue cash or UPI advance payment to staff member [Alt+Shift+A]', keywords: ['give advance', 'new advance', 'add advance', 'advance do', 'staff loan', 'advance payment', 'alt+shift+a'], action: () => window.openNewAdvanceShortcut() },
-    { type: 'action', icon: '🏢', title: 'Company Advances Ledger', sub: 'Track business owner & partner corporate cash withdrawals', keywords: ['company advance', 'company advances', 'business advance', 'company ledger', 'owner advance', 'partner advance'], action: () => window.navigate('company-advances') },
-    { type: 'action', icon: '💼', title: 'Staff Salaries & Payroll', sub: 'Monthly salary calculations, advance deductions & net payouts', keywords: ['salary', 'payroll', 'tankhwah', 'staff pay', 'wages', 'monthly salary', 'salaries'], action: () => window.navigate('salary') },
-    { type: 'action', icon: '💳', title: 'Pay Staff Salary Voucher', sub: 'Generate staff salary voucher and record payment', keywords: ['pay salary', 'salary voucher', 'salary slip', 'payment to staff', 'salary record'], action: () => { window.navigate('salary'); setTimeout(() => { if (typeof window.renderAddSal === 'function') window.renderAddSal(); }, 160); } },
-    { type: 'action', icon: '🛡️', title: 'Security Deposits & Advance Refunds', sub: 'Manage guest caution deposits, deduction logs & UPI refunds', keywords: ['security deposit', 'deposit', 'advance refund', 'caution money', 'guest deposit', 'wapas', 'refund'], action: () => { if (typeof window.showAllSecurityDeposits === 'function') window.showAllSecurityDeposits(); else window.navigate('bookings'); } },
-    { type: 'action', icon: '🗓️', title: 'Staff Attendance (Mark Today)', sub: 'Mark daily check-in, presence, overtime & leaves for staff', keywords: ['attendance', 'haziri', 'daily attendance', 'present', 'absent', 'check in staff', 'overtime'], action: () => window.navigate('attendance') },
-    { type: 'action', icon: '📊', title: 'Monthly Attendance Summary', sub: 'Monthly staff muster roll & attendance percentage report', keywords: ['attendance report', 'monthly haziri', 'att summary', 'attendance sheet', 'muster roll'], action: () => window.navigate('att-summary') },
-    { type: 'action', icon: '👥', title: 'Employees Directory & HRMS', sub: 'Staff profiles, KYC documents, designations & contact numbers', keywords: ['employees', 'staff', 'workers', 'caretakers', 'maids', 'hrms', 'team', 'staff list'], action: () => window.navigate('employees') },
+    // 👥 HRMS & Staff
+    {
+      id: 'employees',
+      type: 'menu',
+      group: 'HRMS & Staff',
+      icon: '👥',
+      title: 'Staff Roster & HRMS Profiles',
+      sub: 'Employee profiles, KYC documents, designations & phone directory',
+      keywords: ['employees', 'staff', 'staff roster', 'team', 'workers', 'caretakers', 'maids', 'hrms', 'staff list'],
+      action: () => window.navigate('employees')
+    },
+    {
+      id: 'attendance',
+      type: 'menu',
+      group: 'HRMS & Staff',
+      icon: '📋',
+      title: 'Staff Attendance (Mark Today)',
+      sub: 'Daily staff check-in, presence, overtime & leaves',
+      keywords: ['attendance', 'staff attendance', 'haziri', 'daily attendance', 'present', 'absent', 'check in staff', 'overtime', 'mark attendance'],
+      action: () => window.navigate('attendance')
+    },
+    {
+      id: 'att-summary',
+      type: 'menu',
+      group: 'HRMS & Staff',
+      icon: '📊',
+      title: 'Monthly Attendance Summary & Muster Roll',
+      sub: 'Monthly attendance percentages, shift totals & muster roll report',
+      keywords: ['attendance summary', 'monthly attendance', 'att-summary', 'attendance sheet', 'muster roll', 'haziri sheet'],
+      action: () => window.navigate('att-summary')
+    },
+    {
+      id: 'advance',
+      type: 'menu',
+      group: 'HRMS & Staff',
+      icon: '🎁',
+      title: 'Staff Advances Tracker (Alt+A)',
+      sub: 'Employee advance loans, deduction ledger & pending balances [Alt+A / A]',
+      keywords: ['advance', 'advances', 'staff advances', 'employee advance', 'peshgi', 'udhar', 'loan', 'salary advance', 'alt+a', 'a'],
+      action: () => window.openAdvanceShortcut()
+    },
+    {
+      id: 'employee-ledger',
+      type: 'menu',
+      group: 'HRMS & Staff',
+      icon: '📒',
+      title: 'Employee Ledger & Salary History',
+      sub: 'Detailed payroll debit/credit transaction history per employee',
+      keywords: ['employee ledger', 'employee-ledger', 'staff ledger', 'salary ledger', 'staff khata', 'transaction history', 'ledger'],
+      action: () => window.navigate('employee-ledger')
+    },
+    {
+      id: 'tasks',
+      type: 'menu',
+      group: 'HRMS & Staff',
+      icon: '🧰',
+      title: 'Staff Tasks & Checklists (Alt+T)',
+      sub: 'Housekeeping duties, room deep cleans & inspection checklists [Alt+T / T]',
+      keywords: ['tasks', 'task', 'duty', 'checklist', 'staff task', 'kaam', 'assignments', 'cleaning task', 'alt+t', 't'],
+      action: () => window.openTasksShortcut()
+    },
+    {
+      id: 'sop',
+      type: 'menu',
+      group: 'HRMS & Staff',
+      icon: '📘',
+      title: 'SOP Operational Guides & Procedures',
+      sub: 'Standard operating procedures for cleaning, check-in & emergencies',
+      keywords: ['sop', 'sops', 'standard operating procedure', 'rules', 'procedure', 'checklists', 'guide', 'manual'],
+      action: () => window.navigate('sop')
+    },
+    {
+      id: 'salary',
+      type: 'menu',
+      group: 'HRMS & Staff',
+      icon: '💼',
+      title: 'Staff Salaries & Monthly Payroll',
+      sub: 'Monthly salary calculations, advance deductions & net payouts',
+      keywords: ['salary', 'salaries', 'payroll', 'tankhwah', 'staff pay', 'wages', 'monthly salary', 'salary slip'],
+      action: () => window.navigate('salary')
+    },
 
-    // 💵 Cash Book, Expenses & Financials
-    { type: 'action', icon: '💰', title: 'Cash Book & Counter Handover (Alt+M)', sub: 'Petty cash ledger, cash in hand & daily shift handovers [Alt+M]', keywords: ['cashbook', 'cash book', 'cash', 'handover', 'petty cash', 'counter cash', 'tijori', 'locker', 'alt+m'], action: () => window.openCashBookShortcut() },
-    { type: 'action', icon: '📉', title: 'Expenses & P&L Tracker', sub: 'Property operational expenses, utility bills & grocery receipts', keywords: ['expenses', 'expense', 'kharcha', 'spending', 'pnl', 'overhead', 'bills', 'profit loss'], action: () => window.navigate('expenses') },
-    { type: 'action', icon: '🧾', title: 'Staff Expense Claims & Reimbursements (Alt+E)', sub: 'Staff market purchases, fuel, diesel & settlement claims [Alt+E / E]', keywords: ['claim', 'claims', 'expense claim', 'employee expense', 'staff bill', 'staff claim', 'diesel', 'petrol', 'grocery', 'saman', 'bill', 'reimbursements', 'alt+e', 'e'], action: () => window.openClaimShortcut() },
-    { type: 'action', icon: '➕', title: 'Log New Expense Claim (Alt+Shift+E)', sub: 'Record new staff expense claim or market purchase bill [Alt+Shift+E]', keywords: ['new claim', 'add claim', 'log claim', 'log expense', 'add reimbursement', 'new bill', 'alt+shift+e'], action: () => window.openNewClaimShortcut() },
-    { type: 'action', icon: '🧑‍💼', title: 'Investors Hub & Payouts (Alt+I)', sub: 'Investor profiles, property equity shares, monthly expenses & payout sheets [Alt+I / I]', keywords: ['investors', 'investor', 'inv', 'shareholder', 'equity', 'shares', 'payout', 'owner', 'malik', 'hisab', 'alt+i', 'i'], action: () => window.openInvestorsShortcut() },
-    { type: 'action', icon: '📢', title: 'Investor Booking Updates & Broadcast', sub: 'Broadcast date-wise guest bookings and revenue to all homestay investors', keywords: ['investor broadcast', 'investor update', 'broadcast', 'investor whatsapp', 'send to investors', 'inv'], action: () => { if (window.openInvestorBookingBroadcastModal) window.openInvestorBookingBroadcastModal(); else window.navigate('investors'); } },
-    { type: 'action', icon: '🔄', title: 'Staff Reimbursements Summary', sub: 'Approved staff claim reimbursements and settlement payouts', keywords: ['reimburse', 'claims', 'refund to staff', 'reimbursement', 'reimbursements'], action: () => window.navigate('reimbursements') },
-    { type: 'action', icon: '✅', title: 'Pending Approvals & Handovers', sub: 'Verify and authorize shift cash handovers & staff expenses', keywords: ['approvals', 'pending handover', 'verify', 'signoff', 'authorize', 'manzoori', 'approvals'], action: () => window.navigate('pendingApprovals') },
+    // 🏢 Properties & Operations
+    {
+      id: 'rooms',
+      type: 'menu',
+      group: 'Properties & Ops',
+      icon: '🏢',
+      title: 'Properties & Units (Pricing & Amenities)',
+      sub: '17 homestays details, unit numbers, pricing & property amenities',
+      keywords: ['rooms', 'properties', 'units', 'pricing', 'villas', 'apartments', 'flats pricing', 'amenities', 'homestays'],
+      action: () => window.navigate('rooms')
+    },
+    {
+      id: 'property-setup',
+      type: 'menu',
+      group: 'Properties & Ops',
+      icon: '🏗️',
+      title: 'Property Setup & Configuration',
+      sub: 'Configure units, room structures & base pricing',
+      keywords: ['property setup', 'setup rooms', 'new unit', 'configure property', 'room config'],
+      action: () => window.navigate('property-setup')
+    },
+    {
+      id: 'airbnb-sync',
+      type: 'menu',
+      group: 'Properties & Ops',
+      icon: '🔄',
+      title: 'Airbnb Direct Channel Sync',
+      sub: 'Instant bi-directional sync with Airbnb calendars & rates',
+      keywords: ['airbnb', 'airbnb-sync', 'airbnb sync', 'channel manager', 'calendar sync', 'ota sync', 'airbnb ical', 'sync'],
+      action: () => window.navigate('airbnb-sync')
+    },
+    {
+      id: 'ical-sync',
+      type: 'menu',
+      group: 'Properties & Ops',
+      icon: '📅',
+      title: 'iCal Calendar Sync (Booking.com/Agoda)',
+      sub: 'Import and export iCalendar feeds for external OTA channels',
+      keywords: ['ical', 'ical-sync', 'ical sync', 'booking.com sync', 'agoda sync', 'export ical', 'import ical'],
+      action: () => window.navigate('ical-sync')
+    },
+    {
+      id: 'maintenance',
+      type: 'menu',
+      group: 'Properties & Ops',
+      icon: '🔧',
+      title: 'Maintenance & Repairs Log',
+      sub: 'Log AC servicing, plumbing fixes, electrical repairs & asset upkeep',
+      keywords: ['maintenance', 'repairs', 'ac servicing', 'plumbing', 'electrician', 'repair tickets', 'upkeep', 'kharab', 'tuta'],
+      action: () => window.navigate('maintenance')
+    },
+    {
+      id: 'laundry',
+      type: 'menu',
+      group: 'Properties & Ops',
+      icon: '🧺',
+      title: 'Laundry & Linen Management',
+      sub: 'Track bedsheets, duvet covers, towels & washer laundry runs',
+      keywords: ['laundry', 'linen', 'sheets', 'towels', 'dhobi', 'washing', 'chadar', 'bedsheet', 'laundry management'],
+      action: () => window.navigate('laundry')
+    },
+    {
+      id: 'store',
+      type: 'menu',
+      group: 'Properties & Ops',
+      icon: '📦',
+      title: 'Store & Inventory Supplies',
+      sub: 'Track toiletries, water bottles, tea kits & room amenities',
+      keywords: ['store', 'inventory', 'stock', 'toiletries', 'supplies', 'godown', 'amenities', 'water bottle'],
+      action: () => window.navigate('store')
+    },
+    {
+      id: 'showcase-admin',
+      type: 'menu',
+      group: 'Properties & Ops',
+      icon: '🌐',
+      title: 'Website Showcase & Media CMS',
+      sub: 'Airbnb-style room photos, videos, pricing & guest maps',
+      keywords: ['showcase', 'showcase-admin', 'website showcase', 'photos', 'media cms', 'videos', 'gallery', 'website admin'],
+      action: () => window.navigate('showcase-admin')
+    },
 
-    // 📅 Bookings & Reservations Views
-    { type: 'action', icon: '📅', title: 'Calendar View (Alt+C)', sub: 'Airbnb-style visual calendar grid across all properties [Alt+C]', keywords: ['calendar', 'dates', 'occupancy', 'timeline', 'grid', 'schedule', 'cal', 'alt+c'], action: () => window.openCalendarShortcut() },
-    { type: 'action', icon: '📑', title: 'Smart Bookings (Alt+B)', sub: 'All guest reservations, filter by channel, status or balance [Alt+B]', keywords: ['bookings', 'reservations', 'guest list', 'smart bookings', 'all bookings', 'alt+b'], action: () => window.openBookingsShortcut() },
-    { type: 'action', icon: '🚪', title: 'Today’s Check-ins (Arrivals)', sub: 'Guests arriving today across all luxury villas and apartments', keywords: ['checkin', 'check-in', 'arrivals', 'today arrivals', 'aaj ke guest', 'aane wale', 'today checkin'], action: () => { window.navigate('bookings'); setTimeout(() => { if (window.setBookingTab) window.setBookingTab('today'); }, 150); } },
-    { type: 'action', icon: '🛫', title: 'Today’s Check-outs (Departures)', sub: 'Guests leaving today, turnaround alerts & bill settlements', keywords: ['checkout', 'check-out', 'departures', 'leaving', 'jane wale', 'today checkout'], action: () => { window.navigate('bookings'); setTimeout(() => { if (window.setBookingTab) window.setBookingTab('departures'); }, 150); } },
-    { type: 'action', icon: '⚠️', title: 'Unpaid & Balance Due Bookings', sub: 'Reservations with pending balance payment or unpaid dues', keywords: ['unpaid', 'balance due', 'pending payment', 'due amount', 'baki', 'udhar guest', 'dues'], action: () => { window.navigate('bookings'); setTimeout(() => { if (window.setBookingTab) window.setBookingTab('unpaid'); }, 150); } },
-    { type: 'action', icon: '⭐', title: 'Review Radar & Follow-up Calls', sub: 'Airbnb 14-day review alerts, guest feedback logs & ratings', keywords: ['review', 'reviews', 'feedback', '5 star', 'airbnb review', 'follow up', 'rating', 'call guest'], action: () => window.navigate('reviews-followup') },
-    { type: 'action', icon: '📱', title: 'WhatsApp Hub & Guest Automations', sub: 'Automated check-in guides, WiFi vouchers & guest chat triggers', keywords: ['whatsapp', 'wa', 'message', 'triggers', 'automated message', 'welcome msg', 'guest chat', 'chat'], action: () => window.navigate('whatsapp-hub') },
+    // 📈 Reports & Analytics
+    {
+      id: 'dashboard',
+      type: 'menu',
+      group: 'Dashboard',
+      icon: '🏠',
+      title: 'Dashboard Overview',
+      sub: 'Key performance indicators, daily arrivals & revenue summary',
+      keywords: ['dashboard', 'overview', 'kpi', 'home', 'main', 'summary'],
+      action: () => window.navigate('dashboard')
+    },
+    {
+      id: 'dailyReport',
+      type: 'menu',
+      group: 'Reports & Analytics',
+      icon: '📈',
+      title: 'Daily Operations & Revenue Report (Alt+R)',
+      sub: 'Daily collections, occupancy summary & audit logs [Alt+R]',
+      keywords: ['daily report', 'daily operations', 'daily ops', 'daily hisab', 'day report', 'revenue report', 'collections', 'alt+r'],
+      action: () => window.openDailyReportShortcut()
+    },
+    {
+      id: 'analytics',
+      type: 'menu',
+      group: 'Reports & Analytics',
+      icon: '📊',
+      title: 'Business Analytics & RevPAR',
+      sub: 'Occupancy trends, ADR, RevPAR trends & property performance',
+      keywords: ['analytics', 'business analytics', 'revpar', 'adr', 'occupancy', 'charts', 'graphs', 'revenue analytics', 'trends'],
+      action: () => window.navigate('analytics')
+    },
+    {
+      id: 'property-report',
+      type: 'menu',
+      group: 'Reports & Analytics',
+      icon: '🏡',
+      title: 'Property Performance Report',
+      sub: 'Villa & room-level revenue, expenses & net operating income',
+      keywords: ['property report', 'villa report', 'unit report', 'property profit', 'net operating income'],
+      action: () => window.navigate('property-report')
+    },
 
-    // 📊 Reports, Invoices & Operations
-    { type: 'action', icon: '📝', title: 'Daily Revenue & Operations Report (Alt+R)', sub: 'Daily collections, occupancy summary & audit logs [Alt+R]', keywords: ['daily report', 'revenue', 'collection', 'daily hisab', 'roj ka hisab', 'day report', 'income today', 'alt+r'], action: () => window.openDailyReportShortcut() },
-    { type: 'action', icon: '🧾', title: 'GST Tax Invoices & CA Audit Pack', sub: 'Generate tax invoices, customer GST bills & monthly CA exports', keywords: ['gst', 'tax invoice', 'ca pack', 'ca audit', 'bill', 'government tax', 'tax bill', 'invoice'], action: () => window.navigate('ca-audit') },
-    { type: 'action', icon: '📈', title: 'Financial Analytics & RevPAR', sub: 'Revenue charts, ADR, RevPAR trends & property performance', keywords: ['analytics', 'revpar', 'adr', 'occupancy', 'graph', 'charts', 'trends', 'revenue analytics'], action: () => window.navigate('analytics') },
-    { type: 'action', icon: '🏡', title: 'Property Performance Report', sub: 'Villa & room-level revenue, expenses & net operating income', keywords: ['property report', 'villa report', 'room revenue', 'profit per unit', 'unit report'], action: () => window.navigate('property-report') },
-    { type: 'action', icon: '🔄', title: 'Airbnb Direct Channel Sync', sub: 'Instant bi-directional sync with Airbnb calendars & rates', keywords: ['airbnb', 'sync', 'channel manager', 'calendar sync', 'ota', 'airbnb sync'], action: () => window.navigate('airbnb-sync') },
-    { type: 'action', icon: '📅', title: 'iCal Calendar Sync (Booking.com/Agoda)', sub: 'Import and export iCalendar feeds for external OTA channels', keywords: ['ical', 'calendar feed', 'booking.com', 'agoda', 'export ical', 'import ical'], action: () => window.navigate('ical-sync') },
-    { type: 'action', icon: '🧺', title: 'Laundry Tracker & Linen Counts', sub: 'Track bedsheets, duvet covers, towels & washer laundry runs', keywords: ['laundry', 'linen', 'sheets', 'towels', 'dhobi', 'washing', 'chadar', 'bedsheet'], action: () => window.navigate('laundry') },
-    { type: 'action', icon: '📦', title: 'Store & Inventory Supplies', sub: 'Track toiletries, water bottles, tea kits & room amenities', keywords: ['store', 'inventory', 'stock', 'toiletries', 'supplies', 'godown', 'amenities'], action: () => window.navigate('store') },
-    { type: 'action', icon: '🔧', title: 'Maintenance Log & Repairs', sub: 'Log AC servicing, plumbing fixes, electrical repairs & asset upkeep', keywords: ['maintenance', 'repair', 'ac', 'plumbing', 'electrician', 'fix', 'tuta', 'kharab', 'servicing'], action: () => window.navigate('maintenance') },
-    { type: 'action', icon: '👥', title: 'User Management & Role Permissions', sub: 'Staff portal logins, role assignments (Admin, Manager, Staff)', keywords: ['users', 'roles', 'permissions', 'admin', 'login', 'access', 'staff login', 'user mgmt'], action: () => window.navigate('user-mgmt') },
-    { type: 'action', icon: '⚙️', title: 'System Settings & Property Config', sub: 'Company details, property policies, tax numbers & defaults', keywords: ['settings', 'config', 'profile', 'business setup', 'company details', 'preferences'], action: () => window.navigate('settings') }
+    // 📱 Communications
+    {
+      id: 'whatsapp-hub',
+      type: 'menu',
+      group: 'Communications',
+      icon: '📱',
+      title: 'WhatsApp Hub & Guest Automations',
+      sub: 'Automated check-in guides, WiFi vouchers & guest chat triggers',
+      keywords: ['whatsapp', 'whatsapp hub', 'wa', 'automations', 'guest messaging', 'templates', 'automated chat', 'triggers', 'chat'],
+      action: () => window.navigate('whatsapp-hub')
+    },
+
+    // ⚙️ System & Settings
+    {
+      id: 'user-mgmt',
+      type: 'menu',
+      group: 'System & Settings',
+      icon: '👤',
+      title: 'User Management & Role Permissions',
+      sub: 'Staff portal logins, role assignments (Admin, Manager, Staff)',
+      keywords: ['user management', 'users', 'user-mgmt', 'roles', 'permissions', 'staff login', 'admin access', 'passwords'],
+      action: () => window.navigate('user-mgmt')
+    },
+    {
+      id: 'settings',
+      type: 'menu',
+      group: 'System & Settings',
+      icon: '⚙️',
+      title: 'System Settings & Business Profile',
+      sub: 'Company details, property policies, tax numbers & defaults',
+      keywords: ['settings', 'system settings', 'config', 'business setup', 'company profile', 'preferences', 'tax config'],
+      action: () => window.navigate('settings')
+    },
+
+    // ⚡ Fast Primary Actions
+    {
+      id: 'action-voice',
+      type: 'action',
+      group: 'Fast Actions',
+      icon: '🎙️',
+      title: 'Voice-to-Booking (Hindi/English)',
+      sub: 'Speak to create a booking instantly [Voice AI]',
+      keywords: ['voice', 'bolkar', 'bolke', 'mic', 'nisha', 'speak', 'audio', 'ai booking'],
+      action: () => window.openVoiceBookingModal()
+    },
+    {
+      id: 'action-new-booking',
+      type: 'action',
+      group: 'Fast Actions',
+      icon: '➕',
+      title: 'New Booking Form (Alt+N)',
+      sub: 'Open manual booking creation wizard [Alt+N]',
+      keywords: ['new booking', 'add booking', 'create reservation', 'naya', 'book', 'reservation', 'alt+n'],
+      action: () => window.openNewBookingShortcut()
+    },
+    {
+      id: 'action-duplicate',
+      type: 'action',
+      group: 'Fast Actions',
+      icon: '📋',
+      title: 'Duplicate Existing Booking (Alt+D)',
+      sub: 'Clone active booking or pick recent guest to rebook [Alt+D]',
+      keywords: ['duplicate', 'clone', 'copy', 'repeat guest', 'rebook', 'wahi booking', 'alt+d', 'dupe'],
+      action: () => window.duplicateExistingBookingShortcut()
+    },
+    {
+      id: 'action-quick-pay',
+      type: 'action',
+      group: 'Fast Actions',
+      icon: '💵',
+      title: 'Add Payment / Quick Pay (Alt+P)',
+      sub: 'Record payment for active booking or quick pay picker [Alt+P]',
+      keywords: ['pay', 'payment', 'add payment', 'record payment', 'collect', 'jama', 'paisa', 'baki', 'due', 'receipt', 'fees', 'alt+p'],
+      action: () => window.openQuickPaymentShortcut()
+    },
+    {
+      id: 'action-qr-pay',
+      type: 'action',
+      group: 'Fast Actions',
+      icon: '⚡',
+      title: 'Instant QR Code Pay / UPI Collect',
+      sub: 'Generate UPI QR code to collect payment instantly',
+      keywords: ['qr', 'qr pay', 'upi', 'scan', 'gpay', 'phonepe', 'paytm', 'barcode', 'instant pay'],
+      action: () => { if (window.openCustomPaymentQRModal) window.openCustomPaymentQRModal(); else if (window.openQuickQRPayModal) window.openQuickQRPayModal(); }
+    },
+    {
+      id: 'action-new-task',
+      type: 'action',
+      group: 'Fast Actions',
+      icon: '➕',
+      title: 'Create New Staff Task (Alt+Shift+T)',
+      sub: 'Assign room cleaning, maintenance, or errand to staff member [Alt+Shift+T]',
+      keywords: ['new task', 'add task', 'create task', 'assign task', 'duty', 'checklist', 'kaam do', 'alt+shift+t'],
+      action: () => window.openNewTaskShortcut()
+    },
+    {
+      id: 'action-new-advance',
+      type: 'action',
+      group: 'Fast Actions',
+      icon: '➕',
+      title: 'Record New Staff Advance (Alt+Shift+A)',
+      sub: 'Issue cash or UPI advance payment to staff member [Alt+Shift+A]',
+      keywords: ['give advance', 'new advance', 'add advance', 'advance do', 'staff loan', 'advance payment', 'alt+shift+a'],
+      action: () => window.openNewAdvanceShortcut()
+    },
+    {
+      id: 'action-new-claim',
+      type: 'action',
+      group: 'Fast Actions',
+      icon: '➕',
+      title: 'Log New Expense Claim (Alt+Shift+E)',
+      sub: 'Record new staff expense claim or market purchase bill [Alt+Shift+E]',
+      keywords: ['new claim', 'add claim', 'log claim', 'log expense', 'add reimbursement', 'new bill', 'alt+shift+e'],
+      action: () => window.openNewClaimShortcut()
+    },
+    {
+      id: 'action-pay-salary',
+      type: 'action',
+      group: 'Fast Actions',
+      icon: '💳',
+      title: 'Pay Staff Salary Voucher',
+      sub: 'Generate staff salary voucher and record payment',
+      keywords: ['pay salary', 'salary voucher', 'salary slip', 'payment to staff', 'salary record'],
+      action: () => { window.navigate('salary'); setTimeout(() => { if (typeof window.renderAddSal === 'function') window.renderAddSal(); }, 160); }
+    },
+    {
+      id: 'action-checkin-today',
+      type: 'action',
+      group: 'Fast Actions',
+      icon: '🚪',
+      title: 'Today’s Check-ins (Arrivals)',
+      sub: 'Guests arriving today across all luxury villas and apartments',
+      keywords: ['checkin', 'check-in', 'arrivals', 'today arrivals', 'aaj ke guest', 'aane wale', 'today checkin'],
+      action: () => { window.navigate('bookings'); setTimeout(() => { if (window.setBookingTab) window.setBookingTab('today'); }, 150); }
+    },
+    {
+      id: 'action-checkout-today',
+      type: 'action',
+      group: 'Fast Actions',
+      icon: '🛫',
+      title: 'Today’s Check-outs (Departures)',
+      sub: 'Guests leaving today, turnaround alerts & bill settlements',
+      keywords: ['checkout', 'check-out', 'departures', 'leaving', 'jane wale', 'today checkout'],
+      action: () => { window.navigate('bookings'); setTimeout(() => { if (window.setBookingTab) window.setBookingTab('departures'); }, 150); }
+    },
+    {
+      id: 'action-unpaid',
+      type: 'action',
+      group: 'Fast Actions',
+      icon: '⚠️',
+      title: 'Unpaid & Balance Due Bookings',
+      sub: 'Reservations with pending balance payment or unpaid dues',
+      keywords: ['unpaid', 'balance due', 'pending payment', 'due amount', 'baki', 'udhar guest', 'dues'],
+      action: () => { window.navigate('bookings'); setTimeout(() => { if (window.setBookingTab) window.setBookingTab('unpaid'); }, 150); }
+    },
+    {
+      id: 'action-security-deposits',
+      type: 'action',
+      group: 'Fast Actions',
+      icon: '🛡️',
+      title: 'Security Deposits & Advance Refunds',
+      sub: 'Manage guest caution deposits, deduction logs & UPI refunds',
+      keywords: ['security deposit', 'deposit', 'advance refund', 'caution money', 'guest deposit', 'wapas', 'refund'],
+      action: () => { if (typeof window.showAllSecurityDeposits === 'function') window.showAllSecurityDeposits(); else window.navigate('bookings'); }
+    },
+    {
+      id: 'action-shortcuts',
+      type: 'action',
+      group: 'Fast Actions',
+      icon: '⌨️',
+      title: 'Keyboard Shortcuts Help (?)',
+      sub: 'View all keyboard shortcuts and fast keys [?]',
+      keywords: ['shortcuts', 'keys', 'keyboard', 'help', 'fast keys', 'command', 'cheatsheet', '?'],
+      action: () => window.openShortcutsModal()
+    }
   ];
+
+  // Backwards compatibility alias
+  const SYSTEM_COMMANDS = PMS_MENU_DIRECTORY;
 
   // ─── 2. Properties Directory ───
   const PROPERTIES_LIST = [
@@ -174,7 +656,7 @@
       <div class="cmd-palette-box" onclick="event.stopPropagation()">
         <div class="cmd-palette-header">
           <span style="font-size:18px;color:#94A3B8;">🔍</span>
-          <input type="text" id="cmdPaletteInput" class="cmd-palette-input" placeholder="Search guests, rooms, pages, or actions..." autocomplete="off" />
+          <input type="text" id="cmdPaletteInput" class="cmd-palette-input" placeholder="Search menu, pages or actions (e.g. Investors, Expenses, Laundry)..." autocomplete="off" />
           <span class="cmd-palette-kbd">ESC</span>
         </div>
         <div class="cmd-palette-results" id="cmdPaletteResults"></div>
@@ -1054,148 +1536,160 @@
     }
   };
 
-  // Render & Filter Results
-  async function renderPaletteResults(query) {
+  // ─── 4C. Fast Scoring & Ranking Algorithm for Menu & Page Search ───
+  function calcMatchScore(item, q) {
+    if (!q) return 0;
+    const title = (item.title || '').toLowerCase();
+    const sub = (item.sub || '').toLowerCase();
+    const pageId = (item.id || item.page || '').toLowerCase();
+    const group = (item.group || '').toLowerCase();
+    const keywords = (item.keywords || []).map(k => String(k).toLowerCase());
+
+    let score = 0;
+
+    // 1. Exact match on title or page ID
+    if (title === q || pageId === q) score += 1000;
+
+    // 2. Exact match on any keyword (e.g. 'inv' strictly matches keyword 'inv')
+    if (keywords.includes(q)) score += 900;
+
+    // 3. Title starts with query (e.g. "Investors..." starts with "inv")
+    if (title.startsWith(q)) score += 800;
+
+    // 4. Any word in title starts with query (e.g. "Staff Attendance" starts with "att", "Daily Report" starts with "rep")
+    const titleWords = title.split(/[\s\-_&/()]+/);
+    for (const w of titleWords) {
+      if (w.startsWith(q)) {
+        score += 700;
+        break;
+      }
+    }
+
+    // 5. Page ID starts with query (e.g. "investors".startsWith("inv"))
+    if (pageId.startsWith(q)) score += 650;
+
+    // 6. Keyword starts with query (e.g. "investor".startsWith("inv"))
+    for (const kw of keywords) {
+      if (kw.startsWith(q)) {
+        score += 600;
+        break;
+      }
+      const kwWords = kw.split(/[\s\-_&/()]+/);
+      for (const w of kwWords) {
+        if (w.startsWith(q)) {
+          score += 550;
+          break;
+        }
+      }
+    }
+
+    // 7. Group / Hub name starts with query
+    if (group.startsWith(q)) score += 400;
+
+    // 8. Subtitle word starts with query
+    const subWords = sub.split(/[\s\-_&/()]+/);
+    for (const w of subWords) {
+      if (w.startsWith(q)) {
+        score += 300;
+        break;
+      }
+    }
+
+    // 9. Title contains query as substring
+    if (title.includes(q)) score += 200;
+
+    // 10. Keyword contains query as substring (for queries >= 3 chars)
+    if (q.length >= 3) {
+      for (const kw of keywords) {
+        if (kw.includes(q)) {
+          score += 100;
+          break;
+        }
+      }
+    }
+
+    // 11. Subtitle contains query as substring (for queries >= 3 chars)
+    if (q.length >= 3 && sub.includes(q)) score += 50;
+
+    return score;
+  }
+
+  // Render & Filter Results (Pure, Instant Menu & Page Search)
+  function renderPaletteResults(query) {
     const q = (query || '').toLowerCase().trim();
     const resultsContainer = document.getElementById('cmdPaletteResults');
     if (!resultsContainer) return;
 
     let items = [];
 
-    // Filter System Actions & Navigation with keyword search support
-    let matchedCommands = [];
+    // Combine static PMS menu registry with any dynamic tabs in UHHS_HUBS & PAGE_TITLES
+    const seenIds = new Set();
+    const allMenuCatalog = [];
+
+    PMS_MENU_DIRECTORY.forEach(item => {
+      seenIds.add(item.id.toLowerCase());
+      allMenuCatalog.push(item);
+    });
+
+    // Dynamic index from window._UHHS_HUBS and PAGE_TITLES (if any new custom sub-tab exists)
+    const hubs = window._UHHS_HUBS || [];
+    hubs.forEach(hub => {
+      (hub.tabs || []).forEach(tab => {
+        const tabIdLower = (tab.id || '').toLowerCase();
+        if (seenIds.has(tabIdLower)) return;
+        seenIds.add(tabIdLower);
+
+        const pageMeta = (typeof PAGE_TITLES !== 'undefined' && PAGE_TITLES[tab.id]) || {};
+        const titleStr = tab.label || pageMeta.title || tab.id;
+        allMenuCatalog.push({
+          id: tab.id,
+          type: 'menu',
+          group: hub.label ? hub.label.replace(/^[^\w\s]+/, '').trim() : 'Navigation',
+          icon: pageMeta.icon || '📑',
+          title: titleStr,
+          sub: pageMeta.sub || `Open ${titleStr} (${hub.label || 'Module'})`,
+          keywords: [tab.id, hub.id, hub.label || ''],
+          action: () => window.navigate(tab.id)
+        });
+      });
+    });
+
     if (!q) {
-      // Initially show top primary fast actions
-      matchedCommands = SYSTEM_COMMANDS.slice(0, 8);
+      // 📌 Default view when search box is empty: Quick Actions & Primary Modules
+      items.push({ isHeader: true, title: '⚡ Fast Actions & Shortcuts' });
+      items.push(...allMenuCatalog.filter(c => c.type === 'action').slice(0, 5));
+
+      items.push({ isHeader: true, title: '🧭 Primary Menus & Hubs' });
+      const defaultPages = ['investors', 'reimbursements', 'bookings', 'calendar', 'flats', 'cashbook', 'attendance', 'advance', 'tasks', 'whatsapp-hub', 'settings'];
+      const defaultMenus = allMenuCatalog.filter(c => defaultPages.includes(c.id));
+      items.push(...defaultMenus);
     } else {
-      const seenTitles = new Set();
-      // 1. Static action catalog
-      matchedCommands = SYSTEM_COMMANDS.filter(c => {
-        const titleMatch = c.title.toLowerCase().includes(q);
-        const subMatch = c.sub && c.sub.toLowerCase().includes(q);
-        const kwMatch = c.keywords && c.keywords.some(k => k.toLowerCase().includes(q) || q.includes(k.toLowerCase()));
-        if (titleMatch || subMatch || kwMatch) {
-          seenTitles.add(c.title.toLowerCase());
-          return true;
-        }
-        return false;
-      });
-
-      // 2. Dynamically index all Hubs & Sub-tabs from window._UHHS_HUBS and PAGE_TITLES
-      const hubs = window._UHHS_HUBS || [];
-      hubs.forEach(hub => {
-        (hub.tabs || []).forEach(tab => {
-          const pageMeta = (typeof PAGE_TITLES !== 'undefined' && PAGE_TITLES[tab.id]) || {};
-          const titleStr = tab.label || pageMeta.title || tab.id;
-          const keyLower = titleStr.toLowerCase();
-          if (seenTitles.has(keyLower)) return;
-
-          const subStr = pageMeta.sub || `${hub.label} sub-module`;
-          const idStr = tab.id.toLowerCase();
-          if (keyLower.includes(q) || idStr.includes(q) || subStr.toLowerCase().includes(q)) {
-            seenTitles.add(keyLower);
-            matchedCommands.push({
-              type: 'action',
-              icon: pageMeta.icon || '📑',
-              title: titleStr,
-              sub: subStr,
-              keywords: [tab.id, hub.id, hub.label],
-              action: () => window.navigate(tab.id)
-            });
-          }
-        });
-
-        // Index Hub itself if not seen
-        const hubTitle = hub.label;
-        if (!seenTitles.has(hubTitle.toLowerCase()) && (hubTitle.toLowerCase().includes(q) || hub.id.toLowerCase().includes(q))) {
-          seenTitles.add(hubTitle.toLowerCase());
-          matchedCommands.push({
-            type: 'action',
-            icon: '🏢',
-            title: hub.label,
-            sub: `Open ${hub.label} dashboard`,
-            keywords: [hub.id, hub.label],
-            action: () => window.navigate(hub.page || hub.id)
-          });
+      // 🔍 Query search: Score and rank all registered menus & pages
+      const scoredItems = [];
+      allMenuCatalog.forEach(item => {
+        const score = calcMatchScore(item, q);
+        if (score > 0) {
+          scoredItems.push({ ...item, _score: score });
         }
       });
-    }
 
-    if (matchedCommands.length) {
-      items.push({ isHeader: true, title: '⚡ Actions & Navigation' });
-      items.push(...matchedCommands);
-    }
+      // Sort strictly descending by relevance score (highest score first)
+      scoredItems.sort((a, b) => b._score - a._score);
 
-    // Filter Properties
-    const matchedProps = PROPERTIES_LIST.filter(p =>
-      !q || p.name.toLowerCase().includes(q) || p.nickname.toLowerCase().includes(q) || p.id.includes(q)
-    );
-    if (matchedProps.length) {
-      items.push({ isHeader: true, title: '🏡 Properties & Flats' });
-      matchedProps.forEach(p => {
-        items.push({
-          type: 'property',
-          icon: '🛏️',
-          title: p.name,
-          sub: `Jump to ${p.nickname} in turnaround board`,
-          action: () => {
-            window.setFlatsFilter && window.setFlatsFilter('all');
-            window._flatsSearchQuery = p.nickname;
-            window.navigate('flats');
-          }
-        });
-      });
-    }
-
-    // Search Live Bookings & Guests from cache or direct Supabase fallback
-    let guestPool = window._sbkState?.cachedBookings || [];
-    if (q && guestPool.length === 0 && window.sb) {
-      try {
-        const qNorm = window.normalizePhone ? window.normalizePhone(q) : { core10: q.replace(/\D/g, '').slice(-10) };
-        const phoneTerm = qNorm.core10 && qNorm.core10.length >= 3 ? qNorm.core10 : q;
-        const { data: directBks } = await sb.from('guest_register')
-          .select('booking_id, guest_name, phone, room_id, check_in, check_out, total_amount')
-          .or(`guest_name.ilike.%${q}%,phone.ilike.%${phoneTerm}%,booking_id.ilike.%${q}%`)
-          .limit(8);
-        if (directBks && directBks.length) guestPool = directBks;
-      } catch(e) {}
-    }
-
-    if (q && guestPool.length) {
-      const matchedGuests = guestPool.filter(b => 
-        (b.guest_name && b.guest_name.toLowerCase().includes(q)) ||
-        (window.matchPhoneSearch && window.matchPhoneSearch(q, b.phone)) ||
-        (b.phone && b.phone.includes(q)) ||
-        (b.booking_id && String(b.booking_id).toLowerCase().includes(q))
-      ).slice(0, 8);
-
-      if (matchedGuests.length) {
-        items.push({ isHeader: true, title: '👥 Guest Reservations' });
-        matchedGuests.forEach(b => {
-          items.push({
-            type: 'guest',
-            icon: '👤',
-            title: `${b.guest_name || 'Guest'} (${b.booking_id})`,
-            sub: `${b.room_id || 'Room'} · ${b.check_in || '-'} to ${b.check_out || '-'} · ${b.phone || 'No phone'}`,
-            action: () => {
-              if (window.openBookingDrawer) window.openBookingDrawer(b.booking_id);
-              else {
-                if (window.SESSION) window.SESSION.bookingSearch = b.booking_id;
-                window.navigate('bookings');
-              }
-            }
-          });
-        });
+      if (scoredItems.length) {
+        items.push({ isHeader: true, title: `🎯 Matching Menus & Actions (${scoredItems.length})` });
+        items.push(...scoredItems.slice(0, 16));
       }
     }
 
     _currentResults = items.filter(x => !x.isHeader);
     _selectedIndex = 0;
 
-    if (!items.length) {
+    if (!items.length || !_currentResults.length) {
       resultsContainer.innerHTML = `
         <div style="text-align:center;padding:32px 16px;color:#94A3B8;font-size:13px;">
-          No matching results found for "<strong>${escapeHtml(query)}</strong>"
+          No matching menu or page found for "<strong>${escapeHtml(query)}</strong>"
+          <div style="margin-top:6px;font-size:11.5px;color:#64748B;">Try searching: <em>Investors, Expenses, Bookings, Calendar, Attendance, Laundry, Store...</em></div>
         </div>
       `;
       return;
@@ -1208,16 +1702,20 @@
       }
       const myIdx = selectableCounter++;
       const isSel = myIdx === _selectedIndex;
+      const groupBadge = item.group ? `<span style="font-size:10px;padding:2px 7px;border-radius:6px;background:#F1F5F9;color:#64748B;font-weight:700;margin-left:8px;border:1px solid #E2E8F0;">${escapeHtml(item.group)}</span>` : '';
       return `
         <div class="cmd-result-item ${isSel ? 'selected' : ''}" data-idx="${myIdx}" onclick="executePaletteItem(${myIdx})">
           <div class="cmd-result-left">
             <span class="cmd-result-icon">${item.icon}</span>
             <div>
-              <div class="cmd-result-label">${item.title}</div>
-              <div class="cmd-result-sub">${item.sub}</div>
+              <div class="cmd-result-label" style="display:flex;align-items:center;flex-wrap:wrap;gap:4px;">
+                <span>${escapeHtml(item.title)}</span>
+                ${groupBadge}
+              </div>
+              <div class="cmd-result-sub">${escapeHtml(item.sub)}</div>
             </div>
           </div>
-          <span style="font-size:11px;color:#94A3B8;">↵</span>
+          <span style="font-size:11px;color:#94A3B8;font-weight:700;">↵ Go</span>
         </div>
       `;
     }).join('');
