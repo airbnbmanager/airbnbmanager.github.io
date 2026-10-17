@@ -118,15 +118,26 @@
         // If rating was provided OR status is review_received, sync to guest_register immediately
         if (updateObj.rating || updateObj.status === 'review_received') {
           const ratingVal = updateObj.rating || 5;
-          await sb.from('guest_register').update({
+          const updatePayload = {
             client_rating: ratingVal,
             rating_notes: updateObj.notes || '⭐ 5-Star Review Verified on Airbnb',
-            rated_at: new Date().toISOString(),
-            rated_by: SESSION?.displayName || 'Admin'
-          }).eq('booking_id', bookingId);
+            rated_at: new Date().toISOString()
+          };
+          if (SESSION?.userId && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(SESSION.userId)) {
+            updatePayload.rated_by = SESSION.userId;
+          }
+          const { error: dbErr } = await sb.from('guest_register').update(updatePayload).eq('booking_id', bookingId);
+          if (dbErr) {
+            console.error('❌ Error updating review in guest_register:', dbErr);
+          } else {
+            console.log('✅ Review synced live to guest_register for booking:', bookingId);
+            if (typeof window.notifyDataChanged === 'function') window.notifyDataChanged();
+          }
         }
       }
-    } catch(e) {}
+    } catch(e) {
+      console.warn('saveReviewFollowupRecord error:', e);
+    }
 
     return updated;
   };

@@ -1314,9 +1314,24 @@ window.openBookingDrawer = async function(bookingId) {
                   <div style="font-size:11.5px;color:#B45309;margin-top:1px;">Guest submitted their review on Airbnb. Logged in Review Radar.</div>
                 </div>
               </div>
-              <span style="background:#F59E0B;color:#fff;font-size:11px;font-weight:800;padding:4px 9px;border-radius:20px;white-space:nowrap;">5.0 ★</span>
+              <div style="display:flex;align-items:center;gap:6px;">
+                <span style="background:#F59E0B;color:#fff;font-size:11px;font-weight:800;padding:4px 9px;border-radius:20px;white-space:nowrap;">5.0 ★</span>
+              </div>
             </div>
-          ` : ''}
+          ` : (isOnline ? `
+            <div style="background:#FFFBEB;border:1.5px dashed #F59E0B;border-radius:12px;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;gap:10px;">
+              <div style="display:flex;align-items:center;gap:10px;">
+                <span style="font-size:22px;line-height:1;">⭐</span>
+                <div>
+                  <div style="font-size:13px;font-weight:700;color:#92400E;">Airbnb Review Status</div>
+                  <div style="font-size:11.5px;color:#B45309;">Guest hasn't been marked with a 5-star review yet.</div>
+                </div>
+              </div>
+              <button type="button" onclick="window.drawerMarkReview('${b.booking_id}', '${escapeHtml(b.guest_name || '')}')" style="background:#D97706;color:#fff;font-weight:700;padding:7px 14px;border-radius:8px;border:none;cursor:pointer;display:inline-flex;align-items:center;gap:5px;box-shadow:0 1px 4px rgba(217,119,6,0.3);font-size:12px;">
+                ⭐ Mark 5★ Review
+              </button>
+            </div>
+          ` : '')}
 
           <!-- Top Contact & Communication Card -->
           <div style="background:#F8FAFC;border:1px solid var(--border);border-radius:12px;padding:14px;display:flex;justify-content:space-between;align-items:center;">
@@ -1536,6 +1551,35 @@ window.drawerDuplicateBooking = function(bookingId) {
   } else {
     alert('Duplicate booking function is unavailable.');
   }
+};
+
+window.drawerMarkReview = async function(bookingId, guestName) {
+  if (!bookingId) return;
+  if (!confirm(`Mark 5-Star Review received on Airbnb for "${guestName || 'this guest'}"?`)) return;
+
+  const { error } = await sb.from('guest_register').update({
+    client_rating: 5,
+    rating_notes: '⭐ 5-Star Review Verified on Airbnb',
+    rated_at: new Date().toISOString()
+  }).eq('booking_id', bookingId);
+
+  if (error) {
+    alert('Failed to mark review: ' + error.message);
+    return;
+  }
+
+  if (typeof window.saveReviewFollowupRecord === 'function') {
+    await window.saveReviewFollowupRecord(bookingId, {
+      status: 'review_received',
+      rating: 5,
+      notes: 'Review confirmed and verified on Airbnb',
+      reviewReceivedAt: new Date().toISOString()
+    });
+  }
+
+  if (window.fsn?.success) fsn.success('Review Verified', '⭐ 5-Star Review marked and updated live!');
+  if (typeof window.notifyDataChanged === 'function') window.notifyDataChanged();
+  if (typeof window.openBookingDrawer === 'function') window.openBookingDrawer(bookingId);
 };
 
 window.quickEditGuestCount = async function(bookingId, currentGuests) {
