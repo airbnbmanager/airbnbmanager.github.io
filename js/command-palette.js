@@ -141,16 +141,7 @@
       keywords: ['pending approvals', 'approvals', 'pending handover', 'verify', 'signoff', 'authorize', 'manzoori'],
       action: () => window.navigate('pendingApprovals')
     },
-    {
-      id: 'reviews-followup',
-      type: 'menu',
-      group: 'Stay & Bookings',
-      icon: '⭐',
-      title: 'Review Radar & Follow-up Calls',
-      sub: 'Airbnb 14-day review alerts, guest feedback logs & ratings',
-      keywords: ['reviews', 'review radar', 'feedback', 'airbnb review', 'ratings', 'followup', 'follow up', 'calls', 'guest review', '5 star'],
-      action: () => window.navigate('reviews-followup')
-    },
+
     {
       id: 'reminders',
       type: 'menu',

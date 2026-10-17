@@ -1311,14 +1311,13 @@ function renderShell(content, activePage = 'dashboard') {
       id: 'bookings',
       label: '📅 Stay & Bookings',
       page: 'bookings',
-      pages: ['bookings', 'guest-crm', 'reports', 'calendar', 'flats', 'pendingApprovals', 'reminders', 'reviews-followup'],
+      pages: ['bookings', 'guest-crm', 'reports', 'calendar', 'flats', 'pendingApprovals', 'reminders'],
       tabs: [
         { id: 'bookings', label: '🛎️ Bookings' },
         { id: 'guest-crm', label: '👤 Guest CRM' },
         { id: 'reports', label: '📅 Calendar' },
         { id: 'flats', label: '🛏️ Flats Status' },
         { id: 'pendingApprovals', label: '🟡 Approvals' },
-        { id: 'reviews-followup', label: '⭐ Review Radar' },
         { id: 'reminders', label: '🔔 Reminders' }
       ]
     },

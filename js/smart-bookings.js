@@ -307,13 +307,76 @@ async function renderSmartManageBookings(forceRefresh = false) {
   const curPropFilter = (globalProp !== '') ? globalProp : (window._sbkState.propertyFilter || '');
   window._sbkState.propertyFilter = curPropFilter;
 
-  let activeBookings = (all || []).filter(b => !b.is_cancelled && b.verification_status !== 'rejected');
+  let rawActive = (all || []).filter(b => !b.is_cancelled && b.verification_status !== 'rejected');
+
+  // STRICT PROTECTION: Deduplicate overlapping online channel bookings on the same physical room
+  // (Prevents duplicate Airbnb/Booking.com reservations on the same room for overlapping dates)
+  const toCancelGhostIds = new Set();
+  const keptOnlineMap = [];
+
+  const scoreBooking = (b) => {
+    let score = 0;
+    const isOnline = (b.booking_mode || '').includes('Online') || !!b.airbnb_confirmation_code;
+    if (!isOnline) return 9999;
+    const gName = (b.guest_name || '').trim().toLowerCase();
+    // Real guest name scores much higher than placeholder 'Airbnb's group of...'
+    if (gName && !gName.startsWith('airbnb') && !gName.startsWith("airbnb's")) score += 50;
+    if (Number(b.total_amount || 0) > 0) score += 40;
+    if (b.phone && String(b.phone).trim().length >= 8) score += 20;
+    if (b.id_proof_url) score += 15;
+    if (b.client_rating) score += 5;
+    return score;
+  };
+
+  const sortedCandidates = [...rawActive].sort((a, b) => scoreBooking(b) - scoreBooking(a));
+
+  for (const b of sortedCandidates) {
+    const isOnline = (b.booking_mode || '').includes('Online') || !!b.airbnb_confirmation_code;
+    if (!isOnline) {
+      keptOnlineMap.push(b);
+      continue;
+    }
+
+    const bIn = b.check_in || '';
+    const bOut = b.check_out || b.check_in || '';
+
+    // Check if an existing online booking already claimed this physical room on overlapping dates
+    const overlaps = keptOnlineMap.some(existing => {
+      const existingIsOnline = (existing.booking_mode || '').includes('Online') || !!existing.airbnb_confirmation_code;
+      if (!existingIsOnline) return false;
+      if (existing.room_id !== b.room_id) return false;
+      const eIn = existing.check_in || '';
+      const eOut = existing.check_out || existing.check_in || '';
+      return (bIn < eOut && bOut > eIn);
+    });
+
+    if (overlaps) {
+      toCancelGhostIds.add(b.booking_id);
+    } else {
+      keptOnlineMap.push(b);
+    }
+  }
+
+  // Auto-cancel ghost duplicate bookings in Supabase asynchronously
+  if (toCancelGhostIds.size > 0 && typeof sb !== 'undefined') {
+    const ghostList = Array.from(toCancelGhostIds);
+    console.warn('[SmartBookings] Auto-purging duplicate online bookings on same room:', ghostList);
+    sb.from('guest_register')
+      .update({ is_cancelled: true, notes: 'Auto-cancelled: Duplicate online booking collision detected on same room' })
+      .in('booking_id', ghostList)
+      .then(({ error }) => {
+        if (error) console.error('[SmartBookings] Failed auto-cancelling duplicate online booking:', error);
+      });
+  }
+
+  let activeBookings = keptOnlineMap;
   if (window._myAssignedRooms?.length) {
     activeBookings = activeBookings.filter(b => window._myAssignedRooms.includes(b.room_id));
   }
   if (curPropFilter) {
     activeBookings = activeBookings.filter(b => b.room_id === curPropFilter);
   }
+
 
   const arrivalsCount = activeBookings.filter(b => b.check_in === today).length;
   const departuresCount = activeBookings.filter(b => b.check_out === today && b.checkout_confirmed !== false).length;
@@ -807,6 +870,8 @@ function renderAirbnbReservationsHtml(bookings, paidMap, canM, today) {
                 
                 ${bal > 0.99 ? `
                   <span class="airbnb-chip due">⚠️ ₹${Math.round(bal).toLocaleString('en-IN')} Due</span>
+                ` : (isOnline && (dynamicTotal === 0 || b.payment_status === 'Pending CSV Payout')) ? `
+                  <span class="airbnb-chip" style="background:#FEF3C7;color:#92400E;font-weight:700;border:1px solid #FDE68A;">⏳ Awaiting Airbnb Payout</span>
                 ` : `
                   <span class="airbnb-chip paid">✅ Paid ₹${dynamicTotal.toLocaleString('en-IN')}</span>
                 `}
@@ -1306,33 +1371,6 @@ window.openBookingDrawer = async function(bookingId) {
         </div>
 
         <div class="sbk-drawer-body">
-          ${Number(b.client_rating || 0) >= 4 ? `
-            <div style="background:linear-gradient(135deg, #FEF3C7 0%, #FDE68A 100%);border:1px solid #F59E0B;border-radius:12px;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;gap:10px;box-shadow:0 1px 3px rgba(245,158,11,0.2);">
-              <div style="display:flex;align-items:center;gap:10px;">
-                <span style="font-size:24px;line-height:1;">⭐</span>
-                <div>
-                  <div style="font-size:13.5px;font-weight:800;color:#92400E;">5-Star Review Received &amp; Verified</div>
-                  <div style="font-size:11.5px;color:#B45309;margin-top:1px;">Guest submitted their review on Airbnb. Logged in Review Radar.</div>
-                </div>
-              </div>
-              <div style="display:flex;align-items:center;gap:6px;">
-                <span style="background:#F59E0B;color:#fff;font-size:11px;font-weight:800;padding:4px 9px;border-radius:20px;white-space:nowrap;">5.0 ★</span>
-              </div>
-            </div>
-          ` : (isOnline ? `
-            <div style="background:#FFFBEB;border:1.5px dashed #F59E0B;border-radius:12px;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;gap:10px;">
-              <div style="display:flex;align-items:center;gap:10px;">
-                <span style="font-size:22px;line-height:1;">⭐</span>
-                <div>
-                  <div style="font-size:13px;font-weight:700;color:#92400E;">Airbnb Review Status</div>
-                  <div style="font-size:11.5px;color:#B45309;">Guest hasn't been marked with a 5-star review yet.</div>
-                </div>
-              </div>
-              <button type="button" onclick="window.drawerMarkReview('${b.booking_id}', '${escapeHtml(b.guest_name || '')}')" style="background:#D97706;color:#fff;font-weight:700;padding:7px 14px;border-radius:8px;border:none;cursor:pointer;display:inline-flex;align-items:center;gap:5px;box-shadow:0 1px 4px rgba(217,119,6,0.3);font-size:12px;">
-                ⭐ Mark 5★ Review
-              </button>
-            </div>
-          ` : '')}
 
           <!-- Top Contact & Communication Card -->
           <div style="background:#F8FAFC;border:1px solid var(--border);border-radius:12px;padding:14px;display:flex;justify-content:space-between;align-items:center;">
@@ -1425,11 +1463,11 @@ window.openBookingDrawer = async function(bookingId) {
             <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;text-align:center;background:#F8FAFC;padding:10px;border-radius:8px;margin-bottom:12px;">
               <div>
                 <span style="font-size:11px;color:var(--muted);">Total Bill</span><br>
-                <strong style="font-size:14px;">₹${tot.toLocaleString('en-IN')}</strong>
+                <strong style="font-size:14px;">${(isOnline && tot === 0) ? '<span style="color:#B45309;font-size:12.5px;">⏳ Pending Payout</span>' : `₹${tot.toLocaleString('en-IN')}`}</strong>
               </div>
               <div>
                 <span style="font-size:11px;color:var(--muted);">Total Paid</span><br>
-                <strong style="font-size:14px;color:#059669;">₹${pd.toLocaleString('en-IN')}</strong>
+                <strong style="font-size:14px;color:#059669;">${(isOnline && tot === 0 && pd === 0) ? '<span style="color:#4F46E5;font-size:12.5px;">Via Channel</span>' : `₹${pd.toLocaleString('en-IN')}`}</strong>
               </div>
               <div>
                 <span style="font-size:11px;color:var(--muted);">Balance Due</span><br>
@@ -1539,9 +1577,7 @@ window.openBookingDrawer = async function(bookingId) {
             <button class="btn-sm" style="background:#B45309;color:#fff;padding:10px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;gap:6px;" onclick="window.openGSTInvoiceModal('${b.booking_id}')" title="Generate GST Tax Invoice">
               🧾 GST Invoice
             </button>
-            <button class="btn-sm" style="background:#D97706;color:#fff;padding:10px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;gap:6px;" onclick="if(window.openReviewCallLogModal) window.openReviewCallLogModal('${b.booking_id}'); else alert('Review radar loading...');" title="Airbnb 14-Day Review &amp; Call Follow-up">
-              ⭐ Review Follow-up
-            </button>
+
             ${canM ? `
               <button class="btn-sm" style="background:#EF4444;color:#fff;padding:10px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;gap:6px;" onclick="window.drawerDeleteBooking()" title="Delete this booking">
                 🗑️ Delete Booking

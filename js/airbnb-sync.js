@@ -914,13 +914,17 @@
       existingOnline = data;
     }
     if (!existingOnline) {
-      const { data } = await sb.from('guest_register')
-        .select('booking_id, guest_name, total_amount, payment_status, airbnb_confirmation_code')
+      // Check for any active online reservation overlapping on the same room
+      const { data: overlappingOnline } = await sb.from('guest_register')
+        .select('booking_id, guest_name, total_amount, payment_status, airbnb_confirmation_code, check_in, check_out')
         .eq('room_id', roomId)
-        .eq('check_in', r.check_in)
-        .eq('booking_mode', 'Online-Airbnb')
-        .maybeSingle();
-      existingOnline = data;
+        .eq('is_cancelled', false)
+        .lt('check_in', r.check_out)
+        .gt('check_out', r.check_in);
+      
+      if (overlappingOnline && overlappingOnline.length > 0) {
+        existingOnline = overlappingOnline[0];
+      }
     }
 
     let bookingId;
@@ -1223,13 +1227,17 @@
         existingOnline = data;
       }
       if (!existingOnline) {
-        const { data } = await sb.from('guest_register')
-          .select('booking_id, guest_name, total_amount, payment_status, airbnb_confirmation_code')
+        // Check for any active online reservation overlapping on the same room
+        const { data: overlappingOnline } = await sb.from('guest_register')
+          .select('booking_id, guest_name, total_amount, payment_status, airbnb_confirmation_code, check_in, check_out')
           .eq('room_id', roomId)
-          .eq('check_in', r.check_in)
-          .eq('booking_mode', 'Online-Airbnb')
-          .maybeSingle();
-        existingOnline = data;
+          .eq('is_cancelled', false)
+          .lt('check_in', r.check_out)
+          .gt('check_out', r.check_in);
+        
+        if (overlappingOnline && overlappingOnline.length > 0) {
+          existingOnline = overlappingOnline[0];
+        }
       }
 
       let bookingId;

@@ -156,15 +156,14 @@ window.ICAL_SYNC = {
       for (const event of events) {
         if (!event.checkIn || !event.checkOut) continue;
 
-        // 1. Check if ANY REAL BOOKING (with revenue or real guest details) overlaps this date range
-        const realOverlap = (existing || []).find(b => {
-          if (!b.check_in || !b.check_out) return false;
-          const isReal = (Number(b.total_amount) > 0 || (b.guest_name && !b.guest_name.includes('Blocked') && !b.guest_name.includes('Fill Details')));
-          return isReal && (b.check_in < event.checkOut && b.check_out > event.checkIn);
+        // 1. STRICT PROTECTION: Check if ANY ACTIVE BOOKING already overlaps this date range on this room
+        const activeOverlap = (existing || []).find(b => {
+          if (!b.check_in || !b.check_out || b.is_cancelled) return false;
+          return (b.check_in < event.checkOut && b.check_out > event.checkIn);
         });
 
-        // If a REAL booking already exists for these dates:
-        if (realOverlap) {
+        // If an active booking already exists for these dates:
+        if (activeOverlap) {
           // If this iCal event is a block, DO NOT insert dummy block over a real booking!
           if (event.isBlocked) {
             // Also clean up any lingering dummy block for this date if present
@@ -179,12 +178,12 @@ window.ICAL_SYNC = {
             continue;
           }
 
-          // If this is an actual online reservation, link the confirmation code to the real booking if missing
-          if (event.confirmationCode && !realOverlap.airbnb_confirmation_code) {
+          // If this is an actual online reservation, link the confirmation code to the existing booking if missing
+          if (event.confirmationCode && !activeOverlap.airbnb_confirmation_code) {
             await sb.from('guest_register').update({
               airbnb_confirmation_code: event.confirmationCode,
-              ical_uid: event.uid || realOverlap.ical_uid
-            }).eq('booking_id', realOverlap.booking_id);
+              ical_uid: event.uid || activeOverlap.ical_uid
+            }).eq('booking_id', activeOverlap.booking_id);
           }
           result.skipped++;
           continue;
