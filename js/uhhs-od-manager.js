@@ -1012,7 +1012,56 @@ window.cbEditODDeposit = async function(id) {
     }
 
     if (String(id).startsWith('pay_')) {
-        alert('ℹ️ This is an auto-synced Guest Booking Payment. Any changes to this payment or booking (or deleting the booking) in the Bookings manager will automatically sync with UHHS-OD.');
+        const payId = parseInt(id.replace('pay_', ''));
+        const { data: p } = await client.from('payment_history')
+            .select('*, guest_register(guest_name, phone, room_id, rooms(nickname, unit_no))')
+            .eq('id', payId)
+            .single();
+        if (p) {
+            const timeStr = window.formatDateTimeStamp ? window.formatDateTimeStamp(p.paid_at || p.created_at || p.payment_date, { withSeconds: true }) : (p.payment_date || '');
+            const loggedBy = window._userNameCache?.[p.created_by] || (p.created_by ? 'Staff' : 'System');
+            const guestName = p.guest_register?.guest_name || 'Guest';
+            const roomName = p.guest_register?.rooms?.nickname || p.guest_register?.room_id || '';
+            
+            const actionModal = document.createElement('div');
+            actionModal.className = 'modal-overlay';
+            actionModal.style.zIndex = '99999';
+            actionModal.onclick = (e) => { if (e.target === actionModal) actionModal.remove(); };
+            actionModal.innerHTML = `
+              <div class="modal-box" style="max-width:480px;padding:22px;border-radius:14px;box-shadow:0 20px 25px -5px rgba(0,0,0,0.2);">
+                <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">✕</button>
+                <div style="font-size:18px;font-weight:800;color:var(--dark);margin-bottom:12px;display:flex;align-items:center;gap:8px;">
+                  <span>💳</span> Guest Payment Audit &amp; Actions
+                </div>
+                <div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:10px;padding:12px;font-size:13px;line-height:1.7;margin-bottom:14px;">
+                  <div><strong>Booking ID:</strong> <span style="font-family:monospace;font-weight:700;">${p.booking_id}</span></div>
+                  <div><strong>Guest:</strong> <strong>${guestName}</strong> ${p.guest_register?.phone ? `(${p.guest_register.phone})` : ''}</div>
+                  <div><strong>Property:</strong> ${roomName}</div>
+                  <div><strong>Amount:</strong> <span style="font-weight:800;color:#059669;font-size:15px;">₹${(p.amount || 0).toLocaleString('en-IN')}</span> via <strong>${p.payment_mode || 'UPI'}</strong></div>
+                  <div><strong>Current Receiver:</strong> <span style="background:#EFF6FF;color:#1D4ED8;padding:2px 8px;border-radius:4px;font-weight:700;border:1px solid #BFDBFE;">🏦 ${p.received_by || ''}</span></div>
+                  <div style="border-top:1px dashed #CBD5E1;margin-top:6px;padding-top:6px;">
+                    <div>🕒 <strong>Entry Timestamp:</strong> <span style="font-weight:700;color:#0F172A;">${timeStr}</span></div>
+                    <div>✍️ <strong>Logged By:</strong> <span style="background:#FEF3C7;color:#92400E;padding:2px 6px;border-radius:4px;font-weight:700;">👤 ${loggedBy}</span></div>
+                  </div>
+                  ${p.notes ? `<div style="margin-top:4px;font-size:11.5px;color:#64748B;font-style:italic;background:#fff;padding:4px 8px;border-radius:4px;border-left:2px solid #CBD5E1;">"${p.notes}"</div>` : ''}
+                </div>
+                <div style="display:flex;flex-direction:column;gap:8px;">
+                  <button type="button" onclick="this.closest('.modal-overlay').remove(); if(window.openBookingDrawer) window.openBookingDrawer('${p.booking_id}');" style="padding:11px;background:#2563EB;color:#fff;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-size:13px;">
+                    📂 Open Booking Drawer
+                  </button>
+                  <button type="button" onclick="this.closest('.modal-overlay').remove(); if(window.editPayment) window.editPayment(${p.id}, '${p.booking_id}');" style="padding:11px;background:#F59E0B;color:#fff;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-size:13px;">
+                    ✏️ Edit Payment / Reassign Receiver
+                  </button>
+                  <button type="button" onclick="this.closest('.modal-overlay').remove(); if(window.delPayment) window.delPayment(${p.id}, '${p.booking_id}');" style="padding:11px;background:#EF4444;color:#fff;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-size:13px;">
+                    🗑️ Delete Invalid Payment
+                  </button>
+                </div>
+              </div>
+            `;
+            document.body.appendChild(actionModal);
+            return;
+        }
+        alert('ℹ️ This is an auto-synced Guest Booking Payment. Any changes to this payment in Bookings manager will automatically sync with UHHS-OD.');
         return;
     }
 

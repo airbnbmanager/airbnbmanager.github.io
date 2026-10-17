@@ -1438,29 +1438,49 @@ window.openBookingDrawer = async function(bookingId) {
 
             ${(payments && payments.length > 0) ? `
               <div style="font-size:12px;">
-                <div style="font-weight:600;color:var(--muted);margin-bottom:6px;">Transactions:</div>
+                <div style="font-weight:700;color:var(--muted);margin-bottom:8px;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;">Payment Audit &amp; Transactions:</div>
+                <div style="display:flex;flex-direction:column;gap:8px;">
                 ${payments.map(p => {
-                  const timeStr = window.formatDateTimeStamp ? window.formatDateTimeStamp(p.paid_at || p.created_at || p.payment_date) : (p.payment_date || '');
-                  const loggedBy = window._userNameCache?.[p.created_by] || (p.created_by ? 'Staff' : '');
+                  const timeStr = window.formatDateTimeStamp ? window.formatDateTimeStamp(p.paid_at || p.created_at || p.payment_date, { withSeconds: true }) : (p.payment_date || '');
+                  const loggedBy = window._userNameCache?.[p.created_by] || (p.created_by ? 'Staff' : 'System');
+                  const isOD = (p.received_by || '').includes('OD') || (p.received_by || '').includes('UHHS');
                   return `
-                    <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border-light);">
-                      <div>
-                        <div>
-                          <span style="font-weight:700;color:var(--dark);">₹${(p.amount || 0).toLocaleString('en-IN')}</span>
-                          <span style="color:var(--muted);margin-left:6px;font-size:12px;">via ${escapeHtml(p.payment_mode || 'Payment')}</span>
+                    <div style="background:#F8FAFC;border:1px solid var(--border-light);border-radius:10px;padding:10px 12px;display:flex;justify-content:space-between;align-items:flex-start;gap:10px;">
+                      <div style="flex:1;">
+                        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+                          <span style="font-weight:800;font-size:14px;color:var(--dark);">₹${(p.amount || 0).toLocaleString('en-IN')}</span>
+                          <span style="font-size:11px;font-weight:600;padding:2px 7px;border-radius:4px;background:#E2E8F0;color:#334155;">via ${escapeHtml(p.payment_mode || 'Payment')}</span>
+                          <span style="font-size:11px;font-weight:700;padding:2px 7px;border-radius:4px;background:${isOD ? '#EFF6FF' : '#ECFDF5'};color:${isOD ? '#1D4ED8' : '#047857'};border:1px solid ${isOD ? '#BFDBFE' : '#A7F3D0'};">
+                            ${isOD ? '🏦' : '💰'} Recd: ${escapeHtml(p.received_by || 'Staff')}
+                          </span>
                         </div>
-                        <div style="color:#64748B;font-size:11px;margin-top:2px;">
-                          🕒 <strong>${timeStr}</strong> · 💰 Recd: <strong>${escapeHtml(p.received_by || 'Staff')}</strong>
-                          ${loggedBy ? ` · ✍️ Logged by: <strong>${escapeHtml(loggedBy)}</strong>` : ''}
+                        <div style="color:#64748B;font-size:11px;margin-top:6px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                          <span style="display:inline-flex;align-items:center;gap:3px;" title="Payment Creation / Audit Timestamp">
+                            🕒 <strong>${timeStr}</strong>
+                          </span>
+                          <span style="background:#FEF3C7;color:#92400E;border:1px solid #FDE68A;padding:1px 6px;border-radius:4px;font-weight:600;display:inline-flex;align-items:center;gap:3px;" title="User who entered this payment">
+                            ✍️ Logged by: <strong>${escapeHtml(loggedBy)}</strong>
+                          </span>
+                          ${p.verification_status === 'pending' ? '<span class="badge yellow" style="font-size:9.5px;padding:1px 6px;">🟡 Verification Pending</span>' : ''}
                         </div>
-                        ${p.notes ? `<div style="font-size:10.5px;color:#94A3B8;margin-top:1px;font-style:italic;">"${escapeHtml(p.notes)}"</div>` : ''}
+                        ${p.notes ? `<div style="font-size:11px;color:#64748B;margin-top:4px;background:#FFFFFF;border-left:2px solid #CBD5E1;padding:2px 6px;border-radius:2px;font-style:italic;">"${escapeHtml(p.notes)}"</div>` : ''}
                       </div>
-                      <div>
-                        ${p.verification_status === 'pending' ? '<span class="badge yellow" style="font-size:9px;">🟡 Pending</span>' : ''}
-                      </div>
+                      ${canM ? `
+                        <div style="display:flex;align-items:center;gap:4px;margin-top:2px;">
+                          <button type="button" class="btn-sm" onclick="if(window.editPayment) window.editPayment(${p.id}, '${escapeHtml(b.booking_id)}'); else if(typeof editPayment==='function') editPayment(${p.id}, '${escapeHtml(b.booking_id)}');" title="Edit Payment / Change Receiver" style="background:#FFFFFF;border:1px solid #CBD5E1;padding:4px 8px;font-size:11px;border-radius:6px;cursor:pointer;font-weight:600;color:#334155;box-shadow:0 1px 2px rgba(0,0,0,0.05);">
+                            ✏️ Edit
+                          </button>
+                          ${canD ? `
+                            <button type="button" class="btn-sm" onclick="if(window.delPayment) window.delPayment(${p.id}, '${escapeHtml(b.booking_id)}'); else if(typeof delPayment==='function') delPayment(${p.id}, '${escapeHtml(b.booking_id)}');" title="Delete Payment" style="background:#FEF2F2;border:1px solid #FECACA;color:#DC2626;padding:4px 8px;font-size:11px;border-radius:6px;cursor:pointer;font-weight:700;">
+                              🗑️
+                            </button>
+                          ` : ''}
+                        </div>
+                      ` : ''}
                     </div>
                   `;
                 }).join('')}
+                </div>
               </div>
             ` : '<div style="font-size:12px;color:var(--muted);text-align:center;padding:8px 0;">No individual payments recorded yet.</div>'}
           </div>

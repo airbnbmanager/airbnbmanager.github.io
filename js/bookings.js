@@ -6097,20 +6097,38 @@ async function saveEditPayment(payId, bkId) {
   Object.assign(payPatch, approvalUpdateMeta());
   await sb.from('payment_history').update(payPatch).eq('id', payId);
   await recalcPaymentStatus(bkId);
-  if (window.UHHSODManager && window.UHHSODManager.calculateBalance) window.UHHSODManager.calculateBalance();
-  if (typeof window.notifyDataChanged === 'function') window.notifyDataChanged();
   document.querySelector('.modal-overlay')?.remove();
-  editBooking(bkId);
+  if (window._sbkState && window._sbkState.cachedPaidMap) {
+    delete window._sbkState.cachedPaidMap[bkId];
+  }
+  if (typeof window.openBookingDrawer === 'function' && (window._currentDrawerBookingId === bkId || document.getElementById('sbkDrawerContainer'))) {
+    await window.openBookingDrawer(bkId);
+  } else if (document.getElementById('editBkErr')) {
+    editBooking(bkId);
+  } else if (typeof renderManageBookings === 'function') {
+    renderManageBookings();
+  }
 }
 
 async function delPayment(payId, bkId) {
-  if (!confirm('Delete this payment?')) return;
+  if (!confirm('⚠️ Are you sure you want to delete this payment record?\n\nThis will remove the payment, update the balance due, and remove it from any UHHS-OD accounts.')) return;
   await sb.from('payment_history').delete().eq('id', payId);
   await recalcPaymentStatus(bkId);
   if (window.UHHSODManager && window.UHHSODManager.calculateBalance) window.UHHSODManager.calculateBalance();
   if (typeof window.notifyDataChanged === 'function') window.notifyDataChanged();
-  editBooking(bkId);
+  if (window._sbkState && window._sbkState.cachedPaidMap) {
+    delete window._sbkState.cachedPaidMap[bkId];
+  }
+  if (typeof window.openBookingDrawer === 'function' && (window._currentDrawerBookingId === bkId || document.getElementById('sbkDrawerContainer'))) {
+    await window.openBookingDrawer(bkId);
+  } else if (document.getElementById('editBkErr')) {
+    editBooking(bkId);
+  } else if (typeof renderManageBookings === 'function') {
+    renderManageBookings();
+  }
 }
+window.editPayment = editPayment;
+window.delPayment = delPayment;
 
 async function markFullyPaid(bkId) {
   const { data: b } = await sb.from('guest_register').select('total_amount').eq('booking_id', bkId).single();

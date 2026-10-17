@@ -1914,8 +1914,13 @@ function renderShell(content, activePage = 'dashboard') {
 
       // Format date
       const datePart = d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
-      // Format 12-hour time with AM/PM (e.g., 09:15 AM)
-      const timePart = d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
+      // Format 12-hour time with AM/PM (e.g., 09:15 AM or 09:15:30 AM)
+      const timePart = d.toLocaleTimeString('en-IN', {
+        hour: '2-digit',
+        minute: '2-digit',
+        second: opts.withSeconds ? '2-digit' : undefined,
+        hour12: true
+      });
 
       if (opts.timeOnly) return timePart;
       if (opts.dateOnly) return datePart;
