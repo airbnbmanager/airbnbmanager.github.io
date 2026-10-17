@@ -1300,9 +1300,9 @@ function renderShell(content, activePage = 'dashboard') {
       page: 'bookings',
       pages: ['bookings', 'guest-crm', 'reports', 'calendar', 'flats', 'pendingApprovals', 'reminders', 'reviews-followup'],
       tabs: [
-        { id: 'bookings', label: '📅 Bookings' },
+        { id: 'bookings', label: '🛎️ Bookings' },
         { id: 'guest-crm', label: '👤 Guest CRM' },
-        { id: 'reports', label: '📆 Timeline' },
+        { id: 'reports', label: '📅 Calendar' },
         { id: 'flats', label: '🛏️ Flats Status' },
         { id: 'pendingApprovals', label: '🟡 Approvals' },
         { id: 'reviews-followup', label: '⭐ Review Radar' },
@@ -1443,8 +1443,8 @@ function renderShell(content, activePage = 'dashboard') {
 
   const PAGE_TITLES = {
     dashboard: { title: 'Dashboard', sub: 'Overview & Key Performance Indicators', icon: '🏠' },
-    reports: { title: 'Calendar & Bookings', sub: 'Room reservations timeline', icon: '📅' },
-    calendar: { title: 'Calendar & Bookings', sub: 'Room reservations timeline', icon: '📅' },
+    reports: { title: 'Reservations Calendar', sub: 'Room availability & bookings calendar', icon: '📅' },
+    calendar: { title: 'Reservations Calendar', sub: 'Room availability & bookings calendar', icon: '📅' },
     bookings: { title: 'Bookings Management', sub: 'Guest check-ins, check-outs & payments', icon: '🛎' },
     'guest-crm': { title: 'Guest CRM & Client Profiles', sub: 'Lifetime stays, VIP loyalty tiers, spend analytics & guest khata', icon: '👤' },
     flats: { title: 'Flats & Housekeeping', sub: 'Room readiness, cleaning & maintenance', icon: '🛏️' },

@@ -125,10 +125,10 @@
       id: 'reports',
       type: 'menu',
       group: 'Stay & Bookings',
-      icon: '📆',
-      title: 'Room Timeline & Reservations Grid',
-      sub: 'Timeline matrix of all units and guest bookings across dates',
-      keywords: ['reports', 'timeline', 'reservations timeline', 'matrix', 'room grid', 'stay grid'],
+      icon: '📅',
+      title: 'Reservations Calendar Grid',
+      sub: 'Visual calendar of all units and guest bookings across dates',
+      keywords: ['reports', 'calendar', 'reservations calendar', 'matrix', 'room grid', 'stay grid'],
       action: () => window.navigate('reports')
     },
     {
