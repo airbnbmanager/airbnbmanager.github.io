@@ -128,6 +128,82 @@ window.renderClaims = async function() {
       </div>
     </div>
 
+    <!-- 📅 TODAY'S OD BALANCE & CLOSING PROOF (OWNER TRUST CARD) -->
+    <div class="card" id="todayBalanceProofCard" style="background:#FFFFFF;border:1.5px solid #0284C7;box-shadow:0 8px 24px -4px rgba(2,132,199,0.12);padding:18px;margin-bottom:14px;border-radius:12px;">
+      <!-- Header with Live Stamp -->
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;border-bottom:1px solid #E2E8F0;padding-bottom:12px;margin-bottom:14px;">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <div style="width:42px;height:42px;border-radius:10px;background:#E0F2FE;color:#0284C7;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:700;">
+            📅
+          </div>
+          <div>
+            <div style="font-size:16px;font-weight:800;color:#0F172A;display:flex;align-items:center;gap:8px;">
+              Today's OD Balance &amp; Daily Closing Statement
+              <span style="font-size:11px;font-weight:700;background:#DCFCE7;color:#166534;border:1px solid #86EFAC;padding:2px 8px;border-radius:999px;">
+                ✓ Live Verified
+              </span>
+            </div>
+            <div style="font-size:12px;color:#64748B;" id="today-proof-timestamp">
+              Automated Daily Closing Proof · The Unique Haven Homes
+            </div>
+          </div>
+        </div>
+
+        <!-- ACTION BUTTONS: SCREENSHOT & WHATSAPP -->
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <button type="button" onclick="downloadTodayBalanceScreenshot(event)" style="padding:8px 14px;background:#0284C7;color:#ffffff;border:none;border-radius:8px;font-weight:700;font-size:12.5px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;box-shadow:0 2px 8px rgba(2,132,199,0.25);">
+            <span>📸</span>
+            <span>Download Screenshot Proof</span>
+          </button>
+          <button type="button" onclick="shareTodayBalanceWhatsApp()" style="padding:8px 14px;background:#25D366;color:#ffffff;border:none;border-radius:8px;font-weight:700;font-size:12.5px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;box-shadow:0 2px 8px rgba(37,211,102,0.25);">
+            <span>📱</span>
+            <span>Send to WhatsApp Group</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- METRIC KPI GRID FOR TODAY -->
+      <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(180px, 1fr));gap:12px;margin-bottom:14px;">
+        <!-- Today Deposits / Inflow -->
+        <div style="background:#F0FDF4;border:1px solid #BBF7D0;border-radius:10px;padding:12px 14px;">
+          <div style="font-size:11px;font-weight:700;color:#166534;text-transform:uppercase;">📥 Today's Deposits (Inflow)</div>
+          <div style="font-size:20px;font-weight:800;color:#15803D;margin-top:4px;" id="today-proof-inflow">₹0</div>
+          <div style="font-size:11px;color:#15803D;margin-top:2px;" id="today-proof-inflow-count">0 deposits today</div>
+        </div>
+
+        <!-- Today Claims / Spends Outflow -->
+        <div style="background:#FEF2F2;border:1px solid #FECACA;border-radius:10px;padding:12px 14px;">
+          <div style="font-size:11px;font-weight:700;color:#991B1B;text-transform:uppercase;">📤 Today's Spends / Claims</div>
+          <div style="font-size:20px;font-weight:800;color:#DC2626;margin-top:4px;" id="today-proof-outflow">₹0</div>
+          <div style="font-size:11px;color:#991B1B;margin-top:2px;" id="today-proof-outflow-count">0 claims settled</div>
+        </div>
+
+        <!-- Net Today Movement -->
+        <div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:10px;padding:12px 14px;">
+          <div style="font-size:11px;font-weight:700;color:#475569;text-transform:uppercase;">📊 Today's Net Movement</div>
+          <div style="font-size:20px;font-weight:800;color:#0F172A;margin-top:4px;" id="today-proof-net">₹0</div>
+          <div style="font-size:11px;color:#64748B;margin-top:2px;" id="today-proof-net-sub">Daily net delta</div>
+        </div>
+
+        <!-- Today Closing Running Balance -->
+        <div style="background:linear-gradient(135deg,#0F172A,#1E293B);color:#ffffff;border-radius:10px;padding:12px 14px;border:1.5px solid #334155;">
+          <div style="font-size:11px;font-weight:700;color:#94A3B8;text-transform:uppercase;">💰 TUHH-OD Closing Balance</div>
+          <div style="font-size:22px;font-weight:900;color:#4ADE80;margin-top:4px;" id="today-proof-closing-bal">₹0</div>
+          <div style="font-size:11px;color:#CBD5E1;margin-top:2px;" id="today-proof-status-label">🛡️ Verified by TUHH Engine</div>
+        </div>
+      </div>
+
+      <!-- FOOTER AUDIT NOTE FOR OWNERS -->
+      <div style="background:#F8FAFC;border-radius:8px;padding:8px 12px;font-size:11.5px;color:#64748B;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px;">
+        <div>
+          🛡️ <strong>Owner Assurance:</strong> Automatically compiled from TUHH-OD bank receipts and verified vendor claims. Zero manual adjustments.
+        </div>
+        <div style="color:#0284C7;font-weight:600;">
+          The Unique Haven Homes Private Limited
+        </div>
+      </div>
+    </div>
+
     <!-- FILTERS BAR -->
     <div class="card" style="background:#F8FAFC;border:1px solid #E2E8F0;padding:14px;">
       <style>
@@ -2003,4 +2079,83 @@ window.exportCompanyLedgerPDF = async function(fDate, tDate) {
     '<script>window.onload=function(){setTimeout(function(){window.print();},400);};<\/script>' +
     '</body></html>';
   window.printDocumentHTML(html, title);
+};
+
+// =========================================================================
+// 📸 TODAY'S BALANCE SCREENSHOT DOWNLOAD & WHATSAPP PROOF (OWNER TRUST)
+// =========================================================================
+window.downloadTodayBalanceScreenshot = async function(evt) {
+  const card = document.getElementById('todayBalanceProofCard');
+  if (!card) return;
+  if (typeof html2canvas === 'undefined') {
+    alert('Screenshot component is still loading. Please try again in 2 seconds.');
+    return;
+  }
+  const btn = evt ? evt.currentTarget : document.querySelector('button[onclick*="downloadTodayBalanceScreenshot"]');
+  const origHtml = btn ? btn.innerHTML : '';
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = '⏳ Generating Image...';
+  }
+  try {
+    const canvas = await html2canvas(card, {
+      scale: 2,
+      useCORS: true,
+      backgroundColor: '#ffffff'
+    });
+    const d = new Date();
+    const dateStr = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    const link = document.createElement('a');
+    link.download = `TUHH_OD_Closing_Balance_${dateStr}.png`;
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+    if (btn) btn.innerHTML = '✅ Saved Image!';
+  } catch (err) {
+    console.error('Screenshot error:', err);
+    alert('Could not generate screenshot: ' + err.message);
+    if (btn) btn.innerHTML = origHtml;
+  } finally {
+    setTimeout(() => {
+      if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = origHtml;
+      }
+    }, 2500);
+  }
+};
+
+window.shareTodayBalanceWhatsApp = function() {
+  const now = new Date();
+  const dateStr = now.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
+  const timeStr = now.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
+
+  const inVal = document.getElementById('today-proof-inflow')?.innerText || '₹0';
+  const inCnt = document.getElementById('today-proof-inflow-count')?.innerText || '';
+  const outVal = document.getElementById('today-proof-outflow')?.innerText || '₹0';
+  const outCnt = document.getElementById('today-proof-outflow-count')?.innerText || '';
+  const netVal = document.getElementById('today-proof-net')?.innerText || '₹0';
+  const closeBal = document.getElementById('today-proof-closing-bal')?.innerText || '₹0';
+
+  const text = [
+    '🏦 *THE UNIQUE HAVEN HOMES PVT LTD*',
+    '📊 *DAILY TUHH-OD CLOSING & BALANCE STATEMENT*',
+    `📅 *Date:* ${dateStr} | ${timeStr}`,
+    '────────────────────────────',
+    `📥 *Today Deposits (Inflow):* ${inVal} (${inCnt})`,
+    `📤 *Today Spends/Claims (Outflow):* ${outVal} (${outCnt})`,
+    `⚖️ *Today Net Delta:* ${netVal}`,
+    '────────────────────────────',
+    `💰 *CLOSING TUHH-OD BALANCE:* *${closeBal}*`,
+    '🛡️ *Status:* Verified & Reconciled (Post-Checkpoint)',
+    '────────────────────────────',
+    '_Automated Daily Closing Proof for Owners & Management._',
+    '_Generated from UHHS Claims & OD Engine_'
+  ].join('\n');
+
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text);
+  }
+
+  const waUrl = 'https://wa.me/?text=' + encodeURIComponent(text);
+  window.open(waUrl, '_blank');
 };

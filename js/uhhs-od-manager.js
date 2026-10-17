@@ -595,6 +595,48 @@ async function calculateLiveODBalance(supabaseClient) {
         const outEl = document.getElementById('claims-od-outflow');
         if (outEl) outEl.innerText = `₹${totalOutflow.toLocaleString('en-IN')}`;
 
+        // Update Today's Closing Proof Elements (Owner Trust Feature)
+        const nowD = new Date();
+        const localToday = `${nowD.getFullYear()}-${String(nowD.getMonth() + 1).padStart(2, '0')}-${String(nowD.getDate()).padStart(2, '0')}`;
+        const todayTxns = (txns || []).filter(t => !t.isOpening && t.date && String(t.date).slice(0, 10) === localToday);
+        const todayInflows = todayTxns.filter(t => t.isDep);
+        const todayOutflows = todayTxns.filter(t => !t.isDep);
+
+        const todayInflowAmt = todayInflows.reduce((s, t) => s + (Number(t.amount) || 0), 0);
+        const todayOutflowAmt = todayOutflows.reduce((s, t) => s + (Number(t.amount) || 0), 0);
+        const todayNetAmt = todayInflowAmt - todayOutflowAmt;
+
+        const tInEl = document.getElementById('today-proof-inflow');
+        if (tInEl) tInEl.innerText = `₹${todayInflowAmt.toLocaleString('en-IN')}`;
+        const tInCnt = document.getElementById('today-proof-inflow-count');
+        if (tInCnt) tInCnt.innerText = `${todayInflows.length} deposit${todayInflows.length === 1 ? '' : 's'} today`;
+
+        const tOutEl = document.getElementById('today-proof-outflow');
+        if (tOutEl) tOutEl.innerText = `₹${todayOutflowAmt.toLocaleString('en-IN')}`;
+        const tOutCnt = document.getElementById('today-proof-outflow-count');
+        if (tOutCnt) tOutCnt.innerText = `${todayOutflows.length} claim${todayOutflows.length === 1 ? '' : 's'}/spend${todayOutflows.length === 1 ? '' : 's'}`;
+
+        const tNetEl = document.getElementById('today-proof-net');
+        if (tNetEl) {
+            const prefix = todayNetAmt > 0 ? '+₹' : (todayNetAmt < 0 ? '-₹' : '₹');
+            tNetEl.innerText = `${prefix}${Math.abs(todayNetAmt).toLocaleString('en-IN')}`;
+            tNetEl.style.color = todayNetAmt >= 0 ? '#15803D' : '#DC2626';
+        }
+
+        const tCloseEl = document.getElementById('today-proof-closing-bal');
+        if (tCloseEl) {
+            const prefix = netBalance < 0 ? '-₹' : '₹';
+            tCloseEl.innerText = `${prefix}${Math.abs(netBalance).toLocaleString('en-IN')}`;
+            tCloseEl.style.color = netBalance >= 0 ? '#4ADE80' : '#F87171';
+        }
+
+        const tTimeEl = document.getElementById('today-proof-timestamp');
+        if (tTimeEl) {
+            const dateFmt = nowD.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
+            const timeFmt = nowD.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
+            tTimeEl.innerText = `Daily Closing Proof · ${dateFmt} at ${timeFmt}`;
+        }
+
         const bannerElements = [
             document.getElementById('uhhs-od-balance-display'),
             document.getElementById('claims-od-banner-bal'),
