@@ -8875,13 +8875,25 @@ window.openCustomPaymentQRModal = async function(prefill = {}) {
   }
 
   // 1. Fetch available rooms with complete property details
-  let rooms = window._cachedRooms || [];
+  let rooms = (window._globalRoomsList && window._globalRoomsList.length) 
+    ? window._globalRoomsList 
+    : (window._cachedRooms || []);
+
   if (!rooms.length || !rooms[0]?.property_name) {
     try {
-      const { data } = await sb.from('rooms').select('room_id, unit_no, nickname, property_name, name').order('room_id');
-      if (data && data.length) {
-        rooms = data;
-        window._cachedRooms = rooms;
+      if (typeof window.loadGlobalRoomsCache === 'function') {
+        const cached = await window.loadGlobalRoomsCache();
+        if (cached && cached.length) rooms = cached;
+      }
+      if (!rooms.length && typeof sb !== 'undefined') {
+        const { data, error } = await sb.from('rooms').select('room_id, unit_no, nickname, property_name').order('unit_no');
+        if (data && data.length) {
+          rooms = data;
+          window._cachedRooms = rooms;
+          window._globalRoomsList = rooms;
+        } else if (error) {
+          console.warn('Supabase rooms query warning:', error);
+        }
       }
     } catch (e) {
       console.warn('Could not load rooms:', e);
@@ -8919,7 +8931,9 @@ window.openCustomPaymentQRModal = async function(prefill = {}) {
   // Initial values
   const initGuest = prefill.guestName || '';
   const initPhone = prefill.phone ? String(prefill.phone).replace(/\D/g, '') : '';
-  const globalProp = (typeof window.getGlobalSelectedProperty === 'function') ? window.getGlobalSelectedProperty() : '';
+  const globalProp = (typeof window.getGlobalSelectedProperty === 'function') 
+    ? window.getGlobalSelectedProperty() 
+    : (localStorage.getItem('uhhs_global_prop_filter') || '');
   let initRoomId = (prefill.roomId || globalProp || '').trim();
 
   // If roomId given as name/unit or not exact room_id match, attempt fuzzy match against rooms
@@ -8975,8 +8989,11 @@ window.openCustomPaymentQRModal = async function(prefill = {}) {
             <select id="cpqrRoomSelect" style="width:100%;height:38px;padding:8px 30px 8px 10px;border:1.5px solid #CBD5E1;border-radius:8px;font-size:13px;font-weight:700;color:#0F172A;background:#FFFFFF;box-sizing:border-box;cursor:pointer;-webkit-appearance:menulist;appearance:menulist;pointer-events:auto;position:relative;z-index:2;">
               <option value="">-- General Homestay --</option>
               ${rooms.map(r => {
-                const isSel = r.room_id === initRoomId;
-                return `<option value="${r.room_id}" ${isSel ? 'selected' : ''}>${propLabel(r)}</option>`;
+                const isSel = String(r.room_id) === String(initRoomId);
+                const label = (typeof window.propLabel === 'function')
+                  ? window.propLabel(r)
+                  : ((r.nickname || r.property_name || r.room_id) + (r.unit_no ? ` (${r.unit_no})` : ''));
+                return `<option value="${escapeHtml(String(r.room_id))}" ${isSel ? 'selected' : ''}>${escapeHtml(label)}</option>`;
               }).join('')}
             </select>
           </div>
@@ -9106,6 +9123,10 @@ window.openCustomPaymentQRModal = async function(prefill = {}) {
   const payeeFirozBtn = overlay.querySelector('#cpqrPayeeFiroz');
   const payeePraveenBtn = overlay.querySelector('#cpqrPayeePraveen');
   const copyPublicLinkBtn = overlay.querySelector('#cpqrCopyPublicLinkBtn');
+
+  if (initRoomId && roomSel) {
+    roomSel.value = initRoomId;
+  }
 
   function setPayee(key) {
     currentPayee = key;
@@ -9431,6 +9452,9 @@ window.openCustomPaymentQRModal = async function(prefill = {}) {
   }, 100);
 
   updateLivePreview();
+  if (initRoomId && !initGuest && roomSel) {
+    roomSel.dispatchEvent(new Event('change'));
+  }
 
   // 1. WhatsApp Button
   sendWaBtn.addEventListener('click', async () => {
