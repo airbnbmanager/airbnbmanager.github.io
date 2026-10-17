@@ -2108,11 +2108,16 @@ function navigate(page) {
     }
   } catch(e) {}
 
-  // Auto-close mobile drawer & backdrop on any navigation
+  // Auto-close mobile drawer, backdrop & any open modal overlays on navigation
   const sidebarEl = document.getElementById('sidebarEl');
   const backdropEl = document.getElementById('sidebarBackdrop');
   if (sidebarEl) sidebarEl.classList.remove('mobile-drawer-open');
   if (backdropEl) backdropEl.classList.remove('active');
+  document.getElementById('guest360ModalOverlay')?.remove();
+  if (typeof window.closeBookingDrawer === 'function') window.closeBookingDrawer();
+  document.querySelectorAll('.modal-overlay').forEach(m => {
+    if (m.id !== 'authOverlay' && m.id !== 'lockModal') m.remove();
+  });
 
   // Update active state on bottom navigation
   document.querySelectorAll('.bottom-nav a[data-page], .pwa-bottom-nav .pwa-nav-item[data-page]').forEach(a => {

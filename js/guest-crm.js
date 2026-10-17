@@ -594,6 +594,9 @@ window.openGuestCRMProfileModal = function(guestKey) {
               <span>📞</span> Call
             </a>
           ` : ''}
+          <button type="button" onclick="window.editGuestProfile('${escapeHtml(g.key)}')" style="background:#475569;color:#ffffff;padding:7px 14px;border-radius:8px;font-size:12px;font-weight:700;border:none;cursor:pointer;display:inline-flex;align-items:center;gap:5px;" title="Edit Guest / Booking Details">
+            <span>✏️</span> Edit
+          </button>
           <button type="button" onclick="window.quickBookForGuest('${escapeHtml(g.name)}', '${escapeHtml(g.phone)}', '${escapeHtml(g.lastRoomId || '')}');document.getElementById('guest360ModalOverlay')?.remove();" style="background:#b58d3d;color:#ffffff;padding:7px 14px;border-radius:8px;font-size:12px;font-weight:700;border:none;cursor:pointer;display:inline-flex;align-items:center;gap:5px;">
             <span>➕</span> New Booking
           </button>
@@ -699,6 +702,9 @@ window.openGuestCRMProfileModal = function(guestKey) {
                       <div style="font-size:11.5px;font-weight:700;color:${b.due > 0 ? '#EF4444' : '#10B981'};margin-top:2px;">
                         ${b.due > 0 ? `⚠️ ₹${Math.round(b.due).toLocaleString('en-IN')} Due` : '✅ Paid Full'}
                       </div>
+                      <button type="button" onclick="document.getElementById('guest360ModalOverlay')?.remove(); if(window.editBooking) window.editBooking('${b.bookingId}');" class="btn-sm" style="background:#0F172A;color:#fff;border:none;padding:4px 9px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;margin-top:6px;display:inline-flex;align-items:center;gap:4px;">
+                        <span>✏️</span> Edit Stay
+                      </button>
                     </div>
                   </div>
                 `).join('')}
@@ -774,3 +780,25 @@ window.switchDossierTab = function(tabName) {
     }
   });
 };
+
+/**
+ * Edit Guest / Latest Stay Details directly
+ */
+window.editGuestProfile = function(guestKey) {
+  const g = (window._guestCRMState?.cachedGuests || []).find(x => x.key === guestKey);
+  const bId = g?.bookingHistory?.[0]?.bookingId;
+  document.getElementById('guest360ModalOverlay')?.remove();
+  if (bId && typeof window.editBooking === 'function') {
+    window.editBooking(bId);
+  } else {
+    navigate('bookings');
+  }
+};
+
+// Global Esc to close Guest 360 modal
+window.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') {
+    document.getElementById('guest360ModalOverlay')?.remove();
+  }
+});
+

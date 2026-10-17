@@ -4566,6 +4566,7 @@ window.saveCheckoutWithRating = async function(bkId, roomId, today, nowTime, nig
 
 // ============ EDIT BOOKING ============
 async function editBooking(bkId) {
+  document.getElementById('guest360ModalOverlay')?.remove();
   if (typeof window.closeBookingDrawer === 'function') {
     window.closeBookingDrawer();
   }
