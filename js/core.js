@@ -172,7 +172,7 @@ window.syncTopbarPropertySelect = function() {
   if (!sel) return;
   const data = window._globalRoomsList || [];
   const selected = window.getGlobalSelectedProperty();
-  sel.innerHTML = `<option value="">🏛️ All Properties (${data.length || 17})</option>` +
+  sel.innerHTML = `<option value="">All Properties (${data.length || 17})</option>` +
     data.map(r => `<option value="${r.room_id}" ${selected === r.room_id ? 'selected' : ''}>${r.nickname || r.room_id} (${r.unit_no || '-'})</option>`).join('');
   
   const selWrap = document.getElementById('topbarPropSelector');
