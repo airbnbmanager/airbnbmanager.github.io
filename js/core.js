@@ -437,10 +437,15 @@ window.UserActivityTracker = {
     this._syncRecord(allLogs[today][userId]);
   },
 
+  _tableAvailable: null,
+  _appSettingsAvailable: null,
+
   async _syncRecord(rec) {
     if (!rec || !rec.userId) return;
+    if (this._tableAvailable === false && this._appSettingsAvailable === false) return;
+
     try {
-      if (window.sb) {
+      if (window.sb && this._tableAvailable !== false) {
         const { error } = await sb.from('user_activity_logs').upsert({
           user_id: rec.userId,
           display_name: rec.displayName,
@@ -454,18 +459,45 @@ window.UserActivityTracker = {
         }, { onConflict: 'user_id,log_date' });
 
         if (error) {
-          this._syncToAppSettings(rec);
+          // If table does not exist (404 / 42P01), remember and stop querying it
+          if (error.code === '42P01' || error.status === 404 || error.message?.includes('does not exist')) {
+            this._tableAvailable = false;
+          }
+          if (this._appSettingsAvailable !== false) {
+            this._syncToAppSettings(rec);
+          }
+        } else {
+          this._tableAvailable = true;
+          return;
         }
+      } else if (this._appSettingsAvailable !== false) {
+        this._syncToAppSettings(rec);
       }
     } catch(e) {
-      this._syncToAppSettings(rec);
+      if (this._appSettingsAvailable !== false) {
+        this._syncToAppSettings(rec);
+      }
     }
   },
 
   async _syncToAppSettings(rec) {
+    if (this._appSettingsAvailable === false) return;
     try {
       if (!window.sb) return;
-      const { data: setRow } = await sb.from('app_settings').select('value').eq('key', 'user_daily_activity_logs').single();
+      // Use standard select without .single() to prevent 406 (Not Acceptable) when empty
+      const { data: setRows, error: selErr } = await sb.from('app_settings')
+        .select('value')
+        .eq('key', 'user_daily_activity_logs')
+        .limit(1);
+
+      if (selErr) {
+        if (selErr.status === 403 || selErr.code === '42501' || selErr.status === 404) {
+          this._appSettingsAvailable = false;
+          return;
+        }
+      }
+
+      const setRow = setRows && setRows[0];
       let remoteMap = {};
       try { remoteMap = JSON.parse(setRow?.value || '{}'); } catch(e) {}
       if (!remoteMap[rec.logDate]) remoteMap[rec.logDate] = {};
@@ -476,53 +508,77 @@ window.UserActivityTracker = {
         dates.slice(30).forEach(d => delete remoteMap[d]);
       }
 
-      await sb.from('app_settings').upsert({
+      const { error: upErr } = await sb.from('app_settings').upsert({
         key: 'user_daily_activity_logs',
         value: JSON.stringify(remoteMap),
         updated_at: new Date().toISOString()
       }, { onConflict: 'key' });
-    } catch(e) {}
+
+      if (upErr) {
+        // If app_settings upsert forbidden by RLS (403), stop querying it
+        if (upErr.status === 403 || upErr.code === '42501' || upErr.status === 404) {
+          this._appSettingsAvailable = false;
+        }
+      } else {
+        this._appSettingsAvailable = true;
+      }
+    } catch(e) {
+      this._appSettingsAvailable = false;
+    }
   },
 
   async fetchLogsForDate(dateStr) {
     dateStr = dateStr || this._currentDateStr();
     let records = [];
 
-    // 1. Try dedicated table user_activity_logs
-    try {
-      if (window.sb) {
-        const { data, error } = await sb.from('user_activity_logs')
-          .select('*')
-          .eq('log_date', dateStr)
-          .order('last_active_at', { ascending: false });
-        if (!error && data && data.length > 0) {
-          return data.map(d => ({
-            userId: d.user_id,
-            displayName: d.display_name,
-            role: d.role,
-            logDate: d.log_date,
-            loginCount: d.login_count || 1,
-            activeSeconds: d.active_seconds || 0,
-            firstLoginAt: d.first_login_at,
-            lastActiveAt: d.last_active_at
-          }));
-        }
-      }
-    } catch(e) {}
-
-    // 2. Try app_settings fallback
-    try {
-      if (window.sb) {
-        const { data: setRow } = await sb.from('app_settings').select('value').eq('key', 'user_daily_activity_logs').single();
-        if (setRow && setRow.value) {
-          const map = JSON.parse(setRow.value);
-          if (map[dateStr]) {
-            records = Object.values(map[dateStr]);
-            return records.sort((a, b) => new Date(b.lastActiveAt || 0) - new Date(a.lastActiveAt || 0));
+    // 1. Try dedicated table user_activity_logs if not known to be missing
+    if (this._tableAvailable !== false) {
+      try {
+        if (window.sb) {
+          const { data, error } = await sb.from('user_activity_logs')
+            .select('*')
+            .eq('log_date', dateStr)
+            .order('last_active_at', { ascending: false });
+          if (!error && data && data.length > 0) {
+            this._tableAvailable = true;
+            return data.map(d => ({
+              userId: d.user_id,
+              displayName: d.display_name,
+              role: d.role,
+              logDate: d.log_date,
+              loginCount: d.login_count || 1,
+              activeSeconds: d.active_seconds || 0,
+              firstLoginAt: d.first_login_at,
+              lastActiveAt: d.last_active_at
+            }));
+          } else if (error && (error.code === '42P01' || error.status === 404)) {
+            this._tableAvailable = false;
           }
         }
-      }
-    } catch(e) {}
+      } catch(e) {}
+    }
+
+    // 2. Try app_settings fallback if not known to be forbidden
+    if (this._appSettingsAvailable !== false) {
+      try {
+        if (window.sb) {
+          const { data: setRows, error } = await sb.from('app_settings')
+            .select('value')
+            .eq('key', 'user_daily_activity_logs')
+            .limit(1);
+          if (!error && setRows && setRows[0] && setRows[0].value) {
+            this._appSettingsAvailable = true;
+            const map = JSON.parse(setRows[0].value);
+            if (map[dateStr]) {
+              records = Object.values(map[dateStr]);
+              return records.sort((a, b) => new Date(b.lastActiveAt || 0) - new Date(a.lastActiveAt || 0));
+            }
+          } else if (error && (error.status === 403 || error.code === '42501')) {
+            this._appSettingsAvailable = false;
+          }
+        }
+      } catch(e) {}
+    }
 
     // 3. Fallback to localStorage
     const local = this._getLocalLogs();
@@ -1505,15 +1561,11 @@ function renderShell(content, activePage = 'dashboard') {
               <span class="qr-btn-text" style="font-size:11px;font-weight:700;">Keys</span>
             </button>
 
-            <!-- Desktop Search Bar -->
-            <div class="topbar-search">
-              <span class="search-icon" style="cursor:pointer;" onclick="window.triggerGlobalSearch && window.triggerGlobalSearch()" title="Click to Search">🔍</span>
-              <input type="text" id="topbarGlobalSearch" placeholder="Search guests, phone, ID..." value="${SESSION.bookingSearch || ''}" onkeydown="if(event.key==='Enter'){window.triggerGlobalSearch&&window.triggerGlobalSearch();}" />
-            </div>
-
-            <!-- Mobile Quick Search Button (opens instant search overlay) -->
-            <button type="button" class="topbar-icon-btn topbar-mobile-search-btn" onclick="window.openMobileSearch && window.openMobileSearch()" title="Search Bookings & Guests" aria-label="Search">
-              <span>🔍</span>
+            <!-- Menu & Quick Action Search Button -->
+            <button type="button" class="topbar-qr-pill-btn" onclick="window.openCommandPalette && window.openCommandPalette()" title="Search Menu, Features & Actions (⌘K or /)" style="background:#F1F5F9;color:#334155;border:1px solid #CBD5E1;padding:5px 12px;gap:6px;font-weight:700;">
+              <span style="font-size:13px;">🔍</span>
+              <span class="qr-btn-text" style="font-size:12px;">Search Menu...</span>
+              <kbd style="background:#E2E8F0;border-radius:4px;padding:1px 5px;font-size:10px;font-family:monospace;color:#64748B;">⌘K</kbd>
             </button>
 
             <!-- Notifications Bell -->
@@ -1776,11 +1828,16 @@ function renderShell(content, activePage = 'dashboard') {
     if (window._sbkState) {
       window._sbkState.searchQuery = query;
     }
+    const liveInput = document.getElementById('sbkLiveSearch');
+    if (liveInput) liveInput.value = query;
+
     if (SESSION.currentPage !== 'bookings') {
       navigate('bookings');
     } else {
-      if (typeof window.renderSmartManageBookings === 'function') {
-        window.renderSmartManageBookings();
+      if (typeof window.renderSmartBookingsResultsOnly === 'function' && document.getElementById('sbkReservationsContainer')) {
+        window.renderSmartBookingsResultsOnly();
+      } else if (typeof window.renderSmartManageBookings === 'function') {
+        window.renderSmartManageBookings(false);
       } else if (typeof renderManageBookings === 'function') {
         renderManageBookings();
       }
@@ -5342,7 +5399,11 @@ window.printDocumentHTML = function(htmlContent, title = 'Document', options = {
     if (!box) return;
 
     // Check if a close button already exists
-    const hasCloseBtn = box.querySelector('.modal-close, .modal-close-prominent, [class*="close"], button[aria-label="Close"]');
+    const hasCloseBtn = box.querySelector('.modal-close, .modal-close-prominent, [class*="close"], button[aria-label*="close" i], button[aria-label*="dismiss" i]') ||
+      Array.from(box.querySelectorAll('button')).find(b => {
+        const txt = (b.textContent || '').trim();
+        return txt === '✕' || txt === '×' || txt === 'X';
+      });
     if (!hasCloseBtn) {
       const btn = document.createElement('button');
       btn.type = 'button';

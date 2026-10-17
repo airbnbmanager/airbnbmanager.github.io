@@ -692,8 +692,12 @@ window.ICAL_AUTO_SYNC = {
           fsn.success('Airbnb Sync', `✅ ${totalCreated} new booking(s) auto-imported!`);
         }
         if (typeof window.notifyDataChanged === 'function') window.notifyDataChanged();
-        if (typeof window.renderCalendar === 'function' && window._currentView === 'calendar') window.renderCalendar();
-        if (typeof window.renderBookings === 'function' && window._currentView === 'bookings') window.renderBookings();
+        if (typeof window.renderCalendar === 'function' && (window._currentView === 'calendar' || window.SESSION?.currentPage === 'calendar')) window.renderCalendar();
+        if (window.SESSION?.currentPage === 'bookings' && typeof window.renderSmartManageBookings === 'function') {
+          window.renderSmartManageBookings(true);
+        } else if (typeof window.renderBookings === 'function' && (window._currentView === 'bookings' || window.SESSION?.currentPage === 'bookings')) {
+          window.renderBookings();
+        }
       } else {
         console.log('✅ iCal auto-sync: up to date');
       }

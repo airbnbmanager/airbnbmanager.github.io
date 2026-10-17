@@ -683,6 +683,12 @@
     }
   };
 
+  window.openInvestorsShortcut = function() {
+    if (typeof window.navigate === 'function') {
+      window.navigate('investors');
+    }
+  };
+
   window.openNewClaimShortcut = function() {
     if (typeof window.navigate === 'function') {
       const isEmp = window.SESSION?.role === 'employee';
@@ -724,21 +730,23 @@
               <div style="font-size:11px;color:#94A3B8;">Fast navigation & high-speed booking controls</div>
             </div>
           </div>
-          <button type="button" onclick="this.closest('.modal-overlay').remove()" style="width:32px;height:32px;border-radius:50%;background:#EF4444;border:none;color:#fff;font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(239,68,68,0.4);">✕</button>
+          <button type="button" class="modal-close-prominent" aria-label="Close" onclick="this.closest('.modal-overlay').remove()" style="width:32px;height:32px;border-radius:50%;background:#EF4444;border:none;color:#fff;font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(239,68,68,0.4);">✕</button>
         </div>
 
         <div style="display:flex;flex-direction:column;gap:8px;max-height:60vh;overflow-y:auto;padding-right:4px;">
           ${[
+            { key: 'E', single: 'E', label: '✏️ Edit Selected Booking', desc: 'When booking drawer/details is open, press E to edit', action: 'if(window.editCurrentSelectedBooking) window.editCurrentSelectedBooking()' },
+            { key: `${cmdSymbol}S`, single: 'S', label: '💾 Save Booking Form', desc: 'Save active booking or wizard form instantly', action: 'if(window.triggerSaveBookingShortcut) window.triggerSaveBookingShortcut()' },
             { key: `${altSymbol}N`, single: 'N', label: '➕ New Booking', desc: 'Open manual booking creation wizard', action: 'window.openNewBookingShortcut()' },
             { key: `${altSymbol}D`, single: 'D', label: '📋 Duplicate Booking', desc: 'Clone active booking or pick recent guest to rebook', action: 'window.duplicateExistingBookingShortcut()' },
             { key: `${altSymbol}P`, single: 'P', label: '💵 Add Payment / Quick Pay', desc: 'Open payment popup for active booking or dues picker', action: 'window.openQuickPaymentShortcut()' },
             { key: `${altSymbol}T`, single: 'T', label: '📋 Staff Tasks & Checklists', desc: 'Housekeeping, deep cleans & staff duties (Alt+Shift+T for new)', action: 'window.openTasksShortcut()' },
             { key: `${altSymbol}A`, single: 'A', label: '💸 Staff Advances Tracker', desc: 'Track employee loans, peshgi & balances (Alt+Shift+A for new)', action: 'window.openAdvanceShortcut()' },
-            { key: `${altSymbol}E`, single: 'E', label: '🧾 Expense Claims & Reimbursements', desc: 'Staff daily market purchases & claims (Alt+Shift+E for new)', action: 'window.openClaimShortcut()' },
+            { key: `${altSymbol}E`, single: 'Alt+E', label: '🧾 Expense Claims & Reimbursements', desc: 'Staff daily market purchases & claims (Alt+Shift+E for new)', action: 'window.openClaimShortcut()' },
             { key: `${altSymbol}C`, single: 'C', label: '📅 Calendar View', desc: 'Open multi-property occupancy grid', action: 'window.openCalendarShortcut()' },
             { key: `${altSymbol}B`, single: 'B', label: '📑 Smart Bookings', desc: 'View all reservations & guests register', action: 'window.openBookingsShortcut()' },
             { key: `${altSymbol}F`, single: 'F', label: '🛏️ Flats & Turnaround', desc: 'Realtime room turnaround Kanban board', action: 'window.openFlatsShortcut()' },
-            { key: `${altSymbol}M`, single: 'M', label: '💰 Cash Book', desc: 'Petty expenses & UPI reconciliation', action: 'window.openCashBookShortcut()' },
+            { key: `${altSymbol}I`, single: 'I', label: '🧑‍💼 Investors Hub', desc: 'Open Investors list, shares, payout sheets & broadcasts', action: 'window.openInvestorsShortcut()' },
             { key: `${cmdSymbol}K`, single: '/', label: '🔍 Command Palette', desc: 'Spotlight search anything across PMS (Tasks, Advances, Claims, etc.)', action: 'window.openCommandPalette()' },
             { key: '?', single: '?', label: '⚡ Shortcuts Help', desc: 'Open this keyboard cheatsheet modal', action: '' },
             { key: 'ESC', single: 'Esc', label: '✕ Close Drawer / Dialog', desc: 'Dismiss active booking drawer or any open modal', action: '' }
@@ -757,7 +765,7 @@
         </div>
 
         <div style="margin-top:14px;padding:9px 12px;background:#1E293B;border-radius:10px;font-size:11.5px;color:#94A3B8;text-align:center;line-height:1.4;">
-          💡 <em>Tip: iPad Magic Keyboard & Mac par aap <strong>⌥ (Option)</strong> ya direct single keys (<strong>T</strong>, <strong>A</strong>, <strong>E</strong>, <strong>D</strong>, <strong>P</strong>, <strong>N</strong>, <strong>C</strong>, <strong>B</strong>, <strong>F</strong>, <strong>M</strong>) use kar sakte hain jab cursor kisi text box me na ho.</em>
+          💡 <em>Tip: Booking open hone par direct <strong>E</strong> dabayein to Edit Booking khul jayega, aur form me <strong>S</strong> ya <strong>⌘S</strong> dabane par Save ho jayega. Single navigation keys: <strong>I</strong> (Investors), <strong>T</strong>, <strong>A</strong>, <strong>D</strong>, <strong>P</strong>, <strong>N</strong>, <strong>C</strong>, <strong>B</strong>, <strong>F</strong>.</em>
         </div>
       </div>
     `;
@@ -822,11 +830,21 @@
     const isKeyB = code === 'KeyB' || keyCode === 66 || key === 'b' || key === '∫';
     const isKeyF = code === 'KeyF' || keyCode === 70 || key === 'f' || key === 'ƒ';
     const isKeyR = code === 'KeyR' || keyCode === 82 || key === 'r' || key === '®';
-    const isKeyM = code === 'KeyM' || keyCode === 77 || key === 'm' || key === 'µ';
     const isKeyT = code === 'KeyT' || keyCode === 84 || key === 't' || key === '†';
     const isKeyA = code === 'KeyA' || keyCode === 65 || key === 'a' || key === 'å';
     const isKeyE = code === 'KeyE' || keyCode === 69 || key === 'e' || key === '´' || (key === 'dead' && (code === 'KeyE' || keyCode === 69));
+    const isKeyS = code === 'KeyS' || keyCode === 83 || key === 's' || key === 'ß';
+    const isKeyI = code === 'KeyI' || keyCode === 73 || key === 'i' || key === 'ˆ';
     const isKeySlash = code === 'Slash' || keyCode === 191 || key === '/' || key === '?';
+
+    // Global Save Shortcut: Cmd+S / Ctrl+S
+    if ((e.metaKey || e.ctrlKey) && isKeyS) {
+      e.preventDefault();
+      if (typeof window.triggerSaveBookingShortcut === 'function') {
+        window.triggerSaveBookingShortcut();
+      }
+      return;
+    }
 
     // 3. Modifier Combinations (Option/Alt on iPad/Mac OR Cmd+Shift on iPad)
     const isOptionCombo = e.altKey && !e.ctrlKey && !e.metaKey;
@@ -863,11 +881,6 @@
         window.openFlatsShortcut();
         return;
       }
-      if (isKeyM) {
-        e.preventDefault();
-        window.openCashBookShortcut();
-        return;
-      }
       if (isKeyT) {
         e.preventDefault();
         if (e.shiftKey) window.openNewTaskShortcut();
@@ -884,6 +897,11 @@
         e.preventDefault();
         if (e.shiftKey) window.openNewClaimShortcut();
         else window.openClaimShortcut();
+        return;
+      }
+      if (isKeyI) {
+        e.preventDefault();
+        window.openInvestorsShortcut();
         return;
       }
       if (isKeySlash) {
@@ -906,6 +924,26 @@
         e.preventDefault();
         window.openCommandPalette();
         return;
+      }
+      // e -> Edit Selected Booking (Drawer or open booking)
+      if (isKeyE) {
+        if (window._currentDrawerBookingId || document.getElementById('sbkDrawerOverlay')) {
+          e.preventDefault();
+          if (typeof window.editCurrentSelectedBooking === 'function') {
+            window.editCurrentSelectedBooking();
+          }
+          return;
+        }
+      }
+      // s -> Save Booking (when viewing a form/modal)
+      if (isKeyS) {
+        if (document.getElementById('smartSaveBtn') || document.getElementById('saveBtn') || document.getElementById('btnSaveBookingId')) {
+          e.preventDefault();
+          if (typeof window.triggerSaveBookingShortcut === 'function') {
+            window.triggerSaveBookingShortcut();
+          }
+          return;
+        }
       }
       // n -> New booking
       if (isKeyN) {
@@ -943,12 +981,6 @@
         window.openFlatsShortcut();
         return;
       }
-      // m -> Cash Book
-      if (isKeyM) {
-        e.preventDefault();
-        window.openCashBookShortcut();
-        return;
-      }
       // t -> Tasks
       if (isKeyT) {
         e.preventDefault();
@@ -963,7 +995,13 @@
         else window.openAdvanceShortcut();
         return;
       }
-      // e -> Claims / Reimbursements
+      // i -> Investors Hub
+      if (isKeyI) {
+        e.preventDefault();
+        window.openInvestorsShortcut();
+        return;
+      }
+      // e -> Claims fallback when no booking is selected
       if (isKeyE) {
         e.preventDefault();
         if (e.shiftKey) window.openNewClaimShortcut();
@@ -972,6 +1010,47 @@
       }
     }
   }, { capture: true });
+
+  // Expose global action helpers for Edit & Save booking shortcuts
+  window.editCurrentSelectedBooking = function() {
+    const bkId = window._currentDrawerBookingId || window._sbkState?.drawerBookingId;
+    if (bkId) {
+      if (typeof window.drawerEditBooking === 'function') {
+        window.drawerEditBooking(bkId);
+      } else if (typeof window.editBooking === 'function') {
+        window.editBooking(bkId);
+      }
+    } else {
+      if (window.fsn) fsn.info('No Booking Selected', 'Pehle koi booking card ya drawer select karein, fir "E" dabayein.');
+    }
+  };
+
+  window.triggerSaveBookingShortcut = function() {
+    // 1. Smart Booking wizard save button
+    const smartSave = document.getElementById('smartSaveBtn');
+    if (smartSave && !smartSave.disabled) {
+      smartSave.click();
+      return;
+    }
+    // 2. Standard booking save button
+    const standardSave = document.getElementById('saveBtn');
+    if (standardSave && !standardSave.disabled) {
+      standardSave.click();
+      return;
+    }
+    // 3. Direct booking ID save button
+    const idSave = document.getElementById('btnSaveBookingId');
+    if (idSave && !idSave.disabled) {
+      idSave.click();
+      return;
+    }
+    // Fallback: functions
+    if (typeof window.saveSmartBooking === 'function') {
+      window.saveSmartBooking();
+    } else if (typeof window.saveBooking === 'function') {
+      window.saveBooking();
+    }
+  };
 
   // Render & Filter Results
   async function renderPaletteResults(query) {

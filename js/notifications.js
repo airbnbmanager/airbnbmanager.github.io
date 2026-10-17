@@ -736,6 +736,11 @@
           if (b && typeof window.triggerInvestorBookingAlert === 'function') {
             window.triggerInvestorBookingAlert(b).catch(err => console.warn('Realtime investor alert error:', err));
           }
+
+          // Realtime auto-refresh active bookings list if user is currently looking at Bookings
+          if (window.SESSION?.currentPage === 'bookings' && typeof window.renderSmartManageBookings === 'function') {
+            try { window.renderSmartManageBookings(true); } catch(err) { console.warn('Realtime refresh error:', err); }
+          }
         })
       .subscribe((s) => console.log('🔔 Bookings channel:', s));
 

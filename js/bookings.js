@@ -8838,6 +8838,23 @@ window.submitSecurityRefund = async function(bkId) {
 // ⚡ CUSTOM PAYMENT QR GENERATOR & INSTANT GUEST SETTLEMENT
 // ═══════════════════════════════════════════════════════════
 window.openCustomPaymentQRModal = async function(prefill = {}) {
+  // If no or partial prefill passed, check if a booking is currently selected/active in drawer
+  const curBooking = window._currentDrawerBooking || 
+    (window._currentDrawerBookingId && window._sbkState?.cachedBookings?.find(x => x.booking_id === window._currentDrawerBookingId)) ||
+    (window._sbkState?.drawerBookingId && window._sbkState?.cachedBookings?.find(x => x.booking_id === window._sbkState.drawerBookingId));
+
+  if (curBooking) {
+    if (!prefill.guestName && curBooking.guest_name) prefill.guestName = curBooking.guest_name;
+    if (!prefill.phone && curBooking.phone) prefill.phone = curBooking.phone;
+    if (!prefill.roomId && (curBooking.room_id || curBooking.rooms?.room_id)) prefill.roomId = curBooking.room_id || curBooking.rooms?.room_id;
+    if (prefill.amount === undefined || prefill.amount === null) {
+      const pd = (window._sbkState?.cachedPaidMap || {})[curBooking.booking_id] || 0;
+      const tot = curBooking.total_amount || 0;
+      const bal = tot - pd;
+      prefill.amount = bal > 0 ? Math.round(bal) : (tot > 0 ? Math.round(tot) : 2500);
+    }
+  }
+
   // 1. Fetch available rooms with complete property details
   let rooms = window._cachedRooms || [];
   if (!rooms.length || !rooms[0]?.property_name) {
@@ -8883,7 +8900,23 @@ window.openCustomPaymentQRModal = async function(prefill = {}) {
   // Initial values
   const initGuest = prefill.guestName || '';
   const initPhone = prefill.phone ? String(prefill.phone).replace(/\D/g, '') : '';
-  const initRoomId = prefill.roomId || '';
+  let initRoomId = (prefill.roomId || '').trim();
+
+  // If roomId given as name/unit or not exact room_id match, attempt fuzzy match against rooms
+  if (initRoomId && rooms && rooms.length) {
+    const exact = rooms.find(r => r.room_id === initRoomId);
+    if (!exact) {
+      const cleanTarget = initRoomId.toLowerCase();
+      const match = rooms.find(r => 
+        (r.room_id && r.room_id.toLowerCase() === cleanTarget) ||
+        (r.unit_no && r.unit_no.toLowerCase() === cleanTarget) ||
+        (r.nickname && r.nickname.toLowerCase().includes(cleanTarget)) ||
+        (r.property_name && r.property_name.toLowerCase().includes(cleanTarget))
+      );
+      if (match) initRoomId = match.room_id;
+    }
+  }
+
   const initAmount = prefill.amount ? Number(prefill.amount) : 2500;
 
   overlay.innerHTML = `
@@ -8917,14 +8950,16 @@ window.openCustomPaymentQRModal = async function(prefill = {}) {
 
         <!-- 2. Property / Unit (SECOND) -->
         <div>
-          <label style="display:block;font-size:11.5px;font-weight:800;color:#1E1B4B;margin-bottom:3px;">2. Select Property / Unit *</label>
-          <select id="cpqrRoomSelect" style="width:100%;padding:8px 10px;border:1.5px solid #CBD5E1;border-radius:8px;font-size:13px;font-weight:700;color:#0F172A;background:#FFFFFF;box-sizing:border-box;">
-            <option value="">-- General Homestay --</option>
-            ${rooms.map(r => {
-              const isSel = r.room_id === initRoomId;
-              return `<option value="${r.room_id}" ${isSel ? 'selected' : ''}>${propLabel(r)}</option>`;
-            }).join('')}
-          </select>
+          <label for="cpqrRoomSelect" style="display:block;font-size:11.5px;font-weight:800;color:#1E1B4B;margin-bottom:3px;">2. Select Property / Unit *</label>
+          <div style="position:relative;">
+            <select id="cpqrRoomSelect" style="width:100%;height:38px;padding:8px 30px 8px 10px;border:1.5px solid #CBD5E1;border-radius:8px;font-size:13px;font-weight:700;color:#0F172A;background:#FFFFFF;box-sizing:border-box;cursor:pointer;-webkit-appearance:menulist;appearance:menulist;pointer-events:auto;position:relative;z-index:2;">
+              <option value="">-- General Homestay --</option>
+              ${rooms.map(r => {
+                const isSel = r.room_id === initRoomId;
+                return `<option value="${r.room_id}" ${isSel ? 'selected' : ''}>${propLabel(r)}</option>`;
+              }).join('')}
+            </select>
+          </div>
         </div>
 
         <!-- 3. Receiving Account (Default: Firoz Khan) -->

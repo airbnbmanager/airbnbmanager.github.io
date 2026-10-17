@@ -44,126 +44,20 @@ function formatDate(dStr) {
   }
 }
 
-// =====================================================================
-// 1. MAIN COMMAND CENTER: RENDER MANAGE BOOKINGS (Airbnb Host Style)
-// =====================================================================
-async function renderSmartManageBookings() {
-  if (window._sbkState.classicMode && typeof window.renderClassicManageBookings === 'function') {
-    return window.renderClassicManageBookings();
-  }
-
-  const today = new Date().toISOString().slice(0, 10);
-  renderShell(`<div class="loading" style="padding:40px;text-align:center;"><div class="spinner"></div><div style="margin-top:10px;font-weight:600;color:var(--muted);">Loading TUHH Bookings Command Center...</div></div>`, 'bookings');
-
-  // Preload helpers
-  if (typeof preloadUserNames === 'function') await preloadUserNames();
-  if (typeof preloadGuestStays === 'function') await preloadGuestStays();
-
-  // Role assigned rooms for caretaker
-  if (['caretaker', 'checkin_manager'].includes(SESSION.role) && SESSION.empId) {
-    const { data: emp } = await sb.from('employees').select('assigned_rooms').eq('emp_id', SESSION.empId).single();
-    if (emp?.assigned_rooms) {
-      window._myAssignedRooms = emp.assigned_rooms.split(',').map(r => r.trim()).filter(Boolean);
-    }
-  }
-
-  // Fetch payments map
-  const { data: allPays } = await sb.from('payment_history')
-    .select('booking_id, amount, payment_date, verification_status')
-    .neq('verification_status', 'rejected');
-  
-  const paidMap = {};
-  (allPays || []).forEach(p => {
-    paidMap[p.booking_id] = (paidMap[p.booking_id] || 0) + (p.amount || 0);
-  });
-  window._bkPaidMap = paidMap;
-  window._sbkState.cachedPaidMap = paidMap;
-
-  // Fetch all bookings
-  const { data: all, error } = await sb.from('guest_register')
-    .select('*, rooms(unit_no, nickname, property_name)')
-    .order('check_in', { ascending: false });
-
-  if (error) {
-    renderShell(`<div class="card"><div class="error">❌ Error loading bookings: ${escapeHtml(error.message)}</div></div>`, 'bookings');
-    return;
-  }
-
-  // Fetch rooms
-  const { data: rooms } = await sb.from('rooms').select('room_id, unit_no, nickname, property_name, rent_per_night').order('unit_no');
-  window._roomsCache = rooms || [];
-  window._sbkState.cachedRooms = rooms || [];
-  window._allBookings = all || [];
-  window._sbkState.cachedBookings = all || [];
-
-  // Compute guest phone frequencies to detect multi-stay / group guests even without stay_group_id
-  const phoneCounts = {};
-  (all || []).forEach(x => {
-    if (x.phone && !x.is_cancelled && x.verification_status !== 'rejected') {
-      const p = String(x.phone).replace(/\D/g, '').slice(-10);
-      if (p.length === 10) phoneCounts[p] = (phoneCounts[p] || 0) + 1;
-    }
-  });
-  window._sbkState.phoneCounts = phoneCounts;
-
-  // Compute operational KPIs
-  let activeBookings = (all || []).filter(b => !b.is_cancelled && b.verification_status !== 'rejected');
-  if (window._myAssignedRooms?.length) {
-    activeBookings = activeBookings.filter(b => window._myAssignedRooms.includes(b.room_id));
-  }
-
-  const arrivalsCount = activeBookings.filter(b => b.check_in === today).length;
-  const departuresCount = activeBookings.filter(b => b.check_out === today && b.checkout_confirmed !== false).length;
-  // Real in-house stays: check_in <= today AND checkout is strictly in the future (or open-ended without checkout date)
-  const inHouseCount = activeBookings.filter(b => b.check_in <= today && (b.check_out > today || (!b.check_out && b.checkout_confirmed === false))).length;
-
-  // Active reservations for Today: Departures today + Arrivals today + Ongoing stays spanning today
-  const todayCount = activeBookings.filter(b => {
-    const isArrival = b.check_in === today;
-    const isDeparture = b.check_out === today;
-    const isStaying = b.check_in < today && (b.check_out > today || (!b.check_out && b.checkout_confirmed === false));
-    return isArrival || isDeparture || isStaying;
-  }).length;
-
-  const upcomingCount = activeBookings.filter(b => b.check_in > today).length;
-  
-  let totalBalanceDue = 0;
-  let dueCount = 0;
-  activeBookings.forEach(b => {
-    const isOnline = b.booking_mode === 'Online-Airbnb' || !!b.airbnb_confirmation_code;
-    if (isOnline && (b.total_amount === 0 || b.payment_status === 'Pending CSV Payout')) return;
-    const pd = paidMap[b.booking_id] || 0;
-    const tot = b.total_amount || 0;
-    const due = tot - pd;
-    if (due > 0.99) {
-      totalBalanceDue += due;
-      dueCount++;
-    }
-  });
-
-  const pendingApprovalsCount = (all || []).filter(b => b.verification_status === 'pending').length;
-
-  // Apply filters
+window.computeFilteredBookings = function(all, paidMap, today) {
   let filtered = [...(all || [])];
   if (window._myAssignedRooms?.length) {
     filtered = filtered.filter(b => window._myAssignedRooms.includes(b.room_id));
   }
 
-  // Sync global search if present
-  if (window.SESSION?.bookingSearch && !window._sbkState.searchQuery) {
-    window._sbkState.searchQuery = window.SESSION.bookingSearch;
-  }
-
-  // Search filter query
   const sq = (window._sbkState.searchQuery || '').trim().toLowerCase();
-
   const tab = window._sbkState.activeTab || 'today';
+
   if (sq) {
-    // UNIVERSAL SEARCH: Searches across ALL bookings & ALL guest details
     const rawTokens = sq.split(/\s+/).filter(Boolean);
     const sqDigits = sq.replace(/\D/g, '');
 
-    filtered = (all || []).filter(b => {
+    filtered = filtered.filter(b => {
       // 1. Robust Phone matching (+91, 91, 0, spaces, dashes)
       if (window.matchPhoneSearch && window.matchPhoneSearch(sq, b.phone)) return true;
 
@@ -178,7 +72,10 @@ async function renderSmartManageBookings() {
         if (bBookingIdDigits.includes(sqDigits)) return true;
       }
 
-      // 2. Comprehensive text bundle for this booking
+      // 3. Fallback room data lookup if rooms foreign object is missing
+      const roomObj = b.rooms || window._roomsCache?.find(r => r.room_id === b.room_id) || {};
+
+      // 4. Comprehensive text bundle for this booking
       const textBundle = [
         b.guest_name || '',
         b.phone || '',
@@ -192,10 +89,10 @@ async function renderSmartManageBookings() {
         b.vehicle_number || '',
         b.booked_by || '',
         b.room_id || '',
-        b.rooms?.nickname || '',
-        b.rooms?.unit_no || '',
-        b.rooms?.property_name || '',
-        b.rooms?.address || '',
+        roomObj.nickname || '',
+        roomObj.unit_no || '',
+        roomObj.property_name || '',
+        roomObj.address || '',
         b.check_in || '',
         b.check_out || '',
         formatDate(b.check_in),
@@ -297,6 +194,162 @@ async function renderSmartManageBookings() {
     }
   }
 
+  return filtered;
+};
+
+window.getSbkHeroTitle = function(count, sq, tab) {
+  if (sq) {
+    return `${count} reservation${count === 1 ? '' : 's'} matching "${escapeHtml(sq)}"`;
+  } else if (tab === 'today') {
+    return `You have ${count} reservation${count === 1 ? '' : 's'}`;
+  } else if (tab === 'upcoming') {
+    return `You have ${count} upcoming reservation${count === 1 ? '' : 's'}`;
+  } else if (tab === 'inhouse') {
+    return `You have ${count} in-house stay${count === 1 ? '' : 's'}`;
+  } else if (tab === 'all') {
+    return `All Guests & Reservations (${count})`;
+  } else if (tab === 'due') {
+    return `You have ${count} reservation${count === 1 ? '' : 's'} with balance due`;
+  } else if (tab === 'arrivals') {
+    return `You have ${count} check-in${count === 1 ? '' : 's'} today`;
+  } else if (tab === 'departures') {
+    return `You have ${count} checkout${count === 1 ? '' : 's'} today`;
+  } else if (tab === 'pending') {
+    return `You have ${count} pending booking${count === 1 ? '' : 's'} awaiting approval`;
+  } else if (tab === 'airbnb') {
+    return `You have ${count} Airbnb reservation${count === 1 ? '' : 's'}`;
+  } else if (tab === 'direct') {
+    return `You have ${count} Direct reservation${count === 1 ? '' : 's'}`;
+  } else {
+    return `You have ${count} reservation${count === 1 ? '' : 's'}`;
+  }
+};
+
+// =====================================================================
+// 1. MAIN COMMAND CENTER: RENDER MANAGE BOOKINGS (Airbnb Host Style)
+// =====================================================================
+async function renderSmartManageBookings(forceRefresh = false) {
+  if (window._sbkState.classicMode && typeof window.renderClassicManageBookings === 'function') {
+    return window.renderClassicManageBookings();
+  }
+
+  const today = new Date().toISOString().slice(0, 10);
+
+  // If we already have cached bookings & rooms in memory and not forcing refresh,
+  // we do NOT show a loading screen or query Supabase over network (instant 0ms response!)
+  const hasCachedData = !forceRefresh && 
+    window._sbkState.cachedBookings && 
+    window._sbkState.cachedBookings.length > 0 && 
+    window._sbkState.cachedRooms && 
+    window._sbkState.cachedRooms.length > 0;
+
+  if (!hasCachedData) {
+    renderShell(`<div class="loading" style="padding:40px;text-align:center;"><div class="spinner"></div><div style="margin-top:10px;font-weight:600;color:var(--muted);">Loading TUHH Bookings Command Center...</div></div>`, 'bookings');
+
+    // Preload helpers
+    if (typeof preloadUserNames === 'function') await preloadUserNames();
+    if (typeof preloadGuestStays === 'function') await preloadGuestStays();
+
+    // Role assigned rooms for caretaker
+    if (['caretaker', 'checkin_manager'].includes(SESSION.role) && SESSION.empId) {
+      const { data: emp } = await sb.from('employees').select('assigned_rooms').eq('emp_id', SESSION.empId).single();
+      if (emp?.assigned_rooms) {
+        window._myAssignedRooms = emp.assigned_rooms.split(',').map(r => r.trim()).filter(Boolean);
+      }
+    }
+
+    // Fetch payments map
+    const { data: allPays } = await sb.from('payment_history')
+      .select('booking_id, amount, payment_date, verification_status')
+      .neq('verification_status', 'rejected');
+    
+    const paidMap = {};
+    (allPays || []).forEach(p => {
+      paidMap[p.booking_id] = (paidMap[p.booking_id] || 0) + (p.amount || 0);
+    });
+    window._bkPaidMap = paidMap;
+    window._sbkState.cachedPaidMap = paidMap;
+
+    // Fetch all bookings
+    const { data: all, error } = await sb.from('guest_register')
+      .select('*, rooms(unit_no, nickname, property_name)')
+      .order('check_in', { ascending: false });
+
+    if (error) {
+      renderShell(`<div class="card"><div class="error">❌ Error loading bookings: ${escapeHtml(error.message)}</div></div>`, 'bookings');
+      return;
+    }
+
+    // Fetch rooms
+    const { data: rooms } = await sb.from('rooms').select('room_id, unit_no, nickname, property_name, rent_per_night').order('unit_no');
+    window._roomsCache = rooms || [];
+    window._sbkState.cachedRooms = rooms || [];
+    window._allBookings = all || [];
+    window._sbkState.cachedBookings = all || [];
+  }
+
+  const all = window._sbkState.cachedBookings || [];
+  const rooms = window._sbkState.cachedRooms || [];
+  const paidMap = window._sbkState.cachedPaidMap || window._bkPaidMap || {};
+
+  // Compute guest phone frequencies to detect multi-stay / group guests even without stay_group_id
+  const phoneCounts = {};
+  (all || []).forEach(x => {
+    if (x.phone && !x.is_cancelled && x.verification_status !== 'rejected') {
+      const p = String(x.phone).replace(/\D/g, '').slice(-10);
+      if (p.length === 10) phoneCounts[p] = (phoneCounts[p] || 0) + 1;
+    }
+  });
+  window._sbkState.phoneCounts = phoneCounts;
+
+  // Compute operational KPIs
+  let activeBookings = (all || []).filter(b => !b.is_cancelled && b.verification_status !== 'rejected');
+  if (window._myAssignedRooms?.length) {
+    activeBookings = activeBookings.filter(b => window._myAssignedRooms.includes(b.room_id));
+  }
+
+  const arrivalsCount = activeBookings.filter(b => b.check_in === today).length;
+  const departuresCount = activeBookings.filter(b => b.check_out === today && b.checkout_confirmed !== false).length;
+  // Real in-house stays: check_in <= today AND checkout is strictly in the future (or open-ended without checkout date)
+  const inHouseCount = activeBookings.filter(b => b.check_in <= today && (b.check_out > today || (!b.check_out && b.checkout_confirmed === false))).length;
+
+  // Active reservations for Today: Departures today + Arrivals today + Ongoing stays spanning today
+  const todayCount = activeBookings.filter(b => {
+    const isArrival = b.check_in === today;
+    const isDeparture = b.check_out === today;
+    const isStaying = b.check_in < today && (b.check_out > today || (!b.check_out && b.checkout_confirmed === false));
+    return isArrival || isDeparture || isStaying;
+  }).length;
+
+  const upcomingCount = activeBookings.filter(b => b.check_in > today).length;
+  
+  let totalBalanceDue = 0;
+  let dueCount = 0;
+  activeBookings.forEach(b => {
+    const isOnline = b.booking_mode === 'Online-Airbnb' || !!b.airbnb_confirmation_code;
+    if (isOnline && (b.total_amount === 0 || b.payment_status === 'Pending CSV Payout')) return;
+    const pd = paidMap[b.booking_id] || 0;
+    const tot = b.total_amount || 0;
+    const due = tot - pd;
+    if (due > 0.99) {
+      totalBalanceDue += due;
+      dueCount++;
+    }
+  });
+
+  const pendingApprovalsCount = (all || []).filter(b => b.verification_status === 'pending').length;
+
+  // Sync global search if present
+  if (window.SESSION?.bookingSearch && !window._sbkState.searchQuery) {
+    window._sbkState.searchQuery = window.SESSION.bookingSearch;
+  }
+
+  const tab = window._sbkState.activeTab || 'today';
+  const sq = (window._sbkState.searchQuery || '').trim().toLowerCase();
+
+  // Apply filters via shared fast compute function
+  const filtered = window.computeFilteredBookings(all, paidMap, today);
+
   const canM = ['owner','admin','manager','moderator','developer'].includes(SESSION.role);
 
   // Active filter count for badge
@@ -306,33 +359,7 @@ async function renderSmartManageBookings() {
   if (window._sbkState.paymentFilter) activeFilterCount++;
 
   // Determine hero heading like Airbnb
-  let heroTitle = '';
-  const count = filtered.length;
-  if (sq) {
-    heroTitle = `${count} reservation${count === 1 ? '' : 's'} matching "${escapeHtml(sq)}"`;
-  } else if (tab === 'today') {
-    heroTitle = `You have ${count} reservation${count === 1 ? '' : 's'}`;
-  } else if (tab === 'upcoming') {
-    heroTitle = `You have ${count} upcoming reservation${count === 1 ? '' : 's'}`;
-  } else if (tab === 'inhouse') {
-    heroTitle = `You have ${count} in-house stay${count === 1 ? '' : 's'}`;
-  } else if (tab === 'all') {
-    heroTitle = `All Guests & Reservations (${count})`;
-  } else if (tab === 'due') {
-    heroTitle = `You have ${count} reservation${count === 1 ? '' : 's'} with balance due`;
-  } else if (tab === 'arrivals') {
-    heroTitle = `You have ${count} check-in${count === 1 ? '' : 's'} today`;
-  } else if (tab === 'departures') {
-    heroTitle = `You have ${count} checkout${count === 1 ? '' : 's'} today`;
-  } else if (tab === 'pending') {
-    heroTitle = `You have ${count} pending booking${count === 1 ? '' : 's'} awaiting approval`;
-  } else if (tab === 'airbnb') {
-    heroTitle = `You have ${count} Airbnb reservation${count === 1 ? '' : 's'}`;
-  } else if (tab === 'direct') {
-    heroTitle = `You have ${count} Direct reservation${count === 1 ? '' : 's'}`;
-  } else {
-    heroTitle = `You have ${count} reservation${count === 1 ? '' : 's'}`;
-  }
+  let heroTitle = window.getSbkHeroTitle(filtered.length, sq, tab);
 
   // Render View HTML
   const html = `
@@ -379,6 +406,10 @@ async function renderSmartManageBookings() {
         </div>
 
         <div class="airbnb-header-actions">
+          <button type="button" class="airbnb-filter-trigger" onclick="window.renderSmartManageBookings(true)" title="Refresh bookings from server" style="gap:4px;">
+            <span>🔄</span>
+            <span class="airbnb-filter-text">Refresh</span>
+          </button>
           <button class="airbnb-filter-trigger ${window._sbkState.showFilters ? 'active' : ''}" onclick="window.toggleAirbnbFilter()" title="Filter Bookings">
             <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
               <path d="M10 18h4v-2h-4v2zM3 6v2h18V6H3zm3 7h12v-2H6v2z"/>
@@ -441,49 +472,50 @@ async function renderSmartManageBookings() {
       ` : ''}
 
       <!-- Big Hero Headline (Identical to Airbnb) -->
-      <h1 class="airbnb-hero-heading">${heroTitle}</h1>
-      ${tab === 'today' && !sq ? `
-        <div style="font-size:13.5px;color:#64748B;text-align:center;margin:-12px 0 22px 0;font-weight:500;">
-          ${departuresCount} check-outs • ${arrivalsCount} check-ins • ${Math.max(0, inHouseCount - arrivalsCount)} continuing stays
-        </div>
-      ` : ''}
+      <h1 class="airbnb-hero-heading" id="sbkHeroHeading">${heroTitle}</h1>
+      <div id="sbkHeroSubheading">
+        ${tab === 'today' && !sq ? `
+          <div style="font-size:13.5px;color:#64748B;text-align:center;margin:-12px 0 22px 0;font-weight:500;">
+            ${departuresCount} check-outs • ${arrivalsCount} check-ins • ${Math.max(0, inHouseCount - arrivalsCount)} continuing stays
+          </div>
+        ` : ''}
+      </div>
 
-      <!-- Clean Airbnb Search Input with Manual Trigger -->
+      <!-- Clean Airbnb Search Input with Instant & Manual Trigger -->
       <div class="airbnb-search-bar" style="display:flex;align-items:center;gap:8px;">
         <span style="font-size:16px;color:#64748B;">🔍</span>
         <input type="text" id="sbkLiveSearch" placeholder="Search guest name, phone, reservation code, unit..."
           value="${escapeHtml(window._sbkState.searchQuery)}"
+          oninput="window.handleSearchInput(this.value)"
           onkeydown="if(event.key==='Enter'){event.preventDefault();window.handleManualSearch();}" />
         <button type="button" class="btn-sm" onclick="window.handleManualSearch();" style="padding:6px 16px;background:#0F172A;color:#fff;border-radius:8px;font-weight:700;cursor:pointer;font-size:13px;border:none;flex-shrink:0;">🔍 Search</button>
-        ${window._sbkState.searchQuery ? `
-          <button type="button" onclick="window.clearSearch();" 
-            style="background:#F1F5F9;border:1px solid #CBD5E1;border-radius:8px;cursor:pointer;color:#64748B;font-weight:700;padding:6px 10px;font-size:13px;flex-shrink:0;">✕ Clear</button>
-        ` : ''}
+        <button type="button" id="sbkClearBtn" onclick="window.clearSearch();" 
+          style="background:#F1F5F9;border:1px solid #CBD5E1;border-radius:8px;cursor:pointer;color:#64748B;font-weight:700;padding:6px 10px;font-size:13px;flex-shrink:0;${window._sbkState.searchQuery ? '' : 'display:none;'}">✕ Clear</button>
       </div>
 
-      <!-- Your follow-ups Section (Displayed on Today tab for clean, immediate Guest list) -->
-      ${tab === 'today' && !sq ? renderAirbnbFollowupsHtml(all, paidMap, canM, today) : ''}
-
-      <!-- Reservation Presentation -->
-      ${filtered.length === 0 ? `
-        <div style="background:#ffffff;border:1px solid #E2E8F0;border-radius:16px;text-align:center;padding:50px 20px;max-width:560px;margin:0 auto;">
-          <div style="font-size:36px;margin-bottom:12px;">🏡</div>
-          <div style="font-size:17px;font-weight:800;color:#0F172A;">No reservations found</div>
-          <div style="font-size:13px;color:#64748B;margin-top:4px;">
-            ${tab === 'today' ? 'There are no check-ins, check-outs, or stays scheduled for today.' : 'No reservations matched your current filter or search criteria.'}
-          </div>
-          <div style="display:flex;gap:8px;justify-content:center;margin-top:16px;flex-wrap:wrap;">
-            ${tab === 'today' ? `
-              <button class="btn-sm" style="background:#222222;color:#fff;border-radius:20px;font-weight:700;padding:7px 18px;border:none;" onclick="window.setBookingTab('upcoming')">
-                View Upcoming (${upcomingCount})
+      <!-- Reservation Presentation Container -->
+      <div id="sbkReservationsContainer">
+        ${tab === 'today' && !sq ? renderAirbnbFollowupsHtml(all, paidMap, canM, today) : ''}
+        ${filtered.length === 0 ? `
+          <div style="background:#ffffff;border:1px solid #E2E8F0;border-radius:16px;text-align:center;padding:50px 20px;max-width:560px;margin:0 auto;">
+            <div style="font-size:36px;margin-bottom:12px;">🏡</div>
+            <div style="font-size:17px;font-weight:800;color:#0F172A;">No reservations found</div>
+            <div style="font-size:13px;color:#64748B;margin-top:4px;">
+              ${sq ? `No reservations matched "${escapeHtml(sq)}".` : (tab === 'today' ? 'There are no check-ins, check-outs, or stays scheduled for today.' : 'No reservations matched your current filter or search criteria.')}
+            </div>
+            <div style="display:flex;gap:8px;justify-content:center;margin-top:16px;flex-wrap:wrap;">
+              ${tab === 'today' ? `
+                <button class="btn-sm" style="background:#222222;color:#fff;border-radius:20px;font-weight:700;padding:7px 18px;border:none;" onclick="window.setBookingTab('upcoming')">
+                  View Upcoming (${upcomingCount})
+                </button>
+              ` : ''}
+              <button class="btn-sm outline" style="border-radius:20px;font-weight:700;padding:7px 18px;" onclick="${sq ? 'window.clearSearch()' : 'window.resetBookingFilters()'}">
+                ${sq ? 'Clear Search' : 'Clear Filters'}
               </button>
-            ` : ''}
-            <button class="btn-sm outline" style="border-radius:20px;font-weight:700;padding:7px 18px;" onclick="window.resetBookingFilters()">
-              Clear Filters
-            </button>
+            </div>
           </div>
-        </div>
-      ` : window._sbkState.viewMode === 'table' ? renderBookingTableHtml(filtered, paidMap, canM, today) : window._sbkState.viewMode === 'cards' ? renderBookingCardsHtml(filtered, paidMap, canM, today) : renderAirbnbReservationsHtml(filtered, paidMap, canM, today)}
+        ` : window._sbkState.viewMode === 'table' ? renderBookingTableHtml(filtered, paidMap, canM, today) : window._sbkState.viewMode === 'cards' ? renderBookingCardsHtml(filtered, paidMap, canM, today) : renderAirbnbReservationsHtml(filtered, paidMap, canM, today)}
+      </div>
 
       <!-- Airbnb-Style Floating Operations Banner (Matches bottom banner in screenshot) -->
       <div class="airbnb-notice-card" onclick="renderAddBooking()" style="cursor:pointer;">
@@ -582,15 +614,15 @@ function getAirbnbHeadline(b, today) {
     return `${groupLabel} checks out`;
   }
   if (isArrivingToday) {
-    return `${groupLabel} checks in today`;
+    return `${groupLabel} checks in`;
   }
   if (isStaying) {
     if (isOpenEnded) {
       const elapsed = Math.max(1, Math.ceil((new Date(today) - new Date(b.check_in)) / 86400000));
-      return `${groupLabel} stays (day ${elapsed})`;
+      return `${groupLabel} stays for one more day`;
     }
     const daysLeft = Math.max(1, Math.ceil((new Date(b.check_out) - new Date(today)) / 86400000));
-    return `${groupLabel} stays for ${daysLeft} more ${daysLeft === 1 ? 'day' : 'days'}`;
+    return `${groupLabel} stays for ${daysLeft === 1 ? 'one more day' : `${daysLeft} more days`}`;
   }
   if (b.check_in > today) {
     return groupLabel;
@@ -683,22 +715,24 @@ function renderAirbnbReservationsHtml(bookings, paidMap, canM, today) {
         const isCheckoutToday = b.check_out === today;
         const isArrivalToday = b.check_in === today;
         const isStayingAllDay = b.check_in < today && (b.check_out > today || isOpenEnded);
+        const isUpcoming = b.check_in > today;
+        const isPast = !isOpenEnded && b.check_out < today;
         const isOnline = b.booking_mode === 'Online-Airbnb' || !!b.airbnb_confirmation_code;
         const bSrc = (typeof window.getBookingSource === 'function') ? window.getBookingSource(b) : null;
-        const nights = (b.check_in && b.check_out) ? Math.max(calcNights(b.check_in, b.check_out), 1) : 1;
+        const nights = (b.check_in && b.check_out) ? Math.max((typeof calcNights === 'function' ? calcNights(b.check_in, b.check_out) : Math.round((new Date(b.check_out) - new Date(b.check_in)) / 86400000)), 1) : 1;
 
         // Left Time Column Content
         let timeMain = '';
         let timeSub = '';
         if (isCheckoutToday) {
-          timeMain = b.check_out_time || '11:00 am';
-          timeSub = 'Checkout today';
+          timeMain = (b.check_out_time ? b.check_out_time.replace(/:\d\d$/, '') : '11:00').replace(/\s*[ap]m/i, '');
+          timeSub = '';
         } else if (isArrivalToday) {
-          timeMain = b.check_in_time || '2:00 pm';
-          timeSub = 'Check-in today';
+          timeMain = (b.check_in_time ? b.check_in_time.replace(/:\d\d$/, '') : '14:00').replace(/\s*[ap]m/i, '');
+          timeSub = '';
         } else if (isStayingAllDay) {
           timeMain = 'All day';
-          timeSub = isOpenEnded ? `Day ${elapsedDays} (Open)` : 'In-House stay';
+          timeSub = '';
         } else if (isUpcoming) {
           timeMain = formatAirbnbDateRange(b.check_in, b.check_out);
           timeSub = `${nights} ${nights === 1 ? 'night' : 'nights'}`;
@@ -918,6 +952,8 @@ function renderBookingCardsHtml(bookings, paidMap, canM, today) {
         const isActive = b.check_in <= today && (isOpenEnded || b.check_out > today);
         const isCheckoutToday = !isOpenEnded && b.check_out === today;
         const isArrivalToday = b.check_in === today;
+        const isUpcoming = b.check_in > today;
+        const isPast = !isOpenEnded && b.check_out < today;
         const isOnline = b.booking_mode === 'Online-Airbnb' || !!b.airbnb_confirmation_code;
         const bSrc = (typeof window.getBookingSource === 'function') ? window.getBookingSource(b) : null;
 
@@ -1614,9 +1650,108 @@ window.closeBookingDrawer = function() {
 // =====================================================================
 // 5. LIVE CONTROLS & EVENT HANDLERS
 // =====================================================================
+// =====================================================================
+// 5. LIVE CONTROLS & EVENT HANDLERS (Instant In-Memory Performance)
+// =====================================================================
+window.renderSmartBookingsResultsOnly = function() {
+  const container = document.getElementById('sbkReservationsContainer');
+  if (!container || !window._sbkState.cachedBookings?.length) {
+    return renderSmartManageBookings(false);
+  }
+
+  const all = window._sbkState.cachedBookings || [];
+  const rooms = window._sbkState.cachedRooms || [];
+  const paidMap = window._sbkState.cachedPaidMap || window._bkPaidMap || {};
+  const today = new Date().toISOString().slice(0, 10);
+  const canM = ['owner','admin','manager','moderator','developer'].includes(SESSION.role);
+  const tab = window._sbkState.activeTab || 'today';
+  const sq = (window._sbkState.searchQuery || '').trim().toLowerCase();
+
+  // Fast in-memory compute (1-2ms)
+  const filtered = window.computeFilteredBookings(all, paidMap, today);
+  const count = filtered.length;
+
+  // Update clear button visibility
+  const clearBtn = document.getElementById('sbkClearBtn');
+  if (clearBtn) clearBtn.style.display = sq ? 'inline-block' : 'none';
+
+  // Update hero title
+  const heading = document.getElementById('sbkHeroHeading');
+  if (heading) heading.innerText = window.getSbkHeroTitle(count, sq, tab);
+
+  // Update subheading
+  const subHeading = document.getElementById('sbkHeroSubheading');
+  if (subHeading) {
+    if (tab === 'today' && !sq) {
+      const activeBookings = (all || []).filter(b => !b.is_cancelled && b.verification_status !== 'rejected');
+      const arrivalsCount = activeBookings.filter(b => b.check_in === today).length;
+      const departuresCount = activeBookings.filter(b => b.check_out === today && b.checkout_confirmed !== false).length;
+      const inHouseCount = activeBookings.filter(b => b.check_in <= today && (b.check_out > today || (!b.check_out && b.checkout_confirmed === false))).length;
+      subHeading.innerHTML = `
+        <div style="font-size:13.5px;color:#64748B;text-align:center;margin:-12px 0 22px 0;font-weight:500;">
+          ${departuresCount} check-outs • ${arrivalsCount} check-ins • ${Math.max(0, inHouseCount - arrivalsCount)} continuing stays
+        </div>`;
+    } else {
+      subHeading.innerHTML = '';
+    }
+  }
+
+  // Update view mode buttons state in case view changed
+  document.querySelectorAll('.airbnb-view-btn').forEach(btn => {
+    const isTarget = btn.getAttribute('onclick')?.includes(window._sbkState.viewMode);
+    if (isTarget) btn.classList.add('active');
+    else btn.classList.remove('active');
+  });
+
+  // Render view content instantly
+  let contentHtml = '';
+  if (tab === 'today' && !sq) {
+    contentHtml += renderAirbnbFollowupsHtml(all, paidMap, canM, today);
+  }
+
+  if (filtered.length === 0) {
+    const upcomingCount = (all || []).filter(b => !b.is_cancelled && b.verification_status !== 'rejected' && b.check_in > today).length;
+    contentHtml += `
+      <div style="background:#ffffff;border:1px solid #E2E8F0;border-radius:16px;text-align:center;padding:50px 20px;max-width:560px;margin:0 auto;">
+        <div style="font-size:36px;margin-bottom:12px;">🏡</div>
+        <div style="font-size:17px;font-weight:800;color:#0F172A;">No reservations found</div>
+        <div style="font-size:13px;color:#64748B;margin-top:4px;">
+          ${sq ? `No reservations matched "${escapeHtml(sq)}".` : (tab === 'today' ? 'There are no check-ins, check-outs, or stays scheduled for today.' : 'No reservations matched your current filter or search criteria.')}
+        </div>
+        <div style="display:flex;gap:8px;justify-content:center;margin-top:16px;flex-wrap:wrap;">
+          ${tab === 'today' && !sq ? `
+            <button class="btn-sm" style="background:#222222;color:#fff;border-radius:20px;font-weight:700;padding:7px 18px;border:none;" onclick="window.setBookingTab('upcoming')">
+              View Upcoming (${upcomingCount})
+            </button>
+          ` : ''}
+          <button class="btn-sm outline" style="border-radius:20px;font-weight:700;padding:7px 18px;" onclick="${sq ? 'window.clearSearch()' : 'window.resetBookingFilters()'}">
+            ${sq ? 'Clear Search' : 'Clear Filters'}
+          </button>
+        </div>
+      </div>`;
+  } else if (window._sbkState.viewMode === 'table') {
+    contentHtml += renderBookingTableHtml(filtered, paidMap, canM, today);
+  } else if (window._sbkState.viewMode === 'cards') {
+    contentHtml += renderBookingCardsHtml(filtered, paidMap, canM, today);
+  } else {
+    contentHtml += renderAirbnbReservationsHtml(filtered, paidMap, canM, today);
+  }
+
+  container.innerHTML = contentHtml;
+};
+
 window.setBookingTab = function(tab) {
   window._sbkState.activeTab = tab;
-  renderSmartManageBookings();
+  // If user clicks a tab while a search query was active, clear search so they view tab's reservations cleanly
+  if (window._sbkState.searchQuery) {
+    window._sbkState.searchQuery = '';
+    if (window.SESSION) window.SESSION.bookingSearch = '';
+    const input = document.getElementById('sbkLiveSearch');
+    if (input) input.value = '';
+    const clearBtn = document.getElementById('sbkClearBtn');
+    if (clearBtn) clearBtn.style.display = 'none';
+  }
+  renderSmartManageBookings(false);
   setTimeout(() => {
     const activePill = document.querySelector('.airbnb-pill.active');
     if (activePill) {
@@ -1627,17 +1762,27 @@ window.setBookingTab = function(tab) {
 
 window.toggleFollowupsExpanded = function() {
   window._sbkState.expandFollowups = !window._sbkState.expandFollowups;
-  renderSmartManageBookings();
+  window.renderSmartBookingsResultsOnly();
 };
 
 let _sbkDebounceTimer = null;
+window.handleSearchInput = function(val) {
+  clearTimeout(_sbkDebounceTimer);
+  _sbkDebounceTimer = setTimeout(() => {
+    const q = (val || '').trim();
+    window._sbkState.searchQuery = q;
+    if (window.SESSION) window.SESSION.bookingSearch = q;
+    window.renderSmartBookingsResultsOnly();
+  }, 120);
+};
+
 window.handleManualSearch = function() {
   clearTimeout(_sbkDebounceTimer);
   const input = document.getElementById('sbkLiveSearch');
   const val = input ? input.value.trim() : '';
   window._sbkState.searchQuery = val;
   if (window.SESSION) window.SESSION.bookingSearch = val;
-  renderSmartManageBookings();
+  window.renderSmartBookingsResultsOnly();
 };
 
 window.clearSearch = function() {
@@ -1646,39 +1791,33 @@ window.clearSearch = function() {
   if (input) input.value = '';
   window._sbkState.searchQuery = '';
   if (window.SESSION) window.SESSION.bookingSearch = '';
-  renderSmartManageBookings();
-};
-
-window.handleSearchInput = function(val) {
-  clearTimeout(_sbkDebounceTimer);
-  // Manual search mode: Typing does not refresh or re-render the page.
-  // Search is executed when the user presses Enter or clicks 'Search'.
+  window.renderSmartBookingsResultsOnly();
 };
 
 window.handlePropertyFilter = function(propId) {
   window._sbkState.propertyFilter = propId;
-  renderSmartManageBookings();
+  window.renderSmartBookingsResultsOnly();
 };
 
 window.toggleAirbnbFilter = function() {
   window._sbkState.showFilters = !window._sbkState.showFilters;
-  renderSmartManageBookings();
+  renderSmartManageBookings(false);
 };
 
 window.handleChannelFilter = function(val) {
   window._sbkState.channelFilter = val;
-  renderSmartManageBookings();
+  window.renderSmartBookingsResultsOnly();
 };
 
 window.handlePaymentFilter = function(val) {
   window._sbkState.paymentFilter = val;
-  renderSmartManageBookings();
+  window.renderSmartBookingsResultsOnly();
 };
 
 window.toggleViewMode = function(mode) {
   window._sbkState.viewMode = mode;
   try { localStorage.setItem('sbk_view_mode', mode); } catch (e) {}
-  renderSmartManageBookings();
+  window.renderSmartBookingsResultsOnly();
 };
 
 window.resetBookingFilters = function() {
@@ -1688,7 +1827,10 @@ window.resetBookingFilters = function() {
   window._sbkState.channelFilter = '';
   window._sbkState.paymentFilter = '';
   window._sbkState.showFilters = false;
-  renderSmartManageBookings();
+  if (window.SESSION) window.SESSION.bookingSearch = '';
+  const input = document.getElementById('sbkLiveSearch');
+  if (input) input.value = '';
+  renderSmartManageBookings(false);
 };
 
 window.toggleClassicBookingView = function() {
@@ -1696,7 +1838,7 @@ window.toggleClassicBookingView = function() {
   if (window._sbkState.classicMode && typeof window.renderClassicManageBookings === 'function') {
     window.renderClassicManageBookings();
   } else {
-    renderSmartManageBookings();
+    renderSmartManageBookings(false);
   }
 };
 
