@@ -113,6 +113,9 @@ window.handleGlobalPropertyFilterChange = function(roomId) {
     window._guestCRMState.propertyFilter = roomId || '';
   }
   window._calRoom = roomId || 'all';
+  window._taskPropFilter = roomId || 'ALL';
+  window._maintProp = roomId || 'ALL';
+  window._laundryProp = roomId || 'ALL';
 
   // Keep select element in sync
   const topSel = document.getElementById('topbarPropertySelect');
@@ -128,7 +131,7 @@ window.handleGlobalPropertyFilterChange = function(roomId) {
   }
 
   // Refresh current view if applicable
-  const curPage = window.SESSION?.currentPage || '';
+  const curPage = window.SESSION?.currentPage || 'dashboard';
   if (curPage === 'bookings' && typeof window.renderSmartManageBookings === 'function') {
     window.renderSmartManageBookings(false);
   } else if (curPage === 'guest-crm' && typeof window.renderGuestCRM === 'function') {
@@ -137,8 +140,18 @@ window.handleGlobalPropertyFilterChange = function(roomId) {
     if (typeof window.renderReports === 'function') window.renderReports();
   } else if (curPage === 'dashboard' && typeof window.renderDashboard === 'function') {
     window.renderDashboard();
+  } else if ((curPage === 'daily-report' || curPage === 'dailyReport') && typeof window.renderDailyReport === 'function') {
+    window.renderDailyReport(window._dailyReportDate);
+  } else if (curPage === 'analytics' && typeof window.renderAnalytics === 'function') {
+    window.renderAnalytics();
   } else if (curPage === 'flats' && typeof window.renderFlatsStatus === 'function') {
     window.renderFlatsStatus();
+  } else if (curPage === 'tasks' && typeof window.renderEmployeeTasks === 'function') {
+    window.renderEmployeeTasks();
+  } else if (curPage === 'maintenance' && typeof window.renderMaintenanceLog === 'function') {
+    window.renderMaintenanceLog();
+  } else if (curPage === 'laundry' && typeof window.renderLaundry === 'function') {
+    window.renderLaundry();
   }
 
   const roomObj = (window._globalRoomsList || []).find(r => r.room_id === roomId);
@@ -2140,6 +2153,22 @@ function navigate(page) {
 
   // Scroll page to top
   try { window.scrollTo({ top: 0, behavior: 'instant' }); } catch(e) {}
+
+  // ─── Force Global Property Filter onto target tab state ───
+  const globalProp = (typeof window.getGlobalSelectedProperty === 'function') ? window.getGlobalSelectedProperty() : '';
+  if (window.SESSION) {
+    window.SESSION.bookingPropFilter = globalProp || '';
+  }
+  if (window._sbkState) {
+    window._sbkState.propertyFilter = globalProp || '';
+  }
+  if (window._guestCRMState) {
+    window._guestCRMState.propertyFilter = globalProp || '';
+  }
+  window._calRoom = globalProp ? globalProp : 'all';
+  window._taskPropFilter = globalProp ? globalProp : 'ALL';
+  window._maintProp = globalProp ? globalProp : 'ALL';
+  window._laundryProp = globalProp ? globalProp : 'ALL';
 
   const map = {
     dashboard: () => (window.renderDashboard || renderDashboard)(),

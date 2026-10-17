@@ -171,6 +171,7 @@
 
     const currentRange = getDateRange(AN.viewType, AN.periodKey);
     const compareRange = getDateRange(AN.viewType, AN.compareKey);
+    const globalProp = (typeof window.getGlobalSelectedProperty === 'function') ? window.getGlobalSelectedProperty() : '';
 
     const [currentData, compareData, roomsRes, allExpensesRes, investorLinksRes, paymentsRes] = await Promise.all([
       fetchPeriodData(currentRange),
@@ -181,10 +182,20 @@
       sb.from('payment_history').select('booking_id, amount, payment_date, payment_mode').gte('payment_date', currentRange.from).lte('payment_date', currentRange.to).neq('verification_status', 'rejected')
     ]);
 
-    const rooms = roomsRes.data || [];
-    const allExpenses = allExpensesRes.data || [];
-    const investorLinks = investorLinksRes.data || [];
-    const payments = paymentsRes.data || [];
+    let rooms = roomsRes.data || [];
+    let allExpenses = allExpensesRes.data || [];
+    let investorLinks = investorLinksRes.data || [];
+    let payments = paymentsRes.data || [];
+
+    if (globalProp) {
+      rooms = rooms.filter(r => r.room_id === globalProp);
+      currentData.bookings = (currentData.bookings || []).filter(b => b.room_id === globalProp);
+      compareData.bookings = (compareData.bookings || []).filter(b => b.room_id === globalProp);
+      allExpenses = allExpenses.filter(e => e.room_id === globalProp);
+      investorLinks = investorLinks.filter(i => i.room_id === globalProp);
+      const bSet = new Set((currentData.bookings || []).map(b => b.booking_id));
+      payments = payments.filter(p => bSet.has(p.booking_id));
+    }
 
     const current = calculateMetrics(currentData, rooms, allExpenses, currentRange, payments);
     const compare = calculateMetrics(compareData, rooms, allExpenses, compareRange, []);

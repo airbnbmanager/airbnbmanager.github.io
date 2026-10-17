@@ -23,20 +23,26 @@ async function renderDailyReport(selectedDate) {
     sb.from('company_config').select('*').eq('id', 1).single()
   ]);
 
-  const checkins = (allBks || []).filter(b => (b.check_in >= repDate && b.check_in <= endDate) && !b.is_cancelled);
-  const checkouts = (allBks || []).filter(b => (b.check_out >= repDate && b.check_out <= endDate) && !b.is_cancelled);
+  const globalProp = (typeof window.getGlobalSelectedProperty === 'function') ? window.getGlobalSelectedProperty() : '';
+  const activeBks = (allBks || []).filter(b => !globalProp || b.room_id === globalProp);
+  const activeRooms = (rooms || []).filter(r => !globalProp || r.room_id === globalProp);
+  const validBkIds = new Set(activeBks.map(b => b.booking_id));
+  const activePays = (allPays || []).filter(p => !globalProp || validBkIds.has(p.booking_id));
+
+  const checkins = activeBks.filter(b => (b.check_in >= repDate && b.check_in <= endDate) && !b.is_cancelled);
+  const checkouts = activeBks.filter(b => (b.check_out >= repDate && b.check_out <= endDate) && !b.is_cancelled);
   const newBookings = checkins;
   
-  const staying = (allBks || []).filter(b => 
+  const staying = activeBks.filter(b => 
     b.check_in && b.check_in <= repDate && 
     (!b.check_out || b.check_out > repDate) &&
     !b.is_cancelled &&
     b.verification_status !== 'rejected'
   );
 
-  const totalPayments = (allPays || []).reduce((s, p) => s + (p.amount || 0), 0);
+  const totalPayments = activePays.reduce((s, p) => s + (p.amount || 0), 0);
   const paymentByMode = {};
-  (allPays || []).forEach(p => {
+  activePays.forEach(p => {
     const mode = p.payment_mode || 'Unknown';
     paymentByMode[mode] = (paymentByMode[mode] || 0) + (p.amount || 0);
   });

@@ -397,7 +397,9 @@ async function renderFlatsStatus() {
   (todayArrivals || []).forEach(b => { if (!arrivalMap[b.room_id]) arrivalMap[b.room_id] = b; });
 
   // Attach enriched properties to each flat
-  const enrichedFlats = (flats || []).map(f => {
+  const globalProp = (typeof window.getGlobalSelectedProperty === 'function') ? window.getGlobalSelectedProperty() : '';
+  const targetFlats = (flats || []).filter(f => !globalProp || f.room_id === globalProp);
+  const enrichedFlats = targetFlats.map(f => {
     const activeStay = activeBkMap[f.room_id] || null;
     const todayArrival = arrivalMap[f.room_id] || null;
     const isCheckoutToday = !!(activeStay && activeStay.check_out === today && activeStay.checkout_confirmed !== false);

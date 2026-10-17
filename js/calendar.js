@@ -52,7 +52,7 @@ async function renderReports() {
   const yr = window._calY ?? new Date().getFullYear();
   const mo = window._calM ?? new Date().getMonth();
   const globalProp = (typeof window.getGlobalSelectedProperty === 'function') ? window.getGlobalSelectedProperty() : '';
-  const selRoom = window._calRoom ? window._calRoom : (globalProp ? globalProp : 'all');
+  const selRoom = (globalProp && globalProp !== 'all') ? globalProp : (window._calRoom || 'all');
 
   const mName = new Date(yr, mo, 1).toLocaleString('default', { month: 'long' });
   const dim = new Date(yr, mo + 1, 0).getDate();

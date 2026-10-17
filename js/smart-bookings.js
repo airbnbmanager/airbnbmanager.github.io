@@ -303,7 +303,8 @@ async function renderSmartManageBookings(forceRefresh = false) {
   window._sbkState.phoneCounts = phoneCounts;
 
   // Compute operational KPIs
-  const curPropFilter = window._sbkState.propertyFilter || (typeof window.getGlobalSelectedProperty === 'function' ? window.getGlobalSelectedProperty() : '');
+  const globalProp = (typeof window.getGlobalSelectedProperty === 'function') ? window.getGlobalSelectedProperty() : '';
+  const curPropFilter = (globalProp !== '') ? globalProp : (window._sbkState.propertyFilter || '');
   window._sbkState.propertyFilter = curPropFilter;
 
   let activeBookings = (all || []).filter(b => !b.is_cancelled && b.verification_status !== 'rejected');

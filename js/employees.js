@@ -1370,8 +1370,8 @@ async function renderEmployeeTasks(viewMode) {
   const currentMonth = todayStr.slice(0, 7);
   const selectedMonth = window._taskMonth || currentMonth;
   const statusFilter = window._taskStatusFilter || 'ALL';
-  const staffFilter = window._taskStaffFilter || 'ALL';
-  const propFilter = window._taskPropFilter || 'ALL';
+  const globalProp = (typeof window.getGlobalSelectedProperty === 'function') ? window.getGlobalSelectedProperty() : '';
+  const propFilter = (window._taskPropFilter && window._taskPropFilter !== 'ALL') ? window._taskPropFilter : (globalProp || 'ALL');
 
   // Month options
   const allMonths = [...new Set(allTasks.map(t => (t.assigned_date||'').slice(0,7)).filter(Boolean))].sort().reverse();

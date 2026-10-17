@@ -1026,45 +1026,60 @@ html, body, #app {
 @media (max-width: 640px) {
   /* iPhone & small phone optimizations */
   .app-topbar {
-    padding-left: max(14px, env(safe-area-inset-left));
-    padding-right: max(14px, env(safe-area-inset-right));
-    gap: 12px;
+    padding-left: max(10px, env(safe-area-inset-left)) !important;
+    padding-right: max(10px, env(safe-area-inset-right)) !important;
+    gap: 8px !important;
+    height: calc(56px + env(safe-area-inset-top, 0px)) !important;
+    justify-content: space-between !important;
   }
   .topbar-left {
-    flex: 1;
-    min-width: 0;
-    gap: 10px;
+    flex: 0 0 auto !important;
+    min-width: auto !important;
+    gap: 0 !important;
   }
   .mobile-hamburger-btn {
     display: flex !important;
+    width: 38px !important;
+    height: 38px !important;
+    min-width: 38px !important;
+    flex-shrink: 0 !important;
   }
   .page-heading {
-    min-width: 0;
-    flex: 1;
-  }
-  .page-heading .page-sub {
-    display: none;
-  }
-  .page-title-row {
-    min-width: 0;
-    gap: 8px;
-  }
-  .page-title-row .page-title {
-    font-size: 16px;
-    font-weight: 700;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    display: none !important;
   }
   .topbar-search {
     display: none !important;
   }
   .topbar-mobile-search-btn {
-    display: inline-flex !important;
+    display: none !important;
   }
   .topbar-right {
-    gap: 10px;
-    flex-shrink: 0;
+    flex: 1 1 auto !important;
+    min-width: 0 !important;
+    gap: 6px !important;
+    justify-content: flex-end !important;
+  }
+  .topbar-property-selector {
+    flex: 1 1 auto !important;
+    min-width: 0 !important;
+    max-width: 210px !important;
+    padding: 3px 6px 3px 8px !important;
+    border-radius: 16px !important;
+  }
+  .topbar-property-selector select {
+    width: 100% !important;
+    max-width: 100% !important;
+    font-size: 11.5px !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+  }
+  .topbar-qr-pill-btn {
+    padding: 5px 8px !important;
+    flex-shrink: 0 !important;
+  }
+  .topbar-qr-pill-btn .qr-btn-text,
+  .topbar-qr-pill-btn kbd {
+    display: none !important;
   }
   .main-content {
     padding: 12px 10px calc(84px + env(safe-area-inset-bottom, 0px));
