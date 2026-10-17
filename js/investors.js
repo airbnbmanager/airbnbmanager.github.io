@@ -1850,7 +1850,7 @@ async function _originalQuickWhatsAppInvestor(investorId) {
       'Kripya PDF check karein aur koi query ho toh batayein.' + NL + NL +
       '───────────────' + NL +
       '*Regards,*' + NL +
-      'Team UHHS' + NL +
+      'Team TUHH' + NL +
       '📞 Mr. Shahanshah: 9450055554' + NL +
       '📞 Mr. Firoz Khan: 8299600709' + NL +
       '🌐 uniquehavenhomesstay.com';
@@ -1987,14 +1987,14 @@ window.sendPlainEmail = async function(investorId) {
     const isMultiEmail = invNamesEmail.length > 1;
     const perPersonPct = (100 / invNamesEmail.length).toFixed(2);
     
-    const subject = monthName + ' Monthly Report - ' + propNames + ' - UHHS';
+    const subject = monthName + ' Monthly Report - ' + propNames + ' - TUHH';
     
     const body = 
       'Namaste ' + inv.name + ' ji,\n\n' +
       'Umeed hai aap kushal honge.\n\n' +
       'Aapki property "' + propNames + '" ki monthly financial summary ke liye ye email hai.\n\n' +
       '📅 Reporting Period: ' + monthName + '\n' +
-      '📊 Revenue Sharing Model: 70% Investor Pool, 30% UHHS\n' +
+      '📊 Revenue Sharing Model: 70% Investor Pool, 30% TUHH\n' +
       (isMultiEmail 
         ? '👥 Investor Split:\n' + invNamesEmail.map(n => '   - ' + n + ': ' + perPersonPct + '% of investor pool').join('\n') + '\n\n'
         : '\n') +
@@ -2008,7 +2008,7 @@ window.sendPlainEmail = async function(investorId) {
       'Aapka support hamesha appreciated hai. Dhanyawad!\n\n' +
       '───────────────────────\n' +
       'Warm regards,\n\n' +
-      'Team UHHS\n' +
+      'Team TUHH\n' +
       'THE UNIQUE HAVEN HOMES PRIVATE LIMITED\n' +
       'CIN: U55101UP2026PTC244637\n' +
       '📞 +91 9450055554\n' +

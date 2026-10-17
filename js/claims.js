@@ -149,8 +149,8 @@ window.renderClaims = async function() {
           </div>
         </div>
 
-        <!-- ACTION BUTTONS: SCREENSHOT & WHATSAPP -->
-        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <!-- ACTION BUTTONS: SCREENSHOT & WHATSAPP (HIDDEN IN EXPORTED PROOF) -->
+        <div id="todayProofActions" data-html2canvas-ignore="true" style="display:flex;gap:8px;flex-wrap:wrap;">
           <button type="button" onclick="downloadTodayBalanceScreenshot(event)" style="padding:8px 14px;background:#0284C7;color:#ffffff;border:none;border-radius:8px;font-weight:700;font-size:12.5px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;box-shadow:0 2px 8px rgba(2,132,199,0.25);">
             <span>📸</span>
             <span>Download Screenshot Proof</span>
@@ -159,6 +159,12 @@ window.renderClaims = async function() {
             <span>📱</span>
             <span>Send to WhatsApp Group</span>
           </button>
+        </div>
+
+        <!-- OFFICIAL CERTIFICATE STAMP (SHOWN IN EXPORTED PROOF) -->
+        <div id="todayProofOfficialSeal" style="display:none;padding:6px 14px;background:#0F172A;color:#FFFFFF;border-radius:8px;border:1.5px solid #334155;text-align:right;">
+          <div style="color:#FCD34D;font-size:11.5px;font-weight:800;letter-spacing:0.3px;">🏛️ TUHH OFFICIAL STATEMENT</div>
+          <div style="font-size:10px;color:#94A3B8;margin-top:1px;">Verified Daily Financial Statement · Zero Discrepancy</div>
         </div>
       </div>
 
@@ -2093,15 +2099,24 @@ window.downloadTodayBalanceScreenshot = async function(evt) {
   }
   const btn = evt ? evt.currentTarget : document.querySelector('button[onclick*="downloadTodayBalanceScreenshot"]');
   const origHtml = btn ? btn.innerHTML : '';
+  const actionDiv = document.getElementById('todayProofActions');
+  const sealDiv = document.getElementById('todayProofOfficialSeal');
+
   if (btn) {
     btn.disabled = true;
     btn.innerHTML = '⏳ Generating Image...';
   }
+
+  // Hide button container so it never appears in the exported owner proof
+  if (actionDiv) actionDiv.style.display = 'none';
+  if (sealDiv) sealDiv.style.display = 'block';
+
   try {
     const canvas = await html2canvas(card, {
       scale: 2,
       useCORS: true,
-      backgroundColor: '#ffffff'
+      backgroundColor: '#ffffff',
+      ignoreElements: (el) => el.hasAttribute('data-html2canvas-ignore') || el.id === 'todayProofActions'
     });
     const d = new Date();
     const dateStr = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
@@ -2110,11 +2125,14 @@ window.downloadTodayBalanceScreenshot = async function(evt) {
     link.href = canvas.toDataURL('image/png');
     link.click();
     if (btn) btn.innerHTML = '✅ Saved Image!';
+    if (window.fsn) fsn.success('Saved Proof', 'Daily Closing Statement screenshot saved successfully without button controls!');
   } catch (err) {
     console.error('Screenshot error:', err);
     alert('Could not generate screenshot: ' + err.message);
     if (btn) btn.innerHTML = origHtml;
   } finally {
+    if (actionDiv) actionDiv.style.display = 'flex';
+    if (sealDiv) sealDiv.style.display = 'none';
     setTimeout(() => {
       if (btn) {
         btn.disabled = false;
@@ -2149,7 +2167,7 @@ window.shareTodayBalanceWhatsApp = function() {
     '🛡️ *Status:* Verified & Reconciled (Post-Checkpoint)',
     '────────────────────────────',
     '_Automated Daily Closing Proof for Owners & Management._',
-    '_Generated from UHHS Claims & OD Engine_'
+    '_Generated from TUHH Claims & OD Engine_'
   ].join('\n');
 
   if (navigator.clipboard && navigator.clipboard.writeText) {

@@ -396,7 +396,7 @@
       if (window.fsn) fsn.success('Push Active', '🔔 Mobile push notifications are already enabled!');
       // Show test notification
       showNativeNotification({
-        title: '🔔 UHHS Notifications Active',
+        title: '🔔 TUHH Notifications Active',
         message: 'You will receive real-time alerts for New Bookings, Check-ins & Low Stock!',
         page: 'bookings'
       });
@@ -405,9 +405,9 @@
     try {
       const perm = await Notification.requestPermission();
       if (perm === 'granted') {
-        if (window.fsn) fsn.success('Enabled', '✅ Push notifications enabled for UHHS!');
+        if (window.fsn) fsn.success('Enabled', '✅ Push notifications enabled for TUHH!');
         showNativeNotification({
-          title: '🔔 UHHS Mobile Alerts Enabled',
+          title: '🔔 TUHH Mobile Alerts Enabled',
           message: 'Real-time alerts will now pop up on your device screen.',
           page: 'bookings'
         });

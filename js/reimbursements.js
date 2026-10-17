@@ -167,7 +167,7 @@ window.renderAddReimbursement = async function() {
         <label style="font-weight:700;font-size:14px;color:#1e293b;">💳 Payment Source / Account *</label>
         <select id="rPaymentSource" style="width:100%;padding:10px 12px;font-size:14px;font-weight:600;border:1.5px solid #0d6efd;border-radius:8px;background:#ffffff;color:#0f172a;">
           <option value="COMPANY">🏢 COMPANY (Guest Rent / Cash in Hand)</option>
-          <option value="UHHS-OD" selected>🏦 UHHS-OD (Overdraft Account)</option>
+          <option value="UHHS-OD" selected>🏦 TUHH-OD (Overdraft Account)</option>
           <option value="FIROZ">👤 FIROZ (Direct Personal)</option>
         </select>
       </div>
@@ -441,7 +441,7 @@ window.editReimbursement = async function(id) {
         <label style="font-weight:700;font-size:14px;color:#1e293b;">💳 Payment Source / Account *</label>
         <select id="rPaymentSource" style="width:100%;padding:10px 12px;font-size:14px;font-weight:600;border:1.5px solid #0d6efd;border-radius:8px;background:#ffffff;color:#0f172a;">
           <option value="COMPANY" ${rec.payment_source === 'COMPANY' ? 'selected' : ''}>🏢 COMPANY (Guest Rent / Cash in Hand)</option>
-          <option value="UHHS-OD" ${rec.payment_source === 'UHHS-OD' || !rec.payment_source ? 'selected' : ''}>🏦 UHHS-OD (Overdraft Account)</option>
+          <option value="UHHS-OD" ${rec.payment_source === 'UHHS-OD' || !rec.payment_source ? 'selected' : ''}>🏦 TUHH-OD (Overdraft Account)</option>
           <option value="FIROZ" ${rec.payment_source === 'FIROZ' ? 'selected' : ''}>👤 FIROZ (Direct Personal)</option>
         </select>
       </div>

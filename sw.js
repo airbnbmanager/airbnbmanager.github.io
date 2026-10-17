@@ -1,5 +1,5 @@
-const CACHE_NAME = 'tuhh-live-v252';
-const RUNTIME_CACHE = 'tuhh-runtime-v123';
+const CACHE_NAME = 'tuhh-live-v253';
+const RUNTIME_CACHE = 'tuhh-runtime-v124';
 
 const CORE_ASSETS = [
   '/admin.html',
@@ -153,21 +153,21 @@ self.addEventListener('push', event => {
     try {
       data = event.data.json();
     } catch(e) {
-      data = { title: 'UHHS Alert', body: event.data.text() };
+      data = { title: 'TUHH Alert', body: event.data.text() };
     }
   }
 
   const title = data.title || 'The Unique Haven Homes';
   const options = {
-    body: data.body || data.message || 'New update from UHHS CRM',
+    body: data.body || data.message || 'New update from TUHH CRM',
     icon: data.icon || '/assets/icon-192.png',
     badge: '/assets/logo.png',
-    tag: data.tag || ('uhhs-notif-' + Date.now()),
+    tag: data.tag || ('tuhh-notif-' + Date.now()),
     data: data,
     vibrate: [100, 50, 100],
     requireInteraction: true,
     actions: [
-      { action: 'open', title: 'Open UHHS' },
+      { action: 'open', title: 'Open TUHH' },
       { action: 'dismiss', title: 'Dismiss' }
     ]
   };

@@ -1341,7 +1341,7 @@ function renderShell(content, activePage = 'dashboard') {
       page: 'claims',
       pages: ['claims', 'reimbursements', 'expenses', 'ca-audit', 'investors', 'financial', 'financial-sheet'],
       tabs: [
-        { id: 'claims', label: '💳 Claims & UHHS OD' },
+        { id: 'claims', label: '💳 Claims & TUHH-OD' },
         { id: 'reimbursements', label: '💸 Expenses' },
         { id: 'expenses', label: '📊 P&L' },
         { id: 'ca-audit', label: '💼 GST & Audit' },
@@ -3270,7 +3270,7 @@ window.exportActivityLogsCSV = async function(dateStr) {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `UHHS_User_Activity_Logs_${dateStr}.csv`;
+    a.download = `TUHH_User_Activity_Logs_${dateStr}.csv`;
     a.click();
     URL.revokeObjectURL(url);
     if (window.fsn) fsn.success('Exported', `✅ Activity logs downloaded: ${dateStr}`);

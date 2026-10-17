@@ -2517,7 +2517,7 @@ window.CA_AUDIT_PACK = (function() {
               </span>
             </div>
             <div style="font-size:12px;color:var(--muted);margin-top:3px;">
-              Period: <strong>${data.monthLabel} (${data.monthStr})</strong> · Primary Bank: <strong>Company Current A/C (UHHS)</strong> · SAC: 996311
+              Period: <strong>${data.monthLabel} (${data.monthStr})</strong> · Primary Bank: <strong>Company Current A/C (TUHH)</strong> · SAC: 996311
             </div>
           </div>
 
@@ -3037,7 +3037,7 @@ window.CA_AUDIT_PACK = (function() {
           <div class="page-break"></div>
           <div class="sec-heading">5. Bank Statement Reconciliation Statement (BRS)</div>
           <div class="note-box">
-            This statement certifies dual-ledger reconciliation between the Company Bank Current Account and UHHS internal books for ${data.monthLabel}. All direct guest UPI payments, Airbnb online bank payouts, vendor ITC bank transfers, and staff wages disbursed via bank have been matched with ₹0.00 unexplained variance.
+            This statement certifies dual-ledger reconciliation between the Company Bank Current Account and TUHH internal books for ${data.monthLabel}. All direct guest UPI payments, Airbnb online bank payouts, vendor ITC bank transfers, and staff wages disbursed via bank have been matched with ₹0.00 unexplained variance.
           </div>
           <table>
             <thead>
@@ -3388,7 +3388,7 @@ window.CA_AUDIT_PACK = (function() {
     const recon = data.bankRecon || {};
     let csv = `THE UNIQUE HAVEN HOMES PRIVATE LIMITED - BANK RECONCILIATION STATEMENT (BRS)\n`;
     csv += `Period,${data.monthLabel} (${data.monthStr})\n`;
-    csv += `Bank Account,Company Current A/C (UHHS),GSTIN,${CO.gstin},CIN,${CO.cin}\n\n`;
+    csv += `Bank Account,Company Current A/C (TUHH),GSTIN,${CO.gstin},CIN,${CO.cin}\n\n`;
 
     csv += `STATUTORY BANK RECONCILIATION SUMMARY\n`;
     csv += `Particulars,Amount (INR)\n`;
@@ -3531,7 +3531,7 @@ window.CA_AUDIT_PACK = (function() {
 🏢 *${CO.name}*
 📅 *Period:* ${data.monthLabel} (${data.monthStr})
 🆔 *GSTIN:* ${CO.gstin} | *CIN:* ${CO.cin}
-🏦 *Account:* Company Current A/C (UHHS)
+🏦 *Account:* Company Current A/C (TUHH)
 
 📊 *BANK STATEMENT RECONCILIATION:*
 • Opening Balance: ₹${Number(recon.openingBalance || 50000).toLocaleString('en-IN')}

@@ -785,7 +785,7 @@ Summary of Finalized Tax Invoices:
 • SGST: ₹${totalSGST.toLocaleString('en-IN')}
 • Total GST Output Tax: ₹${(totalCGST + totalSGST).toLocaleString('en-IN')}
 
-Generated automatically via UHHS Management Portal.`;
+Generated automatically via TUHH Management Portal.`;
 
     navigator.clipboard.writeText(text).then(() => {
       alert('✅ CA Summary copied to clipboard! You can paste and send directly to your CA.');
