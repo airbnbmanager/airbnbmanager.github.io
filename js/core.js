@@ -1466,7 +1466,7 @@ function renderShell(content, activePage = 'dashboard') {
     maintenance: { title: 'Maintenance & Repairs', sub: 'Property repair tickets & status', icon: '🔧' },
     laundry: { title: 'Laundry Management', sub: 'Linen dispatches & vendor tracking', icon: '🧺' },
     store: { title: 'Inventory & Store', sub: 'Supplies, toiletries & stock levels', icon: '📦' },
-    'airbnb-sync': { title: 'Airbnb iCal Sync', sub: 'Channel manager & calendar synchronization', icon: '🔄' },
+    'airbnb-sync': { title: 'Airbnb Sync & Financial Audit', sub: 'Monthly payouts reconciliation, exact earnings & calendar sync', icon: '🔄' },
     rooms: { title: 'Properties & Units', sub: '17 homestays details & amenities', icon: '🏢' },
     'showcase-admin': { title: 'Website Showcase & Media CMS', sub: 'Airbnb-style room photos, videos, pricing & maps', icon: '🌐' },
     'property-setup': { title: 'Property Setup', sub: 'Configure rooms, units & pricing', icon: '🏗️' },
