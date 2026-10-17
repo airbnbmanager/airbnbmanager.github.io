@@ -2133,8 +2133,8 @@ function navigate(page) {
 
   const map = {
     dashboard: () => (window.renderDashboard || renderDashboard)(),
-    reports: () => (window.renderReports || renderReports)(),
-    calendar: () => (window.renderReports || renderReports)(),
+    reports: () => (window.renderReports || window.renderCalendar || (() => {}))(),
+    calendar: () => (window.renderCalendar || window.renderReports || (() => {}))(),
     rooms: () => (window.renderManageRooms || renderManageRooms)(),
     flats: () => (window.renderFlatsStatus || renderFlatsStatus)(),
     'daily-report': () => (window.renderDailyReport || renderDailyReport)(),

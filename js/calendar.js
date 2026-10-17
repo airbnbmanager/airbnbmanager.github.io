@@ -93,7 +93,6 @@ async function renderReports() {
   const reviewCount = realMb.filter(isReviewedBooking).length;
 
   // Occupancy for filtered rooms
-  const displayRooms = selRoom === 'all' ? allRooms : allRooms.filter(r => r.room_id === selRoom);
   const bMap = {};
   allBks.forEach(b => {
     if (!b.check_in || !b.check_out || !b.room_id) return;
