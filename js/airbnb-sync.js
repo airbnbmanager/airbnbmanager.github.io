@@ -204,14 +204,14 @@
     });
 
     const tabsHtml = `
-      <div style="background:#0F172A;border-radius:12px;padding:6px;margin-bottom:18px;display:flex;gap:6px;box-shadow:0 4px 12px rgba(0,0,0,0.15);">
-        <button onclick="setAirbnbSyncTab('payouts')" style="flex:1;min-width:200px;padding:10px 16px;border-radius:8px;font-weight:700;font-size:13px;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;justify-content:center;gap:8px;${tab==='payouts'?'background:#10B981;color:#fff;border:none;box-shadow:0 2px 8px rgba(16,185,129,0.4);':'background:transparent;color:#94A3B8;border:none;'}">
+      <div style="background:#0F172A;border-radius:12px;padding:6px;margin-bottom:18px;display:flex;flex-wrap:wrap;gap:6px;box-shadow:0 4px 12px rgba(0,0,0,0.15);">
+        <button onclick="setAirbnbSyncTab('payouts')" style="flex:1;min-width:180px;padding:10px 16px;border-radius:8px;font-weight:700;font-size:13px;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;justify-content:center;gap:8px;${tab==='payouts'?'background:#10B981;color:#fff;border:none;box-shadow:0 2px 8px rgba(16,185,129,0.4);':'background:transparent;color:#94A3B8;border:none;'}">
           <span>💰</span> Monthly Payouts & Exact Net Earnings
         </button>
-        <button onclick="setAirbnbSyncTab('reservations')" style="flex:1;min-width:180px;padding:10px 16px;border-radius:8px;font-weight:700;font-size:13px;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;justify-content:center;gap:8px;${tab==='reservations'?'background:#2563EB;color:#fff;border:none;box-shadow:0 2px 8px rgba(37,99,235,0.4);':'background:transparent;color:#94A3B8;border:none;'}">
+        <button onclick="setAirbnbSyncTab('reservations')" style="flex:1;min-width:160px;padding:10px 16px;border-radius:8px;font-weight:700;font-size:13px;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;justify-content:center;gap:8px;${tab==='reservations'?'background:#2563EB;color:#fff;border:none;box-shadow:0 2px 8px rgba(37,99,235,0.4);':'background:transparent;color:#94A3B8;border:none;'}">
           <span>📁</span> Reservations CSV Sync
         </button>
-        <button onclick="renderIcalSync()" style="flex:0.8;min-width:140px;padding:10px 16px;border-radius:8px;font-weight:700;font-size:13px;cursor:pointer;background:transparent;color:#94A3B8;border:none;display:flex;align-items:center;justify-content:center;gap:8px;">
+        <button onclick="renderIcalSync()" style="flex:0.8;min-width:130px;padding:10px 16px;border-radius:8px;font-weight:700;font-size:13px;cursor:pointer;background:transparent;color:#94A3B8;border:none;display:flex;align-items:center;justify-content:center;gap:8px;">
           <span>📅</span> iCal Auto-Sync ↗
         </button>
       </div>`;
@@ -773,8 +773,8 @@
 
       <!-- Main Reconciliation Table -->
       <div class="card" style="padding:0;overflow:hidden;border:1px solid #E2E8F0;border-radius:12px;">
-        <div style="overflow-x:auto;">
-          <table style="width:100%;border-collapse:collapse;font-size:12.5px;text-align:left;">
+        <div style="overflow-x:auto;-webkit-overflow-scrolling:touch;">
+          <table style="width:100%;min-width:840px;border-collapse:collapse;font-size:12.5px;text-align:left;">
             <thead>
               <tr style="background:#F8FAFC;border-bottom:2px solid #E2E8F0;color:#475569;font-size:11.5px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;">
                 <th style="padding:10px 14px;">Status</th>
