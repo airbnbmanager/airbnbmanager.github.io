@@ -132,7 +132,7 @@ window.handleGlobalPropertyFilterChange = function(roomId) {
   if (curPage === 'bookings' && typeof window.renderSmartManageBookings === 'function') {
     window.renderSmartManageBookings(false);
   } else if (curPage === 'guest-crm' && typeof window.renderGuestCRM === 'function') {
-    window.renderGuestCRM(false);
+    window.renderGuestCRM(true);
   } else if (curPage === 'calendar' || curPage === 'reports') {
     if (typeof window.renderReports === 'function') window.renderReports();
   } else if (curPage === 'dashboard' && typeof window.renderDashboard === 'function') {
@@ -2145,7 +2145,7 @@ function navigate(page) {
     'daily-report': () => (window.renderDailyReport || renderDailyReport)(),
     reminders: () => (window.renderReminders || renderReminders)(),
     bookings: () => (window.renderSmartManageBookings || window.renderManageBookings || renderManageBookings)(),
-    'guest-crm': () => (window.renderGuestCRM || (() => {}))(),
+    'guest-crm': () => (window.renderGuestCRM || (() => {}))(true),
     employees: () => (window.renderManageEmployees || renderManageEmployees)(),
     tasks: () => (window.renderEmployeeTasks || renderEmployeeTasks)(),
     attendance: () => (window.renderAttendance || renderAttendance)(),

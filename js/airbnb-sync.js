@@ -322,8 +322,9 @@
         // Tax Withheld (Section 194-O 5% TDS)
         const taxWithheld = Math.abs(taxWithholdingMap[code] || 0);
 
-        // Net host earnings ("You Earn"): Payout after host fee AND TDS
-        let finalYouEarn = paidOutCol > 0 ? paidOutCol : (resAmount > 0 ? (resAmount - taxWithheld) : gross);
+        // Net host earnings ("You Earn"): In Airbnb CSV, the 'Amount' column on the 'Reservation' row
+        // is ALREADY the exact "You earn" net payout (e.g. ₹3,912.35) matching the official Airbnb dashboard.
+        let finalYouEarn = resAmount > 0 ? resAmount : (paidOutCol > 0 ? paidOutCol : gross);
         if (finalYouEarn <= 0) finalYouEarn = gross;
         const matchedRoomId = SYNC.getRoomIdByListing(listing);
 
