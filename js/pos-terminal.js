@@ -21,7 +21,6 @@ window._posState = {
 };
 
 window.POS_CATALOG = [
-  { id: 'exp_bbq', category: 'experiences', name: 'Charcoal BBQ & Grill Setup', price: 1500, icon: '🥩', desc: 'Outdoor grill, coal, skewers, and chef-ready setup.' },
   { id: 'exp_bonfire', category: 'experiences', name: 'Evening Bonfire & Music', price: 2000, icon: '🔥', desc: 'Wood logs, safety fire pit, and ambient speaker.' },
   { id: 'exp_chef', category: 'dining', name: 'Private In-House Chef (1 Day)', price: 3500, icon: '👨‍🍳', desc: 'Personal cook for lunch & dinner in villa kitchen.' },
   { id: 'exp_decor', category: 'celebration', name: 'Birthday / Anniversary Decor', price: 2500, icon: '🎈', desc: 'Balloons, flower arrangement, and welcome banner.' },

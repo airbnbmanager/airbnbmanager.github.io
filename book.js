@@ -27,7 +27,6 @@ const DOWS = ['Su','Mo','Tu','We','Th','Fr','Sa'];
 // ── OPTION C: CURATED CONCIERGE ADD-ON EXPERIENCES SHOP ──
 const ADDON_SERVICES = [
   { id: 'chef', title: 'Private Lucknowi Cook / Chef', icon: '👨‍🍳', tag: 'Culinary Master', price: 3500, unit: 'per session', desc: 'Authentic Awadhi Galawati kebabs, fragrant mutton/veg biryani, and bespoke dinner spread cooked fresh in your villa kitchen.' },
-  { id: 'bbq', title: 'Live Charcoal BBQ Setup', icon: '🍢', tag: 'Outdoor Dining', price: 1500, unit: 'per night', desc: 'Cast iron barbecue grill, charcoal fuel, skewers, and chef marinade kit setup on your private terrace or lawn.' },
   { id: 'bonfire', title: 'Evening Bonfire & Acoustic Setup', icon: '🔥', tag: 'Night Ambiance', price: 2000, unit: 'per evening', desc: 'Hardwood logs, open fire pit, acoustic mood music speaker, and ambient fairy garden lighting.' },
   { id: 'decor', title: 'Celebration Decor & Florals', icon: '🎈', tag: 'Special Moments', price: 2500, unit: 'per stay', desc: 'Custom anniversary or birthday setup with organic balloon arch, rose-petal bed decoration, and celebratory cake arrangement.' },
   { id: 'pickup', title: 'Airport / Railway Luxury Transfer', icon: '🚘', tag: 'Doorstep VIP', price: 1200, unit: 'per vehicle', desc: 'Chauffeur-driven sanitized AC Sedan pickup directly from Amausi Airport or Charbagh Railway Station.' },
