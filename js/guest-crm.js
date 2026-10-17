@@ -409,7 +409,7 @@ window.renderGuestCardHtml = function(g) {
   const initials = g.name.split(' ').map(n => n[0]).filter(Boolean).slice(0, 2).join('').toUpperCase() || 'G';
 
   return `
-    <div class="card guest-crm-card" style="padding:18px;border-radius:16px;display:flex;flex-direction:column;justify-content:space-between;transition:transform 0.15s ease, box-shadow 0.15s ease;border:1px solid var(--border);position:relative;">
+    <div class="card guest-crm-card" onclick="window.openGuestCRMProfileModal('${g.key}')" style="padding:18px;border-radius:16px;display:flex;flex-direction:column;justify-content:space-between;transition:transform 0.15s ease, box-shadow 0.15s ease;border:1px solid var(--border);position:relative;cursor:pointer;">
       
       <!-- Card Top: Avatar, Name & Loyalty Tier -->
       <div>
@@ -468,11 +468,11 @@ window.renderGuestCardHtml = function(g) {
           </a>
         ` : ''}
 
-        <button type="button" class="btn-sm outline" onclick="window.openGuestStatementModal ? window.openGuestStatementModal('${escapeHtml(g.phone)}') : fsn.info('Khata', 'Statement modal loading...')" style="padding:6px 11px;border-radius:8px;font-size:11.5px;display:flex;align-items:center;gap:4px;">
-          <span>📑</span> Khata
+        <button type="button" class="btn-sm" onclick="event.stopPropagation();window.openGuestCRMProfileModal('${g.key}')" style="background:#0F172A;color:#fff;border:none;border-radius:8px;font-weight:700;padding:6px 12px;font-size:11.5px;display:inline-flex;align-items:center;gap:4px;">
+          <span>👤</span> 360° Profile
         </button>
 
-        <button type="button" class="btn-sm" onclick="window.quickBookForGuest('${escapeHtml(g.name)}', '${escapeHtml(g.phone)}', '${escapeHtml(g.lastRoomId || '')}')" style="background:var(--dark);color:#fff;border:none;font-weight:700;padding:6px 11px;border-radius:8px;font-size:11.5px;display:flex;align-items:center;gap:4px;margin-left:auto;">
+        <button type="button" class="btn-sm" onclick="event.stopPropagation();window.quickBookForGuest('${escapeHtml(g.name)}', '${escapeHtml(g.phone)}', '${escapeHtml(g.lastRoomId || '')}')" style="background:#b58d3d;color:#fff;border:none;font-weight:700;padding:6px 12px;border-radius:8px;font-size:11.5px;display:inline-flex;align-items:center;gap:4px;margin-left:auto;">
           <span>➕</span> Book Stay
         </button>
       </div>
@@ -526,4 +526,251 @@ window.quickBookForGuest = function(name, phone, roomId) {
   } else {
     navigate('bookings');
   }
+};
+
+/**
+ * ═════════════════════════════════════════════════════════════════════════
+ * 👤 GUEST 360° CRM DOSSIER MODAL (INSPIRED BY VIDEO DEMO — IMAGE 3)
+ * Split-view with 6 KPI boxes, Customer Profile Table, and Tabbed Stays/Timeline
+ * ═════════════════════════════════════════════════════════════════════════
+ */
+window.openGuestCRMProfileModal = function(guestKey) {
+  const g = (window._guestCRMState.cachedGuests || []).find(x => x.key === guestKey);
+  if (!g) return;
+
+  const oldModal = document.getElementById('guest360ModalOverlay');
+  if (oldModal) oldModal.remove();
+
+  const waPhone = g.normPhone ? `91${g.normPhone}` : '';
+  const waMsg = encodeURIComponent(`Hello ${g.name}! Greetings from The Unique Haven Homes. We are pleased to assist you with your booking.`);
+  const waLink = waPhone ? `https://wa.me/${waPhone}?text=${waMsg}` : '#';
+
+  const modal = document.createElement('div');
+  modal.id = 'guest360ModalOverlay';
+  modal.className = 'modal-overlay';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(15,23,42,0.75);display:flex;align-items:center;justify-content:center;z-index:999999;padding:16px;backdrop-filter:blur(4px);';
+  modal.onclick = e => { if (e.target === modal) modal.remove(); };
+
+  const initials = g.name.split(' ').map(n => n[0]).filter(Boolean).slice(0, 2).join('').toUpperCase() || 'G';
+  const customerCode = `CUS-${g.normPhone ? g.normPhone.slice(-6) : '2026'}`;
+  const isReturning = g.totalStays >= 2;
+
+  modal.innerHTML = `
+    <div class="modal-box" style="background:#ffffff;border-radius:16px;width:100%;max-width:1050px;max-height:92vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 25px 50px -12px rgba(0,0,0,0.35);border:1px solid #E2E8F0;" onclick="event.stopPropagation()">
+      
+      <!-- ─── TOP HEADER BAR (MATCHES SALON CRM VIDEO IMAGE 3) ─── -->
+      <div style="background:#0F172A;color:#ffffff;padding:16px 22px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;border-bottom:1px solid rgba(255,255,255,0.08);">
+        <div style="display:flex;align-items:center;gap:14px;">
+          <div style="width:48px;height:48px;border-radius:50%;background:linear-gradient(135deg,#334155,#1E293B);border:2px solid ${g.tierColor};color:#ffffff;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:800;flex-shrink:0;">
+            ${initials}
+          </div>
+          <div>
+            <div style="font-size:18px;font-weight:800;display:flex;align-items:center;gap:8px;line-height:1.2;">
+              ${escapeHtml(g.name)}
+              <span style="font-size:11px;font-weight:700;padding:2px 8px;border-radius:6px;background:${isReturning ? '#10B981' : '#64748B'};color:#ffffff;">
+                ${isReturning ? 'Returning VIP' : 'New Client'}
+              </span>
+              ${g.isCurrentlyInHouse ? '<span style="font-size:11px;font-weight:700;padding:2px 8px;border-radius:6px;background:#3B82F6;color:#ffffff;">In-House Now</span>' : ''}
+            </div>
+            <div style="font-size:12px;color:#94A3B8;margin-top:3px;display:flex;align-items:center;gap:10px;">
+              <span><strong>Code:</strong> ${customerCode}</span>
+              <span>&bull;</span>
+              <span><strong>Phone:</strong> ${escapeHtml(g.phone)}</span>
+              <span>&bull;</span>
+              <span><strong>Tier:</strong> ${g.tierIcon} ${g.tier}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Top Right Action Buttons -->
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+          ${waPhone ? `
+            <a href="${waLink}" target="_blank" rel="noopener noreferrer" style="background:#25D366;color:#ffffff;padding:7px 14px;border-radius:8px;font-size:12px;font-weight:700;text-decoration:none;display:inline-flex;align-items:center;gap:5px;">
+              <span>💬</span> WhatsApp
+            </a>
+          ` : ''}
+          ${g.phone && g.phone !== '-' ? `
+            <a href="tel:${escapeHtml(g.phone)}" style="background:#334155;color:#ffffff;padding:7px 14px;border-radius:8px;font-size:12px;font-weight:700;text-decoration:none;display:inline-flex;align-items:center;gap:5px;">
+              <span>📞</span> Call
+            </a>
+          ` : ''}
+          <button type="button" onclick="window.quickBookForGuest('${escapeHtml(g.name)}', '${escapeHtml(g.phone)}', '${escapeHtml(g.lastRoomId || '')}');document.getElementById('guest360ModalOverlay')?.remove();" style="background:#b58d3d;color:#ffffff;padding:7px 14px;border-radius:8px;font-size:12px;font-weight:700;border:none;cursor:pointer;display:inline-flex;align-items:center;gap:5px;">
+            <span>➕</span> New Booking
+          </button>
+          <button type="button" onclick="document.getElementById('guest360ModalOverlay')?.remove()" style="background:transparent;border:none;color:#94A3B8;font-size:22px;line-height:1;cursor:pointer;padding:4px 8px;" title="Close">
+            ✕
+          </button>
+        </div>
+      </div>
+
+      <!-- ─── MODAL BODY: 2-COLUMN SPLIT (MATCHES VIDEO IMAGE 3) ─── -->
+      <div style="display:grid;grid-template-columns:340px 1fr;overflow-y:auto;flex:1;min-height:480px;background:#F8FAFC;">
+        
+        <!-- LEFT COLUMN: 6 KPI CARDS + PROFILE DETAILS TABLE -->
+        <div style="background:#ffffff;border-right:1px solid #E2E8F0;padding:20px;overflow-y:auto;">
+          
+          <!-- 6 KPI Grid -->
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px;">
+            <div style="background:#F1F5F9;padding:10px 12px;border-radius:10px;border-left:3px solid #0F172A;">
+              <div style="font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;">TOTAL VISITS</div>
+              <div style="font-size:18px;font-weight:800;color:#0F172A;margin-top:2px;">${g.totalStays}</div>
+            </div>
+
+            <div style="background:#F0FDF4;padding:10px 12px;border-radius:10px;border-left:3px solid #10B981;">
+              <div style="font-size:10px;font-weight:700;color:#166534;text-transform:uppercase;">LIFETIME SPEND</div>
+              <div style="font-size:18px;font-weight:800;color:#15803D;margin-top:2px;">₹${Math.round(g.totalSpend).toLocaleString('en-IN')}</div>
+            </div>
+
+            <div style="background:#F8FAFC;padding:10px 12px;border-radius:10px;border-left:3px solid #0284C7;border:1px solid #E2E8F0;">
+              <div style="font-size:10px;font-weight:700;color:#475569;text-transform:uppercase;">AVG TARIFF</div>
+              <div style="font-size:18px;font-weight:800;color:#0F172A;margin-top:2px;">₹${g.totalStays > 0 ? Math.round(g.totalSpend / g.totalStays).toLocaleString('en-IN') : 0}</div>
+            </div>
+
+            <div style="background:#FFFBEB;padding:10px 12px;border-radius:10px;border-left:3px solid #F59E0B;">
+              <div style="font-size:10px;font-weight:700;color:#92400E;text-transform:uppercase;">LOYALTY TIER</div>
+              <div style="font-size:16px;font-weight:800;color:#B45309;margin-top:2px;">${g.tierIcon} ${g.tier}</div>
+            </div>
+
+            <div style="background:${g.totalDue > 0 ? '#FEF2F2' : '#F0FDF4'};padding:10px 12px;border-radius:10px;border-left:3px solid ${g.totalDue > 0 ? '#EF4444' : '#10B981'};">
+              <div style="font-size:10px;font-weight:700;color:${g.totalDue > 0 ? '#991B1B' : '#166534'};text-transform:uppercase;">OUTSTANDING</div>
+              <div style="font-size:18px;font-weight:800;color:${g.totalDue > 0 ? '#DC2626' : '#15803D'};margin-top:2px;">
+                ${g.totalDue > 0 ? `₹${Math.round(g.totalDue).toLocaleString('en-IN')}` : '₹0 (Clean)'}
+              </div>
+            </div>
+
+            <div style="background:#F1F5F9;padding:10px 12px;border-radius:10px;border-left:3px solid #64748B;">
+              <div style="font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;">LAST STAY</div>
+              <div style="font-size:14px;font-weight:800;color:#0F172A;margin-top:4px;">${g.lastStayDate || 'Past'}</div>
+            </div>
+          </div>
+
+          <!-- Profile Info Details (Like Video Table) -->
+          <div style="font-size:12px;font-weight:700;color:#64748B;text-transform:uppercase;margin-bottom:8px;letter-spacing:0.5px;">Client Information</div>
+          <table style="width:100%;font-size:12.5px;border-collapse:collapse;">
+            <tbody>
+              <tr style="border-bottom:1px solid #F1F5F9;"><td style="padding:7px 0;color:#64748B;font-weight:600;">Customer Code</td><td style="padding:7px 0;font-weight:700;color:#0F172A;text-align:right;">${customerCode}</td></tr>
+              <tr style="border-bottom:1px solid #F1F5F9;"><td style="padding:7px 0;color:#64748B;font-weight:600;">Full Name</td><td style="padding:7px 0;font-weight:700;color:#0F172A;text-align:right;">${escapeHtml(g.name)}</td></tr>
+              <tr style="border-bottom:1px solid #F1F5F9;"><td style="padding:7px 0;color:#64748B;font-weight:600;">Phone Number</td><td style="padding:7px 0;font-weight:700;color:#0F172A;text-align:right;">${escapeHtml(g.phone)}</td></tr>
+              <tr style="border-bottom:1px solid #F1F5F9;"><td style="padding:7px 0;color:#64748B;font-weight:600;">ID Proof</td><td style="padding:7px 0;font-weight:700;color:#0F172A;text-align:right;">${escapeHtml(g.idProofNo || 'Not uploaded')}</td></tr>
+              <tr style="border-bottom:1px solid #F1F5F9;"><td style="padding:7px 0;color:#64748B;font-weight:600;">Favorite Residence</td><td style="padding:7px 0;font-weight:700;color:#0F172A;text-align:right;">${escapeHtml(g.lastProperty)}</td></tr>
+              <tr style="border-bottom:1px solid #F1F5F9;"><td style="padding:7px 0;color:#64748B;font-weight:600;">Channels</td><td style="padding:7px 0;font-weight:700;color:#0F172A;text-align:right;">${escapeHtml(g.channelList.join(', ') || 'Direct')}</td></tr>
+              <tr><td style="padding:7px 0;color:#64748B;font-weight:600;">First Visit</td><td style="padding:7px 0;font-weight:700;color:#0F172A;text-align:right;">${g.firstStayDate || 'Unknown'}</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- RIGHT COLUMN: TABBED DOSSIER & STAY TIMELINE -->
+        <div style="padding:20px;display:flex;flex-direction:column;overflow-y:auto;">
+          
+          <!-- Tab Navigation (Like Video Image 3) -->
+          <div style="display:flex;gap:4px;border-bottom:2px solid #E2E8F0;padding-bottom:2px;margin-bottom:16px;">
+            <button type="button" class="dossier-tab active" onclick="window.switchDossierTab('stays')" id="dossier-tab-stays" style="background:transparent;border:none;padding:8px 14px;font-size:13px;font-weight:700;color:#0F172A;border-bottom:2px solid #0F172A;cursor:pointer;">
+              📅 Stay History (${g.bookingHistory.length})
+            </button>
+            <button type="button" class="dossier-tab" onclick="window.switchDossierTab('notes')" id="dossier-tab-notes" style="background:transparent;border:none;padding:8px 14px;font-size:13px;font-weight:600;color:#64748B;cursor:pointer;">
+              📝 Host Notes &amp; Preferences (${g.notes.length})
+            </button>
+            <button type="button" class="dossier-tab" onclick="window.switchDossierTab('timeline')" id="dossier-tab-timeline" style="background:transparent;border:none;padding:8px 14px;font-size:13px;font-weight:600;color:#64748B;cursor:pointer;">
+              ⏱️ Activity Timeline
+            </button>
+          </div>
+
+          <!-- TAB 1: STAY HISTORY -->
+          <div id="dossier-panel-stays" style="display:block;">
+            ${g.bookingHistory.length === 0 ? `
+              <div style="text-align:center;padding:40px;color:#64748B;">No stays recorded for this client.</div>
+            ` : `
+              <div style="display:flex;flex-direction:column;gap:10px;">
+                ${g.bookingHistory.map(b => `
+                  <div style="background:#ffffff;border:1px solid #E2E8F0;border-radius:12px;padding:14px 16px;box-shadow:0 1px 3px rgba(0,0,0,0.04);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
+                    <div>
+                      <div style="font-weight:800;color:#0F172A;font-size:14.5px;display:flex;align-items:center;gap:6px;">
+                        <span>🏡 ${escapeHtml(b.roomName)}</span>
+                        <span style="font-size:11px;font-weight:700;padding:2px 7px;border-radius:6px;background:${b.mode?.includes('Airbnb') ? '#FFE4E6' : '#E0E7FF'};color:${b.mode?.includes('Airbnb') ? '#E11D48' : '#4338CA'};">
+                          ${escapeHtml(b.mode || 'Direct')}
+                        </span>
+                      </div>
+                      <div style="font-size:12.5px;color:#64748B;margin-top:3px;">
+                        📅 ${b.checkIn} &rarr; ${b.checkOut || 'Open'} &bull; Booking ID: <span style="font-family:monospace;font-weight:700;">${b.bookingId}</span>
+                      </div>
+                    </div>
+                    <div style="text-align:right;">
+                      <div style="font-size:15px;font-weight:800;color:#0F172A;">₹${b.amount.toLocaleString('en-IN')}</div>
+                      <div style="font-size:11.5px;font-weight:700;color:${b.due > 0 ? '#EF4444' : '#10B981'};margin-top:2px;">
+                        ${b.due > 0 ? `⚠️ ₹${Math.round(b.due).toLocaleString('en-IN')} Due` : '✅ Paid Full'}
+                      </div>
+                    </div>
+                  </div>
+                `).join('')}
+              </div>
+            `}
+          </div>
+
+          <!-- TAB 2: NOTES & PREFERENCES -->
+          <div id="dossier-panel-notes" style="display:none;">
+            ${g.notes.length === 0 ? `
+              <div style="background:#ffffff;border:1px solid #E2E8F0;border-radius:12px;padding:30px;text-align:center;color:#64748B;">
+                No special host notes or dietary preferences recorded yet.
+              </div>
+            ` : `
+              <div style="display:flex;flex-direction:column;gap:10px;">
+                ${g.notes.map((note, idx) => `
+                  <div style="background:#ffffff;border:1px solid #E2E8F0;border-left:3px solid #b58d3d;border-radius:10px;padding:12px 16px;">
+                    <div style="font-size:11px;font-weight:700;color:#64748B;">Note #${idx+1}</div>
+                    <div style="font-size:13px;color:#0F172A;margin-top:3px;line-height:1.4;">${escapeHtml(note)}</div>
+                  </div>
+                `).join('')}
+              </div>
+            `}
+          </div>
+
+          <!-- TAB 3: TIMELINE -->
+          <div id="dossier-panel-timeline" style="display:none;">
+            <div style="position:relative;padding-left:24px;border-left:2px solid #E2E8F0;display:flex;flex-direction:column;gap:16px;">
+              <div style="position:relative;">
+                <div style="position:absolute;left:-31px;top:2px;width:12px;height:12px;border-radius:50%;background:#10B981;border:2px solid #fff;"></div>
+                <div style="font-size:13px;font-weight:700;color:#0F172A;">Last Stay Recorded</div>
+                <div style="font-size:12px;color:#64748B;">Checked in at ${escapeHtml(g.lastProperty)} (${g.lastStayDate || 'Recent'})</div>
+              </div>
+              <div style="position:relative;">
+                <div style="position:absolute;left:-31px;top:2px;width:12px;height:12px;border-radius:50%;background:#3B82F6;border:2px solid #fff;"></div>
+                <div style="font-size:13px;font-weight:700;color:#0F172A;">Total Stays Milestone</div>
+                <div style="font-size:12px;color:#64748B;">Accumulated ${g.totalStays} completed stay(s) with ₹${Math.round(g.totalSpend).toLocaleString('en-IN')} total rental value.</div>
+              </div>
+              <div style="position:relative;">
+                <div style="position:absolute;left:-31px;top:2px;width:12px;height:12px;border-radius:50%;background:#F59E0B;border:2px solid #fff;"></div>
+                <div style="font-size:13px;font-weight:700;color:#0F172A;">Client Profile Initiated</div>
+                <div style="font-size:12px;color:#64748B;">First arrival recorded on ${g.firstStayDate || 'System Start'}.</div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(modal);
+};
+
+window.switchDossierTab = function(tabName) {
+  ['stays', 'notes', 'timeline'].forEach(t => {
+    const tabBtn = document.getElementById(`dossier-tab-${t}`);
+    const panel = document.getElementById(`dossier-panel-${t}`);
+    if (t === tabName) {
+      if (tabBtn) {
+        tabBtn.style.color = '#0F172A';
+        tabBtn.style.borderBottom = '2px solid #0F172A';
+        tabBtn.style.fontWeight = '700';
+      }
+      if (panel) panel.style.display = 'block';
+    } else {
+      if (tabBtn) {
+        tabBtn.style.color = '#64748B';
+        tabBtn.style.borderBottom = 'none';
+        tabBtn.style.fontWeight = '600';
+      }
+      if (panel) panel.style.display = 'none';
+    }
+  });
 };

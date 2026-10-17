@@ -157,11 +157,15 @@ async function renderReports() {
         </div>
       </div>
 
-      <div style="margin-top:12px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
-        <label style="font-size:12px;font-weight:700;color:var(--text-secondary);">Property:</label>
-        <select onchange="calSelectRoom(this.value)" style="padding:7px 12px;border:1px solid var(--border);border-radius:8px;flex:1;min-width:220px;font-size:13px;font-weight:600;background:#fff;cursor:pointer;">
-          ${propOptions}
-        </select>
+      <!-- STATUS COLOR LEGEND (LIKE SALON CRM VIDEO IMAGE 2) -->
+      <div style="margin-top:12px;padding-top:10px;border-top:1px solid #E2E8F0;display:flex;align-items:center;gap:16px;flex-wrap:wrap;font-size:12px;color:#475569;">
+        <span style="font-weight:700;color:#0F172A;">Status:</span>
+        <span style="display:inline-flex;align-items:center;gap:5px;"><span style="width:10px;height:10px;border-radius:3px;background:#10B981;display:inline-block;"></span> In-House</span>
+        <span style="display:inline-flex;align-items:center;gap:5px;"><span style="width:10px;height:10px;border-radius:3px;background:#F59E0B;display:inline-block;"></span> Upcoming / Confirmed</span>
+        <span style="display:inline-flex;align-items:center;gap:5px;"><span style="width:10px;height:10px;border-radius:3px;background:#FF385C;display:inline-block;"></span> Airbnb</span>
+        <span style="display:inline-flex;align-items:center;gap:5px;"><span style="width:10px;height:10px;border-radius:3px;background:#003580;display:inline-block;"></span> Booking.com</span>
+        <span style="display:inline-flex;align-items:center;gap:5px;"><span style="width:10px;height:10px;border-radius:3px;background:#0284C7;display:inline-block;"></span> Direct</span>
+        <span style="display:inline-flex;align-items:center;gap:5px;"><span style="width:10px;height:10px;border-radius:3px;background:#F8FAFC;border:1px solid #CBD5E1;display:inline-block;"></span> Available</span>
       </div>
     </div>
 
@@ -187,10 +191,12 @@ async function renderReports() {
         <div class="stat-num">${offCount}</div>
         <div class="stat-label">💵 Direct</div>
       </div>
-      <div class="stat-card" style="border-left:4px solid #475569;border-radius:12px;">
-        <div class="stat-num" style="color:#475569;">${blockedMbCount}</div>
-        <div class="stat-label">🔒 Blocked</div>
-      </div>
+      ${blockedMbCount > 0 ? `
+        <div class="stat-card" style="border-left:4px solid #475569;border-radius:12px;">
+          <div class="stat-num" style="color:#475569;">${blockedMbCount}</div>
+          <div class="stat-label">🔒 Blocked</div>
+        </div>
+      ` : ''}
       <div class="stat-card" style="border-left:4px solid #F59E0B;border-radius:12px;background:#FFFBEB;">
         <div class="stat-num" style="color:#B45309;">${reviewCount}</div>
         <div class="stat-label">⭐ Reviews Verified</div>
