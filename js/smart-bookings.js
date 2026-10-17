@@ -394,11 +394,17 @@ async function renderSmartManageBookings(forceRefresh = false) {
           <button class="airbnb-pill ${tab === 'inhouse' ? 'active' : ''}" onclick="window.setBookingTab('inhouse')" id="sbkTabInhouse">
             In-House <span class="airbnb-pill-num">${inHouseCount}</span>
           </button>
+          <button class="airbnb-pill ${tab === 'due' ? 'active' : ''}" onclick="window.setBookingTab('due')" id="sbkTabDue" style="${dueCount > 0 ? 'background:#FEF2F2;color:#991B1B;border-color:#EF4444;font-weight:700;' : ''}">
+            💰 Balance Due <span class="airbnb-pill-num" style="${dueCount > 0 ? 'background:#EF4444;color:#fff;' : ''}">${dueCount}</span>
+          </button>
           <button class="airbnb-pill ${tab === 'pending' ? 'active' : ''}" onclick="window.setBookingTab('pending')" id="sbkTabPending" style="${pendingApprovalsCount > 0 ? 'background:#FEF3C7;color:#92400E;border-color:#F59E0B;font-weight:700;' : ''}">
             🟡 Pending <span class="airbnb-pill-num" style="${pendingApprovalsCount > 0 ? 'background:#F59E0B;color:#fff;' : ''}">${pendingApprovalsCount}</span>
           </button>
           <button class="airbnb-pill ${tab === 'all' ? 'active' : ''}" onclick="window.setBookingTab('all')" id="sbkTabAll" title="View all reservations / guests">
             All Guests <span class="airbnb-pill-num">${all?.length || 0}</span>
+          </button>
+          <button class="airbnb-pill" onclick="navigate('guest-crm')" id="sbkTabGuestCRM" title="Guest CRM &amp; Loyalty Profiles" style="background:#EEF2FF;color:#4338CA;border-color:#C7D2FE;font-weight:700;">
+            👤 Guest CRM
           </button>
           <button class="airbnb-pill" onclick="navigate('reviews-followup')" id="sbkTabReviews" title="Airbnb 14-Day Review Radar &amp; Follow-up Calls" style="background:#FFFBEB;color:#B45309;border-color:#FDE68A;font-weight:600;">
             ⭐ Review Radar

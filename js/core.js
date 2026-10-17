@@ -86,6 +86,96 @@ window.toggleHorillaTheme = function() {
 window.initHorillaTheme();
 
 // ═══════════════════════════════════════════════════════════
+// 🏛️ GLOBAL PROPERTY & CLUSTER SELECTOR (SALON ERP INSPIRED)
+// ═══════════════════════════════════════════════════════════
+window._globalRoomsList = window._globalRoomsList || [];
+
+window.getGlobalSelectedProperty = function() {
+  try {
+    return localStorage.getItem('uhhs_global_prop_filter') || '';
+  } catch(e) {
+    return '';
+  }
+};
+
+window.handleGlobalPropertyFilterChange = function(roomId) {
+  try {
+    localStorage.setItem('uhhs_global_prop_filter', roomId || '');
+  } catch(e) {}
+
+  if (window.SESSION) {
+    window.SESSION.bookingPropFilter = roomId || '';
+  }
+  if (window._sbkState) {
+    window._sbkState.propertyFilter = roomId || '';
+  }
+  if (window._guestCRMState) {
+    window._guestCRMState.propertyFilter = roomId || '';
+  }
+
+  // Visual indication
+  const selWrap = document.getElementById('topbarPropSelector');
+  if (selWrap) {
+    if (roomId) selWrap.classList.add('has-filter');
+    else selWrap.classList.remove('has-filter');
+  }
+
+  // Refresh current view if applicable
+  const curPage = window.SESSION?.currentPage || '';
+  if (curPage === 'bookings' && typeof window.renderSmartManageBookings === 'function') {
+    window.renderSmartManageBookings(false);
+  } else if (curPage === 'guest-crm' && typeof window.renderGuestCRM === 'function') {
+    window.renderGuestCRM(false);
+  } else if (curPage === 'calendar' || curPage === 'reports') {
+    if (typeof window.renderReports === 'function') window.renderReports();
+  } else if (curPage === 'dashboard' && typeof window.renderDashboard === 'function') {
+    window.renderDashboard();
+  } else if (curPage === 'flats' && typeof window.renderFlatsStatus === 'function') {
+    window.renderFlatsStatus();
+  }
+
+  const roomObj = (window._globalRoomsList || []).find(r => r.room_id === roomId);
+  const label = roomObj ? (roomObj.nickname || roomObj.room_id) : 'All Properties';
+  if (window.fsn?.info) {
+    window.fsn.info('Property Filter', roomId ? `Filtered by ${label}` : 'Showing all properties');
+  }
+};
+
+window.loadGlobalRoomsCache = async function() {
+  if (window._globalRoomsList && window._globalRoomsList.length) {
+    window.syncTopbarPropertySelect();
+    return window._globalRoomsList;
+  }
+  try {
+    if (typeof sb === 'undefined') return [];
+    const { data } = await sb.from('rooms').select('room_id, unit_no, nickname, property_name').order('unit_no');
+    if (data && data.length) {
+      window._globalRoomsList = data;
+      window.syncTopbarPropertySelect();
+    }
+    return data || [];
+  } catch(e) {
+    console.warn('Global rooms cache load failed:', e);
+    return [];
+  }
+};
+
+window.syncTopbarPropertySelect = function() {
+  const sel = document.getElementById('topbarPropertySelect');
+  if (!sel) return;
+  const data = window._globalRoomsList || [];
+  const selected = window.getGlobalSelectedProperty();
+  sel.innerHTML = `<option value="">🏛️ All Properties (${data.length || 17})</option>` +
+    data.map(r => `<option value="${r.room_id}" ${selected === r.room_id ? 'selected' : ''}>${r.nickname || r.room_id} (${r.unit_no || '-'})</option>`).join('');
+  
+  const selWrap = document.getElementById('topbarPropSelector');
+  if (selWrap) {
+    if (selected) selWrap.classList.add('has-filter');
+    else selWrap.classList.remove('has-filter');
+  }
+};
+
+// ═══════════════════════════════════════════════════════════
 // 🔐 ROLE PERMISSION HELPERS
 // ═══════════════════════════════════════════════════════════
 window.canDelete = function() {
@@ -1200,9 +1290,10 @@ function renderShell(content, activePage = 'dashboard') {
       id: 'bookings',
       label: '📅 Stay & Bookings',
       page: 'bookings',
-      pages: ['bookings', 'reports', 'calendar', 'flats', 'pendingApprovals', 'reminders', 'reviews-followup'],
+      pages: ['bookings', 'guest-crm', 'reports', 'calendar', 'flats', 'pendingApprovals', 'reminders', 'reviews-followup'],
       tabs: [
         { id: 'bookings', label: '📅 Bookings' },
+        { id: 'guest-crm', label: '👤 Guest CRM' },
         { id: 'reports', label: '📆 Timeline' },
         { id: 'flats', label: '🛏️ Flats Status' },
         { id: 'pendingApprovals', label: '🟡 Approvals' },
@@ -1348,6 +1439,7 @@ function renderShell(content, activePage = 'dashboard') {
     reports: { title: 'Calendar & Bookings', sub: 'Room reservations timeline', icon: '📅' },
     calendar: { title: 'Calendar & Bookings', sub: 'Room reservations timeline', icon: '📅' },
     bookings: { title: 'Bookings Management', sub: 'Guest check-ins, check-outs & payments', icon: '🛎' },
+    'guest-crm': { title: 'Guest CRM & Client Profiles', sub: 'Lifetime stays, VIP loyalty tiers, spend analytics & guest khata', icon: '👤' },
     flats: { title: 'Flats & Housekeeping', sub: 'Room readiness, cleaning & maintenance', icon: '🛏️' },
     shifts: { title: 'Property Shifts', sub: 'Extended stays & room changeovers', icon: '🔄' },
     pendingApprovals: { title: 'Pending Approvals', sub: 'Verification queue for bookings & payments', icon: '🟡' },
@@ -1549,6 +1641,19 @@ function renderShell(content, activePage = 'dashboard') {
           </div>
 
           <div class="topbar-right">
+            <!-- 🏛️ Global Property Switcher (Salon ERP Inspired) -->
+            <div class="topbar-property-selector ${window.getGlobalSelectedProperty ? (window.getGlobalSelectedProperty() ? 'has-filter' : '') : ''}" id="topbarPropSelector" title="Switch property view">
+              <span class="topbar-prop-icon">🏛️</span>
+              <select id="topbarPropertySelect" onchange="window.handleGlobalPropertyFilterChange && window.handleGlobalPropertyFilterChange(this.value)">
+                <option value="">All Properties (${(window._globalRoomsList || []).length || 17})</option>
+                ${(window._globalRoomsList || []).map(r => `
+                  <option value="${r.room_id}" ${(window.getGlobalSelectedProperty ? window.getGlobalSelectedProperty() : '') === r.room_id ? 'selected' : ''}>
+                    ${escapeHtml(r.nickname || r.room_id)} (${r.unit_no || '-'})
+                  </option>
+                `).join('')}
+              </select>
+            </div>
+
             <!-- Quick Send Payment QR Action -->
             <button type="button" class="topbar-qr-pill-btn" onclick="window.openCustomPaymentQRModal && window.openCustomPaymentQRModal()" title="Instant UPI Payment QR to Guest">
               <span style="font-size:14px;">💳</span>
@@ -1675,6 +1780,11 @@ function renderShell(content, activePage = 'dashboard') {
         openMobileDrawer();
       }
     };
+  }
+
+  // Populate & sync Topbar Property Switcher
+  if (typeof window.loadGlobalRoomsCache === 'function') {
+    window.loadGlobalRoomsCache();
   }
 
   // ═══════════════════════════════════════════════════════════
@@ -2012,6 +2122,7 @@ function navigate(page) {
     'daily-report': () => (window.renderDailyReport || renderDailyReport)(),
     reminders: () => (window.renderReminders || renderReminders)(),
     bookings: () => (window.renderSmartManageBookings || window.renderManageBookings || renderManageBookings)(),
+    'guest-crm': () => (window.renderGuestCRM || (() => {}))(),
     employees: () => (window.renderManageEmployees || renderManageEmployees)(),
     tasks: () => (window.renderEmployeeTasks || renderEmployeeTasks)(),
     attendance: () => (window.renderAttendance || renderAttendance)(),
