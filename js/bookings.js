@@ -9206,10 +9206,12 @@ window.openCustomPaymentQRModal = async function(prefill = {}) {
     const cleanGuest = rawGuest.replace(/[^a-zA-Z0-9 ]/g, '').trim().slice(0, 20);
     const cleanUnit = roomShort.replace(/[^a-zA-Z0-9 ]/g, '').trim().slice(0, 20);
     const cleanNote = cleanGuest ? `${cleanGuest} - ${cleanUnit}`.slice(0, 42) : `${cleanUnit} Stay`.slice(0, 42);
+    const cleanPayeeName = (payee.name || '').replace(/^Mr\.?\s*/i, '').trim();
 
+    // NPCI UPI URI: VPA (pa) must NOT have @ encoded to %40, or UPI scanners (GPay/PhonePe) fail with Invalid VPA
     const upiString = amt > 0
-      ? `upi://pay?pa=${encodeURIComponent(payee.upiId)}&pn=${encodeURIComponent(payee.name)}&am=${amt}&cu=INR&tn=${encodeURIComponent(cleanNote)}`
-      : `upi://pay?pa=${encodeURIComponent(payee.upiId)}&pn=${encodeURIComponent(payee.name)}&cu=INR&tn=${encodeURIComponent(cleanNote)}`;
+      ? `upi://pay?pa=${payee.upiId.trim()}&pn=${encodeURIComponent(cleanPayeeName)}&am=${amt}&cu=INR&tn=${encodeURIComponent(cleanNote)}`
+      : `upi://pay?pa=${payee.upiId.trim()}&pn=${encodeURIComponent(cleanPayeeName)}&cu=INR&tn=${encodeURIComponent(cleanNote)}`;
 
     // Dark indigo/navy colored QR dots for luxury look
     const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=350x350&margin=2&color=1E1B4B&bgcolor=FFFFFF&data=${encodeURIComponent(upiString)}`;
@@ -9469,17 +9471,22 @@ window.openCustomPaymentQRModal = async function(prefill = {}) {
       return;
     }
 
+    const cleanDigits = (payee.phone || '').replace(/[^0-9]/g, '').slice(-10);
     const NL = '\n';
-    const greeting = guest ? `Dear *${guest}*,` : `Dear Guest,`;
+    const greeting = guest ? `Namaste *${guest}*,` : `Namaste Guest,`;
     const waMsg = `${greeting}${NL}` +
       `Please pay *₹${amt.toLocaleString('en-IN')}* for *${roomFull}*.${NL}${NL}` +
-      `*UPI Pay Link:*${NL}` +
-      `${upiString}${NL}${NL}` +
+      `📲 *Instant 1-Click Payment Details:*${NL}` +
+      `• *PhonePe / GPay / Paytm:* \`${cleanDigits}\`${NL}` +
+      `• *UPI ID:* \`${payee.upiId}\`${NL}` +
+      `• *Payee Name:* ${payee.name}${NL}` +
+      `• *Amount:* ₹${amt.toLocaleString('en-IN')}${NL}` +
+      (cleanNote ? `• *Note:* ${cleanNote}${NL}` : '') +
+      `${NL}` +
       `📷 *QR Code Link:*${NL}` +
       `${qrUrl}${NL}${NL}` +
-      `• UPI ID: *${payee.upiId}* (${payee.name})${NL}` +
-      `• Note: *${cleanNote}*${NL}${NL}` +
-      `Payment ke baad screenshot share kar dijiye.`;
+      `Aap direct apne PhonePe / GPay / Paytm me mobile number \`${cleanDigits}\` ya UPI ID \`${payee.upiId}\` daal kar payment kar sakte hain, ya upar link se QR scan kar sakte hain.${NL}${NL}` +
+      `Payment ke baad screenshot yahan zaroor share kar dijiye. Dhanyawad! 🙏`;
 
     // Mobile Web Share with Branded Card Image
     if (navigator.canShare && navigator.userAgent.match(/Android|iPhone|iPad/i)) {
