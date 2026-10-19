@@ -168,6 +168,7 @@
     <nav class="vesper-nav-links">
       <a class="vesper-nav-link" href="#collection">17 Stays Collection</a>
       <a class="vesper-nav-link" href="#spaces">Flagship Spaces</a>
+      <a class="vesper-nav-link" href="#reviews">Guest Reviews</a>
       <a class="vesper-nav-link" href="#hosts">The Leadership</a>
       <a class="vesper-nav-link" href="royal-white-house.html">Villa Tour</a>
       <a class="vesper-nav-link" href="properties.html">All 17 Properties</a>
@@ -237,10 +238,18 @@
           </div>
           <a href="book.html?property=royal-white-house" style="font-size:18px; color:#f59e0b; text-decoration:none;" title="Direct Booking">↗</a>
         </div>
-        <div class="vesper-widget-field">
-          <label class="vesper-widget-label">Check In</label>
-          <div class="vesper-widget-input-wrap">
-            <input type="date" id="vesperCheckIn" class="vesper-widget-input" value="2026-10-15" aria-label="Check in date">
+        <div class="vesper-widget-dates-grid" style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+          <div class="vesper-widget-field">
+            <label class="vesper-widget-label">Check In</label>
+            <div class="vesper-widget-input-wrap">
+              <input type="date" id="vesperCheckIn" class="vesper-widget-input" aria-label="Check in date">
+            </div>
+          </div>
+          <div class="vesper-widget-field">
+            <label class="vesper-widget-label">Check Out</label>
+            <div class="vesper-widget-input-wrap">
+              <input type="date" id="vesperCheckOut" class="vesper-widget-input" aria-label="Check out date">
+            </div>
           </div>
         </div>
         <div class="vesper-widget-field">
@@ -287,6 +296,60 @@
       <span class="vesper-collection-eyebrow">THE HAVEN COLLECTION · 17 CURATED STAYS IN LUCKNOW</span>
       <h2 class="vesper-collection-title">Choose your stay across Lucknow's finest locations.</h2>
       <p class="vesper-collection-sub">From private white-marble estates to skyline penthouses and designer 3BHK suites in Gomti Nagar &amp; near Lulu Mall. Book direct with verified Airbnb Superhosts and save 15% with zero platform commission.</p>
+    </div>
+
+    <!-- ─── FLOATING OMNI-SEARCH & AVAILABILITY BAR (AIRBNB / MARRIOTT STYLE) ─── -->
+    <div class="vesper-omni-search-wrap vesper-reveal">
+      <div class="vesper-omni-search">
+        <!-- Col 1: Destination / Stay Type -->
+        <div class="vesper-omni-col">
+          <label class="vesper-omni-label">📍 Destination / Residence</label>
+          <select id="omniCategory" class="vesper-omni-select" onchange="onOmniFilterChange()">
+            <option value="all">🌟 All 17 Lucknow Residences</option>
+            <option value="villa">🏰 Luxury Villas &amp; Farmhouses (5)</option>
+            <option value="penthouse">🌌 Skyline Penthouses (2)</option>
+            <option value="flat">🏢 Gomti Nagar 3BHK Flats (10)</option>
+            <option value="shaheed">📍 Near Lulu Mall &amp; Airport (6)</option>
+          </select>
+        </div>
+
+        <!-- Col 2: Check-In Date -->
+        <div class="vesper-omni-col">
+          <label class="vesper-omni-label">📅 Check-In</label>
+          <input type="date" id="omniCheckIn" class="vesper-omni-input">
+        </div>
+
+        <!-- Col 3: Check-Out Date -->
+        <div class="vesper-omni-col">
+          <label class="vesper-omni-label">📅 Check-Out</label>
+          <input type="date" id="omniCheckOut" class="vesper-omni-input">
+        </div>
+
+        <!-- Col 4: Guests -->
+        <div class="vesper-omni-col">
+          <label class="vesper-omni-label">👥 Guests</label>
+          <select id="omniGuests" class="vesper-omni-select">
+            <option value="2">2 Guests (Couple / Executive)</option>
+            <option value="4">4 Guests (Small Family)</option>
+            <option value="6" selected>6 Guests (Full 3BHK)</option>
+            <option value="8">8 Guests (Large Group)</option>
+            <option value="12">12+ Guests (Private Villa)</option>
+          </select>
+        </div>
+
+        <!-- Col 5: Search Button -->
+        <button type="button" class="vesper-omni-btn" onclick="executeOmniSearch()">
+          <span>🔍</span>
+          <span>Find Best Rate</span>
+        </button>
+      </div>
+      <div style="text-align:center; margin-top:10px; font-size:12.5px; color:#94a3b8; display:flex; align-items:center; justify-content:center; gap:16px; flex-wrap:wrap;">
+        <span style="color:#10b981; font-weight:700;">✓ Save 15% vs Airbnb &amp; MMT</span>
+        <span>•</span>
+        <span style="color:#f59e0b; font-weight:700;">⚡ 0% Platform Convenience Fees</span>
+        <span>•</span>
+        <span style="color:#38bdf8; font-weight:700;">🛡️ Official Company Direct Booking (MCA/GST)</span>
+      </div>
     </div>
 
     <!-- Quick Category Filter Tabs -->
@@ -1009,6 +1072,79 @@
         </article>
       </div>
 
+    </div>
+  </div>
+</section>
+
+<!-- ─── THE REVIEWS SECTION: VERIFIED 5-STAR GUEST EXPERIENCES ─── -->
+<section class="vesper-reviews-section" id="reviews">
+  <div class="vesper-reviews-container">
+    <div class="vesper-reviews-header vesper-reveal">
+      <span class="vesper-reviews-eyebrow">THE HAVEN REPUTATION · VERIFIED SUPERHOST EXPERIENCES</span>
+      <h2 class="vesper-reviews-title">Loved by families, executives &amp; travelers.</h2>
+      <p class="vesper-reviews-sub">4.94★ average rating across 480+ stays in Lucknow. Verified direct &amp; Airbnb Superhost guest stories.</p>
+    </div>
+
+    <div class="vesper-reviews-grid">
+      <!-- Review 1: Namo Agarwal -->
+      <article class="vesper-review-card vesper-reveal">
+        <div class="vesper-review-stars">★★★★★</div>
+        <p class="vesper-review-quote">
+          “Stayed with 10 family members for a wedding. Royal White House is magnificent! Praveen and Mr. Shahanshah personally ensured every single need was met. Saving 15% booking direct was an added bonus.”
+        </p>
+        <div class="vesper-review-author">
+          <div class="vesper-review-avatar">NA</div>
+          <div>
+            <div class="vesper-review-name">Namo Agarwal</div>
+            <div class="vesper-review-stay">Stayed at Royal White House · Verified Stay</div>
+          </div>
+        </div>
+      </article>
+
+      <!-- Review 2: Dr. Shaurya Pratap -->
+      <article class="vesper-review-card vesper-reveal">
+        <div class="vesper-review-stars">★★★★★</div>
+        <p class="vesper-review-quote">
+          “The open sky terrace and city views at Starlight Blue Penthouse are breathtaking! Best penthouse in Gomti Nagar. Super clean, fast WiFi, and delicious Awadhi food cooked fresh by the in-house chef.”
+        </p>
+        <div class="vesper-review-author">
+          <div class="vesper-review-avatar">SP</div>
+          <div>
+            <div class="vesper-review-name">Dr. Shaurya Pratap</div>
+            <div class="vesper-review-stay">Stayed at Starlight Blue Penthouse · Verified Stay</div>
+          </div>
+        </div>
+      </article>
+
+      <!-- Review 3: Ananya & Family -->
+      <article class="vesper-review-card vesper-reveal">
+        <div class="vesper-review-stars">★★★★★</div>
+        <p class="vesper-review-quote">
+          “Bold designer interiors, peaceful leafy balcony, and total privacy at Black Beauty. The caretaker was polite and available 24/7. Felt far more private and luxurious than a standard hotel.”
+        </p>
+        <div class="vesper-review-author">
+          <div class="vesper-review-avatar">AK</div>
+          <div>
+            <div class="vesper-review-name">Ananya K. &amp; Family</div>
+            <div class="vesper-review-stay">Stayed at Black Beauty (Vikalp Khand) · Verified Stay</div>
+          </div>
+        </div>
+      </article>
+
+      <!-- Review 4: Vikramaditya Rao -->
+      <article class="vesper-review-card vesper-reveal">
+        <div class="vesper-review-stars">★★★★★</div>
+        <p class="vesper-review-quote">
+          “Spacious courtyard villa with authentic regal Nawabi hospitality. Perfect for our corporate leadership retreat near Lulu Mall. Highly recommend booking direct with Mr. Firoz and Praveen.”
+        </p>
+        <div class="vesper-review-author">
+          <div class="vesper-review-avatar">VR</div>
+          <div>
+            <div class="vesper-review-name">Vikramaditya Rao</div>
+            <div class="vesper-review-stay">Stayed at Gomti Grand Villa · Verified Stay</div>
+          </div>
+        </div>
+      </article>
     </div>
   </div>
 </section>

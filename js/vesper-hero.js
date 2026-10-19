@@ -531,30 +531,59 @@
     initStickyScrollRooms();
     initCollectionFilter();
     initStickyMobileBar();
+    initOmniSearch();
   }
 
   // ── Centralized Booking Widget Sync (Zero Duplicates) ──
   function updateBookingWidgetLink() {
     const submitBtn = document.getElementById('vesperSubmitBtn');
-    const dateInput = document.getElementById('vesperCheckIn');
+    const ciInput = document.getElementById('vesperCheckIn');
+    const coInput = document.getElementById('vesperCheckOut');
     const guestSelect = document.getElementById('vesperGuests');
     const propSelect = document.getElementById('vesperPropertySelect');
 
     const prop = propSelect ? propSelect.value : 'royal-white-house';
-    const date = dateInput ? dateInput.value : '';
+    const ci = ciInput ? ciInput.value : '';
+    const co = coInput ? coInput.value : '';
     const guests = guestSelect ? guestSelect.value : '12';
 
     if (submitBtn) {
-      submitBtn.href = `book.html?property=${encodeURIComponent(prop)}&checkin=${encodeURIComponent(date)}&guests=${encodeURIComponent(guests)}`;
+      submitBtn.href = `book.html?property=${encodeURIComponent(prop)}&checkin=${encodeURIComponent(ci)}&checkout=${encodeURIComponent(co)}&guests=${encodeURIComponent(guests)}`;
     }
   }
 
   function initBookingWidget() {
-    const dateInput = document.getElementById('vesperCheckIn');
+    const ciInput = document.getElementById('vesperCheckIn');
+    const coInput = document.getElementById('vesperCheckOut');
     const guestSelect = document.getElementById('vesperGuests');
     const propSelect = document.getElementById('vesperPropertySelect');
 
-    if (dateInput) dateInput.addEventListener('change', updateBookingWidgetLink);
+    const now = new Date();
+    const todayStr = now.toISOString().slice(0, 10);
+    const tmrw = new Date(now);
+    tmrw.setDate(tmrw.getDate() + 1);
+    const tmrwStr = tmrw.toISOString().slice(0, 10);
+
+    if (ciInput) {
+      ciInput.min = todayStr;
+      if (!ciInput.value) ciInput.value = todayStr;
+      ciInput.addEventListener('change', function() {
+        if (coInput && coInput.value <= ciInput.value) {
+          const nextDay = new Date(ciInput.value);
+          nextDay.setDate(nextDay.getDate() + 1);
+          coInput.value = nextDay.toISOString().slice(0, 10);
+          coInput.min = nextDay.toISOString().slice(0, 10);
+        }
+        updateBookingWidgetLink();
+      });
+    }
+
+    if (coInput) {
+      coInput.min = tmrwStr;
+      if (!coInput.value) coInput.value = tmrwStr;
+      coInput.addEventListener('change', updateBookingWidgetLink);
+    }
+
     if (guestSelect) guestSelect.addEventListener('change', updateBookingWidgetLink);
     if (propSelect) propSelect.addEventListener('change', updateBookingWidgetLink);
 
@@ -808,6 +837,89 @@
         ticking = true;
       }
     }, { passive: true });
+  }
+
+  // ── 10B. OMNI SEARCH & DYNAMIC DATES SYNC ──
+  function initOmniSearch() {
+    const omniCi = document.getElementById('omniCheckIn');
+    const omniCo = document.getElementById('omniCheckOut');
+    const omniGuests = document.getElementById('omniGuests');
+    const omniCat = document.getElementById('omniCategory');
+
+    const now = new Date();
+    const todayStr = now.toISOString().slice(0, 10);
+    const tmrw = new Date(now);
+    tmrw.setDate(tmrw.getDate() + 1);
+    const tmrwStr = tmrw.toISOString().slice(0, 10);
+
+    if (omniCi) {
+      omniCi.min = todayStr;
+      if (!omniCi.value) omniCi.value = todayStr;
+      omniCi.addEventListener('change', () => {
+        if (omniCo && omniCo.value <= omniCi.value) {
+          const next = new Date(omniCi.value);
+          next.setDate(next.getDate() + 1);
+          omniCo.value = next.toISOString().slice(0, 10);
+          omniCo.min = next.toISOString().slice(0, 10);
+        }
+        syncOmniDatesToCards();
+      });
+    }
+
+    if (omniCo) {
+      omniCo.min = tmrwStr;
+      if (!omniCo.value) omniCo.value = tmrwStr;
+      omniCo.addEventListener('change', syncOmniDatesToCards);
+    }
+
+    if (omniGuests) omniGuests.addEventListener('change', syncOmniDatesToCards);
+
+    window.onOmniFilterChange = function() {
+      const cat = omniCat ? omniCat.value : 'all';
+      const targetBtn = document.querySelector(`.vesper-filter-btn[data-filter="${cat}"]`);
+      if (targetBtn) {
+        targetBtn.click();
+      }
+      syncOmniDatesToCards();
+    };
+
+    window.executeOmniSearch = function() {
+      if (window.onOmniFilterChange) window.onOmniFilterChange();
+      const collectionEl = document.getElementById('vesperStaysGrid');
+      if (collectionEl) {
+        collectionEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    };
+
+    syncOmniDatesToCards();
+  }
+
+  function syncOmniDatesToCards() {
+    const omniCi = document.getElementById('omniCheckIn') || document.getElementById('vesperCheckIn');
+    const omniCo = document.getElementById('omniCheckOut') || document.getElementById('vesperCheckOut');
+    const omniGuests = document.getElementById('omniGuests') || document.getElementById('vesperGuests');
+
+    const ci = omniCi ? omniCi.value : '';
+    const co = omniCo ? omniCo.value : '';
+    const g = omniGuests ? omniGuests.value : '6';
+
+    // Update all card booking links & WhatsApp links
+    document.querySelectorAll('.vesper-stay-card').forEach(card => {
+      const slug = card.getAttribute('data-slug');
+      const title = card.querySelector('.vesper-stay-title a')?.textContent || slug;
+      const bookBtn = card.querySelector('.vesper-btn-stay-book');
+      const waBtn = card.querySelector('.vesper-btn-stay-wa');
+
+      if (bookBtn && slug) {
+        bookBtn.href = `book.html?property=${encodeURIComponent(slug)}&checkin=${encodeURIComponent(ci)}&checkout=${encodeURIComponent(co)}&guests=${encodeURIComponent(g)}`;
+      }
+
+      if (waBtn && title) {
+        const dateNote = ci && co ? ` from ${ci} to ${co} for ${g} guests` : '';
+        const msg = `Namaste! I would like to book ${title} in Lucknow${dateNote} directly with The Unique Haven Homes (Direct Guest Rate).`;
+        waBtn.href = `https://wa.me/919450055554?text=${encodeURIComponent(msg)}`;
+      }
+    });
   }
 
   // ── 11. REACTIVE CRM PRICE EVENT LISTENER ──

@@ -2528,6 +2528,178 @@ body.properties-directory-page {
   box-shadow: 0 6px 16px rgba(37, 211, 102, 0.35);
 }
 
+.vesper-price-direct-box {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.vesper-ota-compare {
+  font-size: 11.5px;
+  color: #94a3b8;
+  font-weight: 500;
+}
+
+.vesper-ota-compare del {
+  color: #ef4444;
+  margin-left: 2px;
+}
+
+.vesper-direct-save-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(16, 185, 129, 0.12);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  color: #34d399;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 999px;
+  margin-top: 4px;
+}
+
+.vesper-live-badge {
+  position: absolute;
+  bottom: 12px;
+  left: 12px;
+  background: rgba(15, 23, 42, 0.85);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #f1f5f9;
+  font-size: 10.5px;
+  font-weight: 700;
+  padding: 3px 9px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.4);
+}
+
+.vesper-live-badge .live-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #10b981;
+  box-shadow: 0 0 8px #10b981;
+  animation: livePulse 2s infinite;
+}
+
+@keyframes livePulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(0.85); }
+}
+
+/* ─── VESPER OMNI SEARCH BAR (AIRBNB / MARRIOTT INSPIRED) ─── */
+.vesper-omni-search-wrap {
+  width: 100%;
+  max-width: 1100px;
+  margin: -36px auto 36px;
+  position: relative;
+  z-index: 25;
+  padding: 0 20px;
+  box-sizing: border-box;
+}
+
+.vesper-omni-search {
+  background: rgba(20, 24, 33, 0.85);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1.5px solid rgba(245, 158, 11, 0.35);
+  border-radius: 24px;
+  padding: 14px 18px;
+  display: grid;
+  grid-template-columns: 1.4fr 1fr 1fr 1fr auto;
+  gap: 12px;
+  align-items: center;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6), 0 0 30px rgba(245, 158, 11, 0.12);
+}
+
+.vesper-omni-col {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 6px 12px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  transition: all 0.2s ease;
+}
+
+.vesper-omni-col:focus-within {
+  border-color: #f59e0b;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.vesper-omni-label {
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #f59e0b;
+}
+
+.vesper-omni-select, .vesper-omni-input {
+  background: transparent;
+  border: none;
+  color: #ffffff;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 13.5px;
+  font-weight: 600;
+  outline: none;
+  cursor: pointer;
+  width: 100%;
+}
+
+.vesper-omni-select option {
+  background: #0f172a;
+  color: #ffffff;
+}
+
+.vesper-omni-btn {
+  background: linear-gradient(135deg, #d97706, #b45309);
+  color: #ffffff;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 13.5px;
+  font-weight: 700;
+  padding: 14px 22px;
+  border-radius: 14px;
+  border: none;
+  cursor: pointer;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 6px 20px rgba(217, 119, 6, 0.4);
+  transition: all 0.25s ease;
+}
+
+.vesper-omni-btn:hover {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(245, 158, 11, 0.5);
+}
+
+@media (max-width: 900px) {
+  .vesper-omni-search-wrap {
+    margin: 16px auto 24px;
+    padding: 0 16px;
+  }
+  .vesper-omni-search {
+    grid-template-columns: 1fr;
+    gap: 8px;
+    padding: 14px;
+    border-radius: 18px;
+  }
+  .vesper-omni-btn {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
 .vesper-collection-banner {
   background: #14161c;
   border: 1px solid rgba(245, 158, 11, 0.25);
@@ -3168,3 +3340,119 @@ body.properties-directory-page {
 }
 
 /* Marker: vesper-typewriter-cursor-active */
+
+/* ─── VERIFIED GUEST REVIEWS SECTION ─── */
+.vesper-reviews-section {
+  padding: 80px 40px;
+  background: #0c0d10;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  position: relative;
+  z-index: 5;
+}
+
+.vesper-reviews-container {
+  max-width: 1300px;
+  margin: 0 auto;
+}
+
+.vesper-reviews-header {
+  text-align: center;
+  max-width: 750px;
+  margin: 0 auto 50px;
+}
+
+.vesper-reviews-eyebrow {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: #f59e0b;
+  display: block;
+  margin-bottom: 8px;
+}
+
+.vesper-reviews-title {
+  font-family: 'Fraunces', serif;
+  font-size: 36px;
+  font-weight: 600;
+  color: #ffffff;
+  margin: 0 0 14px;
+}
+
+.vesper-reviews-sub {
+  font-size: 15px;
+  color: #94a3b8;
+  line-height: 1.6;
+}
+
+.vesper-reviews-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 24px;
+}
+
+.vesper-review-card {
+  background: #14161c;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 20px;
+  padding: 28px 24px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  transition: all 0.3s ease;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+}
+
+.vesper-review-card:hover {
+  transform: translateY(-4px);
+  border-color: rgba(245, 158, 11, 0.35);
+  box-shadow: 0 16px 40px rgba(0,0,0,0.5), 0 0 20px rgba(245, 158, 11, 0.1);
+}
+
+.vesper-review-stars {
+  color: #f59e0b;
+  font-size: 16px;
+  letter-spacing: 2px;
+  margin-bottom: 12px;
+}
+
+.vesper-review-quote {
+  font-size: 14px;
+  color: #e2e8f0;
+  line-height: 1.6;
+  font-style: italic;
+  margin-bottom: 20px;
+  flex: 1;
+}
+
+.vesper-review-author {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  padding-top: 16px;
+}
+
+.vesper-review-avatar {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #d97706, #92400e);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 15px;
+}
+
+.vesper-review-name {
+  font-weight: 700;
+  color: #ffffff;
+  font-size: 14px;
+}
+
+.vesper-review-stay {
+  font-size: 11.5px;
+  color: #94a3b8;
+}

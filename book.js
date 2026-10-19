@@ -167,6 +167,30 @@ function init() {
     onPropertyChange();
   }
 
+  // Pre-fill Check-In / Check-Out & Guests from URL params (e.g. from homepage search bar)
+  const ciParam = params.get('checkin') || params.get('checkIn') || params.get('ci');
+  const coParam = params.get('checkout') || params.get('checkOut') || params.get('co');
+  const guestsParam = params.get('guests') || params.get('g');
+
+  if (ciParam) {
+    const ciInput = document.getElementById('checkIn');
+    if (ciInput) {
+      ciInput.value = ciParam;
+      document.getElementById('checkOut').min = ciParam;
+    }
+  }
+  if (coParam) {
+    const coInput = document.getElementById('checkOut');
+    if (coInput) coInput.value = coParam;
+  }
+  if (guestsParam) {
+    const gInput = document.getElementById('numGuests');
+    if (gInput) gInput.value = guestsParam;
+  }
+  if (ciParam || coParam || guestsParam) {
+    updateSummary();
+  }
+
   renderMiniCal();
   renderAddonsGrid();
 
