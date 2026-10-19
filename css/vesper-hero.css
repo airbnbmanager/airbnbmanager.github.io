@@ -178,20 +178,29 @@ html, body {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  color: #ffffff;
-  padding: 8px 14px;
+  background: rgba(245, 158, 11, 0.12);
+  border: 1px solid rgba(245, 158, 11, 0.45);
+  color: #fcd34d;
+  padding: 8px 15px;
   border-radius: 999px;
   font-size: 13px;
   font-weight: 600;
   text-decoration: none;
-  transition: all 0.2s ease;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+}
+.vesper-btn-call-header svg {
+  width: 14px;
+  height: 14px;
+  stroke: currentColor;
+  flex-shrink: 0;
 }
 .vesper-btn-call-header:hover {
-  background: rgba(255, 255, 255, 0.16);
+  background: #f59e0b;
   border-color: #f59e0b;
-  color: #f59e0b;
+  color: #0c0d10;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(245, 158, 11, 0.4);
 }
 .vesper-btn-wa-header {
   background: rgba(37, 211, 102, 0.12);
@@ -433,16 +442,16 @@ html, body {
 /* RIGHT: INTERACTIVE FLIGHT-PATH STEPPER & BOOKING WIDGET */
 .vesper-right {
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   justify-content: flex-end;
-  gap: 22px;
+  gap: 18px;
   position: relative;
 }
 
 @media (max-width: 1200px) {
   .vesper-right {
     flex-direction: column;
-    align-items: flex-end;
+    align-items: center;
   }
 }
 
@@ -453,28 +462,28 @@ html, body {
 }
 
 .vesper-flight-path {
-  background: rgba(15, 23, 42, 0.65);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 24px;
-  padding: 24px 22px;
-  max-width: 320px;
+  background: rgba(15, 23, 42, 0.75);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 20px;
+  padding: 14px 16px;
+  max-width: 310px;
   width: 100%;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.45);
 }
 
 .vesper-flight-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 18px;
-  padding-bottom: 12px;
+  margin-bottom: 10px;
+  padding-bottom: 8px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .vesper-flight-title {
-  font-size: 11px;
+  font-size: 10.5px;
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -482,23 +491,23 @@ html, body {
 }
 
 .vesper-flight-hint {
-  font-size: 11px;
+  font-size: 10.5px;
   color: rgba(248, 250, 252, 0.5);
 }
 
 .vesper-steps-list {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 3px;
   position: relative;
 }
 
 .vesper-step-item {
   display: flex;
   align-items: center;
-  gap: 14px;
-  padding: 10px 12px;
-  border-radius: 14px;
+  gap: 10px;
+  padding: 6px 10px;
+  border-radius: 10px;
   background: transparent;
   border: 1px solid transparent;
   cursor: pointer;
@@ -519,8 +528,8 @@ html, body {
 }
 
 .vesper-step-bullet {
-  width: 28px;
-  height: 28px;
+  width: 24px;
+  height: 24px;
   border-radius: 50%;
   background: rgba(255, 255, 255, 0.08);
   border: 1.5px solid rgba(255, 255, 255, 0.2);
@@ -529,7 +538,7 @@ html, body {
   align-items: center;
   justify-content: center;
   font-family: 'Outfit', sans-serif;
-  font-size: 11px;
+  font-size: 10.5px;
   font-weight: 700;
   transition: all 0.25s ease;
   flex-shrink: 0;
@@ -545,12 +554,12 @@ html, body {
 .vesper-step-info {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 1px;
   flex: 1;
 }
 
 .vesper-step-name {
-  font-size: 13.5px;
+  font-size: 12.5px;
   font-weight: 600;
   color: rgba(248, 250, 252, 0.9);
   line-height: 1.2;
@@ -562,12 +571,38 @@ html, body {
 }
 
 .vesper-step-desc {
-  font-size: 11px;
+  font-size: 10.5px;
   color: rgba(248, 250, 252, 0.5);
+  line-height: 1.2;
 }
 
 .vesper-step-item.active .vesper-step-desc {
   color: #fcd34d;
+}
+
+@media (max-height: 820px) and (min-width: 900px) {
+  .vesper-hero-body {
+    padding: 10px 40px 14px;
+    gap: 28px;
+  }
+  .vesper-headline {
+    font-size: clamp(30px, 3.8vw, 46px);
+    margin: 0 0 10px;
+  }
+  .vesper-subcopy {
+    font-size: 14.5px;
+    line-height: 1.5;
+    margin: 0 0 16px;
+  }
+  .vesper-spec-row {
+    margin-bottom: 20px;
+  }
+  .vesper-flight-path {
+    padding: 12px 14px;
+  }
+  .vesper-step-item {
+    padding: 5px 8px;
+  }
 }
 
 /* ─── BOTTOM DEDICATED SEARCH & PORTFOLIO ANCHOR BAR ─── */
