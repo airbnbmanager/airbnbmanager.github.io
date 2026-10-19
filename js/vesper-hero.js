@@ -531,6 +531,7 @@
     initStickyScrollRooms();
     initCollectionFilter();
     initStickyMobileBar();
+    initClickableMedia();
     initOmniSearch();
   }
 
@@ -837,6 +838,46 @@
         ticking = true;
       }
     }, { passive: true });
+  }
+
+  // ── 10A. MAKE CARD THUMBNAILS 100% CLICKABLE ON ALL DEVICES (LAPTOP / MOBILE) ──
+  function initClickableMedia() {
+    document.querySelectorAll('.vesper-stay-card').forEach(card => {
+      const slug = card.getAttribute('data-slug');
+      if (!slug) return;
+      const media = card.querySelector('.vesper-stay-media');
+      if (!media) return;
+
+      // If it's a native anchor tag, ensure href is set and let browser handle naturally
+      if (media.tagName === 'A') {
+        if (!media.getAttribute('href')) {
+          media.setAttribute('href', slug + '.html');
+        }
+        media.style.cursor = 'pointer';
+        return;
+      }
+
+      if (media.dataset.boundClick) return;
+      media.dataset.boundClick = 'true';
+      media.style.cursor = 'pointer';
+      if (!media.getAttribute('role')) media.setAttribute('role', 'link');
+      if (!media.getAttribute('tabindex')) media.setAttribute('tabindex', '0');
+
+      const targetUrl = slug + '.html';
+
+      const navigateToStay = function(e) {
+        if (e.target.tagName === 'A' && e.target !== media) return;
+        window.location.href = targetUrl;
+      };
+
+      media.addEventListener('click', navigateToStay);
+      media.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          navigateToStay(e);
+        }
+      });
+    });
   }
 
   // ── 10B. OMNI SEARCH & DYNAMIC DATES SYNC ──

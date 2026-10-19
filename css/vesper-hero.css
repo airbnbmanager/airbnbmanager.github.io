@@ -2349,6 +2349,38 @@ body.properties-directory-page {
   aspect-ratio: 16 / 10;
   overflow: hidden;
   background: #020617;
+  display: block;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.vesper-stay-view-hint {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) scale(0.9);
+  background: rgba(12, 13, 16, 0.88);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(245, 158, 11, 0.5);
+  color: #fcd34d;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 8px 16px;
+  border-radius: 999px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+  opacity: 0;
+  pointer-events: none;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  z-index: 5;
+}
+
+.vesper-stay-card:hover .vesper-stay-view-hint {
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(1);
 }
 
 .vesper-stay-media img {
