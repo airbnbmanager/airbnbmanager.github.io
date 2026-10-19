@@ -2797,18 +2797,21 @@ body.properties-directory-page {
   margin: 0;
 }
 
-/* 3 Profile Cards Grid */
+/* 2 Owners Profile Cards Grid (Mr. Firoz Khan & Mr. Shahanshah) */
 .vesper-hosts-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 30px;
+  grid-template-columns: repeat(2, 1fr);
+  max-width: 900px;
+  margin: 0 auto;
+  gap: 32px;
 }
 
-@media (max-width: 900px) {
+@media (max-width: 768px) {
   .vesper-hosts-grid {
     grid-template-columns: 1fr;
-    max-width: 480px;
+    max-width: 440px;
     margin: 0 auto;
+    gap: 20px;
   }
 }
 
