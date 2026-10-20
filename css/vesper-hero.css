@@ -1186,7 +1186,7 @@ body.properties-directory-page {
 }
 
 .dir-card-price-strike {
-  color: #64748b !important;
+  color: #94a3b8 !important;
 }
 
 .dir-card-footer {
@@ -1481,7 +1481,7 @@ body.properties-directory-page {
 }
 
 .link-arrow {
-  color: #64748b;
+  color: #94a3b8;
   font-size: 13px;
   transition: transform 0.2s ease, color 0.2s ease;
 }
@@ -1524,7 +1524,7 @@ body.properties-directory-page {
 .vesper-footer-wa-note {
   display: block;
   font-size: 11px;
-  color: #64748b;
+  color: #94a3b8;
   text-align: center;
   margin-top: 6px;
 }
@@ -1572,7 +1572,7 @@ body.properties-directory-page {
 }
 
 .vesper-footer-dot {
-  color: #64748b;
+  color: #94a3b8;
 }
 
 .vesper-footer-badges {
@@ -2541,7 +2541,7 @@ body.properties-directory-page {
 
 .vesper-stay-price-strike {
   font-size: 13px;
-  color: #64748b;
+  color: #94a3b8;
   text-decoration: line-through;
   margin-right: 6px;
 }

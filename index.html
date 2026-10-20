@@ -35,17 +35,25 @@
 <link rel="icon" type="image/png" sizes="16x16" href="assets/favicon-16x16.png?v=2" />
 <link rel="shortcut icon" href="favicon.ico?v=2" />
 <link rel="apple-touch-icon" href="assets/apple-touch-icon.png?v=2" />
-<!-- Google Fonts: Fraunces, Outfit & Plus Jakarta Sans for 5-Star Luxury Feel -->
+<!-- Preload LCP Hero Flagship Villa Image for Instant Mobile LCP -->
+<link rel="preload" as="image" href="https://a0.muscache.com/im/pictures/hosting/Hosting-1718315215180636685/original/b018acc7-5ccb-440e-8bc0-afbfbb9fb2a0.jpeg?im_w=1200" fetchpriority="high">
+
+<!-- Google Fonts: Non-blocking display swap -->
 <link href="https://fonts.googleapis.com" rel="preconnect"/>
 <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400..800;1,9..144,400..800&amp;family=Outfit:wght@400;500;600;700;800&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Outfit:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" media="print" onload="this.media='all'"/>
+<noscript>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Outfit:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap"/>
+</noscript>
+
 <!-- Core Luxe & Directory Stylesheets -->
-<link href="css/property-luxe.css" rel="stylesheet"/>
-<link href="css/mobile-fixes.css?v=206" rel="stylesheet"/>
-<link href="css/vesper-hero.css?v=5" rel="stylesheet"/>
-<!-- Supabase Client for Real-Time CRM Geolocation Sync -->
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="config.js"></script>
+<link href="css/property-luxe.css?v=207" rel="stylesheet"/>
+<link href="css/mobile-fixes.css?v=207" rel="stylesheet"/>
+<link href="css/vesper-hero.css?v=6" rel="stylesheet"/>
+
+<!-- Supabase Client & Config (Deferred to prevent render blocking) -->
+<script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script defer src="config.js"></script>
 <!-- Schema.org Knowledge Graph Structured Data for Search & AI Engines -->
 <script type="application/ld+json">
 {
@@ -149,7 +157,7 @@
 <section class="tuhh-vesper-hero" id="flagship-hero">
   <!-- Dynamic Background Slides -->
   <div class="vesper-bg-viewport" id="vesperBgViewport">
-    <!-- Populated by js/vesper-hero.js with 5 real high-res rooms -->
+    <div class="vesper-bg-slide active" id="vesperSlide_0" style="background-image: url('https://a0.muscache.com/im/pictures/hosting/Hosting-1718315215180636685/original/b018acc7-5ccb-440e-8bc0-afbfbb9fb2a0.jpeg?im_w=1200'); opacity: 1;"></div>
   </div>
   <div class="vesper-scrim"></div>
   <div class="vesper-watermark">HAVEN</div>
@@ -158,7 +166,7 @@
   <header class="vesper-topbar">
     <a class="vesper-brand" href="index.html" title="THE UNIQUE HAVEN HOMES">
       <div class="vesper-brand-emblem">
-        <img alt="TUHH Crest" src="assets/logo-emblem.png"/>
+        <img alt="TUHH Crest" src="assets/logo-emblem.png" width="40" height="40" decoding="async"/>
       </div>
       <div>
         <span class="vesper-brand-title">THE UNIQUE HAVEN HOMES</span>
@@ -370,7 +378,7 @@
       <!-- 1. Royal White House -->
       <article class="vesper-stay-card" data-room-id="VIL-102" data-slug="royal-white-house" data-category="all villa shaheed">
         <a class="vesper-stay-media" href="royal-white-house.html" title="Explore Royal White House - View Photos &amp; Design">
-          <img src="assets/properties/royal-white-house/cover.jpg" alt="Royal White House Flagship Villa" loading="lazy">
+          <img src="assets/properties/royal-white-house/cover.jpg" alt="Royal White House Flagship Villa" loading="lazy" decoding="async" width="600" height="400">
           <span class="vesper-stay-badge">👑 Flagship Presidential Villa</span>
           <span class="vesper-stay-save-badge">Save 15%</span>
           <span class="vesper-stay-view-hint">🔍 View Photos &amp; Design</span>
@@ -406,7 +414,7 @@
       <!-- 2. Black Beauty -->
       <article class="vesper-stay-card" data-room-id="GOM-102" data-slug="black-beauty" data-category="all flat">
         <a class="vesper-stay-media" href="black-beauty.html" title="Explore Black Beauty - View Photos &amp; Design">
-          <img src="assets/properties/black-beauty/cover.jpg" alt="Black Beauty 3BHK Flat" loading="lazy">
+          <img src="assets/properties/black-beauty/cover.jpg" alt="Black Beauty 3BHK Flat" loading="lazy" decoding="async" width="600" height="400">
           <span class="vesper-stay-badge">🖤 Designer Luxury Suite</span>
           <span class="vesper-stay-save-badge">Save 15%</span>
           <span class="vesper-stay-view-hint">🔍 View Photos &amp; Design</span>
@@ -442,7 +450,7 @@
       <!-- 3. Starlight Blue Penthouse -->
       <article class="vesper-stay-card" data-room-id="GOM-501" data-slug="starlight-blue-penthouse" data-category="all penthouse flat">
         <a class="vesper-stay-media" href="starlight-blue-penthouse.html" title="Explore Starlight Blue Penthouse - View Photos &amp; Design">
-          <img src="assets/properties/starlight-blue/cover.jpg" alt="Starlight Blue Penthouse" loading="lazy">
+          <img src="assets/properties/starlight-blue/cover.jpg" alt="Starlight Blue Penthouse" loading="lazy" decoding="async" width="600" height="400">
           <span class="vesper-stay-badge">🌌 4BHK Sky Penthouse</span>
           <span class="vesper-stay-save-badge">Save 15%</span>
           <span class="vesper-stay-view-hint">🔍 View Photos &amp; Design</span>
@@ -478,7 +486,7 @@
       <!-- 4. Gomti Grand Villa -->
       <article class="vesper-stay-card" data-room-id="VIL-101" data-slug="gomti-grand-villa" data-category="all villa">
         <a class="vesper-stay-media" href="gomti-grand-villa.html" title="Explore Gomti Grand Villa - View Photos &amp; Design">
-          <img src="assets/properties/gomti-grand-villa/cover.jpg" alt="Gomti Grand Villa" loading="lazy">
+          <img src="assets/properties/gomti-grand-villa/cover.jpg" alt="Gomti Grand Villa" loading="lazy" decoding="async" width="600" height="400">
           <span class="vesper-stay-badge">🏛️ 4BHK Royal Courtyard Villa</span>
           <span class="vesper-stay-save-badge">Save 15%</span>
           <span class="vesper-stay-view-hint">🔍 View Photos &amp; Design</span>
@@ -514,7 +522,7 @@
       <!-- 5. Celebrity Garden -->
       <article class="vesper-stay-card" data-room-id="LUL-402" data-slug="celebrity-garden" data-category="all villa shaheed">
         <a class="vesper-stay-media" href="celebrity-garden.html" title="Explore Celebrity Garden - View Photos &amp; Design">
-          <img src="assets/properties/celebrity-garden/cover.jpg" alt="Celebrity Garden Farmhouse" loading="lazy">
+          <img src="assets/properties/celebrity-garden/cover.jpg" alt="Celebrity Garden Farmhouse" loading="lazy" decoding="async" width="600" height="400">
           <span class="vesper-stay-badge">🌿 Luxury Farmhouse &amp; Lawn</span>
           <span class="vesper-stay-save-badge">Save 15%</span>
           <span class="vesper-stay-view-hint">🔍 View Photos &amp; Design</span>
@@ -550,7 +558,7 @@
       <!-- 6. Redrose Palace -->
       <article class="vesper-stay-card" data-room-id="GOM-101" data-slug="redrose-palace" data-category="all penthouse flat">
         <a class="vesper-stay-media" href="redrose-palace.html" title="Explore Redrose Palace - View Photos &amp; Design">
-          <img src="assets/properties/redrose-palace/cover.jpg" alt="Redrose Palace Flat" loading="lazy">
+          <img src="assets/properties/redrose-palace/cover.jpg" alt="Redrose Palace Flat" loading="lazy" decoding="async" width="600" height="400">
           <span class="vesper-stay-badge">🌹 Luxury Rose Suite</span>
           <span class="vesper-stay-save-badge">Save 15%</span>
           <span class="vesper-stay-view-hint">🔍 View Photos &amp; Design</span>
@@ -586,7 +594,7 @@
       <!-- 7. The Dark Blue -->
       <article class="vesper-stay-card" data-room-id="GOM-201" data-slug="the-dark-blue" data-category="all flat">
         <a class="vesper-stay-media" href="the-dark-blue.html" title="Explore The Dark Blue - View Photos &amp; Design">
-          <img src="assets/properties/the-dark-blue/cover.jpg" alt="The Dark Blue Flat" loading="lazy">
+          <img src="assets/properties/the-dark-blue/cover.jpg" alt="The Dark Blue Flat" loading="lazy" decoding="async" width="600" height="400">
           <span class="vesper-stay-badge">✨ Signature Velvet Flat</span>
           <span class="vesper-stay-save-badge">Save 15%</span>
           <span class="vesper-stay-view-hint">🔍 View Photos &amp; Design</span>
@@ -622,7 +630,7 @@
       <!-- 8. The Yellow House -->
       <article class="vesper-stay-card" data-room-id="VIL-105" data-slug="the-yellow-house" data-category="all flat">
         <a class="vesper-stay-media" href="the-yellow-house.html" title="Explore The Yellow House - View Photos &amp; Design">
-          <img src="assets/properties/the-yellow-house/cover.jpg" alt="The Yellow House Flat" loading="lazy">
+          <img src="assets/properties/the-yellow-house/cover.jpg" alt="The Yellow House Flat" loading="lazy" decoding="async" width="600" height="400">
           <span class="vesper-stay-badge">💛 Sunlit Balcony Flat</span>
           <span class="vesper-stay-save-badge">Save 15%</span>
           <span class="vesper-stay-view-hint">🔍 View Photos &amp; Design</span>
@@ -658,7 +666,7 @@
       <!-- 9. The Green House -->
       <article class="vesper-stay-card" data-room-id="VIL-104" data-slug="the-green-house" data-category="all flat">
         <a class="vesper-stay-media" href="the-green-house.html" title="Explore The Green House - View Photos &amp; Design">
-          <img src="assets/properties/the-green-house/cover.jpg" alt="The Green House Flat" loading="lazy">
+          <img src="assets/properties/the-green-house/cover.jpg" alt="The Green House Flat" loading="lazy" decoding="async" width="600" height="400">
           <span class="vesper-stay-badge">🌿 Botanical Oasis Flat</span>
           <span class="vesper-stay-save-badge">Save 15%</span>
           <span class="vesper-stay-view-hint">🔍 View Photos &amp; Design</span>
@@ -694,7 +702,7 @@
       <!-- 10. The Velvet House -->
       <article class="vesper-stay-card" data-room-id="VIL-107" data-slug="the-velvet-house" data-category="all villa shaheed">
         <a class="vesper-stay-media" href="the-velvet-house.html" title="Explore The Velvet House - View Photos &amp; Design">
-          <img src="assets/properties/the-velvet-house/cover.jpg" alt="The Velvet House Villa" loading="lazy">
+          <img src="assets/properties/the-velvet-house/cover.jpg" alt="The Velvet House Villa" loading="lazy" decoding="async" width="600" height="400">
           <span class="vesper-stay-badge">🎭 Plush Velvet Villa</span>
           <span class="vesper-stay-save-badge">Save 15%</span>
           <span class="vesper-stay-view-hint">🔍 View Photos &amp; Design</span>
@@ -730,7 +738,7 @@
       <!-- 11. The Pink House -->
       <article class="vesper-stay-card" data-room-id="VIL-103" data-slug="the-pink-house" data-category="all flat">
         <a class="vesper-stay-media" href="the-pink-house.html" title="Explore The Pink House - View Photos &amp; Design">
-          <img src="assets/properties/the-pink-house/cover.jpg" alt="The Pink House Flat" loading="lazy">
+          <img src="assets/properties/the-pink-house/cover.jpg" alt="The Pink House Flat" loading="lazy" decoding="async" width="600" height="400">
           <span class="vesper-stay-badge">🌸 Boho Chic Flat</span>
           <span class="vesper-stay-save-badge">Save 15%</span>
           <span class="vesper-stay-view-hint">🔍 View Photos &amp; Design</span>
@@ -766,7 +774,7 @@
       <!-- 12. The Light Green -->
       <article class="vesper-stay-card" data-room-id="GOM-301" data-slug="the-light-green" data-category="all flat">
         <a class="vesper-stay-media" href="the-light-green.html" title="Explore The Light Green - View Photos &amp; Design">
-          <img src="assets/properties/the-light-green/cover.jpg" alt="The Light Green Flat" loading="lazy">
+          <img src="assets/properties/the-light-green/cover.jpg" alt="The Light Green Flat" loading="lazy" decoding="async" width="600" height="400">
           <span class="vesper-stay-badge">🍃 Nordic Minimalist Flat</span>
           <span class="vesper-stay-save-badge">Save 15%</span>
           <span class="vesper-stay-view-hint">🔍 View Photos &amp; Design</span>
@@ -802,7 +810,7 @@
       <!-- 13. The Brown -->
       <article class="vesper-stay-card" data-room-id="GOM-202" data-slug="the-brown" data-category="all flat">
         <a class="vesper-stay-media" href="the-brown.html" title="Explore The Brown - View Photos &amp; Design">
-          <img src="assets/properties/the-brown/cover.jpg" alt="The Brown Luxury Flat" loading="lazy">
+          <img src="assets/properties/the-brown/cover.jpg" alt="The Brown Luxury Flat" loading="lazy" decoding="async" width="600" height="400">
           <span class="vesper-stay-badge">🪵 Warm Timber Suite</span>
           <span class="vesper-stay-save-badge">Save 15%</span>
           <span class="vesper-stay-view-hint">🔍 View Photos &amp; Design</span>
@@ -838,7 +846,7 @@
       <!-- 14. The Nawabi Stay -->
       <article class="vesper-stay-card" data-room-id="GOM-401" data-slug="the-nawabi-stay" data-category="all flat">
         <a class="vesper-stay-media" href="the-nawabi-stay.html" title="Explore The Nawabi Stay - View Photos &amp; Design">
-          <img src="assets/properties/the-nawabi-stay/cover.jpg" alt="The Nawabi Stay" loading="lazy">
+          <img src="assets/properties/the-nawabi-stay/cover.jpg" alt="The Nawabi Stay" loading="lazy" decoding="async" width="600" height="400">
           <span class="vesper-stay-badge">🏺 Awadhi Heritage Suite</span>
           <span class="vesper-stay-save-badge">Save 15%</span>
           <span class="vesper-stay-view-hint">🔍 View Photos &amp; Design</span>
@@ -874,7 +882,7 @@
       <!-- 15. The Unique -->
       <article class="vesper-stay-card" data-room-id="GOM-302" data-slug="the-unique" data-category="all flat">
         <a class="vesper-stay-media" href="the-unique.html" title="Explore The Unique - View Photos &amp; Design">
-          <img src="assets/properties/the-unique/cover.jpg" alt="The Unique Flat" loading="lazy">
+          <img src="assets/properties/the-unique/cover.jpg" alt="The Unique Flat" loading="lazy" decoding="async" width="600" height="400">
           <span class="vesper-stay-badge">⭐ Modern Executive Residence</span>
           <span class="vesper-stay-save-badge">Save 15%</span>
           <span class="vesper-stay-view-hint">🔍 View Photos &amp; Design</span>
@@ -910,7 +918,7 @@
       <!-- 16. Green Forest -->
       <article class="vesper-stay-card" data-room-id="VIL-106" data-slug="green-forest" data-category="all villa shaheed">
         <a class="vesper-stay-media" href="green-forest.html" title="Explore Green Forest - View Photos &amp; Design">
-          <img src="assets/properties/green-forest/cover.jpg" alt="Green Forest View" loading="lazy">
+          <img src="assets/properties/green-forest/cover.jpg" alt="Green Forest View" loading="lazy" decoding="async" width="600" height="400">
           <span class="vesper-stay-badge">🌲 Scenic Forest View</span>
           <span class="vesper-stay-save-badge">Save 15%</span>
           <span class="vesper-stay-view-hint">🔍 View Photos &amp; Design</span>
@@ -946,7 +954,7 @@
       <!-- 17. Pink Paradise -->
       <article class="vesper-stay-card" data-room-id="VIL-108" data-slug="pink-paradise" data-category="all villa shaheed">
         <a class="vesper-stay-media" href="pink-paradise.html" title="Explore Pink Paradise - View Photos &amp; Design">
-          <img src="assets/properties/pink-paradise/cover.jpg" alt="Pink Paradise Villa" loading="lazy">
+          <img src="assets/properties/pink-paradise/cover.jpg" alt="Pink Paradise Villa" loading="lazy" decoding="async" width="600" height="400">
           <span class="vesper-stay-badge">🌺 Luxury Garden Villa</span>
           <span class="vesper-stay-save-badge">Save 15%</span>
           <span class="vesper-stay-view-hint">🔍 View Photos &amp; Design</span>
@@ -1182,7 +1190,7 @@
       <!-- Host 1: Mr. Firoz Khan -->
       <article class="vesper-host-card vesper-reveal vesper-delay-1">
         <div class="vesper-host-avatar-wrap">
-          <img src="assets/founders/firoz-khan.jpg?v=12" alt="Mr. Firoz Khan - Co-Founder &amp; Owner" class="vesper-host-avatar" onerror="this.src='assets/logo-emblem.png'">
+          <img src="assets/founders/firoz-khan.jpg?v=12" alt="Mr. Firoz Khan - Co-Founder &amp; Owner" class="vesper-host-avatar" width="72" height="72" loading="lazy" decoding="async" onerror="this.src='assets/logo-emblem.png'">
         </div>
         <span class="vesper-host-badge-chip">👑 Co-Founder &amp; Owner</span>
         <h3 class="vesper-host-name">Mr. Firoz Khan</h3>
@@ -1203,7 +1211,7 @@
       <!-- Host 2: Mr. Shahanshah -->
       <article class="vesper-host-card vesper-reveal vesper-delay-2">
         <div class="vesper-host-avatar-wrap">
-          <img src="assets/founders/shahanshah.jpg?v=12" alt="Mr. Shahanshah - Co-Founder &amp; Owner" class="vesper-host-avatar" onerror="this.src='assets/logo-emblem.png'">
+          <img src="assets/founders/shahanshah.jpg?v=12" alt="Mr. Shahanshah - Co-Founder &amp; Owner" class="vesper-host-avatar" width="72" height="72" loading="lazy" decoding="async" onerror="this.src='assets/logo-emblem.png'">
         </div>
         <span class="vesper-host-badge-chip">👑 Co-Founder &amp; Owner</span>
         <h3 class="vesper-host-name">Mr. Shahanshah</h3>
@@ -1238,7 +1246,7 @@
       <div class="vesper-footer-col vesper-footer-col-brand">
         <div class="vesper-footer-brand-wrap">
           <div class="vesper-footer-brand-logo">
-            <img alt="The Unique Haven Homes Emblem" src="assets/logo-emblem.png"/>
+            <img alt="The Unique Haven Homes Emblem" src="assets/logo-emblem.png" width="40" height="40" decoding="async"/>
           </div>
           <div>
             <div class="vesper-footer-brand-title">THE UNIQUE HAVEN HOMES</div>
@@ -1248,7 +1256,7 @@
         <p class="vesper-footer-desc">
           17 curated private villas, skyline penthouses &amp; boutique serviced residences across Gomti Nagar &amp; Shaheed Path, Lucknow.
         </p>
-        <div class="vesper-corp-text" style="font-size: 11.5px; color: #64748b; line-height: 1.6; margin-top: 12px;">
+        <div class="vesper-corp-text" style="font-size: 11.5px; color: #94a3b8; line-height: 1.6; margin-top: 12px;">
           THE UNIQUE HAVEN HOMES PRIVATE LIMITED<br/>
           CIN: U55101UP2026PTC244637 · ROC Kanpur · Lucknow, UP
         </div>
@@ -1335,9 +1343,9 @@
 </aside>
 
 <!-- Real-Time CRM Price Sync (Rooms & Property Rates) -->
-<script src="js/seasonal-pricing.js"></script>
-<script src="js/price-sync.js?v=2"></script>
+<script defer src="js/seasonal-pricing.js"></script>
+<script defer src="js/price-sync.js?v=2"></script>
 <!-- Vesper-style interactive hero & motion controller -->
-<script src="js/vesper-hero.js?v=5"></script>
+<script defer src="js/vesper-hero.js?v=6"></script>
 </body>
 </html>
