@@ -921,25 +921,61 @@
       }
 
       let html = '';
-      for (let i = 0; i < Math.min(mosaicPhotos.length, 5); i++) {
+      const totalHighlightPhotos = Math.min(mosaicPhotos.length, 5);
+      for (let i = 0; i < totalHighlightPhotos; i++) {
         const isMain = i === 0;
         const p = mosaicPhotos[i];
         html += `
           <div class="luxe-photo-item ${isMain ? 'luxe-photo-main' : ''}" 
-               onclick="window.luxeEngine.openGallery(0, '${p.category}')" 
+               data-idx="${i}"
+               onclick="window.luxeEngine.openGallery(${i}, 'all')" 
                title="View ${p.category === 'all' ? 'All Photos' : p.category}">
             <img src="${p.url}" alt="${p.label}" loading="${i === 0 ? 'eager' : 'lazy'}"/>
           </div>
         `;
       }
 
+      // Add mobile carousel controls & progress bar
       html += `
-        <button type="button" class="luxe-btn-show-all" onclick="window.luxeEngine.openGallery(0, 'all')">
+        <div class="luxe-mosaic-progress-bar">
+          <div class="luxe-mosaic-progress-fill" id="luxeMosaicProgressFill" style="width: ${(1 / totalHighlightPhotos) * 100}%;"></div>
+        </div>
+        <div class="luxe-mosaic-counter" id="luxeMosaicCounter">1 / ${totalHighlightPhotos}</div>
+        <button type="button" class="luxe-mosaic-arrow prev" aria-label="Previous Photo" onclick="event.stopPropagation(); window.luxeEngine.slideMosaic(-1);">‹</button>
+        <button type="button" class="luxe-mosaic-arrow next" aria-label="Next Photo" onclick="event.stopPropagation(); window.luxeEngine.slideMosaic(1);">›</button>
+        <button type="button" class="luxe-btn-show-all" onclick="event.stopPropagation(); window.luxeEngine.openGallery(0, 'all')">
           ${ICONS.camera} Show all ${this.catalog.all.length} photos
         </button>
       `;
 
       container.innerHTML = html;
+
+      // Attach scroll-snap progress sync for mobile/tablet
+      let scrollTimeout;
+      container.addEventListener('scroll', () => {
+        clearTimeout(scrollTimeout);
+        scrollTimeout = setTimeout(() => {
+          const width = container.clientWidth;
+          if (!width) return;
+          const idx = Math.min(totalHighlightPhotos - 1, Math.max(0, Math.round(container.scrollLeft / width)));
+          const counter = document.getElementById('luxeMosaicCounter');
+          const fill = document.getElementById('luxeMosaicProgressFill');
+          if (counter) counter.textContent = `${idx + 1} / ${totalHighlightPhotos}`;
+          if (fill) fill.style.width = `${((idx + 1) / totalHighlightPhotos) * 100}%`;
+        }, 30);
+      }, { passive: true });
+
+      // Anti-Zoom & Double-Tap Prevention on in-page slider for iPad/iOS
+      container.addEventListener('gesturestart', (e) => e.preventDefault(), { passive: false });
+      container.addEventListener('gesturechange', (e) => e.preventDefault(), { passive: false });
+      container.addEventListener('gestureend', (e) => e.preventDefault(), { passive: false });
+    }
+
+    slideMosaic(direction) {
+      const container = document.getElementById('luxe-photo-mosaic');
+      if (!container) return;
+      const width = container.clientWidth;
+      container.scrollBy({ left: direction * width, behavior: 'smooth' });
     }
 
     renderCategoryStrip() {
