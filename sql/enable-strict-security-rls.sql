@@ -20,7 +20,6 @@ ALTER TABLE IF EXISTS public.expenses ENABLE ROW LEVEL SECURITY;
 ALTER TABLE IF EXISTS public.employees ENABLE ROW LEVEL SECURITY;
 ALTER TABLE IF EXISTS public.profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE IF EXISTS public.uhhs_od_account ENABLE ROW LEVEL SECURITY;
-ALTER TABLE IF EXISTS public.account_transactions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE IF EXISTS public.cash_holders ENABLE ROW LEVEL SECURITY;
 ALTER TABLE IF EXISTS public.cash_handovers ENABLE ROW LEVEL SECURITY;
 ALTER TABLE IF EXISTS public.company_advances ENABLE ROW LEVEL SECURITY;
@@ -108,12 +107,6 @@ CREATE POLICY "Staff manage expenses" ON public.expenses
 
 DROP POLICY IF EXISTS "Staff manage OD account" ON public.uhhs_od_account;
 CREATE POLICY "Staff manage OD account" ON public.uhhs_od_account
-    FOR ALL TO authenticated
-    USING (true)
-    WITH CHECK (true);
-
-DROP POLICY IF EXISTS "Staff manage account_transactions" ON public.account_transactions;
-CREATE POLICY "Staff manage account_transactions" ON public.account_transactions
     FOR ALL TO authenticated
     USING (true)
     WITH CHECK (true);
