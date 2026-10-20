@@ -2435,10 +2435,26 @@ _Please confirm room allotment and issue official GST Tax Invoice. Thank you!_`;
     }
 
     /* ─── FULLSCREEN CATEGORIZED LIGHTBOX ─── */
+    /* ─── FULLSCREEN CATEGORIZED LIGHTBOX (TOUCH, SWIPE & ANTI-ZOOM FOR IPAD/MOBILE) ─── */
     initGalleryModal() {
       const modal = document.getElementById('luxe-gallery-modal');
       if (!modal) return;
 
+      // 1. Sleek Modern Progress Bar Injection
+      let progressWrap = modal.querySelector('.luxe-modal-progress-wrap');
+      if (!progressWrap) {
+        progressWrap = document.createElement('div');
+        progressWrap.className = 'luxe-modal-progress-wrap';
+        progressWrap.innerHTML = '<div id="luxe-modal-progress-bar" class="luxe-modal-progress-bar"></div>';
+        const topBar = modal.querySelector('.luxe-modal-top');
+        if (topBar && topBar.parentNode) {
+          topBar.parentNode.insertBefore(progressWrap, topBar.nextSibling);
+        } else {
+          modal.insertBefore(progressWrap, modal.firstChild);
+        }
+      }
+
+      // 2. Tabs
       const tabsContainer = document.getElementById('luxe-modal-tabs');
       if (tabsContainer) {
         let tabsHtml = `<button type="button" class="luxe-modal-tab active" data-cat="all" onclick="window.luxeEngine.filterGallery('all', this)">All Photos (${this.catalog.all.length})</button>`;
@@ -2449,25 +2465,142 @@ _Please confirm room allotment and issue official GST Tax Invoice. Thank you!_`;
         tabsContainer.innerHTML = tabsHtml;
       }
 
-      // Add floating "Book Now" button inside the gallery modal
+      // 3. Floating "Book Direct" Button inside Gallery (Cleanly Docked Above Ribbon)
       let galleryBookBtn = modal.querySelector('.luxe-gallery-book-btn');
       if (!galleryBookBtn) {
         galleryBookBtn = document.createElement('a');
         galleryBookBtn.className = 'luxe-gallery-book-btn';
         galleryBookBtn.href = `book.html?property=${this.prop.id}`;
-        galleryBookBtn.innerHTML = '📋 Book Now';
-        galleryBookBtn.style.cssText = 'position:fixed; bottom:24px; right:24px; z-index:100002; background:linear-gradient(135deg,#059669,#10b981); color:#fff; padding:14px 28px; border-radius:50px; font-weight:700; font-size:15px; text-decoration:none; box-shadow:0 4px 20px rgba(5,150,105,0.4); display:none; align-items:center; gap:8px; transition:transform 0.2s, box-shadow 0.2s;';
-        galleryBookBtn.onmouseenter = function() { this.style.transform = 'scale(1.05)'; this.style.boxShadow = '0 6px 28px rgba(5,150,105,0.5)'; };
-        galleryBookBtn.onmouseleave = function() { this.style.transform = 'scale(1)'; this.style.boxShadow = '0 4px 20px rgba(5,150,105,0.4)'; };
+        galleryBookBtn.innerHTML = '⚡ Book Direct (Save 15%)';
         modal.appendChild(galleryBookBtn);
       }
 
+      // 4. Keyboard Shortcuts
       window.addEventListener('keydown', (e) => {
         if (!modal.classList.contains('active')) return;
         if (e.key === 'Escape') this.closeGallery();
         if (e.key === 'ArrowRight') this.nextPhoto();
         if (e.key === 'ArrowLeft') this.prevPhoto();
       });
+
+      // 5. Anti-Zoom Protection for iPad / iPhone Safari
+      modal.addEventListener('gesturestart', (e) => e.preventDefault(), { passive: false });
+      modal.addEventListener('gesturechange', (e) => e.preventDefault(), { passive: false });
+      modal.addEventListener('gestureend', (e) => e.preventDefault(), { passive: false });
+
+      const modalBody = modal.querySelector('.luxe-modal-body');
+      const imgEl = document.getElementById('luxe-modal-img');
+
+      if (modalBody && imgEl) {
+        // Prevent accidental double-tap-to-zoom on iOS
+        let lastTapTime = 0;
+        modalBody.addEventListener('touchend', (e) => {
+          const now = Date.now();
+          if (now - lastTapTime > 0 && now - lastTapTime < 300) {
+            e.preventDefault();
+          }
+          lastTapTime = now;
+        }, { passive: false });
+
+        // 6. Tactile Finger Swipe Gestures (Touchstart, Touchmove, Touchend)
+        let startX = 0;
+        let startY = 0;
+        let currentX = 0;
+        let startTime = 0;
+        let isSwiping = false;
+        let isHorizontal = false;
+
+        modalBody.addEventListener('touchstart', (e) => {
+          if (e.touches.length !== 1) return;
+          startX = e.touches[0].clientX;
+          startY = e.touches[0].clientY;
+          currentX = startX;
+          startTime = Date.now();
+          isSwiping = true;
+          isHorizontal = false;
+          imgEl.style.transition = 'none';
+        }, { passive: true });
+
+        modalBody.addEventListener('touchmove', (e) => {
+          if (!isSwiping || e.touches.length !== 1) return;
+          currentX = e.touches[0].clientX;
+          const currentY = e.touches[0].clientY;
+          const diffX = currentX - startX;
+          const diffY = currentY - startY;
+
+          // Determine horizontal swipe intent
+          if (!isHorizontal) {
+            if (Math.abs(diffX) > 8 && Math.abs(diffX) > Math.abs(diffY)) {
+              isHorizontal = true;
+            } else if (Math.abs(diffY) > 12) {
+              isSwiping = false;
+              return;
+            }
+          }
+
+          if (isHorizontal) {
+            if (e.cancelable) e.preventDefault();
+            // Tactile resistance drag
+            const dampedX = diffX * 0.85;
+            imgEl.style.transform = `translate3d(${dampedX}px, 0, 0)`;
+            imgEl.style.opacity = `${Math.max(0.4, 1 - Math.abs(diffX) / 500)}`;
+          }
+        }, { passive: false });
+
+        const handleTouchEnd = (e) => {
+          if (!isSwiping) return;
+          isSwiping = false;
+
+          imgEl.style.transition = 'transform 0.28s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.28s ease';
+
+          const diffX = currentX - startX;
+          const elapsed = Date.now() - startTime;
+          const isQuickFlick = elapsed < 260 && Math.abs(diffX) > 28;
+          const isDragThreshold = Math.abs(diffX) > 50;
+
+          if (isHorizontal && (isQuickFlick || isDragThreshold)) {
+            if (diffX < 0) {
+              // Swiped Left -> Next Photo
+              imgEl.style.transform = 'translate3d(-50px, 0, 0)';
+              imgEl.style.opacity = '0.2';
+              setTimeout(() => {
+                this.nextPhoto();
+                imgEl.style.transition = 'none';
+                imgEl.style.transform = 'translate3d(40px, 0, 0)';
+                imgEl.style.opacity = '0.3';
+                requestAnimationFrame(() => {
+                  imgEl.style.transition = 'transform 0.28s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.28s ease';
+                  imgEl.style.transform = 'translate3d(0, 0, 0)';
+                  imgEl.style.opacity = '1';
+                });
+              }, 80);
+            } else {
+              // Swiped Right -> Previous Photo
+              imgEl.style.transform = 'translate3d(50px, 0, 0)';
+              imgEl.style.opacity = '0.2';
+              setTimeout(() => {
+                this.prevPhoto();
+                imgEl.style.transition = 'none';
+                imgEl.style.transform = 'translate3d(-40px, 0, 0)';
+                imgEl.style.opacity = '0.3';
+                requestAnimationFrame(() => {
+                  imgEl.style.transition = 'transform 0.28s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.28s ease';
+                  imgEl.style.transform = 'translate3d(0, 0, 0)';
+                  imgEl.style.opacity = '1';
+                });
+              }, 80);
+            }
+          } else {
+            // Spring back smoothly to center
+            imgEl.style.transform = 'translate3d(0, 0, 0)';
+            imgEl.style.opacity = '1';
+          }
+          isHorizontal = false;
+        };
+
+        modalBody.addEventListener('touchend', handleTouchEnd, { passive: true });
+        modalBody.addEventListener('touchcancel', handleTouchEnd, { passive: true });
+      }
     }
 
     openGallery(initialIndex = 0, initialCategory = 'all') {
@@ -2483,6 +2616,7 @@ _Please confirm room allotment and issue official GST Tax Invoice. Thank you!_`;
       }
 
       this.currentIndex = Math.max(0, Math.min(initialIndex, this.filteredList.length - 1));
+      this._lastRibbonFilter = null; // force fresh ribbon build
 
       const tabs = document.querySelectorAll('.luxe-modal-tab');
       tabs.forEach(t => {
@@ -2495,9 +2629,8 @@ _Please confirm room allotment and issue official GST Tax Invoice. Thank you!_`;
       modal.classList.add('active');
       document.body.style.overflow = 'hidden';
 
-      // Show the floating Book Now button in gallery
       const galleryBookBtn = modal.querySelector('.luxe-gallery-book-btn');
-      if (galleryBookBtn) galleryBookBtn.style.display = 'flex';
+      if (galleryBookBtn) galleryBookBtn.style.display = 'inline-flex';
     }
 
     closeGallery() {
@@ -2506,7 +2639,6 @@ _Please confirm room allotment and issue official GST Tax Invoice. Thank you!_`;
       modal.classList.remove('active');
       document.body.style.overflow = '';
 
-      // Hide the floating Book Now button
       const galleryBookBtn = modal.querySelector('.luxe-gallery-book-btn');
       if (galleryBookBtn) galleryBookBtn.style.display = 'none';
     }
@@ -2519,6 +2651,7 @@ _Please confirm room allotment and issue official GST Tax Invoice. Thank you!_`;
       }
       this.currentIndex = 0;
       this.currentFilter = category;
+      this._lastRibbonFilter = null; // force ribbon rebuild for category
 
       const tabs = document.querySelectorAll('.luxe-modal-tab');
       tabs.forEach(t => t.classList.remove('active'));
@@ -2536,6 +2669,7 @@ _Please confirm room allotment and issue official GST Tax Invoice. Thank you!_`;
       const imgEl = document.getElementById('luxe-modal-img');
       const counterEl = document.getElementById('luxe-modal-counter');
       const ribbonEl = document.getElementById('luxe-modal-ribbon');
+      const progressBar = document.getElementById('luxe-modal-progress-bar');
 
       if (!this.filteredList || this.filteredList.length === 0) return;
 
@@ -2546,21 +2680,47 @@ _Please confirm room allotment and issue official GST Tax Invoice. Thank you!_`;
       }
 
       if (counterEl) {
-        const catLabel = this.currentFilter === 'all' ? 'All Photos' : this.currentFilter;
-        counterEl.textContent = `${this.currentIndex + 1} / ${this.filteredList.length} (${catLabel})`;
+        const catLabel = this.currentFilter === 'all' ? 'All' : this.currentFilter;
+        counterEl.innerHTML = `<span style="color:#f59e0b;font-weight:800;">${this.currentIndex + 1}</span> / ${this.filteredList.length} <span style="opacity:0.65;font-size:11px;margin-left:4px;">(${catLabel})</span>`;
       }
 
+      // Update sleek progress bar
+      if (progressBar) {
+        const pct = Math.round(((this.currentIndex + 1) / this.filteredList.length) * 100);
+        progressBar.style.width = `${pct}%`;
+      }
+
+      // High-performance ribbon update (rebuild only when category changes)
       if (ribbonEl) {
-        ribbonEl.innerHTML = this.filteredList.map((item, idx) => `
-          <div class="luxe-modal-thumb ${idx === this.currentIndex ? 'active' : ''}" onclick="window.luxeEngine.goToPhoto(${idx})">
-            <img src="${item.url}" alt="thumb ${idx + 1}" loading="lazy"/>
-          </div>
-        `).join('');
+        if (this._lastRibbonFilter !== this.currentFilter) {
+          this._lastRibbonFilter = this.currentFilter;
+          ribbonEl.innerHTML = this.filteredList.map((item, idx) => `
+            <div class="luxe-modal-thumb ${idx === this.currentIndex ? 'active' : ''}" data-idx="${idx}" onclick="window.luxeEngine.goToPhoto(${idx})">
+              <img src="${item.url}" alt="thumb ${idx + 1}" loading="lazy"/>
+            </div>
+          `).join('');
+        } else {
+          const thumbs = ribbonEl.querySelectorAll('.luxe-modal-thumb');
+          thumbs.forEach((t, idx) => {
+            if (idx === this.currentIndex) t.classList.add('active');
+            else t.classList.remove('active');
+          });
+        }
 
         const activeThumb = ribbonEl.children[this.currentIndex];
         if (activeThumb) {
           activeThumb.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
         }
+      }
+
+      // Preload next and previous images in background for instant swipe
+      if (this.currentIndex + 1 < this.filteredList.length) {
+        const nextImg = new Image();
+        nextImg.src = this.filteredList[this.currentIndex + 1].url;
+      }
+      if (this.currentIndex - 1 >= 0) {
+        const prevImg = new Image();
+        prevImg.src = this.filteredList[this.currentIndex - 1].url;
       }
     }
 
