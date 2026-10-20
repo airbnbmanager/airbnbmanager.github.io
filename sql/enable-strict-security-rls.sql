@@ -127,21 +127,45 @@ CREATE POLICY "Staff manage company_advances" ON public.company_advances
 -- ─────────────────────────────────────────────────────────────────
 -- STEP 4: PREVENT PRIVILEGE ESCALATION ON PROFILES
 -- ─────────────────────────────────────────────────────────────────
+-- Helper function to prevent infinite recursion in RLS subquery
+CREATE OR REPLACE FUNCTION public.is_admin_or_owner()
+RETURNS BOOLEAN LANGUAGE sql SECURITY DEFINER STABLE AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM public.profiles
+    WHERE user_id = auth.uid()
+    AND role IN ('admin', 'owner', 'developer')
+  );
+$$;
+
 DROP POLICY IF EXISTS "Staff read profiles" ON public.profiles;
 CREATE POLICY "Staff read profiles" ON public.profiles
     FOR SELECT TO authenticated
     USING (true);
 
+DROP POLICY IF EXISTS "Users can insert own profile" ON public.profiles;
+CREATE POLICY "Users can insert own profile" ON public.profiles
+    FOR INSERT TO authenticated
+    WITH CHECK (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users can update own display_name" ON public.profiles;
+CREATE POLICY "Users can update own display_name" ON public.profiles
+    FOR UPDATE TO authenticated
+    USING (auth.uid() = user_id)
+    WITH CHECK (auth.uid() = user_id);
+
 DROP POLICY IF EXISTS "Admins manage profiles" ON public.profiles;
 CREATE POLICY "Admins manage profiles" ON public.profiles
     FOR ALL TO authenticated
-    USING (
-        EXISTS (
-            SELECT 1 FROM public.profiles p
-            WHERE p.user_id = auth.uid()
-            AND p.role IN ('admin', 'owner', 'developer')
-        )
-    );
+    USING (public.is_admin_or_owner())
+    WITH CHECK (public.is_admin_or_owner());
+
+-- Pending users table access
+GRANT ALL ON TABLE public.pending_users TO authenticated;
+DROP POLICY IF EXISTS "Staff manage pending_users" ON public.pending_users;
+CREATE POLICY "Staff manage pending_users" ON public.pending_users
+    FOR ALL TO authenticated
+    USING (true)
+    WITH CHECK (true);
 
 -- ─────────────────────────────────────────────────────────────────
 -- STEP 5: PUBLIC WEBPAGE ACCESS (MARKETING HOMEPAGE & REVIEWS)
