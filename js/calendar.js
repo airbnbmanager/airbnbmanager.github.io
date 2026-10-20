@@ -1421,7 +1421,7 @@ window.calCreateBooking = function(roomId, dateStr) {
       </div>
 
       <div style="display:flex;flex-direction:column;gap:10px;">
-        <button onclick="this.closest('.modal-overlay').remove(); if(window.renderAddBooking) renderAddBooking({ room_id: '${roomId}', check_in: '${dateStr}' });" style="padding:12px;background:#059669;color:#fff;border:none;border-radius:8px;font-weight:700;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;">
+        <button onclick="this.closest('.modal-overlay').remove(); window._bookingPrefill = { roomId: '${roomId}', checkIn: '${dateStr}', checkOut: '${nextDay}' }; if(window.renderAddBooking) renderAddBooking({ room_id: '${roomId}', check_in: '${dateStr}', check_out: '${nextDay}' });" style="padding:12px;background:#059669;color:#fff;border:none;border-radius:8px;font-weight:700;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;">
           ➕ Add New Guest Booking
         </button>
 

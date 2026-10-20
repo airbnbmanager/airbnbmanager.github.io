@@ -2802,7 +2802,18 @@ window.duplicateBooking = async function(bookingId) {
   }, 200);
 };
 
-async function renderAddBooking() {
+async function renderAddBooking(prefillOpts) {
+  if (prefillOpts && typeof prefillOpts === 'object') {
+    const pIn = prefillOpts.check_in || prefillOpts.checkIn || window._bookingPrefill?.checkIn;
+    const pOut = prefillOpts.check_out || prefillOpts.checkOut || (pIn && typeof dateAdd === 'function' ? dateAdd(pIn, 1) : window._bookingPrefill?.checkOut);
+    window._bookingPrefill = Object.assign({}, window._bookingPrefill || {}, {
+      roomId: prefillOpts.room_id || prefillOpts.roomId || window._bookingPrefill?.roomId,
+      checkIn: pIn,
+      checkOut: pOut,
+      guestName: prefillOpts.guest_name || prefillOpts.guestName || window._bookingPrefill?.guestName,
+      guestPhone: prefillOpts.phone || prefillOpts.guestPhone || window._bookingPrefill?.guestPhone
+    });
+  }
   const today_iso = new Date().toISOString().slice(0,10);
   const { data: recentBookings } = await sb.from('guest_register').select('booking_id, guest_name, room_id, check_in, check_out, rooms(nickname)').gte('check_out', today_iso).eq('is_review_booking', false).order('check_in', {ascending: true}).limit(100);
   const pre = window._bookingPrefill || {};
@@ -7137,27 +7148,14 @@ window.checkDuplicate = function(booking, allBookings) {
     // Skip review bookings (fake Airbnb entries)
     if (b.is_review_booking || booking.is_review_booking) return false;
     
-    // Check for date overlap
+    // Check for date overlap (standard turnover: check-out at 11:00, check-in at 14:00 is not a clash)
     const bCheckOut = b.check_out || b.check_in;
     const bookCheckOut = booking.check_out || booking.check_in;
-    if (b.check_in > bookCheckOut) return false;
-    if (bCheckOut < booking.check_in) return false;
+    if (b.check_in >= bookCheckOut) return false;
+    if (bCheckOut <= booking.check_in) return false;
     
-    // Same guest + same date range = likely group booking, not duplicate
-    if (b.guest_name && booking.guest_name 
-        && b.guest_name.trim().toLowerCase() === booking.guest_name.trim().toLowerCase()
-        && b.check_in === booking.check_in) {
-      return false;
-    }
-    
-    // Same phone + same date = likely group booking by one person
-    if (b.phone && booking.phone 
-        && b.phone === booking.phone
-        && b.check_in === booking.check_in) {
-      return false;
-    }
-    
-    return true; // Real overlap detected
+    // In the same room with overlapping dates: this is a duplicate / clash!
+    return true;
   });
   return dupes.length > 0;
 };
@@ -7170,13 +7168,19 @@ window.showDuplicateOptions = async function(bookingId) {
   
   if (!currBk) return;
   
-  // Find overlapping bookings
-  const { data: overlaps } = await sb.from('guest_register')
-    .select('booking_id, guest_name, room_id, booking_mode, check_in, check_out, total_amount, is_review_booking, linked_booking_id')
+  // Find overlapping bookings (excluding cancelled)
+  const { data: overlapsRaw } = await sb.from('guest_register')
+    .select('booking_id, guest_name, room_id, booking_mode, check_in, check_out, total_amount, is_review_booking, linked_booking_id, is_cancelled')
     .eq('room_id', currBk.room_id)
     .neq('booking_id', bookingId)
-    .lte('check_in', currBk.check_out || currBk.check_in)
-    .gte('check_out', currBk.check_in);
+    .neq('is_cancelled', true);
+
+  const currOut = currBk.check_out || currBk.check_in;
+  const currIn = currBk.check_in;
+  const overlaps = (overlapsRaw || []).filter(b => {
+    const bOut = b.check_out || b.check_in;
+    return b.check_in < currOut && bOut > currIn;
+  });
   
   const modal = document.createElement('div');
   modal.className = 'modal-overlay';

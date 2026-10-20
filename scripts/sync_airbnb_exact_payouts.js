@@ -82,11 +82,29 @@ async function reconcileAllAirbnbBookings() {
   const csvText = fs.readFileSync('airbnb_07_2026-10_2026.csv', 'utf8');
   const rows = parseCSV(csvText);
 
-  const reservations = [];
+  // Group all transaction rows by confirmation code
+  const codeAgg = {};
   rows.forEach(r => {
     const type = (r['Type'] || '').trim();
-    const code = (r['Confirmation Code'] || '').trim();
-    if (type !== 'Reservation' || !code) return;
+    const code = (r['Confirmation Code'] || r['Confirmation code'] || '').trim();
+    if (!code || type === 'Payout') return;
+
+    if (!codeAgg[code]) {
+      codeAgg[code] = { netAmountSum: 0, reservationRow: null };
+    }
+    const amt = parseFloat((r['Amount'] || '0').replace(/,/g, '').trim()) || 0;
+    codeAgg[code].netAmountSum += amt;
+
+    if (type === 'Reservation') {
+      codeAgg[code].reservationRow = r;
+    }
+  });
+
+  const reservations = [];
+  Object.keys(codeAgg).forEach(code => {
+    const agg = codeAgg[code];
+    const r = agg.reservationRow;
+    if (!r) return;
 
     const sDate = parseDate(r['Start date']);
     const eDate = parseDate(r['End date']);
@@ -96,8 +114,11 @@ async function reconcileAllAirbnbBookings() {
     const gross = parseFloat((r['Gross earnings'] || '0').replace(/,/g, '')) || 0;
     const resAmount = parseFloat((r['Amount'] || '0').replace(/,/g, '')) || 0;
 
-    // Exact official "You earn"
-    const you_earn = Math.round((resAmount > 0 ? resAmount : gross) * 100) / 100;
+    // Exact official "You earn" (algebraic sum of all items for this code)
+    let you_earn = Math.round(agg.netAmountSum * 100) / 100;
+    if (you_earn <= 0) {
+      you_earn = Math.round((resAmount > 0 ? resAmount : gross) * 100) / 100;
+    }
 
     reservations.push({
       code,

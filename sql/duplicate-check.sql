@@ -21,6 +21,4 @@ WHERE
   AND b1.linked_booking_id IS NULL AND b2.linked_booking_id IS NULL
   AND b1.parent_booking_id IS NULL AND b2.parent_booking_id IS NULL
   AND (b1.stay_group_id IS NULL OR b1.stay_group_id != b2.stay_group_id)
-  AND NOT (LOWER(TRIM(b1.guest_name)) = LOWER(TRIM(b2.guest_name)) AND b1.check_in = b2.check_in)
-  AND NOT (b1.phone = b2.phone AND b1.phone IS NOT NULL AND b1.check_in = b2.check_in)
 ORDER BY b1.check_in DESC;

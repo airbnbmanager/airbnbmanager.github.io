@@ -375,23 +375,44 @@
     const reservationsByCode = {};
 
     if (isNewTransactionCSV) {
-      // 1. Collect Tax Withholding map per confirmation code
-      const taxWithholdingMap = {};
-      rows.forEach(r => {
-        const type = (r['Type'] || '').trim().toLowerCase();
-        const code = (r['Confirmation Code'] || r['Confirmation code'] || '').trim();
-        if (code && (type.includes('tax withholding') || type.includes('withheld') || type.includes('tds'))) {
-          const amt = parseFloat((r['Amount'] || '0').replace(/,/g, '')) || 0;
-          taxWithholdingMap[code] = (taxWithholdingMap[code] || 0) + amt;
-        }
-      });
-
-      // 2. Parse Reservations
+      // 1. Group all line items (Reservation, Host-Remitted Tax, Tax Withholding, Resolutions) by confirmation code
+      const codeAgg = {};
       rows.forEach(r => {
         const type = (r['Type'] || '').trim();
         const code = (r['Confirmation Code'] || r['Confirmation code'] || '').trim();
+        if (!code || type === 'Payout') return;
 
-        if (type !== 'Reservation' || !code) return;
+        if (!codeAgg[code]) {
+          codeAgg[code] = {
+            netAmountSum: 0,
+            reservationRow: null,
+            hostRemittedTax: 0,
+            taxWithheld: 0,
+            resolutions: 0
+          };
+        }
+
+        const amtStr = (r['Amount'] || '0').replace(/,/g, '').trim();
+        const amt = parseFloat(amtStr) || 0;
+        codeAgg[code].netAmountSum += amt;
+
+        const typeLower = type.toLowerCase();
+        if (type === 'Reservation') {
+          codeAgg[code].reservationRow = r;
+        } else if (typeLower.includes('host-remitted') || typeLower.includes('remitted tax')) {
+          codeAgg[code].hostRemittedTax += amt;
+        } else if (typeLower.includes('tax withholding') || typeLower.includes('withheld') || typeLower.includes('tds')) {
+          codeAgg[code].taxWithheld += Math.abs(amt);
+        } else if (typeLower.includes('resolution')) {
+          codeAgg[code].resolutions += amt;
+        }
+      });
+
+      // 2. Build structured reservation objects
+      Object.keys(codeAgg).forEach(code => {
+        const agg = codeAgg[code];
+        const r = agg.reservationRow;
+        if (!r) return;
 
         const sDate = r['Start date'] || r['Start Date'];
         const eDate = r['End date'] || r['End Date'];
@@ -406,17 +427,14 @@
         const paidOutCol = parseFloat((r['Paid out'] || r['Paid Out'] || '0').replace(/,/g, '')) || 0;
         const hostFeeCol = parseFloat((r['Host Fee'] || r['Host fee'] || r['Service Fee'] || r['Service fee'] || '0').replace(/,/g, '')) || 0;
         const calculatedHostFee = Math.abs(hostFeeCol) > 0 ? Math.abs(hostFeeCol) : (gross > resAmount ? Math.round((gross - resAmount) * 100) / 100 : 0);
-        const taxWithheld = Math.abs(taxWithholdingMap[code] || 0);
 
-        // Net host payout ("You Earn"): In Airbnb's transaction CSV, the Reservation row 'Amount' column
-        // is ALREADY the exact "You earn" payout matching host bank transfer.
-        let finalYouEarn = 0;
-        if (resAmount > 0) {
-          finalYouEarn = resAmount;
-        } else if (paidOutCol > 0) {
-          finalYouEarn = paidOutCol;
-        } else if (gross > 0) {
-          finalYouEarn = calculatedHostFee > 0 ? (gross - calculatedHostFee) : gross;
+        // Net host payout ("You Earn"): Exact algebraic sum of all line items for this confirmation code
+        // (Reservation Amount + Host-Remitted Tax - TDS / Tax Withheld + Resolutions)
+        let finalYouEarn = Math.round(agg.netAmountSum * 100) / 100;
+        if (finalYouEarn <= 0) {
+          if (resAmount > 0) finalYouEarn = resAmount;
+          else if (paidOutCol > 0) finalYouEarn = paidOutCol;
+          else if (gross > 0) finalYouEarn = calculatedHostFee > 0 ? (gross - calculatedHostFee) : gross;
         }
 
         const matchedRoomId = SYNC.getRoomIdByListing(listing);
@@ -435,7 +453,8 @@
             gross: gross > 0 ? gross : (resAmount + calculatedHostFee),
             amount: gross > 0 ? gross : resAmount,
             host_fee: calculatedHostFee,
-            tax_withheld: taxWithheld,
+            tax_withheld: agg.taxWithheld,
+            host_remitted_tax: agg.hostRemittedTax,
             you_earn: Math.round(finalYouEarn * 100) / 100,
             status: 'Confirmed',
             raw: r

@@ -1970,7 +1970,19 @@ window.sendWhatsAppToGuest = function(phone, name, bookingId) {
 // =====================================================================
 // 6. ZERO-ERROR SPEED ADD BOOKING WIZARD
 // =====================================================================
-async function renderSmartAddBooking() {
+async function renderSmartAddBooking(prefillOpts) {
+  if (prefillOpts && typeof prefillOpts === 'object') {
+    const pIn = prefillOpts.check_in || prefillOpts.checkIn || window._bookingPrefill?.checkIn;
+    const pOut = prefillOpts.check_out || prefillOpts.checkOut || (pIn && typeof dateAdd === 'function' ? dateAdd(pIn, 1) : window._bookingPrefill?.checkOut);
+    window._bookingPrefill = Object.assign({}, window._bookingPrefill || {}, {
+      roomId: prefillOpts.room_id || prefillOpts.roomId || window._bookingPrefill?.roomId,
+      checkIn: pIn,
+      checkOut: pOut,
+      guestName: prefillOpts.guest_name || prefillOpts.guestName || window._bookingPrefill?.guestName,
+      guestPhone: prefillOpts.phone || prefillOpts.guestPhone || window._bookingPrefill?.guestPhone
+    });
+  }
+
   const today = new Date().toISOString().slice(0, 10);
   const tomorrow = new Date(Date.now() + 86400000).toISOString().slice(0, 10);
   const pre = window._bookingPrefill || {};
@@ -1983,12 +1995,15 @@ async function renderSmartAddBooking() {
     sb.from('guest_register').select('booking_id, room_id, check_in, check_out, guest_name, is_cancelled').gte('check_out', today).order('check_in', { ascending: true })
   ]);
 
+  window._roomsCache = rooms || [];
   window._cachedRooms = rooms || [];
   window._cachedBookings = existingBookings || [];
 
-  const defaultRoom = pre.roomId || (rooms && rooms[0]?.room_id) || '';
+  const targetRoom = pre.roomId;
+  const matchedRoom = (rooms || []).find(r => r.room_id === targetRoom || r.unit_no === targetRoom);
+  const defaultRoom = matchedRoom ? matchedRoom.room_id : (rooms && rooms[0]?.room_id) || '';
   const defaultCheckIn = pre.checkIn || today;
-  const defaultCheckOut = pre.checkOut || tomorrow;
+  const defaultCheckOut = pre.checkOut || (typeof dateAdd === 'function' && defaultCheckIn ? dateAdd(defaultCheckIn, 1) : tomorrow);
   const wizardMode = window._sbkWizardMode || 'single';
   const nDays = Math.max(calcNights(defaultCheckIn, defaultCheckOut), 1);
 
@@ -2515,6 +2530,7 @@ async function renderSmartAddBooking() {
     window.loadSmartReceivers();
   } else {
     window.triggerLiveRadarCheck();
+    window.suggestDefaultPrice();
     window.recalcSmartPrice();
     window.loadSmartReceivers();
   }
@@ -2854,16 +2870,77 @@ window.saveSmartBooking = async function() {
   }
 
   btn.disabled = true;
-  btn.textContent = '⏳ Saving & Locking Booking...';
+  btn.textContent = '⏳ Checking Conflicts...';
 
   try {
+    // 🚨 DUPLICATE & OVERLAP CHECK (Room + Dates)
+    const isReview = document.getElementById('isReviewBooking')?.checked || false;
+    if (!isReview && window.sb) {
+      const { data: exBookings, error: chkErr } = await sb.from('guest_register')
+        .select('booking_id, guest_name, phone, room_id, check_in, check_out, booking_mode, total_amount, is_cancelled, is_review_booking')
+        .eq('room_id', rid)
+        .neq('is_cancelled', true);
+
+      if (!chkErr && exBookings && exBookings.length > 0) {
+        const clashes = exBookings.filter(b => {
+          if (b.is_review_booking) return false;
+          const bIn = b.check_in;
+          const bOut = b.check_out || b.check_in;
+          return bIn < co && bOut > ci;
+        });
+
+        if (clashes.length > 0) {
+          const cleanGn = gn.toLowerCase();
+          const cleanPh = (ph || '').replace(/\D/g, '');
+          const exactDupes = clashes.filter(c => {
+            const matchName = c.guest_name && c.guest_name.trim().toLowerCase() === cleanGn;
+            const cPh = (c.phone || '').replace(/\D/g, '');
+            const matchPhone = cleanPh.length >= 10 && cPh.length >= 10 && cleanPh === cPh;
+            return matchName || matchPhone;
+          });
+
+          let warningTitle = '⚠️ DOUBLE BOOKING / OVERLAP WARNING!';
+          let warningDetails = '';
+          if (exactDupes.length > 0) {
+            warningTitle = '🚨 EXACT DUPLICATE BOOKING WARNING!';
+            warningDetails = `Guest "${gn}" ${ph ? '(' + ph + ') ' : ''}ke liye is property par already booking exist karti hai!\n\n`;
+          }
+
+          const clashList = clashes.map(c => {
+            const modeLabel = c.booking_mode === 'Online-Airbnb' ? '🌐 Airbnb' : '🏠 Direct';
+            return `• ${c.guest_name || 'Guest'} (${c.check_in} → ${c.check_out}) — ${modeLabel} — ₹${(c.total_amount || 0).toLocaleString('en-IN')}`;
+          }).join('\n');
+
+          const confirmMsg = `${warningTitle}\n\n` +
+            warningDetails +
+            `Property: ${rid}\n` +
+            `Dates: ${ci} → ${co}\n\n` +
+            `Existing Booking(s):\n${clashList}\n\n` +
+            `Kya aap sach me duplicate / double booking save karna chahte hain?\n\n` +
+            `• OK = Save Anyway (Double Booking confirm)\n` +
+            `• Cancel = Ruko aur cancel karo`;
+
+          const ok = confirm(confirmMsg);
+          if (!ok) {
+            btn.disabled = false;
+            btn.textContent = '💾 Save Booking';
+            errDiv.innerHTML = `<div class="error" style="background:#FEF2F2;border:1.5px solid #EF4444;color:#B91C1C;padding:10px 14px;border-radius:8px;font-size:13px;line-height:1.5;margin-top:10px;">` +
+              `❌ <strong>Booking Cancelled:</strong> Is property par in dates (${ci} → ${co}) par pehle se booking exist karti hai (${escapeHtml(clashes[0].guest_name || 'Guest')}).` +
+              `</div>`;
+            return;
+          }
+        }
+      }
+    }
+
+    btn.textContent = '⏳ Saving & Locking Booking...';
     const bkId = 'B' + Date.now();
     const nights = Math.max(calcNights(ci, co), 1);
     const perDayRate = Math.round(tot / nights);
     const checkoutConfirmed = document.getElementById('checkoutConfirmed')?.value !== 'no';
     const isOnline = document.getElementById('bookingMode')?.value === 'Online-Airbnb';
     const airbnbCode = document.getElementById('airbnbCode')?.value?.trim() || null;
-    const isReview = document.getElementById('isReviewBooking')?.checked || false;
+    // isReview already checked above
 
     // Photos
     let photos = { firstPath: null, allPaths: null, frontPaths: null, backPaths: null };
