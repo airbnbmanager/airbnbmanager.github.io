@@ -21,7 +21,7 @@ window.renderCashBook = async function() {
   if (window.UHHSODManager) { window.UHHSODManager.calculateBalance(sb); }
   renderShell('<div class="loading">Loading Cash Book...</div>', 'cashbook');
   
-  const today = new Date().toISOString().slice(0, 10);
+  const today = (() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; })();
   let endDate = today;
   if (window._cbFilter === 'custom' && window._cbCustomDate) {
     endDate = cbNormDate(window._cbCustomDate);
@@ -71,7 +71,7 @@ window.renderCashBook = async function() {
   if (window._cbFilter === 'today') startDate = today;
   else if (window._cbFilter === 'week') {
     const d = new Date(); d.setDate(d.getDate() - 7);
-    startDate = d.toISOString().slice(0, 10);
+    startDate = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
   } else if (window._cbFilter === 'month') startDate = today.slice(0, 7) + '-01';
   else if (window._cbFilter === 'custom' && window._cbCustomDate) startDate = endDate;
 
@@ -490,44 +490,56 @@ window.cbSetTab = function(tab) {
 window.cbHandover = async function(fromPerson, maxAmount) {
   const { data: holders } = await sb.from('cash_holders').select('*').eq('is_active', true);
   const targets = (holders || []).filter(h => h.name !== fromPerson);
+  const localToday = (() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; })();
   
   const modal = document.createElement('div');
   modal.className = 'modal-overlay';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(15,23,42,0.75);display:flex;align-items:center;justify-content:center;z-index:9999999;padding:14px;overflow-y:auto;-webkit-overflow-scrolling:touch;backdrop-filter:blur(4px);box-sizing:border-box;';
   modal.onclick = e => { if (e.target === modal) modal.remove(); };
   modal.innerHTML = `
-    <div class="modal-box" style="max-width:500px;">
-      <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">✕</button>
-      <h2>🤝 Handover from ${fromPerson}</h2>
-      <div style="margin-bottom:14px;padding:10px;background:#FEF3C7;border-radius:8px;">
-        <div style="font-size:12px;color:#92400E;">Available balance:</div>
-        <div style="font-size:20px;font-weight:800;color:#D97706;">₹${maxAmount.toLocaleString('en-IN')}</div>
+    <div class="modal-box" style="background:#fff;border-radius:16px;padding:22px;max-width:500px;width:100%;max-height:92vh;overflow-y:auto;-webkit-overflow-scrolling:touch;box-shadow:0 20px 40px rgba(0,0,0,0.3);margin:auto;box-sizing:border-box;border:1px solid #e2e8f0;" onclick="event.stopPropagation()">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;border-bottom:1px solid #e2e8f0;padding-bottom:12px;">
+        <h3 style="margin:0;font-size:18px;color:#059669;font-weight:800;display:flex;align-items:center;gap:6px;">
+          <span>🤝</span> Handover from ${fromPerson}
+        </h3>
+        <button type="button" onclick="this.closest('.modal-overlay').remove()" style="background:#f1f5f9;border:none;border-radius:50%;width:32px;height:32px;font-size:18px;cursor:pointer;color:#64748b;display:flex;align-items:center;justify-content:center;font-weight:700;">✕</button>
+      </div>
+
+      <div style="margin-bottom:14px;padding:12px;background:#fef3c7;border-radius:10px;border:1px solid #fde68a;">
+        <div style="font-size:12px;color:#92400e;font-weight:600;">Available balance to handover:</div>
+        <div style="font-size:22px;font-weight:800;color:#b45309;margin-top:2px;">₹${maxAmount.toLocaleString('en-IN')}</div>
       </div>
       
-      <div class="form-group">
-        <label>Handover To *</label>
-        <select id="cbToPerson">
+      <div class="form-group" style="margin-bottom:12px;">
+        <label style="font-weight:700;font-size:13px;display:block;margin-bottom:5px;color:#1e293b;">Handover To *</label>
+        <select id="cbToPerson" style="width:100%;padding:10px 12px;border:1.5px solid #cbd5e1;border-radius:8px;font-size:16px;box-sizing:border-box;background:#fff;">
           ${targets.map(h => `<option value="${h.name}">${h.name} (${h.type})</option>`).join('')}
         </select>
       </div>
       
-      <div class="form-group">
-        <label>Amount ₹ *</label>
-        <input id="cbAmount" type="number" value="${maxAmount}"  />
+      <div class="form-group" style="margin-bottom:12px;">
+        <label style="font-weight:700;font-size:13px;display:block;margin-bottom:5px;color:#1e293b;">Amount ₹ *</label>
+        <input id="cbAmount" type="number" step="any" value="${maxAmount}" style="width:100%;padding:10px 12px;border:1.5px solid #cbd5e1;border-radius:8px;font-size:18px;font-weight:800;color:#059669;box-sizing:border-box;" />
       </div>
       
-      <div class="form-group">
-        <label>Date</label>
-        <input id="cbDate" type="date" value="${new Date().toISOString().slice(0,10)}" />
+      <div class="form-group" style="margin-bottom:12px;">
+        <label style="font-weight:700;font-size:13px;display:block;margin-bottom:5px;color:#1e293b;">Date *</label>
+        <input id="cbDate" type="date" value="${localToday}" style="width:100%;padding:10px 12px;border:1.5px solid #cbd5e1;border-radius:8px;font-size:16px;box-sizing:border-box;" />
       </div>
       
-      <div class="form-group">
-        <label>Notes</label>
-        <input id="cbNotes" placeholder="e.g. Guest cash Ram + Shyam" />
+      <div class="form-group" style="margin-bottom:16px;">
+        <label style="font-weight:700;font-size:13px;display:block;margin-bottom:5px;color:#1e293b;">Notes</label>
+        <input id="cbNotes" placeholder="e.g. Guest cash collected" style="width:100%;padding:10px 12px;border:1.5px solid #cbd5e1;border-radius:8px;font-size:16px;box-sizing:border-box;" />
       </div>
       
-      <button onclick="cbSaveHandover('${fromPerson}')" style="width:100%;padding:12px;background:#059669;color:#fff;border:none;border-radius:8px;font-weight:700;cursor:pointer;">
-        💾 Save Handover
-      </button>
+      <div style="display:flex;gap:10px;">
+        <button type="button" onclick="this.closest('.modal-overlay').remove()" style="flex:1;padding:12px;background:#f1f5f9;color:#475569;border:1px solid #cbd5e1;border-radius:8px;font-weight:700;font-size:15px;cursor:pointer;">
+          Cancel
+        </button>
+        <button type="button" onclick="cbSaveHandover('${fromPerson}')" style="flex:2;padding:12px;background:#059669;color:#fff;border:none;border-radius:8px;font-weight:800;font-size:15px;cursor:pointer;box-shadow:0 4px 12px rgba(5,150,105,0.3);">
+          💾 Save Handover
+        </button>
+      </div>
     </div>
   `;
   document.body.appendChild(modal);

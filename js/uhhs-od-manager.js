@@ -579,8 +579,8 @@ async function getLedgerData(supabaseClient, customStartDate, customEndDate) {
     return { txns, totalInflow, totalOutflow, netBalance, openingBalance };
 }
 
-// 3.5. Smart Daily Closing Statement Renderer with Business Day Fallback
-window.renderClosingStatementForDate = function(targetDate) {
+// 3.5. Smart Daily / Period Closing Statement Renderer with Range & Fallback
+window.renderClosingStatementForDate = function(startDate, endDate) {
     const txns = window._tuhhAllTxns || [];
     const nowD = new Date();
     const localToday = `${nowD.getFullYear()}-${String(nowD.getMonth() + 1).padStart(2, '0')}-${String(nowD.getDate()).padStart(2, '0')}`;
@@ -592,120 +592,219 @@ window.renderClosingStatementForDate = function(targetDate) {
 
     const latestActiveDate = activeDates[0] || localToday;
 
-    // Smart logic: If targetDate not passed and today has 0 entries, default to latest active closed day!
-    let dateToUse = targetDate;
-    if (!dateToUse) {
-        const todayCount = txns.filter(t => !t.isOpening && t.date && String(t.date).slice(0, 10) === localToday).length;
-        dateToUse = (todayCount > 0) ? localToday : latestActiveDate;
+    // Determine target dates
+    let startD = startDate || null;
+    let endD = endDate || null;
+
+    if (startD === 'today') {
+        startD = endD = localToday;
+    } else if (startD === 'latest') {
+        startD = endD = latestActiveDate;
+    } else if (startD === 'range') {
+        startD = document.getElementById('cfFromDate')?.value || window._claimsState?.fromDate || '2026-10-01';
+        endD = document.getElementById('cfToDate')?.value || window._claimsState?.toDate || localToday;
+    } else if (startD && !endD) {
+        endD = startD;
+    } else if (!startD && endD) {
+        startD = endD;
     }
 
-    const dayTxns = txns.filter(t => !t.isOpening && t.date && String(t.date).slice(0, 10) === dateToUse);
-    const dayInflows = dayTxns.filter(t => t.isDep);
-    const dayOutflows = dayTxns.filter(t => !t.isDep);
+    if (!startD && !endD) {
+        // Default initial view: Today (or latest active day if today has no entries)
+        const todayCount = txns.filter(t => !t.isOpening && t.date && String(t.date).slice(0, 10) === localToday).length;
+        startD = endD = (todayCount > 0) ? localToday : latestActiveDate;
+    }
 
-    const dayInflowAmt = dayInflows.reduce((s, t) => s + (Number(t.amount) || 0), 0);
-    const dayOutflowAmt = dayOutflows.reduce((s, t) => s + (Number(t.amount) || 0), 0);
-    const dayNetAmt = dayInflowAmt - dayOutflowAmt;
-    const isToday = (dateToUse === localToday);
+    // Ensure start <= end
+    if (startD > endD) {
+        const tmp = startD; startD = endD; endD = tmp;
+    }
 
-    // Calculate closing balance up to this date
-    const cumIn = txns.filter(t => t.isDep && t.date && String(t.date).slice(0, 10) <= dateToUse)
-        .reduce((s, t) => s + (Number(t.amount) || 0), 0);
-    const cumOut = txns.filter(t => !t.isDep && t.date && String(t.date).slice(0, 10) <= dateToUse)
-        .reduce((s, t) => s + (Number(t.amount) || 0), 0);
-    const dayClosingBal = cumIn - cumOut;
+    const isRange = (startD !== endD);
 
-    // Date formatted
-    const [y, m, d] = dateToUse.split('-');
-    const dtObj = new Date(Number(y), Number(m)-1, Number(d));
-    const dayName = dtObj.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
+    const fmtPretty = isoStr => {
+        if (!isoStr) return '';
+        const parts = String(isoStr).slice(0, 10).split('-');
+        if (parts.length !== 3) return isoStr;
+        const dt = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+        return dt.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
+    };
+
+    const fmtShort = isoStr => {
+        if (!isoStr) return '';
+        const parts = String(isoStr).slice(0, 10).split('-');
+        if (parts.length !== 3) return isoStr;
+        const dt = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+        return dt.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+    };
+
+    const startFmt = fmtPretty(startD);
+    const endFmt = fmtPretty(endD);
+    const rangeFmt = isRange ? `${fmtShort(startD)} → ${fmtShort(endD)}` : startFmt;
     const nowTimeFmt = nowD.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
 
-    // Update DOM
+    // Filter transactions strictly within the requested window
+    const periodTxns = txns.filter(t => !t.isOpening && t.date && String(t.date).slice(0, 10) >= startD && String(t.date).slice(0, 10) <= endD);
+    const periodInflows = periodTxns.filter(t => t.isDep);
+    const periodOutflows = periodTxns.filter(t => !t.isDep);
+
+    const periodInflowAmt = periodInflows.reduce((s, t) => s + (Number(t.amount) || 0), 0);
+    const periodOutflowAmt = periodOutflows.reduce((s, t) => s + (Number(t.amount) || 0), 0);
+    const periodNetAmt = periodInflowAmt - periodOutflowAmt;
+    const isToday = (!isRange && startD === localToday);
+
+    // Cumulative closing balance up to endD
+    const cumIn = txns.filter(t => t.isDep && t.date && String(t.date).slice(0, 10) <= endD)
+        .reduce((s, t) => s + (Number(t.amount) || 0), 0);
+    const cumOut = txns.filter(t => !t.isDep && t.date && String(t.date).slice(0, 10) <= endD)
+        .reduce((s, t) => s + (Number(t.amount) || 0), 0);
+    const periodClosingBal = cumIn - cumOut;
+
+    // Cumulative opening balance before startD
+    const priorIn = txns.filter(t => t.isDep && t.date && String(t.date).slice(0, 10) < startD)
+        .reduce((s, t) => s + (Number(t.amount) || 0), 0);
+    const priorOut = txns.filter(t => !t.isDep && t.date && String(t.date).slice(0, 10) < startD)
+        .reduce((s, t) => s + (Number(t.amount) || 0), 0);
+    const periodOpeningBal = priorIn - priorOut;
+
+    // Update DOM - Inflow
     const tInEl = document.getElementById('today-proof-inflow');
-    if (tInEl) tInEl.innerText = `₹${dayInflowAmt.toLocaleString('en-IN')}`;
+    if (tInEl) tInEl.innerText = `₹${periodInflowAmt.toLocaleString('en-IN')}`;
     const tInCnt = document.getElementById('today-proof-inflow-count');
-    if (tInCnt) tInCnt.innerText = `${dayInflows.length} deposit${dayInflows.length === 1 ? '' : 's'} on ${d}-${m}`;
+    if (tInCnt) {
+        tInCnt.innerText = isRange
+            ? `${periodInflows.length} deposit${periodInflows.length === 1 ? '' : 's'} in period`
+            : `${periodInflows.length} deposit${periodInflows.length === 1 ? '' : 's'} on ${fmtShort(startD)}`;
+    }
+    const tInTitle = document.getElementById('today-proof-inflow-title');
+    if (tInTitle) tInTitle.innerText = isRange ? '📥 Period Deposits (Inflow)' : "📥 Today's Deposits (Inflow)";
 
+    // Update DOM - Outflow
     const tOutEl = document.getElementById('today-proof-outflow');
-    if (tOutEl) tOutEl.innerText = `₹${dayOutflowAmt.toLocaleString('en-IN')}`;
+    if (tOutEl) tOutEl.innerText = `₹${periodOutflowAmt.toLocaleString('en-IN')}`;
     const tOutCnt = document.getElementById('today-proof-outflow-count');
-    if (tOutCnt) tOutCnt.innerText = `${dayOutflows.length} claim${dayOutflows.length === 1 ? '' : 's'}/spend${dayOutflows.length === 1 ? '' : 's'}`;
+    if (tOutCnt) {
+        tOutCnt.innerText = isRange
+            ? `${periodOutflows.length} claim${periodOutflows.length === 1 ? '' : 's'}/spend${periodOutflows.length === 1 ? '' : 's'} in period`
+            : `${periodOutflows.length} claim${periodOutflows.length === 1 ? '' : 's'}/spend${periodOutflows.length === 1 ? '' : 's'}`;
+    }
+    const tOutTitle = document.getElementById('today-proof-outflow-title');
+    if (tOutTitle) tOutTitle.innerText = isRange ? '📤 Period Spends / Claims' : "📤 Today's Spends / Claims";
 
+    // Update DOM - Net Delta
     const tNetEl = document.getElementById('today-proof-net');
     if (tNetEl) {
-        const prefix = dayNetAmt > 0 ? '+₹' : (dayNetAmt < 0 ? '-₹' : '₹');
-        tNetEl.innerText = `${prefix}${Math.abs(dayNetAmt).toLocaleString('en-IN')}`;
-        tNetEl.style.color = dayNetAmt >= 0 ? '#15803D' : '#DC2626';
+        const prefix = periodNetAmt > 0 ? '+₹' : (periodNetAmt < 0 ? '-₹' : '₹');
+        tNetEl.innerText = `${prefix}${Math.abs(periodNetAmt).toLocaleString('en-IN')}`;
+        tNetEl.style.color = periodNetAmt >= 0 ? '#15803D' : '#DC2626';
     }
+    const tNetTitle = document.getElementById('today-proof-net-title');
+    if (tNetTitle) tNetTitle.innerText = isRange ? '📊 Period Net Movement' : "📊 Today's Net Movement";
+    const tNetSub = document.getElementById('today-proof-net-sub');
+    if (tNetSub) tNetSub.innerText = isRange ? 'Period net delta' : 'Daily net delta';
 
+    // Update DOM - Closing Balance
     const tCloseEl = document.getElementById('today-proof-closing-bal');
     if (tCloseEl) {
-        const prefix = dayClosingBal < 0 ? '-₹' : '₹';
-        tCloseEl.innerText = `${prefix}${Math.abs(dayClosingBal).toLocaleString('en-IN')}`;
-        tCloseEl.style.color = dayClosingBal >= 0 ? '#4ADE80' : '#F87171';
+        const prefix = periodClosingBal < 0 ? '-₹' : '₹';
+        tCloseEl.innerText = `${prefix}${Math.abs(periodClosingBal).toLocaleString('en-IN')}`;
+        tCloseEl.style.color = periodClosingBal >= 0 ? '#4ADE80' : '#F87171';
     }
+    const tCloseTitle = document.getElementById('today-proof-closing-title');
+    if (tCloseTitle) tCloseTitle.innerText = isRange ? `💰 Closing Balance (${fmtShort(endD)})` : '💰 TUHH-OD Closing Balance';
 
+    // Update Timestamp
     const tTimeEl = document.getElementById('today-proof-timestamp');
     if (tTimeEl) {
-        tTimeEl.innerText = `Daily Closing Statement · ${dayName} (${isToday ? 'Today In-Progress' : 'Closed Day'}) · Refreshed ${nowTimeFmt}`;
+        tTimeEl.innerText = isRange
+            ? `Period Financial Statement · ${fmtShort(startD)} → ${fmtShort(endD)} · Refreshed ${nowTimeFmt}`
+            : `Daily Closing Statement · ${startFmt} (${isToday ? 'Today In-Progress' : 'Closed Day'}) · Refreshed ${nowTimeFmt}`;
     }
 
+    // Update Note / Narrative
     const tNoteEl = document.getElementById('today-proof-note');
     if (tNoteEl) {
         tNoteEl.style.display = 'block';
-        if (dayInflowAmt === 0 && dayOutflowAmt === 0) {
+        if (isRange) {
+            tNoteEl.style.background = '#ECFDF5';
+            tNoteEl.style.color = '#065F46';
+            tNoteEl.style.borderColor = '#A7F3D0';
+            tNoteEl.innerHTML = `✅ <strong>Period Statement (${fmtShort(startD)} → ${fmtShort(endD)}):</strong> ₹${periodInflowAmt.toLocaleString('en-IN')} Deposited, ₹${periodOutflowAmt.toLocaleString('en-IN')} Utilized. Net Movement: <strong>${periodNetAmt >= 0 ? '+' : '-'}₹${Math.abs(periodNetAmt).toLocaleString('en-IN')}</strong>. Closing Balance on ${fmtShort(endD)}: <strong>₹${Math.abs(periodClosingBal).toLocaleString('en-IN')}</strong>.`;
+        } else if (periodInflowAmt === 0 && periodOutflowAmt === 0) {
             tNoteEl.style.background = '#F1F5F9';
             tNoteEl.style.color = '#475569';
             tNoteEl.style.borderColor = '#E2E8F0';
             tNoteEl.innerText = isToday
-                ? `ℹ️ Today (${dayName}) is in-progress. No entries recorded yet today. Running balance of ₹${Math.abs(dayClosingBal).toLocaleString('en-IN')} fully intact.`
-                : `ℹ️ No transactions were recorded on ${dayName}. Running balance was ₹${Math.abs(dayClosingBal).toLocaleString('en-IN')}.`;
+                ? `ℹ️ Today (${startFmt}) is in-progress. No entries recorded yet today. Running balance of ₹${Math.abs(periodClosingBal).toLocaleString('en-IN')} fully intact.`
+                : `ℹ️ No transactions were recorded on ${startFmt}. Running balance was ₹${Math.abs(periodClosingBal).toLocaleString('en-IN')}.`;
         } else {
             tNoteEl.style.background = '#ECFDF5';
             tNoteEl.style.color = '#065F46';
             tNoteEl.style.borderColor = '#A7F3D0';
-            tNoteEl.innerText = `✅ Active Statement for ${dayName}: ₹${dayInflowAmt.toLocaleString('en-IN')} Inflow, ₹${dayOutflowAmt.toLocaleString('en-IN')} Outflow. Net Movement: ${dayNetAmt >= 0 ? '+' : '-'}₹${Math.abs(dayNetAmt).toLocaleString('en-IN')}.`;
+            tNoteEl.innerText = `✅ Active Statement for ${startFmt}: ₹${periodInflowAmt.toLocaleString('en-IN')} Inflow, ₹${periodOutflowAmt.toLocaleString('en-IN')} Outflow. Net Movement: ${periodNetAmt >= 0 ? '+' : '-'}₹${Math.abs(periodNetAmt).toLocaleString('en-IN')}.`;
         }
     }
 
     // Save global state for screenshot & WhatsApp
     window._tuhhOdBalanceState = {
-        selectedDate: dateToUse,
-        selectedDateFmt: dayName,
+        isRange,
+        startDate: startD,
+        endDate: endD,
+        startDateFmt: startFmt,
+        endDateFmt: endFmt,
+        rangeFmt: isRange ? `${fmtShort(startD)} → ${fmtShort(endD)}` : startFmt,
+        selectedDate: endD,
+        selectedDateFmt: isRange ? `${fmtShort(startD)} → ${fmtShort(endD)}` : startFmt,
+        openingBalance: periodOpeningBal,
+        closingBalance: periodClosingBal,
         totalInflow: window._tuhhTotalInflow || 252200,
         totalOutflow: window._tuhhTotalOutflow || 232460.46,
-        netBalance: dayClosingBal,
-        todayInflowAmt: dayInflowAmt,
-        todayOutflowAmt: dayOutflowAmt,
-        todayNetAmt: dayNetAmt,
-        todayInflowsCount: dayInflows.length,
-        todayOutflowsCount: dayOutflows.length,
+        netBalance: periodClosingBal,
+        todayInflowAmt: periodInflowAmt,
+        todayOutflowAmt: periodOutflowAmt,
+        todayNetAmt: periodNetAmt,
+        todayInflowsCount: periodInflows.length,
+        todayOutflowsCount: periodOutflows.length,
+        periodInflowAmt,
+        periodOutflowAmt,
+        periodNetAmt,
+        periodInflowsCount: periodInflows.length,
+        periodOutflowsCount: periodOutflows.length,
         isToday,
-        dateFmt: dayName,
+        dateFmt: isRange ? `${fmtShort(startD)} → ${fmtShort(endD)}` : startFmt,
         timeFmt: nowTimeFmt,
         latestActiveDate,
         localToday
     };
 
     // Update active pill button UI
+    const bRange = document.getElementById('proofBtnRange');
     const bLatest = document.getElementById('proofBtnLatest');
     const bToday = document.getElementById('proofBtnToday');
     const cInput = document.getElementById('proofCustomDate');
+
+    if (bRange) {
+        bRange.style.background = isRange ? '#0284C7' : '#F1F5F9';
+        bRange.style.color = isRange ? '#FFFFFF' : '#475569';
+        bRange.style.border = isRange ? '1px solid #0284C7' : '1px solid #CBD5E1';
+        bRange.innerText = `📅 Range: ${fmtShort(startD)} → ${fmtShort(endD)}`;
+    }
     if (bLatest) {
-        const isLatest = (dateToUse === latestActiveDate);
+        const isLatest = (!isRange && startD === latestActiveDate);
         bLatest.style.background = isLatest ? '#0284C7' : '#F1F5F9';
         bLatest.style.color = isLatest ? '#FFFFFF' : '#475569';
         bLatest.style.border = isLatest ? '1px solid #0284C7' : '1px solid #CBD5E1';
+        bLatest.innerText = `⚡ ${fmtShort(latestActiveDate)} (Last Closed)`;
     }
     if (bToday) {
-        const isCurToday = (dateToUse === localToday);
+        const isCurToday = (!isRange && startD === localToday);
         bToday.style.background = isCurToday ? '#0284C7' : '#F1F5F9';
         bToday.style.color = isCurToday ? '#FFFFFF' : '#475569';
         bToday.style.border = isCurToday ? '1px solid #0284C7' : '1px solid #CBD5E1';
+        bToday.innerText = `📅 Today (${fmtShort(localToday)})`;
     }
-    if (cInput && cInput.value !== dateToUse) {
-        cInput.value = dateToUse;
+    if (cInput && !isRange && cInput.value !== startD) {
+        cInput.value = startD;
     }
 };
 
@@ -809,39 +908,50 @@ window.notifyDataChanged = function() {
 // =========================================================================
 // 📥 GLOBAL MODAL: Deposit Funds into UHHS-OD Account
 // =========================================================================
-window.cbDepositToODModal = function() {
+// =========================================================================
+window.cbDepositToODModal = function(defaultSender = 'Aniket', defaultAmount = '') {
     const oldModal = document.querySelector('.od-deposit-modal-overlay');
     if (oldModal) oldModal.remove();
 
+    const localToday = (() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; })();
+
     const modal = document.createElement('div');
     modal.className = 'modal-overlay od-deposit-modal-overlay';
-    modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);display:flex;align-items:center;justify-content:center;z-index:9999999;padding:20px;backdrop-filter:blur(2px);';
+    modal.style.cssText = 'position:fixed;inset:0;background:rgba(15,23,42,0.75);display:flex;align-items:center;justify-content:center;z-index:9999999;padding:14px;overflow-y:auto;-webkit-overflow-scrolling:touch;backdrop-filter:blur(4px);box-sizing:border-box;';
     modal.onclick = e => { if (e.target === modal) modal.remove(); };
     
     modal.innerHTML = `
-        <div class="modal-box" style="background:#fff;border-radius:12px;padding:22px;max-width:450px;width:100%;box-shadow:0 10px 25px rgba(0,0,0,0.2);" onclick="event.stopPropagation()">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;border-bottom:1px solid #eee;padding-bottom:10px;">
-                <h3 style="margin:0;font-size:18px;color:#10B981;font-weight:800;">🏦 Deposit to TUHH-OD Account</h3>
-                <button onclick="this.closest('.modal-overlay').remove()" style="background:none;border:none;font-size:22px;cursor:pointer;color:#888;">✕</button>
+        <div class="modal-box" style="background:#fff;border-radius:16px;padding:22px;max-width:480px;width:100%;max-height:92vh;overflow-y:auto;-webkit-overflow-scrolling:touch;box-shadow:0 20px 40px rgba(0,0,0,0.3);margin:auto;box-sizing:border-box;border:1px solid #e2e8f0;" onclick="event.stopPropagation()">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;border-bottom:1px solid #e2e8f0;padding-bottom:12px;">
+                <h3 style="margin:0;font-size:18px;color:#059669;font-weight:800;display:flex;align-items:center;gap:6px;">
+                    <span>🏦</span> Deposit to TUHH-OD
+                </h3>
+                <button type="button" onclick="this.closest('.modal-overlay').remove()" style="background:#f1f5f9;border:none;border-radius:50%;width:32px;height:32px;font-size:18px;cursor:pointer;color:#64748b;display:flex;align-items:center;justify-content:center;font-weight:700;">✕</button>
             </div>
             
-            <div style="background:#f0fff4;padding:10px;border-radius:8px;font-size:12px;color:#155724;margin-bottom:14px;border:1px solid #c3e6cb;">
-                Enter funds deposited by Firoz / Owner via UPI or Cash into the Overdraft Account.
+            <div style="background:#ecfdf5;padding:10px 12px;border-radius:10px;font-size:12.5px;color:#065f46;margin-bottom:14px;border:1px solid #a7f3d0;line-height:1.4;">
+                Deposit cash or UPI funds (e.g. from Aniket, Firoz, or Owner) into Overdraft Account to settle balance.
             </div>
 
             <div class="form-group" style="margin-bottom:12px;">
-                <label style="font-weight:600;font-size:13px;display:block;margin-bottom:4px;">Deposit Date *</label>
-                <input id="odDepDate" type="date" value="${new Date().toISOString().slice(0,10)}" style="width:100%;padding:9px;border:1px solid #ccc;border-radius:6px;box-sizing:border-box;">
+                <label style="font-weight:700;font-size:13px;display:block;margin-bottom:5px;color:#1e293b;">Deposit Date *</label>
+                <input id="odDepDate" type="date" value="${localToday}" style="width:100%;padding:10px 12px;border:1.5px solid #cbd5e1;border-radius:8px;font-size:16px;box-sizing:border-box;">
             </div>
 
             <div class="form-group" style="margin-bottom:12px;">
-                <label style="font-weight:600;font-size:13px;display:block;margin-bottom:4px;">Amount (₹) *</label>
-                <input id="odDepAmt" type="number" min="1" placeholder="e.g. 50000" style="width:100%;padding:9px;border:1px solid #ccc;border-radius:6px;font-size:16px;font-weight:700;box-sizing:border-box;">
+                <label style="font-weight:700;font-size:13px;display:block;margin-bottom:5px;color:#1e293b;">Amount (₹) *</label>
+                <input id="odDepAmt" type="number" min="1" step="any" placeholder="e.g. 1500" value="${defaultAmount || ''}" style="width:100%;padding:10px 12px;border:1.5px solid #cbd5e1;border-radius:8px;font-size:18px;font-weight:800;color:#059669;box-sizing:border-box;">
+                <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;">
+                    <button type="button" onclick="document.getElementById('odDepAmt').value='1500'" style="padding:4px 10px;background:#f8fafc;border:1px solid #cbd5e1;border-radius:12px;font-size:11.5px;font-weight:700;cursor:pointer;color:#334155;">₹1,500</button>
+                    <button type="button" onclick="document.getElementById('odDepAmt').value='2000'" style="padding:4px 10px;background:#f8fafc;border:1px solid #cbd5e1;border-radius:12px;font-size:11.5px;font-weight:700;cursor:pointer;color:#334155;">₹2,000</button>
+                    <button type="button" onclick="document.getElementById('odDepAmt').value='5000'" style="padding:4px 10px;background:#f8fafc;border:1px solid #cbd5e1;border-radius:12px;font-size:11.5px;font-weight:700;cursor:pointer;color:#334155;">₹5,000</button>
+                    <button type="button" onclick="document.getElementById('odDepAmt').value='10000'" style="padding:4px 10px;background:#f8fafc;border:1px solid #cbd5e1;border-radius:12px;font-size:11.5px;font-weight:700;cursor:pointer;color:#334155;">₹10,000</button>
+                </div>
             </div>
 
             <div class="form-group" style="margin-bottom:12px;">
-                <label style="font-weight:600;font-size:13px;display:block;margin-bottom:4px;">Payment Mode *</label>
-                <select id="odDepMode" style="width:100%;padding:9px;border:1px solid #ccc;border-radius:6px;box-sizing:border-box;">
+                <label style="font-weight:700;font-size:13px;display:block;margin-bottom:5px;color:#1e293b;">Payment Mode *</label>
+                <select id="odDepMode" style="width:100%;padding:10px 12px;border:1.5px solid #cbd5e1;border-radius:8px;font-size:16px;box-sizing:border-box;background:#fff;">
                     <option value="UPI">UPI Transfer</option>
                     <option value="CASH">Cash Deposit</option>
                     <option value="BANK">Direct Net Banking / NEFT</option>
@@ -849,19 +959,31 @@ window.cbDepositToODModal = function() {
             </div>
 
             <div class="form-group" style="margin-bottom:12px;">
-                <label style="font-weight:600;font-size:13px;display:block;margin-bottom:4px;">Sender / Received From *</label>
-                <input id="odDepFrom" type="text" value="FIROZ" placeholder="Sender name" style="width:100%;padding:9px;border:1px solid #ccc;border-radius:6px;box-sizing:border-box;">
+                <label style="font-weight:700;font-size:13px;display:block;margin-bottom:5px;color:#1e293b;">Sender / Deposited By *</label>
+                <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:7px;">
+                    <button type="button" onclick="document.getElementById('odDepFrom').value='Aniket'" style="padding:4px 10px;background:#eff6ff;border:1px solid #93c5fd;border-radius:14px;font-size:12px;font-weight:700;cursor:pointer;color:#1d4ed8;">👤 Aniket</button>
+                    <button type="button" onclick="document.getElementById('odDepFrom').value='Firoz'" style="padding:4px 10px;background:#f8fafc;border:1px solid #cbd5e1;border-radius:14px;font-size:12px;font-weight:600;cursor:pointer;color:#334155;">👤 Firoz</button>
+                    <button type="button" onclick="document.getElementById('odDepFrom').value='Shahenshah'" style="padding:4px 10px;background:#f8fafc;border:1px solid #cbd5e1;border-radius:14px;font-size:12px;font-weight:600;cursor:pointer;color:#334155;">👤 Shahenshah</button>
+                    <button type="button" onclick="document.getElementById('odDepFrom').value='Yash'" style="padding:4px 10px;background:#f8fafc;border:1px solid #cbd5e1;border-radius:14px;font-size:12px;font-weight:600;cursor:pointer;color:#334155;">👤 Yash</button>
+                    <button type="button" onclick="document.getElementById('odDepFrom').value='Owner'" style="padding:4px 10px;background:#f8fafc;border:1px solid #cbd5e1;border-radius:14px;font-size:12px;font-weight:600;cursor:pointer;color:#334155;">👤 Owner</button>
+                </div>
+                <input id="odDepFrom" type="text" value="${defaultSender || 'Aniket'}" placeholder="Sender name" style="width:100%;padding:10px 12px;border:1.5px solid #cbd5e1;border-radius:8px;font-size:16px;box-sizing:border-box;">
             </div>
 
             <div class="form-group" style="margin-bottom:16px;">
-                <label style="font-weight:600;font-size:13px;display:block;margin-bottom:4px;">Reference Note / Remarks</label>
-                <input id="odDepNote" placeholder="e.g. Added for laundry and maintenance bills" style="width:100%;padding:9px;border:1px solid #ccc;border-radius:6px;box-sizing:border-box;">
+                <label style="font-weight:700;font-size:13px;display:block;margin-bottom:5px;color:#1e293b;">Reference Note / Remarks</label>
+                <input id="odDepNote" placeholder="e.g. Balance deposit / cash settlement" style="width:100%;padding:10px 12px;border:1.5px solid #cbd5e1;border-radius:8px;font-size:16px;box-sizing:border-box;">
             </div>
 
-            <button onclick="window.cbSaveODDeposit()" style="width:100%;padding:12px;background:#10B981;color:#fff;border:none;border-radius:8px;font-weight:700;font-size:15px;cursor:pointer;transition:0.2s;">
-                💾 Save Deposit & Update Balance
-            </button>
-            <div id="odDepErr" style="margin-top:10px;color:#dc3545;font-size:12px;font-weight:600;text-align:center;"></div>
+            <div style="display:flex;gap:10px;">
+                <button type="button" onclick="this.closest('.modal-overlay').remove()" style="flex:1;padding:12px;background:#f1f5f9;color:#475569;border:1px solid #cbd5e1;border-radius:8px;font-weight:700;font-size:15px;cursor:pointer;">
+                    Cancel
+                </button>
+                <button type="button" onclick="window.cbSaveODDeposit()" style="flex:2;padding:12px;background:#059669;color:#fff;border:none;border-radius:8px;font-weight:800;font-size:15px;cursor:pointer;box-shadow:0 4px 12px rgba(5,150,105,0.3);">
+                    💾 Save Deposit
+                </button>
+            </div>
+            <div id="odDepErr" style="margin-top:10px;color:#dc3545;font-size:13px;font-weight:700;text-align:center;"></div>
         </div>
     `;
     document.body.appendChild(modal);
@@ -888,13 +1010,13 @@ window.cbSaveODDeposit = async function() {
 
     if (amount <= 0 || isNaN(amount)) {
         if (errDiv) errDiv.innerText = "⚠️ Please enter a valid positive amount!";
-        if (btn) { btn.disabled = false; btn.innerText = "💾 Save Deposit & Update Balance"; }
+        if (btn) { btn.disabled = false; btn.innerText = "💾 Save Deposit"; }
         window._isSavingODDeposit = false;
         return;
     }
     if (!sender) {
         if (errDiv) errDiv.innerText = "⚠️ Sender name is required!";
-        if (btn) { btn.disabled = false; btn.innerText = "💾 Save Deposit & Update Balance"; }
+        if (btn) { btn.disabled = false; btn.innerText = "💾 Save Deposit"; }
         window._isSavingODDeposit = false;
         return;
     }
@@ -953,35 +1075,39 @@ window.cbReturnFromODModal = function() {
     const oldModal = document.querySelector('.od-return-modal-overlay');
     if (oldModal) oldModal.remove();
 
+    const localToday = (() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; })();
+
     const modal = document.createElement('div');
     modal.className = 'modal-overlay od-return-modal-overlay';
-    modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);display:flex;align-items:center;justify-content:center;z-index:9999999;padding:20px;backdrop-filter:blur(2px);';
+    modal.style.cssText = 'position:fixed;inset:0;background:rgba(15,23,42,0.75);display:flex;align-items:center;justify-content:center;z-index:9999999;padding:14px;overflow-y:auto;-webkit-overflow-scrolling:touch;backdrop-filter:blur(4px);box-sizing:border-box;';
     modal.onclick = e => { if (e.target === modal) modal.remove(); };
 
     modal.innerHTML = `
-        <div class="modal-box" style="background:#fff;border-radius:12px;padding:22px;max-width:450px;width:100%;box-shadow:0 10px 25px rgba(0,0,0,0.2);" onclick="event.stopPropagation()">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;border-bottom:1px solid #eee;padding-bottom:10px;">
-                <h3 style="margin:0;font-size:18px;color:#EF4444;font-weight:800;">💸 Return Funds to Company</h3>
-                <button onclick="this.closest('.modal-overlay').remove()" style="background:none;border:none;font-size:22px;cursor:pointer;color:#888;">✕</button>
+        <div class="modal-box" style="background:#fff;border-radius:16px;padding:22px;max-width:480px;width:100%;max-height:92vh;overflow-y:auto;-webkit-overflow-scrolling:touch;box-shadow:0 20px 40px rgba(0,0,0,0.3);margin:auto;box-sizing:border-box;border:1px solid #e2e8f0;" onclick="event.stopPropagation()">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;border-bottom:1px solid #e2e8f0;padding-bottom:12px;">
+                <h3 style="margin:0;font-size:18px;color:#dc2626;font-weight:800;display:flex;align-items:center;gap:6px;">
+                    <span>💸</span> Return Funds to Company
+                </h3>
+                <button type="button" onclick="this.closest('.modal-overlay').remove()" style="background:#f1f5f9;border:none;border-radius:50%;width:32px;height:32px;font-size:18px;cursor:pointer;color:#64748b;display:flex;align-items:center;justify-content:center;font-weight:700;">✕</button>
             </div>
 
-            <div style="background:#fef2f2;padding:10px;border-radius:8px;font-size:12px;color:#991b1b;margin-bottom:14px;border:1px solid #fecaca;">
-                Record funds returned / transferred from TUHH-OD back to Company or Firoz. This will reduce your TUHH-OD running balance.
-            </div>
-
-            <div class="form-group" style="margin-bottom:12px;">
-                <label style="font-weight:600;font-size:13px;display:block;margin-bottom:4px;">Date *</label>
-                <input id="odRetDate" type="date" value="${new Date().toISOString().slice(0,10)}" style="width:100%;padding:9px;border:1px solid #ccc;border-radius:6px;box-sizing:border-box;">
+            <div style="background:#fef2f2;padding:10px 12px;border-radius:10px;font-size:12.5px;color:#991b1b;margin-bottom:14px;border:1px solid #fecaca;line-height:1.4;">
+                Record funds returned from TUHH-OD back to Company or Firoz. This reduces your TUHH-OD balance.
             </div>
 
             <div class="form-group" style="margin-bottom:12px;">
-                <label style="font-weight:600;font-size:13px;display:block;margin-bottom:4px;">Amount (₹) *</label>
-                <input id="odRetAmt" type="number" min="1" placeholder="e.g. 10000" style="width:100%;padding:9px;border:1px solid #ccc;border-radius:6px;font-size:16px;font-weight:700;box-sizing:border-box;">
+                <label style="font-weight:700;font-size:13px;display:block;margin-bottom:5px;color:#1e293b;">Date *</label>
+                <input id="odRetDate" type="date" value="${localToday}" style="width:100%;padding:10px 12px;border:1.5px solid #cbd5e1;border-radius:8px;font-size:16px;box-sizing:border-box;">
             </div>
 
             <div class="form-group" style="margin-bottom:12px;">
-                <label style="font-weight:600;font-size:13px;display:block;margin-bottom:4px;">Transfer Mode *</label>
-                <select id="odRetMode" style="width:100%;padding:9px;border:1px solid #ccc;border-radius:6px;box-sizing:border-box;">
+                <label style="font-weight:700;font-size:13px;display:block;margin-bottom:5px;color:#1e293b;">Amount (₹) *</label>
+                <input id="odRetAmt" type="number" min="1" step="any" placeholder="e.g. 10000" style="width:100%;padding:10px 12px;border:1.5px solid #cbd5e1;border-radius:8px;font-size:18px;font-weight:800;color:#dc2626;box-sizing:border-box;">
+            </div>
+
+            <div class="form-group" style="margin-bottom:12px;">
+                <label style="font-weight:700;font-size:13px;display:block;margin-bottom:5px;color:#1e293b;">Transfer Mode *</label>
+                <select id="odRetMode" style="width:100%;padding:10px 12px;border:1.5px solid #cbd5e1;border-radius:8px;font-size:16px;box-sizing:border-box;background:#fff;">
                     <option value="UPI">UPI Transfer</option>
                     <option value="BANK">Bank Transfer / NEFT</option>
                     <option value="CASH">Cash Handover</option>
@@ -989,22 +1115,27 @@ window.cbReturnFromODModal = function() {
             </div>
 
             <div class="form-group" style="margin-bottom:12px;">
-                <label style="font-weight:600;font-size:13px;display:block;margin-bottom:4px;">Returned To *</label>
-                <select id="odRetTo" style="width:100%;padding:9px;border:1px solid #ccc;border-radius:6px;box-sizing:border-box;">
+                <label style="font-weight:700;font-size:13px;display:block;margin-bottom:5px;color:#1e293b;">Returned To *</label>
+                <select id="odRetTo" style="width:100%;padding:10px 12px;border:1.5px solid #cbd5e1;border-radius:8px;font-size:16px;box-sizing:border-box;background:#fff;">
                     <option value="FIROZ">👤 Firoz Ahmad</option>
                     <option value="COMPANY">🏢 Company Bank Account</option>
                 </select>
             </div>
 
             <div class="form-group" style="margin-bottom:16px;">
-                <label style="font-weight:600;font-size:13px;display:block;margin-bottom:4px;">Reference Note / Remarks</label>
-                <input id="odRetNote" placeholder="e.g. Returned guest excess / rent funds" style="width:100%;padding:9px;border:1px solid #ccc;border-radius:6px;box-sizing:border-box;">
+                <label style="font-weight:700;font-size:13px;display:block;margin-bottom:5px;color:#1e293b;">Reference Note / Remarks</label>
+                <input id="odRetNote" placeholder="e.g. Returned guest excess / rent funds" style="width:100%;padding:10px 12px;border:1.5px solid #cbd5e1;border-radius:8px;font-size:16px;box-sizing:border-box;">
             </div>
 
-            <button onclick="window.cbSaveODReturn()" style="width:100%;padding:12px;background:#EF4444;color:#fff;border:none;border-radius:8px;font-weight:700;font-size:15px;cursor:pointer;transition:0.2s;">
-                💾 Save Return & Update Balance
-            </button>
-            <div id="odRetErr" style="margin-top:10px;color:#dc3545;font-size:12px;font-weight:600;text-align:center;"></div>
+            <div style="display:flex;gap:10px;">
+                <button type="button" onclick="this.closest('.modal-overlay').remove()" style="flex:1;padding:12px;background:#f1f5f9;color:#475569;border:1px solid #cbd5e1;border-radius:8px;font-weight:700;font-size:15px;cursor:pointer;">
+                    Cancel
+                </button>
+                <button type="button" onclick="window.cbSaveODReturn()" style="flex:2;padding:12px;background:#dc2626;color:#fff;border:none;border-radius:8px;font-weight:800;font-size:15px;cursor:pointer;box-shadow:0 4px 12px rgba(220,38,38,0.3);">
+                    💾 Save Return
+                </button>
+            </div>
+            <div id="odRetErr" style="margin-top:10px;color:#dc3545;font-size:13px;font-weight:700;text-align:center;"></div>
         </div>
     `;
     document.body.appendChild(modal);

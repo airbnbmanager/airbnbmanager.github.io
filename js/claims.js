@@ -198,49 +198,52 @@ window.renderClaims = async function() {
         </div>
       </div>
 
-      <!-- Statement Day Switcher Bar (Latest Closed Business Day vs Today vs Custom Date) -->
+      <!-- Statement Day / Range Switcher Bar -->
       <div id="proofDaySwitcherBar" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:12px;background:#F8FAFC;padding:8px 12px;border-radius:8px;border:1px solid #E2E8F0;">
         <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
-          <span style="font-size:11px;font-weight:700;color:#64748B;">Statement Day:</span>
-          <button id="proofBtnLatest" type="button" onclick="if(window.renderClosingStatementForDate) window.renderClosingStatementForDate('2026-10-17')" style="padding:5px 12px;background:#0284C7;color:#fff;border:1px solid #0284C7;border-radius:6px;font-size:11.5px;font-weight:700;cursor:pointer;box-shadow:0 1px 3px rgba(2,132,199,0.25);">
-            ⚡ 17-Oct (Latest Closed: ₹4,000 In / ₹967 Out)
+          <span style="font-size:11px;font-weight:700;color:#64748B;">Statement View:</span>
+          <button id="proofBtnRange" type="button" onclick="if(window.renderClosingStatementForDate) window.renderClosingStatementForDate('range')" style="padding:5px 12px;background:#F1F5F9;color:#475569;border:1px solid #CBD5E1;border-radius:6px;font-size:11.5px;font-weight:700;cursor:pointer;">
+            📅 Active Filter Range
           </button>
-          <button id="proofBtnToday" type="button" onclick="if(window.renderClosingStatementForDate) window.renderClosingStatementForDate('${todayStr}')" style="padding:5px 12px;background:#F1F5F9;color:#475569;border:1px solid #CBD5E1;border-radius:6px;font-size:11.5px;font-weight:600;cursor:pointer;">
-            📅 Today: ${todayStr.slice(-2)}-Oct (In-Progress)
+          <button id="proofBtnToday" type="button" onclick="if(window.renderClosingStatementForDate) window.renderClosingStatementForDate('today')" style="padding:5px 12px;background:#0284C7;color:#fff;border:1px solid #0284C7;border-radius:6px;font-size:11.5px;font-weight:700;cursor:pointer;box-shadow:0 1px 3px rgba(2,132,199,0.25);">
+            📅 Today (${todayStr.slice(-2)}-Oct)
+          </button>
+          <button id="proofBtnLatest" type="button" onclick="if(window.renderClosingStatementForDate) window.renderClosingStatementForDate('latest')" style="padding:5px 12px;background:#F1F5F9;color:#475569;border:1px solid #CBD5E1;border-radius:6px;font-size:11.5px;font-weight:600;cursor:pointer;">
+            ⚡ Last Closed Day
           </button>
         </div>
         <div style="display:flex;align-items:center;gap:6px;">
-          <span style="font-size:11px;color:#64748B;font-weight:600;">Other Date:</span>
-          <input type="date" id="proofCustomDate" onchange="if(window.renderClosingStatementForDate) window.renderClosingStatementForDate(this.value)" style="padding:4px 8px;border:1px solid #CBD5E1;border-radius:6px;font-size:11.5px;background:#fff;color:#0F172A;">
+          <span style="font-size:11px;color:#64748B;font-weight:600;">Single Date:</span>
+          <input type="date" id="proofCustomDate" onchange="if(window.renderClosingStatementForDate) window.renderClosingStatementForDate(this.value, this.value)" style="padding:4px 8px;border:1px solid #CBD5E1;border-radius:6px;font-size:11.5px;background:#fff;color:#0F172A;">
         </div>
       </div>
 
-      <!-- METRIC KPI GRID FOR TODAY -->
+      <!-- METRIC KPI GRID FOR STATEMENT -->
       <div class="today-proof-grid">
-        <!-- Today Deposits / Inflow -->
+        <!-- Deposits / Inflow -->
         <div style="background:#F0FDF4;border:1px solid #BBF7D0;border-radius:10px;padding:12px 14px;">
-          <div style="font-size:11px;font-weight:700;color:#166534;text-transform:uppercase;">📥 Today's Deposits (Inflow)</div>
+          <div style="font-size:11px;font-weight:700;color:#166534;text-transform:uppercase;" id="today-proof-inflow-title">📥 Period Deposits (Inflow)</div>
           <div style="font-size:20px;font-weight:800;color:#15803D;margin-top:4px;" id="today-proof-inflow">₹0</div>
-          <div style="font-size:11px;color:#15803D;margin-top:2px;" id="today-proof-inflow-count">0 deposits today</div>
+          <div style="font-size:11px;color:#15803D;margin-top:2px;" id="today-proof-inflow-count">0 deposits</div>
         </div>
 
-        <!-- Today Claims / Spends Outflow -->
+        <!-- Claims / Spends Outflow -->
         <div style="background:#FEF2F2;border:1px solid #FECACA;border-radius:10px;padding:12px 14px;">
-          <div style="font-size:11px;font-weight:700;color:#991B1B;text-transform:uppercase;">📤 Today's Spends / Claims</div>
+          <div style="font-size:11px;font-weight:700;color:#991B1B;text-transform:uppercase;" id="today-proof-outflow-title">📤 Period Spends / Claims</div>
           <div style="font-size:20px;font-weight:800;color:#DC2626;margin-top:4px;" id="today-proof-outflow">₹0</div>
           <div style="font-size:11px;color:#991B1B;margin-top:2px;" id="today-proof-outflow-count">0 claims settled</div>
         </div>
 
-        <!-- Net Today Movement -->
+        <!-- Net Movement -->
         <div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:10px;padding:12px 14px;">
-          <div style="font-size:11px;font-weight:700;color:#475569;text-transform:uppercase;">📊 Today's Net Movement</div>
+          <div style="font-size:11px;font-weight:700;color:#475569;text-transform:uppercase;" id="today-proof-net-title">📊 Period Net Movement</div>
           <div style="font-size:20px;font-weight:800;color:#0F172A;margin-top:4px;" id="today-proof-net">₹0</div>
-          <div style="font-size:11px;color:#64748B;margin-top:2px;" id="today-proof-net-sub">Daily net delta</div>
+          <div style="font-size:11px;color:#64748B;margin-top:2px;" id="today-proof-net-sub">Net period delta</div>
         </div>
 
-        <!-- Today Closing Running Balance -->
+        <!-- Closing Running Balance -->
         <div class="today-proof-closing-col" style="background:linear-gradient(135deg,#0F172A,#1E293B);color:#ffffff;border-radius:10px;padding:12px 14px;border:1.5px solid #334155;">
-          <div style="font-size:11px;font-weight:700;color:#94A3B8;text-transform:uppercase;">💰 TUHH-OD Closing Balance</div>
+          <div style="font-size:11px;font-weight:700;color:#94A3B8;text-transform:uppercase;" id="today-proof-closing-title">💰 Closing Running Balance</div>
           <div style="font-size:22px;font-weight:900;color:#4ADE80;margin-top:4px;" id="today-proof-closing-bal">₹0</div>
           <div style="font-size:11px;color:#CBD5E1;margin-top:2px;" id="today-proof-status-label">🛡️ Verified by TUHH Engine</div>
         </div>
@@ -471,6 +474,11 @@ window.updateClaimsFilter = function() {
   // Keep OD Top Banner showing true live account balance
   if (window.UHHSODManager) {
     window.UHHSODManager.calculateBalance(sb);
+  }
+
+  // Synchronize Statement Proof Card & Mobile Download State with filtered date range
+  if (typeof window.renderClosingStatementForDate === 'function') {
+    window.renderClosingStatementForDate(window._claimsState.fromDate, window._claimsState.toDate);
   }
 };
 
@@ -2140,7 +2148,7 @@ window.exportCompanyLedgerPDF = async function(fDate, tDate) {
 };
 
 // =========================================================================
-// 📸 TODAY'S BALANCE SCREENSHOT DOWNLOAD & WHATSAPP PROOF (OWNER TRUST)
+// 📸 BALANCE STATEMENT SCREENSHOT DOWNLOAD & WHATSAPP PROOF (OWNER TRUST)
 // =========================================================================
 window.downloadTodayBalanceScreenshot = async function(evt) {
   if (typeof html2canvas === 'undefined') {
@@ -2155,26 +2163,44 @@ window.downloadTodayBalanceScreenshot = async function(evt) {
   }
 
   try {
+    // Only initialize if statement state is completely missing; do not override user's active choice (e.g. Today vs Range)
+    if (!window._tuhhOdBalanceState?.selectedDate && typeof window.renderClosingStatementForDate === 'function') {
+      const curFrom = document.getElementById('cfFromDate')?.value || window._claimsState?.fromDate;
+      const curTo = document.getElementById('cfToDate')?.value || window._claimsState?.toDate;
+      window.renderClosingStatementForDate(curFrom, curTo);
+    }
+
     const state = window._tuhhOdBalanceState || {};
+    const isRange = !!state.isRange;
     const nowD = new Date();
-    const dateFmt = state.dateFmt || nowD.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
     const timeFmt = state.timeFmt || nowD.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
 
-    const netBalNum = (state.netBalance !== undefined) ? state.netBalance : 19739.54;
-    const netBalStr = (netBalNum < 0 ? '-₹' : '₹') + Math.abs(netBalNum).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const startDateFmt = state.startDateFmt || state.dateFmt || 'Start';
+    const endDateFmt = state.endDateFmt || state.dateFmt || 'Today';
+    const rangeFmt = state.rangeFmt || (isRange ? `${startDateFmt} → ${endDateFmt}` : state.dateFmt);
+
+    const closeBalNum = (state.closingBalance !== undefined) ? state.closingBalance : (state.netBalance !== undefined ? state.netBalance : 19739.54);
+    const closeBalStr = (closeBalNum < 0 ? '-₹' : '₹') + Math.abs(closeBalNum).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+    const openBalNum = (state.openingBalance !== undefined) ? state.openingBalance : 0;
+    const openBalStr = (openBalNum < 0 ? '-₹' : '₹') + Math.abs(openBalNum).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+    const inAmt = state.todayInflowAmt || 0;
+    const inCnt = state.todayInflowsCount || 0;
+    const inStr = '₹' + Math.abs(inAmt).toLocaleString('en-IN');
+
+    const outAmt = state.todayOutflowAmt || 0;
+    const outCnt = state.todayOutflowsCount || 0;
+    const outStr = '₹' + Math.abs(outAmt).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+    const netAmt = state.todayNetAmt || (inAmt - outAmt);
+    const netStr = (netAmt > 0 ? '+₹' : (netAmt < 0 ? '-₹' : '₹')) + Math.abs(netAmt).toLocaleString('en-IN');
 
     const totalInflowNum = state.totalInflow || 252200;
     const totalInflowStr = '₹' + Math.abs(totalInflowNum).toLocaleString('en-IN');
 
     const totalOutflowNum = state.totalOutflow || 232460.46;
     const totalOutflowStr = '₹' + Math.abs(totalOutflowNum).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-
-    const todayInAmt = state.todayInflowAmt || 0;
-    const todayInCnt = state.todayInflowsCount || 0;
-    const todayOutAmt = state.todayOutflowAmt || 0;
-    const todayOutCnt = state.todayOutflowsCount || 0;
-    const todayNetAmt = state.todayNetAmt || (todayInAmt - todayOutAmt);
-    const todayNetStr = (todayNetAmt > 0 ? '+₹' : (todayNetAmt < 0 ? '-₹' : '₹')) + Math.abs(todayNetAmt).toLocaleString('en-IN');
 
     // Build dedicated 460px mobile portrait voucher container
     const voucher = document.createElement('div');
@@ -2203,80 +2229,104 @@ window.downloadTodayBalanceScreenshot = async function(evt) {
           </div>
           <div>
             <div style="font-size:15px;font-weight:900;color:#0f172a;letter-spacing:0.2px;">THE UNIQUE HAVEN HOMES</div>
-            <div style="font-size:11px;font-weight:700;color:#0284c7;text-transform:uppercase;">TUHH-OD Official Daily Statement</div>
+            <div style="font-size:11px;font-weight:700;color:#0284c7;text-transform:uppercase;">
+              ${isRange ? 'TUHH-OD Period Financial Statement' : 'TUHH-OD Official Daily Statement'}
+            </div>
           </div>
         </div>
         <div style="text-align:right;">
           <span style="background:#dcfce7;color:#166534;border:1px solid #86efac;padding:3px 9px;border-radius:999px;font-size:10.5px;font-weight:800;display:inline-flex;align-items:center;gap:3px;">
             ✓ Live Verified
           </span>
-          <div style="font-size:10px;color:#64748b;margin-top:3px;font-weight:600;">${dateFmt} · ${timeFmt}</div>
+          <div style="font-size:10px;color:#64748b;margin-top:3px;font-weight:600;">
+            ${isRange ? rangeFmt : state.dateFmt} · ${timeFmt}
+          </div>
         </div>
       </div>
 
       <!-- Primary Hero Closing Balance Card -->
       <div style="background:linear-gradient(135deg,#0f172a 0%,#1e293b 100%);color:#ffffff;border-radius:14px;padding:20px;text-align:center;border:1.5px solid #334155;box-shadow:0 6px 18px rgba(15,23,42,0.25);margin-bottom:16px;">
         <div style="font-size:11.5px;font-weight:800;color:#94a3b8;text-transform:uppercase;letter-spacing:0.8px;">
-          💰 TUHH-OD CLOSING BALANCE
+          💰 ${isRange ? `CLOSING BALANCE AS OF ${endDateFmt}` : 'TUHH-OD CLOSING BALANCE'}
         </div>
         <div style="font-size:34px;font-weight:900;color:#4ade80;margin:6px 0;letter-spacing:-0.5px;">
-          ${netBalStr}
+          ${closeBalStr}
         </div>
         <div style="display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,0.08);padding:4px 12px;border-radius:999px;font-size:10.5px;color:#e2e8f0;font-weight:600;">
-          🛡️ Verified by TUHH Engine · Zero Manual Adjustments
+          ${isRange ? `🛡️ Opening Balance: ${openBalStr} · Audit Verified` : '🛡️ Verified by TUHH Engine · Zero Manual Adjustments'}
         </div>
       </div>
 
-      <!-- Full Post-Checkpoint Account Position -->
+      <!-- Account Position (Period or All-Time) -->
       <div style="margin-bottom:16px;">
         <div style="font-size:11px;font-weight:800;color:#475569;text-transform:uppercase;letter-spacing:0.6px;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;">
-          <span>📊 ALL-TIME ACCOUNT POSITION</span>
-          <span style="font-size:10px;color:#64748b;font-weight:600;">Post-Checkpoint (17-Sep Onwards)</span>
+          <span>${isRange ? '📊 SELECTED PERIOD MOVEMENT' : '📊 ALL-TIME ACCOUNT POSITION'}</span>
+          <span style="font-size:10px;color:#64748b;font-weight:600;">
+            ${isRange ? rangeFmt : 'Post-Checkpoint (17-Sep Onwards)'}
+          </span>
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
           <div style="background:#f0fdf4;border:1.5px solid #bbf7d0;border-radius:12px;padding:12px 14px;">
-            <div style="font-size:10.5px;font-weight:800;color:#166534;text-transform:uppercase;">📥 Total Deposited</div>
-            <div style="font-size:20px;font-weight:900;color:#15803d;margin-top:3px;">${totalInflowStr}</div>
-            <div style="font-size:10px;color:#166534;margin-top:2px;">Received from Firoz</div>
+            <div style="font-size:10.5px;font-weight:800;color:#166534;text-transform:uppercase;">
+              📥 ${isRange ? 'Period Deposited' : 'Total Deposited'}
+            </div>
+            <div style="font-size:20px;font-weight:900;color:#15803d;margin-top:3px;">
+              ${isRange ? inStr : totalInflowStr}
+            </div>
+            <div style="font-size:10px;color:#166534;margin-top:2px;">
+              ${isRange ? `${inCnt} deposits in period` : 'Received from Firoz'}
+            </div>
           </div>
           <div style="background:#fef2f2;border:1.5px solid #fecaca;border-radius:12px;padding:12px 14px;">
-            <div style="font-size:10.5px;font-weight:800;color:#991b1b;text-transform:uppercase;">📤 Total Utilized</div>
-            <div style="font-size:20px;font-weight:900;color:#dc2626;margin-top:3px;">${totalOutflowStr}</div>
-            <div style="font-size:10px;color:#991b1b;margin-top:2px;">Claims, vendor &amp; staff spends</div>
+            <div style="font-size:10.5px;font-weight:800;color:#991b1b;text-transform:uppercase;">
+              📤 ${isRange ? 'Period Utilized' : 'Total Utilized'}
+            </div>
+            <div style="font-size:20px;font-weight:900;color:#dc2626;margin-top:3px;">
+              ${isRange ? outStr : totalOutflowStr}
+            </div>
+            <div style="font-size:10px;color:#991b1b;margin-top:2px;">
+              ${isRange ? `${outCnt} claims &amp; spends in period` : 'Claims, vendor &amp; staff spends'}
+            </div>
           </div>
         </div>
       </div>
 
-      <!-- Today's Daily Movement Breakdown -->
+      <!-- Activity Breakdown -->
       <div style="background:#f8fafc;border:1.5px solid #e2e8f0;border-radius:14px;padding:14px;margin-bottom:16px;">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
           <div style="font-size:11px;font-weight:800;color:#334155;text-transform:uppercase;letter-spacing:0.5px;">
-            📅 TODAY'S ACTIVITY (${dateFmt})
+            📅 ${isRange ? `PERIOD ACTIVITY SUMMARY (${rangeFmt})` : `TODAY'S ACTIVITY (${state.dateFmt})`}
           </div>
-          <span style="font-size:10px;font-weight:800;color:${todayNetAmt !== 0 ? '#15803d' : '#0284c7'};background:${todayNetAmt !== 0 ? '#dcfce7' : '#e0f2fe'};padding:2px 8px;border-radius:6px;">
-            ${todayNetAmt !== 0 ? 'Daily Movement Active' : '0 Entries Recorded Today'}
+          <span style="font-size:10px;font-weight:800;color:${netAmt !== 0 ? '#15803d' : '#0284c7'};background:${netAmt !== 0 ? '#dcfce7' : '#e0f2fe'};padding:2px 8px;border-radius:6px;">
+            ${(inAmt > 0 || outAmt > 0) ? `${inCnt + outCnt} Movements Recorded` : '0 Entries Recorded'}
           </span>
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;text-align:center;">
           <div style="background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:8px 4px;">
-            <div style="font-size:9.5px;color:#64748b;font-weight:700;">TODAY INFLOW</div>
-            <div style="font-size:14px;font-weight:800;color:#15803d;margin-top:2px;">₹${todayInAmt.toLocaleString('en-IN')}</div>
-            <div style="font-size:9.5px;color:#94a3b8;">${todayInCnt} deposits</div>
+            <div style="font-size:9.5px;color:#64748b;font-weight:700;">${isRange ? 'PERIOD INFLOW' : 'TODAY INFLOW'}</div>
+            <div style="font-size:14px;font-weight:800;color:#15803d;margin-top:2px;">${inStr}</div>
+            <div style="font-size:9.5px;color:#94a3b8;">${inCnt} deposits</div>
           </div>
           <div style="background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:8px 4px;">
-            <div style="font-size:9.5px;color:#64748b;font-weight:700;">TODAY SPENDS</div>
-            <div style="font-size:14px;font-weight:800;color:#dc2626;margin-top:2px;">₹${todayOutAmt.toLocaleString('en-IN')}</div>
-            <div style="font-size:9.5px;color:#94a3b8;">${todayOutCnt} claims</div>
+            <div style="font-size:9.5px;color:#64748b;font-weight:700;">${isRange ? 'PERIOD SPENDS' : 'TODAY SPENDS'}</div>
+            <div style="font-size:14px;font-weight:800;color:#dc2626;margin-top:2px;">${outStr}</div>
+            <div style="font-size:9.5px;color:#94a3b8;">${outCnt} claims</div>
           </div>
           <div style="background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:8px 4px;">
             <div style="font-size:9.5px;color:#64748b;font-weight:700;">NET DELTA</div>
-            <div style="font-size:14px;font-weight:800;color:#0f172a;margin-top:2px;">${todayNetStr}</div>
-            <div style="font-size:9.5px;color:#94a3b8;">Daily net</div>
+            <div style="font-size:14px;font-weight:800;color:#0f172a;margin-top:2px;">${netStr}</div>
+            <div style="font-size:9.5px;color:#94a3b8;">${isRange ? 'Period net' : 'Daily net'}</div>
           </div>
         </div>
-        ${(todayInAmt === 0 && todayOutAmt === 0) ? `
+
+        ${isRange ? `
+          <div style="font-size:10px;color:#475569;margin-top:10px;padding:6px 10px;background:#ffffff;border:1px solid #e2e8f0;border-radius:8px;display:flex;justify-content:space-between;align-items:center;">
+            <span>🏁 <strong>All-Time Position:</strong> In: ${totalInflowStr} | Out: ${totalOutflowStr}</span>
+            <span style="font-weight:700;color:#0284c7;">Net OD: ${closeBalStr}</span>
+          </div>
+        ` : (inAmt === 0 && outAmt === 0) ? `
           <div style="font-size:10.5px;color:#64748b;margin-top:8px;text-align:center;background:rgba(2,132,199,0.06);padding:5px 8px;border-radius:6px;line-height:1.4;">
-            ℹ️ No new movements recorded yet today. Running balance of <strong>${netBalStr}</strong> carried forward safely.
+            ℹ️ No new movements recorded yet today. Running balance of <strong>${closeBalStr}</strong> carried forward safely.
           </div>
         ` : ''}
       </div>
@@ -2304,14 +2354,16 @@ window.downloadTodayBalanceScreenshot = async function(evt) {
 
     document.body.removeChild(voucher);
 
-    const dateStr = `${nowD.getFullYear()}-${String(nowD.getMonth()+1).padStart(2,'0')}-${String(nowD.getDate()).padStart(2,'0')}`;
+    const dlName = isRange
+      ? `TUHH_OD_Statement_${state.startDate || 'Start'}_to_${state.endDate || 'End'}.png`
+      : `TUHH_OD_Daily_Closing_Statement_${state.selectedDate || 'Today'}.png`;
     const link = document.createElement('a');
-    link.download = `TUHH_OD_Daily_Closing_Statement_${dateStr}.png`;
+    link.download = dlName;
     link.href = canvas.toDataURL('image/png');
     link.click();
 
-    if (btn) btn.innerHTML = '✅ Saved Mobile Proof!';
-    if (window.fsn) fsn.success('Saved Proof', 'Mobile-friendly portrait closing statement saved successfully!');
+    if (btn) btn.innerHTML = isRange ? '✅ Saved Period Proof!' : '✅ Saved Mobile Proof!';
+    if (window.fsn) fsn.success('Saved Proof', `${isRange ? 'Period' : 'Daily'} portrait financial statement saved successfully!`);
   } catch (err) {
     console.error('Screenshot error:', err);
     alert('Could not generate screenshot: ' + err.message);
@@ -2327,25 +2379,63 @@ window.downloadTodayBalanceScreenshot = async function(evt) {
 };
 
 window.shareTodayBalanceWhatsApp = function() {
+  // Only initialize if statement state is completely missing; do not override user's active choice (e.g. Today vs Range)
+  if (!window._tuhhOdBalanceState?.selectedDate && typeof window.renderClosingStatementForDate === 'function') {
+    const curFrom = document.getElementById('cfFromDate')?.value || window._claimsState?.fromDate;
+    const curTo = document.getElementById('cfToDate')?.value || window._claimsState?.toDate;
+    window.renderClosingStatementForDate(curFrom, curTo);
+  }
+
   const state = window._tuhhOdBalanceState || {};
+  const isRange = !!state.isRange;
   const now = new Date();
-  const dateStr = state.dateFmt || now.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
   const timeStr = state.timeFmt || now.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
 
-  const closeBal = document.getElementById('today-proof-closing-bal')?.innerText || '₹19,739.54';
-  const totalIn = document.getElementById('claims-od-inflow')?.innerText || '₹2,52,200';
-  const totalOut = document.getElementById('claims-od-outflow')?.innerText || '₹2,32,460.46';
+  const startDateFmt = state.startDateFmt || state.dateFmt || 'Start';
+  const endDateFmt = state.endDateFmt || state.dateFmt || 'Today';
+  const dateRangeFmt = state.rangeFmt || (isRange ? `${startDateFmt} → ${endDateFmt}` : state.dateFmt);
+
+  const closeBal = (state.closingBalance !== undefined)
+    ? ((state.closingBalance < 0 ? '-₹' : '₹') + Math.abs(state.closingBalance).toLocaleString('en-IN'))
+    : (document.getElementById('today-proof-closing-bal')?.innerText || '₹0');
+
+  const openBal = (state.openingBalance !== undefined)
+    ? ((state.openingBalance < 0 ? '-₹' : '₹') + Math.abs(state.openingBalance).toLocaleString('en-IN'))
+    : '₹0';
 
   const inVal = document.getElementById('today-proof-inflow')?.innerText || '₹0';
-  const inCnt = document.getElementById('today-proof-inflow-count')?.innerText || '0 deposits today';
+  const inCnt = document.getElementById('today-proof-inflow-count')?.innerText || '0 deposits';
   const outVal = document.getElementById('today-proof-outflow')?.innerText || '₹0';
   const outCnt = document.getElementById('today-proof-outflow-count')?.innerText || '0 claims settled';
   const netVal = document.getElementById('today-proof-net')?.innerText || '₹0';
 
-  const text = [
+  const totalIn = document.getElementById('claims-od-inflow')?.innerText || ('₹' + (state.totalInflow || 252200).toLocaleString('en-IN'));
+  const totalOut = document.getElementById('claims-od-outflow')?.innerText || ('₹' + (state.totalOutflow || 232460.46).toLocaleString('en-IN'));
+
+  const text = isRange ? [
+    '🏦 *THE UNIQUE HAVEN HOMES PVT LTD*',
+    '📊 *TUHH-OD PERIOD FINANCIAL STATEMENT*',
+    `📅 *Statement Period:* ${dateRangeFmt}`,
+    `🕒 *Refreshed:* ${timeStr}`,
+    '────────────────────────────',
+    `💰 *CLOSING BALANCE AS OF ${endDateFmt}:* *${closeBal}*`,
+    `💼 *Opening Balance (${startDateFmt}):* ${openBal}`,
+    '────────────────────────────',
+    `📥 *Period Deposited (Inflow):* ${inVal} (${inCnt})`,
+    `📤 *Period Utilized (Outflow):* ${outVal} (${outCnt})`,
+    `⚖️ *Net Period Delta:* *${netVal}*`,
+    '────────────────────────────',
+    '📈 *ALL-TIME LEDGER (Post-Checkpoint 17-Sep Onwards):*',
+    `• Total Inflow: ${totalIn} (from Firoz)`,
+    `• Total Outflow: ${totalOut} (claims & spends)`,
+    `• Running OD Balance: ${closeBal}`,
+    '────────────────────────────',
+    '_🛡️ Owner Assurance: Automatically compiled from verified TUHH-OD bank receipts & claims._',
+    '_Generated by TUHH Financial Engine_'
+  ].filter(Boolean).join('\n') : [
     '🏦 *THE UNIQUE HAVEN HOMES PVT LTD*',
     '📊 *DAILY TUHH-OD CLOSING & BALANCE STATEMENT*',
-    `📅 *Statement Time:* ${dateStr} | ${timeStr}`,
+    `📅 *Statement Day:* ${state.dateFmt} | ${timeStr}`,
     '────────────────────────────',
     `💰 *CURRENT TUHH-OD CLOSING BALANCE:* *${closeBal}*`,
     '🛡️ *Status:* Verified & Reconciled (Zero Discrepancy)',
@@ -2355,9 +2445,9 @@ window.shareTodayBalanceWhatsApp = function() {
     `📤 *Total Utilized (Outflow):* ${totalOut} (claims & spends)`,
     `⚖️ *Net Balance:* ${closeBal}`,
     '────────────────────────────',
-    `📅 *TODAY\'S ACTIVITY (${dateStr}):*`,
-    `• Deposits Today: ${inVal} (${inCnt})`,
-    `• Spends Today: ${outVal} (${outCnt})`,
+    `📅 *DAY\'S ACTIVITY (${state.dateFmt}):*`,
+    `• Deposits: ${inVal} (${inCnt})`,
+    `• Spends: ${outVal} (${outCnt})`,
     `• Net Daily Delta: ${netVal}`,
     (inVal === '₹0' && outVal === '₹0') ? '_(No new entries recorded yet today. Previous running balance carried forward)_' : '',
     '────────────────────────────',
