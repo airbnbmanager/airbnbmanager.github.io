@@ -1164,6 +1164,12 @@
     }
   };
 
+  window.openLaundryShortcut = function() {
+    if (typeof window.navigate === 'function') {
+      window.navigate('laundry');
+    }
+  };
+
   window.openNewClaimShortcut = function() {
     if (typeof window.navigate === 'function') {
       const isEmp = window.SESSION?.role === 'employee';
@@ -1222,6 +1228,7 @@
             { key: `${altSymbol}B`, single: 'B', label: '📑 Smart Bookings', desc: 'View all reservations & guests register', action: 'window.openBookingsShortcut()' },
             { key: `${altSymbol}F`, single: 'F', label: '🛏️ Flats & Turnaround', desc: 'Realtime room turnaround Kanban board', action: 'window.openFlatsShortcut()' },
             { key: `${altSymbol}I`, single: 'I', label: '🧑‍💼 Investors Hub', desc: 'Open Investors list, shares, payout sheets & broadcasts', action: 'window.openInvestorsShortcut()' },
+            { key: `${altSymbol}L`, single: 'L', label: '🧺 Laundry Tracker', desc: 'Track linens, vendors, wash cycles & laundry dues', action: 'window.openLaundryShortcut()' },
             { key: `${cmdSymbol}K`, single: '/', label: '🔍 Command Palette', desc: 'Spotlight search anything across PMS (Tasks, Advances, Claims, etc.)', action: 'window.openCommandPalette()' },
             { key: '?', single: '?', label: '⚡ Shortcuts Help', desc: 'Open this keyboard cheatsheet modal', action: '' },
             { key: 'ESC', single: 'Esc', label: '✕ Close Drawer / Dialog', desc: 'Dismiss active booking drawer or any open modal', action: '' }
@@ -1310,6 +1317,7 @@
     const isKeyE = code === 'KeyE' || keyCode === 69 || key === 'e' || key === '´' || (key === 'dead' && (code === 'KeyE' || keyCode === 69));
     const isKeyS = code === 'KeyS' || keyCode === 83 || key === 's' || key === 'ß';
     const isKeyI = code === 'KeyI' || keyCode === 73 || key === 'i' || key === 'ˆ';
+    const isKeyL = code === 'KeyL' || keyCode === 76 || key === 'l' || key === '¬' || key === '@';
     const isKeySlash = code === 'Slash' || keyCode === 191 || key === '/' || key === '?';
 
     // Global Save Shortcut: Cmd+S / Ctrl+S
@@ -1377,6 +1385,11 @@
       if (isKeyI) {
         e.preventDefault();
         window.openInvestorsShortcut();
+        return;
+      }
+      if (isKeyL) {
+        e.preventDefault();
+        window.openLaundryShortcut();
         return;
       }
       if (isKeySlash) {
@@ -1474,6 +1487,12 @@
       if (isKeyI) {
         e.preventDefault();
         window.openInvestorsShortcut();
+        return;
+      }
+      // l -> Laundry Tracker
+      if (isKeyL) {
+        e.preventDefault();
+        window.openLaundryShortcut();
         return;
       }
       // e -> Claims fallback when no booking is selected
