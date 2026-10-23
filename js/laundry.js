@@ -40,13 +40,17 @@ window.renderLaundry = async function() {
   const lastDayNum = new Date(lYear, lMon, 0).getDate();
   const monthEnd = `${currentMonth}-${String(lastDayNum).padStart(2, '0')}`;
   
-  const [{ data: records }, { data: items }, { data: rooms }, { data: recItems }, { data: allPayments }] = await Promise.all([
+  const [{ data: records }, { data: items }, { data: rooms }, { data: recItems }, { data: allPayments }, { data: vendors }] = await Promise.all([
     sb.from('laundry_records').select('*').gte('record_date', monthStart).lte('record_date', monthEnd).order('record_date', { ascending: false }),
     sb.from('laundry_items').select('*').eq('active', true).order('item_name'),
     sb.from('rooms').select('room_id, nickname, unit_no').order('unit_no'),
     sb.from('laundry_record_items').select('*, laundry_items(item_name)'),
-    sb.from('laundry_payments').select('*').order('payment_date', { ascending: false })
+    sb.from('laundry_payments').select('*').order('payment_date', { ascending: false }),
+    sb.from('laundry_vendors').select('*').order('vendor_name')
   ]);
+  
+  window._laundryVendorsList = vendors || [];
+  window._laundryItemsList = items || [];
   
   // Group payments by record_id + recalculate paid amount from payments table
   const paymentsByRecord = {};
@@ -123,8 +127,11 @@ window.renderLaundry = async function() {
         ${s.due > 0 ? `<span class="badge red" style="font-weight:700;">₹${s.due.toLocaleString('en-IN')} Due</span>` : `<span class="badge green">✓ Clear</span>`}
       </td>
       <td style="text-align:center;">
-        <button onclick="printVendorLaundryReport('${name}', '${currentMonth}')" class="dash-pill-btn" style="background:#2563EB;color:#fff;border:none;padding:4px 10px;font-size:11px;cursor:pointer;border-radius:6px;font-weight:600;">
-          📄 Print PDF
+        <button onclick="printVendorLaundryReport('${name}', '${currentMonth}')" class="dash-pill-btn" style="background:#2563EB;color:#fff;border:none;padding:4px 8px;font-size:11px;cursor:pointer;border-radius:6px;font-weight:600;margin-right:4px;">
+          📄 PDF
+        </button>
+        <button onclick="editVendorByName('${name.replace(/'/g, "\\'")}')" class="dash-pill-btn" style="background:#4F46E5;color:#fff;border:none;padding:4px 8px;font-size:11px;cursor:pointer;border-radius:6px;font-weight:600;" title="Edit vendor and configure custom rates">
+          ✏️ Rates
         </button>
       </td>
     </tr>`).join('');
@@ -137,6 +144,7 @@ window.renderLaundry = async function() {
         <button onclick="renderAddLaundry()">➕ Add Laundry</button>
         <button onclick="showLaundryReport()" style="background:#8B5CF6;color:#fff;">📊 Report</button>
         <button onclick="openVendorReportModal()" style="background:#059669;color:#fff;">📄 Vendor PDF</button>
+        <button onclick="openManageVendorsModal()" style="background:#4F46E5;color:#fff;">🏪 Manage Vendors & Rates</button>
         <input type="month" value="${currentMonth}" onchange="window._laundryMonth=this.value;renderLaundry()" style="padding:6px 8px;border-radius:6px;border:1px solid var(--border);">
       </div>
     </div>
@@ -317,11 +325,17 @@ window.renderAddLaundry = async function() {
       </div>
       <div class="form-group">
         <label>Vendor *</label>
-        <select id="lVendor" onchange="handleVendorChange(this)">
-          <option value="">-- Select Vendor --</option>
-          ${(vendors || []).map(v => `<option value="${v.vendor_name}">${v.vendor_name}${v.phone ? ' (' + v.phone + ')' : ''}</option>`).join('')}
-          <option value="__new__" style="color:#059669;font-weight:700;">➕ Add New Vendor...</option>
-        </select>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <select id="lVendor" onchange="handleVendorChange(this)" style="flex:1;">
+            <option value="">-- Select Vendor --</option>
+            ${(vendors || []).map(v => `<option value="${v.vendor_name}">${v.vendor_name}${v.phone ? ' (' + v.phone + ')' : ''}</option>`).join('')}
+            <option value="__new__" style="color:#059669;font-weight:700;">➕ Add New Vendor & Rates...</option>
+            <option value="__manage__" style="color:#4F46E5;font-weight:700;">⚙️ Manage All Vendors & Rates...</option>
+          </select>
+          <button type="button" id="btnEditVendorInline" onclick="quickEditCurrentVendor()" class="btn-sm" style="background:#4F46E5;color:#fff;display:none;padding:7px 12px;border:none;border-radius:6px;font-weight:600;cursor:pointer;white-space:nowrap;">
+            ✏️ Edit Rates
+          </button>
+        </div>
       </div>
     </div>
     
@@ -481,7 +495,17 @@ window.updateItemRate = async function(select) {
   }
   
   const opt = select.options[select.selectedIndex];
-  const rate = opt?.dataset?.rate || 0;
+  const itemId = select.value;
+  let rate = parseFloat(opt?.dataset?.rate || 0);
+  
+  // Look up vendor-specific rate if available
+  const vendorName = document.getElementById('lVendor')?.value;
+  const vendor = (window._laundryVendorsList || []).find(v => v.vendor_name === vendorName);
+  const vendorRates = window.getVendorRatesMap ? window.getVendorRatesMap(vendor) : {};
+  if (itemId && vendorRates && vendorRates[itemId] !== undefined && vendorRates[itemId] !== null && vendorRates[itemId] !== '') {
+    rate = parseFloat(vendorRates[itemId]);
+  }
+  
   const row = select.closest('.laundry-item-row');
   row.querySelector('.laundry-rate').value = rate;
   updateLaundryTotal();
@@ -523,8 +547,8 @@ window.saveLaundry = async function() {
   const date = document.getElementById('lDate').value;
   const room = document.getElementById('lRoom').value || null;
   const vendor = document.getElementById('lVendor').value.trim();
-  if (vendor === '__new__') {
-    document.getElementById('lErr').innerHTML = '<div class="error">Please select a vendor</div>';
+  if (!vendor || vendor === '__new__' || vendor === '__manage__') {
+    document.getElementById('lErr').innerHTML = '<div class="error">Please select a valid vendor</div>';
     return;
   }
   const payMode = document.getElementById('lPayMode').value;
@@ -670,12 +694,18 @@ window.editLaundry = async function(id) {
       </div>
       <div class="form-group">
         <label>Vendor *</label>
-        <select id="lVendor" onchange="handleVendorChange(this)">
-          <option value="">-- Select Vendor --</option>
-          ${!vendorInList && rec.vendor_name ? `<option value="${rec.vendor_name}" selected>${rec.vendor_name}</option>` : ''}
-          ${vendorOpts}
-          <option value="__new__" style="color:#059669;font-weight:700;">➕ Add New Vendor...</option>
-        </select>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <select id="lVendor" onchange="handleVendorChange(this)" style="flex:1;">
+            <option value="">-- Select Vendor --</option>
+            ${!vendorInList && rec.vendor_name ? `<option value="${rec.vendor_name}" selected>${rec.vendor_name}</option>` : ''}
+            ${vendorOpts}
+            <option value="__new__" style="color:#059669;font-weight:700;">➕ Add New Vendor & Rates...</option>
+            <option value="__manage__" style="color:#4F46E5;font-weight:700;">⚙️ Manage All Vendors & Rates...</option>
+          </select>
+          <button type="button" id="btnEditVendorInline" onclick="quickEditCurrentVendor()" class="btn-sm" style="background:#4F46E5;color:#fff;display:${rec.vendor_name ? 'inline-block' : 'none'};padding:7px 12px;border:none;border-radius:6px;font-weight:600;cursor:pointer;white-space:nowrap;">
+            ✏️ Edit Rates
+          </button>
+        </div>
       </div>
     </div>
     
@@ -783,7 +813,7 @@ window.updateLaundry = async function() {
   const paidAmt = parseFloat(document.getElementById('lPaidAmt').value) || 0;
   const notes = document.getElementById('lNotes').value.trim();
   
-  if (!date || !vendor || vendor === '__new__') {
+  if (!date || !vendor || vendor === '__new__' || vendor === '__manage__') {
     document.getElementById('lErr').innerHTML = '<div class="error">Date and Vendor required</div>';
     return;
   }
@@ -868,39 +898,381 @@ window.updateLaundry = async function() {
   renderLaundry();
 };
 
-window.handleVendorChange = async function(select) {
-  if (select.value !== '__new__') return;
+// ═══════════════════════════════════════════════════════════
+// 🏪 VENDOR & RATES MANAGEMENT SYSTEM
+// ═══════════════════════════════════════════════════════════
+
+window.getVendorRatesMap = function(vendor) {
+  if (!vendor) return {};
+  if (vendor.rates && typeof vendor.rates === 'object') return vendor.rates;
+  if (vendor.address) {
+    try {
+      const parsed = typeof vendor.address === 'string' ? JSON.parse(vendor.address) : vendor.address;
+      if (parsed && parsed.rates) return parsed.rates;
+      if (parsed && typeof parsed === 'object') return parsed;
+    } catch (e) {}
+  }
+  return {};
+};
+
+window.applySelectedVendorRates = function() {
+  const vendorName = document.getElementById('lVendor')?.value;
+  const editBtn = document.getElementById('btnEditVendorInline');
   
-  const name = prompt('New vendor name:');
-  if (!name || !name.trim()) { select.value = ''; return; }
-  
-  const phone = prompt('Vendor phone (optional):') || null;
-  
-  const { data, error } = await sb.from('laundry_vendors').insert({
-    vendor_name: name.trim(),
-    phone: phone
-  }).select().single();
-  
-  if (error) {
-    alert('Error: ' + error.message);
-    select.value = '';
+  if (!vendorName || vendorName === '__new__' || vendorName === '__manage__') {
+    if (editBtn) editBtn.style.display = 'none';
     return;
   }
   
-  // Add new option to dropdown
-  const newOpt = document.createElement('option');
-  newOpt.value = data.vendor_name;
-  newOpt.textContent = data.vendor_name + (data.phone ? ' (' + data.phone + ')' : '');
-  const addNewOpt = select.querySelector('option[value="__new__"]');
-  select.insertBefore(newOpt, addNewOpt);
+  if (editBtn) {
+    editBtn.style.display = 'inline-block';
+    editBtn.textContent = '✏️ Edit Rates';
+    editBtn.title = `Modify rates or details for ${vendorName}`;
+  }
   
-  // Auto-select
-  select.value = data.vendor_name;
+  const vendor = (window._laundryVendorsList || []).find(v => v.vendor_name === vendorName);
+  if (!vendor) return;
+  const vendorRates = window.getVendorRatesMap(vendor);
   
-  // Update cache
-  window._laundryVendorsList = [...(window._laundryVendorsList || []), data];
+  // Re-apply rates to all existing rows in the form
+  let updatedCount = 0;
+  document.querySelectorAll('.laundry-item-row').forEach(row => {
+    const itemSelect = row.querySelector('.laundry-item-select');
+    const itemId = itemSelect?.value;
+    if (!itemId || itemId === '__new__') return;
+    
+    const rateInput = row.querySelector('.laundry-rate');
+    if (vendorRates && vendorRates[itemId] !== undefined && vendorRates[itemId] !== null && vendorRates[itemId] !== '') {
+      rateInput.value = vendorRates[itemId];
+      updatedCount++;
+    } else {
+      const opt = itemSelect.options[itemSelect.selectedIndex];
+      rateInput.value = opt?.dataset?.rate || 0;
+    }
+  });
   
-  fsn.success('Added', '✅ Vendor ' + name + ' added');
+  window.updateLaundryTotal();
+  if (updatedCount > 0 && typeof fsn !== 'undefined') {
+    fsn.success('Rates Applied', `✅ Applied custom rates for ${vendorName}`);
+  }
+};
+
+window.quickEditCurrentVendor = function() {
+  const vendorName = document.getElementById('lVendor')?.value;
+  if (!vendorName || vendorName === '__new__' || vendorName === '__manage__') {
+    window.openManageVendorsModal();
+    return;
+  }
+  const vendor = (window._laundryVendorsList || []).find(v => v.vendor_name === vendorName);
+  if (vendor) {
+    window.openEditVendorModal(vendor.id);
+  } else {
+    window.openEditVendorModal(null, vendorName);
+  }
+};
+
+window.editVendorByName = async function(vendorName) {
+  if (!window._laundryVendorsList || window._laundryVendorsList.length === 0) {
+    const { data: vList } = await sb.from('laundry_vendors').select('*').order('vendor_name');
+    window._laundryVendorsList = vList || [];
+  }
+  const vendor = window._laundryVendorsList.find(v => v.vendor_name === vendorName);
+  if (vendor) {
+    window.openEditVendorModal(vendor.id);
+  } else {
+    window.openEditVendorModal(null, vendorName);
+  }
+};
+
+window.handleVendorChange = async function(select) {
+  const val = select.value;
+  if (!val) {
+    const editBtn = document.getElementById('btnEditVendorInline');
+    if (editBtn) editBtn.style.display = 'none';
+    return;
+  }
+  
+  if (val === '__manage__') {
+    select.value = window._lastSelectedVendor || '';
+    window.openManageVendorsModal();
+    return;
+  }
+  
+  if (val === '__new__') {
+    select.value = window._lastSelectedVendor || '';
+    window.openEditVendorModal(null);
+    return;
+  }
+  
+  window._lastSelectedVendor = val;
+  window.applySelectedVendorRates();
+};
+
+window.openManageVendorsModal = async function() {
+  const [{ data: vendors }, { data: items }] = await Promise.all([
+    sb.from('laundry_vendors').select('*').order('vendor_name'),
+    sb.from('laundry_items').select('*').eq('active', true).order('item_name')
+  ]);
+  
+  window._laundryVendorsList = vendors || [];
+  window._laundryItemsList = items || [];
+  
+  const existingModal = document.getElementById('manageVendorsModalOverlay');
+  if (existingModal) existingModal.remove();
+  
+  const modal = document.createElement('div');
+  modal.id = 'manageVendorsModalOverlay';
+  modal.className = 'modal-overlay';
+  modal.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.65);backdrop-filter:blur(3px);display:flex;align-items:center;justify-content:center;z-index:9999;padding:16px;';
+  
+  const renderVendorCards = () => {
+    if (!vendors || vendors.length === 0) {
+      return '<div style="text-align:center;padding:30px;color:var(--muted);">No laundry vendors found. Click "+ Add New Vendor" to create one.</div>';
+    }
+    return vendors.map(v => {
+      const vRates = window.getVendorRatesMap(v);
+      const rateBadges = items.map(it => {
+        const isCustom = vRates[it.id] !== undefined && vRates[it.id] !== null && vRates[it.id] !== '';
+        const r = isCustom ? vRates[it.id] : it.default_rate;
+        return `<span style="display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:6px;font-size:11px;font-weight:600;margin:2px;background:${isCustom ? '#EFF6FF' : '#F3F4F6'};color:${isCustom ? '#1D4ED8' : '#4B5563'};border:1px solid ${isCustom ? '#BFDBFE' : '#E5E7EB'};">
+          ${it.item_name}: ₹${r}${isCustom ? ' <span style="color:#059669;font-weight:800;" title="Custom vendor rate">★</span>' : ''}
+        </span>`;
+      }).join('');
+      
+      return `
+        <div style="border:1px solid #E5E7EB;border-radius:10px;padding:14px;background:#fff;margin-bottom:12px;box-shadow:0 1px 3px rgba(0,0,0,0.05);">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px;margin-bottom:8px;">
+            <div>
+              <div style="font-size:16px;font-weight:700;color:#111827;display:flex;align-items:center;gap:6px;">
+                🏪 ${v.vendor_name}
+                ${v.active ? '<span class="badge green" style="font-size:10px;">Active</span>' : '<span class="badge gray" style="font-size:10px;">Inactive</span>'}
+              </div>
+              <div style="font-size:12px;color:#6B7280;margin-top:2px;">
+                📞 ${v.phone ? v.phone : '<span style="color:#9CA3AF;">No phone</span>'}
+              </div>
+            </div>
+            <div>
+              <button onclick="openEditVendorModal(${v.id})" class="btn-sm" style="background:#4F46E5;color:#fff;padding:6px 14px;border:none;border-radius:6px;font-weight:600;cursor:pointer;">
+                ✏️ Edit Vendor & Rates
+              </button>
+            </div>
+          </div>
+          <div style="margin-top:8px;padding-top:8px;border-top:1px dashed #E5E7EB;">
+            <div style="font-size:11px;font-weight:700;color:#4B5563;margin-bottom:4px;text-transform:uppercase;letter-spacing:0.5px;">Configured Item Rates:</div>
+            <div style="display:flex;flex-wrap:wrap;gap:4px;">
+              ${rateBadges}
+            </div>
+          </div>
+        </div>
+      `;
+    }).join('');
+  };
+  
+  modal.innerHTML = `
+    <div class="modal-box" style="background:#fff;border-radius:14px;padding:22px;max-width:680px;width:100%;max-height:88vh;display:flex;flex-direction:column;box-shadow:0 20px 40px rgba(0,0,0,0.25);">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid #E5E7EB;">
+        <div>
+          <h2 style="margin:0;font-size:20px;color:#111827;display:flex;align-items:center;gap:8px;">
+            🏪 Laundry Vendors & Rates
+          </h2>
+          <div style="font-size:12px;color:#6B7280;margin-top:3px;">
+            Manage vendor details and per-item rates (Ram Singh, Laundry New SS, Man Singh Dhobi)
+          </div>
+        </div>
+        <button onclick="this.closest('.modal-overlay').remove()" style="background:none;border:none;font-size:24px;color:#6B7280;cursor:pointer;">✕</button>
+      </div>
+      
+      <div style="margin-bottom:12px;display:flex;justify-content:flex-end;">
+        <button onclick="openEditVendorModal(null)" style="background:#059669;color:#fff;border:none;padding:8px 16px;border-radius:6px;font-weight:700;font-size:13px;cursor:pointer;display:flex;align-items:center;gap:6px;">
+          ➕ Add New Vendor
+        </button>
+      </div>
+      
+      <div style="flex:1;overflow-y:auto;padding-right:4px;">
+        ${renderVendorCards()}
+      </div>
+      
+      <div style="margin-top:14px;padding-top:12px;border-top:1px solid #E5E7EB;display:flex;justify-content:flex-end;">
+        <button onclick="this.closest('.modal-overlay').remove()" style="background:#F3F4F6;color:#374151;border:none;padding:8px 18px;border-radius:6px;cursor:pointer;font-weight:600;">
+          Close
+        </button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+};
+
+window.openEditVendorModal = async function(vendorId, presetName = null) {
+  let vendor = null;
+  if (vendorId) {
+    const { data } = await sb.from('laundry_vendors').select('*').eq('id', vendorId).single();
+    vendor = data;
+  }
+  
+  const { data: items } = await sb.from('laundry_items').select('*').eq('active', true).order('item_name');
+  window._laundryItemsList = items || [];
+  
+  const vRates = window.getVendorRatesMap(vendor);
+  const isEdit = !!vendor;
+  
+  const existingModal = document.getElementById('editVendorModalOverlay');
+  if (existingModal) existingModal.remove();
+  
+  const modal = document.createElement('div');
+  modal.id = 'editVendorModalOverlay';
+  modal.className = 'modal-overlay';
+  modal.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;z-index:10000;padding:16px;';
+  
+  const ratesInputsHTML = (items || []).map(it => {
+    const isCustom = vRates[it.id] !== undefined && vRates[it.id] !== null && vRates[it.id] !== '';
+    const currentRate = isCustom ? vRates[it.id] : it.default_rate;
+    return `
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid #F3F4F6;gap:12px;">
+        <div style="flex:1;">
+          <div style="font-weight:600;font-size:14px;color:#1F2937;">${it.item_name}</div>
+          <div style="font-size:11px;color:#6B7280;">Default: ₹${it.default_rate} / piece</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:6px;">
+          <span style="font-size:13px;font-weight:700;color:#374151;">₹</span>
+          <input type="number" step="0.5" min="0" class="vendor-rate-input" data-item-id="${it.id}" value="${currentRate}" style="width:85px;padding:6px 8px;border:1.5px solid #CBD5E1;border-radius:6px;font-size:14px;font-weight:700;color:#059669;text-align:right;">
+        </div>
+      </div>
+    `;
+  }).join('');
+  
+  modal.innerHTML = `
+    <div class="modal-box" style="background:#fff;border-radius:14px;padding:24px;max-width:520px;width:100%;max-height:90vh;display:flex;flex-direction:column;box-shadow:0 25px 50px rgba(0,0,0,0.3);">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid #E5E7EB;">
+        <h3 style="margin:0;font-size:18px;color:#111827;">
+          ${isEdit ? `✏️ Modify Vendor: <span style="color:#4F46E5;">${vendor.vendor_name}</span>` : '➕ Add New Laundry Vendor'}
+        </h3>
+        <button onclick="this.closest('.modal-overlay').remove()" style="background:none;border:none;font-size:22px;color:#6B7280;cursor:pointer;">✕</button>
+      </div>
+      
+      <div style="flex:1;overflow-y:auto;padding-right:4px;">
+        <div class="form-group" style="margin-bottom:12px;">
+          <label style="font-size:12px;font-weight:700;color:#374151;">Vendor Name *</label>
+          <input type="text" id="evVendorName" value="${vendor ? vendor.vendor_name : (presetName || '')}" placeholder="e.g. Laundry New SS or Ram Singh" style="width:100%;padding:8px 10px;border:1px solid #D1D5DB;border-radius:6px;font-size:14px;font-weight:600;">
+        </div>
+        
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;">
+          <div class="form-group" style="margin:0;">
+            <label style="font-size:12px;font-weight:700;color:#374151;">Phone (Optional)</label>
+            <input type="tel" id="evVendorPhone" value="${vendor?.phone || ''}" placeholder="e.g. 9876543210" style="width:100%;padding:8px 10px;border:1px solid #D1D5DB;border-radius:6px;font-size:14px;">
+          </div>
+          <div class="form-group" style="margin:0;display:flex;flex-direction:column;justify-content:center;">
+            <label style="font-size:12px;font-weight:700;color:#374151;">Status</label>
+            <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;margin-top:6px;">
+              <input type="checkbox" id="evVendorActive" ${vendor ? (vendor.active ? 'checked' : '') : 'checked'} style="width:16px;height:16px;">
+              <span style="font-weight:600;">Active Vendor</span>
+            </label>
+          </div>
+        </div>
+        
+        <div style="background:#F9FAFB;border:1px solid #E5E7EB;border-radius:8px;padding:12px;margin-bottom:14px;">
+          <div style="font-size:13px;font-weight:700;color:#111827;margin-bottom:4px;display:flex;align-items:center;gap:6px;">
+            💰 Vendor-wise Item Rates (₹ per piece)
+          </div>
+          <div style="font-size:11px;color:#6B7280;margin-bottom:10px;">
+            Set custom rates for this vendor. When this vendor is chosen, these rates will auto-fill into bills automatically.
+          </div>
+          <div style="background:#fff;border:1px solid #E5E7EB;border-radius:6px;max-height:260px;overflow-y:auto;">
+            ${ratesInputsHTML}
+          </div>
+        </div>
+        
+        <div id="evErr" style="margin-bottom:8px;"></div>
+      </div>
+      
+      <div style="margin-top:14px;padding-top:12px;border-top:1px solid #E5E7EB;display:flex;gap:10px;justify-content:flex-end;">
+        <button onclick="this.closest('.modal-overlay').remove()" style="background:#F3F4F6;color:#374151;border:none;padding:8px 16px;border-radius:6px;cursor:pointer;font-weight:600;">Cancel</button>
+        <button id="btnSaveVendorRates" style="background:#059669;color:#fff;border:none;padding:9px 20px;border-radius:6px;cursor:pointer;font-weight:700;font-size:14px;">
+          💾 Save Vendor & Rates
+        </button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+  
+  modal.querySelector('#btnSaveVendorRates').onclick = async () => {
+    const btn = modal.querySelector('#btnSaveVendorRates');
+    const errDiv = modal.querySelector('#evErr');
+    const name = modal.querySelector('#evVendorName').value.trim();
+    const phone = modal.querySelector('#evVendorPhone').value.trim() || null;
+    const active = modal.querySelector('#evVendorActive').checked;
+    
+    if (!name) {
+      errDiv.innerHTML = '<div class="error" style="color:#DC2626;font-size:12px;">Vendor name is required</div>';
+      return;
+    }
+    
+    const newRates = {};
+    modal.querySelectorAll('.vendor-rate-input').forEach(inp => {
+      const itemId = inp.getAttribute('data-item-id');
+      const val = parseFloat(inp.value);
+      if (itemId && !isNaN(val)) {
+        newRates[itemId] = val;
+      }
+    });
+    
+    btn.disabled = true;
+    btn.textContent = 'Saving...';
+    
+    try {
+      const payload = {
+        vendor_name: name,
+        phone: phone,
+        active: active,
+        address: JSON.stringify({ rates: newRates })
+      };
+      
+      let savedVendor = null;
+      if (isEdit) {
+        const { data, error } = await sb.from('laundry_vendors').update(payload).eq('id', vendor.id).select().single();
+        if (error) throw error;
+        savedVendor = data;
+        if (typeof fsn !== 'undefined') fsn.success('Saved', `✅ Vendor "${name}" rates updated`);
+      } else {
+        const { data, error } = await sb.from('laundry_vendors').insert(payload).select().single();
+        if (error) throw error;
+        savedVendor = data;
+        if (typeof fsn !== 'undefined') fsn.success('Created', `✅ Vendor "${name}" added with custom rates`);
+      }
+      
+      // Update local cache
+      const { data: allV } = await sb.from('laundry_vendors').select('*').order('vendor_name');
+      window._laundryVendorsList = allV || [];
+      
+      // If we are currently in Add or Edit Laundry form, update #lVendor select
+      const lVendorSelect = document.getElementById('lVendor');
+      if (lVendorSelect) {
+        const currentSelected = savedVendor.vendor_name;
+        const activeVendors = (allV || []).filter(v => v.active);
+        lVendorSelect.innerHTML = `
+          <option value="">-- Select Vendor --</option>
+          ${activeVendors.map(v => `<option value="${v.vendor_name}" ${v.vendor_name === currentSelected ? 'selected' : ''}>${v.vendor_name}${v.phone ? ' (' + v.phone + ')' : ''}</option>`).join('')}
+          <option value="__new__" style="color:#059669;font-weight:700;">➕ Add New Vendor & Rates...</option>
+          <option value="__manage__" style="color:#4F46E5;font-weight:700;">⚙️ Manage All Vendors & Rates...</option>
+        `;
+        lVendorSelect.value = currentSelected;
+        window.applySelectedVendorRates();
+      }
+      
+      modal.remove();
+      
+      // If manage vendors modal is open in background, refresh it
+      const manageOverlay = document.getElementById('manageVendorsModalOverlay');
+      if (manageOverlay) {
+        manageOverlay.remove();
+        window.openManageVendorsModal();
+      }
+    } catch (e) {
+      console.error('Save vendor error:', e);
+      errDiv.innerHTML = `<div class="error" style="color:#DC2626;font-size:12px;">Error: ${e.message}</div>`;
+      btn.disabled = false;
+      btn.textContent = '💾 Save Vendor & Rates';
+    }
+  };
 };
 
 window.addLaundryPayment = async function(recordId, dueAmount) {
