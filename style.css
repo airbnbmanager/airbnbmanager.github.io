@@ -8466,6 +8466,259 @@ textarea:focus {
   }
 }
 
+/* ══════════════════════════════════════════════════════════════════
+   ✨ CRAFT UI & MODERN SAAS DASHBOARD REFINEMENTS
+   ══════════════════════════════════════════════════════════════════ */
+
+/* 1. Desktop Positioning for PWA Install Bar so it never covers main list items */
+@media (min-width: 769px) {
+  #pwa-install-bar {
+    bottom: 24px !important;
+    right: 28px !important;
+    left: auto !important;
+    transform: none !important;
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.25) !important;
+    backdrop-filter: blur(12px) !important;
+    -webkit-backdrop-filter: blur(12px) !important;
+  }
+}
+
+/* 2. Hero Card & Quick Actions Toolbar */
+.dash-hero {
+  background: var(--card) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 18px !important;
+  padding: 22px 24px !important;
+  margin-bottom: 22px !important;
+  box-shadow: var(--shadow) !important;
+}
+
+.dash-heading {
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif !important;
+  font-size: 22px !important;
+  font-weight: 800 !important;
+  color: var(--dark) !important;
+  letter-spacing: -0.02em !important;
+}
+
+.dash-hero-actions {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  flex-wrap: wrap !important;
+  margin-top: 14px !important;
+}
+
+.dash-pill-btn {
+  background: var(--bg-tertiary) !important;
+  color: var(--text-secondary) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 10px !important;
+  padding: 6px 14px !important;
+  font-size: 12.5px !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  box-shadow: none !important;
+}
+
+.dash-pill-btn:hover {
+  background: var(--card) !important;
+  color: var(--dark) !important;
+  border-color: #cbd5e1 !important;
+  transform: translateY(-1px) !important;
+  box-shadow: var(--shadow-sm) !important;
+}
+
+.dash-pill-btn.primary {
+  background: var(--primary) !important;
+  color: #fff !important;
+  border-color: var(--primary) !important;
+  font-weight: 700 !important;
+  box-shadow: 0 2px 8px -1px rgba(99, 102, 241, 0.35) !important;
+}
+
+.dash-pill-btn.primary:hover {
+  background: var(--primary-dark) !important;
+  box-shadow: 0 4px 14px rgba(99, 102, 241, 0.45) !important;
+}
+
+.dash-online-badge {
+  background: #ecfdf5 !important;
+  border: 1px solid #a7f3d0 !important;
+  border-radius: 10px !important;
+  padding: 5px 12px !important;
+  color: #065f46 !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+}
+.dash-online-badge:hover {
+  transform: translateY(-1px) !important;
+  background: #d1fae5 !important;
+}
+
+/* 3. KPI Cards Clean Elevation (No harsh colored left stripe) */
+.dash-kpi-card {
+  border-radius: 16px !important;
+  padding: 20px 22px !important;
+  background: var(--card) !important;
+  border: 1px solid var(--border) !important;
+  box-shadow: var(--shadow) !important;
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.2s ease !important;
+  position: relative !important;
+  overflow: hidden !important;
+}
+
+/* Remove old harsh 4px vertical bar */
+.dash-kpi-card::before {
+  display: none !important;
+}
+
+.dash-kpi-card:hover {
+  transform: translateY(-3px) !important;
+  box-shadow: var(--shadow-lg) !important;
+  border-color: var(--primary) !important;
+}
+
+.dash-kpi-label {
+  font-family: inherit !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  color: var(--text-muted) !important;
+  letter-spacing: -0.01em !important;
+}
+
+.dash-kpi-icon {
+  width: 36px !important;
+  height: 36px !important;
+  border-radius: 10px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-size: 16px !important;
+  border: 1px solid transparent !important;
+}
+.dash-kpi-icon.occupancy { background: #f0f9ff !important; border-color: #bae6fd !important; }
+.dash-kpi-icon.checkins { background: #ecfdf5 !important; border-color: #a7f3d0 !important; }
+.dash-kpi-icon.checkouts { background: #eef2ff !important; border-color: #c7d2fe !important; }
+.dash-kpi-icon.revenue { background: #fffbeb !important; border-color: #fde68a !important; }
+
+.dash-kpi-num {
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif !important;
+  font-size: 30px !important;
+  font-weight: 800 !important;
+  color: var(--dark) !important;
+  letter-spacing: -0.03em !important;
+  line-height: 1.15 !important;
+  margin-top: 6px !important;
+}
+
+.dash-kpi-sub {
+  font-size: 12px !important;
+  color: var(--text-muted) !important;
+  margin-top: 6px !important;
+  font-weight: 500 !important;
+}
+
+.dash-progress-bar {
+  height: 6px !important;
+  background: var(--border-light) !important;
+  border-radius: 999px !important;
+  margin-top: 12px !important;
+}
+.dash-progress-fill {
+  border-radius: 999px !important;
+  background: linear-gradient(90deg, #6366f1, #818cf8) !important;
+}
+
+/* 4. Segmented Dashboard Navigation Tabs */
+.dash-nav-bar {
+  display: inline-flex !important;
+  background: var(--bg-tertiary) !important;
+  padding: 4px !important;
+  border-radius: 14px !important;
+  border: 1px solid var(--border) !important;
+  gap: 4px !important;
+  margin-bottom: 22px !important;
+}
+
+.dash-nav-tab {
+  background: transparent !important;
+  color: var(--text-muted) !important;
+  border: none !important;
+  padding: 8px 18px !important;
+  border-radius: 10px !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  box-shadow: none !important;
+}
+
+.dash-nav-tab:hover {
+  color: var(--dark) !important;
+  background: rgba(255, 255, 255, 0.6) !important;
+}
+
+.dash-nav-tab.active {
+  background: var(--card) !important;
+  color: var(--dark) !important;
+  font-weight: 700 !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08) !important;
+}
+
+.dash-tab-badge {
+  background: rgba(99, 102, 241, 0.12) !important;
+  color: var(--primary) !important;
+  font-size: 11px !important;
+  font-weight: 800 !important;
+  padding: 2px 8px !important;
+  border-radius: 999px !important;
+}
+
+.dash-nav-tab.active .dash-tab-badge {
+  background: var(--primary) !important;
+  color: #ffffff !important;
+}
+
+/* 5. Attention Needed Alert Card (Clean Emerald Pastel) */
+.dash-attention-card.all-clear {
+  background: #f0fdf4 !important;
+  border: 1px solid #bbf7d0 !important;
+  border-left: 1px solid #bbf7d0 !important;
+  border-radius: 14px !important;
+  padding: 14px 18px !important;
+  box-shadow: var(--shadow-xs) !important;
+}
+
+/* 6. Topbar Action Buttons Consistency */
+.topbar-right button {
+  border-radius: 10px !important;
+  font-weight: 600 !important;
+  font-size: 12.5px !important;
+}
+
+.topbar-property-selector {
+  border-radius: 10px !important;
+  border: 1px solid var(--border) !important;
+  background: var(--card) !important;
+  box-shadow: var(--shadow-xs) !important;
+}
+
+/* 7. Sidebar Active Nav Item Polish (Sleek Indigo Luxe, No harsh gradient) */
+.sidebar-nav a.active {
+  background: var(--primary) !important;
+  color: #ffffff !important;
+  font-weight: 600 !important;
+  box-shadow: 0 4px 14px rgba(99, 102, 241, 0.35) !important;
+}
+
 
 
 
