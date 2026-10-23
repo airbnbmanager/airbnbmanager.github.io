@@ -701,13 +701,17 @@ window.UserActivityTracker = {
 
 // ============ AUTH ============
 async function loadProfile(userId) {
+  const { data: { user } } = await sb.auth.getUser();
+  const userEmail = user?.email || '';
+  const userName = user?.user_metadata?.full_name || user?.user_metadata?.name || userEmail.split('@')[0] || 'User';
+  const userAvatar = user?.user_metadata?.avatar_url || '';
+
   const { data: p, error } = await sb.from("profiles")
     .select("role, emp_id, investor_id, display_name, is_approved")
     .eq("user_id", userId).single();
 
   if (error || !p) {
     // Check if pending user (Google login first time)
-    const { data: { user } } = await sb.auth.getUser();
     if (user) {
       await handleNewGoogleUser(user);
       return;
@@ -716,23 +720,18 @@ async function loadProfile(userId) {
     return;
   }
 
-  if (p.is_approved === false) {
-    appEl.innerHTML = `
-      <div class="wrap">
-        <div class="card" style="text-align:center;max-width:440px;margin:40px auto;padding:32px 24px;">
-          <img src="assets/logo.png" alt="" style="width:68px;height:68px;border-radius:16px;margin-bottom:12px;box-shadow:0 4px 12px rgba(0,0,0,0.08);" />
-          <h2 style="margin:0 0 8px;font-size:20px;color:var(--dark);">${BRAND}</h2>
-          <div style="margin:16px 0;padding:16px;background:#FEF2F2;border:1px solid #FCA5A5;border-radius:12px;">
-            <div style="font-size:28px;margin-bottom:6px;">🚫</div>
-            <strong style="color:#991B1B;font-size:16px;">Access Suspended / Terminated</strong><br>
-            <small style="color:#7F1D1D;display:block;margin-top:6px;line-height:1.4;">
-              Aapka CRM login access band kar diya gaya hai. Kripya Company Management se sampark karein.
-            </small>
-          </div>
-          <div class="sub" style="font-size:13px;color:var(--muted);margin-bottom:16px;">Account: <strong>${p.display_name || 'User'}</strong></div>
-          <button onclick="logout()" style="width:100%;background:#DC2626;color:#fff;border:none;padding:11px;border-radius:8px;font-weight:700;font-size:14px;cursor:pointer;">🚪 Logout</button>
-        </div>
-      </div>`;
+  // 🔒 STRICT SECURITY CHECK: User MUST be explicitly approved (is_approved === true)
+  if (p.is_approved !== true) {
+    const { data: pendingEntry } = await sb.from('pending_users').select('status').eq('user_id', userId).single();
+    
+    // If explicitly rejected or suspended
+    if (pendingEntry?.status === 'Rejected') {
+      renderAccessSuspendedScreen(p.display_name || userName, userEmail);
+      return;
+    }
+
+    // Otherwise show Pending Approval screen
+    renderPendingApprovalScreen(p.display_name || userName, userEmail, userAvatar);
     return;
   }
 
@@ -784,51 +783,93 @@ async function loadProfile(userId) {
   }
 }
 
-async function handleNewGoogleUser(user) {
-  const email = user.email || '';
-  const name = user.user_metadata?.full_name || user.user_metadata?.name || email.split('@')[0];
-  const avatar = user.user_metadata?.avatar_url || '';
-
-  // Check if already in pending
-  const { data: existing } = await sb.from('pending_users').select('id').eq('user_id', user.id).single();
-  if (!existing) {
-    await sb.from('pending_users').insert({
-      user_id: user.id,
-      email: email,
-      full_name: name,
-      auth_provider: 'google',
-      status: 'Pending'
-    });
-  }
-
-  // Also create profile with is_approved = false
-  const { data: profExists } = await sb.from('profiles').select('user_id').eq('user_id', user.id).single();
-  if (!profExists) {
-    await sb.from('profiles').insert({
-      user_id: user.id,
-      role: 'viewer',
-      display_name: name,
-      auth_provider: 'google',
-      avatar_url: avatar,
-      is_approved: false
-    });
-  }
-
+function renderPendingApprovalScreen(name, email, avatar = '') {
   appEl.innerHTML = `
     <div class="wrap">
-      <div class="card" style="text-align:center;">
-        <img src="assets/logo.png" alt="" style="width:64px;height:64px;border-radius:14px;margin-bottom:8px;" />
-        <h1>${BRAND}</h1>
-        ${avatar ? `<img src="${avatar}" style="width:48px;height:48px;border-radius:50%;margin:8px auto;" />` : ''}
-        <div style="margin:16px 0;padding:16px;background:#FDF6B2;border-radius:10px;">
-          <div style="font-size:18px;margin-bottom:6px;">⏳</div>
-          <strong>Welcome ${name}!</strong><br>
-          <small style="color:var(--muted);">Aapka request admin ko bhej diya gaya hai. Approve hone ke baad access milega.</small>
+      <div class="card" style="text-align:center;max-width:460px;margin:40px auto;padding:32px 24px;box-shadow:0 10px 25px rgba(0,0,0,0.08);border-radius:16px;">
+        <img src="assets/logo.png" alt="" style="width:68px;height:68px;border-radius:16px;margin-bottom:12px;box-shadow:0 4px 12px rgba(0,0,0,0.08);" />
+        <h2 style="margin:0 0 8px;font-size:20px;color:var(--dark);">${BRAND}</h2>
+        ${avatar ? `<img src="${avatar}" style="width:52px;height:52px;border-radius:50%;margin:10px auto;border:2px solid #F59E0B;" />` : ''}
+        <div style="margin:16px 0;padding:18px;background:#FFFBEB;border:1.5px solid #FCD34D;border-radius:12px;text-align:center;">
+          <div style="font-size:32px;margin-bottom:8px;">⏳</div>
+          <strong style="color:#92400E;font-size:16px;">Access Request Pending Approval</strong>
+          <div style="color:#78350F;font-size:13px;margin-top:8px;line-height:1.5;">
+            Hello <strong>${name}</strong>!<br>
+            Aapka request admin approval ke liye queued hai.<br>
+            Admin ke <strong>User Management ➔ Pending Access Requests</strong> se approve aur role assign hone ke baad hi CRM access activate hoga.
+          </div>
         </div>
-        <div class="sub">${email}</div>
-        <button onclick="logout()">🚪 Logout</button>
+        <div class="sub" style="font-size:13px;color:var(--muted);margin-bottom:18px;">
+          Account: <strong>${email}</strong>
+        </div>
+        <div style="display:flex;gap:10px;">
+          <button onclick="location.reload()" style="flex:1;background:#2563EB;color:#fff;border:none;padding:11px;border-radius:8px;font-weight:700;font-size:13px;cursor:pointer;">
+            🔄 Refresh Status
+          </button>
+          <button onclick="logout()" style="flex:1;background:#DC2626;color:#fff;border:none;padding:11px;border-radius:8px;font-weight:700;font-size:13px;cursor:pointer;">
+            🚪 Logout
+          </button>
+        </div>
       </div>
     </div>`;
+}
+
+function renderAccessSuspendedScreen(name, email) {
+  appEl.innerHTML = `
+    <div class="wrap">
+      <div class="card" style="text-align:center;max-width:460px;margin:40px auto;padding:32px 24px;border-radius:16px;box-shadow:0 10px 25px rgba(0,0,0,0.08);">
+        <img src="assets/logo.png" alt="" style="width:68px;height:68px;border-radius:16px;margin-bottom:12px;box-shadow:0 4px 12px rgba(0,0,0,0.08);" />
+        <h2 style="margin:0 0 8px;font-size:20px;color:var(--dark);">${BRAND}</h2>
+        <div style="margin:16px 0;padding:18px;background:#FEF2F2;border:1.5px solid #FCA5A5;border-radius:12px;">
+          <div style="font-size:32px;margin-bottom:6px;">🚫</div>
+          <strong style="color:#991B1B;font-size:16px;">Access Suspended / Terminated</strong><br>
+          <small style="color:#7F1D1D;display:block;margin-top:6px;line-height:1.4;">
+            Aapka CRM login access band kar diya gaya hai. Kripya Company Management se sampark karein.
+          </small>
+        </div>
+        <div class="sub" style="font-size:13px;color:var(--muted);margin-bottom:18px;">Account: <strong>${name || email || 'User'}</strong></div>
+        <button onclick="logout()" style="width:100%;background:#DC2626;color:#fff;border:none;padding:11px;border-radius:8px;font-weight:700;font-size:14px;cursor:pointer;">🚪 Logout</button>
+      </div>
+    </div>`;
+}
+
+async function handleNewGoogleUser(user) {
+  const email = user.email || '';
+  const name = user.user_metadata?.full_name || user.user_metadata?.name || email.split('@')[0] || 'New User';
+  const avatar = user.user_metadata?.avatar_url || '';
+
+  try {
+    // Check if already in pending
+    const { data: existing } = await sb.from('pending_users').select('id, status').eq('user_id', user.id).single();
+    if (!existing) {
+      await sb.from('pending_users').insert({
+        user_id: user.id,
+        email: email,
+        full_name: name,
+        auth_provider: 'google',
+        status: 'Pending'
+      });
+    }
+
+    // Also create profile with is_approved = false
+    const { data: profExists } = await sb.from('profiles').select('user_id, is_approved').eq('user_id', user.id).single();
+    if (!profExists) {
+      await sb.from('profiles').insert({
+        user_id: user.id,
+        role: 'viewer',
+        display_name: name,
+        auth_provider: 'google',
+        avatar_url: avatar,
+        is_approved: false
+      });
+    } else if (profExists.is_approved !== true) {
+      await sb.from('profiles').update({ is_approved: false }).eq('user_id', user.id);
+    }
+  } catch (err) {
+    console.warn('handleNewGoogleUser DB sync error:', err);
+  }
+
+  renderPendingApprovalScreen(name, email, avatar);
 }
 
 function showError(msg, err = null) {
@@ -2642,6 +2683,22 @@ async function renderUserManagement() {
 
   const firedStaffNeedingRevocation = userList.filter(u => u.needsRevocation);
   window._firedStaffNeedsRevocationIds = firedStaffNeedingRevocation.map(u => u.user_id);
+
+  // Auto-surface any unapproved profiles in Pending Requests queue so admin never misses them
+  const pendingUids = new Set(pendingRequests.map(p => p.user_id));
+  userList.forEach(u => {
+    if (u.is_approved !== true && !u.isFiredStaff && !pendingUids.has(u.user_id)) {
+      pendingRequests.push({
+        user_id: u.user_id,
+        full_name: u.display_name || 'New User',
+        email: emailMap[u.user_id] || u.email || 'Google User',
+        auth_provider: u.auth_provider || 'google',
+        requested_at: u.created_at || new Date().toISOString(),
+        status: 'Pending'
+      });
+      pendingUids.add(u.user_id);
+    }
+  });
 
   // Calculate metrics
   const totalUsers = userList.length;
@@ -4815,9 +4872,9 @@ window.forceLogoutAll = async function() {
 
         if (error) return;
 
-        if (data && data.is_approved === false) {
+        if (data && data.is_approved !== true) {
           clearInterval(logoutCheckTimer);
-          console.log('🚪 Force logout detected by admin');
+          console.log('🚪 Force logout detected: User is not approved');
           if (window.fsn) {
             fsn.warning('Logged Out', 'You have been logged out by admin');
           }
