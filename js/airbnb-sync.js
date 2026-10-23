@@ -97,6 +97,18 @@
     return Math.round(e * 100) / 100;
   }
 
+  // ─── Robust check for generic / temporary placeholder names ───
+  function isGenericName(name) {
+    if (!name) return true;
+    const n = String(name).trim();
+    if (n.length <= 2) return true;
+    if (n.startsWith('🏨') || n.startsWith('BK_') || n.startsWith('🔒')) return true;
+    const lower = n.toLowerCase();
+    if (lower.includes('airbnb') || lower.includes('guest') || lower.includes('blocked') || lower.includes('not available')) return true;
+    if (/^(send|message|contact|cancelled|cancels)/i.test(n)) return true;
+    return false;
+  }
+
   // ─── Robust CSV parser (handles quoted values, commas inside quotes & ₹ symbols) ───
   function parseCSV(text) {
     const lines = text.split(/\r?\n/).filter(l => l.trim());
@@ -543,7 +555,7 @@
         if (cand) {
           const mode = (cand.booking_mode || '').toLowerCase();
           const isOffline = mode.includes('offline') || mode.includes('direct') || mode.includes('walk-in') || mode.includes('manual');
-          const isTemp = !cand.guest_name || cand.guest_name.includes('Airbnb Guest') || cand.guest_name.includes('Blocked');
+          const isTemp = isGenericName(cand.guest_name);
           // 🛡️ Safe Sync: NEVER match or touch genuine offline bookings!
           if (!isOffline || isTemp) {
             matchedDb = cand;
@@ -552,14 +564,15 @@
       }
 
       if (matchedDb) {
-        const isTempName = !matchedDb.guest_name || matchedDb.guest_name.includes('Airbnb Guest') || matchedDb.guest_name.includes('Blocked');
+        const isTempName = isGenericName(matchedDb.guest_name);
+        const hasAuthenticCsvName = r.guest_name && !isGenericName(r.guest_name);
         const isTempAmount = !matchedDb.total_amount || matchedDb.total_amount <= 0;
         const missingPhone = !matchedDb.phone && r.phone;
         const needsPaid = matchedDb.payment_status !== 'Paid';
         const amountMismatch = Math.abs((matchedDb.total_amount || 0) - r.you_earn) > 0.5 && r.you_earn > 0;
 
-        if (isTempName || isTempAmount || missingPhone || needsPaid || amountMismatch) {
-          updateTasks.push({ r, matchedDb, isTempName, missingPhone });
+        if ((isTempName && hasAuthenticCsvName) || isTempAmount || missingPhone || needsPaid || amountMismatch) {
+          updateTasks.push({ r, matchedDb, isTempName, hasAuthenticCsvName, missingPhone });
         }
       }
     });
@@ -570,9 +583,10 @@
       const batchSize = 12;
       for (let i = 0; i < updateTasks.length; i += batchSize) {
         const batch = updateTasks.slice(i, i + batchSize);
-        await Promise.all(batch.map(async ({ r, matchedDb, isTempName, missingPhone }) => {
+        await Promise.all(batch.map(async ({ r, matchedDb, isTempName, hasAuthenticCsvName, missingPhone }) => {
+          const finalName = (isTempName && hasAuthenticCsvName) ? r.guest_name : matchedDb.guest_name;
           const updates = {
-            guest_name: (isTempName && r.guest_name) ? r.guest_name : matchedDb.guest_name,
+            guest_name: finalName,
             phone: (missingPhone && r.phone) ? r.phone : matchedDb.phone,
             total_amount: r.you_earn > 0 ? r.you_earn : matchedDb.total_amount,
             per_day_rate: r.nights > 0 ? Math.round((r.you_earn / r.nights) * 100) / 100 : (matchedDb.per_day_rate || 0),
@@ -640,7 +654,7 @@
           if (e.room_id !== r.matched_room_id || e.check_in !== r.check_in) return false;
           const mode = (e.booking_mode || '').toLowerCase();
           const isOffline = mode.includes('offline') || mode.includes('direct') || mode.includes('walk-in') || mode.includes('manual');
-          const isTemp = !e.guest_name || e.guest_name.includes('Airbnb Guest') || e.guest_name.includes('Blocked');
+          const isTemp = isGenericName(e.guest_name);
           return (!isOffline || isTemp);
         });
       }
@@ -650,7 +664,9 @@
       }
 
       const issues = [];
-      if (r.guest_name && dbBk.guest_name && !dbBk.guest_name.toLowerCase().includes(r.guest_name.toLowerCase()) && !dbBk.guest_name.includes('Airbnb Guest')) {
+      const hasRealCsvName = r.guest_name && !isGenericName(r.guest_name);
+      const hasRealDbName = dbBk.guest_name && !isGenericName(dbBk.guest_name);
+      if (hasRealCsvName && hasRealDbName && !dbBk.guest_name.toLowerCase().includes(r.guest_name.toLowerCase())) {
         issues.push({ field: 'guest_name', label: 'Name', csv: r.guest_name, db: dbBk.guest_name });
       }
       if (Math.abs(r.you_earn - (dbBk.total_amount || 0)) > 1) {
@@ -949,13 +965,15 @@
     let bookingId;
     if (existingOnline) {
       bookingId = existingOnline.booking_id;
+      const finalName = (!isGenericName(r.guest_name)) ? r.guest_name : (existingOnline.guest_name || r.guest_name);
       const { error } = await sb.from('guest_register').update({
-        guest_name: r.guest_name,
+        guest_name: finalName,
         phone: r.phone || null,
         total_amount: r.you_earn,
         per_day_rate: r.nights > 0 ? Math.round((r.you_earn / r.nights) * 100) / 100 : r.you_earn,
-        gross_amount: r.amount,
+        gross_amount: r.gross || r.amount,
         payment_status: 'Paid',
+        booking_mode: 'Online-Airbnb',
         airbnb_confirmation_code: code,
         notes: `CSV Enriched: Details & Paid Status Updated`
       }).eq('booking_id', bookingId);
@@ -1264,13 +1282,15 @@
 
       if (existingOnline) {
         bookingId = existingOnline.booking_id;
+        const finalName = (!isGenericName(r.guest_name)) ? r.guest_name : (existingOnline.guest_name || r.guest_name);
         const { error } = await sb.from('guest_register').update({
-          guest_name: r.guest_name,
+          guest_name: finalName,
           phone: r.phone || null,
           total_amount: r.you_earn,
           per_day_rate: r.nights > 0 ? Math.round((r.you_earn / r.nights) * 100) / 100 : r.you_earn,
-          gross_amount: r.amount,
+          gross_amount: r.gross || r.amount,
           payment_status: 'Paid',
+          booking_mode: 'Online-Airbnb',
           airbnb_confirmation_code: r.confirmation_code,
           notes: `CSV Enriched: Details & Paid Status Updated`
         }).eq('booking_id', bookingId);

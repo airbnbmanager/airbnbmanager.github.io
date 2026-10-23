@@ -205,6 +205,28 @@ function syncAirbnbReservations() {
 function getExistingAirbnbBookingsMap() {
   const map = {};
   try {
+    // 1. Try secure RPC bridge (bypasses RLS restrictions safely)
+    const rpcUrl = `${CONFIG.SUPABASE_URL}/rest/v1/rpc/get_airbnb_sync_bookings`;
+    const rpcResp = UrlFetchApp.fetch(rpcUrl, {
+      method: 'post',
+      headers: getHeaders(),
+      payload: '{}',
+      muteHttpExceptions: true
+    });
+    if (rpcResp.getResponseCode() >= 200 && rpcResp.getResponseCode() < 300) {
+      const rpcData = JSON.parse(rpcResp.getContentText() || '[]');
+      if (Array.isArray(rpcData)) {
+        for (const b of rpcData) {
+          if (b.airbnb_confirmation_code) {
+            map[b.airbnb_confirmation_code] = b;
+          }
+        }
+        Logger.log(`Loaded ${Object.keys(map).length} bookings via RPC bridge.`);
+        return map;
+      }
+    }
+
+    // 2. Fallback to direct REST endpoint
     const url = `${CONFIG.SUPABASE_URL}/rest/v1/guest_register?check_in=gte.2024-01-01&select=booking_id,airbnb_confirmation_code,guest_name,guests,total_amount,payment_status,booked_by,is_cancelled,room_id,check_in,check_out`;
     const resp = UrlFetchApp.fetch(url, {
       method: 'get',
@@ -212,9 +234,11 @@ function getExistingAirbnbBookingsMap() {
       muteHttpExceptions: true
     });
     const data = JSON.parse(resp.getContentText() || '[]');
-    for (const b of data) {
-      if (b.airbnb_confirmation_code) {
-        map[b.airbnb_confirmation_code] = b;
+    if (Array.isArray(data)) {
+      for (const b of data) {
+        if (b.airbnb_confirmation_code) {
+          map[b.airbnb_confirmation_code] = b;
+        }
       }
     }
   } catch (e) {
@@ -411,6 +435,35 @@ function parseAirbnbEmail(subject, textContent, emailDate, existingBooking) {
  */
 function insertBookingToCRM(bk) {
   const bookingId = `BK_ABNB_${bk.confirmationCode}`;
+  
+  // 1. Try secure RPC bridge first (bypasses RLS)
+  try {
+    const rpcUrl = `${CONFIG.SUPABASE_URL}/rest/v1/rpc/sync_airbnb_from_gmail`;
+    const rpcResp = UrlFetchApp.fetch(rpcUrl, {
+      method: 'post',
+      headers: getHeaders(),
+      payload: JSON.stringify({
+        p_booking_id: bookingId,
+        p_confirmation_code: bk.confirmationCode,
+        p_guest_name: bk.guestName,
+        p_room_id: bk.roomId,
+        p_check_in: bk.checkIn,
+        p_check_out: bk.checkOut,
+        p_guests: bk.guests || 1,
+        p_phone: bk.doorCode ? `+91 XXXXX ${bk.doorCode}` : null,
+        p_notes: `Synced from Gmail Airbnb Confirmation | Code: ${bk.confirmationCode}${bk.guests ? ' | Guests: ' + bk.guests : ''}`
+      }),
+      muteHttpExceptions: true
+    });
+    if (rpcResp.getResponseCode() >= 200 && rpcResp.getResponseCode() < 300) {
+      Logger.log(`SUCCESS (RPC): Created/Enriched booking ${bookingId} for ${bk.guestName}`);
+      return true;
+    }
+  } catch (eRpc) {
+    Logger.log("RPC notice: " + eRpc.message);
+  }
+
+  // 2. Fallback to direct REST insert
   const payload = [{
     booking_id: bookingId,
     guest_name: bk.guestName,
@@ -452,6 +505,34 @@ function insertBookingToCRM(bk) {
  * 🔄 Enrich existing booking with authentic Gmail details
  */
 function enrichBookingInCRM(existingBookingId, bk) {
+  // 1. Try secure RPC bridge first (bypasses RLS)
+  try {
+    const rpcUrl = `${CONFIG.SUPABASE_URL}/rest/v1/rpc/sync_airbnb_from_gmail`;
+    const rpcResp = UrlFetchApp.fetch(rpcUrl, {
+      method: 'post',
+      headers: getHeaders(),
+      payload: JSON.stringify({
+        p_booking_id: existingBookingId,
+        p_confirmation_code: bk.confirmationCode,
+        p_guest_name: bk.guestName,
+        p_room_id: bk.roomId,
+        p_check_in: bk.checkIn,
+        p_check_out: bk.checkOut,
+        p_guests: bk.guests || 1,
+        p_phone: bk.doorCode ? `+91 XXXXX ${bk.doorCode}` : null,
+        p_notes: `Synced from Gmail Airbnb Confirmation | Code: ${bk.confirmationCode}${bk.guests ? ' | Guests: ' + bk.guests : ''}`
+      }),
+      muteHttpExceptions: true
+    });
+    if (rpcResp.getResponseCode() >= 200 && rpcResp.getResponseCode() < 300) {
+      Logger.log(`ENRICHED (RPC) booking ${existingBookingId} -> Guest: ${bk.guestName}, Guests: ${bk.guests}`);
+      return true;
+    }
+  } catch (eRpc) {
+    Logger.log("RPC notice: " + eRpc.message);
+  }
+
+  // 2. Fallback to direct REST patch
   const patchPayload = {
     guest_name: bk.guestName,
     booked_by: 'Gmail Sync',
