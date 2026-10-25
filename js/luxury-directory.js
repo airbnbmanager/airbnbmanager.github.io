@@ -449,6 +449,7 @@
   let activeFilterCategory = 'all';
 
   const LULU_SLUGS = new Set([
+    'the-luxe-haven',
     'green-forest',
     'pink-paradise',
     'celebrity-garden',

@@ -129,6 +129,13 @@ const PROPERTY_PINS = [
     area: 'Shaheed Path, Near Lulu Mall & Medanta',
     price: '₹4,500', lat: 26.7958, lng: 80.9912,
     url: 'pink-paradise.html'
+  },
+  {
+    roomId: 'LUL-101', slug: 'the-luxe-haven',
+    name: 'The Luxe Haven', type: '1BHK Luxury Flat',
+    area: 'Sushant Golf City, Near Lulu Mall & Medanta',
+    price: '₹2,200', lat: 26.7820, lng: 81.0010,
+    url: 'the-luxe-haven.html'
   }
 ];
 
