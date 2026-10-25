@@ -297,8 +297,10 @@
                 document.querySelectorAll('a[href*="wa.me"]').forEach(waLink => {
                   const href = waLink.getAttribute('href') || '';
                   if (href.includes('text=')) {
-                    const textParam = href.split('text=')[1];
-                    waLink.href = `https://wa.me/${cleanPhone}?text=${textParam}`;
+                    let decodedText = decodeURIComponent(href.split('text=')[1]);
+                    decodedText = decodedText.replace(/Caretaker\s+[A-Za-z\s&]+/i, `Caretaker ${cName}`)
+                                             .replace(/Hello\s+[A-Za-z\s&]+,/i, `Hello ${cName},`);
+                    waLink.href = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(decodedText)}`;
                   } else {
                     const propName = this.prop.name || 'Homestay';
                     waLink.href = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(`Hello Caretaker ${cName}, I am inquiring about ${propName}.`)}`;

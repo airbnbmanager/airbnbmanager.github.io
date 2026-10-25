@@ -11,24 +11,24 @@
 
 | Room ID | Property Name | Unit Type | Location | Investor Name | Caretaker Phone | Nightly Rate | Direct Booking URL |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| **VIL-105** | **The Yellow House** | 3BHK Villa | Gomti Nagar | Firoz & Shahenshah | 9214246820 (Aniket) | ₹3,999 | [Book Yellow House](https://uniquehavenhomesstay.com/the-yellow-house.html) |
-| **VIL-103** | **The Pink House** | 5BR Villa | Gomti Nagar / Lulu | Firoz & Shahenshah | 9999999999 | ₹4,999 | [Book Pink House](https://uniquehavenhomesstay.com/the-pink-house.html) |
-| **VIL-104** | **The Green House** | 3BR Villa | Gomti Nagar | Firoz & Shahenshah | 9999999999 | ₹3,999 | [Book Green House](https://uniquehavenhomesstay.com/the-green-house.html) |
-| **VIL-101** | **Gomti Grand Villa** | 4BHK Villa | Near Lulu / Plassio | Afzal & Hazi saheb | 8604813303 (Samad) | ₹4,999 | [Book Gomti Grand](https://uniquehavenhomesstay.com/gomti-grand-villa.html) |
-| **VIL-102** | **Royal White House** | Presidential Estate | Omaxe City / Lulu | Afzal & Hazi saheb | 7408228123 (Rajat) | ₹4,499 | [Book Royal White](https://uniquehavenhomesstay.com/royal-white-house.html) |
-| **VIL-106** | **Green Forest (2nd Floor)** | 3BHK Flat (2nd Floor) | Lulu / Shaheed Path | Firoz & Shahenshah | 8299600709 | ₹3,999 | [Book Green Forest](https://uniquehavenhomesstay.com/green-forest.html) |
-| **VIL-107** | **The Velvet House (1st Floor)** | 3BHK Flat (1st Floor) | Lulu / Medanta | Firoz & Shahenshah | 9999999999 | ₹4,299 | [Book Velvet House](https://uniquehavenhomesstay.com/the-velvet-house.html) |
-| **VIL-108** | **Pink Paradise (3rd Floor)** | 3BHK Flat (3rd Floor) | Lulu / Medanta | Firoz & Shahenshah | 9450055554 | ₹4,299 | [Book Pink Paradise](https://uniquehavenhomesstay.com/pink-paradise.html) |
-| **LUL-101** | **The Luxe Haven** | 1BHK Flat | Golf City / Lulu Mall | Firoz & Shahenshah | 8957725081 (Shuaib) | ₹2,650 | [Book Luxe Haven](https://uniquehavenhomesstay.com/the-luxe-haven.html) |
-| **GOM-102** | **Black Beauty** | 3BHK Flat | Chinhat, Gomti Nagar | Mr. Alam Hazi Sahab | 8467080284 (Arman) | ₹3,499 | [Book Black Beauty](https://uniquehavenhomesstay.com/black-beauty.html) |
-| **GOM-201** | **The Dark Blue** | 3BHK Flat | Chinhat, Gomti Nagar | Mohd Sabir | 8467080284 (Arman) | ₹3,499 | [Book Dark Blue](https://uniquehavenhomesstay.com/the-dark-blue.html) |
-| **GOM-101** | **RedRose Palace** | 3BHK Flat | Chinhat, Gomti Nagar | Afzal khan | 8467080284 (Arman) | ₹3,499 | [Book RedRose Palace](https://uniquehavenhomesstay.com/redrose-palace.html) |
-| **GOM-202** | **The Brown** | 3BHK Flat | Chinhat, Gomti Nagar | Ammy papa | 8467080284 (Arman) | ₹3,499 | [Book The Brown](https://uniquehavenhomesstay.com/the-brown.html) |
-| **GOM-301** | **The Light Green** | 3BHK Flat | Chinhat, Gomti Nagar | Shanu Bhaijaan | 8467080284 (Arman) | ₹3,499 | [Book Light Green](https://uniquehavenhomesstay.com/the-light-green.html) |
-| **GOM-302** | **The Unique** | 3BHK Flat | Chinhat, Gomti Nagar | Mr. Alam Hazi Sahab | 8467080284 (Arman) | ₹3,499 | [Book The Unique](https://uniquehavenhomesstay.com/the-unique.html) |
-| **GOM-401** | **The Nawabi Stay** | 3BHK Flat | Near Max Hospital | Hajrat Sanaul mustafa | 8467080284 (Arman) | ₹3,499 | [Book Nawabi Stay](https://uniquehavenhomesstay.com/the-nawabi-stay.html) |
-| **GOM-501** | **Starlight Blue PentHouse** | PentHouse | Near Max Hospital | Mr. Shahil Khan | 8467080284 (Arman) | ₹3,999 | [Book Starlight Blue](https://uniquehavenhomesstay.com/starlight-blue.html) |
-| **LUL-402** | **Celebrity Garden** | 5 Bed Flat | Medanta / Ekana | Firoz & Shahenshah | 8957725081 (Shuaib) | ₹4,999 | [Book Celebrity Garden](https://uniquehavenhomesstay.com/celebrity-garden.html) |
+| **VIL-105** | **The Yellow House** | 3BHK Villa | Gomti Nagar | Firoz & Shahenshah | 9214246820 (Aniket & Shalu) | ₹3,999 | [Book Yellow House](https://uniquehavenhomesstay.com/the-yellow-house.html) |
+| **VIL-103** | **The Pink House** | 5BR Villa | Gomti Nagar / Lulu | Firoz & Shahenshah | 9214246820 (Aniket & Shalu) | ₹4,999 | [Book Pink House](https://uniquehavenhomesstay.com/the-pink-house.html) |
+| **VIL-104** | **The Green House** | 3BR Villa | Gomti Nagar | Firoz & Shahenshah | 9214246820 (Aniket & Shalu) | ₹3,999 | [Book Green House](https://uniquehavenhomesstay.com/the-green-house.html) |
+| **VIL-101** | **Gomti Grand Villa** | 4BHK Villa | Near Lulu / Plassio | Afzal & Hazi saheb | 9214246820 (Aniket & Shalu) | ₹4,999 | [Book Gomti Grand](https://uniquehavenhomesstay.com/gomti-grand-villa.html) |
+| **VIL-102** | **Royal White House** | Presidential Estate | Omaxe City / Lulu | Afzal & Hazi saheb | Kanchan (Mgr: Praveen Singh 9194109911) | ₹4,499 | [Book Royal White](https://uniquehavenhomesstay.com/royal-white-house.html) |
+| **VIL-106** | **Green Forest (2nd Floor)** | 3BHK Flat (2nd Floor) | Lulu / Shaheed Path | Firoz & Shahenshah | 8858034382 (Sarvan) | ₹3,999 | [Book Green Forest](https://uniquehavenhomesstay.com/green-forest.html) |
+| **VIL-107** | **The Velvet House (1st Floor)** | 3BHK Flat (1st Floor) | Lulu / Medanta | Firoz & Shahenshah | 8858034382 (Sarvan) | ₹4,299 | [Book Velvet House](https://uniquehavenhomesstay.com/the-velvet-house.html) |
+| **VIL-108** | **Pink Paradise (3rd Floor)** | 3BHK Flat (3rd Floor) | Lulu / Medanta | Firoz & Shahenshah | 8858034382 (Sarvan) | ₹4,299 | [Book Pink Paradise](https://uniquehavenhomesstay.com/pink-paradise.html) |
+| **LUL-101** | **The Luxe Haven** | 1BHK Flat | Golf City / Lulu Mall | Firoz & Shahenshah | 8858034382 (Sarvan) | ₹2,650 | [Book Luxe Haven](https://uniquehavenhomesstay.com/the-luxe-haven.html) |
+| **GOM-102** | **Black Beauty** | 3BHK Flat | Chinhat, Gomti Nagar | Mr. Alam Hazi Sahab | 8467080284 / 8957725081 (Shuaib & Arman) | ₹3,499 | [Book Black Beauty](https://uniquehavenhomesstay.com/black-beauty.html) |
+| **GOM-201** | **The Dark Blue** | 3BHK Flat | Chinhat, Gomti Nagar | Mohd Sabir | 8467080284 / 8957725081 (Shuaib & Arman) | ₹3,499 | [Book Dark Blue](https://uniquehavenhomesstay.com/the-dark-blue.html) |
+| **GOM-101** | **RedRose Palace** | 3BHK Flat | Chinhat, Gomti Nagar | Afzal khan | 8467080284 / 8957725081 (Shuaib & Arman) | ₹3,499 | [Book RedRose Palace](https://uniquehavenhomesstay.com/redrose-palace.html) |
+| **GOM-202** | **The Brown** | 3BHK Flat | Chinhat, Gomti Nagar | Ammy papa | 8467080284 / 8957725081 (Shuaib & Arman) | ₹3,499 | [Book The Brown](https://uniquehavenhomesstay.com/the-brown.html) |
+| **GOM-301** | **The Light Green** | 3BHK Flat | Chinhat, Gomti Nagar | Shanu Bhaijaan | 8467080284 / 8957725081 (Shuaib & Arman) | ₹3,499 | [Book Light Green](https://uniquehavenhomesstay.com/the-light-green.html) |
+| **GOM-302** | **The Unique** | 3BHK Flat | Chinhat, Gomti Nagar | Mr. Alam Hazi Sahab | 8467080284 / 8957725081 (Shuaib & Arman) | ₹3,499 | [Book The Unique](https://uniquehavenhomesstay.com/the-unique.html) |
+| **GOM-401** | **The Nawabi Stay** | 3BHK Flat | Near Max Hospital | Hajrat Sanaul mustafa | 8467080284 / 8957725081 (Shuaib & Arman) | ₹3,499 | [Book Nawabi Stay](https://uniquehavenhomesstay.com/the-nawabi-stay.html) |
+| **GOM-501** | **Starlight Blue PentHouse** | PentHouse | Near Max Hospital | Mr. Shahil Khan | 8467080284 / 8957725081 (Shuaib & Arman) | ₹3,999 | [Book Starlight Blue](https://uniquehavenhomesstay.com/starlight-blue.html) |
+| **LUL-402** | **Celebrity Garden** | 5 Bed Flat | Medanta / Ekana | Firoz & Shahenshah | 8858034382 (Sarvan) | ₹4,999 | [Book Celebrity Garden](https://uniquehavenhomesstay.com/celebrity-garden.html) |
 
 ---
 
@@ -121,7 +121,8 @@
 * **Capacity:** Up to 10 Guests | 4 AC Bedrooms | Front Yard
 * **Investor:** Afzal & Hazi saheb (`8299601722` / `8299095816`)
 * **Investor Group:** `UHHS — Afzal & Hazi Group`
-* **On-Site Caretaker:** Mr. Samad (`8604813303`)
+* **On-Site Caretaker:** Aniket & Shalu (`9214246820`)
+* **Operations Manager:** Praveen Singh (`9194109911`)
 * **Wi-Fi Network:** `UniqueHaven_GrandVilla` | **Password:** `Airbnb.in1`
 * **Live Booking Page:** [https://uniquehavenhomesstay.com/gomti-grand-villa.html](https://uniquehavenhomesstay.com/gomti-grand-villa.html)
 * **Airbnb iCal Sync:** `https://www.airbnb.co.in/calendar/ical/1721732716374002170.ics?t=0abeb683a0554321a1f291d623501153`
@@ -135,7 +136,7 @@
 * **Pricing:** Direct: **₹4,499/night** | Airbnb: ₹5,299/night
 * **Investor:** Afzal & Hazi saheb (`8299601722` / `8299095816`)
 * **Investor Group:** `UHHS — Afzal & Hazi Group`
-* **On-Site Caretaker:** Rajat Singh (`7408228123`)
+* **On-Site Caretaker:** Kanchan (Operations Manager: Praveen Singh `9194109911`)
 * **Wi-Fi Network:** `UniqueHaven_RoyalWhite` | **Password:** `Airbnb.in1`
 * **Live Booking Page:** [https://uniquehavenhomesstay.com/royal-white-house.html](https://uniquehavenhomesstay.com/royal-white-house.html)
 * **Airbnb iCal Sync:** `https://www.airbnb.co.in/calendar/ical/1718315215180636685.ics?t=4a2e4d8f6d2a488b9bab48f5b34d2bea`
@@ -292,7 +293,7 @@
 * **Capacity:** Up to 3 Guests | 1 Bedroom | Queen Bed + Sofa Bed | 1 Bathroom
 * **Investor:** Firoz & Shahenshah (`8299600709` / `9450055554`)
 * **Investor Group:** `UHHS Owners Group`
-* **On-Site Caretaker:** Shuaib (`8957725081`) / Sarvan (pending)
+* **On-Site Caretaker:** Sarvan (`8858034382`)
 * **Check-In Manager:** Praveen Singh (`9194109911`)
 * **Live Booking Page:** [https://uniquehavenhomesstay.com/the-luxe-haven.html](https://uniquehavenhomesstay.com/the-luxe-haven.html)
 * **Airbnb iCal / Listing:** `https://www.airbnb.co.in/rooms/1798067011361845302`
