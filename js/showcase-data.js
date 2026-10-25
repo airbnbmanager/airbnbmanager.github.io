@@ -2578,8 +2578,8 @@
     'VIL-107': {
       id: 'VIL-107',
       slug: 'the-velvet-house',
-      name: 'The Velvet House',
-      type: 'Designer Villa',
+      name: 'The Velvet House (1st Floor)',
+      type: '3BHK Flat · 1st Floor',
       category: 'villa',
       area: 'shaheed',
       area_name: 'Near Lulu Mall & Medanta',
@@ -2732,8 +2732,8 @@
     'VIL-106': {
       id: 'VIL-106',
       slug: 'green-forest',
-      name: 'Green Forest View',
-      type: 'Boutique Villa',
+      name: 'Green Forest (2nd Floor)',
+      type: '3BHK Flat · 2nd Floor',
       category: 'villa',
       area: 'lulu',
       area_name: 'Near Lulu Mall, Ansal & Ekana',
@@ -2892,8 +2892,8 @@
     'VIL-108': {
       id: 'VIL-108',
       slug: 'pink-paradise',
-      name: 'Pink Paradise Villa',
-      type: 'Luxury Villa',
+      name: 'Pink Paradise (3rd Floor)',
+      type: '3BHK Flat · 3rd Floor',
       category: 'villa',
       area: 'lulu',
       area_name: 'Near Lulu Mall & Medanta',

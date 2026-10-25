@@ -97,7 +97,7 @@ const PROPERTY_PINS = [
   },
   {
     roomId: 'VIL-107', slug: 'the-velvet-house',
-    name: 'The Velvet House', type: 'Luxury Villa',
+    name: 'The Velvet House (1st Floor)', type: '3BHK Flat · 1st Floor',
     area: 'Shaheed Path, Near Medanta & Lulu Mall',
     price: '₹4,500', lat: 26.7918, lng: 80.9865,
     url: 'the-velvet-house.html'
@@ -118,14 +118,14 @@ const PROPERTY_PINS = [
   },
   {
     roomId: 'VIL-106', slug: 'green-forest',
-    name: 'Green Forest View', type: '3BHK Boutique Villa',
+    name: 'Green Forest (2nd Floor)', type: '3BHK Flat · 2nd Floor',
     area: 'Ansal Golf City, Near Lulu & Ekana',
     price: '₹4,500', lat: 26.7885, lng: 81.0115,
     url: 'green-forest.html'
   },
   {
     roomId: 'VIL-108', slug: 'pink-paradise',
-    name: 'Pink Paradise Villa', type: '3BHK Boutique Villa',
+    name: 'Pink Paradise (3rd Floor)', type: '3BHK Flat · 3rd Floor',
     area: 'Shaheed Path, Near Lulu Mall & Medanta',
     price: '₹4,500', lat: 26.7958, lng: 80.9912,
     url: 'pink-paradise.html'

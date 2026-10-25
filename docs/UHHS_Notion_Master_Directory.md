@@ -16,9 +16,9 @@
 | **VIL-104** | **The Green House** | 3BR Villa | Gomti Nagar | Firoz & Shahenshah | 9999999999 | ₹3,999 | [Book Green House](https://uniquehavenhomesstay.com/the-green-house.html) |
 | **VIL-101** | **Gomti Grand Villa** | 4BHK Villa | Near Lulu / Plassio | Afzal & Hazi saheb | 8604813303 (Samad) | ₹4,999 | [Book Gomti Grand](https://uniquehavenhomesstay.com/gomti-grand-villa.html) |
 | **VIL-102** | **Royal White House** | Villa (2) | Omaxe City / Lulu | Afzal & Hazi saheb | 7408228123 (Rajat) | ₹4,499 | [Book Royal White](https://uniquehavenhomesstay.com/royal-white-house.html) |
-| **VIL-106** | **Green Forest View** | 3BHK Villa | Lulu / Ansal / Ekana | Firoz & Shahenshah | 8299600709 | ₹3,999 | [Book Green Forest](https://uniquehavenhomesstay.com/green-forest.html) |
-| **VIL-107** | **The Velvet House** | 3BHK Villa | Lulu / Medanta | Firoz & Shahenshah | 9999999999 | ₹4,299 | [Book Velvet House](https://uniquehavenhomesstay.com/the-velvet-house.html) |
-| **VIL-108** | **Pink Paradise Villa** | 3BHK Villa | Lulu / Medanta | Firoz & Shahenshah | 9450055554 | ₹4,299 | [Book Pink Paradise](https://uniquehavenhomesstay.com/pink-paradise.html) |
+| **VIL-106** | **Green Forest (2nd Floor)** | 3BHK Flat (2nd Floor) | Lulu / Shaheed Path | Firoz & Shahenshah | 8299600709 | ₹3,999 | [Book Green Forest](https://uniquehavenhomesstay.com/green-forest.html) |
+| **VIL-107** | **The Velvet House (1st Floor)** | 3BHK Flat (1st Floor) | Lulu / Medanta | Firoz & Shahenshah | 9999999999 | ₹4,299 | [Book Velvet House](https://uniquehavenhomesstay.com/the-velvet-house.html) |
+| **VIL-108** | **Pink Paradise (3rd Floor)** | 3BHK Flat (3rd Floor) | Lulu / Medanta | Firoz & Shahenshah | 9450055554 | ₹4,299 | [Book Pink Paradise](https://uniquehavenhomesstay.com/pink-paradise.html) |
 | **LUL-101** | **The Luxe Haven** | 1BHK Flat | Golf City / Lulu Mall | Firoz & Shahenshah | 8957725081 (Shuaib) | ₹2,650 | [Book Luxe Haven](https://uniquehavenhomesstay.com/the-luxe-haven.html) |
 | **GOM-102** | **Black Beauty** | 3BHK Flat | Chinhat, Gomti Nagar | Mr. Alam Hazi Sahab | 8467080284 (Arman) | ₹3,499 | [Book Black Beauty](https://uniquehavenhomesstay.com/black-beauty.html) |
 | **GOM-201** | **The Dark Blue** | 3BHK Flat | Chinhat, Gomti Nagar | Mohd Sabir | 8467080284 (Arman) | ₹3,499 | [Book Dark Blue](https://uniquehavenhomesstay.com/the-dark-blue.html) |
@@ -244,10 +244,10 @@
 
 ---
 
-### 15. Green Forest View
-* **Property Code:** `VIL-106` | **Unit:** `Villa (Six)`
-* **Type:** 3BHK Villa
-* **Location:** Near Lulu / Ansal / Ekana / Airport
+### 15. Green Forest (2nd Floor)
+* **Property Code:** `VIL-106` | **Unit:** `2nd Floor`
+* **Type:** 3BHK Flat (2nd Floor)
+* **Location:** Near Lulu Mall / Shaheed Path / Ekana
 * **Pricing:** Direct: **₹3,999/night** | Airbnb: ₹4,799/night
 * **Investor:** Firoz & Shahenshah (`8299600709` / `9450055554`)
 * **Investor Group:** `UHHS Owners Group`
@@ -257,9 +257,9 @@
 
 ---
 
-### 16. The Velvet House
-* **Property Code:** `VIL-107` | **Unit:** `Villa (Seven)`
-* **Type:** 3BHK Villa
+### 16. The Velvet House (1st Floor)
+* **Property Code:** `VIL-107` | **Unit:** `1st Floor`
+* **Type:** 3BHK Flat (1st Floor)
 * **Location:** Near Lulu Mall / Medanta / Ekana
 * **Pricing:** Direct: **₹4,299/night** | Airbnb: ₹5,099/night
 * **Investor:** Firoz & Shahenshah (`8299600709` / `9450055554`)
@@ -271,10 +271,10 @@
 
 ---
 
-### 17. Pink Paradise Villa
-* **Property Code:** `VIL-108` | **Unit:** `Villa (Eight)`
-* **Type:** 3BHK Luxury Villa
-* **Location:** Lulu Mall & Medanta Area
+### 17. Pink Paradise (3rd Floor)
+* **Property Code:** `VIL-108` | **Unit:** `3rd Floor`
+* **Type:** 3BHK Flat (3rd Floor)
+* **Location:** Near Lulu Mall & Medanta Area
 * **Pricing:** Direct: **₹4,299/night** | Airbnb: ₹5,099/night
 * **Investor:** Firoz & Shahenshah (`8299600709` / `9450055554`)
 * **Investor Group:** `UHHS Owners Group`

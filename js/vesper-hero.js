@@ -170,8 +170,8 @@
     },
     {
       slug: 'the-velvet-house',
-      name: 'The Velvet House',
-      type: '3BHK Luxury Flat · Gomti Nagar',
+      name: 'The Velvet House (1st Floor)',
+      type: '3BHK Flat · 1st Floor · Near Lulu Mall & Medanta',
       headline: 'Plush royal textures & evening elegance.',
       desc: 'Rich velvet furnishings, deep mood lighting, and supreme comfort in Gomti Nagar.',
       specs: ['👥 Sleeps 10', '🛋️ Velvet Lounge', '🛏️ 3 King Beds', '❄️ 100% AC', '✨ Save 15% Direct'],
@@ -250,8 +250,8 @@
     },
     {
       slug: 'green-forest',
-      name: 'Green Forest',
-      type: '3BHK Luxury Flat · Gomti Nagar',
+      name: 'Green Forest (2nd Floor)',
+      type: '3BHK Flat · 2nd Floor · Near Lulu Mall & Medanta',
       headline: 'Deep woodland tranquility & fresh greenery.',
       desc: 'Surrounded by green treetops, offering quiet bird songs and serene family living.',
       specs: ['👥 Sleeps 10', '🌲 Forest Vibe', '🛏️ 3 King Beds', '❄️ 100% AC', '✨ Save 15% Direct'],
@@ -266,8 +266,8 @@
     },
     {
       slug: 'pink-paradise',
-      name: 'Pink Paradise',
-      type: '3BHK Luxury Flat · Gomti Nagar',
+      name: 'Pink Paradise (3rd Floor)',
+      type: '3BHK Flat · 3rd Floor · Near Lulu Mall & Medanta',
       headline: 'Soft pastel dreams & joyful celebration.',
       desc: 'Candy pastels, photogenic selfie corners, and relaxed lounge seating for group trips.',
       specs: ['👥 Sleeps 10', '📸 Highly Photogenic', '🛏️ 3 King Beds', '❄️ 100% AC', '✨ Save 15% Direct'],
