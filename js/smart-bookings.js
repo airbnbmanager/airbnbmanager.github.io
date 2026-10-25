@@ -908,6 +908,12 @@ function renderAirbnbReservationsHtml(bookings, paidMap, canM, today) {
                 <button class="airbnb-action-circle" onclick="window.openBookingDrawer('${b.booking_id}')" title="View Booking Details">
                   ⚡
                 </button>
+
+                ${canM ? `
+                  <button class="airbnb-action-circle delete" onclick="event.stopPropagation();if(window.delBooking) window.delBooking('${b.booking_id}','${escapeHtml(b.guest_name || 'Guest').replace(/'/g, "\\'")}','${b.room_id || ''}');" title="Delete Booking" style="background:#FEF2F2;border:1px solid #FECACA;font-size:12px;color:#DC2626;cursor:pointer;">
+                    🗑️
+                  </button>
+                ` : ''}
               </div>
             </div>
           </div>
@@ -1710,9 +1716,11 @@ window.drawerDeleteBooking = async function() {
 
   const fn = window.delBooking || window.deleteBooking || (typeof delBooking === 'function' ? delBooking : null);
   if (typeof fn === 'function') {
-    await fn(bookingId, guestName, roomId);
     window.closeBookingDrawer();
-    if (typeof window.renderManageBookings === 'function') {
+    await fn(bookingId, guestName, roomId);
+    if (typeof window.renderSmartManageBookings === 'function') {
+      await window.renderSmartManageBookings(true);
+    } else if (typeof window.renderManageBookings === 'function') {
       window.renderManageBookings();
     }
   } else {

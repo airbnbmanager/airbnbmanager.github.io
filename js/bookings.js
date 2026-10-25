@@ -2390,7 +2390,7 @@ async function renderManageBookings() {
   const overlaps = findOverlappingBookings(all || []);
   const pm = await getPaidMap(f.map(b => b.booking_id));
   const canM = ['owner','admin','manager','moderator','developer'].includes(SESSION.role);
-  const canD = ['developer','owner','admin'].includes(SESSION.role);
+  const canD = ['developer','owner','admin','manager'].includes(SESSION.role);
 
   renderShell(`
     <div class="card" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;">
@@ -5426,6 +5426,31 @@ async function delBooking(bkId, guestName, roomId) {
     const { error } = await sb.from('guest_register').delete().eq('booking_id', bkId);
     if (error) { fsn.error('Error', '❌ Delete failed: ' + error.message); return; }
 
+    // Instant purge from all in-memory caches
+    if (window._sbkState) {
+      if (window._sbkState.cachedBookings) {
+        window._sbkState.cachedBookings = window._sbkState.cachedBookings.filter(x => x.booking_id !== bkId);
+      }
+      if (window._sbkState.cachedPaidMap) {
+        delete window._sbkState.cachedPaidMap[bkId];
+      }
+    }
+    if (window._allBookings) {
+      window._allBookings = window._allBookings.filter(x => x.booking_id !== bkId);
+    }
+    if (window._bkPaidMap) {
+      delete window._bkPaidMap[bkId];
+    }
+
+    // Instantly remove card from DOM if present
+    const cardEl = document.getElementById('abCard_' + bkId);
+    if (cardEl) {
+      cardEl.style.transition = 'all 0.25s ease-out';
+      cardEl.style.opacity = '0';
+      cardEl.style.transform = 'scale(0.95)';
+      setTimeout(() => cardEl.remove(), 250);
+    }
+
     const rid = roomId || bk?.room_id;
     if (rid) {
       const today = new Date().toISOString().slice(0, 10);
@@ -5445,7 +5470,11 @@ async function delBooking(bkId, guestName, roomId) {
     fsn.success('Success', '✅ Booking deleted');
     if (window.UHHSODManager && window.UHHSODManager.calculateBalance) window.UHHSODManager.calculateBalance();
     if (typeof window.notifyDataChanged === 'function') window.notifyDataChanged();
-    renderManageBookings();
+    if (typeof window.renderSmartManageBookings === 'function') {
+      await window.renderSmartManageBookings(true);
+    } else if (typeof renderManageBookings === 'function') {
+      renderManageBookings();
+    }
   } catch (err) {
     fsn.error('Error', '❌ Error: ' + (err.message || err));
   }
