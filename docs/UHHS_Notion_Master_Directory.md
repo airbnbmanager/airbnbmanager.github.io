@@ -7,7 +7,7 @@
 
 ---
 
-## 📊 1. Master Properties Database (All 17 Properties)
+## 📊 1. Master Properties Database (All 18 Properties)
 
 | Room ID | Property Name | Unit Type | Location | Investor Name | Caretaker Phone | Nightly Rate | Direct Booking URL |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
@@ -18,7 +18,8 @@
 | **VIL-102** | **Royal White House** | Villa (2) | Omaxe City / Lulu | Afzal & Hazi saheb | 7408228123 (Rajat) | ₹4,499 | [Book Royal White](https://uniquehavenhomesstay.com/royal-white-house.html) |
 | **VIL-106** | **Green Forest View** | 3BHK Villa | Lulu / Ansal / Ekana | Firoz & Shahenshah | 8299600709 | ₹3,999 | [Book Green Forest](https://uniquehavenhomesstay.com/green-forest.html) |
 | **VIL-107** | **The Velvet House** | 3BHK Villa | Lulu / Medanta | Firoz & Shahenshah | 9999999999 | ₹4,299 | [Book Velvet House](https://uniquehavenhomesstay.com/the-velvet-house.html) |
-| **VIL-108** | **Pink Paradise Villa** | 3BHK Villa | Lulu / Medanta | Company Owned | 9450055554 | ₹4,299 | [Book Pink Paradise](https://uniquehavenhomesstay.com/pink-paradise.html) |
+| **VIL-108** | **Pink Paradise Villa** | 3BHK Villa | Lulu / Medanta | Firoz & Shahenshah | 9450055554 | ₹4,299 | [Book Pink Paradise](https://uniquehavenhomesstay.com/pink-paradise.html) |
+| **LUL-101** | **The Luxe Haven** | 1BHK Flat | Golf City / Lulu Mall | Firoz & Shahenshah | 8957725081 (Shuaib) | ₹2,650 | [Book Luxe Haven](https://uniquehavenhomesstay.com/the-luxe-haven.html) |
 | **GOM-102** | **Black Beauty** | 3BHK Flat | Chinhat, Gomti Nagar | Mr. Alam Hazi Sahab | 8467080284 (Arman) | ₹3,499 | [Book Black Beauty](https://uniquehavenhomesstay.com/black-beauty.html) |
 | **GOM-201** | **The Dark Blue** | 3BHK Flat | Chinhat, Gomti Nagar | Mohd Sabir | 8467080284 (Arman) | ₹3,499 | [Book Dark Blue](https://uniquehavenhomesstay.com/the-dark-blue.html) |
 | **GOM-101** | **RedRose Palace** | 3BHK Flat | Chinhat, Gomti Nagar | Afzal khan | 8467080284 (Arman) | ₹3,499 | [Book RedRose Palace](https://uniquehavenhomesstay.com/redrose-palace.html) |
@@ -275,10 +276,26 @@
 * **Type:** 3BHK Luxury Villa
 * **Location:** Lulu Mall & Medanta Area
 * **Pricing:** Direct: **₹4,299/night** | Airbnb: ₹5,099/night
-* **Investor:** Company Owned / Internal
+* **Investor:** Firoz & Shahenshah (`8299600709` / `9450055554`)
+* **Investor Group:** `UHHS Owners Group`
 * **Wi-Fi Password:** `Airbnb.in1`
 * **Live Booking Page:** [https://uniquehavenhomesstay.com/pink-paradise.html](https://uniquehavenhomesstay.com/pink-paradise.html)
 * **Airbnb iCal Sync:** `https://www.airbnb.co.in/calendar/ical/1756799939825259443.ics?s=0ae34e2ae136b52e9626bd0e8d5f77e2`
+
+---
+
+### 18. The Luxe Haven (1BHK Flat)
+* **Property Code:** `LUL-101` | **Unit:** `101 (1st Floor)`
+* **Type:** 1BHK Luxury Apartment
+* **Location:** Near Lulu Mall & Medanta Hospital, Golf City, Lucknow
+* **Pricing:** Direct: **₹2,650/night** | Airbnb: ₹2,651/night
+* **Capacity:** Up to 3 Guests | 1 Bedroom | Queen Bed + Sofa Bed | 1 Bathroom
+* **Investor:** Firoz & Shahenshah (`8299600709` / `9450055554`)
+* **Investor Group:** `UHHS Owners Group`
+* **On-Site Caretaker:** Shuaib (`8957725081`) / Sarvan (pending)
+* **Check-In Manager:** Praveen Singh (`9194109911`)
+* **Live Booking Page:** [https://uniquehavenhomesstay.com/the-luxe-haven.html](https://uniquehavenhomesstay.com/the-luxe-haven.html)
+* **Airbnb iCal / Listing:** `https://www.airbnb.co.in/rooms/1798067011361845302`
 
 ---
 

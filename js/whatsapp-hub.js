@@ -37,7 +37,14 @@
       'VIL-104': '120363427551867491@g.us', // The Green House -> UHHS Owners Group
       'VIL-106': '120363427551867491@g.us', // Green forest View -> UHHS Owners Group
       'VIL-107': '120363427551867491@g.us', // The Velvet House -> UHHS Owners Group
+      'LUL-101': '120363427551867491@g.us', // The Luxe Haven (1BHK) -> UHHS Owners Group (Firoz & Shahenshah)
       'LUL-402': '120363427551867491@g.us', // Celebrity Garden -> UHHS Owners Group
+      'VIL-103': '120363427551867491@g.us', // The Pink House -> UHHS Owners Group
+      'VIL-104': '120363427551867491@g.us', // The Green House -> UHHS Owners Group
+      'VIL-105': '120363427551867491@g.us', // The Yellow House -> UHHS Owners Group
+      'VIL-106': '120363427551867491@g.us', // Green Forest View -> UHHS Owners Group (Firoz & Shahenshah)
+      'VIL-107': '120363427551867491@g.us', // The Velvet House -> UHHS Owners Group (Firoz & Shahenshah)
+      'VIL-108': '120363427551867491@g.us', // Pink Paradise Villa -> UHHS Owners Group (Firoz & Shahenshah)
       'VIL-101': '120363412244446528@g.us', // Gomti Grand Villa -> Afzal & Hazi Group
       'VIL-102': '120363412244446528@g.us', // Royal White House -> Afzal & Hazi Group
       'GOM-102': '120363427249232463@g.us', // Black Beauty -> Alam Sahab
@@ -51,9 +58,19 @@
 
       // Property & Group Names
       'UHHS Owners Group': '120363427551867491@g.us',
+      'The Luxe Haven': '120363427551867491@g.us',
+      'Pink Paradise Villa': '120363427551867491@g.us',
+      'Pink Paradise': '120363427551867491@g.us',
+      'Green Forest View': '120363427551867491@g.us',
+      'Green Forest': '120363427551867491@g.us',
+      'The Velvet House': '120363427551867491@g.us',
+      'Velvet House': '120363427551867491@g.us',
       'The Yellow House': '120363427551867491@g.us',
+      'The Green House': '120363427551867491@g.us',
+      'The Pink House': '120363427551867491@g.us',
       'Yellow House': '120363427551867491@g.us',
       'Firoz& Shahenshah': '120363427551867491@g.us',
+      'Firoz & Shahenshah': '120363427551867491@g.us',
       'UHHS — Sabir Bhai': '120363430510952329@g.us',
       'Sabir Bhai': '120363430510952329@g.us',
       'UHHS — Afzal & Hazi Group': '120363412244446528@g.us',
@@ -582,8 +599,8 @@
       }
     }
 
-    // Special fallback for Yellow House / Villas (Firoz & Shahenshah -> UHHS Owners Group)
-    if (!target && (roomId === 'VIL-105' || propDisplay.toLowerCase().includes('yellow') || roomId.startsWith('VIL-'))) {
+    // Special fallback for Yellow House / Villas / 1BHK Luxe Haven (Firoz & Shahenshah -> UHHS Owners Group)
+    if (!target && (roomId === 'VIL-105' || roomId === 'LUL-101' || roomId === 'LUL-402' || propDisplay.toLowerCase().includes('yellow') || propDisplay.toLowerCase().includes('luxe haven') || propDisplay.toLowerCase().includes('pink paradise') || propDisplay.toLowerCase().includes('velvet') || propDisplay.toLowerCase().includes('green forest') || roomId.startsWith('VIL-'))) {
       target = '120363427551867491@g.us';
     }
 
