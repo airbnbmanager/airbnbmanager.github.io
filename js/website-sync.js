@@ -64,25 +64,25 @@ const PROPERTY_PINS = [
     url: 'starlight-blue-penthouse.html'
   },
 
-  // ─── 3 FLATS / VILLAS IN VISHESH KHAND (GOMTI NAGAR) ───
+  // ─── 3 RESIDENCES IN VISHESH KHAND (GOMTI NAGAR - 3/64 BUILDING) ───
   {
     roomId: 'VIL-103', slug: 'the-pink-house',
-    name: 'The Pink House', type: '5BR Luxury Villa',
-    area: 'Vishesh Khand 3, Gomti Nagar',
+    name: 'The Pink House (2nd & 3rd Floor)', type: '5BR Duplex Penthouse',
+    area: '2nd & 3rd Floor, Vishesh Khand 3, Gomti Nagar',
     price: '₹9,000', lat: 26.8546, lng: 81.0015,
     url: 'the-pink-house.html'
   },
   {
     roomId: 'VIL-104', slug: 'the-green-house',
-    name: 'The Green House', type: '3BHK Luxury Villa',
-    area: 'Vishesh Khand 3, Gomti Nagar',
+    name: 'The Green House (1st Floor)', type: '3BHK Flat · 1st Floor',
+    area: '1st Floor, Vishesh Khand 3, Gomti Nagar',
     price: '₹5,500', lat: 26.8532, lng: 80.9988,
     url: 'the-green-house.html'
   },
   {
     roomId: 'VIL-105', slug: 'the-yellow-house',
-    name: 'The Yellow House', type: '3BHK Luxury Villa',
-    area: 'Vishesh Khand 3, Gomti Nagar',
+    name: 'The Yellow House (Ground Floor)', type: '3BHK Flat · Ground Floor',
+    area: 'Ground Floor, Vishesh Khand 3, Gomti Nagar',
     price: '₹5,500', lat: 26.8562, lng: 81.0038,
     url: 'the-yellow-house.html'
   },

@@ -106,26 +106,26 @@
     },
     {
       slug: 'the-yellow-house',
-      name: 'The Yellow House',
-      type: '3BHK Luxury Flat · Gomti Nagar',
+      name: 'The Yellow House (Ground Floor)',
+      type: '3BHK Flat · Ground Floor · Vishesh Khand',
       headline: 'Warm golden sunshine & soulful comfort.',
-      desc: 'Vibrant, sun-drenched interiors with cheerful aesthetics, plush couches, and family-friendly dining.',
-      specs: ['👥 Sleeps 10', '🛏️ 3 King Beds', '☀️ Sunlit Balcony', '❄️ 100% AC', '✨ Save 15% Direct'],
+      desc: 'Ground floor residence in Vishesh Khand 3 with private green lawn access, sun-drenched interiors, and cheerful aesthetics.',
+      specs: ['👥 Sleeps 10', '🛏️ 3 King Beds', '🏡 Ground Floor Lawn', '❄️ 100% AC', '✨ Save 15% Direct'],
       price: '₹5,500 / night',
       spaces: [
         { num: '01', name: 'Sunlit Yellow Lounge', desc: 'Cheerful yellow sofas & warm vibes' },
         { num: '02', name: 'Golden Glow Bedroom', desc: 'Bright king bedroom with fresh linen' },
         { num: '03', name: 'Family Guest Suite', desc: 'Spacious second bedroom with AC' },
         { num: '04', name: 'Clean Modern Bath', desc: 'Well-appointed bathroom & vanity' },
-        { num: '05', name: 'Morning Tea Balcony', desc: 'Quiet terrace view of Gomti Nagar' }
+        { num: '05', name: 'Ground Floor Verandah', desc: 'Quiet sit-out overlooking private greens' }
       ]
     },
     {
       slug: 'the-green-house',
-      name: 'The Green House',
-      type: '3BHK Luxury Flat · Gomti Nagar',
+      name: 'The Green House (1st Floor)',
+      type: '3BHK Flat · 1st Floor · Vishesh Khand',
       headline: 'Botanical oasis & serene indoor greens.',
-      desc: 'Earthy tones, natural indoor foliage, and peaceful zen ambiance for true rejuvenation.',
+      desc: 'First floor residence in Vishesh Khand 3 with earthy tones, natural indoor foliage, peaceful plant balcony, and zen ambiance.',
       specs: ['👥 Sleeps 10', '🌿 Botanical Decor', '🛏️ 3 King Beds', '❄️ 100% AC', '✨ Save 15% Direct'],
       price: '₹5,500 / night',
       spaces: [
@@ -138,18 +138,18 @@
     },
     {
       slug: 'the-pink-house',
-      name: 'The Pink House',
-      type: '3BHK Luxury Flat · Gomti Nagar',
+      name: 'The Pink House (2nd & 3rd Floor)',
+      type: '5BR Duplex Penthouse · Vishesh Khand',
       headline: 'Blush pastels, bohemian charm & romance.',
-      desc: 'Aesthetic blush pink tones, cozy boho corners, and soft velvet textures crafted for aesthetic stays.',
-      specs: ['👥 Sleeps 10', '🌸 Boho Chic Decor', '🛏️ 3 King Beds', '❄️ 100% AC', '✨ Save 15% Direct'],
+      desc: 'Exclusive 2-level Duplex Penthouse across 2nd & 3rd floors in Vishesh Khand 3. 5 king suites, boho lounge, and open sky sunset balcony.',
+      specs: ['👥 Sleeps 15', '🏛️ 5 King Suites', '🌸 Duplex Penthouse', '❄️ 100% AC', '✨ Save 15% Direct'],
       price: '₹9,000 / night',
       spaces: [
         { num: '01', name: 'Blush Velvet Salon', desc: 'Rose gold lighting & pastel lounge' },
         { num: '02', name: 'Pastel Dream Bedroom', desc: 'Romantic king suite with soft hues' },
         { num: '03', name: 'Cozy Reading Suite', desc: 'Quiet aesthetic bedroom for rest' },
         { num: '04', name: 'Marble Bathroom', desc: 'Clean fittings & ambient mirror' },
-        { num: '05', name: 'Floral Sunset Balcony', desc: 'Charming balcony with skyline view' }
+        { num: '05', name: 'Rooftop Sunset Balcony', desc: 'Elevated terrace view of Vishesh Khand' }
       ]
     },
     {
