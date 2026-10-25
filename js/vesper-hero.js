@@ -287,7 +287,7 @@
       headline: 'Chic modern comfort near Lulu Mall.',
       desc: 'Designer 1BHK apartment in Sushant Golf City, Shaheed Path. 3 mins from Lulu Mall & Medanta Hospital. Perfect for couples, solos & medical visits.',
       specs: ['👥 Sleeps 3', '🛍️ Near Lulu Mall', '🛏️ 1 Queen Bed', '❄️ 100% AC', '✨ Save 15% Direct'],
-      price: '₹2,200 / night',
+      price: '₹2,650 / night',
       spaces: [
         { num: '01', name: 'Luxe Living Lounge', desc: 'Plush sofa, smart TV and ambient lighting' },
         { num: '02', name: 'Master Bedroom Suite', desc: 'Serene queen bed with acoustic panel' },

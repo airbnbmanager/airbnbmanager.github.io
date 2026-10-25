@@ -134,7 +134,7 @@ const PROPERTY_PINS = [
     roomId: 'LUL-101', slug: 'the-luxe-haven',
     name: 'The Luxe Haven', type: '1BHK Luxury Flat',
     area: 'Sushant Golf City, Near Lulu Mall & Medanta',
-    price: '₹2,200', lat: 26.7820, lng: 81.0010,
+    price: '₹2,650', lat: 26.7820, lng: 81.0010,
     url: 'the-luxe-haven.html'
   }
 ];
