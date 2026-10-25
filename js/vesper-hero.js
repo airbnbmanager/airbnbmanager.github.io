@@ -289,11 +289,11 @@
       specs: ['👥 Sleeps 3', '🛍️ Near Lulu Mall', '🛏️ 1 Queen Bed', '❄️ 100% AC', '✨ Save 15% Direct'],
       price: '₹2,650 / night',
       spaces: [
-        { num: '01', name: 'Luxe Living Lounge', desc: 'Plush sofa, smart TV and ambient lighting' },
-        { num: '02', name: 'Master Bedroom Suite', desc: 'Serene queen bed with acoustic panel' },
-        { num: '03', name: 'Modular Kitchenette', desc: 'Equipped kitchen with cooktop & fridge' },
-        { num: '04', name: 'Designer En-Suite Bath', desc: 'Spotless tiled bathroom with geyser' },
-        { num: '05', name: 'Golf City Balcony', desc: 'Open airy balcony overlooking greens' }
+        { num: '01', name: 'Luxe Living Lounge', desc: 'Plush sofa, smart TV and ambient lighting', image: 'https://a0.muscache.com/im/pictures/hosting/Hosting-1798067011361845302/original/9e54eada-f3d7-4094-bf87-e46248f6b907.jpeg?im_w=1200' },
+        { num: '02', name: 'Master Bedroom Suite', desc: 'Serene queen bed with acoustic panel', image: 'https://a0.muscache.com/im/pictures/hosting/Hosting-1798067011361845302/original/230e0bec-09da-4aa3-bdeb-952ffaf16a95.jpeg?im_w=1200' },
+        { num: '03', name: 'Modular Kitchenette', desc: 'Equipped kitchen with cooktop & fridge', image: 'https://a0.muscache.com/im/pictures/hosting/Hosting-1798067011361845302/original/b307b002-96f8-4527-8ebf-2199960f4f97.jpeg?im_w=1200' },
+        { num: '04', name: 'Designer En-Suite Bath', desc: 'Spotless tiled bathroom with geyser', image: 'https://a0.muscache.com/im/pictures/hosting/Hosting-1798067011361845302/original/cfa21df6-ee64-4a66-a975-2348ea78b978.jpeg?im_w=1200' },
+        { num: '05', name: 'Golf City Balcony', desc: 'Open airy balcony overlooking greens', image: 'https://a0.muscache.com/im/pictures/hosting/Hosting-1798067011361845302/original/57006148-e8a8-4b3e-ae49-86fe3194f290.jpeg?im_w=1200' }
       ]
     }
   ];
@@ -306,6 +306,15 @@
   function getPropertyImages(slug) {
     const db = window.UHH_PHOTO_DB && window.UHH_PHOTO_DB[slug];
     const localCover = `assets/properties/${slug}/cover.jpg`;
+
+    if (slug === 'the-luxe-haven') {
+      const p1 = 'https://a0.muscache.com/im/pictures/hosting/Hosting-1798067011361845302/original/9e54eada-f3d7-4094-bf87-e46248f6b907.jpeg?im_w=1200';
+      const p2 = 'https://a0.muscache.com/im/pictures/hosting/Hosting-1798067011361845302/original/230e0bec-09da-4aa3-bdeb-952ffaf16a95.jpeg?im_w=1200';
+      const p3 = 'https://a0.muscache.com/im/pictures/hosting/Hosting-1798067011361845302/original/b307b002-96f8-4527-8ebf-2199960f4f97.jpeg?im_w=1200';
+      const p4 = 'https://a0.muscache.com/im/pictures/hosting/Hosting-1798067011361845302/original/cfa21df6-ee64-4a66-a975-2348ea78b978.jpeg?im_w=1200';
+      const p5 = 'https://a0.muscache.com/im/pictures/hosting/Hosting-1798067011361845302/original/57006148-e8a8-4b3e-ae49-86fe3194f290.jpeg?im_w=1200';
+      return [p1, p2, p3, p4, p5];
+    }
 
     if (!db || !db.categories) {
       return [localCover, localCover, localCover, localCover, localCover];
