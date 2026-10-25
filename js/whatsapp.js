@@ -118,13 +118,20 @@ async function buildMessageData(bkId) {
   } 
   // Scenario 3: Fallback to room's configured caretaker or default company caretaker
   else {
-    let careName = room.caretaker_name;
-    let carePhone = cleanPhone(room.caretaker_phone);
-    if (!careName || careName === 'Pending' || !carePhone || carePhone === '9999999999' || carePhone.length < 10) {
-      careName = 'Arman Commandar';
-      carePhone = '8467080284';
+    let careName = room.caretaker_name || 'Arman & Shuaib';
+    let rawPhone = String(room.caretaker_phone || '');
+    let carePhone = rawPhone;
+    if (rawPhone.includes('/') || rawPhone.includes('&') || rawPhone.includes(',')) {
+      carePhone = rawPhone.split(/[/&,]/).map(p => cleanPhone(p)).filter(p => p.length >= 10).join(' / ');
+    } else {
+      carePhone = cleanPhone(rawPhone);
     }
-    caretakerBlock = `🛡️ *Caretaker:* ${careName} (${carePhone})`;
+    if (!careName || careName === 'Pending' || !carePhone || carePhone === '9999999999' || carePhone.length < 10) {
+      careName = 'Arman & Shuaib';
+      carePhone = '8467080284 / 8957725081';
+    }
+    const isMulti = careName.includes('&') || carePhone.includes('/');
+    caretakerBlock = `🛡️ *${isMulti ? 'Caretakers' : 'Caretaker'}:* ${careName} (${carePhone})`;
     primaryCaretaker = { name: careName, phone: carePhone };
   }
 
