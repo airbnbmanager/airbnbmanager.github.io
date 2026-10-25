@@ -44,6 +44,28 @@ async function renderReports() {
     .select('booking_id, room_id, check_in, check_out, check_in_time, check_out_time, guest_name, phone, booking_mode, total_amount, is_cancelled, verification_status, notes, has_vehicle, vehicle_name, vehicle_number, client_rating')
     .neq('is_cancelled', true).neq('verification_status', 'rejected');
 
+  const LOCATION_ORDER = [
+    // 1. 8 properties Vikalp Khand
+    'GOM-101', 'GOM-102', 'GOM-201', 'GOM-202', 'GOM-301', 'GOM-302', 'GOM-401', 'GOM-501',
+    // 2. 3 properties Vishesh Khand
+    'VIL-103', 'VIL-104', 'VIL-105',
+    // 3. Gomti Grand Villa
+    'VIL-101',
+    // 4. Whitehouse
+    'VIL-102',
+    // 5. Celebrity Garden
+    'LUL-402',
+    // 6. Madhav Kunj (4 properties)
+    'VIL-107', 'VIL-106', 'VIL-108', 'LUL-101'
+  ];
+  if (Array.isArray(roomsData)) {
+    roomsData.sort((a, b) => {
+      const ia = LOCATION_ORDER.indexOf(a.room_id);
+      const ib = LOCATION_ORDER.indexOf(b.room_id);
+      return (ia === -1 ? 999 : ia) - (ib === -1 ? 999 : ib);
+    });
+  }
+
   const allRooms = roomsData;
   const allBks = bookings.data || [];
 
@@ -126,9 +148,27 @@ async function renderReports() {
   }, 0);
   const occ = totalRoomNights > 0 ? Math.round(bookedNights / totalRoomNights * 100) : 0;
 
-  // ─── Property selector ───
-  const propOptions = '<option value="all">🏘️ All Properties (' + allRooms.length + ')</option>' +
-    allRooms.map(r => `<option value="${r.room_id}"${r.room_id === selRoom ? ' selected' : ''}>${r.unit_no} — ${r.nickname || r.property_name || ''}</option>`).join('');
+  // ─── Property selector (Grouped strictly location-wise) ───
+  const CAL_LOCATION_GROUPS = [
+    { label: '📍 Vikalp Khand (8 Properties)', ids: ['GOM-101', 'GOM-102', 'GOM-201', 'GOM-202', 'GOM-301', 'GOM-302', 'GOM-401', 'GOM-501'] },
+    { label: '📍 Vishesh Khand (3 Properties)', ids: ['VIL-103', 'VIL-104', 'VIL-105'] },
+    { label: '📍 Gomti Grand Villa', ids: ['VIL-101'] },
+    { label: '📍 Whitehouse', ids: ['VIL-102'] },
+    { label: '📍 Celebrity Garden', ids: ['LUL-402'] },
+    { label: '📍 Madhav Kunj (4 Properties)', ids: ['VIL-107', 'VIL-106', 'VIL-108', 'LUL-101'] }
+  ];
+
+  let propOptions = '<option value="all">🏘️ All Properties (' + allRooms.length + ')</option>';
+  CAL_LOCATION_GROUPS.forEach(grp => {
+    const grpRooms = allRooms.filter(r => grp.ids.includes(r.room_id));
+    if (grpRooms.length > 0) {
+      propOptions += `<optgroup label="${grp.label}">`;
+      grpRooms.forEach(r => {
+        propOptions += `<option value="${r.room_id}"${r.room_id === selRoom ? ' selected' : ''}>${r.unit_no} — ${r.nickname || r.property_name || ''}</option>`;
+      });
+      propOptions += '</optgroup>';
+    }
+  });
 
   // ─── Upcoming + Open stays ───
   const upcoming7 = allBks.filter(b => !isBkBlocked(b) && b.check_in > todayStr && b.check_in <= dateAdd(todayStr, 7))
