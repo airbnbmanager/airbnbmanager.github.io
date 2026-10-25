@@ -986,11 +986,29 @@ async function saveEmp() {
     if (progEl) progEl.innerHTML = '';
     return; 
   }
+
+  // 🔄 Auto-propagate Caretaker assignment to rooms table (Zero Manual Entry)
+  const propRole = document.getElementById('ePropertyRole')?.value || 'Staff';
+  const empPhone = document.getElementById('ePhone')?.value?.trim() || null;
+  if (propRole === 'Caretaker' && Array.isArray(selectedRooms) && selectedRooms.length > 0) {
+    try {
+      for (const roomId of selectedRooms) {
+        await sb.from('rooms').update({
+          caretaker_emp_id: empId,
+          caretaker_name: name,
+          caretaker_phone: empPhone
+        }).eq('room_id', roomId);
+      }
+      console.log(`✅ Auto-synced caretaker ${name} to rooms:`, selectedRooms);
+    } catch (roomSyncErr) {
+      console.warn('Auto room caretaker sync warning:', roomSyncErr);
+    }
+  }
   
   window._empIdFrontBlob = null;
   window._empIdBackBlob = null;
 
-  if (window.fsn) fsn.success('Added', `Staff member ${name} added successfully with ID photos`);
+  if (window.fsn) fsn.success('Added', `Staff member ${name} added & assigned to properties successfully`);
   renderManageEmployees();
 }
 
@@ -1313,10 +1331,26 @@ async function updEmp(id) {
     return;
   }
 
+  // 🔄 Auto-propagate Caretaker assignment to rooms table (Zero Manual Entry)
+  if (obj.property_role === 'Caretaker' && Array.isArray(selectedRooms) && selectedRooms.length > 0) {
+    try {
+      for (const roomId of selectedRooms) {
+        await sb.from('rooms').update({
+          caretaker_emp_id: id,
+          caretaker_name: name,
+          caretaker_phone: obj.phone || null
+        }).eq('room_id', roomId);
+      }
+      console.log(`✅ Auto-synced caretaker ${name} (${obj.phone}) to rooms:`, selectedRooms);
+    } catch (roomSyncErr) {
+      console.warn('Auto room caretaker sync warning:', roomSyncErr);
+    }
+  }
+
   window._empIdFrontBlob = null;
   window._empIdBackBlob = null;
 
-  if (window.fsn) fsn.success('Updated', `Staff member ${name} updated successfully`);
+  if (window.fsn) fsn.success('Updated', `Staff member ${name} updated & assigned to properties successfully`);
   renderManageEmployees();
 }
 
