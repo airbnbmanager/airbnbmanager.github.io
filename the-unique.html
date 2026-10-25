@@ -123,9 +123,11 @@
         <span class="luxe-brand-sub">PVT. LTD. &middot; LUXURY STAYS</span>
       </div>
     </a>
-    <div class="luxe-nav-links">
-      <a class="luxe-nav-link" href="properties.html">🏡 All Stays</a>
-      <a class="luxe-nav-book" href="book.html?property=the-unique" style="background:linear-gradient(135deg,#059669,#10b981); color:#fff; padding:8px 18px; border-radius:999px; font-weight:700; text-decoration:none; display:inline-flex; align-items:center; gap:6px;">📋 Book Now</a>
+    <div class="luxe-nav-links" style="display:flex; align-items:center; gap:8px;">
+      <a class="luxe-nav-link" href="https://wa.me/918467080284?text=Hello%20Caretaker%20Arman%20Commandar,%20I%20am%20visiting%20The%20Unique." target="_blank" style="background:#25d366; color:#fff; padding:7px 14px; border-radius:999px; font-weight:700; text-decoration:none; display:inline-flex; align-items:center; gap:6px; font-size:13px;">
+        💬 Caretaker
+      </a>
+      <a class="luxe-nav-book" href="book.html?property=the-unique" style="background:linear-gradient(135deg,#059669,#10b981); color:#fff; padding:7px 16px; border-radius:999px; font-weight:700; text-decoration:none; display:inline-flex; align-items:center; gap:6px; font-size:13px;">📋 Book Now</a>
     </div>
   </div>
 </header>
@@ -158,7 +160,10 @@
       </div>
     </div>
     <div class="luxe-header-actions">
-      <button type="button" class="luxe-action-btn" onclick="navigator.clipboard.writeText(window.location.href); alert('Property link copied to clipboard!');">
+      <button type="button" class="luxe-action-btn" onclick="window.luxeEngine ? window.luxeEngine.openShareModal('photos') : (navigator.clipboard.writeText(window.location.href + '?gallery=open'), alert('📸 Photo Album link copied! Send it on WhatsApp.'))" style="background:#25d366; color:#fff; border-color:#25d366; font-weight:700;">
+        📸 Share Photos
+      </button>
+      <button type="button" class="luxe-action-btn" onclick="window.luxeEngine ? window.luxeEngine.openShareModal('stay') : (navigator.clipboard.writeText(window.location.href), alert('Property link copied!'))">
         🔗 Share Stay
       </button>
       <a class="luxe-action-btn" href="https://maps.google.com/?q=Vikalp+Khand+Gomti+Nagar+Lucknow" target="_blank">
@@ -228,9 +233,56 @@
         </div>
       </section>
 
+      
+      <!-- ON-SITE CARETAKER & HOST CONTACT CARD (QUICK ASSISTANCE) -->
+      <section class="luxe-section" style="background: linear-gradient(135deg, rgba(16, 185, 129, 0.08), rgba(245, 158, 11, 0.08)); border: 1.5px solid rgba(16, 185, 129, 0.28); border-radius: 16px; padding: 20px; margin-bottom: 28px;">
+        <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px;">
+          <div>
+            <div style="font-size:12px; font-weight:800; color:#10b981; letter-spacing:0.5px; text-transform:uppercase;">⚡ 24/7 Dedicated Caretaker &amp; Host on Site</div>
+            <h3 style="margin:4px 0 2px; font-size:18px; color:#fff; font-weight:700;">Caretaker Arman Commandar &amp; Host Team</h3>
+            <p style="margin:0; font-size:13px; color:var(--luxe-muted);">Available 24/7 for check-in support, luggage assistance, directions &amp; room services.</p>
+          </div>
+          <div style="display:flex; gap:10px; flex-wrap:wrap;">
+            <a href="tel:+918467080284" style="background:#0f172a; border:1px solid rgba(255,255,255,0.15); color:#fff; text-decoration:none; padding:10px 16px; border-radius:999px; font-weight:700; font-size:13px; display:inline-flex; align-items:center; gap:6px;">
+              📞 Call: 8467080284
+            </a>
+            <a href="https://wa.me/918467080284?text=Hello%20Arman%20Commandar,%20I%20am%20at/reaching%20The%20Unique." target="_blank" style="background:#25d366; color:#fff; text-decoration:none; padding:10px 18px; border-radius:999px; font-weight:700; font-size:13px; display:inline-flex; align-items:center; gap:6px;">
+              💬 WhatsApp Caretaker
+            </a>
+          </div>
+        </div>
+      </section>
+
       <!-- KEY HIGHLIGHTS -->
       <section class="luxe-highlights-list" id="luxe-highlights-container">
-        <!-- Rendered dynamically by property-engine.js -->
+        <div class="luxe-highlight-row">
+          <div class="luxe-highlight-icon">⚡</div>
+          <div class="luxe-highlight-text">
+            <h4>24/7 On-Site Caretaker &amp; Express Check-in</h4>
+            <p>Dedicated caretaker Arman Commandar (+91 8467080284) is on-site to assist with luggage, check-in, and guest needs anytime.</p>
+          </div>
+        </div>
+        <div class="luxe-highlight-row">
+          <div class="luxe-highlight-icon">❄️</div>
+          <div class="luxe-highlight-text">
+            <h4>100% Air Conditioning &amp; Power Backup</h4>
+            <p>Every bedroom and living space features high-capacity split air conditioning with seamless inverter backup.</p>
+          </div>
+        </div>
+        <div class="luxe-highlight-row">
+          <div class="luxe-highlight-icon">📶</div>
+          <div class="luxe-highlight-text">
+            <h4>150+ Mbps High-Speed Fiber Wi-Fi</h4>
+            <p>Ultra-fast fiber optic Wi-Fi across all rooms. Seamless for remote work, Netflix 4K streaming, and zoom calls.</p>
+          </div>
+        </div>
+        <div class="luxe-highlight-row">
+          <div class="luxe-highlight-icon">🚗</div>
+          <div class="luxe-highlight-text">
+            <h4>Free Secure Dedicated Parking</h4>
+            <p>Safe on-premises parking spots reserved exclusively for your vehicles with caretaker coordination.</p>
+          </div>
+        </div>
       </section>
 
       <!-- ABOUT THE STAY -->
@@ -245,7 +297,30 @@
       <section class="luxe-section" id="sleeping">
         <h2 class="luxe-section-title">Where you will sleep</h2>
         <div id="luxe-rooms-grid" class="luxe-rooms-grid">
-          <!-- Rendered dynamically -->
+          <div class="luxe-room-card" onclick="window.luxeEngine && window.luxeEngine.openGallery(0, 'Bedrooms')" style="cursor:pointer;" title="Click to view Bedroom photos">
+            <span class="luxe-room-card-icon">🛏️</span>
+            <div class="luxe-room-card-title">Bedroom 1 (Master)</div>
+            <div class="luxe-room-card-sub">1 King Bed · AC · Attached Bath</div>
+            <div style="font-size:11.5px;color:var(--luxe-gold-dark);font-weight:700;margin-top:6px;">📷 View Bedroom Photos →</div>
+          </div>
+          <div class="luxe-room-card" onclick="window.luxeEngine && window.luxeEngine.openGallery(0, 'Bedrooms')" style="cursor:pointer;" title="Click to view Bedroom photos">
+            <span class="luxe-room-card-icon">🛏️</span>
+            <div class="luxe-room-card-title">Bedroom 2</div>
+            <div class="luxe-room-card-sub">1 King Bed · AC · Attached Bath</div>
+            <div style="font-size:11.5px;color:var(--luxe-gold-dark);font-weight:700;margin-top:6px;">📷 View Bedroom Photos →</div>
+          </div>
+          <div class="luxe-room-card" onclick="window.luxeEngine && window.luxeEngine.openGallery(0, 'Bedrooms')" style="cursor:pointer;" title="Click to view Bedroom photos">
+            <span class="luxe-room-card-icon">🛏️</span>
+            <div class="luxe-room-card-title">Bedroom 3</div>
+            <div class="luxe-room-card-sub">1 King Bed · AC · Attached Bath</div>
+            <div style="font-size:11.5px;color:var(--luxe-gold-dark);font-weight:700;margin-top:6px;">📷 View Bedroom Photos →</div>
+          </div>
+          <div class="luxe-room-card" onclick="window.luxeEngine && window.luxeEngine.openGallery(0, 'Living & Dining')" style="cursor:pointer;" title="Click to view Living Hall photos">
+            <span class="luxe-room-card-icon">🛋️</span>
+            <div class="luxe-room-card-title">Living Hall</div>
+            <div class="luxe-room-card-sub">L-shape Sofa + Extra Bedding</div>
+            <div style="font-size:11.5px;color:var(--luxe-gold-dark);font-weight:700;margin-top:6px;">📷 View Living Photos →</div>
+          </div>
         </div>
       </section>
 
@@ -253,7 +328,50 @@
       <section class="luxe-section" id="amenities">
         <h2 class="luxe-section-title">What this place offers</h2>
         <div id="luxe-amenities-grid" class="luxe-amenities-grid">
-          <!-- Rendered dynamically -->
+          <div class="luxe-amenity-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width:20px;height:20px;color:var(--luxe-emerald);flex-shrink:0;"><polyline points="20 6 9 17 4 12"></polyline></svg>
+            <span>Air Conditioning in all bedrooms &amp; living hall</span>
+          </div>
+          <div class="luxe-amenity-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width:20px;height:20px;color:var(--luxe-emerald);flex-shrink:0;"><polyline points="20 6 9 17 4 12"></polyline></svg>
+            <span>High-Speed 150 Mbps Fiber Wi-Fi</span>
+          </div>
+          <div class="luxe-amenity-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width:20px;height:20px;color:var(--luxe-emerald);flex-shrink:0;"><polyline points="20 6 9 17 4 12"></polyline></svg>
+            <span>Fully Equipped Modular Kitchen <span style="font-size:11.5px;color:var(--luxe-gold-dark);font-weight:700;margin-left:6px;cursor:pointer;" onclick="window.luxeEngine && window.luxeEngine.openGallery(0, 'Kitchen')">(View Photos ↗)</span></span>
+          </div>
+          <div class="luxe-amenity-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width:20px;height:20px;color:var(--luxe-emerald);flex-shrink:0;"><polyline points="20 6 9 17 4 12"></polyline></svg>
+            <span>Hot Water Geysers in all bathrooms <span style="font-size:11.5px;color:var(--luxe-gold-dark);font-weight:700;margin-left:6px;cursor:pointer;" onclick="window.luxeEngine && window.luxeEngine.openGallery(0, 'Bathrooms')">(View Photos ↗)</span></span>
+          </div>
+          <div class="luxe-amenity-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width:20px;height:20px;color:var(--luxe-emerald);flex-shrink:0;"><polyline points="20 6 9 17 4 12"></polyline></svg>
+            <span>Free Dedicated Vehicle Parking on site</span>
+          </div>
+          <div class="luxe-amenity-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width:20px;height:20px;color:var(--luxe-emerald);flex-shrink:0;"><polyline points="20 6 9 17 4 12"></polyline></svg>
+            <span>24/7 On-Site Caretaker Assistance (Arman Commandar: 8467080284)</span>
+          </div>
+          <div class="luxe-amenity-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width:20px;height:20px;color:var(--luxe-emerald);flex-shrink:0;"><polyline points="20 6 9 17 4 12"></polyline></svg>
+            <span>100% Inverter &amp; Generator Power Backup</span>
+          </div>
+          <div class="luxe-amenity-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width:20px;height:20px;color:var(--luxe-emerald);flex-shrink:0;"><polyline points="20 6 9 17 4 12"></polyline></svg>
+            <span>Smart LED TV with OTT apps &amp; Streaming</span>
+          </div>
+          <div class="luxe-amenity-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width:20px;height:20px;color:var(--luxe-emerald);flex-shrink:0;"><polyline points="20 6 9 17 4 12"></polyline></svg>
+            <span>Fresh Luxury Linens, Pillows &amp; Sanitized Towels</span>
+          </div>
+          <div class="luxe-amenity-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width:20px;height:20px;color:var(--luxe-emerald);flex-shrink:0;"><polyline points="20 6 9 17 4 12"></polyline></svg>
+            <span>Washing Machine, Refrigerator &amp; Microwave</span>
+          </div>
+          <div class="luxe-amenity-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width:20px;height:20px;color:var(--luxe-emerald);flex-shrink:0;"><polyline points="20 6 9 17 4 12"></polyline></svg>
+            <span>Couple &amp; Family Friendly with Full Privacy</span>
+          </div>
         </div>
       </section>
 
@@ -290,35 +408,57 @@
       </section>
     </div>
 
-    <!-- RIGHT STICKY BOOKING CARD -->
+    <!-- RIGHT STICKY BOOKING CARD (PRE-RENDERED FALLBACK) -->
     <aside class="luxe-sidebar-wrap" id="luxe-booking-card-container">
-      <!-- Injected dynamically by property-engine.js -->
+      <div class="luxe-booking-card">
+        <div class="luxe-card-top-tag">⚡ Direct Booking · Save 15% vs Airbnb</div>
+        <div class="luxe-price-header">
+          <div>
+            <span id="luxe-price-amount" class="luxe-price-amount">₹5,500</span>
+            <span id="luxe-nights-label" class="luxe-price-unit"> / night (incl. 12% GST)</span>
+          </div>
+          <div style="font-size:13px; font-weight:700; color:#b58d3d;">★ 4.92 (39 reviews)</div>
+        </div>
+        <div class="luxe-airbnb-comparison">
+          <span id="luxe-airbnb-strike" class="luxe-airbnb-strike">₹6,599 on Airbnb</span>
+          <span id="luxe-save-tag" class="luxe-save-tag">Direct Host Price</span>
+        </div>
+        <div style="margin:16px 0; display:flex; flex-direction:column; gap:10px;">
+          <a href="book.html?property=the-unique" style="background:linear-gradient(135deg,#059669,#10b981); color:#fff; text-decoration:none; padding:14px; border-radius:12px; font-weight:800; font-size:15px; text-align:center; box-shadow:0 6px 20px rgba(16,185,129,0.35);">
+            📋 Book Direct &amp; Save
+          </a>
+          <a href="https://wa.me/918467080284?text=Hello%20Caretaker%20Arman%20Commandar,%20I%20am%20inquiring%20about%20booking%20The%20Unique." target="_blank" style="background:#25d366; color:#fff; text-decoration:none; padding:12px; border-radius:12px; font-weight:700; font-size:14px; text-align:center; display:flex; align-items:center; justify-content:center; gap:8px;">
+            💬 WhatsApp Caretaker
+          </a>
+        </div>
+        <div style="font-size:11.5px; color:#94a3b8; text-align:center;">
+          🔒 Instant confirmation · No hidden convenience fee
+        </div>
+      </div>
     </aside>
   </div>
 </main>
 
-<!-- MOBILE STICKY BOTTOM BAR -->
-<div class="luxe-mobile-bar">
-  <div class="luxe-mobile-price">
-    <span id="luxe-mobile-price-val" class="luxe-mobile-price-val">₹3,599</span>
-    <span class="luxe-mobile-price-sub">Direct Price · WhatsApp for Discount</span>
+<!-- MOBILE STICKY BOTTOM BAR (DUAL ACTION) -->
+<div class="luxe-mobile-bar" style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
+  <div class="luxe-mobile-price" style="flex:1; min-width:0;">
+    <div style="display:flex; align-items:baseline; gap:4px;">
+      <span id="luxe-mobile-price-val" class="luxe-mobile-price-val" style="font-size:18px; font-weight:800; color:#fff;">₹5,500</span>
+      <span style="font-size:11px; color:#94a3b8;">/night</span>
+    </div>
+    <span class="luxe-mobile-price-sub" style="font-size:10.5px; color:#10b981; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; display:block;">
+      Save 15% Direct
+    </span>
   </div>
-  <a id="luxe-mobile-btn-wa" class="luxe-mobile-btn-wa" href="book.html?property=the-unique" style="background:linear-gradient(135deg,#059669,#10b981); color:#fff; display:flex; align-items:center; justify-content:center; gap:8px;">
-    📋 Book Now
-  </a>
+  <div style="display:flex; align-items:center; gap:8px; flex-shrink:0;">
+    <a href="https://wa.me/918467080284?text=Hello%20Arman%20Commandar,%20I%20am%20inquiring%20about%20The%20Unique." target="_blank" style="background:#25d366; color:#fff; padding:9px 12px; border-radius:999px; font-weight:700; font-size:12.5px; text-decoration:none; display:inline-flex; align-items:center; gap:5px; box-shadow:0 4px 12px rgba(37,211,102,0.3);">
+      💬 WhatsApp
+    </a>
+    <a id="luxe-mobile-btn-wa" class="luxe-mobile-btn-wa" href="book.html?property=the-unique" style="background:linear-gradient(135deg,#059669,#10b981); color:#fff; padding:9px 16px; border-radius:999px; font-weight:700; font-size:12.5px; text-decoration:none; display:inline-flex; align-items:center; gap:5px; box-shadow:0 4px 14px rgba(16,185,129,0.35);">
+      📋 Book Now
+    </a>
+  </div>
 </div>
-
-<!-- FULLSCREEN CATEGORIZED PHOTO GALLERY MODAL -->
-<div id="luxe-gallery-modal" class="luxe-gallery-modal" role="dialog" aria-modal="true">
-  <div class="luxe-modal-top">
-    <div id="luxe-modal-tabs" class="luxe-modal-tabs">
-      <button type="button" class="luxe-modal-tab active">All Photos</button>
-    </div>
-    <div class="luxe-modal-actions">
-      <span id="luxe-modal-counter" class="luxe-modal-counter">Photo 1 of 5</span>
-      <button type="button" class="luxe-modal-close" onclick="window.luxeEngine && window.luxeEngine.closeGallery()" aria-label="Close Gallery">✕</button>
-    </div>
-  </div>
 
   <div class="luxe-modal-body">
     <button type="button" class="luxe-modal-nav-btn prev" onclick="window.luxeEngine && window.luxeEngine.prevPhoto()" aria-label="Previous Photo">‹</button>
@@ -352,10 +492,10 @@
   document.getElementById('year-line').textContent =
     `© ${new Date().getFullYear()} THE UNIQUE HAVEN HOMES PRIVATE LIMITED · Superhosts & Owners: Firoz & Shahanshah · Manager: Praveen Singh`;
 </script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="config.js"></script>
-<script src="js/showcase-data.js?v=210"></script>
-<script src="js/property-engine.js?v=212"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script defer src="config.js"></script>
+<script defer src="js/showcase-data.js?v=210"></script>
+<script defer src="js/property-engine.js?v=212"></script>
 </body>
 </html>
 

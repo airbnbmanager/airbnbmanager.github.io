@@ -233,6 +233,12 @@
       this.initUpiModal();
       loadRazorpayScript(); // Asynchronously pre-fetch Razorpay Checkout SDK
 
+      // Auto-open gallery if requested via link query parameter (e.g. ?gallery=open)
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.get('gallery') === 'open' || urlParams.has('photos')) {
+        setTimeout(() => this.openGallery(0, 'all'), 250);
+      }
+
       // 5. Real-time CRM Sync: Live Map Location & Booked Dates
       this.fetchLiveCrmLocation();
       this.loadBookedDates();
@@ -2501,6 +2507,23 @@ _Please confirm room allotment and issue official GST Tax Invoice. Thank you!_`;
         tabsContainer.innerHTML = tabsHtml;
       }
 
+      // 2.5 Share Photo Album Button inside modal header
+      const modalActions = modal.querySelector('.luxe-modal-actions');
+      if (modalActions && !modalActions.querySelector('.luxe-modal-share-btn')) {
+        const shareBtn = document.createElement('button');
+        shareBtn.type = 'button';
+        shareBtn.className = 'luxe-modal-share-btn';
+        shareBtn.innerHTML = '📲 Share Photos';
+        shareBtn.title = 'Share this photo album on WhatsApp';
+        shareBtn.onclick = () => this.openShareModal('gallery');
+        const closeBtn = modalActions.querySelector('.luxe-modal-close');
+        if (closeBtn) {
+          modalActions.insertBefore(shareBtn, closeBtn);
+        } else {
+          modalActions.appendChild(shareBtn);
+        }
+      }
+
       // 3. Floating "Book Direct" Button inside Gallery (Cleanly Docked Above Ribbon)
       let galleryBookBtn = modal.querySelector('.luxe-gallery-book-btn');
       if (!galleryBookBtn) {
@@ -2782,6 +2805,136 @@ _Please confirm room allotment and issue official GST Tax Invoice. Thank you!_`;
       if (idx >= 0 && idx < this.filteredList.length) {
         this.currentIndex = idx;
         this.updateGalleryView();
+      }
+    }
+
+    /* ─── LUXURY PHOTO ALBUM & PROPERTY SHARING ENGINE ─── */
+    getShareData(context = 'all') {
+      const p = this.prop;
+      const baseUrl = window.location.origin + window.location.pathname;
+      const count = (this.filteredList && this.filteredList.length) ? this.filteredList.length : (this.catalog.all ? this.catalog.all.length : 50);
+      const catName = this.currentFilter && this.currentFilter !== 'all' ? this.currentFilter : 'Full Photo Album';
+      
+      const shareUrl = `${baseUrl}?gallery=open`;
+      const priceFmt = (p.base_price || 3499).toLocaleString('en-IN');
+      const airbnbFmt = (p.airbnb_price || 4999).toLocaleString('en-IN');
+
+      const title = `📸 Photos: ${p.name} (${p.type || 'Luxury Homestay'})`;
+      const text = 
+`🏡 *${p.name}* — ${p.type || 'Luxury Homestay'}
+📍 ${p.area_name || p.address || 'Gomti Nagar, Lucknow'}
+
+📸 *View High-Resolution Photos (${count} Photos · ${catName}):*
+👉 ${shareUrl}
+
+✨ *Property Highlights:*
+• 🛏️ ${p.bedrooms || 3} AC Bedrooms · ${p.beds || '3 King Beds'} · ${p.bathrooms || 3} Baths
+• ⚡ 24/7 On-Site Caretaker & Express Check-in
+• 📶 150+ Mbps High-Speed Wi-Fi
+• 🍳 Fully Equipped Modular Kitchen
+• 🚗 Free Dedicated Parking
+
+💰 *Direct Tariff:* ₹${priceFmt}/night (Save 15% vs ₹${airbnbFmt} on Airbnb)
+Direct Booking & Photo Album: ${shareUrl}`;
+
+      return {
+        title,
+        text,
+        url: shareUrl,
+        thumb: p.cover_image || (this.catalog.all && this.catalog.all[0] ? this.catalog.all[0].url : '')
+      };
+    }
+
+    openShareModal(context = 'all') {
+      let overlay = document.getElementById('luxe-share-modal-overlay');
+      const data = this.getShareData(context);
+
+      if (!overlay) {
+        overlay = document.createElement('div');
+        overlay.id = 'luxe-share-modal-overlay';
+        overlay.className = 'luxe-share-modal-overlay';
+        overlay.onclick = (e) => {
+          if (e.target === overlay) this.closeShareModal();
+        };
+        document.body.appendChild(overlay);
+      }
+
+      overlay.innerHTML = `
+        <div class="luxe-share-sheet" onclick="event.stopPropagation()">
+          <div class="luxe-share-header">
+            <h3><span>📸</span> Share Property Photos</h3>
+            <button type="button" class="luxe-share-close" onclick="window.luxeEngine.closeShareModal()" aria-label="Close">✕</button>
+          </div>
+          <div class="luxe-share-body">
+            <div class="luxe-share-preview">
+              <img class="luxe-share-preview-thumb" src="${data.thumb}" alt="Photo Preview"/>
+              <div class="luxe-share-preview-info">
+                <div class="luxe-share-preview-title">${this.prop.name}</div>
+                <div class="luxe-share-preview-sub">${this.prop.type} · ${this.catalog.all ? this.catalog.all.length : 50} HD Photos</div>
+                <div class="luxe-share-preview-badge">⚡ Instant WhatsApp Photo Album Link</div>
+              </div>
+            </div>
+
+            <div class="luxe-share-actions">
+              <button type="button" class="luxe-share-btn-wa" onclick="window.luxeEngine.shareToWhatsApp()">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.019 3.287l-.582 2.128 2.182-.573c.978.58 1.911.928 3.145.929 3.178 0 5.767-2.587 5.768-5.766 0-3.18-2.587-5.771-5.764-5.771zm3.392 8.244c-.144.405-.837.774-1.17.824-.312.045-.634.072-1.841-.429-1.42-.589-2.327-2.033-2.398-2.128-.071-.095-.579-.771-.579-1.47 0-.699.366-1.042.497-1.185.131-.143.286-.179.382-.179.095 0 .191 0 .274.005.088.005.207-.033.323.246.119.287.406 1.01.442 1.082.036.071.06.155.012.25-.048.096-.072.155-.143.239-.072.084-.15.187-.215.251-.072.072-.147.15-.063.294.084.144.372.614.798.994.549.489 1.012.64 1.155.712.144.071.227.06.31-.036.084-.095.358-.417.454-.56.096-.143.191-.119.323-.071.131.048.835.394.979.465.144.072.239.108.274.167.036.06.036.347-.108.752z"/></svg>
+                Share on WhatsApp
+              </button>
+              ${navigator.share ? `
+              <button type="button" class="luxe-share-btn-native" onclick="window.luxeEngine.shareNative()">
+                📤 Share via Other Apps
+              </button>` : ''}
+              <button type="button" class="luxe-share-btn-copy" onclick="window.luxeEngine.copyShareLink()">
+                📋 Copy Link &amp; Details
+              </button>
+            </div>
+          </div>
+        </div>
+      `;
+
+      overlay.classList.add('active');
+      document.body.style.overflow = 'hidden';
+    }
+
+    closeShareModal() {
+      const overlay = document.getElementById('luxe-share-modal-overlay');
+      if (overlay) overlay.classList.remove('active');
+      if (!document.getElementById('luxe-gallery-modal')?.classList.contains('active')) {
+        document.body.style.overflow = '';
+      }
+    }
+
+    shareToWhatsApp() {
+      const data = this.getShareData();
+      const waUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(data.text)}`;
+      window.open(waUrl, '_blank', 'noopener,noreferrer');
+      this.closeShareModal();
+    }
+
+    shareNative() {
+      const data = this.getShareData();
+      if (navigator.share) {
+        navigator.share({
+          title: data.title,
+          text: data.text,
+          url: data.url
+        }).then(() => this.closeShareModal()).catch(() => this.shareToWhatsApp());
+      } else {
+        this.shareToWhatsApp();
+      }
+    }
+
+    copyShareLink() {
+      const data = this.getShareData();
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(data.text).then(() => {
+          alert('✓ Photo Album link & details copied to clipboard! You can paste and send directly to your guest.');
+          this.closeShareModal();
+        }).catch(() => {
+          prompt('Copy this link & details to send to guest:', data.text);
+        });
+      } else {
+        prompt('Copy this link & details to send to guest:', data.text);
       }
     }
 
