@@ -15,7 +15,7 @@
 | **VIL-103** | **The Pink House** | 5BR Villa | Gomti Nagar / Lulu | Firoz & Shahenshah | 9999999999 | ₹4,999 | [Book Pink House](https://uniquehavenhomesstay.com/the-pink-house.html) |
 | **VIL-104** | **The Green House** | 3BR Villa | Gomti Nagar | Firoz & Shahenshah | 9999999999 | ₹3,999 | [Book Green House](https://uniquehavenhomesstay.com/the-green-house.html) |
 | **VIL-101** | **Gomti Grand Villa** | 4BHK Villa | Near Lulu / Plassio | Afzal & Hazi saheb | 8604813303 (Samad) | ₹4,999 | [Book Gomti Grand](https://uniquehavenhomesstay.com/gomti-grand-villa.html) |
-| **VIL-102** | **Royal White House** | Villa (2) | Omaxe City / Lulu | Afzal & Hazi saheb | 7408228123 (Rajat) | ₹4,499 | [Book Royal White](https://uniquehavenhomesstay.com/royal-white-house.html) |
+| **VIL-102** | **Royal White House** | Presidential Estate | Omaxe City / Lulu | Afzal & Hazi saheb | 7408228123 (Rajat) | ₹4,499 | [Book Royal White](https://uniquehavenhomesstay.com/royal-white-house.html) |
 | **VIL-106** | **Green Forest (2nd Floor)** | 3BHK Flat (2nd Floor) | Lulu / Shaheed Path | Firoz & Shahenshah | 8299600709 | ₹3,999 | [Book Green Forest](https://uniquehavenhomesstay.com/green-forest.html) |
 | **VIL-107** | **The Velvet House (1st Floor)** | 3BHK Flat (1st Floor) | Lulu / Medanta | Firoz & Shahenshah | 9999999999 | ₹4,299 | [Book Velvet House](https://uniquehavenhomesstay.com/the-velvet-house.html) |
 | **VIL-108** | **Pink Paradise (3rd Floor)** | 3BHK Flat (3rd Floor) | Lulu / Medanta | Firoz & Shahenshah | 9450055554 | ₹4,299 | [Book Pink Paradise](https://uniquehavenhomesstay.com/pink-paradise.html) |
@@ -35,7 +35,7 @@
 ## 🏡 2. Detailed Property Operational Profiles
 
 ### 1. The Yellow House
-* **Property Code:** `VIL-105` | **Unit:** `Villa (Five)`
+* **Property Code:** `VIL-105` | **Unit:** `Ground Floor`
 * **Type:** Independent 3BHK Luxury Villa
 * **Location:** 3/64 Vishesh Khand 3, Gomti Nagar, Lucknow
 * **Pricing:** Direct: **₹3,999/night** | Airbnb: ₹4,799/night
@@ -52,7 +52,7 @@
 ---
 
 ### 2. The Pink House
-* **Property Code:** `VIL-103` | **Unit:** `Villa (Three)`
+* **Property Code:** `VIL-103` | **Unit:** `2nd & 3rd Floor`
 * **Type:** 5-Bedroom Grand Villa
 * **Location:** 3/64 Vishesh Khand 3, Gomti Nagar / Near Lulu Mall
 * **Pricing:** Direct: **₹4,999/night** | Airbnb: ₹5,999/night
@@ -114,7 +114,7 @@
 ---
 
 ### 6. Gomti Grand Villa
-* **Property Code:** `VIL-101` | **Unit:** `Villa (One)`
+* **Property Code:** `VIL-101` | **Unit:** `Entire Estate`
 * **Type:** 4BHK Grand Villa
 * **Location:** Geetapuri Colony, Near Lulu Mall & Plassio
 * **Pricing:** Direct: **₹4,999/night** | Airbnb: ₹5,899/night
@@ -129,7 +129,7 @@
 ---
 
 ### 7. Royal White House
-* **Property Code:** `VIL-102` | **Unit:** `Villa (Two)`
+* **Property Code:** `VIL-102` | **Unit:** `Presidential Estate`
 * **Type:** 3BHK Villa
 * **Location:** Omaxe City, Near Lulu Mall & Airport
 * **Pricing:** Direct: **₹4,499/night** | Airbnb: ₹5,299/night
@@ -143,7 +143,7 @@
 ---
 
 ### 8. The Green House
-* **Property Code:** `VIL-104` | **Unit:** `Villa (Four)`
+* **Property Code:** `VIL-104` | **Unit:** `1st Floor`
 * **Type:** 3BR Luxury Villa
 * **Location:** 3/64 Vishesh Khand 3, Gomti Nagar
 * **Pricing:** Direct: **₹3,999/night** | Airbnb: ₹4,799/night
