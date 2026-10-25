@@ -303,30 +303,153 @@
   let autoTimer = null;
   let activeRoomData = [];
 
+    const STATIC_HERO_CDN_MAP = {
+  "royal-white-house": [
+    "https://a0.muscache.com/im/pictures/hosting/Hosting-1718315215180636685/original/b018acc7-5ccb-440e-8bc0-afbfbb9fb2a0.jpeg",
+    "https://a0.muscache.com/im/pictures/hosting/Hosting-1718315215180636685/original/b0aaece7-bd13-44a2-a040-1af26e035314.jpeg",
+    "https://a0.muscache.com/im/pictures/hosting/Hosting-1718315215180636685/original/000de00d-6a12-43af-b11b-7fee2265d162.jpeg",
+    "https://a0.muscache.com/im/pictures/hosting/Hosting-1718315215180636685/original/05e0ca85-6bbb-4ab3-a47a-1e0f7da73583.jpeg",
+    "https://a0.muscache.com/im/pictures/hosting/Hosting-1718315215180636685/original/7ee5b490-e361-4270-9d5c-516e594f4698.jpeg"
+  ],
+  "black-beauty": [
+    "https://a0.muscache.com/im/pictures/hosting/Hosting-1676840617430941240/original/326ef6d2-fcf2-4f91-816a-324b20f17c90.jpeg",
+    "https://a0.muscache.com/im/pictures/hosting/Hosting-1676840617430941240/original/40a7542e-49e3-4795-9c52-722ece22d507.jpeg",
+    "https://a0.muscache.com/im/pictures/hosting/Hosting-1676840617430941240/original/54e75f1f-f1d0-4d26-a837-6456d65733e0.jpeg",
+    "https://a0.muscache.com/im/pictures/hosting/Hosting-1676840617430941240/original/6b5a0b95-49ba-4bdf-8bfc-a04099cb3bcf.jpeg",
+    "https://a0.muscache.com/im/pictures/hosting/Hosting-1676840617430941240/original/855cdc0b-9518-422c-901b-55eb52fcd17e.jpeg"
+  ],
+  "starlight-blue-penthouse": [
+    "https://a0.muscache.com/im/pictures/hosting/Hosting-1718385679817913835/original/36832290-6cd4-411c-9dc4-3a226c4996aa.jpeg",
+    "https://a0.muscache.com/im/pictures/hosting/Hosting-1718385679817913835/original/ba78dacc-e830-43e4-814b-9b61f69aa30f.jpeg",
+    "https://a0.muscache.com/im/pictures/hosting/Hosting-1718385679817913835/original/1de3151e-4017-4e66-931a-bf5c6d82e279.jpeg",
+    "https://a0.muscache.com/im/pictures/hosting/Hosting-1718385679817913835/original/694c0249-5067-4cf5-9ff7-dbe246ad2f12.jpeg",
+    "https://a0.muscache.com/im/pictures/hosting/Hosting-1718385679817913835/original/5a32ad11-e0cb-4acd-a843-459e64ff02c8.jpeg"
+  ],
+  "gomti-grand-villa": [
+    "https://a0.muscache.com/im/pictures/hosting/Hosting-1721732716374002170/original/629f9f69-b45c-448a-adf5-c3f3c90e473f.jpeg",
+    "https://a0.muscache.com/im/pictures/hosting/Hosting-1721732716374002170/original/b691bd0f-5484-4072-8f72-a27f291245fe.jpeg",
+    "https://a0.muscache.com/im/pictures/hosting/Hosting-1721732716374002170/original/10d718f9-00e1-4b21-83cb-3dfdaaf9716d.jpeg",
+    "https://a0.muscache.com/im/pictures/hosting/Hosting-1721732716374002170/original/13872656-cf94-465a-b86e-3e0852acd64c.jpeg",
+    "https://a0.muscache.com/im/pictures/hosting/Hosting-1721732716374002170/original/cb775969-8b4f-4518-86fb-abd5c7706316.jpeg"
+  ],
+  "celebrity-garden": [
+    "https://a0.muscache.com/im/pictures/hosting/Hosting-1606514664948608755/original/0b9b2824-4c0b-4d3f-a9dd-9617a5fe9fef.jpeg",
+    "https://a0.muscache.com/im/pictures/hosting/Hosting-1606514664948608755/original/2af43354-2ddd-4517-bc22-eabe3918c757.jpeg",
+    "https://a0.muscache.com/im/pictures/hosting/Hosting-1606514664948608755/original/ae60a91c-7f09-45a5-b90a-435ecdcb1586.jpeg",
+    "https://a0.muscache.com/im/pictures/hosting/Hosting-1606514664948608755/original/6b80309a-9f1e-456c-beed-115f5f63dbd0.jpeg",
+    "https://a0.muscache.com/im/pictures/hosting/Hosting-1606514664948608755/original/31b3837b-8da7-4775-aadf-9a1613480600.jpeg"
+  ],
+  "the-dark-blue": [
+    "https://a0.muscache.com/im/pictures/hosting/Hosting-1655969170448425308/original/c84e509a-1192-4491-891b-8dda32439a38.jpeg",
+    "https://a0.muscache.com/im/pictures/hosting/Hosting-1655969170448425308/original/b7c18bba-6858-4a28-9b7c-e3e4b82bf286.jpeg",
+    "https://a0.muscache.com/im/pictures/hosting/Hosting-1655969170448425308/original/fbf2311b-453f-43e1-9bb2-c84d0fa21f5a.jpeg",
+    "https://a0.muscache.com/im/pictures/hosting/Hosting-1655969170448425308/original/47377480-37cd-4620-b209-953945268f66.jpeg",
+    "https://a0.muscache.com/im/pictures/hosting/Hosting-1655969170448425308/original/52098d91-6014-4e46-aa45-38b655a54ce2.jpeg"
+  ],
+  "the-yellow-house": [
+    "https://a0.muscache.com/im/pictures/hosting/Hosting-1592729918855637425/original/f9826cd1-b559-468f-bc68-754a745af7a2.jpeg",
+    "https://a0.muscache.com/im/pictures/hosting/Hosting-1592729918855637425/original/b7b73c4b-426f-449e-9425-69512952e4f0.jpeg",
+    "https://a0.muscache.com/im/pictures/hosting/Hosting-1592729918855637425/original/0755b1e1-a906-4580-8e58-22a60483dbd7.jpeg",
+    "https://a0.muscache.com/im/pictures/hosting/Hosting-1592729918855637425/original/b9253007-a9fe-42b5-be12-c0b3e387fa00.jpeg",
+    "https://a0.muscache.com/im/pictures/hosting/Hosting-1592729918855637425/original/25fa1513-8849-4271-b31c-4f59460b2e14.jpeg"
+  ],
+  "the-green-house": [
+    "https://a0.muscache.com/im/pictures/hosting/Hosting-1593461780265937816/original/e4aeba29-3327-4d9d-947d-027276431158.jpeg",
+    "https://a0.muscache.com/im/pictures/hosting/Hosting-1593461780265937816/original/d3b5c132-d78c-4f77-bbf8-9a732284c534.jpeg",
+    "https://a0.muscache.com/im/pictures/hosting/Hosting-1593461780265937816/original/5dc1db8f-c752-4bbf-914e-559035d2c438.jpeg",
+    "https://a0.muscache.com/im/pictures/hosting/Hosting-1593461780265937816/original/ce72d226-e2ee-4069-82e6-9618d2843a42.jpeg",
+    "https://a0.muscache.com/im/pictures/hosting/Hosting-1593461780265937816/original/fb03da06-543e-4106-997e-8d9e8c1cd7e4.png"
+  ],
+  "the-pink-house": [
+    "https://a0.muscache.com/im/pictures/hosting/Hosting-1592729438969718723/original/5eed388d-c76b-4210-b6be-67ff8128e6c3.jpeg",
+    "https://a0.muscache.com/im/pictures/hosting/Hosting-1592729438969718723/original/09bcdb15-c559-42a5-885e-2c50cfb23729.jpeg",
+    "https://a0.muscache.com/im/pictures/hosting/Hosting-1592729438969718723/original/246d18d9-17c8-4621-84e3-91b1f2267320.jpeg",
+    "https://a0.muscache.com/im/pictures/hosting/Hosting-1592729438969718723/original/56973972-20fb-47ea-b3b4-90334ac09fed.jpeg",
+    "https://a0.muscache.com/im/pictures/hosting/Hosting-1592729438969718723/original/8cbc5cc4-f36f-4a65-a97a-859536cc2e3d.jpeg"
+  ],
+  "the-nawabi-stay": [
+    "https://a0.muscache.com/im/pictures/hosting/Hosting-1723434530455939144/original/b26d5cbe-e200-4dab-b5de-1df652648823.jpeg",
+    "https://a0.muscache.com/im/pictures/hosting/Hosting-1723434530455939144/original/19d0bbce-0c98-492e-952b-c10553d393cb.jpeg",
+    "https://a0.muscache.com/im/pictures/hosting/Hosting-1723434530455939144/original/d52d2aca-344d-4ea4-a0e6-f5eb65d8f70d.jpeg",
+    "https://a0.muscache.com/im/pictures/hosting/Hosting-1723434530455939144/original/c25903a0-7522-421f-8e74-f90b65fa98b4.jpeg",
+    "https://a0.muscache.com/im/pictures/hosting/Hosting-1723434530455939144/original/bf98e041-4eec-430a-aca2-1ca45f5555a9.jpeg"
+  ],
+  "redrose-palace": [
+    "https://a0.muscache.com/im/pictures/hosting/Hosting-1654261872286835347/original/cbc0aaab-4039-4892-ba03-f18c24a603c9.jpeg",
+    "https://a0.muscache.com/im/pictures/hosting/Hosting-1654261872286835347/original/c1c97684-85a2-4cfd-91ad-a4b9bde801e2.jpeg",
+    "https://a0.muscache.com/im/pictures/hosting/Hosting-1654261872286835347/original/830194ad-c826-4256-be97-b95e378a43e7.jpeg",
+    "https://a0.muscache.com/im/pictures/hosting/Hosting-1654261872286835347/original/4b431516-76cd-44d9-b592-a1b671be2d4f.jpeg",
+    "https://a0.muscache.com/im/pictures/hosting/Hosting-1654261872286835347/original/24d293ba-2ba4-45b9-b142-d3e903cd3806.jpeg"
+  ],
+  "the-unique": [
+    "https://a0.muscache.com/im/pictures/hosting/Hosting-1679190202218939181/original/e7e05026-ef33-4d97-bc0c-67d6511ec019.jpeg",
+    "https://a0.muscache.com/im/pictures/hosting/Hosting-1679190202218939181/original/b24326d2-da74-4ede-a819-03c13711978c.jpeg",
+    "https://a0.muscache.com/im/pictures/hosting/Hosting-1679190202218939181/original/7c4c5b8e-bb36-42d8-b66e-0f01fe126206.jpeg",
+    "https://a0.muscache.com/im/pictures/hosting/Hosting-1679190202218939181/original/14e4b185-29b1-49ef-afa2-df288635f99c.jpeg",
+    "https://a0.muscache.com/im/pictures/hosting/Hosting-1679190202218939181/original/71429765-3683-48e7-86c4-8065f9f31bc8.jpeg"
+  ],
+  "the-light-green": [
+    "https://a0.muscache.com/im/pictures/hosting/Hosting-1679155811558485410/original/449695a8-7535-445c-8d6d-c2d521b559cb.jpeg",
+    "https://a0.muscache.com/im/pictures/hosting/Hosting-1679155811558485410/original/fdd3f5b8-bc23-4f63-af9b-c211e2bd56db.jpeg",
+    "https://a0.muscache.com/im/pictures/hosting/Hosting-1679155811558485410/original/5eebbf39-3db8-4f9f-8c2d-bf30aa316c44.jpeg",
+    "https://a0.muscache.com/im/pictures/hosting/Hosting-1679155811558485410/original/a1da7e9e-f06c-4ad7-bdc6-2c6ab095f64c.jpeg",
+    "https://a0.muscache.com/im/pictures/hosting/Hosting-1679155811558485410/original/a8e2716f-5ffa-4978-87f3-b35477505acd.jpeg"
+  ],
+  "the-brown": [
+    "https://a0.muscache.com/im/pictures/hosting/Hosting-1660898784168880636/original/607ac848-e36e-467b-b476-36d273fff7a3.jpeg",
+    "https://a0.muscache.com/im/pictures/hosting/Hosting-1660898784168880636/original/34ae28d7-de47-4692-be5c-2cdd24191f8f.jpeg",
+    "https://a0.muscache.com/im/pictures/hosting/Hosting-1660898784168880636/original/a1609d3d-630e-4ac4-9195-9d8b397182e9.jpeg",
+    "https://a0.muscache.com/im/pictures/hosting/Hosting-1660898784168880636/original/ec1ddb72-c95e-4ca3-b47b-f4c931a15dc1.jpeg",
+    "https://a0.muscache.com/im/pictures/hosting/Hosting-1660898784168880636/original/8bf16db1-7d33-4c70-9252-d518f403af7f.jpeg"
+  ],
+  "green-forest": [
+    "https://a0.muscache.com/im/pictures/hosting/Hosting-1739254108962193705/original/d21e46f9-ae62-44f7-b6b7-b06e40bbca2a.jpeg",
+    "https://a0.muscache.com/im/pictures/hosting/Hosting-1739254108962193705/original/ca222e0a-c45b-498d-ad12-d498cad8f27c.jpeg",
+    "https://a0.muscache.com/im/pictures/hosting/Hosting-1739254108962193705/original/05f853fb-9c77-40e9-9d10-6c318bbbcc1e.jpeg",
+    "https://a0.muscache.com/im/pictures/hosting/Hosting-1739254108962193705/original/2838a976-bb30-4d6d-a9e2-234b5e2e2514.jpeg",
+    "https://a0.muscache.com/im/pictures/hosting/Hosting-1739254108962193705/original/cebfeea0-d729-4e33-aadd-c779ab5478a5.jpeg"
+  ],
+  "pink-paradise": [
+    "https://a0.muscache.com/im/pictures/hosting/Hosting-1756799939825259443/original/9a60a7dc-d6ee-47f5-84e2-7437cbe5cfeb.jpeg",
+    "https://a0.muscache.com/im/pictures/hosting/Hosting-1756799939825259443/original/7cb934c8-1e83-4e07-b6a9-d0ba8ca10dd5.jpeg",
+    "https://a0.muscache.com/im/pictures/hosting/Hosting-1756799939825259443/original/326708dd-c9e6-42d6-9a3d-d02fee8593c8.jpeg",
+    "https://a0.muscache.com/im/pictures/hosting/Hosting-1756799939825259443/original/cb269593-f3a3-4058-a10b-b293e6cd25fc.jpeg",
+    "https://a0.muscache.com/im/pictures/hosting/Hosting-1756799939825259443/original/936ceb8b-aebc-4cfb-9d45-700bf5f9f6d9.jpeg"
+  ],
+  "the-velvet-house": [
+    "https://a0.muscache.com/im/pictures/hosting/Hosting-1727830063287100082/original/5b61ab54-ed1d-4610-90b7-91a9ae4390a3.jpeg",
+    "https://a0.muscache.com/im/pictures/hosting/Hosting-1727830063287100082/original/e3213846-072d-45fb-9c3b-4d01825ed1d6.jpeg",
+    "https://a0.muscache.com/im/pictures/hosting/Hosting-1727830063287100082/original/499e1288-0607-44aa-90d1-549a1cc27af3.jpeg",
+    "https://a0.muscache.com/im/pictures/hosting/Hosting-1727830063287100082/original/36fec03e-1a44-45e3-bbe3-39ec1acd1122.jpeg",
+    "https://a0.muscache.com/im/pictures/hosting/Hosting-1727830063287100082/original/86d87e7a-1c45-43ba-8c20-d4966a591dbd.jpeg"
+  ],
+  "the-luxe-haven": [
+    "https://a0.muscache.com/im/pictures/hosting/Hosting-1798067011361845302/original/9e54eada-f3d7-4094-bf87-e46248f6b907.jpeg",
+    "https://a0.muscache.com/im/pictures/hosting/Hosting-1798067011361845302/original/230e0bec-09da-4aa3-bdeb-952ffaf16a95.jpeg",
+    "https://a0.muscache.com/im/pictures/hosting/Hosting-1798067011361845302/original/5a7c9c80-dae3-4fe0-a770-21b32900d277.jpeg",
+    "https://a0.muscache.com/im/pictures/hosting/Hosting-1798067011361845302/original/cfa21df6-ee64-4a66-a975-2348ea78b978.jpeg",
+    "https://a0.muscache.com/im/pictures/hosting/Hosting-1798067011361845302/original/6c7c38f8-e523-4e4e-bbdc-cfbf6b699ef5.jpeg"
+  ]
+};
+
   function getPropertyImages(slug) {
     const db = window.UHH_PHOTO_DB && window.UHH_PHOTO_DB[slug];
     const localCover = `assets/properties/${slug}/cover.jpg`;
 
-    if (slug === 'the-luxe-haven') {
-      const p1 = 'https://a0.muscache.com/im/pictures/hosting/Hosting-1798067011361845302/original/9e54eada-f3d7-4094-bf87-e46248f6b907.jpeg?im_w=1200';
-      const p2 = 'https://a0.muscache.com/im/pictures/hosting/Hosting-1798067011361845302/original/230e0bec-09da-4aa3-bdeb-952ffaf16a95.jpeg?im_w=1200';
-      const p3 = 'https://a0.muscache.com/im/pictures/hosting/Hosting-1798067011361845302/original/b307b002-96f8-4527-8ebf-2199960f4f97.jpeg?im_w=1200';
-      const p4 = 'https://a0.muscache.com/im/pictures/hosting/Hosting-1798067011361845302/original/cfa21df6-ee64-4a66-a975-2348ea78b978.jpeg?im_w=1200';
-      const p5 = 'https://a0.muscache.com/im/pictures/hosting/Hosting-1798067011361845302/original/57006148-e8a8-4b3e-ae49-86fe3194f290.jpeg?im_w=1200';
-      return [p1, p2, p3, p4, p5];
+    if (db && db.categories) {
+      const living = (db.categories.living_hall && db.categories.living_hall[0]) || localCover;
+      const bed1 = (db.categories.bedrooms && db.categories.bedrooms[0]) || living;
+      const bed2 = (db.categories.bedrooms && db.categories.bedrooms[1]) || bed1;
+      const bath = (db.categories.bathrooms && db.categories.bathrooms[0]) || bed1;
+      const balcony = (db.categories.balcony && db.categories.balcony[0]) || (db.photos && db.photos[4]) || living;
+      return [living, bed1, bed2, bath, balcony];
     }
 
-    if (!db || !db.categories) {
-      return [localCover, localCover, localCover, localCover, localCover];
+    if (STATIC_HERO_CDN_MAP[slug]) {
+      return STATIC_HERO_CDN_MAP[slug];
     }
 
-    const living = (db.categories.living_hall && db.categories.living_hall[0]) || localCover;
-    const bed1 = (db.categories.bedrooms && db.categories.bedrooms[0]) || living;
-    const bed2 = (db.categories.bedrooms && db.categories.bedrooms[1]) || bed1;
-    const bath = (db.categories.bathrooms && db.categories.bathrooms[0]) || bed1;
-    const balcony = (db.categories.balcony && db.categories.balcony[0]) || (db.photos && db.photos[4]) || living;
-
-    return [living, bed1, bed2, bath, balcony];
+    return [localCover, localCover, localCover, localCover, localCover];
   }
 
   function loadProperty(propSlug) {
@@ -398,7 +521,14 @@
         const slide = document.createElement('div');
         slide.className = `vesper-bg-slide ${idx === 0 ? 'active' : ''}`;
         slide.id = `vesperSlide_${idx}`;
-        slide.style.backgroundImage = `url('${room.image}'), url('${room.fallback}')`;
+        slide.style.backgroundImage = `url('${room.image}')`;
+        if (room.fallback && room.fallback !== room.image) {
+          const testImg = new Image();
+          testImg.src = room.image;
+          testImg.onerror = () => {
+            slide.style.backgroundImage = `url('${room.fallback}')`;
+          };
+        }
         viewport.appendChild(slide);
       });
     }
