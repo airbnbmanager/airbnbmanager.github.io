@@ -988,9 +988,12 @@ async function saveEmp() {
   }
 
   // 🔄 Auto-propagate Caretaker assignment to rooms table (Zero Manual Entry)
+  const primaryRole = document.getElementById('eRole')?.value || '';
   const propRole = document.getElementById('ePropertyRole')?.value || 'Staff';
+  const inWa = document.getElementById('eInWhatsApp')?.value === 'true';
   const empPhone = document.getElementById('ePhone')?.value?.trim() || null;
-  if (propRole === 'Caretaker' && Array.isArray(selectedRooms) && selectedRooms.length > 0) {
+  const isCaretaker = primaryRole === 'Caretaker' || propRole === 'Caretaker' || inWa;
+  if (isCaretaker && Array.isArray(selectedRooms) && selectedRooms.length > 0) {
     try {
       for (const roomId of selectedRooms) {
         await sb.from('rooms').update({
@@ -1332,7 +1335,8 @@ async function updEmp(id) {
   }
 
   // 🔄 Auto-propagate Caretaker assignment to rooms table (Zero Manual Entry)
-  if (obj.property_role === 'Caretaker' && Array.isArray(selectedRooms) && selectedRooms.length > 0) {
+  const isCaretaker = obj.role === 'Caretaker' || obj.property_role === 'Caretaker' || obj.in_whatsapp_template;
+  if (isCaretaker && Array.isArray(selectedRooms) && selectedRooms.length > 0) {
     try {
       for (const roomId of selectedRooms) {
         await sb.from('rooms').update({
