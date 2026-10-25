@@ -35,6 +35,7 @@
     { room_id:'VIL-101', property_name:'Gomti Grand Villa',         base_price:8000,  max_guests:6,  area:'Madhya Kunj, Mahanagar' },
     { room_id:'VIL-102', property_name:'Royal White House',         base_price:12000, max_guests:12, area:'Madhya Kunj, Mahanagar' },
     { room_id:'VIL-107', property_name:'The Velvet House',          base_price:4500,  max_guests:6,  area:'Madhya Kunj, Mahanagar' },
+    { room_id:'LUL-101', property_name:'The Luxe Haven',            base_price:2650,  max_guests:3,  area:'Golf City, Near Lulu Mall & Medanta' },
   ];
 
   let _conversation  = null;

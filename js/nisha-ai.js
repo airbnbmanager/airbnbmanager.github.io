@@ -24,7 +24,7 @@
   const GEMINI_KEY_STORAGE = 'uhh_gemini_api_key';
   const SARVAM_KEY_STORAGE = 'uhh_sarvam_api_key';
 
-  // 17 Verified Luxury Properties (Source of Truth)
+  // 18 Verified Luxury Properties (Source of Truth)
   const VERIFIED_PROPERTIES = [
     { room_id:'GOM-101', property_name:'RedRose Palace',            nickname:'RedRose Palace',            base_price:4500, max_guests:6,  bhk:'3BHK Luxury Flat', area:'Vikalp Khand, Gomti Nagar' },
     { room_id:'GOM-102', property_name:'Black Beauty',              nickname:'Black Beauty',              base_price:4500, max_guests:6,  bhk:'3BHK Luxury Flat', area:'Vikalp Khand, Gomti Nagar' },
@@ -34,14 +34,15 @@
     { room_id:'GOM-401', property_name:'The Nawabi Stay',           nickname:'The Nawabi Stay',           base_price:4500, max_guests:6,  bhk:'3BHK Luxury Flat', area:'Vikalp Khand, Gomti Nagar' },
     { room_id:'GOM-501', property_name:'Starlight Blue PentHouse',  nickname:'Starlight Blue PentHouse',  base_price:6000, max_guests:10, bhk:'4BHK Penthouse',   area:'Vikalp Khand, Gomti Nagar' },
     { room_id:'GOM-302', property_name:'The Unique',                nickname:'The Unique',                base_price:5500, max_guests:8,  bhk:'3BHK Luxury Flat', area:'Vishesh Khand, Gomti Nagar' },
-    { room_id:'VIL-104', property_name:'The Green House',           nickname:'The Green House',           base_price:5500, max_guests:8,  bhk:'3BHK Luxury Flat', area:'Vishesh Khand, Gomti Nagar' },
-    { room_id:'VIL-105', property_name:'The Yellow House',          nickname:'The Yellow House',          base_price:5500, max_guests:8,  bhk:'3BHK Luxury Flat', area:'Vishesh Khand, Gomti Nagar' },
-    { room_id:'VIL-103', property_name:'The Pink House',            nickname:'The Pink House',            base_price:9000, max_guests:10, bhk:'3BHK Grand Villa', area:'Vishesh Khand, Gomti Nagar' },
+    { room_id:'VIL-104', property_name:'The Green House',           nickname:'The Green House',           base_price:5500, max_guests:8,  bhk:'3BHK 1st Floor',   area:'Vishesh Khand, Gomti Nagar' },
+    { room_id:'VIL-105', property_name:'The Yellow House',          nickname:'The Yellow House',          base_price:5500, max_guests:8,  bhk:'3BHK Ground Floor', area:'Vishesh Khand, Gomti Nagar' },
+    { room_id:'VIL-103', property_name:'The Pink House',            nickname:'The Pink House',            base_price:9000, max_guests:10, bhk:'5BR Duplex (2nd & 3rd Floor)', area:'Vishesh Khand, Gomti Nagar' },
     { room_id:'VIL-106', property_name:'Green Forest View',         nickname:'Green Forest View',         base_price:4500, max_guests:6,  bhk:'3BHK Luxury Flat', area:'Near Mahanagar' },
     { room_id:'VIL-107', property_name:'The Velvet House',          nickname:'The Velvet House',          base_price:4500, max_guests:5,  bhk:'3BHK Luxury Flat', area:'Near Lulu Mall / Shaheed Path' },
     { room_id:'VIL-108', property_name:'Pink Paradise Villa',       nickname:'Pink Paradise Villa',       base_price:4500, max_guests:6,  bhk:'Luxury Villa',      area:'Near Shaheed Path' },
     { room_id:'VIL-101', property_name:'Gomti Grand Villa',         nickname:'Gomti Grand Villa',         base_price:8000, max_guests:10, bhk:'Private Villa',    area:'Near Lulu Mall / Shaheed Path' },
     { room_id:'VIL-102', property_name:'Royal White House',         nickname:'Royal White House',         base_price:12000,max_guests:18, bhk:'Palace Villa',     area:'Near Shaheed Path / Mahanagar' },
+    { room_id:'LUL-101', property_name:'The Luxe Haven',            nickname:'The Luxe Haven',            base_price:2650, max_guests:3,  bhk:'1BHK Luxury Flat', area:'Golf City, Near Lulu Mall & Medanta' },
     { room_id:'LUL-402', property_name:'Celebrity Garden',          nickname:'Celebrity Garden',          base_price:10000,max_guests:10, bhk:'Grand Homestay',   area:'Near Lulu Mall' }
   ];
 

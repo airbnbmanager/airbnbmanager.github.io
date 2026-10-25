@@ -370,6 +370,7 @@
         { room_id:'VIL-107', property_name:'The Velvet House',         base_price:4500,  max_guests:5,  type:'flat',  area:'Near Lulu Mall' },
         { room_id:'VIL-106', property_name:'Green Forest View',        base_price:4500,  max_guests:6,  type:'flat',  area:'Near Mahanagar' },
         { room_id:'VIL-108', property_name:'Pink Paradise Villa',      base_price:4500,  max_guests:6,  type:'villa', area:'Near Shaheed Path' },
+        { room_id:'LUL-101', property_name:'The Luxe Haven',           base_price:2650,  max_guests:3,  type:'flat',  area:'Golf City, Near Lulu Mall & Medanta' },
       ];
     }
     return _rates;

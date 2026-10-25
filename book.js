@@ -12,12 +12,13 @@ const PROPERTIES = [
   {id:'GOM-501',name:'Starlight Blue PentHouse',type:'Top-Floor Penthouse',img:'assets/properties/starlight-blue/cover.jpg',price:6000,airbnb:7299,guests:10,wa:'919450055554'},
   {id:'VIL-101',name:'Gomti Grand Villa',type:'Private Luxury Villa',img:'assets/properties/gomti-grand-villa/cover.jpg',price:8000,airbnb:9599,guests:14,wa:'919450055554'},
   {id:'VIL-102',name:'Royal White House',type:'Grand Palace Villa',img:'assets/properties/royal-white-house/cover.jpg',price:12000,airbnb:14499,guests:18,wa:'919450055554'},
-  {id:'VIL-103',name:'The Pink House',type:'5BR Grand Villa',img:'assets/properties/the-pink-house/cover.jpg',price:9000,airbnb:10999,guests:10,wa:'918299600709'},
-  {id:'VIL-104',name:'The Green House',type:'3BR Luxury Villa',img:'assets/properties/the-green-house/cover.jpg',price:5500,airbnb:6599,guests:8,wa:'919450055554'},
-  {id:'VIL-105',name:'The Yellow House',type:'3BHK Luxury Villa',img:'assets/properties/the-yellow-house/cover.jpg',price:5500,airbnb:6599,guests:8,wa:'918299600709'},
+  {id:'VIL-103',name:'The Pink House',type:'5BR Duplex (2nd & 3rd Floor)',img:'assets/properties/the-pink-house/cover.jpg',price:9000,airbnb:10999,guests:10,wa:'918299600709'},
+  {id:'VIL-104',name:'The Green House',type:'3BHK 1st Floor',img:'assets/properties/the-green-house/cover.jpg',price:5500,airbnb:6599,guests:8,wa:'919450055554'},
+  {id:'VIL-105',name:'The Yellow House',type:'3BHK Ground Floor',img:'assets/properties/the-yellow-house/cover.jpg',price:5500,airbnb:6599,guests:8,wa:'918299600709'},
   {id:'VIL-106',name:'Green forest View',type:'3BHK Luxury Flat',img:'assets/properties/green-forest/cover.jpg',price:4500,airbnb:5499,guests:6,wa:'918299600709'},
   {id:'VIL-107',name:'The Velvet House',type:'Luxury Villa',img:'assets/properties/the-velvet-house/cover.jpg',price:4500,airbnb:5499,guests:8,wa:'919450055554'},
   {id:'VIL-108',name:'Pink Paradise Villa',type:'Luxury Villa',img:'assets/properties/pink-paradise/cover.jpg',price:4500,airbnb:5499,guests:6,wa:'918299600709'},
+  {id:'LUL-101',name:'The Luxe Haven',type:'1BHK Luxury Flat',img:'assets/properties/the-luxe-haven/cover.jpg',price:2650,airbnb:2981,guests:3,wa:'919450055554'},
   {id:'LUL-402',name:'Celebrity Garden',type:'5-Bed Grand Homestay',img:'assets/properties/celebrity-garden/cover.jpg',price:10000,airbnb:11999,guests:16,wa:'919450055554'}
 ];
 

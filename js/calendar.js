@@ -312,7 +312,7 @@ async function renderReports() {
       'VIL-105': 'the-yellow-house','VIL-106': 'green-forest',
       'VIL-108': 'pink-paradise',  'LUL-402': 'celebrity-garden',
       'VIL-101': 'gomti-grand-villa','VIL-102': 'royal-white-house',
-      'VIL-107': 'the-velvet-house'
+      'VIL-107': 'the-velvet-house', 'LUL-101': 'the-luxe-haven'
     };
     const slug = r.slug || ROOM_SLUG_MAP[r.room_id] || '';
     const thumbSrc = slug ? `assets/properties/${slug}/cover.jpg` : '';
