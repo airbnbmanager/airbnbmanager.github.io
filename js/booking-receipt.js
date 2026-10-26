@@ -620,8 +620,7 @@ window.BOOKING_RECEIPT_ENGINE = (function() {
         ${customNotes ? `
           <!-- Special Notes & Guest Requests -->
           <div style="background:#FFFBEB;border:1.5px solid #F59E0B;border-radius:5px;padding:5px 9px;margin-bottom:5px;font-size:9.5px;color:#92400E;line-height:1.4;">
-            <strong style="color:#78350F;font-size:10px;">📝 Special Request / Guest Notes:</strong><br>
-            <span style="font-weight:700;">${escapeHtml(customNotes)}</span>
+            <strong style="color:#78350F;font-size:10px;">📝 Special Request / Guest Notes:</strong> <span style="font-weight:700;color:#0F172A;">${escapeHtml(customNotes)}</span>
           </div>
         ` : ''}
 
@@ -707,7 +706,7 @@ ${secAmount > 0 ? `▪️ *Refundable Security Deposit:* ₹${secAmount.toLocale
 ▪️ *Total Payable:* ₹${(totalAmount + secAmount).toLocaleString('en-IN')}
 ` : ''}▪️ *Advance Paid:* ₹${paidAmount.toLocaleString('en-IN')} ✅
 ▪️ *Balance Due:* ₹${balanceDue.toLocaleString('en-IN')} ${balanceDue > 0 ? '⚠️ (Payable at Check-in)' : '✅ (Fully Cleared)'}
-━━━━━━━━━━━━━━━━━━━━${secAmount > 0 ? `\n🛡️ *Security Deposit Policy:* ₹${secAmount.toLocaleString('en-IN')} is 100% refundable at check-out post room & inventory inspection.\n` : ''}${payHistoryText}${customNotes ? `\n\n📝 *Special Request & Notes:*\n${customNotes}` : ''}
+━━━━━━━━━━━━━━━━━━━━${secAmount > 0 ? `\n🛡️ *Security Deposit Policy:* ₹${secAmount.toLocaleString('en-IN')} is 100% refundable at check-out post room & inventory inspection.\n` : ''}${payHistoryText}${customNotes ? `\n\n📝 *Special Request & Notes:* ${customNotes}` : ''}
 
 👑 *Company Owners / Directors:*
 • Mr. Shahanshah: +91 94500 55554
@@ -1421,8 +1420,7 @@ ${secAmount > 0 ? `▪️ *Refundable Security Deposit:* ₹${secAmount.toLocale
         <!-- Custom Notes Banner (If any) -->
         ${customNotes ? `
           <div style="background:#FFFBEB;border:1.5px solid #F59E0B;border-radius:10px;padding:10px 12px;margin-bottom:10px;font-size:12.5px;color:#92400E;line-height:1.4;">
-            <strong style="font-size:12.5px;color:#78350F;">📝 Special Note:</strong><br>
-            <span style="font-weight:700;">${escapeHtml(customNotes)}</span>
+            <strong style="font-size:12.5px;color:#78350F;">📝 Special Note:</strong> <span style="font-weight:700;color:#0F172A;">${escapeHtml(customNotes)}</span>
           </div>
         ` : ''}
 
@@ -2417,7 +2415,7 @@ ${propertiesList}
 ▪️ *Total Booking Amount:* ₹${totalAmount.toLocaleString('en-IN')}
 ▪️ *Advance Paid:* ₹${paidAmount.toLocaleString('en-IN')} ✅
 ▪️ *Balance Due at Check-in:* ₹${balanceDue.toLocaleString('en-IN')} ${balanceDue > 0 ? '⚠️ (Payable upon arrival)' : '✅ (Fully Cleared)'}
-━━━━━━━━━━━━━━━━━━━━${payHistoryText}${groupNotes ? `\n\n📝 *Special Note:*\n${groupNotes}` : ''}
+━━━━━━━━━━━━━━━━━━━━${payHistoryText}${groupNotes ? `\n\n📝 *Special Note:* ${groupNotes}` : ''}
 
 👑 *Company Owners / Directors:*
 • Mr. Shahanshah: +91 94500 55554
