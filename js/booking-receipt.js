@@ -814,7 +814,7 @@ ${secAmount > 0 ? `▪️ *Refundable Security Deposit:* ₹${secAmount.toLocale
         <style>
           @page {
             size: A4 portrait;
-            margin: 0 !important; /* CRITICAL: 0 margin completely suppresses browser default headers and footers (about:blank, date, URL) */
+            margin: 0 !important; /* Suppresses browser default URL/headers/footers */
           }
           * {
             box-sizing: border-box;
@@ -826,31 +826,185 @@ ${secAmount > 0 ? `▪️ *Refundable Security Deposit:* ₹${secAmount.toLocale
             padding: 0 !important;
             background: #ffffff !important;
             color: #0F172A !important;
-            font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
-            font-size: 10px;
-            width: 100% !important;
-            height: auto !important;
+            font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            width: 210mm !important;
+            min-height: 297mm !important;
+            -webkit-font-smoothing: antialiased;
+            text-rendering: geometricPrecision;
           }
+          
+          /* Master Container for A4 Fit */
           .uhh-receipt-container, .invoice-doc {
-            padding: 4mm 6mm !important;
-            max-width: 100% !important;
+            width: 210mm !important;
+            max-width: 210mm !important;
+            min-height: 295mm !important;
+            max-height: 297mm !important;
+            box-sizing: border-box !important;
             margin: 0 auto !important;
+            padding: 12mm 14mm 10mm 14mm !important;
+            display: flex !important;
+            flex-direction: column !important;
+            justify-content: space-between !important;
             border: none !important;
             box-shadow: none !important;
             border-radius: 0 !important;
-            page-break-after: avoid !important;
-            break-after: avoid !important;
+            background: #ffffff !important;
             page-break-inside: avoid !important;
+            page-break-after: avoid !important;
             break-inside: avoid !important;
+            break-after: avoid !important;
+            overflow: hidden !important;
           }
+
+          /* Proportional A4 Letterhead Scaling */
+          .uhh-receipt-container img {
+            max-width: 100%;
+          }
+
+          /* Ensure comfortable line heights & font scale on A4 print */
+          .uhh-receipt-container div, 
+          .uhh-receipt-container p, 
+          .uhh-receipt-container span, 
+          .uhh-receipt-container td {
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+          }
+
+          /* Proportional expansion for sections on A4 */
+          .uhh-receipt-container > div:first-child {
+            padding-bottom: 10px !important;
+            margin-bottom: 12px !important;
+            border-bottom: 2px solid #0F172A !important;
+          }
+
+          /* Status Banner Spacing */
+          .uhh-receipt-container > div[style*="statusBg"],
+          .uhh-receipt-container > div:nth-child(2) {
+            padding: 8px 14px !important;
+            margin-bottom: 12px !important;
+            border-radius: 8px !important;
+          }
+
+          /* Security Deposit Strip if present */
+          .uhh-receipt-container > div[style*="EFF6FF"],
+          .uhh-receipt-container > div[style*="3B82F6"] {
+            padding: 8px 14px !important;
+            margin-bottom: 12px !important;
+            border-radius: 8px !important;
+          }
+
+          /* 2 Column Overview (Guest & Stay Cards) */
+          .uhh-receipt-container > div[style*="grid-template-columns:1fr 1fr"],
+          .uhh-receipt-container > div[style*="grid-template-columns: 1fr 1fr"] {
+            gap: 14px !important;
+            margin-bottom: 14px !important;
+          }
+
+          .uhh-receipt-container > div[style*="grid-template-columns:1fr 1fr"] > div,
+          .uhh-receipt-container > div[style*="grid-template-columns: 1fr 1fr"] > div {
+            padding: 12px 14px !important;
+            border-radius: 8px !important;
+            font-size: 11.5px !important;
+          }
+
+          /* Financial Breakdown Table & Hero Metrics */
+          .uhh-receipt-container > div[style*="border:1px solid #0F172A"],
+          .uhh-receipt-container > div[style*="border: 1px solid #0F172A"],
+          .uhh-receipt-container > div[style*="border:1.5px solid #0F172A"] {
+            margin-bottom: 14px !important;
+            border-radius: 8px !important;
+            border-width: 1.5px !important;
+          }
+
+          /* Hero Metric Metric Stat Boxes (Accommodation, Deposit, Advance, Balance) */
+          .uhh-receipt-container div[style*="grid-template-columns:1fr 1fr 1fr"],
+          .uhh-receipt-container div[style*="grid-template-columns: 1fr 1fr 1fr"],
+          .uhh-receipt-container div[style*="grid-template-columns:1fr 1fr 1fr 1fr"] {
+            padding: 4px 0 !important;
+          }
+
+          .uhh-receipt-container div[style*="grid-template-columns:1fr 1fr 1fr"] > div,
+          .uhh-receipt-container div[style*="grid-template-columns: 1fr 1fr 1fr"] > div,
+          .uhh-receipt-container div[style*="grid-template-columns:1fr 1fr 1fr 1fr"] > div {
+            padding: 10px 8px !important;
+          }
+
+          /* Particulars Table & Payment Transaction Table */
+          .uhh-receipt-container table {
+            font-size: 11px !important;
+          }
+
+          .uhh-receipt-container table th {
+            padding: 6px 8px !important;
+            font-size: 10px !important;
+          }
+
+          .uhh-receipt-container table td {
+            padding: 6px 8px !important;
+            font-size: 11px !important;
+          }
+
+          /* Amount In Words Summary Strip */
+          .uhh-receipt-container div[style*="border:1px dashed"],
+          .uhh-receipt-container div[style*="border: 1px dashed"] {
+            padding: 7px 10px !important;
+            margin-top: 6px !important;
+            font-size: 10.5px !important;
+            line-height: 1.5 !important;
+          }
+
+          /* Support & Contacts Strip */
+          .uhh-receipt-container div[style*="👑 Company Owners"],
+          .uhh-receipt-container div[style*="👑"] {
+            padding: 7px 12px !important;
+            margin-bottom: 10px !important;
+            font-size: 10.5px !important;
+          }
+
+          /* Custom Notes / Guest Requests Strip */
+          .uhh-receipt-container div[style*="FFFBEB"] {
+            padding: 9px 12px !important;
+            margin-bottom: 12px !important;
+            font-size: 11px !important;
+            border-radius: 8px !important;
+          }
+
+          /* Terms & Stay Guidelines Box */
+          .uhh-receipt-container div[style*="Stay Guidelines"],
+          .uhh-receipt-container div[style*="📋"] {
+            padding: 8px 12px !important;
+            margin-bottom: 12px !important;
+            font-size: 9.5px !important;
+            line-height: 1.5 !important;
+            border-radius: 8px !important;
+          }
+
+          /* Footer Signature & Seal Area - Anchored neatly to bottom of A4 */
+          .uhh-receipt-container > div:last-child {
+            padding-top: 10px !important;
+            margin-top: auto !important;
+            border-top: 1.5px solid #CBD5E1 !important;
+          }
+
           @media print {
             @page {
               size: A4 portrait;
               margin: 0 !important;
             }
-            body {
+            html, body {
+              width: 210mm !important;
+              height: 297mm !important;
               margin: 0 !important;
               padding: 0 !important;
+              overflow: hidden !important;
+            }
+            .uhh-receipt-container {
+              width: 210mm !important;
+              height: 297mm !important;
+              max-height: 297mm !important;
+              overflow: hidden !important;
+              page-break-after: avoid !important;
+              break-after: avoid !important;
             }
           }
         </style>
