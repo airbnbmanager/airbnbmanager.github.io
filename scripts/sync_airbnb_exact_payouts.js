@@ -74,6 +74,7 @@ function getRoomIdByListing(listingName) {
   if (l.includes('royal white') || l.includes('vil-102')) return 'VIL-102';
   if (l.includes('dark blue') || l.includes('gom-201')) return 'GOM-201';
   if (l.includes('redrose') || l.includes('gom-101')) return 'GOM-101';
+  if (l.includes('luxe haven') || l.includes('lul-101') || l.includes('1bhk') || l.includes('1798067011361845302')) return 'LUL-101';
   return null;
 }
 

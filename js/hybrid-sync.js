@@ -20,7 +20,8 @@ window.HYBRID_SYNC = {
     'VIL-107': { name: 'The Velvet House', ical_url: 'https://www.airbnb.co.in/calendar/ical/1727830063287100082.ics?s=941e03cc0e52d3636e9835e2ec2b62be' },
     'VIL-102': { name: 'Royal White House', ical_url: 'https://www.airbnb.co.in/calendar/ical/1718315215180636685.ics?s=88c698fc4b8a4085ab6ad210daee7e8f' },
     'GOM-201': { name: 'The Dark Blue', ical_url: 'https://www.airbnb.co.in/calendar/ical/1655969170448425308.ics?s=f706b4312eaf30553e047c4cd74b8128' },
-    'GOM-101': { name: 'RedRose Palace', ical_url: 'https://www.airbnb.co.in/calendar/ical/1654261872286835347.ics?s=dd04cdcc476495684a1e2c6a33040799' }
+    'GOM-101': { name: 'RedRose Palace', ical_url: 'https://www.airbnb.co.in/calendar/ical/1654261872286835347.ics?s=dd04cdcc476495684a1e2c6a33040799' },
+    'LUL-101': { name: 'The Luxe Haven (1BHK)', ical_url: 'https://www.airbnb.co.in/calendar/ical/1798067011361845302.ics?t=b561f047fb10494aa2ac406aa6161f3c' }
   },
   mergedBookings: [],
   timerId: null,

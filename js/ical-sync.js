@@ -44,7 +44,10 @@ window.ICAL_SYNC = {
   
   // Parse iCal to booking events (with filtering)
   parseIcal(icalText) {
-    const events = icalText.split('BEGIN:VEVENT').slice(1);
+    if (!icalText) return [];
+    // RFC 5545 line unfolding: Join folded lines before regex parsing
+    const unfoldedText = icalText.replace(/\r?\n[ \t]/g, '');
+    const events = unfoldedText.split('BEGIN:VEVENT').slice(1);
     const today = new Date().toISOString().slice(0, 10);
     const monthStart = today.slice(0, 8) + '01';
 
@@ -524,6 +527,12 @@ window.saveIcalUrl = async function() {
   
   if (!roomId) { fsn.error('Error', 'Please select a property'); return; }
   if (!abnbUrl && !bcomUrl) { fsn.error('Error', 'Enter at least one iCal URL (Airbnb or Booking.com)'); return; }
+
+  // Prevent user from pasting standard Airbnb listing link (e.g. /rooms/12345) instead of .ics export link
+  if (abnbUrl && (abnbUrl.includes('/rooms/') || !abnbUrl.includes('.ics'))) {
+    fsn.error('Invalid iCal URL', '⚠️ Airbnb URL must be a Calendar Export link ending with .ics (e.g. https://www.airbnb.co.in/calendar/ical/....ics?t=...). Go to Airbnb Listing → Pricing & Availability → Export Calendar to copy the .ics link.');
+    return;
+  }
 
   // 1. Update Airbnb URL in DB
   const { data: currentRoom } = await sb.from('rooms').select('notes').eq('room_id', roomId).single();

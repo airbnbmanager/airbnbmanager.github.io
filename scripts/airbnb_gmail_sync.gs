@@ -38,7 +38,8 @@ const ROOM_MAPPING = [
   { roomId: 'VIL-105', name: 'The Yellow House', unit: 'Villa (Five)', listingId: '1592729918855637425', keywords: ['the yellow house', 'yellow house', 'villa (five)', 'villa five', 'villa 5', 'vil-105', '1592729918855637425'] },
   { roomId: 'VIL-106', name: 'Green forest View', unit: 'Villa (Six)', listingId: '1739254108962193705', keywords: ['green forest view', 'green forest', 'forest view', 'villa (six)', 'villa six', 'villa 6', 'vil-106', '1739254108962193705'] },
   { roomId: 'VIL-107', name: 'The Velvet House', unit: 'Villa (Seven)', listingId: '1727830063287100082', keywords: ['the velvet house', 'velvet house', 'velvet', 'villa (seven)', 'villa seven', 'villa 7', 'vil-107', '1727830063287100082'] },
-  { roomId: 'VIL-108', name: 'Pink Paradise Villa', unit: 'Villa (Eight)', listingId: '1756799939825259443', keywords: ['pink paradise villa', 'pink paradise', 'paradise villa', 'villa (eight)', 'villa eight', 'villa 8', 'vil-108', '1756799939825259443'] }
+  { roomId: 'VIL-108', name: 'Pink Paradise Villa', unit: 'Villa (Eight)', listingId: '1756799939825259443', keywords: ['pink paradise villa', 'pink paradise', 'paradise villa', 'villa (eight)', 'villa eight', 'villa 8', 'vil-108', '1756799939825259443'] },
+  { roomId: 'LUL-101', name: 'The Luxe Haven', unit: '101', listingId: '1798067011361845302', keywords: ['the luxe haven', 'luxe haven', '1bhk', '1 bhk near lulu', 'lul-101', '1798067011361845302'] }
 ];
 
 const MONTH_MAP = {
