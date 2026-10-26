@@ -93,6 +93,32 @@ window.BOOKING_RECEIPT_ENGINE = (function() {
         receivedDate: options.securityDepositReceivedDate || ''
       };
     }
+    if (b && b.securityDepositAmount != null) {
+      const amt = Number(b.securityDepositAmount) || 0;
+      return {
+        amount: amt,
+        status: b.securityDepositStatus || (amt > 0 ? 'collected' : 'none'),
+        mode: b.securityDepositMode || 'UPI',
+        receivedBy: b.securityDepositReceivedBy || '',
+        receivedDate: b.securityDepositReceivedDate || ''
+      };
+    }
+    // Check if live modal input exists in document
+    if (typeof document !== 'undefined') {
+      const liveAmtInput = document.getElementById('receiptSecAmtInput');
+      const liveStSelect = document.getElementById('receiptSecStatusSelect');
+      if (liveAmtInput && liveAmtInput.value !== '') {
+        const amt = parseFloat(liveAmtInput.value) || 0;
+        const st = liveStSelect ? liveStSelect.value : (amt > 0 ? 'collected' : 'none');
+        return {
+          amount: amt,
+          status: st,
+          mode: 'UPI',
+          receivedBy: '',
+          receivedDate: ''
+        };
+      }
+    }
     if (!b) return { amount: 0, status: 'none', mode: 'UPI' };
 
     // 1. Native column check
@@ -297,7 +323,8 @@ window.BOOKING_RECEIPT_ENGINE = (function() {
     const todayStr = formatDate(new Date().toISOString().slice(0, 10));
 
     const receiptNo = options.receiptNo || `UHH-REC/${booking.booking_id}`;
-    const rawNotes = options.customNotes !== undefined ? options.customNotes : (booking.notes || '');
+    const liveNotesInput = (typeof document !== 'undefined') ? document.getElementById('receiptCustomNotesInput') : null;
+    const rawNotes = options.customNotes !== undefined ? options.customNotes : (liveNotesInput ? liveNotesInput.value : (booking.notes || ''));
     const customNotes = cleanNotes(rawNotes);
 
     let statusText = 'Fully Paid';
@@ -591,9 +618,10 @@ window.BOOKING_RECEIPT_ENGINE = (function() {
         </div>
 
         ${customNotes ? `
-          <!-- Special Notes -->
-          <div style="background:#FFFBEB;border:1px solid #FDE68A;border-radius:4px;padding:3px 8px;margin-bottom:5px;font-size:9px;color:#92400E;">
-            <strong>📝 Note:</strong> ${escapeHtml(customNotes)}
+          <!-- Special Notes & Guest Requests -->
+          <div style="background:#FFFBEB;border:1.5px solid #F59E0B;border-radius:5px;padding:5px 9px;margin-bottom:5px;font-size:9.5px;color:#92400E;line-height:1.4;">
+            <strong style="color:#78350F;font-size:10px;">📝 Special Request / Guest Notes:</strong><br>
+            <span style="font-weight:700;">${escapeHtml(customNotes)}</span>
           </div>
         ` : ''}
 
@@ -647,6 +675,10 @@ window.BOOKING_RECEIPT_ENGINE = (function() {
     const checkInTime = formatTime(booking.check_in_time || '14:00');
     const checkOutTime = formatTime(booking.check_out_time || '11:00');
 
+    const liveNotesInput = (typeof document !== 'undefined') ? document.getElementById('receiptCustomNotesInput') : null;
+    const rawNotes = (options.customNotes !== undefined) ? options.customNotes : (liveNotesInput ? liveNotesInput.value : (booking.notes || ''));
+    const customNotes = cleanNotes(rawNotes);
+
     let payHistoryText = '';
     if (payments && payments.length > 0) {
       payHistoryText = '\n*Payment Log:*\n' + payments.map(p => 
@@ -675,7 +707,7 @@ ${secAmount > 0 ? `▪️ *Refundable Security Deposit:* ₹${secAmount.toLocale
 ▪️ *Total Payable:* ₹${(totalAmount + secAmount).toLocaleString('en-IN')}
 ` : ''}▪️ *Advance Paid:* ₹${paidAmount.toLocaleString('en-IN')} ✅
 ▪️ *Balance Due:* ₹${balanceDue.toLocaleString('en-IN')} ${balanceDue > 0 ? '⚠️ (Payable at Check-in)' : '✅ (Fully Cleared)'}
-━━━━━━━━━━━━━━━━━━━━${secAmount > 0 ? `\n🛡️ *Security Deposit Policy:* ₹${secAmount.toLocaleString('en-IN')} is 100% refundable at check-out post room & inventory inspection.\n` : ''}${payHistoryText}${cleanNotes(booking.notes) ? `\n\n📝 *Special Note:*\n${cleanNotes(booking.notes)}` : ''}
+━━━━━━━━━━━━━━━━━━━━${secAmount > 0 ? `\n🛡️ *Security Deposit Policy:* ₹${secAmount.toLocaleString('en-IN')} is 100% refundable at check-out post room & inventory inspection.\n` : ''}${payHistoryText}${customNotes ? `\n\n📝 *Special Request & Notes:*\n${customNotes}` : ''}
 
 👑 *Company Owners / Directors:*
 • Mr. Shahanshah: +91 94500 55554
@@ -935,7 +967,7 @@ ${secAmount > 0 ? `▪️ *Refundable Security Deposit:* ₹${secAmount.toLocale
   }
 
   // 4D-1. Dedicated Mobile-First Voucher Card Builder (Optimized for WhatsApp & Phone Screens)
-  function buildMobileSlipCardHTML(data) {
+  function buildMobileSlipCardHTML(data, options = {}) {
     const isMulti = !!data.isMulti;
 
     const guestName = isMulti ? (data.guestName || 'Guest') : (data.booking?.guest_name || 'Guest');
@@ -946,15 +978,18 @@ ${secAmount > 0 ? `▪️ *Refundable Security Deposit:* ₹${secAmount.toLocale
     const balanceDue = Number(data.balanceDue || 0);
     const payments = data.payments || [];
 
-    // Security Deposit Extraction
-    const secDep = isMulti ? { amount: 0, status: 'none' } : getSecurityDepositData(data.booking);
+    // Security Deposit Extraction (Check options / data / active modal)
+    const secDep = isMulti ? { amount: 0, status: 'none' } : getSecurityDepositData(data.booking, options);
     const secAmount = secDep.amount || 0;
     const secStatus = secDep.status || 'none';
 
     const multiNotes = isMulti
       ? Array.from(new Set((data.bookings || []).map(b => cleanNotes(b.notes)).filter(Boolean))).join(' · ')
       : '';
-    const rawNotes = data.customNotes || (isMulti ? (multiNotes || data.primaryBooking?.notes || '') : data.booking?.notes || '');
+    const liveNotesInput = (typeof document !== 'undefined') ? document.getElementById('receiptCustomNotesInput') : null;
+    const rawNotes = (options && options.customNotes !== undefined) 
+      ? options.customNotes 
+      : (liveNotesInput ? liveNotesInput.value : (data.customNotes || (isMulti ? (multiNotes || data.primaryBooking?.notes || '') : data.booking?.notes || '')));
     const customNotes = cleanNotes(rawNotes);
     const bookedBy = isMulti ? (data.primaryBooking?.booked_by || '') : (data.booking?.booked_by || '');
 
@@ -1203,16 +1238,28 @@ ${secAmount > 0 ? `▪️ *Refundable Security Deposit:* ₹${secAmount.toLocale
             <div style="padding:10px 12px;background:#FFFFFF;border-top:1.5px solid #CBD5E1;">
               <div style="font-size:10.5px;font-weight:900;color:#0F172A;text-transform:uppercase;margin-bottom:6px;">💳 Payment Log (${payments.length} Transaction${payments.length > 1 ? 's' : ''})</div>
               ${payments.map((p, idx) => `
-                <div style="display:flex;justify-content:space-between;align-items:center;font-size:12px;padding:3px 0;border-bottom:1px solid #E2E8F0;">
+                <div style="display:flex;justify-content:space-between;align-items:flex-start;font-size:12px;padding:5px 0;border-bottom:1px solid #E2E8F0;gap:8px;">
                   <div>
-                    <span style="font-weight:800;color:#0F172A;">${formatDate(p.payment_date || p.paid_at)}</span>
+                    <span style="font-weight:800;color:#0F172A;">${(p.paid_at || p.created_at) ? formatDateTime(p.paid_at || p.created_at) : formatDate(p.payment_date)}</span>
                     <span style="color:#475569;font-size:11px;"> · via <strong>${escapeHtml(p.payment_mode || 'UPI')}</strong></span>
+                    ${p.received_by ? `<span style="color:#64748B;font-size:11px;"> (Recv by: <strong>${escapeHtml(p.received_by)}</strong>)</span>` : ''}
+                    ${p.notes ? `
+                      <div style="font-size:11px;color:#475569;margin-top:2px;">
+                        📝 <strong>Note:</strong> <em>${escapeHtml(p.notes)}</em>
+                      </div>
+                    ` : ''}
                   </div>
-                  <div style="font-weight:900;color:#059669;font-size:12.5px;">
+                  <div style="font-weight:900;color:#059669;font-size:12.5px;text-align:right;white-space:nowrap;">
                     ₹${Number(p.amount || 0).toLocaleString('en-IN')}
                   </div>
                 </div>
               `).join('')}
+            </div>
+          ` : ''}
+          ${secAmount > 0 ? `
+            <div style="padding:7px 12px;background:#F0F9FF;border-top:1px dashed #BAE6FD;font-size:11px;display:flex;justify-content:space-between;align-items:center;">
+              <span style="color:#0369A1;font-weight:700;">Total Stay + Security Deposit:</span>
+              <strong style="color:#0284C7;font-size:12.5px;">₹${(totalAmount + secAmount).toLocaleString('en-IN')}</strong>
             </div>
           ` : ''}
         </div>
@@ -1243,7 +1290,8 @@ ${secAmount > 0 ? `▪️ *Refundable Security Deposit:* ₹${secAmount.toLocale
           • Original Govt Photo ID (Aadhaar / Passport / DL) mandatory at check-in.<br>
           • Check-in: 02:00 PM | Check-out: 11:00 AM.<br>
           • Quiet hours post 11:00 PM. No loud music.<br>
-          • Remaining balance must be settled before key handover.
+          • Remaining balance must be settled before key handover.<br>
+          ${secAmount > 0 ? `• <strong>Security Deposit:</strong> Refundable deposit of ₹${secAmount.toLocaleString('en-IN')} is returned promptly at check-out via UPI/Cash post room inspection.<br>` : ''}
         </div>
 
         <!-- Footer Signature & Stamp -->
@@ -1265,10 +1313,11 @@ ${secAmount > 0 ? `▪️ *Refundable Security Deposit:* ₹${secAmount.toLocale
   }
 
   // 4D. Convert payment slip to crisp high-res image and show rich visual preview modal
-  // Renders Mobile-First Voucher Card specifically for WhatsApp & mobile viewing!
-  async function shareSlipAsImage(elementId, filename = 'Payment_Slip', receiptData = null) {
+  // Default: 'mobile' (Ultra-crisp 480px WhatsApp mobile vertical pass - fits mobile screen perfectly with 300 DPI)
+  // Optional: 'official' (Full A4 desktop voucher layout)
+  async function shareSlipAsImage(elementId, filename = 'Payment_Slip', receiptData = null, mode = 'mobile') {
     const el = document.getElementById(elementId);
-    if (!el && !receiptData && !window._activeReceiptData) {
+    if (!el && !receiptData && !window._activeReceiptData && !window._activeSingleReceiptData) {
       alert('Receipt content not found.');
       return;
     }
@@ -1287,42 +1336,81 @@ ${secAmount > 0 ? `▪️ *Refundable Security Deposit:* ₹${secAmount.toLocale
     }
 
     if (window.fsn?.info) {
-      fsn.info('Processing Image', '📸 Generating 300+ DPI ultra-crisp mobile slip...');
+      fsn.info('Processing Image', mode === 'mobile' ? '📸 Generating ultra-crisp WhatsApp mobile vertical pass...' : '📸 Generating official receipt PNG...');
     }
 
-    const data = receiptData || window._activeReceiptData || null;
+    const data = receiptData || window._activeReceiptData || window._activeSingleReceiptData || null;
 
     let tempWrapper = null;
     try {
       let captureEl = null;
+      let captureWidth = 480;
 
-      if (data) {
-        // Render dedicated Mobile Format Voucher Card!
-        tempWrapper = document.createElement('div');
-        tempWrapper.id = 'uhh_mobile_slip_render_wrapper';
-        tempWrapper.style.position = 'fixed';
-        tempWrapper.style.left = '-9999px';
-        tempWrapper.style.top = '0';
-        tempWrapper.style.width = '480px';
-        tempWrapper.style.maxWidth = '480px';
-        tempWrapper.style.zIndex = '-99999';
-        tempWrapper.style.background = '#ffffff';
-        tempWrapper.innerHTML = buildMobileSlipCardHTML(data);
-        document.body.appendChild(tempWrapper);
-        captureEl = tempWrapper.firstElementChild || tempWrapper;
+      // 🌟 MODE 1: MOBILE PASS (Default) - Vertical 480px, perfect for smartphones & WhatsApp!
+      if (mode === 'mobile') {
+        if (data) {
+          tempWrapper = document.createElement('div');
+          tempWrapper.id = 'uhh_mobile_slip_render_wrapper';
+          tempWrapper.style.position = 'fixed';
+          tempWrapper.style.left = '-9999px';
+          tempWrapper.style.top = '0';
+          tempWrapper.style.width = '480px';
+          tempWrapper.style.maxWidth = '480px';
+          tempWrapper.style.boxSizing = 'border-box';
+          tempWrapper.style.zIndex = '-99999';
+          tempWrapper.style.background = '#ffffff';
+          tempWrapper.innerHTML = buildMobileSlipCardHTML(data);
+          document.body.appendChild(tempWrapper);
+          captureEl = tempWrapper.firstElementChild || tempWrapper;
+          captureWidth = 480;
+        } else if (el) {
+          const target = el.querySelector('.uhh-receipt-container') || el;
+          tempWrapper = target.cloneNode(true);
+          tempWrapper.style.position = 'fixed';
+          tempWrapper.style.left = '-9999px';
+          tempWrapper.style.top = '0';
+          tempWrapper.style.width = '760px';
+          tempWrapper.style.zIndex = '-99999';
+          document.body.appendChild(tempWrapper);
+          captureEl = tempWrapper;
+          captureWidth = 760;
+        }
       } else {
-        // Fallback: unconstrained clone of DOM element
+        // 🌟 MODE 2: OFFICIAL RECEIPT (Full A4 / Desktop layout)
         const target = el ? (el.querySelector('.uhh-receipt-container') || el) : null;
-        if (!target) throw new Error('Target receipt container not found.');
-        tempWrapper = target.cloneNode(true);
-        tempWrapper.style.position = 'fixed';
-        tempWrapper.style.left = '-9999px';
-        tempWrapper.style.top = '0';
-        tempWrapper.style.width = '760px';
-        tempWrapper.style.zIndex = '-99999';
-        document.body.appendChild(tempWrapper);
-        captureEl = tempWrapper;
+        if (target) {
+          tempWrapper = target.cloneNode(true);
+          tempWrapper.id = 'uhh_official_receipt_render_wrapper';
+          tempWrapper.style.position = 'fixed';
+          tempWrapper.style.left = '-9999px';
+          tempWrapper.style.top = '0';
+          tempWrapper.style.width = '760px';
+          tempWrapper.style.maxWidth = '760px';
+          tempWrapper.style.boxSizing = 'border-box';
+          tempWrapper.style.zIndex = '-99999';
+          tempWrapper.style.background = '#ffffff';
+          document.body.appendChild(tempWrapper);
+          captureEl = tempWrapper;
+          captureWidth = 760;
+        } else if (data) {
+          tempWrapper = document.createElement('div');
+          tempWrapper.id = 'uhh_official_receipt_render_wrapper';
+          tempWrapper.style.position = 'fixed';
+          tempWrapper.style.left = '-9999px';
+          tempWrapper.style.top = '0';
+          tempWrapper.style.width = '760px';
+          tempWrapper.style.maxWidth = '760px';
+          tempWrapper.style.boxSizing = 'border-box';
+          tempWrapper.style.zIndex = '-99999';
+          tempWrapper.style.background = '#ffffff';
+          tempWrapper.innerHTML = data.isMulti ? buildMultiPropertyReceiptHTML(data) : buildReceiptHTML(data);
+          document.body.appendChild(tempWrapper);
+          captureEl = tempWrapper.firstElementChild || tempWrapper;
+          captureWidth = 760;
+        }
       }
+
+      if (!captureEl) throw new Error('Target receipt element not found.');
 
       // Wait for all images in captureEl to be ready
       const imgs = Array.from(captureEl.querySelectorAll('img'));
@@ -1331,7 +1419,7 @@ ${secAmount > 0 ? `▪️ *Refundable Security Deposit:* ₹${secAmount.toLocale
         return new Promise(res => {
           img.onload = res;
           img.onerror = res;
-          setTimeout(res, 250);
+          setTimeout(res, 300);
         });
       }));
 
@@ -1339,7 +1427,7 @@ ${secAmount > 0 ? `▪️ *Refundable Security Deposit:* ₹${secAmount.toLocale
       await new Promise(r => setTimeout(r, 60));
 
       const fullHeight = Math.max(captureEl.scrollHeight, captureEl.offsetHeight, 600);
-      const fullWidth = captureEl.offsetWidth || 480;
+      const fullWidth = captureEl.offsetWidth || captureWidth;
 
       // 🌟 ULTRA-CRISP 3X DPI RETINA CAPTURE (IRCTC Screenshot Grade Clarity)
       const canvas = await window.html2canvas(captureEl, {
@@ -1378,15 +1466,19 @@ ${secAmount > 0 ? `▪️ *Refundable Security Deposit:* ₹${secAmount.toLocale
               new ClipboardItem({ 'image/png': blob })
             ]);
             if (window.fsn?.success) {
-              fsn.success('Mobile Slip Copied', '📸 Mobile receipt image copied to clipboard! Preview shown below.');
+              fsn.success('Mobile Pass Copied', '📸 Mobile vertical slip copied to clipboard! Preview shown below.');
             }
           } catch(e) {
             console.warn('Silent clipboard copy failed:', e);
           }
         }
 
-        // Show rich interactive preview modal
-        showSlipImagePreviewModal(blob, filename, file);
+        // Show rich interactive preview modal with mode switcher
+        showSlipImagePreviewModal(blob, filename, file, {
+          elementId,
+          data,
+          currentMode: mode
+        });
       }, 'image/png');
     } catch(err) {
       if (tempWrapper && tempWrapper.parentNode) tempWrapper.remove();
@@ -1395,8 +1487,8 @@ ${secAmount > 0 ? `▪️ *Refundable Security Deposit:* ₹${secAmount.toLocale
     }
   }
 
-  // 4E. Visual Preview Modal for rendered receipt image
-  function showSlipImagePreviewModal(blob, filename, file) {
+  // 4E. Visual Preview Modal for rendered receipt image with format switcher
+  function showSlipImagePreviewModal(blob, filename, file, ctx = {}) {
     const old = document.getElementById('slipImagePreviewModal');
     if (old) old.remove();
 
@@ -1405,6 +1497,9 @@ ${secAmount > 0 ? `▪️ *Refundable Security Deposit:* ₹${secAmount.toLocale
     prevModal.className = 'modal-overlay';
     prevModal.id = 'slipImagePreviewModal';
     prevModal.style.zIndex = '999999';
+
+    const currentMode = ctx.currentMode || 'mobile';
+    const isMobile = currentMode === 'mobile';
 
     // Reliable teardown function
     let isClosed = false;
@@ -1429,18 +1524,20 @@ ${secAmount > 0 ? `▪️ *Refundable Security Deposit:* ₹${secAmount.toLocale
     window.addEventListener('keydown', handleKeyDown, true);
 
     prevModal.innerHTML = `
-      <div class="modal-box" style="max-width:760px;width:95%;max-height:92vh;display:flex;flex-direction:column;padding:18px 20px;border-radius:16px;background:#0F172A;color:#fff;box-shadow:0 25px 60px -12px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.08);position:relative;">
+      <div class="modal-box" style="max-width:820px;width:95%;max-height:92vh;display:flex;flex-direction:column;padding:18px 20px;border-radius:16px;background:#0F172A;color:#fff;box-shadow:0 25px 60px -12px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.08);position:relative;">
         
         <!-- Header with Sleek Integrated Close Button -->
-        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid rgba(255,255,255,0.1);">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid rgba(255,255,255,0.1);">
           <div style="display:flex;align-items:center;gap:12px;min-width:0;">
             <div style="width:42px;height:42px;border-radius:10px;background:rgba(99,102,241,0.18);border:1px solid rgba(99,102,241,0.3);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;">📸</div>
             <div style="min-width:0;">
               <div style="font-weight:900;font-size:15.5px;color:#F8FAFC;letter-spacing:-0.2px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-                <span>Mobile Voucher Slip Preview</span>
-                <span style="background:#10B981;color:#fff;font-size:10px;font-weight:800;padding:2px 7px;border-radius:6px;letter-spacing:0.3px;text-transform:uppercase;">WhatsApp HD (300 DPI)</span>
+                <span>${isMobile ? 'Mobile Voucher Slip Preview' : 'Official Receipt Image Preview'}</span>
+                <span style="background:#10B981;color:#fff;font-size:10px;font-weight:800;padding:2px 7px;border-radius:6px;letter-spacing:0.3px;text-transform:uppercase;">${isMobile ? 'WhatsApp HD (300 DPI Vertical)' : 'Full Receipt (300 DPI)'}</span>
               </div>
-              <div style="font-size:11.5px;color:#94A3B8;margin-top:2px;">Ultra-crisp 5-star mobile pass · Zero zoom needed on smartphones</div>
+              <div style="font-size:11.5px;color:#94A3B8;margin-top:2px;">
+                ${isMobile ? 'Ultra-crisp 5-star mobile vertical pass · Zero zoom needed on smartphones' : 'Full voucher with itemized billing, security deposit table, notes &amp; terms.'}
+              </div>
             </div>
           </div>
 
@@ -1451,6 +1548,19 @@ ${secAmount > 0 ? `▪️ *Refundable Security Deposit:* ₹${secAmount.toLocale
               <line x1="6" y1="6" x2="18" y2="18"></line>
             </svg>
           </button>
+        </div>
+
+        <!-- Format Switcher Pill Tabs -->
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px;flex-wrap:wrap;">
+          <div style="display:inline-flex;align-items:center;gap:4px;background:#1E293B;padding:4px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);">
+            <button type="button" id="btnTabMobile" style="padding:6px 14px;border-radius:6px;font-size:12px;font-weight:800;cursor:pointer;border:none;display:inline-flex;align-items:center;gap:6px;transition:all 0.15s;${isMobile ? 'background:#0284C7;color:#fff;box-shadow:0 2px 8px rgba(2,132,199,0.4);' : 'background:transparent;color:#94A3B8;'}">
+              📱 WhatsApp Mobile Pass (Vertical)
+            </button>
+            <button type="button" id="btnTabOfficial" style="padding:6px 14px;border-radius:6px;font-size:12px;font-weight:800;cursor:pointer;border:none;display:inline-flex;align-items:center;gap:6px;transition:all 0.15s;${!isMobile ? 'background:#0284C7;color:#fff;box-shadow:0 2px 8px rgba(2,132,199,0.4);' : 'background:transparent;color:#94A3B8;'}">
+              📄 Full Official Receipt (PDF Format)
+            </button>
+          </div>
+          <span style="font-size:11px;color:#94A3B8;">💡 Smartphone screens ke liye Vertical Pass recommended hai.</span>
         </div>
 
         <!-- Action Toolbar -->
@@ -1473,17 +1583,33 @@ ${secAmount > 0 ? `▪️ *Refundable Security Deposit:* ₹${secAmount.toLocale
             </svg>
             Close
           </button>
-          <span style="font-size:11px;color:#94A3B8;margin-left:auto;">💡 WhatsApp me seedha <strong>Ctrl+V</strong> karein ya ESC dabayein.</span>
+          <span style="font-size:11px;color:#94A3B8;margin-left:auto;">💡 WhatsApp Web me seedha <strong>Ctrl+V</strong> karein.</span>
         </div>
 
         <!-- Scrollable Image Preview -->
         <div style="flex:1;overflow-y:auto;background:#1E293B;padding:16px;border-radius:8px;text-align:center;">
-          <img src="${imgUrl}" alt="Slip Preview" style="width:480px;max-width:100%;height:auto;border-radius:10px;box-shadow:0 12px 30px rgba(0,0,0,0.45);background:#fff;display:inline-block;image-rendering:-webkit-optimize-contrast;image-rendering:crisp-edges;" />
+          <img src="${imgUrl}" alt="Slip Preview" style="${isMobile ? 'width:480px;max-width:100%;' : 'width:100%;max-width:720px;'}height:auto;border-radius:10px;box-shadow:0 12px 30px rgba(0,0,0,0.45);background:#fff;display:inline-block;image-rendering:-webkit-optimize-contrast;image-rendering:crisp-edges;" />
         </div>
       </div>
     `;
 
     document.body.appendChild(prevModal);
+
+    // Format Tab Click Handlers
+    const btnOfficial = prevModal.querySelector('#btnTabOfficial');
+    const btnMobile = prevModal.querySelector('#btnTabMobile');
+    if (btnOfficial && isMobile) {
+      btnOfficial.onclick = () => {
+        closeSlipPreview();
+        shareSlipAsImage(ctx.elementId, filename, ctx.data, 'official');
+      };
+    }
+    if (btnMobile && !isMobile) {
+      btnMobile.onclick = () => {
+        closeSlipPreview();
+        shareSlipAsImage(ctx.elementId, filename, ctx.data, 'mobile');
+      };
+    }
 
     // Close button interactions & hover animations
     const btnClose = prevModal.querySelector('#btnCloseSlipModal');
@@ -2464,40 +2590,62 @@ ${propertiesList}
           </div>
         ` : '')}
 
-        <!-- 🛡️ Interactive Security Deposit Control Bar -->
+        <!-- 🛡️ & 📝 Interactive Security Deposit & Guest Notes Control Bar -->
         ${(() => {
           const initSec = getSecurityDepositData(data.booking);
           const initAmt = initSec.amount || 0;
           const initSt = initSec.status || (initAmt > 0 ? 'collected' : 'none');
           const totalStay = Number(data.totalAmount || data.booking.total_amount || 0);
+          const initNotes = cleanNotes(data.booking.notes || '');
           return `
-            <div style="background:#EFF6FF;border:1.5px solid #3B82F6;border-radius:10px;padding:10px 14px;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;box-shadow:0 2px 4px rgba(59,130,246,0.08);">
-              <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-                <div style="font-weight:800;font-size:13px;color:#1E3A8A;display:flex;align-items:center;gap:5px;">
-                  🛡️ <span>Security Deposit:</span>
+            <div style="background:#EFF6FF;border:1.5px solid #3B82F6;border-radius:10px;padding:12px 16px;margin-bottom:12px;display:flex;flex-direction:column;gap:10px;box-shadow:0 2px 4px rgba(59,130,246,0.08);">
+              
+              <!-- Row 1: Security Deposit & Save Button -->
+              <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
+                <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+                  <div style="font-weight:800;font-size:13px;color:#1E3A8A;display:flex;align-items:center;gap:5px;">
+                    🛡️ <span>Security Deposit:</span>
+                  </div>
+                  <div style="display:flex;align-items:center;gap:5px;">
+                    <span style="font-size:13px;font-weight:800;color:#1E3A8A;">₹</span>
+                    <input type="number" id="receiptSecAmtInput" value="${initAmt}" placeholder="0" min="0" step="500" style="width:105px;padding:6px 10px;border:1.5px solid #3B82F6;border-radius:6px;font-size:13px;font-weight:800;color:#0F172A;background:#fff;" oninput="window.updateReceiptSecurityDepositLive()" />
+                  </div>
+                  <div style="display:flex;align-items:center;gap:6px;">
+                    <select id="receiptSecStatusSelect" style="padding:6px 10px;border:1.5px solid #3B82F6;border-radius:6px;font-size:12px;font-weight:700;color:#0F172A;background:#fff;" onchange="window.updateReceiptSecurityDepositLive()">
+                      <option value="collected" ${initSt === 'collected' ? 'selected' : ''}>✅ Deposit Held (जमा है)</option>
+                      <option value="pending" ${initSt === 'pending' || (initAmt > 0 && initSt === 'none') ? 'selected' : ''}>🟡 Pending Collection (लेना बाकी)</option>
+                      <option value="refunded" ${initSt === 'refunded' ? 'selected' : ''}>🟢 Refunded (वापस किया)</option>
+                      <option value="none" ${initSt === 'none' && !initAmt ? 'selected' : ''}>⚪ No Deposit</option>
+                    </select>
+                  </div>
+                  <div style="font-size:11.5px;color:#334155;">
+                    (Booking: <strong>₹${totalStay.toLocaleString('en-IN')}</strong> + Security: <strong id="receiptSecAmtBadge" style="color:#2563EB;">₹${initAmt.toLocaleString('en-IN')}</strong>)
+                  </div>
                 </div>
-                <div style="display:flex;align-items:center;gap:5px;">
-                  <span style="font-size:13px;font-weight:800;color:#1E3A8A;">₹</span>
-                  <input type="number" id="receiptSecAmtInput" value="${initAmt}" placeholder="0" min="0" step="500" style="width:110px;padding:6px 10px;border:1.5px solid #3B82F6;border-radius:6px;font-size:13px;font-weight:800;color:#0F172A;background:#fff;" oninput="window.updateReceiptSecurityDepositLive()" />
+
+                <button type="button" class="btn-sm" style="background:#059669;color:#fff;font-weight:800;border:none;padding:7px 14px;border-radius:6px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;font-size:12px;box-shadow:0 2px 4px rgba(5,150,105,0.25);" onclick="window.saveReceiptSecurityDepositToDB('${data.booking.booking_id}')">
+                  💾 Save Notes &amp; Deposit to Booking
+                </button>
+              </div>
+
+              <!-- Row 2: Special Notes & Extra Guest Requests (Gadda, etc.) -->
+              <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;border-top:1px dashed #BFDBFE;padding-top:8px;">
+                <div style="font-weight:800;font-size:12.5px;color:#1E3A8A;display:flex;align-items:center;gap:5px;flex-shrink:0;">
+                  📝 <span>Guest Requests / Notes:</span>
                 </div>
-                <div style="display:flex;align-items:center;gap:6px;">
-                  <select id="receiptSecStatusSelect" style="padding:6px 10px;border:1.5px solid #3B82F6;border-radius:6px;font-size:12px;font-weight:700;color:#0F172A;background:#fff;" onchange="window.updateReceiptSecurityDepositLive()">
-                    <option value="collected" ${initSt === 'collected' ? 'selected' : ''}>✅ Deposit Held (जमा है)</option>
-                    <option value="pending" ${initSt === 'pending' || (initAmt > 0 && initSt === 'none') ? 'selected' : ''}>🟡 Pending Collection (लेना बाकी)</option>
-                    <option value="refunded" ${initSt === 'refunded' ? 'selected' : ''}>🟢 Refunded (वापस किया)</option>
-                    <option value="none" ${initSt === 'none' && !initAmt ? 'selected' : ''}>⚪ No Deposit</option>
-                  </select>
+                <div style="flex:1;min-width:260px;">
+                  <input type="text" id="receiptCustomNotesInput" value="${escapeHtml(initNotes)}" placeholder="e.g. Extra mattress (gadda) provided, Early check-in requested, etc." style="width:100%;box-sizing:border-box;padding:7px 12px;border:1.5px solid #3B82F6;border-radius:6px;font-size:12.5px;font-weight:600;color:#0F172A;background:#fff;" oninput="window.updateReceiptSecurityDepositLive()" />
                 </div>
-                <div style="font-size:11.5px;color:#334155;">
-                  (Booking: <strong>₹${totalStay.toLocaleString('en-IN')}</strong> + Security: <strong id="receiptSecAmtBadge" style="color:#2563EB;">₹${initAmt.toLocaleString('en-IN')}</strong>)
+                <!-- Quick Preset Request Chips -->
+                <div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap;">
+                  <span style="font-size:10.5px;color:#475569;font-weight:700;">Quick add:</span>
+                  <button type="button" class="btn-chip" style="background:#DBEAFE;color:#1E40AF;border:1px solid #BFDBFE;border-radius:12px;font-size:10.5px;font-weight:700;padding:3px 9px;cursor:pointer;" onclick="window.appendReceiptCustomNote('Extra mattress (gadda) provided')">+ Gadda / Mattress</button>
+                  <button type="button" class="btn-chip" style="background:#DBEAFE;color:#1E40AF;border:1px solid #BFDBFE;border-radius:12px;font-size:10.5px;font-weight:700;padding:3px 9px;cursor:pointer;" onclick="window.appendReceiptCustomNote('Extra bedsheets &amp; blanket provided')">+ Blanket/Sheets</button>
+                  <button type="button" class="btn-chip" style="background:#DBEAFE;color:#1E40AF;border:1px solid #BFDBFE;border-radius:12px;font-size:10.5px;font-weight:700;padding:3px 9px;cursor:pointer;" onclick="window.appendReceiptCustomNote('Early check-in approved')">+ Early Check-in</button>
+                  <button type="button" class="btn-chip" style="background:#DBEAFE;color:#1E40AF;border:1px solid #BFDBFE;border-radius:12px;font-size:10.5px;font-weight:700;padding:3px 9px;cursor:pointer;" onclick="window.appendReceiptCustomNote('Late check-out approved')">+ Late Check-out</button>
                 </div>
               </div>
 
-              <div style="display:flex;gap:8px;align-items:center;">
-                <button type="button" class="btn-sm" style="background:#059669;color:#fff;font-weight:800;border:none;padding:7px 14px;border-radius:6px;cursor:pointer;display:inline-flex;align-items:center;gap:5px;font-size:12px;box-shadow:0 2px 4px rgba(5,150,105,0.2);" onclick="window.saveReceiptSecurityDepositToDB('${data.booking.booking_id}')">
-                  💾 Save Deposit to Booking
-                </button>
-              </div>
             </div>
           `;
         })()}
@@ -2524,22 +2672,56 @@ ${propertiesList}
     document.body.appendChild(modal);
   }
 
-  // Interactive Live Updater for Security Deposit in Receipt
+  // Quick Preset Helper for Notes
+  window.appendReceiptCustomNote = function(text) {
+    const input = document.getElementById('receiptCustomNotesInput');
+    if (!input) return;
+    const curr = input.value.trim();
+    if (curr) {
+      if (!curr.toLowerCase().includes(text.toLowerCase())) {
+        input.value = curr + ' · ' + text;
+      }
+    } else {
+      input.value = text;
+    }
+    window.updateReceiptSecurityDepositLive();
+  };
+
+  // Interactive Live Updater for Security Deposit & Notes in Receipt
   window.updateReceiptSecurityDepositLive = function() {
-    const data = window._activeReceiptData;
+    const data = window._activeReceiptData || window._activeSingleReceiptData;
     if (!data) return;
     const amtInput = document.getElementById('receiptSecAmtInput');
     const stSelect = document.getElementById('receiptSecStatusSelect');
+    const notesInput = document.getElementById('receiptCustomNotesInput');
+
     const amt = parseFloat(amtInput?.value) || 0;
     const st = stSelect?.value || (amt > 0 ? 'collected' : 'none');
+    const customNotes = notesInput ? notesInput.value.trim() : (data.customNotes || '');
 
     const badge = document.getElementById('receiptSecAmtBadge');
     if (badge) badge.textContent = '₹' + amt.toLocaleString('en-IN');
 
     const options = {
       securityDepositAmount: amt,
-      securityDepositStatus: st
+      securityDepositStatus: st,
+      customNotes: customNotes
     };
+
+    // Keep active data updated with live state
+    data.securityDepositAmount = amt;
+    data.securityDepositStatus = st;
+    data.customNotes = customNotes;
+    if (window._activeSingleReceiptData) {
+      window._activeSingleReceiptData.securityDepositAmount = amt;
+      window._activeSingleReceiptData.securityDepositStatus = st;
+      window._activeSingleReceiptData.customNotes = customNotes;
+    }
+    if (window._activeReceiptData) {
+      window._activeReceiptData.securityDepositAmount = amt;
+      window._activeReceiptData.securityDepositStatus = st;
+      window._activeReceiptData.customNotes = customNotes;
+    }
 
     const newHtml = buildReceiptHTML(data, options);
     const printEl = document.getElementById('receiptPrintArea');
@@ -2550,12 +2732,15 @@ ${propertiesList}
     if (waEl) waEl.value = newWa;
   };
 
-  // Save Security Deposit directly from Receipt Modal
+  // Save Security Deposit & Custom Notes directly from Receipt Modal
   window.saveReceiptSecurityDepositToDB = async function(bkId) {
     const amtInput = document.getElementById('receiptSecAmtInput');
     const stSelect = document.getElementById('receiptSecStatusSelect');
+    const notesInput = document.getElementById('receiptCustomNotesInput');
+
     const amt = parseFloat(amtInput?.value) || 0;
     const st = stSelect?.value || (amt > 0 ? 'collected' : 'none');
+    const userNotes = notesInput ? notesInput.value.trim() : '';
 
     const secData = {
       amount: amt,
@@ -2578,30 +2763,39 @@ ${propertiesList}
 
     try {
       const { data: currBk } = await client.from('guest_register').select('notes').eq('booking_id', bkId).single();
-      let currentNotes = currBk?.notes || '';
-      let updatedNotes = currentNotes;
-      if (updatedNotes.includes('[SECURITY_DEPOSIT:')) {
-        updatedNotes = updatedNotes.replace(/\[SECURITY_DEPOSIT:[\s\S]*?\]/, `[SECURITY_DEPOSIT:${JSON.stringify(secData)}]`);
-      } else {
-        updatedNotes = (updatedNotes ? updatedNotes + ' ' : '') + `[SECURITY_DEPOSIT:${JSON.stringify(secData)}]`;
-      }
+      const rawNotes = currBk?.notes || '';
+      const preservedComments = (rawNotes.match(/<!--[\s\S]*?-->/g) || []).join(' ');
 
-      const { error } = await client.from('guest_register').update({ notes: updatedNotes }).eq('booking_id', bkId);
+      let finalNotes = userNotes;
+      if (amt > 0 || st !== 'none') {
+        finalNotes = (finalNotes ? finalNotes + ' ' : '') + `[SECURITY_DEPOSIT:${JSON.stringify(secData)}]`;
+      }
+      if (preservedComments) {
+        finalNotes = (finalNotes ? finalNotes + ' ' : '') + ' ' + preservedComments;
+      }
+      finalNotes = finalNotes.trim();
+
+      const { error } = await client.from('guest_register').update({ notes: finalNotes }).eq('booking_id', bkId);
       if (error) throw error;
 
       if (window._activeReceiptData?.booking) {
-        window._activeReceiptData.booking.notes = updatedNotes;
+        window._activeReceiptData.booking.notes = finalNotes;
         window._activeReceiptData.booking.security_deposit_amount = amt;
         window._activeReceiptData.booking.security_deposit_status = st;
       }
+      if (window._activeSingleReceiptData?.booking) {
+        window._activeSingleReceiptData.booking.notes = finalNotes;
+        window._activeSingleReceiptData.booking.security_deposit_amount = amt;
+        window._activeSingleReceiptData.booking.security_deposit_status = st;
+      }
 
       if (window.fsn?.success) {
-        fsn.success('Deposit Saved', `🛡️ Security Deposit of ₹${amt.toLocaleString('en-IN')} successfully saved to booking!`);
+        fsn.success('Saved to Booking', `✅ Notes & Security Deposit successfully saved to booking!`);
       } else {
-        alert(`Security Deposit of ₹${amt.toLocaleString('en-IN')} successfully saved to booking!`);
+        alert(`Notes & Security Deposit successfully saved to booking!`);
       }
     } catch(err) {
-      alert('Error saving security deposit: ' + err.message);
+      alert('Error saving notes/deposit: ' + err.message);
     }
   };
 
