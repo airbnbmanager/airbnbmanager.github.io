@@ -4895,3 +4895,579 @@ body.luxe-property-page .hero-frame {
   background: #25d366;
   color: #fff;
 }
+
+/* ══════════════════════════════════════════════════════════════════════
+   AIRBNB LUXURY SHOWCASE DESIGN OVERRIDE (ANTI-SLOP & WORLD-CLASS REVERSE)
+   Reverse-engineered from Airbnb's flagship luxury property design system.
+   ══════════════════════════════════════════════════════════════════════ */
+
+/* Force clean white background and modern sans-serif typography */
+body, body.luxe-property-page {
+  background-color: #ffffff !important;
+  color: #222222 !important;
+  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif !important;
+  -webkit-font-smoothing: antialiased !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+/* 1. CLEAN AIRBNB TOP NAVIGATION BAR */
+.luxe-nav {
+  background: #ffffff !important;
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 9999 !important;
+  border-bottom: 1px solid #ebebeb !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06) !important;
+  height: 80px !important;
+  display: flex !important;
+  align-items: center !important;
+}
+
+.luxe-nav-container {
+  max-width: 1280px !important;
+  width: 100% !important;
+  margin: 0 auto !important;
+  padding: 0 24px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+}
+
+.luxe-nav-brand {
+  text-decoration: none !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 12px !important;
+}
+
+.luxe-nav-brand .brand-logo-wrap {
+  width: 40px !important;
+  height: 40px !important;
+  border-radius: 10px !important;
+  background: #ffffff !important;
+  border: 1px solid #ebebeb !important;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.06) !important;
+}
+
+.luxe-nav-brand .brand-logo {
+  width: 32px !important;
+  height: 32px !important;
+  object-fit: contain !important;
+}
+
+.luxe-brand-title {
+  color: #222222 !important;
+  font-size: 15px !important;
+  font-weight: 700 !important;
+  letter-spacing: -0.2px !important;
+  display: block !important;
+}
+
+.luxe-brand-sub {
+  color: #717171 !important;
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.5px !important;
+  text-transform: uppercase !important;
+}
+
+.luxe-nav-links {
+  display: flex !important;
+  align-items: center !important;
+  gap: 12px !important;
+}
+
+.luxe-nav-links a {
+  text-decoration: none !important;
+}
+
+.luxe-nav-links .luxe-nav-link {
+  color: #222222 !important;
+  font-weight: 600 !important;
+  font-size: 14px !important;
+  padding: 8px 14px !important;
+  border-radius: 8px !important;
+  transition: background 0.15s ease !important;
+}
+
+.luxe-nav-links .luxe-nav-link:hover {
+  background: #f7f7f7 !important;
+}
+
+.luxe-nav-links .luxe-nav-book {
+  background: linear-gradient(to right, #e61e4d 0%, #e31c5f 50%, #d70466 100%) !important;
+  color: #ffffff !important;
+  padding: 10px 22px !important;
+  border-radius: 999px !important;
+  font-weight: 700 !important;
+  font-size: 14px !important;
+  box-shadow: 0 2px 8px rgba(227, 28, 95, 0.25) !important;
+  transition: transform 0.15s ease, box-shadow 0.15s ease !important;
+}
+
+.luxe-nav-links .luxe-nav-book:hover {
+  transform: scale(1.02) !important;
+  box-shadow: 0 4px 14px rgba(227, 28, 95, 0.35) !important;
+}
+
+/* 2. WRAPPER & BREADCRUMB */
+.luxe-page-wrap {
+  max-width: 1280px !important;
+  margin: 0 auto !important;
+  padding: 24px 24px 80px !important;
+  background: #ffffff !important;
+  color: #222222 !important;
+}
+
+.luxe-breadcrumb {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  font-size: 13px !important;
+  color: #717171 !important;
+  margin-bottom: 14px !important;
+}
+
+.luxe-breadcrumb a {
+  color: #717171 !important;
+  text-decoration: none !important;
+}
+
+.luxe-breadcrumb a:hover {
+  color: #222222 !important;
+  text-decoration: underline !important;
+}
+
+/* 3. AIRBNB PROPERTY TITLE & META BAR */
+.luxe-header {
+  display: flex !important;
+  align-items: flex-end !important;
+  justify-content: space-between !important;
+  gap: 20px !important;
+  margin-bottom: 24px !important;
+}
+
+.luxe-title {
+  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif !important;
+  font-size: 26px !important;
+  font-weight: 600 !important;
+  color: #222222 !important;
+  line-height: 1.25 !important;
+  letter-spacing: -0.3px !important;
+  margin: 0 0 8px 0 !important;
+}
+
+.luxe-meta-bar {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  align-items: center !important;
+  gap: 8px !important;
+  font-size: 14px !important;
+  font-weight: 500 !important;
+  color: #222222 !important;
+}
+
+.luxe-badge-rating {
+  font-weight: 600 !important;
+  color: #222222 !important;
+}
+
+.luxe-badge-superhost {
+  color: #222222 !important;
+  font-weight: 600 !important;
+  background: transparent !important;
+  border: none !important;
+  padding: 0 !important;
+}
+
+.luxe-location-tag {
+  color: #222222 !important;
+  font-weight: 600 !important;
+  text-decoration: underline !important;
+  cursor: pointer !important;
+}
+
+.luxe-header-actions {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+}
+
+.luxe-action-btn {
+  background: transparent !important;
+  color: #222222 !important;
+  border: none !important;
+  text-decoration: underline !important;
+  font-size: 14px !important;
+  font-weight: 600 !important;
+  padding: 8px 12px !important;
+  border-radius: 8px !important;
+  cursor: pointer !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  transition: background 0.15s ease !important;
+}
+
+.luxe-action-btn:hover {
+  background: #f7f7f7 !important;
+}
+
+/* 4. AIRBNB 5-PHOTO BENTO MOSAIC GRID */
+.luxe-photo-mosaic {
+  position: relative !important;
+  display: grid !important;
+  grid-template-columns: 2fr 1fr 1fr !important;
+  grid-template-rows: 215px 215px !important;
+  gap: 8px !important;
+  border-radius: 16px !important;
+  overflow: hidden !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  margin-bottom: 24px !important;
+}
+
+.luxe-photo-mosaic .luxe-photo-item {
+  position: relative !important;
+  overflow: hidden !important;
+  cursor: pointer !important;
+  background: #f3f4f6 !important;
+}
+
+.luxe-photo-mosaic .luxe-photo-item img {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+  transition: filter 0.25s ease, transform 0.4s ease !important;
+}
+
+.luxe-photo-mosaic .luxe-photo-item:hover img {
+  filter: brightness(0.9) !important;
+}
+
+.luxe-photo-mosaic .luxe-photo-main {
+  grid-column: 1 / 2 !important;
+  grid-row: 1 / 3 !important;
+  border-top-left-radius: 16px !important;
+  border-bottom-left-radius: 16px !important;
+}
+
+.luxe-photo-mosaic .luxe-photo-item:nth-child(3) {
+  border-top-right-radius: 16px !important;
+}
+
+.luxe-photo-mosaic .luxe-photo-item:nth-child(5) {
+  border-bottom-right-radius: 16px !important;
+}
+
+/* Airbnb "Show all photos" button */
+.luxe-btn-show-all {
+  position: absolute !important;
+  bottom: 16px !important;
+  right: 16px !important;
+  background: #ffffff !important;
+  color: #222222 !important;
+  font-family: inherit !important;
+  font-size: 14px !important;
+  font-weight: 600 !important;
+  padding: 7px 15px !important;
+  border-radius: 8px !important;
+  border: 1px solid #222222 !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12) !important;
+  cursor: pointer !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  z-index: 10 !important;
+  transition: transform 0.15s ease, background 0.15s ease !important;
+}
+
+.luxe-btn-show-all:hover {
+  background: #f7f7f7 !important;
+  transform: scale(1.02) !important;
+}
+
+/* Category Strip Chips */
+.luxe-category-strip {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  overflow-x: auto !important;
+  padding: 8px 0 16px !important;
+  margin-bottom: 24px !important;
+  border-bottom: 1px solid #ebebeb !important;
+}
+
+.luxe-category-chip {
+  padding: 8px 16px !important;
+  border-radius: 999px !important;
+  border: 1px solid #dddddd !important;
+  background: #ffffff !important;
+  color: #222222 !important;
+  font-size: 13.5px !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+  white-space: nowrap !important;
+  transition: all 0.15s ease !important;
+}
+
+.luxe-category-chip:hover {
+  border-color: #222222 !important;
+}
+
+.luxe-category-chip.active {
+  background: #222222 !important;
+  color: #ffffff !important;
+  border-color: #222222 !important;
+}
+
+/* 5. TWO-COLUMN AIRBNB CONTENT GRID */
+.luxe-body-grid {
+  display: grid !important;
+  grid-template-columns: 1fr 380px !important;
+  gap: 60px !important;
+  align-items: start !important;
+}
+
+@media (max-width: 950px) {
+  .luxe-body-grid {
+    grid-template-columns: 1fr !important;
+    gap: 32px !important;
+  }
+}
+
+/* Subtitle & Specs Bar */
+.luxe-spec-bar {
+  padding-bottom: 24px !important;
+  border-bottom: 1px solid #ebebeb !important;
+  margin-bottom: 24px !important;
+}
+
+.luxe-spec-subtitle {
+  font-family: inherit !important;
+  font-size: 22px !important;
+  font-weight: 600 !important;
+  color: #222222 !important;
+  margin: 0 0 6px 0 !important;
+}
+
+.luxe-spec-pills {
+  font-size: 15px !important;
+  color: #717171 !important;
+  font-weight: 400 !important;
+}
+
+/* Highlights List */
+.luxe-highlights-list {
+  padding: 24px 0 !important;
+  border-bottom: 1px solid #ebebeb !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 20px !important;
+  margin-bottom: 24px !important;
+}
+
+.luxe-highlight-row {
+  display: flex !important;
+  align-items: flex-start !important;
+  gap: 16px !important;
+}
+
+.luxe-highlight-icon {
+  font-size: 22px !important;
+  width: 28px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  color: #222222 !important;
+  flex-shrink: 0 !important;
+}
+
+.luxe-highlight-text h4 {
+  font-size: 16px !important;
+  font-weight: 600 !important;
+  color: #222222 !important;
+  margin: 0 0 3px 0 !important;
+}
+
+.luxe-highlight-text p {
+  font-size: 14px !important;
+  color: #717171 !important;
+  line-height: 1.5 !important;
+  margin: 0 !important;
+}
+
+/* Content Sections */
+.luxe-section {
+  padding: 32px 0 !important;
+  border-bottom: 1px solid #ebebeb !important;
+}
+
+.luxe-section-title {
+  font-family: inherit !important;
+  font-size: 20px !important;
+  font-weight: 600 !important;
+  color: #222222 !important;
+  margin: 0 0 16px 0 !important;
+}
+
+.luxe-description-text {
+  font-size: 15px !important;
+  color: #222222 !important;
+  line-height: 1.65 !important;
+}
+
+/* Sleeping Arrangements Grid */
+.luxe-rooms-grid {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)) !important;
+  gap: 16px !important;
+}
+
+.luxe-room-card {
+  border: 1px solid #dddddd !important;
+  border-radius: 12px !important;
+  padding: 20px 16px !important;
+  background: #ffffff !important;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease !important;
+}
+
+.luxe-room-card:hover {
+  border-color: #222222 !important;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.06) !important;
+}
+
+.luxe-room-card-title {
+  font-weight: 600 !important;
+  font-size: 15px !important;
+  color: #222222 !important;
+  margin: 8px 0 4px !important;
+}
+
+.luxe-room-card-sub {
+  font-size: 13px !important;
+  color: #717171 !important;
+}
+
+/* Amenities Grid */
+.luxe-amenities-grid {
+  display: grid !important;
+  grid-template-columns: 1fr 1fr !important;
+  gap: 16px !important;
+}
+
+@media (max-width: 600px) {
+  .luxe-amenities-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+.luxe-amenity-item {
+  display: flex !important;
+  align-items: center !important;
+  gap: 14px !important;
+  font-size: 15px !important;
+  color: #222222 !important;
+}
+
+/* 6. AIRBNB RIGHT STICKY RESERVATION CARD */
+.luxe-sidebar-wrap {
+  position: sticky !important;
+  top: 104px !important;
+}
+
+.luxe-booking-card {
+  background: #ffffff !important;
+  border: 1px solid #dddddd !important;
+  border-radius: 16px !important;
+  padding: 24px !important;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12) !important;
+  color: #222222 !important;
+}
+
+.luxe-card-top-tag {
+  display: inline-block !important;
+  background: #ecfdf5 !important;
+  color: #059669 !important;
+  border: 1px solid #a7f3d0 !important;
+  padding: 4px 10px !important;
+  border-radius: 999px !important;
+  font-size: 12px !important;
+  font-weight: 700 !important;
+  margin-bottom: 14px !important;
+}
+
+.luxe-price-header {
+  display: flex !important;
+  align-items: baseline !important;
+  justify-content: space-between !important;
+  margin-bottom: 10px !important;
+}
+
+.luxe-price-amount {
+  font-size: 24px !important;
+  font-weight: 700 !important;
+  color: #222222 !important;
+}
+
+.luxe-price-unit {
+  font-size: 14px !important;
+  color: #717171 !important;
+  font-weight: 400 !important;
+}
+
+.luxe-airbnb-comparison {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  font-size: 13px !important;
+  margin-bottom: 16px !important;
+}
+
+.luxe-airbnb-strike {
+  color: #717171 !important;
+  text-decoration: line-through !important;
+}
+
+.luxe-save-tag {
+  color: #059669 !important;
+  font-weight: 700 !important;
+}
+
+/* 7. AIRBNB CLEAN MOBILE BOTTOM BAR */
+.luxe-mobile-bar {
+  background: #ffffff !important;
+  border-top: 1px solid #ebebeb !important;
+  box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.08) !important;
+  padding: 12px 20px !important;
+}
+
+.luxe-mobile-price-val {
+  color: #222222 !important;
+  font-size: 18px !important;
+  font-weight: 700 !important;
+}
+
+.luxe-mobile-price-sub {
+  color: #059669 !important;
+  font-weight: 700 !important;
+}
+
+/* Footer clean styling */
+.site-footer {
+  background: #f7f7f7 !important;
+  color: #222222 !important;
+  border-top: 1px solid #ebebeb !important;
+  padding: 40px 24px !important;
+}
+
+.site-footer a {
+  color: #717171 !important;
+  text-decoration: none !important;
+}
+
+.site-footer a:hover {
+  text-decoration: underline !important;
+  color: #222222 !important;
+}
