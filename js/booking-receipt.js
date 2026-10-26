@@ -936,10 +936,17 @@ ${secAmount > 0 ? `▪️ *Refundable Security Deposit:* ₹${secAmount.toLocale
     const paidAmount = Number(data.paidAmount || 0);
     const balanceDue = Number(data.balanceDue || 0);
     const payments = data.payments || [];
+
+    // Security Deposit Extraction
+    const secDep = isMulti ? { amount: 0, status: 'none' } : getSecurityDepositData(data.booking);
+    const secAmount = secDep.amount || 0;
+    const secStatus = secDep.status || 'none';
+
     const multiNotes = isMulti
       ? Array.from(new Set((data.bookings || []).map(b => cleanNotes(b.notes)).filter(Boolean))).join(' · ')
       : '';
-    const customNotes = data.customNotes || (isMulti ? (multiNotes || cleanNotes(data.primaryBooking?.notes) || '') : cleanNotes(data.booking?.notes));
+    const rawNotes = data.customNotes || (isMulti ? (multiNotes || data.primaryBooking?.notes || '') : data.booking?.notes || '');
+    const customNotes = cleanNotes(rawNotes);
     const bookedBy = isMulti ? (data.primaryBooking?.booked_by || '') : (data.booking?.booked_by || '');
 
     const receiptNo = isMulti ? `UHH-GRP/${data.stayGroupId || 'GROUP'}` : `UHH-REC/${data.booking?.booking_id || 'SLIP'}`;
@@ -1139,20 +1146,47 @@ ${secAmount > 0 ? `▪️ *Refundable Security Deposit:* ₹${secAmount.toLocale
           ${propertiesHTML}
         </div>
 
-        <!-- Financial Statement (3 Highlight Hero Metric Boxes) -->
+        ${secAmount > 0 ? `
+          <!-- Security Deposit Highlight Strip -->
+          <div style="background:#EFF6FF;border:1.5px solid #3B82F6;border-radius:10px;padding:9px 12px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;">
+            <div style="display:flex;align-items:center;gap:8px;">
+              <span style="font-size:16px;">🛡️</span>
+              <div>
+                <div style="font-size:10px;font-weight:800;color:#1E40AF;text-transform:uppercase;letter-spacing:0.5px;">Refundable Security Deposit</div>
+                <div style="font-size:15px;font-weight:900;color:#0F172A;">
+                  ₹${secAmount.toLocaleString('en-IN')} 
+                  <span style="font-size:10px;font-weight:800;padding:2px 7px;border-radius:6px;background:${secStatus === 'collected' ? '#DEF7EC' : (secStatus === 'refunded' ? '#F0FDF4' : '#FEF3C7')};color:${secStatus === 'collected' ? '#03543F' : (secStatus === 'refunded' ? '#15803D' : '#854D0E')};margin-left:4px;">
+                    ${secStatus === 'collected' ? '✅ DEPOSIT HELD (जमा है)' : (secStatus === 'refunded' ? '🟢 REFUNDED' : '🟡 PENDING COLLECTION')}
+                  </span>
+                </div>
+              </div>
+            </div>
+            <div style="font-size:9.5px;color:#2563EB;font-weight:700;">
+              *100% Refundable at check-out
+            </div>
+          </div>
+        ` : ''}
+
+        <!-- Financial Statement (Highlight Hero Metric Boxes) -->
         <div style="border:1.5px solid #0F172A;border-radius:10px;overflow:hidden;margin-bottom:10px;">
-          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;background:#F8FAFC;text-align:center;">
-            <div style="padding:10px 6px;border-right:1px solid #CBD5E1;">
-              <div style="font-size:10px;font-weight:900;color:#475569;text-transform:uppercase;">Total Bill</div>
-              <div style="font-size:17px;font-weight:900;color:#0F172A;margin-top:2px;">₹${totalAmount.toLocaleString('en-IN')}</div>
+          <div style="display:grid;grid-template-columns:${secAmount > 0 ? '1fr 1fr 1fr 1fr' : '1fr 1fr 1fr'};background:#F8FAFC;text-align:center;">
+            <div style="padding:10px 4px;border-right:1px solid #CBD5E1;">
+              <div style="font-size:9.5px;font-weight:900;color:#475569;text-transform:uppercase;">Stay Total</div>
+              <div style="font-size:16px;font-weight:900;color:#0F172A;margin-top:2px;">₹${totalAmount.toLocaleString('en-IN')}</div>
             </div>
-            <div style="padding:10px 6px;border-right:1px solid #CBD5E1;background:#F0FDF4;">
-              <div style="font-size:10px;font-weight:900;color:#15803D;text-transform:uppercase;">Advance Paid</div>
-              <div style="font-size:17px;font-weight:900;color:#059669;margin-top:2px;">₹${paidAmount.toLocaleString('en-IN')}</div>
+            ${secAmount > 0 ? `
+              <div style="padding:10px 4px;border-right:1px solid #CBD5E1;background:#F0F9FF;">
+                <div style="font-size:9.5px;font-weight:900;color:#0369A1;text-transform:uppercase;">🛡️ Deposit</div>
+                <div style="font-size:16px;font-weight:900;color:#0284C7;margin-top:2px;">₹${secAmount.toLocaleString('en-IN')}</div>
+              </div>
+            ` : ''}
+            <div style="padding:10px 4px;border-right:1px solid #CBD5E1;background:#F0FDF4;">
+              <div style="font-size:9.5px;font-weight:900;color:#15803D;text-transform:uppercase;">Advance Paid</div>
+              <div style="font-size:16px;font-weight:900;color:#059669;margin-top:2px;">₹${paidAmount.toLocaleString('en-IN')}</div>
             </div>
-            <div style="padding:10px 6px;background:${balanceDue > 0 ? '#FEF2F2' : '#F0FDF4'};">
-              <div style="font-size:10px;font-weight:900;color:${balanceDue > 0 ? '#DC2626' : '#15803D'};text-transform:uppercase;">${balanceDue > 0 ? 'Balance Due' : 'Cleared'}</div>
-              <div style="font-size:17px;font-weight:900;color:${balanceDue > 0 ? '#DC2626' : '#059669'};margin-top:2px;">₹${balanceDue.toLocaleString('en-IN')}</div>
+            <div style="padding:10px 4px;background:${balanceDue > 0 ? '#FEF2F2' : '#F0FDF4'};">
+              <div style="font-size:9.5px;font-weight:900;color:${balanceDue > 0 ? '#DC2626' : '#15803D'};text-transform:uppercase;">${balanceDue > 0 ? 'Due' : 'Cleared'}</div>
+              <div style="font-size:16px;font-weight:900;color:${balanceDue > 0 ? '#DC2626' : '#059669'};margin-top:2px;">₹${balanceDue.toLocaleString('en-IN')}</div>
             </div>
           </div>
 
