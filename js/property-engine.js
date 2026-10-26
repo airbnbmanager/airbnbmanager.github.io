@@ -2526,8 +2526,32 @@ _Please confirm room allotment and issue official GST Tax Invoice. Thank you!_`;
     /* ─── FULLSCREEN CATEGORIZED LIGHTBOX ─── */
     /* ─── FULLSCREEN CATEGORIZED LIGHTBOX (TOUCH, SWIPE & ANTI-ZOOM FOR IPAD/MOBILE) ─── */
     initGalleryModal() {
-      const modal = document.getElementById('luxe-gallery-modal');
-      if (!modal) return;
+      let modal = document.getElementById('luxe-gallery-modal');
+      if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'luxe-gallery-modal';
+        modal.className = 'luxe-gallery-modal';
+        modal.setAttribute('role', 'dialog');
+        modal.setAttribute('aria-modal', 'true');
+        modal.innerHTML = `
+          <div class="luxe-modal-top">
+            <div id="luxe-modal-tabs" class="luxe-modal-tabs">
+              <button type="button" class="luxe-modal-tab active">All Photos</button>
+            </div>
+            <div class="luxe-modal-actions">
+              <span id="luxe-modal-counter" class="luxe-modal-counter">Photo 1 of 5</span>
+              <button type="button" class="luxe-modal-close" onclick="window.luxeEngine && window.luxeEngine.closeGallery()" aria-label="Close Gallery">✕</button>
+            </div>
+          </div>
+          <div class="luxe-modal-body">
+            <button type="button" class="luxe-modal-nav-btn prev" onclick="window.luxeEngine && window.luxeEngine.prevPhoto()" aria-label="Previous Photo">‹</button>
+            <img id="luxe-modal-img" class="luxe-modal-view-img" src="" alt="Gallery View"/>
+            <button type="button" class="luxe-modal-nav-btn next" onclick="window.luxeEngine && window.luxeEngine.nextPhoto()" aria-label="Next Photo">›</button>
+          </div>
+          <div id="luxe-modal-ribbon" class="luxe-modal-ribbon"></div>
+        `;
+        document.body.appendChild(modal);
+      }
 
       // 1. Sleek Modern Progress Bar Injection
       let progressWrap = modal.querySelector('.luxe-modal-progress-wrap');
