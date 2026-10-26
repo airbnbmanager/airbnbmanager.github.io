@@ -1482,6 +1482,30 @@ window.openBookingDrawer = async function(bookingId) {
               </div>
             </div>
 
+            ${(() => {
+              const sec = (typeof getSecurityDeposit === 'function' ? getSecurityDeposit(b) : (typeof window.getSecurityDeposit === 'function' ? window.getSecurityDeposit(b) : null)) || (b.notes && b.notes.includes('[SECURITY_DEPOSIT:') ? (() => { try { return JSON.parse(b.notes.match(/\[SECURITY_DEPOSIT:(.*?)\]/)[1]); } catch(e){ return null; } })() : null);
+              const secAmt = parseFloat(sec?.amount || b.security_deposit_amount) || 0;
+              if (secAmt > 0) {
+                const isHeld = (sec?.status || b.security_deposit_status) === 'collected';
+                const isRef = (sec?.status || b.security_deposit_status) === 'refunded';
+                return `
+                  <div style="margin-bottom:12px;background:${isHeld ? '#EFF6FF' : (isRef ? '#F0FDF4' : '#FFFBEB')};border:1.5px solid ${isHeld ? '#93C5FD' : (isRef ? '#86EFAC' : '#FDE68A')};border-radius:8px;padding:8px 12px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+                    <div style="display:flex;align-items:center;gap:8px;">
+                      <span style="font-size:18px;">🛡️</span>
+                      <div>
+                        <div style="font-size:11px;font-weight:700;color:${isHeld ? '#1E40AF' : (isRef ? '#166534' : '#92400E')};text-transform:uppercase;letter-spacing:0.5px;">Security Deposit (Refundable)</div>
+                        <div style="font-size:14px;font-weight:900;color:#0F172A;">₹${secAmt.toLocaleString('en-IN')} <span style="font-size:11px;font-weight:600;color:${isHeld ? '#2563EB' : (isRef ? '#16A34A' : '#D97706')};">(${isHeld ? 'Deposit Held / जमा है' : (isRef ? 'Refunded' : 'Pending Collection')})</span></div>
+                      </div>
+                    </div>
+                    <button type="button" class="btn-sm" style="background:${isHeld ? '#2563EB' : '#059669'};color:#fff;border:none;padding:5px 12px;font-size:11.5px;font-weight:700;border-radius:6px;cursor:pointer;" onclick="if(window.showSecurityDepositModal) showSecurityDepositModal('${b.booking_id}')">
+                      🛡️ Manage Deposit
+                    </button>
+                  </div>
+                `;
+              }
+              return '';
+            })()}
+
             ${(payments && payments.length > 0) ? `
               <div style="font-size:12px;">
                 <div style="font-weight:700;color:var(--muted);margin-bottom:8px;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;">Payment Audit &amp; Transactions:</div>

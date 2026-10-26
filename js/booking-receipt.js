@@ -67,7 +67,80 @@ window.BOOKING_RECEIPT_ENGINE = (function() {
 
   function cleanNotes(notes) {
     if (!notes) return '';
-    return String(notes).replace(/<!--SEC_DEP:[\s\S]*?-->/g, '').trim();
+    return String(notes)
+      .replace(/<!--SEC_DEP:[\s\S]*?-->/g, '')
+      .replace(/\[SECURITY_DEPOSIT:[\s\S]*?\]/g, '')
+      .trim();
+  }
+
+  function getSecurityDepositData(b, options = {}) {
+    if (options && options.securityDepositAmount != null) {
+      const amt = Number(options.securityDepositAmount) || 0;
+      const st = options.securityDepositStatus || (amt > 0 ? 'collected' : 'none');
+      return {
+        amount: amt,
+        status: st,
+        mode: options.securityDepositMode || 'UPI',
+        receivedBy: options.securityDepositReceivedBy || '',
+        receivedDate: options.securityDepositReceivedDate || ''
+      };
+    }
+    if (!b) return { amount: 0, status: 'none', mode: 'UPI' };
+
+    // 1. Native column check
+    if (b.security_deposit_amount != null && Number(b.security_deposit_amount) > 0) {
+      return {
+        amount: Number(b.security_deposit_amount) || 0,
+        status: b.security_deposit_status || 'collected',
+        mode: b.security_deposit_mode || 'UPI',
+        receivedBy: b.security_deposit_received_by || '',
+        receivedDate: b.security_deposit_received_date || ''
+      };
+    }
+
+    // 2. [SECURITY_DEPOSIT:{...}] check in notes
+    if (b.notes && b.notes.includes('[SECURITY_DEPOSIT:')) {
+      try {
+        const match = b.notes.match(/\[SECURITY_DEPOSIT:(.*?)\]/);
+        if (match && match[1]) {
+          const p = JSON.parse(match[1]);
+          return {
+            amount: parseFloat(p.amount) || 0,
+            status: p.status || (parseFloat(p.amount) > 0 ? 'collected' : 'none'),
+            mode: p.mode || 'UPI',
+            receivedBy: p.receivedBy || '',
+            receivedDate: p.receivedDate || ''
+          };
+        }
+      } catch(e) {}
+    }
+
+    // 3. <!--SEC_DEP:{...}--> check in notes
+    if (b.notes && b.notes.includes('<!--SEC_DEP:')) {
+      try {
+        const match = b.notes.match(/<!--SEC_DEP:(.*?)-->/);
+        if (match && match[1]) {
+          const p = JSON.parse(match[1]);
+          return {
+            amount: parseFloat(p.amount) || 0,
+            status: p.status || (parseFloat(p.amount) > 0 ? 'collected' : 'none'),
+            mode: p.mode || 'UPI',
+            receivedBy: p.receivedBy || '',
+            receivedDate: p.receivedDate || ''
+          };
+        }
+      } catch(e) {}
+    }
+
+    // 4. Global helper if available
+    if (typeof window.getSecurityDeposit === 'function') {
+      try {
+        const g = window.getSecurityDeposit(b);
+        if (g && g.amount > 0) return g;
+      } catch(e) {}
+    }
+
+    return { amount: 0, status: 'none', mode: 'UPI' };
   }
 
   function calcNights(cin, cout) {
@@ -205,6 +278,10 @@ window.BOOKING_RECEIPT_ENGINE = (function() {
     const address = room.address || 'Lucknow, Uttar Pradesh';
     const mapLink = room.map_link || '';
 
+    const secDep = getSecurityDepositData(booking, options);
+    const secAmount = secDep.amount || 0;
+    const secStatus = secDep.status || 'none';
+
     const checkInDate = formatDate(booking.check_in);
     const checkOutDate = formatDate(booking.check_out);
     const checkInTime = formatTime(booking.check_in_time || '14:00');
@@ -288,6 +365,24 @@ window.BOOKING_RECEIPT_ENGINE = (function() {
           </div>
         </div>
 
+        ${secAmount > 0 ? `
+          <!-- Security Deposit Highlight Strip -->
+          <div style="background:#EFF6FF;border:1.5px solid #3B82F6;border-radius:6px;padding:5px 10px;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;">
+            <div style="display:flex;align-items:center;gap:6px;">
+              <span style="font-size:14px;">🛡️</span>
+              <div>
+                <strong style="color:#1E40AF;font-size:10.5px;">REFUNDABLE SECURITY DEPOSIT: ₹${secAmount.toLocaleString('en-IN')}</strong>
+                <span style="background:${secStatus === 'collected' ? '#DEF7EC' : (secStatus === 'refunded' ? '#F0FDF4' : '#FEF3C7')};color:${secStatus === 'collected' ? '#03543F' : (secStatus === 'refunded' ? '#15803D' : '#854D0E')};font-size:8.5px;padding:1px 6px;border-radius:4px;font-weight:800;margin-left:4px;">
+                  ${secStatus === 'collected' ? '✅ DEPOSIT HELD (सुरक्षा राशि जमा है)' : (secStatus === 'refunded' ? '🟢 REFUNDED' : '🟡 PENDING COLLECTION')}
+                </span>
+              </div>
+            </div>
+            <div style="font-size:8.5px;color:#2563EB;font-weight:700;">
+              *100% Refundable at check-out upon property inspection
+            </div>
+          </div>
+        ` : ''}
+
         <!-- 2 Column Overview: Guest & Stay -->
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:6px;">
           
@@ -335,24 +430,38 @@ window.BOOKING_RECEIPT_ENGINE = (function() {
             </div>
           </div>
 
-          <!-- 3 Highlight Boxes -->
-          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;background:#F8FAFC;border-bottom:1px solid #E2E8F0;text-align:center;">
+          <!-- Financial Highlight Boxes (With Security Deposit if present) -->
+          <div style="display:grid;grid-template-columns:${secAmount > 0 ? '1fr 1fr 1fr 1fr' : '1fr 1fr 1fr'};background:#F8FAFC;border-bottom:1px solid #E2E8F0;text-align:center;">
             
             <div style="padding:6px;border-right:1px solid #E2E8F0;">
               <div style="font-size:9px;font-weight:700;color:#64748B;text-transform:uppercase;margin-bottom:1px;">
-                Total Booking Amount
+                Stay Accommodation
               </div>
               <div style="font-size:15px;font-weight:900;color:#0F172A;">
                 ₹${totalAmount.toLocaleString('en-IN')}
               </div>
               <div style="font-size:8.5px;color:#64748B;">
-                ₹${Math.round(totalAmount / (nights || 1)).toLocaleString('en-IN')} / night
+                ₹${Math.round(totalAmount / (nights || 1)).toLocaleString('en-IN')} / night · ${nights}N
               </div>
             </div>
 
+            ${secAmount > 0 ? `
+              <div style="padding:6px;border-right:1px solid #E2E8F0;background:#F0F9FF;">
+                <div style="font-size:9px;font-weight:800;color:#0369A1;text-transform:uppercase;margin-bottom:1px;">
+                  🛡️ Security Deposit
+                </div>
+                <div style="font-size:15px;font-weight:900;color:#0284C7;">
+                  ₹${secAmount.toLocaleString('en-IN')}
+                </div>
+                <div style="font-size:8.5px;color:#0369A1;font-weight:700;">
+                  ${secStatus === 'collected' ? '✅ Held (Refundable)' : (secStatus === 'refunded' ? '🟢 Refunded' : '🟡 Pending Collection')}
+                </div>
+              </div>
+            ` : ''}
+
             <div style="padding:6px;border-right:1px solid #E2E8F0;background:#F0FDF4;">
               <div style="font-size:9px;font-weight:800;color:#15803D;text-transform:uppercase;margin-bottom:1px;">
-                ✔ Advance / Amount Paid
+                ✔ Advance / Paid
               </div>
               <div style="font-size:15px;font-weight:900;color:#059669;">
                 ₹${paidAmount.toLocaleString('en-IN')}
@@ -364,7 +473,7 @@ window.BOOKING_RECEIPT_ENGINE = (function() {
 
             <div style="padding:6px;background:${balanceDue > 0 ? '#FEF2F2' : '#F0FDF4'};">
               <div style="font-size:9px;font-weight:800;color:${balanceDue > 0 ? '#DC2626' : '#15803D'};text-transform:uppercase;margin-bottom:1px;">
-                ${balanceDue > 0 ? '⚠️ Balance Due at Check-in' : '✅ Balance Remaining'}
+                ${balanceDue > 0 ? '⚠️ Balance Due' : '✅ Balance Remaining'}
               </div>
               <div style="font-size:15px;font-weight:900;color:${balanceDue > 0 ? '#DC2626' : '#059669'};">
                 ₹${balanceDue.toLocaleString('en-IN')}
@@ -374,6 +483,48 @@ window.BOOKING_RECEIPT_ENGINE = (function() {
               </div>
             </div>
 
+          </div>
+
+          <!-- Itemized Stay & Security Deposit Particulars -->
+          <div style="padding:4px 8px;border-bottom:1px solid #CBD5E1;background:#F8FAFC;">
+            <table style="width:100%;border-collapse:collapse;font-size:9.5px;">
+              <thead>
+                <tr style="color:#64748B;text-align:left;font-size:8.5px;text-transform:uppercase;letter-spacing:0.5px;">
+                  <th style="padding:2px 4px;font-weight:800;">Billing Particulars</th>
+                  <th style="padding:2px 4px;font-weight:800;text-align:center;">Type</th>
+                  <th style="padding:2px 4px;font-weight:800;text-align:center;">Refundable?</th>
+                  <th style="padding:2px 4px;font-weight:800;text-align:right;">Amount (₹)</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr style="border-bottom:1px solid #E2E8F0;">
+                  <td style="padding:3px 4px;font-weight:700;color:#0F172A;">
+                    🏠 Homestay Stay Charges (${propName}${unitNo}) · ${nights} Night(s)
+                  </td>
+                  <td style="padding:3px 4px;text-align:center;color:#64748B;">Accommodation</td>
+                  <td style="padding:3px 4px;text-align:center;color:#64748B;">No</td>
+                  <td style="padding:3px 4px;text-align:right;font-weight:800;color:#0F172A;">₹${totalAmount.toLocaleString('en-IN')}</td>
+                </tr>
+                ${secAmount > 0 ? `
+                  <tr style="background:#F0F9FF;border-bottom:1px solid #BAE6FD;">
+                    <td style="padding:3px 4px;font-weight:700;color:#0369A1;">
+                      🛡️ Refundable Security Deposit (वापसी योग्य सुरक्षा राशि)
+                    </td>
+                    <td style="padding:3px 4px;text-align:center;color:#0284C7;font-weight:700;">Security Deposit</td>
+                    <td style="padding:3px 4px;text-align:center;"><span style="background:#DCFCE7;color:#166534;padding:1px 5px;border-radius:3px;font-weight:800;font-size:8px;">Yes (100%)</span></td>
+                    <td style="padding:3px 4px;text-align:right;font-weight:900;color:#0284C7;">₹${secAmount.toLocaleString('en-IN')}</td>
+                  </tr>
+                  <tr style="background:#F1F5F9;font-weight:800;">
+                    <td colspan="3" style="padding:3px 4px;text-align:right;color:#475569;font-size:8.5px;text-transform:uppercase;">
+                      Total Stay + Security Deposit:
+                    </td>
+                    <td style="padding:3px 4px;text-align:right;font-weight:900;color:#0F172A;font-size:10.5px;">
+                      ₹${(totalAmount + secAmount).toLocaleString('en-IN')}
+                    </td>
+                  </tr>
+                ` : ''}
+              </tbody>
+            </table>
           </div>
 
           <!-- Payment Transactions Table -->
@@ -412,6 +563,7 @@ window.BOOKING_RECEIPT_ENGINE = (function() {
             <!-- Words Summary -->
             <div style="padding:3px 6px;background:#F8FAFC;border:1px dashed #CBD5E1;border-radius:4px;font-size:9px;color:#334155;line-height:1.4;">
               <strong>Advance Paid in Words:</strong> ${wordsPaid} &nbsp;|&nbsp;
+              ${secAmount > 0 ? `<strong>Security Deposit:</strong> <span style="color:#0284C7;font-weight:700;">${numToWords(secAmount)}</span> (${secStatus === 'collected' ? 'Held' : 'Pending'}) &nbsp;|&nbsp; ` : ''}
               ${balanceDue > 0 ? `<strong>Remaining Balance:</strong> <span style="color:#DC2626;font-weight:700;">${wordsBalance}</span> (Due at Check-in)` : '<strong>Status:</strong> <span style="color:#059669;font-weight:700;">Full payment received with thanks!</span>'}
             </div>
 
@@ -443,7 +595,8 @@ window.BOOKING_RECEIPT_ENGINE = (function() {
           2. <strong>Timings:</strong> Check-in: 02:00 PM | Check-out: 11:00 AM (early/late subject to availability). &nbsp;•&nbsp;
           3. <strong>Peaceful Neighbourhood:</strong> Loud music/noise prohibited after 11:00 PM. &nbsp;•&nbsp;
           4. <strong>Balance Settlement:</strong> Outstanding balance must be settled upon arrival before room handover. &nbsp;•&nbsp;
-          5. <strong>Non-GST Slip:</strong> Official booking voucher &amp; payment confirmation without GST output tax credit.
+          ${secAmount > 0 ? `5. <strong>Security Deposit:</strong> Refundable deposit of ₹${secAmount.toLocaleString('en-IN')} is returned promptly at check-out via UPI/Cash post room inspection. &nbsp;•&nbsp;` : ''}
+          ${secAmount > 0 ? '6' : '5'}. <strong>Non-GST Slip:</strong> Official booking voucher &amp; payment confirmation without GST output tax credit.
         </div>
 
         <!-- Signature & Seal -->
@@ -468,13 +621,17 @@ window.BOOKING_RECEIPT_ENGINE = (function() {
   }
 
   // 3. Build Formatted WhatsApp Text
-  function buildReceiptWhatsAppText(data) {
+  function buildReceiptWhatsAppText(data, options = {}) {
     const { booking, payments, totalAmount, paidAmount, balanceDue, nights } = data;
     const room = booking.rooms || {};
     const propName = room.nickname || room.property_name || booking.room_id || 'Homestay Property';
     const unitNo = room.unit_no ? ` (${room.unit_no})` : '';
     const address = room.address || 'Lucknow, Uttar Pradesh';
     const mapStr = room.map_link ? `\n📍 *Map:* ${room.map_link}` : '';
+
+    const secDep = getSecurityDepositData(booking, options);
+    const secAmount = secDep.amount || 0;
+    const secStatus = secDep.status || 'none';
 
     const checkInDate = formatDate(booking.check_in);
     const checkOutDate = formatDate(booking.check_out);
@@ -504,10 +661,12 @@ Thank you for choosing *The Unique Haven Homes*. Your direct reservation has bee
 
 💰 *PAYMENT BREAKDOWN:*
 ━━━━━━━━━━━━━━━━━━━━
-▪️ *Total Booking Amount:* ₹${totalAmount.toLocaleString('en-IN')}
-▪️ *Advance Paid:* ₹${paidAmount.toLocaleString('en-IN')} ✅
+▪️ *Stay / Booking Rent:* ₹${totalAmount.toLocaleString('en-IN')}
+${secAmount > 0 ? `▪️ *Refundable Security Deposit:* ₹${secAmount.toLocaleString('en-IN')} (${secStatus === 'collected' ? '✅ Held / जमा है' : (secStatus === 'refunded' ? '🟢 Refunded' : '🟡 Due at Check-in')})
+▪️ *Total Payable:* ₹${(totalAmount + secAmount).toLocaleString('en-IN')}
+` : ''}▪️ *Advance Paid:* ₹${paidAmount.toLocaleString('en-IN')} ✅
 ▪️ *Balance Due:* ₹${balanceDue.toLocaleString('en-IN')} ${balanceDue > 0 ? '⚠️ (Payable at Check-in)' : '✅ (Fully Cleared)'}
-━━━━━━━━━━━━━━━━━━━━${payHistoryText}${cleanNotes(booking.notes) ? `\n\n📝 *Special Note:*\n${cleanNotes(booking.notes)}` : ''}
+━━━━━━━━━━━━━━━━━━━━${secAmount > 0 ? `\n🛡️ *Security Deposit Policy:* ₹${secAmount.toLocaleString('en-IN')} is 100% refundable at check-out post room & inventory inspection.\n` : ''}${payHistoryText}${cleanNotes(booking.notes) ? `\n\n📝 *Special Note:*\n${cleanNotes(booking.notes)}` : ''}
 
 👑 *Company Owners / Directors:*
 • Mr. Shahanshah: +91 94500 55554
@@ -2261,6 +2420,44 @@ ${propertiesList}
           </div>
         ` : '')}
 
+        <!-- 🛡️ Interactive Security Deposit Control Bar -->
+        ${(() => {
+          const initSec = getSecurityDepositData(data.booking);
+          const initAmt = initSec.amount || 0;
+          const initSt = initSec.status || (initAmt > 0 ? 'collected' : 'none');
+          const totalStay = Number(data.totalAmount || data.booking.total_amount || 0);
+          return `
+            <div style="background:#EFF6FF;border:1.5px solid #3B82F6;border-radius:10px;padding:10px 14px;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;box-shadow:0 2px 4px rgba(59,130,246,0.08);">
+              <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+                <div style="font-weight:800;font-size:13px;color:#1E3A8A;display:flex;align-items:center;gap:5px;">
+                  🛡️ <span>Security Deposit:</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:5px;">
+                  <span style="font-size:13px;font-weight:800;color:#1E3A8A;">₹</span>
+                  <input type="number" id="receiptSecAmtInput" value="${initAmt}" placeholder="0" min="0" step="500" style="width:110px;padding:6px 10px;border:1.5px solid #3B82F6;border-radius:6px;font-size:13px;font-weight:800;color:#0F172A;background:#fff;" oninput="window.updateReceiptSecurityDepositLive()" />
+                </div>
+                <div style="display:flex;align-items:center;gap:6px;">
+                  <select id="receiptSecStatusSelect" style="padding:6px 10px;border:1.5px solid #3B82F6;border-radius:6px;font-size:12px;font-weight:700;color:#0F172A;background:#fff;" onchange="window.updateReceiptSecurityDepositLive()">
+                    <option value="collected" ${initSt === 'collected' ? 'selected' : ''}>✅ Deposit Held (जमा है)</option>
+                    <option value="pending" ${initSt === 'pending' || (initAmt > 0 && initSt === 'none') ? 'selected' : ''}>🟡 Pending Collection (लेना बाकी)</option>
+                    <option value="refunded" ${initSt === 'refunded' ? 'selected' : ''}>🟢 Refunded (वापस किया)</option>
+                    <option value="none" ${initSt === 'none' && !initAmt ? 'selected' : ''}>⚪ No Deposit</option>
+                  </select>
+                </div>
+                <div style="font-size:11.5px;color:#334155;">
+                  (Booking: <strong>₹${totalStay.toLocaleString('en-IN')}</strong> + Security: <strong id="receiptSecAmtBadge" style="color:#2563EB;">₹${initAmt.toLocaleString('en-IN')}</strong>)
+                </div>
+              </div>
+
+              <div style="display:flex;gap:8px;align-items:center;">
+                <button type="button" class="btn-sm" style="background:#059669;color:#fff;font-weight:800;border:none;padding:7px 14px;border-radius:6px;cursor:pointer;display:inline-flex;align-items:center;gap:5px;font-size:12px;box-shadow:0 2px 4px rgba(5,150,105,0.2);" onclick="window.saveReceiptSecurityDepositToDB('${data.booking.booking_id}')">
+                  💾 Save Deposit to Booking
+                </button>
+              </div>
+            </div>
+          `;
+        })()}
+
         <textarea id="receiptWaHidden" style="display:none;">${escapeHtml(waText)}</textarea>
 
         <!-- Printable Document View Wrapper -->
@@ -2282,6 +2479,87 @@ ${propertiesList}
 
     document.body.appendChild(modal);
   }
+
+  // Interactive Live Updater for Security Deposit in Receipt
+  window.updateReceiptSecurityDepositLive = function() {
+    const data = window._activeReceiptData;
+    if (!data) return;
+    const amtInput = document.getElementById('receiptSecAmtInput');
+    const stSelect = document.getElementById('receiptSecStatusSelect');
+    const amt = parseFloat(amtInput?.value) || 0;
+    const st = stSelect?.value || (amt > 0 ? 'collected' : 'none');
+
+    const badge = document.getElementById('receiptSecAmtBadge');
+    if (badge) badge.textContent = '₹' + amt.toLocaleString('en-IN');
+
+    const options = {
+      securityDepositAmount: amt,
+      securityDepositStatus: st
+    };
+
+    const newHtml = buildReceiptHTML(data, options);
+    const printEl = document.getElementById('receiptPrintArea');
+    if (printEl) printEl.innerHTML = newHtml;
+
+    const newWa = buildReceiptWhatsAppText(data, options);
+    const waEl = document.getElementById('receiptWaHidden');
+    if (waEl) waEl.value = newWa;
+  };
+
+  // Save Security Deposit directly from Receipt Modal
+  window.saveReceiptSecurityDepositToDB = async function(bkId) {
+    const amtInput = document.getElementById('receiptSecAmtInput');
+    const stSelect = document.getElementById('receiptSecStatusSelect');
+    const amt = parseFloat(amtInput?.value) || 0;
+    const st = stSelect?.value || (amt > 0 ? 'collected' : 'none');
+
+    const secData = {
+      amount: amt,
+      status: st,
+      mode: 'UPI',
+      receivedDate: new Date().toISOString().slice(0, 10),
+      notes: `Security deposit ₹${amt}`
+    };
+
+    let client = window.sb;
+    if (!client && typeof supabase !== 'undefined') {
+      const url = typeof SUPABASE_URL !== 'undefined' ? SUPABASE_URL : window.SUPABASE_URL;
+      const key = typeof SUPABASE_ANON_KEY !== 'undefined' ? SUPABASE_ANON_KEY : window.SUPABASE_ANON_KEY;
+      if (url && key) client = supabase.createClient(url, key);
+    }
+    if (!client) {
+      alert('Database connection not available');
+      return;
+    }
+
+    try {
+      const { data: currBk } = await client.from('guest_register').select('notes').eq('booking_id', bkId).single();
+      let currentNotes = currBk?.notes || '';
+      let updatedNotes = currentNotes;
+      if (updatedNotes.includes('[SECURITY_DEPOSIT:')) {
+        updatedNotes = updatedNotes.replace(/\[SECURITY_DEPOSIT:[\s\S]*?\]/, `[SECURITY_DEPOSIT:${JSON.stringify(secData)}]`);
+      } else {
+        updatedNotes = (updatedNotes ? updatedNotes + ' ' : '') + `[SECURITY_DEPOSIT:${JSON.stringify(secData)}]`;
+      }
+
+      const { error } = await client.from('guest_register').update({ notes: updatedNotes }).eq('booking_id', bkId);
+      if (error) throw error;
+
+      if (window._activeReceiptData?.booking) {
+        window._activeReceiptData.booking.notes = updatedNotes;
+        window._activeReceiptData.booking.security_deposit_amount = amt;
+        window._activeReceiptData.booking.security_deposit_status = st;
+      }
+
+      if (window.fsn?.success) {
+        fsn.success('Deposit Saved', `🛡️ Security Deposit of ₹${amt.toLocaleString('en-IN')} successfully saved to booking!`);
+      } else {
+        alert(`Security Deposit of ₹${amt.toLocaleString('en-IN')} successfully saved to booking!`);
+      }
+    } catch(err) {
+      alert('Error saving security deposit: ' + err.message);
+    }
+  };
 
   // Public API
   return {
