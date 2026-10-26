@@ -158,6 +158,19 @@ async function buildMessageData(bkId) {
     .filter(l => l.investors && l.investors.phone)
     .map(l => ({ name: l.investors.name, phone: cleanPhone(l.investors.phone) }));
 
+  // Fetch security deposit if any
+  let secData = null;
+  if (typeof window.getSecurityDeposit === 'function') {
+    secData = window.getSecurityDeposit(bk);
+  } else if (bk.notes && bk.notes.includes('[SECURITY_DEPOSIT:')) {
+    try {
+      const match = bk.notes.match(/\[SECURITY_DEPOSIT:(.*?)\]/);
+      if (match && match[1]) secData = JSON.parse(match[1]);
+    } catch(e) {}
+  }
+  const secAmount = parseFloat(secData?.amount || bk.security_deposit_amount) || 0;
+  const secStatus = secData?.status || bk.security_deposit_status || (secAmount > 0 ? 'collected' : 'none');
+
   return {
     bk, room, config,
     guestName: bk.guest_name || 'Guest',
@@ -181,6 +194,9 @@ async function buildMessageData(bkId) {
     total: bk.total_amount || 0,
     paid: totalPaid,
     due: totalDue,
+    secAmount,
+    secStatus,
+    securityDeposit: secData || { amount: secAmount, status: secStatus },
     vehicle: bk.has_vehicle ? ((bk.vehicle_name || '') + ' ' + (bk.vehicle_number || '')).trim() : null,
     caretaker: primaryCaretaker,
     caretakerBlock,
@@ -283,7 +299,7 @@ Thank you for choosing *The Unique Haven Homes*. Your direct reservation has bee
 ━━━━━━━━━━━━━━━━━━━━
 ▪️ *Total Booking Amount:* ₹${total.toLocaleString('en-IN')}
 ▪️ *Advance Paid:* ₹${paid.toLocaleString('en-IN')} ✅
-▪️ *Balance Due:* ₹${due.toLocaleString('en-IN')} ${due > 0 ? '⚠️ (Payable at Check-in)' : '✅ (Fully Cleared)'}
+▪️ *Balance Due:* ₹${due.toLocaleString('en-IN')} ${due > 0 ? '⚠️ (Payable at Check-in)' : '✅ (Fully Cleared)'}${d.secAmount > 0 ? `\n▪️ *Refundable Security Deposit:* ₹${d.secAmount.toLocaleString('en-IN')} (${d.secStatus === 'collected' ? '✅ Held / जमा है' : (d.secStatus === 'refunded' ? '🟢 Refunded' : '🟡 Pending Collection')})` : ''}
 ━━━━━━━━━━━━━━━━━━━━
 
 👤 *Property Manager:* ${d.manager.name} (${d.manager.phone})
@@ -480,6 +496,10 @@ ${BRAND_URL}`;
 
 // ═══ 7. NEW BOOKING ALERT (Operations / Booking Group) ═══
 function tplStaffNewBooking(d) {
+  const secLine = d.secAmount > 0 
+    ? `🛡️ *Security Deposit:* ₹${d.secAmount.toLocaleString('en-IN')} (${d.secStatus === 'collected' ? 'Held / जमा है' : (d.secStatus === 'refunded' ? 'Refunded' : 'Pending')})\n`
+    : '';
+
   return `🛎️ *NEW BOOKING CONFIRMED*
 ━━━━━━━━━━━━━━━━━━
 🏠 *Property:* ${d.propertyName} (${d.flat})${d.floor ? ' | Flr ' + d.floor : ''}
@@ -489,7 +509,7 @@ function tplStaffNewBooking(d) {
 📅 *Check-out:* ${fmtDate(d.checkOut)} (${d.checkOutTime})
 🌙 *Duration:* ${d.nights} Night${d.nights > 1 ? 's' : ''}
 💰 *Total:* ₹${d.total.toLocaleString('en-IN')} | Paid: ₹${d.paid.toLocaleString('en-IN')} | Due: ₹${d.due.toLocaleString('en-IN')}
-${d.vehicle ? '🚗 *Vehicle:* ' + d.vehicle + '\n' : ''}━━━━━━━━━━━━━━━━━━
+${secLine}${d.vehicle ? '🚗 *Vehicle:* ' + d.vehicle + '\n' : ''}━━━━━━━━━━━━━━━━━━
 Caretaker: Please prepare property.`;
 }
 

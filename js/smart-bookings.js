@@ -1400,6 +1400,39 @@ window.openBookingDrawer = async function(bookingId) {
             </div>
           </div>
 
+          <!-- Prominent Security Deposit Notification (If present) -->
+          ${(() => {
+            const sec = (typeof getSecurityDeposit === 'function' ? getSecurityDeposit(b) : (typeof window.getSecurityDeposit === 'function' ? window.getSecurityDeposit(b) : null)) || (b.notes && b.notes.includes('[SECURITY_DEPOSIT:') ? (() => { try { return JSON.parse(b.notes.match(/\[SECURITY_DEPOSIT:(.*?)\]/)[1]); } catch(e){ return null; } })() : null);
+            const secAmt = parseFloat(sec?.amount || b.security_deposit_amount) || 0;
+            if (secAmt > 0) {
+              const isHeld = (sec?.status || b.security_deposit_status) === 'collected';
+              const isRef = (sec?.status || b.security_deposit_status) === 'refunded';
+              return `
+                <div style="background:${isHeld ? '#EFF6FF' : (isRef ? '#F0FDF4' : '#FFFBEB')};border:2px solid ${isHeld ? '#3B82F6' : (isRef ? '#10B981' : '#F59E0B')};border-radius:12px;padding:12px 14px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;box-shadow:0 2px 8px rgba(0,0,0,0.04);">
+                  <div style="display:flex;align-items:center;gap:10px;">
+                    <span style="font-size:24px;">🛡️</span>
+                    <div>
+                      <div style="font-size:11px;font-weight:800;color:${isHeld ? '#1E40AF' : (isRef ? '#166534' : '#92400E')};text-transform:uppercase;letter-spacing:0.5px;">Security Deposit (Refundable)</div>
+                      <div style="font-size:16px;font-weight:900;color:#0F172A;">
+                        ₹${secAmt.toLocaleString('en-IN')} 
+                        <span style="font-size:11.5px;font-weight:700;padding:2px 8px;border-radius:12px;background:${isHeld ? '#DBEAFE' : (isRef ? '#DCFCE7' : '#FEF3C7')};color:${isHeld ? '#1D4ED8' : (isRef ? '#15803D' : '#B45309')};margin-left:4px;">
+                          ${isHeld ? '✅ Deposit Held (जमा है)' : (isRef ? '🟢 Refunded' : '🟡 Pending Collection')}
+                        </span>
+                      </div>
+                      ${sec?.mode || sec?.receivedBy ? `<div style="font-size:11px;color:#64748B;margin-top:2px;">Received via <strong>${sec.mode || 'UPI'}</strong>${sec.receivedBy ? ' by <strong>' + escapeHtml(sec.receivedBy) + '</strong>' : ''}${sec.receivedDate ? ' on ' + sec.receivedDate : ''}</div>` : ''}
+                    </div>
+                  </div>
+                  <div style="display:flex;gap:6px;align-items:center;">
+                    <button type="button" class="btn-sm" style="background:${isHeld ? '#2563EB' : '#059669'};color:#fff;border:none;padding:6px 12px;font-size:12px;font-weight:700;border-radius:6px;cursor:pointer;" onclick="if(window.showSecurityDepositModal) showSecurityDepositModal('${b.booking_id}')">
+                      🛡️ Manage Deposit
+                    </button>
+                  </div>
+                </div>
+              `;
+            }
+            return '';
+          })()}
+
           <!-- Stay Overview -->
           <div style="border:1px solid var(--border);border-radius:12px;padding:14px;">
             <div style="font-size:13px;font-weight:700;color:var(--dark);margin-bottom:10px;display:flex;align-items:center;gap:6px;">
@@ -1446,11 +1479,14 @@ window.openBookingDrawer = async function(bookingId) {
                 <strong style="color:var(--dark);">🕒 ${window.formatDateTimeStamp ? window.formatDateTimeStamp(window.getBookingTimestamp ? window.getBookingTimestamp(b) : (b.created_at || '')) : 'N/A'}</strong>
               </div>
             </div>
-            ${b.notes ? `
-              <div style="margin-top:12px;padding-top:10px;border-top:1px dashed var(--border);font-size:12.5px;color:var(--text-secondary);">
-                <strong>Notes:</strong> ${escapeHtml(b.notes)}
-              </div>
-            ` : ''}
+            ${(() => {
+              const displayNotes = typeof cleanNotesForDisplay === 'function' ? cleanNotesForDisplay(b.notes) : (b.notes || '').replace(/\[SECURITY_DEPOSIT:.*?\]/g, '').trim();
+              return displayNotes ? `
+                <div style="margin-top:12px;padding-top:10px;border-top:1px dashed var(--border);font-size:12.5px;color:var(--text-secondary);">
+                  <strong>Notes:</strong> ${escapeHtml(displayNotes)}
+                </div>
+              ` : '';
+            })()}
           </div>
 
           <!-- Financial Breakdown & Payment History -->
