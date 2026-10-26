@@ -1402,7 +1402,7 @@ window.openBookingDrawer = async function(bookingId) {
 
           <!-- Prominent Security Deposit Notification (If present) -->
           ${(() => {
-            const sec = (typeof getSecurityDeposit === 'function' ? getSecurityDeposit(b) : (typeof window.getSecurityDeposit === 'function' ? window.getSecurityDeposit(b) : null)) || (b.notes && b.notes.includes('[SECURITY_DEPOSIT:') ? (() => { try { return JSON.parse(b.notes.match(/\[SECURITY_DEPOSIT:(.*?)\]/)[1]); } catch(e){ return null; } })() : null);
+            const sec = (typeof getSecurityDeposit === 'function' ? getSecurityDeposit(b) : (typeof window.getSecurityDeposit === 'function' ? window.getSecurityDeposit(b) : null)) || (b.notes && b.notes.includes('[SECURITY_DEPOSIT:') ? (() => { try { return JSON.parse(b.notes.match(/\[SECURITY_DEPOSIT:([\s\S]*?)\]/i)[1]); } catch(e){ return null; } })() : null);
             const secAmt = parseFloat(sec?.amount || b.security_deposit_amount) || 0;
             if (secAmt > 0) {
               const isHeld = (sec?.status || b.security_deposit_status) === 'collected';
@@ -1480,7 +1480,7 @@ window.openBookingDrawer = async function(bookingId) {
               </div>
             </div>
             ${(() => {
-              const displayNotes = typeof cleanNotesForDisplay === 'function' ? cleanNotesForDisplay(b.notes) : (b.notes || '').replace(/\[SECURITY_DEPOSIT:.*?\]/g, '').trim();
+              const displayNotes = typeof cleanNotesForDisplay === 'function' ? cleanNotesForDisplay(b.notes) : (b.notes || '').replace(/\[SECURITY_DEPOSIT:[\s\S]*?\]/gi, '').trim();
               return displayNotes ? `
                 <div style="margin-top:12px;padding-top:10px;border-top:1px dashed var(--border);font-size:12.5px;color:var(--text-secondary);">
                   <strong>Notes:</strong> ${escapeHtml(displayNotes)}
@@ -1519,7 +1519,7 @@ window.openBookingDrawer = async function(bookingId) {
             </div>
 
             ${(() => {
-              const sec = (typeof getSecurityDeposit === 'function' ? getSecurityDeposit(b) : (typeof window.getSecurityDeposit === 'function' ? window.getSecurityDeposit(b) : null)) || (b.notes && b.notes.includes('[SECURITY_DEPOSIT:') ? (() => { try { return JSON.parse(b.notes.match(/\[SECURITY_DEPOSIT:(.*?)\]/)[1]); } catch(e){ return null; } })() : null);
+              const sec = (typeof getSecurityDeposit === 'function' ? getSecurityDeposit(b) : (typeof window.getSecurityDeposit === 'function' ? window.getSecurityDeposit(b) : null)) || (b.notes && b.notes.includes('[SECURITY_DEPOSIT:') ? (() => { try { return JSON.parse(b.notes.match(/\[SECURITY_DEPOSIT:([\s\S]*?)\]/i)[1]); } catch(e){ return null; } })() : null);
               const secAmt = parseFloat(sec?.amount || b.security_deposit_amount) || 0;
               if (secAmt > 0) {
                 const isHeld = (sec?.status || b.security_deposit_status) === 'collected';

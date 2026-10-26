@@ -226,12 +226,18 @@ window.getSecurityDeposit = getSecurityDeposit;
 
 function cleanNotesForDisplay(notes) {
   if (!notes) return '';
-  return notes
-    .replace(/\[SECURITY_DEPOSIT:.*?\]/g, '')
+  let str = String(notes);
+  str = str
+    .replace(/<!--[\s\S]*?-->/gi, '')
+    .replace(/\[SECURITY_DEPOSIT:[\s\S]*?\]/gi, '')
+    .replace(/\[SEC_DEP:[\s\S]*?\]/gi, '')
+    .replace(/\[DEPOSIT:[\s\S]*?\]/gi, '')
     .replace(/\s*\|\s*\|\s*/g, ' | ')
     .replace(/^\s*\|\s*/, '')
     .replace(/\s*\|\s*$/, '')
     .trim();
+  if (str === 'null' || str === 'undefined' || str === '""' || str === "''") return '';
+  return str;
 }
 window.cleanNotesForDisplay = cleanNotesForDisplay;
 

@@ -67,10 +67,18 @@ window.BOOKING_RECEIPT_ENGINE = (function() {
 
   function cleanNotes(notes) {
     if (!notes) return '';
-    return String(notes)
-      .replace(/<!--SEC_DEP:[\s\S]*?-->/g, '')
-      .replace(/\[SECURITY_DEPOSIT:[\s\S]*?\]/g, '')
+    let str = String(notes);
+    str = str
+      .replace(/<!--[\s\S]*?-->/gi, '')
+      .replace(/\[SECURITY_DEPOSIT:[\s\S]*?\]/gi, '')
+      .replace(/\[SEC_DEP:[\s\S]*?\]/gi, '')
+      .replace(/\[DEPOSIT:[\s\S]*?\]/gi, '')
+      .replace(/\s*\|\s*\|\s*/g, ' | ')
+      .replace(/^\s*\|\s*/, '')
+      .replace(/\s*\|\s*$/, '')
       .trim();
+    if (str === 'null' || str === 'undefined' || str === '""' || str === "''") return '';
+    return str;
   }
 
   function getSecurityDepositData(b, options = {}) {
@@ -289,7 +297,8 @@ window.BOOKING_RECEIPT_ENGINE = (function() {
     const todayStr = formatDate(new Date().toISOString().slice(0, 10));
 
     const receiptNo = options.receiptNo || `UHH-REC/${booking.booking_id}`;
-    const customNotes = options.customNotes || cleanNotes(booking.notes) || '';
+    const rawNotes = options.customNotes !== undefined ? options.customNotes : (booking.notes || '');
+    const customNotes = cleanNotes(rawNotes);
 
     let statusText = 'Fully Paid';
     let statusClass = 'status-paid';
@@ -1767,7 +1776,8 @@ ${secAmount > 0 ? `▪️ *Refundable Security Deposit:* ₹${secAmount.toLocale
     const todayStr = formatDate(new Date().toISOString().slice(0, 10));
     const receiptNo = options.receiptNo || `UHH-GRP/${stayGroupId || 'RECEIPT'}`;
     const groupNotes = data.customNotes || Array.from(new Set((bookings || []).map(b => cleanNotes(b.notes)).filter(Boolean))).join(' · ');
-    const customNotes = options.customNotes || groupNotes || cleanNotes(primaryBooking?.notes) || '';
+    const rawMulti = options.customNotes !== undefined ? options.customNotes : (groupNotes || primaryBooking?.notes || '');
+    const customNotes = cleanNotes(rawMulti);
 
     let statusBadgeText = '✅ FULLY PAID';
     let statusBg = '#DEF7EC';
