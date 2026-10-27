@@ -2725,6 +2725,9 @@ _Please confirm room allotment and issue official GST Tax Invoice. Thank you!_`;
     /* ─── FULLSCREEN CATEGORIZED LIGHTBOX ─── */
     /* ─── FULLSCREEN CATEGORIZED LIGHTBOX (TOUCH, SWIPE & ANTI-ZOOM FOR IPAD/MOBILE) ─── */
     initGalleryModal() {
+      // 1. Purge any loose static gallery bodies sitting directly on the page body
+      document.querySelectorAll('body > .luxe-modal-body, body > #luxe-modal-ribbon').forEach(el => el.remove());
+
       let modal = document.getElementById('luxe-gallery-modal');
       if (!modal) {
         modal = document.createElement('div');
@@ -2732,29 +2735,30 @@ _Please confirm room allotment and issue official GST Tax Invoice. Thank you!_`;
         modal.className = 'luxe-gallery-modal';
         modal.setAttribute('role', 'dialog');
         modal.setAttribute('aria-modal', 'true');
-        modal.innerHTML = `
-          <div class="luxe-modal-top">
-            <div id="luxe-modal-tabs" class="luxe-modal-tabs">
-              <button type="button" class="luxe-modal-tab active">All Photos</button>
-            </div>
-            <div class="luxe-modal-actions">
-              <span id="luxe-modal-counter" class="luxe-modal-counter">Photo 1 of 5</span>
-              <button type="button" class="luxe-modal-close" onclick="window.luxeEngine && window.luxeEngine.closeGallery()" aria-label="Close Gallery">✕</button>
-            </div>
-          </div>
-          <div class="luxe-modal-body" id="luxe-modal-body">
-            <div class="luxe-modal-loader" id="luxe-modal-loader">
-              <div class="luxe-loader-spinner"></div>
-              <span class="luxe-loader-text">Loading Luxe View...</span>
-            </div>
-            <button type="button" class="luxe-modal-nav-btn prev" onclick="window.luxeEngine && window.luxeEngine.prevPhoto()" aria-label="Previous Photo">‹</button>
-            <img id="luxe-modal-img" class="luxe-modal-view-img" src="" alt="Gallery View"/>
-            <button type="button" class="luxe-modal-nav-btn next" onclick="window.luxeEngine && window.luxeEngine.nextPhoto()" aria-label="Next Photo">›</button>
-          </div>
-          <div id="luxe-modal-ribbon" class="luxe-modal-ribbon"></div>
-        `;
         document.body.appendChild(modal);
       }
+
+      modal.innerHTML = `
+        <div class="luxe-modal-top">
+          <div id="luxe-modal-tabs" class="luxe-modal-tabs">
+            <button type="button" class="luxe-modal-tab active">All Photos</button>
+          </div>
+          <div class="luxe-modal-actions">
+            <span id="luxe-modal-counter" class="luxe-modal-counter">Photo 1 of 5</span>
+            <button type="button" class="luxe-modal-close" onclick="window.luxeEngine && window.luxeEngine.closeGallery()" aria-label="Close Gallery">✕</button>
+          </div>
+        </div>
+        <div class="luxe-modal-body" id="luxe-modal-body">
+          <div class="luxe-modal-loader" id="luxe-modal-loader">
+            <div class="luxe-loader-spinner"></div>
+            <span class="luxe-loader-text">Loading Luxe View...</span>
+          </div>
+          <button type="button" class="luxe-modal-nav-btn prev" onclick="window.luxeEngine && window.luxeEngine.prevPhoto()" aria-label="Previous Photo">‹</button>
+          <img id="luxe-modal-img" class="luxe-modal-view-img" src="" alt="Gallery View"/>
+          <button type="button" class="luxe-modal-nav-btn next" onclick="window.luxeEngine && window.luxeEngine.nextPhoto()" aria-label="Next Photo">›</button>
+        </div>
+        <div id="luxe-modal-ribbon" class="luxe-modal-ribbon"></div>
+      `;
 
       // 1. Sleek Modern Progress Bar Injection
       let progressWrap = modal.querySelector('.luxe-modal-progress-wrap');
@@ -2822,7 +2826,7 @@ _Please confirm room allotment and issue official GST Tax Invoice. Thank you!_`;
       modal.addEventListener('gestureend', (e) => e.preventDefault(), { passive: false });
 
       const modalBody = modal.querySelector('.luxe-modal-body');
-      const imgEl = document.getElementById('luxe-modal-img');
+      const imgEl = modal.querySelector('#luxe-modal-img');
 
       if (modalBody && imgEl) {
         // Prevent accidental double-tap-to-zoom on iOS
@@ -2999,11 +3003,14 @@ _Please confirm room allotment and issue official GST Tax Invoice. Thank you!_`;
     }
 
     updateGalleryView() {
-      const imgEl = document.getElementById('luxe-modal-img');
-      const counterEl = document.getElementById('luxe-modal-counter');
-      const ribbonEl = document.getElementById('luxe-modal-ribbon');
-      const progressBar = document.getElementById('luxe-modal-progress-bar');
-      const loaderEl = document.getElementById('luxe-modal-loader');
+      const modal = document.getElementById('luxe-gallery-modal');
+      if (!modal) return;
+
+      const imgEl = modal.querySelector('#luxe-modal-img');
+      const counterEl = modal.querySelector('#luxe-modal-counter');
+      const ribbonEl = modal.querySelector('#luxe-modal-ribbon');
+      const progressBar = modal.querySelector('#luxe-modal-progress-bar');
+      const loaderEl = modal.querySelector('#luxe-modal-loader');
 
       if (!this.filteredList || this.filteredList.length === 0) return;
 
@@ -3018,6 +3025,23 @@ _Please confirm room allotment and issue official GST Tax Invoice. Thank you!_`;
         const activeIdx = this.currentIndex;
         imgEl.setAttribute('data-active-idx', String(activeIdx));
         imgEl.alt = `${this.prop.name} - ${currentItem.category}`;
+
+        // Ensure error handler falls back smoothly and eliminates broken icon
+        imgEl.onerror = () => {
+          const rawUrl = currentItem.url.split('?')[0];
+          if (imgEl.src !== rawUrl) {
+            imgEl.src = rawUrl;
+            return;
+          }
+          if (this.prop.cover_image && imgEl.src !== this.prop.cover_image) {
+            imgEl.src = this.prop.cover_image;
+          }
+          if (loaderEl) loaderEl.classList.remove('visible');
+        };
+
+        imgEl.onload = () => {
+          if (loaderEl) loaderEl.classList.remove('visible');
+        };
 
         // 1. Instant low-res preview (11 KB) with subtle artistic blur to eliminate black flash
         imgEl.classList.remove('is-loaded');

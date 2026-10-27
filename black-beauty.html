@@ -33,7 +33,7 @@
 
 <link href="assets/logo.png" rel="icon" type="image/png"/>
 <link href="website.css" rel="stylesheet"/>
-<link href="css/property-luxe.css?v=212" rel="stylesheet"/>
+<link href="css/property-luxe.css?v=215" rel="stylesheet"/>
 
 <!-- Google Search & Travel Rich Result JSON-LD Schema -->
 <script type="application/ld+json">
@@ -458,16 +458,8 @@
   </div>
 </div>
 
-  <div class="luxe-modal-body">
-    <button type="button" class="luxe-modal-nav-btn prev" onclick="window.luxeEngine && window.luxeEngine.prevPhoto()" aria-label="Previous Photo">‹</button>
-    <img id="luxe-modal-img" class="luxe-modal-view-img" src="assets/properties/black-beauty/cover.jpg" alt="Gallery View"/>
-    <button type="button" class="luxe-modal-nav-btn next" onclick="window.luxeEngine && window.luxeEngine.nextPhoto()" aria-label="Next Photo">›</button>
-  </div>
-
-  <div id="luxe-modal-ribbon" class="luxe-modal-ribbon">
-    <!-- Thumbnails injected by property-engine.js -->
-  </div>
-</div>
+  <!-- FULLSCREEN CATEGORIZED PHOTO GALLERY MODAL -->
+<div id="luxe-gallery-modal" class="luxe-gallery-modal" role="dialog" aria-modal="true"></div>
 
 <!-- UPI QR PAYMENT MODAL -->
 <div id="upi-modal-overlay" class="upi-modal-overlay"></div>
@@ -493,7 +485,7 @@
 <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script defer src="config.js"></script>
 <script defer src="js/showcase-data.js?v=210"></script>
-<script defer src="js/property-engine.js?v=212"></script>
+<script defer src="js/property-engine.js?v=215"></script>
 </body>
 </html>
 
