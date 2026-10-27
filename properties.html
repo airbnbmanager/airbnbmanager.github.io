@@ -315,7 +315,7 @@
 </div>
 </nav>
 <!-- ─── PROPERTIES DIRECTORY GRID ─── -->
-<main class="dir-container" id="directory-grid">
+<main class="dir-container" id="directory-grid"><div id="collection" style="scroll-margin-top: 100px;"></div>
 <div class="dir-grid-header">
 <div class="dir-grid-count" id="visibleCount">Showing 18 of 18 luxury homestays</div>
 <div style="font-size:13px;color:var(--dir-muted);display:flex;align-items:center;gap:6px;">
@@ -964,8 +964,94 @@
 </div>
 </div>
 </section>
+<!-- ─── INTERACTIVE CITY MAP SECTION (STRATEGIC LUCKNOW HUBS) ─── -->
+<section class="dir-map-section" id="map">
+  <div class="dir-map-container">
+    <div class="dir-map-header">
+      <div class="dir-map-badge">
+        <span>📍 LIVE LUCKNOW MAP LOCATOR</span>
+      </div>
+      <h2 class="dir-map-title">Interactive City Map &amp; Prime Hubs</h2>
+      <p class="dir-map-subtitle">
+        18 handpicked properties across Gomti Nagar and Shaheed Path corridor. Close to Lulu Mall, Airport, Medanta, and the High Court.
+      </p>
+    </div>
+
+    <!-- 3 Key Neighborhood Clusters -->
+    <div class="dir-map-clusters">
+      <!-- Cluster 1: Vikalp Khand -->
+      <div class="dir-map-cluster-card">
+        <div class="dir-cluster-top">
+          <span class="dir-cluster-tag">8 FLATS · GOMTI NAGAR</span>
+          <h3 class="dir-cluster-title">Vikalp Khand Hub</h3>
+          <p class="dir-cluster-desc">
+            Vibrant central location 5 min from Max Hospital, High Court &amp; Cinepolis. Ideal for business travellers and families.
+          </p>
+        </div>
+        <div class="dir-cluster-actions">
+          <button class="dir-cluster-btn-filter" type="button" onclick="setCategoryFilter('vikalp', document.querySelector('.airnest-cat-btn:nth-child(6)')); document.getElementById('directory-grid').scrollIntoView({behavior:'smooth'});">View 8 Flats ↓</button>
+          <a class="dir-cluster-btn-pin" href="https://maps.google.com/?q=Vikalp+Khand+Gomti+Nagar+Lucknow" target="_blank" rel="noopener">📍 Google Maps ↗</a>
+        </div>
+      </div>
+
+      <!-- Cluster 2: Vishesh Khand -->
+      <div class="dir-map-cluster-card">
+        <div class="dir-cluster-top">
+          <span class="dir-cluster-tag">3 STAYS · GOMTI NAGAR</span>
+          <h3 class="dir-cluster-title">Vishesh Khand Haven</h3>
+          <p class="dir-cluster-desc">
+            Quiet tree-lined residential enclave near Patrakarpuram market, Mithai &amp; Ambedkar Park. Serene, secure, and prestigious.
+          </p>
+        </div>
+        <div class="dir-cluster-actions">
+          <button class="dir-cluster-btn-filter" type="button" onclick="setCategoryFilter('vishesh', document.querySelector('.airnest-cat-btn:nth-child(6)')); document.getElementById('directory-grid').scrollIntoView({behavior:'smooth'});">View 3 Stays ↓</button>
+          <a class="dir-cluster-btn-pin" href="https://maps.google.com/?q=Vishesh+Khand+Lucknow" target="_blank" rel="noopener">📍 Google Maps ↗</a>
+        </div>
+      </div>
+
+      <!-- Cluster 3: Shaheed Path & Lulu Mall -->
+      <div class="dir-map-cluster-card">
+        <div class="dir-cluster-top">
+          <span class="dir-cluster-tag">7 STAYS &amp; VILLAS · SHAHEED PATH</span>
+          <h3 class="dir-cluster-title">Lulu Mall &amp; Airport Zone</h3>
+          <p class="dir-cluster-desc">
+            Minutes from Lulu Mall, Medanta Hospital, Ekana Stadium &amp; CCS Airport. Home to our Royal White House flagship villa.
+          </p>
+        </div>
+        <div class="dir-cluster-actions">
+          <button class="dir-cluster-btn-filter" type="button" onclick="setCategoryFilter('lulu', document.querySelector('.airnest-cat-btn:last-child')); document.getElementById('directory-grid').scrollIntoView({behavior:'smooth'});">View 7 Stays ↓</button>
+          <a class="dir-cluster-btn-pin" href="https://maps.google.com/?q=Shaheed+Path+Lucknow" target="_blank" rel="noopener">📍 Google Maps ↗</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Embedded High-Definition Map Frame -->
+    <div class="dir-map-frame-box">
+      <iframe 
+        src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d113917.43093223126!2d80.93245464179688!3d26.846708800000004!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x399bfd991f32b16b%3A0x93ccba8909978be7!2sLucknow%2C%20Uttar%20Pradesh!5e0!3m2!1sen!2sin!4v1700000000000" 
+        loading="lazy" 
+        referrerpolicy="no-referrer-when-downgrade" 
+        title="The Unique Haven Homes Lucknow Map">
+      </iframe>
+    </div>
+
+    <!-- Navigation Helper Strip -->
+    <div class="dir-map-footer-strip">
+      <div style="display:flex; align-items:center; gap:8px;">
+        <span style="color:#10b981; font-weight:700;">✓ Live GPS Verified</span>
+        <span>· Caretaker coordinates verified for 24/7 effortless guest arrival.</span>
+      </div>
+      <a class="dir-map-open-gmaps" href="https://maps.google.com/?q=Lucknow+Homestays+Unique+Haven+Homes" target="_blank" rel="noopener">
+        <span>🗺️ Open Full Map in Google Maps App</span>
+        <span>↗</span>
+      </a>
+    </div>
+  </div>
+</section>
+
 <!-- ─── DIRECT BOOKING CONCIERGE (ROYAL AWADHI LUXURY LEADERSHIP SHOWCASE) ─── -->
 <section class="dir-concierge-section" id="concierge">
+<div id="hosts" style="scroll-margin-top: 80px;"></div>
 <div class="dir-concierge-wrap">
 
   <div class="dir-concierge-pill">
@@ -974,7 +1060,7 @@
 
   <h2 class="dir-concierge-title">Meet The Founders &amp; Property Owners</h2>
   <p class="dir-concierge-sub">
-    <strong>Mr. Firoz Khan</strong> and <strong>Mr. Shahanshah</strong> personally own and curate Lucknow's finest luxury villas and serviced homestays—ensuring 5-star amenities, spotless hygiene, and genuine Awadhi hospitality. Connect directly with the owners to skip platform commissions and save up to 15%.
+    <strong>Mr. Shahanshah</strong> and <strong>Mr. Firoz Khan</strong> personally own and curate Lucknow's finest luxury villas and serviced homestays—ensuring 5-star amenities, spotless hygiene, and genuine Awadhi hospitality. Connect directly with the owners to skip platform commissions and save up to 15%.
   </p>
 
   <!-- Executive Trust & Amenity Highlights Bar -->
@@ -1011,42 +1097,7 @@
 
   <div class="dir-host-grid">
 
-    <!-- Host 1: Mr. Firoz Khan (Co-Founder & Owner) -->
-    <div class="dir-host-card dir-card-firoz">
-      <div class="dir-card-top-accent"></div>
-      <div class="dir-founder-photo-wrap firoz">
-        <div class="dir-photo-inner">
-          <img alt="Mr. Firoz Khan - Co-Founder &amp; Owner" class="dir-founder-img" src="assets/founders/firoz-khan.jpg?v=8" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"/>
-          <div class="dir-founder-fallback" style="display:none; background:linear-gradient(135deg, #d97706, #b45309);">FK</div>
-        </div>
-        <div class="dir-founder-verified-badge" title="Verified Owner &amp; 5-Star Amenities Curator">★</div>
-      </div>
-      <span class="dir-host-badge firoz-badge">👑 Co-Founder &amp; Owner</span>
-      <div class="dir-host-name">Mr. Firoz Khan</div>
-      <div class="dir-host-phone">+91 82996 00709</div>
-
-      <div class="dir-founder-chips">
-        <span class="dir-chip">💎 5★ Luxury Amenities</span>
-        <span class="dir-chip">✨ Spotless Hygiene</span>
-      </div>
-
-      <p class="dir-founder-quote">
-        <span class="dir-quote-mark">“</span>As property owner, my top responsibility is ensuring every villa features 5-star luxury amenities, immaculate hygiene, and Lucknow’s warmest Awadhi hospitality.<span class="dir-quote-mark">”</span>
-      </p>
-
-      <div class="dir-host-actions">
-        <a class="dir-host-btn-wa" href="https://wa.me/918299600709?text=Namaste%20Mr.%20Firoz%2C%20I%20am%20interested%20in%20booking%20a%20luxury%20homestay%20in%20Lucknow.%20Please%20share%20availability%20and%20direct%20rates." rel="noopener" target="_blank">
-          <svg fill="currentColor" height="17" viewbox="0 0 32 32" width="17"><path d="M16.001 3C9.373 3 4 8.373 4 15c0 2.634.86 5.08 2.32 7.06L4 29l7.2-2.28A11.93 11.93 0 0 0 16 27c6.627 0 12-5.373 12-12S22.628 3 16.001 3zm0 21.6c-1.98 0-3.84-.55-5.43-1.5l-.39-.23-4.27 1.35 1.39-4.16-.25-.4A9.55 9.55 0 0 1 5.4 15c0-5.85 4.76-10.6 10.6-10.6S26.6 9.15 26.6 15 21.85 24.6 16 24.6zm5.86-7.9c-.32-.16-1.9-.94-2.19-1.05-.29-.11-.5-.16-.72.16-.21.32-.82 1.05-1.01 1.26-.19.21-.37.24-.69.08-.32-.16-1.34-.49-2.55-1.57-.94-.84-1.58-1.87-1.76-2.19-.19-.32-.02-.49.14-.65.14-.14.32-.37.48-.55.16-.19.21-.32.32-.53.11-.21.05-.4-.03-.55-.08-.16-.72-1.74-.98-2.38-.26-.63-.53-.54-.72-.55-.19-.01-.4-.01-.61-.01-.21 0-.55.08-.84.4-.29.32-1.1 1.08-1.1 2.63 0 1.55 1.13 3.05 1.29 3.26.16.21 2.22 3.39 5.39 4.76.75.32 1.34.51 1.8.66.76.24 1.44.21 1.99.13.61-.09 1.9-.78 2.17-1.53.27-.75.27-1.39.19-1.53-.08-.13-.29-.21-.61-.37z"></path></svg>
-          <span>WhatsApp</span>
-        </a>
-        <a class="dir-host-btn-call" href="tel:+918299600709">
-          <svg fill="none" height="15" stroke="currentColor" stroke-width="2.2" viewbox="0 0 24 24" width="15"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
-          <span>Call</span>
-        </a>
-      </div>
-    </div>
-
-    <!-- Host 2: Mr. Shahanshah (Co-Founder & Owner) -->
+    <!-- Host 1: Mr. Shahanshah (Co-Founder & Owner) -->
     <div class="dir-host-card dir-card-shah">
       <div class="dir-card-top-accent"></div>
       <div class="dir-founder-photo-wrap shah">
@@ -1075,6 +1126,41 @@
           <span>WhatsApp</span>
         </a>
         <a class="dir-host-btn-call" href="tel:+919450055554">
+          <svg fill="none" height="15" stroke="currentColor" stroke-width="2.2" viewbox="0 0 24 24" width="15"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
+          <span>Call</span>
+        </a>
+      </div>
+    </div>
+
+    <!-- Host 2: Mr. Firoz Khan (Co-Founder & Owner) -->
+    <div class="dir-host-card dir-card-firoz">
+      <div class="dir-card-top-accent"></div>
+      <div class="dir-founder-photo-wrap firoz">
+        <div class="dir-photo-inner">
+          <img alt="Mr. Firoz Khan - Co-Founder &amp; Owner" class="dir-founder-img" src="assets/founders/firoz-khan.jpg?v=8" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"/>
+          <div class="dir-founder-fallback" style="display:none; background:linear-gradient(135deg, #d97706, #b45309);">FK</div>
+        </div>
+        <div class="dir-founder-verified-badge" title="Verified Owner &amp; 5-Star Amenities Curator">★</div>
+      </div>
+      <span class="dir-host-badge firoz-badge">👑 Co-Founder &amp; Owner</span>
+      <div class="dir-host-name">Mr. Firoz Khan</div>
+      <div class="dir-host-phone">+91 82996 00709</div>
+
+      <div class="dir-founder-chips">
+        <span class="dir-chip">💎 5★ Luxury Amenities</span>
+        <span class="dir-chip">✨ Spotless Hygiene</span>
+      </div>
+
+      <p class="dir-founder-quote">
+        <span class="dir-quote-mark">“</span>As property owner, my top responsibility is ensuring every villa features 5-star luxury amenities, immaculate hygiene, and Lucknow’s warmest Awadhi hospitality.<span class="dir-quote-mark">”</span>
+      </p>
+
+      <div class="dir-host-actions">
+        <a class="dir-host-btn-wa" href="https://wa.me/918299600709?text=Namaste%20Mr.%20Firoz%2C%20I%20am%20interested%20in%20booking%20a%20luxury%20homestay%20in%20Lucknow.%20Please%20share%20availability%20and%20direct%20rates." rel="noopener" target="_blank">
+          <svg fill="currentColor" height="17" viewbox="0 0 32 32" width="17"><path d="M16.001 3C9.373 3 4 8.373 4 15c0 2.634.86 5.08 2.32 7.06L4 29l7.2-2.28A11.93 11.93 0 0 0 16 27c6.627 0 12-5.373 12-12S22.628 3 16.001 3zm0 21.6c-1.98 0-3.84-.55-5.43-1.5l-.39-.23-4.27 1.35 1.39-4.16-.25-.4A9.55 9.55 0 0 1 5.4 15c0-5.85 4.76-10.6 10.6-10.6S26.6 9.15 26.6 15 21.85 24.6 16 24.6zm5.86-7.9c-.32-.16-1.9-.94-2.19-1.05-.29-.11-.5-.16-.72.16-.21.32-.82 1.05-1.01 1.26-.19.21-.37.24-.69.08-.32-.16-1.34-.49-2.55-1.57-.94-.84-1.58-1.87-1.76-2.19-.19-.32-.02-.49.14-.65.14-.14.32-.37.48-.55.16-.19.21-.32.32-.53.11-.21.05-.4-.03-.55-.08-.16-.72-1.74-.98-2.38-.26-.63-.53-.54-.72-.55-.19-.01-.4-.01-.61-.01-.21 0-.55.08-.84.4-.29.32-1.1 1.08-1.1 2.63 0 1.55 1.13 3.05 1.29 3.26.16.21 2.22 3.39 5.39 4.76.75.32 1.34.51 1.8.66.76.24 1.44.21 1.99.13.61-.09 1.9-.78 2.17-1.53.27-.75.27-1.39.19-1.53-.08-.13-.29-.21-.61-.37z"></path></svg>
+          <span>WhatsApp</span>
+        </a>
+        <a class="dir-host-btn-call" href="tel:+918299600709">
           <svg fill="none" height="15" stroke="currentColor" stroke-width="2.2" viewbox="0 0 24 24" width="15"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
           <span>Call</span>
         </a>
@@ -1125,9 +1211,9 @@
           <span>Explore Lucknow</span>
         </h3>
         <ul class="vesper-footer-links">
-          <li><a href="properties.html"><span>18 Luxury Stays Portfolio</span><span class="link-arrow">→</span></a></li>
+          <li><a href="#collection"><span>18 Luxury Stays Portfolio</span><span class="link-arrow">→</span></a></li>
           <li><a href="royal-white-house.html"><span>Royal White House (Flagship Villa)</span><span class="link-arrow">→</span></a></li>
-          <li><a href="properties.html#map"><span>Interactive City Map</span><span class="link-arrow">→</span></a></li>
+          <li><a href="#map"><span>Interactive City Map</span><span class="link-arrow">→</span></a></li>
           <li><a href="book.html"><span>Direct Booking Guarantee (-15%)</span><span class="link-arrow">↗</span></a></li>
         </ul>
       </div>
@@ -1142,14 +1228,14 @@
         </p>
         <div style="margin-top: 14px; font-size: 13.5px; color: #cbd5e1; line-height: 1.8;">
           <div style="margin-bottom:8px;">
-            <strong style="color: #ffffff;">Mr. Firoz Khan (Owner):</strong><br/>
-            📞 <a href="tel:+918299600709" style="color: #f59e0b; text-decoration: none; font-weight: 600;">+91 82996 00709</a> · 
-            <a href="https://wa.me/918299600709" target="_blank" style="color:#25d366; text-decoration:none; font-weight:600;">💬 WhatsApp</a>
-          </div>
-          <div style="margin-bottom:8px;">
             <strong style="color: #ffffff;">Mr. Shahanshah (Owner):</strong><br/>
             📞 <a href="tel:+919450055554" style="color: #f59e0b; text-decoration: none; font-weight: 600;">+91 94500 55554</a> · 
             <a href="https://wa.me/919450055554" target="_blank" style="color:#25d366; text-decoration:none; font-weight:600;">💬 WhatsApp</a>
+          </div>
+          <div style="margin-bottom:8px;">
+            <strong style="color: #ffffff;">Mr. Firoz Khan (Owner):</strong><br/>
+            📞 <a href="tel:+918299600709" style="color: #f59e0b; text-decoration: none; font-weight: 600;">+91 82996 00709</a> · 
+            <a href="https://wa.me/918299600709" target="_blank" style="color:#25d366; text-decoration:none; font-weight:600;">💬 WhatsApp</a>
           </div>
           <strong style="color: #ffffff;">Prime Locations:</strong> Gomti Nagar &amp; Near Lulu Mall
         </div>
