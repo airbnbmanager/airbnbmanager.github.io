@@ -642,39 +642,111 @@ input, select, textarea {
   font-size: 14px;
   font-weight: 700;
   color: #0f172a;
-  border-radius: 50%;
+  border-radius: 0;
   cursor: pointer;
   transition: all 0.15s ease;
   user-select: none;
+  -webkit-user-select: none;
+  touch-action: pan-y;
   position: relative;
   background: transparent;
 }
 
-.cal-day-cell:hover:not(.past):not(.booked) {
+.cal-day-cell .cal-num {
+  width: 38px;
+  height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  position: relative;
+  z-index: 2;
+  transition: all 0.15s ease;
+}
+
+.cal-day-cell:hover:not(.past):not(.booked):not(.selected):not(.range-in):not(.range-hover-mid) .cal-num {
   background: #f1f5f9;
   color: var(--rausch);
   transform: scale(1.08);
 }
 
-.cal-day-cell.today {
+.cal-day-cell.today .cal-num {
   border: 2px solid var(--rausch);
   color: var(--rausch);
   font-weight: 800;
 }
 
-.cal-day-cell.selected {
+/* Range start */
+.cal-day-cell.range-start::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: 0;
+  width: 50%;
+  background: #fff1f2;
+  z-index: 1;
+}
+.cal-day-cell.range-start .cal-num,
+.cal-day-cell.selected .cal-num {
   background: var(--rausch-gradient) !important;
   color: #ffffff !important;
   font-weight: 800;
   box-shadow: 0 4px 12px rgba(255, 56, 92, 0.35);
-  border-radius: 50% !important;
 }
 
-.cal-day-cell.range-in {
+/* Range end */
+.cal-day-cell.range-end::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 50%;
+  background: #fff1f2;
+  z-index: 1;
+}
+.cal-day-cell.range-end .cal-num {
+  background: var(--rausch-gradient) !important;
+  color: #ffffff !important;
+  font-weight: 800;
+  box-shadow: 0 4px 12px rgba(255, 56, 92, 0.35);
+}
+
+/* In-range connected ribbon */
+.cal-day-cell.range-in,
+.cal-day-cell.range-hover-mid {
   background: #fff1f2 !important;
   color: #be123c !important;
   border-radius: 0 !important;
   font-weight: 700;
+}
+.cal-day-cell.range-in .cal-num,
+.cal-day-cell.range-hover-mid .cal-num {
+  background: transparent !important;
+  color: #be123c !important;
+}
+
+/* Hover end preview */
+.cal-day-cell.range-hover-end::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 50%;
+  background: #fff1f2;
+  z-index: 1;
+}
+.cal-day-cell.range-hover-end .cal-num {
+  background: #e11d48 !important;
+  color: #ffffff !important;
+  box-shadow: 0 2px 8px rgba(225, 29, 72, 0.3);
+}
+
+.cal-day-cell.solo-selected::after,
+.cal-day-cell.solo-selected::before {
+  display: none !important;
 }
 
 .cal-day-cell.booked {

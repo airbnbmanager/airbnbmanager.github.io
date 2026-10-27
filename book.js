@@ -37,6 +37,11 @@ let calViewDate = new Date();
 let appliedCoupon = null;
 let couponDiscount = 0;
 let appliedCouponPropId = null;
+let isCalDragging = false;
+let calDragStart = null;
+let calDragEnd = null;
+let calHoverDate = null;
+let justDraggedCal = false;
 
 // Property-Specific Built-in Coupons (strictly locked to respective property)
 const BUILTIN_COUPONS = {
@@ -248,6 +253,11 @@ function init() {
     if (guestsSelect) {
       guestsSelect.value = guestsParam;
     }
+  }
+
+  if (!window._bookCalMouseUpBound) {
+    window._bookCalMouseUpBound = true;
+    window.addEventListener('mouseup', onBookCalMouseUp);
   }
 
   onPropertyChange();
@@ -502,7 +512,12 @@ function renderCalendar() {
     const ds = `${y}-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
     const cell = document.createElement('div');
     cell.className = 'cal-day-cell';
-    cell.textContent = d;
+    cell.setAttribute('data-date', ds);
+
+    const numSpan = document.createElement('span');
+    numSpan.className = 'cal-num';
+    numSpan.textContent = d;
+    cell.appendChild(numSpan);
 
     if (ds === todayStr) cell.classList.add('today');
     if (isDatePast(ds)) {
@@ -511,15 +526,26 @@ function renderCalendar() {
       cell.classList.add('booked');
       cell.title = 'Date is already booked';
     } else {
+      cell.onmousedown = (e) => onBookCalMouseDown(ds, e);
+      cell.onmouseenter = () => onBookCalMouseEnter(ds);
       cell.onclick = () => onCalendarDateClick(ds);
     }
 
-    if (ci && ds === ci) cell.classList.add('selected');
-    if (co && ds === co) cell.classList.add('selected');
-    if (ci && co && ds > ci && ds < co) cell.classList.add('range-in');
+    if (ci && co) {
+      if (ds === ci) cell.classList.add('selected', 'range-start');
+      else if (ds === co) cell.classList.add('selected', 'range-end');
+      else if (ds > ci && ds < co) cell.classList.add('range-in');
+    } else if (ci && ds === ci) {
+      cell.classList.add('selected', 'solo-selected');
+    }
 
     grid.appendChild(cell);
   }
+
+  grid.onmouseleave = onBookCalMouseLeave;
+  grid.ontouchstart = onBookCalTouchStart;
+  grid.ontouchmove = onBookCalTouchMove;
+  grid.ontouchend = onBookCalTouchEnd;
 }
 
 function changeCalMonth(delta) {
@@ -528,7 +554,200 @@ function changeCalMonth(delta) {
   fetchBookedDates();
 }
 
+function hasBookedDatesBetween(d1, d2) {
+  if (d1 >= d2) return false;
+  const start = new Date(d1);
+  const end = new Date(d2);
+  const cur = new Date(start);
+  while (cur < end) {
+    if (isDateBooked(cur.toISOString().slice(0, 10))) return true;
+    cur.setDate(cur.getDate() + 1);
+  }
+  return false;
+}
+
+function onBookCalMouseDown(ds, e) {
+  if (e && e.button !== 0) return;
+  const todayStr = new Date().toISOString().slice(0, 10);
+  if (ds < todayStr || isDateBooked(ds)) return;
+
+  isCalDragging = true;
+  calDragStart = ds;
+  calDragEnd = null;
+  calHoverDate = null;
+  justDraggedCal = false;
+
+  const ciInput = document.getElementById('checkIn');
+  const coInput = document.getElementById('checkOut');
+  if (ciInput && coInput) {
+    ciInput.value = ds;
+    coInput.value = '';
+    const nextDay = new Date(ds);
+    nextDay.setDate(nextDay.getDate() + 1);
+    coInput.min = nextDay.toISOString().slice(0, 10);
+  }
+  updateBookCalLiveClasses();
+}
+
+function onBookCalMouseEnter(ds) {
+  const todayStr = new Date().toISOString().slice(0, 10);
+  if (ds < todayStr) return;
+
+  if (isCalDragging && calDragStart) {
+    if (ds > calDragStart) {
+      if (!hasBookedDatesBetween(calDragStart, ds)) {
+        calDragEnd = ds;
+        calHoverDate = ds;
+        justDraggedCal = true;
+      }
+    } else if (ds < calDragStart) {
+      if (!hasBookedDatesBetween(ds, calDragStart) && !isDateBooked(ds)) {
+        calDragEnd = calDragStart;
+        calDragStart = ds;
+        const ciInput = document.getElementById('checkIn');
+        if (ciInput) ciInput.value = ds;
+        justDraggedCal = true;
+      }
+    }
+    updateBookCalLiveClasses();
+  } else {
+    const ciInput = document.getElementById('checkIn');
+    const coInput = document.getElementById('checkOut');
+    if (ciInput && ciInput.value && (!coInput || !coInput.value)) {
+      if (ds > ciInput.value && !isDateBooked(ds) && !hasBookedDatesBetween(ciInput.value, ds)) {
+        calHoverDate = ds;
+      } else {
+        calHoverDate = null;
+      }
+      updateBookCalLiveClasses();
+    }
+  }
+}
+
+function onBookCalMouseLeave() {
+  if (isCalDragging) return;
+  if (calHoverDate) {
+    calHoverDate = null;
+    updateBookCalLiveClasses();
+  }
+}
+
+function onBookCalMouseUp() {
+  if (!isCalDragging) return;
+  isCalDragging = false;
+
+  if (calDragStart && calDragEnd && calDragEnd > calDragStart) {
+    const ciInput = document.getElementById('checkIn');
+    const coInput = document.getElementById('checkOut');
+    if (ciInput && coInput) {
+      ciInput.value = calDragStart;
+      coInput.value = calDragEnd;
+    }
+    calHoverDate = null;
+    calDragStart = null;
+    calDragEnd = null;
+    onDateChange();
+  } else {
+    calHoverDate = null;
+    calDragEnd = null;
+    updateBookCalLiveClasses();
+  }
+}
+
+function onBookCalTouchStart(e) {
+  if (!e.touches || !e.touches[0]) return;
+  const touch = e.touches[0];
+  const target = document.elementFromPoint(touch.clientX, touch.clientY);
+  const cell = target ? target.closest('.cal-day-cell[data-date]') : null;
+  if (cell) {
+    const ds = cell.getAttribute('data-date');
+    const todayStr = new Date().toISOString().slice(0, 10);
+    if (ds && ds >= todayStr && !cell.classList.contains('booked')) {
+      isCalDragging = true;
+      calDragStart = ds;
+      calDragEnd = null;
+      justDraggedCal = false;
+      const ciInput = document.getElementById('checkIn');
+      const coInput = document.getElementById('checkOut');
+      if (ciInput && coInput) {
+        ciInput.value = ds;
+        coInput.value = '';
+      }
+      updateBookCalLiveClasses();
+    }
+  }
+}
+
+function onBookCalTouchMove(e) {
+  if (!isCalDragging || !calDragStart || !e.touches || !e.touches[0]) return;
+  const touch = e.touches[0];
+  const target = document.elementFromPoint(touch.clientX, touch.clientY);
+  const cell = target ? target.closest('.cal-day-cell[data-date]') : null;
+  if (cell) {
+    const ds = cell.getAttribute('data-date');
+    if (ds && ds > calDragStart && !cell.classList.contains('booked')) {
+      if (!hasBookedDatesBetween(calDragStart, ds)) {
+        calDragEnd = ds;
+        calHoverDate = ds;
+        justDraggedCal = true;
+        updateBookCalLiveClasses();
+        if (e.cancelable) e.preventDefault();
+      }
+    }
+  }
+}
+
+function onBookCalTouchEnd() {
+  if (isCalDragging) {
+    onBookCalMouseUp();
+  }
+}
+
+function updateBookCalLiveClasses() {
+  const grid = document.getElementById('calMonthGrid');
+  if (!grid) return;
+
+  const ciInput = document.getElementById('checkIn');
+  const coInput = document.getElementById('checkOut');
+  const activeStart = isCalDragging ? calDragStart : (ciInput ? ciInput.value : null);
+  const activeEnd = isCalDragging ? calDragEnd : ((coInput && coInput.value) || calHoverDate);
+
+  const cells = grid.querySelectorAll('.cal-day-cell[data-date]');
+  cells.forEach(cell => {
+    const ds = cell.getAttribute('data-date');
+    if (!ds) return;
+
+    cell.classList.remove('selected', 'range-start', 'range-end', 'range-in', 'range-hover-mid', 'range-hover-end', 'solo-selected');
+
+    if (activeStart && !activeEnd) {
+      if (ds === activeStart) {
+        cell.classList.add('selected', 'solo-selected');
+      }
+    } else if (activeStart && activeEnd) {
+      if (ds === activeStart) {
+        cell.classList.add('selected', 'range-start');
+      } else if (ds === activeEnd) {
+        if (coInput && coInput.value) {
+          cell.classList.add('selected', 'range-end');
+        } else {
+          cell.classList.add('range-hover-end');
+        }
+      } else if (ds > activeStart && ds < activeEnd) {
+        if (coInput && coInput.value) {
+          cell.classList.add('range-in');
+        } else {
+          cell.classList.add('range-hover-mid');
+        }
+      }
+    }
+  });
+}
+
 function onCalendarDateClick(ds) {
+  if (justDraggedCal) {
+    justDraggedCal = false;
+    return;
+  }
   const ciInput = document.getElementById('checkIn');
   const coInput = document.getElementById('checkOut');
   if (!ciInput || !coInput) return;
@@ -542,10 +761,18 @@ function onCalendarDateClick(ds) {
   } else if (ciInput.value && !coInput.value) {
     if (ds <= ciInput.value) {
       ciInput.value = ds;
+      const nextDay = new Date(ds);
+      nextDay.setDate(nextDay.getDate() + 1);
+      coInput.min = nextDay.toISOString().slice(0, 10);
     } else {
+      if (hasBookedDatesBetween(ciInput.value, ds)) {
+        alert('Selected dates ke beech property already booked hai. Kripya doosra date range chunein.');
+        return;
+      }
       coInput.value = ds;
     }
   }
+  calHoverDate = null;
   onDateChange();
 }
 

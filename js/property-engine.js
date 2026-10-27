@@ -165,6 +165,11 @@
       this.selectedReviewRating = 5;
       this.activeReviewMention = 'all';
       this.lastBookingDetails = null;
+      this.isDragging = false;
+      this.dragStart = null;
+      this.dragEnd = null;
+      this.hoverDate = null;
+      this._justDragged = false;
     }
 
     async init() {
@@ -242,6 +247,14 @@
       // 5. Real-time CRM Sync: Live Map Location & Booked Dates
       this.fetchLiveCrmLocation();
       this.loadBookedDates();
+
+      // 6. Global Mouseup for Drag-to-Select Calendar Range
+      if (!window._luxeEngineMouseUpBound) {
+        window._luxeEngineMouseUpBound = true;
+        window.addEventListener('mouseup', () => {
+          if (window.luxeEngine) window.luxeEngine.onCalMouseUp();
+        });
+      }
     }
 
     async fetchLiveCrmLocation() {
@@ -808,7 +821,181 @@
       }
     }
 
+    onCalMouseDown(dateStr, event) {
+      if (event && event.button !== 0) return; // Left click only
+      const todayIso = new Date().toISOString().slice(0, 10);
+      if (dateStr < todayIso || this.isDateBooked(dateStr)) return;
+
+      this.isDragging = true;
+      this.dragStart = dateStr;
+      this.dragEnd = null;
+      this.hoverDate = null;
+      this._justDragged = false;
+
+      // Set checkIn, clear checkOut
+      this.checkIn = dateStr;
+      this.checkOut = '';
+      this.syncDateInputs();
+      this.checkAvailability();
+      this.updateCalendarLiveClasses();
+    }
+
+    onCalMouseEnter(dateStr) {
+      const todayIso = new Date().toISOString().slice(0, 10);
+      if (dateStr < todayIso) return;
+
+      if (this.isDragging && this.dragStart) {
+        if (dateStr > this.dragStart) {
+          const conflict = this.getBookingConflict(this.dragStart, dateStr);
+          if (!conflict) {
+            this.dragEnd = dateStr;
+            this.hoverDate = dateStr;
+            this._justDragged = true;
+          }
+        } else if (dateStr < this.dragStart) {
+          const conflict = this.getBookingConflict(dateStr, this.dragStart);
+          if (!conflict && !this.isDateBooked(dateStr)) {
+            this.dragEnd = this.dragStart;
+            this.dragStart = dateStr;
+            this.checkIn = dateStr;
+            this._justDragged = true;
+          }
+        }
+        this.updateCalendarLiveClasses();
+      } else if (this.checkIn && !this.checkOut) {
+        if (dateStr > this.checkIn && !this.isDateBooked(dateStr)) {
+          const conflict = this.getBookingConflict(this.checkIn, dateStr);
+          if (!conflict) {
+            this.hoverDate = dateStr;
+          } else {
+            this.hoverDate = null;
+          }
+        } else {
+          this.hoverDate = null;
+        }
+        this.updateCalendarLiveClasses();
+      }
+    }
+
+    onCalMouseLeave() {
+      if (this.isDragging) return;
+      if (this.hoverDate) {
+        this.hoverDate = null;
+        this.updateCalendarLiveClasses();
+      }
+    }
+
+    onCalMouseUp() {
+      if (!this.isDragging) return;
+      this.isDragging = false;
+
+      if (this.dragStart && this.dragEnd && this.dragEnd > this.dragStart) {
+        this.checkIn = this.dragStart;
+        this.checkOut = this.dragEnd;
+        this.hoverDate = null;
+        this.dragStart = null;
+        this.dragEnd = null;
+        this.syncDateInputs();
+        this.checkAvailability();
+        this.renderInteractiveCalendar();
+        this.showToast(`✅ <strong>Dates Selected!</strong> ${this.nights} Night${this.nights > 1 ? 's' : ''} (${this.formatDisplayDate(this.checkIn)} – ${this.formatDisplayDate(this.checkOut)})`, 'success');
+      } else {
+        this.hoverDate = null;
+        this.dragEnd = null;
+        this.updateCalendarLiveClasses();
+      }
+    }
+
+    onCalTouchStart(e) {
+      if (!e.touches || !e.touches[0]) return;
+      const touch = e.touches[0];
+      const target = document.elementFromPoint(touch.clientX, touch.clientY);
+      const cell = target ? target.closest('.luxe-day-cell[data-date]') : null;
+      if (cell) {
+        const dateStr = cell.getAttribute('data-date');
+        const todayIso = new Date().toISOString().slice(0, 10);
+        if (dateStr && dateStr >= todayIso && !cell.classList.contains('booked')) {
+          this.isDragging = true;
+          this.dragStart = dateStr;
+          this.dragEnd = null;
+          this.checkIn = dateStr;
+          this.checkOut = '';
+          this._justDragged = false;
+          this.syncDateInputs();
+          this.updateCalendarLiveClasses();
+        }
+      }
+    }
+
+    onCalTouchMove(e) {
+      if (!this.isDragging || !this.dragStart || !e.touches || !e.touches[0]) return;
+      const touch = e.touches[0];
+      const target = document.elementFromPoint(touch.clientX, touch.clientY);
+      const cell = target ? target.closest('.luxe-day-cell[data-date]') : null;
+      if (cell) {
+        const dateStr = cell.getAttribute('data-date');
+        if (dateStr && dateStr > this.dragStart && !cell.classList.contains('booked')) {
+          const conflict = this.getBookingConflict(this.dragStart, dateStr);
+          if (!conflict) {
+            this.dragEnd = dateStr;
+            this.hoverDate = dateStr;
+            this._justDragged = true;
+            this.updateCalendarLiveClasses();
+            if (e.cancelable) e.preventDefault();
+          }
+        }
+      }
+    }
+
+    onCalTouchEnd() {
+      if (this.isDragging) {
+        this.onCalMouseUp();
+      }
+    }
+
+    updateCalendarLiveClasses() {
+      const container = document.getElementById('availability') || document.getElementById('luxe-availability-calendar');
+      if (!container) return;
+
+      const cells = container.querySelectorAll('.luxe-day-cell[data-date]');
+      const activeStart = this.isDragging ? this.dragStart : this.checkIn;
+      const activeEnd = this.isDragging ? this.dragEnd : (this.checkOut || this.hoverDate);
+
+      cells.forEach(cell => {
+        const ds = cell.getAttribute('data-date');
+        if (!ds) return;
+
+        cell.classList.remove('selected', 'range-start', 'range-end', 'range-mid', 'in-range', 'range-hover-mid', 'range-hover-end', 'solo-selected');
+
+        if (activeStart && !activeEnd) {
+          if (ds === activeStart) {
+            cell.classList.add('selected', 'solo-selected');
+          }
+        } else if (activeStart && activeEnd) {
+          if (ds === activeStart) {
+            cell.classList.add('selected', 'range-start');
+          } else if (ds === activeEnd) {
+            if (this.checkOut) {
+              cell.classList.add('selected', 'range-end');
+            } else {
+              cell.classList.add('range-hover-end');
+            }
+          } else if (ds > activeStart && ds < activeEnd) {
+            if (this.checkOut) {
+              cell.classList.add('in-range', 'range-mid');
+            } else {
+              cell.classList.add('range-hover-mid');
+            }
+          }
+        }
+      });
+    }
+
     onCalendarDayClick(dateStr) {
+      if (this._justDragged) {
+        this._justDragged = false;
+        return;
+      }
       const todayIso = new Date().toISOString().slice(0, 10);
       if (dateStr < todayIso) return;
 
@@ -821,18 +1008,20 @@
       if (!this.checkIn || (this.checkIn && this.checkOut)) {
         this.checkIn = dateStr;
         this.checkOut = '';
+        this.hoverDate = null;
         this.syncDateInputs();
         this.checkAvailability();
         this.renderInteractiveCalendar();
-        this.showToast(`✅ Check-in: <strong>${this.formatDisplayDate(dateStr)}</strong>. Ab Check-out date click karein.`, 'info');
+        this.showToast(`✅ Check-in: <strong>${this.formatDisplayDate(dateStr)}</strong>. Ab Check-out date click ya drag karein.`, 'info');
       } else if (this.checkIn && !this.checkOut) {
         if (dateStr <= this.checkIn) {
           this.checkIn = dateStr;
           this.checkOut = '';
+          this.hoverDate = null;
           this.syncDateInputs();
           this.checkAvailability();
           this.renderInteractiveCalendar();
-          this.showToast(`✅ Check-in updated: <strong>${this.formatDisplayDate(dateStr)}</strong>. Ab Check-out date click karein.`, 'info');
+          this.showToast(`✅ Check-in updated: <strong>${this.formatDisplayDate(dateStr)}</strong>. Ab Check-out date chunein.`, 'info');
         } else {
           // Check for conflicts between this.checkIn and dateStr
           const conflict = this.getBookingConflict(this.checkIn, dateStr);
@@ -841,10 +1030,11 @@
             return;
           }
           this.checkOut = dateStr;
+          this.hoverDate = null;
           this.syncDateInputs();
           this.checkAvailability();
           this.renderInteractiveCalendar();
-          this.showToast(`✅ <strong>Stay Confirmed!</strong> ${this.nights} Night${this.nights > 1 ? 's' : ''} stay available.`, 'success');
+          this.showToast(`✅ <strong>Dates Selected!</strong> ${this.nights} Night${this.nights > 1 ? 's' : ''} stay available.`, 'success');
         }
       }
     }
@@ -1372,13 +1562,22 @@
             classes.push('available');
           }
 
-          if (isSelectedIn || isSelectedOut) {
+          if (isSelectedIn && isSelectedOut) {
+            classes.push('selected', 'solo-selected');
+          } else if (isSelectedIn) {
             classes.push('selected');
+            if (this.checkOut) {
+              classes.push('range-start');
+            } else {
+              classes.push('solo-selected');
+            }
+          } else if (isSelectedOut) {
+            classes.push('selected', 'range-end');
           } else if (isInRange) {
-            classes.push('in-range');
+            classes.push('in-range', 'range-mid');
           }
 
-          let titleAttr = `🟢 Available - Click to choose ${dateStr}`;
+          let titleAttr = `🟢 Available - Click or drag to choose ${dateStr}`;
           if (isBooked) {
             titleAttr = `🔴 Booked (${dateStr}) - Not Available`;
           } else if (isPast) {
@@ -1388,11 +1587,11 @@
           }
 
           const isClickable = !isPast && !isBooked && !isCrossingBooked;
-          const clickAttr = isClickable ? `onclick="window.luxeEngine.onCalendarDayClick('${dateStr}')"` : '';
+          const clickAttr = isClickable ? `onclick="window.luxeEngine.onCalendarDayClick('${dateStr}')" onmousedown="window.luxeEngine.onCalMouseDown('${dateStr}', event)" onmouseenter="window.luxeEngine.onCalMouseEnter('${dateStr}')"` : '';
 
           daysHtml += `
             <div class="${classes.join(' ')}" title="${titleAttr}" ${clickAttr} data-date="${dateStr}">
-              ${d}
+              <span class="day-num">${d}</span>
             </div>
           `;
         }
@@ -1432,7 +1631,11 @@
               </div>
             </div>
           </div>
-          <div class="luxe-cal-grid-months">
+          <div class="luxe-cal-grid-months"
+               onmouseleave="window.luxeEngine.onCalMouseLeave()"
+               ontouchstart="window.luxeEngine.onCalTouchStart(event)"
+               ontouchmove="window.luxeEngine.onCalTouchMove(event)"
+               ontouchend="window.luxeEngine.onCalTouchEnd(event)">
             ${monthsHtml}
           </div>
         </div>

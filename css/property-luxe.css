@@ -2300,7 +2300,9 @@ body.luxe-property-page .hero-frame {
 .luxe-days-grid {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  gap: 4px;
+  gap: 4px 0;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 .luxe-day-cell {
@@ -2308,13 +2310,30 @@ body.luxe-property-page .hero-frame {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 12.5px;
+  font-size: 13px;
   font-weight: 700;
-  border-radius: 8px;
   cursor: pointer;
-  transition: all 0.15s ease;
   position: relative;
   user-select: none;
+  -webkit-user-select: none;
+  touch-action: pan-y;
+  background: transparent;
+  border-radius: 0;
+  padding: 0;
+}
+
+.luxe-day-cell .day-num {
+  width: 38px;
+  height: 38px;
+  max-width: 90%;
+  max-height: 90%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  position: relative;
+  z-index: 2;
+  transition: all 0.15s ease;
 }
 
 .luxe-day-cell.empty {
@@ -2323,38 +2342,128 @@ body.luxe-property-page .hero-frame {
 }
 
 .luxe-day-cell.available {
-  background: #ffffff;
+  background: transparent;
   color: var(--luxe-ink);
+}
+
+.luxe-day-cell.available .day-num {
+  background: #ffffff;
   border: 1px solid #e2e8f0;
 }
 
-.luxe-day-cell.available:hover {
+.luxe-day-cell.available:hover:not(.in-range):not(.selected):not(.range-hover-mid):not(.range-hover-end) .day-num {
   background: #0f172a;
   color: #ffffff;
   border-color: #0f172a;
   transform: scale(1.08);
-  z-index: 2;
 }
 
 .luxe-day-cell.booked {
+  cursor: not-allowed !important;
+  opacity: 0.5 !important;
+  pointer-events: none !important;
+}
+
+.luxe-day-cell.booked .day-num {
   background: #fee2e2 !important;
   color: #991b1b !important;
   border: 1px solid #fca5a5 !important;
-  cursor: not-allowed !important;
-  opacity: 0.6 !important;
   text-decoration: line-through !important;
-  pointer-events: none !important;
-  user-select: none !important;
 }
 
-.luxe-day-cell.booked.blocked-conflict {
+.luxe-day-cell.booked.blocked-conflict .day-num {
   background: #f1f5f9 !important;
   color: #94a3b8 !important;
   border: 1px dashed #cbd5e1 !important;
   text-decoration: none !important;
-  opacity: 0.45 !important;
-  cursor: not-allowed !important;
-  pointer-events: none !important;
+}
+
+/* ─── Airbnb Connected Range Ribbon ─── */
+.luxe-day-cell.in-range,
+.luxe-day-cell.range-mid,
+.luxe-day-cell.range-hover-mid {
+  background: #f1f5f9 !important;
+}
+
+.luxe-day-cell.in-range .day-num,
+.luxe-day-cell.range-mid .day-num,
+.luxe-day-cell.range-hover-mid .day-num {
+  background: transparent !important;
+  border: none !important;
+  color: #0f172a !important;
+  font-weight: 700;
+}
+
+.luxe-day-cell.in-range:nth-child(7n+1),
+.luxe-day-cell.range-hover-mid:nth-child(7n+1) {
+  border-top-left-radius: 9999px !important;
+  border-bottom-left-radius: 9999px !important;
+}
+.luxe-day-cell.in-range:nth-child(7n),
+.luxe-day-cell.range-hover-mid:nth-child(7n) {
+  border-top-right-radius: 9999px !important;
+  border-bottom-right-radius: 9999px !important;
+}
+
+/* Start Date (Check-in) */
+.luxe-day-cell.range-start::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: 0;
+  width: 50%;
+  background: #f1f5f9;
+  z-index: 1;
+}
+.luxe-day-cell.range-start .day-num,
+.luxe-day-cell.selected .day-num {
+  background: #0f172a !important;
+  color: #ffffff !important;
+  border-color: #0f172a !important;
+  box-shadow: 0 4px 10px rgba(15, 23, 42, 0.35);
+}
+
+/* End Date (Check-out) */
+.luxe-day-cell.range-end::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 50%;
+  background: #f1f5f9;
+  z-index: 1;
+}
+.luxe-day-cell.range-end .day-num {
+  background: #0f172a !important;
+  color: #ffffff !important;
+  border-color: #0f172a !important;
+  box-shadow: 0 4px 10px rgba(15, 23, 42, 0.35);
+}
+
+/* Solo Selected (Check-in only) */
+.luxe-day-cell.solo-selected::after,
+.luxe-day-cell.solo-selected::before {
+  display: none !important;
+}
+
+/* Hover Preview End Date (During Drag or Hover before click 2) */
+.luxe-day-cell.range-hover-end::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 50%;
+  background: #f1f5f9;
+  z-index: 1;
+}
+.luxe-day-cell.range-hover-end .day-num {
+  background: #334155 !important;
+  color: #ffffff !important;
+  border-color: #334155 !important;
+  box-shadow: 0 2px 8px rgba(51, 65, 85, 0.3);
 }
 
 .luxe-btn-clear-dates {
@@ -2439,17 +2548,6 @@ body.luxe-property-page .hero-frame {
   color: #f0f9ff;
 }
 
-.luxe-day-cell.selected {
-  background: #0f172a !important;
-  color: #ffffff !important;
-  border-color: #0f172a !important;
-}
-
-.luxe-day-cell.in-range {
-  background: #e2e8f0 !important;
-  color: #0f172a !important;
-  border-radius: 0;
-}
 
 /* ─── LIVE CRM MAP LOCATION BOX ─── */
 .luxe-live-map-card {
