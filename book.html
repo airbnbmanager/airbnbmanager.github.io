@@ -263,14 +263,14 @@
             </select>
           </div>
           <div class="form-field-group">
-            <label class="form-label" for="couponCode">Direct Loyalty Coupon Code</label>
+            <label class="form-label" for="couponCode">Special Coupon or Promo Code</label>
             <div class="coupon-input-wrap">
-              <input type="text" id="couponCode" class="coupon-input" placeholder="e.g. REPEAT10" />
+              <input type="text" id="couponCode" class="coupon-input" placeholder="Enter promo code" />
               <button type="button" class="btn-apply-coupon" id="couponApplyBtn" onclick="applyCoupon()">Apply</button>
               <button type="button" class="btn-apply-coupon" id="couponRemoveBtn" onclick="removeCoupon()" style="display:none; background:#ef4444;">Remove</button>
             </div>
-            <div id="couponMsg" class="coupon-feedback-msg">
-              Have a code? Use <strong style="color:var(--emerald); cursor:pointer;" onclick="document.getElementById('couponCode').value='REPEAT10'; applyCoupon();">REPEAT10</strong> for 10% direct savings.
+            <div id="couponMsg" class="coupon-feedback-msg" style="margin-top:6px; font-size:12.5px; color:var(--foggy); line-height:1.4;">
+              Want a special discount code? <a href="https://wa.me/919450055554?text=Namaste%20Mr.%20Firoz%20Khan%20%26%20Mr.%20Shahanshah!%20I%20am%20booking%20a%20stay%20with%20The%20Unique%20Haven%20Homes%20and%20would%20like%20to%20request%20a%20special%20discount%20promo%20code." target="_blank" rel="noopener" style="color:#059669; font-weight:700; text-decoration:underline;">💬 Ask owners Firoz &amp; Shahanshah directly for extra discount on WhatsApp ➔</a>
             </div>
           </div>
         </div>
@@ -357,7 +357,7 @@
             <span><span style="text-decoration:line-through;color:var(--foggy);margin-right:4px;" id="sumAirbnbFeeStrike">₹3,600</span>₹0 <span class="saved-tag">Saved!</span></span>
           </div>
           <div id="couponDiscountRow" class="breakdown-row discount-row" style="display:none;">
-            <span>Host Loyalty Discount (<span id="couponCodeLabel">REPEAT10</span>)</span>
+            <span>Special Discount (<span id="couponCodeLabel">PROMO</span>)</span>
             <span id="sumDiscount" class="discount-val">-₹0</span>
           </div>
           <div class="breakdown-divider"></div>

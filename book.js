@@ -639,7 +639,7 @@ function removeCoupon() {
   if (applyBtn) applyBtn.style.display = 'block';
   if (removeBtn) removeBtn.style.display = 'none';
   if (msgEl) {
-    msgEl.innerHTML = `Have a code? Use <strong style="color:var(--emerald); cursor:pointer;" onclick="document.getElementById('couponCode').value='REPEAT10'; applyCoupon();">REPEAT10</strong> for 10% direct savings.`;
+    msgEl.innerHTML = `Want a special discount code? <a href="https://wa.me/919450055554?text=Namaste%20Mr.%20Firoz%20Khan%20%26%20Mr.%20Shahanshah!%20I%20am%20booking%20a%20stay%20with%20The%20Unique%20Haven%20Homes%20and%20would%20like%20to%20request%20a%20special%20discount%20promo%20code." target="_blank" rel="noopener" style="color:#059669; font-weight:700; text-decoration:underline;">💬 Ask owners Firoz &amp; Shahanshah directly for extra discount on WhatsApp ➔</a>`;
     msgEl.style.color = '#717171';
   }
   updateSummary();
