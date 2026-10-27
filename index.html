@@ -233,10 +233,13 @@
   <!-- Main Hero Stage -->
   <div class="vesper-hero-body">
     <div class="vesper-left">
+      <div class="vesper-step-counter">
+        <span class="active-num" id="vesperActiveNum">01</span> / 05 &nbsp;&middot;&nbsp; VILLA SPACES WALKTHROUGH
+      </div>
       <div class="vesper-tag-bar">
-        <span class="vesper-tag-label">👑 FEATURED RESIDENCE:</span>
+        <span class="vesper-tag-label">⭐ FEATURED STAY:</span>
         <select id="vesperPropertySelect" class="vesper-property-picker" aria-label="Select Villa Showcase">
-          <option value="royal-white-house" selected>Royal White House (Flagship Villa)</option>
+          <option value="royal-white-house" selected>Royal White House (Presidential Estate)</option>
           <option value="black-beauty">Black Beauty (Designer 3BHK)</option>
           <option value="starlight-blue-penthouse">Starlight Blue Penthouse (4BHK Penthouse)</option>
           <option value="the-velvet-house">The Velvet House (1st Floor · 3BHK)</option>
@@ -246,8 +249,8 @@
           <option value="the-yellow-house">The Yellow House (Ground Floor · 3BHK)</option>
           <option value="the-green-house">The Green House (1st Floor · 3BHK)</option>
           <option value="the-pink-house">The Pink House (2nd &amp; 3rd Floor · 5BR Duplex)</option>
-          <option value="gomti-grand-villa">Gomti Grand Villa (4BHK Villa)</option>
-          <option value="celebrity-garden">Celebrity Garden (Farmhouse &amp; Villa)</option>
+          <option value="gomti-grand-villa">Gomti Grand Villa (4BHK Estate)</option>
+          <option value="celebrity-garden">Celebrity Garden (Farmhouse &amp; Garden)</option>
           <option value="the-dark-blue">The Dark Blue (3BHK Flat)</option>
           <option value="the-nawabi-stay">The Nawabi Stay (Heritage Flat)</option>
           <option value="redrose-palace">RedRose Palace (3BHK Flat)</option>
@@ -257,14 +260,14 @@
         </select>
       </div>
       <h1 class="vesper-headline">
-        Where luxury <em>slows down.</em>
+        Come find your <em>royal quiet.</em>
       </h1>
       <div class="vesper-rating-row">
         <span class="vesper-stars">★★★★★</span>
         <span class="vesper-rating-text">4.94 &middot; 480+ verified guest reviews across 18 Lucknow stays</span>
       </div>
       <p class="vesper-subcopy">
-        Welcome to <strong>The Unique Haven Homes</strong>—operating 18 luxury boutique stays, private villas, and penthouses in Gomti Nagar &amp; near Lulu Mall. Currently spotlighting our presidential flagship, <strong>Royal White House</strong>: 4 grand suites, private lawn &amp; 24/7 royal caretaker. <strong>From ₹12,000 / night</strong> (Save 15% direct).
+        The entire white-marble villa, exclusively yours. 4 luxury suites, private lawn, and 24/7 caretaker near Lulu Mall &amp; Airport. <strong>From ₹13,800 / night</strong> (Save 15% via direct booking).
       </p>
 
       <div class="vesper-spec-row">
@@ -276,57 +279,17 @@
       </div>
 
       <div class="vesper-actions">
-        <a class="vesper-btn-primary" id="vesperExploreCollectionBtn" href="#collection">
-          🏰 Explore 18 Haven Stays
+        <a class="vesper-btn-primary" id="vesperExploreCollectionBtn" href="book.html?property=royal-white-house">
+          ⚡ Check Availability
         </a>
         <a class="vesper-btn-secondary" id="vesperExploreVillaBtn" href="royal-white-house.html">
-          🏛️ Royal White House Tour
+          🏛️ Royal White House Details
         </a>
       </div>
     </div>
 
-    <!-- Right: Booking Card + Stepper Navigator (Screenshots 2, 3, 4) -->
+    <!-- Right: Stepper Navigator (Villa Flight Path) -->
     <div class="vesper-right">
-      <div class="vesper-booking-widget">
-        <div style="display:flex; justify-content:space-between; align-items:flex-start;">
-          <div>
-            <p class="vesper-widget-title">Reserve the quiet,</p>
-            <span style="font-size:12.5px; color:#cbd5e1;">hosted with royal care</span>
-          </div>
-          <a href="book.html?property=royal-white-house" style="font-size:18px; color:#f59e0b; text-decoration:none;" title="Direct Booking">↗</a>
-        </div>
-        <div class="vesper-widget-dates-grid" style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
-          <div class="vesper-widget-field">
-            <label class="vesper-widget-label">Check In</label>
-            <div class="vesper-widget-input-wrap">
-              <input type="date" id="vesperCheckIn" class="vesper-widget-input" aria-label="Check in date">
-            </div>
-          </div>
-          <div class="vesper-widget-field">
-            <label class="vesper-widget-label">Check Out</label>
-            <div class="vesper-widget-input-wrap">
-              <input type="date" id="vesperCheckOut" class="vesper-widget-input" aria-label="Check out date">
-            </div>
-          </div>
-        </div>
-        <div class="vesper-widget-field">
-          <label class="vesper-widget-label">Guests</label>
-          <div class="vesper-widget-input-wrap">
-            <select id="vesperGuests" class="vesper-widget-select" aria-label="Number of guests">
-              <option value="2">2 guests</option>
-              <option value="4">4 guests</option>
-              <option value="6">6 guests</option>
-              <option value="8">8 guests</option>
-              <option value="12" selected>12 guests (Entire Villa)</option>
-            </select>
-          </div>
-        </div>
-        <a class="vesper-widget-btn-submit" href="book.html?property=royal-white-house" id="vesperSubmitBtn">
-          Check availability
-        </a>
-        <p class="vesper-widget-guarantee">🔒 Direct Rate Guarantee · Zero Commission</p>
-      </div>
-
       <div class="vesper-flight-path">
         <div class="vesper-flight-header">
           <span class="vesper-flight-title">Villa Flight Path</span>

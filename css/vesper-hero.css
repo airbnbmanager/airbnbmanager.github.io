@@ -448,22 +448,15 @@ html, body {
   position: relative;
 }
 
-@media (max-width: 1440px) {
+@media (max-width: 1024px) {
   .vesper-flight-path {
     display: none !important;
   }
 }
 
-@media (max-width: 1200px) {
-  .vesper-right {
-    flex-direction: column;
-    align-items: center;
-  }
-}
-
 @media (max-width: 768px) {
   .vesper-right {
-    align-items: stretch;
+    display: none;
   }
 }
 
@@ -735,14 +728,12 @@ html, body {
     max-width: 100%;
   }
   .vesper-right {
-    flex-direction: row;
-    align-items: stretch;
-    justify-content: space-between;
+    justify-content: flex-start;
     width: 100%;
   }
   .vesper-flight-path {
-    max-width: 48%;
-    flex: 1;
+    max-width: 340px;
+    width: 100%;
   }
   .vesper-booking-card {
     max-width: 48%;
