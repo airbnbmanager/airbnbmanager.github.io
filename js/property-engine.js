@@ -270,51 +270,8 @@
               this.prop.base_price = Number(room.rent_per_night);
             }
 
-            // Auto-sync Caretaker details dynamically from CRM
-            if (room.caretaker_name || room.caretaker_phone) {
-              const cName = room.caretaker_name || 'Caretaker';
-              const rawPhone = String(room.caretaker_phone || '').replace(/[^0-9]/g, '');
-              const cleanPhone = rawPhone.length === 10 ? '91' + rawPhone : (rawPhone.length === 12 ? rawPhone : rawPhone);
-              const displayPhone = rawPhone.length === 10 ? rawPhone : (rawPhone.startsWith('91') && rawPhone.length === 12 ? rawPhone.slice(2) : rawPhone);
-
-              // Update Caretaker Card Header & Text
-              document.querySelectorAll('.luxe-section h3').forEach(h3 => {
-                if (h3.textContent.includes('Caretaker')) {
-                  h3.innerHTML = `Caretaker ${cName} &amp; Host Team`;
-                }
-              });
-
-              // Update Direct Call Buttons
-              if (displayPhone) {
-                document.querySelectorAll('a[href^="tel:"]').forEach(telLink => {
-                  telLink.href = `tel:+${cleanPhone}`;
-                  telLink.innerHTML = `📞 Call: ${displayPhone}`;
-                });
-              }
-
-              // Update All WhatsApp Caretaker Links (Navbar, Caretaker Card, Sidebar, Mobile Bar)
-              if (cleanPhone) {
-                document.querySelectorAll('a[href*="wa.me"]').forEach(waLink => {
-                  const href = waLink.getAttribute('href') || '';
-                  if (href.includes('text=')) {
-                    let decodedText = decodeURIComponent(href.split('text=')[1]);
-                    decodedText = decodedText.replace(/Caretaker\s+[A-Za-z\s&]+/i, `Caretaker ${cName}`)
-                                             .replace(/Hello\s+[A-Za-z\s&]+,/i, `Hello ${cName},`);
-                    waLink.href = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(decodedText)}`;
-                  } else {
-                    const propName = this.prop.name || 'Homestay';
-                    waLink.href = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(`Hello Caretaker ${cName}, I am inquiring about ${propName}.`)}`;
-                  }
-                });
-              }
-
-              // Update highlight row text if present
-              document.querySelectorAll('.luxe-highlight-row p').forEach(pEl => {
-                if (pEl.textContent.includes('Caretaker')) {
-                  pEl.innerHTML = `Dedicated caretaker ${cName}${displayPhone ? ' (+91 ' + displayPhone + ')' : ''} is on-site to assist with luggage, check-in, and guest needs anytime.`;
-                }
-              });
-            }
+              // Public website contacts always route to official Host Concierge (+91 94500 55554)
+              // Individual caretaker phone & check-in details are sent privately via WhatsApp upon confirmed booking
 
             this.renderLocationSection();
             this.renderBookingCard();
