@@ -532,6 +532,44 @@
         applyFilters();
       });
     }
+
+    updateFilterPillCounts();
+  }
+
+  function updateFilterPillCounts() {
+    const cards = Array.from(document.querySelectorAll('.dir-card'));
+    let flatCount = 0;
+    let villaCount = 0;
+    let pentCount = 0;
+    let gomtiCount = 0;
+    let luluCount = 0;
+
+    cards.forEach(card => {
+      const type = (card.dataset.type || '').toLowerCase();
+      const area = (card.dataset.area || '').toLowerCase();
+      const slug = (card.dataset.slug || '').toLowerCase();
+
+      if (type === 'flat') flatCount++;
+      if (type === 'villa') villaCount++;
+      if (type === 'penthouse') pentCount++;
+
+      const isLulu = LULU_SLUGS.has(slug) || area === 'lulu' || card.dataset.location === 'lulu';
+      const isVikalp = VIKALP_SLUGS.has(slug) || area === 'vikalp';
+      const isVishesh = VISHESH_SLUGS.has(slug) || area === 'vishesh';
+      if (isVikalp || isVishesh || (!isLulu && area === 'gomti')) gomtiCount++;
+      if (isLulu) luluCount++;
+    });
+
+    const setPillText = (categoryKey, text) => {
+      const btn = document.querySelector(`#filterPills [onclick*=\"'${categoryKey}'\"] span:last-child`);
+      if (btn) btn.textContent = text;
+    };
+
+    setPillText('flat', `Flats & Apartments (${flatCount})`);
+    setPillText('villa', `Luxury Villas (${villaCount})`);
+    setPillText('penthouse', `Penthouse (${pentCount})`);
+    setPillText('gomti', `Gomti Nagar (${gomtiCount})`);
+    setPillText('lulu', `Near Lulu Mall (${luluCount})`);
   }
 
   function applyFilters() {
@@ -564,11 +602,11 @@
       if (activeFilterCategory === 'all') {
         catMatch = true;
       } else if (activeFilterCategory === 'flat') {
-        catMatch = type.includes('flat');
+        catMatch = type === 'flat';
       } else if (activeFilterCategory === 'villa') {
-        catMatch = type.includes('villa');
+        catMatch = type === 'villa';
       } else if (activeFilterCategory === 'penthouse') {
-        catMatch = type.includes('penthouse');
+        catMatch = type === 'penthouse';
       } else if (activeFilterCategory === 'top-rated') {
         catMatch = rating >= 4.90;
       } else if (activeFilterCategory === 'gomti') {
