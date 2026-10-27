@@ -37,15 +37,30 @@ let calViewDate = new Date();
 let appliedCoupon = null;
 let couponDiscount = 0;
 
-// Built-in VIP Coupons
+// Built-in VIP & Founder Exclusive Coupons
 const BUILTIN_COUPONS = {
-  'REPEAT10': { discount_percent: 10, min_nights: 1 },
-  'HAVEN10': { discount_percent: 10, min_nights: 1 },
-  'REPEATGUEST': { discount_percent: 10, min_nights: 1 },
-  'ROYAL15': { discount_percent: 15, min_nights: 2 },
-  'DIRECT10': { discount_percent: 10, min_nights: 1 },
-  'DIRECT15': { discount_percent: 15, min_nights: 2 },
-  'WELCOME10': { discount_percent: 10, min_nights: 1 }
+  // 👑 Founder Exclusive Codes (Firoz Khan & Shahanshah)
+  'FIROZ10': { discount_percent: 10, title: 'Mr. Firoz Khan VIP Privilege' },
+  'FIROZ15': { discount_percent: 15, title: 'Mr. Firoz Khan Special Privilege' },
+  'FIROZ20': { discount_percent: 20, title: 'Mr. Firoz Khan Founder Privilege' },
+  'SHAHANSHAH10': { discount_percent: 10, title: 'Mr. Shahanshah VIP Privilege' },
+  'SHAHANSHAH15': { discount_percent: 15, title: 'Mr. Shahanshah Special Privilege' },
+  'SHAHANSHAH20': { discount_percent: 20, title: 'Mr. Shahanshah Founder Privilege' },
+  'FOUNDER10': { discount_percent: 10, title: 'Founders Direct Privilege' },
+  'FOUNDER15': { discount_percent: 15, title: 'Founders Special Privilege' },
+  'FOUNDER20': { discount_percent: 20, title: 'Founders Direct Executive Privilege' },
+  'FOUNDER25': { discount_percent: 25, title: 'Founders Luxury Suite Offer' },
+  'VIP10': { discount_percent: 10, title: 'VIP Direct Host Benefit' },
+  'VIP15': { discount_percent: 15, title: 'VIP Gold Direct' },
+  'VIP20': { discount_percent: 20, title: 'VIP Platinum Direct' },
+  'VIP25': { discount_percent: 25, title: 'VIP Royal Diamond' },
+  // Direct Loyalty & Repeat Codes
+  'REPEAT10': { discount_percent: 10, title: 'Repeat Guest Privilege' },
+  'REPEATGUEST': { discount_percent: 10, title: 'Repeat Guest Privilege' },
+  'HAVEN10': { discount_percent: 10, title: 'Haven Direct Privilege' },
+  'DIRECT10': { discount_percent: 10, title: 'Direct Booking Benefit' },
+  'DIRECT15': { discount_percent: 15, title: 'Direct Booking Exclusive' },
+  'WELCOME10': { discount_percent: 10, title: 'Welcome Direct Privilege' }
 };
 
 // ─── INITIALIZATION ───
@@ -564,9 +579,36 @@ function updateSummary() {
   if (dockDates) {
     dockDates.textContent = `${nights} night${nights > 1 ? 's' : ''} · ₹${finalTotal.toLocaleString('en-IN')} total`;
   }
+  updateCouponWhatsAppPrompt();
 }
 
-// ─── COUPON HANDLING ───
+// ─── COUPON & FOUNDER DISCOUNT HANDLING ───
+function updateCouponWhatsAppPrompt() {
+  const msgEl = document.getElementById('couponMsg');
+  if (!msgEl || appliedCoupon) return;
+
+  const propName = selectedProp ? selectedProp.name : 'a luxury stay';
+  const ci = document.getElementById('checkIn')?.value;
+  const co = document.getElementById('checkOut')?.value;
+  const nights = (ci && co) ? Math.max(1, Math.round((new Date(co) - new Date(ci)) / (1000 * 60 * 60 * 24))) : 1;
+  const finalTotalEl = document.getElementById('sumTotal');
+  const totalStr = finalTotalEl ? finalTotalEl.textContent : '';
+
+  let stayText = propName;
+  if (ci && co) {
+    stayText += ` (${nights} night${nights > 1 ? 's' : ''}, ${ci} to ${co}`;
+    if (totalStr) stayText += `, est. ${totalStr}`;
+    stayText += `)`;
+  }
+
+  const promptText = encodeURIComponent(
+    `Namaste Mr. Firoz Khan & Mr. Shahanshah! I am booking ${stayText} with The Unique Haven Homes. Could you please share an exclusive owner discount promo code with me?`
+  );
+
+  msgEl.innerHTML = `Need an extra discount? <a href="https://wa.me/919450055554?text=${promptText}" target="_blank" rel="noopener" style="color:#059669; font-weight:700; text-decoration:underline;">💬 Ask Founders Mr. Firoz Khan &amp; Mr. Shahanshah directly on WhatsApp for an exclusive discount code ➔</a>`;
+  msgEl.style.color = '#717171';
+}
+
 async function applyCoupon() {
   const codeInput = document.getElementById('couponCode');
   const msgEl = document.getElementById('couponMsg');
@@ -579,7 +621,19 @@ async function applyCoupon() {
     couponDiscount = BUILTIN_COUPONS[code].discount_percent;
     lockCouponUI(code);
     if (msgEl) {
-      msgEl.innerHTML = `🎉 Code <strong>${code}</strong> applied! <strong>${couponDiscount}% Direct Host Discount</strong> added.`;
+      let badge = 'Direct Host Privilege';
+      if (code.startsWith('FIROZ')) {
+        badge = '👑 Mr. Firoz Khan Exclusive Owner Privilege';
+      } else if (code.startsWith('SHAHANSHAH')) {
+        badge = '👑 Mr. Shahanshah Exclusive Owner Privilege';
+      } else if (code.startsWith('FOUNDER')) {
+        badge = '👑 Founders Firoz & Shahanshah Exclusive Privilege';
+      } else if (code.startsWith('VIP')) {
+        badge = '⭐ VIP Direct Host Privilege';
+      } else if (code.includes('REPEAT')) {
+        badge = '🔁 Repeat Guest Privilege';
+      }
+      msgEl.innerHTML = `🎉 Code <strong>${code}</strong> applied! <strong>${couponDiscount}% OFF</strong> (${badge}) added.`;
       msgEl.style.color = '#059669';
     }
     updateSummary();
@@ -594,7 +648,7 @@ async function applyCoupon() {
         couponDiscount = Number(data.discount_percent || 10);
         lockCouponUI(code);
         if (msgEl) {
-          msgEl.innerHTML = `🎉 Code <strong>${code}</strong> applied! <strong>${couponDiscount}% OFF</strong> added.`;
+          msgEl.innerHTML = `🎉 Code <strong>${code}</strong> applied! <strong>${couponDiscount}% OFF</strong> (${data.title || 'Special Host Privilege'}) added.`;
           msgEl.style.color = '#059669';
         }
         updateSummary();
@@ -605,7 +659,7 @@ async function applyCoupon() {
 
   // Not recognized fallback
   if (msgEl) {
-    msgEl.innerHTML = `⚠️ Code <strong>${code}</strong> noted. Will be verified directly by host.`;
+    msgEl.innerHTML = `⚠️ Code <strong>${code}</strong> recorded. Founders Firoz &amp; Shahanshah will verify and apply your privilege during confirmation.`;
     msgEl.style.color = '#0284c7';
   }
 }
@@ -629,7 +683,6 @@ function removeCoupon() {
   const codeInput = document.getElementById('couponCode');
   const applyBtn = document.getElementById('couponApplyBtn');
   const removeBtn = document.getElementById('couponRemoveBtn');
-  const msgEl = document.getElementById('couponMsg');
   if (codeInput) {
     codeInput.value = '';
     codeInput.readOnly = false;
@@ -638,10 +691,7 @@ function removeCoupon() {
   }
   if (applyBtn) applyBtn.style.display = 'block';
   if (removeBtn) removeBtn.style.display = 'none';
-  if (msgEl) {
-    msgEl.innerHTML = `Want a special discount code? <a href="https://wa.me/919450055554?text=Namaste%20Mr.%20Firoz%20Khan%20%26%20Mr.%20Shahanshah!%20I%20am%20booking%20a%20stay%20with%20The%20Unique%20Haven%20Homes%20and%20would%20like%20to%20request%20a%20special%20discount%20promo%20code." target="_blank" rel="noopener" style="color:#059669; font-weight:700; text-decoration:underline;">💬 Ask owners Firoz &amp; Shahanshah directly for extra discount on WhatsApp ➔</a>`;
-    msgEl.style.color = '#717171';
-  }
+  updateCouponWhatsAppPrompt();
   updateSummary();
 }
 

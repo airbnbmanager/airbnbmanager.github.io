@@ -130,6 +130,250 @@ window.rejectBooking = async function(bkId) {
   if (window.closeBookingDrawer) closeBookingDrawer();
 };
 
+// ─── FOUNDER SPECIAL DISCOUNT MODAL (Mr. Firoz Khan & Mr. Shahanshah) ───
+window.openFounderDiscountModal = async function(bkId) {
+  if (!isTrustedUser()) { fsn.error('Denied', 'Only founders/owners can apply special discounts'); return; }
+  
+  let b = null;
+  if (window._sbkState && window._sbkState.cachedBookings) {
+    b = window._sbkState.cachedBookings.find(x => x.booking_id === bkId);
+  }
+  if (!b) {
+    const { data, error } = await sb.from('guest_register').select('*, rooms(unit_no, nickname, property_name)').eq('booking_id', bkId).single();
+    if (error || !data) { fsn.error('Error', 'Booking not found'); return; }
+    b = data;
+  }
+
+  const origTotal = Number(b.total_amount || 0);
+  const roomName = (b.rooms && (b.rooms.nickname || b.rooms.property_name)) || b.room_id || 'Room';
+  const guestName = b.guest_name || 'Guest';
+  const phone = b.phone || '';
+  const dates = `${b.check_in || ''} → ${b.check_out || ''}`;
+
+  document.getElementById('founderDiscountModalOverlay')?.remove();
+
+  const modalHtml = `
+  <div id="founderDiscountModalOverlay" class="modal-overlay" style="position:fixed;inset:0;background:rgba(15,23,42,0.65);backdrop-filter:blur(4px);z-index:99999;display:flex;align-items:center;justify-content:center;padding:16px;">
+    <div style="background:#ffffff;border-radius:18px;max-width:500px;width:100%;box-shadow:0 25px 50px -12px rgba(0,0,0,0.25);overflow:hidden;animation:modalFadeIn 0.2s ease-out;border:1px solid #e2e8f0;font-family:'Plus Jakarta Sans',Inter,sans-serif;">
+      
+      <!-- Header -->
+      <div style="background:linear-gradient(135deg,#7c3aed 0%,#4f46e5 100%);padding:18px 22px;color:#ffffff;display:flex;align-items:center;justify-content:space-between;">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <div style="font-size:24px;">👑</div>
+          <div>
+            <div style="font-size:16px;font-weight:800;letter-spacing:-0.02em;">Founder Special Discount</div>
+            <div style="font-size:11.5px;opacity:0.9;">Mr. Firoz Khan &amp; Mr. Shahanshah Exclusive Host Authority</div>
+          </div>
+        </div>
+        <button onclick="document.getElementById('founderDiscountModalOverlay').remove()" style="background:rgba(255,255,255,0.2);border:none;color:#fff;width:28px;height:28px;border-radius:50%;cursor:pointer;font-size:14px;font-weight:700;">✕</button>
+      </div>
+
+      <!-- Body -->
+      <div style="padding:20px 22px;display:flex;flex-direction:column;gap:15px;max-height:80vh;overflow-y:auto;">
+        
+        <!-- Booking snapshot -->
+        <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:12px 14px;display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12.5px;">
+          <div><span style="color:#64748b;">Guest:</span> <strong style="color:#0f172a;">${escapeHtml(guestName)}</strong></div>
+          <div><span style="color:#64748b;">Phone:</span> <strong style="color:#0f172a;">${escapeHtml(phone || '—')}</strong></div>
+          <div><span style="color:#64748b;">Property:</span> <strong style="color:#7c3aed;">${escapeHtml(roomName)}</strong></div>
+          <div><span style="color:#64748b;">Dates:</span> <strong style="color:#0f172a;">${dates}</strong></div>
+          <div style="grid-column:1 / -1;padding-top:6px;border-top:1px dashed #cbd5e1;display:flex;justify-content:space-between;align-items:center;">
+            <span style="color:#64748b;font-weight:600;">Current Billed Total:</span>
+            <strong style="color:#0f172a;font-size:16px;">₹${origTotal.toLocaleString('en-IN')}</strong>
+          </div>
+        </div>
+
+        <!-- Authorized By -->
+        <div>
+          <label style="display:block;font-size:12px;font-weight:700;color:#334155;margin-bottom:6px;">Discount Granted By:</label>
+          <div style="display:grid;grid-template-columns:repeat(3, 1fr);gap:6px;">
+            <button type="button" class="fd-auth-btn" data-auth="Mr. Firoz Khan" onclick="window.selectFdAuth(this)" style="background:#f1f5f9;border:1.5px solid #cbd5e1;border-radius:8px;padding:8px 6px;font-size:11.5px;font-weight:700;color:#334155;cursor:pointer;">Firoz Khan</button>
+            <button type="button" class="fd-auth-btn" data-auth="Mr. Shahanshah" onclick="window.selectFdAuth(this)" style="background:#f1f5f9;border:1.5px solid #cbd5e1;border-radius:8px;padding:8px 6px;font-size:11.5px;font-weight:700;color:#334155;cursor:pointer;">Shahanshah</button>
+            <button type="button" class="fd-auth-btn active" data-auth="Founders Firoz &amp; Shahanshah" onclick="window.selectFdAuth(this)" style="background:#e0e7ff;border:1.5px solid #6366f1;border-radius:8px;padding:8px 6px;font-size:11.5px;font-weight:700;color:#4338ca;cursor:pointer;">Both Founders</button>
+          </div>
+        </div>
+
+        <!-- Quick Preset Chips -->
+        <div>
+          <label style="display:block;font-size:12px;font-weight:700;color:#334155;margin-bottom:6px;">Quick Discount Preset:</label>
+          <div style="display:flex;flex-wrap:wrap;gap:6px;">
+            <button type="button" onclick="window.applyFdPreset('pct', 10)" style="background:#f8fafc;border:1px solid #cbd5e1;padding:5px 10px;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;color:#475569;">10% OFF</button>
+            <button type="button" onclick="window.applyFdPreset('pct', 15)" style="background:#f8fafc;border:1px solid #cbd5e1;padding:5px 10px;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;color:#475569;">15% OFF</button>
+            <button type="button" onclick="window.applyFdPreset('pct', 20)" style="background:#f8fafc;border:1px solid #cbd5e1;padding:5px 10px;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;color:#475569;">20% OFF</button>
+            <button type="button" onclick="window.applyFdPreset('pct', 25)" style="background:#f8fafc;border:1px solid #cbd5e1;padding:5px 10px;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;color:#475569;">25% OFF</button>
+            <button type="button" onclick="window.applyFdPreset('flat', 500)" style="background:#f8fafc;border:1px solid #cbd5e1;padding:5px 10px;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;color:#475569;">-₹500</button>
+            <button type="button" onclick="window.applyFdPreset('flat', 1000)" style="background:#f8fafc;border:1px solid #cbd5e1;padding:5px 10px;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;color:#475569;">-₹1,000</button>
+            <button type="button" onclick="window.applyFdPreset('flat', 1500)" style="background:#f8fafc;border:1px solid #cbd5e1;padding:5px 10px;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;color:#475569;">-₹1,500</button>
+          </div>
+        </div>
+
+        <!-- Custom Discount Input -->
+        <div style="display:grid;grid-template-columns:130px 1fr;gap:8px;">
+          <div>
+            <label style="display:block;font-size:11px;font-weight:700;color:#64748b;margin-bottom:4px;">Type</label>
+            <select id="fdType" onchange="window.recalcFd()" style="width:100%;padding:8px;border:1.5px solid #cbd5e1;border-radius:8px;font-size:13px;font-weight:700;background:#fff;">
+              <option value="pct">Percentage (%)</option>
+              <option value="flat">Flat Cash (₹)</option>
+            </select>
+          </div>
+          <div>
+            <label style="display:block;font-size:11px;font-weight:700;color:#64748b;margin-bottom:4px;">Discount Value</label>
+            <input type="number" id="fdValue" value="10" min="0" oninput="window.recalcFd()" style="width:100%;padding:8px 12px;border:1.5px solid #cbd5e1;border-radius:8px;font-size:14px;font-weight:700;color:#0f172a;box-sizing:border-box;" />
+          </div>
+        </div>
+
+        <!-- Live Price Calculation Card -->
+        <div style="background:#f0fdf4;border:1.5px solid #86efac;border-radius:12px;padding:12px 16px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;font-size:12px;color:#166534;margin-bottom:4px;">
+            <span>Discount Deduction:</span>
+            <strong id="fdDiscountText" style="font-size:13.5px;color:#dc2626;">-₹0</strong>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;font-size:15px;color:#14532d;font-weight:800;border-top:1px dashed #bbf7d0;padding-top:6px;">
+            <span>New Final Payable:</span>
+            <span id="fdFinalTotal" style="font-size:19px;color:#059669;font-weight:800;">₹${origTotal.toLocaleString('en-IN')}</span>
+          </div>
+        </div>
+
+        <!-- Founder Notes -->
+        <div>
+          <label style="display:block;font-size:11.5px;font-weight:700;color:#64748b;margin-bottom:4px;">Booking Note / Special Privilege Reason</label>
+          <input type="text" id="fdNote" value="Special Founder Discount approved by Firoz Khan &amp; Shahanshah" style="width:100%;padding:8px 12px;border:1px solid #cbd5e1;border-radius:8px;font-size:12px;box-sizing:border-box;" />
+        </div>
+
+      </div>
+
+      <!-- Footer Buttons -->
+      <div style="background:#f8fafc;padding:14px 22px;border-top:1px solid #e2e8f0;display:flex;flex-direction:column;gap:8px;">
+        <button type="button" onclick="window.submitFounderDiscount('${bkId}', ${origTotal}, true)" style="width:100%;background:#059669;color:#ffffff;border:none;padding:11px 16px;border-radius:10px;font-size:13.5px;font-weight:800;cursor:pointer;box-shadow:0 4px 12px rgba(5,150,105,0.3);display:flex;align-items:center;justify-content:center;gap:6px;">
+          <span>✅ Apply Discount &amp; Approve Booking</span>
+        </button>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+          <button type="button" onclick="window.submitFounderDiscount('${bkId}', ${origTotal}, false)" style="background:#ffffff;border:1.5px solid #cbd5e1;color:#475569;padding:9px;border-radius:10px;font-size:12px;font-weight:700;cursor:pointer;">
+            💾 Update Price Only
+          </button>
+          <button type="button" onclick="document.getElementById('founderDiscountModalOverlay').remove()" style="background:#f1f5f9;border:none;color:#64748b;padding:9px;border-radius:10px;font-size:12px;font-weight:700;cursor:pointer;">
+            ✕ Cancel
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </div>`;
+
+  document.body.insertAdjacentHTML('beforeend', modalHtml);
+  window._fdOrigTotal = origTotal;
+  window._fdSelectedAuth = 'Founders Firoz & Shahanshah';
+  window.recalcFd();
+};
+
+window.selectFdAuth = function(btn) {
+  document.querySelectorAll('.fd-auth-btn').forEach(b => {
+    b.classList.remove('active');
+    b.style.background = '#f1f5f9';
+    b.style.borderColor = '#cbd5e1';
+    b.style.color = '#334155';
+  });
+  btn.classList.add('active');
+  btn.style.background = '#e0e7ff';
+  btn.style.borderColor = '#6366f1';
+  btn.style.color = '#4338ca';
+  window._fdSelectedAuth = btn.getAttribute('data-auth') || 'Founders Firoz & Shahanshah';
+  const noteEl = document.getElementById('fdNote');
+  if (noteEl) {
+    noteEl.value = `Special Founder Discount approved by ${window._fdSelectedAuth}`;
+  }
+};
+
+window.applyFdPreset = function(type, val) {
+  const typeEl = document.getElementById('fdType');
+  const valEl = document.getElementById('fdValue');
+  if (typeEl) typeEl.value = type;
+  if (valEl) valEl.value = val;
+  window.recalcFd();
+};
+
+window.recalcFd = function() {
+  const orig = window._fdOrigTotal || 0;
+  const type = document.getElementById('fdType')?.value || 'pct';
+  const val = Number(document.getElementById('fdValue')?.value || 0);
+
+  let discountAmt = 0;
+  if (type === 'pct') {
+    discountAmt = Math.round(orig * (val / 100));
+  } else {
+    discountAmt = Math.min(orig, Math.round(val));
+  }
+  discountAmt = Math.max(0, discountAmt);
+  const finalTotal = Math.max(0, orig - discountAmt);
+
+  const discTextEl = document.getElementById('fdDiscountText');
+  const finalTotalEl = document.getElementById('fdFinalTotal');
+  if (discTextEl) {
+    discTextEl.textContent = `-₹${discountAmt.toLocaleString('en-IN')} ${type === 'pct' ? `(${val}%)` : ''}`;
+  }
+  if (finalTotalEl) {
+    finalTotalEl.textContent = `₹${finalTotal.toLocaleString('en-IN')}`;
+  }
+  window._fdCalculatedDiscount = discountAmt;
+  window._fdCalculatedFinal = finalTotal;
+};
+
+window.submitFounderDiscount = async function(bkId, origTotal, andApprove) {
+  if (!isTrustedUser()) { fsn.error('Denied', 'Only owner/developer can modify discount'); return; }
+  const discountAmt = window._fdCalculatedDiscount !== undefined ? window._fdCalculatedDiscount : 0;
+  const finalTotal = window._fdCalculatedFinal !== undefined ? window._fdCalculatedFinal : origTotal;
+  const auth = window._fdSelectedAuth || 'Founders Firoz & Shahanshah';
+  const customNote = document.getElementById('fdNote')?.value?.trim() || `Special Founder Discount approved by ${auth}`;
+
+  const updatePayload = {
+    total_amount: finalTotal,
+    discount_amount: discountAmt
+  };
+
+  if (andApprove) {
+    updatePayload.verification_status = 'verified';
+    updatePayload.verified_by = SESSION.userId;
+    updatePayload.verified_at = new Date().toISOString();
+    updatePayload.rejection_reason = null;
+  }
+
+  // Fetch current notes to append
+  const { data: cur } = await sb.from('guest_register').select('notes').eq('booking_id', bkId).single();
+  const existingNotes = cur?.notes || '';
+  const discountStamp = `[🏷️ ${auth}: -₹${discountAmt.toLocaleString('en-IN')} | Final ₹${finalTotal.toLocaleString('en-IN')} | Note: ${customNote}]`;
+  updatePayload.notes = existingNotes ? `${existingNotes} | ${discountStamp}` : discountStamp;
+
+  const { error } = await sb.from('guest_register').update(updatePayload).eq('booking_id', bkId);
+  if (error) {
+    fsn.error('Update Error', error.message);
+    return;
+  }
+
+  fsn.success(
+    andApprove ? 'Discount Applied & Approved' : 'Discount Saved',
+    `✅ Total updated to ₹${finalTotal.toLocaleString('en-IN')} (-₹${discountAmt.toLocaleString('en-IN')} by ${auth})`
+  );
+
+  document.getElementById('founderDiscountModalOverlay')?.remove();
+
+  // Update cached state if exists
+  if (window._sbkState && window._sbkState.cachedBookings) {
+    const c = window._sbkState.cachedBookings.find(x => x.booking_id === bkId);
+    if (c) {
+      c.total_amount = finalTotal;
+      if (andApprove) c.verification_status = 'verified';
+    }
+  }
+
+  if (window.renderPendingApprovals) renderPendingApprovals();
+  if (window.renderManageBookings) renderManageBookings();
+  if (window.renderSmartManageBookings) renderSmartManageBookings();
+  if (window.renderCalendar && document.getElementById('calGrid')) renderCalendar();
+  if (window.openBookingDrawer && document.getElementById('sbkDrawerContainer')) {
+    openBookingDrawer(bkId);
+  }
+};
+
 window.approvePayment = async function(payId) {
   if (!isTrustedUser()) { fsn.error('Denied', 'Only owner/developer can approve'); return; }
   const { error } = await sb.from('payment_history').update({
@@ -2536,7 +2780,7 @@ async function renderManageBookings() {
                 ${timeStr ? `<span style="color:#64748B;font-size:9.5px;" title="Booking Timestamp: ${timeStr}">🕒 ${timeStr}</span>` : ''}
               </div>`;
             })()}
-            ${b.verification_status === 'pending' && isTrustedUser() ? '<br><button class="btn-sm green-btn" style="padding:2px 8px;font-size:10px;margin-top:2px;" onclick="event.stopPropagation();approveBooking(\'' + b.booking_id + '\')">✅ Approve</button> <button class="btn-sm danger" style="padding:2px 8px;font-size:10px;" onclick="event.stopPropagation();rejectBooking(\'' + b.booking_id + '\')">❌ Reject</button>' : ''}
+            ${b.verification_status === 'pending' && isTrustedUser() ? '<br><button class="btn-sm green-btn" style="padding:2px 8px;font-size:10px;margin-top:2px;" onclick="event.stopPropagation();approveBooking(\'' + b.booking_id + '\')">✅ Approve</button> <button class="btn-sm" style="background:#7c3aed;color:#fff;border:none;padding:2px 8px;font-size:10px;margin-top:2px;font-weight:700;border-radius:4px;cursor:pointer;" onclick="event.stopPropagation();openFounderDiscountModal(\'' + b.booking_id + '\')">🏷️ Discount</button> <button class="btn-sm danger" style="padding:2px 8px;font-size:10px;" onclick="event.stopPropagation();rejectBooking(\'' + b.booking_id + '\')">❌ Reject</button>' : ''}
             ${(() => {
               const allBks = window._allBookings || [];
               const pm = window._bkPaidMap || {};
@@ -6823,6 +7067,7 @@ window.renderPendingApprovals = async function() {
       <td>
         <div style="display:flex;gap:4px;flex-wrap:wrap;">
           <button class="btn-sm green-btn" onclick="approveBooking('${b.booking_id}')">✅ Approve</button>
+          <button class="btn-sm" style="background:#7c3aed;color:#ffffff;border:none;padding:4px 9px;font-size:11.5px;font-weight:700;border-radius:6px;cursor:pointer;" onclick="openFounderDiscountModal('${b.booking_id}')">🏷️ Special Discount</button>
           <button class="btn-sm danger" onclick="rejectBooking('${b.booking_id}')">❌ Reject</button>
           <button class="btn-sm outline" onclick="editBooking('${b.booking_id}')">✏️ View</button>
         </div>

@@ -1389,9 +1389,12 @@ window.openBookingDrawer = async function(bookingId) {
                   Review availability &amp; tariff. Click approve to confirm this booking into the active register.
                 </div>
               </div>
-              <div style="display:flex;gap:8px;">
+              <div style="display:flex;gap:8px;flex-wrap:wrap;">
                 <button type="button" class="btn-sm" onclick="window.approveBooking('${b.booking_id}')" style="background:#059669;color:#fff;border:none;padding:8px 16px;font-size:12.5px;font-weight:800;border-radius:8px;cursor:pointer;box-shadow:0 2px 6px rgba(5,150,105,0.3);">
                   ✅ Approve Booking
+                </button>
+                <button type="button" class="btn-sm" onclick="window.openFounderDiscountModal('${b.booking_id}')" style="background:#7c3aed;color:#fff;border:none;padding:8px 14px;font-size:12.5px;font-weight:700;border-radius:8px;cursor:pointer;box-shadow:0 2px 6px rgba(124,58,237,0.3);">
+                  🏷️ Special Discount
                 </button>
                 <button type="button" class="btn-sm" onclick="window.rejectBooking('${b.booking_id}')" style="background:#DC2626;color:#fff;border:none;padding:8px 14px;font-size:12.5px;font-weight:700;border-radius:8px;cursor:pointer;">
                   ❌ Reject
