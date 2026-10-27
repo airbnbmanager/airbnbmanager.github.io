@@ -307,7 +307,7 @@ function onPropertyChange() {
   if (specsEl) {
     const maxG = showData?.max_guests || selectedProp.guests || 10;
     const beds = showData?.bedrooms || (selectedProp.type.includes('3BHK') ? 3 : 4);
-    specsEl.textContent = `Up to ${maxG} guests · ${beds} bedrooms · Dedicated Caretaker · Free Parking`;
+    specsEl.textContent = `Up to ${maxG} guests · ${beds} bedrooms · 24/7 Host Concierge · Free Parking`;
   }
 
   // Update Price in Widget

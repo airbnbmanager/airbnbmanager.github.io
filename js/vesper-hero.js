@@ -13,7 +13,7 @@
       name: 'Royal White House',
       type: 'Royal Villa · Shaheed Path',
       headline: 'Come find your royal quiet.',
-      desc: 'The entire white-marble villa, exclusively yours. 4 luxury suites, private lawn, and 24/7 caretaker near Lulu Mall & Airport.',
+      desc: 'The entire white-marble villa, exclusively yours. 4 luxury suites, private lawn, and 24/7 dedicated host concierge near Lulu Mall & Airport.',
       specs: ['👥 Sleeps 12', '🛏️ 4 King Suites', '❄️ 100% AC', '🚗 Free Parking', '✨ Save 15% Direct'],
       price: '₹12,000 / night',
       spaces: [

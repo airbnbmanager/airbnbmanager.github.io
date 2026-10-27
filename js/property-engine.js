@@ -772,7 +772,7 @@
         </div>
         <div class="agoda-sub-metrics">
           <div class="agoda-metric-row"><span>✨ Cleanliness &amp; Hygiene</span><span class="agoda-metric-val">9.9 / 10</span></div>
-          <div class="agoda-metric-row"><span>🛎️ 24/7 Caretaker Service</span><span class="agoda-metric-val">9.9 / 10</span></div>
+          <div class="agoda-metric-row"><span>🛎️ 24/7 Host Concierge</span><span class="agoda-metric-val">9.9 / 10</span></div>
           <div class="agoda-metric-row"><span>❄️ 100% AC &amp; Power Backup</span><span class="agoda-metric-val">9.8 / 10</span></div>
           <div class="agoda-metric-row"><span>📍 Prime Location &amp; Parking</span><span class="agoda-metric-val">9.9 / 10</span></div>
         </div>
@@ -1282,8 +1282,8 @@
         <div class="luxe-highlight-row">
           <div class="luxe-highlight-icon">⚡</div>
           <div class="luxe-highlight-text">
-            <h4>24/7 On-Site Caretaker &amp; Express Check-in</h4>
-            <p>A dedicated property caretaker is always on-site to assist with luggage, keys, and any guest requests at any hour.</p>
+            <h4>24/7 On-Ground Support &amp; Express Check-in</h4>
+            <p>A dedicated hospitality host team is always on-site to assist with luggage, keys, and any guest requests at any hour.</p>
           </div>
         </div>
         <div class="luxe-highlight-row">
@@ -1357,7 +1357,7 @@
         'Smart TV with Netflix / Prime',
         'Hot Water Geyser in all baths',
         'Free Private Parking on site',
-        '24/7 Caretaker Assistance',
+        '24/7 Host Concierge',
         'Power Backup (Inverter/Gen)',
         'Fresh Luxury Linens & Towels',
         'Washing Machine & Iron',
@@ -1512,7 +1512,7 @@
 
           <div style="background:#f8fafc; padding:12px 20px; font-size:12px; color:var(--luxe-muted); display:flex; align-items:center; gap:8px; border-top:1px solid var(--luxe-border);">
             <span style="color:#059669; font-weight:800;">✓ Live UHHS Synced</span>
-            <span>· Exact arrival coordinates matched with owner &amp; caretaker verified GPS pin.</span>
+            <span>· Exact arrival coordinates matched with owner &amp; host verified GPS pin.</span>
           </div>
         </div>
       `;
@@ -3178,7 +3178,7 @@ _Please confirm room allotment and issue official GST Tax Invoice. Thank you!_`;
 
 ✨ *Property Highlights:*
 • 🛏️ ${p.bedrooms || 3} AC Bedrooms · ${p.beds || '3 King Beds'} · ${p.bathrooms || 3} Baths
-• ⚡ 24/7 On-Site Caretaker & Express Check-in
+• ⚡ 24/7 Dedicated Host Concierge & Express Check-in
 • 📶 150+ Mbps High-Speed Wi-Fi
 • 🍳 Fully Equipped Modular Kitchen
 • 🚗 Free Dedicated Parking
@@ -4014,7 +4014,7 @@ Direct Booking & Photo Album: ${shareUrl}`;
           tenure: '5 years on Airbnb',
           rating: 5,
           date: '3 days ago',
-          comment: 'Nice place. Extremely clean flat and great caretaker service. Check-in was very smooth and location is prime.',
+          comment: 'Nice place. Extremely clean flat and great host service. Check-in was very smooth and location is prime.',
           mention: 'Cleanliness'
         },
         {
@@ -4050,7 +4050,7 @@ Direct Booking & Photo Album: ${shareUrl}`;
           tenure: '1 year on Airbnb',
           rating: 5,
           date: 'August 2026',
-          comment: 'Good place worth the stay. Fully equipped modular kitchen, clean washrooms and fast caretaker response.',
+          comment: 'Good place worth the stay. Fully equipped modular kitchen, clean washrooms and fast host response.',
           mention: 'Comfort'
         },
         {
@@ -4283,14 +4283,14 @@ Direct Booking & Photo Album: ${shareUrl}`;
               <select id="luxe-rev-mention" style="width:100%; padding:10px; border:1px solid #cbd5e1; border-radius:8px; font-size:14px;">
                 <option value="Cleanliness">✨ Cleanliness &amp; Hygiene</option>
                 <option value="Comfort" selected>🛋️ Comfort &amp; Spaciousness</option>
-                <option value="Hospitality">🎁 Caretaker Hospitality</option>
+                <option value="Hospitality">🎁 Host Concierge &amp; Hospitality</option>
                 <option value="Location">📍 Prime Location &amp; Parking</option>
               </select>
             </div>
 
             <div class="upi-form-group">
               <label>Your Feedback / Review *</label>
-              <textarea id="luxe-rev-comment" rows="4" placeholder="How was the apartment, AC, cleanliness, and caretaker response?" required style="width:100%; padding:10px; border:1px solid #cbd5e1; border-radius:8px; font-size:14px; font-family:inherit; resize:vertical;"></textarea>
+              <textarea id="luxe-rev-comment" rows="4" placeholder="How was the apartment, AC, cleanliness, and host response?" required style="width:100%; padding:10px; border:1px solid #cbd5e1; border-radius:8px; font-size:14px; font-family:inherit; resize:vertical;"></textarea>
             </div>
 
             <button type="submit" class="upi-btn-confirm" style="width:100%; justify-content:center; margin-top:10px;">
@@ -4423,7 +4423,7 @@ Payment Status: 100% RECEIVED & ALLOTTED
 
 KEY STAY GUIDELINES:
 • Valid Government Photo ID required for all adult guests at check-in.
-• Complimentary Caretaker-assisted parking.
+• Complimentary on-site parking assistance.
 • 100% AC in all rooms & 24/7 power backup.
 • Non-smoking indoors. Quiet hours after 11:00 PM.
 

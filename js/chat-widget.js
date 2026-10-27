@@ -781,7 +781,7 @@
         text: `💳 **Booking & Payment Process:**\n\n` +
               `1️⃣ **Dates Block:** Dates lock karne ke liye ek chhota advance token (typically 30% to 50%) pay karna hota hai.\n` +
               `2️⃣ **Payment Modes:** UPI (PhonePe, Google Pay, Paytm), Bank Transfer (IMPS/NEFT), ya official QR code.\n` +
-              `3️⃣ **Instant Confirmation:** Advance confirm hote hi official Booking Voucher, Check-in details aur Caretaker Location Pin WhatsApp par instant bhej di jaati hai.\n` +
+              `3️⃣ **Instant Confirmation:** Advance confirm hote hi official Booking Voucher, Check-in details aur Arrival Coordinates & Host Pin WhatsApp par instant bhej di jaati hai.\n` +
               `4️⃣ **Balance Amount:** Baaki bacha payment aap check-in ke samay property pahunch kar pay kar sakte hain.\n` +
               `5️⃣ **Cancellation:** Check-in se 48 hours pehle tak full reschedule / flexible cancellation policy available hai.`,
         actions: [{ label: '📲 Pay Advance & Block Dates', url: `https://wa.me/${ADMIN_WA}?text=Namaste! I want to pay advance token and confirm my booking.` }],
@@ -1052,7 +1052,7 @@
         text: `💻 **Unique Haven Homes Platform & Software:**\n\n` +
               `• **Direct Booking Engine:** Hum live rates aur instant booking enable karte hain without 3rd-party commission.\n` +
               `• **Real-Time Database:** Property availability aur dynamic rates Supabase database se direct connected hain.\n` +
-              `• **Instant WhatsApp Dispatch:** Booking confirm hote hi guest ko WhatsApp invoice, gate pass aur caretaker location pin auto-deliver hota hai.\n` +
+              `• **Instant WhatsApp Dispatch:** Booking confirm hote hi guest ko WhatsApp invoice, gate pass aur host location pin auto-deliver hota hai.\n` +
               `• **Digital Guest Register:** Aadhaar/ID verification contactless digital portal ke zariye hoti hai.`,
         quickReplies: ['Rates list dikhao 💰', 'Gomti Grand Villa', 'Book now 📅']
       };
@@ -1117,7 +1117,7 @@
         text: `💳 **Booking Advance & Payment Policy:**\n\n` +
               `• **Advance Token:** Booking lock karne ke liye sirf **30% se 50% token amount** lagta hai.\n` +
               `• **Payment Modes:** UPI (PhonePe, Google Pay, Paytm), Bank Transfer (IMPS/NEFT) ya Cash.\n` +
-              `• **Instant Voucher:** Advance transfer hote hi digital booking receipt, check-in instructions aur caretaker pin WhatsApp par aa jata hai.\n` +
+              `• **Instant Voucher:** Advance transfer hote hi digital booking receipt, check-in instructions aur host location pin WhatsApp par aa jata hai.\n` +
               `• **Balance Payment:** Baaki bacha payment aap property check-in ke time de sakte hain.\n` +
               `• **Zero Security Deposit:** Hum koi security deposit nahi lete!`,
         actions: [{ label: '📲 Pay Advance & Lock Dates', url: `https://wa.me/${ADMIN_WA}?text=Namaste Shahanshah ji! I want to pay advance token and confirm my booking.` }],

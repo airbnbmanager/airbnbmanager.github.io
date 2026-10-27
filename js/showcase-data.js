@@ -115,7 +115,7 @@
           "https://a0.muscache.com/im/pictures/hosting/Hosting-1798067011361845302/original/a3067b9f-9dee-4bba-bb64-26c475fa3690.jpeg"
 ]
       },
-      amenities: ['AC in Bedroom & Hall', 'High-Speed Wi-Fi', 'Modular Kitchen', 'Geyser Hot Water', 'Dedicated Parking', '24/7 Caretaker Assistance'],
+      amenities: ['AC in Bedroom & Hall', 'High-Speed Wi-Fi', 'Modular Kitchen', 'Geyser Hot Water', 'Dedicated Parking', '24/7 Host Concierge'],
       landmarks: [{ name: 'Lulu Mall', time: '3 min' }, { name: 'Medanta Hospital', time: '5 min' }, { name: 'Ekana Stadium', time: '7 min' }, { name: 'Lucknow Airport', time: '15 min' }],
       description: 'Chic, modern 1BHK apartment right next to Lulu Mall and Medanta Hospital. Perfect for solo travellers, couples, or medical and corporate visits.'
     },
@@ -253,7 +253,7 @@
           "https://a0.muscache.com/im/pictures/hosting/Hosting-1655969170448425308/original/cb99a029-bab0-4708-9c38-ddd27fe65583.jpeg"
         ]
       },
-      amenities: ['AC in all Rooms', 'High-Speed Wi-Fi', 'Modular Kitchen', 'Geyser Hot Water', 'Designated Parking', '24/7 Caretaker', 'Power Backup', 'Smart TV with OTT', 'Balcony View'],
+      amenities: ['AC in all Rooms', 'High-Speed Wi-Fi', 'Modular Kitchen', 'Geyser Hot Water', 'Designated Parking', '24/7 Host Concierge', 'Power Backup', 'Smart TV with OTT', 'Balcony View'],
       landmarks: [
         { name: 'Max Super Specialty Hospital', time: '5 min' },
         { name: 'Chinhat Tiraha', time: '2 min' },
@@ -261,7 +261,7 @@
         { name: 'Ekana Cricket Stadium', time: '15 min' },
         { name: 'Lucknow Airport (CCS)', time: '25 min' }
       ],
-      description: 'A serene, blue-accented luxury 3BHK flat in prime Vikalp Khand, Gomti Nagar. Complete with spacious air-conditioned bedrooms, modular kitchen, smart entertainment, and 24/7 on-site caretaker assistance.'
+      description: 'A serene, blue-accented luxury 3BHK flat in prime Vikalp Khand, Gomti Nagar. Complete with spacious air-conditioned bedrooms, modular kitchen, smart entertainment, and 24/7 dedicated host concierge.'
     },
 
     'GOM-302': {
@@ -413,7 +413,7 @@
           "https://a0.muscache.com/im/pictures/hosting/Hosting-1679190202218939181/original/04af1fae-d4ab-4d74-bf04-2a88cb3b82f8.jpeg"
         ]
       },
-      amenities: ['AC in all Rooms', 'High-Speed Wi-Fi', 'Modular Kitchen', 'Geyser Hot Water', 'Designated Parking', '24/7 Caretaker', 'Power Backup', 'Smart TV'],
+      amenities: ['AC in all Rooms', 'High-Speed Wi-Fi', 'Modular Kitchen', 'Geyser Hot Water', 'Designated Parking', '24/7 Host Concierge', 'Power Backup', 'Smart TV'],
       landmarks: [
         { name: 'Max Hospital', time: '5 min' },
         { name: 'Lulu Mall', time: '15 min' },
@@ -535,7 +535,7 @@
           "https://a0.muscache.com/im/pictures/hosting/Hosting-1676840617430941240/original/75625343-afa5-4948-84e2-82abb2ab438a.jpeg"
         ]
       },
-      amenities: ['AC in all Rooms', 'High-Speed Wi-Fi', 'Modular Kitchen', 'Geyser Hot Water', 'Designated Parking', '24/7 Caretaker', 'Power Backup'],
+      amenities: ['AC in all Rooms', 'High-Speed Wi-Fi', 'Modular Kitchen', 'Geyser Hot Water', 'Designated Parking', '24/7 Host Concierge', 'Power Backup'],
       landmarks: [{ name: 'Max Hospital', time: '5 min' }, { name: 'Lulu Mall', time: '15 min' }],
       description: 'Bold modern interiors with monochrome touches, spacious rooms, and peaceful residential ambience in Gomti Nagar.'
     },
@@ -699,7 +699,7 @@
           "https://a0.muscache.com/im/pictures/hosting/Hosting-1654261872286835347/original/0ab70635-7e39-4d61-b191-6f836e9ab7ed.jpeg"
         ]
       },
-      amenities: ['AC in all Rooms', 'High-Speed Wi-Fi', 'Modular Kitchen', 'Geyser Hot Water', 'Designated Parking', '24/7 Caretaker', 'Power Backup'],
+      amenities: ['AC in all Rooms', 'High-Speed Wi-Fi', 'Modular Kitchen', 'Geyser Hot Water', 'Designated Parking', '24/7 Host Concierge', 'Power Backup'],
       landmarks: [{ name: 'Max Hospital', time: '5 min' }, { name: 'Lulu Mall', time: '15 min' }],
       description: 'Elegantly furnished 3BHK flat featuring rosewood tones, warm ambient lighting, and welcoming family atmosphere.'
     },
@@ -867,7 +867,7 @@
           "https://a0.muscache.com/im/pictures/hosting/Hosting-1660898784168880636/original/3ceebe6c-71b3-4acd-8820-76c7a105bd20.jpeg"
         ]
       },
-      amenities: ['AC in all Rooms', 'High-Speed Wi-Fi', 'Modular Kitchen', 'Geyser Hot Water', 'Designated Parking', '24/7 Caretaker'],
+      amenities: ['AC in all Rooms', 'High-Speed Wi-Fi', 'Modular Kitchen', 'Geyser Hot Water', 'Designated Parking', '24/7 Host Concierge'],
       landmarks: [{ name: 'Max Hospital', time: '5 min' }, { name: 'Lulu Mall', time: '15 min' }],
       description: 'Earthy brown decor, serene bedrooms with plush mattresses, and hassle-free self check-in assistance.'
     },
@@ -1026,7 +1026,7 @@
           "https://a0.muscache.com/im/pictures/hosting/Hosting-1679155811558485410/original/8e31ce76-14fa-4d48-a04e-8e618e758961.jpeg"
         ]
       },
-      amenities: ['AC in all Rooms', 'High-Speed Wi-Fi', 'Modular Kitchen', 'Geyser Hot Water', 'Designated Parking', '24/7 Caretaker'],
+      amenities: ['AC in all Rooms', 'High-Speed Wi-Fi', 'Modular Kitchen', 'Geyser Hot Water', 'Designated Parking', '24/7 Host Concierge'],
       landmarks: [{ name: 'Max Hospital', time: '5 min' }, { name: 'Lulu Mall', time: '15 min' }],
       description: 'Fresh light green pastel accents, airy open balconies, and quiet surroundings for peaceful workcations or family visits.'
     },
@@ -1118,7 +1118,7 @@
           "https://a0.muscache.com/im/pictures/hosting/Hosting-1723434530455939144/original/e177fb84-a64e-446d-92e7-ca7ace3eeb89.jpeg"
         ]
       },
-      amenities: ['AC in all Rooms', 'High-Speed Wi-Fi', 'Modular Kitchen', 'Geyser Hot Water', 'Designated Parking', '24/7 Caretaker', 'Elevator', 'Power Backup'],
+      amenities: ['AC in all Rooms', 'High-Speed Wi-Fi', 'Modular Kitchen', 'Geyser Hot Water', 'Designated Parking', '24/7 Host Concierge', 'Elevator', 'Power Backup'],
       landmarks: [{ name: 'Max Hospital', time: '5 min' }, { name: 'Lulu Mall', time: '15 min' }],
       description: 'Awadhi royal hospitality infused with modern luxury conveniences. Elevator access and panoramic skyline views.'
     },
@@ -1266,7 +1266,7 @@
           "https://a0.muscache.com/im/pictures/hosting/Hosting-1718385679817913835/original/8ba9c8c1-e22d-49de-a431-94e97a7838dd.jpeg"
         ]
       },
-      amenities: ['Private Rooftop Terrace', 'AC in all Rooms', 'High-Speed Wi-Fi', 'Modular Kitchen', 'Geyser Hot Water', 'Designated Parking', '24/7 Caretaker'],
+      amenities: ['Private Rooftop Terrace', 'AC in all Rooms', 'High-Speed Wi-Fi', 'Modular Kitchen', 'Geyser Hot Water', 'Designated Parking', '24/7 Host Concierge'],
       landmarks: [{ name: 'Max Hospital', time: '5 min' }, { name: 'Lulu Mall', time: '15 min' }],
       description: 'Exclusive top-floor penthouse featuring a private open-air terrace, night skyline views of Lucknow, and lavish lounge furnishings.'
     },
@@ -1450,7 +1450,7 @@
           "https://a0.muscache.com/im/pictures/hosting/Hosting-1592729918855637425/original/a2baefba-1c16-4fa3-9c12-6316f88381f4.jpeg"
         ]
       },
-      amenities: ['Private Lawn / Garden', 'AC in all Rooms', 'High-Speed Wi-Fi', 'Modular Kitchen', 'Geyser Hot Water', 'Private Parking', '24/7 Caretaker'],
+      amenities: ['Private Lawn / Garden', 'AC in all Rooms', 'High-Speed Wi-Fi', 'Modular Kitchen', 'Geyser Hot Water', 'Private Parking', '24/7 Host Concierge'],
       landmarks: [{ name: 'Gomti Nagar Railway Station', time: '8 min' }, { name: 'Phoenix Palassio', time: '12 min' }],
       description: 'Charming standalone 3BHK villa with sunlit lawn, quiet upscale neighborhood, and direct garden access.'
     },
@@ -1632,7 +1632,7 @@
           "https://a0.muscache.com/im/pictures/hosting/Hosting-1593461780265937816/original/cd4bdc63-f8c7-42d9-bd68-da216c2b60eb.jpeg"
         ]
       },
-      amenities: ['Green Garden', 'AC in all Rooms', 'High-Speed Wi-Fi', 'Modular Kitchen', 'Geyser Hot Water', 'Private Parking', '24/7 Caretaker'],
+      amenities: ['Green Garden', 'AC in all Rooms', 'High-Speed Wi-Fi', 'Modular Kitchen', 'Geyser Hot Water', 'Private Parking', '24/7 Host Concierge'],
       landmarks: [{ name: 'Gomti Nagar Railway Station', time: '8 min' }, { name: 'Phoenix Palassio', time: '12 min' }],
       description: 'Lush greenery and serene tranquility right in the heart of Vishesh Khand. Ideal for long-term stays and private family events.'
     },
@@ -1888,7 +1888,7 @@
           "https://a0.muscache.com/im/pictures/hosting/Hosting-1592729438969718723/original/441812f2-836f-47c7-a938-e3363ebff7ec.png"
         ]
       },
-      amenities: ['5 Master Bedrooms', 'Large Living Hall', 'Private Courtyard', 'AC in all Rooms', 'High-Speed Wi-Fi', 'Modular Kitchen', 'Geyser Hot Water', '24/7 Caretaker'],
+      amenities: ['5 Master Bedrooms', 'Large Living Hall', 'Private Courtyard', 'AC in all Rooms', 'High-Speed Wi-Fi', 'Modular Kitchen', 'Geyser Hot Water', '24/7 Host Concierge'],
       landmarks: [{ name: 'Gomti Nagar Station', time: '8 min' }, { name: 'Lulu Mall', time: '14 min' }],
       description: 'Expansive 5-bedroom luxury estate built for wedding families, delegates, and VIP group gatherings with expansive halls.'
     },
@@ -2088,7 +2088,7 @@
           "https://a0.muscache.com/im/pictures/hosting/Hosting-1721732716374002170/original/a14da899-46e2-4c94-b742-14f7fd0f037b.jpeg"
         ]
       },
-      amenities: ['Near Lulu & Palassio', '4 Master Bedrooms', 'Spacious Parking', 'AC in all Rooms', 'High-Speed Wi-Fi', 'Modular Kitchen', '24/7 Caretaker'],
+      amenities: ['Near Lulu & Palassio', '4 Master Bedrooms', 'Spacious Parking', 'AC in all Rooms', 'High-Speed Wi-Fi', 'Modular Kitchen', '24/7 Host Concierge'],
       landmarks: [{ name: 'Lulu Mall', time: '4 min' }, { name: 'Phoenix Palassio', time: '5 min' }, { name: 'Ekana Stadium', time: '6 min' }],
       description: 'Prime 4BHK villa located seconds away from Lulu Mall & Shaheed Path expressway. Ultimate luxury for shopping & match weekends.'
     },
@@ -2360,7 +2360,7 @@
           "https://a0.muscache.com/im/pictures/hosting/Hosting-1718315215180636685/original/9913afaf-9065-4764-89f1-8232e9270166.jpeg"
         ]
       },
-      amenities: ['White Marble Architecture', 'AC in all Rooms', 'High-Speed Wi-Fi', 'Modular Kitchen', 'Private Parking', '24/7 Caretaker'],
+      amenities: ['White Marble Architecture', 'AC in all Rooms', 'High-Speed Wi-Fi', 'Modular Kitchen', 'Private Parking', '24/7 Host Concierge'],
       landmarks: [{ name: 'Lulu Mall', time: '6 min' }, { name: 'Lucknow Airport', time: '18 min' }],
       description: 'Immaculate white-marble villa with modern classical interiors, opulent living areas, and direct airport highway connectivity.'
     },
@@ -2724,7 +2724,7 @@
           "https://a0.muscache.com/im/pictures/hosting/Hosting-1727830063287100082/original/147e6ae6-5b0d-499d-93c9-f1ee3c7dbe20.jpeg"
         ]
       },
-      amenities: ['Velvet Luxury Furniture', 'AC in all Rooms', 'High-Speed Wi-Fi', 'Modular Kitchen', 'Private Parking', '24/7 Caretaker'],
+      amenities: ['Velvet Luxury Furniture', 'AC in all Rooms', 'High-Speed Wi-Fi', 'Modular Kitchen', 'Private Parking', '24/7 Host Concierge'],
       landmarks: [{ name: 'Medanta Hospital', time: '4 min' }, { name: 'Lulu Mall', time: '7 min' }],
       description: 'Plush velvet textures, custom ambient lighting, and bespoke interior finishes crafted for guests seeking refined opulence.'
     },
@@ -3024,7 +3024,7 @@
           "https://a0.muscache.com/im/pictures/hosting/Hosting-1756799939825259443/original/c42727f7-d7a3-489b-9b79-ea3dd7a315a7.jpeg"
         ]
       },
-      amenities: ['Aesthetic Pastel Decor', 'AC in all Rooms', 'High-Speed Wi-Fi', 'Modular Kitchen', 'Private Parking', '24/7 Caretaker'],
+      amenities: ['Aesthetic Pastel Decor', 'AC in all Rooms', 'High-Speed Wi-Fi', 'Modular Kitchen', 'Private Parking', '24/7 Host Concierge'],
       landmarks: [{ name: 'Gomti Nagar Station', time: '8 min' }, { name: 'Lulu Mall', time: '14 min' }],
       description: 'Photogenic luxury villa with chic pastel accents, spacious indoor living, and dedicated host support.'
     }
