@@ -20,6 +20,18 @@
   // Card Photo Indices
   const cardPhotoIndices = {};
 
+  // High-performance image CDN resolver
+  const getOptImg = (u, w = 1200) => {
+    if (window.getOptimizedPhotoUrl) return window.getOptimizedPhotoUrl(u, w);
+    if (!u || typeof u !== 'string') return '';
+    if (u.includes('muscache.com')) {
+      const base = u.split('?')[0];
+      const width = w <= 260 ? 240 : (w <= 520 ? 480 : (w <= 760 ? 720 : 1200));
+      return `${base}?im_w=${width}`;
+    }
+    return u;
+  };
+
   // Initialize
   function initLuxuryDirectory() {
     syncCardPricesFromDatabase();
@@ -190,7 +202,7 @@
     if (img) {
       // Smooth fade
       img.style.opacity = '0.5';
-      const targetSrc = list[idx];
+      const targetSrc = getOptImg(list[idx], 480);
       const preload = new Image();
       preload.src = targetSrc;
       preload.onload = () => {
@@ -198,6 +210,7 @@
         img.style.opacity = '1';
       };
       preload.onerror = () => {
+        img.src = list[idx];
         img.style.opacity = '1';
       };
     }
@@ -392,15 +405,21 @@
     if (!mainImg || !activeLightboxPhotos.length) return;
 
     const currentSrc = activeLightboxPhotos[currentLightboxIndex];
-    mainImg.style.opacity = '0.4';
+    const targetSrc = getOptImg(currentSrc, 1200);
+    const lowResSrc = getOptImg(currentSrc, 240);
+
+    // Instant progressive preview
+    mainImg.src = lowResSrc;
+    mainImg.style.opacity = '0.7';
 
     const preload = new Image();
-    preload.src = currentSrc;
+    preload.src = targetSrc;
     preload.onload = () => {
-      mainImg.src = currentSrc;
+      mainImg.src = targetSrc;
       mainImg.style.opacity = '1';
     };
     preload.onerror = () => {
+      mainImg.src = currentSrc;
       mainImg.style.opacity = '1';
     };
 
@@ -436,7 +455,7 @@
       const btn = document.createElement('button');
       btn.className = 'lux-lb-thumb' + (idx === currentLightboxIndex ? ' active' : '');
       btn.type = 'button';
-      btn.innerHTML = `<img src="${src}" alt="Thumbnail ${idx + 1}" loading="lazy" />`;
+      btn.innerHTML = `<img src="${getOptImg(src, 240)}" alt="Thumbnail ${idx + 1}" loading="lazy" decoding="async" onerror="this.onerror=null; this.src='${src}';" />`;
       btn.addEventListener('click', () => {
         currentLightboxIndex = idx;
         renderLightboxMainPhoto();

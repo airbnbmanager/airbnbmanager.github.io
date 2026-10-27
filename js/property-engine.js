@@ -24,6 +24,43 @@
     return 'the-dark-blue';
   }
 
+  // CDN-optimized high-performance image URL resolver (WebP, Akamai & Cloudinary)
+  function getOptimizedPhotoUrl(url, width = 1200) {
+    if (!url || typeof url !== 'string') return '';
+    const clean = url.trim();
+
+    // 1. Airbnb Akamai CDN (a0.muscache.com)
+    // Valid Akamai CDN widths for Airbnb: 240, 480, 720, 960, 1200, 1440
+    if (clean.includes('muscache.com')) {
+      const base = clean.split('?')[0];
+      let w = 1200;
+      if (width <= 260) w = 240;
+      else if (width <= 520) w = 480;
+      else if (width <= 760) w = 720;
+      else if (width <= 1050) w = 960;
+      else if (width <= 1300) w = 1200;
+      else w = 1440;
+      return `${base}?im_w=${w}`;
+    }
+
+    // 2. Cloudinary CDN
+    if (clean.includes('res.cloudinary.com')) {
+      if (clean.includes('/upload/')) {
+        return clean.replace('/upload/', `/upload/f_auto,q_auto,w_${width}/`);
+      }
+      return clean;
+    }
+
+    // 3. Unsplash CDN
+    if (clean.includes('images.unsplash.com')) {
+      const base = clean.split('?')[0];
+      return `${base}?auto=format&fit=crop&w=${width}&q=80`;
+    }
+
+    return clean;
+  }
+  window.getOptimizedPhotoUrl = getOptimizedPhotoUrl;
+
   // Flatten & accurately categorize photos for 5-star gallery presentation
   function preparePhotoCatalog(prop) {
     const catalog = {
@@ -1125,12 +1162,14 @@
       for (let i = 0; i < totalHighlightPhotos; i++) {
         const isMain = i === 0;
         const p = mosaicPhotos[i];
+        const targetWidth = isMain ? 1200 : 720;
+        const optimizedSrc = getOptimizedPhotoUrl(p.url, targetWidth);
         html += `
           <div class="luxe-photo-item ${isMain ? 'luxe-photo-main' : ''}" 
                data-idx="${i}"
                onclick="window.luxeEngine.openGallery(${i}, 'all')" 
                title="View ${p.category === 'all' ? 'All Photos' : p.category}">
-            <img src="${p.url}" alt="${p.label}" loading="${i === 0 ? 'eager' : 'lazy'}"/>
+            <img src="${optimizedSrc}" alt="${p.label}" loading="${isMain ? 'eager' : 'lazy'}" decoding="${isMain ? 'sync' : 'async'}" onerror="this.onerror=null; this.src='${p.url}';"/>
           </div>
         `;
       }
@@ -2703,7 +2742,11 @@ _Please confirm room allotment and issue official GST Tax Invoice. Thank you!_`;
               <button type="button" class="luxe-modal-close" onclick="window.luxeEngine && window.luxeEngine.closeGallery()" aria-label="Close Gallery">✕</button>
             </div>
           </div>
-          <div class="luxe-modal-body">
+          <div class="luxe-modal-body" id="luxe-modal-body">
+            <div class="luxe-modal-loader" id="luxe-modal-loader">
+              <div class="luxe-loader-spinner"></div>
+              <span class="luxe-loader-text">Loading Luxe View...</span>
+            </div>
             <button type="button" class="luxe-modal-nav-btn prev" onclick="window.luxeEngine && window.luxeEngine.prevPhoto()" aria-label="Previous Photo">‹</button>
             <img id="luxe-modal-img" class="luxe-modal-view-img" src="" alt="Gallery View"/>
             <button type="button" class="luxe-modal-nav-btn next" onclick="window.luxeEngine && window.luxeEngine.nextPhoto()" aria-label="Next Photo">›</button>
@@ -2960,13 +3003,65 @@ _Please confirm room allotment and issue official GST Tax Invoice. Thank you!_`;
       const counterEl = document.getElementById('luxe-modal-counter');
       const ribbonEl = document.getElementById('luxe-modal-ribbon');
       const progressBar = document.getElementById('luxe-modal-progress-bar');
+      const loaderEl = document.getElementById('luxe-modal-loader');
 
       if (!this.filteredList || this.filteredList.length === 0) return;
 
       const currentItem = this.filteredList[this.currentIndex];
+      if (!currentItem) return;
+
+      const hdUrl = getOptimizedPhotoUrl(currentItem.url, 1200);
+      const thumbUrl = getOptimizedPhotoUrl(currentItem.url, 240);
+
       if (imgEl) {
-        imgEl.src = currentItem.url;
+        // Tag active photo index to prevent race conditions during rapid clicking/swiping
+        const activeIdx = this.currentIndex;
+        imgEl.setAttribute('data-active-idx', String(activeIdx));
         imgEl.alt = `${this.prop.name} - ${currentItem.category}`;
+
+        // 1. Instant low-res preview (11 KB) with subtle artistic blur to eliminate black flash
+        imgEl.classList.remove('is-loaded');
+        imgEl.classList.add('is-progressive');
+        imgEl.src = thumbUrl;
+
+        if (loaderEl) loaderEl.classList.add('visible');
+
+        // 2. Preload high-res 1200px and swap cleanly
+        const hdImage = new Image();
+        hdImage.onload = () => {
+          if (imgEl.getAttribute('data-active-idx') === String(activeIdx)) {
+            imgEl.src = hdUrl;
+            imgEl.classList.remove('is-progressive');
+            imgEl.classList.add('is-loaded');
+            if (loaderEl) loaderEl.classList.remove('visible');
+          }
+        };
+
+        hdImage.onerror = () => {
+          // If optimized CDN parameter failed, retry with unparamed original
+          const rawUrl = currentItem.url.split('?')[0];
+          const rawImg = new Image();
+          rawImg.onload = () => {
+            if (imgEl.getAttribute('data-active-idx') === String(activeIdx)) {
+              imgEl.src = rawUrl;
+              imgEl.classList.remove('is-progressive');
+              imgEl.classList.add('is-loaded');
+              if (loaderEl) loaderEl.classList.remove('visible');
+            }
+          };
+          rawImg.onerror = () => {
+            // Fall back to cover image to ensure zero broken image states
+            if (this.prop.cover_image && imgEl.getAttribute('data-active-idx') === String(activeIdx)) {
+              imgEl.src = getOptimizedPhotoUrl(this.prop.cover_image, 1200);
+              imgEl.classList.remove('is-progressive');
+              imgEl.classList.add('is-loaded');
+            }
+            if (loaderEl) loaderEl.classList.remove('visible');
+          };
+          rawImg.src = rawUrl;
+        };
+
+        hdImage.src = hdUrl;
       }
 
       if (counterEl) {
@@ -2980,13 +3075,13 @@ _Please confirm room allotment and issue official GST Tax Invoice. Thank you!_`;
         progressBar.style.width = `${pct}%`;
       }
 
-      // High-performance ribbon update (rebuild only when category changes)
+      // High-performance ribbon update with micro-optimized 240px thumbnails (rebuild only when category changes)
       if (ribbonEl) {
         if (this._lastRibbonFilter !== this.currentFilter) {
           this._lastRibbonFilter = this.currentFilter;
           ribbonEl.innerHTML = this.filteredList.map((item, idx) => `
             <div class="luxe-modal-thumb ${idx === this.currentIndex ? 'active' : ''}" data-idx="${idx}" onclick="window.luxeEngine.goToPhoto(${idx})">
-              <img src="${item.url}" alt="thumb ${idx + 1}" loading="lazy"/>
+              <img src="${getOptimizedPhotoUrl(item.url, 240)}" alt="thumb ${idx + 1}" loading="lazy" decoding="async" onerror="this.onerror=null; this.src='${item.url}';"/>
             </div>
           `).join('');
         } else {
@@ -3003,15 +3098,14 @@ _Please confirm room allotment and issue official GST Tax Invoice. Thank you!_`;
         }
       }
 
-      // Preload next and previous images in background for instant swipe
-      if (this.currentIndex + 1 < this.filteredList.length) {
-        const nextImg = new Image();
-        nextImg.src = this.filteredList[this.currentIndex + 1].url;
-      }
-      if (this.currentIndex - 1 >= 0) {
-        const prevImg = new Image();
-        prevImg.src = this.filteredList[this.currentIndex - 1].url;
-      }
+      // Preload next 2 and previous 2 photos in background for instantaneous swiping
+      [-1, 1, 2].forEach(offset => {
+        const targetIdx = this.currentIndex + offset;
+        if (targetIdx >= 0 && targetIdx < this.filteredList.length) {
+          const preImg = new Image();
+          preImg.src = getOptimizedPhotoUrl(this.filteredList[targetIdx].url, 1200);
+        }
+      });
     }
 
     nextPhoto() {
