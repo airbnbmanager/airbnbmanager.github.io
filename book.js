@@ -36,31 +36,108 @@ let bookedDates = [];
 let calViewDate = new Date();
 let appliedCoupon = null;
 let couponDiscount = 0;
+let appliedCouponPropId = null;
 
-// Built-in VIP & Founder Exclusive Coupons
+// Property-Specific Built-in Coupons (strictly locked to respective property)
 const BUILTIN_COUPONS = {
-  // 👑 Founder Exclusive Codes (Firoz Khan & Shahanshah)
-  'FIROZ10': { discount_percent: 10, title: 'Mr. Firoz Khan VIP Privilege' },
-  'FIROZ15': { discount_percent: 15, title: 'Mr. Firoz Khan Special Privilege' },
-  'FIROZ20': { discount_percent: 20, title: 'Mr. Firoz Khan Founder Privilege' },
-  'SHAHANSHAH10': { discount_percent: 10, title: 'Mr. Shahanshah VIP Privilege' },
-  'SHAHANSHAH15': { discount_percent: 15, title: 'Mr. Shahanshah Special Privilege' },
-  'SHAHANSHAH20': { discount_percent: 20, title: 'Mr. Shahanshah Founder Privilege' },
-  'FOUNDER10': { discount_percent: 10, title: 'Founders Direct Privilege' },
-  'FOUNDER15': { discount_percent: 15, title: 'Founders Special Privilege' },
-  'FOUNDER20': { discount_percent: 20, title: 'Founders Direct Executive Privilege' },
-  'FOUNDER25': { discount_percent: 25, title: 'Founders Luxury Suite Offer' },
-  'VIP10': { discount_percent: 10, title: 'VIP Direct Host Benefit' },
-  'VIP15': { discount_percent: 15, title: 'VIP Gold Direct' },
-  'VIP20': { discount_percent: 20, title: 'VIP Platinum Direct' },
-  'VIP25': { discount_percent: 25, title: 'VIP Royal Diamond' },
-  // Direct Loyalty & Repeat Codes
-  'REPEAT10': { discount_percent: 10, title: 'Repeat Guest Privilege' },
-  'REPEATGUEST': { discount_percent: 10, title: 'Repeat Guest Privilege' },
-  'HAVEN10': { discount_percent: 10, title: 'Haven Direct Privilege' },
-  'DIRECT10': { discount_percent: 10, title: 'Direct Booking Benefit' },
-  'DIRECT15': { discount_percent: 15, title: 'Direct Booking Exclusive' },
-  'WELCOME10': { discount_percent: 10, title: 'Welcome Direct Privilege' }
+  // 👑 Royal White House (VIL-102)
+  'ROYAL10': { discount_percent: 10, property_id: 'VIL-102', title: 'Royal White House Privilege' },
+  'ROYAL15': { discount_percent: 15, property_id: 'VIL-102', title: 'Royal White House Special' },
+  'ROYAL20': { discount_percent: 20, property_id: 'VIL-102', title: 'Royal White House Luxury Privilege' },
+  'SHAHANSHAH-ROYAL': { discount_percent: 15, property_id: 'VIL-102', title: 'Mr. Shahanshah Royal Privilege' },
+  'FIROZ-ROYAL': { discount_percent: 15, property_id: 'VIL-102', title: 'Mr. Firoz Khan Royal Privilege' },
+
+  // 👑 Celebrity Garden (LUL-402)
+  'CELEBRITY10': { discount_percent: 10, property_id: 'LUL-402', title: 'Celebrity Garden Privilege' },
+  'CELEBRITY15': { discount_percent: 15, property_id: 'LUL-402', title: 'Celebrity Garden Special' },
+  'CELEBRITY20': { discount_percent: 20, property_id: 'LUL-402', title: 'Celebrity Garden Luxury Privilege' },
+  'SHAHANSHAH-CELEBRITY': { discount_percent: 15, property_id: 'LUL-402', title: 'Mr. Shahanshah Celebrity Privilege' },
+  'FIROZ-CELEBRITY': { discount_percent: 15, property_id: 'LUL-402', title: 'Mr. Firoz Khan Celebrity Privilege' },
+
+  // 👑 Gomti Grand Villa (VIL-101)
+  'GOMTI10': { discount_percent: 10, property_id: 'VIL-101', title: 'Gomti Grand Villa Privilege' },
+  'GOMTI15': { discount_percent: 15, property_id: 'VIL-101', title: 'Gomti Grand Villa Special' },
+  'GOMTI20': { discount_percent: 20, property_id: 'VIL-101', title: 'Gomti Grand Villa Luxury Privilege' },
+  'SHAHANSHAH-GOMTI': { discount_percent: 15, property_id: 'VIL-101', title: 'Mr. Shahanshah Gomti Villa Privilege' },
+
+  // 👑 The Pink House (VIL-103)
+  'PINK10': { discount_percent: 10, property_id: 'VIL-103', title: 'The Pink House Privilege' },
+  'PINK15': { discount_percent: 15, property_id: 'VIL-103', title: 'The Pink House Special' },
+  'PINK20': { discount_percent: 20, property_id: 'VIL-103', title: 'The Pink House Luxury Privilege' },
+  'SHAHANSHAH-PINK': { discount_percent: 15, property_id: 'VIL-103', title: 'Mr. Shahanshah Pink House Privilege' },
+
+  // 👑 Starlight Blue PentHouse (GOM-501)
+  'STARLIGHT10': { discount_percent: 10, property_id: 'GOM-501', title: 'Starlight PentHouse Privilege' },
+  'STARLIGHT15': { discount_percent: 15, property_id: 'GOM-501', title: 'Starlight PentHouse Special' },
+  'STARLIGHT20': { discount_percent: 20, property_id: 'GOM-501', title: 'Starlight PentHouse Luxury Privilege' },
+  'SHAHANSHAH-STARLIGHT': { discount_percent: 15, property_id: 'GOM-501', title: 'Mr. Shahanshah Penthouse Privilege' },
+
+  // 👑 The Luxe Haven (LUL-101)
+  'LUXE10': { discount_percent: 10, property_id: 'LUL-101', title: 'The Luxe Haven Privilege' },
+  'LUXE15': { discount_percent: 15, property_id: 'LUL-101', title: 'The Luxe Haven Special' },
+  'LUXE20': { discount_percent: 20, property_id: 'LUL-101', title: 'The Luxe Haven Luxury Privilege' },
+  'SHAHANSHAH-LUXE': { discount_percent: 15, property_id: 'LUL-101', title: 'Mr. Shahanshah Luxe Haven Privilege' },
+
+  // 👑 The Unique (GOM-302)
+  'UNIQUE10': { discount_percent: 10, property_id: 'GOM-302', title: 'The Unique 3BHK Privilege' },
+  'UNIQUE15': { discount_percent: 15, property_id: 'GOM-302', title: 'The Unique Special' },
+  'UNIQUE20': { discount_percent: 20, property_id: 'GOM-302', title: 'The Unique Luxury Privilege' },
+  'SHAHANSHAH-UNIQUE': { discount_percent: 15, property_id: 'GOM-302', title: 'Mr. Shahanshah The Unique Privilege' },
+
+  // 👑 RedRose Palace (GOM-101)
+  'REDROSE10': { discount_percent: 10, property_id: 'GOM-101', title: 'RedRose Palace Privilege' },
+  'REDROSE15': { discount_percent: 15, property_id: 'GOM-101', title: 'RedRose Palace Special' },
+  'REDROSE20': { discount_percent: 20, property_id: 'GOM-101', title: 'RedRose Palace Luxury Privilege' },
+
+  // 👑 Black Beauty (GOM-102)
+  'BLACK10': { discount_percent: 10, property_id: 'GOM-102', title: 'Black Beauty Privilege' },
+  'BLACK15': { discount_percent: 15, property_id: 'GOM-102', title: 'Black Beauty Special' },
+  'BLACK20': { discount_percent: 20, property_id: 'GOM-102', title: 'Black Beauty Luxury Privilege' },
+
+  // 👑 The Dark Blue (GOM-201)
+  'DARKBLUE10': { discount_percent: 10, property_id: 'GOM-201', title: 'The Dark Blue Privilege' },
+  'DARKBLUE15': { discount_percent: 15, property_id: 'GOM-201', title: 'The Dark Blue Special' },
+  'DARKBLUE20': { discount_percent: 20, property_id: 'GOM-201', title: 'The Dark Blue Luxury Privilege' },
+
+  // 👑 The Brown (GOM-202)
+  'BROWN10': { discount_percent: 10, property_id: 'GOM-202', title: 'The Brown Privilege' },
+  'BROWN15': { discount_percent: 15, property_id: 'GOM-202', title: 'The Brown Special' },
+  'BROWN20': { discount_percent: 20, property_id: 'GOM-202', title: 'The Brown Luxury Privilege' },
+
+  // 👑 The Light Green (GOM-301)
+  'LIGHTGREEN10': { discount_percent: 10, property_id: 'GOM-301', title: 'The Light Green Privilege' },
+  'LIGHTGREEN15': { discount_percent: 15, property_id: 'GOM-301', title: 'The Light Green Special' },
+  'LIGHTGREEN20': { discount_percent: 20, property_id: 'GOM-301', title: 'The Light Green Luxury Privilege' },
+
+  // 👑 The Nawabi Stay (GOM-401)
+  'NAWABI10': { discount_percent: 10, property_id: 'GOM-401', title: 'The Nawabi Stay Privilege' },
+  'NAWABI15': { discount_percent: 15, property_id: 'GOM-401', title: 'The Nawabi Stay Special' },
+  'NAWABI20': { discount_percent: 20, property_id: 'GOM-401', title: 'The Nawabi Stay Luxury Privilege' },
+
+  // 👑 The Green House (VIL-104)
+  'GREENHOUSE10': { discount_percent: 10, property_id: 'VIL-104', title: 'The Green House Privilege' },
+  'GREENHOUSE15': { discount_percent: 15, property_id: 'VIL-104', title: 'The Green House Special' },
+  'GREENHOUSE20': { discount_percent: 20, property_id: 'VIL-104', title: 'The Green House Luxury Privilege' },
+
+  // 👑 The Yellow House (VIL-105)
+  'YELLOWHOUSE10': { discount_percent: 10, property_id: 'VIL-105', title: 'The Yellow House Privilege' },
+  'YELLOWHOUSE15': { discount_percent: 15, property_id: 'VIL-105', title: 'The Yellow House Special' },
+  'YELLOWHOUSE20': { discount_percent: 20, property_id: 'VIL-105', title: 'The Yellow House Luxury Privilege' },
+
+  // 👑 Green Forest (VIL-106)
+  'GREENFOREST10': { discount_percent: 10, property_id: 'VIL-106', title: 'Green Forest Privilege' },
+  'GREENFOREST15': { discount_percent: 15, property_id: 'VIL-106', title: 'Green Forest Special' },
+  'GREENFOREST20': { discount_percent: 20, property_id: 'VIL-106', title: 'Green Forest Luxury Privilege' },
+
+  // 👑 The Velvet House (VIL-107)
+  'VELVET10': { discount_percent: 10, property_id: 'VIL-107', title: 'The Velvet House Privilege' },
+  'VELVET15': { discount_percent: 15, property_id: 'VIL-107', title: 'The Velvet House Special' },
+  'VELVET20': { discount_percent: 20, property_id: 'VIL-107', title: 'The Velvet House Luxury Privilege' },
+
+  // 👑 Pink Paradise (VIL-108)
+  'PINKPARADISE10': { discount_percent: 10, property_id: 'VIL-108', title: 'Pink Paradise Privilege' },
+  'PINKPARADISE15': { discount_percent: 15, property_id: 'VIL-108', title: 'Pink Paradise Special' },
+  'PINKPARADISE20': { discount_percent: 20, property_id: 'VIL-108', title: 'Pink Paradise Luxury Privilege' }
 };
 
 // ─── INITIALIZATION ───
@@ -213,7 +290,7 @@ function onPropertyChange() {
   // Update Host Specs & Heading
   const headingEl = document.getElementById('hostHeading');
   if (headingEl) {
-    headingEl.textContent = `Entire ${selectedProp.type} hosted by Firoz & Shahanshah`;
+    headingEl.textContent = `Entire ${selectedProp.type} hosted by Shahanshah & Firoz`;
   }
 
   const specsEl = document.getElementById('hostSpecsLine');
@@ -242,6 +319,17 @@ function onPropertyChange() {
 
   // Update Mosaic Photos from ShowcaseData
   updateMosaicPhotos(showData);
+
+  // If a property-locked coupon was previously applied, invalidate it if it does not match this new property
+  if (appliedCoupon && appliedCouponPropId && appliedCouponPropId !== selectedProp.id) {
+    const prevCoupon = appliedCoupon;
+    removeCoupon();
+    const msgEl = document.getElementById('couponMsg');
+    if (msgEl) {
+      msgEl.innerHTML = `⚠️ Promo code <strong>${prevCoupon}</strong> is only applicable to its designated property and was removed for ${selectedProp.name}.`;
+      msgEl.style.color = '#dc2626';
+    }
+  }
 
   // Clear booked dates and refetch
   bookedDates = [];
@@ -639,10 +727,10 @@ function updateCouponWhatsAppPrompt() {
   }
 
   const promptText = encodeURIComponent(
-    `Namaste Mr. Firoz Khan & Mr. Shahanshah! I am booking ${stayText} with The Unique Haven Homes. Could you please share an exclusive owner discount promo code with me?`
+    `Namaste Mr. Shahanshah & Mr. Firoz Khan! I am booking ${stayText} with The Unique Haven Homes. Could you please share an exclusive owner discount promo code with me?`
   );
 
-  msgEl.innerHTML = `Need an extra discount? <a href="https://wa.me/919450055554?text=${promptText}" target="_blank" rel="noopener" style="color:#059669; font-weight:700; text-decoration:underline;">💬 Ask Founders Mr. Firoz Khan &amp; Mr. Shahanshah directly on WhatsApp for an exclusive discount code ➔</a>`;
+  msgEl.innerHTML = `Need an extra discount? <a href="https://wa.me/919450055554?text=${promptText}" target="_blank" rel="noopener" style="color:#059669; font-weight:700; text-decoration:underline;">💬 Ask Founders Mr. Shahanshah &amp; Mr. Firoz Khan directly on WhatsApp for an exclusive discount code ➔</a>`;
   msgEl.style.color = '#717171';
 }
 
@@ -654,17 +742,31 @@ async function applyCoupon() {
   if (!code) return;
 
   if (BUILTIN_COUPONS[code]) {
+    const coup = BUILTIN_COUPONS[code];
+    // Strict property-lock validation: code only applies to designated property
+    if (coup.property_id && (!selectedProp || coup.property_id !== selectedProp.id)) {
+      const targetProp = PROPERTIES.find(p => p.id === coup.property_id);
+      const targetName = targetProp ? targetProp.name : coup.property_id;
+      const currentName = selectedProp ? selectedProp.name : 'this stay';
+      if (msgEl) {
+        msgEl.innerHTML = `⚠️ Promo code <strong>${code}</strong> is exclusively valid for <strong>${targetName}</strong>. It cannot be applied to ${currentName}.`;
+        msgEl.style.color = '#dc2626';
+      }
+      return;
+    }
+
     appliedCoupon = code;
-    couponDiscount = BUILTIN_COUPONS[code].discount_percent;
+    appliedCouponPropId = coup.property_id || (selectedProp ? selectedProp.id : null);
+    couponDiscount = coup.discount_percent;
     lockCouponUI(code);
     if (msgEl) {
-      let badge = 'Direct Host Privilege';
-      if (code.startsWith('FIROZ')) {
-        badge = '👑 Mr. Firoz Khan Exclusive Owner Privilege';
-      } else if (code.startsWith('SHAHANSHAH')) {
+      let badge = coup.title || 'Direct Host Privilege';
+      if (code.startsWith('SHAHANSHAH')) {
         badge = '👑 Mr. Shahanshah Exclusive Owner Privilege';
+      } else if (code.startsWith('FIROZ')) {
+        badge = '👑 Mr. Firoz Khan Exclusive Owner Privilege';
       } else if (code.startsWith('FOUNDER')) {
-        badge = '👑 Founders Firoz & Shahanshah Exclusive Privilege';
+        badge = '👑 Founders Shahanshah & Firoz Exclusive Privilege';
       } else if (code.startsWith('VIP')) {
         badge = '⭐ VIP Direct Host Privilege';
       } else if (code.includes('REPEAT')) {
@@ -681,7 +783,20 @@ async function applyCoupon() {
     try {
       const { data } = await sb.from('coupon_codes').select('*').eq('code', code).eq('is_active', true).maybeSingle();
       if (data) {
+        const propLock = data.room_id || data.property_id;
+        if (propLock && (!selectedProp || propLock !== selectedProp.id)) {
+          const targetProp = PROPERTIES.find(p => p.id === propLock);
+          const targetName = targetProp ? targetProp.name : propLock;
+          const currentName = selectedProp ? selectedProp.name : 'this stay';
+          if (msgEl) {
+            msgEl.innerHTML = `⚠️ Promo code <strong>${code}</strong> is exclusively valid for <strong>${targetName}</strong>. It cannot be applied to ${currentName}.`;
+            msgEl.style.color = '#dc2626';
+          }
+          return;
+        }
+
         appliedCoupon = code;
+        appliedCouponPropId = propLock || (selectedProp ? selectedProp.id : null);
         couponDiscount = Number(data.discount_percent || 10);
         lockCouponUI(code);
         if (msgEl) {
@@ -696,7 +811,7 @@ async function applyCoupon() {
 
   // Not recognized fallback
   if (msgEl) {
-    msgEl.innerHTML = `⚠️ Code <strong>${code}</strong> recorded. Founders Firoz &amp; Shahanshah will verify and apply your privilege during confirmation.`;
+    msgEl.innerHTML = `⚠️ Code <strong>${code}</strong> recorded. Founders Shahanshah &amp; Firoz will verify and apply your privilege during confirmation.`;
     msgEl.style.color = '#0284c7';
   }
 }
@@ -716,6 +831,7 @@ function lockCouponUI(code) {
 
 function removeCoupon() {
   appliedCoupon = null;
+  appliedCouponPropId = null;
   couponDiscount = 0;
   const codeInput = document.getElementById('couponCode');
   const applyBtn = document.getElementById('couponApplyBtn');

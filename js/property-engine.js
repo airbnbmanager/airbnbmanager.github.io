@@ -1031,7 +1031,7 @@
       const p = this.prop;
       const titleEl = document.getElementById('luxe-spec-title');
       if (titleEl) {
-        titleEl.textContent = `${p.type || 'Luxury Homestay'} · Superhosts & Owners: Firoz & Shahanshah · Manager: Praveen Singh`;
+        titleEl.textContent = `${p.type || 'Luxury Homestay'} · Superhosts & Owners: Shahanshah & Firoz · Manager: Praveen Singh`;
       }
 
       const pillsEl = document.getElementById('luxe-spec-pills');

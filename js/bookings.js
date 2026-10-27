@@ -187,9 +187,9 @@ window.openFounderDiscountModal = async function(bkId) {
         <div>
           <label style="display:block;font-size:12px;font-weight:700;color:#334155;margin-bottom:6px;">Discount Granted By:</label>
           <div style="display:grid;grid-template-columns:repeat(3, 1fr);gap:6px;">
-            <button type="button" class="fd-auth-btn" data-auth="Mr. Firoz Khan" onclick="window.selectFdAuth(this)" style="background:#f1f5f9;border:1.5px solid #cbd5e1;border-radius:8px;padding:8px 6px;font-size:11.5px;font-weight:700;color:#334155;cursor:pointer;">Firoz Khan</button>
             <button type="button" class="fd-auth-btn" data-auth="Mr. Shahanshah" onclick="window.selectFdAuth(this)" style="background:#f1f5f9;border:1.5px solid #cbd5e1;border-radius:8px;padding:8px 6px;font-size:11.5px;font-weight:700;color:#334155;cursor:pointer;">Shahanshah</button>
-            <button type="button" class="fd-auth-btn active" data-auth="Founders Firoz &amp; Shahanshah" onclick="window.selectFdAuth(this)" style="background:#e0e7ff;border:1.5px solid #6366f1;border-radius:8px;padding:8px 6px;font-size:11.5px;font-weight:700;color:#4338ca;cursor:pointer;">Both Founders</button>
+            <button type="button" class="fd-auth-btn" data-auth="Mr. Firoz Khan" onclick="window.selectFdAuth(this)" style="background:#f1f5f9;border:1.5px solid #cbd5e1;border-radius:8px;padding:8px 6px;font-size:11.5px;font-weight:700;color:#334155;cursor:pointer;">Firoz Khan</button>
+            <button type="button" class="fd-auth-btn active" data-auth="Founders Shahanshah &amp; Firoz" onclick="window.selectFdAuth(this)" style="background:#e0e7ff;border:1.5px solid #6366f1;border-radius:8px;padding:8px 6px;font-size:11.5px;font-weight:700;color:#4338ca;cursor:pointer;">Both Founders</button>
           </div>
         </div>
 
@@ -237,7 +237,7 @@ window.openFounderDiscountModal = async function(bkId) {
         <!-- Founder Notes -->
         <div>
           <label style="display:block;font-size:11.5px;font-weight:700;color:#64748b;margin-bottom:4px;">Booking Note / Special Privilege Reason</label>
-          <input type="text" id="fdNote" value="Special Founder Discount approved by Firoz Khan &amp; Shahanshah" style="width:100%;padding:8px 12px;border:1px solid #cbd5e1;border-radius:8px;font-size:12px;box-sizing:border-box;" />
+          <input type="text" id="fdNote" value="Special Founder Discount approved by Shahanshah &amp; Firoz Khan" style="width:100%;padding:8px 12px;border:1px solid #cbd5e1;border-radius:8px;font-size:12px;box-sizing:border-box;" />
         </div>
 
       </div>
@@ -262,7 +262,7 @@ window.openFounderDiscountModal = async function(bkId) {
 
   document.body.insertAdjacentHTML('beforeend', modalHtml);
   window._fdOrigTotal = origTotal;
-  window._fdSelectedAuth = 'Founders Firoz & Shahanshah';
+  window._fdSelectedAuth = 'Founders Shahanshah & Firoz';
   window.recalcFd();
 };
 
@@ -277,7 +277,7 @@ window.selectFdAuth = function(btn) {
   btn.style.background = '#e0e7ff';
   btn.style.borderColor = '#6366f1';
   btn.style.color = '#4338ca';
-  window._fdSelectedAuth = btn.getAttribute('data-auth') || 'Founders Firoz & Shahanshah';
+  window._fdSelectedAuth = btn.getAttribute('data-auth') || 'Founders Shahanshah & Firoz';
   const noteEl = document.getElementById('fdNote');
   if (noteEl) {
     noteEl.value = `Special Founder Discount approved by ${window._fdSelectedAuth}`;
@@ -322,7 +322,7 @@ window.submitFounderDiscount = async function(bkId, origTotal, andApprove) {
   if (!isTrustedUser()) { fsn.error('Denied', 'Only owner/developer can modify discount'); return; }
   const discountAmt = window._fdCalculatedDiscount !== undefined ? window._fdCalculatedDiscount : 0;
   const finalTotal = window._fdCalculatedFinal !== undefined ? window._fdCalculatedFinal : origTotal;
-  const auth = window._fdSelectedAuth || 'Founders Firoz & Shahanshah';
+  const auth = window._fdSelectedAuth || 'Founders Shahanshah & Firoz';
   const customNote = document.getElementById('fdNote')?.value?.trim() || `Special Founder Discount approved by ${auth}`;
 
   const updatePayload = {
