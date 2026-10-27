@@ -1,7 +1,12 @@
-/* book.js — Public Booking Page Logic */
+/* ═══════════════════════════════════════════════════════════════════════════
+   THE UNIQUE HAVEN HOMES — PUBLIC BOOKING ENGINE (book.js)
+   Airbnb DLS Clone Engine with Real-Time Availability & Direct Reservation
+   ═══════════════════════════════════════════════════════════════════════════ */
 'use strict';
 
 const PROPERTIES = [
+  {id:'VIL-102',name:'Royal White House',type:'Grand Palace Villa',img:'assets/properties/royal-white-house/cover.jpg',price:12000,airbnb:14499,guests:18,wa:'919450055554'},
+  {id:'VIL-101',name:'Gomti Grand Villa',type:'Private Luxury Villa',img:'assets/properties/gomti-grand-villa/cover.jpg',price:8000,airbnb:9599,guests:14,wa:'919450055554'},
   {id:'GOM-101',name:'RedRose Palace',type:'3BHK Luxury Flat',img:'assets/properties/redrose-palace/cover.jpg',price:4500,airbnb:5499,guests:6,wa:'919450055554'},
   {id:'GOM-102',name:'Black Beauty',type:'3BHK Luxury Flat',img:'assets/properties/black-beauty/cover.jpg',price:4500,airbnb:5499,guests:6,wa:'919450055554'},
   {id:'GOM-201',name:'The Dark Blue',type:'3BHK Luxury Flat',img:'assets/properties/the-dark-blue/cover.jpg',price:4500,airbnb:5499,guests:6,wa:'919450055554'},
@@ -10,8 +15,6 @@ const PROPERTIES = [
   {id:'GOM-302',name:'The Unique',type:'3BHK Luxury Flat',img:'assets/properties/the-unique/cover.jpg',price:5500,airbnb:6499,guests:8,wa:'919450055554'},
   {id:'GOM-401',name:'The Nawabi Stay',type:'3BHK Luxury Flat',img:'assets/properties/the-nawabi-stay/cover.jpg',price:4500,airbnb:5499,guests:6,wa:'918299600709'},
   {id:'GOM-501',name:'Starlight Blue PentHouse',type:'Top-Floor Penthouse',img:'assets/properties/starlight-blue/cover.jpg',price:6000,airbnb:7299,guests:10,wa:'919450055554'},
-  {id:'VIL-101',name:'Gomti Grand Villa',type:'Private Luxury Villa',img:'assets/properties/gomti-grand-villa/cover.jpg',price:8000,airbnb:9599,guests:14,wa:'919450055554'},
-  {id:'VIL-102',name:'Royal White House',type:'Grand Palace Villa',img:'assets/properties/royal-white-house/cover.jpg',price:12000,airbnb:14499,guests:18,wa:'919450055554'},
   {id:'VIL-103',name:'The Pink House',type:'5BR Duplex (2nd & 3rd Floor)',img:'assets/properties/the-pink-house/cover.jpg',price:9000,airbnb:10999,guests:10,wa:'918299600709'},
   {id:'VIL-104',name:'The Green House',type:'3BHK 1st Floor',img:'assets/properties/the-green-house/cover.jpg',price:5500,airbnb:6599,guests:8,wa:'919450055554'},
   {id:'VIL-105',name:'The Yellow House',type:'3BHK Ground Floor',img:'assets/properties/the-yellow-house/cover.jpg',price:5500,airbnb:6599,guests:8,wa:'918299600709'},
@@ -25,134 +28,55 @@ const PROPERTIES = [
 const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 const DOWS = ['Su','Mo','Tu','We','Th','Fr','Sa'];
 
-// ── OPTION C: CURATED CONCIERGE ADD-ON EXPERIENCES SHOP ──
-const ADDON_SERVICES = [
-  { id: 'chef', title: 'Private Lucknowi Cook / Chef', icon: '👨‍🍳', tag: 'Culinary Master', price: 3500, unit: 'per session', desc: 'Authentic Awadhi Galawati kebabs, fragrant mutton/veg biryani, and bespoke dinner spread cooked fresh in your villa kitchen.' },
-  { id: 'bonfire', title: 'Evening Bonfire & Acoustic Setup', icon: '🔥', tag: 'Night Ambiance', price: 2000, unit: 'per evening', desc: 'Hardwood logs, open fire pit, acoustic mood music speaker, and ambient fairy garden lighting.' },
-  { id: 'decor', title: 'Celebration Decor & Florals', icon: '🎈', tag: 'Special Moments', price: 2500, unit: 'per stay', desc: 'Custom anniversary or birthday setup with organic balloon arch, rose-petal bed decoration, and celebratory cake arrangement.' },
-  { id: 'pickup', title: 'Airport / Railway Luxury Transfer', icon: '🚘', tag: 'Doorstep VIP', price: 1200, unit: 'per vehicle', desc: 'Chauffeur-driven sanitized AC Sedan pickup directly from Amausi Airport or Charbagh Railway Station.' },
-  { id: 'linen', title: 'Extra Egyptian Linen & Towel Hamper', icon: '🧺', tag: 'Hotel Fresh', price: 500, unit: 'per set', desc: 'Fresh 400-thread-count cotton duvets, extra plush bath towels, and luxury Ayurveda toiletries hamper.' }
-];
-
-let selectedAddonIds = new Set();
-
-function renderAddonsGrid() {
-  const container = document.getElementById('addonsGrid');
-  if (!container) return;
-  container.innerHTML = ADDON_SERVICES.map(function(addon) {
-    const isSel = selectedAddonIds.has(addon.id);
-    return `
-      <div class="addon-card ${isSel ? 'selected' : ''}" onclick="toggleAddon('${addon.id}')" id="addon-${addon.id}">
-        <div>
-          <div class="addon-top-row">
-            <div class="addon-icon-wrap">${addon.icon}</div>
-            <div class="addon-header-text">
-              <span class="addon-tag">${addon.tag}</span>
-              <div class="addon-title">${addon.title}</div>
-            </div>
-          </div>
-          <div class="addon-desc">${addon.desc}</div>
-        </div>
-        <div class="addon-foot">
-          <div>
-            <span class="addon-price-tag">₹${addon.price.toLocaleString('en-IN')}</span>
-            <span class="addon-price-unit">/${addon.unit}</span>
-          </div>
-          <div class="addon-check-indicator">
-            <div class="addon-checkbox">${isSel ? '✓' : ''}</div>
-            <span>${isSel ? 'Selected' : 'Add to Stay'}</span>
-          </div>
-        </div>
-      </div>
-    `;
-  }).join('');
-}
-
-function toggleAddon(id) {
-  if (selectedAddonIds.has(id)) {
-    selectedAddonIds.delete(id);
-  } else {
-    selectedAddonIds.add(id);
-  }
-  renderAddonsGrid();
-  updateSummary();
-}
-
-let calViewDate = new Date();
-let selectedProp = null;
-let bookedDates = [];
 let sb = null;
+let selectedProp = null;
+let currentPhotosList = [];
+let lightboxIdx = 0;
+let bookedDates = [];
+let calViewDate = new Date();
+let appliedCoupon = null;
+let couponDiscount = 0;
 
-// ── FETCH LIVE PRICES DIRECTLY FROM SUPABASE ROOMS TABLE ──
-async function fetchLivePrices() {
-  if (!sb) return;
-  try {
-    const { data, error } = await sb
-      .from('rooms')
-      .select('room_id, nickname, property_name, rent_per_night, max_guests')
-      .order('room_id');
-    if (!error && data && data.length > 0) {
-      data.forEach(function(r) {
-        let prop = PROPERTIES.find(function(p){ return p.id === r.room_id; });
-        if (prop && r.rent_per_night && !isNaN(Number(r.rent_per_night))) {
-          prop.price = Number(r.rent_per_night);
-          prop.airbnb = Math.round(prop.price * 1.22);
-          if (r.nickname) prop.name = r.nickname;
-          if (r.max_guests) prop.guests = r.max_guests;
-        }
-      });
-      console.log('[BookPage] ✅ 100% Verified live rates synced from rooms table');
+// Built-in VIP Coupons
+const BUILTIN_COUPONS = {
+  'REPEAT10': { discount_percent: 10, min_nights: 1 },
+  'HAVEN10': { discount_percent: 10, min_nights: 1 },
+  'REPEATGUEST': { discount_percent: 10, min_nights: 1 },
+  'ROYAL15': { discount_percent: 15, min_nights: 2 },
+  'DIRECT10': { discount_percent: 10, min_nights: 1 },
+  'DIRECT15': { discount_percent: 15, min_nights: 2 },
+  'WELCOME10': { discount_percent: 10, min_nights: 1 }
+};
 
-      // Update select option labels with exact live rates
-      const sel = document.getElementById('propSelect');
-      if (sel) {
-        const curVal = sel.value;
-        Array.from(sel.options).forEach(opt => {
-          const p = PROPERTIES.find(x => x.id === opt.value);
-          if (p) opt.textContent = p.name + ' — ' + p.type + ' (₹' + p.price.toLocaleString('en-IN') + '/night)';
-        });
-        sel.value = curVal;
-      }
-
-      // Re-render if a property is already selected
-      if (selectedProp) {
-        var refreshed = PROPERTIES.find(function(p){ return p.id === selectedProp.id; });
-        if (refreshed) {
-          selectedProp = refreshed;
-          const priceEl = document.getElementById('propPrice');
-          if (priceEl) {
-            const gstRate = selectedProp.price <= 7500 ? 5 : 18;
-            priceEl.textContent =
-              '₹' + selectedProp.price.toLocaleString('en-IN') + '/night + ' + gstRate + '% GST (Direct) · Airbnb ₹' + selectedProp.airbnb.toLocaleString('en-IN') + '+';
-          }
-          updateSummary();
-        }
-      }
-    }
-  } catch(e) { console.warn('fetchLivePrices error:', e); }
-}
-
-// ── INIT ──
+// ─── INITIALIZATION ───
 function init() {
   if (typeof supabase !== 'undefined' && window.SUPABASE_URL && window.SUPABASE_ANON_KEY) {
     sb = supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY);
   }
 
+  // Populate Dropdown
   const sel = document.getElementById('propSelect');
-  PROPERTIES.forEach(function(p) {
-    const opt = document.createElement('option');
-    opt.value = p.id;
-    opt.textContent = p.name + ' — ' + p.type + ' (₹' + p.price.toLocaleString('en-IN') + '/night + GST)';
-    sel.appendChild(opt);
-  });
+  if (sel) {
+    sel.innerHTML = '';
+    PROPERTIES.forEach(p => {
+      const opt = document.createElement('option');
+      opt.value = p.id;
+      opt.textContent = `${p.name} (${p.type}) — ₹${p.price.toLocaleString('en-IN')}/nt`;
+      sel.appendChild(opt);
+    });
+  }
 
-  const today = new Date().toISOString().slice(0,10);
-  document.getElementById('checkIn').min = today;
-  document.getElementById('checkOut').min = today;
+  // Set min dates for checkin/checkout
+  const today = new Date().toISOString().slice(0, 10);
+  const ciInput = document.getElementById('checkIn');
+  const coInput = document.getElementById('checkOut');
+  if (ciInput) ciInput.min = today;
+  if (coInput) coInput.min = today;
 
+  // URL Query Parameters parsing (?property=... &checkin=... &checkout=... &coupon=...)
   const params = new URLSearchParams(window.location.search);
   const pid = params.get('property') || params.get('p');
-  if (pid) {
+  if (pid && sel) {
     const cleanPid = pid.toLowerCase().replace(/[^a-z0-9]/g, '');
     const matched = PROPERTIES.find(p => 
       p.id.toLowerCase() === pid.toLowerCase() || 
@@ -165,81 +89,225 @@ function init() {
     } else {
       sel.value = pid;
     }
-    onPropertyChange();
   }
 
-  // Pre-fill Check-In / Check-Out & Guests from URL params (e.g. from homepage search bar)
+  // Parse Dates from URL
   const ciParam = params.get('checkin') || params.get('checkIn') || params.get('ci');
   const coParam = params.get('checkout') || params.get('checkOut') || params.get('co');
-  const guestsParam = params.get('guests') || params.get('g');
+  if (ciParam && ciInput) {
+    ciInput.value = ciParam;
+    if (coInput) coInput.min = ciParam;
+  }
+  if (coParam && coInput) {
+    coInput.value = coParam;
+  }
 
-  if (ciParam) {
-    const ciInput = document.getElementById('checkIn');
-    if (ciInput) {
-      ciInput.value = ciParam;
-      document.getElementById('checkOut').min = ciParam;
+  // Parse Coupon from URL
+  const couponParam = params.get('coupon') || params.get('code');
+  if (couponParam) {
+    const couponInput = document.getElementById('couponCode');
+    if (couponInput) {
+      couponInput.value = couponParam.trim().toUpperCase();
+      setTimeout(applyCoupon, 300);
     }
   }
-  if (coParam) {
-    const coInput = document.getElementById('checkOut');
-    if (coInput) coInput.value = coParam;
-  }
+
+  // Parse Guests from URL
+  const guestsParam = params.get('guests') || params.get('guest') || params.get('g');
   if (guestsParam) {
-    const gInput = document.getElementById('numGuests');
-    if (gInput) gInput.value = guestsParam;
-  }
-  if (ciParam || coParam || guestsParam) {
-    updateSummary();
-  }
-
-  renderMiniCal();
-  renderAddonsGrid();
-
-  // Fetch live prices from Supabase and update
-  fetchLivePrices();
-}
-
-// ── PROPERTY CHANGE ──
-function onPropertyChange() {
-  const pid = document.getElementById('propSelect').value;
-  selectedProp = PROPERTIES.find(function(p){ return p.id === pid; }) || null;
-
-  const heroBg = document.getElementById('heroBgMedia');
-  if (heroBg) {
-    if (selectedProp && selectedProp.img) {
-      heroBg.style.backgroundImage = `url('${selectedProp.img}')`;
-    } else {
-      heroBg.style.backgroundImage = `url('assets/properties/royal-white-house/cover.jpg')`;
+    const guestsSelect = document.getElementById('numGuests');
+    if (guestsSelect) {
+      guestsSelect.value = guestsParam;
     }
   }
 
-  const info = document.getElementById('propInfo');
-  if (selectedProp) {
-    info.style.display = 'flex';
-    document.getElementById('propThumb').src = selectedProp.img;
-    document.getElementById('propName').textContent = selectedProp.name;
-    document.getElementById('propType').textContent = selectedProp.type + ' · Up to ' + selectedProp.guests + ' guests';
-    const gstRate = selectedProp.price <= 7500 ? 5 : 18;
-    document.getElementById('propPrice').textContent =
-      '₹' + selectedProp.price.toLocaleString('en-IN') + '/night + ' + gstRate + '% GST (Direct) · Airbnb ₹' + selectedProp.airbnb.toLocaleString('en-IN') + '+';
-    bookedDates = [];
-    renderMiniCal();
-    fetchBookedDates();
-  } else {
-    info.style.display = 'none';
-    bookedDates = [];
-    renderMiniCal();
-  }
-  updateSummary();
-  if (typeof syncDockInfo === 'function') syncDockInfo();
+  onPropertyChange();
+  fetchLiveDbPrices();
 }
 
-// ── FETCH BOOKED DATES ──
+// ─── PROPERTY CHANGE ───
+function onPropertyChange() {
+  const sel = document.getElementById('propSelect');
+  if (!sel) return;
+  const pid = sel.value || PROPERTIES[0].id;
+  selectedProp = PROPERTIES.find(p => p.id === pid) || PROPERTIES[0];
+
+  // Try to find rich data from ShowcaseData CMS
+  let showData = null;
+  if (typeof window.ShowcaseData !== 'undefined' && typeof window.ShowcaseData.getProperty === 'function') {
+    showData = window.ShowcaseData.getProperty(selectedProp.id) || (window.ShowcaseData.BASELINE && window.ShowcaseData.BASELINE[selectedProp.id]);
+  }
+
+  // Update Page Header Info
+  const titleEl = document.getElementById('listingTitle');
+  if (titleEl) {
+    titleEl.textContent = `${selectedProp.name} — ${selectedProp.type}`;
+  }
+
+  const ratingEl = document.getElementById('listingRatingReviews');
+  const wRatingEl = document.getElementById('widgetRatingVal');
+  const wRevEl = document.getElementById('widgetReviewsCount');
+  const ratingVal = showData?.rating ? showData.rating.toFixed(2) : '4.94';
+  const reviewsCount = showData?.reviews || 36;
+  if (ratingEl) ratingEl.textContent = `${ratingVal} · ${reviewsCount} reviews`;
+  if (wRatingEl) wRatingEl.textContent = ratingVal;
+  if (wRevEl) wRevEl.textContent = `· ${reviewsCount} reviews`;
+
+  const locEl = document.getElementById('listingLocation');
+  if (locEl) {
+    locEl.textContent = showData?.area_name ? `${showData.area_name}, Lucknow` : 'Gomti Nagar & near Lulu Mall, Lucknow';
+  }
+
+  // Update Host Specs & Heading
+  const headingEl = document.getElementById('hostHeading');
+  if (headingEl) {
+    headingEl.textContent = `Entire ${selectedProp.type} hosted by Firoz & Shahanshah`;
+  }
+
+  const specsEl = document.getElementById('hostSpecsLine');
+  if (specsEl) {
+    const maxG = showData?.max_guests || selectedProp.guests || 10;
+    const beds = showData?.bedrooms || (selectedProp.type.includes('3BHK') ? 3 : 4);
+    specsEl.textContent = `Up to ${maxG} guests · ${beds} bedrooms · Dedicated Caretaker · Free Parking`;
+  }
+
+  // Update Price in Widget
+  const priceEl = document.getElementById('widgetPriceVal');
+  const dockRateEl = document.getElementById('mobileDockRate');
+  if (priceEl) priceEl.textContent = `₹${selectedProp.price.toLocaleString('en-IN')}`;
+  if (dockRateEl) dockRateEl.textContent = `₹${selectedProp.price.toLocaleString('en-IN')} / night`;
+
+  // Update Direct Host WhatsApp & Call CTAs
+  const waBtn = document.getElementById('widgetWaBtn');
+  const callBtn = document.getElementById('widgetCallBtn');
+  const hostPhone = selectedProp.wa || '919450055554';
+  if (waBtn) {
+    waBtn.href = `https://wa.me/${hostPhone}?text=${encodeURIComponent(`Namaste! I am inquiring about booking ${selectedProp.name} directly.`)}`;
+  }
+  if (callBtn) {
+    callBtn.href = `tel:+${hostPhone}`;
+  }
+
+  // Update Mosaic Photos from ShowcaseData
+  updateMosaicPhotos(showData);
+
+  // Clear booked dates and refetch
+  bookedDates = [];
+  renderCalendar();
+  fetchBookedDates();
+  checkAvailability();
+  updateSummary();
+}
+
+// ─── PHOTO MOSAIC RENDER ───
+function updateMosaicPhotos(showData) {
+  currentPhotosList = [];
+  if (showData) {
+    if (showData.cover_image) currentPhotosList.push(showData.cover_image);
+    if (showData.photos) {
+      if (Array.isArray(showData.photos)) {
+        showData.photos.forEach(url => {
+          if (typeof url === 'string' && url.startsWith('http') && !currentPhotosList.includes(url)) {
+            currentPhotosList.push(url);
+          }
+        });
+      } else if (typeof showData.photos === 'object') {
+        Object.values(showData.photos).forEach(val => {
+          if (Array.isArray(val)) {
+            val.forEach(url => {
+              if (typeof url === 'string' && url.startsWith('http') && !currentPhotosList.includes(url)) {
+                currentPhotosList.push(url);
+              }
+            });
+          }
+        });
+      }
+    }
+  }
+
+  // Fallback to property cover if empty
+  if (currentPhotosList.length === 0 && selectedProp.img) {
+    currentPhotosList.push(selectedProp.img);
+  }
+
+  // Assign 5 photos to mosaic
+  for (let i = 0; i < 5; i++) {
+    const imgEl = document.getElementById(`mosaicImg${i}`);
+    if (imgEl) {
+      const src = currentPhotosList[i] || currentPhotosList[i % currentPhotosList.length] || selectedProp.img;
+      imgEl.src = src;
+      imgEl.alt = `${selectedProp.name} — Photo ${i + 1}`;
+    }
+  }
+
+  const btnText = document.getElementById('mosaicBtnText');
+  if (btnText) {
+    btnText.textContent = `Show all ${Math.max(currentPhotosList.length, 5)}+ photos`;
+  }
+}
+
+// ─── FULLSCREEN PHOTO LIGHTBOX ───
+function openPhotoLightbox(idx) {
+  lightboxIdx = idx || 0;
+  updateLightboxView();
+  const modal = document.getElementById('photoLightboxModal');
+  if (modal) modal.style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+}
+
+function closePhotoLightbox() {
+  const modal = document.getElementById('photoLightboxModal');
+  if (modal) modal.style.display = 'none';
+  document.body.style.overflow = '';
+}
+
+function updateLightboxView() {
+  if (currentPhotosList.length === 0) return;
+  if (lightboxIdx < 0) lightboxIdx = currentPhotosList.length - 1;
+  if (lightboxIdx >= currentPhotosList.length) lightboxIdx = 0;
+
+  const imgEl = document.getElementById('lightboxMainImg');
+  const countEl = document.getElementById('lightboxCounter');
+  if (imgEl) imgEl.src = currentPhotosList[lightboxIdx];
+  if (countEl) countEl.textContent = `Photo ${lightboxIdx + 1} of ${currentPhotosList.length}`;
+}
+
+function nextLightboxPhoto() {
+  lightboxIdx++;
+  updateLightboxView();
+}
+
+function prevLightboxPhoto() {
+  lightboxIdx--;
+  updateLightboxView();
+}
+
+// ─── FETCH LIVE PRICES FROM DB ───
+async function fetchLiveDbPrices() {
+  if (!sb) return;
+  try {
+    const { data } = await sb.from('rooms').select('room_id, rent_per_night');
+    if (data && data.length) {
+      data.forEach(r => {
+        const p = PROPERTIES.find(x => x.id === r.room_id);
+        if (p && r.rent_per_night > 0) p.price = r.rent_per_night;
+      });
+      // Re-update current selected price
+      const priceEl = document.getElementById('widgetPriceVal');
+      if (priceEl && selectedProp) {
+        priceEl.textContent = `₹${selectedProp.price.toLocaleString('en-IN')}`;
+      }
+      updateSummary();
+    }
+  } catch(e) { console.warn('fetchLiveDbPrices error:', e); }
+}
+
+// ─── FETCH BOOKED DATES ───
 async function fetchBookedDates() {
   if (!sb || !selectedProp) return;
   try {
-    const from = new Date(calViewDate.getFullYear(), calViewDate.getMonth() - 1, 1).toISOString().slice(0,10);
-    const to   = new Date(calViewDate.getFullYear(), calViewDate.getMonth() + 3, 0).toISOString().slice(0,10);
+    const from = new Date(calViewDate.getFullYear(), calViewDate.getMonth() - 1, 1).toISOString().slice(0, 10);
+    const to   = new Date(calViewDate.getFullYear(), calViewDate.getMonth() + 3, 0).toISOString().slice(0, 10);
     const { data } = await sb.from('guest_register')
       .select('check_in, check_out')
       .eq('room_id', selectedProp.id)
@@ -247,159 +315,204 @@ async function fetchBookedDates() {
       .gte('check_out', from)
       .lte('check_in', to);
     bookedDates = data || [];
-  } catch(e) { console.warn('fetchBookedDates:', e); }
-  renderMiniCal();
+  } catch(e) { console.warn('fetchBookedDates error:', e); }
+  renderCalendar();
   checkAvailability();
 }
 
 function isDateBooked(ds) {
-  return bookedDates.some(function(b){ return b.check_in <= ds && b.check_out > ds; });
-}
-function isDatePast(ds) {
-  return ds < new Date().toISOString().slice(0,10);
+  return bookedDates.some(b => b.check_in <= ds && b.check_out > ds);
 }
 
-// ── MINI CALENDAR ──
-function renderMiniCal() {
+function isDatePast(ds) {
+  return ds < new Date().toISOString().slice(0, 10);
+}
+
+// ─── CALENDAR RENDER ───
+function renderCalendar() {
   const y = calViewDate.getFullYear();
   const m = calViewDate.getMonth();
-  document.getElementById('miniCalLabel').textContent = MONTHS[m] + ' ' + y;
+  const labelEl = document.getElementById('calMonthLabel');
+  if (labelEl) labelEl.textContent = `${MONTHS[m]} ${y}`;
 
-  const firstDay = new Date(y, m, 1).getDay();
-  const dim = new Date(y, m+1, 0).getDate();
-  const todayStr = new Date().toISOString().slice(0,10);
-  const ci = document.getElementById('checkIn').value;
-  const co = document.getElementById('checkOut').value;
-
-  const grid = document.getElementById('miniCalGrid');
+  const grid = document.getElementById('calMonthGrid');
+  if (!grid) return;
   grid.innerHTML = '';
 
-  DOWS.forEach(function(d) {
+  // DOW headers
+  DOWS.forEach(d => {
     const el = document.createElement('div');
-    el.className = 'mc-dow'; el.textContent = d; grid.appendChild(el);
-  });
-  for (let i = 0; i < firstDay; i++) {
-    const el = document.createElement('div'); el.className = 'mc-day empty'; grid.appendChild(el);
-  }
-  for (let d = 1; d <= dim; d++) {
-    const ds = y + '-' + String(m+1).padStart(2,'0') + '-' + String(d).padStart(2,'0');
-    const el = document.createElement('div');
+    el.className = 'cal-dow-item';
     el.textContent = d;
-    let cls = 'mc-day';
-    if (ds === todayStr) cls += ' today';
-    if (isDatePast(ds)) { cls += ' past'; }
-    else if (isDateBooked(ds)) { cls += ' booked'; }
-    else { (function(date){ el.onclick = function(){ onCalDayClick(date); }; })(ds); }
-    if (ci && co && ds > ci && ds < co) cls += ' in-range';
-    if (ci && ds === ci) { cls += ' sel rng-s'; }
-    if (co && ds === co) { cls += ' sel rng-e'; }
-    el.className = cls;
     grid.appendChild(el);
-  }
-}
+  });
 
-function onCalDayClick(ds) {
+  const firstDay = new Date(y, m, 1).getDay();
+  const dim = new Date(y, m + 1, 0).getDate();
+  const todayStr = new Date().toISOString().slice(0, 10);
   const ci = document.getElementById('checkIn').value;
   const co = document.getElementById('checkOut').value;
 
-  if (!ci || (ci && co)) {
-    document.getElementById('checkIn').value = ds;
-    document.getElementById('checkOut').value = '';
-  } else {
-    if (ds <= ci) {
-      document.getElementById('checkIn').value = ds;
-      document.getElementById('checkOut').value = '';
-    } else {
-      let blocked = false;
-      const c = new Date(ci); c.setDate(c.getDate() + 1);
-      const e = new Date(ds);
-      while (c < e) {
-        if (isDateBooked(c.toISOString().slice(0,10))) { blocked = true; break; }
-        c.setDate(c.getDate() + 1);
-      }
-      if (blocked) {
-        alert('Some dates in this range are already booked. Please choose different dates.');
-      } else {
-        document.getElementById('checkOut').value = ds;
-      }
-    }
+  for (let i = 0; i < firstDay; i++) {
+    const empty = document.createElement('div');
+    grid.appendChild(empty);
   }
-  renderMiniCal();
-  onDateChange();
+
+  for (let d = 1; d <= dim; d++) {
+    const ds = `${y}-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+    const cell = document.createElement('div');
+    cell.className = 'cal-day-cell';
+    cell.textContent = d;
+
+    if (ds === todayStr) cell.classList.add('today');
+    if (isDatePast(ds)) {
+      cell.classList.add('past');
+    } else if (isDateBooked(ds)) {
+      cell.classList.add('booked');
+      cell.title = 'Date is already booked';
+    } else {
+      cell.onclick = () => onCalendarDateClick(ds);
+    }
+
+    if (ci && ds === ci) cell.classList.add('selected');
+    if (co && ds === co) cell.classList.add('selected');
+    if (ci && co && ds > ci && ds < co) cell.classList.add('range-in');
+
+    grid.appendChild(cell);
+  }
 }
 
 function changeCalMonth(delta) {
   calViewDate = new Date(calViewDate.getFullYear(), calViewDate.getMonth() + delta, 1);
-  renderMiniCal();
-  if (selectedProp) fetchBookedDates();
+  renderCalendar();
+  fetchBookedDates();
 }
 
-// ── DATE CHANGE ──
-function onDateChange() {
-  const ci = document.getElementById('checkIn').value;
-  if (ci) {
-    const nd = new Date(ci); nd.setDate(nd.getDate() + 1);
-    document.getElementById('checkOut').min = nd.toISOString().slice(0,10);
+function onCalendarDateClick(ds) {
+  const ciInput = document.getElementById('checkIn');
+  const coInput = document.getElementById('checkOut');
+  if (!ciInput || !coInput) return;
+
+  if (!ciInput.value || (ciInput.value && coInput.value)) {
+    ciInput.value = ds;
+    coInput.value = '';
+    const nextDay = new Date(ds);
+    nextDay.setDate(nextDay.getDate() + 1);
+    coInput.min = nextDay.toISOString().slice(0, 10);
+  } else if (ciInput.value && !coInput.value) {
+    if (ds <= ciInput.value) {
+      ciInput.value = ds;
+    } else {
+      coInput.value = ds;
+    }
   }
-  renderMiniCal();
+  onDateChange();
+}
+
+function onDateChange() {
+  const ciInput = document.getElementById('checkIn');
+  const coInput = document.getElementById('checkOut');
+  if (ciInput && coInput && ciInput.value) {
+    const nextDay = new Date(ciInput.value);
+    nextDay.setDate(nextDay.getDate() + 1);
+    coInput.min = nextDay.toISOString().slice(0, 10);
+  }
+  renderCalendar();
   checkAvailability();
   updateSummary();
 }
 
-// ── AVAILABILITY CHECK ──
+// ─── AVAILABILITY CHECK ───
 function checkAvailability() {
-  const ci = document.getElementById('checkIn').value;
-  const co = document.getElementById('checkOut').value;
+  const ci = document.getElementById('checkIn')?.value;
+  const co = document.getElementById('checkOut')?.value;
   const el = document.getElementById('availStatus');
   const btn = document.getElementById('bookBtn');
+  const datePrompt = document.getElementById('navDatePrompt');
 
   if (!ci || !co || !selectedProp) {
-    el.style.display = 'none'; btn.disabled = true; return;
+    if (el) el.style.display = 'none';
+    if (btn) btn.disabled = true;
+    if (datePrompt) datePrompt.textContent = 'Add dates';
+    return;
   }
-  el.style.display = 'flex';
-  el.className = 'avail-status checking';
-  el.innerHTML = '<span class="spin"></span> <span>Checking availability…</span>';
-  btn.disabled = true;
 
-  let conflict = false;
-  const c = new Date(ci), end = new Date(co);
-  const cc = new Date(c);
-  while (cc < end) {
-    if (isDateBooked(cc.toISOString().slice(0,10))) { conflict = true; break; }
-    cc.setDate(cc.getDate() + 1);
-  }
-  setTimeout(function() {
-    const nights = Math.round((end - c) / 86400000);
-    if (conflict) {
+  const nights = Math.round((new Date(co) - new Date(ci)) / 86400000);
+  if (nights <= 0) {
+    if (el) {
+      el.style.display = 'flex';
       el.className = 'avail-status unavailable';
-      el.innerHTML = '❌ <span>Not available for these dates. Please choose different dates.</span>';
-      btn.disabled = true;
-    } else {
-      el.className = 'avail-status available';
-      el.innerHTML = '✅ <span><strong>' + nights + ' night' + (nights !== 1 ? 's' : '') + '</strong> available at ' + selectedProp.name + '!</span>';
-      btn.disabled = false;
+      el.innerHTML = '❌ <span>Checkout date must be after check-in.</span>';
     }
-  }, 500);
+    if (btn) btn.disabled = true;
+    return;
+  }
+
+  if (datePrompt) {
+    datePrompt.textContent = `${nights} night${nights > 1 ? 's' : ''}`;
+  }
+
+  // Check conflict
+  let conflict = false;
+  const start = new Date(ci), end = new Date(co);
+  const cur = new Date(start);
+  while (cur < end) {
+    if (isDateBooked(cur.toISOString().slice(0, 10))) {
+      conflict = true;
+      break;
+    }
+    cur.setDate(cur.getDate() + 1);
+  }
+
+  if (conflict) {
+    if (el) {
+      el.style.display = 'flex';
+      el.className = 'avail-status unavailable';
+      el.innerHTML = '❌ <span>Selected dates are booked. Please choose other dates.</span>';
+    }
+    if (btn) btn.disabled = true;
+  } else {
+    if (el) {
+      el.style.display = 'flex';
+      el.className = 'avail-status available';
+      el.innerHTML = `✅ <span><strong>${nights} night${nights > 1 ? 's' : ''}</strong> available at ${selectedProp.name}!</span>`;
+    }
+    if (btn) btn.disabled = false;
+  }
 }
 
-// ── PRICE SUMMARY ──
-let appliedCoupon = null;
-let couponDiscount = 0;
-
+// ─── PRICING CALCULATION ───
 function updateSummary() {
-  const ci = document.getElementById('checkIn').value;
-  const co = document.getElementById('checkOut').value;
-  const empty = document.getElementById('summaryEmpty');
+  const ci = document.getElementById('checkIn')?.value;
+  const co = document.getElementById('checkOut')?.value;
   const content = document.getElementById('summaryContent');
+  const calTitle = document.getElementById('calNightsTitle');
+  const calSub = document.getElementById('calSubtext');
+  const dockDates = document.getElementById('mobileDockDates');
 
   if (!ci || !co || !selectedProp) {
-    empty.style.display = 'block'; content.style.display = 'none'; return;
+    if (content) content.style.display = 'none';
+    if (calTitle) calTitle.textContent = 'Select stay dates';
+    if (calSub) calSub.textContent = 'Minimum stay: 1 night · Instant host confirmation';
+    if (dockDates) dockDates.textContent = 'Add dates for total';
+    return;
   }
+
   const nights = Math.round((new Date(co) - new Date(ci)) / 86400000);
-  if (nights <= 0) { empty.style.display = 'block'; content.style.display = 'none'; return; }
+  if (nights <= 0) {
+    if (content) content.style.display = 'none';
+    return;
+  }
 
-  empty.style.display = 'none'; content.style.display = 'block';
+  if (content) content.style.display = 'flex';
+  if (calTitle) calTitle.textContent = `${nights} night${nights > 1 ? 's' : ''} in Lucknow`;
+  if (calSub) {
+    const fmtIn = new Date(ci + 'T00:00:00').toLocaleDateString('en-IN', {month:'short', day:'numeric'});
+    const fmtOut = new Date(co + 'T00:00:00').toLocaleDateString('en-IN', {month:'short', day:'numeric', year:'numeric'});
+    calSub.textContent = `${fmtIn} – ${fmtOut} · Direct Host Best Price Guarantee`;
+  }
 
+  // Calculate pricing
   let pricing = null;
   if (window.UHH_SEASONAL && typeof window.UHH_SEASONAL.calculateStayPricing === 'function') {
     pricing = window.UHH_SEASONAL.calculateStayPricing(selectedProp.price, ci, co);
@@ -411,145 +524,100 @@ function updateSummary() {
   const gstAmt = Math.round(baseTotal * (gstRate / 100));
   const grossWithGst = baseTotal + gstAmt;
 
-  document.getElementById('sumNights').textContent = nights + ' night' + (nights !== 1 ? 's' : '') + ' × ₹' + effectiveRate.toLocaleString('en-IN');
-  document.getElementById('sumNightlyTotal').textContent = '₹' + baseTotal.toLocaleString('en-IN');
+  // Airbnb comparison
+  const airbnbBaseRate = selectedProp.airbnb || Math.round(selectedProp.price * 1.2);
+  const airbnbGuestFee = Math.round(airbnbBaseRate * nights * 0.15);
 
-  const gstLabelEl = document.getElementById('sumGstLabel');
-  if (gstLabelEl) gstLabelEl.innerHTML = `Taxes &amp; GST (${gstRate}% · SAC 996311)`;
+  // Discount calculation
+  const discountAmt = (appliedCoupon && couponDiscount > 0) ? Math.round(grossWithGst * (couponDiscount / 100)) : 0;
+  const finalTotal = grossWithGst - discountAmt;
 
-  const gstEl = document.getElementById('sumGst');
-  if (gstEl) gstEl.textContent = '+₹' + gstAmt.toLocaleString('en-IN');
+  // Populate DOM breakdown
+  const sumNightsEl = document.getElementById('sumNightsBreakdown');
+  const sumNightlyTotalEl = document.getElementById('sumNightlyTotal');
+  const sumGstLabelEl = document.getElementById('sumGstLabel');
+  const sumGstEl = document.getElementById('sumGst');
+  const sumFeeStrikeEl = document.getElementById('sumAirbnbFeeStrike');
+  const sumTotalEl = document.getElementById('sumTotal');
 
-  const grossEl = document.getElementById('sumGrossTotal');
-  if (grossEl) grossEl.textContent = '₹' + grossWithGst.toLocaleString('en-IN');
+  if (sumNightsEl) sumNightsEl.textContent = `₹${effectiveRate.toLocaleString('en-IN')} x ${nights} night${nights > 1 ? 's' : ''}`;
+  if (sumNightlyTotalEl) sumNightlyTotalEl.textContent = `₹${baseTotal.toLocaleString('en-IN')}`;
+  if (sumGstLabelEl) sumGstLabelEl.textContent = `Taxes & GST (${gstRate}% · SAC 996311)`;
+  if (sumGstEl) sumGstEl.textContent = `+₹${gstAmt.toLocaleString('en-IN')}`;
+  if (sumFeeStrikeEl) sumFeeStrikeEl.textContent = `₹${airbnbGuestFee.toLocaleString('en-IN')}`;
+  if (sumTotalEl) sumTotalEl.textContent = `₹${finalTotal.toLocaleString('en-IN')}`;
 
-  // Calculate Add-on Services total
-  let addonsTotal = 0;
-  const chosenAddons = [];
-  selectedAddonIds.forEach(function(aid) {
-    const item = ADDON_SERVICES.find(function(x){ return x.id === aid; });
-    if (item) {
-      addonsTotal += item.price;
-      chosenAddons.push(item);
-    }
-  });
-
-  const addonsRow = document.getElementById('sumAddonsRow');
-  const addonsLabel = document.getElementById('sumAddonsLabel');
-  const addonsVal = document.getElementById('sumAddonsTotal');
-  if (addonsRow) {
-    if (addonsTotal > 0) {
-      addonsRow.style.display = 'flex';
-      if (addonsLabel) addonsLabel.innerHTML = `✦ Concierge Add-Ons (${chosenAddons.length})`;
-      if (addonsVal) addonsVal.textContent = `+₹${addonsTotal.toLocaleString('en-IN')}`;
+  // Coupon discount row
+  const coupRow = document.getElementById('couponDiscountRow');
+  const coupVal = document.getElementById('sumDiscount');
+  const coupLabel = document.getElementById('couponCodeLabel');
+  if (coupRow && coupVal) {
+    if (appliedCoupon && discountAmt > 0) {
+      coupRow.style.display = 'flex';
+      coupVal.textContent = `-₹${discountAmt.toLocaleString('en-IN')}`;
+      if (coupLabel) coupLabel.textContent = `${appliedCoupon} (${couponDiscount}% OFF)`;
     } else {
-      addonsRow.style.display = 'none';
+      coupRow.style.display = 'none';
     }
   }
 
-  const subTotalBeforeDiscount = grossWithGst + addonsTotal;
-
-  // Show coupon discount if applied
-  var discountRow = document.getElementById('couponDiscountRow');
-  if (appliedCoupon && couponDiscount > 0) {
-    var discountAmt = Math.round(subTotalBeforeDiscount * (couponDiscount / 100));
-    var finalTotal = subTotalBeforeDiscount - discountAmt;
-    if (discountRow) { discountRow.style.display = 'flex'; }
-    document.getElementById('sumDiscount').textContent = '−₹' + discountAmt.toLocaleString('en-IN') + ' (' + couponDiscount + '% Direct Host OFF)';
-    document.getElementById('sumTotal').textContent = '₹' + finalTotal.toLocaleString('en-IN');
-  } else {
-    if (discountRow) { discountRow.style.display = 'none'; }
-    document.getElementById('sumTotal').textContent = '₹' + subTotalBeforeDiscount.toLocaleString('en-IN');
+  if (dockDates) {
+    dockDates.textContent = `${nights} night${nights > 1 ? 's' : ''} · ₹${finalTotal.toLocaleString('en-IN')} total`;
   }
-  if (typeof syncDockInfo === 'function') syncDockInfo();
 }
 
-// ── COUPON / DISCOUNT CODE ──
-const BUILTIN_COUPONS = {
-  'TUHH15': { discount_percent: 15, min_nights: 1 },
-  'TUHH10': { discount_percent: 10, min_nights: 1 },
-  'DIRECT10': { discount_percent: 10, min_nights: 1 },
-  'DIRECT15': { discount_percent: 15, min_nights: 1 },
-  'WELCOME10': { discount_percent: 10, min_nights: 1 },
-  'VIP15': { discount_percent: 15, min_nights: 1 }
-};
-
+// ─── COUPON HANDLING ───
 async function applyCoupon() {
-  var codeInput = document.getElementById('couponCode');
-  var msgEl = document.getElementById('couponMsg');
-  var code = (codeInput.value || '').trim().toUpperCase();
+  const codeInput = document.getElementById('couponCode');
+  const msgEl = document.getElementById('couponMsg');
+  if (!codeInput) return;
+  const code = codeInput.value.trim().toUpperCase();
+  if (!code) return;
 
-  if (!code) {
-    msgEl.innerHTML = '⚠️ Please enter a coupon code. For codes, WhatsApp Superhosts & Owners <a href="https://wa.me/919450055554?text=Namaste!%20Please%20share%20a%20discount%20code%20for%20my%20booking." target="_blank" style="color:#059669; font-weight:600;">Shahanshah</a> / <a href="https://wa.me/918299600709?text=Namaste!%20Please%20share%20a%20discount%20code%20for%20my%20booking." target="_blank" style="color:#059669; font-weight:600;">Firoz</a> or Manager <a href="https://wa.me/919194109911?text=Namaste!%20Please%20share%20a%20discount%20code%20for%20my%20booking." target="_blank" style="color:#059669; font-weight:600;">Praveen Singh</a>';
-    msgEl.style.color = '#dc2626';
-    return;
-  }
-
-  // 1. Built-in promo codes (TUHH15)
   if (BUILTIN_COUPONS[code]) {
-    var cData = BUILTIN_COUPONS[code];
-    var ci = document.getElementById('checkIn').value;
-    var co = document.getElementById('checkOut').value;
-    var nights = (ci && co) ? Math.round((new Date(co) - new Date(ci)) / 86400000) : 0;
-    if (cData.min_nights && nights < cData.min_nights) {
-      msgEl.innerHTML = '⚠️ This code requires minimum ' + cData.min_nights + ' night stay.';
-      msgEl.style.color = '#dc2626';
-      return;
-    }
     appliedCoupon = code;
-    couponDiscount = cData.discount_percent;
+    couponDiscount = BUILTIN_COUPONS[code].discount_percent;
     lockCouponUI(code);
-    msgEl.innerHTML = '🎉 Coupon <strong>' + code + '</strong> applied! ' + cData.discount_percent + '% discount on total booking.';
-    msgEl.style.color = '#059669';
+    if (msgEl) {
+      msgEl.innerHTML = `🎉 Code <strong>${code}</strong> applied! <strong>${couponDiscount}% Direct Host Discount</strong> added.`;
+      msgEl.style.color = '#059669';
+    }
     updateSummary();
     return;
   }
 
-  // 2. Try to validate coupon from Supabase
   if (sb) {
     try {
-      var { data, error } = await sb.from('coupon_codes')
-        .select('code, discount_percent, is_active, min_nights')
-        .eq('code', code)
-        .eq('is_active', true)
-        .single();
-      if (!error && data) {
-        var ci = document.getElementById('checkIn').value;
-        var co = document.getElementById('checkOut').value;
-        var nights = (ci && co) ? Math.round((new Date(co) - new Date(ci)) / 86400000) : 0;
-        if (data.min_nights && nights < data.min_nights) {
-          msgEl.innerHTML = '⚠️ This code requires minimum ' + data.min_nights + ' nights stay.';
-          msgEl.style.color = '#dc2626';
-          return;
+      const { data } = await sb.from('coupon_codes').select('*').eq('code', code).eq('is_active', true).maybeSingle();
+      if (data) {
+        appliedCoupon = code;
+        couponDiscount = Number(data.discount_percent || 10);
+        lockCouponUI(code);
+        if (msgEl) {
+          msgEl.innerHTML = `🎉 Code <strong>${code}</strong> applied! <strong>${couponDiscount}% OFF</strong> added.`;
+          msgEl.style.color = '#059669';
         }
-        appliedCoupon = data.code;
-        couponDiscount = data.discount_percent;
-        lockCouponUI(data.code);
-        msgEl.innerHTML = '✅ Coupon <strong>' + data.code + '</strong> applied! ' + data.discount_percent + '% discount.';
-        msgEl.style.color = '#059669';
         updateSummary();
         return;
       }
-    } catch(e) { /* coupon_codes table may not exist yet */ }
+    } catch(e) { console.warn('Coupon lookup error:', e); }
   }
 
-  // 3. Fallback: note code for WhatsApp confirmation
-  appliedCoupon = code;
-  couponDiscount = 0;
-  lockCouponUI(code);
-  msgEl.innerHTML = '📋 Code <strong>' + code + '</strong> noted. Discount will be verified by host on WhatsApp.';
-  msgEl.style.color = '#0369a1';
-  updateSummary();
+  // Not recognized fallback
+  if (msgEl) {
+    msgEl.innerHTML = `⚠️ Code <strong>${code}</strong> noted. Will be verified directly by host.`;
+    msgEl.style.color = '#0284c7';
+  }
 }
 
 function lockCouponUI(code) {
-  var codeInput = document.getElementById('couponCode');
-  var applyBtn = document.getElementById('couponApplyBtn');
-  var removeBtn = document.getElementById('couponRemoveBtn');
+  const codeInput = document.getElementById('couponCode');
+  const applyBtn = document.getElementById('couponApplyBtn');
+  const removeBtn = document.getElementById('couponRemoveBtn');
   if (codeInput) {
     codeInput.value = code;
     codeInput.readOnly = true;
-    codeInput.style.background = '#f1f5f9';
+    codeInput.style.background = '#f8fafc';
   }
   if (applyBtn) applyBtn.style.display = 'none';
   if (removeBtn) removeBtn.style.display = 'block';
@@ -558,9 +626,10 @@ function lockCouponUI(code) {
 function removeCoupon() {
   appliedCoupon = null;
   couponDiscount = 0;
-  var codeInput = document.getElementById('couponCode');
-  var applyBtn = document.getElementById('couponApplyBtn');
-  var removeBtn = document.getElementById('couponRemoveBtn');
+  const codeInput = document.getElementById('couponCode');
+  const applyBtn = document.getElementById('couponApplyBtn');
+  const removeBtn = document.getElementById('couponRemoveBtn');
+  const msgEl = document.getElementById('couponMsg');
   if (codeInput) {
     codeInput.value = '';
     codeInput.readOnly = false;
@@ -569,37 +638,35 @@ function removeCoupon() {
   }
   if (applyBtn) applyBtn.style.display = 'block';
   if (removeBtn) removeBtn.style.display = 'none';
-
-  var msgEl = document.getElementById('couponMsg');
   if (msgEl) {
-    msgEl.innerHTML = 'For discount codes, WhatsApp Superhosts &amp; Owners <a href="https://wa.me/919450055554?text=Namaste!%20Please%20share%20a%20discount%20code%20for%20my%20booking." target="_blank" style="color:#059669; font-weight:600;">Shahanshah</a> / <a href="https://wa.me/918299600709?text=Namaste!%20Please%20share%20a%20discount%20code%20for%20my%20booking." target="_blank" style="color:#059669; font-weight:600;">Firoz</a> or Manager <a href="https://wa.me/919194109911?text=Namaste!%20Please%20share%20a%20discount%20code%20for%20my%20booking." target="_blank" style="color:#059669; font-weight:600;">Praveen Singh</a>';
-    msgEl.style.color = '#6b7280';
+    msgEl.innerHTML = `Have a code? Use <strong style="color:var(--emerald); cursor:pointer;" onclick="document.getElementById('couponCode').value='REPEAT10'; applyCoupon();">REPEAT10</strong> for 10% direct savings.`;
+    msgEl.style.color = '#717171';
   }
   updateSummary();
 }
 
-// ── SUBMIT ──
+// ─── SUBMISSION ENGINE ───
 async function submitBookingRequest() {
-  const ci = document.getElementById('checkIn').value;
-  const co = document.getElementById('checkOut').value;
-  const name = document.getElementById('guestName').value.trim();
-  const rawPhone = document.getElementById('guestPhone').value.trim().replace(/\D/g,'');
-  const guests = document.getElementById('guestCount').value;
-  const purpose = document.getElementById('stayPurpose').value;
-  const special = document.getElementById('specialReq').value.trim();
+  const ci = document.getElementById('checkIn')?.value;
+  const co = document.getElementById('checkOut')?.value;
+  const name = document.getElementById('guestName')?.value.trim();
+  const rawPhone = document.getElementById('guestPhone')?.value.trim().replace(/\D/g, '');
+  const guests = document.getElementById('guestCount')?.value || 2;
+  const purpose = document.getElementById('stayPurpose')?.value;
+  const special = document.getElementById('specialReq')?.value.trim();
 
   if (!selectedProp) { alert('Please select a property.'); return; }
-  if (!ci || !co)    { alert('Please select your check-in and check-out dates.'); return; }
-  if (!name)         { alert('Please enter your full name.'); return; }
-  if (!rawPhone || rawPhone.length < 10) { alert('Please enter a valid 10-digit WhatsApp number.'); return; }
+  if (!ci || !co) { alert('Please select your check-in and checkout dates.'); return; }
+  if (!name) { alert('Please enter your full name as on Government ID.'); return; }
+  if (!rawPhone || rawPhone.length < 10) { alert('Please enter a valid 10-digit mobile number.'); return; }
 
   const nights = Math.round((new Date(co) - new Date(ci)) / 86400000);
-  if (nights <= 0)   { alert('Check-out must be after check-in.'); return; }
+  if (nights <= 0) { alert('Checkout date must be after check-in.'); return; }
 
   const btn = document.getElementById('bookBtn');
   const origHtml = btn.innerHTML;
   btn.disabled = true;
-  btn.innerHTML = '<span class="spin"></span> Sending…';
+  btn.innerHTML = '<span class="spin"></span> Submitting Reservation…';
 
   let pricing = null;
   if (window.UHH_SEASONAL && typeof window.UHH_SEASONAL.calculateStayPricing === 'function') {
@@ -612,39 +679,30 @@ async function submitBookingRequest() {
   const gstAmt = Math.round(baseTotal * (gstRate / 100));
   const grossWithGst = baseTotal + gstAmt;
 
-  const chosenAddons = [];
-  let addonsTotal = 0;
-  selectedAddonIds.forEach(function(aid) {
-    const item = ADDON_SERVICES.find(function(x){ return x.id === aid; });
-    if (item) {
-      addonsTotal += item.price;
-      chosenAddons.push(item);
-    }
-  });
-
-  const subTotalBeforeDiscount = grossWithGst + addonsTotal;
-  const discountAmt = (appliedCoupon && couponDiscount > 0) ? Math.round(subTotalBeforeDiscount * (couponDiscount / 100)) : 0;
-  const finalTotal = subTotalBeforeDiscount - discountAmt;
+  const discountAmt = (appliedCoupon && couponDiscount > 0) ? Math.round(grossWithGst * (couponDiscount / 100)) : 0;
+  const finalTotal = grossWithGst - discountAmt;
   const bookingId = 'BK-' + Date.now();
   const phone91 = rawPhone.length === 10 ? '91' + rawPhone : rawPhone;
 
-  // Format notes for CRM & Follow-up
   const noteParts = [
-    `Direct Website Booking (book.html)`,
-    `Property: ${selectedProp.name}`,
-    `Tariff: ₹${baseTotal} (${nights} nt @ ₹${effectiveRate}/nt) + ${gstRate}% GST (₹${gstAmt}) = Standard ₹${grossWithGst}`,
-    chosenAddons.length > 0 ? `Concierge Add-ons: ${chosenAddons.map(a => `${a.title} (+₹${a.price})`).join(', ')} (+₹${addonsTotal})` : null,
-    `Purpose: ${purpose || 'Not specified'}`
-  ].filter(Boolean);
+    `Direct Website Booking (Airbnb Clone Page)`,
+    `Property: ${selectedProp.name} (${selectedProp.id})`,
+    `Tariff: ₹${baseTotal} (${nights} nts @ ₹${effectiveRate}/nt) + ${gstRate}% GST (₹${gstAmt}) = Gross ₹${grossWithGst}`,
+    `Purpose: ${purpose || 'Holiday/Leisure'}`
+  ];
   if (appliedCoupon) {
-    noteParts.push(`Coupon: ${appliedCoupon} (${couponDiscount}% OFF, -₹${discountAmt}) | Direct Payable: ₹${finalTotal}`);
+    noteParts.push(`Coupon: ${appliedCoupon} (${couponDiscount}% OFF, -₹${discountAmt}) | Final Direct: ₹${finalTotal}`);
   }
   if (special) {
     noteParts.push(`Special Request: ${special}`);
   }
   const notesText = noteParts.join(' | ');
 
-  // Save to Supabase CRM (guest_register table) so it immediately appears in Follow-ups
+  // Direct Save into Supabase CRM guest_register table
+  if (!sb && typeof supabase !== 'undefined' && window.SUPABASE_URL && window.SUPABASE_ANON_KEY) {
+    sb = supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY);
+  }
+
   if (sb) {
     try {
       const { data: bData, error: bErr } = await sb.from('guest_register').insert({
@@ -656,171 +714,121 @@ async function submitBookingRequest() {
         check_out: co,
         check_in_time: '14:00',
         check_out_time: '11:00',
-        guests: parseInt(guests, 10) || 1,
+        guests: parseInt(guests, 10) || 2,
         per_day_rate: effectiveRate,
         total_amount: finalTotal,
         booking_mode: 'Direct-Website',
         payment_status: 'Unpaid',
         notes: notesText,
-        booked_by: 'Website',
+        booked_by: 'Website Direct',
         is_cancelled: false,
         verification_status: 'pending',
-        checkout_confirmed: true
+        checkout_confirmed: false
       }).select();
 
       if (bErr) {
         console.error('Supabase guest_register save error:', bErr);
+        alert('❌ Booking could not be registered automatically: ' + (bErr.message || 'Database connection issue') + '\nPlease contact host on WhatsApp or phone.');
+        btn.innerHTML = origHtml;
+        btn.disabled = false;
+        return;
       } else {
-        console.log('✅ Booking successfully saved to guest_register:', bData);
+        console.log('✅ Booking successfully saved to guest_register as pending approval:', bData);
       }
-    } catch(e) { console.warn('guest_register save error:', e); }
-
-    // Also backup to booking_requests if available
-    try {
-      await sb.from('booking_requests').insert({
-        booking_id: bookingId,
-        property_id: selectedProp.id,
-        property_name: selectedProp.name,
-        guest_name: name,
-        guest_phone: rawPhone,
-        check_in: ci,
-        check_out: co,
-        nights: nights,
-        guests: parseInt(guests, 10),
-        purpose: purpose,
-        special_requests: special || null,
-        coupon_code: appliedCoupon || null,
-        discount_amount: discountAmt,
-        estimated_amount: finalTotal,
-        status: 'pending',
-        source: 'book_page',
-        created_at: new Date().toISOString()
-      });
-    } catch(e) { /* silent backup */ }
+    } catch(err) {
+      console.warn('guest_register save error:', err);
+      alert('❌ Unexpected error: ' + (err.message || 'Server unreachable') + '\nPlease try again or contact host.');
+      btn.innerHTML = origHtml;
+      btn.disabled = false;
+      return;
+    }
   }
 
-  const fmt = function(d) {
-    return new Date(d + 'T00:00:00').toLocaleDateString('en-IN', {weekday:'short',day:'numeric',month:'short',year:'numeric'});
-  };
-
+  // Pre-fill WhatsApp confirmation message
+  const fmt = d => new Date(d + 'T00:00:00').toLocaleDateString('en-IN', {weekday:'short', day:'numeric', month:'short', year:'numeric'});
   const waMsg = [
     '🏠 *NEW DIRECT BOOKING REQUEST*',
     '*The Unique Haven Homes (Direct Guest Channel)*',
     '',
-    '🔖 *Booking ID:* ' + bookingId,
-    '👤 *Guest:* ' + name,
-    '📱 *Phone:* +' + phone91,
-    '🏡 *Property:* ' + selectedProp.name,
-    '📍 *Type:* ' + selectedProp.type,
+    `🔖 *Booking ID:* ${bookingId}`,
+    `👤 *Guest:* ${name}`,
+    `📱 *Phone:* +${phone91}`,
+    `🏡 *Property:* ${selectedProp.name}`,
+    `📅 *Check-in:* ${fmt(ci)} (14:00)`,
+    `📅 *Check-out:* ${fmt(co)} (11:00)`,
+    `🌙 *Duration:* ${nights} Night(s) · ${guests} Guest(s)`,
+    `✨ *Estimated Direct Total:* ₹${finalTotal.toLocaleString('en-IN')}`,
+    special ? `📝 *Special Request:* ${special}` : '',
     '',
-    '📅 *Check-in:* ' + fmt(ci),
-    '📅 *Check-out:* ' + fmt(co),
-    '🌙 *Nights:* ' + nights,
-    '👥 *Guests:* ' + guests,
-    '🎯 *Purpose:* ' + purpose,
-    '🏷️ *Base Tariff:* ₹' + baseTotal.toLocaleString('en-IN') + ' (' + nights + ' nights @ ₹' + effectiveRate.toLocaleString('en-IN') + '/night)',
-    '🏛️ *Taxes & GST (' + gstRate + '% · SAC 996311):* +₹' + gstAmt.toLocaleString('en-IN'),
-    '📊 *Standard Gross (with GST):* ₹' + grossWithGst.toLocaleString('en-IN'),
-    chosenAddons.length > 0 ? '✨ *Concierge Add-Ons (' + chosenAddons.length + '):*\n' + chosenAddons.map(a => '   • ' + a.title + ': +₹' + a.price.toLocaleString('en-IN')).join('\n') : '',
-    appliedCoupon ? '🎁 *Direct Discount Code:* ' + appliedCoupon + (couponDiscount > 0 ? ' (' + couponDiscount + '% Direct Host OFF)' : '') : '💡 *Direct Booking:* Guest requested direct host discount rate',
-    discountAmt > 0 ? '💸 *Direct Host Discount:* -₹' + discountAmt.toLocaleString('en-IN') : '',
-    '✨ *Estimated Direct Payable:* ₹' + finalTotal.toLocaleString('en-IN'),
-    special ? '📝 *Special Request:* ' + special : '',
-    '',
-    '💬 _Host Note: Direct booking saves 14–16% Airbnb guest platform fee! Rate synced live with CRM._',
-    '_Sent from uniquehavenhomestay.com/book.html_'
+    '_Status: Awaiting Host Verification & Allotment._',
+    '_Sent from uniquehavenhomestay.com_'
   ].filter(Boolean).join('\n');
 
   const waPhone = selectedProp.wa || '919450055554';
-  const waUrl = 'https://wa.me/' + waPhone + '?text=' + encodeURIComponent(waMsg);
-  window.open(waUrl, '_blank');
+  const waUrl = `https://wa.me/${waPhone}?text=${encodeURIComponent(waMsg)}`;
+
+  // Optional WhatsApp Button binding
+  const optionalWaBtn = document.getElementById('modalOptionalWaBtn');
+  if (optionalWaBtn) optionalWaBtn.href = waUrl;
 
   btn.innerHTML = origHtml;
   btn.disabled = false;
 
+  // Show Success Modal
   const successEl = document.getElementById('successMsg');
   if (successEl) {
-    successEl.innerHTML =
-      'Thank you <strong>' + (name || 'Guest') + '</strong>! Your booking for <strong>' + selectedProp.name + '</strong> (' + nights + ' night' + (nights > 1 ? 's' : '') + ') is confirmed with Booking ID <span style="display:inline-block; background:#e0f2fe; color:#0369a1; padding:2px 8px; border-radius:6px; font-weight:700;">' + bookingId + '</span>.';
+    successEl.innerHTML = `
+      Thank you <strong>${name}</strong>! Your reservation request for <strong>${selectedProp.name}</strong> (${nights} night${nights > 1 ? 's' : ''}) has been registered.<br><br>
+      <div style="background:#fef3c7; border:1px solid #fde68a; border-radius:8px; padding:10px 14px; font-weight:700; color:#92400e; display:inline-block; margin-bottom:12px;">
+        Booking Reference ID: ${bookingId}
+      </div><br>
+      <div style="font-size:13.5px; color:#059669; font-weight:600;">
+        Status: 🟡 Awaiting Host Approval & Allotment &middot; Founders Mr. Firoz Khan and Mr. Shahanshah will confirm your dates shortly on +91 ${phone91.slice(-10)}.
+      </div>
+    `;
   }
 
-  // Set direct WhatsApp links with booking context
-  const waShahanshah = document.getElementById('modalWaShahanshah');
-  if (waShahanshah) {
-    waShahanshah.href = 'https://wa.me/919450055554?text=' + encodeURIComponent('Namaste Shahanshah ji, I have booked ' + selectedProp.name + ' (Booking ID: ' + bookingId + ').');
-  }
-  const waFiroz = document.getElementById('modalWaFiroz');
-  if (waFiroz) {
-    waFiroz.href = 'https://wa.me/918299600709?text=' + encodeURIComponent('Namaste Firoz ji, I have booked ' + selectedProp.name + ' (Booking ID: ' + bookingId + ').');
-  }
-  const waPraveen = document.getElementById('modalWaPraveen');
-  if (waPraveen) {
-    waPraveen.href = 'https://wa.me/919194109911?text=' + encodeURIComponent('Namaste Praveen ji, I have booked ' + selectedProp.name + ' (Booking ID: ' + bookingId + ').');
-  }
-
-  document.getElementById('successModal').style.display = 'flex';
+  const modal = document.getElementById('successModal');
+  if (modal) modal.style.display = 'flex';
 }
 
-// ── MOBILE FLOATING BOOKING DOCK HELPERS (INTERACTIVE UI SKILL) ──
-function syncDockInfo() {
-  const dockProp = document.getElementById('dockPropName');
-  const dockPrice = document.getElementById('dockPropPrice');
-  if (!dockProp || !dockPrice) return;
-
-  if (selectedProp) {
-    dockProp.textContent = selectedProp.name;
-    const ci = document.getElementById('checkIn').value;
-    const co = document.getElementById('checkOut').value;
-    if (ci && co) {
-      const sumTotalEl = document.getElementById('sumTotal');
-      if (sumTotalEl && sumTotalEl.textContent && sumTotalEl.textContent !== '₹—') {
-        dockPrice.textContent = sumTotalEl.textContent + ' Total';
-        return;
-      }
-    }
-    dockPrice.textContent = '₹' + selectedProp.price.toLocaleString('en-IN') + '/night';
+// ─── SHARE & SAVE ───
+function shareProperty() {
+  if (navigator.share) {
+    navigator.share({
+      title: `${selectedProp.name} | The Unique Haven Homes`,
+      text: `Check out ${selectedProp.name} in Lucknow directly on The Unique Haven Homes. Save 15% vs Airbnb!`,
+      url: window.location.href
+    }).catch(() => {});
   } else {
-    dockProp.textContent = 'Select a stay';
-    dockPrice.textContent = 'Best Rate Direct';
+    navigator.clipboard.writeText(window.location.href).then(() => {
+      alert('📋 Property link copied to clipboard!');
+    });
   }
 }
 
-function onDockBookClick() {
-  const sel = document.getElementById('propSelect');
-  const ci = document.getElementById('checkIn');
-  const co = document.getElementById('checkOut');
-  const name = document.getElementById('guestName');
-  const phone = document.getElementById('guestPhone');
-
-  if (!sel || !sel.value) {
-    sel.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    sel.focus();
-    return;
+function toggleSaveProperty(btn) {
+  if (!btn) return;
+  const svg = btn.querySelector('svg');
+  if (!svg) return;
+  if (svg.getAttribute('fill') === 'currentColor') {
+    svg.setAttribute('fill', 'none');
+    svg.style.color = '';
+  } else {
+    svg.setAttribute('fill', 'currentColor');
+    svg.style.color = '#FF385C';
   }
-  if (!ci || !ci.value) {
-    ci.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    ci.focus();
-    return;
-  }
-  if (!co || !co.value) {
-    co.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    co.focus();
-    return;
-  }
-  if (!name || !name.value.trim()) {
-    name.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    name.focus();
-    return;
-  }
-  if (!phone || !phone.value.trim()) {
-    phone.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    phone.focus();
-    return;
-  }
-  submitBookingRequest();
 }
 
-// Boot
-init();
-syncDockInfo();
+function scrollToReserveWidget() {
+  const widget = document.querySelector('.airbnb-reserve-widget');
+  if (widget) {
+    widget.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+}
 
+// Initialize on DOM Ready
+document.addEventListener('DOMContentLoaded', init);
+if (document.readyState === 'complete' || document.readyState === 'interactive') {
+  init();
+}

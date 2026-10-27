@@ -1,18 +1,466 @@
-<!-- FULLSCREEN CATEGORIZED PHOTO GALLERY MODAL -->
-<div id="luxe-gallery-modal" class="luxe-gallery-modal" role="dialog" aria-modal="true">
-  <div class="luxe-modal-top">
-    <div id="luxe-modal-tabs" class="luxe-modal-tabs">
-      <button type="button" class="luxe-modal-tab active">All Photos</button>
-    </div>
-    <div class="luxe-modal-actions">
-      <span id="luxe-modal-counter" class="luxe-modal-counter">Photo 1 of 5</span>
-      <button type="button" class="luxe-modal-close" onclick="window.luxeEngine && window.luxeEngine.closeGallery()" aria-label="Close Gallery">✕</button>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Starlight Blue PentHouse | Luxury PentHouse in Vikalp Khand, Gomti Nagar | The Unique Haven Homes</title>
+<meta name="description" content="Book Starlight Blue PentHouse - Luxury PentHouse in Vikalp Khand, Gomti Nagar, Lucknow. Fully furnished, 100% AC, high-speed WiFi, dedicated parking, 24/7 caretaker. Book direct and save 15%."/>
+<meta name="keywords" content="starlight blue penthouse lucknow, homestay vikalp khand, gomti nagar, unique haven homes, luxury homestay lucknow, top stay lucknow, best hotel lucknow"/>
+<link rel="canonical" href="https://uniquehavenhomesstay.com/starlight-blue-penthouse.html"/>
+<meta name="geo.region" content="IN-UP"/>
+<meta name="geo.placename" content="Lucknow"/>
+<meta name="geo.position" content="26.8747;81.0102"/>
+<meta name="ICBM" content="26.8747, 81.0102"/>
+
+<!-- Open Graph / Facebook / WhatsApp Preview with Image -->
+<meta property="og:type" content="hotel"/>
+<meta property="og:site_name" content="The Unique Haven Homes"/>
+<meta property="og:title" content="Starlight Blue PentHouse — Luxury Homestay in Vikalp Khand, Gomti Nagar"/>
+<meta property="og:description" content="Stay at Starlight Blue PentHouse. ₹4,199/night (Save 15% vs Airbnb). Fully furnished with 100% AC, WiFi, and 24/7 caretaker."/>
+<meta property="og:image" content="https://uniquehavenhomesstay.com/assets/properties/starlight-blue/cover.jpg"/>
+<meta property="og:image:secure_url" content="https://uniquehavenhomesstay.com/assets/properties/starlight-blue/cover.jpg"/>
+<meta property="og:image:type" content="image/jpeg"/>
+<meta property="og:image:width" content="1200"/>
+<meta property="og:image:height" content="630"/>
+<meta property="og:image:alt" content="Starlight Blue PentHouse - Luxury Homestay Lucknow"/>
+<meta property="og:url" content="https://uniquehavenhomesstay.com/starlight-blue-penthouse.html"/>
+
+<!-- Twitter Card with Large Image Preview -->
+<meta name="twitter:card" content="summary_large_image"/>
+<meta name="twitter:title" content="Starlight Blue PentHouse | Luxury Homestay Lucknow"/>
+<meta name="twitter:description" content="Book Starlight Blue PentHouse direct & save 15%. Fully furnished luxury stay in Vikalp Khand, Gomti Nagar."/>
+<meta name="twitter:image" content="https://uniquehavenhomesstay.com/assets/properties/starlight-blue/cover.jpg"/>
+
+<link href="assets/logo.png" rel="icon" type="image/png"/>
+<link href="website.css" rel="stylesheet"/>
+<link href="css/property-luxe.css?v=212" rel="stylesheet"/>
+
+<!-- Google Search & Travel Rich Result JSON-LD Schema -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "LodgingBusiness",
+  "@id": "https://uniquehavenhomesstay.com/starlight-blue-penthouse.html#lodging",
+  "name": "Starlight Blue PentHouse",
+  "alternateName": "Starlight Blue PentHouse - The Unique Haven Homes",
+  "description": "Luxury Luxury PentHouse in Vikalp Khand, Gomti Nagar, Lucknow. Fully furnished with air-conditioned bedrooms, fast WiFi, modular kitchen, free parking, and 24/7 caretaker.",
+  "url": "https://uniquehavenhomesstay.com/starlight-blue-penthouse.html",
+  "image": [
+    "https://a0.muscache.com/im/pictures/hosting/Hosting-1718385679817913835/original/36832290-6cd4-411c-9dc4-3a226c4996aa.jpeg?im_w=1200",
+    "https://a0.muscache.com/im/pictures/hosting/Hosting-1718385679817913835/original/36832290-6cd4-411c-9dc4-3a226c4996aa.jpeg?im_w=1200",
+    "https://a0.muscache.com/im/pictures/hosting/Hosting-1718385679817913835/original/ba78dacc-e830-43e4-814b-9b61f69aa30f.jpeg?im_w=1200",
+    "https://a0.muscache.com/im/pictures/hosting/Hosting-1718385679817913835/original/694c0249-5067-4cf5-9ff7-dbe246ad2f12.jpeg?im_w=1200",
+    "https://a0.muscache.com/im/pictures/hosting/Hosting-1718385679817913835/original/888d32c6-8519-4f7a-a11d-bb591d8432c9.jpeg?im_w=1200"
+  ],
+  "telephone": "+91-9450055554",
+  "priceRange": "₹4199 - ₹4999",
+  "currenciesAccepted": "INR",
+  "paymentAccepted": "Cash, UPI, Credit Card, Bank Transfer",
+  "checkinTime": "14:00",
+  "checkoutTime": "11:00",
+  "address": {
+    "@type": "PostalAddress",
+    "streetAddress": "Penthouse 501, 5th Floor, Vikalp Khand, Gomti Nagar, Lucknow",
+    "addressLocality": "Lucknow",
+    "addressRegion": "Uttar Pradesh",
+    "postalCode": "226010",
+    "addressCountry": "IN"
+  },
+  "geo": {
+    "@type": "GeoCoordinates",
+    "latitude": 26.8747,
+    "longitude": 81.0102
+  },
+  "hasMap": "https://maps.google.com/?q=Vikalp+Khand+Gomti+Nagar+Lucknow",
+  "brand": {
+    "@type": "Brand",
+    "name": "THE UNIQUE HAVEN HOMES PRIVATE LIMITED",
+    "url": "https://uniquehavenhomesstay.com"
+  },
+  "offers": {
+    "@type": "AggregateOffer",
+    "lowPrice": 4199,
+    "highPrice": 4999,
+    "priceCurrency": "INR",
+    "availability": "https://schema.org/InStock",
+    "url": "https://uniquehavenhomesstay.com/starlight-blue-penthouse.html"
+  },
+  "amenityFeature": [
+    { "@type": "LocationFeatureSpecification", "name": "Air Conditioning", "value": true },
+    { "@type": "LocationFeatureSpecification", "name": "High Speed Wi-Fi", "value": true },
+    { "@type": "LocationFeatureSpecification", "name": "Dedicated Free Parking", "value": true },
+    { "@type": "LocationFeatureSpecification", "name": "Modular Kitchen", "value": true },
+    { "@type": "LocationFeatureSpecification", "name": "24/7 Caretaker", "value": true },
+    { "@type": "LocationFeatureSpecification", "name": "100% Power Backup", "value": true }
+  ],
+  "maximumAttendeeCapacity": 12,
+  "aggregateRating": {
+    "@type": "AggregateRating",
+    "ratingValue": "4.91",
+    "reviewCount": "29",
+    "bestRating": "5",
+    "worstRating": "1"
+  }
+}
+</script>
+</head>
+<body class="luxe-property-page" data-property-slug="starlight-blue-penthouse">
+
+<script>
+  window.CURRENT_PROPERTY_SLUG = 'starlight-blue-penthouse';
+  window.CURRENT_PROPERTY_ID = 'GOM-501';
+</script>
+
+<!-- LUXE TOP NAVIGATION -->
+<header class="luxe-nav">
+  <div class="luxe-nav-container">
+            <a class="luxe-nav-brand" href="properties.html" title="THE UNIQUE HAVEN HOMES PRIVATE LIMITED">
+      <div class="brand-logo-wrap">
+        <img alt="THE UNIQUE HAVEN HOMES" class="brand-logo" src="assets/logo-emblem.png"/>
+      </div>
+      <div class="luxe-brand-text">
+        <span class="luxe-brand-title">THE UNIQUE HAVEN HOMES</span>
+        <span class="luxe-brand-sub">PVT. LTD. &middot; LUXURY STAYS</span>
+      </div>
+    </a>
+    <div class="luxe-nav-links" style="display:flex; align-items:center; gap:8px;">
+      <a class="luxe-nav-link" href="properties.html" style="color:#222; text-decoration:none; font-weight:600; font-size:14px; padding:8px 14px; border-radius:8px; margin-right:4px;">All Stays</a>
+      <a class="luxe-nav-book" href="book.html?property=starlight-blue-penthouse" style="background:#ff385c; color:#fff; padding:9px 20px; border-radius:999px; font-weight:700; text-decoration:none; display:inline-flex; align-items:center; font-size:13.5px; box-shadow:0 2px 8px rgba(255,56,92,0.28);">Book Now</a>
     </div>
   </div>
+</header>
+
+
+
+<main class="luxe-page-wrap" id="overview">
+  
+
+  <!-- BREADCRUMB -->
+  <nav class="luxe-breadcrumb" aria-label="Breadcrumb">
+    <a href="index.html">Home</a> <span>/</span>
+    <a href="properties.html">Lucknow Homestays</a> <span>/</span>
+    <a href="properties.html#properties">Vikalp Khand</a> <span>/</span>
+    <span id="luxe-crumb-name" style="color:var(--luxe-ink); font-weight:700;">Starlight Blue PentHouse</span>
+  </nav>
+
+  <!-- PROPERTY TITLE & STATS HEADER -->
+  <header class="luxe-header">
+    <div class="luxe-header-left">
+      <h1 id="luxe-title" class="luxe-title">Starlight Blue PentHouse</h1>
+      <div class="luxe-meta-bar">
+        <span class="luxe-badge-rating">★ <span id="luxe-rating-num">4.91</span></span>
+        <span style="color:var(--luxe-border);">|</span>
+        <span id="luxe-reviews-count">29 verified reviews</span>
+        <span style="color:var(--luxe-border);">|</span>
+        <span class="luxe-badge-superhost">🏆 Superhost Managed</span>
+        <span style="color:var(--luxe-border);">|</span>
+        <span class="luxe-location-tag">📍 <span id="luxe-area-badge">Vikalp Khand, Gomti Nagar</span></span>
+      </div>
+    </div>
+    <div class="luxe-header-actions">
+      <button type="button" class="luxe-action-btn" onclick="window.luxeEngine ? window.luxeEngine.openShareModal('photos') : (navigator.clipboard.writeText(window.location.href + '?gallery=open'), alert('📸 Photo Album link copied! Send it on WhatsApp.'))" style="background:#25d366; color:#fff; border-color:#25d366; font-weight:700;">
+        📸 Share Photos
+      </button>
+      <button type="button" class="luxe-action-btn" onclick="window.luxeEngine ? window.luxeEngine.openShareModal('stay') : (navigator.clipboard.writeText(window.location.href), alert('Property link copied!'))">
+        🔗 Share Stay
+      </button>
+      <a class="luxe-action-btn" href="https://maps.google.com/?q=Vikalp+Khand+Gomti+Nagar+Lucknow" target="_blank">
+        🗺️ View on Map
+      </a>
+    </div>
+  </header>
+
+  <!-- 5-PHOTO LUXURY MOSAIC GRID -->
+  <section id="luxe-photo-mosaic" class="luxe-photo-mosaic" aria-label="Property Gallery">
+    <div class="luxe-photo-item luxe-photo-main" onclick="window.luxeEngine && window.luxeEngine.openGallery(0, 'all')" title="View All Photos">
+      <img alt="Starlight Blue PentHouse Lead Photo" src="https://a0.muscache.com/im/pictures/hosting/Hosting-1718385679817913835/original/36832290-6cd4-411c-9dc4-3a226c4996aa.jpeg?im_w=1200" loading="eager"/>
+    </div>
+    <div class="luxe-photo-item" onclick="window.luxeEngine && window.luxeEngine.openGallery(0, 'Living & Dining')" title="View Living & Dining">
+      <img alt="Starlight Blue PentHouse Living Area" src="https://a0.muscache.com/im/pictures/hosting/Hosting-1718385679817913835/original/36832290-6cd4-411c-9dc4-3a226c4996aa.jpeg?im_w=1200" loading="lazy"/>
+    </div>
+    <div class="luxe-photo-item" onclick="window.luxeEngine && window.luxeEngine.openGallery(0, 'Bedrooms')" title="View Bedrooms">
+      <img alt="Starlight Blue PentHouse Bedroom" src="https://a0.muscache.com/im/pictures/hosting/Hosting-1718385679817913835/original/ba78dacc-e830-43e4-814b-9b61f69aa30f.jpeg?im_w=1200" loading="lazy"/>
+    </div>
+    <div class="luxe-photo-item" onclick="window.luxeEngine && window.luxeEngine.openGallery(0, 'Bathrooms')" title="View Bathrooms">
+      <img alt="Starlight Blue PentHouse Bathroom" src="https://a0.muscache.com/im/pictures/hosting/Hosting-1718385679817913835/original/694c0249-5067-4cf5-9ff7-dbe246ad2f12.jpeg?im_w=1200" loading="lazy"/>
+    </div>
+    <div class="luxe-photo-item" onclick="window.luxeEngine && window.luxeEngine.openGallery(0, 'Balcony & Views')" title="View Balcony & Views">
+      <img alt="Starlight Blue PentHouse Balcony View" src="https://a0.muscache.com/im/pictures/hosting/Hosting-1718385679817913835/original/888d32c6-8519-4f7a-a11d-bb591d8432c9.jpeg?im_w=1200" loading="lazy"/>
+    </div>
+    <button type="button" class="luxe-btn-show-all" onclick="window.luxeEngine && window.luxeEngine.openGallery(0, 'all')">
+      &#128247; Show all 54 photos
+    </button>
+  </section>
+
+      <div id="luxe-category-strip" class="luxe-category-strip">
+    <button type="button" class="luxe-category-chip active" onclick="window.luxeEngine && window.luxeEngine.openGallery(0, 'all')">
+      <span>&#128247;</span> <span>All Photos</span> <span class="chip-count">(54)</span>
+    </button>
+    <button type="button" class="luxe-category-chip" onclick="window.luxeEngine && window.luxeEngine.openGallery(0, 'Bedrooms')">
+      <span>&#128716;</span> <span>Bedrooms</span> <span class="chip-count">(25)</span>
+    </button>
+    <button type="button" class="luxe-category-chip" onclick="window.luxeEngine && window.luxeEngine.openGallery(0, 'Bathrooms')">
+      <span>&#128703;</span> <span>Bathrooms</span> <span class="chip-count">(11)</span>
+    </button>
+    <button type="button" class="luxe-category-chip" onclick="window.luxeEngine && window.luxeEngine.openGallery(0, 'Kitchen')">
+      <span>&#127859;</span> <span>Kitchen</span> <span class="chip-count">(7)</span>
+    </button>
+    <button type="button" class="luxe-category-chip" onclick="window.luxeEngine && window.luxeEngine.openGallery(0, 'Living & Dining')">
+      <span>&#128715;</span> <span>Living & Dining</span> <span class="chip-count">(6)</span>
+    </button>
+    <button type="button" class="luxe-category-chip" onclick="window.luxeEngine && window.luxeEngine.openGallery(0, 'Balcony & Views')">
+      <span>&#127807;</span> <span>Balcony & Views</span> <span class="chip-count">(5)</span>
+    </button>
+  </div>
+
+  <!-- TWO-COLUMN CONTENT & BOOKING SECTION -->
+  <div class="luxe-body-grid">
+    <!-- LEFT MAIN CONTENT -->
+    <div class="luxe-main-content">
+      <!-- AGODA-STYLE RATING & SCORE CARD -->
+      <div id="agoda-score-card"></div>
+
+      <!-- SPEC & HOST BAR -->
+      <section class="luxe-spec-bar">
+        <h2 id="luxe-spec-title" class="luxe-spec-subtitle">Luxury PentHouse · Superhosts &amp; Owners: Firoz &amp; Shahanshah · Manager: Praveen Singh</h2>
+        <div id="luxe-spec-pills" class="luxe-spec-pills">
+          <span>👥 Up to 12 guests</span> &nbsp;·&nbsp;
+          <span>🛏️ 3 Bedrooms</span> &nbsp;·&nbsp;
+          <span>🛋️ 3 King Beds + Terrace Lounge</span> &nbsp;·&nbsp;
+          <span>🚿 3 Bathrooms</span>
+        </div>
+      </section>
+
+      
+      <!-- ON-SITE CARETAKER & HOST CONTACT CARD (QUICK ASSISTANCE) -->
+      <section class="luxe-section" style="background: linear-gradient(135deg, rgba(16, 185, 129, 0.08), rgba(245, 158, 11, 0.08)); border: 1.5px solid rgba(16, 185, 129, 0.28); border-radius: 16px; padding: 20px; margin-bottom: 28px;">
+        <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px;">
+          <div>
+            <div style="font-size:12px; font-weight:800; color:#10b981; letter-spacing:0.5px; text-transform:uppercase;">⚡ 24/7 Dedicated Caretaker &amp; Host on Site</div>
+            <h3 style="margin:4px 0 2px; font-size:18px; color:#fff; font-weight:700;">Caretaker Arman Commandar &amp; Host Team</h3>
+            <p style="margin:0; font-size:13px; color:var(--luxe-muted);">Available 24/7 for check-in support, luggage assistance, directions &amp; room services.</p>
+          </div>
+          <div style="display:flex; gap:10px; flex-wrap:wrap;">
+            <a href="tel:+918467080284" style="background:#0f172a; border:1px solid rgba(255,255,255,0.15); color:#fff; text-decoration:none; padding:10px 16px; border-radius:999px; font-weight:700; font-size:13px; display:inline-flex; align-items:center; gap:6px;">
+              📞 Call: 8467080284
+            </a>
+            <a href="https://wa.me/918467080284?text=Hello%20Arman%20Commandar,%20I%20am%20at/reaching%20Starlight%20Blue%20PentHouse." target="_blank" style="background:#25d366; color:#fff; text-decoration:none; padding:10px 18px; border-radius:999px; font-weight:700; font-size:13px; display:inline-flex; align-items:center; gap:6px;">
+              💬 WhatsApp Caretaker
+            </a>
+          </div>
+        </div>
+      </section>
+
+      <!-- KEY HIGHLIGHTS -->
+      <section class="luxe-highlights-list" id="luxe-highlights-container">
+        <div class="luxe-highlight-row">
+          <div class="luxe-highlight-icon">⚡</div>
+          <div class="luxe-highlight-text">
+            <h4>24/7 On-Site Caretaker &amp; Express Check-in</h4>
+            <p>Dedicated caretaker Arman Commandar (+91 8467080284) is on-site to assist with luggage, check-in, and guest needs anytime.</p>
+          </div>
+        </div>
+        <div class="luxe-highlight-row">
+          <div class="luxe-highlight-icon">❄️</div>
+          <div class="luxe-highlight-text">
+            <h4>100% Air Conditioning &amp; Power Backup</h4>
+            <p>Every bedroom and living space features high-capacity split air conditioning with seamless inverter backup.</p>
+          </div>
+        </div>
+        <div class="luxe-highlight-row">
+          <div class="luxe-highlight-icon">📶</div>
+          <div class="luxe-highlight-text">
+            <h4>150+ Mbps High-Speed Fiber Wi-Fi</h4>
+            <p>Ultra-fast fiber optic Wi-Fi across all rooms. Seamless for remote work, Netflix 4K streaming, and zoom calls.</p>
+          </div>
+        </div>
+        <div class="luxe-highlight-row">
+          <div class="luxe-highlight-icon">🚗</div>
+          <div class="luxe-highlight-text">
+            <h4>Free Secure Dedicated Parking</h4>
+            <p>Safe on-premises parking spots reserved exclusively for your vehicles with caretaker coordination.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ABOUT THE STAY -->
+      <section class="luxe-section">
+        <h2 class="luxe-section-title">About this luxury stay</h2>
+        <p id="luxe-description-text" class="luxe-description-text">
+          Exclusive top-floor penthouse featuring a private open-air terrace, night skyline views of Lucknow, and lavish lounge furnishings.
+        </p>
+      </section>
+
+      <!-- SLEEPING ARRANGEMENTS -->
+      <section class="luxe-section" id="sleeping">
+        <h2 class="luxe-section-title">Where you will sleep</h2>
+        <div id="luxe-rooms-grid" class="luxe-rooms-grid">
+          <div class="luxe-room-card" onclick="window.luxeEngine && window.luxeEngine.openGallery(0, 'Bedrooms')" style="cursor:pointer;" title="Click to view Bedroom photos">
+            <span class="luxe-room-card-icon">🛏️</span>
+            <div class="luxe-room-card-title">Bedroom 1 (Master)</div>
+            <div class="luxe-room-card-sub">1 King Bed · AC · Attached Bath</div>
+            <div style="font-size:11.5px;color:var(--luxe-gold-dark);font-weight:700;margin-top:6px;">📷 View Bedroom Photos →</div>
+          </div>
+          <div class="luxe-room-card" onclick="window.luxeEngine && window.luxeEngine.openGallery(0, 'Bedrooms')" style="cursor:pointer;" title="Click to view Bedroom photos">
+            <span class="luxe-room-card-icon">🛏️</span>
+            <div class="luxe-room-card-title">Bedroom 2</div>
+            <div class="luxe-room-card-sub">1 King Bed · AC · Attached Bath</div>
+            <div style="font-size:11.5px;color:var(--luxe-gold-dark);font-weight:700;margin-top:6px;">📷 View Bedroom Photos →</div>
+          </div>
+          <div class="luxe-room-card" onclick="window.luxeEngine && window.luxeEngine.openGallery(0, 'Bedrooms')" style="cursor:pointer;" title="Click to view Bedroom photos">
+            <span class="luxe-room-card-icon">🛏️</span>
+            <div class="luxe-room-card-title">Bedroom 3</div>
+            <div class="luxe-room-card-sub">1 King Bed · AC · Attached Bath</div>
+            <div style="font-size:11.5px;color:var(--luxe-gold-dark);font-weight:700;margin-top:6px;">📷 View Bedroom Photos →</div>
+          </div>
+          <div class="luxe-room-card" onclick="window.luxeEngine && window.luxeEngine.openGallery(0, 'Living & Dining')" style="cursor:pointer;" title="Click to view Living Hall photos">
+            <span class="luxe-room-card-icon">🛋️</span>
+            <div class="luxe-room-card-title">Living Hall</div>
+            <div class="luxe-room-card-sub">L-shape Sofa + Extra Bedding</div>
+            <div style="font-size:11.5px;color:var(--luxe-gold-dark);font-weight:700;margin-top:6px;">📷 View Living Photos →</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- AMENITIES -->
+      <section class="luxe-section" id="amenities">
+        <h2 class="luxe-section-title">What this place offers</h2>
+        <div id="luxe-amenities-grid" class="luxe-amenities-grid">
+          <div class="luxe-amenity-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width:20px;height:20px;color:var(--luxe-emerald);flex-shrink:0;"><polyline points="20 6 9 17 4 12"></polyline></svg>
+            <span>Air Conditioning in all bedrooms &amp; living hall</span>
+          </div>
+          <div class="luxe-amenity-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width:20px;height:20px;color:var(--luxe-emerald);flex-shrink:0;"><polyline points="20 6 9 17 4 12"></polyline></svg>
+            <span>High-Speed 150 Mbps Fiber Wi-Fi</span>
+          </div>
+          <div class="luxe-amenity-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width:20px;height:20px;color:var(--luxe-emerald);flex-shrink:0;"><polyline points="20 6 9 17 4 12"></polyline></svg>
+            <span>Fully Equipped Modular Kitchen <span style="font-size:11.5px;color:var(--luxe-gold-dark);font-weight:700;margin-left:6px;cursor:pointer;" onclick="window.luxeEngine && window.luxeEngine.openGallery(0, 'Kitchen')">(View Photos ↗)</span></span>
+          </div>
+          <div class="luxe-amenity-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width:20px;height:20px;color:var(--luxe-emerald);flex-shrink:0;"><polyline points="20 6 9 17 4 12"></polyline></svg>
+            <span>Hot Water Geysers in all bathrooms <span style="font-size:11.5px;color:var(--luxe-gold-dark);font-weight:700;margin-left:6px;cursor:pointer;" onclick="window.luxeEngine && window.luxeEngine.openGallery(0, 'Bathrooms')">(View Photos ↗)</span></span>
+          </div>
+          <div class="luxe-amenity-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width:20px;height:20px;color:var(--luxe-emerald);flex-shrink:0;"><polyline points="20 6 9 17 4 12"></polyline></svg>
+            <span>Free Dedicated Vehicle Parking on site</span>
+          </div>
+          <div class="luxe-amenity-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width:20px;height:20px;color:var(--luxe-emerald);flex-shrink:0;"><polyline points="20 6 9 17 4 12"></polyline></svg>
+            <span>24/7 On-Site Caretaker Assistance (Arman Commandar: 8467080284)</span>
+          </div>
+          <div class="luxe-amenity-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width:20px;height:20px;color:var(--luxe-emerald);flex-shrink:0;"><polyline points="20 6 9 17 4 12"></polyline></svg>
+            <span>100% Inverter &amp; Generator Power Backup</span>
+          </div>
+          <div class="luxe-amenity-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width:20px;height:20px;color:var(--luxe-emerald);flex-shrink:0;"><polyline points="20 6 9 17 4 12"></polyline></svg>
+            <span>Smart LED TV with OTT apps &amp; Streaming</span>
+          </div>
+          <div class="luxe-amenity-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width:20px;height:20px;color:var(--luxe-emerald);flex-shrink:0;"><polyline points="20 6 9 17 4 12"></polyline></svg>
+            <span>Fresh Luxury Linens, Pillows &amp; Sanitized Towels</span>
+          </div>
+          <div class="luxe-amenity-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width:20px;height:20px;color:var(--luxe-emerald);flex-shrink:0;"><polyline points="20 6 9 17 4 12"></polyline></svg>
+            <span>Washing Machine, Refrigerator &amp; Microwave</span>
+          </div>
+          <div class="luxe-amenity-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width:20px;height:20px;color:var(--luxe-emerald);flex-shrink:0;"><polyline points="20 6 9 17 4 12"></polyline></svg>
+            <span>Couple &amp; Family Friendly with Full Privacy</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- VIRTUAL 4K VIDEO TOUR -->
+      <section class="luxe-section" id="video-tour">
+        <h2 class="luxe-section-title">Virtual 4K Walkthrough Video</h2>
+        <div id="luxe-video-container">
+          <!-- Rendered dynamically -->
+        </div>
+      </section>
+
+      <!-- LOCATION & LANDMARKS -->
+      <section class="luxe-section" id="location">
+        <h2 class="luxe-section-title">Prime Lucknow Location &amp; Distances</h2>
+        <p style="margin:0 0 14px; font-size:14.5px; color:var(--luxe-muted);">
+          Centrally situated in Vikalp Khand, Gomti Nagar — offering rapid transit to Lulu Mall, Ekana Stadium, Medanta Hospital, and Lucknow Airport.
+        </p>
+        <div id="luxe-landmarks-list" class="luxe-landmarks-list">
+          <!-- Rendered dynamically -->
+        </div>
+      </section>
+
+      <!-- HOUSE RULES -->
+      <section class="luxe-section" id="house-rules" style="border-bottom:none; margin-bottom:0; padding-bottom:0;">
+        <h2 class="luxe-section-title">House Rules &amp; Stay Policies</h2>
+        <div class="luxe-rules-grid">
+          <div class="luxe-rule-pill">🕒 Check-in: 2:00 PM · Check-out: 11:00 AM</div>
+          <div class="luxe-rule-pill">🔇 Quiet hours after 11:00 PM</div>
+          <div class="luxe-rule-pill">🚫 No loud parties or disruptive events</div>
+          <div class="luxe-rule-pill">🪪 Valid Govt ID required at check-in</div>
+          <div class="luxe-rule-pill">🚭 Non-smoking inside bedrooms</div>
+          <div class="luxe-rule-pill">🚗 Free caretaker-assisted parking</div>
+        </div>
+      </section>
+    </div>
+
+    <!-- RIGHT STICKY BOOKING CARD (PRE-RENDERED FALLBACK) -->
+    <aside class="luxe-sidebar-wrap" id="luxe-booking-card-container">
+      <div class="luxe-booking-card">
+        <div class="luxe-card-top-tag">⚡ Direct Booking · Save 15% vs Airbnb</div>
+        <div class="luxe-price-header">
+          <div>
+            <span id="luxe-price-amount" class="luxe-price-amount">₹6,000</span>
+            <span id="luxe-nights-label" class="luxe-price-unit"> / night (incl. 12% GST)</span>
+          </div>
+          <div style="font-size:13px; font-weight:700; color:#b58d3d;">★ 4.91 (29 reviews)</div>
+        </div>
+        <div class="luxe-airbnb-comparison">
+          <span id="luxe-airbnb-strike" class="luxe-airbnb-strike">₹7,299 on Airbnb</span>
+          <span id="luxe-save-tag" class="luxe-save-tag">Direct Host Price</span>
+        </div>
+        <div style="margin:16px 0; display:flex; flex-direction:column; gap:10px;">
+          <a href="book.html?property=starlight-blue-penthouse" style="background:linear-gradient(135deg,#059669,#10b981); color:#fff; text-decoration:none; padding:14px; border-radius:12px; font-weight:800; font-size:15px; text-align:center; box-shadow:0 6px 20px rgba(16,185,129,0.35);">
+            📋 Book Direct &amp; Save
+          </a>
+          <a href="https://wa.me/918467080284?text=Hello%20Caretaker%20Arman%20Commandar,%20I%20am%20inquiring%20about%20booking%20Starlight%20Blue%20PentHouse." target="_blank" style="background:#25d366; color:#fff; text-decoration:none; padding:12px; border-radius:12px; font-weight:700; font-size:14px; text-align:center; display:flex; align-items:center; justify-content:center; gap:8px;">
+            💬 WhatsApp Caretaker
+          </a>
+        </div>
+        <div style="font-size:11.5px; color:#94a3b8; text-align:center;">
+          🔒 Instant confirmation · No hidden convenience fee
+        </div>
+      </div>
+    </aside>
+  </div>
+</main>
+
+<!-- MOBILE STICKY BOTTOM BAR (DUAL ACTION) -->
+<div class="luxe-mobile-bar" style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
+  <div class="luxe-mobile-price" style="flex:1; min-width:0;">
+    <div style="display:flex; align-items:baseline; gap:4px;">
+      <span id="luxe-mobile-price-val" class="luxe-mobile-price-val" style="font-size:18px; font-weight:800; color:#fff;">₹6,000</span>
+      <span style="font-size:11px; color:#94a3b8;">/night</span>
+    </div>
+    <span class="luxe-mobile-price-sub" style="font-size:10.5px; color:#10b981; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; display:block;">
+      Save 15% Direct
+    </span>
+  </div>
+  <div style="display:flex; align-items:center; gap:8px; flex-shrink:0;">
+    <a href="https://wa.me/918467080284?text=Hello%20Arman%20Commandar,%20I%20am%20inquiring%20about%20Starlight%20Blue%20PentHouse." target="_blank" style="background:#25d366; color:#fff; padding:9px 12px; border-radius:999px; font-weight:700; font-size:12.5px; text-decoration:none; display:inline-flex; align-items:center; gap:5px; box-shadow:0 4px 12px rgba(37,211,102,0.3);">
+      💬 WhatsApp
+    </a>
+    <a id="luxe-mobile-btn-wa" class="luxe-mobile-btn-wa" href="book.html?property=starlight-blue-penthouse" style="background:linear-gradient(135deg,#059669,#10b981); color:#fff; padding:9px 16px; border-radius:999px; font-weight:700; font-size:12.5px; text-decoration:none; display:inline-flex; align-items:center; gap:5px; box-shadow:0 4px 14px rgba(16,185,129,0.35);">
+      📋 Book Now
+    </a>
+  </div>
+</div>
 
   <div class="luxe-modal-body">
     <button type="button" class="luxe-modal-nav-btn prev" onclick="window.luxeEngine && window.luxeEngine.prevPhoto()" aria-label="Previous Photo">‹</button>
-    <img id="luxe-modal-img" class="luxe-modal-view-img" src="" alt="Gallery View"/>
+    <img id="luxe-modal-img" class="luxe-modal-view-img" src="assets/properties/starlight-blue/cover.jpg" alt="Gallery View"/>
     <button type="button" class="luxe-modal-nav-btn next" onclick="window.luxeEngine && window.luxeEngine.nextPhoto()" aria-label="Next Photo">›</button>
   </div>
 

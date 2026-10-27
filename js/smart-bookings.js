@@ -1378,6 +1378,28 @@ window.openBookingDrawer = async function(bookingId) {
 
         <div class="sbk-drawer-body">
 
+          <!-- Direct Website Pending Approval Banner -->
+          ${b.verification_status === 'pending' ? `
+            <div style="background:linear-gradient(135deg, #FFFBEB 0%, #FEF3C7 100%);border:2px solid #F59E0B;border-radius:12px;padding:14px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;box-shadow:0 4px 12px rgba(245,158,11,0.15);">
+              <div>
+                <div style="font-size:13.5px;font-weight:800;color:#92400E;display:flex;align-items:center;gap:6px;">
+                  <span>🟡</span> Direct Website Booking &mdash; Pending Approval
+                </div>
+                <div style="font-size:12px;color:#B45309;margin-top:2px;">
+                  Review availability &amp; tariff. Click approve to confirm this booking into the active register.
+                </div>
+              </div>
+              <div style="display:flex;gap:8px;">
+                <button type="button" class="btn-sm" onclick="window.approveBooking('${b.booking_id}')" style="background:#059669;color:#fff;border:none;padding:8px 16px;font-size:12.5px;font-weight:800;border-radius:8px;cursor:pointer;box-shadow:0 2px 6px rgba(5,150,105,0.3);">
+                  ✅ Approve Booking
+                </button>
+                <button type="button" class="btn-sm" onclick="window.rejectBooking('${b.booking_id}')" style="background:#DC2626;color:#fff;border:none;padding:8px 14px;font-size:12.5px;font-weight:700;border-radius:8px;cursor:pointer;">
+                  ❌ Reject
+                </button>
+              </div>
+            </div>
+          ` : ''}
+
           <!-- Top Contact & Communication Card -->
           <div style="background:#F8FAFC;border:1px solid var(--border);border-radius:12px;padding:14px;display:flex;justify-content:space-between;align-items:center;">
             <div>

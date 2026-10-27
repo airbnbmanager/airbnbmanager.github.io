@@ -229,6 +229,59 @@
     } catch(e) { console.warn('Notif DB fetch failed:', e); }
   }
 
+  // ─── Proactive Check for Pending Website Bookings ───
+  async function checkPendingWebsiteBookings() {
+    if (!window.sb || !window.SESSION?.role) return;
+    if (window.SESSION.investorId) return;
+    try {
+      const { data: pendings, error } = await sb.from('guest_register')
+        .select('booking_id, guest_name, phone, room_id, total_amount, check_in, check_out, notes')
+        .eq('verification_status', 'pending')
+        .neq('is_cancelled', true);
+
+      const pwaBadge = document.getElementById('pwa-approvals-badge');
+      if (pwaBadge) {
+        if (pendings && pendings.length > 0) {
+          pwaBadge.textContent = pendings.length;
+          pwaBadge.style.display = 'inline-block';
+        } else {
+          pwaBadge.style.display = 'none';
+        }
+      }
+
+      if (error || !pendings || pendings.length === 0) return;
+
+      let addedAny = false;
+      for (const b of pendings) {
+        const alreadyNotified = NOTIF.history.some(h => (h.entityId === b.booking_id && (h.type === 'pending_approval' || h.type === 'booking')));
+        if (!alreadyNotified) {
+          let roomName = b.room_id;
+          try {
+            const { data: r } = await sb.from('rooms').select('nickname, unit_no').eq('room_id', b.room_id).single();
+            if (r) roomName = (r.nickname || '') + (r.unit_no ? ' (' + r.unit_no + ')' : '');
+          } catch(e) {}
+
+          const totalFormatted = Number(b.total_amount || 0).toLocaleString('en-IN');
+          notify({
+            type: 'pending_approval',
+            icon: '🟡',
+            title: `🌐 Website Booking Awaiting Approval! (₹${totalFormatted})`,
+            message: `${b.guest_name || 'Guest'} — ${roomName}`,
+            sub: `Check-in: ${b.check_in || '-'} • ₹${totalFormatted} • Click to Review & Approve`,
+            page: 'pendingApprovals',
+            sound: 'booking',
+            entityId: b.booking_id,
+            entityType: 'booking'
+          });
+          addedAny = true;
+        }
+      }
+      if (addedAny) {
+        updateBadge();
+      }
+    } catch(e) { console.warn('checkPendingWebsiteBookings failed:', e); }
+  }
+
   // ─── Mark read in DB ───
   async function markReadDB(dbIds) {
     if (!window.sb || !window.SESSION?.userId || !dbIds?.length) return;
@@ -849,6 +902,8 @@
       startAll();
       updateBadge();
       fetchUnreadFromDB(); // ✅ Load persistent notifications on login
+      checkPendingWebsiteBookings(); // ✅ Proactive check for website bookings awaiting approval
+      setInterval(checkPendingWebsiteBookings, 25000); // 🔁 Auto-poll queue every 25s for bulletproof reliability
     }
     if (tries > 120) {
       clearInterval(timer);

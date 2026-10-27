@@ -448,6 +448,12 @@ html, body {
   position: relative;
 }
 
+@media (max-width: 1440px) {
+  .vesper-flight-path {
+    display: none !important;
+  }
+}
+
 @media (max-width: 1200px) {
   .vesper-right {
     flex-direction: column;

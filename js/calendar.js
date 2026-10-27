@@ -926,6 +926,20 @@ window.openBookingDetails = async function(bId) {
         </div>
       ` : ''}
 
+      <!-- DIRECT WEBSITE PENDING APPROVAL BAR -->
+      ${b.verification_status === 'pending' ? `
+        <div style="background:#FFFBEB;border:2px solid #F59E0B;border-radius:10px;padding:12px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;gap:8px;">
+          <div>
+            <div style="font-weight:800;font-size:13px;color:#92400E;">🟡 Pending Host Approval</div>
+            <div style="font-size:11.5px;color:#B45309;">Direct Website Request. Approve to confirm dates into register.</div>
+          </div>
+          <div style="display:flex;gap:6px;">
+            <button onclick="this.closest('.modal-overlay').remove(); window.approveBooking('${b.booking_id}');" style="background:#059669;color:#fff;border:none;padding:6px 14px;font-size:12px;font-weight:700;border-radius:6px;cursor:pointer;">✅ Approve</button>
+            <button onclick="this.closest('.modal-overlay').remove(); window.rejectBooking('${b.booking_id}');" style="background:#DC2626;color:#fff;border:none;padding:6px 12px;font-size:12px;font-weight:700;border-radius:6px;cursor:pointer;">❌ Reject</button>
+          </div>
+        </div>
+      ` : ''}
+
       <!-- FULL ACTION BUTTONS (SAME AS BOOKINGS PAGE) -->
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
         ${isBlocked ? `

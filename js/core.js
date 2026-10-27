@@ -2321,7 +2321,7 @@ window.getBookingSource = function(b) {
   const name = String(b.guest_name || '').toLowerCase();
   const idStr = String(b.booking_id || '');
 
-  // 1. Blocked Slot
+
   if (idStr.startsWith('BLK_') || name.includes('blocked') || mode === 'offline-blocked') {
     return {
       type: 'blocked',

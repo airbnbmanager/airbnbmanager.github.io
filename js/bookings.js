@@ -90,14 +90,25 @@ window.approveBooking = async function(bkId) {
     rejection_reason: null
   }).eq('booking_id', bkId);
   if (error) { fsn.error('Error', error.message); return; }
-  fsn.success('Approved', '✅ Booking verified');
+  fsn.success('Approved', '✅ Booking approved & confirmed in register!');
+  
+  // Update cached state if exists
+  if (window._sbkState && window._sbkState.cachedBookings) {
+    const c = window._sbkState.cachedBookings.find(x => x.booking_id === bkId);
+    if (c) c.verification_status = 'verified';
+  }
   if (window.renderManageBookings) renderManageBookings();
+  if (window.renderSmartManageBookings) renderSmartManageBookings();
   if (window.renderPendingApprovals) renderPendingApprovals();
+  if (window.renderCalendar && document.getElementById('calGrid')) renderCalendar();
+  if (window.openBookingDrawer && document.getElementById('sbkDrawerContainer')) {
+    openBookingDrawer(bkId);
+  }
 };
 
 window.rejectBooking = async function(bkId) {
   if (!isTrustedUser()) { fsn.error('Denied', 'Only owner/developer can reject'); return; }
-  const reason = prompt('Reason for rejection?');
+  const reason = prompt('Reason for rejection? (e.g. Dates already blocked, Pricing mismatch)');
   if (!reason || !reason.trim()) return;
   const { error } = await sb.from('guest_register').update({
     verification_status: 'rejected',
@@ -107,8 +118,16 @@ window.rejectBooking = async function(bkId) {
   }).eq('booking_id', bkId);
   if (error) { fsn.error('Error', error.message); return; }
   fsn.warning('Rejected', 'Booking marked rejected');
+  
+  if (window._sbkState && window._sbkState.cachedBookings) {
+    const c = window._sbkState.cachedBookings.find(x => x.booking_id === bkId);
+    if (c) c.verification_status = 'rejected';
+  }
   if (window.renderManageBookings) renderManageBookings();
+  if (window.renderSmartManageBookings) renderSmartManageBookings();
   if (window.renderPendingApprovals) renderPendingApprovals();
+  if (window.renderCalendar && document.getElementById('calGrid')) renderCalendar();
+  if (window.closeBookingDrawer) closeBookingDrawer();
 };
 
 window.approvePayment = async function(payId) {
