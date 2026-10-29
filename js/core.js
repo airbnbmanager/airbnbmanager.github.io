@@ -5684,7 +5684,7 @@ function renderAppMenu() {
         <div class="homeyhuts-avatar-circle">${initial}</div>
         <div class="homeyhuts-profile-details">
           <div class="homeyhuts-profile-name">${escapeHtml(shortName)}</div>
-          <div class="homeyhuts-profile-sub">Profile & Settings · <span style="color:#EA3829;font-weight:700;">${roleLabel}</span></div>
+          <div class="homeyhuts-profile-sub">Profile &amp; Settings · <span style="color:var(--primary);font-weight:700;">${roleLabel}</span></div>
         </div>
         <div class="homeyhuts-chevron">›</div>
       </div>
@@ -5754,9 +5754,9 @@ function renderAppMenu() {
           <span class="homeyhuts-chevron">›</span>
         </div>
 
-        <div class="homeyhuts-menu-row" onclick="document.getElementById('logoutBtn')?.click()" style="margin-top:14px;border-top:1px solid #f3f4f6;">
-          <span class="homeyhuts-row-icon" style="color:#EA3829;">🚪</span>
-          <span class="homeyhuts-row-title" style="color:#EA3829;font-weight:700;">Logout</span>
+        <div class="homeyhuts-menu-row" onclick="document.getElementById('logoutBtn')?.click()" style="margin-top:14px;border-top:1px solid var(--border-light);">
+          <span class="homeyhuts-row-icon" style="color:var(--primary);">🚪</span>
+          <span class="homeyhuts-row-title" style="color:var(--primary);font-weight:700;">Logout</span>
           <span class="homeyhuts-chevron">›</span>
         </div>
       </div>

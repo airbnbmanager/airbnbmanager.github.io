@@ -2,65 +2,76 @@
 
 :root,
 [data-theme="light"] {
-  /* Brand Accents — HomeyHuts Hospitality Coral Palette */
-  --primary: #EA3829; /* HomeyHuts Coral Red */
-  --primary-dark: #D32F2F;
-  --primary-light: #FFEBE8; /* Soft Peach Pill Accent */
-  --primary-glow: rgba(234, 56, 41, 0.16);
-  --theme-accent: #EA3829;
-  --theme-homeyhuts-coral: #EA3829;
-  --theme-homeyhuts-peach: #FFEBE8;
-  --theme-homeyhuts-canvas: #F8FAFC;
+  /* Brand Accents — Extracted from HomeyHuts / Next.js Production Design System */
+  --primary: #ff2800; /* HomeyHuts Brand Signature Red */
+  --primary-dark: #d7382a; /* HomeyHuts Brand 700 */
+  --primary-light: #ffeee9; /* HomeyHuts Brand 50 Pill Subtle */
+  --primary-hover: #ff492c; /* HomeyHuts Brand Accent Hover */
+  --primary-glow: rgba(255, 40, 0, 0.16);
+  --theme-accent: #ff2800;
+  --theme-homeyhuts-coral: #ff2800;
+  --theme-homeyhuts-peach: #ffeee9;
+  --theme-homeyhuts-canvas: #ffffff;
 
-  /* Executive Dark Contrast Sidebar */
-  --dark: #0f172a;
-  --sidebar-bg: #0f172a;
+  /* HomeyHuts & Airbnb Deep Navy / Slate Contrast Accents */
+  --dark: #222222; /* HomeyHuts / Airbnb Core Body Neutral */
+  --sidebar-bg: #0a1d4b; /* HomeyHuts Navy 900 */
+  --navy-int: #0a1d4b;
 
-  /* Surface & Canvas System — Homey India Slate & Crisp White */
-  --bg: #F8FAFC; /* Clean Modern Slate Canvas */
-  --bg-primary: #F8FAFC;
-  --bg-secondary: #ffffff;
-  --bg-tertiary: #f1f5f9;
+  /* Surface & Canvas System — Crisp Pure White & Architectural Soft Off-White */
+  --bg: #ffffff; /* Pristine Airbnb / HomeyHuts Canvas */
+  --bg-primary: #ffffff;
+  --bg-secondary: #f8f9fa;
+  --bg-tertiary: #f5f5f5; /* HomeyHuts Neutral 50 */
   --card: #ffffff;
   --card-bg: #ffffff;
 
-  /* High-Contrast Typography */
-  --text: #111827;
-  --text-primary: #111827;
-  --text-secondary: #4b5563;
-  --text-muted: #6b7280;
-  --muted: #6b7280;
+  /* High-Contrast Luxury Typography — HomeyHuts Exact Neutral Tokens */
+  --text: #222222; /* HomeyHuts Neutral 900 */
+  --text-primary: #222222;
+  --text-secondary: #696767; /* HomeyHuts Neutral 600 */
+  --text-muted: #a7a7a7; /* HomeyHuts Neutral 500 */
+  --muted: #696767;
 
-  /* Crisp Border Tokens */
-  --border: #e2e8f0;
-  --border-color: #e2e8f0;
-  --border-light: #f1f5f9;
+  /* Crisp Border Tokens — HomeyHuts Exact Neutral Scales */
+  --border: #e7e7e7; /* HomeyHuts Neutral 100 */
+  --border-color: #e7e7e7;
+  --border-strong: #cccccc; /* HomeyHuts Neutral 300 */
+  --border-light: #f5f5f5; /* HomeyHuts Neutral 50 */
+
+  /* Channel Colors (Direct from HomeyHuts Extracted CSS) */
+  --ch-airbnb: #ff5a5f;
+  --ch-airbnb-bg: #fde8ea;
+  --ch-booking: #003b95;
+  --ch-agoda: #6c3fd1;
+  --ch-mmt: #e5195e;
 
   /* Status Colors */
-  --green: #10b981;
-  --green-light: #ecfdf5;
-  --red: #ef4444;
-  --red-light: #fef2f2;
-  --yellow: #f59e0b;
-  --yellow-light: #fffbeb;
-  --blue: #0ea5e9;
-  --blue-light: #f0f9ff;
-  --indigo: #4f46e5;
-  --indigo-light: #eef2ff;
+  --green: #06902c; /* HomeyHuts Success */
+  --green-light: #d4edda;
+  --red: #e50f0f; /* HomeyHuts Error */
+  --red-light: #fee2e2;
+  --yellow: #f29339; /* HomeyHuts Warning */
+  --yellow-light: #fffcef;
+  --blue: #3b82f6; /* HomeyHuts Info */
+  --blue-light: #eaf1fe;
+  --indigo: #0a1d4b;
+  --indigo-light: #e7ebf4;
 
-  /* Geometry & Radii */
-  --radius: 16px;
+  /* Geometry & Radii — Soft Airbnb Pill Architecture */
+  --radius: 18px;
   --radius-sm: 8px;
   --radius-lg: 24px;
+  --radius-full: 9999px;
 
-  /* Multi-Layer Modern Soft Shadows */
-  --shadow-xs: 0 1px 2px 0 rgba(15, 23, 42, 0.04);
-  --shadow-sm: 0 1px 3px 0 rgba(15, 23, 42, 0.06), 0 1px 2px -1px rgba(15, 23, 42, 0.04);
-  --shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
-  --shadow-md: 0 6px 12px -2px rgba(15, 23, 42, 0.07), 0 3px 6px -3px rgba(15, 23, 42, 0.04);
-  --shadow-lg: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-  --shadow-hover: 0 12px 24px -4px rgba(15, 23, 42, 0.08), 0 4px 8px -2px rgba(15, 23, 42, 0.03);
-  --card-shadow: 0 1px 3px rgba(15, 23, 42, 0.06), 0 1px 2px -1px rgba(15, 23, 42, 0.04);
+  /* Multi-Layer Modern Soft Shadows (HomeyHuts Exact Token Curve) */
+  --shadow-xs: 0 1px 3px rgba(0, 0, 0, 0.04);
+  --shadow-sm: 0 1px 4px rgba(0, 0, 0, 0.08);
+  --shadow: 0 2px 10px rgba(0, 0, 0, 0.04), 0 1px 3px rgba(0, 0, 0, 0.02);
+  --shadow-md: 0 3px 12px rgba(0, 0, 0, 0.08);
+  --shadow-lg: 0 6px 24px rgba(0, 0, 0, 0.12);
+  --shadow-hover: 0 8px 24px rgba(0, 0, 0, 0.08);
+  --card-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
 }
 
 /* ══════════════════════════════════════════════════════════════════
@@ -125,7 +136,7 @@ body.horilla-dark,
 html { -webkit-text-size-adjust: 100%; }
 
 body {
-  font-family: 'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
   background: var(--bg);
   color: var(--text);
   font-size: 14px;
@@ -511,23 +522,23 @@ html, body, #app {
   position: sticky;
   top: 0;
   z-index: 1000;
-  height: 60px;
+  height: 64px;
   background: rgba(255, 255, 255, 0.98);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border-bottom: 1px solid #f0f0f0;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--border);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 24px;
-  gap: 12px;
-  box-shadow: 0 1px 8px rgba(0, 0, 0, 0.04);
+  padding: 0 28px;
+  gap: 16px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.03);
 }
 
 .topbar-desktop-nav {
   display: flex;
   align-items: center;
-  gap: 2px;
+  gap: 4px;
   flex: 1 1 0;
   min-width: 0;
   justify-content: center;
@@ -535,29 +546,29 @@ html, body, #app {
 }
 
 .topbar-desktop-nav a {
-  padding: 7px 12px;
-  border-radius: 999px;
-  font-size: 13px;
-  font-weight: 600;
-  color: #4b5563;
+  padding: 8px 16px;
+  border-radius: var(--radius-full);
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--text-secondary);
   text-decoration: none;
-  transition: all 0.15s ease;
+  transition: all 0.18s ease;
   display: inline-flex;
   align-items: center;
-  gap: 5px;
+  gap: 6px;
   white-space: nowrap;
   flex-shrink: 0;
 }
 
 .topbar-desktop-nav a:hover {
-  background: #FFF7F5;
-  color: #EA3829;
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
 }
 
 .topbar-desktop-nav a.active {
-  background: #FFEBE8 !important;
-  color: #EA3829 !important;
-  font-weight: 800;
+  background: var(--primary-light) !important;
+  color: var(--primary) !important;
+  font-weight: 700;
 }
 
 @media (max-width: 1024px) {
@@ -586,60 +597,62 @@ html, body, #app {
 }
 
 .topbar-new-booking-btn {
-  background: #EA3829 !important;
+  background: var(--primary) !important;
   color: #ffffff !important;
   border: none !important;
-  border-radius: 999px !important;
-  padding: 8px 18px !important;
-  font-size: 13px !important;
-  font-weight: 800 !important;
+  border-radius: var(--radius-full) !important;
+  padding: 9px 20px !important;
+  font-size: 13.5px !important;
+  font-weight: 700 !important;
   cursor: pointer !important;
   display: inline-flex !important;
   align-items: center !important;
   gap: 6px !important;
-  box-shadow: 0 4px 14px rgba(234, 56, 41, 0.28) !important;
-  transition: all 0.2s ease !important;
+  box-shadow: 0 4px 14px var(--primary-glow) !important;
+  transition: all 0.2s cubic-bezier(0.2, 0, 0, 1) !important;
 }
 
 .topbar-new-booking-btn:hover {
+  background: var(--primary-dark) !important;
   transform: translateY(-1px);
-  box-shadow: 0 6px 18px rgba(234, 56, 41, 0.35) !important;
+  box-shadow: 0 6px 20px rgba(255, 40, 0, 0.3) !important;
 }
 
 .topbar-avatar-pill {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 4px 10px 4px 4px;
-  background: #f9fafb;
-  border: 1px solid #e5e7eb;
-  border-radius: 999px;
+  gap: 10px;
+  padding: 4px 12px 4px 4px;
+  background: #ffffff;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-full);
   cursor: pointer;
   transition: all 0.15s ease;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.03);
 }
 
 .topbar-avatar-pill:hover {
-  background: #FFF7F5;
-  border-color: #fca5a5;
+  border-color: var(--border-strong);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 
 .user-avatar-mini {
-  width: 30px;
-  height: 30px;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
-  background: #111827;
+  background: var(--dark);
   color: #ffffff;
   font-size: 13px;
-  font-weight: 800;
+  font-weight: 700;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
 .user-name-mini {
-  font-size: 12.5px;
-  font-weight: 700;
-  color: #111827;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
 }
 
 .topbar-left {
@@ -8172,12 +8185,12 @@ textarea:focus {
   background: rgba(255, 255, 255, 0.98);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  border-top: 1px solid #f3f4f6;
+  border-top: 1px solid var(--border);
   z-index: 99990;
   justify-content: space-around;
   align-items: center;
   padding: 4px 8px calc(4px + env(safe-area-inset-bottom, 0px));
-  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.03);
 }
 
 .pwa-nav-item {
@@ -8193,10 +8206,10 @@ textarea:focus {
   outline: none;
   cursor: pointer;
   padding: 4px 8px;
-  color: #6b7280;
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  color: var(--text-secondary);
+  transition: all 0.2s cubic-bezier(0.2, 0, 0, 1);
   position: relative;
-  border-radius: 20px;
+  border-radius: var(--radius-full);
   user-select: none;
   -webkit-tap-highlight-color: transparent;
 }
@@ -8214,20 +8227,25 @@ textarea:focus {
 
 .pwa-nav-label {
   font-size: 11px;
-  font-weight: 600;
+  font-weight: 500;
   letter-spacing: -0.1px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   max-width: 100%;
-  color: #6b7280;
+  color: inherit;
 }
 
-/* HomeyHuts Active Capsule Pill — Exact Match to User Screenshots */
+/* HomeyHuts / Airbnb Active Red Tab Indicator */
 .pwa-nav-item.active {
-  background: #FFEBE8 !important;
-  color: #EA3829 !important;
-  border-radius: 24px;
+  background: transparent !important;
+  color: var(--primary) !important;
+}
+
+.pwa-nav-item.active .pwa-nav-label {
+  font-weight: 700 !important;
+  color: var(--primary) !important;
+}
 }
 
 .pwa-nav-item.active .pwa-nav-icon {
@@ -8265,35 +8283,38 @@ textarea:focus {
    📱 HOMEYHUTS SCREENSHOT 1 — CLEAN MENU SCREEN STYLES
    ═══════════════════════════════════════════════════════════ */
 .homeyhuts-menu-container {
-  max-width: 640px;
+  max-width: 580px;
   margin: 0 auto;
-  padding: 12px 16px 80px;
+  padding: 16px 20px 90px;
   background: #ffffff;
-  min-height: 80vh;
+  min-height: 85vh;
 }
 
 .homeyhuts-profile-card {
   display: flex;
   align-items: center;
-  padding: 16px 8px 20px;
-  border-bottom: 1px solid #f3f4f6;
-  margin-bottom: 8px;
+  padding: 16px 16px;
+  border: 1px solid var(--border);
+  background: #ffffff;
+  border-radius: 16px;
+  margin-bottom: 20px;
   cursor: pointer;
-  transition: background 0.15s ease;
+  transition: all 0.18s ease;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.03);
 }
 
 .homeyhuts-profile-card:hover {
-  background: #fafafa;
-  border-radius: 12px;
+  border-color: #222222;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.06);
 }
 
 .homeyhuts-avatar-circle {
-  width: 48px;
-  height: 48px;
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
-  background: #111827;
+  background: #222222;
   color: #ffffff;
-  font-size: 20px;
+  font-size: 18px;
   font-weight: 700;
   display: flex;
   align-items: center;
@@ -8307,21 +8328,21 @@ textarea:focus {
 }
 
 .homeyhuts-profile-name {
-  font-size: 17px;
+  font-size: 16px;
   font-weight: 700;
-  color: #111827;
+  color: #222222;
   line-height: 1.3;
 }
 
 .homeyhuts-profile-sub {
   font-size: 13px;
-  color: #6b7280;
+  color: #717171;
   margin-top: 2px;
 }
 
 .homeyhuts-chevron {
   font-size: 18px;
-  color: #9ca3af;
+  color: #b0b0b0;
   font-weight: 400;
 }
 
@@ -8333,16 +8354,16 @@ textarea:focus {
 .homeyhuts-menu-row {
   display: flex;
   align-items: center;
-  padding: 15px 8px;
-  border-bottom: 1px solid #f3f4f6;
+  padding: 16px 12px;
+  border-bottom: 1px solid var(--border-light);
   text-decoration: none;
   cursor: pointer;
-  transition: background 0.15s ease, transform 0.1s ease;
+  transition: all 0.15s ease;
 }
 
 .homeyhuts-menu-row:hover {
-  background: #FFF7F5;
-  border-radius: 10px;
+  background: #f7f7f7;
+  border-radius: 12px;
 }
 
 .homeyhuts-menu-row:active {
@@ -8350,20 +8371,20 @@ textarea:focus {
 }
 
 .homeyhuts-row-icon {
-  font-size: 20px;
-  width: 32px;
-  margin-right: 12px;
+  font-size: 18px;
+  width: 28px;
+  margin-right: 14px;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #374151;
+  color: #484848;
 }
 
 .homeyhuts-row-title {
   flex: 1;
   font-size: 15px;
   font-weight: 500;
-  color: #111827;
+  color: #222222;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -9351,30 +9372,30 @@ textarea:focus {
 .airbnb-pill-toggle {
   display: inline-flex;
   align-items: center;
-  background: #f1f5f9;
-  border: 1px solid #e2e8f0;
-  border-radius: 999px;
+  background: #f7f7f7;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-full);
   padding: 4px;
 }
 
 .airbnb-toggle-btn {
   padding: 8px 26px;
-  border-radius: 999px;
+  border-radius: var(--radius-full);
   font-size: 14px;
-  font-weight: 700;
+  font-weight: 600;
   border: none;
   background: transparent;
-  color: #64748b;
+  color: var(--text-secondary);
   cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: all 0.2s cubic-bezier(0.2, 0, 0, 1);
 }
 
 .airbnb-toggle-btn:hover {
-  color: #111827;
+  color: var(--text-primary);
 }
 
 .airbnb-toggle-btn.active {
-  background: #111827 !important;
+  background: #222222 !important;
   color: #ffffff !important;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.16);
 }
@@ -9391,42 +9412,42 @@ textarea:focus {
   align-items: center;
   gap: 8px;
   padding: 8px 16px;
-  border-radius: 999px;
-  border: 1px solid #e2e8f0;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--border);
   background: #ffffff;
-  color: #1e293b;
+  color: #222222;
   font-size: 13.5px;
-  font-weight: 700;
+  font-weight: 600;
   cursor: pointer;
   transition: all 0.15s ease;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
 }
 
 .airbnb-filter-btn:hover {
-  border-color: #94a3b8;
+  border-color: #222222;
   background: #f8fafc;
 }
 
 .airbnb-filter-btn.active {
-  background: #FFF1F2 !important;
-  color: #EA3829 !important;
-  border-color: #FECACA !important;
-  box-shadow: 0 1px 4px rgba(234, 56, 41, 0.15) !important;
+  background: #222222 !important;
+  color: #ffffff !important;
+  border-color: #222222 !important;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15) !important;
 }
 
 .airbnb-filter-btn.active:hover {
-  background: #FFE4E6 !important;
-  border-color: #F87171 !important;
+  background: #000000 !important;
+  border-color: #000000 !important;
 }
 
 .airbnb-feed-heading {
-  font-size: 30px;
+  font-size: 32px;
   font-weight: 800;
-  color: #111827;
+  color: #222222;
   letter-spacing: -0.6px;
   text-align: center;
-  margin: 10px 0 24px;
-  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+  margin: 12px 0 28px;
+  font-family: inherit;
 }
 
 .airbnb-feed-list {
@@ -9443,16 +9464,16 @@ textarea:focus {
   justify-content: space-between;
   gap: 20px;
   background: #ffffff;
-  border: 1px solid #ebebeb;
-  border-radius: 18px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
   padding: 18px 24px;
   cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: all 0.2s cubic-bezier(0.2, 0, 0, 1);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
 }
 
 .airbnb-res-card:hover {
-  border-color: #111827;
+  border-color: #222222;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
   transform: translateY(-1px);
 }
@@ -9462,7 +9483,7 @@ textarea:focus {
   flex-shrink: 0;
   font-size: 13.5px;
   font-weight: 600;
-  color: #484848;
+  color: #717171;
 }
 
 .airbnb-res-details {
@@ -9472,8 +9493,8 @@ textarea:focus {
 
 .airbnb-res-title {
   font-size: 16px;
-  font-weight: 800;
-  color: #111827;
+  font-weight: 700;
+  color: #222222;
   line-height: 1.35;
   margin-bottom: 4px;
 }
