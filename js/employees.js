@@ -2426,6 +2426,14 @@ async function renderAdvanceTracker() {
   const totalBetweenRepaid = filtered.reduce((s, a) => s + Number(a.repaid_amount || 0), 0);
   const totalBetweenBalance = totalBetweenGiven - totalBetweenRepaid;
 
+  const isNonDeductible = a => {
+    const r = (a.reason || '').toUpperCase();
+    return r.includes('[PETROL]') || r.includes('[RAPIDO]') || r.includes('[ITEMS]') || r.includes('NON-DEDUCTIBLE');
+  };
+  const totalTravelPetrol = filtered.filter(isNonDeductible).reduce((s, a) => s + Number(a.advance_amount || 0), 0);
+  const totalDeductibleAdv = filtered.filter(a => !isNonDeductible(a)).reduce((s, a) => s + Number(a.advance_amount || 0), 0);
+  const totalDeductibleBal = filtered.filter(a => !isNonDeductible(a)).reduce((s, a) => s + (Number(a.advance_amount || 0) - Number(a.repaid_amount || 0)), 0);
+
   const selEmp = filter.empId !== 'all' ? (emps || []).find(e => e.emp_id === filter.empId) : null;
   const selEmpName = selEmp ? selEmp.name : (filter.empId !== 'all' ? filter.empId : (filter.showInactive ? 'All Employees' : 'All Active Staff'));
 
@@ -2499,26 +2507,26 @@ async function renderAdvanceTracker() {
 
     <!-- METRICS BREAKDOWN -->
     <div class="card">
-      <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(150px, 1fr));gap:10px;">
-        <div style="text-align:center;padding:12px;background:#FEF2F2;border:1px solid #FECDD3;border-radius:8px;">
-          <div style="font-size:11px;color:#991B1B;font-weight:700;">💰 TOTAL ALL-TIME</div>
-          <div style="font-size:20px;font-weight:800;color:#991B1B;margin-top:2px;">₹${totalAllTimeGiven.toLocaleString('en-IN')}</div>
-          <div style="font-size:10px;color:#666;">All historical advances</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(160px, 1fr));gap:10px;">
+        <div style="text-align:center;padding:12px;background:#F8FAFC;border:1px solid #E2E8F0;border-radius:8px;">
+          <div style="font-size:11px;color:#475569;font-weight:700;">💰 TOTAL GIVEN</div>
+          <div style="font-size:20px;font-weight:800;color:#0F172A;margin-top:2px;">₹${totalBetweenGiven.toLocaleString('en-IN')}</div>
+          <div style="font-size:10px;color:#64748B;">All entries in range</div>
         </div>
         <div style="text-align:center;padding:12px;background:#EFF6FF;border:1px solid #BFDBFE;border-radius:8px;">
-          <div style="font-size:11px;color:#1E40AF;font-weight:700;">📅 MONTHLY (${currMonth})</div>
-          <div style="font-size:20px;font-weight:800;color:#1D4ED8;margin-top:2px;">₹${totalMonthlyGiven.toLocaleString('en-IN')}</div>
-          <div style="font-size:10px;color:#666;">In current month</div>
+          <div style="font-size:11px;color:#1E40AF;font-weight:700;">⛽ PETROL &amp; RAPIDO (CO.)</div>
+          <div style="font-size:20px;font-weight:800;color:#1D4ED8;margin-top:2px;">₹${totalTravelPetrol.toLocaleString('en-IN')}</div>
+          <div style="font-size:10px;color:#2563EB;font-weight:700;">🛡️ ZERO Salary Deduction</div>
         </div>
         <div style="text-align:center;padding:12px;background:#FFFBEB;border:1px solid #FDE68A;border-radius:8px;">
-          <div style="font-size:11px;color:#92400E;font-weight:700;">⏳ BETWEEN DATES</div>
-          <div style="font-size:20px;font-weight:800;color:#B45309;margin-top:2px;">₹${totalBetweenGiven.toLocaleString('en-IN')}</div>
-          <div style="font-size:10px;color:#666;">In selected date range</div>
+          <div style="font-size:11px;color:#92400E;font-weight:700;">💵 SALARY ADVANCES</div>
+          <div style="font-size:20px;font-weight:800;color:#B45309;margin-top:2px;">₹${totalDeductibleAdv.toLocaleString('en-IN')}</div>
+          <div style="font-size:10px;color:#666;">Recoverable from salary</div>
         </div>
-        <div style="text-align:center;padding:12px;background:${totalAllTimeBalance > 0 ? '#FEF2F2' : '#F0FDF4'};border:1px solid ${totalAllTimeBalance > 0 ? '#FCA5A5' : '#86EFAC'};border-radius:8px;">
-          <div style="font-size:11px;color:${totalAllTimeBalance > 0 ? '#991B1B' : '#166534'};font-weight:700;">⚖️ OUTSTANDING BALANCE</div>
-          <div style="font-size:20px;font-weight:800;color:${totalAllTimeBalance > 0 ? '#DC2626' : '#059669'};margin-top:2px;">₹${totalAllTimeBalance.toLocaleString('en-IN')}</div>
-          <div style="font-size:10px;color:#666;">Repaid: ₹${totalAllTimeRepaid.toLocaleString('en-IN')}</div>
+        <div style="text-align:center;padding:12px;background:${totalDeductibleBal > 0 ? '#FEF2F2' : '#F0FDF4'};border:1px solid ${totalDeductibleBal > 0 ? '#FCA5A5' : '#86EFAC'};border-radius:8px;">
+          <div style="font-size:11px;color:${totalDeductibleBal > 0 ? '#991B1B' : '#166534'};font-weight:700;">⚖️ RECOVERABLE BALANCE</div>
+          <div style="font-size:20px;font-weight:800;color:${totalDeductibleBal > 0 ? '#DC2626' : '#059669'};margin-top:2px;">₹${totalDeductibleBal.toLocaleString('en-IN')}</div>
+          <div style="font-size:10px;color:#666;">Repaid: ₹${totalBetweenRepaid.toLocaleString('en-IN')}</div>
         </div>
       </div>
     </div>
@@ -2527,21 +2535,27 @@ async function renderAdvanceTracker() {
       <thead><tr>
         <th>Employee</th><th>Date</th><th>Given ₹</th>
         <th>Repaid ₹</th><th>Repaid On</th><th>Balance ₹</th>
-        <th>Account</th><th>Mode</th><th>Reason</th>
+        <th>Account</th><th>Mode</th><th>Reason &amp; Purpose</th>
         ${isO ? '<th>Actions</th>' : ''}
       </tr></thead>
       <tbody>${filtered.length === 0 ? '<tr><td colspan="10" style="text-align:center;padding:24px;color:#94A3B8;">No advance records found for this filter</td></tr>' : filtered.map(a => {
         const bal = (a.advance_amount || 0) - (a.repaid_amount || 0);
+        const nonDed = isNonDeductible(a);
         return `<tr>
           <td><strong style="color:var(--primary);cursor:pointer;text-decoration:underline;" onclick="showEmpDetailModal('${a.emp_id}')">${a.employees?.name || a.emp_id}</strong></td>
           <td style="font-size:12px;">${a.date_given || '-'}</td>
           <td style="color:var(--red);font-weight:700;">₹${(a.advance_amount || 0).toLocaleString('en-IN')}</td>
           <td style="color:var(--green);">₹${(a.repaid_amount || 0).toLocaleString('en-IN')}</td>
           <td style="font-size:12px;">${a.repaid_date || '-'}</td>
-          <td style="color:${bal > 0 ? 'var(--red)' : 'var(--green)'};font-weight:700;">₹${bal.toLocaleString('en-IN')}</td>
+          <td style="color:${bal > 0 ? 'var(--red)' : 'var(--green)'};font-weight:700;">
+            ${nonDed ? '<span style="font-size:10px;color:#2563EB;font-weight:700;">₹0 (Company)</span>' : `₹${bal.toLocaleString('en-IN')}`}
+          </td>
           <td>${window.UHHSODManager ? UHHSODManager.getBadge(a.paid_by) : (a.paid_by || '-')}</td>
           <td style="font-size:12px;">${a.payment_mode || '-'}</td>
-          <td style="font-size:12px;">${a.reason || '-'}</td>
+          <td style="font-size:12px;">
+            ${nonDed ? `<span style="display:inline-block;margin-bottom:3px;font-size:9.5px;font-weight:800;color:#1E40AF;background:#EFF6FF;padding:2px 6px;border-radius:4px;border:1px solid #BFDBFE;">🛡️ Company Paid (Non-deductible)</span><br>` : ''}
+            ${escapeHtml(a.reason || '-')}
+          </td>
           ${isO ? `<td class="table-actions">
             <button class="btn-sm" onclick="editAdv(${a.id})">✏️</button>
             ${window.canDelete && window.canDelete() ? `<button class="btn-sm danger" onclick="delAdv(${a.id})">🗑️</button>` : ''}
@@ -2985,6 +2999,15 @@ async function renderAddAdv() {
           ${(emps || []).map(e => `<option value="${e.emp_id}">${e.name}</option>`).join('')}
         </select>
       </div>
+      <div class="form-group">
+        <label>Advance Type / Purpose *</label>
+        <select id="aType" style="border: 1.5px solid #EA3829; font-weight: 700; color: #1e293b;">
+          <option value="ADVANCE">💵 Salary Advance (Recoverable — Monthly Salary se deduct hoga)</option>
+          <option value="PETROL">⛽ Petrol Allowance (Paid by Company — Salary se ZERO deduction)</option>
+          <option value="RAPIDO">🛵 Rapido / Transport Ride (Paid by Company — Salary se ZERO deduction)</option>
+          <option value="ITEMS">🛒 Property Grocery / Items Purchase (Paid by Company — Non-deductible)</option>
+        </select>
+      </div>
       <div class="form-grid">
         <div class="form-group"><label>Date Given</label><input id="aDate" type="date" value="${new Date().toISOString().slice(0, 10)}" /></div>
         <div class="form-group"><label>Amount ₹ *</label><input id="aAmt" type="number" /></div>
@@ -3047,6 +3070,16 @@ async function saveAdv() {
     }
   }
 
+  const advType = document.getElementById('aType')?.value || 'ADVANCE';
+  let reasonText = document.getElementById('aReason')?.value?.trim() || '';
+  if (advType === 'PETROL') {
+    reasonText = `[PETROL] ${reasonText || 'Staff Petrol Allowance (Company Paid - Non-deductible)'}`;
+  } else if (advType === 'RAPIDO') {
+    reasonText = `[RAPIDO] ${reasonText || 'Rapido / Travel (Company Paid - Non-deductible)'}`;
+  } else if (advType === 'ITEMS') {
+    reasonText = `[ITEMS] ${reasonText || 'Property Purchase / Supplies (Non-deductible)'}`;
+  }
+
   const { error } = await sb.from('advance_tracker').insert({
     emp_id: eid,
     date_given: dateVal,
@@ -3054,7 +3087,7 @@ async function saveAdv() {
     repaid_amount: 0,
     payment_mode: document.getElementById('aMode').value || null,
     paid_by: paidByVal,
-    reason: document.getElementById('aReason').value.trim() || null,
+    reason: reasonText || null,
     is_deducted: false
   });
   if (error) {

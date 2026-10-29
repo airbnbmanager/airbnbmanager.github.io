@@ -282,6 +282,62 @@ async function renderDashboard() {
   const bName = b => `${propLabel(b.rooms) || b.room_id || '-'}`;
   const fName = fl => `${propLabel(fl.rooms) || fl.room_id || '-'}`;
 
+  const renderAirbnbGuestItem = (x, type) => {
+    const propPhoto = (window.ShowcaseData && window.ShowcaseData.BASELINE && window.ShowcaseData.BASELINE[x.room_id]?.cover_image)
+      || 'assets/logo-emblem.png';
+    const initials = (x.guest_name || 'G').split(' ').filter(Boolean).map(n => n[0]).slice(0, 2).join('').toUpperCase() || 'G';
+    const totalAmt = Number(x.total_amount || 0);
+    const paidAmt = Number(paidMap[x.booking_id] || 0);
+    const dueAmt = totalAmt - paidAmt;
+    const isPaid = totalAmt > 0 && dueAmt <= 0;
+
+    let timeBadge = '';
+    if (type === 'checkin') {
+      timeBadge = `<span>📥 Check-in: <strong>${x.check_in_time || '2:00 PM'}</strong></span>`;
+    } else if (type === 'checkout') {
+      timeBadge = `<span>📤 Checkout: <strong>${x.check_out_time || '11:00 AM'}</strong></span>`;
+    } else {
+      timeBadge = `<span>📅 <strong>${x.check_in}</strong> → <strong>${x.check_out || 'Open'}</strong></span>`;
+    }
+
+    return `
+      <div class="airbnb-guest-card">
+        <div class="airbnb-card-media" onclick="openBookingFromDashboard('${x.booking_id}')" style="cursor:pointer;" title="View Details">
+          <img src="${propPhoto}" alt="${escapeHtml(bName(x))}" class="airbnb-prop-thumb" onerror="this.onerror=null;this.src='assets/logo-emblem.png';" />
+          <div class="airbnb-guest-avatar-badge">${initials}</div>
+        </div>
+        <div class="airbnb-card-info">
+          <div class="airbnb-card-primary">
+            <span class="airbnb-guest-name" onclick="openBookingFromDashboard('${x.booking_id}')">${escapeHtml(x.guest_name || 'Guest')}</span>
+            ${getRatingBadge(x.client_rating)}
+            <span class="airbnb-prop-pill">${escapeHtml(bName(x))}</span>
+            ${totalAmt > 0 ? (
+              isPaid
+                ? `<span style="font-size:10.5px;font-weight:800;color:#059669;background:#ECFDF5;padding:2px 7px;border-radius:6px;border:1px solid #A7F3D0;">₹${totalAmt.toLocaleString('en-IN')} Paid</span>`
+                : `<span style="font-size:10.5px;font-weight:800;color:#DC2626;background:#FEF2F2;padding:2px 7px;border-radius:6px;border:1px solid #FECACA;">⚠️ ₹${dueAmt.toLocaleString('en-IN')} Due</span>`
+            ) : ''}
+            ${x.actual_checkin && type === 'checkin' ? `<span class="badge green" style="font-size:10px;">Arrived</span>` : ''}
+            ${x.actual_checkout && type === 'checkout' ? `<span class="badge green" style="font-size:10px;">Departed</span>` : ''}
+          </div>
+          <div class="airbnb-meta-row">
+            ${timeBadge}
+            ${x.phone ? `<span>📞 <a href="tel:${x.phone}" style="color:inherit;text-decoration:none;">${escapeHtml(x.phone)}</a></span>` : ''}
+            ${x.has_vehicle ? `<span>🚗 ${(escapeHtml(x.vehicle_name || '') + ' ' + escapeHtml(x.vehicle_number || '')).trim()}</span>` : ''}
+          </div>
+        </div>
+        <div class="airbnb-card-actions">
+          ${x.phone ? `<a href="tel:${x.phone}" class="airbnb-btn-action" title="Call Guest">📞 Call</a>` : ''}
+          ${x.phone ? (
+            type === 'checkout'
+              ? `<button class="airbnb-btn-action wa" onclick="sendCheckoutReminder('${x.booking_id}')" title="Send WhatsApp Checkout Reminder">🔔 Remind</button>`
+              : `<button class="airbnb-btn-action wa" onclick="shareBookingWhatsApp('${x.booking_id}')" title="Send WhatsApp Message">💬 WhatsApp</button>`
+          ) : ''}
+          <button class="airbnb-btn-action primary" onclick="openBookingFromDashboard('${x.booking_id}')">Open ➔</button>
+        </div>
+      </div>
+    `;
+  };
+
   // Time-aware greeting (handles midnight/late night correctly)
   const hour = new Date().getHours();
   let greeting, greetEmoji;
@@ -994,26 +1050,17 @@ async function renderDashboard() {
             </div>
           </div>
 
-          <div class="dash-hero-actions">
+          <div class="dash-hero-actions" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+            <button class="dash-pill-btn" onclick="renderDashboard()" title="Refresh live data" style="border-radius:999px;font-weight:700;padding:7px 14px;">🔄 Refresh</button>
+            <button type="button" class="dash-pill-btn" style="background:#FFEBE8;color:#EA3829;border:1px solid #FECACA;border-radius:999px;font-weight:700;padding:7px 14px;display:inline-flex;align-items:center;gap:6px;" onclick="window.openCustomPaymentQRModal(${globalProp ? `{ roomId: '${globalProp}' }` : ''})" title="Create & Send Custom UPI Payment QR to Guest">
+              <span>💳</span> <span>Payment QR</span>
+            </button>
             ${SESSION.role === 'developer' ? `
-            <div class="dash-online-badge" onclick="showActiveUsersModal()" title="Click to see online users">
-              <div class="dash-online-lbl">Online Now</div>
-              <div class="dash-online-val">
-                <span class="dash-online-dot"></span>
-                ${activeUsers.length} online
-              </div>
+            <div class="dash-online-badge" onclick="showActiveUsersModal()" title="Click to see online users" style="cursor:pointer;padding:6px 12px;border-radius:999px;">
+              <span class="dash-online-dot"></span>
+              <span style="font-size:12px;font-weight:700;">${activeUsers.length} online</span>
             </div>
             ` : ''}
-            <button class="dash-pill-btn" onclick="renderDashboard()" title="Refresh live data">🔄 Refresh</button>
-            <button type="button" class="dash-pill-btn" style="background:linear-gradient(135deg,#4F46E5,#6366F1);color:#FFFFFF;border-color:#4F46E5;font-weight:700;box-shadow:0 3px 10px rgba(79,70,229,0.3);display:inline-flex;align-items:center;gap:6px;" onclick="window.openCustomPaymentQRModal(${globalProp ? `{ roomId: '${globalProp}' }` : ''})" title="Create & Send Custom UPI Payment QR to Guest">
-              <span>💳</span> <span>Send Payment QR</span>
-            </button>
-            <button class="dash-pill-btn" onclick="navigate('flats')">🛏️ Flats Status</button>
-            <button class="dash-pill-btn" onclick="navigate('bookings')">📅 Bookings</button>
-            <button class="dash-pill-btn" onclick="window.openTasksShortcut ? window.openTasksShortcut() : navigate('tasks')" title="Staff Tasks & Checklists (Alt+T / T)">📋 Tasks</button>
-            <button class="dash-pill-btn" onclick="window.openAdvanceShortcut ? window.openAdvanceShortcut() : navigate('advance')" title="Staff Advances (Alt+A / A)">💸 Advance</button>
-            <button class="dash-pill-btn" onclick="window.openClaimShortcut ? window.openClaimShortcut() : navigate('reimbursements')" title="Expense Claims & Reimbursements (Alt+E / E)">🧾 Claims</button>
-            ${canModerate() ? `<button class="dash-pill-btn primary" onclick="renderAddBooking && renderAddBooking()">➕ New Booking</button>` : ''}
           </div>
         </div>
       </div>
@@ -1166,28 +1213,7 @@ async function renderDashboard() {
             </div>
             <div>
               ${realCheckins.length === 0 ? `<div class="dash-empty-state">No check-ins scheduled for today</div>` :
-                realCheckins.map(x => `
-                  <div class="dash-guest-item">
-                    <div class="dash-guest-info">
-                      <div class="dash-guest-primary">
-                        <span class="dash-guest-name" onclick="openBookingFromDashboard('${x.booking_id}')">${x.guest_name}</span>
-                        ${getRatingBadge(x.client_rating)}
-                        <span class="dash-unit-chip">${bName(x)}</span>
-                      </div>
-                      <div class="dash-guest-meta">
-                        <span>🕒 ${x.check_in_time || '2:00 PM'}</span>
-                        ${x.phone ? `<span>📞 <a href="tel:${x.phone}">${x.phone}</a></span>` : ''}
-                        ${x.has_vehicle ? `<span>🚗 ${(x.vehicle_name || '') + ' ' + (x.vehicle_number || '')}</span>` : ''}
-                        ${x.actual_checkin ? `<span class="badge green" style="font-size:10px;">Arrived</span>` : ''}
-                      </div>
-                    </div>
-                    <div class="dash-action-icons">
-                      ${x.phone ? `<a href="tel:${x.phone}" class="dash-icon-btn" title="Call Guest">📞</a>` : ''}
-                      ${x.phone ? `<button class="dash-icon-btn wa" onclick="shareBookingWhatsApp('${x.booking_id}')" title="Send WhatsApp Message">💬</button>` : ''}
-                      <button class="dash-pill-btn" style="padding:5px 9px;font-size:11px;" onclick="openBookingFromDashboard('${x.booking_id}')">Open</button>
-                    </div>
-                  </div>
-                `).join('')
+                realCheckins.map(x => renderAirbnbGuestItem(x, 'checkin')).join('')
               }
             </div>
           </div>
@@ -1202,27 +1228,7 @@ async function renderDashboard() {
             </div>
             <div>
               ${realCheckouts.length === 0 ? `<div class="dash-empty-state">No check-outs scheduled for today</div>` :
-                realCheckouts.map(x => `
-                  <div class="dash-guest-item">
-                    <div class="dash-guest-info">
-                      <div class="dash-guest-primary">
-                        <span class="dash-guest-name" onclick="openBookingFromDashboard('${x.booking_id}')">${x.guest_name}</span>
-                        ${getRatingBadge(x.client_rating)}
-                        <span class="dash-unit-chip">${bName(x)}</span>
-                      </div>
-                      <div class="dash-guest-meta">
-                        <span>🕒 ${x.check_out_time || '11:00 AM'}</span>
-                        ${x.phone ? `<span>📞 <a href="tel:${x.phone}">${x.phone}</a></span>` : ''}
-                        ${x.actual_checkout ? `<span class="badge green" style="font-size:10px;">Departed</span>` : ''}
-                      </div>
-                    </div>
-                    <div class="dash-action-icons">
-                      ${x.phone ? `<a href="tel:${x.phone}" class="dash-icon-btn" title="Call Guest">📞</a>` : ''}
-                      ${x.phone ? `<button class="dash-icon-btn wa" onclick="sendCheckoutReminder('${x.booking_id}')" title="Send Checkout Reminder">🔔</button>` : ''}
-                      <button class="dash-pill-btn" style="padding:5px 9px;font-size:11px;" onclick="openBookingFromDashboard('${x.booking_id}')">Open</button>
-                    </div>
-                  </div>
-                `).join('')
+                realCheckouts.map(x => renderAirbnbGuestItem(x, 'checkout')).join('')
               }
             </div>
           </div>
@@ -1234,29 +1240,11 @@ async function renderDashboard() {
             <div class="dash-panel-title">
               <span>🟢</span> Currently Staying (${activeNow.length} Active Stays)
             </div>
-            <button class="dash-pill-btn" style="padding:4px 10px;font-size:11.5px;" onclick="filterAndShowBookings('currentStay')">View in Bookings →</button>
+            <button class="dash-pill-btn" style="padding:4px 10px;font-size:11.5px;border-radius:999px;" onclick="filterAndShowBookings('currentStay')">View in Bookings →</button>
           </div>
-          <div style="max-height:280px;overflow-y:auto;">
+          <div style="max-height:480px;overflow-y:auto;">
             ${activeNow.length === 0 ? `<div class="dash-empty-state">No guests currently staying</div>` :
-              activeNow.map(x => `
-                <div class="dash-guest-item" style="padding:10px 12px;">
-                  <div class="dash-guest-info">
-                    <div class="dash-guest-primary">
-                      <span class="dash-guest-name" onclick="openBookingFromDashboard('${x.booking_id}')">${x.guest_name}</span>
-                      ${getRatingBadge(x.client_rating)}
-                      <span class="dash-unit-chip">${bName(x)}</span>
-                    </div>
-                    <div class="dash-guest-meta">
-                      <span>Stay: <strong>${x.check_in}</strong> → <strong>${x.check_out || 'Open'}</strong></span>
-                      ${x.phone ? `<span>📞 <a href="tel:${x.phone}">${x.phone}</a></span>` : ''}
-                    </div>
-                  </div>
-                  <div class="dash-action-icons">
-                    ${x.phone ? `<a href="tel:${x.phone}" class="dash-icon-btn" title="Call">📞</a>` : ''}
-                    <button class="dash-pill-btn" style="padding:4px 9px;font-size:11px;" onclick="openBookingFromDashboard('${x.booking_id}')">Details</button>
-                  </div>
-                </div>
-              `).join('')
+              activeNow.map(x => renderAirbnbGuestItem(x, 'staying')).join('')
             }
           </div>
         </div>

@@ -1537,7 +1537,7 @@ function renderShell(content, activePage = 'dashboard') {
   const currentHub = (UHHS_HUBS || []).find(h => h.pages.includes(activePage));
 
   let hubSubNavHtml = '';
-  if (currentHub && currentHub.tabs && currentHub.tabs.length > 1) {
+  if (activePage !== 'dashboard' && currentHub && currentHub.tabs && currentHub.tabs.length > 1) {
     let visibleTabs = currentHub.tabs;
     if (isViewer) {
       visibleTabs = visibleTabs.filter(t => ['bookings', 'reports', 'calendar', 'flats'].includes(t.id));
@@ -1687,27 +1687,38 @@ function renderShell(content, activePage = 'dashboard') {
 
       <!-- ─── MAIN WRAPPER ─── -->
       <div class="app-main-wrapper">
-        <!-- Top App Bar -->
+        <!-- Top App Bar — HomeyHuts Style Horizontal Header -->
         <header class="app-topbar">
           <div class="topbar-left">
             <button class="mobile-hamburger-btn" id="hamburgerBtn" aria-label="Toggle menu" title="Open Navigation Menu">
               <span></span><span></span><span></span>
             </button>
-            <div class="page-heading">
-              <div class="page-title-row">
-                <span class="page-icon">${pageMeta.icon}</span>
-                <h1 class="page-title">${pageMeta.title}</h1>
+            <div class="topbar-brand-group" onclick="navigate('dashboard')" style="display:flex;align-items:center;gap:10px;cursor:pointer;">
+              <img src="assets/logo-emblem.png" alt="TUHH" style="width:36px;height:36px;border-radius:10px;object-fit:cover;box-shadow:0 2px 6px rgba(0,0,0,0.1);" />
+              <div style="display:flex;flex-direction:column;">
+                <span style="font-weight:900;font-size:14px;color:#111827;letter-spacing:0.2px;">THE UNIQUE HAVEN HOMES</span>
+                <span style="font-size:9.5px;color:#EA3829;font-weight:800;letter-spacing:0.4px;">HOSPITALITY OPS</span>
               </div>
-              <span class="page-sub">${pageMeta.sub}</span>
             </div>
           </div>
 
+          <!-- Desktop Center Navigation Links (HomeyHuts Style) -->
+          <nav class="topbar-desktop-nav">
+            <a href="javascript:void(0)" onclick="navigate('dashboard')" class="${activePage==='dashboard'?'active':''}">🏠 Hosting</a>
+            <a href="javascript:void(0)" onclick="navigate('calendar')" class="${(activePage==='calendar'||activePage==='reports')?'active':''}">📅 Calendar</a>
+            <a href="javascript:void(0)" onclick="navigate('bookings')" class="${activePage==='bookings'?'active':''}">🛎️ Reservations</a>
+            <a href="javascript:void(0)" onclick="navigate('rooms')" class="${activePage==='rooms'?'active':''}">🏢 Properties</a>
+            <a href="javascript:void(0)" onclick="navigate('employees')" class="${(activePage==='employees'||activePage==='attendance'||activePage==='tasks'||activePage==='advance')?'active':''}">👥 Staff &amp; Tasks</a>
+            <a href="javascript:void(0)" onclick="navigate('investors')" class="${activePage==='investors'?'active':''}">📊 Investors &amp; P&amp;L</a>
+            <a href="javascript:void(0)" onclick="navigate('expenses')" class="${activePage==='expenses'?'active':''}">💰 Expenses</a>
+          </nav>
+
           <div class="topbar-right">
-            <!-- 🏛️ Global Property Switcher (Salon ERP Inspired) -->
+            <!-- Global Property Switcher -->
             <div class="topbar-property-selector ${window.getGlobalSelectedProperty ? (window.getGlobalSelectedProperty() ? 'has-filter' : '') : ''}" id="topbarPropSelector" title="Switch property view">
               <span class="topbar-prop-icon">🏛️</span>
               <select id="topbarPropertySelect" onchange="window.handleGlobalPropertyFilterChange && window.handleGlobalPropertyFilterChange(this.value)">
-                <option value="">All Properties (${(window._globalRoomsList || []).length || 17})</option>
+                <option value="">All Properties (${(window._globalRoomsList || []).length || 18})</option>
                 ${(window._globalRoomsList || []).map(r => `
                   <option value="${r.room_id}" ${(window.getGlobalSelectedProperty ? window.getGlobalSelectedProperty() : '') === r.room_id ? 'selected' : ''}>
                     ${escapeHtml(r.nickname || r.room_id)} (${r.unit_no || '-'})
@@ -1716,35 +1727,22 @@ function renderShell(content, activePage = 'dashboard') {
               </select>
             </div>
 
-            <!-- ⚡ Express POS Terminal (Salon ERP Inspired) -->
-            <button type="button" class="topbar-qr-pill-btn" onclick="window.openPOSTerminal && window.openPOSTerminal()" title="Express Walk-in POS Terminal" style="background:linear-gradient(135deg, #059669, #047857);color:#fff;border:none;font-weight:700;padding:5px 12px;gap:5px;box-shadow:0 2px 6px rgba(5,150,105,0.25);">
-              <span style="font-size:13px;">⚡</span>
-              <span class="qr-btn-text" style="font-size:12px;">POS Terminal</span>
-            </button>
-
-            <!-- Quick Send Payment QR Action -->
-            <button type="button" class="topbar-qr-pill-btn" onclick="const gp = (typeof window.getGlobalSelectedProperty === 'function') ? window.getGlobalSelectedProperty() : ''; window.openCustomPaymentQRModal && window.openCustomPaymentQRModal(gp ? { roomId: gp } : {});" title="Instant UPI Payment QR to Guest">
-              <span style="font-size:14px;">💳</span>
-              <span class="qr-btn-text">QR Pay</span>
-            </button>
-
-            <!-- Keyboard Shortcuts Button -->
-            <button type="button" class="topbar-qr-pill-btn" onclick="window.openShortcutsModal && window.openShortcutsModal()" title="Keyboard Shortcuts (Press ? or ⌥/)" style="background:#1E293B;color:#94A3B8;border:1px solid #334155;padding:5px 9px;">
-              <span style="font-size:12px;">⚡</span>
-              <span class="qr-btn-text" style="font-size:11px;font-weight:700;">Keys</span>
-            </button>
-
-            <!-- Menu & Quick Action Search Button -->
-            <button type="button" class="topbar-qr-pill-btn" onclick="window.openCommandPalette && window.openCommandPalette()" title="Search Menu, Features & Actions (⌘K or /)" style="background:#F1F5F9;color:#334155;border:1px solid #CBD5E1;padding:5px 12px;gap:6px;font-weight:700;">
-              <span style="font-size:13px;">🔍</span>
-              <span class="qr-btn-text" style="font-size:12px;">Search Menu...</span>
-              <kbd style="background:#E2E8F0;border-radius:4px;padding:1px 5px;font-size:10px;font-family:monospace;color:#64748B;">⌘K</kbd>
+            <!-- Primary Action Button: HomeyHuts Style Coral Red + New Booking -->
+            <button type="button" class="topbar-new-booking-btn" onclick="if(window.renderAddBooking) renderAddBooking();">
+              <span>➕</span> <span>New Booking</span>
             </button>
 
             <!-- Notifications Bell -->
             <button class="topbar-icon-btn" id="topbarNotifBtn" onclick="window.notifications&&window.notifications.openPanel();" title="Notifications" aria-label="Notifications">
               <span>🔔</span><span class="notif-bell-badge" style="display:none;"></span>
             </button>
+
+            <!-- User Avatar Pill -->
+            <div class="topbar-avatar-pill" onclick="navigate('menu')" title="Account & Menu">
+              <div class="user-avatar-mini">${shortName.charAt(0).toUpperCase()}</div>
+              <span class="user-name-mini">${escapeHtml(shortName)}</span>
+              <span style="font-size:10px;color:#9ca3af;">▾</span>
+            </div>
           </div>
         </header>
 

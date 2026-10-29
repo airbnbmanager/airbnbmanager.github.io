@@ -45,6 +45,8 @@ async function renderExpenses() {
       <div class="sub">${ml}</div>
       <div class="btn-row">
         <button onclick="renderAddExpEntry()">🧾 Log Expense</button>
+        <button onclick="window.openWifiRechargeModal()" style="background:#2563EB;color:#fff;font-weight:700;border:none;">📶 Wi-Fi Recharge &amp; Install</button>
+        <button onclick="window.openEmployeeTransportModal()" style="background:#D97706;color:#fff;font-weight:700;border:none;">🛵 Rapido &amp; Travel Tracker</button>
         <button onclick="window.exportExpensesCSV()" style="background:#059669;color:#fff;font-weight:700;border:none;">📥 Export CSV / Excel</button>
         <button onclick="window.printExpensesReport()" style="background:#4F46E5;color:#fff;font-weight:700;border:none;">🖨️ Print / PDF Report</button>
         <button onclick="window.shareExpensesWhatsApp()" style="background:#16A34A;color:#fff;font-weight:700;border:none;" title="Share monthly expenses on WhatsApp">💬 WhatsApp Summary</button>
@@ -2284,4 +2286,321 @@ window.getExpPaidBy = function() {
   return dropdown.value || null;
 };
 
-console.log('✅ Expenses Paid-By module loaded');
+// ═══════════════════════════════════════════════════════════
+// 📶 WI-FI RECHARGE & INSTALLATION TRACKER (18 HOMESTAYS)
+// ═══════════════════════════════════════════════════════════
+window.openWifiRechargeModal = async function() {
+  const { data: rooms } = await sb.from('rooms').select('room_id, unit_no, nickname').order('unit_no');
+  const modalId = 'wifiRechargeModal';
+  const existing = document.getElementById(modalId);
+  if (existing) existing.remove();
+
+  const today = new Date().toISOString().slice(0, 10);
+
+  const html = `
+    <div id="${modalId}" class="modal-backdrop active" style="display:flex;align-items:center;justify-content:center;z-index:99999;position:fixed;inset:0;background:rgba(15,23,42,0.6);backdrop-filter:blur(4px);padding:16px;">
+      <div class="card" style="max-width:540px;width:100%;border-radius:18px;box-shadow:0 20px 40px rgba(0,0,0,0.25);position:relative;background:#fff;max-height:92vh;overflow-y:auto;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;border-bottom:1px solid #f1f5f9;padding-bottom:10px;">
+          <div style="display:flex;align-items:center;gap:10px;">
+            <span style="font-size:26px;">📶</span>
+            <div>
+              <h2 style="margin:0;font-size:17px;font-weight:800;color:#1e293b;">Wi-Fi Recharge &amp; Installation</h2>
+              <div style="font-size:12px;color:#64748b;">Broadband tracking across all 18 homestays</div>
+            </div>
+          </div>
+          <button type="button" onclick="document.getElementById('${modalId}').remove()" style="background:none;border:none;font-size:20px;cursor:pointer;color:#94a3b8;">✕</button>
+        </div>
+
+        <form id="wifiRechargeForm" onsubmit="window.saveWifiRecharge(event)">
+          <div class="form-group" style="margin-bottom:12px;">
+            <label style="font-size:12.5px;font-weight:700;">Property / Flat *</label>
+            <select id="wifiRoomId" required style="width:100%;padding:9px;border:1.5px solid #e2e8f0;border-radius:10px;font-weight:600;">
+              <option value="">Select Property (18 Available)</option>
+              ${(rooms || []).map(r => `<option value="${r.room_id}">${escapeHtml(propLabel(r))}</option>`).join('')}
+            </select>
+          </div>
+
+          <div class="form-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
+            <div class="form-group">
+              <label style="font-size:12.5px;font-weight:700;">Action Type *</label>
+              <select id="wifiActionType" required style="width:100%;padding:9px;border:1.5px solid #e2e8f0;border-radius:10px;">
+                <option value="Recharge">📶 Monthly Recharge</option>
+                <option value="Installation">🛠️ New Line Installation</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label style="font-size:12.5px;font-weight:700;">ISP Provider *</label>
+              <select id="wifiIsp" required style="width:100%;padding:9px;border:1.5px solid #e2e8f0;border-radius:10px;">
+                <option value="Airtel Fiber">Airtel Xstream Fiber</option>
+                <option value="Jio Fiber">JioFiber</option>
+                <option value="ACT Fibernet">ACT Fibernet</option>
+                <option value="Tata Play">Tata Play Fiber</option>
+                <option value="BSNL Fiber">BSNL Bharat Fiber</option>
+                <option value="Other">Other Broadband</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
+            <div class="form-group">
+              <label style="font-size:12.5px;font-weight:700;">Account / Landline No</label>
+              <input id="wifiAccountNo" placeholder="e.g. 0522-349812 / 1029384" style="width:100%;padding:9px;border:1.5px solid #e2e8f0;border-radius:10px;" />
+            </div>
+            <div class="form-group">
+              <label style="font-size:12.5px;font-weight:700;">Plan Amount ₹ *</label>
+              <input id="wifiAmount" type="number" required placeholder="e.g. 943" style="width:100%;padding:9px;border:1.5px solid #e2e8f0;border-radius:10px;" />
+            </div>
+          </div>
+
+          <div class="form-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
+            <div class="form-group">
+              <label style="font-size:12.5px;font-weight:700;">Recharge / Paid Date *</label>
+              <input id="wifiDate" type="date" value="${today}" required style="width:100%;padding:9px;border:1.5px solid #e2e8f0;border-radius:10px;" />
+            </div>
+            <div class="form-group">
+              <label style="font-size:12.5px;font-weight:700;">Next Cycle Due Date</label>
+              <input id="wifiNextCycle" type="date" style="width:100%;padding:9px;border:1.5px solid #e2e8f0;border-radius:10px;" />
+            </div>
+          </div>
+
+          <div class="form-group" style="margin-bottom:16px;">
+            <label style="font-size:12.5px;font-weight:700;">Payment Source *</label>
+            <select id="wifiPaySource" style="width:100%;padding:9px;border:1.5px solid #0d6efd;border-radius:10px;font-weight:700;">
+              <option value="UHHS-OD">🏦 TUHH-OD (Overdraft Account)</option>
+              <option value="COMPANY">🏢 COMPANY (Cash / QR)</option>
+            </select>
+          </div>
+
+          <div style="display:flex;gap:10px;">
+            <button type="button" class="secondary" onclick="document.getElementById('${modalId}').remove()" style="flex:1;">Cancel</button>
+            <button type="submit" id="wifiSubmitBtn" style="flex:2;background:#EA3829;color:#fff;font-weight:800;border:none;border-radius:10px;padding:10px;">💾 Save Wi-Fi Record</button>
+          </div>
+          <div id="wifiModalErr" style="margin-top:8px;"></div>
+        </form>
+      </div>
+    </div>
+  `;
+  document.body.insertAdjacentHTML('beforeend', html);
+};
+
+window.saveWifiRecharge = async function(e) {
+  e.preventDefault();
+  const btn = document.getElementById('wifiSubmitBtn');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Saving...'; }
+
+  try {
+    const roomId = document.getElementById('wifiRoomId').value;
+    const actionType = document.getElementById('wifiActionType').value;
+    const isp = document.getElementById('wifiIsp').value;
+    const accountNo = document.getElementById('wifiAccountNo').value.trim();
+    const amount = parseFloat(document.getElementById('wifiAmount').value) || 0;
+    const dateVal = document.getElementById('wifiDate').value;
+    const nextDue = document.getElementById('wifiNextCycle').value;
+    const paySource = document.getElementById('wifiPaySource').value;
+
+    if (!roomId || amount <= 0) {
+      document.getElementById('wifiModalErr').innerHTML = '<div class="error">Property &amp; Amount required</div>';
+      if (btn) { btn.disabled = false; btn.textContent = '💾 Save Wi-Fi Record'; }
+      return;
+    }
+
+    // Ensure category exists
+    let { data: cat } = await sb.from('expense_categories')
+      .select('category_id')
+      .ilike('category_name', '%Wi-Fi%')
+      .limit(1)
+      .maybeSingle();
+
+    if (!cat) {
+      const { data: newCat } = await sb.from('expense_categories')
+        .insert({ category_name: 'Wi-Fi & Internet' })
+        .select()
+        .single();
+      cat = newCat;
+    }
+
+    const m = dateVal.slice(0, 7);
+    const [y, mm] = m.split('-');
+    const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    const ml = `${monthNames[parseInt(mm, 10) - 1]}-${y}`;
+
+    const note = `[WiFi ${actionType}: ${isp} • Acct: ${accountNo || '-'} • Next Due: ${nextDue || '-'}]`;
+
+    const { error } = await sb.from('expenses').insert({
+      category_id: cat?.category_id || null,
+      room_id: roomId,
+      amount: amount,
+      entry_date: dateVal,
+      month: ml,
+      paid_by: paySource,
+      notes: note
+    });
+
+    if (error) throw error;
+
+    document.getElementById('wifiRechargeModal')?.remove();
+    fsn.success('Wi-Fi Saved', `✅ Wi-Fi ${actionType} recorded for ₹${amount.toLocaleString('en-IN')}`);
+    if (typeof renderExpenses === 'function') renderExpenses();
+  } catch (err) {
+    console.error('saveWifiRecharge error:', err);
+    document.getElementById('wifiModalErr').innerHTML = `<div class="error">${err.message || 'Error saving'}</div>`;
+    if (btn) { btn.disabled = false; btn.textContent = '💾 Save Wi-Fi Record'; }
+  }
+};
+
+// ═══════════════════════════════════════════════════════════
+// 🛵 EMPLOYEE RAPIDO & TRAVEL TRACKER (NON-DEDUCTIBLE)
+// ═══════════════════════════════════════════════════════════
+window.openEmployeeTransportModal = async function() {
+  const { data: emps } = await sb.from('employees').select('emp_id, name, phone').eq('status', 'Active').order('name');
+  const modalId = 'empTransportModal';
+  const existing = document.getElementById(modalId);
+  if (existing) existing.remove();
+
+  const today = new Date().toISOString().slice(0, 10);
+
+  const html = `
+    <div id="${modalId}" class="modal-backdrop active" style="display:flex;align-items:center;justify-content:center;z-index:99999;position:fixed;inset:0;background:rgba(15,23,42,0.6);backdrop-filter:blur(4px);padding:16px;">
+      <div class="card" style="max-width:540px;width:100%;border-radius:18px;box-shadow:0 20px 40px rgba(0,0,0,0.25);position:relative;background:#fff;max-height:92vh;overflow-y:auto;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;border-bottom:1px solid #f1f5f9;padding-bottom:10px;">
+          <div style="display:flex;align-items:center;gap:10px;">
+            <span style="font-size:26px;">🛵</span>
+            <div>
+              <h2 style="margin:0;font-size:17px;font-weight:800;color:#1e293b;">Staff Rapido &amp; Travel Tracker</h2>
+              <div style="font-size:12px;color:#64748b;">Record rides &amp; petrol allowance (Paid by Company / TUHH-OD)</div>
+            </div>
+          </div>
+          <button type="button" onclick="document.getElementById('${modalId}').remove()" style="background:none;border:none;font-size:20px;cursor:pointer;color:#94a3b8;">✕</button>
+        </div>
+
+        <div style="background:#EFF6FF;border:1px solid #BFDBFE;border-radius:10px;padding:10px 14px;margin-bottom:14px;font-size:12px;color:#1E40AF;line-height:1.4;">
+          🛡️ <strong>COMPANY OPERATIONAL EXPENSE:</strong> Ye expense company ya TUHH-OD se pay hota hai. Employee ki monthly salary se <strong>₹0 katenge</strong> (Non-deductible).
+        </div>
+
+        <form id="empTransportForm" onsubmit="window.saveEmpTransport(event)">
+          <div class="form-group" style="margin-bottom:12px;">
+            <label style="font-size:12.5px;font-weight:700;">Employee *</label>
+            <select id="transportEmpId" required style="width:100%;padding:9px;border:1.5px solid #e2e8f0;border-radius:10px;font-weight:600;">
+              <option value="">Select Employee</option>
+              ${(emps || []).map(e => `<option value="${e.emp_id}" data-name="${escapeHtml(e.name)}">${escapeHtml(e.name)} (${escapeHtml(e.phone || '-')})</option>`).join('')}
+            </select>
+          </div>
+
+          <div class="form-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
+            <div class="form-group">
+              <label style="font-size:12.5px;font-weight:700;">Travel Mode *</label>
+              <select id="transportMode" required style="width:100%;padding:9px;border:1.5px solid #e2e8f0;border-radius:10px;">
+                <option value="Rapido Bike">🛵 Rapido Bike</option>
+                <option value="Rapido Auto">🛺 Rapido Auto</option>
+                <option value="Cab / Uber">🚕 Cab / Uber / Ola</option>
+                <option value="Petrol Allowance">⛽ Staff Petrol Allowance</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label style="font-size:12.5px;font-weight:700;">Number of Rides / Trips</label>
+              <input id="transportRideCount" type="number" value="1" min="1" style="width:100%;padding:9px;border:1.5px solid #e2e8f0;border-radius:10px;" />
+            </div>
+          </div>
+
+          <div class="form-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
+            <div class="form-group">
+              <label style="font-size:12.5px;font-weight:700;">Total Amount ₹ *</label>
+              <input id="transportAmount" type="number" required placeholder="e.g. 180" style="width:100%;padding:9px;border:1.5px solid #e2e8f0;border-radius:10px;" />
+            </div>
+            <div class="form-group">
+              <label style="font-size:12.5px;font-weight:700;">Trip Date *</label>
+              <input id="transportDate" type="date" value="${today}" required style="width:100%;padding:9px;border:1.5px solid #e2e8f0;border-radius:10px;" />
+            </div>
+          </div>
+
+          <div class="form-group" style="margin-bottom:12px;">
+            <label style="font-size:12.5px;font-weight:700;">Trip Purpose / Task Details *</label>
+            <input id="transportPurpose" required placeholder="e.g. Guest linen handover at Gomti Nagar, key drop, etc." style="width:100%;padding:9px;border:1.5px solid #e2e8f0;border-radius:10px;" />
+          </div>
+
+          <div class="form-group" style="margin-bottom:16px;">
+            <label style="font-size:12.5px;font-weight:700;">Paid Via *</label>
+            <select id="transportPaySource" style="width:100%;padding:9px;border:1.5px solid #0d6efd;border-radius:10px;font-weight:700;">
+              <option value="UHHS-OD">🏦 TUHH-OD (Direct App Booking / Overdraft)</option>
+              <option value="COMPANY">🏢 COMPANY (Reimbursement / Cash in Hand)</option>
+            </select>
+          </div>
+
+          <div style="display:flex;gap:10px;">
+            <button type="button" class="secondary" onclick="document.getElementById('${modalId}').remove()" style="flex:1;">Cancel</button>
+            <button type="submit" id="transportSubmitBtn" style="flex:2;background:#D97706;color:#fff;font-weight:800;border:none;border-radius:10px;padding:10px;">💾 Save Travel Record</button>
+          </div>
+          <div id="transportModalErr" style="margin-top:8px;"></div>
+        </form>
+      </div>
+    </div>
+  `;
+  document.body.insertAdjacentHTML('beforeend', html);
+};
+
+window.saveEmpTransport = async function(e) {
+  e.preventDefault();
+  const btn = document.getElementById('transportSubmitBtn');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Saving...'; }
+
+  try {
+    const empSelect = document.getElementById('transportEmpId');
+    const empId = empSelect.value;
+    const empName = empSelect.options[empSelect.selectedIndex]?.getAttribute('data-name') || empId;
+    const travelMode = document.getElementById('transportMode').value;
+    const rides = parseInt(document.getElementById('transportRideCount').value, 10) || 1;
+    const amount = parseFloat(document.getElementById('transportAmount').value) || 0;
+    const dateVal = document.getElementById('transportDate').value;
+    const purpose = document.getElementById('transportPurpose').value.trim();
+    const paySource = document.getElementById('transportPaySource').value;
+
+    if (!empId || amount <= 0) {
+      document.getElementById('transportModalErr').innerHTML = '<div class="error">Employee &amp; Amount required</div>';
+      if (btn) { btn.disabled = false; btn.textContent = '💾 Save Travel Record'; }
+      return;
+    }
+
+    // Ensure category exists
+    let { data: cat } = await sb.from('expense_categories')
+      .select('category_id')
+      .ilike('category_name', '%Travel%')
+      .limit(1)
+      .maybeSingle();
+
+    if (!cat) {
+      const { data: newCat } = await sb.from('expense_categories')
+        .insert({ category_id: 'CAT-TRAVEL', category_name: 'Travel & Transport' })
+        .select()
+        .single();
+      cat = newCat;
+    }
+
+    const m = dateVal.slice(0, 7);
+    const [y, mm] = m.split('-');
+    const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    const ml = `${monthNames[parseInt(mm, 10) - 1]}-${y}`;
+
+    const note = `[Staff Travel: ${empName} • ${rides} ${travelMode} Rides • Purpose: ${purpose} • Paid by Company - Non-deductible]`;
+
+    const { error } = await sb.from('expenses').insert({
+      category_id: cat?.category_id || null,
+      amount: amount,
+      entry_date: dateVal,
+      month: ml,
+      paid_by: paySource,
+      notes: note
+    });
+
+    if (error) throw error;
+
+    document.getElementById('empTransportModal')?.remove();
+    fsn.success('Travel Logged', `✅ ${travelMode} (₹${amount.toLocaleString('en-IN')}) saved for ${empName} (Non-deductible)`);
+    if (typeof renderExpenses === 'function') renderExpenses();
+  } catch (err) {
+    console.error('saveEmpTransport error:', err);
+    document.getElementById('transportModalErr').innerHTML = `<div class="error">${err.message || 'Error saving'}</div>`;
+    if (btn) { btn.disabled = false; btn.textContent = '💾 Save Travel Record'; }
+  }
+};
+
+console.log('✅ Expenses Wi-Fi & Transport modules loaded');

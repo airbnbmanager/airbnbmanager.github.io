@@ -193,7 +193,7 @@ async function renderReports() {
           <button class="btn-sm secondary" onclick="calGoToday()" title="Current Month">Today</button>
           <button class="btn-sm secondary" onclick="chMo(1)" title="Next Month">▶</button>
           <button class="btn-sm outline" onclick="renderReports()" title="Refresh live data">🔄</button>
-          <button class="btn-sm" style="background:#059669;color:#fff;" onclick="if(window.renderAddBooking) renderAddBooking();">➕ New Booking</button>
+          <button class="btn-sm" style="background:#EA3829;color:#fff;border:none;border-radius:999px;font-weight:800;padding:6px 14px;box-shadow:0 3px 10px rgba(234,56,41,0.25);" onclick="if(window.renderAddBooking) renderAddBooking();">➕ New Booking</button>
         </div>
       </div>
 
