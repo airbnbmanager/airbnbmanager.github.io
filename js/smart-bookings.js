@@ -824,7 +824,7 @@ function renderAirbnbReservationsHtml(bookings, paidMap, canM, today) {
         const guestPhoto = b.guest_photo || (b.id_proof_photo_path && b.id_proof_photo_path.startsWith('http') ? b.id_proof_photo_path : null);
 
         return `
-          <div class="airbnb-res-card" id="abCard_${b.booking_id}" onclick="window.openBookingDrawer('${b.booking_id}')">
+          <div class="sbk-res-card" id="abCard_${b.booking_id}" onclick="window.openBookingDrawer('${b.booking_id}')">
             <!-- Top Row: Time + Title on Left, Avatar Combo on Right -->
             <div class="airbnb-card-top-header">
               <div class="airbnb-card-title-col">
