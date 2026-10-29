@@ -1680,40 +1680,6 @@ async function renderDashboard() {
           </div>
         `}
       </div>
-
-      <!-- MONTHLY DARK FINANCIAL CARD -->
-      <div class="dash-month-card">
-        <div class="dash-month-head">
-          <div class="dash-month-title">
-            Month Financial Performance &bull; ${new Date().toLocaleString('en-IN', { month: 'long', year: 'numeric' })}
-          </div>
-          <button class="dash-pill-btn" style="background:rgba(255,255,255,0.1);color:#FFFFFF;border-color:rgba(255,255,255,0.2);font-size:11.5px;padding:5px 12px;" onclick="filterAndShowBookings('thisMonth')">
-            Financial Details →
-          </button>
-        </div>
-        <div class="dash-month-grid">
-          <div class="dash-month-item">
-            <div class="dash-month-lbl">Total Bookings</div>
-            <div class="dash-month-val" style="color:#FFFFFF;">${monthBookings}</div>
-          </div>
-          <div class="dash-month-item">
-            <div class="dash-month-lbl">Total Revenue</div>
-            <div class="dash-month-val" style="color:#4ADE80;">₹${monthRevenue.toLocaleString('en-IN')}</div>
-          </div>
-          <div class="dash-month-item">
-            <div class="dash-month-lbl">Amount Collected</div>
-            <div class="dash-month-val" style="color:#38BDF8;">₹${monthCollected.toLocaleString('en-IN')}</div>
-          </div>
-          <div class="dash-month-item">
-            <div class="dash-month-lbl">Average Occupancy</div>
-            <div class="dash-month-val" style="color:#A78BFA;">${occupancyPct}%</div>
-          </div>
-          <div class="dash-month-item">
-            <div class="dash-month-lbl">Pending Balance</div>
-            <div class="dash-month-val" style="color:#F87171;">₹${pendingBalance.toLocaleString('en-IN')}</div>
-          </div>
-        </div>
-      </div>
     </div>
   `, 'dashboard');
 }
