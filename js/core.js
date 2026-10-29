@@ -1712,11 +1712,11 @@ function renderShell(content, activePage = 'dashboard') {
         <!-- Top App Bar — HomeyHuts / Airbnb Style Horizontal Header -->
         <header class="app-topbar">
           <div class="topbar-left">
-            <div class="topbar-brand-group" onclick="navigate('dashboard')" style="display:flex;align-items:center;gap:8px;cursor:pointer;flex-shrink:0;overflow:hidden;max-width:220px;">
+            <div class="topbar-brand-group" onclick="navigate('dashboard')" style="display:flex;align-items:center;gap:10px;cursor:pointer;flex-shrink:0;">
               <img src="assets/logo-emblem.png" alt="TUHH" style="width:34px;height:34px;border-radius:10px;object-fit:cover;box-shadow:0 2px 6px rgba(0,0,0,0.1);flex-shrink:0;" />
-              <div class="topbar-brand-titles" style="display:flex;flex-direction:column;min-width:0;overflow:hidden;">
-                <span class="topbar-brand-main" style="font-weight:900;font-size:13.5px;color:#111827;letter-spacing:0.1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.2;">UNIQUE HAVEN HOMES</span>
-                <span class="topbar-brand-sub" style="font-size:9px;color:#EA3829;font-weight:800;letter-spacing:0.5px;white-space:nowrap;">HOSPITALITY OPS</span>
+              <div class="topbar-brand-titles" style="display:flex;flex-direction:column;">
+                <span class="topbar-brand-main" style="font-weight:900;font-size:13px;color:#222222;letter-spacing:0.2px;white-space:nowrap;line-height:1.2;">UNIQUE HAVEN</span>
+                <span class="topbar-brand-sub" style="font-size:9px;color:var(--primary);font-weight:800;letter-spacing:0.5px;white-space:nowrap;">HOMES OPS</span>
               </div>
             </div>
           </div>

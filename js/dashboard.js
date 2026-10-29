@@ -223,16 +223,17 @@ window.renderAirbnbResCard = function(b, feedType) {
       <div class="airbnb-res-details">
         <div class="airbnb-res-title">${title}</div>
         <div class="airbnb-res-subtitle">${escapeHtml(subtitle)}</div>
+        ${totalAmt > 0 || b.phone ? `
         <div class="airbnb-res-badges" onclick="event.stopPropagation()">
           ${totalAmt > 0 ? (
             isPaid
-              ? `<span style="font-size:10.5px;font-weight:800;color:#059669;background:#ECFDF5;padding:2px 8px;border-radius:6px;border:1px solid #A7F3D0;">🟢 ₹${totalAmt.toLocaleString('en-IN')} Paid</span>`
-              : `<span style="font-size:10.5px;font-weight:800;color:#DC2626;background:#FEF2F2;padding:2px 8px;border-radius:6px;border:1px solid #FECACA;">⚠️ ₹${dueAmt.toLocaleString('en-IN')} Due</span>`
+              ? `<span style="font-size:10.5px;font-weight:700;color:#047857;background:#ecfdf5;padding:2px 8px;border-radius:999px;border:1px solid #a7f3d0;">🟢 ₹${totalAmt.toLocaleString('en-IN')} Paid</span>`
+              : `<span style="font-size:10.5px;font-weight:700;color:#b91c1c;background:#fef2f2;padding:2px 8px;border-radius:999px;border:1px solid #fecaca;">⚠️ ₹${dueAmt.toLocaleString('en-IN')} Due</span>`
           ) : ''}
-          ${b.phone ? `<a href="tel:${b.phone}" class="airbnb-btn-action" style="height:26px;font-size:11px;padding:0 8px;" title="Call">📞 Call</a>` : ''}
-          ${b.phone ? `<button class="airbnb-btn-action wa" style="height:26px;font-size:11px;padding:0 8px;" onclick="shareBookingWhatsApp('${b.booking_id}')" title="WhatsApp">💬 WhatsApp</button>` : ''}
-          ${feedType === 'checkin' && b.phone ? `<button class="airbnb-btn-action primary" style="height:26px;font-size:11px;padding:0 8px;" onclick="sendArrivalDetails('${b.booking_id}')" title="Send Key & Wi-Fi">🔑 Key &amp; Wi-Fi</button>` : ''}
+          ${b.phone ? `<a href="tel:${b.phone}" class="airbnb-btn-action" title="Call">📞 Call</a>` : ''}
+          ${b.phone ? `<button class="airbnb-btn-action wa" onclick="shareBookingWhatsApp('${b.booking_id}')" title="WhatsApp">💬 WhatsApp</button>` : ''}
         </div>
+        ` : ''}
       </div>
       ${window.renderAirbnbOverlappingMedia(b)}
     </div>
