@@ -796,7 +796,10 @@ async function renderInvestorReport(investorId, roomId, month) {
       </div>
 
       <div style="margin-bottom:20px;">
-        <div style="font-size:14px;font-weight:700;margin-bottom:10px;padding:9px 14px;background:#0F172A;color:#fff;border-radius:6px;display:flex;align-items:center;gap:8px;">💸 Expense Summary (${monthName} ${selMonth.split('-')[0]})</div>
+        <div style="font-size:14px;font-weight:700;margin-bottom:10px;padding:9px 14px;background:#0F172A;color:#fff;border-radius:6px;display:flex;align-items:center;justify-content:space-between;gap:8px;">
+          <span>💸 Inbuilt Monthly Operational Expenses (${monthName} ${selMonth.split('-')[0]})</span>
+          <span style="font-size:11px;background:#EA3829;color:#fff;padding:2px 8px;border-radius:10px;">Inbuilt P&L</span>
+        </div>
         ${useDefaults ? '<div style="font-size:11px;color:#666;font-style:italic;margin-bottom:6px;">ℹ️ Showing default expenses (actual not logged)</div>' : ''}
         <table style="width:100%;border-collapse:collapse;font-size:13px;">
           <thead>
@@ -815,8 +818,14 @@ async function renderInvestorReport(investorId, roomId, month) {
               `).join('')
               : (expenses || []).map(e => `
                 <tr>
-                  <td style="padding:8px 12px;border:1px solid #E2E8F0;">${e.expense_categories?.category_name || e.notes || e.category_id || 'Expense'}</td>
-                  <td style="padding:8px 12px;border:1px solid #E2E8F0;text-align:right;">₹${(e.amount || 0).toLocaleString('en-IN')}</td>
+                  <td style="padding:8px 12px;border:1px solid #E2E8F0;">
+                    <strong>${e.expense_categories?.category_name || e.category_id || 'Expense'}</strong>
+                    ${e.notes ? `<span style="font-size:11.5px;color:#64748B;margin-left:6px;">(${e.notes})</span>` : ''}
+                  </td>
+                  <td style="padding:8px 12px;border:1px solid #E2E8F0;text-align:right;">
+                    ₹${(e.amount || 0).toLocaleString('en-IN')}
+                    <span class="no-print" style="cursor:pointer;margin-left:8px;color:#EF4444;font-weight:700;" title="Delete Expense" onclick="deleteInlineInvestorExpense('${e.id}','${investorId}','${roomId}','${selMonth}')">✕</span>
+                  </td>
                 </tr>
               `).join('')}
             <tr style="background:#FEF2F2;font-weight:700;color:#991B1B;">
@@ -825,6 +834,28 @@ async function renderInvestorReport(investorId, roomId, month) {
             </tr>
           </tbody>
         </table>
+
+        <!-- ⚡ INLINE QUICK EXPENSE ENTRY (Single-Screen Simplicity) -->
+        <div class="no-print" style="margin-top:12px;padding:12px 14px;background:#FFF7F5;border:1.5px dashed #EA3829;border-radius:12px;">
+          <div style="font-weight:700;font-size:12.5px;color:#EA3829;margin-bottom:8px;display:flex;align-items:center;gap:6px;">
+            <span>⚡</span> Inbuilt Quick Expense Add (Electricity, Wi-Fi, Laundry, Caretaker, Maintenance)
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+            <select id="inlineExpCat" style="flex:1;min-width:140px;padding:7px 10px;border:1px solid #E2E8F0;border-radius:8px;font-size:12.5px;background:#fff;">
+              <option value="Electricity">⚡ Electricity Bill</option>
+              <option value="WiFi">📶 Wi-Fi Recharge</option>
+              <option value="Caretaker">🧹 Caretaker / Housekeeping</option>
+              <option value="Laundry">🧺 Laundry & Linen</option>
+              <option value="Maintenance">🔧 Maintenance & Repairs</option>
+              <option value="Items">🛒 Items & Consumables</option>
+              <option value="Rent">🏢 Property Rent</option>
+              <option value="Other">📝 Other Expense</option>
+            </select>
+            <input type="number" id="inlineExpAmount" placeholder="Amount (₹)" style="width:120px;padding:7px 10px;border:1px solid #E2E8F0;border-radius:8px;font-size:12.5px;background:#fff;" />
+            <input type="text" id="inlineExpNotes" placeholder="Notes (e.g. Airtel Oct Bill)" style="flex:1;min-width:140px;padding:7px 10px;border:1px solid #E2E8F0;border-radius:8px;font-size:12.5px;background:#fff;" />
+            <button type="button" class="btn-sm" style="background:#EA3829;color:#fff;border:none;font-weight:700;padding:8px 14px;border-radius:8px;cursor:pointer;" onclick="saveInlineInvestorExpense('${investorId}','${roomId}','${selMonth}','${monthShort}')">💾 Add Expense</button>
+          </div>
+        </div>
       </div>
 
       <div style="margin-bottom:20px;">
@@ -2057,3 +2088,55 @@ async function editShareInline(investorId, roomId, currentShare) {
   fsn.success('Success', `✅ Share updated to ${share}%`);
   renderManageInvestors();
 }
+
+// ═══════════════════════════════════════════════════════════
+// ⚡ INBUILT INLINE INVESTOR PROPERTY EXPENSE HANDLERS
+// ═══════════════════════════════════════════════════════════
+window.saveInlineInvestorExpense = async function(investorId, roomId, selMonth, monthShort) {
+  const cat = document.getElementById('inlineExpCat')?.value || 'Other';
+  const amt = parseFloat(document.getElementById('inlineExpAmount')?.value);
+  const notes = document.getElementById('inlineExpNotes')?.value?.trim() || cat;
+
+  if (!amt || isNaN(amt) || amt <= 0) {
+    if (window.fsn) fsn.error('Amount Required', 'Please enter a valid expense amount.');
+    else alert('Please enter a valid expense amount.');
+    return;
+  }
+
+  try {
+    const { data: cats } = await sb.from('expense_categories').select('id, category_name');
+    const matchedCat = (cats || []).find(c => c.category_name.toLowerCase().includes(cat.toLowerCase()));
+    const catId = matchedCat?.id || cats?.[0]?.id || 1;
+
+    const { error } = await sb.from('expenses').insert({
+      room_id: roomId,
+      amount: amt,
+      month: monthShort,
+      category_id: catId,
+      notes: notes,
+      entry_date: new Date().toISOString().slice(0, 10)
+    });
+
+    if (error) throw error;
+    if (window.fsn) fsn.success('Expense Saved', `Added ₹${amt.toLocaleString('en-IN')} for ${notes}`);
+    renderInvestorReport(investorId, roomId, selMonth);
+  } catch(err) {
+    console.error('Error saving inline investor expense:', err);
+    if (window.fsn) fsn.error('Save Failed', err.message);
+    else alert('Error: ' + err.message);
+  }
+};
+
+window.deleteInlineInvestorExpense = async function(id, investorId, roomId, selMonth) {
+  if (!confirm('Are you sure you want to delete this expense entry?')) return;
+  try {
+    const { error } = await sb.from('expenses').delete().eq('id', id);
+    if (error) throw error;
+    if (window.fsn) fsn.success('Deleted', 'Expense entry removed');
+    renderInvestorReport(investorId, roomId, selMonth);
+  } catch(err) {
+    console.error('Error deleting inline expense:', err);
+    if (window.fsn) fsn.error('Delete Failed', err.message);
+  }
+};
+

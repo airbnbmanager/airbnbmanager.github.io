@@ -1525,6 +1525,8 @@ function renderShell(content, activePage = 'dashboard') {
     'property-setup': { title: 'Property Setup', sub: 'Configure rooms, units & pricing', icon: '🏗️' },
     'whatsapp-hub': { title: 'WhatsApp Communications', sub: 'Guest templates & automated messaging', icon: '📱' },
     sop: { title: 'SOP Operational Guide', sub: 'Standard operating procedures for staff', icon: '📘' },
+    investors: { title: 'Investor Reports & P&L', sub: 'Inbuilt monthly property expenses and payouts', icon: '📊' },
+    menu: { title: 'Account & Operations', sub: 'The Unique Haven Homes Pvt. Ltd.', icon: '☰' },
     'user-mgmt': { title: 'User Management', sub: 'System users, roles & permissions', icon: '👤' },
     settings: { title: 'System Settings', sub: 'Global configuration & preferences', icon: '⚙️' },
   };
@@ -2180,6 +2182,7 @@ function navigate(page) {
   // Update active state on bottom navigation
   document.querySelectorAll('.bottom-nav a[data-page], .pwa-bottom-nav .pwa-nav-item[data-page]').forEach(a => {
     const isAct = (a.dataset.page === page) ||
+      (a.dataset.page === 'menu' && page === 'menu') ||
       (a.dataset.page === 'calendar' && (page === 'calendar' || page === 'reports')) ||
       (a.dataset.page === 'bookings' && page === 'bookings') ||
       (a.dataset.page === 'dashboard' && page === 'dashboard') ||
@@ -2211,6 +2214,8 @@ function navigate(page) {
   window._laundryProp = globalProp ? globalProp : 'ALL';
 
   const map = {
+    menu: () => (window.renderAppMenu || renderAppMenu)(),
+    investors: () => (window.renderManageInvestors || renderManageInvestors)(),
     dashboard: () => (window.renderDashboard || renderDashboard)(),
     reports: () => (window.renderReports || window.renderCalendar || (() => {}))(),
     calendar: () => (window.renderCalendar || window.renderReports || (() => {}))(),
@@ -5663,6 +5668,111 @@ window.printDocumentHTML = function(htmlContent, title = 'Document', options = {
   // Initial pass
   document.querySelectorAll('.modal-overlay, .upi-modal-overlay, .luxe-rev-modal-overlay').forEach(ensureCloseButtonOnModal);
 })();
+
+// ═══════════════════════════════════════════════════════════
+// 📱 HOMEYHUTS SCREENSHOT 1 — MASTER APP MENU RENDERER
+// ═══════════════════════════════════════════════════════════
+function renderAppMenu() {
+  const shortName = (SESSION.displayName || 'Praveen Singh').split('(')[0].trim();
+  const initial = shortName.charAt(0).toUpperCase() || 'P';
+  const roleLabel = ({
+    'developer': 'Developer',
+    'admin': 'Admin',
+    'owner': 'Owner',
+    'manager': 'Manager'
+  })[SESSION.role] || SESSION.role || 'Host & Administrator';
+
+  const notifCount = window._pendingCount || 0;
+
+  const html = `
+    <div class="homeyhuts-menu-container">
+      <!-- Profile Header (Screenshot 1) -->
+      <div class="homeyhuts-profile-card" onclick="window.openPreferences && window.openPreferences()">
+        <div class="homeyhuts-avatar-circle">${initial}</div>
+        <div class="homeyhuts-profile-details">
+          <div class="homeyhuts-profile-name">${escapeHtml(shortName)}</div>
+          <div class="homeyhuts-profile-sub">Profile & Settings · <span style="color:#EA3829;font-weight:700;">${roleLabel}</span></div>
+        </div>
+        <div class="homeyhuts-chevron">›</div>
+      </div>
+
+      <!-- Menu List (Screenshot 1) -->
+      <div class="homeyhuts-menu-list">
+        <div class="homeyhuts-menu-row" onclick="window.notifications && window.notifications.openPanel()">
+          <span class="homeyhuts-row-icon">🔔</span>
+          <span class="homeyhuts-row-title">
+            Notifications
+            ${notifCount > 0 ? `<span class="homeyhuts-badge-pill">${notifCount}</span>` : ''}
+          </span>
+          <span class="homeyhuts-chevron">›</span>
+        </div>
+
+        <div class="homeyhuts-menu-row" onclick="navigate('rooms')">
+          <span class="homeyhuts-row-icon">🏠</span>
+          <span class="homeyhuts-row-title">Properties (18 Homestays)</span>
+          <span class="homeyhuts-chevron">›</span>
+        </div>
+
+        <div class="homeyhuts-menu-row" onclick="navigate('investors')">
+          <span class="homeyhuts-row-icon">📊</span>
+          <span class="homeyhuts-row-title">Investor Reports & Monthly P&L (Inbuilt)</span>
+          <span class="homeyhuts-chevron">›</span>
+        </div>
+
+        <div class="homeyhuts-menu-row" onclick="navigate('expenses')">
+          <span class="homeyhuts-row-icon">💰</span>
+          <span class="homeyhuts-row-title">Expenses (Electricity, Wi-Fi, Rapido, Laundry)</span>
+          <span class="homeyhuts-chevron">›</span>
+        </div>
+
+        <div class="homeyhuts-menu-row" onclick="navigate('attendance')">
+          <span class="homeyhuts-row-icon">📋</span>
+          <span class="homeyhuts-row-title">Staff Attendance & Shifts</span>
+          <span class="homeyhuts-chevron">›</span>
+        </div>
+
+        <div class="homeyhuts-menu-row" onclick="navigate('advance')">
+          <span class="homeyhuts-row-icon">🎁</span>
+          <span class="homeyhuts-row-title">Employee Advances & Allowances (Petrol & Rapido)</span>
+          <span class="homeyhuts-chevron">›</span>
+        </div>
+
+        <div class="homeyhuts-menu-row" onclick="navigate('tasks')">
+          <span class="homeyhuts-row-icon">🧰</span>
+          <span class="homeyhuts-row-title">Employee Tasks & Cleaning Checklists</span>
+          <span class="homeyhuts-chevron">›</span>
+        </div>
+
+        <div class="homeyhuts-menu-row" onclick="navigate('whatsapp-hub')">
+          <span class="homeyhuts-row-icon">📱</span>
+          <span class="homeyhuts-row-title">WhatsApp Hub (Live Dynamic Tagged)</span>
+          <span class="homeyhuts-chevron">›</span>
+        </div>
+
+        <div class="homeyhuts-menu-row" onclick="navigate('user-mgmt')">
+          <span class="homeyhuts-row-icon">👤</span>
+          <span class="homeyhuts-row-title">User Management & Permissions</span>
+          <span class="homeyhuts-chevron">›</span>
+        </div>
+
+        <div class="homeyhuts-menu-row" onclick="navigate('settings')">
+          <span class="homeyhuts-row-icon">⚙️</span>
+          <span class="homeyhuts-row-title">System Settings & Brand Info</span>
+          <span class="homeyhuts-chevron">›</span>
+        </div>
+
+        <div class="homeyhuts-menu-row" onclick="document.getElementById('logoutBtn')?.click()" style="margin-top:14px;border-top:1px solid #f3f4f6;">
+          <span class="homeyhuts-row-icon" style="color:#EA3829;">🚪</span>
+          <span class="homeyhuts-row-title" style="color:#EA3829;font-weight:700;">Logout</span>
+          <span class="homeyhuts-chevron">›</span>
+        </div>
+      </div>
+    </div>
+  `;
+  renderShell(html, 'menu');
+}
+window.renderAppMenu = renderAppMenu;
+
 
 
 

@@ -100,8 +100,27 @@ async function buildMessageData(bkId) {
   let caretakerBlock = '';
   let primaryCaretaker = null;
 
-  // Scenario 1: Property has 2 separate caretakers (Day shift & Night shift)
-  if (dayCaretakers.length > 0 && nightCaretakers.length > 0) {
+  // 🎯 PRIORITY 1: REAL-TIME PROPERTY ROW OVERRIDE (Single Source of Truth)
+  // If property table in Supabase has caretaker_name & caretaker_phone updated (e.g. temporary substitute, night shift, or holiday replacement),
+  // always honor the live property record directly!
+  const hasDirectRoomCaretaker = room.caretaker_name && 
+    room.caretaker_name !== 'Pending' && 
+    room.caretaker_name !== 'Unassigned' &&
+    room.caretaker_phone && 
+    cleanPhone(room.caretaker_phone).length >= 10;
+
+  if (hasDirectRoomCaretaker) {
+    let careName = room.caretaker_name;
+    let rawPhone = String(room.caretaker_phone || '');
+    let carePhone = (rawPhone.includes('/') || rawPhone.includes('&') || rawPhone.includes(','))
+      ? rawPhone.split(/[/&,]/).map(p => cleanPhone(p)).filter(p => p.length >= 10).join(' / ')
+      : cleanPhone(rawPhone);
+    const isMulti = careName.includes('&') || carePhone.includes('/');
+    caretakerBlock = `🛡️ *${isMulti ? 'Caretakers' : 'Caretaker'}:* ${careName} (${carePhone})`;
+    primaryCaretaker = { name: careName, phone: carePhone };
+  }
+  // Scenario 2: Property has 2 separate caretakers (Day shift & Night shift)
+  else if (dayCaretakers.length > 0 && nightCaretakers.length > 0) {
     const dC = dayCaretakers[0];
     const nC = nightCaretakers[0];
     caretakerBlock = 
@@ -110,13 +129,13 @@ async function buildMessageData(bkId) {
     const nowH = new Date().getHours();
     primaryCaretaker = (nowH >= 21 || nowH < 9) ? nC : dC;
   } 
-  // Scenario 2: Property has a single caretaker from employees (Single caretaker: NO shift name, 24h duty)
+  // Scenario 3: Property has a single caretaker from employees (Single caretaker: NO shift name, 24h duty)
   else if (propertyStaff.length > 0) {
     const s = propertyStaff[0];
     caretakerBlock = `🛡️ *Caretaker:* ${s.name} (${cleanPhone(s.phone)})`;
     primaryCaretaker = s;
   } 
-  // Scenario 3: Fallback to room's configured caretaker or default company caretaker
+  // Scenario 4: Fallback to room's configured caretaker or default company caretaker
   else {
     let careName = room.caretaker_name || 'Arman & Shuaib';
     let rawPhone = String(room.caretaker_phone || '');
