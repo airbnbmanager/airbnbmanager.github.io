@@ -1,5 +1,5 @@
-const CACHE_NAME = 'tuhh-live-v260';
-const RUNTIME_CACHE = 'tuhh-runtime-v125';
+const CACHE_NAME = 'tuhh-live-v335';
+const RUNTIME_CACHE = 'tuhh-runtime-v335';
 
 const CORE_ASSETS = [
   '/admin.html',
@@ -102,6 +102,24 @@ self.addEventListener('fetch', event => {
             });
           });
         })
+    );
+    return;
+  }
+
+  // HTML navigation & document requests: ALWAYS Network-first so updates are received immediately
+  if (req.mode === 'navigate' || url.pathname.endsWith('.html') || url.pathname === '/' || url.pathname === '') {
+    event.respondWith(
+      fetch(req)
+        .then(res => {
+          if (res && res.status === 200) {
+            const clone = res.clone();
+            caches.open(CACHE_NAME).then(cache => {
+              try { cache.put(req, clone); } catch(e) {}
+            });
+          }
+          return res;
+        })
+        .catch(() => caches.match(req).then(cached => cached || caches.match('/admin.html')))
     );
     return;
   }

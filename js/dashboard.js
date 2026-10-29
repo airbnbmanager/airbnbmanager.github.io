@@ -135,11 +135,122 @@ window.filterRoomMatrix = function(status, btn) {
 };
 
 // ═══════════════════════════════════════════════════════════
+// 🏡 AIRBNB HOSTING FEED CARD HELPERS (GLOBAL & BACKWARDS-COMPATIBLE)
+// ═══════════════════════════════════════════════════════════
+window.formatAirbnbDateRange = function(inStr, outStr) {
+  if (!inStr) return '';
+  try {
+    const dIn = new Date(inStr + 'T00:00:00');
+    const mIn = dIn.toLocaleString('en-US', { month: 'short' });
+    const dayIn = dIn.getDate();
+    if (!outStr) return `${dayIn} ${mIn}`;
+    const dOut = new Date(outStr + 'T00:00:00');
+    const mOut = dOut.toLocaleString('en-US', { month: 'short' });
+    const dayOut = dOut.getDate();
+    if (mIn === mOut) return `${dayIn}–${dayOut} ${mIn}`;
+    return `${dayIn} ${mIn} – ${dayOut} ${mOut}`;
+  } catch(e) {
+    return inStr;
+  }
+};
+
+window.getAirbnbGuestNarrative = function(b, feedType) {
+  const rawName = (b && b.guest_name ? b.guest_name : 'Guest').trim();
+  const guestCount = Number(b && (b.total_guests || b.guests_count || b.num_guests) || 0) || (feedType === 'checkout' ? 7 : (feedType === 'checkin' ? 8 : 4));
+  const countStr = `group of ${guestCount}`;
+
+  if (feedType === 'checkout') {
+    return `${escapeHtml(rawName)}'s ${countStr} checks out`;
+  } else if (feedType === 'checkin') {
+    return `${escapeHtml(rawName)}'s ${countStr} checks in`;
+  } else if (feedType === 'inhouse') {
+    return `${escapeHtml(rawName)}'s ${countStr} stays for one more day`;
+  } else {
+    return `${escapeHtml(rawName)}'s ${countStr}`;
+  }
+};
+
+window.getAirbnbPropertySubtitle = function(b) {
+  if (!b) return 'The Unique Haven Homes';
+  const base = (window.ShowcaseData && window.ShowcaseData.BASELINE && window.ShowcaseData.BASELINE[b.room_id]) || {};
+  if (base.name && base.area_name) {
+    return `${base.name} / ${base.area_name}`;
+  }
+  return b.rooms?.property_name || base.name || (typeof propLabel === 'function' ? propLabel(b.rooms) : '') || b.room_id || 'The Unique Haven Homes';
+};
+
+window.renderAirbnbOverlappingMedia = function(b) {
+  if (!b) return '';
+  const base = (window.ShowcaseData && window.ShowcaseData.BASELINE && window.ShowcaseData.BASELINE[b.room_id]) || {};
+  const coverImg = base.cover_image || 'assets/logo-emblem.png';
+  const name = b.guest_name || 'Guest';
+  const initial = name.trim().charAt(0).toUpperCase() || 'G';
+
+  const colors = ['#DBEAFE', '#DCFCE7', '#FEF3C7', '#F3E8FF', '#FCE7F3', '#FFEDD5'];
+  const charCode = initial.charCodeAt(0) || 0;
+  const bg = colors[charCode % colors.length];
+  const guestPhoto = b.guest_photo_url || b.id_photo || null;
+
+  return `
+    <div class="airbnb-res-media">
+      <div class="airbnb-avatar-bubble" style="background:${bg};">
+        ${guestPhoto ? `<img src="${guestPhoto}" alt="${escapeHtml(name)}" />` : `<span>${initial}</span>`}
+      </div>
+      <img src="${coverImg}" alt="${escapeHtml(base.name || 'Listing')}" class="airbnb-thumb-bubble" onerror="this.onerror=null;this.src='assets/logo-emblem.png';" />
+    </div>
+  `;
+};
+
+window.renderAirbnbResCard = function(b, feedType) {
+  if (!b) return '';
+  const timeStr = feedType === 'checkout'
+    ? (b.check_out_time || '11:00 am')
+    : (feedType === 'checkin'
+      ? (b.check_in_time || '2:00 pm')
+      : (feedType === 'inhouse' ? 'All day' : window.formatAirbnbDateRange(b.check_in, b.check_out)));
+
+  const title = window.getAirbnbGuestNarrative(b, feedType);
+  const subtitle = window.getAirbnbPropertySubtitle(b);
+  const totalAmt = Number(b.total_amount || 0);
+  const pMap = window._dashboardPaidMap || {};
+  const paidAmt = Number(pMap[b.booking_id] || 0);
+  const dueAmt = totalAmt - paidAmt;
+  const isPaid = totalAmt > 0 && dueAmt <= 0;
+
+  return `
+    <div class="airbnb-res-card" onclick="openBookingFromDashboard('${b.booking_id}')" title="Click to view details">
+      <div class="airbnb-res-time">${timeStr}</div>
+      <div class="airbnb-res-details">
+        <div class="airbnb-res-title">${title}</div>
+        <div class="airbnb-res-subtitle">${escapeHtml(subtitle)}</div>
+        <div class="airbnb-res-badges" onclick="event.stopPropagation()">
+          ${totalAmt > 0 ? (
+            isPaid
+              ? `<span style="font-size:10.5px;font-weight:800;color:#059669;background:#ECFDF5;padding:2px 8px;border-radius:6px;border:1px solid #A7F3D0;">🟢 ₹${totalAmt.toLocaleString('en-IN')} Paid</span>`
+              : `<span style="font-size:10.5px;font-weight:800;color:#DC2626;background:#FEF2F2;padding:2px 8px;border-radius:6px;border:1px solid #FECACA;">⚠️ ₹${dueAmt.toLocaleString('en-IN')} Due</span>`
+          ) : ''}
+          ${b.phone ? `<a href="tel:${b.phone}" class="airbnb-btn-action" style="height:26px;font-size:11px;padding:0 8px;" title="Call">📞 Call</a>` : ''}
+          ${b.phone ? `<button class="airbnb-btn-action wa" style="height:26px;font-size:11px;padding:0 8px;" onclick="shareBookingWhatsApp('${b.booking_id}')" title="WhatsApp">💬 WhatsApp</button>` : ''}
+          ${feedType === 'checkin' && b.phone ? `<button class="airbnb-btn-action primary" style="height:26px;font-size:11px;padding:0 8px;" onclick="sendArrivalDetails('${b.booking_id}')" title="Send Key & Wi-Fi">🔑 Key &amp; Wi-Fi</button>` : ''}
+        </div>
+      </div>
+      ${window.renderAirbnbOverlappingMedia(b)}
+    </div>
+  `;
+};
+
+window.renderAirbnbGuestItem = function(b, feedType) {
+  return window.renderAirbnbResCard(b, feedType);
+};
+
+// ═══════════════════════════════════════════════════════════
 // MAIN DASHBOARD RENDER
 // ═══════════════════════════════════════════════════════════
 async function renderDashboard() {
   if (window.showLoadingSkeleton) window.showLoadingSkeleton('metrics');
   renderShell(`<div class="loading">Loading dashboard...</div>`, 'dashboard');
+
+  try {
   
   // 🔧 AUTO Payment Overflow Fix (silent, runs on every dashboard load)
   try {
@@ -346,103 +457,13 @@ async function renderDashboard() {
     }
   };
 
-  const formatAirbnbDateRange = (inStr, outStr) => {
-    if (!inStr) return '';
-    try {
-      const dIn = new Date(inStr + 'T00:00:00');
-      const mIn = dIn.toLocaleString('en-US', { month: 'short' });
-      const dayIn = dIn.getDate();
-      if (!outStr) return `${dayIn} ${mIn}`;
-      const dOut = new Date(outStr + 'T00:00:00');
-      const mOut = dOut.toLocaleString('en-US', { month: 'short' });
-      const dayOut = dOut.getDate();
-      if (mIn === mOut) return `${dayIn}–${dayOut} ${mIn}`;
-      return `${dayIn} ${mIn} – ${dayOut} ${mOut}`;
-    } catch(e) {
-      return inStr;
-    }
-  };
-
-  const getAirbnbGuestNarrative = (b, feedType) => {
-    const rawName = (b.guest_name || 'Guest').trim();
-    const guestCount = Number(b.total_guests || b.guests_count || b.num_guests || 0) || (feedType === 'checkout' ? 7 : (feedType === 'checkin' ? 8 : 4));
-    const countStr = `group of ${guestCount}`;
-
-    if (feedType === 'checkout') {
-      return `${escapeHtml(rawName)}'s ${countStr} checks out`;
-    } else if (feedType === 'checkin') {
-      return `${escapeHtml(rawName)}'s ${countStr} checks in`;
-    } else if (feedType === 'inhouse') {
-      return `${escapeHtml(rawName)}'s ${countStr} stays for one more day`;
-    } else {
-      return `${escapeHtml(rawName)}'s ${countStr}`;
-    }
-  };
-
-  const getAirbnbPropertySubtitle = b => {
-    const base = (window.ShowcaseData && window.ShowcaseData.BASELINE && window.ShowcaseData.BASELINE[b.room_id]) || {};
-    if (base.name && base.area_name) {
-      return `${base.name} / ${base.area_name}`;
-    }
-    return b.rooms?.property_name || base.name || propLabel(b.rooms) || b.room_id || 'The Unique Haven Homes';
-  };
-
-  const renderAirbnbOverlappingMedia = b => {
-    const base = (window.ShowcaseData && window.ShowcaseData.BASELINE && window.ShowcaseData.BASELINE[b.room_id]) || {};
-    const coverImg = base.cover_image || 'assets/logo-emblem.png';
-    const name = b.guest_name || 'Guest';
-    const initial = name.trim().charAt(0).toUpperCase() || 'G';
-
-    const colors = ['#DBEAFE', '#DCFCE7', '#FEF3C7', '#F3E8FF', '#FCE7F3', '#FFEDD5'];
-    const charCode = initial.charCodeAt(0) || 0;
-    const bg = colors[charCode % colors.length];
-    const guestPhoto = b.guest_photo_url || b.id_photo || null;
-
-    return `
-      <div class="airbnb-res-media">
-        <div class="airbnb-avatar-bubble" style="background:${bg};">
-          ${guestPhoto ? `<img src="${guestPhoto}" alt="${escapeHtml(name)}" />` : `<span>${initial}</span>`}
-        </div>
-        <img src="${coverImg}" alt="${escapeHtml(base.name || 'Listing')}" class="airbnb-thumb-bubble" onerror="this.onerror=null;this.src='assets/logo-emblem.png';" />
-      </div>
-    `;
-  };
-
-  const renderAirbnbResCard = (b, feedType) => {
-    const timeStr = feedType === 'checkout'
-      ? (b.check_out_time || '11:00 am')
-      : (feedType === 'checkin'
-        ? (b.check_in_time || '2:00 pm')
-        : (feedType === 'inhouse' ? 'All day' : formatAirbnbDateRange(b.check_in, b.check_out)));
-
-    const title = getAirbnbGuestNarrative(b, feedType);
-    const subtitle = getAirbnbPropertySubtitle(b);
-    const totalAmt = Number(b.total_amount || 0);
-    const paidAmt = Number(paidMap[b.booking_id] || 0);
-    const dueAmt = totalAmt - paidAmt;
-    const isPaid = totalAmt > 0 && dueAmt <= 0;
-
-    return `
-      <div class="airbnb-res-card" onclick="openBookingFromDashboard('${b.booking_id}')" title="Click to view details">
-        <div class="airbnb-res-time">${timeStr}</div>
-        <div class="airbnb-res-details">
-          <div class="airbnb-res-title">${title}</div>
-          <div class="airbnb-res-subtitle">${escapeHtml(subtitle)}</div>
-          <div class="airbnb-res-badges" onclick="event.stopPropagation()">
-            ${totalAmt > 0 ? (
-              isPaid
-                ? `<span style="font-size:10.5px;font-weight:800;color:#059669;background:#ECFDF5;padding:2px 8px;border-radius:6px;border:1px solid #A7F3D0;">🟢 ₹${totalAmt.toLocaleString('en-IN')} Paid</span>`
-                : `<span style="font-size:10.5px;font-weight:800;color:#DC2626;background:#FEF2F2;padding:2px 8px;border-radius:6px;border:1px solid #FECACA;">⚠️ ₹${dueAmt.toLocaleString('en-IN')} Due</span>`
-            ) : ''}
-            ${b.phone ? `<a href="tel:${b.phone}" class="airbnb-btn-action" style="height:26px;font-size:11px;padding:0 8px;" title="Call">📞 Call</a>` : ''}
-            ${b.phone ? `<button class="airbnb-btn-action wa" style="height:26px;font-size:11px;padding:0 8px;" onclick="shareBookingWhatsApp('${b.booking_id}')" title="WhatsApp">💬 WhatsApp</button>` : ''}
-            ${feedType === 'checkin' && b.phone ? `<button class="airbnb-btn-action primary" style="height:26px;font-size:11px;padding:0 8px;" onclick="sendArrivalDetails('${b.booking_id}')" title="Send Key & Wi-Fi">🔑 Key &amp; Wi-Fi</button>` : ''}
-          </div>
-        </div>
-        ${renderAirbnbOverlappingMedia(b)}
-      </div>
-    `;
-  };
+  window._dashboardPaidMap = paidMap;
+  const formatAirbnbDateRange = window.formatAirbnbDateRange;
+  const getAirbnbGuestNarrative = window.getAirbnbGuestNarrative;
+  const getAirbnbPropertySubtitle = window.getAirbnbPropertySubtitle;
+  const renderAirbnbOverlappingMedia = window.renderAirbnbOverlappingMedia;
+  const renderAirbnbResCard = window.renderAirbnbResCard;
+  const renderAirbnbGuestItem = window.renderAirbnbGuestItem;
 
   // Time-aware greeting (handles midnight/late night correctly)
   const hour = new Date().getHours();
@@ -1735,6 +1756,22 @@ async function renderDashboard() {
       </div>
     </div>
   `, 'dashboard');
+  } catch (err) {
+    console.error("❌ CRITICAL ERROR in renderDashboard:", err);
+    renderShell(`
+      <div class="card" style="max-width:860px;margin:40px auto;padding:36px;text-align:center;border-radius:20px;border:1px solid #FECACA;background:#FFF5F5;box-shadow:0 8px 30px rgba(234,56,41,0.08);">
+        <div style="font-size:44px;margin-bottom:14px;">⚠️</div>
+        <h2 style="color:#991B1B;font-size:20px;font-weight:800;margin-bottom:8px;">Dashboard Encountered an Issue</h2>
+        <p style="color:#7F1D1D;font-size:13.5px;margin-bottom:20px;line-height:1.5;">
+          ${escapeHtml(err && err.message ? err.message : String(err))}
+        </p>
+        <div style="display:flex;justify-content:center;gap:12px;flex-wrap:wrap;">
+          <button type="button" style="background:#EA3829;color:#fff;border:none;padding:10px 24px;border-radius:999px;font-weight:800;font-size:13px;cursor:pointer;box-shadow:0 4px 14px rgba(234,56,41,0.3);" onclick="renderDashboard()">🔄 Retry Dashboard</button>
+          <button type="button" style="background:#0F172A;color:#fff;border:none;padding:10px 24px;border-radius:999px;font-weight:800;font-size:13px;cursor:pointer;" onclick="navigate('bookings')">📅 View Bookings</button>
+        </div>
+      </div>
+    `, 'dashboard');
+  }
 }
 
 // ============ CHECKIN MANAGER VIEW ============

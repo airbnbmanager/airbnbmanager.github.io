@@ -10,17 +10,17 @@
   --theme-accent: #EA3829;
   --theme-homeyhuts-coral: #EA3829;
   --theme-homeyhuts-peach: #FFEBE8;
-  --theme-homeyhuts-canvas: #FFF7F5;
+  --theme-homeyhuts-canvas: #F8FAFC;
 
   /* Executive Dark Contrast Sidebar */
   --dark: #0f172a;
   --sidebar-bg: #0f172a;
 
-  /* Surface & Canvas System */
-  --bg: #FFF7F5; /* Warm Ivory Peach Canvas */
-  --bg-primary: #FFF7F5;
+  /* Surface & Canvas System — Homey India Slate & Crisp White */
+  --bg: #F8FAFC; /* Clean Modern Slate Canvas */
+  --bg-primary: #F8FAFC;
   --bg-secondary: #ffffff;
-  --bg-tertiary: #f9fafb;
+  --bg-tertiary: #f1f5f9;
   --card: #ffffff;
   --card-bg: #ffffff;
 
@@ -32,8 +32,8 @@
   --muted: #6b7280;
 
   /* Crisp Border Tokens */
-  --border: #e5e7eb;
-  --border-color: #e5e7eb;
+  --border: #e2e8f0;
+  --border-color: #e2e8f0;
   --border-light: #f1f5f9;
 
   /* Status Colors */
@@ -616,11 +616,6 @@ html, body, #app {
   font-size: 12.5px;
   font-weight: 700;
   color: #111827;
-}
-  /* Prevent blur overflow on Safari/iPad */
-  -webkit-transform: translateZ(0);
-  transform: translateZ(0);
-  will-change: auto;
 }
 
 .topbar-left {
@@ -9108,10 +9103,11 @@ textarea:focus {
 }
 
 .topbar-property-selector {
-  border-radius: 10px !important;
-  border: 1px solid var(--border) !important;
-  background: var(--card) !important;
-  box-shadow: var(--shadow-xs) !important;
+  border-radius: 999px !important;
+  border: 1px solid #E2E8F0 !important;
+  background: #FFFFFF !important;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04) !important;
+  padding: 4px 12px !important;
 }
 
 /* 7. Sidebar Active Nav Item Polish (Sleek Indigo Luxe, No harsh gradient) */
