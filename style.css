@@ -511,29 +511,33 @@ html, body, #app {
   position: sticky;
   top: 0;
   z-index: 1000;
-  height: 68px;
+  height: 60px;
   background: rgba(255, 255, 255, 0.98);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  border-bottom: 1px solid #f3f4f6;
+  border-bottom: 1px solid #f0f0f0;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 28px;
-  gap: 16px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.02);
+  padding: 0 24px;
+  gap: 12px;
+  box-shadow: 0 1px 8px rgba(0, 0, 0, 0.04);
 }
 
 .topbar-desktop-nav {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 2px;
+  flex: 1 1 0;
+  min-width: 0;
+  justify-content: center;
+  overflow: hidden;
 }
 
 .topbar-desktop-nav a {
-  padding: 7px 14px;
+  padding: 7px 12px;
   border-radius: 999px;
-  font-size: 13.5px;
+  font-size: 13px;
   font-weight: 600;
   color: #4b5563;
   text-decoration: none;
@@ -542,6 +546,7 @@ html, body, #app {
   align-items: center;
   gap: 5px;
   white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .topbar-desktop-nav a:hover {
@@ -558,6 +563,25 @@ html, body, #app {
 @media (max-width: 1024px) {
   .topbar-desktop-nav {
     display: none !important;
+  }
+}
+
+/* Medium screens (1025-1280px): compact nav, hide emoji */
+@media (min-width: 1025px) and (max-width: 1280px) {
+  .topbar-desktop-nav a {
+    padding: 6px 10px !important;
+    font-size: 12px !important;
+    gap: 3px !important;
+  }
+  .topbar-desktop-nav a .nav-emoji {
+    display: none;
+  }
+  .topbar-property-selector select {
+    max-width: 130px !important;
+  }
+  .app-topbar {
+    padding: 0 16px !important;
+    gap: 8px !important;
   }
 }
 
@@ -623,6 +647,43 @@ html, body, #app {
   align-items: center;
   gap: 14px;
   min-width: 0;
+  flex-shrink: 0;
+}
+
+.topbar-brand-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  overflow: hidden;
+  max-width: 210px;
+  cursor: pointer;
+}
+
+.topbar-brand-titles {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.topbar-brand-main {
+  font-weight: 900;
+  font-size: 13.5px;
+  color: #111827;
+  letter-spacing: 0.1px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.2;
+}
+
+.topbar-brand-sub {
+  font-size: 9px;
+  color: #EA3829;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
 }
 
 .mobile-hamburger-btn {
@@ -696,7 +757,7 @@ html, body, #app {
 .topbar-right {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   flex-shrink: 0;
 }
 
@@ -1154,8 +1215,8 @@ html, body, #app {
     display: none !important;
   }
   .topbar-brand-titles .topbar-brand-main {
-    font-size: 13px !important;
-    max-width: 145px !important;
+    font-size: 12.5px !important;
+    max-width: 120px !important;
     white-space: nowrap !important;
     overflow: hidden !important;
     text-overflow: ellipsis !important;
@@ -9431,6 +9492,7 @@ textarea:focus {
   align-items: center;
   gap: 6px;
   flex-wrap: wrap;
+  margin-top: 2px;
 }
 
 .airbnb-res-media {
@@ -9535,15 +9597,39 @@ textarea:focus {
     font-size: 24px;
   }
   .airbnb-res-card {
-    padding: 14px 16px;
-    gap: 12px;
+    padding: 12px 14px;
+    gap: 10px;
+    border-radius: 14px;
   }
   .airbnb-res-time {
-    width: 72px;
-    font-size: 12px;
+    width: 64px;
+    font-size: 11.5px;
+    flex-shrink: 0;
   }
   .airbnb-res-title {
     font-size: 14px;
+  }
+  .airbnb-res-subtitle {
+    font-size: 12px;
+  }
+  .airbnb-res-media {
+    width: 64px;
+    height: 42px;
+  }
+  .airbnb-avatar-bubble {
+    width: 36px;
+    height: 36px;
+    font-size: 13px;
+  }
+  .airbnb-thumb-bubble {
+    width: 32px;
+    height: 32px;
+  }
+  .airbnb-btn-action {
+    height: 26px !important;
+    font-size: 11px !important;
+    padding: 0 8px !important;
+    border-radius: 8px !important;
   }
 }
 

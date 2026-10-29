@@ -1712,24 +1712,24 @@ function renderShell(content, activePage = 'dashboard') {
         <!-- Top App Bar — HomeyHuts / Airbnb Style Horizontal Header -->
         <header class="app-topbar">
           <div class="topbar-left">
-            <div class="topbar-brand-group" onclick="navigate('dashboard')" style="display:flex;align-items:center;gap:10px;cursor:pointer;">
-              <img src="assets/logo-emblem.png" alt="TUHH" style="width:36px;height:36px;border-radius:10px;object-fit:cover;box-shadow:0 2px 6px rgba(0,0,0,0.1);flex-shrink:0;" />
-              <div class="topbar-brand-titles" style="display:flex;flex-direction:column;min-width:0;">
-                <span class="topbar-brand-main" style="font-weight:900;font-size:14px;color:#111827;letter-spacing:0.2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">THE UNIQUE HAVEN HOMES</span>
-                <span class="topbar-brand-sub" style="font-size:9.5px;color:#EA3829;font-weight:800;letter-spacing:0.4px;">HOSPITALITY OPS</span>
+            <div class="topbar-brand-group" onclick="navigate('dashboard')" style="display:flex;align-items:center;gap:8px;cursor:pointer;flex-shrink:0;overflow:hidden;max-width:220px;">
+              <img src="assets/logo-emblem.png" alt="TUHH" style="width:34px;height:34px;border-radius:10px;object-fit:cover;box-shadow:0 2px 6px rgba(0,0,0,0.1);flex-shrink:0;" />
+              <div class="topbar-brand-titles" style="display:flex;flex-direction:column;min-width:0;overflow:hidden;">
+                <span class="topbar-brand-main" style="font-weight:900;font-size:13.5px;color:#111827;letter-spacing:0.1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.2;">UNIQUE HAVEN HOMES</span>
+                <span class="topbar-brand-sub" style="font-size:9px;color:#EA3829;font-weight:800;letter-spacing:0.5px;white-space:nowrap;">HOSPITALITY OPS</span>
               </div>
             </div>
           </div>
 
           <!-- Desktop Center Navigation Links (HomeyHuts Style) -->
           <nav class="topbar-desktop-nav">
-            <a href="javascript:void(0)" onclick="navigate('dashboard')" class="${activePage==='dashboard'?'active':''}">🏠 Hosting</a>
-            <a href="javascript:void(0)" onclick="navigate('calendar')" class="${(activePage==='calendar'||activePage==='reports')?'active':''}">📅 Calendar</a>
-            <a href="javascript:void(0)" onclick="navigate('bookings')" class="${activePage==='bookings'?'active':''}">🛎️ Reservations</a>
-            <a href="javascript:void(0)" onclick="navigate('rooms')" class="${activePage==='rooms'?'active':''}">🏢 Properties</a>
-            <a href="javascript:void(0)" onclick="navigate('employees')" class="${(activePage==='employees'||activePage==='attendance'||activePage==='tasks'||activePage==='advance')?'active':''}">👥 Staff &amp; Tasks</a>
-            <a href="javascript:void(0)" onclick="navigate('investors')" class="${activePage==='investors'?'active':''}">📊 Investors &amp; P&amp;L</a>
-            <a href="javascript:void(0)" onclick="navigate('expenses')" class="${activePage==='expenses'?'active':''}">💰 Expenses</a>
+            <a href="javascript:void(0)" onclick="navigate('dashboard')" class="${activePage==='dashboard'?'active':''}"><span class="nav-emoji">🏠</span> Hosting</a>
+            <a href="javascript:void(0)" onclick="navigate('calendar')" class="${(activePage==='calendar'||activePage==='reports')?'active':''}"><span class="nav-emoji">📅</span> Calendar</a>
+            <a href="javascript:void(0)" onclick="navigate('bookings')" class="${activePage==='bookings'?'active':''}"><span class="nav-emoji">🛎️</span> Reservations</a>
+            <a href="javascript:void(0)" onclick="navigate('rooms')" class="${activePage==='rooms'?'active':''}"><span class="nav-emoji">🏢</span> Properties</a>
+            <a href="javascript:void(0)" onclick="navigate('employees')" class="${(activePage==='employees'||activePage==='attendance'||activePage==='tasks'||activePage==='advance')?'active':''}"><span class="nav-emoji">👥</span> Staff &amp; Tasks</a>
+            <a href="javascript:void(0)" onclick="navigate('investors')" class="${activePage==='investors'?'active':''}"><span class="nav-emoji">📊</span> Investors &amp; P&amp;L</a>
+            <a href="javascript:void(0)" onclick="navigate('expenses')" class="${activePage==='expenses'?'active':''}"><span class="nav-emoji">💰</span> Expenses</a>
           </nav>
 
           <div class="topbar-right">
