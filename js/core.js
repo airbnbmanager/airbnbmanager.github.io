@@ -99,39 +99,31 @@ window.getGlobalSelectedProperty = function() {
 };
 
 window.handleGlobalPropertyFilterChange = function(roomId) {
+  const cleanId = (roomId || '').trim();
   try {
-    localStorage.setItem('uhhs_global_prop_filter', roomId || '');
+    localStorage.setItem('uhhs_global_prop_filter', cleanId);
   } catch(e) {}
 
   if (window.SESSION) {
-    window.SESSION.bookingPropFilter = roomId || '';
+    window.SESSION.bookingPropFilter = cleanId;
   }
   if (window._sbkState) {
-    window._sbkState.propertyFilter = roomId || '';
+    window._sbkState.propertyFilter = cleanId;
   }
   if (window._guestCRMState) {
-    window._guestCRMState.propertyFilter = roomId || '';
+    window._guestCRMState.propertyFilter = cleanId;
   }
-  window._calRoom = roomId || 'all';
-  window._taskPropFilter = roomId || 'ALL';
-  window._maintProp = roomId || 'ALL';
-  window._laundryProp = roomId || 'ALL';
+  window._calRoom = cleanId || 'all';
+  window._taskPropFilter = cleanId || 'ALL';
+  window._maintProp = cleanId || 'ALL';
+  window._laundryProp = cleanId || 'ALL';
 
-  // Keep select element in sync
-  const topSel = document.getElementById('topbarPropertySelect');
-  if (topSel && topSel.value !== (roomId || '')) {
-    topSel.value = roomId || '';
-  }
-
-  // Visual indication
-  const selWrap = document.getElementById('topbarPropSelector');
-  if (selWrap) {
-    if (roomId) selWrap.classList.add('has-filter');
-    else selWrap.classList.remove('has-filter');
-  }
+  window.syncTopbarPropertySelect();
 
   // Refresh current view if applicable
-  const curPage = window.SESSION?.currentPage || 'dashboard';
+  const curHash = (window.location.hash || '').replace('#', '').trim();
+  const curPage = curHash || window.SESSION?.currentPage || 'dashboard';
+
   if (curPage === 'bookings' && typeof window.renderSmartManageBookings === 'function') {
     window.renderSmartManageBookings(false);
   } else if (curPage === 'guest-crm' && typeof window.renderGuestCRM === 'function') {
@@ -146,18 +138,28 @@ window.handleGlobalPropertyFilterChange = function(roomId) {
     window.renderAnalytics();
   } else if (curPage === 'flats' && typeof window.renderFlatsStatus === 'function') {
     window.renderFlatsStatus();
+  } else if (curPage === 'rooms' && typeof window.renderManageRooms === 'function') {
+    window.renderManageRooms();
   } else if (curPage === 'tasks' && typeof window.renderEmployeeTasks === 'function') {
     window.renderEmployeeTasks();
+  } else if (curPage === 'investors' && typeof window.renderManageInvestors === 'function') {
+    window.renderManageInvestors();
+  } else if (curPage === 'expenses' && typeof window.renderExpenses === 'function') {
+    window.renderExpenses();
+  } else if (curPage === 'attendance' && typeof window.renderAttendance === 'function') {
+    window.renderAttendance();
+  } else if (curPage === 'advance' && typeof window.renderAdvanceTracker === 'function') {
+    window.renderAdvanceTracker();
   } else if (curPage === 'maintenance' && typeof window.renderMaintenanceLog === 'function') {
     window.renderMaintenanceLog();
   } else if (curPage === 'laundry' && typeof window.renderLaundry === 'function') {
     window.renderLaundry();
   }
 
-  const roomObj = (window._globalRoomsList || []).find(r => r.room_id === roomId);
+  const roomObj = (window._globalRoomsList || []).find(r => (r.room_id || '').toUpperCase() === cleanId.toUpperCase());
   const label = roomObj ? (roomObj.nickname || roomObj.room_id) : 'All Properties';
   if (window.fsn?.info) {
-    window.fsn.info('Property Filter', roomId ? `Filtered by ${label}` : 'Showing all properties');
+    window.fsn.info('Property Filter', cleanId ? `Filtered by ${label}` : 'Showing all properties');
   }
 };
 
@@ -184,14 +186,31 @@ window.syncTopbarPropertySelect = function() {
   const sel = document.getElementById('topbarPropertySelect');
   if (!sel) return;
   const data = window._globalRoomsList || [];
-  const selected = window.getGlobalSelectedProperty();
-  sel.innerHTML = `<option value="">All Properties (${data.length || 17})</option>` +
-    data.map(r => `<option value="${r.room_id}" ${selected === r.room_id ? 'selected' : ''}>${r.nickname || r.room_id} (${r.unit_no || '-'})</option>`).join('');
+  const selected = (window.getGlobalSelectedProperty() || '').trim().toUpperCase();
+  sel.innerHTML = `<option value="">All Properties (${data.length || 18})</option>` +
+    data.map(r => {
+      const isSel = (r.room_id || '').trim().toUpperCase() === selected;
+      return `<option value="${r.room_id}" ${isSel ? 'selected' : ''}>${escapeHtml(r.nickname || r.room_id)} (${r.unit_no || '-'})</option>`;
+    }).join('');
   
   const selWrap = document.getElementById('topbarPropSelector');
   if (selWrap) {
-    if (selected) selWrap.classList.add('has-filter');
-    else selWrap.classList.remove('has-filter');
+    if (selected) {
+      selWrap.classList.add('has-filter');
+      if (!selWrap.querySelector('.topbar-prop-clear-btn')) {
+        const clrBtn = document.createElement('button');
+        clrBtn.type = 'button';
+        clrBtn.className = 'topbar-prop-clear-btn';
+        clrBtn.title = 'Clear property filter';
+        clrBtn.style.cssText = 'background:transparent;border:none;color:#DC2626;font-weight:900;cursor:pointer;padding:0 4px;font-size:13px;line-height:1;display:inline-flex;align-items:center;';
+        clrBtn.textContent = '✕';
+        clrBtn.onclick = (e) => { e.stopPropagation(); window.handleGlobalPropertyFilterChange(''); };
+        selWrap.appendChild(clrBtn);
+      }
+    } else {
+      selWrap.classList.remove('has-filter');
+      selWrap.querySelector('.topbar-prop-clear-btn')?.remove();
+    }
   }
 };
 
@@ -569,8 +588,8 @@ window.UserActivityTracker = {
         }, { onConflict: 'user_id,log_date' });
 
         if (error) {
-          // If table does not exist (404 / 42P01), remember and stop querying it
-          if (error.code === '42P01' || error.status === 404 || error.message?.includes('does not exist')) {
+          // If table does not exist or unauthorized (404 / 401 / 42P01), remember and stop querying it
+          if (error.code === '42P01' || error.status === 404 || error.status === 401 || error.code === '404' || error.message?.includes('does not exist')) {
             this._tableAvailable = false;
           }
           if (this._appSettingsAvailable !== false) {
@@ -584,6 +603,7 @@ window.UserActivityTracker = {
         this._syncToAppSettings(rec);
       }
     } catch(e) {
+      this._tableAvailable = false;
       if (this._appSettingsAvailable !== false) {
         this._syncToAppSettings(rec);
       }
@@ -601,7 +621,7 @@ window.UserActivityTracker = {
         .limit(1);
 
       if (selErr) {
-        if (selErr.status === 403 || selErr.code === '42501' || selErr.status === 404) {
+        if (selErr.status === 403 || selErr.status === 401 || selErr.code === '42501' || selErr.status === 404) {
           this._appSettingsAvailable = false;
           return;
         }
@@ -625,8 +645,8 @@ window.UserActivityTracker = {
       }, { onConflict: 'key' });
 
       if (upErr) {
-        // If app_settings upsert forbidden by RLS (403), stop querying it
-        if (upErr.status === 403 || upErr.code === '42501' || upErr.status === 404) {
+        // If app_settings upsert forbidden or unauthorized (401 / 403), stop querying it
+        if (upErr.status === 403 || upErr.status === 401 || upErr.code === '42501' || upErr.status === 404) {
           this._appSettingsAvailable = false;
         }
       } else {
@@ -1600,14 +1620,16 @@ function renderShell(content, activePage = 'dashboard') {
       else a.classList.remove('active', 'active-hub');
     });
 
-    // 4. Update mobile bottom nav
-    document.querySelectorAll('.bottom-nav a[data-page]').forEach(a => {
-      const isAct = (a.dataset.page === activePage) ||
-        (a.dataset.page === 'calendar' && (activePage === 'calendar' || activePage === 'reports')) ||
-        (a.dataset.page === 'bookings' && (activePage === 'dashboard' || activePage === 'bookings')) ||
-        (a.dataset.page === 'flats' && (activePage === 'flats' || activePage === 'properties'));
-      if (isAct) a.classList.add('active');
-      else a.classList.remove('active');
+    // 4. Update mobile bottom nav (HomeyHuts / Airbnb 4-tab capsule pill)
+    document.querySelectorAll('#pwa-bottom-nav .pwa-nav-item, .bottom-nav a').forEach(btn => {
+      const p = btn.dataset.page;
+      const isAct = (activePage === p) ||
+        (p === 'calendar' && (activePage === 'calendar' || activePage === 'reports')) ||
+        (p === 'bookings' && activePage === 'bookings') ||
+        (p === 'dashboard' && activePage === 'dashboard') ||
+        (p === 'menu' && activePage === 'menu');
+      if (isAct) btn.classList.add('active');
+      else btn.classList.remove('active');
     });
 
     // 5. Update URL hash without causing page reload
@@ -1687,17 +1709,14 @@ function renderShell(content, activePage = 'dashboard') {
 
       <!-- ─── MAIN WRAPPER ─── -->
       <div class="app-main-wrapper">
-        <!-- Top App Bar — HomeyHuts Style Horizontal Header -->
+        <!-- Top App Bar — HomeyHuts / Airbnb Style Horizontal Header -->
         <header class="app-topbar">
           <div class="topbar-left">
-            <button class="mobile-hamburger-btn" id="hamburgerBtn" aria-label="Toggle menu" title="Open Navigation Menu">
-              <span></span><span></span><span></span>
-            </button>
             <div class="topbar-brand-group" onclick="navigate('dashboard')" style="display:flex;align-items:center;gap:10px;cursor:pointer;">
-              <img src="assets/logo-emblem.png" alt="TUHH" style="width:36px;height:36px;border-radius:10px;object-fit:cover;box-shadow:0 2px 6px rgba(0,0,0,0.1);" />
-              <div style="display:flex;flex-direction:column;">
-                <span style="font-weight:900;font-size:14px;color:#111827;letter-spacing:0.2px;">THE UNIQUE HAVEN HOMES</span>
-                <span style="font-size:9.5px;color:#EA3829;font-weight:800;letter-spacing:0.4px;">HOSPITALITY OPS</span>
+              <img src="assets/logo-emblem.png" alt="TUHH" style="width:36px;height:36px;border-radius:10px;object-fit:cover;box-shadow:0 2px 6px rgba(0,0,0,0.1);flex-shrink:0;" />
+              <div class="topbar-brand-titles" style="display:flex;flex-direction:column;min-width:0;">
+                <span class="topbar-brand-main" style="font-weight:900;font-size:14px;color:#111827;letter-spacing:0.2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">THE UNIQUE HAVEN HOMES</span>
+                <span class="topbar-brand-sub" style="font-size:9.5px;color:#EA3829;font-weight:800;letter-spacing:0.4px;">HOSPITALITY OPS</span>
               </div>
             </div>
           </div>
@@ -1719,17 +1738,21 @@ function renderShell(content, activePage = 'dashboard') {
               <span class="topbar-prop-icon">🏛️</span>
               <select id="topbarPropertySelect" onchange="window.handleGlobalPropertyFilterChange && window.handleGlobalPropertyFilterChange(this.value)">
                 <option value="">All Properties (${(window._globalRoomsList || []).length || 18})</option>
-                ${(window._globalRoomsList || []).map(r => `
-                  <option value="${r.room_id}" ${(window.getGlobalSelectedProperty ? window.getGlobalSelectedProperty() : '') === r.room_id ? 'selected' : ''}>
+                ${(window._globalRoomsList || []).map(r => {
+                  const isSel = (window.getGlobalSelectedProperty ? (window.getGlobalSelectedProperty() || '').trim().toUpperCase() : '') === (r.room_id || '').trim().toUpperCase();
+                  return `<option value="${r.room_id}" ${isSel ? 'selected' : ''}>
                     ${escapeHtml(r.nickname || r.room_id)} (${r.unit_no || '-'})
-                  </option>
-                `).join('')}
+                  </option>`;
+                }).join('')}
               </select>
+              ${(window.getGlobalSelectedProperty && window.getGlobalSelectedProperty()) ? `
+                <button type="button" class="topbar-prop-clear-btn" onclick="event.stopPropagation(); window.handleGlobalPropertyFilterChange('');" title="Clear property filter" style="background:transparent;border:none;color:#DC2626;font-weight:900;cursor:pointer;padding:0 4px;font-size:13px;line-height:1;display:inline-flex;align-items:center;">✕</button>
+              ` : ''}
             </div>
 
             <!-- Primary Action Button: HomeyHuts Style Coral Red + New Booking -->
-            <button type="button" class="topbar-new-booking-btn" onclick="if(window.renderAddBooking) renderAddBooking();">
-              <span>➕</span> <span>New Booking</span>
+            <button type="button" class="topbar-new-booking-btn" onclick="if(window.renderAddBooking) renderAddBooking();" title="Create New Reservation">
+              <span class="topbar-new-booking-icon">➕</span> <span class="topbar-new-booking-text">New Booking</span>
             </button>
 
             <!-- Notifications Bell -->
@@ -1738,10 +1761,10 @@ function renderShell(content, activePage = 'dashboard') {
             </button>
 
             <!-- User Avatar Pill -->
-            <div class="topbar-avatar-pill" onclick="navigate('menu')" title="Account & Menu">
+            <div class="topbar-avatar-pill" onclick="navigate('menu')" title="Account &amp; Menu">
               <div class="user-avatar-mini">${shortName.charAt(0).toUpperCase()}</div>
               <span class="user-name-mini">${escapeHtml(shortName)}</span>
-              <span style="font-size:10px;color:#9ca3af;">▾</span>
+              <span class="avatar-caret" style="font-size:10px;color:#9ca3af;">▾</span>
             </div>
           </div>
         </header>
@@ -1753,34 +1776,6 @@ function renderShell(content, activePage = 'dashboard') {
           ${footerHtml}
         </main>
       </div>
-
-      <!-- ─── AIRBNB HOST MOBILE BOTTOM NAV ─── -->
-      <nav class="bottom-nav" id="bottomNav">
-        <a href="javascript:void(0)" data-page="dashboard" class="${activePage === 'dashboard' ? 'active' : ''}">
-          <span class="bn-icon">🏠</span>
-          <span class="bn-label">Home</span>
-        </a>
-        <a href="javascript:void(0)" data-page="bookings" class="${activePage === 'bookings' ? 'active' : ''}">
-          <span class="bn-icon">🛎</span>
-          <span class="bn-label">Bookings</span>
-        </a>
-        <a href="javascript:void(0)" data-page="calendar" class="${(activePage === 'calendar' || activePage === 'reports') ? 'active' : ''}">
-          <span class="bn-icon">📅</span>
-          <span class="bn-label">Calendar</span>
-        </a>
-        <a href="javascript:void(0)" data-page="tasks" class="${activePage === 'tasks' ? 'active' : ''}">
-          <span class="bn-icon">✅</span>
-          <span class="bn-label">Tasks</span>
-        </a>
-        <a href="javascript:void(0)" data-page="attendance" class="${(activePage === 'attendance' || activePage === 'att-summary') ? 'active' : ''}">
-          <span class="bn-icon">📋</span>
-          <span class="bn-label">Attendance</span>
-        </a>
-        <a href="javascript:void(0)" data-page="expenses" class="${activePage === 'expenses' ? 'active' : ''}">
-          <span class="bn-icon">💰</span>
-          <span class="bn-label">Expenses</span>
-        </a>
-      </nav>
     </div>`;
 
   // Attach nav handlers

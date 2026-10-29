@@ -1108,7 +1108,7 @@ html, body, #app {
     max-width: 100vw;
   }
   .mobile-hamburger-btn {
-    display: flex;
+    display: none !important;
   }
   .app-topbar {
     padding-top: env(safe-area-inset-top, 0px);
@@ -1138,54 +1138,70 @@ html, body, #app {
 }
 
 @media (max-width: 640px) {
-  /* iPhone & small phone optimizations */
+  /* iPhone & small phone optimizations — Zero Overlap & Pure Airbnb Spacing */
   .app-topbar {
-    padding-left: max(10px, env(safe-area-inset-left)) !important;
-    padding-right: max(10px, env(safe-area-inset-right)) !important;
+    padding-left: max(12px, env(safe-area-inset-left)) !important;
+    padding-right: max(12px, env(safe-area-inset-right)) !important;
     gap: 8px !important;
     height: calc(56px + env(safe-area-inset-top, 0px)) !important;
     justify-content: space-between !important;
   }
   .topbar-left {
-    flex: 0 0 auto !important;
-    min-width: auto !important;
-    gap: 0 !important;
+    flex: 0 1 auto !important;
+    min-width: 0 !important;
+    gap: 6px !important;
   }
+  /* Remove duplicate hamburger on mobile because bottom nav has Menu */
   .mobile-hamburger-btn {
-    display: flex !important;
-    width: 38px !important;
-    height: 38px !important;
-    min-width: 38px !important;
-    flex-shrink: 0 !important;
-  }
-  .page-heading {
     display: none !important;
   }
-  .topbar-search {
+  .topbar-brand-titles .topbar-brand-sub {
     display: none !important;
   }
+  .topbar-brand-titles .topbar-brand-main {
+    font-size: 13px !important;
+    max-width: 145px !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
+  .page-heading,
+  .topbar-search,
   .topbar-mobile-search-btn {
     display: none !important;
   }
   .topbar-right {
-    flex: 1 1 auto !important;
+    flex: 0 0 auto !important;
     min-width: 0 !important;
-    gap: 6px !important;
+    gap: 8px !important;
     justify-content: flex-end !important;
   }
+  /* On small mobile, hide topbar property select to prevent overlapping; user uses the Airbnb filter button */
   .topbar-property-selector {
-    flex: 1 1 auto !important;
-    min-width: 0 !important;
-    max-width: 210px !important;
-    padding: 3px 6px 3px 8px !important;
-    border-radius: 16px !important;
+    display: none !important;
   }
-  .topbar-property-selector select {
-    width: 100% !important;
-    max-width: 100% !important;
-    font-size: 11.5px !important;
-    text-overflow: ellipsis !important;
-    white-space: nowrap !important;
+  .topbar-new-booking-btn {
+    padding: 0 !important;
+    width: 36px !important;
+    height: 36px !important;
+    min-width: 36px !important;
+    border-radius: 50% !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+  .topbar-new-booking-btn .topbar-new-booking-text {
+    display: none !important;
+  }
+  .topbar-avatar-pill .user-name-mini,
+  .topbar-avatar-pill .avatar-caret {
+    display: none !important;
+  }
+  .topbar-avatar-pill {
+    padding: 0 !important;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
   }
   .topbar-qr-pill-btn {
     padding: 5px 8px !important;
@@ -9332,6 +9348,18 @@ textarea:focus {
 .airbnb-filter-btn:hover {
   border-color: #94a3b8;
   background: #f8fafc;
+}
+
+.airbnb-filter-btn.active {
+  background: #FFF1F2 !important;
+  color: #EA3829 !important;
+  border-color: #FECACA !important;
+  box-shadow: 0 1px 4px rgba(234, 56, 41, 0.15) !important;
+}
+
+.airbnb-filter-btn.active:hover {
+  background: #FFE4E6 !important;
+  border-color: #F87171 !important;
 }
 
 .airbnb-feed-heading {

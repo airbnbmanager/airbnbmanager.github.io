@@ -1,4 +1,12 @@
 // ═══════════════════════════════════════════════════════════
+// 🌐 TIMEZONE-AWARE LOCAL DATE HELPER (IST)
+// ═══════════════════════════════════════════════════════════
+function getLocalDateString(d = new Date()) {
+  const offset = d.getTimezoneOffset() * 60000;
+  return new Date(d.getTime() - offset).toISOString().slice(0, 10);
+}
+
+// ═══════════════════════════════════════════════════════════
 // ⏰ ATTENTION NEEDED helper (late checkouts + arriving soon)
 // ═══════════════════════════════════════════════════════════
 function computeAttention(checkinsToday, checkoutsToday) {
@@ -142,7 +150,7 @@ async function renderDashboard() {
 
   const activeUsers = await getActiveUsers();
 
-  const today = new Date().toISOString().slice(0, 10);
+  const today = getLocalDateString();
   const day7 = dateAdd(today, 7);
   const monthStart = today.slice(0, 7) + '-01';
   const now = new Date();
@@ -167,14 +175,34 @@ async function renderDashboard() {
     sb.from("employees").select("emp_id, name").eq('status', 'Active')
   ]);
 
-  const globalProp = (typeof window.getGlobalSelectedProperty === 'function') ? window.getGlobalSelectedProperty() : '';
+  const globalProp = (typeof window.getGlobalSelectedProperty === 'function') ? (window.getGlobalSelectedProperty() || '').trim() : '';
+
+  // Robust room matching across room_id, source_room_id, joined room object, and unit_no
+  const matchesRoom = (item, targetProp) => {
+    if (!targetProp) return true;
+    if (!item) return false;
+    const t = String(targetProp).trim().toUpperCase();
+    const r = item.room_id ? String(item.room_id).trim().toUpperCase() : '';
+    const sr = item.source_room_id ? String(item.source_room_id).trim().toUpperCase() : '';
+    const ro = item.rooms?.room_id ? String(item.rooms.room_id).trim().toUpperCase() : '';
+    const un = item.rooms?.unit_no ? String(item.rooms.unit_no).trim().toUpperCase() : '';
+    return r === t || sr === t || ro === t || (un && un === t);
+  };
+
   const allBookingsRaw = bookings || [];
-  const allBookings = globalProp ? allBookingsRaw.filter(b => b.room_id === globalProp) : allBookingsRaw;
+  const allBookings = globalProp ? allBookingsRaw.filter(b => matchesRoom(b, globalProp)) : allBookingsRaw;
   const pendingWebsiteBookings = allBookings.filter(x => !x.is_cancelled && x.verification_status === 'pending');
   window._pendingCount = pendingWebsiteBookings.length;
+  
   const allFlatsRaw = flats || [];
-  const allFlats = globalProp ? allFlatsRaw.filter(f => f.room_id === globalProp) : allFlatsRaw;
+  const allFlats = globalProp ? allFlatsRaw.filter(f => matchesRoom(f, globalProp)) : allFlatsRaw;
+  
   const allPayments = payments || [];
+  const bookingIdsForProp = new Set(allBookings.map(b => b.booking_id));
+  const propPayments = globalProp ? allPayments.filter(p => bookingIdsForProp.has(p.booking_id)) : allPayments;
+
+  const filteredTasks = globalProp ? (tasks || []).filter(t => matchesRoom(t, globalProp)) : (tasks || []);
+  const filteredMaint = globalProp ? (maint || []).filter(m => matchesRoom(m, globalProp)) : (maint || []);
 
   // Today's check-ins/outs
   const rawCheckins = allBookings.filter(x => x.check_in === today);
@@ -206,7 +234,7 @@ async function renderDashboard() {
 
   // Financial KPIs
   const paidMap = {};
-  allPayments.forEach(p => {
+  propPayments.forEach(p => {
     paidMap[p.booking_id] = (paidMap[p.booking_id] || 0) + (p.amount || 0);
   });
 
@@ -215,7 +243,7 @@ async function renderDashboard() {
   const todayCollected = todayCheckinBookings.reduce((s, b) => s + (paidMap[b.booking_id] || 0), 0);
   const todayPending = todayRevenue - todayCollected;
 
-  const todayPaymentsReceived = allPayments
+  const todayPaymentsReceived = propPayments
     .filter(p => p.payment_date === today)
     .reduce((s, p) => s + (p.amount || 0), 0);
 
@@ -245,8 +273,8 @@ async function renderDashboard() {
   const totalEmps = (emps || []).length;
 
   // Pending tasks
-  const urgentTasks = (tasks || []).filter(t => t.priority === 'Urgent').length;
-  const maintPending = (maint || []).length;
+  const urgentTasks = filteredTasks.filter(t => t.priority === 'Urgent').length;
+  const maintPending = filteredMaint.length;
 
   // Occupancy %
   const occupancyPct = totalProps > 0 ? Math.round(bookedNow.length / totalProps * 100) : 0;
@@ -1286,22 +1314,45 @@ async function renderDashboard() {
             <button type="button" class="airbnb-toggle-btn" id="airbnbTabBtnUpcoming" onclick="window.switchAirbnbFeedTab('upcoming')">Upcoming</button>
           </div>
           <div class="airbnb-filter-wrap">
-            <button type="button" class="airbnb-filter-btn" onclick="const s = document.getElementById('topbarPropertySelect'); if(s) { s.focus(); s.click(); }">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M4 21v-7m0-4V3m8 18v-9m0-4V3m8 18v-5m0-4V3M1 14h6m2-6h6m2 8h6"/></svg>
-              <span>Filter</span>
-            </button>
+            ${globalProp ? `
+              <button type="button" class="airbnb-filter-btn active" onclick="window.openPropertyFilterDialog()" title="Change or clear property filter">
+                <span>🏛️ ${escapeHtml((window._globalRoomsList || []).find(r => (r.room_id||'').toUpperCase() === globalProp.toUpperCase())?.nickname || globalProp)}</span>
+                <span onclick="event.stopPropagation(); window.handleGlobalPropertyFilterChange('');" style="font-weight:900;color:#DC2626;padding-left:4px;font-size:13px;" title="Clear filter">✕</span>
+              </button>
+            ` : `
+              <button type="button" class="airbnb-filter-btn" onclick="window.openPropertyFilterDialog()" title="Filter reservations by property">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M4 21v-7m0-4V3m8 18v-9m0-4V3m8 18v-5m0-4V3M1 14h6m2-6h6m2 8h6"/></svg>
+                <span>Filter</span>
+              </button>
+            `}
           </div>
         </div>
+
+        ${globalProp ? `
+          <div style="max-width:860px;margin:0 auto 16px;background:#FFF5F4;border:1px solid #FECACA;padding:10px 16px;border-radius:14px;display:flex;align-items:center;justify-content:space-between;gap:12px;box-shadow:0 1px 3px rgba(234,56,41,0.06);">
+            <div style="display:flex;align-items:center;gap:8px;">
+              <span style="font-size:16px;">🏛️</span>
+              <span style="font-size:13px;font-weight:700;color:#991B1B;">
+                Filtered view for: <strong>${escapeHtml((window._globalRoomsList || []).find(r => (r.room_id||'').toUpperCase() === globalProp.toUpperCase())?.nickname || globalProp)}</strong>
+              </span>
+            </div>
+            <button type="button" onclick="window.handleGlobalPropertyFilterChange('')" style="background:#fff;border:1px solid #FECACA;color:#EA3829;font-weight:800;font-size:12px;padding:4px 12px;border-radius:20px;cursor:pointer;display:inline-flex;align-items:center;gap:4px;">
+              Show All Properties <span>✕</span>
+            </button>
+          </div>
+        ` : ''}
 
         <h2 class="airbnb-feed-heading" id="airbnbFeedHeading">You have ${totalTodayReservations} reservations</h2>
 
         <!-- 1. TODAY'S RESERVATIONS LIST -->
         <div class="airbnb-feed-list" id="airbnbFeedTodayList">
           ${totalTodayReservations === 0 ? `
-            <div class="card" style="text-align:center;padding:48px 20px;border-radius:18px;border:1px dashed #cbd5e1;max-width:860px;margin:0 auto;">
+            <div class="card" style="text-align:center;padding:48px 20px;border-radius:18px;border:1px dashed #cbd5e1;max-width:860px;margin:0 auto;width:100%;">
               <div style="font-size:36px;margin-bottom:8px;">🏖️</div>
-              <div style="font-size:16px;font-weight:700;color:#1e293b;">No check-ins, check-outs, or active stays today</div>
-              <div style="font-size:13px;color:#64748b;margin-top:4px;">Check upcoming reservations below or create a new booking.</div>
+              <div style="font-size:16px;font-weight:700;color:#1e293b;">No check-ins, check-outs, or active stays today${globalProp ? ' for this property' : ''}</div>
+              <div style="font-size:13px;color:#64748b;margin-top:4px;">
+                ${globalProp ? `<a href="javascript:void(0)" onclick="window.handleGlobalPropertyFilterChange('')" style="color:#EA3829;font-weight:700;text-decoration:underline;">Click here to show all properties</a> or check` : 'Check'} upcoming reservations above.
+              </div>
             </div>
           ` : `
             ${realCheckouts.map(b => renderAirbnbResCard(b, 'checkout')).join('')}
@@ -1313,10 +1364,12 @@ async function renderDashboard() {
         <!-- 2. UPCOMING RESERVATIONS LIST -->
         <div class="airbnb-feed-list" id="airbnbFeedUpcomingList" style="display:none;">
           ${upcomingReservations.length === 0 ? `
-            <div class="card" style="text-align:center;padding:48px 20px;border-radius:18px;border:1px dashed #cbd5e1;max-width:860px;margin:0 auto;">
+            <div class="card" style="text-align:center;padding:48px 20px;border-radius:18px;border:1px dashed #cbd5e1;max-width:860px;margin:0 auto;width:100%;">
               <div style="font-size:36px;margin-bottom:8px;">📅</div>
-              <div style="font-size:16px;font-weight:700;color:#1e293b;">No upcoming reservations found</div>
-              <div style="font-size:13px;color:#64748b;margin-top:4px;">Add a new booking or import from channel manager.</div>
+              <div style="font-size:16px;font-weight:700;color:#1e293b;">No upcoming reservations found${globalProp ? ' for this property' : ''}</div>
+              <div style="font-size:13px;color:#64748b;margin-top:4px;">
+                ${globalProp ? `<a href="javascript:void(0)" onclick="window.handleGlobalPropertyFilterChange('')" style="color:#EA3829;font-weight:700;text-decoration:underline;">Clear filter</a> or add a new booking.` : 'Add a new booking or import from channel manager.'}
+              </div>
             </div>
           ` : `
             ${upcomingReservations.map(b => renderAirbnbResCard(b, 'upcoming')).join('')}
@@ -1413,8 +1466,8 @@ async function renderDashboard() {
               <span class="dash-panel-count red">${maintPending} Issues</span>
             </div>
             <div style="max-height:300px;overflow-y:auto;">
-              ${(maint || []).length === 0 ? `<div class="dash-empty-state">No pending maintenance issues! ✅</div>` :
-                (maint || []).map(m => `
+              ${filteredMaint.length === 0 ? `<div class="dash-empty-state">No pending maintenance issues! ✅</div>` :
+                filteredMaint.map(m => `
                   <div class="dash-guest-item status-maint" onclick="navigate('maintenance')" style="cursor:pointer;">
                     <div>
                       <strong style="color:var(--red);font-size:13px;">${m.room_id || 'General'}</strong>
@@ -1454,11 +1507,11 @@ async function renderDashboard() {
               <div class="dash-panel-title">
                 <span>🧰</span> Pending Tasks
               </div>
-              <span class="dash-panel-count yellow">${(tasks || []).length} Open</span>
+              <span class="dash-panel-count yellow">${filteredTasks.length} Open</span>
             </div>
             <div style="max-height:260px;overflow-y:auto;">
-              ${(tasks || []).length === 0 ? `<div class="dash-empty-state">All tasks completed! 👍</div>` :
-                (tasks || []).slice(0, 5).map(t => `
+              ${filteredTasks.length === 0 ? `<div class="dash-empty-state">All tasks completed! 👍</div>` :
+                filteredTasks.slice(0, 5).map(t => `
                   <div class="dash-guest-item" onclick="navigate('tasks')" style="cursor:pointer;">
                     <div>
                       <strong style="font-size:12.5px;color:var(--text);">${t.employees?.name || 'Unassigned'}</strong>
@@ -2292,5 +2345,81 @@ window._laundryReminderInterval = setInterval(() => {
     }
   }
 }, 2000);
+
+// ═══════════════════════════════════════════════════════════
+// 🏛️ HOMEYHUTS / AIRBNB PROPERTY FILTER DIALOG
+// ═══════════════════════════════════════════════════════════
+window.openPropertyFilterDialog = function() {
+  document.getElementById('propFilterModal')?.remove();
+  const rooms = window._globalRoomsList || [];
+  const current = (window.getGlobalSelectedProperty() || '').trim().toUpperCase();
+
+  const modal = document.createElement('div');
+  modal.id = 'propFilterModal';
+  modal.className = 'modal-backdrop active';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(15,23,42,0.65);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;z-index:999999;padding:16px;';
+  
+  modal.innerHTML = `
+    <div style="background:#ffffff;border-radius:24px;max-width:500px;width:100%;max-height:85vh;display:flex;flex-direction:column;box-shadow:0 25px 60px -15px rgba(0,0,0,0.3);overflow:hidden;border:1px solid #f1f5f9;animation:popIn 0.2s cubic-bezier(0.16,1,0.3,1);">
+      <div style="padding:18px 22px;border-bottom:1px solid #f1f5f9;display:flex;align-items:center;justify-content:space-between;">
+        <div>
+          <h3 style="margin:0;font-size:18px;font-weight:800;color:#111827;letter-spacing:-0.2px;">Filter Reservations</h3>
+          <p style="margin:2px 0 0;font-size:12.5px;color:#717171;">Select a property to view its check-ins &amp; stays</p>
+        </div>
+        <button type="button" onclick="document.getElementById('propFilterModal').remove()" style="background:#f3f4f6;border:none;width:32px;height:32px;border-radius:50%;cursor:pointer;font-weight:800;color:#6b7280;font-size:14px;display:flex;align-items:center;justify-content:center;transition:background 0.15s;">✕</button>
+      </div>
+
+      <div style="padding:12px 20px;border-bottom:1px solid #f3f4f6;">
+        <input type="text" id="propFilterSearch" placeholder="🔍 Search property name or code..." oninput="window.filterPropListInDialog(this.value)" style="width:100%;padding:10px 14px;border:1.5px solid #e5e7eb;border-radius:12px;font-size:13.5px;outline:none;background:#fafafa;" />
+      </div>
+
+      <div id="propFilterList" style="flex:1;overflow-y:auto;padding:12px 18px;display:flex;flex-direction:column;gap:6px;">
+        <div class="prop-filter-item ${!current ? 'selected' : ''}" onclick="window.selectPropertyFromDialog('')" style="display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border-radius:14px;cursor:pointer;border:1.5px solid ${!current ? '#EA3829' : '#f1f5f9'};background:${!current ? '#FFF1F2' : '#ffffff'};transition:all 0.15s ease;">
+          <div style="display:flex;align-items:center;gap:12px;">
+            <div style="width:38px;height:38px;border-radius:12px;background:${!current ? '#FFE4E6' : '#f3f4f6'};color:${!current ? '#EA3829' : '#111827'};display:flex;align-items:center;justify-content:center;font-size:18px;">🌐</div>
+            <div>
+              <div style="font-size:14px;font-weight:800;color:${!current ? '#EA3829' : '#111827'};">All Properties</div>
+              <div style="font-size:12px;color:#717171;">Combined view across all 18 homestays</div>
+            </div>
+          </div>
+          ${!current ? `<span style="color:#EA3829;font-weight:900;font-size:18px;">✓</span>` : ''}
+        </div>
+
+        ${rooms.map(r => {
+          const isSel = (r.room_id || '').toUpperCase() === current;
+          return `
+            <div class="prop-filter-item ${isSel ? 'selected' : ''}" data-query="${escapeHtml((r.nickname || '') + ' ' + (r.unit_no || '') + ' ' + (r.room_id || '')).toLowerCase()}" onclick="window.selectPropertyFromDialog('${r.room_id}')" style="display:flex;align-items:center;justify-content:space-between;padding:11px 14px;border-radius:14px;cursor:pointer;border:1.5px solid ${isSel ? '#EA3829' : '#f1f5f9'};background:${isSel ? '#FFF1F2' : '#ffffff'};transition:all 0.15s ease;">
+              <div style="display:flex;align-items:center;gap:12px;">
+                <div style="width:38px;height:38px;border-radius:12px;background:${isSel ? '#FFE4E6' : '#FFF7F5'};color:#EA3829;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:800;">🏛️</div>
+                <div>
+                  <div style="font-size:13.5px;font-weight:700;color:${isSel ? '#EA3829' : '#111827'};">${escapeHtml(r.nickname || r.room_id)}</div>
+                  <div style="font-size:11.5px;color:#717171;">${escapeHtml(r.unit_no || '-')} &bull; ID: <code>${r.room_id}</code></div>
+                </div>
+              </div>
+              ${isSel ? `<span style="color:#EA3829;font-weight:900;font-size:18px;">✓</span>` : ''}
+            </div>
+          `;
+        }).join('')}
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(modal);
+  document.getElementById('propFilterSearch')?.focus();
+};
+
+window.filterPropListInDialog = function(query) {
+  const q = (query || '').trim().toLowerCase();
+  const items = document.querySelectorAll('#propFilterList .prop-filter-item[data-query]');
+  items.forEach(it => {
+    const hay = it.dataset.query || '';
+    it.style.display = hay.includes(q) ? 'flex' : 'none';
+  });
+};
+
+window.selectPropertyFromDialog = function(roomId) {
+  document.getElementById('propFilterModal')?.remove();
+  window.handleGlobalPropertyFilterChange(roomId);
+};
 
 console.log('✅ Modern Dashboard module loaded');
