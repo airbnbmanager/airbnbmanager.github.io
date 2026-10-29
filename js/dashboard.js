@@ -282,58 +282,136 @@ async function renderDashboard() {
   const bName = b => `${propLabel(b.rooms) || b.room_id || '-'}`;
   const fName = fl => `${propLabel(fl.rooms) || fl.room_id || '-'}`;
 
-  const renderAirbnbGuestItem = (x, type) => {
-    const propPhoto = (window.ShowcaseData && window.ShowcaseData.BASELINE && window.ShowcaseData.BASELINE[x.room_id]?.cover_image)
-      || 'assets/logo-emblem.png';
-    const initials = (x.guest_name || 'G').split(' ').filter(Boolean).map(n => n[0]).slice(0, 2).join('').toUpperCase() || 'G';
-    const totalAmt = Number(x.total_amount || 0);
-    const paidAmt = Number(paidMap[x.booking_id] || 0);
+  const upcomingReservations = allBookings
+    .filter(b => b.check_in > today)
+    .sort((a, b) => (a.check_in || '').localeCompare(b.check_in || ''));
+
+  const past7Days = dateAdd(today, -7);
+  const checkoutFollowups = allBookings
+    .filter(b => b.check_out && b.check_out >= past7Days && b.check_out < today)
+    .slice(0, 4);
+
+  const totalTodayReservations = realCheckouts.length + realCheckins.length + activeNow.length;
+  window._airbnbTodayCount = totalTodayReservations;
+  window._airbnbUpcomingCount = upcomingReservations.length;
+
+  window.switchAirbnbFeedTab = function(tab) {
+    window._airbnbFeedTab = tab;
+    const todayList = document.getElementById('airbnbFeedTodayList');
+    const upcomingList = document.getElementById('airbnbFeedUpcomingList');
+    const heading = document.getElementById('airbnbFeedHeading');
+    const btnToday = document.getElementById('airbnbTabBtnToday');
+    const btnUpcoming = document.getElementById('airbnbTabBtnUpcoming');
+
+    if (tab === 'today') {
+      if (todayList) todayList.style.display = 'flex';
+      if (upcomingList) upcomingList.style.display = 'none';
+      if (heading) heading.textContent = `You have ${window._airbnbTodayCount || 0} reservations`;
+      if (btnToday) btnToday.classList.add('active');
+      if (btnUpcoming) btnUpcoming.classList.remove('active');
+    } else {
+      if (todayList) todayList.style.display = 'none';
+      if (upcomingList) upcomingList.style.display = 'flex';
+      if (heading) heading.textContent = `You have ${window._airbnbUpcomingCount || 0} upcoming reservations`;
+      if (btnToday) btnToday.classList.remove('active');
+      if (btnUpcoming) btnUpcoming.classList.add('active');
+    }
+  };
+
+  const formatAirbnbDateRange = (inStr, outStr) => {
+    if (!inStr) return '';
+    try {
+      const dIn = new Date(inStr + 'T00:00:00');
+      const mIn = dIn.toLocaleString('en-US', { month: 'short' });
+      const dayIn = dIn.getDate();
+      if (!outStr) return `${dayIn} ${mIn}`;
+      const dOut = new Date(outStr + 'T00:00:00');
+      const mOut = dOut.toLocaleString('en-US', { month: 'short' });
+      const dayOut = dOut.getDate();
+      if (mIn === mOut) return `${dayIn}–${dayOut} ${mIn}`;
+      return `${dayIn} ${mIn} – ${dayOut} ${mOut}`;
+    } catch(e) {
+      return inStr;
+    }
+  };
+
+  const getAirbnbGuestNarrative = (b, feedType) => {
+    const rawName = (b.guest_name || 'Guest').trim();
+    const guestCount = Number(b.total_guests || b.guests_count || b.num_guests || 0) || (feedType === 'checkout' ? 7 : (feedType === 'checkin' ? 8 : 4));
+    const countStr = `group of ${guestCount}`;
+
+    if (feedType === 'checkout') {
+      return `${escapeHtml(rawName)}'s ${countStr} checks out`;
+    } else if (feedType === 'checkin') {
+      return `${escapeHtml(rawName)}'s ${countStr} checks in`;
+    } else if (feedType === 'inhouse') {
+      return `${escapeHtml(rawName)}'s ${countStr} stays for one more day`;
+    } else {
+      return `${escapeHtml(rawName)}'s ${countStr}`;
+    }
+  };
+
+  const getAirbnbPropertySubtitle = b => {
+    const base = (window.ShowcaseData && window.ShowcaseData.BASELINE && window.ShowcaseData.BASELINE[b.room_id]) || {};
+    if (base.name && base.area_name) {
+      return `${base.name} / ${base.area_name}`;
+    }
+    return b.rooms?.property_name || base.name || propLabel(b.rooms) || b.room_id || 'The Unique Haven Homes';
+  };
+
+  const renderAirbnbOverlappingMedia = b => {
+    const base = (window.ShowcaseData && window.ShowcaseData.BASELINE && window.ShowcaseData.BASELINE[b.room_id]) || {};
+    const coverImg = base.cover_image || 'assets/logo-emblem.png';
+    const name = b.guest_name || 'Guest';
+    const initial = name.trim().charAt(0).toUpperCase() || 'G';
+
+    const colors = ['#DBEAFE', '#DCFCE7', '#FEF3C7', '#F3E8FF', '#FCE7F3', '#FFEDD5'];
+    const charCode = initial.charCodeAt(0) || 0;
+    const bg = colors[charCode % colors.length];
+    const guestPhoto = b.guest_photo_url || b.id_photo || null;
+
+    return `
+      <div class="airbnb-res-media">
+        <div class="airbnb-avatar-bubble" style="background:${bg};">
+          ${guestPhoto ? `<img src="${guestPhoto}" alt="${escapeHtml(name)}" />` : `<span>${initial}</span>`}
+        </div>
+        <img src="${coverImg}" alt="${escapeHtml(base.name || 'Listing')}" class="airbnb-thumb-bubble" onerror="this.onerror=null;this.src='assets/logo-emblem.png';" />
+      </div>
+    `;
+  };
+
+  const renderAirbnbResCard = (b, feedType) => {
+    const timeStr = feedType === 'checkout'
+      ? (b.check_out_time || '11:00 am')
+      : (feedType === 'checkin'
+        ? (b.check_in_time || '2:00 pm')
+        : (feedType === 'inhouse' ? 'All day' : formatAirbnbDateRange(b.check_in, b.check_out)));
+
+    const title = getAirbnbGuestNarrative(b, feedType);
+    const subtitle = getAirbnbPropertySubtitle(b);
+    const totalAmt = Number(b.total_amount || 0);
+    const paidAmt = Number(paidMap[b.booking_id] || 0);
     const dueAmt = totalAmt - paidAmt;
     const isPaid = totalAmt > 0 && dueAmt <= 0;
 
-    let timeBadge = '';
-    if (type === 'checkin') {
-      timeBadge = `<span>📥 Check-in: <strong>${x.check_in_time || '2:00 PM'}</strong></span>`;
-    } else if (type === 'checkout') {
-      timeBadge = `<span>📤 Checkout: <strong>${x.check_out_time || '11:00 AM'}</strong></span>`;
-    } else {
-      timeBadge = `<span>📅 <strong>${x.check_in}</strong> → <strong>${x.check_out || 'Open'}</strong></span>`;
-    }
-
     return `
-      <div class="airbnb-guest-card">
-        <div class="airbnb-card-media" onclick="openBookingFromDashboard('${x.booking_id}')" style="cursor:pointer;" title="View Details">
-          <img src="${propPhoto}" alt="${escapeHtml(bName(x))}" class="airbnb-prop-thumb" onerror="this.onerror=null;this.src='assets/logo-emblem.png';" />
-          <div class="airbnb-guest-avatar-badge">${initials}</div>
-        </div>
-        <div class="airbnb-card-info">
-          <div class="airbnb-card-primary">
-            <span class="airbnb-guest-name" onclick="openBookingFromDashboard('${x.booking_id}')">${escapeHtml(x.guest_name || 'Guest')}</span>
-            ${getRatingBadge(x.client_rating)}
-            <span class="airbnb-prop-pill">${escapeHtml(bName(x))}</span>
+      <div class="airbnb-res-card" onclick="openBookingFromDashboard('${b.booking_id}')" title="Click to view details">
+        <div class="airbnb-res-time">${timeStr}</div>
+        <div class="airbnb-res-details">
+          <div class="airbnb-res-title">${title}</div>
+          <div class="airbnb-res-subtitle">${escapeHtml(subtitle)}</div>
+          <div class="airbnb-res-badges" onclick="event.stopPropagation()">
             ${totalAmt > 0 ? (
               isPaid
-                ? `<span style="font-size:10.5px;font-weight:800;color:#059669;background:#ECFDF5;padding:2px 7px;border-radius:6px;border:1px solid #A7F3D0;">₹${totalAmt.toLocaleString('en-IN')} Paid</span>`
-                : `<span style="font-size:10.5px;font-weight:800;color:#DC2626;background:#FEF2F2;padding:2px 7px;border-radius:6px;border:1px solid #FECACA;">⚠️ ₹${dueAmt.toLocaleString('en-IN')} Due</span>`
+                ? `<span style="font-size:10.5px;font-weight:800;color:#059669;background:#ECFDF5;padding:2px 8px;border-radius:6px;border:1px solid #A7F3D0;">🟢 ₹${totalAmt.toLocaleString('en-IN')} Paid</span>`
+                : `<span style="font-size:10.5px;font-weight:800;color:#DC2626;background:#FEF2F2;padding:2px 8px;border-radius:6px;border:1px solid #FECACA;">⚠️ ₹${dueAmt.toLocaleString('en-IN')} Due</span>`
             ) : ''}
-            ${x.actual_checkin && type === 'checkin' ? `<span class="badge green" style="font-size:10px;">Arrived</span>` : ''}
-            ${x.actual_checkout && type === 'checkout' ? `<span class="badge green" style="font-size:10px;">Departed</span>` : ''}
-          </div>
-          <div class="airbnb-meta-row">
-            ${timeBadge}
-            ${x.phone ? `<span>📞 <a href="tel:${x.phone}" style="color:inherit;text-decoration:none;">${escapeHtml(x.phone)}</a></span>` : ''}
-            ${x.has_vehicle ? `<span>🚗 ${(escapeHtml(x.vehicle_name || '') + ' ' + escapeHtml(x.vehicle_number || '')).trim()}</span>` : ''}
+            ${b.phone ? `<a href="tel:${b.phone}" class="airbnb-btn-action" style="height:26px;font-size:11px;padding:0 8px;" title="Call">📞 Call</a>` : ''}
+            ${b.phone ? `<button class="airbnb-btn-action wa" style="height:26px;font-size:11px;padding:0 8px;" onclick="shareBookingWhatsApp('${b.booking_id}')" title="WhatsApp">💬 WhatsApp</button>` : ''}
+            ${feedType === 'checkin' && b.phone ? `<button class="airbnb-btn-action primary" style="height:26px;font-size:11px;padding:0 8px;" onclick="sendArrivalDetails('${b.booking_id}')" title="Send Key & Wi-Fi">🔑 Key &amp; Wi-Fi</button>` : ''}
           </div>
         </div>
-        <div class="airbnb-card-actions">
-          ${x.phone ? `<a href="tel:${x.phone}" class="airbnb-btn-action" title="Call Guest">📞 Call</a>` : ''}
-          ${x.phone ? (
-            type === 'checkout'
-              ? `<button class="airbnb-btn-action wa" onclick="sendCheckoutReminder('${x.booking_id}')" title="Send WhatsApp Checkout Reminder">🔔 Remind</button>`
-              : `<button class="airbnb-btn-action wa" onclick="shareBookingWhatsApp('${x.booking_id}')" title="Send WhatsApp Message">💬 WhatsApp</button>`
-          ) : ''}
-          <button class="airbnb-btn-action primary" onclick="openBookingFromDashboard('${x.booking_id}')">Open ➔</button>
-        </div>
+        ${renderAirbnbOverlappingMedia(b)}
       </div>
     `;
   };
@@ -1201,53 +1279,78 @@ async function renderDashboard() {
           </div>
         </div>
 
-        <!-- 2 Column Operational Flow -->
-        <div class="dash-ops-grid">
-          <!-- Today's Check-ins -->
-          <div class="dash-panel-card" style="border-top:4px solid var(--green);">
-            <div class="dash-panel-head">
-              <div class="dash-panel-title">
-                <span>📥</span> Check-ins Today
-              </div>
-              <span class="dash-panel-count green">${realCheckins.length} Expected</span>
-            </div>
-            <div>
-              ${realCheckins.length === 0 ? `<div class="dash-empty-state">No check-ins scheduled for today</div>` :
-                realCheckins.map(x => renderAirbnbGuestItem(x, 'checkin')).join('')
-              }
-            </div>
+        <!-- AIRBNB HOSTING FEED VIEW (EXACT USER SCREENSHOT SPEC) -->
+        <div class="airbnb-view-toggle-bar">
+          <div class="airbnb-pill-toggle">
+            <button type="button" class="airbnb-toggle-btn active" id="airbnbTabBtnToday" onclick="window.switchAirbnbFeedTab('today')">Today</button>
+            <button type="button" class="airbnb-toggle-btn" id="airbnbTabBtnUpcoming" onclick="window.switchAirbnbFeedTab('upcoming')">Upcoming</button>
           </div>
-
-          <!-- Today's Check-outs -->
-          <div class="dash-panel-card" style="border-top:4px solid var(--primary);">
-            <div class="dash-panel-head">
-              <div class="dash-panel-title">
-                <span>📤</span> Check-outs Today
-              </div>
-              <span class="dash-panel-count primary">${realCheckouts.length} Scheduled</span>
-            </div>
-            <div>
-              ${realCheckouts.length === 0 ? `<div class="dash-empty-state">No check-outs scheduled for today</div>` :
-                realCheckouts.map(x => renderAirbnbGuestItem(x, 'checkout')).join('')
-              }
-            </div>
+          <div class="airbnb-filter-wrap">
+            <button type="button" class="airbnb-filter-btn" onclick="const s = document.getElementById('topbarPropertySelect'); if(s) { s.focus(); s.click(); }">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M4 21v-7m0-4V3m8 18v-9m0-4V3m8 18v-5m0-4V3M1 14h6m2-6h6m2 8h6"/></svg>
+              <span>Filter</span>
+            </button>
           </div>
         </div>
 
-        <!-- Currently Staying Guests -->
-        <div class="dash-panel-card">
-          <div class="dash-panel-head">
-            <div class="dash-panel-title">
-              <span>🟢</span> Currently Staying (${activeNow.length} Active Stays)
+        <h2 class="airbnb-feed-heading" id="airbnbFeedHeading">You have ${totalTodayReservations} reservations</h2>
+
+        <!-- 1. TODAY'S RESERVATIONS LIST -->
+        <div class="airbnb-feed-list" id="airbnbFeedTodayList">
+          ${totalTodayReservations === 0 ? `
+            <div class="card" style="text-align:center;padding:48px 20px;border-radius:18px;border:1px dashed #cbd5e1;max-width:860px;margin:0 auto;">
+              <div style="font-size:36px;margin-bottom:8px;">🏖️</div>
+              <div style="font-size:16px;font-weight:700;color:#1e293b;">No check-ins, check-outs, or active stays today</div>
+              <div style="font-size:13px;color:#64748b;margin-top:4px;">Check upcoming reservations below or create a new booking.</div>
             </div>
-            <button class="dash-pill-btn" style="padding:4px 10px;font-size:11.5px;border-radius:999px;" onclick="filterAndShowBookings('currentStay')">View in Bookings →</button>
-          </div>
-          <div style="max-height:480px;overflow-y:auto;">
-            ${activeNow.length === 0 ? `<div class="dash-empty-state">No guests currently staying</div>` :
-              activeNow.map(x => renderAirbnbGuestItem(x, 'staying')).join('')
-            }
-          </div>
+          ` : `
+            ${realCheckouts.map(b => renderAirbnbResCard(b, 'checkout')).join('')}
+            ${realCheckins.map(b => renderAirbnbResCard(b, 'checkin')).join('')}
+            ${activeNow.map(b => renderAirbnbResCard(b, 'inhouse')).join('')}
+          `}
         </div>
+
+        <!-- 2. UPCOMING RESERVATIONS LIST -->
+        <div class="airbnb-feed-list" id="airbnbFeedUpcomingList" style="display:none;">
+          ${upcomingReservations.length === 0 ? `
+            <div class="card" style="text-align:center;padding:48px 20px;border-radius:18px;border:1px dashed #cbd5e1;max-width:860px;margin:0 auto;">
+              <div style="font-size:36px;margin-bottom:8px;">📅</div>
+              <div style="font-size:16px;font-weight:700;color:#1e293b;">No upcoming reservations found</div>
+              <div style="font-size:13px;color:#64748b;margin-top:4px;">Add a new booking or import from channel manager.</div>
+            </div>
+          ` : `
+            ${upcomingReservations.map(b => renderAirbnbResCard(b, 'upcoming')).join('')}
+          `}
+        </div>
+
+        <!-- 3. YOUR FOLLOW-UPS SECTION (SCREENSHOT 3) -->
+        ${checkoutFollowups.length > 0 ? `
+          <div class="airbnb-followups-wrap">
+            <h3 style="font-size:20px;font-weight:800;color:#111827;margin-bottom:14px;letter-spacing:-0.3px;">Your follow-ups</h3>
+            <div class="airbnb-followups-grid">
+              ${checkoutFollowups.map(b => {
+                const base = (window.ShowcaseData && window.ShowcaseData.BASELINE && window.ShowcaseData.BASELINE[b.room_id]) || {};
+                const coverImg = base.cover_image || 'assets/logo-emblem.png';
+                const fName = (b.guest_name || 'Guest').split(' ')[0];
+                const initial = fName.charAt(0).toUpperCase() || 'G';
+                const daysDiff = Math.max(1, Math.round((new Date(today) - new Date(b.check_out)) / (1000 * 60 * 60 * 24)));
+                return `
+                  <div class="airbnb-followup-card" onclick="if(window.openBookingFromDashboard) openBookingFromDashboard('${b.booking_id}')">
+                    <div class="airbnb-followup-media">
+                      <div class="airbnb-avatar-bubble" style="width:36px;height:36px;font-size:13px;">${initial}</div>
+                      <img src="${coverImg}" class="airbnb-thumb-bubble" style="width:32px;height:32px;" onerror="this.onerror=null;this.src='assets/logo-emblem.png';" />
+                    </div>
+                    <div style="flex:1;min-width:0;">
+                      <div style="font-size:11px;color:#717171;font-weight:600;">${daysDiff}d ago</div>
+                      <div style="font-size:13.5px;font-weight:800;color:#111827;">Leave ${escapeHtml(fName)} a review</div>
+                      <div style="font-size:11.5px;color:#717171;text-overflow:ellipsis;overflow:hidden;white-space:nowrap;">${escapeHtml(base.name || propLabel(b.rooms) || 'The Unique Haven Homes')}</div>
+                    </div>
+                  </div>
+                `;
+              }).join('')}
+            </div>
+          </div>
+        ` : ''}
       </div>
 
       <!-- TAB 2: ROOMS & HOUSEKEEPING -->
