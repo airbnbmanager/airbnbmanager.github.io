@@ -633,7 +633,7 @@
   let _currentResults = [];
 
   // ─── 4. Command Palette Modal ───
-  window.openCommandPalette = function() {
+  window.openCommandPalette = function(initialQuery = '') {
     let el = document.getElementById('cmdPaletteBackdrop');
     if (!el) {
       el = document.createElement('div');
@@ -657,12 +657,13 @@
     el.style.display = 'flex';
     const input = document.getElementById('cmdPaletteInput');
     if (input) {
+      if (initialQuery) input.value = initialQuery;
       input.focus();
       input.oninput = () => renderPaletteResults(input.value);
       input.onkeydown = handlePaletteKeydown;
     }
 
-    renderPaletteResults('');
+    renderPaletteResults(initialQuery || '');
   };
 
   function closeCommandPalette() {

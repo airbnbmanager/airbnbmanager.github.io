@@ -1733,6 +1733,13 @@ function renderShell(content, activePage = 'dashboard') {
           </nav>
 
           <div class="topbar-right">
+            <!-- 🔍 Search Menu & Quick Actions (Command Palette ⌘K) -->
+            <button type="button" class="topbar-search-menu-btn" onclick="window.openCommandPalette ? window.openCommandPalette() : (window.openMobileSearch && window.openMobileSearch())" title="Search Menu, Features & Actions (Press ⌘K or /)">
+              <span class="search-btn-icon">🔍</span>
+              <span class="search-btn-text">Search Menu...</span>
+              <kbd class="search-btn-kbd">⌘K</kbd>
+            </button>
+
             <!-- Global Property Switcher -->
             <div class="topbar-property-selector ${window.getGlobalSelectedProperty ? (window.getGlobalSelectedProperty() ? 'has-filter' : '') : ''}" id="topbarPropSelector" title="Switch property view">
               <span class="topbar-prop-icon">🏛️</span>
@@ -4754,9 +4761,12 @@ window.chartCard = function(canvasId, title, height) {
     }
   });
 
-  // Push initial state
+  // Push initial state only if not already having a valid hash
   try {
-    history.replaceState({ page: 'dashboard' }, '', '#dashboard');
+    const curHash = (window.location.hash || '').replace('#', '').trim();
+    const lastSavedPage = localStorage.getItem('uh_last_page');
+    const startPage = curHash || lastSavedPage || 'dashboard';
+    history.replaceState({ page: startPage }, '', '#' + startPage);
   } catch(e) {}
 
   console.log('🔙 Back button handler ready');
@@ -5689,8 +5699,27 @@ function renderAppMenu() {
         <div class="homeyhuts-chevron">›</div>
       </div>
 
+      <!-- Menu Search & Spotlight Box -->
+      <div class="homeyhuts-menu-search-wrap">
+        <span class="homeyhuts-menu-search-icon">🔍</span>
+        <input type="text" id="menuLiveSearch" class="homeyhuts-menu-search-input" placeholder="Search menu, pages, features..." oninput="window.filterAppMenuRows(this.value)" autocomplete="off" />
+        <button type="button" class="homeyhuts-menu-palette-pill" onclick="window.openCommandPalette && window.openCommandPalette()" title="Open Command Palette (Press ⌘K or /)">
+          <kbd>⌘K</kbd>
+        </button>
+      </div>
+
       <!-- Menu List (Screenshot 1) -->
       <div class="homeyhuts-menu-list">
+        <!-- Spotlight / Command Palette Fast Action -->
+        <div class="homeyhuts-menu-row homeyhuts-menu-spotlight-row" onclick="window.openCommandPalette && window.openCommandPalette()">
+          <span class="homeyhuts-row-icon">⚡</span>
+          <span class="homeyhuts-row-title">
+            <strong>Search Menu &amp; Spotlight</strong>
+            <span style="display:block;font-size:11.5px;color:var(--text-tertiary);font-weight:normal;">Fast jump to any page, booking, task or setting</span>
+          </span>
+          <kbd class="homeyhuts-menu-row-kbd">⌘K /</kbd>
+        </div>
+
         <div class="homeyhuts-menu-row" onclick="window.notifications && window.notifications.openPanel()">
           <span class="homeyhuts-row-icon">🔔</span>
           <span class="homeyhuts-row-title">
@@ -5765,6 +5794,47 @@ function renderAppMenu() {
   renderShell(html, 'menu');
 }
 window.renderAppMenu = renderAppMenu;
+
+window.filterAppMenuRows = function(query) {
+  const q = (query || '').toLowerCase().trim();
+  const rows = document.querySelectorAll('.homeyhuts-menu-row');
+  let visibleCount = 0;
+  rows.forEach(row => {
+    // If it's the spotlight row, keep it visible or match
+    if (row.classList.contains('homeyhuts-menu-spotlight-row')) {
+      row.style.display = 'flex';
+      return;
+    }
+    const text = (row.textContent || '').toLowerCase();
+    const match = !q || text.includes(q);
+    row.style.display = match ? 'flex' : 'none';
+    if (match) visibleCount++;
+  });
+
+  let emptyState = document.getElementById('menuEmptySearchNotice');
+  if (q && visibleCount === 0) {
+    if (!emptyState) {
+      emptyState = document.createElement('div');
+      emptyState.id = 'menuEmptySearchNotice';
+      emptyState.className = 'homeyhuts-menu-empty-notice';
+      const container = document.querySelector('.homeyhuts-menu-list');
+      if (container) container.appendChild(emptyState);
+    }
+    emptyState.style.display = 'block';
+    emptyState.innerHTML = `
+      <div style="text-align:center;padding:24px 16px;color:#64748B;">
+        <div style="font-size:28px;margin-bottom:8px;">🔍</div>
+        <div style="font-size:14px;font-weight:700;color:#1E293B;">No direct menu item matched "${escapeHtml(q)}"</div>
+        <div style="font-size:12px;margin-top:4px;margin-bottom:12px;color:#64748B;">Try global search across bookings, tasks, and PMS pages</div>
+        <button type="button" onclick="window.openCommandPalette && window.openCommandPalette('${escapeHtml(q)}')" style="background:var(--primary);color:#fff;border:none;border-radius:20px;padding:8px 18px;font-size:12px;font-weight:700;cursor:pointer;box-shadow:0 2px 8px rgba(255,40,0,0.25);">
+          Open in Command Palette (⌘K) ➔
+        </button>
+      </div>
+    `;
+  } else if (emptyState) {
+    emptyState.style.display = 'none';
+  }
+};
 
 
 
