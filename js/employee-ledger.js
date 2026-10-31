@@ -100,28 +100,14 @@ window.EMPLOYEE_LEDGER = {
 
     if (flatConfig.isCleaner) {
       // ═══════════════════════════════════════════════════════════
-      // 🧹 CLEANING STAFF (e.g. Vikalp Khand / Maid / Flat-based)
-      // Per flat rate: e.g. ₹4000/month per flat = ₹4000/30 per day per flat
+      // 🧹 TYPE 2: PIECE-RATE CLEANING STAFF (e.g. Kanchan, Maids)
+      // Formula: (Flats Cleaned Count × ₹133) linked from Housekeeping
+      // Example: 100 flats × 133 = ₹13,300
       // ═══════════════════════════════════════════════════════════
       calculationType = 'per_flat';
-      const { flatsCount, flatMonthlyRate, dailyPerFlat } = flatConfig;
-      const totalMonthly = flatsCount * flatMonthlyRate;
-      const dailyTotal = flatsCount * dailyPerFlat;
-
-      if (hasAttendance && (absent > 0 || half > 0)) {
-        // Deduct only for absent / half-days
-        const deduction = Math.round((absent * dailyTotal) + (half * 0.5 * dailyTotal));
-        earned = Math.max(0, totalMonthly - deduction);
-        breakdown = `${flatsCount} flat(s) @ ₹${flatMonthlyRate.toLocaleString('en-IN')}/mo (₹${dailyPerFlat.toFixed(1)}/day/flat) · ${absent} absent (-₹${deduction.toLocaleString('en-IN')})`;
-      } else if (hasAttendance) {
-        earned = totalMonthly;
-        breakdown = `${flatsCount} flat(s) @ ₹${flatMonthlyRate.toLocaleString('en-IN')}/mo (₹${dailyPerFlat.toFixed(1)}/day · Full month)`;
-      } else {
-        // Full month fixed per flat
-        earned = totalMonthly;
-        breakdown = `${flatsCount} flat(s) @ ₹${flatMonthlyRate.toLocaleString('en-IN')}/mo (Fixed Full Month)`;
-      }
-
+      const { flatsCleaned, ratePerFlat } = flatConfig;
+      earned = Math.round(flatsCleaned * ratePerFlat);
+      breakdown = `${flatsCleaned} flats cleaned × ₹${ratePerFlat}/flat = ₹${earned.toLocaleString('en-IN')} (Linked from Housekeeping Turnarounds)`;
     } else if (emp.employee_type === 'per_day' && emp.daily_wage > 0) {
       // Per Day Wage
       calculationType = 'per_day';
@@ -520,7 +506,7 @@ window.renderEmployeeLedger = async function() {
               <span style="font-size:18px; font-weight:800; color:#111827;">${escapeHtml(emp.name)}</span>
               ${isCleaner ? `
                 <span style="background:#E0E7FF; color:#3730A3; font-size:11px; font-weight:800; padding:2px 8px; border-radius:12px;">
-                  🧹 Cleaning Staff (${flatCfg.flatsCount} Flats @ ₹${flatCfg.flatMonthlyRate}/mo)
+                  🧹 Cleaning Work (${flatCfg.flatsCleaned} Flats @ ₹${flatCfg.ratePerFlat}/flat = ₹${(flatCfg.flatsCleaned * flatCfg.ratePerFlat).toLocaleString('en-IN')})
                 </span>
               ` : `
                 <span style="background:#F3F4F6; color:#374151; font-size:11px; font-weight:800; padding:2px 8px; border-radius:12px;">
@@ -538,9 +524,14 @@ window.renderEmployeeLedger = async function() {
               <span>Role: <strong>${escapeHtml(emp.role || 'Staff')}</strong></span>
               <span>•</span>
               ${isCleaner ? `
-                <span>Flats: <strong>${flatCfg.flatsCount}</strong> (${escapeHtml(emp.assigned_rooms || 'Assigned')})</span>
+                <span>Flats Cleaned: <strong>${flatCfg.flatsCleaned}</strong></span>
                 <span>•</span>
-                <span style="color:#4338CA; font-weight:700;">Rate: ₹${flatCfg.flatMonthlyRate}/30 = ₹${flatCfg.dailyPerFlat.toFixed(1)}/day per flat</span>
+                <span style="color:#4338CA; font-weight:700;">Rate: ₹${flatCfg.ratePerFlat}/flat (Total ₹${(flatCfg.flatsCleaned * flatCfg.ratePerFlat).toLocaleString('en-IN')})</span>
+                <button onclick="window.editCleanerFlatsModal('${emp.emp_id}','${escapeHtml(emp.name).replace(/'/g,"\\'")}',${flatCfg.flatsCleaned},${flatCfg.ratePerFlat},'${currentMonth}')"
+                        style="background:#EEF2FF; border:1px solid #C7D2FE; border-radius:6px; padding:2px 8px; font-size:11px; font-weight:700; color:#4338CA; cursor:pointer;"
+                        title="Adjust number of flats cleaned by this maid this month">
+                  ✏️ Edit Cleaned Flats (${flatCfg.flatsCleaned})
+                </button>
               ` : `
                 <span>Salary: <strong>₹${(emp.monthly_salary || 0).toLocaleString('en-IN')}/month</strong></span>
               `}
@@ -1113,3 +1104,21 @@ window.viewEmpHistory = async function(empId, empName) {
 };
 
 console.log('✅ Employee Ledger v3 (TUHH Clean HRMS + Per-Flat Cleaning + Advance Tracker) loaded');
+
+
+// ═══════════════════════════════════════════════════════════
+// 🧹 EDIT CLEANER FLATS COUNT MODAL (Kanchan / Maids)
+// ═══════════════════════════════════════════════════════════
+window.editCleanerFlatsModal = function(empId, empName, currentFlats, ratePerFlat, monthStr) {
+  const newCountStr = prompt(`Enter number of flats cleaned by ${empName} for month ${monthStr}:\n\n(Rate: ₹${ratePerFlat} per flat cleaning)\nExample: 100 flats = ₹${100 * ratePerFlat}\n\nFlats Cleaned:`, currentFlats);
+  if (newCountStr !== null) {
+    const val = parseInt(newCountStr.trim(), 10);
+    if (!isNaN(val) && val >= 0) {
+      window.EMPLOYEE_LEDGER.setFlatsCleanedCount(empId, monthStr, val);
+      if (window.fsn) fsn.success('Updated', `${empName}: ${val} flats cleaned = ₹${(val * ratePerFlat).toLocaleString('en-IN')}`);
+      if (typeof window.renderEmployeeLedger === 'function') {
+        window.renderEmployeeLedger();
+      }
+    }
+  }
+};

@@ -1,4 +1,21 @@
 
+function isEmpCleanerPieceRate(e) {
+  if (!e) return false;
+  if (window.EMPLOYEE_LEDGER && typeof window.EMPLOYEE_LEDGER.isPerFlatStaff === 'function') {
+    return window.EMPLOYEE_LEDGER.isPerFlatStaff(e);
+  }
+  const savedType = localStorage.getItem('tuhh_emp_type_' + e.emp_id);
+  if (savedType === 'per_flat') return true;
+  if (savedType === 'monthly') return false;
+  const name = (e.name || '').toLowerCase();
+  if (name.includes('praveen') || name.includes('arman') || name.includes('shuaib') || name.includes('aniket')) return false;
+  if (name.includes('kanchan') || name.includes('shalu') || name.includes('laxmi')) return true;
+  const role = (e.role || '').toLowerCase();
+  return role.includes('maid') || role.includes('clean');
+}
+window.isEmpCleanerPieceRate = isEmpCleanerPieceRate;
+
+
 function escapeHtml(str) {
   if (str == null) return '';
   return String(str)
@@ -317,9 +334,18 @@ function renderEmployeeCardsView(emps, isO, roomMap) {
 
                 <!-- Salary Tag -->
                 <div style="text-align:right;">
-                  <div style="font-size:15px;font-weight:800;color:#DC2626;">
-                    ₹${(e.monthly_salary || 0).toLocaleString('en-IN')}
-                  </div>
+                  ${isEmpCleanerPieceRate(e) ? `
+                    <div style="font-size:14px;font-weight:800;color:#4338CA;">
+                      ₹${Number(localStorage.getItem('tuhh_cleaner_rate_' + e.emp_id)) || e.per_flat_rate || 133} / flat
+                    </div>
+                    <div style="font-size:10.5px;color:#4F46E5;font-weight:700;">🧹 Piece Rate (100 flats = ₹13,300)</div>
+                  ` : `
+                    <div style="font-size:15px;font-weight:800;color:#DC2626;">
+                      ₹${(e.monthly_salary || 0).toLocaleString('en-IN')}
+                    </div>
+                    <div style="font-size:10px;color:var(--muted);font-weight:600;">per month · Fixed</div>
+                  `}
+                </div>
                   <div style="font-size:10px;color:var(--muted);font-weight:600;">per month</div>
                 </div>
               </div>
@@ -467,8 +493,14 @@ function renderEmployeeTableView(emps, isO, roomMap) {
                       `
                     )}
                   </td>
-                  <td style="color:#DC2626;font-weight:700;">
-                    ₹${(e.monthly_salary || 0).toLocaleString('en-IN')}
+                  <td style="font-weight:700;">
+                    ${isEmpCleanerPieceRate(e) ? `
+                      <div style="color:#4338CA;font-weight:800;">₹${Number(localStorage.getItem('tuhh_cleaner_rate_' + e.emp_id)) || e.per_flat_rate || 133} / flat</div>
+                      <div style="font-size:10.5px;color:#4F46E5;font-weight:600;">🧹 Piece Rate (100 flats = ₹13,300)</div>
+                    ` : `
+                      <div style="color:#DC2626;">₹${(e.monthly_salary || 0).toLocaleString('en-IN')}</div>
+                      <div style="font-size:10px;color:var(--muted);font-weight:500;">Fixed Monthly</div>
+                    `}
                   </td>
                   <td>
                     ${(e.id_proof_photo_front || e.id_proof_photo_back) ? `
@@ -764,10 +796,28 @@ async function renderAddEmp() {
         </div>
       </div>
 
-      <div class="form-grid">
+      <div class="form-grid" style="grid-column:1/-1;">
         <div class="form-group">
-          <label>Monthly Salary ₹</label>
-          <input id="eSal" type="number" placeholder="e.g. 12000" />
+          <label style="font-weight:700;color:var(--text);">Employee Salary System / Model *</label>
+          <select id="eSalaryType" onchange="window.toggleEmpSalaryTypeInputs()" style="padding:10px;font-weight:700;border:1.5px solid var(--border);">
+            <option value="fixed" selected>💼 Type 1: Fixed Monthly Salary (e.g. Praveen, Arman, Shuaib, Aniket)</option>
+            <option value="per_flat">🧹 Type 2: Per-Flat Cleaning Staff (e.g. Kanchan, Maids — ₹133/flat)</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-grid">
+        <div class="form-group" id="groupFixedSalary">
+          <label>Monthly Salary ₹ *</label>
+          <input id="eSal" type="number" placeholder="e.g. 10000" />
+          <div style="font-size:11px;color:var(--muted);margin-top:2px;">Fixed full month salary. Absents deducted proportionately.</div>
+        </div>
+        <div class="form-group" id="groupPerFlatRate" style="display:none;background:#EEF2FF;padding:10px;border-radius:8px;border:1px solid #C7D2FE;">
+          <label style="color:#3730A3;font-weight:700;">Rate per Flat Cleaned ₹ *</label>
+          <input id="ePerFlatRate" type="number" value="133" placeholder="133" style="font-weight:800;font-size:15px;" />
+          <div style="font-size:11.5px;color:#4338CA;margin-top:3px;font-weight:600;">
+            💡 Standard: ₹133/flat (e.g. 100 flats cleaned = ₹13,300/month). Linked from Housekeeping.
+          </div>
         </div>
         <div class="form-group">
           <label>Operational Shift (Duty Hours)</label>
@@ -980,7 +1030,18 @@ async function saveEmp() {
     notes: document.getElementById('eNotes')?.value?.trim() || null,
   });
 
-  if (error) { 
+  // Save salary model
+  const newSalType = document.getElementById('eSalaryType')?.value || 'fixed';
+  const newRate = parseFloat(document.getElementById('ePerFlatRate')?.value) || 133;
+  if (newSalType === 'per_flat') {
+    localStorage.setItem('tuhh_emp_type_' + empId, 'per_flat');
+    localStorage.setItem('tuhh_cleaner_rate_' + empId, String(newRate));
+  } else {
+    localStorage.setItem('tuhh_emp_type_' + empId, 'monthly');
+    localStorage.removeItem('tuhh_cleaner_rate_' + empId);
+  }
+
+  if (error) {
     if (errEl) errEl.innerHTML = `<div class="error">${error.message}</div>`;
     if (_btn) { _btn.disabled = false; _btn.textContent = '💾 Save Staff Member'; }
     if (progEl) progEl.innerHTML = '';
@@ -1077,11 +1138,35 @@ async function editEmp(id) {
         </div>
       </div>
 
-      <div class="form-grid">
-        <div class="form-group">
-          <label>Monthly Salary ₹</label>
-          <input id="eSal" type="number" value="${e.monthly_salary || 0}" />
+      ${(() => {
+        const isCleaner = isEmpCleanerPieceRate(e);
+        const cleanerRate = Number(localStorage.getItem('tuhh_cleaner_rate_' + e.emp_id)) || e.per_flat_rate || 133;
+        return `
+        <div class="form-grid" style="grid-column:1/-1;">
+          <div class="form-group">
+            <label style="font-weight:700;color:var(--text);">Employee Salary System / Model *</label>
+            <select id="eSalaryType" onchange="window.toggleEmpSalaryTypeInputs()" style="padding:10px;font-weight:700;border:1.5px solid var(--border);">
+              <option value="fixed" ${!isCleaner ? 'selected' : ''}>💼 Type 1: Fixed Monthly Salary (e.g. Praveen, Arman, Shuaib, Aniket)</option>
+              <option value="per_flat" ${isCleaner ? 'selected' : ''}>🧹 Type 2: Per-Flat Cleaning Staff (e.g. Kanchan, Maids — ₹133/flat)</option>
+            </select>
+          </div>
         </div>
+
+        <div class="form-grid">
+          <div class="form-group" id="groupFixedSalary" style="display:${isCleaner ? 'none' : 'block'};">
+            <label>Monthly Salary ₹ *</label>
+            <input id="eSal" type="number" value="${e.monthly_salary || 0}" />
+            <div style="font-size:11px;color:var(--muted);margin-top:2px;">Fixed full month salary. Absents deducted proportionately.</div>
+          </div>
+          <div class="form-group" id="groupPerFlatRate" style="display:${isCleaner ? 'block' : 'none'};background:#EEF2FF;padding:10px;border-radius:8px;border:1px solid #C7D2FE;">
+            <label style="color:#3730A3;font-weight:700;">Rate per Flat Cleaned ₹ *</label>
+            <input id="ePerFlatRate" type="number" value="${cleanerRate}" style="font-weight:800;font-size:15px;" />
+            <div style="font-size:11.5px;color:#4338CA;margin-top:3px;font-weight:600;">
+              💡 Standard: ₹133/flat (e.g. 100 flats cleaned = ₹13,300/month). Linked from Housekeeping.
+            </div>
+          </div>
+        `;
+      })()}
         <div class="form-group">
           <label>Operational Shift (Duty Hours)</label>
           <select id="eShift">
@@ -1325,6 +1410,22 @@ async function updEmp(id) {
   }
 
   if (_btn) _btn.textContent = '⏳ Saving updates...';
+  // Save salary model
+  const editSalType = document.getElementById('eSalaryType')?.value || 'fixed';
+  const editRate = parseFloat(document.getElementById('ePerFlatRate')?.value) || 133;
+  if (editSalType === 'per_flat') {
+    localStorage.setItem('tuhh_emp_type_' + id, 'per_flat');
+    localStorage.setItem('tuhh_cleaner_rate_' + id, String(editRate));
+    obj.employee_type = 'per_flat';
+    obj.per_flat_rate = editRate;
+    obj.monthly_salary = editRate * 100;
+  } else {
+    localStorage.setItem('tuhh_emp_type_' + id, 'monthly');
+    localStorage.removeItem('tuhh_cleaner_rate_' + id);
+    obj.employee_type = 'Monthly';
+    obj.per_flat_rate = 0;
+  }
+
   const { error } = await sb.from('employees').update(obj).eq('emp_id', id);
 
   if (error) {
@@ -3669,3 +3770,12 @@ async function showEmpDetailModal(empId) {
 }
 
 console.log("✅ Employees Module v7 loaded");
+
+
+window.toggleEmpSalaryTypeInputs = function() {
+  const type = document.getElementById('eSalaryType')?.value;
+  const fix = document.getElementById('groupFixedSalary');
+  const pf = document.getElementById('groupPerFlatRate');
+  if (fix) fix.style.display = type === 'per_flat' ? 'none' : 'block';
+  if (pf) pf.style.display = type === 'per_flat' ? 'block' : 'none';
+};

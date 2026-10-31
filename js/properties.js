@@ -1,3 +1,35 @@
+
+// ═══════════════════════════════════════════════════════════
+// 🧹 LOG CLEANER TURNOVER (Links Cleaning Page to Kanchan / Maid Salary)
+// ═══════════════════════════════════════════════════════════
+window.logCleanerTurnaround = function(roomId, cleanerEmpId, cleanerName, dateStr) {
+  if (!cleanerEmpId && !cleanerName) return;
+  const d = dateStr || new Date().toISOString().slice(0, 10);
+  const monthStr = d.slice(0, 7);
+  try {
+    const logs = JSON.parse(localStorage.getItem('tuhh_cleaner_turnovers') || '[]');
+    // Add turnover entry
+    logs.push({
+      room_id: roomId,
+      cleaner_id: cleanerEmpId,
+      cleaner_name: cleanerName,
+      date: d,
+      month: monthStr,
+      created_at: new Date().toISOString()
+    });
+    localStorage.setItem('tuhh_cleaner_turnovers', JSON.stringify(logs));
+    
+    // Also increment monthly flat count for cleaner
+    if (cleanerEmpId) {
+      const cur = Number(localStorage.getItem('tuhh_cleaner_flats_' + cleanerEmpId + '_' + monthStr)) || 0;
+      localStorage.setItem('tuhh_cleaner_flats_' + cleanerEmpId + '_' + monthStr, String(cur + 1));
+    }
+    console.log(`✅ Logged housekeeping turnaround for ${cleanerName} on ${roomId} (${d})`);
+  } catch(e) {
+    console.warn('Could not log cleaner turnover:', e);
+  }
+};
+
 /**
  * Properties & Flats Module
  * THE UNIQUE HAVEN HOMES PRIVATE LIMITED
