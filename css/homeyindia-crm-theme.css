@@ -698,3 +698,235 @@ table tr:hover td,
   }
 }
 
+
+/* ============================================================
+   10. HOMEYINDIA CRM DASHBOARD TRANSFORMATION
+   ============================================================ */
+.dash-wrap {
+  max-width: 1400px !important;
+  margin: 0 auto !important;
+  padding: 0 !important;
+}
+
+/* Dashboard Header */
+.dash-hero {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 0 0 1.5rem 0 !important;
+  margin-bottom: 0 !important;
+}
+
+.dash-hero-top {
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: flex-start !important;
+  gap: 1rem !important;
+}
+
+.dash-title-group .dash-greeting {
+  display: none !important;
+}
+
+.dash-heading {
+  font-size: 1.65rem !important;
+  font-weight: 700 !important;
+  color: var(--crm-text-heading) !important;
+  letter-spacing: -0.02em !important;
+  margin: 0 !important;
+}
+
+.dash-date-str {
+  font-size: 0.875rem !important;
+  color: var(--crm-text-secondary) !important;
+  margin-top: 0.35rem !important;
+  font-weight: 400 !important;
+}
+
+/* 4 Core KPI Cards Grid — Matching HomeyIndia CRM */
+.dash-kpi-ribbon {
+  display: grid !important;
+  grid-template-columns: repeat(4, 1fr) !important;
+  gap: 1rem !important;
+  margin-bottom: 1.5rem !important;
+}
+
+@media (max-width: 1024px) {
+  .dash-kpi-ribbon {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+}
+
+@media (max-width: 640px) {
+  .dash-kpi-ribbon {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+.dash-kpi-card {
+  background: #FFFFFF !important;
+  border: 1px solid var(--crm-border) !important;
+  border-radius: 12px !important;
+  padding: 1.25rem !important;
+  box-shadow: var(--crm-shadow-sm) !important;
+  position: relative !important;
+  overflow: hidden !important;
+  transition: transform 0.15s ease, box-shadow 0.15s ease !important;
+}
+
+.dash-kpi-card::before {
+  display: none !important;
+}
+
+.dash-kpi-card:hover {
+  transform: translateY(-2px) !important;
+  box-shadow: var(--crm-shadow-md) !important;
+  border-color: var(--crm-border-strong) !important;
+}
+
+.dash-kpi-top {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  margin-bottom: 0.75rem !important;
+}
+
+.dash-kpi-label {
+  font-size: 0.8125rem !important;
+  font-weight: 600 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.05em !important;
+  color: var(--crm-text-secondary) !important;
+}
+
+/* 36px Tinted Icon Square */
+.dash-kpi-icon {
+  width: 36px !important;
+  height: 36px !important;
+  border-radius: 8px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-size: 1.25rem !important;
+}
+
+.dash-kpi-icon.occupancy {
+  background: #E0F2FE !important;
+  color: #0284C7 !important;
+}
+
+.dash-kpi-icon.checkins {
+  background: #DCFCE7 !important;
+  color: #16A34A !important;
+}
+
+.dash-kpi-icon.checkouts {
+  background: #FEF3C7 !important;
+  color: #D97706 !important;
+}
+
+.dash-kpi-icon.revenue {
+  background: #DCFCE7 !important;
+  color: #16A34A !important;
+}
+
+.dash-kpi-num {
+  font-size: 1.65rem !important;
+  font-weight: 700 !important;
+  color: var(--crm-text-heading) !important;
+  letter-spacing: -0.02em !important;
+  line-height: 1.2 !important;
+}
+
+.dash-kpi-card.revenue .dash-kpi-num {
+  color: #16A34A !important;
+}
+
+.dash-kpi-sub {
+  font-size: 0.8rem !important;
+  color: var(--crm-text-secondary) !important;
+  margin-top: 0.35rem !important;
+}
+
+.dash-progress-bar {
+  display: none !important;
+}
+
+/* Nav Tabs */
+.dash-nav-bar {
+  display: flex !important;
+  gap: 0.5rem !important;
+  padding: 0.35rem !important;
+  background: #FFFFFF !important;
+  border: 1px solid var(--crm-border) !important;
+  border-radius: 10px !important;
+  margin-bottom: 1.5rem !important;
+}
+
+.dash-nav-tab {
+  border: none !important;
+  background: transparent !important;
+  color: var(--crm-text-secondary) !important;
+  padding: 0.5rem 1rem !important;
+  border-radius: 7px !important;
+  font-size: 0.825rem !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 0.4rem !important;
+  transition: all 0.15s ease !important;
+  box-shadow: none !important;
+}
+
+.dash-nav-tab:hover {
+  background: #F1F5F9 !important;
+  color: var(--crm-text-heading) !important;
+}
+
+.dash-nav-tab.active {
+  background: var(--crm-primary) !important;
+  color: #FFFFFF !important;
+  box-shadow: 0 2px 6px rgba(14, 165, 233, 0.3) !important;
+}
+
+.dash-tab-badge {
+  background: rgba(0, 0, 0, 0.08) !important;
+  border-radius: 9999px !important;
+  padding: 2px 6px !important;
+  font-size: 0.7rem !important;
+}
+
+.dash-nav-tab.active .dash-tab-badge {
+  background: rgba(255, 255, 255, 0.25) !important;
+  color: #FFFFFF !important;
+}
+
+/* Operational Panels */
+.dash-panel-card {
+  background: #FFFFFF !important;
+  border: 1px solid var(--crm-border) !important;
+  border-radius: 12px !important;
+  padding: 1.25rem !important;
+  box-shadow: var(--crm-shadow-sm) !important;
+}
+
+.dash-panel-title {
+  font-size: 0.95rem !important;
+  font-weight: 700 !important;
+  color: var(--crm-text-heading) !important;
+}
+
+.dash-guest-item {
+  background: #F8FAFC !important;
+  border: 1px solid var(--crm-border) !important;
+  border-radius: 8px !important;
+  padding: 0.75rem 1rem !important;
+  margin-bottom: 0.5rem !important;
+}
+
+.dash-guest-item:hover {
+  background: #FFFFFF !important;
+  border-color: var(--crm-border-strong) !important;
+  box-shadow: var(--crm-shadow-sm) !important;
+}

@@ -1164,7 +1164,7 @@ async function renderDashboard() {
               <span>${greetEmoji}</span> ${greeting}, ${userName}
             </div>
             <div class="dash-heading" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-              <span>Operations Dashboard</span>
+              <span>Executive Dashboard</span>
               ${globalProp ? `
                 <span style="font-size:12px;font-weight:700;background:#EEF2FF;color:#4338CA;border:1px solid #C7D2FE;padding:2px 10px;border-radius:20px;display:inline-flex;align-items:center;gap:6px;">
                   🏘️ ${(window._globalRoomsList || []).find(r => r.room_id === globalProp)?.nickname || globalProp}
@@ -1179,9 +1179,9 @@ async function renderDashboard() {
           </div>
 
           <div class="dash-hero-actions" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-            <button class="dash-pill-btn" onclick="renderDashboard()" title="Refresh live data" style="border-radius:999px;font-weight:700;padding:7px 14px;">🔄 Refresh</button>
+            <button class="dash-pill-btn" onclick="renderDashboard()" title="Refresh live data"><i class="ti ti-refresh"></i> Refresh</button>
             <button type="button" class="dash-pill-btn" style="background:#FFEBE8;color:#EA3829;border:1px solid #FECACA;border-radius:999px;font-weight:700;padding:7px 14px;display:inline-flex;align-items:center;gap:6px;" onclick="window.openCustomPaymentQRModal(${globalProp ? `{ roomId: '${globalProp}' }` : ''})" title="Create & Send Custom UPI Payment QR to Guest">
-              <span>💳</span> <span>Payment QR</span>
+              <span><i class="ti ti-qrcode"></i></span> <span>Payment QR</span>
             </button>
             ${SESSION.role === 'developer' ? `
             <div class="dash-online-badge" onclick="showActiveUsersModal()" title="Click to see online users" style="cursor:pointer;padding:6px 12px;border-radius:999px;">
@@ -1199,7 +1199,7 @@ async function renderDashboard() {
         <div class="dash-kpi-card occupancy" onclick="filterAndShowFlats('occupied')">
           <div class="dash-kpi-top">
             <span class="dash-kpi-label">Live Occupancy</span>
-            <div class="dash-kpi-icon occupancy">🛏️</div>
+            <div class="dash-kpi-icon occupancy"><i class="ti ti-bed"></i></div>
           </div>
           <div class="dash-kpi-num">${occupancyPct}%</div>
           <div class="dash-kpi-sub">${bookedNow.length} of ${totalProps} flats booked</div>
@@ -1212,7 +1212,7 @@ async function renderDashboard() {
         <div class="dash-kpi-card checkins" onclick="filterAndShowBookings('checkinToday')">
           <div class="dash-kpi-top">
             <span class="dash-kpi-label">Today's Check-ins</span>
-            <div class="dash-kpi-icon checkins">📥</div>
+            <div class="dash-kpi-icon checkins"><i class="ti ti-login"></i></div>
           </div>
           <div class="dash-kpi-num">${realCheckins.length}</div>
           <div class="dash-kpi-sub">${realCheckins.filter(x => x.actual_checkin).length} already checked-in &bull; ${realCheckins.filter(x => !x.actual_checkin).length} pending</div>
@@ -1222,7 +1222,7 @@ async function renderDashboard() {
         <div class="dash-kpi-card checkouts" onclick="filterAndShowBookings('checkoutToday')">
           <div class="dash-kpi-top">
             <span class="dash-kpi-label">Today's Check-outs</span>
-            <div class="dash-kpi-icon checkouts">📤</div>
+            <div class="dash-kpi-icon checkouts"><i class="ti ti-logout"></i></div>
           </div>
           <div class="dash-kpi-num">${realCheckouts.length}</div>
           <div class="dash-kpi-sub">${realCheckouts.filter(x => x.actual_checkout).length} departed &bull; ${realCheckouts.filter(x => !x.actual_checkout).length} remaining</div>
@@ -1232,7 +1232,7 @@ async function renderDashboard() {
         <div class="dash-kpi-card revenue" onclick="filterAndShowBookings('todayRevenue')">
           <div class="dash-kpi-top">
             <span class="dash-kpi-label">Today's Booking Value</span>
-            <div class="dash-kpi-icon revenue">💰</div>
+            <div class="dash-kpi-icon revenue"><i class="ti ti-cash"></i></div>
           </div>
           <div class="dash-kpi-num">₹${todayRevenue.toLocaleString('en-IN')}</div>
           <div class="dash-kpi-sub" style="color:var(--text-secondary);">
@@ -1244,16 +1244,16 @@ async function renderDashboard() {
       <!-- SEGMENTED NAVIGATION TABS -->
       <div class="dash-nav-bar">
         <button class="dash-nav-tab ${window._activeDashTab === 'flow' ? 'active' : ''}" data-tab="flow" onclick="switchDashTab('flow', this)">
-          🛎️ Guest Flow <span class="dash-tab-badge">${realCheckins.length + realCheckouts.length}</span>
+          <i class="ti ti-bed"></i> Guest Flow <span class="dash-tab-badge">${realCheckins.length + realCheckouts.length}</span>
         </button>
         <button class="dash-nav-tab ${window._activeDashTab === 'rooms' ? 'active' : ''}" data-tab="rooms" onclick="switchDashTab('rooms', this)">
-          🛏️ Rooms & Care <span class="dash-tab-badge">${dirty.length + freeClean.length}</span>
+          <i class="ti ti-home-check"></i> Rooms & Care <span class="dash-tab-badge">${dirty.length + freeClean.length}</span>
         </button>
         <button class="dash-nav-tab ${window._activeDashTab === 'ops' ? 'active' : ''}" data-tab="ops" onclick="switchDashTab('ops', this)">
-          👥 Staff & Tasks <span class="dash-tab-badge">${presentToday}/${totalEmps}</span>
+          <i class="ti ti-id-badge-2"></i> Staff & Tasks <span class="dash-tab-badge">${presentToday}/${totalEmps}</span>
         </button>
         <button class="dash-nav-tab ${window._activeDashTab === 'wa' ? 'active' : ''}" data-tab="wa" onclick="switchDashTab('wa', this)">
-          📱 WhatsApp Tasks <span class="dash-tab-badge">${totalWATasks}</span>
+          <i class="ti ti-brand-whatsapp"></i> WhatsApp Tasks <span class="dash-tab-badge">${totalWATasks}</span>
         </button>
       </div>
 
@@ -1263,7 +1263,7 @@ async function renderDashboard() {
         <div class="dash-attention-card ${totalAttention === 0 ? 'all-clear' : ''}" id="dashAttentionCard">
           <div class="dash-attention-header">
             <div class="dash-attention-title">
-              <span>⏰</span> Attention Needed (<span style="color:var(--primary);font-weight:900;">${totalAttention}</span>)
+              <span><i class="ti ti-alert-triangle"></i></span> Attention Needed (<span style="color:var(--primary);font-weight:900;">${totalAttention}</span>)
             </div>
             ${totalAttention > 0 ? `<span class="badge yellow" style="font-size:11px;">Immediate Action Required</span>` : `<span class="badge green" style="font-size:11px;">All on track ✅</span>`}
           </div>
