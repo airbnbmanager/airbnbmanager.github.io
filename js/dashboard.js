@@ -1246,7 +1246,7 @@ async function renderDashboard() {
       </div>
 
       <!-- CHARTS ROW (Chart.js: Financial Trend + Room & Booking Distribution - Matching Image 5) -->
-      <div class="dash-charts-grid" style="display:grid;grid-template-columns:2fr 1.1fr;gap:18px;margin-bottom:20px;">
+      <div class="dash-charts-grid">
         <!-- Left: 6-Month Revenue & Expense Trend -->
         <div class="dash-chart-card" style="background:#FFFFFF;border:1px solid #E2E8F0;border-radius:14px;padding:20px;box-shadow:0 1px 3px rgba(0,0,0,0.04);">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
