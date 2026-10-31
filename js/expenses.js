@@ -7,259 +7,869 @@
 async function renderExpenses() {
   if (window.showLoadingSkeleton) window.showLoadingSkeleton('list');
 
-  renderShell(`<div class="loading">Loading...</div>`, 'expenses');
+  renderShell(`<div class="loading">Loading Unified Company Expenses &amp; Outflows...</div>`, 'expenses');
 
   const cm = new Date().toISOString().slice(0, 7);
-  const ml = new Date()
-    .toLocaleString('en-IN', { month: 'short', year: 'numeric' })
-    .replace(' ', '-');
+  const now = new Date();
+  const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const ml = `${monthNames[now.getMonth()]}-${now.getFullYear()}`;
 
-  const [{ data: cats }, { data: exps }, { data: gs }, { data: rooms }] = await Promise.all([
+  // Fetch all 5 expense channels concurrently
+  const [
+    { data: cats },
+    { data: exps },
+    { data: gs },
+    { data: rooms },
+    { data: reimbs },
+    { data: maint },
+    { data: laundryPays },
+    { data: advs },
+    { data: emps }
+  ] = await Promise.all([
     sb.from('expense_categories').select('*').order('category_name'),
-    sb.from('expenses')
-      .select('*, expense_categories(category_name), rooms(nickname,unit_no)')
-      .order('entry_date', { ascending: false }),
+    sb.from('expenses').select('*, expense_categories(category_name), rooms(nickname,unit_no)').order('entry_date', { ascending: false }),
     sb.from('guest_register').select('booking_id, check_in, total_amount'),
-    sb.from('rooms').select('room_id, nickname, unit_no').order('unit_no')
+    sb.from('rooms').select('room_id, nickname, unit_no').order('unit_no'),
+    sb.from('reimbursements').select('*').order('expense_date', { ascending: false }),
+    sb.from('maintenance_log').select('*').gt('cost', 0).order('reported_date', { ascending: false }),
+    sb.from('laundry_payments').select('*, laundry_records(vendor_name, room_id)').order('payment_date', { ascending: false }),
+    sb.from('advance_tracker').select('*, employees(name, role)').order('date_given', { ascending: false }),
+    sb.from('employees').select('emp_id, name, role, phone, salary').order('name')
   ]);
 
-  const pm = await getPaidMap((gs || []).map(g => g.booking_id));
-  const inc = (gs || [])
-    .filter(g => g.check_in?.startsWith(cm))
-    .reduce((s, g) => s + (pm[g.booking_id] || 0), 0);
-  const mexp = (exps || [])
-    .filter(e => e.month === ml)
-    .reduce((s, e) => s + (e.amount || 0), 0);
-  const profit = inc - mexp;
+  // Employee mapping
+  const empMap = {};
+  (emps || []).forEach(e => { if (e.emp_id) empMap[e.emp_id] = e; });
+  window._allEmployeesList = emps || [];
 
-  // Store for filters
+  // Helper normalizer for payment source (OD vs Company/Firoz)
+  function normSource(raw) {
+    if (!raw) return 'COMPANY';
+    const s = String(raw).trim().toUpperCase();
+    if (s.includes('OD') || s.includes('UHHS') || s.includes('OVERDRAFT')) return 'UHHS-OD';
+    if (s.includes('FIROZ') || s.includes('DIRECT')) return 'FIROZ';
+    return 'COMPANY';
+  }
+
+  // Build Master Unified Expenses Collection
+  const masterList = [];
+
+  // 1. General Expenses & Wi-Fi
+  (exps || []).forEach(e => {
+    const isWifi = (e.expense_categories?.category_name || '').toLowerCase().includes('wi-fi') || (e.notes || '').toLowerCase().includes('wifi');
+    masterList.push({
+      uniqId: 'exp_' + e.id,
+      id: e.id,
+      channel: isWifi ? 'maintenance' : 'general',
+      channelLabel: isWifi ? '📶 Wi-Fi / Broadband' : '🧾 General Expense',
+      channelBadge: isWifi ? 'badge-info' : 'badge-neutral',
+      title: e.notes || e.expense_categories?.category_name || 'Expense',
+      category: e.expense_categories?.category_name || 'General',
+      amount: Number(e.amount || 0),
+      date: e.entry_date || (e.created_at || '').slice(0, 10),
+      month: e.month || (e.entry_date ? `${monthNames[parseInt(e.entry_date.slice(5,7),10)-1]}-${e.entry_date.slice(0,4)}` : ml),
+      monthYm: (e.entry_date || '').slice(0, 7) || cm,
+      roomId: e.room_id || null,
+      roomLabel: propLabel(e.rooms) || e.room_id || 'General Business',
+      staffName: e.paid_to || '-',
+      empId: null,
+      paidBy: normSource(e.payment_source || e.paid_by),
+      isSalaryDeductible: false,
+      deductionStatus: 'Company Operational',
+      notes: e.notes || '',
+      raw: e
+    });
+  });
+
+  // 2. Laundry Expenses
+  (laundryPays || []).forEach(lp => {
+    const vName = lp.laundry_records?.vendor_name || 'Laundry Vendor';
+    const dStr = lp.payment_date || (lp.created_at || '').slice(0, 10);
+    const mYm = dStr.slice(0, 7);
+    const mLabel = dStr ? `${monthNames[parseInt(dStr.slice(5,7),10)-1]}-${dStr.slice(0,4)}` : ml;
+    masterList.push({
+      uniqId: 'laundry_' + lp.id,
+      id: lp.id,
+      channel: 'laundry',
+      channelLabel: '🧺 Laundry Bill',
+      channelBadge: 'badge-info',
+      title: `Linen Wash: ${vName}`,
+      category: 'Laundry & Linen',
+      amount: Number(lp.amount || 0),
+      date: dStr,
+      month: mLabel,
+      monthYm: mYm,
+      roomId: lp.laundry_records?.room_id || null,
+      roomLabel: lp.laundry_records?.room_id ? (window.getRoomNickname ? window.getRoomNickname(lp.laundry_records.room_id) : lp.laundry_records.room_id) : 'All Units',
+      staffName: vName,
+      empId: null,
+      paidBy: normSource(lp.payment_source || lp.paid_by),
+      isSalaryDeductible: false,
+      deductionStatus: 'Company Operational',
+      notes: lp.notes || `Vendor: ${vName}`,
+      raw: lp
+    });
+  });
+
+  // 3. Maintenance & Property Repairs
+  (maint || []).forEach(m => {
+    const dStr = m.reported_date || (m.created_at || '').slice(0, 10);
+    const mYm = dStr.slice(0, 7);
+    const mLabel = dStr ? `${monthNames[parseInt(dStr.slice(5,7),10)-1]}-${dStr.slice(0,4)}` : ml;
+    const staffObj = empMap[m.assigned_to];
+    const staffName = staffObj?.name || m.assigned_to || m.vendor_name || '-';
+    masterList.push({
+      uniqId: 'maint_' + m.id,
+      id: m.id,
+      channel: 'maintenance',
+      channelLabel: '🔧 Maintenance',
+      channelBadge: 'badge-warning',
+      title: `${m.issue_type || 'Repair'}: ${(m.description || '').slice(0, 60)}`,
+      category: 'Maintenance & Repairs',
+      amount: Number(m.cost || 0),
+      date: dStr,
+      month: mLabel,
+      monthYm: mYm,
+      roomId: m.room_id || null,
+      roomLabel: m.room_id ? (window.getRoomNickname ? window.getRoomNickname(m.room_id) : m.room_id) : 'General',
+      staffName: staffName,
+      empId: m.assigned_to || null,
+      paidBy: normSource(m.payment_source || m.paid_by),
+      isSalaryDeductible: false,
+      deductionStatus: 'Company Operational',
+      notes: m.description || m.notes || '',
+      raw: m
+    });
+  });
+
+  // 4. Staff Advances (Salary Linked)
+  (advs || []).forEach(adv => {
+    const dStr = adv.date_given || (adv.created_at || '').slice(0, 10);
+    const mYm = dStr.slice(0, 7);
+    const mLabel = dStr ? `${monthNames[parseInt(dStr.slice(5,7),10)-1]}-${dStr.slice(0,4)}` : ml;
+    const staffName = adv.employees?.name || empMap[adv.emp_id]?.name || 'Staff Member';
+    const isDeducted = Boolean(adv.is_deducted);
+    masterList.push({
+      uniqId: 'adv_' + adv.id,
+      id: adv.id,
+      channel: 'advance',
+      channelLabel: '🎁 Staff Advance',
+      channelBadge: 'badge-primary',
+      title: `Advance to ${staffName} (${adv.reason || 'Personal / General'})`,
+      category: 'Staff Advance',
+      amount: Number(adv.advance_amount || 0),
+      date: dStr,
+      month: mLabel,
+      monthYm: mYm,
+      roomId: null,
+      roomLabel: 'Staff Account',
+      staffName: staffName,
+      empId: adv.emp_id,
+      paidBy: normSource(adv.paid_by),
+      isSalaryDeductible: true,
+      deductionStatus: isDeducted ? '✅ Deducted from Salary' : '⏳ Pending Salary Deduction',
+      notes: adv.reason || '',
+      raw: adv
+    });
+  });
+
+  // 5. Staff Other Spends (Rapido, Mobile recharge, Grocery, Delivery)
+  (reimbs || []).forEach(r => {
+    const dStr = r.expense_date || (r.created_at || '').slice(0, 10);
+    const mYm = dStr.slice(0, 7);
+    const mLabel = dStr ? `${monthNames[parseInt(dStr.slice(5,7),10)-1]}-${dStr.slice(0,4)}` : ml;
+    const staffName = r.paid_to || r.paid_by || '-';
+    masterList.push({
+      uniqId: 'reimb_' + r.id,
+      id: r.id,
+      channel: 'staff_spend',
+      channelLabel: '🛵 Staff Spend / Rapido',
+      channelBadge: 'badge-neutral',
+      title: r.description || r.notes || r.category || 'Staff Spend',
+      category: r.category || 'Reimbursements',
+      amount: Number(r.amount || 0),
+      date: dStr,
+      month: mLabel,
+      monthYm: mYm,
+      roomId: r.room_id || null,
+      roomLabel: r.room_id ? (window.getRoomNickname ? window.getRoomNickname(r.room_id) : r.room_id) : 'General Operations',
+      staffName: staffName,
+      empId: r.created_by || null,
+      paidBy: normSource(r.payment_source || r.paid_by),
+      isSalaryDeductible: false,
+      deductionStatus: 'Company Operational',
+      notes: r.notes || r.description || '',
+      raw: r
+    });
+  });
+
+  // Sort latest first
+  masterList.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+
+  // Calculate Running Month Totals
+  const thisMonthList = masterList.filter(item => item.monthYm === cm);
+  const totalMonthExp = thisMonthList.reduce((s, x) => s + x.amount, 0);
+  const totalOdExp = thisMonthList.filter(x => x.paidBy === 'UHHS-OD').reduce((s, x) => s + x.amount, 0);
+  const totalCompanyExp = thisMonthList.filter(x => x.paidBy !== 'UHHS-OD').reduce((s, x) => s + x.amount, 0);
+  const pendingStaffAdvs = masterList.filter(x => x.channel === 'advance' && !x.raw?.is_deducted).reduce((s, x) => s + x.amount, 0);
+
+  // Income for this month from bookings
+  const pm = await getPaidMap((gs || []).map(g => g.booking_id));
+  const inc = (gs || []).filter(g => g.check_in?.startsWith(cm)).reduce((s, g) => s + (pm[g.booking_id] || 0), 0);
+  const profit = inc - totalMonthExp;
+
+  // Store globally for filtering & exports
   window._expCats = cats || [];
   window._expRooms = rooms || [];
-  window._allExps = exps || [];
+  window._masterExpensesList = masterList;
   window._currentML = ml;
+  window._currentMonthYm = cm;
+
+  // Group per staff breakdown: "Kis employee pe kitna"
+  const staffExpenseMap = {};
+  (emps || []).forEach(e => {
+    staffExpenseMap[e.emp_id] = {
+      emp_id: e.emp_id,
+      name: e.name,
+      role: e.role || 'Staff',
+      advances: 0,
+      advancesPending: 0,
+      otherSpends: 0,
+      odPaid: 0,
+      companyPaid: 0,
+      totalOutflow: 0
+    };
+  });
+
+  masterList.forEach(item => {
+    let matchedEmpId = item.empId;
+    if (!matchedEmpId && item.staffName) {
+      const match = (emps || []).find(e => e.name.toLowerCase().trim() === item.staffName.toLowerCase().trim());
+      if (match) matchedEmpId = match.emp_id;
+    }
+    if (matchedEmpId && staffExpenseMap[matchedEmpId]) {
+      const rec = staffExpenseMap[matchedEmpId];
+      if (item.channel === 'advance') {
+        rec.advances += item.amount;
+        if (!item.raw?.is_deducted) rec.advancesPending += item.amount;
+      } else {
+        rec.otherSpends += item.amount;
+      }
+      if (item.paidBy === 'UHHS-OD') rec.odPaid += item.amount;
+      else rec.companyPaid += item.amount;
+      rec.totalOutflow += item.amount;
+    }
+  });
+
+  const staffSummaryList = Object.values(staffExpenseMap).filter(s => s.totalOutflow > 0 || s.advancesPending > 0);
 
   renderShell(`
-    <div id="uhhs-od-balance-display" style="margin-bottom:12px;"></div>
-    <div class="card">
-      <h1>💹 Expenses & P&L</h1>
-      <div class="sub">${ml}</div>
-      <div class="btn-row">
-        <button onclick="renderAddExpEntry()">🧾 Log Expense</button>
-        <button onclick="window.openWifiRechargeModal()" style="background:#2563EB;color:#fff;font-weight:700;border:none;">📶 Wi-Fi Recharge &amp; Install</button>
-        <button onclick="window.openEmployeeTransportModal()" style="background:#D97706;color:#fff;font-weight:700;border:none;">🛵 Rapido &amp; Travel Tracker</button>
-        <button onclick="window.exportExpensesCSV()" style="background:#059669;color:#fff;font-weight:700;border:none;">📥 Export CSV / Excel</button>
-        <button onclick="window.printExpensesReport()" style="background:#4F46E5;color:#fff;font-weight:700;border:none;">🖨️ Print / PDF Report</button>
-        <button onclick="window.shareExpensesWhatsApp()" style="background:#16A34A;color:#fff;font-weight:700;border:none;" title="Share monthly expenses on WhatsApp">💬 WhatsApp Summary</button>
-        <button onclick="navigate('ca-audit')" style="background:#0F172A;color:#38BDF8;font-weight:700;border:none;">💼 CA Audit &amp; GST Pack</button>
-        <button class="secondary" onclick="renderManageCategories()">⚙️ Manage Categories</button>
-        <button class="secondary" onclick="renderDefaultExpenses()">⚙️ Defaults</button>
-      </div>
-    </div>
+    <div id="uhhs-od-balance-display" style="margin-bottom:14px;"></div>
 
-    <div class="card">
-      <div class="section-title">📊 This Month — ${ml}</div>
-      <div class="metric-row">
-        <span class="metric-label">Income</span>
-        <span class="metric-value" style="color:var(--green);">
-          ₹${inc.toLocaleString('en-IN')}
-        </span>
-      </div>
-      <div class="metric-row">
-        <span class="metric-label">Expenses</span>
-        <span class="metric-value warn">₹${mexp.toLocaleString('en-IN')}</span>
-      </div>
-      <div class="metric-row">
-        <span class="metric-label">Profit</span>
-        <span class="metric-value"
-          style="color:${profit >= 0 ? 'var(--green)' : 'var(--red)'};">
-          ₹${profit.toLocaleString('en-IN')}
-        </span>
-      </div>
-    </div>
+    <!-- ─── HEADER & PRIMARY ACTION BUTTONS ─── -->
+    <div class="card" style="margin-bottom:16px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;">
+        <div>
+          <h1 style="margin:0;font-size:22px;font-weight:900;color:#0F172A;display:flex;align-items:center;gap:8px;">
+            <span>💼</span> All Company Expenses &amp; Outflow Hub
+          </h1>
+          <div class="sub" style="margin-top:3px;font-size:13px;color:#64748B;">
+            Unified Spending Register: Laundry · Maintenance &amp; Wi-Fi · Staff Advances · Daily Claims
+          </div>
+        </div>
 
-    <div class="card">
-      <div class="section-title">🔍 Filter Expenses</div>
-      <div class="form-grid">
-        <div class="form-group">
-          <label>Month</label>
-          <input type="month" id="expMonthFilter"
-            value="${cm}"
-            onchange="applyExpenseFilters()" />
-        </div>
-        <div class="form-group">
-          <label>Property</label>
-          <select id="expRoomFilter" onchange="applyExpenseFilters()">
-            <option value="">All Properties</option>
-            ${(rooms || []).map(r =>
-              `<option value="${r.room_id}">${propLabel(r)}</option>`
-            ).join('')}
-          </select>
-        </div>
-                <div class="form-group">
-          <label>Payment Source / Account <span class="warn">*</span></label>
-          <select id="expSource" required style="border: 1.5px solid #0d6efd; font-weight: 600;">
-            <option value="COMPANY">🏢 COMPANY (Guest Rent / Cash in Hand)</option>
-            <option value="UHHS-OD">🏦 TUHH-OD (Overdraft Account)</option>
-            <option value="FIROZ">👤 FIROZ (Direct Personal)</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label>Category</label>
-                  <div class="form-group">
-          <label>Account / Source</label>
-          <select id="expSourceFilter" onchange="applyExpenseFilters()">
-            <option value="">All Accounts</option>
-            <option value="COMPANY">🏢 COMPANY</option>
-            <option value="UHHS-OD">🏦 TUHH-OD</option>
-            <option value="FIROZ">👤 FIROZ</option>
-          </select>
-        </div>
-                <div class="form-group">
-          <label>Payment Source / Account <span class="warn">*</span></label>
-          <select id="expSource" required style="border: 1.5px solid #0d6efd; font-weight: 600;">
-            <option value="COMPANY">🏢 COMPANY (Guest Rent / Cash in Hand)</option>
-            <option value="UHHS-OD">🏦 TUHH-OD (Overdraft Account)</option>
-            <option value="FIROZ">👤 FIROZ (Direct Personal)</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label>Category</label>
-          <select id="expCatFilter" onchange="applyExpenseFilters()">
-            <option value="">All Categories</option>
-            ${(cats || []).map(c =>
-              `<option value="${c.category_id}">${c.category_name}</option>`
-            ).join('')}
-          </select>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+          <button onclick="renderAddExpEntry()" style="background:#0EA5E9;color:#fff;font-weight:700;border:none;border-radius:8px;padding:8px 14px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;box-shadow:0 2px 6px rgba(14,165,233,0.25);">
+            <i class="ti ti-receipt"></i> Log Expense
+          </button>
+          <button onclick="window.openLaundryQuickModal()" style="background:#0284C7;color:#fff;font-weight:700;border:none;border-radius:8px;padding:8px 14px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;">
+            <span>🧺</span> Log Laundry
+          </button>
+          <button onclick="window.openWifiRechargeModal()" style="background:#2563EB;color:#fff;font-weight:700;border:none;border-radius:8px;padding:8px 14px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;">
+            <i class="ti ti-wifi"></i> Wi-Fi Recharge
+          </button>
+          <button onclick="window.openEmployeeTransportModal()" style="background:#D97706;color:#fff;font-weight:700;border:none;border-radius:8px;padding:8px 14px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;">
+            <span>🛵</span> Rapido &amp; Travel
+          </button>
+          <button onclick="window.openStaffAdvanceModal()" style="background:#7C3AED;color:#fff;font-weight:700;border:none;border-radius:8px;padding:8px 14px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;">
+            <span>🎁</span> Give Staff Advance
+          </button>
+          <button onclick="navigate('claims')" style="background:#0F172A;color:#38BDF8;font-weight:700;border:none;border-radius:8px;padding:8px 14px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;">
+            <i class="ti ti-scale"></i> Claims Ledger
+          </button>
         </div>
       </div>
     </div>
 
-    <div id="expTableWrap"></div>
+    <!-- ─── EXECUTIVE EXPENSE & SOURCE COUNTERS ─── -->
+    <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));gap:12px;margin-bottom:16px;">
+      <div class="card" style="padding:14px 16px;background:#FFFFFF;border-left:4px solid #0EA5E9;margin:0;">
+        <div style="font-size:11px;font-weight:700;color:#64748B;text-transform:uppercase;letter-spacing:0.5px;">THIS MONTH OUTFLOW (${ml})</div>
+        <div style="font-size:24px;font-weight:900;color:#DC2626;margin-top:4px;">₹${totalMonthExp.toLocaleString('en-IN')}</div>
+        <div style="font-size:11.5px;color:#64748B;margin-top:2px;">All channels combined (${thisMonthList.length} items)</div>
+      </div>
 
-    <div class="card">
-      <div class="section-title">📂 Categories</div>
-      <div class="table-wrap"><table>
-        <thead><tr>
-          <th>Category</th>
-          <th>Default ₹/month</th>
-        </tr></thead>
-        <tbody>
-          ${(cats || []).map(c => `
+      <div class="card" style="padding:14px 16px;background:#F0FDF4;border-left:4px solid #10B981;margin:0;">
+        <div style="font-size:11px;font-weight:700;color:#166534;text-transform:uppercase;letter-spacing:0.5px;">🏦 PAID VIA TUHH-OD</div>
+        <div style="font-size:24px;font-weight:900;color:#059669;margin-top:4px;">₹${totalOdExp.toLocaleString('en-IN')}</div>
+        <div style="font-size:11.5px;color:#15803D;margin-top:2px;">Online OD Account Outflow</div>
+      </div>
+
+      <div class="card" style="padding:14px 16px;background:#FFFBEB;border-left:4px solid #F59E0B;margin:0;">
+        <div style="font-size:11px;font-weight:700;color:#92400E;text-transform:uppercase;letter-spacing:0.5px;">🏢 PAID VIA COMPANY / FIROZ</div>
+        <div style="font-size:24px;font-weight:900;color:#D97706;margin-top:4px;">₹${totalCompanyExp.toLocaleString('en-IN')}</div>
+        <div style="font-size:11.5px;color:#B45309;margin-top:2px;">Cash in Hand / Personal Transfers</div>
+      </div>
+
+      <div class="card" style="padding:14px 16px;background:#FAF5FF;border-left:4px solid #8B5CF6;margin:0;">
+        <div style="font-size:11px;font-weight:700;color:#6B21A8;text-transform:uppercase;letter-spacing:0.5px;">🎁 STAFF ADVANCES PENDING</div>
+        <div style="font-size:24px;font-weight:900;color:#7C3AED;margin-top:4px;">₹${pendingStaffAdvs.toLocaleString('en-IN')}</div>
+        <div style="font-size:11.5px;color:#6B21A8;margin-top:2px;">To be deducted during salary payout</div>
+      </div>
+    </div>
+
+    <!-- ─── P&L MOVEMENT THIS MONTH ─── -->
+    <div class="card" style="margin-bottom:16px;">
+      <div class="section-title">📊 Operational P&amp;L — ${ml}</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));gap:12px;margin-top:10px;">
+        <div style="background:#F8FAFC;padding:12px;border-radius:8px;border:1px solid #E2E8F0;">
+          <div style="font-size:11px;color:#64748B;font-weight:700;">TOTAL BOOKINGS REVENUE</div>
+          <div style="font-size:20px;font-weight:800;color:#10B981;margin-top:2px;">₹${inc.toLocaleString('en-IN')}</div>
+        </div>
+        <div style="background:#F8FAFC;padding:12px;border-radius:8px;border:1px solid #E2E8F0;">
+          <div style="font-size:11px;color:#64748B;font-weight:700;">TOTAL OPERATING EXPENSES</div>
+          <div style="font-size:20px;font-weight:800;color:#DC2626;margin-top:2px;">₹${totalMonthExp.toLocaleString('en-IN')}</div>
+        </div>
+        <div style="background:#F8FAFC;padding:12px;border-radius:8px;border:1px solid #E2E8F0;">
+          <div style="font-size:11px;color:#64748B;font-weight:700;">NET OPERATIONAL PROFIT</div>
+          <div style="font-size:20px;font-weight:800;color:${profit >= 0 ? '#10B981' : '#DC2626'};margin-top:2px;">
+            ₹${profit.toLocaleString('en-IN')}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─── STAFF EXPENSE & ADVANCE BREAKDOWN ("KIS EMPLOYEE PE KITNA") ─── -->
+    <div class="card" style="margin-bottom:16px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:12px;">
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span style="font-size:18px;">👥</span>
+          <div>
+            <div style="font-size:15px;font-weight:800;color:#0F172A;">Staff Expense &amp; Advance Breakdown</div>
+            <div style="font-size:11.5px;color:#64748B;">Tracking which employee took advance (salary-linked) vs operational claims (Rapido/petrol)</div>
+          </div>
+        </div>
+        <button onclick="window.openStaffAdvanceModal()" class="btn-sm" style="background:#7C3AED;color:#fff;font-weight:700;border:none;border-radius:6px;padding:6px 12px;cursor:pointer;">
+          ➕ Record Staff Advance
+        </button>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
             <tr>
-              <td>${c.category_name}</td>
-              <td>₹${(c.default_monthly_amount || 0).toLocaleString('en-IN')}</td>
+              <th>Employee</th>
+              <th>Role</th>
+              <th>Advance (Salary Linked)</th>
+              <th>Pending Salary Deduction</th>
+              <th>Other Claims (Rapido/Food)</th>
+              <th>Paid Via OD</th>
+              <th>Paid Via Firoz/Co.</th>
+              <th>Total Staff Outflow</th>
+              <th>Actions</th>
             </tr>
-          `).join('') || '<tr><td colspan="2" class="sub">None</td></tr>'}
-        </tbody>
-      </table></div>
+          </thead>
+          <tbody>
+            ${staffSummaryList.length === 0
+              ? '<tr><td colspan="9" class="sub" style="text-align:center;padding:16px;">No staff expenses or advances logged this period</td></tr>'
+              : staffSummaryList.map(s => `
+                <tr>
+                  <td><strong>${escapeHtml(s.name)}</strong></td>
+                  <td style="font-size:12px;color:#64748B;">${escapeHtml(s.role)}</td>
+                  <td style="font-weight:700;color:#7C3AED;">₹${s.advances.toLocaleString('en-IN')}</td>
+                  <td>
+                    ${s.advancesPending > 0
+                      ? `<span style="background:#FEE2E2;color:#991B1B;font-weight:700;padding:2px 8px;border-radius:999px;font-size:11px;">⚠️ ₹${s.advancesPending.toLocaleString('en-IN')} (Deduct Next Salary)</span>`
+                      : `<span style="color:#059669;font-size:11.5px;font-weight:600;">✓ Fully Deducted</span>`
+                    }
+                  </td>
+                  <td style="font-weight:600;color:#0F172A;">₹${s.otherSpends.toLocaleString('en-IN')}</td>
+                  <td style="font-size:12px;color:#059669;font-weight:600;">₹${s.odPaid.toLocaleString('en-IN')}</td>
+                  <td style="font-size:12px;color:#D97706;font-weight:600;">₹${s.companyPaid.toLocaleString('en-IN')}</td>
+                  <td style="font-weight:800;color:#DC2626;font-size:13.5px;">₹${s.totalOutflow.toLocaleString('en-IN')}</td>
+                  <td>
+                    <button class="btn-sm" onclick="window.filterExpensesByStaff('${escapeHtml(s.name)}')" title="Filter all entries for this staff" style="padding:4px 8px;font-size:11px;">🔍 View Entries</button>
+                    <button class="btn-sm" onclick="window.openStaffAdvanceModal('${s.emp_id}')" title="Give Advance" style="padding:4px 8px;font-size:11px;background:#7C3AED;color:#fff;border:none;">+ Adv</button>
+                  </td>
+                </tr>
+              `).join('')
+            }
+          </tbody>
+        </table>
+      </div>
     </div>
+
+    <!-- ─── UNIFIED FILTER CONTROLS ─── -->
+    <div class="card" style="margin-bottom:16px;">
+      <div class="section-title">🔍 Filter All Company Expenses</div>
+      <div class="form-grid" style="display:grid;grid-template-columns:repeat(auto-fit, minmax(180px, 1fr));gap:12px;">
+        <div class="form-group">
+          <label style="font-size:12px;font-weight:700;">Month</label>
+          <input type="month" id="expMonthFilter" value="${cm}" onchange="applyExpenseFilters()" style="width:100%;padding:8px 10px;border:1px solid #CBD5E1;border-radius:8px;font-size:12.5px;" />
+        </div>
+
+        <div class="form-group">
+          <label style="font-size:12px;font-weight:700;">Channel / Expense Type</label>
+          <select id="expChannelFilter" onchange="applyExpenseFilters()" style="width:100%;padding:8px 10px;border:1px solid #CBD5E1;border-radius:8px;font-size:12.5px;font-weight:600;">
+            <option value="all">All Channels (Laundry + Maint + Adv + Spends)</option>
+            <option value="laundry">🧺 Laundry Spends</option>
+            <option value="maintenance">🔧 Maintenance &amp; Wi-Fi</option>
+            <option value="advance">🎁 Staff Advances (Salary Linked)</option>
+            <option value="staff_spend">🛵 Staff Spends (Rapido / Supplies)</option>
+            <option value="general">🧾 General Business Expenses</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label style="font-size:12px;font-weight:700;">Payment Source / Account</label>
+          <select id="expSourceFilter" onchange="applyExpenseFilters()" style="width:100%;padding:8px 10px;border:1px solid #CBD5E1;border-radius:8px;font-size:12.5px;font-weight:600;">
+            <option value="all">All Accounts (OD + Firoz/Company)</option>
+            <option value="UHHS-OD">🏦 TUHH-OD (Overdraft Account)</option>
+            <option value="COMPANY">🏢 COMPANY / FIROZ</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label style="font-size:12px;font-weight:700;">Staff / Employee</label>
+          <select id="expStaffFilter" onchange="applyExpenseFilters()" style="width:100%;padding:8px 10px;border:1px solid #CBD5E1;border-radius:8px;font-size:12.5px;">
+            <option value="all">All Staff / Anyone</option>
+            ${(emps || []).map(e => `<option value="${escapeHtml(e.name)}">👤 ${escapeHtml(e.name)}</option>`).join('')}
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label style="font-size:12px;font-weight:700;">Property / Unit</label>
+          <select id="expRoomFilter" onchange="applyExpenseFilters()" style="width:100%;padding:8px 10px;border:1px solid #CBD5E1;border-radius:8px;font-size:12.5px;">
+            <option value="all">All Properties (18 Available)</option>
+            ${(rooms || []).map(r => `<option value="${r.room_id}">${escapeHtml(propLabel(r))}</option>`).join('')}
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─── UNIFIED EXPENSE TABLE WRAPPER ─── -->
+    <div id="expTableWrap"></div>
   `, 'expenses');
 
-  // Render table with all expenses by default
   if (window.UHHSODManager) { window.UHHSODManager.calculateBalance(sb); }
   applyExpenseFilters();
 }
 
-// ============ FILTER + TABLE ============
+// ============ FILTER + TABLE RENDERING ============
 function applyExpenseFilters() {
   const wrap = document.getElementById('expTableWrap');
   if (!wrap) return;
 
   const monthVal = document.getElementById('expMonthFilter')?.value || '';
-  const roomVal  = document.getElementById('expRoomFilter')?.value || '';
-  const catVal   = document.getElementById('expCatFilter')?.value || '';
+  const channelVal = document.getElementById('expChannelFilter')?.value || 'all';
+  const sourceVal = document.getElementById('expSourceFilter')?.value || 'all';
+  const staffVal = document.getElementById('expStaffFilter')?.value || 'all';
+  const roomVal = document.getElementById('expRoomFilter')?.value || 'all';
 
-  // Convert YYYY-MM → "Mon-YYYY"
-  let monthLabel = '';
+  let list = (window._masterExpensesList || []);
+
   if (monthVal) {
-    monthLabel = new Date(monthVal + '-01')
-      .toLocaleString('en-IN', { month: 'short', year: 'numeric' })
-      .replace(' ', '-');
+    list = list.filter(e => (e.date || '').startsWith(monthVal) || e.monthYm === monthVal);
+  }
+  if (channelVal !== 'all') {
+    list = list.filter(e => e.channel === channelVal);
+  }
+  if (sourceVal !== 'all') {
+    list = list.filter(e => {
+      if (sourceVal === 'UHHS-OD') return e.paidBy === 'UHHS-OD';
+      return e.paidBy !== 'UHHS-OD';
+    });
+  }
+  if (staffVal !== 'all') {
+    list = list.filter(e => (e.staffName || '').toLowerCase().includes(staffVal.toLowerCase()));
+  }
+  if (roomVal !== 'all') {
+    list = list.filter(e => e.roomId === roomVal);
   }
 
-  let filtered = (window._allExps || []);
-  if (monthLabel) filtered = filtered.filter(e => e.month === monthLabel);
-  if (roomVal)    filtered = filtered.filter(e => e.room_id === roomVal);
-  if (catVal)     filtered = filtered.filter(e => e.category_id === catVal);
-
-  const total = filtered.reduce((s, e) => s + (e.amount || 0), 0);
-  const isO = ['owner','admin'].includes(SESSION.role) || SESSION.role === 'manager';
-
-  // Save for export and print
-  window._currentFilteredExps = filtered;
-  window._currentExpenseMonth = monthLabel || 'All';
+  const total = list.reduce((s, e) => s + (e.amount || 0), 0);
+  window._currentFilteredExps = list;
+  window._currentExpenseMonth = monthVal || 'All';
 
   wrap.innerHTML = `
     <div class="card">
       <div class="section-title" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
         <div style="display:flex;align-items:center;gap:8px;">
-          <span>🧾 Entries — ${monthLabel || 'All'}</span>
-          <span class="badge red">
-            ₹${total.toLocaleString('en-IN')}
+          <span>🧾 Filtered Entries</span>
+          <span style="background:#FEE2E2;color:#991B1B;font-weight:800;font-size:12.5px;padding:3px 10px;border-radius:999px;">
+            Total: ₹${total.toLocaleString('en-IN')} (${list.length} entries)
           </span>
         </div>
         <div style="display:flex;gap:6px;align-items:center;">
-          <button type="button" class="btn-sm" onclick="window.exportExpensesCSV()" style="background:#059669;color:#fff;font-weight:700;border:none;padding:5px 12px;border-radius:6px;cursor:pointer;">
+          <button type="button" class="btn-sm" onclick="window.exportExpensesCSV()" style="background:#059669;color:#fff;font-weight:700;border:none;padding:6px 12px;border-radius:6px;cursor:pointer;">
             📥 Export CSV
           </button>
-          <button type="button" class="btn-sm" onclick="window.printExpensesReport()" style="background:#4F46E5;color:#fff;font-weight:700;border:none;padding:5px 12px;border-radius:6px;cursor:pointer;">
+          <button type="button" class="btn-sm" onclick="window.printExpensesReport()" style="background:#4F46E5;color:#fff;font-weight:700;border:none;padding:6px 12px;border-radius:6px;cursor:pointer;">
             🖨️ Print / PDF
           </button>
-          <button type="button" class="btn-sm" onclick="window.shareExpensesWhatsApp()" style="background:#16A34A;color:#fff;font-weight:700;border:none;padding:5px 12px;border-radius:6px;cursor:pointer;" title="Share on WhatsApp">
+          <button type="button" class="btn-sm" onclick="window.shareExpensesWhatsApp()" style="background:#16A34A;color:#fff;font-weight:700;border:none;padding:6px 12px;border-radius:6px;cursor:pointer;" title="Share on WhatsApp">
             💬 WhatsApp
           </button>
         </div>
       </div>
-      <div class="table-wrap"><table>
-        <thead><tr>
-          <th>Month</th>
-          <th>Category</th>
-          <th>Property</th>
-          <th>Amount</th>
-          <th>Date</th>
-          <th>Notes</th>
-          <th>Actions</th>
-        </tr></thead>
-        <tbody>
-          ${filtered.length === 0
-            ? '<tr><td colspan="7" class="sub" style="text-align:center;">No expenses found</td></tr>'
-            : filtered.map(e => `
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Channel</th>
+              <th>Description / Purpose</th>
+              <th>Property / Flat</th>
+              <th>Staff / Payee</th>
+              <th>Account (Source)</th>
+              <th>Amount</th>
+              <th>Salary Deductible?</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${list.length === 0
+              ? '<tr><td colspan="8" class="sub" style="text-align:center;padding:20px;">No expenses match the selected filters</td></tr>'
+              : list.map(item => `
                 <tr>
-                  <td style="font-size:12px;">${e.month || '-'}</td>
+                  <td style="font-size:12px;white-space:nowrap;">${item.date || '-'}</td>
                   <td>
-                    <span class="badge ${getCategoryBadge(e.expense_categories?.category_name)}">
-                      ${e.expense_categories?.category_name || '-'}
+                    <span style="font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px;background:${getChannelBg(item.channel)};color:${getChannelColor(item.channel)};border:1px solid ${getChannelBorder(item.channel)};white-space:nowrap;">
+                      ${item.channelLabel}
                     </span>
                   </td>
-                  <td style="font-size:12px;">
-                    ${propLabel(e.rooms) || e.room_id || 'General'}
+                  <td style="font-size:12.5px;max-width:220px;word-break:break-word;">
+                    <strong>${escapeHtml(item.title)}</strong>
+                    ${item.notes && item.notes !== item.title ? `<div style="font-size:11px;color:#64748B;">${escapeHtml(item.notes.slice(0, 60))}</div>` : ''}
                   </td>
-                  <td style="color:var(--red);font-weight:700;">
-                    ₹${(e.amount || 0).toLocaleString('en-IN')}
+                  <td style="font-size:12px;white-space:nowrap;">${escapeHtml(item.roomLabel || 'General')}</td>
+                  <td style="font-size:12px;font-weight:600;white-space:nowrap;">${escapeHtml(item.staffName || '-')}</td>
+                  <td>
+                    <span style="font-size:11px;font-weight:800;padding:2px 8px;border-radius:6px;background:${item.paidBy === 'UHHS-OD' ? '#E0F2FE' : '#FEF3C7'};color:${item.paidBy === 'UHHS-OD' ? '#0369A1' : '#92400E'};white-space:nowrap;">
+                      ${item.paidBy === 'UHHS-OD' ? '🏦 TUHH-OD' : '🏢 COMPANY (Firoz)'}
+                    </span>
                   </td>
-                  <td style="font-size:12px;">${e.entry_date || '-'}</td>
-                  <td style="font-size:12px;max-width:140px;">
-                    ${e.notes || '-'}
+                  <td style="font-weight:800;color:#DC2626;font-size:13.5px;white-space:nowrap;">
+                    ₹${item.amount.toLocaleString('en-IN')}
                   </td>
-                  <td class="table-actions">
-                    <button class="btn-sm" onclick="editExpense(${e.id})">✏️</button>
-                    ${window.canDelete && window.canDelete() ? `<button class="btn-sm danger" onclick="delExpense(${e.id})">🗑️</button>` : ''}
+                  <td>
+                    ${item.isSalaryDeductible
+                      ? `<span style="background:#FEE2E2;color:#991B1B;font-weight:700;padding:2px 8px;border-radius:999px;font-size:10.5px;white-space:nowrap;">⚠️ YES (${item.deductionStatus})</span>`
+                      : `<span style="color:#059669;font-size:11px;font-weight:600;white-space:nowrap;">🛡️ No (Company Paid)</span>`
+                    }
                   </td>
                 </tr>
-              `).join('')}
-        </tbody>
-        ${filtered.length > 0 ? `
-        <tfoot>
-          <tr style="font-weight:700;background:#fafafa;">
-            <td colspan="3">Total (${filtered.length} entries)</td>
-            <td style="color:var(--red);">₹${total.toLocaleString('en-IN')}</td>
-            <td colspan="3"></td>
-          </tr>
-        </tfoot>` : ''}
-      </table></div>
+              `).join('')
+            }
+          </tbody>
+          ${list.length > 0 ? `
+            <tfoot>
+              <tr style="font-weight:800;background:#F8FAFC;">
+                <td colspan="6" style="text-align:right;">Total Filtered Outflow:</td>
+                <td style="color:#DC2626;font-size:15px;">₹${total.toLocaleString('en-IN')}</td>
+                <td></td>
+              </tr>
+            </tfoot>` : ''
+          }
+        </table>
+      </div>
     </div>
   `;
 }
+
+function getChannelBg(ch) {
+  if (ch === 'laundry') return '#E0F2FE';
+  if (ch === 'maintenance') return '#FEF3C7';
+  if (ch === 'advance') return '#F3E8FF';
+  if (ch === 'staff_spend') return '#F1F5F9';
+  return '#F8FAFC';
+}
+
+function getChannelColor(ch) {
+  if (ch === 'laundry') return '#0369A1';
+  if (ch === 'maintenance') return '#92400E';
+  if (ch === 'advance') return '#6B21A8';
+  if (ch === 'staff_spend') return '#334155';
+  return '#475569';
+}
+
+function getChannelBorder(ch) {
+  if (ch === 'laundry') return '#BAE6FD';
+  if (ch === 'maintenance') return '#FDE68A';
+  if (ch === 'advance') return '#E9D5FF';
+  if (ch === 'staff_spend') return '#CBD5E1';
+  return '#E2E8F0';
+}
+
+window.filterExpensesByStaff = function(staffName) {
+  const staffSelect = document.getElementById('expStaffFilter');
+  if (staffSelect) {
+    staffSelect.value = staffName;
+    applyExpenseFilters();
+    staffSelect.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+};
+
+// ═══════════════════════════════════════════════════════════
+// 🎁 QUICK STAFF ADVANCE MODAL (SALARY LINKED DEDUCTION)
+// ═══════════════════════════════════════════════════════════
+window.openStaffAdvanceModal = async function(preselectedEmpId = '') {
+  const { data: emps } = await sb.from('employees').select('emp_id, name, role, salary').eq('status', 'Active').order('name');
+  const modalId = 'staffAdvanceModal';
+  const existing = document.getElementById(modalId);
+  if (existing) existing.remove();
+
+  const today = new Date().toISOString().slice(0, 10);
+
+  const html = `
+    <div id="${modalId}" class="modal-backdrop active" style="display:flex;align-items:center;justify-content:center;z-index:99999;position:fixed;inset:0;background:rgba(15,23,42,0.6);backdrop-filter:blur(4px);padding:16px;">
+      <div class="card" style="max-width:520px;width:100%;border-radius:18px;box-shadow:0 20px 40px rgba(0,0,0,0.25);position:relative;background:#fff;max-height:92vh;overflow-y:auto;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;border-bottom:1px solid #f1f5f9;padding-bottom:10px;">
+          <div style="display:flex;align-items:center;gap:10px;">
+            <span style="font-size:26px;">🎁</span>
+            <div>
+              <h2 style="margin:0;font-size:17px;font-weight:800;color:#1e293b;">Give Advance to Staff</h2>
+              <div style="font-size:12px;color:#64748b;">Linked to employee salary ledger (Deductible on payout)</div>
+            </div>
+          </div>
+          <button type="button" onclick="document.getElementById('${modalId}').remove()" style="background:none;border:none;font-size:20px;cursor:pointer;color:#94a3b8;">✕</button>
+        </div>
+
+        <div style="background:#FAF5FF;border:1.5px solid #D8B4FE;border-radius:10px;padding:12px 14px;margin-bottom:14px;font-size:12px;color:#6B21A8;line-height:1.45;">
+          📌 <strong>SALARY LINKED ADVANCE:</strong> Ye amount employee ke record me save hoga aur jab aap uski monthly salary denge, to ye paisa <strong>automatically deduct</strong> ho jayega.
+        </div>
+
+        <form id="staffAdvanceForm" onsubmit="window.saveStaffAdvance(event)">
+          <div class="form-group" style="margin-bottom:12px;">
+            <label style="font-size:12.5px;font-weight:700;">Employee *</label>
+            <select id="advEmpId" required style="width:100%;padding:9px;border:1.5px solid #e2e8f0;border-radius:10px;font-weight:600;">
+              <option value="">Select Employee</option>
+              ${(emps || []).map(e => `<option value="${e.emp_id}" ${preselectedEmpId === e.emp_id ? 'selected' : ''}>${escapeHtml(e.name)} (${e.role || 'Staff'}) — Salary: ₹${Number(e.salary||0).toLocaleString('en-IN')}</option>`).join('')}
+            </select>
+          </div>
+
+          <div class="form-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
+            <div class="form-group">
+              <label style="font-size:12.5px;font-weight:700;">Advance Amount ₹ *</label>
+              <input id="advAmount" type="number" required placeholder="e.g. 3000" min="1" style="width:100%;padding:9px;border:1.5px solid #e2e8f0;border-radius:10px;font-weight:700;" />
+            </div>
+            <div class="form-group">
+              <label style="font-size:12.5px;font-weight:700;">Date Given *</label>
+              <input id="advDate" type="date" value="${today}" required style="width:100%;padding:9px;border:1.5px solid #e2e8f0;border-radius:10px;" />
+            </div>
+          </div>
+
+          <div class="form-group" style="margin-bottom:12px;">
+            <label style="font-size:12.5px;font-weight:700;">Reason / Purpose *</label>
+            <input id="advReason" required placeholder="e.g. Personal emergency, Festival advance, Rent help" style="width:100%;padding:9px;border:1.5px solid #e2e8f0;border-radius:10px;" />
+          </div>
+
+          <div class="form-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;">
+            <div class="form-group">
+              <label style="font-size:12.5px;font-weight:700;">Paid From (Source) *</label>
+              <select id="advPaidBy" style="width:100%;padding:9px;border:1.5px solid #0d6efd;border-radius:10px;font-weight:700;">
+                <option value="UHHS-OD">🏦 TUHH-OD Account</option>
+                <option value="COMPANY">🏢 COMPANY / FIROZ</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label style="font-size:12.5px;font-weight:700;">Payment Mode</label>
+              <select id="advMode" style="width:100%;padding:9px;border:1.5px solid #e2e8f0;border-radius:10px;">
+                <option value="UPI / Online">📱 UPI / Online Transfer</option>
+                <option value="Cash">💵 Cash in Hand</option>
+                <option value="Bank Transfer">🏛️ Net Banking</option>
+              </select>
+            </div>
+          </div>
+
+          <div style="display:flex;gap:10px;">
+            <button type="button" class="secondary" onclick="document.getElementById('${modalId}').remove()" style="flex:1;">Cancel</button>
+            <button type="submit" id="advSubmitBtn" style="flex:2;background:#7C3AED;color:#fff;font-weight:800;border:none;border-radius:10px;padding:10px;">💾 Save &amp; Link to Salary</button>
+          </div>
+          <div id="advModalErr" style="margin-top:8px;"></div>
+        </form>
+      </div>
+    </div>
+  `;
+  document.body.insertAdjacentHTML('beforeend', html);
+};
+
+window.saveStaffAdvance = async function(e) {
+  e.preventDefault();
+  const btn = document.getElementById('advSubmitBtn');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Saving...'; }
+
+  try {
+    const empId = document.getElementById('advEmpId').value;
+    const amount = parseFloat(document.getElementById('advAmount').value) || 0;
+    const date = document.getElementById('advDate').value;
+    const reason = document.getElementById('advReason').value.trim();
+    const paidBy = document.getElementById('advPaidBy').value;
+    const mode = document.getElementById('advMode').value;
+
+    if (!empId || amount <= 0 || !reason) {
+      document.getElementById('advModalErr').innerHTML = '<div class="error">Please fill all required fields.</div>';
+      if (btn) { btn.disabled = false; btn.textContent = '💾 Save & Link to Salary'; }
+      return;
+    }
+
+    const { error } = await sb.from('advance_tracker').insert({
+      emp_id: empId,
+      date_given: date,
+      advance_amount: amount,
+      repaid_amount: 0,
+      reason: reason,
+      payment_mode: mode,
+      paid_by: paidBy,
+      is_deducted: false
+    });
+
+    if (error) throw error;
+
+    document.getElementById('staffAdvanceModal')?.remove();
+    if (window.fsn?.success) fsn.success('Advance Saved', `✅ ₹${amount.toLocaleString('en-IN')} advance recorded. Linked to next salary payout.`);
+    renderExpenses();
+  } catch (err) {
+    document.getElementById('advModalErr').innerHTML = `<div class="error">${err.message || 'Error saving advance'}</div>`;
+    if (btn) { btn.disabled = false; btn.textContent = '💾 Save & Link to Salary'; }
+  }
+};
+
+// ═══════════════════════════════════════════════════════════
+// 🧺 QUICK LAUNDRY BILL MODAL
+// ═══════════════════════════════════════════════════════════
+window.openLaundryQuickModal = async function() {
+  const { data: rooms } = await sb.from('rooms').select('room_id, unit_no, nickname').order('unit_no');
+  const modalId = 'laundryQuickModal';
+  const existing = document.getElementById(modalId);
+  if (existing) existing.remove();
+
+  const today = new Date().toISOString().slice(0, 10);
+
+  const html = `
+    <div id="${modalId}" class="modal-backdrop active" style="display:flex;align-items:center;justify-content:center;z-index:99999;position:fixed;inset:0;background:rgba(15,23,42,0.6);backdrop-filter:blur(4px);padding:16px;">
+      <div class="card" style="max-width:520px;width:100%;border-radius:18px;box-shadow:0 20px 40px rgba(0,0,0,0.25);position:relative;background:#fff;max-height:92vh;overflow-y:auto;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;border-bottom:1px solid #f1f5f9;padding-bottom:10px;">
+          <div style="display:flex;align-items:center;gap:10px;">
+            <span style="font-size:26px;">🧺</span>
+            <div>
+              <h2 style="margin:0;font-size:17px;font-weight:800;color:#1e293b;">Log Laundry Payment</h2>
+              <div style="font-size:12px;color:#64748b;">Record washerman / dry cleaning bill for properties</div>
+            </div>
+          </div>
+          <button type="button" onclick="document.getElementById('${modalId}').remove()" style="background:none;border:none;font-size:20px;cursor:pointer;color:#94a3b8;">✕</button>
+        </div>
+
+        <form id="laundryQuickForm" onsubmit="window.saveLaundryQuick(event)">
+          <div class="form-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
+            <div class="form-group">
+              <label style="font-size:12.5px;font-weight:700;">Vendor / Washerman Name *</label>
+              <input id="lqVendor" required placeholder="e.g. Ramesh Dhobi / Star Cleaners" style="width:100%;padding:9px;border:1.5px solid #e2e8f0;border-radius:10px;" />
+            </div>
+            <div class="form-group">
+              <label style="font-size:12.5px;font-weight:700;">Property / Unit</label>
+              <select id="lqRoomId" style="width:100%;padding:9px;border:1.5px solid #e2e8f0;border-radius:10px;">
+                <option value="">All Units / General</option>
+                ${(rooms || []).map(r => `<option value="${r.room_id}">${escapeHtml(propLabel(r))}</option>`).join('')}
+              </select>
+            </div>
+          </div>
+
+          <div class="form-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
+            <div class="form-group">
+              <label style="font-size:12.5px;font-weight:700;">Bill Amount ₹ *</label>
+              <input id="lqAmount" type="number" required placeholder="e.g. 1450" min="1" style="width:100%;padding:9px;border:1.5px solid #e2e8f0;border-radius:10px;font-weight:700;" />
+            </div>
+            <div class="form-group">
+              <label style="font-size:12.5px;font-weight:700;">Payment Date *</label>
+              <input id="lqDate" type="date" value="${today}" required style="width:100%;padding:9px;border:1.5px solid #e2e8f0;border-radius:10px;" />
+            </div>
+          </div>
+
+          <div class="form-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;">
+            <div class="form-group">
+              <label style="font-size:12.5px;font-weight:700;">Paid Via *</label>
+              <select id="lqPaidBy" style="width:100%;padding:9px;border:1.5px solid #0d6efd;border-radius:10px;font-weight:700;">
+                <option value="UHHS-OD">🏦 TUHH-OD Account</option>
+                <option value="COMPANY">🏢 COMPANY / FIROZ</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label style="font-size:12.5px;font-weight:700;">Payment Mode</label>
+              <select id="lqMode" style="width:100%;padding:9px;border:1.5px solid #e2e8f0;border-radius:10px;">
+                <option value="UPI">📱 UPI QR Transfer</option>
+                <option value="Cash">💵 Cash</option>
+                <option value="Bank Transfer">🏛️ Net Banking</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group" style="margin-bottom:14px;">
+            <label style="font-size:12.5px;font-weight:700;">Notes / Description</label>
+            <input id="lqNotes" placeholder="e.g. 40 Bedsheets, 60 Pillow covers washed" style="width:100%;padding:9px;border:1.5px solid #e2e8f0;border-radius:10px;" />
+          </div>
+
+          <div style="display:flex;gap:10px;">
+            <button type="button" class="secondary" onclick="document.getElementById('${modalId}').remove()" style="flex:1;">Cancel</button>
+            <button type="submit" id="lqSubmitBtn" style="flex:2;background:#0284C7;color:#fff;font-weight:800;border:none;border-radius:10px;padding:10px;">💾 Save Laundry Bill</button>
+          </div>
+          <div id="lqModalErr" style="margin-top:8px;"></div>
+        </form>
+      </div>
+    </div>
+  `;
+  document.body.insertAdjacentHTML('beforeend', html);
+};
+
+window.saveLaundryQuick = async function(e) {
+  e.preventDefault();
+  const btn = document.getElementById('lqSubmitBtn');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Saving...'; }
+
+  try {
+    const vendor = document.getElementById('lqVendor').value.trim();
+    const roomId = document.getElementById('lqRoomId').value || null;
+    const amount = parseFloat(document.getElementById('lqAmount').value) || 0;
+    const date = document.getElementById('lqDate').value;
+    const paidBy = document.getElementById('lqPaidBy').value;
+    const mode = document.getElementById('lqMode').value;
+    const notes = document.getElementById('lqNotes').value.trim();
+
+    if (!vendor || amount <= 0) {
+      document.getElementById('lqModalErr').innerHTML = '<div class="error">Vendor and Amount are required.</div>';
+      if (btn) { btn.disabled = false; btn.textContent = '💾 Save Laundry Bill'; }
+      return;
+    }
+
+    const { error } = await sb.from('laundry_payments').insert({
+      amount: amount,
+      payment_date: date,
+      payment_mode: mode,
+      notes: `[Vendor: ${vendor}] ${notes}`,
+      payment_source: paidBy,
+      claim_status: 'unclaimed'
+    });
+
+    if (error) throw error;
+
+    document.getElementById('laundryQuickModal')?.remove();
+    if (window.fsn?.success) fsn.success('Laundry Saved', `✅ ₹${amount.toLocaleString('en-IN')} laundry bill logged.`);
+    renderExpenses();
+  } catch (err) {
+    document.getElementById('lqModalErr').innerHTML = `<div class="error">${err.message || 'Error saving laundry bill'}</div>`;
+    if (btn) { btn.disabled = false; btn.textContent = '💾 Save Laundry Bill'; }
+  }
+};
 
 // ============ EXPORT EXPENSES TO CSV / EXCEL ============
 window.exportExpensesCSV = function() {
