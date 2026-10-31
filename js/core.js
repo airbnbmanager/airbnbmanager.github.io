@@ -1405,61 +1405,64 @@ function renderShell(content, activePage = 'dashboard') {
       label: '🏠 Dashboard',
       page: 'dashboard',
       pages: ['dashboard', 'analytics', 'dailyReport'],
-      tabs: [
-        { id: 'dashboard', label: '🏠 Overview' },
-        { id: 'analytics', label: '📊 Analytics' },
-        { id: 'dailyReport', label: '📈 Daily Ops' }
-      ]
+      tabs: []
     },
     {
       id: 'bookings',
-      label: '📅 Stay & Bookings',
+      label: '📅 Bookings / Calendar',
       page: 'bookings',
-      pages: ['bookings', 'reports', 'calendar', 'flats', 'pendingApprovals'],
+      pages: ['bookings', 'calendar', 'reports', 'pendingApprovals'],
       tabs: [
-        { id: 'bookings', label: '🛎️ Bookings' },
-        { id: 'reports', label: '📅 Calendar' },
-        { id: 'flats', label: '🛏️ Flats Status' },
+        { id: 'bookings', label: '🛎️ Booking' },
+        { id: 'calendar', label: '📅 Calendar' },
         { id: 'pendingApprovals', label: '🟡 Approvals' }
       ]
     },
     {
+      id: 'rooms',
+      label: '🏢 Properties',
+      page: 'rooms',
+      pages: ['rooms', 'flats', 'showcase-admin', 'airbnb-sync', 'property-setup', 'ical-sync'],
+      tabs: [
+        { id: 'rooms', label: '🏢 Units & Pricing' },
+        { id: 'flats', label: '🛏️ Flat Status' },
+        { id: 'showcase-admin', label: '🌐 Website Showcase' },
+        { id: 'airbnb-sync', label: '🔄 Airbnb Sync' }
+      ]
+    },
+    {
+      id: 'expenses',
+      label: '🧾 Expenses',
+      page: 'expenses',
+      pages: ['expenses', 'laundry', 'maintenance'],
+      tabs: [
+        { id: 'laundry', label: '🧺 Laundry' },
+        { id: 'maintenance', label: '🔧 Property Maintenance' },
+        { id: 'expenses', label: '📊 Expenses & P&L' }
+      ]
+    },
+    {
+      id: 'claims',
+      label: '💰 Finances',
+      page: 'claims',
+      pages: ['claims', 'reimbursements', 'investors', 'ca-audit', 'cashbook', 'financial', 'financial-sheet'],
+      tabs: [
+        { id: 'claims', label: '💳 Claims' },
+        { id: 'reimbursements', label: '🏦 TUHH-OD' },
+        { id: 'investors', label: '🧑‍💼 Investors' },
+        { id: 'ca-audit', label: '💼 GST & Audit' }
+      ]
+    },
+    {
       id: 'employees',
-      label: '👥 HRMS & Staff',
+      label: '👥 HRMS & Tasks',
       page: 'employees',
-      pages: ['employees', 'attendance', 'att-summary', 'advance', 'employee-ledger', 'tasks', 'sop'],
+      pages: ['employees', 'attendance', 'att-summary', 'tasks', 'employee-ledger', 'advance', 'sop'],
       tabs: [
         { id: 'employees', label: '👥 Staff Roster' },
         { id: 'attendance', label: '📋 Attendance' },
-        { id: 'advance', label: '🎁 Advances' },
-        { id: 'employee-ledger', label: '📒 Ledger' },
-        { id: 'tasks', label: '🧰 Tasks & SOP' }
-      ]
-    },
-    {
-      id: 'finance',
-      label: '💰 Finance & Accounts',
-      page: 'claims',
-      pages: ['claims', 'reimbursements', 'expenses', 'ca-audit', 'investors', 'financial', 'financial-sheet'],
-      tabs: [
-        { id: 'claims', label: '💳 Claims & TUHH-OD' },
-        { id: 'reimbursements', label: '💸 Expenses' },
-        { id: 'expenses', label: '📊 P&L' },
-        { id: 'ca-audit', label: '💼 GST & Audit' },
-        { id: 'investors', label: '🧑‍💼 Investors' }
-      ]
-    },
-    {
-      id: 'rooms',
-      label: '🏢 Properties & Ops',
-      page: 'rooms',
-      pages: ['rooms', 'property-setup', 'airbnb-sync', 'ical-sync', 'maintenance', 'laundry', 'showcase-admin'],
-      tabs: [
-        { id: 'rooms', label: '🏢 Units & Pricing' },
-        { id: 'airbnb-sync', label: '🔄 Airbnb Sync' },
-        { id: 'maintenance', label: '🔧 Maintenance' },
-        { id: 'laundry', label: '🧺 Laundry' },
-        { id: 'showcase-admin', label: '🌐 Website Showcase' }
+        { id: 'tasks', label: '🧰 Tasks' },
+        { id: 'employee-ledger', label: '📒 Ledgers & Advance' }
       ]
     },
     {
@@ -1467,75 +1470,75 @@ function renderShell(content, activePage = 'dashboard') {
       label: '📱 WhatsApp Hub',
       page: 'whatsapp-hub',
       pages: ['whatsapp-hub', 'whatsapp'],
-      tabs: [
-        { id: 'whatsapp-hub', label: '📱 WhatsApp Hub & Automations' }
-      ]
+      tabs: []
+    },
+    {
+      id: 'user-mgmt',
+      label: '👤 User Management',
+      page: 'user-mgmt',
+      pages: ['user-mgmt'],
+      tabs: []
+    },
+    {
+      id: 'settings',
+      label: '⚙️ Global Settings',
+      page: 'settings',
+      pages: ['settings'],
+      tabs: []
     }
   ];
   window._UHHS_HUBS = UHHS_HUBS;
 
-  // Group into clean Hubs based on user role
+  // Minimal, uncluttered left drawer list as requested by user
   if (isOwner) {
     nav = [
-      { section: 'STAYS & RESERVATIONS' },
       ['dashboard', 'Dashboard'],
-      ['bookings', 'Bookings'],
-      ['calendar', 'Room Calendar'],
-      ['rooms', 'Properties & Units'],
-      { section: 'FINANCE & BILLING' },
-      ['claims', 'Finance & Cashbook'],
-      ['expenses', 'Monthly P&L & Expenses'],
-      ['investors', 'Investors Ledger'],
-      { section: 'STAFF & OPERATIONS' },
-      ['employees', 'HRMS & Staff'],
-      ['tasks', 'Housekeeping & Tasks'],
-      ['whatsapp-hub', 'WhatsApp Communications'],
-      { section: 'SYSTEM & SETTINGS' },
+      ['bookings', 'Bookings / Calendar'],
+      ['rooms', 'Properties'],
+      ['expenses', 'Expenses'],
+      ['claims', 'Finances'],
+      ['employees', 'HRMS & Tasks'],
+      ['whatsapp-hub', 'WhatsApp Hub'],
       ...(isAdmin ? [['user-mgmt', 'User Management']] : []),
       ...(showSettings ? [['settings', 'Global Settings']] : []),
     ];
   } else if (SESSION.role === 'moderator') {
     nav = [
-      { section: 'STAYS & RESERVATIONS' },
-      ['dashboard', 'Executive Dashboard'],
-      ['bookings', 'Reservations & Stays'],
-      { section: 'STAFF & OPERATIONS' },
-      ['employees', 'HRMS & Staff'],
-      ['whatsapp-hub', 'WhatsApp Communications'],
+      ['dashboard', 'Dashboard'],
+      ['bookings', 'Bookings / Calendar'],
+      ['rooms', 'Properties'],
+      ['employees', 'HRMS & Tasks'],
+      ['whatsapp-hub', 'WhatsApp Hub'],
     ];
   } else if (isCheckinMgr || isCheckin) {
     nav = [
-      { section: 'MY PROPERTIES' },
-      ['dashboard', 'My Dashboard'],
-      ['bookings', 'My Bookings'],
-      ['flats', 'Flats Status'],
+      ['dashboard', 'Dashboard'],
+      ['bookings', 'Bookings / Calendar'],
+      ['rooms', 'Properties'],
       ['whatsapp-hub', 'WhatsApp Hub'],
     ];
   } else if (isBookingStaff) {
     nav = [
-      { section: 'STAYS & RESERVATIONS' },
       ['dashboard', 'Dashboard'],
-      ['bookings', 'Bookings'],
-      ['rooms', 'Properties & Units'],
+      ['bookings', 'Bookings / Calendar'],
+      ['rooms', 'Properties'],
       ['whatsapp-hub', 'WhatsApp Hub'],
     ];
   } else if (isViewer) {
     nav = [
-      { section: 'RESERVATIONS' },
       ['dashboard', 'Dashboard'],
-      ['bookings', 'Today Bookings'],
-      ['flats', 'Flats Status'],
+      ['bookings', 'Bookings / Calendar'],
+      ['rooms', 'Properties'],
     ];
   } else {
     nav = [
-      { section: 'STAYS & RESERVATIONS' },
-      ['dashboard', 'Executive Dashboard'],
-      ['bookings', 'Reservations & Stays'],
-      ['rooms', 'Properties & Units'],
-      { section: 'FINANCE & OPERATIONS' },
-      ['claims', 'Finance & Accounts'],
-      ['employees', 'HRMS & Staff'],
-      ['whatsapp-hub', 'WhatsApp Communications'],
+      ['dashboard', 'Dashboard'],
+      ['bookings', 'Bookings / Calendar'],
+      ['rooms', 'Properties'],
+      ['expenses', 'Expenses'],
+      ['claims', 'Finances'],
+      ['employees', 'HRMS & Tasks'],
+      ['whatsapp-hub', 'WhatsApp Hub'],
       ...(showSettings ? [['settings', 'Global Settings']] : []),
     ];
   }
@@ -1797,12 +1800,11 @@ function renderShell(content, activePage = 'dashboard') {
           <!-- Desktop Center Navigation Links (HomeyHuts Style) -->
           <nav class="topbar-desktop-nav">
             <a href="javascript:void(0)" onclick="navigate('dashboard')" class="${activePage==='dashboard'?'active':''}"><i class="ti ti-layout-dashboard"></i> Dashboard</a>
-            <a href="javascript:void(0)" onclick="navigate('calendar')" class="${(activePage==='calendar'||activePage==='reports')?'active':''}"><i class="ti ti-calendar"></i> Calendar</a>
-            <a href="javascript:void(0)" onclick="navigate('bookings')" class="${activePage==='bookings'?'active':''}"><i class="ti ti-calendar-check"></i> Bookings</a>
-            <a href="javascript:void(0)" onclick="navigate('rooms')" class="${activePage==='rooms'?'active':''}"><i class="ti ti-building-community"></i> Properties</a>
-            <a href="javascript:void(0)" onclick="navigate('employees')" class="${(activePage==='employees'||activePage==='attendance'||activePage==='tasks'||activePage==='advance')?'active':''}"><i class="ti ti-id-badge-2"></i> Staff &amp; Tasks</a>
-            <a href="javascript:void(0)" onclick="navigate('investors')" class="${activePage==='investors'?'active':''}"><i class="ti ti-chart-pie"></i> Investors &amp; P&amp;L</a>
-            <a href="javascript:void(0)" onclick="navigate('expenses')" class="${activePage==='expenses'?'active':''}"><i class="ti ti-receipt-2"></i> Expenses</a>
+            <a href="javascript:void(0)" onclick="navigate('bookings')" class="${(activePage==='bookings'||activePage==='calendar'||activePage==='reports'||activePage==='pendingApprovals')?'active':''}"><i class="ti ti-calendar-check"></i> Bookings &amp; Calendar</a>
+            <a href="javascript:void(0)" onclick="navigate('rooms')" class="${(activePage==='rooms'||activePage==='flats'||activePage==='showcase-admin'||activePage==='airbnb-sync')?'active':''}"><i class="ti ti-building-community"></i> Properties</a>
+            <a href="javascript:void(0)" onclick="navigate('expenses')" class="${(activePage==='expenses'||activePage==='laundry'||activePage==='maintenance')?'active':''}"><i class="ti ti-receipt-2"></i> Expenses</a>
+            <a href="javascript:void(0)" onclick="navigate('claims')" class="${(activePage==='claims'||activePage==='reimbursements'||activePage==='investors'||activePage==='ca-audit')?'active':''}"><i class="ti ti-wallet"></i> Finances</a>
+            <a href="javascript:void(0)" onclick="navigate('employees')" class="${(activePage==='employees'||activePage==='attendance'||activePage==='tasks'||activePage==='employee-ledger')?'active':''}"><i class="ti ti-id-badge-2"></i> HRMS &amp; Tasks</a>
           </nav>
 
           <div class="topbar-right">
