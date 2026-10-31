@@ -1479,58 +1479,66 @@ function renderShell(content, activePage = 'dashboard') {
   // Group into clean Hubs based on user role
   if (isOwner) {
     nav = [
-      { section: 'CORE MODULES' },
-      ['dashboard', '🏠 Dashboard'],
-      ['bookings', '📅 Stay & Bookings'],
-      ['employees', '👥 HRMS & Staff'],
-      ['claims', '💰 Finance & Accounts'],
-      ['rooms', '🏢 Properties & Ops'],
-      ['whatsapp-hub', '📱 WhatsApp Hub'],
+      { section: 'STAYS & RESERVATIONS' },
+      ['dashboard', 'Executive Dashboard'],
+      ['bookings', 'Reservations & Stays'],
+      ['calendar', 'Room Calendar'],
+      ['rooms', 'Properties & Units'],
+      { section: 'FINANCE & BILLING' },
+      ['claims', 'Finance & Cashbook'],
+      ['expenses', 'Monthly P&L & Expenses'],
+      ['investors', 'Investors Ledger'],
+      { section: 'STAFF & OPERATIONS' },
+      ['employees', 'HRMS & Staff'],
+      ['tasks', 'Housekeeping & Tasks'],
+      ['whatsapp-hub', 'WhatsApp Communications'],
       { section: 'SYSTEM & SETTINGS' },
-      ...(isAdmin ? [['user-mgmt', '👤 User Management']] : []),
-      ...(showSettings ? [['settings', '⚙️ Settings']] : []),
+      ...(isAdmin ? [['user-mgmt', 'User Management']] : []),
+      ...(showSettings ? [['settings', 'Global Settings']] : []),
     ];
   } else if (SESSION.role === 'moderator') {
     nav = [
-      { section: 'CORE MODULES' },
-      ['dashboard', '🏠 Dashboard'],
-      ['bookings', '📅 Stay & Bookings'],
-      ['employees', '👥 HRMS & Staff'],
-      ['whatsapp-hub', '📱 WhatsApp Hub'],
+      { section: 'STAYS & RESERVATIONS' },
+      ['dashboard', 'Executive Dashboard'],
+      ['bookings', 'Reservations & Stays'],
+      { section: 'STAFF & OPERATIONS' },
+      ['employees', 'HRMS & Staff'],
+      ['whatsapp-hub', 'WhatsApp Communications'],
     ];
   } else if (isCheckinMgr || isCheckin) {
     nav = [
       { section: 'MY PROPERTIES' },
-      ['dashboard', '🏠 My Dashboard'],
-      ['bookings', '📅 My Bookings'],
-      ['flats', '🛏️ Flats Status'],
-      ['whatsapp-hub', '📱 WhatsApp Hub'],
+      ['dashboard', 'My Dashboard'],
+      ['bookings', 'My Bookings'],
+      ['flats', 'Flats Status'],
+      ['whatsapp-hub', 'WhatsApp Hub'],
     ];
   } else if (isBookingStaff) {
     nav = [
-      { section: 'CORE MODULES' },
-      ['dashboard', '🏠 Dashboard'],
-      ['bookings', '📅 Stay & Bookings'],
-      ['rooms', '🏢 Properties'],
-      ['whatsapp-hub', '📱 WhatsApp Hub'],
+      { section: 'STAYS & RESERVATIONS' },
+      ['dashboard', 'Dashboard'],
+      ['bookings', 'Stay & Bookings'],
+      ['rooms', 'Properties & Units'],
+      ['whatsapp-hub', 'WhatsApp Hub'],
     ];
   } else if (isViewer) {
     nav = [
-      { section: 'MAIN' },
-      ['dashboard', '🏠 Dashboard'],
-      ['bookings', '📅 Today Bookings'],
-      ['flats', '🛏️ Flats Status'],
+      { section: 'RESERVATIONS' },
+      ['dashboard', 'Dashboard'],
+      ['bookings', 'Today Bookings'],
+      ['flats', 'Flats Status'],
     ];
   } else {
     nav = [
-      { section: 'CORE MODULES' },
-      ['dashboard', '🏠 Dashboard'],
-      ['bookings', '📅 Stay & Bookings'],
-      ['employees', '👥 HRMS & Staff'],
-      ['claims', '💰 Finance & Accounts'],
-      ['rooms', '🏢 Properties & Ops'],
-      ['whatsapp-hub', '📱 WhatsApp Hub'],
-      ...(showSettings ? [['settings', '⚙️ Settings']] : []),
+      { section: 'STAYS & RESERVATIONS' },
+      ['dashboard', 'Executive Dashboard'],
+      ['bookings', 'Reservations & Stays'],
+      ['rooms', 'Properties & Units'],
+      { section: 'FINANCE & OPERATIONS' },
+      ['claims', 'Finance & Accounts'],
+      ['employees', 'HRMS & Staff'],
+      ['whatsapp-hub', 'WhatsApp Communications'],
+      ...(showSettings ? [['settings', 'Global Settings']] : []),
     ];
   }
 
@@ -1711,7 +1719,7 @@ function renderShell(content, activePage = 'dashboard') {
               <span class="brand-sub">PVT. LTD. · CRM</span>
             </div>
           </div>
-          <button class="sidebar-close-btn" id="sidebarCloseBtn" aria-label="Close Sidebar">✕</button>
+          <button class="sidebar-close-btn" id="sidebarCloseBtn" aria-label="Close Sidebar"><i class="ti ti-chevron-left"></i></button>
         </div>
 
         <div class="sidebar-user-card">
@@ -1721,7 +1729,7 @@ function renderShell(content, activePage = 'dashboard') {
             <span class="user-role-badge">${displayBadge}</span>
           </div>
           <button class="user-notif-btn" id="notifBellBtn" onclick="event.stopPropagation();window.notifications&&window.notifications.openPanel();" title="Notifications">
-            🔔<span class="notif-bell-badge" style="display:none;"></span>
+            <i class="ti ti-bell"></i><span class="notif-bell-badge" style="display:none;"></span>
           </button>
         </div>
 
@@ -5872,7 +5880,7 @@ window.filterAppMenuRows = function(query) {
         <div style="font-size:28px;margin-bottom:8px;">🔍</div>
         <div style="font-size:14px;font-weight:700;color:#1E293B;">No direct menu item matched "${escapeHtml(q)}"</div>
         <div style="font-size:12px;margin-top:4px;margin-bottom:12px;color:#64748B;">Try global search across bookings, tasks, and PMS pages</div>
-        <button type="button" onclick="window.openCommandPalette && window.openCommandPalette('${escapeHtml(q)}')" style="background:var(--primary);color:#fff;border:none;border-radius:20px;padding:8px 18px;font-size:12px;font-weight:700;cursor:pointer;box-shadow:0 2px 8px rgba(255,40,0,0.25);">
+        <button type="button" onclick="window.openCommandPalette && window.openCommandPalette('${escapeHtml(q)}')" style="background:var(--primary);color:#fff;border:none;border-radius:20px;padding:8px 18px;font-size:12px;font-weight:700;cursor:pointer;box-shadow:0 2px 8px rgba(14,165,233,0.25);">
           Open in Command Palette (⌘K) ➔
         </button>
       </div>

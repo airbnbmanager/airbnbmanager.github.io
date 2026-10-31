@@ -12,11 +12,11 @@
   --crm-primary-bg: #F0F9FF;
   --crm-secondary: #0F172A;
   
-  --crm-sidebar-bg: #0F172A;
-  --crm-sidebar-hover: #1E293B;
-  --crm-sidebar-border: rgba(255, 255, 255, 0.08);
-  --crm-sidebar-text: #94A3B8;
-  --crm-sidebar-text-active: #FFFFFF;
+  --crm-sidebar-bg: #FFFFFF;
+  --crm-sidebar-hover: #F1F5F9;
+  --crm-sidebar-border: #E2E8F0;
+  --crm-sidebar-text: #475569;
+  --crm-sidebar-text-active: #0284C7;
   
   --crm-bg-page: #F1F5F9;
   --crm-bg-card: #FFFFFF;
@@ -69,10 +69,10 @@ body {
     left: 0 !important;
     bottom: 0 !important;
     height: 100vh !important;
-    background-color: var(--crm-sidebar-bg) !important;
-    color: #FFFFFF !important;
-    border-right: 1px solid var(--crm-sidebar-border) !important;
-    box-shadow: 2px 0 12px rgba(0, 0, 0, 0.15) !important;
+    background-color: #FFFFFF !important;
+    color: #1E293B !important;
+    border-right: 1px solid var(--crm-border) !important;
+    box-shadow: 2px 0 8px rgba(0, 0, 0, 0.04) !important;
     z-index: 100 !important;
     transform: none !important;
     overflow-y: auto !important;
@@ -130,10 +130,10 @@ body {
   }
 }
 
-/* --- 4. Sidebar Elements Styling --- */
+/* --- 4. Sidebar Elements Styling (Matching Clean Light Design) --- */
 .sidebar-top {
   padding: 1.15rem 1.25rem !important;
-  border-bottom: 1px solid var(--crm-sidebar-border) !important;
+  border-bottom: 1px solid var(--crm-border) !important;
   display: flex !important;
   align-items: center !important;
   justify-content: space-between !important;
@@ -144,31 +144,31 @@ body {
   align-items: center !important;
   gap: 0.75rem !important;
   text-decoration: none !important;
-  color: #FFFFFF !important;
+  color: #0F172A !important;
 }
 
 .brand-logo-wrap {
-  width: 40px !important;
-  height: 40px !important;
-  border-radius: 10px !important;
-  background: linear-gradient(135deg, var(--crm-primary), var(--crm-primary-dark)) !important;
+  width: 38px !important;
+  height: 38px !important;
+  border-radius: 8px !important;
+  background: var(--crm-primary) !important;
   border: none !important;
-  box-shadow: 0 4px 10px rgba(14, 165, 233, 0.35) !important;
+  box-shadow: 0 4px 10px rgba(14, 165, 233, 0.25) !important;
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
 }
 
 .brand-logo-wrap img {
-  width: 26px !important;
-  height: 26px !important;
+  width: 24px !important;
+  height: 24px !important;
   object-fit: contain !important;
 }
 
 .brand-text .brand-name {
   font-size: 0.95rem !important;
   font-weight: 700 !important;
-  color: #FFFFFF !important;
+  color: #0F172A !important;
   letter-spacing: -0.01em !important;
   display: block !important;
   line-height: 1.2 !important;
@@ -176,7 +176,7 @@ body {
 
 .brand-text .brand-sub {
   font-size: 0.7rem !important;
-  color: var(--crm-primary-light) !important;
+  color: #64748B !important;
   font-weight: 600 !important;
   letter-spacing: 0.05em !important;
   display: block !important;
@@ -184,10 +184,10 @@ body {
 
 /* User Card in Sidebar */
 .sidebar-user-card {
-  padding: 0.9rem 1.25rem !important;
+  padding: 0.75rem 1rem !important;
   margin: 0.75rem 0.85rem !important;
-  background: rgba(255, 255, 255, 0.04) !important;
-  border: 1px solid var(--crm-sidebar-border) !important;
+  background: #F8FAFC !important;
+  border: 1px solid var(--crm-border) !important;
   border-radius: var(--crm-radius) !important;
   display: flex !important;
   align-items: center !important;
@@ -198,26 +198,26 @@ body {
   width: 36px !important;
   height: 36px !important;
   border-radius: 8px !important;
-  background: var(--crm-primary) !important;
-  color: #FFFFFF !important;
+  background: #E0F2FE !important;
+  color: #0284C7 !important;
   font-weight: 700 !important;
   font-size: 0.95rem !important;
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
-  box-shadow: 0 2px 6px rgba(14, 165, 233, 0.3) !important;
+  box-shadow: none !important;
 }
 
 .sidebar-user-card .user-info .user-name {
   font-size: 0.85rem !important;
   font-weight: 600 !important;
-  color: #FFFFFF !important;
+  color: #0F172A !important;
   display: block !important;
 }
 
 .sidebar-user-card .user-info .user-role-badge {
-  font-size: 0.7rem !important;
-  color: var(--crm-primary-light) !important;
+  font-size: 0.72rem !important;
+  color: #64748B !important;
   font-weight: 500 !important;
 }
 
@@ -228,9 +228,9 @@ body {
 
 .drawer-search input {
   width: 100% !important;
-  background: #1E293B !important;
-  border: 1px solid rgba(255, 255, 255, 0.08) !important;
-  color: #F8FAFC !important;
+  background: #F8FAFC !important;
+  border: 1px solid var(--crm-border) !important;
+  color: #0F172A !important;
   padding: 0.55rem 0.85rem !important;
   border-radius: 8px !important;
   font-size: 0.8125rem !important;
@@ -240,6 +240,7 @@ body {
 .drawer-search input:focus {
   outline: none !important;
   border-color: var(--crm-primary) !important;
+  background: #FFFFFF !important;
 }
 
 /* Sidebar Navigation Items */
@@ -255,7 +256,7 @@ body {
   font-weight: 700 !important;
   text-transform: uppercase !important;
   letter-spacing: 0.06em !important;
-  color: #64748B !important;
+  color: #94A3B8 !important;
   padding: 0.85rem 0.75rem 0.35rem !important;
 }
 
@@ -264,7 +265,7 @@ body {
   align-items: center !important;
   gap: 0.75rem !important;
   padding: 0.625rem 0.85rem !important;
-  color: var(--crm-sidebar-text) !important;
+  color: #475569 !important;
   text-decoration: none !important;
   border-radius: var(--crm-radius-sm) !important;
   font-size: 0.875rem !important;
@@ -281,34 +282,35 @@ body {
 }
 
 .sidebar-nav a:hover {
-  background: var(--crm-sidebar-hover) !important;
-  color: #FFFFFF !important;
+  background: #F1F5F9 !important;
+  color: var(--crm-primary-dark) !important;
 }
 
 .sidebar-nav a:hover i.nav-icon {
-  color: var(--crm-primary-light) !important;
+  color: var(--crm-primary) !important;
 }
 
 .sidebar-nav a.active,
 .sidebar-nav a.active-hub {
-  background: var(--crm-primary) !important;
-  color: #FFFFFF !important;
+  background: #E0F2FE !important;
+  color: #0284C7 !important;
   font-weight: 600 !important;
-  box-shadow: 0 4px 12px rgba(14, 165, 233, 0.35) !important;
+  box-shadow: none !important;
 }
 
 .sidebar-nav a.active i.nav-icon,
 .sidebar-nav a.active-hub i.nav-icon {
-  color: #FFFFFF !important;
+  color: #0284C7 !important;
 }
 
 /* Sidebar Footer */
 .sidebar-footer {
   margin-top: auto !important;
   padding: 0.85rem !important;
-  border-top: 1px solid var(--crm-sidebar-border) !important;
+  border-top: 1px solid var(--crm-border) !important;
   display: flex !important;
   gap: 0.5rem !important;
+  background: #FFFFFF !important;
 }
 
 .sidebar-action-btn {
@@ -317,7 +319,7 @@ body {
   border-radius: 6px !important;
   font-size: 0.8rem !important;
   font-weight: 600 !important;
-  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  border: 1px solid var(--crm-border) !important;
   cursor: pointer !important;
   display: inline-flex !important;
   align-items: center !important;
@@ -327,22 +329,22 @@ body {
 }
 
 .sidebar-action-btn.pref-btn {
-  background: #1E293B !important;
-  color: #CBD5E1 !important;
+  background: #F8FAFC !important;
+  color: #475569 !important;
 }
 .sidebar-action-btn.pref-btn:hover {
-  background: #334155 !important;
-  color: #FFFFFF !important;
+  background: #F1F5F9 !important;
+  color: #0F172A !important;
 }
 
 .sidebar-action-btn.logout-btn {
-  background: rgba(220, 38, 38, 0.1) !important;
-  color: #F87171 !important;
-  border-color: rgba(220, 38, 38, 0.2) !important;
+  background: #F8FAFC !important;
+  color: #64748B !important;
 }
 .sidebar-action-btn.logout-btn:hover {
-  background: #DC2626 !important;
-  color: #FFFFFF !important;
+  background: #F1F5F9 !important;
+  color: #0F172A !important;
+  border-color: #CBD5E1 !important;
 }
 
 /* --- 5. Executive Topbar Styling --- */

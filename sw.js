@@ -1,5 +1,5 @@
-const CACHE_NAME = 'tuhh-live-v360';
-const RUNTIME_CACHE = 'tuhh-runtime-v360';
+const CACHE_NAME = 'tuhh-live-v362';
+const RUNTIME_CACHE = 'tuhh-runtime-v362';
 
 const CORE_ASSETS = [
   '/admin.html',
@@ -10,6 +10,7 @@ const CORE_ASSETS = [
   '/book.js',
   '/calendar.html',
   '/style.css',
+  '/css/homeyindia-crm-theme.css',
   '/config.js',
   '/manifest.json',
   '/assets/logo.png',
