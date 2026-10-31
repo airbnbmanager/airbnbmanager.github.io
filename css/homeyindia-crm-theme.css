@@ -2219,3 +2219,29 @@ html, body {
     grid-template-columns: 1fr !important;
   }
 }
+
+
+/* Single Unified Search: Hide any sidebar search completely & style topbar right search */
+.drawer-search, #drawerSearchWrap, #drawerSearchResults {
+  display: none !important;
+}
+
+.topbar-right .topbar-search-menu-btn {
+  margin-right: 2px;
+  background: #F8FAFC !important;
+  border: 1px solid #CBD5E1 !important;
+  color: #475569 !important;
+  font-weight: 600 !important;
+}
+.topbar-right .topbar-search-menu-btn:hover {
+  background: #FFFFFF !important;
+  border-color: #0284C7 !important;
+  color: #0284C7 !important;
+  box-shadow: 0 2px 8px rgba(2, 132, 199, 0.15) !important;
+}
+.topbar-right .topbar-search-menu-btn .search-btn-kbd {
+  background: #E2E8F0 !important;
+  border: 1px solid #CBD5E1 !important;
+  color: #475569 !important;
+  font-weight: 700 !important;
+}

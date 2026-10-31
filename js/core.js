@@ -1741,14 +1741,7 @@ function renderShell(content, activePage = 'dashboard') {
           </button>
         </div>
 
-        <div class="drawer-search">
-          <div class="drawer-search-wrap" style="position:relative;display:flex;align-items:center;width:100%;">
-            <i class="ti ti-search" style="position:absolute;left:10px;color:#94A3B8;font-size:14px;pointer-events:none;"></i>
-            <input type="text" id="drawerSearchInput" placeholder="Search menu &amp; features..." autocomplete="off" style="width:100%;padding:7px 28px 7px 32px !important;border-radius:8px !important;font-size:12.5px !important;" />
-            <button type="button" id="drawerSearchClear" onclick="const i=document.getElementById('drawerSearchInput');if(i){i.value='';i.dispatchEvent(new Event('input'));}" style="display:none;position:absolute;right:8px;background:none;border:none;color:#94A3B8;cursor:pointer;padding:2px 4px;font-size:12px;font-weight:700;" title="Clear search">✕</button>
-          </div>
-          <div id="drawerSearchResults" style="display:none;margin-top:8px;"></div>
-        </div>
+        
 
         <nav class="sidebar-nav">
           ${(() => {
@@ -1798,11 +1791,7 @@ function renderShell(content, activePage = 'dashboard') {
               </div>
             </div>
             <!-- Search Menu in Topbar Left on Desktop (Matching YBT CRM) -->
-            <button type="button" class="topbar-search-menu-btn" onclick="window.openCommandPalette ? window.openCommandPalette() : (window.openMobileSearch && window.openMobileSearch())" title="Search Menu, Features & Actions (Press Ctrl+K or /)">
-              <span class="search-btn-icon"><i class="ti ti-search"></i></span>
-              <span class="search-btn-text">Search customers, bookings, units...</span>
-              <kbd class="search-btn-kbd">Ctrl+K</kbd>
-            </button>
+            
           </div>
 
           <!-- Desktop Center Navigation Links (HomeyHuts Style) -->
@@ -1817,6 +1806,12 @@ function renderShell(content, activePage = 'dashboard') {
           </nav>
 
           <div class="topbar-right">
+            <!-- Global Command / Ctrl+K Search Pill (Single Unified Search) -->
+            <button type="button" class="topbar-search-menu-btn" onclick="window.openCommandPalette ? window.openCommandPalette() : (window.openMobileSearch && window.openMobileSearch())" title="Search Menu, Features & Actions (Press Ctrl+K or /)">
+              <span class="search-btn-icon"><i class="ti ti-search"></i></span>
+              <span class="search-btn-text">Search customers, bookings, units...</span>
+              <kbd class="search-btn-kbd">Ctrl+K</kbd>
+            </button>
 
             <!-- Global Property Switcher -->
             <div class="topbar-property-selector ${window.getGlobalSelectedProperty ? (window.getGlobalSelectedProperty() ? 'has-filter' : '') : ''}" id="topbarPropSelector" title="Switch property view">
