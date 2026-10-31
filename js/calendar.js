@@ -304,6 +304,7 @@ async function renderReports() {
           <span class="hh-cal-legend-item"><span class="hh-legend-dot" style="background:#0284C7;"></span> Direct / Offline</span>
           <span class="hh-cal-legend-item"><span class="hh-legend-dot" style="background:#FF385C;"></span> Airbnb</span>
           <span class="hh-cal-legend-item"><span class="hh-legend-dot" style="background:#003580;"></span> Booking.com</span>
+          <span class="hh-cal-legend-item"><span class="hh-legend-dot" style="background:#7C3AED;"></span> Agoda</span>
           <span class="hh-cal-legend-item"><span class="hh-legend-dot" style="background:#475569;"></span> Blocked</span>
           <span style="height:14px;width:1px;background:#CBD5E1;display:inline-block;margin:0 4px;"></span>
           <span style="font-weight:800;color:#0F172A;font-size:11.5px;text-transform:uppercase;letter-spacing:0.4px;">Payment Status:</span>
@@ -523,15 +524,17 @@ async function renderReports() {
         </div>
       </div>
 
-      <!-- STATUS COLOR LEGEND (LIKE SALON CRM VIDEO IMAGE 2) -->
+      <!-- PLATFORMS / CHANNELS COLOR LEGEND (REMOVED UNWANTED STATUSES) -->
       <div style="margin-top:12px;padding-top:10px;border-top:1px solid #E2E8F0;display:flex;align-items:center;gap:16px;flex-wrap:wrap;font-size:12px;color:#475569;">
-        <span style="font-weight:700;color:#0F172A;">Status:</span>
-        <span style="display:inline-flex;align-items:center;gap:5px;"><span style="width:10px;height:10px;border-radius:3px;background:#10B981;display:inline-block;"></span> In-House</span>
-        <span style="display:inline-flex;align-items:center;gap:5px;"><span style="width:10px;height:10px;border-radius:3px;background:#F59E0B;display:inline-block;"></span> Upcoming / Confirmed</span>
-        <span style="display:inline-flex;align-items:center;gap:5px;"><span style="width:10px;height:10px;border-radius:3px;background:#FF385C;display:inline-block;"></span> Airbnb</span>
-        <span style="display:inline-flex;align-items:center;gap:5px;"><span style="width:10px;height:10px;border-radius:3px;background:#003580;display:inline-block;"></span> Booking.com</span>
-        <span style="display:inline-flex;align-items:center;gap:5px;"><span style="width:10px;height:10px;border-radius:3px;background:#0284C7;display:inline-block;"></span> Direct</span>
-        <span style="display:inline-flex;align-items:center;gap:5px;"><span style="width:10px;height:10px;border-radius:3px;background:#F8FAFC;border:1px solid #CBD5E1;display:inline-block;"></span> Available</span>
+        <span style="font-weight:800;color:#0F172A;text-transform:uppercase;letter-spacing:0.4px;">Platforms:</span>
+        <span style="display:inline-flex;align-items:center;gap:6px;"><span style="width:11px;height:11px;border-radius:3px;background:#0284C7;display:inline-block;"></span> <strong>Direct / Offline</strong></span>
+        <span style="display:inline-flex;align-items:center;gap:6px;"><span style="width:11px;height:11px;border-radius:3px;background:#FF385C;display:inline-block;"></span> <strong>Airbnb</strong></span>
+        <span style="display:inline-flex;align-items:center;gap:6px;"><span style="width:11px;height:11px;border-radius:3px;background:#003580;display:inline-block;"></span> <strong>Booking.com</strong></span>
+        <span style="display:inline-flex;align-items:center;gap:6px;"><span style="width:11px;height:11px;border-radius:3px;background:#7C3AED;display:inline-block;"></span> <strong>Agoda</strong></span>
+        <span style="display:inline-flex;align-items:center;gap:6px;"><span style="width:11px;height:11px;border-radius:3px;background:#475569;display:inline-block;"></span> <strong>Blocked</strong></span>
+        <span style="height:14px;width:1px;background:#CBD5E1;display:inline-block;margin:0 4px;"></span>
+        <span style="display:inline-flex;align-items:center;gap:5px;"><span style="background:#D1FAE5;color:#065F46;border:1px solid #86EFAC;border-radius:4px;padding:1px 6px;font-size:10px;font-weight:800;">✓ Paid</span> Full Balance Settled</span>
+        <span style="display:inline-flex;align-items:center;gap:5px;"><span style="background:#FEF3C7;color:#92400E;border:1px solid #FCD34D;border-radius:4px;padding:1px 6px;font-size:10px;font-weight:800;">⚠️ ₹ Due</span> Payment Outstanding</span>
       </div>
     </div>
 

@@ -2438,6 +2438,23 @@ window.getBookingSource = function(b) {
     };
   }
 
+  // 2b. Agoda
+  if (mode.includes('agoda') || (b.notes && String(b.notes).toLowerCase().includes('agoda'))) {
+    return {
+      type: 'agoda',
+      key: 'agoda',
+      label: 'Agoda',
+      badge: '🟣 Agoda',
+      badgeClass: 'channel-agoda',
+      chipClass: 'agoda',
+      color: '#7C3AED',
+      bgColor: '#F5F3FF',
+      borderColor: '#DDD6FE',
+      pillGradient: 'linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%)',
+      isOnline: true
+    };
+  }
+
   // 3. Airbnb (Online-Airbnb or has Airbnb confirmation code or mentions airbnb)
   if (mode.includes('airbnb') || mode === 'online-airbnb' || code.length > 0) {
     return {
