@@ -2395,10 +2395,10 @@ window.getBookingSource = function(b) {
     badge: '🏠 Direct',
     badgeClass: 'channel-direct',
     chipClass: 'direct',
-    color: '#059669',
-    bgColor: '#ECFDF5',
-    borderColor: '#A7F3D0',
-    pillGradient: 'linear-gradient(135deg, #059669 0%, #047857 100%)',
+    color: '#0284C7',
+    bgColor: '#E0F2FE',
+    borderColor: '#BAE6FD',
+    pillGradient: 'linear-gradient(135deg, #0284C7 0%, #0369A1 100%)',
     isOnline: false
   };
 
@@ -2483,10 +2483,10 @@ window.getBookingSource = function(b) {
     badge: '🏠 Direct',
     badgeClass: 'channel-direct',
     chipClass: 'direct',
-    color: '#059669',
-    bgColor: '#ECFDF5',
-    borderColor: '#A7F3D0',
-    pillGradient: 'linear-gradient(135deg, #059669 0%, #047857 100%)',
+    color: '#0284C7',
+    bgColor: '#E0F2FE',
+    borderColor: '#BAE6FD',
+    pillGradient: 'linear-gradient(135deg, #0284C7 0%, #0369A1 100%)',
     isOnline: false
   };
 };

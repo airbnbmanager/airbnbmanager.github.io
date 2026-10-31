@@ -1326,3 +1326,30 @@ html, body {
     display: none !important;
   }
 }
+
+/* Calendar Paid / Due Badges */
+.cal-pay-tag {
+  font-size: 8.5px !important;
+  font-weight: 800 !important;
+  border-radius: 4px !important;
+  padding: 1px 3.5px !important;
+  line-height: 1.1 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 2px !important;
+  white-space: nowrap !important;
+  flex-shrink: 0 !important;
+  letter-spacing: 0.2px !important;
+}
+
+.cal-pay-tag.due {
+  background: #FEE2E2 !important;
+  color: #991B1B !important;
+  border: 1px solid #FECACA !important;
+}
+
+.cal-pay-tag.paid {
+  background: #DCFCE7 !important;
+  color: #166534 !important;
+  border: 1px solid #86EFAC !important;
+}

@@ -89,7 +89,7 @@ async function renderReports() {
   const displayRooms = (selRoom && selRoom !== 'all') ? allRooms.filter(r => r.room_id === selRoom) : allRooms;
   const targetRoomIds = new Set(displayRooms.map(r => r.room_id));
   const mb = allBks.filter(b => b.check_in?.startsWith(mp) && (selRoom === 'all' || targetRoomIds.has(b.room_id)));
-  const pm = await getPaidMap(mb.map(b => b.booking_id));
+  const pm = await getPaidMap(allBks.map(b => b.booking_id));
   const rev = mb.reduce((s, b) => s + (pm[b.booking_id] || 0), 0);
   const realMb = mb.filter(b => !isBkBlocked(b));
   const blockedMbCount = mb.length - realMb.length;
@@ -312,6 +312,23 @@ async function renderReports() {
         const showName = isCheckIn || isCheckOut || (currentNight > 0 && currentNight % 2 === 0);
         const showAvatar = isCheckIn || isBlocked;
 
+        // Payment status check for non-blocked bookings
+        const totalAmt = Number(bk.total_amount || 0);
+        const paidAmt = Number(pm[bk.booking_id] || 0);
+        const dueAmt = Math.max(0, totalAmt - paidAmt);
+        const isPaidFull = !isBlocked && (totalAmt > 0 && dueAmt <= 0);
+        const isDue = !isBlocked && (dueAmt > 0);
+
+        let payTagHtml = '';
+        if (!isBlocked) {
+          if (isDue) {
+            const dueShort = dueAmt >= 1000 ? `${(dueAmt/1000).toFixed(dueAmt % 1000 === 0 ? 0 : 1)}k` : dueAmt;
+            payTagHtml = `<span class="cal-pay-tag due" title="⚠️ Unpaid: ₹${Math.round(dueAmt).toLocaleString('en-IN')} Due (Paid: ₹${paidAmt.toLocaleString('en-IN')} / Total: ₹${totalAmt.toLocaleString('en-IN')})">₹${dueShort}</span>`;
+          } else if (isPaidFull) {
+            payTagHtml = `<span class="cal-pay-tag paid" title="✓ Paid in Full (₹${paidAmt.toLocaleString('en-IN')})">✓ Paid</span>`;
+          }
+        }
+
         let borderRadius = '0';
         if (isCheckIn && isCheckOut) borderRadius = '14px';
         else if (isCheckIn) borderRadius = '14px 0 0 14px';
@@ -321,11 +338,18 @@ async function renderReports() {
           ? bkArr.map(x => x.guest_name || 'Guest').join(' + ')
           : (bk.guest_name || (isBlocked ? 'Blocked Slot' : 'Booked'));
 
+        const paymentTitle = isBlocked ? 'Blocked' : (isDue ? `⚠️ ₹${Math.round(dueAmt).toLocaleString('en-IN')} Due` : '✓ Paid in Full');
+
         cellsHtml += `
-          <div class="cal-day booked ${isToday ? 'today' : ''} ${isBlocked ? 'is-blocked-day' : ''}" onclick="showBookingPopup('${r.room_id}','${ds}')" title="${overlapTitle}${hasReview ? ' • ⭐ 5-Star Review Verified' : ''}" style="position:relative;">
-            <div class="cal-date-num">${d}</div>
-            ${overlapCount > 1 ? `<div style="position:absolute;top:2px;right:2px;background:#DC2626;color:#fff;border-radius:50%;min-width:16px;height:16px;padding:0 3px;display:flex;align-items:center;justify-content:center;font-size:9.5px;font-weight:800;box-shadow:0 1px 3px rgba(0,0,0,0.4);z-index:3;line-height:1;" title="${overlapCount} bookings on this date">${overlapCount}</div>` : ''}
-            ${hasReview && overlapCount <= 1 ? `<div style="position:absolute;top:2px;right:2px;font-size:10px;line-height:1;z-index:3;" title="⭐ 5-Star Review Verified!">⭐</div>` : ''}
+          <div class="cal-day booked ${isToday ? 'today' : ''} ${isBlocked ? 'is-blocked-day' : ''}" onclick="showBookingPopup('${r.room_id}','${ds}')" title="${overlapTitle} • ${paymentTitle}${hasReview ? ' • ⭐ 5-Star Review Verified' : ''}" style="position:relative;">
+            <div style="display:flex;align-items:center;justify-content:space-between;width:100%;padding:1px 3px 0;box-sizing:border-box;">
+              <div class="cal-date-num">${d}</div>
+              <div style="display:flex;align-items:center;gap:2px;margin-left:auto;">
+                ${overlapCount > 1 ? `<span style="background:#DC2626;color:#fff;border-radius:50%;min-width:14px;height:14px;padding:0 2px;display:inline-flex;align-items:center;justify-content:center;font-size:8.5px;font-weight:800;" title="${overlapCount} bookings on this date">${overlapCount}</span>` : ''}
+                ${hasReview && overlapCount <= 1 ? `<span style="font-size:9.5px;line-height:1;" title="⭐ 5-Star Review Verified!">⭐</span>` : ''}
+                ${payTagHtml}
+              </div>
+            </div>
             <div class="cal-pill ${isBlocked ? 'blocked' : ''}" style="background:${bg};border-radius:${borderRadius};${hasReview ? 'box-shadow:0 0 0 1.5px #F59E0B;' : ''}">
               ${showAvatar ? `<span class="cal-avatar" style="${hasReview ? 'background:#FEF3C7;color:#D97706;' : ''}">${hasReview ? '⭐' : guestInitial}</span>` : ''}
               ${showName && !isBlocked ? `<span class="cal-name">${firstName}${hasReview ? ' ⭐' : ''}</span>` : ''}
@@ -381,7 +405,7 @@ async function renderReports() {
       <div style="display:inline-flex;gap:14px;flex-wrap:wrap;justify-content:center;font-size:12px;font-weight:600;">
         <span><span style="display:inline-block;width:14px;height:14px;background:#FF385C;border-radius:4px;vertical-align:middle;margin-right:4px;"></span> 🌐 Airbnb</span>
         <span><span style="display:inline-block;width:14px;height:14px;background:#003580;border-radius:4px;vertical-align:middle;margin-right:4px;"></span> 🏨 Booking.com</span>
-        <span><span style="display:inline-block;width:14px;height:14px;background:#059669;border-radius:4px;vertical-align:middle;margin-right:4px;"></span> 🏠 Direct (Offline)</span>
+        <span><span style="display:inline-block;width:14px;height:14px;background:#0284C7;border-radius:4px;vertical-align:middle;margin-right:4px;"></span> 🏠 Direct (Offline)</span>
         <span><span style="display:inline-block;width:14px;height:14px;background:#475569;border-radius:4px;vertical-align:middle;margin-right:4px;"></span> 🔒 Blocked</span>
         <span><span style="display:inline-block;width:14px;height:14px;background:#fff;border:1px solid #ccc;border-radius:4px;vertical-align:middle;margin-right:4px;"></span> ⚪ Free</span>
         <span><span style="display:inline-block;width:14px;height:14px;background:#FEE2E2;border:1px solid #FF385C;border-radius:4px;vertical-align:middle;margin-right:4px;"></span> 📍 Today</span>
