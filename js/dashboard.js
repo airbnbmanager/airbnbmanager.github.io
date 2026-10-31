@@ -1400,106 +1400,103 @@ async function renderDashboard() {
           </div>
         </div>
 
-        <!-- AIRBNB HOSTING FEED VIEW (EXACT USER SCREENSHOT SPEC) -->
-        <div class="airbnb-view-toggle-bar">
-          <div class="airbnb-pill-toggle">
-            <button type="button" class="airbnb-toggle-btn active" id="airbnbTabBtnToday" onclick="window.switchAirbnbFeedTab('today')">Today</button>
-            <button type="button" class="airbnb-toggle-btn" id="airbnbTabBtnUpcoming" onclick="window.switchAirbnbFeedTab('upcoming')">Upcoming</button>
-          </div>
-          <div class="airbnb-filter-wrap">
-            ${globalProp ? `
-              <button type="button" class="airbnb-filter-btn active" onclick="window.openPropertyFilterDialog()" title="Change or clear property filter">
-                <span>🏛️ ${escapeHtml((window._globalRoomsList || []).find(r => (r.room_id||'').toUpperCase() === globalProp.toUpperCase())?.nickname || globalProp)}</span>
-                <span onclick="event.stopPropagation(); window.handleGlobalPropertyFilterChange('');" style="font-weight:900;color:#DC2626;padding-left:4px;font-size:13px;" title="Clear filter">✕</span>
-              </button>
-            ` : `
-              <button type="button" class="airbnb-filter-btn" onclick="window.openPropertyFilterDialog()" title="Filter reservations by property">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M4 21v-7m0-4V3m8 18v-9m0-4V3m8 18v-5m0-4V3M1 14h6m2-6h6m2 8h6"/></svg>
-                <span>Filter</span>
-              </button>
-            `}
-          </div>
-        </div>
-
-        ${globalProp ? `
-          <div style="max-width:860px;margin:0 auto 16px;background:#FFF5F4;border:1px solid #FECACA;padding:10px 16px;border-radius:14px;display:flex;align-items:center;justify-content:space-between;gap:12px;box-shadow:0 1px 3px rgba(234,56,41,0.06);">
+<!-- Executive Today's Stays & Operational Activity (Clean Non-duplicated CRM View) -->
+        <div class="dash-panel-card" style="background:#FFFFFF;border:1px solid #E2E8F0;border-radius:12px;padding:20px;box-shadow:0 1px 3px rgba(0,0,0,0.04);margin-top:16px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid #F1F5F9;flex-wrap:wrap;gap:8px;">
+            <div style="display:flex;align-items:center;gap:10px;">
+              <div style="width:34px;height:34px;border-radius:8px;background:#E0F2FE;color:#0284C7;display:flex;align-items:center;justify-content:center;font-size:1.15rem;">
+                <i class="ti ti-calendar-check"></i>
+              </div>
+              <div>
+                <div style="font-size:0.95rem;font-weight:700;color:#0F172A;">Today's Guest Movement Summary</div>
+                <div style="font-size:0.75rem;color:#64748B;">Live tracking of today's check-ins, check-outs, and in-house guests</div>
+              </div>
+            </div>
             <div style="display:flex;align-items:center;gap:8px;">
-              <span style="font-size:16px;">🏛️</span>
-              <span style="font-size:13px;font-weight:700;color:#991B1B;">
-                Filtered view for: <strong>${escapeHtml((window._globalRoomsList || []).find(r => (r.room_id||'').toUpperCase() === globalProp.toUpperCase())?.nickname || globalProp)}</strong>
-              </span>
+              <span style="font-size:12px;color:#64748B;font-weight:600;">${totalTodayReservations} Movements Today</span>
+              <button type="button" onclick="navigate('bookings')" style="padding:6px 14px;font-size:12px;background:#0EA5E9;color:#FFFFFF;border:none;border-radius:8px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:4px;">
+                Manage All Bookings &rarr;
+              </button>
             </div>
-            <button type="button" onclick="window.handleGlobalPropertyFilterChange('')" style="background:#fff;border:1px solid #FECACA;color:#EA3829;font-weight:800;font-size:12px;padding:4px 12px;border-radius:20px;cursor:pointer;display:inline-flex;align-items:center;gap:4px;">
-              Show All Properties <span>✕</span>
-            </button>
           </div>
-        ` : ''}
 
-        <h2 class="airbnb-feed-heading" id="airbnbFeedHeading">You have ${totalTodayReservations} reservations</h2>
-
-        <!-- 1. TODAY'S RESERVATIONS LIST -->
-        <div class="airbnb-feed-list" id="airbnbFeedTodayList">
           ${totalTodayReservations === 0 ? `
-            <div class="card" style="text-align:center;padding:48px 20px;border-radius:18px;border:1px dashed #cbd5e1;max-width:860px;margin:0 auto;width:100%;">
-              <div style="font-size:36px;margin-bottom:8px;">🏖️</div>
-              <div style="font-size:16px;font-weight:700;color:#1e293b;">No check-ins, check-outs, or active stays today${globalProp ? ' for this property' : ''}</div>
-              <div style="font-size:13px;color:#64748b;margin-top:4px;">
-                ${globalProp ? `<a href="javascript:void(0)" onclick="window.handleGlobalPropertyFilterChange('')" style="color:#EA3829;font-weight:700;text-decoration:underline;">Click here to show all properties</a> or check` : 'Check'} upcoming reservations above.
-              </div>
+            <div style="padding:32px 16px;text-align:center;color:#64748B;">
+              <div style="font-size:32px;margin-bottom:6px;">🏖️</div>
+              <div style="font-size:14px;font-weight:700;color:#0F172A;">No check-ins, check-outs, or active stays today${globalProp ? ' for this property' : ''}</div>
+              <div style="font-size:12px;margin-top:4px;">Check upcoming reservations or open the bookings register.</div>
             </div>
           ` : `
-            ${realCheckouts.map(b => renderAirbnbResCard(b, 'checkout')).join('')}
-            ${realCheckins.map(b => renderAirbnbResCard(b, 'checkin')).join('')}
-            ${activeNow.map(b => renderAirbnbResCard(b, 'inhouse')).join('')}
+            <div style="overflow-x:auto;">
+              <table style="width:100%;border-collapse:collapse;">
+                <thead>
+                  <tr style="border-bottom:1px solid #E2E8F0;background:#F8FAFC;">
+                    <th style="padding:9px 12px;text-align:left;font-size:11px;font-weight:700;color:#64748B;text-transform:uppercase;letter-spacing:0.04em;">Guest / Contact</th>
+                    <th style="padding:9px 12px;text-align:left;font-size:11px;font-weight:700;color:#64748B;text-transform:uppercase;letter-spacing:0.04em;">Unit / Property</th>
+                    <th style="padding:9px 12px;text-align:left;font-size:11px;font-weight:700;color:#64748B;text-transform:uppercase;letter-spacing:0.04em;">Movement</th>
+                    <th style="padding:9px 12px;text-align:left;font-size:11px;font-weight:700;color:#64748B;text-transform:uppercase;letter-spacing:0.04em;">Financials</th>
+                    <th style="padding:9px 12px;text-align:right;font-size:11px;font-weight:700;color:#64748B;text-transform:uppercase;letter-spacing:0.04em;">Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${realCheckouts.slice(0, 5).map(b => `
+                    <tr style="border-bottom:1px solid #F1F5F9;">
+                      <td style="padding:10px 12px;font-size:13.5px;font-weight:700;color:#0F172A;">
+                        <span style="cursor:pointer;" onclick="openBookingFromDashboard('${b.booking_id}')">${b.guest_name}</span>
+                        ${b.phone ? `<div style="font-size:11.5px;color:#64748B;font-weight:400;margin-top:2px;">📞 ${b.phone}</div>` : ''}
+                      </td>
+                      <td style="padding:10px 12px;font-size:12px;color:#334155;font-weight:600;">
+                        <span style="background:#F1F5F9;border:1px solid #E2E8F0;padding:3px 8px;border-radius:6px;font-size:11.5px;color:#334155;">${bName(b)}</span>
+                      </td>
+                      <td style="padding:10px 12px;">
+                        <span style="display:inline-flex;align-items:center;gap:4px;background:#FEF3C7;color:#B45309;padding:3px 8px;border-radius:6px;font-size:11px;font-weight:700;">
+                          <i class="ti ti-logout"></i> Departing Today
+                        </span>
+                      </td>
+                      <td style="padding:10px 12px;font-size:12.5px;font-weight:600;color:#0F172A;">
+                        ₹${(b.total_amount || 0).toLocaleString('en-IN')}
+                      </td>
+                      <td style="padding:10px 12px;text-align:right;">
+                        <button type="button" style="padding:5px 12px;font-size:12px;background:#F8FAFC;border:1px solid #CBD5E1;color:#0F172A;font-weight:600;border-radius:6px;cursor:pointer;" onclick="openBookingFromDashboard('${b.booking_id}')"><i class="ti ti-eye"></i> View</button>
+                      </td>
+                    </tr>
+                  `).join('')}
+
+                  ${realCheckins.slice(0, 5).map(b => `
+                    <tr style="border-bottom:1px solid #F1F5F9;">
+                      <td style="padding:10px 12px;font-size:13.5px;font-weight:700;color:#0F172A;">
+                        <span style="cursor:pointer;" onclick="openBookingFromDashboard('${b.booking_id}')">${b.guest_name}</span>
+                        ${b.phone ? `<div style="font-size:11.5px;color:#64748B;font-weight:400;margin-top:2px;">📞 ${b.phone}</div>` : ''}
+                      </td>
+                      <td style="padding:10px 12px;font-size:12px;color:#334155;font-weight:600;">
+                        <span style="background:#F1F5F9;border:1px solid #E2E8F0;padding:3px 8px;border-radius:6px;font-size:11.5px;color:#334155;">${bName(b)}</span>
+                      </td>
+                      <td style="padding:10px 12px;">
+                        <span style="display:inline-flex;align-items:center;gap:4px;background:#DCFCE7;color:#16A34A;padding:3px 8px;border-radius:6px;font-size:11px;font-weight:700;">
+                          <i class="ti ti-login"></i> Arriving Today
+                        </span>
+                      </td>
+                      <td style="padding:10px 12px;font-size:12.5px;font-weight:600;color:#0F172A;">
+                        ₹${(b.total_amount || 0).toLocaleString('en-IN')}
+                      </td>
+                      <td style="padding:10px 12px;text-align:right;">
+                        <button type="button" style="padding:5px 12px;font-size:12px;background:#F8FAFC;border:1px solid #CBD5E1;color:#0F172A;font-weight:600;border-radius:6px;cursor:pointer;" onclick="openBookingFromDashboard('${b.booking_id}')"><i class="ti ti-eye"></i> View</button>
+                      </td>
+                    </tr>
+                  `).join('')}
+                </tbody>
+              </table>
+            </div>
+            <div style="display:flex;justify-content:center;margin-top:14px;padding-top:10px;border-top:1px solid #F1F5F9;">
+              <button type="button" onclick="navigate('bookings')" style="padding:8px 20px;font-size:13px;background:#F8FAFC;border:1px solid #CBD5E1;color:#0F172A;border-radius:8px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:6px;">
+                <span>View All ${window._airbnbUpcomingCount || 0} Upcoming &amp; In-House Bookings in Bookings Register</span> &rarr;
+              </button>
+            </div>
           `}
         </div>
-
-        <!-- 2. UPCOMING RESERVATIONS LIST -->
-        <div class="airbnb-feed-list" id="airbnbFeedUpcomingList" style="display:none;">
-          ${upcomingReservations.length === 0 ? `
-            <div class="card" style="text-align:center;padding:48px 20px;border-radius:18px;border:1px dashed #cbd5e1;max-width:860px;margin:0 auto;width:100%;">
-              <div style="font-size:36px;margin-bottom:8px;">📅</div>
-              <div style="font-size:16px;font-weight:700;color:#1e293b;">No upcoming reservations found${globalProp ? ' for this property' : ''}</div>
-              <div style="font-size:13px;color:#64748b;margin-top:4px;">
-                ${globalProp ? `<a href="javascript:void(0)" onclick="window.handleGlobalPropertyFilterChange('')" style="color:#EA3829;font-weight:700;text-decoration:underline;">Clear filter</a> or add a new booking.` : 'Add a new booking or import from channel manager.'}
-              </div>
-            </div>
-          ` : `
-            ${upcomingReservations.map(b => renderAirbnbResCard(b, 'upcoming')).join('')}
-          `}
-        </div>
-
-        <!-- 3. YOUR FOLLOW-UPS SECTION (SCREENSHOT 3) -->
-        ${checkoutFollowups.length > 0 ? `
-          <div class="airbnb-followups-wrap">
-            <h3 style="font-size:20px;font-weight:800;color:#111827;margin-bottom:14px;letter-spacing:-0.3px;">Your follow-ups</h3>
-            <div class="airbnb-followups-grid">
-              ${checkoutFollowups.map(b => {
-                const base = (window.ShowcaseData && window.ShowcaseData.BASELINE && window.ShowcaseData.BASELINE[b.room_id]) || {};
-                const coverImg = base.cover_image || 'assets/logo-emblem.png';
-                const fName = (b.guest_name || 'Guest').split(' ')[0];
-                const initial = fName.charAt(0).toUpperCase() || 'G';
-                const daysDiff = Math.max(1, Math.round((new Date(today) - new Date(b.check_out)) / (1000 * 60 * 60 * 24)));
-                return `
-                  <div class="airbnb-followup-card" onclick="if(window.openBookingFromDashboard) openBookingFromDashboard('${b.booking_id}')">
-                    <div class="airbnb-followup-media">
-                      <div class="airbnb-avatar-bubble" style="width:36px;height:36px;font-size:13px;">${initial}</div>
-                      <img src="${coverImg}" class="airbnb-thumb-bubble" style="width:32px;height:32px;" onerror="this.onerror=null;this.src='assets/logo-emblem.png';" />
-                    </div>
-                    <div style="flex:1;min-width:0;">
-                      <div style="font-size:11px;color:#717171;font-weight:600;">${daysDiff}d ago</div>
-                      <div style="font-size:13.5px;font-weight:800;color:#111827;">Leave ${escapeHtml(fName)} a review</div>
-                      <div style="font-size:11.5px;color:#717171;text-overflow:ellipsis;overflow:hidden;white-space:nowrap;">${escapeHtml(base.name || propLabel(b.rooms) || 'The Unique Haven Homes')}</div>
-                    </div>
-                  </div>
-                `;
-              }).join('')}
-            </div>
-          </div>
-        ` : ''}
       </div>
 
-      <!-- TAB 2: ROOMS & HOUSEKEEPING -->
+            <!-- TAB 2: ROOMS & HOUSEKEEPING -->
       <div class="dash-tab-pane ${window._activeDashTab === 'rooms' ? 'active' : ''}" id="dash-tab-rooms">
         <div class="dash-ops-grid">
           <!-- Ready to Book -->

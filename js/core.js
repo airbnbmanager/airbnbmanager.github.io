@@ -1480,8 +1480,8 @@ function renderShell(content, activePage = 'dashboard') {
   if (isOwner) {
     nav = [
       { section: 'STAYS & RESERVATIONS' },
-      ['dashboard', 'Executive Dashboard'],
-      ['bookings', 'Reservations & Stays'],
+      ['dashboard', 'Dashboard'],
+      ['bookings', 'Bookings'],
       ['calendar', 'Room Calendar'],
       ['rooms', 'Properties & Units'],
       { section: 'FINANCE & BILLING' },
@@ -1517,7 +1517,7 @@ function renderShell(content, activePage = 'dashboard') {
     nav = [
       { section: 'STAYS & RESERVATIONS' },
       ['dashboard', 'Dashboard'],
-      ['bookings', 'Stay & Bookings'],
+      ['bookings', 'Bookings'],
       ['rooms', 'Properties & Units'],
       ['whatsapp-hub', 'WhatsApp Hub'],
     ];
@@ -1566,7 +1566,7 @@ function renderShell(content, activePage = 'dashboard') {
   const displayBadge = CUSTOM_BADGES[SESSION.userId] || roleLabel;
 
   const PAGE_TITLES = {
-    dashboard: { title: 'Dashboard', sub: 'Overview & Key Performance Indicators', icon: '🏠' },
+    dashboard: { title: 'Executive Dashboard', sub: 'Overview & Key Performance Indicators', icon: '🏠' },
     reports: { title: 'Reservations Calendar', sub: 'Room availability & bookings calendar', icon: '📅' },
     calendar: { title: 'Reservations Calendar', sub: 'Room availability & bookings calendar', icon: '📅' },
     bookings: { title: 'Bookings Management', sub: 'Guest check-ins, check-outs & payments', icon: '🛎' },
@@ -1777,9 +1777,9 @@ function renderShell(content, activePage = 'dashboard') {
 
           <!-- Desktop Center Navigation Links (HomeyHuts Style) -->
           <nav class="topbar-desktop-nav">
-            <a href="javascript:void(0)" onclick="navigate('dashboard')" class="${activePage==='dashboard'?'active':''}"><i class="ti ti-layout-dashboard"></i> Hosting</a>
+            <a href="javascript:void(0)" onclick="navigate('dashboard')" class="${activePage==='dashboard'?'active':''}"><i class="ti ti-layout-dashboard"></i> Dashboard</a>
             <a href="javascript:void(0)" onclick="navigate('calendar')" class="${(activePage==='calendar'||activePage==='reports')?'active':''}"><i class="ti ti-calendar"></i> Calendar</a>
-            <a href="javascript:void(0)" onclick="navigate('bookings')" class="${activePage==='bookings'?'active':''}"><i class="ti ti-bed"></i> Reservations</a>
+            <a href="javascript:void(0)" onclick="navigate('bookings')" class="${activePage==='bookings'?'active':''}"><i class="ti ti-calendar-check"></i> Bookings</a>
             <a href="javascript:void(0)" onclick="navigate('rooms')" class="${activePage==='rooms'?'active':''}"><i class="ti ti-building-community"></i> Properties</a>
             <a href="javascript:void(0)" onclick="navigate('employees')" class="${(activePage==='employees'||activePage==='attendance'||activePage==='tasks'||activePage==='advance')?'active':''}"><i class="ti ti-id-badge-2"></i> Staff &amp; Tasks</a>
             <a href="javascript:void(0)" onclick="navigate('investors')" class="${activePage==='investors'?'active':''}"><i class="ti ti-chart-pie"></i> Investors &amp; P&amp;L</a>

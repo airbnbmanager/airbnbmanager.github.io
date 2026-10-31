@@ -137,20 +137,20 @@
     });
   </script>
 
-  <!-- 📱 HomeyHuts-Style Mobile Bottom Navigation Bar -->
+  <!-- 📱 Executive SaaS Mobile Bottom Navigation Bar (Dashboard & Bookings) -->
   <nav id="pwa-bottom-nav" class="pwa-bottom-nav">
     <button type="button" class="pwa-nav-item active" data-page="dashboard" onclick="navigate('dashboard')">
       <span class="pwa-nav-icon"><i class="ti ti-layout-dashboard"></i></span>
-      <span class="pwa-nav-label">Hosting</span>
+      <span class="pwa-nav-label">Dashboard</span>
+    </button>
+    <button type="button" class="pwa-nav-item" data-page="bookings" onclick="navigate('bookings')">
+      <span class="pwa-nav-icon"><i class="ti ti-calendar-check"></i></span>
+      <span class="pwa-nav-label">Bookings</span>
+      <span id="pwa-approvals-badge" style="display:none;" class="pwa-nav-badge">0</span>
     </button>
     <button type="button" class="pwa-nav-item" data-page="calendar" onclick="navigate('calendar')">
       <span class="pwa-nav-icon"><i class="ti ti-calendar"></i></span>
       <span class="pwa-nav-label">Calendar</span>
-    </button>
-    <button type="button" class="pwa-nav-item" data-page="bookings" onclick="navigate('bookings')">
-      <span class="pwa-nav-icon"><i class="ti ti-bed"></i></span>
-      <span class="pwa-nav-label">Reservations</span>
-      <span id="pwa-approvals-badge" style="display:none;" class="pwa-nav-badge">0</span>
     </button>
     <button type="button" class="pwa-nav-item" data-page="menu" onclick="navigate('menu')">
       <span class="pwa-nav-icon"><i class="ti ti-menu-2"></i></span>
