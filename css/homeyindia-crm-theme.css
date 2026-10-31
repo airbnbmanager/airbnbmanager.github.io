@@ -103,6 +103,19 @@ body {
   .topbar-desktop-nav {
     display: none !important;
   }
+
+  /* 🚫 Eliminate duplicate logo in topbar on desktop (sidebar already has brand logo) */
+  .topbar-left .topbar-brand-group {
+    display: none !important;
+  }
+  .topbar-left .sidebar-toggle-btn {
+    display: none !important;
+  }
+  .topbar-search-menu-btn {
+    min-width: 260px !important;
+    max-width: 380px !important;
+    width: 100% !important;
+  }
 }
 
 /* Mobile & Tablet Sidebar Drawer */
@@ -931,4 +944,46 @@ table tr:hover td,
   background: #FFFFFF !important;
   border-color: var(--crm-border-strong) !important;
   box-shadow: var(--crm-shadow-sm) !important;
+}
+
+
+/* Responsive charts grid */
+@media (max-width: 1023px) {
+  .dash-charts-grid {
+    grid-template-columns: 1fr !important;
+  }
+  .topbar-search-menu-btn .search-btn-text,
+  .topbar-search-menu-btn .search-btn-kbd {
+    display: none !important;
+  }
+}
+
+
+.sidebar-user-card .user-notif-btn {
+  background: #FFFFFF !important;
+  border: 1px solid var(--crm-border) !important;
+  color: #64748B !important;
+  width: 32px !important;
+  height: 32px !important;
+  border-radius: 8px !important;
+  cursor: pointer !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  box-shadow: none !important;
+}
+.sidebar-user-card .user-notif-btn:hover {
+  background: #F1F5F9 !important;
+  color: #0F172A !important;
+}
+
+
+.sidebar-brand .brand-sub {
+  color: #64748B !important;
+  background: transparent !important;
+  border: none !important;
+  padding: 0 !important;
+  font-weight: 600 !important;
+  font-size: 0.72rem !important;
+  letter-spacing: 0.05em !important;
 }

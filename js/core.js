@@ -1773,6 +1773,12 @@ function renderShell(content, activePage = 'dashboard') {
                 <span class="topbar-brand-sub" style="font-size:9px;color:var(--primary);font-weight:800;letter-spacing:0.5px;white-space:nowrap;">HOMES OPS</span>
               </div>
             </div>
+            <!-- Search Menu in Topbar Left on Desktop (Matching YBT CRM) -->
+            <button type="button" class="topbar-search-menu-btn" onclick="window.openCommandPalette ? window.openCommandPalette() : (window.openMobileSearch && window.openMobileSearch())" title="Search Menu, Features & Actions (Press Ctrl+K or /)">
+              <span class="search-btn-icon"><i class="ti ti-search"></i></span>
+              <span class="search-btn-text">Search customers, bookings, units...</span>
+              <kbd class="search-btn-kbd">Ctrl+K</kbd>
+            </button>
           </div>
 
           <!-- Desktop Center Navigation Links (HomeyHuts Style) -->
@@ -1787,12 +1793,6 @@ function renderShell(content, activePage = 'dashboard') {
           </nav>
 
           <div class="topbar-right">
-            <!-- 🔍 Search Menu & Quick Actions (Command Palette ⌘K) -->
-            <button type="button" class="topbar-search-menu-btn" onclick="window.openCommandPalette ? window.openCommandPalette() : (window.openMobileSearch && window.openMobileSearch())" title="Search Menu, Features & Actions (Press ⌘K or /)">
-              <span class="search-btn-icon"><i class="ti ti-search"></i></span>
-              <span class="search-btn-text">Search Menu...</span>
-              <kbd class="search-btn-kbd">⌘K</kbd>
-            </button>
 
             <!-- Global Property Switcher -->
             <div class="topbar-property-selector ${window.getGlobalSelectedProperty ? (window.getGlobalSelectedProperty() ? 'has-filter' : '') : ''}" id="topbarPropSelector" title="Switch property view">
