@@ -1846,11 +1846,14 @@ function renderShell(content, activePage = 'dashboard') {
               <span><i class="ti ti-bell" style="font-size:1.15rem;"></i></span><span class="notif-bell-badge" style="display:none;"></span>
             </button>
 
-            <!-- User Avatar Pill -->
-            <div class="topbar-avatar-pill" onclick="navigate('menu')" title="Account &amp; Menu">
-              <div class="user-avatar-mini">${shortName.charAt(0).toUpperCase()}</div>
-              <span class="user-name-mini">${escapeHtml(shortName)}</span>
-              <span class="avatar-caret" style="font-size:10px;color:#9ca3af;"><i class="ti ti-chevron-down"></i></span>
+            <!-- User Avatar Pill (Unified Account & Profile) -->
+            <div class="topbar-avatar-pill" onclick="navigate('menu')" title="Account, Role &amp; Preferences" style="display:inline-flex;align-items:center;gap:8px;padding:4px 10px 4px 6px;background:#F8FAFC;border:1px solid var(--crm-border);border-radius:999px;cursor:pointer;">
+              <div class="user-avatar-mini" style="width:28px;height:28px;border-radius:50%;background:var(--crm-primary);color:#fff;font-weight:800;font-size:12px;display:flex;align-items:center;justify-content:center;">${shortName.charAt(0).toUpperCase()}</div>
+              <div style="display:flex;flex-direction:column;line-height:1.15;text-align:left;">
+                <span class="user-name-mini" style="font-size:12px;font-weight:700;color:#0F172A;">${escapeHtml(shortName)}</span>
+                <span class="user-role-mini" style="font-size:9.5px;color:#64748B;font-weight:700;text-transform:uppercase;letter-spacing:0.3px;">${escapeHtml(displayBadge || SESSION.role || 'Admin')}</span>
+              </div>
+              <span class="avatar-caret" style="font-size:11px;color:#94A3B8;margin-left:2px;"><i class="ti ti-chevron-down"></i></span>
             </div>
           </div>
         </header>
