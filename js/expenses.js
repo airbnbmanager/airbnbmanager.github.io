@@ -279,11 +279,11 @@ async function renderExpenses() {
         </div>
 
         <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
-          <button onclick="renderAddExpEntry()" style="background:#0EA5E9;color:#fff;font-weight:700;border:none;border-radius:8px;padding:8px 14px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;box-shadow:0 2px 6px rgba(14,165,233,0.25);">
-            <i class="ti ti-receipt"></i> Log Expense
+          <button onclick="navigate('laundry')" style="background:#0284C7;color:#fff;font-weight:700;border:none;border-radius:8px;padding:8px 14px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;box-shadow:0 2px 6px rgba(2,132,199,0.25);">
+            <span>🧺</span> Laundry
           </button>
-          <button onclick="window.openLaundryQuickModal()" style="background:#0284C7;color:#fff;font-weight:700;border:none;border-radius:8px;padding:8px 14px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;">
-            <span>🧺</span> Log Laundry
+          <button onclick="navigate('maintenance')" style="background:#475569;color:#fff;font-weight:700;border:none;border-radius:8px;padding:8px 14px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;box-shadow:0 2px 6px rgba(71,85,105,0.25);">
+            <i class="ti ti-tool"></i> Maintenance
           </button>
           <button onclick="window.openWifiRechargeModal()" style="background:#2563EB;color:#fff;font-weight:700;border:none;border-radius:8px;padding:8px 14px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;">
             <i class="ti ti-wifi"></i> Wi-Fi Recharge
@@ -293,9 +293,6 @@ async function renderExpenses() {
           </button>
           <button onclick="window.openStaffAdvanceModal()" style="background:#7C3AED;color:#fff;font-weight:700;border:none;border-radius:8px;padding:8px 14px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;">
             <span>🎁</span> Give Staff Advance
-          </button>
-          <button onclick="navigate('claims')" style="background:#0F172A;color:#38BDF8;font-weight:700;border:none;border-radius:8px;padding:8px 14px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;">
-            <i class="ti ti-scale"></i> Claims Ledger
           </button>
         </div>
       </div>

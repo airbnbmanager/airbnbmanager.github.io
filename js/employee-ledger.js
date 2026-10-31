@@ -26,41 +26,78 @@ window.EMPLOYEE_LEDGER = {
     // Database employee_type
     if (emp.employee_type === 'per_flat') return true;
 
-    // Specific known cleaning staff (e.g. Shalu at Vikalp Khand, Laxmi Sharma)
-    const name = (emp.name || '').trim();
-    if (name === 'Shalu' || name === 'Laxmi Sharma') return true;
+    // Specific staff names check
+    const name = (emp.name || '').toLowerCase();
+    if (name.includes('praveen') || name.includes('arman') || name.includes('shuaib') || name.includes('aniket')) return false;
+    if (name.includes('kanchan') || name.includes('shalu') || name.includes('laxmi')) return true;
 
-    // Maid assigned to specific flat clusters
+    // Maid / Cleaning role
     const role = (emp.role || '').toLowerCase();
-    const rooms = (emp.assigned_rooms || '');
-    if (role === 'maid' && (rooms.includes('VIL') || rooms.includes('GOM'))) return true;
+    if (role.includes('maid') || role.includes('clean') || role.includes('housekeep')) return true;
+    const propRole = (emp.property_role || '').toLowerCase();
+    if (propRole.includes('maid') || propRole.includes('clean')) return true;
 
     return false;
   },
 
-  // Get configured per-flat rate and flat count for an employee
-  getPerFlatConfig(emp) {
-    const isCleaner = this.isPerFlatStaff(emp);
+  // Get flats cleaned count for given cleaner and month
+  getFlatsCleanedCount(empId, monthStr) {
+    const curMonth = monthStr || new Date().toISOString().slice(0, 7);
+    // 1. Month-specific manual count or override
+    const mKey = 'tuhh_cleaner_flats_' + empId + '_' + curMonth;
+    const savedMonth = localStorage.getItem(mKey);
+    if (savedMonth !== null && !isNaN(Number(savedMonth)) && Number(savedMonth) >= 0) {
+      return Number(savedMonth);
+    }
     
-    // Assigned rooms count
-    const assignedRooms = (emp.assigned_rooms || '').split(',').map(s => s.trim()).filter(Boolean);
-    const savedFlats = Number(localStorage.getItem('tuhh_cleaner_flats_' + emp.emp_id));
-    const flatsCount = savedFlats > 0 ? savedFlats : (assignedRooms.length > 0 ? assignedRooms.length : 1);
+    // 2. Count turnarounds logged in tuhh_cleaner_turnovers for this month
+    try {
+      const logs = JSON.parse(localStorage.getItem('tuhh_cleaner_turnovers') || '[]');
+      const monthLogs = logs.filter(l => (l.cleaner_id === empId || (l.cleaner_name && l.cleaner_name.toLowerCase().includes('kanchan'))) && (!curMonth || l.month === curMonth || (l.date && l.date.startsWith(curMonth))));
+      if (monthLogs.length > 0) return monthLogs.length;
+    } catch(e) {}
+    
+    // 3. Fallback to general saved count for employee
+    const generalSaved = Number(localStorage.getItem('tuhh_cleaner_flats_' + empId));
+    if (generalSaved > 0) return generalSaved;
+    
+    // 4. Default baseline for Kanchan / active cleaner: 100 flats
+    return 100;
+  },
 
-    // Rate: Default ₹4,000 per flat per month (user standard: 4000/30 per day per flat)
+  // Set flats cleaned count for given cleaner and month (Supports any count: 10, 50, 100, 200 flats)
+  setFlatsCleanedCount(empId, monthStr, val) {
+    const curMonth = monthStr || new Date().toISOString().slice(0, 7);
+    const num = Math.max(0, parseInt(val, 10) || 0);
+    localStorage.setItem('tuhh_cleaner_flats_' + empId + '_' + curMonth, String(num));
+    localStorage.setItem('tuhh_cleaner_flats_' + empId, String(num));
+    return num;
+  },
+
+  // Get configured per-flat rate and flat count for an employee
+  getPerFlatConfig(emp, monthStr) {
+    const isCleaner = this.isPerFlatStaff(emp);
+    const assignedRooms = (emp.assigned_rooms || '').split(',').map(s => s.trim()).filter(Boolean);
+    const curMonth = monthStr || new Date().toISOString().slice(0, 7);
+    
+    // Rate: Default ₹133 per flat cleaned (User standard: ₹133/flat, e.g. 100 flats = ₹13,300)
     const savedRate = Number(localStorage.getItem('tuhh_cleaner_rate_' + emp.emp_id));
-    let flatMonthlyRate = 4000;
+    let ratePerFlat = 133;
     if (savedRate > 0) {
-      flatMonthlyRate = savedRate;
-    } else if (emp.per_flat_rate >= 500) {
-      flatMonthlyRate = emp.per_flat_rate;
+      ratePerFlat = savedRate;
     } else if (emp.per_flat_rate > 0) {
-      flatMonthlyRate = Math.round(emp.per_flat_rate * 30);
+      ratePerFlat = emp.per_flat_rate;
     }
 
-    const dailyPerFlat = flatMonthlyRate / 30; // e.g. 4000/30 = 133.33
+    const flatsCleaned = isCleaner ? this.getFlatsCleanedCount(emp.emp_id, curMonth) : 0;
+    const flatsCount = flatsCleaned;
+    const flatMonthlyRate = Math.round(ratePerFlat * 30);
+    const dailyPerFlat = ratePerFlat;
+
     return {
       isCleaner,
+      flatsCleaned,
+      ratePerFlat,
       flatsCount,
       flatMonthlyRate,
       dailyPerFlat,
@@ -96,7 +133,7 @@ window.EMPLOYEE_LEDGER = {
     let earned = 0;
     let breakdown = '';
     let calculationType = 'fixed_monthly';
-    const flatConfig = this.getPerFlatConfig(emp);
+    const flatConfig = this.getPerFlatConfig(emp, monthStr);
 
     if (flatConfig.isCleaner) {
       // ═══════════════════════════════════════════════════════════
@@ -1110,15 +1147,104 @@ console.log('✅ Employee Ledger v3 (TUHH Clean HRMS + Per-Flat Cleaning + Advan
 // 🧹 EDIT CLEANER FLATS COUNT MODAL (Kanchan / Maids)
 // ═══════════════════════════════════════════════════════════
 window.editCleanerFlatsModal = function(empId, empName, currentFlats, ratePerFlat, monthStr) {
-  const newCountStr = prompt(`Enter number of flats cleaned by ${empName} for month ${monthStr}:\n\n(Rate: ₹${ratePerFlat} per flat cleaning)\nExample: 100 flats = ₹${100 * ratePerFlat}\n\nFlats Cleaned:`, currentFlats);
-  if (newCountStr !== null) {
-    const val = parseInt(newCountStr.trim(), 10);
-    if (!isNaN(val) && val >= 0) {
-      window.EMPLOYEE_LEDGER.setFlatsCleanedCount(empId, monthStr, val);
-      if (window.fsn) fsn.success('Updated', `${empName}: ${val} flats cleaned = ₹${(val * ratePerFlat).toLocaleString('en-IN')}`);
-      if (typeof window.renderEmployeeLedger === 'function') {
-        window.renderEmployeeLedger();
-      }
+  const existing = document.getElementById('editFlatsModal');
+  if (existing) existing.remove();
+
+  const curRate = ratePerFlat || 133;
+  const initialFlats = currentFlats != null ? currentFlats : 100;
+
+  const modal = document.createElement('div');
+  modal.id = 'editFlatsModal';
+  modal.className = 'modal-overlay';
+  modal.onclick = e => { if (e.target === modal) modal.remove(); };
+
+  modal.innerHTML = `
+    <div class="modal-box" style="max-width:440px;padding:24px;border-radius:14px;box-shadow:0 12px 36px rgba(0,0,0,0.2);">
+      <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">✕</button>
+      
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
+        <span style="font-size:26px;">🧹</span>
+        <div>
+          <h2 style="margin:0;font-size:18px;font-weight:800;color:#1E1B4B;">Edit Cleaned Flats (${monthStr})</h2>
+          <div style="font-size:12px;color:#6366F1;font-weight:700;">${escapeHtml(empName)} · Piece Rate @ ₹${curRate}/flat</div>
+        </div>
+      </div>
+
+      <div style="background:#EEF2FF;padding:12px 14px;border-radius:10px;border:1px solid #C7D2FE;margin-bottom:16px;">
+        <div style="font-size:11.5px;color:#4338CA;font-weight:600;line-height:1.4;">
+          💡 Praveen ya Admin kisi bhi month ke total cleaned flats manually adjust ya verify kar sakte hain (e.g. 10 flats ya 200 flats).
+        </div>
+      </div>
+
+      <div class="form-group" style="margin-bottom:14px;">
+        <label style="font-weight:800;color:#0F172A;font-size:13px;display:block;margin-bottom:6px;">Total Flats Cleaned This Month:</label>
+        <input type="number" id="manualFlatsCountInp" value="${initialFlats}" min="0" max="500"
+               style="width:100%;padding:12px;font-size:20px;font-weight:900;color:#4338CA;border:2px solid #818CF8;border-radius:10px;text-align:center;box-sizing:border-box;"
+               oninput="updateEditFlatsPreview(this.value, ${curRate})" />
+      </div>
+
+      <!-- Quick Preset Buttons -->
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px;justify-content:center;">
+        <span style="font-size:11px;color:#64748B;font-weight:700;align-self:center;margin-right:2px;">Presets:</span>
+        ${[10, 25, 50, 75, 100, 150, 200].map(cnt => `
+          <button type="button" onclick="setPresetFlats(${cnt}, ${curRate})" 
+                  style="background:#F1F5F9;border:1px solid #CBD5E1;border-radius:6px;padding:3px 8px;font-size:11.5px;font-weight:700;color:#334155;cursor:pointer;">
+            ${cnt}
+          </button>
+        `).join('')}
+      </div>
+
+      <!-- Live Calculation Card -->
+      <div style="background:#F8FAFC;border:1.5px dashed #CBD5E1;border-radius:10px;padding:12px;margin-bottom:18px;text-align:center;">
+        <div style="font-size:11px;color:#64748B;font-weight:700;text-transform:uppercase;">Calculated Cleaning Payout</div>
+        <div id="liveFlatsPayoutText" style="font-size:24px;font-weight:900;color:#059669;margin-top:2px;">
+          ₹${(initialFlats * curRate).toLocaleString('en-IN')}
+        </div>
+        <div id="liveFlatsFormulaText" style="font-size:11.5px;color:#475569;margin-top:2px;">
+          ${initialFlats} Flats × ₹${curRate}/flat
+        </div>
+      </div>
+
+      <div style="display:flex;gap:8px;">
+        <button type="button" class="secondary" onclick="this.closest('.modal-overlay').remove()" style="flex:1;padding:10px;border-radius:8px;font-weight:700;cursor:pointer;">
+          Cancel
+        </button>
+        <button type="button" onclick="saveManualCleanerFlats('${empId}', '${monthStr}', ${curRate})" 
+                style="flex:2;background:#4F46E5;color:#fff;border:none;padding:10px;border-radius:8px;font-weight:800;font-size:13.5px;cursor:pointer;box-shadow:0 3px 8px rgba(79,70,229,0.3);">
+          💾 Save & Update Salary
+        </button>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(modal);
+
+  window.updateEditFlatsPreview = function(val, rate) {
+    const num = Math.max(0, parseInt(val, 10) || 0);
+    const amt = num * rate;
+    const txtEl = document.getElementById('liveFlatsPayoutText');
+    const fmlEl = document.getElementById('liveFlatsFormulaText');
+    if (txtEl) txtEl.textContent = '₹' + amt.toLocaleString('en-IN');
+    if (fmlEl) fmlEl.textContent = `${num} Flats × ₹${rate}/flat`;
+  };
+
+  window.setPresetFlats = function(cnt, rate) {
+    const inp = document.getElementById('manualFlatsCountInp');
+    if (inp) {
+      inp.value = cnt;
+      window.updateEditFlatsPreview(cnt, rate);
     }
-  }
+  };
+
+  window.saveManualCleanerFlats = function(eId, mStr, rate) {
+    const inp = document.getElementById('manualFlatsCountInp');
+    const val = inp ? (parseInt(inp.value, 10) || 0) : initialFlats;
+    window.EMPLOYEE_LEDGER.setFlatsCleanedCount(eId, mStr, val);
+    if (window.fsn) fsn.success('Saved', `${empName}: ${val} flats cleaned = ₹${(val * rate).toLocaleString('en-IN')}`);
+    const m = document.getElementById('editFlatsModal');
+    if (m) m.remove();
+    if (typeof window.renderEmployeeLedger === 'function') {
+      window.renderEmployeeLedger();
+    }
+  };
 };

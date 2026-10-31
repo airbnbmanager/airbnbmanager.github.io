@@ -109,6 +109,16 @@ async function renderManageEmployees() {
 
   window._allEmployees = emps || [];
   window._allRooms = rooms || [];
+  // Auto-sync Sole Manager Praveen Singh to all registered rooms
+  const praveenEmp = (emps || []).find(e => (e.name || '').toLowerCase().includes('praveen'));
+  if (praveenEmp && rooms && rooms.length > 0) {
+    const allRoomIds = rooms.map(r => r.room_id).join(',');
+    const curAssigned = (praveenEmp.assigned_rooms || '').split(',').map(s => s.trim()).filter(Boolean);
+    if (curAssigned.length < rooms.length) {
+      praveenEmp.assigned_rooms = allRoomIds;
+      sb.from('employees').update({ assigned_rooms: allRoomIds }).eq('emp_id', praveenEmp.emp_id).catch(() => {});
+    }
+  }
 
   const roomMap = {};
   (rooms || []).forEach(r => {
@@ -301,6 +311,8 @@ function renderEmployeeCardsView(emps, isO, roomMap) {
       ${emps.map(e => {
         const isActive = isEmployeeActive(e);
         const assignedArr = (e.assigned_rooms || '').split(',').map(s => s.trim()).filter(Boolean);
+              const totalPropsCount = Object.keys(roomMap).length || (window._allRooms || []).length || 18;
+              const isAllAssigned = assignedArr.length >= (totalPropsCount - 1) || (e.role && e.role.toLowerCase().includes('manager')) || (e.name && e.name.toLowerCase().includes('praveen'));
         const cleanPhone = (e.phone || '').replace(/\D/g, '');
         const whatsappPhone = cleanPhone.length === 10 ? '91' + cleanPhone : cleanPhone;
         const initial = (e.name || 'S').trim().charAt(0).toUpperCase();
@@ -368,15 +380,13 @@ function renderEmployeeCardsView(emps, isO, roomMap) {
               <div style="background:var(--card-sub-bg,#F8FAFC);padding:10px;border-radius:8px;border:1px solid var(--border,#E2E8F0);margin-bottom:10px;">
                 <div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px;">
                   🏢 Assigned Properties (${assignedArr.length})
-                </div>
                 ${assignedArr.length === 0 ? `
                   <div style="font-size:12px;color:var(--muted);font-style:italic;">No properties assigned</div>
-                ` : (assignedArr.length >= 16 ? `
+                ` : (isAllAssigned ? `
                   <span style="display:inline-block;padding:3px 8px;border-radius:6px;font-size:11.5px;background:#EFF6FF;color:#1D4ED8;font-weight:700;border:1px solid #BFDBFE;">
-                    ✨ All Properties Assigned (17 Units)
+                    ✨ All Properties Assigned (${totalPropsCount} Units)
                   </span>
                 ` : `
-                  <div style="display:flex;flex-wrap:wrap;gap:5px;">
                     ${assignedArr.map(roomId => `
                       <span style="font-size:11px;padding:2px 7px;border-radius:6px;background:var(--card-bg,#fff);border:1px solid var(--border,#CBD5E1);color:var(--text);font-weight:600;">
                         ${escapeHtml(roomMap[roomId] || roomId)}
@@ -457,6 +467,8 @@ function renderEmployeeTableView(emps, isO, roomMap) {
             ${emps.map(e => {
               const isActive = isEmployeeActive(e);
               const assignedArr = (e.assigned_rooms || '').split(',').map(s => s.trim()).filter(Boolean);
+              const totalPropsCount = Object.keys(roomMap).length || (window._allRooms || []).length || 18;
+              const isAllAssigned = assignedArr.length >= (totalPropsCount - 1) || (e.role && e.role.toLowerCase().includes('manager')) || (e.name && e.name.toLowerCase().includes('praveen'));
               const cleanPhone = (e.phone || '').replace(/\D/g, '');
               const whatsappPhone = cleanPhone.length === 10 ? '91' + cleanPhone : cleanPhone;
               const initial = (e.name || 'S').trim().charAt(0).toUpperCase();
@@ -486,7 +498,7 @@ function renderEmployeeTableView(emps, isO, roomMap) {
                   </td>
                   <td style="max-width:200px;">
                     ${assignedArr.length === 0 ? '<span style="color:var(--muted);font-size:11px;">None</span>' : (
-                      assignedArr.length >= 16 ? '<span style="font-size:11px;font-weight:700;color:#1D4ED8;">All 17 Properties</span>' : `
+                      isAllAssigned ? `<span style="font-size:11px;font-weight:700;color:#1D4ED8;">All ${totalPropsCount} Properties</span>` : `
                         <div style="font-size:11.5px;line-height:1.4;white-space:normal;">
                           ${assignedArr.map(id => escapeHtml(roomMap[id] || id)).join(', ')}
                         </div>

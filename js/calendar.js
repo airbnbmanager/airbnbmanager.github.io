@@ -246,7 +246,7 @@ async function renderReports() {
     const dEndObj = new Date(tEnd);
     const rangeLabel = `${dStartObj.getDate()} ${dStartObj.toLocaleString('en-IN', { month: 'short' })} – ${dEndObj.getDate()} ${dEndObj.toLocaleString('en-IN', { month: 'short' })} ${dEndObj.getFullYear()}`;
 
-    const colWidth = 88;
+    const colWidth = 94;
     const propColWidth = 240;
     const totalMatrixWidth = propColWidth + (tDates.length * colWidth);
     const todayIndex = tDates.indexOf(todayStr);
@@ -423,8 +423,8 @@ async function renderReports() {
                           const endIdx = isCutEnd ? tDates.length : coIdx;
 
                           const span = Math.max(1, endIdx - startIdx);
-                          const leftPx = startIdx * colWidth + (isCutStart ? 0 : 4);
-                          const widthPx = Math.max(72, (span * colWidth) - (isCutStart ? 0 : 4) - (isCutEnd ? 0 : 4));
+                          const leftPx = startIdx * colWidth + (isCutStart ? 0 : 3);
+                          const widthPx = Math.max(76, (span * colWidth) - (isCutStart ? 0 : 3) - (isCutEnd ? 0 : 3));
 
                           const nights = Math.max(1, Math.round((new Date(b.check_out) - new Date(b.check_in)) / 86400000));
                           const totalAmt = b.total_amount || 0;
@@ -432,11 +432,22 @@ async function renderReports() {
                           const dueAmt = Math.max(0, totalAmt - paidAmt);
                           const isPaid = (dueAmt <= 0);
 
-                          const payBadge = isBlocked 
-                            ? '<span class="hh-gantt-status-tag" style="background:#334155;color:#fff;">BLOCKED</span>' 
-                            : (isPaid 
-                                ? '<span class="hh-gantt-status-tag paid">✓ Paid</span>' 
-                                : '<span class="hh-gantt-status-tag due">⚠️ ₹' + Math.round(dueAmt).toLocaleString('en-IN') + ' Due</span>');
+                          let payBadge = '';
+                          if (isBlocked) {
+                            payBadge = '<span class="hh-gantt-status-tag" style="background:#334155;color:#fff;font-size:8px;padding:1px 3px;">LOCK</span>';
+                          } else if (span === 1 || widthPx < 115) {
+                            payBadge = isPaid 
+                              ? '<span class="hh-gantt-status-tag paid mini" title="✓ Paid">✓</span>' 
+                              : '<span class="hh-gantt-status-tag due mini" title="⚠️ ₹' + Math.round(dueAmt).toLocaleString('en-IN') + ' Due">⚠️</span>';
+                          } else if (span === 2 || widthPx < 195) {
+                            payBadge = isPaid 
+                              ? '<span class="hh-gantt-status-tag paid">✓ Paid</span>' 
+                              : '<span class="hh-gantt-status-tag due">⚠️ Due</span>';
+                          } else {
+                            payBadge = isPaid 
+                              ? '<span class="hh-gantt-status-tag paid">✓ Paid</span>' 
+                              : '<span class="hh-gantt-status-tag due">⚠️ ₹' + Math.round(dueAmt).toLocaleString('en-IN') + ' Due</span>';
+                          }
 
                           const chIcon = isBlocked 
                             ? '<i class="ti ti-lock"></i>' 
@@ -448,9 +459,21 @@ async function renderReports() {
 
                           const guestTitle = isBlocked ? (b.guest_name || 'Maintenance Block') : (b.guest_name || 'Direct Guest');
 
+                          let bottomRowHtml = '';
+                          if (isBlocked) {
+                            bottomRowHtml = `<span>${nights}n Block</span>`;
+                          } else if (span === 1 || widthPx < 115) {
+                            const shortAmtStr = totalAmt >= 1000 ? '₹' + (totalAmt / 1000).toFixed(1) + 'k' : '₹' + totalAmt;
+                            bottomRowHtml = `<span>1n</span><span>•</span><span class="hh-gantt-amount">${shortAmtStr}</span>`;
+                          } else if (span === 2 || widthPx < 195) {
+                            bottomRowHtml = `<span>${nights}n</span><span>•</span><span class="hh-gantt-amount">₹${Number(totalAmt).toLocaleString('en-IN')}</span>`;
+                          } else {
+                            bottomRowHtml = `<span>${nights}n ${b.num_guests ? '· ' + b.num_guests + 'g' : ''}</span><span>•</span><span class="hh-gantt-amount">₹${Number(totalAmt).toLocaleString('en-IN')}</span>`;
+                          }
+
                           return `
                             <div class="hh-gantt-bar ${channel}" 
-                                 style="left:${leftPx}px;width:${widthPx}px;border-radius:${isCutStart ? '0 10px 10px 0' : (isCutEnd ? '10px 0 0 10px' : '10px')};"
+                                 style="left:${leftPx}px;width:${widthPx}px;border-radius:${isCutStart ? '0 8px 8px 0' : (isCutEnd ? '8px 0 0 8px' : '8px')};"
                                  onclick="window.openBookingDetails('${b.booking_id}')">
                               <div class="hh-gantt-top-row">
                                 <span class="hh-gantt-guest">
@@ -460,9 +483,7 @@ async function renderReports() {
                                 ${payBadge}
                               </div>
                               <div class="hh-gantt-bottom-row">
-                                <span>${nights}n ${b.num_guests ? '· ' + b.num_guests + 'g' : ''}</span>
-                                <span>•</span>
-                                <span class="hh-gantt-amount">₹${Number(totalAmt).toLocaleString('en-IN')}</span>
+                                ${bottomRowHtml}
                               </div>
                               <!-- Rich hover tooltip -->
                               <div class="hh-gantt-tooltip">
