@@ -1415,10 +1415,9 @@ function renderShell(content, activePage = 'dashboard') {
       id: 'bookings',
       label: '📅 Stay & Bookings',
       page: 'bookings',
-      pages: ['bookings', 'guest-crm', 'reports', 'calendar', 'flats', 'pendingApprovals'],
+      pages: ['bookings', 'reports', 'calendar', 'flats', 'pendingApprovals'],
       tabs: [
         { id: 'bookings', label: '🛎️ Bookings' },
-        { id: 'guest-crm', label: '👤 Guest CRM' },
         { id: 'reports', label: '📅 Calendar' },
         { id: 'flats', label: '🛏️ Flats Status' },
         { id: 'pendingApprovals', label: '🟡 Approvals' }
@@ -2306,7 +2305,7 @@ function navigate(page) {
     'daily-report': () => (window.renderDailyReport || renderDailyReport)(),
     reminders: () => (window.renderReminders || renderReminders)(),
     bookings: () => (window.renderSmartManageBookings || window.renderManageBookings || renderManageBookings)(),
-    'guest-crm': () => (window.renderGuestCRM || (() => {}))(true),
+    'guest-crm': () => navigate('bookings'),
     employees: () => (window.renderManageEmployees || renderManageEmployees)(),
     tasks: () => (window.renderEmployeeTasks || renderEmployeeTasks)(),
     attendance: () => (window.renderAttendance || renderAttendance)(),
