@@ -1353,3 +1353,869 @@ html, body {
   color: #166534 !important;
   border: 1px solid #86EFAC !important;
 }
+
+
+/* ==========================================================================
+   HOMEYHUTS VACATION RENTAL UNIFIED MULTI-CALENDAR & ANALYTICS SUITE
+   Pixel-perfect implementation of Homeyhuts SaaS UI
+   ========================================================================== */
+
+/* --- 1. UNIFIED TIMELINE MULTI-CALENDAR (GANTT VIEW) --- */
+.hh-cal-container {
+  background: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.05);
+  margin-bottom: 24px;
+}
+
+.hh-cal-toolbar {
+  padding: 16px 20px;
+  background: #FFFFFF;
+  border-bottom: 1px solid #E2E8F0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.hh-cal-toolbar-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.hh-cal-toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.hh-cal-title {
+  font-size: 20px;
+  font-weight: 800;
+  color: #0F172A;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.hh-cal-range-selector {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #F8FAFC;
+  border: 1px solid #CBD5E1;
+  border-radius: 10px;
+  padding: 4px 8px;
+}
+
+.hh-cal-nav-btn {
+  background: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  color: #0F172A;
+  border-radius: 8px;
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-weight: 700;
+  font-size: 13px;
+  transition: all 0.15s ease;
+}
+.hh-cal-nav-btn:hover {
+  background: #0284C7;
+  color: #FFFFFF;
+  border-color: #0284C7;
+}
+
+.hh-cal-range-label {
+  font-size: 13px;
+  font-weight: 700;
+  color: #0F172A;
+  padding: 0 6px;
+  white-space: nowrap;
+}
+
+.hh-cal-toggle-group {
+  display: inline-flex;
+  background: #F1F5F9;
+  border-radius: 10px;
+  padding: 3px;
+  gap: 3px;
+}
+
+.hh-cal-toggle-btn {
+  border: none;
+  background: transparent;
+  padding: 6px 14px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #64748B;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.hh-cal-toggle-btn.active {
+  background: #FFFFFF;
+  color: #0284C7;
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.08);
+}
+
+.hh-btn-offline-booking {
+  background: linear-gradient(135deg, #0284C7 0%, #0369A1 100%);
+  color: #FFFFFF;
+  border: none;
+  border-radius: 10px;
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  box-shadow: 0 2px 8px rgba(2, 132, 199, 0.3);
+  transition: all 0.2s ease;
+}
+.hh-btn-offline-booking:hover {
+  background: linear-gradient(135deg, #0369A1 0%, #075985 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(2, 132, 199, 0.4);
+}
+
+/* Legend strip */
+.hh-cal-legend-bar {
+  padding: 10px 20px;
+  background: #F8FAFC;
+  border-bottom: 1px solid #E2E8F0;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  flex-wrap: wrap;
+  font-size: 12px;
+  color: #475569;
+}
+
+.hh-cal-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+}
+
+.hh-legend-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+/* Timeline Viewport & Matrix */
+.hh-timeline-viewport {
+  overflow-x: auto;
+  overflow-y: visible;
+  position: relative;
+  -webkit-overflow-scrolling: touch;
+  background: #FFFFFF;
+  max-width: 100%;
+}
+
+.hh-timeline-table {
+  position: relative;
+  width: max-content;
+  min-width: 100%;
+  border-collapse: collapse;
+}
+
+/* Sticky Property Column */
+.hh-prop-cell {
+  position: sticky;
+  left: 0;
+  z-index: 25;
+  background: #FFFFFF;
+  border-right: 2px solid #CBD5E1;
+  width: 240px;
+  min-width: 240px;
+  max-width: 240px;
+  box-shadow: 4px 0 12px rgba(15, 23, 42, 0.05);
+  box-sizing: border-box;
+}
+
+.hh-prop-header-cell {
+  position: sticky;
+  left: 0;
+  top: 0;
+  z-index: 35;
+  background: #F8FAFC;
+  border-right: 2px solid #CBD5E1;
+  border-bottom: 2px solid #CBD5E1;
+  padding: 12px 14px;
+  width: 240px;
+  min-width: 240px;
+  max-width: 240px;
+  box-shadow: 4px 4px 12px rgba(15, 23, 42, 0.05);
+  box-sizing: border-box;
+}
+
+.hh-prop-header-title {
+  font-size: 12.5px;
+  font-weight: 800;
+  color: #0F172A;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.hh-prop-card {
+  padding: 10px 14px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: 68px;
+  box-sizing: border-box;
+  border-bottom: 1px solid #E2E8F0;
+  background: #FFFFFF;
+}
+
+.hh-prop-thumb {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  object-fit: cover;
+  flex-shrink: 0;
+  border: 1px solid #E2E8F0;
+  background: #F1F5F9;
+}
+
+.hh-prop-info {
+  min-width: 0;
+  flex: 1;
+}
+
+.hh-prop-name {
+  font-size: 13px;
+  font-weight: 800;
+  color: #0F172A;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.25;
+}
+
+.hh-prop-sub {
+  font-size: 11px;
+  color: #64748B;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-top: 2px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.hh-prop-rate-tag {
+  color: #0284C7;
+  font-weight: 700;
+  font-size: 10.5px;
+}
+
+/* Date Timeline Header Columns */
+.hh-date-col-header {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: #F8FAFC;
+  border-bottom: 2px solid #CBD5E1;
+  border-right: 1px solid #E2E8F0;
+  text-align: center;
+  padding: 8px 4px;
+  user-select: none;
+  box-sizing: border-box;
+  vertical-align: middle;
+}
+
+.hh-date-col-header.is-weekend {
+  background: #F1F5F9;
+}
+
+.hh-date-col-header.is-today {
+  background: #FEF2F2;
+  border-bottom-color: #EF4444;
+}
+
+.hh-day-name {
+  font-size: 11px;
+  font-weight: 600;
+  color: #64748B;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.hh-day-num {
+  font-size: 15px;
+  font-weight: 800;
+  color: #0F172A;
+  margin-top: 2px;
+}
+
+.hh-today-pin-badge {
+  background: #EF4444;
+  color: #FFFFFF;
+  border-radius: 999px;
+  padding: 2px 8px;
+  font-size: 10.5px;
+  font-weight: 800;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 2px;
+  box-shadow: 0 2px 6px rgba(239, 68, 68, 0.4);
+}
+
+.hh-today-vertical-line {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: #EF4444;
+  z-index: 22;
+  pointer-events: none;
+  box-shadow: 0 0 6px rgba(239, 68, 68, 0.4);
+}
+
+/* Property Row Timeline Track */
+.hh-timeline-row {
+  height: 68px;
+  border-bottom: 1px solid #E2E8F0;
+  box-sizing: border-box;
+  background: #FFFFFF;
+}
+
+.hh-timeline-track {
+  position: relative;
+  height: 68px;
+  box-sizing: border-box;
+  padding: 0;
+  margin: 0;
+}
+
+/* Background Day Cells */
+.hh-day-cell {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  border-right: 1px solid #F1F5F9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  user-select: none;
+  box-sizing: border-box;
+}
+
+.hh-day-cell.is-weekend {
+  background: #FAFAFC;
+}
+
+.hh-day-cell.is-today {
+  background: #FEF2F2;
+}
+
+.hh-day-rate-hint {
+  font-size: 10px;
+  color: #94A3B8;
+  font-weight: 600;
+  transition: opacity 0.15s ease;
+}
+
+.hh-day-cell:hover {
+  background: #E0F2FE !important;
+}
+
+.hh-day-cell:hover .hh-day-rate-hint {
+  display: none;
+}
+
+.hh-day-cell:hover::after {
+  content: '+ Book';
+  font-size: 10px;
+  font-weight: 800;
+  color: #FFFFFF;
+  background: #0284C7;
+  padding: 2px 7px;
+  border-radius: 5px;
+  box-shadow: 0 2px 4px rgba(2, 132, 199, 0.3);
+}
+
+/* Reservation Gantt Bar */
+.hh-gantt-bar {
+  position: absolute;
+  top: 8px;
+  height: 52px;
+  border-radius: 10px;
+  z-index: 12;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 5px 10px;
+  box-sizing: border-box;
+  cursor: pointer;
+  color: #FFFFFF;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.12);
+  transition: transform 0.15s ease, box-shadow 0.15s ease, z-index 0.15s ease;
+  overflow: hidden;
+  user-select: none;
+}
+
+.hh-gantt-bar:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.22);
+  z-index: 28 !important;
+}
+
+.hh-gantt-bar.direct {
+  background: linear-gradient(135deg, #0284C7 0%, #0369A1 100%);
+  border: 1px solid #0284C7;
+}
+
+.hh-gantt-bar.airbnb {
+  background: linear-gradient(135deg, #FF385C 0%, #E11D48 100%);
+  border: 1px solid #FF385C;
+}
+
+.hh-gantt-bar.bookingcom {
+  background: linear-gradient(135deg, #003580 0%, #1E3A8A 100%);
+  border: 1px solid #003580;
+}
+
+.hh-gantt-bar.blocked {
+  background: linear-gradient(135deg, #475569 0%, #334155 100%);
+  border: 1px solid #475569;
+}
+
+.hh-gantt-top-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  min-width: 0;
+  line-height: 1.2;
+}
+
+.hh-gantt-guest {
+  font-size: 12px;
+  font-weight: 800;
+  color: #FFFFFF;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.hh-gantt-status-tag {
+  font-size: 9px;
+  font-weight: 800;
+  border-radius: 4px;
+  padding: 1px 5px;
+  white-space: nowrap;
+  flex-shrink: 0;
+  letter-spacing: 0.2px;
+  line-height: 1.2;
+}
+
+.hh-gantt-status-tag.paid {
+  background: #10B981;
+  color: #FFFFFF;
+  box-shadow: 0 1px 3px rgba(16, 185, 129, 0.4);
+}
+
+.hh-gantt-status-tag.due {
+  background: #F59E0B;
+  color: #FFFFFF;
+  box-shadow: 0 1px 3px rgba(245, 158, 11, 0.4);
+}
+
+.hh-gantt-bottom-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 10.5px;
+  color: rgba(255, 255, 255, 0.92);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-top: 2px;
+}
+
+.hh-gantt-amount {
+  font-weight: 800;
+  color: #FFFFFF;
+}
+
+/* Tooltip on Gantt Bar */
+.hh-gantt-tooltip {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: #0F172A;
+  color: #FFFFFF;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 11.5px;
+  line-height: 1.4;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+  z-index: 50;
+  box-shadow: 0 4px 14px rgba(0,0,0,0.25);
+}
+.hh-gantt-bar:hover .hh-gantt-tooltip {
+  opacity: 1;
+}
+
+/* --- 2. HOMEYHUTS VACATION RENTAL ANALYTICS DASHBOARD --- */
+.hh-analytics-wrap {
+  background: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 18px;
+  padding: 24px;
+  box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.05);
+  margin-bottom: 24px;
+}
+
+.hh-analytics-filter-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid #E2E8F0;
+  margin-bottom: 20px;
+}
+
+.hh-analytics-filters-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.hh-analytics-pill-select {
+  background: #F8FAFC;
+  border: 1px solid #CBD5E1;
+  border-radius: 999px;
+  padding: 7px 14px;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #0F172A;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+}
+
+.hh-analytics-btn-excel {
+  background: #F0FDF4;
+  border: 1px solid #86EFAC;
+  color: #166534;
+  border-radius: 999px;
+  padding: 7px 16px;
+  font-size: 12.5px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.hh-analytics-btn-excel:hover {
+  background: #DCFCE7;
+  border-color: #4ADE80;
+  transform: translateY(-1px);
+}
+
+/* 5 KPI Sparkline Ribbon */
+.hh-kpi-ribbon-5 {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 14px;
+  margin-bottom: 22px;
+}
+
+.hh-kpi-card-v2 {
+  background: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 14px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.2s ease;
+}
+.hh-kpi-card-v2:hover {
+  border-color: #0284C7;
+  box-shadow: 0 4px 14px rgba(2, 132, 199, 0.08);
+}
+
+.hh-kpi-header {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #64748B;
+  margin-bottom: 6px;
+}
+
+.hh-kpi-val-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.hh-kpi-main-val {
+  font-size: 24px;
+  font-weight: 800;
+  color: #0F172A;
+  letter-spacing: -0.5px;
+  line-height: 1.1;
+}
+
+.hh-kpi-change-tag {
+  font-size: 11px;
+  font-weight: 800;
+  padding: 2px 7px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.hh-kpi-change-tag.positive {
+  background: #DCFCE7;
+  color: #166534;
+}
+
+.hh-kpi-change-tag.negative {
+  background: #FEE2E2;
+  color: #991B1B;
+}
+
+.hh-kpi-sparkline {
+  margin-top: 10px;
+  width: 100%;
+  height: 36px;
+}
+
+/* Middle Analytics Row: Charts (60% / 40%) */
+.hh-charts-row {
+  display: grid;
+  grid-template-columns: 1.45fr 1fr;
+  gap: 18px;
+  margin-bottom: 24px;
+}
+
+.hh-chart-card {
+  background: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 16px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+}
+
+.hh-chart-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.hh-chart-title {
+  font-size: 15px;
+  font-weight: 800;
+  color: #0F172A;
+  margin: 0;
+}
+
+.hh-chart-sub {
+  font-size: 11.5px;
+  color: #64748B;
+  margin-top: 2px;
+}
+
+/* Channel Progress Bars */
+.hh-channel-row {
+  margin-bottom: 14px;
+}
+
+.hh-channel-info {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12.5px;
+  margin-bottom: 5px;
+}
+
+.hh-channel-name {
+  font-weight: 700;
+  color: #0F172A;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.hh-channel-val {
+  font-weight: 800;
+  color: #0F172A;
+}
+
+.hh-channel-bar-track {
+  height: 7px;
+  background: #F1F5F9;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.hh-channel-bar-fill {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.6s ease;
+}
+
+/* Bottom Leaderboard Table */
+.hh-leaderboard-card {
+  background: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 16px;
+  padding: 20px;
+}
+
+.hh-leaderboard-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.hh-leaderboard-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.hh-leaderboard-table th {
+  text-align: left;
+  font-size: 11px;
+  font-weight: 700;
+  color: #64748B;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 10px 12px;
+  border-bottom: 2px solid #E2E8F0;
+}
+
+.hh-leaderboard-table td {
+  padding: 12px;
+  border-bottom: 1px solid #F1F5F9;
+  font-size: 13px;
+  color: #0F172A;
+}
+
+.hh-prop-cell-name {
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.hh-occ-bar-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.hh-occ-bar-track {
+  flex: 1;
+  max-width: 120px;
+  height: 6px;
+  background: #F1F5F9;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.hh-occ-bar-fill {
+  height: 100%;
+  border-radius: 999px;
+}
+
+/* Responsive Overrides (iPad & Mobile) */
+@media (max-width: 1024px) {
+  .hh-kpi-ribbon-5 {
+    grid-template-columns: repeat(3, 1fr) !important;
+  }
+  .hh-charts-row {
+    grid-template-columns: 1fr !important;
+  }
+  .hh-prop-cell, .hh-prop-header-cell {
+    width: 190px !important;
+    min-width: 190px !important;
+    max-width: 190px !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .hh-kpi-ribbon-5 {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+  .hh-prop-cell, .hh-prop-header-cell {
+    width: 140px !important;
+    min-width: 140px !important;
+    max-width: 140px !important;
+    padding: 8px 10px !important;
+  }
+  .hh-prop-thumb {
+    width: 34px !important;
+    height: 34px !important;
+  }
+  .hh-prop-name {
+    font-size: 11.5px !important;
+  }
+  .hh-prop-sub {
+    font-size: 9.5px !important;
+  }
+  .hh-cal-toolbar {
+    padding: 12px 14px !important;
+  }
+  .hh-cal-legend-bar {
+    padding: 8px 14px !important;
+    gap: 10px !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .hh-kpi-ribbon-5 {
+    grid-template-columns: 1fr !important;
+  }
+}

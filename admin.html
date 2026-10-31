@@ -19,9 +19,9 @@
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300..900;1,9..40,300..900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <!-- Tabler Icons Webfont (HomeyIndia CRM Vector Icons) -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
-  <link rel="stylesheet" href="style.css?v=362" />
+  <link rel="stylesheet" href="style.css?v=371" />
   <!-- HomeyIndia CRM Design System Overhaul -->
-  <link rel="stylesheet" href="css/homeyindia-crm-theme.css?v=7" />
+  <link rel="stylesheet" href="css/homeyindia-crm-theme.css?v=8" />
   <script>
     (function() {
       try {
@@ -62,13 +62,13 @@
   <script src="config.js"></script>
 
   <!-- App Modules — order matters -->
-  <script src="js/core.js?v=370"></script>
+  <script src="js/core.js?v=371"></script>
   <script src="js/notifications.js?v=362"></script>
-  <script src="js/dashboard.js?v=362"></script>
+  <script src="js/dashboard.js?v=371"></script>
   <script src="js/daily-report.js?v=362"></script>
   <script src="js/reminders.js?v=362"></script>
   <script src="js/showcase-data.js?v=362"></script>
-  <script src="js/calendar.js?v=370"></script>
+  <script src="js/calendar.js?v=371"></script>
   <script src="js/bookings.js?v=362"></script>
   <script src="js/seasonal-pricing.js?v=362"></script>
   <script src="js/smart-bookings.js?v=362"></script>
@@ -109,7 +109,7 @@
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/sw.js?v=370').then(reg => {
+        navigator.serviceWorker.register('/sw.js?v=371').then(reg => {
           console.log('✅ UHHS PWA Service Worker active:', reg.scope);
           // Check for SW updates
           if (reg.waiting) reg.waiting.postMessage({ type: 'SKIP_WAITING' });

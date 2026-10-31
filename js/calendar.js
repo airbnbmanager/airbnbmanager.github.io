@@ -180,6 +180,324 @@ async function renderReports() {
     return propLabel(room) || b.room_id || '-';
   };
 
+  // =========================================================================
+  // HOMEYHUTS UNIFIED TIMELINE MULTI-CALENDAR (GANTT VIEW) vs CLASSIC MONTH GRID
+  // =========================================================================
+  window._calViewMode = window._calViewMode || 'timeline';
+  window.setCalViewMode = function(mode) {
+    window._calViewMode = mode;
+    renderReports();
+  };
+
+  window._calTimelineDays = window._calTimelineDays || 14;
+  window.calSetTimelineSpan = function(days) {
+    window._calTimelineDays = parseInt(days, 10) || 14;
+    renderReports();
+  };
+
+  window.calShiftTimeline = function(deltaDays) {
+    if (!window._calTimelineStart) {
+      window._calTimelineStart = typeof dateAdd === 'function' ? dateAdd(todayStr, -2) : todayStr;
+    }
+    window._calTimelineStart = typeof dateAdd === 'function' ? dateAdd(window._calTimelineStart, deltaDays) : window._calTimelineStart;
+    renderReports();
+  };
+
+  window.calTimelineToday = function() {
+    window._calTimelineStart = typeof dateAdd === 'function' ? dateAdd(new Date().toISOString().slice(0, 10), -2) : new Date().toISOString().slice(0, 10);
+    renderReports();
+  };
+
+  const ROOM_SLUG_MAP = {
+    'GOM-101': 'redrose-palace', 'GOM-102': 'black-beauty',
+    'GOM-201': 'the-dark-blue',  'GOM-202': 'the-brown',
+    'GOM-301': 'the-light-green','GOM-401': 'the-nawabi-stay',
+    'GOM-501': 'starlight-blue', 'GOM-302': 'the-unique',
+    'VIL-104': 'the-green-house','VIL-103': 'the-pink-house',
+    'VIL-105': 'the-yellow-house','VIL-106': 'green-forest',
+    'VIL-108': 'pink-paradise',  'LUL-402': 'celebrity-garden',
+    'VIL-101': 'gomti-grand-villa','VIL-102': 'royal-white-house',
+    'VIL-107': 'the-velvet-house', 'LUL-101': 'the-luxe-haven'
+  };
+
+  const getPropThumb = (r) => {
+    const slug = r.slug || ROOM_SLUG_MAP[r.room_id] || '';
+    const src = slug ? `assets/properties/${slug}/cover.jpg` : '';
+    if (src) {
+      return `<img src="${src}" alt="${r.nickname || r.room_id}" class="hh-prop-thumb" onerror="this.style.display='none'">`;
+    }
+    return `<div class="hh-prop-thumb" style="display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#0284C7,#0369A1);color:#fff;font-weight:800;font-size:12px;">${r.unit_no || 'UH'}</div>`;
+  };
+
+  if (window._calViewMode === 'timeline') {
+    if (!window._calTimelineStart) {
+      window._calTimelineStart = typeof dateAdd === 'function' ? dateAdd(todayStr, -2) : todayStr;
+    }
+    const tStart = window._calTimelineStart;
+    const tDaysCount = window._calTimelineDays || 14;
+    const tDates = [];
+    for (let i = 0; i < tDaysCount; i++) {
+      tDates.push(typeof dateAdd === 'function' ? dateAdd(tStart, i) : tStart);
+    }
+    const tEnd = tDates[tDates.length - 1];
+
+    // Format range label
+    const dStartObj = new Date(tStart);
+    const dEndObj = new Date(tEnd);
+    const rangeLabel = `${dStartObj.getDate()} ${dStartObj.toLocaleString('en-IN', { month: 'short' })} – ${dEndObj.getDate()} ${dEndObj.toLocaleString('en-IN', { month: 'short' })} ${dEndObj.getFullYear()}`;
+
+    const colWidth = 88;
+    const propColWidth = 240;
+    const totalMatrixWidth = propColWidth + (tDates.length * colWidth);
+    const todayIndex = tDates.indexOf(todayStr);
+
+    let timelineHtml = `
+      <!-- HOMEYHUTS UNIFIED MULTI-CALENDAR CONTAINER -->
+      <div class="hh-cal-container">
+        <!-- TOP TOOLBAR -->
+        <div class="hh-cal-toolbar">
+          <div class="hh-cal-toolbar-left">
+            <h1 class="hh-cal-title">
+              <span><i class="ti ti-calendar" style="color:#0284C7;"></i></span>
+              <span>Unified Calendar</span>
+            </h1>
+            <div class="hh-cal-range-selector">
+              <button type="button" class="hh-cal-nav-btn" onclick="calShiftTimeline(-7)" title="Previous 7 Days">‹</button>
+              <button type="button" class="hh-cal-nav-btn" style="width:auto;padding:0 8px;font-size:11px;" onclick="calTimelineToday()" title="Jump to Today">Today</button>
+              <span class="hh-cal-range-label">${rangeLabel}</span>
+              <button type="button" class="hh-cal-nav-btn" onclick="calShiftTimeline(7)" title="Next 7 Days">›</button>
+            </div>
+            <!-- Window Span Switcher -->
+            <div class="hh-cal-toggle-group">
+              <button type="button" class="hh-cal-toggle-btn ${tDaysCount === 14 ? 'active' : ''}" onclick="calSetTimelineSpan(14)">14 Days</button>
+              <button type="button" class="hh-cal-toggle-btn ${tDaysCount === 21 ? 'active' : ''}" onclick="calSetTimelineSpan(21)">21 Days</button>
+              <button type="button" class="hh-cal-toggle-btn ${tDaysCount === 30 ? 'active' : ''}" onclick="calSetTimelineSpan(30)">30 Days</button>
+            </div>
+          </div>
+
+          <div class="hh-cal-toolbar-right">
+            <!-- View Mode Switcher -->
+            <div class="hh-cal-toggle-group">
+              <button type="button" class="hh-cal-toggle-btn active" onclick="setCalViewMode('timeline')" title="Homeyhuts Multi-Property Gantt Timeline">
+                <i class="ti ti-layout-kanban"></i> <span>Unified Timeline</span>
+              </button>
+              <button type="button" class="hh-cal-toggle-btn" onclick="setCalViewMode('grid')" title="Classic Month Grid View">
+                <i class="ti ti-calendar-month"></i> <span>Month Grid</span>
+              </button>
+            </div>
+
+            <!-- Property Filter Select -->
+            <select onchange="window._calRoom = this.value; renderReports();" style="padding:7px 12px;border-radius:10px;border:1px solid #CBD5E1;background:#F8FAFC;font-size:12.5px;font-weight:700;color:#0F172A;cursor:pointer;">
+              ${propOptions}
+            </select>
+
+            <!-- New Booking Button in HomeyIndia Sky Blue -->
+            <button type="button" class="hh-btn-offline-booking" onclick="if(window.renderAddBooking) renderAddBooking();">
+              <i class="ti ti-plus"></i> <span>Create Booking</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- CHANNEL & PAYMENT STATUS LEGEND -->
+        <div class="hh-cal-legend-bar">
+          <span style="font-weight:800;color:#0F172A;font-size:11.5px;text-transform:uppercase;letter-spacing:0.4px;">Channels:</span>
+          <span class="hh-cal-legend-item"><span class="hh-legend-dot" style="background:#0284C7;"></span> Direct / Offline</span>
+          <span class="hh-cal-legend-item"><span class="hh-legend-dot" style="background:#FF385C;"></span> Airbnb</span>
+          <span class="hh-cal-legend-item"><span class="hh-legend-dot" style="background:#003580;"></span> Booking.com</span>
+          <span class="hh-cal-legend-item"><span class="hh-legend-dot" style="background:#475569;"></span> Blocked</span>
+          <span style="height:14px;width:1px;background:#CBD5E1;display:inline-block;margin:0 4px;"></span>
+          <span style="font-weight:800;color:#0F172A;font-size:11.5px;text-transform:uppercase;letter-spacing:0.4px;">Payment Status:</span>
+          <span class="hh-cal-legend-item"><span class="hh-gantt-status-tag paid" style="font-size:10px;">✓ Paid</span> Full Balance Settled</span>
+          <span class="hh-cal-legend-item"><span class="hh-gantt-status-tag due" style="font-size:10px;">⚠️ Due</span> Payment Outstanding</span>
+          <span style="height:14px;width:1px;background:#CBD5E1;display:inline-block;margin:0 4px;"></span>
+          <span class="hh-cal-legend-item" style="color:#0284C7;font-weight:700;"><i class="ti ti-hand-click"></i> Click empty date to book instantly</span>
+        </div>
+
+        <!-- KPI SUMMARY BAR -->
+        <div style="padding:12px 20px;background:#FFFFFF;border-bottom:1px solid #E2E8F0;display:flex;align-items:center;gap:16px;flex-wrap:wrap;font-size:13px;">
+          <div><span style="color:#64748B;">Properties:</span> <strong style="color:#0F172A;">${displayRooms.length}</strong></div>
+          <div><span style="color:#64748B;">Total Bookings:</span> <strong style="color:#0F172A;">${realMb.length}</strong></div>
+          <div><span style="color:#64748B;">Revenue:</span> <strong style="color:#10B981;">₹${(rev/1000).toFixed(0)}K</strong></div>
+          <div><span style="color:#64748B;">Occupancy:</span> <strong style="color:#0284C7;">${occ}%</strong></div>
+          <div><span style="color:#64748B;">Direct:</span> <strong style="color:#0284C7;">${offCount}</strong></div>
+          <div><span style="color:#64748B;">Airbnb:</span> <strong style="color:#FF385C;">${onCount}</strong></div>
+          <div><span style="color:#64748B;">Booking.com:</span> <strong style="color:#003580;">${bcomCount}</strong></div>
+        </div>
+
+        <!-- SCROLLABLE TIMELINE VIEWPORT -->
+        <div class="hh-timeline-viewport">
+          <table class="hh-timeline-table" style="width:${totalMatrixWidth}px;">
+            <!-- HEADER ROW -->
+            <thead>
+              <tr>
+                <th class="hh-prop-header-cell">
+                  <div class="hh-prop-header-title">
+                    <span>Properties (${displayRooms.length})</span>
+                    <span style="font-size:11px;font-weight:600;color:#64748B;">Nightly Rate</span>
+                  </div>
+                </th>
+                ${tDates.map((ds, idx) => {
+                  const dObj = new Date(ds);
+                  const dayOfWeek = dObj.getDay();
+                  const isWeekend = (dayOfWeek === 0 || dayOfWeek === 6);
+                  const isToday = (ds === todayStr);
+                  const dayShort = dObj.toLocaleString('en-IN', { weekday: 'short' });
+                  const dayNum = dObj.getDate();
+                  const monthShort = dObj.toLocaleString('en-IN', { month: 'short' });
+
+                  return `
+                    <th class="hh-date-col-header ${isWeekend ? 'is-weekend' : ''} ${isToday ? 'is-today' : ''}" style="width:${colWidth}px;min-width:${colWidth}px;max-width:${colWidth}px;">
+                      <div class="hh-day-name">${dayShort}</div>
+                      <div class="hh-day-num">${dayNum}</div>
+                      ${dayNum === 1 || idx === 0 ? `<div style="font-size:9.5px;font-weight:700;color:#0284C7;text-transform:uppercase;">${monthShort}</div>` : ''}
+                      ${isToday ? `<div class="hh-today-pin-badge"><span>${dayNum}</span><small>Today</small></div>` : ''}
+                    </th>
+                  `;
+                }).join('')}
+              </tr>
+            </thead>
+
+            <!-- PROPERTY ROWS BODY -->
+            <tbody>
+              ${displayRooms.map(r => {
+                const rent = r.rent_per_night || 5200;
+                const thumbHtml = getPropThumb(r);
+                const propBookings = allBks.filter(b => b.room_id === r.room_id && b.check_out > tDates[0] && b.check_in <= tDates[tDates.length - 1]);
+
+                return `
+                  <tr class="hh-timeline-row">
+                    <!-- Sticky Property Column -->
+                    <td class="hh-prop-cell">
+                      <div class="hh-prop-card">
+                        ${thumbHtml}
+                        <div class="hh-prop-info">
+                          <div class="hh-prop-name" title="${r.nickname || r.property_name || r.unit_no}">${r.nickname || r.property_name || r.unit_no}</div>
+                          <div class="hh-prop-sub">
+                            <span>${r.unit_no}</span>
+                            <span>•</span>
+                            <span class="hh-prop-rate-tag">₹${(rent/1000).toFixed(1)}k/n</span>
+                          </div>
+                        </div>
+                      </div>
+                    </td>
+
+                    <!-- Timeline Track Cells -->
+                    <td colspan="${tDates.length}" style="padding:0;position:relative;">
+                      <div class="hh-timeline-track" style="width:${tDates.length * colWidth}px;">
+                        <!-- Background Day Cells -->
+                        ${tDates.map((ds, idx) => {
+                          const dObj = new Date(ds);
+                          const dayOfWeek = dObj.getDay();
+                          const isWeekend = (dayOfWeek === 0 || dayOfWeek === 6);
+                          const isToday = (ds === todayStr);
+
+                          return `
+                            <div class="hh-day-cell ${isWeekend ? 'is-weekend' : ''} ${isToday ? 'is-today' : ''}" 
+                                 style="left:${idx * colWidth}px;width:${colWidth}px;" 
+                                 onclick="calCreateBooking('${r.room_id}', '${ds}')"
+                                 title="Free on ${ds} - Click to book">
+                              <span class="hh-day-rate-hint">₹${(rent/1000).toFixed(1)}k</span>
+                            </div>
+                          `;
+                        }).join('')}
+
+                        <!-- Reservation Gantt Bars -->
+                        ${propBookings.map(b => {
+                          const isBlocked = isBkBlocked(b);
+                          let channel = 'direct';
+                          if (isBlocked) {
+                            channel = 'blocked';
+                          } else if (b.booking_mode?.includes('Airbnb') || (window.getBookingSource && window.getBookingSource(b).type === 'airbnb')) {
+                            channel = 'airbnb';
+                          } else if (b.booking_mode?.includes('Booking.com') || (window.getBookingSource && window.getBookingSource(b).type === 'booking_com')) {
+                            channel = 'bookingcom';
+                          }
+
+                          const ciIdx = tDates.indexOf(b.check_in);
+                          const isCutStart = (ciIdx === -1);
+                          const startIdx = isCutStart ? 0 : ciIdx;
+
+                          const coIdx = tDates.indexOf(b.check_out);
+                          const isCutEnd = (coIdx === -1);
+                          const endIdx = isCutEnd ? tDates.length : coIdx;
+
+                          const span = Math.max(1, endIdx - startIdx);
+                          const leftPx = startIdx * colWidth + (isCutStart ? 0 : 4);
+                          const widthPx = Math.max(72, (span * colWidth) - (isCutStart ? 0 : 4) - (isCutEnd ? 0 : 4));
+
+                          const nights = Math.max(1, Math.round((new Date(b.check_out) - new Date(b.check_in)) / 86400000));
+                          const totalAmt = b.total_amount || 0;
+                          const paidAmt = pm[b.booking_id] || 0;
+                          const dueAmt = Math.max(0, totalAmt - paidAmt);
+                          const isPaid = (dueAmt <= 0);
+
+                          const payBadge = isBlocked 
+                            ? '<span class="hh-gantt-status-tag" style="background:#334155;color:#fff;">BLOCKED</span>' 
+                            : (isPaid 
+                                ? '<span class="hh-gantt-status-tag paid">✓ Paid</span>' 
+                                : '<span class="hh-gantt-status-tag due">⚠️ ₹' + Math.round(dueAmt).toLocaleString('en-IN') + ' Due</span>');
+
+                          const chIcon = isBlocked 
+                            ? '<i class="ti ti-lock"></i>' 
+                            : (channel === 'airbnb' 
+                                ? '<i class="ti ti-brand-airbnb"></i>' 
+                                : (channel === 'bookingcom' 
+                                    ? '<i class="ti ti-building"></i>' 
+                                    : '<i class="ti ti-phone-call"></i>'));
+
+                          const guestTitle = isBlocked ? (b.guest_name || 'Maintenance Block') : (b.guest_name || 'Direct Guest');
+
+                          return `
+                            <div class="hh-gantt-bar ${channel}" 
+                                 style="left:${leftPx}px;width:${widthPx}px;border-radius:${isCutStart ? '0 10px 10px 0' : (isCutEnd ? '10px 0 0 10px' : '10px')};"
+                                 onclick="window.openBookingDetails('${b.booking_id}')">
+                              <div class="hh-gantt-top-row">
+                                <span class="hh-gantt-guest">
+                                  <span>${chIcon}</span>
+                                  <span>${guestTitle}</span>
+                                </span>
+                                ${payBadge}
+                              </div>
+                              <div class="hh-gantt-bottom-row">
+                                <span>${nights}n ${b.num_guests ? '· ' + b.num_guests + 'g' : ''}</span>
+                                <span>•</span>
+                                <span class="hh-gantt-amount">₹${Number(totalAmt).toLocaleString('en-IN')}</span>
+                              </div>
+                              <!-- Rich hover tooltip -->
+                              <div class="hh-gantt-tooltip">
+                                <div style="font-weight:800;font-size:12px;margin-bottom:3px;">${guestTitle}</div>
+                                <div>📅 ${b.check_in} → ${b.check_out} (${nights} Nights)</div>
+                                <div>💰 Total: ₹${Number(totalAmt).toLocaleString('en-IN')} · Paid: ₹${Number(paidAmt).toLocaleString('en-IN')}</div>
+                                ${dueAmt > 0 ? `<div style="color:#FBBF24;font-weight:700;">⚠️ Balance Due: ₹${Math.round(dueAmt).toLocaleString('en-IN')}</div>` : '<div style="color:#4ADE80;font-weight:700;">✓ Fully Paid</div>'}
+                                ${b.phone ? `<div>📞 ${b.phone}</div>` : ''}
+                              </div>
+                            </div>
+                          `;
+                        }).join('')}
+
+                        ${todayIndex !== -1 ? `
+                          <!-- Vertical Red Today Indicator Line -->
+                          <div class="hh-today-vertical-line" style="left:${todayIndex * colWidth + (colWidth / 2)}px;"></div>
+                        ` : ''}
+                      </div>
+                    </td>
+                  </tr>
+                `;
+              }).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    `;
+
+    renderShell(timelineHtml, currentKey);
+    window._calM = mo;
+    window._calY = yr;
+    return;
+  }
+
+
+
   // ═══ HEADER ═══
   let html = `
     <div class="card" style="padding:14px;border-radius:14px;">
@@ -189,6 +507,14 @@ async function renderReports() {
           <div class="sub" style="margin-top:2px;">${selRoom === 'all' ? 'All Properties (' + allRooms.length + ')' : allRooms.find(r => r.room_id === selRoom)?.nickname || selRoom} &bull; <strong>${occ}%</strong> Occupancy</div>
         </div>
         <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+          <div class="hh-cal-toggle-group" style="margin-right:6px;">
+            <button type="button" class="hh-cal-toggle-btn" onclick="setCalViewMode('timeline')" title="Homeyhuts Multi-Property Gantt Timeline">
+              <i class="ti ti-layout-kanban"></i> <span>Unified Timeline</span>
+            </button>
+            <button type="button" class="hh-cal-toggle-btn active" onclick="setCalViewMode('grid')" title="Classic Month Grid View">
+              <i class="ti ti-calendar-month"></i> <span>Month Grid</span>
+            </button>
+          </div>
           <button class="btn-sm secondary" onclick="chMo(-1)" title="Previous Month">◀</button>
           <button class="btn-sm secondary" onclick="calGoToday()" title="Current Month">Today</button>
           <button class="btn-sm secondary" onclick="chMo(1)" title="Next Month">▶</button>
