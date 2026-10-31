@@ -94,6 +94,29 @@ window.ICAL_SYNC = {
     return localStorage.getItem('tuhh_booking_com_ical_' + room.room_id) || null;
   },
 
+  // Get Agoda iCal URL for a room
+  getAgodaUrl(room) {
+    if (!room) return null;
+    const match = (room.notes || '').match(/\[AGODA_ICAL:\s*([^\]]+)\]/);
+    if (match) return match[1].trim();
+    return localStorage.getItem('tuhh_agoda_ical_' + room.room_id) || null;
+  },
+
+  // Get MakeMyTrip / Goibibo iCal URL for a room
+  getMMTUrl(room) {
+    if (!room) return null;
+    const match = (room.notes || '').match(/\[MMT_ICAL:\s*([^\]]+)\]/);
+    if (match) return match[1].trim();
+    return localStorage.getItem('tuhh_mmt_ical_' + room.room_id) || null;
+  },
+
+  // Get Custom OTA iCal URL for a room
+  getCustomUrl(room) {
+    if (!room) return null;
+    const match = (room.notes || '').match(/\[CUSTOM_ICAL:\s*([^\]]+)\]/);
+    if (match) return match[1].trim();
+    return localStorage.getItem('tuhh_custom_ical_' + room.room_id) || null;
+
   // Outbound 2-Way Calendar Feed Generator (.ics)
   async generateOutboundIcal(roomId) {
     const { data: bookings } = await sb.from('guest_register')
@@ -263,6 +286,7 @@ window.ICAL_SYNC = {
   },
 
   // Sync single property (both Airbnb and Booking.com)
+  // Sync single property across all channels (Airbnb, Booking.com, Agoda, MakeMyTrip, Custom)
   async syncProperty(room) {
     const result = {
       room: room.nickname || room.unit_no,
@@ -276,8 +300,30 @@ window.ICAL_SYNC = {
     };
     
     const bcomUrl = this.getBookingComUrl(room);
-    if (!room.airbnb_ical_url && !bcomUrl) {
+    const agodaUrl = this.getAgodaUrl(room);
+    const mmtUrl = this.getMMTUrl(room);
+    const customUrl = this.getCustomUrl(room);
+
+    if (!room.airbnb_ical_url && !bcomUrl && !agodaUrl && !mmtUrl && !customUrl) {
       result.errors.push('No iCal URL configured');
+      return result;
+    }
+    
+    if (room.airbnb_ical_url) {
+      await this.syncChannelUrl(room, room.airbnb_ical_url, 'Airbnb', result);
+    }
+    if (bcomUrl) {
+      await this.syncChannelUrl(room, bcomUrl, 'Booking.com', result);
+    }
+    if (agodaUrl) {
+      await this.syncChannelUrl(room, agodaUrl, 'Agoda', result);
+    }
+    if (mmtUrl) {
+      await this.syncChannelUrl(room, mmtUrl, 'MakeMyTrip', result);
+    }
+    if (customUrl) {
+      await this.syncChannelUrl(room, customUrl, 'Other OTA', result);
+    }
       return result;
     }
     

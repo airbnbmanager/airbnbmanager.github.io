@@ -213,31 +213,85 @@ function roomFormFields(r = {}, emps = []) {
       <input id="whatsappGroupName" value="${r.whatsapp_group_name || ''}" placeholder="e.g. Royal White House Investors" />
     </div>
 
-    <div class="section-title" style="margin-top:14px;">🌐 OTA Calendar Sync (Airbnb &amp; Booking.com 2-Way Sync)</div>
-    <div class="form-group">
-      <label style="font-weight:700;color:#DC2626;">🔴 Airbnb iCal URL (Exported from Airbnb)</label>
-      <input id="airbnbIcalUrl" value="${r.airbnb_ical_url || ''}" placeholder="https://www.airbnb.co.in/calendar/ical/...ics?t=..." />
-      <small style="color:#666;font-size:11px;">Airbnb calendar sync export link</small>
+    <div class="section-title" style="margin-top:16px;display:flex;align-items:center;gap:8px;">
+      <span>🌐 Multi-OTA 2-Way Calendar Sync (Airbnb, Booking.com, Agoda, MakeMyTrip)</span>
     </div>
-    <div class="form-group">
-      <label style="font-weight:700;color:#1D4ED8;">🔵 Booking.com iCal URL (Exported from Booking.com)</label>
-      <input id="bookingComIcalUrl" value="${(() => {
-        const m = (r.notes || '').match(/\[BOOKING_ICAL:\s*([^\]]+)\]/);
-        return m ? m[1].trim() : (localStorage.getItem('tuhh_booking_com_ical_' + (r.room_id || '')) || '');
-      })()}" placeholder="https://admin.booking.com/hotel/hoteladmin/ical.html?t=..." />
-      <small style="color:#666;font-size:11px;">Booking.com calendar sync export link</small>
-    </div>
-    ${r.room_id ? `
-    <div class="form-group" style="background:#F0FDF4;padding:12px;border-radius:10px;border:1px solid #BBF7D0;">
-      <label style="font-weight:800;color:#166534;font-size:12px;">🟢 TUHH Master Calendar Feed (2-Way Sync Export)</label>
-      <div style="display:flex;gap:8px;margin-top:4px;">
-        <input readonly value="https://airbnbmanager.github.io/calendar.html?export_ical=${r.room_id}" style="background:#fff;font-size:12px;font-family:monospace;flex:1;" />
-        <button type="button" onclick="navigator.clipboard.writeText('https://airbnbmanager.github.io/calendar.html?export_ical=${r.room_id}');if(window.fsn)fsn.success('Copied','Master export link copied! Paste into Airbnb and Booking.com import settings.');else alert('Link copied!');" style="padding:6px 14px;background:#166534;color:#fff;border:none;border-radius:6px;font-weight:700;font-size:12px;cursor:pointer;white-space:nowrap;">📋 Copy Feed</button>
+    <div style="background:#F8FAFC;border:1.5px solid #E2E8F0;padding:14px;border-radius:12px;margin-bottom:14px;">
+      <div style="font-size:12px;color:#64748B;margin-bottom:12px;line-height:1.5;">
+        Paste external calendar export iCal (.ics) links below for each channel. TUHH auto-imports bookings and blocks dates across all channels to prevent double bookings.
       </div>
-      <small style="color:#166534;font-size:11px;display:block;margin-top:4px;">Is TUHH link ko Airbnb aur Booking.com ke Calendar Sync Import me paste karein — dono platforms par double-booking automatically ruk jayegi!</small>
+
+      <!-- Airbnb -->
+      <div class="form-group" style="margin-bottom:12px;">
+        <label style="font-weight:700;color:#FF385C;display:flex;align-items:center;gap:6px;">
+          <span>🔴</span> Airbnb Calendar iCal URL
+        </label>
+        <input id="airbnbIcalUrl" value="${r.airbnb_ical_url || ''}" placeholder="https://www.airbnb.co.in/calendar/ical/...ics?s=..." style="font-size:12px;font-family:monospace;" />
+        <small style="color:#64748B;font-size:11px;">Airbnb Listing &gt; Availability &gt; Calendar Sync &gt; Export Calendar</small>
+      </div>
+
+      <!-- Booking.com -->
+      <div class="form-group" style="margin-bottom:12px;">
+        <label style="font-weight:700;color:#003580;display:flex;align-items:center;gap:6px;">
+          <span>🔵</span> Booking.com Calendar iCal URL
+        </label>
+        <input id="bookingComIcalUrl" value="${(() => {
+          const m = (r.notes || '').match(/\[BOOKING_ICAL:\s*([^\]]+)\]/);
+          return m ? m[1].trim() : (localStorage.getItem('tuhh_booking_com_ical_' + (r.room_id || '')) || '');
+        })()}" placeholder="https://admin.booking.com/hotel/hoteladmin/ical.html?t=..." style="font-size:12px;font-family:monospace;" />
+        <small style="color:#64748B;font-size:11px;">Booking.com Extranet &gt; Rates &amp; Availability &gt; Sync Calendars &gt; Export</small>
+      </div>
+
+      <!-- Agoda -->
+      <div class="form-group" style="margin-bottom:12px;">
+        <label style="font-weight:700;color:#7C3AED;display:flex;align-items:center;gap:6px;">
+          <span>🟣</span> Agoda Calendar iCal URL
+        </label>
+        <input id="agodaIcalUrl" value="${(() => {
+          const m = (r.notes || '').match(/\[AGODA_ICAL:\s*([^\]]+)\]/);
+          return m ? m[1].trim() : (localStorage.getItem('tuhh_agoda_ical_' + (r.room_id || '')) || '');
+        })()}" placeholder="https://ycs.agoda.com/en-us/calendar/export/...ics" style="font-size:12px;font-family:monospace;" />
+        <small style="color:#64748B;font-size:11px;">Agoda YCS Portal &gt; Calendar &gt; Sync Calendar &gt; Export link</small>
+      </div>
+
+      <!-- MakeMyTrip / Goibibo -->
+      <div class="form-group" style="margin-bottom:12px;">
+        <label style="font-weight:700;color:#EA580C;display:flex;align-items:center;gap:6px;">
+          <span>🟠</span> MakeMyTrip / Goibibo (InGo-MMT) Calendar iCal URL
+        </label>
+        <input id="mmtIcalUrl" value="${(() => {
+          const m = (r.notes || '').match(/\[MMT_ICAL:\s*([^\]]+)\]/);
+          return m ? m[1].trim() : (localStorage.getItem('tuhh_mmt_ical_' + (r.room_id || '')) || '');
+        })()}" placeholder="https://ingo-mmt.com/calendar/ical/...ics" style="font-size:12px;font-family:monospace;" />
+        <small style="color:#64748B;font-size:11px;">InGo-MMT &gt; Inventory &gt; Channel Calendar Export</small>
+      </div>
+
+      <!-- Other Custom OTA -->
+      <div class="form-group" style="margin-bottom:6px;">
+        <label style="font-weight:700;color:#475569;display:flex;align-items:center;gap:6px;">
+          <span>🌐</span> Other OTA / Custom iCal Feed
+        </label>
+        <input id="customIcalUrl" value="${(() => {
+          const m = (r.notes || '').match(/\[CUSTOM_ICAL:\s*([^\]]+)\]/);
+          return m ? m[1].trim() : (localStorage.getItem('tuhh_custom_ical_' + (r.room_id || '')) || '');
+        })()}" placeholder="https://example.com/calendar.ics" style="font-size:12px;font-family:monospace;" />
+      </div>
+    </div>
+
+    ${r.room_id ? `
+    <div class="form-group" style="background:#F0FDF4;padding:14px;border-radius:12px;border:1.5px solid #BBF7D0;margin-bottom:14px;">
+      <label style="font-weight:800;color:#166534;font-size:13px;display:flex;align-items:center;gap:6px;">
+        <span>🟢</span> TUHH 2-Way Master Calendar Export Feed (Copy &amp; Paste to OTAs)
+      </label>
+      <div style="display:flex;gap:8px;margin-top:6px;">
+        <input readonly value="https://airbnbmanager.github.io/calendar.html?export_ical=${r.room_id}" style="background:#fff;font-size:12px;font-family:monospace;flex:1;font-weight:700;color:#166534;" />
+        <button type="button" onclick="navigator.clipboard.writeText('https://airbnbmanager.github.io/calendar.html?export_ical=${r.room_id}');if(window.fsn)fsn.success('Copied','Master export feed copied!');else alert('Link copied!');" style="padding:8px 16px;background:#166534;color:#fff;border:none;border-radius:8px;font-weight:700;font-size:12.5px;cursor:pointer;white-space:nowrap;box-shadow:0 2px 6px rgba(22,101,52,0.25);">📋 Copy Master Feed</button>
+      </div>
+      <div style="color:#166534;font-size:11.5px;margin-top:6px;line-height:1.4;">
+        💡 <strong>Zero Double-Booking Guarantee:</strong> Copy this Master link and paste it into Airbnb, Booking.com, Agoda, and MakeMyTrip &quot;Import Calendar&quot; settings. Kisi bhi channel par booking aane se baki sabhi OTAs par dates automatically instant block ho jayengi!
+      </div>
     </div>
     ` : ''}
-
     <div class="form-group"><label>Notes</label><textarea id="notes">${r.notes || ''}</textarea></div>
   `;
 }
@@ -296,7 +350,41 @@ function collectRoomForm() {
     key_number: document.getElementById('keyNumber').value.trim() || null,
     mode: document.getElementById('mode').value,
     bookable: document.getElementById('bookable').checked,
-    notes: notesVal || null,
+    notes: (() => {
+      let n = notesVal || '';
+      // Strip old tags
+      n = n.replace(/\[BOOKING_ICAL:\s*([^\]]+)\]/g, '')
+           .replace(/\[AGODA_ICAL:\s*([^\]]+)\]/g, '')
+           .replace(/\[MMT_ICAL:\s*([^\]]+)\]/g, '')
+           .replace(/\[CUSTOM_ICAL:\s*([^\]]+)\]/g, '').trim();
+
+      const bcom = document.getElementById('bookingComIcalUrl')?.value.trim() || '';
+      const agoda = document.getElementById('agodaIcalUrl')?.value.trim() || '';
+      const mmt = document.getElementById('mmtIcalUrl')?.value.trim() || '';
+      const custom = document.getElementById('customIcalUrl')?.value.trim() || '';
+
+      const roomId = document.getElementById('roomId')?.value?.trim();
+      if (roomId) {
+        if (bcom) localStorage.setItem('tuhh_booking_com_ical_' + roomId, bcom);
+        else localStorage.removeItem('tuhh_booking_com_ical_' + roomId);
+
+        if (agoda) localStorage.setItem('tuhh_agoda_ical_' + roomId, agoda);
+        else localStorage.removeItem('tuhh_agoda_ical_' + roomId);
+
+        if (mmt) localStorage.setItem('tuhh_mmt_ical_' + roomId, mmt);
+        else localStorage.removeItem('tuhh_mmt_ical_' + roomId);
+
+        if (custom) localStorage.setItem('tuhh_custom_ical_' + roomId, custom);
+        else localStorage.removeItem('tuhh_custom_ical_' + roomId);
+      }
+
+      if (bcom) n = (n ? n + ' ' : '') + `[BOOKING_ICAL: ${bcom}]`;
+      if (agoda) n = (n ? n + ' ' : '') + `[AGODA_ICAL: ${agoda}]`;
+      if (mmt) n = (n ? n + ' ' : '') + `[MMT_ICAL: ${mmt}]`;
+      if (custom) n = (n ? n + ' ' : '') + `[CUSTOM_ICAL: ${custom}]`;
+
+      return n || null;
+    })(),
     whatsapp_group_link: document.getElementById('whatsappGroupLink')?.value.trim() || null,
     whatsapp_group_name: document.getElementById('whatsappGroupName')?.value.trim() || null,
     airbnb_ical_url: document.getElementById('airbnbIcalUrl')?.value.trim() || null

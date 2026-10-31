@@ -379,16 +379,32 @@ async function renderDashboard() {
   const hhEstExpenses = Math.round(monthRevenue * 0.38);
   const hhNetOpIncome = Math.max(0, monthRevenue - hhEstExpenses);
 
-  // Channel Breakdown
-  const directBks = monthCheckinBookings.filter(b => (!b.booking_mode?.includes('Airbnb') && !b.booking_mode?.includes('Booking.com')));
-  const directRev = directBks.reduce((s, b) => s + (b.total_amount || 0), 0) || Math.round(monthRevenue * 0.35);
-  const abBks = monthCheckinBookings.filter(b => b.booking_mode?.includes('Airbnb') || (window.getBookingSource && window.getBookingSource(b).type === 'airbnb'));
-  const abRev = abBks.reduce((s, b) => s + (b.total_amount || 0), 0) || Math.round(monthRevenue * 0.40);
-  const bcomBks = monthCheckinBookings.filter(b => b.booking_mode?.includes('Booking.com') || (window.getBookingSource && window.getBookingSource(b).type === 'booking_com'));
-  const bcomRev = bcomBks.reduce((s, b) => s + (b.total_amount || 0), 0) || Math.round(monthRevenue * 0.18);
-  const agodaRev = Math.max(0, monthRevenue - directRev - abRev - bcomRev) || Math.round(monthRevenue * 0.07);
+  // Channel Breakdown — 100% Real-Time Database Calculation (Zero Fake/Estimated Fallbacks)
+  const directBks = monthCheckinBookings.filter(b => {
+    const src = (typeof window.getBookingSource === 'function') ? window.getBookingSource(b) : null;
+    return src ? src.type === 'direct' : (!b.booking_mode?.includes('Airbnb') && !b.booking_mode?.includes('Booking.com') && !b.booking_mode?.includes('Agoda'));
+  });
+  const directRev = directBks.reduce((s, b) => s + (b.total_amount || 0), 0);
 
-  const totalChanRev = Math.max(1, directRev + abRev + bcomRev + agodaRev);
+  const abBks = monthCheckinBookings.filter(b => {
+    const src = (typeof window.getBookingSource === 'function') ? window.getBookingSource(b) : null;
+    return src ? src.type === 'airbnb' : b.booking_mode?.includes('Airbnb');
+  });
+  const abRev = abBks.reduce((s, b) => s + (b.total_amount || 0), 0);
+
+  const bcomBks = monthCheckinBookings.filter(b => {
+    const src = (typeof window.getBookingSource === 'function') ? window.getBookingSource(b) : null;
+    return src ? src.type === 'booking_com' : b.booking_mode?.includes('Booking.com');
+  });
+  const bcomRev = bcomBks.reduce((s, b) => s + (b.total_amount || 0), 0);
+
+  const agodaBks = monthCheckinBookings.filter(b => {
+    const src = (typeof window.getBookingSource === 'function') ? window.getBookingSource(b) : null;
+    return src ? (src.type === 'agoda' || src.type === 'online_other') : (b.booking_mode?.includes('Agoda') || b.booking_mode?.includes('MakeMyTrip'));
+  });
+  const agodaRev = agodaBks.reduce((s, b) => s + (b.total_amount || 0), 0);
+
+  const totalChanRev = (directRev + abRev + bcomRev + agodaRev) || 1;
   const directPct = Math.round((directRev / totalChanRev) * 100);
   const abPct = Math.round((abRev / totalChanRev) * 100);
   const bcomPct = Math.round((bcomRev / totalChanRev) * 100);
@@ -1406,8 +1422,8 @@ async function renderDashboard() {
             <!-- Direct -->
             <div class="hh-channel-row">
               <div class="hh-channel-info">
-                <span class="hh-channel-name"><span class="hh-legend-dot" style="background:#0284C7;"></span> Direct</span>
-                <span class="hh-channel-val">₹${directRev.toLocaleString('en-IN')} <span style="font-size:11px;color:#64748B;font-weight:600;">(${directPct}%)</span></span>
+                <span class="hh-channel-name"><span class="hh-legend-dot" style="background:#0284C7;"></span> Direct / Offline</span>
+                <span class="hh-channel-val">₹${directRev.toLocaleString('en-IN')} <span style="font-size:11px;color:#64748B;font-weight:700;">(${directPct}% · ${directBks.length} bks)</span></span>
               </div>
               <div class="hh-channel-bar-track">
                 <div class="hh-channel-bar-fill" style="width:${directPct}%;background:#0284C7;"></div>
@@ -1418,7 +1434,7 @@ async function renderDashboard() {
             <div class="hh-channel-row">
               <div class="hh-channel-info">
                 <span class="hh-channel-name"><span class="hh-legend-dot" style="background:#FF385C;"></span> Airbnb</span>
-                <span class="hh-channel-val">₹${abRev.toLocaleString('en-IN')} <span style="font-size:11px;color:#64748B;font-weight:600;">(${abPct}%)</span></span>
+                <span class="hh-channel-val">₹${abRev.toLocaleString('en-IN')} <span style="font-size:11px;color:#64748B;font-weight:700;">(${abPct}% · ${abBks.length} bks)</span></span>
               </div>
               <div class="hh-channel-bar-track">
                 <div class="hh-channel-bar-fill" style="width:${abPct}%;background:#FF385C;"></div>
@@ -1429,7 +1445,7 @@ async function renderDashboard() {
             <div class="hh-channel-row">
               <div class="hh-channel-info">
                 <span class="hh-channel-name"><span class="hh-legend-dot" style="background:#003580;"></span> Booking.com</span>
-                <span class="hh-channel-val">₹${bcomRev.toLocaleString('en-IN')} <span style="font-size:11px;color:#64748B;font-weight:600;">(${bcomPct}%)</span></span>
+                <span class="hh-channel-val">₹${bcomRev.toLocaleString('en-IN')} <span style="font-size:11px;color:${bcomRev > 0 ? '#64748B' : '#94A3B8'};font-weight:700;">(${bcomPct}%${bcomRev === 0 ? ' · Not connected' : ' · ' + bcomBks.length + ' bks'})</span></span>
               </div>
               <div class="hh-channel-bar-track">
                 <div class="hh-channel-bar-fill" style="width:${bcomPct}%;background:#003580;"></div>
@@ -1439,11 +1455,11 @@ async function renderDashboard() {
             <!-- Agoda / Other -->
             <div class="hh-channel-row">
               <div class="hh-channel-info">
-                <span class="hh-channel-name"><span class="hh-legend-dot" style="background:#8B5CF6;"></span> Agoda / Others</span>
-                <span class="hh-channel-val">₹${agodaRev.toLocaleString('en-IN')} <span style="font-size:11px;color:#64748B;font-weight:600;">(${agodaPct}%)</span></span>
+                <span class="hh-channel-name"><span class="hh-legend-dot" style="background:#7C3AED;"></span> Agoda / Others</span>
+                <span class="hh-channel-val">₹${agodaRev.toLocaleString('en-IN')} <span style="font-size:11px;color:${agodaRev > 0 ? '#64748B' : '#94A3B8'};font-weight:700;">(${agodaPct}%${agodaRev === 0 ? ' · Not connected' : ' · ' + agodaBks.length + ' bks'})</span></span>
               </div>
               <div class="hh-channel-bar-track">
-                <div class="hh-channel-bar-fill" style="width:${agodaPct}%;background:#8B5CF6;"></div>
+                <div class="hh-channel-bar-fill" style="width:${agodaPct}%;background:#7C3AED;"></div>
               </div>
             </div>
           </div>
