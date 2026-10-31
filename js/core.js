@@ -1661,12 +1661,22 @@ function renderShell(content, activePage = 'dashboard') {
     if (pageTitleEl) pageTitleEl.textContent = pageMeta.title;
     if (pageSubEl) pageSubEl.textContent = pageMeta.sub;
 
-    // 3. Update sidebar active links
-    document.querySelectorAll('.sidebar-nav a[data-page]').forEach(a => {
+    // 3. Update sidebar active links (Strict Single Selection - HomeyIndia Standard)
+    const sidebarLinks = Array.from(document.querySelectorAll('.sidebar-nav a[data-page]'));
+    const sidebarKeys = new Set(sidebarLinks.map(a => (a.dataset.page === 'reports' ? 'calendar' : a.dataset.page)));
+    const normActive = (activePage === 'reports') ? 'calendar' : activePage;
+
+    sidebarLinks.forEach(a => {
       const k = a.dataset.page;
-      const isItemActive = (activePage === k) ||
-        ((activePage === 'calendar' || activePage === 'reports') && (k === 'calendar' || k === 'reports')) ||
-        (currentHub && currentHub.pages.includes(activePage) && (currentHub.id === k || currentHub.page === k));
+      const normK = (k === 'reports') ? 'calendar' : k;
+      let isItemActive = false;
+      if (normActive === normK) {
+        isItemActive = true;
+      } else if (!sidebarKeys.has(normActive)) {
+        if (currentHub && currentHub.pages.includes(activePage) && (currentHub.id === k || currentHub.page === k)) {
+          isItemActive = true;
+        }
+      }
       if (isItemActive) a.classList.add('active', 'active-hub');
       else a.classList.remove('active', 'active-hub');
     });
@@ -1734,24 +1744,40 @@ function renderShell(content, activePage = 'dashboard') {
         </div>
 
         <div class="drawer-search">
-          <input type="text" id="drawerSearchInput" placeholder="🔍 Search menu & tabs..." autocomplete="off" />
+          <div class="drawer-search-wrap" style="position:relative;display:flex;align-items:center;width:100%;">
+            <i class="ti ti-search" style="position:absolute;left:10px;color:#94A3B8;font-size:14px;pointer-events:none;"></i>
+            <input type="text" id="drawerSearchInput" placeholder="Search menu &amp; features..." autocomplete="off" style="width:100%;padding:7px 28px 7px 32px !important;border-radius:8px !important;font-size:12.5px !important;" />
+            <button type="button" id="drawerSearchClear" onclick="const i=document.getElementById('drawerSearchInput');if(i){i.value='';i.dispatchEvent(new Event('input'));}" style="display:none;position:absolute;right:8px;background:none;border:none;color:#94A3B8;cursor:pointer;padding:2px 4px;font-size:12px;font-weight:700;" title="Clear search">✕</button>
+          </div>
           <div id="drawerSearchResults" style="display:none;margin-top:8px;"></div>
         </div>
 
         <nav class="sidebar-nav">
-          ${nav.map(item => {
-            if (item.section) {
-              return `<div class="nav-section-heading">${item.section}</div>`;
-            }
-            const [k, l] = item;
-            const isItemActive = (activePage === k) || (currentHub && currentHub.pages.includes(activePage) && (currentHub.id === k || currentHub.page === k));
-            const badgeHtml = (k === 'bookings' && (window._pendingCount || 0) > 0)
-              ? `<span style="background:#F59E0B;color:#fff;border-radius:12px;padding:1px 7px;font-size:11px;font-weight:800;margin-left:auto;">${window._pendingCount}</span>`
-              : '';
-            const cleanLabel = l.replace(/^[\p{Extended_Pictographic}\uFE0F\s]+/u, '').trim();
-            const iconClass = getTablerIcon(k);
-            return `<a href="javascript:void(0)" data-page="${k}" class="${isItemActive ? 'active active-hub' : ''}" style="display:flex;align-items:center;"><i class="ti ${iconClass} nav-icon"></i><span class="nav-label">${cleanLabel}</span>${badgeHtml}</a>`;
-          }).join('')}
+          ${(() => {
+            const navKeys = new Set(nav.filter(x => Array.isArray(x)).map(x => (x[0] === 'reports' ? 'calendar' : x[0])));
+            const normActive = (activePage === 'reports') ? 'calendar' : activePage;
+            return nav.map(item => {
+              if (item.section) {
+                return `<div class="nav-section-heading">${item.section}</div>`;
+              }
+              const [k, l] = item;
+              const normK = (k === 'reports') ? 'calendar' : k;
+              let isItemActive = false;
+              if (normActive === normK) {
+                isItemActive = true;
+              } else if (!navKeys.has(normActive)) {
+                if (currentHub && currentHub.pages.includes(activePage) && (currentHub.id === k || currentHub.page === k)) {
+                  isItemActive = true;
+                }
+              }
+              const badgeHtml = (k === 'bookings' && (window._pendingCount || 0) > 0)
+                ? `<span style="background:#F59E0B;color:#fff;border-radius:12px;padding:1px 7px;font-size:11px;font-weight:800;margin-left:auto;">${window._pendingCount}</span>`
+                : '';
+              const cleanLabel = l.replace(/^[\p{Extended_Pictographic}\uFE0F\s]+/u, '').trim();
+              const iconClass = getTablerIcon(k);
+              return `<a href="javascript:void(0)" data-page="${k}" class="${isItemActive ? 'active active-hub' : ''}" style="display:flex;align-items:center;"><i class="ti ${iconClass} nav-icon"></i><span class="nav-label">${cleanLabel}</span>${badgeHtml}</a>`;
+            }).join('');
+          })()}
         </nav>
 
         <div class="sidebar-footer">
@@ -4242,21 +4268,24 @@ function initDrawerSearch() {
   const input = document.getElementById('drawerSearchInput');
   if (!input) return;
   const resultsContainer = document.getElementById('drawerSearchResults');
+  const clearBtn = document.getElementById('drawerSearchClear');
   const nav = document.querySelector('.sidebar .sidebar-nav');
 
   const filterMenu = () => {
     const q = input.value.toLowerCase().trim();
-    if (!nav) return;
+    if (clearBtn) clearBtn.style.display = q ? 'block' : 'none';
 
     if (!q) {
       if (resultsContainer) {
         resultsContainer.style.display = 'none';
         resultsContainer.innerHTML = '';
       }
-      nav.style.display = '';
-      nav.querySelectorAll('a[data-page], .nav-section-heading').forEach(el => el.classList.remove('filter-hidden'));
+      if (nav) nav.style.display = '';
       return;
     }
+
+    // Hide standard nav while actively searching
+    if (nav) nav.style.display = 'none';
 
     // Collect all hubs and sub-tabs from UHHS_HUBS and PAGE_TITLES
     const hubs = window._UHHS_HUBS || [];
@@ -4264,7 +4293,6 @@ function initDrawerSearch() {
     const seen = new Set();
 
     hubs.forEach(hub => {
-      // Check sub-tabs
       (hub.tabs || []).forEach(tab => {
         if (seen.has(tab.id)) return;
         const pageMeta = (typeof PAGE_TITLES !== 'undefined' && PAGE_TITLES[tab.id]) || {};
@@ -4279,12 +4307,12 @@ function initDrawerSearch() {
             id: tab.id,
             label: tab.label || pageMeta.title || tab.id,
             icon: pageMeta.icon || '📋',
-            hub: hub.label.replace(/^[^\w\s]+/, '').trim(),
+            hub: (hub.label || '').replace(/^[^\w\s]+/, '').trim() || 'Menu',
             sub: pageMeta.sub || ''
           });
         }
       });
-      // Check hub itself
+
       if (!seen.has(hub.id) && (hub.label.toLowerCase().includes(q) || hub.id.toLowerCase().includes(q))) {
         seen.add(hub.id);
         const pageMeta = (typeof PAGE_TITLES !== 'undefined' && PAGE_TITLES[hub.id]) || {};
@@ -4298,7 +4326,6 @@ function initDrawerSearch() {
       }
     });
 
-    // Check PAGE_TITLES for any standalone pages (e.g. settings, showcase-admin, etc.)
     if (typeof PAGE_TITLES !== 'undefined') {
       Object.keys(PAGE_TITLES).forEach(key => {
         if (seen.has(key)) return;
@@ -4309,7 +4336,7 @@ function initDrawerSearch() {
           seen.add(key);
           matchedTabs.push({
             id: key,
-            label: `${meta.icon || '📋'} ${meta.title}`,
+            label: meta.title || key,
             icon: meta.icon || '📋',
             hub: 'Feature',
             sub: meta.sub || ''
@@ -4322,27 +4349,37 @@ function initDrawerSearch() {
       resultsContainer.style.display = 'block';
       if (matchedTabs.length === 0) {
         resultsContainer.innerHTML = `
-          <div style="padding:14px 10px;font-size:12px;color:rgba(255,255,255,0.6);text-align:center;">
-            No menu tabs match "<strong>${q}</strong>"
+          <div style="padding:16px 10px;text-align:center;background:#F8FAFC;border:1px dashed #CBD5E1;border-radius:8px;color:#64748B;font-size:12px;">
+            <div style="font-size:18px;margin-bottom:4px;">🔍</div>
+            No menu tabs match "<strong>${escapeHtml(q)}</strong>"
           </div>
         `;
       } else {
         resultsContainer.innerHTML = `
-          <div style="padding:8px 6px 4px;font-size:11px;font-weight:700;color:rgba(255,255,255,0.5);text-transform:uppercase;letter-spacing:0.5px;">
-            Matching Tabs (${matchedTabs.length})
+          <div style="padding:4px 4px 6px;font-size:11px;font-weight:700;color:#64748B;text-transform:uppercase;letter-spacing:0.5px;display:flex;align-items:center;justify-content:space-between;">
+            <span>Matching Pages</span>
+            <span style="background:#E2E8F0;color:#475569;font-size:10px;padding:1px 6px;border-radius:999px;">${matchedTabs.length}</span>
           </div>
-          <div class="drawer-results-list" style="display:flex;flex-direction:column;gap:3px;max-height:360px;overflow-y:auto;padding-bottom:10px;">
-            ${matchedTabs.map(item => `
-              <a href="#" class="drawer-search-item" onclick="event.preventDefault();navigate('${item.id}');const d=document.getElementById('drawerSearchInput');if(d)d.value='';window.initDrawerSearch&&window.initDrawerSearch();const s=document.querySelector('.sidebar');if(s&&s.classList.contains('mobile-open')){s.classList.remove('mobile-open');const b=document.getElementById('mobileDrawerBackdrop');if(b)b.remove();}" 
-                style="display:flex;align-items:center;justify-content:space-between;padding:9px 12px;border-radius:8px;background:rgba(255,255,255,0.06);color:#fff;text-decoration:none;font-size:13px;font-weight:600;transition:background 0.15s;border:1px solid rgba(255,255,255,0.08);">
-                <span style="display:flex;align-items:center;gap:8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
-                  <span>${item.label}</span>
-                </span>
-                <span style="font-size:10px;padding:2px 7px;border-radius:999px;background:rgba(108,92,224,0.3);color:#b3a7ff;border:1px solid rgba(108,92,224,0.4);white-space:nowrap;margin-left:6px;">
-                  ${item.hub}
-                </span>
-              </a>
-            `).join('')}
+          <div class="drawer-results-list" style="display:flex;flex-direction:column;gap:5px;max-height:360px;overflow-y:auto;padding-bottom:10px;">
+            ${matchedTabs.map(item => {
+              const cleanLabel = (item.label || item.id).replace(/^[\p{Extended_Pictographic}\uFE0F\s]+/u, '').trim();
+              const iconClass = (typeof getTablerIcon === 'function') ? getTablerIcon(item.id) : 'ti-circle-dot';
+              return `
+                <a href="javascript:void(0)" class="drawer-search-item" onclick="navigate('${item.id}');const d=document.getElementById('drawerSearchInput');if(d){d.value='';d.dispatchEvent(new Event('input'));}const s=document.getElementById('sidebarEl');if(s){s.classList.remove('mobile-drawer-open');}const b=document.getElementById('sidebarBackdrop');if(b){b.classList.remove('active');}" 
+                  style="display:flex;align-items:center;justify-content:space-between;padding:8px 10px;border-radius:8px;background:#F8FAFC;color:#0F172A;text-decoration:none;font-size:12.5px;font-weight:600;border:1px solid #E2E8F0;transition:all 0.15s ease;">
+                  <div style="display:flex;align-items:center;gap:8px;min-width:0;overflow:hidden;">
+                    <i class="ti ${iconClass}" style="color:#0EA5E9;font-size:15px;flex-shrink:0;"></i>
+                    <div style="display:flex;flex-direction:column;min-width:0;">
+                      <span style="color:#0F172A;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${cleanLabel}</span>
+                      ${item.sub ? `<span style="font-size:10.5px;color:#64748B;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${item.sub}</span>` : ''}
+                    </div>
+                  </div>
+                  <span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:999px;background:#E0F2FE;color:#0284C7;border:1px solid #BAE6FD;white-space:nowrap;margin-left:6px;flex-shrink:0;">
+                    ${item.hub}
+                  </span>
+                </a>
+              `;
+            }).join('')}
           </div>
         `;
       }

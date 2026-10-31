@@ -193,7 +193,7 @@ async function renderReports() {
           <button class="btn-sm secondary" onclick="calGoToday()" title="Current Month">Today</button>
           <button class="btn-sm secondary" onclick="chMo(1)" title="Next Month">▶</button>
           <button class="btn-sm outline" onclick="renderReports()" title="Refresh live data">🔄</button>
-          <button class="btn-sm" style="background:#EA3829;color:#fff;border:none;border-radius:999px;font-weight:800;padding:6px 14px;box-shadow:0 3px 10px rgba(234,56,41,0.25);" onclick="if(window.renderAddBooking) renderAddBooking();">➕ New Booking</button>
+          <button class="btn-sm" style="background:#0EA5E9;color:#fff;border:none;border-radius:8px;font-weight:700;padding:6px 14px;box-shadow:0 2px 6px rgba(14,165,233,0.25);cursor:pointer;display:inline-flex;align-items:center;gap:6px;" onclick="if(window.renderAddBooking) renderAddBooking();"><i class="ti ti-plus"></i> New Booking</button>
         </div>
       </div>
 
@@ -439,11 +439,8 @@ async function renderReports() {
       border-radius: 4px;
       box-sizing: border-box;
     }
-    .cal-empty {
-      min-height: 56px;
-    }
-    .cal-day {
-      min-height: 56px;
+    .cal-empty { min-height: 62px; }
+    .cal-day { min-height: 62px;
       border: 1px solid #E2E8F0;
       border-radius: 8px;
       padding: 3px;
@@ -489,19 +486,9 @@ async function renderReports() {
       border: 1px dashed rgba(71, 85, 105, 0.35);
       background: #F8FAFC;
     }
-    .cal-date-num {
-      font-size: 11.5px;
-      font-weight: 700;
-      color: #334155;
-      padding: 3px 4px 0;
-      line-height: 1;
+    .cal-date-num { font-size: 11.5px; font-weight: 700; color: #334155; padding: 3px 4px 0; line-height: 1.25;
     }
-    .cal-rate {
-      font-size: 9.5px;
-      color: #10B981;
-      font-weight: 600;
-      text-align: center;
-      padding-bottom: 3px;
+    .cal-rate { font-size: 9.5px; color: #059669; font-weight: 700; text-align: center; padding-bottom: 4px; line-height: 1.25;
     }
     .cal-pill {
       flex: 1;
@@ -535,17 +522,7 @@ async function renderReports() {
       flex-shrink: 0;
       line-height: 1;
     }
-    .cal-name {
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      font-size: 10px;
-      color: #fff;
-      text-shadow: 0 1px 1px rgba(0,0,0,0.25);
-      max-width: 100%;
-      font-weight: 700;
-      display: inline-block;
-      min-width: 0;
+    .cal-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 10px; color: #fff; text-shadow: 0 1px 1px rgba(0,0,0,0.25); max-width: 100%; font-weight: 700; display: inline-block; min-width: 0; line-height: 1.35; padding: 1px 0;
     }
     .cal-room-card { 
       overflow: hidden; 
