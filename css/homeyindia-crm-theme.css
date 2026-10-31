@@ -1,0 +1,700 @@
+/* ============================================================
+   The Unique Haven Homes CRM — HomeyIndia Design System
+   Professional Enterprise CRM Theme & Layout Overhaul
+   ============================================================ */
+
+/* --- 1. Custom CSS Variables (HomeyIndia CRM Design Tokens) --- */
+:root {
+  --crm-primary: #0EA5E9;
+  --crm-primary-dark: #0284C7;
+  --crm-primary-light: #38BDF8;
+  --crm-primary-lighter: #BAE6FD;
+  --crm-primary-bg: #F0F9FF;
+  --crm-secondary: #0F172A;
+  
+  --crm-sidebar-bg: #0F172A;
+  --crm-sidebar-hover: #1E293B;
+  --crm-sidebar-border: rgba(255, 255, 255, 0.08);
+  --crm-sidebar-text: #94A3B8;
+  --crm-sidebar-text-active: #FFFFFF;
+  
+  --crm-bg-page: #F1F5F9;
+  --crm-bg-card: #FFFFFF;
+  --crm-bg-input: #FFFFFF;
+  --crm-bg-hover: #F8FAFC;
+  
+  --crm-text-heading: #0F172A;
+  --crm-text-primary: #1E293B;
+  --crm-text-secondary: #64748B;
+  --crm-text-muted: #94A3B8;
+  
+  --crm-border: #E2E8F0;
+  --crm-border-strong: #CBD5E1;
+  --crm-radius-sm: 6px;
+  --crm-radius: 10px;
+  --crm-radius-lg: 14px;
+  
+  --crm-shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --crm-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.08), 0 1px 2px -1px rgba(0, 0, 0, 0.08);
+  --crm-shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.07), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+  --crm-shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -4px rgba(0, 0, 0, 0.04);
+}
+
+/* Base Font & Canvas */
+body {
+  font-family: 'Inter', 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif !important;
+  background-color: var(--crm-bg-page) !important;
+  color: var(--crm-text-primary) !important;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* --- 2. Master App Layout --- */
+.app-container {
+  display: flex !important;
+  flex-direction: row !important;
+  min-height: 100vh !important;
+  background: var(--crm-bg-page) !important;
+  position: relative !important;
+}
+
+/* --- 3. Restored Desktop Sidebar --- */
+@media (min-width: 1024px) {
+  .sidebar {
+    display: flex !important;
+    width: 260px !important;
+    min-width: 260px !important;
+    max-width: 260px !important;
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    bottom: 0 !important;
+    height: 100vh !important;
+    background-color: var(--crm-sidebar-bg) !important;
+    color: #FFFFFF !important;
+    border-right: 1px solid var(--crm-sidebar-border) !important;
+    box-shadow: 2px 0 12px rgba(0, 0, 0, 0.15) !important;
+    z-index: 100 !important;
+    transform: none !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+  }
+
+  .sidebar::-webkit-scrollbar {
+    width: 4px;
+  }
+  .sidebar::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 4px;
+  }
+
+  .sidebar-close-btn {
+    display: none !important;
+  }
+
+  .app-main-wrapper {
+    margin-left: 260px !important;
+    width: calc(100% - 260px) !important;
+    min-height: 100vh !important;
+    display: flex !important;
+    flex-direction: column !important;
+    background: var(--crm-bg-page) !important;
+  }
+
+  .topbar-desktop-nav {
+    display: none !important;
+  }
+}
+
+/* Mobile & Tablet Sidebar Drawer */
+@media (max-width: 1023px) {
+  .sidebar {
+    width: 280px !important;
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    bottom: 0 !important;
+    height: 100vh !important;
+    background: var(--crm-sidebar-bg) !important;
+    z-index: 99999 !important;
+    transform: translateX(-100%) !important;
+    transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1) !important;
+    display: flex !important;
+    overflow-y: auto !important;
+  }
+  .sidebar.mobile-drawer-open {
+    transform: translateX(0) !important;
+  }
+  .app-main-wrapper {
+    margin-left: 0 !important;
+    width: 100% !important;
+  }
+}
+
+/* --- 4. Sidebar Elements Styling --- */
+.sidebar-top {
+  padding: 1.15rem 1.25rem !important;
+  border-bottom: 1px solid var(--crm-sidebar-border) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+}
+
+.sidebar-brand {
+  display: flex !important;
+  align-items: center !important;
+  gap: 0.75rem !important;
+  text-decoration: none !important;
+  color: #FFFFFF !important;
+}
+
+.brand-logo-wrap {
+  width: 40px !important;
+  height: 40px !important;
+  border-radius: 10px !important;
+  background: linear-gradient(135deg, var(--crm-primary), var(--crm-primary-dark)) !important;
+  border: none !important;
+  box-shadow: 0 4px 10px rgba(14, 165, 233, 0.35) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.brand-logo-wrap img {
+  width: 26px !important;
+  height: 26px !important;
+  object-fit: contain !important;
+}
+
+.brand-text .brand-name {
+  font-size: 0.95rem !important;
+  font-weight: 700 !important;
+  color: #FFFFFF !important;
+  letter-spacing: -0.01em !important;
+  display: block !important;
+  line-height: 1.2 !important;
+}
+
+.brand-text .brand-sub {
+  font-size: 0.7rem !important;
+  color: var(--crm-primary-light) !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.05em !important;
+  display: block !important;
+}
+
+/* User Card in Sidebar */
+.sidebar-user-card {
+  padding: 0.9rem 1.25rem !important;
+  margin: 0.75rem 0.85rem !important;
+  background: rgba(255, 255, 255, 0.04) !important;
+  border: 1px solid var(--crm-sidebar-border) !important;
+  border-radius: var(--crm-radius) !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 0.75rem !important;
+}
+
+.sidebar-user-card .user-avatar {
+  width: 36px !important;
+  height: 36px !important;
+  border-radius: 8px !important;
+  background: var(--crm-primary) !important;
+  color: #FFFFFF !important;
+  font-weight: 700 !important;
+  font-size: 0.95rem !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  box-shadow: 0 2px 6px rgba(14, 165, 233, 0.3) !important;
+}
+
+.sidebar-user-card .user-info .user-name {
+  font-size: 0.85rem !important;
+  font-weight: 600 !important;
+  color: #FFFFFF !important;
+  display: block !important;
+}
+
+.sidebar-user-card .user-info .user-role-badge {
+  font-size: 0.7rem !important;
+  color: var(--crm-primary-light) !important;
+  font-weight: 500 !important;
+}
+
+/* Sidebar Search */
+.drawer-search {
+  padding: 0 0.85rem 0.6rem !important;
+}
+
+.drawer-search input {
+  width: 100% !important;
+  background: #1E293B !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  color: #F8FAFC !important;
+  padding: 0.55rem 0.85rem !important;
+  border-radius: 8px !important;
+  font-size: 0.8125rem !important;
+  box-sizing: border-box !important;
+}
+
+.drawer-search input:focus {
+  outline: none !important;
+  border-color: var(--crm-primary) !important;
+}
+
+/* Sidebar Navigation Items */
+.sidebar-nav {
+  padding: 0.5rem 0.75rem !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 0.25rem !important;
+}
+
+.nav-section-heading {
+  font-size: 0.6875rem !important;
+  font-weight: 700 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.06em !important;
+  color: #64748B !important;
+  padding: 0.85rem 0.75rem 0.35rem !important;
+}
+
+.sidebar-nav a {
+  display: flex !important;
+  align-items: center !important;
+  gap: 0.75rem !important;
+  padding: 0.625rem 0.85rem !important;
+  color: var(--crm-sidebar-text) !important;
+  text-decoration: none !important;
+  border-radius: var(--crm-radius-sm) !important;
+  font-size: 0.875rem !important;
+  font-weight: 500 !important;
+  transition: all 0.15s ease !important;
+}
+
+.sidebar-nav a i.nav-icon {
+  font-size: 1.15rem !important;
+  line-height: 1 !important;
+  flex-shrink: 0 !important;
+  color: #64748B !important;
+  transition: color 0.15s ease !important;
+}
+
+.sidebar-nav a:hover {
+  background: var(--crm-sidebar-hover) !important;
+  color: #FFFFFF !important;
+}
+
+.sidebar-nav a:hover i.nav-icon {
+  color: var(--crm-primary-light) !important;
+}
+
+.sidebar-nav a.active,
+.sidebar-nav a.active-hub {
+  background: var(--crm-primary) !important;
+  color: #FFFFFF !important;
+  font-weight: 600 !important;
+  box-shadow: 0 4px 12px rgba(14, 165, 233, 0.35) !important;
+}
+
+.sidebar-nav a.active i.nav-icon,
+.sidebar-nav a.active-hub i.nav-icon {
+  color: #FFFFFF !important;
+}
+
+/* Sidebar Footer */
+.sidebar-footer {
+  margin-top: auto !important;
+  padding: 0.85rem !important;
+  border-top: 1px solid var(--crm-sidebar-border) !important;
+  display: flex !important;
+  gap: 0.5rem !important;
+}
+
+.sidebar-action-btn {
+  flex: 1 !important;
+  padding: 0.55rem !important;
+  border-radius: 6px !important;
+  font-size: 0.8rem !important;
+  font-weight: 600 !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  cursor: pointer !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 0.4rem !important;
+  transition: all 0.15s ease !important;
+}
+
+.sidebar-action-btn.pref-btn {
+  background: #1E293B !important;
+  color: #CBD5E1 !important;
+}
+.sidebar-action-btn.pref-btn:hover {
+  background: #334155 !important;
+  color: #FFFFFF !important;
+}
+
+.sidebar-action-btn.logout-btn {
+  background: rgba(220, 38, 38, 0.1) !important;
+  color: #F87171 !important;
+  border-color: rgba(220, 38, 38, 0.2) !important;
+}
+.sidebar-action-btn.logout-btn:hover {
+  background: #DC2626 !important;
+  color: #FFFFFF !important;
+}
+
+/* --- 5. Executive Topbar Styling --- */
+.app-topbar {
+  height: 64px !important;
+  background: #FFFFFF !important;
+  border-bottom: 1px solid var(--crm-border) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  padding: 0 1.5rem !important;
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 90 !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02) !important;
+}
+
+.topbar-left {
+  display: flex !important;
+  align-items: center !important;
+  gap: 1rem !important;
+}
+
+.topbar-page-breadcrumb {
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+.topbar-page-breadcrumb .topbar-page-title {
+  font-size: 1.05rem !important;
+  font-weight: 700 !important;
+  color: var(--crm-text-heading) !important;
+  line-height: 1.2 !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 0.5rem !important;
+}
+
+.topbar-page-breadcrumb .topbar-page-sub {
+  font-size: 0.75rem !important;
+  color: var(--crm-text-secondary) !important;
+  margin-top: 2px !important;
+}
+
+.topbar-right {
+  display: flex !important;
+  align-items: center !important;
+  gap: 0.75rem !important;
+}
+
+/* Search Command Palette Button */
+.topbar-search-menu-btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 0.5rem !important;
+  background: #F8FAFC !important;
+  border: 1px solid var(--crm-border) !important;
+  border-radius: 8px !important;
+  padding: 0.45rem 0.85rem !important;
+  color: var(--crm-text-secondary) !important;
+  font-size: 0.8125rem !important;
+  cursor: pointer !important;
+  transition: all 0.15s ease !important;
+}
+
+.topbar-search-menu-btn:hover {
+  background: #F1F5F9 !important;
+  border-color: var(--crm-border-strong) !important;
+  color: var(--crm-text-heading) !important;
+}
+
+.search-btn-kbd {
+  background: #E2E8F0 !important;
+  color: #475569 !important;
+  font-size: 0.7rem !important;
+  font-weight: 700 !important;
+  padding: 2px 5px !important;
+  border-radius: 4px !important;
+}
+
+/* Property Selector Dropdown */
+.topbar-property-selector {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 0.4rem !important;
+  background: #FFFFFF !important;
+  border: 1px solid var(--crm-border) !important;
+  border-radius: 8px !important;
+  padding: 0.35rem 0.65rem !important;
+  transition: border-color 0.15s ease !important;
+}
+
+.topbar-property-selector:focus-within {
+  border-color: var(--crm-primary) !important;
+}
+
+.topbar-property-selector select {
+  border: none !important;
+  background: transparent !important;
+  font-size: 0.8125rem !important;
+  font-weight: 600 !important;
+  color: var(--crm-text-primary) !important;
+  cursor: pointer !important;
+  outline: none !important;
+}
+
+/* Primary + New Booking Button */
+.topbar-new-booking-btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 0.4rem !important;
+  background: var(--crm-primary) !important;
+  color: #FFFFFF !important;
+  border: none !important;
+  border-radius: 8px !important;
+  padding: 0.5rem 1rem !important;
+  font-size: 0.875rem !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+  box-shadow: 0 2px 6px rgba(14, 165, 233, 0.35) !important;
+  transition: all 0.15s ease !important;
+}
+
+.topbar-new-booking-btn:hover {
+  background: var(--crm-primary-dark) !important;
+  transform: translateY(-1px) !important;
+}
+
+/* User Avatar Pill */
+.topbar-avatar-pill {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 0.5rem !important;
+  padding: 0.35rem 0.65rem !important;
+  background: #F8FAFC !important;
+  border: 1px solid var(--crm-border) !important;
+  border-radius: 9999px !important;
+  cursor: pointer !important;
+  transition: all 0.15s ease !important;
+}
+
+.topbar-avatar-pill:hover {
+  background: #F1F5F9 !important;
+  border-color: var(--crm-border-strong) !important;
+}
+
+.user-avatar-mini {
+  width: 26px !important;
+  height: 26px !important;
+  border-radius: 9999px !important;
+  background: var(--crm-primary) !important;
+  color: #FFFFFF !important;
+  font-size: 0.75rem !important;
+  font-weight: 700 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.user-name-mini {
+  font-size: 0.8125rem !important;
+  font-weight: 600 !important;
+  color: var(--crm-text-primary) !important;
+}
+
+/* --- 6. Hub Sub-navigation Strip --- */
+.hub-subnav-strip {
+  background: #FFFFFF !important;
+  border: 1px solid var(--crm-border) !important;
+  border-radius: var(--crm-radius) !important;
+  padding: 0.35rem !important;
+  margin-bottom: 1.25rem !important;
+  box-shadow: var(--crm-shadow-sm) !important;
+}
+
+.hub-subnav-scroll {
+  display: flex !important;
+  align-items: center !important;
+  gap: 0.35rem !important;
+  overflow-x: auto !important;
+}
+
+.hub-subnav-tab {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 0.4rem !important;
+  padding: 0.45rem 0.95rem !important;
+  border-radius: 7px !important;
+  border: none !important;
+  background: transparent !important;
+  color: var(--crm-text-secondary) !important;
+  font-size: 0.8125rem !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+  white-space: nowrap !important;
+  transition: all 0.15s ease !important;
+}
+
+.hub-subnav-tab:hover {
+  background: #F1F5F9 !important;
+  color: var(--crm-text-heading) !important;
+}
+
+.hub-subnav-tab.active {
+  background: var(--crm-primary) !important;
+  color: #FFFFFF !important;
+  box-shadow: 0 2px 6px rgba(14, 165, 233, 0.25) !important;
+}
+
+/* --- 7. Main Content, Cards & Tables --- */
+.main-content {
+  padding: 1.5rem !important;
+  flex: 1 !important;
+}
+
+/* Modern Card Elevation */
+.card,
+.stat-card,
+.metrics-card,
+.panel-card {
+  background: #FFFFFF !important;
+  border: 1px solid var(--crm-border) !important;
+  border-radius: var(--crm-radius-lg) !important;
+  box-shadow: var(--crm-shadow-sm) !important;
+  padding: 1.25rem !important;
+  transition: transform 0.15s ease, box-shadow 0.15s ease !important;
+}
+
+.card:hover,
+.stat-card:hover {
+  box-shadow: var(--crm-shadow-md) !important;
+}
+
+/* Clean Tables */
+table,
+.data-table {
+  width: 100% !important;
+  border-collapse: separate !important;
+  border-spacing: 0 !important;
+  border: 1px solid var(--crm-border) !important;
+  border-radius: var(--crm-radius) !important;
+  overflow: hidden !important;
+  background: #FFFFFF !important;
+}
+
+table th,
+.data-table th {
+  background: #F8FAFC !important;
+  color: var(--crm-text-secondary) !important;
+  font-size: 0.75rem !important;
+  font-weight: 700 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.05em !important;
+  padding: 0.85rem 1rem !important;
+  border-bottom: 1px solid var(--crm-border) !important;
+  text-align: left !important;
+}
+
+table td,
+.data-table td {
+  padding: 0.85rem 1rem !important;
+  border-bottom: 1px solid #F1F5F9 !important;
+  font-size: 0.875rem !important;
+  color: var(--crm-text-primary) !important;
+  vertical-align: middle !important;
+}
+
+table tr:last-child td,
+.data-table tr:last-child td {
+  border-bottom: none !important;
+}
+
+table tr:hover td,
+.data-table tr:hover td {
+  background-color: var(--crm-bg-hover) !important;
+}
+
+/* Status Badges */
+.badge,
+.status-pill {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 0.35rem !important;
+  padding: 0.25rem 0.65rem !important;
+  border-radius: 9999px !important;
+  font-size: 0.75rem !important;
+  font-weight: 600 !important;
+}
+
+.badge-success, .status-confirmed, .status-paid {
+  background: #DCFCE7 !important;
+  color: #166534 !important;
+}
+
+.badge-warning, .status-pending {
+  background: #FEF3C7 !important;
+  color: #92400E !important;
+}
+
+.badge-danger, .status-cancelled, .status-overdue {
+  background: #FEE2E2 !important;
+  color: #991B1B !important;
+}
+
+.badge-info, .status-issued {
+  background: #E0F2FE !important;
+  color: #0369A1 !important;
+}
+
+/* --- 9. Mobile Bottom Nav --- */
+.pwa-bottom-nav {
+  background: #FFFFFF !important;
+  border-top: 1px solid var(--crm-border) !important;
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.04) !important;
+}
+
+.pwa-nav-item {
+  color: var(--crm-text-secondary) !important;
+  transition: color 0.15s ease !important;
+}
+
+.pwa-nav-item i {
+  font-size: 1.25rem !important;
+  line-height: 1 !important;
+}
+
+.pwa-nav-item.active {
+  color: var(--crm-primary) !important;
+}
+
+.pwa-nav-item.active .pwa-nav-label {
+  font-weight: 700 !important;
+  color: var(--crm-primary) !important;
+}
+
+/* Mobile Hamburger Toggle in Topbar */
+.sidebar-toggle-btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 36px !important;
+  height: 36px !important;
+  background: #F8FAFC !important;
+  border: 1px solid var(--crm-border) !important;
+  border-radius: 8px !important;
+  color: var(--crm-text-primary) !important;
+  cursor: pointer !important;
+}
+
+@media (min-width: 1024px) {
+  .sidebar-toggle-btn {
+    display: none !important;
+  }
+}
+

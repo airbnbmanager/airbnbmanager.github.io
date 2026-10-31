@@ -1335,6 +1335,49 @@ async function loginWithEmail() {
 }
 
 // ============ SHELL ============
+// ============ TABLER VECTOR ICONS HELPER ============
+function getTablerIcon(key) {
+  const map = {
+    dashboard: 'ti-layout-dashboard',
+    bookings: 'ti-bed',
+    reports: 'ti-calendar-event',
+    calendar: 'ti-calendar',
+    'guest-crm': 'ti-users',
+    flats: 'ti-home',
+    shifts: 'ti-arrows-left-right',
+    pendingApprovals: 'ti-clock-check',
+    cashbook: 'ti-cash',
+    reimbursements: 'ti-receipt-2',
+    expenses: 'ti-chart-pie',
+    claims: 'ti-credit-card',
+    finance: 'ti-wallet',
+    investors: 'ti-briefcase',
+    dailyReport: 'ti-chart-line',
+    analytics: 'ti-chart-bar',
+    reminders: 'ti-bell',
+    employees: 'ti-id-badge-2',
+    attendance: 'ti-calendar-check',
+    advance: 'ti-wallet',
+    'employee-ledger': 'ti-book',
+    tasks: 'ti-checklist',
+    maintenance: 'ti-tools',
+    laundry: 'ti-wash-machine',
+    store: 'ti-box',
+    'airbnb-sync': 'ti-refresh',
+    rooms: 'ti-building-community',
+    'showcase-admin': 'ti-world',
+    'property-setup': 'ti-home-cog',
+    'whatsapp-hub': 'ti-brand-whatsapp',
+    whatsapp: 'ti-brand-whatsapp',
+    sop: 'ti-file-certificate',
+    'user-mgmt': 'ti-user-circle',
+    settings: 'ti-settings',
+    menu: 'ti-menu-2'
+  };
+  return map[key] || 'ti-file-text';
+}
+window.getTablerIcon = getTablerIcon;
+
 function renderShell(content, activePage = 'dashboard') {
   window.renderShell = renderShell;
   if (SESSION.investorId) { appEl.innerHTML = content; return; }
@@ -1697,13 +1740,15 @@ function renderShell(content, activePage = 'dashboard') {
             const badgeHtml = (k === 'bookings' && (window._pendingCount || 0) > 0)
               ? `<span style="background:#F59E0B;color:#fff;border-radius:12px;padding:1px 7px;font-size:11px;font-weight:800;margin-left:auto;">${window._pendingCount}</span>`
               : '';
-            return `<a href="javascript:void(0)" data-page="${k}" class="${isItemActive ? 'active active-hub' : ''}" style="display:flex;align-items:center;"><span>${l}</span>${badgeHtml}</a>`;
+            const cleanLabel = l.replace(/^[\p{Extended_Pictographic}\uFE0F\s]+/u, '').trim();
+            const iconClass = getTablerIcon(k);
+            return `<a href="javascript:void(0)" data-page="${k}" class="${isItemActive ? 'active active-hub' : ''}" style="display:flex;align-items:center;"><i class="ti ${iconClass} nav-icon"></i><span class="nav-label">${cleanLabel}</span>${badgeHtml}</a>`;
           }).join('')}
         </nav>
 
         <div class="sidebar-footer">
-          <button class="sidebar-action-btn pref-btn" onclick="window.openPreferences && window.openPreferences()">⚙️ Preferences</button>
-          <button class="sidebar-action-btn logout-btn" id="logoutBtn">🚪 Logout</button>
+          <button class="sidebar-action-btn pref-btn" onclick="window.openPreferences && window.openPreferences()"><i class="ti ti-adjustments-horizontal"></i> Preferences</button>
+          <button class="sidebar-action-btn logout-btn" id="logoutBtn"><i class="ti ti-logout"></i> Logout</button>
         </div>
       </aside>
 
@@ -1712,6 +1757,7 @@ function renderShell(content, activePage = 'dashboard') {
         <!-- Top App Bar — HomeyHuts / Airbnb Style Horizontal Header -->
         <header class="app-topbar">
           <div class="topbar-left">
+            <button type="button" class="sidebar-toggle-btn" id="hamburgerBtn" aria-label="Toggle Navigation" title="Toggle Navigation"><i class="ti ti-menu-2"></i></button>
             <div class="topbar-brand-group" onclick="navigate('dashboard')" style="display:flex;align-items:center;gap:10px;cursor:pointer;flex-shrink:0;">
               <img src="assets/logo-emblem.png" alt="TUHH" style="width:34px;height:34px;border-radius:10px;object-fit:cover;box-shadow:0 2px 6px rgba(0,0,0,0.1);flex-shrink:0;" />
               <div class="topbar-brand-titles" style="display:flex;flex-direction:column;">
@@ -1723,26 +1769,26 @@ function renderShell(content, activePage = 'dashboard') {
 
           <!-- Desktop Center Navigation Links (HomeyHuts Style) -->
           <nav class="topbar-desktop-nav">
-            <a href="javascript:void(0)" onclick="navigate('dashboard')" class="${activePage==='dashboard'?'active':''}"><span class="nav-emoji">🏠</span> Hosting</a>
-            <a href="javascript:void(0)" onclick="navigate('calendar')" class="${(activePage==='calendar'||activePage==='reports')?'active':''}"><span class="nav-emoji">📅</span> Calendar</a>
-            <a href="javascript:void(0)" onclick="navigate('bookings')" class="${activePage==='bookings'?'active':''}"><span class="nav-emoji">🛎️</span> Reservations</a>
-            <a href="javascript:void(0)" onclick="navigate('rooms')" class="${activePage==='rooms'?'active':''}"><span class="nav-emoji">🏢</span> Properties</a>
-            <a href="javascript:void(0)" onclick="navigate('employees')" class="${(activePage==='employees'||activePage==='attendance'||activePage==='tasks'||activePage==='advance')?'active':''}"><span class="nav-emoji">👥</span> Staff &amp; Tasks</a>
-            <a href="javascript:void(0)" onclick="navigate('investors')" class="${activePage==='investors'?'active':''}"><span class="nav-emoji">📊</span> Investors &amp; P&amp;L</a>
-            <a href="javascript:void(0)" onclick="navigate('expenses')" class="${activePage==='expenses'?'active':''}"><span class="nav-emoji">💰</span> Expenses</a>
+            <a href="javascript:void(0)" onclick="navigate('dashboard')" class="${activePage==='dashboard'?'active':''}"><i class="ti ti-layout-dashboard"></i> Hosting</a>
+            <a href="javascript:void(0)" onclick="navigate('calendar')" class="${(activePage==='calendar'||activePage==='reports')?'active':''}"><i class="ti ti-calendar"></i> Calendar</a>
+            <a href="javascript:void(0)" onclick="navigate('bookings')" class="${activePage==='bookings'?'active':''}"><i class="ti ti-bed"></i> Reservations</a>
+            <a href="javascript:void(0)" onclick="navigate('rooms')" class="${activePage==='rooms'?'active':''}"><i class="ti ti-building-community"></i> Properties</a>
+            <a href="javascript:void(0)" onclick="navigate('employees')" class="${(activePage==='employees'||activePage==='attendance'||activePage==='tasks'||activePage==='advance')?'active':''}"><i class="ti ti-id-badge-2"></i> Staff &amp; Tasks</a>
+            <a href="javascript:void(0)" onclick="navigate('investors')" class="${activePage==='investors'?'active':''}"><i class="ti ti-chart-pie"></i> Investors &amp; P&amp;L</a>
+            <a href="javascript:void(0)" onclick="navigate('expenses')" class="${activePage==='expenses'?'active':''}"><i class="ti ti-receipt-2"></i> Expenses</a>
           </nav>
 
           <div class="topbar-right">
             <!-- 🔍 Search Menu & Quick Actions (Command Palette ⌘K) -->
             <button type="button" class="topbar-search-menu-btn" onclick="window.openCommandPalette ? window.openCommandPalette() : (window.openMobileSearch && window.openMobileSearch())" title="Search Menu, Features & Actions (Press ⌘K or /)">
-              <span class="search-btn-icon">🔍</span>
+              <span class="search-btn-icon"><i class="ti ti-search"></i></span>
               <span class="search-btn-text">Search Menu...</span>
               <kbd class="search-btn-kbd">⌘K</kbd>
             </button>
 
             <!-- Global Property Switcher -->
             <div class="topbar-property-selector ${window.getGlobalSelectedProperty ? (window.getGlobalSelectedProperty() ? 'has-filter' : '') : ''}" id="topbarPropSelector" title="Switch property view">
-              <span class="topbar-prop-icon">🏛️</span>
+              <span class="topbar-prop-icon"><i class="ti ti-building" style="color:var(--crm-primary);font-size:1.1rem;"></i></span>
               <select id="topbarPropertySelect" onchange="window.handleGlobalPropertyFilterChange && window.handleGlobalPropertyFilterChange(this.value)">
                 <option value="">All Properties (${(window._globalRoomsList || []).length || 18})</option>
                 ${(window._globalRoomsList || []).map(r => {
@@ -1759,19 +1805,19 @@ function renderShell(content, activePage = 'dashboard') {
 
             <!-- Primary Action Button: HomeyHuts Style Coral Red + New Booking -->
             <button type="button" class="topbar-new-booking-btn" onclick="if(window.renderAddBooking) renderAddBooking();" title="Create New Reservation">
-              <span class="topbar-new-booking-icon">➕</span> <span class="topbar-new-booking-text">New Booking</span>
+              <span class="topbar-new-booking-icon"><i class="ti ti-plus"></i></span> <span class="topbar-new-booking-text">New Booking</span>
             </button>
 
             <!-- Notifications Bell -->
             <button class="topbar-icon-btn" id="topbarNotifBtn" onclick="window.notifications&&window.notifications.openPanel();" title="Notifications" aria-label="Notifications">
-              <span>🔔</span><span class="notif-bell-badge" style="display:none;"></span>
+              <span><i class="ti ti-bell" style="font-size:1.15rem;"></i></span><span class="notif-bell-badge" style="display:none;"></span>
             </button>
 
             <!-- User Avatar Pill -->
             <div class="topbar-avatar-pill" onclick="navigate('menu')" title="Account &amp; Menu">
               <div class="user-avatar-mini">${shortName.charAt(0).toUpperCase()}</div>
               <span class="user-name-mini">${escapeHtml(shortName)}</span>
-              <span class="avatar-caret" style="font-size:10px;color:#9ca3af;">▾</span>
+              <span class="avatar-caret" style="font-size:10px;color:#9ca3af;"><i class="ti ti-chevron-down"></i></span>
             </div>
           </div>
         </header>

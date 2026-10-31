@@ -17,7 +17,11 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300..900;1,9..40,300..900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <!-- Tabler Icons Webfont (HomeyIndia CRM Vector Icons) -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
   <link rel="stylesheet" href="style.css?v=360" />
+  <!-- HomeyIndia CRM Design System Overhaul -->
+  <link rel="stylesheet" href="css/homeyindia-crm-theme.css?v=1" />
   <script>
     (function() {
       try {
@@ -136,20 +140,20 @@
   <!-- 📱 HomeyHuts-Style Mobile Bottom Navigation Bar -->
   <nav id="pwa-bottom-nav" class="pwa-bottom-nav">
     <button type="button" class="pwa-nav-item active" data-page="dashboard" onclick="navigate('dashboard')">
-      <span class="pwa-nav-icon">🏠</span>
+      <span class="pwa-nav-icon"><i class="ti ti-layout-dashboard"></i></span>
       <span class="pwa-nav-label">Hosting</span>
     </button>
     <button type="button" class="pwa-nav-item" data-page="calendar" onclick="navigate('calendar')">
-      <span class="pwa-nav-icon">📅</span>
+      <span class="pwa-nav-icon"><i class="ti ti-calendar"></i></span>
       <span class="pwa-nav-label">Calendar</span>
     </button>
     <button type="button" class="pwa-nav-item" data-page="bookings" onclick="navigate('bookings')">
-      <span class="pwa-nav-icon">🛎️</span>
+      <span class="pwa-nav-icon"><i class="ti ti-bed"></i></span>
       <span class="pwa-nav-label">Reservations</span>
       <span id="pwa-approvals-badge" style="display:none;" class="pwa-nav-badge">0</span>
     </button>
     <button type="button" class="pwa-nav-item" data-page="menu" onclick="navigate('menu')">
-      <span class="pwa-nav-icon">☰</span>
+      <span class="pwa-nav-icon"><i class="ti ti-menu-2"></i></span>
       <span class="pwa-nav-label">Menu</span>
     </button>
   </nav>
