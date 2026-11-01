@@ -1,5 +1,5 @@
-const CACHE_NAME = 'tuhh-live-v378';
-const RUNTIME_CACHE = 'tuhh-runtime-v378';
+const CACHE_NAME = 'tuhh-live-v379';
+const RUNTIME_CACHE = 'tuhh-runtime-v379';
 
 const CORE_ASSETS = [
   '/admin.html',
@@ -42,7 +42,9 @@ const CORE_ASSETS = [
   '/js/cashbook.js',
   '/js/company-advances.js',
   '/js/analytics.js',
-  '/js/showcase-data.js'
+  '/js/showcase-data.js',
+  '/js/command-palette.js',
+  '/js/help-guide.js'
 ];
 
 self.addEventListener('install', event => {

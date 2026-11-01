@@ -1371,6 +1371,7 @@ function getTablerIcon(key) {
     whatsapp: 'ti-brand-whatsapp',
     sop: 'ti-file-certificate',
     'user-mgmt': 'ti-user-circle',
+    help: 'ti-help-circle',
     settings: 'ti-settings',
     menu: 'ti-menu-2'
   };
@@ -1481,6 +1482,13 @@ function renderShell(content, activePage = 'dashboard') {
       page: 'settings',
       pages: ['settings'],
       tabs: []
+    },
+    {
+      id: 'help',
+      label: '❓ Help & Guide',
+      page: 'help',
+      pages: ['help'],
+      tabs: []
     }
   ];
   window._UHHS_HUBS = UHHS_HUBS;
@@ -1495,6 +1503,7 @@ function renderShell(content, activePage = 'dashboard') {
       ['claims', 'Finances'],
       ['employees', 'HRMS & Tasks'],
       ['whatsapp-hub', 'WhatsApp Hub'],
+      ['help', 'Help & Guide'],
       ...(isAdmin ? [['user-mgmt', 'User Management']] : []),
       ...(showSettings ? [['settings', 'Global Settings']] : []),
     ];
@@ -1505,6 +1514,7 @@ function renderShell(content, activePage = 'dashboard') {
       ['rooms', 'Properties'],
       ['employees', 'HRMS & Tasks'],
       ['whatsapp-hub', 'WhatsApp Hub'],
+      ['help', 'Help & Guide'],
     ];
   } else if (isCheckinMgr || isCheckin) {
     nav = [
@@ -1512,6 +1522,7 @@ function renderShell(content, activePage = 'dashboard') {
       ['bookings', 'Bookings / Calendar'],
       ['rooms', 'Properties'],
       ['whatsapp-hub', 'WhatsApp Hub'],
+      ['help', 'Help & Guide'],
     ];
   } else if (isBookingStaff) {
     nav = [
@@ -1519,12 +1530,14 @@ function renderShell(content, activePage = 'dashboard') {
       ['bookings', 'Bookings / Calendar'],
       ['rooms', 'Properties'],
       ['whatsapp-hub', 'WhatsApp Hub'],
+      ['help', 'Help & Guide'],
     ];
   } else if (isViewer) {
     nav = [
       ['dashboard', 'Dashboard'],
       ['bookings', 'Bookings / Calendar'],
       ['rooms', 'Properties'],
+      ['help', 'Help & Guide'],
     ];
   } else {
     nav = [
@@ -1535,6 +1548,7 @@ function renderShell(content, activePage = 'dashboard') {
       ['claims', 'Finances'],
       ['employees', 'HRMS & Tasks'],
       ['whatsapp-hub', 'WhatsApp Hub'],
+      ['help', 'Help & Guide'],
       ...(showSettings ? [['settings', 'Global Settings']] : []),
     ];
   }
@@ -1596,6 +1610,7 @@ function renderShell(content, activePage = 'dashboard') {
     investors: { title: 'Investor Reports & P&L', sub: 'Inbuilt monthly property expenses and payouts', icon: '📊' },
     menu: { title: 'Account & Operations', sub: 'The Unique Haven Homes Pvt. Ltd.', icon: '☰' },
     'user-mgmt': { title: 'User Management', sub: 'System users, roles & permissions', icon: '👤' },
+    help: { title: 'Help & Operating Guide', sub: 'Interactive software manual, daily workflows & fast shortcut keys', icon: '❓' },
     settings: { title: 'System Settings', sub: 'Global configuration & preferences', icon: '⚙️' },
   };
 
@@ -1771,6 +1786,7 @@ function renderShell(content, activePage = 'dashboard') {
         </nav>
 
         <div class="sidebar-footer">
+          <button class="sidebar-action-btn help-btn" onclick="navigate('help')"><i class="ti ti-help-circle"></i> Help & Guide</button>
           <button class="sidebar-action-btn pref-btn" onclick="window.openPreferences && window.openPreferences()"><i class="ti ti-adjustments-horizontal"></i> Preferences</button>
           <button class="sidebar-action-btn logout-btn" id="logoutBtn"><i class="ti ti-logout"></i> Logout</button>
         </div>
@@ -1831,6 +1847,11 @@ function renderShell(content, activePage = 'dashboard') {
             <!-- Primary Action Button: HomeyHuts Style Coral Red + New Booking -->
             <button type="button" class="topbar-new-booking-btn" onclick="if(window.renderAddBooking) renderAddBooking();" title="Create New Reservation">
               <span class="topbar-new-booking-icon"><i class="ti ti-plus"></i></span> <span class="topbar-new-booking-text">New Booking</span>
+            </button>
+
+            <!-- Help Center Button -->
+            <button class="topbar-icon-btn" onclick="navigate('help')" title="Help & User Operating Guide (Press ? or F1)" aria-label="Help & Guide">
+              <span><i class="ti ti-help-circle" style="font-size:1.18rem;color:#0284C7;"></i></span>
             </button>
 
             <!-- Notifications Bell -->
@@ -2335,6 +2356,7 @@ function navigate(page) {
     'user-mgmt': () => (window.renderUserManagement || renderUserManagement)(),
     'reviews-followup': () => (window.renderReviewFollowupHub || renderReviewFollowupHub)(),
     sop: () => (window.renderSOPPage || renderSOPPage)(),
+    help: () => (window.renderHelpAndGuide || renderHelpAndGuide)(),
   };
 
   const runner = map[page] || map['dashboard'];
@@ -5827,6 +5849,15 @@ function renderAppMenu() {
           <span class="homeyhuts-row-title">
             Notifications
             ${notifCount > 0 ? `<span class="homeyhuts-badge-pill">${notifCount}</span>` : ''}
+          </span>
+          <span class="homeyhuts-chevron">›</span>
+        </div>
+
+        <div class="homeyhuts-menu-row" onclick="navigate('help')">
+          <span class="homeyhuts-row-icon">❓</span>
+          <span class="homeyhuts-row-title">
+            <strong>Help Center &amp; Operating Guide</strong>
+            <span style="display:block;font-size:11.5px;color:var(--text-tertiary);font-weight:normal;">Step-by-step CRM manual &amp; keyboard shortcuts</span>
           </span>
           <span class="homeyhuts-chevron">›</span>
         </div>

@@ -525,11 +525,21 @@
       action: () => { if (typeof window.showAllSecurityDeposits === 'function') window.showAllSecurityDeposits(); else window.navigate('bookings'); }
     },
     {
+      id: 'action-help-manual',
+      type: 'action',
+      group: 'Fast Actions',
+      icon: '❓',
+      title: 'Help Center & Operating Guide (CRM Manual)',
+      sub: 'Step-by-step Hindi & English guide on how to use TUHH CRM & fast keys',
+      keywords: ['help', 'guide', 'manual', 'kaise use kare', 'instructions', 'operating manual', 'workflow', 'cheatsheet', '?'],
+      action: () => (window.navigate ? window.navigate('help') : (window.renderHelpAndGuide && window.renderHelpAndGuide()))
+    },
+    {
       id: 'action-shortcuts',
       type: 'action',
       group: 'Fast Actions',
       icon: '⌨️',
-      title: 'Keyboard Shortcuts Help (?)',
+      title: 'Keyboard Shortcuts Cheatsheet (?)',
       sub: 'View all keyboard shortcuts and fast keys [?]',
       keywords: ['shortcuts', 'keys', 'keyboard', 'help', 'fast keys', 'command', 'cheatsheet', '?'],
       action: () => window.openShortcutsModal()
@@ -1188,6 +1198,23 @@
     }
   };
 
+  window.openDashboardShortcut = function() {
+    if (typeof window.navigate === 'function') window.navigate('dashboard');
+  };
+
+  window.openWhatsAppShortcut = function() {
+    if (typeof window.navigate === 'function') window.navigate('whatsapp-hub');
+  };
+
+  window.openExpensesShortcut = function() {
+    if (typeof window.navigate === 'function') window.navigate('expenses');
+  };
+
+  window.openHelpShortcut = function() {
+    if (typeof window.navigate === 'function') window.navigate('help');
+    else if (typeof window.renderHelpAndGuide === 'function') window.renderHelpAndGuide();
+  };
+
   window.openShortcutsModal = function() {
     let el = document.getElementById('uhhShortcutsModal');
     if (el) { el.remove(); return; }
@@ -1203,35 +1230,38 @@
     el.onclick = (e) => { if (e.target === el) el.remove(); };
 
     el.innerHTML = `
-      <div class="modal-box" style="max-width:540px;width:95%;padding:22px;border-radius:16px;background:#0F172A;color:#fff;box-shadow:0 25px 50px -12px rgba(0,0,0,0.6);border:1px solid rgba(255,255,255,0.1);position:relative;">
+      <div class="modal-box" style="max-width:560px;width:95%;padding:22px;border-radius:18px;background:#0F172A;color:#fff;box-shadow:0 25px 50px -12px rgba(0,0,0,0.6);border:1px solid rgba(255,255,255,0.1);position:relative;">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid rgba(255,255,255,0.1);">
           <div style="display:flex;align-items:center;gap:10px;">
             <span style="font-size:24px;">⚡</span>
             <div>
-              <div style="font-weight:900;font-size:16.5px;color:#F8FAFC;">PMS Keyboard Shortcuts</div>
-              <div style="font-size:11px;color:#94A3B8;">Fast navigation & high-speed booking controls</div>
+              <div style="font-weight:900;font-size:16.5px;color:#F8FAFC;">TUHH Keyboard Shortcuts & Fast Keys</div>
+              <div style="font-size:11px;color:#94A3B8;">High-speed reservation controls & instant navigation</div>
             </div>
           </div>
           <button type="button" class="modal-close-prominent" aria-label="Close" onclick="this.closest('.modal-overlay').remove()" style="width:32px;height:32px;border-radius:50%;background:#EF4444;border:none;color:#fff;font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(239,68,68,0.4);">✕</button>
         </div>
 
-        <div style="display:flex;flex-direction:column;gap:8px;max-height:60vh;overflow-y:auto;padding-right:4px;">
+        <div style="display:flex;flex-direction:column;gap:8px;max-height:56vh;overflow-y:auto;padding-right:4px;">
           ${[
             { key: 'E', single: 'E', label: '✏️ Edit Selected Booking', desc: 'When booking drawer/details is open, press E to edit', action: 'if(window.editCurrentSelectedBooking) window.editCurrentSelectedBooking()' },
             { key: `${cmdSymbol}S`, single: 'S', label: '💾 Save Booking Form', desc: 'Save active booking or wizard form instantly', action: 'if(window.triggerSaveBookingShortcut) window.triggerSaveBookingShortcut()' },
             { key: `${altSymbol}N`, single: 'N', label: '➕ New Booking', desc: 'Open manual booking creation wizard', action: 'window.openNewBookingShortcut()' },
             { key: `${altSymbol}D`, single: 'D', label: '📋 Duplicate Booking', desc: 'Clone active booking or pick recent guest to rebook', action: 'window.duplicateExistingBookingShortcut()' },
             { key: `${altSymbol}P`, single: 'P', label: '💵 Add Payment / Quick Pay', desc: 'Open payment popup for active booking or dues picker', action: 'window.openQuickPaymentShortcut()' },
-            { key: `${altSymbol}T`, single: 'T', label: '📋 Staff Tasks & Checklists', desc: 'Housekeeping, deep cleans & staff duties (Alt+Shift+T for new)', action: 'window.openTasksShortcut()' },
-            { key: `${altSymbol}A`, single: 'A', label: '💸 Staff Advances Tracker', desc: 'Track employee loans, peshgi & balances (Alt+Shift+A for new)', action: 'window.openAdvanceShortcut()' },
-            { key: `${altSymbol}E`, single: 'Alt+E', label: '🧾 Expense Claims & Reimbursements', desc: 'Staff daily market purchases & claims (Alt+Shift+E for new)', action: 'window.openClaimShortcut()' },
-            { key: `${altSymbol}C`, single: 'C', label: '📅 Calendar View', desc: 'Open multi-property occupancy grid', action: 'window.openCalendarShortcut()' },
+            { key: `${altSymbol}C`, single: 'C', label: '📅 Calendar View', desc: 'Open multi-property occupancy timeline grid', action: 'window.openCalendarShortcut()' },
             { key: `${altSymbol}B`, single: 'B', label: '📑 Smart Bookings', desc: 'View all reservations & guests register', action: 'window.openBookingsShortcut()' },
             { key: `${altSymbol}F`, single: 'F', label: '🛏️ Flats & Turnaround', desc: 'Realtime room turnaround Kanban board', action: 'window.openFlatsShortcut()' },
+            { key: `${altSymbol}T`, single: 'T', label: '📋 Staff Tasks & Checklists', desc: 'Housekeeping, deep cleans & staff duties (Alt+Shift+T for new)', action: 'window.openTasksShortcut()' },
+            { key: `${altSymbol}A`, single: 'A', label: '💸 Staff Advances Tracker', desc: 'Track employee loans, peshgi & balances (Alt+Shift+A for new)', action: 'window.openAdvanceShortcut()' },
+            { key: `${altSymbol}E`, single: 'Alt+E', label: '🧾 Daily Expenses & Claims', desc: 'Staff daily market purchases & claims (Alt+Shift+E for new)', action: 'window.openClaimShortcut()' },
+            { key: `${altSymbol}X`, single: 'X', label: '📊 Expenses & P&L', desc: 'Property-wise Wi-Fi, maintenance and operational profit-loss', action: 'window.openExpensesShortcut()' },
+            { key: `${altSymbol}W`, single: 'W', label: '📱 WhatsApp Hub', desc: 'Send automated welcome messages, location pin & house rules', action: 'window.openWhatsAppShortcut()' },
+            { key: `${altSymbol}H`, single: 'H', label: '🏠 Executive Dashboard', desc: 'Revenue analytics, occupancy rates & performance metrics', action: 'window.openDashboardShortcut()' },
             { key: `${altSymbol}I`, single: 'I', label: '🧑‍💼 Investors Hub', desc: 'Open Investors list, shares, payout sheets & broadcasts', action: 'window.openInvestorsShortcut()' },
             { key: `${altSymbol}L`, single: 'L', label: '🧺 Laundry Tracker', desc: 'Track linens, vendors, wash cycles & laundry dues', action: 'window.openLaundryShortcut()' },
             { key: `${cmdSymbol}K`, single: '/', label: '🔍 Command Palette', desc: 'Spotlight search anything across PMS (Tasks, Advances, Claims, etc.)', action: 'window.openCommandPalette()' },
-            { key: '?', single: '?', label: '⚡ Shortcuts Help', desc: 'Open this keyboard cheatsheet modal', action: '' },
+            { key: '?', single: 'F1', label: '❓ Full Help & Operating Guide', desc: 'Open complete step-by-step CRM manual page', action: 'navigate("help")' },
             { key: 'ESC', single: 'Esc', label: '✕ Close Drawer / Dialog', desc: 'Dismiss active booking drawer or any open modal', action: '' }
           ].map(s => `
             <div style="display:flex;justify-content:space-between;align-items:center;padding:9px 12px;background:rgba(255,255,255,0.04);border-radius:10px;border:1px solid rgba(255,255,255,0.06);cursor:${s.action ? 'pointer' : 'default'};transition:all 0.15s;" ${s.action ? `onclick="document.getElementById('uhhShortcutsModal')?.remove();${s.action}" onmouseenter="this.style.background='rgba(255,255,255,0.09)'" onmouseleave="this.style.background='rgba(255,255,255,0.04)'"` : ''}>
@@ -1247,8 +1277,10 @@
           `).join('')}
         </div>
 
-        <div style="margin-top:14px;padding:9px 12px;background:#1E293B;border-radius:10px;font-size:11.5px;color:#94A3B8;text-align:center;line-height:1.4;">
-          💡 <em>Tip: Booking open hone par direct <strong>E</strong> dabayein to Edit Booking khul jayega, aur form me <strong>S</strong> ya <strong>⌘S</strong> dabane par Save ho jayega. Single navigation keys: <strong>I</strong> (Investors), <strong>T</strong>, <strong>A</strong>, <strong>D</strong>, <strong>P</strong>, <strong>N</strong>, <strong>C</strong>, <strong>B</strong>, <strong>F</strong>.</em>
+        <div style="margin-top:14px;display:flex;gap:10px;align-items:center;">
+          <button type="button" onclick="document.getElementById('uhhShortcutsModal')?.remove();navigate('help')" style="flex:1;background:linear-gradient(135deg,#0284C7,#0369A1);border:none;color:#FFFFFF;border-radius:10px;padding:11px 16px;font-weight:800;font-size:13px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:8px;box-shadow:0 4px 14px rgba(2,132,199,0.35);">
+            <i class="ti ti-book-2" style="font-size:16px;"></i> <span>Open Full Software Guide & User Manual (How to Use)</span>
+          </button>
         </div>
       </div>
     `;
@@ -1319,6 +1351,10 @@
     const isKeyS = code === 'KeyS' || keyCode === 83 || key === 's' || key === 'ß';
     const isKeyI = code === 'KeyI' || keyCode === 73 || key === 'i' || key === 'ˆ';
     const isKeyL = code === 'KeyL' || keyCode === 76 || key === 'l' || key === '¬' || key === '@';
+    const isKeyH = code === 'KeyH' || keyCode === 72 || key === 'h' || key === '˙';
+    const isKeyW = code === 'KeyW' || keyCode === 87 || key === 'w' || key === '∑';
+    const isKeyX = code === 'KeyX' || keyCode === 88 || key === 'x' || key === '≈';
+    const isKeyF1 = code === 'F1' || keyCode === 112;
     const isKeySlash = code === 'Slash' || keyCode === 191 || key === '/' || key === '?';
 
     // Global Save Shortcut: Cmd+S / Ctrl+S
@@ -1393,6 +1429,21 @@
         window.openLaundryShortcut();
         return;
       }
+      if (isKeyH) {
+        e.preventDefault();
+        window.openDashboardShortcut();
+        return;
+      }
+      if (isKeyW) {
+        e.preventDefault();
+        window.openWhatsAppShortcut();
+        return;
+      }
+      if (isKeyX) {
+        e.preventDefault();
+        window.openExpensesShortcut();
+        return;
+      }
       if (isKeySlash) {
         e.preventDefault();
         window.openShortcutsModal();
@@ -1406,6 +1457,12 @@
       if (key === '?' || (e.shiftKey && isKeySlash)) {
         e.preventDefault();
         window.openShortcutsModal();
+        return;
+      }
+      // F1 -> Open Help & Operating Guide
+      if (isKeyF1) {
+        e.preventDefault();
+        window.openHelpShortcut();
         return;
       }
       // / -> Open Command Palette / Spotlight Search
@@ -1494,6 +1551,24 @@
       if (isKeyL) {
         e.preventDefault();
         window.openLaundryShortcut();
+        return;
+      }
+      // h -> Executive Dashboard
+      if (isKeyH) {
+        e.preventDefault();
+        window.openDashboardShortcut();
+        return;
+      }
+      // w -> WhatsApp Hub
+      if (isKeyW) {
+        e.preventDefault();
+        window.openWhatsAppShortcut();
+        return;
+      }
+      // x -> Expenses Hub
+      if (isKeyX) {
+        e.preventDefault();
+        window.openExpensesShortcut();
         return;
       }
       // e -> Claims fallback when no booking is selected
