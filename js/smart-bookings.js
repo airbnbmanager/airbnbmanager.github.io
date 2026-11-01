@@ -798,11 +798,15 @@ function renderAirbnbReservationsHtml(bookings, paidMap, canM, today) {
         const isOnline = b.booking_mode === 'Online-Airbnb' || !!b.airbnb_confirmation_code;
         const bSrc = (typeof window.getBookingSource === 'function') ? window.getBookingSource(b) : null;
         const nights = (b.check_in && b.check_out) ? Math.max((typeof calcNights === 'function' ? calcNights(b.check_in, b.check_out) : Math.round((new Date(b.check_out) - new Date(b.check_in)) / 86400000)), 1) : 1;
+        const isSameDayStay = !!(b.check_in && b.check_out && b.check_in === b.check_out);
 
         // Left Time Column Content
         let timeMain = '';
         let timeSub = '';
-        if (isCheckoutToday) {
+        if (isSameDayStay) {
+          timeMain = 'Day Use';
+          timeSub = `${(b.check_in_time || '09:30').slice(0, 5)} - ${(b.check_out_time || '16:30').slice(0, 5)}`;
+        } else if (isCheckoutToday) {
           timeMain = (b.check_out_time ? b.check_out_time.replace(/:\d\d$/, '') : '11:00').replace(/\s*[ap]m/i, '');
           timeSub = '';
         } else if (isArrivalToday) {
@@ -884,6 +888,24 @@ function renderAirbnbReservationsHtml(bookings, paidMap, canM, today) {
                 ${(b.stay_group_id || (b.phone && (window._sbkState?.phoneCounts?.[String(b.phone).replace(/\D/g, '').slice(-10)] || 0) > 1)) ? `
                   <span class="airbnb-chip" style="background:#EEF2FF;color:#4F46E5;font-weight:800;cursor:pointer;" onclick="event.stopPropagation();window.openMultiPropertyReceiptModal('${b.stay_group_id || b.phone || b.booking_id}')" title="Multi-Property Group Booking · Click to view combined receipt">
                     🏢 Group Stay${(!b.stay_group_id && b.phone && (window._sbkState?.phoneCounts?.[String(b.phone).replace(/\D/g, '').slice(-10)] || 0) > 1) ? ` (${window._sbkState.phoneCounts[String(b.phone).replace(/\D/g, '').slice(-10)]})` : ''}
+                  </span>
+                ` : ''}
+
+                ${isSameDayStay ? `
+                  <span class="airbnb-chip" style="background:#F5F3FF;color:#6D28D9;border:1.5px solid #DDD6FE;font-weight:800;" title="Same-day Day-Use Stay">
+                    ⚡ Day Use (${(b.check_in_time || '09:30').slice(0, 5)} - ${(b.check_out_time || '16:30').slice(0, 5)})
+                  </span>
+                ` : ''}
+
+                ${(!isSameDayStay && b.check_in_time && b.check_in_time < '12:00') ? `
+                  <span class="airbnb-chip" style="background:#EFF6FF;color:#1D4ED8;border:1px solid #BFDBFE;font-weight:700;" title="Early Check-In Arrival">
+                    🌅 Early Check-In (${b.check_in_time.slice(0, 5)})
+                  </span>
+                ` : ''}
+
+                ${(!isSameDayStay && b.check_out_time && b.check_out_time > '12:00') ? `
+                  <span class="airbnb-chip" style="background:#FEF3C7;color:#92400E;border:1px solid #FDE68A;font-weight:700;" title="Late Check-Out Departure">
+                    🌇 Late Check-Out (${b.check_out_time.slice(0, 5)})
                   </span>
                 ` : ''}
 
@@ -1496,9 +1518,24 @@ window.openBookingDrawer = async function(bookingId) {
               </div>
               <div>
                 <span style="color:var(--muted);font-size:11px;">Duration:</span><br>
-                <strong>${b.check_in && b.check_out ? (calcNights(b.check_in, b.check_out) + ' Nights') : '-'}</strong>
+                <strong>${b.check_in && b.check_out ? (b.check_in === b.check_out ? '⚡ Day Use (1 Day)' : (calcNights(b.check_in, b.check_out) + ' Nights')) : '-'}</strong>
               </div>
             </div>
+            ${(b.check_in && b.check_out && b.check_in === b.check_out) ? `
+              <div style="margin-top:10px;background:#F5F3FF;border:1.5px solid #DDD6FE;border-radius:8px;padding:8px 12px;font-size:12px;color:#6D28D9;font-weight:700;display:flex;align-items:center;gap:6px;">
+                <span>⚡</span> Same-Day / Day-Use Stay: Check-in ${(b.check_in_time || '09:30 AM')} → Check-out ${(b.check_out_time || '04:30 PM')}
+              </div>
+            ` : ''}
+            ${(b.check_in !== b.check_out && b.check_in_time && b.check_in_time < '12:00') ? `
+              <div style="margin-top:10px;background:#EFF6FF;border:1.5px solid #BFDBFE;border-radius:8px;padding:8px 12px;font-size:12px;color:#1D4ED8;font-weight:700;display:flex;align-items:center;gap:6px;">
+                <span>🌅</span> Early Check-In Arrival: ${(b.check_in_time)}
+              </div>
+            ` : ''}
+            ${(b.check_in !== b.check_out && b.check_out_time && b.check_out_time > '12:00') ? `
+              <div style="margin-top:10px;background:#FEF3C7;border:1.5px solid #FDE68A;border-radius:8px;padding:8px 12px;font-size:12px;color:#92400E;font-weight:700;display:flex;align-items:center;gap:6px;">
+                <span>🌇</span> Late Check-Out Departure: ${(b.check_out_time)}
+              </div>
+            ` : ''}
             <div style="margin-top:10px;padding:8px 12px;background:#F8FAFC;border:1px solid #E2E8F0;border-radius:8px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
               <div style="font-size:12px;color:#334155;">
                 <span style="color:var(--muted);font-size:11px;">Booked By:</span><br>
@@ -1636,6 +1673,12 @@ window.openBookingDrawer = async function(bookingId) {
 
           <!-- Operational Actions Group -->
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:4px;">
+            <button class="btn-sm" style="background:#D97706;color:#fff;padding:10px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;gap:6px;" onclick="window.openLateCheckoutModal('${b.booking_id}')" title="Grant Late Check-Out (e.g. 04:30 PM) + optional fee &amp; alert housekeeping">
+              🌇 Late Check-Out
+            </button>
+            <button class="btn-sm" style="background:#DC2626;color:#fff;padding:10px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;gap:6px;" onclick="window.drawerQuickCheckout('${b.booking_id}', '${b.room_id}')" title="Guest checkout now / early — save checkout &amp; trigger room cleaning">
+              ⚡ Early Check-Out
+            </button>
             <button class="btn-sm" style="background:#25D366;color:#fff;padding:10px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;gap:6px;" onclick="window.drawerOpenWhatsApp('${b.booking_id}', '${escapeHtml(b.phone || '')}', '${escapeHtml(b.guest_name || '')}', this)" title="Open WhatsApp Menu &amp; Templates">
               <svg viewBox="0 0 24 24" width="15" height="15" fill="#fff"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.79.47 3.55 1.36 5.09L2 22l5.25-1.38c1.48.8 3.13 1.23 4.79 1.23h.01c5.46 0 9.9-4.45 9.9-9.91 0-2.65-1.03-5.14-2.9-7.01A9.82 9.82 0 0 0 12.04 2m.01 1.67c2.2 0 4.26.86 5.82 2.42a8.18 8.18 0 0 1 2.41 5.83c0 4.54-3.7 8.23-8.24 8.23-1.48 0-2.93-.39-4.19-1.15l-.3-.17-3.12.82.83-3.04-.2-.32a8.2 8.2 0 0 1-1.26-4.37c.01-4.54 3.7-8.23 8.25-8.23M8.53 6.98c-.16 0-.43.06-.65.31s-.85.83-.85 2.02.87 2.35.99 2.51c.12.17 1.71 2.75 4.28 3.72 2.12.8 2.55.64 3.01.6.46-.05 1.5-.61 1.71-1.2.21-.59.21-1.09.15-1.19s-.23-.16-.48-.28-1.5-.74-1.73-.82c-.23-.08-.4-.12-.57.13s-.65.82-.8.99c-.15.17-.29.19-.55.06-.26-.13-1.09-.4-2.08-1.29-.77-.68-1.29-1.53-1.44-1.79-.15-.26-.02-.4.11-.53.12-.12.26-.31.4-.47.13-.16.17-.27.26-.45.09-.18.04-.34-.02-.47-.06-.13-.57-1.37-.78-1.87s-.42-.42-.57-.43z"/></svg>
               💬 WhatsApp
@@ -2378,14 +2421,38 @@ async function renderSmartAddBooking(prefillOpts) {
             </div>
           </div>
 
+          <!-- Quick Timing Presets for Early Check-In & Late Check-Out -->
           <div class="form-grid">
             <div class="form-group">
-              <label>Check-In Time</label>
-              <input id="checkInTime" type="time" value="${pre.checkInTime || '14:00'}" />
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+                <label style="margin:0;font-weight:700;">Check-In Time</label>
+                <div style="display:flex;gap:4px;">
+                  <button type="button" class="btn-sm" style="padding:2px 7px;font-size:10px;font-weight:700;background:#EFF6FF;color:#1D4ED8;border:1px solid #BFDBFE;border-radius:4px;cursor:pointer;" onclick="document.getElementById('checkInTime').value='09:30';window.triggerLiveRadarCheck();window.recalcSmartPrice();" title="Set Early Check-In at 09:30 AM">🌅 09:30 AM</button>
+                  <button type="button" class="btn-sm" style="padding:2px 7px;font-size:10px;font-weight:700;background:#F1F5F9;color:#334155;border:1px solid #CBD5E1;border-radius:4px;cursor:pointer;" onclick="document.getElementById('checkInTime').value='13:00';window.triggerLiveRadarCheck();window.recalcSmartPrice();" title="Set Standard Check-In at 01:00 PM">🕛 01:00 PM</button>
+                </div>
+              </div>
+              <input id="checkInTime" type="time" value="${pre.checkInTime || '14:00'}" onchange="window.recalcSmartPrice()" />
             </div>
             <div class="form-group">
-              <label>Check-Out Time</label>
-              <input id="checkOutTime" type="time" value="${pre.checkOutTime || '11:00'}" />
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+                <label style="margin:0;font-weight:700;">Check-Out Time</label>
+                <div style="display:flex;gap:4px;">
+                  <button type="button" class="btn-sm" style="padding:2px 7px;font-size:10px;font-weight:700;background:#F1F5F9;color:#334155;border:1px solid #CBD5E1;border-radius:4px;cursor:pointer;" onclick="document.getElementById('checkOutTime').value='11:00';window.triggerLiveRadarCheck();window.recalcSmartPrice();" title="Set Standard Check-Out at 11:00 AM">🕚 11:00 AM</button>
+                  <button type="button" class="btn-sm" style="padding:2px 7px;font-size:10px;font-weight:700;background:#FEF3C7;color:#92400E;border:1px solid #FDE68A;border-radius:4px;cursor:pointer;" onclick="document.getElementById('checkOutTime').value='16:30';window.triggerLiveRadarCheck();window.recalcSmartPrice();" title="Set Late Check-Out at 04:30 PM">🌇 04:30 PM</button>
+                  <button type="button" class="btn-sm" style="padding:2px 7px;font-size:10px;font-weight:700;background:#FEF3C7;color:#92400E;border:1px solid #FDE68A;border-radius:4px;cursor:pointer;" onclick="document.getElementById('checkOutTime').value='18:00';window.triggerLiveRadarCheck();window.recalcSmartPrice();" title="Set Late Check-Out at 06:00 PM">🕕 06:00 PM</button>
+                </div>
+              </div>
+              <input id="checkOutTime" type="time" value="${pre.checkOutTime || '11:00'}" onchange="window.recalcSmartPrice()" />
+            </div>
+          </div>
+
+          <!-- Day-Use (Same-Day) Quick Action Button -->
+          <div style="margin-bottom:10px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+            <button type="button" class="btn-sm" onclick="window.applyDayUsePreset()" style="background:#F5F3FF;color:#6D28D9;border:1.5px dashed #A78BFA;border-radius:8px;padding:6px 12px;font-size:11.5px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:6px;">
+              <span>⚡ Same-Day / Day-Use (09:30 AM → 04:30 PM)</span>
+            </button>
+            <div id="smartDayUseNotice" style="display:${defaultCheckIn === defaultCheckOut ? 'inline-flex' : 'none'};align-items:center;gap:5px;background:#F5F3FF;border:1px solid #DDD6FE;color:#6D28D9;padding:4px 10px;border-radius:6px;font-size:11.5px;font-weight:800;">
+              <span>⚡</span> Day-Use Stay Active (Same-day check-in &amp; check-out · 1 Day Rate)
             </div>
           </div>
 
@@ -2710,13 +2777,38 @@ window.selectAlternativeRoom = function(roomId) {
   }
 };
 
+window.applyDayUsePreset = function() {
+  const today = new Date().toISOString().slice(0, 10);
+  const ciEl = document.getElementById('checkIn');
+  const coEl = document.getElementById('checkOut');
+  const citEl = document.getElementById('checkInTime');
+  const cotEl = document.getElementById('checkOutTime');
+  if (ciEl) ciEl.value = today;
+  if (coEl) coEl.value = today;
+  if (citEl) citEl.value = '09:30';
+  if (cotEl) cotEl.value = '16:30';
+  const notice = document.getElementById('smartDayUseNotice');
+  if (notice) notice.style.display = 'inline-flex';
+  window.triggerLiveRadarCheck();
+  window.recalcSmartPrice();
+  if (window.fsn) fsn.info('Day-Use Preset Applied', 'Today 09:30 AM to 04:30 PM set. 1-day rate calculated.');
+};
+
 window.onSmartDateChange = function(source) {
   const ci = document.getElementById('checkIn')?.value;
   let co = document.getElementById('checkOut')?.value;
 
-  if (ci && co && co <= ci) {
+  // Only auto-advance if checkOut is strictly EARLIER than checkIn
+  // If ci === co, it is a valid Same-Day / Day-Use booking!
+  if (ci && co && co < ci) {
     const nextDate = new Date(new Date(ci).getTime() + 86400000).toISOString().slice(0, 10);
     document.getElementById('checkOut').value = nextDate;
+    co = nextDate;
+  }
+
+  const notice = document.getElementById('smartDayUseNotice');
+  if (notice) {
+    notice.style.display = (ci && co && ci === co) ? 'inline-flex' : 'none';
   }
 
   window.triggerLiveRadarCheck();
@@ -2760,6 +2852,7 @@ window.suggestDefaultPrice = function() {
 window.recalcSmartPrice = function() {
   const ci = document.getElementById('checkIn')?.value;
   const co = document.getElementById('checkOut')?.value;
+  const isSameDay = !!(ci && co && ci === co);
   const nights = (ci && co) ? Math.max(calcNights(ci, co), 1) : 1;
 
   let pricing = null;
@@ -2776,7 +2869,13 @@ window.recalcSmartPrice = function() {
 
   const nSummary = document.getElementById('smartNightsSummary');
   if (nSummary) {
-    nSummary.textContent = `${nights} ${nights === 1 ? 'Night' : 'Nights'}`;
+    if (isSameDay) {
+      const cit = (document.getElementById('checkInTime')?.value || '09:30').slice(0, 5);
+      const cot = (document.getElementById('checkOutTime')?.value || '16:30').slice(0, 5);
+      nSummary.innerHTML = `⚡ <strong>Day Use</strong> (${cit} → ${cot})`;
+    } else {
+      nSummary.textContent = `${nights} ${nights === 1 ? 'Night' : 'Nights'}`;
+    }
   }
 
   const tSummary = document.getElementById('smartTotalSummary');
@@ -3694,5 +3793,119 @@ window.openGuestPassModal = function(bookingId, phone, guestName) {
       </div>
     </div>
   `;
+};
+
+// =====================================================================
+// 9. LATE CHECKOUT & EARLY CHECKOUT MODALS & CONTROLLERS
+// =====================================================================
+
+window.openLateCheckoutModal = async function(bookingId) {
+  if (!bookingId) return;
+  const { data: bk } = await sb.from('guest_register').select('*, rooms(nickname, unit_no, property_name, checkin_manager, caretaker_phone)').eq('booking_id', bookingId).single();
+  if (!bk) {
+    if (window.fsn) fsn.error('Error', 'Booking not found');
+    else alert('Booking not found');
+    return;
+  }
+  const currentOut = bk.check_out || new Date().toISOString().slice(0, 10);
+  const currentTime = bk.check_out_time || '11:00';
+  const propName = propLabel(bk.rooms) || bk.room_id;
+
+  const modal = document.createElement('div');
+  modal.className = 'modal-overlay';
+  modal.id = 'lateCheckoutModalOverlay';
+  modal.onclick = e => { if (e.target === modal) modal.remove(); };
+  modal.innerHTML = `
+    <div class="modal-box" style="max-width:480px;border-radius:14px;padding:22px;">
+      <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">✕</button>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+        <span style="font-size:24px;">🌇</span>
+        <h2 style="margin:0;font-size:18px;color:var(--dark);">Grant Late Check-Out</h2>
+      </div>
+      <div style="font-size:12.5px;color:var(--muted);margin-bottom:14px;line-height:1.4;">
+        Guest: <strong style="color:var(--dark);">${escapeHtml(bk.guest_name)}</strong> &bull; Flat: <strong style="color:var(--dark);">${escapeHtml(propName)}</strong><br>
+        Current Check-out: <strong>${currentOut} at ${currentTime}</strong>
+      </div>
+
+      <div class="form-group" style="margin-bottom:12px;">
+        <label style="font-weight:700;font-size:13px;display:block;margin-bottom:6px;">Select New Check-Out Time *</label>
+        <div style="display:grid;grid-template-columns:repeat(3, 1fr);gap:6px;margin-bottom:8px;">
+          <button type="button" class="btn-sm" style="padding:8px 4px;font-weight:700;font-size:11.5px;background:#FEF3C7;color:#92400E;border:1px solid #FCD34D;border-radius:8px;cursor:pointer;" onclick="document.getElementById('lateCoTime').value='14:00'">🕑 02:00 PM</button>
+          <button type="button" class="btn-sm" style="padding:8px 4px;font-weight:700;font-size:11.5px;background:#FEF3C7;color:#92400E;border:1.5px solid #F59E0B;border-radius:8px;cursor:pointer;" onclick="document.getElementById('lateCoTime').value='16:30'">🕟 04:30 PM</button>
+          <button type="button" class="btn-sm" style="padding:8px 4px;font-weight:700;font-size:11.5px;background:#FEF3C7;color:#92400E;border:1px solid #FCD34D;border-radius:8px;cursor:pointer;" onclick="document.getElementById('lateCoTime').value='18:00'">🕕 06:00 PM</button>
+        </div>
+        <input id="lateCoTime" type="time" value="16:30" style="font-size:15px;font-weight:700;width:100%;padding:9px 10px;border-radius:8px;border:1.5px solid #CBD5E1;" />
+      </div>
+
+      <div class="form-group" style="margin-bottom:12px;">
+        <label style="font-weight:700;font-size:13px;display:block;margin-bottom:4px;">Additional Late Checkout Fee ₹ <small style="color:var(--muted);">(Enter 0 if complimentary)</small></label>
+        <input id="lateCoFee" type="number" value="0" min="0" step="100" placeholder="0" style="font-size:15px;font-weight:700;width:100%;padding:9px 10px;border-radius:8px;border:1.5px solid #CBD5E1;" />
+      </div>
+
+      <div class="form-group" style="margin-bottom:14px;">
+        <label style="font-weight:700;font-size:13px;display:block;margin-bottom:4px;">Reason / Notes for Housekeeping</label>
+        <input id="lateCoNotes" type="text" placeholder="e.g. Evening flight at 7 PM / Approved by Praveen" value="Late checkout approved till 04:30 PM" style="font-size:13px;width:100%;padding:9px 10px;border-radius:8px;border:1.5px solid #CBD5E1;" />
+      </div>
+
+      <div style="background:#FFFBEB;border:1px solid #FDE68A;padding:10px 12px;border-radius:8px;margin-bottom:16px;font-size:12px;color:#92400E;display:flex;align-items:flex-start;gap:6px;">
+        <span>🧹</span>
+        <div><strong>Housekeeping Protection:</strong> Caretakers &amp; cleaning staff will see checkout at this new time and will NOT disturb the guest at 11:00 AM.</div>
+      </div>
+
+      <div style="display:flex;gap:8px;">
+        <button type="button" onclick="this.closest('.modal-overlay').remove()" style="flex:1;padding:11px;background:#E2E8F0;color:#334155;border:none;border-radius:8px;font-weight:700;cursor:pointer;">Cancel</button>
+        <button type="button" id="btnSaveLateCheckout" onclick="window.saveLateCheckout('${bk.booking_id}', this)" style="flex:2;padding:11px;background:#D97706;color:#fff;border:none;border-radius:8px;font-weight:800;font-size:13.5px;cursor:pointer;">💾 Confirm Late Check-Out</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+};
+
+window.saveLateCheckout = async function(bookingId, btn) {
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Saving...'; }
+  try {
+    const newTime = document.getElementById('lateCoTime')?.value || '16:30';
+    const fee = parseFloat(document.getElementById('lateCoFee')?.value) || 0;
+    const noteText = document.getElementById('lateCoNotes')?.value?.trim() || '';
+
+    const { data: bk } = await sb.from('guest_register').select('*').eq('booking_id', bookingId).single();
+    if (!bk) throw new Error('Booking not found');
+
+    const updatedTotal = (bk.total_amount || 0) + fee;
+    const today = new Date().toISOString().slice(0, 10);
+    const feeNote = fee > 0 ? ` (+₹${fee} late fee)` : ' (Complimentary)';
+    const newNote = (bk.notes ? bk.notes + ' | ' : '') + `Late checkout at ${newTime} on ${today}${feeNote}: ${noteText}`;
+
+    const { error } = await sb.from('guest_register').update({
+      check_out_time: newTime,
+      total_amount: updatedTotal,
+      notes: newNote
+    }).eq('booking_id', bookingId);
+
+    if (error) throw error;
+
+    document.getElementById('lateCheckoutModalOverlay')?.remove();
+    if (window.fsn) fsn.success('Late Checkout Confirmed', `✅ Departure time set to ${newTime}${fee > 0 ? ` · ₹${fee} added to total bill` : ''}`);
+    
+    // Refresh drawer and boards
+    if (window.openBookingDrawer) window.openBookingDrawer(bookingId);
+    if (window.renderSmartManageBookings) window.renderSmartManageBookings(true);
+    if (window.renderFlatsStatus) window.renderFlatsStatus();
+    if (typeof window.renderCalendar === 'function') window.renderCalendar();
+  } catch(err) {
+    alert('Failed to update late checkout: ' + err.message);
+    if (btn) { btn.disabled = false; btn.textContent = '💾 Confirm Late Check-Out'; }
+  }
+};
+
+window.drawerQuickCheckout = function(bookingId, roomId) {
+  window.closeBookingDrawer();
+  if (typeof window.quickCheckout === 'function') {
+    window.quickCheckout(bookingId, roomId);
+  } else if (typeof quickCheckout === 'function') {
+    quickCheckout(bookingId, roomId);
+  } else {
+    alert('Checkout function unavailable');
+  }
 };
 

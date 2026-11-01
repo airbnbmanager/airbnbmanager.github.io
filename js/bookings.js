@@ -3722,9 +3722,17 @@ function onRoomChg() {
   let nights = 0;
   if (ci && co) {
     nights = calcNights(ci, co);
-    if (nInfo) nInfo.innerHTML = nights > 0
-      ? `🌙 <strong>${nights} night(s)</strong>`
-      : `<span style="color:var(--red);">Invalid dates</span>`;
+    if (nInfo) {
+      if (nights > 0) {
+        nInfo.innerHTML = `🌙 <strong>${nights} night(s)</strong>`;
+      } else if (ci === co) {
+        const cit = document.getElementById('checkInTime')?.value || '09:30';
+        const cot = document.getElementById('checkOutTime')?.value || '16:30';
+        nInfo.innerHTML = `<span style="color:#6D28D9;font-weight:700;">⚡ Same-Day / Day Use (${cit} → ${cot}) &bull; 1 Day Rate</span>`;
+      } else {
+        nInfo.innerHTML = `<span style="color:var(--red);">Invalid dates (check-out must be on or after check-in)</span>`;
+      }
+    }
   } else if (nInfo) {
     nInfo.innerHTML = '';
   }
@@ -5008,11 +5016,35 @@ async function editBooking(bkId) {
 
       <div class="form-grid">
         <div class="form-group"><label>Check-in Date</label><input id="checkIn" type="date" value="${b.check_in || ''}" /></div>
-        <div class="form-group"><label>Check-in Time</label><input id="checkInTime" type="time" value="${b.check_in_time || '14:00'}" /></div>
+        <div class="form-group">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2px;">
+            <label style="margin:0;">Check-in Time</label>
+            <div style="display:flex;gap:4px;">
+              <button type="button" class="btn-sm" style="padding:1px 6px;font-size:10px;font-weight:700;background:#EFF6FF;color:#1D4ED8;border:1px solid #BFDBFE;border-radius:4px;" onclick="document.getElementById('checkInTime').value='09:30'">🌅 09:30 AM</button>
+              <button type="button" class="btn-sm" style="padding:1px 6px;font-size:10px;background:#F1F5F9;color:#334155;border:1px solid #CBD5E1;border-radius:4px;" onclick="document.getElementById('checkInTime').value='13:00'">🕛 01:00 PM</button>
+            </div>
+          </div>
+          <input id="checkInTime" type="time" value="${b.check_in_time || '14:00'}" />
+        </div>
       </div>
       <div class="form-grid">
         <div class="form-group"><label>Check-out Date</label><input id="checkOut" type="date" value="${b.check_out || ''}" /></div>
-        <div class="form-group"><label>Check-out Time</label><input id="checkOutTime" type="time" value="${b.check_out_time || '11:00'}" /></div>
+        <div class="form-group">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2px;">
+            <label style="margin:0;">Check-out Time</label>
+            <div style="display:flex;gap:4px;">
+              <button type="button" class="btn-sm" style="padding:1px 6px;font-size:10px;background:#F1F5F9;color:#334155;border:1px solid #CBD5E1;border-radius:4px;" onclick="document.getElementById('checkOutTime').value='11:00'">🕚 11:00 AM</button>
+              <button type="button" class="btn-sm" style="padding:1px 6px;font-size:10px;font-weight:700;background:#FEF3C7;color:#92400E;border:1px solid #FDE68A;border-radius:4px;" onclick="document.getElementById('checkOutTime').value='16:30'">🌇 04:30 PM</button>
+              <button type="button" class="btn-sm" style="padding:1px 6px;font-size:10px;font-weight:700;background:#FEF3C7;color:#92400E;border:1px solid #FDE68A;border-radius:4px;" onclick="document.getElementById('checkOutTime').value='18:00'">🕕 06:00 PM</button>
+            </div>
+          </div>
+          <input id="checkOutTime" type="time" value="${b.check_out_time || '11:00'}" />
+        </div>
+      </div>
+      <div style="margin:-4px 0 10px;display:flex;gap:8px;align-items:center;">
+        <button type="button" class="btn-sm" style="padding:3px 10px;font-size:11px;font-weight:700;background:#F5F3FF;color:#6D28D9;border:1px dashed #A78BFA;border-radius:6px;cursor:pointer;" onclick="const ci=document.getElementById('checkIn').value;if(ci){document.getElementById('checkOut').value=ci;document.getElementById('checkInTime').value='09:30';document.getElementById('checkOutTime').value='16:30';}">
+          ⚡ Set as Same-Day Stay (${b.check_in || 'Today'} 09:30 AM → 04:30 PM)
+        </button>
       </div>
       <div class="form-group"><label>Checkout Type</label>
         <select id="checkoutConfirmed" onchange="onCheckoutTypeChgEdit()">

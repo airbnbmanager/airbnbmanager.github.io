@@ -2229,9 +2229,15 @@ html, body {
 /* 5 KPI Sparkline Ribbon */
 .hh-kpi-ribbon-5 {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: 14px;
   margin-bottom: 22px;
+}
+
+@media (max-width: 1200px) {
+  .hh-kpi-ribbon-5 {
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  }
 }
 
 .hh-kpi-card-v2 {
@@ -2245,6 +2251,7 @@ html, body {
   position: relative;
   overflow: hidden;
   transition: all 0.2s ease;
+  min-width: 0; /* Prevents flex items from overflowing */
 }
 .hh-kpi-card-v2:hover {
   border-color: #0284C7;

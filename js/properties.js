@@ -522,6 +522,7 @@ async function renderFlatsStatus() {
   const enrichedFlats = targetFlats.map(f => {
     const activeStay = activeBkMap[f.room_id] || null;
     const todayArrival = arrivalMap[f.room_id] || null;
+    const isSameDayStay = !!(activeStay && activeStay.check_in === activeStay.check_out);
     const isCheckoutToday = !!(activeStay && activeStay.check_out === today && activeStay.checkout_confirmed !== false);
     const isOpenStay = !!(activeStay && activeStay.checkout_confirmed === false);
     const isDirty = f.cleaning_status === 'Dirty';
@@ -530,6 +531,7 @@ async function renderFlatsStatus() {
       ...f,
       activeStay,
       todayArrival,
+      isSameDayStay,
       isCheckoutToday,
       isOpenStay,
       isTurnaround
@@ -791,7 +793,9 @@ async function renderFlatsStatus() {
                 ${f.todayArrival ? `
                   <div style="padding:6px 10px;border-radius:8px;background:#EFF6FF;border:1px solid #BFDBFE;color:#1E40AF;font-size:12px;margin-bottom:8px;">
                     ⚡ <strong>Incoming Guest Today:</strong> ${f.todayArrival.guest_name}
-                    <div style="font-size:11px;color:#3B82F6;margin-top:2px;">Check-in: ${f.todayArrival.check_in_time || '14:00'}</div>
+                    <div style="font-size:11px;color:#3B82F6;margin-top:2px;">
+                      ${(f.todayArrival.check_in_time && f.todayArrival.check_in_time < '12:00') ? `🌅 <strong>EARLY CHECK-IN: ${f.todayArrival.check_in_time}</strong> (Priority turnaround!)` : `Check-in: ${f.todayArrival.check_in_time || '14:00'}`}
+                    </div>
                   </div>
                 ` : ''}
 
@@ -803,10 +807,20 @@ async function renderFlatsStatus() {
                       </div>
                       ${f.activeStay.phone ? `<a href="tel:${f.activeStay.phone}" style="color:var(--primary);text-decoration:none;font-weight:600;font-size:11px;">📞 Call</a>` : ''}
                     </div>
-                    ${f.isCheckoutToday ? `
-                      <div style="color:#D97706;font-weight:800;font-size:11px;margin-top:4px;">
-                        📤 Check-out Today (${f.activeStay.check_out_time || '11:00 AM'})
+                    ${f.isSameDayStay ? `
+                      <div style="color:#7C3AED;font-weight:800;font-size:11.5px;margin-top:4px;background:#F5F3FF;padding:4px 6px;border-radius:4px;border:1px solid #DDD6FE;">
+                        ⚡ Day-Use Stay: ${f.activeStay.check_in_time || '09:30 AM'} → Departure Today at ${f.activeStay.check_out_time || '04:30 PM'}
                       </div>
+                    ` : f.isCheckoutToday ? `
+                      ${f.activeStay.check_out_time && f.activeStay.check_out_time > '12:00' ? `
+                        <div style="color:#D97706;font-weight:800;font-size:11px;margin-top:4px;background:#FFFBEB;padding:4px 6px;border-radius:4px;border:1px solid #FDE68A;">
+                          🌇 LATE CHECK-OUT Today (${f.activeStay.check_out_time}) &bull; Do not disturb guest at 11 AM; cleaning after ${f.activeStay.check_out_time}
+                        </div>
+                      ` : `
+                        <div style="color:#D97706;font-weight:800;font-size:11px;margin-top:4px;">
+                          📤 Check-out Today (${f.activeStay.check_out_time || '11:00 AM'})
+                        </div>
+                      `}
                     ` : f.isOpenStay ? `
                       <div style="color:#2563EB;font-weight:700;font-size:11px;margin-top:4px;">
                         🔄 Continuous Open Stay

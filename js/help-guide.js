@@ -217,6 +217,27 @@
                   </ul>
                 </div>
               </div>
+
+              <div class="tuhh-wf-card" style="border:2px solid #A78BFA;background:#FAF5FF;">
+                <div class="tuhh-wf-badge" style="background:#7C3AED;color:#fff;">5. Early Check-In, Late Check-Out &amp; Same-Day Stays (Special Timing)</div>
+                <div class="tuhh-wf-content">
+                  <h4 style="color:#6D28D9;">Special Timing &amp; Day-Use Scenarios:</h4>
+                  <ul style="color:#4C1D95;">
+                    <li><strong>⚡ Same-Day / Day-Use Booking (e.g. Aaj 302 me 9:30 AM Check-in &amp; 4:30 PM Check-out):</strong><br>
+                      New Booking wizard me direct <strong>⚡ Same-Day / Day-Use Preset</strong> button par click karein. Check-in aur Check-out dono dates automatically Aaj ki set ho jayengi, check-in time <strong>09:30 AM</strong> aur checkout time <strong>04:30 PM</strong> fill ho jayega, aur 1 din ka standard tariff auto-calculate ho jayega. Calendar me ye <strong>⚡ Day Use</strong> pill ban kar aayega.
+                    </li>
+                    <li><strong>🌅 Early Check-In (Subah 09:30 AM ya standard 1 PM se pehle):</strong><br>
+                      Booking banate waqt ya Edit me <strong>🌅 09:30 AM</strong> preset dabayein. Flats status me Housekeeping aur Caretakers ko <em>"🌅 EARLY CHECK-IN: 09:30 AM (Priority turnaround!)"</em> ka banner dikhega taaki room subah hi ready ho sake.
+                    </li>
+                    <li><strong>🌇 Late Check-Out (Shaam 4:30 PM ya 6:00 PM tak rukne par):</strong><br>
+                      Booking card ya drawer me <strong>🌇 Late Check-Out</strong> button par click karein. New time (e.g. <code>04:30 PM</code>) select karein aur optional late fee (₹500 / ₹1,000 ya 0) enter karke save karein. Caretakers ko alert mil jayega ki 11:00 AM par disturb na karein aur safai 4:30 PM ke baad karein.
+                    </li>
+                    <li><strong>⚡ Early Check-Out (Guest agar scheduled date/time se pehle chala jaye):</strong><br>
+                      Drawer me <strong>⚡ Early Check-Out</strong> button dabayein. System turant checkout record karke flat ko <strong>Dirty</strong> mark kar dega taaki safai team ko room free hone ki suchna mil jaye.
+                    </li>
+                  </ul>
+                </div>
+              </div>
             </div>
           </div>
 

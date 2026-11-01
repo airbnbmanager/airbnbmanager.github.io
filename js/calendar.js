@@ -118,12 +118,19 @@ async function renderReports() {
   const bMap = {};
   allBks.forEach(b => {
     if (!b.check_in || !b.check_out || !b.room_id) return;
-    let c = b.check_in;
-    while (c < b.check_out) {
-      const _bkey = `${b.room_id}_${c}`;
+    if (b.check_in === b.check_out) {
+      // Same-day / Day-use booking (0 nights / 1 day)
+      const _bkey = `${b.room_id}_${b.check_in}`;
       if (!bMap[_bkey]) bMap[_bkey] = [];
       bMap[_bkey].push(b);
-      c = dateAdd(c, 1);
+    } else {
+      let c = b.check_in;
+      while (c < b.check_out) {
+        const _bkey = `${b.room_id}_${c}`;
+        if (!bMap[_bkey]) bMap[_bkey] = [];
+        bMap[_bkey].push(b);
+        c = dateAdd(c, 1);
+      }
     }
   });
 
@@ -627,8 +634,9 @@ async function renderReports() {
       const isPast = ds < todayStr;
 
       if (bk) {
+        const isSameDay = bk.check_in === bk.check_out;
         const isCheckIn = bk.check_in === ds;
-        const isCheckOut = dateAdd(ds, 1) === bk.check_out;
+        const isCheckOut = isSameDay ? true : (dateAdd(ds, 1) === bk.check_out);
         const bSrc = (typeof window.getBookingSource === 'function') ? window.getBookingSource(bk) : null;
         const isBlocked = bSrc ? (bSrc.type === 'blocked') : isBkBlocked(bk);
 
@@ -700,9 +708,9 @@ async function renderReports() {
                 ${payTagHtml}
               </div>
             </div>
-            <div class="cal-pill ${isBlocked ? 'blocked' : ''}" style="background:${bg};border-radius:${borderRadius};${hasReview ? 'box-shadow:0 0 0 1.5px #F59E0B;' : ''}">
-              ${showAvatar ? `<span class="cal-avatar" style="${hasReview ? 'background:#FEF3C7;color:#D97706;' : ''}">${hasReview ? '⭐' : guestInitial}</span>` : ''}
-              ${showName && !isBlocked ? `<span class="cal-name">${firstName}${hasReview ? ' ⭐' : ''}</span>` : ''}
+            <div class="cal-pill ${isBlocked ? 'blocked' : ''}" style="background:${isSameDay ? 'linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%)' : bg};border-radius:${borderRadius};${hasReview ? 'box-shadow:0 0 0 1.5px #F59E0B;' : ''}">
+              ${isSameDay ? `<span class="cal-avatar" style="background:#EDE9FE;color:#6D28D9;">⚡</span>` : (showAvatar ? `<span class="cal-avatar" style="${hasReview ? 'background:#FEF3C7;color:#D97706;' : ''}">${hasReview ? '⭐' : guestInitial}</span>` : '')}
+              ${isSameDay ? `<span class="cal-name" title="Day Use: ${(bk.check_in_time||'09:30').slice(0,5)} to ${(bk.check_out_time||'16:30').slice(0,5)}">${firstName} (Day)</span>` : (showName && !isBlocked ? `<span class="cal-name">${firstName}${hasReview ? ' ⭐' : ''}</span>` : '')}
               ${isBlocked && showName && isCheckIn ? `<span class="cal-name">Blocked</span>` : ''}
             </div>
           </div>`;
