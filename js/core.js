@@ -6010,13 +6010,6 @@ function renderAppMenu() {
           </div>
         </div>
       </div>
-
-      <!-- Corporate Bottom Brand Footer inside Menu -->
-      <div class="tuhh-menu-footer">
-        <div class="tuhh-mf-brand">THE UNIQUE HAVEN HOMES PRIVATE LIMITED</div>
-        <div class="tuhh-mf-cin">CIN: U55101UP2026PTC244637 · uniquehavenhomesstay.com</div>
-        <div class="tuhh-mf-credit">⚡ Developed by <strong>Praveen Singh</strong></div>
-      </div>
     </div>
   `;
   renderShell(html, 'menu');

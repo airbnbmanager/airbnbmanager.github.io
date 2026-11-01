@@ -1251,7 +1251,7 @@ html, body {
 
   /* 2. Main Content & Layout */
   .main-content, #mainContent {
-    padding: 10px 10px calc(80px + env(safe-area-inset-bottom, 16px)) !important;
+    padding: 10px 10px 0 !important;
   }
 
   .dash-hero {
@@ -3464,7 +3464,7 @@ html, body {
 .tuhh-menu-wrap {
   max-width: 520px;
   margin: 0 auto;
-  padding-bottom: calc(75px + env(safe-area-inset-bottom, 16px));
+  padding-bottom: 8px;
 }
 
 .tuhh-profile-card {
@@ -3659,13 +3659,13 @@ html, body {
    🏛️ OFFICIAL SYSTEM FOOTER (Clear spacing above bottom nav)
    ═══════════════════════════════════════════════════════════ */
 .app-official-system-footer {
-  margin-top: 28px !important;
-  padding: 16px 12px calc(80px + env(safe-area-inset-bottom, 16px)) !important;
+  margin-top: 16px !important;
+  padding: 14px 12px calc(65px + env(safe-area-inset-bottom, 12px)) !important;
   border-top: 1px solid var(--crm-border, #E2E8F0) !important;
   text-align: center !important;
   font-size: 10.5px !important;
   color: var(--crm-text-secondary, #64748B) !important;
-  line-height: 1.5 !important;
+  line-height: 1.4 !important;
 }
 .app-official-system-footer .footer-legal {
   font-weight: 800;
