@@ -1435,11 +1435,7 @@ function renderShell(content, activePage = 'dashboard') {
       label: '🧾 Expenses',
       page: 'expenses',
       pages: ['expenses', 'laundry', 'maintenance'],
-      tabs: [
-        { id: 'laundry', label: '🧺 Laundry' },
-        { id: 'maintenance', label: '🔧 Property Maintenance' },
-        { id: 'expenses', label: '📊 Expenses & P&L' }
-      ]
+      tabs: []
     },
     {
       id: 'claims',

@@ -282,11 +282,14 @@ async function renderExpenses() {
           <button onclick="navigate('laundry')" style="background:#0284C7;color:#fff;font-weight:700;border:none;border-radius:8px;padding:8px 14px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;box-shadow:0 2px 6px rgba(2,132,199,0.25);">
             <span>🧺</span> Laundry
           </button>
+          <button onclick="window.openWifiRechargeModal()" style="background:#2563EB;color:#fff;font-weight:700;border:none;border-radius:8px;padding:8px 14px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;box-shadow:0 2px 6px rgba(37,99,235,0.25);">
+            <i class="ti ti-wifi"></i> Wi-Fi Recharge
+          </button>
+          <button onclick="if(window.renderAddReimbursement) window.renderAddReimbursement(); else navigate('claims');" style="background:#0284C7;color:#fff;font-weight:700;border:none;border-radius:8px;padding:8px 14px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;box-shadow:0 2px 6px rgba(2,132,199,0.25);">
+            <span>➕</span> Add Expense
+          </button>
           <button onclick="navigate('maintenance')" style="background:#475569;color:#fff;font-weight:700;border:none;border-radius:8px;padding:8px 14px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;box-shadow:0 2px 6px rgba(71,85,105,0.25);">
             <i class="ti ti-tool"></i> Maintenance
-          </button>
-          <button onclick="window.openWifiRechargeModal()" style="background:#2563EB;color:#fff;font-weight:700;border:none;border-radius:8px;padding:8px 14px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;">
-            <i class="ti ti-wifi"></i> Wi-Fi Recharge
           </button>
           <button onclick="window.openEmployeeTransportModal()" style="background:#D97706;color:#fff;font-weight:700;border:none;border-radius:8px;padding:8px 14px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;">
             <span>🛵</span> Rapido &amp; Travel
