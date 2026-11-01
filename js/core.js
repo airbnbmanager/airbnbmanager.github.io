@@ -1737,7 +1737,7 @@ function renderShell(content, activePage = 'dashboard') {
         <div class="sidebar-top">
           <div class="sidebar-brand" onclick="navigate('dashboard')" title="THE UNIQUE HAVEN HOMES PRIVATE LIMITED">
             <div class="brand-logo-wrap">
-              <img src="assets/logo-emblem.png" alt="THE UNIQUE HAVEN HOMES" class="brand-logo" />
+              <img src="assets/logo-emblem.png?v=392" alt="THE UNIQUE HAVEN HOMES" class="brand-logo" />
             </div>
             <div class="brand-text">
               <span class="brand-name">THE UNIQUE HAVEN HOMES</span>
@@ -1802,7 +1802,7 @@ function renderShell(content, activePage = 'dashboard') {
           <div class="topbar-left">
             <button type="button" class="sidebar-toggle-btn" id="hamburgerBtn" aria-label="Toggle Navigation" title="Toggle Navigation"><i class="ti ti-menu-2"></i></button>
             <div class="topbar-brand-group" onclick="navigate('dashboard')" style="display:flex;align-items:center;gap:10px;cursor:pointer;flex-shrink:0;">
-              <img src="assets/logo-emblem.png" alt="TUHH" style="width:34px;height:34px;border-radius:10px;object-fit:cover;box-shadow:0 2px 6px rgba(0,0,0,0.1);flex-shrink:0;" />
+              <img src="assets/logo-emblem.png?v=392" alt="TUHH" style="width:34px;height:34px;border-radius:10px;object-fit:cover;box-shadow:0 2px 6px rgba(0,0,0,0.1);flex-shrink:0;" />
               <div class="topbar-brand-titles" style="display:flex;flex-direction:column;">
                 <span class="topbar-brand-main" style="font-weight:900;font-size:13px;color:#222222;letter-spacing:0.2px;white-space:nowrap;line-height:1.2;">UNIQUE HAVEN</span>
                 <span class="topbar-brand-sub" style="font-size:9px;color:var(--primary);font-weight:800;letter-spacing:0.5px;white-space:nowrap;">HOMES OPS</span>
