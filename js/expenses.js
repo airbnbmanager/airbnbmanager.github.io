@@ -276,7 +276,7 @@ async function renderExpenses() {
           </div>
         </div>
 
-        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+        <div class="exp-action-btn-group" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
           <button onclick="navigate('laundry')" style="background:#0284C7;color:#fff;font-weight:700;border:none;border-radius:8px;padding:8px 14px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;box-shadow:0 2px 6px rgba(2,132,199,0.25);">
             <span>🧺</span> Laundry
           </button>
@@ -410,7 +410,7 @@ async function renderExpenses() {
     <!-- ─── UNIFIED FILTER CONTROLS ─── -->
     <div class="card" style="margin-bottom:16px;">
       <div class="section-title">🔍 Filter All Company Expenses</div>
-      <div class="form-grid" style="display:grid;grid-template-columns:repeat(auto-fit, minmax(180px, 1fr));gap:12px;">
+      <div class="form-grid exp-filter-grid" style="display:grid;grid-template-columns:repeat(auto-fit, minmax(180px, 1fr));gap:12px;">
         <div class="form-group">
           <label style="font-size:12px;font-weight:700;">Month</label>
           <input type="month" id="expMonthFilter" value="${cm}" onchange="applyExpenseFilters()" style="width:100%;padding:8px 10px;border:1px solid #CBD5E1;border-radius:8px;font-size:12.5px;" />

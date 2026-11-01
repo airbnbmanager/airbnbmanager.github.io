@@ -140,7 +140,7 @@ window.renderLaundry = async function() {
     <div class="card">
       <h1>🧺 Laundry Tracker</h1>
       <div class="sub">${(records||[]).length} records — ${currentMonth}</div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;">
+      <div class="laundry-action-buttons" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;">
         <button onclick="renderAddLaundry()">➕ Add Laundry</button>
         <button onclick="showLaundryReport()" style="background:#8B5CF6;color:#fff;">📊 Report</button>
         <button onclick="openVendorReportModal()" style="background:#059669;color:#fff;">📄 Vendor PDF</button>
@@ -150,7 +150,7 @@ window.renderLaundry = async function() {
     </div>
 
     <div class="card">
-      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;">
+      <div class="laundry-kpi-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;">
         <div class="kpi-tile" style="border-left:4px solid #3B82F6;background:rgba(59,130,246,0.08);">
           <div class="kpi-num" style="color:#3B82F6;">₹${totalAmount.toLocaleString('en-IN')}</div>
           <div class="kpi-sub">Total Amount</div>

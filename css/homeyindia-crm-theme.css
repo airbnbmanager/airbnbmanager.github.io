@@ -1351,19 +1351,88 @@ html, body {
     box-sizing: border-box !important;
   }
 
-  /* 2. All tables MUST remain real tables (NEVER display: block!) */
-  table,
-  .table,
+  /* 2. All tables MUST remain real tables with guaranteed minimum width (No squashed columns or 1-word-per-line text!) */
+  table:not(#dash-tab-flow table),
+  .table:not(#dash-tab-flow table),
   .data-table,
   .bookings-table,
   .audit-table,
   .table-wrap table,
-  .card table,
+  .card table:not(#dash-tab-flow table):not(.hh-timeline-table),
   .dash-chart-card table {
     display: table !important;
-    width: 100% !important;
+    width: max-content !important;
+    min-width: 100% !important;
     border-collapse: collapse !important;
     table-layout: auto !important;
+  }
+
+  table:not(#dash-tab-flow table) th,
+  table:not(#dash-tab-flow table) td {
+    white-space: nowrap !important;
+    padding: 8px 12px !important;
+    font-size: 12px !important;
+    vertical-align: middle !important;
+  }
+
+  table:not(#dash-tab-flow table) th {
+    background: #F8FAFC !important;
+    color: #475569 !important;
+    font-weight: 700 !important;
+    font-size: 11px !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.3px !important;
+  }
+
+  table:not(#dash-tab-flow table) td.wrap,
+  table:not(#dash-tab-flow table) td[style*="max-width"] {
+    white-space: normal !important;
+    min-width: 150px !important;
+  }
+
+  /* 🧺 Laundry Page Mobile Refinements */
+  .laundry-action-buttons button {
+    flex: 1 1 calc(50% - 6px) !important;
+    padding: 8px 10px !important;
+    font-size: 11.5px !important;
+    justify-content: center !important;
+  }
+  .laundry-action-buttons input[type="month"] {
+    flex: 1 1 100% !important;
+    width: 100% !important;
+    padding: 8px !important;
+  }
+  .laundry-kpi-grid {
+    grid-template-columns: repeat(3, 1fr) !important;
+    gap: 6px !important;
+  }
+  .laundry-kpi-grid .kpi-tile {
+    padding: 8px 6px !important;
+    border-radius: 8px !important;
+    min-width: 0 !important;
+  }
+  .laundry-kpi-grid .kpi-num {
+    font-size: 15px !important;
+  }
+  .laundry-kpi-grid .kpi-sub {
+    font-size: 9.5px !important;
+    margin-top: 2px !important;
+    white-space: normal !important;
+  }
+
+  /* 💼 Expenses Hub Mobile Refinements */
+  .exp-action-btn-group button {
+    flex: 1 1 calc(50% - 6px) !important;
+    padding: 8px 10px !important;
+    font-size: 11.5px !important;
+    justify-content: center !important;
+  }
+  .exp-filter-grid {
+    grid-template-columns: 1fr 1fr !important;
+    gap: 8px !important;
+  }
+  .exp-filter-grid > .form-group:last-child {
+    grid-column: span 2 !important;
   }
 
   /* Thead & Tbody must preserve normal tabular layout */
