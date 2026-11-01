@@ -12,7 +12,7 @@ Disallow: /qr.html
 Disallow: /rate-manager.html
 Disallow: /upi.html
 
-# AI Crawlers & LLM Indexing (Perplexity, ChatGPT, Claude, Gemini)
+# AI Crawlers & LLM Indexing (Perplexity, ChatGPT, Claude, Gemini, Apple, Meta, Cohere)
 User-agent: GPTBot
 Allow: /
 
@@ -30,5 +30,21 @@ Allow: /
 
 User-agent: anthropic-ai
 Allow: /
+
+User-agent: Applebot-Extended
+Allow: /
+
+User-agent: meta-externalagent
+Allow: /
+
+User-agent: cohere-ai
+Allow: /
+
+User-agent: Bytespider
+Allow: /
+
+# GEO Machine-Readable Directives for LLMs
+# https://uniquehavenhomesstay.com/llms.txt
+# https://uniquehavenhomesstay.com/llms-full.txt
 
 Sitemap: https://uniquehavenhomesstay.com/sitemap.xml
