@@ -1540,21 +1540,27 @@ html, body {
     box-sizing: border-box !important;
   }
 
-  /* Month Grid Stat Cards on Mobile */
-  .stat-grid,
+  /* Month Grid Stat Cards on Mobile — Horizontal Compact Ribbon */
   .cal-stat-grid {
-    grid-template-columns: repeat(2, 1fr) !important;
+    display: flex !important;
+    overflow-x: auto !important;
+    grid-template-columns: none !important;
     gap: 8px !important;
+    padding-bottom: 4px !important;
+    margin-bottom: 10px !important;
+    -webkit-overflow-scrolling: touch !important;
   }
-  .stat-card {
-    padding: 10px 12px !important;
+  .cal-stat-grid .stat-card {
+    min-width: 105px !important;
+    padding: 8px 10px !important;
+    flex-shrink: 0 !important;
   }
-  .stat-num {
-    font-size: 1.25rem !important;
+  .cal-stat-grid .stat-num {
+    font-size: 15px !important;
     line-height: 1.2 !important;
   }
-  .stat-label {
-    font-size: 0.72rem !important;
+  .cal-stat-grid .stat-label {
+    font-size: 9.5px !important;
   }
 
   /* Calendar Toolbar wrap */

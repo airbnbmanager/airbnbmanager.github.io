@@ -530,40 +530,57 @@ async function renderReports() {
 
   // ═══ HEADER ═══
   let html = `
-    <div class="card" style="padding:14px;border-radius:14px;">
-      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
+    <div class="card cal-main-header-card" style="padding:14px;border-radius:14px;margin-bottom:12px;">
+      <!-- Row 1: Month Title & Unified Navigation Pill (Never wraps apart) -->
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap;">
         <div>
-          <h1 style="margin:0;font-size:22px;font-weight:800;color:var(--dark);">📆 ${mName} ${yr}</h1>
-          <div class="sub" style="margin-top:2px;">${selRoom === 'all' ? 'All Properties (' + allRooms.length + ')' : allRooms.find(r => r.room_id === selRoom)?.nickname || selRoom} &bull; <strong>${occ}%</strong> Occupancy</div>
-        </div>
-        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
-          <div class="hh-cal-toggle-group" style="margin-right:6px;">
-            <button type="button" class="hh-cal-toggle-btn" onclick="setCalViewMode('timeline')" title="Homeyhuts Multi-Property Gantt Timeline">
-              <i class="ti ti-layout-kanban"></i> <span>Unified Timeline</span>
-            </button>
-            <button type="button" class="hh-cal-toggle-btn active" onclick="setCalViewMode('grid')" title="Classic Month Grid View">
-              <i class="ti ti-calendar-month"></i> <span>Month Grid</span>
-            </button>
+          <h1 style="margin:0;font-size:20px;font-weight:900;color:var(--dark);letter-spacing:-0.3px;display:flex;align-items:center;gap:6px;">
+            <span>📆</span> ${mName} ${yr}
+          </h1>
+          <div class="sub" style="margin-top:2px;font-size:12px;color:#64748B;">
+            ${selRoom === 'all' ? 'All Properties (' + allRooms.length + ')' : allRooms.find(r => r.room_id === selRoom)?.nickname || selRoom} &bull; <strong style="color:#0284C7;">${occ}% Occupancy</strong>
           </div>
-          <button class="btn-sm secondary" onclick="chMo(-1)" title="Previous Month">◀</button>
-          <button class="btn-sm secondary" onclick="calGoToday()" title="Current Month">Today</button>
-          <button class="btn-sm secondary" onclick="chMo(1)" title="Next Month">▶</button>
-          <button class="btn-sm outline" onclick="renderReports()" title="Refresh live data">🔄</button>
-          <button class="btn-sm" style="background:#0EA5E9;color:#fff;border:none;border-radius:8px;font-weight:700;padding:6px 14px;box-shadow:0 2px 6px rgba(14,165,233,0.25);cursor:pointer;display:inline-flex;align-items:center;gap:6px;" onclick="if(window.renderAddBooking) renderAddBooking();"><i class="ti ti-plus"></i> New Booking</button>
+        </div>
+
+        <!-- Single unified month navigation group -->
+        <div style="display:inline-flex;align-items:center;background:#F1F5F9;border:1px solid #CBD5E1;border-radius:8px;padding:2px;flex-shrink:0;">
+          <button type="button" class="btn-cal-nav" onclick="chMo(-1)" title="Previous Month" style="border:none;background:transparent;padding:6px 12px;font-size:13px;font-weight:800;color:#0F172A;cursor:pointer;border-radius:6px;">‹</button>
+          <button type="button" class="btn-cal-nav" onclick="calGoToday()" title="Current Month" style="border:none;background:#FFFFFF;padding:6px 14px;font-size:11.5px;font-weight:800;color:#0284C7;cursor:pointer;border-radius:6px;box-shadow:0 1px 3px rgba(0,0,0,0.08);">Today</button>
+          <button type="button" class="btn-cal-nav" onclick="chMo(1)" title="Next Month" style="border:none;background:transparent;padding:6px 12px;font-size:13px;font-weight:800;color:#0F172A;cursor:pointer;border-radius:6px;">›</button>
+          <button type="button" class="btn-cal-nav" onclick="renderReports()" title="Refresh live data" style="border:none;background:transparent;padding:6px 8px;font-size:12px;color:#475569;cursor:pointer;border-radius:6px;border-left:1px solid #E2E8F0;margin-left:2px;">🔄</button>
         </div>
       </div>
 
-      <!-- PLATFORMS / CHANNELS COLOR LEGEND (REMOVED UNWANTED STATUSES) -->
-      <div style="margin-top:12px;padding-top:10px;border-top:1px solid #E2E8F0;display:flex;align-items:center;gap:16px;flex-wrap:wrap;font-size:12px;color:#475569;">
-        <span style="font-weight:800;color:#0F172A;text-transform:uppercase;letter-spacing:0.4px;">Platforms:</span>
-        <span style="display:inline-flex;align-items:center;gap:6px;"><span style="width:11px;height:11px;border-radius:3px;background:#0284C7;display:inline-block;"></span> <strong>Direct / Offline</strong></span>
-        <span style="display:inline-flex;align-items:center;gap:6px;"><span style="width:11px;height:11px;border-radius:3px;background:#FF385C;display:inline-block;"></span> <strong>Airbnb</strong></span>
-        <span style="display:inline-flex;align-items:center;gap:6px;"><span style="width:11px;height:11px;border-radius:3px;background:#003580;display:inline-block;"></span> <strong>Booking.com</strong></span>
-        <span style="display:inline-flex;align-items:center;gap:6px;"><span style="width:11px;height:11px;border-radius:3px;background:#7C3AED;display:inline-block;"></span> <strong>Agoda</strong></span>
-        <span style="display:inline-flex;align-items:center;gap:6px;"><span style="width:11px;height:11px;border-radius:3px;background:#475569;display:inline-block;"></span> <strong>Blocked</strong></span>
-        <span style="height:14px;width:1px;background:#CBD5E1;display:inline-block;margin:0 4px;"></span>
-        <span style="display:inline-flex;align-items:center;gap:5px;"><span style="background:#D1FAE5;color:#065F46;border:1px solid #86EFAC;border-radius:4px;padding:1px 6px;font-size:10px;font-weight:800;">✓ Paid</span> Full Balance Settled</span>
-        <span style="display:inline-flex;align-items:center;gap:5px;"><span style="background:#FEF3C7;color:#92400E;border:1px solid #FCD34D;border-radius:4px;padding:1px 6px;font-size:10px;font-weight:800;">⚠️ ₹ Due</span> Payment Outstanding</span>
+      <!-- Row 2: View Switcher & Property Filter (Duplicate New Booking button removed) -->
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">
+        <div class="hh-cal-toggle-group" style="margin:0;">
+          <button type="button" class="hh-cal-toggle-btn" onclick="setCalViewMode('timeline')" title="Homeyhuts Multi-Property Gantt Timeline">
+            <i class="ti ti-layout-kanban"></i> <span>Unified Timeline</span>
+          </button>
+          <button type="button" class="hh-cal-toggle-btn active" onclick="setCalViewMode('grid')" title="Classic Month Grid View">
+            <i class="ti ti-calendar-month"></i> <span>Month Grid</span>
+          </button>
+        </div>
+
+        <div>
+          <select onchange="window._calRoom = this.value; renderReports();" style="padding:6px 12px;border-radius:8px;border:1px solid #CBD5E1;background:#F8FAFC;font-size:12px;font-weight:700;color:#0F172A;cursor:pointer;">
+            ${allRooms.length > 0 ? `<option value="all" ${selRoom==='all'?'selected':''}>All Properties (${allRooms.length})</option>` : ''}
+            ${allRooms.map(r => `<option value="${r.room_id}" ${selRoom===r.room_id?'selected':''}>${escapeHtml(r.nickname || r.property_name || r.unit_no)}</option>`).join('')}
+          </select>
+        </div>
+      </div>
+
+      <!-- PLATFORMS / CHANNELS COLOR LEGEND -->
+      <div style="margin-top:12px;padding-top:10px;border-top:1px solid #E2E8F0;display:flex;align-items:center;gap:12px;flex-wrap:wrap;font-size:11.5px;color:#475569;">
+        <span style="font-weight:800;color:#0F172A;text-transform:uppercase;letter-spacing:0.4px;font-size:11px;">Platforms:</span>
+        <span style="display:inline-flex;align-items:center;gap:5px;"><span style="width:10px;height:10px;border-radius:3px;background:#0284C7;display:inline-block;"></span> <strong>Direct / Offline</strong></span>
+        <span style="display:inline-flex;align-items:center;gap:5px;"><span style="width:10px;height:10px;border-radius:3px;background:#FF385C;display:inline-block;"></span> <strong>Airbnb</strong></span>
+        <span style="display:inline-flex;align-items:center;gap:5px;"><span style="width:10px;height:10px;border-radius:3px;background:#003580;display:inline-block;"></span> <strong>Booking.com</strong></span>
+        <span style="display:inline-flex;align-items:center;gap:5px;"><span style="width:10px;height:10px;border-radius:3px;background:#7C3AED;display:inline-block;"></span> <strong>Agoda</strong></span>
+        <span style="display:inline-flex;align-items:center;gap:5px;"><span style="width:10px;height:10px;border-radius:3px;background:#475569;display:inline-block;"></span> <strong>Blocked</strong></span>
+        <span style="height:14px;width:1px;background:#CBD5E1;display:inline-block;margin:0 2px;"></span>
+        <span style="display:inline-flex;align-items:center;gap:4px;"><span style="background:#D1FAE5;color:#065F46;border:1px solid #86EFAC;border-radius:4px;padding:1px 5px;font-size:9.5px;font-weight:800;">✓ Paid</span> Full Settled</span>
+        <span style="display:inline-flex;align-items:center;gap:4px;"><span style="background:#FEF3C7;color:#92400E;border:1px solid #FCD34D;border-radius:4px;padding:1px 5px;font-size:9.5px;font-weight:800;">⚠️ Due</span> Outstanding</span>
       </div>
     </div>
 
@@ -758,44 +775,6 @@ async function renderReports() {
         <div class="cal-grid">${cellsHtml}</div>
       </div>`;
   });
-
-  // ═══ LEGEND ═══
-  html += `
-    <div class="card" style="padding:12px;text-align:center;border-radius:12px;margin-bottom:14px;">
-      <div style="display:inline-flex;gap:14px;flex-wrap:wrap;justify-content:center;font-size:12px;font-weight:600;">
-        <span><span style="display:inline-block;width:14px;height:14px;background:#FF385C;border-radius:4px;vertical-align:middle;margin-right:4px;"></span> 🌐 Airbnb</span>
-        <span><span style="display:inline-block;width:14px;height:14px;background:#003580;border-radius:4px;vertical-align:middle;margin-right:4px;"></span> 🏨 Booking.com</span>
-        <span><span style="display:inline-block;width:14px;height:14px;background:#0284C7;border-radius:4px;vertical-align:middle;margin-right:4px;"></span> 🏠 Direct (Offline)</span>
-        <span><span style="display:inline-block;width:14px;height:14px;background:#475569;border-radius:4px;vertical-align:middle;margin-right:4px;"></span> 🔒 Blocked</span>
-        <span><span style="display:inline-block;width:14px;height:14px;background:#fff;border:1px solid #ccc;border-radius:4px;vertical-align:middle;margin-right:4px;"></span> ⚪ Free</span>
-        <span><span style="display:inline-block;width:14px;height:14px;background:#FEE2E2;border:1px solid #FF385C;border-radius:4px;vertical-align:middle;margin-right:4px;"></span> 📍 Today</span>
-        <span><span style="display:inline-block;width:14px;height:14px;background:#FEF3C7;border:1px solid #F59E0B;border-radius:4px;vertical-align:middle;margin-right:4px;text-align:center;line-height:14px;font-size:10px;">⭐</span> ⭐ Reviewed Guest</span>
-      </div>
-    </div>
-
-    <!-- UPCOMING & ACTIVE STAYS -->
-    <div class="stat-grid" style="grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px;">
-      <div class="stat-card" style="border-left:4px solid var(--blue);border-radius:12px;">
-        <div class="stat-label">📅 Next 7 Days (${upcoming7.length})</div>
-        ${upcoming7.slice(0, 5).map(x => `
-          <div style="font-size:12px;margin-top:4px;padding:4px 0;border-bottom:1px solid var(--border);">
-            <strong style="cursor:pointer;color:var(--primary);" onclick="openBookingDetails('${x.booking_id}')">${x.guest_name || '-'}</strong> — ${bName(x)}<br>
-            <small style="color:var(--muted);">${x.check_in} &bull; ${x.check_in_time || '2 PM'}</small>
-          </div>
-        `).join('') || '<div class="sub" style="margin:4px 0 0;">None scheduled</div>'}
-      </div>
-
-      <div class="stat-card" style="border-left:4px solid var(--primary);border-radius:12px;">
-        <div class="stat-label">🔄 Open Stays (${openStays.length})</div>
-        ${openStays.slice(0, 5).map(x => `
-          <div style="font-size:12px;margin-top:4px;padding:4px 0;border-bottom:1px solid var(--border);">
-            <strong style="cursor:pointer;color:var(--primary);" onclick="openBookingDetails('${x.booking_id}')">${x.guest_name || '-'}</strong> — ${bName(x)}<br>
-            <small style="color:var(--muted);">Since ${x.check_in} &bull; Till ${x.check_out || 'Open'}</small>
-          </div>
-        `).join('') || '<div class="sub" style="margin:4px 0 0;">None active</div>'}
-      </div>
-    </div>
-  `;
 
   // Inject CSS
   let cssEl = document.getElementById('cal-airbnb-css');
