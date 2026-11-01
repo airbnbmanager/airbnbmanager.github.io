@@ -1338,7 +1338,7 @@ async function loginWithEmail() {
 // ============ TABLER VECTOR ICONS HELPER ============
 function getTablerIcon(key) {
   const map = {
-    dashboard: 'ti-layout-dashboard',
+    dashboard: 'ti-calendar-event',
     bookings: 'ti-bed',
     reports: 'ti-calendar-event',
     calendar: 'ti-calendar',
@@ -1403,7 +1403,7 @@ function renderShell(content, activePage = 'dashboard') {
   const UHHS_HUBS = [
     {
       id: 'dashboard',
-      label: '🏠 Dashboard',
+      label: '🏠 Today · Operations',
       page: 'dashboard',
       pages: ['dashboard', 'analytics', 'dailyReport'],
       tabs: []
@@ -1499,7 +1499,7 @@ function renderShell(content, activePage = 'dashboard') {
   // Minimal, uncluttered left drawer list as requested by user
   if (isOwner) {
     nav = [
-      ['dashboard', 'Dashboard'],
+      ['dashboard', 'Today · Operations'],
       ['bookings', 'Bookings / Calendar'],
       ['rooms', 'Properties'],
       ['expenses', 'Expenses'],
@@ -1512,7 +1512,7 @@ function renderShell(content, activePage = 'dashboard') {
     ];
   } else if (SESSION.role === 'moderator') {
     nav = [
-      ['dashboard', 'Dashboard'],
+      ['dashboard', 'Today · Operations'],
       ['bookings', 'Bookings / Calendar'],
       ['rooms', 'Properties'],
       ['employees', 'HRMS & Tasks'],
@@ -1521,7 +1521,7 @@ function renderShell(content, activePage = 'dashboard') {
     ];
   } else if (isCheckinMgr || isCheckin) {
     nav = [
-      ['dashboard', 'Dashboard'],
+      ['dashboard', 'Today · Operations'],
       ['bookings', 'Bookings / Calendar'],
       ['rooms', 'Properties'],
       ['whatsapp-hub', 'WhatsApp Hub'],
@@ -1529,7 +1529,7 @@ function renderShell(content, activePage = 'dashboard') {
     ];
   } else if (isBookingStaff) {
     nav = [
-      ['dashboard', 'Dashboard'],
+      ['dashboard', 'Today · Operations'],
       ['bookings', 'Bookings / Calendar'],
       ['rooms', 'Properties'],
       ['whatsapp-hub', 'WhatsApp Hub'],
@@ -1537,14 +1537,14 @@ function renderShell(content, activePage = 'dashboard') {
     ];
   } else if (isViewer) {
     nav = [
-      ['dashboard', 'Dashboard'],
+      ['dashboard', 'Today · Operations'],
       ['bookings', 'Bookings / Calendar'],
       ['rooms', 'Properties'],
       ['help', 'Help & Guide'],
     ];
   } else {
     nav = [
-      ['dashboard', 'Dashboard'],
+      ['dashboard', 'Today · Operations'],
       ['bookings', 'Bookings / Calendar'],
       ['rooms', 'Properties'],
       ['expenses', 'Expenses'],
@@ -1814,7 +1814,7 @@ function renderShell(content, activePage = 'dashboard') {
 
           <!-- Desktop Center Navigation Links (HomeyHuts Style) -->
           <nav class="topbar-desktop-nav">
-            <a href="javascript:void(0)" onclick="navigate('dashboard')" class="${activePage==='dashboard'?'active':''}"><i class="ti ti-layout-dashboard"></i> Dashboard</a>
+            <a href="javascript:void(0)" onclick="navigate('dashboard')" class="${activePage==='dashboard'?'active':''}"><i class="ti ti-calendar-event"></i> Today</a>
             <a href="javascript:void(0)" onclick="navigate('bookings')" class="${(activePage==='bookings'||activePage==='calendar'||activePage==='reports'||activePage==='pendingApprovals')?'active':''}"><i class="ti ti-calendar-check"></i> Bookings &amp; Calendar</a>
             <a href="javascript:void(0)" onclick="navigate('rooms')" class="${(activePage==='rooms'||activePage==='flats'||activePage==='showcase-admin'||activePage==='airbnb-sync')?'active':''}"><i class="ti ti-building-community"></i> Properties</a>
             <a href="javascript:void(0)" onclick="navigate('expenses')" class="${(activePage==='expenses'||activePage==='laundry'||activePage==='maintenance')?'active':''}"><i class="ti ti-receipt-2"></i> Expenses</a>

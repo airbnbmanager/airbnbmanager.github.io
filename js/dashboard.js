@@ -785,6 +785,90 @@ async function renderDashboard() {
   const { lateCheckouts, arrivingSoon } = computeAttention(realCheckins, realCheckouts);
   const totalAttention = lateCheckouts.length + arrivingSoon.length;
 
+  // ═══════════════════════════════════════════════════════════
+  // 🌟 AIRBNB HOST "TODAY" FOLLOW-UPS GENERATOR (Matches Airbnb Screenshot)
+  // ═══════════════════════════════════════════════════════════
+  const airbnbFollowupList = [];
+
+  // 1. Checkouts within last 14 days without host review
+  const fourteenDaysAgo = dateAdd(today, -14);
+  const checkoutReviewsPending = allBookings.filter(b => {
+    if (b.is_cancelled || !b.check_out) return false;
+    return b.check_out >= fourteenDaysAgo && b.check_out < today && !b.host_review_completed;
+  }).sort((a, b) => (b.check_out || '').localeCompare(a.check_out || ''));
+
+  checkoutReviewsPending.forEach(b => {
+    const dOut = new Date(b.check_out + 'T00:00:00');
+    const dNow = new Date(today + 'T00:00:00');
+    const elapsedDays = Math.max(0, Math.round((dNow - dOut) / (1000 * 60 * 60 * 24)));
+    const daysLeft = Math.max(1, 14 - elapsedDays);
+    const guestFirstName = (b.guest_name || 'Guest').trim().split(' ')[0];
+
+    airbnbFollowupList.push({
+      type: 'review',
+      bookingId: b.booking_id,
+      booking: b,
+      daysBadge: `${daysLeft} days left`,
+      title: `Leave ${escapeHtml(guestFirstName)} a review`,
+      subtitle: window.getAirbnbPropertySubtitle(b),
+      actionLabel: 'Review',
+      priority: 1
+    });
+  });
+
+  // 2. Missing ID proofs for in-house or arriving guests
+  const idFollowups = allBookings.filter(b => {
+    if (b.is_cancelled || (b.guest_name || '').toLowerCase().includes('blocked')) return false;
+    const isTodayArrival = (b.check_in === today);
+    const isInHouse = (b.check_in <= today && (b.check_out > today || !b.check_out));
+    if (!isTodayArrival && !isInHouse) return false;
+    const hasId = (b.id_proof_photo_paths || b.id_proof_photo_path || '').split(',').filter(Boolean).length > 0;
+    return !hasId;
+  });
+
+  idFollowups.forEach(b => {
+    airbnbFollowupList.push({
+      type: 'id',
+      bookingId: b.booking_id,
+      booking: b,
+      daysBadge: 'Action needed',
+      title: `Upload ID proof for ${escapeHtml(b.guest_name || 'Guest')}`,
+      subtitle: window.getAirbnbPropertySubtitle(b),
+      actionLabel: 'Upload ID',
+      priority: 2
+    });
+  });
+
+  // 3. Balance payment collections
+  const dueFollowups = allBookings.filter(b => {
+    if (b.is_cancelled) return false;
+    const isTodayStay = (b.check_in === today || b.check_out === today || (b.check_in < today && b.check_out > today));
+    if (!isTodayStay) return false;
+    const tot = b.total_amount || 0;
+    const pd = paidMap[b.booking_id] || 0;
+    return (tot - pd) > 0.99;
+  });
+
+  dueFollowups.forEach(b => {
+    const tot = b.total_amount || 0;
+    const pd = paidMap[b.booking_id] || 0;
+    const bal = Math.round(tot - pd);
+    airbnbFollowupList.push({
+      type: 'balance',
+      bookingId: b.booking_id,
+      booking: b,
+      daysBadge: 'Payment pending',
+      title: `Collect ₹${bal.toLocaleString('en-IN')} balance from ${escapeHtml(b.guest_name || 'Guest')}`,
+      subtitle: window.getAirbnbPropertySubtitle(b),
+      actionLabel: 'Collect',
+      priority: 3
+    });
+  });
+
+  // Sort: reviews first (by days left), then IDs, then balance
+  airbnbFollowupList.sort((a, b) => a.priority - b.priority);
+  window._airbnbFollowupsTotal = airbnbFollowupList.length;
+
   renderShell(`
     <style id="dash-custom-styles">
       .dash-wrap { max-width: 1360px; margin: 0 auto; padding: 0 4px; }
@@ -1427,10 +1511,109 @@ async function renderDashboard() {
         </div>
       ` : ''}
 
+      <!-- ═══════════════════════════════════════════════════════════ -->
+      <!-- 🏡 AIRBNB HOST "TODAY" EXECUTIVE HUB (MATCHES OFFICIAL APP)  -->
+      <!-- ═══════════════════════════════════════════════════════════ -->
+      <div class="airbnb-today-portal" style="max-width:860px;margin:0 auto 28px;padding:0 8px;">
+        <!-- Top Pill Bar: Today | Upcoming | Filter -->
+        <div style="display:flex;align-items:center;justify-content:center;gap:12px;margin:8px 0 24px;position:relative;">
+          <div style="display:inline-flex;background:#F1F5F9;padding:4px;border-radius:999px;border:1px solid #E2E8F0;">
+            <button type="button" class="btn-sm" style="background:#222222;color:#ffffff;border:none;border-radius:999px;padding:7px 22px;font-size:13.5px;font-weight:700;box-shadow:0 2px 6px rgba(0,0,0,0.15);cursor:pointer;">
+              Today
+            </button>
+            <button type="button" class="btn-sm" onclick="navigate('bookings')" style="background:transparent;color:#475569;border:none;border-radius:999px;padding:7px 22px;font-size:13.5px;font-weight:600;cursor:pointer;">
+              Upcoming
+            </button>
+          </div>
+
+          <button type="button" onclick="window.openPropertyFilterDialog()" title="Filter by property" style="width:38px;height:38px;border-radius:50%;border:1.5px solid #CBD5E1;background:#ffffff;color:#1E293B;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 1px 3px rgba(0,0,0,0.06);transition:all 0.15s ease;">
+            <i class="ti ti-adjustments-horizontal" style="font-size:17px;"></i>
+          </button>
+
+          <a href="#hhAnalyticsSection" style="padding:6px 12px;font-size:12px;font-weight:700;color:#0284C7;background:#F0F9FF;border:1px solid #BAE6FD;border-radius:999px;text-decoration:none;display:inline-flex;align-items:center;gap:4px;">
+            <span>📊 Analytics &darr;</span>
+          </a>
+        </div>
+
+        ${globalProp ? `
+          <div style="margin:0 0 16px;background:#FFF5F4;border:1px solid #FECACA;padding:9px 14px;border-radius:12px;display:flex;align-items:center;justify-content:space-between;gap:10px;">
+            <div style="display:flex;align-items:center;gap:8px;font-size:12.5px;font-weight:700;color:#991B1B;">
+              <span>🏛️</span>
+              <span>Filtered: <strong>${escapeHtml((window._globalRoomsList || []).find(r => (r.room_id||'').toUpperCase() === globalProp.toUpperCase())?.nickname || globalProp)}</strong></span>
+            </div>
+            <button type="button" onclick="window.handleGlobalPropertyFilterChange('')" style="background:#fff;border:1px solid #FECACA;color:#EA3829;font-weight:800;font-size:11.5px;padding:3px 10px;border-radius:999px;cursor:pointer;">
+              Show All ✕
+            </button>
+          </div>
+        ` : ''}
+
+        <!-- Hero Title: You have X follow-ups -->
+        <h1 style="font-size:26px;font-weight:800;color:#111827;text-align:center;margin:0 0 20px;letter-spacing:-0.5px;font-family:'Plus Jakarta Sans',sans-serif;">
+          You have ${airbnbFollowupList.length} follow-up${airbnbFollowupList.length === 1 ? '' : 's'}
+        </h1>
+
+        <!-- Follow-ups List (Airbnb Card Treatment) -->
+        <div class="airbnb-followups-feed" style="display:flex;flex-direction:column;gap:10px;margin-bottom:28px;">
+          ${airbnbFollowupList.length === 0 ? `
+            <div style="background:#ffffff;border:1px solid #E2E8F0;border-radius:16px;padding:32px 16px;text-align:center;box-shadow:0 1px 3px rgba(0,0,0,0.03);">
+              <div style="font-size:30px;margin-bottom:6px;">🎉</div>
+              <div style="font-size:15px;font-weight:800;color:#111827;">All follow-ups complete!</div>
+              <div style="font-size:12.5px;color:#64748B;margin-top:2px;">No pending guest reviews, missing IDs, or unpaid balances for today.</div>
+            </div>
+          ` : `
+            ${airbnbFollowupList.map(item => {
+              const b = item.booking;
+              return `
+                <div class="airbnb-followup-row" onclick="openBookingFromDashboard('${item.bookingId}')" style="background:#ffffff;border:1px solid #E2E8F0;border-radius:16px;padding:14px 18px;display:flex;align-items:center;justify-content:space-between;gap:14px;cursor:pointer;box-shadow:0 1px 3px rgba(0,0,0,0.03);transition:all 0.15s ease;">
+                  <div style="flex:1;min-width:0;">
+                    <div style="font-size:11.5px;color:#717171;font-weight:600;margin-bottom:2px;display:flex;align-items:center;gap:6px;">
+                      <span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:${item.type === 'review' ? '#3B82F6' : (item.type === 'id' ? '#F59E0B' : '#EF4444')};"></span>
+                      <span>${item.daysBadge}</span>
+                    </div>
+                    <div style="font-size:15px;font-weight:700;color:#111827;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+                      ${item.title}
+                    </div>
+                    <div style="font-size:12px;color:#717171;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+                      ${escapeHtml(item.subtitle)}
+                    </div>
+                  </div>
+                  <div style="flex-shrink:0;">
+                    ${window.renderAirbnbOverlappingMedia(b)}
+                  </div>
+                </div>
+              `;
+            }).join('')}
+          `}
+        </div>
+
+        <!-- Today's Reservations Subheading & Quick Cards -->
+        <div style="display:flex;align-items:center;justify-content:space-between;margin:0 0 12px;padding:0 2px;">
+          <h2 style="font-size:18px;font-weight:800;color:#111827;margin:0;letter-spacing:-0.3px;">
+            Today's reservations (${totalTodayReservations})
+          </h2>
+          <div style="font-size:12px;color:#64748B;font-weight:600;">
+            ${realCheckouts.length} out &bull; ${realCheckins.length} in &bull; ${activeNow.length} in-house
+          </div>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:32px;">
+          ${totalTodayReservations === 0 ? `
+            <div style="background:#ffffff;border:1px solid #E2E8F0;border-radius:16px;padding:24px 16px;text-align:center;">
+              <div style="font-size:24px;margin-bottom:4px;">🏖️</div>
+              <div style="font-size:13.5px;font-weight:700;color:#0F172A;">No guest movements scheduled for today</div>
+            </div>
+          ` : `
+            ${realCheckouts.map(b => window.renderAirbnbResCard(b, 'checkout')).join('')}
+            ${realCheckins.map(b => window.renderAirbnbResCard(b, 'checkin')).join('')}
+            ${activeNow.slice(0, 3).map(b => window.renderAirbnbResCard(b, 'inhouse')).join('')}
+          `}
+        </div>
+      </div>
+
       <!-- ======================================================== -->
       <!-- HOMEYHUTS VACATION RENTAL ANALYTICS & REVENUE DASHBOARD  -->
       <!-- ======================================================== -->
-      <div class="hh-analytics-wrap">
+      <div class="hh-analytics-wrap" id="hhAnalyticsSection">
         <!-- TOP FILTER BAR -->
         <div class="hh-analytics-filter-bar">
           <div class="hh-analytics-filters-left">
