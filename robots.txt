@@ -1,6 +1,16 @@
 User-agent: *
 Allow: /
 Disallow: /admin.html
+Disallow: /billing.html
+Disallow: /calendar.html
+Disallow: /guest.html
+Disallow: /nisha-sandbox.html
+Disallow: /pay.html
+Disallow: /phone-cleanup.html
+Disallow: /pricing_cards.html
+Disallow: /qr.html
+Disallow: /rate-manager.html
+Disallow: /upi.html
 
 # AI Crawlers & LLM Indexing (Perplexity, ChatGPT, Claude, Gemini)
 User-agent: GPTBot
@@ -22,7 +32,3 @@ User-agent: anthropic-ai
 Allow: /
 
 Sitemap: https://uniquehavenhomesstay.com/sitemap.xml
-
-# LLM & AI Generative Search Optimization Files (llmstxt.org)
-# https://uniquehavenhomesstay.com/llms.txt
-# https://uniquehavenhomesstay.com/llms-full.txt

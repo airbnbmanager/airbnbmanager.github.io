@@ -635,4 +635,15 @@
       <image:caption>Luxury Villa in Vishesh Khand, Gomti Nagar with 100% AC, WiFi and 24/7 caretaker</image:caption>
     </image:image>
   </url>
+  <url>
+    <loc>https://uniquehavenhomesstay.com/the-luxe-haven.html</loc>
+    <lastmod>2026-10-07</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+    <image:image>
+      <image:loc>https://uniquehavenhomesstay.com/assets/properties/the-luxe-haven/cover.jpg</image:loc>
+      <image:title>The Luxe Haven - Luxury Homestay in Lucknow</image:title>
+      <image:caption>1BHK Luxury Flat in Lucknow with AC, WiFi and modern amenities</image:caption>
+    </image:image>
+  </url>
 </urlset>
