@@ -778,11 +778,25 @@ async function renderInvestorReport(investorId, roomId, month) {
       <!-- ═══════════════════════════════════════════════════════════ -->
       <div class="inv-page inv-page-2">
         <div class="inv-page-content">
-          <!-- Page 2 Running Header -->
-          <div class="inv-running-header" style="display:flex;align-items:center;justify-content:space-between;background:#0F172A;color:#FFFFFF;padding:6px 12px;border-radius:6px;font-size:9.5px;font-weight:700;margin-bottom:12px;">
-            <div>THE UNIQUE HAVEN HOMES PVT. LTD. · CIN: U55101UP2026PTC244637</div>
-            <div style="color:#FDE047;">${room?.nickname || '-'} · ${monthYear}</div>
-            <div>STATEMENT PAGE 2 OF 3</div>
+          <!-- Page 2 Corporate Sub-Banner Header -->
+          <div class="inv-running-header" style="background:linear-gradient(135deg,#0F172A 0%,#1E293B 100%);color:#FFFFFF;padding:10px 14px;border-radius:8px;border-bottom:2.5px solid #EAB308;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;">
+            <div style="display:flex;align-items:center;gap:10px;">
+              <img src="https://uniquehavenhomesstay.com/assets/logo.png" onerror="this.src='assets/logo.png'" alt="TUHH Logo" style="width:28px;height:28px;border-radius:6px;background:#fff;padding:2px;box-shadow:0 1px 4px rgba(0,0,0,0.25);" />
+              <div>
+                <div style="font-size:11px;font-weight:900;letter-spacing:0.8px;color:#FFFFFF;text-transform:uppercase;line-height:1.2;">THE UNIQUE HAVEN HOMES PVT. LTD.</div>
+                <div style="font-size:8.5px;color:#94A3B8;letter-spacing:0.4px;">CIN: U55101UP2026PTC244637 · Investor Settlement Audit</div>
+              </div>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;">
+              <div style="font-size:10px;color:#E2E8F0;text-align:right;">
+                <span style="color:#94A3B8;font-size:8.5px;text-transform:uppercase;letter-spacing:0.5px;">Unit:</span> <strong style="color:#FDE047;">${room?.nickname || '-'}</strong>
+                <span style="color:#64748B;margin:0 4px;">|</span>
+                <span style="color:#FFFFFF;font-weight:700;">${monthYear.toUpperCase()}</span>
+              </div>
+              <span style="display:inline-block;padding:3px 8px;background:rgba(234,179,8,0.18);border:1px solid #EAB308;border-radius:12px;color:#FDE047;font-size:9px;font-weight:800;letter-spacing:0.6px;text-transform:uppercase;">
+                PAGE 2 OF 3
+              </span>
+            </div>
           </div>
 
           <div style="font-size:12px;font-weight:800;padding:6px 10px;background:#0F172A;color:#fff;border-radius:5px;display:flex;align-items:center;gap:6px;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">
@@ -969,8 +983,8 @@ async function renderInvestorReport(investorId, roomId, month) {
 
         <!-- Page 2 Running Footer -->
         <div class="inv-page-footer">
-          <div>Verified Hospitality Booking Ledger · Prorated Night Audit</div>
-          <div style="font-weight:700;">Page 2 of 3 · Channel Breakdown &amp; Stay Ledger</div>
+          <div>THE UNIQUE HAVEN HOMES PVT. LTD. · CIN: U55101UP2026PTC244637</div>
+          <div style="font-weight:700;">Page 2 of 3 · Verified Booking &amp; Stay Ledger</div>
         </div>
       </div>
 
@@ -986,11 +1000,25 @@ async function renderInvestorReport(investorId, roomId, month) {
       <!-- ═══════════════════════════════════════════════════════════ -->
       <div class="inv-page inv-page-3">
         <div class="inv-page-content">
-          <!-- Page 3 Running Header -->
-          <div class="inv-running-header" style="display:flex;align-items:center;justify-content:space-between;background:#0F172A;color:#FFFFFF;padding:6px 12px;border-radius:6px;font-size:9.5px;font-weight:700;margin-bottom:12px;">
-            <div>THE UNIQUE HAVEN HOMES PVT. LTD. · CIN: U55101UP2026PTC244637</div>
-            <div style="color:#FDE047;">${room?.nickname || '-'} · ${monthYear}</div>
-            <div>STATEMENT PAGE 3 OF 3</div>
+          <!-- Page 3 Corporate Sub-Banner Header -->
+          <div class="inv-running-header" style="background:linear-gradient(135deg,#0F172A 0%,#1E293B 100%);color:#FFFFFF;padding:10px 14px;border-radius:8px;border-bottom:2.5px solid #EAB308;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;">
+            <div style="display:flex;align-items:center;gap:10px;">
+              <img src="https://uniquehavenhomesstay.com/assets/logo.png" onerror="this.src='assets/logo.png'" alt="TUHH Logo" style="width:28px;height:28px;border-radius:6px;background:#fff;padding:2px;box-shadow:0 1px 4px rgba(0,0,0,0.25);" />
+              <div>
+                <div style="font-size:11px;font-weight:900;letter-spacing:0.8px;color:#FFFFFF;text-transform:uppercase;line-height:1.2;">THE UNIQUE HAVEN HOMES PVT. LTD.</div>
+                <div style="font-size:8.5px;color:#94A3B8;letter-spacing:0.4px;">CIN: U55101UP2026PTC244637 · Investor Settlement Audit</div>
+              </div>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;">
+              <div style="font-size:10px;color:#E2E8F0;text-align:right;">
+                <span style="color:#94A3B8;font-size:8.5px;text-transform:uppercase;letter-spacing:0.5px;">Unit:</span> <strong style="color:#FDE047;">${room?.nickname || '-'}</strong>
+                <span style="color:#64748B;margin:0 4px;">|</span>
+                <span style="color:#FFFFFF;font-weight:700;">${monthYear.toUpperCase()}</span>
+              </div>
+              <span style="display:inline-block;padding:3px 8px;background:rgba(234,179,8,0.18);border:1px solid #EAB308;border-radius:12px;color:#FDE047;font-size:9px;font-weight:800;letter-spacing:0.6px;text-transform:uppercase;">
+                PAGE 3 OF 3
+              </span>
+            </div>
           </div>
 
           <div style="font-size:12px;font-weight:800;padding:6px 10px;background:#0F172A;color:#fff;border-radius:5px;display:flex;align-items:center;gap:6px;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">
@@ -1120,14 +1148,14 @@ async function renderInvestorReport(investorId, roomId, month) {
                 </div>
               </div>
 
-              <!-- Signature 2: Managing Director -->
+              <!-- Signature 2: Director & Operations -->
               <div style="text-align:right;">
                 <div style="font-size:9.5px;color:#64748B;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:20px;">
                   Approved for Disbursement:
                 </div>
-                <div style="font-family:'Brush Script MT', cursive, sans-serif;font-size:18px;color:#1E3A8A;margin-bottom:2px;">Praveen Singh</div>
-                <div style="font-weight:800;font-size:11.5px;color:#0F172A;">PRAVEEN SINGH</div>
-                <div style="font-size:9.5px;color:#475569;">Managing Director &amp; Asset Operations</div>
+                <div style="font-family:'Brush Script MT', cursive, sans-serif;font-size:18px;color:#1E3A8A;margin-bottom:2px;">Firoz Khan</div>
+                <div style="font-weight:800;font-size:11.5px;color:#0F172A;">FIROZ KHAN</div>
+                <div style="font-size:9.5px;color:#475569;">Director &amp; Asset Operations</div>
                 <div style="font-size:8.5px;color:#64748B;">The Unique Haven Homes Pvt. Ltd.</div>
               </div>
             </div>
@@ -1155,8 +1183,8 @@ async function renderInvestorReport(investorId, roomId, month) {
 
         <!-- Page 3 Running Footer -->
         <div class="inv-page-footer">
-          <div>Official Corporate Statement · Confidential &amp; Legally Binding</div>
-          <div style="font-weight:700;">Page 3 of 3 · End of Statement</div>
+          <div>THE UNIQUE HAVEN HOMES PVT. LTD. · CIN: U55101UP2026PTC244637</div>
+          <div style="font-weight:700;">Page 3 of 3 · Operating Expenses &amp; Dual Certification</div>
         </div>
       </div>
 
@@ -1840,7 +1868,7 @@ window.shareInvestorReportWA = async function(investorId, roomId, selMonth) {
       'PDF statement available via CRM portal.' + NL + NL +
       '━━━━━━━━━━━━━━━━━━━━━' + NL +
       'Verified by: Nisha Khan (Accounts Controller)' + NL +
-      'Approved by: Praveen Singh (Managing Director)' + NL +
+      'Approved by: Firoz Khan (Director & Asset Operations)' + NL +
       '📞 +91 9450055554 · 🌐 uniquehavenhomesstay.com';
 
     if (finalPhone) {
