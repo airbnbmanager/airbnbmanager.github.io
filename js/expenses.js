@@ -264,8 +264,6 @@ async function renderExpenses() {
   const staffSummaryList = Object.values(staffExpenseMap).filter(s => s.totalOutflow > 0 || s.advancesPending > 0);
 
   renderShell(`
-    <div id="uhhs-od-balance-display" style="margin-bottom:14px;"></div>
-
     <!-- ─── HEADER & PRIMARY ACTION BUTTONS ─── -->
     <div class="card" style="margin-bottom:16px;">
       <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;">
