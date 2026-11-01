@@ -5813,117 +5813,209 @@ function renderAppMenu() {
   })[SESSION.role] || SESSION.role || 'Host & Administrator';
 
   const notifCount = window._pendingCount || 0;
+  const totalProps = (window._globalRoomsList || []).length || 18;
 
   const html = `
-    <div class="homeyhuts-menu-container">
-      <!-- Profile Header (Screenshot 1) -->
-      <div class="homeyhuts-profile-card" onclick="window.openPreferences && window.openPreferences()">
-        <div class="homeyhuts-avatar-circle">${initial}</div>
-        <div class="homeyhuts-profile-details">
-          <div class="homeyhuts-profile-name">${escapeHtml(shortName)}</div>
-          <div class="homeyhuts-profile-sub">Profile &amp; Settings · <span style="color:var(--primary);font-weight:700;">${roleLabel}</span></div>
+    <div class="tuhh-menu-wrap">
+      <!-- Profile Header Card -->
+      <div class="tuhh-profile-card" onclick="window.openPreferences && window.openPreferences()">
+        <div class="tuhh-avatar-circle">${initial}</div>
+        <div class="tuhh-profile-info">
+          <div class="tuhh-profile-name">${escapeHtml(shortName)}</div>
+          <div class="tuhh-profile-role"><span>●</span> ${roleLabel} · Account &amp; Settings</div>
         </div>
-        <div class="homeyhuts-chevron">›</div>
+        <i class="ti ti-chevron-right tuhh-chevron"></i>
       </div>
 
-      <!-- Menu Search & Spotlight Box -->
-      <div class="homeyhuts-menu-search-wrap">
-        <span class="homeyhuts-menu-search-icon">🔍</span>
-        <input type="text" id="menuLiveSearch" class="homeyhuts-menu-search-input" placeholder="Search menu, pages, features..." oninput="window.filterAppMenuRows(this.value)" autocomplete="off" />
-        <button type="button" class="homeyhuts-menu-palette-pill" onclick="window.openCommandPalette && window.openCommandPalette()" title="Open Command Palette (Press ⌘K or /)">
-          <kbd>⌘K</kbd>
-        </button>
+      <!-- Realtime Search Bar (Single Unified Search) -->
+      <div class="tuhh-menu-search-bar">
+        <i class="ti ti-search tuhh-search-icon"></i>
+        <input type="text" id="menuLiveSearch" placeholder="Search pages, features, actions..." oninput="window.filterAppMenuRows(this.value)" autocomplete="off" />
+        <kbd class="tuhh-kbd-pill" onclick="window.openCommandPalette && window.openCommandPalette()" title="Press Ctrl+K">⌘K</kbd>
       </div>
 
-      <!-- Menu List (Screenshot 1) -->
-      <div class="homeyhuts-menu-list">
-        <!-- Spotlight / Command Palette Fast Action -->
-        <div class="homeyhuts-menu-row homeyhuts-menu-spotlight-row" onclick="window.openCommandPalette && window.openCommandPalette()">
-          <span class="homeyhuts-row-icon">⚡</span>
-          <span class="homeyhuts-row-title">
-            <strong>Search Menu &amp; Spotlight</strong>
-            <span style="display:block;font-size:11.5px;color:var(--text-tertiary);font-weight:normal;">Fast jump to any page, booking, task or setting</span>
-          </span>
-          <kbd class="homeyhuts-menu-row-kbd">⌘K /</kbd>
-        </div>
+      <!-- SECTION 1: HOSPITALITY OPERATIONS -->
+      <div class="tuhh-menu-section">
+        <div class="tuhh-section-header">HOSPITALITY OPERATIONS</div>
+        <div class="tuhh-menu-group">
+          <div class="tuhh-menu-row" onclick="navigate('bookings')">
+            <div class="tuhh-icon-box" style="background:#EFF6FF;color:#2563EB;"><i class="ti ti-calendar-check"></i></div>
+            <div class="tuhh-row-content">
+              <div class="tuhh-row-title">Bookings &amp; Reservations</div>
+              <div class="tuhh-row-sub">Guest register, check-ins, checkouts &amp; invoices</div>
+            </div>
+            <i class="ti ti-chevron-right tuhh-chevron"></i>
+          </div>
 
-        <div class="homeyhuts-menu-row" onclick="window.notifications && window.notifications.openPanel()">
-          <span class="homeyhuts-row-icon">🔔</span>
-          <span class="homeyhuts-row-title">
-            Notifications
-            ${notifCount > 0 ? `<span class="homeyhuts-badge-pill">${notifCount}</span>` : ''}
-          </span>
-          <span class="homeyhuts-chevron">›</span>
-        </div>
+          <div class="tuhh-menu-row" onclick="navigate('calendar')">
+            <div class="tuhh-icon-box" style="background:#F0FDF4;color:#16A34A;"><i class="ti ti-calendar"></i></div>
+            <div class="tuhh-row-content">
+              <div class="tuhh-row-title">Calendar &amp; Availability</div>
+              <div class="tuhh-row-sub">Monthly occupancy grid, nightly rates &amp; slot blocks</div>
+            </div>
+            <i class="ti ti-chevron-right tuhh-chevron"></i>
+          </div>
 
-        <div class="homeyhuts-menu-row" onclick="navigate('help')">
-          <span class="homeyhuts-row-icon">❓</span>
-          <span class="homeyhuts-row-title">
-            <strong>Help Center &amp; Operating Guide</strong>
-            <span style="display:block;font-size:11.5px;color:var(--text-tertiary);font-weight:normal;">Step-by-step CRM manual &amp; keyboard shortcuts</span>
-          </span>
-          <span class="homeyhuts-chevron">›</span>
-        </div>
+          <div class="tuhh-menu-row" onclick="navigate('rooms')">
+            <div class="tuhh-icon-box" style="background:#FDF4FF;color:#A855F7;"><i class="ti ti-building"></i></div>
+            <div class="tuhh-row-content">
+              <div class="tuhh-row-title">Properties &amp; Units (${totalProps})</div>
+              <div class="tuhh-row-sub">18 homestays, amenities, pricing &amp; website showcase</div>
+            </div>
+            <i class="ti ti-chevron-right tuhh-chevron"></i>
+          </div>
 
-        <div class="homeyhuts-menu-row" onclick="navigate('rooms')">
-          <span class="homeyhuts-row-icon">🏠</span>
-          <span class="homeyhuts-row-title">Properties (18 Homestays)</span>
-          <span class="homeyhuts-chevron">›</span>
+          <div class="tuhh-menu-row" onclick="navigate('whatsapp-hub')">
+            <div class="tuhh-icon-box" style="background:#ECFDF5;color:#059669;"><i class="ti ti-brand-whatsapp"></i></div>
+            <div class="tuhh-row-content">
+              <div class="tuhh-row-title">WhatsApp Communications</div>
+              <div class="tuhh-row-sub">Automated guest check-in, Wi-Fi password &amp; review links</div>
+            </div>
+            <i class="ti ti-chevron-right tuhh-chevron"></i>
+          </div>
         </div>
+      </div>
 
-        <div class="homeyhuts-menu-row" onclick="navigate('investors')">
-          <span class="homeyhuts-row-icon">📊</span>
-          <span class="homeyhuts-row-title">Investor Reports & Monthly P&L (Inbuilt)</span>
-          <span class="homeyhuts-chevron">›</span>
-        </div>
+      <!-- SECTION 2: FINANCE, CLAIMS & AUDIT -->
+      <div class="tuhh-menu-section">
+        <div class="tuhh-section-header">FINANCE, CLAIMS &amp; AUDIT</div>
+        <div class="tuhh-menu-group">
+          <div class="tuhh-menu-row" onclick="navigate('claims')">
+            <div class="tuhh-icon-box" style="background:#EEF2FF;color:#4F46E5;"><i class="ti ti-building-bank"></i></div>
+            <div class="tuhh-row-content">
+              <div class="tuhh-row-title">TUHH-OD &amp; Claims Hub</div>
+              <div class="tuhh-row-sub">Overdraft balance, daily closing statement &amp; vendor claims</div>
+            </div>
+            <i class="ti ti-chevron-right tuhh-chevron"></i>
+          </div>
 
-        <div class="homeyhuts-menu-row" onclick="navigate('expenses')">
-          <span class="homeyhuts-row-icon">💰</span>
-          <span class="homeyhuts-row-title">Expenses (Electricity, Wi-Fi, Rapido, Laundry)</span>
-          <span class="homeyhuts-chevron">›</span>
-        </div>
+          <div class="tuhh-menu-row" onclick="navigate('investors')">
+            <div class="tuhh-icon-box" style="background:#FEF3C7;color:#D97706;"><i class="ti ti-chart-pie"></i></div>
+            <div class="tuhh-row-content">
+              <div class="tuhh-row-title">Investor Reports &amp; P&amp;L</div>
+              <div class="tuhh-row-sub">3-page audited statements, 70/30 share &amp; payouts</div>
+            </div>
+            <i class="ti ti-chevron-right tuhh-chevron"></i>
+          </div>
 
-        <div class="homeyhuts-menu-row" onclick="navigate('attendance')">
-          <span class="homeyhuts-row-icon">📋</span>
-          <span class="homeyhuts-row-title">Staff Attendance & Shifts</span>
-          <span class="homeyhuts-chevron">›</span>
-        </div>
+          <div class="tuhh-menu-row" onclick="navigate('expenses')">
+            <div class="tuhh-icon-box" style="background:#FFF1F2;color:#E11D48;"><i class="ti ti-receipt-2"></i></div>
+            <div class="tuhh-row-content">
+              <div class="tuhh-row-title">Company Expenses &amp; Outflows</div>
+              <div class="tuhh-row-sub">Wi-Fi recharge, maintenance, staff claims &amp; bills</div>
+            </div>
+            <i class="ti ti-chevron-right tuhh-chevron"></i>
+          </div>
 
-        <div class="homeyhuts-menu-row" onclick="navigate('advance')">
-          <span class="homeyhuts-row-icon">🎁</span>
-          <span class="homeyhuts-row-title">Employee Advances & Allowances (Petrol & Rapido)</span>
-          <span class="homeyhuts-chevron">›</span>
-        </div>
+          <div class="tuhh-menu-row" onclick="navigate('laundry')">
+            <div class="tuhh-icon-box" style="background:#F0F9FF;color:#0284C7;"><i class="ti ti-wash-machine"></i></div>
+            <div class="tuhh-row-content">
+              <div class="tuhh-row-title">Laundry &amp; Linen Tracker</div>
+              <div class="tuhh-row-sub">Vendor dispatches, count audit &amp; settlement</div>
+            </div>
+            <i class="ti ti-chevron-right tuhh-chevron"></i>
+          </div>
 
-        <div class="homeyhuts-menu-row" onclick="navigate('tasks')">
-          <span class="homeyhuts-row-icon">🧰</span>
-          <span class="homeyhuts-row-title">Employee Tasks & Cleaning Checklists</span>
-          <span class="homeyhuts-chevron">›</span>
+          <div class="tuhh-menu-row" onclick="navigate('ca-audit')">
+            <div class="tuhh-icon-box" style="background:#F8FAFC;color:#475569;"><i class="ti ti-briefcase"></i></div>
+            <div class="tuhh-row-content">
+              <div class="tuhh-row-title">CA Audit Pack &amp; GST</div>
+              <div class="tuhh-row-sub">Bank Reconciliation (BRS), GST reports &amp; compliance</div>
+            </div>
+            <i class="ti ti-chevron-right tuhh-chevron"></i>
+          </div>
         </div>
+      </div>
 
-        <div class="homeyhuts-menu-row" onclick="navigate('whatsapp-hub')">
-          <span class="homeyhuts-row-icon">📱</span>
-          <span class="homeyhuts-row-title">WhatsApp Hub (Live Dynamic Tagged)</span>
-          <span class="homeyhuts-chevron">›</span>
-        </div>
+      <!-- SECTION 3: TEAM & FIELD OPERATIONS -->
+      <div class="tuhh-menu-section">
+        <div class="tuhh-section-header">TEAM &amp; FIELD OPERATIONS</div>
+        <div class="tuhh-menu-group">
+          <div class="tuhh-menu-row" onclick="navigate('attendance')">
+            <div class="tuhh-icon-box" style="background:#ECFDF5;color:#059669;"><i class="ti ti-clipboard-check"></i></div>
+            <div class="tuhh-row-content">
+              <div class="tuhh-row-title">Staff Attendance &amp; Shifts</div>
+              <div class="tuhh-row-sub">Daily check-in logs, shifts &amp; monthly reports</div>
+            </div>
+            <i class="ti ti-chevron-right tuhh-chevron"></i>
+          </div>
 
-        <div class="homeyhuts-menu-row" onclick="navigate('user-mgmt')">
-          <span class="homeyhuts-row-icon">👤</span>
-          <span class="homeyhuts-row-title">User Management & Permissions</span>
-          <span class="homeyhuts-chevron">›</span>
-        </div>
+          <div class="tuhh-menu-row" onclick="navigate('tasks')">
+            <div class="tuhh-icon-box" style="background:#EFF6FF;color:#3B82F6;"><i class="ti ti-checklist"></i></div>
+            <div class="tuhh-row-content">
+              <div class="tuhh-row-title">Tasks &amp; Housekeeping</div>
+              <div class="tuhh-row-sub">Room cleaning checklists &amp; caretaker tasks</div>
+            </div>
+            <i class="ti ti-chevron-right tuhh-chevron"></i>
+          </div>
 
-        <div class="homeyhuts-menu-row" onclick="navigate('settings')">
-          <span class="homeyhuts-row-icon">⚙️</span>
-          <span class="homeyhuts-row-title">System Settings & Brand Info</span>
-          <span class="homeyhuts-chevron">›</span>
+          <div class="tuhh-menu-row" onclick="navigate('advance')">
+            <div class="tuhh-icon-box" style="background:#FEF3C7;color:#B45309;"><i class="ti ti-gift"></i></div>
+            <div class="tuhh-row-content">
+              <div class="tuhh-row-title">Staff Advances &amp; Petrol Claims</div>
+              <div class="tuhh-row-sub">Salary linked advances &amp; field travel claims</div>
+            </div>
+            <i class="ti ti-chevron-right tuhh-chevron"></i>
+          </div>
         </div>
+      </div>
 
-        <div class="homeyhuts-menu-row" onclick="document.getElementById('logoutBtn')?.click()" style="margin-top:14px;border-top:1px solid var(--border-light);">
-          <span class="homeyhuts-row-icon" style="color:var(--primary);">🚪</span>
-          <span class="homeyhuts-row-title" style="color:var(--primary);font-weight:700;">Logout</span>
-          <span class="homeyhuts-chevron">›</span>
+      <!-- SECTION 4: SUPPORT & SYSTEM -->
+      <div class="tuhh-menu-section">
+        <div class="tuhh-section-header">SUPPORT &amp; SYSTEM</div>
+        <div class="tuhh-menu-group">
+          <div class="tuhh-menu-row" onclick="navigate('help')">
+            <div class="tuhh-icon-box" style="background:#EFF6FF;color:#0284C7;"><i class="ti ti-help-circle"></i></div>
+            <div class="tuhh-row-content">
+              <div class="tuhh-row-title">Help Center &amp; Operating Guide</div>
+              <div class="tuhh-row-sub">Step-by-step CRM manual, workflows &amp; shortcut keys</div>
+            </div>
+            <i class="ti ti-chevron-right tuhh-chevron"></i>
+          </div>
+
+          <div class="tuhh-menu-row" onclick="window.notifications && window.notifications.openPanel()">
+            <div class="tuhh-icon-box" style="background:#FFFBEB;color:#F59E0B;"><i class="ti ti-bell"></i></div>
+            <div class="tuhh-row-content">
+              <div class="tuhh-row-title">Notifications &amp; Alerts ${notifCount > 0 ? `<span class="homeyhuts-badge-pill">${notifCount}</span>` : ''}</div>
+              <div class="tuhh-row-sub">Pending approvals, reminders &amp; alerts</div>
+            </div>
+            <i class="ti ti-chevron-right tuhh-chevron"></i>
+          </div>
+
+          <div class="tuhh-menu-row" onclick="navigate('user-mgmt')">
+            <div class="tuhh-icon-box" style="background:#F8FAFC;color:#475569;"><i class="ti ti-users"></i></div>
+            <div class="tuhh-row-content">
+              <div class="tuhh-row-title">User Management &amp; Permissions</div>
+              <div class="tuhh-row-sub">Staff logins, role-based access &amp; security</div>
+            </div>
+            <i class="ti ti-chevron-right tuhh-chevron"></i>
+          </div>
+
+          <div class="tuhh-menu-row" onclick="navigate('settings')">
+            <div class="tuhh-icon-box" style="background:#F8FAFC;color:#64748B;"><i class="ti ti-settings"></i></div>
+            <div class="tuhh-row-content">
+              <div class="tuhh-row-title">Global Settings &amp; Brand</div>
+              <div class="tuhh-row-sub">System configuration, API keys &amp; company profile</div>
+            </div>
+            <i class="ti ti-chevron-right tuhh-chevron"></i>
+          </div>
+
+          <div class="tuhh-menu-row tuhh-logout-row" onclick="document.getElementById('logoutBtn')?.click()">
+            <div class="tuhh-icon-box" style="background:#FEF2F2;color:#DC2626;"><i class="ti ti-logout"></i></div>
+            <div class="tuhh-row-content">
+              <div class="tuhh-row-title" style="color:#DC2626;font-weight:700;">Logout Session</div>
+              <div class="tuhh-row-sub">Sign out from this device safely</div>
+            </div>
+            <i class="ti ti-chevron-right tuhh-chevron" style="color:#DC2626;"></i>
+          </div>
         </div>
+      </div>
+
+      <!-- Corporate Bottom Brand Footer inside Menu -->
+      <div class="tuhh-menu-footer">
+        <div class="tuhh-mf-brand">THE UNIQUE HAVEN HOMES PRIVATE LIMITED</div>
+        <div class="tuhh-mf-cin">CIN: U55101UP2026PTC244637 · uniquehavenhomesstay.com</div>
+        <div class="tuhh-mf-credit">⚡ Developed by <strong>Praveen Singh</strong></div>
       </div>
     </div>
   `;
@@ -5933,18 +6025,20 @@ window.renderAppMenu = renderAppMenu;
 
 window.filterAppMenuRows = function(query) {
   const q = (query || '').toLowerCase().trim();
-  const rows = document.querySelectorAll('.homeyhuts-menu-row');
+  const rows = document.querySelectorAll('.tuhh-menu-row, .homeyhuts-menu-row');
+  const sections = document.querySelectorAll('.tuhh-menu-section');
   let visibleCount = 0;
+  
   rows.forEach(row => {
-    // If it's the spotlight row, keep it visible or match
-    if (row.classList.contains('homeyhuts-menu-spotlight-row')) {
-      row.style.display = 'flex';
-      return;
-    }
     const text = (row.textContent || '').toLowerCase();
     const match = !q || text.includes(q);
     row.style.display = match ? 'flex' : 'none';
     if (match) visibleCount++;
+  });
+
+  sections.forEach(sec => {
+    const visibleInSec = sec.querySelectorAll('.tuhh-menu-row:not([style*="display: none"]), .homeyhuts-menu-row:not([style*="display: none"])').length;
+    sec.style.display = visibleInSec > 0 ? 'block' : 'none';
   });
 
   let emptyState = document.getElementById('menuEmptySearchNotice');
@@ -5953,7 +6047,7 @@ window.filterAppMenuRows = function(query) {
       emptyState = document.createElement('div');
       emptyState.id = 'menuEmptySearchNotice';
       emptyState.className = 'homeyhuts-menu-empty-notice';
-      const container = document.querySelector('.homeyhuts-menu-list');
+      const container = document.querySelector('.tuhh-menu-wrap') || document.querySelector('.homeyhuts-menu-list');
       if (container) container.appendChild(emptyState);
     }
     emptyState.style.display = 'block';

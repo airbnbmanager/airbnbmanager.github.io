@@ -190,7 +190,8 @@ async function renderReports() {
   // =========================================================================
   // HOMEYHUTS UNIFIED TIMELINE MULTI-CALENDAR (GANTT VIEW) vs CLASSIC MONTH GRID
   // =========================================================================
-  window._calViewMode = window._calViewMode || 'timeline';
+  const isMobileScreen = window.innerWidth <= 768;
+  window._calViewMode = window._calViewMode || (isMobileScreen ? 'grid' : 'timeline');
   window.setCalViewMode = function(mode) {
     window._calViewMode = mode;
     renderReports();
