@@ -264,10 +264,91 @@ async function renderDashboard() {
 
   const today = getLocalDateString();
   const day7 = dateAdd(today, 7);
-  const monthStart = today.slice(0, 7) + '-01';
+
+  // --- DYNAMIC DASHBOARD TIMEFRAME CONTROLLER ---
+  window._dashPeriod = window._dashPeriod || 'this_month';
+  window._dashCustomMonth = window._dashCustomMonth || '';
+
+  const periodMode = window._dashPeriod;
+  let periodStart = '';
+  let periodEnd = '';
+  let prevPeriodStart = '';
+  let prevPeriodEnd = '';
+  let periodDays = 30;
+  let periodDisplayLabel = '';
+
   const now = new Date();
-  const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
-  const monthEnd = today.slice(0, 7) + '-' + String(lastDay).padStart(2, '0');
+  const currY = now.getFullYear();
+  const currM = now.getMonth(); // 0-indexed
+
+  if (periodMode === 'this_week') {
+    periodStart = dateAdd(today, -6);
+    periodEnd = today;
+    prevPeriodStart = dateAdd(periodStart, -7);
+    prevPeriodEnd = dateAdd(periodStart, -1);
+    periodDays = 7;
+    const sD = new Date(periodStart + 'T00:00:00');
+    const eD = new Date(periodEnd + 'T00:00:00');
+    periodDisplayLabel = `${sD.getDate()} ${sD.toLocaleString('en-IN', {month:'short'})} – ${eD.getDate()} ${eD.toLocaleString('en-IN', {month:'short'})}`;
+  } else if (periodMode === 'last_month') {
+    const lmDate = new Date(currY, currM - 1, 1);
+    const lmY = lmDate.getFullYear();
+    const lmM = String(lmDate.getMonth() + 1).padStart(2, '0');
+    const lmLastDay = new Date(lmY, lmDate.getMonth() + 1, 0).getDate();
+    periodStart = `${lmY}-${lmM}-01`;
+    periodEnd = `${lmY}-${lmM}-${String(lmLastDay).padStart(2, '0')}`;
+    const p2Date = new Date(currY, currM - 2, 1);
+    const p2Y = p2Date.getFullYear();
+    const p2M = String(p2Date.getMonth() + 1).padStart(2, '0');
+    const p2LastDay = new Date(p2Y, p2Date.getMonth() + 1, 0).getDate();
+    prevPeriodStart = `${p2Y}-${p2M}-01`;
+    prevPeriodEnd = `${p2Y}-${p2M}-${String(p2LastDay).padStart(2, '0')}`;
+    periodDays = lmLastDay;
+    periodDisplayLabel = `1 – ${lmLastDay} ${lmDate.toLocaleString('en-IN', {month:'short'})} ${lmY}`;
+  } else if (periodMode === 'this_year') {
+    periodStart = `${currY}-01-01`;
+    periodEnd = `${currY}-12-31`;
+    prevPeriodStart = `${currY - 1}-01-01`;
+    prevPeriodEnd = `${currY - 1}-12-31`;
+    periodDays = 365;
+    periodDisplayLabel = `Full Year ${currY}`;
+  } else if (periodMode === 'custom' && window._dashCustomMonth) {
+    const [cy, cm] = window._dashCustomMonth.split('-');
+    const cYear = parseInt(cy, 10);
+    const cMonth = parseInt(cm, 10);
+    const cLastDay = new Date(cYear, cMonth, 0).getDate();
+    periodStart = `${window._dashCustomMonth}-01`;
+    periodEnd = `${window._dashCustomMonth}-${String(cLastDay).padStart(2, '0')}`;
+    const prevMDate = new Date(cYear, cMonth - 2, 1);
+    const pmY = prevMDate.getFullYear();
+    const pmM = String(prevMDate.getMonth() + 1).padStart(2, '0');
+    const pmLastDay = new Date(pmY, prevMDate.getMonth() + 1, 0).getDate();
+    prevPeriodStart = `${pmY}-${pmM}-01`;
+    prevPeriodEnd = `${pmY}-${pmM}-${String(pmLastDay).padStart(2, '0')}`;
+    periodDays = cLastDay;
+    const cDate = new Date(cYear, cMonth - 1, 1);
+    periodDisplayLabel = `1 – ${cLastDay} ${cDate.toLocaleString('en-IN', {month:'short'})} ${cYear}`;
+  } else {
+    // Default 'this_month'
+    const curLastDay = new Date(currY, currM + 1, 0).getDate();
+    const curMStr = String(currM + 1).padStart(2, '0');
+    periodStart = `${currY}-${curMStr}-01`;
+    periodEnd = `${currY}-${curMStr}-${String(curLastDay).padStart(2, '0')}`;
+    const prevDate = new Date(currY, currM - 1, 1);
+    const pmY = prevDate.getFullYear();
+    const pmM = String(prevDate.getMonth() + 1).padStart(2, '0');
+    const pmLastDay = new Date(pmY, prevDate.getMonth() + 1, 0).getDate();
+    prevPeriodStart = `${pmY}-${pmM}-01`;
+    prevPeriodEnd = `${pmY}-${pmM}-${String(pmLastDay).padStart(2, '0')}`;
+    periodDays = curLastDay;
+    periodDisplayLabel = `1 – ${curLastDay} ${now.toLocaleString('en-IN', {month:'short'})} ${currY}`;
+  }
+
+  window._dashPeriodStart = periodStart;
+  window._dashPeriodEnd = periodEnd;
+  const monthStart = periodStart;
+  const monthEnd = periodEnd;
+  const lastDay = periodDays;
 
   const [
     { data: bookings },
@@ -371,13 +452,59 @@ async function renderDashboard() {
     return s + (due > 0 ? due : 0);
   }, 0);
 
-  // --- HOMEYHUTS VACATION RENTAL ANALYTICS CALCULATIONS ---
+  // --- HOMEYHUTS / TUHH VACATION RENTAL ANALYTICS CALCULATIONS ---
   const totalBookedNights = monthCheckinBookings.reduce((s, b) => s + Math.max(1, Math.round((new Date(b.check_out || b.check_in) - new Date(b.check_in)) / 86400000)), 0);
-  const hhAdr = totalBookedNights > 0 ? Math.round(monthRevenue / totalBookedNights) : 5200;
-  const totalAvailRoomNights = Math.max(1, totalProps * lastDay);
+  const hhAdr = totalBookedNights > 0 ? Math.round(monthRevenue / totalBookedNights) : (monthRevenue > 0 ? Math.round(monthRevenue / Math.max(1, monthCheckinBookings.length)) : 0);
+  const totalAvailRoomNights = Math.max(1, totalProps * periodDays);
   const hhRevPar = Math.round(monthRevenue / totalAvailRoomNights);
   const hhEstExpenses = Math.round(monthRevenue * 0.38);
   const hhNetOpIncome = Math.max(0, monthRevenue - hhEstExpenses);
+  const periodOccupancyPct = totalAvailRoomNights > 0 ? Math.min(100, Math.round((totalBookedNights / totalAvailRoomNights) * 100)) : 0;
+
+  // Previous Period Dynamic Comparison Calculation
+  const prevPeriodCheckinBookings = allBookings.filter(b => {
+    const ci = b.check_in || '';
+    return ci >= prevPeriodStart && ci <= prevPeriodEnd && !b.is_cancelled;
+  });
+  const prevRevenue = prevPeriodCheckinBookings.reduce((s, b) => s + (b.total_amount || 0), 0);
+  const prevBookedNights = prevPeriodCheckinBookings.reduce((s, b) => s + Math.max(1, Math.round((new Date(b.check_out || b.check_in) - new Date(b.check_in)) / 86400000)), 0);
+  const prevAdr = prevBookedNights > 0 ? Math.round(prevRevenue / prevBookedNights) : 0;
+  const prevAvailRoomNights = Math.max(1, totalProps * periodDays);
+  const prevRevPar = Math.round(prevRevenue / prevAvailRoomNights);
+  const prevNetOpIncome = Math.max(0, prevRevenue - Math.round(prevRevenue * 0.38));
+  const prevOccPct = Math.min(100, Math.round((prevBookedNights / prevAvailRoomNights) * 100));
+
+  const revChangePct = prevRevenue > 0 ? (((monthRevenue - prevRevenue) / prevRevenue) * 100).toFixed(1) : (monthRevenue > 0 ? '+100' : '0.0');
+  const netChangePct = prevNetOpIncome > 0 ? (((hhNetOpIncome - prevNetOpIncome) / prevNetOpIncome) * 100).toFixed(1) : (hhNetOpIncome > 0 ? '+100' : '0.0');
+  const adrChangePct = prevAdr > 0 ? (((hhAdr - prevAdr) / prevAdr) * 100).toFixed(1) : '0.0';
+  const revParChangePct = prevRevPar > 0 ? (((hhRevPar - prevRevPar) / prevRevPar) * 100).toFixed(1) : '0.0';
+  const occDiffPts = (periodOccupancyPct - prevOccPct).toFixed(0);
+
+  function formatDeltaTag(val, isPts = false) {
+    const num = parseFloat(val);
+    const isPos = num >= 0;
+    const sign = isPos ? '+' : '';
+    const cls = isPos ? 'positive' : 'negative';
+    const icon = isPos ? 'ti-arrow-up-right' : 'ti-arrow-down-right';
+    const unit = isPts ? ' pts' : '%';
+    return `<span class="hh-kpi-change-tag ${cls}"><i class="ti ${icon}"></i> ${sign}${Math.abs(num)}${unit}</span>`;
+  }
+
+  function sparklineSvg(isPos, color) {
+    const stroke = color || (isPos ? '#10B981' : '#EF4444');
+    const fill = isPos ? 'rgba(16,185,129,0.12)' : 'rgba(239,68,68,0.10)';
+    if (isPos) {
+      return `<svg viewBox="0 0 100 28" class="hh-kpi-sparkline">
+        <path d="M0 24 Q 25 18, 50 12 T 100 4" fill="none" stroke="${stroke}" stroke-width="2.5" stroke-linecap="round"/>
+        <path d="M0 24 Q 25 18, 50 12 T 100 4 L 100 28 L 0 28 Z" fill="${fill}"/>
+      </svg>`;
+    } else {
+      return `<svg viewBox="0 0 100 28" class="hh-kpi-sparkline">
+        <path d="M0 8 Q 25 14, 50 18 T 100 24" fill="none" stroke="${stroke}" stroke-width="2.5" stroke-linecap="round"/>
+        <path d="M0 8 Q 25 14, 50 18 T 100 24 L 100 28 L 0 28 Z" fill="${fill}"/>
+      </svg>`;
+    }
+  }
 
   // Channel Breakdown — 100% Real-Time Database Calculation (Zero Fake/Estimated Fallbacks)
   const directBks = monthCheckinBookings.filter(b => {
@@ -480,6 +607,23 @@ async function renderDashboard() {
     }
   };
 
+  window.setDashboardPeriod = function(period) {
+    window._dashPeriod = period;
+    if (period !== 'custom') window._dashCustomMonth = '';
+    if (typeof window.renderDashboard === 'function') {
+      window.renderDashboard();
+    }
+  };
+
+  window.setDashboardCustomMonth = function(monthVal) {
+    if (!monthVal) return;
+    window._dashPeriod = 'custom';
+    window._dashCustomMonth = monthVal;
+    if (typeof window.renderDashboard === 'function') {
+      window.renderDashboard();
+    }
+  };
+
   window.downloadHomeyhutsExcel = function() {
     const list = window._hhPropRanking || [];
     let csv = '\uFEFFProperty,Unit,Net Revenue,Occupancy %,Net Operating Income\n';
@@ -489,7 +633,7 @@ async function renderDashboard() {
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
-    link.download = `Homeyhuts_Analytics_Report_${today}.csv`;
+    link.download = `TUHH_Analytics_Report_${periodMode}_${today}.csv`;
     link.click();
   };
 
@@ -1292,16 +1436,24 @@ async function renderDashboard() {
           <div class="hh-analytics-filters-left">
             <div style="display:flex;align-items:center;gap:8px;">
               <span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:#10B981;box-shadow:0 0 8px rgba(16,185,129,0.6);"></span>
-              <strong style="font-size:14px;color:#0F172A;font-weight:800;letter-spacing:-0.2px;">HomeyIndia · Vacation Rental Analytics</strong>
+              <strong style="font-size:14px;color:#0F172A;font-weight:800;letter-spacing:-0.2px;">The Unique Haven Homes · Executive Analytics</strong>
             </div>
             <span style="color:#CBD5E1;">|</span>
+            <div class="dash-period-toggle-group">
+              <button type="button" class="dash-period-btn ${periodMode === 'this_week' ? 'active' : ''}" onclick="setDashboardPeriod('this_week')">This Week</button>
+              <button type="button" class="dash-period-btn ${periodMode === 'this_month' ? 'active' : ''}" onclick="setDashboardPeriod('this_month')">This Month</button>
+              <button type="button" class="dash-period-btn ${periodMode === 'last_month' ? 'active' : ''}" onclick="setDashboardPeriod('last_month')">Last Month</button>
+              <button type="button" class="dash-period-btn ${periodMode === 'this_year' ? 'active' : ''}" onclick="setDashboardPeriod('this_year')">This Year</button>
+            </div>
+            <div class="hh-analytics-pill-select" style="position:relative;cursor:pointer;" title="Click to pick a custom month">
+              <i class="ti ti-calendar"></i>
+              <span>${periodDisplayLabel}</span>
+              <i class="ti ti-chevron-down" style="font-size:11px;opacity:0.6;margin-left:2px;"></i>
+              <input type="month" value="${periodMode === 'custom' ? window._dashCustomMonth : today.slice(0, 7)}" onchange="setDashboardCustomMonth(this.value)" title="Select month" />
+            </div>
             <div class="hh-analytics-pill-select" onclick="if(window.renderManageRooms) renderManageRooms();" title="Filter properties">
               <i class="ti ti-building"></i>
               <span>${globalProp ? ((window._globalRoomsList || []).find(r => r.room_id === globalProp)?.nickname || globalProp) : 'All properties · ' + totalProps}</span>
-            </div>
-            <div class="hh-analytics-pill-select" title="Current Month Period">
-              <i class="ti ti-calendar"></i>
-              <span>1 – ${lastDay} ${new Date().toLocaleString('en-IN', { month: 'short' })} ${now.getFullYear()}</span>
             </div>
             <div style="background:#F1F5F9;border-radius:999px;padding:5px 12px;font-size:11.5px;font-weight:700;color:#64748B;">
               vs previous period
@@ -1325,12 +1477,9 @@ async function renderDashboard() {
             <div class="hh-kpi-header">Net revenue</div>
             <div class="hh-kpi-val-row">
               <div class="hh-kpi-main-val">₹${monthRevenue.toLocaleString('en-IN')}</div>
-              <span class="hh-kpi-change-tag positive"><i class="ti ti-arrow-up-right"></i> 14.2%</span>
+              ${formatDeltaTag(revChangePct)}
             </div>
-            <svg viewBox="0 0 100 28" class="hh-kpi-sparkline">
-              <path d="M0 24 Q 25 18, 50 12 T 100 4" fill="none" stroke="#10B981" stroke-width="2.5" stroke-linecap="round"/>
-              <path d="M0 24 Q 25 18, 50 12 T 100 4 L 100 28 L 0 28 Z" fill="rgba(16,185,129,0.12)"/>
-            </svg>
+            ${sparklineSvg(parseFloat(revChangePct) >= 0)}
           </div>
 
           <!-- KPI 2: Net Operating Income -->
@@ -1338,25 +1487,19 @@ async function renderDashboard() {
             <div class="hh-kpi-header">Net op. income</div>
             <div class="hh-kpi-val-row">
               <div class="hh-kpi-main-val">₹${hhNetOpIncome.toLocaleString('en-IN')}</div>
-              <span class="hh-kpi-change-tag positive"><i class="ti ti-arrow-up-right"></i> 8.6%</span>
+              ${formatDeltaTag(netChangePct)}
             </div>
-            <svg viewBox="0 0 100 28" class="hh-kpi-sparkline">
-              <path d="M0 22 Q 25 16, 50 14 T 100 6" fill="none" stroke="#10B981" stroke-width="2.5" stroke-linecap="round"/>
-              <path d="M0 22 Q 25 16, 50 14 T 100 6 L 100 28 L 0 28 Z" fill="rgba(16,185,129,0.12)"/>
-            </svg>
+            ${sparklineSvg(parseFloat(netChangePct) >= 0)}
           </div>
 
           <!-- KPI 3: Occupancy -->
-          <div class="hh-kpi-card-v2" onclick="filterAndShowFlats('occupied')" style="cursor:pointer;" title="Live unit occupancy rate">
+          <div class="hh-kpi-card-v2" onclick="filterAndShowFlats('occupied')" style="cursor:pointer;" title="Unit occupancy rate for selected period">
             <div class="hh-kpi-header">Occupancy</div>
             <div class="hh-kpi-val-row">
-              <div class="hh-kpi-main-val">${occupancyPct}%</div>
-              <span class="hh-kpi-change-tag positive"><i class="ti ti-arrow-up-right"></i> 6 pts</span>
+              <div class="hh-kpi-main-val">${periodOccupancyPct > 0 ? periodOccupancyPct : occupancyPct}%</div>
+              ${formatDeltaTag(occDiffPts, true)}
             </div>
-            <svg viewBox="0 0 100 28" class="hh-kpi-sparkline">
-              <path d="M0 20 Q 30 22, 60 10 T 100 5" fill="none" stroke="#0284C7" stroke-width="2.5" stroke-linecap="round"/>
-              <path d="M0 20 Q 30 22, 60 10 T 100 5 L 100 28 L 0 28 Z" fill="rgba(2,132,199,0.12)"/>
-            </svg>
+            ${sparklineSvg(parseFloat(occDiffPts) >= 0, '#0284C7')}
           </div>
 
           <!-- KPI 4: ADR -->
@@ -1364,12 +1507,9 @@ async function renderDashboard() {
             <div class="hh-kpi-header">ADR</div>
             <div class="hh-kpi-val-row">
               <div class="hh-kpi-main-val">₹${hhAdr.toLocaleString('en-IN')}</div>
-              <span class="hh-kpi-change-tag positive"><i class="ti ti-arrow-up-right"></i> 3.1%</span>
+              ${formatDeltaTag(adrChangePct)}
             </div>
-            <svg viewBox="0 0 100 28" class="hh-kpi-sparkline">
-              <path d="M0 22 Q 35 15, 70 12 T 100 8" fill="none" stroke="#10B981" stroke-width="2.5" stroke-linecap="round"/>
-              <path d="M0 22 Q 35 15, 70 12 T 100 8 L 100 28 L 0 28 Z" fill="rgba(16,185,129,0.12)"/>
-            </svg>
+            ${sparklineSvg(parseFloat(adrChangePct) >= 0)}
           </div>
 
           <!-- KPI 5: RevPAR -->
@@ -1377,12 +1517,9 @@ async function renderDashboard() {
             <div class="hh-kpi-header">RevPAR</div>
             <div class="hh-kpi-val-row">
               <div class="hh-kpi-main-val">₹${hhRevPar.toLocaleString('en-IN')}</div>
-              <span class="hh-kpi-change-tag negative"><i class="ti ti-arrow-down-right"></i> 2.4%</span>
+              ${formatDeltaTag(revParChangePct)}
             </div>
-            <svg viewBox="0 0 100 28" class="hh-kpi-sparkline">
-              <path d="M0 8 Q 35 12, 70 18 T 100 22" fill="none" stroke="#EF4444" stroke-width="2.5" stroke-linecap="round"/>
-              <path d="M0 8 Q 35 12, 70 18 T 100 22 L 100 28 L 0 28 Z" fill="rgba(239,68,68,0.10)"/>
-            </svg>
+            ${sparklineSvg(parseFloat(revParChangePct) >= 0)}
           </div>
         </div>
 
@@ -2350,6 +2487,13 @@ function filterAndShowBookings(type) {
     SESSION.bookingSearch = '';
     SESSION.bookingPeriod = '';
     SESSION._filterByPaymentDate = today;
+  } else if (type === 'monthRevenue') {
+    if (window._dashPeriodStart && window._dashPeriodEnd) {
+      SESSION.bookingDateFrom = window._dashPeriodStart;
+      SESSION.bookingDateTo = window._dashPeriodEnd;
+    } else {
+      SESSION.bookingPeriod = 'thisMonth';
+    }
   } else if (type === 'thisMonth') {
     SESSION.bookingPeriod = 'thisMonth';
   } else if (type === 'activeDue') {

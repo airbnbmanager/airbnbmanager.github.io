@@ -2153,6 +2153,79 @@ html, body {
   transform: translateY(-1px);
 }
 
+/* Dashboard Timeframe Controller & Toggle Group */
+.dash-period-toggle-group {
+  display: inline-flex;
+  align-items: center;
+  background: #F1F5F9;
+  border-radius: 999px;
+  padding: 3px;
+  gap: 3px;
+  border: 1px solid #E2E8F0;
+}
+
+.dash-period-btn {
+  background: transparent;
+  border: none;
+  outline: none;
+  padding: 5px 13px;
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #64748B;
+  cursor: pointer;
+  transition: all 0.18s ease;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.dash-period-btn:hover {
+  color: #0F172A;
+}
+
+.dash-period-btn.active {
+  background: #FFFFFF;
+  color: #0284C7;
+  font-weight: 800;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08), 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+
+.hh-analytics-pill-select input[type="month"] {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+  width: 100%;
+  height: 100%;
+  z-index: 2;
+}
+
+@media (max-width: 640px) {
+  .hh-analytics-filter-bar {
+    gap: 10px;
+    padding-bottom: 14px;
+  }
+  .hh-analytics-filters-left {
+    gap: 8px;
+    width: 100%;
+  }
+  .dash-period-toggle-group {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .dash-period-btn {
+    flex: 1;
+    text-align: center;
+    padding: 6px 4px;
+    font-size: 11px;
+  }
+}
+
 /* 5 KPI Sparkline Ribbon */
 .hh-kpi-ribbon-5 {
   display: grid;
