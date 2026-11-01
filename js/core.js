@@ -1436,16 +1436,19 @@ function renderShell(content, activePage = 'dashboard') {
       label: '🧾 Expenses',
       page: 'expenses',
       pages: ['expenses', 'laundry', 'maintenance'],
-      tabs: []
+      tabs: [
+        { id: 'expenses', label: '📊 Expenses & P&L' },
+        { id: 'laundry', label: '🧺 Laundry' },
+        { id: 'maintenance', label: '🔧 Maintenance' }
+      ]
     },
     {
       id: 'claims',
       label: '💰 Finances',
       page: 'claims',
-      pages: ['claims', 'reimbursements', 'investors', 'ca-audit', 'cashbook', 'financial', 'financial-sheet'],
+      pages: ['claims', 'investors', 'ca-audit', 'reimbursements', 'cashbook', 'financial', 'financial-sheet'],
       tabs: [
-        { id: 'claims', label: '💳 Claims' },
-        { id: 'reimbursements', label: '🏦 TUHH-OD' },
+        { id: 'claims', label: '🏦 TUHH-OD & Claims' },
         { id: 'investors', label: '🧑‍💼 Investors' },
         { id: 'ca-audit', label: '💼 GST & Audit' }
       ]
@@ -1588,7 +1591,7 @@ function renderShell(content, activePage = 'dashboard') {
     cashbook: { title: 'Cash Book', sub: 'Cash flow, handovers & safe balance', icon: '💰' },
     reimbursements: { title: 'Daily Expenses', sub: 'Staff reimbursements & operational spends', icon: '💸' },
     expenses: { title: 'Monthly Expenses & P&L', sub: 'Property-wise profit & loss reporting', icon: '📊' },
-    claims: { title: 'Claims Manager', sub: 'TUHH-OD settlements & reimbursements', icon: '📤' },
+    claims: { title: 'TUHH-OD & Universal Claims', sub: 'TUHH-OD Overdraft balance, daily closing statement & vendor settlements', icon: '🏦' },
     investors: { title: 'Investors Ledger', sub: 'Property investor shares & payouts', icon: '🧑‍💼' },
     dailyReport: { title: 'Daily Operations Report', sub: 'End-of-day revenue, checkins & summaries', icon: '📈' },
     analytics: { title: 'Business Analytics', sub: 'Occupancy rates & revenue metrics', icon: '📊' },
@@ -2341,7 +2344,7 @@ function navigate(page) {
     laundry: () => (window.renderLaundry || renderLaundry)(),
     dailyReport: () => (window.renderDailyReport || renderDailyReport)(),
     claims: () => (window.renderClaims || renderClaims)(),
-    reimbursements: () => (window.renderReimbursements || renderReimbursements)(),
+    reimbursements: () => (window.renderClaims || renderClaims)(),
     'property-setup': () => (window.renderPropertySetup || renderPropertySetup)(),
     'showcase-admin': () => (window.renderShowcaseAdmin || renderShowcaseAdmin)(),
     'company-advances': () => (window.renderCompanyAdvances || renderCompanyAdvances)(),

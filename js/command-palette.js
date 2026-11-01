@@ -37,7 +37,7 @@
       title: 'Daily Expenses & Spends Tracker',
       sub: 'Daily property operational expenses, utility bills & market grocery spends',
       keywords: ['expenses', 'daily expenses', 'reimbursements', 'reimbursement', 'kharcha', 'spends', 'daily spend', 'bills'],
-      action: () => window.navigate('reimbursements')
+      action: () => window.navigate('expenses')
     },
     {
       id: 'claims',
@@ -1164,7 +1164,7 @@
 
   window.openClaimShortcut = function() {
     if (typeof window.navigate === 'function') {
-      const page = (window.SESSION?.role === 'employee') ? 'emp-expenses' : 'reimbursements';
+      const page = (window.SESSION?.role === 'employee') ? 'emp-expenses' : 'claims';
       window.navigate(page);
     }
   };
