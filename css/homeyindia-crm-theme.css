@@ -1255,19 +1255,59 @@ html, body {
     box-shadow: none !important;
   }
 
-  /* 3. Cells must NEVER crush text into 1-letter vertical lines */
-  td, th,
-  .table-wrap tbody td,
-  .card tbody td {
-    display: table-cell !important;
-    vertical-align: middle !important;
-    white-space: nowrap !important;
-    word-break: normal !important;
-    overflow-wrap: normal !important;
-    hyphens: none !important;
-    padding: 10px 14px !important;
-    font-size: 12.5px !important;
+  /* 3. Table-to-Card Transformation for Dashboard Lists */
+  #dash-tab-flow table,
+  #dash-tab-flow thead,
+  #dash-tab-flow tbody,
+  #dash-tab-flow th,
+  #dash-tab-flow td,
+  #dash-tab-flow tr {
+    display: block !important;
+  }
+
+  #dash-tab-flow thead {
+    display: none !important; /* Hide headers on mobile cards */
+  }
+
+  #dash-tab-flow tr {
+    background: #FFFFFF !important;
+    border: 1px solid var(--crm-border) !important;
+    border-radius: 12px !important;
+    padding: 12px !important;
+    margin-bottom: 12px !important;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.02) !important;
+  }
+
+  #dash-tab-flow td {
+    padding: 4px 0 !important;
+    border: none !important;
+    white-space: normal !important; /* Allow wrapping in cards */
+  }
+
+  /* Specific positioning for card elements */
+  #dash-tab-flow td:first-child {
+    font-size: 15px !important;
+    font-weight: 800 !important;
+    color: var(--crm-text-heading) !important;
+  }
+
+  #dash-tab-flow td:last-child {
+    margin-top: 8px !important;
+    padding-top: 10px !important;
+    border-top: 1px solid var(--crm-border-lighter) !important;
     text-align: left !important;
+  }
+
+  #dash-tab-flow .dash-unit-chip,
+  #dash-tab-flow span[style*="background:#F1F5F9"] {
+    display: inline-block !important;
+    margin-bottom: 4px !important;
+  }
+
+  /* 4. Responsive Leaderboard Refinements */
+  .hh-leaderboard-table th:nth-child(3),
+  .hh-leaderboard-table td:nth-child(3) {
+    display: none !important; /* Hide occupancy bar on very small screens to save space */
   }
 
   /* Suppress pseudo-card ::before labels that were breaking tables */
@@ -1295,16 +1335,53 @@ html, body {
     min-width: max-content !important;
   }
 
+  /* 2. Unified Timeline & Calendar Fixes */
   .hh-prop-cell, .hh-prop-header-cell {
-    position: sticky !important;
-    left: 0 !important;
-    z-index: 25 !important;
-    background: #FFFFFF !important;
-    width: 135px !important;
-    min-width: 135px !important;
-    max-width: 135px !important;
-    box-shadow: 3px 0 8px rgba(0,0,0,0.06) !important;
-    white-space: normal !important;
+    width: 120px !important;
+    min-width: 120px !important;
+    max-width: 120px !important;
+    font-size: 11px !important;
+  }
+
+  .hh-prop-thumb {
+    width: 28px !important;
+    height: 28px !important;
+  }
+
+  .hh-prop-name {
+    font-size: 10.5px !important;
+  }
+
+  .hh-cal-toolbar {
+    padding: 10px !important;
+  }
+
+  .hh-cal-title {
+    font-size: 16px !important;
+  }
+
+  .hh-cal-range-selector {
+    width: 100% !important;
+    justify-content: space-between !important;
+  }
+
+  /* Compact Modals for Mobile */
+  .modal-box {
+    width: 95vw !important;
+    max-width: 95vw !important;
+    margin: 10px auto !important;
+    padding: 16px !important;
+  }
+
+  .modal-overlay {
+    align-items: flex-end !important; /* Bottom sheet style on mobile */
+    padding: 0 !important;
+  }
+
+  .modal-box {
+    border-radius: 20px 24px 0 0 !important;
+    max-height: 90vh !important;
+    overflow-y: auto !important;
   }
 
   .hh-prop-cell-name {
@@ -2105,18 +2182,25 @@ html, body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  flex-wrap: wrap;
+  flex-wrap: nowrap; /* Keep it in one row and allow scroll */
+  overflow-x: auto;
   gap: 12px;
-  padding-bottom: 18px;
+  padding-bottom: 14px;
   border-bottom: 1px solid #E2E8F0;
   margin-bottom: 20px;
+  scrollbar-width: none; /* Hide scrollbar Firefox */
+  -webkit-overflow-scrolling: touch;
+}
+
+.hh-analytics-filter-bar::-webkit-scrollbar {
+  display: none; /* Hide scrollbar Chrome/Safari */
 }
 
 .hh-analytics-filters-left {
   display: flex;
   align-items: center;
   gap: 10px;
-  flex-wrap: wrap;
+  flex-wrap: nowrap; /* Maintain single row */
 }
 
 .hh-analytics-pill-select {

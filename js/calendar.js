@@ -606,7 +606,8 @@ async function renderReports() {
   `;
 
   // ═══ CALENDAR GRID (Airbnb style) ═══
-  const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  const isMobile = window.innerWidth <= 640;
+  const days = isMobile ? ['S', 'M', 'T', 'W', 'T', 'F', 'S'] : ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
   const firstDayOfMonth = new Date(yr, mo, 1).getDay();
 
   displayRooms.forEach(r => {
@@ -667,7 +668,7 @@ async function renderReports() {
 
         const hasReview = isReviewedBooking(bk);
         const currentNight = calcNights(bk.check_in, ds);
-        const showName = isCheckIn || isCheckOut || (currentNight > 0 && currentNight % 2 === 0);
+        const showName = !isMobile && (isCheckIn || isCheckOut || (currentNight > 0 && currentNight % 2 === 0));
         const showAvatar = isCheckIn || isBlocked;
 
         // Payment status check for non-blocked bookings
