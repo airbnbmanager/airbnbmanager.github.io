@@ -25,7 +25,7 @@
       { key: `${altSymbol}F`, single: 'F', title: 'Flats Status & Turnaround', desc: 'Real-time room cleanliness, dirty status aur turnaround Kanban board.', action: 'window.openFlatsShortcut()' },
       { key: `${altSymbol}T`, single: 'T', title: 'Staff Tasks & Checklists', desc: 'Housekeeping, deep cleans aur staff maintenance tasks list.', action: 'window.openTasksShortcut()', altKey: `${altSymbol}⇧T for New` },
       { key: `${altSymbol}A`, single: 'A', title: 'Staff Salary Advances Tracker', desc: 'Employees ko di gayi peshgi (loan/advance) aur pending balance.', action: 'window.openAdvanceShortcut()', altKey: `${altSymbol}⇧A for New` },
-      { key: `${altSymbol}E`, single: 'Alt+E', title: 'Daily Expenses & Claims', desc: 'Staff ke daily market kharche, reimbursements aur claims.', action: 'window.openClaimShortcut()', altKey: `${altSymbol}⇧E for New` },
+      { key: `${altSymbol}E`, single: 'E', title: 'Expenses & Outflow Hub', desc: 'Expenses page par jayein (Wi-Fi, Maintenance, Laundry, Staff Advances & P&L).', action: 'window.openExpensesShortcut()', altKey: `${altSymbol}⇧E for Add Expense` },
       { key: `${altSymbol}X`, single: 'X', title: 'Monthly Expenses & P&L', desc: 'Property-wise Wi-Fi, maintenance aur operational profit-loss.', action: 'window.openExpensesShortcut()' },
       { key: `${altSymbol}W`, single: 'W', title: 'WhatsApp Communications Hub', desc: 'Guest ko welcome letter, invoice, location map aur directions bhejein.', action: 'window.openWhatsAppShortcut()' },
       { key: `${altSymbol}H`, single: 'H', title: 'Executive Analytics Dashboard', desc: 'Revenue, Net Income, ADR, RevPAR aur live occupancy metrics.', action: 'window.openDashboardShortcut()' },
@@ -493,3 +493,4 @@
   };
 
 })();
+

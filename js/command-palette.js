@@ -1210,6 +1210,17 @@
     if (typeof window.navigate === 'function') window.navigate('expenses');
   };
 
+  window.openAddExpenseModalShortcut = function() {
+    if (typeof window.navigate === 'function') {
+      window.navigate('expenses');
+      setTimeout(() => {
+        if (typeof window.renderAddReimbursement === 'function') {
+          window.renderAddReimbursement();
+        }
+      }, 150);
+    }
+  };
+
   window.openHelpShortcut = function() {
     if (typeof window.navigate === 'function') window.navigate('help');
     else if (typeof window.renderHelpAndGuide === 'function') window.renderHelpAndGuide();
@@ -1244,7 +1255,8 @@
 
         <div style="display:flex;flex-direction:column;gap:8px;max-height:56vh;overflow-y:auto;padding-right:4px;">
           ${[
-            { key: 'E', single: 'E', label: '✏️ Edit Selected Booking', desc: 'When booking drawer/details is open, press E to edit', action: 'if(window.editCurrentSelectedBooking) window.editCurrentSelectedBooking()' },
+            { key: `${altSymbol}E`, single: 'E', label: '📊 Expenses & Outflow Hub', desc: 'Open Expenses page (Wi-Fi, Maintenance, Laundry, Staff Advances & P&L)', action: 'window.openExpensesShortcut()' },
+            { key: `${altSymbol}⇧E`, single: '⇧E', label: '➕ Add Expense', desc: 'Directly open Add Expense modal', action: 'window.openAddExpenseModalShortcut()' },
             { key: `${cmdSymbol}S`, single: 'S', label: '💾 Save Booking Form', desc: 'Save active booking or wizard form instantly', action: 'if(window.triggerSaveBookingShortcut) window.triggerSaveBookingShortcut()' },
             { key: `${altSymbol}N`, single: 'N', label: '➕ New Booking', desc: 'Open manual booking creation wizard', action: 'window.openNewBookingShortcut()' },
             { key: `${altSymbol}D`, single: 'D', label: '📋 Duplicate Booking', desc: 'Clone active booking or pick recent guest to rebook', action: 'window.duplicateExistingBookingShortcut()' },
@@ -1254,8 +1266,6 @@
             { key: `${altSymbol}F`, single: 'F', label: '🛏️ Flats & Turnaround', desc: 'Realtime room turnaround Kanban board', action: 'window.openFlatsShortcut()' },
             { key: `${altSymbol}T`, single: 'T', label: '📋 Staff Tasks & Checklists', desc: 'Housekeeping, deep cleans & staff duties (Alt+Shift+T for new)', action: 'window.openTasksShortcut()' },
             { key: `${altSymbol}A`, single: 'A', label: '💸 Staff Advances Tracker', desc: 'Track employee loans, peshgi & balances (Alt+Shift+A for new)', action: 'window.openAdvanceShortcut()' },
-            { key: `${altSymbol}E`, single: 'Alt+E', label: '🧾 Daily Expenses & Claims', desc: 'Staff daily market purchases & claims (Alt+Shift+E for new)', action: 'window.openClaimShortcut()' },
-            { key: `${altSymbol}X`, single: 'X', label: '📊 Expenses & P&L', desc: 'Property-wise Wi-Fi, maintenance and operational profit-loss', action: 'window.openExpensesShortcut()' },
             { key: `${altSymbol}W`, single: 'W', label: '📱 WhatsApp Hub', desc: 'Send automated welcome messages, location pin & house rules', action: 'window.openWhatsAppShortcut()' },
             { key: `${altSymbol}H`, single: 'H', label: '🏠 Executive Dashboard', desc: 'Revenue analytics, occupancy rates & performance metrics', action: 'window.openDashboardShortcut()' },
             { key: `${altSymbol}I`, single: 'I', label: '🧑‍💼 Investors Hub', desc: 'Open Investors list, shares, payout sheets & broadcasts', action: 'window.openInvestorsShortcut()' },
@@ -1415,8 +1425,8 @@
       }
       if (isKeyE) {
         e.preventDefault();
-        if (e.shiftKey) window.openNewClaimShortcut();
-        else window.openClaimShortcut();
+        if (e.shiftKey) window.openAddExpenseModalShortcut();
+        else window.openExpensesShortcut();
         return;
       }
       if (isKeyI) {
@@ -1471,15 +1481,19 @@
         window.openCommandPalette();
         return;
       }
-      // e -> Edit Selected Booking (Drawer or open booking)
+      // e -> Expenses page (If a booking drawer/modal is open, E edits it; otherwise E goes directly to Expenses!)
       if (isKeyE) {
         if (window._currentDrawerBookingId || document.getElementById('sbkDrawerOverlay')) {
           e.preventDefault();
           if (typeof window.editCurrentSelectedBooking === 'function') {
             window.editCurrentSelectedBooking();
+            return;
           }
-          return;
         }
+        e.preventDefault();
+        if (e.shiftKey) window.openAddExpenseModalShortcut();
+        else window.openExpensesShortcut();
+        return;
       }
       // s -> Save Booking (when viewing a form/modal)
       if (isKeyS) {
@@ -1569,13 +1583,6 @@
       if (isKeyX) {
         e.preventDefault();
         window.openExpensesShortcut();
-        return;
-      }
-      // e -> Claims fallback when no booking is selected
-      if (isKeyE) {
-        e.preventDefault();
-        if (e.shiftKey) window.openNewClaimShortcut();
-        else window.openClaimShortcut();
         return;
       }
     }

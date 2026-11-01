@@ -39,7 +39,6 @@ window.renderReimbursements = async function() {
       <h1>💸 Daily Expenses (Reimbursements)</h1>
       <div class="sub">${(reimbs||[]).length} entries — ${currentMonth}</div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;">
-        <button onclick="renderAddReimbursement()">➕ Add Expense</button>
         <button onclick="showReimbReport()" style="background:#7C3AED;color:#fff;">📊 Report</button>
         <button onclick="claimAllPending()" style="background:#DC2626;color:#fff;">💰 Claim All Pending</button>
         <input type="month" value="${currentMonth}" onchange="window._reimbMonth=this.value;renderReimbursements()" style="padding:6px 8px;border-radius:6px;border:1px solid var(--border);">
