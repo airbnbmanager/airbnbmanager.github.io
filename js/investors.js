@@ -594,35 +594,36 @@ async function renderInvestorReport(investorId, roomId, month) {
         <table style="width:100%;border-collapse:collapse;font-size:10px;">
           <thead>
             <tr style="background:#F8FAFC;border-bottom:2px solid #E2E8F0;">
-              <th style="padding:4px 6px;border:1px solid #CBD5E1;text-align:left;color:#475569;">Guest Name / Booking ID</th>
-              <th style="padding:4px 6px;border:1px solid #CBD5E1;text-align:center;color:#475569;width:75px;">Check-In</th>
-              <th style="padding:4px 6px;border:1px solid #CBD5E1;text-align:center;color:#475569;width:75px;">Check-Out</th>
-              <th style="padding:4px 6px;border:1px solid #CBD5E1;text-align:center;color:#475569;width:50px;">Nights</th>
-              <th style="padding:4px 6px;border:1px solid #CBD5E1;text-align:right;color:#475569;width:80px;">Net Payout</th>
+              <th style="padding:6px 8px;border:1px solid #CBD5E1;text-align:left;color:#475569;">Guest Name / Booking ID</th>
+              <th style="padding:6px 8px;border:1px solid #CBD5E1;text-align:center;color:#475569;width:75px;">Check-In</th>
+              <th style="padding:6px 8px;border:1px solid #CBD5E1;text-align:center;color:#475569;width:75px;">Check-Out</th>
+              <th style="padding:6px 8px;border:1px solid #CBD5E1;text-align:center;color:#475569;width:50px;">Nights</th>
+              <th style="padding:6px 8px;border:1px solid #CBD5E1;text-align:right;color:#475569;width:85px;">Net Payout</th>
             </tr>
           </thead>
           <tbody>
-            ${bks.length === 0 ? '<tr><td colspan="5" style="padding:8px;border:1px solid #CBD5E1;text-align:center;color:#94A3B8;font-style:italic;">No Airbnb bookings recorded for this period.</td></tr>' : ''}
-            ${bks.map(b => {
+            ${bks.length === 0 ? '<tr><td colspan="5" style="padding:10px;border:1px solid #CBD5E1;text-align:center;color:#94A3B8;font-style:italic;">No Airbnb bookings recorded for this period.</td></tr>' : ''}
+            ${bks.map((b, idx) => {
               const p = getProratedStats(b, getBookingPaid(b));
               const displayName = b.guest_name ? b.guest_name : 'Airbnb Guest';
+              const rowBg = idx % 2 === 1 ? 'background:#F8FAFC;' : '';
               return `
-              <tr>
-                <td style="padding:4px 6px;border:1px solid #CBD5E1;">
+              <tr style="${rowBg}">
+                <td style="padding:6px 8px;border:1px solid #CBD5E1;">
                   <strong style="color:#0F172A;">${displayName}</strong>
                   ${b.booking_id ? `<span style="font-size:8.5px;color:#64748B;display:block;">Ref: ${b.booking_id}</span>` : ''}
                 </td>
-                <td style="padding:4px 6px;border:1px solid #CBD5E1;text-align:center;">${b.check_in || '-'}</td>
-                <td style="padding:4px 6px;border:1px solid #CBD5E1;text-align:center;">${b.check_out || '-'}</td>
-                <td style="padding:4px 6px;border:1px solid #CBD5E1;text-align:center;font-weight:700;">${p.nights}</td>
-                <td style="padding:4px 6px;border:1px solid #CBD5E1;text-align:right;font-weight:700;">₹${p.rev.toLocaleString('en-IN')}</td>
+                <td style="padding:6px 8px;border:1px solid #CBD5E1;text-align:center;">${b.check_in || '-'}</td>
+                <td style="padding:6px 8px;border:1px solid #CBD5E1;text-align:center;">${b.check_out || '-'}</td>
+                <td style="padding:6px 8px;border:1px solid #CBD5E1;text-align:center;font-weight:700;">${p.nights}</td>
+                <td style="padding:6px 8px;border:1px solid #CBD5E1;text-align:right;font-weight:700;">₹${p.rev.toLocaleString('en-IN')}</td>
               </tr>`;
             }).join('')}
             ${isFull ? `
             <tr style="background:#EFF6FF;font-weight:800;color:#1E3A8A;">
-              <td colspan="3" style="padding:5px 6px;border:1px solid #93C5FD;text-align:right;">Subtotal Online (Airbnb):</td>
-              <td style="padding:5px 6px;border:1px solid #93C5FD;text-align:center;">${onNights}</td>
-              <td style="padding:5px 6px;border:1px solid #93C5FD;text-align:right;">₹${onRev.toLocaleString('en-IN')}</td>
+              <td colspan="3" style="padding:6px 8px;border:1px solid #93C5FD;text-align:right;">Subtotal Online (Airbnb):</td>
+              <td style="padding:6px 8px;border:1px solid #93C5FD;text-align:center;">${onNights}</td>
+              <td style="padding:6px 8px;border:1px solid #93C5FD;text-align:right;">₹${onRev.toLocaleString('en-IN')}</td>
             </tr>` : ''}
           </tbody>
         </table>
@@ -632,44 +633,45 @@ async function renderInvestorReport(investorId, roomId, month) {
 
   function renderOfflineTableHtml(bks, isFull = true, isPartial = false, partNum = 1, totalParts = 1) {
     return `
-      <div style="margin-bottom:10px;">
-        <div style="font-size:11px;font-weight:700;margin-bottom:4px;color:#065F46;display:flex;align-items:center;justify-content:space-between;">
+      <div style="margin-bottom:12px;">
+        <div style="font-size:11px;font-weight:700;margin-bottom:5px;color:#065F46;display:flex;align-items:center;justify-content:space-between;">
           <span>🏠 Direct Offline Reservations${isPartial ? ` · Part ${partNum} of ${totalParts}` : ''}</span>
-          <span style="font-size:10px;background:#ECFDF5;color:#065F46;padding:1px 6px;border-radius:8px;border:1px solid #A7F3D0;font-weight:700;">
+          <span style="font-size:10px;background:#ECFDF5;color:#065F46;padding:2px 7px;border-radius:8px;border:1px solid #A7F3D0;font-weight:700;">
             ${bks.length} Stays · ${isFull ? offNights : bks.reduce((s,b)=>s+getProratedStats(b,getBookingPaid(b)).nights,0)} Nights
           </span>
         </div>
         <table style="width:100%;border-collapse:collapse;font-size:10px;">
           <thead>
             <tr style="background:#F8FAFC;border-bottom:2px solid #E2E8F0;">
-              <th style="padding:4px 6px;border:1px solid #CBD5E1;text-align:left;color:#475569;">Guest Name / Source</th>
-              <th style="padding:4px 6px;border:1px solid #CBD5E1;text-align:center;color:#475569;width:75px;">Check-In</th>
-              <th style="padding:4px 6px;border:1px solid #CBD5E1;text-align:center;color:#475569;width:75px;">Check-Out</th>
-              <th style="padding:4px 6px;border:1px solid #CBD5E1;text-align:center;color:#475569;width:50px;">Nights</th>
-              <th style="padding:4px 6px;border:1px solid #CBD5E1;text-align:right;color:#475569;width:80px;">Paid Revenue</th>
+              <th style="padding:6px 8px;border:1px solid #CBD5E1;text-align:left;color:#475569;">Guest Name / Source</th>
+              <th style="padding:6px 8px;border:1px solid #CBD5E1;text-align:center;color:#475569;width:75px;">Check-In</th>
+              <th style="padding:6px 8px;border:1px solid #CBD5E1;text-align:center;color:#475569;width:75px;">Check-Out</th>
+              <th style="padding:6px 8px;border:1px solid #CBD5E1;text-align:center;color:#475569;width:50px;">Nights</th>
+              <th style="padding:6px 8px;border:1px solid #CBD5E1;text-align:right;color:#475569;width:85px;">Paid Revenue</th>
             </tr>
           </thead>
           <tbody>
-            ${bks.length === 0 ? '<tr><td colspan="5" style="padding:8px;border:1px solid #CBD5E1;text-align:center;color:#94A3B8;font-style:italic;">No direct offline bookings recorded for this period.</td></tr>' : ''}
-            ${bks.map(b => {
+            ${bks.length === 0 ? '<tr><td colspan="5" style="padding:10px;border:1px solid #CBD5E1;text-align:center;color:#94A3B8;font-style:italic;">No direct offline bookings recorded for this period.</td></tr>' : ''}
+            ${bks.map((b, idx) => {
               const p = getProratedStats(b, getBookingPaid(b));
+              const rowBg = idx % 2 === 1 ? 'background:#F8FAFC;' : '';
               return `
-              <tr>
-                <td style="padding:4px 6px;border:1px solid #CBD5E1;">
+              <tr style="${rowBg}">
+                <td style="padding:6px 8px;border:1px solid #CBD5E1;">
                   <strong style="color:#0F172A;">${b.guest_name || 'Direct Guest'}</strong>
                   ${b.booking_id ? `<span style="font-size:8.5px;color:#64748B;display:block;">Ref: ${b.booking_id}</span>` : ''}
                 </td>
-                <td style="padding:4px 6px;border:1px solid #CBD5E1;text-align:center;">${b.check_in || '-'}</td>
-                <td style="padding:4px 6px;border:1px solid #CBD5E1;text-align:center;">${b.check_out || '-'}</td>
-                <td style="padding:4px 6px;border:1px solid #CBD5E1;text-align:center;font-weight:700;">${p.nights}</td>
-                <td style="padding:4px 6px;border:1px solid #CBD5E1;text-align:right;font-weight:700;">₹${p.rev.toLocaleString('en-IN')}</td>
+                <td style="padding:6px 8px;border:1px solid #CBD5E1;text-align:center;">${b.check_in || '-'}</td>
+                <td style="padding:6px 8px;border:1px solid #CBD5E1;text-align:center;">${b.check_out || '-'}</td>
+                <td style="padding:6px 8px;border:1px solid #CBD5E1;text-align:center;font-weight:700;">${p.nights}</td>
+                <td style="padding:6px 8px;border:1px solid #CBD5E1;text-align:right;font-weight:700;">₹${p.rev.toLocaleString('en-IN')}</td>
               </tr>`;
             }).join('')}
             ${isFull ? `
             <tr style="background:#ECFDF5;font-weight:800;color:#065F46;">
-              <td colspan="3" style="padding:5px 6px;border:1px solid #A7F3D0;text-align:right;">Subtotal Offline / Direct:</td>
-              <td style="padding:5px 6px;border:1px solid #A7F3D0;text-align:center;">${offNights}</td>
-              <td style="padding:5px 6px;border:1px solid #A7F3D0;text-align:right;">₹${offRev.toLocaleString('en-IN')}</td>
+              <td colspan="3" style="padding:6px 8px;border:1px solid #A7F3D0;text-align:right;">Subtotal Offline / Direct:</td>
+              <td style="padding:6px 8px;border:1px solid #A7F3D0;text-align:center;">${offNights}</td>
+              <td style="padding:6px 8px;border:1px solid #A7F3D0;text-align:right;">₹${offRev.toLocaleString('en-IN')}</td>
             </tr>` : ''}
           </tbody>
         </table>
@@ -680,39 +682,40 @@ async function renderInvestorReport(investorId, roomId, month) {
   function renderReviewTableHtml(bks) {
     if (!bks || bks.length === 0) return '';
     return `
-      <div style="margin-bottom:10px;">
-        <div style="font-size:11px;font-weight:700;margin-bottom:4px;color:#6D28D9;display:flex;align-items:center;justify-content:space-between;">
+      <div style="margin-bottom:12px;">
+        <div style="font-size:11px;font-weight:700;margin-bottom:5px;color:#6D28D9;display:flex;align-items:center;justify-content:space-between;">
           <span>⭐ Airbnb Review Promotional Stays</span>
-          <span style="font-size:10px;background:#F5F3FF;color:#6D28D9;padding:1px 6px;border-radius:8px;border:1px solid #DDD6FE;font-weight:700;">
+          <span style="font-size:10px;background:#F5F3FF;color:#6D28D9;padding:2px 7px;border-radius:8px;border:1px solid #DDD6FE;font-weight:700;">
             ${bks.length} Stays · ${reviewNights} Nights
           </span>
         </div>
         <table style="width:100%;border-collapse:collapse;font-size:10px;">
           <thead>
             <tr style="background:#F8FAFC;border-bottom:2px solid #E2E8F0;">
-              <th style="padding:4px 6px;border:1px solid #CBD5E1;text-align:left;color:#475569;">Guest Name</th>
-              <th style="padding:4px 6px;border:1px solid #CBD5E1;text-align:center;color:#475569;width:75px;">Check-In</th>
-              <th style="padding:4px 6px;border:1px solid #CBD5E1;text-align:center;color:#475569;width:75px;">Check-Out</th>
-              <th style="padding:4px 6px;border:1px solid #CBD5E1;text-align:center;color:#475569;width:50px;">Nights</th>
-              <th style="padding:4px 6px;border:1px solid #CBD5E1;text-align:right;color:#475569;width:80px;">Revenue</th>
+              <th style="padding:6px 8px;border:1px solid #CBD5E1;text-align:left;color:#475569;">Guest Name</th>
+              <th style="padding:6px 8px;border:1px solid #CBD5E1;text-align:center;color:#475569;width:75px;">Check-In</th>
+              <th style="padding:6px 8px;border:1px solid #CBD5E1;text-align:center;color:#475569;width:75px;">Check-Out</th>
+              <th style="padding:6px 8px;border:1px solid #CBD5E1;text-align:center;color:#475569;width:50px;">Nights</th>
+              <th style="padding:6px 8px;border:1px solid #CBD5E1;text-align:right;color:#475569;width:85px;">Revenue</th>
             </tr>
           </thead>
           <tbody>
-            ${bks.map(b => {
+            ${bks.map((b, idx) => {
               const p = getProratedStats(b, getBookingPaid(b));
+              const rowBg = idx % 2 === 1 ? 'background:#F8FAFC;' : '';
               return `
-              <tr>
-                <td style="padding:4px 6px;border:1px solid #CBD5E1;">${b.guest_name || '-'} <span style="background:#7C3AED;color:#fff;padding:1px 4px;border-radius:3px;font-size:8px;">REVIEW</span></td>
-                <td style="padding:4px 6px;border:1px solid #CBD5E1;text-align:center;">${b.check_in || '-'}</td>
-                <td style="padding:4px 6px;border:1px solid #CBD5E1;text-align:center;">${b.check_out || '-'}</td>
-                <td style="padding:4px 6px;border:1px solid #CBD5E1;text-align:center;font-weight:700;">${p.nights}</td>
-                <td style="padding:4px 6px;border:1px solid #CBD5E1;text-align:right;font-weight:700;">₹${p.rev.toLocaleString('en-IN')}</td>
+              <tr style="${rowBg}">
+                <td style="padding:6px 8px;border:1px solid #CBD5E1;">${b.guest_name || '-'} <span style="background:#7C3AED;color:#fff;padding:1px 4px;border-radius:3px;font-size:8px;">REVIEW</span></td>
+                <td style="padding:6px 8px;border:1px solid #CBD5E1;text-align:center;">${b.check_in || '-'}</td>
+                <td style="padding:6px 8px;border:1px solid #CBD5E1;text-align:center;">${b.check_out || '-'}</td>
+                <td style="padding:6px 8px;border:1px solid #CBD5E1;text-align:center;font-weight:700;">${p.nights}</td>
+                <td style="padding:6px 8px;border:1px solid #CBD5E1;text-align:right;font-weight:700;">₹${p.rev.toLocaleString('en-IN')}</td>
               </tr>`;
             }).join('')}
             <tr style="background:#F5F3FF;font-weight:800;color:#6D28D9;">
-              <td colspan="3" style="padding:5px 6px;border:1px solid #DDD6FE;text-align:right;">Subtotal Reviews:</td>
-              <td style="padding:5px 6px;border:1px solid #DDD6FE;text-align:center;">${reviewNights}</td>
-              <td style="padding:5px 6px;border:1px solid #DDD6FE;text-align:right;">₹${reviewRev.toLocaleString('en-IN')}</td>
+              <td colspan="3" style="padding:6px 8px;border:1px solid #DDD6FE;text-align:right;">Subtotal Reviews:</td>
+              <td style="padding:6px 8px;border:1px solid #DDD6FE;text-align:center;">${reviewNights}</td>
+              <td style="padding:6px 8px;border:1px solid #DDD6FE;text-align:right;">₹${reviewRev.toLocaleString('en-IN')}</td>
             </tr>
           </tbody>
         </table>
@@ -722,49 +725,49 @@ async function renderInvestorReport(investorId, roomId, month) {
 
   function renderChannelSummaryHtml() {
     return `
-      <div style="margin-top:10px;">
-        <div style="font-size:11px;font-weight:800;color:#0F172A;text-transform:uppercase;margin-bottom:4px;letter-spacing:0.5px;">
+      <div style="margin-top:12px;">
+        <div style="font-size:11px;font-weight:800;color:#0F172A;text-transform:uppercase;margin-bottom:5px;letter-spacing:0.5px;">
           📊 Channel Contribution &amp; Occupancy Summary
         </div>
         <table style="width:100%;border-collapse:collapse;font-size:10px;">
           <thead>
             <tr style="background:#F8FAFC;border-bottom:2px solid #E2E8F0;">
-              <th style="padding:4px 8px;border:1px solid #CBD5E1;text-align:left;color:#475569;">Channel Source</th>
-              <th style="padding:4px 8px;border:1px solid #CBD5E1;text-align:center;color:#475569;">Stays</th>
-              <th style="padding:4px 8px;border:1px solid #CBD5E1;text-align:center;color:#475569;">Nights</th>
-              <th style="padding:4px 8px;border:1px solid #CBD5E1;text-align:right;color:#475569;">Realized Revenue</th>
-              <th style="padding:4px 8px;border:1px solid #CBD5E1;text-align:center;color:#475569;">Share %</th>
+              <th style="padding:6px 10px;border:1px solid #CBD5E1;text-align:left;color:#475569;">Channel Source</th>
+              <th style="padding:6px 10px;border:1px solid #CBD5E1;text-align:center;color:#475569;">Stays</th>
+              <th style="padding:6px 10px;border:1px solid #CBD5E1;text-align:center;color:#475569;">Nights</th>
+              <th style="padding:6px 10px;border:1px solid #CBD5E1;text-align:right;color:#475569;">Realized Revenue</th>
+              <th style="padding:6px 10px;border:1px solid #CBD5E1;text-align:center;color:#475569;">Share %</th>
             </tr>
           </thead>
           <tbody>
             <tr>
-              <td style="padding:4px 8px;border:1px solid #CBD5E1;font-weight:600;">Online (Airbnb OTA)</td>
-              <td style="padding:4px 8px;border:1px solid #CBD5E1;text-align:center;">${onBks.length}</td>
-              <td style="padding:4px 8px;border:1px solid #CBD5E1;text-align:center;">${onNights}</td>
-              <td style="padding:4px 8px;border:1px solid #CBD5E1;text-align:right;font-weight:700;">₹${onRev.toLocaleString('en-IN')}</td>
-              <td style="padding:4px 8px;border:1px solid #CBD5E1;text-align:center;font-weight:700;">${onlinePct}%</td>
+              <td style="padding:6px 10px;border:1px solid #CBD5E1;font-weight:600;">Online (Airbnb OTA)</td>
+              <td style="padding:6px 10px;border:1px solid #CBD5E1;text-align:center;">${onBks.length}</td>
+              <td style="padding:6px 10px;border:1px solid #CBD5E1;text-align:center;">${onNights}</td>
+              <td style="padding:6px 10px;border:1px solid #CBD5E1;text-align:right;font-weight:700;">₹${onRev.toLocaleString('en-IN')}</td>
+              <td style="padding:6px 10px;border:1px solid #CBD5E1;text-align:center;font-weight:700;">${onlinePct}%</td>
             </tr>
             <tr>
-              <td style="padding:4px 8px;border:1px solid #CBD5E1;font-weight:600;">Offline (Direct / Walk-In)</td>
-              <td style="padding:4px 8px;border:1px solid #CBD5E1;text-align:center;">${offBks.length}</td>
-              <td style="padding:4px 8px;border:1px solid #CBD5E1;text-align:center;">${offNights}</td>
-              <td style="padding:4px 8px;border:1px solid #CBD5E1;text-align:right;font-weight:700;">₹${offRev.toLocaleString('en-IN')}</td>
-              <td style="padding:4px 8px;border:1px solid #CBD5E1;text-align:center;font-weight:700;">${offlinePct}%</td>
+              <td style="padding:6px 10px;border:1px solid #CBD5E1;font-weight:600;">Offline (Direct / Walk-In)</td>
+              <td style="padding:6px 10px;border:1px solid #CBD5E1;text-align:center;">${offBks.length}</td>
+              <td style="padding:6px 10px;border:1px solid #CBD5E1;text-align:center;">${offNights}</td>
+              <td style="padding:6px 10px;border:1px solid #CBD5E1;text-align:right;font-weight:700;">₹${offRev.toLocaleString('en-IN')}</td>
+              <td style="padding:6px 10px;border:1px solid #CBD5E1;text-align:center;font-weight:700;">${offlinePct}%</td>
             </tr>
             ${reviewBks.length > 0 ? `
             <tr>
-              <td style="padding:4px 8px;border:1px solid #CBD5E1;font-weight:600;">Promotional Reviews</td>
-              <td style="padding:4px 8px;border:1px solid #CBD5E1;text-align:center;">${reviewBks.length}</td>
-              <td style="padding:4px 8px;border:1px solid #CBD5E1;text-align:center;">${reviewNights}</td>
-              <td style="padding:4px 8px;border:1px solid #CBD5E1;text-align:right;font-weight:700;">₹${reviewRev.toLocaleString('en-IN')}</td>
-              <td style="padding:4px 8px;border:1px solid #CBD5E1;text-align:center;font-weight:700;">${totalRev > 0 ? Math.round(reviewRev * 100 / totalRev) : 0}%</td>
+              <td style="padding:6px 10px;border:1px solid #CBD5E1;font-weight:600;">Promotional Reviews</td>
+              <td style="padding:6px 10px;border:1px solid #CBD5E1;text-align:center;">${reviewBks.length}</td>
+              <td style="padding:6px 10px;border:1px solid #CBD5E1;text-align:center;">${reviewNights}</td>
+              <td style="padding:6px 10px;border:1px solid #CBD5E1;text-align:right;font-weight:700;">₹${reviewRev.toLocaleString('en-IN')}</td>
+              <td style="padding:6px 10px;border:1px solid #CBD5E1;text-align:center;font-weight:700;">${totalRev > 0 ? Math.round(reviewRev * 100 / totalRev) : 0}%</td>
             </tr>` : ''}
             <tr style="background:#F1F5F9;font-weight:800;color:#0F172A;">
-              <td style="padding:5px 8px;border:1px solid #94A3B8;">Consolidated Total</td>
-              <td style="padding:5px 8px;border:1px solid #94A3B8;text-align:center;">${activeBookings.length}</td>
-              <td style="padding:5px 8px;border:1px solid #94A3B8;text-align:center;">${totalNights}</td>
-              <td style="padding:5px 8px;border:1px solid #94A3B8;text-align:right;font-size:11px;">₹${totalRev.toLocaleString('en-IN')}</td>
-              <td style="padding:5px 8px;border:1px solid #94A3B8;text-align:center;">100%</td>
+              <td style="padding:7px 10px;border:1px solid #94A3B8;">Consolidated Total</td>
+              <td style="padding:7px 10px;border:1px solid #94A3B8;text-align:center;">${activeBookings.length}</td>
+              <td style="padding:7px 10px;border:1px solid #94A3B8;text-align:center;">${totalNights}</td>
+              <td style="padding:7px 10px;border:1px solid #94A3B8;text-align:right;font-size:11px;">₹${totalRev.toLocaleString('en-IN')}</td>
+              <td style="padding:7px 10px;border:1px solid #94A3B8;text-align:center;">100%</td>
             </tr>
           </tbody>
         </table>
@@ -836,23 +839,21 @@ async function renderInvestorReport(investorId, roomId, month) {
   const totalPages = 1 + ledgerPageBlocks.length + 1; // Cover + Ledger Pages + Signatures/Expenses Page
   const finalPageNo = totalPages;
 
-  function renderRunningHeader(pageNo, totalPages, subtitle = 'Verified Stay Ledger') {
+  function renderSubPageHeader(pageNo, totalPages) {
     return `
-      <div class="inv-running-header" style="background:linear-gradient(135deg,#0F172A 0%,#1E293B 100%);color:#FFFFFF;padding:9px 14px;border-radius:8px;border-bottom:2.5px solid #EAB308;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;">
-        <div style="display:flex;align-items:center;gap:10px;">
-          <img src="https://uniquehavenhomesstay.com/assets/logo.png" onerror="this.src='assets/logo.png'" alt="TUHH Logo" style="width:26px;height:26px;border-radius:6px;background:#fff;padding:2px;box-shadow:0 1px 4px rgba(0,0,0,0.25);" />
-          <div>
-            <div style="font-size:11px;font-weight:900;letter-spacing:0.8px;color:#FFFFFF;text-transform:uppercase;line-height:1.2;">THE UNIQUE HAVEN HOMES PVT. LTD.</div>
-            <div style="font-size:8px;color:#94A3B8;letter-spacing:0.4px;">CIN: U55101UP2026PTC244637 · ${subtitle}</div>
-          </div>
+      <div class="inv-sub-header" style="display:flex;align-items:center;justify-content:space-between;border-bottom:1.5px solid #CBD5E1;padding-bottom:8px;margin-bottom:14px;font-size:9.5px;color:#64748B;">
+        <div style="display:flex;align-items:center;gap:7px;">
+          <img src="https://uniquehavenhomesstay.com/assets/logo.png" onerror="this.src='assets/logo.png'" alt="TUHH" style="width:18px;height:18px;border-radius:4px;vertical-align:middle;" />
+          <strong style="color:#0F172A;letter-spacing:0.4px;">THE UNIQUE HAVEN HOMES PVT. LTD.</strong>
+          <span style="color:#94A3B8;">&bull;</span>
+          <span>CIN: U55101UP2026PTC244637</span>
         </div>
-        <div style="display:flex;align-items:center;gap:10px;">
-          <div style="font-size:10px;color:#E2E8F0;text-align:right;">
-            <span style="color:#94A3B8;font-size:8px;text-transform:uppercase;letter-spacing:0.5px;">Unit:</span> <strong style="color:#FDE047;">${room?.nickname || '-'}</strong>
-            <span style="color:#64748B;margin:0 4px;">|</span>
-            <span style="color:#FFFFFF;font-weight:700;">${monthYear.toUpperCase()}</span>
-          </div>
-          <span style="display:inline-block;padding:2px 8px;background:rgba(234,179,8,0.18);border:1px solid #EAB308;border-radius:12px;color:#FDE047;font-size:9px;font-weight:800;letter-spacing:0.6px;text-transform:uppercase;">
+        <div style="display:flex;align-items:center;gap:6px;">
+          <strong style="color:#0F172A;">${escapeHtml(room?.nickname || room?.property_name || roomId)}</strong>
+          <span style="color:#CBD5E1;">&bull;</span>
+          <span style="font-weight:700;color:#0F172A;">${monthYear.toUpperCase()}</span>
+          <span style="color:#CBD5E1;">&bull;</span>
+          <span style="background:#0F172A;color:#FFFFFF;font-weight:700;padding:2px 7px;border-radius:10px;font-size:9px;">
             PAGE ${pageNo} OF ${totalPages}
           </span>
         </div>
@@ -1074,8 +1075,8 @@ async function renderInvestorReport(investorId, roomId, month) {
 
         <div class="inv-page inv-page-${pageNo}">
           <div class="inv-page-content">
-            ${renderRunningHeader(pageNo, totalPages, 'Verified Stay Ledger')}
-            <div style="font-size:11.5px;font-weight:800;padding:5px 9px;background:#0F172A;color:#fff;border-radius:5px;display:flex;align-items:center;gap:6px;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">
+            ${renderSubPageHeader(pageNo, totalPages)}
+            <div style="font-size:11px;font-weight:700;padding:6px 10px;background:#F8FAFC;color:#0F172A;border:1px solid #E2E8F0;border-left:4px solid #0F172A;border-radius:4px;display:flex;align-items:center;gap:6px;text-transform:uppercase;letter-spacing:0.4px;margin-bottom:12px;">
               <span>${block.icon}</span> ${block.title}
             </div>
             ${block.html}
@@ -1097,52 +1098,52 @@ async function renderInvestorReport(investorId, roomId, month) {
       <!-- ═══════════════════════════════════════════════════════════ -->
       <div class="inv-page inv-page-${finalPageNo}">
         <div class="inv-page-content">
-          <!-- Final Page Running Header -->
-          ${renderRunningHeader(finalPageNo, totalPages, 'Operating Expenses &amp; Dual Certification')}
+          <!-- Final Page Sub-Header -->
+          ${renderSubPageHeader(finalPageNo, totalPages)}
 
-          <div style="font-size:11.5px;font-weight:800;padding:5px 9px;background:#0F172A;color:#fff;border-radius:5px;display:flex;align-items:center;gap:6px;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">
+          <div style="font-size:11px;font-weight:700;padding:6px 10px;background:#F8FAFC;color:#0F172A;border:1px solid #E2E8F0;border-left:4px solid #0F172A;border-radius:4px;display:flex;align-items:center;gap:6px;text-transform:uppercase;letter-spacing:0.4px;margin-bottom:12px;">
             <span>💸</span> 3. Monthly Operational Expenses &amp; P&amp;L Audit
           </div>
 
           <!-- Section 3.1: Itemized Expenses Table -->
           <div style="margin-bottom:10px;">
-            ${useDefaults ? '<div style="font-size:10px;color:#D97706;font-style:italic;margin-bottom:4px;font-weight:600;">ℹ️ Standard recurring benchmark expenses applied for this unit.</div>' : ''}
+            ${useDefaults ? '<div style="font-size:10px;color:#D97706;font-style:italic;margin-bottom:6px;font-weight:600;">ℹ️ Standard recurring benchmark expenses applied for this unit.</div>' : ''}
             <table style="width:100%;border-collapse:collapse;font-size:10px;">
               <thead>
                 <tr style="background:#F8FAFC;border-bottom:2px solid #E2E8F0;">
-                  <th style="padding:4px 8px;border:1px solid #CBD5E1;text-align:left;color:#475569;">Operational Expense Category</th>
-                  <th style="padding:4px 8px;border:1px solid #CBD5E1;text-align:left;color:#475569;">Notes / Billing Reference</th>
-                  <th style="padding:4px 8px;border:1px solid #CBD5E1;text-align:right;color:#475569;width:110px;">Amount (₹)</th>
+                  <th style="padding:6px 10px;border:1px solid #CBD5E1;text-align:left;color:#475569;">Operational Expense Category</th>
+                  <th style="padding:6px 10px;border:1px solid #CBD5E1;text-align:left;color:#475569;">Notes / Billing Reference</th>
+                  <th style="padding:6px 10px;border:1px solid #CBD5E1;text-align:right;color:#475569;width:120px;">Amount (₹)</th>
                 </tr>
               </thead>
               <tbody>
                 ${useDefaults
-                  ? (defaults || []).map(d => `
-                    <tr>
-                      <td style="padding:4px 8px;border:1px solid #CBD5E1;font-weight:600;">${d.expense_name}</td>
-                      <td style="padding:4px 8px;border:1px solid #CBD5E1;color:#64748B;font-size:9.5px;">Standard Unit Benchmark</td>
-                      <td style="padding:4px 8px;border:1px solid #CBD5E1;text-align:right;font-weight:700;">
+                  ? (defaults || []).map((d, idx) => `
+                    <tr style="${idx % 2 === 1 ? 'background:#F8FAFC;' : ''}">
+                      <td style="padding:6px 10px;border:1px solid #CBD5E1;font-weight:600;">${d.expense_name}</td>
+                      <td style="padding:6px 10px;border:1px solid #CBD5E1;color:#64748B;font-size:9.5px;">Standard Unit Benchmark</td>
+                      <td style="padding:6px 10px;border:1px solid #CBD5E1;text-align:right;font-weight:700;">
                         ${(d.default_amount || 0) === 0 ? 'Complimentary' : '₹' + d.default_amount.toLocaleString('en-IN')}
                       </td>
                     </tr>
                   `).join('')
-                  : (expenses || []).map(e => `
-                    <tr>
-                      <td style="padding:4px 8px;border:1px solid #CBD5E1;font-weight:600;">
+                  : (expenses || []).map((e, idx) => `
+                    <tr style="${idx % 2 === 1 ? 'background:#F8FAFC;' : ''}">
+                      <td style="padding:6px 10px;border:1px solid #CBD5E1;font-weight:600;">
                         ${e.expense_categories?.category_name || e.category_id || 'Operational Expense'}
                       </td>
-                      <td style="padding:4px 8px;border:1px solid #CBD5E1;color:#64748B;font-size:9.5px;">
+                      <td style="padding:6px 10px;border:1px solid #CBD5E1;color:#64748B;font-size:9.5px;">
                         ${e.notes || '-'}
                       </td>
-                      <td style="padding:4px 8px;border:1px solid #CBD5E1;text-align:right;font-weight:700;">
+                      <td style="padding:6px 10px;border:1px solid #CBD5E1;text-align:right;font-weight:700;">
                         ₹${(e.amount || 0).toLocaleString('en-IN')}
                         <span class="no-print" style="cursor:pointer;margin-left:6px;color:#EF4444;font-weight:800;" title="Delete Expense" onclick="deleteInlineInvestorExpense('${e.id}','${investorId}','${roomId}','${selMonth}')">✕</span>
                       </td>
                     </tr>
                   `).join('')}
                 <tr style="background:#FEF2F2;font-weight:800;color:#991B1B;">
-                  <td colspan="2" style="padding:5px 8px;border:1px solid #FCA5A5;text-align:right;">Total Monthly Operating Expenses:</td>
-                  <td style="padding:5px 8px;border:1px solid #FCA5A5;text-align:right;font-size:11px;">₹${totalExp.toLocaleString('en-IN')}</td>
+                  <td colspan="2" style="padding:6px 10px;border:1px solid #FCA5A5;text-align:right;">Total Monthly Operating Expenses:</td>
+                  <td style="padding:6px 10px;border:1px solid #FCA5A5;text-align:right;font-size:11px;">₹${totalExp.toLocaleString('en-IN')}</td>
                 </tr>
               </tbody>
             </table>
@@ -1319,7 +1320,7 @@ async function renderInvestorReport(investorId, roomId, month) {
       @media print {
         @page {
           size: A4 portrait;
-          margin: 12mm 12mm 12mm 12mm;
+          margin: 14mm 14mm 14mm 14mm;
         }
         html, body {
           background: #FFFFFF !important;
@@ -1341,15 +1342,13 @@ async function renderInvestorReport(investorId, roomId, month) {
           background: #FFFFFF !important;
         }
         .inv-page {
+          display: block !important;
+          min-height: auto !important;
+          max-height: none !important;
           page-break-after: always !important;
           break-after: page !important;
           page-break-inside: avoid !important;
           break-inside: avoid-page !important;
-          display: flex !important;
-          flex-direction: column !important;
-          justify-content: space-between !important;
-          min-height: 250mm !important;
-          max-height: 260mm !important;
           margin: 0 !important;
           padding: 0 !important;
           border: none !important;
@@ -1368,12 +1367,14 @@ async function renderInvestorReport(investorId, roomId, month) {
           display: none !important;
         }
         .inv-page-content {
-          flex: 1 1 auto !important;
+          display: block !important;
         }
         .inv-page-footer {
-          margin-top: auto !important;
+          margin-top: 18px !important;
           padding-top: 6px !important;
           border-top: 1px solid #CBD5E1 !important;
+          page-break-inside: avoid !important;
+          break-inside: avoid !important;
         }
         table {
           page-break-inside: auto;
@@ -1748,7 +1749,7 @@ function buildInvestorReportHTML(reportHTML, filename) {
   <style>
     @page {
       size: A4 portrait;
-      margin: 12mm 12mm 12mm 12mm;
+      margin: 14mm 14mm 14mm 14mm;
     }
     * {
       box-sizing: border-box !important;
@@ -1768,7 +1769,7 @@ function buildInvestorReportHTML(reportHTML, filename) {
     .report-doc {
       max-width: 100% !important;
       margin: 0 !important;
-      padding: 10mm 12mm !important;
+      padding: 8mm 10mm !important;
       box-shadow: none !important;
       border: none !important;
       background: #FFFFFF !important;
@@ -1816,12 +1817,10 @@ function buildInvestorReportHTML(reportHTML, filename) {
 
     /* Page Fit Architecture */
     .inv-page {
-      min-height: 250mm;
-      max-height: 260mm;
+      min-height: auto;
+      max-height: none;
       box-sizing: border-box;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
+      display: block;
       page-break-after: always;
       break-after: page;
       page-break-inside: avoid !important;
@@ -1835,10 +1834,10 @@ function buildInvestorReportHTML(reportHTML, filename) {
       margin-bottom: 0;
     }
     .inv-page-content {
-      flex: 1 1 auto;
+      display: block;
     }
     .inv-page-footer {
-      margin-top: auto;
+      margin-top: 18px;
       padding-top: 6px;
       border-top: 1px solid #CBD5E1;
       font-size: 9px;
@@ -1846,6 +1845,8 @@ function buildInvestorReportHTML(reportHTML, filename) {
       display: flex;
       justify-content: space-between;
       align-items: center;
+      page-break-inside: avoid !important;
+      break-inside: avoid !important;
     }
     .inv-page-break {
       page-break-before: always !important;
@@ -1863,7 +1864,7 @@ function buildInvestorReportHTML(reportHTML, filename) {
     @media print {
       @page {
         size: A4 portrait;
-        margin: 12mm 12mm 12mm 12mm;
+        margin: 14mm 14mm 14mm 14mm;
       }
       body {
         margin: 0 !important;
@@ -1875,15 +1876,13 @@ function buildInvestorReportHTML(reportHTML, filename) {
       .inv-page {
         margin: 0 !important;
         padding: 0 !important;
-        min-height: 250mm !important;
-        max-height: 260mm !important;
+        min-height: auto !important;
+        max-height: none !important;
         page-break-after: always !important;
         break-after: page !important;
         page-break-inside: avoid !important;
         break-inside: avoid-page !important;
-        display: flex !important;
-        flex-direction: column !important;
-        justify-content: space-between !important;
+        display: block !important;
         box-sizing: border-box !important;
       }
       .inv-page:last-child {
@@ -1891,15 +1890,19 @@ function buildInvestorReportHTML(reportHTML, filename) {
         break-after: auto !important;
       }
       .inv-page-content {
-        flex: 1 1 auto !important;
+        display: block !important;
       }
       .inv-page-footer {
-        margin-top: auto !important;
+        margin-top: 18px !important;
         padding-top: 6px !important;
         border-top: 1px solid #CBD5E1 !important;
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
       }
       table {
         page-break-inside: auto;
+        width: 100% !important;
+        border-collapse: collapse !important;
       }
       tr {
         page-break-inside: avoid !important;
