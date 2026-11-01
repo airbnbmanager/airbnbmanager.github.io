@@ -560,7 +560,7 @@ async function renderReports() {
     </div>
 
     <!-- KPI STAT CARDS -->
-    <div class="stat-grid" style="grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;">
+    <div class="stat-grid cal-stat-grid" style="gap:10px;">
       <div class="stat-card" style="border-left:4px solid var(--primary);border-radius:12px;">
         <div class="stat-num">${realMb.length}</div>
         <div class="stat-label">Bookings</div>

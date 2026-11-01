@@ -22,7 +22,7 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
   <link rel="stylesheet" href="style.css?v=372" />
   <!-- HomeyIndia CRM Design System Overhaul -->
-  <link rel="stylesheet" href="css/homeyindia-crm-theme.css?v=9" />
+  <link rel="stylesheet" href="css/homeyindia-crm-theme.css?v=10" />
   <script>
     (function() {
       try {
@@ -65,14 +65,14 @@
   <!-- App Modules — order matters -->
   <script src="js/core.js?v=375"></script>
   <script src="js/notifications.js?v=362"></script>
-  <script src="js/dashboard.js?v=376"></script>
+  <script src="js/dashboard.js?v=377"></script>
   <script src="js/daily-report.js?v=362"></script>
   <script src="js/reminders.js?v=362"></script>
   <script src="js/showcase-data.js?v=362"></script>
-  <script src="js/calendar.js?v=375"></script>
+  <script src="js/calendar.js?v=376"></script>
   <script src="js/bookings.js?v=362"></script>
   <script src="js/seasonal-pricing.js?v=362"></script>
-  <script src="js/smart-bookings.js?v=362"></script>
+  <script src="js/smart-bookings.js?v=363"></script>
   <script src="js/pos-terminal.js?v=362"></script>
   <script src="js/html2canvas.min.js"></script>
   <script src="js/booking-receipt.js?v=362"></script>
@@ -159,9 +159,9 @@
   </nav>
 
   <!-- PWA Install Banner (Dismissible & Non-blocking) -->
-  <div id="pwa-install-bar" style="display:none;position:fixed;bottom:calc(76px + env(safe-area-inset-bottom, 0px));left:50%;transform:translateX(-50%);z-index:99995;background:linear-gradient(135deg, #0f172a 0%, #1e293b 100%);color:white;padding:7px 14px;border-radius:999px;font-size:12px;font-weight:700;box-shadow:0 8px 24px rgba(0,0,0,0.3);align-items:center;gap:10px;font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:0.3px;border:1px solid rgba(255,255,255,0.18);white-space:nowrap;max-width:90vw;">
+  <div id="pwa-install-bar" style="display:none;position:fixed;bottom:calc(72px + env(safe-area-inset-bottom, 0px));right:14px;z-index:99995;background:linear-gradient(135deg, #0f172a 0%, #1e293b 100%);color:white;padding:6px 12px;border-radius:999px;font-size:11.5px;font-weight:700;box-shadow:0 8px 24px rgba(0,0,0,0.3);align-items:center;gap:8px;font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:0.3px;border:1px solid rgba(255,255,255,0.18);white-space:nowrap;max-width:85vw;">
     <span id="pwa-install-trigger" style="cursor:pointer;display:flex;align-items:center;gap:6px;">
-      <span>📲</span> <span>Install TUHH App</span>
+      <span>📲</span> <span>Install App</span>
     </span>
     <button type="button" id="pwa-dismiss-btn" aria-label="Dismiss" style="background:rgba(255,255,255,0.18);border:none;color:#fff;width:20px;height:20px;border-radius:50%;cursor:pointer;font-size:11px;display:flex;align-items:center;justify-content:center;padding:0;transition:background 0.2s;">✕</button>
   </div>
@@ -176,7 +176,18 @@
       if (localStorage.getItem('uhhs_pwa_dismissed') === '1') return;
       if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone) return;
       const bar = document.getElementById("pwa-install-bar");
-      if (bar) bar.style.display = "inline-flex";
+      if (bar) {
+        bar.style.display = "inline-flex";
+        bar.style.opacity = "1";
+        // Auto-dismiss after 10 seconds so it never permanently blocks view
+        setTimeout(() => {
+          if (bar && bar.style.display !== 'none') {
+            bar.style.opacity = '0';
+            bar.style.transition = 'opacity 0.4s ease';
+            setTimeout(() => { bar.style.display = 'none'; }, 400);
+          }
+        }, 10000);
+      }
     });
 
     document.getElementById("pwa-install-trigger")?.addEventListener("click", async () => {

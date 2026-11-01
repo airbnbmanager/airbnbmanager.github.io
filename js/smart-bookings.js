@@ -10,8 +10,13 @@ window._sbkState = {
   activeTab: 'today',        // 'today', 'upcoming', 'inhouse', 'all', 'arrivals', 'departures', 'due', 'pending', 'airbnb', 'direct'
   viewMode: (function() {
     try {
+      const isMobile = typeof window !== 'undefined' && window.innerWidth <= 768;
       const saved = localStorage.getItem('sbk_view_mode');
-      if (saved && ['airbnb', 'cards', 'table'].includes(saved)) return saved;
+      if (saved && ['airbnb', 'cards', 'table'].includes(saved)) {
+        if (isMobile && saved === 'table') return 'airbnb';
+        return saved;
+      }
+      return isMobile ? 'airbnb' : 'airbnb';
     } catch(e) {}
     return 'airbnb';
   })(),

@@ -1478,14 +1478,14 @@ async function renderDashboard() {
             </div>
           </div>
 
-          <div style="overflow-x:auto;">
-            <table class="hh-leaderboard-table">
+          <div style="overflow-x:auto;-webkit-overflow-scrolling:touch;width:100%;">
+            <table class="hh-leaderboard-table" style="width:100%;min-width:580px;border-collapse:collapse;">
               <thead>
                 <tr>
-                  <th>Property</th>
-                  <th>Net Revenue</th>
-                  <th>Occupancy</th>
-                  <th>Net Op. Income</th>
+                  <th style="min-width:180px;">Property</th>
+                  <th style="min-width:110px;">Net Revenue</th>
+                  <th style="min-width:130px;">Occupancy</th>
+                  <th style="min-width:110px;">Net Op. Income</th>
                 </tr>
               </thead>
               <tbody id="hhLeaderboardBody">
