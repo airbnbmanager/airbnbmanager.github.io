@@ -1107,19 +1107,11 @@ html, body {
     min-width: 0 !important;
   }
 
-  .sidebar-toggle-btn {
-    width: 32px !important;
-    height: 32px !important;
-    border-radius: 8px !important;
-    padding: 0 !important;
-    display: inline-flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    background: #F8FAFC !important;
-    border: 1px solid #E2E8F0 !important;
-    color: #0F172A !important;
-    font-size: 1.1rem !important;
-    flex-shrink: 0 !important;
+  /* Remove topbar hamburger menu button on mobile — Menu is handled exclusively in bottom navigation */
+  .sidebar-toggle-btn,
+  #hamburgerBtn,
+  .topbar-left .sidebar-toggle-btn {
+    display: none !important;
   }
 
   .topbar-brand-group {
