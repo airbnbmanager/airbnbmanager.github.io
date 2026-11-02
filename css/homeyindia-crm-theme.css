@@ -672,11 +672,27 @@ table tr:hover td,
   background: #FFFFFF !important;
   border-top: 1px solid var(--crm-border) !important;
   box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.04) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-around !important;
+  padding: 0 4px !important;
 }
 
 .pwa-nav-item {
   color: var(--crm-text-secondary) !important;
   transition: color 0.15s ease !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 2px !important;
+  background: none !important;
+  border: none !important;
+  padding: 5px 4px !important;
+  cursor: pointer !important;
+  flex: 1 1 0 !important;
+  min-width: 0 !important;
+  position: relative !important;
 }
 
 .pwa-nav-item i {
@@ -684,12 +700,23 @@ table tr:hover td,
   line-height: 1 !important;
 }
 
+.pwa-nav-label {
+  font-size: 10px !important;
+  font-weight: 600 !important;
+  line-height: 1.15 !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  max-width: 100% !important;
+  text-align: center !important;
+}
+
 .pwa-nav-item.active {
   color: var(--crm-primary) !important;
 }
 
 .pwa-nav-item.active .pwa-nav-label {
-  font-weight: 700 !important;
+  font-weight: 800 !important;
   color: var(--crm-primary) !important;
 }
 

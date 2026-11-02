@@ -7102,7 +7102,7 @@ window.renderPendingApprovals = async function() {
           <button class="btn-sm green-btn" onclick="approveBooking('${b.booking_id}')">✅ Approve</button>
           <button class="btn-sm" style="background:#7c3aed;color:#ffffff;border:none;padding:4px 9px;font-size:11.5px;font-weight:700;border-radius:6px;cursor:pointer;" onclick="openFounderDiscountModal('${b.booking_id}')">🏷️ Special Discount</button>
           <button class="btn-sm danger" onclick="rejectBooking('${b.booking_id}')">❌ Reject</button>
-          <button class="btn-sm outline" onclick="editBooking('${b.booking_id}')">✏️ View</button>
+          <button class="btn-sm outline" onclick="if(window.openBookingDrawer) window.openBookingDrawer('${b.booking_id}'); else editBooking('${b.booking_id}');">📋 View Details</button>
         </div>
       </td>
     </tr>`;

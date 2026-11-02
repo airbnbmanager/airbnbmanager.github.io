@@ -798,7 +798,9 @@ async function loadProfile(userId) {
     else {
     const hashPage = (window.location.hash || '').replace('#', '').trim();
     const lastPage = localStorage.getItem('uh_last_page');
-    const targetPage = hashPage || lastPage || 'dashboard';
+    const cleanHash = (hashPage && hashPage !== 'dashboard' && hashPage !== 'today') ? hashPage : '';
+    const cleanLast = (lastPage && lastPage !== 'dashboard' && lastPage !== 'today') ? lastPage : '';
+    const targetPage = cleanHash || cleanLast || 'bookings';
     navigate(targetPage);
   }
 }
@@ -1329,8 +1331,8 @@ function renderShell(content, activePage = 'dashboard') {
       page: 'bookings',
       pages: ['bookings', 'calendar', 'reports', 'pendingApprovals'],
       tabs: [
-        { id: 'bookings', label: '🛎️ Booking' },
-        { id: 'calendar', label: '📅 Calendar' },
+        { id: 'bookings', label: '📅 Today' },
+        { id: 'calendar', label: '🗓️ Calendar' },
         { id: 'pendingApprovals', label: '🟡 Approvals' }
       ]
     },
@@ -2197,12 +2199,12 @@ function navigate(page) {
     const isAct = (a.dataset.page === page) ||
       (a.dataset.page === 'menu' && page === 'menu') ||
       (a.dataset.page === 'calendar' && (page === 'calendar' || page === 'reports')) ||
-      (a.dataset.page === 'bookings' && page === 'bookings') ||
+      (a.dataset.page === 'bookings' && (page === 'bookings' || page === 'calendar' || page === 'reports' || page === 'pendingApprovals')) ||
       (a.dataset.page === 'dashboard' && page === 'dashboard') ||
-      (a.dataset.page === 'tasks' && page === 'tasks') ||
+      (a.dataset.page === 'tasks' && (page === 'tasks' || page === 'maintenance' || page === 'task-and-housekeeping' || page === 'housekeeping')) ||
       (a.dataset.page === 'attendance' && (page === 'attendance' || page === 'att-summary')) ||
       (a.dataset.page === 'expenses' && page === 'expenses') ||
-      (a.dataset.page === 'flats' && (page === 'flats' || page === 'properties'));
+      (a.dataset.page === 'flats' && (page === 'flats' || page === 'properties' || page === 'rooms'));
     if (isAct) a.classList.add('active');
     else a.classList.remove('active');
   });
@@ -2229,11 +2231,15 @@ function navigate(page) {
   const map = {
     menu: () => (window.renderAppMenu || renderAppMenu)(),
     investors: () => (window.renderManageInvestors || renderManageInvestors)(),
-    dashboard: () => (window.renderDashboard || renderDashboard)(),
+    dashboard: () => (window.renderFullDashboardAnalytics || window.renderDashboard || renderDashboard)(),
     reports: () => (window.renderReports || window.renderCalendar || (() => {}))(),
     calendar: () => (window.renderCalendar || window.renderReports || (() => {}))(),
     rooms: () => (window.renderManageRooms || renderManageRooms)(),
     flats: () => (window.renderFlatsStatus || renderFlatsStatus)(),
+    properties: () => (window.renderFlatsStatus || renderFlatsStatus)(),
+    'task-and-housekeeping': () => (window.renderEmployeeTasks || renderEmployeeTasks)(),
+    'tasks-and-housekeeping': () => (window.renderEmployeeTasks || renderEmployeeTasks)(),
+    housekeeping: () => (window.renderEmployeeTasks || renderEmployeeTasks)(),
     'daily-report': () => (window.renderDailyReport || renderDailyReport)(),
     reminders: () => (window.renderReminders || renderReminders)(),
     bookings: () => (window.renderSmartManageBookings || window.renderManageBookings || renderManageBookings)(),
@@ -2266,7 +2272,7 @@ function navigate(page) {
     cashbook: () => navigate('claims'),
     'my-ledger': () => (window.renderMyLedger || renderMyLedger)(),
     'employee-ledger': () => (window.renderEmployeeLedger || renderEmployeeLedger)(),
-    analytics: () => (window.renderAnalytics || renderAnalytics)(),
+    analytics: () => (window.renderFullDashboardAnalytics || window.renderAnalytics || renderAnalytics)(),
     'whatsapp-hub': () => (window.renderWhatsAppHub || renderWhatsAppHub)(),
     settings: () => (window.renderSettings || renderSettings)(),
     investors: () => (window.renderManageInvestors || renderManageInvestors)(),
@@ -2277,7 +2283,7 @@ function navigate(page) {
     help: () => (window.renderHelpAndGuide || renderHelpAndGuide)(),
   };
 
-  const runner = map[page] || map['dashboard'];
+  const runner = map[page] || map['bookings'] || map['dashboard'];
   try {
     runner();
   } catch (err) {
@@ -4807,7 +4813,9 @@ window.chartCard = function(canvasId, title, height) {
   try {
     const curHash = (window.location.hash || '').replace('#', '').trim();
     const lastSavedPage = localStorage.getItem('uh_last_page');
-    const startPage = curHash || lastSavedPage || 'dashboard';
+    const cleanH = (curHash && curHash !== 'dashboard' && curHash !== 'today') ? curHash : '';
+    const cleanS = (lastSavedPage && lastSavedPage !== 'dashboard' && lastSavedPage !== 'today') ? lastSavedPage : '';
+    const startPage = cleanH || cleanS || 'bookings';
     history.replaceState({ page: startPage }, '', '#' + startPage);
   } catch(e) {}
 

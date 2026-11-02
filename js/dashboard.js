@@ -73,7 +73,11 @@ window.getRatingBadge = function(rating) {
 };
 
 window.openBookingFromDashboard = function(bkId) {
-  if (typeof editBooking === 'function') {
+  if (typeof window.openBookingDrawer === 'function') {
+    window.openBookingDrawer(bkId);
+  } else if (typeof window.showBookingDetails === 'function') {
+    window.showBookingDetails(bkId);
+  } else if (typeof editBooking === 'function') {
     editBooking(bkId);
   } else if (typeof navigate === 'function') {
     navigate('bookings');
@@ -1636,11 +1640,14 @@ async function renderDashboard() {
                 <div style="font-size:11.5px;font-weight:800;color:#0284C7;text-transform:uppercase;letter-spacing:0.8px;margin:12px 0 2px 4px;display:flex;align-items:center;gap:6px;">
                   <span>🏠</span> Currently In-House (${activeNow.length})
                 </div>
-                ${activeNow.slice(0, 4).map(b => window.renderAirbnbResCard(b, 'inhouse')).join('')}
-                ${activeNow.length > 4 ? `
+                ${activeNow.slice(0, 6).map(b => window.renderAirbnbResCard(b, 'inhouse')).join('')}
+                ${activeNow.length > 6 ? `
+                  <div id="airbnbInHouseExpandedList" style="display:none;flex-direction:column;gap:10px;">
+                    ${activeNow.slice(6).map(b => window.renderAirbnbResCard(b, 'inhouse')).join('')}
+                  </div>
                   <div style="text-align:center;margin-top:4px;">
-                    <button type="button" onclick="navigate('calendar')" style="background:#F0F9FF;border:1px solid #BAE6FD;color:#0284C7;font-size:12px;font-weight:700;padding:6px 14px;border-radius:999px;cursor:pointer;">
-                      + View all ${activeNow.length} in-house in Calendar &rarr;
+                    <button type="button" onclick="document.getElementById('airbnbInHouseExpandedList').style.display='flex';this.style.display='none';" style="background:#F0F9FF;border:1px solid #BAE6FD;color:#0284C7;font-size:12px;font-weight:700;padding:6px 14px;border-radius:999px;cursor:pointer;">
+                      + View all ${activeNow.length} in-house guests &darr;
                     </button>
                   </div>
                 ` : ''}
@@ -1650,44 +1657,7 @@ async function renderDashboard() {
         </div>
 
         <!-- ═══════════════════════════════════════════════════════════ -->
-        <!-- 2. FOLLOW-UP ACTIONS (USKE NEECHE FOLLORUP BOOKING)         -->
-        <!-- ═══════════════════════════════════════════════════════════ -->
-        <div style="margin-bottom:30px;">
-          <div style="display:flex;align-items:center;justify-content:space-between;margin:0 0 12px;padding:0 2px;flex-wrap:wrap;gap:8px;">
-            <h2 style="font-size:18px;font-weight:800;color:#111827;margin:0;letter-spacing:-0.3px;">
-              Follow-ups &amp; Action items (${airbnbFollowupList.length})
-            </h2>
-            <div style="font-size:12px;color:#64748B;font-weight:600;">
-              ${checkoutReviewsPending.length} reviews &bull; ${idFollowups.length} IDs &bull; ${dueFollowups.length} balance
-            </div>
-          </div>
-
-          <div class="airbnb-followups-feed" style="display:flex;flex-direction:column;gap:10px;">
-            ${airbnbFollowupList.length === 0 ? `
-              <div style="background:#ffffff;border:1px solid #E2E8F0;border-radius:16px;padding:24px 16px;text-align:center;box-shadow:0 1px 3px rgba(0,0,0,0.03);">
-                <div style="font-size:26px;margin-bottom:4px;">🎉</div>
-                <div style="font-size:14px;font-weight:800;color:#111827;">All follow-ups complete!</div>
-                <div style="font-size:12px;color:#64748B;margin-top:2px;">No pending reviews, missing IDs, or unpaid balances for today.</div>
-              </div>
-            ` : `
-              <!-- Top 4 Most Urgent Follow-ups -->
-              ${airbnbFollowupList.slice(0, 4).map(item => renderFollowupCard(item)).join('')}
-
-              <!-- Expandable list for the remaining follow-ups -->
-              ${airbnbFollowupList.length > 4 ? `
-                <div id="airbnbFollowupsExpandedList" style="display:none;flex-direction:column;gap:10px;">
-                  ${airbnbFollowupList.slice(4).map(item => renderFollowupCard(item)).join('')}
-                </div>
-                <button type="button" id="btnToggleAllFollowups" onclick="window.toggleAllFollowups()" style="background:#FFFFFF;border:1.5px solid #E2E8F0;color:#1E293B;font-weight:700;font-size:12.5px;padding:10px 16px;border-radius:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;transition:all 0.15s ease;box-shadow:0 1px 3px rgba(0,0,0,0.03);margin-top:2px;">
-                  <span>Show all ${airbnbFollowupList.length} follow-ups &darr;</span>
-                </button>
-              ` : ''}
-            `}
-          </div>
-        </div>
-
-        <!-- ═══════════════════════════════════════════════════════════ -->
-        <!-- 3. UPCOMING RESERVATIONS (THEN UPCOMING)                     -->
+        <!-- 2. UPCOMING RESERVATIONS                                    -->
         <!-- ═══════════════════════════════════════════════════════════ -->
         <div id="hhUpcomingSection" style="margin-bottom:32px;">
           <div style="display:flex;align-items:center;justify-content:space-between;margin:0 0 12px;padding:0 2px;">
@@ -1706,11 +1676,14 @@ async function renderDashboard() {
                 <div style="font-size:14px;font-weight:700;color:#0F172A;">No upcoming bookings scheduled</div>
               </div>
             ` : `
-              ${upcomingReservations.slice(0, 5).map(b => window.renderAirbnbResCard(b, 'upcoming')).join('')}
-              ${upcomingReservations.length > 5 ? `
+              ${upcomingReservations.slice(0, 8).map(b => window.renderAirbnbResCard(b, 'upcoming')).join('')}
+              ${upcomingReservations.length > 8 ? `
+                <div id="airbnbUpcomingExpandedList" style="display:none;flex-direction:column;gap:10px;">
+                  ${upcomingReservations.slice(8).map(b => window.renderAirbnbResCard(b, 'upcoming')).join('')}
+                </div>
                 <div style="text-align:center;margin-top:6px;">
-                  <button type="button" onclick="navigate('bookings')" style="background:#FFFFFF;border:1.5px solid #E2E8F0;color:#0284C7;font-size:12.5px;font-weight:700;padding:8px 18px;border-radius:999px;cursor:pointer;">
-                    + View all ${upcomingReservations.length} upcoming in Bookings List &rarr;
+                  <button type="button" onclick="document.getElementById('airbnbUpcomingExpandedList').style.display='flex';this.style.display='none';" style="background:#FFFFFF;border:1.5px solid #E2E8F0;color:#0284C7;font-size:12.5px;font-weight:700;padding:8px 18px;border-radius:999px;cursor:pointer;">
+                    + View all ${upcomingReservations.length} upcoming reservations &darr;
                   </button>
                 </div>
               ` : ''}

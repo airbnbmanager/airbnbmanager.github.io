@@ -457,26 +457,17 @@ async function renderSmartManageBookings(forceRefresh = false) {
           </button>
         </div>
       ` : ''}
-      <!-- Centered Pill Bar & Filter Actions (Matches Airbnb Mobile Header) -->
+      <!-- Centered 3 Primary Hub Tabs: Today | Calendar | Approvals -->
       <div class="airbnb-header-bar">
         <div class="airbnb-pills-center" id="sbkPillsRow">
           <button class="airbnb-pill ${tab === 'today' ? 'active' : ''}" onclick="window.setBookingTab('today')" id="sbkTabToday">
-            Today <span class="airbnb-pill-num">${todayCount}</span>
+            📅 Today <span class="airbnb-pill-num">${todayCount}</span>
           </button>
-          <button class="airbnb-pill ${tab === 'upcoming' ? 'active' : ''}" onclick="window.setBookingTab('upcoming')" id="sbkTabUpcoming">
-            Upcoming <span class="airbnb-pill-num">${upcomingCount}</span>
+          <button class="airbnb-pill ${tab === 'calendar' ? 'active' : ''}" onclick="window.setBookingTab('calendar')" id="sbkTabCalendar">
+            🗓️ Calendar
           </button>
-          <button class="airbnb-pill ${tab === 'inhouse' ? 'active' : ''}" onclick="window.setBookingTab('inhouse')" id="sbkTabInhouse">
-            In-House <span class="airbnb-pill-num">${inHouseCount}</span>
-          </button>
-          <button class="airbnb-pill ${tab === 'due' ? 'active' : ''}" onclick="window.setBookingTab('due')" id="sbkTabDue" style="${dueCount > 0 ? 'background:#FEF2F2;color:#991B1B;border-color:#EF4444;font-weight:700;' : ''}">
-            💰 Balance Due <span class="airbnb-pill-num" style="${dueCount > 0 ? 'background:#EF4444;color:#fff;' : ''}">${dueCount}</span>
-          </button>
-          <button class="airbnb-pill ${tab === 'pending' ? 'active' : ''}" onclick="window.setBookingTab('pending')" id="sbkTabPending" style="${pendingApprovalsCount > 0 ? 'background:#FEF3C7;color:#92400E;border-color:#F59E0B;font-weight:700;' : ''}">
-            🟡 Pending <span class="airbnb-pill-num" style="${pendingApprovalsCount > 0 ? 'background:#F59E0B;color:#fff;' : ''}">${pendingApprovalsCount}</span>
-          </button>
-          <button class="airbnb-pill ${tab === 'all' ? 'active' : ''}" onclick="window.setBookingTab('all')" id="sbkTabAll" title="View all reservations / guests">
-            All Guests <span class="airbnb-pill-num">${curPropFilter ? (all || []).filter(b => b.room_id === curPropFilter).length : (all?.length || 0)}</span>
+          <button class="airbnb-pill ${tab === 'approvals' || tab === 'pending' ? 'active' : ''}" onclick="window.setBookingTab('approvals')" id="sbkTabApprovals" style="${pendingApprovalsCount > 0 ? 'background:#FEF3C7;color:#92400E;border-color:#F59E0B;font-weight:700;' : ''}">
+            🟡 Approvals <span class="airbnb-pill-num" style="${pendingApprovalsCount > 0 ? 'background:#F59E0B;color:#fff;' : ''}">${pendingApprovalsCount}</span>
           </button>
         </div>
 
@@ -571,9 +562,32 @@ async function renderSmartManageBookings(forceRefresh = false) {
         </div>
       </div>
 
-      <!-- Reservation Presentation Container -->
+      ${tab === 'today' && !sq ? `
+        <!-- Today Operational Quick Jump Chips -->
+        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin:0 0 14px 2px;">
+          <span style="font-size:12px;font-weight:700;color:#64748B;">Today's Operations:</span>
+          <button type="button" onclick="window.scrollToSection('sbkSecCheckouts')" style="font-size:11.5px;font-weight:700;background:#FEF2F2;color:#DC2626;padding:4px 10px;border-radius:999px;border:1px solid #FECACA;cursor:pointer;">
+            🚪 ${departuresCount} Out
+          </button>
+          <button type="button" onclick="window.scrollToSection('sbkSecCheckins')" style="font-size:11.5px;font-weight:700;background:#ECFDF5;color:#059669;padding:4px 10px;border-radius:999px;border:1px solid #A7F3D0;cursor:pointer;">
+            🔑 ${arrivalsCount} In
+          </button>
+          <button type="button" onclick="window.scrollToSection('sbkSecInhouse')" style="font-size:11.5px;font-weight:700;background:#F0F9FF;color:#0284C7;padding:4px 10px;border-radius:999px;border:1px solid #BAE6FD;cursor:pointer;">
+            🏠 ${inHouseCount} Stay
+          </button>
+          <button type="button" onclick="window.scrollToSection('sbkSecUpcoming')" style="font-size:11.5px;font-weight:700;background:#F8FAFC;color:#475569;padding:4px 10px;border-radius:999px;border:1px solid #E2E8F0;cursor:pointer;">
+            📅 ${upcomingCount} Upcoming
+          </button>
+          ${dueCount > 0 ? `
+            <button type="button" onclick="window.setBookingTab('due')" style="font-size:11.5px;font-weight:700;background:#FFFBEB;color:#B45309;padding:4px 10px;border-radius:999px;border:1px solid #FDE68A;cursor:pointer;">
+              💰 ${dueCount} Due
+            </button>
+          ` : ''}
+        </div>
+      ` : ''}
+
+      <!-- Reservation Presentation Container (Clean: Out, In, In-House, Upcoming ONLY) -->
       <div id="sbkReservationsContainer">
-        ${tab === 'today' && !sq ? renderAirbnbFollowupsHtml(all, paidMap, canM, today) : ''}
         ${filtered.length === 0 ? `
           <div style="background:#ffffff;border:1px solid #E2E8F0;border-radius:16px;text-align:center;padding:50px 20px;max-width:560px;margin:0 auto;">
             <div style="font-size:36px;margin-bottom:12px;">🏡</div>
@@ -778,174 +792,263 @@ function getPropertyCoverThumb(b) {
   return 'assets/logo.png';
 }
 
+function renderSingleAirbnbResCard(b, paidMap, canM, today) {
+  const pd = paidMap[b.booking_id] || 0;
+  const isOpenEnded = !b.check_out && b.checkout_confirmed === false;
+  const cin = b.check_in || today;
+  const elapsedDays = Math.max(1, Math.ceil((new Date(today) - new Date(cin)) / 86400000));
+  const dailyRate = b.per_day_rate || 0;
+  const dynamicTotal = (isOpenEnded && dailyRate > 0) ? (elapsedDays * dailyRate) : (b.total_amount || 0);
+  const bal = dynamicTotal - pd;
+
+  const isCheckoutToday = b.check_out === today;
+  const isArrivalToday = b.check_in === today;
+  const isStayingAllDay = b.check_in < today && (b.check_out > today || isOpenEnded);
+  const isUpcoming = b.check_in > today;
+  const isPast = !isOpenEnded && b.check_out < today;
+  const isOnline = b.booking_mode === 'Online-Airbnb' || !!b.airbnb_confirmation_code;
+  const bSrc = (typeof window.getBookingSource === 'function') ? window.getBookingSource(b) : null;
+  const nights = (b.check_in && b.check_out) ? Math.max((typeof calcNights === 'function' ? calcNights(b.check_in, b.check_out) : Math.round((new Date(b.check_out) - new Date(b.check_in)) / 86400000)), 1) : 1;
+  const isSameDayStay = !!(b.check_in && b.check_out && b.check_in === b.check_out);
+
+  // Left Time Column Content
+  let timeMain = '';
+  let timeSub = '';
+  if (isSameDayStay) {
+    timeMain = 'Day Use';
+    timeSub = `${(b.check_in_time || '09:30').slice(0, 5)} - ${(b.check_out_time || '16:30').slice(0, 5)}`;
+  } else if (isCheckoutToday) {
+    timeMain = (b.check_out_time ? b.check_out_time.replace(/:\d\d$/, '') : '11:00').replace(/\s*[ap]m/i, '');
+    timeSub = '';
+  } else if (isArrivalToday) {
+    timeMain = (b.check_in_time ? b.check_in_time.replace(/:\d\d$/, '') : '14:00').replace(/\s*[ap]m/i, '');
+    timeSub = '';
+  } else if (isStayingAllDay) {
+    timeMain = 'All day';
+    timeSub = '';
+  } else if (isUpcoming) {
+    timeMain = formatAirbnbDateRange(b.check_in, b.check_out);
+    timeSub = `${nights} ${nights === 1 ? 'night' : 'nights'}`;
+  } else {
+    timeMain = formatAirbnbDateRange(b.check_in, b.check_out);
+    timeSub = 'Past stay';
+  }
+
+  const headline = getAirbnbHeadline(b, today);
+  const propertySub = getAirbnbPropertySubtitle(b);
+  const avatarInfo = getGuestAvatarInfo(b.guest_name);
+  const propThumb = getPropertyCoverThumb(b);
+  const hasId = !!(b.id_proof_photo_paths || b.id_proof_photo_path);
+  const isBlocked = b.booking_mode === 'Offline-Blocked' || b.guest_name === '🔒 Blocked Slot';
+
+  const guestPhoto = b.guest_photo || (b.id_proof_photo_path && b.id_proof_photo_path.startsWith('http') ? b.id_proof_photo_path : null);
+
+  return `
+    <div class="sbk-res-card" id="abCard_${b.booking_id}" onclick="window.openBookingDrawer('${b.booking_id}')">
+      <!-- Top Row: Time + Title on Left, Avatar Combo on Right -->
+      <div class="airbnb-card-top-header">
+        <div class="airbnb-card-title-col">
+          <div class="airbnb-card-time-line">
+            <span class="airbnb-time-main">${escapeHtml(timeMain)}</span>
+            ${timeSub ? `<span class="airbnb-time-sub">${escapeHtml(timeSub)}</span>` : ''}
+          </div>
+          <div class="airbnb-guest-headline" title="${escapeHtml(headline)}">
+            ${escapeHtml(headline)}
+          </div>
+        </div>
+
+        <div class="airbnb-avatar-group" title="${isBlocked ? 'Blocked Slot' : escapeHtml(b.guest_name || 'Guest')} · ${escapeHtml(propertySub)}">
+          ${isBlocked ? `
+            <img src="${propThumb}" class="airbnb-guest-avatar-img" alt="Property" onerror="this.outerHTML='<div class=\\'airbnb-guest-avatar-img\\' style=\\'background:#F3E8FF;color:#7E22CE;\\'>🔒</div>';" />
+            <div class="airbnb-property-thumb-badge" style="background:#0F172A;color:#ffffff;display:flex;align-items:center;justify-content:center;font-size:12px;" title="Blocked Slot">
+              🔒
+            </div>
+          ` : `
+            ${guestPhoto ? `
+              <img src="${guestPhoto}" class="airbnb-guest-avatar-img" alt="${escapeHtml(b.guest_name || 'Guest')}" onerror="this.outerHTML='<div class=\\'airbnb-guest-avatar-img\\' style=\\'background:${avatarInfo.bg};color:${avatarInfo.text};\\'>${escapeHtml(avatarInfo.initial)}</div>';" />
+            ` : `
+              <div class="airbnb-guest-avatar-img" style="background:${avatarInfo.bg};color:${avatarInfo.text};">
+                ${escapeHtml(avatarInfo.initial)}
+              </div>
+            `}
+            <img src="${propThumb}" class="airbnb-property-thumb-badge" alt="${escapeHtml(propertySub)}" title="${escapeHtml(propertySub)}" onerror="this.src='assets/logo.png'"/>
+          `}
+        </div>
+      </div>
+
+      <!-- Property Subtitle / Location -->
+      <div class="airbnb-property-sub" title="${escapeHtml(propertySub)}">
+        ${escapeHtml(propertySub)}
+      </div>
+
+      <!-- Card Bottom: Status Chips & Quick Actions -->
+      <div class="airbnb-card-footer-row">
+        <div class="airbnb-chips-row">
+          <span class="airbnb-chip ${bSrc ? bSrc.chipClass : (isOnline ? 'airbnb' : 'direct')}">
+            ${bSrc ? bSrc.badge : (isOnline ? '🌐 Airbnb' : '🏠 Direct')}
+          </span>
+          ${bal > 0.99 ? `
+            <span class="airbnb-chip due">⚠️ ₹${Math.round(bal).toLocaleString('en-IN')} Due</span>
+          ` : (isOnline && (dynamicTotal === 0 || b.payment_status === 'Pending CSV Payout')) ? `
+            <span class="airbnb-chip" style="background:#FEF3C7;color:#92400E;font-weight:700;border:1px solid #FDE68A;">⏳ Awaiting Airbnb Payout</span>
+          ` : `
+            <span class="airbnb-chip paid">✅ Paid ₹${dynamicTotal.toLocaleString('en-IN')}</span>
+          `}
+
+          ${(b.stay_group_id || (b.phone && (window._sbkState?.phoneCounts?.[String(b.phone).replace(/\D/g, '').slice(-10)] || 0) > 1)) ? `
+            <span class="airbnb-chip" style="background:#EEF2FF;color:#4F46E5;font-weight:800;cursor:pointer;" onclick="event.stopPropagation();window.openMultiPropertyReceiptModal('${b.stay_group_id || b.phone || b.booking_id}')" title="Multi-Property Group Booking · Click to view combined receipt">
+              🏢 Group Stay${(!b.stay_group_id && b.phone && (window._sbkState?.phoneCounts?.[String(b.phone).replace(/\D/g, '').slice(-10)] || 0) > 1) ? ` (${window._sbkState.phoneCounts[String(b.phone).replace(/\D/g, '').slice(-10)]})` : ''}
+            </span>
+          ` : ''}
+
+          ${isSameDayStay ? `
+            <span class="airbnb-chip" style="background:#F5F3FF;color:#6D28D9;border:1.5px solid #DDD6FE;font-weight:800;" title="Same-day Day-Use Stay">
+              ⚡ Day Use (${(b.check_in_time || '09:30').slice(0, 5)} - ${(b.check_out_time || '16:30').slice(0, 5)})
+            </span>
+          ` : ''}
+
+          ${(!isSameDayStay && b.check_in_time && b.check_in_time < '12:00') ? `
+            <span class="airbnb-chip" style="background:#EFF6FF;color:#1D4ED8;border:1px solid #BFDBFE;font-weight:700;" title="Early Check-In Arrival">
+              🌅 Early Check-In (${b.check_in_time.slice(0, 5)})
+            </span>
+          ` : ''}
+
+          ${(!isSameDayStay && b.check_out_time && b.check_out_time > '12:00') ? `
+            <span class="airbnb-chip" style="background:#FEF3C7;color:#92400E;border:1px solid #FDE68A;font-weight:700;" title="Late Check-Out Departure">
+              🌇 Late Check-Out (${b.check_out_time.slice(0, 5)})
+            </span>
+          ` : ''}
+
+          ${hasId ? `
+            <span class="airbnb-chip id">🪪 ID Verified</span>
+          ` : `
+            <span class="airbnb-chip id missing" onclick="event.stopPropagation();window.openBookingIdUploadModal('${b.booking_id}')" title="Click to upload ID proof">
+              🪪 Upload ID
+            </span>
+          `}
+
+          ${b.verification_status === 'pending' ? `
+            <span class="airbnb-chip pending">🟡 Verification Pending</span>
+          ` : ''}
+        </div>
+
+        <div class="airbnb-card-actions" onclick="event.stopPropagation()">
+          ${b.phone ? `
+            <button class="airbnb-action-circle wa" onclick="window.drawerOpenWhatsApp('${b.booking_id}', '${b.phone}', '${escapeHtml(b.guest_name)}', this)" title="Chat on WhatsApp">
+              💬
+            </button>
+            <a href="tel:${b.phone}" class="airbnb-action-circle call" title="Call Guest">
+              📞
+            </a>
+          ` : ''}
+
+          <button class="airbnb-action-circle" onclick="window.openBookingDrawer('${b.booking_id}')" title="View Booking Details">
+            ⚡
+          </button>
+
+          ${canM ? `
+            <button class="airbnb-action-circle delete" onclick="event.stopPropagation();if(window.delBooking) window.delBooking('${b.booking_id}','${escapeHtml(b.guest_name || 'Guest').replace(/'/g, "\\'")}','${b.room_id || ''}');" title="Delete Booking" style="background:#FEF2F2;border:1px solid #FECACA;font-size:12px;color:#DC2626;cursor:pointer;">
+              🗑️
+            </button>
+          ` : ''}
+        </div>
+      </div>
+    </div>
+  `;
+}
+
 function renderAirbnbReservationsHtml(bookings, paidMap, canM, today) {
+  const isTodayTab = (window._sbkState?.activeTab || 'today') === 'today';
+  const sq = (window._sbkState?.searchQuery || '').trim();
+
+  // If on Today tab and no active text search, render the clean 4 operational sections
+  if (isTodayTab && !sq) {
+    const departures = bookings.filter(b => b.check_out === today && !b.is_cancelled);
+    const arrivals = bookings.filter(b => b.check_in === today && !b.is_cancelled);
+    const inHouse = bookings.filter(b => b.check_in < today && (b.check_out > today || (!b.check_out && b.checkout_confirmed === false)) && !b.is_cancelled);
+    const allList = window._sbkState?.cachedBookings || window._allBookings || [];
+    const upcoming = allList.filter(b => b.check_in > today && !b.is_cancelled && b.verification_status !== 'rejected').sort((a,b) => (a.check_in||'').localeCompare(b.check_in||''));
+
+    let html = '<div class="airbnb-reservations-list" style="display:flex;flex-direction:column;gap:12px;">';
+
+    if (departures.length > 0) {
+      html += `
+        <div id="sbkSecCheckouts" style="font-size:12px;font-weight:800;color:#DC2626;text-transform:uppercase;letter-spacing:0.8px;margin:12px 0 2px 4px;display:flex;align-items:center;gap:6px;">
+          <span>🚪</span> CHECKING OUT TODAY (${departures.length})
+        </div>
+        ${departures.map(b => renderSingleAirbnbResCard(b, paidMap, canM, today)).join('')}
+      `;
+    }
+
+    if (arrivals.length > 0) {
+      html += `
+        <div id="sbkSecCheckins" style="font-size:12px;font-weight:800;color:#059669;text-transform:uppercase;letter-spacing:0.8px;margin:18px 0 2px 4px;display:flex;align-items:center;gap:6px;">
+          <span>🔑</span> CHECKING IN TODAY (${arrivals.length})
+        </div>
+        ${arrivals.map(b => renderSingleAirbnbResCard(b, paidMap, canM, today)).join('')}
+      `;
+    }
+
+    if (inHouse.length > 0) {
+      html += `
+        <div id="sbkSecInhouse" style="font-size:12px;font-weight:800;color:#0284C7;text-transform:uppercase;letter-spacing:0.8px;margin:18px 0 2px 4px;display:flex;align-items:center;gap:6px;">
+          <span>🏠</span> CURRENTLY IN-HOUSE (${inHouse.length})
+        </div>
+        ${inHouse.slice(0, 6).map(b => renderSingleAirbnbResCard(b, paidMap, canM, today)).join('')}
+        ${inHouse.length > 6 ? `
+          <div id="sbkInHouseMore" style="display:none;flex-direction:column;gap:10px;">
+            ${inHouse.slice(6).map(b => renderSingleAirbnbResCard(b, paidMap, canM, today)).join('')}
+          </div>
+          <div style="text-align:center;margin-top:4px;">
+            <button type="button" onclick="document.getElementById('sbkInHouseMore').style.display='flex';this.style.display='none';" style="background:#F0F9FF;border:1px solid #BAE6FD;color:#0284C7;font-size:12px;font-weight:700;padding:6px 16px;border-radius:999px;cursor:pointer;">
+              + View all ${inHouse.length} in-house guests &darr;
+            </button>
+          </div>
+        ` : ''}
+      `;
+    }
+
+    if (upcoming.length > 0) {
+      html += `
+        <div id="sbkSecUpcoming" style="font-size:12px;font-weight:800;color:#6366F1;text-transform:uppercase;letter-spacing:0.8px;margin:22px 0 2px 4px;display:flex;align-items:center;justify-content:space-between;">
+          <div style="display:flex;align-items:center;gap:6px;">
+            <span>📅</span> UPCOMING RESERVATIONS (${upcoming.length})
+          </div>
+          <button type="button" onclick="navigate('calendar')" style="background:none;border:none;color:#0284C7;font-size:12px;font-weight:700;cursor:pointer;">
+            View in Calendar &rarr;
+          </button>
+        </div>
+        ${upcoming.slice(0, 8).map(b => renderSingleAirbnbResCard(b, paidMap, canM, today)).join('')}
+        ${upcoming.length > 8 ? `
+          <div id="sbkUpcomingMore" style="display:none;flex-direction:column;gap:10px;">
+            ${upcoming.slice(8).map(b => renderSingleAirbnbResCard(b, paidMap, canM, today)).join('')}
+          </div>
+          <div style="text-align:center;margin-top:8px;">
+            <button type="button" onclick="document.getElementById('sbkUpcomingMore').style.display='flex';this.style.display='none';" style="background:#FFFFFF;border:1.5px solid #CBD5E1;color:#0F172A;font-weight:700;font-size:12.5px;padding:8px 18px;border-radius:999px;cursor:pointer;">
+              + View all ${upcoming.length} upcoming reservations &darr;
+            </button>
+          </div>
+        ` : ''}
+      `;
+    }
+
+    if (departures.length === 0 && arrivals.length === 0 && inHouse.length === 0 && upcoming.length === 0) {
+      html += `
+        <div style="background:#ffffff;border:1px solid #E2E8F0;border-radius:16px;text-align:center;padding:36px 16px;">
+          <div style="font-size:32px;margin-bottom:8px;">🏖️</div>
+          <div style="font-size:15px;font-weight:800;color:#0F172A;">No reservations scheduled for today</div>
+        </div>
+      `;
+    }
+
+    html += '</div>';
+    return html;
+  }
+
+  // Otherwise flat list (when searching or other tabs)
   return `
     <div class="airbnb-reservations-list">
-      ${bookings.map(b => {
-        const pd = paidMap[b.booking_id] || 0;
-        const isOpenEnded = !b.check_out && b.checkout_confirmed === false;
-        const cin = b.check_in || today;
-        const elapsedDays = Math.max(1, Math.ceil((new Date(today) - new Date(cin)) / 86400000));
-        const dailyRate = b.per_day_rate || 0;
-        const dynamicTotal = (isOpenEnded && dailyRate > 0) ? (elapsedDays * dailyRate) : (b.total_amount || 0);
-        const bal = dynamicTotal - pd;
-
-        const isCheckoutToday = b.check_out === today;
-        const isArrivalToday = b.check_in === today;
-        const isStayingAllDay = b.check_in < today && (b.check_out > today || isOpenEnded);
-        const isUpcoming = b.check_in > today;
-        const isPast = !isOpenEnded && b.check_out < today;
-        const isOnline = b.booking_mode === 'Online-Airbnb' || !!b.airbnb_confirmation_code;
-        const bSrc = (typeof window.getBookingSource === 'function') ? window.getBookingSource(b) : null;
-        const nights = (b.check_in && b.check_out) ? Math.max((typeof calcNights === 'function' ? calcNights(b.check_in, b.check_out) : Math.round((new Date(b.check_out) - new Date(b.check_in)) / 86400000)), 1) : 1;
-        const isSameDayStay = !!(b.check_in && b.check_out && b.check_in === b.check_out);
-
-        // Left Time Column Content
-        let timeMain = '';
-        let timeSub = '';
-        if (isSameDayStay) {
-          timeMain = 'Day Use';
-          timeSub = `${(b.check_in_time || '09:30').slice(0, 5)} - ${(b.check_out_time || '16:30').slice(0, 5)}`;
-        } else if (isCheckoutToday) {
-          timeMain = (b.check_out_time ? b.check_out_time.replace(/:\d\d$/, '') : '11:00').replace(/\s*[ap]m/i, '');
-          timeSub = '';
-        } else if (isArrivalToday) {
-          timeMain = (b.check_in_time ? b.check_in_time.replace(/:\d\d$/, '') : '14:00').replace(/\s*[ap]m/i, '');
-          timeSub = '';
-        } else if (isStayingAllDay) {
-          timeMain = 'All day';
-          timeSub = '';
-        } else if (isUpcoming) {
-          timeMain = formatAirbnbDateRange(b.check_in, b.check_out);
-          timeSub = `${nights} ${nights === 1 ? 'night' : 'nights'}`;
-        } else {
-          timeMain = formatAirbnbDateRange(b.check_in, b.check_out);
-          timeSub = 'Past stay';
-        }
-
-        const headline = getAirbnbHeadline(b, today);
-        const propertySub = getAirbnbPropertySubtitle(b);
-        const avatarInfo = getGuestAvatarInfo(b.guest_name);
-        const propThumb = getPropertyCoverThumb(b);
-        const hasId = !!(b.id_proof_photo_paths || b.id_proof_photo_path);
-        const isBlocked = b.booking_mode === 'Offline-Blocked' || b.guest_name === '🔒 Blocked Slot';
-
-        const guestPhoto = b.guest_photo || (b.id_proof_photo_path && b.id_proof_photo_path.startsWith('http') ? b.id_proof_photo_path : null);
-
-        return `
-          <div class="sbk-res-card" id="abCard_${b.booking_id}" onclick="window.openBookingDrawer('${b.booking_id}')">
-            <!-- Top Row: Time + Title on Left, Avatar Combo on Right -->
-            <div class="airbnb-card-top-header">
-              <div class="airbnb-card-title-col">
-                <div class="airbnb-card-time-line">
-                  <span class="airbnb-time-main">${escapeHtml(timeMain)}</span>
-                  ${timeSub ? `<span class="airbnb-time-sub">${escapeHtml(timeSub)}</span>` : ''}
-                </div>
-                <div class="airbnb-guest-headline" title="${escapeHtml(headline)}">
-                  ${escapeHtml(headline)}
-                </div>
-              </div>
-
-              <div class="airbnb-avatar-group" title="${isBlocked ? 'Blocked Slot' : escapeHtml(b.guest_name || 'Guest')} · ${escapeHtml(propertySub)}">
-                ${isBlocked ? `
-                  <img src="${propThumb}" class="airbnb-guest-avatar-img" alt="Property" onerror="this.outerHTML='<div class=\\'airbnb-guest-avatar-img\\' style=\\'background:#F3E8FF;color:#7E22CE;\\'>🔒</div>';" />
-                  <div class="airbnb-property-thumb-badge" style="background:#0F172A;color:#ffffff;display:flex;align-items:center;justify-content:center;font-size:12px;" title="Blocked Slot">
-                    🔒
-                  </div>
-                ` : `
-                  ${guestPhoto ? `
-                    <img src="${guestPhoto}" class="airbnb-guest-avatar-img" alt="${escapeHtml(b.guest_name || 'Guest')}" onerror="this.outerHTML='<div class=\\'airbnb-guest-avatar-img\\' style=\\'background:${avatarInfo.bg};color:${avatarInfo.text};\\'>${escapeHtml(avatarInfo.initial)}</div>';" />
-                  ` : `
-                    <div class="airbnb-guest-avatar-img" style="background:${avatarInfo.bg};color:${avatarInfo.text};">
-                      ${escapeHtml(avatarInfo.initial)}
-                    </div>
-                  `}
-                  <img src="${propThumb}" class="airbnb-property-thumb-badge" alt="${escapeHtml(propertySub)}" title="${escapeHtml(propertySub)}" onerror="this.src='assets/logo.png'"/>
-                `}
-              </div>
-            </div>
-
-            <!-- Property Subtitle / Location -->
-            <div class="airbnb-property-sub" title="${escapeHtml(propertySub)}">
-              ${escapeHtml(propertySub)}
-            </div>
-
-            <!-- Card Bottom: Status Chips & Quick Actions -->
-            <div class="airbnb-card-footer-row">
-              <div class="airbnb-chips-row">
-                <span class="airbnb-chip ${bSrc ? bSrc.chipClass : (isOnline ? 'airbnb' : 'direct')}">
-                  ${bSrc ? bSrc.badge : (isOnline ? '🌐 Airbnb' : '🏠 Direct')}
-                </span>
-                
-                ${bal > 0.99 ? `
-                  <span class="airbnb-chip due">⚠️ ₹${Math.round(bal).toLocaleString('en-IN')} Due</span>
-                ` : (isOnline && (dynamicTotal === 0 || b.payment_status === 'Pending CSV Payout')) ? `
-                  <span class="airbnb-chip" style="background:#FEF3C7;color:#92400E;font-weight:700;border:1px solid #FDE68A;">⏳ Awaiting Airbnb Payout</span>
-                ` : `
-                  <span class="airbnb-chip paid">✅ Paid ₹${dynamicTotal.toLocaleString('en-IN')}</span>
-                `}
-
-                ${(b.stay_group_id || (b.phone && (window._sbkState?.phoneCounts?.[String(b.phone).replace(/\D/g, '').slice(-10)] || 0) > 1)) ? `
-                  <span class="airbnb-chip" style="background:#EEF2FF;color:#4F46E5;font-weight:800;cursor:pointer;" onclick="event.stopPropagation();window.openMultiPropertyReceiptModal('${b.stay_group_id || b.phone || b.booking_id}')" title="Multi-Property Group Booking · Click to view combined receipt">
-                    🏢 Group Stay${(!b.stay_group_id && b.phone && (window._sbkState?.phoneCounts?.[String(b.phone).replace(/\D/g, '').slice(-10)] || 0) > 1) ? ` (${window._sbkState.phoneCounts[String(b.phone).replace(/\D/g, '').slice(-10)]})` : ''}
-                  </span>
-                ` : ''}
-
-                ${isSameDayStay ? `
-                  <span class="airbnb-chip" style="background:#F5F3FF;color:#6D28D9;border:1.5px solid #DDD6FE;font-weight:800;" title="Same-day Day-Use Stay">
-                    ⚡ Day Use (${(b.check_in_time || '09:30').slice(0, 5)} - ${(b.check_out_time || '16:30').slice(0, 5)})
-                  </span>
-                ` : ''}
-
-                ${(!isSameDayStay && b.check_in_time && b.check_in_time < '12:00') ? `
-                  <span class="airbnb-chip" style="background:#EFF6FF;color:#1D4ED8;border:1px solid #BFDBFE;font-weight:700;" title="Early Check-In Arrival">
-                    🌅 Early Check-In (${b.check_in_time.slice(0, 5)})
-                  </span>
-                ` : ''}
-
-                ${(!isSameDayStay && b.check_out_time && b.check_out_time > '12:00') ? `
-                  <span class="airbnb-chip" style="background:#FEF3C7;color:#92400E;border:1px solid #FDE68A;font-weight:700;" title="Late Check-Out Departure">
-                    🌇 Late Check-Out (${b.check_out_time.slice(0, 5)})
-                  </span>
-                ` : ''}
-
-                ${hasId ? `
-                  <span class="airbnb-chip id">🪪 ID Verified</span>
-                ` : `
-                  <span class="airbnb-chip id missing" onclick="event.stopPropagation();window.openBookingIdUploadModal('${b.booking_id}')" title="Click to upload ID proof">
-                    🪪 Upload ID
-                  </span>
-                `}
-
-                ${b.verification_status === 'pending' ? `
-                  <span class="airbnb-chip pending">🟡 Verification Pending</span>
-                ` : ''}
-              </div>
-
-              <div class="airbnb-card-actions" onclick="event.stopPropagation()">
-                ${b.phone ? `
-                  <button class="airbnb-action-circle wa" onclick="window.drawerOpenWhatsApp('${b.booking_id}', '${b.phone}', '${escapeHtml(b.guest_name)}', this)" title="Chat on WhatsApp">
-                    💬
-                  </button>
-                  <a href="tel:${b.phone}" class="airbnb-action-circle call" title="Call Guest">
-                    📞
-                  </a>
-                ` : ''}
-
-                <button class="airbnb-action-circle" onclick="window.openBookingDrawer('${b.booking_id}')" title="View Booking Details">
-                  ⚡
-                </button>
-
-                ${canM ? `
-                  <button class="airbnb-action-circle delete" onclick="event.stopPropagation();if(window.delBooking) window.delBooking('${b.booking_id}','${escapeHtml(b.guest_name || 'Guest').replace(/'/g, "\\'")}','${b.room_id || ''}');" title="Delete Booking" style="background:#FEF2F2;border:1px solid #FECACA;font-size:12px;color:#DC2626;cursor:pointer;">
-                    🗑️
-                  </button>
-                ` : ''}
-              </div>
-            </div>
-          </div>
-        `;
-      }).join('')}
+      ${bookings.map(b => renderSingleAirbnbResCard(b, paidMap, canM, today)).join('')}
     </div>
   `;
 }
@@ -2004,6 +2107,12 @@ window.renderSmartBookingsResultsOnly = function() {
 };
 
 window.setBookingTab = function(tab) {
+  if (tab === 'calendar') {
+    return navigate('calendar');
+  }
+  if (tab === 'approvals' || tab === 'pending') {
+    return navigate('pendingApprovals');
+  }
   window._sbkState.activeTab = tab;
   // If user clicks a tab while a search query was active, clear search so they view tab's reservations cleanly
   if (window._sbkState.searchQuery) {
@@ -2021,6 +2130,11 @@ window.setBookingTab = function(tab) {
       activePill.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
     }
   }, 40);
+};
+
+window.scrollToSection = function(id) {
+  const el = document.getElementById(id);
+  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
 };
 
 window.toggleFollowupsExpanded = function() {
