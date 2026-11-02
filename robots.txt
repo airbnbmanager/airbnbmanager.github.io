@@ -4,10 +4,7 @@ Disallow: /admin.html
 Disallow: /billing.html
 Disallow: /calendar.html
 Disallow: /guest.html
-Disallow: /nisha-sandbox.html
 Disallow: /pay.html
-Disallow: /phone-cleanup.html
-Disallow: /pricing_cards.html
 Disallow: /qr.html
 Disallow: /rate-manager.html
 Disallow: /upi.html

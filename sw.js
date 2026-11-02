@@ -1,5 +1,5 @@
-const CACHE_NAME = 'tuhh-live-v420';
-const RUNTIME_CACHE = 'tuhh-runtime-v420';
+const CACHE_NAME = 'tuhh-live-v421';
+const RUNTIME_CACHE = 'tuhh-runtime-v421';
 
 const CORE_ASSETS = [
   '/admin.html',
@@ -41,7 +41,6 @@ const CORE_ASSETS = [
   '/js/notifications.js',
   '/js/claims.js',
   '/js/uhhs-od-manager.js',
-  '/js/cashbook.js',
   '/js/company-advances.js',
   '/js/analytics.js',
   '/js/showcase-data.js',
