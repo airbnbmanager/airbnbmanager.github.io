@@ -130,8 +130,8 @@
     return lines.slice(1).map(line => {
       const values = parseLine(line);
       const row = {};
-      headers.forEach((h, i) => { 
-        row[h] = (values[i] || '').trim().replace(/^"|"$/g, ''); 
+      headers.forEach((h, i) => {
+        row[h] = (values[i] || '').trim().replace(/^"|"$/g, '');
       });
       return row;
     });
@@ -194,7 +194,7 @@
   // ─── Main render ───
   async function renderAirbnbSync(tab = _activeSyncTab) {
     _activeSyncTab = tab;
-    
+
     if (!['developer', 'owner', 'manager', 'admin'].includes(SESSION.role)) {
       renderShell('<div class="card"><div class="error">❌ Only Owner / Manager / Developer have access to Airbnb Sync.</div></div>', 'airbnb-sync');
       return;
@@ -217,15 +217,60 @@
     });
 
     const tabsHtml = `
-      <div style="background:#0F172A;border-radius:12px;padding:6px;margin-bottom:18px;display:flex;flex-wrap:wrap;gap:6px;box-shadow:0 4px 12px rgba(0,0,0,0.15);">
-        <button onclick="setAirbnbSyncTab('payouts')" style="flex:1;min-width:180px;padding:10px 16px;border-radius:8px;font-weight:700;font-size:13px;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;justify-content:center;gap:8px;${tab==='payouts'?'background:#10B981;color:#fff;border:none;box-shadow:0 2px 8px rgba(16,185,129,0.4);':'background:transparent;color:#94A3B8;border:none;'}">
-          <span>💰</span> Monthly Payouts & Exact Net Earnings
+      <style>
+        .airbnb-sync-tabs-bar {
+          background: #0F172A;
+          border-radius: 12px;
+          padding: 4px;
+          margin-bottom: 16px;
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 4px;
+          box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        .airbnb-sync-nav-btn {
+          padding: 10px 6px;
+          border-radius: 8px;
+          font-weight: 700;
+          font-size: 13px;
+          cursor: pointer;
+          transition: all 0.2s;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 6px;
+          text-align: center;
+          border: none;
+        }
+        @media (max-width: 640px) {
+          .airbnb-sync-nav-btn {
+            font-size: 11px;
+            padding: 8px 3px;
+            flex-direction: column;
+            gap: 2px;
+          }
+          .airbnb-sync-nav-btn .tab-full-label { display: none; }
+          .airbnb-sync-nav-btn .tab-short-label { display: inline; }
+        }
+        @media (min-width: 641px) {
+          .airbnb-sync-nav-btn .tab-short-label { display: none; }
+        }
+      </style>
+      <div class="airbnb-sync-tabs-bar">
+        <button onclick="setAirbnbSyncTab('payouts')" class="airbnb-sync-nav-btn" style="${tab==='payouts'?'background:#10B981;color:#fff;box-shadow:0 2px 8px rgba(16,185,129,0.4);':'background:transparent;color:#94A3B8;'}">
+          <span style="font-size:15px;">💰</span>
+          <span class="tab-full-label">Monthly Payouts & Net Earnings</span>
+          <span class="tab-short-label">Payouts CSV</span>
         </button>
-        <button onclick="setAirbnbSyncTab('reservations')" style="flex:1;min-width:160px;padding:10px 16px;border-radius:8px;font-weight:700;font-size:13px;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;justify-content:center;gap:8px;${tab==='reservations'?'background:#2563EB;color:#fff;border:none;box-shadow:0 2px 8px rgba(37,99,235,0.4);':'background:transparent;color:#94A3B8;border:none;'}">
-          <span>📁</span> Reservations CSV Sync
+        <button onclick="setAirbnbSyncTab('reservations')" class="airbnb-sync-nav-btn" style="${tab==='reservations'?'background:#2563EB;color:#fff;box-shadow:0 2px 8px rgba(37,99,235,0.4);':'background:transparent;color:#94A3B8;'}">
+          <span style="font-size:15px;">📁</span>
+          <span class="tab-full-label">Reservations CSV Sync</span>
+          <span class="tab-short-label">Reservations</span>
         </button>
-        <button onclick="renderIcalSync()" style="flex:0.8;min-width:130px;padding:10px 16px;border-radius:8px;font-weight:700;font-size:13px;cursor:pointer;background:transparent;color:#94A3B8;border:none;display:flex;align-items:center;justify-content:center;gap:8px;">
-          <span>📅</span> iCal Auto-Sync ↗
+        <button onclick="renderIcalSync()" class="airbnb-sync-nav-btn" style="background:transparent;color:#94A3B8;">
+          <span style="font-size:15px;">📅</span>
+          <span class="tab-full-label">iCal Auto-Sync ↗</span>
+          <span class="tab-short-label">iCal Sync ↗</span>
         </button>
       </div>`;
 
@@ -233,10 +278,10 @@
       renderShell(`
         <div class="wrap" style="max-width:1200px;margin:0 auto;padding-bottom:50px;">
           ${tabsHtml}
-          
+
           <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;margin-bottom:16px;">
             <div>
-              <h1 style="margin:0 0 4px 0;font-size:24px;font-weight:800;color:#0F172A;letter-spacing:-0.5px;">💰 Airbnb Monthly Payouts & Net Earnings Sync</h1>
+              <h1 style="margin:0 0 4px 0;font-size:clamp(17px, 4.2vw, 22px);font-weight:800;color:#0F172A;letter-spacing:-0.5px;">💰 Airbnb Monthly Payouts & Net Earnings Sync</h1>
               <p style="margin:0;color:#64748B;font-size:13.5px;">
                 Import your official <strong>Airbnb Monthly Earnings / Tax CSV</strong>. The system records the <strong>exact net bank payout</strong> (Gross minus 15.5% Host Service Fee) with 100% mathematical precision.
               </p>
@@ -249,7 +294,7 @@
           </div>
 
           <!-- Drag and Drop Upload Card -->
-          <div class="card" style="margin-bottom:16px;border:2px dashed #10B981;border-radius:12px;background:#F0FDF4;padding:24px;text-align:center;transition:all 0.2s;" id="dropZoneContainer">
+          <div class="card" style="margin-bottom:16px;border:2px dashed #10B981;border-radius:12px;background:#F0FDF4;padding:clamp(16px, 4vw, 24px);text-align:center;transition:all 0.2s;" id="dropZoneContainer">
             <div style="max-width:540px;margin:0 auto;">
               <div style="font-size:36px;margin-bottom:8px;">📥</div>
               <div style="font-size:16px;font-weight:800;color:#065F46;margin-bottom:4px;">Upload Monthly Payouts CSV File</div>
@@ -287,10 +332,10 @@
     renderShell(`
       <div class="wrap" style="max-width:1200px;margin:0 auto;padding-bottom:50px;">
         ${tabsHtml}
-        
+
         <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;margin-bottom:16px;">
           <div>
-            <h1 style="margin:0 0 4px 0;font-size:24px;font-weight:800;color:#0F172A;letter-spacing:-0.5px;">📁 Airbnb Reservations CSV Sync</h1>
+            <h1 style="margin:0 0 4px 0;font-size:clamp(17px, 4.2vw, 22px);font-weight:800;color:#0F172A;letter-spacing:-0.5px;">📁 Airbnb Reservations CSV Sync</h1>
             <p style="margin:0;color:#64748B;font-size:13.5px;">
               Upload the standard <strong>Airbnb Reservations CSV</strong> to import upcoming guests, auto-populate phone numbers, and match units.
             </p>
@@ -303,7 +348,7 @@
         </div>
 
         <!-- Drag and Drop Upload Card -->
-        <div class="card" style="margin-bottom:16px;border:2px dashed #2563EB;border-radius:12px;background:#EFF6FF;padding:24px;text-align:center;" id="dropZoneContainer">
+        <div class="card" style="margin-bottom:16px;border:2px dashed #2563EB;border-radius:12px;background:#EFF6FF;padding:clamp(16px, 4vw, 24px);text-align:center;" id="dropZoneContainer">
           <div style="max-width:540px;margin:0 auto;">
             <div style="font-size:36px;margin-bottom:8px;">📁</div>
             <div style="font-size:16px;font-weight:800;color:#1E40AF;margin-bottom:4px;">Upload Reservations CSV File</div>
@@ -479,7 +524,7 @@
       rows.forEach(r => {
         const status = (r['Status'] || r['Type'] || '').trim();
         const code = (r['Confirmation code'] || r['Confirmation Code'] || r['Code'] || '').trim();
-        
+
         if (status.toLowerCase().includes('cancelled') || !code) return;
 
         const sDate = r['Start date'] || r['Start Date'] || r['Check-in'] || r['Check in'];
@@ -719,7 +764,7 @@
 
     if (SYNC.searchQuery) {
       const q = SYNC.searchQuery;
-      filteredList = filteredList.filter(r => 
+      filteredList = filteredList.filter(r =>
         (r.confirmation_code && r.confirmation_code.toLowerCase().includes(q)) ||
         (r.guest_name && r.guest_name.toLowerCase().includes(q)) ||
         (r.listing_name && r.listing_name.toLowerCase().includes(q)) ||
@@ -757,30 +802,30 @@
           </div>
         </div>
 
-        <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(140px, 1fr));gap:10px;">
-          <div style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:12px;text-align:center;">
-            <div style="font-size:11px;color:#94A3B8;font-weight:600;">Total Bookings</div>
-            <div style="font-size:22px;font-weight:800;color:#fff;margin-top:2px;">${SYNC.allReservations.length}</div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(100px, 1fr));gap:8px;">
+          <div style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:10px 6px;text-align:center;">
+            <div style="font-size:10px;color:#94A3B8;font-weight:600;text-transform:uppercase;">Bookings</div>
+            <div style="font-size:clamp(16px, 3.8vw, 20px);font-weight:800;color:#fff;margin-top:2px;">${SYNC.allReservations.length}</div>
           </div>
-          <div style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:12px;text-align:center;">
-            <div style="font-size:11px;color:#94A3B8;font-weight:600;">Gross Charges</div>
-            <div style="font-size:22px;font-weight:800;color:#60A5FA;margin-top:2px;">₹${fmtNum(totalGross)}</div>
+          <div style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:10px 6px;text-align:center;">
+            <div style="font-size:10px;color:#94A3B8;font-weight:600;text-transform:uppercase;">Gross</div>
+            <div style="font-size:clamp(16px, 3.8vw, 20px);font-weight:800;color:#60A5FA;margin-top:2px;">₹${fmtNum(totalGross)}</div>
           </div>
-          <div style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:12px;text-align:center;">
-            <div style="font-size:11px;color:#FCA5A5;font-weight:600;">Host Fee (15.5%)</div>
-            <div style="font-size:22px;font-weight:800;color:#F87171;margin-top:2px;">-₹${fmtNum(totalHostFee)}</div>
+          <div style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:10px 6px;text-align:center;">
+            <div style="font-size:10px;color:#FCA5A5;font-weight:600;text-transform:uppercase;">Fee 15.5%</div>
+            <div style="font-size:clamp(16px, 3.8vw, 20px);font-weight:800;color:#F87171;margin-top:2px;">-₹${fmtNum(totalHostFee)}</div>
           </div>
-          <div style="background:rgba(16,185,129,0.12);border:1px solid #059669;border-radius:10px;padding:12px;text-align:center;">
-            <div style="font-size:11px;color:#6EE7B7;font-weight:700;">Net Bank Payouts</div>
-            <div style="font-size:22px;font-weight:800;color:#34D399;margin-top:2px;">₹${fmtNum(totalNetPayout)}</div>
+          <div style="background:rgba(16,185,129,0.12);border:1px solid #059669;border-radius:10px;padding:10px 6px;text-align:center;">
+            <div style="font-size:10px;color:#6EE7B7;font-weight:700;text-transform:uppercase;">Net Payout</div>
+            <div style="font-size:clamp(16px, 3.8vw, 20px);font-weight:800;color:#34D399;margin-top:2px;">₹${fmtNum(totalNetPayout)}</div>
           </div>
-          <div style="background:${conflicts.length > 0 ? 'rgba(239,68,68,0.15)' : 'rgba(255,255,255,0.05)'};border:${conflicts.length > 0 ? '1px solid #DC2626' : '1px solid rgba(255,255,255,0.08)'};border-radius:10px;padding:12px;text-align:center;">
-            <div style="font-size:11px;color:${conflicts.length > 0 ? '#FCA5A5' : '#94A3B8'};font-weight:600;">Mismatches</div>
-            <div style="font-size:22px;font-weight:800;color:${conflicts.length > 0 ? '#F87171' : '#34D399'};margin-top:2px;">${conflicts.length}</div>
+          <div style="background:${conflicts.length > 0 ? 'rgba(239,68,68,0.15)' : 'rgba(255,255,255,0.05)'};border:${conflicts.length > 0 ? '1px solid #DC2626' : '1px solid rgba(255,255,255,0.08)'};border-radius:10px;padding:10px 6px;text-align:center;">
+            <div style="font-size:10px;color:${conflicts.length > 0 ? '#FCA5A5' : '#94A3B8'};font-weight:600;text-transform:uppercase;">Mismatch</div>
+            <div style="font-size:clamp(16px, 3.8vw, 20px);font-weight:800;color:${conflicts.length > 0 ? '#F87171' : '#34D399'};margin-top:2px;">${conflicts.length}</div>
           </div>
-          <div style="background:${newBookings.length > 0 ? 'rgba(59,130,246,0.15)' : 'rgba(255,255,255,0.05)'};border:${newBookings.length > 0 ? '1px solid #3B82F6' : '1px solid rgba(255,255,255,0.08)'};border-radius:10px;padding:12px;text-align:center;">
-            <div style="font-size:11px;color:${newBookings.length > 0 ? '#93C5FD' : '#94A3B8'};font-weight:600;">Missing in CRM</div>
-            <div style="font-size:22px;font-weight:800;color:${newBookings.length > 0 ? '#60A5FA' : '#94A3B8'};margin-top:2px;">${newBookings.length}</div>
+          <div style="background:${newBookings.length > 0 ? 'rgba(59,130,246,0.15)' : 'rgba(255,255,255,0.05)'};border:${newBookings.length > 0 ? '1px solid #3B82F6' : '1px solid rgba(255,255,255,0.08)'};border-radius:10px;padding:10px 6px;text-align:center;">
+            <div style="font-size:10px;color:${newBookings.length > 0 ? '#93C5FD' : '#94A3B8'};font-weight:600;text-transform:uppercase;">Missing</div>
+            <div style="font-size:clamp(16px, 3.8vw, 20px);font-weight:800;color:${newBookings.length > 0 ? '#60A5FA' : '#94A3B8'};margin-top:2px;">${newBookings.length}</div>
           </div>
         </div>
       </div>
@@ -957,7 +1002,7 @@
         .eq('is_cancelled', false)
         .lt('check_in', r.check_out)
         .gt('check_out', r.check_in);
-      
+
       if (overlappingOnline && overlappingOnline.length > 0) {
         existingOnline = overlappingOnline[0];
       }
@@ -1272,7 +1317,7 @@
           .eq('is_cancelled', false)
           .lt('check_in', r.check_out)
           .gt('check_out', r.check_in);
-        
+
         if (overlappingOnline && overlappingOnline.length > 0) {
           existingOnline = overlappingOnline[0];
         }
