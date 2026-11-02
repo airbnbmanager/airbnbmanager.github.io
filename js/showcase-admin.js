@@ -36,59 +36,152 @@
     const prop = properties[currentPropId] || {};
 
     const html = `
-      <div class="card" style="margin-bottom:16px;">
-        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;">
+      <style>
+        .showcase-header-card {
+          background: #fff;
+          border: 1px solid #E2E8F0;
+          border-radius: 14px;
+          padding: 16px;
+          margin-bottom: 16px;
+          box-shadow: 0 2px 8px rgba(15,23,42,0.04);
+        }
+        .showcase-nav-tabs {
+          display: grid;
+          grid-template-columns: repeat(5, 1fr);
+          gap: 6px;
+          margin-bottom: 16px;
+        }
+        .showcase-nav-btn {
+          padding: 10px 8px;
+          border-radius: 9px;
+          font-size: 13px;
+          font-weight: 700;
+          cursor: pointer;
+          transition: all 0.2s;
+          border: 1px solid #CBD5E1;
+          background: #F8FAFC;
+          color: #475569;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 6px;
+          text-align: center;
+        }
+        .showcase-nav-btn.active {
+          background: #0F172A !important;
+          color: #fff !important;
+          border-color: #0F172A !important;
+          box-shadow: 0 2px 8px rgba(15,23,42,0.25);
+        }
+        .showcase-grid-3 {
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 16px;
+          margin-bottom: 20px;
+        }
+        .showcase-grid-4 {
+          display: grid;
+          grid-template-columns: repeat(4, 1fr);
+          gap: 16px;
+          background: #F8FAFC;
+          padding: 16px;
+          border-radius: 12px;
+          border: 1px solid #E2E8F0;
+          margin-bottom: 20px;
+        }
+        @media (max-width: 768px) {
+          .showcase-grid-3 {
+            grid-template-columns: 1fr !important;
+            gap: 12px;
+          }
+          .showcase-grid-4 {
+            grid-template-columns: 1fr !important;
+            gap: 12px;
+            padding: 12px;
+          }
+          .showcase-nav-tabs {
+            grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
+            gap: 4px;
+          }
+          .showcase-nav-btn {
+            font-size: 11px;
+            padding: 8px 4px;
+            flex-direction: column;
+            gap: 2px;
+          }
+          .showcase-nav-btn .tab-full { display: none; }
+          .showcase-nav-btn .tab-short { display: inline; }
+        }
+        @media (min-width: 769px) {
+          .showcase-nav-btn .tab-short { display: none; }
+        }
+      </style>
+
+      <div class="showcase-header-card">
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:14px;">
           <div>
-            <h1 style="font-size:22px;display:flex;align-items:center;gap:8px;">
+            <h1 style="margin:0;font-size:clamp(18px, 4.2vw, 22px);font-weight:800;color:#0F172A;letter-spacing:-0.5px;display:flex;align-items:center;gap:8px;">
               <span>🌐</span> Website Showcase &amp; Media CMS
             </h1>
-            <div class="sub" style="font-size:13px;color:#64748B;">
-              Manage photos, video tours, Google Maps locations &amp; pricing like Airbnb for <strong>index.html</strong>
+            <div style="font-size:12.5px;color:#64748B;margin-top:2px;">
+              Manage room photos, video tours, Google Maps locations &amp; pricing for website
             </div>
           </div>
-          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
-            <a id="showcaseLiveLink" href="${prop.slug ? prop.slug + '.html' : 'the-dark-blue.html'}" target="_blank" class="btn" style="background:#b58d3d;color:#ffffff;padding:9px 16px;border-radius:10px;text-decoration:none;font-weight:700;font-size:13px;display:inline-flex;align-items:center;gap:6px;box-shadow:0 4px 12px rgba(181,141,61,0.3);">
-              ✨ View Live Property Page ↗
+          <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(130px, 1fr));gap:6px;width:100%;max-width:520px;">
+            <a id="showcaseLiveLink" href="${prop.slug ? prop.slug + '.html' : 'the-dark-blue.html'}" target="_blank" class="btn" style="background:#b58d3d;color:#ffffff;padding:9px 12px;border-radius:8px;text-decoration:none;font-weight:700;font-size:12px;display:inline-flex;align-items:center;justify-content:center;gap:6px;box-shadow:0 2px 6px rgba(181,141,61,0.3);">
+              <span>✨</span> Live Page ↗
             </a>
-            <a href="index.html" target="_blank" class="btn secondary" style="padding:9px 16px;border-radius:10px;text-decoration:none;font-weight:600;font-size:13px;display:inline-flex;align-items:center;gap:6px;">
-              👁️ Homepage
+            <a href="index.html" target="_blank" class="btn secondary" style="padding:9px 12px;border-radius:8px;text-decoration:none;font-weight:600;font-size:12px;display:inline-flex;align-items:center;justify-content:center;gap:6px;">
+              <span>👁️</span> Homepage
             </a>
-            <button onclick="saveCurrentShowcase()" style="background:#0F766E;padding:9px 20px;border-radius:10px;font-weight:700;font-size:13.5px;box-shadow:0 4px 12px rgba(15,118,110,0.3);">
-              💾 Save &amp; Publish Live
+            <button onclick="saveCurrentShowcase()" style="background:#0F766E;color:#fff;border:none;padding:9px 14px;border-radius:8px;font-weight:700;font-size:12px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:6px;box-shadow:0 2px 6px rgba(15,118,110,0.3);">
+              <span>💾</span> Save Live
             </button>
           </div>
         </div>
 
-        <div style="margin-top:20px;background:#F8FAFC;padding:14px 16px;border-radius:12px;border:1px solid #E2E8F0;display:flex;align-items:center;gap:14px;flex-wrap:wrap;">
-          <label style="font-weight:700;font-size:13px;color:#334155;white-space:nowrap;">Select Property to Edit:</label>
-          <select id="showcasePropSelector" onchange="window.switchShowcaseProperty(this.value)" style="flex:1;min-width:240px;max-width:400px;font-weight:600;font-size:14px;padding:9px 12px;border-radius:8px;border:1.5px solid #CBD5E1;">
+        <div style="background:#F8FAFC;padding:12px 14px;border-radius:12px;border:1px solid #E2E8F0;">
+          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:6px;">
+            <label style="font-weight:700;font-size:12px;color:#334155;text-transform:uppercase;letter-spacing:0.5px;">Select Property to Edit:</label>
+            <span style="font-size:12px;color:#64748B;font-weight:600;">
+              📍 ${prop.area_name || prop.address || ''}
+            </span>
+          </div>
+          <select id="showcasePropSelector" onchange="window.switchShowcaseProperty(this.value)" style="width:100%;box-sizing:border-box;font-weight:600;font-size:13.5px;padding:9px 12px;border-radius:8px;border:1.5px solid #CBD5E1;outline:none;">
             ${propIds.map(id => {
               const p = properties[id];
               return `<option value="${id}" ${id === currentPropId ? 'selected' : ''}>${id} — ${p.name} (${p.type})</option>`;
             }).join('')}
           </select>
-          <span style="font-size:12px;color:#64748B;">
-            📍 ${prop.area_name || prop.address || ''}
-          </span>
         </div>
       </div>
 
       <!-- Navigation Tabs -->
-      <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;">
-        <button onclick="window.switchShowcaseTab('overview')" class="${activeTab==='overview'?'':'secondary'}" style="padding:9px 16px;border-radius:9px;font-size:13px;font-weight:600;">
-          📋 Overview &amp; Pricing
+      <div class="showcase-nav-tabs">
+        <button onclick="window.switchShowcaseTab('overview')" class="showcase-nav-btn ${activeTab==='overview'?'active':''}">
+          <span style="font-size:14px;">📋</span>
+          <span class="tab-full">Overview &amp; Pricing</span>
+          <span class="tab-short">Overview</span>
         </button>
-        <button onclick="window.switchShowcaseTab('photos')" class="${activeTab==='photos'?'':'secondary'}" style="padding:9px 16px;border-radius:9px;font-size:13px;font-weight:600;">
-          📸 Room Photos (Bed, Bath, Hall)
+        <button onclick="window.switchShowcaseTab('photos')" class="showcase-nav-btn ${activeTab==='photos'?'active':''}">
+          <span style="font-size:14px;">📸</span>
+          <span class="tab-full">Room Photos</span>
+          <span class="tab-short">Photos</span>
         </button>
-        <button onclick="window.switchShowcaseTab('video')" class="${activeTab==='video'?'':'secondary'}" style="padding:9px 16px;border-radius:9px;font-size:13px;font-weight:600;">
-          🎥 Video Tour
+        <button onclick="window.switchShowcaseTab('video')" class="showcase-nav-btn ${activeTab==='video'?'active':''}">
+          <span style="font-size:14px;">🎥</span>
+          <span class="tab-full">Video Tour</span>
+          <span class="tab-short">Video</span>
         </button>
-        <button onclick="window.switchShowcaseTab('location')" class="${activeTab==='location'?'':'secondary'}" style="padding:9px 16px;border-radius:9px;font-size:13px;font-weight:600;">
-          📍 Google Map &amp; Landmarks
+        <button onclick="window.switchShowcaseTab('location')" class="showcase-nav-btn ${activeTab==='location'?'active':''}">
+          <span style="font-size:14px;">📍</span>
+          <span class="tab-full">Map &amp; Pin</span>
+          <span class="tab-short">Map</span>
         </button>
-        <button onclick="window.switchShowcaseTab('amenities')" class="${activeTab==='amenities'?'':'secondary'}" style="padding:9px 16px;border-radius:9px;font-size:13px;font-weight:600;">
-          ✨ Amenities &amp; Rules
+        <button onclick="window.switchShowcaseTab('amenities')" class="showcase-nav-btn ${activeTab==='amenities'?'active':''}">
+          <span style="font-size:14px;">✨</span>
+          <span class="tab-full">Amenities &amp; Rules</span>
+          <span class="tab-short">Amenities</span>
         </button>
       </div>
 
@@ -118,7 +211,7 @@
           🏷️ Property Details &amp; Pricing
         </h2>
 
-        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px;margin-bottom:20px;">
+        <div class="showcase-grid-3">
           <div>
             <label style="font-size:12px;font-weight:600;color:#475569;display:block;margin-bottom:4px;">Property Display Name</label>
             <input type="text" id="propName" value="${prop.name || ''}" style="width:100%;padding:9px 12px;border-radius:8px;border:1px solid #CBD5E1;" />
@@ -137,7 +230,7 @@
           </div>
         </div>
 
-        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;background:#F8FAFC;padding:16px;border-radius:12px;border:1px solid #E2E8F0;margin-bottom:20px;">
+        <div class="showcase-grid-4">
           <div>
             <label style="font-size:12px;font-weight:700;color:#047857;display:block;margin-bottom:4px;">Direct Booking Price (₹ / night)</label>
             <input type="number" id="propBasePrice" value="${prop.base_price || ''}" style="width:100%;padding:9px 12px;border-radius:8px;border:1.5px solid #059669;font-weight:700;color:#047857;" />
