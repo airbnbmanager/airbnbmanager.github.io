@@ -1199,7 +1199,16 @@
   };
 
   window.openDashboardShortcut = function() {
+    if (typeof window.navigate === 'function') window.navigate('analytics');
+    else if (typeof window.renderExecutiveDashboard === 'function') window.renderExecutiveDashboard();
+  };
+
+  window.openOperationsShortcut = function() {
     if (typeof window.navigate === 'function') window.navigate('dashboard');
+  };
+
+  window.openUnitsShortcut = function() {
+    if (typeof window.navigate === 'function') window.navigate('rooms');
   };
 
   window.openWhatsAppShortcut = function() {
@@ -1241,33 +1250,37 @@
     el.onclick = (e) => { if (e.target === el) el.remove(); };
 
     el.innerHTML = `
-      <div class="modal-box" style="max-width:560px;width:95%;padding:22px;border-radius:18px;background:#0F172A;color:#fff;box-shadow:0 25px 50px -12px rgba(0,0,0,0.6);border:1px solid rgba(255,255,255,0.1);position:relative;">
+      <div class="modal-box" style="max-width:580px;width:95%;padding:22px;border-radius:18px;background:#0F172A;color:#fff;box-shadow:0 25px 50px -12px rgba(0,0,0,0.6);border:1px solid rgba(255,255,255,0.1);position:relative;">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid rgba(255,255,255,0.1);">
           <div style="display:flex;align-items:center;gap:10px;">
             <span style="font-size:24px;">⚡</span>
             <div>
               <div style="font-weight:900;font-size:16.5px;color:#F8FAFC;">TUHH Keyboard Shortcuts & Fast Keys</div>
-              <div style="font-size:11px;color:#94A3B8;">High-speed reservation controls & instant navigation</div>
+              <div style="font-size:11px;color:#94A3B8;">High-speed reservation controls & instant navigation (19 Managed Units)</div>
             </div>
           </div>
           <button type="button" class="modal-close-prominent" aria-label="Close" onclick="this.closest('.modal-overlay').remove()" style="width:32px;height:32px;border-radius:50%;background:#EF4444;border:none;color:#fff;font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(239,68,68,0.4);">✕</button>
         </div>
 
-        <div style="display:flex;flex-direction:column;gap:8px;max-height:56vh;overflow-y:auto;padding-right:4px;">
+        <div style="display:flex;flex-direction:column;gap:8px;max-height:58vh;overflow-y:auto;padding-right:4px;">
           ${[
-            { key: `${altSymbol}E`, single: 'E', label: '📊 Expenses & Outflow Hub', desc: 'Open Expenses page (Wi-Fi, Maintenance, Laundry, Staff Advances & P&L)', action: 'window.openExpensesShortcut()' },
-            { key: `${altSymbol}⇧E`, single: '⇧E', label: '➕ Add Expense', desc: 'Directly open Add Expense modal', action: 'window.openAddExpenseModalShortcut()' },
-            { key: `${cmdSymbol}S`, single: 'S', label: '💾 Save Booking Form', desc: 'Save active booking or wizard form instantly', action: 'if(window.triggerSaveBookingShortcut) window.triggerSaveBookingShortcut()' },
+            { key: `${altSymbol}O`, single: 'O', label: '🏨 Today · Operations Hub', desc: 'Today check-ins, check-outs, in-house guests & daily frontdesk queue', action: 'window.openOperationsShortcut()' },
+            { key: `${altSymbol}H`, single: 'H', label: '📊 Executive Financial Dashboard', desc: 'Net revenue, ADR, RevPAR, NOI, channels & property leaderboard', action: 'window.openDashboardShortcut()' },
             { key: `${altSymbol}N`, single: 'N', label: '➕ New Booking', desc: 'Open manual booking creation wizard', action: 'window.openNewBookingShortcut()' },
-            { key: `${altSymbol}D`, single: 'D', label: '📋 Duplicate Booking', desc: 'Clone active booking or pick recent guest to rebook', action: 'window.duplicateExistingBookingShortcut()' },
+            { key: `${cmdSymbol}S`, single: 'S', label: '💾 Save Booking Form', desc: 'Save active booking or wizard form instantly', action: 'if(window.triggerSaveBookingShortcut) window.triggerSaveBookingShortcut()' },
+            { key: 'E', single: 'E', label: '✏️ Edit Selected Booking', desc: 'Edit active booking card or drawer immediately', action: 'if(window.editCurrentSelectedBooking) window.editCurrentSelectedBooking()' },
             { key: `${altSymbol}P`, single: 'P', label: '💵 Add Payment / Quick Pay', desc: 'Open payment popup for active booking or dues picker', action: 'window.openQuickPaymentShortcut()' },
-            { key: `${altSymbol}C`, single: 'C', label: '📅 Calendar View', desc: 'Open multi-property occupancy timeline grid', action: 'window.openCalendarShortcut()' },
+            { key: `${altSymbol}D`, single: 'D', label: '📋 Duplicate Booking', desc: 'Clone active booking or pick recent guest to rebook', action: 'window.duplicateExistingBookingShortcut()' },
+            { key: `${altSymbol}C`, single: 'C', label: '📅 Calendar View', desc: 'Open multi-property occupancy timeline grid (19 properties)', action: 'window.openCalendarShortcut()' },
             { key: `${altSymbol}B`, single: 'B', label: '📑 Smart Bookings', desc: 'View all reservations & guests register', action: 'window.openBookingsShortcut()' },
             { key: `${altSymbol}F`, single: 'F', label: '🛏️ Flats & Turnaround', desc: 'Realtime room turnaround Kanban board', action: 'window.openFlatsShortcut()' },
+            { key: `${altSymbol}U`, single: 'U', label: '🏢 Units & Nightly Pricing', desc: 'Master inventory, live nightly rates, caretaker & manager contacts', action: 'window.openUnitsShortcut()' },
+            { key: `${altSymbol}Q`, single: 'Q', label: '⚖️ Universal Claims & TUHH-OD', desc: 'Daily Closing Statements, company ledger & vendor claim approvals', action: 'window.openClaimShortcut()' },
+            { key: `${altSymbol}E`, single: 'E', label: '📊 Expenses & Outflow Hub', desc: 'Open Expenses page (Wi-Fi, Maintenance, Laundry, Staff Advances & P&L)', action: 'window.openExpensesShortcut()' },
+            { key: `${altSymbol}⇧E`, single: '⇧E', label: '➕ Add Expense', desc: 'Directly open Add Expense modal', action: 'window.openAddExpenseModalShortcut()' },
             { key: `${altSymbol}T`, single: 'T', label: '📋 Staff Tasks & Checklists', desc: 'Housekeeping, deep cleans & staff duties (Alt+Shift+T for new)', action: 'window.openTasksShortcut()' },
             { key: `${altSymbol}A`, single: 'A', label: '💸 Staff Advances Tracker', desc: 'Track employee loans, peshgi & balances (Alt+Shift+A for new)', action: 'window.openAdvanceShortcut()' },
             { key: `${altSymbol}W`, single: 'W', label: '📱 WhatsApp Hub', desc: 'Send automated welcome messages, location pin & house rules', action: 'window.openWhatsAppShortcut()' },
-            { key: `${altSymbol}H`, single: 'H', label: '🏠 Executive Dashboard', desc: 'Revenue analytics, occupancy rates & performance metrics', action: 'window.openDashboardShortcut()' },
             { key: `${altSymbol}I`, single: 'I', label: '🧑‍💼 Investors Hub', desc: 'Open Investors list, shares, payout sheets & broadcasts', action: 'window.openInvestorsShortcut()' },
             { key: `${altSymbol}L`, single: 'L', label: '🧺 Laundry Tracker', desc: 'Track linens, vendors, wash cycles & laundry dues', action: 'window.openLaundryShortcut()' },
             { key: `${cmdSymbol}K`, single: '/', label: '🔍 Command Palette', desc: 'Spotlight search anything across PMS (Tasks, Advances, Claims, etc.)', action: 'window.openCommandPalette()' },
@@ -1362,6 +1375,9 @@
     const isKeyI = code === 'KeyI' || keyCode === 73 || key === 'i' || key === 'ˆ';
     const isKeyL = code === 'KeyL' || keyCode === 76 || key === 'l' || key === '¬' || key === '@';
     const isKeyH = code === 'KeyH' || keyCode === 72 || key === 'h' || key === '˙';
+    const isKeyO = code === 'KeyO' || keyCode === 79 || key === 'o' || key === 'ø';
+    const isKeyU = code === 'KeyU' || keyCode === 85 || key === 'u' || key === '¨';
+    const isKeyQ = code === 'KeyQ' || keyCode === 81 || key === 'q' || key === 'œ';
     const isKeyW = code === 'KeyW' || keyCode === 87 || key === 'w' || key === '∑';
     const isKeyX = code === 'KeyX' || keyCode === 88 || key === 'x' || key === '≈';
     const isKeyF1 = code === 'F1' || keyCode === 112;
@@ -1442,6 +1458,21 @@
       if (isKeyH) {
         e.preventDefault();
         window.openDashboardShortcut();
+        return;
+      }
+      if (isKeyO) {
+        e.preventDefault();
+        window.openOperationsShortcut();
+        return;
+      }
+      if (isKeyU) {
+        e.preventDefault();
+        window.openUnitsShortcut();
+        return;
+      }
+      if (isKeyQ) {
+        e.preventDefault();
+        window.openClaimShortcut();
         return;
       }
       if (isKeyW) {
@@ -1571,6 +1602,21 @@
       if (isKeyH) {
         e.preventDefault();
         window.openDashboardShortcut();
+        return;
+      }
+      if (isKeyO) {
+        e.preventDefault();
+        window.openOperationsShortcut();
+        return;
+      }
+      if (isKeyU) {
+        e.preventDefault();
+        window.openUnitsShortcut();
+        return;
+      }
+      if (isKeyQ) {
+        e.preventDefault();
+        window.openClaimShortcut();
         return;
       }
       // w -> WhatsApp Hub
