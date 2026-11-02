@@ -176,7 +176,18 @@ window.getAirbnbGuestNarrative = function(b, feedType) {
 
 window.getAirbnbPropertySubtitle = function(b) {
   if (!b) return 'The Unique Haven Homes';
-  const base = (window.ShowcaseData && window.ShowcaseData.BASELINE && window.ShowcaseData.BASELINE[b.room_id]) || {};
+  const roomId = (b.room_id || '').trim();
+  const base = (window.ShowcaseData && (
+    (typeof window.ShowcaseData.getProperty === 'function' && (
+      window.ShowcaseData.getProperty(roomId) ||
+      (b.rooms?.nickname && window.ShowcaseData.getProperty(b.rooms.nickname)) ||
+      (b.rooms?.property_name && window.ShowcaseData.getProperty(b.rooms.property_name))
+    )) ||
+    (window.ShowcaseData.BASELINE && (
+      window.ShowcaseData.BASELINE[roomId] ||
+      (roomId === 'Flat 402' ? window.ShowcaseData.BASELINE['GOM-402'] : null)
+    ))
+  )) || {};
   if (base.name && base.area_name) {
     return `${base.name} / ${base.area_name}`;
   }
@@ -185,8 +196,32 @@ window.getAirbnbPropertySubtitle = function(b) {
 
 window.renderAirbnbOverlappingMedia = function(b) {
   if (!b) return '';
-  const base = (window.ShowcaseData && window.ShowcaseData.BASELINE && window.ShowcaseData.BASELINE[b.room_id]) || {};
-  const coverImg = base.cover_image || 'assets/logo-emblem.png';
+  const roomId = (b.room_id || '').trim();
+  const base = (window.ShowcaseData && (
+    (typeof window.ShowcaseData.getProperty === 'function' && (
+      window.ShowcaseData.getProperty(roomId) ||
+      (b.rooms?.nickname && window.ShowcaseData.getProperty(b.rooms.nickname)) ||
+      (b.rooms?.property_name && window.ShowcaseData.getProperty(b.rooms.property_name))
+    )) ||
+    (window.ShowcaseData.BASELINE && (
+      window.ShowcaseData.BASELINE[roomId] ||
+      (roomId === 'Flat 402' ? window.ShowcaseData.BASELINE['GOM-402'] : null)
+    ))
+  )) || {};
+
+  let coverImg = base.cover_image;
+  if (!coverImg || coverImg.includes('logo-emblem.png')) {
+    if (typeof getPropertyCoverThumb === 'function') {
+      coverImg = getPropertyCoverThumb(b);
+    }
+  }
+  if (!coverImg || coverImg.includes('logo-emblem.png')) {
+    if (roomId === 'Flat 402' || roomId === 'GOM-402' || (b.rooms?.nickname || '').toLowerCase().includes('tehzeeb') || (b.rooms?.property_name || '').toLowerCase().includes('tehzeeb')) {
+      coverImg = 'https://a0.muscache.com/im/pictures/hosting/Hosting-1753628051023751271/original/3a6387d8-2c8c-4b7c-b8a7-a8bde8fb7eb4.jpeg?im_w=720&width=720&quality=70&auto=webp';
+    }
+  }
+  if (!coverImg) coverImg = 'assets/logo-emblem.png';
+
   const name = b.guest_name || 'Guest';
   const initial = name.trim().charAt(0).toUpperCase() || 'G';
 

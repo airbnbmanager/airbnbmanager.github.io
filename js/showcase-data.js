@@ -3094,6 +3094,9 @@
     }
   };
 
+  // Direct alias for database room_id 'Flat 402'
+  BASELINE_PROPERTIES['Flat 402'] = Object.assign({}, BASELINE_PROPERTIES['GOM-402'], { id: 'Flat 402' });
+
   // Get merged properties (Baseline + LocalStorage + Database cache)
   function getShowcaseProperties() {
     let custom = {};
@@ -3124,6 +3127,10 @@
       if (!merged[id]) merged[id] = custom[id];
     });
 
+    if (merged['GOM-402'] && !merged['Flat 402']) {
+      merged['Flat 402'] = Object.assign({}, merged['GOM-402'], { id: 'Flat 402' });
+    }
+
     return merged;
   }
 
@@ -3131,12 +3138,16 @@
     if (!idOrSlug) return null;
     const all = getShowcaseProperties();
     if (all[idOrSlug]) return all[idOrSlug];
-    const clean = String(idOrSlug).toLowerCase().replace(/\.html$/, '').replace(/^\/+/, '');
+    const clean = String(idOrSlug).toLowerCase().trim().replace(/\.html$/, '').replace(/^\/+/, '');
+    if (clean === 'flat 402' || clean === 'flat402' || clean === 'the tehzeeb nest' || clean === 'tehzeeb') {
+      return all['Flat 402'] || all['GOM-402'] || null;
+    }
     const found = Object.values(all).find(p => {
       if (!p) return false;
       if (p.id && p.id.toLowerCase() === clean) return true;
       if (p.slug && p.slug.toLowerCase() === clean) return true;
       if (p.slug && clean.includes(p.slug.toLowerCase())) return true;
+      if (p.name && p.name.toLowerCase().includes(clean)) return true;
       return false;
     });
     return found || null;
