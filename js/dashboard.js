@@ -2024,61 +2024,6 @@ window.renderExecutiveDashboard = async function() {
       link.click();
     };
 
-    window.askHhAi = function(query) {
-      const input = document.getElementById('hhAiInput');
-      if (input) input.value = query;
-      window.submitHhAiQuery(query);
-    };
-
-    window.submitHhAiQuery = function(query) {
-      if (!query || !query.trim()) return;
-      const q = query.trim().toLowerCase();
-      const respEl = document.getElementById('hhAiResponseArea');
-      if (!respEl) return;
-      respEl.style.display = 'block';
-      respEl.innerHTML = '<div style="display:flex;align-items:center;gap:6px;color:#FBBF24;"><span>⚡</span> Analyzing live portfolio metrics...</div>';
-
-      setTimeout(() => {
-        let answer = '';
-        if (q.includes('profit') || q.includes('net') || q.includes('noi')) {
-          answer = `💰 <strong>Net Operating Income:</strong> ₹${hhNetOpIncome.toLocaleString('en-IN')} this period (Revenue: ₹${monthRevenue.toLocaleString('en-IN')}, Estimated operational spends ~₹${hhEstExpenses.toLocaleString('en-IN')}). Net operating margin is <strong>${Math.round((hhNetOpIncome/Math.max(1,monthRevenue))*100)}%</strong>.`;
-        } else if (q.includes('occupan') || q.includes('boost') || q.includes('increase')) {
-          answer = `🏨 <strong>Portfolio Occupancy:</strong> Currently <strong>${periodOccupancyPct > 0 ? periodOccupancyPct : occupancyPct}%</strong>. To increase occupancy, ${topOpportunity ? topOpportunity.rName : 'low-performing units'} can be listed with a 10% weekday flash discount on Direct WhatsApp khata to generate ~₹14,000 extra revenue.`;
-        } else if (q.includes('top') || q.includes('highest') || q.includes('best') || q.includes('revenue')) {
-          answer = `🏆 <strong>Top Property:</strong> <strong>${topEarner ? topEarner.rName : 'The Tehzeeb Nest'}</strong> generated <strong>₹${topEarner ? topEarner.rRev.toLocaleString('en-IN') : '0'}</strong> with <strong>${topEarner ? topEarner.rOcc : 0}%</strong> occupancy this period.`;
-        } else if (q.includes('save') || q.includes('ota') || q.includes('commission')) {
-          answer = `🛡️ <strong>Commission Saved:</strong> By receiving <strong>₹${directRev.toLocaleString('en-IN')}</strong> directly through TUHH QR and offline bookings, you avoided ₹${Math.round(directRev * 0.18).toLocaleString('en-IN')} in 18% OTA commission charges!`;
-        } else {
-          answer = `💡 <strong>TUHH AI Advisory:</strong> Your portfolio is tracking <strong>₹${monthRevenue.toLocaleString('en-IN')}</strong> revenue across ${totalProps} managed properties with ADR of <strong>₹${hhAdr.toLocaleString('en-IN')}</strong>. Weekend demand is strong; recommend dynamic rates on high-traffic units.`;
-        }
-        respEl.innerHTML = `<div style="font-size:12.5px;color:#F0F6FC;line-height:1.5;">${answer}</div>`;
-      }, 300);
-    };
-
-    window.triggerHhAiVoice = function() {
-      if (typeof window.startVoiceAgent === 'function') {
-        window.startVoiceAgent();
-      } else {
-        window.askHhAi('What is our net profit this month?');
-      }
-    };
-
-    window.applyAiRateDiscount = function(roomId) {
-      if (window.fsn) {
-        fsn.success('AI Price Optimization', 'Applied -10% weekday price optimization to ' + (roomId || 'property') + '. Rates updated across calendars!');
-      } else {
-        alert('Applied -10% weekday price optimization to ' + (roomId || 'property') + '!');
-      }
-    };
-
-    window.applyAiSurgePricing = function(roomId) {
-      if (window.fsn) {
-        fsn.success('AI Surge Pricing', 'Applied +15% high-demand weekend surge optimization to ' + (roomId || 'property') + '!');
-      } else {
-        alert('Applied +15% high-demand weekend surge optimization!');
-      }
-    };
-
     renderShell(`
       <div style="max-width:1440px;margin:0 auto;padding:6px 4px 30px;">
         <!-- 💎 HOMEYHUTS LUXURY MAC WINDOW MOCKUP -->
@@ -2099,11 +2044,9 @@ window.renderExecutiveDashboard = async function() {
             </div>
           </div>
 
-          <!-- Two-Column Layout: Left Analytics + Right AI Copilot -->
-          <div class="hh-two-col-layout">
-            <!-- LEFT PANEL: Main Analytics & Leaderboard -->
-            <div class="hh-left-panel">
-              <!-- TOP FILTER BAR -->
+          <!-- Window Body: Full-Width Luxury Analytics Suite -->
+          <div class="hh-window-body">
+            <!-- TOP FILTER BAR -->
               <div class="hh-analytics-filter-bar">
                 <div class="hh-analytics-filters-left">
                   <div class="hh-analytics-pill-select" onclick="if(window.renderManageRooms) renderManageRooms();" title="Filter properties">
@@ -2311,75 +2254,6 @@ window.renderExecutiveDashboard = async function() {
                   </table>
                 </div>
               </div>
-            </div>
-
-            <!-- RIGHT PANEL: Dark Luxury AI Copilot -->
-            <div class="hh-right-copilot">
-              <div>
-                <div class="hh-ai-head">
-                  <div class="hh-ai-title">
-                    <span>✨</span> Homeyhuts AI
-                  </div>
-                  <span class="hh-ai-badge">Live Copilot</span>
-                </div>
-                <div class="hh-ai-sub">
-                  AI reads your numbers and tells you what to do next.
-                </div>
-
-                <!-- Dynamic Real Insight 1: Price Insight (Matches Screenshot 2) -->
-                <div class="hh-ai-card">
-                  <div class="hh-ai-tag">
-                    <span>🏷️</span> PRICE INSIGHT · ${topOpportunity ? topOpportunity.rName : 'GOMTI GRAND VILLA'}
-                  </div>
-                  <div class="hh-ai-body">
-                    Weekday occupancy at ${topOpportunity ? topOpportunity.rName : 'this unit'} is ${topOpportunity ? topOpportunity.rOcc : 38}%, below portfolio average. Your weekday rate looks higher than similar dates. Try 10% less on Mon to Thu to boost occupancy.
-                  </div>
-                  <div class="hh-ai-actions">
-                    <button type="button" class="hh-ai-btn-primary" onclick="window.applyAiRateDiscount('${topOpportunity ? topOpportunity.rId : ''}')">Apply -10%</button>
-                    <button type="button" class="hh-ai-btn-secondary">Recover ~₹12,000</button>
-                  </div>
-                </div>
-
-                <!-- Dynamic Real Insight 2: Surge / Top Performer Maximizer -->
-                <div class="hh-ai-card">
-                  <div class="hh-ai-tag">
-                    <span>🚀</span> REVENUE SURGE · ${topEarner ? topEarner.rName : 'THE TEHZEEB NEST'}
-                  </div>
-                  <div class="hh-ai-body">
-                    ${topEarner ? topEarner.rName : 'Tehzeeb Nest'} reached ${topEarner ? topEarner.rOcc : 86}% occupancy. High upcoming weekend demand detected. Consider +15% dynamic weekend pricing.
-                  </div>
-                  <div class="hh-ai-actions">
-                    <button type="button" class="hh-ai-btn-primary" onclick="window.applyAiSurgePricing('${topEarner ? topEarner.rId : ''}')">Optimize Weekend Rate</button>
-                  </div>
-                </div>
-
-                <!-- Dynamic Real Insight 3: Commission Saved -->
-                <div class="hh-ai-card">
-                  <div class="hh-ai-tag">
-                    <span>🛡️</span> ZERO COMMISSION KHATA
-                  </div>
-                  <div class="hh-ai-body">
-                    ₹${directRev.toLocaleString('en-IN')} was collected directly via TUHH QR without paying 18% OTA commission charges, saving you ~₹${Math.round(directRev * 0.18).toLocaleString('en-IN')}!
-                  </div>
-                </div>
-              </div>
-
-              <!-- Bottom Interactive Chat & Mic -->
-              <div>
-                <div class="hh-ai-quick-pills">
-                  <button type="button" class="hh-ai-quick-pill" onclick="window.askHhAi('What is our net profit this month?')">💰 Net Profit?</button>
-                  <button type="button" class="hh-ai-quick-pill" onclick="window.askHhAi('Which unit had the highest revenue?')">🏆 Top Property?</button>
-                  <button type="button" class="hh-ai-quick-pill" onclick="window.askHhAi('How can we increase occupancy?')">📈 Boost Occupancy?</button>
-                </div>
-                <div class="hh-ai-input-box">
-                  <input type="text" id="hhAiInput" placeholder="Ask anything in your language..." onkeydown="if(event.key==='Enter') window.submitHhAiQuery(this.value)" />
-                  <button type="button" class="hh-ai-mic-btn" onclick="window.triggerHhAiVoice()" title="Voice query / mic">
-                    <i class="ti ti-microphone"></i>
-                  </button>
-                </div>
-                <div id="hhAiResponseArea" style="display:none;margin-top:10px;padding:12px;background:rgba(22,27,34,0.95);border:1px solid #30363D;border-radius:10px;font-size:12px;color:#E6EDF3;line-height:1.5;"></div>
-              </div>
-            </div>
           </div>
         </div>
       </div>

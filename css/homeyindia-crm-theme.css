@@ -4093,6 +4093,24 @@ html, body {
   100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
 }
 
+.hh-window-body {
+  padding: 24px 28px;
+  background: #FFFFFF;
+}
+
+@media (min-width: 1024px) {
+  .hh-kpi-ribbon-5 {
+    grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
+    gap: 14px !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .hh-window-body {
+    padding: 14px 10px !important;
+  }
+}
+
 .hh-two-col-layout {
   display: grid;
   grid-template-columns: minmax(0, 1.72fr) minmax(320px, 1fr);
