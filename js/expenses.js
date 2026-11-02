@@ -264,191 +264,129 @@ async function renderExpenses() {
   const staffSummaryList = Object.values(staffExpenseMap).filter(s => s.totalOutflow > 0 || s.advancesPending > 0);
 
   renderShell(`
-    <!-- ─── HEADER & PRIMARY ACTION BUTTONS ─── -->
-    <div class="card" style="margin-bottom:16px;">
+    <!-- ─── EXECUTIVE EXPENSES HEADER & COMPACT ACTIONS ─── -->
+    <div class="card" style="margin-bottom:12px;padding:14px 16px;">
       <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;">
         <div>
-          <h1 style="margin:0;font-size:22px;font-weight:900;color:#0F172A;display:flex;align-items:center;gap:8px;">
-            <span>💼</span> All Company Expenses &amp; Outflow Hub
+          <h1 style="margin:0;font-size:20px;font-weight:900;color:#0F172A;display:flex;align-items:center;gap:8px;">
+            <span>💼</span> Company Expenses &amp; Outflow
           </h1>
-          <div class="sub" style="margin-top:3px;font-size:13px;color:#64748B;">
-            Unified Spending Register: Laundry · Maintenance &amp; Wi-Fi · Staff Advances · Daily Claims
+          <div class="sub" style="margin-top:2px;font-size:12.5px;color:#64748B;">
+            Unified Spending Register · Wi-Fi · Travel · Advances · All Properties
           </div>
         </div>
 
-        <div class="exp-action-btn-group" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
-          <button onclick="navigate('laundry')" style="background:#0284C7;color:#fff;font-weight:700;border:none;border-radius:8px;padding:8px 14px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;box-shadow:0 2px 6px rgba(2,132,199,0.25);">
-            <span>🧺</span> Laundry
-          </button>
-          <button onclick="window.openWifiRechargeModal()" style="background:#2563EB;color:#fff;font-weight:700;border:none;border-radius:8px;padding:8px 14px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;box-shadow:0 2px 6px rgba(37,99,235,0.25);">
-            <i class="ti ti-wifi"></i> Wi-Fi Recharge
-          </button>
-          <button onclick="if(window.renderAddReimbursement) window.renderAddReimbursement(); else navigate('claims');" style="background:#0284C7;color:#fff;font-weight:700;border:none;border-radius:8px;padding:8px 14px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;box-shadow:0 2px 6px rgba(2,132,199,0.25);">
+        <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
+          <button onclick="if(window.renderAddReimbursement) window.renderAddReimbursement(); else navigate('expenses');" style="background:#0284C7;color:#fff;font-weight:700;font-size:12px;padding:6px 12px;border-radius:8px;border:none;cursor:pointer;display:inline-flex;align-items:center;gap:5px;">
             <span>➕</span> Add Expense
           </button>
-          <button onclick="navigate('maintenance')" style="background:#475569;color:#fff;font-weight:700;border:none;border-radius:8px;padding:8px 14px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;box-shadow:0 2px 6px rgba(71,85,105,0.25);">
-            <i class="ti ti-tool"></i> Maintenance
+          <button onclick="window.openEmployeeTransportModal()" style="background:#D97706;color:#fff;font-weight:700;font-size:12px;padding:6px 12px;border-radius:8px;border:none;cursor:pointer;display:inline-flex;align-items:center;gap:5px;">
+            <span>🛵</span> Travel / Rapido
           </button>
-          <button onclick="window.openEmployeeTransportModal()" style="background:#D97706;color:#fff;font-weight:700;border:none;border-radius:8px;padding:8px 14px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;">
-            <span>🛵</span> Rapido &amp; Travel
+          <button onclick="window.openWifiRechargeModal()" style="background:#2563EB;color:#fff;font-weight:700;font-size:12px;padding:6px 12px;border-radius:8px;border:none;cursor:pointer;display:inline-flex;align-items:center;gap:5px;">
+            <i class="ti ti-wifi"></i> Wi-Fi
           </button>
-          <button onclick="window.openStaffAdvanceModal()" style="background:#7C3AED;color:#fff;font-weight:700;border:none;border-radius:8px;padding:8px 14px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;">
-            <span>🎁</span> Give Staff Advance
+          <button onclick="window.openStaffAdvanceModal()" style="background:#7C3AED;color:#fff;font-weight:700;font-size:12px;padding:6px 12px;border-radius:8px;border:none;cursor:pointer;display:inline-flex;align-items:center;gap:5px;">
+            <span>🎁</span> Staff Advance
           </button>
         </div>
       </div>
     </div>
 
-    <!-- ─── EXECUTIVE EXPENSE & SOURCE COUNTERS ─── -->
-    <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));gap:12px;margin-bottom:16px;">
-      <div class="card" style="padding:14px 16px;background:#FFFFFF;border-left:4px solid #0EA5E9;margin:0;">
-        <div style="font-size:11px;font-weight:700;color:#64748B;text-transform:uppercase;letter-spacing:0.5px;">THIS MONTH OUTFLOW (${ml})</div>
-        <div style="font-size:24px;font-weight:900;color:#DC2626;margin-top:4px;">₹${totalMonthExp.toLocaleString('en-IN')}</div>
-        <div style="font-size:11.5px;color:#64748B;margin-top:2px;">All channels combined (${thisMonthList.length} items)</div>
+    <!-- ─── UNIFIED COMPACT FINANCIAL DASHBOARD CARD ─── -->
+    <div class="card" style="margin-bottom:12px;padding:14px 16px;background:#ffffff;border:1px solid #E2E8F0;border-radius:14px;">
+      <!-- Row 1: High Level P&L -->
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;padding-bottom:10px;border-bottom:1px dashed #E2E8F0;flex-wrap:wrap;gap:8px;">
+        <span style="font-size:12px;font-weight:800;color:#475569;text-transform:uppercase;letter-spacing:0.5px;">
+          📊 Financial Health &amp; Operational P&amp;L (${ml})
+        </span>
+        <span style="font-size:11.5px;color:#64748B;">
+          ${thisMonthExps.length} company outflow records
+        </span>
       </div>
 
-      <div class="card" style="padding:14px 16px;background:#F0FDF4;border-left:4px solid #10B981;margin:0;">
-        <div style="font-size:11px;font-weight:700;color:#166534;text-transform:uppercase;letter-spacing:0.5px;">🏦 PAID VIA TUHH-OD</div>
-        <div style="font-size:24px;font-weight:900;color:#059669;margin-top:4px;">₹${totalOdExp.toLocaleString('en-IN')}</div>
-        <div style="font-size:11.5px;color:#15803D;margin-top:2px;">Online OD Account Outflow</div>
-      </div>
-
-      <div class="card" style="padding:14px 16px;background:#FFFBEB;border-left:4px solid #F59E0B;margin:0;">
-        <div style="font-size:11px;font-weight:700;color:#92400E;text-transform:uppercase;letter-spacing:0.5px;">🏢 PAID VIA COMPANY / FIROZ</div>
-        <div style="font-size:24px;font-weight:900;color:#D97706;margin-top:4px;">₹${totalCompanyExp.toLocaleString('en-IN')}</div>
-        <div style="font-size:11.5px;color:#B45309;margin-top:2px;">Cash in Hand / Personal Transfers</div>
-      </div>
-
-      <div class="card" style="padding:14px 16px;background:#FAF5FF;border-left:4px solid #8B5CF6;margin:0;">
-        <div style="font-size:11px;font-weight:700;color:#6B21A8;text-transform:uppercase;letter-spacing:0.5px;">🎁 STAFF ADVANCES PENDING</div>
-        <div style="font-size:24px;font-weight:900;color:#7C3AED;margin-top:4px;">₹${pendingStaffAdvs.toLocaleString('en-IN')}</div>
-        <div style="font-size:11.5px;color:#6B21A8;margin-top:2px;">To be deducted during salary payout</div>
-      </div>
-    </div>
-
-    <!-- ─── P&L MOVEMENT THIS MONTH ─── -->
-    <div class="card" style="margin-bottom:16px;">
-      <div class="section-title">📊 Operational P&amp;L — ${ml}</div>
-      <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));gap:12px;margin-top:10px;">
-        <div style="background:#F8FAFC;padding:12px;border-radius:8px;border:1px solid #E2E8F0;">
-          <div style="font-size:11px;color:#64748B;font-weight:700;">TOTAL BOOKINGS REVENUE</div>
-          <div style="font-size:20px;font-weight:800;color:#10B981;margin-top:2px;">₹${inc.toLocaleString('en-IN')}</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(130px, 1fr));gap:10px;margin-bottom:12px;">
+        <div style="background:#F0FDF4;padding:10px 12px;border-radius:10px;border:1px solid #DCFCE7;">
+          <div style="font-size:10.5px;font-weight:700;color:#166534;text-transform:uppercase;">Bookings Revenue</div>
+          <div style="font-size:18px;font-weight:900;color:#15803D;margin-top:2px;">₹${inc.toLocaleString('en-IN')}</div>
         </div>
-        <div style="background:#F8FAFC;padding:12px;border-radius:8px;border:1px solid #E2E8F0;">
-          <div style="font-size:11px;color:#64748B;font-weight:700;">TOTAL OPERATING EXPENSES</div>
-          <div style="font-size:20px;font-weight:800;color:#DC2626;margin-top:2px;">₹${totalMonthExp.toLocaleString('en-IN')}</div>
+        <div style="background:#FEF2F2;padding:10px 12px;border-radius:10px;border:1px solid #FEE2E2;">
+          <div style="font-size:10.5px;font-weight:700;color:#991B1B;text-transform:uppercase;">Total Outflow</div>
+          <div style="font-size:18px;font-weight:900;color:#DC2626;margin-top:2px;">₹${totalMonthExp.toLocaleString('en-IN')}</div>
         </div>
-        <div style="background:#F8FAFC;padding:12px;border-radius:8px;border:1px solid #E2E8F0;">
-          <div style="font-size:11px;color:#64748B;font-weight:700;">NET OPERATIONAL PROFIT</div>
-          <div style="font-size:20px;font-weight:800;color:${profit >= 0 ? '#10B981' : '#DC2626'};margin-top:2px;">
-            ₹${profit.toLocaleString('en-IN')}
-          </div>
+        <div style="background:#F8FAFC;padding:10px 12px;border-radius:10px;border:1px solid #E2E8F0;">
+          <div style="font-size:10.5px;font-weight:700;color:#334155;text-transform:uppercase;">Net Operating Profit</div>
+          <div style="font-size:18px;font-weight:900;color:${profit >= 0 ? '#059669' : '#DC2626'};margin-top:2px;">₹${profit.toLocaleString('en-IN')}</div>
+        </div>
+      </div>
+
+      <!-- Row 2: Payment Source Quick Breakdown Badges -->
+      <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(160px, 1fr));gap:8px;">
+        <div style="background:#F8FAFC;padding:8px 12px;border-radius:8px;border:1px solid #E2E8F0;display:flex;align-items:center;justify-content:space-between;cursor:pointer;" onclick="window.filterExpensesBySource('UHHS-OD')" title="Click to filter by TUHH-OD">
+          <span style="font-size:11.5px;font-weight:700;color:#475569;">🏦 TUHH-OD Paid</span>
+          <span style="font-size:13px;font-weight:800;color:#059669;">₹${totalOdExp.toLocaleString('en-IN')}</span>
+        </div>
+        <div style="background:#F8FAFC;padding:8px 12px;border-radius:8px;border:1px solid #E2E8F0;display:flex;align-items:center;justify-content:space-between;cursor:pointer;" onclick="window.filterExpensesBySource('COMPANY')" title="Click to filter by Cash/Company">
+          <span style="font-size:11.5px;font-weight:700;color:#475569;">🏢 Company / Firoz</span>
+          <span style="font-size:13px;font-weight:800;color:#D97706;">₹${totalCompanyExp.toLocaleString('en-IN')}</span>
+        </div>
+        <div style="background:#FAF5FF;padding:8px 12px;border-radius:8px;border:1px solid #F3E8FF;display:flex;align-items:center;justify-content:space-between;cursor:pointer;" onclick="window.filterExpensesByChannel('advance')" title="Click to filter by Staff Advances">
+          <span style="font-size:11.5px;font-weight:700;color:#6B21A8;">🎁 Advances Pending</span>
+          <span style="font-size:13px;font-weight:800;color:#7C3AED;">₹${pendingStaffAdvances.toLocaleString('en-IN')}</span>
         </div>
       </div>
     </div>
 
-    <!-- ─── STAFF EXPENSE & ADVANCE BREAKDOWN ("KIS EMPLOYEE PE KITNA") ─── -->
-    <div class="card" style="margin-bottom:16px;">
-      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:12px;">
-        <div style="display:flex;align-items:center;gap:8px;">
-          <span style="font-size:18px;">👥</span>
-          <div>
-            <div style="font-size:15px;font-weight:800;color:#0F172A;">Staff Expense &amp; Advance Breakdown</div>
-            <div style="font-size:11.5px;color:#64748B;">Tracking which employee took advance (salary-linked) vs operational claims (Rapido/petrol)</div>
-          </div>
+    <!-- ─── UNIFIED RESPONSIVE FILTER & SEARCH TOOLBAR ─── -->
+    <div class="card" style="margin-bottom:12px;padding:12px 14px;">
+      <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px;flex-wrap:wrap;">
+        <div style="flex:1;min-width:200px;position:relative;">
+          <input type="text" id="expSearchInput" placeholder="🔍 Search description, notes, staff, amount..." oninput="applyExpenseFilters()" style="width:100%;box-sizing:border-box;padding:8px 12px;font-size:13px;border:1px solid #CBD5E1;border-radius:8px;">
         </div>
-        <button onclick="window.openStaffAdvanceModal()" class="btn-sm" style="background:#7C3AED;color:#fff;font-weight:700;border:none;border-radius:6px;padding:6px 12px;cursor:pointer;">
-          ➕ Record Staff Advance
-        </button>
+        <div style="min-width:140px;">
+          <input type="month" id="expMonthFilter" value="${cm}" onchange="applyExpenseFilters()" style="width:100%;box-sizing:border-box;padding:8px 10px;font-size:12.5px;border:1px solid #CBD5E1;border-radius:8px;">
+        </div>
+        <div>
+          <button type="button" onclick="window.resetExpenseFilters()" class="btn-sm" style="background:#F1F5F9;color:#475569;border:1px solid #CBD5E1;padding:8px 12px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;">
+            ↺ Reset
+          </button>
+        </div>
       </div>
 
-      <div class="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>Employee</th>
-              <th>Role</th>
-              <th>Advance (Salary Linked)</th>
-              <th>Pending Salary Deduction</th>
-              <th>Other Claims (Rapido/Food)</th>
-              <th>Paid Via OD</th>
-              <th>Paid Via Firoz/Co.</th>
-              <th>Total Staff Outflow</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${staffSummaryList.length === 0
-              ? '<tr><td colspan="9" class="sub" style="text-align:center;padding:16px;">No staff expenses or advances logged this period</td></tr>'
-              : staffSummaryList.map(s => `
-                <tr>
-                  <td><strong>${escapeHtml(s.name)}</strong></td>
-                  <td style="font-size:12px;color:#64748B;">${escapeHtml(s.role)}</td>
-                  <td style="font-weight:700;color:#7C3AED;">₹${s.advances.toLocaleString('en-IN')}</td>
-                  <td>
-                    ${s.advancesPending > 0
-                      ? `<span style="background:#FEE2E2;color:#991B1B;font-weight:700;padding:2px 8px;border-radius:999px;font-size:11px;">⚠️ ₹${s.advancesPending.toLocaleString('en-IN')} (Deduct Next Salary)</span>`
-                      : `<span style="color:#059669;font-size:11.5px;font-weight:600;">✓ Fully Deducted</span>`
-                    }
-                  </td>
-                  <td style="font-weight:600;color:#0F172A;">₹${s.otherSpends.toLocaleString('en-IN')}</td>
-                  <td style="font-size:12px;color:#059669;font-weight:600;">₹${s.odPaid.toLocaleString('en-IN')}</td>
-                  <td style="font-size:12px;color:#D97706;font-weight:600;">₹${s.companyPaid.toLocaleString('en-IN')}</td>
-                  <td style="font-weight:800;color:#DC2626;font-size:13.5px;">₹${s.totalOutflow.toLocaleString('en-IN')}</td>
-                  <td>
-                    <button class="btn-sm" onclick="window.filterExpensesByStaff('${escapeHtml(s.name)}')" title="Filter all entries for this staff" style="padding:4px 8px;font-size:11px;">🔍 View Entries</button>
-                    <button class="btn-sm" onclick="window.openStaffAdvanceModal('${s.emp_id}')" title="Give Advance" style="padding:4px 8px;font-size:11px;background:#7C3AED;color:#fff;border:none;">+ Adv</button>
-                  </td>
-                </tr>
-              `).join('')
-            }
-          </tbody>
-        </table>
-      </div>
-    </div>
-
-    <!-- ─── UNIFIED FILTER CONTROLS ─── -->
-    <div class="card" style="margin-bottom:16px;">
-      <div class="section-title">🔍 Filter All Company Expenses</div>
-      <div class="form-grid exp-filter-grid" style="display:grid;grid-template-columns:repeat(auto-fit, minmax(180px, 1fr));gap:12px;">
-        <div class="form-group">
-          <label style="font-size:12px;font-weight:700;">Month</label>
-          <input type="month" id="expMonthFilter" value="${cm}" onchange="applyExpenseFilters()" style="width:100%;padding:8px 10px;border:1px solid #CBD5E1;border-radius:8px;font-size:12.5px;" />
-        </div>
-
-        <div class="form-group">
-          <label style="font-size:12px;font-weight:700;">Channel / Expense Type</label>
-          <select id="expChannelFilter" onchange="applyExpenseFilters()" style="width:100%;padding:8px 10px;border:1px solid #CBD5E1;border-radius:8px;font-size:12.5px;font-weight:600;">
-            <option value="all">All Channels (Laundry + Maint + Adv + Spends)</option>
-            <option value="laundry">🧺 Laundry Spends</option>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(130px, 1fr));gap:8px;">
+        <div>
+          <label style="display:block;font-size:11px;font-weight:700;color:#64748B;margin-bottom:3px;">Category / Channel</label>
+          <select id="expChannelFilter" onchange="applyExpenseFilters()" style="width:100%;box-sizing:border-box;padding:7px 8px;font-size:12px;border:1px solid #CBD5E1;border-radius:8px;">
+            <option value="all">All Categories</option>
+            <option value="laundry">🧺 Laundry</option>
             <option value="maintenance">🔧 Maintenance &amp; Wi-Fi</option>
-            <option value="advance">🎁 Staff Advances (Salary Linked)</option>
-            <option value="staff_spend">🛵 Staff Spends (Rapido / Supplies)</option>
-            <option value="general">🧾 General Business Expenses</option>
+            <option value="advance">🎁 Staff Advances</option>
+            <option value="staff_spend">🛵 Staff Spends (Rapido)</option>
+            <option value="general">🧾 General Spends</option>
           </select>
         </div>
 
-        <div class="form-group">
-          <label style="font-size:12px;font-weight:700;">Payment Source / Account</label>
-          <select id="expSourceFilter" onchange="applyExpenseFilters()" style="width:100%;padding:8px 10px;border:1px solid #CBD5E1;border-radius:8px;font-size:12.5px;font-weight:600;">
-            <option value="all">All Accounts (OD + Firoz/Company)</option>
-            <option value="UHHS-OD">🏦 TUHH-OD (Overdraft Account)</option>
-            <option value="COMPANY">🏢 COMPANY / FIROZ</option>
+        <div>
+          <label style="display:block;font-size:11px;font-weight:700;color:#64748B;margin-bottom:3px;">Account / Paid By</label>
+          <select id="expSourceFilter" onchange="applyExpenseFilters()" style="width:100%;box-sizing:border-box;padding:7px 8px;font-size:12px;border:1px solid #CBD5E1;border-radius:8px;">
+            <option value="all">All Accounts</option>
+            <option value="UHHS-OD">🏦 TUHH-OD</option>
+            <option value="COMPANY">🏢 Company / Cash</option>
           </select>
         </div>
 
-        <div class="form-group">
-          <label style="font-size:12px;font-weight:700;">Staff / Employee</label>
-          <select id="expStaffFilter" onchange="applyExpenseFilters()" style="width:100%;padding:8px 10px;border:1px solid #CBD5E1;border-radius:8px;font-size:12.5px;">
-            <option value="all">All Staff / Anyone</option>
+        <div>
+          <label style="display:block;font-size:11px;font-weight:700;color:#64748B;margin-bottom:3px;">Staff / Employee</label>
+          <select id="expStaffFilter" onchange="applyExpenseFilters()" style="width:100%;box-sizing:border-box;padding:7px 8px;font-size:12px;border:1px solid #CBD5E1;border-radius:8px;">
+            <option value="all">All Staff</option>
             ${(emps || []).map(e => `<option value="${escapeHtml(e.name)}">👤 ${escapeHtml(e.name)}</option>`).join('')}
           </select>
         </div>
 
-        <div class="form-group">
-          <label style="font-size:12px;font-weight:700;">Property / Unit</label>
-          <select id="expRoomFilter" onchange="applyExpenseFilters()" style="width:100%;padding:8px 10px;border:1px solid #CBD5E1;border-radius:8px;font-size:12.5px;">
-            <option value="all">All Properties (18 Available)</option>
+        <div>
+          <label style="display:block;font-size:11px;font-weight:700;color:#64748B;margin-bottom:3px;">Property / Unit</label>
+          <select id="expRoomFilter" onchange="applyExpenseFilters()" style="width:100%;box-sizing:border-box;padding:7px 8px;font-size:12px;border:1px solid #CBD5E1;border-radius:8px;">
+            <option value="all">All Properties</option>
             ${(rooms || []).map(r => `<option value="${r.room_id}">${escapeHtml(propLabel(r))}</option>`).join('')}
           </select>
         </div>
@@ -468,6 +406,7 @@ function applyExpenseFilters() {
   const wrap = document.getElementById('expTableWrap');
   if (!wrap) return;
 
+  const searchVal = (document.getElementById('expSearchInput')?.value || '').trim().toLowerCase();
   const monthVal = document.getElementById('expMonthFilter')?.value || '';
   const channelVal = document.getElementById('expChannelFilter')?.value || 'all';
   const sourceVal = document.getElementById('expSourceFilter')?.value || 'all';
@@ -493,6 +432,17 @@ function applyExpenseFilters() {
   }
   if (roomVal !== 'all') {
     list = list.filter(e => e.roomId === roomVal);
+  }
+  if (searchVal) {
+    list = list.filter(e => {
+      const title = (e.title || '').toLowerCase();
+      const notes = (e.notes || '').toLowerCase();
+      const staff = (e.staffName || '').toLowerCase();
+      const room = (e.roomLabel || '').toLowerCase();
+      const ch = (e.channelLabel || '').toLowerCase();
+      const amt = String(e.amount || '');
+      return title.includes(searchVal) || notes.includes(searchVal) || staff.includes(searchVal) || room.includes(searchVal) || ch.includes(searchVal) || amt.includes(searchVal);
+    });
   }
 
   const total = list.reduce((s, e) => s + (e.amount || 0), 0);
@@ -614,8 +564,32 @@ window.filterExpensesByStaff = function(staffName) {
   if (staffSelect) {
     staffSelect.value = staffName;
     applyExpenseFilters();
-    staffSelect.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }
+};
+
+window.filterExpensesBySource = function(sourceKey) {
+  const srcSelect = document.getElementById('expSourceFilter');
+  if (srcSelect) {
+    srcSelect.value = (srcSelect.value === sourceKey) ? 'all' : sourceKey;
+    applyExpenseFilters();
+  }
+};
+
+window.filterExpensesByChannel = function(chKey) {
+  const chSelect = document.getElementById('expChannelFilter');
+  if (chSelect) {
+    chSelect.value = (chSelect.value === chKey) ? 'all' : chKey;
+    applyExpenseFilters();
+  }
+};
+
+window.resetExpenseFilters = function() {
+  const s = document.getElementById('expSearchInput'); if (s) s.value = '';
+  const c = document.getElementById('expChannelFilter'); if (c) c.value = 'all';
+  const src = document.getElementById('expSourceFilter'); if (src) src.value = 'all';
+  const st = document.getElementById('expStaffFilter'); if (st) st.value = 'all';
+  const r = document.getElementById('expRoomFilter'); if (r) r.value = 'all';
+  applyExpenseFilters();
 };
 
 // ═══════════════════════════════════════════════════════════
