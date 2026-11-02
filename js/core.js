@@ -1322,7 +1322,7 @@ function renderShell(content, activePage = 'dashboard') {
       id: 'dashboard',
       label: '🏠 Today · Operations',
       page: 'dashboard',
-      pages: ['dashboard', 'analytics', 'dailyReport'],
+      pages: ['dashboard', 'dailyReport'],
       tabs: []
     },
     {
@@ -1363,8 +1363,9 @@ function renderShell(content, activePage = 'dashboard') {
       id: 'claims',
       label: '💰 Finances',
       page: 'claims',
-      pages: ['claims', 'investors', 'ca-audit', 'reimbursements', 'cashbook', 'financial', 'financial-sheet'],
+      pages: ['claims', 'analytics', 'investors', 'ca-audit', 'reimbursements', 'cashbook', 'financial', 'financial-sheet'],
       tabs: [
+        { id: 'analytics', label: '📊 Executive Dashboard' },
         { id: 'claims', label: '🏦 TUHH-OD & Claims' },
         { id: 'investors', label: '🧑‍💼 Investors' },
         { id: 'ca-audit', label: '💼 GST & Audit' }
@@ -1497,7 +1498,7 @@ function renderShell(content, activePage = 'dashboard') {
   const displayBadge = CUSTOM_BADGES[SESSION.userId] || roleLabel;
 
   const PAGE_TITLES = {
-    dashboard: { title: 'Executive Dashboard', sub: 'Overview & Key Performance Indicators', icon: '🏠' },
+    dashboard: { title: "Today's Operations Hub", sub: 'Guest check-ins, check-outs & in-house stays', icon: '🏠' },
     reports: { title: 'Reservations Calendar', sub: 'Room availability & bookings calendar', icon: '📅' },
     calendar: { title: 'Reservations Calendar', sub: 'Room availability & bookings calendar', icon: '📅' },
     bookings: { title: 'Bookings Management', sub: 'Guest check-ins, check-outs & payments', icon: '🛎' },
@@ -1511,7 +1512,7 @@ function renderShell(content, activePage = 'dashboard') {
     claims: { title: 'TUHH-OD & Universal Claims', sub: 'TUHH-OD Overdraft balance, daily closing statement & vendor settlements', icon: '🏦' },
     investors: { title: 'Investors Ledger', sub: 'Property investor shares & payouts', icon: '🧑‍💼' },
     dailyReport: { title: 'Daily Operations Report', sub: 'End-of-day revenue, checkins & summaries', icon: '📈' },
-    analytics: { title: 'Business Analytics', sub: 'Occupancy rates & revenue metrics', icon: '📊' },
+    analytics: { title: 'Executive Financial Dashboard', sub: 'Net revenue, ADR, RevPAR, NOI & property performance', icon: '📊' },
     reminders: { title: 'Reminders & Follow-ups', sub: 'Checkout alarms & upcoming tasks', icon: '🔔' },
     employees: { title: 'Team & Staff', sub: 'Employee profiles, roles & contacts', icon: '👥' },
     attendance: { title: 'Staff Attendance', sub: 'Daily check-in logs & monthly summaries', icon: '📋' },
@@ -2277,6 +2278,7 @@ function navigate(page) {
     'ical-sync': () => (window.renderIcalSync || renderIcalSync)(),
     laundry: () => (window.renderLaundry || renderLaundry)(),
     dailyReport: () => (window.renderDailyReport || renderDailyReport)(),
+    finances: () => navigate('analytics'),
     claims: () => (window.renderClaims || renderClaims)(),
     reimbursements: () => (window.renderClaims || renderClaims)(),
     'property-setup': () => (window.renderPropertySetup || renderPropertySetup)(),

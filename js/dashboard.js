@@ -661,7 +661,9 @@ async function renderDashboard() {
   window.setDashboardPeriod = function(period) {
     window._dashPeriod = period;
     if (period !== 'custom') window._dashCustomMonth = '';
-    if (typeof window.renderDashboard === 'function') {
+    if (typeof window.renderExecutiveDashboard === 'function') {
+      window.renderExecutiveDashboard();
+    } else if (typeof window.renderDashboard === 'function') {
       window.renderDashboard();
     }
   };
@@ -670,7 +672,9 @@ async function renderDashboard() {
     if (!monthVal) return;
     window._dashPeriod = 'custom';
     window._dashCustomMonth = monthVal;
-    if (typeof window.renderDashboard === 'function') {
+    if (typeof window.renderExecutiveDashboard === 'function') {
+      window.renderExecutiveDashboard();
+    } else if (typeof window.renderDashboard === 'function') {
       window.renderDashboard();
     }
   };
@@ -1615,9 +1619,9 @@ async function renderDashboard() {
             <i class="ti ti-adjustments-horizontal" style="font-size:17px;"></i>
           </button>
 
-          <a href="#hhAnalyticsSection" style="padding:6px 12px;font-size:12px;font-weight:700;color:#0284C7;background:#F0F9FF;border:1px solid #BAE6FD;border-radius:999px;text-decoration:none;display:inline-flex;align-items:center;gap:4px;">
-            <span>📊 Analytics &darr;</span>
-          </a>
+          <button type="button" class="btn-sm" onclick="navigate('analytics')" style="background:#0F172A;color:#ffffff;border:none;border-radius:999px;padding:7px 18px;font-size:12.5px;font-weight:700;box-shadow:0 2px 6px rgba(15,23,42,0.18);cursor:pointer;display:inline-flex;align-items:center;gap:6px;transition:all 0.15s ease;">
+            <span>📊 Financial Dashboard ➔</span>
+          </button>
         </div>
 
         ${globalProp ? `
@@ -1739,7 +1743,286 @@ async function renderDashboard() {
         </div>
       </div>
 
-      <!-- ======================================================== -->
+    </div>
+  `, 'dashboard');
+  } catch (err) {
+    console.error("❌ CRITICAL ERROR in renderDashboard:", err);
+    renderShell(`
+      <div class="card" style="max-width:860px;margin:40px auto;padding:36px;text-align:center;border-radius:20px;border:1px solid #FECACA;background:#FFF5F5;box-shadow:0 8px 30px rgba(234,56,41,0.08);">
+        <div style="font-size:44px;margin-bottom:14px;">⚠️</div>
+        <h2 style="color:#991B1B;font-size:20px;font-weight:800;margin-bottom:8px;">Dashboard Encountered an Issue</h2>
+        <p style="color:#7F1D1D;font-size:13.5px;margin-bottom:20px;line-height:1.5;">
+          ${escapeHtml(err && err.message ? err.message : String(err))}
+        </p>
+        <div style="display:flex;justify-content:center;gap:12px;flex-wrap:wrap;">
+          <button type="button" style="background:#EA3829;color:#fff;border:none;padding:10px 24px;border-radius:999px;font-weight:800;font-size:13px;cursor:pointer;box-shadow:0 4px 14px rgba(234,56,41,0.3);" onclick="renderDashboard()">🔄 Retry Dashboard</button>
+          <button type="button" style="background:#0F172A;color:#fff;border:none;padding:10px 24px;border-radius:999px;font-weight:800;font-size:13px;cursor:pointer;" onclick="navigate('bookings')">📅 View Bookings</button>
+        </div>
+      </div>
+    `, 'dashboard');
+  }
+}
+
+
+// ═══════════════════════════════════════════════════════════
+// 📊 EXECUTIVE FINANCIAL DASHBOARD (HOMEYHUTS ANALYTICS ENGINE)
+// ═══════════════════════════════════════════════════════════
+window.renderExecutiveDashboard = async function() {
+  if (window.showLoadingSkeleton) window.showLoadingSkeleton('metrics');
+  renderShell(`<div class="loading">📊 Crunching executive business intelligence...</div>`, 'analytics');
+
+  try {
+    const today = getLocalDateString();
+    window._dashPeriod = window._dashPeriod || 'this_month';
+    const periodMode = window._dashPeriod;
+
+    let periodStart, periodEnd, prevPeriodStart, prevPeriodEnd, periodDays, periodDisplayLabel;
+    const now = new Date();
+    const currY = now.getFullYear();
+    const currM = now.getMonth(); // 0-indexed
+
+    if (periodMode === 'this_week') {
+      periodStart = dateAdd(today, -6);
+      periodEnd = today;
+      prevPeriodStart = dateAdd(periodStart, -7);
+      prevPeriodEnd = dateAdd(periodStart, -1);
+      periodDays = 7;
+      const sD = new Date(periodStart + 'T00:00:00');
+      const eD = new Date(periodEnd + 'T00:00:00');
+      periodDisplayLabel = `${sD.getDate()} ${sD.toLocaleString('en-IN', {month:'short'})} – ${eD.getDate()} ${eD.toLocaleString('en-IN', {month:'short'})}`;
+    } else if (periodMode === 'last_month') {
+      const lmDate = new Date(currY, currM - 1, 1);
+      const lmY = lmDate.getFullYear();
+      const lmM = String(lmDate.getMonth() + 1).padStart(2, '0');
+      const lmLastDay = new Date(lmY, lmDate.getMonth() + 1, 0).getDate();
+      periodStart = `${lmY}-${lmM}-01`;
+      periodEnd = `${lmY}-${lmM}-${String(lmLastDay).padStart(2, '0')}`;
+      const p2Date = new Date(currY, currM - 2, 1);
+      const p2Y = p2Date.getFullYear();
+      const p2M = String(p2Date.getMonth() + 1).padStart(2, '0');
+      const p2LastDay = new Date(p2Y, p2Date.getMonth() + 1, 0).getDate();
+      prevPeriodStart = `${p2Y}-${p2M}-01`;
+      prevPeriodEnd = `${p2Y}-${p2M}-${String(p2LastDay).padStart(2, '0')}`;
+      periodDays = lmLastDay;
+      periodDisplayLabel = `1 – ${lmLastDay} ${lmDate.toLocaleString('en-IN', {month:'short'})} ${lmY}`;
+    } else if (periodMode === 'this_year') {
+      periodStart = `${currY}-01-01`;
+      periodEnd = `${currY}-12-31`;
+      prevPeriodStart = `${currY - 1}-01-01`;
+      prevPeriodEnd = `${currY - 1}-12-31`;
+      periodDays = 365;
+      periodDisplayLabel = `Full Year ${currY}`;
+    } else if (periodMode === 'custom' && window._dashCustomMonth) {
+      const [cy, cm] = window._dashCustomMonth.split('-');
+      const cYear = parseInt(cy, 10);
+      const cMonth = parseInt(cm, 10);
+      const cLastDay = new Date(cYear, cMonth, 0).getDate();
+      periodStart = `${window._dashCustomMonth}-01`;
+      periodEnd = `${window._dashCustomMonth}-${String(cLastDay).padStart(2, '0')}`;
+      const prevMDate = new Date(cYear, cMonth - 2, 1);
+      const pmY = prevMDate.getFullYear();
+      const pmM = String(prevMDate.getMonth() + 1).padStart(2, '0');
+      const pmLastDay = new Date(pmY, prevMDate.getMonth() + 1, 0).getDate();
+      prevPeriodStart = `${pmY}-${pmM}-01`;
+      prevPeriodEnd = `${pmY}-${pmM}-${String(pmLastDay).padStart(2, '0')}`;
+      periodDays = cLastDay;
+      const cDate = new Date(cYear, cMonth - 1, 1);
+      periodDisplayLabel = `1 – ${cLastDay} ${cDate.toLocaleString('en-IN', {month:'short'})} ${cYear}`;
+    } else {
+      // Default 'this_month'
+      const curLastDay = new Date(currY, currM + 1, 0).getDate();
+      const curMStr = String(currM + 1).padStart(2, '0');
+      periodStart = `${currY}-${curMStr}-01`;
+      periodEnd = `${currY}-${curMStr}-${String(curLastDay).padStart(2, '0')}`;
+      const prevDate = new Date(currY, currM - 1, 1);
+      const pmY = prevDate.getFullYear();
+      const pmM = String(prevDate.getMonth() + 1).padStart(2, '0');
+      const pmLastDay = new Date(pmY, prevDate.getMonth() + 1, 0).getDate();
+      prevPeriodStart = `${pmY}-${pmM}-01`;
+      prevPeriodEnd = `${pmY}-${pmM}-${String(pmLastDay).padStart(2, '0')}`;
+      periodDays = curLastDay;
+      periodDisplayLabel = `1 – ${curLastDay} ${now.toLocaleString('en-IN', {month:'short'})} ${currY}`;
+    }
+
+    const [
+      { data: bookings },
+      { data: flats },
+      { data: payments }
+    ] = await Promise.all([
+      sb.from("guest_register").select("*, rooms(unit_no, nickname)"),
+      sb.from("flats_status").select("room_id, status, cleaning_status, rooms(unit_no, nickname)"),
+      sb.from("payment_history").select("booking_id, amount, payment_date")
+    ]);
+
+    const globalProp = (typeof window.getGlobalSelectedProperty === 'function') ? (window.getGlobalSelectedProperty() || '').trim() : '';
+
+    const matchesRoom = (item, targetProp) => {
+      if (!targetProp) return true;
+      if (!item) return false;
+      const t = String(targetProp).trim().toUpperCase();
+      const r = item.room_id ? String(item.room_id).trim().toUpperCase() : '';
+      const sr = item.source_room_id ? String(item.source_room_id).trim().toUpperCase() : '';
+      const ro = item.rooms?.room_id ? String(item.rooms.room_id).trim().toUpperCase() : '';
+      const un = item.rooms?.unit_no ? String(item.rooms.unit_no).trim().toUpperCase() : '';
+      return r === t || sr === t || ro === t || (un && un === t);
+    };
+
+    const allBookingsRaw = bookings || [];
+    const allBookings = globalProp ? allBookingsRaw.filter(b => matchesRoom(b, globalProp)) : allBookingsRaw;
+    const allFlatsRaw = flats || [];
+    const allFlats = globalProp ? allFlatsRaw.filter(f => matchesRoom(f, globalProp)) : allFlatsRaw;
+    const allPayments = payments || [];
+    const bookingIdsForProp = new Set(allBookings.map(b => b.booking_id));
+    const propPayments = globalProp ? allPayments.filter(p => bookingIdsForProp.has(p.booking_id)) : allPayments;
+
+    const bookedNow = allFlats.filter(x => x.status === 'Booked');
+    const freeClean = allFlats.filter(x => x.status === 'Free' && x.cleaning_status === 'Clean');
+    const dirty = allFlats.filter(x => x.cleaning_status === 'Dirty' && x.status !== 'Blocked-Maintenance');
+    const maintUnits = allFlats.filter(x => x.status === 'Blocked-Maintenance');
+    const totalProps = allFlats.length;
+
+    const paidMap = {};
+    propPayments.forEach(p => {
+      paidMap[p.booking_id] = (paidMap[p.booking_id] || 0) + (p.amount || 0);
+    });
+
+    const monthCheckinBookings = allBookings.filter(b => {
+      const ci = b.check_in || '';
+      return ci >= periodStart && ci <= periodEnd && !b.is_cancelled;
+    });
+    const monthRevenue = monthCheckinBookings.reduce((s, b) => s + (b.total_amount || 0), 0);
+    const monthCollected = monthCheckinBookings.reduce((s, b) => s + (paidMap[b.booking_id] || 0), 0);
+    const totalBookedNights = monthCheckinBookings.reduce((s, b) => s + Math.max(1, Math.round((new Date(b.check_out || b.check_in) - new Date(b.check_in)) / 86400000)), 0);
+    const hhAdr = totalBookedNights > 0 ? Math.round(monthRevenue / totalBookedNights) : (monthRevenue > 0 ? Math.round(monthRevenue / Math.max(1, monthCheckinBookings.length)) : 0);
+    const totalAvailRoomNights = Math.max(1, totalProps * periodDays);
+    const hhRevPar = Math.round(monthRevenue / totalAvailRoomNights);
+    const hhEstExpenses = Math.round(monthRevenue * 0.38);
+    const hhNetOpIncome = Math.max(0, monthRevenue - hhEstExpenses);
+    const periodOccupancyPct = totalAvailRoomNights > 0 ? Math.min(100, Math.round((totalBookedNights / totalAvailRoomNights) * 100)) : 0;
+    const occupancyPct = totalProps > 0 ? Math.round(bookedNow.length / totalProps * 100) : 0;
+
+    // Previous Period Comparison
+    const prevPeriodCheckinBookings = allBookings.filter(b => {
+      const ci = b.check_in || '';
+      return ci >= prevPeriodStart && ci <= prevPeriodEnd && !b.is_cancelled;
+    });
+    const prevRevenue = prevPeriodCheckinBookings.reduce((s, b) => s + (b.total_amount || 0), 0);
+    const prevBookedNights = prevPeriodCheckinBookings.reduce((s, b) => s + Math.max(1, Math.round((new Date(b.check_out || b.check_in) - new Date(b.check_in)) / 86400000)), 0);
+    const prevAdr = prevBookedNights > 0 ? Math.round(prevRevenue / prevBookedNights) : 0;
+    const prevAvailRoomNights = Math.max(1, totalProps * periodDays);
+    const prevRevPar = Math.round(prevRevenue / prevAvailRoomNights);
+    const prevNetOpIncome = Math.max(0, prevRevenue - Math.round(prevRevenue * 0.38));
+    const prevOccPct = Math.min(100, Math.round((prevBookedNights / prevAvailRoomNights) * 100));
+
+    const revChangePct = prevRevenue > 0 ? (((monthRevenue - prevRevenue) / prevRevenue) * 100).toFixed(1) : (monthRevenue > 0 ? '+100' : '0.0');
+    const netChangePct = prevNetOpIncome > 0 ? (((hhNetOpIncome - prevNetOpIncome) / prevNetOpIncome) * 100).toFixed(1) : (hhNetOpIncome > 0 ? '+100' : '0.0');
+    const adrChangePct = prevAdr > 0 ? (((hhAdr - prevAdr) / prevAdr) * 100).toFixed(1) : '0.0';
+    const revParChangePct = prevRevPar > 0 ? (((hhRevPar - prevRevPar) / prevRevPar) * 100).toFixed(1) : '0.0';
+    const occDiffPts = (periodOccupancyPct - prevOccPct).toFixed(0);
+
+    function formatDeltaTag(val, isPts = false) {
+      const num = parseFloat(val);
+      const isPos = num >= 0;
+      const sign = isPos ? '+' : '';
+      const cls = isPos ? 'positive' : 'negative';
+      const icon = isPos ? 'ti-arrow-up-right' : 'ti-arrow-down-right';
+      const unit = isPts ? ' pts' : '%';
+      return `<span class="hh-kpi-change-tag ${cls}"><i class="ti ${icon}"></i> ${sign}${Math.abs(num)}${unit}</span>`;
+    }
+
+    function sparklineSvg(isPos, color) {
+      const stroke = color || (isPos ? '#10B981' : '#EF4444');
+      const fill = isPos ? 'rgba(16,185,129,0.12)' : 'rgba(239,68,68,0.10)';
+      if (isPos) {
+        return `<svg viewBox="0 0 100 28" class="hh-kpi-sparkline">
+          <path d="M0 24 Q 25 18, 50 12 T 100 4" fill="none" stroke="${stroke}" stroke-width="2.5" stroke-linecap="round"/>
+          <path d="M0 24 Q 25 18, 50 12 T 100 4 L 100 28 L 0 28 Z" fill="${fill}"/>
+        </svg>`;
+      } else {
+        return `<svg viewBox="0 0 100 28" class="hh-kpi-sparkline">
+          <path d="M0 8 Q 25 14, 50 18 T 100 24" fill="none" stroke="${stroke}" stroke-width="2.5" stroke-linecap="round"/>
+          <path d="M0 8 Q 25 14, 50 18 T 100 24 L 100 28 L 0 28 Z" fill="${fill}"/>
+        </svg>`;
+      }
+    }
+
+    // Channel Breakdown — 100% Real-Time Database Calculation
+    const directBks = monthCheckinBookings.filter(b => {
+      const src = (typeof window.getBookingSource === 'function') ? window.getBookingSource(b) : null;
+      return src ? src.type === 'direct' : (!b.booking_mode?.includes('Airbnb') && !b.booking_mode?.includes('Booking.com') && !b.booking_mode?.includes('Agoda'));
+    });
+    const directRev = directBks.reduce((s, b) => s + (b.total_amount || 0), 0);
+
+    const abBks = monthCheckinBookings.filter(b => {
+      const src = (typeof window.getBookingSource === 'function') ? window.getBookingSource(b) : null;
+      return src ? src.type === 'airbnb' : b.booking_mode?.includes('Airbnb');
+    });
+    const abRev = abBks.reduce((s, b) => s + (b.total_amount || 0), 0);
+
+    const bcomBks = monthCheckinBookings.filter(b => {
+      const src = (typeof window.getBookingSource === 'function') ? window.getBookingSource(b) : null;
+      return src ? src.type === 'booking_com' : b.booking_mode?.includes('Booking.com');
+    });
+    const bcomRev = bcomBks.reduce((s, b) => s + (b.total_amount || 0), 0);
+
+    const agodaBks = monthCheckinBookings.filter(b => {
+      const src = (typeof window.getBookingSource === 'function') ? window.getBookingSource(b) : null;
+      return src ? (src.type === 'agoda' || src.type === 'online_other') : (b.booking_mode?.includes('Agoda') || b.booking_mode?.includes('MakeMyTrip'));
+    });
+    const agodaRev = agodaBks.reduce((s, b) => s + (b.total_amount || 0), 0);
+
+    const totalChanRev = (directRev + abRev + bcomRev + agodaRev) || 1;
+    const directPct = Math.round((directRev / totalChanRev) * 100);
+    const abPct = Math.round((abRev / totalChanRev) * 100);
+    const bcomPct = Math.round((bcomRev / totalChanRev) * 100);
+    const agodaPct = Math.round((agodaRev / totalChanRev) * 100);
+
+    // Properties Leaderboard
+    const ROOM_SLUG_MAP = {
+      'GOM-101': 'redrose-palace', 'GOM-102': 'black-beauty',
+      'GOM-201': 'the-dark-blue',  'GOM-202': 'the-brown',
+      'GOM-301': 'the-light-green','GOM-401': 'the-nawabi-stay',
+      'GOM-501': 'starlight-blue', 'GOM-302': 'the-unique',
+      'VIL-104': 'the-green-house','VIL-103': 'the-pink-house',
+      'VIL-105': 'the-yellow-house','VIL-106': 'green-forest',
+      'VIL-108': 'pink-paradise',  'LUL-402': 'celebrity-garden',
+      'VIL-101': 'gomti-grand-villa','VIL-102': 'royal-white-house',
+      'VIL-107': 'the-velvet-house', 'LUL-101': 'the-luxe-haven'
+    };
+
+    const propRankingList = allFlats.map(fl => {
+      const rId = fl.room_id;
+      const rBks = monthCheckinBookings.filter(b => b.room_id === rId);
+      const rRev = rBks.reduce((s, b) => s + (b.total_amount || 0), 0);
+      const rNights = rBks.reduce((s, b) => s + Math.max(1, Math.round((new Date(b.check_out || b.check_in) - new Date(b.check_in)) / 86400000)), 0);
+      const rOcc = Math.min(100, Math.round((rNights / periodDays) * 100));
+      const rNet = Math.round(rRev * 0.62);
+      const rName = propLabel(fl.rooms) || fl.room_id || 'Unit';
+      const slug = fl.rooms?.slug || ROOM_SLUG_MAP[rId] || '';
+      const thumb = slug ? `assets/properties/${slug}/cover.jpg` : '';
+
+      return { rId, rName, rRev, rOcc, rNet, thumb, unit: fl.rooms?.unit_no || fl.unit_no || '' };
+    });
+
+    window._hhPropRanking = propRankingList;
+    window._hhSortBy = window._hhSortBy || 'revenue';
+
+    window.downloadHomeyhutsExcel = function() {
+      const list = window._hhPropRanking || [];
+      let csv = '\uFEFFProperty,Unit,Net Revenue,Occupancy %,Net Operating Income\n';
+      list.forEach(p => {
+        csv += `"${p.rName}","${p.unit}",${p.rRev},${p.rOcc}%,${p.rNet}\n`;
+      });
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = `TUHH_Analytics_Report_${periodMode}_${today}.csv`;
+      link.click();
+    };
+
+    renderShell(`
+      <div style="max-width:1360px;margin:0 auto;padding:12px 10px;">
+        <!-- ======================================================== -->
       <!-- HOMEYHUTS VACATION RENTAL ANALYTICS & REVENUE DASHBOARD  -->
       <!-- ======================================================== -->
       <div class="hh-analytics-wrap" id="hhAnalyticsSection">
@@ -1776,7 +2059,7 @@ async function renderDashboard() {
             <button type="button" class="hh-analytics-btn-excel" onclick="downloadHomeyhutsExcel()" title="Export Analytics to Excel CSV">
               <i class="ti ti-file-spreadsheet"></i> <span>Excel</span>
             </button>
-            <button type="button" class="dash-pill-btn" onclick="renderDashboard()" title="Refresh live data">
+            <button type="button" class="dash-pill-btn" onclick="renderExecutiveDashboard()" title="Refresh live data">
               <i class="ti ti-refresh"></i> <span>Refresh</span>
             </button>
           </div>
@@ -1964,548 +2247,9 @@ async function renderDashboard() {
           </div>
         </div>
       </div>
-
-      <!-- SEGMENTED NAVIGATION TABS -->
-      <div class="dash-nav-bar">
-        <button class="dash-nav-tab ${window._activeDashTab === 'flow' ? 'active' : ''}" data-tab="flow" onclick="switchDashTab('flow', this)">
-          <i class="ti ti-bed"></i> Guest Flow <span class="dash-tab-badge">${realCheckins.length + realCheckouts.length}</span>
-        </button>
-        <button class="dash-nav-tab ${window._activeDashTab === 'rooms' ? 'active' : ''}" data-tab="rooms" onclick="switchDashTab('rooms', this)">
-          <i class="ti ti-home-check"></i> Rooms & Care <span class="dash-tab-badge">${dirty.length + freeClean.length}</span>
-        </button>
-        <button class="dash-nav-tab ${window._activeDashTab === 'ops' ? 'active' : ''}" data-tab="ops" onclick="switchDashTab('ops', this)">
-          <i class="ti ti-id-badge-2"></i> Staff & Tasks <span class="dash-tab-badge">${presentToday}/${totalEmps}</span>
-        </button>
-        <button class="dash-nav-tab ${window._activeDashTab === 'wa' ? 'active' : ''}" data-tab="wa" onclick="switchDashTab('wa', this)">
-          <i class="ti ti-brand-whatsapp"></i> WhatsApp Tasks <span class="dash-tab-badge">${totalWATasks}</span>
-        </button>
       </div>
+    `, 'analytics');
 
-      <!-- TAB 1: GUEST FLOW (CHECK-INS, CHECK-OUTS, ATTENTION, ACTIVE STAYS) -->
-      <div class="dash-tab-pane ${window._activeDashTab === 'flow' ? 'active' : ''}" id="dash-tab-flow">
-        <!-- Executive Attention & Follow-Up Card (Matching Image 5 YBT / HomeyIndia CRM) -->
-        <div class="dash-panel-card" id="dashAttentionCard" style="background:#FFFFFF;border:1px solid #E2E8F0;border-radius:12px;padding:20px;margin-bottom:20px;box-shadow:0 1px 3px rgba(0,0,0,0.04);">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid #F1F5F9;flex-wrap:wrap;gap:8px;">
-            <div style="display:flex;align-items:center;gap:10px;">
-              <div style="width:34px;height:34px;border-radius:8px;background:#FEF3C7;color:#D97706;display:flex;align-items:center;justify-content:center;font-size:1.15rem;">
-                <i class="ti ti-clock-exclamation"></i>
-              </div>
-              <div>
-                <div style="font-size:0.95rem;font-weight:700;color:#0F172A;">Stays Requiring Follow-Up &amp; Attention</div>
-                <div style="font-size:0.75rem;color:#64748B;">Guest checkouts, arrival verification, and pending handovers</div>
-              </div>
-            </div>
-            <div style="display:flex;align-items:center;gap:10px;">
-              ${totalAttention > 0 ? `<span style="background:#FEF3C7;color:#B45309;font-size:11px;font-weight:700;padding:4px 10px;border-radius:6px;"><i class="ti ti-alert-triangle"></i> ${totalAttention} Action${totalAttention > 1 ? 's' : ''} Needed</span>` : `<span style="background:#DCFCE7;color:#16A34A;font-size:11px;font-weight:700;padding:4px 10px;border-radius:6px;"><i class="ti ti-circle-check"></i> All On Track</span>`}
-              <a href="javascript:void(0)" onclick="navigate('bookings')" style="color:#0284C7;font-size:12px;font-weight:600;text-decoration:none;">View All Stays &rarr;</a>
-            </div>
-          </div>
-
-          <div id="dashAttentionContent">
-            ${lateCheckouts.length > 0 ? `
-              <div style="overflow-x:auto;">
-                <table style="width:100%;border-collapse:collapse;">
-                  <thead>
-                    <tr style="border-bottom:1px solid #E2E8F0;background:#F8FAFC;">
-                      <th style="padding:9px 12px;text-align:left;font-size:11px;font-weight:700;color:#64748B;text-transform:uppercase;letter-spacing:0.04em;">Guest / Booking</th>
-                      <th style="padding:9px 12px;text-align:left;font-size:11px;font-weight:700;color:#64748B;text-transform:uppercase;letter-spacing:0.04em;">Property / Room</th>
-                      <th style="padding:9px 12px;text-align:left;font-size:11px;font-weight:700;color:#64748B;text-transform:uppercase;letter-spacing:0.04em;">Scheduled</th>
-                      <th style="padding:9px 12px;text-align:left;font-size:11px;font-weight:700;color:#64748B;text-transform:uppercase;letter-spacing:0.04em;">Delay Status</th>
-                      <th style="padding:9px 12px;text-align:right;font-size:11px;font-weight:700;color:#64748B;text-transform:uppercase;letter-spacing:0.04em;">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    ${lateCheckouts.map(x => `
-                      <tr style="border-bottom:1px solid #F1F5F9;">
-                        <td style="padding:10px 12px;font-size:13.5px;font-weight:700;color:#0F172A;">
-                          <span style="cursor:pointer;" onclick="openBookingFromDashboard('${x.booking_id}')">${x.guest_name}</span>
-                          ${x.phone ? `<div style="font-size:11.5px;color:#64748B;font-weight:400;margin-top:2px;">📞 <a href="tel:${x.phone}" style="color:#64748B;text-decoration:none;">${x.phone}</a></div>` : ''}
-                        </td>
-                        <td style="padding:10px 12px;font-size:12px;color:#334155;font-weight:600;">
-                          <span style="background:#F1F5F9;border:1px solid #E2E8F0;padding:3px 8px;border-radius:6px;font-size:11.5px;color:#334155;">${bName(x)}</span>
-                        </td>
-                        <td style="padding:10px 12px;font-size:12px;color:#64748B;font-weight:500;">
-                          ${x.check_out_time || '11:00 AM'}
-                        </td>
-                        <td style="padding:10px 12px;">
-                          <span style="display:inline-flex;align-items:center;gap:4px;background:#FEF3C7;color:#B45309;padding:3px 8px;border-radius:6px;font-size:11.5px;font-weight:700;">
-                            <i class="ti ti-clock"></i> ${x.delay} late
-                          </span>
-                        </td>
-                        <td style="padding:10px 12px;text-align:right;">
-                          <div style="display:inline-flex;gap:6px;align-items:center;">
-                            ${x.phone ? `<a href="tel:${x.phone}" title="Call Guest" style="color:#0284C7;background:#F0F9FF;border:1px solid #BAE6FD;width:30px;height:30px;border-radius:6px;display:inline-flex;align-items:center;justify-content:center;text-decoration:none;"><i class="ti ti-phone"></i></a>` : ''}
-                            ${x.phone ? `<button type="button" onclick="sendCheckoutReminder('${x.booking_id}')" title="Send WhatsApp Alert" style="color:#16A34A;background:#F0FDF4;border:1px solid #BBF7D0;width:30px;height:30px;border-radius:6px;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;"><i class="ti ti-brand-whatsapp"></i></button>` : ''}
-                            <button type="button" style="padding:5px 12px;font-size:12px;background:#F8FAFC;border:1px solid #CBD5E1;color:#0F172A;font-weight:600;border-radius:6px;cursor:pointer;" onclick="openBookingFromDashboard('${x.booking_id}')"><i class="ti ti-eye"></i> View</button>
-                          </div>
-                        </td>
-                      </tr>
-                    `).join('')}
-                  </tbody>
-                </table>
-              </div>
-            ` : ''}
-
-            ${arrivingSoon.length > 0 ? `
-              <div style="margin-top:12px;padding-top:10px;border-top:1px dashed #E2E8F0;">
-                <div style="font-size:11.5px;font-weight:700;color:#0284C7;text-transform:uppercase;letter-spacing:0.04em;margin-bottom:8px;display:flex;align-items:center;gap:6px;">
-                  <i class="ti ti-clock-check"></i> Arriving Soon (${arrivingSoon.length})
-                </div>
-                <div style="display:flex;flex-direction:column;gap:6px;">
-                  ${arrivingSoon.map(x => `
-                    <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:#F8FAFC;border:1px solid #E2E8F0;border-radius:8px;">
-                      <div>
-                        <strong style="color:#0F172A;font-size:13px;cursor:pointer;" onclick="openBookingFromDashboard('${x.booking_id}')">${x.guest_name}</strong>
-                        <span style="background:#E0F2FE;color:#0284C7;padding:1px 6px;border-radius:4px;font-size:11px;font-weight:600;margin-left:6px;">${bName(x)}</span>
-                        <div style="font-size:11.5px;color:#64748B;margin-top:2px;">Expected ${x.eta} (${x.check_in_time || '2:00 PM'}) ${x.phone ? `&bull; 📞 ${x.phone}` : ''}</div>
-                      </div>
-                      <div style="display:inline-flex;gap:6px;align-items:center;">
-                        ${x.phone ? `<button type="button" style="padding:5px 10px;font-size:11.5px;background:#0EA5E9;color:#fff;border:none;border-radius:6px;font-weight:600;cursor:pointer;" onclick="sendArrivalDetails('${x.booking_id}')"><i class="ti ti-key"></i> Keys+WiFi</button>` : ''}
-                        <button type="button" style="padding:5px 10px;font-size:11.5px;background:#FFFFFF;border:1px solid #CBD5E1;color:#0F172A;border-radius:6px;font-weight:600;cursor:pointer;" onclick="openBookingFromDashboard('${x.booking_id}')"><i class="ti ti-eye"></i> View</button>
-                      </div>
-                    </div>
-                  `).join('')}
-                </div>
-              </div>
-            ` : ''}
-
-            ${totalAttention === 0 ? `
-              <div style="padding:18px;text-align:center;color:#10B981;">
-                <i class="ti ti-circle-check" style="font-size:24px;"></i>
-                <div style="font-weight:700;font-size:13.5px;margin-top:4px;">All Stays &amp; Check-outs On Track</div>
-                <div style="font-size:12px;color:#64748B;">No overdue check-outs or pending arrivals requiring immediate action.</div>
-              </div>
-            ` : ''}
-          </div>
-        </div>
-
-<!-- Executive Today's Stays & Operational Activity (Clean Non-duplicated CRM View) -->
-        <div class="dash-panel-card" style="background:#FFFFFF;border:1px solid #E2E8F0;border-radius:12px;padding:20px;box-shadow:0 1px 3px rgba(0,0,0,0.04);margin-top:16px;">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid #F1F5F9;flex-wrap:wrap;gap:8px;">
-            <div style="display:flex;align-items:center;gap:10px;">
-              <div style="width:34px;height:34px;border-radius:8px;background:#E0F2FE;color:#0284C7;display:flex;align-items:center;justify-content:center;font-size:1.15rem;">
-                <i class="ti ti-calendar-check"></i>
-              </div>
-              <div>
-                <div style="font-size:0.95rem;font-weight:700;color:#0F172A;">Today's Guest Movement Summary</div>
-                <div style="font-size:0.75rem;color:#64748B;">Live tracking of today's check-ins, check-outs, and in-house guests</div>
-              </div>
-            </div>
-            <div style="display:flex;align-items:center;gap:8px;">
-              <span style="font-size:12px;color:#64748B;font-weight:600;">${totalTodayReservations} Movements Today</span>
-              <button type="button" onclick="navigate('bookings')" style="padding:6px 14px;font-size:12px;background:#0EA5E9;color:#FFFFFF;border:none;border-radius:8px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:4px;">
-                Manage All Bookings &rarr;
-              </button>
-            </div>
-          </div>
-
-          ${totalTodayReservations === 0 ? `
-            <div style="padding:32px 16px;text-align:center;color:#64748B;">
-              <div style="font-size:32px;margin-bottom:6px;">🏖️</div>
-              <div style="font-size:14px;font-weight:700;color:#0F172A;">No check-ins, check-outs, or active stays today${globalProp ? ' for this property' : ''}</div>
-              <div style="font-size:12px;margin-top:4px;">Check upcoming reservations or open the bookings register.</div>
-            </div>
-          ` : `
-            <div style="overflow-x:auto;">
-              <table style="width:100%;border-collapse:collapse;">
-                <thead>
-                  <tr style="border-bottom:1px solid #E2E8F0;background:#F8FAFC;">
-                    <th style="padding:9px 12px;text-align:left;font-size:11px;font-weight:700;color:#64748B;text-transform:uppercase;letter-spacing:0.04em;">Guest / Contact</th>
-                    <th style="padding:9px 12px;text-align:left;font-size:11px;font-weight:700;color:#64748B;text-transform:uppercase;letter-spacing:0.04em;">Unit / Property</th>
-                    <th style="padding:9px 12px;text-align:left;font-size:11px;font-weight:700;color:#64748B;text-transform:uppercase;letter-spacing:0.04em;">Movement</th>
-                    <th style="padding:9px 12px;text-align:left;font-size:11px;font-weight:700;color:#64748B;text-transform:uppercase;letter-spacing:0.04em;">Financials</th>
-                    <th style="padding:9px 12px;text-align:right;font-size:11px;font-weight:700;color:#64748B;text-transform:uppercase;letter-spacing:0.04em;">Action</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  ${realCheckouts.slice(0, 5).map(b => `
-                    <tr style="border-bottom:1px solid #F1F5F9;">
-                      <td style="padding:10px 12px;font-size:13.5px;font-weight:700;color:#0F172A;">
-                        <span style="cursor:pointer;" onclick="openBookingFromDashboard('${b.booking_id}')">${b.guest_name}</span>
-                        ${b.phone ? `<div style="font-size:11.5px;color:#64748B;font-weight:400;margin-top:2px;">📞 ${b.phone}</div>` : ''}
-                      </td>
-                      <td style="padding:10px 12px;font-size:12px;color:#334155;font-weight:600;">
-                        <span style="background:#F1F5F9;border:1px solid #E2E8F0;padding:3px 8px;border-radius:6px;font-size:11.5px;color:#334155;">${bName(b)}</span>
-                      </td>
-                      <td style="padding:10px 12px;">
-                        <span style="display:inline-flex;align-items:center;gap:4px;background:#FEF3C7;color:#B45309;padding:3px 8px;border-radius:6px;font-size:11px;font-weight:700;">
-                          <i class="ti ti-logout"></i> Departing Today
-                        </span>
-                      </td>
-                      <td style="padding:10px 12px;font-size:12.5px;font-weight:600;color:#0F172A;">
-                        ₹${(b.total_amount || 0).toLocaleString('en-IN')}
-                      </td>
-                      <td style="padding:10px 12px;text-align:right;">
-                        <button type="button" style="padding:5px 12px;font-size:12px;background:#F8FAFC;border:1px solid #CBD5E1;color:#0F172A;font-weight:600;border-radius:6px;cursor:pointer;" onclick="openBookingFromDashboard('${b.booking_id}')"><i class="ti ti-eye"></i> View</button>
-                      </td>
-                    </tr>
-                  `).join('')}
-
-                  ${realCheckins.slice(0, 5).map(b => `
-                    <tr style="border-bottom:1px solid #F1F5F9;">
-                      <td style="padding:10px 12px;font-size:13.5px;font-weight:700;color:#0F172A;">
-                        <span style="cursor:pointer;" onclick="openBookingFromDashboard('${b.booking_id}')">${b.guest_name}</span>
-                        ${b.phone ? `<div style="font-size:11.5px;color:#64748B;font-weight:400;margin-top:2px;">📞 ${b.phone}</div>` : ''}
-                      </td>
-                      <td style="padding:10px 12px;font-size:12px;color:#334155;font-weight:600;">
-                        <span style="background:#F1F5F9;border:1px solid #E2E8F0;padding:3px 8px;border-radius:6px;font-size:11.5px;color:#334155;">${bName(b)}</span>
-                      </td>
-                      <td style="padding:10px 12px;">
-                        <span style="display:inline-flex;align-items:center;gap:4px;background:#DCFCE7;color:#16A34A;padding:3px 8px;border-radius:6px;font-size:11px;font-weight:700;">
-                          <i class="ti ti-login"></i> Arriving Today
-                        </span>
-                      </td>
-                      <td style="padding:10px 12px;font-size:12.5px;font-weight:600;color:#0F172A;">
-                        ₹${(b.total_amount || 0).toLocaleString('en-IN')}
-                      </td>
-                      <td style="padding:10px 12px;text-align:right;">
-                        <button type="button" style="padding:5px 12px;font-size:12px;background:#F8FAFC;border:1px solid #CBD5E1;color:#0F172A;font-weight:600;border-radius:6px;cursor:pointer;" onclick="openBookingFromDashboard('${b.booking_id}')"><i class="ti ti-eye"></i> View</button>
-                      </td>
-                    </tr>
-                  `).join('')}
-                </tbody>
-              </table>
-            </div>
-            <div style="display:flex;justify-content:center;margin-top:14px;padding-top:10px;border-top:1px solid #F1F5F9;">
-              <button type="button" onclick="navigate('bookings')" style="padding:8px 20px;font-size:13px;background:#F8FAFC;border:1px solid #CBD5E1;color:#0F172A;border-radius:8px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:6px;">
-                <span>View All ${window._airbnbUpcomingCount || 0} Upcoming &amp; In-House Bookings in Bookings Register</span> &rarr;
-              </button>
-            </div>
-          `}
-        </div>
-      </div>
-
-            <!-- TAB 2: ROOMS & HOUSEKEEPING -->
-      <div class="dash-tab-pane ${window._activeDashTab === 'rooms' ? 'active' : ''}" id="dash-tab-rooms">
-        <div class="dash-ops-grid">
-          <!-- Ready to Book -->
-          <div class="dash-panel-card" style="border-top:4px solid var(--green);">
-            <div class="dash-panel-head">
-              <div class="dash-panel-title">
-                <span>✅</span> Ready to Book
-              </div>
-              <span class="dash-panel-count green">${freeClean.length} Clean & Free</span>
-            </div>
-            <div style="max-height:300px;overflow-y:auto;">
-              ${freeClean.length === 0 ? `<div class="dash-empty-state">No clean, free flats available right now</div>` :
-                freeClean.map(x => `
-                  <div class="dash-guest-item status-ready" onclick="navigate('flats')" style="cursor:pointer;">
-                    <div>
-                      <strong style="color:var(--green);font-size:13px;">${fName(x)}</strong>
-                      <div style="font-size:11px;color:var(--muted);">Clean & Ready for Guest</div>
-                    </div>
-                    <span class="badge green">Ready</span>
-                  </div>
-                `).join('')
-              }
-            </div>
-            <button class="dash-pill-btn" style="width:100%;margin-top:10px;justify-content:center;" onclick="filterAndShowFlats('clean')">Open Flats Manager →</button>
-          </div>
-
-          <!-- Need Cleaning -->
-          <div class="dash-panel-card" style="border-top:4px solid var(--yellow);">
-            <div class="dash-panel-head">
-              <div class="dash-panel-title">
-                <span>🧹</span> Housekeeping Required
-              </div>
-              <span class="dash-panel-count yellow">${dirty.length} Dirty</span>
-            </div>
-            <div style="max-height:300px;overflow-y:auto;">
-              ${dirty.length === 0 ? `<div class="dash-empty-state">All flats are sparkling clean! 🎉</div>` :
-                dirty.map(x => `
-                  <div class="dash-guest-item status-dirty" onclick="navigate('flats')" style="cursor:pointer;">
-                    <div>
-                      <strong style="color:var(--yellow);font-size:13px;">${fName(x)}</strong>
-                      <div style="font-size:11px;color:var(--muted);">Needs Turnover / Cleaning</div>
-                    </div>
-                    <span class="badge yellow">Needs Cleaning</span>
-                  </div>
-                `).join('')
-              }
-            </div>
-            <button class="dash-pill-btn" style="width:100%;margin-top:10px;justify-content:center;" onclick="filterAndShowFlats('dirty')">Assign Cleaning →</button>
-          </div>
-
-          <!-- Maintenance Tickets -->
-          <div class="dash-panel-card" style="border-top:4px solid var(--red);">
-            <div class="dash-panel-head">
-              <div class="dash-panel-title">
-                <span>🔧</span> Active Maintenance
-              </div>
-              <span class="dash-panel-count red">${maintPending} Issues</span>
-            </div>
-            <div style="max-height:300px;overflow-y:auto;">
-              ${filteredMaint.length === 0 ? `<div class="dash-empty-state">No pending maintenance issues! ✅</div>` :
-                filteredMaint.map(m => `
-                  <div class="dash-guest-item status-maint" onclick="navigate('maintenance')" style="cursor:pointer;">
-                    <div>
-                      <strong style="color:var(--red);font-size:13px;">${m.room_id || 'General'}</strong>
-                      <div style="font-size:11.5px;color:var(--muted);margin-top:2px;">${m.description?.slice(0, 45) || '-'}</div>
-                    </div>
-                    <span class="badge red" style="font-size:10px;">${m.priority || 'Pending'}</span>
-                  </div>
-                `).join('')
-              }
-            </div>
-            <button class="dash-pill-btn" style="width:100%;margin-top:10px;justify-content:center;" onclick="navigate('maintenance')">Open Maintenance Hub →</button>
-          </div>
-        </div>
-      </div>
-
-      <!-- TAB 3: STAFF & TASKS -->
-      <div class="dash-tab-pane ${window._activeDashTab === 'ops' ? 'active' : ''}" id="dash-tab-ops">
-        <div class="dash-ops-grid">
-          <!-- Staff Attendance Card -->
-          <div class="dash-panel-card" style="border-top:4px solid var(--green);">
-            <div class="dash-panel-head">
-              <div class="dash-panel-title">
-                <span>👥</span> Staff Attendance Today
-              </div>
-              <span class="dash-panel-count green">${presentToday}/${totalEmps} Present</span>
-            </div>
-            <div style="padding:14px 0;text-align:center;">
-              <div style="font-size:36px;font-weight:800;color:var(--text);">${presentToday} <span style="font-size:18px;color:var(--muted);font-weight:500;">/ ${totalEmps}</span></div>
-              <div style="font-size:13px;color:var(--text-secondary);margin-top:4px;">Team members checked-in for duty today</div>
-            </div>
-            <button class="dash-pill-btn" style="width:100%;justify-content:center;" onclick="filterAndShowAttendance('present')">View Attendance Log →</button>
-          </div>
-
-          <!-- Pending Employee Tasks -->
-          <div class="dash-panel-card" style="border-top:4px solid ${urgentTasks > 0 ? 'var(--red)' : 'var(--yellow)'};">
-            <div class="dash-panel-head">
-              <div class="dash-panel-title">
-                <span>🧰</span> Pending Tasks
-              </div>
-              <span class="dash-panel-count yellow">${filteredTasks.length} Open</span>
-            </div>
-            <div style="max-height:260px;overflow-y:auto;">
-              ${filteredTasks.length === 0 ? `<div class="dash-empty-state">All tasks completed! 👍</div>` :
-                filteredTasks.slice(0, 5).map(t => `
-                  <div class="dash-guest-item" onclick="navigate('tasks')" style="cursor:pointer;">
-                    <div>
-                      <strong style="font-size:12.5px;color:var(--text);">${t.employees?.name || 'Unassigned'}</strong>
-                      <div style="font-size:11.5px;color:var(--muted);margin-top:2px;">${t.task_description?.slice(0, 45) || '-'}</div>
-                    </div>
-                    ${t.priority === 'Urgent' ? `<span class="badge red">Urgent</span>` : `<span class="badge yellow">Normal</span>`}
-                  </div>
-                `).join('')
-              }
-            </div>
-            <button class="dash-pill-btn" style="width:100%;margin-top:10px;justify-content:center;" onclick="navigate('tasks')">Manage Tasks →</button>
-          </div>
-        </div>
-
-        <!-- Extended Stays & Room Shifts -->
-        <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(320px, 1fr));gap:16px;">
-          ${extendedWithParent.length > 0 ? `
-            <div class="dash-panel-card" style="border-left:4px solid var(--yellow);">
-              <div class="dash-panel-head">
-                <div class="dash-panel-title">
-                  <span>🔄</span> Extended Stays (${extendedWithParent.length})
-                </div>
-                <span class="badge yellow">Last 30 Days</span>
-              </div>
-              <div style="max-height:260px;overflow-y:auto;">
-                ${extendedWithParent.slice(0, 6).map(({ext, parent}) => `
-                  <div class="dash-guest-item">
-                    <div>
-                      <strong style="color:var(--primary);cursor:pointer;" onclick="openBookingFromDashboard('${ext.booking_id}')">${ext.guest_name}</strong>
-                      <div style="font-size:11.5px;color:var(--muted);margin-top:2px;">
-                        ${propLabel(ext.rooms) || ext.room_id} &bull; Extended till: <strong style="color:var(--green);">${ext.check_out || 'Open'}</strong>
-                      </div>
-                    </div>
-                    <div style="font-weight:700;color:var(--green);font-size:12px;">₹${(ext.total_amount || 0).toLocaleString('en-IN')}</div>
-                  </div>
-                `).join('')}
-              </div>
-            </div>
-          ` : ''}
-
-        </div>
-      </div>
-
-      <!-- TAB 4: WHATSAPP QUICK ACTIONS -->
-      <div class="dash-tab-pane ${window._activeDashTab === 'wa' ? 'active' : ''}" id="dash-tab-wa">
-        <div class="dash-panel-card" style="border-top:4px solid #25D366;">
-          <div class="dash-panel-head">
-            <div class="dash-panel-title" style="color:#128C7E;">
-              <span>📱</span> WhatsApp Communication Tasks (${totalWATasks})
-            </div>
-            <span class="badge green">One-Tap Action</span>
-          </div>
-
-          ${totalWATasks === 0 ? `
-            <div class="dash-empty-state" style="padding:40px 20px;">
-              <div style="font-size:32px;margin-bottom:8px;">🎉</div>
-              <div style="font-size:15px;font-weight:700;color:var(--text);">All WhatsApp communications up to date!</div>
-              <div style="font-size:12.5px;color:var(--muted);margin-top:4px;">No pending reminders, key deliveries, or ID requests for today.</div>
-            </div>
-          ` : `
-            <div style="font-size:12.5px;color:var(--muted);margin-bottom:16px;">
-              Click any button below to prepare and send personalized WhatsApp updates directly to guests.
-            </div>
-
-            ${checkinReminders.length ? `
-              <div style="margin-bottom:18px;">
-                <div style="font-size:12.5px;font-weight:800;color:#00A699;text-transform:uppercase;margin-bottom:8px;">
-                  📅 Check-in Reminders (${checkinReminders.length}) &bull; Guests arriving tomorrow
-                </div>
-                ${checkinReminders.map(b => `
-                  <div class="dash-guest-item">
-                    <div class="dash-guest-info">
-                      <strong style="color:var(--text);">${b.guest_name}</strong> — <span class="dash-unit-chip">${propLabel(b.rooms) || b.room_id}</span>
-                      <div class="dash-guest-meta" style="margin-top:2px;">
-                        <span>📞 ${b.phone}</span> &bull; <span>Check-in: ${b.check_in} ${b.check_in_time || ''}</span>
-                      </div>
-                    </div>
-                    <button class="dash-pill-btn primary" style="background:#00A699;border-color:#00A699;font-size:11.5px;padding:6px 12px;" onclick="sendCheckinReminder('${b.booking_id}')">
-                      📅 Send Reminder
-                    </button>
-                  </div>
-                `).join('')}
-              </div>
-            ` : ''}
-
-            ${arrivingSoonWA.length ? `
-              <div style="margin-bottom:18px;">
-                <div style="font-size:12.5px;font-weight:800;color:#E2725B;text-transform:uppercase;margin-bottom:8px;">
-                  🔑 Arrival Details (${arrivingSoonWA.length}) &bull; Send WiFi & Key details
-                </div>
-                ${arrivingSoonWA.map(b => `
-                  <div class="dash-guest-item">
-                    <div class="dash-guest-info">
-                      <strong style="color:var(--text);">${b.guest_name}</strong> — <span class="dash-unit-chip">${propLabel(b.rooms) || b.room_id}</span>
-                      <div class="dash-guest-meta" style="margin-top:2px;">
-                        <span>📞 ${b.phone}</span> &bull; <span>Check-in: ${b.check_in_time || '14:00'}</span>
-                      </div>
-                    </div>
-                    <button class="dash-pill-btn primary" style="background:#E2725B;border-color:#E2725B;font-size:11.5px;padding:6px 12px;" onclick="sendArrivalDetails('${b.booking_id}')">
-                      🔑 Send Keys + WiFi
-                    </button>
-                  </div>
-                `).join('')}
-              </div>
-            ` : ''}
-
-            ${checkoutReminders.length ? `
-              <div style="margin-bottom:18px;">
-                <div style="font-size:12.5px;font-weight:800;color:#FF385C;text-transform:uppercase;margin-bottom:8px;">
-                  📤 Checkout Alerts (${checkoutReminders.length}) &bull; Leaving today
-                </div>
-                ${checkoutReminders.map(b => `
-                  <div class="dash-guest-item">
-                    <div class="dash-guest-info">
-                      <strong style="color:var(--text);">${b.guest_name}</strong> — <span class="dash-unit-chip">${propLabel(b.rooms) || b.room_id}</span>
-                      <div class="dash-guest-meta" style="margin-top:2px;">
-                        <span>📞 ${b.phone}</span> &bull; <span>Checkout: ${b.check_out_time || '11:00 AM'}</span>
-                      </div>
-                    </div>
-                    <button class="dash-pill-btn primary" style="background:#FF385C;border-color:#FF385C;font-size:11.5px;padding:6px 12px;" onclick="sendCheckoutReminder('${b.booking_id}')">
-                      🔔 Checkout Alert
-                    </button>
-                  </div>
-                `).join('')}
-              </div>
-            ` : ''}
-
-            ${noIdBookings.length ? `
-              <div style="margin-bottom:18px;">
-                <div style="font-size:12.5px;font-weight:800;color:#D97706;text-transform:uppercase;margin-bottom:8px;">
-                  🪪 ID Missing (${noIdBookings.length}) &bull; Currently staying without ID proof
-                </div>
-                ${noIdBookings.map(b => `
-                  <div class="dash-guest-item">
-                    <div class="dash-guest-info">
-                      <strong style="color:var(--text);">${b.guest_name}</strong> — <span class="dash-unit-chip">${propLabel(b.rooms) || b.room_id}</span>
-                      <div class="dash-guest-meta" style="margin-top:2px;">
-                        <span>📞 ${b.phone}</span> &bull; <span>Guests: ${b.guests || 1}</span>
-                      </div>
-                    </div>
-                    <button class="dash-pill-btn primary" style="background:#D97706;border-color:#D97706;font-size:11.5px;padding:6px 12px;" onclick="requestGuestID('${b.booking_id}')">
-                      🪪 Request ID
-                    </button>
-                  </div>
-                `).join('')}
-              </div>
-            ` : ''}
-
-            ${reviewRequests.length ? `
-              <div style="margin-bottom:12px;">
-                <div style="font-size:12.5px;font-weight:800;color:#7C3AED;text-transform:uppercase;margin-bottom:8px;">
-                  ⭐ Review Requests (${reviewRequests.length}) &bull; Checked out recently
-                </div>
-                ${reviewRequests.map(b => `
-                  <div class="dash-guest-item">
-                    <div class="dash-guest-info">
-                      <strong style="color:var(--text);">${b.guest_name}</strong> — <span class="dash-unit-chip">${propLabel(b.rooms) || b.room_id}</span>
-                      <div class="dash-guest-meta" style="margin-top:2px;">
-                        <span>📞 ${b.phone}</span> &bull; <span>Stayed: ${b.check_in} → ${b.check_out}</span>
-                      </div>
-                    </div>
-                    <button class="dash-pill-btn primary" style="background:#7C3AED;border-color:#7C3AED;font-size:11.5px;padding:6px 12px;" onclick="requestReview('${b.booking_id}')">
-                      ⭐ Request Review
-                    </button>
-                  </div>
-                `).join('')}
-              </div>
-            ` : ''}
-          `}
-        </div>
-      </div>
-
-      <!-- NEXT 7 DAYS BOOKINGS (ALWAYS VISIBLE OVERVIEW) -->
-      <div class="dash-panel-card" style="margin-top:20px;">
-        <div class="dash-panel-head">
-          <div class="dash-panel-title">
-            <span>📅</span> Upcoming Arrivals (Next 7 Days &bull; ${upcoming7.length} Bookings)
-          </div>
-          <button class="dash-pill-btn" style="padding:4px 10px;font-size:11.5px;" onclick="navigate('bookings')">All Bookings →</button>
-        </div>
-        ${upcoming7.length === 0 ? `<div class="dash-empty-state">No upcoming bookings in the next 7 days</div>` : `
-          <div class="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>Check-in</th>
-                  <th>Guest Name</th>
-                  <th>Property</th>
-                  <th>Contact</th>
-                  <th style="text-align:right;">Amount</th>
-                  <th style="text-align:center;">Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${upcoming7.slice(0, 10).map(x => `
-                  <tr>
-                    <td style="font-size:12.5px;white-space:nowrap;">
-                      <strong>${x.check_in}</strong>
-                      <div style="font-size:11px;color:var(--muted);">${x.check_in_time || '2:00 PM'}</div>
-                    </td>
-                    <td>
-                      <strong style="cursor:pointer;color:var(--primary);" onclick="openBookingFromDashboard('${x.booking_id}')">${x.guest_name}</strong>
-                      ${getRatingBadge(x.client_rating)}
-                    </td>
-                    <td style="font-size:12px;"><span class="dash-unit-chip">${bName(x)}</span></td>
-                    <td style="font-size:12px;">
-                      ${x.phone ? `<a href="tel:${x.phone}" style="color:var(--text-secondary);text-decoration:none;">📞 ${x.phone}</a>` : '-'}
-                    </td>
-                    <td style="text-align:right;font-weight:700;color:#059669;font-size:13px;">
-                      ₹${(x.total_amount || 0).toLocaleString('en-IN')}
-                    </td>
-                    <td style="text-align:center;">
-                      <button class="dash-pill-btn" style="padding:3px 8px;font-size:11px;" onclick="openBookingFromDashboard('${x.booking_id}')">View</button>
-                    </td>
-                  </tr>
-                `).join('')}
-              </tbody>
-            </table>
-          </div>
-        `}
-      </div>
-    </div>
-  `, 'dashboard');
-
-    // Initialize Chart.js Executive Visualizations
     setTimeout(() => {
       if (typeof window.initExecutiveDashboardCharts === 'function') {
         window.initExecutiveDashboardCharts({
@@ -2517,24 +2261,24 @@ async function renderDashboard() {
           maintUnits: maintUnits.length
         });
       }
-    }, 50);
+    }, 60);
+
   } catch (err) {
-    console.error("❌ CRITICAL ERROR in renderDashboard:", err);
+    console.error("❌ CRITICAL ERROR in renderExecutiveDashboard:", err);
     renderShell(`
-      <div class="card" style="max-width:860px;margin:40px auto;padding:36px;text-align:center;border-radius:20px;border:1px solid #FECACA;background:#FFF5F5;box-shadow:0 8px 30px rgba(234,56,41,0.08);">
+      <div class="card" style="max-width:860px;margin:40px auto;padding:36px;text-align:center;border-radius:20px;border:1px solid #FECACA;background:#FFF5F5;">
         <div style="font-size:44px;margin-bottom:14px;">⚠️</div>
-        <h2 style="color:#991B1B;font-size:20px;font-weight:800;margin-bottom:8px;">Dashboard Encountered an Issue</h2>
-        <p style="color:#7F1D1D;font-size:13.5px;margin-bottom:20px;line-height:1.5;">
-          ${escapeHtml(err && err.message ? err.message : String(err))}
-        </p>
-        <div style="display:flex;justify-content:center;gap:12px;flex-wrap:wrap;">
-          <button type="button" style="background:#EA3829;color:#fff;border:none;padding:10px 24px;border-radius:999px;font-weight:800;font-size:13px;cursor:pointer;box-shadow:0 4px 14px rgba(234,56,41,0.3);" onclick="renderDashboard()">🔄 Retry Dashboard</button>
-          <button type="button" style="background:#0F172A;color:#fff;border:none;padding:10px 24px;border-radius:999px;font-weight:800;font-size:13px;cursor:pointer;" onclick="navigate('bookings')">📅 View Bookings</button>
-        </div>
+        <h2 style="color:#991B1B;font-size:20px;font-weight:800;margin-bottom:8px;">Executive Dashboard Issue</h2>
+        <p style="color:#7F1D1D;font-size:13.5px;margin-bottom:20px;">${escapeHtml(err?.message || String(err))}</p>
+        <button type="button" style="background:#0F172A;color:#fff;border:none;padding:10px 24px;border-radius:999px;font-weight:800;cursor:pointer;" onclick="renderExecutiveDashboard()">🔄 Retry</button>
       </div>
-    `, 'dashboard');
+    `, 'analytics');
   }
-}
+};
+
+window.renderFullDashboardAnalytics = window.renderExecutiveDashboard;
+window.renderAnalytics = window.renderExecutiveDashboard;
+
 
 // ============ CHECKIN MANAGER VIEW ============
 async function renderCheckinManagerView() {
