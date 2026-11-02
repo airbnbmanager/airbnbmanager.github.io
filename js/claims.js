@@ -1080,70 +1080,74 @@ window.showUhhsStatementModal = async function() {
     window._currentUhhsStatementData = { fDate, tDate, totalInflow, totalOutflow, netBalance, txns };
 
     modal.innerHTML = `
-      <div class="modal-box" style="background:#fff;border-radius:12px;width:100%;max-width:850px;max-height:90vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 10px 30px rgba(0,0,0,0.35);margin:auto;" onclick="event.stopPropagation()">
+      <div class="modal-box" style="background:#fff;border-radius:14px;width:100%;max-width:880px;max-height:92vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 12px 35px rgba(0,0,0,0.35);margin:auto;position:relative;" onclick="event.stopPropagation()">
         <!-- STICKY HEADER -->
-        <div style="padding:14px 18px;border-bottom:1.5px solid #E2E8F0;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;background:#F8FAFC;">
-          <div>
-            <h2 style="margin:0;color:#0F766E;font-size:17px;font-weight:800;display:flex;align-items:center;gap:6px;">
-              📜 TUHH-OD Account Statement / Ledger
+        <div style="padding:12px 16px;border-bottom:1.5px solid #E2E8F0;display:flex;justify-content:space-between;align-items:center;gap:10px;background:#F8FAFC;">
+          <div style="min-width:0;flex:1;">
+            <h2 style="margin:0;color:#0F766E;font-size:16px;font-weight:800;display:flex;align-items:center;gap:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+              📜 TUHH-OD Statement / Ledger
             </h2>
-            <div style="font-size:11.5px;color:#64748B;margin-top:2px;">
-              Period: <strong>${fDate}</strong> → <strong>${tDate}</strong> · Total Transactions: <strong>${txns.length}</strong>
+            <div style="font-size:11px;color:#64748B;margin-top:2px;">
+              Period: <strong>${fDate}</strong> → <strong>${tDate}</strong> · Txns: <strong>${txns.length}</strong>
             </div>
           </div>
-          <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
-            <button onclick="openUhhsDepositModal()" style="padding:6px 12px;background:#10B981;color:#fff;border:none;border-radius:6px;font-weight:700;font-size:11.5px;cursor:pointer;">📥 + Add Deposit</button>
-            <button onclick="openUhhsReturnModal()" style="padding:6px 12px;background:#EF4444;color:#fff;border:none;border-radius:6px;font-weight:700;font-size:11.5px;cursor:pointer;">💸 Return to Company</button>
-            <button onclick="window.exportUhhsLedgerPDF()" style="padding:6px 12px;background:#0F172A;color:#fff;border:none;border-radius:6px;font-weight:700;font-size:11.5px;cursor:pointer;">📄 Export PDF</button>
-            <button onclick="window.closeUhhsStatementModal()" style="background:#EF4444;color:#fff;border:none;padding:6px 14px;border-radius:6px;font-weight:800;font-size:12.5px;cursor:pointer;display:inline-flex;align-items:center;gap:4px;box-shadow:0 1px 3px rgba(239,68,68,0.3);">✕ Close</button>
-          </div>
+          <button type="button" class="modal-close" onclick="window.closeUhhsStatementModal()" title="Close Ledger (ESC)" aria-label="Close" style="background:#F1F5F9;color:#475569;border:1px solid #CBD5E1;width:32px;height:32px;border-radius:50%;font-weight:800;font-size:14px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;transition:all 0.15s ease;">✕</button>
+        </div>
+
+        <!-- ACTION TOOLBAR -->
+        <div style="padding:8px 16px;background:#FFFFFF;border-bottom:1px solid #F1F5F9;display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
+          <button onclick="openUhhsDepositModal()" style="padding:6px 12px;background:#10B981;color:#fff;border:none;border-radius:6px;font-weight:700;font-size:11.5px;cursor:pointer;display:inline-flex;align-items:center;gap:4px;">📥 + Add Deposit</button>
+          <button onclick="openUhhsReturnModal()" style="padding:6px 12px;background:#EF4444;color:#fff;border:none;border-radius:6px;font-weight:700;font-size:11.5px;cursor:pointer;display:inline-flex;align-items:center;gap:4px;">💸 Return to Company</button>
+          <button onclick="window.exportUhhsLedgerPDF()" style="padding:6px 12px;background:#0F172A;color:#fff;border:none;border-radius:6px;font-weight:700;font-size:11.5px;cursor:pointer;display:inline-flex;align-items:center;gap:4px;">📄 Export PDF</button>
         </div>
 
         <!-- SCROLLABLE BODY -->
-        <div style="padding:14px 18px;overflow-y:auto;overflow-x:auto;-webkit-overflow-scrolling:touch;flex:1;">
-          <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(140px, 1fr));gap:10px;margin-bottom:14px;">
-            <div style="padding:10px;background:#F0FDF4;border:1px solid #86EFAC;border-radius:8px;text-align:center;">
-              <div style="font-size:10px;color:#166534;font-weight:700;">TOTAL DEPOSITED (+)</div>
-              <div style="font-size:18px;font-weight:800;color:#059669;margin-top:2px;">₹${totalInflow.toLocaleString('en-IN')}</div>
+        <div style="padding:12px 16px;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;flex:1;">
+          <!-- 3-COL KPI SUMMARY ROW -->
+          <div class="uhhs-od-kpi-row" style="display:flex;flex-direction:row;gap:8px;margin-bottom:12px;width:100%;">
+            <div class="uhhs-od-kpi-card" style="flex:1 1 0;min-width:0;padding:8px 6px;background:#F0FDF4;border:1px solid #86EFAC;border-radius:8px;text-align:center;">
+              <div class="kpi-label" style="font-size:9.5px;color:#166534;font-weight:700;">TOTAL DEPOSITED (+)</div>
+              <div class="kpi-val" style="font-size:15px;font-weight:800;color:#059669;margin-top:2px;">₹${totalInflow.toLocaleString('en-IN')}</div>
             </div>
-            <div style="padding:10px;background:#FEF2F2;border:1px solid #FECDD3;border-radius:8px;text-align:center;">
-              <div style="font-size:10px;color:#991B1B;font-weight:700;">TOTAL SPENT (-)</div>
-              <div style="font-size:18px;font-weight:800;color:#DC2626;margin-top:2px;">₹${totalOutflow.toLocaleString('en-IN')}</div>
+            <div class="uhhs-od-kpi-card" style="flex:1 1 0;min-width:0;padding:8px 6px;background:#FEF2F2;border:1px solid #FECDD3;border-radius:8px;text-align:center;">
+              <div class="kpi-label" style="font-size:9.5px;color:#991B1B;font-weight:700;">TOTAL SPENT (-)</div>
+              <div class="kpi-val" style="font-size:15px;font-weight:800;color:#DC2626;margin-top:2px;">₹${totalOutflow.toLocaleString('en-IN')}</div>
             </div>
-            <div style="padding:10px;background:${netBalance>=0?'#ECFDF5':'#FFF1F2'};border:1px solid ${netBalance>=0?'#A7F3D0':'#FDA4AF'};border-radius:8px;text-align:center;">
-              <div style="font-size:10px;color:${netBalance>=0?'#065F46':'#9F1239'};font-weight:700;">NET RUNNING BALANCE</div>
-              <div style="font-size:18px;font-weight:800;color:${netBalance>=0?'#059669':'#DC2626'};margin-top:2px;">₹${netBalance.toLocaleString('en-IN')}</div>
+            <div class="uhhs-od-kpi-card" style="flex:1 1 0;min-width:0;padding:8px 6px;background:${netBalance>=0?'#ECFDF5':'#FFF1F2'};border:1px solid ${netBalance>=0?'#A7F3D0':'#FDA4AF'};border-radius:8px;text-align:center;">
+              <div class="kpi-label" style="font-size:9.5px;color:${netBalance>=0?'#065F46':'#9F1239'};font-weight:700;">RUNNING BALANCE</div>
+              <div class="kpi-val" style="font-size:15px;font-weight:800;color:${netBalance>=0?'#059669':'#DC2626'};margin-top:2px;">₹${netBalance.toLocaleString('en-IN')}</div>
             </div>
           </div>
 
-          <div style="overflow-x:auto;-webkit-overflow-scrolling:touch;">
-            <table style="width:100%;border-collapse:collapse;font-size:12px;min-width:540px;">
+          <!-- HORIZONTALLY SCROLLABLE TABLE WRAPPER -->
+          <div class="uhhs-od-table-scroll" style="overflow-x:auto;-webkit-overflow-scrolling:touch;width:100%;border:1px solid #E2E8F0;border-radius:8px;background:#FFFFFF;">
+            <table class="uhhs-od-ledger-table" style="width:100%;min-width:680px;border-collapse:collapse;table-layout:auto;font-size:12px;">
               <thead>
-                <tr style="background:#F1F5F9;text-align:left;">
-                  <th style="padding:8px;">Date</th>
-                  <th style="padding:8px;">Type</th>
-                  <th style="padding:8px;">Description</th>
-                  <th style="padding:8px;text-align:right;">Amount (₹)</th>
-                  <th style="padding:8px;text-align:center;">Actions</th>
+                <tr style="background:#F1F5F9;text-align:left;border-bottom:1.5px solid #CBD5E1;">
+                  <th style="padding:8px 10px;width:90px;min-width:90px;white-space:nowrap;font-weight:700;color:#334155;">Date</th>
+                  <th style="padding:8px 10px;width:95px;min-width:95px;white-space:nowrap;font-weight:700;color:#334155;">Type</th>
+                  <th style="padding:8px 10px;min-width:240px;font-weight:700;color:#334155;">Description</th>
+                  <th style="padding:8px 10px;width:115px;min-width:115px;text-align:right;white-space:nowrap;font-weight:700;color:#334155;">Amount (₹)</th>
+                  <th style="padding:8px 10px;width:135px;min-width:135px;text-align:center;white-space:nowrap;font-weight:700;color:#334155;">Actions</th>
                 </tr>
               </thead>
               <tbody>
                 ${txns.length === 0 ? '<tr><td colspan="5" style="padding:24px;text-align:center;color:#94A3B8;">No transactions found in selected period</td></tr>' : ''}
                 ${txns.map(t => `
                   <tr style="border-bottom:1px solid #E2E8F0;">
-                    <td style="padding:8px;white-space:nowrap;">${t.date || '-'}</td>
-                    <td style="padding:8px;"><span style="padding:2px 6px;border-radius:4px;font-size:10px;font-weight:700;background:${t.isDep?'#DCFCE7':'#FEE2E2'};color:${t.isDep?'#15803D':'#B91C1C'};">${t.isDep ? '📥 DEPOSIT' : '📤 EXPENSE'}</span></td>
-                    <td style="padding:8px;">${t.desc}</td>
-                    <td style="padding:8px;text-align:right;font-weight:700;color:${t.isDep?'#15803D':'#B91C1C'};white-space:nowrap;">${t.isDep ? '+' : '-'}₹${t.amount.toLocaleString('en-IN')}</td>
-                    <td style="padding:8px;text-align:center;white-space:nowrap;">
+                    <td style="padding:8px 10px;white-space:nowrap;color:#475569;font-weight:600;">${t.date || '-'}</td>
+                    <td style="padding:8px 10px;white-space:nowrap;"><span style="padding:2px 7px;border-radius:4px;font-size:10px;font-weight:700;background:${t.isDep?'#DCFCE7':'#FEE2E2'};color:${t.isDep?'#15803D':'#B91C1C'};">${t.isDep ? '📥 DEPOSIT' : '📤 EXPENSE'}</span></td>
+                    <td style="padding:8px 10px;min-width:240px;max-width:none !important;white-space:normal !important;word-break:break-word !important;color:#1E293B;line-height:1.35;">${t.desc}</td>
+                    <td style="padding:8px 10px;text-align:right;font-weight:700;color:${t.isDep?'#15803D':'#B91C1C'};white-space:nowrap;min-width:115px;">${t.isDep ? '+' : '-'}₹${t.amount.toLocaleString('en-IN')}</td>
+                    <td style="padding:8px 10px;text-align:center;white-space:nowrap;min-width:135px;">
                       ${(t.isSecurityDeposit || t.isSecurityRefund) && t.booking_id ? `
-                        <button onclick="window.showSecurityDepositModal('${t.booking_id}')" class="btn-sm" style="background:#0284C7;color:#fff;padding:3px 8px;font-size:10px;border:none;border-radius:4px;cursor:pointer;" title="Manage Security Deposit">🛡️ Manage</button>
+                        <button onclick="window.showSecurityDepositModal('${t.booking_id}')" class="btn-sm" style="background:#0284C7;color:#fff;padding:4px 9px;font-size:10.5px;font-weight:600;border:none;border-radius:4px;cursor:pointer;" title="Manage Security Deposit">🛡️ Manage</button>
                       ` : (t.isDep ? `
-                        <button onclick="window.cbEditODDeposit('${t.id}')" class="btn-sm" style="background:#3B82F6;color:#fff;padding:3px 8px;font-size:10px;border:none;border-radius:4px;cursor:pointer;margin-right:4px;">✏️ Edit</button>
-                        <button onclick="window.cbDeleteODDeposit('${t.id}')" class="btn-sm" style="background:#DC2626;color:#fff;padding:3px 8px;font-size:10px;border:none;border-radius:4px;cursor:pointer;">🗑️ Delete</button>
+                        <button onclick="window.cbEditODDeposit('${t.id}')" class="btn-sm" style="background:#3B82F6;color:#fff;padding:4px 8px;font-size:10.5px;font-weight:600;border:none;border-radius:4px;cursor:pointer;margin-right:4px;">✏️ Edit</button>
+                        <button onclick="window.cbDeleteODDeposit('${t.id}')" class="btn-sm" style="background:#DC2626;color:#fff;padding:4px 8px;font-size:10.5px;font-weight:600;border:none;border-radius:4px;cursor:pointer;">🗑️ Delete</button>
                       ` : (t.source === 'reimbursements' && t.id ? `
-                        <button onclick="window.openReimbursementEditModal('${t.id}')" class="btn-sm" style="background:#3B82F6;color:#fff;padding:3px 8px;font-size:10px;border:none;border-radius:4px;cursor:pointer;margin-right:4px;" title="Edit Daily Expense">✏️ Edit</button>
-                        <button onclick="window.deleteReimbursementFromLedger('${t.id}')" class="btn-sm" style="background:#DC2626;color:#fff;padding:3px 8px;font-size:10px;border:none;border-radius:4px;cursor:pointer;" title="Delete Daily Expense">🗑️ Delete</button>
+                        <button onclick="window.openReimbursementEditModal('${t.id}')" class="btn-sm" style="background:#3B82F6;color:#fff;padding:4px 8px;font-size:10.5px;font-weight:600;border:none;border-radius:4px;cursor:pointer;margin-right:4px;" title="Edit Daily Expense">✏️ Edit</button>
+                        <button onclick="window.deleteReimbursementFromLedger('${t.id}')" class="btn-sm" style="background:#DC2626;color:#fff;padding:4px 8px;font-size:10.5px;font-weight:600;border:none;border-radius:4px;cursor:pointer;" title="Delete Daily Expense">🗑️ Delete</button>
                       ` : '<span style="color:#94A3B8;font-size:11px;">Auto</span>'))}
                     </td>
                   </tr>
@@ -1154,11 +1158,11 @@ window.showUhhsStatementModal = async function() {
         </div>
 
         <!-- STICKY FOOTER -->
-        <div style="padding:10px 18px;border-top:1px solid #E2E8F0;background:#F8FAFC;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+        <div style="padding:10px 16px;border-top:1px solid #E2E8F0;background:#F8FAFC;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
           <div style="font-size:12px;color:#64748B;">
-            Period Net Balance: <strong style="color:${netBalance>=0?'#059669':'#DC2626'};">₹${netBalance.toLocaleString('en-IN')}</strong>
+            Period Net Balance: <strong style="color:${netBalance>=0?'#059669':'#DC2626'};font-size:13px;">₹${netBalance.toLocaleString('en-IN')}</strong>
           </div>
-          <button type="button" onclick="window.closeUhhsStatementModal()" style="background:#64748B;color:#fff;border:none;padding:7px 16px;border-radius:6px;font-weight:700;font-size:12px;cursor:pointer;">
+          <button type="button" class="modal-close" onclick="window.closeUhhsStatementModal()" style="background:#64748B;color:#fff;border:none;padding:7px 16px;border-radius:6px;font-weight:700;font-size:12px;cursor:pointer;">
             ✕ Close Ledger
           </button>
         </div>

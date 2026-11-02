@@ -1597,6 +1597,105 @@ html, body {
     justify-content: space-between !important;
   }
 
+  /* TUHH-OD Statement & Ledger Scoped Styles */
+  #uhhsLedgerModalOverlay {
+    align-items: center !important;
+    padding: 10px !important;
+  }
+  #uhhsLedgerModalOverlay .modal-box {
+    width: 100% !important;
+    max-width: 900px !important;
+    max-height: 94vh !important;
+    border-radius: 16px !important;
+    margin: auto !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+    display: flex !important;
+    flex-direction: column !important;
+  }
+  .uhhs-od-kpi-row {
+    display: flex !important;
+    flex-direction: row !important;
+    gap: 8px !important;
+    margin-bottom: 12px !important;
+    width: 100% !important;
+  }
+  .uhhs-od-kpi-card {
+    flex: 1 1 0 !important;
+    min-width: 0 !important;
+    padding: 8px 6px !important;
+    border-radius: 8px !important;
+    text-align: center !important;
+  }
+  .uhhs-od-kpi-card .kpi-label {
+    font-size: 9.5px !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.02em !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
+  .uhhs-od-kpi-card .kpi-val {
+    font-size: 15px !important;
+    font-weight: 800 !important;
+    margin-top: 2px !important;
+    white-space: nowrap !important;
+  }
+  .uhhs-od-table-scroll {
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    width: 100% !important;
+    border: 1px solid #E2E8F0 !important;
+    border-radius: 8px !important;
+  }
+  table.uhhs-od-ledger-table {
+    width: 100% !important;
+    min-width: 700px !important;
+    border-collapse: collapse !important;
+    table-layout: auto !important;
+    font-size: 12px !important;
+  }
+  table.uhhs-od-ledger-table th,
+  table.uhhs-od-ledger-table td {
+    padding: 8px 10px !important;
+    font-size: 11.5px !important;
+    vertical-align: middle !important;
+  }
+  table.uhhs-od-ledger-table th:nth-child(1),
+  table.uhhs-od-ledger-table td:nth-child(1) {
+    width: 90px !important;
+    min-width: 90px !important;
+    white-space: nowrap !important;
+  }
+  table.uhhs-od-ledger-table th:nth-child(2),
+  table.uhhs-od-ledger-table td:nth-child(2) {
+    width: 95px !important;
+    min-width: 95px !important;
+    white-space: nowrap !important;
+  }
+  table.uhhs-od-ledger-table th:nth-child(3),
+  table.uhhs-od-ledger-table td:nth-child(3) {
+    min-width: 260px !important;
+    max-width: none !important;
+    white-space: normal !important;
+    word-break: break-word !important;
+    line-height: 1.35 !important;
+  }
+  table.uhhs-od-ledger-table th:nth-child(4),
+  table.uhhs-od-ledger-table td:nth-child(4) {
+    width: 115px !important;
+    min-width: 115px !important;
+    text-align: right !important;
+    white-space: nowrap !important;
+  }
+  table.uhhs-od-ledger-table th:nth-child(5),
+  table.uhhs-od-ledger-table td:nth-child(5) {
+    width: 140px !important;
+    min-width: 140px !important;
+    text-align: center !important;
+    white-space: nowrap !important;
+  }
+
   /* Compact Modals for Mobile */
   .modal-box {
     width: 95vw !important;
