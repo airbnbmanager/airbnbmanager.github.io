@@ -2201,7 +2201,8 @@ function navigate(page) {
       (a.dataset.page === 'calendar' && (page === 'calendar' || page === 'reports')) ||
       (a.dataset.page === 'bookings' && (page === 'bookings' || page === 'calendar' || page === 'reports' || page === 'pendingApprovals')) ||
       (a.dataset.page === 'dashboard' && page === 'dashboard') ||
-      (a.dataset.page === 'tasks' && (page === 'tasks' || page === 'maintenance' || page === 'task-and-housekeeping' || page === 'housekeeping')) ||
+      (a.dataset.page === 'employees' && (page === 'employees' || page === 'tasks' || page === 'attendance' || page === 'employee-ledger' || page === 'maintenance' || page === 'task-and-housekeeping' || page === 'housekeeping')) ||
+      (a.dataset.page === 'tasks' && (page === 'tasks' || page === 'employees' || page === 'maintenance' || page === 'task-and-housekeeping' || page === 'housekeeping')) ||
       (a.dataset.page === 'attendance' && (page === 'attendance' || page === 'att-summary')) ||
       (a.dataset.page === 'expenses' && page === 'expenses') ||
       (a.dataset.page === 'flats' && (page === 'flats' || page === 'properties' || page === 'rooms'));
