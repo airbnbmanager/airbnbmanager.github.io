@@ -8176,6 +8176,15 @@ textarea:focus {
    📱 PWA NATIVE MOBILE BOTTOM NAVIGATION & PUSH UI
    ═══════════════════════════════════════════════════════════ */
 
+@media (min-width: 769px) {
+  .pwa-bottom-nav,
+  #pwa-bottom-nav {
+    display: none !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+  }
+}
+
 .pwa-bottom-nav {
   display: none;
   position: fixed;
