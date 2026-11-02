@@ -1,6 +1,6 @@
 /* ══════════════════════════════════════════════════════════════════
    UNIQUE HAVEN HOMES — Smart Chat Widget (Nisha AI Text Chat)
-   
+
    Features:
    ✅ Smart FAQ with live Supabase rates
    ✅ Lead capture (name + phone)
@@ -119,6 +119,21 @@
       tagline: 'Classic Lucknowi royal heritage decor with contemporary luxuries',
       specs: ['3 AC Bedrooms', 'Modular Kitchen', 'Dedicated Parking', 'Couple Friendly'],
       match: /nawabi|nawabi\s*stay|nawab|gom-?401/i
+    },
+    'the-tehzeeb-nest': {
+      id: 'GOM-402',
+      name: 'The Tehzeeb Nest | Blossom Skyline',
+      type: '3BHK Luxury Serviced Flat',
+      area: 'Blossom Skyline, Vikalp Khand, Gomti Nagar',
+      price: 5200,
+      originalPrice: 6136,
+      rating: 4.78,
+      reviews: 9,
+      cover: 'https://a0.muscache.com/im/pictures/hosting/Hosting-1753628051023751271/original/3a6387d8-2c8c-4b7c-b8a7-a8bde8fb7eb4.jpeg',
+      link: 'the-tehzeeb-nest.html',
+      tagline: 'Peaceful royal 3BHK serviced flat at Blossom Skyline with elevator & high-speed Wi-Fi',
+      specs: ['3 AC Bedrooms', 'Blossom Skyline', 'Elevator Access', 'Fiber Wi-Fi', 'Up to 10 Guests'],
+      match: /tehzeeb|tehzeeb\s*nest|blossom\s*skyline|flat\s*402|gom-?402/i
     },
     'starlight-blue-penthouse': {
       id: 'GOM-501',
@@ -538,7 +553,7 @@
       _leadData.phone = phoneClean;
       _step = 'done';
       await saveLead(guestName, phoneClean, _leadData.interest || _leadData.property || 'Chat booking enquiry');
-      
+
       const propText = _leadData.property ? ` for ${_leadData.property}` : '';
       const datesText = _leadData.dates ? ` (${_leadData.dates})` : '';
       const waMsg = encodeURIComponent(`Namaste Shahanshah ji! I'm ${guestName} (${phoneClean}). I want to book a stay${propText}${datesText} at Unique Haven Homes. Please share confirmation.`);

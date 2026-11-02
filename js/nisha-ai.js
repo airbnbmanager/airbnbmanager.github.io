@@ -2,10 +2,10 @@
    UNIQUE HAVEN HOMES — "NISHA" AI ENGINE (NEXT-GEN)
    Standalone, 100% Free 24/7 AI Voice & Text Concierge
    Dual-Core Brain: Instant Lucknow Homestays Knowledge Base + Google Gemini AI
-   
+
    Features:
    ✅ 100% Free 24/7 Voice & Chat — Works with OR without Gemini API Key!
-   ✅ Instant Knowledge Base for all 17 properties, rates, amenities, rules & locations
+   ✅ Instant Knowledge Base for all 19 properties, rates, amenities, rules & locations
    ✅ Google Gemini 1.5/2.0 Flash integration when API key is provided
    ✅ Automatic Fallback: Never fails or blocks the user
    ✅ Mobile/Safari Audio Unlock: SpeechSynthesis works reliably across devices
@@ -24,7 +24,7 @@
   const GEMINI_KEY_STORAGE = 'uhh_gemini_api_key';
   const SARVAM_KEY_STORAGE = 'uhh_sarvam_api_key';
 
-  // 18 Verified Luxury Properties (Source of Truth)
+  // 19 Verified Luxury Properties (Source of Truth)
   const VERIFIED_PROPERTIES = [
     { room_id:'GOM-101', property_name:'RedRose Palace',            nickname:'RedRose Palace',            base_price:5200, max_guests:6,  bhk:'3BHK Luxury Flat', area:'Vikalp Khand, Gomti Nagar' },
     { room_id:'GOM-102', property_name:'Black Beauty',              nickname:'Black Beauty',              base_price:5200, max_guests:6,  bhk:'3BHK Luxury Flat', area:'Vikalp Khand, Gomti Nagar' },
@@ -32,6 +32,7 @@
     { room_id:'GOM-202', property_name:'The Brown',                 nickname:'The Brown',                 base_price:5200, max_guests:6,  bhk:'3BHK Luxury Flat', area:'Vikalp Khand, Gomti Nagar' },
     { room_id:'GOM-301', property_name:'The Light Green',           nickname:'The Light Green',           base_price:5200, max_guests:6,  bhk:'3BHK Luxury Flat', area:'Vikalp Khand, Gomti Nagar' },
     { room_id:'GOM-401', property_name:'The Nawabi Stay',           nickname:'The Nawabi Stay',           base_price:5200, max_guests:6,  bhk:'3BHK Luxury Flat', area:'Vikalp Khand, Gomti Nagar' },
+    { room_id:'GOM-402', property_name:'The Tehzeeb Nest | Blossom Skyline', nickname:'The Tehzeeb Nest',      base_price:5200, max_guests:10, bhk:'3BHK Luxury Flat', area:'Blossom Skyline, Vikalp Khand, Gomti Nagar' },
     { room_id:'GOM-501', property_name:'Starlight Blue PentHouse',  nickname:'Starlight Blue PentHouse',  base_price:6900, max_guests:10, bhk:'4BHK Penthouse',   area:'Vikalp Khand, Gomti Nagar' },
     { room_id:'GOM-302', property_name:'The Unique',                nickname:'The Unique',                base_price:6300, max_guests:8,  bhk:'3BHK Luxury Flat', area:'Vishesh Khand, Gomti Nagar' },
     { room_id:'VIL-104', property_name:'The Green House',           nickname:'The Green House',           base_price:6300, max_guests:8,  bhk:'3BHK 1st Floor',   area:'Vishesh Khand, Gomti Nagar' },
