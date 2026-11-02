@@ -82,8 +82,8 @@ async function renderReports() {
   const todayStr = new Date().toISOString().slice(0, 10);
 
   // ─── Monthly stats (Scoped to selected room if filtered) ───
-  const isBkBlocked = b => (b.booking_id && String(b.booking_id).startsWith('BLK_')) || 
-                           (b.guest_name || '').toLowerCase().includes('blocked') || 
+  const isBkBlocked = b => (b.booking_id && String(b.booking_id).startsWith('BLK_')) ||
+                           (b.guest_name || '').toLowerCase().includes('blocked') ||
                            b.booking_mode === 'Offline-Blocked';
 
   const displayRooms = (selRoom && selRoom !== 'all') ? allRooms.filter(r => r.room_id === selRoom) : allRooms;
@@ -401,8 +401,8 @@ async function renderReports() {
                           const isToday = (ds === todayStr);
 
                           return `
-                            <div class="hh-day-cell ${isWeekend ? 'is-weekend' : ''} ${isToday ? 'is-today' : ''}" 
-                                 style="left:${idx * colWidth}px;width:${colWidth}px;" 
+                            <div class="hh-day-cell ${isWeekend ? 'is-weekend' : ''} ${isToday ? 'is-today' : ''}"
+                                 style="left:${idx * colWidth}px;width:${colWidth}px;"
                                  onclick="calCreateBooking('${r.room_id}', '${ds}')"
                                  title="Free on ${ds} - Click to book">
                               <span class="hh-day-rate-hint">₹${(rent/1000).toFixed(1)}k</span>
@@ -444,25 +444,25 @@ async function renderReports() {
                           if (isBlocked) {
                             payBadge = '<span class="hh-gantt-status-tag" style="background:#334155;color:#fff;font-size:8px;padding:1px 3px;">LOCK</span>';
                           } else if (span === 1 || widthPx < 115) {
-                            payBadge = isPaid 
-                              ? '<span class="hh-gantt-status-tag paid mini" title="✓ Paid">✓</span>' 
+                            payBadge = isPaid
+                              ? '<span class="hh-gantt-status-tag paid mini" title="✓ Paid">✓</span>'
                               : '<span class="hh-gantt-status-tag due mini" title="⚠️ ₹' + Math.round(dueAmt).toLocaleString('en-IN') + ' Due">⚠️</span>';
                           } else if (span === 2 || widthPx < 195) {
-                            payBadge = isPaid 
-                              ? '<span class="hh-gantt-status-tag paid">✓ Paid</span>' 
+                            payBadge = isPaid
+                              ? '<span class="hh-gantt-status-tag paid">✓ Paid</span>'
                               : '<span class="hh-gantt-status-tag due">⚠️ Due</span>';
                           } else {
-                            payBadge = isPaid 
-                              ? '<span class="hh-gantt-status-tag paid">✓ Paid</span>' 
+                            payBadge = isPaid
+                              ? '<span class="hh-gantt-status-tag paid">✓ Paid</span>'
                               : '<span class="hh-gantt-status-tag due">⚠️ ₹' + Math.round(dueAmt).toLocaleString('en-IN') + ' Due</span>';
                           }
 
-                          const chIcon = isBlocked 
-                            ? '<i class="ti ti-lock"></i>' 
-                            : (channel === 'airbnb' 
-                                ? '<i class="ti ti-brand-airbnb"></i>' 
-                                : (channel === 'bookingcom' 
-                                    ? '<i class="ti ti-building"></i>' 
+                          const chIcon = isBlocked
+                            ? '<i class="ti ti-lock"></i>'
+                            : (channel === 'airbnb'
+                                ? '<i class="ti ti-brand-airbnb"></i>'
+                                : (channel === 'bookingcom'
+                                    ? '<i class="ti ti-building"></i>'
                                     : '<i class="ti ti-phone-call"></i>'));
 
                           const guestTitle = isBlocked ? (b.guest_name || 'Maintenance Block') : (b.guest_name || 'Direct Guest');
@@ -480,7 +480,7 @@ async function renderReports() {
                           }
 
                           return `
-                            <div class="hh-gantt-bar ${channel}" 
+                            <div class="hh-gantt-bar ${channel}"
                                  style="left:${leftPx}px;width:${widthPx}px;border-radius:${isCutStart ? '0 8px 8px 0' : (isCutEnd ? '8px 0 0 8px' : '8px')};"
                                  onclick="window.openBookingDetails('${b.booking_id}')">
                               <div class="hh-gantt-top-row">
@@ -682,12 +682,13 @@ async function renderReports() {
         if (/^(Send|Message|Contact)$/i.test(firstName) && nameParts.length > 1) {
           firstName = nameParts[1];
         }
-        if (firstName.length > 8) firstName = firstName.substring(0, 8);
+        if (firstName.length > 10) firstName = firstName.substring(0, 10);
 
         const hasReview = isReviewedBooking(bk);
         const currentNight = calcNights(bk.check_in, ds);
-        const showName = !isMobile && (isCheckIn || isCheckOut || (currentNight > 0 && currentNight % 2 === 0));
-        const showAvatar = isCheckIn || isBlocked;
+        // Show guest name on ALL screen sizes (including mobile), especially on Check-in or recurring days
+        const showName = true;
+        const showAvatar = (isCheckIn || isBlocked || isSameDay) && !isMobile;
 
         // Payment status check for non-blocked bookings
         const totalAmt = Number(bk.total_amount || 0);
@@ -711,7 +712,7 @@ async function renderReports() {
         else if (isCheckIn) borderRadius = '14px 0 0 14px';
         else if (isCheckOut) borderRadius = '0 14px 14px 0';
 
-        const overlapTitle = overlapCount > 1 
+        const overlapTitle = overlapCount > 1
           ? bkArr.map(x => x.guest_name || 'Guest').join(' + ')
           : (bk.guest_name || (isBlocked ? 'Blocked Slot' : 'Booked'));
 
@@ -729,8 +730,8 @@ async function renderReports() {
             </div>
             <div class="cal-pill ${isBlocked ? 'blocked' : ''}" style="background:${isSameDay ? 'linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%)' : bg};border-radius:${borderRadius};${hasReview ? 'box-shadow:0 0 0 1.5px #F59E0B;' : ''}">
               ${isSameDay ? `<span class="cal-avatar" style="background:#EDE9FE;color:#6D28D9;">⚡</span>` : (showAvatar ? `<span class="cal-avatar" style="${hasReview ? 'background:#FEF3C7;color:#D97706;' : ''}">${hasReview ? '⭐' : guestInitial}</span>` : '')}
-              ${isSameDay ? `<span class="cal-name" title="Day Use: ${(bk.check_in_time||'09:30').slice(0,5)} to ${(bk.check_out_time||'16:30').slice(0,5)}">${firstName} (Day)</span>` : (showName && !isBlocked ? `<span class="cal-name">${firstName}${hasReview ? ' ⭐' : ''}</span>` : '')}
-              ${isBlocked && showName && isCheckIn ? `<span class="cal-name">Blocked</span>` : ''}
+              ${isSameDay ? `<span class="cal-name" title="Day Use: ${(bk.check_in_time||'09:30').slice(0,5)} to ${(bk.check_out_time||'16:30').slice(0,5)}">${firstName} (Day)</span>` : (!isBlocked ? `<span class="cal-name">${firstName}${hasReview ? ' ⭐' : ''}</span>` : '')}
+              ${isBlocked ? `<span class="cal-name">🔒 Blocked</span>` : ''}
             </div>
           </div>`;
       } else {
@@ -758,7 +759,7 @@ async function renderReports() {
     const slug = r.slug || ROOM_SLUG_MAP[r.room_id] || '';
     const thumbSrc = slug ? `assets/properties/${slug}/cover.jpg` : '';
     const thumbHtml = thumbSrc
-      ? `<img src="${thumbSrc}" alt="${r.nickname || r.room_id}" onerror="this.style.display='none'" style="width:40px;height:40px;border-radius:8px;object-fit:cover;flex-shrink:0;border:1px solid #E2E8F0;">` 
+      ? `<img src="${thumbSrc}" alt="${r.nickname || r.room_id}" onerror="this.style.display='none'" style="width:40px;height:40px;border-radius:8px;object-fit:cover;flex-shrink:0;border:1px solid #E2E8F0;">`
       : `<div style="width:40px;height:40px;border-radius:8px;background:linear-gradient(135deg,#b58d3d,#8c6a23);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">🏠</div>`;
 
     html += `
@@ -887,55 +888,72 @@ async function renderReports() {
     }
     .cal-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 10px; color: #fff; text-shadow: 0 1px 1px rgba(0,0,0,0.25); max-width: 100%; font-weight: 700; display: inline-block; min-width: 0; line-height: 1.35; padding: 1px 0;
     }
-    .cal-room-card { 
-      overflow: hidden; 
+    .cal-room-card {
+      overflow: hidden;
       box-sizing: border-box;
     }
 
     @media (max-width: 640px) {
-      .cal-grid { 
-        gap: 2px; 
+      .cal-stat-grid {
+        display: none !important;
       }
-      .cal-day { 
-        min-height: 46px; 
-        border-radius: 6px; 
-        padding: 1px 0;
+      .cal-grid {
+        gap: 3px;
       }
-      .cal-date-num { 
-        font-size: 9.5px; 
-        padding: 2px 2px 0; 
+      .cal-day {
+        min-height: 56px;
+        border-radius: 8px;
+        padding: 2px 1px;
       }
-      .cal-rate { 
-        font-size: 7.5px; 
-        padding-bottom: 1px;
+      .cal-date-num {
+        font-size: 10.5px;
+        font-weight: 800;
+        padding: 2px 2px 0;
       }
-      .cal-pill { 
-        font-size: 8.5px; 
-        padding: 2px 1px; 
-        margin: 1px 0; 
-        gap: 1.5px; 
+      .cal-rate {
+        font-size: 8px;
+        font-weight: 800;
+        padding-bottom: 2px;
       }
-      .cal-avatar { 
-        width: 13px; 
-        height: 13px; 
-        font-size: 7.5px; 
+      .cal-pill {
+        font-size: 9.5px;
+        padding: 3px 2px;
+        margin: 1px 0;
+        gap: 2px;
+        min-height: 22px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        box-sizing: border-box;
       }
-      .cal-name { 
-        font-size: 8px; 
-        font-weight: 700; 
-        max-width: calc(100% - 2px); 
+      .cal-avatar {
+        display: none !important;
+      }
+      .cal-name {
+        font-size: 9px !important;
+        font-weight: 800 !important;
+        max-width: 100% !important;
+        line-height: 1.2 !important;
+        white-space: nowrap !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
+        text-align: center !important;
+        display: block !important;
         letter-spacing: -0.2px;
       }
-      .cal-hdr { 
-        font-size: 8.5px; 
-        padding: 3px 0; 
+      .cal-hdr {
+        font-size: 10px;
+        font-weight: 800;
+        padding: 5px 0;
       }
-      .cal-room-card { 
-        padding: 8px 4px !important; 
-        border-radius: 12px; 
+      .cal-room-card {
+        padding: 10px 6px !important;
+        border-radius: 14px;
+        margin-bottom: 12px !important;
       }
       .cal-room-header {
-        margin-bottom: 6px !important;
+        margin-bottom: 8px !important;
       }
     }
   `;
@@ -1061,22 +1079,22 @@ async function showMultiBookingList(bookings, roomId, dateStr) {
   const roomInfo = bookings[0].rooms || {};
   const roomLabel = propLabel(roomInfo) || roomId;
   const dateFmt = new Date(dateStr).toLocaleDateString('en-IN', {weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'});
-  
+
   const bkIds = bookings.map(b => b.booking_id);
   const { data: allPays } = await sb.from('payment_history')
     .select('booking_id, amount, verification_status')
     .in('booking_id', bkIds)
     .neq('verification_status', 'rejected');
-  
+
   const paidMap = {};
   (allPays || []).forEach(p => {
     paidMap[p.booking_id] = (paidMap[p.booking_id] || 0) + (p.amount || 0);
   });
-  
+
   const modal = document.createElement('div');
   modal.className = 'modal-overlay';
   modal.onclick = e => { if (e.target === modal) modal.remove(); };
-  
+
   const bookingCards = bookings.map((b, idx) => {
     const paid = paidMap[b.booking_id] || 0;
     const bal = (b.total_amount || 0) - paid;
@@ -1097,13 +1115,13 @@ async function showMultiBookingList(bookings, roomId, dateStr) {
     if (b.is_review_booking) statusBadges.push('<span style="background:#8B5CF6;color:#fff;padding:2px 6px;border-radius:4px;font-size:10px;">⭐ REVIEW</span>');
     if (b.show_to_investor === false) statusBadges.push('<span style="background:#DC2626;color:#fff;padding:2px 6px;border-radius:4px;font-size:10px;">🚫 HIDDEN</span>');
     if (b.is_cancelled) statusBadges.push('<span style="background:#DC2626;color:#fff;padding:2px 6px;border-radius:4px;font-size:10px;">❌ CANCELLED</span>');
-    
+
     return `
       <div style="background:#fff;border:2px solid ${idx === 0 ? '#3B82F6' : '#F59E0B'};border-radius:10px;padding:14px;margin-bottom:12px;">
         <div style="display:flex;justify-content:space-between;align-items:start;flex-wrap:wrap;gap:8px;margin-bottom:10px;">
           <div>
             <div style="font-weight:700;font-size:15px;cursor:pointer;color:var(--primary);" onclick="this.closest('.modal-overlay').remove(); openBookingDetails('${b.booking_id}');" title="Click to open full booking details drawer">
-              ${idx + 1}. ${modeIcon} ${b.guest_name || 'Guest'} 
+              ${idx + 1}. ${modeIcon} ${b.guest_name || 'Guest'}
               ${statusBadges.join(' ')} ${secBadge}
             </div>
             <div style="font-size:11px;color:#666;margin-top:2px;">
@@ -1117,16 +1135,16 @@ async function showMultiBookingList(bookings, roomId, dateStr) {
             </div>
           </div>
         </div>
-        
+
         <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(100px,1fr));gap:8px;font-size:12px;background:#F8F9FA;padding:8px;border-radius:6px;margin-bottom:10px;">
           <div><strong>Check-in:</strong><br>${b.check_in || '-'} ${b.check_in_time || ''}</div>
           <div><strong>Check-out:</strong><br>${b.check_out || '-'} ${b.check_out_time || ''}</div>
           <div><strong>Nights:</strong><br>${nights}</div>
           <div><strong>Guests:</strong><br>${b.guests || 1}</div>
         </div>
-        
+
         ${cleanNotes ? `<div style="font-size:11px;color:#666;padding:6px;background:#FEF3C7;border-radius:4px;margin-bottom:8px;"><strong>Notes:</strong> ${cleanNotes}</div>` : ''}
-        
+
         <div style="display:flex;gap:6px;flex-wrap:wrap;">
           <button class="btn-sm" style="background:#0F172A;color:#fff;flex:1;" onclick="this.closest('.modal-overlay').remove(); openBookingDetails('${b.booking_id}');">📋 Details</button>
           <button class="btn-sm" onclick="this.closest('.modal-overlay').remove(); if(window.editBooking) editBooking('${b.booking_id}');" style="flex:1;">✏️ Edit</button>
@@ -1139,7 +1157,7 @@ async function showMultiBookingList(bookings, roomId, dateStr) {
       </div>
     `;
   }).join('');
-  
+
   modal.innerHTML = `
     <div class="modal-box" style="max-width:600px;">
       <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">✕</button>
@@ -1147,18 +1165,18 @@ async function showMultiBookingList(bookings, roomId, dateStr) {
       <div style="font-size:13px;color:#666;margin-bottom:8px;">
         🏠 ${roomLabel} &bull; ${dateFmt}
       </div>
-      
+
       <div style="background:#FEF3C7;border-left:4px solid #F59E0B;padding:10px;border-radius:6px;margin-bottom:12px;font-size:12px;color:#92400E;">
         ⚠️ <strong>${bookings.length} bookings detected on this date.</strong> You can view details, edit, or manage each booking below.
       </div>
-      
+
       ${bookingCards}
-      
+
       <div class="btn-row" style="margin-top:8px;">
         <button class="btn-sm outline" onclick="this.closest('.modal-overlay').remove();" style="width:100%;">Close</button>
       </div>
     </div>`;
-  
+
   document.body.appendChild(modal);
 }
 
@@ -1176,11 +1194,11 @@ async function showBookingPopup(roomId, dateStr) {
 
   const bookings = bks || [];
   if (bookings.length === 0) return;
-  
+
   if (bookings.length > 1) {
     return showMultiBookingList(bookings, roomId, dateStr);
   }
-  
+
   const b = bookings[0];
   openBookingDetails(b.booking_id);
 }
@@ -1204,7 +1222,7 @@ window.openBookingDetails = async function(bId) {
 
   if (!b) { alert('Booking not found'); return; }
 
-  const isBlocked = (b.booking_id && String(b.booking_id).startsWith('BLK_')) || 
+  const isBlocked = (b.booking_id && String(b.booking_id).startsWith('BLK_')) ||
                     b.booking_mode === 'Offline-Blocked' ||
                     (b.guest_name && b.guest_name.toLowerCase().includes('blocked'));
 
@@ -1245,7 +1263,7 @@ window.openBookingDetails = async function(bId) {
         ${sec && sec.status !== 'none' && (sec.amount > 0 || sec.status === 'pending') ? `
           <div style="background:#F0FDF4;border:1px solid #BBF7D0;padding:8px 12px;border-radius:8px;margin-top:6px;font-size:12.5px;color:#166534;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px;">
             <div>
-              🛡️ <strong>Security Deposit:</strong> ₹${(sec.amount || 0).toLocaleString('en-IN')} 
+              🛡️ <strong>Security Deposit:</strong> ₹${(sec.amount || 0).toLocaleString('en-IN')}
               <span style="text-transform:uppercase;font-size:10px;font-weight:700;padding:2px 6px;border-radius:4px;background:#DCFCE7;color:#15803D;margin-left:4px;">${sec.status}</span>
               ${sec.deductedAmount > 0 ? `<span style="color:#DC2626;margin-left:4px;font-weight:700;">(Deducted: ₹${sec.deductedAmount.toLocaleString('en-IN')})</span>` : ''}
               ${sec.refundAmount > 0 ? `<span style="color:#2563EB;margin-left:4px;">(Refunded: ₹${sec.refundAmount.toLocaleString('en-IN')})</span>` : ''}
@@ -1524,7 +1542,7 @@ window.openExtractBookingModal = async function(bookingId, defaultDate) {
       <div style="background:#F0FDF4;border:1px solid #BBF7D0;border-radius:10px;padding:12px;font-size:12px;color:#166534;">
         <div style="font-weight:700;margin-bottom:4px;font-size:13px;">📋 Preview of Changes:</div>
         <div style="margin-bottom:8px;line-height:1.5;">${splitDesc}</div>
-        
+
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px;padding-top:8px;border-top:1px dashed #86EFAC;">
           <div style="background:#fff;padding:8px;border-radius:6px;border:1px solid #DCFCE7;">
             <div style="font-weight:700;color:#15803D;">🏢 New Segment (${targetRoomId}):</div>
